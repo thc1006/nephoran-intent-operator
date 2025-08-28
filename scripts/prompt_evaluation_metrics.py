@@ -464,7 +464,9 @@ class TelecomEvaluator:
                     score += 0.2
                 
                 return score
-        except:
+        except (KeyError, ValueError, TypeError) as e:
+            # Log specific parsing errors for debugging
+            print(f"Warning: O1 interface parsing error: {e}", file=sys.stderr)
             pass
         
         return 0.0
@@ -486,7 +488,9 @@ class TelecomEvaluator:
                 sst = int(slice_config['sst'])
                 if sst in self.slice_types:
                     score += 1
-            except:
+            except (ValueError, TypeError) as e:
+                # Log specific conversion errors for debugging
+                print(f"Warning: SST conversion error: {e}", file=sys.stderr)
                 pass
         
         # Check PLMN ID format

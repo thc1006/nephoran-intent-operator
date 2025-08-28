@@ -1,0 +1,551 @@
+# Production-ready Kubernetes Deployment for Conductor Loop
+# Includes comprehensive security hardening and monitoring
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-conductor
+  labels:
+    name: nephoran-conductor
+    security.nephoran.com/zone: conductor
+    monitoring.nephoran.com/enabled: "true"
+    network-policy.nephoran.com/isolation: "strict"
+  annotations:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# Security: ServiceAccount with minimal permissions
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: conductor-loop
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/component: orchestrator
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    # Disable automounting of service account token
+    kubernetes.io/service-account.token-auto-mount: "false"
+automountServiceAccountToken: false
+
+---
+# Security: RBAC with minimal required permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: conductor-loop
+  namespace: nephoran-conductor
+rules:
+# Permission to read ConfigMaps for configuration
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["conductor-loop-config"]
+# Permission to read Secrets for credentials
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["conductor-loop-credentials"]
+# Permission to create/update status via events
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+# Permission to read own pod for health checking
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get"]
+  resourceNames: ["conductor-loop"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: conductor-loop
+  namespace: nephoran-conductor
+subjects:
+- kind: ServiceAccount
+  name: conductor-loop
+  namespace: nephoran-conductor
+roleRef:
+  kind: Role
+  name: conductor-loop
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Security: NetworkPolicy for traffic isolation
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: conductor-loop-network-policy
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: conductor-loop
+  policyTypes:
+  - Ingress
+  - Egress
+  
+  # Ingress: Allow traffic only from monitoring and health check sources
+  ingress:
+  # Allow health checks from kubelet
+  - from:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8080  # Health check port
+  
+  # Allow metrics collection from Prometheus
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    - podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 9090  # Metrics port
+  
+  # Egress: Restrict outbound traffic to essential services only
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  
+  # Allow communication with Porch service
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: porch-system
+    - podSelector:
+        matchLabels:
+          app: porch-server
+    ports:
+    - protocol: TCP
+      port: 7007
+  
+  # Allow communication with Redis cache
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  
+  # Allow HTTPS outbound for external API calls (if needed)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+
+---
+# Configuration: Secure ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: conductor-loop-config
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+data:
+  config.json: |
+    {
+      "log_level": "info",
+      "log_format": "json",
+      "handoff_dir": "/data/handoff",
+      "porch_path": "porch",
+      "mode": "direct",
+      "out_dir": "/data/out",
+      "debounce_duration": "500ms",
+      "max_workers": 2,
+      "cleanup_after": "168h",
+      "metrics": {
+        "enabled": true,
+        "port": 9090,
+        "path": "/metrics"
+      },
+      "health": {
+        "enabled": true,
+        "port": 8080,
+        "path": "/healthz"
+      },
+      "security": {
+        "rate_limit": {
+          "requests_per_minute": 60,
+          "burst": 10
+        },
+        "timeouts": {
+          "read_timeout": "30s",
+          "write_timeout": "30s",
+          "idle_timeout": "60s"
+        },
+        "file_limits": {
+          "max_file_size": "10MB",
+          "max_files_per_batch": 100
+        }
+      }
+    }
+
+---
+# Deployment with comprehensive security hardening
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: conductor-loop
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: orchestrator
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/managed-by: kubernetes
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    security.nephoran.com/scan-date: "2025-01-01"
+    security.nephoran.com/security-level: "high"
+spec:
+  replicas: 2  # High availability
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: conductor-loop
+  
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: conductor-loop
+        app.kubernetes.io/version: "1.0.0"
+        app.kubernetes.io/component: orchestrator
+        security.nephoran.com/policy: "restricted"
+      annotations:
+        # Security scanning annotations
+        container.apparmor.security.beta.kubernetes.io/conductor-loop: runtime/default
+        seccomp.security.alpha.kubernetes.io/pod: runtime/default
+        # Monitoring annotations
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    
+    spec:
+      # Security: Use dedicated ServiceAccount
+      serviceAccountName: conductor-loop
+      automountServiceAccountToken: false
+      
+      # Security: Pod Security Context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532  # Distroless nonroot user
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+        supplementalGroups: []
+      
+      # Security: Node affinity and pod anti-affinity for security and availability
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values: ["amd64"]
+              - key: node.kubernetes.io/instance-type
+                operator: NotIn
+                values: ["spot", "preemptible"]  # Avoid spot instances for stability
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: ["conductor-loop"]
+              topologyKey: kubernetes.io/hostname
+      
+      # Security: Tolerations for dedicated nodes (if using node isolation)
+      tolerations:
+      - key: "nephoran.com/conductor"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      
+      # Init container for directory setup and permission verification
+      initContainers:
+      - name: setup-permissions
+        image: busybox:1.36
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        command:
+        - sh
+        - -c
+        - |
+          echo "Setting up directories and verifying permissions..."
+          mkdir -p /data/handoff/in /data/handoff/out /data/out /data/status
+          ls -la /data/
+          echo "Directory setup completed"
+        volumeMounts:
+        - name: data-volume
+          mountPath: /data
+        resources:
+          limits:
+            cpu: 100m
+            memory: 64Mi
+          requests:
+            cpu: 50m
+            memory: 32Mi
+      
+      containers:
+      - name: conductor-loop
+        image: conductor-loop:1.0.0  # Will be replaced by CI/CD
+        imagePullPolicy: Always
+        
+        # Security: Container Security Context
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        
+        # Command and arguments
+        command: ["/conductor-loop"]
+        args:
+        - "--handoff=/data/handoff"
+        - "--porch=porch"
+        - "--mode=direct"
+        - "--out=/data/out"
+        - "--debounce=500ms"
+        
+        # Environment variables
+        env:
+        - name: CONDUCTOR_LOG_LEVEL
+          value: "info"
+        - name: CONDUCTOR_LOG_FORMAT
+          value: "json"
+        - name: CONDUCTOR_CONFIG_PATH
+          value: "/config/config.json"
+        - name: CONDUCTOR_DATA_PATH
+          value: "/data"
+        - name: CONDUCTOR_METRICS_ENABLED
+          value: "true"
+        - name: CONDUCTOR_METRICS_PORT
+          value: "9090"
+        - name: CONDUCTOR_HEALTH_PORT
+          value: "8080"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        
+        # Ports
+        ports:
+        - name: health
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        
+        # Probes for health checking
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: health
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: health
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        
+        startupProbe:
+          httpGet:
+            path: /startup
+            port: health
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 30
+        
+        # Resource limits and requests
+        resources:
+          limits:
+            cpu: 1000m      # 1 CPU core max
+            memory: 512Mi   # 512MB RAM max
+            ephemeral-storage: 1Gi
+          requests:
+            cpu: 100m       # 0.1 CPU core requested
+            memory: 128Mi   # 128MB RAM requested
+            ephemeral-storage: 256Mi
+        
+        # Volume mounts
+        volumeMounts:
+        - name: config-volume
+          mountPath: /config
+          readOnly: true
+        - name: data-volume
+          mountPath: /data
+        - name: logs-volume
+          mountPath: /logs
+        - name: tmp-volume
+          mountPath: /tmp
+        
+        # Lifecycle hooks
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - sh
+              - -c
+              - "sleep 15"  # Allow graceful shutdown
+      
+      # Volumes
+      volumes:
+      - name: config-volume
+        configMap:
+          name: conductor-loop-config
+          defaultMode: 0444  # Read-only
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: conductor-loop-data
+      - name: logs-volume
+        emptyDir:
+          sizeLimit: 1Gi
+      - name: tmp-volume
+        emptyDir:
+          sizeLimit: 100Mi
+      
+      # DNS and hostname configuration
+      dnsPolicy: ClusterFirst
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      
+      # Termination grace period
+      terminationGracePeriodSeconds: 30
+      
+      # Image pull secrets (if using private registry)
+      # imagePullSecrets:
+      # - name: nephoran-registry-secret
+      
+      # Priority class for scheduling
+      # priorityClassName: nephoran-critical
+
+---
+# Persistent Volume Claim for data storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: conductor-loop-data
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "fast-ssd"
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: fast-ssd
+
+---
+# Service for internal communication
+apiVersion: v1
+kind: Service
+metadata:
+  name: conductor-loop
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"  # For AWS
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+spec:
+  type: ClusterIP
+  ports:
+  - name: health
+    port: 8080
+    targetPort: health
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: conductor-loop
+
+---
+# ServiceMonitor for Prometheus scraping
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: conductor-loop
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: conductor-loop
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+    - nephoran-conductor

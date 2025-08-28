@@ -214,6 +214,11 @@ hadolint-*
 # CI/CD artifacts
 .github/workflows/*.log
 .gitlab-ci-local/
+.claude/CI_error/
+.claude/ci-diagnostics/
+CI_error/
+ci-logs/
+ci-diagnostics/
 
 # -----------------------------------------------------------------------------
 # MCP and AI Tools
@@ -266,6 +271,7 @@ test-results/
 grafana-data/
 prometheus-data/
 jaeger-data/
+
 # Additional build artifacts
 *.test.exe
 *.test.out
@@ -285,7 +291,6 @@ __debug_bin
 # Generated documentation
 /site/
 docs/_build/
-
 
 # Additional binary exclusions
 test-main
@@ -307,3 +312,7 @@ kind
 /oran-adaptor
 /llm-processor
 /test-*
+
+# Large bundle files (safety bundles)
+safety-*.bundle
+*.bundle

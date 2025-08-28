@@ -263,7 +263,7 @@ func NewRealtimeValidationEngine(
 
 	// Initialize policy engine
 	if config.PolicyValidationEnabled {
-		policyEngine, err := NewPolicyEngine(&PolicyConfig{
+		policyEngine, err := NewPolicyEngine(&PolicyEngineConfig{
 			Enabled:                   true,
 			Rules:                     config.ORANPolicyRules,
 			CertificatePinning:        config.CertificatePinningEnabled,

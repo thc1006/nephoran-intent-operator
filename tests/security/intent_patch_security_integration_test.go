@@ -10,33 +10,37 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	networkintentv1 "github.com/nephio-project/nephio/api/v1alpha1"
+	"github.com/thc1006/nephoran-intent-operator/test/integration/mocks"
 )
 
 // TestIntentPatchSecurityIntegration validates end-to-end security for patch generation
 func TestIntentPatchSecurityIntegration(t *testing.T) {
 	// Initialize test scheme
 	s := runtime.NewScheme()
-	err := networkintentv1.AddToScheme(s)
-	require.NoError(t, err)
-	err = scheme.AddToScheme(s)
+	err := scheme.AddToScheme(s)
 	require.NoError(t, err)
 
 	testCases := []struct {
 		name                  string
-		intentSpec            *networkintentv1.NetworkIntent
+		intentSpec            *mocks.Intent
 		expectedSecurityLevel string
 		maxProcessingTime     time.Duration
 	}{
 		{
 			name: "Valid Simple Intent",
-			intentSpec: &networkintentv1.NetworkIntent{
-				Spec: networkintentv1.NetworkIntentSpec{
-					TargetCluster: "test-cluster",
-					Scaling: networkintentv1.ScalingConfig{
-						MinReplicas: 2,
-						MaxReplicas: 10,
+			intentSpec: &mocks.Intent{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-intent",
+					Namespace: "default",
+				},
+				Spec: mocks.IntentSpec{
+					PackageName: "test-package",
+					Repository:  "test-cluster",
+					Parameters: map[string]string{
+						"minReplicas": "2",
+						"maxReplicas": "10",
 					},
 				},
 			},
@@ -45,16 +49,19 @@ func TestIntentPatchSecurityIntegration(t *testing.T) {
 		},
 		{
 			name: "Intent with Complex Constraints",
-			intentSpec: &networkintentv1.NetworkIntent{
-				Spec: networkintentv1.NetworkIntentSpec{
-					TargetCluster: "prod-cluster",
-					Scaling: networkintentv1.ScalingConfig{
-						MinReplicas: 5,
-						MaxReplicas: 50,
-					},
-					SecurityContext: networkintentv1.SecurityContext{
-						RunAsNonRoot: true,
-						ReadOnlyRootFilesystem: true,
+			intentSpec: &mocks.Intent{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "complex-intent",
+					Namespace: "default",
+				},
+				Spec: mocks.IntentSpec{
+					PackageName: "prod-package",
+					Repository:  "prod-cluster",
+					Parameters: map[string]string{
+						"minReplicas":           "5",
+						"maxReplicas":           "50",
+						"runAsNonRoot":          "true",
+						"readOnlyRootFilesystem": "true",
 					},
 				},
 			},

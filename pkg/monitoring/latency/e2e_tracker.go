@@ -700,7 +700,7 @@ type LatencyAnomalyEvent struct {
 	Description  string        `json:"description"`
 }
 
-type UserSession struct {
+type MonitoringUserSession struct {
 	SessionID       string        `json:"session_id"`
 	UserID          string        `json:"user_id"`
 	StartTime       time.Time     `json:"start_time"`
@@ -710,7 +710,7 @@ type UserSession struct {
 }
 
 type UserImpactAnalyzer struct {
-	sessions map[string]*UserSession
+	sessions map[string]*MonitoringUserSession
 }
 
 type ComplianceSnapshot struct {

@@ -16,8 +16,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 
-	porchv1alpha1 "github.com/nephio-project/nephio/api/porch/v1alpha1"
-	porchclient "github.com/nephio-project/nephio/pkg/client/porch"
+	"github.com/thc1006/nephoran-intent-operator/test/integration/mocks"
 )
 
 func TestSystemIntegration(t *testing.T) {

@@ -31,7 +31,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
@@ -499,7 +498,7 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 
 	// Validate configuration
 	if err := validateValidatorConfig(config); err != nil {
-		return nil, errors.WithContext(err, "invalid validator configuration")
+		return nil, fmt.Errorf("invalid validator configuration: %w", err)
 	}
 
 	// Initialize metrics
@@ -601,7 +600,7 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 
 	// Initialize standards and profiles
 	if err := validator.initializeStandardsAndProfiles(); err != nil {
-		return nil, errors.WithContext(err, "failed to initialize standards and profiles")
+		return nil, fmt.Errorf("failed to initialize standards and profiles: %w", err)
 	}
 
 	return validator, nil

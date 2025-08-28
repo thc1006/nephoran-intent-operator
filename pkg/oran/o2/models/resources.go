@@ -35,6 +35,8 @@ type ResourcePoolStatus struct {
 	ErrorMessage    string    `json:"errorMessage,omitempty"`
 }
 
+// Note: ResourceCapacity, ResourceMetric, AlarmDictionary, AlarmDefinition, 
+// ResourceStatus, and ResourceCondition are defined in resource_types.go
 // Node represents a compute node in the infrastructure inventory
 type Node struct {
 	NodeID            string                 `json:"nodeId"`
@@ -220,136 +222,7 @@ type OCloudStatus struct {
 	ErrorMessage    string    `json:"errorMessage,omitempty"`
 }
 
-// Filter types for querying resources
-
-// ResourcePoolFilter defines filters for querying resource pools
-type ResourcePoolFilter struct {
-	Names        []string          `json:"names,omitempty"`
-	OCloudIDs    []string          `json:"oCloudIds,omitempty"`
-	Providers    []string          `json:"providers,omitempty"`
-	Regions      []string          `json:"regions,omitempty"`
-	Zones        []string          `json:"zones,omitempty"`
-	States       []string          `json:"states,omitempty"`
-	HealthStates []string          `json:"healthStates,omitempty"`
-	Labels       map[string]string `json:"labels,omitempty"`
-	Limit        int               `json:"limit,omitempty"`
-	Offset       int               `json:"offset,omitempty"`
-	SortBy       string            `json:"sortBy,omitempty"`
-	SortOrder    string            `json:"sortOrder,omitempty"`
-}
-
-// NodeFilter defines filters for querying nodes
-type NodeFilter struct {
-	Names            []string          `json:"names,omitempty"`
-	ResourcePoolIDs  []string          `json:"resourcePoolIds,omitempty"`
-	NodeTypes        []string          `json:"nodeTypes,omitempty"`
-	States           []string          `json:"states,omitempty"`
-	Phases           []string          `json:"phases,omitempty"`
-	HealthStates     []string          `json:"healthStates,omitempty"`
-	Architectures    []string          `json:"architectures,omitempty"`
-	Regions          []string          `json:"regions,omitempty"`
-	AvailabilityZones []string          `json:"availabilityZones,omitempty"`
-	Labels           map[string]string `json:"labels,omitempty"`
-	MinCPU           string            `json:"minCpu,omitempty"`
-	MinMemory        string            `json:"minMemory,omitempty"`
-	MinStorage       string            `json:"minStorage,omitempty"`
-	HasGPU           *bool             `json:"hasGpu,omitempty"`
-	Limit            int               `json:"limit,omitempty"`
-	Offset           int               `json:"offset,omitempty"`
-	SortBy           string            `json:"sortBy,omitempty"`
-	SortOrder        string            `json:"sortOrder,omitempty"`
-}
-
-// OCloudFilter defines filters for querying O-Clouds
-type OCloudFilter struct {
-	Names        []string          `json:"names,omitempty"`
-	Providers    []string          `json:"providers,omitempty"`
-	Regions      []string          `json:"regions,omitempty"`
-	Versions     []string          `json:"versions,omitempty"`
-	States       []string          `json:"states,omitempty"`
-	HealthStates []string          `json:"healthStates,omitempty"`
-	Capabilities []string          `json:"capabilities,omitempty"`
-	Labels       map[string]string `json:"labels,omitempty"`
-	Limit        int               `json:"limit,omitempty"`
-	Offset       int               `json:"offset,omitempty"`
-	SortBy       string            `json:"sortBy,omitempty"`
-	SortOrder    string            `json:"sortOrder,omitempty"`
-}
-
-// Request types for resource management operations
-
-// CreateResourcePoolRequest represents a request to create a resource pool
-type CreateResourcePoolRequest struct {
-	Name             string                 `json:"name"`
-	Description      string                 `json:"description,omitempty"`
-	Location         string                 `json:"location,omitempty"`
-	OCloudID         string                 `json:"oCloudId"`
-	GlobalLocationID string                 `json:"globalLocationId,omitempty"`
-	Provider         string                 `json:"provider"`
-	Region           string                 `json:"region,omitempty"`
-	Zone             string                 `json:"zone,omitempty"`
-	Extensions       map[string]interface{} `json:"extensions,omitempty"`
-}
-
-// UpdateResourcePoolRequest represents a request to update a resource pool
-type UpdateResourcePoolRequest struct {
-	Name             *string                `json:"name,omitempty"`
-	Description      *string                `json:"description,omitempty"`
-	Location         *string                `json:"location,omitempty"`
-	GlobalLocationID *string                `json:"globalLocationId,omitempty"`
-	Extensions       map[string]interface{} `json:"extensions,omitempty"`
-}
-
-// CreateNodeRequest represents a request to create a node
-type CreateNodeRequest struct {
-	Name              string                 `json:"name"`
-	Description       string                 `json:"description,omitempty"`
-	ResourcePoolID    string                 `json:"resourcePoolId"`
-	NodeType          string                 `json:"nodeType"`
-	Architecture      string                 `json:"architecture,omitempty"`
-	OperatingSystem   *OperatingSystemInfo   `json:"operatingSystem,omitempty"`
-	Capacity          *ResourceCapacity      `json:"capacity"`
-	NetworkInterfaces []*NetworkInterface    `json:"networkInterfaces,omitempty"`
-	StorageDevices    []*StorageDevice       `json:"storageDevices,omitempty"`
-	Accelerators      []*AcceleratorDevice   `json:"accelerators,omitempty"`
-	Location          *NodeLocation          `json:"location,omitempty"`
-	Labels            map[string]string      `json:"labels,omitempty"`
-	Annotations       map[string]string      `json:"annotations,omitempty"`
-}
-
-// UpdateNodeRequest represents a request to update a node
-type UpdateNodeRequest struct {
-	Name            *string               `json:"name,omitempty"`
-	Description     *string               `json:"description,omitempty"`
-	OperatingSystem *OperatingSystemInfo  `json:"operatingSystem,omitempty"`
-	Location        *NodeLocation         `json:"location,omitempty"`
-	Labels          map[string]string     `json:"labels,omitempty"`
-	Annotations     map[string]string     `json:"annotations,omitempty"`
-}
-
-// CreateOCloudRequest represents a request to create an O-Cloud
-type CreateOCloudRequest struct {
-	Name              string                 `json:"name"`
-	Description       string                 `json:"description,omitempty"`
-	ServiceURI        string                 `json:"serviceUri"`
-	SupportedFeatures []string               `json:"supportedFeatures,omitempty"`
-	Region            string                 `json:"region,omitempty"`
-	Provider          string                 `json:"provider,omitempty"`
-	Version           string                 `json:"version,omitempty"`
-	Capabilities      []string               `json:"capabilities,omitempty"`
-	Extensions        map[string]interface{} `json:"extensions,omitempty"`
-}
-
-// UpdateOCloudRequest represents a request to update an O-Cloud
-type UpdateOCloudRequest struct {
-	Name              *string                `json:"name,omitempty"`
-	Description       *string                `json:"description,omitempty"`
-	ServiceURI        *string                `json:"serviceUri,omitempty"`
-	SupportedFeatures []string               `json:"supportedFeatures,omitempty"`
-	Version           *string                `json:"version,omitempty"`
-	Capabilities      []string               `json:"capabilities,omitempty"`
-	Extensions        map[string]interface{} `json:"extensions,omitempty"`
-}
+// Filter types and Request types for resource management operations are defined in resource_types.go
 
 // Constants for resource management
 

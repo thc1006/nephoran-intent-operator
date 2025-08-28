@@ -1,0 +1,26 @@
+{
+  "apiVersion": "nephoran.com/v1",
+  "kind": "NetworkIntent",
+  "metadata": {
+    "name": "scale-down-deployment",
+    "namespace": "default"
+  },
+  "spec": {
+    "action": "scale",
+    "target": {
+      "type": "deployment",
+      "name": "web-app",
+      "namespace": "production"
+    },
+    "parameters": {
+      "replicas": 2,
+      "reason": "Low traffic period detected",
+      "priority": "medium"
+    },
+    "constraints": {
+      "maxReplicas": 10,
+      "minReplicas": 1,
+      "gracePeriod": "30s"
+    }
+  }
+}

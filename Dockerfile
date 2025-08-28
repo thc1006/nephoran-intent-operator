@@ -8,23 +8,27 @@
 #   docker build --build-arg SERVICE=llm-processor -t nephoran/llm-processor:latest .
 #   docker build --build-arg SERVICE=nephio-bridge -t nephoran/nephio-bridge:latest .
 #   docker build --build-arg SERVICE=oran-adaptor -t nephoran/oran-adaptor:latest .
+#   docker build --build-arg SERVICE=rag-api -t nephoran/rag-api:latest .
 #   docker build --build-arg SERVICE=manager -t nephoran/manager:latest .
-#   docker build --build-arg SERVICE=conductor -t nephoran/conductor:latest .
-#   docker build --build-arg SERVICE=porch-publisher -t nephoran/porch-publisher:latest .
+#   docker build --build-arg SERVICE=conductor-loop -t nephoran/conductor-loop:latest .
 #
 # Multi-arch build:
 #   docker buildx build --platform linux/amd64,linux/arm64 \
 #     --build-arg SERVICE=llm-processor -t nephoran/llm-processor:latest .
 # =============================================================================
 
+# Global build platform arguments (must be at the very top)
+ARG BUILDPLATFORM
+ARG TARGETPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+
 # Security-hardened base image versions with latest patches
 ARG GO_VERSION=1.24.1
 ARG PYTHON_VERSION=3.12.10
 ARG ALPINE_VERSION=3.21.8
-ARG DISTROLESS_VERSION=nonroot-amd64
+ARG DISTROLESS_VERSION=nonroot
 ARG DEBIAN_VERSION=bookworm-20250108-slim
-
-# Build arguments for service selection
 ARG SERVICE_TYPE=go
 
 # =============================================================================
@@ -59,13 +63,21 @@ RUN go mod download && go mod verify
 # =============================================================================
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS go-builder
 
+# Re-declare build platform ARGs for this stage
 ARG TARGETPLATFORM
-ARG TARGETOS=linux
-ARG TARGETARCH=amd64
+ARG TARGETOS
+ARG TARGETARCH
 ARG SERVICE
 ARG VERSION=v2.0.0
 ARG BUILD_DATE
 ARG VCS_REF
+
+# Validate required build arguments
+RUN if [ -z "$SERVICE" ]; then \
+    echo "ERROR: SERVICE build argument is required. Use --build-arg SERVICE=<service-name>" >&2; \
+    echo "Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller" >&2; \
+    exit 1; \
+    fi
 
 # Install minimal build tools with security focus
 RUN set -eux; \
@@ -102,29 +114,29 @@ USER nonroot
 # Build service based on SERVICE argument
 RUN set -ex; \
     case "$SERVICE" in \
-        "llm-processor") CMD_PATH="./cmd/llm-processor/main.go" ;; \
+        "conductor-loop") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
+        "intent-ingest") CMD_PATH="./cmd/intent-ingest/main.go" ;; \
         "nephio-bridge") CMD_PATH="./cmd/nephio-bridge/main.go" ;; \
+        "llm-processor") CMD_PATH="./cmd/llm-processor/main.go" ;; \
         "oran-adaptor") CMD_PATH="./cmd/oran-adaptor/main.go" ;; \
         "a1-sim") CMD_PATH="./cmd/a1-sim/main.go" ;; \
         "conductor") CMD_PATH="./cmd/conductor/main.go" ;; \
-        "conductor-loop") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
         "e2-kpm-sim") CMD_PATH="./cmd/e2-kpm-sim/main.go" ;; \
         "fcaps-sim") CMD_PATH="./cmd/fcaps-sim/main.go" ;; \
-        "intent-ingest") CMD_PATH="./cmd/intent-ingest/main.go" ;; \
         "o1-ves-sim") CMD_PATH="./cmd/o1-ves-sim/main.go" ;; \
         "porch-publisher") CMD_PATH="./cmd/porch-publisher/main.go" ;; \
-        "manager"|"controller") CMD_PATH="./cmd/main.go" ;; \
-        *) echo "Unknown service: $SERVICE" && exit 1 ;; \
+        "manager") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
+        "controller") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
+        *) echo "Unknown service: $SERVICE. Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller" && exit 1 ;; \
     esac; \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
         -buildmode=pie \
         -trimpath \
         -mod=readonly \
-        -ldflags="-w -s \
+        -ldflags="-w -s -extldflags '-static' \
                  -X main.version=${VERSION} \
                  -X main.buildDate=${BUILD_DATE} \
                  -X main.gitCommit=${VCS_REF} \
-                 -X main.buildDate=${BUILD_DATE} \
                  -X main.buildPlatform=${TARGETPLATFORM} \
                  -buildid=''" \
         -tags="netgo osusergo static_build timetzdata" \
@@ -165,11 +177,11 @@ RUN set -eux; \
     apt-get update; \
     apt-get upgrade -y; \
     apt-get install -y --no-install-recommends \
-        gcc=4:12.2.0-3ubuntu1 \
-        python3-dev=3.12.3-0ubuntu2 \
-        libffi-dev=3.4.4-1 \
-        libssl-dev=3.0.13-0ubuntu3.4 \
-        build-essential=12.10ubuntu1 \
+        gcc \
+        python3-dev \
+        libffi-dev \
+        libssl-dev \
+        build-essential \
     && apt-get autoremove -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/* \
@@ -194,13 +206,14 @@ RUN python -m compileall -b . && \
 # =============================================================================
 FROM gcr.io/distroless/static:${DISTROLESS_VERSION} AS go-runtime
 
+# Re-declare ARGs for this stage
 ARG SERVICE
 ARG VERSION=v2.0.0
 ARG BUILD_DATE
 ARG VCS_REF
 ARG TARGETARCH
-ARG TARGETPLATFORM=linux/amd64
-ARG GO_VERSION=1.24.1
+ARG TARGETPLATFORM
+ARG GO_VERSION
 
 # Copy certificates and timezone data
 COPY --from=go-builder /usr/share/zoneinfo /usr/share/zoneinfo
@@ -249,19 +262,6 @@ ENV GOGC=100 \
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD ["/service", "--health-check", "--secure"]
 
-# Additional security hardening
-RUN set -eux; \
-    # Remove any setuid/setgid binaries to prevent privilege escalation \
-    find /usr -type f \( -perm -4000 -o -perm -2000 \) -delete 2>/dev/null || true; \
-    # Ensure no world-writable files exist \
-    find /usr -type f -perm -002 -delete 2>/dev/null || true; \
-    # Create required runtime directories \
-    mkdir -p /tmp /var/run; \
-    # Set secure permissions \
-    chmod 755 /tmp /var/run; \
-    # Verify binary integrity \
-    [ -f /service ] && chmod 555 /service
-
 # Service ports: 8080 (llm-processor), 8081 (nephio-bridge), 8082 (oran-adaptor)
 EXPOSE 8080 8081 8082
 
@@ -275,6 +275,7 @@ FROM gcr.io/distroless/python3-debian12:${DISTROLESS_VERSION} AS python-runtime
 ARG VERSION=v2.0.0
 ARG BUILD_DATE
 ARG VCS_REF
+ARG PYTHON_VERSION
 
 # Copy Python packages and application
 COPY --from=python-builder --chown=nonroot:nonroot /home/nonroot/.local/lib/python3.12/site-packages /home/nonroot/.local/lib/python3.12/site-packages
@@ -331,5 +332,6 @@ ARG SERVICE
 FROM go-runtime AS final-go
 FROM python-runtime AS final-python
 
-# This is a clever Docker trick: the last FROM wins based on build-arg conditions
+# Default to go-runtime for all services except rag-api
+# rag-api service should be built with SERVICE_TYPE=python
 FROM final-${SERVICE_TYPE:-go} AS final

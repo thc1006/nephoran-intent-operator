@@ -4,16 +4,12 @@
 
 set -euo pipefail
 
-# Ultra-fast CI configuration (2025 best practices)
-COVERAGE_THRESHOLD=90
-QUALITY_THRESHOLD=8.0
-REPORTS_DIR=".quality-reports"
+# Configuration - Use environment variables first, then CLI args, then defaults
+COVERAGE_THRESHOLD="${COVERAGE_THRESHOLD:-90}"
+QUALITY_THRESHOLD="${QUALITY_THRESHOLD:-8.0}"
+REPORTS_DIR="${REPORTS_DIR:-.quality-reports}"
 TEMP_DIR=$(mktemp -d)
 EXIT_CODE=0
-# Performance optimization settings
-MAX_PARALLEL_JOBS=$(nproc 2>/dev/null || echo 8)
-GO_TEST_TIMEOUT="12m"
-LINT_TIMEOUT="8m"
 
 # Colors for output
 RED='\033[0;31m'
@@ -67,6 +63,8 @@ OPTIONS:
     --skip-tests              Skip test execution (use existing coverage)
     --skip-lint               Skip linting checks
     --skip-security           Skip security scanning
+    --skip-complexity         Skip cyclomatic complexity analysis
+    --reports-only            Generate reports only, don't fail on quality gate violations
     --verbose                 Enable verbose output
     --help                    Show this help message
 
@@ -121,6 +119,14 @@ parse_args() {
                 SKIP_SECURITY=true
                 shift
                 ;;
+            --skip-complexity)
+                SKIP_COMPLEXITY=true
+                shift
+                ;;
+            --reports-only)
+                REPORTS_ONLY=true
+                shift
+                ;;
             --verbose)
                 VERBOSE=true
                 shift
@@ -150,7 +156,7 @@ init_environment() {
     mkdir -p "$REPORTS_DIR/metrics"
     
     # Verify required tools
-    local required_tools=("go" "git" "jq")
+    local required_tools=("go" "git")
     
     if [[ "${SKIP_LINT:-false}" != "true" ]]; then
         required_tools+=("golangci-lint")
@@ -161,13 +167,14 @@ init_environment() {
             error "Required tool '$tool' not found"
             if [[ "$tool" == "golangci-lint" ]]; then
                 info "Install with: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"
-            elif [[ "$tool" == "jq" ]]; then
-                info "Install jq: https://jqlang.github.io/jq/download/"
-                info "Ubuntu/Debian: apt-get install jq"
-                info "macOS: brew install jq"
-                info "Windows: choco install jq"
             fi
-            exit 1
+            
+            # In reports-only mode, continue with warnings instead of failing
+            if [[ "${REPORTS_ONLY:-false}" == "true" ]]; then
+                warning "Continuing in reports-only mode without $tool"
+            else
+                exit 1
+            fi
         fi
     done
     
@@ -187,18 +194,13 @@ run_coverage_analysis() {
     local coverage_html="$REPORTS_DIR/coverage/coverage.html"
     local coverage_json="$REPORTS_DIR/coverage/coverage.json"
     
-    # Run tests with ultra-fast optimized coverage (2025)
+    # Run tests with coverage
     if [[ "${CI_MODE:-false}" == "true" ]]; then
-        info "Running tests in ultra-fast CI mode with optimal parallel execution"
-        GOMAXPROCS=$MAX_PARALLEL_JOBS GOMEMLIMIT=3GiB \
-            go test -v -race -short -coverprofile="$coverage_file" -covermode=atomic \
-            -parallel=$MAX_PARALLEL_JOBS -timeout=$GO_TEST_TIMEOUT \
-            -json ./... | tee "$REPORTS_DIR/coverage/test-output.json"
+        info "Running tests in CI mode (parallel execution disabled for stability)"
+        go test -v -race -coverprofile="$coverage_file" -covermode=atomic -timeout=30m ./... 2>&1 | tee "$REPORTS_DIR/coverage/test-output.log"
     else
-        info "Running tests with ultra-fast race detection and coverage"
-        GOMAXPROCS=$MAX_PARALLEL_JOBS GOMEMLIMIT=2GiB \
-            go test -v -race -coverprofile="$coverage_file" -covermode=atomic \
-            -parallel=$(($MAX_PARALLEL_JOBS / 2)) -timeout=$GO_TEST_TIMEOUT ./... 2>&1 | tee "$REPORTS_DIR/coverage/test-output.log"
+        info "Running tests with race detection and coverage"
+        go test -v -race -coverprofile="$coverage_file" -covermode=atomic -parallel=4 ./... 2>&1 | tee "$REPORTS_DIR/coverage/test-output.log"
     fi
     
     if [[ $? -ne 0 ]]; then
@@ -250,10 +252,7 @@ EOF
         success "Coverage check PASSED: ${coverage_percent}% >= ${COVERAGE_THRESHOLD}%"
     else
         error "Coverage check FAILED: ${coverage_percent}% < ${COVERAGE_THRESHOLD}%"
-        # Use exit code 123 for threshold failures to distinguish from other errors
-        if [[ $EXIT_CODE -eq 0 ]]; then
-            EXIT_CODE=123  # Special exit code for below threshold
-        fi
+        EXIT_CODE=1
     fi
     
     info "Coverage reports generated in $REPORTS_DIR/coverage/"
@@ -271,11 +270,8 @@ run_lint_analysis() {
     local lint_report="$REPORTS_DIR/lint/golangci-lint-report.json"
     local lint_summary="$REPORTS_DIR/lint/summary.md"
     
-    # Run golangci-lint with ultra-fast optimized configuration
-    info "Running ultra-fast linting with $MAX_PARALLEL_JOBS workers"
-    if golangci-lint run --out-format=json --issues-exit-code=0 \
-        --concurrency=$MAX_PARALLEL_JOBS --fast --timeout=$LINT_TIMEOUT \
-        --build-tags=netgo,osusergo > "$lint_report" 2>&1; then
+    # Run golangci-lint with comprehensive configuration
+    if golangci-lint run --out-format=json --issues-exit-code=0 > "$lint_report" 2>&1; then
         local issue_count
         issue_count=$(jq '.Issues | length' "$lint_report" 2>/dev/null || echo "0")
         
@@ -334,11 +330,10 @@ run_security_analysis() {
     local vuln_report="$security_dir/vulnerabilities.json"
     local gosec_report="$security_dir/gosec-report.json"
     
-    # Ultra-fast vulnerability scanning with govulncheck
+    # Vulnerability scanning with govulncheck
     if command -v govulncheck &> /dev/null; then
-        info "Running ultra-fast vulnerability scan with JSON output..."
-        # Use timeout and optimized concurrency for faster scanning
-        if timeout 300s govulncheck -json ./... > "$vuln_report" 2>&1; then
+        info "Running vulnerability scan..."
+        if govulncheck -json ./... > "$vuln_report" 2>&1; then
             local vuln_count
             vuln_count=$(jq '[.Vulns[]? // empty] | length' "$vuln_report" 2>/dev/null || echo "0")
             
@@ -359,21 +354,14 @@ run_security_analysis() {
         go install golang.org/x/vuln/cmd/govulncheck@latest
     fi
     
-    # Ultra-fast security analysis with gosec
+    # Security analysis with gosec
     if command -v gosec &> /dev/null; then
-        info "Running ultra-fast gosec security analysis..."
-        # Use optimized gosec settings for speed
-        timeout 180s gosec -fmt=json -out="$gosec_report" \
-            -concurrency $MAX_PARALLEL_JOBS -severity high -quiet ./... 2>/dev/null || {
-            echo '{"Issues": [], "Stats": {"files": 0, "lines": 0, "nosec": 0, "found": 0}}' > "$gosec_report"
-        }
+        info "Running gosec security analysis..."
+        gosec -fmt=json -out="$gosec_report" ./... 2>/dev/null || true
     else
-        info "Installing gosec for ultra-fast security analysis..."
-        go install github.com/securego/gosec/v2/cmd/gosec@latest
-        timeout 180s gosec -fmt=json -out="$gosec_report" \
-            -concurrency $MAX_PARALLEL_JOBS -severity high -quiet ./... 2>/dev/null || {
-            echo '{"Issues": [], "Stats": {"files": 0, "lines": 0, "nosec": 0, "found": 0}}' > "$gosec_report"
-        }
+        info "Installing gosec for security analysis..."
+        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+        gosec -fmt=json -out="$gosec_report" ./... 2>/dev/null || true
     fi
     
     # Generate security summary
@@ -410,16 +398,35 @@ calculate_quality_metrics() {
     info "Analyzing cyclomatic complexity..."
     local complexity_data
     
-    # Ensure gocyclo is available
+    # Check if complexity analyzer is available and install if needed
     if ! command -v gocyclo &> /dev/null; then
-        info "Installing gocyclo for cyclomatic complexity analysis..."
-        go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+        if [[ "${SKIP_COMPLEXITY:-false}" == "true" ]]; then
+            warning "Complexity analysis skipped (SKIP_COMPLEXITY=1)"
+            complexity_data=0
+        else
+            warning "gocyclo not found, attempting to install..."
+            if go install github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0; then
+                # Ensure Go bin is in PATH
+                export PATH="$PATH:$(go env GOPATH)/bin"
+                success "gocyclo installed successfully"
+            else
+                warning "Failed to install gocyclo, skipping complexity analysis"
+                complexity_data=0
+            fi
+        fi
     fi
     
-    complexity_data=$(find . -name "*.go" -not -path "./vendor/*" -not -path "./.git/*" -not -name "*_test.go" -not -name "*generated*" | \
-        xargs gocyclo -over 10 2>/dev/null | \
-        awk '{complexity+=$1; files++} END {if(files>0) print complexity/files; else print 0}')
-    complexity_data=${complexity_data:-0}
+    # Run complexity analysis if tool is available
+    if command -v gocyclo &> /dev/null && [[ "${SKIP_COMPLEXITY:-false}" != "true" ]]; then
+        complexity_data=$(find . -name "*.go" -not -path "./vendor/*" -not -path "./.git/*" -not -name "*_test.go" -not -name "*generated*" | \
+            xargs gocyclo -over 10 2>/dev/null | \
+            awk '{complexity+=$1; files++} END {if(files>0) print complexity/files; else print 0}')
+        complexity_data=${complexity_data:-0}
+        info "Complexity analysis completed (average: $complexity_data)"
+    else
+        warning "Complexity analysis skipped - gocyclo not available"
+        complexity_data=0
+    fi
     
     # Line count analysis
     local total_lines
@@ -546,7 +553,7 @@ EOF
         success "Quality score check PASSED: ${quality_score} >= ${QUALITY_THRESHOLD}"
     else
         error "Quality score check FAILED: ${quality_score} < ${QUALITY_THRESHOLD}"
-        EXIT_CODE=123  # Special exit code for below threshold
+        EXIT_CODE=1
     fi
     
     info "Quality metrics generated in $metrics_dir/"
@@ -851,7 +858,7 @@ main() {
     else
         error "❌ QUALITY GATE FAILURES DETECTED"
         
-        if [[ "${CI_MODE:-false}" == "true" ]]; then
+        if [[ "${CI_MODE:-false}" == "true" ]] && [[ "${REPORTS_ONLY:-false}" != "true" ]]; then
             error "Failing CI build due to quality gate failures"
         fi
     fi
@@ -862,7 +869,13 @@ main() {
     echo "Dashboard: $REPORTS_DIR/quality-dashboard.html"
     echo "============================================================================="
     
-    exit $EXIT_CODE
+    # Only exit with failure code if not in reports-only mode
+    if [[ "${REPORTS_ONLY:-false}" == "true" ]]; then
+        success "Reports generated successfully (reports-only mode, ignoring quality gate failures)"
+        exit 0
+    else
+        exit $EXIT_CODE
+    fi
 }
 
 # Parse arguments and run main function
@@ -871,6 +884,8 @@ CI_MODE=false
 SKIP_TESTS=false
 SKIP_LINT=false
 SKIP_SECURITY=false
+SKIP_COMPLEXITY=false
+REPORTS_ONLY=false
 VERBOSE=false
 
 parse_args "$@"

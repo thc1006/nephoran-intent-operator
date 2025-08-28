@@ -198,7 +198,7 @@ gen: ## Generate CRDs and deep copy methods (output to deployments/crds/)
 	@echo "Attempting to generate deep copy methods..."
 	@controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/v1" || echo "⚠️  Deep copy generation failed due to compilation errors"
 	@echo "Attempting to generate CRDs with allowDangerousTypes..."
-	@controller-gen crd:allowDangerousTypes=true rbac:roleName=manager-role webhook paths="./api/v1" output:crd:artifacts:config=deployments/crds 2>/dev/null || \
+	@controller-gen crd:crdVersions=v1,allowDangerousTypes=true rbac:roleName=manager-role webhook paths="./api/v1" output:crd:artifacts:config=deployments/crds 2>/dev/null || \
 		(echo "⚠️  CRD generation failed, using existing CRDs..." && \
 		 cp deployments/crds/*.yaml deployments/crds/ 2>/dev/null || echo "No existing CRDs found")
 	@echo "✅ Gen target completed (check warnings above for any issues)"
@@ -207,7 +207,7 @@ gen: ## Generate CRDs and deep copy methods (output to deployments/crds/)
 .PHONY: manifests
 manifests: deps ## Generate Kubernetes manifests
 	@echo "Generating Kubernetes manifests..."
-	controller-gen crd:allowDangerousTypes=true rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	controller-gen crd:crdVersions=v1,allowDangerousTypes=true rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 .PHONY: fmt
 fmt: ## Format Go code
@@ -275,6 +275,20 @@ test-regression: ## Run regression testing suite
 
 .PHONY: test-all
 test-all: test test-integration test-e2e test-excellence test-regression ## Run all test suites
+
+.PHONY: test-ci
+test-ci: ## Run unit tests with CI-compatible coverage reporting
+	@echo "Running unit tests with CI-compatible coverage..."
+	mkdir -p .test-reports
+	go test ./... -v -coverprofile=.test-reports/coverage.out -covermode=atomic -timeout=10m
+	@if [ -f .test-reports/coverage.out ]; then \
+		go tool cover -html=.test-reports/coverage.out -o .test-reports/coverage.html; \
+		echo "Coverage report generated: .test-reports/coverage.html"; \
+		coverage_percent=$$(go tool cover -func=.test-reports/coverage.out | grep total | awk '{print $$3}'); \
+		echo "Coverage: $$coverage_percent"; \
+	else \
+		echo "Warning: Coverage file not generated"; \
+	fi
 
 .PHONY: coverage
 coverage: test ## Generate and view test coverage report
@@ -1235,6 +1249,112 @@ init: check-tools deps ## Initialize the project for development
 	mkdir -p $(REPORTS_DIR)
 	@echo "Project initialized successfully!"
 	@echo "Run 'make help' to see available commands"
+
+##@ Conductor Loop
+
+.PHONY: conductor-loop-build
+conductor-loop-build: ## Build conductor-loop binary
+	@echo "Building conductor-loop binary..."
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) \
+		go build -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)" \
+		-o bin/conductor-loop ./cmd/conductor-loop
+
+.PHONY: conductor-loop-test
+conductor-loop-test: ## Test conductor-loop components
+	@echo "Testing conductor-loop..."
+	go test -v -race -coverprofile=.coverage/conductor-loop.out ./cmd/conductor-loop/... ./internal/loop/...
+
+.PHONY: conductor-loop-docker
+conductor-loop-docker: ## Build conductor-loop Docker image
+	@echo "Building conductor-loop Docker image..."
+	docker build -f cmd/conductor-loop/Dockerfile \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_DATE=$(DATE) \
+		--build-arg VCS_REF=$(COMMIT) \
+		--target final \
+		-t conductor-loop:$(VERSION) .
+	docker tag conductor-loop:$(VERSION) conductor-loop:latest
+
+.PHONY: conductor-loop-docker-dev
+conductor-loop-docker-dev: ## Build conductor-loop development Docker image
+	@echo "Building conductor-loop development Docker image..."
+	docker build -f cmd/conductor-loop/Dockerfile \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_DATE=$(DATE) \
+		--build-arg VCS_REF=$(COMMIT) \
+		--target dev \
+		-t conductor-loop:$(VERSION)-dev .
+
+.PHONY: conductor-loop-deploy
+conductor-loop-deploy: ## Deploy conductor-loop to Kubernetes
+	@echo "Deploying conductor-loop to Kubernetes..."
+	kubectl apply -k deployments/k8s/conductor-loop/
+	kubectl rollout status deployment/conductor-loop -n conductor-loop --timeout=300s
+
+.PHONY: conductor-loop-undeploy
+conductor-loop-undeploy: ## Remove conductor-loop from Kubernetes
+	@echo "Removing conductor-loop from Kubernetes..."
+	kubectl delete -k deployments/k8s/conductor-loop/ || true
+
+.PHONY: conductor-loop-logs
+conductor-loop-logs: ## Show conductor-loop logs
+	@echo "Showing conductor-loop logs..."
+	kubectl logs -n conductor-loop -l app.kubernetes.io/name=conductor-loop -f --tail=100
+
+.PHONY: conductor-loop-status
+conductor-loop-status: ## Show conductor-loop deployment status
+	@echo "Conductor Loop Deployment Status:"
+	@kubectl get all -n conductor-loop
+	@echo ""
+	@echo "ConfigMaps and Secrets:"
+	@kubectl get configmaps,secrets -n conductor-loop
+	@echo ""
+	@echo "PersistentVolumeClaims:"
+	@kubectl get pvc -n conductor-loop
+
+.PHONY: conductor-loop-clean
+conductor-loop-clean: ## Clean conductor-loop build artifacts
+	@echo "Cleaning conductor-loop artifacts..."
+	rm -f bin/conductor-loop
+	docker rmi conductor-loop:$(VERSION) conductor-loop:latest conductor-loop:$(VERSION)-dev 2>/dev/null || true
+
+.PHONY: conductor-loop-dev-up
+conductor-loop-dev-up: ## Start conductor-loop development environment
+	@echo "Starting conductor-loop development environment..."
+	mkdir -p handoff/in handoff/out deployments/conductor-loop/config deployments/conductor-loop/logs
+	echo '{"log_level":"debug","porch_endpoint":"http://localhost:7007"}' > deployments/conductor-loop/config/config.json
+	docker-compose -f deployments/docker-compose.conductor-loop.yml up -d
+
+.PHONY: conductor-loop-dev-down
+conductor-loop-dev-down: ## Stop conductor-loop development environment
+	@echo "Stopping conductor-loop development environment..."
+	docker-compose -f deployments/docker-compose.conductor-loop.yml down -v
+
+.PHONY: conductor-loop-dev-logs
+conductor-loop-dev-logs: ## Show conductor-loop development logs
+	@echo "Showing conductor-loop development logs..."
+	docker-compose -f deployments/docker-compose.conductor-loop.yml logs -f conductor-loop
+
+.PHONY: conductor-loop-integration-test
+conductor-loop-integration-test: conductor-loop-build ## Run conductor-loop integration tests
+	@echo "Running conductor-loop integration tests..."
+	go test -v -timeout=30m -tags=integration ./cmd/conductor-loop/... ./internal/loop/...
+
+.PHONY: conductor-loop-benchmark
+conductor-loop-benchmark: ## Run conductor-loop benchmarks
+	@echo "Running conductor-loop benchmarks..."
+	mkdir -p .benchmark-results
+	go test -bench=. -benchmem -run=^$ ./internal/loop/... > .benchmark-results/conductor-loop-bench.txt 2>&1
+	@echo "Benchmark results saved to .benchmark-results/conductor-loop-bench.txt"
+
+.PHONY: conductor-loop-demo
+conductor-loop-demo: conductor-loop-build ## Run conductor-loop demo
+	@echo "Running conductor-loop demo..."
+	@if [ "$(OS)" = "Windows_NT" ]; then \
+		powershell -ExecutionPolicy Bypass -File scripts/conductor-loop-demo.ps1; \
+	else \
+		bash scripts/conductor-loop-demo.sh; \
+	fi
 
 ##@ MVP Demo Commands
 

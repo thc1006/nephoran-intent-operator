@@ -16,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// ProviderTypeAzure is defined in interface.go
 // AzureProvider implements CloudProvider for Microsoft Azure
 type AzureProvider struct {
 	name              string

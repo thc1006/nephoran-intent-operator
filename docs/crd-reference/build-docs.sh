@@ -40,7 +40,7 @@ pip install -r requirements.txt
 echo -e "${YELLOW}Generating CRD documentation from Go types...${NC}"
 if command -v controller-gen &> /dev/null; then
     cd ../..
-    controller-gen crd:maxDescLen=0 paths="./api/v1/..." output:crd:artifacts:config=docs/crd-reference/generated/crds
+    controller-gen crd:maxDescLen=0,allowDangerousTypes=true paths="./api/v1/..." output:crd:artifacts:config=docs/crd-reference/generated/crds
     cd docs/crd-reference
 else
     echo -e "${YELLOW}controller-gen not found, skipping CRD generation${NC}"

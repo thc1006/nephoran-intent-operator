@@ -1,172 +1,104 @@
-package porch_performance_test
+package porch
 
 import (
 	"context"
 	"fmt"
-	"runtime"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/trace"
-
-	porchv1alpha1 "github.com/nephio-project/nephio/api/porch/v1alpha1"
-	networkintentv1alpha1 "github.com/nephio-project/nephio/api/intent/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type PerformanceMetrics struct {
-	Intent           *networkintentv1alpha1.NetworkIntent
-	CreationLatency  time.Duration
-	UpdateLatency    time.Duration
-	MemoryUsage      uint64
-	CPUUtilization   float64
-	PackageCreated   bool
-	PackageRevisions int
+const (
+	// Performance test constants
+	packageCreationCount = 100
+	concurrentWorkers    = 10
+	timeoutDuration     = 30 * time.Second
+)
+
+// Package represents a simplified package structure for testing
+type Package struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              PackageSpec `json:"spec,omitempty"`
 }
 
-func BenchmarkIntentReconciliation(b *testing.B) {
-	ctx := context.Background()
-	
-	scenarios := []struct {
-		name               string
-		concurrentIntents int
-		networkFunctions  int
-	}{
-		{"Small Scale", 10, 1},
-		{"Medium Scale", 50, 5},
-		{"Large Scale", 100, 10},
-	}
-
-	for _, scenario := range scenarios {
-		b.Run(scenario.name, func(b *testing.B) {
-			metrics := runIntentPerformanceTest(
-				ctx, 
-				scenario.concurrentIntents, 
-				scenario.networkFunctions
-			)
-			
-			// Performance assertions
-			for _, metric := range metrics {
-				assert.True(b, metric.PackageCreated, "Package should be created")
-				assert.Less(b, metric.CreationLatency, 5*time.Second, "Package creation should be fast")
-				assert.Greater(b, metric.PackageRevisions, 0, "At least one package revision should exist")
-				
-				// Optional: Log detailed metrics
-				b.Logf("Intent Creation Latency: %v", metric.CreationLatency)
-				b.Logf("Memory Usage: %d KB", metric.MemoryUsage/1024)
-			}
-		})
-	}
+type PackageSpec struct {
+	Repository string `json:"repository,omitempty"`
 }
 
-func runIntentPerformanceTest(
-	ctx context.Context, 
-	concurrentIntents, 
-	networkFunctionsPerIntent int,
-) []PerformanceMetrics {
+func TestIntentPerformance(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
+	defer cancel()
+
 	var wg sync.WaitGroup
-	metricsChan := make(chan PerformanceMetrics, concurrentIntents)
-
-	for i := 0; i < concurrentIntents; i++ {
+	packageChan := make(chan *Package, packageCreationCount)
+	
+	// Start workers
+	for i := 0; i < concurrentWorkers; i++ {
 		wg.Add(1)
-		go func(index int) {
+		go func(workerID int) {
 			defer wg.Done()
-			
-			startMemory := getMemoryUsage()
-			startTime := time.Now()
-
-			intent := generateTestIntent(index, networkFunctionsPerIntent)
-			packageResult := createPackageFromIntent(ctx, intent)
-
-			endTime := time.Now()
-			endMemory := getMemoryUsage()
-
-			metric := PerformanceMetrics{
-				Intent:           intent,
-				CreationLatency:  endTime.Sub(startTime),
-				MemoryUsage:      endMemory - startMemory,
-				PackageCreated:   packageResult.Created,
-				PackageRevisions: packageResult.Revisions,
+			for pkg := range packageChan {
+				startTime := time.Now()
+				
+				// Simulate package processing
+				processPackage(ctx, pkg)
+				
+				duration := time.Since(startTime)
+				t.Logf("Worker %d processed package %s in %v", workerID, pkg.Name, duration)
+				
+				// Performance assertion - should process within reasonable time
+				assert.Less(t, duration, 1*time.Second, "Package processing should complete within 1 second")
 			}
-
-			metricsChan <- metric
 		}(i)
 	}
 
-	wg.Wait()
-	close(metricsChan)
-
-	metrics := make([]PerformanceMetrics, 0, concurrentIntents)
-	for m := range metricsChan {
-		metrics = append(metrics, m)
-	}
-
-	return metrics
-}
-
-func generateTestIntent(
-	index, 
-	networkFunctionsCount int,
-) *networkintentv1alpha1.NetworkIntent {
-	networkFunctions := make([]networkintentv1alpha1.NetworkFunction, networkFunctionsCount)
-	for i := 0; i < networkFunctionsCount; i++ {
-		networkFunctions[i] = networkintentv1alpha1.NetworkFunction{
-			Name: fmt.Sprintf("nf-%d-%d", index, i),
-			Type: "CNF",
-			Config: map[string]string{
-				"key": fmt.Sprintf("value-%d", i),
-			},
-		}
-	}
-
-	return &networkintentv1alpha1.NetworkIntent{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("performance-test-intent-%d", index),
-			Namespace: "performance-test",
-		},
-		Spec: networkintentv1alpha1.NetworkIntentSpec{
-			Deployment: networkintentv1alpha1.DeploymentSpec{
-				ClusterSelector: map[string]string{
-					"performance-test": "true",
+	// Generate test packages
+	go func() {
+		defer close(packageChan)
+		for i := 0; i < packageCreationCount; i++ {
+			pkg := &Package{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("intent-perf-pkg-%d", i),
+					Namespace: "default",
 				},
-				NetworkFunctions: networkFunctions,
-			},
-		},
+				Spec: PackageSpec{
+					Repository: "performance-test",
+				},
+			}
+			
+			select {
+			case packageChan <- pkg:
+			case <-ctx.Done():
+				t.Logf("Context cancelled, stopping package generation at %d", i)
+				return
+			}
+		}
+	}()
+
+	// Wait for all workers to complete
+	wg.Wait()
+	
+	// Verify context didn't timeout
+	select {
+	case <-ctx.Done():
+		if ctx.Err() == context.DeadlineExceeded {
+			t.Fatal("Performance test timed out")
+		}
+	default:
+		// Test completed successfully
 	}
 }
 
-func getMemoryUsage() uint64 {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-	return m.Alloc
-}
-
-type PackageResult struct {
-	Created    bool
-	Revisions  int
-	Latency    time.Duration
-}
-
-func createPackageFromIntent(
-	ctx context.Context, 
-	intent *networkintentv1alpha1.NetworkIntent,
-) PackageResult {
-	// Simulate Porch package creation
-	// In real scenario, this would interact with actual Porch API
-	return PackageResult{
-		Created:   true,
-		Revisions: 1,
-		Latency:   time.Millisecond * 500,
+func processPackage(ctx context.Context, pkg *Package) {
+	// Simulate package processing work
+	select {
+	case <-time.After(10 * time.Millisecond):
+		// Simulated processing time
+	case <-ctx.Done():
+		return
 	}
-}
-
-// OpenTelemetry metrics collection (stub)
-func collectPerformanceMetrics(metrics []PerformanceMetrics) {
-	tracer := trace.NewNoopTracerProvider().Tracer("nephio/porch-performance")
-	meter := metric.NewNoopMeterProvider().Meter("nephio/porch-performance")
-
-	// Implement metric collection logic
-	// Use tracer and meter to record spans and metrics
 }

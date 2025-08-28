@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -33,6 +34,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,16 +57,7 @@ type ClientConfig struct {
 	PorchConfig *PorchConfig
 }
 
-// AuthConfig defines authentication configuration
-type AuthConfig struct {
-	Type       string // kubeconfig, bearer, basic
-	Token      string
-	Username   string
-	Password   string
-	Kubeconfig string
-	SecretRef  *SecretReference
-	Headers    map[string]string
-}
+// AuthConfig is defined in types.go
 
 // ClientTLSConfig defines TLS configuration
 type ClientTLSConfig struct {
@@ -166,7 +160,7 @@ func (c *ClientConfig) GetKubernetesConfig() (*rest.Config, error) {
 
 // DefaultPorchConfig returns default Porch configuration
 func DefaultPorchConfig() *ClientConfig {
-	return &ClientConfig{
+	return &Config{
 		PorchConfig: &PorchConfig{
 			DefaultNamespace:  "default",
 			DefaultRepository: "default",

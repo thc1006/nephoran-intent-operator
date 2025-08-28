@@ -17,13 +17,16 @@ limitations under the License.
 package krm
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -38,7 +41,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
 // ContainerRuntime provides secure container-based KRM function execution
@@ -391,7 +394,7 @@ func NewContainerRuntime(config *ContainerRuntimeConfig) (*ContainerRuntime, err
 
 	// Validate configuration
 	if err := validateContainerRuntimeConfig(config); err != nil {
-		return nil, errors.WithContext(err, "invalid container runtime configuration")
+		return nil, fmt.Errorf("invalid container runtime configuration: %w", err)
 	}
 
 	// Initialize metrics
@@ -519,7 +522,7 @@ func NewContainerRuntime(config *ContainerRuntimeConfig) (*ContainerRuntime, err
 
 	// Create workspace directory
 	if err := os.MkdirAll(config.WorkspaceDir, 0755); err != nil {
-		return nil, errors.WithContext(err, "failed to create workspace directory")
+		return nil, fmt.Errorf("failed to create workspace directory: %w", err)
 	}
 
 	// Start background cleanup
@@ -558,14 +561,14 @@ func (cr *ContainerRuntime) ExecuteContainer(ctx context.Context, req *Container
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "security validation failed")
 		cr.metrics.SecurityViolations.WithLabelValues("validation_failed", "high").Inc()
-		return nil, errors.WithContext(err, "security validation failed")
+		return nil, fmt.Errorf("security validation failed: %w", err)
 	}
 
 	// Resource allocation
 	if err := cr.allocateResources(ctx, req); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "resource allocation failed")
-		return nil, errors.WithContext(err, "resource allocation failed")
+		return nil, fmt.Errorf("resource allocation failed: %w", err)
 	}
 	defer cr.releaseResources(containerID)
 
@@ -577,7 +580,7 @@ func (cr *ContainerRuntime) ExecuteContainer(ctx context.Context, req *Container
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, "sandbox creation failed")
-			return nil, errors.WithContext(err, "sandbox creation failed")
+			return nil, fmt.Errorf("sandbox creation failed: %w", err)
 		}
 		defer cr.destroySandbox(sandbox.ID)
 	}
@@ -656,46 +659,35 @@ func (cr *ContainerRuntime) allocateResources(ctx context.Context, req *Containe
 
 	// Parse resource requirements
 	var cpuLimit, memoryLimit, diskLimit *resource.Quantity
+	var err error
 
 	if req.CPULimit != "" {
-		if parsedCPU, parseErr := resource.ParseQuantity(req.CPULimit); parseErr != nil {
-			return fmt.Errorf("invalid CPU limit: %w", parseErr)
-		} else {
-			cpuLimit = &parsedCPU
+		if cpuLimit, err = resource.ParseQuantity(req.CPULimit); err != nil {
+			return fmt.Errorf("invalid CPU limit: %w", err)
 		}
 	} else {
-		if parsedCPU, parseErr := resource.ParseQuantity(cr.config.DefaultCPULimit); parseErr != nil {
-			return fmt.Errorf("invalid default CPU limit: %w", parseErr)
-		} else {
-			cpuLimit = &parsedCPU
+		if cpuLimit, err = resource.ParseQuantity(cr.config.DefaultCPULimit); err != nil {
+			return fmt.Errorf("invalid default CPU limit: %w", err)
 		}
 	}
 
 	if req.MemoryLimit != "" {
-		if parsedMemory, parseErr := resource.ParseQuantity(req.MemoryLimit); parseErr != nil {
-			return fmt.Errorf("invalid memory limit: %w", parseErr)
-		} else {
-			memoryLimit = &parsedMemory
+		if memoryLimit, err = resource.ParseQuantity(req.MemoryLimit); err != nil {
+			return fmt.Errorf("invalid memory limit: %w", err)
 		}
 	} else {
-		if parsedMemory, parseErr := resource.ParseQuantity(cr.config.DefaultMemoryLimit); parseErr != nil {
-			return fmt.Errorf("invalid default memory limit: %w", parseErr)
-		} else {
-			memoryLimit = &parsedMemory
+		if memoryLimit, err = resource.ParseQuantity(cr.config.DefaultMemoryLimit); err != nil {
+			return fmt.Errorf("invalid default memory limit: %w", err)
 		}
 	}
 
 	if req.DiskLimit != "" {
-		if parsedDisk, parseErr := resource.ParseQuantity(req.DiskLimit); parseErr != nil {
-			return fmt.Errorf("invalid disk limit: %w", parseErr)
-		} else {
-			diskLimit = &parsedDisk
+		if diskLimit, err = resource.ParseQuantity(req.DiskLimit); err != nil {
+			return fmt.Errorf("invalid disk limit: %w", err)
 		}
 	} else {
-		if parsedDisk, parseErr := resource.ParseQuantity(cr.config.DefaultDiskLimit); parseErr != nil {
-			return fmt.Errorf("invalid default disk limit: %w", parseErr)
-		} else {
-			diskLimit = &parsedDisk
+		if diskLimit, err = resource.ParseQuantity(cr.config.DefaultDiskLimit); err != nil {
+			return fmt.Errorf("invalid default disk limit: %w", err)
 		}
 	}
 
@@ -758,19 +750,19 @@ func (cr *ContainerRuntime) executeContainerInternal(ctx context.Context, req *C
 	// Create workspace directory
 	workspaceDir := filepath.Join(cr.config.WorkspaceDir, req.RequestID)
 	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
-		return nil, errors.WithContext(err, "failed to create workspace")
+		return nil, fmt.Errorf("failed to create workspace: %w", err)
 	}
 	defer os.RemoveAll(workspaceDir)
 
 	// Write input files
 	if err := cr.writeInputFiles(workspaceDir, req.InputFiles); err != nil {
-		return nil, errors.WithContext(err, "failed to write input files")
+		return nil, fmt.Errorf("failed to write input files: %w", err)
 	}
 
 	// Create container command
 	cmd, err := cr.createContainerCommand(ctx, req, workspaceDir, sandbox)
 	if err != nil {
-		return nil, errors.WithContext(err, "failed to create container command")
+		return nil, fmt.Errorf("failed to create container command: %w", err)
 	}
 
 	// Execute container

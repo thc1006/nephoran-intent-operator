@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// ProviderTypeGCP is defined in interface.go
 // GCPProvider implements CloudProvider for Google Cloud Platform
 type GCPProvider struct {
 	name      string

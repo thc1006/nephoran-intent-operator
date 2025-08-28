@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"sync"
 	"time"
-
-	"github.com/thc1006/nephoran-intent-operator/internal/patchgen/generator"
 )
 
 // PackageOptions defines the configuration for package generation
@@ -16,10 +14,24 @@ type PackageOptions struct {
 	// Add other relevant package generation parameters
 }
 
+// ResourceLimits defines resource constraints for package generation
+type ResourceLimits struct {
+	MaxCPU    int            // CPU cores
+	MaxMemory int            // Memory in MB
+	Timeout   time.Duration  // Operation timeout
+}
+
 var (
 	packageGenMutex sync.Mutex
 	generatedPkgs   = make(map[string]bool)
 )
+
+// GenerateUniqueName creates a cryptographically secure unique package name
+func GenerateUniqueName(baseName string) string {
+	// Implementation for generating unique package names
+	timestamp := time.Now().UnixNano()
+	return fmt.Sprintf("%s-%d", baseName, timestamp)
+}
 
 // GeneratePackage creates a unique package with built-in collision prevention
 func GeneratePackage(ctx context.Context, opts *PackageOptions) (*Package, error) {
@@ -27,7 +39,7 @@ func GeneratePackage(ctx context.Context, opts *PackageOptions) (*Package, error
 	defer packageGenMutex.Unlock()
 
 	// Generate a cryptographically secure unique package name
-	pkgName := generator.GenerateUniqueName(opts.Name)
+	pkgName := GenerateUniqueName(opts.Name)
 
 	// Check for name collision
 	if generatedPkgs[pkgName] {
@@ -44,13 +56,6 @@ func GeneratePackage(ctx context.Context, opts *PackageOptions) (*Package, error
 	generatedPkgs[pkgName] = true
 
 	return pkg, nil
-}
-
-// ResourceLimits defines resource allocation limits
-type ResourceLimits struct {
-	MaxCPU    int
-	MaxMemory int64
-	Timeout   time.Duration
 }
 
 // GeneratePackageWithConstraints generates a package with resource and timeout constraints

@@ -1,0 +1,124 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: conductor-loop-network-policy
+  namespace: conductor-loop
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/instance: conductor-loop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: orchestration
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    description: "Network policy for Conductor Loop with minimal required access"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: conductor-loop
+      app.kubernetes.io/instance: conductor-loop
+  
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  # Ingress rules
+  ingress:
+    # Allow health check and metrics scraping from Prometheus
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+        - namespaceSelector:
+            matchLabels:
+              name: prometheus
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+        # Allow within same namespace
+        - namespaceSelector:
+            matchLabels:
+              name: conductor-loop
+      ports:
+        - protocol: TCP
+          port: 8080  # Health checks
+        - protocol: TCP
+          port: 9090  # Metrics
+    
+    # Allow ingress from any pod in the same namespace
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9090
+  
+  # Egress rules
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    
+    # Allow HTTPS to external services (Porch, Git repos, etc.)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+    
+    # Allow access to Kubernetes API server
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 6443
+        - protocol: TCP
+          port: 8080
+    
+    # Allow access to Porch server
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: porch-system
+      ports:
+        - protocol: TCP
+          port: 7007
+        - protocol: TCP
+          port: 9443
+    
+    # Allow communication within the same namespace
+    - to:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 1-65535
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: conductor-loop-deny-all-default
+  namespace: conductor-loop
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/instance: conductor-loop
+    app.kubernetes.io/component: orchestration
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    description: "Default deny-all policy with explicit allows for security"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  # Default deny - all traffic is blocked unless explicitly allowed above

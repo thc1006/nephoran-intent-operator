@@ -1,0 +1,27 @@
+{
+  "apiVersion": "nephoran.com/v1",
+  "kind": "NetworkIntent",
+  "metadata": {
+    "name": "scale-up-deployment",
+    "namespace": "default"
+  },
+  "spec": {
+    "action": "scale",
+    "target": {
+      "type": "deployment",
+      "name": "web-app",
+      "namespace": "production"
+    },
+    "parameters": {
+      "replicas": 5,
+      "reason": "Increased traffic detected",
+      "priority": "high"
+    },
+    "constraints": {
+      "maxReplicas": 10,
+      "minReplicas": 2,
+      "cpuThreshold": "80%",
+      "memoryThreshold": "85%"
+    }
+  }
+}

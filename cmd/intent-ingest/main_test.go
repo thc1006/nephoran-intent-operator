@@ -63,7 +63,6 @@ func setupTestServer(t *testing.T) (*httptest.Server, string, func()) {
 
 	// Create handler with test directories
 	h := ingest.NewHandler(v, handoffDir, provider)
-
 	// Set up HTTP mux exactly like main()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -456,8 +455,8 @@ func TestServer_Intent_BadRequest_Scenarios(t *testing.T) {
 			method:         "POST",
 			contentType:    "application/xml",
 			body:           `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3}`,
-			expectedStatus: http.StatusBadRequest,
-			expectsError:   "plain text",
+			expectedStatus: http.StatusUnsupportedMediaType,
+			expectsError:   "Invalid Content-Type",
 		},
 		{
 			name:           "bad plain text format",

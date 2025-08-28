@@ -26,6 +26,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -36,9 +37,10 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
@@ -48,7 +50,7 @@ type Runtime struct {
 	config         *RuntimeConfig
 	resourcePool   *ResourcePool
 	executorPool   *ExecutorPool
-	securityPolicy *RuntimeSecurityPolicy
+	securityPolicy *SecurityPolicy
 	metrics        *RuntimeMetrics
 	tracer         trace.Tracer
 	mu             sync.RWMutex
@@ -123,12 +125,15 @@ type SecurityContext struct {
 type ExecutionResult struct {
 	Resources   []porch.KRMResource     `json:"resources"`
 	Results     []*porch.FunctionResult `json:"results,omitempty"`
-	Logs        []string                `json:"logs,omitempty"`
-	Error       *porch.FunctionError    `json:"error,omitempty"`
+	Logs        string                  `json:"logs,omitempty"` // Changed from []string to string for compatibility
+	Err         error                   `json:"error,omitempty"` // Changed from Error to Err to match expected interface
 	Duration    time.Duration           `json:"duration"`
 	MemoryUsage int64                   `json:"memoryUsage"`
 	CPUUsage    float64                 `json:"cpuUsage"`
 	ExitCode    int                     `json:"exitCode"`
+	
+	// Legacy compatibility - keep Error field but mark as deprecated
+	Error       *porch.FunctionError    `json:"-"` // Hidden from JSON serialization
 }
 
 // ResourcePool manages computational resources for function execution
@@ -162,8 +167,8 @@ type Executor struct {
 	mu          sync.Mutex
 }
 
-// RuntimeSecurityPolicy enforces security constraints for runtime
-type RuntimeSecurityPolicy struct {
+// SecurityPolicy enforces security constraints
+type SecurityPolicy struct {
 	allowedImages       map[string]bool
 	blockedCapabilities map[string]bool
 	maxResourceLimits   ResourceLimits
@@ -200,14 +205,14 @@ type FileSystemPolicy struct {
 
 // RuntimeMetrics provides comprehensive metrics for function execution
 type RuntimeMetrics struct {
-	FunctionExecutions  *prometheus.CounterVec
-	ExecutionDuration   *prometheus.HistogramVec
-	ResourceUtilization *prometheus.GaugeVec
-	ErrorRate           *prometheus.CounterVec
+	FunctionExecutions  prometheus.CounterVec
+	ExecutionDuration   prometheus.HistogramVec
+	ResourceUtilization prometheus.GaugeVec
+	ErrorRate           prometheus.CounterVec
 	QueueDepth          prometheus.Gauge
 	ActiveExecutors     prometheus.Gauge
 	CacheHitRate        prometheus.Counter
-	SecurityViolations  *prometheus.CounterVec
+	SecurityViolations  prometheus.CounterVec
 }
 
 // Default configuration
@@ -244,19 +249,19 @@ func NewRuntime(config *RuntimeConfig) (*Runtime, error) {
 
 	// Validate configuration
 	if err := validateRuntimeConfig(config); err != nil {
-		return nil, errors.WithContext(err, "invalid runtime configuration")
+		return nil, fmt.Errorf("invalid runtime configuration: %w", err)
 	}
 
 	// Initialize metrics
 	metrics := &RuntimeMetrics{
-		FunctionExecutions: promauto.NewCounterVec(
+		FunctionExecutions: *promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_function_executions_total",
 				Help: "Total number of KRM function executions",
 			},
 			[]string{"function", "status", "image"},
 		),
-		ExecutionDuration: promauto.NewHistogramVec(
+		ExecutionDuration: *promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "krm_function_execution_duration_seconds",
 				Help:    "Duration of KRM function executions",
@@ -264,14 +269,14 @@ func NewRuntime(config *RuntimeConfig) (*Runtime, error) {
 			},
 			[]string{"function", "image"},
 		),
-		ResourceUtilization: promauto.NewGaugeVec(
+		ResourceUtilization: *promauto.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "krm_function_resource_utilization",
 				Help: "Resource utilization during function execution",
 			},
 			[]string{"resource_type", "function"},
 		),
-		ErrorRate: promauto.NewCounterVec(
+		ErrorRate: *promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_function_errors_total",
 				Help: "Total number of KRM function execution errors",
@@ -296,7 +301,7 @@ func NewRuntime(config *RuntimeConfig) (*Runtime, error) {
 				Help: "Total number of function cache hits",
 			},
 		),
-		SecurityViolations: promauto.NewCounterVec(
+		SecurityViolations: *promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_function_security_violations_total",
 				Help: "Total number of security violations during function execution",
@@ -328,7 +333,7 @@ func NewRuntime(config *RuntimeConfig) (*Runtime, error) {
 	}
 
 	// Initialize security policy
-	securityPolicy := &RuntimeSecurityPolicy{
+	securityPolicy := &SecurityPolicy{
 		allowedImages:       make(map[string]bool),
 		blockedCapabilities: make(map[string]bool),
 		maxResourceLimits: ResourceLimits{
@@ -370,7 +375,7 @@ func NewRuntime(config *RuntimeConfig) (*Runtime, error) {
 
 	// Initialize executor pool workers
 	if err := runtime.initializeExecutorPool(); err != nil {
-		return nil, errors.WithContext(err, "failed to initialize executor pool")
+		return nil, fmt.Errorf("failed to initialize executor pool: %w", err)
 	}
 
 	// Start background cleanup routine
@@ -387,7 +392,7 @@ func (r *Runtime) ExecuteFunction(ctx context.Context, req *porch.FunctionReques
 
 	// Create execution context
 	execCtx := &ExecutionContext{
-		ID:              generateRuntimeExecutionID(),
+		ID:              generateExecutionID(),
 		FunctionImage:   req.FunctionConfig.Image,
 		Resources:       req.Resources,
 		Config:          req.FunctionConfig,
@@ -410,14 +415,14 @@ func (r *Runtime) ExecuteFunction(ctx context.Context, req *porch.FunctionReques
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "security validation failed")
 		r.metrics.SecurityViolations.WithLabelValues("validation_failed", execCtx.FunctionImage).Inc()
-		return nil, errors.WithContext(err, "function security validation failed")
+		return nil, fmt.Errorf("function security validation failed: %w", err)
 	}
 
 	// Acquire resources
 	if err := r.resourcePool.acquire(ctx, execCtx); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "resource acquisition failed")
-		return nil, errors.WithContext(err, "failed to acquire execution resources")
+		return nil, fmt.Errorf("failed to acquire execution resources: %w", err)
 	}
 	defer r.resourcePool.release(execCtx)
 
@@ -426,7 +431,7 @@ func (r *Runtime) ExecuteFunction(ctx context.Context, req *porch.FunctionReques
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "executor acquisition failed")
-		return nil, errors.WithContext(err, "failed to get executor")
+		return nil, fmt.Errorf("failed to get executor: %w", err)
 	}
 	defer r.executorPool.releaseExecutor(executor)
 
@@ -439,7 +444,7 @@ func (r *Runtime) ExecuteFunction(ctx context.Context, req *porch.FunctionReques
 		r.metrics.FunctionExecutions.WithLabelValues(
 			execCtx.FunctionImage, "failed", execCtx.FunctionImage,
 		).Inc()
-		return nil, errors.WithContext(err, "function execution failed")
+		return nil, fmt.Errorf("function execution failed: %w", err)
 	}
 
 	// Record metrics
@@ -458,10 +463,14 @@ func (r *Runtime) ExecuteFunction(ctx context.Context, req *porch.FunctionReques
 	).Set(result.CPUUsage)
 
 	// Convert to Porch response
+	var logs []string
+	if result.Logs != "" {
+		logs = strings.Split(result.Logs, "\n")
+	}
 	response := &porch.FunctionResponse{
 		Resources: result.Resources,
 		Results:   result.Results,
-		Logs:      result.Logs,
+		Logs:      logs,
 		Error:     result.Error,
 	}
 
@@ -571,7 +580,7 @@ func (r *Runtime) Shutdown(ctx context.Context) error {
 
 	// Cleanup resources
 	if err := r.cleanup(); err != nil {
-		return errors.WithContext(err, "failed to cleanup runtime resources")
+		return fmt.Errorf("failed to cleanup runtime resources: %w", err)
 	}
 
 	logger.Info("KRM runtime shutdown complete")
@@ -584,7 +593,7 @@ func (r *Runtime) initializeExecutorPool() error {
 	for i := 0; i < r.config.WorkerPoolSize; i++ {
 		executor, err := r.createExecutor()
 		if err != nil {
-			return errors.WithContext(err, "failed to create executor")
+			return fmt.Errorf("failed to create executor: %w", err)
 		}
 		r.executorPool.workers <- executor
 	}
@@ -594,7 +603,7 @@ func (r *Runtime) initializeExecutorPool() error {
 func (r *Runtime) createExecutor() (*Executor, error) {
 	workspace, err := r.createWorkspace()
 	if err != nil {
-		return nil, errors.WithContext(err, "failed to create workspace")
+		return nil, fmt.Errorf("failed to create workspace: %w", err)
 	}
 
 	return &Executor{
@@ -606,9 +615,9 @@ func (r *Runtime) createExecutor() (*Executor, error) {
 }
 
 func (r *Runtime) createWorkspace() (string, error) {
-	workspaceDir := filepath.Join(r.config.WorkspaceDir, generateRuntimeExecutionID())
+	workspaceDir := filepath.Join(r.config.WorkspaceDir, generateExecutionID())
 	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
-		return "", errors.WithContext(err, "failed to create workspace directory")
+		return "", fmt.Errorf("failed to create workspace directory: %w", err)
 	}
 	return workspaceDir, nil
 }
@@ -753,20 +762,20 @@ func (e *Executor) executeFunction(ctx context.Context, execCtx *ExecutionContex
 	// Prepare workspace
 	execCtx.WorkspaceDir = e.workspace
 	if err := e.prepareWorkspace(execCtx); err != nil {
-		return nil, errors.WithContext(err, "failed to prepare workspace")
+		return nil, fmt.Errorf("failed to prepare workspace: %w", err)
 	}
 
 	// Create execution command
 	cmd, err := e.createCommand(ctx, execCtx)
 	if err != nil {
-		return nil, errors.WithContext(err, "failed to create execution command")
+		return nil, fmt.Errorf("failed to create execution command: %w", err)
 	}
 
 	// Execute function
 	startTime := time.Now()
 	result, err := e.runCommand(ctx, cmd, execCtx)
 	if err != nil {
-		return nil, errors.WithContext(err, "function execution failed")
+		return nil, fmt.Errorf("function execution failed: %w", err)
 	}
 
 	result.Duration = time.Since(startTime)
@@ -778,11 +787,11 @@ func (e *Executor) prepareWorkspace(execCtx *ExecutionContext) error {
 	inputFile := filepath.Join(execCtx.WorkspaceDir, "input.yaml")
 	inputData, err := json.Marshal(execCtx.Resources)
 	if err != nil {
-		return errors.WithContext(err, "failed to marshal input resources")
+		return fmt.Errorf("failed to marshal input resources: %w", err)
 	}
 
 	if err := os.WriteFile(inputFile, inputData, 0644); err != nil {
-		return errors.WithContext(err, "failed to write input file")
+		return fmt.Errorf("failed to write input file: %w", err)
 	}
 
 	// Create config file if needed
@@ -790,10 +799,10 @@ func (e *Executor) prepareWorkspace(execCtx *ExecutionContext) error {
 		configFile := filepath.Join(execCtx.WorkspaceDir, "config.yaml")
 		configData, err := json.Marshal(execCtx.Config.ConfigMap)
 		if err != nil {
-			return errors.WithContext(err, "failed to marshal config")
+			return fmt.Errorf("failed to marshal config: %w", err)
 		}
 		if err := os.WriteFile(configFile, configData, 0644); err != nil {
-			return errors.WithContext(err, "failed to write config file")
+			return fmt.Errorf("failed to write config file: %w", err)
 		}
 	}
 
@@ -855,14 +864,15 @@ func (e *Executor) runCommand(ctx context.Context, cmd *exec.Cmd, execCtx *Execu
 	result := &ExecutionResult{
 		Resources: []porch.KRMResource{},
 		Results:   []*porch.FunctionResult{},
-		Logs:      []string{},
+		Logs:      "", // String instead of slice
 	}
 
-	// Read output
+	// Read output and collect logs
+	var logLines []string
 	go func() {
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
-			result.Logs = append(result.Logs, scanner.Text())
+			logLines = append(logLines, scanner.Text())
 		}
 	}()
 
@@ -887,6 +897,8 @@ func (e *Executor) runCommand(ctx context.Context, cmd *exec.Cmd, execCtx *Execu
 	if len(outputBytes) > 0 {
 		if err := json.Unmarshal(outputBytes, &result.Resources); err != nil {
 			// If JSON parsing fails, treat as error
+			result.Err = fmt.Errorf("failed to parse function output: %w", err)
+			// Also set the legacy Error field for backward compatibility
 			result.Error = &porch.FunctionError{
 				Message: fmt.Sprintf("Failed to parse function output: %v", err),
 				Code:    "OUTPUT_PARSE_ERROR",
@@ -895,8 +907,15 @@ func (e *Executor) runCommand(ctx context.Context, cmd *exec.Cmd, execCtx *Execu
 		}
 	}
 
+	// Combine logs into single string
+	if len(logLines) > 0 {
+		result.Logs = strings.Join(logLines, "\n")
+	}
+
 	// Set error if exit code is non-zero
-	if exitCode != 0 && result.Error == nil {
+	if exitCode != 0 && result.Err == nil {
+		result.Err = fmt.Errorf("function execution failed with exit code %d", exitCode)
+		// Also set the legacy Error field for backward compatibility
 		result.Error = &porch.FunctionError{
 			Message: fmt.Sprintf("Function execution failed with exit code %d", exitCode),
 			Code:    "EXECUTION_ERROR",
@@ -937,7 +956,7 @@ func validateRuntimeConfig(config *RuntimeConfig) error {
 	return nil
 }
 
-func generateRuntimeExecutionID() string {
+func generateExecutionID() string {
 	return fmt.Sprintf("exec-%d-%d", time.Now().UnixNano(), runtime.NumGoroutine())
 }
 

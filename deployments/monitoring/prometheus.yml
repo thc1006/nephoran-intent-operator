@@ -1,0 +1,345 @@
+# Prometheus Configuration for Conductor Loop
+# Production-ready monitoring with security and performance focus
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    cluster: 'nephoran-production'
+    environment: 'production'
+    service: 'conductor-loop'
+
+# Security: Remote write configuration for backup and federation
+remote_write:
+  - url: "https://prometheus-remote.nephoran.com/api/v1/write"
+    basic_auth:
+      username: "prometheus"
+      password_file: "/etc/prometheus/secrets/remote-write-password"
+    queue_config:
+      max_samples_per_send: 1000
+      max_shards: 200
+      capacity: 2500
+      batch_send_deadline: 5s
+    metadata_config:
+      send: true
+      send_interval: 30s
+      max_samples_per_send: 500
+
+# Alerting configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+      basic_auth:
+        username: "prometheus"
+        password_file: "/etc/prometheus/secrets/alertmanager-password"
+
+# Load alerting rules
+rule_files:
+  - "conductor-loop-alerts.yml"
+  - "security-alerts.yml"
+  - "performance-alerts.yml"
+
+# Scrape configurations
+scrape_configs:
+
+  # ==========================================================================
+  # Conductor Loop Application Metrics
+  # ==========================================================================
+  
+  - job_name: 'conductor-loop'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: '/metrics'
+    scheme: http
+    static_configs:
+      - targets: ['conductor-loop:9090']
+        labels:
+          service: 'conductor-loop'
+          component: 'orchestrator'
+          tier: 'application'
+    
+    # Security: Basic authentication
+    basic_auth:
+      username: 'prometheus'
+      password_file: '/etc/prometheus/secrets/conductor-loop-password'
+    
+    # Relabeling for security and organization
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: conductor-loop:9090
+    
+    # Metric filtering for security
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'go_.*|process_.*|promhttp_.*'
+        action: drop
+      - source_labels: [__name__]
+        regex: 'conductor_.*'
+        action: keep
+
+  # ==========================================================================
+  # Health Check Monitoring
+  # ==========================================================================
+  
+  - job_name: 'conductor-loop-health'
+    scrape_interval: 30s
+    scrape_timeout: 5s
+    metrics_path: '/healthz'
+    scheme: http
+    static_configs:
+      - targets: ['conductor-loop:8080']
+        labels:
+          service: 'conductor-loop'
+          component: 'health'
+          tier: 'monitoring'
+    
+    # Convert health endpoint to metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        target_label: health_status
+        replacement: 'up'
+
+  # ==========================================================================
+  # Infrastructure Monitoring
+  # ==========================================================================
+  
+  # Node Exporter for system metrics
+  - job_name: 'node-exporter'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'node-exporter'
+          component: 'infrastructure'
+          tier: 'system'
+    
+    metric_relabel_configs:
+      # Focus on critical system metrics
+      - source_labels: [__name__]
+        regex: 'node_(cpu|memory|disk|network|filesystem)_.*'
+        action: keep
+      - source_labels: [__name__]
+        regex: 'node_load.*|node_uname_info'
+        action: keep
+
+  # cAdvisor for container metrics
+  - job_name: 'cadvisor'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: 'cadvisor'
+          component: 'containers'
+          tier: 'infrastructure'
+    
+    metric_relabel_configs:
+      # Filter container metrics for conductor-loop
+      - source_labels: [container_label_com_docker_compose_service]
+        regex: 'conductor-loop'
+        action: keep
+      - source_labels: [__name__]
+        regex: 'container_(cpu|memory|network|fs)_.*'
+        action: keep
+
+  # ==========================================================================
+  # Redis Monitoring
+  # ==========================================================================
+  
+  - job_name: 'redis'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          service: 'redis'
+          component: 'cache'
+          tier: 'data'
+    
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'redis_.*'
+        action: keep
+
+  # ==========================================================================
+  # Security Monitoring
+  # ==========================================================================
+  
+  # Security events and audit logs
+  - job_name: 'security-exporter'
+    scrape_interval: 60s
+    metrics_path: '/security/metrics'
+    static_configs:
+      - targets: ['security-exporter:9200']
+        labels:
+          service: 'security-exporter'
+          component: 'security'
+          tier: 'monitoring'
+    
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'security_.*|auth_.*|audit_.*'
+        action: keep
+
+  # ==========================================================================
+  # Kubernetes Monitoring (if deployed in K8s)
+  # ==========================================================================
+  
+  # Kubernetes API server
+  - job_name: 'kubernetes-apiservers'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - default
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: false
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: default;kubernetes;https
+
+  # Kubernetes pods in nephoran-conductor namespace
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - nephoran-conductor
+    
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+
+  # ==========================================================================
+  # Service Discovery and Federation
+  # ==========================================================================
+  
+  # Federation from other Prometheus instances
+  - job_name: 'prometheus-federation'
+    scrape_interval: 60s
+    scrape_timeout: 30s
+    metrics_path: '/federate'
+    params:
+      'match[]':
+        - '{__name__=~"conductor_.*"}'
+        - '{__name__=~"security_.*"}'
+        - '{__name__=~"up|.*_up"}'
+    static_configs:
+      - targets:
+          - 'prometheus-staging:9090'
+          - 'prometheus-development:9090'
+    
+    honor_labels: true
+    
+    basic_auth:
+      username: 'federation'
+      password_file: '/etc/prometheus/secrets/federation-password'
+
+# ==========================================================================
+# Storage Configuration
+# ==========================================================================
+
+# Local storage configuration
+storage:
+  tsdb:
+    # Retention policy
+    retention.time: 30d
+    retention.size: 50GB
+    
+    # Compression and performance
+    min_block_duration: 2h
+    max_block_duration: 24h
+    
+    # WAL configuration
+    wal_compression: true
+    
+    # Block configuration
+    allow_overlapping_blocks: false
+    
+    # Compaction
+    max_compaction_chunks: 10000000
+
+# ==========================================================================
+# Security Configuration
+# ==========================================================================
+
+# Web server configuration
+web:
+  # Listen configuration
+  listen_address: "0.0.0.0:9090"
+  
+  # Security headers
+  web.cors.origin: ".*"
+  web.enable_lifecycle: true
+  web.enable_admin_api: true
+  
+  # TLS configuration (uncomment for HTTPS)
+  # tls_config:
+  #   cert_file: "/etc/prometheus/certs/prometheus.crt"
+  #   key_file: "/etc/prometheus/certs/prometheus.key"
+  #   client_ca_file: "/etc/prometheus/certs/ca.crt"
+  #   client_auth_type: "RequireAndVerifyClientCert"
+
+# ==========================================================================
+# Performance Tuning
+# ==========================================================================
+
+# Query engine configuration
+query:
+  # Maximum number of samples a single query can load into memory
+  max_samples: 50000000
+  
+  # Maximum time a query may take before being aborted
+  timeout: 2m
+  
+  # Maximum number of queries executed concurrently
+  max_concurrency: 20
+  
+  # Look-back delta for applying staleness
+  lookback_delta: 5m
+
+# Remote read configuration for long-term storage
+remote_read:
+  - url: "https://prometheus-longterm.nephoran.com/api/v1/read"
+    basic_auth:
+      username: "prometheus"
+      password_file: "/etc/prometheus/secrets/longterm-password"
+    read_recent: false
+    
+# ==========================================================================
+# Experimental Features
+# ==========================================================================
+
+# Enable experimental features
+feature_flags:
+  - "promql-at-modifier"
+  - "remote-write-receiver"
+  - "expand-external-labels"

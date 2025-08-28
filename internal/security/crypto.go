@@ -6,6 +6,7 @@ import (
 	"encoding/base32"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 

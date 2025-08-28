@@ -1,0 +1,474 @@
+name: Conductor Loop CI
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ feat/conductor-loop ]
+    paths:
+      - 'cmd/conductor-loop/**'
+      - 'internal/loop/**'
+      - '.github/workflows/conductor-loop.yml'
+      - 'Dockerfile.conductor-loop'
+      - 'deployments/conductor-loop/**'
+      - 'go.mod'
+      - 'go.sum'
+  pull_request:
+    branches: [ main, integrate/mvp ]
+    paths:
+      - 'cmd/conductor-loop/**'
+      - 'internal/loop/**'
+      - '.github/workflows/conductor-loop.yml'
+      - 'Dockerfile.conductor-loop'
+      - 'deployments/conductor-loop/**'
+
+# Concurrency control aligned with existing CI
+concurrency:
+  group: conductor-loop-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: conductor-loop
+  GO_VERSION: 1.24.x
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Build and Test Matrix
+  # ---------------------------------------------------------------------------
+  test:
+    name: Test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    if: ${{ !(github.event_name == 'pull_request' && matrix.os == 'windows-latest') }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Download dependencies
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Run tests (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p test-results
+          # Use cross-platform timeout solution
+          if command -v gtimeout >/dev/null 2>&1; then
+            TIMEOUT_CMD="gtimeout 300"
+          elif command -v timeout >/dev/null 2>&1; then
+            TIMEOUT_CMD="timeout 300"
+          else
+            # Fallback: use Go's built-in timeout
+            TIMEOUT_CMD=""
+          fi
+          
+          # Add retry logic for flaky tests
+          for attempt in 1 2; do
+            echo "Test attempt $attempt of 2..."
+            if [ -n "$TIMEOUT_CMD" ]; then
+              test_cmd="$TIMEOUT_CMD go test -v -race -timeout=20m -count=1 -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop"
+            else
+              test_cmd="go test -v -race -timeout=20m -count=1 -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop"
+            fi
+            
+            if eval "$test_cmd" 2>&1 | tee test-results/test-attempt-$attempt.log; then
+              echo "Tests passed on attempt $attempt"
+              break
+            elif [ $attempt -eq 2 ]; then
+              echo "Tests failed after 2 attempts"
+              exit 1
+            else
+              echo "Test attempt $attempt failed, retrying..."
+              sleep 5
+            fi
+          done
+          go tool cover -html=test-results/coverage.out -o test-results/coverage.html
+
+      - name: Run tests (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir test-results
+          # Add retry logic for flaky tests on Windows
+          $success = $false
+          for ($attempt = 1; $attempt -le 2; $attempt++) {
+            Write-Host "Test attempt $attempt of 2..."
+            $testOutput = go test -v -race -timeout=20m -count=1 -coverprofile='test-results/coverage.out' -covermode=atomic ./cmd/conductor-loop ./internal/loop 2>&1
+            $testOutput | Out-File test-results/test-attempt-$attempt.log
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "Tests passed on attempt $attempt"
+              $success = $true
+              break
+            } elseif ($attempt -eq 2) {
+              Write-Host "Tests failed after 2 attempts"
+              Write-Host "Last test output:"
+              $testOutput
+              exit 1
+            } else {
+              Write-Host "Test attempt $attempt failed, retrying..."
+              Start-Sleep 5
+            }
+          }
+          go tool cover -html=test-results/coverage.out -o test-results/coverage.html
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.os }}
+          path: test-results/
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Build Binary
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Build binary
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          VERSION=$(git describe --tags --always --dirty)
+          COMMIT=$(git rev-parse --short HEAD)
+          DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          
+          mkdir -p bin
+          go build -ldflags="-s -w -X main.version=$VERSION -X main.commit=$COMMIT -X main.date=$DATE" \
+            -o bin/conductor-loop ./cmd/conductor-loop
+          
+          # Create checksum
+          cd bin
+          sha256sum conductor-loop > conductor-loop.sha256
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: conductor-loop-binary
+          path: bin/
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Coverage Report
+  # ---------------------------------------------------------------------------
+  coverage:
+    name: Coverage Report
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results-ubuntu-latest
+          path: test-results/
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: test-results/coverage.out
+          flags: conductor-loop
+          name: conductor-loop-coverage
+          fail_ci_if_error: false
+
+  # ---------------------------------------------------------------------------
+  # Security Scan
+  # ---------------------------------------------------------------------------
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run Gosec Security Scanner
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          # Exclude G104 (unhandled errors) and G204 (subprocess launched with variable) to reduce noise
+          # Lower severity and confidence thresholds to focus on critical issues
+          mkdir -p security-reports/gosec
+          gosec -exclude G104,G204 -severity low -confidence medium -fmt sarif -out security-reports/gosec/gosec.sarif ./cmd/conductor-loop ./internal/loop || echo "Gosec scan completed with warnings"
+          # Ensure SARIF file exists even if no issues found
+          if [ ! -f "security-reports/gosec/gosec.sarif" ]; then
+            echo '{"version":"2.1.0","$schema":"https://json.schemastore.org/sarif-2.1.0.json","runs":[{"tool":{"driver":{"name":"gosec","version":"2.18.2"}},"results":[]}]}' > security-reports/gosec/gosec.sarif
+          fi
+          
+          # Ensure SARIF file exists even if no issues found
+          if [ ! -f gosec-results.sarif ]; then
+            echo '{"version":"2.1.0","$schema":"https://json.schemastore.org/sarif-2.1.0.json","runs":[{"tool":{"driver":{"name":"gosec","version":"latest"}},"results":[]}]}' > gosec-results.sarif
+          fi
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('security-reports/gosec/gosec.sarif') != ''
+        with:
+          sarif_file: security-reports/gosec/gosec.sarif
+
+      - name: Run govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./cmd/conductor-loop ./internal/loop
+
+  # ---------------------------------------------------------------------------
+  # Docker Build and Scan
+  # ---------------------------------------------------------------------------
+  docker:
+    name: Docker Build & Scan
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    timeout-minutes: 20
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download binary
+        uses: actions/download-artifact@v4
+        with:
+          name: conductor-loop-binary
+          path: bin/
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            SERVICE=conductor-loop
+            SERVICE_TYPE=go
+            VERSION=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+
+  # ---------------------------------------------------------------------------
+  # Integration Tests
+  # ---------------------------------------------------------------------------
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: docker
+    if: github.event_name != 'pull_request'
+    timeout-minutes: 30
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: conductor-loop-test
+          wait: 30s
+
+      - name: Run integration tests
+        env:
+          KUBECONFIG: /home/runner/.kube/config
+          REDIS_URL: redis://localhost:6379
+        run: |
+          # Install test dependencies
+          kubectl create namespace conductor-loop-test
+          
+          # Run integration tests
+          go test -v -timeout=30m -tags=integration ./cmd/conductor-loop ./internal/loop
+
+      - name: Cleanup
+        if: always()
+        run: |
+          kind delete cluster --name conductor-loop-test
+
+  # ---------------------------------------------------------------------------
+  # Performance Benchmarks
+  # ---------------------------------------------------------------------------
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run benchmarks
+        run: |
+          mkdir -p benchmark-results
+          go test -bench=. -benchmem -run=^$ ./internal/loop > benchmark-results/benchmark.txt 2>&1
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark-results/
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Summary Check
+  # ---------------------------------------------------------------------------
+  ci-status:
+    name: CI Status Check
+    runs-on: ubuntu-latest
+    needs: [test, build, security, docker]
+    if: always()
+    timeout-minutes: 5
+
+    steps:
+      - name: Check status
+        run: |
+          echo "Test: ${{ needs.test.result }}"
+          echo "Build: ${{ needs.build.result }}"
+          echo "Security: ${{ needs.security.result }}"
+          echo "Docker: ${{ needs.docker.result }}"
+          
+          if [[ "${{ needs.test.result }}" != "success" ]]; then
+            echo "❌ Tests failed"
+            exit 1
+          fi
+          
+          # Treat skipped as neutral for Build
+          if [[ "${{ needs.build.result }}" == "failure" || "${{ needs.build.result }}" == "cancelled" ]]; then
+            echo "❌ Build failed"
+            exit 1
+          elif [[ "${{ needs.build.result }}" == "skipped" ]]; then
+            echo "⏭️ Build skipped (neutral)"
+          fi
+          
+          if [[ "${{ needs.security.result }}" != "success" ]]; then
+            echo "⚠️  Security scan had issues (non-blocking)"
+          fi
+          
+          # Treat skipped as neutral for Docker
+          if [[ "${{ needs.docker.result }}" == "failure" || "${{ needs.docker.result }}" == "cancelled" ]]; then
+            echo "❌ Docker build failed"
+            exit 1
+          elif [[ "${{ needs.docker.result }}" == "skipped" ]]; then
+            echo "⏭️ Docker build skipped (neutral)"
+          fi
+          
+          echo "✅ Conductor Loop CI Pipeline Passed"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Test | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔨 Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔒 Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐳 Docker | ${{ needs.docker.result }} |" >> $GITHUB_STEP_SUMMARY

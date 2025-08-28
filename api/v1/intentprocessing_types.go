@@ -333,8 +333,6 @@ type IntentProcessingStatus struct {
 
 	// QualityScore represents the quality of processing
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
 	QualityScore *float64 `json:"qualityScore,omitempty"`
 
 	// ValidationErrors contains any validation errors

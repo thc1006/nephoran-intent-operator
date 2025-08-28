@@ -295,13 +295,18 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 
 	// Initialize policy engine
 	if config.PolicyConfig != nil && config.PolicyConfig.Enabled {
-		// Convert CertificatePolicyConfig to PolicyConfig
-		policyConfig := &PolicyConfig{
-			Enabled:         config.PolicyConfig.Enabled,
-			EnforcementMode: "strict", // default enforcement mode
+		// Convert manager policy config to policy engine config
+		// Merge both approaches for comprehensive policy configuration
+		engineConfig := &PolicyEngineConfig{
+			Enabled:                config.PolicyConfig.Enabled,
+			EnforcementMode:        "strict", // default enforcement mode
+			Rules:                  convertValidationRulesToPolicyRules(config.PolicyConfig.ValidationRules),
+			CertificatePinning:     false, // Default, can be configured separately
+			AlgorithmStrengthCheck: true,  // Default for security
+			MinimumRSAKeySize:      2048,  // Default
+			AllowedECCurves:        []string{"P-256", "P-384", "P-521"}, // Default
 		}
-
-		policyEngine, err := NewPolicyEngine(policyConfig, logger)
+		policyEngine, err := NewPolicyEngine(engineConfig, logger)
 		if err != nil {
 			cancel()
 			return nil, fmt.Errorf("failed to initialize policy engine: %w", err)
@@ -696,4 +701,20 @@ func generateRequestID() string {
 	randomBytes := make([]byte, 8)
 	rand.Read(randomBytes)
 	return fmt.Sprintf("req-%x", randomBytes)
+}
+
+// convertValidationRulesToPolicyRules converts manager validation rules to policy engine rules
+func convertValidationRulesToPolicyRules(validationRules []ValidationRule) []PolicyRule {
+	policyRules := make([]PolicyRule, len(validationRules))
+	for i, rule := range validationRules {
+		policyRules[i] = PolicyRule{
+			Name:        rule.Name,
+			Type:        rule.Type,
+			Pattern:     rule.Pattern,
+			Required:    rule.Required,
+			Severity:    SeverityError, // Default severity
+			Description: rule.ErrorMessage,
+		}
+	}
+	return policyRules
 }

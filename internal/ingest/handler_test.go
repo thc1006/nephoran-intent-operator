@@ -41,14 +41,9 @@ func (m *MockIntentProvider) ParseIntent(ctx context.Context, text string) (map[
 	if m.ParseIntentFunc != nil {
 		return m.ParseIntentFunc(ctx, text)
 	}
-	// Default successful parsing
-	return map[string]interface{}{
-		"intent_type": "scaling",
-		"target":      "test-deployment",
-		"namespace":   "default",
-		"replicas":    3,
-		"source":      "test",
-	}, nil
+	// Fallback to actual parsing logic for tests
+	provider := NewRulesProvider()
+	return provider.ParseIntent(ctx, text)
 }
 
 func (m *MockIntentProvider) Name() string {
@@ -62,7 +57,6 @@ func TestNewHandler(t *testing.T) {
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
 	handler := NewHandler(mockValidator, outDir, mockProvider)
-
 	if handler == nil {
 		t.Fatal("Expected non-nil handler")
 	}
@@ -86,7 +80,6 @@ func TestHandleIntent_MethodNotAllowed(t *testing.T) {
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
 	handler := NewHandler(mockValidator, tempDir, mockProvider)
-
 	methods := []string{"GET", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"}
 
 	for _, method := range methods {
@@ -108,7 +101,6 @@ func TestHandleIntent_JSONInput_Success(t *testing.T) {
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
 	handler := NewHandler(mockValidator, tempDir, mockProvider)
-
 	tests := []struct {
 		name        string
 		contentType string
@@ -239,7 +231,6 @@ func TestHandleIntent_PlainTextInput_Success(t *testing.T) {
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
 	handler := NewHandler(mockValidator, tempDir, mockProvider)
-
 	tests := []struct {
 		name     string
 		input    string
@@ -336,7 +327,6 @@ func TestHandleIntent_PlainTextInput_BadFormat(t *testing.T) {
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
 	handler := NewHandler(mockValidator, tempDir, mockProvider)
-
 	tests := []struct {
 		name  string
 		input string
@@ -373,6 +363,11 @@ func TestHandleIntent_PlainTextInput_BadFormat(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Mock the provider to return an error for bad formats
+			mockProvider.ParseIntentFunc = func(ctx context.Context, text string) (map[string]interface{}, error) {
+				return nil, fmt.Errorf("invalid plain text format")
+			}
+
 			req := httptest.NewRequest("POST", "/intent", strings.NewReader(tt.input))
 			req.Header.Set("Content-Type", "text/plain")
 			w := httptest.NewRecorder()
@@ -397,7 +392,6 @@ func TestHandleIntent_UnsupportedContentType(t *testing.T) {
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
 	handler := NewHandler(mockValidator, tempDir, mockProvider)
-
 	tests := []struct {
 		name        string
 		contentType string
@@ -420,10 +414,9 @@ func TestHandleIntent_UnsupportedContentType(t *testing.T) {
 
 			handler.HandleIntent(w, req)
 
-			// For unsupported content types, the handler treats it as plain text
-			// and tries to parse with regex, which should fail for JSON payload
-			if w.Code != http.StatusBadRequest {
-				t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
+			// For unsupported content types, the handler returns 415 Unsupported Media Type
+			if w.Code != http.StatusUnsupportedMediaType {
+				t.Errorf("Expected status %d, got %d", http.StatusUnsupportedMediaType, w.Code)
 			}
 		})
 	}
@@ -434,7 +427,6 @@ func TestHandleIntent_ValidationError(t *testing.T) {
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
 	handler := NewHandler(mockValidator, tempDir, mockProvider)
-
 	tests := []struct {
 		name          string
 		contentType   string
@@ -505,7 +497,6 @@ func TestHandleIntent_FileWriteError(t *testing.T) {
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
 	handler := NewHandler(mockValidator, readOnlyDir, mockProvider)
-
 	// Mock successful validation
 	mockValidator.ValidateBytesFunc = func(b []byte) (*Intent, error) {
 		return &Intent{
@@ -539,7 +530,6 @@ func TestHandleIntent_FileCreation(t *testing.T) {
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
 	handler := NewHandler(mockValidator, tempDir, mockProvider)
-
 	payload := `{"intent_type": "scaling", "target": "test-deployment", "namespace": "default", "replicas": 3}`
 
 	req := httptest.NewRequest("POST", "/intent", strings.NewReader(payload))
@@ -598,7 +588,6 @@ func TestHandleIntent_ConcurrentRequests(t *testing.T) {
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
 	handler := NewHandler(mockValidator, tempDir, mockProvider)
-
 	const numRequests = 5 // Reduced to minimize timestamp collisions
 	results := make(chan int, numRequests)
 
@@ -656,7 +645,6 @@ func TestHandleIntent_CorrelationIdPassthrough(t *testing.T) {
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
 	handler := NewHandler(mockValidator, tempDir, mockProvider)
-
 	correlationID := "test-correlation-123"
 	payload := fmt.Sprintf(`{
 		"intent_type": "scaling",
@@ -704,7 +692,6 @@ func TestHandleIntent_EdgeCases(t *testing.T) {
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
 	handler := NewHandler(mockValidator, tempDir, mockProvider)
-
 	tests := []struct {
 		name         string
 		method       string

@@ -164,7 +164,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 // isValidTimestamp validates timestamp format to prevent injection
 func isValidTimestamp(ts string) bool {
-	if len(ts) != 15 { // 20060102T150405Z format
+	if len(ts) != 16 { // 20060102T150405Z format (16 characters: 8+1+6+1)
 		return false
 	}
 	// Only allow alphanumeric and T/Z characters

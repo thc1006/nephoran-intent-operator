@@ -56,6 +56,8 @@ type SubscriptionFilter struct {
 	TimeWindow *TimeWindow `json:"timeWindow,omitempty"`
 }
 
+// LocationFilter, GeographicArea, and BoundingBox are defined in resource_types.go
+// to avoid duplicate declarations across the package
 // TimeWindow defines a time-based filter
 type TimeWindow struct {
 	StartTime  *time.Time       `json:"startTime,omitempty"`
