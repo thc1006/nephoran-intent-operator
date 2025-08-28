@@ -1,0 +1,22 @@
+# Patch to ensure webhook deployment has proper configuration
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-manager
+  namespace: nephoran-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: webhook
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: WEBHOOK_SERVICE_NAME
+          value: "webhook-manager"
+        - name: CERT_DIR
+          value: "/tmp/k8s-webhook-server/serving-certs"
+        - name: WEBHOOK_PORT
+          value: "9443"

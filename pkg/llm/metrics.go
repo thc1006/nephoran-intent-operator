@@ -1,3 +1,6 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 package llm
 
 import (
@@ -41,6 +44,10 @@ type GlobalMetrics struct {
 	LastResetTime       time.Time     `json:"last_reset_time"`
 	mutex               sync.RWMutex
 }
+
+
+// Use CircuitMetrics from circuit_breaker.go to avoid duplicates
+
 
 // NewMetricsCollector creates a new unified metrics collector
 func NewMetricsCollector() *MetricsCollector {

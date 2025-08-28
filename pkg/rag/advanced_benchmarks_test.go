@@ -907,7 +907,11 @@ type EnhancedRAGSystem struct {
 	metrics        RAGMetrics
 }
 
-// Document is now defined in pkg/shared/types/common_types.go
+
+// Document type is already defined in embedding_support.go
+
+// RetrievalConfig type is already defined in enhanced_retrieval_service.go
+
 
 type SearchConfig struct {
 	TopK             int
@@ -925,11 +929,19 @@ type ContextConfig struct {
 	Template        string
 }
 
+
+// ChunkingConfig type is already defined in chunking_service.go
+// EmbeddingConfig type is already defined in embedding_service.go
+// CacheConfig type is already defined in rag_service.go
+// ConnectionPoolConfig type is already defined in optimized_connection_pool.go
+
+// Test-specific config types
+
 type RAGSystemConfig struct {
 	VectorDB       VectorDBConfig
-	Embedding      EmbeddingConfig
-	Cache          CacheConfig
-	ConnectionPool ConnectionPoolConfig
+	Embedding      EmbeddingConfigTest
+	Cache          CacheConfigTest
+	ConnectionPool ConnectionPoolConfigTest
 }
 
 type VectorDBConfig struct {
@@ -938,6 +950,25 @@ type VectorDBConfig struct {
 	Index      string
 	Dimensions int
 }
+
+
+type EmbeddingConfigTest struct {
+	Provider string
+	Model    string
+}
+
+type CacheConfigTest struct {
+	Enabled bool
+	MaxSize int
+	TTL     time.Duration
+}
+
+type ConnectionPoolConfigTest struct {
+	MaxConnections int
+	MaxIdle        int
+	IdleTimeout    time.Duration
+}
+
 
 // Placeholder implementations
 func NewEnhancedRAGSystem(config RAGSystemConfig) *EnhancedRAGSystem {
@@ -971,9 +1002,9 @@ func (r *EnhancedRAGSystem) ChunkDocument(doc types.Document, config *ChunkingCo
 	return []*DocumentChunk{{Content: "chunk", CharacterCount: 100, WordCount: 20}}, nil
 }
 
-type BenchmarkSearchResult struct {
-	Similarity float64
-}
+
+// SearchResult type is already defined in enhanced_rag_integration.go
+
 
 type IngestionResult struct {
 	ChunksCreated   int
@@ -984,6 +1015,12 @@ type GeneratedContext struct {
 	Content    string
 	TokenCount int
 }
+
+
+// DocumentChunk type is already defined in chunking_service.go
+// EmbeddingService type is already defined in embedding_service.go
+// RAGMetrics type is already defined elsewhere
+
 
 // Interface placeholders
 type VectorDB interface{}

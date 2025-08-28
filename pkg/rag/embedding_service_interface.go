@@ -1,3 +1,5 @@
+//go:build !disable_rag && !test
+
 package rag
 
 import (
@@ -184,8 +186,9 @@ func calculateCosineSimilarity(a, b []float32) float32 {
 	return dotProduct / (float32(sqrt(float64(normA))) * float32(sqrt(float64(normB))))
 }
 
-// Use consolidated sqrt function from pkg/shared
-var sqrt = shared.Sqrt
+
+// Note: sqrt function is defined in optimized_rag_pipeline.go
+
 
 // generateRequestID generates a unique request ID
 func generateRequestID(operation string) string {

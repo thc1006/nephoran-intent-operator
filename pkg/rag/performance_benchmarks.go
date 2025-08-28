@@ -89,15 +89,9 @@ type TestSuiteResults struct {
 	TestResults  map[string]*BenchmarkTestResult `json:"test_results"`
 }
 
-// TestResult represents individual test result
-type BenchmarkTestResult struct {
-	TestName string                 `json:"test_name"`
-	Passed   bool                   `json:"passed"`
-	Duration time.Duration          `json:"duration"`
-	Score    float64                `json:"score"`
-	Error    string                 `json:"error,omitempty"`
-	Metrics  map[string]interface{} `json:"metrics"`
-}
+
+// Note: TestResult is defined in integration_validator.go
+
 
 // LatencyBenchmarkResults holds latency benchmark results
 type LatencyBenchmarkResults struct {

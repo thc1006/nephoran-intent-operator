@@ -50,7 +50,7 @@ type Client struct {
 	fallbackURLs []string
 
 	// Token and cost tracking
-	tokenTracker *TokenTracker
+	tokenTracker *SimpleTokenTracker
 }
 
 // ClientConfig holds unified configuration
@@ -85,9 +85,21 @@ type RetryConfig struct {
 	BackoffFactor float64       `json:"backoff_factor"`
 }
 
-// CircuitState, CircuitBreaker and related types are defined in circuit_breaker.go
 
-// CircuitBreaker methods are implemented in circuit_breaker.go
+// Use CircuitState and constants from circuit_breaker.go to avoid duplicates
+
+// Use CircuitBreaker from circuit_breaker.go to avoid duplicates
+
+// Use NewCircuitBreaker from circuit_breaker.go to avoid duplicates
+
+// Use Execute method from circuit_breaker.go to avoid duplicates
+
+// Use shouldTrip method from circuit_breaker.go to avoid duplicates
+
+// Use Reset method from circuit_breaker.go to avoid duplicates
+
+// Use ForceOpen method from circuit_breaker.go to avoid duplicates
+
 
 // NewClientMetrics creates new client metrics
 func NewClientMetrics() *ClientMetrics {
@@ -203,7 +215,7 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 			JitterEnabled: true,
 			BackoffFactor: 2.0,
 		},
-		tokenTracker: NewTokenTracker(),
+		tokenTracker: NewSimpleTokenTracker(),
 	}
 
 	// Initialize metrics integrator for Prometheus support

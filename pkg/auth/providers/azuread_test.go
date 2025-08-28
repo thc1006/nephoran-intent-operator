@@ -806,20 +806,20 @@ func TestAzureADProvider_DiscoverConfiguration(t *testing.T) {
 	// TODO: Implement OIDCProvider interface
 	assert.NotNil(t, provider) // Use provider to avoid unused variable error
 	t.Skip("AzureADProvider does not implement OIDCProvider")
-	
-	/*
-	if oidcProvider, ok := provider.(OIDCProvider); ok {
-		ctx := context.Background()
-		config, err := oidcProvider.DiscoverConfiguration(ctx)
 
-		assert.NoError(t, err)
-		assert.NotNil(t, config)
-		assert.Equal(t, "https://login.microsoftonline.com/test-tenant/v2.0", config.Issuer)
-		assert.Contains(t, config.ScopesSupported, "openid")
-		assert.Contains(t, config.ScopesSupported, "email")
-		assert.Contains(t, config.ScopesSupported, "profile")
-		assert.Contains(t, config.CodeChallengeMethodsSupported, "S256")
-	}
+	/*
+		if oidcProvider, ok := provider.(OIDCProvider); ok {
+			ctx := context.Background()
+			config, err := oidcProvider.DiscoverConfiguration(ctx)
+
+			assert.NoError(t, err)
+			assert.NotNil(t, config)
+			assert.Equal(t, "https://login.microsoftonline.com/test-tenant/v2.0", config.Issuer)
+			assert.Contains(t, config.ScopesSupported, "openid")
+			assert.Contains(t, config.ScopesSupported, "email")
+			assert.Contains(t, config.ScopesSupported, "profile")
+			assert.Contains(t, config.CodeChallengeMethodsSupported, "S256")
+		}
 	*/
 }
 

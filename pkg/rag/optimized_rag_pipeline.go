@@ -21,7 +21,9 @@ type OptimizedRAGPipeline struct {
 	semanticCache     *SemanticCache
 	queryPreprocessor *QueryPreprocessor
 	resultAggregator  *ResultAggregator
-	embeddingCache    *OptimizedEmbeddingCache
+
+	embeddingCache    EmbeddingCache
+
 	weaviateClient    *WeaviateClient
 	batchSearchClient *OptimizedBatchSearchClient
 	connectionPool    *OptimizedConnectionPool
@@ -139,31 +141,9 @@ type ResultAggregatorMetrics struct {
 	mutex                  sync.RWMutex
 }
 
-// EmbeddingCache caches embedding vectors for reuse
-type OptimizedEmbeddingCache struct {
-	embeddings map[string]*CachedEmbedding
-	config     *RAGPipelineConfig
-	mutex      sync.RWMutex
-	metrics    *EmbeddingCacheMetrics
-}
 
-// CachedEmbedding represents a cached embedding
-type CachedEmbedding struct {
-	Text        string    `json:"text"`
-	Vector      []float32 `json:"vector"`
-	CreatedAt   time.Time `json:"created_at"`
-	AccessCount int64     `json:"access_count"`
-}
+// Note: EmbeddingCache interface and related types are defined in embedding_service.go
 
-// EmbeddingCacheMetrics tracks embedding cache performance
-type EmbeddingCacheMetrics struct {
-	TotalRequests  int64   `json:"total_requests"`
-	CacheHits      int64   `json:"cache_hits"`
-	CacheMisses    int64   `json:"cache_misses"`
-	CacheHitRate   float64 `json:"cache_hit_rate"`
-	CacheEvictions int64   `json:"cache_evictions"`
-	mutex          sync.RWMutex
-}
 
 // RAGPipelineMetrics tracks overall pipeline performance
 type RAGPipelineMetrics struct {
@@ -233,12 +213,10 @@ func NewOptimizedRAGPipeline(
 		metrics: &ResultAggregatorMetrics{},
 	}
 
-	// Initialize embedding cache
-	embeddingCache := &OptimizedEmbeddingCache{
-		embeddings: make(map[string]*CachedEmbedding),
-		config:     config,
-		metrics:    &EmbeddingCacheMetrics{},
-	}
+
+	// Initialize embedding cache - use the in-memory implementation
+	embeddingCache := NewInMemoryCache(config.EmbeddingCacheSize)
+
 
 	pipeline := &OptimizedRAGPipeline{
 		config:            config,
@@ -1028,7 +1006,7 @@ func (p *OptimizedRAGPipeline) performMaintenance() {
 
 	// Clean up embedding cache
 	if p.config.EnableEmbeddingCache {
-		p.embeddingCache.cleanupExpired()
+		// Note: cleanup is handled by the cache implementation
 	}
 
 	p.logger.Debug("Background maintenance completed")
@@ -1057,26 +1035,9 @@ func (c *SemanticCache) cleanupExpired() {
 	c.logger.Debug("Semantic cache cleanup completed", "evicted", len(keysToDelete))
 }
 
-func (c *OptimizedEmbeddingCache) cleanupExpired() {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
 
-	now := time.Now()
-	var keysToDelete []string
+// Note: EmbeddingCache cleanup is handled by the cache implementation
 
-	for key, entry := range c.embeddings {
-		if now.Sub(entry.CreatedAt) > c.config.EmbeddingCacheTTL {
-			keysToDelete = append(keysToDelete, key)
-		}
-	}
-
-	for _, key := range keysToDelete {
-		delete(c.embeddings, key)
-		c.metrics.mutex.Lock()
-		c.metrics.CacheEvictions++
-		c.metrics.mutex.Unlock()
-	}
-}
 
 // GetMetrics returns all pipeline metrics
 func (p *OptimizedRAGPipeline) GetMetrics() map[string]interface{} {
@@ -1085,7 +1046,7 @@ func (p *OptimizedRAGPipeline) GetMetrics() map[string]interface{} {
 		"semantic_cache":  p.semanticCache.metrics,
 		"preprocessor":    p.queryPreprocessor.metrics,
 		"aggregator":      p.resultAggregator.metrics,
-		"embedding_cache": p.embeddingCache.metrics,
+		"embedding_cache": p.embeddingCache.Stats(),
 	}
 }
 

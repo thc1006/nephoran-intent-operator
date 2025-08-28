@@ -1,6 +1,7 @@
 package ingest
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,21 +19,23 @@ type ValidatorInterface interface {
 	ValidateBytes([]byte) (*Intent, error)
 }
 
+
 type Handler struct {
-	v      ValidatorInterface
-	outDir string
+	v        ValidatorInterface
+	outDir   string
+	provider IntentProvider
 }
 
-func NewHandler(v ValidatorInterface, outDir string) *Handler {
+func NewHandler(v ValidatorInterface, outDir string, provider IntentProvider) *Handler {
 	_ = os.MkdirAll(outDir, 0o755)
-	return &Handler{v: v, outDir: outDir}
+	return &Handler{v: v, outDir: outDir, provider: provider}
 }
 
 var simple = regexp.MustCompile(`(?i)scale\s+([a-z0-9\-]+)\s+to\s+(\d+)\s+in\s+ns\s+([a-z0-9\-]+)`)
 
-// 支援兩種輸入：
-// 1) JSON（Content-Type: application/json）— 直接驗證
-// 2) 純文字（例如 "scale nf-sim to 5 in ns ran-a"）— 解析→轉 JSON→驗證
+// HandleIntent supports two input types:
+// 1) JSON (Content-Type: application/json) - direct validation
+// 2) Plain text (e.g., "scale nf-sim to 5 in ns ran-a") - parse → convert to JSON → validate
 func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	// SECURITY FIX: Add security headers to prevent XSS and other attacks
 	w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -67,16 +70,32 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(ct, "application/json") || strings.HasPrefix(ct, "text/json") {
 		payload = body
 	} else {
-		m := simple.FindStringSubmatch(string(body))
-		if len(m) != 4 {
-			if len(body) == 0 {
-				http.Error(w, "Request body is empty. Expected JSON intent or plain text command like: scale <target> to <replicas> in ns <namespace>", http.StatusBadRequest)
-			} else {
-				http.Error(w, fmt.Sprintf("Invalid plain text format. Expected: 'scale <target> to <replicas> in ns <namespace>'. Received: %q", string(body)), http.StatusBadRequest)
+		// Try provider first (LLM or other custom parser)
+		if h.provider != nil {
+			ctx := context.Background()
+			intent, err := h.provider.ParseIntent(ctx, string(body))
+			if err == nil {
+				// Convert intent map to JSON
+				jsonData, err := json.Marshal(intent)
+				if err == nil {
+					payload = jsonData
+				}
 			}
-			return
 		}
-		payload = []byte(fmt.Sprintf(`{"intent_type":"scaling","target":"%s","namespace":"%s","replicas":%s,"source":"user"}`, m[1], m[3], m[2]))
+		
+		// Fallback to regex parsing if provider failed or not available
+		if payload == nil {
+			m := simple.FindStringSubmatch(string(body))
+			if len(m) != 4 {
+				if len(body) == 0 {
+					http.Error(w, "Request body is empty. Expected JSON intent or plain text command like: scale <target> to <replicas> in ns <namespace>", http.StatusBadRequest)
+				} else {
+					http.Error(w, fmt.Sprintf("Invalid plain text format. Expected: 'scale <target> to <replicas> in ns <namespace>'. Received: %q", string(body)), http.StatusBadRequest)
+				}
+				return
+			}
+			payload = []byte(fmt.Sprintf(`{"intent_type":"scaling","target":"%s","namespace":"%s","replicas":%s,"source":"user"}`, m[1], m[3], m[2]))
+		}
 	}
 
 	intent, err := h.v.ValidateBytes(payload)
@@ -121,7 +140,6 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid file path detected", http.StatusBadRequest)
 		return
 	}
-
 	if err := os.WriteFile(outFile, payload, 0o644); err != nil {
 		http.Error(w, "Failed to save intent to handoff directory", http.StatusInternalServerError)
 		return
@@ -142,6 +160,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 		"preview": intent,
 	})
 }
+
 
 // isValidTimestamp validates timestamp format to prevent injection
 func isValidTimestamp(ts string) bool {

@@ -102,7 +102,7 @@ type SessionConfig struct {
 	CookieDomain     string        `json:"cookie_domain"`
 	CookiePath       string        `json:"cookie_path"`
 	CookieName       string        `json:"cookie_name"` // Name of session cookie
-	HTTPOnly         bool          `json:"http_only"`    // HTTPOnly flag for cookies
+	HTTPOnly         bool          `json:"http_only"`   // HTTPOnly flag for cookies
 
 	// SSO settings
 	EnableSSO      bool   `json:"enable_sso"`
@@ -905,4 +905,58 @@ func (sm *SessionManager) ClearSessionCookie(w http.ResponseWriter) {
 	}
 
 	http.SetCookie(w, cookie)
+}
+
+// SessionData represents data used to create a new session
+type SessionData struct {
+	UserID      string            `json:"user_id"`
+	Username    string            `json:"username"`
+	Email       string            `json:"email"`
+	DisplayName string            `json:"display_name"`
+	Provider    string            `json:"provider"`
+	Groups      []string          `json:"groups"`
+	Roles       []string          `json:"roles"`
+	Metadata    map[string]string `json:"metadata,omitempty"`
+}
+
+// CreateSession creates a new user session from session data
+func (sm *SessionManager) CreateSession(ctx context.Context, data *SessionData) (*UserSession, error) {
+	sessionID := sm.generateSessionID()
+
+	now := time.Now()
+	session := &UserSession{
+		ID:     sessionID,
+		UserID: data.UserID,
+		UserInfo: &providers.UserInfo{
+			Username: data.Username,
+			Email:    data.Email,
+			Name:     data.DisplayName,
+			Groups:   data.Groups,
+			Roles:    data.Roles,
+		},
+		Provider:     data.Provider,
+		CreatedAt:    now,
+		LastActivity: now,
+		ExpiresAt:    now.Add(sm.config.SessionTimeout),
+		Roles:        data.Roles,
+	}
+
+	sm.mutex.Lock()
+	sm.sessions[sessionID] = session
+	sm.mutex.Unlock()
+
+	return session, nil
+}
+
+// InvalidateSession invalidates a session by session ID
+func (sm *SessionManager) InvalidateSession(ctx context.Context, sessionID string) error {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	if _, exists := sm.sessions[sessionID]; !exists {
+		return fmt.Errorf("session not found: %s", sessionID)
+	}
+
+	delete(sm.sessions, sessionID)
+	return nil
 }

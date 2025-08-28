@@ -1,3 +1,6 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 package llm
 
 import (
@@ -14,12 +17,120 @@ import (
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 )
 
-// HandleStreamingRequest implementation is in streaming_processor.go
 
-// GetMetrics and Shutdown implementations are in streaming_processor.go
+// StreamingProcessorStub handles streaming requests with server-sent events
+type StreamingProcessorStub struct {
+	httpClient *http.Client
+	ragAPIURL  string
+	logger     *slog.Logger
+	mutex      sync.RWMutex
+}
+
+// StreamingRequest represents a streaming request payload
+type StreamingRequest struct {
+	Query     string `json:"query"`
+	ModelName string `json:"model_name,omitempty"`
+	MaxTokens int    `json:"max_tokens,omitempty"`
+	EnableRAG bool   `json:"enable_rag,omitempty"`
+}
+
+func NewStreamingProcessor() *StreamingProcessorStub {
+	return &StreamingProcessorStub{
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+		ragAPIURL: "http://rag-api:8080",
+		logger:    slog.Default().With("component", "streaming-processor"),
+	}
+}
+
+func (sp *StreamingProcessorStub) HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *StreamingRequest) error {
+	sp.logger.Info("Handling streaming request", slog.String("query", req.Query))
+
+	// Set SSE headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	// Create request to RAG API stream endpoint
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	streamURL := sp.ragAPIURL + "/stream"
+	httpReq, err := http.NewRequestWithContext(r.Context(), "POST", streamURL, bytes.NewBuffer(reqBody))
+	if err != nil {
+		return fmt.Errorf("failed to create stream request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "text/event-stream")
+
+	// Execute the request
+	resp, err := sp.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to connect to RAG API stream: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("RAG API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Stream the response using bufio.Scanner
+	scanner := bufio.NewScanner(resp.Body)
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		return fmt.Errorf("streaming not supported")
+	}
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Forward the SSE event to client
+		fmt.Fprintf(w, "%s\n", line)
+
+		// Flush after each line for SSE
+		if line == "" {
+			flusher.Flush()
+		}
+
+		// Check if client disconnected
+		select {
+		case <-r.Context().Done():
+			sp.logger.Info("Client disconnected from stream")
+			return nil
+		default:
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("error reading stream: %w", err)
+	}
+
+	sp.logger.Info("Streaming request completed successfully")
+	return nil
+}
+
+func (sp *StreamingProcessorStub) GetMetrics() map[string]interface{} {
+	return map[string]interface{}{
+		"streaming_enabled": true,
+		"status":            "active",
+		"rag_api_url":       sp.ragAPIURL,
+	}
+}
+
+func (sp *StreamingProcessorStub) Shutdown(ctx context.Context) error {
+	sp.logger.Info("Shutting down streaming processor")
+	return nil
+}
+
 
 // ContextBuilder provides RAG context building capabilities
-type ContextBuilder struct {
+type ContextBuilderStub struct {
 	weaviatePool *rag.WeaviateConnectionPool
 	logger       *slog.Logger
 	config       *ContextBuilderConfig
@@ -52,7 +163,7 @@ type ContextBuilderMetrics struct {
 	mutex                 sync.RWMutex
 }
 
-func NewContextBuilder() *ContextBuilder {
+func NewContextBuilderStub() *ContextBuilder {
 	return NewContextBuilderWithPool(nil)
 }
 
@@ -83,7 +194,7 @@ func NewContextBuilderWithPool(pool *rag.WeaviateConnectionPool) *ContextBuilder
 }
 
 // BuildContext retrieves and builds context from the RAG system using semantic search
-func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDocs int) ([]map[string]any, error) {
+func (cb *ContextBuilderStub) BuildContext(ctx context.Context, intent string, maxDocs int) ([]map[string]any, error) {
 	startTime := time.Now()
 
 	// Update metrics
@@ -292,7 +403,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 }
 
 // expandQuery enhances the query with telecom-specific context
-func (cb *ContextBuilder) expandQuery(query string) string {
+func (cb *ContextBuilderStub) expandQuery(query string) string {
 	// Convert to lowercase for matching
 	lowerQuery := strings.ToLower(query)
 
@@ -327,7 +438,7 @@ func (cb *ContextBuilder) expandQuery(query string) string {
 }
 
 // isRelatedKeyword determines if a keyword is contextually related to the query
-func (cb *ContextBuilder) isRelatedKeyword(query, keyword string) bool {
+func (cb *ContextBuilderStub) isRelatedKeyword(query, keyword string) bool {
 	// Define keyword relationships for telecom domain
 	relations := map[string][]string{
 		"deploy":    {"orchestration", "5G", "Core", "RAN"},
@@ -356,13 +467,13 @@ func (cb *ContextBuilder) isRelatedKeyword(query, keyword string) bool {
 }
 
 // updateMetrics safely updates metrics with a function
-func (cb *ContextBuilder) updateMetrics(updateFunc func(*ContextBuilderMetrics)) {
+func (cb *ContextBuilderStub) updateMetrics(updateFunc func(*ContextBuilderMetrics)) {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
 	updateFunc(cb.metrics)
 }
 
-func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
+func (cb *ContextBuilderStub) GetMetrics() map[string]interface{} {
 	cb.mutex.RLock()
 	defer cb.mutex.RUnlock()
 
@@ -387,7 +498,7 @@ func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 }
 
 // getSuccessRate calculates the success rate percentage
-func (cb *ContextBuilder) getSuccessRate() float64 {
+func (cb *ContextBuilderStub) getSuccessRate() float64 {
 	if cb.metrics.TotalQueries == 0 {
 		return 0.0
 	}
@@ -395,7 +506,7 @@ func (cb *ContextBuilder) getSuccessRate() float64 {
 }
 
 // getCacheHitRate calculates the cache hit rate percentage
-func (cb *ContextBuilder) getCacheHitRate() float64 {
+func (cb *ContextBuilderStub) getCacheHitRate() float64 {
 	totalCacheOps := cb.metrics.CacheHits + cb.metrics.CacheMisses
 	if totalCacheOps == 0 {
 		return 0.0
@@ -404,9 +515,11 @@ func (cb *ContextBuilder) getCacheHitRate() float64 {
 }
 
 // parseSearchResult converts a GraphQL result item to a SearchResult
-func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *types.SearchResult {
-	doc := &types.TelecomDocument{}
-	result := &types.SearchResult{Document: doc}
+
+func (cb *ContextBuilderStub) parseSearchResult(item map[string]interface{}) *shared.SearchResult {
+	doc := &shared.TelecomDocument{}
+	result := &shared.SearchResult{Document: doc}
+
 
 	// Parse document fields
 	if val, ok := item["content"].(string); ok {
@@ -495,3 +608,39 @@ func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *types.
 
 	return result
 }
+
+
+// RelevanceScorer stub implementation
+type RelevanceScorerStub struct {
+	impl *SimpleRelevanceScorer
+}
+
+func NewRelevanceScorerStub() *RelevanceScorer {
+	return &RelevanceScorer{
+		impl: NewSimpleRelevanceScorer(),
+	}
+}
+
+// Score calculates the relevance score between a document and intent using semantic similarity
+func (rs *RelevanceScorerStub) Score(ctx context.Context, doc string, intent string) (float32, error) {
+	return rs.impl.Score(ctx, doc, intent)
+}
+
+func (rs *RelevanceScorerStub) GetMetrics() map[string]interface{} {
+	return rs.impl.GetMetrics()
+}
+
+// RAGAwarePromptBuilder stub implementation
+type RAGAwarePromptBuilderStub struct{}
+
+func NewRAGAwarePromptBuilderStub() *RAGAwarePromptBuilderStub {
+	return &RAGAwarePromptBuilderStub{}
+}
+
+func (rpb *RAGAwarePromptBuilderStub) GetMetrics() map[string]interface{} {
+	return map[string]interface{}{
+		"prompt_builder_enabled": false,
+		"status":                 "not_implemented",
+	}
+}
+

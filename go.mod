@@ -37,7 +37,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 
 	// Prometheus for metrics
-	github.com/prometheus/client_golang v1.22.0
+	github.com/prometheus/client_golang v1.23.0
 
 	// Redis client - UPDATED TO LATEST SECURE VERSION (CVE-2024-45337)
 	github.com/redis/go-redis/v9 v9.12.0
@@ -61,7 +61,7 @@ require (
 	go.uber.org/zap v1.27.0
 
 	// UPDATED SECURE CRYPTO - CRITICAL CVE-2024-45337 FIX
-	golang.org/x/crypto v0.40.0
+	golang.org/x/crypto v0.41.0
 	golang.org/x/oauth2 v0.30.0
 
 	// === ESSENTIAL UTILITIES ===
@@ -90,7 +90,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.38.0
 	// Testing essentials only
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 
 	// API documentation
 	github.com/swaggo/swag v1.16.6
@@ -101,7 +101,7 @@ require (
 
 	// gRPC for internal services - updated to latest secure version
 	google.golang.org/grpc v1.75.0
-	google.golang.org/protobuf v1.36.6 // indirect
+	google.golang.org/protobuf v1.36.6
 
 	// Helm integration for package management
 	helm.sh/helm/v3 v3.18.4
@@ -124,7 +124,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork v1.1.0
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources v1.2.0
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage v1.8.1
-	github.com/Masterminds/semver/v3 v3.4.0 // indirect
+	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/Masterminds/sprig/v3 v3.3.0
 
 	// Updated AWS SDK components to latest secure versions (Feb 2025)
@@ -162,7 +162,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.5.0
 	github.com/prometheus/client_model v0.6.2
-	github.com/prometheus/common v0.62.0
+	github.com/prometheus/common v0.65.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rogpeppe/go-internal v1.14.1
 	github.com/rs/cors v1.11.1
@@ -188,6 +188,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 	honnef.co/go/tools v0.6.1
+	istio.io/api v1.26.3
 	k8s.io/metrics v0.33.4
 	sigs.k8s.io/kustomize/api v0.19.0
 	sigs.k8s.io/kustomize/kyaml v0.19.0
@@ -195,7 +196,6 @@ require (
 
 require (
 	github.com/bep/debounce v1.2.1
-	github.com/go-redis/redis/v8 v8.11.5
 	github.com/open-policy-agent/opa v1.7.1
 	github.com/spiffe/go-spiffe/v2 v2.5.0
 )
@@ -386,7 +386,7 @@ require (
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
-	github.com/prometheus/procfs v0.15.1 // indirect
+	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rs/dnscache v0.0.0-20230804202142-fc85eb664529 // indirect
@@ -438,13 +438,15 @@ require (
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.3 // indirect
 	golang.org/x/arch v0.8.0 // indirect
-	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
-	golang.org/x/exp/typeparams v0.0.0-20231108232855-2478ac86f678 // indirect
-	golang.org/x/sys v0.34.0 // indirect
-	golang.org/x/telemetry v0.0.0-20240522233618-39ace7a40ae7 // indirect
-	golang.org/x/term v0.33.0 // indirect
-	golang.org/x/text v0.27.0 // indirect
-	golang.org/x/tools v0.34.0 // indirect
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
+	golang.org/x/exp/typeparams v0.0.0-20250210185358-939b2ce775ac // indirect
+	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/telemetry v0.0.0-20250710130107-8d8967aff50b // indirect
+	golang.org/x/term v0.34.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/tools v0.35.0 // indirect
+	golang.org/x/tools/go/expect v0.1.1-deprecated // indirect
+	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250721164621-a45f3dfb1074 // indirect

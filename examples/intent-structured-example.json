@@ -1,0 +1,9 @@
+{
+  "intent_type": "scaling",
+  "target": "cnf-simulator",
+  "namespace": "default",
+  "replicas": 5,
+  "reason": "Increased load detected",
+  "source": "monitoring-system",
+  "correlation_id": "scale-001"
+}

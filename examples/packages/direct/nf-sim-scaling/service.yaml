@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: nf-sim
+    app.kubernetes.io/component: nf-simulator
+    app.kubernetes.io/managed-by: porch-direct
+    app.kubernetes.io/name: nf-sim
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  name: nf-sim
+  namespace: ran-a
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  - name: metrics
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app: nf-sim
+  type: ClusterIP
+status:
+  loadBalancer: {}

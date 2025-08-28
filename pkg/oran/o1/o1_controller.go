@@ -3,7 +3,11 @@ package o1
 import (
 	"context"
 	"fmt"
+<<<<<<< HEAD
 	// "reflect" // unused import removed
+=======
+	"reflect"
+>>>>>>> integrate/mvp
 	"sync"
 	"time"
 
@@ -48,6 +52,7 @@ type O1InterfaceController struct {
 
 // O1ControllerConfig represents O1 controller specific configuration
 type O1ControllerConfig struct {
+<<<<<<< HEAD
 	NetconfPort             int               `yaml:"netconf_port"`
 	StreamingPort           int               `yaml:"streaming_port"`
 	EnableTLS               bool              `yaml:"enable_tls"`
@@ -62,6 +67,29 @@ type O1ControllerConfig struct {
 	MaxConcurrentReconciles int               `yaml:"max_concurrent_reconciles"`
 	ReconcileInterval       time.Duration     `yaml:"reconcile_interval"`
 	HealthCheckInterval     time.Duration     `yaml:"health_check_interval"`
+=======
+	ReconcileInterval       time.Duration `yaml:"reconcile_interval"`
+	MaxConcurrentReconciles int           `yaml:"max_concurrent_reconciles"`
+	EnableMetrics           bool          `yaml:"enable_metrics"`
+	EnableWebhooks          bool          `yaml:"enable_webhooks"`
+	DefaultO1Config         *O1Config     `yaml:"default_o1_config"`
+	HealthCheckInterval     time.Duration `yaml:"health_check_interval"`
+	StatusUpdateInterval    time.Duration `yaml:"status_update_interval"`
+}
+
+// O1InterfaceConfig represents O1 interface configuration
+type O1InterfaceConfig struct {
+	NetconfPort           int               `yaml:"netconf_port"`
+	StreamingPort         int               `yaml:"streaming_port"`
+	EnableTLS             bool              `yaml:"enable_tls"`
+	TLSCertSecret         string            `yaml:"tls_cert_secret"`
+	AuthenticationMethod  string            `yaml:"authentication_method"`
+	MaxConnections        int               `yaml:"max_connections"`
+	SessionTimeout        time.Duration     `yaml:"session_timeout"`
+	PerformanceCollection PerformanceConfig `yaml:"performance_collection"`
+	FaultManagement       FaultConfig       `yaml:"fault_management"`
+	SecurityPolicies      SecurityConfig    `yaml:"security_policies"`
+>>>>>>> integrate/mvp
 }
 
 // PerformanceConfig holds performance management configuration

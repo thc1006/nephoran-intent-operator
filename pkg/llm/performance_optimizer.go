@@ -1,3 +1,6 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 package llm
 
 import (
@@ -79,17 +82,19 @@ type PerformanceMetrics struct {
 
 // PerformanceConfig holds configuration for performance optimization
 type PerformanceConfig struct {
-	LatencyBufferSize     int                             `json:"latency_buffer_size"`
-	OptimizationInterval  time.Duration                   `json:"optimization_interval"`
-	CircuitBreakerConfig  PerformanceCircuitBreakerConfig `json:"circuit_breaker"`
-	BatchProcessingConfig BatchConfig                     `json:"batch_processing"`
-	MetricsExportInterval time.Duration                   `json:"metrics_export_interval"`
-	EnableTracing         bool                            `json:"enable_tracing"`
-	TraceSamplingRatio    float64                         `json:"trace_sampling_ratio"`
+
+	LatencyBufferSize     int                  `json:"latency_buffer_size"`
+	OptimizationInterval  time.Duration        `json:"optimization_interval"`
+	CircuitBreakerConfig  OptimizerCircuitBreakerConfig `json:"circuit_breaker"`
+	BatchProcessingConfig BatchConfig          `json:"batch_processing"`
+	MetricsExportInterval time.Duration        `json:"metrics_export_interval"`
+	EnableTracing         bool                 `json:"enable_tracing"`
+	TraceSamplingRatio    float64              `json:"trace_sampling_ratio"`
 }
 
-// PerformanceCircuitBreakerConfig holds advanced circuit breaker configuration for performance optimizer
-type PerformanceCircuitBreakerConfig struct {
+// OptimizerCircuitBreakerConfig holds advanced circuit breaker configuration
+type OptimizerCircuitBreakerConfig struct {
+
 	FailureThreshold      int           `json:"failure_threshold"`
 	SuccessThreshold      int           `json:"success_threshold"`
 	Timeout               time.Duration `json:"timeout"`
@@ -154,7 +159,9 @@ func getDefaultPerformanceConfig() *PerformanceConfig {
 		MetricsExportInterval: 30 * time.Second,
 		EnableTracing:         true,
 		TraceSamplingRatio:    0.1,
-		CircuitBreakerConfig: PerformanceCircuitBreakerConfig{
+
+		CircuitBreakerConfig: OptimizerCircuitBreakerConfig{
+
 			FailureThreshold:      5,
 			SuccessThreshold:      3,
 			Timeout:               30 * time.Second,

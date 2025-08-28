@@ -24,24 +24,24 @@ type KeyUsage string
 type ConditionStatus string
 
 const (
-	RSAKeyAlgorithm             KeyAlgorithm = "RSA"
-	PKCS1                      PrivateKeyEncoding = "PKCS1"
-	UsageDigitalSignature      KeyUsage = "digital signature"
-	UsageKeyEncipherment       KeyUsage = "key encipherment"
-	UsageKeyAgreement         KeyUsage = "key agreement"
-	UsageDataEncipherment     KeyUsage = "data encipherment"
-	UsageCertSign             KeyUsage = "cert sign"
-	UsageCRLSign              KeyUsage = "crl sign"
-	UsageServerAuth           KeyUsage = "server auth"
-	UsageClientAuth           KeyUsage = "client auth"
-	UsageCodeSigning          KeyUsage = "code signing"
-	UsageEmailProtection      KeyUsage = "email protection"
-	UsageTimestamping         KeyUsage = "timestamping"
-	UsageOCSPSigning          KeyUsage = "ocsp signing"
-	CertificateConditionReady string = "Ready"
-	IssuerConditionReady      string = "Ready"
-	ConditionTrue            ConditionStatus = "True"
-	ConditionFalse           ConditionStatus = "False"
+	RSAKeyAlgorithm           KeyAlgorithm       = "RSA"
+	PKCS1                     PrivateKeyEncoding = "PKCS1"
+	UsageDigitalSignature     KeyUsage           = "digital signature"
+	UsageKeyEncipherment      KeyUsage           = "key encipherment"
+	UsageKeyAgreement         KeyUsage           = "key agreement"
+	UsageDataEncipherment     KeyUsage           = "data encipherment"
+	UsageCertSign             KeyUsage           = "cert sign"
+	UsageCRLSign              KeyUsage           = "crl sign"
+	UsageServerAuth           KeyUsage           = "server auth"
+	UsageClientAuth           KeyUsage           = "client auth"
+	UsageCodeSigning          KeyUsage           = "code signing"
+	UsageEmailProtection      KeyUsage           = "email protection"
+	UsageTimestamping         KeyUsage           = "timestamping"
+	UsageOCSPSigning          KeyUsage           = "ocsp signing"
+	CertificateConditionReady string             = "Ready"
+	IssuerConditionReady      string             = "Ready"
+	ConditionTrue             ConditionStatus    = "True"
+	ConditionFalse            ConditionStatus    = "False"
 )
 
 // Certificate represents a cert-manager Certificate
@@ -54,15 +54,15 @@ type Certificate struct {
 
 // CertificateSpec defines the desired certificate
 type CertificateSpec struct {
-	SecretName   string                 `json:"secretName"`
-	IssuerRef    ObjectReference        `json:"issuerRef"`
-	CommonName   string                 `json:"commonName,omitempty"`
-	DNSNames     []string               `json:"dnsNames,omitempty"`
-	IPAddresses  []string               `json:"ipAddresses,omitempty"`
-	Subject      *X509Subject           `json:"subject,omitempty"`
-	Duration     *metav1.Duration       `json:"duration,omitempty"`
-	PrivateKey   *CertificatePrivateKey `json:"privateKey,omitempty"`
-	Usages       []KeyUsage             `json:"usages,omitempty"`
+	SecretName  string                 `json:"secretName"`
+	IssuerRef   ObjectReference        `json:"issuerRef"`
+	CommonName  string                 `json:"commonName,omitempty"`
+	DNSNames    []string               `json:"dnsNames,omitempty"`
+	IPAddresses []string               `json:"ipAddresses,omitempty"`
+	Subject     *X509Subject           `json:"subject,omitempty"`
+	Duration    *metav1.Duration       `json:"duration,omitempty"`
+	PrivateKey  *CertificatePrivateKey `json:"privateKey,omitempty"`
+	Usages      []KeyUsage             `json:"usages,omitempty"`
 }
 
 // CertificateStatus represents certificate status
@@ -73,14 +73,14 @@ type CertificateStatus struct {
 // X509Subject represents X.509 certificate subject
 type X509Subject struct {
 	Organizations       []string `json:"organizations,omitempty"`
-	Countries          []string `json:"countries,omitempty"`
+	Countries           []string `json:"countries,omitempty"`
 	OrganizationalUnits []string `json:"organizationalUnits,omitempty"`
 }
 
 // CertificatePrivateKey represents private key configuration
 type CertificatePrivateKey struct {
 	Algorithm KeyAlgorithm       `json:"algorithm"`
-	Size      int               `json:"size,omitempty"`
+	Size      int                `json:"size,omitempty"`
 	Encoding  PrivateKeyEncoding `json:"encoding,omitempty"`
 }
 
@@ -98,12 +98,12 @@ type SchemeGroupVersion struct {
 
 // Package stubs to satisfy the imports
 var certmanagerv1 = struct {
-	SchemeGroupVersion         SchemeGroupVersion
+	SchemeGroupVersion        SchemeGroupVersion
 	Certificate               func() *Certificate
 	CertificateConditionReady string
 	IssuerConditionReady      string
-	UsageDigitalSignature      KeyUsage
-	UsageKeyEncipherment       KeyUsage
+	UsageDigitalSignature     KeyUsage
+	UsageKeyEncipherment      KeyUsage
 	UsageKeyAgreement         KeyUsage
 	UsageDataEncipherment     KeyUsage
 	UsageCertSign             KeyUsage
@@ -120,37 +120,37 @@ var certmanagerv1 = struct {
 	CertificateSpec           func() *CertificateSpec
 	CertificatePrivateKey     func() *CertificatePrivateKey
 }{
-	SchemeGroupVersion: SchemeGroupVersion{Group: "cert-manager.io"},
-	Certificate:        func() *Certificate { return &Certificate{} },
+	SchemeGroupVersion:        SchemeGroupVersion{Group: "cert-manager.io"},
+	Certificate:               func() *Certificate { return &Certificate{} },
 	CertificateConditionReady: CertificateConditionReady,
 	IssuerConditionReady:      IssuerConditionReady,
 	UsageDigitalSignature:     UsageDigitalSignature,
 	UsageKeyEncipherment:      UsageKeyEncipherment,
-	UsageKeyAgreement:        UsageKeyAgreement,
-	UsageDataEncipherment:    UsageDataEncipherment,
-	UsageCertSign:            UsageCertSign,
-	UsageCRLSign:             UsageCRLSign,
-	UsageServerAuth:          UsageServerAuth,
-	UsageClientAuth:          UsageClientAuth,
-	UsageCodeSigning:         UsageCodeSigning,
-	UsageEmailProtection:     UsageEmailProtection,
-	UsageTimestamping:        UsageTimestamping,
-	UsageOCSPSigning:         UsageOCSPSigning,
-	RSAKeyAlgorithm:          RSAKeyAlgorithm,
-	PKCS1:                    PKCS1,
-	X509Subject:              func() *X509Subject { return &X509Subject{} },
-	CertificateSpec:          func() *CertificateSpec { return &CertificateSpec{} },
-	CertificatePrivateKey:    func() *CertificatePrivateKey { return &CertificatePrivateKey{} },
+	UsageKeyAgreement:         UsageKeyAgreement,
+	UsageDataEncipherment:     UsageDataEncipherment,
+	UsageCertSign:             UsageCertSign,
+	UsageCRLSign:              UsageCRLSign,
+	UsageServerAuth:           UsageServerAuth,
+	UsageClientAuth:           UsageClientAuth,
+	UsageCodeSigning:          UsageCodeSigning,
+	UsageEmailProtection:      UsageEmailProtection,
+	UsageTimestamping:         UsageTimestamping,
+	UsageOCSPSigning:          UsageOCSPSigning,
+	RSAKeyAlgorithm:           RSAKeyAlgorithm,
+	PKCS1:                     PKCS1,
+	X509Subject:               func() *X509Subject { return &X509Subject{} },
+	CertificateSpec:           func() *CertificateSpec { return &CertificateSpec{} },
+	CertificatePrivateKey:     func() *CertificatePrivateKey { return &CertificatePrivateKey{} },
 }
 
 var cmmetav1 = struct {
-	ObjectReference   func() *ObjectReference
-	ConditionTrue     ConditionStatus
-	ConditionFalse    ConditionStatus
+	ObjectReference func() *ObjectReference
+	ConditionTrue   ConditionStatus
+	ConditionFalse  ConditionStatus
 }{
-	ObjectReference:   func() *ObjectReference { return &ObjectReference{} },
-	ConditionTrue:     ConditionTrue,
-	ConditionFalse:    ConditionFalse,
+	ObjectReference: func() *ObjectReference { return &ObjectReference{} },
+	ConditionTrue:   ConditionTrue,
+	ConditionFalse:  ConditionFalse,
 }
 
 // Interface for cert-manager clientset
@@ -163,7 +163,7 @@ type ClientSet struct{}
 func (c *ClientSet) Interface() Interface { return c }
 
 var certmanagerclientset = struct {
-	Interface Interface
+	Interface    Interface
 	NewForConfig func(config interface{}) (Interface, error)
 }{
 	Interface: &ClientSet{},

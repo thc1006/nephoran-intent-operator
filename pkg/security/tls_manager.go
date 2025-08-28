@@ -66,18 +66,18 @@ var (
 
 // TLSConfigExtended extends the common TLSConfig with O-RAN specific fields
 type TLSConfigExtended struct {
-	*TLSConfig  // Embed the common TLS config
-	
+	*TLSConfig // Embed the common TLS config
+
 	// Additional O-RAN specific fields
 	ClientCertFile string
 	ClientKeyFile  string
-	
+
 	// TLS settings (converted from string to uint16)
-	MinVersionInt     uint16
-	MaxVersionInt     uint16
-	CipherSuitesInt   []uint16
-	MTLSEnabled    bool
-	ClientAuthType tls.ClientAuthType
+	MinVersionInt   uint16
+	MaxVersionInt   uint16
+	CipherSuitesInt []uint16
+	MTLSEnabled     bool
+	ClientAuthType  tls.ClientAuthType
 
 	// Certificate validation
 	ValidateHostname bool
@@ -110,19 +110,19 @@ func NewTLSManager(config *TLSConfig, logger *zap.Logger) (*TLSManager, error) {
 	if config == nil {
 		return nil, fmt.Errorf("TLS config cannot be nil")
 	}
-	
+
 	// Convert common TLS config to extended config
 	extended := &TLSConfigExtended{
-		TLSConfig: config,
+		TLSConfig:   config,
 		MTLSEnabled: config.MutualTLS,
 		ServiceName: "nephoran",
 	}
-	
+
 	// Convert string versions to uint16
 	switch config.MinVersion {
 	case "1.0":
 		extended.MinVersionInt = tls.VersionTLS10
-	case "1.1": 
+	case "1.1":
 		extended.MinVersionInt = tls.VersionTLS11
 	case "1.2":
 		extended.MinVersionInt = tls.VersionTLS12
@@ -131,11 +131,11 @@ func NewTLSManager(config *TLSConfig, logger *zap.Logger) (*TLSManager, error) {
 	default:
 		extended.MinVersionInt = tls.VersionTLS12
 	}
-	
+
 	switch config.MaxVersion {
 	case "1.0":
 		extended.MaxVersionInt = tls.VersionTLS10
-	case "1.1": 
+	case "1.1":
 		extended.MaxVersionInt = tls.VersionTLS11
 	case "1.2":
 		extended.MaxVersionInt = tls.VersionTLS12
@@ -144,7 +144,7 @@ func NewTLSManager(config *TLSConfig, logger *zap.Logger) (*TLSManager, error) {
 	default:
 		extended.MaxVersionInt = tls.VersionTLS13
 	}
-	
+
 	return NewTLSManagerExtended(extended, logger)
 }
 
@@ -582,13 +582,13 @@ func (tm *TLSManager) Close() error {
 // LoadTLSConfigFromEnv loads TLS configuration from environment variables
 func LoadTLSConfigFromEnv() *TLSConfigExtended {
 	commonConfig := &TLSConfig{
-		CertFile:   os.Getenv("TLS_CERT_FILE"),
-		KeyFile:    os.Getenv("TLS_KEY_FILE"),
-		CAFile:     os.Getenv("TLS_CA_FILE"),
-		Enabled:    os.Getenv("TLS_ENABLED") != "false", // Default to enabled
-		MutualTLS:  os.Getenv("MTLS_ENABLED") == "true",
+		CertFile:  os.Getenv("TLS_CERT_FILE"),
+		KeyFile:   os.Getenv("TLS_KEY_FILE"),
+		CAFile:    os.Getenv("TLS_CA_FILE"),
+		Enabled:   os.Getenv("TLS_ENABLED") != "false", // Default to enabled
+		MutualTLS: os.Getenv("MTLS_ENABLED") == "true",
 	}
-	
+
 	return &TLSConfigExtended{
 		TLSConfig:      commonConfig,
 		ClientCertFile: os.Getenv("MTLS_CLIENT_CERT_FILE"),

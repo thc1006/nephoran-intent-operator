@@ -19,7 +19,7 @@ package porch
 import (
 	"context"
 	"fmt"
-	"runtime"
+	goruntime "runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -36,192 +36,192 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-// MockPorchClient implements PorchClient for testing
-type MockPorchClient struct {
+// MockSimplePorchClient implements PorchClient for testing
+type MockSimplePorchClient struct {
 	mock.Mock
 }
 
-func (m *MockPorchClient) GetRepository(ctx context.Context, name string) (*Repository, error) {
+func (m *MockSimplePorchClient) GetRepository(ctx context.Context, name string) (*Repository, error) {
 	args := m.Called(ctx, name)
 	return args.Get(0).(*Repository), args.Error(1)
 }
 
-func (m *MockPorchClient) ListRepositories(ctx context.Context, opts *ListOptions) (*RepositoryList, error) {
+func (m *MockSimplePorchClient) ListRepositories(ctx context.Context, opts *ListOptions) (*RepositoryList, error) {
 	args := m.Called(ctx, opts)
 	return args.Get(0).(*RepositoryList), args.Error(1)
 }
 
-func (m *MockPorchClient) CreateRepository(ctx context.Context, repo *Repository) (*Repository, error) {
+func (m *MockSimplePorchClient) CreateRepository(ctx context.Context, repo *Repository) (*Repository, error) {
 	args := m.Called(ctx, repo)
 	return args.Get(0).(*Repository), args.Error(1)
 }
 
-func (m *MockPorchClient) UpdateRepository(ctx context.Context, repo *Repository) (*Repository, error) {
+func (m *MockSimplePorchClient) UpdateRepository(ctx context.Context, repo *Repository) (*Repository, error) {
 	args := m.Called(ctx, repo)
 	return args.Get(0).(*Repository), args.Error(1)
 }
 
-func (m *MockPorchClient) DeleteRepository(ctx context.Context, name string) error {
+func (m *MockSimplePorchClient) DeleteRepository(ctx context.Context, name string) error {
 	args := m.Called(ctx, name)
 	return args.Error(0)
 }
 
-func (m *MockPorchClient) GetPackageRevision(ctx context.Context, name string) (*PackageRevision, error) {
+func (m *MockSimplePorchClient) GetPackageRevision(ctx context.Context, name string) (*PackageRevision, error) {
 	args := m.Called(ctx, name)
 	return args.Get(0).(*PackageRevision), args.Error(1)
 }
 
-func (m *MockPorchClient) ListPackageRevisions(ctx context.Context, opts *ListOptions) (*PackageRevisionList, error) {
+func (m *MockSimplePorchClient) ListPackageRevisions(ctx context.Context, opts *ListOptions) (*PackageRevisionList, error) {
 	args := m.Called(ctx, opts)
 	return args.Get(0).(*PackageRevisionList), args.Error(1)
 }
 
-func (m *MockPorchClient) CreatePackageRevision(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
+func (m *MockSimplePorchClient) CreatePackageRevision(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
 	args := m.Called(ctx, pkg)
 	return args.Get(0).(*PackageRevision), args.Error(1)
 }
 
-func (m *MockPorchClient) UpdatePackageRevision(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
+func (m *MockSimplePorchClient) UpdatePackageRevision(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
 	args := m.Called(ctx, pkg)
 	return args.Get(0).(*PackageRevision), args.Error(1)
 }
 
-func (m *MockPorchClient) DeletePackageRevision(ctx context.Context, name string) error {
+func (m *MockSimplePorchClient) DeletePackageRevision(ctx context.Context, name string) error {
 	args := m.Called(ctx, name)
 	return args.Error(0)
 }
 
-func (m *MockPorchClient) ApprovePackageRevision(ctx context.Context, name string) (*PackageRevision, error) {
+func (m *MockSimplePorchClient) ApprovePackageRevision(ctx context.Context, name string) (*PackageRevision, error) {
 	args := m.Called(ctx, name)
 	return args.Get(0).(*PackageRevision), args.Error(1)
 }
 
-func (m *MockPorchClient) ProposePackageRevision(ctx context.Context, name string) (*PackageRevision, error) {
+func (m *MockSimplePorchClient) ProposePackageRevision(ctx context.Context, name string) (*PackageRevision, error) {
 	args := m.Called(ctx, name)
 	return args.Get(0).(*PackageRevision), args.Error(1)
 }
 
-func (m *MockPorchClient) ExecuteFunction(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
+func (m *MockSimplePorchClient) ExecuteFunction(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(*FunctionResponse), args.Error(1)
 }
 
-func (m *MockPorchClient) ExecutePipeline(ctx context.Context, req *PipelineRequest) (*PipelineResponse, error) {
+func (m *MockSimplePorchClient) ExecutePipeline(ctx context.Context, req *PipelineRequest) (*PipelineResponse, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(*PipelineResponse), args.Error(1)
 }
 
-func (m *MockPorchClient) ValidateFunction(ctx context.Context, functionName string) (*FunctionValidation, error) {
+func (m *MockSimplePorchClient) ValidateFunction(ctx context.Context, functionName string) (*FunctionValidation, error) {
 	args := m.Called(ctx, functionName)
 	return args.Get(0).(*FunctionValidation), args.Error(1)
 }
 
-func (m *MockPorchClient) ListFunctions(ctx context.Context) ([]*FunctionInfo, error) {
+func (m *MockSimplePorchClient) ListFunctions(ctx context.Context) ([]*FunctionInfo, error) {
 	args := m.Called(ctx)
 	return args.Get(0).([]*FunctionInfo), args.Error(1)
 }
 
-func (m *MockPorchClient) GetFunctionSchema(ctx context.Context, functionName string) (*FunctionSchema, error) {
+func (m *MockSimplePorchClient) GetFunctionSchema(ctx context.Context, functionName string) (*FunctionSchema, error) {
 	args := m.Called(ctx, functionName)
 	return args.Get(0).(*FunctionSchema), args.Error(1)
 }
 
-func (m *MockPorchClient) RegisterFunction(ctx context.Context, info *FunctionInfo) error {
+func (m *MockSimplePorchClient) RegisterFunction(ctx context.Context, info *FunctionInfo) error {
 	args := m.Called(ctx, info)
 	return args.Error(0)
 }
 
-func (m *MockPorchClient) GetResourceTransformations(ctx context.Context, req *TransformationRequest) (*TransformationResponse, error) {
+func (m *MockSimplePorchClient) GetResourceTransformations(ctx context.Context, req *TransformationRequest) (*TransformationResponse, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(*TransformationResponse), args.Error(1)
 }
 
-func (m *MockPorchClient) ValidateORANCompliance(ctx context.Context, req *ORANValidationRequest) (*ORANValidationResponse, error) {
+func (m *MockSimplePorchClient) ValidateORANCompliance(ctx context.Context, req *ORANValidationRequest) (*ORANValidationResponse, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(*ORANValidationResponse), args.Error(1)
 }
 
-func (m *MockPorchClient) RegisterRepository(ctx context.Context, config *RepositoryConfig) (*Repository, error) {
+func (m *MockSimplePorchClient) RegisterRepository(ctx context.Context, config *RepositoryConfig) (*Repository, error) {
 	args := m.Called(ctx, config)
 	return args.Get(0).(*Repository), args.Error(1)
 }
 
-func (m *MockPorchClient) UnregisterRepository(ctx context.Context, name string) error {
+func (m *MockSimplePorchClient) UnregisterRepository(ctx context.Context, name string) error {
 	args := m.Called(ctx, name)
 	return args.Error(0)
 }
 
-func (m *MockPorchClient) SynchronizeRepository(ctx context.Context, name string) (*SyncResult, error) {
+func (m *MockSimplePorchClient) SynchronizeRepository(ctx context.Context, name string) (*SyncResult, error) {
 	args := m.Called(ctx, name)
 	return args.Get(0).(*SyncResult), args.Error(1)
 }
 
-func (m *MockPorchClient) GetRepositoryHealth(ctx context.Context, name string) (*RepositoryHealth, error) {
+func (m *MockSimplePorchClient) GetRepositoryHealth(ctx context.Context, name string) (*RepositoryHealth, error) {
 	args := m.Called(ctx, name)
 	return args.Get(0).(*RepositoryHealth), args.Error(1)
 }
 
-func (m *MockPorchClient) CreateBranch(ctx context.Context, repoName string, branchName string, baseBranch string) error {
+func (m *MockSimplePorchClient) CreateBranch(ctx context.Context, repoName string, branchName string, baseBranch string) error {
 	args := m.Called(ctx, repoName, branchName, baseBranch)
 	return args.Error(0)
 }
 
-func (m *MockPorchClient) DeleteBranch(ctx context.Context, repoName string, branchName string) error {
+func (m *MockSimplePorchClient) DeleteBranch(ctx context.Context, repoName string, branchName string) error {
 	args := m.Called(ctx, repoName, branchName)
 	return args.Error(0)
 }
 
-func (m *MockPorchClient) ListBranches(ctx context.Context, repoName string) ([]string, error) {
+func (m *MockSimplePorchClient) ListBranches(ctx context.Context, repoName string) ([]string, error) {
 	args := m.Called(ctx, repoName)
 	return args.Get(0).([]string), args.Error(1)
 }
 
-func (m *MockPorchClient) UpdateCredentials(ctx context.Context, repoName string, creds *Credentials) error {
+func (m *MockSimplePorchClient) UpdateCredentials(ctx context.Context, repoName string, creds *Credentials) error {
 	args := m.Called(ctx, repoName, creds)
 	return args.Error(0)
 }
 
-func (m *MockPorchClient) ValidateAccess(ctx context.Context, repoName string) error {
+func (m *MockSimplePorchClient) ValidateAccess(ctx context.Context, repoName string) error {
 	args := m.Called(ctx, repoName)
 	return args.Error(0)
 }
 
-func (m *MockPorchClient) CreatePackage(ctx context.Context, spec *PackageSpec) (*PackageRevision, error) {
+func (m *MockSimplePorchClient) CreatePackage(ctx context.Context, spec *PackageSpec) (*PackageRevision, error) {
 	args := m.Called(ctx, spec)
 	return args.Get(0).(*PackageRevision), args.Error(1)
 }
 
-func (m *MockPorchClient) ClonePackage(ctx context.Context, source string, target *PackageSpec) (*PackageRevision, error) {
+func (m *MockSimplePorchClient) ClonePackage(ctx context.Context, source string, target *PackageSpec) (*PackageRevision, error) {
 	args := m.Called(ctx, source, target)
 	return args.Get(0).(*PackageRevision), args.Error(1)
 }
 
-func (m *MockPorchClient) UpdatePackageContent(ctx context.Context, name string, resources []KRMResource) (*PackageRevision, error) {
+func (m *MockSimplePorchClient) UpdatePackageContent(ctx context.Context, name string, resources []KRMResource) (*PackageRevision, error) {
 	args := m.Called(ctx, name, resources)
 	return args.Get(0).(*PackageRevision), args.Error(1)
 }
 
-func (m *MockPorchClient) GetPackageContent(ctx context.Context, name string) ([]KRMResource, error) {
+func (m *MockSimplePorchClient) GetPackageContent(ctx context.Context, name string) ([]KRMResource, error) {
 	args := m.Called(ctx, name)
 	return args.Get(0).([]KRMResource), args.Error(1)
 }
 
-func (m *MockPorchClient) PromoteToProposed(ctx context.Context, ref *PackageReference) error {
+func (m *MockSimplePorchClient) PromoteToProposed(ctx context.Context, ref *PackageReference) error {
 	args := m.Called(ctx, ref)
 	return args.Error(0)
 }
 
-func (m *MockPorchClient) PromoteToPublished(ctx context.Context, ref *PackageReference) error {
+func (m *MockSimplePorchClient) PromoteToPublished(ctx context.Context, ref *PackageReference) error {
 	args := m.Called(ctx, ref)
 	return args.Error(0)
 }
 
-func (m *MockPorchClient) GetPackageHistory(ctx context.Context, ref *PackageReference) ([]*PackageRevision, error) {
+func (m *MockSimplePorchClient) GetPackageHistory(ctx context.Context, ref *PackageReference) ([]*PackageRevision, error) {
 	args := m.Called(ctx, ref)
 	return args.Get(0).([]*PackageRevision), args.Error(1)
 }
 
-func (m *MockPorchClient) Close() error {
+func (m *MockSimplePorchClient) Close() error {
 	args := m.Called()
 	return args.Error(0)
 }
@@ -600,11 +600,11 @@ func TestClientMemoryUsage(t *testing.T) {
 	client := createTestClient()
 
 	// Force garbage collection before measuring
-	runtime.GC()
-	runtime.GC()
+	goruntime.GC()
+	goruntime.GC()
 
-	var m1 runtime.MemStats
-	runtime.ReadMemStats(&m1)
+	var m1 goruntime.MemStats
+	goruntime.ReadMemStats(&m1)
 
 	// Perform a series of operations
 	for i := 0; i < 100; i++ {
@@ -622,11 +622,11 @@ func TestClientMemoryUsage(t *testing.T) {
 	}
 
 	// Force garbage collection after operations
-	runtime.GC()
-	runtime.GC()
+	goruntime.GC()
+	goruntime.GC()
 
-	var m2 runtime.MemStats
-	runtime.ReadMemStats(&m2)
+	var m2 goruntime.MemStats
+	goruntime.ReadMemStats(&m2)
 
 	memoryUsed := m2.Alloc - m1.Alloc
 	memoryUsedMB := float64(memoryUsed) / (1024 * 1024)

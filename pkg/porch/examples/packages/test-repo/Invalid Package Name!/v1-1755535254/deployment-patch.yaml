@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deployment
+  namespace: test-ns
+  annotations:
+    scaling.nephio.org/intent-type: "scaling"
+    scaling.nephio.org/replicas: "5"
+spec:
+  replicas: 5

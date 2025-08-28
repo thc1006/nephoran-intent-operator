@@ -6,74 +6,74 @@
 #
 # Format: <pattern> <owner(s)>
 # Patterns follow .gitignore syntax
-
+#
 # === Project Conductor Scope ===
 # Responsible for repository structure, contracts, and CI/CD
-
+#
 # Contract definitions and documentation
-/docs/contracts/ @conductor
-
+# /docs/contracts/ @conductor
+#
 # CI/CD pipelines and GitHub configuration  
-/.github/ @conductor
-
+# /.github/ @conductor
+#
 # Build system and make targets
-/Makefile @conductor
-/Makefile.* @conductor
-
+# /Makefile @conductor
+# /Makefile.* @conductor
+#
 # Example configurations
-/examples/ @conductor
-
+# /examples/ @conductor
+#
 # === Feature Window Owners (Currently Non-blocking) ===
 # These mappings document module boundaries but do not require approval
-
+#
 # API Gateway and REST endpoints
-/api/ @api-team
-
+# /api/ @api-team
+#
 # Kubernetes controllers and operators
-/controllers/ @controllers-team
-
+# /controllers/ @controllers-team
+#
 # Nephio integration packages
-/pkg/nephio/ @nephio-team
-
+# /pkg/nephio/ @nephio-team
+#
 # Internal utilities and core logic
-/internal/ @core-team
-
+# /internal/ @core-team
+#
 # Command-line interfaces
-/cmd/ @cli-team
-
+# /cmd/ @cli-team
+#
 # Deployment configurations
-/deployments/ @devops-team
-
+# /deployments/ @devops-team
+#
 # Infrastructure as Code
-/infrastructure/ @infrastructure-team
-
+# /infrastructure/ @infrastructure-team
+#
 # Monitoring and observability
-/monitoring/ @sre-team
-
+# /monitoring/ @sre-team
+#
 # Security policies and configurations
-/security/ @security-team
-
+# /security/ @security-team
+#
 # Test suites
-/tests/ @qa-team
-
+# /tests/ @qa-team
+#
 # === Documentation ===
 # Technical documentation (excluding contracts)
-/docs/ @docs-team
-!/docs/contracts/
-
+# /docs/ @docs-team
+# !/docs/contracts/
+#
 # Root-level documentation files
-/*.md @docs-team
-/LICENSE @legal-team
-/SECURITY.md @security-team
-
+# /*.md @docs-team
+# /LICENSE @legal-team
+# /SECURITY.md @security-team
+#
 # === Configuration Files ===
 # Language and tool configurations
-/.golangci.yml @core-team
-/go.mod @core-team
-/go.sum @core-team
-/.dockerignore @devops-team
-/Dockerfile* @devops-team
-
+# /.golangci.yml @core-team
+# /go.mod @core-team
+# /go.sum @core-team
+# /.dockerignore @devops-team
+# /Dockerfile* @devops-team
+#
 # === Scripts and Tools ===
 /scripts/ @devops-team
 /tools/ @tools-team

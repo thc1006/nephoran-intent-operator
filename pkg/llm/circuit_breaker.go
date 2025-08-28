@@ -28,8 +28,36 @@ type CircuitBreaker struct {
 	onStateChange    func(name string, from, to CircuitState)
 }
 
-// Use consolidated CircuitBreakerConfig from pkg/shared
-type CircuitBreakerConfig = shared.CircuitBreakerConfig
+
+// CircuitBreakerConfig holds configuration for circuit breaker
+type CircuitBreakerConfig struct {
+	// Failure threshold
+	FailureThreshold    int64   `json:"failure_threshold"`
+	FailureRate         float64 `json:"failure_rate"` // 0.0 to 1.0
+	MinimumRequestCount int64   `json:"minimum_request_count"`
+
+	// Timeout settings
+	Timeout         time.Duration `json:"timeout"`
+	HalfOpenTimeout time.Duration `json:"half_open_timeout"`
+
+	// Recovery settings
+	SuccessThreshold    int64 `json:"success_threshold"`
+	HalfOpenMaxRequests int64 `json:"half_open_max_requests"`
+
+	// Reset settings
+	ResetTimeout      time.Duration `json:"reset_timeout"`
+	SlidingWindowSize int           `json:"sliding_window_size"`
+
+	// Health check
+	EnableHealthCheck   bool          `json:"enable_health_check"`
+	HealthCheckInterval time.Duration `json:"health_check_interval"`
+	HealthCheckTimeout  time.Duration `json:"health_check_timeout"`
+
+	// Advanced circuit breaker settings
+	MaxConcurrentRequests int  `json:"max_concurrent_requests"`
+	EnableAdaptiveTimeout bool `json:"enable_adaptive_timeout"`
+}
+
 
 // CircuitState represents the state of the circuit breaker
 type CircuitState int

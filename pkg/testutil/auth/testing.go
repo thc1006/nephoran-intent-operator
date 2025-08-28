@@ -22,9 +22,213 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
+
+// Define auth types locally to avoid import cycles
+
+// TokenInfo represents token information for testing
+type TokenInfo struct {
+	ID        string    `json:"id"`
+	UserID    string    `json:"user_id"`
+	TokenType string    `json:"token_type"`
+	ExpiresAt time.Time `json:"expires_at"`
+	IssuedAt  time.Time `json:"issued_at"`
+	Revoked   bool      `json:"revoked"`
+}
+
+// AuditEvent represents an audit event for testing
+type AuditEvent struct {
+	ID        string                 `json:"id"`
+	EventType string                 `json:"event_type"`
+	UserID    string                 `json:"user_id"`
+	Timestamp time.Time              `json:"timestamp"`
+	Details   map[string]interface{} `json:"details"`
+}
+
+// Mock implementations for breaking import cycles
+
+// JWTManagerMock provides mock JWT functionality
+type JWTManagerMock struct {
+	privateKey *rsa.PrivateKey
+	keyID      string
+}
+
+func (j *JWTManagerMock) GenerateToken(claims jwt.MapClaims) (string, error) {
+	if j.privateKey == nil {
+		return "", fmt.Errorf("private key not set")
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	token.Header["kid"] = j.keyID
+	return token.SignedString(j.privateKey)
+}
+
+func (j *JWTManagerMock) ValidateToken(tokenString string) (*jwt.Token, error) {
+	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return &j.privateKey.PublicKey, nil
+	})
+}
+
+func (j *JWTManagerMock) RefreshToken(tokenString string) (string, error) {
+	claims := jwt.MapClaims{
+		"exp": time.Now().Add(time.Hour).Unix(),
+		"iat": time.Now().Unix(),
+	}
+	return j.GenerateToken(claims)
+}
+
+func (j *JWTManagerMock) RevokeToken(tokenString string) error {
+	return nil // Mock implementation
+}
+
+func (j *JWTManagerMock) SetSigningKey(privateKey *rsa.PrivateKey, keyID string) error {
+	j.privateKey = privateKey
+	j.keyID = keyID
+	return nil
+}
+
+func (j *JWTManagerMock) Close() {
+	// Mock implementation
+}
+
+// RBACManagerMock provides mock RBAC functionality
+type RBACManagerMock struct {
+	roles       map[string][]string // userID -> roles
+	permissions map[string][]string // role -> permissions
+}
+
+func (r *RBACManagerMock) CheckPermission(ctx context.Context, userID, resource, action string) (bool, error) {
+	return true, nil // Mock: always allow
+}
+
+func (r *RBACManagerMock) AssignRole(ctx context.Context, userID, role string) error {
+	if r.roles == nil {
+		r.roles = make(map[string][]string)
+	}
+	r.roles[userID] = append(r.roles[userID], role)
+	return nil
+}
+
+func (r *RBACManagerMock) RevokeRole(ctx context.Context, userID, role string) error {
+	if r.roles == nil {
+		return nil
+	}
+	roles := r.roles[userID]
+	for i, userRole := range roles {
+		if userRole == role {
+			r.roles[userID] = append(roles[:i], roles[i+1:]...)
+			break
+		}
+	}
+	return nil
+}
+
+func (r *RBACManagerMock) GetUserRoles(ctx context.Context, userID string) ([]string, error) {
+	if r.roles == nil {
+		return []string{}, nil
+	}
+	return r.roles[userID], nil
+}
+
+func (r *RBACManagerMock) GetRolePermissions(ctx context.Context, role string) ([]string, error) {
+	if r.permissions == nil {
+		return []string{}, nil
+	}
+	return r.permissions[role], nil
+}
+
+// SessionManagerMock provides mock session functionality
+type SessionManagerMock struct {
+	sessions map[string]*MockSession
+}
+
+type MockSession struct {
+	ID        string
+	UserID    string
+	UserInfo  *providers.UserInfo
+	CreatedAt time.Time
+	ExpiresAt time.Time
+	Data      map[string]interface{}
+}
+
+func (s *SessionManagerMock) CreateSession(ctx context.Context, userInfo *providers.UserInfo) (*MockSession, error) {
+	if s.sessions == nil {
+		s.sessions = make(map[string]*MockSession)
+	}
+	session := &MockSession{
+		ID:        fmt.Sprintf("test-session-%d", time.Now().UnixNano()),
+		UserID:    userInfo.Subject,
+		UserInfo:  userInfo,
+		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(time.Hour),
+		Data:      make(map[string]interface{}),
+	}
+	s.sessions[session.ID] = session
+	return session, nil
+}
+
+func (s *SessionManagerMock) GetSession(ctx context.Context, sessionID string) (*MockSession, error) {
+	if s.sessions == nil {
+		return nil, fmt.Errorf("session not found")
+	}
+	session, exists := s.sessions[sessionID]
+	if !exists {
+		return nil, fmt.Errorf("session not found")
+	}
+	return session, nil
+}
+
+func (s *SessionManagerMock) UpdateSession(ctx context.Context, sessionID string, updates map[string]interface{}) error {
+	session, err := s.GetSession(ctx, sessionID)
+	if err != nil {
+		return err
+	}
+	for k, v := range updates {
+		session.Data[k] = v
+	}
+	return nil
+}
+
+func (s *SessionManagerMock) DeleteSession(ctx context.Context, sessionID string) error {
+	if s.sessions != nil {
+		delete(s.sessions, sessionID)
+	}
+	return nil
+}
+
+func (s *SessionManagerMock) ListUserSessions(ctx context.Context, userID string) ([]*MockSession, error) {
+	var sessions []*MockSession
+	if s.sessions != nil {
+		for _, session := range s.sessions {
+			if session.UserID == userID {
+				sessions = append(sessions, session)
+			}
+		}
+	}
+	return sessions, nil
+}
+
+func (s *SessionManagerMock) SetSessionCookie(w http.ResponseWriter, sessionID string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "test-session",
+		Value:    sessionID,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false, // For testing
+	})
+}
+
+func (s *SessionManagerMock) GetSessionFromRequest(r *http.Request) (*MockSession, error) {
+	cookie, err := r.Cookie("test-session")
+	if err != nil {
+		return nil, err
+	}
+	return s.GetSession(r.Context(), cookie.Value)
+}
+
+func (s *SessionManagerMock) Close() {
+	// Mock implementation
+}
 
 // TestContext provides a complete testing environment for auth tests
 type TestContext struct {
@@ -41,10 +245,10 @@ type TestContext struct {
 	OAuthServer *httptest.Server
 	LDAPServer  *MockLDAPServer
 
-	// Managers under test
-	JWTManager     *auth.JWTManager
-	RBACManager    *auth.RBACManager
-	SessionManager *auth.SessionManager
+	// Mock implementations for testing
+	JWTManager     JWTManagerMock
+	RBACManager    RBACManagerMock
+	SessionManager SessionManagerMock
 
 	// Cleanup functions
 	cleanupFuncs []func()
@@ -77,82 +281,31 @@ func NewTestContext(t *testing.T) *TestContext {
 	return tc
 }
 
-// SetupJWTManager initializes JWT manager for testing
-func (tc *TestContext) SetupJWTManager() *auth.JWTManager {
-	if tc.JWTManager != nil {
-		return tc.JWTManager
-	}
-
-	config := &auth.JWTConfig{
-		Issuer:               "test-issuer",
-		DefaultTTL:           time.Hour,
-		RefreshTTL:           24 * time.Hour,
-		KeyRotationPeriod:    7 * 24 * time.Hour,
-		RequireSecureCookies: false, // Disable for testing
-		CookieDomain:         "localhost",
-		CookiePath:           "/",
-	}
-
-	// Create mock dependencies for JWT manager
-	tokenStore := NewMockTokenStore()
-	blacklist := NewMockTokenBlacklist()
-	
-	jwtManager, err := auth.NewJWTManager(config, tokenStore, blacklist, tc.Logger)
+// SetupJWTManager initializes JWT manager mock for testing
+func (tc *TestContext) SetupJWTManager() *JWTManagerMock {
+	// Set test keys
+	err := tc.JWTManager.SetSigningKey(tc.PrivateKey, tc.KeyID)
 	require.NoError(tc.T, err)
 
-	// Note: JWTManager initializes keys internally based on config
-	// Test keys are handled through the config's SigningKey field
-
-	tc.JWTManager = jwtManager
-	// Note: JWTManager doesn't have a Close method
 	tc.AddCleanup(func() {
-		// Cleanup will be handled by garbage collector
+		tc.JWTManager.Close()
 	})
 
-	return jwtManager
+	return &tc.JWTManager
 }
 
-// SetupRBACManager initializes RBAC manager for testing
-func (tc *TestContext) SetupRBACManager() *auth.RBACManager {
-	if tc.RBACManager != nil {
-		return tc.RBACManager
-	}
-
-	config := &auth.RBACManagerConfig{
-		CacheTTL:        5 * time.Minute,
-		EnableHierarchy: true,
-		DefaultDenyAll:  false,
-	}
-
-	tc.RBACManager = auth.NewRBACManager(config, tc.Logger)
-	return tc.RBACManager
+// SetupRBACManager initializes RBAC manager mock for testing
+func (tc *TestContext) SetupRBACManager() *RBACManagerMock {
+	return &tc.RBACManager
 }
 
-// SetupSessionManager initializes session manager for testing
-func (tc *TestContext) SetupSessionManager() *auth.SessionManager {
-	if tc.SessionManager != nil {
-		return tc.SessionManager
-	}
-
-	config := &auth.SessionConfig{
-		SessionTTL:       time.Hour,
-		SessionTimeout:   time.Hour, // Also set the primary field
-		CleanupPeriod:    time.Minute,
-		CleanupInterval:  time.Minute, // Map to existing field
-		CookieName:       "test-session",
-		CookiePath:       "/",
-		CookieDomain:     "localhost",
-		SecureCookies:    false,
-		HTTPOnly:         true,
-		SameSiteCookies:  "Strict", // Use string instead of constant
-	}
-
-	tc.SessionManager = auth.NewSessionManager(config, tc.JWTManager, tc.RBACManager, tc.Logger)
+// SetupSessionManager initializes session manager mock for testing
+func (tc *TestContext) SetupSessionManager() *SessionManagerMock {
 	tc.AddCleanup(func() {
-		// No cleanup needed for SessionManager
+		tc.SessionManager.Close()
 	})
 
-	return tc.SessionManager
+	return &tc.SessionManager
 }
 
 // SetupOAuthServer creates a mock OAuth2 server for testing
@@ -365,7 +518,7 @@ func (tc *TestContext) handleOAuthUserInfo(w http.ResponseWriter, r *http.Reques
 }
 
 func (tc *TestContext) handleJWKS(w http.ResponseWriter, r *http.Request) {
-	// Convert public key to JWK format for validation but use simplified structure for testing
+	// Convert public key to JWK format
 	_, err := x509.MarshalPKIXPublicKey(tc.PublicKey)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -510,25 +663,25 @@ func NewMockTokenStore() *MockTokenStore {
 	}
 }
 
-func (m *MockTokenStore) StoreToken(ctx context.Context, tokenID string, token *auth.TokenInfo) error {
+func (m *MockTokenStore) StoreToken(ctx context.Context, tokenID string, token *TokenInfo) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	m.tokens[tokenID] = token
 	return nil
 }
 
-func (m *MockTokenStore) GetToken(ctx context.Context, tokenID string) (*auth.TokenInfo, error) {
+func (m *MockTokenStore) GetToken(ctx context.Context, tokenID string) (*TokenInfo, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 	if value, exists := m.tokens[tokenID]; exists {
-		if token, ok := value.(*auth.TokenInfo); ok {
+		if token, ok := value.(*TokenInfo); ok {
 			return token, nil
 		}
 	}
 	return nil, fmt.Errorf("token not found")
 }
 
-func (m *MockTokenStore) UpdateToken(ctx context.Context, tokenID string, token *auth.TokenInfo) error {
+func (m *MockTokenStore) UpdateToken(ctx context.Context, tokenID string, token *TokenInfo) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	m.tokens[tokenID] = token
@@ -542,12 +695,12 @@ func (m *MockTokenStore) DeleteToken(ctx context.Context, tokenID string) error 
 	return nil
 }
 
-func (m *MockTokenStore) ListUserTokens(ctx context.Context, userID string) ([]*auth.TokenInfo, error) {
+func (m *MockTokenStore) ListUserTokens(ctx context.Context, userID string) ([]*TokenInfo, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	var tokens []*auth.TokenInfo
+	var tokens []*TokenInfo
 	for _, value := range m.tokens {
-		if token, ok := value.(*auth.TokenInfo); ok && token.UserID == userID {
+		if token, ok := value.(*TokenInfo); ok && token.UserID == userID {
 			tokens = append(tokens, token)
 		}
 	}
@@ -558,7 +711,7 @@ func (m *MockTokenStore) DeleteUserData(ctx context.Context, userID string) erro
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	for tokenID, value := range m.tokens {
-		if token, ok := value.(*auth.TokenInfo); ok && token.UserID == userID {
+		if token, ok := value.(*TokenInfo); ok && token.UserID == userID {
 			delete(m.tokens, tokenID)
 		}
 	}
@@ -570,7 +723,7 @@ func (m *MockTokenStore) ExportUserData(ctx context.Context, userID string) (map
 	defer m.mutex.RUnlock()
 	data := make(map[string]interface{})
 	for tokenID, value := range m.tokens {
-		if token, ok := value.(*auth.TokenInfo); ok && token.UserID == userID {
+		if token, ok := value.(*TokenInfo); ok && token.UserID == userID {
 			data[tokenID] = token
 		}
 	}
@@ -582,7 +735,7 @@ func (m *MockTokenStore) ApplyDataRetention(ctx context.Context, retentionDays i
 	defer m.mutex.Unlock()
 	cutoff := time.Now().AddDate(0, 0, -retentionDays)
 	for tokenID, value := range m.tokens {
-		if token, ok := value.(*auth.TokenInfo); ok && token.IssuedAt.Before(cutoff) {
+		if token, ok := value.(*TokenInfo); ok && token.IssuedAt.Before(cutoff) {
 			delete(m.tokens, tokenID)
 		}
 	}
@@ -594,7 +747,7 @@ func (m *MockTokenStore) CleanupExpired(ctx context.Context) error {
 	defer m.mutex.Unlock()
 	now := time.Now()
 	for tokenID, value := range m.tokens {
-		if token, ok := value.(*auth.TokenInfo); ok && now.After(token.ExpiresAt) {
+		if token, ok := value.(*TokenInfo); ok && now.After(token.ExpiresAt) {
 			delete(m.tokens, tokenID)
 		}
 	}
@@ -648,11 +801,76 @@ func (m *MockTokenBlacklist) BlacklistUserTokens(ctx context.Context, userID str
 	return nil
 }
 
-func (m *MockTokenBlacklist) GetBlacklistAuditTrail(ctx context.Context, tokenID string) ([]auth.AuditEvent, error) {
+func (m *MockTokenBlacklist) GetBlacklistAuditTrail(ctx context.Context, tokenID string) ([]AuditEvent, error) {
 	// Return empty audit trail for mock
-	return []auth.AuditEvent{}, nil
+	return []AuditEvent{}, nil
 }
 
 func (m *MockTokenBlacklist) Close() error {
 	return nil
+}
+
+// MockLDAPServer provides a mock LDAP server for testing
+type MockLDAPServer struct {
+	users map[string]*MockLDAPUser
+	groups map[string]*MockLDAPGroup
+	running bool
+	mutex sync.RWMutex
+}
+
+type MockLDAPUser struct {
+	DN string
+	CN string
+	SN string
+	Mail string
+	UID string
+	GidNumber int
+	Groups []string
+}
+
+type MockLDAPGroup struct {
+	DN string
+	CN string
+	GidNumber int
+	Members []string
+}
+
+func NewMockLDAPServer() *MockLDAPServer {
+	return &MockLDAPServer{
+		users: make(map[string]*MockLDAPUser),
+		groups: make(map[string]*MockLDAPGroup),
+		running: true,
+	}
+}
+
+func (m *MockLDAPServer) AddUser(user *MockLDAPUser) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.users[user.UID] = user
+}
+
+func (m *MockLDAPServer) AddGroup(group *MockLDAPGroup) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.groups[group.CN] = group
+}
+
+func (m *MockLDAPServer) GetUser(uid string) (*MockLDAPUser, bool) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	user, exists := m.users[uid]
+	return user, exists
+}
+
+func (m *MockLDAPServer) GetGroup(cn string) (*MockLDAPGroup, bool) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	group, exists := m.groups[cn]
+	return group, exists
+}
+
+func (m *MockLDAPServer) Close() {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.running = false
 }

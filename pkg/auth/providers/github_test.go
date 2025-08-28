@@ -583,23 +583,23 @@ func TestGitHubProvider_GetOrganizations(t *testing.T) {
 			assert.NotNil(t, ctx)      // Use ctx to avoid unused variable error
 			t.Skip("GitHubProvider does not implement EnterpriseProvider")
 			return
-		
+
 			/*
-			if ep, ok := provider.(EnterpriseProvider); ok {
-				orgs, err := ep.GetOrganizations(ctx, tt.token)
+				if ep, ok := provider.(EnterpriseProvider); ok {
+					orgs, err := ep.GetOrganizations(ctx, tt.token)
 
-				if tt.wantError {
-					assert.Error(t, err)
-					return
+					if tt.wantError {
+						assert.Error(t, err)
+						return
+					}
+
+					assert.NoError(t, err)
+					assert.Len(t, orgs, tt.wantOrgCount)
+
+					if tt.wantOrgCount > 0 {
+						assert.Equal(t, tt.wantFirstOrg, orgs[0].Name)
+					}
 				}
-
-				assert.NoError(t, err)
-				assert.Len(t, orgs, tt.wantOrgCount)
-
-				if tt.wantOrgCount > 0 {
-					assert.Equal(t, tt.wantFirstOrg, orgs[0].Name)
-				}
-			}
 			*/
 		})
 	}

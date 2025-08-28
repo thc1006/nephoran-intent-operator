@@ -29,61 +29,29 @@ type OptimizedRAGManager struct {
 	logger *slog.Logger
 }
 
-// OptimizedRAGConfig holds configuration for the optimized RAG manager
-type RAGManagerConfig struct {
-	// Weaviate configuration
-	WeaviateConfig *WeaviateConfig `json:"weaviate_config"`
 
-	// Optimization configurations
-	BatchSearchConfig   *BatchSearchConfig    `json:"batch_search_config"`
-	GRPCConfig          *GRPCClientConfig     `json:"grpc_config"`
-	ConnectionConfig    *ConnectionPoolConfig `json:"connection_config"`
-	RAGPipelineConfig   *RAGPipelineConfig    `json:"rag_pipeline_config"`
-	HNSWOptimizerConfig *HNSWOptimizerConfig  `json:"hnsw_optimizer_config"`
+// Note: OptimizedRAGConfig and PerformanceReport are defined in optimized_rag_service.go
 
-	// Performance settings
-	BenchmarkConfig *BenchmarkConfig `json:"benchmark_config"`
-
-	// Feature flags
-	EnableGRPC                  bool `json:"enable_grpc"`
-	EnableBatching              bool `json:"enable_batching"`
-	EnableHNSWOptimization      bool `json:"enable_hnsw_optimization"`
-	EnablePerformanceMonitoring bool `json:"enable_performance_monitoring"`
-}
-
-// PerformanceReport provides comprehensive performance analysis
-type OptimizationReport struct {
-	// Performance improvements achieved
-	LatencyImprovement    float64 `json:"latency_improvement"`
-	ThroughputImprovement float64 `json:"throughput_improvement"`
-	AccuracyImprovement   float64 `json:"accuracy_improvement"`
-	MemoryEfficiency      float64 `json:"memory_efficiency"`
-
-	// Specific optimizations impact
-	BatchingBenefit         float64 `json:"batching_benefit"`
-	CachingBenefit          float64 `json:"caching_benefit"`
-	GRPCBenefit             float64 `json:"grpc_benefit"`
-	HNSWOptimizationBenefit float64 `json:"hnsw_optimization_benefit"`
-
-	// Overall metrics
-	OverallScore               float64                `json:"overall_score"`
-	RecommendedSettings        map[string]interface{} `json:"recommended_settings"`
-	PerformanceTargetsAchieved bool                   `json:"performance_targets_achieved"`
-
-	// Benchmark results
-	BenchmarkResults *BenchmarkResults `json:"benchmark_results"`
-}
 
 // NewOptimizedRAGManager creates a new optimized RAG manager with all optimizations
 func NewOptimizedRAGManager(config *RAGManagerConfig) (*OptimizedRAGManager, error) {
 	if config == nil {
-		config = getDefaultRAGManagerConfig()
+
+		// Note: Use getDefaultOptimizedRAGConfig from optimized_rag_service.go
+		return nil, fmt.Errorf("config is required")
+
 	}
 
 	logger := slog.Default().With("component", "optimized-rag-manager")
 
-	// Create core Weaviate client
-	originalClient, err := NewWeaviateClient(config.WeaviateConfig)
+	// Create core Weaviate client with default Weaviate configuration
+	weaviateConfig := &WeaviateConfig{
+		Host:     "localhost:8080",
+		Scheme:   "http",
+		Timeout:  30 * time.Second,
+		MaxRetries: 3,
+	}
+	originalClient, err := NewWeaviateClient(weaviateConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Weaviate client: %w", err)
 	}
@@ -154,28 +122,9 @@ func NewOptimizedRAGManager(config *RAGManagerConfig) (*OptimizedRAGManager, err
 	return manager, nil
 }
 
-// getDefaultOptimizedRAGConfig returns default configuration
-func getDefaultRAGManagerConfig() *RAGManagerConfig {
-	return &RAGManagerConfig{
-		WeaviateConfig: &WeaviateConfig{
-			Host:    "localhost:8080",
-			Scheme:  "http",
-			Timeout: 30 * time.Second,
-			Retries: 3,
-		},
-		BatchSearchConfig:   getDefaultBatchSearchConfig(),
-		GRPCConfig:          getDefaultGRPCConfig(),
-		ConnectionConfig:    getDefaultConnectionPoolConfig(),
-		RAGPipelineConfig:   getDefaultRAGPipelineConfig(),
-		HNSWOptimizerConfig: getDefaultHNSWOptimizerConfig(),
-		BenchmarkConfig:     getDefaultBenchmarkConfig(),
 
-		EnableGRPC:                  true,
-		EnableBatching:              true,
-		EnableHNSWOptimization:      true,
-		EnablePerformanceMonitoring: true,
-	}
-}
+// Note: getDefaultOptimizedRAGConfig is defined in optimized_rag_service.go
+
 
 // ProcessSingleQuery processes a single query with all optimizations
 func (m *OptimizedRAGManager) ProcessSingleQuery(ctx context.Context, request *RAGRequest) (*RAGResponse, error) {

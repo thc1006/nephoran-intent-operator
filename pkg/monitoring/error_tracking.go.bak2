@@ -234,6 +234,7 @@ type PrometheusErrorMetrics struct {
 	registry prometheus.Registerer
 }
 
+<<<<<<< HEAD:pkg/monitoring/error_tracking.go
 // NewPrometheusErrorMetrics creates a new PrometheusErrorMetrics instance
 func NewPrometheusErrorMetrics(namespace string) *PrometheusErrorMetrics {
 	metrics := &PrometheusErrorMetrics{
@@ -410,6 +411,8 @@ const (
 )
 
 // Note: AlertManager type is defined in alerting.go
+=======
+>>>>>>> integrate/mvp:pkg/monitoring/error_tracking.go.bak2
 
 // ActiveAlert represents a currently active alert
 type ActiveAlert struct {

@@ -61,8 +61,8 @@ type O1Adaptor struct {
 	kubeClient       client.Client
 }
 
-// O1Config holds O1 interface configuration
-type O1Config struct {
+// O1AdaptorConfig holds O1 interface adaptor configuration
+type O1AdaptorConfig struct {
 	DefaultPort    int
 	ConnectTimeout time.Duration
 	RequestTimeout time.Duration

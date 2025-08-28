@@ -1169,8 +1169,6 @@ type ConflictAnalysis struct {
 	Recommendations     []string             `json:"recommendations"`
 }
 
-// ConflictResolution is defined in content_manager.go
-
 // VersionConstraint defines version constraint requirements
 type VersionConstraint struct {
 	Operator     string `json:"operator"` // =, !=, >, <, >=, <=, ~, ^
@@ -1269,8 +1267,6 @@ const (
 	DependencyScopeProvided    DependencyScope = "provided"
 )
 
-// ConflictType is defined in content_manager.go
-
 // DependencyConflict represents a specific dependency conflict
 type DependencyConflict struct {
 	Type            ConflictType        `json:"type"`
@@ -1288,8 +1284,6 @@ type GraphAnalysisResult struct {
 	Optimizations   []OptimizationSuggestion `json:"optimizations,omitempty"`
 	Recommendations []string                 `json:"recommendations,omitempty"`
 }
-
-// OptimizationSuggestion is defined in content_manager.go
 
 // GraphBuildOptions defines options for building dependency graphs
 type GraphBuildOptions struct {

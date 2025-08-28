@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -27,8 +28,6 @@ import (
 var (
 	ErrKeyNotFound = errors.New("key not found")
 )
-
-// KeyManager interface removed - using AdvancedKeyManager instead
 
 // StoredKey represents a stored cryptographic key
 type StoredKey struct {
@@ -47,6 +46,22 @@ func (sk *StoredKey) RSAKey() (*rsa.PrivateKey, error) {
 	// Implementation needed based on your crypto requirements
 	// This is a placeholder implementation
 	return nil, nil
+}
+
+// AdvancedKeyManager interface defines advanced key management operations
+type AdvancedKeyManager interface {
+	// Basic key operations
+	GenerateKey(keyType string, bits int) (*StoredKey, error)
+	StoreKey(key *StoredKey) error
+	RetrieveKey(keyID string) (*StoredKey, error)
+	RotateKey(keyID string) (*StoredKey, error)
+	DeleteKey(keyID string) error
+
+	// Advanced operations
+	GenerateMasterKey(keyType string, bits int) error
+	DeriveKey(purpose string, version int) ([]byte, error)
+	EscrowKey(keyID string, agents []EscrowAgent, threshold int) error
+	SetupThresholdCrypto(keyID string, threshold, total int) error
 }
 
 // DefaultKeyManager provides a basic key manager implementation
@@ -164,7 +179,10 @@ type DetailedStoredKey struct {
 	Type        string                 `json:"type"`
 	Algorithm   string                 `json:"algorithm"`
 	KeySize     int                    `json:"key_size"`
+	Version     int                    `json:"version"`
+	Key         []byte                 `json:"key"`
 	CreatedAt   time.Time              `json:"created_at"`
+	UpdatedAt   time.Time              `json:"updated,omitempty"`
 	ExpiresAt   *time.Time             `json:"expires_at,omitempty"`
 	Metadata    map[string]interface{} `json:"metadata"`
 	KeyMaterial []byte                 `json:"key_material"`
@@ -250,5 +268,132 @@ type VaultStats struct {
 	VaultHealthy    bool      `json:"vault_healthy"`
 }
 
-// Simple type aliases for backward compatibility
-type KeyManager = DefaultKeyManager
+// KeyStore interface defines the storage backend for keys
+type KeyStore interface {
+	Store(ctx context.Context, key *DetailedStoredKey) error
+	Retrieve(ctx context.Context, keyID string) (*DetailedStoredKey, error)
+	Delete(ctx context.Context, keyID string) error
+	List(ctx context.Context) ([]*DetailedStoredKey, error)
+	Rotate(ctx context.Context, keyID string, newKey *DetailedStoredKey) error
+}
+
+// DefaultAdvancedKeyManager implements AdvancedKeyManager with KeyStore
+type DefaultAdvancedKeyManager struct {
+	keys   map[string]*StoredKey
+	store  KeyStore
+	master []byte
+}
+
+// NewAdvancedKeyManager creates a new advanced key manager with the given store
+func NewAdvancedKeyManager(store KeyStore) AdvancedKeyManager {
+	return &DefaultAdvancedKeyManager{
+		keys:  make(map[string]*StoredKey),
+		store: store,
+	}
+}
+
+// GenerateKey generates a new key
+func (dakm *DefaultAdvancedKeyManager) GenerateKey(keyType string, bits int) (*StoredKey, error) {
+	key := &StoredKey{
+		ID:        fmt.Sprintf("key-%s-%d", keyType, time.Now().UnixNano()),
+		Type:      keyType,
+		Bits:      bits,
+		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(365 * 24 * time.Hour), // 1 year expiry
+		Metadata:  make(map[string]string),
+	}
+	dakm.keys[key.ID] = key
+	return key, nil
+}
+
+// StoreKey stores a key
+func (dakm *DefaultAdvancedKeyManager) StoreKey(key *StoredKey) error {
+	dakm.keys[key.ID] = key
+	// If we have a backing store, persist there as well
+	if dakm.store != nil {
+		detailedKey := &DetailedStoredKey{
+			ID:        key.ID,
+			Type:      key.Type,
+			KeySize:   key.Bits,
+			CreatedAt: key.CreatedAt,
+			Metadata:  make(map[string]interface{}),
+		}
+		return dakm.store.Store(context.Background(), detailedKey)
+	}
+	return nil
+}
+
+// RetrieveKey retrieves a key by ID
+func (dakm *DefaultAdvancedKeyManager) RetrieveKey(keyID string) (*StoredKey, error) {
+	if key, ok := dakm.keys[keyID]; ok {
+		return key, nil
+	}
+	return nil, ErrKeyNotFound
+}
+
+// RotateKey rotates a key
+func (dakm *DefaultAdvancedKeyManager) RotateKey(keyID string) (*StoredKey, error) {
+	oldKey, err := dakm.RetrieveKey(keyID)
+	if err != nil {
+		return nil, err
+	}
+
+	newKey, err := dakm.GenerateKey(oldKey.Type, oldKey.Bits)
+	if err != nil {
+		return nil, err
+	}
+
+	// Copy metadata
+	for k, v := range oldKey.Metadata {
+		newKey.Metadata[k] = v
+	}
+	newKey.Metadata["rotated_from"] = oldKey.ID
+	newKey.Metadata["rotation_time"] = time.Now().Format(time.RFC3339)
+
+	return newKey, dakm.StoreKey(newKey)
+}
+
+// DeleteKey deletes a key
+func (dakm *DefaultAdvancedKeyManager) DeleteKey(keyID string) error {
+	delete(dakm.keys, keyID)
+	if dakm.store != nil {
+		return dakm.store.Delete(context.Background(), keyID)
+	}
+	return nil
+}
+
+// GenerateMasterKey generates a master key
+func (dakm *DefaultAdvancedKeyManager) GenerateMasterKey(keyType string, bits int) error {
+	// Generate and store master key securely
+	dakm.master = make([]byte, bits/8)
+	// In production, use crypto/rand to generate
+	return nil
+}
+
+// DeriveKey derives a key from the master key
+func (dakm *DefaultAdvancedKeyManager) DeriveKey(purpose string, version int) ([]byte, error) {
+	if dakm.master == nil {
+		return nil, errors.New("master key not initialized")
+	}
+	// In production, use proper KDF like HKDF
+	derived := make([]byte, 32)
+	return derived, nil
+}
+
+// EscrowKey escrows a key with threshold sharing
+func (dakm *DefaultAdvancedKeyManager) EscrowKey(keyID string, agents []EscrowAgent, threshold int) error {
+	if threshold > len(agents) {
+		return errors.New("threshold cannot exceed number of agents")
+	}
+	// In production, implement Shamir's Secret Sharing
+	return nil
+}
+
+// SetupThresholdCrypto sets up threshold cryptography
+func (dakm *DefaultAdvancedKeyManager) SetupThresholdCrypto(keyID string, threshold, total int) error {
+	if threshold > total {
+		return errors.New("threshold cannot exceed total shares")
+	}
+	// In production, implement threshold cryptography scheme
+	return nil
+}

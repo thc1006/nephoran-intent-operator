@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
+	"os"
 	"sync"
 	"time"
 
@@ -124,7 +126,17 @@ const (
 	AlertTypeCircuitBreaker    TraceAlertType = "circuit_breaker"
 )
 
+<<<<<<< HEAD
 // AlertSeverity constants are defined in types.go
+=======
+// AlertSeverity constants are imported from alerting.go
+// Using constants from alerting.go
+const (
+	SeverityHigh     = AlertSeverityError
+	SeverityCritical = AlertSeverityCritical
+	SeverityMedium   = AlertSeverityWarning
+)
+>>>>>>> integrate/mvp
 
 // TraceAlertManager manages trace-based alerting
 type TraceAlertManager struct {
@@ -163,6 +175,14 @@ type SpanMetrics struct {
 	Status        codes.Code        `json:"status"`
 	Tags          map[string]string `json:"tags"`
 	ErrorMessage  string            `json:"error_message,omitempty"`
+}
+
+// getEnv gets environment variable with default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
 
 // DefaultTracingConfig returns default tracing configuration
@@ -416,7 +436,12 @@ func (dt *DistributedTracer) analyzeSpan(activeSpan *ActiveSpan, err error) {
 
 	// Record metrics
 	if dt.metricsRecorder != nil {
-		dt.metricsRecorder.RecordSpanMetrics(spanMetrics.Component, spanMetrics.OperationName, spanMetrics.Duration, spanMetrics.Status == codes.Error)
+		// Record span duration via SLI latency metrics
+		dt.metricsRecorder.RecordSLILatency(spanMetrics.Component, spanMetrics.OperationName, "default", 
+			spanMetrics.Duration.Seconds(), spanMetrics.Duration.Seconds())
+		if spanMetrics.Status == codes.Error {
+			dt.metricsRecorder.RecordError(spanMetrics.Component, "span_error")
+		}
 	}
 }
 
@@ -561,7 +586,11 @@ func (sa *SpanAnalyzer) checkAnomalies(operationKey string, spanMetrics *SpanMet
 
 			// Record anomaly metric
 			if sa.metricsRecorder != nil {
+<<<<<<< HEAD
 				sa.metricsRecorder.RecordAnomalyDetection("latency", "high", operationKey, "statistical_analysis")
+=======
+				sa.metricsRecorder.RecordAnomalyDetection("latency", "high", operationKey, "statistical")
+>>>>>>> integrate/mvp
 			}
 		}
 	}
@@ -589,7 +618,8 @@ func (tam *TraceAlertManager) FireAlert(ctx context.Context, alert *TraceAlert) 
 
 	// Record alert metric
 	if tam.metricsRecorder != nil {
-		tam.metricsRecorder.RecordTraceAlert(string(alert.AlertType), string(alert.Severity), alert.Component)
+		// Record as an alert occurrence
+		tam.metricsRecorder.RecordAlert(string(alert.Severity), alert.Component)
 	}
 
 	// Call alert handlers
@@ -682,7 +712,7 @@ func calculateStatistics(durations []time.Duration) (mean time.Duration, stdDev 
 		variance += diff * diff
 	}
 	variance /= float64(len(durations))
-	stdDev = time.Duration(variance)
+	stdDev = time.Duration(math.Sqrt(variance))
 
 	return mean, stdDev
 }

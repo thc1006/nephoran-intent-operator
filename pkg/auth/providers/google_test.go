@@ -705,20 +705,20 @@ func TestGoogleProvider_DiscoverConfiguration(t *testing.T) {
 	assert.NotNil(t, provider) // Use provider to avoid unused variable error
 	t.Skip("GoogleProvider does not implement OIDCProvider")
 	return
-	
-	/*
-	if oidcProvider, ok := provider.(OIDCProvider); ok {
-		ctx := context.Background()
-		config, err := oidcProvider.DiscoverConfiguration(ctx)
 
-		assert.NoError(t, err)
-		assert.NotNil(t, config)
-		assert.Equal(t, "https://accounts.google.com", config.Issuer)
-		assert.Contains(t, config.ScopesSupported, "openid")
-		assert.Contains(t, config.ScopesSupported, "email")
-		assert.Contains(t, config.ScopesSupported, "profile")
-		assert.Contains(t, config.CodeChallengeMethodsSupported, "S256")
-	}
+	/*
+		if oidcProvider, ok := provider.(OIDCProvider); ok {
+			ctx := context.Background()
+			config, err := oidcProvider.DiscoverConfiguration(ctx)
+
+			assert.NoError(t, err)
+			assert.NotNil(t, config)
+			assert.Equal(t, "https://accounts.google.com", config.Issuer)
+			assert.Contains(t, config.ScopesSupported, "openid")
+			assert.Contains(t, config.ScopesSupported, "email")
+			assert.Contains(t, config.ScopesSupported, "profile")
+			assert.Contains(t, config.CodeChallengeMethodsSupported, "S256")
+		}
 	*/
 }
 

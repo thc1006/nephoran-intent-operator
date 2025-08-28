@@ -1,6 +1,7 @@
 package ingest
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -700,3 +701,330 @@ func TestValidateBytes_RealSchema(t *testing.T) {
 		t.Errorf("Expected nil result with invalid data but got: %+v", result)
 	}
 }
+<<<<<<< HEAD
+=======
+
+// TestNewValidator_FileSystemErrors tests error handling for filesystem issues
+func TestNewValidator_FileSystemErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		setupFunc   func(t *testing.T) string
+		expectError string
+	}{
+		{
+			name: "read permission denied",
+			setupFunc: func(t *testing.T) string {
+				tempDir := t.TempDir()
+				schemaFile := filepath.Join(tempDir, "schema.json")
+				
+				// Create file with valid content first
+				content := `{"$schema": "https://json-schema.org/draft/2020-12/schema"}`
+				err := os.WriteFile(schemaFile, []byte(content), 0644)
+				if err != nil {
+					t.Fatalf("Failed to create schema file: %v", err)
+				}
+				
+				// Remove read permissions (simulation - actual effect depends on OS)
+				err = os.Chmod(schemaFile, 0000)
+				if err != nil {
+					t.Skipf("Cannot modify file permissions on this system: %v", err)
+				}
+				
+				return schemaFile
+			},
+			expectError: "open schema",
+		},
+		{
+			name: "schema file is directory",
+			setupFunc: func(t *testing.T) string {
+				tempDir := t.TempDir()
+				dirPath := filepath.Join(tempDir, "schema.json")
+				err := os.Mkdir(dirPath, 0755)
+				if err != nil {
+					t.Fatalf("Failed to create directory: %v", err)
+				}
+				return dirPath
+			},
+			expectError: "open schema",
+		},
+		{
+			name: "corrupted schema file",
+			setupFunc: func(t *testing.T) string {
+				tempDir := t.TempDir()
+				schemaFile := filepath.Join(tempDir, "corrupt.json")
+				
+				// Write binary data that's not valid JSON
+				corruptData := []byte{0xFF, 0xFE, 0xFD, 0xFC, 0xFB}
+				err := os.WriteFile(schemaFile, corruptData, 0644)
+				if err != nil {
+					t.Fatalf("Failed to create corrupt file: %v", err)
+				}
+				
+				return schemaFile
+			},
+			expectError: "parse schema json",
+		},
+		{
+			name: "empty schema file",
+			setupFunc: func(t *testing.T) string {
+				tempDir := t.TempDir()
+				schemaFile := filepath.Join(tempDir, "empty.json")
+				err := os.WriteFile(schemaFile, []byte{}, 0644)
+				if err != nil {
+					t.Fatalf("Failed to create empty file: %v", err)
+				}
+				return schemaFile
+			},
+			expectError: "parse schema json",
+		},
+		{
+			name: "invalid json schema structure",
+			setupFunc: func(t *testing.T) string {
+				tempDir := t.TempDir()
+				schemaFile := filepath.Join(tempDir, "invalid.json")
+				
+				// Valid JSON but invalid schema
+				invalidSchema := `{"not": "a valid schema structure"}`
+				err := os.WriteFile(schemaFile, []byte(invalidSchema), 0644)
+				if err != nil {
+					t.Fatalf("Failed to create invalid schema file: %v", err)
+				}
+				
+				return schemaFile
+			},
+			expectError: "compile schema",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			schemaPath := tt.setupFunc(t)
+			
+			// Ensure cleanup happens even if test fails
+			defer func() {
+				// Restore permissions for cleanup
+				os.Chmod(schemaPath, 0644)
+			}()
+			
+			validator, err := NewValidator(schemaPath)
+			
+			if err == nil {
+				t.Errorf("Expected error but got nil")
+				return
+			}
+			
+			if validator != nil {
+				t.Errorf("Expected nil validator but got non-nil")
+			}
+			
+			if !strings.Contains(err.Error(), tt.expectError) {
+				t.Errorf("Expected error containing '%s' but got: %v", tt.expectError, err)
+			}
+		})
+	}
+}
+
+// TestValidateBytes_ExtremeCases tests extreme input cases for validation
+func TestValidateBytes_ExtremeCases(t *testing.T) {
+	validator := createTestValidator(t)
+
+	tests := []struct {
+		name        string
+		input       []byte
+		expectError bool
+		description string
+	}{
+		{
+			name:        "extremely large json payload",
+			input:       []byte(`{"intent_type": "scaling", "target": "` + strings.Repeat("a", 1000000) + `", "namespace": "default", "replicas": 3}`),
+			expectError: false,
+			description: "Large JSON payload should be handled",
+		},
+		{
+			name:        "deeply nested json",
+			input:       createDeeplyNestedJSON(t, 100),
+			expectError: true,
+			description: "Deeply nested JSON should be rejected",
+		},
+		{
+			name:        "unicode in json",
+			input:       []byte(`{"intent_type": "scaling", "target": "测试-deployment", "namespace": "default", "replicas": 3}`),
+			expectError: false,
+			description: "Unicode characters should be allowed",
+		},
+		{
+			name:        "json with null bytes",
+			input:       []byte("{\x00\"intent_type\": \"scaling\", \"target\": \"test\", \"namespace\": \"default\", \"replicas\": 3}"),
+			expectError: true,
+			description: "JSON with null bytes should be rejected",
+		},
+		{
+			name:        "json with control characters",
+			input:       []byte("{\"intent_type\": \"scaling\", \"target\": \"test\x01\x02\", \"namespace\": \"default\", \"replicas\": 3}"),
+			expectError: true,
+			description: "JSON with control characters should be rejected as invalid JSON",
+		},
+		{
+			name:        "maximum integer value",
+			input:       []byte(`{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 9223372036854775807}`),
+			expectError: true,
+			description: "Maximum integer value should exceed schema limits",
+		},
+		{
+			name:        "negative zero replicas",
+			input:       []byte(`{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": -0}`),
+			expectError: true,
+			description: "Negative zero should be treated as zero and fail validation",
+		},
+		{
+			name:        "floating point replicas",
+			input:       []byte(`{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3.14}`),
+			expectError: true,
+			description: "Floating point replicas should be rejected",
+		},
+		{
+			name:        "scientific notation replicas",
+			input:       []byte(`{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 1e2}`),
+			expectError: true,
+			description: "Scientific notation replicas should be rejected",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := validator.ValidateBytes(tt.input)
+			
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("Expected error but got nil: %s", tt.description)
+				}
+				if result != nil {
+					t.Errorf("Expected nil result but got non-nil: %s", tt.description)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but got: %v (%s)", err, tt.description)
+				}
+				if result == nil {
+					t.Errorf("Expected non-nil result but got nil: %s", tt.description)
+				}
+			}
+		})
+	}
+}
+
+// TestValidateBytes_MemoryExhaustion tests memory handling with large inputs
+func TestValidateBytes_MemoryExhaustion(t *testing.T) {
+	validator := createTestValidator(t)
+
+	// Test with extremely large JSON array
+	largeArrayJSON := `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3, "large_array": [`
+	for i := 0; i < 10000; i++ {
+		if i > 0 {
+			largeArrayJSON += ","
+		}
+		largeArrayJSON += `"item` + fmt.Sprintf("%d", i) + `"`
+	}
+	largeArrayJSON += `]}`
+
+	result, err := validator.ValidateBytes([]byte(largeArrayJSON))
+	// This should fail schema validation due to additional properties
+	if err == nil {
+		t.Errorf("Expected schema validation error for large array JSON")
+	}
+	if result != nil {
+		t.Errorf("Expected nil result for invalid schema")
+	}
+}
+
+// TestValidateBytes_ConcurrentAccess tests thread safety of validator
+func TestValidateBytes_ConcurrentAccess(t *testing.T) {
+	validator := createTestValidator(t)
+	
+	validJSON := `{
+		"intent_type": "scaling",
+		"target": "concurrent-test",
+		"namespace": "default",
+		"replicas": 3
+	}`
+	
+	invalidJSON := `{
+		"intent_type": "invalid",
+		"target": "concurrent-test",
+		"namespace": "default",
+		"replicas": 3
+	}`
+	
+	const numGoroutines = 50
+	const numIterations = 10
+	
+	done := make(chan bool, numGoroutines)
+	errors := make(chan error, numGoroutines*numIterations)
+	
+	for i := 0; i < numGoroutines; i++ {
+		go func(id int) {
+			defer func() { done <- true }()
+			
+			for j := 0; j < numIterations; j++ {
+				var input []byte
+				var expectError bool
+				
+				if (id+j)%2 == 0 {
+					input = []byte(validJSON)
+					expectError = false
+				} else {
+					input = []byte(invalidJSON)
+					expectError = true
+				}
+				
+				result, err := validator.ValidateBytes(input)
+				
+				if expectError {
+					if err == nil {
+						errors <- fmt.Errorf("goroutine %d iteration %d: expected error but got nil", id, j)
+					}
+					if result != nil {
+						errors <- fmt.Errorf("goroutine %d iteration %d: expected nil result but got non-nil", id, j)
+					}
+				} else {
+					if err != nil {
+						errors <- fmt.Errorf("goroutine %d iteration %d: expected no error but got: %v", id, j, err)
+					}
+					if result == nil {
+						errors <- fmt.Errorf("goroutine %d iteration %d: expected non-nil result but got nil", id, j)
+					}
+				}
+			}
+		}(i)
+	}
+	
+	// Wait for all goroutines to complete
+	for i := 0; i < numGoroutines; i++ {
+		<-done
+	}
+	
+	// Check for any errors
+	close(errors)
+	for err := range errors {
+		t.Error(err)
+	}
+}
+
+// Helper function to create deeply nested JSON for testing
+func createDeeplyNestedJSON(t *testing.T, depth int) []byte {
+	t.Helper()
+	
+	json := `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3, "nested":`
+	
+	for i := 0; i < depth; i++ {
+		json += `{"level": `
+	}
+	json += `"deep"`
+	for i := 0; i < depth; i++ {
+		json += `}`
+	}
+	json += `}`
+	
+	return []byte(json)
+}
+>>>>>>> integrate/mvp

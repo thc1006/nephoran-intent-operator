@@ -1,3 +1,6 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 package llm
 
 import (
@@ -101,12 +104,29 @@ type ContextEnricher struct {
 }
 
 type EnrichmentContext struct {
-	NetworkTopology   *NetworkTopology   `json:"network_topology,omitempty"`
+	NetworkTopology   *PipelineNetworkTopology   `json:"network_topology,omitempty"`
 	DeploymentContext *DeploymentContext `json:"deployment_context,omitempty"`
 	PolicyContext     *PolicyContext     `json:"policy_context,omitempty"`
 	HistoricalData    *HistoricalData    `json:"historical_data,omitempty"`
 	Timestamp         time.Time          `json:"timestamp"`
 }
+
+
+type PipelineNetworkTopology struct {
+	Region           string            `json:"region"`
+	AvailabilityZone string            `json:"availability_zone"`
+	NetworkSlices    []PipelineNetworkSlice    `json:"network_slices"`
+	Constraints      map[string]string `json:"constraints"`
+}
+
+type PipelineNetworkSlice struct {
+	ID          string  `json:"id"`
+	Type        string  `json:"type"` // eMBB, URLLC, mMTC
+	Status      string  `json:"status"`
+	Capacity    int     `json:"capacity"`
+	Utilization float64 `json:"utilization"`
+}
+
 
 type DeploymentContext struct {
 	Environment       string            `json:"environment"` // dev, staging, prod
@@ -177,17 +197,18 @@ type ValidationRule struct {
 
 type PipelineValidationResult struct {
 	Valid    bool              `json:"valid"`
-	Errors   []ValidationError `json:"errors,omitempty"`
-	Warnings []ValidationError `json:"warnings,omitempty"`
+	Errors   []PipelineValidationError `json:"errors,omitempty"`
+	Warnings []PipelineValidationError `json:"warnings,omitempty"`
 	Score    float64           `json:"score"`
 }
 
-// PipelineValidationResult for internal pipeline processing (distinct from security_validator.ValidationResult)
-type PipelineInputValidationResult struct {
-	Valid    bool              `json:"valid"`
-	Score    float64           `json:"score"`
-	Errors   []ValidationError `json:"errors,omitempty"`
-	Warnings []ValidationError `json:"warnings,omitempty"`
+
+type PipelineValidationError struct {
+	Field    string `json:"field"`
+	Message  string `json:"message"`
+	Code     string `json:"code"`
+	Severity string `json:"severity"`
+
 }
 
 // ResponseTransformer modifies and enhances LLM responses
@@ -207,13 +228,15 @@ type ResponsePostprocessor struct {
 type PostprocessingFunc func(map[string]interface{}, *ProcessingContext) (map[string]interface{}, error)
 
 type ProcessingContext struct {
-	RequestID        string                         `json:"request_id"`
-	Intent           string                         `json:"intent"`
-	Classification   ClassificationResult           `json:"classification"`
-	EnrichmentData   *EnrichmentContext             `json:"enrichment_data"`
-	ValidationResult *PipelineInputValidationResult `json:"validation_result"`
-	ProcessingStart  time.Time                      `json:"processing_start"`
-	Metadata         map[string]interface{}         `json:"metadata"`
+
+	RequestID        string                 `json:"request_id"`
+	Intent           string                 `json:"intent"`
+	Classification   ClassificationResult   `json:"classification"`
+	EnrichmentData   *EnrichmentContext     `json:"enrichment_data"`
+	ValidationResult *PipelineValidationResult      `json:"validation_result"`
+	ProcessingStart  time.Time              `json:"processing_start"`
+	Metadata         map[string]interface{} `json:"metadata"`
+
 }
 
 // NewProcessingPipeline creates a new processing pipeline
@@ -239,7 +262,7 @@ func NewPipelineMetrics() *PipelineMetrics {
 }
 
 // ProcessIntent processes an intent through the complete pipeline
-func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, metadata map[string]interface{}) (*ProcessingResult, error) {
+func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, metadata map[string]interface{}) (*PipelineProcessingResult, error) {
 	start := time.Now()
 
 	// Create processing context
@@ -300,7 +323,7 @@ func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, 
 		pp.metrics.EnrichmentTime += time.Since(enrichStart)
 	}
 
-	result := &ProcessingResult{
+	result := &PipelineProcessingResult{
 		ProcessingContext: processingCtx,
 		ProcessingTime:    time.Since(start),
 		Success:           true,
@@ -567,9 +590,9 @@ func (ce *ContextEnricher) Enrich(ctx context.Context, processingCtx *Processing
 }
 
 // buildNetworkTopology creates network topology context
-func (ce *ContextEnricher) buildNetworkTopology(ctx *ProcessingContext) *NetworkTopology {
+func (ce *ContextEnricher) buildNetworkTopology(ctx *ProcessingContext) *PipelineNetworkTopology {
 	// This would typically query actual network topology
-	return &NetworkTopology{
+	return &PipelineNetworkTopology{
 		Region:           "us-west-2",
 		AvailabilityZone: "us-west-2a",
 		NetworkSlices: []NetworkSlice{
@@ -670,15 +693,17 @@ func (iv *InputValidator) initializeRules() {
 }
 
 // Validate performs comprehensive input validation
-func (iv *InputValidator) Validate(intent string) PipelineInputValidationResult {
-	result := PipelineInputValidationResult{
+
+func (iv *InputValidator) Validate(intent string) PipelineValidationResult {
+	result := PipelineValidationResult{
+
 		Valid: true,
 		Score: 1.0,
 	}
 
 	for _, rule := range iv.rules {
 		if rule.Required && !rule.Pattern.MatchString(intent) {
-			error := ValidationError{
+			error := PipelineValidationError{
 				Field:    "intent",
 				Message:  rule.ErrorMessage,
 				Code:     rule.Name,

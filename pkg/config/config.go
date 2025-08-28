@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -665,5 +666,174 @@ func (c *Config) GetMetricsAllowedIPs() []string {
 	return c.MetricsAllowedIPs
 }
 
+// LoadLLMAPIKeyFromFile loads LLM API key from file or environment based on backend type
+func LoadLLMAPIKeyFromFile(backendType string, auditLogger interfaces.AuditLogger) (string, error) {
+	// For mock and rag backends, API key is not required
+	if backendType == "mock" || backendType == "rag" {
+		return "", nil
+	}
+
+	// First try environment variable based on backend type
+	var envVars []string
+	switch strings.ToLower(backendType) {
+	case "openai":
+		envVars = []string{"OPENAI_API_KEY", "LLM_API_KEY"}
+	case "mistral":
+		envVars = []string{"MISTRAL_API_KEY", "LLM_API_KEY"}
+	default:
+		envVars = []string{"LLM_API_KEY"}
+	}
+
+	// Try environment variables
+	for _, envVar := range envVars {
+		if apiKey := GetEnvOrDefault(envVar, ""); apiKey != "" {
+			if auditLogger != nil {
+				auditLogger.LogSecretAccess(fmt.Sprintf("llm_%s_api_key", backendType), "environment", envVar, "", true, nil)
+			}
+			return apiKey, nil
+		}
+	}
+
+	// Try file paths
+	filePaths := []string{
+		fmt.Sprintf("/run/secrets/%s_api_key", strings.ToLower(backendType)),
+		fmt.Sprintf("/etc/secrets/%s_api_key", strings.ToLower(backendType)),
+		"./secrets/" + strings.ToLower(backendType) + "_api_key",
+	}
+
+	for _, filePath := range filePaths {
+		if content, err := os.ReadFile(filePath); err == nil {
+			apiKey := strings.TrimSpace(string(content))
+			if apiKey != "" {
+				if auditLogger != nil {
+					auditLogger.LogSecretAccess(fmt.Sprintf("llm_%s_api_key", backendType), "file", filePath, "", true, nil)
+				}
+				return apiKey, nil
+			}
+		}
+	}
+
+	if auditLogger != nil {
+		auditLogger.LogSecretAccess(fmt.Sprintf("llm_%s_api_key", backendType), "not_found", "", "", false, fmt.Errorf("no API key found"))
+	}
+	return "", fmt.Errorf("LLM API key not found for backend type: %s", backendType)
+}
+
+// LoadAPIKeyFromFile loads general API key from file or environment
+func LoadAPIKeyFromFile(auditLogger interfaces.AuditLogger) (string, error) {
+	// Try environment variable first
+	if apiKey := GetEnvOrDefault("API_KEY", ""); apiKey != "" {
+		if auditLogger != nil {
+			auditLogger.LogSecretAccess("api_key", "environment", "API_KEY", "", true, nil)
+		}
+		return apiKey, nil
+	}
+
+	// Try file paths
+	filePaths := []string{
+		"/run/secrets/api_key",
+		"/etc/secrets/api_key",
+		"./secrets/api_key",
+	}
+
+	for _, filePath := range filePaths {
+		if content, err := os.ReadFile(filePath); err == nil {
+			apiKey := strings.TrimSpace(string(content))
+			if apiKey != "" {
+				if auditLogger != nil {
+					auditLogger.LogSecretAccess("api_key", "file", filePath, "", true, nil)
+				}
+				return apiKey, nil
+			}
+		}
+	}
+
+	if auditLogger != nil {
+		auditLogger.LogSecretAccess("api_key", "not_found", "", "", false, fmt.Errorf("no API key found"))
+	}
+	return "", fmt.Errorf("API key not found")
+}
+
+// LoadJWTSecretKeyFromFile loads JWT secret key from file or environment
+func LoadJWTSecretKeyFromFile(auditLogger interfaces.AuditLogger) (string, error) {
+	// Try environment variable first
+	if jwtSecret := GetEnvOrDefault("JWT_SECRET_KEY", ""); jwtSecret != "" {
+		if auditLogger != nil {
+			auditLogger.LogSecretAccess("jwt_secret_key", "environment", "JWT_SECRET_KEY", "", true, nil)
+		}
+		return jwtSecret, nil
+	}
+
+	// Try file paths
+	filePaths := []string{
+		"/run/secrets/jwt_secret_key",
+		"/etc/secrets/jwt_secret_key",
+		"./secrets/jwt_secret_key",
+	}
+
+	for _, filePath := range filePaths {
+		if content, err := os.ReadFile(filePath); err == nil {
+			jwtSecret := strings.TrimSpace(string(content))
+			if jwtSecret != "" {
+				if auditLogger != nil {
+					auditLogger.LogSecretAccess("jwt_secret_key", "file", filePath, "", true, nil)
+				}
+				return jwtSecret, nil
+			}
+		}
+	}
+
+	if auditLogger != nil {
+		auditLogger.LogSecretAccess("jwt_secret_key", "not_found", "", "", false, fmt.Errorf("no JWT secret key found"))
+	}
+	return "", fmt.Errorf("JWT secret key not found")
+}
+
 // Ensure Config implements interfaces.ConfigProvider
 var _ interfaces.ConfigProvider = (*Config)(nil)
+
+// Type aliases for disable_rag builds
+type APIKeys = interfaces.APIKeys
+
+// SecretManager provides a concrete type for disable_rag builds
+type SecretManager struct {
+	namespace string
+}
+
+// Stub implementations for disable_rag builds
+func NewSecretManager(namespace string) (*SecretManager, error) {
+	return &SecretManager{namespace: namespace}, nil
+}
+
+func LoadFileBasedAPIKeysWithValidation() (*APIKeys, error) {
+	return &APIKeys{}, nil
+}
+
+// Stub methods for SecretManager (disable_rag builds)
+func (sm *SecretManager) GetSecretValue(ctx context.Context, secretName, key, envVarName string) (string, error) {
+	return "", fmt.Errorf("secret manager disabled with disable_rag build tag")
+}
+
+func (sm *SecretManager) CreateSecretFromEnvVars(ctx context.Context, secretName string, envVarMapping map[string]string) error {
+	return fmt.Errorf("secret manager disabled with disable_rag build tag")
+}
+
+func (sm *SecretManager) UpdateSecret(ctx context.Context, secretName string, data map[string][]byte) error {
+	return fmt.Errorf("secret manager disabled with disable_rag build tag")
+}
+
+func (sm *SecretManager) SecretExists(ctx context.Context, secretName string) bool {
+	return false
+}
+
+func (sm *SecretManager) RotateSecret(ctx context.Context, secretName, secretKey, newValue string) error {
+	return fmt.Errorf("secret manager disabled with disable_rag build tag")
+}
+
+func (sm *SecretManager) GetSecretRotationInfo(ctx context.Context, secretName string) (map[string]string, error) {
+	return nil, fmt.Errorf("secret manager disabled with disable_rag build tag")
+}
+
+func (sm *SecretManager) GetAPIKeys(ctx context.Context) (*APIKeys, error) {
+	return &APIKeys{}, nil
+}

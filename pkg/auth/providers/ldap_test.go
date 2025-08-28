@@ -199,7 +199,7 @@ func TestLDAPProvider_MapGroupsToRoles(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	provider := NewLDAPProvider(config, logger)
-	
+
 	// Use provider to avoid unused variable error
 	assert.NotNil(t, provider)
 
@@ -255,7 +255,7 @@ func TestLDAPProvider_ExtractGroupNameFromDN(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	provider := NewLDAPProvider(config, logger)
-	
+
 	// Use provider to avoid unused variable error
 	assert.NotNil(t, provider)
 
@@ -309,7 +309,7 @@ func TestLDAPProvider_ContainsString(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	provider := NewLDAPProvider(config, logger)
-	
+
 	// Use provider to avoid unused variable error
 	assert.NotNil(t, provider)
 
@@ -499,7 +499,7 @@ func BenchmarkLDAPProvider_MapGroupsToRoles(b *testing.B) {
 	provider := NewLDAPProvider(config, logger)
 
 	groups := []string{"group1", "group2", "group3", "group4", "group5"}
-	
+
 	// Use variables to avoid unused variable errors
 	_ = provider
 	_ = groups
@@ -521,7 +521,7 @@ func BenchmarkLDAPProvider_ExtractGroupNameFromDN(b *testing.B) {
 	provider := NewLDAPProvider(config, logger)
 
 	dn := "CN=Domain Admins,CN=Users,DC=example,DC=com"
-	
+
 	// Use variables to avoid unused variable errors
 	_ = provider
 	_ = dn
@@ -603,7 +603,7 @@ func TestLDAPProvider_ComprehensiveConfiguration(t *testing.T) {
 				assert.NotNil(t, provider)
 
 				// Validate role mappings
-				// TODO: mapGroupsToRoles is not part of LDAPProvider interface  
+				// TODO: mapGroupsToRoles is not part of LDAPProvider interface
 				// roles := provider.mapGroupsToRoles([]string{"developers", "ops"})
 				roles := []string{"developer", "operator"} // placeholder for test
 				assert.Contains(t, roles, "developer")

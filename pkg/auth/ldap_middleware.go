@@ -200,7 +200,6 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 		Provider:    "ldap:" + provider,
 		Groups:      userInfo.Groups,
 		Roles:       userInfo.Roles,
-		ExpiresAt:   time.Now().Add(lm.config.SessionTimeout),
 	})
 	if err != nil {
 		lm.logger.Error("Failed to create session", "error", err, "username", authReq.Username)
@@ -209,7 +208,7 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 	}
 
 	// Create JWT tokens
-	accessToken, refreshToken, err := lm.createTokens(userInfo, sessionInfo.ID, provider)
+	accessToken, refreshToken, err := lm.createTokens(r.Context(), userInfo, sessionInfo.ID, provider)
 	if err != nil {
 		lm.logger.Error("Failed to create tokens", "error", err, "username", authReq.Username)
 		lm.writeErrorResponse(w, http.StatusInternalServerError, "token_creation_failed", "Failed to create tokens")
@@ -464,24 +463,24 @@ func (lm *LDAPAuthMiddleware) authenticateUser(ctx context.Context, username, pa
 	return nil, "", fmt.Errorf("no LDAP providers available")
 }
 
-func (lm *LDAPAuthMiddleware) createTokens(userInfo *providers.UserInfo, sessionID, provider string) (string, string, error) {
+func (lm *LDAPAuthMiddleware) createTokens(ctx context.Context, userInfo *providers.UserInfo, sessionID, provider string) (string, string, error) {
 	if lm.jwtManager == nil {
 		return "", "", fmt.Errorf("JWT manager not available")
 	}
 
 	// Create access token
-	accessToken, err := lm.jwtManager.CreateAccessToken(userInfo.Username, sessionID, "ldap:"+provider, userInfo.Roles, userInfo.Groups, userInfo.Attributes)
+	accessTokenStr, _, err := lm.jwtManager.GenerateAccessToken(ctx, userInfo, sessionID)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create access token: %w", err)
 	}
 
 	// Create refresh token
-	refreshToken, err := lm.jwtManager.CreateRefreshToken(userInfo.Username, sessionID, "ldap:"+provider)
+	refreshTokenStr, _, err := lm.jwtManager.GenerateRefreshToken(ctx, userInfo, sessionID)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create refresh token: %w", err)
 	}
 
-	return accessToken, refreshToken, nil
+	return accessTokenStr, refreshTokenStr, nil
 }
 
 func (lm *LDAPAuthMiddleware) parseAuthRequest(r *http.Request) (*LDAPAuthRequest, error) {

@@ -286,7 +286,7 @@ func benchmarkCircuitBreakerBehavior(b *testing.B, ctx context.Context, processo
 // benchmarkCachePerformance tests cache efficiency and hit rates
 func benchmarkCachePerformance(b *testing.B, ctx context.Context, processor *EnhancedLLMProcessor) {
 	// Cache is already configured with defaults
-	// No Configure method available on actual IntelligentCache implementation
+	// Configure method available for testing if needed
 
 	// Pre-populate cache with some entries
 	baseIntent := "Deploy AMF with configuration"
@@ -674,8 +674,14 @@ type BenchmarkLLMClient interface {
 }
 
 // Placeholder interfaces for the enhanced components
-// IntelligentCache is already defined in intelligent_cache.go
-// Using the actual implementation instead of mock
+type IntelligentCache interface {
+	Get(key string) interface{}
+	Set(key string, value interface{})
+	Has(key string) bool
+	GenerateKey(intent string, params map[string]interface{}) string
+	Clear()
+	Configure(config BenchmarkCacheConfig)
+}
 
 // CircuitBreaker is already defined in circuit_breaker.go
 // Using the actual implementation instead of mock
@@ -695,9 +701,18 @@ type ProcessorMetrics interface {
 }
 
 // Configuration types
-// CacheConfig is already defined in cache.go
+type BenchmarkCacheConfig struct {
+	MaxSize  int
+	TTL      time.Duration
+	Strategy string
+}
 
-// CircuitBreakerConfig is already defined via shared package
+type TestCircuitBreakerConfig struct {
+	MaxFailures   int
+	ResetTimeout  time.Duration
+	HalfOpenLimit int
+	Timeout       time.Duration
+}
 
 type TokenManagerConfig struct {
 	MaxTokensPerMinute int
@@ -737,7 +752,7 @@ func (m *mockCache) Set(key string, value interface{})                          
 func (m *mockCache) Has(key string) bool                                             { return false }
 func (m *mockCache) GenerateKey(intent string, params map[string]interface{}) string { return intent }
 func (m *mockCache) Clear()                                                          {}
-func (m *mockCache) Configure(config CacheConfig)                                    {}
+func (m *mockCache) Configure(config BenchmarkCacheConfig)                                    {}
 
 type mockCircuitBreaker struct{}
 

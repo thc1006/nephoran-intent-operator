@@ -325,7 +325,10 @@ func newOptimizedJSONCodec(config *ConnectionPoolConfig) *OptimizedJSONCodec {
 	// Initialize encoder pool
 	codec.encoderPool.New = func() interface{} {
 		if codec.useSonic {
-			return sonic.ConfigDefault.NewEncoder(nil) // Will be reset with actual writer
+
+			// Sonic requires specific writer, fall back to JSON for pool usage
+			return json.NewEncoder(nil)
+
 		}
 		return json.NewEncoder(nil)
 	}
@@ -333,7 +336,10 @@ func newOptimizedJSONCodec(config *ConnectionPoolConfig) *OptimizedJSONCodec {
 	// Initialize decoder pool
 	codec.decoderPool.New = func() interface{} {
 		if codec.useSonic {
-			return sonic.ConfigDefault.NewDecoder(nil) // Will be reset with actual reader
+
+			// Sonic requires specific reader, fall back to JSON for pool usage
+			return json.NewDecoder(nil)
+
 		}
 		return json.NewDecoder(nil)
 	}

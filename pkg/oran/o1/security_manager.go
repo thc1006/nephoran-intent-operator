@@ -582,6 +582,26 @@ type PolicyEngine struct {
 	mutex      sync.RWMutex
 }
 
+<<<<<<< HEAD
+=======
+// SecurityManagerPolicy represents a security policy managed by security manager
+type SecurityManagerPolicy struct {
+	ID          string
+	Name        string
+	Type        string // ACCESS_CONTROL, ENCRYPTION, AUDIT
+	Rules       []*PolicyRule
+	Enforcement string // STRICT, PERMISSIVE, DISABLED
+	AppliesTo   []string
+	Exceptions  []string
+	ValidFrom   time.Time
+	ValidUntil  time.Time
+	CreatedBy   string
+	ApprovedBy  string
+	Version     string
+	Metadata    map[string]interface{}
+}
+
+>>>>>>> integrate/mvp
 // PolicyEvaluator interface for policy evaluation
 type PolicyEvaluator interface {
 	EvaluatePolicy(ctx context.Context, policy *SecurityPolicy, request *AccessRequest) *PolicyDecision
@@ -2383,6 +2403,21 @@ type IncidentEscalation struct {
 	notifications *EscalationNotifications
 }
 
+<<<<<<< HEAD
+=======
+// SecurityEscalationRule defines security escalation conditions
+type SecurityEscalationRule struct {
+	ID            string
+	Name          string
+	Conditions    []string
+	Severity      string
+	TimeThreshold time.Duration
+	Target        string
+	Action        string
+	Enabled       bool
+}
+
+>>>>>>> integrate/mvp
 // EscalationMatrix defines escalation paths
 type EscalationMatrix struct {
 	Levels map[int]*EscalationLevel

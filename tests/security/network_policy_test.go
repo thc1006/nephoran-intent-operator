@@ -625,8 +625,10 @@ func ValidateNetworkPolicy(policy *networkingv1.NetworkPolicy) []string {
 // Test network connectivity with policies
 func TestNetworkConnectivity(t *testing.T) {
 	_ = context.Background()
-	// This would require setting up a test environment with k8sClient and namespace
-	// For now, this is a placeholder test
+	// This would test actual network connectivity between pods
+	// given the current network policies
+	
+	// For now, this is a placeholder test requiring live cluster setup
 	t.Skip("Network connectivity test requires live cluster setup")
 
 	// When implemented, this test would:
@@ -634,6 +636,7 @@ func TestNetworkConnectivity(t *testing.T) {
 	// 2. Apply network policies
 	// 3. Attempt connections between pods
 	// 4. Verify that allowed connections work and denied connections fail
+	// 5. Test security boundaries between O-RAN interfaces
 }
 
 // Benchmark network policy operations

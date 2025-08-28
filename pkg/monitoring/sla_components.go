@@ -3,8 +3,13 @@ package monitoring
 
 import (
 	"context"
+	"fmt"
 	"math"
+<<<<<<< HEAD
 	"net/http"
+=======
+	"sort"
+>>>>>>> integrate/mvp
 	"sync"
 	"time"
 
@@ -478,8 +483,101 @@ func (p2 *P2QuantileEstimator) exactQuantile() float64 {
 
 // CircularBuffer is defined in types.go
 
+<<<<<<< HEAD
 // SLATimeSeries represents a time series for historical SLA data tracking
 type SLATimeSeries struct {
+=======
+// NewCircularBuffer creates a new circular buffer
+func NewCircularBuffer(capacity int) *CircularBuffer {
+	return &CircularBuffer{
+		data:     make([]float64, capacity),
+		times:    make([]time.Time, capacity),
+		capacity: capacity,
+	}
+}
+
+// Add adds a new value to the circular buffer
+func (cb *CircularBuffer) Add(timestamp time.Time, value float64) {
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
+
+	cb.data[cb.head] = value
+	cb.times[cb.head] = timestamp
+
+	cb.head = (cb.head + 1) % cb.capacity
+
+	if cb.size < cb.capacity {
+		cb.size++
+	} else {
+		cb.tail = (cb.tail + 1) % cb.capacity
+	}
+}
+
+// GetRecent returns the most recent n values
+func (cb *CircularBuffer) GetRecent(n int) ([]time.Time, []float64) {
+	cb.mu.RLock()
+	defer cb.mu.RUnlock()
+
+	if n > cb.size {
+		n = cb.size
+	}
+
+	times := make([]time.Time, n)
+	values := make([]float64, n)
+
+	for i := 0; i < n; i++ {
+		idx := (cb.head - 1 - i + cb.capacity) % cb.capacity
+		times[n-1-i] = cb.times[idx]
+		values[n-1-i] = cb.data[idx]
+	}
+
+	return times, values
+}
+
+// Range iterates over all values in the circular buffer
+func (cb *CircularBuffer) Range(fn func(float64) bool) {
+	cb.mu.RLock()
+	defer cb.mu.RUnlock()
+
+	if cb.size == 0 {
+		return
+	}
+
+	// Iterate from tail to head (oldest to newest)
+	for i := 0; i < cb.size; i++ {
+		idx := (cb.tail + i) % cb.capacity
+		if !fn(cb.data[idx]) {
+			break
+		}
+	}
+}
+
+// RangeWithTime iterates over all timestamp-value pairs in the circular buffer
+func (cb *CircularBuffer) RangeWithTime(fn func(time.Time, float64) bool) {
+	cb.mu.RLock()
+	defer cb.mu.RUnlock()
+
+	if cb.size == 0 {
+		return
+	}
+
+	// Iterate from tail to head (oldest to newest)
+	for i := 0; i < cb.size; i++ {
+		idx := (cb.tail + i) % cb.capacity
+		if !fn(cb.times[idx], cb.data[idx]) {
+			break
+		}
+	}
+}
+
+// Common errors
+var (
+	ErrBufferFull = fmt.Errorf("metrics buffer is full")
+)
+
+// TimeSeries represents a time series for historical data tracking
+type TimeSeries struct {
+>>>>>>> integrate/mvp
 	points    []TimePoint
 	maxPoints int
 	mu        sync.RWMutex
@@ -517,8 +615,40 @@ func (ts *SLATimeSeries) Add(timestamp time.Time, value float64) {
 	}
 }
 
+<<<<<<< HEAD
 // GetTrend calculates trend over specified duration
 func (ts *SLATimeSeries) GetTrend(duration time.Duration) float64 {
+=======
+// GetRecent returns the most recent n time points
+func (ts *TimeSeries) GetRecent(n int) ([]time.Time, []float64) {
+	ts.mu.RLock()
+	defer ts.mu.RUnlock()
+
+	if n > len(ts.points) {
+		n = len(ts.points)
+	}
+
+	if n == 0 {
+		return []time.Time{}, []float64{}
+	}
+
+	// Get the last n points
+	startIdx := len(ts.points) - n
+	times := make([]time.Time, n)
+	values := make([]float64, n)
+
+	for i := 0; i < n; i++ {
+		point := ts.points[startIdx+i]
+		times[i] = point.Timestamp
+		values[i] = point.Value
+	}
+
+	return times, values
+}
+
+// GetTrend calculates the trend over the specified duration
+func (ts *TimeSeries) GetTrend(duration time.Duration) float64 {
+>>>>>>> integrate/mvp
 	ts.mu.RLock()
 	defer ts.mu.RUnlock()
 
@@ -824,4 +954,213 @@ func (sm *SyntheticMonitor) Start(ctx context.Context) error {
 
 func (are *AutomatedRemediationEngine) Start(ctx context.Context) error {
 	return nil
+}
+
+// ThroughputCalculator calculates throughput metrics
+type ThroughputCalculator struct {
+	windowSize time.Duration
+	requests   *CircularBuffer
+	mu         sync.RWMutex
+}
+
+// NewThroughputCalculator creates a new throughput calculator
+func NewThroughputCalculator(windowSize time.Duration) *ThroughputCalculator {
+	return &ThroughputCalculator{
+		windowSize: windowSize,
+		requests:   NewCircularBuffer(1000),
+	}
+}
+
+// RecordRequest records a new request for throughput calculation
+func (tc *ThroughputCalculator) RecordRequest(timestamp time.Time) {
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
+	tc.requests.Add(timestamp, 1.0) // Store timestamp with value 1.0 to represent a request
+}
+
+// Calculate calculates current throughput (requests per second)
+func (tc *ThroughputCalculator) Calculate() float64 {
+	tc.mu.RLock()
+	defer tc.mu.RUnlock()
+
+	now := time.Now()
+	cutoff := now.Add(-tc.windowSize)
+	
+	count := 0
+	tc.requests.RangeWithTime(func(timestamp time.Time, value float64) bool {
+		if timestamp.After(cutoff) {
+			count++
+		}
+		return true
+	})
+
+	return float64(count) / tc.windowSize.Seconds()
+}
+
+// ErrorRateCalculator calculates error rate metrics
+type ErrorRateCalculator struct {
+	windowSize    time.Duration
+	totalRequests *CircularBuffer
+	errorRequests *CircularBuffer
+	mu            sync.RWMutex
+}
+
+// NewErrorRateCalculator creates a new error rate calculator
+func NewErrorRateCalculator(windowSize time.Duration) *ErrorRateCalculator {
+	return &ErrorRateCalculator{
+		windowSize:    windowSize,
+		totalRequests: NewCircularBuffer(1000),
+		errorRequests: NewCircularBuffer(1000),
+	}
+}
+
+// RecordRequest records a request (total and error status)
+func (erc *ErrorRateCalculator) RecordRequest(timestamp time.Time, isError bool) {
+	erc.mu.Lock()
+	defer erc.mu.Unlock()
+	
+	erc.totalRequests.Add(timestamp, 1.0) // Store timestamp with value 1.0 to represent a request
+	if isError {
+		erc.errorRequests.Add(timestamp, 1.0) // Store timestamp with value 1.0 to represent an error
+	}
+}
+
+// Calculate calculates current error rate (0.0 to 1.0)
+func (erc *ErrorRateCalculator) Calculate() float64 {
+	erc.mu.RLock()
+	defer erc.mu.RUnlock()
+
+	now := time.Now()
+	cutoff := now.Add(-erc.windowSize)
+	
+	totalCount := 0
+	errorCount := 0
+	
+	erc.totalRequests.RangeWithTime(func(timestamp time.Time, value float64) bool {
+		if timestamp.After(cutoff) {
+			totalCount++
+		}
+		return true
+	})
+	
+	erc.errorRequests.RangeWithTime(func(timestamp time.Time, value float64) bool {
+		if timestamp.After(cutoff) {
+			errorCount++
+		}
+		return true
+	})
+
+	if totalCount == 0 {
+		return 0.0
+	}
+
+	return float64(errorCount) / float64(totalCount)
+}
+
+// PercentileCalculator calculates percentile metrics for latency
+type PercentileCalculator struct {
+	windowSize time.Duration
+	values     *CircularBuffer
+	mu         sync.RWMutex
+}
+
+// NewPercentileCalculator creates a new percentile calculator
+func NewPercentileCalculator(windowSize time.Duration) *PercentileCalculator {
+	return &PercentileCalculator{
+		windowSize: windowSize,
+		values:     NewCircularBuffer(1000),
+	}
+}
+
+// RecordValue records a latency value
+func (pc *PercentileCalculator) RecordValue(value float64) {
+	pc.mu.Lock()
+	defer pc.mu.Unlock()
+	pc.values.Add(time.Now(), value)
+}
+
+// Calculate calculates the specified percentile
+func (pc *PercentileCalculator) Calculate(percentile float64) float64 {
+	pc.mu.RLock()
+	defer pc.mu.RUnlock()
+
+	var values []float64
+	pc.values.Range(func(value float64) bool {
+		values = append(values, value)
+		return true
+	})
+
+	if len(values) == 0 {
+		return 0.0
+	}
+
+	// Sort values
+	sort.Float64s(values)
+
+	// Calculate percentile index
+	index := percentile / 100.0 * float64(len(values)-1)
+	
+	if index == float64(int(index)) {
+		return values[int(index)]
+	}
+
+	// Linear interpolation
+	lower := int(index)
+	upper := lower + 1
+	if upper >= len(values) {
+		return values[len(values)-1]
+	}
+
+	weight := index - float64(lower)
+	return values[lower]*(1-weight) + values[upper]*weight
+}
+
+// SLAComplianceTracker tracks SLA compliance over time
+type SLAComplianceTracker struct {
+	violations *CircularBuffer
+	windowSize time.Duration
+	mu         sync.RWMutex
+}
+
+// NewSLAComplianceTracker creates a new SLA compliance tracker
+func NewSLAComplianceTracker(windowSize time.Duration) *SLAComplianceTracker {
+	return &SLAComplianceTracker{
+		violations: NewCircularBuffer(1000),
+		windowSize: windowSize,
+	}
+}
+
+// RecordViolation records an SLA violation
+func (sct *SLAComplianceTracker) RecordViolation(timestamp time.Time, severity float64) {
+	sct.mu.Lock()
+	defer sct.mu.Unlock()
+	sct.violations.Add(timestamp, severity)
+}
+
+// GetComplianceRate returns the current compliance rate (0.0 to 1.0)
+func (sct *SLAComplianceTracker) GetComplianceRate() float64 {
+	sct.mu.RLock()
+	defer sct.mu.RUnlock()
+
+	now := time.Now()
+	cutoff := now.Add(-sct.windowSize)
+	
+	violationCount := 0
+	totalMeasurements := 0
+	
+	sct.violations.RangeWithTime(func(timestamp time.Time, value float64) bool {
+		if timestamp.After(cutoff) {
+			totalMeasurements++
+			if value > 0 {
+				violationCount++
+			}
+		}
+		return true
+	})
+
+	if totalMeasurements == 0 {
+		return 1.0 // 100% compliance when no measurements
+	}
+
+	return 1.0 - (float64(violationCount) / float64(totalMeasurements))
 }

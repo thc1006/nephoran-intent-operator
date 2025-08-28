@@ -11,9 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
-	testutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth/testutil"
 )
 
 // BenchmarkSuite provides comprehensive performance benchmarking
@@ -23,7 +22,7 @@ type BenchmarkSuite struct {
 	rbacManager    *RBACManager
 	testUsers      []*providers.UserInfo
 	testTokens     []string
-	testSessions   []*Session
+	testSessions   []*UserSession
 	testRoles      []*Role
 	testPerms      []*Permission
 }
@@ -101,7 +100,7 @@ func (suite *BenchmarkSuite) setupTestData() {
 }
 
 // JWT Manager Benchmarks
-func BenchmarkJWTManager_GenerateToken(b *testing.B) {
+func BenchmarkJWTManager_GenerateTokenPerf(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	user := suite.testUsers[0]
 
@@ -141,7 +140,7 @@ func BenchmarkJWTManager_GenerateTokenWithClaims(b *testing.B) {
 	}
 }
 
-func BenchmarkJWTManager_ValidateToken(b *testing.B) {
+func BenchmarkJWTManager_ValidateTokenPerf(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	token := suite.testTokens[0]
 
@@ -156,7 +155,7 @@ func BenchmarkJWTManager_ValidateToken(b *testing.B) {
 	}
 }
 
-func BenchmarkJWTManager_GenerateTokenPair(b *testing.B) {
+func BenchmarkJWTManager_GenerateTokenPairPerf(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	user := suite.testUsers[0]
 
@@ -171,7 +170,7 @@ func BenchmarkJWTManager_GenerateTokenPair(b *testing.B) {
 	}
 }
 
-func BenchmarkJWTManager_RefreshToken(b *testing.B) {
+func BenchmarkJWTManager_RefreshTokenPerf(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	user := suite.testUsers[0]
 
@@ -219,7 +218,7 @@ func BenchmarkJWTManager_BlacklistToken(b *testing.B) {
 }
 
 // Session Manager Benchmarks
-func BenchmarkSessionManager_CreateSession(b *testing.B) {
+func BenchmarkSessionManager_CreateSessionPerf(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	user := suite.testUsers[0]
 	ctx := context.Background()
@@ -241,7 +240,7 @@ func BenchmarkSessionManager_CreateSession(b *testing.B) {
 	}
 }
 
-func BenchmarkSessionManager_ValidateSession(b *testing.B) {
+func BenchmarkSessionManager_ValidateSessionPerf(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	session := suite.testSessions[0]
 	ctx := context.Background()
@@ -257,7 +256,7 @@ func BenchmarkSessionManager_ValidateSession(b *testing.B) {
 	}
 }
 
-func BenchmarkSessionManager_RefreshSession(b *testing.B) {
+func BenchmarkSessionManager_RefreshSessionPerf(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	session := suite.testSessions[0]
 	ctx := context.Background()
@@ -290,7 +289,7 @@ func BenchmarkSessionManager_GetSession(b *testing.B) {
 }
 
 // RBAC Manager Benchmarks
-func BenchmarkRBACManager_CheckPermission(b *testing.B) {
+func BenchmarkRBACManager_CheckPermissionPerf(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	userID := suite.testUsers[0].Subject
 	ctx := context.Background()
@@ -306,7 +305,7 @@ func BenchmarkRBACManager_CheckPermission(b *testing.B) {
 	}
 }
 
-func BenchmarkRBACManager_GetUserRoles(b *testing.B) {
+func BenchmarkRBACManager_GetUserRolesPerf(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	userID := suite.testUsers[0].Subject
 	ctx := context.Background()

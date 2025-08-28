@@ -2174,61 +2174,115 @@ func (cm *contentManager) metricsCollectionLoop() {
 	}
 }
 
-// Missing type definitions to resolve compilation errors
+// Additional missing types for compilation
 
+// ContentMetrics holds metrics about package content
 type ContentMetrics struct {
-	TotalFiles      int64
-	TotalSize       int64
-	ValidationScore float64
-	LastUpdated     time.Time
+	TotalFiles      int64                  `json:"total_files"`
+	TotalSize       int64                  `json:"total_size"`
+	LastModified    int64                  `json:"last_modified"`
+	ResourceTypes   int                    `json:"resource_types"`
+	Complexity      float64                `json:"complexity"`
+	ValidationScore float64                `json:"validation_score"`
+	LastUpdated     time.Time              `json:"last_updated"`
 }
 
+// ContentManagerHealth represents the health status of the content manager
 type ContentManagerHealth struct {
-	Status        string
-	ActiveThreads int
-	MemoryUsage   int64
-	CacheHitRatio float64
+	Status             string            `json:"status"`
+	ActiveConnections  int               `json:"active_connections"`
+	PendingOperations  int               `json:"pending_operations"`
+	ErrorRate          float64           `json:"error_rate"`
+	LastHealthCheck    int64             `json:"last_health_check"`
+	ComponentHealth    map[string]string `json:"component_health"`
+	ActiveThreads      int               `json:"active_threads"`
+	MemoryUsage        int64             `json:"memory_usage"`
+	CacheHitRatio      float64           `json:"cache_hit_ratio"`
 }
 
+// ContentManagerMetrics holds Prometheus metrics
+type ContentManagerMetrics struct {
+	contentOperations     *prometheus.CounterVec
+	contentSize           *prometheus.GaugeVec
+	operationDuration     *prometheus.HistogramVec
+	contentProcessingTime *prometheus.HistogramVec
+	validationOperations  *prometheus.CounterVec
+	validationDuration    prometheus.Histogram
+}
+
+// ContentStore interface for content storage operations
 type ContentStore interface {
-	Store(ctx context.Context, ref *PackageReference, content []byte) error
-	Retrieve(ctx context.Context, ref *PackageReference) ([]byte, error)
-	Delete(ctx context.Context, ref *PackageReference) error
-	List(ctx context.Context, pattern string) ([]string, error)
+	Store(ctx context.Context, key string, content []byte) error
+	Retrieve(ctx context.Context, key string) ([]byte, error)
+	Delete(ctx context.Context, key string) error
+	List(ctx context.Context, prefix string) ([]string, error)
+	Close() error
 }
 
+// TemplateEngine handles template processing
 type TemplateEngine struct {
+	templates     map[string]*template.Template
+	funcs         template.FuncMap
 	templateFuncs map[string]interface{}
 }
 
+// ContentValidator validates package content
 type ContentValidator struct {
-	config *ValidationConfig
+	schemas map[string]interface{}
+	rules   []ContentValidationRule
+	config  *ValidationConfig
 }
 
+// ContentValidationRule defines content validation rules
+type ContentValidationRule struct {
+	Name        string
+	Pattern     string
+	Required    bool
+	ErrorMsg    string
+}
+
+// ConflictResolver handles content merge conflicts
 type ConflictResolver struct {
-	config *ConflictConfig
+	strategies map[string]ConflictStrategy
+	config     *ConflictConfig
 }
 
+// ConflictStrategy defines how to resolve conflicts
+type ConflictStrategy interface {
+	Resolve(base, local, remote []byte) ([]byte, error)
+}
+
+// SecurityIssueType represents types of security issues
 type SecurityIssueType string
+
+const (
+	SecurityIssueTypeVulnerability    SecurityIssueType = "vulnerability"
+	SecurityIssueTypeMisconfiguration SecurityIssueType = "misconfiguration"
+	SecurityIssueTypeSecretExposure   SecurityIssueType = "secret_exposure"
+	SecurityIssueTypeCredentials      SecurityIssueType = "credentials"
+	SecurityIssueTypeSecrets          SecurityIssueType = "secrets"
+	SecurityIssueTypePermissions      SecurityIssueType = "permissions"
+)
+
+// SecuritySeverity represents security issue severity levels
 type SecuritySeverity string
+
+const (
+	SecuritySeverityLow      SecuritySeverity = "low"
+	SecuritySeverityMedium   SecuritySeverity = "medium"
+	SecuritySeverityHigh     SecuritySeverity = "high"
+	SecuritySeverityCritical SecuritySeverity = "critical"
+)
+
+// QualityIssueType represents types of quality issues
 type QualityIssueType string
 
 const (
-	SecurityIssueTypeCredentials SecurityIssueType = "credentials"
-	SecurityIssueTypeSecrets     SecurityIssueType = "secrets"
-	SecurityIssueTypePermissions SecurityIssueType = "permissions"
-)
-
-const (
-	SecuritySeverityCritical SecuritySeverity = "critical"
-	SecuritySeverityHigh     SecuritySeverity = "high"
-	SecuritySeverityMedium   SecuritySeverity = "medium"
-)
-
-const (
-	QualityIssueTypeFormatting QualityIssueType = "formatting"
-	QualityIssueTypeNaming     QualityIssueType = "naming"
-	QualityIssueTypeComplexity QualityIssueType = "complexity"
+	QualityIssueTypeComplexity      QualityIssueType = "complexity"
+	QualityIssueTypeDuplication     QualityIssueType = "duplication"
+	QualityIssueTypeMaintainability QualityIssueType = "maintainability"
+	QualityIssueTypeFormatting      QualityIssueType = "formatting"
+	QualityIssueTypeNaming          QualityIssueType = "naming"
 )
 
 const (
@@ -2238,19 +2292,24 @@ const (
 // Constructor functions for missing components
 func NewTemplateEngine(config *TemplateConfig) *TemplateEngine {
 	return &TemplateEngine{
+		templates:     make(map[string]*template.Template),
+		funcs:         make(template.FuncMap),
 		templateFuncs: make(map[string]interface{}),
 	}
 }
 
 func NewContentValidator(config *ValidationConfig) *ContentValidator {
 	return &ContentValidator{
-		config: config,
+		schemas: make(map[string]interface{}),
+		rules:   []ContentValidationRule{},
+		config:  config,
 	}
 }
 
 func NewConflictResolver(config *ConflictConfig) *ConflictResolver {
 	return &ConflictResolver{
-		config: config,
+		strategies: make(map[string]ConflictStrategy),
+		config:     config,
 	}
 }
 
@@ -2300,8 +2359,6 @@ type BinaryContentStore interface {
 	Close() error
 }
 
-// ContentProcessor interface is defined in package_revision.go to avoid redeclaration
-
 type ContentCache interface {
 	Get(key string) ([]byte, bool)
 	Set(key string, value []byte, ttl time.Duration) error
@@ -2311,14 +2368,6 @@ type ContentCache interface {
 
 type MergeEngine struct {
 	config *MergeConfig
-}
-
-type ContentManagerMetrics struct {
-	contentOperations     *prometheus.CounterVec
-	contentProcessingTime *prometheus.HistogramVec
-	contentSize           *prometheus.GaugeVec
-	validationOperations  *prometheus.CounterVec
-	validationDuration    prometheus.Histogram
 }
 
 func NewMergeEngine(config *MergeConfig) *MergeEngine {

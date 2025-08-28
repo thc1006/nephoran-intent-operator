@@ -8,28 +8,28 @@ import (
 type CommonSecurityConfig struct {
 	// TLS Configuration
 	TLS *TLSConfig `json:"tls,omitempty"`
-	
-	// Authentication Configuration  
+
+	// Authentication Configuration
 	Auth *AuthConfig `json:"auth,omitempty"`
-	
+
 	// RBAC Configuration
 	RBAC *RBACConfig `json:"rbac,omitempty"`
-	
+
 	// Rate Limiting Configuration
 	RateLimit *RateLimitConfig `json:"rate_limit,omitempty"`
-	
+
 	// CORS Configuration
 	CORS *CORSConfig `json:"cors,omitempty"`
-	
+
 	// Input Validation Configuration
 	InputValidation *InputValidationConfig `json:"input_validation,omitempty"`
-	
+
 	// Security Headers Configuration
 	SecurityHeaders *SecurityHeadersConfig `json:"security_headers,omitempty"`
-	
+
 	// Audit Configuration
 	Audit *AuditConfig `json:"audit,omitempty"`
-	
+
 	// Encryption Configuration
 	Encryption *EncryptionConfig `json:"encryption,omitempty"`
 }
@@ -59,16 +59,16 @@ type CertificatePaths struct {
 
 // AuthConfig holds authentication configuration
 type AuthConfig struct {
-	Enabled        bool                     `json:"enabled"`
-	Providers      []string                 `json:"providers,omitempty"`
+	Enabled        bool                      `json:"enabled"`
+	Providers      []string                  `json:"providers,omitempty"`
 	OAuthProviders map[string]*OAuthProvider `json:"oauth_providers,omitempty"`
-	JWT            *JWTConfig               `json:"jwt,omitempty"`
-	LDAP           *LDAPConfig              `json:"ldap,omitempty"`
-	DefaultScopes  []string                 `json:"default_scopes,omitempty"`
-	TokenTTL       string                   `json:"token_ttl,omitempty"`
-	RefreshEnabled bool                     `json:"refresh_enabled"`
-	CacheEnabled   bool                     `json:"cache_enabled"`
-	CacheTTL       string                   `json:"cache_ttl,omitempty"`
+	JWT            *JWTConfig                `json:"jwt,omitempty"`
+	LDAP           *LDAPConfig               `json:"ldap,omitempty"`
+	DefaultScopes  []string                  `json:"default_scopes,omitempty"`
+	TokenTTL       string                    `json:"token_ttl,omitempty"`
+	RefreshEnabled bool                      `json:"refresh_enabled"`
+	CacheEnabled   bool                      `json:"cache_enabled"`
+	CacheTTL       string                    `json:"cache_ttl,omitempty"`
 }
 
 // OAuthProvider represents an OAuth provider configuration
@@ -119,7 +119,7 @@ type RateLimitConfig struct {
 	RequestsPerMinute int           `json:"requests_per_minute,omitempty"` // Alternative naming
 	BurstSize         int           `json:"burst_size,omitempty"`
 	BurstLimit        int           `json:"burst_limit,omitempty"` // Alternative naming
-	KeyFunc           string        `json:"key_func,omitempty"` // ip, user, token
+	KeyFunc           string        `json:"key_func,omitempty"`    // ip, user, token
 	RateLimitWindow   time.Duration `json:"rate_limit_window,omitempty"`
 	RateLimitByIP     bool          `json:"rate_limit_by_ip"`
 	RateLimitByAPIKey bool          `json:"rate_limit_by_api_key"`
@@ -139,17 +139,17 @@ type CORSConfig struct {
 
 // InputValidationConfig defines input validation configuration
 type InputValidationConfig struct {
-	Enabled                    bool     `json:"enabled"`
-	MaxRequestSize            int      `json:"max_request_size,omitempty"`
-	MaxInputLength            int      `json:"max_input_length,omitempty"`
-	MaxOutputLength           int      `json:"max_output_length,omitempty"`
-	SanitizeHTML              bool     `json:"sanitize_html"`
-	SanitizeInput             bool     `json:"sanitize_input"`
-	ValidateJSONSchema        bool     `json:"validate_json_schema"`
-	EnableSchemaValidation    bool     `json:"enable_schema_validation"`
-	StrictValidation          bool     `json:"strict_validation"`
-	ForbiddenPatterns         []string `json:"forbidden_patterns,omitempty"`
-	RequiredHeaders           []string `json:"required_headers,omitempty"`
+	Enabled                bool     `json:"enabled"`
+	MaxRequestSize         int      `json:"max_request_size,omitempty"`
+	MaxInputLength         int      `json:"max_input_length,omitempty"`
+	MaxOutputLength        int      `json:"max_output_length,omitempty"`
+	SanitizeHTML           bool     `json:"sanitize_html"`
+	SanitizeInput          bool     `json:"sanitize_input"`
+	ValidateJSONSchema     bool     `json:"validate_json_schema"`
+	EnableSchemaValidation bool     `json:"enable_schema_validation"`
+	StrictValidation       bool     `json:"strict_validation"`
+	ForbiddenPatterns      []string `json:"forbidden_patterns,omitempty"`
+	RequiredHeaders        []string `json:"required_headers,omitempty"`
 }
 
 // SecurityHeadersConfig defines security headers configuration
@@ -191,11 +191,11 @@ type EncryptionConfig struct {
 func ToCommonConfig(config interface{}) *CommonSecurityConfig {
 	// This function can be used to convert package-specific configs
 	// to the common format. Implementation would depend on the source type.
-	
+
 	if common, ok := config.(*CommonSecurityConfig); ok {
 		return common
 	}
-	
+
 	// Default empty config if conversion fails
 	return &CommonSecurityConfig{}
 }
@@ -230,12 +230,12 @@ func DefaultSecurityConfig() *CommonSecurityConfig {
 			AllowCredentials: false,
 		},
 		InputValidation: &InputValidationConfig{
-			Enabled:              true,
-			MaxInputLength:       10000,
-			MaxOutputLength:      50000,
-			StrictValidation:     true,
+			Enabled:                true,
+			MaxInputLength:         10000,
+			MaxOutputLength:        50000,
+			StrictValidation:       true,
 			EnableSchemaValidation: true,
-			SanitizeInput:        true,
+			SanitizeInput:          true,
 		},
 		SecurityHeaders: &SecurityHeadersConfig{
 			Enabled:                 true,

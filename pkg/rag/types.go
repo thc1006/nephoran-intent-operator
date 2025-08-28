@@ -39,17 +39,9 @@ type Service interface {
 	Query(ctx context.Context, query string) (interface{}, error)
 }
 
-// SearchResult represents a search result from the RAG system
-// Deprecated: Use Doc instead
-type SearchResult struct {
-	ID         string
-	Content    string
-	Confidence float64
-	Metadata   map[string]interface{}
-	// Additional fields for compatibility
-	Score    float32                `json:"score"`
-	Document *types.TelecomDocument `json:"document"`
-}
+
+// Note: SearchResult is defined in enhanced_rag_integration.go
+
 
 // RAGClientConfig holds configuration for RAG clients
 type RAGClientConfig struct {
@@ -69,13 +61,7 @@ type RAGClientConfig struct {
 	Temperature float32
 }
 
-// TokenUsage tracks token usage for cost tracking
-type TokenUsage struct {
-	PromptTokens     int
-	CompletionTokens int
-	TotalTokens      int
-	EstimatedCost    float64
-}
+// Note: TokenUsage is defined in embedding_service.go
 
 // WeaviateClient stub for conditional compilation
 type WeaviateClient struct {

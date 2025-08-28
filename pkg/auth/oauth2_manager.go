@@ -1,8 +1,12 @@
 package auth
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
@@ -11,6 +15,7 @@ import (
 // OAuth2Manager handles OAuth2 authentication setup and middleware
 type OAuth2Manager struct {
 	authMiddleware *AuthMiddleware
+	authHandlers   *AuthHandlers
 	config         *OAuth2ManagerConfig
 	logger         *slog.Logger
 }
@@ -47,16 +52,85 @@ func NewOAuth2Manager(config *OAuth2ManagerConfig, logger *slog.Logger) (*OAuth2
 		return nil, err
 	}
 
-	// TODO: Implement full OAuth2 authentication setup
-	// For now, return a simple OAuth2Manager without full auth middleware
-	// This is a minimal fix to resolve compilation errors
-	logger.Warn("OAuth2Manager created with minimal implementation - full auth middleware not initialized")
+	// Initialize JWT manager first (required for session manager)
+	jwtConfig := &JWTConfig{
+		Issuer:               "nephoran-intent-operator",
+		SigningKey:           config.JWTSecretKey,
+		KeyRotationPeriod:    24 * time.Hour,
+		DefaultTTL:           24 * time.Hour,
+		RefreshTTL:           168 * time.Hour, // 7 days
+		RequireSecureCookies: true,
+		CookieDomain:         "",
+		CookiePath:           "/",
+	}
+
+	// Create simple in-memory token store and blacklist
+	tokenStore := NewMemoryTokenStore()
+	tokenBlacklist := NewMemoryTokenBlacklist()
+
+	jwtManager, err := NewJWTManager(jwtConfig, tokenStore, tokenBlacklist, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create JWT manager: %w", err)
+	}
+
+	// Initialize RBAC manager (required for session manager)
+	rbacManager := NewRBACManager(&RBACManagerConfig{
+		CacheTTL:           24 * time.Hour,
+		EnableHierarchy:    true,
+		DefaultDenyAll:     false,
+		PolicyEvaluation:   "deny-overrides",
+		MaxPolicyDepth:     10,
+		EnableAuditLogging: true,
+	}, logger)
+
+	// Initialize session manager
+	sessionManager := NewSessionManager(&SessionConfig{
+		SessionTimeout:   24 * time.Hour,
+		RefreshThreshold: 1 * time.Hour,
+		MaxSessions:      10000,
+		SecureCookies:    true,
+		SameSiteCookies:  "strict",
+		CookieDomain:     "",
+		CookiePath:       "/",
+		EnableSSO:        false,
+		EnableCSRF:       true,
+		StateTimeout:     10 * time.Minute,
+		RequireHTTPS:     true,
+		CleanupInterval:  1 * time.Hour,
+	}, jwtManager, rbacManager, logger)
+
+	middlewareConfig := &MiddlewareConfig{
+		SkipAuth:              []string{"/health", "/ready", "/metrics"},
+		EnableCORS:            true,
+		AllowedOrigins:        []string{"*"},
+		AllowedMethods:        []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:        []string{"Content-Type", "Authorization"},
+		AllowCredentials:      true,
+		MaxAge:                3600,
+		EnableSecurityHeaders: true,
+	}
+
+	authMiddleware := NewAuthMiddleware(sessionManager, jwtManager, rbacManager, middlewareConfig)
+
+	// Initialize auth handlers
+	handlerConfig := &HandlersConfig{
+		BaseURL:         "http://localhost:8080",
+		DefaultRedirect: "/",
+		LoginPath:       "/auth/login",
+		CallbackPath:    "/auth/callback",
+		LogoutPath:      "/auth/logout",
+		UserInfoPath:    "/auth/userinfo",
+		EnableAPITokens: true,
+		TokenPath:       "/auth/token",
+	}
+	authHandlers := NewAuthHandlers(sessionManager, jwtManager, rbacManager, handlerConfig)
 
 	logger.Info("OAuth2 authentication enabled",
 		slog.Int("providers", len(oauth2Config.Providers)))
 
 	return &OAuth2Manager{
-		authMiddleware: nil, // TODO: Initialize properly when required
+		authMiddleware: authMiddleware,
+		authHandlers:   authHandlers,
 		config:         config,
 		logger:         logger,
 	}, nil
@@ -64,13 +138,16 @@ func NewOAuth2Manager(config *OAuth2ManagerConfig, logger *slog.Logger) (*OAuth2
 
 // SetupRoutes configures OAuth2 routes on the given router
 func (om *OAuth2Manager) SetupRoutes(router *mux.Router) {
-	if !om.config.Enabled || om.authMiddleware == nil {
+	if !om.config.Enabled || om.authHandlers == nil {
 		return
 	}
 
 	// OAuth2 authentication routes
-	// TODO: Implement OAuth2 handlers when authMiddleware is properly initialized
-	om.logger.Warn("OAuth2 routes not configured - authMiddleware not initialized")
+	router.HandleFunc("/auth/login/{provider}", om.authHandlers.InitiateLoginHandler).Methods("GET")
+	router.HandleFunc("/auth/callback/{provider}", om.authHandlers.CallbackHandler).Methods("GET")
+	router.HandleFunc("/auth/refresh", om.authHandlers.RefreshTokenHandler).Methods("POST")
+	router.HandleFunc("/auth/logout", om.authHandlers.LogoutHandler).Methods("POST")
+	router.HandleFunc("/auth/userinfo", om.authHandlers.GetUserInfoHandler).Methods("GET")
 
 	om.logger.Info("OAuth2 routes configured")
 }
@@ -85,8 +162,7 @@ func (om *OAuth2Manager) ConfigureProtectedRoutes(router *mux.Router, handlers *
 
 	// Apply authentication middleware to protected routes
 	protectedRouter := router.PathPrefix("/").Subrouter()
-	// TODO: Add authentication middleware when available
-	om.logger.Warn("Authentication middleware not configured")
+	protectedRouter.Use(om.authMiddleware.AuthenticateMiddleware)
 
 	// Main processing endpoint - requires operator role
 	protectedRouter.HandleFunc("/process", handlers.ProcessIntent).Methods("POST")
@@ -184,11 +260,10 @@ func (om *OAuth2Manager) GetAuthenticationInfo() *AuthenticationInfo {
 		RequireAuth: om.config.RequireAuth,
 	}
 
-	// Get configured providers from auth middleware
-	if om.authMiddleware != nil {
-		// TODO: Get providers from authMiddleware when available
-		info.Providers = []string{}
-	}
+	// TODO: Get configured providers from auth middleware
+	// if om.authMiddleware != nil {
+	//	info.Providers = om.authMiddleware.GetProviders()
+	// }
 
 	return info
 }
@@ -216,3 +291,110 @@ func (e *AuthError) Error() string {
 var (
 	ErrMissingJWTSecret = &AuthError{Code: "missing_jwt_secret", Message: "JWT secret key is required when OAuth2 is enabled"}
 )
+
+// Simple in-memory implementations for basic functionality
+
+// MemoryTokenStore provides a simple in-memory token store
+type MemoryTokenStore struct {
+	tokens map[string]*TokenInfo
+	mu     sync.RWMutex
+}
+
+func NewMemoryTokenStore() *MemoryTokenStore {
+	return &MemoryTokenStore{
+		tokens: make(map[string]*TokenInfo),
+	}
+}
+
+func (m *MemoryTokenStore) StoreToken(ctx context.Context, tokenID string, token *TokenInfo) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.tokens[tokenID] = token
+	return nil
+}
+
+func (m *MemoryTokenStore) GetToken(ctx context.Context, tokenID string) (*TokenInfo, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	token, exists := m.tokens[tokenID]
+	if !exists {
+		return nil, fmt.Errorf("token not found")
+	}
+	return token, nil
+}
+
+func (m *MemoryTokenStore) UpdateToken(ctx context.Context, tokenID string, token *TokenInfo) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.tokens[tokenID] = token
+	return nil
+}
+
+func (m *MemoryTokenStore) DeleteToken(ctx context.Context, tokenID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.tokens, tokenID)
+	return nil
+}
+
+func (m *MemoryTokenStore) ListUserTokens(ctx context.Context, userID string) ([]*TokenInfo, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var tokens []*TokenInfo
+	for _, token := range m.tokens {
+		if token.UserID == userID {
+			tokens = append(tokens, token)
+		}
+	}
+	return tokens, nil
+}
+
+func (m *MemoryTokenStore) CleanupExpired(ctx context.Context) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	now := time.Now()
+	for tokenID, token := range m.tokens {
+		if token.ExpiresAt.Before(now) {
+			delete(m.tokens, tokenID)
+		}
+	}
+	return nil
+}
+
+// MemoryTokenBlacklist provides a simple in-memory token blacklist
+type MemoryTokenBlacklist struct {
+	blacklisted map[string]time.Time
+	mu          sync.RWMutex
+}
+
+func NewMemoryTokenBlacklist() *MemoryTokenBlacklist {
+	return &MemoryTokenBlacklist{
+		blacklisted: make(map[string]time.Time),
+	}
+}
+
+func (m *MemoryTokenBlacklist) BlacklistToken(ctx context.Context, tokenID string, expiresAt time.Time) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.blacklisted[tokenID] = expiresAt
+	return nil
+}
+
+func (m *MemoryTokenBlacklist) IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	_, exists := m.blacklisted[tokenID]
+	return exists, nil
+}
+
+func (m *MemoryTokenBlacklist) CleanupExpired(ctx context.Context) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	now := time.Now()
+	for tokenID, expiresAt := range m.blacklisted {
+		if expiresAt.Before(now) {
+			delete(m.blacklisted, tokenID)
+		}
+	}
+	return nil
+}

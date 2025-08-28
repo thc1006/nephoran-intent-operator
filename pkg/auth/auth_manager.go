@@ -164,10 +164,10 @@ func (am *AuthManager) RefreshTokens(ctx context.Context, refreshToken string) (
 
 	// Create new access token
 	accessToken, err := am.JWTManager.CreateAccessToken(
-		claims.Subject, 
-		claims.SessionID, 
-		claims.Provider, 
-		claims.Roles, 
+		claims.Subject,
+		claims.SessionID,
+		claims.Provider,
+		claims.Roles,
 		[]string{}, // groups
 		claims.Attributes,
 	)
@@ -177,8 +177,8 @@ func (am *AuthManager) RefreshTokens(ctx context.Context, refreshToken string) (
 
 	// Create new refresh token
 	newRefreshToken, err := am.JWTManager.CreateRefreshToken(
-		claims.Subject, 
-		claims.SessionID, 
+		claims.Subject,
+		claims.SessionID,
 		claims.Provider,
 	)
 	if err != nil {

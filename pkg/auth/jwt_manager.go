@@ -438,8 +438,75 @@ func (jm *JWTManager) GenerateAccessToken(ctx context.Context, userInfo *provide
 	return tokenString, tokenInfo, nil
 }
 
-// Enhanced token validation with comprehensive compliance checks
-// COMPLIANCE: NIST PR.AC-7, GDPR Art. 32, OWASP A02:2021
+// GenerateRefreshToken generates a refresh token
+func (jm *JWTManager) GenerateRefreshToken(ctx context.Context, userInfo *providers.UserInfo, sessionID string, options ...TokenOption) (string, *TokenInfo, error) {
+	jm.mutex.RLock()
+	defer jm.mutex.RUnlock()
+
+	opts := applyTokenOptions(options...)
+
+	now := time.Now()
+	tokenID := generateTokenID()
+
+	claims := &NephoranJWTClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        tokenID,
+			Subject:   userInfo.Subject,
+			Audience:  jwt.ClaimStrings{jm.issuer},
+			ExpiresAt: jwt.NewNumericDate(now.Add(jm.refreshTTL)),
+			NotBefore: jwt.NewNumericDate(now),
+			IssuedAt:  jwt.NewNumericDate(now),
+			Issuer:    jm.issuer,
+		},
+		Email:      userInfo.Email,
+		Name:       userInfo.Name,
+		Provider:   userInfo.Provider,
+		ProviderID: userInfo.ProviderID,
+		SessionID:  sessionID,
+		TokenType:  "refresh",
+		IPAddress:  opts.IPAddress,
+		UserAgent:  opts.UserAgent,
+	}
+
+	// Apply custom TTL if specified
+	if opts.TTL > 0 {
+		claims.ExpiresAt = jwt.NewNumericDate(now.Add(opts.TTL))
+	}
+
+	// Sign token
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	token.Header["kid"] = jm.keyID
+
+	tokenString, err := token.SignedString(jm.signingKey)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to sign refresh token: %w", err)
+	}
+
+	// Store token info
+	tokenInfo := &TokenInfo{
+		TokenID:   tokenID,
+		UserID:    userInfo.Subject,
+		SessionID: sessionID,
+		TokenType: "refresh",
+		IssuedAt:  now,
+		ExpiresAt: claims.ExpiresAt.Time,
+		Provider:  userInfo.Provider,
+		IPAddress: opts.IPAddress,
+		UserAgent: opts.UserAgent,
+		LastUsed:  now,
+		UseCount:  0,
+	}
+
+	if err := jm.tokenStore.StoreToken(ctx, tokenID, tokenInfo); err != nil {
+		jm.logger.Warn("Failed to store refresh token info", "error", err)
+	}
+
+	jm.metrics.TokensIssued++
+
+	return tokenString, tokenInfo, nil
+}
+
+// ValidateToken validates a JWT token and returns claims
 func (jm *JWTManager) ValidateToken(ctx context.Context, tokenString string) (*NephoranJWTClaims, error) {
 	jm.mutex.RLock()
 	defer jm.mutex.RUnlock()
@@ -542,9 +609,113 @@ func (jm *JWTManager) ValidateToken(ctx context.Context, tokenString string) (*N
 	return claims, nil
 }
 
-// =============================================================================
-// Enhanced Private Methods with Compliance
-// =============================================================================
+// RefreshAccessToken generates a new access token using a refresh token
+func (jm *JWTManager) RefreshAccessToken(ctx context.Context, refreshTokenString string, options ...TokenOption) (string, *TokenInfo, error) {
+	// Validate refresh token
+	claims, err := jm.ValidateToken(ctx, refreshTokenString)
+	if err != nil {
+		return "", nil, fmt.Errorf("invalid refresh token: %w", err)
+	}
+
+	if claims.TokenType != "refresh" {
+		return "", nil, fmt.Errorf("token is not a refresh token")
+	}
+
+	// Create user info from refresh token claims
+	userInfo := &providers.UserInfo{
+		Subject:       claims.Subject,
+		Email:         claims.Email,
+		EmailVerified: claims.EmailVerified,
+		Name:          claims.Name,
+		PreferredName: claims.PreferredName,
+		Picture:       claims.Picture,
+		Groups:        claims.Groups,
+		Roles:         claims.Roles,
+		Permissions:   claims.Permissions,
+		Provider:      claims.Provider,
+		ProviderID:    claims.ProviderID,
+		Attributes:    claims.Attributes,
+	}
+
+	// Generate new access token
+	return jm.GenerateAccessToken(ctx, userInfo, claims.SessionID, options...)
+}
+
+// RevokeToken revokes a token by adding it to the blacklist
+func (jm *JWTManager) RevokeToken(ctx context.Context, tokenString string) error {
+	// Parse token to get expiration
+	token, err := jwt.ParseWithClaims(tokenString, &NephoranJWTClaims{}, nil)
+	if err != nil {
+		// Check if it's just an expired token - we still want to blacklist it
+		if !errors.Is(err, jwt.ErrTokenExpired) {
+			return fmt.Errorf("failed to parse token for revocation: %w", err)
+		}
+	}
+
+	claims, ok := token.Claims.(*NephoranJWTClaims)
+	if !ok {
+		return fmt.Errorf("invalid token claims")
+	}
+
+	// Add to blacklist
+	if err := jm.blacklist.BlacklistToken(ctx, claims.ID, claims.ExpiresAt.Time); err != nil {
+		return fmt.Errorf("failed to blacklist token: %w", err)
+	}
+
+	// Remove from token store
+	if err := jm.tokenStore.DeleteToken(ctx, claims.ID); err != nil {
+		jm.logger.Warn("Failed to delete token from store", "error", err)
+	}
+
+	jm.metrics.TokensRevoked++
+
+	return nil
+}
+
+// RevokeUserTokens revokes all tokens for a specific user
+func (jm *JWTManager) RevokeUserTokens(ctx context.Context, userID string) error {
+	tokens, err := jm.tokenStore.ListUserTokens(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to list user tokens: %w", err)
+	}
+
+	for _, token := range tokens {
+		if err := jm.blacklist.BlacklistToken(ctx, token.TokenID, token.ExpiresAt); err != nil {
+			jm.logger.Warn("Failed to blacklist token", "token_id", token.TokenID, "error", err)
+			continue
+		}
+
+		if err := jm.tokenStore.DeleteToken(ctx, token.TokenID); err != nil {
+			jm.logger.Warn("Failed to delete token from store", "token_id", token.TokenID, "error", err)
+		}
+
+		jm.metrics.TokensRevoked++
+	}
+
+	return nil
+}
+
+// GetTokenInfo retrieves token information
+func (jm *JWTManager) GetTokenInfo(ctx context.Context, tokenID string) (*TokenInfo, error) {
+	return jm.tokenStore.GetToken(ctx, tokenID)
+}
+
+// ListUserTokens lists all active tokens for a user
+func (jm *JWTManager) ListUserTokens(ctx context.Context, userID string) ([]*TokenInfo, error) {
+	return jm.tokenStore.ListUserTokens(ctx, userID)
+}
+
+// GetMetrics returns JWT metrics
+func (jm *JWTManager) GetMetrics() *JWTMetrics {
+	jm.mutex.RLock()
+	defer jm.mutex.RUnlock()
+
+	// Return a copy to avoid race conditions
+	metrics := *jm.metrics
+	return &metrics
+}
+
+// Private methods
 
 func (jm *JWTManager) initializeSigningKey(config *JWTConfig) error {
 	var privateKey *rsa.PrivateKey

@@ -1,52 +1,90 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 
 	ingest "github.com/thc1006/nephoran-intent-operator/internal/ingest"
-	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
 )
 
 func main() {
-	// repoRoot 假設是目前工作樹根目錄
-	repoRoot, _ := os.Getwd()
-	schemaPath := filepath.Join(repoRoot, "docs", "contracts", "intent.schema.json")
-	outDir := filepath.Join(repoRoot, "handoff") // 與 porch 分支用同一個協作目錄名，後面會給你路徑參數
+	// Command-line flags
+	var (
+		addr       = flag.String("addr", ":8080", "HTTP server address")
+		handoffDir = flag.String("handoff", filepath.Join(".", "handoff"), "Directory for handoff files")
+		schemaFile = flag.String("schema", "", "Path to intent schema file (default: docs/contracts/intent.schema.json)")
+		mode       = flag.String("mode", "", "Intent parsing mode: rules|llm (overrides MODE env var)")
+		provider   = flag.String("provider", "", "LLM provider: mock (overrides PROVIDER env var)")
+	)
+	flag.Parse()
 
+	// Check environment variables (command-line flags take precedence)
+	if *mode == "" {
+		*mode = os.Getenv("MODE")
+		if *mode == "" {
+			*mode = "rules" // default to rules mode
+		}
+	}
+	
+	if *provider == "" {
+		*provider = os.Getenv("PROVIDER")
+		if *provider == "" {
+			*provider = "mock" // default to mock provider for LLM mode
+		}
+	}
+
+	// Determine schema path
+	var schemaPath string
+	if *schemaFile != "" {
+		schemaPath = *schemaFile
+	} else {
+		repoRoot, _ := os.Getwd()
+		schemaPath = filepath.Join(repoRoot, "docs", "contracts", "intent.schema.json")
+	}
+
+	// Initialize validator
 	v, err := ingest.NewValidator(schemaPath)
 	if err != nil {
-		log.Fatalf("load schema failed: %v", err)
+		log.Fatalf("Failed to load schema: %v", err)
 	}
-	h := ingest.NewHandler(v, outDir)
 
-	// SECURITY FIX: Set up comprehensive security middleware
-	securityConfig := middleware.DefaultSecuritySuiteConfig()
-	securityConfig.RateLimit.QPS = 10   // 10 requests per second per IP
-	securityConfig.RateLimit.Burst = 20 // Allow bursts up to 20 requests
-	securityConfig.RequireAuth = false  // No authentication required for this service
-
-	securitySuite, err := middleware.NewSecuritySuite(securityConfig, nil)
+	// Create provider based on mode
+	intentProvider, err := ingest.NewProvider(*mode, *provider)
 	if err != nil {
-		log.Fatalf("failed to create security suite: %v", err)
+		log.Fatalf("Failed to create provider: %v", err)
 	}
 
+	// Create handler with provider
+	h := ingest.NewHandler(v, *handoffDir, intentProvider)
+
+	// Setup HTTP routes with security middleware
 	mux := http.NewServeMux()
-
-	// Health endpoint with basic security
+	
+	// Health endpoint
 	healthHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte("ok\n"))
 	})
-	mux.Handle("/healthz", securitySuite.Middleware(healthHandler))
+	mux.Handle("/healthz", healthHandler)
 
-	// Intent endpoint with full security middleware
+	// Intent endpoint
 	intentHandler := http.HandlerFunc(h.HandleIntent)
-	mux.Handle("/intent", securitySuite.Middleware(intentHandler))
+	mux.Handle("/intent", intentHandler)
 
-	addr := ":8080"
-	log.Printf("intent-ingest listening on %s with rate limiting and security headers enabled", addr)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	// Start server
+	log.Printf("intent-ingest starting...")
+	log.Printf("  Address: %s", *addr)
+	log.Printf("  Mode: %s", *mode)
+	if *mode == "llm" {
+		log.Printf("  Provider: %s", *provider)
+	}
+	log.Printf("  Handoff directory: %s", *handoffDir)
+	log.Printf("  Schema: %s", schemaPath)
+	
+	fmt.Printf("\nReady to accept intents at http://localhost%s/intent\n", *addr)
+	log.Fatal(http.ListenAndServe(*addr, mux))
 }

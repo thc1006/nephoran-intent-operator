@@ -227,7 +227,6 @@ mcp.json
 .mcp.json.template
 
 .kiro/
-.claude/
 .cursor/
 
 # AI generated documentation that shouldn't be committed

@@ -1,0 +1,9 @@
+{
+  "intent_file": "intent-demonstration.json",
+  "message": "exec: \"porch\": cannot run executable found relative to current directory",
+  "mode": "direct",
+  "porch_path": "porch",
+  "processed_by": "conductor-loop",
+  "status": "failed",
+  "timestamp": "2025-08-17T01:51:18+08:00"
+}
