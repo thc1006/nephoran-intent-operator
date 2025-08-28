@@ -725,7 +725,7 @@ jobs:
             govulncheck version
           else
             echo "❌ govulncheck not available after retries - security scan will be limited"
-          }
+          fi
 
       - name: Run govulncheck with enhanced resilience
         shell: bash
