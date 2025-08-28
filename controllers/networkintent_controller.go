@@ -156,8 +156,9 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			log.Info("LLM processing successful", "message", llmResp.Message)
 			return r.updateStatus(ctx, networkIntent, "Processed", "Intent processed successfully by LLM", networkIntent.Generation)
 		} else {
-			log.Error(fmt.Errorf("%s", llmResp.Error), "LLM processing failed")
-			return r.updateStatus(ctx, networkIntent, "Error", fmt.Sprintf("LLM processing failed: %s", llmResp.Error), networkIntent.Generation)
+			err := fmt.Errorf("LLM processing failed: %s", llmResp.Error)
+			log.Error(err, "LLM processing failed")
+			return r.updateStatus(ctx, networkIntent, "Error", err.Error(), networkIntent.Generation)
 		}
 	}
 
