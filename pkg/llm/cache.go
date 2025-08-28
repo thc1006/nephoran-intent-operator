@@ -8,18 +8,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
+	sharedtypes "github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 )
 
 // ResponseCache provides unified multi-level caching with intelligent features
 type ResponseCache struct {
 	// L1 Cache (in-memory, fastest)
-	l1Entries map[string]*types.CacheEntry
+	l1Entries map[string]*sharedtypes.CacheEntry
 	l1MaxSize int
 	l1Mutex   sync.RWMutex
 
 	// L2 Cache (persistent, larger)
-	l2Entries map[string]*types.CacheEntry
+	l2Entries map[string]*sharedtypes.CacheEntry
 	l2MaxSize int
 	l2Mutex   sync.RWMutex
 
@@ -143,8 +143,8 @@ func NewResponseCache(ttl time.Duration, maxSize int) *ResponseCache {
 // NewResponseCacheWithConfig creates a cache with specific configuration
 func NewResponseCacheWithConfig(config *CacheConfig) *ResponseCache {
 	cache := &ResponseCache{
-		l1Entries:           make(map[string]*types.CacheEntry),
-		l2Entries:           make(map[string]*types.CacheEntry),
+		l1Entries:           make(map[string]*sharedtypes.CacheEntry),
+		l2Entries:           make(map[string]*sharedtypes.CacheEntry),
 		l1MaxSize:           config.L1MaxSize,
 		l2MaxSize:           config.L2MaxSize,
 		ttl:                 config.TTL,
@@ -228,7 +228,7 @@ func (c *ResponseCache) Set(key, response string) {
 		ttl = c.calculateAdaptiveTTL(key)
 	}
 
-	entry := &types.CacheEntry{
+	entry := &sharedtypes.CacheEntry{
 		Response:   response,
 		Timestamp:  time.Now(),
 		LastAccess: time.Now(),
@@ -288,7 +288,7 @@ func (c *ResponseCache) getFromL2(key string) (string, bool) {
 }
 
 // setInL1 stores entry in L1 cache
-func (c *ResponseCache) setInL1(key string, entry *types.CacheEntry) {
+func (c *ResponseCache) setInL1(key string, entry *sharedtypes.CacheEntry) {
 	c.l1Mutex.Lock()
 	defer c.l1Mutex.Unlock()
 
@@ -302,7 +302,7 @@ func (c *ResponseCache) setInL1(key string, entry *types.CacheEntry) {
 }
 
 // setInL2 stores entry in L2 cache
-func (c *ResponseCache) setInL2(key string, entry *types.CacheEntry) {
+func (c *ResponseCache) setInL2(key string, entry *sharedtypes.CacheEntry) {
 	c.l2Mutex.Lock()
 	defer c.l2Mutex.Unlock()
 
@@ -713,8 +713,8 @@ func (c *ResponseCache) Clear() {
 	defer c.l2Mutex.Unlock()
 	defer c.l1Mutex.Unlock()
 
-	c.l1Entries = make(map[string]*types.CacheEntry)
-	c.l2Entries = make(map[string]*types.CacheEntry)
+	c.l1Entries = make(map[string]*sharedtypes.CacheEntry)
+	c.l2Entries = make(map[string]*sharedtypes.CacheEntry)
 	c.semanticIndex = make(map[string][]string)
 	c.accessFrequency = make(map[string]*AccessStats)
 

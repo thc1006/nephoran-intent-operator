@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
@@ -289,7 +290,7 @@ func (cb *ContextBuilderStub) BuildContext(ctx context.Context, intent string, m
 					for _, item := range telecomData {
 						if itemMap, ok := item.(map[string]interface{}); ok {
 							searchResult := cb.parseSearchResult(itemMap)
-							if searchResult != nil && searchResult.Document.Confidence >= cb.config.MinConfidenceScore {
+							if searchResult != nil && searchResult.Document.Confidence >= float64(cb.config.MinConfidenceScore) {
 								searchResults = append(searchResults, searchResult)
 							}
 						}
@@ -345,25 +346,25 @@ func (cb *ContextBuilderStub) BuildContext(ctx context.Context, intent string, m
 			"source":        doc.Source,
 			"category":      doc.Category,
 			"version":       doc.Version,
-			"language":      doc.Language,
-			"document_type": doc.DocumentType,
+			"language":      getMetadataString(doc.Metadata, "language"),
+			"document_type": getMetadataString(doc.Metadata, "documentType"),
 			"confidence":    doc.Confidence,
 			"score":         result.Score,
 			"distance":      result.Distance,
 		}
 
-		// Add array fields if they exist
-		if len(doc.Keywords) > 0 {
-			contextDoc["keywords"] = doc.Keywords
+		// Add array fields from metadata if they exist
+		if keywords := getMetadataStringArray(doc.Metadata, "keywords"); len(keywords) > 0 {
+			contextDoc["keywords"] = keywords
 		}
-		if len(doc.NetworkFunction) > 0 {
-			contextDoc["network_function"] = doc.NetworkFunction
+		if networkFunctions := getMetadataStringArray(doc.Metadata, "networkFunction"); len(networkFunctions) > 0 {
+			contextDoc["network_function"] = networkFunctions
 		}
-		if len(doc.Technology) > 0 {
-			contextDoc["technology"] = doc.Technology
+		if technologies := getMetadataStringArray(doc.Metadata, "technology"); len(technologies) > 0 {
+			contextDoc["technology"] = technologies
 		}
-		if len(doc.UseCase) > 0 {
-			contextDoc["use_case"] = doc.UseCase
+		if useCases := getMetadataStringArray(doc.Metadata, "useCase"); len(useCases) > 0 {
+			contextDoc["use_case"] = useCases
 		}
 
 		// Add metadata if available
@@ -513,11 +514,42 @@ func (cb *ContextBuilderStub) getCacheHitRate() float64 {
 	return float64(cb.metrics.CacheHits) / float64(totalCacheOps) * 100.0
 }
 
+// Helper function to get string from metadata
+func getMetadataString(metadata map[string]interface{}, key string) string {
+	if metadata == nil {
+		return ""
+	}
+	if val, ok := metadata[key].(string); ok {
+		return val
+	}
+	return ""
+}
+
+// Helper function to get string array from metadata
+func getMetadataStringArray(metadata map[string]interface{}, key string) []string {
+	if metadata == nil {
+		return nil
+	}
+	if val, ok := metadata[key].([]string); ok {
+		return val
+	}
+	if val, ok := metadata[key].([]interface{}); ok {
+		result := make([]string, 0, len(val))
+		for _, v := range val {
+			if str, ok := v.(string); ok {
+				result = append(result, str)
+			}
+		}
+		return result
+	}
+	return nil
+}
+
 // parseSearchResult converts a GraphQL result item to a SearchResult
 
-func (cb *ContextBuilderStub) parseSearchResult(item map[string]interface{}) *shared.SearchResult {
-	doc := &shared.TelecomDocument{}
-	result := &shared.SearchResult{Document: doc}
+func (cb *ContextBuilderStub) parseSearchResult(item map[string]interface{}) *types.SearchResult {
+	doc := &types.TelecomDocument{}
+	result := &types.SearchResult{Document: doc}
 
 
 	// Parse document fields
@@ -537,16 +569,20 @@ func (cb *ContextBuilderStub) parseSearchResult(item map[string]interface{}) *sh
 		doc.Version = val
 	}
 	if val, ok := item["confidence"].(float64); ok {
-		doc.Confidence = float32(val)
+		doc.Confidence = val
+	}
+	// Initialize metadata if needed
+	if doc.Metadata == nil {
+		doc.Metadata = make(map[string]interface{})
 	}
 	if val, ok := item["language"].(string); ok {
-		doc.Language = val
+		doc.Metadata["language"] = val
 	}
 	if val, ok := item["documentType"].(string); ok {
-		doc.DocumentType = val
+		doc.Metadata["documentType"] = val
 	}
 
-	// Parse array fields
+	// Parse array fields and store in metadata
 	if val, ok := item["keywords"].([]interface{}); ok {
 		keywords := make([]string, 0, len(val))
 		for _, keyword := range val {
@@ -554,7 +590,7 @@ func (cb *ContextBuilderStub) parseSearchResult(item map[string]interface{}) *sh
 				keywords = append(keywords, keywordStr)
 			}
 		}
-		doc.Keywords = keywords
+		doc.Metadata["keywords"] = keywords
 	}
 
 	if val, ok := item["networkFunction"].([]interface{}); ok {
@@ -564,7 +600,7 @@ func (cb *ContextBuilderStub) parseSearchResult(item map[string]interface{}) *sh
 				networkFunctions = append(networkFunctions, nfStr)
 			}
 		}
-		doc.NetworkFunction = networkFunctions
+		doc.Metadata["networkFunction"] = networkFunctions
 	}
 
 	if val, ok := item["technology"].([]interface{}); ok {
@@ -574,7 +610,7 @@ func (cb *ContextBuilderStub) parseSearchResult(item map[string]interface{}) *sh
 				technologies = append(technologies, techStr)
 			}
 		}
-		doc.Technology = technologies
+		doc.Metadata["technology"] = technologies
 	}
 
 	if val, ok := item["useCase"].([]interface{}); ok {
@@ -584,7 +620,7 @@ func (cb *ContextBuilderStub) parseSearchResult(item map[string]interface{}) *sh
 				useCases = append(useCases, ucStr)
 			}
 		}
-		doc.UseCase = useCases
+		doc.Metadata["useCase"] = useCases
 	}
 
 	// Parse additional fields
@@ -614,8 +650,8 @@ type RelevanceScorerStub struct {
 	impl *SimpleRelevanceScorer
 }
 
-func NewRelevanceScorerStub() *RelevanceScorer {
-	return &RelevanceScorer{
+func NewRelevanceScorerStub() *RelevanceScorerStub {
+	return &RelevanceScorerStub{
 		impl: NewSimpleRelevanceScorer(),
 	}
 }

@@ -1,23 +1,11 @@
 package llm
 
 import (
-	"fmt"
-	"math/rand"
 	"strings"
 	"time"
 )
 
-// generateRequestID generates a unique request ID for tracking
-func generateRequestID() string {
-	// Initialize random seed
-	rand.Seed(time.Now().UnixNano())
-	
-	// Generate a simple request ID with timestamp and random number
-	timestamp := time.Now().Unix()
-	randomNum := rand.Intn(999999)
-	
-	return fmt.Sprintf("req_%d_%06d", timestamp, randomNum)
-}
+// generateRequestID is defined in types.go
 
 // Helper functions for the LLM package
 

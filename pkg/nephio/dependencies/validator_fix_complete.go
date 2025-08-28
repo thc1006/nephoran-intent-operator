@@ -723,15 +723,15 @@ func NewValidatorMetrics() *ValidatorMetrics {
 		ValidationRate:              0.0,
 		ErrorRate:                   0.0,
 		CacheHitRate:                0.0,
-		SecurityScansTotal:          Counter{},
-		SecurityScanTime:            Histogram{},
-		VulnerabilitiesFound:        Counter{},
-		ConflictDetectionTime:       Histogram{},
-		ConflictsDetected:           Counter{},
-		CompatibilityChecks:         Counter{},
-		CompatibilityValidationTime: Histogram{},
-		ScanCacheHits:               Counter{},
-		ScanCacheMisses:             Counter{},
+		SecurityScansTotal:          &metricCounter{},
+		SecurityScanTime:            &metricHistogram{},
+		VulnerabilitiesFound:        &metricCounter{},
+		ConflictDetectionTime:       &metricHistogram{},
+		ConflictsDetected:           &metricCounter{},
+		CompatibilityChecks:         &metricCounter{},
+		CompatibilityValidationTime: &metricHistogram{},
+		ScanCacheHits:               &metricCounter{},
+		ScanCacheMisses:             &metricCounter{},
 	}
 }
 
@@ -852,9 +852,23 @@ func (c *memoryScanResultCache) InvalidatePackage(ctx context.Context, packageID
 }
 
 func (c *memoryScanResultCache) Set(ctx context.Context, key string, result *SecurityScanResult) error {
+	// Convert Vulnerability to SecurityVulnerability
+	var secVulns []*SecurityVulnerability
+	for _, v := range result.Vulnerabilities {
+		secVulns = append(secVulns, &SecurityVulnerability{
+			ID:          v.ID,
+			CVE:         v.CVE,
+			Severity:    v.Severity,
+			Score:       v.Score,
+			Description: v.Description,
+			FixVersion:  v.FixVersion,
+			PublishedAt: v.PublishedAt,
+		})
+	}
+	
 	scanResult := &ScanResult{
 		PackageID:       key,
-		Vulnerabilities: result.Vulnerabilities,
+		Vulnerabilities: secVulns,
 		ScannedAt:       result.ScannedAt,
 		Metadata:        make(map[string]interface{}),
 	}
@@ -868,9 +882,23 @@ func (c *memoryScanResultCache) Get(ctx context.Context, key string) (*SecurityS
 		return nil, err
 	}
 	
+	// Convert SecurityVulnerability back to Vulnerability
+	var vulns []*Vulnerability
+	for _, sv := range scanResult.Vulnerabilities {
+		vulns = append(vulns, &Vulnerability{
+			ID:          sv.ID,
+			CVE:         sv.CVE,
+			Severity:    sv.Severity,
+			Score:       sv.Score,
+			Description: sv.Description,
+			FixVersion:  sv.FixVersion,
+			PublishedAt: sv.PublishedAt,
+		})
+	}
+	
 	securityResult := &SecurityScanResult{
 		ScanID:          fmt.Sprintf("scan-%d", time.Now().UnixNano()),
-		Vulnerabilities: scanResult.Vulnerabilities,
+		Vulnerabilities: vulns,
 		ScannedAt:       scanResult.ScannedAt,
 	}
 	
@@ -920,9 +948,11 @@ type mockLicenseDB struct {
 
 func (db *mockLicenseDB) GetLicenseInfo(ctx context.Context, pkg *PackageReference) (*LicenseInfo, error) {
 	return &LicenseInfo{
-		License:       "MIT",
-		Compatibility: "compatible",
-		Restrictions:  []string{},
+		License:     "MIT",
+		Type:        "permissive",
+		Permissions: []string{"commercial", "modification", "distribution"},
+		Conditions:  []string{"include-copyright"},
+		Limitations: []string{"no-liability"},
 	}, nil
 }
 
@@ -1256,39 +1286,46 @@ type ComplianceRule struct {
 
 // Interface types for caching
 type ValidationCache interface {
-	Get(key string) (interface{}, bool)
-	Set(key string, value interface{}, ttl time.Duration)
-	Delete(key string)
-	Clear()
-	Stats() *CacheStats
+	Get(ctx context.Context, key string) (interface{}, error)
+	Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error
+	Delete(ctx context.Context, key string) error
+	Clear(ctx context.Context) error
+	Close()
 }
 
 type ScanResultCache interface {
-	Get(key string) (interface{}, bool)
-	Set(key string, value interface{}, ttl time.Duration)
-	Delete(key string)
-	Clear()
+	GetScanResult(ctx context.Context, packageID string) (*ScanResult, error)
+	CacheScanResult(ctx context.Context, packageID string, result *ScanResult, ttl time.Duration) error
+	InvalidatePackage(ctx context.Context, packageID string) error
+	Set(ctx context.Context, key string, result *SecurityScanResult) error
+	Get(ctx context.Context, key string) (*SecurityScanResult, error)
+	Close()
 }
 
 type LicenseInfo struct {
-	License     string   `json:"license"`
-	Type        string   `json:"type"`
-	Permissions []string `json:"permissions,omitempty"`
-	Conditions  []string `json:"conditions,omitempty"`
-	Limitations []string `json:"limitations,omitempty"`
-	URL         string   `json:"url,omitempty"`
-	SPDXID      string   `json:"spdxId,omitempty"`
+	License        string   `json:"license"`
+	Type           string   `json:"type"`
+	Permissions    []string `json:"permissions,omitempty"`
+	Conditions     []string `json:"conditions,omitempty"`
+	Limitations    []string `json:"limitations,omitempty"`
+	URL            string   `json:"url,omitempty"`
+	SPDXID         string   `json:"spdxId,omitempty"`
+	Compatibility  string   `json:"compatibility,omitempty"`
+	Restrictions   []string `json:"restrictions,omitempty"`
 }
 
 type ScanResult struct {
-	ScanID      string               `json:"scanId"`
-	Package     *PackageReference    `json:"package"`
-	ScanType    string               `json:"scanType"`
-	Status      string               `json:"status"`
-	Results     interface{}          `json:"results"`
-	Errors      []string             `json:"errors,omitempty"`
-	ScannedAt   time.Time            `json:"scannedAt"`
-	Duration    time.Duration        `json:"duration"`
+	ScanID          string                    `json:"scanId"`
+	PackageID       string                    `json:"packageId"`
+	Package         *PackageReference         `json:"package"`
+	ScanType        string                    `json:"scanType"`
+	Status          string                    `json:"status"`
+	Results         interface{}               `json:"results"`
+	Vulnerabilities []*SecurityVulnerability  `json:"vulnerabilities,omitempty"`
+	Errors          []string                  `json:"errors,omitempty"`
+	ScannedAt       time.Time                 `json:"scannedAt"`
+	Duration        time.Duration             `json:"duration"`
+	Metadata        map[string]interface{}    `json:"metadata,omitempty"`
 }
 
 // Additional missing type definitions
@@ -1425,5 +1462,56 @@ const (
 )
 
 // ComplianceStatus already defined in types.go
+
+// Metric implementations for Counter and Histogram interfaces
+type metricCounter struct {
+	mu    sync.RWMutex
+	value float64
+}
+
+func (c *metricCounter) Inc() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.value++
+}
+
+func (c *metricCounter) Add(v float64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.value += v
+}
+
+func (c *metricCounter) Get() float64 {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.value
+}
+
+type metricHistogram struct {
+	mu    sync.RWMutex
+	sum   float64
+	count float64
+}
+
+func (h *metricHistogram) Observe(v float64) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.sum += v
+	h.count++
+}
+
+func (h *metricHistogram) GetCount() float64 {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.count
+}
+
+func (h *metricHistogram) GetSum() float64 {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.sum
+}
+
+// CacheStats is defined in interfaces.go, removed duplicate
 
 // End of type definitions - all method implementations moved to validator.go

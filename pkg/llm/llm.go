@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
+	sharedtypes "github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
@@ -100,7 +100,7 @@ type LegacyClientMetrics struct {
 
 // ResponseCache provides simple in-memory caching
 type LegacyResponseCache struct {
-	entries  map[string]*types.CacheEntry
+	entries  map[string]*sharedtypes.CacheEntry
 	mutex    sync.RWMutex
 	ttl      time.Duration
 	maxSize  int
@@ -295,7 +295,7 @@ func NewLegacyClientMetrics() *LegacyClientMetrics {
 // NewResponseCache creates a new response cache
 func NewLegacyResponseCache(ttl time.Duration, maxSize int) *LegacyResponseCache {
 	cache := &LegacyResponseCache{
-		entries: make(map[string]*types.CacheEntry),
+		entries: make(map[string]*sharedtypes.CacheEntry),
 		ttl:     ttl,
 		maxSize: maxSize,
 		stopCh:  make(chan struct{}),
@@ -468,7 +468,7 @@ func (c *LegacyClient) ProcessIntent(ctx context.Context, intent string) (string
 	}
 
 	// Cache successful response
-	cacheEntry := &types.CacheEntry{
+	cacheEntry := &sharedtypes.CacheEntry{
 		Response:  result,
 		Timestamp: time.Now(),
 	}
@@ -1097,7 +1097,7 @@ func (c *LegacyResponseCache) cleanup() {
 }
 
 // Get retrieves a cache entry
-func (c *LegacyResponseCache) Get(key string) (*types.CacheEntry, bool) {
+func (c *LegacyResponseCache) Get(key string) (*sharedtypes.CacheEntry, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
@@ -1120,7 +1120,7 @@ func (c *LegacyResponseCache) Get(key string) (*types.CacheEntry, bool) {
 }
 
 // Set stores a cache entry
-func (c *LegacyResponseCache) Set(key string, entry *types.CacheEntry) {
+func (c *LegacyResponseCache) Set(key string, entry *sharedtypes.CacheEntry) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 

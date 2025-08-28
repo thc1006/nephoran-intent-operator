@@ -8,7 +8,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	o2models "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 // CatalogService manages the O2 IMS resource catalog and deployment templates
@@ -16,11 +16,11 @@ import (
 // following O-RAN.WG6.O2ims-Interface-v01.01 specification
 type CatalogService struct {
 	// Resource type management
-	resourceTypes map[string]*models.ResourceType
+	resourceTypes map[string]*o2models.ResourceType
 	rtMutex       sync.RWMutex
 
 	// Deployment template management
-	deploymentTemplates map[string]*models.DeploymentTemplate
+	deploymentTemplates map[string]*o2models.DeploymentTemplate
 	dtMutex             sync.RWMutex
 
 	// Template validation and processing
@@ -37,7 +37,7 @@ type CatalogService struct {
 
 // TemplateValidator interface for validating deployment templates
 type TemplateValidator interface {
-	ValidateTemplate(ctx context.Context, template *models.DeploymentTemplate) error
+	ValidateTemplate(ctx context.Context, template *o2models.DeploymentTemplate) error
 	ValidateTemplateContent(ctx context.Context, content string, templateType string) error
 	ValidateInputSchema(ctx context.Context, schema string) error
 	ValidateOutputSchema(ctx context.Context, schema string) error
@@ -45,9 +45,9 @@ type TemplateValidator interface {
 
 // TemplateProcessor interface for processing deployment templates
 type TemplateProcessor interface {
-	ProcessTemplate(ctx context.Context, template *models.DeploymentTemplate, parameters map[string]interface{}) (*ProcessedTemplate, error)
-	ExtractParameters(ctx context.Context, template *models.DeploymentTemplate) ([]TemplateParameter, error)
-	GenerateDocumentation(ctx context.Context, template *models.DeploymentTemplate) (*TemplateDocumentation, error)
+	ProcessTemplate(ctx context.Context, template *o2models.DeploymentTemplate, parameters map[string]interface{}) (*ProcessedTemplate, error)
+	ExtractParameters(ctx context.Context, template *o2models.DeploymentTemplate) ([]TemplateParameter, error)
+	GenerateDocumentation(ctx context.Context, template *o2models.DeploymentTemplate) (*TemplateDocumentation, error)
 }
 
 // ProcessedTemplate represents a processed deployment template ready for deployment
@@ -136,8 +136,8 @@ func NewCatalogService() *CatalogService {
 	backgroundCtx, backgroundCancel := context.WithCancel(context.Background())
 
 	service := &CatalogService{
-		resourceTypes:       make(map[string]*models.ResourceType),
-		deploymentTemplates: make(map[string]*models.DeploymentTemplate),
+		resourceTypes:       make(map[string]*o2models.ResourceType),
+		deploymentTemplates: make(map[string]*o2models.DeploymentTemplate),
 		templateValidator:   NewDefaultTemplateValidator(),
 		templateProcessor:   NewDefaultTemplateProcessor(),
 		backgroundCtx:       backgroundCtx,
@@ -161,7 +161,7 @@ func NewCatalogService() *CatalogService {
 // Resource Type Management
 
 // RegisterResourceType registers a new resource type
-func (c *CatalogService) RegisterResourceType(ctx context.Context, resourceType *models.ResourceType) error {
+func (c *CatalogService) RegisterResourceType(ctx context.Context, resourceType *o2models.ResourceType) error {
 	logger := log.FromContext(ctx)
 	logger.Info("registering resource type", "typeID", resourceType.ResourceTypeID, "name", resourceType.Name)
 
@@ -187,7 +187,7 @@ func (c *CatalogService) RegisterResourceType(ctx context.Context, resourceType 
 }
 
 // GetResourceType retrieves a resource type by ID
-func (c *CatalogService) GetResourceType(ctx context.Context, resourceTypeID string) (*models.ResourceType, error) {
+func (c *CatalogService) GetResourceType(ctx context.Context, resourceTypeID string) (*o2models.ResourceType, error) {
 	c.rtMutex.RLock()
 	defer c.rtMutex.RUnlock()
 
@@ -201,11 +201,11 @@ func (c *CatalogService) GetResourceType(ctx context.Context, resourceTypeID str
 }
 
 // ListResourceTypes lists resource types with optional filtering
-func (c *CatalogService) ListResourceTypes(ctx context.Context, filter *models.ResourceTypeFilter) ([]*models.ResourceType, error) {
+func (c *CatalogService) ListResourceTypes(ctx context.Context, filter *o2models.ResourceTypeFilter) ([]*o2models.ResourceType, error) {
 	c.rtMutex.RLock()
 	defer c.rtMutex.RUnlock()
 
-	var resourceTypes []*models.ResourceType
+	var resourceTypes []*o2models.ResourceType
 
 	for _, rt := range c.resourceTypes {
 		if c.matchesResourceTypeFilter(rt, filter) {
@@ -276,7 +276,7 @@ func (c *CatalogService) UnregisterResourceType(ctx context.Context, resourceTyp
 // Deployment Template Management
 
 // RegisterDeploymentTemplate registers a new deployment template
-func (c *CatalogService) RegisterDeploymentTemplate(ctx context.Context, template *models.DeploymentTemplate) error {
+func (c *CatalogService) RegisterDeploymentTemplate(ctx context.Context, template *o2models.DeploymentTemplate) error {
 	logger := log.FromContext(ctx)
 	logger.Info("registering deployment template", "templateID", template.DeploymentTemplateID, "name", template.Name)
 
@@ -302,7 +302,7 @@ func (c *CatalogService) RegisterDeploymentTemplate(ctx context.Context, templat
 }
 
 // GetDeploymentTemplate retrieves a deployment template by ID
-func (c *CatalogService) GetDeploymentTemplate(ctx context.Context, templateID string) (*models.DeploymentTemplate, error) {
+func (c *CatalogService) GetDeploymentTemplate(ctx context.Context, templateID string) (*o2models.DeploymentTemplate, error) {
 	c.dtMutex.RLock()
 	defer c.dtMutex.RUnlock()
 
@@ -316,11 +316,11 @@ func (c *CatalogService) GetDeploymentTemplate(ctx context.Context, templateID s
 }
 
 // ListDeploymentTemplates lists deployment templates with optional filtering
-func (c *CatalogService) ListDeploymentTemplates(ctx context.Context, filter *models.DeploymentTemplateFilter) ([]*models.DeploymentTemplate, error) {
+func (c *CatalogService) ListDeploymentTemplates(ctx context.Context, filter *o2models.DeploymentTemplateFilter) ([]*o2models.DeploymentTemplate, error) {
 	c.dtMutex.RLock()
 	defer c.dtMutex.RUnlock()
 
-	var templates []*models.DeploymentTemplate
+	var templates []*o2models.DeploymentTemplate
 
 	for _, template := range c.deploymentTemplates {
 		if c.matchesTemplateFilter(template, filter) {
@@ -391,7 +391,7 @@ func (c *CatalogService) UnregisterDeploymentTemplate(ctx context.Context, templ
 // Template Processing and Validation
 
 // ValidateTemplate validates a deployment template
-func (c *CatalogService) ValidateTemplate(ctx context.Context, template *models.DeploymentTemplate) error {
+func (c *CatalogService) ValidateTemplate(ctx context.Context, template *o2models.DeploymentTemplate) error {
 	return c.templateValidator.ValidateTemplate(ctx, template)
 }
 
@@ -467,7 +467,7 @@ func (c *CatalogService) Shutdown(ctx context.Context) error {
 
 func (c *CatalogService) initializeDefaultResourceTypes() {
 	// Initialize common O-RAN resource types
-	defaultTypes := []*models.ResourceType{
+	defaultTypes := []*o2models.ResourceType{
 		{
 			ResourceTypeID: "compute-deployment",
 			Name:           "Kubernetes Deployment",
@@ -475,8 +475,8 @@ func (c *CatalogService) initializeDefaultResourceTypes() {
 			Vendor:         "Kubernetes",
 			Model:          "Deployment",
 			Version:        "apps/v1",
-			Specifications: &models.ResourceTypeSpec{
-				Category: models.ResourceCategoryCompute,
+			Specifications: &o2models.ResourceTypeSpec{
+				Category: o2models.ResourceCategoryCompute,
 				MinResources: map[string]string{
 					"cpu":    "100m",
 					"memory": "128Mi",
@@ -497,8 +497,8 @@ func (c *CatalogService) initializeDefaultResourceTypes() {
 			Vendor:         "Kubernetes",
 			Model:          "Service",
 			Version:        "v1",
-			Specifications: &models.ResourceTypeSpec{
-				Category: models.ResourceCategoryNetwork,
+			Specifications: &o2models.ResourceTypeSpec{
+				Category: o2models.ResourceCategoryNetwork,
 				Properties: map[string]interface{}{
 					"serviceTypes": []string{"ClusterIP", "NodePort", "LoadBalancer"},
 					"protocols":    []string{"TCP", "UDP"},
@@ -515,8 +515,8 @@ func (c *CatalogService) initializeDefaultResourceTypes() {
 			Vendor:         "Kubernetes",
 			Model:          "PersistentVolumeClaim",
 			Version:        "v1",
-			Specifications: &models.ResourceTypeSpec{
-				Category: models.ResourceCategoryStorage,
+			Specifications: &o2models.ResourceTypeSpec{
+				Category: o2models.ResourceCategoryStorage,
 				Properties: map[string]interface{}{
 					"accessModes": []string{"ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany"},
 					"volumeModes": []string{"Filesystem", "Block"},
@@ -534,7 +534,7 @@ func (c *CatalogService) initializeDefaultResourceTypes() {
 	}
 }
 
-func (c *CatalogService) validateResourceType(resourceType *models.ResourceType) error {
+func (c *CatalogService) validateResourceType(resourceType *o2models.ResourceType) error {
 	if resourceType.ResourceTypeID == "" {
 		return fmt.Errorf("resource type ID is required")
 	}
@@ -550,10 +550,10 @@ func (c *CatalogService) validateResourceType(resourceType *models.ResourceType)
 
 	// Validate category
 	validCategories := []string{
-		models.ResourceCategoryCompute,
-		models.ResourceCategoryStorage,
-		models.ResourceCategoryNetwork,
-		models.ResourceCategoryAccelerator,
+		o2models.ResourceCategoryCompute,
+		o2models.ResourceCategoryStorage,
+		o2models.ResourceCategoryNetwork,
+		o2models.ResourceCategoryAccelerator,
 	}
 
 	validCategory := false
@@ -571,7 +571,7 @@ func (c *CatalogService) validateResourceType(resourceType *models.ResourceType)
 	return nil
 }
 
-func (c *CatalogService) matchesResourceTypeFilter(rt *models.ResourceType, filter *models.ResourceTypeFilter) bool {
+func (c *CatalogService) matchesResourceTypeFilter(rt *o2models.ResourceType, filter *o2models.ResourceTypeFilter) bool {
 	if filter == nil {
 		return true
 	}
@@ -649,7 +649,7 @@ func (c *CatalogService) matchesResourceTypeFilter(rt *models.ResourceType, filt
 	return true
 }
 
-func (c *CatalogService) matchesTemplateFilter(template *models.DeploymentTemplate, filter *models.DeploymentTemplateFilter) bool {
+func (c *CatalogService) matchesTemplateFilter(template *o2models.DeploymentTemplate, filter *o2models.DeploymentTemplateFilter) bool {
 	if filter == nil {
 		return true
 	}
@@ -727,7 +727,7 @@ func (c *CatalogService) matchesTemplateFilter(template *models.DeploymentTempla
 	return true
 }
 
-func (c *CatalogService) copyResourceType(rt *models.ResourceType) *models.ResourceType {
+func (c *CatalogService) copyResourceType(rt *o2models.ResourceType) *o2models.ResourceType {
 	// Deep copy the resource type
 	copy := *rt
 	if rt.Specifications != nil {
@@ -741,21 +741,21 @@ func (c *CatalogService) copyResourceType(rt *models.ResourceType) *models.Resou
 	return &copy
 }
 
-func (c *CatalogService) copyDeploymentTemplate(template *models.DeploymentTemplate) *models.DeploymentTemplate {
+func (c *CatalogService) copyDeploymentTemplate(template *o2models.DeploymentTemplate) *o2models.DeploymentTemplate {
 	// Deep copy the deployment template
 	copy := *template
 	// Note: For production, implement proper deep copy for nested structures
 	return &copy
 }
 
-func (c *CatalogService) sortAndPaginateResourceTypes(resourceTypes []*models.ResourceType, filter *models.ResourceTypeFilter) []*models.ResourceType {
+func (c *CatalogService) sortAndPaginateResourceTypes(resourceTypes []*o2models.ResourceType, filter *o2models.ResourceTypeFilter) []*o2models.ResourceType {
 	// Apply sorting if specified
 	// Apply pagination if specified
 	if filter != nil && filter.Limit > 0 {
 		start := filter.Offset
 		end := start + filter.Limit
 		if start >= len(resourceTypes) {
-			return []*models.ResourceType{}
+			return []*o2models.ResourceType{}
 		}
 		if end > len(resourceTypes) {
 			end = len(resourceTypes)
@@ -765,14 +765,14 @@ func (c *CatalogService) sortAndPaginateResourceTypes(resourceTypes []*models.Re
 	return resourceTypes
 }
 
-func (c *CatalogService) sortAndPaginateTemplates(templates []*models.DeploymentTemplate, filter *models.DeploymentTemplateFilter) []*models.DeploymentTemplate {
+func (c *CatalogService) sortAndPaginateTemplates(templates []*o2models.DeploymentTemplate, filter *o2models.DeploymentTemplateFilter) []*o2models.DeploymentTemplate {
 	// Apply sorting if specified
 	// Apply pagination if specified
 	if filter != nil && filter.Limit > 0 {
 		start := filter.Offset
 		end := start + filter.Limit
 		if start >= len(templates) {
-			return []*models.DeploymentTemplate{}
+			return []*o2models.DeploymentTemplate{}
 		}
 		if end > len(templates) {
 			end = len(templates)
@@ -782,7 +782,7 @@ func (c *CatalogService) sortAndPaginateTemplates(templates []*models.Deployment
 	return templates
 }
 
-func (c *CatalogService) applyResourceTypeUpdates(rt *models.ResourceType, updates map[string]interface{}) error {
+func (c *CatalogService) applyResourceTypeUpdates(rt *o2models.ResourceType, updates map[string]interface{}) error {
 	// Apply updates to resource type fields
 	// This would be more comprehensive in a full implementation
 	if name, ok := updates["name"].(string); ok {
@@ -794,7 +794,7 @@ func (c *CatalogService) applyResourceTypeUpdates(rt *models.ResourceType, updat
 	return nil
 }
 
-func (c *CatalogService) applyTemplateUpdates(template *models.DeploymentTemplate, updates map[string]interface{}) error {
+func (c *CatalogService) applyTemplateUpdates(template *o2models.DeploymentTemplate, updates map[string]interface{}) error {
 	// Apply updates to template fields
 	// This would be more comprehensive in a full implementation
 	if name, ok := updates["name"].(string); ok {
@@ -871,7 +871,7 @@ func NewDefaultTemplateValidator() TemplateValidator {
 	return &DefaultTemplateValidator{}
 }
 
-func (v *DefaultTemplateValidator) ValidateTemplate(ctx context.Context, template *models.DeploymentTemplate) error {
+func (v *DefaultTemplateValidator) ValidateTemplate(ctx context.Context, template *o2models.DeploymentTemplate) error {
 	if template.DeploymentTemplateID == "" {
 		return fmt.Errorf("deployment template ID is required")
 	}
@@ -896,10 +896,10 @@ func (v *DefaultTemplateValidator) ValidateTemplate(ctx context.Context, templat
 
 	// Validate template type - Fixed to use correct field access
 	validTypes := []string{
-		models.TemplateTypeHelm,
-		models.TemplateTypeKubernetes,
-		models.TemplateTypeTerraform,
-		models.TemplateTypeAnsible,
+		o2models.TemplateTypeHelm,
+		o2models.TemplateTypeKubernetes,
+		o2models.TemplateTypeTerraform,
+		o2models.TemplateTypeAnsible,
 	}
 
 	validType := false
@@ -944,7 +944,7 @@ func NewDefaultTemplateProcessor() TemplateProcessor {
 	return &DefaultTemplateProcessor{}
 }
 
-func (p *DefaultTemplateProcessor) ProcessTemplate(ctx context.Context, template *models.DeploymentTemplate, parameters map[string]interface{}) (*ProcessedTemplate, error) {
+func (p *DefaultTemplateProcessor) ProcessTemplate(ctx context.Context, template *o2models.DeploymentTemplate, parameters map[string]interface{}) (*ProcessedTemplate, error) {
 	// Basic template processing
 	// In a full implementation, this would render templates with actual templating engines
 	var renderedContent string
@@ -969,7 +969,7 @@ func (p *DefaultTemplateProcessor) ProcessTemplate(ctx context.Context, template
 	return processed, nil
 }
 
-func (p *DefaultTemplateProcessor) ExtractParameters(ctx context.Context, template *models.DeploymentTemplate) ([]TemplateParameter, error) {
+func (p *DefaultTemplateProcessor) ExtractParameters(ctx context.Context, template *o2models.DeploymentTemplate) ([]TemplateParameter, error) {
 	// Extract parameters from template schema
 	// This would parse the input schema and extract parameter definitions
 	var parameters []TemplateParameter
@@ -983,7 +983,7 @@ func (p *DefaultTemplateProcessor) ExtractParameters(ctx context.Context, templa
 	return parameters, nil
 }
 
-func (p *DefaultTemplateProcessor) GenerateDocumentation(ctx context.Context, template *models.DeploymentTemplate) (*TemplateDocumentation, error) {
+func (p *DefaultTemplateProcessor) GenerateDocumentation(ctx context.Context, template *o2models.DeploymentTemplate) (*TemplateDocumentation, error) {
 	// Generate documentation for template
 	doc := &TemplateDocumentation{
 		Overview:    fmt.Sprintf("Documentation for template: %s", template.Name),

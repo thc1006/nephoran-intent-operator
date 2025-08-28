@@ -12,16 +12,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// Task represents a parallelizable task in controller processing
-type Task interface {
+// TaskInterface represents a parallelizable task in controller processing
+type TaskInterface interface {
 	Execute(ctx context.Context) error
 	GetID() string
 	GetPriority() int
 	GetTimeout() time.Duration
 }
 
-// TaskResult represents the result of a parallel task execution
-type TaskResult struct {
+// ControllerTaskResult represents the result of a parallel task execution
+type ControllerTaskResult struct {
 	TaskID      string        `json:"task_id"`
 	Success     bool          `json:"success"`
 	Error       error         `json:"error,omitempty"`
@@ -35,8 +35,8 @@ type ParallelProcessor struct {
 	maxConcurrency int
 	timeout        time.Duration
 	workerPool     chan struct{}
-	taskQueue      chan Task
-	results        chan *TaskResult
+	taskQueue      chan TaskInterface
+	results        chan *ControllerTaskResult
 	wg             sync.WaitGroup
 	ctx            context.Context
 	cancel         context.CancelFunc
@@ -95,17 +95,17 @@ func (rt *ReconcileTask) Execute(ctx context.Context) error {
 	return nil
 }
 
-// GetID implements the Task interface for ReconcileTask
+// GetID implements the TaskInterface for ReconcileTask
 func (rt *ReconcileTask) GetID() string {
 	return rt.ID
 }
 
-// GetPriority implements the Task interface for ReconcileTask
+// GetPriority implements the TaskInterface for ReconcileTask
 func (rt *ReconcileTask) GetPriority() int {
 	return rt.Priority
 }
 
-// GetTimeout implements the Task interface for ReconcileTask
+// GetTimeout implements the TaskInterface for ReconcileTask
 func (rt *ReconcileTask) GetTimeout() time.Duration {
 	return rt.Timeout
 }
@@ -127,7 +127,7 @@ type ValidationRule struct {
 	Validator   func(context.Context, client.Object, client.Client) error
 }
 
-// Execute implements the Task interface for ValidationTask
+// Execute implements the TaskInterface for ValidationTask
 func (vt *ValidationTask) Execute(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithValues("task_id", vt.ID)
 	logger.Info("Executing validation task")
@@ -146,17 +146,17 @@ func (vt *ValidationTask) Execute(ctx context.Context) error {
 	return nil
 }
 
-// GetID implements the Task interface for ValidationTask
+// GetID implements the TaskInterface for ValidationTask
 func (vt *ValidationTask) GetID() string {
 	return vt.ID
 }
 
-// GetPriority implements the Task interface for ValidationTask
+// GetPriority implements the TaskInterface for ValidationTask
 func (vt *ValidationTask) GetPriority() int {
 	return vt.Priority
 }
 
-// GetTimeout implements the Task interface for ValidationTask
+// GetTimeout implements the TaskInterface for ValidationTask
 func (vt *ValidationTask) GetTimeout() time.Duration {
 	return vt.Timeout
 }
@@ -170,7 +170,7 @@ type ProcessingTask struct {
 	Metadata map[string]interface{}
 }
 
-// Execute implements the Task interface for ProcessingTask
+// Execute implements the TaskInterface for ProcessingTask
 func (pt *ProcessingTask) Execute(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithValues("task_id", pt.ID)
 	logger.Info("Executing processing task")
@@ -188,17 +188,17 @@ func (pt *ProcessingTask) Execute(ctx context.Context) error {
 	return nil
 }
 
-// GetID implements the Task interface for ProcessingTask
+// GetID implements the TaskInterface for ProcessingTask
 func (pt *ProcessingTask) GetID() string {
 	return pt.ID
 }
 
-// GetPriority implements the Task interface for ProcessingTask
+// GetPriority implements the TaskInterface for ProcessingTask
 func (pt *ProcessingTask) GetPriority() int {
 	return pt.Priority
 }
 
-// GetTimeout implements the Task interface for ProcessingTask
+// GetTimeout implements the TaskInterface for ProcessingTask
 func (pt *ProcessingTask) GetTimeout() time.Duration {
 	return pt.Timeout
 }
@@ -213,12 +213,12 @@ type ParallelReconciler struct {
 
 // TaskPriorityQueue implements a priority queue for tasks
 type TaskPriorityQueue struct {
-	tasks []Task
+	tasks []TaskInterface
 	mutex sync.RWMutex
 }
 
 // Push adds a task to the priority queue
-func (pq *TaskPriorityQueue) Push(task Task) {
+func (pq *TaskPriorityQueue) Push(task TaskInterface) {
 	pq.mutex.Lock()
 	defer pq.mutex.Unlock()
 	
@@ -226,7 +226,7 @@ func (pq *TaskPriorityQueue) Push(task Task) {
 	inserted := false
 	for i, existing := range pq.tasks {
 		if task.GetPriority() > existing.GetPriority() {
-			pq.tasks = append(pq.tasks[:i], append([]Task{task}, pq.tasks[i:]...)...)
+			pq.tasks = append(pq.tasks[:i], append([]TaskInterface{task}, pq.tasks[i:]...)...)
 			inserted = true
 			break
 		}
@@ -238,7 +238,7 @@ func (pq *TaskPriorityQueue) Push(task Task) {
 }
 
 // Pop removes and returns the highest priority task
-func (pq *TaskPriorityQueue) Pop() Task {
+func (pq *TaskPriorityQueue) Pop() TaskInterface {
 	pq.mutex.Lock()
 	defer pq.mutex.Unlock()
 	
@@ -267,8 +267,8 @@ func (pq *TaskPriorityQueue) IsEmpty() bool {
 type BatchProcessor struct {
 	batchSize      int
 	flushInterval  time.Duration
-	processor      func(context.Context, []Task) error
-	taskBuffer     []Task
+	processor      func(context.Context, []TaskInterface) error
+	taskBuffer     []TaskInterface
 	mutex          sync.Mutex
 	flushTimer     *time.Timer
 	ctx            context.Context
@@ -276,7 +276,7 @@ type BatchProcessor struct {
 }
 
 // AddTask adds a task to the batch buffer
-func (bp *BatchProcessor) AddTask(task Task) {
+func (bp *BatchProcessor) AddTask(task TaskInterface) {
 	bp.mutex.Lock()
 	defer bp.mutex.Unlock()
 	
@@ -299,7 +299,7 @@ func (bp *BatchProcessor) flushBatch() {
 		return
 	}
 	
-	tasks := make([]Task, len(bp.taskBuffer))
+	tasks := make([]TaskInterface, len(bp.taskBuffer))
 	copy(tasks, bp.taskBuffer)
 	bp.taskBuffer = bp.taskBuffer[:0]
 	
@@ -368,7 +368,7 @@ func NewDefaultConfig() *ProcessorConfig {
 // NewTaskPriorityQueue creates a new priority queue for tasks
 func NewTaskPriorityQueue() *TaskPriorityQueue {
 	return &TaskPriorityQueue{
-		tasks: make([]Task, 0),
+		tasks: make([]TaskInterface, 0),
 	}
 }
 

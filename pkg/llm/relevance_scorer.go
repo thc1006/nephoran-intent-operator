@@ -16,8 +16,8 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
-// RelevanceScorer calculates multi-factor relevance scores for documents
-type RelevanceScorer struct {
+// RelevanceScorerImpl calculates multi-factor relevance scores for documents
+type RelevanceScorerImpl struct {
 	config          *RelevanceScorerConfig
 	logger          *slog.Logger
 	embeddings      rag.EmbeddingServiceInterface // Interface for semantic similarity
@@ -124,12 +124,12 @@ type TelecomDomainKnowledge struct {
 }
 
 // NewRelevanceScorer creates a new relevance scorer
-func NewRelevanceScorer(config *RelevanceScorerConfig, embeddings rag.EmbeddingServiceInterface) *RelevanceScorer {
+func NewRelevanceScorerImpl(config *RelevanceScorerConfig, embeddings rag.EmbeddingServiceInterface) *RelevanceScorerImpl {
 	if config == nil {
 		config = getDefaultRelevanceScorerConfig()
 	}
 
-	return &RelevanceScorer{
+	return &RelevanceScorerImpl{
 		config:          config,
 		logger:          slog.Default().With("component", "relevance-scorer"),
 		embeddings:      embeddings,
@@ -252,7 +252,7 @@ func initializeTelecomDomainKnowledge() *TelecomDomainKnowledge {
 }
 
 // CalculateRelevance calculates the overall relevance score for a document
-func (rs *RelevanceScorer) CalculateRelevance(ctx context.Context, request *RelevanceRequest) (*RelevanceScore, error) {
+func (rs *RelevanceScorerImpl) CalculateRelevance(ctx context.Context, request *RelevanceRequest) (*RelevanceScore, error) {
 	startTime := time.Now()
 
 	// Update metrics
@@ -374,7 +374,7 @@ func (rs *RelevanceScorer) CalculateRelevance(ctx context.Context, request *Rele
 }
 
 // validateRequest validates the relevance scoring request
-func (rs *RelevanceScorer) validateRequest(request *RelevanceRequest) error {
+func (rs *RelevanceScorerImpl) validateRequest(request *RelevanceRequest) error {
 	if request == nil {
 		return fmt.Errorf("relevance request cannot be nil")
 	}
@@ -388,7 +388,7 @@ func (rs *RelevanceScorer) validateRequest(request *RelevanceRequest) error {
 }
 
 // calculateSemanticScore calculates semantic similarity between query and document
-func (rs *RelevanceScorer) calculateSemanticScore(ctx context.Context, request *RelevanceRequest) (float32, error) {
+func (rs *RelevanceScorerImpl) calculateSemanticScore(ctx context.Context, request *RelevanceRequest) (float32, error) {
 	if rs.embeddings == nil || !rs.config.UseEmbeddingDistance {
 		// Fallback to keyword-based similarity
 		return rs.calculateKeywordSimilarity(request), nil
@@ -419,7 +419,7 @@ func (rs *RelevanceScorer) calculateSemanticScore(ctx context.Context, request *
 }
 
 // calculateKeywordSimilarity calculates similarity based on keyword overlap
-func (rs *RelevanceScorer) calculateKeywordSimilarity(request *RelevanceRequest) float32 {
+func (rs *RelevanceScorerImpl) calculateKeywordSimilarity(request *RelevanceRequest) float32 {
 	queryWords := rs.extractKeywords(strings.ToLower(request.Query))
 	docWords := rs.extractKeywords(strings.ToLower(request.Document.Content))
 
@@ -455,7 +455,7 @@ func (rs *RelevanceScorer) calculateKeywordSimilarity(request *RelevanceRequest)
 }
 
 // hasExactMatches checks for exact phrase matches
-func (rs *RelevanceScorer) hasExactMatches(query, content string) bool {
+func (rs *RelevanceScorerImpl) hasExactMatches(query, content string) bool {
 	queryLower := strings.ToLower(query)
 	contentLower := strings.ToLower(content)
 
@@ -474,7 +474,7 @@ func (rs *RelevanceScorer) hasExactMatches(query, content string) bool {
 }
 
 // extractKeywords extracts relevant keywords from text
-func (rs *RelevanceScorer) extractKeywords(text string) []string {
+func (rs *RelevanceScorerImpl) extractKeywords(text string) []string {
 	// Simple keyword extraction (in production, use more sophisticated NLP)
 	words := strings.Fields(text)
 	keywords := make([]string, 0)
@@ -499,7 +499,7 @@ func (rs *RelevanceScorer) extractKeywords(text string) []string {
 }
 
 // calculateAuthorityScore calculates authority score based on source credibility
-func (rs *RelevanceScorer) calculateAuthorityScore(request *RelevanceRequest) float32 {
+func (rs *RelevanceScorerImpl) calculateAuthorityScore(request *RelevanceRequest) float32 {
 	doc := request.Document
 
 	// Base authority from source
@@ -541,7 +541,7 @@ func (rs *RelevanceScorer) calculateAuthorityScore(request *RelevanceRequest) fl
 }
 
 // isStandardsDocument checks if document is a standards document
-func (rs *RelevanceScorer) isStandardsDocument(doc *types.TelecomDocument) bool {
+func (rs *RelevanceScorerImpl) isStandardsDocument(doc *types.TelecomDocument) bool {
 	indicators := []string{"TS ", "TR ", "RFC ", "IEEE ", "O-RAN.WG", "specification", "standard"}
 
 	titleLower := strings.ToLower(doc.Title)
@@ -558,7 +558,7 @@ func (rs *RelevanceScorer) isStandardsDocument(doc *types.TelecomDocument) bool 
 }
 
 // calculateVersionAuthority calculates authority boost based on version
-func (rs *RelevanceScorer) calculateVersionAuthority(version string) float64 {
+func (rs *RelevanceScorerImpl) calculateVersionAuthority(version string) float64 {
 	// Simple version authority calculation
 	// In production, this would be more sophisticated
 	versionLower := strings.ToLower(version)
@@ -583,7 +583,7 @@ func (rs *RelevanceScorer) calculateVersionAuthority(version string) float64 {
 }
 
 // calculateRecencyScore calculates recency score based on document age
-func (rs *RelevanceScorer) calculateRecencyScore(request *RelevanceRequest) float32 {
+func (rs *RelevanceScorerImpl) calculateRecencyScore(request *RelevanceRequest) float32 {
 	doc := request.Document
 
 	// Use UpdatedAt if available, otherwise CreatedAt
@@ -622,7 +622,7 @@ func (rs *RelevanceScorer) calculateRecencyScore(request *RelevanceRequest) floa
 }
 
 // calculateDomainScore calculates domain specificity score
-func (rs *RelevanceScorer) calculateDomainScore(request *RelevanceRequest) float32 {
+func (rs *RelevanceScorerImpl) calculateDomainScore(request *RelevanceRequest) float32 {
 	doc := request.Document
 	query := strings.ToLower(request.Query)
 	content := strings.ToLower(doc.Content + " " + doc.Title)
@@ -686,7 +686,7 @@ func (rs *RelevanceScorer) calculateDomainScore(request *RelevanceRequest) float
 }
 
 // calculateIntentScore calculates intent alignment score
-func (rs *RelevanceScorer) calculateIntentScore(request *RelevanceRequest) float32 {
+func (rs *RelevanceScorerImpl) calculateIntentScore(request *RelevanceRequest) float32 {
 	if request.IntentType == "" {
 		return 0.5 // Default when no intent specified
 	}
@@ -733,7 +733,7 @@ func (rs *RelevanceScorer) calculateIntentScore(request *RelevanceRequest) float
 }
 
 // generateExplanation generates a human-readable explanation of the scoring
-func (rs *RelevanceScorer) generateExplanation(scores struct {
+func (rs *RelevanceScorerImpl) generateExplanation(scores struct {
 	semantic, authority, recency, domain, intent float32
 }, request *RelevanceRequest) string {
 	var explanations []string
@@ -770,14 +770,14 @@ func (rs *RelevanceScorer) generateExplanation(scores struct {
 }
 
 // updateMetrics safely updates metrics
-func (rs *RelevanceScorer) updateMetrics(updater func(*ScoringMetrics)) {
+func (rs *RelevanceScorerImpl) updateMetrics(updater func(*ScoringMetrics)) {
 	rs.metrics.mutex.Lock()
 	defer rs.metrics.mutex.Unlock()
 	updater(rs.metrics)
 }
 
 // GetMetrics returns current metrics
-func (rs *RelevanceScorer) GetMetrics() *ScoringMetrics {
+func (rs *RelevanceScorerImpl) GetMetrics() *ScoringMetrics {
 	rs.metrics.mutex.RLock()
 	defer rs.metrics.mutex.RUnlock()
 
@@ -786,7 +786,7 @@ func (rs *RelevanceScorer) GetMetrics() *ScoringMetrics {
 }
 
 // GetConfig returns the current configuration
-func (rs *RelevanceScorer) GetConfig() *RelevanceScorerConfig {
+func (rs *RelevanceScorerImpl) GetConfig() *RelevanceScorerConfig {
 	rs.mutex.RLock()
 	defer rs.mutex.RUnlock()
 
@@ -795,7 +795,7 @@ func (rs *RelevanceScorer) GetConfig() *RelevanceScorerConfig {
 }
 
 // UpdateConfig updates the configuration
-func (rs *RelevanceScorer) UpdateConfig(config *RelevanceScorerConfig) error {
+func (rs *RelevanceScorerImpl) UpdateConfig(config *RelevanceScorerConfig) error {
 	if config == nil {
 		return fmt.Errorf("configuration cannot be nil")
 	}

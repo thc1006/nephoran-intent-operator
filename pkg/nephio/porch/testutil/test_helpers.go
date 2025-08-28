@@ -23,9 +23,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
@@ -34,9 +32,8 @@ import (
 func NewTestConfig() *porch.Config {
 	return &porch.Config{
 		PorchConfig: &porch.PorchServiceConfig{
-			Host: "http://localhost:8080",
+			Endpoint: "http://localhost:8080",
 			Timeout: 30 * time.Second,
-			MaxRetries: 3,
 		},
 		Repositories: make(map[string]*porch.RepositoryConfig),
 	}
@@ -139,12 +136,13 @@ func NewTestPackageRevision(name, repository string) *porch.PackageRevision {
 			PackageName:   name,
 			Revision:      "v1.0.0",
 			Lifecycle:     porch.PackageRevisionLifecyclePublished,
-			WorkspaceName: "",
 		},
 	}
 }
 
 // TestFunction creates a test function
+// Note: Function struct not defined in porch types - would need to be implemented
+/*
 func NewTestFunction(name string) *porch.Function {
 	return &porch.Function{
 		ObjectMeta: metav1.ObjectMeta{
@@ -157,6 +155,7 @@ func NewTestFunction(name string) *porch.Function {
 		},
 	}
 }
+*/
 
 // AssertNoError is a test helper for asserting no error
 func AssertNoError(t *testing.T, err error) {

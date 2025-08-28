@@ -153,6 +153,29 @@ type Task struct {
 	OnFailure func(*TaskResult)
 }
 
+// GetID implements TaskInterface
+func (t *Task) GetID() string {
+	return t.ID
+}
+
+// GetPriority implements TaskInterface
+func (t *Task) GetPriority() int {
+	return t.Priority
+}
+
+// GetTimeout implements TaskInterface
+func (t *Task) GetTimeout() time.Duration {
+	return t.Timeout
+}
+
+// Execute implements TaskInterface - this is a placeholder
+// Actual execution logic should be implemented by task processors
+func (t *Task) Execute(ctx context.Context) error {
+	// This is a placeholder implementation
+	// Real execution would be handled by the processing engine
+	return fmt.Errorf("task execution not implemented for type %s", t.Type)
+}
+
 // WorkflowResult contains the result of processing a NetworkIntent workflow
 type WorkflowResult struct {
 	// IntentID is the ID of the processed intent

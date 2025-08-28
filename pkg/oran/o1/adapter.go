@@ -99,7 +99,7 @@ type FaultManager interface {
 // PerformanceManager handles performance management operations
 type PerformanceManager interface {
 	// Performance measurement collection
-	GetPerformanceMetrics(ctx context.Context, filter *PerformanceFilter) (*PerformanceData, error)
+	GetPerformanceMetrics(ctx context.Context, filter *PerformanceFilter) (*AdapterPerformanceData, error)
 	GetHistoricalMetrics(ctx context.Context, filter *HistoricalFilter) (*HistoricalData, error)
 
 	// Performance measurement job management
@@ -253,7 +253,7 @@ type Credentials struct {
 // Alarm management structures
 
 // Alarm represents an O1 alarm
-type Alarm struct {
+type AdapterAlarm struct {
 	AlarmID           string                 `json:"alarmId"`
 	AlarmType         string                 `json:"alarmType"`
 	Type              string                 `json:"type"`                  // Missing field added
@@ -277,7 +277,7 @@ type Alarm struct {
 }
 
 // AlarmFilter represents alarm query filters
-type AlarmFilter struct {
+type AdapterAlarmFilter struct {
 	AlarmTypes          []string   `json:"alarmTypes,omitempty"`
 	ManagedObjectIDs    []string   `json:"managedObjectIds,omitempty"`
 	PerceivedSeverities []string   `json:"perceivedSeverities,omitempty"`
@@ -325,9 +325,9 @@ type ClearingCondition struct {
 }
 
 // AlarmSubscription represents an alarm subscription
-type AlarmSubscription struct {
+type AdapterAlarmSubscription struct {
 	SubscriptionID     string       `json:"subscriptionId"`
-	Filter             *AlarmFilter `json:"filter"`
+	Filter             *AdapterAlarmFilter `json:"filter"`
 	CallbackURL        string       `json:"callbackUrl"`
 	NotificationFormat string       `json:"notificationFormat"`
 	DeliveryMethod     string       `json:"deliveryMethod"`
@@ -346,8 +346,8 @@ type RetryPolicy struct {
 
 // Performance management structures
 
-// PerformanceData represents performance measurement data
-type PerformanceData struct {
+// AdapterPerformanceData represents performance measurement data in adapter
+type AdapterPerformanceData struct {
 	MeasurementTime   time.Time                 `json:"measurementTime"`
 	MeasurementPeriod time.Duration             `json:"measurementPeriod"`
 	ManagedObjectID   string                    `json:"managedObjectId"`

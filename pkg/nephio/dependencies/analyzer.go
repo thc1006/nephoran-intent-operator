@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"time"
-	"sort"
-	"encoding/json"
 	"hash/fnv"
 	"strconv"
 	"sync"

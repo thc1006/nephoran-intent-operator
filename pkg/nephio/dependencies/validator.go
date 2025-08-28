@@ -590,11 +590,9 @@ func (v *dependencyValidator) ScanForVulnerabilities(ctx context.Context, packag
 	// Check cache first
 	if v.scanResultCache != nil {
 		cacheKey := v.generateScanCacheKey(packages)
-		if cached, ok := v.scanResultCache.Get(cacheKey); ok {
+		if cached, err := v.scanResultCache.Get(ctx, cacheKey); err == nil {
 			v.metrics.ScanCacheHits.Inc()
-			if result, ok := cached.(*SecurityScanResult); ok {
-				return result, nil
-			}
+			return cached, nil
 		}
 		v.metrics.ScanCacheMisses.Inc()
 	}
@@ -649,7 +647,7 @@ func (v *dependencyValidator) ScanForVulnerabilities(ctx context.Context, packag
 	// Cache result
 	if v.scanResultCache != nil {
 		cacheKey := v.generateScanCacheKey(packages)
-		v.scanResultCache.Set(cacheKey, result, 24*time.Hour)
+		v.scanResultCache.Set(ctx, cacheKey, result)
 	}
 
 	// Update metrics
@@ -932,10 +930,10 @@ func (v *dependencyValidator) Close() error {
 
 	// Close caches
 	if v.validationCache != nil {
-		v.validationCache.Clear()
+		v.validationCache.Close()
 	}
 	if v.scanResultCache != nil {
-		v.scanResultCache.Clear()
+		v.scanResultCache.Close()
 	}
 
 	// Close worker pool - implementation specific
@@ -1766,12 +1764,11 @@ func (v *dependencyValidator) UpdateValidationRules(ctx context.Context, rules *
 // Helper methods for cleanup and metrics would be implemented here...
 func (v *dependencyValidator) cleanupCaches() {
 	// Implementation would clean up expired cache entries
+	ctx := context.Background()
 	if v.validationCache != nil {
-		v.validationCache.Clear()
+		v.validationCache.Clear(ctx)
 	}
-	if v.scanResultCache != nil {
-		v.scanResultCache.Clear()
-	}
+	// Note: scanResultCache doesn't have Clear method in interface
 }
 
 func (v *dependencyValidator) collectAndReportMetrics() {

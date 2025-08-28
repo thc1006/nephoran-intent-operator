@@ -290,8 +290,8 @@ type FilterExpression struct {
 	Compiled interface{} // Compiled expression (XPath, JSONPath, Regex, etc.)
 }
 
-// NotificationEvent represents a notification to be sent to subscribers
-type NotificationEvent struct {
+// ControllerNotificationEvent represents a notification to be sent to subscribers
+type ControllerNotificationEvent struct {
 	ID           string                 `json:"id"`
 	Type         string                 `json:"type"`
 	ElementID    string                 `json:"element_id"`

@@ -48,8 +48,8 @@ type O1AdaptorInterface interface {
 	IsConnected(me *nephoranv1.ManagedElement) bool
 }
 
-// O1Config holds the configuration for the O1 adaptor
-type O1Config struct {
+// AdaptorO1Config holds the configuration for the O1 adaptor
+type AdaptorO1Config struct {
 	DefaultPort        int           `yaml:"default_port" json:"default_port"`
 	ConnectTimeout     time.Duration `yaml:"connect_timeout" json:"connect_timeout"`
 	RequestTimeout     time.Duration `yaml:"request_timeout" json:"request_timeout"`
@@ -66,7 +66,7 @@ type O1Config struct {
 type O1Adaptor struct {
 	clients          map[string]*NetconfClient
 	clientsMux       sync.RWMutex
-	config           *O1Config
+	config           *AdaptorO1Config
 	yangRegistry     *YANGModelRegistry
 	subscriptions    map[string][]EventCallback
 	subsMux          sync.RWMutex
@@ -159,9 +159,9 @@ type YANGModels struct {
 }
 
 // NewO1Adaptor creates a new O1 adaptor with default configuration
-func NewO1Adaptor(config *O1Config, kubeClient client.Client) *O1Adaptor {
+func NewO1Adaptor(config *AdaptorO1Config, kubeClient client.Client) *O1Adaptor {
 	if config == nil {
-		config = &O1Config{
+		config = &AdaptorO1Config{
 			DefaultPort:    830, // NETCONF port
 			ConnectTimeout: 30 * time.Second,
 			RequestTimeout: 60 * time.Second,

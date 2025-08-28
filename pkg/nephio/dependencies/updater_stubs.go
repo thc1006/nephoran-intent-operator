@@ -2,7 +2,6 @@ package dependencies
 
 import (
 	"context"
-	"time"
 )
 
 // Additional stub types for compilation

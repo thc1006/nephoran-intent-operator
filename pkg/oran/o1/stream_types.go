@@ -14,8 +14,8 @@ type StreamFilter interface {
 	Apply(stream interface{}) interface{}
 }
 
-// O1SecurityManager handles security-related operations for O1 streams
-type O1SecurityManager interface {
+// StreamO1SecurityManager handles security-related operations for O1 streams
+type StreamO1SecurityManager interface {
 	// Encrypt secures the stream data
 	Encrypt(data []byte) ([]byte, error)
 	

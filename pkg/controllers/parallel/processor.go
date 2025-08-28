@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // NewParallelProcessor creates a new parallel processor
@@ -23,8 +23,8 @@ func NewParallelProcessor(config *ProcessorConfig) *ParallelProcessor {
 		maxConcurrency: config.MaxConcurrency,
 		timeout:        config.DefaultTimeout,
 		workerPool:     make(chan struct{}, config.MaxConcurrency),
-		taskQueue:      make(chan Task, config.QueueSize),
-		results:        make(chan *TaskResult, config.QueueSize),
+		taskQueue:      make(chan TaskInterface, config.QueueSize),
+		results:        make(chan *ControllerTaskResult, config.QueueSize),
 		ctx:            ctx,
 		cancel:         cancel,
 		logger:         logger,
@@ -50,7 +50,7 @@ func NewProcessorMetrics() *ProcessorMetrics {
 }
 
 // SubmitTask submits a task for parallel execution
-func (pp *ParallelProcessor) SubmitTask(task Task) error {
+func (pp *ParallelProcessor) SubmitTask(task TaskInterface) error {
 	select {
 	case pp.taskQueue <- task:
 		pp.updateMetrics(func(m *ProcessorMetrics) {
@@ -65,7 +65,7 @@ func (pp *ParallelProcessor) SubmitTask(task Task) error {
 }
 
 // SubmitTasks submits multiple tasks for parallel execution
-func (pp *ParallelProcessor) SubmitTasks(tasks []Task) error {
+func (pp *ParallelProcessor) SubmitTasks(tasks []TaskInterface) error {
 	for _, task := range tasks {
 		if err := pp.SubmitTask(task); err != nil {
 			return fmt.Errorf("failed to submit task %s: %w", task.GetID(), err)
@@ -75,7 +75,7 @@ func (pp *ParallelProcessor) SubmitTasks(tasks []Task) error {
 }
 
 // GetResult retrieves a task result (non-blocking)
-func (pp *ParallelProcessor) GetResult() *TaskResult {
+func (pp *ParallelProcessor) GetResult() *ControllerTaskResult {
 	select {
 	case result := <-pp.results:
 		return result
@@ -85,7 +85,7 @@ func (pp *ParallelProcessor) GetResult() *TaskResult {
 }
 
 // WaitForResult waits for a task result with timeout
-func (pp *ParallelProcessor) WaitForResult(timeout time.Duration) *TaskResult {
+func (pp *ParallelProcessor) WaitForResult(timeout time.Duration) *ControllerTaskResult {
 	select {
 	case result := <-pp.results:
 		return result
@@ -174,7 +174,7 @@ func (pp *ParallelProcessor) worker(workerID int) {
 }
 
 // processTask processes a single task
-func (pp *ParallelProcessor) processTask(task Task, logger logr) {
+func (pp *ParallelProcessor) processTask(task TaskInterface, logger logr.Logger) {
 	pp.wg.Add(1)
 	defer pp.wg.Done()
 
@@ -213,7 +213,7 @@ func (pp *ParallelProcessor) processTask(task Task, logger logr) {
 	success := err == nil
 
 	// Create result
-	result := &TaskResult{
+	result := &ControllerTaskResult{
 		TaskID:      task.GetID(),
 		Success:     success,
 		Error:       err,
@@ -275,7 +275,7 @@ func NewParallelReconciler(processor *ParallelProcessor) *ParallelReconciler {
 }
 
 // ReconcileParallel executes reconciliation tasks in parallel
-func (pr *ParallelReconciler) ReconcileParallel(ctx context.Context, tasks []Task) error {
+func (pr *ParallelReconciler) ReconcileParallel(ctx context.Context, tasks []TaskInterface) error {
 	if len(tasks) == 0 {
 		return nil
 	}
@@ -311,21 +311,21 @@ func (pr *ParallelReconciler) ReconcileParallel(ctx context.Context, tasks []Tas
 }
 
 // NewBatchProcessor creates a new batch processor
-func NewBatchProcessor(batchSize int, flushInterval time.Duration, processor func(context.Context, []Task) error) *BatchProcessor {
+func NewBatchProcessor(batchSize int, flushInterval time.Duration, processor func(context.Context, []TaskInterface) error) *BatchProcessor {
 	ctx, cancel := context.WithCancel(context.Background())
 	
 	return &BatchProcessor{
 		batchSize:     batchSize,
 		flushInterval: flushInterval,
 		processor:     processor,
-		taskBuffer:    make([]Task, 0, batchSize),
+		taskBuffer:    make([]TaskInterface, 0, batchSize),
 		ctx:           ctx,
 		cancel:        cancel,
 	}
 }
 
 // ExecuteWithRetry executes a task with retry logic
-func ExecuteWithRetry(ctx context.Context, task Task, maxRetries int, backoff time.Duration) error {
+func ExecuteWithRetry(ctx context.Context, task TaskInterface, maxRetries int, backoff time.Duration) error {
 	var lastErr error
 	
 	for attempt := 0; attempt <= maxRetries; attempt++ {

@@ -142,11 +142,11 @@ func (cb *AdvancedCircuitBreaker) allowRequest() bool {
 	state := CircuitState(atomic.LoadInt32(&cb.state))
 	now := time.Now().UnixNano()
 
-	switch state {
-	case int32(StateClosed):
+	switch CircuitState(state) {
+	case StateClosed:
 		return true
 
-	case int32(StateOpen):
+	case StateOpen:
 		// Check if timeout has passed
 		lastFailure := atomic.LoadInt64(&cb.lastFailureTime)
 		timeout := cb.getEffectiveTimeout()
@@ -154,13 +154,13 @@ func (cb *AdvancedCircuitBreaker) allowRequest() bool {
 			// Try to transition to half-open
 			if atomic.CompareAndSwapInt32(&cb.state, int32(StateOpen), int32(StateHalfOpen)) {
 				atomic.StoreInt64(&cb.successCount, 0)
-				cb.notifyStateChange(int32(StateOpen), int32(StateHalfOpen), "timeout_reached")
+				cb.notifyStateChange(StateOpen, StateHalfOpen, "timeout_reached")
 			}
 			return true
 		}
 		return false
 
-	case int32(StateHalfOpen):
+	case StateHalfOpen:
 		// Allow limited concurrent requests
 		concurrent := atomic.LoadInt64(&cb.concurrentRequests)
 		return concurrent < cb.maxConcurrentRequests/2 // Allow half the normal capacity
@@ -183,7 +183,7 @@ func (cb *AdvancedCircuitBreaker) onFailure() {
 		if atomic.CompareAndSwapInt32(&cb.state, int32(state), int32(StateOpen)) {
 
 			atomic.StoreInt64(&cb.successCount, 0)
-			cb.notifyStateChange(state, int32(StateOpen), "failure_threshold_exceeded")
+			cb.notifyStateChange(CircuitState(state), StateOpen, "failure_threshold_exceeded")
 		}
 	}
 }
@@ -202,7 +202,7 @@ func (cb *AdvancedCircuitBreaker) onSuccess() {
 
 		if atomic.CompareAndSwapInt32(&cb.state, int32(StateHalfOpen), int32(StateClosed)) {
 			atomic.StoreInt64(&cb.successCount, 0)
-			cb.notifyStateChange(int32(StateHalfOpen), int32(StateClosed), "success_threshold_reached")
+			cb.notifyStateChange(StateHalfOpen, StateClosed, "success_threshold_reached")
 		}
 	}
 }
@@ -350,8 +350,8 @@ func (cb *AdvancedCircuitBreaker) Reset() {
 	cb.latencyHistory = cb.latencyHistory[:0]
 	cb.latencyMutex.Unlock()
 
-	if oldState != int32(StateClosed) {
-		cb.notifyStateChange(oldState, int32(StateClosed), "manual_reset")
+	if oldState != StateClosed {
+		cb.notifyStateChange(oldState, StateClosed, "manual_reset")
 	}
 }
 
@@ -362,8 +362,8 @@ func (cb *AdvancedCircuitBreaker) ForceOpen() {
 
 	atomic.StoreInt64(&cb.lastFailureTime, time.Now().UnixNano())
 
-	if oldState != int32(StateOpen) {
-		cb.notifyStateChange(oldState, int32(StateOpen), "forced_open")
+	if oldState != StateOpen {
+		cb.notifyStateChange(oldState, StateOpen, "forced_open")
 	}
 }
 
@@ -375,8 +375,8 @@ func (cb *AdvancedCircuitBreaker) ForceClose() {
 	atomic.StoreInt64(&cb.failureCount, 0)
 	atomic.StoreInt64(&cb.successCount, 0)
 
-	if oldState != int32(StateClosed) {
-		cb.notifyStateChange(oldState, int32(StateClosed), "forced_close")
+	if oldState != StateClosed {
+		cb.notifyStateChange(oldState, StateClosed, "forced_close")
 	}
 }
 
@@ -416,7 +416,7 @@ func (cb *AdvancedCircuitBreaker) HealthCheck() map[string]interface{} {
 
 	return map[string]interface{}{
 		"state":               stats.StateName,
-		"healthy":             stats.State == int32(StateClosed),
+		"healthy":             CircuitState(stats.State) == StateClosed,
 		"failure_rate":        cb.GetFailureRate(),
 		"success_rate":        cb.GetSuccessRate(),
 		"concurrent_requests": stats.ConcurrentRequests,

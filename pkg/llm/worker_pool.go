@@ -945,11 +945,10 @@ type FastJSONParser struct{}
 type ResponsePool struct{}
 
 const (
-
-	PriorityUrgent Priority = iota + 10 // Offset to avoid conflicts
-	// PriorityHigh - defined in batch_processor.go
-	// PriorityNormal - defined in batch_processor.go  
-	// PriorityLow - defined in batch_processor.go
+	// PriorityUrgent is defined in types.go as an alias for CriticalPriority
+	// PriorityHigh - defined in types.go
+	// PriorityNormal - defined in types.go  
+	// PriorityLow - defined in types.go
 
 	TaskTypeLLMProcessing TaskType = "llm_processing"
 	TaskTypeValidation    TaskType = "validation"

@@ -648,10 +648,7 @@ func (dg *DependencyGraph) AddDependencies(key string, deps []string) {}
 func NewPatternAnalyzer() *PatternAnalyzer { return &PatternAnalyzer{} }
 
 
-func (cm *CacheMetrics) RecordOperation(op string, duration time.Duration) {}
-func (cm *CacheMetrics) RecordHit(level string)                            {}
-func (cm *CacheMetrics) RecordMiss()                                       {}
-func (cm *CacheMetrics) RecordSet()                                        {}
+// CacheMetrics methods are defined in cache.go
 
 
 func (ic *IntelligentCache) serializeJSON(v interface{}) ([]byte, error)    { return nil, nil }

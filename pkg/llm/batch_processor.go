@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
+	types "github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -459,7 +459,7 @@ func (bp *BatchProcessorImpl) updateMetrics(batchSize int, processingTime time.D
 
 // GetStats returns current batch processor statistics
 
-func (bp *BatchProcessorImpl) GetStats() BatchProcessorStats {
+func (bp *BatchProcessorImpl) GetStats() types.BatchProcessorStats {
 
 	bp.metricsMutex.RLock()
 	defer bp.metricsMutex.RUnlock()

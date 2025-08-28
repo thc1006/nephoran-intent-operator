@@ -146,10 +146,10 @@ type AlarmEdge struct {
 type AlarmSeverity string
 
 const (
-	AlarmSeverityMinor    AlarmSeverity = "MINOR"
-	AlarmSeverityMajor    AlarmSeverity = "MAJOR"
-	AlarmSeverityCritical AlarmSeverity = "CRITICAL"
-	AlarmSeverityWarning  AlarmSeverity = "WARNING"
+	FaultManagerAlarmSeverityMinor    AlarmSeverity = "MINOR"
+	FaultManagerAlarmSeverityMajor    AlarmSeverity = "MAJOR"
+	FaultManagerAlarmSeverityCritical AlarmSeverity = "CRITICAL"
+	FaultManagerAlarmSeverityWarning  AlarmSeverity = "WARNING"
 )
 
 // EscalationRule defines alarm escalation rules
