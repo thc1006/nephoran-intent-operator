@@ -92,10 +92,10 @@ function Measure-WorkflowPerformance {
     if ($content -match 'cancel-in-progress:\s*true') {
         $metrics.OptimizationFeatures += "Cancel in-progress runs"
     }
-    if ($content -match 'DOCKER_BUILDKIT:\s*["\']?1') {
+    if ($content -match 'DOCKER_BUILDKIT:\s*["'']?1') {
         $metrics.OptimizationFeatures += "Docker BuildKit enabled"
     }
-    if ($content -match 'CGO_ENABLED:\s*["\']?0') {
+    if ($content -match 'CGO_ENABLED:\s*["'']?0') {
         $metrics.OptimizationFeatures += "CGO disabled for faster builds"
     }
     if ($content -match 'GOPROXY:') {
@@ -287,11 +287,7 @@ The optimized CI pipeline achieves **${($Comparison.SpeedupFactor)}x speedup** w
 - **Improvement: +$($Comparison.CacheImprovement) cache layers**
 
 #### New Features Implemented
-$(if ($Comparison.NewFeatures) {
-    $Comparison.NewFeatures | ForEach-Object { "- ✅ $_" }
-} else {
-    "- No new features"
-} | Out-String)
+$(($Comparison.NewFeatures | ForEach-Object { "- ✅ $_" }) -join "`n")
 
 ## Recommendations
 

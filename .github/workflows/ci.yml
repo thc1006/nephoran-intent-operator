@@ -184,7 +184,7 @@ jobs:
       - name: Run golangci-lint with comprehensive checks
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.61.0
+          version: v1.62.0
           args: --timeout=10m --out-format=json:golangci-lint.json,colored-line-number
           skip-cache: false
           skip-pkg-cache: false
@@ -1214,14 +1214,14 @@ jobs:
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
             -ldflags="-w -s -X main.version=${{ github.sha }}" \
             -o dist/manager-linux-amd64 \
-            ./cmd/main.go
+            ./cmd/conductor/main.go
           
           # Build for linux/arm64
           echo "Building for linux/arm64..."
           CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
             -ldflags="-w -s -X main.version=${{ github.sha }}" \
             -o dist/manager-linux-arm64 \
-            ./cmd/main.go
+            ./cmd/conductor/main.go
           
           # Verify builds
           echo "Build verification:"
