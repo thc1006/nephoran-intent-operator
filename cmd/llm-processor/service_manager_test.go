@@ -8,12 +8,14 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 )
 
@@ -830,13 +832,23 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 			}
 			_ = mockCBMgr // Suppress unused variable warning
 
-			// Create mock health checker
-			healthChecker := &health.HealthChecker{}
+			// Create mock logger
+			logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+
+			// Create mock health checker with proper initialization
+			healthChecker := health.NewHealthChecker("test-service", "1.0.0", logger)
+
+			// Create minimal config for testing
+			config := &config.LLMProcessorConfig{
+				RAGEnabled: false, // Disable RAG to avoid nil config issues
+			}
 
 			// Create service manager with mock components (skip circuit breaker for this test)
 			sm := &ServiceManager{
+				config:            config,
 				circuitBreakerMgr: nil, // Circuit breaker health check will return "No circuit breakers registered"
 				healthChecker:     healthChecker,
+				logger:            logger,
 			}
 
 			// Register health checks (including circuit breaker check)
@@ -879,10 +891,22 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 		}
 		_ = mockCBMgr // Suppress unused variable warning
 
-		healthChecker := &health.HealthChecker{}
+		// Create mock logger
+		logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+
+		// Create properly initialized health checker
+		healthChecker := health.NewHealthChecker("test-service", "1.0.0", logger)
+		
+		// Create minimal config for testing
+		config := &config.LLMProcessorConfig{
+			RAGEnabled: false, // Disable RAG to avoid nil config issues
+		}
+
 		sm := &ServiceManager{
+			config:            config,
 			circuitBreakerMgr: nil, // Circuit breaker health check will return "No circuit breakers registered"
 			healthChecker:     healthChecker,
+			logger:            logger,
 		}
 
 		// Register health checks
@@ -907,10 +931,22 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 	})
 
 	t.Run("without_circuit_breaker_manager", func(t *testing.T) {
-		healthChecker := &health.HealthChecker{}
+		// Create mock logger
+		logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+
+		// Create properly initialized health checker
+		healthChecker := health.NewHealthChecker("test-service", "1.0.0", logger)
+		
+		// Create minimal config for testing
+		config := &config.LLMProcessorConfig{
+			RAGEnabled: false, // Disable RAG to avoid nil config issues
+		}
+
 		sm := &ServiceManager{
+			config:            config,
 			circuitBreakerMgr: nil, // No circuit breaker manager
 			healthChecker:     healthChecker,
+			logger:            logger,
 		}
 
 		// Register health checks

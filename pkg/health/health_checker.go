@@ -95,6 +95,9 @@ func NewHealthChecker(serviceName, serviceVersion string, logger *slog.Logger) *
 func (hc *HealthChecker) RegisterCheck(name string, checkFunc CheckFunc) {
 	hc.mu.Lock()
 	defer hc.mu.Unlock()
+	if hc.checks == nil {
+		hc.checks = make(map[string]CheckFunc)
+	}
 	hc.checks[name] = checkFunc
 	hc.logger.Info("Health check registered", "name", name, "service", hc.serviceName)
 }
@@ -103,6 +106,9 @@ func (hc *HealthChecker) RegisterCheck(name string, checkFunc CheckFunc) {
 func (hc *HealthChecker) RegisterDependency(name string, checkFunc CheckFunc) {
 	hc.mu.Lock()
 	defer hc.mu.Unlock()
+	if hc.dependencies == nil {
+		hc.dependencies = make(map[string]CheckFunc)
+	}
 	hc.dependencies[name] = checkFunc
 	hc.logger.Info("Dependency check registered", "name", name, "service", hc.serviceName)
 }

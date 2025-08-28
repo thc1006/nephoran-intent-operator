@@ -75,12 +75,7 @@ func setupBenchmarkEngine() (*ParallelProcessingEngine, func(), error) {
 		ReportsEnabled:      false,
 	}
 
-	errorTracker, err := monitoring.NewErrorTracker(errorConfig, logger)
-	if err != nil {
-		resilienceMgr.Stop()
-		cancel()
-		return nil, nil, err
-	}
+	// Remove unused errorTracker
 
 	// High-capacity engine configuration
 	engineConfig := &ProcessingEngineConfig{
@@ -96,17 +91,10 @@ func setupBenchmarkEngine() (*ParallelProcessingEngine, func(), error) {
 		HealthCheckInterval:  30 * time.Second,
 	}
 
-	engine, err := NewParallelProcessingEngine(
+	engine := NewParallelProcessingEngine(
 		engineConfig,
-		resilienceMgr,
-		errorTracker,
 		logger,
 	)
-	if err != nil {
-		resilienceMgr.Stop()
-		cancel()
-		return nil, nil, err
-	}
 
 	if err := engine.Start(ctx); err != nil {
 		resilienceMgr.Stop()

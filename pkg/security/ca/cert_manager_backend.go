@@ -2,19 +2,14 @@ package ca
 
 import (
 	"context"
-	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/hex"
-	"encoding/pem"
 	"fmt"
 	"time"
 
 	// certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	// certmanagermetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -212,7 +207,7 @@ func (b *CertManagerBackend) IssueCertificate(ctx context.Context, req *Certific
 	// Return a stub response for now
 	return &CertificateResponse{
 		RequestID:  req.ID,
-		Status:     StatusPending,
+		Status:     CertStatusPending,
 		IssuedBy:   string(BackendCertManager),
 		CreatedAt:  time.Now(),
 	}, fmt.Errorf("cert-manager backend is not fully implemented")
@@ -244,7 +239,7 @@ func (b *CertManagerBackend) RenewCertificate(ctx context.Context, req *Certific
 	// Stub implementation
 	return &CertificateResponse{
 		RequestID:  req.ID,
-		Status:     StatusPending,
+		Status:     CertStatusPending,
 		IssuedBy:   string(BackendCertManager),
 		CreatedAt:  time.Now(),
 	}, fmt.Errorf("cert-manager backend renewal is not fully implemented")
@@ -356,7 +351,7 @@ func (b *CertManagerBackend) waitForCertificateReady(ctx context.Context, certNa
 	// Stub implementation
 	return &CertificateResponse{
 		RequestID: req.ID,
-		Status:    StatusPending,
+		Status:    CertStatusPending,
 		IssuedBy:  string(BackendCertManager),
 		CreatedAt: time.Now(),
 	}, fmt.Errorf("cert-manager wait not implemented")
@@ -366,7 +361,7 @@ func (b *CertManagerBackend) buildCertificateResponse(ctx context.Context, certN
 	// Stub implementation
 	return &CertificateResponse{
 		RequestID: req.ID,
-		Status:    StatusPending,
+		Status:    CertStatusPending,
 		IssuedBy:  string(BackendCertManager),
 		CreatedAt: time.Now(),
 	}, fmt.Errorf("cert-manager response building not implemented")

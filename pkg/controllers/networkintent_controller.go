@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,6 +41,9 @@ type Dependencies interface {
 	GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase
 	GetMetricsCollector() *monitoring.MetricsCollector
 }
+
+// GitClientInterface is an alias to the git package ClientInterface
+type GitClientInterface = git.ClientInterface
 
 // Config holds the configuration for the NetworkIntentReconciler
 type Config struct {
@@ -131,6 +135,7 @@ type SliceConfiguration struct {
 type NetworkIntentReconciler struct {
 	client.Client
 	Scheme            *runtime.Scheme
+	logger            logr.Logger
 	deps              Dependencies
 	config            *Config
 	constants         *configPkg.Constants
@@ -236,6 +241,7 @@ func NewNetworkIntentReconciler(client client.Client, scheme *runtime.Scheme, de
 	r := &NetworkIntentReconciler{
 		Client:            client,
 		Scheme:            scheme,
+		logger:            ctrl.Log.WithName("networkintent-controller"),
 		deps:              deps,
 		config:            validatedConfig,
 		constants:         constants,
@@ -520,7 +526,7 @@ func (r *NetworkIntentReconciler) cleanupResourcesByLabel(ctx context.Context, l
 	for i := 0; i < items.Len(); i++ {
 		item := items.Index(i).Addr().Interface().(client.Object)
 		if err := r.Delete(ctx, item); err != nil && !apierrors.IsNotFound(err) {
-			r.logger.Error("Failed to delete resource", "error", err, "resource", item.GetName())
+			r.logger.Error(err, "Failed to delete resource", "resource", item.GetName())
 			// Continue with other resources instead of failing completely
 		} else {
 			r.logger.Info("Deleted resource", "type", reflect.TypeOf(item), "name", item.GetName())

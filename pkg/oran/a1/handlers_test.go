@@ -1061,11 +1061,7 @@ func (m *MockA1Storage) GetEIJob(ctx context.Context, eiJobID string) (*Enrichme
 	return args.Get(0).(*EnrichmentInfoJob), args.Error(1)
 }
 
-// Mock service methods for additional operations
-func (m *MockA1Service) RegisterConsumer(ctx context.Context, consumer *Consumer) error {
-	args := m.Called(ctx, consumer)
-	return args.Error(0)
-}
+// Mock service methods for additional operations - RegisterConsumer is implemented in server_test.go
 
 func (m *MockA1Service) CreateEIJob(ctx context.Context, eiJobID string, job *EnrichmentInfoJob) error {
 	args := m.Called(ctx, eiJobID, job)

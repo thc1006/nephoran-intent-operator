@@ -13,6 +13,51 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/testutil"
 )
 
+// Mock implementations for testing
+type mockTokenStore struct{}
+
+func (m *mockTokenStore) StoreToken(ctx context.Context, tokenID string, token string, expiry time.Time) error {
+	return nil
+}
+
+func (m *mockTokenStore) GetToken(ctx context.Context, tokenID string) (string, error) {
+	return "", nil
+}
+
+func (m *mockTokenStore) RevokeToken(ctx context.Context, tokenID string) error {
+	return nil
+}
+
+func (m *mockTokenStore) IsTokenRevoked(ctx context.Context, tokenID string) (bool, error) {
+	return false, nil
+}
+
+func (m *mockTokenStore) Cleanup(ctx context.Context) error {
+	return nil
+}
+
+func (m *mockTokenStore) CleanupExpired(ctx context.Context) error {
+	return nil
+}
+
+type mockTokenBlacklist struct{}
+
+func (m *mockTokenBlacklist) AddToken(ctx context.Context, tokenID string, expiry time.Time) error {
+	return nil
+}
+
+func (m *mockTokenBlacklist) IsBlacklisted(ctx context.Context, tokenID string) (bool, error) {
+	return false, nil
+}
+
+func (m *mockTokenBlacklist) Cleanup(ctx context.Context) error {
+	return nil
+}
+
+func (m *mockTokenBlacklist) CleanupExpired(ctx context.Context) error {
+	return nil
+}
+
 func TestNewJWTManager(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -70,13 +115,18 @@ func TestNewJWTManager(t *testing.T) {
 			tc := testutil.NewTestContext(t)
 			defer tc.Cleanup()
 
-			manager := auth.NewJWTManager(tt.config, tc.Logger)
+			// Create mock implementations for test
+		mockStore := &mockTokenStore{}
+		mockBlacklist := &mockTokenBlacklist{}
+		manager, err := auth.NewJWTManager(tt.config, mockStore, mockBlacklist, tc.Logger)
 
 			if tt.expectError {
+				assert.Error(t, err)
 				assert.Nil(t, manager)
 				return
 			}
 
+			require.NoError(t, err)
 			assert.NotNil(t, manager)
 			if tt.checkConfig != nil {
 				tt.checkConfig(t, manager)

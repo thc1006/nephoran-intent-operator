@@ -495,8 +495,20 @@ func (cb *CircuitBreaker) GetMetrics() *CircuitMetrics {
 	cb.metrics.mutex.RLock()
 	defer cb.metrics.mutex.RUnlock()
 
-	metrics := *cb.metrics
-	return &metrics
+	// Return a copy without the mutex to avoid copying lock values
+	return &CircuitMetrics{
+		TotalRequests:      cb.metrics.TotalRequests,
+		SuccessfulRequests: cb.metrics.SuccessfulRequests,
+		FailedRequests:     cb.metrics.FailedRequests,
+		RejectedRequests:   cb.metrics.RejectedRequests,
+		TimeoutRequests:    cb.metrics.TimeoutRequests,
+		StateTransitions:   cb.metrics.StateTransitions,
+		CurrentState:       cb.metrics.CurrentState,
+		LastStateChange:    cb.metrics.LastStateChange,
+		FailureRate:        cb.metrics.FailureRate,
+		AverageLatency:     cb.metrics.AverageLatency,
+		LastUpdated:        cb.metrics.LastUpdated,
+	}
 }
 
 // SetStateChangeCallback sets a callback for state changes

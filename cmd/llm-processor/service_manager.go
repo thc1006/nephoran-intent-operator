@@ -201,40 +201,45 @@ func (sm *ServiceManager) registerHealthChecks() {
 	})
 
 	// Circuit breaker health check
-	if sm.circuitBreakerMgr != nil {
-		sm.healthChecker.RegisterCheck("circuit_breaker", func(ctx context.Context) *health.Check {
-			stats := sm.circuitBreakerMgr.GetAllStats()
-			if len(stats) == 0 {
-				return &health.Check{
-					Status:  health.StatusHealthy,
-					Message: "No circuit breakers registered",
-				}
-			}
-
-			// Check if any circuit breakers are open
-			// Preallocate slice with expected capacity for performance
-			openBreakers := make([]string, 0, len(stats))
-			for name, state := range stats {
-				if cbStats, ok := state.(map[string]interface{}); ok {
-					if cbState, exists := cbStats["state"]; exists && cbState == "open" {
-						openBreakers = append(openBreakers, name)
-					}
-				}
-			}
-
-			if len(openBreakers) > 0 {
-				return &health.Check{
-					Status:  health.StatusUnhealthy,
-					Message: fmt.Sprintf("Circuit breakers in open state: %v", openBreakers),
-				}
-			}
-
+	sm.healthChecker.RegisterCheck("circuit_breaker", func(ctx context.Context) *health.Check {
+		if sm.circuitBreakerMgr == nil {
 			return &health.Check{
 				Status:  health.StatusHealthy,
-				Message: "All circuit breakers operational",
+				Message: "No circuit breakers registered",
 			}
-		})
-	}
+		}
+		
+		stats := sm.circuitBreakerMgr.GetAllStats()
+		if len(stats) == 0 {
+			return &health.Check{
+				Status:  health.StatusHealthy,
+				Message: "No circuit breakers registered",
+			}
+		}
+
+		// Check if any circuit breakers are open
+		// Preallocate slice with expected capacity for performance
+		openBreakers := make([]string, 0, len(stats))
+		for name, state := range stats {
+			if cbStats, ok := state.(map[string]interface{}); ok {
+				if cbState, exists := cbStats["state"]; exists && cbState == "open" {
+					openBreakers = append(openBreakers, name)
+				}
+			}
+		}
+
+		if len(openBreakers) > 0 {
+			return &health.Check{
+				Status:  health.StatusUnhealthy,
+				Message: fmt.Sprintf("Circuit breakers in open state: %v", openBreakers),
+			}
+		}
+
+		return &health.Check{
+			Status:  health.StatusHealthy,
+			Message: "All circuit breakers operational",
+		}
+	})
 
 	// Token manager health check
 	if sm.tokenManager != nil {
