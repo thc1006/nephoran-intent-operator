@@ -780,11 +780,7 @@ func (eb *EventBus) matchesFilter(data interface{}, filter *StreamFilter) bool {
 	return true
 }
 
-<<<<<<< HEAD
-// Rate limiter implementations
-=======
 // Rate limiter implementations for streaming
->>>>>>> integrate/mvp
 type StreamingRateLimit struct {
 	tokens     int
 	maxTokens  int
@@ -825,16 +821,7 @@ func (crl *ConnectionRateLimiter) WaitIfNeeded() {
 	}
 }
 
-<<<<<<< HEAD
-func minInt(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-=======
 // min function is available in o1_helpers.go
->>>>>>> integrate/mvp
 
 // Auth manager implementations (simplified)
 type TokenValidator struct{}

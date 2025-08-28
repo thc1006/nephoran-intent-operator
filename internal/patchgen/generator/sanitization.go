@@ -31,7 +31,7 @@ func SanitizePath(path string) string {
 // SanitizeCommand prevents command injection
 func SanitizeCommand(cmd string) string {
 	// Regex for dangerous shell characters
-	dangerousChars := regexp.MustCompile(`[;&|<>()$`]`)
+	dangerousChars := regexp.MustCompile(`[;&|<>()$` + "`" + `]`)
 	
 	// Remove dangerous characters
 	sanitizedCmd := dangerousChars.ReplaceAllString(cmd, "")

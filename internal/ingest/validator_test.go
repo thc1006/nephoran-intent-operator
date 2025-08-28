@@ -701,8 +701,6 @@ func TestValidateBytes_RealSchema(t *testing.T) {
 		t.Errorf("Expected nil result with invalid data but got: %+v", result)
 	}
 }
-<<<<<<< HEAD
-=======
 
 // TestNewValidator_FileSystemErrors tests error handling for filesystem issues
 func TestNewValidator_FileSystemErrors(t *testing.T) {
@@ -1027,4 +1025,3 @@ func createDeeplyNestedJSON(t *testing.T, depth int) []byte {
 	
 	return []byte(json)
 }
->>>>>>> integrate/mvp

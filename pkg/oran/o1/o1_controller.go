@@ -3,1011 +3,1085 @@ package o1
 import (
 	"context"
 	"fmt"
-<<<<<<< HEAD
-	// "reflect" // unused import removed
-=======
-	"reflect"
->>>>>>> integrate/mvp
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/client_golang/prometheus"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-
-	oranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const (
-	O1ControllerName = "o1-controller"
-	FinalizerName    = "o1.oran.nephio.org/finalizer"
-)
-
-// O1InterfaceController reconciles O1Interface objects
-type O1InterfaceController struct {
+// O1Controller manages O-RAN O1 interface operations following O-RAN.WG10.O1-Interface.0-v07.00
+type O1Controller struct {
 	client.Client
-	Log                  logr.Logger
-	Scheme               *runtime.Scheme
-	o1AdapterManager     *O1AdapterManager
-	streamingService     *StreamingService
-	netconfServerManager *NetconfServerManager
-	performanceManager   *CompletePerformanceManager
-	faultManager         *EnhancedFaultManager
-	configManager        *AdvancedConfigurationManager
-	securityManager      *ComprehensiveSecurityManager
-	accountingManager    *ComprehensiveAccountingManager
-	smoIntegration       *SMOIntegrationLayer
-	metrics              *O1ControllerMetrics
-	config               *O1ControllerConfig
+	Scheme                      *runtime.Scheme
+	Recorder                    record.EventRecorder
+	Log                         logr.Logger
+	configManager               *AdvancedConfigurationManager
+	faultManager                *EnhancedFaultManager
+	performanceManager          *CompletePerformanceManager
+	securityManager             *O1SecurityManager
+	streamingManager            *O1StreamingManager
+	yangRegistry                *YANGModelRegistry
+	netconfServer               *NetconfServer
+	restConfServer              *RestConfServer
+	elementRegistry             *ManagedElementRegistry
+	subscriptionManager         *SubscriptionManager
+	heartbeatManager            *HeartbeatManager
+	inventoryManager            *InventoryManager
+	softwareManager             *SoftwareManager
+	fileTransferManager         *FileTransferManager
+	notificationManager         *O1NotificationManager
+	mutex                       sync.RWMutex
+	running                     bool
+	config                      *O1ControllerConfig
+	managedElements             map[string]*ManagedElement
+	activeSubscriptions         map[string]*O1Subscription
+	metrics                     *O1Metrics
+	stopChan                    chan struct{}
 }
 
-// O1ControllerConfig represents O1 controller specific configuration
+// O1ControllerConfig holds O1 controller configuration
 type O1ControllerConfig struct {
-<<<<<<< HEAD
-	NetconfPort             int               `yaml:"netconf_port"`
-	StreamingPort           int               `yaml:"streaming_port"`
-	EnableTLS               bool              `yaml:"enable_tls"`
-	TLSCertSecret           string            `yaml:"tls_cert_secret"`
-	AuthenticationMethod    string            `yaml:"authentication_method"`
-	MaxConnections          int               `yaml:"max_connections"`
-	SessionTimeout          time.Duration     `yaml:"session_timeout"`
-	PerformanceCollection   PerformanceConfig `yaml:"performance_collection"`
-	FaultManagement         FaultConfig       `yaml:"fault_management"`
-	SecurityPolicies        SecurityConfig    `yaml:"security_policies"`
-	EnableMetrics           bool              `yaml:"enable_metrics"`
-	MaxConcurrentReconciles int               `yaml:"max_concurrent_reconciles"`
-	ReconcileInterval       time.Duration     `yaml:"reconcile_interval"`
-	HealthCheckInterval     time.Duration     `yaml:"health_check_interval"`
-=======
-	ReconcileInterval       time.Duration `yaml:"reconcile_interval"`
-	MaxConcurrentReconciles int           `yaml:"max_concurrent_reconciles"`
-	EnableMetrics           bool          `yaml:"enable_metrics"`
-	EnableWebhooks          bool          `yaml:"enable_webhooks"`
-	DefaultO1Config         *O1Config     `yaml:"default_o1_config"`
-	HealthCheckInterval     time.Duration `yaml:"health_check_interval"`
-	StatusUpdateInterval    time.Duration `yaml:"status_update_interval"`
+	NetconfPort             int
+	RestConfPort            int
+	EnableTLS               bool
+	TLSCertPath             string
+	TLSKeyPath              string
+	EnableAuthentication    bool
+	MaxConcurrentOperations int
+	OperationTimeout        time.Duration
+	HeartbeatInterval       time.Duration
+	SubscriptionTimeout     time.Duration
+	MaxSubscriptions        int
+	EnableFileTransfer      bool
+	MaxFileSize             int64
+	FileStoragePath         string
+	EnableNotifications     bool
+	MaxNotifications        int
+	NotificationBufferSize  int
+	EnableMetrics           bool
+	MetricsPort             int
 }
 
-// O1InterfaceConfig represents O1 interface configuration
-type O1InterfaceConfig struct {
-	NetconfPort           int               `yaml:"netconf_port"`
-	StreamingPort         int               `yaml:"streaming_port"`
-	EnableTLS             bool              `yaml:"enable_tls"`
-	TLSCertSecret         string            `yaml:"tls_cert_secret"`
-	AuthenticationMethod  string            `yaml:"authentication_method"`
-	MaxConnections        int               `yaml:"max_connections"`
-	SessionTimeout        time.Duration     `yaml:"session_timeout"`
-	PerformanceCollection PerformanceConfig `yaml:"performance_collection"`
-	FaultManagement       FaultConfig       `yaml:"fault_management"`
-	SecurityPolicies      SecurityConfig    `yaml:"security_policies"`
->>>>>>> integrate/mvp
+// ManagedElement represents a managed O-RAN network element
+type ManagedElement struct {
+	ID                  string                 `json:"id"`
+	Name                string                 `json:"name"`
+	Type                string                 `json:"type"` // O-RU, O-DU, O-CU-UP, O-CU-CP, etc.
+	IPAddress           string                 `json:"ip_address"`
+	Port                int                    `json:"port"`
+	Status              string                 `json:"status"` // CONNECTED, DISCONNECTED, ERROR
+	LastHeartbeat       time.Time              `json:"last_heartbeat"`
+	Capabilities        *ElementCapabilities   `json:"capabilities"`
+	Configuration       map[string]interface{} `json:"configuration"`
+	SoftwareVersion     string                 `json:"software_version"`
+	HardwareInfo        *HardwareInformation   `json:"hardware_info"`
+	ConnectionInfo      *ConnectionInfo        `json:"connection_info"`
+	PerformanceData     *PerformanceSnapshot   `json:"performance_data"`
+	AlarmSummary        *AlarmSummary          `json:"alarm_summary"`
+	OperationalState    string                 `json:"operational_state"`
+	AdministrativeState string                 `json:"administrative_state"`
+	LastUpdate          time.Time              `json:"last_update"`
+	Metadata            map[string]string      `json:"metadata"`
 }
 
-// PerformanceConfig holds performance management configuration
-type PerformanceConfig struct {
-	Enabled            bool          `yaml:"enabled"`
-	CollectionInterval time.Duration `yaml:"collection_interval"`
-	RetentionPeriod    time.Duration `yaml:"retention_period"`
-	Metrics            []string      `yaml:"metrics"`
+// ElementCapabilities describes element capabilities
+type ElementCapabilities struct {
+	SupportedYANGModules    []string          `json:"supported_yang_modules"`
+	SupportedProtocols      []string          `json:"supported_protocols"`
+	SupportedEncodings      []string          `json:"supported_encodings"`
+	MaxConcurrentSessions   int               `json:"max_concurrent_sessions"`
+	SupportedNotifications  []string          `json:"supported_notifications"`
+	PerformanceCapabilities map[string]string `json:"performance_capabilities"`
+	ConfigCapabilities      map[string]string `json:"config_capabilities"`
+	FaultCapabilities       map[string]string `json:"fault_capabilities"`
 }
 
-// FaultConfig holds fault management configuration
-type FaultConfig struct {
-	Enabled             bool     `yaml:"enabled"`
-	AlarmForwarding     bool     `yaml:"alarm_forwarding"`
-	CorrelationEnabled  bool     `yaml:"correlation_enabled"`
-	NotificationTargets []string `yaml:"notification_targets"`
-	SeverityFilters     []string `yaml:"severity_filters"`
+// HardwareInformation contains hardware details
+type HardwareInformation struct {
+	Manufacturer    string            `json:"manufacturer"`
+	Model           string            `json:"model"`
+	SerialNumber    string            `json:"serial_number"`
+	FirmwareVersion string            `json:"firmware_version"`
+	Components      []*HardwareModule `json:"components"`
 }
 
-// SecurityConfig holds security configuration
-type SecurityConfig struct {
-	EnableAuthentication  bool     `yaml:"enable_authentication"`
-	EnableAuthorization   bool     `yaml:"enable_authorization"`
-	RequiredRoles         []string `yaml:"required_roles"`
-	CertificateValidation bool     `yaml:"certificate_validation"`
-	AuditLogging          bool     `yaml:"audit_logging"`
+// HardwareModule represents a hardware module
+type HardwareModule struct {
+	Name         string `json:"name"`
+	Type         string `json:"type"`
+	SerialNumber string `json:"serial_number"`
+	Status       string `json:"status"`
 }
 
-// O1ControllerMetrics holds Prometheus metrics for the controller
-type O1ControllerMetrics struct {
-	ReconciliationsTotal   prometheus.CounterVec
-	ReconciliationDuration prometheus.HistogramVec
-	ReconciliationErrors   prometheus.CounterVec
-	ActiveO1Interfaces     prometheus.Gauge
-	O1ConnectionsActive    prometheus.GaugeVec
-	ConfigurationChanges   prometheus.CounterVec
-	AlarmsSent             prometheus.CounterVec
-	PerformanceDataPoints  prometheus.CounterVec
+// ConnectionInfo contains connection details
+type ConnectionInfo struct {
+	Protocol         string            `json:"protocol"`
+	SessionID        string            `json:"session_id"`
+	Username         string            `json:"username"`
+	ConnectedAt      time.Time         `json:"connected_at"`
+	LastActivity     time.Time         `json:"last_activity"`
+	SessionTimeout   time.Duration     `json:"session_timeout"`
+	Authenticated    bool              `json:"authenticated"`
+	ConnectionParams map[string]string `json:"connection_params"`
 }
 
-// O1AdapterManager manages O1 adapter instances
-type O1AdapterManager struct {
-	adapters map[string]*O1AdaptorInstance
-	mutex    sync.RWMutex
-	logger   logr.Logger
+// PerformanceSnapshot contains recent performance data
+type PerformanceSnapshot struct {
+	Timestamp          time.Time              `json:"timestamp"`
+	CPUUtilization     float64                `json:"cpu_utilization"`
+	MemoryUtilization  float64                `json:"memory_utilization"`
+	NetworkThroughput  map[string]float64     `json:"network_throughput"`
+	ActiveConnections  int                    `json:"active_connections"`
+	ProcessedMessages  int64                  `json:"processed_messages"`
+	ErrorRate          float64                `json:"error_rate"`
+	CustomMetrics      map[string]interface{} `json:"custom_metrics"`
 }
 
-// O1AdaptorInstance represents an instance of O1 adaptor for a specific network function
-type O1AdaptorInstance struct {
-	Name             string
-	Namespace        string
-	NetworkFunction  string
-	O1Adaptor        *O1Adaptor
-	NetconfServer    *NetconfServer
-	StreamingHandler *StreamingService
-	Status           O1InstanceStatus
-	Config           *O1Config
-	CreatedAt        time.Time
-	LastUpdate       time.Time
+// AlarmSummary contains alarm statistics
+type AlarmSummary struct {
+	TotalAlarms     int                `json:"total_alarms"`
+	CriticalAlarms  int                `json:"critical_alarms"`
+	MajorAlarms     int                `json:"major_alarms"`
+	MinorAlarms     int                `json:"minor_alarms"`
+	WarningAlarms   int                `json:"warning_alarms"`
+	AlarmsByType    map[string]int     `json:"alarms_by_type"`
+	LastAlarmTime   time.Time          `json:"last_alarm_time"`
+	AlarmsInLast24h int                `json:"alarms_in_last_24h"`
+	TopAlarmSources []string           `json:"top_alarm_sources"`
 }
 
-// O1InstanceStatus represents the status of an O1 adapter instance
-type O1InstanceStatus struct {
-	Phase                O1InstancePhase `json:"phase"`
-	Message              string          `json:"message,omitempty"`
-	LastTransitionTime   metav1.Time     `json:"lastTransitionTime,omitempty"`
-	ActiveConnections    int32           `json:"activeConnections"`
-	ProcessedAlarms      int64           `json:"processedAlarms"`
-	ProcessedPerfData    int64           `json:"processedPerfData"`
-	ConfigurationVersion string          `json:"configurationVersion"`
+// O1Subscription represents an O1 subscription
+type O1Subscription struct {
+	ID              string                 `json:"id"`
+	ElementID       string                 `json:"element_id"`
+	SubscriberID    string                 `json:"subscriber_id"`
+	Type            string                 `json:"type"` // CONFIG, FAULT, PERFORMANCE, NOTIFICATION
+	Filter          map[string]interface{} `json:"filter"`
+	Stream          string                 `json:"stream"`
+	Encoding        string                 `json:"encoding"`
+	Status          string                 `json:"status"`
+	CreatedAt       time.Time              `json:"created_at"`
+	LastNotified    time.Time              `json:"last_notified"`
+	NotificationCount int64                `json:"notification_count"`
+	ExpiresAt       time.Time              `json:"expires_at"`
+	Parameters      map[string]interface{} `json:"parameters"`
 }
 
-// O1InstancePhase represents the phase of an O1 instance
-type O1InstancePhase string
-
-const (
-	O1InstancePhasePending      O1InstancePhase = "Pending"
-	O1InstancePhaseInitializing O1InstancePhase = "Initializing"
-	O1InstancePhaseReady        O1InstancePhase = "Ready"
-	O1InstancePhaseFailed       O1InstancePhase = "Failed"
-	O1InstancePhaseTerminating  O1InstancePhase = "Terminating"
-)
-
-// NetconfServerManager manages NETCONF server instances
-type NetconfServerManager struct {
-	servers map[string]*NetconfServer
-	mutex   sync.RWMutex
-	logger  logr.Logger
+// ManagedElementRegistry manages discovered network elements
+type ManagedElementRegistry struct {
+	elements         map[string]*ManagedElement
+	discoveryEngines []ElementDiscoveryEngine
+	mutex            sync.RWMutex
+	config           *RegistryConfig
 }
 
-// NewO1InterfaceController creates a new O1 interface controller
-func NewO1InterfaceController(
+// RegistryConfig holds registry configuration
+type RegistryConfig struct {
+	AutoDiscovery         bool          `json:"auto_discovery"`
+	DiscoveryInterval     time.Duration `json:"discovery_interval"`
+	ElementTimeout        time.Duration `json:"element_timeout"`
+	MaxElements           int           `json:"max_elements"`
+	PersistentStorage     bool          `json:"persistent_storage"`
+	StoragePath           string        `json:"storage_path"`
+	EnableHealthChecks    bool          `json:"enable_health_checks"`
+	HealthCheckInterval   time.Duration `json:"health_check_interval"`
+	EnableBackup          bool          `json:"enable_backup"`
+	BackupInterval        time.Duration `json:"backup_interval"`
+}
+
+// ElementDiscoveryEngine interface for element discovery
+type ElementDiscoveryEngine interface {
+	DiscoverElements(ctx context.Context) ([]*ManagedElement, error)
+	GetEngineType() string
+	IsEnabled() bool
+	Configure(config map[string]interface{}) error
+}
+
+// SubscriptionManager manages O1 subscriptions
+type SubscriptionManager struct {
+	subscriptions   map[string]*O1Subscription
+	subscribers     map[string]*SubscriberInfo
+	streamManager   *StreamingManager
+	filterEngine    *SubscriptionFilterEngine
+	mutex           sync.RWMutex
+	config          *SubscriptionConfig
+	notifyQueue     chan *NotificationEvent
+	workers         []*SubscriptionWorker
+	metrics         *SubscriptionMetrics
+}
+
+// SubscriberInfo contains subscriber information
+type SubscriberInfo struct {
+	ID              string                 `json:"id"`
+	Name            string                 `json:"name"`
+	Type            string                 `json:"type"` // NETCONF, RESTCONF, WEBSOCKET, GRPC
+	Endpoint        string                 `json:"endpoint"`
+	Credentials     *SubscriberCredentials `json:"credentials"`
+	Active          bool                   `json:"active"`
+	LastActivity    time.Time              `json:"last_activity"`
+	Subscriptions   []string               `json:"subscriptions"`
+	MaxNotifications int                   `json:"max_notifications"`
+	Metadata        map[string]string      `json:"metadata"`
+}
+
+// SubscriberCredentials contains authentication info for subscribers
+type SubscriberCredentials struct {
+	Username string `json:"username"`
+	Password string `json:"password,omitempty"`
+	Token    string `json:"token,omitempty"`
+	CertPath string `json:"cert_path,omitempty"`
+	KeyPath  string `json:"key_path,omitempty"`
+}
+
+// SubscriptionConfig holds subscription configuration
+type SubscriptionConfig struct {
+	MaxSubscriptions        int           `json:"max_subscriptions"`
+	DefaultTimeout          time.Duration `json:"default_timeout"`
+	MaxNotificationBuffer   int           `json:"max_notification_buffer"`
+	WorkerPoolSize          int           `json:"worker_pool_size"`
+	EnableFiltering         bool          `json:"enable_filtering"`
+	EnableRateLimit         bool          `json:"enable_rate_limit"`
+	RateLimit               int           `json:"rate_limit"` // notifications per second
+	EnableCompression       bool          `json:"enable_compression"`
+	EnableEncryption        bool          `json:"enable_encryption"`
+	RetryAttempts           int           `json:"retry_attempts"`
+	RetryDelay              time.Duration `json:"retry_delay"`
+}
+
+// StreamingManager handles real-time data streaming
+type StreamingManager struct {
+	streams      map[string]*DataStream
+	connections  map[string]*StreamConnection
+	multiplexer  *StreamMultiplexer
+	encoder      *StreamEncoder
+	compressor   *StreamCompressor
+	mutex        sync.RWMutex
+	config       *StreamingConfig
+}
+
+// StreamConnection represents a streaming connection
+type StreamConnection struct {
+	ID           string                 `json:"id"`
+	Type         string                 `json:"type"`
+	RemoteAddr   string                 `json:"remote_addr"`
+	ConnectedAt  time.Time              `json:"connected_at"`
+	LastActivity time.Time              `json:"last_activity"`
+	BytesSent    int64                  `json:"bytes_sent"`
+	BytesRecv    int64                  `json:"bytes_recv"`
+	Active       bool                   `json:"active"`
+	Metadata     map[string]interface{} `json:"metadata"`
+}
+
+// StreamingConfig holds streaming configuration
+type StreamingConfig struct {
+	EnableWebSocket    bool   `json:"enable_websocket"`
+	EnableSSE          bool   `json:"enable_sse"`
+	EnableGRPCStream   bool   `json:"enable_grpc_stream"`
+	MaxConnections     int    `json:"max_connections"`
+	BufferSize         int    `json:"buffer_size"`
+	CompressionLevel   int    `json:"compression_level"`
+	EnableCompression  bool   `json:"enable_compression"`
+	HeartbeatInterval  time.Duration `json:"heartbeat_interval"`
+	ConnectionTimeout  time.Duration `json:"connection_timeout"`
+	MaxMessageSize     int64  `json:"max_message_size"`
+}
+
+// SubscriptionFilterEngine filters notifications based on subscription criteria
+type SubscriptionFilterEngine struct {
+	rules       map[string]*FilterRule
+	expressions map[string]*FilterExpression
+	mutex       sync.RWMutex
+}
+
+// FilterRule defines notification filtering rules
+type FilterRule struct {
+	ID         string                 `json:"id"`
+	Name       string                 `json:"name"`
+	Type       string                 `json:"type"` // XPATH, JSONPATH, REGEX, CUSTOM
+	Expression string                 `json:"expression"`
+	Parameters map[string]interface{} `json:"parameters"`
+	Enabled    bool                   `json:"enabled"`
+}
+
+// FilterExpression represents a compiled filter expression
+type FilterExpression struct {
+	Rule     *FilterRule
+	Compiled interface{} // Compiled expression (XPath, JSONPath, Regex, etc.)
+}
+
+// NotificationEvent represents a notification to be sent to subscribers
+type NotificationEvent struct {
+	ID           string                 `json:"id"`
+	Type         string                 `json:"type"`
+	ElementID    string                 `json:"element_id"`
+	Timestamp    time.Time              `json:"timestamp"`
+	Data         interface{}            `json:"data"`
+	Priority     int                    `json:"priority"`
+	Subscribers  []string               `json:"subscribers"`
+	Metadata     map[string]interface{} `json:"metadata"`
+	RetryCount   int                    `json:"retry_count"`
+	DeliveryTime time.Time              `json:"delivery_time"`
+}
+
+// SubscriptionWorker processes subscription notifications
+type SubscriptionWorker struct {
+	ID          int
+	manager     *SubscriptionManager
+	taskQueue   chan *NotificationTask
+	running     bool
+	stopChan    chan struct{}
+	metrics     *WorkerMetrics
+}
+
+// NotificationTask represents a notification delivery task
+type NotificationTask struct {
+	Event        *NotificationEvent
+	Subscription *O1Subscription
+	Subscriber   *SubscriberInfo
+	Attempt      int
+	ScheduledAt  time.Time
+}
+
+// WorkerMetrics tracks worker performance
+type WorkerMetrics struct {
+	TasksProcessed  int64
+	TasksFailed     int64
+	AverageLatency  time.Duration
+	LastActivity    time.Time
+}
+
+// SubscriptionMetrics tracks subscription system metrics
+type SubscriptionMetrics struct {
+	ActiveSubscriptions     int64
+	TotalNotifications      int64
+	DeliveredNotifications  int64
+	FailedNotifications     int64
+	AverageDeliveryLatency  time.Duration
+	SubscriberCount         int64
+	FilteredNotifications   int64
+}
+
+// HeartbeatManager manages element heartbeats and connectivity
+type HeartbeatManager struct {
+	registry        *ManagedElementRegistry
+	heartbeats      map[string]*HeartbeatInfo
+	config          *HeartbeatConfig
+	ticker          *time.Ticker
+	mutex           sync.RWMutex
+	running         bool
+	stopChan        chan struct{}
+	metrics         *HeartbeatMetrics
+}
+
+// HeartbeatInfo tracks heartbeat information for an element
+type HeartbeatInfo struct {
+	ElementID       string        `json:"element_id"`
+	LastHeartbeat   time.Time     `json:"last_heartbeat"`
+	HeartbeatCount  int64         `json:"heartbeat_count"`
+	MissedBeats     int           `json:"missed_beats"`
+	AverageLatency  time.Duration `json:"average_latency"`
+	Status          string        `json:"status"`
+	ConsecutiveFails int          `json:"consecutive_fails"`
+}
+
+// HeartbeatConfig holds heartbeat configuration
+type HeartbeatConfig struct {
+	Interval        time.Duration `json:"interval"`
+	Timeout         time.Duration `json:"timeout"`
+	MaxMissedBeats  int           `json:"max_missed_beats"`
+	RetryCount      int           `json:"retry_count"`
+	RetryInterval   time.Duration `json:"retry_interval"`
+	EnableRecovery  bool          `json:"enable_recovery"`
+	RecoveryDelay   time.Duration `json:"recovery_delay"`
+}
+
+// HeartbeatMetrics tracks heartbeat system metrics
+type HeartbeatMetrics struct {
+	ActiveElements      int64
+	TotalHeartbeats     int64
+	MissedHeartbeats    int64
+	AverageLatency      time.Duration
+	UnhealthyElements   int64
+	RecoveredElements   int64
+}
+
+// O1Metrics holds comprehensive O1 controller metrics
+type O1Metrics struct {
+	ActiveElements        int64
+	TotalConnections      int64
+	FailedConnections     int64
+	ConfigOperations      int64
+	FaultNotifications    int64
+	PerformanceCollections int64
+	ActiveSubscriptions   int64
+	ProcessedNotifications int64
+	AverageResponseTime   time.Duration
+	ErrorRate             float64
+	SystemUptime          time.Duration
+	StartTime             time.Time
+}
+
+// NewO1Controller creates a new O1 controller
+func NewO1Controller(
 	client client.Client,
-	logger logr.Logger,
 	scheme *runtime.Scheme,
+	recorder record.EventRecorder,
 	config *O1ControllerConfig,
-) *O1InterfaceController {
-
-	// Initialize metrics
-	metrics := &O1ControllerMetrics{
-		ReconciliationsTotal: *prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "o1_controller_reconciliations_total",
-				Help: "Total number of reconciliations performed by O1 controller",
-			},
-			[]string{"namespace", "name", "result"},
-		),
-		ReconciliationDuration: *prometheus.NewHistogramVec(
-			prometheus.HistogramOpts{
-				Name: "o1_controller_reconciliation_duration_seconds",
-				Help: "Duration of reconciliation operations",
-			},
-			[]string{"namespace", "name"},
-		),
-		ReconciliationErrors: *prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "o1_controller_reconciliation_errors_total",
-				Help: "Total number of reconciliation errors",
-			},
-			[]string{"namespace", "name", "error_type"},
-		),
-		ActiveO1Interfaces: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Name: "o1_controller_active_interfaces",
-				Help: "Number of active O1 interfaces",
-			},
-		),
-		O1ConnectionsActive: *prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "o1_interface_connections_active",
-				Help: "Number of active connections per O1 interface",
-			},
-			[]string{"namespace", "name", "protocol"},
-		),
-		ConfigurationChanges: *prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "o1_interface_configuration_changes_total",
-				Help: "Total number of configuration changes",
-			},
-			[]string{"namespace", "name", "change_type"},
-		),
-		AlarmsSent: *prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "o1_interface_alarms_sent_total",
-				Help: "Total number of alarms sent",
-			},
-			[]string{"namespace", "name", "severity"},
-		),
-		PerformanceDataPoints: *prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "o1_interface_performance_data_points_total",
-				Help: "Total number of performance data points collected",
-			},
-			[]string{"namespace", "name", "metric_type"},
-		),
+) (*O1Controller, error) {
+	if config == nil {
+		config = getDefaultO1Config()
 	}
 
-	// Register metrics
-	if config.EnableMetrics {
-		prometheus.MustRegister(
-			metrics.ReconciliationsTotal,
-			metrics.ReconciliationDuration,
-			metrics.ReconciliationErrors,
-			metrics.ActiveO1Interfaces,
-			metrics.O1ConnectionsActive,
-			metrics.ConfigurationChanges,
-			metrics.AlarmsSent,
-			metrics.PerformanceDataPoints,
-		)
+	logger := ctrl.Log.WithName("o1-controller")
+
+	// Initialize YANG model registry
+	yangRegistry := NewYANGModelRegistry()
+	if err := yangRegistry.LoadStandardModels(); err != nil {
+		return nil, fmt.Errorf("failed to load YANG models: %w", err)
 	}
 
-	// Initialize managers
-	o1AdapterManager := &O1AdapterManager{
-		adapters: make(map[string]*O1AdaptorInstance),
-		logger:   logger,
+	// Initialize core managers
+	configManager := NewAdvancedConfigurationManager(&ConfigManagerConfig{
+		MaxVersions:          1000,
+		EnableDriftDetection: true,
+		ValidationMode:       "STRICT",
+		EnableBulkOps:        true,
+	}, yangRegistry)
+
+	faultManager := NewEnhancedFaultManager(&FaultManagerConfig{
+		MaxAlarms:           10000,
+		CorrelationWindow:   5 * time.Minute,
+		EnableWebSocket:     true,
+		EnableRootCause:     true,
+		EnableMasking:       true,
+	})
+
+	performanceManager := NewCompletePerformanceManager(&PerformanceManagerConfig{
+		EnableRealTimeStreaming: true,
+		EnableAnomalyDetection:  true,
+		EnableReporting:         true,
+		MaxConcurrentCollectors: 100,
+	})
+
+	securityManager := NewO1SecurityManager(&O1SecurityConfig{
+		EnableTLS:            config.EnableTLS,
+		EnableAuthentication: config.EnableAuthentication,
+		TLSCertPath:          config.TLSCertPath,
+		TLSKeyPath:           config.TLSKeyPath,
+	})
+
+	streamingManager := NewO1StreamingManager(&O1StreamingConfig{
+		EnableRealTime:    true,
+		EnableCompression: true,
+		MaxConnections:    1000,
+		BufferSize:        10000,
+	})
+
+	// Initialize element registry
+	elementRegistry := NewManagedElementRegistry(&RegistryConfig{
+		AutoDiscovery:       true,
+		DiscoveryInterval:   5 * time.Minute,
+		ElementTimeout:      30 * time.Second,
+		MaxElements:         10000,
+		EnableHealthChecks:  true,
+		HealthCheckInterval: 30 * time.Second,
+	})
+
+	// Initialize subscription manager
+	subscriptionManager := NewSubscriptionManager(&SubscriptionConfig{
+		MaxSubscriptions:      1000,
+		DefaultTimeout:        30 * time.Minute,
+		MaxNotificationBuffer: 10000,
+		WorkerPoolSize:        10,
+		EnableFiltering:       true,
+		EnableRateLimit:       true,
+		RateLimit:             1000,
+	})
+
+	// Initialize heartbeat manager
+	heartbeatManager := NewHeartbeatManager(elementRegistry, &HeartbeatConfig{
+		Interval:       30 * time.Second,
+		Timeout:        10 * time.Second,
+		MaxMissedBeats: 3,
+		RetryCount:     3,
+		EnableRecovery: true,
+	})
+
+	// Initialize other managers with placeholder implementations
+	inventoryManager := NewInventoryManager()
+	softwareManager := NewSoftwareManager()
+	fileTransferManager := NewFileTransferManager(&FileTransferConfig{
+		Enabled:     config.EnableFileTransfer,
+		MaxFileSize: config.MaxFileSize,
+		StoragePath: config.FileStoragePath,
+	})
+	notificationManager := NewO1NotificationManager(&O1NotificationConfig{
+		Enabled:        config.EnableNotifications,
+		MaxNotifications: config.MaxNotifications,
+		BufferSize:     config.NotificationBufferSize,
+	})
+
+	controller := &O1Controller{
+		Client:                  client,
+		Scheme:                  scheme,
+		Recorder:                recorder,
+		Log:                     logger,
+		configManager:           configManager,
+		faultManager:            faultManager,
+		performanceManager:      performanceManager,
+		securityManager:         securityManager,
+		streamingManager:        streamingManager,
+		yangRegistry:            yangRegistry,
+		elementRegistry:         elementRegistry,
+		subscriptionManager:     subscriptionManager,
+		heartbeatManager:        heartbeatManager,
+		inventoryManager:        inventoryManager,
+		softwareManager:         softwareManager,
+		fileTransferManager:     fileTransferManager,
+		notificationManager:     notificationManager,
+		config:                  config,
+		managedElements:         make(map[string]*ManagedElement),
+		activeSubscriptions:     make(map[string]*O1Subscription),
+		stopChan:                make(chan struct{}),
+		metrics:                 &O1Metrics{StartTime: time.Now()},
 	}
 
-	netconfServerManager := &NetconfServerManager{
-		servers: make(map[string]*NetconfServer),
-		logger:  logger,
+	// Initialize protocol servers
+	if err := controller.initializeServers(); err != nil {
+		return nil, fmt.Errorf("failed to initialize servers: %w", err)
 	}
 
-	// Initialize streaming service
-	streamingConfig := &StreamingConfig{
-		MaxConnections:          1000,
-		ConnectionTimeout:       5 * time.Minute,
-		HeartbeatInterval:       30 * time.Second,
-		MaxSubscriptionsPerConn: 100,
-		BufferSize:              1024,
-		CompressionEnabled:      true,
-		EnableAuth:              true,
-		RateLimitPerSecond:      100,
-	}
-	streamingService := NewStreamingService(streamingConfig, nil)
-
-	return &O1InterfaceController{
-		Client:               client,
-		Log:                  logger,
-		Scheme:               scheme,
-		o1AdapterManager:     o1AdapterManager,
-		streamingService:     streamingService,
-		netconfServerManager: netconfServerManager,
-		metrics:              metrics,
-		config:               config,
-	}
+	return controller, nil
 }
 
-// SetupWithManager sets up the controller with the manager
-func (r *O1InterfaceController) SetupWithManager(mgr ctrl.Manager) error {
-	controllerOptions := controller.Options{
-		MaxConcurrentReconciles: r.config.MaxConcurrentReconciles,
+// Start starts the O1 controller and all its components
+func (r *O1Controller) Start(ctx context.Context) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	if r.running {
+		return fmt.Errorf("O1 controller is already running")
 	}
 
+	r.Log.Info("starting O1 controller")
+
+	// Start core managers
+	if err := r.configManager.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start configuration manager: %w", err)
+	}
+
+	if err := r.faultManager.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start fault manager: %w", err)
+	}
+
+	if err := r.performanceManager.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start performance manager: %w", err)
+	}
+
+	// Start streaming manager
+	if err := r.streamingManager.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start streaming manager: %w", err)
+	}
+
+	// Start subscription manager
+	if err := r.subscriptionManager.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start subscription manager: %w", err)
+	}
+
+	// Start heartbeat manager
+	if err := r.heartbeatManager.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start heartbeat manager: %w", err)
+	}
+
+	// Start protocol servers
+	if r.netconfServer != nil {
+		go func() {
+			if err := r.netconfServer.Start(ctx); err != nil {
+				r.Log.Error(err, "failed to start NETCONF server")
+			}
+		}()
+	}
+
+	if r.restConfServer != nil {
+		go func() {
+			if err := r.restConfServer.Start(ctx); err != nil {
+				r.Log.Error(err, "failed to start RESTCONF server")
+			}
+		}()
+	}
+
+	// Start element discovery
+	go r.elementDiscoveryLoop(ctx)
+
+	// Start metrics collection
+	if r.config.EnableMetrics {
+		go r.metricsCollectionLoop(ctx)
+	}
+
+	r.running = true
+	r.Log.Info("O1 controller started successfully")
+
+	return nil
+}
+
+// Stop stops the O1 controller and all its components
+func (r *O1Controller) Stop(ctx context.Context) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	if !r.running {
+		return nil
+	}
+
+	r.Log.Info("stopping O1 controller")
+
+	// Signal stop to all components
+	close(r.stopChan)
+
+	// Stop managers
+	if r.configManager != nil {
+		r.configManager.Stop(ctx)
+	}
+
+	if r.faultManager != nil {
+		r.faultManager.Stop(ctx)
+	}
+
+	if r.performanceManager != nil {
+		r.performanceManager.Stop(ctx)
+	}
+
+	if r.streamingManager != nil {
+		r.streamingManager.Stop(ctx)
+	}
+
+	if r.subscriptionManager != nil {
+		r.subscriptionManager.Stop(ctx)
+	}
+
+	if r.heartbeatManager != nil {
+		r.heartbeatManager.Stop(ctx)
+	}
+
+	// Stop protocol servers
+	if r.netconfServer != nil {
+		r.netconfServer.Stop(ctx)
+	}
+
+	if r.restConfServer != nil {
+		r.restConfServer.Stop(ctx)
+	}
+
+	r.running = false
+	r.Log.Info("O1 controller stopped")
+
+	return nil
+}
+
+// Reconcile implements the main reconciliation logic
+func (r *O1Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := r.Log.WithValues("request", req.NamespacedName)
+	log.V(1).Info("reconciling O1 request")
+
+	// Update metrics
+	r.updateMetrics()
+
+	// Process any pending configuration changes
+	if err := r.processConfigurationUpdates(ctx); err != nil {
+		log.Error(err, "failed to process configuration updates")
+		return ctrl.Result{RequeueAfter: time.Minute}, err
+	}
+
+	// Process any pending fault events
+	if err := r.processFaultEvents(ctx); err != nil {
+		log.Error(err, "failed to process fault events")
+		return ctrl.Result{RequeueAfter: time.Minute}, err
+	}
+
+	// Process any pending performance data
+	if err := r.processPerformanceData(ctx); err != nil {
+		log.Error(err, "failed to process performance data")
+		return ctrl.Result{RequeueAfter: time.Minute}, err
+	}
+
+	// Process any pending subscriptions
+	if err := r.processSubscriptions(ctx); err != nil {
+		log.Error(err, "failed to process subscriptions")
+		return ctrl.Result{RequeueAfter: time.Minute}, err
+	}
+
+	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+}
+
+// SetupWithManager sets up the controller with the Manager
+func (r *O1Controller) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&oranv1.O1Interface{}).
-		Owns(&corev1.Service{}).
-		Owns(&corev1.ConfigMap{}).
-		Owns(&corev1.Secret{}).
-		WithOptions(controllerOptions).
-		WithEventFilter(predicate.GenerationChangedPredicate{}).
+		Named("o1-controller").
 		Complete(r)
 }
 
-// Reconcile reconciles O1Interface resources
-func (r *O1InterfaceController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("o1interface", req.NamespacedName)
-	startTime := time.Now()
+// RegisterManagedElement registers a new managed element
+func (r *O1Controller) RegisterManagedElement(ctx context.Context, element *ManagedElement) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
-	// Get O1Interface instance
-	o1Interface := &oranv1.O1Interface{}
-	err := r.Get(ctx, req.NamespacedName, o1Interface)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			log.Info("O1Interface resource not found, likely deleted")
-			r.handleDeletion(ctx, req.NamespacedName)
-			return ctrl.Result{}, nil
-		}
-		log.Error(err, "Failed to get O1Interface")
-		r.recordReconciliationMetrics(req.NamespacedName, "error", startTime)
-		return ctrl.Result{}, err
+	r.Log.Info("registering managed element", "elementID", element.ID, "type", element.Type)
+
+	// Validate element
+	if err := r.validateManagedElement(element); err != nil {
+		return fmt.Errorf("invalid managed element: %w", err)
 	}
 
-	// Handle deletion
-	if !o1Interface.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDeletion(ctx, o1Interface)
+	// Register with element registry
+	if err := r.elementRegistry.Register(element); err != nil {
+		return fmt.Errorf("failed to register element: %w", err)
 	}
 
-	// Add finalizer if not present
-	if !controllerutil.ContainsFinalizer(o1Interface, FinalizerName) {
-		controllerutil.AddFinalizer(o1Interface, FinalizerName)
-		err := r.Update(ctx, o1Interface)
-		if err != nil {
-			log.Error(err, "Failed to add finalizer")
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{Requeue: true}, nil
-	}
+	// Store in controller
+	r.managedElements[element.ID] = element
 
-	// Reconcile the O1Interface
-	result, err := r.reconcileO1Interface(ctx, o1Interface)
-	if err != nil {
-		r.recordReconciliationMetrics(req.NamespacedName, "error", startTime)
-		r.metrics.ReconciliationErrors.WithLabelValues(
-			req.Namespace,
-			req.Name,
-			"reconcile_error",
-		).Inc()
-	} else {
-		r.recordReconciliationMetrics(req.NamespacedName, "success", startTime)
-	}
-
-	return result, err
-}
-
-// reconcileO1Interface reconciles the O1Interface resource
-func (r *O1InterfaceController) reconcileO1Interface(ctx context.Context, o1Interface *oranv1.O1Interface) (ctrl.Result, error) {
-	log := r.Log.WithValues("o1interface", o1Interface.Name, "namespace", o1Interface.Namespace)
-
-	// Validate configuration
-	if err := r.validateO1InterfaceSpec(o1Interface); err != nil {
-		log.Error(err, "Invalid O1Interface specification")
-		r.updateStatus(ctx, o1Interface, O1InstancePhaseFailed, err.Error())
-		return ctrl.Result{}, err
-	}
-
-	// Get or create O1 adapter instance
-	adapterInstance, err := r.getOrCreateAdapterInstance(ctx, o1Interface)
-	if err != nil {
-		log.Error(err, "Failed to get or create adapter instance")
-		r.updateStatus(ctx, o1Interface, O1InstancePhaseFailed, err.Error())
-		return ctrl.Result{}, err
-	}
-
-	// Update status to initializing
-	r.updateStatus(ctx, o1Interface, O1InstancePhaseInitializing, "Initializing O1 interface components")
-
-	// Create or update NETCONF server
-	if err := r.reconcileNetconfServer(ctx, o1Interface, adapterInstance); err != nil {
-		log.Error(err, "Failed to reconcile NETCONF server")
-		r.updateStatus(ctx, o1Interface, O1InstancePhaseFailed, fmt.Sprintf("NETCONF server error: %v", err))
-		return ctrl.Result{}, err
-	}
-
-	// Create or update streaming service
-	if err := r.reconcileStreamingService(ctx, o1Interface, adapterInstance); err != nil {
-		log.Error(err, "Failed to reconcile streaming service")
-		r.updateStatus(ctx, o1Interface, O1InstancePhaseFailed, fmt.Sprintf("Streaming service error: %v", err))
-		return ctrl.Result{}, err
-	}
-
-	// Initialize FCAPS managers
-	if err := r.initializeFCAPSManagers(ctx, o1Interface, adapterInstance); err != nil {
-		log.Error(err, "Failed to initialize FCAPS managers")
-		r.updateStatus(ctx, o1Interface, O1InstancePhaseFailed, fmt.Sprintf("FCAPS initialization error: %v", err))
-		return ctrl.Result{}, err
-	}
-
-	// Create Kubernetes resources (Services, ConfigMaps, etc.)
-	if err := r.reconcileKubernetesResources(ctx, o1Interface); err != nil {
-		log.Error(err, "Failed to reconcile Kubernetes resources")
-		r.updateStatus(ctx, o1Interface, O1InstancePhaseFailed, fmt.Sprintf("Kubernetes resources error: %v", err))
-		return ctrl.Result{}, err
-	}
-
-	// Start health monitoring
-	go r.startHealthMonitoring(ctx, adapterInstance)
-
-	// Update status to ready
-	r.updateStatus(ctx, o1Interface, O1InstancePhaseReady, "O1 interface is ready and operational")
-
-	// Update metrics
-	r.metrics.ActiveO1Interfaces.Inc()
-	r.metrics.O1ConnectionsActive.WithLabelValues(
-		o1Interface.Namespace,
-		o1Interface.Name,
-		"netconf",
-	).Set(float64(adapterInstance.Status.ActiveConnections))
-
-	log.Info("Successfully reconciled O1Interface")
-	return ctrl.Result{RequeueAfter: r.config.ReconcileInterval}, nil
-}
-
-// reconcileDeletion handles deletion of O1Interface resources
-func (r *O1InterfaceController) reconcileDeletion(ctx context.Context, o1Interface *oranv1.O1Interface) (ctrl.Result, error) {
-	log := r.Log.WithValues("o1interface", o1Interface.Name, "namespace", o1Interface.Namespace)
-
-	log.Info("Handling O1Interface deletion")
-
-	// Update status
-	r.updateStatus(ctx, o1Interface, O1InstancePhaseTerminating, "Terminating O1 interface")
-
-	// Clean up adapter instance
-	instanceKey := fmt.Sprintf("%s/%s", o1Interface.Namespace, o1Interface.Name)
-	if err := r.cleanupAdapterInstance(ctx, instanceKey); err != nil {
-		log.Error(err, "Failed to cleanup adapter instance")
-		return ctrl.Result{}, err
-	}
-
-	// Clean up NETCONF server
-	if err := r.cleanupNetconfServer(ctx, instanceKey); err != nil {
-		log.Error(err, "Failed to cleanup NETCONF server")
-		return ctrl.Result{}, err
+	// Initialize element monitoring
+	if err := r.initializeElementMonitoring(ctx, element); err != nil {
+		r.Log.Error(err, "failed to initialize monitoring", "elementID", element.ID)
+		// Don't fail registration due to monitoring issues
 	}
 
 	// Update metrics
-	r.metrics.ActiveO1Interfaces.Dec()
-	r.metrics.O1ConnectionsActive.DeleteLabelValues(
-		o1Interface.Namespace,
-		o1Interface.Name,
-		"netconf",
-	)
+	r.metrics.ActiveElements++
 
-	// Remove finalizer
-	controllerutil.RemoveFinalizer(o1Interface, FinalizerName)
-	err := r.Update(ctx, o1Interface)
+	r.Log.Info("managed element registered successfully", "elementID", element.ID)
+	return nil
+}
+
+// UnregisterManagedElement unregisters a managed element
+func (r *O1Controller) UnregisterManagedElement(ctx context.Context, elementID string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	r.Log.Info("unregistering managed element", "elementID", elementID)
+
+	// Remove from element registry
+	if err := r.elementRegistry.Unregister(elementID); err != nil {
+		return fmt.Errorf("failed to unregister element: %w", err)
+	}
+
+	// Remove from controller
+	delete(r.managedElements, elementID)
+
+	// Clean up subscriptions
+	r.cleanupElementSubscriptions(elementID)
+
+	// Update metrics
+	r.metrics.ActiveElements--
+
+	r.Log.Info("managed element unregistered", "elementID", elementID)
+	return nil
+}
+
+// GetManagedElements returns all managed elements
+func (r *O1Controller) GetManagedElements() map[string]*ManagedElement {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	// Return a copy to avoid race conditions
+	elements := make(map[string]*ManagedElement)
+	for k, v := range r.managedElements {
+		elements[k] = v
+	}
+	return elements
+}
+
+// GetO1Metrics returns current O1 controller metrics
+func (r *O1Controller) GetO1Metrics() *O1Metrics {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	// Update runtime metrics
+	metrics := *r.metrics
+	metrics.SystemUptime = time.Since(metrics.StartTime)
+
+	return &metrics
+}
+
+// Private methods
+
+func (r *O1Controller) initializeServers() error {
+	// Initialize NETCONF server
+	netconfConfig := &NetconfServerConfig{
+		Port:               r.config.NetconfPort,
+		EnableTLS:          r.config.EnableTLS,
+		TLSCertPath:        r.config.TLSCertPath,
+		TLSKeyPath:         r.config.TLSKeyPath,
+		EnableAuth:         r.config.EnableAuthentication,
+		MaxConcurrentSessions: r.config.MaxConcurrentOperations,
+		SessionTimeout:     r.config.OperationTimeout,
+	}
+
+	var err error
+	r.netconfServer, err = NewNetconfServer(netconfConfig, r.yangRegistry)
 	if err != nil {
-		log.Error(err, "Failed to remove finalizer")
-		return ctrl.Result{}, err
+		return fmt.Errorf("failed to create NETCONF server: %w", err)
 	}
 
-	log.Info("Successfully handled O1Interface deletion")
-	return ctrl.Result{}, nil
-}
-
-// validateO1InterfaceSpec validates the O1Interface specification
-func (r *O1InterfaceController) validateO1InterfaceSpec(o1Interface *oranv1.O1Interface) error {
-	// Validate host is required
-	if o1Interface.Spec.Host == "" {
-		return fmt.Errorf("host is required")
+	// Initialize RESTCONF server
+	restconfConfig := &RestConfServerConfig{
+		Port:       r.config.RestConfPort,
+		EnableTLS:  r.config.EnableTLS,
+		TLSCertPath: r.config.TLSCertPath,
+		TLSKeyPath:  r.config.TLSKeyPath,
+		EnableAuth: r.config.EnableAuthentication,
 	}
 
-	// Validate port configuration
-	if o1Interface.Spec.Port < 1 || o1Interface.Spec.Port > 65535 {
-		return fmt.Errorf("invalid port: %d", o1Interface.Spec.Port)
-	}
-
-	// Validate protocol
-	if o1Interface.Spec.Protocol != "" && o1Interface.Spec.Protocol != "ssh" && o1Interface.Spec.Protocol != "tls" {
-		return fmt.Errorf("invalid protocol: %s", o1Interface.Spec.Protocol)
+	r.restConfServer, err = NewRestConfServer(restconfConfig, r.yangRegistry)
+	if err != nil {
+		return fmt.Errorf("failed to create RESTCONF server: %w", err)
 	}
 
 	return nil
 }
 
-// getOrCreateAdapterInstance gets or creates an O1 adapter instance
-func (r *O1InterfaceController) getOrCreateAdapterInstance(ctx context.Context, o1Interface *oranv1.O1Interface) (*O1AdaptorInstance, error) {
-	instanceKey := fmt.Sprintf("%s/%s", o1Interface.Namespace, o1Interface.Name)
-
-	r.o1AdapterManager.mutex.Lock()
-	defer r.o1AdapterManager.mutex.Unlock()
-
-	// Check if instance already exists
-	if instance, exists := r.o1AdapterManager.adapters[instanceKey]; exists {
-		// Update configuration if needed - temporarily disabled due to API mismatch
-		// TODO: Fix when O1Config structure is properly defined
-		instance.LastUpdate = time.Now()
-		return instance, nil
-	}
-
-	// Create new O1 adapter configuration
-	o1Config := &O1Config{
-		DefaultPort:    830,
-		ConnectTimeout: 30 * time.Second,
-		RequestTimeout: 60 * time.Second,
-		MaxRetries:     3,
-		RetryInterval:  5 * time.Second,
-	}
-
-	// Create O1 adapter
-	o1Adaptor := NewO1Adaptor(o1Config, r.Client)
-	if o1Adaptor == nil {
-		return nil, fmt.Errorf("failed to create O1 adaptor")
-	}
-
-	// Create adapter instance
-	instance := &O1AdaptorInstance{
-		Name:            o1Interface.Name,
-		Namespace:       o1Interface.Namespace,
-		NetworkFunction: "default-nf", // TODO: Add proper field to API spec
-		O1Adaptor:       o1Adaptor,
-		Config:          nil, // TODO: Fix when O1Config structure is properly defined
-		CreatedAt:       time.Now(),
-		LastUpdate:      time.Now(),
-		Status: O1InstanceStatus{
-			Phase:                O1InstancePhasePending,
-			LastTransitionTime:   metav1.Now(),
-			ConfigurationVersion: "1",
-		},
-	}
-
-	r.o1AdapterManager.adapters[instanceKey] = instance
-
-	return instance, nil
-}
-
-// reconcileNetconfServer creates or updates the NETCONF server
-func (r *O1InterfaceController) reconcileNetconfServer(ctx context.Context, o1Interface *oranv1.O1Interface, instance *O1AdaptorInstance) error {
-	serverKey := fmt.Sprintf("%s/%s", o1Interface.Namespace, o1Interface.Name)
-
-	r.netconfServerManager.mutex.Lock()
-	defer r.netconfServerManager.mutex.Unlock()
-
-	// Check if server already exists
-	if server, exists := r.netconfServerManager.servers[serverKey]; exists {
-		// Update configuration if needed
-		return r.updateNetconfServerConfig(server, o1Interface)
-	}
-
-	// Create new NETCONF server
-	serverConfig := r.buildNetconfServerConfig(o1Interface)
-	server := NewNetconfServer(serverConfig)
-	if server == nil {
-		return fmt.Errorf("failed to create NETCONF server")
-	}
-
-	// Start server
-	if err := server.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start NETCONF server: %w", err)
-	}
-
-	r.netconfServerManager.servers[serverKey] = server
-	instance.NetconfServer = server
-
-	return nil
-}
-
-// reconcileStreamingService configures the streaming service for the O1 interface
-func (r *O1InterfaceController) reconcileStreamingService(ctx context.Context, o1Interface *oranv1.O1Interface, instance *O1AdaptorInstance) error {
-	// Configure streaming service for this instance
-	instance.StreamingHandler = r.streamingService
-
-	// Start streaming service if not already running
-	if r.streamingService != nil {
-		return r.streamingService.Start(ctx)
-	}
-
-	return nil
-}
-
-// initializeFCAPSManagers initializes FCAPS management components
-func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1Interface *oranv1.O1Interface, instance *O1AdaptorInstance) error {
-	// Initialize fault manager - using available API fields
-	if o1Interface.Spec.FCAPS.FaultManagement.Enabled {
-		faultConfig := &FaultManagerConfig{
-			MaxAlarms:           1000,
-			MaxHistoryEntries:   10000,
-			CorrelationWindow:   5 * time.Minute,
-			NotificationTimeout: 30 * time.Second,
-			EnableWebSocket:     true,
-			EnableRootCause:     o1Interface.Spec.FCAPS.FaultManagement.RootCauseAnalysis,
-			EnableMasking:       o1Interface.Spec.FCAPS.FaultManagement.CorrelationEnabled,
-			EnableThresholds:    true,
-		}
-
-		faultManager := NewEnhancedFaultManager(faultConfig)
-		if faultManager == nil {
-			return fmt.Errorf("failed to create fault manager")
-		}
-
-		r.faultManager = faultManager
-		// Note: Commenting out field assignment as it may not exist
-		// instance.O1Adaptor.faultManager = faultManager
-	}
-
-	// Initialize performance manager
-	if o1Interface.Spec.FCAPS.PerformanceManagement.Enabled {
-		perfConfig := &PerformanceManagerConfig{
-			CollectionIntervals: map[string]time.Duration{
-				"default": time.Duration(o1Interface.Spec.FCAPS.PerformanceManagement.CollectionInterval) * time.Second,
-				"rt":      1 * time.Second,
-			},
-			RetentionPeriods: map[string]time.Duration{
-				"default": 30 * 24 * time.Hour, // Default 30 days
-			},
-			EnableRealTimeStreaming: true,
-			EnableAnomalyDetection:  o1Interface.Spec.FCAPS.PerformanceManagement.AnomalyDetection,
-			EnableReporting:         true,
-			ReportingInterval:       15 * time.Minute,
-			MaxDataPoints:           10000,
-		}
-
-		perfManager := NewCompletePerformanceManager(perfConfig)
-		if perfManager == nil {
-			return fmt.Errorf("failed to create performance manager")
-		}
-
-		r.performanceManager = perfManager
-		// Note: Commenting out field assignment as it may not exist
-		// instance.O1Adaptor.performanceManager = perfManager
-	}
-
-	// TODO: Initialize configuration manager when available
-	// configMgrConfig := &AdvancedConfigurationManagerConfig{...}
-	// configManager, err := NewAdvancedConfigurationManager(configMgrConfig, r.Log.WithName("config-manager"))
-
-	// TODO: Initialize security manager when available
-	if o1Interface.Spec.FCAPS.SecurityManagement.Enabled {
-		// securityConfig := &ComprehensiveSecurityManagerConfig{
-		//     EnableCertificateManagement: o1Interface.Spec.FCAPS.SecurityManagement.CertificateManagement,
-		//     EnableIntrusionDetection:    o1Interface.Spec.FCAPS.SecurityManagement.IntrusionDetection,
-		//     EnableComplianceMonitoring:  o1Interface.Spec.FCAPS.SecurityManagement.ComplianceMonitoring,
-		//     EnableIncidentResponse:      true,
-		//     RequiredRoles:               []string{}, // TODO: Add to API spec if needed
-		//     CertificateValidation:       true,
-		//     AuditLogging:                true,
-		// }
-
-		// securityManager, err := NewComprehensiveSecurityManager(securityConfig, r.Log.WithName("security-manager"))
-		// if err != nil {
-		//     return fmt.Errorf("failed to create security manager: %w", err)
-		// }
-
-		// r.securityManager = securityManager
-		// instance.O1Adaptor.securityManager = securityManager
-	}
-
-	// TODO: Initialize accounting manager when available
-	// accountingConfig := &ComprehensiveAccountingManagerConfig{
-	//     EnableUsageTracking:   true,
-	//     EnableBilling:         true,
-	//     EnableFraudDetection:  true,
-	//     EnableRevenueTracking: true,
-	//     BillingInterval:       time.Hour,
-	//     ReportingInterval:     24 * time.Hour,
-	// }
-
-	// accountingManager, err := NewComprehensiveAccountingManager(accountingConfig, r.Log.WithName("accounting-manager"))
-	// if err != nil {
-	//     return fmt.Errorf("failed to create accounting manager: %w", err)
-	// }
-
-	// r.accountingManager = accountingManager
-	// instance.O1Adaptor.accountingManager = accountingManager
-
-	return nil
-}
-
-// reconcileKubernetesResources creates or updates Kubernetes resources
-func (r *O1InterfaceController) reconcileKubernetesResources(ctx context.Context, o1Interface *oranv1.O1Interface) error {
-	// Create Service for NETCONF
-	service := r.buildNetconfService(o1Interface)
-	if err := r.createOrUpdateService(ctx, service); err != nil {
-		return fmt.Errorf("failed to create NETCONF service: %w", err)
-	}
-
-	// Create Service for streaming
-	streamingService := r.buildStreamingService(o1Interface)
-	if err := r.createOrUpdateService(ctx, streamingService); err != nil {
-		return fmt.Errorf("failed to create streaming service: %w", err)
-	}
-
-	// Create ConfigMap for YANG models
-	configMap := r.buildYANGModelsConfigMap(o1Interface)
-	if err := r.createOrUpdateConfigMap(ctx, configMap); err != nil {
-		return fmt.Errorf("failed to create YANG models ConfigMap: %w", err)
-	}
-
-	return nil
-}
-
-// updateStatus updates the O1Interface status
-func (r *O1InterfaceController) updateStatus(ctx context.Context, o1Interface *oranv1.O1Interface, phase O1InstancePhase, message string) {
-	o1Interface.Status.Phase = string(phase)
-	// TODO: Add Message and LastTransitionTime fields to O1InterfaceStatus if needed
-	// o1Interface.Status.Message = message
-	// o1Interface.Status.LastTransitionTime = metav1.Now()
-
-	if err := r.Status().Update(ctx, o1Interface); err != nil {
-		r.Log.Error(err, "Failed to update O1Interface status")
-	}
-}
-
-// startHealthMonitoring starts health monitoring for the adapter instance
-func (r *O1InterfaceController) startHealthMonitoring(ctx context.Context, instance *O1AdaptorInstance) {
-	ticker := time.NewTicker(r.config.HealthCheckInterval)
+func (r *O1Controller) elementDiscoveryLoop(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Minute) // Discovery interval
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case <-r.stopChan:
+			return
 		case <-ticker.C:
-			r.performHealthCheck(instance)
+			r.performElementDiscovery(ctx)
 		}
 	}
 }
 
-// performHealthCheck performs health check on the adapter instance
-func (r *O1InterfaceController) performHealthCheck(instance *O1AdaptorInstance) {
-	// Check NETCONF server health
-	if instance.NetconfServer != nil {
-		// TODO: Add IsHealthy() method to NetconfServer
-		// if !instance.NetconfServer.IsHealthy() {
-		//     instance.Status.Phase = O1InstancePhaseFailed
-		//     instance.Status.Message = "NETCONF server is unhealthy"
-		//     return
-		// }
-	}
+func (r *O1Controller) metricsCollectionLoop(ctx context.Context) {
+	ticker := time.NewTicker(30 * time.Second) // Metrics collection interval
+	defer ticker.Stop()
 
-	// Check O1 adaptor health
-	if instance.O1Adaptor != nil {
-		// TODO: Add IsHealthy() method to O1Adaptor
-		// if !instance.O1Adaptor.IsHealthy() {
-		//     instance.Status.Phase = O1InstancePhaseFailed
-		//     instance.Status.Message = "O1 adaptor is unhealthy"
-		//     return
-		// }
-	}
-
-	// Update status if healthy
-	if instance.Status.Phase == O1InstancePhaseFailed {
-		instance.Status.Phase = O1InstancePhaseReady
-		instance.Status.Message = "O1 interface is healthy"
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-r.stopChan:
+			return
+		case <-ticker.C:
+			r.collectMetrics(ctx)
+		}
 	}
 }
 
-// Helper methods for building configurations and resources
+func (r *O1Controller) performElementDiscovery(ctx context.Context) {
+	r.Log.V(1).Info("performing element discovery")
+	
+	// Discovery would be implemented here
+	// For now, this is a placeholder
+}
 
-func (r *O1InterfaceController) buildNetconfServerConfig(o1Interface *oranv1.O1Interface) *NetconfServerConfig {
-	return &NetconfServerConfig{
-		Port:             o1Interface.Spec.Port,
-		Username:         "netconf",        // Default username
-		Password:         "netconf",        // Default password - should come from secret
-		SessionTimeout:   60 * time.Second, // Default
-		MaxSessions:      100,              // Default
-		EnableValidation: true,
-		Capabilities: []string{
-			"urn:ietf:params:netconf:base:1.0",
-			"urn:ietf:params:netconf:base:1.1",
-		},
-		SupportedYANG: []string{
-			"ietf-netconf",
-			"ietf-netconf-monitoring",
-		},
+func (r *O1Controller) collectMetrics(ctx context.Context) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	// Update metrics based on current state
+	r.metrics.ActiveElements = int64(len(r.managedElements))
+	r.metrics.ActiveSubscriptions = int64(len(r.activeSubscriptions))
+}
+
+func (r *O1Controller) validateManagedElement(element *ManagedElement) error {
+	if element.ID == "" {
+		return fmt.Errorf("element ID is required")
+	}
+	if element.Type == "" {
+		return fmt.Errorf("element type is required")
+	}
+	if element.IPAddress == "" {
+		return fmt.Errorf("element IP address is required")
+	}
+	return nil
+}
+
+func (r *O1Controller) initializeElementMonitoring(ctx context.Context, element *ManagedElement) error {
+	// Initialize monitoring for the element
+	// This would include setting up performance collection, fault monitoring, etc.
+	return nil
+}
+
+func (r *O1Controller) cleanupElementSubscriptions(elementID string) {
+	// Clean up subscriptions for the element
+	for id, subscription := range r.activeSubscriptions {
+		if subscription.ElementID == elementID {
+			delete(r.activeSubscriptions, id)
+		}
 	}
 }
 
-func (r *O1InterfaceController) buildPerformanceConfig(o1Interface *oranv1.O1Interface) interface{} {
-	return o1Interface.Spec.FCAPS.PerformanceManagement
+func (r *O1Controller) processConfigurationUpdates(ctx context.Context) error {
+	// Process pending configuration updates
+	return nil
 }
 
-func (r *O1InterfaceController) buildFaultConfig(o1Interface *oranv1.O1Interface) interface{} {
-	return o1Interface.Spec.FCAPS.FaultManagement
+func (r *O1Controller) processFaultEvents(ctx context.Context) error {
+	// Process pending fault events
+	return nil
 }
 
-func (r *O1InterfaceController) buildSecurityConfig(o1Interface *oranv1.O1Interface) interface{} {
-	return o1Interface.Spec.FCAPS.SecurityManagement
+func (r *O1Controller) processPerformanceData(ctx context.Context) error {
+	// Process pending performance data
+	return nil
 }
 
-func (r *O1InterfaceController) buildStreamingConfig(o1Interface *oranv1.O1Interface) interface{} {
-	maxConnections := 100 // Default
-	if o1Interface.Spec.StreamingConfig != nil {
-		maxConnections = o1Interface.Spec.StreamingConfig.MaxConnections
-	}
+func (r *O1Controller) processSubscriptions(ctx context.Context) error {
+	// Process pending subscription requests
+	return nil
+}
 
-	return &StreamingConfig{
-		MaxConnections:          maxConnections,
-		ConnectionTimeout:       60 * time.Second, // Default
+func (r *O1Controller) updateMetrics() {
+	// Update controller metrics
+}
+
+func getDefaultO1Config() *O1ControllerConfig {
+	return &O1ControllerConfig{
+		NetconfPort:             830,
+		RestConfPort:            443,
+		EnableTLS:               true,
+		EnableAuthentication:    true,
+		MaxConcurrentOperations: 100,
+		OperationTimeout:        30 * time.Second,
 		HeartbeatInterval:       30 * time.Second,
-		MaxSubscriptionsPerConn: 100,
-		BufferSize:              1024,
-		CompressionEnabled:      true,
-		EnableAuth:              o1Interface.Spec.FCAPS.SecurityManagement.Enabled,
-		RateLimitPerSecond:      100,
+		SubscriptionTimeout:     30 * time.Minute,
+		MaxSubscriptions:        1000,
+		EnableFileTransfer:      true,
+		MaxFileSize:             1024 * 1024 * 100, // 100MB
+		EnableNotifications:     true,
+		MaxNotifications:        10000,
+		NotificationBufferSize:  1000,
+		EnableMetrics:           true,
+		MetricsPort:             9090,
 	}
 }
 
-func (r *O1InterfaceController) buildNetconfService(o1Interface *oranv1.O1Interface) *corev1.Service {
-	return &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-netconf", o1Interface.Name),
-			Namespace: o1Interface.Namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/name":       "o1-interface",
-				"app.kubernetes.io/instance":   o1Interface.Name,
-				"app.kubernetes.io/component":  "netconf",
-				"app.kubernetes.io/managed-by": O1ControllerName,
-			},
-		},
-		Spec: corev1.ServiceSpec{
-			Type: corev1.ServiceTypeClusterIP,
-			Ports: []corev1.ServicePort{
-				{
-					Name:     "netconf",
-					Port:     int32(o1Interface.Spec.Port),
-					Protocol: corev1.ProtocolTCP,
-				},
-				{
-					Name:     "netconf-ssh",
-					Port:     int32(o1Interface.Spec.Port + 1000),
-					Protocol: corev1.ProtocolTCP,
-				},
-			},
-			Selector: map[string]string{
-				"app.kubernetes.io/name":     "o1-interface",
-				"app.kubernetes.io/instance": o1Interface.Name,
-			},
-		},
+// Placeholder implementations for subsidiary components
+
+func NewManagedElementRegistry(config *RegistryConfig) *ManagedElementRegistry {
+	return &ManagedElementRegistry{
+		elements: make(map[string]*ManagedElement),
+		config:   config,
 	}
 }
 
-func (r *O1InterfaceController) buildStreamingService(o1Interface *oranv1.O1Interface) *corev1.Service {
-	return &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-streaming", o1Interface.Name),
-			Namespace: o1Interface.Namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/name":       "o1-interface",
-				"app.kubernetes.io/instance":   o1Interface.Name,
-				"app.kubernetes.io/component":  "streaming",
-				"app.kubernetes.io/managed-by": O1ControllerName,
-			},
-		},
-		Spec: corev1.ServiceSpec{
-			Type: corev1.ServiceTypeClusterIP,
-			Ports: []corev1.ServicePort{
-				{
-					Name:     "streaming",
-					Port:     int32(8080), // Default streaming port
-					Protocol: corev1.ProtocolTCP,
-				},
-			},
-			Selector: map[string]string{
-				"app.kubernetes.io/name":     "o1-interface",
-				"app.kubernetes.io/instance": o1Interface.Name,
-			},
-		},
-	}
-}
-
-func (r *O1InterfaceController) buildYANGModelsConfigMap(o1Interface *oranv1.O1Interface) *corev1.ConfigMap {
-	// Build YANG models data
-	yangModelsData := make(map[string]string)
-	// Add standard O-RAN YANG models
-	yangModelsData["o-ran-hardware.yang"] = getORANHardwareYANG()
-	yangModelsData["o-ran-software-management.yang"] = getORANSoftwareYANG()
-	yangModelsData["o-ran-performance-management.yang"] = getORANPerformanceYANG()
-	yangModelsData["o-ran-fault-management.yang"] = getORANFaultYANG()
-
-	return &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-yang-models", o1Interface.Name),
-			Namespace: o1Interface.Namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/name":       "o1-interface",
-				"app.kubernetes.io/instance":   o1Interface.Name,
-				"app.kubernetes.io/component":  "yang-models",
-				"app.kubernetes.io/managed-by": O1ControllerName,
-			},
-		},
-		Data: yangModelsData,
-	}
-}
-
-// Utility methods for resource management
-func (r *O1InterfaceController) createOrUpdateService(ctx context.Context, service *corev1.Service) error {
-	existing := &corev1.Service{}
-	err := r.Get(ctx, types.NamespacedName{Name: service.Name, Namespace: service.Namespace}, existing)
-	if errors.IsNotFound(err) {
-		return r.Create(ctx, service)
-	} else if err != nil {
-		return err
-	}
-
-	// Update existing service
-	service.ResourceVersion = existing.ResourceVersion
-	return r.Update(ctx, service)
-}
-
-func (r *O1InterfaceController) createOrUpdateConfigMap(ctx context.Context, configMap *corev1.ConfigMap) error {
-	existing := &corev1.ConfigMap{}
-	err := r.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, existing)
-	if errors.IsNotFound(err) {
-		return r.Create(ctx, configMap)
-	} else if err != nil {
-		return err
-	}
-
-	// Update existing configMap
-	configMap.ResourceVersion = existing.ResourceVersion
-	return r.Update(ctx, configMap)
-}
-
-// Cleanup methods
-func (r *O1InterfaceController) handleDeletion(ctx context.Context, namespacedName types.NamespacedName) {
-	instanceKey := fmt.Sprintf("%s/%s", namespacedName.Namespace, namespacedName.Name)
-	r.cleanupAdapterInstance(ctx, instanceKey)
-	r.cleanupNetconfServer(ctx, instanceKey)
-}
-
-func (r *O1InterfaceController) cleanupAdapterInstance(ctx context.Context, instanceKey string) error {
-	r.o1AdapterManager.mutex.Lock()
-	defer r.o1AdapterManager.mutex.Unlock()
-
-	if instance, exists := r.o1AdapterManager.adapters[instanceKey]; exists {
-		if instance.O1Adaptor != nil {
-			// TODO: Add Stop() method to O1Adaptor
-			// instance.O1Adaptor.Stop()
-		}
-		delete(r.o1AdapterManager.adapters, instanceKey)
-	}
-
+func (mer *ManagedElementRegistry) Register(element *ManagedElement) error {
+	mer.mutex.Lock()
+	defer mer.mutex.Unlock()
+	mer.elements[element.ID] = element
 	return nil
 }
 
-func (r *O1InterfaceController) cleanupNetconfServer(ctx context.Context, instanceKey string) error {
-	r.netconfServerManager.mutex.Lock()
-	defer r.netconfServerManager.mutex.Unlock()
+func (mer *ManagedElementRegistry) Unregister(elementID string) error {
+	mer.mutex.Lock()
+	defer mer.mutex.Unlock()
+	delete(mer.elements, elementID)
+	return nil
+}
 
-	if server, exists := r.netconfServerManager.servers[instanceKey]; exists {
-		server.Stop(ctx)
-		delete(r.netconfServerManager.servers, instanceKey)
+func NewSubscriptionManager(config *SubscriptionConfig) *SubscriptionManager {
+	return &SubscriptionManager{
+		subscriptions: make(map[string]*O1Subscription),
+		subscribers:   make(map[string]*SubscriberInfo),
+		config:        config,
+		notifyQueue:   make(chan *NotificationEvent, config.MaxNotificationBuffer),
+		metrics:       &SubscriptionMetrics{},
 	}
-
-	return nil
 }
 
-func (r *O1InterfaceController) updateNetconfServerConfig(server *NetconfServer, o1Interface *oranv1.O1Interface) error {
-	// TODO: Add UpdateConfig method to NetconfServer
-	// return server.UpdateConfig(r.buildNetconfServerConfig(o1Interface))
-	return nil
+func (sm *SubscriptionManager) Start(ctx context.Context) error { return nil }
+func (sm *SubscriptionManager) Stop(ctx context.Context) error  { return nil }
+
+func NewHeartbeatManager(registry *ManagedElementRegistry, config *HeartbeatConfig) *HeartbeatManager {
+	return &HeartbeatManager{
+		registry:   registry,
+		heartbeats: make(map[string]*HeartbeatInfo),
+		config:     config,
+		stopChan:   make(chan struct{}),
+		metrics:    &HeartbeatMetrics{},
+	}
 }
 
-// Metrics recording
-func (r *O1InterfaceController) recordReconciliationMetrics(namespacedName types.NamespacedName, result string, startTime time.Time) {
-	duration := time.Since(startTime)
-	r.metrics.ReconciliationsTotal.WithLabelValues(
-		namespacedName.Namespace,
-		namespacedName.Name,
-		result,
-	).Inc()
-	r.metrics.ReconciliationDuration.WithLabelValues(
-		namespacedName.Namespace,
-		namespacedName.Name,
-	).Observe(duration.Seconds())
+func (hm *HeartbeatManager) Start(ctx context.Context) error { return nil }
+func (hm *HeartbeatManager) Stop(ctx context.Context) error  { return nil }
+
+func NewInventoryManager() *InventoryManager {
+	return &InventoryManager{}
 }
 
-// YANG model helpers (simplified)
-func getORANHardwareYANG() string {
-	return `module o-ran-hardware {
-  // O-RAN hardware YANG model content
-}`
+func NewSoftwareManager() *SoftwareManager {
+	return &SoftwareManager{}
 }
 
-func getORANSoftwareYANG() string {
-	return `module o-ran-software-management {
-  // O-RAN software management YANG model content
-}`
+type FileTransferConfig struct {
+	Enabled     bool
+	MaxFileSize int64
+	StoragePath string
 }
 
-func getORANPerformanceYANG() string {
-	return `module o-ran-performance-management {
-  // O-RAN performance management YANG model content
-}`
+func NewFileTransferManager(config *FileTransferConfig) *FileTransferManager {
+	return &FileTransferManager{}
 }
 
-func getORANFaultYANG() string {
-	return `module o-ran-fault-management {
-  // O-RAN fault management YANG model content
-}`
+type O1NotificationConfig struct {
+	Enabled        bool
+	MaxNotifications int
+	BufferSize     int
 }
+
+func NewO1NotificationManager(config *O1NotificationConfig) *O1NotificationManager {
+	return &O1NotificationManager{}
+}
+
+// Placeholder type definitions for missing types
+type InventoryManager struct{}
+type SoftwareManager struct{}
+type FileTransferManager struct{}
+type O1NotificationManager struct{}
+type NetconfServer struct{}
+type RestConfServer struct{}
+type NetconfServerConfig struct {
+	Port                  int
+	EnableTLS             bool
+	TLSCertPath           string
+	TLSKeyPath            string
+	EnableAuth            bool
+	MaxConcurrentSessions int
+	SessionTimeout        time.Duration
+}
+type RestConfServerConfig struct {
+	Port        int
+	EnableTLS   bool
+	TLSCertPath string
+	TLSKeyPath  string
+	EnableAuth  bool
+}
+
+func NewNetconfServer(config *NetconfServerConfig, registry *YANGModelRegistry) (*NetconfServer, error) {
+	return &NetconfServer{}, nil
+}
+
+func NewRestConfServer(config *RestConfServerConfig, registry *YANGModelRegistry) (*RestConfServer, error) {
+	return &RestConfServer{}, nil
+}
+
+func (ns *NetconfServer) Start(ctx context.Context) error { return nil }
+func (ns *NetconfServer) Stop(ctx context.Context) error  { return nil }
+func (rs *RestConfServer) Start(ctx context.Context) error { return nil }
+func (rs *RestConfServer) Stop(ctx context.Context) error  { return nil }
+
+// Additional missing manager starters
+func (cm *AdvancedConfigurationManager) Start(ctx context.Context) error { return nil }
+func (cm *AdvancedConfigurationManager) Stop(ctx context.Context) error  { return nil }
+func (fm *EnhancedFaultManager) Start(ctx context.Context) error { return nil }
+func (fm *EnhancedFaultManager) Stop(ctx context.Context) error  { return nil }

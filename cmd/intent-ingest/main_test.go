@@ -58,8 +58,11 @@ func setupTestServer(t *testing.T) (*httptest.Server, string, func()) {
 		t.Fatalf("Failed to create validator: %v", err)
 	}
 
+	// Create intent provider
+	provider := ingest.NewRulesProvider()
+
 	// Create handler with test directories
-	h := ingest.NewHandler(v, handoffDir)
+	h := ingest.NewHandler(v, handoffDir, provider)
 
 	// Set up HTTP mux exactly like main()
 	mux := http.NewServeMux()
