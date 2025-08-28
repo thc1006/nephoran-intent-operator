@@ -1229,7 +1229,9 @@ func (m *E2Manager) Shutdown() error {
 		ctx := context.Background()
 		if err := adaptor.DeregisterE2Node(ctx, nodeID); err != nil {
 			// Log error but continue cleanup
-			fmt.Printf("Error deregistering node %s: %v\n", nodeID, err)
+			if m.logger != nil {
+				m.logger.Printf("Error deregistering node %s: %v", nodeID, err)
+			}
 		}
 	}
 

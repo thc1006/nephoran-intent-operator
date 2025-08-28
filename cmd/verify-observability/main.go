@@ -32,15 +32,15 @@ func main() {
 	// Set concurrent push limit via environment
 	_ = os.Setenv("GIT_CONCURRENT_PUSH_LIMIT", "2")
 
-	fmt.Println("=== Observability Features Verification ===")
-	fmt.Println()
-	fmt.Println("1. Configuration:")
-	fmt.Println("   - Concurrent push limit set via env: 2")
-	fmt.Println()
+	logger.Info("=== Observability Features Verification ===")
+	logger.Info("")
+	logger.Info("1. Configuration:")
+	logger.Info("   - Concurrent push limit set via env: 2")
+	logger.Info("")
 
-	fmt.Println("2. Testing concurrent semaphore acquisition:")
-	fmt.Println("   (Watch for debug logs with in_flight and limit fields)")
-	fmt.Println()
+	logger.Info("2. Testing concurrent semaphore acquisition:")
+	logger.Info("   (Watch for debug logs with in_flight and limit fields)")
+	logger.Info("")
 
 	// Test concurrent operations
 	var wg sync.WaitGroup
@@ -55,12 +55,12 @@ func main() {
 				fmt.Sprintf("test%d.txt", id): fmt.Sprintf("content %d", id),
 			}
 
-			fmt.Printf("   Operation %d starting...\n", id)
+			logger.Info("Operation starting", "id", id)
 			_, err := client.CommitAndPush(files, fmt.Sprintf("Test commit %d", id))
 			if err != nil {
-				fmt.Printf("   Operation %d completed (expected error: %v)\n", id, err)
+				logger.Info("Operation completed with expected error", "id", id, "error", err)
 			} else {
-				fmt.Printf("   Operation %d completed successfully\n", id)
+				logger.Info("Operation completed successfully", "id", id)
 			}
 		}(i)
 
@@ -70,28 +70,28 @@ func main() {
 
 	wg.Wait()
 
-	fmt.Println()
-	fmt.Println("3. Metrics verification:")
+	logger.Info("")
+	logger.Info("3. Metrics verification:")
 
 	// Gather metrics
 	mfs, err := registry.Gather()
 	if err != nil {
-		fmt.Printf("   Error gathering metrics: %v\n", err)
+		logger.Error("Error gathering metrics", "error", err)
 	} else {
 		for _, mf := range mfs {
 			if mf.GetName() == "nephoran_git_push_in_flight" {
-				fmt.Printf("   ✓ Git push in-flight metric registered\n")
-				fmt.Printf("     Current value: %v\n", mf.GetMetric()[0].GetGauge().GetValue())
+				logger.Info("✓ Git push in-flight metric registered")
+				logger.Info("Current metric value", "value", mf.GetMetric()[0].GetGauge().GetValue())
 			}
 		}
 	}
 
-	fmt.Println()
-	fmt.Println("=== Verification Complete ===")
-	fmt.Println()
-	fmt.Println("Summary:")
-	fmt.Println("✓ Configurable concurrent push limit (via env var)")
-	fmt.Println("✓ Debug logging with in_flight and limit fields")
-	fmt.Println("✓ Prometheus metrics integration")
-	fmt.Println("✓ Semaphore-based concurrency control")
+	logger.Info("")
+	logger.Info("=== Verification Complete ===")
+	logger.Info("")
+	logger.Info("Summary:")
+	logger.Info("✓ Configurable concurrent push limit (via env var)")
+	logger.Info("✓ Debug logging with in_flight and limit fields")
+	logger.Info("✓ Prometheus metrics integration")
+	logger.Info("✓ Semaphore-based concurrency control")
 }

@@ -134,7 +134,10 @@ func parseFlags() Config {
 	var config Config
 
 	// Get default input file path relative to repo root
-	repoRoot, _ := os.Getwd()
+	repoRoot, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("failed to get working directory: %v", err)
+	}
 	defaultInputFile := filepath.Join(repoRoot, "docs", "contracts", "fcaps.ves.examples.json")
 
 	flag.StringVar(&config.InputFile, "input", defaultInputFile, "Path to FCAPS events JSON file")

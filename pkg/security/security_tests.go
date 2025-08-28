@@ -161,7 +161,11 @@ func (sts *SecurityTestSuite) TestCryptographicAlgorithms() *TestResult {
 	// Test AES-GCM
 	plaintext := []byte("test data for encryption")
 	key := make([]byte, 32)
-	rand.Read(key)
+	if _, err := rand.Read(key); err != nil {
+		result.Passed = false
+		result.ErrorMsg = fmt.Sprintf("Failed to generate random key: %v", err)
+		return result
+	}
 
 	encrypted, err := sts.cryptoModern.EncryptAESGCM(plaintext, key, []byte("aad"))
 	if err != nil {
@@ -179,7 +183,11 @@ func (sts *SecurityTestSuite) TestCryptographicAlgorithms() *TestResult {
 
 	// Test ChaCha20-Poly1305
 	key = make([]byte, 32)
-	rand.Read(key)
+	if _, err := rand.Read(key); err != nil {
+		result.Passed = false
+		result.ErrorMsg = fmt.Sprintf("Failed to generate random key for ChaCha20: %v", err)
+		return result
+	}
 
 	encrypted, err = sts.cryptoModern.EncryptChaCha20Poly1305(plaintext, key, []byte("aad"))
 	if err != nil {
@@ -219,7 +227,11 @@ func (sts *SecurityTestSuite) TestCryptographicAlgorithms() *TestResult {
 	// Test key derivation functions
 	password := []byte("test password")
 	salt := make([]byte, 16)
-	rand.Read(salt)
+	if _, err := rand.Read(salt); err != nil {
+		result.Passed = false
+		result.ErrorMsg = fmt.Sprintf("Failed to generate random salt: %v", err)
+		return result
+	}
 
 	// Test Argon2
 	derived := sts.cryptoModern.DeriveKeyArgon2(password, salt)

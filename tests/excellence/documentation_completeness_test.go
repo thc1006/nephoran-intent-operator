@@ -2,7 +2,6 @@ package excellence_test
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -83,7 +82,7 @@ var _ = Describe("Documentation Completeness Tests", func() {
 				if stat, err := os.Stat(path); err == nil {
 					if stat.IsDir() {
 						// Check if directory has content
-						files, err := ioutil.ReadDir(path)
+						files, err := os.ReadDir(path)
 						Expect(err).NotTo(HaveOccurred())
 						if len(files) > 0 {
 							found = true

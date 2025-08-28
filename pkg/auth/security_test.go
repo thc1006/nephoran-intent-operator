@@ -1054,6 +1054,11 @@ func TestSecurity_ConcurrencyAttacks(t *testing.T) {
 // Helper function to generate random bytes for testing
 func generateRandomBytes(n int) []byte {
 	bytes := make([]byte, n)
-	rand.Read(bytes)
+	if _, err := rand.Read(bytes); err != nil {
+		// Return a pattern for testing if random generation fails
+		for i := range bytes {
+			bytes[i] = byte(i % 256)
+		}
+	}
 	return bytes
 }

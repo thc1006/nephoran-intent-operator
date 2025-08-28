@@ -214,14 +214,58 @@ vet: ## Run go vet
 	go vet ./...
 
 .PHONY: lint
-lint: ## Run golangci-lint (matches CI configuration)
-	@echo "Running golangci-lint..."
+lint: ## Run golangci-lint with optimized default configuration
+	@echo "Running golangci-lint with optimized configuration..."
 	@if command -v golangci-lint >/dev/null 2>&1; then \
-		golangci-lint run --config=.golangci.yml --timeout=5m --issues-exit-code=1; \
+		golangci-lint run --config=.golangci.yml --timeout=10m --issues-exit-code=1; \
 	else \
 		echo "Installing golangci-lint..."; \
-		go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0; \
-		golangci-lint run --config=.golangci.yml --timeout=5m --issues-exit-code=1; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8; \
+		golangci-lint run --config=.golangci.yml --timeout=10m --issues-exit-code=1; \
+	fi
+
+.PHONY: lint-fast
+lint-fast: ## Run golangci-lint with fast configuration (2-7x faster for development)
+	@echo "Running golangci-lint with fast configuration (development mode)..."
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run --config=.golangci-fast.yml --timeout=5m --issues-exit-code=1; \
+	else \
+		echo "Installing golangci-lint..."; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8; \
+		golangci-lint run --config=.golangci-fast.yml --timeout=5m --issues-exit-code=1; \
+	fi
+
+.PHONY: lint-thorough
+lint-thorough: ## Run golangci-lint with thorough configuration (comprehensive CI checks)
+	@echo "Running golangci-lint with thorough configuration (CI mode)..."
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run --config=.golangci-thorough.yml --timeout=20m --issues-exit-code=1; \
+	else \
+		echo "Installing golangci-lint..."; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8; \
+		golangci-lint run --config=.golangci-thorough.yml --timeout=20m --issues-exit-code=1; \
+	fi
+
+.PHONY: lint-changed
+lint-changed: ## Run golangci-lint only on changed files (ultra-fast)
+	@echo "Running golangci-lint on changed files only..."
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run --config=.golangci-fast.yml --new-from-rev=HEAD~1 --timeout=2m; \
+	else \
+		echo "Installing golangci-lint..."; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8; \
+		golangci-lint run --config=.golangci-fast.yml --new-from-rev=HEAD~1 --timeout=2m; \
+	fi
+
+.PHONY: lint-fix
+lint-fix: ## Run golangci-lint and automatically fix issues where possible
+	@echo "Running golangci-lint with auto-fix..."
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run --config=.golangci.yml --fix --timeout=15m; \
+	else \
+		echo "Installing golangci-lint..."; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8; \
+		golangci-lint run --config=.golangci.yml --fix --timeout=15m; \
 	fi
 
 ##@ Testing

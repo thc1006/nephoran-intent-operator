@@ -1,3 +1,5 @@
+// Package conductor provides the core reconciliation and watch functionality
+// for the Nephoran Intent Operator's intent processing and lifecycle management.
 package conductor
 
 import (

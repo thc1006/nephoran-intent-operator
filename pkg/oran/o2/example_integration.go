@@ -8,13 +8,14 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 // ComprehensiveO2Example demonstrates complete O2 IMS functionality
 func ComprehensiveO2Example() error {
-	fmt.Println("=== Nephoran O2 IMS Comprehensive Integration Example ===")
+	klog.Info("=== Nephoran O2 IMS Comprehensive Integration Example ===")
 
 	// 1. Create production-ready configuration
 	config := CreateProductionConfig()
@@ -33,7 +34,7 @@ func ComprehensiveO2Example() error {
 		return fmt.Errorf("configuration validation failed: %w", err)
 	}
 
-	fmt.Printf("✓ Configuration validated successfully\n")
+	klog.Info("✓ Configuration validated successfully")
 
 	// 2. Create and initialize API server
 	server, err := NewO2APIServer(config)
@@ -41,7 +42,7 @@ func ComprehensiveO2Example() error {
 		return fmt.Errorf("failed to create API server: %w", err)
 	}
 
-	fmt.Printf("✓ O2 IMS API server created\n")
+	klog.Info("✓ O2 IMS API server created")
 
 	// 3. Start server in background
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -49,13 +50,13 @@ func ComprehensiveO2Example() error {
 
 	go func() {
 		if err := server.Start(ctx); err != nil {
-			fmt.Printf("Server error: %v\n", err)
+			klog.Errorf("Server error: %v", err)
 		}
 	}()
 
 	// Give server time to start
 	time.Sleep(2 * time.Second)
-	fmt.Printf("✓ O2 IMS API server started on %s:%d\n", config.Host, config.Port)
+	klog.Infof("✓ O2 IMS API server started on %s:%d", config.Host, config.Port)
 
 	// 4. Demonstrate resource pool management
 	fmt.Println("\n--- Resource Pool Management ---")

@@ -150,15 +150,8 @@ func (suite *IntegrationTestSuite) setupHTTPServer() {
 	})
 
 	// Create handlers
-	suite.handlers = auth.NewAuthHandlers(&auth.AuthHandlersConfig{
-		JWTManager:     suite.jwtManager,
-		SessionManager: suite.sessionManager,
-		RBACManager:    suite.rbacManager,
-		OAuthProviders: map[string]interface{}{
-			"test": mockProvider,
-		},
+	suite.handlers = auth.NewAuthHandlers(nil, nil, nil, &auth.HandlersConfig{
 		BaseURL: "http://localhost:8080",
-		Logger:  suite.tc.Logger,
 	})
 
 	// Setup HTTP routes

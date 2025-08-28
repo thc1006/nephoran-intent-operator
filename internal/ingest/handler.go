@@ -1,3 +1,5 @@
+// Package ingest provides HTTP handlers and validation mechanisms
+// for processing network intent commands from various input sources.
 package ingest
 
 import (

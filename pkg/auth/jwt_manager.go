@@ -636,14 +636,20 @@ func applyTokenOptions(options ...TokenOption) *TokenOptions {
 func generateTokenID() string {
 	// Generate a random token ID
 	b := make([]byte, 16)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		// Fallback to time-based ID if random generation fails
+		return fmt.Sprintf("%x", time.Now().UnixNano())
+	}
 	return fmt.Sprintf("%x", b)
 }
 
 func generateKeyID() string {
 	// Generate a random key ID
 	b := make([]byte, 8)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		// Fallback to time-based ID if random generation fails
+		return fmt.Sprintf("key-%x", time.Now().UnixNano())
+	}
 	return fmt.Sprintf("%x", b)
 }
 

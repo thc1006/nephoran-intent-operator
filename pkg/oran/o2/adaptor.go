@@ -1,3 +1,6 @@
+// Package o2 provides a comprehensive implementation of the O-RAN O2 Interface
+// for Infrastructure Management Services (IMS), supporting multi-cloud
+// resource orchestration, deployment management, and cloud-native operations.
 package o2
 
 import (

@@ -1,3 +1,5 @@
+// Package a1 provides implementation for Near-RT RIC A1 interface
+// for policy management, service orchestration, and event-driven workflows.
 package a1
 
 import (

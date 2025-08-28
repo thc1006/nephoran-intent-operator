@@ -19,6 +19,7 @@ type MockLLMClient struct {
 	callCount         int
 	lastIntent        string
 	shouldReturnError bool
+	Error             error // Public field for direct error control in tests
 }
 
 // NewMockLLMClient creates a new mock LLM client
@@ -40,6 +41,11 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 	case <-ctx.Done():
 		return "", ctx.Err()
 	case <-time.After(m.processingDelay):
+	}
+
+	// Check for direct Error field first
+	if m.Error != nil {
+		return "", m.Error
 	}
 
 	// Check for global error flag
@@ -254,6 +260,11 @@ func (m *MockLLMClient) GetMaxTokens(modelName string) int {
 // Close implements the shared.ClientInterface
 func (m *MockLLMClient) Close() error {
 	return nil // Nothing to close in mock
+}
+
+// GetError returns the current error state for test convenience
+func (m *MockLLMClient) GetError() error {
+	return m.Error
 }
 
 // MockGitClient provides a mock implementation of the Git client interface

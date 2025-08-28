@@ -43,7 +43,10 @@ func main() {
 	if *schemaFile != "" {
 		schemaPath = *schemaFile
 	} else {
-		repoRoot, _ := os.Getwd()
+		repoRoot, err := os.Getwd()
+		if err != nil {
+			log.Fatalf("failed to get working directory: %v", err)
+		}
 		schemaPath = filepath.Join(repoRoot, "docs", "contracts", "intent.schema.json")
 	}
 

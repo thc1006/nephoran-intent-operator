@@ -9,7 +9,10 @@ import (
 // TestValidateConfigFilePath tests the security validation for config file paths
 func TestValidateConfigFilePath(t *testing.T) {
 	// Save current directory for relative path tests
-	currentDir, _ := os.Getwd()
+	currentDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get working directory: %v", err)
+	}
 
 	tests := []struct {
 		name        string

@@ -1,3 +1,5 @@
+// Package loop provides file management, processing, and concurrency utilities
+// for handling file-based operations with robust error handling and state tracking.
 package loop
 
 import (

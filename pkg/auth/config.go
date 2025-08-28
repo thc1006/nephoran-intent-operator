@@ -1111,8 +1111,8 @@ func validateConfigFilePath(filePath string) error {
 	}
 
 	// For development/testing, allow current directory subdirectories
-	currentDir, _ := os.Getwd()
-	if currentDir != "" {
+	currentDir, err := os.Getwd()
+	if err == nil && currentDir != "" {
 		// Only allow config subdirectory in development
 		allowedPrefixes = append(allowedPrefixes, filepath.Join(currentDir, "config"))
 		allowedPrefixes = append(allowedPrefixes, filepath.Join(currentDir, "test", "config"))
@@ -1199,8 +1199,8 @@ func validateFilePath(filePath string) error {
 	}
 
 	// Allow relative paths under current directory for development
-	currentDir, _ := os.Getwd()
-	if currentDir != "" {
+	currentDir, err := os.Getwd()
+	if err == nil && currentDir != "" {
 		allowedPrefixes = append(allowedPrefixes, filepath.Join(currentDir, "secrets"))
 		allowedPrefixes = append(allowedPrefixes, filepath.Join(currentDir, "config"))
 	}

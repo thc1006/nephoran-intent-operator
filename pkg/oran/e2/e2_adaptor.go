@@ -1,3 +1,6 @@
+// Package e2 provides a comprehensive implementation of the E2 interface
+// for Near-RT RIC communication, following O-RAN specifications for
+// service model management, node configuration, and control operations.
 package e2
 
 import (

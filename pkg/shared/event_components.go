@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
@@ -344,7 +343,7 @@ func (el *EventLog) rotate() error {
 }
 
 func (el *EventLog) getLogFiles() ([]string, error) {
-	files, err := ioutil.ReadDir(el.dir)
+	files, err := os.ReadDir(el.dir)
 	if err != nil {
 		return nil, err
 	}

@@ -3,7 +3,6 @@ package excellence_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -118,7 +117,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 				"scripts":     false,
 			}
 
-			entries, err := ioutil.ReadDir(projectRoot)
+			entries, err := os.ReadDir(projectRoot)
 			Expect(err).NotTo(HaveOccurred())
 
 			foundDirs := []string{}
@@ -386,7 +385,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 					hasAPIDoc = true
 					if stat.IsDir() {
 						// Count files in directory
-						files, err := ioutil.ReadDir(apiPath)
+						files, err := os.ReadDir(apiPath)
 						if err == nil {
 							apiDocSize += len(files)
 						}
@@ -505,7 +504,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 				if stat, err := os.Stat(templatePath); err == nil {
 					if stat.IsDir() {
 						// Count templates in directory
-						files, err := ioutil.ReadDir(templatePath)
+						files, err := os.ReadDir(templatePath)
 						if err == nil && len(files) > 0 {
 							foundTemplates = append(foundTemplates, fmt.Sprintf("%s (%d files)", templatePath, len(files)))
 						}
@@ -710,7 +709,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 				if _, err := os.Stat(autoPath); err == nil {
 					if strings.Contains(autoPath, "workflows") {
 						// Check for release workflows
-						files, err := ioutil.ReadDir(autoPath)
+						files, err := os.ReadDir(autoPath)
 						if err == nil {
 							for _, file := range files {
 								if strings.Contains(strings.ToLower(file.Name()), "release") {

@@ -144,7 +144,9 @@ func NewSecureAllocator() *SecureAllocator {
 func NewEncryptedStorage() *EncryptedStorage {
 	// Generate master key
 	masterKey := make([]byte, 32)
-	rand.Read(masterKey)
+	if _, err := rand.Read(masterKey); err != nil {
+		panic(fmt.Sprintf("failed to generate encryption master key: %v", err))
+	}
 
 	return &EncryptedStorage{
 		masterKey: masterKey,
@@ -312,7 +314,12 @@ func (sb *SecureBuffer) Clear() {
 
 	// Overwrite with random data multiple times
 	for i := 0; i < 3; i++ {
-		rand.Read(sb.data)
+		if _, err := rand.Read(sb.data); err != nil {
+			// Fallback to zero fill if random data fails
+			for j := range sb.data {
+				sb.data[j] = 0
+			}
+		}
 	}
 
 	// Final overwrite with zeros

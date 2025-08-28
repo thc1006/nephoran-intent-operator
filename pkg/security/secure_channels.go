@@ -775,7 +775,10 @@ func (sc *SecureChannel) GetMetrics() map[string]uint64 {
 // generateSessionID generates a unique session ID
 func generateSessionID() string {
 	b := make([]byte, 16)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		// Fallback to time-based ID if random generation fails
+		return fmt.Sprintf("%x", time.Now().UnixNano())
+	}
 	return fmt.Sprintf("%x", b)
 }
 

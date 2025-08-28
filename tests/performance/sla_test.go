@@ -140,14 +140,16 @@ func (s *SLATestSuite) testAvailabilitySLA(t *testing.T) {
 
 	if availability < AvailabilityTarget {
 		violation := SLAViolation{
-			Metric:    "Availability",
-			Current:   availability,
-			Target:    AvailabilityTarget,
-			Violation: fmt.Sprintf("%.2f%% < %.2f%%", availability, AvailabilityTarget),
-			Severity:  "Critical",
+			SLAName:        "Availability",
+			ViolationType:  "availability_below_target",
+			Timestamp:      time.Now(),
+			Severity:       "critical",
+			ThresholdValue: AvailabilityTarget,
+			ActualValue:    availability,
+			Impact:         fmt.Sprintf("%.2f%% < %.2f%%", availability, AvailabilityTarget),
 		}
 		s.results.Violations = append(s.results.Violations, violation)
-		t.Errorf("Availability SLA violation: %s", violation.Violation)
+		t.Errorf("Availability SLA violation: %s", violation.Impact)
 	}
 
 	assert.GreaterOrEqual(t, availability, AvailabilityTarget,
@@ -175,27 +177,31 @@ func (s *SLATestSuite) testIntentProcessingSLA(t *testing.T) {
 			s.results.IntentProcessingP95 = result
 			if result > IntentProcessingP95Target {
 				violation := SLAViolation{
-					Metric:    "Intent Processing P95",
-					Current:   result,
-					Target:    IntentProcessingP95Target,
-					Violation: fmt.Sprintf("%.2fs > %.2fs", result, IntentProcessingP95Target),
-					Severity:  "Warning",
+					SLAName:        "Intent Processing P95",
+					ViolationType:  "latency_p95_exceeded",
+					Timestamp:      time.Now(),
+					Severity:       "warning",
+					ThresholdValue: IntentProcessingP95Target,
+					ActualValue:    result,
+					Impact:         fmt.Sprintf("%.2fs > %.2fs", result, IntentProcessingP95Target),
 				}
 				s.results.Violations = append(s.results.Violations, violation)
-				t.Errorf("Intent processing P95 SLA violation: %s", violation.Violation)
+				t.Errorf("Intent processing P95 SLA violation: %s", violation.Impact)
 			}
 		case "p99":
 			s.results.IntentProcessingP99 = result
 			if result > IntentProcessingP99Target {
 				violation := SLAViolation{
-					Metric:    "Intent Processing P99",
-					Current:   result,
-					Target:    IntentProcessingP99Target,
-					Violation: fmt.Sprintf("%.2fs > %.2fs", result, IntentProcessingP99Target),
-					Severity:  "Critical",
+					SLAName:        "Intent Processing P99",
+					ViolationType:  "latency_p99_exceeded",
+					Timestamp:      time.Now(),
+					Severity:       "critical",
+					ThresholdValue: IntentProcessingP99Target,
+					ActualValue:    result,
+					Impact:         fmt.Sprintf("%.2fs > %.2fs", result, IntentProcessingP99Target),
 				}
 				s.results.Violations = append(s.results.Violations, violation)
-				t.Errorf("Intent processing P99 SLA violation: %s", violation.Violation)
+				t.Errorf("Intent processing P99 SLA violation: %s", violation.Impact)
 			}
 		}
 
@@ -215,14 +221,16 @@ func (s *SLATestSuite) testErrorRateSLA(t *testing.T) {
 
 	if errorRate > ErrorRateTarget {
 		violation := SLAViolation{
-			Metric:    "Error Rate",
-			Current:   errorRate,
-			Target:    ErrorRateTarget,
-			Violation: fmt.Sprintf("%.2f%% > %.2f%%", errorRate, ErrorRateTarget),
-			Severity:  "Warning",
+			SLAName:        "Error Rate",
+			ViolationType:  "error_rate_exceeded",
+			Timestamp:      time.Now(),
+			Severity:       "warning",
+			ThresholdValue: ErrorRateTarget,
+			ActualValue:    errorRate,
+			Impact:         fmt.Sprintf("%.2f%% > %.2f%%", errorRate, ErrorRateTarget),
 		}
 		s.results.Violations = append(s.results.Violations, violation)
-		t.Errorf("Error rate SLA violation: %s", violation.Violation)
+		t.Errorf("Error rate SLA violation: %s", violation.Impact)
 	}
 
 	assert.LessOrEqual(t, errorRate, ErrorRateTarget,
@@ -243,14 +251,16 @@ func (s *SLATestSuite) testResourceOptimizationSLA(t *testing.T) {
 
 	if efficiency < ResourceOptimizationTarget {
 		violation := SLAViolation{
-			Metric:    "Resource Optimization",
-			Current:   efficiency,
-			Target:    ResourceOptimizationTarget,
-			Violation: fmt.Sprintf("%.2f%% < %.2f%%", efficiency, ResourceOptimizationTarget),
-			Severity:  "Warning",
+			SLAName:        "Resource Optimization",
+			ViolationType:  "efficiency_below_target",
+			Timestamp:      time.Now(),
+			Severity:       "warning",
+			ThresholdValue: ResourceOptimizationTarget,
+			ActualValue:    efficiency,
+			Impact:         fmt.Sprintf("%.2f%% < %.2f%%", efficiency, ResourceOptimizationTarget),
 		}
 		s.results.Violations = append(s.results.Violations, violation)
-		t.Logf("Resource optimization below target: %s", violation.Violation)
+		t.Logf("Resource optimization below target: %s", violation.Impact)
 	}
 
 	t.Logf("Resource efficiency: %.2f%% (target: %.2f%%)", efficiency, ResourceOptimizationTarget)
@@ -648,7 +658,7 @@ func (s *SLATestSuite) generateSLAReport(t *testing.T) {
 	if len(s.results.Violations) > 0 {
 		t.Logf("\nSLA Violations:")
 		for _, violation := range s.results.Violations {
-			t.Logf("  [%s] %s: %s", violation.Severity, violation.Metric, violation.Violation)
+			t.Logf("  [%s] %s: %s", violation.Severity, violation.SLAName, violation.Impact)
 		}
 	} else {
 		t.Logf("\nAll SLAs within acceptable limits ✅")
@@ -705,7 +715,7 @@ func BenchmarkSLAIntentProcessing(b *testing.B) {
 // BenchmarkConcurrentIntentProcessing benchmarks concurrent intent processing
 func BenchmarkConcurrentIntentProcessing(b *testing.B) {
 	b.ReportAllocs()
-	concurrency := 10
+	_ = 10 // concurrency level for documentation
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {

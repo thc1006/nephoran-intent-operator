@@ -701,7 +701,10 @@ func (m *CAManager) processExpiringCertificates() {
 func generateManagerRequestID() string {
 	// Generate a random request ID
 	randomBytes := make([]byte, 8)
-	rand.Read(randomBytes)
+	if _, err := rand.Read(randomBytes); err != nil {
+		// Fallback to time-based ID if random generation fails
+		return fmt.Sprintf("req-%x", time.Now().UnixNano())
+	}
 	return fmt.Sprintf("req-%x", randomBytes)
 }
 
