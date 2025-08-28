@@ -85,10 +85,9 @@ func NewIntentProcessor(config *Config) *IntentProcessor {
 	})
 
 	// Create circuit breaker
-	circuitBreaker := llm.NewCircuitBreaker(llm.CircuitBreakerConfig{
-		Name:        "llm-processor",
-		MaxFailures: uint64(config.CircuitBreakerThreshold),
-		Timeout:     config.CircuitBreakerTimeout,
+	circuitBreaker := llm.NewCircuitBreaker("llm-processor", &shared.CircuitBreakerConfig{
+		FailureThreshold: int64(config.CircuitBreakerThreshold),
+		Timeout:         config.CircuitBreakerTimeout,
 	})
 
 	return &IntentProcessor{

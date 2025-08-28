@@ -1,3 +1,6 @@
+//go:build !fast_build
+// +build !fast_build
+
 package main
 
 import (

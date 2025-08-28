@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"flag"
+	"net/http"
 	"os"
 	"time"
 
@@ -53,9 +54,6 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "oran-adaptor.nephoran.io",
-		// Fast build optimizations
-		SyncPeriod:             &[]time.Duration{time.Hour}[0], // Reduce sync frequency
-		HealthProbeBindAddress: probeAddr,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
