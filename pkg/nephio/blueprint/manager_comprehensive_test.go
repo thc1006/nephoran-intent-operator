@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	ctrl "sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
+	config "sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -82,8 +82,8 @@ func (m *MockManager) GetCache() cache.Cache                             { retur
 func (m *MockManager) GetFieldIndexer() client.FieldIndexer              { return nil }
 func (m *MockManager) GetEventRecorderFor(string) record.EventRecorder   { return nil }
 func (m *MockManager) GetRESTMapper() meta.RESTMapper                    { return nil }
-func (m *MockManager) GetControllerOptions() ctrl.ControllerConfigurationSpec {
-	return ctrl.ControllerConfigurationSpec{}
+func (m *MockManager) GetControllerOptions() config.Controller {
+	return config.Controller{}
 }
 
 // Helper function to create a mock manager

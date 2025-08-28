@@ -645,6 +645,11 @@ func (rp *ResourcePlan) GetParentIntentName() string {
 	return rp.Spec.ParentIntentRef.Name
 }
 
+// GetNamespace returns the namespace of the resource
+func (rp *ResourcePlan) GetNamespace() string {
+	return rp.ObjectMeta.Namespace
+}
+
 // GetParentIntentNamespace returns the namespace of the parent NetworkIntent
 func (rp *ResourcePlan) GetParentIntentNamespace() string {
 	if rp.Spec.ParentIntentRef.Namespace != "" {

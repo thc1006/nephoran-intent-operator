@@ -69,12 +69,15 @@ type SearchResult struct {
 type SearchQuery struct {
 	Query         string                 `json:"query"`
 	Limit         int                    `json:"limit"`
+	Offset        int                    `json:"offset"`
 	Filters       map[string]interface{} `json:"filters,omitempty"`
 	HybridSearch  bool                   `json:"hybrid_search"`
 	HybridAlpha   float32                `json:"hybrid_alpha"`
 	UseReranker   bool                   `json:"use_reranker"`
 	MinConfidence float32                `json:"min_confidence"`
+	IncludeVector bool                   `json:"include_vector"`
 	ExpandQuery   bool                   `json:"expand_query"`
+	TargetVectors []string               `json:"target_vectors,omitempty"` // For named vectors support
 }
 
 // SearchResponse represents the response from a search operation

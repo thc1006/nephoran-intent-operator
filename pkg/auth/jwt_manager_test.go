@@ -34,10 +34,10 @@ func TestNewJWTManager(t *testing.T) {
 			},
 			expectError: false,
 			checkConfig: func(t *testing.T, manager *auth.JWTManager) {
-				assert.Equal(t, "test-issuer", manager.issuer)
-				assert.Equal(t, time.Hour, manager.defaultTTL)
-				assert.Equal(t, 24*time.Hour, manager.refreshTTL)
-				assert.False(t, manager.requireSecureCookies)
+				assert.Equal(t, "test-issuer", manager.GetIssuer())
+				assert.Equal(t, time.Hour, manager.GetDefaultTTL())
+				assert.Equal(t, 24*time.Hour, manager.GetRefreshTTL())
+				assert.False(t, manager.GetRequireSecureCookies())
 			},
 		},
 		{
@@ -45,9 +45,9 @@ func TestNewJWTManager(t *testing.T) {
 			config:      nil,
 			expectError: false,
 			checkConfig: func(t *testing.T, manager *auth.JWTManager) {
-				assert.Equal(t, "nephoran-intent-operator", manager.issuer)
-				assert.Equal(t, time.Hour, manager.defaultTTL)
-				assert.Equal(t, 24*time.Hour, manager.refreshTTL)
+				assert.Equal(t, "nephoran-intent-operator", manager.GetIssuer())
+				assert.Equal(t, time.Hour, manager.GetDefaultTTL())
+				assert.Equal(t, 24*time.Hour, manager.GetRefreshTTL())
 			},
 		},
 		{
@@ -59,8 +59,8 @@ func TestNewJWTManager(t *testing.T) {
 			},
 			expectError: false,
 			checkConfig: func(t *testing.T, manager *auth.JWTManager) {
-				assert.Equal(t, 5*time.Minute, manager.defaultTTL)
-				assert.Equal(t, 30*time.Minute, manager.refreshTTL)
+				assert.Equal(t, 5*time.Minute, manager.GetDefaultTTL())
+				assert.Equal(t, 30*time.Minute, manager.GetRefreshTTL())
 			},
 		},
 	}
@@ -513,14 +513,14 @@ func TestJWTManager_RotateKeys(t *testing.T) {
 	manager := tc.SetupJWTManager()
 
 	// Get initial key ID
-	initialKeyID := manager.keyID
+	initialKeyID := manager.GetKeyID()
 
 	// Rotate keys
 	err := manager.RotateKeys()
 	assert.NoError(t, err)
 
 	// Verify key ID changed
-	assert.NotEqual(t, initialKeyID, manager.keyID)
+	assert.NotEqual(t, initialKeyID, manager.GetKeyID())
 
 	// Verify we can still generate and validate tokens
 	uf := testutil.NewUserFactory()

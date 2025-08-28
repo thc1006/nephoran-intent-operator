@@ -11,19 +11,7 @@ import (
 	"time"
 )
 
-// TokenUsage represents token usage information for embedding generation
-type TokenUsage struct {
-	PromptTokens  int     `json:"prompt_tokens"`
-	TotalTokens   int     `json:"total_tokens"`
-	EstimatedCost float64 `json:"estimated_cost"`
-}
-
-// ProviderConfig represents configuration for an embedding provider
-type ProviderConfig struct {
-	Name         string  `json:"name"`
-	CostPerToken float64 `json:"cost_per_token"`
-	Enabled      bool    `json:"enabled"`
-}
+// TokenUsage and ProviderConfig are defined in embedding_service.go
 
 // MockProvider implements EmbeddingProvider for testing
 type MockProvider struct {
@@ -51,7 +39,7 @@ func NewMockProvider(name string, costPerToken float64, latency time.Duration) *
 	}
 }
 
-func (m *MockProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, *TokenUsage, error) {
+func (m *MockProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, TokenUsage, error) {
 	m.mu.Lock()
 	m.callCount++
 	callNum := m.callCount
@@ -61,12 +49,12 @@ func (m *MockProvider) GenerateEmbeddings(ctx context.Context, texts []string) (
 	select {
 	case <-time.After(m.latency):
 	case <-ctx.Done():
-		return nil, &TokenUsage{}, ctx.Err()
+		return nil, TokenUsage{}, ctx.Err()
 	}
 
 	// Simulate failures
 	if m.failureRate > 0 && float64(callNum%100)/100.0 < m.failureRate {
-		return nil, &TokenUsage{}, fmt.Errorf("provider %s failed", m.name)
+		return nil, TokenUsage{}, fmt.Errorf("provider %s failed", m.name)
 	}
 
 	// Generate mock embeddings
@@ -81,7 +69,7 @@ func (m *MockProvider) GenerateEmbeddings(ctx context.Context, texts []string) (
 		totalTokens += len(text) / 4 // Rough estimation
 	}
 
-	usage := &TokenUsage{
+	usage := TokenUsage{
 		PromptTokens:  totalTokens,
 		TotalTokens:   totalTokens,
 		EstimatedCost: float64(totalTokens) * m.costPerToken / 1000,

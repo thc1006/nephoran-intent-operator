@@ -433,6 +433,11 @@ func (ip *IntentProcessing) GetParentIntentName() string {
 	return ip.Spec.ParentIntentRef.Name
 }
 
+// GetNamespace returns the namespace of the resource
+func (ip *IntentProcessing) GetNamespace() string {
+	return ip.ObjectMeta.Namespace
+}
+
 // GetParentIntentNamespace returns the namespace of the parent NetworkIntent
 func (ip *IntentProcessing) GetParentIntentNamespace() string {
 	if ip.Spec.ParentIntentRef.Namespace != "" {

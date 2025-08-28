@@ -51,7 +51,7 @@ undefined: CreateIsolatedNamespace // Missing test utilities
 
 ```go
 // Missing export data
-"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1" // No export data
+"sigs.k8s.io/controller-runtime/pkg/config" // Correct import path
 "github.com/thc1006/nephoran-intent-operator/pkg/llm" // Missing exports
 ```
 

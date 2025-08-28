@@ -824,6 +824,11 @@ func (gd *GitOpsDeployment) GetParentIntentName() string {
 	return gd.Spec.ParentIntentRef.Name
 }
 
+// GetNamespace returns the namespace of the resource
+func (gd *GitOpsDeployment) GetNamespace() string {
+	return gd.ObjectMeta.Namespace
+}
+
 // GetParentIntentNamespace returns the namespace of the parent NetworkIntent
 func (gd *GitOpsDeployment) GetParentIntentNamespace() string {
 	if gd.Spec.ParentIntentRef.Namespace != "" {

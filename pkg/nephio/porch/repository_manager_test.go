@@ -28,7 +28,6 @@ import (
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/testutil"
 )
 
 // Mock implementations for testing
@@ -220,13 +219,13 @@ func TestRepositoryManagerRegisterRepository(t *testing.T) {
 		name        string
 		config      *RepositoryConfig
 		expectError bool
-		setupMocks  func(*testutil.MockPorchClient)
+		setupMocks  func(*MockPorchClient)
 	}{
 		{
 			name:        "ValidGitRepository",
 			config:      createTestRepositoryConfig(),
 			expectError: false,
-			setupMocks: func(client *testutil.MockPorchClient) {
+			setupMocks: func(client *MockPorchClient) {
 				repo := &Repository{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "test-repo",
@@ -243,7 +242,7 @@ func TestRepositoryManagerRegisterRepository(t *testing.T) {
 				URL:  "invalid-url",
 			},
 			expectError: true,
-			setupMocks: func(client *testutil.MockPorchClient) {
+			setupMocks: func(client *MockPorchClient) {
 				// No setup needed - validation should fail before API call
 			},
 		},
@@ -254,7 +253,7 @@ func TestRepositoryManagerRegisterRepository(t *testing.T) {
 				URL:  "https://github.com/test/test-repo.git",
 			},
 			expectError: true,
-			setupMocks: func(client *testutil.MockPorchClient) {
+			setupMocks: func(client *MockPorchClient) {
 				// No setup needed - validation should fail before API call
 			},
 		},
@@ -266,7 +265,7 @@ func TestRepositoryManagerRegisterRepository(t *testing.T) {
 				URL:  "https://svn.example.com/repo",
 			},
 			expectError: true,
-			setupMocks: func(client *testutil.MockPorchClient) {
+			setupMocks: func(client *MockPorchClient) {
 				// No setup needed - validation should fail before API call
 			},
 		},

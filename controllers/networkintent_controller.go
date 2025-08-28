@@ -26,6 +26,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -40,6 +41,7 @@ import (
 type NetworkIntentReconciler struct {
 	client.Client
 	Scheme          *runtime.Scheme
+	Log             logr.Logger
 	EnableLLMIntent bool
 	LLMProcessorURL string
 }

@@ -180,20 +180,8 @@ type TelecomDocument struct {
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// SearchQuery represents a query to the vector database
-type SearchQuery struct {
-	Query         string                 `json:"query"`
-	Limit         int                    `json:"limit"`
-	Offset        int                    `json:"offset"`
-	Filters       map[string]interface{} `json:"filters,omitempty"`
-	HybridSearch  bool                   `json:"hybrid_search"`
-	HybridAlpha   float32                `json:"hybrid_alpha"`
-	UseReranker   bool                   `json:"use_reranker"`
-	MinConfidence float32                `json:"min_confidence"`
-	IncludeVector bool                   `json:"include_vector"`
-	ExpandQuery   bool                   `json:"expand_query"`
-	TargetVectors []string               `json:"target_vectors,omitempty"` // For named vectors support
-}
+// SearchQuery is now defined in shared package
+type SearchQuery = shared.SearchQuery
 
 // SearchResult definition moved to enhanced_rag_integration.go to avoid duplicates
 

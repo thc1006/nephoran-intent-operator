@@ -682,6 +682,11 @@ func (mg *ManifestGeneration) GetParentIntentName() string {
 	return mg.Spec.ParentIntentRef.Name
 }
 
+// GetNamespace returns the namespace of the resource
+func (mg *ManifestGeneration) GetNamespace() string {
+	return mg.ObjectMeta.Namespace
+}
+
 // GetParentIntentNamespace returns the namespace of the parent NetworkIntent
 func (mg *ManifestGeneration) GetParentIntentNamespace() string {
 	if mg.Spec.ParentIntentRef.Namespace != "" {

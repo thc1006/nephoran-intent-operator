@@ -55,6 +55,7 @@ type JWTConfig struct {
 	RequireSecureCookies bool          `json:"require_secure_cookies"`
 	CookieDomain         string        `json:"cookie_domain"`
 	CookiePath           string        `json:"cookie_path"`
+	Algorithm            string        `json:"algorithm"`
 }
 
 // NephoranJWTClaims extends standard JWT claims with Nephoran-specific fields
@@ -689,4 +690,41 @@ func extractOrganizationNames(orgs []providers.Organization) []string {
 		names[i] = org.Name
 	}
 	return names
+}
+
+// Getter methods for testing
+
+// GetIssuer returns the issuer for testing purposes
+func (jm *JWTManager) GetIssuer() string {
+	jm.mutex.RLock()
+	defer jm.mutex.RUnlock()
+	return jm.issuer
+}
+
+// GetDefaultTTL returns the default TTL for testing purposes
+func (jm *JWTManager) GetDefaultTTL() time.Duration {
+	jm.mutex.RLock()
+	defer jm.mutex.RUnlock()
+	return jm.defaultTTL
+}
+
+// GetRefreshTTL returns the refresh TTL for testing purposes
+func (jm *JWTManager) GetRefreshTTL() time.Duration {
+	jm.mutex.RLock()
+	defer jm.mutex.RUnlock()
+	return jm.refreshTTL
+}
+
+// GetRequireSecureCookies returns the secure cookies requirement for testing purposes
+func (jm *JWTManager) GetRequireSecureCookies() bool {
+	jm.mutex.RLock()
+	defer jm.mutex.RUnlock()
+	return jm.requireSecureCookies
+}
+
+// GetKeyID returns the current key ID for testing purposes
+func (jm *JWTManager) GetKeyID() string {
+	jm.mutex.RLock()
+	defer jm.mutex.RUnlock()
+	return jm.keyID
 }
