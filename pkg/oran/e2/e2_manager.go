@@ -1205,14 +1205,43 @@ func (m *E2Manager) GetMetrics() *E2Metrics {
 	m.metrics.mutex.RLock()
 	defer m.metrics.mutex.RUnlock()
 
-	// Create a copy to avoid race conditions
-	metricsCopy := *m.metrics
-	metricsCopy.ErrorsByType = make(map[string]int64)
+	// Create a new metrics instance to avoid copying the mutex
+	errorsByType := make(map[string]int64)
 	for k, v := range m.metrics.ErrorsByType {
-		metricsCopy.ErrorsByType[k] = v
+		errorsByType[k] = v
 	}
 
-	return &metricsCopy
+	return &E2Metrics{
+		// Connection metrics
+		ConnectionsTotal:    m.metrics.ConnectionsTotal,
+		ConnectionsActive:   m.metrics.ConnectionsActive,
+		ConnectionsFailed:   m.metrics.ConnectionsFailed,
+		ConnectionLatencyMs: m.metrics.ConnectionLatencyMs,
+
+		// Node metrics
+		NodesRegistered:   m.metrics.NodesRegistered,
+		NodesActive:       m.metrics.NodesActive,
+		NodesDisconnected: m.metrics.NodesDisconnected,
+
+		// Subscription metrics
+		SubscriptionsTotal:    m.metrics.SubscriptionsTotal,
+		SubscriptionsActive:   m.metrics.SubscriptionsActive,
+		SubscriptionsFailed:   m.metrics.SubscriptionsFailed,
+		SubscriptionLatencyMs: m.metrics.SubscriptionLatencyMs,
+
+		// Message metrics
+		MessagesReceived:  m.metrics.MessagesReceived,
+		MessagesSent:      m.metrics.MessagesSent,
+		MessagesProcessed: m.metrics.MessagesProcessed,
+		MessagesFailed:    m.metrics.MessagesFailed,
+
+		// Error metrics
+		ErrorsTotal:  m.metrics.ErrorsTotal,
+		ErrorsByType: errorsByType,
+
+		// Note: mutex and lastUpdated are not copied to avoid race conditions
+		lastUpdated: m.metrics.lastUpdated,
+	}
 }
 
 // Shutdown gracefully shuts down the E2Manager

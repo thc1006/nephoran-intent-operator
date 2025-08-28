@@ -808,10 +808,25 @@ func (pe *ParallelProcessingEngine) GetMetrics() *ProcessingMetrics {
 	defer pe.metrics.mutex.RUnlock()
 
 	// Create a deep copy to avoid concurrent access issues
-	metricsCopy := *pe.metrics
-	metricsCopy.PoolMetrics = make(map[string]*PoolMetrics)
-	metricsCopy.TaskMetrics = make(map[TaskType]*TaskTypeMetrics)
-	metricsCopy.ErrorsByType = make(map[string]int64)
+	// Field-by-field assignment to avoid copying mutex
+	metricsCopy := ProcessingMetrics{
+		TotalIntentsProcessed: pe.metrics.TotalIntentsProcessed,
+		SuccessfulIntents:     pe.metrics.SuccessfulIntents,
+		FailedIntents:         pe.metrics.FailedIntents,
+		IntentsPerSecond:      pe.metrics.IntentsPerSecond,
+		AverageProcessingTime: pe.metrics.AverageProcessingTime,
+		P95ProcessingTime:     pe.metrics.P95ProcessingTime,
+		P99ProcessingTime:     pe.metrics.P99ProcessingTime,
+		TotalMemoryUsage:      pe.metrics.TotalMemoryUsage,
+		TotalCPUUsage:         pe.metrics.TotalCPUUsage,
+		QueueDepth:            pe.metrics.QueueDepth,
+		AverageQueueTime:      pe.metrics.AverageQueueTime,
+		ErrorRate:             pe.metrics.ErrorRate,
+		LastUpdated:           pe.metrics.LastUpdated,
+		PoolMetrics:           make(map[string]*PoolMetrics),
+		TaskMetrics:           make(map[TaskType]*TaskTypeMetrics),
+		ErrorsByType:          make(map[string]int64),
+	}
 
 	for k, v := range pe.metrics.PoolMetrics {
 		metricsCopy.PoolMetrics[k] = v

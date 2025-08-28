@@ -1113,9 +1113,40 @@ func (es *EmbeddingService) GetMetrics() *EmbeddingMetrics {
 	es.metrics.mutex.RLock()
 	defer es.metrics.mutex.RUnlock()
 
-	// Return a copy
-	metrics := *es.metrics
-	return &metrics
+	// Return a copy without the mutex
+	metrics := &EmbeddingMetrics{
+		TotalRequests:      es.metrics.TotalRequests,
+		SuccessfulRequests: es.metrics.SuccessfulRequests,
+		FailedRequests:     es.metrics.FailedRequests,
+		TotalTexts:         es.metrics.TotalTexts,
+		TotalTokens:        es.metrics.TotalTokens,
+		TotalCost:          es.metrics.TotalCost,
+		AverageLatency:     es.metrics.AverageLatency,
+		AverageTextLength:  es.metrics.AverageTextLength,
+		CacheStats: struct {
+			TotalLookups int64   `json:"total_lookups"`
+			CacheHits    int64   `json:"cache_hits"`
+			CacheMisses  int64   `json:"cache_misses"`
+			HitRate      float64 `json:"hit_rate"`
+		}{
+			TotalLookups: es.metrics.CacheStats.TotalLookups,
+			CacheHits:    es.metrics.CacheStats.CacheHits,
+			CacheMisses:  es.metrics.CacheStats.CacheMisses,
+			HitRate:      es.metrics.CacheStats.HitRate,
+		},
+		RateLimitingStats: struct {
+			RateLimitHits   int64         `json:"rate_limit_hits"`
+			TotalWaitTime   time.Duration `json:"total_wait_time"`
+			AverageWaitTime time.Duration `json:"average_wait_time"`
+		}{
+			RateLimitHits:   es.metrics.RateLimitingStats.RateLimitHits,
+			TotalWaitTime:   es.metrics.RateLimitingStats.TotalWaitTime,
+			AverageWaitTime: es.metrics.RateLimitingStats.AverageWaitTime,
+		},
+		ModelStats:  copyModelStats(es.metrics.ModelStats),
+		LastUpdated: es.metrics.LastUpdated,
+	}
+	return metrics
 }
 
 // startMetricsCollection starts background metrics collection
@@ -1631,4 +1662,16 @@ func (es *EmbeddingService) CheckStatus(ctx context.Context) (*ComponentStatus, 
 		LastCheck: time.Now(),
 		Details:   details,
 	}, nil
+}
+
+// copyModelStats creates a deep copy of ModelUsageStats map
+func copyModelStats(original map[string]ModelUsageStats) map[string]ModelUsageStats {
+	if original == nil {
+		return nil
+	}
+	copy := make(map[string]ModelUsageStats, len(original))
+	for k, v := range original {
+		copy[k] = v
+	}
+	return copy
 }

@@ -855,9 +855,26 @@ func (ers *EnhancedRetrievalService) GetMetrics() *RetrievalMetrics {
 	ers.metrics.mutex.RLock()
 	defer ers.metrics.mutex.RUnlock()
 
-	// Return a copy
-	metrics := *ers.metrics
-	return &metrics
+	// Return a copy without the mutex
+	metrics := &RetrievalMetrics{
+		TotalQueries:           ers.metrics.TotalQueries,
+		SuccessfulQueries:      ers.metrics.SuccessfulQueries,
+		FailedQueries:          ers.metrics.FailedQueries,
+		AverageResponseTime:    ers.metrics.AverageResponseTime,
+		QueriesWithEnhancement: ers.metrics.QueriesWithEnhancement,
+		QueriesWithReranking:   ers.metrics.QueriesWithReranking,
+		AverageEnhancementTime: ers.metrics.AverageEnhancementTime,
+		AverageRerankingTime:   ers.metrics.AverageRerankingTime,
+		AverageRelevanceScore:  ers.metrics.AverageRelevanceScore,
+		AverageCoverageScore:   ers.metrics.AverageCoverageScore,
+		AverageDiversityScore:  ers.metrics.AverageDiversityScore,
+		IntentTypeMetrics:      copyIntentTypeMetrics(ers.metrics.IntentTypeMetrics),
+		CacheHitRate:           ers.metrics.CacheHitRate,
+		CacheHits:              ers.metrics.CacheHits,
+		CacheMisses:            ers.metrics.CacheMisses,
+		LastUpdated:            ers.metrics.LastUpdated,
+	}
+	return metrics
 }
 
 // RetrievalHealthStatus represents the health status of the retrieval service
@@ -1014,4 +1031,16 @@ func (ers *EnhancedRetrievalService) determineOverallHealth(components map[strin
 	}
 
 	return "healthy"
+}
+
+// copyIntentTypeMetrics creates a deep copy of IntentTypeMetrics map
+func copyIntentTypeMetrics(original map[string]IntentTypeMetrics) map[string]IntentTypeMetrics {
+	if original == nil {
+		return nil
+	}
+	copy := make(map[string]IntentTypeMetrics, len(original))
+	for k, v := range original {
+		copy[k] = v
+	}
+	return copy
 }

@@ -942,7 +942,7 @@ type NetworkSecurityConfig struct {
 type ServiceMeshSecurityConfig struct {
 	Enabled bool                   `json:"enabled,omitempty"`
 	Type    string                 `json:"type,omitempty"` // istio, linkerd, consul
-	mTLS    *mTLSConfig            `json:"mtls,omitempty"`
+	MTLS    *mTLSConfig            `json:"mtls,omitempty"`
 	Config  map[string]interface{} `json:"config,omitempty"`
 }
 
@@ -1129,7 +1129,7 @@ type CacheInvalidationConfig struct {
 type ConnectionPoolingConfig struct {
 	Database *DatabasePoolConfig `json:"database,omitempty"`
 	HTTP     *HTTPPoolConfig     `json:"http,omitempty"`
-	gRPC     *GRPCPoolConfig     `json:"grpc,omitempty"`
+	GRPC     *GRPCPoolConfig     `json:"grpc,omitempty"`
 }
 
 // DatabasePoolConfig defines database connection pool configuration

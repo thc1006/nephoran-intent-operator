@@ -708,9 +708,31 @@ func (rc *RedisCache) GetMetrics() *RedisCacheMetrics {
 	rc.metrics.mutex.RLock()
 	defer rc.metrics.mutex.RUnlock()
 
-	// Return a copy
-	metrics := *rc.metrics
-	return &metrics
+	// Field-by-field copying to avoid mutex copying
+	metrics := &RedisCacheMetrics{
+		TotalRequests:     rc.metrics.TotalRequests,
+		Hits:              rc.metrics.Hits,
+		Misses:            rc.metrics.Misses,
+		Sets:              rc.metrics.Sets,
+		Deletes:           rc.metrics.Deletes,
+		Errors:            rc.metrics.Errors,
+		AverageGetTime:    rc.metrics.AverageGetTime,
+		AverageSetTime:    rc.metrics.AverageSetTime,
+		HitRate:           rc.metrics.HitRate,
+		EmbeddingHits:     rc.metrics.EmbeddingHits,
+		EmbeddingMisses:   rc.metrics.EmbeddingMisses,
+		DocumentHits:      rc.metrics.DocumentHits,
+		DocumentMisses:    rc.metrics.DocumentMisses,
+		QueryResultHits:   rc.metrics.QueryResultHits,
+		QueryResultMisses: rc.metrics.QueryResultMisses,
+		ContextHits:       rc.metrics.ContextHits,
+		ContextMisses:     rc.metrics.ContextMisses,
+		MemoryUsage:       rc.metrics.MemoryUsage,
+		KeyCount:          rc.metrics.KeyCount,
+		LastCleanup:       rc.metrics.LastCleanup,
+		LastUpdated:       rc.metrics.LastUpdated,
+	}
+	return metrics
 }
 
 // GetHealthStatus returns cache health status

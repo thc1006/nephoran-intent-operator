@@ -47,7 +47,7 @@ func NewEnhancedCostManager(limits EnhancedCostLimits) *EnhancedCostManager {
 		monthlySpend: baseCostManager.monthlySpend,
 		limits:       limits,
 		alerts:       []EnhancedCostAlert{}, // Convert alerts when needed
-		mutex:        baseCostManager.mutex,
+		mutex:        sync.RWMutex{},        // Initialize new mutex instead of copying
 	}
 
 	return enhanced

@@ -18,6 +18,7 @@ package orchestration
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -726,7 +727,7 @@ func (r *CoordinationController) handleIntentCompletion(ctx context.Context, net
 func (r *CoordinationController) handlePhaseFailure(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, result interfaces.ProcessingResult, coordCtx *CoordinationContext) (ctrl.Result, error) {
 	log := r.Logger.WithValues("intent", networkIntent.Name, "phase", phase)
 
-	log.Error(fmt.Errorf(result.ErrorMessage), "Phase failed", "errorCode", result.ErrorCode)
+	log.Error(errors.New(result.ErrorMessage), "Phase failed", "errorCode", result.ErrorCode)
 
 	// Increment retry count
 	coordCtx.mutex.Lock()
@@ -830,7 +831,7 @@ func (r *CoordinationController) handleRecoveryFailure(ctx context.Context, netw
 func (r *CoordinationController) handleIntentFailure(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, result interfaces.ProcessingResult, coordCtx *CoordinationContext) (ctrl.Result, error) {
 	log := r.Logger.WithValues("intent", networkIntent.Name, "phase", phase)
 
-	log.Error(fmt.Errorf(result.ErrorMessage), "Intent processing failed permanently")
+	log.Error(errors.New(result.ErrorMessage), "Intent processing failed permanently")
 
 	// Update NetworkIntent to failed status
 	networkIntent.Status.Phase = shared.ProcessingPhaseToNetworkIntentPhase(interfaces.PhaseFailed)

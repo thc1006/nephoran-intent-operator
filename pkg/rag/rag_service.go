@@ -600,9 +600,18 @@ func (rs *RAGService) GetMetrics() *ServiceRAGMetrics {
 	rs.metrics.mutex.RLock()
 	defer rs.metrics.mutex.RUnlock()
 
-	// Return a copy
-	metrics := *rs.metrics
-	return &metrics
+	// Return a copy with field-by-field copying to avoid mutex copying
+	metrics := &ServiceRAGMetrics{
+		TotalQueries:          rs.metrics.TotalQueries,
+		SuccessfulQueries:     rs.metrics.SuccessfulQueries,
+		FailedQueries:         rs.metrics.FailedQueries,
+		AverageLatency:        rs.metrics.AverageLatency,
+		AverageRetrievalTime:  rs.metrics.AverageRetrievalTime,
+		AverageGenerationTime: rs.metrics.AverageGenerationTime,
+		CacheHitRate:          rs.metrics.CacheHitRate,
+		LastUpdated:           rs.metrics.LastUpdated,
+	}
+	return metrics
 }
 
 // GetHealth returns the health status of the RAG service
@@ -840,8 +849,21 @@ func (c *ServiceRAGCache) GetMetrics() *CacheMetrics {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
 
-	metrics := *c.metrics
-	return &metrics
+	// Field-by-field copying to avoid mutex copying
+	metrics := &CacheMetrics{
+		Hits:         c.metrics.Hits,
+		Misses:       c.metrics.Misses,
+		TotalItems:   c.metrics.TotalItems,
+		Evictions:    c.metrics.Evictions,
+		L1Hits:       c.metrics.L1Hits,
+		L1Misses:     c.metrics.L1Misses,
+		L2Hits:       c.metrics.L2Hits,
+		L2Misses:     c.metrics.L2Misses,
+		L1HitRate:    c.metrics.L1HitRate,
+		L2HitRate:    c.metrics.L2HitRate,
+		TotalHitRate: c.metrics.TotalHitRate,
+	}
+	return metrics
 }
 
 // updateMetrics safely updates cache metrics

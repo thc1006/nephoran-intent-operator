@@ -1305,8 +1305,15 @@ func (rp *RAGPipeline) GetAsyncMetrics() *AsyncMetrics {
 	rp.workerPool.metrics.mutex.RLock()
 	defer rp.workerPool.metrics.mutex.RUnlock()
 
-	metrics := *rp.workerPool.metrics
-	return &metrics
+	// Field-by-field copying to avoid mutex copying
+	metrics := &AsyncMetrics{
+		TotalJobs:      rp.workerPool.metrics.TotalJobs,
+		CompletedJobs:  rp.workerPool.metrics.CompletedJobs,
+		FailedJobs:     rp.workerPool.metrics.FailedJobs,
+		ActiveWorkers:  rp.workerPool.metrics.ActiveWorkers,
+		AverageLatency: rp.workerPool.metrics.AverageLatency,
+	}
+	return metrics
 }
 
 // updateQueueMetrics updates queue size metrics

@@ -127,9 +127,26 @@ func (po *PerformanceOptimizer) CollectMetrics() *PerformanceMetrics {
 	// Note: CPU usage collection would require additional system monitoring
 	// For now, we'll use a placeholder implementation
 
-	// Return a copy of the metrics
-	metricsCopy := *po.metrics
-	return &metricsCopy
+	// Return a copy of the metrics without mutex
+	metricsCopy := &PerformanceMetrics{
+		CPUUsage: po.metrics.CPUUsage,
+		MemoryUsage: po.metrics.MemoryUsage,
+		GoroutineCount: po.metrics.GoroutineCount,
+		HeapSize: po.metrics.HeapSize,
+		GCPauses: copyDurations(po.metrics.GCPauses),
+		AverageLatency: po.metrics.AverageLatency,
+		ThroughputRPM: po.metrics.ThroughputRPM,
+		ErrorRate: po.metrics.ErrorRate,
+		CacheHitRate: po.metrics.CacheHitRate,
+		DocumentProcessingTime: po.metrics.DocumentProcessingTime,
+		EmbeddingGenerationTime: po.metrics.EmbeddingGenerationTime,
+		RetrievalTime: po.metrics.RetrievalTime,
+		ContextAssemblyTime: po.metrics.ContextAssemblyTime,
+		OptimizationsApplied: po.metrics.OptimizationsApplied,
+		LastOptimization: po.metrics.LastOptimization,
+		PerformanceGain: po.metrics.PerformanceGain,
+	}
+	return metricsCopy
 }
 
 // OptimizePerformance analyzes current performance and applies optimizations
@@ -562,4 +579,17 @@ func minDuration(a, b time.Duration) time.Duration {
 		return a
 	}
 	return b
+}
+
+
+// copyDurations creates a copy of duration slice  
+func copyDurations(original []time.Duration) []time.Duration {
+	if original == nil {
+		return nil
+	}
+	copy := make([]time.Duration, len(original))
+	for i, v := range original {
+		copy[i] = v
+	}
+	return copy
 }

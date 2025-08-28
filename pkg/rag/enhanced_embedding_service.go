@@ -734,14 +734,41 @@ func (mps *MultiProviderEmbeddingService) GetMetrics() *EmbeddingMetrics {
 	mps.metrics.mutex.RLock()
 	defer mps.metrics.mutex.RUnlock()
 
-	// Return a copy
-	metrics := *mps.metrics
-	metrics.ModelStats = make(map[string]ModelUsageStats)
-	for k, v := range mps.metrics.ModelStats {
-		metrics.ModelStats[k] = v
+	// Return a copy without the mutex
+	metrics := &EmbeddingMetrics{
+		TotalRequests:      mps.metrics.TotalRequests,
+		SuccessfulRequests: mps.metrics.SuccessfulRequests,
+		FailedRequests:     mps.metrics.FailedRequests,
+		TotalTexts:         mps.metrics.TotalTexts,
+		TotalTokens:        mps.metrics.TotalTokens,
+		TotalCost:          mps.metrics.TotalCost,
+		AverageLatency:     mps.metrics.AverageLatency,
+		AverageTextLength:  mps.metrics.AverageTextLength,
+		CacheStats: struct {
+			TotalLookups int64   `json:"total_lookups"`
+			CacheHits    int64   `json:"cache_hits"`
+			CacheMisses  int64   `json:"cache_misses"`
+			HitRate      float64 `json:"hit_rate"`
+		}{
+			TotalLookups: mps.metrics.CacheStats.TotalLookups,
+			CacheHits:    mps.metrics.CacheStats.CacheHits,
+			CacheMisses:  mps.metrics.CacheStats.CacheMisses,
+			HitRate:      mps.metrics.CacheStats.HitRate,
+		},
+		RateLimitingStats: struct {
+			RateLimitHits   int64         `json:"rate_limit_hits"`
+			TotalWaitTime   time.Duration `json:"total_wait_time"`
+			AverageWaitTime time.Duration `json:"average_wait_time"`
+		}{
+			RateLimitHits:   mps.metrics.RateLimitingStats.RateLimitHits,
+			TotalWaitTime:   mps.metrics.RateLimitingStats.TotalWaitTime,
+			AverageWaitTime: mps.metrics.RateLimitingStats.AverageWaitTime,
+		},
+		ModelStats:  copyModelStats(mps.metrics.ModelStats),
+		LastUpdated: mps.metrics.LastUpdated,
 	}
 
-	return &metrics
+	return metrics
 }
 
 // GetCostSummary returns cost tracking summary

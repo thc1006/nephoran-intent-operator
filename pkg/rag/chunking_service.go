@@ -1348,9 +1348,29 @@ func (cs *ChunkingService) GetMetrics() *ChunkingMetrics {
 	cs.metrics.mutex.RLock()
 	defer cs.metrics.mutex.RUnlock()
 
-	// Return a copy
-	metrics := *cs.metrics
-	return &metrics
+	// Return a copy without the mutex
+	metrics := &ChunkingMetrics{
+		TotalDocuments:        cs.metrics.TotalDocuments,
+		TotalChunks:           cs.metrics.TotalChunks,
+		AverageChunksPerDoc:   cs.metrics.AverageChunksPerDoc,
+		AverageChunkSize:      cs.metrics.AverageChunkSize,
+		AverageProcessingTime: cs.metrics.AverageProcessingTime,
+		QualityMetrics: struct {
+			AverageQualityScore float64 `json:"average_quality_score"`
+			HighQualityChunks   int64   `json:"high_quality_chunks"`
+			MediumQualityChunks int64   `json:"medium_quality_chunks"`
+			LowQualityChunks    int64   `json:"low_quality_chunks"`
+		}{
+			AverageQualityScore: cs.metrics.QualityMetrics.AverageQualityScore,
+			HighQualityChunks:   cs.metrics.QualityMetrics.HighQualityChunks,
+			MediumQualityChunks: cs.metrics.QualityMetrics.MediumQualityChunks,
+			LowQualityChunks:    cs.metrics.QualityMetrics.LowQualityChunks,
+		},
+		TypeDistribution:    copyMap(cs.metrics.TypeDistribution),
+		HierarchyDepthStats: copyIntMap(cs.metrics.HierarchyDepthStats),
+		LastProcessedAt:     cs.metrics.LastProcessedAt,
+	}
+	return metrics
 }
 
 // ChunkDocuments processes multiple documents in parallel
@@ -1401,4 +1421,28 @@ func (cs *ChunkingService) ChunkDocuments(ctx context.Context, docs []*LoadedDoc
 	)
 
 	return allChunks, nil
+}
+
+// copyMap creates a deep copy of a map[string]int64
+func copyMap(original map[string]int64) map[string]int64 {
+	if original == nil {
+		return nil
+	}
+	copy := make(map[string]int64, len(original))
+	for k, v := range original {
+		copy[k] = v
+	}
+	return copy
+}
+
+// copyIntMap creates a deep copy of a map[int]int64
+func copyIntMap(original map[int]int64) map[int]int64 {
+	if original == nil {
+		return nil
+	}
+	copy := make(map[int]int64, len(original))
+	for k, v := range original {
+		copy[k] = v
+	}
+	return copy
 }

@@ -18,6 +18,7 @@ package porch
 
 import (
 	"context"
+	"errors"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -28,7 +29,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sony/gobreaker"
 	"golang.org/x/time/rate"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -1136,7 +1137,7 @@ func (c *Client) getRepositoryInternal(ctx context.Context, name string) (*Repos
 
 	obj, err := c.dynamic.Resource(gvr).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil, fmt.Errorf("repository %s not found: %w", name, ErrRepositoryNotFound)
 		}
 		return nil, fmt.Errorf("failed to get repository %s: %w", name, err)
@@ -1322,7 +1323,7 @@ func (c *Client) deleteRepositoryInternal(ctx context.Context, name string) erro
 
 	err := c.dynamic.Resource(gvr).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return fmt.Errorf("repository %s not found: %w", name, ErrRepositoryNotFound)
 		}
 		return fmt.Errorf("failed to delete repository %s: %w", name, err)
@@ -1543,7 +1544,7 @@ func (c *Client) deletePackageRevisionInternal(ctx context.Context, name string,
 
 	err := c.dynamic.Resource(gvr).Delete(ctx, resourceName, metav1.DeleteOptions{})
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return fmt.Errorf("package revision %s:%s not found: %w", name, revision, ErrPackageNotFound)
 		}
 		return fmt.Errorf("failed to delete package revision %s:%s: %w", name, revision, err)
@@ -2216,7 +2217,7 @@ func (c *Client) getPackageRevisionInternal(ctx context.Context, name string, re
 
 	obj, err := c.dynamic.Resource(gvr).Get(ctx, resourceName, metav1.GetOptions{})
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil, fmt.Errorf("package revision %s:%s not found: %w", name, revision, ErrPackageNotFound)
 		}
 		return nil, fmt.Errorf("failed to get package revision %s:%s: %w", name, revision, err)
@@ -2501,21 +2502,21 @@ func (c *Client) recordError(operation string, err error) {
 	}
 
 	errorType := "unknown"
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		errorType = "not_found"
-	} else if errors.IsConflict(err) {
+	} else if apierrors.IsConflict(err) {
 		errorType = "conflict"
-	} else if errors.IsForbidden(err) {
+	} else if apierrors.IsForbidden(err) {
 		errorType = "forbidden"
-	} else if errors.IsUnauthorized(err) {
+	} else if apierrors.IsUnauthorized(err) {
 		errorType = "unauthorized"
-	} else if errors.IsBadRequest(err) {
+	} else if apierrors.IsBadRequest(err) {
 		errorType = "bad_request"
-	} else if errors.IsTimeout(err) {
+	} else if apierrors.IsTimeout(err) {
 		errorType = "timeout"
-	} else if errors.IsServerTimeout(err) {
+	} else if apierrors.IsServerTimeout(err) {
 		errorType = "server_timeout"
-	} else if errors.IsTooManyRequests(err) {
+	} else if apierrors.IsTooManyRequests(err) {
 		errorType = "rate_limited"
 	}
 
@@ -2873,7 +2874,7 @@ func (c *Client) waitForFunctionTaskCompletion(ctx context.Context, taskName str
 					if msg, ok := status["error"].(string); ok {
 						errorMsg = msg
 					}
-					return nil, fmt.Errorf(errorMsg)
+					return nil, errors.New(errorMsg)
 				case "Running", "Pending":
 					continue // Keep waiting
 				default:

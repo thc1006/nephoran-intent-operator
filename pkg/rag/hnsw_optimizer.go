@@ -713,6 +713,28 @@ func (h *HNSWOptimizer) GetMetrics() *HNSWMetrics {
 	h.metrics.mutex.RLock()
 	defer h.metrics.mutex.RUnlock()
 
-	metrics := *h.metrics
-	return &metrics
+	// Return a copy without the mutex
+	metrics := &HNSWMetrics{
+		TotalOptimizations:      h.metrics.TotalOptimizations,
+		SuccessfulOptimizations: h.metrics.SuccessfulOptimizations,
+		AverageImprovement:      h.metrics.AverageImprovement,
+		CurrentParameters:       h.metrics.CurrentParameters,
+		PerformanceHistory:      copyHNSWPerformanceHistory(h.metrics.PerformanceHistory),
+		LastOptimization:        h.metrics.LastOptimization,
+	}
+	return metrics
+}
+
+// copyHNSWPerformanceHistory creates a deep copy of performance history slice
+func copyHNSWPerformanceHistory(original []*HNSWPerformanceMetrics) []*HNSWPerformanceMetrics {
+	if original == nil {
+		return nil
+	}
+	copy := make([]*HNSWPerformanceMetrics, len(original))
+	for i, v := range original {
+		if v != nil {
+			copy[i] = &(*v) // Create a shallow copy of the struct
+		}
+	}
+	return copy
 }

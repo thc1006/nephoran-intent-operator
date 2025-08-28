@@ -587,8 +587,22 @@ func (c *GRPCWeaviateClient) GetMetrics() *GRPCMetrics {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
 
-	metrics := *c.metrics
-	return &metrics
+	// Return a copy without the mutex
+	metrics := &GRPCMetrics{
+		TotalRequests:      c.metrics.TotalRequests,
+		SuccessfulRequests: c.metrics.SuccessfulRequests,
+		FailedRequests:     c.metrics.FailedRequests,
+		AverageLatency:     c.metrics.AverageLatency,
+		ConnectionsActive:  c.metrics.ConnectionsActive,
+		ConnectionsCreated: c.metrics.ConnectionsCreated,
+		ConnectionsFailed:  c.metrics.ConnectionsFailed,
+		BytesSent:          c.metrics.BytesSent,
+		BytesReceived:      c.metrics.BytesReceived,
+		CompressionSavings: c.metrics.CompressionSavings,
+		BatchedRequests:    c.metrics.BatchedRequests,
+		BatchEfficiency:    c.metrics.BatchEfficiency,
+	}
+	return metrics
 }
 
 // GetConnectionPoolStatus returns connection pool status

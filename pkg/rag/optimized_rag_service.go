@@ -1045,8 +1045,28 @@ func (ors *OptimizedRAGService) GetOptimizedMetrics() *OptimizedRAGMetrics {
 	ors.ragMetrics.mutex.RLock()
 	defer ors.ragMetrics.mutex.RUnlock()
 
-	// Return a copy
-	metrics := *ors.ragMetrics
+	// Return a copy with field-by-field copying to avoid mutex copying
+	metrics := &OptimizedRAGMetrics{
+		TotalQueries:              ors.ragMetrics.TotalQueries,
+		SuccessfulQueries:         ors.ragMetrics.SuccessfulQueries,
+		FailedQueries:             ors.ragMetrics.FailedQueries,
+		AverageLatency:            ors.ragMetrics.AverageLatency,
+		P95Latency:                ors.ragMetrics.P95Latency,
+		P99Latency:                ors.ragMetrics.P99Latency,
+		MemoryCacheHitRate:        ors.ragMetrics.MemoryCacheHitRate,
+		RedisCacheHitRate:         ors.ragMetrics.RedisCacheHitRate,
+		OverallCacheHitRate:       ors.ragMetrics.OverallCacheHitRate,
+		CacheLatency:              ors.ragMetrics.CacheLatency,
+		PoolUtilization:           ors.ragMetrics.PoolUtilization,
+		AvgConnectionWaitTime:     ors.ragMetrics.AvgConnectionWaitTime,
+		ConnectionFailures:        ors.ragMetrics.ConnectionFailures,
+		QueryOptimizations:        ors.ragMetrics.QueryOptimizations,
+		ParallelQueriesCount:      ors.ragMetrics.ParallelQueriesCount,
+		AverageResponseQuality:    ors.ragMetrics.AverageResponseQuality,
+		CircuitBreakerTrips:       ors.ragMetrics.CircuitBreakerTrips,
+		RetryAttempts:             ors.ragMetrics.RetryAttempts,
+		LastUpdated:               ors.ragMetrics.LastUpdated,
+	}
 
 	// Deep copy maps
 	metrics.CacheLatencies = make(map[string]time.Duration)
@@ -1059,7 +1079,7 @@ func (ors *OptimizedRAGService) GetOptimizedMetrics() *OptimizedRAGMetrics {
 		metrics.QualityDistribution[k] = v
 	}
 
-	return &metrics
+	return metrics
 }
 
 func (ors *OptimizedRAGService) GetHealth() map[string]interface{} {
