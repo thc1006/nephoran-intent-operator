@@ -208,7 +208,7 @@ func CreateSlowMock(tempDir string, delay time.Duration) (string, error) {
 }
 
 // CreatePatternFailingMock creates a mock that fails when specific patterns are found
-func CreatePatternFailingMock(tempDir string, failPattern string) (string, error) {
+func CreatePatternFailingMock(tempDir, failPattern string) (string, error) {
 	return CreateCrossPlatformMock(tempDir, CrossPlatformMockOptions{
 		ExitCode:      1,
 		FailOnPattern: failPattern,

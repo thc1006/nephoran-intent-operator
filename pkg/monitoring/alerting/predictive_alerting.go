@@ -1121,7 +1121,7 @@ func (pa *PredictiveAlerting) updateNormalizationParams(model *PredictionModel, 
 	}
 
 	// Simple min-max update
-	for i, _ := range model.Features {
+	for i := range model.Features {
 		minKey := fmt.Sprintf("min_%d", i)
 		maxKey := fmt.Sprintf("max_%d", i)
 

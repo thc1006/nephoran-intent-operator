@@ -101,7 +101,7 @@ type CoverageData struct {
 func (tm *TestMetrics) GetLoadTestResults() map[string]*LoadTestResult {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
-	
+
 	// Create a copy to avoid race conditions
 	results := make(map[string]*LoadTestResult)
 	for k, v := range tm.loadTestResults {

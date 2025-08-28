@@ -558,8 +558,8 @@ func percentile(values []float64, p float64) float64 {
 	copy(sorted, values)
 
 	// Bubble sort (ok for small datasets)
-	for i := 0; i < len(sorted)-1; i++ {
-		for j := 0; j < len(sorted)-i-1; j++ {
+	for i := range len(sorted) - 1 {
+		for j := range len(sorted) - i - 1 {
 			if sorted[j] > sorted[j+1] {
 				sorted[j], sorted[j+1] = sorted[j+1], sorted[j]
 			}

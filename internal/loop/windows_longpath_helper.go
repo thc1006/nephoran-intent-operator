@@ -31,7 +31,7 @@ func IsLongPathSupportEnabled() bool {
 	}
 
 	// Attempt to create the directory
-	err = os.MkdirAll(longPath, 0755)
+	err = os.MkdirAll(longPath, 0o755)
 	if err != nil {
 		// Failed to create long path - MAX_PATH is enforced
 		return false

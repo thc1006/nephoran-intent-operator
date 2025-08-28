@@ -26,14 +26,14 @@ func NewLintFixer() *LintFixer {
 		fileSet: token.NewFileSet(),
 		fixes:   make(map[string]func(*ast.File) bool),
 	}
-	
+
 	// Register fix functions
 	fixer.fixes["package-comment"] = fixer.addPackageComment
 	fixer.fixes["exported-docs"] = fixer.addExportedDocs
 	fixer.fixes["error-wrapping"] = fixer.fixErrorWrapping
 	fixer.fixes["unused-params"] = fixer.fixUnusedParams
 	fixer.fixes["context-first"] = fixer.ensureContextFirst
-	
+
 	return fixer
 }
 
@@ -44,12 +44,12 @@ func (lf *LintFixer) FixFile(filename string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read file %s: %w", filename, err)
 	}
-	
+
 	file, err := parser.ParseFile(lf.fileSet, filename, src, parser.ParseComments)
 	if err != nil {
 		return fmt.Errorf("failed to parse file %s: %w", filename, err)
 	}
-	
+
 	// Apply fixes
 	modified := false
 	for fixName, fixFunc := range lf.fixes {
@@ -58,21 +58,21 @@ func (lf *LintFixer) FixFile(filename string) error {
 			fmt.Printf("Applied fix '%s' to %s\n", fixName, filename)
 		}
 	}
-	
+
 	// Write back if modified
 	if modified {
 		var buf strings.Builder
 		if err := format.Node(&buf, lf.fileSet, file); err != nil {
 			return fmt.Errorf("failed to format file %s: %w", filename, err)
 		}
-		
+
 		if err := os.WriteFile(filename, []byte(buf.String()), 0644); err != nil {
 			return fmt.Errorf("failed to write file %s: %w", filename, err)
 		}
-		
+
 		fmt.Printf("Updated %s\n", filename)
 	}
-	
+
 	return nil
 }
 
@@ -82,18 +82,18 @@ func (lf *LintFixer) addPackageComment(file *ast.File) bool {
 	if file.Doc != nil && len(file.Doc.List) > 0 {
 		return false
 	}
-	
+
 	// Generate package comment based on package name
 	packageName := file.Name.Name
 	comment := generatePackageComment(packageName)
-	
+
 	// Create comment group
 	commentGroup := &ast.CommentGroup{
 		List: []*ast.Comment{
 			{Text: comment},
 		},
 	}
-	
+
 	file.Doc = commentGroup
 	return true
 }
@@ -127,7 +127,7 @@ func generatePackageComment(packageName string) string {
 // addExportedDocs adds missing documentation for exported functions and types
 func (lf *LintFixer) addExportedDocs(file *ast.File) bool {
 	modified := false
-	
+
 	ast.Inspect(file, func(n ast.Node) bool {
 		switch node := n.(type) {
 		case *ast.FuncDecl:
@@ -149,14 +149,14 @@ func (lf *LintFixer) addExportedDocs(file *ast.File) bool {
 		}
 		return true
 	})
-	
+
 	return modified
 }
 
 // generateFunctionDoc generates documentation for a function
 func generateFunctionDoc(funcDecl *ast.FuncDecl) *ast.CommentGroup {
 	funcName := funcDecl.Name.Name
-	
+
 	var comment string
 	switch {
 	case strings.HasPrefix(funcName, "New"):
@@ -182,7 +182,7 @@ func generateFunctionDoc(funcDecl *ast.FuncDecl) *ast.CommentGroup {
 	default:
 		comment = fmt.Sprintf("// %s performs the requested operation.", funcName)
 	}
-	
+
 	return &ast.CommentGroup{
 		List: []*ast.Comment{
 			{Text: comment},
@@ -193,7 +193,7 @@ func generateFunctionDoc(funcDecl *ast.FuncDecl) *ast.CommentGroup {
 // generateTypeDoc generates documentation for a type
 func generateTypeDoc(typeSpec *ast.TypeSpec) *ast.CommentGroup {
 	typeName := typeSpec.Name.Name
-	
+
 	var comment string
 	switch {
 	case strings.HasSuffix(typeName, "Manager"):
@@ -213,7 +213,7 @@ func generateTypeDoc(typeSpec *ast.TypeSpec) *ast.CommentGroup {
 	default:
 		comment = fmt.Sprintf("// %s represents a core data structure.", typeName)
 	}
-	
+
 	return &ast.CommentGroup{
 		List: []*ast.Comment{
 			{Text: comment},
@@ -224,7 +224,7 @@ func generateTypeDoc(typeSpec *ast.TypeSpec) *ast.CommentGroup {
 // fixErrorWrapping fixes error handling to use %w format
 func (lf *LintFixer) fixErrorWrapping(file *ast.File) bool {
 	modified := false
-	
+
 	ast.Inspect(file, func(n ast.Node) bool {
 		if callExpr, ok := n.(*ast.CallExpr); ok {
 			if ident, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
@@ -252,14 +252,14 @@ func (lf *LintFixer) fixErrorWrapping(file *ast.File) bool {
 		}
 		return true
 	})
-	
+
 	return modified
 }
 
 // fixUnusedParams replaces unused parameters with underscore
 func (lf *LintFixer) fixUnusedParams(file *ast.File) bool {
 	modified := false
-	
+
 	ast.Inspect(file, func(n ast.Node) bool {
 		if funcDecl, ok := n.(*ast.FuncDecl); ok && funcDecl.Body != nil {
 			// Find unused parameters
@@ -276,7 +276,7 @@ func (lf *LintFixer) fixUnusedParams(file *ast.File) bool {
 		}
 		return true
 	})
-	
+
 	return modified
 }
 
@@ -296,7 +296,7 @@ func (lf *LintFixer) isParamUsed(body *ast.BlockStmt, paramName string) bool {
 // ensureContextFirst ensures context.Context is the first parameter
 func (lf *LintFixer) ensureContextFirst(file *ast.File) bool {
 	modified := false
-	
+
 	ast.Inspect(file, func(n ast.Node) bool {
 		if funcDecl, ok := n.(*ast.FuncDecl); ok && funcDecl.Type.Params != nil {
 			params := funcDecl.Type.Params.List
@@ -319,7 +319,7 @@ func (lf *LintFixer) ensureContextFirst(file *ast.File) bool {
 		}
 		return true
 	})
-	
+
 	return modified
 }
 
@@ -336,24 +336,24 @@ func (lf *LintFixer) isContextType(expr ast.Expr) bool {
 // ApplyCommonFixes applies the most common fixes to a directory
 func ApplyCommonFixes(dir string) error {
 	fixer := NewLintFixer()
-	
+
 	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		
+
 		// Skip non-Go files and generated files
 		if !strings.HasSuffix(path, ".go") {
 			return nil
 		}
-		
+
 		// Skip generated files
-		if strings.Contains(path, "generated") || 
-		   strings.Contains(path, "deepcopy") ||
-		   strings.Contains(path, ".pb.go") {
+		if strings.Contains(path, "generated") ||
+			strings.Contains(path, "deepcopy") ||
+			strings.Contains(path, ".pb.go") {
 			return nil
 		}
-		
+
 		fmt.Printf("Processing %s\n", path)
 		return fixer.FixFile(path)
 	})
@@ -413,9 +413,9 @@ func main() {
 		}
 		return
 	}
-	
+
 	command := os.Args[1]
-	
+
 	switch command {
 	case "help":
 		if len(os.Args) >= 3 {
@@ -489,7 +489,7 @@ func FixUnusedVariables(lines []string, unusedVars []string) []string {
 	for _, v := range unusedVars {
 		varMap[v] = true
 	}
-	
+
 	for i, line := range lines {
 		for varName := range varMap {
 			if strings.Contains(line, varName+" :=") {

@@ -579,7 +579,7 @@ func (c *OptimizedHTTPClient) putResponse(resp *OptimizedResponse) {
 func (c *OptimizedHTTPClient) GetStats() *HTTPClientStats {
 	c.stats.mutex.RLock()
 	defer c.stats.mutex.RUnlock()
-	
+
 	// Create a copy without the mutex
 	stats := HTTPClientStats{
 		RequestsTotal:      c.stats.RequestsTotal,

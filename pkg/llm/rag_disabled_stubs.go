@@ -35,21 +35,21 @@ const (
 
 // BatchResult stub
 type BatchResult struct {
-	Index   int         `json:"index"`
-	Result  interface{} `json:"result"`
-	Error   error       `json:"error"`
+	Index   int           `json:"index"`
+	Result  interface{}   `json:"result"`
+	Error   error         `json:"error"`
 	Latency time.Duration `json:"latency"`
 }
 
 // BatchProcessorStats stub
 type BatchProcessorStats struct {
-	TotalProcessed   int64         `json:"total_processed"`
-	SuccessfulBatch  int64         `json:"successful_batch"`
-	FailedBatch      int64         `json:"failed_batch"`
-	AverageLatency   time.Duration `json:"average_latency"`
-	QueueSize        int           `json:"queue_size"`
-	ActiveWorkers    int           `json:"active_workers"`
-	LastProcessedAt  time.Time     `json:"last_processed_at"`
+	TotalProcessed  int64         `json:"total_processed"`
+	SuccessfulBatch int64         `json:"successful_batch"`
+	FailedBatch     int64         `json:"failed_batch"`
+	AverageLatency  time.Duration `json:"average_latency"`
+	QueueSize       int           `json:"queue_size"`
+	ActiveWorkers   int           `json:"active_workers"`
+	LastProcessedAt time.Time     `json:"last_processed_at"`
 }
 
 // WeaviateConnectionPool stub
@@ -72,16 +72,16 @@ type WeaviateClient struct{}
 
 // TelecomDocument stub
 type TelecomDocument struct {
-	ID          string            `json:"id"`
-	Title       string            `json:"title"`
-	Content     string            `json:"content"`
-	Source      string            `json:"source"`
-	Technology  []string          `json:"technology"`
-	Version     string            `json:"version,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
-	Embedding   []float32         `json:"embedding,omitempty"`
-	CreatedAt   time.Time         `json:"created_at"`
-	UpdatedAt   time.Time         `json:"updated_at"`
+	ID         string                 `json:"id"`
+	Title      string                 `json:"title"`
+	Content    string                 `json:"content"`
+	Source     string                 `json:"source"`
+	Technology []string               `json:"technology"`
+	Version    string                 `json:"version,omitempty"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Embedding  []float32              `json:"embedding,omitempty"`
+	CreatedAt  time.Time              `json:"created_at"`
+	UpdatedAt  time.Time              `json:"updated_at"`
 }
 
 // SearchResponse stub
@@ -126,10 +126,10 @@ type RAGResponse struct {
 
 // SearchQuery stub
 type SearchQuery struct {
-	Query       string                 `json:"query"`
-	MaxResults  int                    `json:"max_results"`
-	MinScore    float32                `json:"min_score"`
-	Filters     map[string]interface{} `json:"filters,omitempty"`
+	Query      string                 `json:"query"`
+	MaxResults int                    `json:"max_results"`
+	MinScore   float32                `json:"min_score"`
+	Filters    map[string]interface{} `json:"filters,omitempty"`
 }
 
 // SimpleTokenTracker stub
@@ -146,7 +146,7 @@ func (cb *CircuitBreaker) Execute(fn func() error) error {
 	return fn()
 }
 
-// CircuitBreakerConfig stub  
+// CircuitBreakerConfig stub
 type CircuitBreakerConfig struct {
 	FailureThreshold int64         `json:"failure_threshold"`
 	Timeout          time.Duration `json:"timeout"`
@@ -195,10 +195,10 @@ func (e *CircuitBreakerError) Error() string {
 
 // Additional stub types for handlers compatibility
 type StreamingRequest struct {
-	Query      string `json:"query"`
-	ModelName  string `json:"model_name"`
-	MaxTokens  int    `json:"max_tokens"`
-	EnableRAG  bool   `json:"enable_rag"`
+	Query     string `json:"query"`
+	ModelName string `json:"model_name"`
+	MaxTokens int    `json:"max_tokens"`
+	EnableRAG bool   `json:"enable_rag"`
 }
 
 type CircuitBreakerManager struct{}
@@ -265,4 +265,3 @@ func NewRAGAwarePromptBuilder(tokenManager *TokenManager, config interface{}) *R
 func NewRAGEnhancedProcessor(client *Client, weaviateClient interface{}, ragService interface{}, config interface{}) *RAGEnhancedProcessor {
 	return &RAGEnhancedProcessor{}
 }
-

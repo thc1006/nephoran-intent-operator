@@ -194,7 +194,11 @@ func (sm *SessionManager) InitiateLogin(ctx context.Context, request *LoginReque
 	}
 
 	// Build auth options
-	var authOptions []providers.AuthOption
+	capacity := len(request.Options)
+	if sm.config.EnableCSRF {
+		capacity++
+	}
+	authOptions := make([]providers.AuthOption, 0, capacity)
 	if sm.config.EnableCSRF {
 		authOptions = append(authOptions, providers.WithPKCE())
 	}

@@ -92,7 +92,7 @@ func NewProcessor(config *ProcessorConfig, validator Validator, porchFunc PorchS
 	}
 
 	// Ensure error directory exists
-	if err := os.MkdirAll(config.ErrorDir, 0755); err != nil {
+	if err := os.MkdirAll(config.ErrorDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create error directory: %w", err)
 	}
 
@@ -343,7 +343,7 @@ func (p *IntentProcessor) handleError(filename string, err error) error {
 
 	// Write error file with atomic operation
 	errorFile := filepath.Join(p.config.ErrorDir, fmt.Sprintf("%s.%s.error", basename, timestamp))
-	if writeErr := atomicWriteFile(errorFile, []byte(errorContent), 0644); writeErr != nil {
+	if writeErr := atomicWriteFile(errorFile, []byte(errorContent), 0o644); writeErr != nil {
 		log.Printf("Failed to write error file %s: %v", errorFile, writeErr)
 	}
 
@@ -351,7 +351,7 @@ func (p *IntentProcessor) handleError(filename string, err error) error {
 	origData, _ := readFileWithRetry(filename)
 	if origData != nil {
 		origCopy := filepath.Join(p.config.ErrorDir, fmt.Sprintf("%s.%s.json", basename, timestamp))
-		if writeErr := atomicWriteFile(origCopy, origData, 0644); writeErr != nil {
+		if writeErr := atomicWriteFile(origCopy, origData, 0o644); writeErr != nil {
 			log.Printf("Failed to copy original file to error dir: %v", writeErr)
 		}
 	}
@@ -373,7 +373,7 @@ func (p *IntentProcessor) markProcessed(filename string) {
 		handoffDir = p.config.HandoffDir
 	}
 	processedFile := filepath.Join(handoffDir, ".processed")
-	f, err := os.OpenFile(processedFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(processedFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		log.Printf("Failed to open processed file: %v", err)
 		return

@@ -98,7 +98,7 @@ const (
 	PriorityLow Priority = iota
 	PriorityNormal
 	PriorityHigh
-	PriorityUrgent // Same as critical
+	PriorityUrgent                    // Same as critical
 	PriorityCritical = PriorityUrgent // Alias for backward compatibility
 )
 

@@ -28,15 +28,15 @@ type ServiceManager struct {
 	secretManager      *config.SecretManager
 	oauth2Manager      *auth.OAuth2Manager
 	processor          *handlers.IntentProcessor
-	streamingProcessor interface{
+	streamingProcessor interface {
 		HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *llm.StreamingRequest) error
 		GetMetrics() map[string]interface{}
 	}
-	circuitBreakerMgr  *llm.CircuitBreakerManager
-	tokenManager       *llm.TokenManager
-	contextBuilder     *llm.ContextBuilder
-	relevanceScorer    *llm.RelevanceScorer
-	promptBuilder      *llm.RAGAwarePromptBuilder
+	circuitBreakerMgr *llm.CircuitBreakerManager
+	tokenManager      *llm.TokenManager
+	contextBuilder    *llm.ContextBuilder
+	relevanceScorer   *llm.RelevanceScorer
+	promptBuilder     *llm.RAGAwarePromptBuilder
 }
 
 // NewServiceManager creates a new service manager
@@ -208,7 +208,7 @@ func (sm *ServiceManager) registerHealthChecks() {
 				Message: "No circuit breakers registered",
 			}
 		}
-		
+
 		stats := sm.circuitBreakerMgr.GetAllStats()
 		if len(stats) == 0 {
 			return &health.Check{
@@ -374,7 +374,7 @@ func (sm *ServiceManager) GetProcessor() *handlers.IntentProcessor {
 }
 
 // GetStreamingProcessor returns the streaming processor
-func (sm *ServiceManager) GetStreamingProcessor() interface{
+func (sm *ServiceManager) GetStreamingProcessor() interface {
 	HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *llm.StreamingRequest) error
 	GetMetrics() map[string]interface{}
 } {

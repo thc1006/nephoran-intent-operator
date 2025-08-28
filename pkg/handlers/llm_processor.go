@@ -21,19 +21,19 @@ import (
 type LLMProcessorHandler struct {
 	config             *config.LLMProcessorConfig
 	processor          *IntentProcessor
-	streamingProcessor interface{
+	streamingProcessor interface {
 		HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *llm.StreamingRequest) error
 		GetMetrics() map[string]interface{}
 	}
-	circuitBreakerMgr  *llm.CircuitBreakerManager
-	tokenManager       *llm.TokenManager
-	contextBuilder     *llm.ContextBuilder
-	relevanceScorer    *llm.RelevanceScorer
-	promptBuilder      interface{} // Stub for RAG aware prompt builder
-	logger             *slog.Logger
-	healthChecker      *health.HealthChecker
-	startTime          time.Time
-	metricsCollector   *monitoring.MetricsCollector
+	circuitBreakerMgr *llm.CircuitBreakerManager
+	tokenManager      *llm.TokenManager
+	contextBuilder    *llm.ContextBuilder
+	relevanceScorer   *llm.RelevanceScorer
+	promptBuilder     interface{} // Stub for RAG aware prompt builder
+	logger            *slog.Logger
+	healthChecker     *health.HealthChecker
+	startTime         time.Time
+	metricsCollector  *monitoring.MetricsCollector
 }
 
 // Request/Response structures
@@ -80,7 +80,7 @@ type IntentProcessor struct {
 func NewLLMProcessorHandler(
 	config *config.LLMProcessorConfig,
 	processor *IntentProcessor,
-	streamingProcessor interface{
+	streamingProcessor interface {
 		HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *llm.StreamingRequest) error
 		GetMetrics() map[string]interface{}
 	},
@@ -113,7 +113,7 @@ func NewLLMProcessorHandler(
 func NewLLMProcessorHandlerWithMetrics(
 	config *config.LLMProcessorConfig,
 	processor *IntentProcessor,
-	streamingProcessor interface{
+	streamingProcessor interface {
 		HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *llm.StreamingRequest) error
 		GetMetrics() map[string]interface{}
 	},

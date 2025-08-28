@@ -114,10 +114,10 @@ func runPerformanceTests() *PerformanceMetrics {
 	duration := time.Since(startTime)
 
 	metrics := &PerformanceMetrics{
-		TestName:           "Go 1.24+ Performance Benchmark",
-		GoVersion:          runtime.Version(),
-		Timestamp:          time.Now(),
-		Duration:           duration,
+		TestName:  "Go 1.24+ Performance Benchmark",
+		GoVersion: runtime.Version(),
+		Timestamp: time.Now(),
+		Duration:  duration,
 		// Fix G115: Add bounds checking for integer overflow
 		MemoryAllocated:    safeIntConversion(memStatsAfter.TotalAlloc, memStatsBefore.TotalAlloc),
 		MemoryReleased:     safeUintToInt(memStatsAfter.Frees - memStatsBefore.Frees),

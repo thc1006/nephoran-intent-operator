@@ -291,7 +291,7 @@ func (p *AzureADProvider) RefreshToken(ctx context.Context, refreshToken string)
 
 // GetUserInfo retrieves user information using access token
 func (p *AzureADProvider) GetUserInfo(ctx context.Context, accessToken string) (*UserInfo, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", p.config.Endpoints.UserInfoURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", p.config.Endpoints.UserInfoURL, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user info request: %w", err)
 	}
@@ -374,7 +374,7 @@ func (p *AzureADProvider) GetUserInfo(ctx context.Context, accessToken string) (
 // ValidateToken validates an access token
 func (p *AzureADProvider) ValidateToken(ctx context.Context, accessToken string) (*TokenValidation, error) {
 	// Use Microsoft Graph /me endpoint for validation
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://graph.microsoft.com/v1.0/me", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://graph.microsoft.com/v1.0/me", http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create token validation request: %w", err)
 	}
@@ -449,7 +449,7 @@ func (p *AzureADProvider) GetConfiguration() *ProviderConfig {
 
 // GetGroups retrieves user groups from Azure AD
 func (p *AzureADProvider) GetGroups(ctx context.Context, accessToken string) ([]string, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://graph.microsoft.com/v1.0/me/memberOf", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://graph.microsoft.com/v1.0/me/memberOf", http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create groups request: %w", err)
 	}
@@ -485,7 +485,7 @@ func (p *AzureADProvider) GetGroups(ctx context.Context, accessToken string) ([]
 // GetRoles retrieves user roles from Azure AD
 func (p *AzureADProvider) GetRoles(ctx context.Context, accessToken string) ([]string, error) {
 	// Get directory roles
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://graph.microsoft.com/v1.0/me/memberOf/microsoft.graph.directoryRole", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://graph.microsoft.com/v1.0/me/memberOf/microsoft.graph.directoryRole", http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create roles request: %w", err)
 	}
@@ -549,7 +549,7 @@ func (p *AzureADProvider) GetOrganizations(ctx context.Context, accessToken stri
 	}
 
 	// Get organization info
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://graph.microsoft.com/v1.0/organization", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://graph.microsoft.com/v1.0/organization", http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create organization request: %w", err)
 	}
@@ -639,7 +639,7 @@ func (p *AzureADProvider) DiscoverConfiguration(ctx context.Context) (*OIDCConfi
 		return p.oidcConfig, nil
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", p.config.Endpoints.DiscoveryURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", p.config.Endpoints.DiscoveryURL, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create discovery request: %w", err)
 	}
@@ -681,7 +681,7 @@ func (p *AzureADProvider) GetJWKS(ctx context.Context) (*JWKS, error) {
 	p.jwksCache.mutex.RUnlock()
 
 	// Fetch JWKS
-	req, err := http.NewRequestWithContext(ctx, "GET", p.config.Endpoints.JWKSURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", p.config.Endpoints.JWKSURL, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create JWKS request: %w", err)
 	}

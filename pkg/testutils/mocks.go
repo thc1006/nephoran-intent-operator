@@ -709,11 +709,11 @@ func (m *MockDependencies) GetGitClient() git.ClientInterface {
 }
 
 // Placeholder implementations for other dependencies (can be extended as needed)
-func (m *MockDependencies) GetPackageGenerator() *nephio.PackageGenerator { return nil }
-func (m *MockDependencies) GetHTTPClient() *http.Client { return &http.Client{} }
-func (m *MockDependencies) GetEventRecorder() record.EventRecorder { return &record.FakeRecorder{} }
+func (m *MockDependencies) GetPackageGenerator() *nephio.PackageGenerator          { return nil }
+func (m *MockDependencies) GetHTTPClient() *http.Client                            { return &http.Client{} }
+func (m *MockDependencies) GetEventRecorder() record.EventRecorder                 { return &record.FakeRecorder{} }
 func (m *MockDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase { return nil }
-func (m *MockDependencies) GetMetricsCollector() *monitoring.MetricsCollector { return nil }
+func (m *MockDependencies) GetMetricsCollector() *monitoring.MetricsCollector      { return nil }
 
 // MockDependenciesBuilder provides a builder pattern for creating mock dependencies
 type MockDependenciesBuilder struct {

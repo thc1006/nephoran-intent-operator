@@ -518,7 +518,7 @@ func (c *AuthConfig) loadFromFile(filename string) error {
 
 	// SECURITY: Warn about overly permissive file permissions
 	mode := info.Mode()
-	if mode&0044 != 0 { // Check if world or group readable
+	if mode&0o044 != 0 { // Check if world or group readable
 		slog.Warn("Config file has overly permissive permissions",
 			"file", filename,
 			"mode", mode.String(),
@@ -1246,7 +1246,7 @@ func readSecretFile(filePath string) (string, error) {
 
 	// Check file permissions - should not be world-readable
 	mode := info.Mode()
-	if mode&0044 != 0 { // Check if world or group readable
+	if mode&0o044 != 0 { // Check if world or group readable
 		slog.Warn("Secret file has overly permissive permissions",
 			"file", filePath,
 			"mode", mode.String())

@@ -548,7 +548,7 @@ func (c *SpecializedIntentProcessingController) EnhanceWithRAG(ctx context.Conte
 	// Query RAG service for relevant context
 	ragQuery := &RAGRequest{
 		Query:         intent,
-		MaxResults:    10, // Default value since MaxContextChunks doesn't exist
+		MaxResults:    10,  // Default value since MaxContextChunks doesn't exist
 		MinConfidence: 0.7, // Default value since SimilarityThreshold doesn't exist
 	}
 

@@ -182,7 +182,7 @@ func copyFileWithSync(src, dst string) error {
 func moveFileAtomic(src, dst string) error {
 	// Ensure destination directory exists
 	dstDir := filepath.Dir(dst)
-	if err := os.MkdirAll(dstDir, 0755); err != nil {
+	if err := os.MkdirAll(dstDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
 

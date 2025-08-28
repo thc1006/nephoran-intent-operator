@@ -338,7 +338,19 @@ func (v *OWASPValidator) validateIntentContent(data []byte) []SecurityViolation 
 	}
 
 	for _, pattern := range injectionPatterns {
-		if matched, _ := regexp.MatchString(`(?i)`+pattern, contentStr); matched {
+		matched, err := regexp.MatchString(`(?i)`+pattern, contentStr)
+		if err != nil {
+			violations = append(violations, SecurityViolation{
+				Field:       "content",
+				Type:        "REGEX_ERROR",
+				Severity:    "MEDIUM",
+				Message:     fmt.Sprintf("Invalid injection pattern regex: %s, error: %v", pattern, err),
+				Remediation: "Fix the regular expression pattern",
+				OWASPRule:   "A3:2021-Injection",
+			})
+			continue
+		}
+		if matched {
 			violations = append(violations, SecurityViolation{
 				Field:       "content",
 				Type:        "INJECTION_ATTEMPT",

@@ -149,7 +149,10 @@ func (p *GitHubProvider) GetAuthorizationURL(state, redirectURI string, options 
 
 	// Add custom parameters
 	if opts.LoginHint != "" {
-		parsedURL, _ := url.Parse(authURL)
+		parsedURL, err := url.Parse(authURL)
+		if err != nil {
+			return "", challenge, fmt.Errorf("failed to parse auth URL for login hint: %w", err)
+		}
 		query := parsedURL.Query()
 		query.Set("login", opts.LoginHint)
 		parsedURL.RawQuery = query.Encode()
@@ -157,7 +160,10 @@ func (p *GitHubProvider) GetAuthorizationURL(state, redirectURI string, options 
 	}
 
 	for key, value := range opts.CustomParams {
-		parsedURL, _ := url.Parse(authURL)
+		parsedURL, err := url.Parse(authURL)
+		if err != nil {
+			return "", challenge, fmt.Errorf("failed to parse auth URL for custom param %s: %w", key, err)
+		}
 		query := parsedURL.Query()
 		query.Set(key, value)
 		parsedURL.RawQuery = query.Encode()
@@ -189,7 +195,7 @@ func (p *GitHubProvider) ExchangeCodeForToken(ctx context.Context, code, redirec
 		AccessToken:  token.AccessToken,
 		RefreshToken: token.RefreshToken,
 		TokenType:    token.TokenType,
-		ExpiresIn:    int64(token.Expiry.Sub(time.Now()).Seconds()),
+		ExpiresIn:    int64(time.Until(token.Expiry).Seconds()),
 		IssuedAt:     time.Now(),
 	}, nil
 }
@@ -211,7 +217,7 @@ func (p *GitHubProvider) RefreshToken(ctx context.Context, refreshToken string) 
 		AccessToken:  newToken.AccessToken,
 		RefreshToken: newToken.RefreshToken,
 		TokenType:    newToken.TokenType,
-		ExpiresIn:    int64(newToken.Expiry.Sub(time.Now()).Seconds()),
+		ExpiresIn:    int64(time.Until(newToken.Expiry).Seconds()),
 		IssuedAt:     time.Now(),
 	}, nil
 }

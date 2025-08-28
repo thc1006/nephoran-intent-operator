@@ -93,7 +93,11 @@ func generateEventID() string {
 
 func generateRandomSuffix() string {
 	randomBytes := make([]byte, 4)
-	_, _ = rand.Read(randomBytes)
+	n, err := rand.Read(randomBytes)
+	if err != nil || n != len(randomBytes) {
+		// Fallback to time-based suffix if random generation fails
+		return time.Now().Format("150405")
+	}
 	return hex.EncodeToString(randomBytes)
 }
 

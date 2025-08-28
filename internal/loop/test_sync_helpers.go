@@ -42,8 +42,8 @@ func NewTestSyncHelper(t testing.TB) *TestSyncHelper {
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
 
-	require.NoError(t, os.MkdirAll(handoffDir, 0755))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	// Cross-platform timing adjustments
 	baseDelay := 50 * time.Millisecond
@@ -93,7 +93,7 @@ func (h *TestSyncHelper) CreateIntentFile(filename, content string) string {
 
 	// Create file atomically
 	tempPath := filePath + ".tmp"
-	require.NoError(h.t, os.WriteFile(tempPath, []byte(content), 0644))
+	require.NoError(h.t, os.WriteFile(tempPath, []byte(content), 0o644))
 	require.NoError(h.t, os.Rename(tempPath, filePath))
 
 	// Wait for file system to settle

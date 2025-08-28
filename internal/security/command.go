@@ -230,7 +230,7 @@ func (e *SecureCommandExecutor) sanitizeArguments(args []string, policy BinaryPo
 		return nil, fmt.Errorf("too many arguments: %d > %d", len(args), policy.MaxArgs)
 	}
 
-	var sanitized []string
+	sanitized := make([]string, 0, len(args))
 
 	for _, arg := range args {
 		// Check forbidden arguments

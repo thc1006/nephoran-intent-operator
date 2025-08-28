@@ -90,17 +90,17 @@ type ProcessingResponse struct {
 
 // StreamingRequest represents a request for streaming LLM processing
 type StreamingRequest struct {
-	Query      string                 `json:"query"`
-	Context    string                 `json:"context,omitempty"`
-	ModelName  string                 `json:"model_name,omitempty"`
-	Stream     bool                   `json:"stream"`
-	SessionID  string                 `json:"session_id,omitempty"`
-	EnableRAG  bool                   `json:"enable_rag"`
-	IntentType string                 `json:"intent_type,omitempty"`
-	MaxTokens  int                    `json:"max_tokens,omitempty"`
-	Temperature float32               `json:"temperature,omitempty"`
-	ClientID   string                 `json:"client_id,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Query       string                 `json:"query"`
+	Context     string                 `json:"context,omitempty"`
+	ModelName   string                 `json:"model_name,omitempty"`
+	Stream      bool                   `json:"stream"`
+	SessionID   string                 `json:"session_id,omitempty"`
+	EnableRAG   bool                   `json:"enable_rag"`
+	IntentType  string                 `json:"intent_type,omitempty"`
+	MaxTokens   int                    `json:"max_tokens,omitempty"`
+	Temperature float32                `json:"temperature,omitempty"`
+	ClientID    string                 `json:"client_id,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // WeaviateConnectionPool is a stub type for the connection pool
@@ -146,8 +146,8 @@ type ContextBuilderMetrics struct {
 type RelevanceScorer struct {
 	config          *RelevanceScorerConfig
 	logger          *slog.Logger // Using concrete type instead of interface{}
-	embeddings      interface{} // rag.EmbeddingServiceInterface
-	domainKnowledge interface{} // *TelecomDomainKnowledge
+	embeddings      interface{}  // rag.EmbeddingServiceInterface
+	domainKnowledge interface{}  // *TelecomDomainKnowledge
 	metrics         *ScoringMetrics
 	mutex           sync.RWMutex
 }
@@ -160,7 +160,7 @@ type RelevanceScorerConfig struct {
 	RecencyWeight         float64 `json:"recency_weight"`
 	DomainWeight          float64 `json:"domain_weight"`
 	IntentAlignmentWeight float64 `json:"intent_alignment_weight"`
-	
+
 	// Additional configuration fields
 	MinSemanticSimilarity float64            `json:"min_semantic_similarity"`
 	UseEmbeddingDistance  bool               `json:"use_embedding_distance"`
@@ -253,15 +253,15 @@ func (tt *SimpleTokenTracker) GetStats() map[string]interface{} {
 
 // RequestContext contains context for LLM requests
 type RequestContext struct {
-	ID          string                 // Unique identifier for this context
-	RequestID   string                 // Request ID
-	UserID      string                 // User identifier
-	SessionID   string                 // Session identifier
-	Priority    int                    // Request priority
-	Intent      string                 // User intent
-	Metadata    map[string]interface{} // Additional metadata
-	StartTime   time.Time              // Request start time
-	Deadline    time.Time              // Request deadline
+	ID        string                 // Unique identifier for this context
+	RequestID string                 // Request ID
+	UserID    string                 // User identifier
+	SessionID string                 // Session identifier
+	Priority  int                    // Request priority
+	Intent    string                 // User intent
+	Metadata  map[string]interface{} // Additional metadata
+	StartTime time.Time              // Request start time
+	Deadline  time.Time              // Request deadline
 }
 
 // HealthChecker performs health checks on endpoints
@@ -278,13 +278,13 @@ type EndpointPool interface {
 
 // BatchProcessorConfig contains batch processor configuration
 type BatchProcessorConfig struct {
-	MaxBatchSize     int
-	MaxWaitTime      time.Duration
-	MaxWorkers       int
-	QueueSize        int
-	RetryAttempts    int
-	RetryDelay       time.Duration
-	Priority         int
+	MaxBatchSize      int
+	MaxWaitTime       time.Duration
+	MaxWorkers        int
+	QueueSize         int
+	RetryAttempts     int
+	RetryDelay        time.Duration
+	Priority          int
 	ProcessingTimeout time.Duration
 }
 
@@ -381,6 +381,29 @@ func (scm *StreamingContextManager) Close() {
 	// No resources to clean up in stub implementation
 }
 
+// GetMetrics returns metrics for the ContextBuilder
+func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
+	if cb == nil || cb.metrics == nil {
+		return map[string]interface{}{
+			"status": "disabled",
+		}
+	}
+
+	cb.metrics.mutex.RLock()
+	defer cb.metrics.mutex.RUnlock()
+
+	return map[string]interface{}{
+		"total_queries":           cb.metrics.TotalQueries,
+		"successful_queries":      cb.metrics.SuccessfulQueries,
+		"failed_queries":          cb.metrics.FailedQueries,
+		"average_query_duration":  cb.metrics.AverageQueryDuration.String(),
+		"average_documents_found": cb.metrics.AverageDocumentsFound,
+		"cache_hits":              cb.metrics.CacheHits,
+		"cache_misses":            cb.metrics.CacheMisses,
+		"total_latency":           cb.metrics.TotalLatency.String(),
+	}
+}
+
 // Document represents a document for context building
 type Document struct {
 	ID       string                 `json:"id"`
@@ -388,6 +411,30 @@ type Document struct {
 	Content  string                 `json:"content"`
 	Source   string                 `json:"source"`
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// GetMetrics returns metrics for the RelevanceScorer
+func (rs *RelevanceScorer) GetMetrics() map[string]interface{} {
+	if rs == nil || rs.metrics == nil {
+		return map[string]interface{}{
+			"status": "disabled",
+		}
+	}
+
+	rs.metrics.mutex.RLock()
+	defer rs.metrics.mutex.RUnlock()
+
+	return map[string]interface{}{
+		"total_scores":         rs.metrics.TotalScores,
+		"average_scoring_time": rs.metrics.AverageScoringTime.String(),
+		"cache_hit_rate":       rs.metrics.CacheHitRate,
+		"semantic_scores":      rs.metrics.SemanticScores,
+		"authority_scores":     rs.metrics.AuthorityScores,
+		"recency_scores":       rs.metrics.RecencyScores,
+		"domain_scores":        rs.metrics.DomainScores,
+		"intent_scores":        rs.metrics.IntentScores,
+		"last_updated":         rs.metrics.LastUpdated.Format("2006-01-02T15:04:05Z07:00"),
+	}
 }
 
 // IntentRequest represents a legacy request structure (backward compatibility)

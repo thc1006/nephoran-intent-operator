@@ -2379,7 +2379,7 @@ func (w *Watcher) cleanupOldFileState() {
 	}
 
 	// Clean up old processing locks (older than 30 seconds)
-	for filePath, _ := range w.fileState.processing {
+	for filePath := range w.fileState.processing {
 		// For simplicity, we remove locks that exist but we don't track their creation time
 		// In a real scenario, you might want to add timestamps to track lock age
 		delete(w.fileState.processing, filePath)

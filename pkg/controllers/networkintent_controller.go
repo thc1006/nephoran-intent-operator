@@ -459,10 +459,10 @@ func (r *NetworkIntentReconciler) cleanupGitOpsPackages(ctx context.Context, net
 	if gitClient == nil {
 		return fmt.Errorf("git client is nil")
 	}
-	
+
 	packagePath := fmt.Sprintf("networkintents/%s", networkIntent.Name)
 	commitMsg := fmt.Sprintf("Remove NetworkIntent package: %s", networkIntent.Name)
-	
+
 	// Remove the package directory
 	if err := gitClient.RemoveDirectory(packagePath, commitMsg); err != nil {
 		// If directory doesn't exist, that's fine - it might already be cleaned up
@@ -472,12 +472,12 @@ func (r *NetworkIntentReconciler) cleanupGitOpsPackages(ctx context.Context, net
 		r.logger.Info("Package directory not found, skipping removal", "path", packagePath)
 		return nil
 	}
-	
+
 	// Commit and push changes
 	if err := gitClient.CommitAndPushChanges(commitMsg); err != nil {
 		return fmt.Errorf("failed to commit and push changes: %w", err)
 	}
-	
+
 	r.logger.Info("Successfully cleaned up GitOps packages", "intent", networkIntent.Name, "path", packagePath)
 	return nil
 }
@@ -486,22 +486,22 @@ func (r *NetworkIntentReconciler) cleanupGitOpsPackages(ctx context.Context, net
 func (r *NetworkIntentReconciler) cleanupGeneratedResources(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
 	// List all resources with the NetworkIntent label
 	labelSelector := fmt.Sprintf("nephoran.io/network-intent=%s", networkIntent.Name)
-	
+
 	// Remove ConfigMaps
 	if err := r.cleanupResourcesByLabel(ctx, &corev1.ConfigMapList{}, labelSelector, networkIntent.Namespace); err != nil {
 		return fmt.Errorf("failed to cleanup ConfigMaps: %w", err)
 	}
-	
+
 	// Remove Secrets
 	if err := r.cleanupResourcesByLabel(ctx, &corev1.SecretList{}, labelSelector, networkIntent.Namespace); err != nil {
 		return fmt.Errorf("failed to cleanup Secrets: %w", err)
 	}
-	
+
 	// Remove Services
 	if err := r.cleanupResourcesByLabel(ctx, &corev1.ServiceList{}, labelSelector, networkIntent.Namespace); err != nil {
 		return fmt.Errorf("failed to cleanup Services: %w", err)
 	}
-	
+
 	r.logger.Info("Successfully cleaned up generated resources", "intent", networkIntent.Name)
 	return nil
 }
@@ -512,17 +512,17 @@ func (r *NetworkIntentReconciler) cleanupResourcesByLabel(ctx context.Context, l
 		client.InNamespace(namespace),
 		client.MatchingLabels(parseLabels(labelSelector)),
 	}
-	
+
 	if err := r.List(ctx, list, opts...); err != nil {
 		return fmt.Errorf("failed to list resources: %w", err)
 	}
-	
+
 	// Extract items using reflection
 	items := reflect.ValueOf(list).Elem().FieldByName("Items")
 	if !items.IsValid() {
 		return fmt.Errorf("unable to extract items from list")
 	}
-	
+
 	for i := 0; i < items.Len(); i++ {
 		item := items.Index(i).Addr().Interface().(client.Object)
 		if err := r.Delete(ctx, item); err != nil && !apierrors.IsNotFound(err) {
@@ -532,7 +532,7 @@ func (r *NetworkIntentReconciler) cleanupResourcesByLabel(ctx context.Context, l
 			r.logger.Info("Deleted resource", "type", reflect.TypeOf(item), "name", item.GetName())
 		}
 	}
-	
+
 	return nil
 }
 
@@ -547,7 +547,7 @@ func parseLabels(labelSelector string) map[string]string {
 	if labelSelector == "" {
 		return labels
 	}
-	
+
 	pairs := strings.Split(labelSelector, ",")
 	for _, pair := range pairs {
 		kv := strings.SplitN(pair, "=", 2)
@@ -675,26 +675,26 @@ func (r *NetworkIntentReconciler) generateFallbackResponse(intent string) string
 // cleanupResources performs comprehensive cleanup of all NetworkIntent resources
 func (r *NetworkIntentReconciler) cleanupResources(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
 	r.logger.Info("Starting comprehensive resource cleanup", "intent", networkIntent.Name)
-	
+
 	// Perform GitOps cleanup
 	gitClient := r.deps.GetGitClient()
 	if err := r.cleanupGitOpsPackages(ctx, networkIntent, gitClient); err != nil {
 		r.logger.Error(err, "Failed to cleanup GitOps packages", "intent", networkIntent.Name)
 		return err
 	}
-	
+
 	// Perform generated resources cleanup
 	if err := r.cleanupGeneratedResources(ctx, networkIntent); err != nil {
 		r.logger.Error(err, "Failed to cleanup generated resources", "intent", networkIntent.Name)
 		return err
 	}
-	
+
 	// Perform cached data cleanup
 	if err := r.cleanupCachedData(ctx, networkIntent); err != nil {
 		r.logger.Error(err, "Failed to cleanup cached data", "intent", networkIntent.Name)
 		// Don't return error for cache cleanup failures as they're non-critical
 	}
-	
+
 	r.logger.Info("Successfully completed comprehensive resource cleanup", "intent", networkIntent.Name)
 	return nil
 }
@@ -705,18 +705,18 @@ func (r *NetworkIntentReconciler) cleanupCachedData(ctx context.Context, network
 		r.logger.Info("LLM processor URL not configured, skipping cache cleanup", "intent", networkIntent.Name)
 		return nil
 	}
-	
+
 	// Create cache cleanup request
 	cacheKey := fmt.Sprintf("%s-%s", networkIntent.Namespace, networkIntent.Name)
 	cleanupURL := fmt.Sprintf("%s/cache/cleanup/%s", r.config.LLMProcessorURL, cacheKey)
-	
+
 	// Create HTTP request with timeout
 	req, err := http.NewRequestWithContext(ctx, "DELETE", cleanupURL, nil)
 	if err != nil {
 		r.logger.Error(err, "Failed to create cache cleanup request", "intent", networkIntent.Name)
 		return nil // Non-critical, don't propagate error
 	}
-	
+
 	// Perform the request
 	resp, err := r.deps.GetHTTPClient().Do(req)
 	if err != nil {
@@ -724,14 +724,14 @@ func (r *NetworkIntentReconciler) cleanupCachedData(ctx context.Context, network
 		return nil // Non-critical, don't propagate error
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode >= 400 {
-		r.logger.Info("Cache cleanup returned error status (non-critical)", 
+		r.logger.Info("Cache cleanup returned error status (non-critical)",
 			"intent", networkIntent.Name, "status", resp.Status)
 	} else {
 		r.logger.Info("Successfully cleaned up cached data", "intent", networkIntent.Name)
 	}
-	
+
 	return nil
 }
 
@@ -740,11 +740,11 @@ func createLabelSelector(labels map[string]string) string {
 	if len(labels) == 0 {
 		return ""
 	}
-	
+
 	var pairs []string
 	for key, value := range labels {
 		pairs = append(pairs, fmt.Sprintf("%s=%s", key, value))
 	}
-	
+
 	return strings.Join(pairs, ",")
 }

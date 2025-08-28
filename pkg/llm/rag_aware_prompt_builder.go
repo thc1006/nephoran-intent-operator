@@ -853,7 +853,7 @@ func NewDomainClassifier() *DomainClassifier {
 func (dc *DomainClassifier) Classify(query string) string {
 	dc.mutex.RLock()
 	defer dc.mutex.RUnlock()
-	
+
 	queryLower := strings.ToLower(query)
 
 	domainScores := make(map[string]int)

@@ -44,7 +44,7 @@ func (fm *FileManager) ensureDirectories() error {
 	dirs := []string{fm.processedDir, fm.failedDir}
 
 	for _, dir := range dirs {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}
 	}
@@ -141,7 +141,7 @@ func (fm *FileManager) createErrorLog(originalPath, errorMsg string) error {
 		originalPath, time.Now().Format(time.RFC3339), errorMsg)
 
 	// Append to existing log file or create new one
-	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
 		return fmt.Errorf("failed to create error log file: %w", err)
 	}

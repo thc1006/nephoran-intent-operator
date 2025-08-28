@@ -9,7 +9,7 @@ import (
 
 // WriteIntent writes the intent to the output directory in the specified format
 // format can be "full" (default YAML) or "smp" (Strategic Merge Patch JSON)
-func WriteIntent(intent interface{}, outDir string, format string) error {
+func WriteIntent(intent interface{}, outDir, format string) error {
 	// Extract fields using JSON tags via marshal/unmarshal
 	data, err := json.Marshal(intent)
 	if err != nil {

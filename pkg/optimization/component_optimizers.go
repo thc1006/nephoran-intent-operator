@@ -159,7 +159,7 @@ func NewLLMProcessorOptimizer(config *LLMOptimizerConfig, logger logr.Logger) *L
 // GetOptimizationStrategies returns LLM-specific optimization strategies
 func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationStrategy {
 	return []RecommendationStrategy{
-		RecommendationStrategy{
+		{
 			Name:            "token_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeLLMProcessor,
@@ -200,7 +200,7 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 				},
 			},
 		},
-		RecommendationStrategy{
+		{
 			Name:            "model_selection_optimization",
 			Category:        CategoryCost,
 			TargetComponent: shared.ComponentTypeLLMProcessor,
@@ -217,7 +217,7 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 				LatencyReduction: 10.0,
 			},
 		},
-		RecommendationStrategy{
+		{
 			Name:            "intelligent_caching",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeLLMProcessor,
@@ -235,7 +235,7 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 				ThroughputIncrease: 40.0,
 			},
 		},
-		RecommendationStrategy{
+		{
 			Name:            "connection_pooling_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeLLMProcessor,
@@ -252,7 +252,7 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 				ResourceSavings:  15.0,
 			},
 		},
-		RecommendationStrategy{
+		{
 			Name:            "batch_processing_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeLLMProcessor,
@@ -423,7 +423,7 @@ func NewRAGSystemOptimizer(config *RAGOptimizerConfig, logger logr.Logger) *RAGS
 // GetOptimizationStrategies returns RAG-specific optimization strategies
 func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []RecommendationStrategy {
 	return []RecommendationStrategy{
-		RecommendationStrategy{
+		{
 			Name:            "vector_database_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeRAGSystem,
@@ -432,7 +432,7 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []RecommendationStrat
 				ThroughputIncrease: 30.0,
 			},
 		},
-		RecommendationStrategy{
+		{
 			Name:            "embedding_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeRAGSystem,
@@ -441,7 +441,7 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []RecommendationStrat
 				CostSavings:      20.0,
 			},
 		},
-		RecommendationStrategy{
+		{
 			Name:            "retrieval_strategy_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeRAGSystem,
@@ -450,7 +450,7 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []RecommendationStrat
 				ResourceSavings:  15.0,
 			},
 		},
-		RecommendationStrategy{
+		{
 			Name:            "query_preprocessing_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeRAGSystem,
@@ -601,7 +601,7 @@ func NewKubernetesOptimizer(config *K8sOptimizerConfig, logger logr.Logger) *Kub
 // GetOptimizationStrategies returns Kubernetes-specific optimization strategies
 func (opt *KubernetesOptimizer) GetOptimizationStrategies() []RecommendationStrategy {
 	return []RecommendationStrategy{
-		RecommendationStrategy{
+		{
 			Name:            "resource_optimization",
 			Category:        CategoryResource,
 			TargetComponent: shared.ComponentTypeKubernetes,
@@ -610,7 +610,7 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []RecommendationStra
 				CostSavings:     25.0,
 			},
 		},
-		RecommendationStrategy{
+		{
 			Name:            "scheduling_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeKubernetes,
@@ -619,7 +619,7 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []RecommendationStra
 				ResourceSavings:  15.0,
 			},
 		},
-		RecommendationStrategy{
+		{
 			Name:            "networking_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeKubernetes,
@@ -628,7 +628,7 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []RecommendationStra
 				ThroughputIncrease: 40.0,
 			},
 		},
-		RecommendationStrategy{
+		{
 			Name:            "storage_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeKubernetes,

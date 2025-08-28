@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -172,7 +173,8 @@ func getExitCode(cmd *exec.Cmd, err error) int {
 		return 0
 	}
 
-	if exitError, ok := err.(*exec.ExitError); ok {
+	var exitError *exec.ExitError
+	if errors.As(err, &exitError) {
 		return exitError.ExitCode()
 	}
 

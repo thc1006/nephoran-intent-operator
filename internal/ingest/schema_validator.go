@@ -154,16 +154,16 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 			intVal := int(numVal)
 
 			// Check minimum
-			if min, ok := fieldSchema["minimum"].(float64); ok {
-				if intVal < int(min) {
-					return fmt.Errorf("field %s must be at least %d, got %d", fieldName, int(min), intVal)
+			if minVal, ok := fieldSchema["minimum"].(float64); ok {
+				if intVal < int(minVal) {
+					return fmt.Errorf("field %s must be at least %d, got %d", fieldName, int(minVal), intVal)
 				}
 			}
 
 			// Check maximum
-			if max, ok := fieldSchema["maximum"].(float64); ok {
-				if intVal > int(max) {
-					return fmt.Errorf("field %s must be at most %d, got %d", fieldName, int(max), intVal)
+			if maxVal, ok := fieldSchema["maximum"].(float64); ok {
+				if intVal > int(maxVal) {
+					return fmt.Errorf("field %s must be at most %d, got %d", fieldName, int(maxVal), intVal)
 				}
 			}
 		}

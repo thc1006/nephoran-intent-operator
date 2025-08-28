@@ -65,7 +65,7 @@ const (
 	// EventTypeAuthentication indicates an authentication attempt event
 	EventTypeAuthentication EventType = "authentication"
 	// EventTypeAuthenticationFailed indicates a failed authentication attempt
-	EventTypeAuthenticationFailed EventType = "authentication_failed"
+	EventTypeAuthenticationFailed  EventType = "authentication_failed"
 	EventTypeAuthenticationSuccess EventType = "authentication_success"
 	EventTypeAuthorization         EventType = "authorization"
 	EventTypeAuthorizationFailed   EventType = "authorization_failed"

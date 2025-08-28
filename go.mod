@@ -168,7 +168,6 @@ require (
 	go.opentelemetry.io/otel/exporters/prometheus v0.54.0
 	golang.org/x/mod v0.26.0
 	golang.org/x/net v0.42.0
-	golang.org/x/text v0.28.0
 	gonum.org/v1/gonum v0.16.0
 	google.golang.org/api v0.243.0
 	gopkg.in/square/go-jose.v2 v2.6.0
@@ -421,6 +420,7 @@ require (
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/telemetry v0.0.0-20250710130107-8d8967aff50b // indirect
 	golang.org/x/term v0.34.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/tools v0.35.0 // indirect
 	golang.org/x/tools/go/expect v0.1.1-deprecated // indirect
 	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated // indirect

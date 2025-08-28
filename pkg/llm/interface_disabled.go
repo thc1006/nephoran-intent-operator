@@ -49,20 +49,20 @@ type PromptGenerator interface {
 
 // ProcessingRequest represents a processing request (stub)
 type ProcessingRequest struct {
-	Intent      string            `json:"intent"`
-	IntentType  string            `json:"intent_type"`
-	ModelName   string            `json:"model_name"`
-	MaxTokens   int               `json:"max_tokens,omitempty"`
-	Temperature float32           `json:"temperature,omitempty"`
+	Intent      string                 `json:"intent"`
+	IntentType  string                 `json:"intent_type"`
+	ModelName   string                 `json:"model_name"`
+	MaxTokens   int                    `json:"max_tokens,omitempty"`
+	Temperature float32                `json:"temperature,omitempty"`
 	Context     map[string]interface{} `json:"context,omitempty"`
 }
 
 // ProcessingResponse represents a processing response (stub)
 type ProcessingResponse struct {
-	Content      string            `json:"content"`
-	TokensUsed   int               `json:"tokens_used"`
-	ProcessingTime time.Duration   `json:"processing_time"`
-	ModelUsed    string            `json:"model_used"`
-	Cached       bool              `json:"cached"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Content        string                 `json:"content"`
+	TokensUsed     int                    `json:"tokens_used"`
+	ProcessingTime time.Duration          `json:"processing_time"`
+	ModelUsed      string                 `json:"model_used"`
+	Cached         bool                   `json:"cached"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }

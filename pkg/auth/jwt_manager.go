@@ -188,7 +188,7 @@ func (jm *JWTManager) GenerateAccessToken(ctx context.Context, userInfo *provide
 	if userInfo == nil {
 		return "", nil, fmt.Errorf("user info cannot be nil")
 	}
-	
+
 	jm.mutex.RLock()
 	defer jm.mutex.RUnlock()
 
@@ -271,7 +271,7 @@ func (jm *JWTManager) GenerateRefreshToken(ctx context.Context, userInfo *provid
 	if userInfo == nil {
 		return "", nil, fmt.Errorf("user info cannot be nil")
 	}
-	
+
 	jm.mutex.RLock()
 	defer jm.mutex.RUnlock()
 
@@ -499,7 +499,7 @@ func (jm *JWTManager) IsTokenBlacklisted(ctx context.Context, tokenString string
 	// Parse token to get token ID without signature validation
 	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
 	token, _, err := parser.ParseUnverified(tokenString, &NephoranJWTClaims{})
-	
+
 	if err != nil {
 		return false, fmt.Errorf("failed to parse token: %w", err)
 	}
@@ -518,12 +518,12 @@ func (jm *JWTManager) GenerateTokenPair(ctx context.Context, userInfo *providers
 	if err != nil {
 		return "", "", err
 	}
-	
+
 	refreshToken, _, err := jm.GenerateRefreshToken(ctx, userInfo, sessionID, options...)
 	if err != nil {
 		return "", "", err
 	}
-	
+
 	return accessToken, refreshToken, nil
 }
 
@@ -573,13 +573,13 @@ func (jm *JWTManager) generateLegacyToken(userInfo *providers.UserInfo, customCl
 	if userInfo == nil {
 		return "", fmt.Errorf("user info cannot be nil")
 	}
-	
+
 	jm.mutex.RLock()
 	defer jm.mutex.RUnlock()
 
 	now := time.Now()
 	tokenID := generateTokenID()
-	
+
 	// Create base claims using MapClaims for flexibility with custom claims
 	claims := jwt.MapClaims{
 		"jti": tokenID,
@@ -588,53 +588,53 @@ func (jm *JWTManager) generateLegacyToken(userInfo *providers.UserInfo, customCl
 		"iss": jm.issuer,
 		"iat": now.Unix(),
 		"nbf": now.Unix(),
-		
+
 		// User information
 		"email":              userInfo.Email,
 		"email_verified":     userInfo.EmailVerified,
 		"name":               userInfo.Name,
 		"preferred_username": userInfo.Username,
 		"picture":            userInfo.Picture,
-		
+
 		// Authorization
 		"groups":        userInfo.Groups,
 		"roles":         userInfo.Roles,
 		"permissions":   userInfo.Permissions,
 		"organizations": extractOrganizationNames(userInfo.Organizations),
-		
+
 		// Provider information
 		"provider":    userInfo.Provider,
 		"provider_id": userInfo.ProviderID,
-		
+
 		// Nephoran-specific
 		"session_id": "legacy-session",
 		"token_type": "access",
 	}
-	
+
 	// Set expiration
 	if ttl > 0 {
 		claims["exp"] = now.Add(ttl).Unix()
 	} else {
 		claims["exp"] = now.Add(jm.defaultTTL).Unix()
 	}
-	
+
 	// Add custom claims as top-level fields
 	if customClaims != nil {
 		for key, value := range customClaims {
 			claims[key] = value
 		}
 	}
-	
+
 	// Create and sign token
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	token.Header["kid"] = jm.keyID
-	
+
 	tokenString, err := token.SignedString(jm.signingKey)
 	if err != nil {
 		jm.metrics.ValidationFailures++
 		return "", fmt.Errorf("failed to sign token: %w", err)
 	}
-	
+
 	jm.metrics.TokensIssued++
 	return tokenString, nil
 }
@@ -886,18 +886,18 @@ func (jm *JWTManager) GetKeyID() string {
 func (jm *JWTManager) SetSigningKey(privateKey *rsa.PrivateKey, keyID string) error {
 	jm.mutex.Lock()
 	defer jm.mutex.Unlock()
-	
+
 	if privateKey == nil {
 		return fmt.Errorf("private key cannot be nil")
 	}
 	if keyID == "" {
 		return fmt.Errorf("key ID cannot be empty")
 	}
-	
+
 	jm.signingKey = privateKey
 	jm.verifyingKey = &privateKey.PublicKey
 	jm.keyID = keyID
-	
+
 	return nil
 }
 
@@ -905,14 +905,14 @@ func (jm *JWTManager) SetSigningKey(privateKey *rsa.PrivateKey, keyID string) er
 func (jm *JWTManager) GetPublicKey(keyID string) (*rsa.PublicKey, error) {
 	jm.mutex.RLock()
 	defer jm.mutex.RUnlock()
-	
+
 	if keyID == "" {
 		return nil, fmt.Errorf("key ID cannot be empty")
 	}
 	if keyID != jm.keyID {
 		return nil, fmt.Errorf("key not found")
 	}
-	
+
 	return jm.verifyingKey, nil
 }
 
@@ -925,16 +925,16 @@ func (jm *JWTManager) RotateKeys() error {
 func (jm *JWTManager) ExtractClaims(tokenString string) (jwt.MapClaims, error) {
 	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
 	token, _, err := parser.ParseUnverified(tokenString, jwt.MapClaims{})
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse token: %w", err)
 	}
-	
+
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		return nil, fmt.Errorf("invalid token claims")
 	}
-	
+
 	return claims, nil
 }
 
@@ -942,11 +942,11 @@ func (jm *JWTManager) ExtractClaims(tokenString string) (jwt.MapClaims, error) {
 func (jm *JWTManager) GetJWKS() (map[string]interface{}, error) {
 	jm.mutex.RLock()
 	defer jm.mutex.RUnlock()
-	
+
 	if jm.verifyingKey == nil {
 		return nil, fmt.Errorf("verifying key not initialized")
 	}
-	
+
 	// Create JWKS response
 	return map[string]interface{}{
 		"keys": []interface{}{
@@ -955,8 +955,8 @@ func (jm *JWTManager) GetJWKS() (map[string]interface{}, error) {
 				"use": "sig",
 				"kid": jm.keyID,
 				"alg": "RS256",
-				"n": encodeBase64URL(jm.verifyingKey.N.Bytes()),
-				"e": encodeBase64URL(big.NewInt(int64(jm.verifyingKey.E)).Bytes()),
+				"n":   encodeBase64URL(jm.verifyingKey.N.Bytes()),
+				"e":   encodeBase64URL(big.NewInt(int64(jm.verifyingKey.E)).Bytes()),
 			},
 		},
 	}, nil

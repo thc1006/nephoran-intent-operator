@@ -2,6 +2,7 @@ package security
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -221,7 +222,11 @@ func (g *SecurePatchGenerator) validateStringFieldSecurity(fieldName, value stri
 // createBasePatchPackage creates the base patch package structure
 func (g *SecurePatchGenerator) createBasePatchPackage(packageName string) *patchgen.PatchPackage {
 	// Generate collision-resistant timestamp
-	timestamp, _ := g.crypto.GenerateCollisionResistantTimestamp()
+	timestamp, err := g.crypto.GenerateCollisionResistantTimestamp()
+	if err != nil {
+		log.Printf("Warning: Failed to generate collision-resistant timestamp: %v", err)
+		timestamp = time.Now().UTC().Format("20060102T150405Z")
+	}
 
 	kptfile := &patchgen.Kptfile{
 		APIVersion: "kpt.dev/v1",

@@ -19,9 +19,9 @@ type Doc struct {
 
 // RAGClientConfig stub
 type RAGClientConfig struct {
-	URL        string        `json:"url"`
-	APIKey     string        `json:"api_key"`
-	Timeout    time.Duration `json:"timeout"`
+	URL     string        `json:"url"`
+	APIKey  string        `json:"api_key"`
+	Timeout time.Duration `json:"timeout"`
 }
 
 // RAGClient stub interface
@@ -47,23 +47,23 @@ func (c *NoopRAGClient) Close() error {
 
 // Additional stub types that might be needed
 type TelecomDocument struct {
-	ID          string                 `json:"id"`
-	Title       string                 `json:"title"`
-	Content     string                 `json:"content"`
-	Source      string                 `json:"source"`
-	Technology  []string               `json:"technology"`
-	Version     string                 `json:"version,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
-	Embedding   []float32              `json:"embedding,omitempty"`
-	CreatedAt   time.Time              `json:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at"`
+	ID         string                 `json:"id"`
+	Title      string                 `json:"title"`
+	Content    string                 `json:"content"`
+	Source     string                 `json:"source"`
+	Technology []string               `json:"technology"`
+	Version    string                 `json:"version,omitempty"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Embedding  []float32              `json:"embedding,omitempty"`
+	CreatedAt  time.Time              `json:"created_at"`
+	UpdatedAt  time.Time              `json:"updated_at"`
 }
 
 type SearchQuery struct {
-	Query       string                 `json:"query"`
-	MaxResults  int                    `json:"max_results"`
-	MinScore    float32                `json:"min_score"`
-	Filters     map[string]interface{} `json:"filters,omitempty"`
+	Query      string                 `json:"query"`
+	MaxResults int                    `json:"max_results"`
+	MinScore   float32                `json:"min_score"`
+	Filters    map[string]interface{} `json:"filters,omitempty"`
 }
 
 type SearchResult struct {

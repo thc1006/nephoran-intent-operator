@@ -92,7 +92,7 @@ type RAGService struct {
 
 // RAGRequest represents a request to the RAG service
 type RAGRequest struct {
-	Query                 string
+	Query                string
 	MaxResults           int
 	MinConfidence        float64
 	UseHybridSearch      bool
@@ -102,12 +102,12 @@ type RAGRequest struct {
 
 // RAGResponse represents a response from the RAG service
 type RAGResponse struct {
-	Context          map[string]interface{}
-	Metrics          *nephoranv1.RAGMetrics
-	SourceDocuments  []interface{}
-	Metadata         map[string]interface{}
-	RetrievalTime    int64
-	Confidence       float32
+	Context         map[string]interface{}
+	Metrics         *nephoranv1.RAGMetrics
+	SourceDocuments []interface{}
+	Metadata        map[string]interface{}
+	RetrievalTime   int64
+	Confidence      float32
 }
 
 // ProcessQuery processes a query using the RAG service (stub implementation)

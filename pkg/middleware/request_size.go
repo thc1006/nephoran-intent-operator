@@ -56,7 +56,7 @@ func (rsl *RequestSizeLimiter) Handler(handler http.HandlerFunc) http.HandlerFun
 				if originalBody != nil {
 					if err := originalBody.Close(); err != nil {
 						// Log error but don't fail the request
-						slog.Warn("Failed to close original request body", 
+						slog.Warn("Failed to close original request body",
 							slog.String("error", err.Error()))
 					}
 				}

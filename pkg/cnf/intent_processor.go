@@ -426,7 +426,7 @@ Provide confidence scores for each extracted element.`,
 
 	// Convert RAG context to JSON string for the Context field
 	ragContextJSON, _ := json.Marshal(intentContext.RAGContext)
-	
+
 	return &llm.ProcessingRequest{
 		Intent:            intentContext.Intent,
 		SystemPrompt:      systemPrompt,

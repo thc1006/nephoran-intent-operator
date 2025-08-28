@@ -203,13 +203,13 @@ func (b *CertManagerBackend) IssueCertificate(ctx context.Context, req *Certific
 
 	// Stub implementation - would create cert-manager Certificate resource
 	b.logger.Info("Would create cert-manager Certificate resource", "request_id", req.ID)
-	
+
 	// Return a stub response for now
 	return &CertificateResponse{
-		RequestID:  req.ID,
-		Status:     CertStatusPending,
-		IssuedBy:   string(BackendCertManager),
-		CreatedAt:  time.Now(),
+		RequestID: req.ID,
+		Status:    CertStatusPending,
+		IssuedBy:  string(BackendCertManager),
+		CreatedAt: time.Now(),
 	}, fmt.Errorf("cert-manager backend is not fully implemented")
 }
 
@@ -235,13 +235,13 @@ func (b *CertManagerBackend) RenewCertificate(ctx context.Context, req *Certific
 		"common_name", req.CommonName)
 
 	b.logger.Info("Would renew cert-manager certificate", "request_id", req.ID)
-	
+
 	// Stub implementation
 	return &CertificateResponse{
-		RequestID:  req.ID,
-		Status:     CertStatusPending,
-		IssuedBy:   string(BackendCertManager),
-		CreatedAt:  time.Now(),
+		RequestID: req.ID,
+		Status:    CertStatusPending,
+		IssuedBy:  string(BackendCertManager),
+		CreatedAt: time.Now(),
 	}, fmt.Errorf("cert-manager backend renewal is not fully implemented")
 }
 

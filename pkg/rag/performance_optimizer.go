@@ -129,22 +129,22 @@ func (po *PerformanceOptimizer) CollectMetrics() *PerformanceMetrics {
 
 	// Return a copy of the metrics without mutex
 	metricsCopy := &PerformanceMetrics{
-		CPUUsage: po.metrics.CPUUsage,
-		MemoryUsage: po.metrics.MemoryUsage,
-		GoroutineCount: po.metrics.GoroutineCount,
-		HeapSize: po.metrics.HeapSize,
-		GCPauses: copyDurations(po.metrics.GCPauses),
-		AverageLatency: po.metrics.AverageLatency,
-		ThroughputRPM: po.metrics.ThroughputRPM,
-		ErrorRate: po.metrics.ErrorRate,
-		CacheHitRate: po.metrics.CacheHitRate,
-		DocumentProcessingTime: po.metrics.DocumentProcessingTime,
+		CPUUsage:                po.metrics.CPUUsage,
+		MemoryUsage:             po.metrics.MemoryUsage,
+		GoroutineCount:          po.metrics.GoroutineCount,
+		HeapSize:                po.metrics.HeapSize,
+		GCPauses:                copyDurations(po.metrics.GCPauses),
+		AverageLatency:          po.metrics.AverageLatency,
+		ThroughputRPM:           po.metrics.ThroughputRPM,
+		ErrorRate:               po.metrics.ErrorRate,
+		CacheHitRate:            po.metrics.CacheHitRate,
+		DocumentProcessingTime:  po.metrics.DocumentProcessingTime,
 		EmbeddingGenerationTime: po.metrics.EmbeddingGenerationTime,
-		RetrievalTime: po.metrics.RetrievalTime,
-		ContextAssemblyTime: po.metrics.ContextAssemblyTime,
-		OptimizationsApplied: po.metrics.OptimizationsApplied,
-		LastOptimization: po.metrics.LastOptimization,
-		PerformanceGain: po.metrics.PerformanceGain,
+		RetrievalTime:           po.metrics.RetrievalTime,
+		ContextAssemblyTime:     po.metrics.ContextAssemblyTime,
+		OptimizationsApplied:    po.metrics.OptimizationsApplied,
+		LastOptimization:        po.metrics.LastOptimization,
+		PerformanceGain:         po.metrics.PerformanceGain,
 	}
 	return metricsCopy
 }
@@ -581,8 +581,7 @@ func minDuration(a, b time.Duration) time.Duration {
 	return b
 }
 
-
-// copyDurations creates a copy of duration slice  
+// copyDurations creates a copy of duration slice
 func copyDurations(original []time.Duration) []time.Duration {
 	if original == nil {
 		return nil

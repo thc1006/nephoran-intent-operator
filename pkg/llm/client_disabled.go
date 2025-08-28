@@ -366,14 +366,14 @@ func (c *Client) Health(ctx context.Context) error {
 // getDefaultClientConfig returns default client configuration
 func getDefaultClientConfig() *ClientConfig {
 	return &ClientConfig{
-		Timeout:             30 * time.Second,
-		MaxConnsPerHost:     10,
-		MaxIdleConns:        100,
-		IdleConnTimeout:     90 * time.Second,
-		KeepAliveTimeout:    30 * time.Second,
-		CacheTTL:            5 * time.Minute,
-		CacheMaxSize:        1000,
-		BackendType:         "openai",
+		Timeout:          30 * time.Second,
+		MaxConnsPerHost:  10,
+		MaxIdleConns:     100,
+		IdleConnTimeout:  90 * time.Second,
+		KeepAliveTimeout: 30 * time.Second,
+		CacheTTL:         5 * time.Minute,
+		CacheMaxSize:     1000,
+		BackendType:      "openai",
 		CircuitBreakerConfig: &CircuitBreakerConfig{
 			FailureThreshold: 5,
 			Timeout:          60 * time.Second,

@@ -315,9 +315,9 @@ func (alg *AdvancedLoadGenerator) generateVegetaTargets() []vegeta.Target {
 // convertVegetaMetrics converts Vegeta metrics to our report format
 func (alg *AdvancedLoadGenerator) convertVegetaMetrics(metrics *vegeta.Metrics) *LoadTestReport {
 	return &LoadTestReport{
-		Scenario:           "Vegeta Load Test",
-		Duration:           metrics.Duration,
-		TotalRequests:      int64(metrics.Requests),
+		Scenario:      "Vegeta Load Test",
+		Duration:      metrics.Duration,
+		TotalRequests: int64(metrics.Requests),
 		// Fix G115: Add bounds checking for integer overflow
 		SuccessfulRequests: safeMathConversion(float64(metrics.Requests) * metrics.Success),
 		FailedRequests:     safeMathConversion(float64(metrics.Requests) * (1 - metrics.Success)),

@@ -385,7 +385,7 @@ func (pp *ProcessingPipeline) updateMetrics(processingTime time.Duration, succes
 func (pp *ProcessingPipeline) GetMetrics() *PipelineMetrics {
 	pp.metrics.mutex.RLock()
 	defer pp.metrics.mutex.RUnlock()
-	
+
 	// Create a copy without the mutex
 	metrics := PipelineMetrics{
 		TotalRequests:      pp.metrics.TotalRequests,
@@ -938,7 +938,7 @@ func (kb *TelecomKnowledgeBase) GetNetworkFunctionSpec(name string) (NetworkFunc
 	if !exists {
 		return NetworkFunctionSpec{}, false
 	}
-	
+
 	// Create a copy to avoid returning a reference to internal data
 	specCopy := NetworkFunctionSpec{
 		Name:             spec.Name,
@@ -948,7 +948,7 @@ func (kb *TelecomKnowledgeBase) GetNetworkFunctionSpec(name string) (NetworkFunc
 		Dependencies:     make([]string, len(spec.Dependencies)),
 		Constraints:      make([]string, len(spec.Constraints)),
 	}
-	
+
 	// Copy maps and slices
 	for k, v := range spec.DefaultResources {
 		specCopy.DefaultResources[k] = v
@@ -956,6 +956,6 @@ func (kb *TelecomKnowledgeBase) GetNetworkFunctionSpec(name string) (NetworkFunc
 	copy(specCopy.RequiredPorts, spec.RequiredPorts)
 	copy(specCopy.Dependencies, spec.Dependencies)
 	copy(specCopy.Constraints, spec.Constraints)
-	
+
 	return specCopy, true
 }
