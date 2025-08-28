@@ -2,6 +2,8 @@ package ca
 
 import (
 	"context"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"fmt"
 	"time"
 
@@ -55,7 +57,7 @@ func NewCertManagerBackend(config *CertManagerConfig, kubeClient client.Client) 
 }
 
 // Initialize initializes the cert-manager backend (stubbed)
-func (b *CertManagerBackendStub) Initialize(ctx context.Context) error {
+func (b *CertManagerBackendStub) Initialize(ctx context.Context, config interface{}) error {
 	return nil
 }
 
@@ -64,10 +66,6 @@ func (b *CertManagerBackendStub) IssueCertificate(ctx context.Context, req *Cert
 	return nil, fmt.Errorf("cert-manager integration not implemented")
 }
 
-// RevokeCertificate revokes a certificate (stubbed)
-func (b *CertManagerBackendStub) RevokeCertificate(ctx context.Context, req *RevokeCertificateRequest) error {
-	return fmt.Errorf("cert-manager integration not implemented")
-}
 
 // GetCertificate retrieves a certificate (stubbed)
 func (b *CertManagerBackendStub) GetCertificate(ctx context.Context, id string) (*CertificateResponse, error) {
@@ -79,10 +77,6 @@ func (b *CertManagerBackendStub) ListCertificates(ctx context.Context, filter *C
 	return nil, fmt.Errorf("cert-manager integration not implemented")
 }
 
-// RenewCertificate renews a certificate (stubbed)
-func (b *CertManagerBackendStub) RenewCertificate(ctx context.Context, req *RenewCertificateRequest) (*CertificateResponse, error) {
-	return nil, fmt.Errorf("cert-manager integration not implemented")
-}
 
 // ValidateCertificate validates a certificate (stubbed)
 func (b *CertManagerBackendStub) ValidateCertificate(ctx context.Context, req *ValidateCertificateRequest) (*ValidationResult, error) {
@@ -92,6 +86,31 @@ func (b *CertManagerBackendStub) ValidateCertificate(ctx context.Context, req *V
 // HealthCheck performs a health check (stubbed)
 func (b *CertManagerBackendStub) HealthCheck(ctx context.Context) error {
 	return nil
+}
+
+// GetCAChain retrieves the CA certificate chain (stubbed)
+func (b *CertManagerBackendStub) GetCAChain(ctx context.Context) ([]*x509.Certificate, error) {
+	return nil, fmt.Errorf("cert-manager integration not implemented")
+}
+
+// GetCRL retrieves the Certificate Revocation List (stubbed)
+func (b *CertManagerBackendStub) GetCRL(ctx context.Context) (*pkix.CertificateList, error) {
+	return nil, fmt.Errorf("cert-manager integration not implemented")
+}
+
+// GetSupportedFeatures returns list of supported features (stubbed)
+func (b *CertManagerBackendStub) GetSupportedFeatures() []string {
+	return []string{"stubbed"}
+}
+
+// RevokeCertificate with correct signature
+func (b *CertManagerBackendStub) RevokeCertificate(ctx context.Context, serialNumber string, reason int) error {
+	return fmt.Errorf("cert-manager integration not implemented")
+}
+
+// RenewCertificate with correct signature
+func (b *CertManagerBackendStub) RenewCertificate(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error) {
+	return nil, fmt.Errorf("cert-manager integration not implemented")
 }
 
 // GetBackendInfo returns backend information (stubbed)

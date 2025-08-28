@@ -2,7 +2,6 @@ package nephio
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
@@ -674,5 +673,26 @@ func (pg *PackageGenerator) extractNetworkSliceDetails(intent *v1.NetworkIntent)
 			sliceMap["sla_parameters"])
 	}
 	return "No network slice configuration in this package"
+}
+
+// unmarshalParameters unmarshals RawExtension parameters into a map
+func (pg *PackageGenerator) unmarshalParameters(params *runtime.RawExtension) (map[string]interface{}, error) {
+	if params == nil {
+		return nil, fmt.Errorf("parameters are nil")
+	}
+
+	if params.Raw == nil {
+		return nil, fmt.Errorf("raw parameters are nil")
+	}
+
+	var result map[string]interface{}
+	if err := yaml.Unmarshal(params.Raw, &result); err != nil {
+		// Try JSON unmarshaling if YAML fails
+		if jsonErr := json.Unmarshal(params.Raw, &result); jsonErr != nil {
+			return nil, fmt.Errorf("failed to unmarshal parameters as YAML or JSON: yaml_error=%w, json_error=%v", err, jsonErr)
+		}
+	}
+
+	return result, nil
 }
 

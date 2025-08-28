@@ -7,6 +7,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
@@ -39,9 +40,8 @@ type Service interface {
 	Query(ctx context.Context, query string) (interface{}, error)
 }
 
-
-// Note: SearchResult is defined in enhanced_rag_integration.go
-
+// SearchResult is an alias to shared.SearchResult for compatibility
+type SearchResult = shared.SearchResult
 
 // RAGClientConfig holds configuration for RAG clients
 type RAGClientConfig struct {
@@ -118,17 +118,8 @@ type WeaviateConfig struct {
 	Retries int               `json:"retries"`
 }
 
-// SearchQuery represents a search query
-type SearchQuery struct {
-	Query         string                 `json:"query"`
-	Limit         int                    `json:"limit"`
-	Filters       map[string]interface{} `json:"filters"`
-	HybridSearch  bool                   `json:"hybrid_search"`
-	UseReranker   bool                   `json:"use_reranker"`
-	MinConfidence float32                `json:"min_confidence"`
-	HybridAlpha   *float32               `json:"hybrid_alpha,omitempty"`
-	ExpandQuery   bool                   `json:"expand_query"`
-}
+// SearchQuery is an alias to types.SearchQuery for compatibility
+type SearchQuery = types.SearchQuery
 
 // SearchResponse represents a search response
 type SearchResponse struct {
@@ -203,4 +194,3 @@ type RetrievalResponse struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 	Error       string                 `json:"error,omitempty"`
 }
-

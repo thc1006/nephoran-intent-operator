@@ -4,9 +4,14 @@
 package llm
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -26,13 +31,7 @@ type StreamingProcessorStub struct {
 	mutex      sync.RWMutex
 }
 
-// StreamingRequest represents a streaming request payload
-type StreamingRequest struct {
-	Query     string `json:"query"`
-	ModelName string `json:"model_name,omitempty"`
-	MaxTokens int    `json:"max_tokens,omitempty"`
-	EnableRAG bool   `json:"enable_rag,omitempty"`
-}
+// StreamingRequest is defined in types.go
 
 func NewStreamingProcessor() *StreamingProcessorStub {
 	return &StreamingProcessorStub{

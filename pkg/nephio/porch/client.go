@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -34,8 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -160,35 +157,13 @@ func (c *ClientConfig) GetKubernetesConfig() (*rest.Config, error) {
 
 // DefaultPorchConfig returns default Porch configuration
 func DefaultPorchConfig() *ClientConfig {
-	return &Config{
+	return &ClientConfig{
+		Endpoint:   "http://localhost:8080",
+		AuthConfig: nil,
+		TLSConfig:  nil,
 		PorchConfig: &PorchConfig{
 			DefaultNamespace:  "default",
 			DefaultRepository: "default",
-			CircuitBreaker: &ClientCircuitBreakerConfig{
-				Enabled:          true,
-				FailureThreshold: 5,
-				SuccessThreshold: 3,
-				Timeout:          30 * time.Second,
-				HalfOpenMaxCalls: 3,
-			},
-			RateLimit: &ClientRateLimitConfig{
-				Enabled:           true,
-				RequestsPerSecond: 10.0,
-				Burst:             20,
-			},
-			ConnectionPool: &ClientConnectionPoolConfig{
-				MaxOpenConns:    10,
-				MaxIdleConns:    5,
-				ConnMaxLifetime: 30 * time.Minute,
-			},
-			FunctionExecution: &ClientFunctionExecutionConfig{
-				DefaultTimeout: 60 * time.Second,
-				MaxConcurrency: 5,
-				ResourceLimits: map[string]string{
-					"cpu":    "100m",
-					"memory": "128Mi",
-				},
-			},
 		},
 	}
 }

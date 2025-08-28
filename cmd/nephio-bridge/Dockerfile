@@ -30,9 +30,10 @@ ARG VERSION=dev
 ARG BUILD_DATE
 ARG VCS_REF
 ARG CGO_ENABLED=0
+ARG TARGETARCH=amd64
 
 # Security: Build with optimizations and security flags
-RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOARCH=amd64 go build \
+RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOARCH=${TARGETARCH} go build \
     -ldflags="-w -s \
     -X main.version=${VERSION} \
     -X main.buildDate=${BUILD_DATE} \
@@ -45,7 +46,9 @@ RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOARCH=amd64 go build \
     ./cmd/nephio-bridge
 
 # Verify the binary
-RUN file /build/nephio-bridge
+RUN ls -la /build/nephio-bridge && \
+    test -x /build/nephio-bridge && \
+    echo "Binary verification: $(stat -c '%n: size=%s, mode=%a' /build/nephio-bridge)"
 
 # =============================================================================
 # Stage 2: Security Hardened Runtime

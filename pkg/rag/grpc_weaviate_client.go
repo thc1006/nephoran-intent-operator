@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/types"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
@@ -383,15 +383,10 @@ func (c *GRPCWeaviateClient) BatchSearch(ctx context.Context, queries []*SearchQ
 
 	// Convert to gRPC batch request - using Queries field instead of Requests
 	batchReq := &BatchSearchRequest{
-		Queries: make([]*SearchQuery, len(queries)),
+		Queries: queries, // SearchQuery is already the correct type
 		Metadata: map[string]interface{}{
-
 			"batch_size": fmt.Sprintf("%d", len(queries)),
 		},
-	}
-
-	for i, query := range queries {
-		batchReq.Queries[i] = query
 	}
 
 	// Perform batch search
@@ -521,9 +516,8 @@ func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchRespo
 
 	results := make([]*SearchResult, len(grpcResp.Results))
 
-
 	for i, result := range grpcResp.Results {
-		doc := &types.TelecomDocument{
+		doc := &shared.TelecomDocument{
 			ID: result.ID,
 		}
 
@@ -535,44 +529,23 @@ func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchRespo
 			doc.Title = title
 		}
 
-
 		results[i] = &SearchResult{
-
+			ID:       result.ID,
+			Content:  doc.Content,
 			Document: doc,
 			Score:    result.Score,
+			Distance: result.Score, // Use score as distance for compatibility
 		}
 	}
 
 	return &SearchResponse{
-		Results: convertSharedSearchResults(results),
+		Results: results,
 		Took:    0, // Timing should be calculated by the caller
 		Total:   int64(len(results)),
 	}
 }
 
-// convertSharedSearchResults converts shared.SearchResult to local SearchResult
-func convertSharedSearchResults(sharedResults []*types.SearchResult) []*SearchResult {
-	results := make([]*SearchResult, len(sharedResults))
-	for i, sharedResult := range sharedResults {
-		// Extract fields from the shared result
-		id := ""
-		content := ""
-		if sharedResult.Document != nil {
-			id = sharedResult.Document.ID
-			content = sharedResult.Document.Content
-		}
-
-		results[i] = &SearchResult{
-			ID:         id,
-			Content:    content,
-			Confidence: float64(sharedResult.Score), // Convert score to confidence
-			Metadata:   sharedResult.Metadata,
-			Score:      sharedResult.Score,
-			Document:   sharedResult.Document,
-		}
-	}
-	return results
-}
+// convertSharedSearchResults is no longer needed since SearchResult is now an alias to shared.SearchResult
 
 // updateMetrics updates gRPC client metrics
 func (c *GRPCWeaviateClient) updateMetrics(success bool, latency time.Duration, resultCount, batchSize int) {

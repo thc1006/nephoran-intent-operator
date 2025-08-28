@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 	"golang.org/x/sync/errgroup"
 )
@@ -336,7 +337,7 @@ func (c *OptimizedBatchSearchClient) aggregateResults(responses []*SearchRespons
 
 			// Convert to types.SearchResult
 			sharedResult := &types.SearchResult{
-				Document: result.Document,
+				Document: convertSharedToTypesDocument(result.Document),
 				Score:    result.Score,
 				Distance: 1.0 - result.Score, // Approximate distance from score
 				Metadata: result.Metadata,
@@ -349,13 +350,6 @@ func (c *OptimizedBatchSearchClient) aggregateResults(responses []*SearchRespons
 					existing.Score = sharedResult.Score
 				}
 			} else {
-
-				// Convert local SearchResult to shared.SearchResult
-				sharedResult := &shared.SearchResult{
-					Document: result.Document, // Assuming Document can be directly assigned
-					Score:    result.Score,
-				}
-
 				seen[key] = sharedResult
 				aggregated = append(aggregated, sharedResult)
 			}
@@ -544,7 +538,7 @@ func (c *OptimizedBatchSearchClient) convertSharedSearchQueries(sharedQueries []
 			Limit:         sq.Limit,
 			Filters:       sq.Filters,
 			HybridSearch:  sq.HybridSearch,
-			HybridAlpha:   &sq.HybridAlpha, // Convert to pointer
+			HybridAlpha:   sq.HybridAlpha, // Use directly as pointer
 			UseReranker:   sq.UseReranker,
 			MinConfidence: sq.MinConfidence,
 			ExpandQuery:   false, // Default value for missing field
@@ -561,7 +555,7 @@ func (c *OptimizedBatchSearchClient) convertToSharedSearchResponses(responses []
 		sharedResults := make([]*types.SearchResult, len(resp.Results))
 		for j, result := range resp.Results {
 			sharedResults[j] = &types.SearchResult{
-				Document: result.Document,
+				Document: convertSharedToTypesDocument(result.Document),
 				Score:    result.Score,
 				Distance: 1.0 - result.Score, // Approximate distance from score
 				Metadata: result.Metadata,
@@ -570,11 +564,41 @@ func (c *OptimizedBatchSearchClient) convertToSharedSearchResponses(responses []
 
 		sharedResponses[i] = &types.SearchResponse{
 			Results: sharedResults,
-			Took:    int64(resp.Took.Nanoseconds()), // Convert duration to nanoseconds
+			Took:    resp.Took, // Keep as time.Duration
 			Total:   resp.Total,
 		}
 	}
 	return sharedResponses
+}
+
+// convertSharedToTypesDocument converts shared.TelecomDocument to types.TelecomDocument
+func convertSharedToTypesDocument(sharedDoc *shared.TelecomDocument) *types.TelecomDocument {
+	if sharedDoc == nil {
+		return nil
+	}
+	
+	// Create metadata map from shared document metadata
+	metadata := types.Metadata{}
+	for k, v := range sharedDoc.Metadata {
+		if str, ok := v.(string); ok {
+			metadata[k] = str
+		}
+	}
+	
+	return &types.TelecomDocument{
+		ID:        sharedDoc.ID,
+		Title:     sharedDoc.Title,
+		Content:   sharedDoc.Content,
+		Type:      string(sharedDoc.Type),
+		Source:    sharedDoc.Source,
+		Category:  sharedDoc.Category,
+		Tags:      sharedDoc.Keywords, // Map keywords to tags
+		CreatedAt: sharedDoc.CreatedAt,
+		UpdatedAt: sharedDoc.UpdatedAt,
+		Version:   sharedDoc.Version,
+		Metadata:  metadata,
+		Confidence: sharedDoc.Confidence,
+	}
 }
 
 // Close cleans up resources

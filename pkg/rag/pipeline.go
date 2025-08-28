@@ -730,13 +730,9 @@ func (rp *RAGPipeline) convertChunkToTelecomDocument(chunk *DocumentChunk) *Tele
 		Source:          rp.getSourceFromMetadata(chunk.DocumentMetadata),
 		Category:        rp.getCategoryFromMetadata(chunk.DocumentMetadata),
 		Version:         rp.getVersionFromMetadata(chunk.DocumentMetadata),
-		Keywords:        chunk.TechnicalTerms,
-		Confidence:      float32(chunk.QualityScore),
-		Language:        "en", // Default to English
-		DocumentType:    "chunk",
-		NetworkFunction: rp.getNetworkFunctionsFromMetadata(chunk.DocumentMetadata),
-		Technology:      rp.getTechnologiesFromMetadata(chunk.DocumentMetadata),
-		UseCase:         []string{}, // Could be extracted from chunk analysis
+		Confidence:      float64(chunk.QualityScore),
+		Type:           "chunk",
+		Tags:           chunk.TechnicalTerms,
 		Metadata:        metadata,
 	}
 }
@@ -789,6 +785,37 @@ func (rp *RAGPipeline) getWorkingGroupFromMetadata(metadata *DocumentMetadata) s
 		return metadata.WorkingGroup
 	}
 	return ""
+}
+
+// getTagsFromMetadata extracts tags from document metadata
+func (rp *RAGPipeline) getTagsFromMetadata(metadata *DocumentMetadata) []string {
+	if metadata == nil {
+		return []string{}
+	}
+	
+	// Combine various metadata fields as tags
+	var tags []string
+	if metadata.Category != "" {
+		tags = append(tags, metadata.Category)
+	}
+	if metadata.Subcategory != "" {
+		tags = append(tags, metadata.Subcategory)
+	}
+	if metadata.WorkingGroup != "" {
+		tags = append(tags, metadata.WorkingGroup)
+	}
+	
+	// Add technologies as tags
+	if metadata.Technologies != nil {
+		tags = append(tags, metadata.Technologies...)
+	}
+	
+	// Add network functions as tags
+	if metadata.NetworkFunctions != nil {
+		tags = append(tags, metadata.NetworkFunctions...)
+	}
+	
+	return tags
 }
 
 // classifyIntent performs simple intent classification

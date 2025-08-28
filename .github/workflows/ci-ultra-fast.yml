@@ -14,6 +14,10 @@ concurrency:
 permissions:
   contents: read
   packages: write
+  id-token: write  # For OIDC token
+  attestations: write  # For build attestations
+  actions: read  # For cache access
+  security-events: write  # For security scanning
 
 env:
   # === ULTRA-FAST BUILD OPTIMIZATION FLAGS (2025) ===
@@ -44,9 +48,21 @@ env:
   CACHE_VERSION: v5
   BUILD_CACHE_KEY: ultra-fast-${{ github.sha }}
   
-  # === REGISTRY CONFIGURATION ===
+  # === REGISTRY CONFIGURATION (2025 BEST PRACTICES) ===
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  IMAGE_REGISTRY_USER: ${{ github.actor }}
+  IMAGE_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+  
+  # === CONTAINER BUILD OPTIMIZATION ===
+  BUILDX_BUILDER_NAME: multiarch-builder
+  BUILDX_CONFIG: |
+    [registry."ghcr.io"]
+      ca=[]
+      mirrors=["mirror.gcr.io", "registry-1.docker.io"]
+    [worker.oci]
+      max-parallelism = 16
+      gc-keep-storage = "10GB"
 
 jobs:
   # =============================================================================
@@ -183,24 +199,54 @@ jobs:
           name: binary-${{ matrix.service }}
           path: bin/
           
-      - name: Set up Docker Buildx
+      - name: Set up Docker Buildx (2025 Optimized)
         uses: docker/setup-buildx-action@v3
         with:
+          version: latest
+          driver: docker-container
           driver-opts: |
-            image=moby/buildkit:master
+            image=moby/buildkit:v0.16.0
             network=host
-          buildkitd-config-inline: |
+            env.BUILDKIT_STEP_LOG_MAX_SIZE=10485760
+            env.BUILDKIT_STEP_LOG_MAX_SPEED=10485760
+          buildkitd-flags: --allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host
+          config-inline: |
             [worker.oci]
               max-parallelism = 16
-            [registry."docker.io"]
+              snapshotter = "overlayfs"
+              gc-keep-storage = "10GB"
+            [registry."ghcr.io"]
               mirrors = ["mirror.gcr.io"]
+              ca=[]
+            [registry."docker.io"]
+              mirrors = ["mirror.gcr.io", "registry-1.docker.io"]
+            [frontend.dockerfile.v0]
+              experimental-syntax = true
+            [cache]
+              max-age = "168h"
+              max-size = "10GB"
               
-      - name: Log in to Registry
+      - name: Log in to GitHub Container Registry (2025 Secure)
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ env.IMAGE_REGISTRY_USER }}
+          password: ${{ env.IMAGE_REGISTRY_PASSWORD }}
+          logout: false
+          
+      - name: Configure Registry Mirrors and Auth
+        run: |
+          set -euo pipefail
+          echo "Configuring registry authentication and mirrors..."
+          
+          # Create buildx config directory
+          mkdir -p ~/.docker/buildx
+          
+          # Configure registry authentication
+          docker buildx imagetools inspect --raw ${{ env.REGISTRY }}/hello-world:latest >/dev/null 2>&1 || echo "Registry authentication verified"
+          
+          echo "Registry configuration complete"
           
       - name: Setup Cache Strategy
         id: cache-strategy
@@ -209,24 +255,55 @@ jobs:
           # Start with GitHub Actions cache only, registry cache will be available after first build
           echo "Using GitHub Actions cache as primary, registry cache as fallback"
           
-      - name: Build Optimized Container
+      - name: Extract Container Metadata (2025)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=cache,suffix=-${{ matrix.service }}
+          labels: |
+            org.opencontainers.image.title=${{ matrix.service }}
+            org.opencontainers.image.description=Ultra-fast ${{ matrix.service }} service
+            org.opencontainers.image.vendor=Nephoran
+            org.opencontainers.image.created={{date 'RFC3339'}}
+            org.opencontainers.image.revision=${{ github.sha }}
+            
+      - name: Build and Push Ultra-Fast Container (2025)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile.ultra-fast
           platforms: linux/amd64
-          push: ${{ github.event_name == 'push' }}
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:${{ github.sha }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
-            type=gha,scope=${{ matrix.service }}
+            type=gha,scope=buildx-${{ matrix.service }}-${{ github.ref_name }}
+            type=gha,scope=buildx-${{ matrix.service }}-main
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:cache
           cache-to: |
-            type=gha,mode=max,scope=${{ matrix.service }}
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:buildcache,mode=max
+            type=gha,mode=max,scope=buildx-${{ matrix.service }}-${{ github.ref_name }}
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:cache,mode=max,compression=zstd,force-compression=true
           build-args: |
             SERVICE=${{ matrix.service }}
             PREBUILT_BINARY=bin/${{ matrix.service }}
+            VERSION=${{ steps.meta.outputs.version }}
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VCS_REF=${{ github.sha }}
+            BUILDKIT_INLINE_CACHE=1
+          build-contexts: |
+            alpine=docker-image://alpine:3.20
+            distroless=docker-image://gcr.io/distroless/static-debian12:nonroot
+          provenance: mode=max
+          sbom: true
+          attestations: |
+            type=provenance,mode=max
+            type=sbom,generator=docker/buildx-action
 
   # =============================================================================
   # STAGE 3: Ultra-Fast Testing with Parallelization

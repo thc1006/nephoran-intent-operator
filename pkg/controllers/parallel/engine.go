@@ -25,7 +25,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/contracts"
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
+	resiliencecontroller "github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
@@ -348,7 +348,7 @@ type PriorityQueue struct {
 // ParallelProcessingEngine orchestrates parallel processing of NetworkIntents
 type ParallelProcessingEngine struct {
 	config            *ParallelProcessingConfig
-	resilienceManager *resilience.ResilienceManager
+	resilienceManager *resiliencecontroller.ResilienceManager
 	errorTracker      *monitoring.ErrorTracker
 	logger            logr.Logger
 
@@ -428,7 +428,7 @@ type Worker struct {
 // NewParallelProcessingEngine creates a new parallel processing engine
 func NewParallelProcessingEngine(
 	config *ParallelProcessingConfig,
-	resilienceManager *resilience.ResilienceManager,
+	resilienceManager *resiliencecontroller.ResilienceManager,
 	errorTracker *monitoring.ErrorTracker,
 	logger logr.Logger,
 ) (*ParallelProcessingEngine, error) {

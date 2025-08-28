@@ -17,8 +17,6 @@ limitations under the License.
 package porch
 
 import (
-	"time"
-
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -327,8 +325,7 @@ func (ws *WorkflowStatus) DeepCopyInto(out *WorkflowStatus) {
 	out.StartTime = ws.StartTime
 
 	if ws.EndTime != nil {
-		out.EndTime = new(time.Time)
-		*out.EndTime = *ws.EndTime
+		out.EndTime = ws.EndTime.DeepCopy()
 	}
 }
 

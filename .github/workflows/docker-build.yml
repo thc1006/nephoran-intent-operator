@@ -65,17 +65,30 @@ jobs:
     permissions:
       contents: read
       packages: write
-      security-events: write
+      id-token: write  # For OIDC authentication
+      attestations: write  # For build attestations
+      security-events: write  # For vulnerability scanning
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
+      - name: Set up Docker Buildx (2025 Optimized)
         uses: docker/setup-buildx-action@v3
         with:
+          version: latest
+          driver: docker-container
           driver-opts: |
+            image=moby/buildkit:v0.16.0
             network=host
+          config-inline: |
+            [worker.oci]
+              max-parallelism = 16
+              snapshotter = "overlayfs"
+            [registry."ghcr.io"]
+              mirrors = ["mirror.gcr.io"]
+            [cache]
+              max-age = "168h"
 
       - name: Login to Container Registry
         if: github.event_name != 'pull_request'
@@ -104,8 +117,8 @@ jobs:
             org.opencontainers.image.vendor=Nephoran Project
             org.opencontainers.image.licenses=Apache-2.0
 
-      - name: Build and push ${{ matrix.service }}
-        uses: docker/build-push-action@v5
+      - name: Build and Push Multi-Arch ${{ matrix.service }} (2025)
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./cmd/${{ matrix.service }}/Dockerfile
@@ -119,10 +132,18 @@ jobs:
             BUILD_DATE=${{ needs.prepare.outputs.build-date }}
             VCS_REF=${{ needs.prepare.outputs.vcs-ref }}
             CGO_ENABLED=0
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          provenance: true
+            BUILDKIT_INLINE_CACHE=1
+          cache-from: |
+            type=gha,scope=buildx-${{ matrix.service }}
+            type=registry,ref=${{ env.REGISTRY }}/nephoran/${{ matrix.service }}:buildcache
+          cache-to: |
+            type=gha,mode=max,scope=buildx-${{ matrix.service }}
+            type=registry,ref=${{ env.REGISTRY }}/nephoran/${{ matrix.service }}:buildcache,mode=max,compression=zstd
+          provenance: mode=max
           sbom: true
+          attestations: |
+            type=provenance,mode=max
+            type=sbom,generator=docker/buildx-action
 
       - name: Run Trivy vulnerability scanner
         if: github.event_name != 'pull_request'

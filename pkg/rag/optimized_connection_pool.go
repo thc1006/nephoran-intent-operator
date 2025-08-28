@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/bytedance/sonic" // High-performance JSON library
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 	"github.com/valyala/fasthttp"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 )
@@ -353,11 +354,11 @@ func newOptimizedJSONCodec(config *ConnectionPoolConfig) *OptimizedJSONCodec {
 }
 
 // GetConnection returns an optimized connection from the pool
-func (p *OptimizedConnectionPool) GetConnection() (*PooledConnection, error) {
+func (p *OptimizedConnectionPool) GetConnection() (*types.PooledConnection, error) {
 	// Use round-robin to select a Weaviate client
 	index := atomic.AddInt64(&p.clientIndex, 1) % int64(len(p.weaviateClients))
 
-	connection := &PooledConnection{
+	connection := &types.PooledConnection{
 		Client:     p.weaviateClients[index],
 		CreatedAt:  time.Now(),
 		LastUsed:   time.Now(),
@@ -389,7 +390,7 @@ func (p *OptimizedConnectionPool) GetConnection() (*PooledConnection, error) {
 }
 
 // ReturnConnection returns a connection to the pool
-func (p *OptimizedConnectionPool) ReturnConnection(conn *PooledConnection) {
+func (p *OptimizedConnectionPool) ReturnConnection(conn *types.PooledConnection) {
 	if conn == nil {
 		return
 	}
@@ -399,19 +400,23 @@ func (p *OptimizedConnectionPool) ReturnConnection(conn *PooledConnection) {
 
 	// Return HTTP client to pool
 	if conn.HTTPClient != nil {
-		select {
-		case p.httpPool.connections <- conn.HTTPClient:
-		default:
-			// Pool is full, discard the client
+		if httpClient, ok := conn.HTTPClient.(*http.Client); ok {
+			select {
+			case p.httpPool.connections <- httpClient:
+			default:
+				// Pool is full, discard the client
+			}
 		}
 	}
 
 	// Return FastHTTP client to pool
 	if conn.FastHTTPClient != nil && p.fastHTTPPool != nil {
-		select {
-		case p.fastHTTPPool.connections <- conn.FastHTTPClient:
-		default:
-			// Pool is full, discard the client
+		if fastHTTPClient, ok := conn.FastHTTPClient.(*fasthttp.Client); ok {
+			select {
+			case p.fastHTTPPool.connections <- fastHTTPClient:
+			default:
+				// Pool is full, discard the client
+			}
 		}
 	}
 }
@@ -499,10 +504,18 @@ func (p *OptimizedConnectionPool) HighPerformanceRequest(ctx context.Context, me
 
 	if p.config.EnableFastHTTP && conn.FastHTTPClient != nil {
 		// Use FastHTTP for maximum performance
-		response, err = p.performFastHTTPRequest(ctx, conn.FastHTTPClient, method, url, body, headers)
+		if fastHTTPClient, ok := conn.FastHTTPClient.(*fasthttp.Client); ok {
+			response, err = p.performFastHTTPRequest(ctx, fastHTTPClient, method, url, body, headers)
+		} else {
+			response, err = p.performHTTPRequest(ctx, conn.HTTPClient.(*http.Client), method, url, body, headers)
+		}
 	} else {
 		// Fall back to standard HTTP client
-		response, err = p.performHTTPRequest(ctx, conn.HTTPClient, method, url, body, headers)
+		if httpClient, ok := conn.HTTPClient.(*http.Client); ok {
+			response, err = p.performHTTPRequest(ctx, httpClient, method, url, body, headers)
+		} else {
+			err = fmt.Errorf("invalid HTTP client type")
+		}
 	}
 
 	// Update metrics

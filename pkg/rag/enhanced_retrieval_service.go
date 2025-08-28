@@ -570,7 +570,7 @@ func (ers *EnhancedRetrievalService) calculateQualityScore(result *SearchResult)
 
 	// Confidence from document metadata
 	if result.Document.Confidence > 0 {
-		score += result.Document.Confidence * 0.3
+		score += float32(result.Document.Confidence) * 0.3
 	}
 
 	return score

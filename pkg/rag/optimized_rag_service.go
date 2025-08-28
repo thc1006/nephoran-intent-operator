@@ -824,14 +824,14 @@ func (ors *OptimizedRAGService) convertToSharedResults(results []*SearchResult) 
 	for i, result := range results {
 		sharedResults[i] = &types.SearchResult{
 			Document: &types.TelecomDocument{
-				ID:              result.Document.ID,
-				Content:         result.Document.Content,
-				Source:          result.Document.Source,
-				Title:           result.Document.Title,
-				Category:        result.Document.Category,
-				Version:         result.Document.Version,
-				Technology:      result.Document.Technology,
-				NetworkFunction: result.Document.NetworkFunction,
+				ID:       result.Document.ID,
+				Content:  result.Document.Content,
+				Source:   result.Document.Source,
+				Title:    result.Document.Title,
+				Category: result.Document.Category,
+				Version:  result.Document.Version,
+				// Map shared.TelecomDocument fields to types.TelecomDocument
+				Tags: result.Document.Keywords,
 			},
 			Score: result.Score,
 		}
@@ -896,12 +896,26 @@ func (ors *OptimizedRAGService) formatDocumentForOptimizedContext(result *types.
 		parts = append(parts, fmt.Sprintf("🔖 Version: %s", doc.Version))
 	}
 
-	if len(doc.Technology) > 0 {
-		parts = append(parts, fmt.Sprintf("⚡ Technologies: %s", strings.Join(doc.Technology, ", ")))
-	}
-
-	if len(doc.NetworkFunction) > 0 {
-		parts = append(parts, fmt.Sprintf("🌐 Network Functions: %s", strings.Join(doc.NetworkFunction, ", ")))
+	if len(doc.Tags) > 0 {
+		// Filter tags that look like technologies vs network functions
+		var technologies []string
+		var networkFunctions []string
+		
+		for _, tag := range doc.Tags {
+			if strings.Contains(strings.ToLower(tag), "function") || strings.Contains(strings.ToLower(tag), "nf") {
+				networkFunctions = append(networkFunctions, tag)
+			} else {
+				technologies = append(technologies, tag)
+			}
+		}
+		
+		if len(technologies) > 0 {
+			parts = append(parts, fmt.Sprintf("⚡ Technologies: %s", strings.Join(technologies, ", ")))
+		}
+		
+		if len(networkFunctions) > 0 {
+			parts = append(parts, fmt.Sprintf("🌐 Network Functions: %s", strings.Join(networkFunctions, ", ")))
+		}
 	}
 
 	parts = append(parts, "")
@@ -1194,13 +1208,16 @@ func (ors *OptimizedRAGService) convertEnhancedToSharedResults(results []*Enhanc
 	converted := make([]*types.SearchResult, len(results))
 	for i, result := range results {
 		converted[i] = &types.SearchResult{
-			Document: result.Document,
+			Document: convertSharedToTypesDocument(result.Document),
 			Score:    result.Score,
 			Metadata: result.Metadata,
 		}
 	}
 	return converted
 }
+
+
+// Note: convertTypesToSharedDocument is defined in optimized_rag_pipeline.go
 
 func (ors *OptimizedRAGService) convertSharedToEnhancedResults(results []*types.SearchResult) []*EnhancedSearchResult {
 	enhanced := make([]*EnhancedSearchResult, len(results))
@@ -1209,10 +1226,10 @@ func (ors *OptimizedRAGService) convertSharedToEnhancedResults(results []*types.
 			SearchResult: &SearchResult{
 				ID:         result.Document.ID,
 				Content:    result.Document.Content,
-				Confidence: float64(result.Score),
+				Confidence: result.Score,
 				Metadata:   result.Metadata,
 				Score:      result.Score,
-				Document:   result.Document,
+				Document:   convertTypesToSharedDocument(result.Document),
 			},
 			RelevanceScore: result.Score,
 			QualityScore:   0.8, // Default quality score

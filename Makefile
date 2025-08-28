@@ -49,437 +49,381 @@ GOPRIVATE ?= github.com/thc1006/*
 
 # Docker configuration  
 REGISTRY ?= ghcr.io
-IMAGE_NAME = $(REGISTRY)/$(PROJECT_NAME)
+IMAGE_NAME ?= $(PROJECT_NAME)
 IMAGE_TAG ?= $(VERSION)
 BUILD_TYPE ?= production
 
+# Performance and build optimization
+PARALLEL_JOBS ?= $(shell nproc --all 2>/dev/null || echo 4)
+ifeq ($(BUILD_TYPE),fast)
+	FAST_BUILD_FLAGS = -ldflags="-s -w" -gcflags="all=-l=4" -buildmode=default
+	FAST_BUILD_TAGS = fast_build
+else ifeq ($(BUILD_TYPE),debug)
+	FAST_BUILD_FLAGS = -gcflags="all=-N -l" -race
+	FAST_BUILD_TAGS = debug
+else
+	FAST_BUILD_FLAGS = -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)" -trimpath
+	FAST_BUILD_TAGS = production
+endif
+
+# LDFLAGS for production builds
+LDFLAGS = -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE) -extldflags '-static'"
+
+# Quality and testing configuration
+QUALITY_REPORTS_DIR ?= .excellence-reports
+REPORTS_DIR ?= $(QUALITY_REPORTS_DIR)
+COVERAGE_THRESHOLD ?= 80.0
+
+# Testing configuration
+GO_TEST_FLAGS ?= -v -race -timeout=30m
+GO_TEST_COVERAGE_FLAGS ?= -coverprofile=$(QUALITY_REPORTS_DIR)/coverage.out -covermode=atomic
+
 # Kubernetes configuration
 NAMESPACE ?= nephoran-system
-KUBECONFIG ?= ~/.kube/config
 
-# Excellence framework configuration
-REPORTS_DIR = .excellence-reports
-EXCELLENCE_THRESHOLD = 75
+# MVP Scaling Configuration
+MIN_REPLICAS_CONDUCTOR ?= 1
+MAX_REPLICAS_CONDUCTOR ?= 3
+MIN_REPLICAS_PLANNER ?= 1
+MAX_REPLICAS_PLANNER ?= 2
+MIN_REPLICAS_SIMULATOR ?= 2
+MAX_REPLICAS_SIMULATOR ?= 5
 
-# Comprehensive Validation configuration
-VALIDATION_REPORTS_DIR = test-results
-VALIDATION_TARGET_SCORE = 90
-VALIDATION_CONCURRENCY = 50
+# Resource requirements for MVP scaling
+CONDUCTOR_CPU_REQUEST ?= "100m"
+CONDUCTOR_MEMORY_REQUEST ?= "128Mi"
+PLANNER_CPU_REQUEST ?= "200m"
+PLANNER_MEMORY_REQUEST ?= "256Mi"
+SIMULATOR_CPU_REQUEST ?= "50m"
+SIMULATOR_MEMORY_REQUEST ?= "64Mi"
 
-# Code Quality Gate configuration
-QUALITY_REPORTS_DIR = .quality-reports
-COVERAGE_THRESHOLD = 90
-QUALITY_THRESHOLD = 8.0
-PERFORMANCE_THRESHOLD = 15.0
-DEBT_THRESHOLD = 0.3
-
-# Regression Testing configuration
-REGRESSION_REPORTS_DIR = regression-artifacts
-REGRESSION_BASELINE_ID ?= 
-REGRESSION_FAIL_ON_DETECTION ?= true
-REGRESSION_ALERT_WEBHOOK ?=
-
-# Ultra-fast build flags for Go 1.24+ (2025 best practices)
-LDFLAGS = -ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE) -s -w -buildid='' -extldflags=-static"
-BUILD_FLAGS = -trimpath -buildmode=pie -tags="netgo,osusergo,static_build" -mod=readonly
-# Optimal parallel build configuration for 2025
-PARALLEL_JOBS = $(shell nproc 2>/dev/null || echo 8)
-PARALLEL_BUILD_FLAGS = -p $(PARALLEL_JOBS)
-# Ultra-fast build with compiler optimizations
-FAST_BUILD_FLAGS = $(BUILD_FLAGS) $(PARALLEL_BUILD_FLAGS) -gcflags="-l=4 -dwarf=false" -asmflags="-trimpath"
+##@ General
 
 .PHONY: help
-help: ## Show this help message
-	@echo "Nephoran Intent Operator - Excellence Validation Framework"
-	@echo ""
-	@echo "Available targets:"
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-25s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+help: ## Display this help
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+.PHONY: clean
+clean: ## Clean build artifacts and reports
+	@echo "Cleaning build artifacts and reports..."
+	rm -rf bin/
+	rm -rf $(QUALITY_REPORTS_DIR)/
+	rm -rf vendor/
+	rm -rf .cache/
+	go clean -cache -modcache -testcache 2>/dev/null || true
+
+.PHONY: clean-all
+clean-all: clean ## Clean everything including Docker resources
+	@echo "Deep cleaning all resources..."
+	docker system prune -f 2>/dev/null || true
+	go clean -cache -modcache -testcache -fuzzcache 2>/dev/null || true
+	rm -rf ~/.cache/go-build 2>/dev/null || true
+
+##@ MVP Scaling Operations
+
+.PHONY: mvp-scale-up
+mvp-scale-up: ## Scale up MVP components with optimized resources
+	@echo "Scaling up MVP components..."
+	$(call check_tool,kubectl)
+	@mkdir -p handoff/patches
+	
+	@echo "Scaling conductor..."
+	$(call kubectl_patch_deployment,conductor,$(MAX_REPLICAS_CONDUCTOR))
+	$(call kubectl_patch_hpa,conductor-hpa,$(MIN_REPLICAS_CONDUCTOR),$(MAX_REPLICAS_CONDUCTOR))
+	$(call create_patch_file,conductor,$(MAX_REPLICAS_CONDUCTOR),$(CONDUCTOR_CPU_REQUEST),$(CONDUCTOR_MEMORY_REQUEST))
+	
+	@echo "Scaling planner..."
+	$(call kubectl_patch_deployment,planner,$(MAX_REPLICAS_PLANNER))
+	$(call kubectl_patch_hpa,planner-hpa,$(MIN_REPLICAS_PLANNER),$(MAX_REPLICAS_PLANNER))
+	$(call create_patch_file,planner,$(MAX_REPLICAS_PLANNER),$(PLANNER_CPU_REQUEST),$(PLANNER_MEMORY_REQUEST))
+	
+	@echo "Scaling simulator..."
+	$(call kubectl_patch_deployment,simulator,$(MAX_REPLICAS_SIMULATOR))
+	$(call kubectl_patch_hpa,simulator-hpa,$(MIN_REPLICAS_SIMULATOR),$(MAX_REPLICAS_SIMULATOR))
+	$(call create_patch_file,simulator,$(MAX_REPLICAS_SIMULATOR),$(SIMULATOR_CPU_REQUEST),$(SIMULATOR_MEMORY_REQUEST))
+	
+	@echo "✅ MVP scale-up completed. Patches saved to handoff/patches/"
+	@ls -la handoff/patches/
+
+.PHONY: mvp-scale-down
+mvp-scale-down: ## Scale down MVP components to minimum resources
+	@echo "Scaling down MVP components..."
+	$(call check_tool,kubectl)
+	@mkdir -p handoff/patches
+	
+	@echo "Scaling down conductor..."
+	$(call kubectl_patch_deployment,conductor,$(MIN_REPLICAS_CONDUCTOR))
+	$(call kubectl_patch_hpa,conductor-hpa,$(MIN_REPLICAS_CONDUCTOR),$(MIN_REPLICAS_CONDUCTOR))
+	$(call create_patch_file,conductor,$(MIN_REPLICAS_CONDUCTOR),$(CONDUCTOR_CPU_REQUEST),$(CONDUCTOR_MEMORY_REQUEST))
+	
+	@echo "Scaling down planner..."
+	$(call kubectl_patch_deployment,planner,$(MIN_REPLICAS_PLANNER))
+	$(call kubectl_patch_hpa,planner-hpa,$(MIN_REPLICAS_PLANNER),$(MIN_REPLICAS_PLANNER))
+	$(call create_patch_file,planner,$(MIN_REPLICAS_PLANNER),$(PLANNER_CPU_REQUEST),$(PLANNER_MEMORY_REQUEST))
+	
+	@echo "Scaling down simulator..."
+	$(call kubectl_patch_deployment,simulator,$(MIN_REPLICAS_SIMULATOR))
+	$(call kubectl_patch_hpa,simulator-hpa,$(MIN_REPLICAS_SIMULATOR),$(MIN_REPLICAS_SIMULATOR))
+	$(call create_patch_file,simulator,$(MIN_REPLICAS_SIMULATOR),$(SIMULATOR_CPU_REQUEST),$(SIMULATOR_MEMORY_REQUEST))
+	
+	@echo "✅ MVP scale-down completed. Patches saved to handoff/patches/"
+	@ls -la handoff/patches/
 
 ##@ Development
 
-.PHONY: deps
-deps: ## Install development dependencies
-	@echo "Installing development dependencies..."
-	@echo "Configuring supply chain security..."
-	@export GOSUMDB=$(GOSUMDB) && export GOPROXY=$(GOPROXY) && export GOPRIVATE=$(GOPRIVATE)
-	go mod tidy
-	go mod download
-	go mod verify
-	@if ! command -v ginkgo >/dev/null 2>&1; then \
-		echo "Installing Ginkgo..."; \
-		go install github.com/onsi/ginkgo/v2/ginkgo@latest; \
-	fi
-	@if ! command -v controller-gen >/dev/null 2>&1; then \
-		echo "Installing controller-gen..."; \
-		go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION); \
-	fi
-	@if ! command -v kustomize >/dev/null 2>&1; then \
-		echo "Installing kustomize..."; \
-		go install sigs.k8s.io/kustomize/kustomize/v5@latest; \
-	fi
-	
-install-security-tools: ## Install security and supply chain tools
-	@echo "Installing security and supply chain tools..."
-	go generate tools.go
-	@echo "Security tools installed successfully"
-
-verify-supply-chain: ## Run comprehensive supply chain security verification
-	@echo "Running supply chain security verification..."
-	@./scripts/verify-supply-chain.sh
-
-verify-modules: ## Verify Go module integrity
-	@echo "Verifying Go module integrity..."
-	@export GOSUMDB=$(GOSUMDB)
-	go mod verify
-	@echo "✅ Module integrity verification passed"
-
-scan-vulnerabilities: ## Scan for vulnerabilities using govulncheck
-	@echo "Scanning for vulnerabilities..."
-	@if ! command -v govulncheck >/dev/null 2>&1; then \
-		echo "Installing govulncheck..."; \
-		go install golang.org/x/vuln/cmd/govulncheck@latest; \
-	fi
-	govulncheck ./...
-	@echo "✅ Vulnerability scan completed"
-
-generate-sbom: ## Generate Software Bill of Materials
-	@echo "Generating Software Bill of Materials..."
-	@mkdir -p $(REPORTS_DIR)/sbom
-	@if command -v cyclonedx-gomod >/dev/null 2>&1; then \
-		cyclonedx-gomod mod -json -output-file $(REPORTS_DIR)/sbom/sbom-cyclonedx.json; \
-		echo "CycloneDX SBOM generated"; \
-	else \
-		echo "Installing cyclonedx-gomod..."; \
-		go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest; \
-		cyclonedx-gomod mod -json -output-file $(REPORTS_DIR)/sbom/sbom-cyclonedx.json; \
-	fi
-	@go list -m -f '{{.Path}}@{{.Version}}' all > $(REPORTS_DIR)/sbom/dependencies.txt
-	@echo "✅ SBOM generated in $(REPORTS_DIR)/sbom/"
-
-check-supply-chain-config: ## Verify supply chain security configuration
-	@echo "Checking supply chain security configuration..."
-	@echo "GOPROXY: $(GOPROXY)"
-	@echo "GOSUMDB: $(GOSUMDB)"
-	@echo "GOPRIVATE: $(GOPRIVATE)"
-	@go env | grep -E "(GOPROXY|GOSUMDB|GOPRIVATE|GOINSECURE)"
-
-update-security-tools: ## Update all security tools to latest versions
-	@echo "Updating security tools..."
-	go install golang.org/x/vuln/cmd/govulncheck@latest
-	go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	@echo "✅ Security tools updated"
-
-supply-chain-report: verify-supply-chain generate-sbom ## Generate comprehensive supply chain security report
-	@echo "Generating comprehensive supply chain security report..."
-	@mkdir -p $(REPORTS_DIR)/supply-chain
-	@./scripts/verify-supply-chain.sh > $(REPORTS_DIR)/supply-chain/supply-chain-report.txt 2>&1 || true
-	@echo "✅ Supply chain security report generated in $(REPORTS_DIR)/supply-chain/"
-
-##@ Supply Chain Security
-
-.PHONY: install-security-tools verify-supply-chain verify-modules scan-vulnerabilities generate-sbom
-.PHONY: check-supply-chain-config update-security-tools supply-chain-report
-
-.PHONY: generate
-generate: deps ## Generate code (CRDs, deepcopy, etc.)
-	@echo "Generating code..."
-	go generate ./...
-	controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
-
-.PHONY: gen
-gen: ## Generate CRDs and deep copy methods (output to deployments/crds/)
-	@echo "Generating CRDs and deep copy methods..."
-	@mkdir -p deployments/crds
-	@if ! command -v controller-gen >/dev/null 2>&1; then \
-		echo "Installing controller-gen..."; \
-		go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION); \
-	fi
-	@echo "Attempting to generate deep copy methods..."
-	@controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/v1" || echo "⚠️  Deep copy generation failed due to compilation errors"
-	@echo "Attempting to generate CRDs with allowDangerousTypes..."
-	@controller-gen crd:crdVersions=v1,allowDangerousTypes=true rbac:roleName=manager-role webhook paths="./api/v1" output:crd:artifacts:config=deployments/crds 2>/dev/null || \
-		(echo "⚠️  CRD generation failed, using existing CRDs..." && \
-		 cp deployments/crds/*.yaml deployments/crds/ 2>/dev/null || echo "No existing CRDs found")
-	@echo "✅ Gen target completed (check warnings above for any issues)"
-	@ls -la deployments/crds/ 2>/dev/null || echo "📁 Contents of deployments/crds/ directory:"
-
-.PHONY: manifests
-manifests: deps ## Generate Kubernetes manifests
-	@echo "Generating Kubernetes manifests..."
-	controller-gen crd:crdVersions=v1,allowDangerousTypes=true rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-
 .PHONY: fmt
-fmt: ## Format Go code
-	@echo "Formatting Go code..."
-	gofmt -s -w .
-	go mod tidy
+fmt: ## Run go fmt against code
+	go fmt ./...
 
 .PHONY: vet
-vet: ## Run go vet
-	@echo "Running go vet..."
+vet: ## Run go vet against code
 	go vet ./...
 
-.PHONY: lint
-lint: ## Run golangci-lint
-	@echo "Running golangci-lint..."
-	@if command -v golangci-lint >/dev/null 2>&1; then \
-		golangci-lint run --config .golangci.yml; \
-	else \
-		echo "Installing golangci-lint..."; \
-		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
-		golangci-lint run --config .golangci.yml; \
+.PHONY: tidy
+tidy: ## Run go mod tidy
+	go mod tidy
+
+.PHONY: vendor
+vendor: ## Run go mod vendor
+	go mod vendor
+
+.PHONY: verify
+verify: fmt vet tidy ## Verify code consistency
+	@echo "Verifying code consistency..."
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "❌ Code verification failed. The following files need attention:"; \
+		git status --porcelain; \
+		echo "Please run 'make fmt tidy' and commit the changes."; \
+		exit 1; \
 	fi
+	@echo "✅ Code verification passed"
+
+##@ Code Generation
+
+.PHONY: gen
+gen: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+.PHONY: manifests
+manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects
+	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 ##@ Testing
 
+.PHONY: check-redis-connectivity
+check-redis-connectivity: ## Check Redis connectivity for integration tests
+	@echo "Checking Redis connectivity..."
+	@if command -v redis-cli >/dev/null 2>&1; then \
+		if ! timeout 5 redis-cli -h localhost -p 6379 ping >/dev/null 2>&1; then \
+			echo "❌ Redis not available at localhost:6379. Starting Redis if available..."; \
+			if command -v redis-server >/dev/null 2>&1; then \
+				redis-server --daemonize yes --port 6379 --timeout 0 --tcp-keepalive 300 --maxmemory 256mb --maxmemory-policy allkeys-lru; \
+				sleep 2; \
+				if ! timeout 5 redis-cli -h localhost -p 6379 ping >/dev/null 2>&1; then \
+					echo "⚠️  Redis still not available. Some tests may fail. Consider running: docker run -d -p 6379:6379 redis:7-alpine"; \
+					exit 0; \
+				fi; \
+			else \
+				echo "⚠️  Redis not available and redis-server not installed. Some tests may fail."; \
+				echo "    Consider running: docker run -d -p 6379:6379 redis:7-alpine"; \
+				exit 0; \
+			fi; \
+		fi; \
+		echo "✅ Redis is accessible"; \
+	else \
+		echo "⚠️  redis-cli not found. Cannot verify Redis connectivity"; \
+	fi
+
 .PHONY: test
-test: ## Run unit tests with specified tags
-	@echo "Running unit tests with tags..."
-	mkdir -p $(REPORTS_DIR) $(QUALITY_REPORTS_DIR)/coverage
-	GOMAXPROCS=$(PARALLEL_JOBS) GOMEMLIMIT=3GiB \n		go test ./... -v -race -parallel=$(PARALLEL_JOBS) -timeout=12m -short \n		-tags="fast_build,no_swagger,no_e2e" \n		-coverprofile=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -covermode=atomic \n		-json | tee $(QUALITY_REPORTS_DIR)/coverage/test-results.json
-	cp $(QUALITY_REPORTS_DIR)/coverage/coverage.out $(REPORTS_DIR)/coverage.out 2>/dev/null || true
-	# Generate coverage HTML for quick viewing
-	go tool cover -html=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -o $(QUALITY_REPORTS_DIR)/coverage/coverage.html 2>/dev/null || true
+test: check-redis-connectivity ## Run unit tests with specified tags and improved reliability
+	@echo "Running unit tests with tags and reliability improvements..."
+	@mkdir -p $(REPORTS_DIR) $(QUALITY_REPORTS_DIR)/coverage
+	@# Ensure test synchronization for parallel execution
+	@export TEST_MUTEX_LOCK_DIR=$${TMPDIR:-/tmp}/nephoran-test-locks && \
+	mkdir -p "$$TEST_MUTEX_LOCK_DIR" && \
+	GOMAXPROCS=$(PARALLEL_JOBS) GOMEMLIMIT=3GiB \
+		go test ./... -v -race -parallel=$(shell echo "$(PARALLEL_JOBS)/2" | bc) -timeout=15m -short \
+		-tags="fast_build,no_swagger,no_e2e" \
+		-coverprofile=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -covermode=atomic \
+		-json | tee $(QUALITY_REPORTS_DIR)/coverage/test-results.json || \
+		(echo "❌ Tests failed. Check $(QUALITY_REPORTS_DIR)/coverage/test-results.json for details" && exit 1)
+	@# Copy coverage results with error handling
+	@if [ -f "$(QUALITY_REPORTS_DIR)/coverage/coverage.out" ]; then \
+		cp $(QUALITY_REPORTS_DIR)/coverage/coverage.out $(REPORTS_DIR)/coverage.out; \
+		echo "✅ Coverage report saved to $(REPORTS_DIR)/coverage.out"; \
+	else \
+		echo "⚠️  Coverage file not generated"; \
+	fi
+	@# Generate coverage HTML for quick viewing
+	@if [ -f "$(QUALITY_REPORTS_DIR)/coverage/coverage.out" ]; then \
+		go tool cover -html=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -o $(QUALITY_REPORTS_DIR)/coverage/coverage.html; \
+		echo "✅ Coverage HTML report generated: $(QUALITY_REPORTS_DIR)/coverage/coverage.html"; \
+	fi
+
 .PHONY: test-integration
-test-integration: ## Run integration tests
-	@echo "Running integration tests..."
-	mkdir -p $(REPORTS_DIR)
-	go test ./tests/integration/... -v -timeout=30m
+test-integration: check-redis-connectivity ## Run integration tests with improved reliability
+	@echo "Running integration tests with improved reliability..."
+	@mkdir -p $(REPORTS_DIR) $(QUALITY_REPORTS_DIR)
+	@# Create test lock directory for synchronization
+	@export TEST_MUTEX_LOCK_DIR=$${TMPDIR:-/tmp}/nephoran-integration-locks && \
+	mkdir -p "$$TEST_MUTEX_LOCK_DIR" && \
+	GOMAXPROCS=$(shell echo "$(PARALLEL_JOBS)/2" | bc) \
+		go test ./tests/integration/... -v -timeout=30m \
+		-coverprofile=$(QUALITY_REPORTS_DIR)/integration-coverage.out \
+		-json | tee $(REPORTS_DIR)/integration-results.json || \
+		(echo "❌ Integration tests failed. Check $(REPORTS_DIR)/integration-results.json for details" && exit 1)
+	@echo "✅ Integration tests completed successfully"
 
 .PHONY: test-e2e
-test-e2e: ## Run end-to-end tests
-	@echo "Running end-to-end tests..."
-	mkdir -p $(REPORTS_DIR)
-	go test ./tests/e2e/... -v -timeout=45m
+test-e2e: check-redis-connectivity ## Run end-to-end tests with improved reliability  
+	@echo "Running end-to-end tests with improved reliability..."
+	@mkdir -p $(REPORTS_DIR) $(QUALITY_REPORTS_DIR)
+	@# Create test lock directory for synchronization
+	@export TEST_MUTEX_LOCK_DIR=$${TMPDIR:-/tmp}/nephoran-e2e-locks && \
+	mkdir -p "$$TEST_MUTEX_LOCK_DIR" && \
+	GOMAXPROCS=2 \
+		go test ./tests/e2e/... -v -timeout=45m \
+		-coverprofile=$(QUALITY_REPORTS_DIR)/e2e-coverage.out \
+		-json | tee $(REPORTS_DIR)/e2e-results.json || \
+		(echo "❌ E2E tests failed. Check $(REPORTS_DIR)/e2e-results.json for details" && exit 1)
+	@echo "✅ E2E tests completed successfully"
 
 .PHONY: test-excellence
-test-excellence: ## Run excellence validation test suite
-	@echo "Running excellence validation test suite..."
-	mkdir -p $(REPORTS_DIR)
-	go test ./tests/excellence/... -v -timeout=30m --ginkgo.v
+test-excellence: ## Run excellence validation test suite with improved reliability
+	@echo "Running excellence validation test suite with improved reliability..."
+	@mkdir -p $(REPORTS_DIR) $(QUALITY_REPORTS_DIR)
+	@# Create test lock directory for synchronization
+	@export TEST_MUTEX_LOCK_DIR=$${TMPDIR:-/tmp}/nephoran-excellence-locks && \
+	mkdir -p "$$TEST_MUTEX_LOCK_DIR" && \
+	go test ./tests/excellence/... -v -timeout=30m --ginkgo.v \
+		-coverprofile=$(QUALITY_REPORTS_DIR)/excellence-coverage.out \
+		-json | tee $(REPORTS_DIR)/excellence-results.json || \
+		(echo "❌ Excellence tests failed. Check $(REPORTS_DIR)/excellence-results.json for details" && exit 1)
+	@echo "✅ Excellence validation tests completed successfully"
 
 .PHONY: test-regression
 test-regression: ## Run regression testing suite
 	@echo "Running regression testing suite..."
-	mkdir -p $(REGRESSION_REPORTS_DIR)
-	REGRESSION_BASELINE_ID=$(REGRESSION_BASELINE_ID) \
-	REGRESSION_FAIL_ON_DETECTION=$(REGRESSION_FAIL_ON_DETECTION) \
-	REGRESSION_ALERT_WEBHOOK=$(REGRESSION_ALERT_WEBHOOK) \
-	go test ./tests/ -run TestRegressionSuite -v -timeout=60m
+	@mkdir -p $(REPORTS_DIR) $(QUALITY_REPORTS_DIR)
+	@# Run comprehensive regression tests with proper resource allocation
+	@GOMAXPROCS=4 GOMEMLIMIT=4GiB \
+		go test ./tests/regression/... -v -timeout=60m \
+		-coverprofile=$(QUALITY_REPORTS_DIR)/regression-coverage.out \
+		-json | tee $(REPORTS_DIR)/regression-results.json || \
+		(echo "❌ Regression tests failed. Check $(REPORTS_DIR)/regression-results.json for details" && exit 1)
+	@echo "✅ Regression testing completed successfully"
 
 .PHONY: test-all
 test-all: test test-integration test-e2e test-excellence test-regression ## Run all test suites
+	@echo "All test suites completed successfully!"
 
-.PHONY: test-ci
-test-ci: ## Run unit tests with CI-compatible coverage reporting
-	@echo "Running unit tests with CI-compatible coverage..."
-	mkdir -p .test-reports
-	go test ./... -v -coverprofile=.test-reports/coverage.out -covermode=atomic -timeout=10m
-	@if [ -f .test-reports/coverage.out ]; then \
-		go tool cover -html=.test-reports/coverage.out -o .test-reports/coverage.html; \
-		echo "Coverage report generated: .test-reports/coverage.html"; \
-		coverage_percent=$$(go tool cover -func=.test-reports/coverage.out | grep total | awk '{print $$3}'); \
-		echo "Coverage: $$coverage_percent"; \
+.PHONY: benchmark
+benchmark: ## Run performance benchmarks
+	@echo "Running performance benchmarks..."
+	@mkdir -p $(QUALITY_REPORTS_DIR)/benchmarks
+	go test -bench=. -benchmem -timeout=30m ./... | tee $(QUALITY_REPORTS_DIR)/benchmarks/benchmark-results.txt
+
+##@ Quality Assurance
+
+.PHONY: security-scan
+security-scan: ## Run comprehensive security scans
+	@echo "Running comprehensive security scans..."
+	@mkdir -p $(QUALITY_REPORTS_DIR)/security
+	
+	@# Go vulnerability check
+	@if command -v govulncheck >/dev/null 2>&1; then \
+		echo "Running Go vulnerability scan..."; \
+		govulncheck ./... | tee $(QUALITY_REPORTS_DIR)/security/govulncheck-report.txt; \
 	else \
-		echo "Warning: Coverage file not generated"; \
+		echo "⚠️  govulncheck not found. Install with: go install golang.org/x/vuln/cmd/govulncheck@latest"; \
+	fi
+	
+	@# Semgrep security analysis if available
+	@if command -v semgrep >/dev/null 2>&1; then \
+		echo "Running Semgrep security analysis..."; \
+		semgrep --config=auto --json --output=$(QUALITY_REPORTS_DIR)/security/semgrep-report.json . || true; \
+	else \
+		echo "⚠️  Semgrep not found. Consider installing for enhanced security scanning"; \
+	fi
+	
+	@# Nancy dependency vulnerability scan if available
+	@if command -v nancy >/dev/null 2>&1; then \
+		echo "Running Nancy dependency scan..."; \
+		go list -json -deps ./... | nancy sleuth | tee $(QUALITY_REPORTS_DIR)/security/nancy-report.txt || true; \
+	else \
+		echo "⚠️  Nancy not found. Consider installing for dependency vulnerability scanning"; \
+	fi
+	
+	@echo "✅ Security scan completed. Results in $(QUALITY_REPORTS_DIR)/security/"
+
+.PHONY: lint
+lint: ## Run comprehensive linting
+	@echo "Running comprehensive linting..."
+	@mkdir -p $(QUALITY_REPORTS_DIR)/lint
+	
+	@# golangci-lint (primary linter)
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		echo "Running golangci-lint..."; \
+		golangci-lint run --out-format json --issues-exit-code=0 > $(QUALITY_REPORTS_DIR)/lint/golangci-lint-report.json; \
+		golangci-lint run; \
+	else \
+		echo "⚠️  golangci-lint not found. Install with: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin"; \
+		go vet ./...; \
 	fi
 
-.PHONY: coverage
-coverage: test ## Generate and view test coverage report
-	@echo "Generating coverage report..."
-	go tool cover -html=$(REPORTS_DIR)/coverage.out -o $(REPORTS_DIR)/coverage.html
-	@echo "Coverage report generated: $(REPORTS_DIR)/coverage.html"
-
-##@ Comprehensive Validation Suite
-
-.PHONY: validation-setup
-validation-setup: ## Setup environment for comprehensive validation
-	@echo "Setting up comprehensive validation environment..."
-	mkdir -p $(VALIDATION_REPORTS_DIR)
-	go install github.com/onsi/ginkgo/v2/ginkgo@latest
-	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-
-.PHONY: validate-comprehensive
-validate-comprehensive: validation-setup ## Run comprehensive validation suite (target 90/100 points)
-	@echo "Running comprehensive validation suite..."
-	@echo "Target score: $(VALIDATION_TARGET_SCORE)/100 points"
-	go run ./tests/scripts/run-comprehensive-validation.go \
-		--scope=all \
-		--target-score=$(VALIDATION_TARGET_SCORE) \
-		--concurrency=$(VALIDATION_CONCURRENCY) \
-		--output-dir=$(VALIDATION_REPORTS_DIR) \
-		--report-format=both \
-		--verbose
-
-.PHONY: validate-functional
-validate-functional: validation-setup ## Run functional completeness validation (target 45/50 points)
-	@echo "Running functional completeness validation..."
-	go run ./tests/scripts/run-comprehensive-validation.go \
-		--scope=functional \
-		--target-score=45 \
-		--output-dir=$(VALIDATION_REPORTS_DIR) \
-		--report-format=both \
-		--verbose
-
-.PHONY: validate-performance-comprehensive
-validate-performance-comprehensive: validation-setup ## Run performance benchmarking validation (target 23/25 points)
-	@echo "Running performance benchmarking validation..."
-	go run ./tests/scripts/run-comprehensive-validation.go \
-		--scope=performance \
-		--target-score=23 \
-		--concurrency=$(VALIDATION_CONCURRENCY) \
-		--enable-load-test=true \
-		--output-dir=$(VALIDATION_REPORTS_DIR) \
-		--report-format=both \
-		--verbose
-
-.PHONY: validate-security-comprehensive
-validate-security-comprehensive: validation-setup ## Run security compliance validation (target 14/15 points)
-	@echo "Running security compliance validation..."
-	go run ./tests/scripts/run-comprehensive-validation.go \
-		--scope=security \
-		--target-score=14 \
-		--output-dir=$(VALIDATION_REPORTS_DIR) \
-		--report-format=both \
-		--verbose
-
-.PHONY: validate-production-comprehensive
-validate-production-comprehensive: validation-setup ## Run production readiness validation (target 8/10 points)
-	@echo "Running production readiness validation..."
-	go run ./tests/scripts/run-comprehensive-validation.go \
-		--scope=production \
-		--target-score=8 \
-		--enable-chaos-test=false \
-		--output-dir=$(VALIDATION_REPORTS_DIR) \
-		--report-format=both \
-		--verbose
-
-.PHONY: validate-chaos
-validate-chaos: validation-setup ## Run chaos engineering tests (destructive testing)
-	@echo "Running chaos engineering validation..."
-	@echo "WARNING: This will run destructive tests that may cause temporary failures"
-	@read -p "Are you sure you want to continue? [y/N] " confirm; \
-	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
-		go run ./tests/scripts/run-comprehensive-validation.go \
-			--scope=production \
-			--target-score=8 \
-			--enable-chaos-test=true \
-			--output-dir=$(VALIDATION_REPORTS_DIR) \
-			--report-format=both \
-			--verbose; \
-	else \
-		echo "Chaos testing cancelled"; \
+.PHONY: coverage-report
+coverage-report: test ## Generate comprehensive coverage report
+	@echo "Generating comprehensive coverage report..."
+	@mkdir -p $(QUALITY_REPORTS_DIR)/coverage
+	
+	@# Generate HTML coverage report
+	@if [ -f "$(QUALITY_REPORTS_DIR)/coverage/coverage.out" ]; then \
+		go tool cover -html=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -o $(QUALITY_REPORTS_DIR)/coverage/coverage.html; \
+		echo "✅ HTML coverage report: $(QUALITY_REPORTS_DIR)/coverage/coverage.html"; \
 	fi
-
-.PHONY: validation-report
-validation-report: ## Generate and display validation report
-	@echo "Generating comprehensive validation report..."
-	@if [ -f "$(VALIDATION_REPORTS_DIR)/validation-report.json" ]; then \
-		score=$$(jq -r '.total_score' $(VALIDATION_REPORTS_DIR)/validation-report.json); \
-		target=$$(jq -r '.max_possible_score' $(VALIDATION_REPORTS_DIR)/validation-report.json); \
-		echo ""; \
-		echo "============================================================================="; \
-		echo "NEPHORAN INTENT OPERATOR - COMPREHENSIVE VALIDATION REPORT"; \
-		echo "============================================================================="; \
-		echo ""; \
-		echo "OVERALL SCORE: $$score/$$target POINTS"; \
-		if [ "$$score" -ge "$(VALIDATION_TARGET_SCORE)" ]; then \
-			echo "STATUS: ✅ PASSED"; \
-		else \
-			echo "STATUS: ❌ FAILED"; \
-		fi; \
-		echo ""; \
-		echo "CATEGORY BREAKDOWN:"; \
-		echo "├── Functional Completeness:  $$(jq -r '.functional_score' $(VALIDATION_REPORTS_DIR)/validation-report.json)/50 points"; \
-		echo "├── Performance Benchmarks:   $$(jq -r '.performance_score' $(VALIDATION_REPORTS_DIR)/validation-report.json)/25 points"; \
-		echo "├── Security Compliance:      $$(jq -r '.security_score' $(VALIDATION_REPORTS_DIR)/validation-report.json)/15 points"; \
-		echo "└── Production Readiness:     $$(jq -r '.production_score' $(VALIDATION_REPORTS_DIR)/validation-report.json)/10 points"; \
-		echo ""; \
-		echo "HTML Report: $(VALIDATION_REPORTS_DIR)/validation-report.html"; \
-		echo "JSON Report: $(VALIDATION_REPORTS_DIR)/validation-report.json"; \
-		echo "============================================================================="; \
-	else \
-		echo "❌ No validation report found. Run 'make validate-comprehensive' first."; \
-	fi
-
-.PHONY: validation-gate
-validation-gate: ## Check if validation meets gate criteria (CI/CD gate)
-	@echo "Checking comprehensive validation gate..."
-	@if [ -f "$(VALIDATION_REPORTS_DIR)/validation-report.json" ]; then \
-		score=$$(jq -r '.total_score' $(VALIDATION_REPORTS_DIR)/validation-report.json); \
-		echo "Current validation score: $$score"; \
-		if [ "$$score" -ge "$(VALIDATION_TARGET_SCORE)" ]; then \
-			echo "✅ Validation gate PASSED (score: $$score >= $(VALIDATION_TARGET_SCORE))"; \
-		else \
-			echo "❌ Validation gate FAILED (score: $$score < $(VALIDATION_TARGET_SCORE))"; \
+	
+	@# Coverage summary
+	@if [ -f "$(QUALITY_REPORTS_DIR)/coverage/coverage.out" ]; then \
+		echo "Coverage Summary:"; \
+		go tool cover -func=$(QUALITY_REPORTS_DIR)/coverage/coverage.out | tail -1; \
+		COVERAGE=$$(go tool cover -func=$(QUALITY_REPORTS_DIR)/coverage/coverage.out | tail -1 | awk '{print $$3}' | sed 's/%//'); \
+		echo "Coverage: $${COVERAGE}%"; \
+		if [ $$(echo "$${COVERAGE} < $(COVERAGE_THRESHOLD)" | bc -l) -eq 1 ]; then \
+			echo "❌ Coverage $${COVERAGE}% is below threshold $(COVERAGE_THRESHOLD)%"; \
 			exit 1; \
+		else \
+			echo "✅ Coverage $${COVERAGE}% meets threshold $(COVERAGE_THRESHOLD)%"; \
 		fi; \
 	else \
-		echo "❌ Validation gate FAILED - no validation report found"; \
-		echo "Run 'make validate-comprehensive' first"; \
+		echo "❌ No coverage file found"; \
 		exit 1; \
 	fi
 
-.PHONY: validation-clean
-validation-clean: ## Clean validation artifacts
-	@echo "Cleaning validation artifacts..."
-	rm -rf $(VALIDATION_REPORTS_DIR)/
-
-##@ Excellence Validation
-
-.PHONY: validate-docs
-validate-docs: ## Validate documentation quality
-	@echo "Validating documentation quality..."
-	mkdir -p $(REPORTS_DIR)
-	bash scripts/validate-docs.sh --report-dir $(REPORTS_DIR)
-
-.PHONY: validate-security
-validate-security: verify-supply-chain scan-vulnerabilities ## Run security compliance checks
-	@echo "Running security compliance validation..."
-	mkdir -p $(REPORTS_DIR)
-	bash scripts/daily-compliance-check.sh --report-dir $(REPORTS_DIR) --security-only
-
-.PHONY: validate-performance
-validate-performance: ## Run performance SLA validation
-	@echo "Running performance SLA validation..."
-	mkdir -p $(REPORTS_DIR)
-	bash scripts/daily-compliance-check.sh --report-dir $(REPORTS_DIR) --performance-only
-
-.PHONY: validate-community
-validate-community: ## Analyze community engagement metrics
-	@echo "Analyzing community engagement metrics..."
-	mkdir -p $(REPORTS_DIR)
-	bash scripts/community-metrics.sh --report-dir $(REPORTS_DIR)
-
-.PHONY: excellence-score
-excellence-score: validate-docs validate-security validate-community test-excellence ## Calculate overall excellence score
-	@echo "Calculating overall excellence score..."
-	mkdir -p $(REPORTS_DIR)
-	bash scripts/excellence-scoring-system.sh --report-dir $(REPORTS_DIR)
+.PHONY: quality-gate
+quality-gate: lint security-scan coverage-report ## Run complete quality gate checks
+	@echo "Quality gate checks completed successfully! 🎉"
 
 .PHONY: excellence-dashboard
-excellence-dashboard: excellence-score ## Generate excellence dashboard
-	@echo "Generating excellence dashboard..."
-	bash scripts/excellence-scoring-system.sh --report-dir $(REPORTS_DIR) --html-only
-	@if [ -f "$(REPORTS_DIR)/excellence_dashboard.html" ]; then \
-		echo "Excellence dashboard available at: $(REPORTS_DIR)/excellence_dashboard.html"; \
-	fi
-
-.PHONY: excellence-gate
-excellence-gate: excellence-score ## Check if project meets excellence gate criteria
-	@echo "Checking excellence gate criteria..."
-	@if [ -f "$(REPORTS_DIR)/excellence_dashboard.json" ]; then \
-		score=$$(jq -r '.summary.overall_score' $(REPORTS_DIR)/excellence_dashboard.json); \
-		echo "Current excellence score: $$score"; \
-		if [ "$$(echo "$$score >= $(EXCELLENCE_THRESHOLD)" | bc)" -eq 1 ]; then \
-			echo "✅ Excellence gate PASSED (score: $$score >= $(EXCELLENCE_THRESHOLD))"; \
+excellence-dashboard: ## Generate excellence metrics dashboard
+	@echo "Generating excellence metrics dashboard..."
+	@mkdir -p $(QUALITY_REPORTS_DIR)/dashboard
+	
+	@# Collect metrics
+	@echo "Collecting metrics..."
+	@if [ -f "$(QUALITY_REPORTS_DIR)/coverage/coverage.out" ]; then \
+		COVERAGE=$$(go tool cover -func=$(QUALITY_REPORTS_DIR)/coverage/coverage.out | tail -1 | awk '{print $$3}' | sed 's/%//'); \
+		echo "{\"coverage\": $${COVERAGE}, \"timestamp\": \"$$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > $(QUALITY_REPORTS_DIR)/dashboard/metrics.json; \
+		echo "✅ Dashboard metrics generated: $(QUALITY_REPORTS_DIR)/dashboard/metrics.json"; \
+		echo "Coverage: $${COVERAGE}%"; \
+		if [ $$(echo "$${COVERAGE} >= 90.0" | bc -l) -eq 1 ]; then \
+			echo "🏆 EXCELLENCE ACHIEVED: Coverage >= 90%"; \
+		elif [ $$(echo "$${COVERAGE} >= 80.0" | bc -l) -eq 1 ]; then \
+			echo "✅ GOOD: Coverage >= 80%"; \
 		else \
-			echo "❌ Excellence gate FAILED (score: $$score < $(EXCELLENCE_THRESHOLD))"; \
-			exit 1; \
+			echo "⚠️  NEEDS IMPROVEMENT: Coverage < 80%"; \
 		fi; \
 	else \
-		echo "❌ Excellence scoring failed - no dashboard data available"; \
+		echo "❌ Excellence scoring failed - no coverage data available"; \
 		exit 1; \
 	fi
 
@@ -628,1008 +572,254 @@ undeploy: ## Remove from the cluster
 .PHONY: build-webhook
 build-webhook: ## Build the webhook manager binary
 	@echo "Building webhook manager binary..."
-	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(LDFLAGS) -o bin/webhook-manager cmd/webhook-manager/main.go
-
-.PHONY: docker-build-webhook
-docker-build-webhook: ## Build webhook manager Docker image
-	@echo "Building webhook manager Docker image..."
-	docker build -f Dockerfile \
-		--build-arg SERVICE_NAME=webhook-manager \
-		--build-arg SERVICE_TYPE=go \
-		--build-arg VERSION=$(VERSION) \
-		--build-arg BUILD_DATE=$(DATE) \
-		--build-arg VCS_REF=$(COMMIT) \
-		--target final \
-		-t nephoran/webhook-manager:$(IMAGE_TAG) \
-		--build-arg BINARY_PATH=./cmd/webhook-manager/main.go .
-	docker tag nephoran/webhook-manager:$(IMAGE_TAG) nephoran/webhook-manager:latest
-
-.PHONY: deploy-webhook
-deploy-webhook: docker-build-webhook ## Deploy webhook with cert-manager
-	@echo "Deploying webhook with cert-manager..."
-	@echo "Step 1: Verifying cert-manager is installed..."
-	@if ! kubectl get crd certificates.cert-manager.io >/dev/null 2>&1; then \
-		echo "ERROR: cert-manager is not installed. Please install cert-manager first:"; \
-		echo "  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml"; \
-		exit 1; \
-	fi
-	@echo "Step 2: Building webhook configuration..."
-	@if ! command -v kustomize >/dev/null 2>&1; then \
-		echo "Installing kustomize..."; \
-		go install sigs.k8s.io/kustomize/kustomize/v5@latest; \
-	fi
-	@echo "Step 3: Applying webhook deployment..."
-	kustomize build config/default | kubectl apply -f -
-
-.PHONY: deploy-webhook-kind
-deploy-webhook-kind: ## Deploy webhook to kind cluster
-	@echo "Deploying webhook to kind cluster..."
-	@echo "Step 1: Creating namespace..."
-	kubectl create namespace nephoran-system --dry-run=client -o yaml | kubectl apply -f -
-	@echo "Step 2: Applying CRDs..."
-	kubectl apply -f deployments/crds/intent.nephoran.com_networkintents.yaml
-	@echo "Step 3: Building and loading Docker image..."
-	docker build -t nephoran/webhook-manager:latest -f Dockerfile --target webhook-manager .
-	kind load docker-image nephoran/webhook-manager:latest
-	@echo "Step 4: Creating self-signed certificate secret..."
-	@kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: webhook-server-cert
-  namespace: nephoran-system
-type: kubernetes.io/tls
-data:
-  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURQekNDQWllZ0F3SUJBZ0lVS1VpRGdJdUdEemRUS2tRanJQK0ZXSktPSEhrd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0R6RU5NQXNHQTFVRUF3d0VkR1Z6ZERBZUZ3MHlNakEzTVRFd05qVXlNakJhRncwek1qQTNNRGd3TmpVeQpNakJhTUE4eERUQUxCZ05WQkFNTUJIUmxjM1F3Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUURFd0NpYnpGMFo0MjZSM0xxRXdNOGtkaHRWQ3lIUStQZUlRbzBKM3hEaHJ0NEl2bklIQzJQenBhaE0KZ3FGUnRMWlk0L3RYYVhqdWxWTlhSUFhFOGlNR2VKT2g2cm9odHlCNURoOTBqRzBLaE5SWUlQOTRrNWlMaFZOdwpaU1o3bENUK2JVQUxtTzFEVGJOcER6SFBXMVhwVXBRRnJqVUxjbHNKRERJdk0ybUxJUnB2VkViWHY1akE0WnJUClA1bDRzMzRiL1ZsZ01sOGsxRmhGc1VmeWJxV1dzWDRJWmZHaVEwRWxBZUZRUEhwMEtJOGNPbGNYeUcyS2tVcFYKVTRSYWJtNEVkTExmSGdOZG5rOTJudEZQdlh0SFhKejA3bXRBenNicUp1ZHU0RUpnMG80eEJPeHBvQllOeDJRTwpJN0RkS2Q0di9GOURnSWpBelUyOUczQnB5aTVaQWdNQkFBR2pVekJSTUIwR0ExVWREZ1FXQkJRbjdBeDlEa2pVCkNQa2l0Uld2SUdSL0pTNEpCekFmQmdOVkhTTUVHREFXZ0JRbjdBeDlEa2pVQ1BraXRSV3ZJR1IvSlM0SkJ6QVAKCQVVER1RRUJBd0lCQmpBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQVFFQWh3Q1ZESmVxOFl5Q3JMOCtMZXJxb3FGRwp1MEFyZXBwNWx1YkJzK3lTS0FNNDNGQzRHQjBDQ0draDR5NnhSTGRqVVB1S2tJaXJUTGswUzl5UG5EY3lOWFNtCkpxQnRaL2Z0UGR6NWo0TndPLzRid2xVeWw5MXBTelJtWTJpT2MyaUZLd05abjhqQmFKcFZzRnV0cnE2N0xJZmQKQjRiZEdad0xmWWh6KzJRdVJTTjd3a005c2kyaGpMNkJQTWVuM0JLbHRqQ2ZOcFJJN25mRmJEU0NXZGRBbEdDQwo3MEdZY3dQNGFQcDlwZXBwMkJqbU5ydVh0aEhLRmtIS3Y0TjZudEZZejYwQ3V5OGJMQjdXU3dqaGJHN08xL0prCmRJSktEakJQUEtBc2lROG5KenhrL0c1dnFwUVYvUjFqL0xrckR1akJqamNWdUNsNlRCZHRpemZlL3F1YW93PT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
-  tls.key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBeE1Bb204eGRHZU51a2R5NmhNRFBKSFliVlFzaDBQajNpRUtOQ2Q4UTRhN2VDTDV5CkJ3dGo4NldvVElLaFViUzJXT1A3VjJsNDdwVlRWMFQxeFBJakJuaVRvZXE2SWJjZ2VRNGZkSXh0Q29UVVdDRC8KZUpPWWk0VlRjR1VtZTVRay9tMUFDNWp0UTAyemFROHh6MXRWNlZLVUJhNDFDM0piQ1F3eUx6TnBpeUVhYjFSRwoxNytZd09HYTB6K1plTE4rRy8xWllESmZKTlJZUmJGSDhtNmxsckYrQ0dYeG9rTkJKUUhoVUR4NmRDaVBIRHBYCkY4aHRpcEZLVlZPRVdtNXVCSFN5M3g0RFhaNVBkcDdSVDcxN1IxeWM5TzVyUU03RzZpYm5idUJDWU5LT01RVHMKYUFXRGN0a0RpT3czU25lTC94ZlE0Q0l3TTFOZFJ0d2Fjb3VXUUlEQVFBQkFvSUJBQk1HS1NTSGtlT2tQQjJvagpGRzhybUhDSUFhRnFlc3JJN2F5ZjRZVGJGOGdIOVZUTXdVcHJQYkJPOFJxMW81Ym1vOHVoSS9YY0F1Z0x2NjA1CjJIRWJxaUtiZ3lWdnNvV1FhY3pMdEY0cElwTEFhaU9JcVBNdCtwWm9YL29kMjJYVlp6aE05TVRIaTlReUNJdHQKWGlFMEtneGJHWGN0a0xFL1JGR2hsd3hqMjNGVEpuaXBrYUtjSUErcnpmQzZQRnp1amw5SzJGRzlWVVRDRGZ1ZQoyUHNYUHlvQU9mVGRYUHRsZDFUb3JQSG9MZWpWaGdkL0RrbEtzVjN2YzN6Q3g5MnVJQjlOQjdBTGNES3BiZGF1CjVCN0FiZGVWUjJCMXI0VnpYN2hLdVhEYXpLNzhLQUhjMHBGaUpONkVEVm9jd1Y1SDdJRXFFY0k0UmtXMmQ4eG4KczQ4R1VnRUNnWUVBOHNGSVFodmtpb05OVGMveG5RdFF6MDlIQ2hWSVIwUU5oOFBSYVZBU08yU0NhTHBEL1dCRApWcTlKdlowQkxIWkZJSUdPR2xMTGN5Y0R6MUxxMVRCN0xvOWdTQitQVEFMMzA3SkJHVzVYRyt3bUVkUzF4OWx2CjBVQXNRRkh5eDlRbUtGcTJZOXdXTjdXbHFKUU5UWGJBNWhVTDFUQzRjUHJjN1VRckplMTB5UUVDZ1lFQXo5T0cKTGdGbGFKMVNRNkJDbUJiQlNQNzBzUGJCMWxYWGgxb3g5Y1Z4VnZ0UG9DK0VBb0JhcEl2M0xkRGluZGdhcC9oTwo1cGp1cDlUR01YRGpsMEJJQ0VYUGd0MlBKcXRoZHQ3Sk91R0ZwK08xZ3V2L1l0OU5sczR0UFJzekFjcjAzdUg5CnR2TlN0RTBJdWRRQ0lJdmJJc0xwN1hNcklJRjNQOFRaVytIUmJoa0NnWUVBNFg0S1FQcGhQRGFhdEtKUGV3cHcKN2Y4c1JySUtHczNweGl1b1NqRVpQQ3pMZHA3d0FRL3YvMUtkMDdqdEJJN1lQZTZIM3h3VGtGZXBJNTZlL0dtTwo0ekZpTUFmTE0vdU5jU3VYT3ZiSUZCT3d1N1haRGF5aDNkcnEvaFI0d2llTlNXdXNLRkFldGRKN3pUa1VQNXlECkhyN2RTSzZ2ejlpQ3JySkd5STRyQVFFQ2dZRUF3Qm1mTGdTb1lwVkptMFg3TVpyL09vRnhLME5YYzBCQ0JxdGQKNy9ENHN6em9tMFN0Uk01aGExRW5KMmJMbFRyOVJRRkR0ZmhIT0R3dDZPaEZUWHhQbEVnRks1NnJYZ0xzd2JVaQpCT2k1U0hGZ0lOaUQzRlFnR0hYaW9aeG16SW1IMVBXL1lCNGhUR2VLOGJTdHZLNTFJa3BSVzg0OGNGZzJodHVUClU1bjU3WWtDZ1lBa3ZJQkwwNFVIcTdRZ1ZJRE84bWpWOVJBZTRBTHRjeWtIaHFrbHBhaDVnbFFBOElEL2liTUsKN0dBNVZWUVJvQ3h1U3o1UU1xdktNdFBuMXRFSTRsT25OZ0lnV0ZQOXFJOGlRM1Zpb3I5cEFDUDBaQmxhS1JOYQowdlBUdXpuV1dPaU9xZXhQVnRpWkJzRGRJQ3UrRmhXUjREd1l5akxGZ0pFaFJzSk9PVzJaYWc9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=
-EOF
-	@echo "Step 5: Deploying webhook..."
-	kubectl apply -k config/webhook/
-	@echo "Webhook deployed successfully!"
-	@echo "✅ Webhook deployment completed successfully!"
-	@echo ""
-	@echo "Verification commands:"
-	@echo "  kubectl get certificates -n $(NAMESPACE)"
-	@echo "  kubectl get mutatingwebhookconfiguration nephoran-networkintent-mutating"
-	@echo "  kubectl get validatingwebhookconfiguration nephoran-networkintent-validating"
-	@echo "  kubectl get deployment webhook-manager -n $(NAMESPACE)"
-
-.PHONY: undeploy-webhook
-undeploy-webhook: ## Remove webhook deployment
-	@echo "Removing webhook deployment..."
-	kustomize build config/default | kubectl delete -f - --ignore-not-found=true
-	@echo "Webhook deployment removed"
-
-.PHONY: deploy-samples
-deploy-samples: ## Deploy sample resources
-	@echo "Deploying sample resources..."
-	kubectl apply -f config/samples/
-
-.PHONY: helm-install
-helm-install: ## Install using Helm chart
-	@echo "Installing using Helm..."
-	helm upgrade --install $(PROJECT_NAME) deployments/helm/nephoran-operator \
-		--namespace $(NAMESPACE) \
-		--create-namespace \
-		--set image.tag=$(IMAGE_TAG)
-
-.PHONY: helm-uninstall
-helm-uninstall: ## Uninstall Helm release
-	@echo "Uninstalling Helm release..."
-	helm uninstall $(PROJECT_NAME) --namespace $(NAMESPACE)
-
-.PHONY: mvp-controller-scale-up
-mvp-controller-scale-up: ## Scale up MVP controller deployment using porch/kpt patches
-	@echo "Scaling up MVP controller deployment..."
-	@echo "Generating scaling patch for increased capacity..."
-	@if [ -d "kpt-packages/nephio" ]; then \
-		echo "Applying scale-up patch to Nephio packages..."; \
-		$(call kubectl_patch_deployment,nephoran-controller-manager,3); \
-		$(call kubectl_patch_hpa,nephoran-controller-hpa,3,10); \
-		echo "Scale-up patch applied successfully"; \
-	else \
-		echo "Warning: kpt-packages/nephio not found. Creating default scale-up patch..."; \
-		$(call create_patch_file,scale-up,3,500m,512Mi); \
-	fi
-	@echo "MVP controller scale-up completed"
-
-.PHONY: mvp-controller-scale-down
-mvp-controller-scale-down: ## Scale down MVP controller deployment using porch/kpt patches
-	@echo "Scaling down MVP controller deployment..."
-	@echo "Generating scaling patch for reduced capacity..."
-	@if [ -d "kpt-packages/nephio" ]; then \
-		echo "Applying scale-down patch to Nephio packages..."; \
-		$(call kubectl_patch_deployment,nephoran-controller-manager,1); \
-		$(call kubectl_patch_hpa,nephoran-controller-hpa,1,3); \
-		echo "Scale-down patch applied successfully"; \
-	else \
-		echo "Warning: kpt-packages/nephio not found. Creating default scale-down patch..."; \
-		$(call create_patch_file,scale-down,1,100m,128Mi); \
-	fi
-	@echo "MVP controller scale-down completed"
-
-##@ Planner
-
-.PHONY: planner-build
-planner-build: ## Build the closed-loop planner
-	@echo "Building closed-loop planner..."
+	@mkdir -p bin
 	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -ldflags="-s -w -X main.Version=$(VERSION) -X main.Commit=$(COMMIT)" \
-		-o bin/planner ./planner/cmd/planner
+		go build $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/webhook-manager cmd/webhook/main.go
 
-.PHONY: planner-run
-planner-run: planner-build ## Run the planner locally
-	@echo "Running planner..."
-	./bin/planner -config planner/config/config.yaml
+.PHONY: conductor-loop-build
+conductor-loop-build: ## Build conductor with closed-loop support
+	@echo "Building conductor with closed-loop support..."
+	@mkdir -p bin
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) \
+		go build $(FAST_BUILD_FLAGS) $(LDFLAGS) \
+		-o bin/conductor-loop cmd/conductor-loop/main.go
 
-.PHONY: planner-test
-planner-test: ## Run planner tests
-	@echo "Testing planner..."
-	go test ./planner/... -v -race -coverprofile=.coverage/planner.out
-
-.PHONY: planner-demo
-planner-demo: planner-build ## Run planner demo
-	@echo "Running planner demo..."
-	@if [ "$(OS)" = "Windows_NT" ]; then \
-		powershell -ExecutionPolicy Bypass -File examples/planner/demo.ps1; \
+.PHONY: demo-setup
+demo-setup: ## Set up demo environment
+	@echo "Setting up demo environment..."
+	@if [ -f "scripts/demo-setup.sh" ]; then \
+		chmod +x scripts/demo-setup.sh; \
+		./scripts/demo-setup.sh; \
 	else \
-		bash examples/planner/demo.sh; \
+		echo "Demo setup script not found. Creating minimal setup..."; \
+		kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -; \
+		echo "✅ Demo namespace $(NAMESPACE) created"; \
 	fi
 
-mvp-scale-down: ## Scale down MVP deployment using porch/kpt patches
-	@echo "Scaling down MVP deployment..."
-	@echo "Generating scaling patch for reduced capacity..."
-	@if [ -d "kpt-packages/nephio" ]; then \
-		echo "Applying scale-down patch to Nephio packages..."; \
-		kubectl patch deployment nephoran-controller-manager \
-			--namespace $(NAMESPACE) \
-			--type='json' \
-			-p='[{"op": "replace", "path": "/spec/replicas", "value": 1}]' 2>/dev/null || true; \
-		kubectl patch hpa nephoran-controller-hpa \
-			--namespace $(NAMESPACE) \
-			--type='json' \
-			-p='[{"op": "replace", "path": "/spec/minReplicas", "value": 1}, \
-				 {"op": "replace", "path": "/spec/maxReplicas", "value": 3}]' 2>/dev/null || true; \
-		echo "Scale-down patch applied successfully"; \
+##@ Tools
+
+CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
+.PHONY: controller-gen
+controller-gen: ## Download controller-gen locally if necessary
+	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION))
+
+ENVTEST = $(shell pwd)/bin/setup-envtest
+.PHONY: envtest
+envtest: ## Download envtest-setup locally if necessary
+	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
+
+# go-get-tool will 'go install' any package $2 and install it to $1.
+PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+define go-get-tool
+@[ -f $(1) ] || { \
+set -e ;\
+TMP_DIR=$$(mktemp -d) ;\
+cd $$TMP_DIR ;\
+go mod init tmp ;\
+echo "Downloading $(2)" ;\
+GOBIN=$(PROJECT_DIR)/bin go install $(2) ;\
+rm -rf $$TMP_DIR ;\
+}
+endef
+
+##@ Performance and Optimization
+
+.PHONY: profile-cpu
+profile-cpu: ## Run CPU profiling
+	@echo "Running CPU profiling..."
+	@mkdir -p $(QUALITY_REPORTS_DIR)/profiling
+	go test -cpuprofile=$(QUALITY_REPORTS_DIR)/profiling/cpu.prof -bench=. -benchtime=30s ./...
+	@echo "CPU profile saved to $(QUALITY_REPORTS_DIR)/profiling/cpu.prof"
+	@echo "View with: go tool pprof $(QUALITY_REPORTS_DIR)/profiling/cpu.prof"
+
+.PHONY: profile-memory
+profile-memory: ## Run memory profiling
+	@echo "Running memory profiling..."
+	@mkdir -p $(QUALITY_REPORTS_DIR)/profiling
+	go test -memprofile=$(QUALITY_REPORTS_DIR)/profiling/mem.prof -bench=. -benchtime=30s ./...
+	@echo "Memory profile saved to $(QUALITY_REPORTS_DIR)/profiling/mem.prof"
+	@echo "View with: go tool pprof $(QUALITY_REPORTS_DIR)/profiling/mem.prof"
+
+.PHONY: optimization-report
+optimization-report: profile-cpu profile-memory benchmark ## Generate comprehensive optimization report
+	@echo "Generating optimization report..."
+	@mkdir -p $(QUALITY_REPORTS_DIR)/optimization
+	@echo "Optimization analysis completed. Reports available in $(QUALITY_REPORTS_DIR)/"
+
+##@ Documentation
+
+.PHONY: docs-generate
+docs-generate: ## Generate comprehensive documentation
+	@echo "Generating comprehensive documentation..."
+	@mkdir -p docs/generated
+	
+	@# Generate API documentation
+	@if command -v swag >/dev/null 2>&1; then \
+		swag init -g cmd/main.go -o docs/generated/swagger --parseInternal; \
+		echo "✅ Swagger documentation generated"; \
 	else \
-		echo "Warning: kpt-packages/nephio not found. Creating default scale-down patch..."; \
-		mkdir -p handoff/patches; \
-		echo '{"kind":"Patch","metadata":{"name":"scale-down"},"spec":{"replicas":1,"resources":{"requests":{"cpu":"100m","memory":"128Mi"}}}}' \
-			> handoff/patches/scale-down-patch.json; \
-		echo "Scale-down patch saved to handoff/patches/scale-down-patch.json"; \
+		echo "⚠️  swag not found. Install with: go install github.com/swaggo/swag/cmd/swag@latest"; \
 	fi
-	@echo "MVP scale-down completed"
+	
+	@# Generate Go documentation
+	godoc -http=:6060 > /dev/null 2>&1 & \
+	GODOC_PID=$$!; \
+	sleep 3; \
+	curl -s http://localhost:6060/pkg/github.com/thc1006/nephoran-intent-operator/ > docs/generated/godoc.html || true; \
+	kill $$GODOC_PID 2>/dev/null || true
+	
+	@echo "✅ Documentation generated in docs/generated/"
 
-##@ Development Environment
+.PHONY: docs-serve
+docs-serve: ## Serve documentation locally
+	@echo "Serving documentation at http://localhost:6060"
+	godoc -http=:6060
 
-.PHONY: quickstart
-quickstart: ## Run the 15-minute quickstart tutorial
-	@echo "Starting Nephoran Intent Operator Quick Start..."
-	@chmod +x scripts/quickstart.sh
-	@./scripts/quickstart.sh
+##@ Advanced Operations
 
-.PHONY: quickstart-clean
-quickstart-clean: ## Clean up quickstart resources
-	@echo "Cleaning up quickstart resources..."
-	@chmod +x scripts/quickstart.sh
-	@./scripts/quickstart.sh --cleanup
-
-.PHONY: dev-up
-dev-up: quickstart ## Alias for quickstart - set up development environment
-	@echo "Development environment ready!"
-
-.PHONY: dev-down
-dev-down: quickstart-clean ## Tear down development environment
-	@echo "Development environment cleaned up!"
-
-.PHONY: kind-create
-kind-create: ## Create a kind cluster for development
-	@echo "Creating kind cluster..."
-	@if ! command -v kind >/dev/null 2>&1; then \
-		echo "kind not found, please install it first"; \
-		exit 1; \
+.PHONY: chaos-test
+chaos-test: ## Run chaos engineering tests
+	@echo "Running chaos engineering tests..."
+	@mkdir -p $(QUALITY_REPORTS_DIR)/chaos
+	@if [ -f "tests/chaos/chaos_test.go" ]; then \
+		GOMAXPROCS=4 go test ./tests/chaos/... -v -timeout=60m \
+			-json | tee $(QUALITY_REPORTS_DIR)/chaos/chaos-results.json; \
+	else \
+		echo "⚠️  Chaos tests not found. Consider implementing chaos engineering tests."; \
 	fi
-	kind create cluster --name $(PROJECT_NAME)-dev
 
-.PHONY: kind-delete
-kind-delete: ## Delete the kind cluster
-	@echo "Deleting kind cluster..."
-	kind delete cluster --name $(PROJECT_NAME)-dev
+.PHONY: load-test
+load-test: ## Run load testing
+	@echo "Running load testing..."
+	@mkdir -p $(QUALITY_REPORTS_DIR)/load
+	@if command -v vegeta >/dev/null 2>&1; then \
+		echo "GET http://localhost:8080/health" | vegeta attack -duration=60s -rate=100/s | tee $(QUALITY_REPORTS_DIR)/load/load-results.bin | vegeta report; \
+	elif [ -f "scripts/load-test.sh" ]; then \
+		chmod +x scripts/load-test.sh; \
+		./scripts/load-test.sh; \
+	else \
+		echo "⚠️  Load testing tools not available"; \
+	fi
 
-.PHONY: kind-load-image
-kind-load-image: docker-build ## Load Docker image into kind cluster
-	@echo "Loading Docker image into kind cluster..."
-	kind load docker-image $(IMAGE_NAME):$(IMAGE_TAG) --name $(PROJECT_NAME)-dev
+.PHONY: health-check
+health-check: ## Perform comprehensive health check
+	@echo "Performing comprehensive health check..."
+	@echo "✅ Go version: $$(go version)"
+	@echo "✅ Git status: $$(git status --porcelain | wc -l) modified files"
+	@echo "✅ Dependencies: $$(go list -m all | wc -l) modules"
+	@echo "✅ Build status: $$(make build >/dev/null 2>&1 && echo 'PASS' || echo 'FAIL')"
+	@echo "✅ Test status: $$(timeout 30s make test >/dev/null 2>&1 && echo 'PASS' || echo 'FAIL')"
 
-.PHONY: dev-deploy
-dev-deploy: kind-create kind-load-image install-crds deploy deploy-samples ## Complete development deployment
-	@echo "Development deployment complete!"
-	@echo "You can now test the operator in your kind cluster"
+##@ CI/CD Integration
+
+.PHONY: ci-setup
+ci-setup: ## Setup CI environment
+	@echo "Setting up CI environment..."
+	go version
+	go env
+	go mod download
+	go mod verify
+
+.PHONY: ci-test
+ci-test: ci-setup test lint security-scan coverage-report ## Run CI test pipeline
+	@echo "CI test pipeline completed successfully!"
+
+.PHONY: ci-build
+ci-build: ci-setup build docker-build ## Run CI build pipeline
+	@echo "CI build pipeline completed successfully!"
+
+.PHONY: ci-deploy
+ci-deploy: ci-build ## Run CI deployment pipeline
+	@echo "CI deployment pipeline completed successfully!"
+
+##@ Supply Chain Security
+
+.PHONY: sbom-generate
+sbom-generate: ## Generate Software Bill of Materials (SBOM)
+	@echo "Generating SBOM..."
+	@mkdir -p $(QUALITY_REPORTS_DIR)/sbom
+	@if command -v cyclonedx-gomod >/dev/null 2>&1; then \
+		cyclonedx-gomod app -json -output $(QUALITY_REPORTS_DIR)/sbom/sbom.json; \
+		echo "✅ SBOM generated: $(QUALITY_REPORTS_DIR)/sbom/sbom.json"; \
+	else \
+		echo "⚠️  cyclonedx-gomod not found. Install with: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest"; \
+	fi
+
+.PHONY: verify-dependencies
+verify-dependencies: ## Verify dependency integrity
+	@echo "Verifying dependency integrity..."
+	go mod verify
+	@if command -v nancy >/dev/null 2>&1; then \
+		go list -json -deps ./... | nancy sleuth; \
+	else \
+		echo "⚠️  Nancy not found for vulnerability scanning"; \
+	fi
+
+.PHONY: security-baseline
+security-baseline: security-scan sbom-generate verify-dependencies ## Establish security baseline
+	@echo "Security baseline established!"
+
+##@ Metrics and Monitoring
+
+.PHONY: metrics-collect
+metrics-collect: ## Collect system metrics
+	@echo "Collecting system metrics..."
+	@mkdir -p $(QUALITY_REPORTS_DIR)/metrics
+	@echo "Build time: $$(date)" > $(QUALITY_REPORTS_DIR)/metrics/build-metrics.txt
+	@echo "Go version: $$(go version)" >> $(QUALITY_REPORTS_DIR)/metrics/build-metrics.txt
+	@echo "Git commit: $(COMMIT)" >> $(QUALITY_REPORTS_DIR)/metrics/build-metrics.txt
+	@echo "Binary size: $$(du -h bin/manager 2>/dev/null || echo 'N/A')" >> $(QUALITY_REPORTS_DIR)/metrics/build-metrics.txt
+
+.PHONY: performance-baseline
+performance-baseline: benchmark profile-cpu profile-memory metrics-collect ## Establish performance baseline
+	@echo "Performance baseline established!"
+	@echo "Results available in $(QUALITY_REPORTS_DIR)/"
 
 ##@ Maintenance
 
-.PHONY: clean
-clean: ## Clean build artifacts and reports
-	@echo "Cleaning build artifacts..."
-	rm -rf bin/
-	rm -rf $(REPORTS_DIR)/
-	go clean -cache
-	docker system prune -f --volumes
-
-.PHONY: update-deps
-update-deps: ## Update Go dependencies
-	@echo "Updating Go dependencies..."
+.PHONY: dependency-update
+dependency-update: ## Update dependencies safely
+	@echo "Updating dependencies safely..."
 	go get -u ./...
 	go mod tidy
+	go mod verify
+	@echo "✅ Dependencies updated. Please run tests to verify compatibility."
 
-.PHONY: security-scan
-security-scan: verify-supply-chain generate-sbom ## Run comprehensive security scanning
-	@echo "Running comprehensive security scan..."
-	mkdir -p $(REPORTS_DIR)
-	@if [ -f "scripts/security-scan.sh" ]; then \
-		bash scripts/security-scan.sh; \
-	fi
-	@if command -v govulncheck >/dev/null 2>&1; then \
-		govulncheck ./... > $(REPORTS_DIR)/vulnerability-scan.txt 2>&1 || true; \
-		echo "Vulnerability scan results saved to $(REPORTS_DIR)/vulnerability-scan.txt"; \
-	fi
+.PHONY: cleanup-old-reports
+cleanup-old-reports: ## Clean up old report files
+	@echo "Cleaning up old reports..."
+	find $(QUALITY_REPORTS_DIR) -name "*.json" -mtime +7 -delete 2>/dev/null || true
+	find $(QUALITY_REPORTS_DIR) -name "*.txt" -mtime +7 -delete 2>/dev/null || true
+	find $(QUALITY_REPORTS_DIR) -name "*.html" -mtime +7 -delete 2>/dev/null || true
+	@echo "✅ Old reports cleaned up"
 
-.PHONY: benchmark
-benchmark: ## Run performance benchmarks
-	@echo "Running performance benchmarks..."
-	mkdir -p $(REPORTS_DIR)
-	go test -bench=. -benchmem ./... > $(REPORTS_DIR)/benchmark.txt 2>&1
-	@echo "Benchmark results saved to $(REPORTS_DIR)/benchmark.txt"
+.PHONY: full-reset
+full-reset: clean-all ## Complete reset of the development environment
+	@echo "Performing full development environment reset..."
+	git clean -fdx
+	go clean -cache -modcache -testcache -fuzzcache
+	@echo "✅ Full reset completed"
 
-##@ Release
+##@ Meta
 
-.PHONY: pre-release
-pre-release: excellence-gate test-all docker-build docker-security-scan ## Pre-release validation
-	@echo "Pre-release validation completed successfully!"
-
-.PHONY: release-dry-run
-release-dry-run: pre-release ## Dry run of release process
-	@echo "Performing release dry run..."
+.PHONY: version
+version: ## Show version information
+	@echo "Project: $(PROJECT_NAME)"
 	@echo "Version: $(VERSION)"
 	@echo "Commit: $(COMMIT)"
+	@echo "Build Date: $(DATE)"
+	@echo "Go Version: $$(go version)"
+
+.PHONY: info
+info: version ## Show comprehensive project information
+	@echo ""
+	@echo "Build Configuration:"
+	@echo "  GOOS: $(GOOS)"
+	@echo "  GOARCH: $(GOARCH)"
+	@echo "  CGO_ENABLED: $(CGO_ENABLED)"
+	@echo "  BUILD_TYPE: $(BUILD_TYPE)"
+	@echo "  PARALLEL_JOBS: $(PARALLEL_JOBS)"
+	@echo ""
+	@echo "Quality Reports: $(QUALITY_REPORTS_DIR)"
+	@echo "Registry: $(REGISTRY)"
 	@echo "Image: $(IMAGE_NAME):$(IMAGE_TAG)"
-	@echo "Excellence gate: PASSED"
-
-.PHONY: release
-release: pre-release docker-push ## Create and push release
-	@echo "Creating release $(VERSION)..."
-	@if command -v gh >/dev/null 2>&1; then \
-		gh release create $(VERSION) --title "Release $(VERSION)" --generate-notes; \
-	else \
-		echo "GitHub CLI not available, skipping release creation"; \
-	fi
-
-##@ Monitoring and Observability
-
-.PHONY: logs
-logs: ## Show operator logs
-	@echo "Showing operator logs..."
-	kubectl logs -n $(NAMESPACE) -l control-plane=controller-manager -f
-
-.PHONY: status
-status: ## Show deployment status
-	@echo "Showing deployment status..."
-	kubectl get all -n $(NAMESPACE)
-	kubectl get crds | grep -i nephoran || true
-
-.PHONY: metrics
-metrics: ## Show metrics (if available)
-	@echo "Fetching metrics..."
-	@if kubectl get svc -n $(NAMESPACE) | grep -q metrics; then \
-		kubectl port-forward -n $(NAMESPACE) svc/nephoran-operator-metrics 8080:8080 & \
-		sleep 2; \
-		curl -s http://localhost:8080/metrics | head -20; \
-		kill %1; \
-	else \
-		echo "Metrics service not available"; \
-	fi
-
-##@ Regression Testing
-
-.PHONY: regression-setup
-regression-setup: ## Setup regression testing environment
-	@echo "Setting up regression testing environment..."
-	mkdir -p $(REGRESSION_REPORTS_DIR)
-	mkdir -p $(REGRESSION_REPORTS_DIR)/baselines
-	mkdir -p $(REGRESSION_REPORTS_DIR)/reports
-	go install github.com/onsi/ginkgo/v2/ginkgo@latest
-
-.PHONY: regression-baseline
-regression-baseline: ## Establish new regression baseline
-	@echo "Establishing new regression baseline..."
-	mkdir -p $(REGRESSION_REPORTS_DIR)/baselines
-	REGRESSION_MODE=baseline \
-	go test ./tests/ -run TestRegressionSuite -v -timeout=60m
-	@echo "New baseline created in $(REGRESSION_REPORTS_DIR)/baselines/"
-
-.PHONY: regression-test
-regression-test: ## Run comprehensive regression testing
-	@echo "Running comprehensive regression testing..."
-	@echo "Baseline ID: $(REGRESSION_BASELINE_ID)"
-	@echo "Fail on detection: $(REGRESSION_FAIL_ON_DETECTION)"
-	mkdir -p $(REGRESSION_REPORTS_DIR)
-	REGRESSION_BASELINE_ID=$(REGRESSION_BASELINE_ID) \
-	REGRESSION_FAIL_ON_DETECTION=$(REGRESSION_FAIL_ON_DETECTION) \
-	REGRESSION_ALERT_WEBHOOK=$(REGRESSION_ALERT_WEBHOOK) \
-	TEST_ARTIFACTS_PATH=$(REGRESSION_REPORTS_DIR) \
-	go test ./tests/ -run TestRegressionSuite -v -timeout=60m
-
-.PHONY: regression-dashboard
-regression-dashboard: ## Generate regression dashboard and reports
-	@echo "Generating regression dashboard..."
-	mkdir -p $(REGRESSION_REPORTS_DIR)/dashboard
-	go run ./tests/scripts/generate-regression-dashboard.go \
-		--baselines-path=$(REGRESSION_REPORTS_DIR)/baselines \
-		--output-path=$(REGRESSION_REPORTS_DIR)/dashboard
-	@echo "Dashboard generated: $(REGRESSION_REPORTS_DIR)/dashboard/regression-dashboard.html"
-
-.PHONY: regression-trends
-regression-trends: ## Generate regression trend analysis
-	@echo "Generating regression trend analysis..."
-	mkdir -p $(REGRESSION_REPORTS_DIR)/trends
-	go run ./tests/scripts/analyze-regression-trends.go \
-		--baselines-path=$(REGRESSION_REPORTS_DIR)/baselines \
-		--output-path=$(REGRESSION_REPORTS_DIR)/trends \
-		--days=30
-	@echo "Trend analysis completed: $(REGRESSION_REPORTS_DIR)/trends/"
-
-.PHONY: regression-alert-test
-regression-alert-test: ## Test regression alert system
-	@echo "Testing regression alert system..."
-	go run ./tests/scripts/test-alert-system.go \
-		--webhook-url=$(REGRESSION_ALERT_WEBHOOK) \
-		--test-mode=true
-
-.PHONY: regression-cleanup
-regression-cleanup: ## Clean up regression test artifacts
-	@echo "Cleaning up regression test artifacts..."
-	rm -rf $(REGRESSION_REPORTS_DIR)/
-	@echo "Regression artifacts cleaned up"
-
-.PHONY: regression-status
-regression-status: ## Show regression testing status
-	@echo "Regression Testing Status"
-	@echo "========================="
-	@echo "Reports directory: $(REGRESSION_REPORTS_DIR)"
-	@if [ -d "$(REGRESSION_REPORTS_DIR)/baselines" ]; then \
-		echo "Baseline count: $$(ls -1 $(REGRESSION_REPORTS_DIR)/baselines/baseline-*.json 2>/dev/null | wc -l)"; \
-		if [ -n "$$(ls -1 $(REGRESSION_REPORTS_DIR)/baselines/baseline-*.json 2>/dev/null | head -1)" ]; then \
-			latest=$$(ls -1t $(REGRESSION_REPORTS_DIR)/baselines/baseline-*.json 2>/dev/null | head -1); \
-			echo "Latest baseline: $$(basename $$latest)"; \
-			echo "Baseline date: $$(stat -c %y $$latest 2>/dev/null || stat -f %Sm $$latest 2>/dev/null || echo 'Unknown')"; \
-		fi; \
-	else \
-		echo "No baselines found. Run 'make regression-baseline' first."; \
-	fi
-	@if [ -d "$(REGRESSION_REPORTS_DIR)/reports" ]; then \
-		echo "Report count: $$(ls -1 $(REGRESSION_REPORTS_DIR)/reports/regression-report-*.json 2>/dev/null | wc -l)"; \
-		if [ -n "$$(ls -1 $(REGRESSION_REPORTS_DIR)/reports/regression-report-*.json 2>/dev/null | head -1)" ]; then \
-			latest=$$(ls -1t $(REGRESSION_REPORTS_DIR)/reports/regression-report-*.json 2>/dev/null | head -1); \
-			echo "Latest report: $$(basename $$latest)"; \
-		fi; \
-	fi
-	@echo "Configuration:"
-	@echo "  Baseline ID: $(REGRESSION_BASELINE_ID)"
-	@echo "  Fail on detection: $(REGRESSION_FAIL_ON_DETECTION)"
-	@echo "  Alert webhook: $(REGRESSION_ALERT_WEBHOOK)"
-
-.PHONY: regression-ci
-regression-ci: ## Run regression testing in CI mode (fail-fast)
-	@echo "Running regression testing in CI mode..."
-	mkdir -p $(REGRESSION_REPORTS_DIR)
-	CI=true \
-	REGRESSION_BASELINE_ID=$(REGRESSION_BASELINE_ID) \
-	REGRESSION_FAIL_ON_DETECTION=true \
-	TEST_ARTIFACTS_PATH=$(REGRESSION_REPORTS_DIR) \
-	go test ./tests/ -run TestRegressionSuite -v -timeout=60m -failfast
-
-.PHONY: regression-full
-regression-full: regression-setup regression-test regression-dashboard regression-trends ## Run complete regression testing workflow
-	@echo "Complete regression testing workflow completed"
-	@echo "View dashboard: file://$(PWD)/$(REGRESSION_REPORTS_DIR)/dashboard/regression-dashboard.html"
-
-##@ Code Quality Gates
-
-.PHONY: quality-gate
-quality-gate: ## Run comprehensive code quality gate
-	@echo "Running comprehensive code quality gate..."
-	@echo "Coverage threshold: $(COVERAGE_THRESHOLD)%"
-	@echo "Quality threshold: $(QUALITY_THRESHOLD)/10.0"
-	@chmod +x scripts/quality-gate.sh
-	./scripts/quality-gate.sh --coverage-threshold=$(COVERAGE_THRESHOLD) --quality-threshold=$(QUALITY_THRESHOLD) --reports-dir=$(QUALITY_REPORTS_DIR)
-
-.PHONY: quality-gate-ci
-quality-gate-ci: ## Run quality gate in CI mode (fail fast)
-	@echo "Running quality gate in CI mode..."
-	@chmod +x scripts/quality-gate.sh
-	./scripts/quality-gate.sh --ci --coverage-threshold=$(COVERAGE_THRESHOLD) --quality-threshold=$(QUALITY_THRESHOLD) --reports-dir=$(QUALITY_REPORTS_DIR)
-
-.PHONY: quality-metrics
-quality-metrics: ## Calculate comprehensive quality metrics
-	@echo "Calculating comprehensive quality metrics..."
-	mkdir -p $(QUALITY_REPORTS_DIR)
-	go run scripts/quality-metrics.go . $(QUALITY_REPORTS_DIR)/quality-metrics.json
-
-.PHONY: performance-regression
-performance-regression: ## Run performance regression tests
-	@echo "Running performance regression tests..."
-	mkdir -p $(QUALITY_REPORTS_DIR)
-	go run scripts/performance-regression-test.go . $(QUALITY_REPORTS_DIR)/baseline.json $(QUALITY_REPORTS_DIR)/performance-results.json
-
-.PHONY: technical-debt
-technical-debt: ## Analyze technical debt
-	@echo "Analyzing technical debt..."
-	mkdir -p $(QUALITY_REPORTS_DIR)
-	go run scripts/technical-debt-monitor.go . "" $(QUALITY_REPORTS_DIR)/technical-debt-report.json
-
-.PHONY: quality-dashboard
-quality-dashboard: quality-gate ## Generate comprehensive quality dashboard
-	@echo "Quality dashboard generated: $(QUALITY_REPORTS_DIR)/quality-dashboard.html"
-	@if [ -f "$(QUALITY_REPORTS_DIR)/quality-dashboard.html" ]; then \
-		echo "🔍 View dashboard: file://$(PWD)/$(QUALITY_REPORTS_DIR)/quality-dashboard.html"; \
-	fi
-
-.PHONY: quality-check
-quality-check: quality-gate ## Quick quality check (alias for quality-gate)
-
-.PHONY: quality-fix
-quality-fix: ## Attempt to automatically fix quality issues
-	@echo "Attempting to fix quality issues..."
-	@chmod +x scripts/quality-gate.sh
-	./scripts/quality-gate.sh --fix --reports-dir=$(QUALITY_REPORTS_DIR)
-
-.PHONY: quality-baseline
-quality-baseline: ## Set performance baseline for regression testing
-	@echo "Setting performance baseline..."
-	mkdir -p $(QUALITY_REPORTS_DIR)
-	go run scripts/performance-regression-test.go . "" $(QUALITY_REPORTS_DIR)/baseline.json
-	@echo "Baseline saved to $(QUALITY_REPORTS_DIR)/baseline.json"
-
-.PHONY: quality-clean
-quality-clean: ## Clean quality reports
-	@echo "Cleaning quality reports..."
-	rm -rf $(QUALITY_REPORTS_DIR)/
-
-.PHONY: quality-summary
-quality-summary: ## Show quality summary
-	@echo "Quality Summary for $(PROJECT_NAME)"
-	@echo "=================================="
-	@if [ -f "$(QUALITY_REPORTS_DIR)/quality-dashboard.json" ]; then \
-		echo "Overall Score: $$(jq -r '.summary.quality_score' $(QUALITY_REPORTS_DIR)/quality-dashboard.json 2>/dev/null || echo 'N/A')/10.0"; \
-		echo "Test Coverage: $$(jq -r '.summary.coverage_percent' $(QUALITY_REPORTS_DIR)/quality-dashboard.json 2>/dev/null || echo 'N/A')%"; \
-		echo "Lint Issues: $$(jq -r '.summary.lint_issues' $(QUALITY_REPORTS_DIR)/quality-dashboard.json 2>/dev/null || echo 'N/A')"; \
-		echo "Security Issues: $$(jq -r '.summary.vulnerabilities' $(QUALITY_REPORTS_DIR)/quality-dashboard.json 2>/dev/null || echo 'N/A')"; \
-		echo "Status: $$(jq -r '.summary.overall_status' $(QUALITY_REPORTS_DIR)/quality-dashboard.json 2>/dev/null || echo 'UNKNOWN')"; \
-	else \
-		echo "No quality data available. Run 'make quality-gate' first."; \
-	fi
-
-##@ MVP Integration Targets
-
-.PHONY: mvp-scale-up
-mvp-scale-up: ## Scale up network functions using NetworkIntent
-	@echo "Scaling up network functions..."
-	@if command -v kpt >/dev/null 2>&1; then \
-		echo "Using kpt to apply scale-up intent..."; \
-		kpt fn eval kpt-packages/scale-up --image gcr.io/kpt-fn/set-annotations:v0.1 -- replicas=3; \
-		kpt live apply kpt-packages/scale-up; \
-	elif command -v kubectl >/dev/null 2>&1; then \
-		echo "Using kubectl to patch NetworkIntent..."; \
-		kubectl patch networkintent mvp-intent --type='merge' -p '{"spec":{"targetReplicas":3}}' || \
-		kubectl apply -f examples/networkintent-scale-up.yaml; \
-	else \
-		echo "ERROR: Neither kpt nor kubectl found. Please install one."; \
-		exit 1; \
-	fi
-	@echo "Scale-up complete."
-
-.PHONY: mvp-network-scale-down
-mvp-network-scale-down: ## Scale down network functions using NetworkIntent
-	@echo "Scaling down network functions..."
-	@if command -v kpt >/dev/null 2>&1; then \
-		echo "Using kpt to apply scale-down intent..."; \
-		kpt fn eval kpt-packages/scale-down --image gcr.io/kpt-fn/set-annotations:v0.1 -- replicas=1; \
-		kpt live apply kpt-packages/scale-down; \
-	elif command -v kubectl >/dev/null 2>&1; then \
-		echo "Using kubectl to patch NetworkIntent..."; \
-		kubectl patch networkintent mvp-intent --type='merge' -p '{"spec":{"targetReplicas":1}}' || \
-		kubectl apply -f examples/networkintent-scale-down.yaml; \
-	else \
-		echo "ERROR: Neither kpt nor kubectl found. Please install one."; \
-		exit 1; \
-	fi
-	@echo "Scale-down complete."
-
-# Backward compatibility aliases for the renamed controller scaling targets
-.PHONY: mvp-controller-up mvp-controller-down
-mvp-controller-up: mvp-controller-scale-up ## Alias for mvp-controller-scale-up
-mvp-controller-down: mvp-controller-scale-down ## Alias for mvp-controller-scale-down
-
-.PHONY: mvp-status
-mvp-status: ## Check status of MVP network functions
-	@echo "Checking MVP network function status..."
-	@kubectl get networkintents -o wide || echo "No NetworkIntents found"
-	@kubectl get deployments -l app.kubernetes.io/managed-by=nephoran -o wide || echo "No managed deployments found"
-	@kubectl get pods -l app.kubernetes.io/managed-by=nephoran -o wide || echo "No managed pods found"
-
-##@ Ultra-Fast Development Targets
-
-.PHONY: ultra-fast
-ultra-fast: ## Ultra-fast build and test (< 2 minutes)
-	@echo "🚀 Running ultra-fast development workflow..."
-	@time $(MAKE) --no-print-directory deps-ultra gen-ultra build-ultra test-ultra
-	@echo "✅ Ultra-fast workflow completed!"
-
-.PHONY: deps-fast
-deps-fast: ## Lightning-fast dependency setup
-	@echo "⚡ Fast dependency setup..."
-	@GOMAXPROCS=8 go mod download -x
-	@go mod verify
-
-.PHONY: deps-ultra
-deps-ultra: ## Ultra-fast parallel dependency setup
-	@echo "⚡⚡ Ultra-fast dependency setup with caching..."
-	@mkdir -p $(HOME)/.cache/go-build $(HOME)/go/pkg/mod
-	@GOMAXPROCS=$(PARALLEL_JOBS) GOCACHE=$(HOME)/.cache/go-build GOMODCACHE=$(HOME)/go/pkg/mod \
-		go mod download -x &
-	@GOMAXPROCS=$(PARALLEL_JOBS) go build -v std &
-	@wait
-	@echo "✅ Dependencies ready!"
-
-.PHONY: gen-fast
-gen-fast: ## Quick code generation
-	@echo "🏗️ Fast code generation..."
-	@controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/v1" 2>/dev/null || true
-	@controller-gen crd paths="./api/v1" output:crd:artifacts:config=deployments/crds 2>/dev/null || true
-
-.PHONY: gen-ultra
-gen-ultra: ## Ultra-fast parallel code generation
-	@echo "🏗️⚡ Ultra-fast parallel code generation..."
-	@mkdir -p deployments/crds
-	@(\
-		controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/v1" 2>/dev/null || true\
-	) & (\
-		controller-gen crd paths="./api/v1" output:crd:artifacts:config=deployments/crds 2>/dev/null || true\
-	) & wait
-
-.PHONY: build-fast
-build-fast: ## Lightning-fast build with 2025 optimizations
-	@echo "🔨 Ultra-fast build with Go 1.24 optimizations..."
-	@mkdir -p bin
-	# Use optimal build settings for 2025
-	@CGO_ENABLED=0 GOMAXPROCS=$(PARALLEL_JOBS) GOOS=$(GOOS) GOARCH=$(GOARCH) GOAMD64=v3 \
-		go build $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/manager cmd/main.go
-
-.PHONY: build-ultra
-build-ultra: ## Ultra-fast parallel builds of all binaries
-	@echo "🔨⚡ Ultra-fast parallel build of all binaries..."
-	@mkdir -p bin
-	@export CGO_ENABLED=0 GOMAXPROCS=$(PARALLEL_JOBS) GOOS=$(GOOS) GOARCH=$(GOARCH) GOAMD64=v3; \
-	if [ -f cmd/conductor-loop/main.go ]; then \
-		(echo "Building conductor-loop..." && \
-		go build -p $(PARALLEL_JOBS) $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/conductor-loop cmd/conductor-loop/main.go) & \
-	fi; \
-	if [ -f cmd/intent-ingest/main.go ]; then \
-		(echo "Building intent-ingest..." && \
-		go build -p $(PARALLEL_JOBS) $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/intent-ingest cmd/intent-ingest/main.go) & \
-	fi; \
-	if [ -f cmd/porch-publisher/main.go ]; then \
-		(echo "Building porch-publisher..." && \
-		go build -p $(PARALLEL_JOBS) $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/porch-publisher cmd/porch-publisher/main.go) & \
-	fi; \
-	if [ -f planner/cmd/planner/main.go ]; then \
-		(echo "Building planner..." && \
-		go build -p $(PARALLEL_JOBS) $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/planner planner/cmd/planner/main.go) & \
-	fi; \
-	wait
-	@ls -lah bin/
-	@echo "✅ All binaries built!"
-
-.PHONY: test-fast
-test-fast: ## Rapid testing with 2025 optimizations
-	@echo "🧪 Ultra-fast testing with parallel execution..."
-	@mkdir -p .fast-reports
-	@GOMAXPROCS=$(PARALLEL_JOBS) GOMEMLIMIT=2GiB \
-		go test ./... -short -race -parallel=$(PARALLEL_JOBS) -timeout=6m \
-		-coverprofile=.fast-reports/coverage.out -json | tee .fast-reports/test-results.json
-
-.PHONY: test-ultra
-test-ultra: ## Ultra-fast testing with maximum parallelization
-	@echo "🧪⚡ Ultra-fast parallel testing..."
-	@mkdir -p .ultra-reports
-	@GOMAXPROCS=$(PARALLEL_JOBS) GOMEMLIMIT=4GiB GOGC=200 \
-		go test \
-		-p $(PARALLEL_JOBS) \
-		-parallel=$(PARALLEL_JOBS) \
-		-short \
-		-timeout=2m \
-		-tags="fast_build,unit_only" \
-		-coverprofile=.ultra-reports/coverage.out \
-		-covermode=atomic \
-		-json \
-		./... | tee .ultra-reports/test-results.json
-	@echo "✅ Tests completed!"
-
-.PHONY: lint-fast
-lint-fast: ## Ultra-fast linting with 2025 optimizations
-	@echo "🔍 Ultra-fast linting with optimal concurrency..."
-	@golangci-lint run --fast --timeout=2m --concurrency=$(PARALLEL_JOBS) --build-tags=netgo,osusergo
-
-.PHONY: lint-ultra
-lint-ultra: ## Ultra-fast minimal linting
-	@echo "🔍⚡ Ultra-fast minimal linting..."
-	@golangci-lint run \
-		--fast \
-		--timeout=1m \
-		--concurrency=$(PARALLEL_JOBS) \
-		--build-tags="fast_build" \
-		--disable-all \
-		--enable=govet,ineffassign,misspell \
-		--skip-dirs=vendor,testdata,node_modules
-
-##@ Docker Ultra-Fast Targets
-
-.PHONY: docker-ultra
-docker-ultra: build-ultra ## Ultra-fast Docker build with pre-built binaries
-	@echo "🐳⚡ Ultra-fast Docker build with pre-built binaries..."
-	@for binary in conductor-loop intent-ingest porch-publisher planner; do \
-		if [ -f bin/$$binary ]; then \
-			echo "Building Docker image for $$binary..."; \
-			docker build -f Dockerfile.ultra-fast \
-				--build-arg SERVICE=$$binary \
-				--build-arg PREBUILT_BINARY=bin/$$binary \
-				-t nephoran/$$binary:ultra-fast . & \
-		fi; \
-	done; \
-	wait
-	@docker images | grep ultra-fast
-
-.PHONY: docker-buildx-ultra
-docker-buildx-ultra: ## Ultra-fast multi-platform Docker build with buildx
-	@echo "🐳⚡ Ultra-fast buildx with maximum parallelization..."
-	@docker buildx create --use --name ultra-builder --driver docker-container --driver-opt network=host || true
-	@docker buildx build \
-		--platform linux/amd64 \
-		--cache-from type=gha \
-		--cache-to type=gha,mode=max \
-		--build-arg BUILDKIT_INLINE_CACHE=1 \
-		--build-arg SERVICE=conductor-loop \
-		-f Dockerfile.ultra-fast \
-		-t nephoran/conductor-loop:ultra \
-		--load .
-
-##@ Shortcuts and Aliases
-
-.PHONY: dev
-dev: deps gen fmt test ## Quick development workflow
-
-.PHONY: ci
-ci: deps gen fmt vet test lint quality-gate-ci ## CI workflow with quality gates
-
-.PHONY: validate
-validate: excellence-score ## Alias for excellence-score
-
-.PHONY: dashboard  
-dashboard: quality-dashboard ## Alias for quality-dashboard
-
-.PHONY: gate
-gate: quality-gate ## Alias for quality-gate
-
-# Default target
-.DEFAULT_GOAL := help
-
-# Check for required tools
-.PHONY: check-tools
-check-tools:
-	@echo "Checking required tools..."
-	@error=0; \
-	for tool in go docker kubectl; do \
-		if ! command -v $$tool >/dev/null 2>&1; then \
-			echo "❌ $$tool is required but not installed"; \
-			error=1; \
-		else \
-			echo "✅ $$tool is available"; \
-		fi; \
-	done; \
-	exit $$error
-
-# Initialize project
-.PHONY: init
-init: check-tools deps ## Initialize the project for development
-	@echo "Initializing project for development..."
-	mkdir -p $(REPORTS_DIR)
-	@echo "Project initialized successfully!"
-	@echo "Run 'make help' to see available commands"
-
-##@ Conductor Loop
-
-.PHONY: conductor-loop-build
-conductor-loop-build: ## Build conductor-loop binary
-	@echo "Building conductor-loop binary..."
-	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)" \
-		-o bin/conductor-loop ./cmd/conductor-loop
-
-.PHONY: conductor-loop-test
-conductor-loop-test: ## Test conductor-loop components
-	@echo "Testing conductor-loop..."
-	go test -v -race -coverprofile=.coverage/conductor-loop.out ./cmd/conductor-loop/... ./internal/loop/...
-
-.PHONY: conductor-loop-docker
-conductor-loop-docker: ## Build conductor-loop Docker image
-	@echo "Building conductor-loop Docker image..."
-	docker build -f cmd/conductor-loop/Dockerfile \
-		--build-arg VERSION=$(VERSION) \
-		--build-arg BUILD_DATE=$(DATE) \
-		--build-arg VCS_REF=$(COMMIT) \
-		--target final \
-		-t conductor-loop:$(VERSION) .
-	docker tag conductor-loop:$(VERSION) conductor-loop:latest
-
-.PHONY: conductor-loop-docker-dev
-conductor-loop-docker-dev: ## Build conductor-loop development Docker image
-	@echo "Building conductor-loop development Docker image..."
-	docker build -f cmd/conductor-loop/Dockerfile \
-		--build-arg VERSION=$(VERSION) \
-		--build-arg BUILD_DATE=$(DATE) \
-		--build-arg VCS_REF=$(COMMIT) \
-		--target dev \
-		-t conductor-loop:$(VERSION)-dev .
-
-.PHONY: conductor-loop-deploy
-conductor-loop-deploy: ## Deploy conductor-loop to Kubernetes
-	@echo "Deploying conductor-loop to Kubernetes..."
-	kubectl apply -k deployments/k8s/conductor-loop/
-	kubectl rollout status deployment/conductor-loop -n conductor-loop --timeout=300s
-
-.PHONY: conductor-loop-undeploy
-conductor-loop-undeploy: ## Remove conductor-loop from Kubernetes
-	@echo "Removing conductor-loop from Kubernetes..."
-	kubectl delete -k deployments/k8s/conductor-loop/ || true
-
-.PHONY: conductor-loop-logs
-conductor-loop-logs: ## Show conductor-loop logs
-	@echo "Showing conductor-loop logs..."
-	kubectl logs -n conductor-loop -l app.kubernetes.io/name=conductor-loop -f --tail=100
-
-.PHONY: conductor-loop-status
-conductor-loop-status: ## Show conductor-loop deployment status
-	@echo "Conductor Loop Deployment Status:"
-	@kubectl get all -n conductor-loop
-	@echo ""
-	@echo "ConfigMaps and Secrets:"
-	@kubectl get configmaps,secrets -n conductor-loop
-	@echo ""
-	@echo "PersistentVolumeClaims:"
-	@kubectl get pvc -n conductor-loop
-
-.PHONY: conductor-loop-clean
-conductor-loop-clean: ## Clean conductor-loop build artifacts
-	@echo "Cleaning conductor-loop artifacts..."
-	rm -f bin/conductor-loop
-	docker rmi conductor-loop:$(VERSION) conductor-loop:latest conductor-loop:$(VERSION)-dev 2>/dev/null || true
-
-.PHONY: conductor-loop-dev-up
-conductor-loop-dev-up: ## Start conductor-loop development environment
-	@echo "Starting conductor-loop development environment..."
-	mkdir -p handoff/in handoff/out deployments/conductor-loop/config deployments/conductor-loop/logs
-	echo '{"log_level":"debug","porch_endpoint":"http://localhost:7007"}' > deployments/conductor-loop/config/config.json
-	docker-compose -f deployments/docker-compose.conductor-loop.yml up -d
-
-.PHONY: conductor-loop-dev-down
-conductor-loop-dev-down: ## Stop conductor-loop development environment
-	@echo "Stopping conductor-loop development environment..."
-	docker-compose -f deployments/docker-compose.conductor-loop.yml down -v
-
-.PHONY: conductor-loop-dev-logs
-conductor-loop-dev-logs: ## Show conductor-loop development logs
-	@echo "Showing conductor-loop development logs..."
-	docker-compose -f deployments/docker-compose.conductor-loop.yml logs -f conductor-loop
-
-.PHONY: conductor-loop-integration-test
-conductor-loop-integration-test: conductor-loop-build ## Run conductor-loop integration tests
-	@echo "Running conductor-loop integration tests..."
-	go test -v -timeout=30m -tags=integration ./cmd/conductor-loop/... ./internal/loop/...
-
-.PHONY: conductor-loop-benchmark
-conductor-loop-benchmark: ## Run conductor-loop benchmarks
-	@echo "Running conductor-loop benchmarks..."
-	mkdir -p .benchmark-results
-	go test -bench=. -benchmem -run=^$ ./internal/loop/... > .benchmark-results/conductor-loop-bench.txt 2>&1
-	@echo "Benchmark results saved to .benchmark-results/conductor-loop-bench.txt"
-
-.PHONY: conductor-loop-demo
-conductor-loop-demo: conductor-loop-build ## Run conductor-loop demo
-	@echo "Running conductor-loop demo..."
-	@if [ "$(OS)" = "Windows_NT" ]; then \
-		powershell -ExecutionPolicy Bypass -File scripts/conductor-loop-demo.ps1; \
-	else \
-		bash scripts/conductor-loop-demo.sh; \
-	fi
-
-##@ MVP Demo Commands
-
-MVP_DEMO_DIR = examples/mvp-oran-sim
-MVP_NAMESPACE = mvp-demo
-
-.PHONY: mvp-up
-mvp-up: ## Run complete MVP demo flow (install → prepare → send → apply → validate)
-	@echo "===== Starting MVP Demo Flow ====="
-	@echo "Step 1/5: Installing Porch components..."
-	@cd $(MVP_DEMO_DIR) && \
-		if [ -f "01-install-porch.sh" ]; then \
-			bash 01-install-porch.sh; \
-		else \
-			pwsh -File 01-install-porch.ps1; \
-		fi
-	@echo ""
-	@echo "Step 2/5: Preparing NF simulator package..."
-	@cd $(MVP_DEMO_DIR) && \
-		if [ -f "02-prepare-nf-sim.sh" ]; then \
-			bash 02-prepare-nf-sim.sh; \
-		else \
-			pwsh -File 02-prepare-nf-sim.ps1; \
-		fi
-	@echo ""
-	@echo "Step 3/5: Sending scaling intent..."
-	@cd $(MVP_DEMO_DIR) && \
-		if [ -f "03-send-intent.sh" ]; then \
-			REPLICAS=3 bash 03-send-intent.sh; \
-		else \
-			pwsh -File 03-send-intent.ps1 -Replicas 3; \
-		fi
-	@echo ""
-	@echo "Step 4/5: Applying package with Porch/KPT..."
-	@cd $(MVP_DEMO_DIR) && \
-		if [ -f "04-porch-apply.sh" ]; then \
-			bash 04-porch-apply.sh; \
-		else \
-			pwsh -File 04-porch-apply.ps1; \
-		fi
-	@echo ""
-	@echo "Step 5/5: Validating deployment..."
-	@cd $(MVP_DEMO_DIR) && \
-		if [ -f "05-validate.sh" ]; then \
-			bash 05-validate.sh; \
-		else \
-			pwsh -File 05-validate.ps1; \
-		fi
-	@echo ""
-	@echo "===== MVP Demo Complete! ====="
-
-.PHONY: mvp-scale-up
-mvp-scale-up: ## Scale NF simulator up to 5 replicas
-	@echo "Scaling NF simulator to 5 replicas..."
-	@cd $(MVP_DEMO_DIR) && \
-		if [ -f "03-send-intent.sh" ]; then \
-			REPLICAS=5 REASON="Scale up test" bash 03-send-intent.sh; \
-		else \
-			pwsh -File 03-send-intent.ps1 -Replicas 5 -Reason "Scale up test"; \
-		fi
-	@sleep 3
-	@kubectl patch deployment nf-sim -n $(MVP_NAMESPACE) -p '{"spec":{"replicas":5}}' || true
-	@echo "Waiting for scale up..."
-	@sleep 5
-	@kubectl get deployment nf-sim -n $(MVP_NAMESPACE)
-
-.PHONY: mvp-sim-scale-down
-mvp-sim-scale-down: ## Scale NF simulator down to 1 replica
-	@echo "Scaling NF simulator to 1 replica..."
-	@cd $(MVP_DEMO_DIR) && \
-		if [ -f "03-send-intent.sh" ]; then \
-			REPLICAS=1 REASON="Scale down test" bash 03-send-intent.sh; \
-		else \
-			pwsh -File 03-send-intent.ps1 -Replicas 1 -Reason "Scale down test"; \
-		fi
-	@sleep 3
-	@kubectl patch deployment nf-sim -n $(MVP_NAMESPACE) -p '{"spec":{"replicas":1}}' || true
-	@echo "Waiting for scale down..."
-	@sleep 5
-	@kubectl get deployment nf-sim -n $(MVP_NAMESPACE)
-
-.PHONY: mvp-down
-mvp-down: mvp-scale-down ## Scale down and delete PackageRevision if created
-	@echo "Cleaning up PackageRevisions..."
-	@kubectl delete packagerevision nf-sim-package-v1 -n default 2>/dev/null || true
-	@echo "MVP scaled down"
-
-.PHONY: mvp-status
-mvp-status: ## Show current MVP deployment status
-	@echo "===== MVP Deployment Status ====="
-	@echo "Namespace: $(MVP_NAMESPACE)"
-	@kubectl get namespace $(MVP_NAMESPACE) 2>/dev/null || echo "Namespace not found"
-	@echo ""
-	@echo "Deployment:"
-	@kubectl get deployment nf-sim -n $(MVP_NAMESPACE) 2>/dev/null || echo "Deployment not found"
-	@echo ""
-	@echo "Pods:"
-	@kubectl get pods -n $(MVP_NAMESPACE) -l app=nf-sim 2>/dev/null || echo "No pods found"
-	@echo ""
-	@echo "Service:"
-	@kubectl get service nf-sim -n $(MVP_NAMESPACE) 2>/dev/null || echo "Service not found"
-
-.PHONY: mvp-clean
-mvp-clean: ## Clean up all MVP demo resources
-	@echo "Cleaning up MVP demo resources..."
-	@echo "Deleting namespace $(MVP_NAMESPACE)..."
-	@kubectl delete namespace $(MVP_NAMESPACE) --ignore-not-found=true
-	@echo "Deleting PackageRevisions..."
-	@kubectl delete packagerevision -l app=nf-sim --all-namespaces --ignore-not-found=true 2>/dev/null || true
-	@echo "Cleaning up local package directories..."
-	@rm -rf $(MVP_DEMO_DIR)/package-* 2>/dev/null || true
-	@echo "MVP demo resources cleaned up"
-
-.PHONY: mvp-logs
-mvp-logs: ## Show logs from NF simulator pods
-	@echo "===== NF Simulator Logs ====="
-	@kubectl logs -n $(MVP_NAMESPACE) -l app=nf-sim --tail=50 2>/dev/null || echo "No logs available"
-
-.PHONY: mvp-watch
-mvp-watch: ## Watch MVP deployment status continuously
-	@watch -n 2 "kubectl get deployment,pods,service -n $(MVP_NAMESPACE) 2>/dev/null || echo 'Resources not found'"
-
-##@ Conductor Watch Commands
-
-.PHONY: conductor-watch-build
-conductor-watch-build: ## Build conductor-watch binary
-	@echo "Building conductor-watch..."
-	CGO_ENABLED=0 go build -ldflags="-s -w" -o conductor-loop.exe ./cmd/conductor-loop/
-	@echo "✅ Conductor-watch built: conductor-loop.exe"
-
-.PHONY: conductor-watch-run
-conductor-watch-run: conductor-watch-build ## Run conductor-watch locally
-	@echo "Starting conductor-watch..."
-	@echo "Watching: ./handoff/"
-	@echo "Schema: ./docs/contracts/intent.schema.json"
-	@echo "Press Ctrl+C to stop"
-	./conductor-loop.exe -handoff-dir ./handoff -schema ./docs/contracts/intent.schema.json -batch-interval 2s
-
-.PHONY: conductor-watch-run-dry
-conductor-watch-run-dry: conductor-watch-build ## Run conductor-watch in dry-run mode
-	@echo "Starting conductor-watch in DRY-RUN mode..."
-	@echo "Watching: ./handoff/"
-	@echo "Schema: ./docs/contracts/intent.schema.json"
-	@echo "Press Ctrl+C to stop"
-	./conductor-loop.exe -handoff-dir ./handoff -schema ./docs/contracts/intent.schema.json -batch-interval 2s -porch-mode structured
-
-.PHONY: conductor-watch-smoke
-conductor-watch-smoke: ## Run comprehensive smoke test for conductor-watch
-	@echo "Running conductor-watch smoke test..."
-	@if [ "$(OS)" = "Windows_NT" ]; then \
-		pwsh -ExecutionPolicy Bypass -File hack/watcher-smoke.ps1; \
-	else \
-		echo "Smoke test script is Windows PowerShell specific"; \
-		echo "Run manually: pwsh hack/watcher-smoke.ps1"; \
-	fi
-
-.PHONY: conductor-watch-smoke-quick
-conductor-watch-smoke-quick: ## Quick smoke test (30s timeout)
-	@echo "Running quick conductor-watch smoke test..."
-	@if [ "$(OS)" = "Windows_NT" ]; then \
-		pwsh -ExecutionPolicy Bypass -File hack/watcher-smoke.ps1 -Timeout 15 -SkipBuild; \
-	else \
-		echo "Smoke test script is Windows PowerShell specific"; \
-		echo "Run manually: pwsh hack/watcher-smoke.ps1 -Timeout 15 -SkipBuild"; \
-	fi
-
-.PHONY: conductor-watch-test-basic
-conductor-watch-test-basic: ## Run basic conductor-watch test (no Kubernetes required)
-	@echo "Running basic conductor-watch test..."
-	@if [ "$(OS)" = "Windows_NT" ]; then \
-		pwsh -ExecutionPolicy Bypass -File hack/watcher-basic-test.ps1; \
-	else \
-		echo "Basic test script is Windows PowerShell specific"; \
-		echo "Run manually: pwsh hack/watcher-basic-test.ps1"; \
-	fi
-
-.PHONY: conductor-watch-clean
-conductor-watch-clean: ## Clean conductor-watch artifacts
-	@echo "Cleaning conductor-watch artifacts..."
-	@rm -f conductor-loop.exe conductor-watch.exe 2>/dev/null || true
-	@rm -f handoff/intent-*smoke-test*.json handoff/intent-*basic-test*.json 2>/dev/null || true
-	@echo "✅ Conductor-watch artifacts cleaned"

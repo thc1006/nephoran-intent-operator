@@ -9,18 +9,19 @@ import (
 
 // SearchResult represents a single search result from RAG
 type SearchResult struct {
-	ID        string                 `json:"id"`
-	Content   string                 `json:"content"`
-	Metadata  map[string]interface{} `json:"metadata"`
-	Score     float32                `json:"score"`
-	Distance  float32                `json:"distance"`  // Added for test compatibility
-	Source    string                 `json:"source"`
-	Chunk     int                    `json:"chunk"`
-	Title     string                 `json:"title"`
-	Summary   string                 `json:"summary"`
-	Document  *TelecomDocument       `json:"document"`  // Added for test compatibility
-	CreatedAt time.Time              `json:"created_at"`
-	UpdatedAt time.Time              `json:"updated_at"`
+	ID         string                 `json:"id"`
+	Content    string                 `json:"content"`
+	Metadata   map[string]interface{} `json:"metadata"`
+	Score      float32                `json:"score"`
+	Distance   float32                `json:"distance"`   // Added for test compatibility
+	Source     string                 `json:"source"`
+	Chunk      int                    `json:"chunk"`
+	Title      string                 `json:"title"`
+	Summary    string                 `json:"summary"`
+	Document   *TelecomDocument       `json:"document"`   // Added for test compatibility
+	CreatedAt  time.Time              `json:"created_at"`
+	UpdatedAt  time.Time              `json:"updated_at"`
+	Confidence float32                `json:"confidence"` // Added for test compatibility
 }
 
 // SearchQuery represents a query to the RAG system

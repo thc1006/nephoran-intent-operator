@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package coretypes
+package types
 
 import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/contracts"
@@ -45,3 +45,15 @@ type ResourceUsage struct {
 	NetworkOutMBps    float64 `json:"networkOutMBps"`
 	ActiveConnections int     `json:"activeConnections"`
 }
+
+// Type aliases for backward compatibility
+type ComponentType = contracts.ComponentType
+
+// Constants for backward compatibility
+const (
+	ComponentTypeLLMProcessor       = contracts.ComponentTypeLLMProcessor
+	ComponentTypeResourcePlanner    = contracts.ComponentTypeResourcePlanner
+	ComponentTypeManifestGenerator  = contracts.ComponentTypeManifestGenerator
+	ComponentTypeGitOpsController   = contracts.ComponentTypeGitOpsController
+	ComponentTypeDeploymentVerifier = contracts.ComponentTypeDeploymentVerifier
+)

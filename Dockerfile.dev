@@ -77,7 +77,7 @@ tmp_dir = "tmp"
   stop_on_error = true
 
 [color]
-  app = ""
+  app = "
   build = "yellow"
   main = "magenta"
   runner = "green"
@@ -138,7 +138,7 @@ sed -i "s|{{.BuildArgs}}|$BUILD_ARGS|g" .air.toml
 echo "Port: $PORT"
 echo "Debug port: $DELVE_PORT"
 echo "Hot reload: enabled"
-echo ""
+echo "
 
 # Start with air for hot reload or dlv for debugging
 if [ "$DEBUG_MODE" = "true" ]; then
@@ -218,7 +218,7 @@ echo "Starting Python development environment"
 echo "Port: $PORT"
 echo "Debug port: $DEBUGPY_PORT"
 echo "Flask environment: $FLASK_ENV"
-echo ""
+echo "
 
 # Install any new requirements
 if [ -f "/app/requirements-rag.txt" ]; then
@@ -283,7 +283,7 @@ echo "  k9s                     - Kubernetes TUI"
 echo "  curl, wget, jq, yq      - Data manipulation"
 echo "  vim, tmux               - Editors and terminal"
 echo "  htop, tcpdump, netcat   - System monitoring"
-echo ""
+echo "
 echo "Run 'bash' to start interactive shell"
 EOF
 

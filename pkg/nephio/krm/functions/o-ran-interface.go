@@ -1534,7 +1534,9 @@ func (f *ORANInterfaceConfigFunction) generateO2Resources(iface *ORANInterface) 
 						"nephoran.com/interface-name": iface.Name,
 					},
 				},
-				Type: "Opaque",
+				Spec: map[string]interface{}{
+					"type": "Opaque",
+				},
 				Data: make(map[string]interface{}),
 			}
 

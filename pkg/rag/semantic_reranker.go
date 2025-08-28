@@ -367,9 +367,9 @@ func (sr *SemanticReranker) calculateStructuralRelevance(query string, result *E
 	}
 	score += authorityBoost
 
-	// Document type relevance
-	if doc.DocumentType != "" {
-		switch strings.ToLower(doc.DocumentType) {
+	// Document type relevance (use Type field instead of DocumentType)
+	if string(doc.Type) != "" {
+		switch strings.ToLower(string(doc.Type)) {
 		case "specification", "standard":
 			score += 0.1 // High value for specs
 		case "technical report", "report":
@@ -379,7 +379,7 @@ func (sr *SemanticReranker) calculateStructuralRelevance(query string, result *E
 
 	// Confidence score from document metadata
 	if doc.Confidence > 0 {
-		score += doc.Confidence * 0.1
+		score += float32(doc.Confidence) * 0.1
 	}
 
 	// Normalize score
@@ -418,10 +418,10 @@ func (sr *SemanticReranker) calculateContextualRelevance(query string, result *E
 		}
 	}
 
-	// Use case relevance
-	if len(doc.UseCase) > 0 {
-		for _, uc := range doc.UseCase {
-			if strings.Contains(strings.ToLower(query), strings.ToLower(uc)) {
+	// Use case relevance (use Keywords field from shared.TelecomDocument)
+	if len(doc.Keywords) > 0 {
+		for _, keyword := range doc.Keywords {
+			if strings.Contains(strings.ToLower(query), strings.ToLower(keyword)) {
 				score += 0.1
 			}
 		}

@@ -118,11 +118,13 @@ type PackageRevisionMetrics struct {
 	deploymentStatus   *prometheus.GaugeVec
 }
 
-// ContentProcessor processes different types of package content
-type ContentProcessor interface {
-	ProcessContent(ctx context.Context, content map[string][]byte) (map[string][]byte, error)
-	ValidateContent(ctx context.Context, content map[string][]byte) error
-	GetContentType() string
+// WorkflowEngine manages package approval workflows
+type WorkflowEngine interface {
+	StartWorkflow(ctx context.Context, pkg *PackageRevision, workflowType string) (*Workflow, error)
+	ApproveWorkflow(ctx context.Context, workflowID string, approver string) error
+	RejectWorkflow(ctx context.Context, workflowID string, approver string, reason string) error
+	GetWorkflowStatus(ctx context.Context, workflowID string) (*WorkflowStatus, error)
+	CancelWorkflow(ctx context.Context, workflowID string, reason string) error
 }
 
 // PackageValidator validates package content according to specific rules
@@ -686,7 +688,10 @@ func (prm *packageRevisionManager) changeLifecycle(ctx context.Context, ref *Pac
 
 	// Check workflow requirements for certain transitions
 	if newLifecycle == PackageRevisionLifecyclePublished && prm.workflowEngine != nil {
-		status, err := prm.workflowEngine.GetWorkflowStatus(ctx, pkg)
+		if pkg.Spec.WorkflowLock == nil || pkg.Spec.WorkflowLock.WorkflowID == "" {
+			return fmt.Errorf("package has no associated workflow")
+		}
+		status, err := prm.workflowEngine.GetWorkflowStatus(ctx, pkg.Spec.WorkflowLock.WorkflowID)
 		if err != nil {
 			return fmt.Errorf("failed to get workflow status: %w", err)
 		}

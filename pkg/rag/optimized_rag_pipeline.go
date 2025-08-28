@@ -7,11 +7,13 @@ import (
 	"crypto/md5"
 	"fmt"
 	"log/slog"
+	"math"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
@@ -215,7 +217,7 @@ func NewOptimizedRAGPipeline(
 
 
 	// Initialize embedding cache - use the in-memory implementation
-	embeddingCache := NewInMemoryCache(config.EmbeddingCacheSize)
+	embeddingCache := NewInMemoryCache(int64(config.EmbeddingCacheSize))
 
 
 	pipeline := &OptimizedRAGPipeline{
@@ -435,7 +437,7 @@ func (p *OptimizedRAGPipeline) executeOptimizedSearch(ctx context.Context, reque
 	// Convert search results
 	for i, result := range searchResponse.Results {
 		ragResponse.SourceDocuments[i] = &types.SearchResult{
-			Document: result.Document,
+			Document: convertSharedToTypesDocument(result.Document),
 			Score:    result.Score,
 		}
 	}
@@ -478,7 +480,7 @@ func (p *OptimizedRAGPipeline) executeBatchSearch(ctx context.Context, requests 
 		for j, sharedResult := range searchResponse.Results {
 			localResults[j] = &SearchResult{
 				Score:    sharedResult.Score,
-				Document: sharedResult.Document,
+				Document: convertTypesToSharedDocument(sharedResult.Document),
 			}
 		}
 
@@ -626,7 +628,35 @@ func (c *SemanticCache) calculateCosineSimilarity(vec1, vec2 []float32) float32 
 		return 0
 	}
 
-	return dotProduct / (float32(sqrt(float64(norm1))) * float32(sqrt(float64(norm2))))
+	return dotProduct / (float32(math.Sqrt(float64(norm1))) * float32(math.Sqrt(float64(norm2))))
+}
+
+// convertTypesToSharedDocument converts types.TelecomDocument to shared.TelecomDocument
+func convertTypesToSharedDocument(typesDoc *types.TelecomDocument) *shared.TelecomDocument {
+	if typesDoc == nil {
+		return nil
+	}
+	
+	// Convert metadata map from types.Metadata to map[string]interface{}
+	metadata := make(map[string]interface{})
+	for k, v := range typesDoc.Metadata {
+		metadata[k] = v
+	}
+	
+	return &shared.TelecomDocument{
+		ID:        typesDoc.ID,
+		Title:     typesDoc.Title,
+		Content:   typesDoc.Content,
+		Type:      shared.DocumentType(typesDoc.Type),
+		Category:  typesDoc.Category,
+		Version:   typesDoc.Version,
+		Keywords:  typesDoc.Tags, // Map tags to keywords
+		Source:    typesDoc.Source,
+		Confidence: typesDoc.Confidence,
+		Metadata:  metadata,
+		CreatedAt: typesDoc.CreatedAt,
+		UpdatedAt: typesDoc.UpdatedAt,
+	}
 }
 
 // Use consolidated sqrt function from pkg/shared - using the one from embedding_service_interface.go

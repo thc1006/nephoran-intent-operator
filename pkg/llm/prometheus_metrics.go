@@ -189,22 +189,22 @@ func (pm *PrometheusMetrics) isRegistered() bool {
 	return pm.registered
 }
 
-// MetricsIntegrator integrates Prometheus metrics with the existing MetricsCollector
-type MetricsIntegrator struct {
+// MetricsIntegratorImpl provides full implementation when RAG is enabled
+type MetricsIntegratorImpl struct {
 	collector         *MetricsCollector
 	prometheusMetrics *PrometheusMetrics
 }
 
-// NewMetricsIntegrator creates a new metrics integrator
-func NewMetricsIntegrator(collector *MetricsCollector) *MetricsIntegrator {
-	return &MetricsIntegrator{
+// NewMetricsIntegratorImpl creates a new metrics integrator implementation
+func NewMetricsIntegratorImpl(collector *MetricsCollector) *MetricsIntegratorImpl {
+	return &MetricsIntegratorImpl{
 		collector:         collector,
 		prometheusMetrics: GetPrometheusMetrics(),
 	}
 }
 
 // RecordLLMRequest records an LLM request to both metrics systems
-func (mi *MetricsIntegrator) RecordLLMRequest(model, status string, latency time.Duration, tokens int) {
+func (mi *MetricsIntegratorImpl) RecordLLMRequest(model, status string, latency time.Duration, tokens int) {
 	// Record to existing MetricsCollector
 	mi.collector.RecordLLMRequest(model, status, latency, tokens)
 
@@ -218,7 +218,7 @@ func (mi *MetricsIntegrator) RecordLLMRequest(model, status string, latency time
 }
 
 // RecordCacheOperation records cache operations to both metrics systems
-func (mi *MetricsIntegrator) RecordCacheOperation(model, operation string, hit bool) {
+func (mi *MetricsIntegratorImpl) RecordCacheOperation(model, operation string, hit bool) {
 	// Record to existing MetricsCollector
 	mi.collector.RecordCacheOperation(operation, hit)
 
@@ -231,7 +231,7 @@ func (mi *MetricsIntegrator) RecordCacheOperation(model, operation string, hit b
 }
 
 // RecordFallbackAttempt records fallback attempts to both metrics systems
-func (mi *MetricsIntegrator) RecordFallbackAttempt(originalModel, fallbackModel string) {
+func (mi *MetricsIntegratorImpl) RecordFallbackAttempt(originalModel, fallbackModel string) {
 	// Increment fallback in existing collector's client metrics
 	// This requires accessing the client metrics - we'll add a method for this
 	mi.collector.clientMetrics.mutex.Lock()
@@ -243,7 +243,7 @@ func (mi *MetricsIntegrator) RecordFallbackAttempt(originalModel, fallbackModel 
 }
 
 // RecordRetryAttempt records retry attempts to both metrics systems
-func (mi *MetricsIntegrator) RecordRetryAttempt(model string) {
+func (mi *MetricsIntegratorImpl) RecordRetryAttempt(model string) {
 	// Increment retry in existing collector's client metrics
 	mi.collector.clientMetrics.mutex.Lock()
 	mi.collector.clientMetrics.RetryAttempts++
@@ -254,7 +254,7 @@ func (mi *MetricsIntegrator) RecordRetryAttempt(model string) {
 }
 
 // RecordCircuitBreakerEvent records circuit breaker events with error categorization
-func (mi *MetricsIntegrator) RecordCircuitBreakerEvent(name, event, model string) {
+func (mi *MetricsIntegratorImpl) RecordCircuitBreakerEvent(name, event, model string) {
 	// Record to existing MetricsCollector
 	mi.collector.RecordCircuitBreakerEvent(name, event)
 
@@ -270,14 +270,14 @@ func (mi *MetricsIntegrator) RecordCircuitBreakerEvent(name, event, model string
 }
 
 // ResetMetrics resets both metrics systems (useful for testing)
-func (mi *MetricsIntegrator) ResetMetrics() {
+func (mi *MetricsIntegratorImpl) ResetMetrics() {
 	mi.collector.Reset()
 	// Note: Prometheus metrics cannot be reset easily as they're cumulative
 	// This is by design - use different metric names/labels for testing
 }
 
 // GetComprehensiveMetrics returns metrics from both systems
-func (mi *MetricsIntegrator) GetComprehensiveMetrics() map[string]interface{} {
+func (mi *MetricsIntegratorImpl) GetComprehensiveMetrics() map[string]interface{} {
 	result := mi.collector.GetComprehensiveMetrics()
 	result["prometheus_enabled"] = mi.prometheusMetrics.isRegistered()
 	result["metrics_enabled_env"] = isMetricsEnabled()

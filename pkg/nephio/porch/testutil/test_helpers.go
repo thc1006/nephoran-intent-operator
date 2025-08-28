@@ -33,13 +33,12 @@ import (
 // TestConfig creates a test configuration for porch clients
 func NewTestConfig() *porch.Config {
 	return &porch.Config{
-		Server: "http://localhost:8080",
-		Auth: porch.AuthConfig{
-			Type: "none",
+		PorchConfig: &porch.PorchServiceConfig{
+			Host: "http://localhost:8080",
+			Timeout: 30 * time.Second,
+			MaxRetries: 3,
 		},
-		Timeout:    30 * time.Second,
-		MaxRetries: 3,
-		Logger:     zap.New(zap.UseDevMode(true)),
+		Repositories: make(map[string]*porch.RepositoryConfig),
 	}
 }
 
@@ -121,12 +120,9 @@ func NewTestRepository(name string) *porch.Repository {
 		},
 		Spec: porch.RepositorySpec{
 			Type: "git",
-			Git: &porch.GitRepository{
-				Repo:      "https://github.com/test/repo.git",
-				Branch:    "main",
-				Directory: "/",
-			},
-			Description: "Test repository for " + name,
+			URL: "https://github.com/test/repo.git",
+			Branch: "main",
+			Directory: "/",
 		},
 	}
 }

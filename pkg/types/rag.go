@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package coretypes
+package types
 
 import (
 	"time"
@@ -63,4 +63,36 @@ type EmbeddingCacheEntry struct {
 	CreatedAt   time.Time     `json:"created_at"`
 	AccessCount int64         `json:"access_count"`
 	TTL         time.Duration `json:"ttl"`
+}
+
+// BatchSearchConfig holds configuration for batch search operations
+type BatchSearchConfig struct {
+	MaxBatchSize        int           `json:"max_batch_size"`
+	MaxWaitTime         time.Duration `json:"max_wait_time"`
+	EnableDeduplication bool          `json:"enable_deduplication"`
+	MaxConcurrency      int           `json:"max_concurrency"`
+	CacheEnabled        bool          `json:"cache_enabled"`
+	CacheTTL            time.Duration `json:"cache_ttl"`
+}
+
+// PoolConfig represents configuration for connection pools
+type PoolConfig struct {
+	MinConnections int           `json:"min_connections"`
+	MaxConnections int           `json:"max_connections"`
+	MaxIdleTime    time.Duration `json:"max_idle_time"`
+	MaxLifetime    time.Duration `json:"max_lifetime"`
+	HealthCheck    bool          `json:"health_check"`
+	HealthInterval time.Duration `json:"health_interval"`
+}
+
+// PoolMetrics represents metrics for connection pools
+type PoolMetrics struct {
+	ActiveConnections int64         `json:"active_connections"`
+	IdleConnections   int64         `json:"idle_connections"`
+	TotalConnections  int64         `json:"total_connections"`
+	ConnectionsCreated int64        `json:"connections_created"`
+	ConnectionsDestroyed int64      `json:"connections_destroyed"`
+	HealthChecksRun   int64         `json:"health_checks_run"`
+	HealthChecksFailed int64        `json:"health_checks_failed"`
+	AverageLatency    time.Duration `json:"average_latency"`
 }

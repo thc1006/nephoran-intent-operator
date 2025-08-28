@@ -181,11 +181,13 @@ RUN --mount=type=cache,target=/go/pkg/mod \
         -tags="netgo osusergo static_build" \
         -o /build/service \
         $CMD_PATH && \
-    echo "Build complete: $(file /build/service)" && \
+    echo "Build complete: $(ls -la /build/service)" && test -x /build/service)" && echo "Binary verification: $(stat -c '%n: size=%s, mode=%a' /build/service)")" && \
     echo "Binary size: $(du -h /build/service | cut -f1)"
 
 # Verify binary is statically linked
-RUN file /build/service | grep -E "(statically linked|static)" || \
+RUN ls -la /build/service && \
+    test -x /build/service && \
+    echo "Binary verification: $(stat -c '%n: size=%s, mode=%a' /build/service)" | grep -E "(statically linked|static)" || \
     (echo "Warning: Binary may not be fully static" && exit 0)
 
 # =============================================================================

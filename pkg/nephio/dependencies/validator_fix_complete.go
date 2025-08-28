@@ -355,6 +355,9 @@ type ValidationRules struct {
 	Rules          []*ValidationRule      `json:"rules"`
 	Rulesets       []*ValidationRuleset   `json:"rulesets,omitempty"`
 	DefaultRuleset string                 `json:"defaultRuleset,omitempty"`
+	SecurityRules  []*SecurityRule        `json:"securityRules,omitempty"`
+	LicenseRules   []*LicenseRule         `json:"licenseRules,omitempty"`
+	ComplianceRules []*ComplianceRule     `json:"complianceRules,omitempty"`
 	Version        string                 `json:"version"`
 	CreatedAt      time.Time              `json:"createdAt"`
 	UpdatedAt      time.Time              `json:"updatedAt"`
@@ -689,9 +692,7 @@ func DefaultValidatorConfig() *ValidatorConfig {
 			CacheResults:           true,
 		},
 		CacheConfig: &CacheConfig{
-			DefaultTTL:       1 * time.Hour,
-			MaxEntries:       10000,
-			CleanupInterval:  10 * time.Minute,
+			Config: "default-cache-config",
 		},
 	}
 }
@@ -722,15 +723,15 @@ func NewValidatorMetrics() *ValidatorMetrics {
 		ValidationRate:              0.0,
 		ErrorRate:                   0.0,
 		CacheHitRate:                0.0,
-		SecurityScansTotal:          NewCounter(),
-		SecurityScanTime:            NewHistogram(),
-		VulnerabilitiesFound:        NewCounter(),
-		ConflictDetectionTime:       NewHistogram(),
-		ConflictsDetected:           NewCounter(),
-		CompatibilityChecks:         NewCounter(),
-		CompatibilityValidationTime: NewHistogram(),
-		ScanCacheHits:               NewCounter(),
-		ScanCacheMisses:             NewCounter(),
+		SecurityScansTotal:          Counter{},
+		SecurityScanTime:            Histogram{},
+		VulnerabilitiesFound:        Counter{},
+		ConflictDetectionTime:       Histogram{},
+		ConflictsDetected:           Counter{},
+		CompatibilityChecks:         Counter{},
+		CompatibilityValidationTime: Histogram{},
+		ScanCacheHits:               Counter{},
+		ScanCacheMisses:             Counter{},
 	}
 }
 
@@ -1177,16 +1178,19 @@ type PolicyConflict struct {
 }
 
 type ConflictResolutionSuggestion struct {
-	SuggestionID   string              `json:"suggestionId"`
-	ConflictID     string              `json:"conflictId"`
-	Type           string              `json:"type"`
-	Strategy       string              `json:"strategy"`
-	Description    string              `json:"description"`
+	SuggestionID     string              `json:"suggestionId"`
+	ConflictID       string              `json:"conflictId"`
+	Type             string              `json:"type"`
+	Strategy         string              `json:"strategy"`
+	Description      string              `json:"description"`
 	AffectedPackages []*PackageReference `json:"affectedPackages"`
-	Actions        []string            `json:"actions"`
-	Confidence     float64             `json:"confidence"`
-	EstimatedImpact string             `json:"estimatedImpact"`
-	Risks          []string            `json:"risks,omitempty"`
+	Actions          []string            `json:"actions"`
+	Confidence       float64             `json:"confidence"`
+	EstimatedImpact  string              `json:"estimatedImpact"`
+	Risks            []string            `json:"risks,omitempty"`
+	ResolutionType   string              `json:"resolutionType"`
+	Impact           string              `json:"impact"`
+	GeneratedAt      time.Time           `json:"generatedAt"`
 }
 
 // Final missing types for complete validator.go compilation
@@ -1227,6 +1231,28 @@ type ValidatorHealth struct {
 	ErrorRate      float64       `json:"errorRate"`
 	CacheStatus    string        `json:"cacheStatus"`
 }
+
+// Missing rule types
+type LicenseRule struct {
+	RuleID      string   `json:"ruleId"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	AllowedLicenses []string `json:"allowedLicenses"`
+	BlockedLicenses []string `json:"blockedLicenses"`
+	Enabled     bool     `json:"enabled"`
+}
+
+type ComplianceRule struct {
+	RuleID      string   `json:"ruleId"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Standard    string   `json:"standard"` // e.g., "GDPR", "HIPAA", "SOX"
+	Requirements []string `json:"requirements"`
+	Severity    string   `json:"severity"`
+	Enabled     bool     `json:"enabled"`
+}
+
+// Duplicate SecurityRule removed - using the one defined earlier
 
 // Interface types for caching
 type ValidationCache interface {

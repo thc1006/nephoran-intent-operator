@@ -2308,7 +2308,7 @@ func (v *dependencyValidator) generateResolutionSuggestions(ctx context.Context,
 				ResolutionType: "version_upgrade",
 				Description:   "Upgrade to the latest compatible version",
 				Confidence:    0.8,
-				Impact:        ConflictImpactLow,
+				Impact:        string(ConflictImpactLow),
 				GeneratedAt:   time.Now(),
 			}
 			
@@ -2323,11 +2323,11 @@ func (v *dependencyValidator) generateResolutionSuggestions(ctx context.Context,
 func (v *dependencyValidator) categorizeVulnerabilities(result *SecurityScanResult) {
 	for _, vuln := range result.Vulnerabilities {
 		switch vuln.Severity {
-		case VulnerabilitySeverityHigh:
+		case string(VulnerabilitySeverityHigh):
 			result.HighRiskCount++
-		case VulnerabilitySeverityMedium:
+		case string(VulnerabilitySeverityMedium):
 			result.MediumRiskCount++
-		case VulnerabilitySeverityLow:
+		case string(VulnerabilitySeverityLow):
 			result.LowRiskCount++
 		}
 	}
@@ -2373,7 +2373,7 @@ func (v *dependencyValidator) determineComplianceStatus(violations []*PolicyViol
 	
 	highSeverityCount := 0
 	for _, violation := range violations {
-		if violation.Severity == VulnerabilitySeverityHigh {
+		if violation.Severity == string(VulnerabilitySeverityHigh) {
 			highSeverityCount++
 		}
 	}
@@ -2393,15 +2393,13 @@ func (v *dependencyValidator) scanPackageVulnerabilities(ctx context.Context, pk
 	// In a real implementation, query external vulnerability databases
 	if pkg.Name == "vulnerable-package" {
 		vulns = append(vulns, &Vulnerability{
-			VulnerabilityID: "CVE-2023-12345",
-			Severity:        VulnerabilitySeverityHigh,
-			Description:     "Test vulnerability",
-			AffectedPackage: &AffectedPackage{
-				PackageName: pkg.Name,
-				Version:     pkg.Version,
-				Severity:    string(VulnerabilitySeverityHigh),
-			},
-			DiscoveredAt: time.Now(),
+			ID:          "CVE-2023-12345",
+			CVE:         "CVE-2023-12345",
+			Severity:    string(VulnerabilitySeverityHigh),
+			Score:       7.5,
+			Description: "Test vulnerability",
+			FixVersion:  "1.0.1",
+			PublishedAt: time.Now(),
 		})
 	}
 	
@@ -2415,9 +2413,10 @@ func convertSecurityToPolicyViolations(securityViolations []*SecurityPolicyViola
 		policyViolations[i] = &PolicyViolation{
 			ViolationID: sv.ViolationID,
 			PolicyID:    sv.PolicyID,
-			Severity:    VulnerabilitySeverity(sv.Severity),
-			Description: sv.Description,
-			Package:     sv.Package,
+			RuleID:      "", // Set empty or extract from sv if available
+			Severity:    sv.Severity,
+			Message:     sv.Description,
+			Resource:    sv.Package,
 			DetectedAt:  sv.DetectedAt,
 		}
 	}

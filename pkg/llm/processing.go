@@ -106,16 +106,7 @@ type ProcessingBatchRequest struct {
 	Context    context.Context        `json:"-"`
 }
 
-// ProcessingResult represents the result of processing
-type ProcessingResult struct {
-	Content        string                 `json:"content"`
-	TokensUsed     int                    `json:"tokens_used"`
-	ProcessingTime time.Duration          `json:"processing_time"`
-	CacheHit       bool                   `json:"cache_hit"`
-	Batched        bool                   `json:"batched"`
-	Metadata       map[string]interface{} `json:"metadata"`
-	Error          error                  `json:"error,omitempty"`
-}
+// ProcessingResult is defined in types.go
 
 // ProcessingStreamingRequest represents a streaming request payload  
 type ProcessingStreamingRequest struct {

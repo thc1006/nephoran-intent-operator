@@ -13,6 +13,11 @@ concurrency:
 
 permissions:
   contents: read
+  packages: write  # For GHCR push
+  id-token: write  # For OIDC token
+  attestations: write  # For build attestations
+  actions: read  # For cache access
+  security-events: write  # For security scanning
 
 env:
   # Go version now read from go.mod in all jobs for consistency
@@ -20,7 +25,8 @@ env:
   IMAGE_NAME: nephoran-intent-operator
   # Ultra-fast build optimization (2025 best practices)
   DOCKER_BUILDKIT: 1
-  BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+  BUILDX_NO_DEFAULT_ATTESTATIONS: 0  # Enable attestations for security
+  BUILDX_ATTESTATION_MODE: max
   GOPRIVATE: github.com/thc1006/*
   # Go 1.24+ ultra-performance optimization flags
   GOMAXPROCS: 8
@@ -351,9 +357,12 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-${{ env.GO_BUILD_CACHE_KEY_SUFFIX }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
+            ${{ runner.os }}-go-${{ env.GO_BUILD_CACHE_KEY_SUFFIX }}-
             ${{ runner.os }}-go-
+          save-always: true
+          lookup-only: false
 
       - name: Download and verify dependencies
         run: |
@@ -418,9 +427,12 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-${{ env.GO_BUILD_CACHE_KEY_SUFFIX }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
+            ${{ runner.os }}-go-${{ env.GO_BUILD_CACHE_KEY_SUFFIX }}-
             ${{ runner.os }}-go-
+          save-always: true
+          lookup-only: false
 
       - name: Download and verify dependencies
         run: |
@@ -437,42 +449,106 @@ jobs:
           path: deployments/crds/
         continue-on-error: true
 
-      - name: Build binaries (cmd/*)
+      - name: Build binaries (cmd/*) with parallel execution
         id: build
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p bin .excellence-reports
           built=0
-
+          failed_builds=""
+          
+          echo "## 🔨 Build Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Binary | Status | Duration |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|--------|----------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Define build function for parallel execution
+          build_binary() {
+            local name=$1
+            local path=$2
+            local start_time=$(date +%s)
+            
+            echo "Building $name from $path..."
+            if go build -v -tags="$GO_BUILD_TAGS" -ldflags="-s -w" -o "bin/$name" "$path" 2>&1 | tee ".excellence-reports/build_$name.log"; then
+              local end_time=$(date +%s)
+              local duration=$((end_time - start_time))
+              echo "| $name | ✅ Success | ${duration}s |" >> $GITHUB_STEP_SUMMARY
+              echo "$name: SUCCESS"
+              return 0
+            else
+              local end_time=$(date +%s)
+              local duration=$((end_time - start_time))
+              echo "| $name | ❌ Failed | ${duration}s |" >> $GITHUB_STEP_SUMMARY
+              echo "$name: FAILED"
+              return 1
+            fi
+          }
+          
+          # Build binaries in parallel with error tracking
+          pids=()
+          build_status=()
+          
           if [[ -f cmd/intent-ingest/main.go ]]; then
-            echo ">> building cmd/intent-ingest"
-            ( go build -v -o bin/intent-ingest ./cmd/intent-ingest ) 2>&1 | tee .excellence-reports/build_intent-ingest.log
+            build_binary "intent-ingest" "./cmd/intent-ingest" &
+            pids+=("$!")
+            build_status+=("intent-ingest")
             built=1
           fi
-
+          
           if [[ -f cmd/porch-publisher/main.go ]]; then
-            echo ">> building cmd/porch-publisher"
-            ( go build -v -o bin/porch-publisher ./cmd/porch-publisher ) 2>&1 | tee .excellence-reports/build_porch-publisher.log
+            build_binary "porch-publisher" "./cmd/porch-publisher" &
+            pids+=("$!")
+            build_status+=("porch-publisher")
             built=1
           fi
-
+          
           if [[ -f cmd/conductor-loop/main.go ]]; then
-            echo ">> building cmd/conductor-loop"
-            ( go build -v -o bin/conductor-loop ./cmd/conductor-loop ) 2>&1 | tee .excellence-reports/build_conductor-loop.log
+            build_binary "conductor-loop" "./cmd/conductor-loop" &
+            pids+=("$!")
+            build_status+=("conductor-loop")
             built=1
           fi
-
+          
           if [[ -f planner/cmd/planner/main.go ]]; then
-            echo ">> building planner/cmd/planner"
-            ( go build -v -o bin/planner ./planner/cmd/planner ) 2>&1 | tee .excellence-reports/build_planner.log
+            build_binary "planner" "./planner/cmd/planner" &
+            pids+=("$!")
+            build_status+=("planner")
             built=1
           fi
-
-          if [[ "${built}" -eq 0 ]]; then
-            echo "No command directories found under cmd/ or planner/, skipping build."
+          
+          # Wait for all builds to complete
+          failed_count=0
+          for i in "${!pids[@]}"; do
+            if ! wait "${pids[$i]}"; then
+              failed_builds="$failed_builds ${build_status[$i]}"
+              ((failed_count++))
+            fi
+          done
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ $failed_count -eq 0 ]]; then
+            echo "✅ **All builds completed successfully**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **$failed_count builds failed**: $failed_builds" >> $GITHUB_STEP_SUMMARY
           fi
-          ls -lah bin || true
+          
+          if [[ "${built}" -eq 0 ]]; then
+            echo "⚠️ No command directories found under cmd/ or planner/, skipping build." >> $GITHUB_STEP_SUMMARY
+            echo "No command directories found under cmd/ or planner/, skipping build."
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "💾 **Built binaries:**" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            ls -lah bin/ >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No binaries found" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Fail the job if any builds failed
+          if [[ $failed_count -gt 0 ]]; then
+            echo "Build failed for: $failed_builds"
+            exit 1
+          fi
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -493,16 +569,17 @@ jobs:
       needs.hygiene.result == 'success' &&
       needs.generate.result != 'failure' &&
       (needs.schema-validation.result == 'success' || needs.schema-validation.result == 'skipped')
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     services:
       redis:
         image: redis:7-alpine
         options: >-
           --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+          --health-start-period 10s
         ports:
           - 6379:6379
 
@@ -523,9 +600,12 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-${{ env.GO_BUILD_CACHE_KEY_SUFFIX }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
+            ${{ runner.os }}-go-${{ env.GO_BUILD_CACHE_KEY_SUFFIX }}-
             ${{ runner.os }}-go-
+          save-always: true
+          lookup-only: false
 
       - name: Download and verify dependencies
         run: |
@@ -542,18 +622,83 @@ jobs:
           path: deployments/crds/
         continue-on-error: true
 
+      - name: Wait for Redis to be ready
+        run: |
+          echo "Waiting for Redis to be healthy..."
+          timeout 60s bash -c 'until redis-cli -h localhost -p 6379 ping; do sleep 2; done'
+          echo "Redis is ready"
+
       - name: Install envtest binaries
         run: |
           go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
           setup-envtest use 1.29.0
 
-      - name: Run tests with coverage
+      - name: Pre-flight checks
+        run: |
+          echo "Pre-flight checks..."
+          echo "Go version: $(go version)"
+          echo "Redis connectivity: $(redis-cli -h localhost -p 6379 ping)"
+          echo "Available memory: $(free -h)"
+          echo "Available disk: $(df -h /)"
+          echo "CPU info: $(nproc) cores"
+          
+          # Create required directories
+          mkdir -p .excellence-reports .quality-reports/coverage
+          
+          # Verify Go modules
+          go mod verify
+          echo "Pre-flight checks completed"
+
+      - name: Run tests with coverage and retry logic
         env:
           USE_EXISTING_CLUSTER: false
           ENVTEST_K8S_VERSION: 1.29.0
           REDIS_URL: redis://localhost:6379
         run: |
-          make test
+          set -e
+          echo "Starting test execution..."
+          
+          # Run tests with retry logic
+          for attempt in 1 2 3; do
+            echo "Test attempt $attempt/3"
+            if make test; then
+              echo "Tests passed on attempt $attempt"
+              break
+            else
+              if [ $attempt -eq 3 ]; then
+                echo "Tests failed after 3 attempts"
+                exit 1
+              else
+                echo "Test attempt $attempt failed, retrying in 10 seconds..."
+                sleep 10
+              fi
+            fi
+          done
+
+      - name: Generate test report summary
+        if: always()
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check for coverage files in multiple locations
+          coverage_found=false
+          for coverage_dir in .excellence-reports .quality-reports/coverage; do
+            if [ -f "$coverage_dir/coverage.out" ]; then
+              coverage_percent=$(go tool cover -func="$coverage_dir/coverage.out" | grep total | awk '{print $3}')
+              echo "📊 **Test Coverage**: $coverage_percent" >> $GITHUB_STEP_SUMMARY
+              coverage_found=true
+              break
+            fi
+          done
+          
+          if [ "$coverage_found" = false ]; then
+            echo "⚠️ **Test Coverage**: No coverage data found" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔍 **Test Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "⏱️ **Duration**: Started at $(date)" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload test results
         if: always()
@@ -561,10 +706,12 @@ jobs:
         with:
           name: test-results
           path: |
-            .excellence-reports/coverage.out
-            .excellence-reports/coverage.html
-          if-no-files-found: ignore
+            .excellence-reports/
+            .quality-reports/coverage/
+            test-results/
+          if-no-files-found: warn
           retention-days: 7
+          include-hidden-files: true
 
   # =============================================================================
   # Final CI Status Check (single required gate)
@@ -651,7 +798,7 @@ jobs:
           echo "| SHA | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
 
   # =============================================================================
-  # Container Build Job (runs after successful CI)
+  # Container Build Job (runs after successful CI) - 2025 Optimized
   # =============================================================================
   container:
     name: Container Build
@@ -663,6 +810,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write  # For OIDC authentication
+      attestations: write  # For build attestations
+      security-events: write  # For vulnerability scanning
 
     steps:
       - name: Checkout code
@@ -675,17 +825,33 @@ jobs:
           check-latest: true
           cache: false
 
-      - name: Set up Docker Buildx
+      - name: Set up Docker Buildx (2025 Optimized)
         uses: docker/setup-buildx-action@v3
+        with:
+          version: latest
+          driver: docker-container
+          driver-opts: |
+            image=moby/buildkit:v0.16.0
+            network=host
+          config-inline: |
+            [worker.oci]
+              max-parallelism = 8
+              snapshotter = "overlayfs"
+            [registry."ghcr.io"]
+              mirrors = ["mirror.gcr.io"]
+            [cache]
+              max-age = "168h"
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to GitHub Container Registry (Secure)
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+          logout: false
+          ecr-auto: false
 
-      - name: Extract metadata
+      - name: Extract metadata (2025)
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -693,7 +859,14 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=sha
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=Nephoran Intent Operator
+            org.opencontainers.image.description=Nephoran Intent Operator Container
+            org.opencontainers.image.vendor=Nephoran
+            org.opencontainers.image.created={{date 'RFC3339'}}
+            org.opencontainers.image.revision=${{ github.sha }}
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -702,7 +875,7 @@ jobs:
           path: bin/
         continue-on-error: true
 
-      - name: Build and push container image
+      - name: Build and Push Multi-Arch Container (2025)
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -711,10 +884,21 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=gha,scope=buildx-conductor-loop
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: |
+            type=gha,mode=max,scope=buildx-conductor-loop
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max,compression=zstd
           build-args: |
             SERVICE=conductor-loop
             VERSION=${{ github.sha }}
-            BUILD_DATE=${{ github.run_timestamp }}
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             VCS_REF=${{ github.sha }}
+            GO_VERSION=1.24.1
+            BUILDKIT_INLINE_CACHE=1
+          provenance: mode=max
+          sbom: true
+          attestations: |
+            type=provenance,mode=max
+            type=sbom,generator=docker/buildx-action

@@ -563,12 +563,10 @@ func (rs *RAGService) formatDocumentForContext(result *types.SearchResult, index
 		parts = append(parts, fmt.Sprintf("Version: %s", doc.Version))
 	}
 
-	if len(doc.Technology) > 0 {
-		parts = append(parts, fmt.Sprintf("Technologies: %s", strings.Join(doc.Technology, ", ")))
-	}
-
-	if len(doc.NetworkFunction) > 0 {
-		parts = append(parts, fmt.Sprintf("Network Functions: %s", strings.Join(doc.NetworkFunction, ", ")))
+	// Technology and NetworkFunction fields not available in types.TelecomDocument
+	// Using Tags field instead for technology information
+	if len(doc.Tags) > 0 {
+		parts = append(parts, fmt.Sprintf("Tags: %s", strings.Join(doc.Tags, ", ")))
 	}
 
 	parts = append(parts, fmt.Sprintf("Relevance Score: %.3f", result.Score))

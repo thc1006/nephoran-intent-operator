@@ -144,7 +144,7 @@ RUN set -ex; \
         -asmflags="-D GOOS_${TARGETOS}" \
         -o /build/service \
         $CMD_PATH; \
-    file /build/service; \
+    ls -la /build/service && test -x /build/service && echo "Binary verification: $(stat -c '%n: size=%s, mode=%a' /build/service)"; \
     strip --strip-unneeded /build/service 2>/dev/null || true; \
     # Verify binary security properties
     readelf -d /build/service | grep -E '(BIND_NOW|RELRO)' || echo 'Warning: Missing hardening flags'; \

@@ -104,19 +104,18 @@ type ContextEnricher struct {
 }
 
 type EnrichmentContext struct {
-	NetworkTopology   *PipelineNetworkTopology   `json:"network_topology,omitempty"`
-	DeploymentContext *DeploymentContext `json:"deployment_context,omitempty"`
-	PolicyContext     *PolicyContext     `json:"policy_context,omitempty"`
-	HistoricalData    *HistoricalData    `json:"historical_data,omitempty"`
-	Timestamp         time.Time          `json:"timestamp"`
+	NetworkTopology   *PipelineNetworkTopology `json:"network_topology,omitempty"`
+	DeploymentContext *DeploymentContext       `json:"deployment_context,omitempty"`
+	PolicyContext     *PolicyContext           `json:"policy_context,omitempty"`
+	HistoricalData    *HistoricalData          `json:"historical_data,omitempty"`
+	Timestamp         time.Time                `json:"timestamp"`
 }
 
-
 type PipelineNetworkTopology struct {
-	Region           string            `json:"region"`
-	AvailabilityZone string            `json:"availability_zone"`
-	NetworkSlices    []PipelineNetworkSlice    `json:"network_slices"`
-	Constraints      map[string]string `json:"constraints"`
+	Region           string                  `json:"region"`
+	AvailabilityZone string                  `json:"availability_zone"`
+	NetworkSlices    []PipelineNetworkSlice  `json:"network_slices"`
+	Constraints      map[string]string       `json:"constraints"`
 }
 
 type PipelineNetworkSlice struct {
@@ -126,7 +125,6 @@ type PipelineNetworkSlice struct {
 	Capacity    int     `json:"capacity"`
 	Utilization float64 `json:"utilization"`
 }
-
 
 type DeploymentContext struct {
 	Environment       string            `json:"environment"` // dev, staging, prod
@@ -196,19 +194,17 @@ type ValidationRule struct {
 }
 
 type PipelineValidationResult struct {
-	Valid    bool              `json:"valid"`
+	Valid    bool                      `json:"valid"`
 	Errors   []PipelineValidationError `json:"errors,omitempty"`
 	Warnings []PipelineValidationError `json:"warnings,omitempty"`
-	Score    float64           `json:"score"`
+	Score    float64                   `json:"score"`
 }
-
 
 type PipelineValidationError struct {
 	Field    string `json:"field"`
 	Message  string `json:"message"`
 	Code     string `json:"code"`
 	Severity string `json:"severity"`
-
 }
 
 // ResponseTransformer modifies and enhances LLM responses
@@ -228,15 +224,13 @@ type ResponsePostprocessor struct {
 type PostprocessingFunc func(map[string]interface{}, *ProcessingContext) (map[string]interface{}, error)
 
 type ProcessingContext struct {
-
-	RequestID        string                 `json:"request_id"`
-	Intent           string                 `json:"intent"`
-	Classification   ClassificationResult   `json:"classification"`
-	EnrichmentData   *EnrichmentContext     `json:"enrichment_data"`
-	ValidationResult *PipelineValidationResult      `json:"validation_result"`
-	ProcessingStart  time.Time              `json:"processing_start"`
-	Metadata         map[string]interface{} `json:"metadata"`
-
+	RequestID        string                    `json:"request_id"`
+	Intent           string                    `json:"intent"`
+	Classification   ClassificationResult     `json:"classification"`
+	EnrichmentData   *EnrichmentContext       `json:"enrichment_data"`
+	ValidationResult *PipelineValidationResult `json:"validation_result"`
+	ProcessingStart  time.Time                 `json:"processing_start"`
+	Metadata         map[string]interface{}    `json:"metadata"`
 }
 
 // NewProcessingPipeline creates a new processing pipeline
@@ -595,7 +589,7 @@ func (ce *ContextEnricher) buildNetworkTopology(ctx *ProcessingContext) *Pipelin
 	return &PipelineNetworkTopology{
 		Region:           "us-west-2",
 		AvailabilityZone: "us-west-2a",
-		NetworkSlices: []NetworkSlice{
+		NetworkSlices: []PipelineNetworkSlice{
 			{ID: "slice-embb-001", Type: "eMBB", Status: "active", Capacity: 1000, Utilization: 0.65},
 			{ID: "slice-urllc-001", Type: "URLLC", Status: "active", Capacity: 500, Utilization: 0.30},
 		},
@@ -693,10 +687,8 @@ func (iv *InputValidator) initializeRules() {
 }
 
 // Validate performs comprehensive input validation
-
 func (iv *InputValidator) Validate(intent string) PipelineValidationResult {
 	result := PipelineValidationResult{
-
 		Valid: true,
 		Score: 1.0,
 	}

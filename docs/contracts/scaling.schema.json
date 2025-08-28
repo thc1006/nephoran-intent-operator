@@ -1,0 +1,140 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/thc1006/nephoran-intent-operator/contracts/scaling.schema.json",
+  "title": "ScalingIntent Schema", 
+  "description": "Schema for scaling intent operations targeting specific Kubernetes workloads",
+  "version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9-_]+$",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Unique identifier for the scaling intent"
+    },
+    "resource_type": {
+      "type": "string",
+      "enum": ["deployment", "statefulset", "daemonset"],
+      "description": "Type of Kubernetes resource to scale"
+    },
+    "resource_name": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+      "minLength": 1,
+      "maxLength": 63,
+      "description": "Name of the target Kubernetes resource"
+    },
+    "namespace": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+      "minLength": 1,
+      "maxLength": 63,
+      "description": "Kubernetes namespace containing the target resource"
+    },
+    "target_scale": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Desired number of replicas"
+    },
+    "current_scale": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Current number of replicas"
+    },
+    "scale_direction": {
+      "type": "string",
+      "enum": ["up", "down", "auto"],
+      "description": "Direction of scaling operation"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 200,
+      "description": "Reason for the scaling operation"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Additional metadata for the scaling intent",
+      "properties": {
+        "trigger_type": {
+          "type": "string",
+          "enum": ["manual", "auto", "scheduled", "policy"]
+        },
+        "trigger_value": {
+          "type": "number"
+        },
+        "metric_name": {
+          "type": "string"
+        },
+        "policy_id": {
+          "type": "string"
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when scaling intent was created"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when scaling operation completed"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "in-progress", "completed", "failed"],
+      "description": "Current status of scaling operation"
+    }
+  },
+  "required": [
+    "id",
+    "resource_type", 
+    "resource_name",
+    "namespace",
+    "target_scale",
+    "scale_direction",
+    "reason",
+    "status"
+  ],
+  "examples": [
+    {
+      "id": "scale-odu-001",
+      "resource_type": "deployment",
+      "resource_name": "odu-high-phy",
+      "namespace": "oran-odu",
+      "target_scale": 5,
+      "current_scale": 3,
+      "scale_direction": "up",
+      "reason": "CPU utilization exceeded 85% threshold",
+      "metadata": {
+        "trigger_type": "auto",
+        "trigger_value": 85.2,
+        "metric_name": "cpu_utilization_percent",
+        "policy_id": "odu-autoscaling-policy-001"
+      },
+      "created_at": "2025-08-28T10:30:00Z",
+      "status": "pending"
+    },
+    {
+      "id": "scale-oric-down-002", 
+      "resource_type": "deployment",
+      "resource_name": "oran-ric-e2term",
+      "namespace": "oran-ric",
+      "target_scale": 1,
+      "current_scale": 3,
+      "scale_direction": "down",
+      "reason": "Off-peak hours scheduled scaling",
+      "metadata": {
+        "trigger_type": "scheduled",
+        "policy_id": "ric-scheduled-scaling"
+      },
+      "created_at": "2025-08-28T22:00:00Z",
+      "completed_at": "2025-08-28T22:02:15Z", 
+      "status": "completed"
+    }
+  ]
+}

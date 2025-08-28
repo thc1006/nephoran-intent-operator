@@ -86,7 +86,7 @@ type TestSuiteResults struct {
 	FailedTests  int                             `json:"failed_tests"`
 	TestCoverage float64                         `json:"test_coverage"`
 	OverallScore float64                         `json:"overall_score"`
-	TestResults  map[string]*BenchmarkTestResult `json:"test_results"`
+	TestResults  map[string]*types.BenchmarkTestResult `json:"test_results"`
 }
 
 
@@ -322,7 +322,7 @@ func (pb *PerformanceBenchmarker) RunComprehensiveBenchmark(ctx context.Context)
 
 	// Initialize results
 	pb.results = &BenchmarkResults{
-		TestSuite:         &TestSuiteResults{TestResults: make(map[string]*BenchmarkTestResult)},
+		TestSuite:         &TestSuiteResults{TestResults: make(map[string]*types.BenchmarkTestResult)},
 		TestTimestamp:     startTime,
 		TestConfiguration: pb.config,
 		SystemInfo:        pb.getSystemInfo(),
@@ -359,11 +359,10 @@ func (pb *PerformanceBenchmarker) RunComprehensiveBenchmark(ctx context.Context)
 
 		err := test.runner(ctx)
 
-		result := &BenchmarkTestResult{
-			TestName: test.name,
-			Passed:   err == nil,
+		result := &types.BenchmarkTestResult{
+			Name:     test.name,
+			Success:  err == nil,
 			Duration: time.Since(testStart),
-			Score:    0.0, // Will be calculated later
 		}
 
 		if err != nil {
@@ -376,7 +375,7 @@ func (pb *PerformanceBenchmarker) RunComprehensiveBenchmark(ctx context.Context)
 		pb.results.TestSuite.TestResults[test.name] = result
 		pb.results.TestSuite.TotalTests++
 
-		if result.Passed {
+		if result.Success {
 			pb.results.TestSuite.PassedTests++
 		} else {
 			pb.results.TestSuite.FailedTests++
@@ -1048,7 +1047,7 @@ func (pb *PerformanceBenchmarker) measureOptimizedAccuracy(ctx context.Context) 
 			searchResults := make([]*SearchResult, len(result.SourceDocuments))
 			for i, doc := range result.SourceDocuments {
 				searchResults[i] = &SearchResult{
-					Document: doc.Document,
+					Document: convertTypesToSharedDocument(doc.Document),
 					Score:    doc.Score,
 				}
 			}

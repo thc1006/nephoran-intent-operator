@@ -1,3 +1,6 @@
+//go:build disable_rag
+// +build disable_rag
+
 package llm
 
 import (
@@ -46,43 +49,19 @@ type PromptGenerator interface {
 
 // ESSENTIAL TYPES ONLY - Consolidated from scattered definitions
 
-// StreamingRequest represents a streaming request (stub for disable_rag builds)
-type StreamingRequest struct {
-	Content   string `json:"content"`
-	Query     string `json:"query"`
-	ModelName string `json:"model_name"`
-	MaxTokens int    `json:"max_tokens"`
-	EnableRAG bool   `json:"enable_rag"`
-}
+// StreamingRequest is defined in types.go
 
-// BatchRequest represents a batch processing request (stub for disable_rag builds)
-type BatchRequest struct {
-	Content string `json:"content"`
-}
+// BatchRequest is defined in types.go
 
-// ProcessingResult represents a processing result (stub for disable_rag builds)
-type ProcessingResult struct {
-	Result string `json:"result"`
-}
+// ProcessingResult is defined in processing.go
 
-// ProcessingMetrics tracks processing metrics (stub for disable_rag builds)
-type ProcessingMetrics struct {
-	ProcessedCount int64 `json:"processed_count"`
-}
+// ProcessingMetrics is defined in processing.go
 
-// MetricsCollector collects metrics (stub for disable_rag builds)
-type MetricsCollector struct {
-	// Stub implementation
-}
+// MetricsCollector is defined in metrics.go
+// NewMetricsCollector is defined in metrics.go
 
-// NewMetricsCollector creates a new metrics collector (stub for disable_rag builds)
-func NewMetricsCollector() *MetricsCollector {
-	return &MetricsCollector{}
-}
-
-// MetricsIntegrator integrates metrics (stub for disable_rag builds)
+// MetricsIntegrator for disable_rag builds
 type MetricsIntegrator struct {
-	// Stub implementation
 	prometheusMetrics *PrometheusMetricsStub
 }
 
@@ -91,7 +70,7 @@ type PrometheusMetricsStub struct{}
 
 func (pm *PrometheusMetricsStub) RecordError(errorType string, details string) {}
 
-// NewMetricsIntegrator creates a new metrics integrator (stub for disable_rag builds)
+// NewMetricsIntegrator stub for disable_rag builds
 func NewMetricsIntegrator(collector *MetricsCollector) *MetricsIntegrator {
 	return &MetricsIntegrator{
 		prometheusMetrics: &PrometheusMetricsStub{},
@@ -105,10 +84,10 @@ func (mi *MetricsIntegrator) RecordCacheOperation(operation string, backend stri
 func (mi *MetricsIntegrator) RecordRetryAttempt(model string) {}
 func (mi *MetricsIntegrator) GetComprehensiveMetrics() map[string]interface{} { return nil }
 
-// Additional stub types for disable_rag builds
-type TokenManager struct{}
-func (tm *TokenManager) GetSupportedModels() []string { return []string{} }
+// TokenManager is defined as interface in types.go
+// For disable_rag builds, use basic_token_manager.go implementation
 
+// Stub types for disable_rag builds
 type RelevanceScorer struct{}
 func (rs *RelevanceScorer) GetMetrics() map[string]interface{} { return map[string]interface{}{} }
 
@@ -121,11 +100,10 @@ func (rep *RAGEnhancedProcessor) ProcessIntent(ctx context.Context, intent strin
 }
 
 // Constructor functions for disable_rag builds
-func NewTokenManager() *TokenManager { return &TokenManager{} }
 func NewRelevanceScorer() *RelevanceScorer { return &RelevanceScorer{} }
 func NewRAGAwarePromptBuilder() *RAGAwarePromptBuilder { return &RAGAwarePromptBuilder{} }
 func NewRAGEnhancedProcessor() *RAGEnhancedProcessor { return &RAGEnhancedProcessor{} }
-func NewStreamingProcessor() *StreamingProcessor { return &StreamingProcessor{} }
+// NewStreamingProcessor is defined in clean_stubs.go or streaming_processor.go
 
 // Stub methods for StreamingProcessor (disable_rag builds)
 func (sp *StreamingProcessor) HandleStreamingRequest(w interface{}, r interface{}, req *StreamingRequest) error {
@@ -235,19 +213,7 @@ type IntentResponse struct {
 // STUB IMPLEMENTATIONS - Consolidated from stubs.go
 // These provide default implementations for components not yet fully implemented
 
-// ContextBuilder stub implementation (consolidated from stubs.go)
-type ContextBuilder struct{}
-
-func NewContextBuilder() *ContextBuilder {
-	return &ContextBuilder{}
-}
-
-func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"context_builder_enabled": false,
-		"status":                  "not_implemented",
-	}
-}
+// ContextBuilder is defined in clean_stubs.go
 
 // RelevanceScorer implementation moved to relevance_scorer.go
 

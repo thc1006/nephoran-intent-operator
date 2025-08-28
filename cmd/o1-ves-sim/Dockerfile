@@ -30,9 +30,10 @@ ARG VERSION=dev
 ARG BUILD_DATE
 ARG VCS_REF
 ARG CGO_ENABLED=0
+ARG TARGETARCH=amd64
 
 # Security: Build with optimizations and security flags
-RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOARCH=amd64 go build \
+RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOARCH=${TARGETARCH} go build \
     -ldflags="-w -s \
     -X main.version=${VERSION} \
     -X main.buildDate=${BUILD_DATE} \
@@ -45,7 +46,9 @@ RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOARCH=amd64 go build \
     ./cmd/o1-ves-sim
 
 # Verify the binary
-RUN file /build/o1-ves-sim
+RUN ls -la /build/o1-ves-sim && \
+    test -x /build/o1-ves-sim && \
+    echo "Binary verification: $(stat -c '%n: size=%s, mode=%a' /build/o1-ves-sim)"
 
 # =============================================================================
 # Stage 2: Security Hardened Runtime

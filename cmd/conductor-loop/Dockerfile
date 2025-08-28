@@ -69,9 +69,10 @@ ARG VERSION=dev
 ARG BUILD_DATE
 ARG VCS_REF
 ARG CGO_ENABLED=0
+ARG TARGETARCH=amd64
 
 # Security: Build with security flags and optimizations
-RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOARCH=amd64 go build \
+RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOARCH=${TARGETARCH} go build \
     -ldflags="-w -s \
     -X main.version=${VERSION} \
     -X main.buildDate=${BUILD_DATE} \
@@ -83,8 +84,10 @@ RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOARCH=amd64 go build \
     -o /build/conductor-loop \
     ./cmd/conductor-loop
 
-# Verify the binary
-RUN file /build/conductor-loop && \
+# Verify the binary exists and is executable
+RUN ls -la /build/conductor-loop && \
+    test -x /build/conductor-loop && \
+    echo "Binary verification: $(stat -c '%n: size=%s, mode=%a' /build/conductor-loop)" && \
     /build/conductor-loop --version || true
 
 # =============================================================================

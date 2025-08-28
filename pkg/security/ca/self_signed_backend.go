@@ -88,7 +88,7 @@ type IssuedCertificate struct {
 	Fingerprint  string            `json:"fingerprint"`
 	IssuedAt     time.Time         `json:"issued_at"`
 	ExpiresAt    time.Time         `json:"expires_at"`
-	Status       CertificateStatus `json:"status"`
+	Status       CertificateState `json:"status"`
 	RequestID    string            `json:"request_id"`
 }
 

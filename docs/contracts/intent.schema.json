@@ -1,41 +1,128 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/thc1006/nephoran-intent-operator/schemas/intent.schema.json",
-  "title": "ScalingIntent",
+  "$id": "https://github.com/thc1006/nephoran-intent-operator/contracts/intent.schema.json",
+  "title": "NetworkIntent Schema",
+  "description": "Schema for network intent scaling operations in Nephio R5-O-RAN L Release deployments",
+  "version": "1.0.0",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["intent_type", "target", "namespace", "replicas"],
   "properties": {
-    "intent_type": {
-      "const": "scaling",
-      "description": "MVP supports only scaling"
-    },
-    "target": {
+    "id": {
       "type": "string",
+      "pattern": "^[a-zA-Z0-9-_]+$",
       "minLength": 1,
-      "description": "Kubernetes Deployment name (CNF simulator)"
+      "maxLength": 64,
+      "description": "Unique identifier for the network intent"
     },
-    "namespace": {
+    "type": {
       "type": "string",
-      "minLength": 1
+      "enum": ["scaling", "deployment", "configuration"],
+      "description": "Type of network intent operation"
     },
-    "replicas": {
+    "priority": {
       "type": "integer",
-      "minimum": 1,
-      "maximum": 100
+      "minimum": 0,
+      "maximum": 10,
+      "default": 5,
+      "description": "Priority level for intent execution (0=lowest, 10=highest)"
     },
-    "reason": {
+    "description": {
       "type": "string",
-      "maxLength": 512
+      "minLength": 10,
+      "maxLength": 500,
+      "description": "Human-readable description of the intent"
     },
-    "source": {
-      "type": "string",
-      "enum": ["user", "planner", "test"]
+    "parameters": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Intent-specific parameters and configuration",
+      "examples": [
+        {
+          "target_replicas": 3,
+          "resource_limits": {
+            "cpu": "1000m",
+            "memory": "1Gi"
+          }
+        }
+      ]
     },
-    "correlation_id": {
+    "target_resources": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z]+/[a-zA-Z0-9-._]+$"
+      },
+      "minItems": 1,
+      "description": "List of target Kubernetes resources (format: kind/name)"
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Optional constraints for intent execution",
+      "properties": {
+        "max_replicas": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "min_replicas": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "allowed_namespaces": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "created_at": {
       "type": "string",
-      "description": "Optional id for tracing"
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when intent was created"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when intent was last updated"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "processing", "completed", "failed"],
+      "description": "Current status of intent execution"
     }
   },
-  "$comment": "Validated by admission webhook; replicas min/max may be further clamped by ConfigMap."
+  "required": [
+    "id",
+    "type",
+    "description",
+    "parameters",
+    "target_resources",
+    "status"
+  ],
+  "examples": [
+    {
+      "id": "scale-odu-workload-001",
+      "type": "scaling",
+      "priority": 8,
+      "description": "Scale O-DU workload based on increased traffic demand in cell sector 123",
+      "parameters": {
+        "target_replicas": 5,
+        "scale_direction": "up",
+        "trigger": "cpu_threshold_exceeded",
+        "threshold_value": 80
+      },
+      "target_resources": [
+        "deployment/odu-high-phy",
+        "deployment/odu-low-phy"
+      ],
+      "constraints": {
+        "max_replicas": 10,
+        "min_replicas": 2,
+        "allowed_namespaces": ["oran-odu", "oran-shared"]
+      },
+      "created_at": "2025-08-28T10:30:00Z",
+      "updated_at": "2025-08-28T10:30:00Z",
+      "status": "pending"
+    }
+  ]
 }

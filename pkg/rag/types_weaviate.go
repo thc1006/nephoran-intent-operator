@@ -5,6 +5,8 @@ package rag
 import (
 	"context"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
 // EmbeddingProvider interface for embedding providers
@@ -28,7 +30,7 @@ type EmbeddingRequestExt struct {
 // EmbeddingResponseExt represents extended embedding response
 type EmbeddingResponseExt struct {
 	Embeddings [][]float32
-	TokenUsage *TokenUsage
+	TokenUsage *types.TokenUsage
 	ModelUsed  string
 }
 
@@ -125,7 +127,7 @@ func (caesa *CostAwareEmbeddingServiceAdapter) GenerateEmbeddingsOptimized(ctx c
 
 	return &EmbeddingResponseExt{
 		Embeddings: embeddings,
-		TokenUsage: &TokenUsage{EstimatedCost: response.Cost},
+		TokenUsage: &types.TokenUsage{EstimatedCost: response.Cost},
 		ModelUsed:  response.Provider,
 	}, nil
 }

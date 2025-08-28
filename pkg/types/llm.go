@@ -14,27 +14,50 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package coretypes
+package types
 
 import (
 	"time"
 )
 
-// CircuitBreakerConfig holds configuration for circuit breaker
-type CircuitBreakerConfig struct {
-	FailureThreshold    int64         `json:"failure_threshold"`
-	FailureRate         float64       `json:"failure_rate"`
-	MinimumRequestCount int64         `json:"minimum_request_count"`
-	Timeout             time.Duration `json:"timeout"`
-	HalfOpenTimeout     time.Duration `json:"half_open_timeout"`
-	SuccessThreshold    int64         `json:"success_threshold"`
-	HalfOpenMaxRequests int64         `json:"half_open_max_requests"`
-	ResetTimeout        time.Duration `json:"reset_timeout"`
-	SlidingWindowSize   int           `json:"sliding_window_size"`
-	EnableHealthCheck   bool          `json:"enable_health_check"`
-	HealthCheckInterval time.Duration `json:"health_check_interval"`
-	HealthCheckTimeout  time.Duration `json:"health_check_timeout"`
-	// Advanced features
-	EnableAdaptiveTimeout bool `json:"enable_adaptive_timeout"`
-	MaxConcurrentRequests int  `json:"max_concurrent_requests"`
+// LLMConfig holds configuration for LLM services
+type LLMConfig struct {
+	Provider    string            `json:"provider"`
+	Model       string            `json:"model"`
+	APIKey      string            `json:"api_key"`
+	Endpoint    string            `json:"endpoint"`
+	MaxTokens   int               `json:"max_tokens"`
+	Temperature float32           `json:"temperature"`
+	TopP        float32           `json:"top_p"`
+	Timeout     time.Duration     `json:"timeout"`
+	Headers     map[string]string `json:"headers"`
+}
+
+// LLMResponse represents a response from an LLM service
+type LLMResponse struct {
+	Content      string     `json:"content"`
+	Model        string     `json:"model"`
+	Usage        TokenUsage `json:"usage"`
+	FinishReason string     `json:"finish_reason"`
+	Error        string     `json:"error,omitempty"`
+	Duration     time.Duration `json:"duration"`
+	RequestID    string     `json:"request_id"`
+}
+
+// LLMRequest represents a request to an LLM service
+type LLMRequest struct {
+	Model       string            `json:"model"`
+	Messages    []ChatMessage     `json:"messages"`
+	MaxTokens   int               `json:"max_tokens"`
+	Temperature float32           `json:"temperature"`
+	TopP        float32           `json:"top_p"`
+	Stream      bool              `json:"stream"`
+	Stop        []string          `json:"stop"`
+	Metadata    map[string]interface{} `json:"metadata"`
+}
+
+// ChatMessage represents a chat message
+type ChatMessage struct {
+	Role    string `json:"role"`    // "system", "user", "assistant"
+	Content string `json:"content"`
 }

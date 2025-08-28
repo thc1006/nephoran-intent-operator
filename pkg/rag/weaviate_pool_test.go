@@ -11,7 +11,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
+
+// Type alias for convenience in tests
+type PooledConnection = types.PooledConnection
 
 func TestDefaultPoolConfig(t *testing.T) {
 	config := DefaultPoolConfig()
@@ -405,11 +410,11 @@ func TestPooledConnection_UsageTracking(t *testing.T) {
 	}
 
 	// Simulate usage
-	conn.mu.Lock()
+	conn.Mu.Lock()
 	conn.LastUsed = time.Now()
 	conn.UsageCount++
 	conn.InUse = true
-	conn.mu.Unlock()
+	conn.Mu.Unlock()
 
 	assert.Equal(t, int64(1), conn.UsageCount)
 	assert.True(t, conn.InUse)

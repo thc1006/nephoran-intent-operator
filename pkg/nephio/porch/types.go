@@ -21,14 +21,9 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // PorchClient defines the interface for interacting with Porch API
@@ -1121,22 +1116,7 @@ func (rs *RepositoryStatus) DeepCopyInto(out *RepositoryStatus) {
 
 // DeepCopy methods are implemented in deepcopy.go
 
-// ContentMetrics represents metrics for package content
-type ContentMetrics struct {
-	FileCount      int            `json:"fileCount"`
-	TotalSize      int64          `json:"totalSize"`
-	ResourceCounts map[string]int `json:"resourceCounts"`
-	LastModified   time.Time      `json:"lastModified"`
-}
-
-// ContentManagerHealth represents health status of the content manager
-type ContentManagerHealth struct {
-	Status         string    `json:"status"`
-	LastCheck      time.Time `json:"lastCheck"`
-	CacheSize      int64     `json:"cacheSize"`
-	ActiveRequests int       `json:"activeRequests"`
-	ErrorCount     int       `json:"errorCount"`
-}
+// Note: ContentMetrics and ContentManagerHealth are defined in content_manager.go to avoid duplicates
 
 // Error types for better error handling
 type PorchError struct {

@@ -91,13 +91,14 @@ type PerformanceInfo struct {
 
 // DependencyConflict represents a version or compatibility conflict
 type DependencyConflict struct {
-	ID          string              `json:"id"`
-	Type        string              `json:"type"`
-	Description string              `json:"description"`
-	Severity    string              `json:"severity"`
-	Packages    []*PackageReference `json:"packages"`
-	Suggestions []*ConflictResolution `json:"suggestions,omitempty"`
-	DetectedAt  time.Time           `json:"detectedAt"`
+	ID             string              `json:"id"`
+	Type           string              `json:"type"`
+	Description    string              `json:"description"`
+	Severity       string              `json:"severity"`
+	Packages       []*PackageReference `json:"packages"`
+	Suggestions    []*ConflictResolution `json:"suggestions,omitempty"`
+	DetectedAt     time.Time           `json:"detectedAt"`
+	AutoResolvable bool                `json:"autoResolvable"`
 }
 
 // OptimizationSuggestion provides recommendations for improvement
@@ -142,6 +143,10 @@ type ValidationResult struct {
 	Errors       []*ValidationError        `json:"errors,omitempty"`
 	Warnings     []*ValidationWarning      `json:"warnings,omitempty"`
 	Recommendations []*ValidationRecommendation `json:"recommendations,omitempty"`
+	
+	// Advanced validation results
+	CompatibilityResult *CompatibilityResult `json:"compatibilityResult,omitempty"`
+	SecurityScanResult  *SecurityScanResult  `json:"securityScanResult,omitempty"`
 	
 	// Validation statistics and timing
 	Statistics      *ValidationStatistics `json:"statistics,omitempty"`

@@ -11,7 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
+	audittypes "github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
 
 // QueryEngine provides advanced audit log querying and analysis capabilities
@@ -38,7 +38,7 @@ type Query struct {
 	EndTime   time.Time `json:"end_time"`
 
 	// Event filtering
-	EventTypes []types.EventType `json:"event_types,omitempty"`
+	EventTypes []audittypes.EventType `json:"event_types,omitempty"`
 	Categories []string          `json:"categories,omitempty"`
 	Severities []string          `json:"severities,omitempty"`
 
@@ -88,7 +88,7 @@ const (
 
 // QueryResult contains the results of an audit log query
 type QueryResult struct {
-	Events       []*types.AuditEvent    `json:"events,omitempty"`
+	Events       []*audittypes.AuditEvent    `json:"events,omitempty"`
 	Aggregations map[string]interface{} `json:"aggregations,omitempty"`
 	TotalCount   int64                  `json:"total_count"`
 	QueryTime    time.Duration          `json:"query_time"`
@@ -112,9 +112,9 @@ type SecurityThreat struct {
 	Type        string              `json:"type"`
 	Severity    string              `json:"severity"`
 	Description string              `json:"description"`
-	Actor       *types.UserContext  `json:"actor"`
+	Actor       *audittypes.UserContext  `json:"actor"`
 	Timeline    []time.Time         `json:"timeline"`
-	Evidence    []*types.AuditEvent `json:"evidence"`
+	Evidence    []*audittypes.AuditEvent `json:"evidence"`
 	Confidence  float64             `json:"confidence"`
 	MITRE       string              `json:"mitre_technique,omitempty"`
 }
@@ -138,7 +138,7 @@ type PrivilegeEvent struct {
 	ToPrivileges   []string          `json:"to_privileges"`
 	Method         string            `json:"method"`
 	Success        bool              `json:"success"`
-	Context        *types.AuditEvent `json:"context"`
+	Context        *audittypes.AuditEvent `json:"context"`
 }
 
 // AccessAnomaly represents unusual access patterns
@@ -160,7 +160,7 @@ type ComplianceIssue struct {
 	Control     string              `json:"control"`
 	Violation   string              `json:"violation"`
 	Severity    string              `json:"severity"`
-	Events      []*types.AuditEvent `json:"events"`
+	Events      []*audittypes.AuditEvent `json:"events"`
 	Impact      string              `json:"impact"`
 	Remediation string              `json:"remediation"`
 }
@@ -313,14 +313,14 @@ func (qe *QueryEngine) GetUserActivity(ctx context.Context, userID string, timeR
 
 // GetSecurityEvents retrieves security-related events
 func (qe *QueryEngine) GetSecurityEvents(ctx context.Context, timeRange time.Duration, backend string) (*QueryResult, error) {
-	securityEventTypes := []types.EventType{
-		types.EventTypeAuthentication,
-		types.EventTypeAuthenticationFailed,
-		types.EventTypeAuthorizationFailed,
-		types.EventTypeSecurityViolation,
-		types.EventTypeIntrusionAttempt,
-		types.EventTypeMalwareDetection,
-		types.EventTypeAnomalyDetection,
+	securityEventTypes := []audittypes.EventType{
+		audittypes.EventTypeAuthentication,
+		audittypes.EventTypeAuthenticationFailed,
+		audittypes.EventTypeAuthorizationFailed,
+		audittypes.EventTypeSecurityViolation,
+		audittypes.EventTypeIntrusionAttempt,
+		audittypes.EventTypeMalwareDetection,
+		audittypes.EventTypeAnomalyDetection,
 	}
 
 	query := &Query{
@@ -500,7 +500,7 @@ func (qe *QueryEngine) executeQuery(ctx context.Context, backend backends.Backen
 	// In a real implementation, this would interface with specific backends
 
 	result := &QueryResult{
-		Events:       []*types.AuditEvent{},
+		Events:       []*audittypes.AuditEvent{},
 		Aggregations: make(map[string]interface{}),
 		TotalCount:   0,
 		Backend:      backendName,
@@ -518,7 +518,7 @@ func (qe *QueryEngine) analyzeAuthFailures(ctx context.Context, timeRange time.D
 	query := &Query{
 		StartTime:  time.Now().Add(-timeRange),
 		EndTime:    time.Now(),
-		EventTypes: []types.EventType{types.EventTypeAuthenticationFailed},
+		EventTypes: []audittypes.EventType{audittypes.EventTypeAuthenticationFailed},
 		Limit:      10000,
 	}
 
@@ -571,7 +571,7 @@ func (qe *QueryEngine) detectThreats(ctx context.Context, timeRange time.Duratio
 	authQuery := &Query{
 		StartTime:  time.Now().Add(-timeRange),
 		EndTime:    time.Now(),
-		EventTypes: []types.EventType{types.EventTypeAuthenticationFailed},
+		EventTypes: []audittypes.EventType{audittypes.EventTypeAuthenticationFailed},
 		Limit:      1000,
 	}
 
@@ -611,10 +611,10 @@ func (qe *QueryEngine) detectAccessAnomalies(ctx context.Context, timeRange time
 	query := &Query{
 		StartTime: time.Now().Add(-timeRange),
 		EndTime:   time.Now(),
-		EventTypes: []types.EventType{
-			types.EventTypeResourceAccess,
-			types.EventTypeDataAccess,
-			types.EventTypeResourceAccess,
+		EventTypes: []audittypes.EventType{
+			audittypes.EventTypeResourceAccess,
+			audittypes.EventTypeDataAccess,
+			audittypes.EventTypeResourceAccess,
 		},
 		Limit: 5000,
 	}
@@ -657,7 +657,7 @@ func (qe *QueryEngine) checkComplianceViolations(ctx context.Context, timeRange 
 	query := &Query{
 		StartTime:  time.Now().Add(-timeRange),
 		EndTime:    time.Now(),
-		EventTypes: []types.EventType{types.EventTypeAuthorizationFailed, types.EventTypeResourceAccess},
+		EventTypes: []audittypes.EventType{audittypes.EventTypeAuthorizationFailed, audittypes.EventTypeResourceAccess},
 		Limit:      1000,
 	}
 
@@ -767,11 +767,11 @@ func (qe *QueryEngine) generateSecurityRecommendations(analysis *SecurityAnalysi
 }
 
 // detectBruteForce detects brute force attack patterns
-func (qe *QueryEngine) detectBruteForce(events []*types.AuditEvent) []*BruteForceEvent {
+func (qe *QueryEngine) detectBruteForce(events []*audittypes.AuditEvent) []*BruteForceEvent {
 	patterns := []*BruteForceEvent{}
 
 	// Group events by IP and time window
-	ipEvents := make(map[string][]*types.AuditEvent)
+	ipEvents := make(map[string][]*audittypes.AuditEvent)
 	for _, event := range events {
 		if event.NetworkContext != nil && len(event.NetworkContext.SourceIP) > 0 {
 			ipStr := event.NetworkContext.SourceIP.String()

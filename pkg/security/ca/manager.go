@@ -360,7 +360,8 @@ func (m *CAManager) initializeBackends() error {
 
 		switch backendType {
 		case BackendCertManager:
-			backend, err = NewCertManagerBackend(m.logger, m.client)
+			config := &CertManagerConfig{} // Use empty config for stub
+			backend = NewCertManagerBackend(config, m.client)
 		case BackendVault:
 			backend, err = NewVaultBackend(m.logger)
 		case BackendExternal:
@@ -712,7 +713,7 @@ func convertValidationRulesToPolicyRules(validationRules []ValidationRule) []Pol
 			Type:        rule.Type,
 			Pattern:     rule.Pattern,
 			Required:    rule.Required,
-			Severity:    SeverityError, // Default severity
+			Severity:    RuleSeverityError, // Default severity
 			Description: rule.ErrorMessage,
 		}
 	}
