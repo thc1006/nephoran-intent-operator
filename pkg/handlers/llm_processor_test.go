@@ -9,10 +9,7 @@ import (
 	"testing"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
-<<<<<<< HEAD
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
-=======
->>>>>>> integrate/mvp
 )
 
 func TestNLToIntentHandler(t *testing.T) {

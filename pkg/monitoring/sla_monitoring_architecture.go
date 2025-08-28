@@ -61,9 +61,6 @@ type ServiceLevelIndicatorFramework struct {
 	ResourceEfficiency  *ResourceEfficiencySLI // Define as needed
 }
 
-<<<<<<< HEAD
-// ComponentAvailabilitySLI is defined in sla_components.go
-=======
 // ComponentAvailabilitySLI measures multi-dimensional availability
 type ComponentAvailabilitySLI struct {
 	// Target: 99.95% availability (4.38 hours downtime/year max)
@@ -81,7 +78,6 @@ type ComponentAvailabilitySLI struct {
 
 	collector *StreamingMetricsCollector
 }
->>>>>>> integrate/mvp
 
 // IntentProcessingLatencySLI measures end-to-end latency from intent to deployment
 type IntentProcessingLatencySLI struct {
@@ -153,29 +149,6 @@ type ServiceLevelObjectiveEngine struct {
 
 // LatencySLO is defined in sla_components.go
 
-<<<<<<< HEAD
-// SLAPredictiveAnalyzer provides ML-based SLA violation prediction
-type SLAPredictiveAnalyzer struct {
-	// ML Models
-	AvailabilityPredictor *AvailabilityPredictor
-	LatencyPredictor      *LatencyPredictor
-	ThroughputPredictor   *ThroughputPredictor
-
-	// Time series analysis
-	TrendAnalyzer       *TrendAnalyzer
-	SeasonalityDetector *SeasonalityDetector
-	AnomalyDetector     *AnomalyDetector
-
-	// Prediction accuracy tracking
-	PredictionAccuracy *prometheus.GaugeVec
-	FalsePositiveRate  prometheus.Gauge
-	FalseNegativeRate  prometheus.Gauge
-
-	// Configuration
-	PredictionHorizon   time.Duration // How far ahead to predict
-	ConfidenceThreshold float64       // Minimum confidence for alerts
-}
-=======
 	// Alerting thresholds
 	FastBurnThreshold float64 // 2% of error budget in 1 hour
 	SlowBurnThreshold float64 // 5% of error budget in 6 hours
@@ -197,7 +170,6 @@ type LatencySLO struct {
 	SustainedViolation time.Duration // Duration of sustained violation
 }
 
->>>>>>> integrate/mvp
 
 // AdvancedMetricsCollector provides high-performance metric collection
 type AdvancedMetricsCollector struct {
@@ -382,10 +354,6 @@ func NewSLAMonitoringArchitecture(
 	// arch.SLOEngine = NewServiceLevelObjectiveEngine(config) // TODO: implement
 
 	// Initialize Predictive Analyzer
-<<<<<<< HEAD
-	logger, _ := zap.NewProduction()
-=======
->>>>>>> integrate/mvp
 	arch.PredictiveAnalyzer = NewPredictiveSLAAnalyzer(config, logger)
 
 	// Initialize Data Collection and Processing
@@ -574,55 +542,6 @@ func (arch *SLAMonitoringArchitecture) calculateCompositeSLAScore(status *SLASta
 	return score
 }
 
-<<<<<<< HEAD
-// Constructor functions for missing types
-func NewServiceLevelIndicatorFramework(config *SLAMonitoringConfig) *ServiceLevelIndicatorFramework {
-	return &ServiceLevelIndicatorFramework{}
-}
-
-func NewServiceLevelObjectiveEngine(config *SLAMonitoringConfig) *ServiceLevelObjectiveEngine {
-	return &ServiceLevelObjectiveEngine{}
-}
-
-func NewAdvancedMetricsCollector(config *SLAMonitoringConfig) *AdvancedMetricsCollector {
-	return &AdvancedMetricsCollector{}
-}
-
-func NewRealTimeDataAggregator(config *SLAMonitoringConfig) *RealTimeDataAggregator {
-	return &RealTimeDataAggregator{}
-}
-
-func NewSLAStorageManager(config *SLAMonitoringConfig) *SLAStorageManager {
-	return &SLAStorageManager{}
-}
-
-func NewAdvancedAlertManager(config *SLAMonitoringConfig) *AdvancedAlertManager {
-	return &AdvancedAlertManager{}
-}
-
-func NewSLADashboardManager(config *SLAMonitoringConfig) *SLADashboardManager {
-	return &SLADashboardManager{}
-}
-
-func NewSyntheticMonitor(config *SLAMonitoringConfig) *SyntheticMonitor {
-	return &SyntheticMonitor{}
-}
-
-func NewChaosEngineeringIntegration(config *SLAMonitoringConfig) *ChaosEngineeringIntegration {
-	return &ChaosEngineeringIntegration{}
-}
-
-func NewSLACostOptimizer(config *SLAMonitoringConfig) *SLACostOptimizer {
-	return &SLACostOptimizer{}
-}
-
-func NewAutomatedRemediationEngine(config *SLAMonitoringConfig) *AutomatedRemediationEngine {
-	return &AutomatedRemediationEngine{}
-}
-
-func NewComplianceReporter(config *SLAMonitoringConfig) *ComplianceReporter {
-	return &ComplianceReporter{}
-=======
 // ServiceAvailabilitySLI measures service-level availability
 type ServiceAvailabilitySLI struct {
 	ServiceName    string
@@ -1282,5 +1201,4 @@ func (web *WeightedErrorBudgetSLI) GetStatus(ctx context.Context) (*ErrorBudgetS
 		BurnRate:             0.05, // TODO: Calculate actual burn rate
 		BusinessImpactScore:  0.1,  // TODO: Calculate actual business impact
 	}, nil
->>>>>>> integrate/mvp
 }

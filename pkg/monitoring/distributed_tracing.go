@@ -126,9 +126,6 @@ const (
 	AlertTypeCircuitBreaker    TraceAlertType = "circuit_breaker"
 )
 
-<<<<<<< HEAD
-// AlertSeverity constants are defined in types.go
-=======
 // AlertSeverity constants are imported from alerting.go
 // Using constants from alerting.go
 const (
@@ -136,7 +133,6 @@ const (
 	SeverityCritical = AlertSeverityCritical
 	SeverityMedium   = AlertSeverityWarning
 )
->>>>>>> integrate/mvp
 
 // TraceAlertManager manages trace-based alerting
 type TraceAlertManager struct {
@@ -586,11 +582,7 @@ func (sa *SpanAnalyzer) checkAnomalies(operationKey string, spanMetrics *SpanMet
 
 			// Record anomaly metric
 			if sa.metricsRecorder != nil {
-<<<<<<< HEAD
-				sa.metricsRecorder.RecordAnomalyDetection("latency", "high", operationKey, "statistical_analysis")
-=======
 				sa.metricsRecorder.RecordAnomalyDetection("latency", "high", operationKey, "statistical")
->>>>>>> integrate/mvp
 			}
 		}
 	}

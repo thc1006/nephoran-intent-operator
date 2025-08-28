@@ -1490,7 +1490,7 @@ type FailoverRTOMetrics struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&DisasterRecoveryPlan{}, &DisasterRecoveryPlanList{})
-	SchemeBuilder.Register(&BackupPolicy{}, &BackupPolicyList{})
-	SchemeBuilder.Register(&FailoverPolicy{}, &FailoverPolicyList{})
+	// SchemeBuilder.Register(&DisasterRecoveryPlan{}, &DisasterRecoveryPlanList{}) // TODO: Fix DeepCopyObject methods
+	// SchemeBuilder.Register(&BackupPolicy{}, &BackupPolicyList{}) // TODO: Fix DeepCopyObject methods
+	// SchemeBuilder.Register(&FailoverPolicy{}, &FailoverPolicyList{}) // TODO: Fix DeepCopyObject methods
 }

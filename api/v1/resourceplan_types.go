@@ -703,5 +703,5 @@ func (rp *ResourcePlan) ShouldOptimizePerformance() bool {
 }
 
 func init() {
-	SchemeBuilder.Register(&ResourcePlan{}, &ResourcePlanList{})
+	// SchemeBuilder.Register(&ResourcePlan{}, &ResourcePlanList{}) // TODO: Fix DeepCopyObject methods
 }

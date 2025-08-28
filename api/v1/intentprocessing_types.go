@@ -456,5 +456,5 @@ func (ip *IntentProcessing) ShouldEnableRAG() bool {
 }
 
 func init() {
-	SchemeBuilder.Register(&IntentProcessing{}, &IntentProcessingList{})
+	// SchemeBuilder.Register(&IntentProcessing{}, &IntentProcessingList{}) // TODO: Fix DeepCopyObject methods
 }

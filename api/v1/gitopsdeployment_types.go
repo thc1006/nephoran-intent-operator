@@ -893,5 +893,5 @@ func (gd *GitOpsDeployment) GetDeployedResourceCount() int {
 }
 
 func init() {
-	SchemeBuilder.Register(&GitOpsDeployment{}, &GitOpsDeploymentList{})
+	// SchemeBuilder.Register(&GitOpsDeployment{}, &GitOpsDeploymentList{}) // TODO: Fix DeepCopyObject methods
 }

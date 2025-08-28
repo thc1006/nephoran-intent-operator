@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/testutil"
+	authtestutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
 
 func TestNewJWTManager(t *testing.T) {
@@ -67,7 +67,7 @@ func TestNewJWTManager(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tc := testutil.NewTestContext(t)
+			tc := authtestutil.NewTestContext(t)
 			defer tc.Cleanup()
 
 			manager := auth.NewJWTManager(tt.config, tc.Logger)
@@ -86,7 +86,7 @@ func TestNewJWTManager(t *testing.T) {
 }
 
 func TestJWTManager_SetSigningKey(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
@@ -132,12 +132,12 @@ func TestJWTManager_SetSigningKey(t *testing.T) {
 }
 
 func TestJWTManager_GenerateToken(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
 
-	uf := testutil.NewUserFactory()
+	uf := authtestutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
 	tests := []struct {
@@ -243,12 +243,12 @@ func TestJWTManager_GenerateToken(t *testing.T) {
 }
 
 func TestJWTManager_ValidateToken(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
-	uf := testutil.NewUserFactory()
-	tf := testutil.NewTokenFactory("test-issuer")
+	uf := authtestutil.NewUserFactory()
+	tf := authtestutil.NewTokenFactory("test-issuer")
 
 	// Generate a valid token
 	user := uf.CreateBasicUser()
@@ -320,11 +320,11 @@ func TestJWTManager_ValidateToken(t *testing.T) {
 }
 
 func TestJWTManager_RefreshToken(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
-	uf := testutil.NewUserFactory()
+	uf := authtestutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
 
@@ -388,11 +388,11 @@ func TestJWTManager_RefreshToken(t *testing.T) {
 }
 
 func TestJWTManager_BlacklistToken(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
-	uf := testutil.NewUserFactory()
+	uf := authtestutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
 	token, err := manager.GenerateToken(user, nil)
@@ -444,7 +444,7 @@ func TestJWTManager_BlacklistToken(t *testing.T) {
 }
 
 func TestJWTManager_GetPublicKey(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
@@ -489,7 +489,7 @@ func TestJWTManager_GetPublicKey(t *testing.T) {
 }
 
 func TestJWTManager_GetJWKS(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
@@ -507,7 +507,7 @@ func TestJWTManager_GetJWKS(t *testing.T) {
 }
 
 func TestJWTManager_RotateKeys(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
@@ -523,7 +523,7 @@ func TestJWTManager_RotateKeys(t *testing.T) {
 	assert.NotEqual(t, initialKeyID, manager.keyID)
 
 	// Verify we can still generate and validate tokens
-	uf := testutil.NewUserFactory()
+	uf := authtestutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
 	token, err := manager.GenerateToken(user, nil)
@@ -535,11 +535,11 @@ func TestJWTManager_RotateKeys(t *testing.T) {
 }
 
 func TestJWTManager_ExtractClaims(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
-	uf := testutil.NewUserFactory()
+	uf := authtestutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
 	customClaims := map[string]interface{}{
@@ -596,11 +596,11 @@ func TestJWTManager_ExtractClaims(t *testing.T) {
 }
 
 func TestJWTManager_GenerateTokenPair(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
-	uf := testutil.NewUserFactory()
+	uf := authtestutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
 
@@ -675,11 +675,11 @@ func TestJWTManager_GenerateTokenPair(t *testing.T) {
 }
 
 func TestJWTManager_TokenValidationWithContext(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
-	uf := testutil.NewUserFactory()
+	uf := authtestutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
 	token, err := manager.GenerateToken(user, nil)
@@ -737,11 +737,11 @@ func TestJWTManager_TokenValidationWithContext(t *testing.T) {
 }
 
 func TestJWTManager_CleanupBlacklist(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
-	uf := testutil.NewUserFactory()
+	uf := authtestutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
 
@@ -778,11 +778,11 @@ func TestJWTManager_CleanupBlacklist(t *testing.T) {
 
 // Benchmark tests
 func BenchmarkJWTManager_GenerateToken(b *testing.B) {
-	tc := testutil.NewTestContext(&testing.T{})
+	tc := authtestutil.NewTestContext(&testing.T{})
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
-	uf := testutil.NewUserFactory()
+	uf := authtestutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
 	b.ResetTimer()
@@ -795,11 +795,11 @@ func BenchmarkJWTManager_GenerateToken(b *testing.B) {
 }
 
 func BenchmarkJWTManager_ValidateToken(b *testing.B) {
-	tc := testutil.NewTestContext(&testing.T{})
+	tc := authtestutil.NewTestContext(&testing.T{})
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
-	uf := testutil.NewUserFactory()
+	uf := authtestutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
 	token, err := manager.GenerateToken(user, nil)
@@ -817,11 +817,11 @@ func BenchmarkJWTManager_ValidateToken(b *testing.B) {
 }
 
 func BenchmarkJWTManager_GenerateTokenPair(b *testing.B) {
-	tc := testutil.NewTestContext(&testing.T{})
+	tc := authtestutil.NewTestContext(&testing.T{})
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
-	uf := testutil.NewUserFactory()
+	uf := authtestutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
 	b.ResetTimer()
@@ -834,11 +834,11 @@ func BenchmarkJWTManager_GenerateTokenPair(b *testing.B) {
 }
 
 func BenchmarkJWTManager_RefreshToken(b *testing.B) {
-	tc := testutil.NewTestContext(&testing.T{})
+	tc := authtestutil.NewTestContext(&testing.T{})
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
-	uf := testutil.NewUserFactory()
+	uf := authtestutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
 	// Generate initial token pair
@@ -859,14 +859,14 @@ func BenchmarkJWTManager_RefreshToken(b *testing.B) {
 }
 
 // Helper functions for testing
-func createJWTManagerForTest(t *testing.T) (*JWTManager, *testutil.TestContext) {
-	tc := testutil.NewTestContext(t)
+func createJWTManagerForTest(t *testing.T) (*auth.JWTManager, *authtestutil.TestContext) {
+	tc := authtestutil.NewTestContext(t)
 	manager := tc.SetupJWTManager()
 	return manager, tc
 }
 
 func generateTestTokenWithClaims(t *testing.T, manager *JWTManager, claims map[string]interface{}) string {
-	uf := testutil.NewUserFactory()
+	uf := authtestutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
 	token, err := manager.GenerateToken(user, claims)
@@ -876,12 +876,12 @@ func generateTestTokenWithClaims(t *testing.T, manager *JWTManager, claims map[s
 
 // Table-driven test for comprehensive JWT validation scenarios
 func TestJWTManager_ComprehensiveValidation(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
-	uf := testutil.NewUserFactory()
-	tf := testutil.NewTokenFactory("test-issuer")
+	uf := authtestutil.NewUserFactory()
+	tf := authtestutil.NewTokenFactory("test-issuer")
 
 	testCases := []struct {
 		name        string

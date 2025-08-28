@@ -121,5 +121,5 @@ type ManagedElementList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&ManagedElement{}, &ManagedElementList{})
+	// SchemeBuilder.Register(&ManagedElement{}, &ManagedElementList{}) // TODO: Fix DeepCopyObject methods
 }

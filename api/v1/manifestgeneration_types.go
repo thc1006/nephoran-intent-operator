@@ -743,5 +743,5 @@ func (mg *ManifestGeneration) ShouldOptimizeManifests() bool {
 }
 
 func init() {
-	SchemeBuilder.Register(&ManifestGeneration{}, &ManifestGenerationList{})
+	// SchemeBuilder.Register(&ManifestGeneration{}, &ManifestGenerationList{}) // TODO: Fix DeepCopyObject methods
 }

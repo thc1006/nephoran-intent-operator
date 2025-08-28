@@ -6,10 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-<<<<<<< HEAD
-=======
 	"sort"
->>>>>>> integrate/mvp
 	"sync"
 	"time"
 
@@ -210,15 +207,6 @@ func (psa *PredictiveSLAAnalyzer) Start(ctx context.Context) error {
 	return nil
 }
 
-<<<<<<< HEAD
-// Prediction methods
-func (psa *PredictiveSLAAnalyzer) PredictAvailabilityViolation(
-	ctx context.Context,
-	timeHorizon time.Duration,
-) (*PredictionResult, error) {
-	psa.mu.RLock()
-	defer psa.mu.RUnlock()
-=======
 // initializeModels initializes ML models with historical data
 func (psa *PredictiveSLAAnalyzer) initializeModels(ctx context.Context) error {
 	psa.mu.Lock()
@@ -291,7 +279,6 @@ func (psa *PredictiveSLAAnalyzer) initializeModels(ctx context.Context) error {
 // PredictSLAViolations predicts potential SLA violations
 func (psa *PredictiveSLAAnalyzer) PredictSLAViolations(ctx context.Context) ([]*PredictedViolation, error) {
 	var violations []*PredictedViolation
->>>>>>> integrate/mvp
 
 	// Check cache first
 	cacheKey := fmt.Sprintf("availability_%v", timeHorizon)
@@ -420,9 +407,6 @@ func (psa *PredictiveSLAAnalyzer) TrainModels(ctx context.Context) error {
 		return fmt.Errorf("failed to train throughput model: %w", err)
 	}
 
-<<<<<<< HEAD
-	psa.logger.Info("Model training completed")
-=======
 	return violations, nil
 }
 
@@ -502,7 +486,6 @@ func (lrm *LinearRegressionModel) Train(ctx context.Context, data *TrainingDataS
 	lrm.trainingCount++
 	lrm.updateVersion()
 
->>>>>>> integrate/mvp
 	return nil
 }
 
@@ -517,11 +500,7 @@ func (lrm *LinearRegressionModel) Train(features [][]float64, labels []float64) 
 		lrm.weights = make([]float64, n)
 		// Initialize with small random values
 		for i := range lrm.weights {
-<<<<<<< HEAD
-			lrm.weights[i] = (rand.Float64()*2.0 - 1.0) * 0.01
-=======
 			lrm.weights[i] = (rand.Float64())*0.01 - 0.005
->>>>>>> integrate/mvp
 		}
 	}
 
@@ -588,11 +567,6 @@ func (lrm *LinearRegressionModel) Train(features [][]float64, labels []float64) 
 	return nil
 }
 
-<<<<<<< HEAD
-func (lrm *LinearRegressionModel) Predict(features []float64) float64 {
-	if !lrm.trained || len(features) != len(lrm.weights) {
-		return 0.0
-=======
 // Predict makes a prediction using the trained model (legacy method)
 func (lrm *LinearRegressionModel) predict(features []float64) (float64, float64, error) {
 	lrm.mu.RLock()
@@ -600,7 +574,6 @@ func (lrm *LinearRegressionModel) predict(features []float64) (float64, float64,
 
 	if len(features) != len(lrm.weights) {
 		return 0, 0, fmt.Errorf("feature dimension mismatch")
->>>>>>> integrate/mvp
 	}
 
 	prediction := lrm.bias
@@ -611,12 +584,6 @@ func (lrm *LinearRegressionModel) predict(features []float64) (float64, float64,
 	return prediction
 }
 
-<<<<<<< HEAD
-// Polynomial Regression implementation
-func (prm *PolynomialRegressionModel) Train(features [][]float64, labels []float64) error {
-	// Transform features to polynomial features
-	polyFeatures := prm.transformToPolynomial(features)
-=======
 // Predict makes a prediction using the trained model (MLModel interface implementation)
 func (lrm *LinearRegressionModel) Predict(ctx context.Context, features []float64) (*Prediction, error) {
 	value, confidence, err := lrm.predict(features)
@@ -639,7 +606,6 @@ func (lrm *LinearRegressionModel) UpdateModel(ctx context.Context, newData *Trai
 	// For linear regression, we can use online learning or retrain
 	return lrm.Train(ctx, newData)
 }
->>>>>>> integrate/mvp
 
 	// Use least squares to solve for coefficients
 	coeffs, err := prm.leastSquaresSolve(polyFeatures, labels)
@@ -1064,9 +1030,6 @@ func (ta *TrainingAggregator) calculateMovingAverage(values []float64, index, wi
 	return sum / float64(count)
 }
 
-<<<<<<< HEAD
-// Background processes
-=======
 // generateForecast generates future value predictions
 func (ta *TrendAnalyzer) generateForecast(times []time.Time, values []float64, slope float64, numPoints int) []float64 {
 	if len(values) == 0 {
@@ -1123,7 +1086,6 @@ func (psa *PredictiveSLAAnalyzer) trainModels(ctx context.Context) error {
 }
 
 // continuousTraining runs continuous model training
->>>>>>> integrate/mvp
 func (psa *PredictiveSLAAnalyzer) continuousTraining(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Hour) // Retrain every hour
 	defer ticker.Stop()
@@ -1168,11 +1130,6 @@ func (psa *PredictiveSLAAnalyzer) accuracyTracking(ctx context.Context) {
 	}
 }
 
-<<<<<<< HEAD
-func (psa *PredictiveSLAAnalyzer) updatePredictionMetrics(ctx context.Context) {
-	// Make predictions and update Prometheus metrics
-	horizons := []time.Duration{15 * time.Minute, 1 * time.Hour, 4 * time.Hour}
-=======
 // updateAccuracyMetrics updates prediction accuracy metrics
 func (psa *PredictiveSLAAnalyzer) updateAccuracyMetrics() {
 	psa.mu.RLock()
@@ -1267,7 +1224,6 @@ func (psa *PredictiveSLAAnalyzer) extractAvailabilityFeatures(trend *TrendResult
 	// Add more sophisticated feature extraction
 	return features
 }
->>>>>>> integrate/mvp
 
 	for _, horizon := range horizons {
 		// Availability prediction
@@ -1337,8 +1293,6 @@ func NewLatencyPredictor(config *SLAMonitoringConfig) *LatencyPredictor {
 	}
 }
 
-<<<<<<< HEAD
-=======
 func (lp *LatencyPredictor) Predict(ctx context.Context, features []float64) (*Prediction, error) {
 	return lp.model.Predict(ctx, features)
 }
@@ -1347,7 +1301,6 @@ type ThroughputPredictor struct {
 	model *LinearRegressionModel
 }
 
->>>>>>> integrate/mvp
 func NewThroughputPredictor(config *SLAMonitoringConfig) *ThroughputPredictor {
 	return &ThroughputPredictor{
 		model: &ARIMAModel{
@@ -1358,32 +1311,8 @@ func NewThroughputPredictor(config *SLAMonitoringConfig) *ThroughputPredictor {
 	}
 }
 
-<<<<<<< HEAD
-// NewTrendAnalyzer is defined in types.go
-
-// NewSeasonalityDetector is defined in types.go
-
-// NewAnomalyDetector is defined in types.go
-
-// Stub methods for completing the interface
-func (ap *AvailabilityPredictor) Predict(features []float64) float64 {
-	return ap.model.Predict(features)
-}
-
-func (lp *LatencyPredictor) Predict(features []float64) float64 {
-	return lp.model.Predict(features)
-}
-
-func (tp *ThroughputPredictor) Predict(features []float64) float64 {
-	// Simplified ARIMA prediction (would be more complex in real implementation)
-	if len(features) > 0 {
-		return features[0] * 1.05 // Mock 5% increase prediction
-	}
-	return 1000.0 // Default prediction
-=======
 func (tp *ThroughputPredictor) Predict(ctx context.Context, features []float64) (*Prediction, error) {
 	return tp.model.Predict(ctx, features)
->>>>>>> integrate/mvp
 }
 
 // GetSeasonalAdjustment is defined in types.go

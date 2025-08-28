@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/mock"
 	"sigs.k8s.io/controller-runtime/pkg/client"

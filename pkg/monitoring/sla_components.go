@@ -5,11 +5,8 @@ import (
 	"context"
 	"fmt"
 	"math"
-<<<<<<< HEAD
 	"net/http"
-=======
 	"sort"
->>>>>>> integrate/mvp
 	"sync"
 	"time"
 
@@ -483,10 +480,6 @@ func (p2 *P2QuantileEstimator) exactQuantile() float64 {
 
 // CircularBuffer is defined in types.go
 
-<<<<<<< HEAD
-// SLATimeSeries represents a time series for historical SLA data tracking
-type SLATimeSeries struct {
-=======
 // NewCircularBuffer creates a new circular buffer
 func NewCircularBuffer(capacity int) *CircularBuffer {
 	return &CircularBuffer{
@@ -577,7 +570,6 @@ var (
 
 // TimeSeries represents a time series for historical data tracking
 type TimeSeries struct {
->>>>>>> integrate/mvp
 	points    []TimePoint
 	maxPoints int
 	mu        sync.RWMutex
@@ -615,10 +607,6 @@ func (ts *SLATimeSeries) Add(timestamp time.Time, value float64) {
 	}
 }
 
-<<<<<<< HEAD
-// GetTrend calculates trend over specified duration
-func (ts *SLATimeSeries) GetTrend(duration time.Duration) float64 {
-=======
 // GetRecent returns the most recent n time points
 func (ts *TimeSeries) GetRecent(n int) ([]time.Time, []float64) {
 	ts.mu.RLock()
@@ -648,7 +636,6 @@ func (ts *TimeSeries) GetRecent(n int) ([]time.Time, []float64) {
 
 // GetTrend calculates the trend over the specified duration
 func (ts *TimeSeries) GetTrend(duration time.Duration) float64 {
->>>>>>> integrate/mvp
 	ts.mu.RLock()
 	defer ts.mu.RUnlock()
 

@@ -732,5 +732,5 @@ func (cnf *CNFDeployment) validateAutoScaling() error {
 }
 
 func init() {
-	SchemeBuilder.Register(&CNFDeployment{}, &CNFDeploymentList{})
+	// SchemeBuilder.Register(&CNFDeployment{}, &CNFDeploymentList{}) // TODO: Fix DeepCopyObject methods
 }

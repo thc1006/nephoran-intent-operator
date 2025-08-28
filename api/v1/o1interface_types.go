@@ -506,5 +506,5 @@ type O1InterfaceList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&O1Interface{}, &O1InterfaceList{})
+	// SchemeBuilder.Register(&O1Interface{}, &O1InterfaceList{}) // TODO: Fix DeepCopyObject methods
 }

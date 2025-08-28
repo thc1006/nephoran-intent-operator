@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/testutil"
+	authtestutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
 
 // BenchmarkSuite provides comprehensive performance benchmarking
@@ -28,7 +28,7 @@ type BenchmarkSuite struct {
 }
 
 func NewBenchmarkSuite() *BenchmarkSuite {
-	tc := testutil.NewTestContext(&testing.T{})
+	tc := authtestutil.NewTestContext(&testing.T{})
 
 	suite := &BenchmarkSuite{
 		jwtManager:     tc.SetupJWTManager(),
@@ -43,9 +43,9 @@ func NewBenchmarkSuite() *BenchmarkSuite {
 }
 
 func (suite *BenchmarkSuite) setupTestData() {
-	uf := testutil.NewUserFactory()
-	rf := testutil.NewRoleFactory()
-	pf := testutil.NewPermissionFactory()
+	uf := authtestutil.NewUserFactory()
+	rf := authtestutil.NewRoleFactory()
+	pf := authtestutil.NewPermissionFactory()
 	ctx := context.Background()
 
 	// Create test users
@@ -329,8 +329,8 @@ func BenchmarkRBACManager_AssignRoleToUser(b *testing.B) {
 	users := make([]string, b.N)
 	roles := make([]string, b.N)
 
-	uf := testutil.NewUserFactory()
-	rf := testutil.NewRoleFactory()
+	uf := authtestutil.NewUserFactory()
+	rf := authtestutil.NewRoleFactory()
 
 	for i := 0; i < b.N; i++ {
 		user := uf.CreateBasicUser()
@@ -358,7 +358,7 @@ func BenchmarkRBACManager_AssignRoleToUser(b *testing.B) {
 func BenchmarkRBACManager_CreateRole(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	ctx := context.Background()
-	rf := testutil.NewRoleFactory()
+	rf := authtestutil.NewRoleFactory()
 
 	roles := make([]*Role, b.N)
 	for i := 0; i < b.N; i++ {
@@ -381,7 +381,7 @@ func BenchmarkRBACManager_CreateRole(b *testing.B) {
 func BenchmarkRBACManager_CreatePermission(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	ctx := context.Background()
-	pf := testutil.NewPermissionFactory()
+	pf := authtestutil.NewPermissionFactory()
 
 	permissions := make([]*Permission, b.N)
 	for i := 0; i < b.N; i++ {
@@ -636,12 +636,12 @@ func BenchmarkRBACManager_ScaleWithUsers(b *testing.B) {
 	for _, userCount := range userCounts {
 		b.Run(fmt.Sprintf("Users_%d", userCount), func(b *testing.B) {
 			// Setup RBAC manager with many users
-			tc := testutil.NewTestContext(&testing.T{})
+			tc := authtestutil.NewTestContext(&testing.T{})
 			rbacManager := tc.SetupRBACManager()
 
-			uf := testutil.NewUserFactory()
-			rf := testutil.NewRoleFactory()
-			pf := testutil.NewPermissionFactory()
+			uf := authtestutil.NewUserFactory()
+			rf := authtestutil.NewRoleFactory()
+			pf := authtestutil.NewPermissionFactory()
 			ctx := context.Background()
 
 			// Create permission and role
@@ -677,10 +677,10 @@ func BenchmarkJWTManager_ScaleWithClaims(b *testing.B) {
 
 	for _, claimCount := range claimCounts {
 		b.Run(fmt.Sprintf("Claims_%d", claimCount), func(b *testing.B) {
-			tc := testutil.NewTestContext(&testing.T{})
+			tc := authtestutil.NewTestContext(&testing.T{})
 			jwtManager := tc.SetupJWTManager()
 
-			uf := testutil.NewUserFactory()
+			uf := authtestutil.NewUserFactory()
 			user := uf.CreateBasicUser()
 
 			// Create custom claims
@@ -822,7 +822,7 @@ func BenchmarkSessionManager_SessionCleanup(b *testing.B) {
 
 	// Create many expired sessions
 	for i := 0; i < 1000; i++ {
-		sf := testutil.NewSessionFactory()
+		sf := authtestutil.NewSessionFactory()
 		expiredSession := sf.CreateExpiredSession(user.Subject)
 		// In a real scenario, these would be stored in the session store
 		_ = expiredSession

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"golang.org/x/time/rate"
 )

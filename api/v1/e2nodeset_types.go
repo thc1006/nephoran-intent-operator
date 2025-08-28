@@ -329,5 +329,5 @@ type E2NodeSetList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&E2NodeSet{}, &E2NodeSetList{})
+	// SchemeBuilder.Register(&E2NodeSet{}, &E2NodeSetList{}) // TODO: Fix DeepCopyObject methods
 }

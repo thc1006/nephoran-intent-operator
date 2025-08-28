@@ -197,5 +197,5 @@ type CertificateAutomationList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&CertificateAutomation{}, &CertificateAutomationList{})
+	// SchemeBuilder.Register(&CertificateAutomation{}, &CertificateAutomationList{}) // TODO: Fix DeepCopyObject methods
 }
