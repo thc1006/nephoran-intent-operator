@@ -25,14 +25,14 @@ concurrency:
 # Global performance settings
 env:
   GO_VERSION: "1.24.0"  # Pin for cache consistency
-  GOLANGCI_LINT_VERSION: "1.61.0"
+  GOLANGCI_LINT_VERSION: "1.62.0"  # Updated to support Go 1.24+
   
   # ULTRA SPEED: Optimized Go settings for maximum cache efficiency
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GO111MODULE: "on"
   CGO_ENABLED: "0"
-  GOFLAGS: "-mod=readonly"  # Prevent accidental module changes
+  # GOFLAGS: "-mod=readonly" removed to allow dependency downloads in tests
   GOCACHE: "/tmp/go-build-cache"
   GOMODCACHE: "/tmp/go-mod-cache"
   
@@ -133,6 +133,7 @@ jobs:
           # ULTRA SPEED: Parallel module download
           export GOMODCACHE=/tmp/go-mod-cache
           export GOCACHE=/tmp/go-build-cache
+          export GOFLAGS=""  # Allow module downloads
           mkdir -p $GOMODCACHE $GOCACHE
           
           # Download modules in parallel
@@ -231,8 +232,12 @@ jobs:
         env:
           GOMODCACHE: /tmp/go-mod-cache
           GOCACHE: /tmp/go-build-cache
+          GOFLAGS: ""  # Allow module downloads during tests
         run: |
           # ULTRA SPEED: Parallel test execution with sharding
+          # First ensure all dependencies are available
+          go mod download
+          
           total_packages=$(go list ./... | wc -l)
           shard_size=$(( (total_packages + 3) / 4 ))
           start=$(( (matrix.shard - 1) * shard_size + 1 ))
@@ -347,18 +352,25 @@ jobs:
         env:
           GOMODCACHE: /tmp/go-mod-cache
           GOCACHE: /tmp/go-build-cache
+          GOFLAGS: ""  # Allow module downloads during build
         run: |
           # ULTRA SPEED: Optimized build with minimal overhead
           export CGO_ENABLED=0
           export GOOS=linux
           export GOARCH=${{ matrix.arch }}
           
-          # Build with maximum optimization
+          # Ensure dependencies are available
+          go mod download
+          
+          # Create dist directory
+          mkdir -p dist
+          
+          # Build with maximum optimization - conductor as main binary
           go build \
             -ldflags="-w -s -X main.version=${{ github.sha }}" \
             -trimpath \
             -o dist/manager-linux-${{ matrix.arch }} \
-            ./cmd/main.go
+            ./cmd/conductor/main.go
           
           # Quick size check
           ls -lh dist/

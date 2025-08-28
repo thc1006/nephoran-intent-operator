@@ -24,7 +24,7 @@ env:
   GO_VERSION_FILE: "go.mod"
   REGISTRY_BASE: ghcr.io/${{ github.repository_owner }}
   PLATFORMS: linux/amd64,linux/arm64
-  GOLANGCI_LINT_VERSION: "1.61.0"
+  GOLANGCI_LINT_VERSION: "1.62.0"  # Updated to support Go 1.24+
   GOVULNCHECK_VERSION: "1.1.4"
   # Cache optimization settings
   GOPROXY: "https://proxy.golang.org,direct"
