@@ -21,7 +21,7 @@ import (
 
 	// certmanagermetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1".
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 
 
 

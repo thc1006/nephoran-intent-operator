@@ -698,8 +698,9 @@ func MakeExecutable(path string) error {
 		}
 
 		if info.Mode()&0o200 == 0 {
-
-			return os.Chmod(path, 0o644)
+			// Security: Use restrictive permissions (G302)
+			// 0640 allows owner read/write, group read only
+			return os.Chmod(path, 0o640)
 
 		}
 
@@ -710,8 +711,9 @@ func MakeExecutable(path string) error {
 
 
 	// On Unix, set executable permission.
-
-	return os.Chmod(path, 0o755)
+	// Security: Use restrictive permissions (G302)
+	// 0750 allows owner all, group read/execute, others nothing
+	return os.Chmod(path, 0o750)
 
 }
 

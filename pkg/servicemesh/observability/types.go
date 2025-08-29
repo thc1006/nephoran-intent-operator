@@ -11,7 +11,7 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
 
 )
 

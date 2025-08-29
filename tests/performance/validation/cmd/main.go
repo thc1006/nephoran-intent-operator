@@ -11,7 +11,7 @@ import (
 
 
 
-	validation "github.com/thc1006/nephoran-intent-operator/tests/performance/validation"
+	validation "github.com/nephio-project/nephoran-intent-operator/tests/performance/validation"
 
 )
 

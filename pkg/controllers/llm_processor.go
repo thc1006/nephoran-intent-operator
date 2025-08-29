@@ -17,11 +17,11 @@ import (
 
 
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/resilience"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/resilience"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
 
 
 

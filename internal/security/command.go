@@ -7,6 +7,8 @@ import (
 
 	"context"
 
+	"errors"
+
 	"fmt"
 
 	"os"
@@ -161,7 +163,7 @@ func NewSecureCommandExecutor() (*SecureCommandExecutor, error) {
 
 // ExecuteSecure executes a command with comprehensive security controls.
 
-func (e *SecureCommandExecutor) ExecuteSecure(binaryName string, args []string, workingDir string) (*CommandResult, error) {
+func (e *SecureCommandExecutor) ExecuteSecure(ctx context.Context, binaryName string, args []string, workingDir string) (*CommandResult, error) {
 
 	startTime := time.Now()
 
@@ -209,7 +211,7 @@ func (e *SecureCommandExecutor) ExecuteSecure(binaryName string, args []string, 
 
 	// 3. Resource limiting.
 
-	ctx, cancel := context.WithTimeout(context.Background(), secureCmd.Timeout)
+	timeoutCtx, cancel := context.WithTimeout(ctx, secureCmd.Timeout)
 
 	defer cancel()
 
@@ -217,7 +219,7 @@ func (e *SecureCommandExecutor) ExecuteSecure(binaryName string, args []string, 
 
 	// 4. Command execution with security monitoring.
 
-	cmd := exec.CommandContext(ctx, secureCmd.Binary, secureCmd.Args...)
+	cmd := exec.CommandContext(timeoutCtx, secureCmd.Binary, secureCmd.Args...)
 
 	cmd.Dir = secureCmd.WorkingDir
 
@@ -261,7 +263,8 @@ func (e *SecureCommandExecutor) ExecuteSecure(binaryName string, args []string, 
 
 	if err != nil {
 
-		if exitError, ok := err.(*exec.ExitError); ok {
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) {
 
 			result.ExitCode = exitError.ExitCode()
 

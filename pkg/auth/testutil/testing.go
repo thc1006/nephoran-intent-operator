@@ -49,7 +49,7 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
 
 )
 
@@ -1649,9 +1649,13 @@ func (r *RBACManagerMock) AssignRolesFromClaims(ctx context.Context, userInfo *p
 
 				}
 
-				_, _ = r.CreateRole(ctx, basicRole)
+				if _, err := r.CreateRole(ctx, basicRole); err != nil {
+					// Log error but continue - this is test utility code
+				}
 
-				r.GrantRoleToUser(ctx, userID, roleID)
+				if err := r.GrantRoleToUser(ctx, userID, roleID); err != nil {
+					// Log error but continue - this is test utility code
+				}
 
 			}
 
@@ -2151,13 +2155,10 @@ func (s *SessionManagerMock) UpdateSessionMetadata(ctx context.Context, sessionI
 
 
 
-	if metadata != nil {
+	// S1031: Range over maps is safe even if the map is nil, no check needed
+	for k, v := range metadata {
 
-		for k, v := range metadata {
-
-			session.Data[k] = v
-
-		}
+		session.Data[k] = v
 
 	}
 

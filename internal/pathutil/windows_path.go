@@ -23,8 +23,14 @@ import (
 
 
 
-// WindowsMaxPath is the maximum path length without long path support.
-
+// WindowsMaxPath defines the maximum path length for Windows without long path support.
+// This constant accounts for the Windows legacy limitation of 260 characters, with 248 characters
+// reserved for the path to leave room for the filename.
+//
+// Notes:
+//   - Applies to standard paths without \\?\ long path prefix
+//   - Includes the full path, not just the filename
+//   - Used as a conservative limit to ensure compatibility
 const WindowsMaxPath = 248 // Leave room for filename
 
 
@@ -53,10 +59,22 @@ var (
 
 
 
-// ValidateWindowsPath validates Windows-specific path edge cases.
-
-// It handles drive letters, UNC paths, mixed separators, and various edge cases.
-
+// ValidateWindowsPath performs comprehensive validation of Windows-specific path characteristics.
+// This method checks for numerous potential issues with paths, including:
+//   1. Presence of invalid characters
+//   2. Handling of drive letters
+//   3. UNC path format validation
+//   4. Reserved filename detection
+//   5. Path length restrictions
+//
+// The function is designed to be strict and catch potential problems early.
+// On non-Windows systems, it always returns nil.
+//
+// Parameters:
+//   p: The Windows path to validate
+//
+// Returns:
+//   An error detailing the first validation issue found, or nil if the path is valid
 func ValidateWindowsPath(p string) error {
 
 	if runtime.GOOS != "windows" {
@@ -207,12 +225,27 @@ func ValidateWindowsPath(p string) error {
 
 
 
-// NormalizeUserPath normalizes and validates a user-provided path.
-
-// On Windows, it adds \\?\ prefix for long paths and handles various edge cases.
-
-// It rejects paths with traversal attempts.
-
+// NormalizeUserPath sanitizes and normalizes a user-provided file path.
+// This function performs multiple transformations and security checks:
+//   1. Converts mixed path separators (/ and \) to canonical form
+//   2. Handles drive-relative paths (C:temp → C:\temp)
+//   3. Detects and prevents path traversal attempts
+//   4. Cleans path by removing redundant segments
+//   5. Converts to an absolute path
+//   6. Adds \\?\ prefix for Windows long paths (> 248 characters)
+//
+// On non-Windows systems, it uses standard filepath cleaning.
+//
+// Security Features:
+//   - Prevents directory traversal vulnerabilities
+//   - Validates path against Windows naming restrictions
+//   - Handles long path limitations
+//
+// Parameters:
+//   p: The user-provided path to normalize
+//
+// Returns:
+//   A normalized, safe, absolute path, or an error if normalization fails
 func NormalizeUserPath(p string) (string, error) {
 
 	if p == "" {
@@ -349,10 +382,24 @@ func NormalizeUserPath(p string) (string, error) {
 
 
 
-// EnsureParentDir ensures the parent directory of a path exists.
-
-// This function is resilient to concurrent directory creation using os.MkdirAll.
-
+// EnsureParentDir creates the parent directory of a given path if it doesn't exist.
+// This function provides safe, robust directory creation with support for various scenarios:
+//   1. Handles empty path input
+//   2. Skips creation for current directory or root paths
+//   3. Special handling for Windows drive root paths
+//   4. Thread-safe directory creation using os.MkdirAll
+//   5. Handles race conditions in concurrent environment
+//
+// Key Features:
+//   - Idempotent: Multiple calls with same path are safe
+//   - Uses 0o755 permissions for created directories
+//   - Verifies that the path is actually a directory
+//
+// Parameters:
+//   path: The file path whose parent directory should be ensured
+//
+// Returns:
+//   An error if directory creation fails, nil if parent directory exists or was created successfully
 func EnsureParentDir(path string) error {
 
 	if path == "" {
@@ -431,8 +478,19 @@ func EnsureParentDir(path string) error {
 
 
 
-// IsWindowsBatchFile checks if a file is a Windows batch file.
-
+// IsWindowsBatchFile determines whether a file is a Windows batch script.
+// It checks the file extension to identify batch and command files.
+//
+// This function:
+//   - Returns false on non-Windows platforms
+//   - Recognizes .bat and .cmd file extensions
+//   - Performs case-insensitive extension comparison
+//
+// Parameters:
+//   path: The file path to check
+//
+// Returns:
+//   true if the file is a Windows batch script, false otherwise
 func IsWindowsBatchFile(path string) bool {
 
 	if runtime.GOOS != "windows" {
@@ -449,8 +507,24 @@ func IsWindowsBatchFile(path string) bool {
 
 
 
-// IsUNCPath checks if a path is a UNC path (\\server\share).
-
+// IsUNCPath determines whether a path follows the Universal Naming Convention (UNC) format.
+// UNC paths are network file paths typically used to specify shared resources on Windows.
+//
+// Examples of valid UNC paths:
+//   - \\server\share
+//   - \\computername\sharename
+//   - \\192.168.1.1\public
+//
+// The function uses a regex to validate the path structure:
+//   - Must start with two backslashes
+//   - Must have a valid server name
+//   - Must have a valid share name
+//
+// Parameters:
+//   path: The file path to check
+//
+// Returns:
+//   true if the path is a valid UNC path, false otherwise
 func IsUNCPath(path string) bool {
 
 	return windowsUNCPattern.MatchString(path)
@@ -459,8 +533,23 @@ func IsUNCPath(path string) bool {
 
 
 
-// IsWindowsDevicePath checks if a path is a Windows device path (\\?\ or \\.\).
-
+// IsWindowsDevicePath determines whether a path is a Windows device path.
+// Device paths are special paths used to access Windows system devices and resources.
+//
+// Valid device path prefixes:
+//   - \\?\ : Extended-length path prefix, allows paths > 260 characters
+//   - \\.\  : Direct device access for system devices
+//
+// These paths have special rules and bypass normal path validation:
+//   - Can access system devices directly
+//   - Allow very long file paths
+//   - Used for low-level system operations
+//
+// Parameters:
+//   path: The file path to check
+//
+// Returns:
+//   true if the path is a Windows device path, false otherwise
 func IsWindowsDevicePath(path string) bool {
 
 	return windowsDevicePattern.MatchString(path)
@@ -469,10 +558,26 @@ func IsWindowsDevicePath(path string) bool {
 
 
 
-// IsAbsoluteWindowsPath checks if a path is absolute on Windows.
-
-// This includes drive letters (C:\), UNC paths (\\server\share), and device paths.
-
+// IsAbsoluteWindowsPath determines whether a path is absolute according to Windows path conventions.
+// This function recognizes multiple types of absolute paths:
+//
+// Absolute Path Types:
+//   1. Drive-letter paths (C:\path, D:\directory)
+//   2. UNC network paths (\\server\share)
+//   3. Windows device paths (\\?\ or \\.\)
+//
+// On non-Windows platforms, it falls back to standard filepath.IsAbs() behavior.
+//
+// Validation Criteria:
+//   - Starts with drive letter followed by :\ or :/
+//   - Starts with \\server\share format
+//   - Starts with \\?\ or \\.\
+//
+// Parameters:
+//   path: The file path to check for absolute status
+//
+// Returns:
+//   true if the path is absolute on Windows, false otherwise
 func IsAbsoluteWindowsPath(path string) bool {
 
 	if runtime.GOOS != "windows" {

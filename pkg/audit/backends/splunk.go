@@ -39,7 +39,7 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/types"
 
 
 
@@ -420,8 +420,8 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 
 
 	// Convert events to Splunk format.
-
-	var splunkEvents []SplunkEvent
+	// Pre-allocate slice with capacity of input events to avoid dynamic growth
+	splunkEvents := make([]SplunkEvent, 0, len(events))
 
 	for _, event := range events {
 

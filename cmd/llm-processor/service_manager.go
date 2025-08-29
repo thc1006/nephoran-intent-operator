@@ -31,15 +31,15 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/handlers"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/handlers"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/health"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
 
 )
 
@@ -121,7 +121,7 @@ func (sm *ServiceManager) Initialize(ctx context.Context) error {
 
 	// Initialize OAuth2 manager.
 
-	if err := sm.initializeOAuth2Manager(); err != nil {
+	if err := sm.initializeOAuth2Manager(ctx); err != nil {
 
 		return fmt.Errorf("failed to initialize OAuth2 manager: %w", err)
 
@@ -187,7 +187,7 @@ func (sm *ServiceManager) initializeSecretManager() error {
 
 // initializeOAuth2Manager initializes the OAuth2 manager.
 
-func (sm *ServiceManager) initializeOAuth2Manager() error {
+func (sm *ServiceManager) initializeOAuth2Manager(ctx context.Context) error {
 
 	oauth2Config := &auth.OAuth2ManagerConfig{
 

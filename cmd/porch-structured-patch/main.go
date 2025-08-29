@@ -7,6 +7,8 @@ import (
 
 	"context"
 
+	"errors"
+
 	"flag"
 
 	"fmt"
@@ -27,7 +29,7 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/internal/patchgen"
+	"github.com/nephio-project/nephoran-intent-operator/internal/patchgen"
 
 )
 
@@ -553,7 +555,8 @@ func applyWithPorchDirect(outputDir string) error {
 
 		// Check for specific error types.
 
-		if exitError, ok := err.(*exec.ExitError); ok {
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) {
 
 			return fmt.Errorf("porch-direct command failed with exit code %d: %w", exitError.ExitCode(), err)
 

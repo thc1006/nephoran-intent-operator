@@ -29,7 +29,7 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
 
 )
 
@@ -977,7 +977,11 @@ func (ms *OAuth2MockServer) handleAuthorize(w http.ResponseWriter, r *http.Reque
 
 	// Redirect with code.
 
-	redirectURL, _ := url.Parse(redirectURI)
+	redirectURL, err := url.Parse(redirectURI)
+	if err != nil {
+		http.Error(w, "Invalid redirect URI", http.StatusBadRequest)
+		return
+	}
 
 	q := redirectURL.Query()
 
@@ -1071,7 +1075,10 @@ func (ms *OAuth2MockServer) handleAuthorizationCodeGrant(w http.ResponseWriter, 
 
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(tokenResponse)
+	if err := json.NewEncoder(w).Encode(tokenResponse); err != nil {
+		http.Error(w, "Failed to encode token response", http.StatusInternalServerError)
+		return
+	}
 
 }
 
@@ -1131,7 +1138,10 @@ func (ms *OAuth2MockServer) handleRefreshTokenGrant(w http.ResponseWriter, r *ht
 
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(tokenResponse)
+	if err := json.NewEncoder(w).Encode(tokenResponse); err != nil {
+		http.Error(w, "Failed to encode refresh token response", http.StatusInternalServerError)
+		return
+	}
 
 }
 

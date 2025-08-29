@@ -21,12 +21,21 @@ import (
 
 
 
-// NormalizeWindowsPath normalizes a Windows path and handles edge cases.
-
-// It resolves drive-relative paths, normalizes separators, and adds \\?\ prefix for long paths.
-
-// This function is platform-agnostic but handles Windows long path issues.
-
+// NormalizeWindowsPath normalizes a Windows path, resolving multiple platform-specific complexities.
+// It performs the following transformations:
+//   1. Converts forward slashes to backslashes
+//   2. Resolves drive-relative paths (e.g., C:foo)
+//   3. Cleans the path (removes redundant separators and navigation segments)
+//   4. Converts to an absolute path
+//   5. Adds \\?\ prefix for Windows long paths (> 248 characters)
+//
+// On non-Windows platforms, it simply cleans the path using filepath.Clean().
+//
+// Parameters:
+//   p: The input path to normalize
+//
+// Returns:
+//   A normalized, cleaned path string and any encountered error
 func NormalizeWindowsPath(p string) (string, error) {
 
 	if p == "" {
@@ -123,12 +132,21 @@ func NormalizeWindowsPath(p string) (string, error) {
 
 
 
-// IsValidWindowsPath checks if a path is valid on Windows without being overly restrictive.
-
-// It allows "." segments and relative paths that will be normalized.
-
-// Patterns like "./././tmp/test" are allowed and will be safely normalized.
-
+// IsValidWindowsPath checks if a given path is valid according to Windows path conventions.
+// This validation includes several checks:
+//   1. Disallows empty paths
+//   2. Prevents Windows-reserved characters (< > " | ? *)
+//   3. Validates drive letter placement and format
+//   4. Blocks paths with reserved device names (CON, PRN, AUX, etc.)
+//
+// The function is lenient with relative paths and dot navigation segments.
+// On non-Windows platforms, it always returns true.
+//
+// Parameters:
+//   p: The path string to validate
+//
+// Returns:
+//   true if the path is valid on Windows, false otherwise
 func IsValidWindowsPath(p string) bool {
 
 	if runtime.GOOS != "windows" {
@@ -251,10 +269,16 @@ func IsValidWindowsPath(p string) bool {
 
 
 
-// ResolveDriveRelativePath resolves a drive-relative path (e.g., C:foo) to an absolute path.
-
-// On Windows, C:foo means "foo relative to the current directory on drive C:".
-
+// ResolveDriveRelativePath resolves a drive-relative path to an absolute path on Windows.
+// Drive-relative paths (e.g., C:foo) are resolved relative to the current directory on the specified drive.
+//
+// On non-Windows platforms, the path is returned as-is without modification.
+//
+// Parameters:
+//   p: The drive-relative path to resolve
+//
+// Returns:
+//   The resolved absolute path and any encountered error
 func ResolveDriveRelativePath(p string) (string, error) {
 
 	if runtime.GOOS != "windows" {
@@ -283,10 +307,21 @@ func ResolveDriveRelativePath(p string) (string, error) {
 
 
 
-// EnsureParentDirectory creates the parent directory of the given path if it doesn't exist.
-
-// This function is resilient to concurrent directory creation and handles edge cases.
-
+// EnsureParentDirectory creates the parent directory for a given file path if it doesn't exist.
+// This method is safe for concurrent use and handles various edge cases:
+//   1. Normalizes the input path
+//   2. Handles empty paths
+//   3. Skips creation for root or drive root directories
+//   4. Gracefully handles concurrent directory creation
+//
+// If the parent directory already exists, the function returns nil.
+// If the parent path exists but is not a directory, an error is returned.
+//
+// Parameters:
+//   path: The file path whose parent directory should be ensured
+//
+// Returns:
+//   An error if directory creation fails, nil otherwise
 func EnsureParentDirectory(path string) error {
 
 	if path == "" {
@@ -381,8 +416,14 @@ func EnsureParentDirectory(path string) error {
 
 
 
-// IsExtendedLengthPath checks if a path uses the \\?\ prefix for long paths.
-
+// IsExtendedLengthPath determines whether a path uses the \\?\ prefix for Windows extended-length paths.
+// Extended-length paths allow for paths exceeding the standard 260-character limit.
+//
+// Parameters:
+//   path: The file path to check
+//
+// Returns:
+//   true if the path starts with \\?\, false otherwise
 func IsExtendedLengthPath(path string) bool {
 
 	return strings.HasPrefix(path, `\\?\`)

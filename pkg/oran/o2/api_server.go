@@ -29,13 +29,13 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/middleware"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/providers"
 
 )
 

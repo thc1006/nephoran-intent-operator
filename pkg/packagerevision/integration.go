@@ -51,13 +51,13 @@ import (
 
 
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/templates"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/templates"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/validation/yang"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/validation/yang"
 
 
 

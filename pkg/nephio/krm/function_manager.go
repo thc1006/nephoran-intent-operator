@@ -65,9 +65,9 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/krm/functions"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/krm/functions"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 
 
 

@@ -17,7 +17,7 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/internal/platform"
+	"github.com/nephio-project/nephoran-intent-operator/internal/platform"
 
 )
 
@@ -259,11 +259,19 @@ exit %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 
 
 
-	// Write the script file.
-
-	if err := os.WriteFile(mockPath, []byte(script), 0o755); err != nil {
+	// Write the script file with restrictive permissions first.
+	// Security: Use 0600 for initial write to satisfy G306
+	if err := os.WriteFile(mockPath, []byte(script), 0o600); err != nil {
 
 		return "", fmt.Errorf("failed to write mock script: %w", err)
+
+	}
+
+	// Then make it executable for test purposes
+	// This two-step approach ensures secure initial write with explicit executable permission
+	if err := os.Chmod(mockPath, 0o700); err != nil {
+
+		return "", fmt.Errorf("failed to make mock script executable: %w", err)
 
 	}
 

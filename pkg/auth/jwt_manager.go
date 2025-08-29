@@ -35,7 +35,7 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
 
 )
 
@@ -1238,14 +1238,11 @@ func (jm *JWTManager) generateLegacyToken(userInfo *providers.UserInfo, customCl
 
 
 	// Add custom claims as top-level fields.
+	// S1031: Range over maps is safe even if the map is nil, no check needed
 
-	if customClaims != nil {
+	for key, value := range customClaims {
 
-		for key, value := range customClaims {
-
-			claims[key] = value
-
-		}
+		claims[key] = value
 
 	}
 

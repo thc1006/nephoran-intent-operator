@@ -53,11 +53,11 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/packagerevision"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/packagerevision"
 
 
 

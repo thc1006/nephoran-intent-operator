@@ -9,11 +9,11 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/git"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 
 
 

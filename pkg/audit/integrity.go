@@ -1133,7 +1133,11 @@ func (ic *IntegrityChain) calculateKeyID(publicKey *rsa.PublicKey) string {
 
 	// Create key ID from public key hash.
 
-	publicKeyBytes, _ := x509.MarshalPKIXPublicKey(publicKey)
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		// Return empty string on error, let caller handle appropriately
+		return ""
+	}
 
 	hash := sha256.Sum256(publicKeyBytes)
 
@@ -1153,7 +1157,11 @@ func (ic *IntegrityChain) exportPublicKey() string {
 
 
 
-	publicKeyBytes, _ := x509.MarshalPKIXPublicKey(ic.publicKey)
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(ic.publicKey)
+	if err != nil {
+		// Return empty string on error
+		return ""
+	}
 
 	block := &pem.Block{
 

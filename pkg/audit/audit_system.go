@@ -35,11 +35,11 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/backends"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit/compliance"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/compliance"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/types"
 
 
 

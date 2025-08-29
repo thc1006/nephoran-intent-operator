@@ -23,9 +23,9 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/e2"
 
 )
 

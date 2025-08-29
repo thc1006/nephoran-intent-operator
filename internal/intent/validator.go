@@ -7,6 +7,8 @@ import (
 
 	"encoding/json"
 
+	"errors"
+
 	"fmt"
 
 	"log/slog"
@@ -439,11 +441,12 @@ func (v *Validator) ValidateJSON(data []byte) []ValidationError {
 
 func (v *Validator) convertValidationError(err error) []ValidationError {
 
-	var errors []ValidationError
+	var validationErrors []ValidationError
 
 
 
-	if validationErr, ok := err.(*jsonschema.ValidationError); ok {
+	var validationErr *jsonschema.ValidationError
+	if errors.As(err, &validationErr) {
 
 		// Convert instance location slice to string.
 
@@ -463,7 +466,7 @@ func (v *Validator) convertValidationError(err error) []ValidationError {
 
 
 
-		errors = append(errors, ValidationError{
+		validationErrors = append(validationErrors, ValidationError{
 
 			Field:   fieldPath,
 
@@ -487,7 +490,7 @@ func (v *Validator) convertValidationError(err error) []ValidationError {
 
 				if childErr.Field != "/" {
 
-					errors = append(errors, childErr)
+					validationErrors = append(validationErrors, childErr)
 
 				}
 
@@ -499,7 +502,7 @@ func (v *Validator) convertValidationError(err error) []ValidationError {
 
 		// Fallback for other error types.
 
-		errors = append(errors, ValidationError{
+		validationErrors = append(validationErrors, ValidationError{
 
 			Field:   "unknown",
 
@@ -511,7 +514,7 @@ func (v *Validator) convertValidationError(err error) []ValidationError {
 
 
 
-	return errors
+	return validationErrors
 
 }
 

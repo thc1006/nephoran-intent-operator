@@ -209,7 +209,7 @@ func main() {
 
 		cancel() // Ensure proper cleanup
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 

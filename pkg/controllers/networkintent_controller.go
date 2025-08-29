@@ -25,23 +25,23 @@ import (
 
 
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
-	configPkg "github.com/thc1006/nephoran-intent-operator/pkg/config"
+	configPkg "github.com/nephio-project/nephoran-intent-operator/pkg/config"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/git"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/resilience"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/resilience"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/security"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/security"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
 
 
 

@@ -21,7 +21,7 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/middleware"
 
 )
 
@@ -470,8 +470,8 @@ func (eom *EnhancedOAuth2Manager) applySizeLimit(handler http.HandlerFunc) http.
 func (eom *EnhancedOAuth2Manager) createIPAllowlistHandler(next http.HandlerFunc, allowedCIDRs []string) http.HandlerFunc {
 
 	// Parse CIDR blocks once during initialization for efficiency.
-
-	var allowedNetworks []*net.IPNet
+	// Pre-allocate slice with known capacity to avoid reallocation
+	allowedNetworks := make([]*net.IPNet, 0, len(allowedCIDRs))
 
 	for _, cidrStr := range allowedCIDRs {
 

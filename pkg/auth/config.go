@@ -5,6 +5,8 @@ package auth
 
 import (
 
+	"context"
+
 	"encoding/json"
 
 	"fmt"
@@ -21,11 +23,11 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/security"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/security"
 
 )
 
@@ -2135,7 +2137,7 @@ func getEnvAtomic(key string) string {
 
 func isValidProviderName(provider string) bool {
 
-	if len(provider) == 0 || len(provider) > MaxProviderNameLength {
+	if provider == "" || len(provider) > MaxProviderNameLength {
 
 		return false
 
@@ -2725,7 +2727,7 @@ func auditSecretAccess(provider, source, location string, success bool, errorMsg
 
 
 
-	slog.LogAttrs(nil, logLevel, "OAuth2 client secret access attempt", attrs...)
+	slog.LogAttrs(context.Background(), logLevel, "OAuth2 client secret access attempt", attrs...)
 
 
 

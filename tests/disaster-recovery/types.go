@@ -9,7 +9,7 @@ import (
 
 
 
-	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoran "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
 
 

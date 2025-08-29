@@ -343,15 +343,7 @@ func NewLDAPClient(config *LDAPConfig, logger *slog.Logger) *LDAPClient {
 
 	if config.GroupMemberAttribute == "" {
 
-		if config.IsActiveDirectory {
-
-			config.GroupMemberAttribute = "member"
-
-		} else {
-
-			config.GroupMemberAttribute = "member"
-
-		}
+		config.GroupMemberAttribute = "member"
 
 	}
 
@@ -359,15 +351,7 @@ func NewLDAPClient(config *LDAPConfig, logger *slog.Logger) *LDAPClient {
 
 	if config.UserGroupAttribute == "" {
 
-		if config.IsActiveDirectory {
-
-			config.UserGroupAttribute = "memberOf"
-
-		} else {
-
-			config.UserGroupAttribute = "memberOf"
-
-		}
+		config.UserGroupAttribute = "memberOf"
 
 	}
 
@@ -1405,7 +1389,8 @@ func (p *LDAPClient) ListGroups(ctx context.Context) ([]*LDAPGroupInfo, error) {
 
 
 
-	var groups []*LDAPGroupInfo
+	// Pre-allocate groups slice with capacity from result entries to avoid reallocation
+	groups := make([]*LDAPGroupInfo, 0, len(result.Entries))
 
 	for _, entry := range result.Entries {
 

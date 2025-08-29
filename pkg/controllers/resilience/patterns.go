@@ -53,7 +53,7 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/errors"
 
 )
 

@@ -257,7 +257,7 @@ func (l *Loader) validateBusinessLogic(intent *ScalingIntent) []ValidationError 
 
 func isValidKubernetesName(name string) bool {
 
-	if len(name) == 0 || len(name) > 63 {
+	if name == "" || len(name) > 63 {
 
 		return false
 

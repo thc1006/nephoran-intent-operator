@@ -19,13 +19,13 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
 
-	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/consul"  // Register consul provider
+	_ "github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/consul"  // Register consul provider
 
-	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/istio"   // Register istio provider
+	_ "github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/istio"   // Register istio provider
 
-	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/linkerd" // Register linkerd provider
+	_ "github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/linkerd" // Register linkerd provider
 
 
 

@@ -25,9 +25,9 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/internal/patchgen"
+	"github.com/nephio-project/nephoran-intent-operator/internal/patchgen"
 
-	"github.com/thc1006/nephoran-intent-operator/internal/security"
+	"github.com/nephio-project/nephoran-intent-operator/internal/security"
 
 )
 
@@ -201,7 +201,9 @@ func main() {
 
 		fmt.Fprintf(os.Stderr, "Fatal error: %v\n", err)
 
-		// Let defer handle cleanup, exit with error code
+		// Cleanup before exit to avoid defer issues
+
+		cancel()
 
 		logger.Info("Terminating due to secure execution failure")
 
@@ -481,7 +483,7 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 
 // applyPatchSecurely applies the patch using secure command execution.
 
-func applyPatchSecurely(_ context.Context, packagePath string, logger logr.Logger) error {
+func applyPatchSecurely(ctx context.Context, packagePath string, logger logr.Logger) error {
 
 	logger.V(1).Info("Initializing secure command executor")
 
@@ -503,7 +505,7 @@ func applyPatchSecurely(_ context.Context, packagePath string, logger logr.Logge
 
 	// Execute porch-direct with comprehensive security controls.
 
-	result, err := secureExecutor.ExecuteSecure("porch-direct", []string{"--package", packagePath}, ".")
+	result, err := secureExecutor.ExecuteSecure(ctx, "porch-direct", []string{"--package", packagePath}, ".")
 
 	if err != nil {
 

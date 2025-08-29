@@ -175,10 +175,22 @@ func safeJoin(root, p string) (string, error) {
 
 
 
-// SafeJoin is the public version of safeJoin for external use.
-
-// It safely joins a root directory with a relative path, preventing directory traversal attacks.
-
+// SafeJoin safely joins a root directory with a relative path, preventing directory traversal attacks.
+// This function ensures that the resulting path always stays within the specified root directory.
+//
+// Security Features:
+//   - Rejects absolute paths
+//   - Removes null bytes from path
+//   - Normalizes path using filepath.Clean
+//   - Validates that the resulting path remains within root directory
+//   - Compatible with both Windows and Unix-like systems
+//
+// Parameters:
+//   root: The root directory that serves as a boundary for path resolution
+//   p: The relative path to join with the root
+//
+// Returns:
+//   A canonicalized, safe path within the root directory, or an error if the path is unsafe
 func SafeJoin(root, p string) (string, error) {
 
 	return safeJoin(root, p)
@@ -188,9 +200,23 @@ func SafeJoin(root, p string) (string, error) {
 
 
 // MustSafeJoin is like SafeJoin but panics if the path is unsafe.
-
-// This should only be used when you're certain the path is safe or during development/testing.
-
+// Use this method only when you are absolutely certain the path is safe or during development/testing.
+//
+// Unlike SafeJoin, this method does not return an error. Instead, it will:
+//   - Return the safe, canonicalized path if valid
+//   - Panic with a descriptive error message if the path is unsafe
+//
+// Warning: This method should not be used in production code where error handling is crucial.
+//
+// Parameters:
+//   root: The root directory that serves as a boundary for path resolution
+//   p: The relative path to join with the root
+//
+// Returns:
+//   A canonicalized, safe path within the root directory
+//
+// Panics:
+//   If the path would escape the root directory or is otherwise unsafe
 func MustSafeJoin(root, p string) string {
 
 	result, err := safeJoin(root, p)
@@ -207,10 +233,20 @@ func MustSafeJoin(root, p string) string {
 
 
 
-// IsPathSafe checks if joining root and p would be safe without actually performing the join.
-
-// Returns true if the path is safe, false otherwise.
-
+// IsPathSafe checks if joining a root directory with a path would be safe without actually performing the join.
+// This method provides a lightweight way to validate a path before using SafeJoin.
+//
+// The method performs the same safety checks as SafeJoin, including:
+//   - Rejecting absolute paths
+//   - Detecting path traversal attempts
+//   - Ensuring the path remains within the root directory
+//
+// Parameters:
+//   root: The root directory that serves as a boundary for path resolution
+//   p: The relative path to validate
+//
+// Returns:
+//   true if the path is safe to join with the root directory, false otherwise
 func IsPathSafe(root, p string) bool {
 
 	_, err := safeJoin(root, p)

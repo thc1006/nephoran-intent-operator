@@ -1,4 +1,4 @@
-module github.com/thc1006/nephoran-intent-operator
+module github.com/nephio-project/nephoran-intent-operator
 
 go 1.24.6
 

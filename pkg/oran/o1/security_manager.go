@@ -31,9 +31,9 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o1/security"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o1/security"
 
 
 

@@ -65,17 +65,17 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/multicluster"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/multicluster"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/packagerevision"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/packagerevision"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/services"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/services"
 
 
 

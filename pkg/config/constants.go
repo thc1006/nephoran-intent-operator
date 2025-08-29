@@ -223,7 +223,7 @@ var defaultConstants = Constants{
 
 		"etsi.org",
 
-		"github.com/thc1006/nephoran-intent-operator",
+		"github.com/nephio-project/nephoran-intent-operator",
 
 	},
 

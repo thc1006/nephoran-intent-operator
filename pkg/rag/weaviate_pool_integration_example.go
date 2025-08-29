@@ -9,7 +9,7 @@ package rag
 
 import (
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
 
 )
 

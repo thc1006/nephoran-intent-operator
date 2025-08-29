@@ -361,9 +361,8 @@ func (p *AzureADProvider) GetAuthorizationURL(state, redirectURI string, options
 
 
 
-	var authOpts []oauth2.AuthCodeOption
-
-	authOpts = append(authOpts, oauth2.AccessTypeOffline)
+	// Pre-allocate with capacity 1 since we know we're adding exactly one option
+	authOpts := []oauth2.AuthCodeOption{oauth2.AccessTypeOffline}
 
 
 

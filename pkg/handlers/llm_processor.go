@@ -23,15 +23,15 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/internal/ingest"
+	"github.com/nephio-project/nephoran-intent-operator/internal/ingest"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/health"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
 
 )
 

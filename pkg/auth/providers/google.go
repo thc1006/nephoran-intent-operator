@@ -291,9 +291,8 @@ func (p *GoogleProvider) GetAuthorizationURL(state, redirectURI string, options 
 
 
 
-	var authOpts []oauth2.AuthCodeOption
-
-	authOpts = append(authOpts, oauth2.AccessTypeOffline)
+	// Pre-allocate with capacity 1 since we know we're adding exactly one option
+	authOpts := []oauth2.AuthCodeOption{oauth2.AccessTypeOffline}
 
 
 
@@ -723,13 +722,13 @@ func (p *GoogleProvider) ValidateToken(ctx context.Context, accessToken string) 
 
 	// Check if token is valid.
 
-	if error, exists := tokenInfo["error"]; exists {
+	if errMsg, exists := tokenInfo["error"]; exists {
 
 		return &TokenValidation{
 
 			Valid: false,
 
-			Error: fmt.Sprintf("Token validation error: %v", error),
+			Error: fmt.Sprintf("Token validation error: %v", errMsg),
 
 		}, nil
 

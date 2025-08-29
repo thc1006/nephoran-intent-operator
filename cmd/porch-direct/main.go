@@ -17,13 +17,13 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/internal/generator"
+	"github.com/nephio-project/nephoran-intent-operator/internal/generator"
 
-	"github.com/thc1006/nephoran-intent-operator/internal/intent"
+	"github.com/nephio-project/nephoran-intent-operator/internal/intent"
 
-	"github.com/thc1006/nephoran-intent-operator/internal/writer"
+	"github.com/nephio-project/nephoran-intent-operator/internal/writer"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/porch"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/porch"
 
 )
 

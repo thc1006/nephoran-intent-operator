@@ -17,7 +17,7 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
 
 )
 
@@ -471,7 +471,11 @@ func NewPKCEFactory() *PKCEFactory {
 
 func (f *PKCEFactory) CreatePKCEChallenge() *providers.PKCEChallenge {
 
-	challenge, _ := providers.GeneratePKCEChallenge()
+	challenge, err := providers.GeneratePKCEChallenge()
+	if err != nil {
+		// Return nil on error - let caller handle
+		return nil
+	}
 
 	return challenge
 
@@ -808,8 +812,8 @@ func (f *PermissionFactory) CreateBasicPermission() *TestPermission {
 // CreateResourcePermissions creates permissions for a specific resource.
 
 func (f *PermissionFactory) CreateResourcePermissions(resource string, actions []string) []*TestPermission {
-
-	var permissions []*TestPermission
+	// Pre-allocate permissions slice with known capacity to avoid reallocation
+	permissions := make([]*TestPermission, 0, len(actions))
 
 	for _, action := range actions {
 

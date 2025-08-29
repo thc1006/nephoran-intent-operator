@@ -591,7 +591,7 @@ func containsIgnoreCase(s, substr string) bool {
 
 func containsIgnoreCaseHelper(s, substr string) bool {
 
-	if len(substr) == 0 {
+	if substr == "" {
 
 		return true
 

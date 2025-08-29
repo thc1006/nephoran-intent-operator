@@ -759,7 +759,10 @@ func (tdm *TechnicalDebtMonitor) generateMarkdownReport() {
 
 	}
 
-
+	// Check if any write errors occurred during report generation
+	if mdWriteErr != nil {
+		log.Printf("Warning: Error writing markdown report: %v", mdWriteErr)
+	}
 
 	fmt.Printf("📄 Markdown report generated: %s\n", filename)
 

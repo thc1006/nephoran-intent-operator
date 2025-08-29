@@ -17,8 +17,14 @@ import (
 
 
 
-// SanitizePath prevents directory traversal in path generation.
-
+// SanitizePath sanitizes and prevents directory traversal in path generation.
+// It removes absolute path references, directory traversal attempts, and cleans the input path.
+// This helps prevent potential security vulnerabilities when processing file paths.
+//
+// Parameters:
+//   - path: The input file path to sanitize
+//
+// Returns a cleaned, safe path string with all traversal attempts removed.
 func SanitizePath(path string) string {
 
 	// Remove directory traversal attempts.
@@ -43,7 +49,7 @@ func SanitizePath(path string) string {
 
 	path = strings.TrimPrefix(path, "/")
 
-	path = strings.Replace(path, "../", "", -1)
+	path = strings.ReplaceAll(path, "../", "")
 
 
 
@@ -53,8 +59,13 @@ func SanitizePath(path string) string {
 
 
 
-// SanitizeCommand prevents command injection.
-
+// SanitizeCommand sanitizes a command string to prevent command injection attacks.
+// It removes dangerous shell characters and special symbols that could be used for malicious purposes.
+//
+// Parameters:
+//   - cmd: The input command string to sanitize
+//
+// Returns a sanitized command string with potentially harmful characters removed.
 func SanitizeCommand(cmd string) string {
 
 	// Regex for dangerous shell characters including backticks.
@@ -87,8 +98,16 @@ func SanitizeCommand(cmd string) string {
 
 
 
-// ValidateBinaryContent checks content for security risks.
-
+// ValidateBinaryContent performs security validations on binary content.
+// It checks:
+//   1. Content size (max 5 MB)
+//   2. Presence of non-printable characters
+//   3. Basic YAML structure validation
+//
+// Parameters:
+//   - content: The byte slice containing the binary data to validate
+//
+// Returns true if the content passes all security checks, false otherwise.
 func ValidateBinaryContent(content []byte) bool {
 
 	// Check content size (max 5 MB).

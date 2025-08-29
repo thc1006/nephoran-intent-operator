@@ -26,7 +26,7 @@
 
 //
 
-//	import "github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
+//	import "github.com/nephio-project/nephoran-intent-operator/pkg/controllers/testutil"
 
 //
 

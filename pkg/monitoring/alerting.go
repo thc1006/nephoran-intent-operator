@@ -25,7 +25,7 @@ import (
 
 
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/health"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring/health"
 
 )
 
@@ -801,7 +801,7 @@ func (am *AlertManager) matchFilter(alert *Alert, filter AlertFilter) bool {
 
 		// Simple wildcard matching.
 
-		return strings.Contains(value, strings.Replace(filter.Value, "*", "", -1))
+		return strings.Contains(value, strings.ReplaceAll(filter.Value, "*", ""))
 
 	default:
 

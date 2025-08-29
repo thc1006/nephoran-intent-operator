@@ -4,7 +4,7 @@ import (
 	"flag"
 	"os"
 
-	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
+	intentv1alpha1 "github.com/nephio-project/nephoran-intent-operator/api/intent/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
