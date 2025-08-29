@@ -103,9 +103,9 @@ func main() {
 		fmt.Fprintf(os.Stderr, "\n❌ Found %d flaky tests (%.2f%% flake rate)\n",
 			report.FlakyTests, report.FlakeRate*100)
 		os.Exit(1)
-	} else {
-		fmt.Fprintf(os.Stderr, "\n✅ No flaky tests detected across %d tests\n", report.TotalTests)
 	}
+	
+	fmt.Fprintf(os.Stderr, "\n✅ No flaky tests detected across %d tests\n", report.TotalTests)
 }
 
 // parseTestResults parses go test -json output from a file.

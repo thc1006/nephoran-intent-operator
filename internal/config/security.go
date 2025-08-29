@@ -188,7 +188,7 @@ func (sc *SecurityConfig) ResolveRepository(target string) (string, error) {
 	// Check each repository's allowed targets.
 	for _, repo := range sc.RepositoryAllowlist {
 		for _, allowedTarget := range repo.AllowedTargets {
-			if strings.EqualFold(target, allowedTarget) {
+			if strings.EqualFold(normalizedTarget, strings.ToLower(allowedTarget)) {
 				return repo.Name, nil
 			}
 		}

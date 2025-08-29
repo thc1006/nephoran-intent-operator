@@ -18,8 +18,8 @@ import (
 	"time"
 )
 
-// SecurityTestSuite provides comprehensive security testing.
-type SecurityTestSuite struct {
+// TestSuite provides comprehensive security testing.
+type TestSuite struct {
 	// Test configurations.
 	tlsConfig    *TLSEnhancedConfig
 	cryptoModern *CryptoModern
@@ -64,9 +64,9 @@ type ComplianceTest struct {
 	Required  bool
 }
 
-// NewSecurityTestSuite creates a new security test suite.
-func NewSecurityTestSuite() *SecurityTestSuite {
-	return &SecurityTestSuite{
+// NewTestSuite creates a new security test suite.
+func NewTestSuite() *TestSuite {
+	return &TestSuite{
 		tlsConfig:    NewTLSEnhancedConfig(),
 		cryptoModern: NewCryptoModern(),
 		results:      make(map[string]*TestResult),
@@ -75,7 +75,7 @@ func NewSecurityTestSuite() *SecurityTestSuite {
 }
 
 // RunAllTests runs all security tests.
-func (sts *SecurityTestSuite) RunAllTests() map[string]*TestResult {
+func (sts *TestSuite) RunAllTests() map[string]*TestResult {
 	tests := []func() *TestResult{
 		sts.TestTLSConfiguration,
 		sts.TestCryptographicAlgorithms,
@@ -98,7 +98,7 @@ func (sts *SecurityTestSuite) RunAllTests() map[string]*TestResult {
 }
 
 // TestTLSConfiguration tests TLS configuration security.
-func (sts *SecurityTestSuite) TestTLSConfiguration() *TestResult {
+func (sts *TestSuite) TestTLSConfiguration() *TestResult {
 	start := time.Now()
 	result := &TestResult{
 		TestName:  "TLS Configuration",
@@ -149,7 +149,7 @@ func (sts *SecurityTestSuite) TestTLSConfiguration() *TestResult {
 }
 
 // TestCryptographicAlgorithms tests cryptographic algorithm implementations.
-func (sts *SecurityTestSuite) TestCryptographicAlgorithms() *TestResult {
+func (sts *TestSuite) TestCryptographicAlgorithms() *TestResult {
 	start := time.Now()
 	result := &TestResult{
 		TestName:  "Cryptographic Algorithms",
@@ -264,7 +264,7 @@ func (sts *SecurityTestSuite) TestCryptographicAlgorithms() *TestResult {
 }
 
 // TestCertificateValidation tests certificate validation mechanisms.
-func (sts *SecurityTestSuite) TestCertificateValidation() *TestResult {
+func (sts *TestSuite) TestCertificateValidation() *TestResult {
 	start := time.Now()
 	result := &TestResult{
 		TestName:  "Certificate Validation",
@@ -317,7 +317,7 @@ func (sts *SecurityTestSuite) TestCertificateValidation() *TestResult {
 }
 
 // TestKeyManagement tests key management operations.
-func (sts *SecurityTestSuite) TestKeyManagement() *TestResult {
+func (sts *TestSuite) TestKeyManagement() *TestResult {
 	start := time.Now()
 	result := &TestResult{
 		TestName:  "Key Management",
@@ -378,7 +378,7 @@ func (sts *SecurityTestSuite) TestKeyManagement() *TestResult {
 }
 
 // TestSecureChannels tests secure channel implementations.
-func (sts *SecurityTestSuite) TestSecureChannels() *TestResult {
+func (sts *TestSuite) TestSecureChannels() *TestResult {
 	start := time.Now()
 	result := &TestResult{
 		TestName:  "Secure Channels",
@@ -425,7 +425,7 @@ func (sts *SecurityTestSuite) TestSecureChannels() *TestResult {
 }
 
 // TestAntiReplay tests anti-replay protection.
-func (sts *SecurityTestSuite) TestAntiReplay() *TestResult {
+func (sts *TestSuite) TestAntiReplay() *TestResult {
 	start := time.Now()
 	result := &TestResult{
 		TestName:  "Anti-Replay Protection",
@@ -471,7 +471,7 @@ func (sts *SecurityTestSuite) TestAntiReplay() *TestResult {
 }
 
 // TestPerfectForwardSecrecy tests PFS implementation.
-func (sts *SecurityTestSuite) TestPerfectForwardSecrecy() *TestResult {
+func (sts *TestSuite) TestPerfectForwardSecrecy() *TestResult {
 	start := time.Now()
 	result := &TestResult{
 		TestName:  "Perfect Forward Secrecy",
@@ -514,7 +514,7 @@ func (sts *SecurityTestSuite) TestPerfectForwardSecrecy() *TestResult {
 }
 
 // TestQuantumReadiness tests post-quantum cryptography readiness.
-func (sts *SecurityTestSuite) TestQuantumReadiness() *TestResult {
+func (sts *TestSuite) TestQuantumReadiness() *TestResult {
 	start := time.Now()
 	result := &TestResult{
 		TestName:  "Quantum Readiness",
@@ -554,7 +554,7 @@ func (sts *SecurityTestSuite) TestQuantumReadiness() *TestResult {
 }
 
 // RunBenchmarks runs performance benchmarks.
-func (sts *SecurityTestSuite) RunBenchmarks() map[string]*BenchmarkResult {
+func (sts *TestSuite) RunBenchmarks() map[string]*BenchmarkResult {
 	benchmarks := []func() *BenchmarkResult{
 		sts.BenchmarkAESGCM,
 		sts.BenchmarkChaCha20Poly1305,
@@ -574,7 +574,7 @@ func (sts *SecurityTestSuite) RunBenchmarks() map[string]*BenchmarkResult {
 }
 
 // BenchmarkAESGCM benchmarks AES-GCM operations.
-func (sts *SecurityTestSuite) BenchmarkAESGCM() *BenchmarkResult {
+func (sts *TestSuite) BenchmarkAESGCM() *BenchmarkResult {
 	result := &BenchmarkResult{
 		Name: "AES-GCM",
 	}
@@ -602,7 +602,7 @@ func (sts *SecurityTestSuite) BenchmarkAESGCM() *BenchmarkResult {
 }
 
 // BenchmarkChaCha20Poly1305 benchmarks ChaCha20-Poly1305 operations.
-func (sts *SecurityTestSuite) BenchmarkChaCha20Poly1305() *BenchmarkResult {
+func (sts *TestSuite) BenchmarkChaCha20Poly1305() *BenchmarkResult {
 	result := &BenchmarkResult{
 		Name: "ChaCha20-Poly1305",
 	}
@@ -630,7 +630,7 @@ func (sts *SecurityTestSuite) BenchmarkChaCha20Poly1305() *BenchmarkResult {
 }
 
 // BenchmarkEd25519 benchmarks Ed25519 operations.
-func (sts *SecurityTestSuite) BenchmarkEd25519() *BenchmarkResult {
+func (sts *TestSuite) BenchmarkEd25519() *BenchmarkResult {
 	result := &BenchmarkResult{
 		Name: "Ed25519",
 	}
@@ -656,7 +656,7 @@ func (sts *SecurityTestSuite) BenchmarkEd25519() *BenchmarkResult {
 }
 
 // BenchmarkArgon2 benchmarks Argon2 key derivation.
-func (sts *SecurityTestSuite) BenchmarkArgon2() *BenchmarkResult {
+func (sts *TestSuite) BenchmarkArgon2() *BenchmarkResult {
 	result := &BenchmarkResult{
 		Name: "Argon2",
 	}
@@ -681,7 +681,7 @@ func (sts *SecurityTestSuite) BenchmarkArgon2() *BenchmarkResult {
 }
 
 // BenchmarkTLSHandshake benchmarks TLS handshake performance.
-func (sts *SecurityTestSuite) BenchmarkTLSHandshake() *BenchmarkResult {
+func (sts *TestSuite) BenchmarkTLSHandshake() *BenchmarkResult {
 	result := &BenchmarkResult{
 		Name: "TLS Handshake",
 	}
@@ -696,7 +696,7 @@ func (sts *SecurityTestSuite) BenchmarkTLSHandshake() *BenchmarkResult {
 }
 
 // RunComplianceTests runs compliance validation tests.
-func (sts *SecurityTestSuite) RunComplianceTests() map[string]bool {
+func (sts *TestSuite) RunComplianceTests() map[string]bool {
 	tests := []ComplianceTest{
 		{
 			Name:     "FIPS 140-2 Compliance",
@@ -776,7 +776,7 @@ func (m *MockKeyStore) Rotate(ctx context.Context, keyID string, newKey *Detaile
 }
 
 // GenerateSecurityReport generates a comprehensive security report.
-func (sts *SecurityTestSuite) GenerateSecurityReport() string {
+func (sts *TestSuite) GenerateSecurityReport() string {
 	sts.mu.RLock()
 	defer sts.mu.RUnlock()
 

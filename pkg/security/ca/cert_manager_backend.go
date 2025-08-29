@@ -41,7 +41,7 @@ type CertManagerConfig struct {
 	ACMEConfig *ACMEConfig `yaml:"acme_config,omitempty"`
 
 	// CA issuer settings (if using CA issuer).
-	CAConfig *CAIssuerConfig `yaml:"ca_config,omitempty"`
+	CAConfig *IssuerConfig `yaml:"ca_config,omitempty"`
 
 	// Vault issuer settings (if using Vault issuer).
 	VaultConfig *VaultIssuerConfig `yaml:"vault_config,omitempty"`
@@ -104,8 +104,8 @@ type ACMEPrivateKey struct {
 	RotationPolicy string    `yaml:"rotation_policy"`
 }
 
-// CAIssuerConfig holds CA issuer specific configuration.
-type CAIssuerConfig struct {
+// IssuerConfig holds CA issuer specific configuration.
+type IssuerConfig struct {
 	SecretName            string   `yaml:"secret_name"`
 	CRLDistributionPoints []string `yaml:"crl_distribution_points"`
 	OCSPServers           []string `yaml:"ocsp_servers"`

@@ -15,7 +15,7 @@ import (
 type ComplianceManager struct {
 	client            client.Client
 	namespace         string
-	securityValidator *SecurityValidator
+	securityValidator *Validator
 	rbacManager       *RBACManager
 	networkManager    *NetworkPolicyManager
 }
@@ -25,7 +25,7 @@ func NewComplianceManager(client client.Client, namespace string) *ComplianceMan
 	return &ComplianceManager{
 		client:            client,
 		namespace:         namespace,
-		securityValidator: NewSecurityValidator(client, namespace),
+		securityValidator: NewValidator(client, namespace),
 		rbacManager:       NewRBACManager(client, nil, namespace),
 		networkManager:    NewNetworkPolicyManager(client, namespace),
 	}

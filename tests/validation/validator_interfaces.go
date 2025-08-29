@@ -24,7 +24,7 @@ type LatencyValidator interface {
 type ThroughputValidator interface {
 	ValidateThroughput(ctx context.Context, minThroughput float64, duration time.Duration) (*ThroughputValidationResult, error)
 	GetThroughputMetrics(ctx context.Context) (*ThroughputMetrics, error)
-	SetThroughputThresholds(min, max float64) error
+	SetThroughputThresholds(minThreshold, maxThreshold float64) error
 }
 
 // ValidationResult represents the base validation result.

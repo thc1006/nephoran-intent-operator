@@ -48,33 +48,6 @@ const (
 	CategoryTelecommunications OptimizationCategory = "telecommunications"
 )
 
-// ResourceType represents different types of resources.
-type ResourceType string
-
-const (
-	// ResourceTypeHuman holds resourcetypehuman value.
-	ResourceTypeHuman ResourceType = "human"
-	// ResourceTypeCompute holds resourcetypecompute value.
-	ResourceTypeCompute ResourceType = "compute"
-	// ResourceTypeStorage holds resourcetypestorage value.
-	ResourceTypeStorage ResourceType = "storage"
-	// ResourceTypeNetwork holds resourcetypenetwork value.
-	ResourceTypeNetwork ResourceType = "network"
-)
-
-// RiskLevel represents different risk levels.
-type RiskLevel string
-
-const (
-	// RiskLevelLow holds risklevelLow value.
-	RiskLevelLow RiskLevel = "low"
-	// RiskLevelMedium holds risklevelmedium value.
-	RiskLevelMedium RiskLevel = "medium"
-	// RiskLevelHigh holds risklevelhigh value.
-	RiskLevelHigh RiskLevel = "high"
-	// RiskLevelCritical holds risklevelcritical value.
-	RiskLevelCritical RiskLevel = "critical"
-)
 
 // OptimizationPriority represents priority levels for optimizations.
 type OptimizationPriority string
@@ -120,37 +93,8 @@ const (
 	AutomationAssisted AutomationLevel = "assisted"
 )
 
-// OptimizationRecommendationEngine represents a recommendation engine.
-type OptimizationRecommendationEngine struct {
-	// Add fields as needed - this is a minimal stub to satisfy compilation
-}
 
-// GenerateRecommendations generates optimization recommendations.
-func (e *OptimizationRecommendationEngine) GenerateRecommendations(ctx interface{}, analysisResult interface{}) ([]*OptimizationRecommendation, error) {
-	// Stub implementation - return empty list
-	return []*OptimizationRecommendation{}, nil
-}
 
-// OptimizationRecommendation represents a recommendation.
-type OptimizationRecommendation struct {
-	RiskScore           float64  `json:"riskScore"`
-	ImplementationSteps []string `json:"implementationSteps"`
-	ID                  string   `json:"id"`
-	Title               string   `json:"title"`
-	Description         string   `json:"description"`
-}
-
-// RecommendationStrategy represents different recommendation strategies.
-type RecommendationStrategy string
-
-const (
-	// StrategyConservative holds strategyconservative value.
-	StrategyConservative RecommendationStrategy = "conservative"
-	// StrategyBalanced holds strategybalanced value.
-	StrategyBalanced RecommendationStrategy = "balanced"
-	// StrategyAggressive holds strategyaggressive value.
-	StrategyAggressive RecommendationStrategy = "aggressive"
-)
 
 // ExpectedBenefits represents expected benefits from optimization.
 type ExpectedBenefits struct {

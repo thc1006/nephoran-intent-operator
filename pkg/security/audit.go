@@ -260,7 +260,7 @@ func getResultString(success bool) string {
 	return "failure"
 }
 
-// Global audit logger instance.
+// GlobalAuditLogger provides global access to audit logging functionality.
 var GlobalAuditLogger *AuditLogger
 
 // InitGlobalAuditLogger initializes the global audit logger.

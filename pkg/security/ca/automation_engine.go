@@ -1,3 +1,5 @@
+// Package ca provides Certificate Authority automation and management functionality
+// for the Nephoran Intent Operator security infrastructure.
 package ca
 
 import (
