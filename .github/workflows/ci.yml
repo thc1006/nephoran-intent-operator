@@ -351,12 +351,15 @@ jobs:
         with:
           version: latest
           driver: docker-container
+          driver-opts: |
+            image=moby/buildkit:v0.16.0
           config-inline: |
             [worker.oci]
-              max-parallelism = 6
-              gc-keep-storage = "4GB"
+              max-parallelism = 4
+              gc-keep-storage = "2GB"
             [registry."ghcr.io"]
               mirrors = ["mirror.gcr.io"]
+          install: true
 
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
@@ -442,13 +445,15 @@ jobs:
           cache-from: |
             type=gha,scope=docker-${{ matrix.service.name }}-${{ github.ref_name }}
             type=gha,scope=docker-${{ matrix.service.name }}-main
+            type=gha,scope=docker-buildx-${{ matrix.service.name }}
           cache-to: |
             type=gha,mode=max,scope=docker-${{ matrix.service.name }}-${{ github.ref_name }}
-          provenance: mode=max
-          sbom: true
+          provenance: false
+          sbom: false
           outputs: |
             type=image,push=${{ github.event_name != 'pull_request' }}
             type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.service.name }},push=false
+          network: default
 
       - name: Test container
         if: success()

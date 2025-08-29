@@ -88,20 +88,31 @@ ENV GOCACHE=/tmp/.cache/go-build \
     GOSUMDB=sum.golang.org \
     GOPRIVATE="" \
     GONOPROXY="" \
-    GONOSUMDB=""
+    GONOSUMDB="" \
+    GO111MODULE=on \
+    CGO_ENABLED=0
 
-# Create cache directories with proper permissions
+# Create cache directories with proper permissions and ownership
 RUN mkdir -p /tmp/.cache/go-build /tmp/.cache/go-mod && \
-    chmod 777 /tmp/.cache/go-build /tmp/.cache/go-mod
+    chmod 755 /tmp/.cache/go-build /tmp/.cache/go-mod && \
+    chown -R nonroot:nonroot /tmp/.cache
 
 # Download dependencies with BuildKit cache mounts and proper permissions
 RUN --mount=type=cache,target=/tmp/.cache/go-mod,sharing=locked \
     --mount=type=cache,target=/tmp/.cache/go-build,sharing=locked \
     set -eux; \
+    # Ensure cache directories are writable and fix permission issues
+    chmod 755 /tmp/.cache/go-mod /tmp/.cache/go-build; \
+    # Set ownership to current user to avoid permission issues
+    chown $(id -u):$(id -g) /tmp/.cache/go-mod /tmp/.cache/go-build 2>/dev/null || true; \
+    echo "Starting Go module download with retries..."; \
+    # Download with retries and better error handling
+    GOPROXY=https://proxy.golang.org,direct \
+    GOSUMDB=sum.golang.org \
     go mod download -x || \
     (echo "First download attempt failed, retrying in 5s..."; sleep 5 && go mod download -x) || \
     (echo "Second download attempt failed, retrying in 10s..."; sleep 10 && go mod download -x) || \
-    (echo "Final download attempt..."; go mod download)
+    (echo "Final download attempt with verbose logging..."; go mod download -v)
 
 # =============================================================================
 # STAGE: GO Builder
@@ -161,14 +172,20 @@ ENV GOCACHE=/tmp/.cache/go-build \
     GOPROXY=https://proxy.golang.org,direct \
     GOSUMDB=sum.golang.org
 
-# Create cache directories with proper permissions
+# Create cache directories with proper permissions and ownership
 RUN mkdir -p /tmp/.cache/go-build /tmp/.cache/go-mod && \
-    chmod 777 /tmp/.cache/go-build /tmp/.cache/go-mod
+    chmod 755 /tmp/.cache/go-build /tmp/.cache/go-mod && \
+    chown -R nonroot:nonroot /tmp/.cache
 
 # Verify dependencies and prepare build environment
 RUN --mount=type=cache,target=/tmp/.cache/go-mod,sharing=locked \
     --mount=type=cache,target=/tmp/.cache/go-build,sharing=locked \
     set -eux; \
+    # Ensure cache directories are writable and fix any permission issues
+    chmod 755 /tmp/.cache/go-mod /tmp/.cache/go-build; \
+    # Set ownership to current user to avoid permission issues
+    chown $(id -u):$(id -g) /tmp/.cache/go-mod /tmp/.cache/go-build 2>/dev/null || true; \
+    echo "Verifying Go modules..."; \
     go mod verify; \
     go mod tidy; \
     go list -m all > /dev/null; \
@@ -179,6 +196,9 @@ RUN --mount=type=cache,target=/tmp/.cache/go-mod,sharing=locked \
 RUN --mount=type=cache,target=/tmp/.cache/go-mod,sharing=locked \
     --mount=type=cache,target=/tmp/.cache/go-build,sharing=locked \
     set -ex; \
+    # Fix cache permissions for build stage
+    chmod 755 /tmp/.cache/go-mod /tmp/.cache/go-build; \
+    chown $(id -u):$(id -g) /tmp/.cache/go-mod /tmp/.cache/go-build 2>/dev/null || true; \
     echo "=== Building service: $SERVICE ==="; \
     echo "Build platform: $BUILDPLATFORM"; \
     echo "Target platform: $TARGETPLATFORM"; \

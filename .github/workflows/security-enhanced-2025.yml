@@ -67,20 +67,30 @@ jobs:
     
     - name: Install TruffleHog for Secrets Detection
       run: |
-        # Install latest TruffleHog
-        curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+        # Install latest TruffleHog with error handling
+        curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin || {
+          echo "TruffleHog installation failed, trying alternative method..."
+          wget -qO- https://github.com/trufflesecurity/trufflehog/releases/latest/download/trufflehog_3.87.2_linux_amd64.tar.gz | tar -xz
+          sudo mv trufflehog /usr/local/bin/
+        }
         trufflehog --version
     
     - name: Install Gitleaks for Additional Secret Scanning
       run: |
-        # Install Gitleaks
-        curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz | tar -xz
+        # Install Gitleaks with version check
+        GITLEAKS_VERSION="8.21.2"
+        curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz | tar -xz || {
+          echo "Gitleaks download failed, trying fallback version..."
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz | tar -xz
+        }
         sudo mv gitleaks /usr/local/bin/
         gitleaks version
     
     - name: Install detect-secrets
       run: |
-        pip install detect-secrets==1.5.0
+        # Install detect-secrets with Python environment setup
+        python -m pip install --upgrade pip
+        pip install detect-secrets==1.5.0 || pip install detect-secrets
         detect-secrets --version
     
     - name: Run TruffleHog Secret Scan
@@ -230,14 +240,26 @@ jobs:
         # Install Nancy for Go dependency scanning
         go install github.com/sonatype-nexus-community/nancy@latest
         
-        # Install GoSec for Go security analysis
+        # Install GoSec for Go security analysis  
         go install github.com/securego/gosec/v2/cmd/gosec@latest
         
-        # Install Snyk CLI
-        npm install -g snyk@latest
+        # Install Snyk CLI with error handling
+        curl -Lo snyk https://static.snyk.io/cli/latest/snyk-linux || npm install -g snyk@latest
+        chmod +x snyk && sudo mv snyk /usr/local/bin/ || true
         
         # Install OSV-Scanner
         go install github.com/google/osv-scanner/cmd/osv-scanner@latest
+        
+        # Install Trivy for comprehensive scanning
+        sudo apt-get update
+        sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+        sudo apt-get update
+        sudo apt-get install -y trivy || {
+          echo "Trivy apt installation failed, trying binary download..."
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.57.1
+        }
     
     - name: Run Go Mod Audit
       run: |
@@ -344,7 +366,14 @@ jobs:
     
     - name: Install Semgrep
       run: |
-        python -m pip install semgrep
+        # Install Semgrep with proper Python environment setup
+        python -m pip install --upgrade pip setuptools wheel
+        python -m pip install semgrep --upgrade || {
+          echo "Semgrep installation failed, trying alternative method..."
+          curl -sSfL https://github.com/semgrep/semgrep/releases/latest/download/semgrep-linux-amd64 -o semgrep
+          chmod +x semgrep
+          sudo mv semgrep /usr/local/bin/
+        }
         semgrep --version
     
     - name: Run Semgrep Security Scan
@@ -408,17 +437,28 @@ jobs:
     
     - name: Install Hadolint for Dockerfile Linting
       run: |
-        wget -q https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64
+        # Install Hadolint with version fallback
+        HADOLINT_VERSION="2.12.0"
+        wget -q https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-Linux-x86_64 || {
+          echo "Specific version failed, trying latest..."
+          wget -q https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64
+        }
         chmod +x hadolint-Linux-x86_64
         sudo mv hadolint-Linux-x86_64 /usr/local/bin/hadolint
         hadolint --version
     
     - name: Install Dockle for Container Security
       run: |
-        VERSION=$(curl -s https://api.github.com/repos/goodwithtech/dockle/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
-        curl -L -o dockle.tar.gz https://github.com/goodwithtech/dockle/releases/download/v${VERSION}/dockle_${VERSION}_Linux-64bit.tar.gz
+        # Install Dockle with error handling and fallback version
+        VERSION=$(curl -s https://api.github.com/repos/goodwithtech/dockle/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/' || echo "0.4.14")
+        echo "Installing Dockle version: $VERSION"
+        curl -L -o dockle.tar.gz https://github.com/goodwithtech/dockle/releases/download/v${VERSION}/dockle_${VERSION}_Linux-64bit.tar.gz || {
+          echo "Download failed, trying fallback version 0.4.14..."
+          curl -L -o dockle.tar.gz https://github.com/goodwithtech/dockle/releases/download/v0.4.14/dockle_0.4.14_Linux-64bit.tar.gz
+        }
         tar -xzf dockle.tar.gz
         sudo mv dockle /usr/local/bin/
+        rm -f dockle.tar.gz
         dockle --version
     
     - name: Lint Dockerfiles with Hadolint

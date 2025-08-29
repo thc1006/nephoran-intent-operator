@@ -1,42 +1,69 @@
-# CI Fix Loop Tracker
+# CI Fix Loop - Quick Smoke Test Resolution
 
-## Goal
-Fix all CI/Build failures locally before pushing, then verify PR passes all checks.
+## Objective
+Fix all "CI Optimized 2025 / Quick Smoke Test" failures systematically until PR #87 passes completely.
 
-## Status: ACTIVE
+## Status: 🔴 ACTIVE - FIXING NEW ERRORS
 
 ## Iteration Log
 
-### Iteration 1 - Initial Assessment
-- **Time**: Starting now
-- **Action**: Check current CI configuration and identify failing jobs
-- **Status**: Completed - Found build and test jobs failing
+### Iteration 4 - Services Package Compilation Errors
+**Time**: 2025-08-29 03:35:00
+**Status**: IN PROGRESS
+**New Issues Found**:
+1. pkg/services/llm_processor.go compilation errors:
+   - Line 18: undefined: config.KubernetesSecretManager
+   - Line 77: undefined: config.NewSecretManager  
+   - Line 184: undefined: config.APIKeys
+   - Line 186: undefined: config.LoadFileBasedAPIKeysWithValidation
+   - Line 206: undefined: config.APIKeys
 
-### Iteration 2 - Parallel Agent Deployment
-- **Time**: Completed
-- **Action**: Deploy multiple specialized agents in parallel:
-  - search-specialist: Research Go 1.24 compilation fixes for 2025
-  - golang-pro: Analyze and fix Go compilation errors
-  - debugger: Debug test failures
-  - oran-nephio-dep-doctor: Fix dependency issues
-- **Status**: Completed Successfully
+**Actions**:
+- [x] Identified missing types in config package
+- [ ] Running local smoke test to find ALL errors
+- [ ] Deploying specialized agents to fix each issue
+- [ ] Verify fixes locally before push
 
-### Iteration 3 - ULTRA SPEED FINAL FIXES
-- **Time**: Now
-- **Action**: ALL COMPILATION ERRORS FIXED!
-  - Fixed auth.go provider interface implementations
-  - Fixed O2 duplicate declarations
-  - Fixed dependency graph missing types
-  - Fixed validator struct field mismatches
-  - Fixed O2 IMS models import errors
-  - Fixed cert-manager stub dependencies
-- **Status**: SUCCESS ✅
+### Previous Iterations
+- **Iteration 1-3**: Fixed auth.go, O2, validator, cert-manager issues (COMPLETED)
 
-## RESULTS: 
-- **All major compilation errors RESOLVED**
-- **O2 package compiles successfully**
-- **Validator package compiles successfully**  
-- **Dependency issues resolved**
-- **Ready for testing phase**
+---
+
+## Error Tracking Table
+
+| Error | File | Line | Status | Fix Strategy |
+|-------|------|------|--------|--------------|
+| undefined: config.KubernetesSecretManager | pkg/services/llm_processor.go | 18 | 🔧 Fixing | Create type in config package |
+| undefined: config.NewSecretManager | pkg/services/llm_processor.go | 77 | 🔧 Fixing | Add constructor function |
+| undefined: config.APIKeys | pkg/services/llm_processor.go | 184, 206 | 🔧 Fixing | Define APIKeys struct |
+| undefined: config.LoadFileBasedAPIKeysWithValidation | pkg/services/llm_processor.go | 186 | 🔧 Fixing | Implement loader function |
+
+---
+
+## Local Test Commands
+```bash
+# Quick smoke test (matching CI)
+go build -v ./cmd/llm-processor/main.go
+go build -v ./cmd/nephio-bridge/main.go
+go test -v -short -timeout 30s ./...
+
+# Full verification
+make build
+make test
+```
+
+---
+
+## CI Job Details
+- **PR**: #87 - https://github.com/thc1006/nephoran-intent-operator/pull/87
+- **Failing Job**: CI Optimized 2025 / Quick Smoke Test
+- **Last Check**: 2025-08-29 03:30:00
+
+---
+
+## Resolution Progress
+✅ Iteration 1-3: Initial fixes complete
+🔧 Iteration 4: Fixing services package
+⏳ Iteration 5+: TBD based on test results
 
 ---

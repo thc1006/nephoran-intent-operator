@@ -39,7 +39,7 @@ jobs:
         
     steps:
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.29.0
         with:
           image-ref: '${{ env.REGISTRY }}/nephoran/${{ matrix.service }}:latest'
           format: 'sarif'
@@ -93,6 +93,8 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           version: latest
+          driver: docker-container
+          install: true
 
       - name: Build test image for security scanning
         uses: docker/build-push-action@v6
@@ -110,7 +112,7 @@ jobs:
             type=gha,mode=max,scope=security-build
 
       - name: Run Trivy vulnerability scanner on test image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.29.0
         with:
           image-ref: 'nephoran-test:security-scan'
           format: 'sarif'
