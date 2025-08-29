@@ -95,11 +95,11 @@ type ManagedElementSpec struct {
 
 	O1Config       string                    `json:"o1Config,omitempty"`
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	A1Policy runtime.RawExtension `json:"a1Policy,omitempty"`
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	E2Configuration runtime.RawExtension `json:"e2Configuration,omitempty"`
 

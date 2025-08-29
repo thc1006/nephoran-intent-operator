@@ -2,7 +2,7 @@
 
 
 
-// +kubebuilder:object:generate=true.
+// +kubebuilder:object:generate=true
 
 // +k8s:deepcopy-gen=package.
 

@@ -49,7 +49,7 @@ import (
 
 // Priority defines the priority level for disaster recovery operations.
 
-// +kubebuilder:validation:Enum=low;medium;high;critical.
+// +kubebuilder:validation:Enum=low;medium;high;critical
 
 type Priority string
 
@@ -83,7 +83,7 @@ type TargetComponent struct {
 
 	// Name of the component.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Name string `json:"name"`
 
@@ -91,9 +91,9 @@ type TargetComponent struct {
 
 	// Type of component (deployment, statefulset, etc.).
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Enum=deployment;statefulset;service;configmap;secret;pvc.
+	// +kubebuilder:validation:Enum=deployment;statefulset;service;configmap;secret;pvc
 
 	Type string `json:"type"`
 
@@ -181,9 +181,9 @@ type ResourceConstraints struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:default=10.
+	// +kubebuilder:default=10
 
 	MaxConcurrency *int32 `json:"maxConcurrency,omitempty"`
 
@@ -195,9 +195,9 @@ type ResourceConstraints struct {
 
 //
 
-// +kubebuilder:object:root=true.
+// +kubebuilder:object:root=true
 
-// +kubebuilder:subresource:status.
+// +kubebuilder:subresource:status
 
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.planType`.
 
@@ -209,7 +209,7 @@ type ResourceConstraints struct {
 
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`.
 
-// +kubebuilder:resource:shortName=drp;drplan.
+// +kubebuilder:resource:shortName=drp;drplan
 
 type DisasterRecoveryPlan struct {
 
@@ -251,11 +251,11 @@ type DisasterRecoveryPlanSpec struct {
 
 	// Type of disaster recovery plan.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Enum=backup;failover;full-recovery.
+	// +kubebuilder:validation:Enum=backup;failover;full-recovery
 
-	// +kubebuilder:default="backup".
+	// +kubebuilder:default="backup"
 
 	PlanType string `json:"planType"`
 
@@ -271,11 +271,11 @@ type DisasterRecoveryPlanSpec struct {
 
 	// Recovery Time Objective - maximum acceptable downtime.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
-	// +kubebuilder:default="1h".
+	// +kubebuilder:default="1h"
 
 	RTOTarget string `json:"rtoTarget"`
 
@@ -283,11 +283,11 @@ type DisasterRecoveryPlanSpec struct {
 
 	// Recovery Point Objective - maximum acceptable data loss.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
-	// +kubebuilder:default="15m".
+	// +kubebuilder:default="15m"
 
 	RPOTarget string `json:"rpoTarget"`
 
@@ -297,9 +297,9 @@ type DisasterRecoveryPlanSpec struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Enum=low;medium;high;critical.
+	// +kubebuilder:validation:Enum=low;medium;high;critical
 
-	// +kubebuilder:default="medium".
+	// +kubebuilder:default="medium"
 
 	Priority Priority `json:"priority,omitempty"`
 
@@ -309,7 +309,7 @@ type DisasterRecoveryPlanSpec struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:MinItems=1.
+	// +kubebuilder:validation:MinItems=1
 
 	TargetComponents []TargetComponent `json:"targetComponents,omitempty"`
 
@@ -387,7 +387,7 @@ type DRAutomationConfig struct {
 
 	// Enable automatic disaster recovery.
 
-	// +kubebuilder:default=false.
+	// +kubebuilder:default=false
 
 	AutomaticRecovery bool `json:"automaticRecovery,omitempty"`
 
@@ -413,11 +413,11 @@ type DRAutomationConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=10.
+	// +kubebuilder:validation:Maximum=10
 
-	// +kubebuilder:default=3.
+	// +kubebuilder:default=3
 
 	MaxRetries *int32 `json:"maxRetries,omitempty"`
 
@@ -427,9 +427,9 @@ type DRAutomationConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
-	// +kubebuilder:default="10m".
+	// +kubebuilder:default="10m"
 
 	CooldownPeriod string `json:"cooldownPeriod,omitempty"`
 
@@ -443,9 +443,9 @@ type DRTriggerCondition struct {
 
 	// Type of trigger condition.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Enum=component-failure;resource-threshold;manual;scheduled.
+	// +kubebuilder:validation:Enum=component-failure;resource-threshold;manual;scheduled
 
 	Type string `json:"type"`
 
@@ -471,7 +471,7 @@ type DRTriggerCondition struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+$`.
+	// +kubebuilder:validation:Pattern=`^[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+$`
 
 	Schedule string `json:"schedule,omitempty"`
 
@@ -485,7 +485,7 @@ type DRThreshold struct {
 
 	// Metric name to monitor.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Metric string `json:"metric"`
 
@@ -493,9 +493,9 @@ type DRThreshold struct {
 
 	// Operator for comparison.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Enum=gt;gte;lt;lte;eq;ne.
+	// +kubebuilder:validation:Enum=gt;gte;lt;lte;eq;ne
 
 	Operator string `json:"operator"`
 
@@ -503,7 +503,7 @@ type DRThreshold struct {
 
 	// Threshold value.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Value string `json:"value"`
 
@@ -513,9 +513,9 @@ type DRThreshold struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
-	// +kubebuilder:default="5m".
+	// +kubebuilder:default="5m"
 
 	Duration string `json:"duration,omitempty"`
 
@@ -529,7 +529,7 @@ type DRApprovalConfig struct {
 
 	// Require manual approval before execution.
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	RequireApproval bool `json:"requireApproval,omitempty"`
 
@@ -547,9 +547,9 @@ type DRApprovalConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:default=1.
+	// +kubebuilder:default=1
 
 	RequiredApprovals *int32 `json:"requiredApprovals,omitempty"`
 
@@ -559,9 +559,9 @@ type DRApprovalConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
-	// +kubebuilder:default="30m".
+	// +kubebuilder:default="30m"
 
 	ApprovalTimeout string `json:"approvalTimeout,omitempty"`
 
@@ -575,7 +575,7 @@ type DRTestingConfig struct {
 
 	// Enable regular disaster recovery testing.
 
-	// +kubebuilder:default=false.
+	// +kubebuilder:default=false
 
 	EnableTesting bool `json:"enableTesting,omitempty"`
 
@@ -585,7 +585,7 @@ type DRTestingConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+$`.
+	// +kubebuilder:validation:Pattern=`^[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+$`
 
 	TestSchedule string `json:"testSchedule,omitempty"`
 
@@ -623,9 +623,9 @@ type DRTestEnvironment struct {
 
 	// Namespace for testing.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`.
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
 
 	Namespace string `json:"namespace"`
 
@@ -633,7 +633,7 @@ type DRTestEnvironment struct {
 
 	// Use isolated environment for testing.
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	Isolated bool `json:"isolated,omitempty"`
 
@@ -651,9 +651,9 @@ type DRTestEnvironment struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Enum=always;on-success;never.
+	// +kubebuilder:validation:Enum=always;on-success;never
 
-	// +kubebuilder:default="on-success".
+	// +kubebuilder:default="on-success"
 
 	CleanupPolicy string `json:"cleanupPolicy,omitempty"`
 
@@ -667,7 +667,7 @@ type DRValidationCriterion struct {
 
 	// Name of the validation criterion.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Name string `json:"name"`
 
@@ -675,9 +675,9 @@ type DRValidationCriterion struct {
 
 	// Type of validation.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Enum=health-check;data-integrity;performance;functional.
+	// +kubebuilder:validation:Enum=health-check;data-integrity;performance;functional
 
 	Type string `json:"type"`
 
@@ -695,7 +695,7 @@ type DRValidationCriterion struct {
 
 	// +optional.
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	Parameters runtime.RawExtension `json:"parameters,omitempty"`
 
@@ -705,9 +705,9 @@ type DRValidationCriterion struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
-	// +kubebuilder:default="5m".
+	// +kubebuilder:default="5m"
 
 	Timeout string `json:"timeout,omitempty"`
 
@@ -721,7 +721,7 @@ type DRNotificationConfig struct {
 
 	// Enable notifications.
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	Enabled bool `json:"enabled,omitempty"`
 
@@ -759,7 +759,7 @@ type DRNotificationChannel struct {
 
 	// Name of the notification channel.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Name string `json:"name"`
 
@@ -767,9 +767,9 @@ type DRNotificationChannel struct {
 
 	// Type of notification channel.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Enum=email;slack;webhook;sms;pagerduty.
+	// +kubebuilder:validation:Enum=email;slack;webhook;sms;pagerduty
 
 	Type string `json:"type"`
 
@@ -777,7 +777,7 @@ type DRNotificationChannel struct {
 
 	// Configuration for the notification channel.
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	Config runtime.RawExtension `json:"config"`
 
@@ -801,7 +801,7 @@ type DisasterRecoveryPlanStatus struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Enum=Pending;Active;Testing;Failed;Suspended.
+	// +kubebuilder:validation:Enum=Pending;Active;Testing;Failed;Suspended
 
 	Phase string `json:"phase,omitempty"`
 
@@ -811,10 +811,7 @@ type DisasterRecoveryPlanStatus struct {
 
 	// +optional.
 
-	// +listType=map.
-
-	// +listMapKey=type.
-
+	// +listType=atomic
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 
@@ -889,7 +886,7 @@ type DRExecutionStatus struct {
 
 	// Execution status.
 
-	// +kubebuilder:validation:Enum=Running;Completed;Failed;Cancelled.
+	// +kubebuilder:validation:Enum=Running;Completed;Failed;Cancelled
 
 	Status string `json:"status"`
 
@@ -963,7 +960,7 @@ type DRExecutionStep struct {
 
 	// Step status.
 
-	// +kubebuilder:validation:Enum=Pending;Running;Completed;Failed;Skipped.
+	// +kubebuilder:validation:Enum=Pending;Running;Completed;Failed;Skipped
 
 	Status string `json:"status"`
 
@@ -1019,7 +1016,7 @@ type DRTestResults struct {
 
 	// Overall test status.
 
-	// +kubebuilder:validation:Enum=Passed;Failed;Partial.
+	// +kubebuilder:validation:Enum=Passed;Failed;Partial
 
 	Status string `json:"status"`
 
@@ -1063,7 +1060,7 @@ type DRTestCase struct {
 
 	// Test case status.
 
-	// +kubebuilder:validation:Enum=Passed;Failed;Skipped.
+	// +kubebuilder:validation:Enum=Passed;Failed;Skipped
 
 	Status string `json:"status"`
 
@@ -1145,9 +1142,9 @@ type DRMetrics struct {
 
 //
 
-// +kubebuilder:object:root=true.
+// +kubebuilder:object:root=true
 
-// +kubebuilder:subresource:status.
+// +kubebuilder:subresource:status
 
 // +kubebuilder:printcolumn:name="Schedule",type=string,JSONPath=`.spec.schedule`.
 
@@ -1159,7 +1156,7 @@ type DRMetrics struct {
 
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`.
 
-// +kubebuilder:resource:shortName=bp;backuppol.
+// +kubebuilder:resource:shortName=bp;backuppol
 
 type BackupPolicy struct {
 
@@ -1201,11 +1198,11 @@ type BackupPolicySpec struct {
 
 	// Backup schedule in cron format.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Pattern=`^[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+$`.
+	// +kubebuilder:validation:Pattern=`^[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+$`
 
-	// +kubebuilder:default="0 2 * * *".
+	// +kubebuilder:default="0 2 * * *"
 
 	Schedule string `json:"schedule"`
 
@@ -1215,7 +1212,7 @@ type BackupPolicySpec struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:MinItems=1.
+	// +kubebuilder:validation:MinItems=1
 
 	BackupTypes []string `json:"backupTypes,omitempty"`
 
@@ -1239,7 +1236,7 @@ type BackupPolicySpec struct {
 
 	// Storage configuration.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	StorageConfig BackupStorageConfig `json:"storageConfig"`
 
@@ -1247,7 +1244,7 @@ type BackupPolicySpec struct {
 
 	// Retention policy.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Retention BackupRetentionPolicy `json:"retention"`
 
@@ -1289,7 +1286,7 @@ type BackupPolicySpec struct {
 
 	// +optional.
 
-	// +kubebuilder:default=false.
+	// +kubebuilder:default=false
 
 	Paused bool `json:"paused,omitempty"`
 
@@ -1303,9 +1300,9 @@ type BackupStorageConfig struct {
 
 	// Storage provider type.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Enum=s3;gcs;azure;local.
+	// +kubebuilder:validation:Enum=s3;gcs;azure;local
 
 	Provider string `json:"provider"`
 
@@ -1313,7 +1310,7 @@ type BackupStorageConfig struct {
 
 	// Storage bucket or path.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Location string `json:"location"`
 
@@ -1347,7 +1344,7 @@ type BackupStorageConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	Config runtime.RawExtension `json:"config,omitempty"`
 
@@ -1361,9 +1358,9 @@ type BackupRetentionPolicy struct {
 
 	// Number of daily backups to keep.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:default=7.
+	// +kubebuilder:default=7
 
 	DailyBackups int32 `json:"dailyBackups"`
 
@@ -1373,9 +1370,9 @@ type BackupRetentionPolicy struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Minimum=0.
+	// +kubebuilder:validation:Minimum=0
 
-	// +kubebuilder:default=4.
+	// +kubebuilder:default=4
 
 	WeeklyBackups *int32 `json:"weeklyBackups,omitempty"`
 
@@ -1385,9 +1382,9 @@ type BackupRetentionPolicy struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Minimum=0.
+	// +kubebuilder:validation:Minimum=0
 
-	// +kubebuilder:default=12.
+	// +kubebuilder:default=12
 
 	MonthlyBackups *int32 `json:"monthlyBackups,omitempty"`
 
@@ -1397,7 +1394,7 @@ type BackupRetentionPolicy struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Minimum=0.
+	// +kubebuilder:validation:Minimum=0
 
 	YearlyBackups *int32 `json:"yearlyBackups,omitempty"`
 
@@ -1411,7 +1408,7 @@ type BackupEncryptionConfig struct {
 
 	// Enable encryption.
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	Enabled bool `json:"enabled,omitempty"`
 
@@ -1421,9 +1418,9 @@ type BackupEncryptionConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Enum=AES-256;AES-128.
+	// +kubebuilder:validation:Enum=AES-256;AES-128
 
-	// +kubebuilder:default="AES-256".
+	// +kubebuilder:default="AES-256"
 
 	Algorithm string `json:"algorithm,omitempty"`
 
@@ -1453,7 +1450,7 @@ type KeyRotationPolicy struct {
 
 	// Enable automatic key rotation.
 
-	// +kubebuilder:default=false.
+	// +kubebuilder:default=false
 
 	Enabled bool `json:"enabled,omitempty"`
 
@@ -1463,9 +1460,9 @@ type KeyRotationPolicy struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(d|w|m|y)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(d|w|m|y)$`
 
-	// +kubebuilder:default="90d".
+	// +kubebuilder:default="90d"
 
 	RotationInterval string `json:"rotationInterval,omitempty"`
 
@@ -1475,9 +1472,9 @@ type KeyRotationPolicy struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:default=3.
+	// +kubebuilder:default=3
 
 	KeepOldKeys *int32 `json:"keepOldKeys,omitempty"`
 
@@ -1491,7 +1488,7 @@ type BackupCompressionConfig struct {
 
 	// Enable compression.
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	Enabled bool `json:"enabled,omitempty"`
 
@@ -1501,9 +1498,9 @@ type BackupCompressionConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Enum=gzip;lz4;zstd.
+	// +kubebuilder:validation:Enum=gzip;lz4;zstd
 
-	// +kubebuilder:default="gzip".
+	// +kubebuilder:default="gzip"
 
 	Algorithm string `json:"algorithm,omitempty"`
 
@@ -1513,11 +1510,11 @@ type BackupCompressionConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=9.
+	// +kubebuilder:validation:Maximum=9
 
-	// +kubebuilder:default=6.
+	// +kubebuilder:default=6
 
 	Level *int32 `json:"level,omitempty"`
 
@@ -1531,7 +1528,7 @@ type BackupValidationConfig struct {
 
 	// Enable backup validation.
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	Enabled bool `json:"enabled,omitempty"`
 
@@ -1549,7 +1546,7 @@ type BackupValidationConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	ChecksumValidation *bool `json:"checksumValidation,omitempty"`
 
@@ -1559,7 +1556,7 @@ type BackupValidationConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:default=false.
+	// +kubebuilder:default=false
 
 	RestoreValidation *bool `json:"restoreValidation,omitempty"`
 
@@ -1583,7 +1580,7 @@ type BackupPolicyStatus struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Enum=Active;Paused;Failed;Suspended.
+	// +kubebuilder:validation:Enum=Active;Paused;Failed;Suspended
 
 	Phase string `json:"phase,omitempty"`
 
@@ -1593,10 +1590,7 @@ type BackupPolicyStatus struct {
 
 	// +optional.
 
-	// +listType=map.
-
-	// +listMapKey=type.
-
+	// +listType=atomic
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 
@@ -1679,7 +1673,7 @@ type BackupExecutionStatus struct {
 
 	// Status.
 
-	// +kubebuilder:validation:Enum=Running;Completed;Failed;Cancelled.
+	// +kubebuilder:validation:Enum=Running;Completed;Failed;Cancelled
 
 	Status string `json:"status"`
 
@@ -1737,9 +1731,9 @@ type BackupExecutionStatus struct {
 
 //
 
-// +kubebuilder:object:root=true.
+// +kubebuilder:object:root=true
 
-// +kubebuilder:subresource:status.
+// +kubebuilder:subresource:status
 
 // +kubebuilder:printcolumn:name="Primary Region",type=string,JSONPath=`.spec.primaryRegion`.
 
@@ -1751,7 +1745,7 @@ type BackupExecutionStatus struct {
 
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`.
 
-// +kubebuilder:resource:shortName=fp;failoverpol.
+// +kubebuilder:resource:shortName=fp;failoverpol
 
 type FailoverPolicy struct {
 
@@ -1793,7 +1787,7 @@ type FailoverPolicySpec struct {
 
 	// Primary region.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	PrimaryRegion string `json:"primaryRegion"`
 
@@ -1801,9 +1795,9 @@ type FailoverPolicySpec struct {
 
 	// Failover regions in order of preference.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:MinItems=1.
+	// +kubebuilder:validation:MinItems=1
 
 	FailoverRegions []string `json:"failoverRegions"`
 
@@ -1813,7 +1807,7 @@ type FailoverPolicySpec struct {
 
 	// +optional.
 
-	// +kubebuilder:default=false.
+	// +kubebuilder:default=false
 
 	AutoFailover bool `json:"autoFailover,omitempty"`
 
@@ -1879,9 +1873,9 @@ type FailoverPolicySpec struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
-	// +kubebuilder:default="1h".
+	// +kubebuilder:default="1h"
 
 	RTOTarget string `json:"rtoTarget,omitempty"`
 
@@ -1903,7 +1897,7 @@ type FailoverTriggerCondition struct {
 
 	// Condition name.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Name string `json:"name"`
 
@@ -1911,9 +1905,9 @@ type FailoverTriggerCondition struct {
 
 	// Condition type.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Enum=health-check;metric-threshold;manual;external.
+	// +kubebuilder:validation:Enum=health-check;metric-threshold;manual;external
 
 	Type string `json:"type"`
 
@@ -1947,9 +1941,9 @@ type FailoverTriggerCondition struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Enum=low;medium;high;critical.
+	// +kubebuilder:validation:Enum=low;medium;high;critical
 
-	// +kubebuilder:default="medium".
+	// +kubebuilder:default="medium"
 
 	Severity string `json:"severity,omitempty"`
 
@@ -1959,9 +1953,9 @@ type FailoverTriggerCondition struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
-	// +kubebuilder:default="10m".
+	// +kubebuilder:default="10m"
 
 	Cooldown string `json:"cooldown,omitempty"`
 
@@ -1975,9 +1969,9 @@ type FailoverHealthCheck struct {
 
 	// Endpoints to check.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:MinItems=1.
+	// +kubebuilder:validation:MinItems=1
 
 	Endpoints []string `json:"endpoints"`
 
@@ -1987,9 +1981,9 @@ type FailoverHealthCheck struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
-	// +kubebuilder:default="30s".
+	// +kubebuilder:default="30s"
 
 	Interval string `json:"interval,omitempty"`
 
@@ -1999,9 +1993,9 @@ type FailoverHealthCheck struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
-	// +kubebuilder:default="10s".
+	// +kubebuilder:default="10s"
 
 	Timeout string `json:"timeout,omitempty"`
 
@@ -2011,9 +2005,9 @@ type FailoverHealthCheck struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:default=3.
+	// +kubebuilder:default=3
 
 	FailureThreshold *int32 `json:"failureThreshold,omitempty"`
 
@@ -2023,9 +2017,9 @@ type FailoverHealthCheck struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:default=3.
+	// +kubebuilder:default=3
 
 	SuccessThreshold *int32 `json:"successThreshold,omitempty"`
 
@@ -2039,7 +2033,7 @@ type FailoverMetricThreshold struct {
 
 	// Metric name.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	MetricName string `json:"metricName"`
 
@@ -2047,7 +2041,7 @@ type FailoverMetricThreshold struct {
 
 	// Metric query.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Query string `json:"query"`
 
@@ -2055,7 +2049,7 @@ type FailoverMetricThreshold struct {
 
 	// Threshold value.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Threshold string `json:"threshold"`
 
@@ -2063,9 +2057,9 @@ type FailoverMetricThreshold struct {
 
 	// Comparison operator.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Enum=gt;gte;lt;lte;eq;ne.
+	// +kubebuilder:validation:Enum=gt;gte;lt;lte;eq;ne
 
 	Operator string `json:"operator"`
 
@@ -2075,9 +2069,9 @@ type FailoverMetricThreshold struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
-	// +kubebuilder:default="5m".
+	// +kubebuilder:default="5m"
 
 	Duration string `json:"duration,omitempty"`
 
@@ -2091,7 +2085,7 @@ type FailoverWebhookConfig struct {
 
 	// Webhook URL.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	URL string `json:"url"`
 
@@ -2101,9 +2095,9 @@ type FailoverWebhookConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Enum=GET;POST;PUT.
+	// +kubebuilder:validation:Enum=GET;POST;PUT
 
-	// +kubebuilder:default="POST".
+	// +kubebuilder:default="POST"
 
 	Method string `json:"method,omitempty"`
 
@@ -2137,9 +2131,9 @@ type FailoverWebhookConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
-	// +kubebuilder:default="30s".
+	// +kubebuilder:default="30s"
 
 	Timeout string `json:"timeout,omitempty"`
 
@@ -2153,9 +2147,9 @@ type FailoverDNSConfig struct {
 
 	// DNS provider.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Enum=route53;cloudflare;external.
+	// +kubebuilder:validation:Enum=route53;cloudflare;external
 
 	Provider string `json:"provider"`
 
@@ -2163,7 +2157,7 @@ type FailoverDNSConfig struct {
 
 	// Zone ID or domain name.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Zone string `json:"zone"`
 
@@ -2171,9 +2165,9 @@ type FailoverDNSConfig struct {
 
 	// DNS records to manage.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:MinItems=1.
+	// +kubebuilder:validation:MinItems=1
 
 	Records []FailoverDNSRecord `json:"records"`
 
@@ -2183,9 +2177,9 @@ type FailoverDNSConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Minimum=60.
+	// +kubebuilder:validation:Minimum=60
 
-	// +kubebuilder:default=300.
+	// +kubebuilder:default=300
 
 	TTL *int32 `json:"ttl,omitempty"`
 
@@ -2207,7 +2201,7 @@ type FailoverDNSRecord struct {
 
 	// Record name.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Name string `json:"name"`
 
@@ -2215,9 +2209,9 @@ type FailoverDNSRecord struct {
 
 	// Record type.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Enum=A;AAAA;CNAME.
+	// +kubebuilder:validation:Enum=A;AAAA;CNAME
 
 	Type string `json:"type"`
 
@@ -2225,7 +2219,7 @@ type FailoverDNSRecord struct {
 
 	// Regional values (region -> value mapping).
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	RegionalValues map[string]string `json:"regionalValues"`
 
@@ -2247,7 +2241,7 @@ type FailoverDNSHealthCheck struct {
 
 	// Enable DNS health checking.
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	Enabled bool `json:"enabled,omitempty"`
 
@@ -2255,7 +2249,7 @@ type FailoverDNSHealthCheck struct {
 
 	// Health check endpoint.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Endpoint string `json:"endpoint"`
 
@@ -2265,11 +2259,11 @@ type FailoverDNSHealthCheck struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=65535.
+	// +kubebuilder:validation:Maximum=65535
 
-	// +kubebuilder:default=80.
+	// +kubebuilder:default=80
 
 	Port *int32 `json:"port,omitempty"`
 
@@ -2279,9 +2273,9 @@ type FailoverDNSHealthCheck struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Enum=HTTP;HTTPS;TCP.
+	// +kubebuilder:validation:Enum=HTTP;HTTPS;TCP
 
-	// +kubebuilder:default="HTTP".
+	// +kubebuilder:default="HTTP"
 
 	Protocol string `json:"protocol,omitempty"`
 
@@ -2291,7 +2285,7 @@ type FailoverDNSHealthCheck struct {
 
 	// +optional.
 
-	// +kubebuilder:default="/healthz".
+	// +kubebuilder:default="/healthz"
 
 	Path string `json:"path,omitempty"`
 
@@ -2307,9 +2301,9 @@ type FailoverTrafficConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Enum=immediate;gradual;canary.
+	// +kubebuilder:validation:Enum=immediate;gradual;canary
 
-	// +kubebuilder:default="immediate".
+	// +kubebuilder:default="immediate"
 
 	Mode string `json:"mode,omitempty"`
 
@@ -2347,9 +2341,9 @@ type FailoverGradualConfig struct {
 
 	// Traffic shift steps (percentages).
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:MinItems=1.
+	// +kubebuilder:validation:MinItems=1
 
 	Steps []int32 `json:"steps"`
 
@@ -2357,9 +2351,9 @@ type FailoverGradualConfig struct {
 
 	// Duration between steps.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
 	StepDuration string `json:"stepDuration"`
 
@@ -2381,11 +2375,11 @@ type FailoverCanaryConfig struct {
 
 	// Canary traffic percentage.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=50.
+	// +kubebuilder:validation:Maximum=50
 
-	// +kubebuilder:default=10.
+	// +kubebuilder:default=10
 
 	CanaryPercentage int32 `json:"canaryPercentage"`
 
@@ -2393,9 +2387,9 @@ type FailoverCanaryConfig struct {
 
 	// Duration of canary phase.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
 	Duration string `json:"duration"`
 
@@ -2413,7 +2407,7 @@ type FailoverCanaryConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:default=false.
+	// +kubebuilder:default=false
 
 	AutoPromote bool `json:"autoPromote,omitempty"`
 
@@ -2427,7 +2421,7 @@ type FailoverSuccessCriterion struct {
 
 	// Criterion name.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Name string `json:"name"`
 
@@ -2435,7 +2429,7 @@ type FailoverSuccessCriterion struct {
 
 	// Metric to evaluate.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Metric string `json:"metric"`
 
@@ -2443,7 +2437,7 @@ type FailoverSuccessCriterion struct {
 
 	// Threshold for success.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Threshold string `json:"threshold"`
 
@@ -2451,9 +2445,9 @@ type FailoverSuccessCriterion struct {
 
 	// Comparison operator.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Enum=gt;gte;lt;lte;eq;ne.
+	// +kubebuilder:validation:Enum=gt;gte;lt;lte;eq;ne
 
 	Operator string `json:"operator"`
 
@@ -2467,9 +2461,9 @@ type FailoverLoadBalancerConfig struct {
 
 	// Load balancer type.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Enum=nginx;haproxy;envoy;aws-alb;gcp-lb;azure-lb.
+	// +kubebuilder:validation:Enum=nginx;haproxy;envoy;aws-alb;gcp-lb;azure-lb
 
 	Type string `json:"type"`
 
@@ -2499,7 +2493,7 @@ type FailoverDataSyncConfig struct {
 
 	// Enable data synchronization before failover.
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	Enabled bool `json:"enabled,omitempty"`
 
@@ -2517,9 +2511,9 @@ type FailoverDataSyncConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
-	// +kubebuilder:default="5m".
+	// +kubebuilder:default="5m"
 
 	SyncTimeout string `json:"syncTimeout,omitempty"`
 
@@ -2529,9 +2523,9 @@ type FailoverDataSyncConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Enum=eventual;strong;session.
+	// +kubebuilder:validation:Enum=eventual;strong;session
 
-	// +kubebuilder:default="eventual".
+	// +kubebuilder:default="eventual"
 
 	ConsistencyLevel string `json:"consistencyLevel,omitempty"`
 
@@ -2545,7 +2539,7 @@ type FailoverDataSource struct {
 
 	// Data source name.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Name string `json:"name"`
 
@@ -2553,9 +2547,9 @@ type FailoverDataSource struct {
 
 	// Data source type.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Enum=database;storage;cache;custom.
+	// +kubebuilder:validation:Enum=database;storage;cache;custom
 
 	Type string `json:"type"`
 
@@ -2563,7 +2557,7 @@ type FailoverDataSource struct {
 
 	// Regional endpoints for the data source.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	RegionalEndpoints map[string]string `json:"regionalEndpoints"`
 
@@ -2573,9 +2567,9 @@ type FailoverDataSource struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Enum=async;sync;custom.
+	// +kubebuilder:validation:Enum=async;sync;custom
 
-	// +kubebuilder:default="async".
+	// +kubebuilder:default="async"
 
 	SyncMethod string `json:"syncMethod,omitempty"`
 
@@ -2585,7 +2579,7 @@ type FailoverDataSource struct {
 
 	// +optional.
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	SyncConfig runtime.RawExtension `json:"syncConfig,omitempty"`
 
@@ -2599,7 +2593,7 @@ type FailoverRollbackConfig struct {
 
 	// Enable automatic rollback on failure.
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	AutoRollback bool `json:"autoRollback,omitempty"`
 
@@ -2617,9 +2611,9 @@ type FailoverRollbackConfig struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
-	// +kubebuilder:default="10m".
+	// +kubebuilder:default="10m"
 
 	RollbackTimeout string `json:"rollbackTimeout,omitempty"`
 
@@ -2641,7 +2635,7 @@ type FailoverDataRecovery struct {
 
 	// Enable data recovery.
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	Enabled bool `json:"enabled,omitempty"`
 
@@ -2651,7 +2645,7 @@ type FailoverDataRecovery struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
 	RecoveryTarget string `json:"recoveryTarget,omitempty"`
 
@@ -2673,7 +2667,7 @@ type FailoverRecoveryValidation struct {
 
 	// Enable validation.
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	Enabled bool `json:"enabled,omitempty"`
 
@@ -2691,9 +2685,9 @@ type FailoverRecoveryValidation struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(h|m|s)$`
 
-	// +kubebuilder:default="5m".
+	// +kubebuilder:default="5m"
 
 	Timeout string `json:"timeout,omitempty"`
 
@@ -2709,7 +2703,7 @@ type FailoverPolicyStatus struct {
 
 	// +optional.
 
-	// +kubebuilder:validation:Enum=Active;Failed;Failover;Rollback;Suspended.
+	// +kubebuilder:validation:Enum=Active;Failed;Failover;Rollback;Suspended
 
 	Phase string `json:"phase,omitempty"`
 
@@ -2727,10 +2721,7 @@ type FailoverPolicyStatus struct {
 
 	// +optional.
 
-	// +listType=map.
-
-	// +listMapKey=type.
-
+	// +listType=atomic
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 
@@ -2807,7 +2798,7 @@ type FailoverExecutionStatus struct {
 
 	// Status.
 
-	// +kubebuilder:validation:Enum=Running;Completed;Failed;Cancelled;Rolled-back.
+	// +kubebuilder:validation:Enum=Running;Completed;Failed;Cancelled;Rolled-back
 
 	Status string `json:"status"`
 
@@ -2865,7 +2856,7 @@ type FailoverExecutionStep struct {
 
 	// Step type.
 
-	// +kubebuilder:validation:Enum=dns;traffic;data-sync;validation;cleanup.
+	// +kubebuilder:validation:Enum=dns;traffic;data-sync;validation;cleanup
 
 	Type string `json:"type"`
 
@@ -2873,7 +2864,7 @@ type FailoverExecutionStep struct {
 
 	// Status.
 
-	// +kubebuilder:validation:Enum=Pending;Running;Completed;Failed;Skipped.
+	// +kubebuilder:validation:Enum=Pending;Running;Completed;Failed;Skipped
 
 	Status string `json:"status"`
 
@@ -2917,7 +2908,7 @@ type RegionHealthInfo struct {
 
 	// Health status.
 
-	// +kubebuilder:validation:Enum=Healthy;Unhealthy;Unknown.
+	// +kubebuilder:validation:Enum=Healthy;Unhealthy;Unknown
 
 	Status string `json:"status"`
 

@@ -1,3 +1,5 @@
+//go:build stub
+
 /*
 
 Copyright 2025.
@@ -1150,4 +1152,5 @@ func (h *UpdateHistoryStore) Record(ctx context.Context, record interface{}) err
 	return nil
 
 }
+
 

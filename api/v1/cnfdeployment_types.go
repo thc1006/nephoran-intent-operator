@@ -55,7 +55,7 @@ import (
 
 // CNFType defines the type of Cloud Native Function.
 
-// +kubebuilder:validation:Enum="5G-Core";"O-RAN";"Edge";"Custom".
+// +kubebuilder:validation:Enum="5G-Core";"O-RAN";"Edge";"Custom"
 
 type CNFType string
 
@@ -85,7 +85,7 @@ const (
 
 // CNFFunction defines specific CNF function types.
 
-// +kubebuilder:validation:Enum=AMF;SMF;UPF;NRF;AUSF;UDM;PCF;NSSF;NEF;SMSF;BSF;UDR;UDSF;CHF;N3IWF;TNGF;TWIF;NWDAF;SCP;SEPP;O-DU;O-CU-CP;O-CU-UP;Near-RT-RIC;Non-RT-RIC;O-eNB;SMO;rApp;xApp;O-FH;O-M-P;UE-Simulator;Traffic-Generator.
+// +kubebuilder:validation:Enum=AMF;SMF;UPF;NRF;AUSF;UDM;PCF;NSSF;NEF;SMSF;BSF;UDR;UDSF;CHF;N3IWF;TNGF;TWIF;NWDAF;SCP;SEPP;O-DU;O-CU-CP;O-CU-UP;Near-RT-RIC;Non-RT-RIC;O-eNB;SMO;rApp;xApp;O-FH;O-M-P;UE-Simulator;Traffic-Generator
 
 type CNFFunction string
 
@@ -235,7 +235,7 @@ const (
 
 // CNFDeploymentStrategy defines how the CNF should be deployed.
 
-// +kubebuilder:validation:Enum=Helm;Operator;Direct;GitOps.
+// +kubebuilder:validation:Enum=Helm;Operator;Direct;GitOps
 
 type CNFDeploymentStrategy string
 
@@ -281,7 +281,7 @@ type CNFResources struct {
 
 	// Storage resource requirements.
 
-	// +optional.
+	// +optional
 
 	Storage *resource.Quantity `json:"storage,omitempty"`
 
@@ -289,7 +289,7 @@ type CNFResources struct {
 
 	// Maximum CPU resource limit.
 
-	// +optional.
+	// +optional
 
 	MaxCPU *resource.Quantity `json:"maxCpu,omitempty"`
 
@@ -297,7 +297,7 @@ type CNFResources struct {
 
 	// Maximum Memory resource limit.
 
-	// +optional.
+	// +optional
 
 	MaxMemory *resource.Quantity `json:"maxMemory,omitempty"`
 
@@ -305,7 +305,7 @@ type CNFResources struct {
 
 	// GPU resource requirements.
 
-	// +optional.
+	// +optional
 
 	GPU *int32 `json:"gpu,omitempty"`
 
@@ -313,7 +313,7 @@ type CNFResources struct {
 
 	// Hugepages requirements for high-performance networking.
 
-	// +optional.
+	// +optional
 
 	Hugepages map[string]resource.Quantity `json:"hugepages,omitempty"`
 
@@ -321,7 +321,7 @@ type CNFResources struct {
 
 	// DPDK requirements for packet processing.
 
-	// +optional.
+	// +optional
 
 	DPDK *DPDKConfig `json:"dpdk,omitempty"`
 
@@ -341,7 +341,7 @@ type DPDKConfig struct {
 
 	// Number of DPDK cores.
 
-	// +optional.
+	// +optional
 
 	Cores *int32 `json:"cores,omitempty"`
 
@@ -349,7 +349,7 @@ type DPDKConfig struct {
 
 	// DPDK memory in MB.
 
-	// +optional.
+	// +optional
 
 	Memory *int32 `json:"memory,omitempty"`
 
@@ -357,7 +357,7 @@ type DPDKConfig struct {
 
 	// DPDK driver.
 
-	// +optional.
+	// +optional
 
 	Driver string `json:"driver,omitempty"`
 
@@ -371,7 +371,7 @@ type HelmConfig struct {
 
 	// Chart repository URL.
 
-	// +kubebuilder:validation:Pattern=`^https?://.*`.
+	// +kubebuilder:validation:Pattern=`^https?://*`
 
 	Repository string `json:"repository"`
 
@@ -391,9 +391,9 @@ type HelmConfig struct {
 
 	// Values override the default chart values.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	Values runtime.RawExtension `json:"values,omitempty"`
 
@@ -401,7 +401,7 @@ type HelmConfig struct {
 
 	// Release name for the Helm deployment.
 
-	// +optional.
+	// +optional
 
 	ReleaseName string `json:"releaseName,omitempty"`
 
@@ -427,7 +427,7 @@ type OperatorConfig struct {
 
 	// Custom resource definition for the operator.
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	CustomResource runtime.RawExtension `json:"customResource"`
 
@@ -447,9 +447,9 @@ type ServiceMeshConfig struct {
 
 	// Service mesh type (Istio, Linkerd, Consul Connect).
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:validation:Enum=Istio;Linkerd;Consul.
+	// +kubebuilder:validation:Enum=Istio;Linkerd;Consul
 
 	Type string `json:"type,omitempty"`
 
@@ -457,7 +457,7 @@ type ServiceMeshConfig struct {
 
 	// mTLS configuration.
 
-	// +optional.
+	// +optional
 
 	MTLS *MTLSConfig `json:"mtls,omitempty"`
 
@@ -465,7 +465,7 @@ type ServiceMeshConfig struct {
 
 	// Traffic policies.
 
-	// +optional.
+	// +optional
 
 	TrafficPolicies []TrafficPolicy `json:"trafficPolicies,omitempty"`
 
@@ -485,9 +485,9 @@ type MTLSConfig struct {
 
 	// mTLS mode (strict, permissive).
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:validation:Enum=strict;permissive.
+	// +kubebuilder:validation:Enum=strict;permissive
 
 	Mode string `json:"mode,omitempty"`
 
@@ -519,7 +519,7 @@ type TrafficPolicy struct {
 
 	// Load balancing configuration.
 
-	// +optional.
+	// +optional
 
 	LoadBalancing *LoadBalancingConfig `json:"loadBalancing,omitempty"`
 
@@ -533,7 +533,7 @@ type LoadBalancingConfig struct {
 
 	// Load balancing algorithm.
 
-	// +kubebuilder:validation:Enum=round_robin;least_conn;random;ip_hash.
+	// +kubebuilder:validation:Enum=round_robin;least_conn;random;ip_hash
 
 	Algorithm string `json:"algorithm"`
 
@@ -541,7 +541,7 @@ type LoadBalancingConfig struct {
 
 	// Health check configuration.
 
-	// +optional.
+	// +optional
 
 	HealthCheck *CNFHealthCheckConfig `json:"healthCheck,omitempty"`
 
@@ -567,9 +567,9 @@ type CNFHealthCheckConfig struct {
 
 	// Check interval in seconds.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=300.
+	// +kubebuilder:validation:Maximum=300
 
 	Interval int32 `json:"interval"`
 
@@ -577,9 +577,9 @@ type CNFHealthCheckConfig struct {
 
 	// Timeout in seconds.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=60.
+	// +kubebuilder:validation:Maximum=60
 
 	Timeout int32 `json:"timeout"`
 
@@ -587,9 +587,9 @@ type CNFHealthCheckConfig struct {
 
 	// Number of retries.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=10.
+	// +kubebuilder:validation:Maximum=10
 
 	Retries int32 `json:"retries"`
 
@@ -609,7 +609,7 @@ type AutoScaling struct {
 
 	// Minimum number of replicas.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
 	MinReplicas int32 `json:"minReplicas"`
 
@@ -617,7 +617,7 @@ type AutoScaling struct {
 
 	// Maximum number of replicas.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
 	MaxReplicas int32 `json:"maxReplicas"`
 
@@ -625,11 +625,11 @@ type AutoScaling struct {
 
 	// CPU utilization threshold for scaling.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=100.
+	// +kubebuilder:validation:Maximum=100
 
 	CPUUtilization *int32 `json:"cpuUtilization,omitempty"`
 
@@ -637,11 +637,11 @@ type AutoScaling struct {
 
 	// Memory utilization threshold for scaling.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=100.
+	// +kubebuilder:validation:Maximum=100
 
 	MemoryUtilization *int32 `json:"memoryUtilization,omitempty"`
 
@@ -649,7 +649,7 @@ type AutoScaling struct {
 
 	// Custom metrics for scaling.
 
-	// +optional.
+	// +optional
 
 	CustomMetrics []CustomMetric `json:"customMetrics,omitempty"`
 
@@ -669,7 +669,7 @@ type CustomMetric struct {
 
 	// Metric type (pods, object, external).
 
-	// +kubebuilder:validation:Enum=pods;object;external.
+	// +kubebuilder:validation:Enum=pods;object;external
 
 	Type string `json:"type"`
 
@@ -689,7 +689,7 @@ type CNFDeploymentSpec struct {
 
 	// CNF type classification.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	CNFType CNFType `json:"cnfType"`
 
@@ -697,7 +697,7 @@ type CNFDeploymentSpec struct {
 
 	// Specific CNF function.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Function CNFFunction `json:"function"`
 
@@ -705,9 +705,9 @@ type CNFDeploymentSpec struct {
 
 	// Deployment strategy.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:default="Helm".
+	// +kubebuilder:default="Helm"
 
 	DeploymentStrategy CNFDeploymentStrategy `json:"deploymentStrategy"`
 
@@ -715,11 +715,11 @@ type CNFDeploymentSpec struct {
 
 	// Number of replicas.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=100.
+	// +kubebuilder:validation:Maximum=100
 
-	// +kubebuilder:default=1.
+	// +kubebuilder:default=1
 
 	Replicas int32 `json:"replicas"`
 
@@ -727,7 +727,7 @@ type CNFDeploymentSpec struct {
 
 	// Resource requirements.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Resources CNFResources `json:"resources"`
 
@@ -735,7 +735,7 @@ type CNFDeploymentSpec struct {
 
 	// Helm configuration (if using Helm strategy).
 
-	// +optional.
+	// +optional
 
 	Helm *HelmConfig `json:"helm,omitempty"`
 
@@ -743,7 +743,7 @@ type CNFDeploymentSpec struct {
 
 	// Operator configuration (if using Operator strategy).
 
-	// +optional.
+	// +optional
 
 	Operator *OperatorConfig `json:"operator,omitempty"`
 
@@ -751,7 +751,7 @@ type CNFDeploymentSpec struct {
 
 	// Service mesh integration.
 
-	// +optional.
+	// +optional
 
 	ServiceMesh *ServiceMeshConfig `json:"serviceMesh,omitempty"`
 
@@ -759,7 +759,7 @@ type CNFDeploymentSpec struct {
 
 	// Auto-scaling configuration.
 
-	// +optional.
+	// +optional
 
 	AutoScaling *AutoScaling `json:"autoScaling,omitempty"`
 
@@ -767,9 +767,9 @@ type CNFDeploymentSpec struct {
 
 	// Network slice identifier.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:validation:Pattern=`^[0-9A-Fa-f]{6}-[0-9A-Fa-f]{6}$`.
+	// +kubebuilder:validation:Pattern=`^[0-9A-Fa-f]{6}-[0-9A-Fa-f]{6}$`
 
 	NetworkSlice string `json:"networkSlice,omitempty"`
 
@@ -777,7 +777,7 @@ type CNFDeploymentSpec struct {
 
 	// Target cluster for deployment.
 
-	// +optional.
+	// +optional
 
 	TargetCluster string `json:"targetCluster,omitempty"`
 
@@ -785,11 +785,11 @@ type CNFDeploymentSpec struct {
 
 	// Target namespace for deployment.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`.
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
 
-	// +kubebuilder:validation:MaxLength=63.
+	// +kubebuilder:validation:MaxLength=63
 
 	TargetNamespace string `json:"targetNamespace,omitempty"`
 
@@ -797,9 +797,9 @@ type CNFDeploymentSpec struct {
 
 	// Configuration parameters.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	Configuration runtime.RawExtension `json:"configuration,omitempty"`
 
@@ -807,7 +807,7 @@ type CNFDeploymentSpec struct {
 
 	// Security policies.
 
-	// +optional.
+	// +optional
 
 	SecurityPolicies []string `json:"securityPolicies,omitempty"`
 
@@ -815,7 +815,7 @@ type CNFDeploymentSpec struct {
 
 	// Monitoring configuration.
 
-	// +optional.
+	// +optional
 
 	Monitoring *MonitoringConfig `json:"monitoring,omitempty"`
 
@@ -823,7 +823,7 @@ type CNFDeploymentSpec struct {
 
 	// Backup configuration.
 
-	// +optional.
+	// +optional
 
 	Backup *BackupConfig `json:"backup,omitempty"`
 
@@ -843,7 +843,7 @@ type MonitoringConfig struct {
 
 	// Prometheus scraping configuration.
 
-	// +optional.
+	// +optional
 
 	Prometheus *PrometheusConfig `json:"prometheus,omitempty"`
 
@@ -851,7 +851,7 @@ type MonitoringConfig struct {
 
 	// Custom metrics to collect.
 
-	// +optional.
+	// +optional
 
 	CustomMetrics []string `json:"customMetrics,omitempty"`
 
@@ -859,7 +859,7 @@ type MonitoringConfig struct {
 
 	// Alerting rules.
 
-	// +optional.
+	// +optional
 
 	AlertingRules []string `json:"alertingRules,omitempty"`
 
@@ -879,9 +879,9 @@ type PrometheusConfig struct {
 
 	// Scraping path.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="/metrics".
+	// +kubebuilder:default="/metrics"
 
 	Path string `json:"path,omitempty"`
 
@@ -889,9 +889,9 @@ type PrometheusConfig struct {
 
 	// Scraping port.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=9090.
+	// +kubebuilder:default=9090
 
 	Port int32 `json:"port,omitempty"`
 
@@ -899,9 +899,9 @@ type PrometheusConfig struct {
 
 	// Scraping interval.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="30s".
+	// +kubebuilder:default="30s"
 
 	Interval string `json:"interval,omitempty"`
 
@@ -921,7 +921,7 @@ type BackupConfig struct {
 
 	// Backup schedule (cron format).
 
-	// +optional.
+	// +optional
 
 	Schedule string `json:"schedule,omitempty"`
 
@@ -929,11 +929,11 @@ type BackupConfig struct {
 
 	// Retention policy in days.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=365.
+	// +kubebuilder:validation:Maximum=365
 
 	RetentionDays *int32 `json:"retentionDays,omitempty"`
 
@@ -941,7 +941,7 @@ type BackupConfig struct {
 
 	// Backup storage location.
 
-	// +optional.
+	// +optional
 
 	StorageLocation string `json:"storageLocation,omitempty"`
 
@@ -955,21 +955,18 @@ type CNFDeploymentStatus struct {
 
 	// Conditions represent the latest available observations of the deployment's state.
 
-	// +optional.
+	// +optional
 
-	// +listType=map.
-
-	// +listMapKey=type.
-
+	// +listType=atomic
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 
 
 	// Phase represents the current deployment phase.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:validation:Enum=Pending;Deploying;Running;Scaling;Upgrading;Failed;Terminating.
+	// +kubebuilder:validation:Enum=Pending;Deploying;Running;Scaling;Upgrading;Failed;Terminating
 
 	Phase string `json:"phase,omitempty"`
 
@@ -977,7 +974,7 @@ type CNFDeploymentStatus struct {
 
 	// Ready replicas count.
 
-	// +optional.
+	// +optional
 
 	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
 
@@ -985,7 +982,7 @@ type CNFDeploymentStatus struct {
 
 	// Available replicas count.
 
-	// +optional.
+	// +optional
 
 	AvailableReplicas int32 `json:"availableReplicas,omitempty"`
 
@@ -993,7 +990,7 @@ type CNFDeploymentStatus struct {
 
 	// Deployment start time.
 
-	// +optional.
+	// +optional
 
 	DeploymentStartTime *metav1.Time `json:"deploymentStartTime,omitempty"`
 
@@ -1001,7 +998,7 @@ type CNFDeploymentStatus struct {
 
 	// Last updated time.
 
-	// +optional.
+	// +optional
 
 	LastUpdatedTime *metav1.Time `json:"lastUpdatedTime,omitempty"`
 
@@ -1009,7 +1006,7 @@ type CNFDeploymentStatus struct {
 
 	// Deployed Helm release name.
 
-	// +optional.
+	// +optional
 
 	HelmRelease string `json:"helmRelease,omitempty"`
 
@@ -1017,7 +1014,7 @@ type CNFDeploymentStatus struct {
 
 	// Resource utilization metrics.
 
-	// +optional.
+	// +optional
 
 	ResourceUtilization map[string]string `json:"resourceUtilization,omitempty"`
 
@@ -1025,7 +1022,7 @@ type CNFDeploymentStatus struct {
 
 	// Health status.
 
-	// +optional.
+	// +optional
 
 	Health *CNFHealthStatus `json:"health,omitempty"`
 
@@ -1033,7 +1030,7 @@ type CNFDeploymentStatus struct {
 
 	// Service endpoints.
 
-	// +optional.
+	// +optional
 
 	ServiceEndpoints []ServiceEndpoint `json:"serviceEndpoints,omitempty"`
 
@@ -1041,7 +1038,7 @@ type CNFDeploymentStatus struct {
 
 	// Observed generation.
 
-	// +optional.
+	// +optional
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
@@ -1055,7 +1052,7 @@ type CNFHealthStatus struct {
 
 	// Overall health status.
 
-	// +kubebuilder:validation:Enum=Healthy;Degraded;Unhealthy;Unknown.
+	// +kubebuilder:validation:Enum=Healthy;Degraded;Unhealthy;Unknown
 
 	Status string `json:"status"`
 
@@ -1063,7 +1060,7 @@ type CNFHealthStatus struct {
 
 	// Last health check time.
 
-	// +optional.
+	// +optional
 
 	LastCheckTime *metav1.Time `json:"lastCheckTime,omitempty"`
 
@@ -1071,7 +1068,7 @@ type CNFHealthStatus struct {
 
 	// Health check details.
 
-	// +optional.
+	// +optional
 
 	Details map[string]string `json:"details,omitempty"`
 
@@ -1097,7 +1094,7 @@ type ServiceEndpoint struct {
 
 	// Cluster IP.
 
-	// +optional.
+	// +optional
 
 	ClusterIP string `json:"clusterIP,omitempty"`
 
@@ -1105,7 +1102,7 @@ type ServiceEndpoint struct {
 
 	// External IP (for LoadBalancer services).
 
-	// +optional.
+	// +optional
 
 	ExternalIP string `json:"externalIP,omitempty"`
 
@@ -1153,7 +1150,7 @@ type ServicePort struct {
 
 //+kubebuilder:subresource:status
 
-//+kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.readyReplicas
+//+kubebuilder:subresource:scale:specpath=spec.replicas,statuspath=status.readyReplicas
 
 //+kubebuilder:printcolumn:name="CNF Type",type=string,JSONPath=`.spec.cnfType`
 

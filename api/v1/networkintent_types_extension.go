@@ -187,7 +187,7 @@ type CNFDeploymentPlan struct {
 
 	// EstimatedResources contains resource estimates.
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	EstimatedResources runtime.RawExtension `json:"estimatedResources"`
 

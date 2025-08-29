@@ -49,9 +49,9 @@ type RANFunction struct {
 
 	// FunctionID is the unique identifier for the RAN function (0-4095).
 
-	// +kubebuilder:validation:Minimum=0.
+	// +kubebuilder:validation:Minimum=0
 
-	// +kubebuilder:validation:Maximum=4095.
+	// +kubebuilder:validation:Maximum=4095
 
 	FunctionID int32 `json:"functionID"`
 
@@ -59,9 +59,9 @@ type RANFunction struct {
 
 	// Revision is the revision of the RAN function (0-255).
 
-	// +kubebuilder:validation:Minimum=0.
+	// +kubebuilder:validation:Minimum=0
 
-	// +kubebuilder:validation:Maximum=255.
+	// +kubebuilder:validation:Maximum=255
 
 	Revision int32 `json:"revision"`
 
@@ -69,7 +69,7 @@ type RANFunction struct {
 
 	// Description provides a human-readable description of the RAN function.
 
-	// +kubebuilder:validation:MaxLength=256.
+	// +kubebuilder:validation:MaxLength=256
 
 	Description string `json:"description"`
 
@@ -77,7 +77,7 @@ type RANFunction struct {
 
 	// OID is the ASN.1 Object Identifier for the RAN function.
 
-	// +kubebuilder:validation:Pattern=`^[0-9]+(\.[0-9]+)*$`.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(\.[0-9]+)*$`
 
 	OID string `json:"oid"`
 
@@ -91,7 +91,7 @@ type E2NodeSpec struct {
 
 	// NodeID is the unique identifier for the E2 node.
 
-	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$`.
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$`
 
 	NodeID string `json:"nodeID"`
 
@@ -99,7 +99,7 @@ type E2NodeSpec struct {
 
 	// E2InterfaceVersion specifies the E2 interface version.
 
-	// +kubebuilder:validation:Enum=v1.0;v1.1;v2.0;v2.1;v3.0.
+	// +kubebuilder:validation:Enum=v10;v11;v20;v2.1;v3.0
 
 	E2InterfaceVersion string `json:"e2InterfaceVersion"`
 
@@ -107,9 +107,9 @@ type E2NodeSpec struct {
 
 	// SupportedRANFunctions lists the RAN functions supported by this E2 node.
 
-	// +kubebuilder:validation:MinItems=1.
+	// +kubebuilder:validation:MinItems=1
 
-	// +kubebuilder:validation:MaxItems=256.
+	// +kubebuilder:validation:MaxItems=256
 
 	SupportedRANFunctions []RANFunction `json:"supportedRANFunctions"`
 
@@ -123,7 +123,7 @@ type E2NodeTemplate struct {
 
 	// Metadata for the E2 node template.
 
-	// +optional.
+	// +optional
 
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -139,7 +139,7 @@ type E2NodeTemplate struct {
 
 // TrafficProfile defines the traffic generation profile.
 
-// +kubebuilder:validation:Enum=low;medium;high;burst.
+// +kubebuilder:validation:Enum=low;medium;high;burst
 
 type TrafficProfile string
 
@@ -173,11 +173,11 @@ type SimulationConfig struct {
 
 	// UECount specifies the number of UEs to simulate per E2 node.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=10000.
+	// +kubebuilder:validation:Maximum=10000
 
-	// +kubebuilder:default=100.
+	// +kubebuilder:default=100
 
 	UECount int32 `json:"ueCount,omitempty"`
 
@@ -185,7 +185,7 @@ type SimulationConfig struct {
 
 	// TrafficGeneration enables traffic generation simulation.
 
-	// +kubebuilder:default=false.
+	// +kubebuilder:default=false
 
 	TrafficGeneration bool `json:"trafficGeneration,omitempty"`
 
@@ -193,9 +193,9 @@ type SimulationConfig struct {
 
 	// MetricsInterval specifies the interval for metrics reporting.
 
-	// +kubebuilder:validation:Pattern=`^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$`.
+	// +kubebuilder:validation:Pattern=`^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$`
 
-	// +kubebuilder:default="30s".
+	// +kubebuilder:default="30s"
 
 	MetricsInterval string `json:"metricsInterval,omitempty"`
 
@@ -203,7 +203,7 @@ type SimulationConfig struct {
 
 	// TrafficProfile defines the traffic generation profile.
 
-	// +kubebuilder:default=low.
+	// +kubebuilder:default=low
 
 	TrafficProfile TrafficProfile `json:"trafficProfile,omitempty"`
 
@@ -217,11 +217,11 @@ type RetryConfig struct {
 
 	// MaxAttempts specifies the maximum number of retry attempts.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=10.
+	// +kubebuilder:validation:Maximum=10
 
-	// +kubebuilder:default=3.
+	// +kubebuilder:default=3
 
 	MaxAttempts int32 `json:"maxAttempts,omitempty"`
 
@@ -229,9 +229,9 @@ type RetryConfig struct {
 
 	// BackoffInterval specifies the backoff interval between retries.
 
-	// +kubebuilder:validation:Pattern=`^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$`.
+	// +kubebuilder:validation:Pattern=`^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$`
 
-	// +kubebuilder:default="5s".
+	// +kubebuilder:default="5s"
 
 	BackoffInterval string `json:"backoffInterval,omitempty"`
 
@@ -245,9 +245,9 @@ type RICConfiguration struct {
 
 	// RICEndpoint specifies the RIC endpoint URL.
 
-	// +kubebuilder:validation:Pattern=`^https?://[a-zA-Z0-9.-]+:[0-9]+$`.
+	// +kubebuilder:validation:Pattern=`^https?://[a-zA-Z0-9-]+:[0-9]+$`
 
-	// +kubebuilder:default="http://near-rt-ric:38080".
+	// +kubebuilder:default="http://near-rt-ric:38080"
 
 	RICEndpoint string `json:"ricEndpoint,omitempty"`
 
@@ -255,9 +255,9 @@ type RICConfiguration struct {
 
 	// ConnectionTimeout specifies the timeout for establishing connections.
 
-	// +kubebuilder:validation:Pattern=`^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$`.
+	// +kubebuilder:validation:Pattern=`^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$`
 
-	// +kubebuilder:default="30s".
+	// +kubebuilder:default="30s"
 
 	ConnectionTimeout string `json:"connectionTimeout,omitempty"`
 
@@ -265,9 +265,9 @@ type RICConfiguration struct {
 
 	// HeartbeatInterval specifies the interval for heartbeat messages.
 
-	// +kubebuilder:validation:Pattern=`^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$`.
+	// +kubebuilder:validation:Pattern=`^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$`
 
-	// +kubebuilder:default="10s".
+	// +kubebuilder:default="10s"
 
 	HeartbeatInterval string `json:"heartbeatInterval,omitempty"`
 
@@ -275,7 +275,7 @@ type RICConfiguration struct {
 
 	// RetryConfig defines retry behavior for failed connections.
 
-	// +optional.
+	// +optional
 
 	RetryConfig *RetryConfig `json:"retryConfig,omitempty"`
 
@@ -289,11 +289,11 @@ type E2NodeSetSpec struct {
 
 	// Replicas is the number of simulated E2 Nodes to run.
 
-	// +kubebuilder:validation:Minimum=0.
+	// +kubebuilder:validation:Minimum=0
 
-	// +kubebuilder:validation:Maximum=1000.
+	// +kubebuilder:validation:Maximum=1000
 
-	// +kubebuilder:default=1.
+	// +kubebuilder:default=1
 
 	Replicas int32 `json:"replicas"`
 
@@ -307,7 +307,7 @@ type E2NodeSetSpec struct {
 
 	// SimulationConfig defines simulation parameters.
 
-	// +optional.
+	// +optional
 
 	SimulationConfig *SimulationConfig `json:"simulationConfig,omitempty"`
 
@@ -315,7 +315,7 @@ type E2NodeSetSpec struct {
 
 	// RICConfiguration defines RIC connectivity settings.
 
-	// +optional.
+	// +optional
 
 	RICConfiguration *RICConfiguration `json:"ricConfiguration,omitempty"`
 
@@ -327,9 +327,9 @@ type E2NodeSetSpec struct {
 
 	// If not specified, defaults to "http://near-rt-ric:38080".
 
-	// +kubebuilder:validation:Pattern=`^https?://[a-zA-Z0-9.-]+:[0-9]+$`.
+	// +kubebuilder:validation:Pattern=`^https?://[a-zA-Z0-9-]+:[0-9]+$`
 
-	// +optional.
+	// +optional
 
 	RicEndpoint string `json:"ricEndpoint,omitempty"`
 
@@ -339,7 +339,7 @@ type E2NodeSetSpec struct {
 
 // E2NodeLifecycleState represents the lifecycle state of E2 nodes.
 
-// +kubebuilder:validation:Enum=Pending;Initializing;Connected;Disconnected;Error;Terminating.
+// +kubebuilder:validation:Enum=Pending;Initializing;Connected;Disconnected;Error;Terminating
 
 type E2NodeLifecycleState string
 
@@ -393,7 +393,7 @@ type E2NodeStatus struct {
 
 	// LastHeartbeat is the timestamp of the last heartbeat.
 
-	// +optional.
+	// +optional
 
 	LastHeartbeat *metav1.Time `json:"lastHeartbeat,omitempty"`
 
@@ -401,7 +401,7 @@ type E2NodeStatus struct {
 
 	// ConnectedSince is the timestamp when the node connected.
 
-	// +optional.
+	// +optional
 
 	ConnectedSince *metav1.Time `json:"connectedSince,omitempty"`
 
@@ -409,7 +409,7 @@ type E2NodeStatus struct {
 
 	// ActiveSubscriptions is the number of active E2 subscriptions.
 
-	// +optional.
+	// +optional
 
 	ActiveSubscriptions int32 `json:"activeSubscriptions,omitempty"`
 
@@ -417,7 +417,7 @@ type E2NodeStatus struct {
 
 	// ErrorMessage provides details about any error state.
 
-	// +optional.
+	// +optional
 
 	ErrorMessage string `json:"errorMessage,omitempty"`
 
@@ -467,7 +467,7 @@ type E2NodeSetCondition struct {
 
 	// LastTransitionTime is the last time the condition transitioned.
 
-	// +optional.
+	// +optional
 
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 
@@ -475,7 +475,7 @@ type E2NodeSetCondition struct {
 
 	// Reason is a brief machine readable explanation for the condition's last transition.
 
-	// +optional.
+	// +optional
 
 	Reason string `json:"reason,omitempty"`
 
@@ -483,7 +483,7 @@ type E2NodeSetCondition struct {
 
 	// Message is a human readable description of the condition.
 
-	// +optional.
+	// +optional
 
 	Message string `json:"message,omitempty"`
 
@@ -521,7 +521,7 @@ type E2NodeSetStatus struct {
 
 	// E2NodeStatuses provides detailed status for each E2 node.
 
-	// +optional.
+	// +optional
 
 	E2NodeStatuses []E2NodeStatus `json:"e2NodeStatuses,omitempty"`
 
@@ -529,11 +529,11 @@ type E2NodeSetStatus struct {
 
 	// Conditions represents the latest available observations of the E2NodeSet's state.
 
-	// +optional.
+	// +optional
 
-	// +patchMergeKey=type.
+	// +patchMergeKey=type
 
-	// +patchStrategy=merge.
+	// +patchStrategy=merge
 
 	Conditions []E2NodeSetCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
 
@@ -541,7 +541,7 @@ type E2NodeSetStatus struct {
 
 	// ObservedGeneration reflects the generation of the most recently observed E2NodeSet.
 
-	// +optional.
+	// +optional
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
@@ -549,7 +549,7 @@ type E2NodeSetStatus struct {
 
 	// TotalSubscriptions is the total number of active E2 subscriptions across all nodes.
 
-	// +optional.
+	// +optional
 
 	TotalSubscriptions int32 `json:"totalSubscriptions,omitempty"`
 
@@ -557,7 +557,7 @@ type E2NodeSetStatus struct {
 
 	// LastUpdateTime is the last time the status was updated.
 
-	// +optional.
+	// +optional
 
 	LastUpdateTime *metav1.Time `json:"lastUpdateTime,omitempty"`
 
@@ -569,7 +569,7 @@ type E2NodeSetStatus struct {
 
 //+kubebuilder:subresource:status
 
-//+kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.selector
+//+kubebuilder:subresource:scale:specpath=spec.replicas,statuspath=status.replicas,selectorpath=status.selector
 
 //+kubebuilder:printcolumn:name="Desired",type="integer",JSONPath=".spec.replicas",description="Number of desired E2 nodes"
 

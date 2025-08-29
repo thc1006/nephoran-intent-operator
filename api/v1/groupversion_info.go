@@ -1,6 +1,6 @@
 // Package v1 contains API Schema definitions for the nephoran v1 API group.
 
-// +kubebuilder:object:generate=true.
+// +kubebuilder:object:generate=true
 
 // +groupName=nephoran.com.
 

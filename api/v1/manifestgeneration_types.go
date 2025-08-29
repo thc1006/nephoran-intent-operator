@@ -171,7 +171,7 @@ type ManifestGenerationSpec struct {
 
 	// ParentIntentRef references the parent NetworkIntent.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	ParentIntentRef ObjectReference `json:"parentIntentRef"`
 
@@ -179,7 +179,7 @@ type ManifestGenerationSpec struct {
 
 	// ResourcePlanRef references the ResourcePlan resource.
 
-	// +optional.
+	// +optional
 
 	ResourcePlanRef *ObjectReference `json:"resourcePlanRef,omitempty"`
 
@@ -187,9 +187,9 @@ type ManifestGenerationSpec struct {
 
 	// ResourcePlanInput contains the resource plan for generation.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	ResourcePlanInput runtime.RawExtension `json:"resourcePlanInput"`
 
@@ -197,9 +197,9 @@ type ManifestGenerationSpec struct {
 
 	// TemplateEngine specifies the template engine to use.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="helm".
+	// +kubebuilder:default="helm"
 
 	TemplateEngine TemplateEngine `json:"templateEngine,omitempty"`
 
@@ -207,7 +207,7 @@ type ManifestGenerationSpec struct {
 
 	// TemplateSource specifies the source of templates.
 
-	// +optional.
+	// +optional
 
 	TemplateSource *TemplateSource `json:"templateSource,omitempty"`
 
@@ -215,7 +215,7 @@ type ManifestGenerationSpec struct {
 
 	// GenerationOptions contains options for manifest generation.
 
-	// +optional.
+	// +optional
 
 	GenerationOptions *GenerationOptions `json:"generationOptions,omitempty"`
 
@@ -223,11 +223,11 @@ type ManifestGenerationSpec struct {
 
 	// OutputFormat specifies the output format for manifests.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="yaml".
+	// +kubebuilder:default="yaml"
 
-	// +kubebuilder:validation:Enum=yaml;json.
+	// +kubebuilder:validation:Enum=yaml;json
 
 	OutputFormat string `json:"outputFormat,omitempty"`
 
@@ -235,9 +235,9 @@ type ManifestGenerationSpec struct {
 
 	// Priority defines generation priority.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="medium".
+	// +kubebuilder:default="medium"
 
 	Priority Priority `json:"priority,omitempty"`
 
@@ -245,9 +245,9 @@ type ManifestGenerationSpec struct {
 
 	// ValidateManifests enables manifest validation.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	ValidateManifests *bool `json:"validateManifests,omitempty"`
 
@@ -255,9 +255,9 @@ type ManifestGenerationSpec struct {
 
 	// OptimizeManifests enables manifest optimization.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	OptimizeManifests *bool `json:"optimizeManifests,omitempty"`
 
@@ -265,7 +265,7 @@ type ManifestGenerationSpec struct {
 
 	// NamespaceTemplate defines template for namespace creation.
 
-	// +optional.
+	// +optional
 
 	NamespaceTemplate *NamespaceTemplate `json:"namespaceTemplate,omitempty"`
 
@@ -273,7 +273,7 @@ type ManifestGenerationSpec struct {
 
 	// SecurityContext defines security context for manifests.
 
-	// +optional.
+	// +optional
 
 	SecurityContext *ManifestSecurityContext `json:"securityContext,omitempty"`
 
@@ -287,9 +287,9 @@ type TemplateSource struct {
 
 	// Type specifies the source type.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:Enum=git;helm;oci;configmap;builtin.
+	// +kubebuilder:validation:Enum=git;helm;oci;configmap;builtin
 
 	Type string `json:"type"`
 
@@ -297,7 +297,7 @@ type TemplateSource struct {
 
 	// GitSource for Git-based templates.
 
-	// +optional.
+	// +optional
 
 	GitSource *GitTemplateSource `json:"gitSource,omitempty"`
 
@@ -305,7 +305,7 @@ type TemplateSource struct {
 
 	// HelmSource for Helm chart templates.
 
-	// +optional.
+	// +optional
 
 	HelmSource *HelmTemplateSource `json:"helmSource,omitempty"`
 
@@ -313,7 +313,7 @@ type TemplateSource struct {
 
 	// OCISource for OCI registry templates.
 
-	// +optional.
+	// +optional
 
 	OCISource *OCITemplateSource `json:"ociSource,omitempty"`
 
@@ -321,7 +321,7 @@ type TemplateSource struct {
 
 	// ConfigMapSource for ConfigMap-based templates.
 
-	// +optional.
+	// +optional
 
 	ConfigMapSource *ConfigMapTemplateSource `json:"configMapSource,omitempty"`
 
@@ -329,7 +329,7 @@ type TemplateSource struct {
 
 	// BuiltinTemplates for built-in templates.
 
-	// +optional.
+	// +optional
 
 	BuiltinTemplates []string `json:"builtinTemplates,omitempty"`
 
@@ -343,7 +343,7 @@ type GitTemplateSource struct {
 
 	// URL of the Git repository.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	URL string `json:"url"`
 
@@ -351,9 +351,9 @@ type GitTemplateSource struct {
 
 	// Branch to use.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="main".
+	// +kubebuilder:default="main"
 
 	Branch string `json:"branch,omitempty"`
 
@@ -361,7 +361,7 @@ type GitTemplateSource struct {
 
 	// Tag to use (takes precedence over branch).
 
-	// +optional.
+	// +optional
 
 	Tag string `json:"tag,omitempty"`
 
@@ -369,9 +369,9 @@ type GitTemplateSource struct {
 
 	// Path within the repository.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=".".
+	// +kubebuilder:default=""
 
 	Path string `json:"path,omitempty"`
 
@@ -379,7 +379,7 @@ type GitTemplateSource struct {
 
 	// SecretRef for authentication.
 
-	// +optional.
+	// +optional
 
 	SecretRef *SecretReference `json:"secretRef,omitempty"`
 
@@ -393,7 +393,7 @@ type HelmTemplateSource struct {
 
 	// Repository URL.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Repository string `json:"repository"`
 
@@ -401,7 +401,7 @@ type HelmTemplateSource struct {
 
 	// Chart name.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Chart string `json:"chart"`
 
@@ -409,7 +409,7 @@ type HelmTemplateSource struct {
 
 	// Version of the chart.
 
-	// +optional.
+	// +optional
 
 	Version string `json:"version,omitempty"`
 
@@ -417,9 +417,9 @@ type HelmTemplateSource struct {
 
 	// Values for the chart.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	Values runtime.RawExtension `json:"values,omitempty"`
 
@@ -427,7 +427,7 @@ type HelmTemplateSource struct {
 
 	// SecretRef for authentication.
 
-	// +optional.
+	// +optional
 
 	SecretRef *SecretReference `json:"secretRef,omitempty"`
 
@@ -441,7 +441,7 @@ type OCITemplateSource struct {
 
 	// Registry URL.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Registry string `json:"registry"`
 
@@ -449,7 +449,7 @@ type OCITemplateSource struct {
 
 	// Repository name.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Repository string `json:"repository"`
 
@@ -457,9 +457,9 @@ type OCITemplateSource struct {
 
 	// Tag or digest.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="latest".
+	// +kubebuilder:default="latest"
 
 	Tag string `json:"tag,omitempty"`
 
@@ -467,7 +467,7 @@ type OCITemplateSource struct {
 
 	// SecretRef for authentication.
 
-	// +optional.
+	// +optional
 
 	SecretRef *SecretReference `json:"secretRef,omitempty"`
 
@@ -481,7 +481,7 @@ type ConfigMapTemplateSource struct {
 
 	// Name of the ConfigMap.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Name string `json:"name"`
 
@@ -489,7 +489,7 @@ type ConfigMapTemplateSource struct {
 
 	// Namespace of the ConfigMap.
 
-	// +optional.
+	// +optional
 
 	Namespace string `json:"namespace,omitempty"`
 
@@ -497,7 +497,7 @@ type ConfigMapTemplateSource struct {
 
 	// Keys to use from the ConfigMap.
 
-	// +optional.
+	// +optional
 
 	Keys []string `json:"keys,omitempty"`
 
@@ -517,9 +517,9 @@ type GenerationOptions struct {
 
 	// IncludeNamespaces generates namespace manifests.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	IncludeNamespaces *bool `json:"includeNamespaces,omitempty"`
 
@@ -527,9 +527,9 @@ type GenerationOptions struct {
 
 	// IncludeRBAC generates RBAC manifests.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	IncludeRBAC *bool `json:"includeRBAC,omitempty"`
 
@@ -537,9 +537,9 @@ type GenerationOptions struct {
 
 	// IncludeNetworkPolicies generates NetworkPolicy manifests.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=false.
+	// +kubebuilder:default=false
 
 	IncludeNetworkPolicies *bool `json:"includeNetworkPolicies,omitempty"`
 
@@ -547,9 +547,9 @@ type GenerationOptions struct {
 
 	// IncludePodSecurityPolicies generates PodSecurityPolicy manifests.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=false.
+	// +kubebuilder:default=false
 
 	IncludePodSecurityPolicies *bool `json:"includePodSecurityPolicies,omitempty"`
 
@@ -557,9 +557,9 @@ type GenerationOptions struct {
 
 	// GenerateMonitoring includes monitoring-related manifests.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	GenerateMonitoring *bool `json:"generateMonitoring,omitempty"`
 
@@ -567,9 +567,9 @@ type GenerationOptions struct {
 
 	// GenerateHealthChecks includes health check configurations.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	GenerateHealthChecks *bool `json:"generateHealthChecks,omitempty"`
 
@@ -577,7 +577,7 @@ type GenerationOptions struct {
 
 	// ResourceNaming defines naming conventions.
 
-	// +optional.
+	// +optional
 
 	ResourceNaming *ResourceNamingOptions `json:"resourceNaming,omitempty"`
 
@@ -585,7 +585,7 @@ type GenerationOptions struct {
 
 	// Labels to apply to all generated manifests.
 
-	// +optional.
+	// +optional
 
 	Labels map[string]string `json:"labels,omitempty"`
 
@@ -593,7 +593,7 @@ type GenerationOptions struct {
 
 	// Annotations to apply to all generated manifests.
 
-	// +optional.
+	// +optional
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 
@@ -607,7 +607,7 @@ type ResourceNamingOptions struct {
 
 	// Prefix for all resource names.
 
-	// +optional.
+	// +optional
 
 	Prefix string `json:"prefix,omitempty"`
 
@@ -615,7 +615,7 @@ type ResourceNamingOptions struct {
 
 	// Suffix for all resource names.
 
-	// +optional.
+	// +optional
 
 	Suffix string `json:"suffix,omitempty"`
 
@@ -623,9 +623,9 @@ type ResourceNamingOptions struct {
 
 	// IncludeIntentName includes the intent name in resource names.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	IncludeIntentName *bool `json:"includeIntentName,omitempty"`
 
@@ -633,9 +633,9 @@ type ResourceNamingOptions struct {
 
 	// IncludeComponent includes the component name in resource names.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	IncludeComponent *bool `json:"includeComponent,omitempty"`
 
@@ -643,13 +643,13 @@ type ResourceNamingOptions struct {
 
 	// MaxLength limits the maximum name length.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=253.
+	// +kubebuilder:validation:Maximum=253
 
-	// +kubebuilder:default=63.
+	// +kubebuilder:default=63
 
 	MaxLength *int `json:"maxLength,omitempty"`
 
@@ -663,7 +663,7 @@ type NamespaceTemplate struct {
 
 	// Name template for the namespace.
 
-	// +optional.
+	// +optional
 
 	NameTemplate string `json:"nameTemplate,omitempty"`
 
@@ -671,7 +671,7 @@ type NamespaceTemplate struct {
 
 	// Labels to apply to the namespace.
 
-	// +optional.
+	// +optional
 
 	Labels map[string]string `json:"labels,omitempty"`
 
@@ -679,7 +679,7 @@ type NamespaceTemplate struct {
 
 	// Annotations to apply to the namespace.
 
-	// +optional.
+	// +optional
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 
@@ -687,9 +687,9 @@ type NamespaceTemplate struct {
 
 	// ResourceQuota for the namespace.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	ResourceQuota runtime.RawExtension `json:"resourceQuota,omitempty"`
 
@@ -697,9 +697,9 @@ type NamespaceTemplate struct {
 
 	// NetworkPolicy for the namespace.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	NetworkPolicy runtime.RawExtension `json:"networkPolicy,omitempty"`
 
@@ -713,9 +713,9 @@ type ManifestSecurityContext struct {
 
 	// RunAsNonRoot ensures containers run as non-root.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	RunAsNonRoot *bool `json:"runAsNonRoot,omitempty"`
 
@@ -723,9 +723,9 @@ type ManifestSecurityContext struct {
 
 	// ReadOnlyRootFilesystem makes root filesystem read-only.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	ReadOnlyRootFilesystem *bool `json:"readOnlyRootFilesystem,omitempty"`
 
@@ -733,9 +733,9 @@ type ManifestSecurityContext struct {
 
 	// AllowPrivilegeEscalation controls privilege escalation.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=false.
+	// +kubebuilder:default=false
 
 	AllowPrivilegeEscalation *bool `json:"allowPrivilegeEscalation,omitempty"`
 
@@ -743,7 +743,7 @@ type ManifestSecurityContext struct {
 
 	// DropCapabilities specifies capabilities to drop.
 
-	// +optional.
+	// +optional
 
 	DropCapabilities []string `json:"dropCapabilities,omitempty"`
 
@@ -751,7 +751,7 @@ type ManifestSecurityContext struct {
 
 	// AddCapabilities specifies capabilities to add.
 
-	// +optional.
+	// +optional
 
 	AddCapabilities []string `json:"addCapabilities,omitempty"`
 
@@ -759,7 +759,7 @@ type ManifestSecurityContext struct {
 
 	// SeccompProfile specifies seccomp profile.
 
-	// +optional.
+	// +optional
 
 	SeccompProfile string `json:"seccompProfile,omitempty"`
 
@@ -767,9 +767,9 @@ type ManifestSecurityContext struct {
 
 	// SeLinuxOptions specifies SELinux options.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	SeLinuxOptions runtime.RawExtension `json:"seLinuxOptions,omitempty"`
 
@@ -783,7 +783,7 @@ type ManifestGenerationStatus struct {
 
 	// Phase represents the current generation phase.
 
-	// +optional.
+	// +optional
 
 	Phase ManifestGenerationPhase `json:"phase,omitempty"`
 
@@ -791,19 +791,16 @@ type ManifestGenerationStatus struct {
 
 	// Conditions represent the latest available observations.
 
-	// +optional.
+	// +optional
 
-	// +listType=map.
-
-	// +listMapKey=type.
-
+	// +listType=atomic
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 
 
 	// GenerationStartTime indicates when generation started.
 
-	// +optional.
+	// +optional
 
 	GenerationStartTime *metav1.Time `json:"generationStartTime,omitempty"`
 
@@ -811,7 +808,7 @@ type ManifestGenerationStatus struct {
 
 	// GenerationCompletionTime indicates when generation completed.
 
-	// +optional.
+	// +optional
 
 	GenerationCompletionTime *metav1.Time `json:"generationCompletionTime,omitempty"`
 
@@ -819,7 +816,7 @@ type ManifestGenerationStatus struct {
 
 	// GeneratedManifests contains the generated Kubernetes manifests.
 
-	// +optional.
+	// +optional
 
 	GeneratedManifests map[string]string `json:"generatedManifests,omitempty"`
 
@@ -827,7 +824,7 @@ type ManifestGenerationStatus struct {
 
 	// ManifestSummary provides a summary of generated manifests.
 
-	// +optional.
+	// +optional
 
 	ManifestSummary *ManifestSummary `json:"manifestSummary,omitempty"`
 
@@ -835,7 +832,7 @@ type ManifestGenerationStatus struct {
 
 	// ValidationResults contains validation results.
 
-	// +optional.
+	// +optional
 
 	ValidationResults []ManifestValidationResult `json:"validationResults,omitempty"`
 
@@ -843,7 +840,7 @@ type ManifestGenerationStatus struct {
 
 	// OptimizationResults contains optimization results.
 
-	// +optional.
+	// +optional
 
 	OptimizationResults []ManifestOptimizationResult `json:"optimizationResults,omitempty"`
 
@@ -851,7 +848,7 @@ type ManifestGenerationStatus struct {
 
 	// SecurityAnalysis contains security analysis results.
 
-	// +optional.
+	// +optional
 
 	SecurityAnalysis *SecurityAnalysisResult `json:"securityAnalysis,omitempty"`
 
@@ -859,7 +856,7 @@ type ManifestGenerationStatus struct {
 
 	// ResourceReferences contains references to generated resources.
 
-	// +optional.
+	// +optional
 
 	ResourceReferences []GeneratedResourceReference `json:"resourceReferences,omitempty"`
 
@@ -867,7 +864,7 @@ type ManifestGenerationStatus struct {
 
 	// GenerationDuration represents total generation time.
 
-	// +optional.
+	// +optional
 
 	GenerationDuration *metav1.Duration `json:"generationDuration,omitempty"`
 
@@ -875,7 +872,7 @@ type ManifestGenerationStatus struct {
 
 	// TemplateInfo contains information about used templates.
 
-	// +optional.
+	// +optional
 
 	TemplateInfo *TemplateInfo `json:"templateInfo,omitempty"`
 
@@ -883,7 +880,7 @@ type ManifestGenerationStatus struct {
 
 	// RetryCount tracks retry attempts.
 
-	// +optional.
+	// +optional
 
 	RetryCount int32 `json:"retryCount,omitempty"`
 
@@ -891,7 +888,7 @@ type ManifestGenerationStatus struct {
 
 	// QualityScore represents the quality of generated manifests.
 
-	// +optional.
+	// +optional
 
 	QualityScore *float64 `json:"qualityScore,omitempty"`
 
@@ -899,7 +896,7 @@ type ManifestGenerationStatus struct {
 
 	// ObservedGeneration reflects the generation observed.
 
-	// +optional.
+	// +optional
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
@@ -925,7 +922,7 @@ type ManifestSummary struct {
 
 	// ManifestsByNamespace breaks down manifests by namespace.
 
-	// +optional.
+	// +optional
 
 	ManifestsByNamespace map[string]int32 `json:"manifestsByNamespace,omitempty"`
 
@@ -933,7 +930,7 @@ type ManifestSummary struct {
 
 	// ManifestsByComponent breaks down manifests by component.
 
-	// +optional.
+	// +optional
 
 	ManifestsByComponent map[string]int32 `json:"manifestsByComponent,omitempty"`
 
@@ -941,7 +938,7 @@ type ManifestSummary struct {
 
 	// TotalSize is the total size of all manifests in bytes.
 
-	// +optional.
+	// +optional
 
 	TotalSize *int64 `json:"totalSize,omitempty"`
 
@@ -949,7 +946,7 @@ type ManifestSummary struct {
 
 	// GeneratedNamespaces lists generated namespaces.
 
-	// +optional.
+	// +optional
 
 	GeneratedNamespaces []string `json:"generatedNamespaces,omitempty"`
 
@@ -981,7 +978,7 @@ type ManifestValidationResult struct {
 
 	// Errors contains validation errors.
 
-	// +optional.
+	// +optional
 
 	Errors []string `json:"errors,omitempty"`
 
@@ -989,7 +986,7 @@ type ManifestValidationResult struct {
 
 	// Warnings contains validation warnings.
 
-	// +optional.
+	// +optional
 
 	Warnings []string `json:"warnings,omitempty"`
 
@@ -997,7 +994,7 @@ type ManifestValidationResult struct {
 
 	// ValidationRules lists which validation rules were applied.
 
-	// +optional.
+	// +optional
 
 	ValidationRules []string `json:"validationRules,omitempty"`
 
@@ -1035,7 +1032,7 @@ type ManifestOptimizationResult struct {
 
 	// Description describes the optimization.
 
-	// +optional.
+	// +optional
 
 	Description string `json:"description,omitempty"`
 
@@ -1043,7 +1040,7 @@ type ManifestOptimizationResult struct {
 
 	// ImprovementPercent quantifies the improvement.
 
-	// +optional.
+	// +optional
 
 	ImprovementPercent *float64 `json:"improvementPercent,omitempty"`
 
@@ -1051,7 +1048,7 @@ type ManifestOptimizationResult struct {
 
 	// Changes lists the changes made.
 
-	// +optional.
+	// +optional
 
 	Changes []string `json:"changes,omitempty"`
 
@@ -1077,7 +1074,7 @@ type SecurityAnalysisResult struct {
 
 	// SecurityIssues lists identified security issues.
 
-	// +optional.
+	// +optional
 
 	SecurityIssues []SecurityIssue `json:"securityIssues,omitempty"`
 
@@ -1085,7 +1082,7 @@ type SecurityAnalysisResult struct {
 
 	// ComplianceResults contains compliance check results.
 
-	// +optional.
+	// +optional
 
 	ComplianceResults []SecurityComplianceResult `json:"complianceResults,omitempty"`
 
@@ -1093,7 +1090,7 @@ type SecurityAnalysisResult struct {
 
 	// Recommendations provides security recommendations.
 
-	// +optional.
+	// +optional
 
 	Recommendations []string `json:"recommendations,omitempty"`
 
@@ -1131,7 +1128,7 @@ type SecurityIssue struct {
 
 	// AffectedManifests lists affected manifests.
 
-	// +optional.
+	// +optional
 
 	AffectedManifests []string `json:"affectedManifests,omitempty"`
 
@@ -1139,7 +1136,7 @@ type SecurityIssue struct {
 
 	// Remediation suggests how to fix the issue.
 
-	// +optional.
+	// +optional
 
 	Remediation string `json:"remediation,omitempty"`
 
@@ -1147,7 +1144,7 @@ type SecurityIssue struct {
 
 	// CVSS score if applicable.
 
-	// +optional.
+	// +optional
 
 	CVSSScore *float64 `json:"cvssScore,omitempty"`
 
@@ -1167,7 +1164,7 @@ type SecurityComplianceResult struct {
 
 	// Version of the standard.
 
-	// +optional.
+	// +optional
 
 	Version string `json:"version,omitempty"`
 
@@ -1181,7 +1178,7 @@ type SecurityComplianceResult struct {
 
 	// Violations lists compliance violations.
 
-	// +optional.
+	// +optional
 
 	Violations []string `json:"violations,omitempty"`
 
@@ -1189,7 +1186,7 @@ type SecurityComplianceResult struct {
 
 	// Score represents compliance score (0.0-1.0).
 
-	// +optional.
+	// +optional
 
 	Score *float64 `json:"score,omitempty"`
 
@@ -1221,7 +1218,7 @@ type GeneratedResourceReference struct {
 
 	// Namespace of the resource.
 
-	// +optional.
+	// +optional
 
 	Namespace string `json:"namespace,omitempty"`
 
@@ -1229,7 +1226,7 @@ type GeneratedResourceReference struct {
 
 	// Component this resource belongs to.
 
-	// +optional.
+	// +optional
 
 	Component string `json:"component,omitempty"`
 
@@ -1237,7 +1234,7 @@ type GeneratedResourceReference struct {
 
 	// ManifestFile where this resource is defined.
 
-	// +optional.
+	// +optional
 
 	ManifestFile string `json:"manifestFile,omitempty"`
 
@@ -1245,7 +1242,7 @@ type GeneratedResourceReference struct {
 
 	// Dependencies lists resource dependencies.
 
-	// +optional.
+	// +optional
 
 	Dependencies []string `json:"dependencies,omitempty"`
 
@@ -1271,7 +1268,7 @@ type TemplateInfo struct {
 
 	// TemplatesUsed lists the templates that were used.
 
-	// +optional.
+	// +optional
 
 	TemplatesUsed []string `json:"templatesUsed,omitempty"`
 
@@ -1279,7 +1276,7 @@ type TemplateInfo struct {
 
 	// TemplateVersion indicates the version of templates used.
 
-	// +optional.
+	// +optional
 
 	TemplateVersion string `json:"templateVersion,omitempty"`
 
@@ -1287,9 +1284,9 @@ type TemplateInfo struct {
 
 	// Variables contains the template variables used.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	Variables runtime.RawExtension `json:"variables,omitempty"`
 

@@ -1,4 +1,4 @@
-//go:build stubs
+//go:build stub
 
 
 

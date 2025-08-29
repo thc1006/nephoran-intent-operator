@@ -171,7 +171,7 @@ type GitOpsDeploymentSpec struct {
 
 	// ParentIntentRef references the parent NetworkIntent.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	ParentIntentRef ObjectReference `json:"parentIntentRef"`
 
@@ -179,7 +179,7 @@ type GitOpsDeploymentSpec struct {
 
 	// ManifestGenerationRef references the ManifestGeneration resource.
 
-	// +optional.
+	// +optional
 
 	ManifestGenerationRef *ObjectReference `json:"manifestGenerationRef,omitempty"`
 
@@ -187,7 +187,7 @@ type GitOpsDeploymentSpec struct {
 
 	// Manifests contains the manifests to deploy.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Manifests map[string]string `json:"manifests"`
 
@@ -195,7 +195,7 @@ type GitOpsDeploymentSpec struct {
 
 	// GitRepository defines the Git repository configuration.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	GitRepository *GitRepositoryConfig `json:"gitRepository"`
 
@@ -203,7 +203,7 @@ type GitOpsDeploymentSpec struct {
 
 	// TargetClusters specifies the target clusters for deployment.
 
-	// +optional.
+	// +optional
 
 	TargetClusters []TargetCluster `json:"targetClusters,omitempty"`
 
@@ -211,9 +211,9 @@ type GitOpsDeploymentSpec struct {
 
 	// DeploymentStrategy specifies the deployment strategy.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="RollingUpdate".
+	// +kubebuilder:default="RollingUpdate"
 
 	DeploymentStrategy DeploymentStrategy `json:"deploymentStrategy,omitempty"`
 
@@ -221,7 +221,7 @@ type GitOpsDeploymentSpec struct {
 
 	// DeploymentConfig contains deployment-specific configuration.
 
-	// +optional.
+	// +optional
 
 	DeploymentConfig *DeploymentConfig `json:"deploymentConfig,omitempty"`
 
@@ -229,9 +229,9 @@ type GitOpsDeploymentSpec struct {
 
 	// Priority defines deployment priority.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="medium".
+	// +kubebuilder:default="medium"
 
 	Priority Priority `json:"priority,omitempty"`
 
@@ -239,9 +239,9 @@ type GitOpsDeploymentSpec struct {
 
 	// AutoSync enables automatic synchronization.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	AutoSync *bool `json:"autoSync,omitempty"`
 
@@ -249,7 +249,7 @@ type GitOpsDeploymentSpec struct {
 
 	// SyncPolicy defines synchronization policy.
 
-	// +optional.
+	// +optional
 
 	SyncPolicy *SyncPolicy `json:"syncPolicy,omitempty"`
 
@@ -257,7 +257,7 @@ type GitOpsDeploymentSpec struct {
 
 	// HealthChecks defines health check configuration.
 
-	// +optional.
+	// +optional
 
 	HealthChecks *HealthCheckConfig `json:"healthChecks,omitempty"`
 
@@ -265,7 +265,7 @@ type GitOpsDeploymentSpec struct {
 
 	// RollbackConfig defines rollback configuration.
 
-	// +optional.
+	// +optional
 
 	RollbackConfig *RollbackConfig `json:"rollbackConfig,omitempty"`
 
@@ -279,7 +279,7 @@ type GitRepositoryConfig struct {
 
 	// URL of the Git repository.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	URL string `json:"url"`
 
@@ -287,9 +287,9 @@ type GitRepositoryConfig struct {
 
 	// Provider specifies the Git provider.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="generic".
+	// +kubebuilder:default="generic"
 
 	Provider GitProvider `json:"provider,omitempty"`
 
@@ -297,9 +297,9 @@ type GitRepositoryConfig struct {
 
 	// Branch to commit to.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="main".
+	// +kubebuilder:default="main"
 
 	Branch string `json:"branch,omitempty"`
 
@@ -307,9 +307,9 @@ type GitRepositoryConfig struct {
 
 	// Path within the repository.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="deployments".
+	// +kubebuilder:default="deployments"
 
 	Path string `json:"path,omitempty"`
 
@@ -317,7 +317,7 @@ type GitRepositoryConfig struct {
 
 	// SecretRef for Git authentication.
 
-	// +optional.
+	// +optional
 
 	SecretRef *SecretReference `json:"secretRef,omitempty"`
 
@@ -325,7 +325,7 @@ type GitRepositoryConfig struct {
 
 	// CommitMessage template.
 
-	// +optional.
+	// +optional
 
 	CommitMessage string `json:"commitMessage,omitempty"`
 
@@ -333,9 +333,9 @@ type GitRepositoryConfig struct {
 
 	// AuthorName for Git commits.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="nephoran-intent-operator".
+	// +kubebuilder:default="nephoran-intent-operator"
 
 	AuthorName string `json:"authorName,omitempty"`
 
@@ -343,9 +343,9 @@ type GitRepositoryConfig struct {
 
 	// AuthorEmail for Git commits.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="noreply@nephoran.com".
+	// +kubebuilder:default="noreply@nephorancom"
 
 	AuthorEmail string `json:"authorEmail,omitempty"`
 
@@ -353,9 +353,9 @@ type GitRepositoryConfig struct {
 
 	// SignCommits enables commit signing.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=false.
+	// +kubebuilder:default=false
 
 	SignCommits *bool `json:"signCommits,omitempty"`
 
@@ -369,7 +369,7 @@ type TargetCluster struct {
 
 	// Name of the cluster.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Name string `json:"name"`
 
@@ -377,7 +377,7 @@ type TargetCluster struct {
 
 	// Namespace for deployment in the cluster.
 
-	// +optional.
+	// +optional
 
 	Namespace string `json:"namespace,omitempty"`
 
@@ -385,7 +385,7 @@ type TargetCluster struct {
 
 	// Server URL of the cluster.
 
-	// +optional.
+	// +optional
 
 	Server string `json:"server,omitempty"`
 
@@ -393,9 +393,9 @@ type TargetCluster struct {
 
 	// Config contains cluster-specific configuration.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	Config runtime.RawExtension `json:"config,omitempty"`
 
@@ -403,7 +403,7 @@ type TargetCluster struct {
 
 	// SecretRef for cluster authentication.
 
-	// +optional.
+	// +optional
 
 	SecretRef *SecretReference `json:"secretRef,omitempty"`
 
@@ -411,7 +411,7 @@ type TargetCluster struct {
 
 	// Labels for cluster identification.
 
-	// +optional.
+	// +optional
 
 	Labels map[string]string `json:"labels,omitempty"`
 
@@ -419,11 +419,11 @@ type TargetCluster struct {
 
 	// Priority for deployment order.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=10.
+	// +kubebuilder:validation:Maximum=10
 
 	Priority *int `json:"priority,omitempty"`
 
@@ -437,13 +437,13 @@ type DeploymentConfig struct {
 
 	// Timeout for deployment operations.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=600.
+	// +kubebuilder:default=600
 
-	// +kubebuilder:validation:Minimum=60.
+	// +kubebuilder:validation:Minimum=60
 
-	// +kubebuilder:validation:Maximum=3600.
+	// +kubebuilder:validation:Maximum=3600
 
 	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
 
@@ -451,13 +451,13 @@ type DeploymentConfig struct {
 
 	// MaxRetries for failed operations.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=3.
+	// +kubebuilder:default=3
 
-	// +kubebuilder:validation:Minimum=0.
+	// +kubebuilder:validation:Minimum=0
 
-	// +kubebuilder:validation:Maximum=10.
+	// +kubebuilder:validation:Maximum=10
 
 	MaxRetries *int32 `json:"maxRetries,omitempty"`
 
@@ -465,7 +465,7 @@ type DeploymentConfig struct {
 
 	// RetryBackoff defines retry backoff strategy.
 
-	// +optional.
+	// +optional
 
 	RetryBackoff *RetryBackoffConfig `json:"retryBackoff,omitempty"`
 
@@ -473,7 +473,7 @@ type DeploymentConfig struct {
 
 	// ResourceOrder defines the order of resource deployment.
 
-	// +optional.
+	// +optional
 
 	ResourceOrder []string `json:"resourceOrder,omitempty"`
 
@@ -481,7 +481,7 @@ type DeploymentConfig struct {
 
 	// DependencyChecks defines dependency validation.
 
-	// +optional.
+	// +optional
 
 	DependencyChecks *DependencyCheckConfig `json:"dependencyChecks,omitempty"`
 
@@ -489,7 +489,7 @@ type DeploymentConfig struct {
 
 	// PreDeploymentHooks defines pre-deployment hooks.
 
-	// +optional.
+	// +optional
 
 	PreDeploymentHooks []DeploymentHook `json:"preDeploymentHooks,omitempty"`
 
@@ -497,7 +497,7 @@ type DeploymentConfig struct {
 
 	// PostDeploymentHooks defines post-deployment hooks.
 
-	// +optional.
+	// +optional
 
 	PostDeploymentHooks []DeploymentHook `json:"postDeploymentHooks,omitempty"`
 
@@ -511,9 +511,9 @@ type RetryBackoffConfig struct {
 
 	// InitialInterval for first retry.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="30s".
+	// +kubebuilder:default="30s"
 
 	InitialInterval string `json:"initialInterval,omitempty"`
 
@@ -521,9 +521,9 @@ type RetryBackoffConfig struct {
 
 	// MaxInterval caps the backoff interval.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="300s".
+	// +kubebuilder:default="300s"
 
 	MaxInterval string `json:"maxInterval,omitempty"`
 
@@ -531,9 +531,9 @@ type RetryBackoffConfig struct {
 
 	// Multiplier for exponential backoff.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=2.0.
+	// +kubebuilder:default=20
 
 	Multiplier *float64 `json:"multiplier,omitempty"`
 
@@ -547,9 +547,9 @@ type DependencyCheckConfig struct {
 
 	// Enabled determines if dependency checks are enabled.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	Enabled *bool `json:"enabled,omitempty"`
 
@@ -557,9 +557,9 @@ type DependencyCheckConfig struct {
 
 	// Timeout for dependency checks.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="120s".
+	// +kubebuilder:default="120s"
 
 	Timeout string `json:"timeout,omitempty"`
 
@@ -567,7 +567,7 @@ type DependencyCheckConfig struct {
 
 	// Dependencies lists the dependencies to check.
 
-	// +optional.
+	// +optional
 
 	Dependencies []ResourceDependency `json:"dependencies,omitempty"`
 
@@ -599,7 +599,7 @@ type ResourceDependency struct {
 
 	// Namespace of the dependency.
 
-	// +optional.
+	// +optional
 
 	Namespace string `json:"namespace,omitempty"`
 
@@ -607,7 +607,7 @@ type ResourceDependency struct {
 
 	// Condition to check for the dependency.
 
-	// +optional.
+	// +optional
 
 	Condition string `json:"condition,omitempty"`
 
@@ -633,7 +633,7 @@ type DeploymentHook struct {
 
 	// Configuration for the hook.
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	Configuration runtime.RawExtension `json:"configuration"`
 
@@ -641,9 +641,9 @@ type DeploymentHook struct {
 
 	// Timeout for hook execution.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="300s".
+	// +kubebuilder:default="300s"
 
 	Timeout string `json:"timeout,omitempty"`
 
@@ -651,11 +651,11 @@ type DeploymentHook struct {
 
 	// OnFailure defines behavior on hook failure.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="abort".
+	// +kubebuilder:default="abort"
 
-	// +kubebuilder:validation:Enum=abort;continue;retry.
+	// +kubebuilder:validation:Enum=abort;continue;retry
 
 	OnFailure string `json:"onFailure,omitempty"`
 
@@ -669,7 +669,7 @@ type SyncPolicy struct {
 
 	// Automated enables automated synchronization.
 
-	// +optional.
+	// +optional
 
 	Automated *AutomatedSyncPolicy `json:"automated,omitempty"`
 
@@ -677,7 +677,7 @@ type SyncPolicy struct {
 
 	// SyncOptions defines sync options.
 
-	// +optional.
+	// +optional
 
 	SyncOptions []string `json:"syncOptions,omitempty"`
 
@@ -685,7 +685,7 @@ type SyncPolicy struct {
 
 	// Retry defines retry policy.
 
-	// +optional.
+	// +optional
 
 	Retry *RetryPolicy `json:"retry,omitempty"`
 
@@ -699,9 +699,9 @@ type AutomatedSyncPolicy struct {
 
 	// Prune enables pruning of resources.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=false.
+	// +kubebuilder:default=false
 
 	Prune *bool `json:"prune,omitempty"`
 
@@ -709,9 +709,9 @@ type AutomatedSyncPolicy struct {
 
 	// SelfHeal enables self-healing.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	SelfHeal *bool `json:"selfHeal,omitempty"`
 
@@ -719,9 +719,9 @@ type AutomatedSyncPolicy struct {
 
 	// AllowEmpty allows syncing with empty repository.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=false.
+	// +kubebuilder:default=false
 
 	AllowEmpty *bool `json:"allowEmpty,omitempty"`
 
@@ -735,13 +735,13 @@ type RetryPolicy struct {
 
 	// Limit is the maximum number of retries.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=5.
+	// +kubebuilder:default=5
 
-	// +kubebuilder:validation:Minimum=0.
+	// +kubebuilder:validation:Minimum=0
 
-	// +kubebuilder:validation:Maximum=20.
+	// +kubebuilder:validation:Maximum=20
 
 	Limit *int64 `json:"limit,omitempty"`
 
@@ -749,7 +749,7 @@ type RetryPolicy struct {
 
 	// Backoff defines the retry backoff strategy.
 
-	// +optional.
+	// +optional
 
 	Backoff *RetryBackoff `json:"backoff,omitempty"`
 
@@ -763,9 +763,9 @@ type RetryBackoff struct {
 
 	// Duration is the initial backoff duration.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="5s".
+	// +kubebuilder:default="5s"
 
 	Duration string `json:"duration,omitempty"`
 
@@ -773,11 +773,11 @@ type RetryBackoff struct {
 
 	// Factor is the backoff multiplier.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=2.
+	// +kubebuilder:default=2
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
 	Factor *int64 `json:"factor,omitempty"`
 
@@ -785,9 +785,9 @@ type RetryBackoff struct {
 
 	// MaxDuration caps the backoff duration.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="3m".
+	// +kubebuilder:default="3m"
 
 	MaxDuration string `json:"maxDuration,omitempty"`
 
@@ -801,9 +801,9 @@ type HealthCheckConfig struct {
 
 	// Enabled determines if health checks are enabled.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	Enabled *bool `json:"enabled,omitempty"`
 
@@ -811,9 +811,9 @@ type HealthCheckConfig struct {
 
 	// Timeout for health checks.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="300s".
+	// +kubebuilder:default="300s"
 
 	Timeout string `json:"timeout,omitempty"`
 
@@ -821,9 +821,9 @@ type HealthCheckConfig struct {
 
 	// CheckInterval defines how often to check health.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="30s".
+	// +kubebuilder:default="30s"
 
 	CheckInterval string `json:"checkInterval,omitempty"`
 
@@ -831,7 +831,7 @@ type HealthCheckConfig struct {
 
 	// Checks defines specific health checks.
 
-	// +optional.
+	// +optional
 
 	Checks []HealthCheck `json:"checks,omitempty"`
 
@@ -863,9 +863,9 @@ type HealthCheck struct {
 
 	// Configuration for the health check.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	Configuration runtime.RawExtension `json:"configuration,omitempty"`
 
@@ -879,9 +879,9 @@ type RollbackConfig struct {
 
 	// Enabled determines if rollback is enabled.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	Enabled *bool `json:"enabled,omitempty"`
 
@@ -889,9 +889,9 @@ type RollbackConfig struct {
 
 	// AutoRollback enables automatic rollback on failure.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=false.
+	// +kubebuilder:default=false
 
 	AutoRollback *bool `json:"autoRollback,omitempty"`
 
@@ -899,7 +899,7 @@ type RollbackConfig struct {
 
 	// Trigger defines rollback triggers.
 
-	// +optional.
+	// +optional
 
 	Trigger *RollbackTrigger `json:"trigger,omitempty"`
 
@@ -907,11 +907,11 @@ type RollbackConfig struct {
 
 	// Strategy defines rollback strategy.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="immediate".
+	// +kubebuilder:default="immediate"
 
-	// +kubebuilder:validation:Enum=immediate;gradual;manual.
+	// +kubebuilder:validation:Enum=immediate;gradual;manual
 
 	Strategy string `json:"strategy,omitempty"`
 
@@ -919,9 +919,9 @@ type RollbackConfig struct {
 
 	// Timeout for rollback operations.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="300s".
+	// +kubebuilder:default="300s"
 
 	Timeout string `json:"timeout,omitempty"`
 
@@ -935,9 +935,9 @@ type RollbackTrigger struct {
 
 	// OnFailure triggers rollback on deployment failure.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	OnFailure *bool `json:"onFailure,omitempty"`
 
@@ -945,9 +945,9 @@ type RollbackTrigger struct {
 
 	// OnHealthCheckFailure triggers rollback on health check failure.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=false.
+	// +kubebuilder:default=false
 
 	OnHealthCheckFailure *bool `json:"onHealthCheckFailure,omitempty"`
 
@@ -955,11 +955,11 @@ type RollbackTrigger struct {
 
 	// ErrorThreshold defines error threshold for rollback.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:validation:Minimum=0.
+	// +kubebuilder:validation:Minimum=0
 
-	// +kubebuilder:validation:Maximum=100.
+	// +kubebuilder:validation:Maximum=100
 
 	ErrorThreshold *int `json:"errorThreshold,omitempty"`
 
@@ -967,9 +967,9 @@ type RollbackTrigger struct {
 
 	// TimeWindow defines time window for error counting.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="5m".
+	// +kubebuilder:default="5m"
 
 	TimeWindow string `json:"timeWindow,omitempty"`
 
@@ -983,7 +983,7 @@ type GitOpsDeploymentStatus struct {
 
 	// Phase represents the current deployment phase.
 
-	// +optional.
+	// +optional
 
 	Phase GitOpsDeploymentPhase `json:"phase,omitempty"`
 
@@ -991,19 +991,16 @@ type GitOpsDeploymentStatus struct {
 
 	// Conditions represent the latest available observations.
 
-	// +optional.
+	// +optional
 
-	// +listType=map.
-
-	// +listMapKey=type.
-
+	// +listType=atomic
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 
 
 	// DeploymentStartTime indicates when deployment started.
 
-	// +optional.
+	// +optional
 
 	DeploymentStartTime *metav1.Time `json:"deploymentStartTime,omitempty"`
 
@@ -1011,7 +1008,7 @@ type GitOpsDeploymentStatus struct {
 
 	// DeploymentCompletionTime indicates when deployment completed.
 
-	// +optional.
+	// +optional
 
 	DeploymentCompletionTime *metav1.Time `json:"deploymentCompletionTime,omitempty"`
 
@@ -1019,7 +1016,7 @@ type GitOpsDeploymentStatus struct {
 
 	// GitCommit contains Git commit information.
 
-	// +optional.
+	// +optional
 
 	GitCommit *GitCommitInfo `json:"gitCommit,omitempty"`
 
@@ -1027,7 +1024,7 @@ type GitOpsDeploymentStatus struct {
 
 	// SyncStatus contains synchronization status.
 
-	// +optional.
+	// +optional
 
 	SyncStatus *SyncStatus `json:"syncStatus,omitempty"`
 
@@ -1035,7 +1032,7 @@ type GitOpsDeploymentStatus struct {
 
 	// DeploymentStatus contains deployment status per cluster.
 
-	// +optional.
+	// +optional
 
 	DeploymentStatus []ClusterDeploymentStatus `json:"deploymentStatus,omitempty"`
 
@@ -1043,7 +1040,7 @@ type GitOpsDeploymentStatus struct {
 
 	// HealthStatus contains health check results.
 
-	// +optional.
+	// +optional
 
 	HealthStatus *HealthStatus `json:"healthStatus,omitempty"`
 
@@ -1051,7 +1048,7 @@ type GitOpsDeploymentStatus struct {
 
 	// ResourceStatus contains status of deployed resources.
 
-	// +optional.
+	// +optional
 
 	ResourceStatus []DeployedResourceStatus `json:"resourceStatus,omitempty"`
 
@@ -1059,7 +1056,7 @@ type GitOpsDeploymentStatus struct {
 
 	// RollbackInfo contains rollback information.
 
-	// +optional.
+	// +optional
 
 	RollbackInfo *RollbackInfo `json:"rollbackInfo,omitempty"`
 
@@ -1067,7 +1064,7 @@ type GitOpsDeploymentStatus struct {
 
 	// DeploymentDuration represents total deployment time.
 
-	// +optional.
+	// +optional
 
 	DeploymentDuration *metav1.Duration `json:"deploymentDuration,omitempty"`
 
@@ -1075,7 +1072,7 @@ type GitOpsDeploymentStatus struct {
 
 	// RetryCount tracks retry attempts.
 
-	// +optional.
+	// +optional
 
 	RetryCount int32 `json:"retryCount,omitempty"`
 
@@ -1083,7 +1080,7 @@ type GitOpsDeploymentStatus struct {
 
 	// LastSyncTime indicates last synchronization time.
 
-	// +optional.
+	// +optional
 
 	LastSyncTime *metav1.Time `json:"lastSyncTime,omitempty"`
 
@@ -1091,7 +1088,7 @@ type GitOpsDeploymentStatus struct {
 
 	// ObservedGeneration reflects the generation observed.
 
-	// +optional.
+	// +optional
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
@@ -1135,7 +1132,7 @@ type GitCommitInfo struct {
 
 	// URL is the commit URL.
 
-	// +optional.
+	// +optional
 
 	URL string `json:"url,omitempty"`
 
@@ -1143,7 +1140,7 @@ type GitCommitInfo struct {
 
 	// Files lists the committed files.
 
-	// +optional.
+	// +optional
 
 	Files []string `json:"files,omitempty"`
 
@@ -1163,7 +1160,7 @@ type SyncStatus struct {
 
 	// Health is the overall health status.
 
-	// +optional.
+	// +optional
 
 	Health string `json:"health,omitempty"`
 
@@ -1171,7 +1168,7 @@ type SyncStatus struct {
 
 	// Revision is the Git revision being synced.
 
-	// +optional.
+	// +optional
 
 	Revision string `json:"revision,omitempty"`
 
@@ -1179,7 +1176,7 @@ type SyncStatus struct {
 
 	// ComparedTo contains comparison information.
 
-	// +optional.
+	// +optional
 
 	ComparedTo *ComparedToInfo `json:"comparedTo,omitempty"`
 
@@ -1187,7 +1184,7 @@ type SyncStatus struct {
 
 	// Resources lists the sync status of resources.
 
-	// +optional.
+	// +optional
 
 	Resources []ResourceSyncStatus `json:"resources,omitempty"`
 
@@ -1273,7 +1270,7 @@ type ResourceSyncStatus struct {
 
 	// Namespace of the resource.
 
-	// +optional.
+	// +optional
 
 	Namespace string `json:"namespace,omitempty"`
 
@@ -1287,7 +1284,7 @@ type ResourceSyncStatus struct {
 
 	// Health is the health status.
 
-	// +optional.
+	// +optional
 
 	Health string `json:"health,omitempty"`
 
@@ -1295,7 +1292,7 @@ type ResourceSyncStatus struct {
 
 	// Message contains status message.
 
-	// +optional.
+	// +optional
 
 	Message string `json:"message,omitempty"`
 
@@ -1321,7 +1318,7 @@ type ClusterDeploymentStatus struct {
 
 	// Message contains status message.
 
-	// +optional.
+	// +optional
 
 	Message string `json:"message,omitempty"`
 
@@ -1329,7 +1326,7 @@ type ClusterDeploymentStatus struct {
 
 	// LastUpdateTime is the last update time.
 
-	// +optional.
+	// +optional
 
 	LastUpdateTime *metav1.Time `json:"lastUpdateTime,omitempty"`
 
@@ -1337,7 +1334,7 @@ type ClusterDeploymentStatus struct {
 
 	// DeployedResources lists deployed resources.
 
-	// +optional.
+	// +optional
 
 	DeployedResources []ResourceReference `json:"deployedResources,omitempty"`
 
@@ -1345,7 +1342,7 @@ type ClusterDeploymentStatus struct {
 
 	// FailedResources lists failed resources.
 
-	// +optional.
+	// +optional
 
 	FailedResources []ResourceReference `json:"failedResources,omitempty"`
 
@@ -1365,7 +1362,7 @@ type HealthStatus struct {
 
 	// CheckResults contains individual check results.
 
-	// +optional.
+	// +optional
 
 	CheckResults []HealthCheckResult `json:"checkResults,omitempty"`
 
@@ -1373,7 +1370,7 @@ type HealthStatus struct {
 
 	// LastCheckTime is the last health check time.
 
-	// +optional.
+	// +optional
 
 	LastCheckTime *metav1.Time `json:"lastCheckTime,omitempty"`
 
@@ -1381,7 +1378,7 @@ type HealthStatus struct {
 
 	// HealthScore represents overall health score (0.0-1.0).
 
-	// +optional.
+	// +optional
 
 	HealthScore *float64 `json:"healthScore,omitempty"`
 
@@ -1407,7 +1404,7 @@ type HealthCheckResult struct {
 
 	// Message contains check result message.
 
-	// +optional.
+	// +optional
 
 	Message string `json:"message,omitempty"`
 
@@ -1415,7 +1412,7 @@ type HealthCheckResult struct {
 
 	// LastCheckTime is the last check time.
 
-	// +optional.
+	// +optional
 
 	LastCheckTime *metav1.Time `json:"lastCheckTime,omitempty"`
 
@@ -1423,7 +1420,7 @@ type HealthCheckResult struct {
 
 	// Duration is the check duration.
 
-	// +optional.
+	// +optional
 
 	Duration *metav1.Duration `json:"duration,omitempty"`
 
@@ -1449,7 +1446,7 @@ type DeployedResourceStatus struct {
 
 	// Health is the resource health.
 
-	// +optional.
+	// +optional
 
 	Health string `json:"health,omitempty"`
 
@@ -1457,7 +1454,7 @@ type DeployedResourceStatus struct {
 
 	// Message contains status message.
 
-	// +optional.
+	// +optional
 
 	Message string `json:"message,omitempty"`
 
@@ -1465,7 +1462,7 @@ type DeployedResourceStatus struct {
 
 	// SyncWave is the sync wave of the resource.
 
-	// +optional.
+	// +optional
 
 	SyncWave *int `json:"syncWave,omitempty"`
 
@@ -1473,7 +1470,7 @@ type DeployedResourceStatus struct {
 
 	// CreatedAt is the creation time.
 
-	// +optional.
+	// +optional
 
 	CreatedAt *metav1.Time `json:"createdAt,omitempty"`
 
@@ -1493,7 +1490,7 @@ type RollbackInfo struct {
 
 	// Reason for rollback.
 
-	// +optional.
+	// +optional
 
 	Reason string `json:"reason,omitempty"`
 
@@ -1501,7 +1498,7 @@ type RollbackInfo struct {
 
 	// InitiatedAt is the rollback initiation time.
 
-	// +optional.
+	// +optional
 
 	InitiatedAt *metav1.Time `json:"initiatedAt,omitempty"`
 
@@ -1509,7 +1506,7 @@ type RollbackInfo struct {
 
 	// CompletedAt is the rollback completion time.
 
-	// +optional.
+	// +optional
 
 	CompletedAt *metav1.Time `json:"completedAt,omitempty"`
 
@@ -1517,7 +1514,7 @@ type RollbackInfo struct {
 
 	// Status is the rollback status.
 
-	// +optional.
+	// +optional
 
 	Status string `json:"status,omitempty"`
 
@@ -1525,7 +1522,7 @@ type RollbackInfo struct {
 
 	// TargetRevision is the revision being rolled back to.
 
-	// +optional.
+	// +optional
 
 	TargetRevision string `json:"targetRevision,omitempty"`
 
@@ -1533,7 +1530,7 @@ type RollbackInfo struct {
 
 	// OriginalRevision is the original revision.
 
-	// +optional.
+	// +optional
 
 	OriginalRevision string `json:"originalRevision,omitempty"`
 
@@ -1565,7 +1562,7 @@ type ResourceReference struct {
 
 	// Namespace of the resource.
 
-	// +optional.
+	// +optional
 
 	Namespace string `json:"namespace,omitempty"`
 
@@ -1573,7 +1570,7 @@ type ResourceReference struct {
 
 	// UID of the resource.
 
-	// +optional.
+	// +optional
 
 	UID string `json:"uid,omitempty"`
 

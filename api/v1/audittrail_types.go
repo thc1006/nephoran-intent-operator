@@ -25,7 +25,7 @@ type AuditTrailSpec struct {
 
 	// Enabled controls whether audit logging is active.
 
-	// +kubebuilder:default:=true.
+	// +kubebuilder:default:=true
 
 	Enabled bool `json:"enabled"`
 
@@ -33,9 +33,9 @@ type AuditTrailSpec struct {
 
 	// LogLevel controls the minimum severity level for audit events.
 
-	// +kubebuilder:validation:Enum=emergency;alert;critical;error;warning;notice;info;debug.
+	// +kubebuilder:validation:Enum=emergency;alert;critical;error;warning;notice;info;debug
 
-	// +kubebuilder:default:="info".
+	// +kubebuilder:default:="info"
 
 	LogLevel string `json:"logLevel,omitempty"`
 
@@ -43,11 +43,11 @@ type AuditTrailSpec struct {
 
 	// BatchSize controls how many events to process in a batch.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=10000.
+	// +kubebuilder:validation:Maximum=10000
 
-	// +kubebuilder:default:=100.
+	// +kubebuilder:default:=100
 
 	BatchSize int `json:"batchSize,omitempty"`
 
@@ -55,11 +55,11 @@ type AuditTrailSpec struct {
 
 	// FlushInterval controls how often to flush batched events (in seconds).
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=3600.
+	// +kubebuilder:validation:Maximum=3600
 
-	// +kubebuilder:default:=10.
+	// +kubebuilder:default:=10
 
 	FlushInterval int `json:"flushInterval,omitempty"`
 
@@ -67,11 +67,11 @@ type AuditTrailSpec struct {
 
 	// MaxQueueSize controls the maximum number of events to queue.
 
-	// +kubebuilder:validation:Minimum=100.
+	// +kubebuilder:validation:Minimum=100
 
-	// +kubebuilder:validation:Maximum=100000.
+	// +kubebuilder:validation:Maximum=100000
 
-	// +kubebuilder:default:=10000.
+	// +kubebuilder:default:=10000
 
 	MaxQueueSize int `json:"maxQueueSize,omitempty"`
 
@@ -79,7 +79,7 @@ type AuditTrailSpec struct {
 
 	// EnableIntegrity controls whether log integrity protection is enabled.
 
-	// +kubebuilder:default:=true.
+	// +kubebuilder:default:=true
 
 	EnableIntegrity bool `json:"enableIntegrity,omitempty"`
 
@@ -87,7 +87,7 @@ type AuditTrailSpec struct {
 
 	// ComplianceMode controls additional compliance-specific features.
 
-	// +kubebuilder:validation:items:Enum=soc2;iso27001;pci_dss;hipaa;gdpr;ccpa;fisma;nist_csf.
+	// +kubebuilder:validation:items:Enum=soc2;iso27001;pci_dss;hipaa;gdpr;ccpa;fisma;nist_csf
 
 	ComplianceMode []string `json:"complianceMode,omitempty"`
 
@@ -125,7 +125,7 @@ type AuditBackendConfig struct {
 
 	// Type specifies the backend type.
 
-	// +kubebuilder:validation:Enum=file;elasticsearch;splunk;syslog;kafka;cloudwatch;stackdriver;azure_monitor;siem;webhook.
+	// +kubebuilder:validation:Enum=file;elasticsearch;splunk;syslog;kafka;cloudwatch;stackdriver;azure_monitor;siem;webhook
 
 	Type string `json:"type"`
 
@@ -133,9 +133,9 @@ type AuditBackendConfig struct {
 
 	// Name is a unique identifier for this backend instance.
 
-	// +kubebuilder:validation:MinLength=1.
+	// +kubebuilder:validation:MinLength=1
 
-	// +kubebuilder:validation:MaxLength=63.
+	// +kubebuilder:validation:MaxLength=63
 
 	Name string `json:"name"`
 
@@ -143,7 +143,7 @@ type AuditBackendConfig struct {
 
 	// Enabled controls whether this backend is active.
 
-	// +kubebuilder:default:=true.
+	// +kubebuilder:default:=true
 
 	Enabled bool `json:"enabled"`
 
@@ -151,7 +151,7 @@ type AuditBackendConfig struct {
 
 	// Settings contains backend-specific configuration.
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	Settings runtime.RawExtension `json:"settings,omitempty"`
 
@@ -159,9 +159,9 @@ type AuditBackendConfig struct {
 
 	// Format specifies the output format.
 
-	// +kubebuilder:validation:Enum=json;text;cef;leef;syslog.
+	// +kubebuilder:validation:Enum=json;text;cef;leef;syslog
 
-	// +kubebuilder:default:="json".
+	// +kubebuilder:default:="json"
 
 	Format string `json:"format,omitempty"`
 
@@ -169,7 +169,7 @@ type AuditBackendConfig struct {
 
 	// Compression enables compression for the backend.
 
-	// +kubebuilder:default:=false.
+	// +kubebuilder:default:=false
 
 	Compression bool `json:"compression,omitempty"`
 
@@ -177,11 +177,11 @@ type AuditBackendConfig struct {
 
 	// BufferSize controls the internal buffer size.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=100000.
+	// +kubebuilder:validation:Maximum=100000
 
-	// +kubebuilder:default:=1000.
+	// +kubebuilder:default:=1000
 
 	BufferSize int `json:"bufferSize,omitempty"`
 
@@ -189,11 +189,11 @@ type AuditBackendConfig struct {
 
 	// Timeout for backend operations (in seconds).
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=300.
+	// +kubebuilder:validation:Maximum=300
 
-	// +kubebuilder:default:=30.
+	// +kubebuilder:default:=30
 
 	Timeout int `json:"timeout,omitempty"`
 
@@ -225,11 +225,11 @@ type RetryPolicySpec struct {
 
 	// MaxRetries defines the maximum number of retry attempts.
 
-	// +kubebuilder:validation:Minimum=0.
+	// +kubebuilder:validation:Minimum=0
 
-	// +kubebuilder:validation:Maximum=10.
+	// +kubebuilder:validation:Maximum=10
 
-	// +kubebuilder:default:=3.
+	// +kubebuilder:default:=3
 
 	MaxRetries int `json:"maxRetries,omitempty"`
 
@@ -237,11 +237,11 @@ type RetryPolicySpec struct {
 
 	// InitialDelay defines the initial delay between retries (in seconds).
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=60.
+	// +kubebuilder:validation:Maximum=60
 
-	// +kubebuilder:default:=1.
+	// +kubebuilder:default:=1
 
 	InitialDelay int `json:"initialDelay,omitempty"`
 
@@ -249,11 +249,11 @@ type RetryPolicySpec struct {
 
 	// MaxDelay defines the maximum delay between retries (in seconds).
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=300.
+	// +kubebuilder:validation:Maximum=300
 
-	// +kubebuilder:default:=30.
+	// +kubebuilder:default:=30
 
 	MaxDelay int `json:"maxDelay,omitempty"`
 
@@ -261,7 +261,7 @@ type RetryPolicySpec struct {
 
 	// BackoffFactor defines the multiplier for exponential backoff.
 
-	// +kubebuilder:default:=2.0.
+	// +kubebuilder:default:=20
 
 	BackoffFactor float64 `json:"backoffFactor,omitempty"`
 
@@ -275,7 +275,7 @@ type TLSConfigSpec struct {
 
 	// Enabled controls whether TLS is enabled.
 
-	// +kubebuilder:default:=true.
+	// +kubebuilder:default:=true
 
 	Enabled bool `json:"enabled,omitempty"`
 
@@ -307,7 +307,7 @@ type TLSConfigSpec struct {
 
 	// InsecureSkipVerify controls whether to skip certificate verification.
 
-	// +kubebuilder:default:=false.
+	// +kubebuilder:default:=false
 
 	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
 
@@ -321,9 +321,9 @@ type FilterConfigSpec struct {
 
 	// MinSeverity defines the minimum severity level to process.
 
-	// +kubebuilder:validation:Enum=emergency;alert;critical;error;warning;notice;info;debug.
+	// +kubebuilder:validation:Enum=emergency;alert;critical;error;warning;notice;info;debug
 
-	// +kubebuilder:default:="info".
+	// +kubebuilder:default:="info"
 
 	MinSeverity string `json:"minSeverity,omitempty"`
 
@@ -367,11 +367,11 @@ type RetentionPolicySpec struct {
 
 	// DefaultRetention defines the default retention period (in days).
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=3650.
+	// +kubebuilder:validation:Maximum=3650
 
-	// +kubebuilder:default:=365.
+	// +kubebuilder:default:=365
 
 	DefaultRetention int `json:"defaultRetention,omitempty"`
 
@@ -379,11 +379,11 @@ type RetentionPolicySpec struct {
 
 	// CheckInterval defines how often to check for expired events (in hours).
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=168.
+	// +kubebuilder:validation:Maximum=168
 
-	// +kubebuilder:default:=24.
+	// +kubebuilder:default:=24
 
 	CheckInterval int `json:"checkInterval,omitempty"`
 
@@ -391,7 +391,7 @@ type RetentionPolicySpec struct {
 
 	// ArchivalEnabled controls whether events are archived before deletion.
 
-	// +kubebuilder:default:=true.
+	// +kubebuilder:default:=true
 
 	ArchivalEnabled bool `json:"archivalEnabled,omitempty"`
 
@@ -399,7 +399,7 @@ type RetentionPolicySpec struct {
 
 	// CompressionEnabled controls whether archived events are compressed.
 
-	// +kubebuilder:default:=true.
+	// +kubebuilder:default:=true
 
 	CompressionEnabled bool `json:"compressionEnabled,omitempty"`
 
@@ -407,7 +407,7 @@ type RetentionPolicySpec struct {
 
 	// EncryptionEnabled controls whether archived events are encrypted.
 
-	// +kubebuilder:default:=true.
+	// +kubebuilder:default:=true
 
 	EncryptionEnabled bool `json:"encryptionEnabled,omitempty"`
 
@@ -427,9 +427,9 @@ type SpecificRetentionPolicy struct {
 
 	// Name identifies this retention policy.
 
-	// +kubebuilder:validation:MinLength=1.
+	// +kubebuilder:validation:MinLength=1
 
-	// +kubebuilder:validation:MaxLength=63.
+	// +kubebuilder:validation:MaxLength=63
 
 	Name string `json:"name"`
 
@@ -443,9 +443,9 @@ type SpecificRetentionPolicy struct {
 
 	// RetentionPeriod defines how long events should be retained (in days).
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=7300.
+	// +kubebuilder:validation:Maximum=7300
 
 	RetentionPeriod int `json:"retentionPeriod"`
 
@@ -459,7 +459,7 @@ type SpecificRetentionPolicy struct {
 
 	// Severity defines the minimum severity level this policy applies to.
 
-	// +kubebuilder:validation:Enum=emergency;alert;critical;error;warning;notice;info;debug.
+	// +kubebuilder:validation:Enum=emergency;alert;critical;error;warning;notice;info;debug
 
 	Severity string `json:"severity,omitempty"`
 
@@ -473,7 +473,7 @@ type SpecificRetentionPolicy struct {
 
 	// ComplianceStandard defines which compliance standard requires this retention.
 
-	// +kubebuilder:validation:Enum=soc2;iso27001;pci_dss;hipaa;gdpr;ccpa;fisma;nist_csf.
+	// +kubebuilder:validation:Enum=soc2;iso27001;pci_dss;hipaa;gdpr;ccpa;fisma;nist_csf
 
 	ComplianceStandard string `json:"complianceStandard,omitempty"`
 
@@ -481,7 +481,7 @@ type SpecificRetentionPolicy struct {
 
 	// ArchiveBeforeDelete controls whether events are archived before deletion.
 
-	// +kubebuilder:default:=true.
+	// +kubebuilder:default:=true
 
 	ArchiveBeforeDelete bool `json:"archiveBeforeDelete,omitempty"`
 
@@ -489,7 +489,7 @@ type SpecificRetentionPolicy struct {
 
 	// RequireApproval controls whether deletion requires manual approval.
 
-	// +kubebuilder:default:=false.
+	// +kubebuilder:default:=false
 
 	RequireApproval bool `json:"requireApproval,omitempty"`
 
@@ -497,7 +497,7 @@ type SpecificRetentionPolicy struct {
 
 	// LegalHoldExempt controls whether events can be deleted during legal holds.
 
-	// +kubebuilder:default:=false.
+	// +kubebuilder:default:=false
 
 	LegalHoldExempt bool `json:"legalHoldExempt,omitempty"`
 
@@ -511,7 +511,7 @@ type IntegrityConfigSpec struct {
 
 	// Enabled controls whether integrity protection is active.
 
-	// +kubebuilder:default:=true.
+	// +kubebuilder:default:=true
 
 	Enabled bool `json:"enabled,omitempty"`
 
@@ -519,9 +519,9 @@ type IntegrityConfigSpec struct {
 
 	// KeySize defines the RSA key size for signing.
 
-	// +kubebuilder:validation:Enum=2048;3072;4096.
+	// +kubebuilder:validation:Enum=2048;3072;4096
 
-	// +kubebuilder:default:=2048.
+	// +kubebuilder:default:=2048
 
 	KeySize int `json:"keySize,omitempty"`
 
@@ -529,7 +529,7 @@ type IntegrityConfigSpec struct {
 
 	// AutoGenerateKeys controls whether to automatically generate key pairs.
 
-	// +kubebuilder:default:=true.
+	// +kubebuilder:default:=true
 
 	AutoGenerateKeys bool `json:"autoGenerateKeys,omitempty"`
 
@@ -543,9 +543,9 @@ type IntegrityConfigSpec struct {
 
 	// VerificationMode defines how strict verification should be.
 
-	// +kubebuilder:validation:Enum=strict;permissive;disabled.
+	// +kubebuilder:validation:Enum=strict;permissive;disabled
 
-	// +kubebuilder:default:="strict".
+	// +kubebuilder:default:="strict"
 
 	VerificationMode string `json:"verificationMode,omitempty"`
 
@@ -553,11 +553,11 @@ type IntegrityConfigSpec struct {
 
 	// MaxChainLength defines maximum integrity chain length to keep in memory.
 
-	// +kubebuilder:validation:Minimum=100.
+	// +kubebuilder:validation:Minimum=100
 
-	// +kubebuilder:validation:Maximum=100000.
+	// +kubebuilder:validation:Maximum=100000
 
-	// +kubebuilder:default:=10000.
+	// +kubebuilder:default:=10000
 
 	MaxChainLength int `json:"maxChainLength,omitempty"`
 
@@ -571,7 +571,7 @@ type NotificationConfigSpec struct {
 
 	// Enabled controls whether notifications are sent.
 
-	// +kubebuilder:default:=false.
+	// +kubebuilder:default:=false
 
 	Enabled bool `json:"enabled,omitempty"`
 
@@ -621,7 +621,7 @@ type WebhookNotification struct {
 
 	// MinSeverity defines minimum severity to trigger notifications.
 
-	// +kubebuilder:validation:Enum=emergency;alert;critical;error;warning;notice;info;debug.
+	// +kubebuilder:validation:Enum=emergency;alert;critical;error;warning;notice;info;debug
 
 	MinSeverity string `json:"minSeverity,omitempty"`
 
@@ -653,11 +653,11 @@ type EmailNotificationConfig struct {
 
 	// SMTPPort defines the SMTP server port.
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=65535.
+	// +kubebuilder:validation:Maximum=65535
 
-	// +kubebuilder:default:=587.
+	// +kubebuilder:default:=587
 
 	SMTPPort int `json:"smtpPort,omitempty"`
 
@@ -749,7 +749,7 @@ type AuditTrailStatus struct {
 
 	// Phase represents the current phase of the audit trail.
 
-	// +kubebuilder:validation:Enum=Pending;Initializing;Running;Stopping;Failed.
+	// +kubebuilder:validation:Enum=Pending;Initializing;Running;Stopping;Failed
 
 	Phase string `json:"phase,omitempty"`
 
@@ -1015,11 +1015,11 @@ type ComplianceViolationSummary struct {
 
 
 
-// +kubebuilder:object:root=true.
+// +kubebuilder:object:root=true
 
-// +kubebuilder:subresource:status.
+// +kubebuilder:subresource:status
 
-// +kubebuilder:resource:scope=Namespaced,categories=security.
+// +kubebuilder:resource:scope=Namespaced,categories=security
 
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase".
 
@@ -1051,7 +1051,7 @@ type AuditTrail struct {
 
 
 
-// +kubebuilder:object:root=true.
+// +kubebuilder:object:root=true
 
 
 

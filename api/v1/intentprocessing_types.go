@@ -55,7 +55,7 @@ type ProcessedParameters struct {
 
 	// NetworkFunction specifies the network function type.
 
-	// +optional.
+	// +optional
 
 	NetworkFunction string `json:"networkFunction,omitempty"`
 
@@ -63,7 +63,7 @@ type ProcessedParameters struct {
 
 	// Region specifies the deployment region.
 
-	// +optional.
+	// +optional
 
 	Region string `json:"region,omitempty"`
 
@@ -71,7 +71,7 @@ type ProcessedParameters struct {
 
 	// ScaleParameters contains scaling configuration.
 
-	// +optional.
+	// +optional
 
 	ScaleParameters *ScaleParameters `json:"scaleParameters,omitempty"`
 
@@ -79,7 +79,7 @@ type ProcessedParameters struct {
 
 	// QoSParameters contains quality of service settings.
 
-	// +optional.
+	// +optional
 
 	QoSParameters *QoSParameters `json:"qosParameters,omitempty"`
 
@@ -87,7 +87,7 @@ type ProcessedParameters struct {
 
 	// SecurityParameters contains security settings.
 
-	// +optional.
+	// +optional
 
 	SecurityParameters *SecurityParameters `json:"securityParameters,omitempty"`
 
@@ -95,7 +95,7 @@ type ProcessedParameters struct {
 
 	// CustomParameters contains additional custom parameters.
 
-	// +optional.
+	// +optional
 
 	CustomParameters map[string]string `json:"customParameters,omitempty"`
 
@@ -109,9 +109,9 @@ type ScaleParameters struct {
 
 	// MinReplicas specifies the minimum number of replicas.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
 	MinReplicas *int32 `json:"minReplicas,omitempty"`
 
@@ -119,9 +119,9 @@ type ScaleParameters struct {
 
 	// MaxReplicas specifies the maximum number of replicas.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
 	MaxReplicas *int32 `json:"maxReplicas,omitempty"`
 
@@ -129,11 +129,11 @@ type ScaleParameters struct {
 
 	// TargetCPUUtilization specifies the target CPU utilization percentage.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=100.
+	// +kubebuilder:validation:Maximum=100
 
 	TargetCPUUtilization *int32 `json:"targetCPUUtilization,omitempty"`
 
@@ -141,7 +141,7 @@ type ScaleParameters struct {
 
 	// AutoScalingEnabled indicates if auto-scaling is enabled.
 
-	// +optional.
+	// +optional
 
 	AutoScalingEnabled *bool `json:"autoScalingEnabled,omitempty"`
 
@@ -155,7 +155,7 @@ type QoSParameters struct {
 
 	// Latency specifies the target latency requirement.
 
-	// +optional.
+	// +optional
 
 	Latency string `json:"latency,omitempty"`
 
@@ -163,7 +163,7 @@ type QoSParameters struct {
 
 	// Bandwidth specifies the bandwidth requirement.
 
-	// +optional.
+	// +optional
 
 	Bandwidth string `json:"bandwidth,omitempty"`
 
@@ -171,9 +171,9 @@ type QoSParameters struct {
 
 	// Priority specifies the traffic priority.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:validation:Enum=low;medium;high;critical.
+	// +kubebuilder:validation:Enum=low;medium;high;critical
 
 	Priority string `json:"priority,omitempty"`
 
@@ -181,7 +181,7 @@ type QoSParameters struct {
 
 	// ServiceLevel specifies the service level agreement.
 
-	// +optional.
+	// +optional
 
 	ServiceLevel string `json:"serviceLevel,omitempty"`
 
@@ -195,7 +195,7 @@ type SecurityParameters struct {
 
 	// Encryption specifies encryption requirements.
 
-	// +optional.
+	// +optional
 
 	Encryption *EncryptionConfig `json:"encryption,omitempty"`
 
@@ -203,7 +203,7 @@ type SecurityParameters struct {
 
 	// NetworkPolicies specifies network security policies.
 
-	// +optional.
+	// +optional
 
 	NetworkPolicies []string `json:"networkPolicies,omitempty"`
 
@@ -211,7 +211,7 @@ type SecurityParameters struct {
 
 	// ServiceMesh indicates if service mesh should be enabled.
 
-	// +optional.
+	// +optional
 
 	ServiceMesh *bool `json:"serviceMesh,omitempty"`
 
@@ -219,7 +219,7 @@ type SecurityParameters struct {
 
 	// TLSEnabled indicates if TLS should be enabled.
 
-	// +optional.
+	// +optional
 
 	TLSEnabled *bool `json:"tlsEnabled,omitempty"`
 
@@ -233,7 +233,7 @@ type EncryptionConfig struct {
 
 	// Enabled indicates if encryption is enabled.
 
-	// +optional.
+	// +optional
 
 	Enabled *bool `json:"enabled,omitempty"`
 
@@ -241,9 +241,9 @@ type EncryptionConfig struct {
 
 	// Algorithm specifies the encryption algorithm.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:validation:Enum=AES-256;AES-128;RSA-2048;RSA-4096.
+	// +kubebuilder:validation:Enum=AES-256;AES-128;RSA-2048;RSA-4096
 
 	Algorithm string `json:"algorithm,omitempty"`
 
@@ -251,7 +251,7 @@ type EncryptionConfig struct {
 
 	// KeyRotationInterval specifies the key rotation interval.
 
-	// +optional.
+	// +optional
 
 	KeyRotationInterval string `json:"keyRotationInterval,omitempty"`
 
@@ -325,7 +325,7 @@ type IntentProcessingSpec struct {
 
 	// ParentIntentRef references the parent NetworkIntent.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	ParentIntentRef ObjectReference `json:"parentIntentRef"`
 
@@ -333,11 +333,11 @@ type IntentProcessingSpec struct {
 
 	// OriginalIntent contains the raw natural language intent.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
-	// +kubebuilder:validation:MinLength=10.
+	// +kubebuilder:validation:MinLength=10
 
-	// +kubebuilder:validation:MaxLength=10000.
+	// +kubebuilder:validation:MaxLength=10000
 
 	OriginalIntent string `json:"originalIntent"`
 
@@ -345,7 +345,7 @@ type IntentProcessingSpec struct {
 
 	// ProcessingConfiguration contains LLM processing configuration.
 
-	// +optional.
+	// +optional
 
 	ProcessingConfiguration *LLMProcessingConfig `json:"processingConfiguration,omitempty"`
 
@@ -353,9 +353,9 @@ type IntentProcessingSpec struct {
 
 	// Priority defines processing priority.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="medium".
+	// +kubebuilder:default="medium"
 
 	Priority Priority `json:"priority,omitempty"`
 
@@ -363,13 +363,13 @@ type IntentProcessingSpec struct {
 
 	// Timeout for processing in seconds.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=120.
+	// +kubebuilder:default=120
 
-	// +kubebuilder:validation:Minimum=30.
+	// +kubebuilder:validation:Minimum=30
 
-	// +kubebuilder:validation:Maximum=1800.
+	// +kubebuilder:validation:Maximum=1800
 
 	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
 
@@ -377,13 +377,13 @@ type IntentProcessingSpec struct {
 
 	// MaxRetries defines maximum retry attempts.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=3.
+	// +kubebuilder:default=3
 
-	// +kubebuilder:validation:Minimum=0.
+	// +kubebuilder:validation:Minimum=0
 
-	// +kubebuilder:validation:Maximum=10.
+	// +kubebuilder:validation:Maximum=10
 
 	MaxRetries *int32 `json:"maxRetries,omitempty"`
 
@@ -391,9 +391,9 @@ type IntentProcessingSpec struct {
 
 	// ContextEnrichment enables RAG-based context enrichment.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	ContextEnrichment *bool `json:"contextEnrichment,omitempty"`
 
@@ -401,11 +401,11 @@ type IntentProcessingSpec struct {
 
 	// OutputFormat specifies the expected output format.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="structured".
+	// +kubebuilder:default="structured"
 
-	// +kubebuilder:validation:Enum=structured;json;yaml.
+	// +kubebuilder:validation:Enum=structured;json;yaml
 
 	OutputFormat string `json:"outputFormat,omitempty"`
 
@@ -419,9 +419,9 @@ type LLMProcessingConfig struct {
 
 	// Provider specifies the LLM provider to use.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="openai".
+	// +kubebuilder:default="openai"
 
 	Provider LLMProvider `json:"provider,omitempty"`
 
@@ -429,9 +429,9 @@ type LLMProcessingConfig struct {
 
 	// Model specifies the model to use within the provider.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="gpt-4o-mini".
+	// +kubebuilder:default="gpt-4o-mini"
 
 	Model string `json:"model,omitempty"`
 
@@ -439,9 +439,9 @@ type LLMProcessingConfig struct {
 
 	// Temperature controls randomness in generation.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=0.1.
+	// +kubebuilder:default=01
 
 	Temperature *float64 `json:"temperature,omitempty"`
 
@@ -449,13 +449,13 @@ type LLMProcessingConfig struct {
 
 	// MaxTokens limits the response length.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=2048.
+	// +kubebuilder:default=2048
 
-	// +kubebuilder:validation:Minimum=100.
+	// +kubebuilder:validation:Minimum=100
 
-	// +kubebuilder:validation:Maximum=8192.
+	// +kubebuilder:validation:Maximum=8192
 
 	MaxTokens *int32 `json:"maxTokens,omitempty"`
 
@@ -463,7 +463,7 @@ type LLMProcessingConfig struct {
 
 	// SystemPrompt provides system-level instructions.
 
-	// +optional.
+	// +optional
 
 	SystemPrompt string `json:"systemPrompt,omitempty"`
 
@@ -471,9 +471,9 @@ type LLMProcessingConfig struct {
 
 	// ContextWindow defines the context window size.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=8192.
+	// +kubebuilder:default=8192
 
 	ContextWindow *int32 `json:"contextWindow,omitempty"`
 
@@ -481,7 +481,7 @@ type LLMProcessingConfig struct {
 
 	// RAGConfiguration contains RAG-specific settings.
 
-	// +optional.
+	// +optional
 
 	RAGConfiguration *RAGConfig `json:"ragConfiguration,omitempty"`
 
@@ -495,9 +495,9 @@ type RAGConfig struct {
 
 	// Enabled determines if RAG is enabled.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=true.
+	// +kubebuilder:default=true
 
 	Enabled *bool `json:"enabled,omitempty"`
 
@@ -505,13 +505,13 @@ type RAGConfig struct {
 
 	// MaxDocuments limits the number of retrieved documents.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=5.
+	// +kubebuilder:default=5
 
-	// +kubebuilder:validation:Minimum=1.
+	// +kubebuilder:validation:Minimum=1
 
-	// +kubebuilder:validation:Maximum=20.
+	// +kubebuilder:validation:Maximum=20
 
 	MaxDocuments *int32 `json:"maxDocuments,omitempty"`
 
@@ -519,9 +519,9 @@ type RAGConfig struct {
 
 	// RetrievalThreshold sets the minimum similarity threshold.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default=0.7.
+	// +kubebuilder:default=07
 
 	RetrievalThreshold *float64 `json:"retrievalThreshold,omitempty"`
 
@@ -529,9 +529,9 @@ type RAGConfig struct {
 
 	// KnowledgeBase specifies the knowledge base to use.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="telecom-default".
+	// +kubebuilder:default="telecom-default"
 
 	KnowledgeBase string `json:"knowledgeBase,omitempty"`
 
@@ -539,9 +539,9 @@ type RAGConfig struct {
 
 	// EmbeddingModel specifies the embedding model for RAG.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:default="text-embedding-3-large".
+	// +kubebuilder:default="text-embedding-3-large"
 
 	EmbeddingModel string `json:"embeddingModel,omitempty"`
 
@@ -555,7 +555,7 @@ type IntentProcessingStatus struct {
 
 	// Phase represents the current processing phase.
 
-	// +optional.
+	// +optional
 
 	Phase IntentProcessingPhase `json:"phase,omitempty"`
 
@@ -563,19 +563,16 @@ type IntentProcessingStatus struct {
 
 	// Conditions represent the latest available observations.
 
-	// +optional.
+	// +optional
 
-	// +listType=map.
-
-	// +listMapKey=type.
-
+	// +listType=atomic
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 
 
 	// ProcessingStartTime indicates when processing started.
 
-	// +optional.
+	// +optional
 
 	ProcessingStartTime *metav1.Time `json:"processingStartTime,omitempty"`
 
@@ -583,7 +580,7 @@ type IntentProcessingStatus struct {
 
 	// ProcessingCompletionTime indicates when processing completed.
 
-	// +optional.
+	// +optional
 
 	ProcessingCompletionTime *metav1.Time `json:"processingCompletionTime,omitempty"`
 
@@ -591,9 +588,9 @@ type IntentProcessingStatus struct {
 
 	// LLMResponse contains the processed response from the LLM.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	LLMResponse runtime.RawExtension `json:"llmResponse,omitempty"`
 
@@ -601,7 +598,7 @@ type IntentProcessingStatus struct {
 
 	// ProcessedParameters contains structured parameters.
 
-	// +optional.
+	// +optional
 
 	ProcessedParameters *ProcessedParameters `json:"processedParameters,omitempty"`
 
@@ -609,7 +606,7 @@ type IntentProcessingStatus struct {
 
 	// ExtractedEntities contains telecommunications entities.
 
-	// +optional.
+	// +optional
 
 	ExtractedEntities map[string]string `json:"extractedEntities,omitempty"`
 
@@ -617,9 +614,9 @@ type IntentProcessingStatus struct {
 
 	// TelecomContext contains domain-specific context.
 
-	// +optional.
+	// +optional
 
-	// +kubebuilder:pruning:PreserveUnknownFields.
+	// +kubebuilder:pruning:PreserveUnknownFields
 
 	TelecomContext runtime.RawExtension `json:"telecomContext,omitempty"`
 
@@ -627,7 +624,7 @@ type IntentProcessingStatus struct {
 
 	// RetryCount tracks the number of retry attempts.
 
-	// +optional.
+	// +optional
 
 	RetryCount int32 `json:"retryCount,omitempty"`
 
@@ -635,7 +632,7 @@ type IntentProcessingStatus struct {
 
 	// LastRetryTime indicates the last retry attempt.
 
-	// +optional.
+	// +optional
 
 	LastRetryTime *metav1.Time `json:"lastRetryTime,omitempty"`
 
@@ -643,7 +640,7 @@ type IntentProcessingStatus struct {
 
 	// ProcessingDuration represents total processing time.
 
-	// +optional.
+	// +optional
 
 	ProcessingDuration *metav1.Duration `json:"processingDuration,omitempty"`
 
@@ -651,7 +648,7 @@ type IntentProcessingStatus struct {
 
 	// TokenUsage tracks token consumption.
 
-	// +optional.
+	// +optional
 
 	TokenUsage *TokenUsageInfo `json:"tokenUsage,omitempty"`
 
@@ -659,7 +656,7 @@ type IntentProcessingStatus struct {
 
 	// RAGMetrics contains retrieval-augmented generation metrics.
 
-	// +optional.
+	// +optional
 
 	RAGMetrics *RAGMetrics `json:"ragMetrics,omitempty"`
 
@@ -667,7 +664,7 @@ type IntentProcessingStatus struct {
 
 	// QualityScore represents the quality of processing.
 
-	// +optional.
+	// +optional
 
 	QualityScore *float64 `json:"qualityScore,omitempty"`
 
@@ -675,7 +672,7 @@ type IntentProcessingStatus struct {
 
 	// ValidationErrors contains any validation errors.
 
-	// +optional.
+	// +optional
 
 	ValidationErrors []string `json:"validationErrors,omitempty"`
 
@@ -683,7 +680,7 @@ type IntentProcessingStatus struct {
 
 	// ObservedGeneration reflects the generation observed.
 
-	// +optional.
+	// +optional
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
@@ -709,7 +706,7 @@ type TokenUsageInfo struct {
 
 	// EstimatedCost in USD.
 
-	// +optional.
+	// +optional
 
 	EstimatedCost *float64 `json:"estimatedCost,omitempty"`
 
@@ -763,37 +760,37 @@ type ObjectReference struct {
 
 	// APIVersion of the referent.
 
-	// +optional.
+	// +optional
 
 	APIVersion string `json:"apiVersion,omitempty"`
 
 	// Kind of the referent.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Kind string `json:"kind"`
 
 	// Name of the referent.
 
-	// +kubebuilder:validation:Required.
+	// +kubebuilder:validation:Required
 
 	Name string `json:"name"`
 
 	// Namespace of the referent.
 
-	// +optional.
+	// +optional
 
 	Namespace string `json:"namespace,omitempty"`
 
 	// UID of the referent.
 
-	// +optional.
+	// +optional
 
 	UID string `json:"uid,omitempty"`
 
 	// ResourceVersion of the referent.
 
-	// +optional.
+	// +optional
 
 	ResourceVersion string `json:"resourceVersion,omitempty"`
 
