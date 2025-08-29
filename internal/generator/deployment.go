@@ -1,3 +1,4 @@
+// Package generator provides utilities for generating Kubernetes deployment resources.
 package generator
 
 import (

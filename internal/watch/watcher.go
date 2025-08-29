@@ -1,3 +1,4 @@
+// Package watch provides file system watching utilities for monitoring configuration changes.
 package watch
 
 import (
