@@ -3,8 +3,8 @@
 
 FROM golang:1.24.1-alpine AS builder
 
-# Install minimal dependencies
-RUN apk add --no-cache ca-certificates git
+# Install minimal dependencies including tzdata
+RUN apk add --no-cache ca-certificates git tzdata
 
 WORKDIR /src
 
@@ -37,8 +37,9 @@ WORKDIR /
 # Copy the binary
 COPY --from=builder /planner /planner
 
-# Copy CA certificates
+# Copy CA certificates and timezone data
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
 # Create directories for planner operation
 USER 65532:65532

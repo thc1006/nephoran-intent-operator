@@ -65,9 +65,10 @@ RUN --mount=type=cache,target=/var/cache/apk,sharing=locked \
     apk add --no-cache --virtual .build-deps \
         git \
         ca-certificates \
-        tzdata \
         curl \
         gnupg \
+    && apk add --no-cache \
+        tzdata \
     && rm -rf /tmp/* /var/tmp/* \
     && find / -xdev -type f -perm +6000 -delete 2>/dev/null || true \
     && find / -xdev -type f -perm /2000 -delete 2>/dev/null || true
@@ -141,14 +142,15 @@ RUN --mount=type=cache,target=/var/cache/apk,sharing=locked \
     apk update && apk upgrade --no-cache; \
     apk add --no-cache --virtual .build-deps \
         git \
-        ca-certificates \
-        tzdata \
         binutils \
         curl \
         gnupg \
         upx \
         file \
         make \
+    && apk add --no-cache \
+        ca-certificates \
+        tzdata \
     && rm -rf /tmp/* /var/tmp/* \
     && find / -xdev -type f -perm +6000 -delete 2>/dev/null || true
 
@@ -270,7 +272,7 @@ RUN --mount=type=cache,target=/tmp/.cache/go-mod,sharing=locked \
         echo "Compressing large binary with UPX..."; \
         upx --best --lzma /build/service 2>/dev/null || echo "UPX compression failed or not beneficial"; \
     fi; \
-    # Remove build dependencies to reduce image size
+    # Remove only build dependencies, keep ca-certificates and tzdata for runtime
     apk del .build-deps || true
 
 # =============================================================================
@@ -349,8 +351,9 @@ ARG TARGETARCH
 ARG TARGETPLATFORM
 ARG GO_VERSION
 
-# Copy certificates and timezone data
-COPY --from=go-builder /usr/share/zoneinfo /usr/share/zoneinfo
+# Copy certificates and timezone data from go-builder stage
+# Ensure tzdata is available by copying from a stage where it wasn't removed
+COPY --from=go-deps /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=go-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Copy binary with restricted permissions

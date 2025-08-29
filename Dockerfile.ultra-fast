@@ -89,11 +89,23 @@ COPY . /build-context/
 RUN PREBUILT_BINARY=${PREBUILT_BINARY:+/build-context/${PREBUILT_BINARY}} /select-binary.sh
 
 # =============================================================================
-# STAGE 3: Final Distroless Image
+# STAGE 3: Runtime Dependencies
+# =============================================================================
+FROM alpine:3.20 AS runtime-deps
+
+# Install tzdata and ca-certificates for runtime
+RUN apk add --no-cache ca-certificates tzdata
+
+# =============================================================================
+# STAGE 4: Final Distroless Image
 # =============================================================================
 FROM gcr.io/distroless/static-debian12:nonroot AS final
 
 ARG SERVICE
+
+# Copy timezone data and certificates
+COPY --from=runtime-deps /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=runtime-deps /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Copy the selected binary
 COPY --from=binary-selector /final-binary /app

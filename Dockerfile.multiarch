@@ -20,7 +20,7 @@
 
 ARG GO_VERSION=1.24.1
 ARG PYTHON_VERSION=3.12.10
-ARG ALPINE_VERSION=3.21.8
+ARG ALPINE_VERSION=3.21
 ARG DISTROLESS_VERSION=nonroot-amd64
 
 # Global build arguments for cross-compilation
@@ -282,8 +282,9 @@ ARG VERSION=v2.0.0
 ARG BUILD_DATE
 ARG VCS_REF
 
-# Copy certificates and timezone data
-COPY --from=go-cross-builder /usr/share/zoneinfo /usr/share/zoneinfo
+# Copy certificates and timezone data from stage with tzdata preserved
+# Use go-cross-deps stage where tzdata wasn't removed
+COPY --from=go-cross-deps /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=go-cross-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Copy optimized binary

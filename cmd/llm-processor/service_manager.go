@@ -15,6 +15,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/handlers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
@@ -167,6 +168,7 @@ type ServiceManager struct {
 	secretManager      *config.KubernetesSecretManager
 	oauth2Manager      *auth.OAuth2Manager
 	processor          *handlers.IntentProcessor
+	handler            *handlers.LLMProcessorHandler
 	streamingProcessor *llm.StreamingProcessor
 	circuitBreakerMgr  *llm.CircuitBreakerManager
 	tokenManager       *llm.TokenManager
@@ -305,7 +307,7 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 	sm.relevanceScorer = llm.NewRelevanceScorer(nil, nil)
 
 	if sm.config.EnableContextBuilder {
-		sm.contextBuilder = llm.NewContextBuilder()
+		sm.contextBuilder = llm.NewContextBuilderStub()
 	}
 
 	// sm.promptBuilder = llm.NewRAGAwarePromptBuilder(sm.tokenManager, nil)
@@ -333,14 +335,29 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 		sm.streamingProcessor = llm.NewStreamingProcessor(llmClient, tokenManager, streamingConfig)
 	}
 
-	// Initialize main processor with circuit breaker
+	// Initialize main processor with circuit breaker  
 	circuitBreaker := sm.circuitBreakerMgr.GetOrCreate("llm-processor", nil)
-	sm.processor = &IntentProcessor{
+	sm.processor = &handlers.IntentProcessor{
 		LLMClient:         llmClient,
 		RAGEnhancedClient: nil, // ragEnhanced when available
 		CircuitBreaker:    circuitBreaker,
 		Logger:            sm.logger,
 	}
+
+	// Initialize handler with all components
+	sm.handler = handlers.NewLLMProcessorHandler(
+		sm.config,
+		sm.processor,
+		sm.streamingProcessor,
+		sm.circuitBreakerMgr,
+		sm.tokenManager,
+		sm.contextBuilder,
+		sm.relevanceScorer,
+		sm.promptBuilder,
+		sm.logger,
+		sm.healthChecker,
+		sm.startTime,
+	)
 
 	return nil
 }
@@ -568,7 +585,7 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	// Process intent
-	result, err := sm.processor.ProcessIntent(r.Context(), req.Intent)
+	result, err := sm.processor.ProcessIntent(r.Context(), req.Intent, make(map[string]string))
 	if err != nil {
 		sm.logger.Error("Failed to process intent",
 			slog.String("error", err.Error()),
@@ -588,7 +605,7 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	response := ProcessIntentResponse{
-		Result:         result,
+		Result:         result.Result,
 		Status:         "success",
 		ProcessingTime: time.Since(startTime).String(),
 		RequestID:      reqID,

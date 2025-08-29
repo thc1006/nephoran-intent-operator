@@ -1,5 +1,5 @@
-//go:build !fast_build
-// +build !fast_build
+//go:build !fast_build && !integrated
+// +build !fast_build,!integrated
 
 package main
 

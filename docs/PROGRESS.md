@@ -76,3 +76,4 @@
  | feat/e2e | planner-dependencies | Fixed Go module dependency issues preventing planner service Docker builds with CGO_ENABLED=0
 2025-08-30T02:38:03+08:00 | feat/e2e | planner-dependencies | Fixed Go module dependency issues preventing planner service Docker builds with CGO_ENABLED=0
 | 2025-08-30T03:00:00+08:00 | feat/e2e | oran-nephio-deps | FIXED O-RAN SC and Nephio R5 dependency issues: resolved PGO profile error, missing go.sum entries, LLM mock types, and core package compilation errors - all critical services now compile successfully |
+| 2025-08-30T05:30:59+08:00 | feat/e2e | docker-tzdata-fix | Fixed Docker tzdata issue: resolved 'failed to calculate checksum' error in all Dockerfiles by properly preserving timezone data in multi-stage builds |
