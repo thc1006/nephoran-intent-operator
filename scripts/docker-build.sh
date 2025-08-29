@@ -1,18 +1,30 @@
 #!/bin/bash
 
-# Production Docker build script with security scanning and multi-architecture support
+# =============================================================================
+# Optimized Docker Build Script for Nephoran Intent Operator (2025 Standards)
+# =============================================================================
+# Production-ready Docker build script with GitHub Actions optimization,
+# security scanning, multi-architecture support, and advanced caching
 # Usage: ./docker-build.sh <service> [options]
 
 set -euo pipefail
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+BUILD_DATE=$(date -Iseconds)
 VCS_REF=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 VERSION=${VERSION:-v2.0.0}
-REGISTRY=${REGISTRY:-ghcr.io/thc1006/nephoran-intent-operator}
+REGISTRY=${REGISTRY:-ghcr.io}
+IMAGE_PREFIX=${IMAGE_PREFIX:-nephoran-intent-operator}
 PLATFORMS=${PLATFORMS:-linux/amd64,linux/arm64}
 BUILD_TYPE=${BUILD_TYPE:-production}
+
+# 2025 optimizations
+export DOCKER_BUILDKIT=1
+export BUILDX_NO_DEFAULT_ATTESTATIONS=0
+export BUILDX_ATTESTATION_MODE=max
+export DOCKER_CLI_EXPERIMENTAL=enabled
 
 # Colors for output
 RED='\033[0;31m'
@@ -46,9 +58,14 @@ Production Docker Build Script for Nephoran Intent Operator
 Usage: $0 <service> [options]
 
 Services:
+  conductor-loop   Build Conductor Loop service
+  intent-ingest    Build Intent Ingest service  
   llm-processor    Build LLM Processor service
   nephio-bridge    Build Nephio Bridge service
   oran-adaptor     Build ORAN Adaptor service
+  porch-publisher  Build Porch Publisher service
+  planner          Build Planner service
+  rag-api          Build RAG API service (Python)
   all              Build all services
 
 Options:
@@ -59,6 +76,13 @@ Options:
   --registry       Set custom registry (default: ${REGISTRY})
   --version        Set version tag (default: ${VERSION})
   --platforms      Set target platforms (default: ${PLATFORMS})
+  --cache-from     Cache from scope (for GitHub Actions)
+  --cache-to       Cache to scope (for GitHub Actions)
+  --build-arg      Additional build arguments
+  --provenance     Enable provenance attestation (default: mode=max)
+  --sbom           Enable SBOM generation (default: true)
+  --verbose        Enable verbose output
+  --dry-run        Show commands without executing
   --help           Show this help message
 
 Examples:
@@ -82,9 +106,18 @@ SCAN=false
 MULTI_ARCH=false
 NO_CACHE=false
 
+# Parse command line arguments with 2025 enhancements
+CACHE_FROM_SCOPES=""
+CACHE_TO_SCOPES=""
+BUILD_ARGS=""
+VERBOSE=false
+DRY_RUN=false
+PROVENANCE="mode=max"
+SBOM="true"
+
 while [[ $# -gt 0 ]]; do
     case $1 in
-        llm-processor|nephio-bridge|oran-adaptor|all)
+        conductor-loop|intent-ingest|llm-processor|nephio-bridge|oran-adaptor|porch-publisher|planner|rag-api|all)
             SERVICE="$1"
             shift
             ;;
@@ -115,6 +148,34 @@ while [[ $# -gt 0 ]]; do
         --platforms)
             PLATFORMS="$2"
             shift 2
+            ;;
+        --cache-from)
+            CACHE_FROM_SCOPES="$CACHE_FROM_SCOPES $2"
+            shift 2
+            ;;
+        --cache-to)
+            CACHE_TO_SCOPES="$CACHE_TO_SCOPES $2"
+            shift 2
+            ;;
+        --build-arg)
+            BUILD_ARGS="$BUILD_ARGS --build-arg $2"
+            shift 2
+            ;;
+        --provenance)
+            PROVENANCE="$2"
+            shift 2
+            ;;
+        --sbom)
+            SBOM="$2"
+            shift 2
+            ;;
+        --verbose)
+            VERBOSE=true
+            shift
+            ;;
+        --dry-run)
+            DRY_RUN=true
+            shift
             ;;
         --help)
             show_help
@@ -191,55 +252,145 @@ run_security_scan() {
     log_success "Security scan completed for ${image_name}"
 }
 
-# Build function for individual service
+# Enhanced build function for individual service with 2025 optimizations
 build_service() {
     local service_name="$1"
-    local image_name="${REGISTRY}/${service_name}:${VERSION}"
-    local latest_name="${REGISTRY}/${service_name}:latest"
+    local image_name="${REGISTRY}/${IMAGE_PREFIX}-${service_name}:${VERSION}"
+    local latest_name="${REGISTRY}/${IMAGE_PREFIX}-${service_name}:latest"
+    local branch_name="${REGISTRY}/${IMAGE_PREFIX}-${service_name}:${BRANCH_NAME}-${VCS_REF}"
     
     log_info "Building ${service_name} service..."
     log_info "Image: ${image_name}"
     log_info "Build date: ${BUILD_DATE}"
     log_info "VCS ref: ${VCS_REF}"
     
-    # Build arguments
+    # Determine service type
+    local service_type="go"
+    if [[ "$service_name" == "rag-api" ]]; then
+        service_type="python"
+    fi
+    
+    # Enhanced build arguments with 2025 standards
     local build_args=(
         --build-arg "SERVICE=${service_name}"
+        --build-arg "SERVICE_TYPE=${service_type}"
         --build-arg "BUILD_DATE=${BUILD_DATE}"
         --build-arg "VCS_REF=${VCS_REF}"
         --build-arg "VERSION=${VERSION}"
+        --build-arg "BUILDPLATFORM=linux/amd64"
+        --build-arg "TARGETPLATFORM=${PLATFORMS%%,*}"
+        --build-arg "TARGETOS=linux"
+        --build-arg "TARGETARCH=amd64"
         --tag "${image_name}"
-        --tag "${latest_name}"
+        --tag "${branch_name}"
+        --provenance "${PROVENANCE}"
+        --sbom "${SBOM}"
     )
+    
+    # Add latest tag only for main branch
+    if [[ "$BRANCH_NAME" == "main" ]]; then
+        build_args+=(--tag "${latest_name}")
+    fi
+    
+    # Add custom build args
+    if [[ -n "$BUILD_ARGS" ]]; then
+        build_args+=($BUILD_ARGS)
+    fi
     
     # Add no-cache if requested
     if [[ "$NO_CACHE" == true ]]; then
         build_args+=(--no-cache)
     fi
     
-    # Choose build method based on multi-arch requirement
+    # Build cache arguments with GitHub Actions optimization
+    local cache_args=()
+    
+    # Auto-detect GitHub Actions cache or use provided scopes
+    if [[ -n "${GITHUB_ACTIONS:-}" ]] && [[ -z "$CACHE_FROM_SCOPES" ]]; then
+        cache_args+=(--cache-from "type=gha,scope=docker-${service_name}-${BRANCH_NAME}")
+        cache_args+=(--cache-from "type=gha,scope=docker-${service_name}-main")
+    else
+        for scope in $CACHE_FROM_SCOPES; do
+            cache_args+=(--cache-from "$scope")
+        done
+    fi
+    
+    if [[ -n "${GITHUB_ACTIONS:-}" ]] && [[ -z "$CACHE_TO_SCOPES" ]]; then
+        cache_args+=(--cache-to "type=gha,mode=max,scope=docker-${service_name}-${BRANCH_NAME}")
+    else
+        for scope in $CACHE_TO_SCOPES; do
+            cache_args+=(--cache-to "$scope")
+        done
+    fi
+    
+    # Setup enhanced buildx builder for 2025 standards
+    local builder_name="nephoran-builder-2025"
+    if [[ "$MULTI_ARCH" == true ]] || [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+        log_info "Setting up Docker buildx builder with 2025 optimizations"
+        
+        if ! docker buildx inspect "$builder_name" >/dev/null 2>&1; then
+            docker buildx create --name "$builder_name" --use --driver docker-container \
+                --bootstrap --config-inline '
+[worker.oci]
+  max-parallelism = 4
+  gc-keep-storage = "4GB"
+[registry."ghcr.io"]
+  mirrors = ["mirror.gcr.io"]'
+        else
+            docker buildx use "$builder_name"
+        fi
+    fi
+    
+    # Build command with enhanced options
+    local docker_cmd="docker buildx build"
+    local common_args=(
+        "${build_args[@]}"
+        "${cache_args[@]}"
+        --progress plain
+        --metadata-file "/tmp/metadata-${service_name}.json"
+        --file "${SCRIPT_DIR}/../Dockerfile"
+    )
+    
+    # Add platform and output arguments
     if [[ "$MULTI_ARCH" == true ]]; then
         log_info "Building multi-architecture image for platforms: ${PLATFORMS}"
+        common_args+=(--platform "${PLATFORMS}")
         
-        # Create builder if it doesn't exist
-        if ! docker buildx inspect nephoran-builder >/dev/null 2>&1; then
-            docker buildx create --name nephoran-builder --use
+        if [[ "$PUSH" == true ]]; then
+            common_args+=(--push)
+        else
+            # For multi-arch builds without push, use registry cache
+            common_args+=(--output "type=image,push=false")
         fi
-        
-        docker buildx build \
-            "${build_args[@]}" \
-            --platform "${PLATFORMS}" \
-            --progress plain \
-            --file "${SCRIPT_DIR}/../Dockerfile" \
-            "${SCRIPT_DIR}/.."
-            
     else
         log_info "Building single-architecture image"
-        docker build \
-            "${build_args[@]}" \
-            --progress plain \
-            --file "${SCRIPT_DIR}/../Dockerfile" \
-            "${SCRIPT_DIR}/.."
+        common_args+=(--load)
+    fi
+    
+    # Add no-cache if requested
+    if [[ "$NO_CACHE" == true ]]; then
+        common_args+=(--no-cache)
+    fi
+    
+    # Final build command
+    common_args+=("${SCRIPT_DIR}/..")
+    
+    # Execute build (dry run or actual)
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        log_info "DRY RUN - Build command:"
+        echo "$docker_cmd ${common_args[*]}"
+        return 0
+    fi
+    
+    log_info "Executing build command..."
+    if [[ "$VERBOSE" == "true" ]]; then
+        $docker_cmd "${common_args[@]}"
+    else
+        $docker_cmd "${common_args[@]}" 2>&1 | while IFS= read -r line; do
+            if [[ "$line" =~ ^#[0-9]+ || "$line" =~ "DONE" || "$line" =~ "ERROR" || "$line" =~ "WARNING" ]]; then
+                echo "$line"
+            fi
+        done
     fi
     
     log_success "Successfully built ${service_name}"
@@ -249,12 +400,21 @@ build_service() {
         run_security_scan "${image_name}"
     fi
     
-    # Push if requested
-    if [[ "$PUSH" == true ]]; then
+    # Push single-arch images if not already pushed in multi-arch build
+    if [[ "$PUSH" == true ]] && [[ "$MULTI_ARCH" != true ]]; then
         log_info "Pushing ${image_name}..."
         docker push "${image_name}"
-        docker push "${latest_name}"
-        log_success "Successfully pushed ${image_name}"
+        docker push "${branch_name}"
+        if [[ "$BRANCH_NAME" == "main" ]]; then
+            docker push "${latest_name}"
+        fi
+        log_success "Successfully pushed ${service_name} images"
+    fi
+    
+    # Display build metadata if available
+    if [[ -f "/tmp/metadata-${service_name}.json" ]] && [[ "$VERBOSE" == "true" ]]; then
+        log_info "Build metadata for ${service_name}:"
+        jq . "/tmp/metadata-${service_name}.json" 2>/dev/null || cat "/tmp/metadata-${service_name}.json"
     fi
 }
 
@@ -271,10 +431,15 @@ main() {
     # Change to script directory
     cd "${SCRIPT_DIR}"
     
-    # Build services
+    # Build services with enhanced service list
     if [[ "$SERVICE" == "all" ]]; then
-        for svc in llm-processor nephio-bridge oran-adaptor; do
+        local services=("conductor-loop" "intent-ingest" "llm-processor" "nephio-bridge" "oran-adaptor" "porch-publisher" "planner" "rag-api")
+        log_info "Building all services: ${services[*]}"
+        
+        for svc in "${services[@]}"; do
+            log_info "Starting build for service: $svc"
             build_service "$svc"
+            echo "" # Add spacing between builds
         done
     else
         build_service "$SERVICE"
@@ -299,10 +464,22 @@ main() {
     fi
 }
 
-# Trap to cleanup on exit
+# Enhanced cleanup function for 2025 standards
 cleanup() {
-    if [[ "$MULTI_ARCH" == true ]] && docker buildx inspect nephoran-builder >/dev/null 2>&1; then
-        docker buildx rm nephoran-builder 2>/dev/null || true
+    local builder_name="nephoran-builder-2025"
+    
+    # Cleanup temporary files
+    rm -f /tmp/metadata-*.json 2>/dev/null || true
+    
+    # Cleanup buildx builder (only in local development, keep in CI)
+    if [[ -z "${GITHUB_ACTIONS:-}" ]] && [[ "$MULTI_ARCH" == true ]] && docker buildx inspect "$builder_name" >/dev/null 2>&1; then
+        log_info "Cleaning up buildx builder"
+        docker buildx rm "$builder_name" 2>/dev/null || true
+    fi
+    
+    # Cleanup unused images if not in CI
+    if [[ -z "${GITHUB_ACTIONS:-}" ]] && command -v docker >/dev/null 2>&1; then
+        docker system prune -f --filter "until=1h" 2>/dev/null || true
     fi
 }
 trap cleanup EXIT

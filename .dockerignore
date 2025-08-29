@@ -93,10 +93,11 @@ manifests/
 *.yml
 kustomization.yaml
 
-# Docker related files
-Dockerfile*
+# Docker related files (keep Dockerfile for build)
 docker-compose*
-.dockerignore
+# Keep main Dockerfile and dockerignore
+!Dockerfile
+!.dockerignore
 
 # Package manager files
 node_modules/
@@ -133,25 +134,28 @@ vendor/
 go.work
 go.work.sum
 
-# CI/CD files
+# CI/CD files (but keep some for reference)
 .travis.yml
 .circleci/
-.github/
 Jenkinsfile
 azure-pipelines.yml
 .gitlab-ci.yml
 codecov.yml
 .coveralls.yml
+# Keep GitHub Actions for build context
+!.github/workflows/
 
-# Scripts and automation
-scripts/
+# Scripts and automation (keep essential build scripts)
 hack/
 tools/
-Makefile*
 *.sh
 *.ps1
 *.bat
 *.cmd
+# Keep Makefile and essential scripts
+!Makefile
+!scripts/docker-build.sh
+!scripts/build-all.sh
 
 # Examples and samples
 examples/
@@ -240,3 +244,15 @@ snyk-results.json
 # Include RAG Python files
 !rag-python/
 !requirements-rag.txt
+
+# Performance optimization: exclude large unnecessary directories
+node_modules/
+.npm/
+.yarn/
+vendor/
+.vendor/
+
+# Build cache directories (use BuildKit cache instead)
+.cache/
+.build-cache/
+build-cache/

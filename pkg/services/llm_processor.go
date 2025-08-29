@@ -312,7 +312,7 @@ func (s *LLMProcessorService) SetCacheManager(cacheManager *performance.CacheMan
 	s.logger.Info("Cache manager integrated into LLM processor service")
 }
 
-// SetAsyncProcessor sets the async processor for the service  
+// SetAsyncProcessor sets the async processor for the service
 func (s *LLMProcessorService) SetAsyncProcessor(asyncProcessor *performance.AsyncProcessor) {
 	s.asyncProcessor = asyncProcessor
 	s.logger.Info("Async processor integrated into LLM processor service")
