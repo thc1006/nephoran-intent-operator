@@ -22,12 +22,11 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"k8s.io/apimachinery/pkg/labels"
-
-	"k8s.io/apimachinery/pkg/types"
 
 	"k8s.io/apimachinery/pkg/util/wait"
 
@@ -1193,7 +1192,7 @@ func (r *RecoveryTester) restartPods(ctx context.Context, namespace string, labe
 
 	// Wait for pods to be recreated.
 
-	return wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
 
 		newPodList := &corev1.PodList{}
 
@@ -1539,15 +1538,10 @@ func (r *RecoveryTester) verifyRecoveryComplete(ctx context.Context, experiment 
 
 	for _, svc := range svcList.Items {
 
-		endpoints := &corev1.Endpoints{}
+		// List EndpointSlices for the service
+		eslList := &discoveryv1.EndpointSliceList{}
 
-		if err := r.client.Get(ctx, types.NamespacedName{
-
-			Namespace: svc.Namespace,
-
-			Name:      svc.Name,
-
-		}, endpoints); err != nil {
+		if err := r.client.List(ctx, eslList, client.InNamespace(svc.Namespace), client.MatchingLabels{"kubernetes.io/service-name": svc.Name}); err != nil {
 
 			return false
 
@@ -1555,7 +1549,15 @@ func (r *RecoveryTester) verifyRecoveryComplete(ctx context.Context, experiment 
 
 
 
-		if len(endpoints.Subsets) == 0 {
+		hasEndpoints := false
+		for _, esl := range eslList.Items {
+			if len(esl.Endpoints) > 0 {
+				hasEndpoints = true
+				break
+			}
+		}
+
+		if !hasEndpoints {
 
 			return false
 
@@ -1717,15 +1719,10 @@ func (r *RecoveryTester) validateServiceHealth(ctx context.Context, experiment *
 
 		// Check if service has ready endpoints.
 
-		endpoints := &corev1.Endpoints{}
+		// List EndpointSlices for the service
+		eslList := &discoveryv1.EndpointSliceList{}
 
-		if err := r.client.Get(ctx, types.NamespacedName{
-
-			Namespace: svc.Namespace,
-
-			Name:      svc.Name,
-
-		}, endpoints); err != nil {
+		if err := r.client.List(ctx, eslList, client.InNamespace(svc.Namespace), client.MatchingLabels{"kubernetes.io/service-name": svc.Name}); err != nil {
 
 			return false
 
@@ -1735,14 +1732,22 @@ func (r *RecoveryTester) validateServiceHealth(ctx context.Context, experiment *
 
 		hasReadyEndpoints := false
 
-		for _, subset := range endpoints.Subsets {
+		for _, esl := range eslList.Items {
 
-			if len(subset.Addresses) > 0 {
+			for _, endpoint := range esl.Endpoints {
 
-				hasReadyEndpoints = true
+				if endpoint.Conditions.Ready != nil && *endpoint.Conditions.Ready {
 
+					hasReadyEndpoints = true
+
+					break
+
+				}
+
+			}
+
+			if hasReadyEndpoints {
 				break
-
 			}
 
 		}
@@ -2003,7 +2008,7 @@ func (r *RecoveryTester) TriggerRecovery(ctx context.Context, experiment *Experi
 
 	// Wait for recovery to complete.
 
-	return wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
 
 		return r.verifyRecoveryComplete(ctx, experiment), nil
 

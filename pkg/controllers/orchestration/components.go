@@ -79,7 +79,7 @@ type WorkerPool struct {
 
 	workers     []*Worker
 
-	workQueue   workqueue.RateLimitingInterface
+	workQueue   workqueue.TypedRateLimitingInterface[string]
 
 	processor   JobProcessor
 
@@ -111,7 +111,7 @@ type Worker struct {
 
 	id        string
 
-	workQueue workqueue.RateLimitingInterface
+	workQueue workqueue.TypedRateLimitingInterface[string]
 
 	processor JobProcessor
 
@@ -129,7 +129,7 @@ type Worker struct {
 
 // NewWorkerPool creates a new worker pool.
 
-func NewWorkerPool(id string, workerCount int, workQueue workqueue.RateLimitingInterface, processor JobProcessor, logger logr.Logger) *WorkerPool {
+func NewWorkerPool(id string, workerCount int, workQueue workqueue.TypedRateLimitingInterface[string], processor JobProcessor, logger logr.Logger) *WorkerPool {
 
 	return &WorkerPool{
 
@@ -387,17 +387,7 @@ func (w *Worker) processNextJob(ctx context.Context) {
 
 
 
-	jobID, ok := item.(string)
-
-	if !ok {
-
-		w.logger.Error(fmt.Errorf("invalid item type"), "Expected string job ID")
-
-		w.workQueue.Forget(item)
-
-		return
-
-	}
+	jobID := item
 
 
 

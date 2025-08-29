@@ -225,7 +225,8 @@ func (vr *ValidationRules) GetRuleDescription(ruleName string) string {
 
 func (vr *ValidationRules) ListRules() []string {
 
-	var rules []string
+	// Pre-allocate slice with known capacity for better performance
+	rules := make([]string, 0, len(vr.rules))
 
 	for name := range vr.rules {
 
@@ -565,7 +566,7 @@ func validateKubernetesResource(value interface{}) error {
 
 	// This is a simplified check - in production, use k8s.io/apimachinery/pkg/api/resource.ParseQuantity.
 
-	resourcePattern := regexp.MustCompile(`^[0-9]+(\.[0-9]+)?([mM]?[i]?|[KMGTPE]i?)$`)
+	resourcePattern := regexp.MustCompile(`^[0-9]+(?:\.[0-9]+)?[mMKMGTPEi]*$`)
 
 	if !resourcePattern.MatchString(resource) {
 
@@ -669,7 +670,7 @@ func validateURLFormat(value interface{}) error {
 
 	// Basic URL validation.
 
-	urlPattern := regexp.MustCompile(`^https?://[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})(:[0-9]+)?(/.*)?$`)
+	urlPattern := regexp.MustCompile(`^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?::[0-9]+)?(?:/.*)?$`)
 
 	if !urlPattern.MatchString(url) {
 

@@ -109,7 +109,7 @@ type WorkQueueManager struct {
 
 	// Work queues per phase.
 
-	queues map[interfaces.ProcessingPhase]workqueue.RateLimitingInterface
+	queues map[interfaces.ProcessingPhase]workqueue.TypedRateLimitingInterface[string]
 
 
 
@@ -161,7 +161,7 @@ func NewWorkQueueManager(config *OrchestratorConfig, logger logr.Logger) *WorkQu
 
 		config:        config,
 
-		queues:        make(map[interfaces.ProcessingPhase]workqueue.RateLimitingInterface),
+		queues:        make(map[interfaces.ProcessingPhase]workqueue.TypedRateLimitingInterface[string]),
 
 		workerPools:   make(map[interfaces.ProcessingPhase]*WorkerPool),
 
@@ -217,11 +217,9 @@ func (wqm *WorkQueueManager) Start(ctx context.Context) error {
 
 		// Create rate-limited work queue.
 
-		queue := workqueue.NewNamedRateLimitingQueue(
+		queue := workqueue.NewTypedRateLimitingQueue(
 
-			workqueue.DefaultControllerRateLimiter(),
-
-			string(phase),
+			workqueue.DefaultTypedControllerRateLimiter[string](),
 
 		)
 

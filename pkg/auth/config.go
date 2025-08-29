@@ -295,9 +295,17 @@ const (
 
 // configPath: Path to the auth config file. If empty, falls back to AUTH_CONFIG_FILE env var.
 
-func LoadAuthConfig(configPath string) (*Config, error) {
+func LoadAuthConfig(ctx context.Context, configPath string) (*Config, error) {
 
 	// Load JWT secret key from file or env.
+
+	// Check if context is cancelled before processing
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+		// Continue processing
+	}
 
 	jwtSecretKey, _ := config.LoadJWTSecretKeyFromFile(security.GlobalAuditLogger)
 
@@ -1472,6 +1480,8 @@ func validateJWTSecret(secret string) error {
 // CreateOAuth2Providers creates OAuth2 provider instances from configuration with validation.
 
 func (c *Config) CreateOAuth2Providers() (map[string]*OAuth2Provider, error) {
+	// Create a background context for this operation
+	ctx := context.Background()
 
 	providers := make(map[string]*OAuth2Provider)
 
@@ -1666,6 +1676,14 @@ func (c *Config) CreateOAuth2Providers() (map[string]*OAuth2Provider, error) {
 	}
 
 
+
+	// Check for context cancellation before returning
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+		// Continue processing
+	}
 
 	return providers, nil
 

@@ -28,15 +28,9 @@ limitations under the License.
 
 */
 
-
-
-
 package disaster
 
-
-
 import (
-
 	"archive/tar"
 
 	"compress/gzip"
@@ -63,8 +57,6 @@ import (
 
 	"time"
 
-
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -75,8 +67,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-
-
 	corev1 "k8s.io/api/core/v1"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -86,10 +76,7 @@ import (
 	"k8s.io/client-go/dynamic"
 
 	"k8s.io/client-go/kubernetes"
-
 )
-
-
 
 var (
 
@@ -100,68 +87,51 @@ var (
 		Name: "restore_operations_total",
 
 		Help: "Total number of restore operations",
-
 	}, []string{"type", "status"})
-
-
 
 	restoreDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
 
-		Name:    "restore_duration_seconds",
+		Name: "restore_duration_seconds",
 
-		Help:    "Duration of restore operations",
+		Help: "Duration of restore operations",
 
 		Buckets: prometheus.ExponentialBuckets(60, 2, 10),
-
 	}, []string{"type"})
-
-
 
 	restoreComponentStatus = promauto.NewGaugeVec(prometheus.GaugeOpts{
 
 		Name: "restore_component_status",
 
 		Help: "Status of restore components (0=failed, 1=success)",
-
 	}, []string{"component", "restore_id"})
-
-
 
 	pointInTimeRecoveryAge = promauto.NewGaugeVec(prometheus.GaugeOpts{
 
 		Name: "point_in_time_recovery_age_seconds",
 
 		Help: "Age of the point-in-time recovery target",
-
 	}, []string{"backup_id"})
-
 )
-
-
 
 // RestoreManager manages point-in-time recovery and restore operations.
 
 type RestoreManager struct {
+	mu sync.RWMutex
 
-	mu               sync.RWMutex
+	logger *slog.Logger
 
-	logger           *slog.Logger
+	k8sClient kubernetes.Interface
 
-	k8sClient        kubernetes.Interface
+	dynamicClient dynamic.Interface
 
-	dynamicClient    dynamic.Interface
+	config *RestoreConfig
 
-	config           *RestoreConfig
+	s3Client *s3.Client
 
-	s3Client         *s3.Client
-
-	restoreHistory   []*RestoreRecord
+	restoreHistory []*RestoreRecord
 
 	validationEngine *RestoreValidationEngine
-
 }
-
-
 
 // RestoreConfig holds restore configuration.
 
@@ -169,355 +139,283 @@ type RestoreConfig struct {
 
 	// General settings.
 
-	Enabled               bool          `json:"enabled"`
+	Enabled bool `json:"enabled"`
 
 	DefaultRestoreTimeout time.Duration `json:"default_restore_timeout"`
 
-	ParallelRestores      int           `json:"parallel_restores"`
+	ParallelRestores int `json:"parallel_restores"`
 
-	ValidationEnabled     bool          `json:"validation_enabled"`
-
-
+	ValidationEnabled bool `json:"validation_enabled"`
 
 	// Storage settings.
 
-	StorageProvider string          `json:"storage_provider"`
+	StorageProvider string `json:"storage_provider"`
 
-	S3Config        S3RestoreConfig `json:"s3_config"`
-
-
+	S3Config S3RestoreConfig `json:"s3_config"`
 
 	// Point-in-time recovery settings.
 
-	PITREnabled     bool          `json:"pitr_enabled"`
+	PITREnabled bool `json:"pitr_enabled"`
 
 	PITRGranularity time.Duration `json:"pitr_granularity"` // Minimum time between recoverable points
 
-	PITRRetention   time.Duration `json:"pitr_retention"`   // How long to keep PITR data
-
-
+	PITRRetention time.Duration `json:"pitr_retention"` // How long to keep PITR data
 
 	// Component restore settings.
 
 	ComponentRestoreConfig ComponentRestoreConfig `json:"component_restore_config"`
 
-
-
 	// Validation settings.
 
 	ValidationConfig ValidationConfig `json:"validation_config"`
 
-
-
 	// Recovery verification settings.
 
 	VerificationConfig VerificationConfig `json:"verification_config"`
-
 }
-
-
 
 // S3RestoreConfig holds S3-specific restore configuration.
 
 type S3RestoreConfig struct {
+	Bucket string `json:"bucket"`
 
-	Bucket          string        `json:"bucket"`
+	Region string `json:"region"`
 
-	Region          string        `json:"region"`
-
-	Prefix          string        `json:"prefix"`
+	Prefix string `json:"prefix"`
 
 	DownloadTimeout time.Duration `json:"download_timeout"`
 
-	VerifyChecksums bool          `json:"verify_checksums"`
-
+	VerifyChecksums bool `json:"verify_checksums"`
 }
-
-
 
 // ComponentRestoreConfig holds component-specific restore settings.
 
 type ComponentRestoreConfig struct {
+	RestoreOrder []string `json:"restore_order"`
 
-	RestoreOrder        []string                 `json:"restore_order"`
+	ComponentTimeout map[string]time.Duration `json:"component_timeout"`
 
-	ComponentTimeout    map[string]time.Duration `json:"component_timeout"`
+	ComponentValidation map[string]bool `json:"component_validation"`
 
-	ComponentValidation map[string]bool          `json:"component_validation"`
-
-	SkipOnFailure       []string                 `json:"skip_on_failure"` // Non-critical components
+	SkipOnFailure []string `json:"skip_on_failure"` // Non-critical components
 
 }
-
-
 
 // ValidationConfig holds validation configuration.
 
 type ValidationConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled                   bool          `json:"enabled"`
+	ChecksumValidation bool `json:"checksum_validation"`
 
-	ChecksumValidation        bool          `json:"checksum_validation"`
+	SchemaValidation bool `json:"schema_validation"`
 
-	SchemaValidation          bool          `json:"schema_validation"`
+	DependencyValidation bool `json:"dependency_validation"`
 
-	DependencyValidation      bool          `json:"dependency_validation"`
+	PreRestoreValidation bool `json:"pre_restore_validation"`
 
-	PreRestoreValidation      bool          `json:"pre_restore_validation"`
+	PostRestoreValidation bool `json:"post_restore_validation"`
 
-	PostRestoreValidation     bool          `json:"post_restore_validation"`
+	ValidationTimeout time.Duration `json:"validation_timeout"`
 
-	ValidationTimeout         time.Duration `json:"validation_timeout"`
-
-	ContinueOnValidationError bool          `json:"continue_on_validation_error"`
-
+	ContinueOnValidationError bool `json:"continue_on_validation_error"`
 }
-
-
 
 // VerificationConfig holds post-restore verification settings.
 
 type VerificationConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled              bool             `json:"enabled"`
+	HealthCheckTimeout time.Duration `json:"health_check_timeout"`
 
-	HealthCheckTimeout   time.Duration    `json:"health_check_timeout"`
+	FunctionalTests []FunctionalTest `json:"functional_tests"`
 
-	FunctionalTests      []FunctionalTest `json:"functional_tests"`
+	VerificationRetries int `json:"verification_retries"`
 
-	VerificationRetries  int              `json:"verification_retries"`
-
-	VerificationInterval time.Duration    `json:"verification_interval"`
-
+	VerificationInterval time.Duration `json:"verification_interval"`
 }
-
-
 
 // FunctionalTest represents a functional test to run after restore.
 
 type FunctionalTest struct {
+	Name string `json:"name"`
 
-	Name         string            `json:"name"`
+	Type string `json:"type"` // http, grpc, custom
 
-	Type         string            `json:"type"` // http, grpc, custom
+	Endpoint string `json:"endpoint"`
 
-	Endpoint     string            `json:"endpoint"`
+	Method string `json:"method"`
 
-	Method       string            `json:"method"`
+	ExpectedCode int `json:"expected_code"`
 
-	ExpectedCode int               `json:"expected_code"`
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout      time.Duration     `json:"timeout"`
+	Headers map[string]string `json:"headers"`
 
-	Headers      map[string]string `json:"headers"`
-
-	Body         string            `json:"body"`
-
+	Body string `json:"body"`
 }
-
-
 
 // RestoreRecord represents a restore operation record.
 
 type RestoreRecord struct {
+	ID string `json:"id"`
 
-	ID                  string                      `json:"id"`
+	Type string `json:"type"` // full, incremental, pitr
 
-	Type                string                      `json:"type"` // full, incremental, pitr
+	Status string `json:"status"`
 
-	Status              string                      `json:"status"`
+	BackupID string `json:"backup_id"`
 
-	BackupID            string                      `json:"backup_id"`
+	PointInTime *time.Time `json:"point_in_time,omitempty"`
 
-	PointInTime         *time.Time                  `json:"point_in_time,omitempty"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime           time.Time                   `json:"start_time"`
+	EndTime *time.Time `json:"end_time,omitempty"`
 
-	EndTime             *time.Time                  `json:"end_time,omitempty"`
+	Duration time.Duration `json:"duration"`
 
-	Duration            time.Duration               `json:"duration"`
+	Components map[string]ComponentRestore `json:"components"`
 
-	Components          map[string]ComponentRestore `json:"components"`
+	ValidationResults *ValidationResults `json:"validation_results,omitempty"`
 
-	ValidationResults   *ValidationResults          `json:"validation_results,omitempty"`
+	VerificationResults *VerificationResults `json:"verification_results,omitempty"`
 
-	VerificationResults *VerificationResults        `json:"verification_results,omitempty"`
+	Error string `json:"error,omitempty"`
 
-	Error               string                      `json:"error,omitempty"`
+	Metadata map[string]interface{} `json:"metadata"`
 
-	Metadata            map[string]interface{}      `json:"metadata"`
-
-	RestoreParameters   RestoreParameters           `json:"restore_parameters"`
-
+	RestoreParameters RestoreParameters `json:"restore_parameters"`
 }
-
-
 
 // ComponentRestore represents the restore status of a component.
 
 type ComponentRestore struct {
+	Name string `json:"name"`
 
-	Name       string                 `json:"name"`
+	Status string `json:"status"`
 
-	Status     string                 `json:"status"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime  time.Time              `json:"start_time"`
+	EndTime *time.Time `json:"end_time,omitempty"`
 
-	EndTime    *time.Time             `json:"end_time,omitempty"`
+	Duration time.Duration `json:"duration"`
 
-	Duration   time.Duration          `json:"duration"`
+	SourcePath string `json:"source_path"`
 
-	SourcePath string                 `json:"source_path"`
+	TargetPath string `json:"target_path"`
 
-	TargetPath string                 `json:"target_path"`
+	Size int64 `json:"size"`
 
-	Size       int64                  `json:"size"`
+	Checksum string `json:"checksum"`
 
-	Checksum   string                 `json:"checksum"`
+	Error string `json:"error,omitempty"`
 
-	Error      string                 `json:"error,omitempty"`
-
-	Metadata   map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // ValidationResults holds validation results.
 
 type ValidationResults struct {
+	OverallStatus string `json:"overall_status"`
 
-	OverallStatus        string                `json:"overall_status"`
+	ChecksumValidation *ChecksumValidation `json:"checksum_validation,omitempty"`
 
-	ChecksumValidation   *ChecksumValidation   `json:"checksum_validation,omitempty"`
-
-	SchemaValidation     *SchemaValidation     `json:"schema_validation,omitempty"`
+	SchemaValidation *SchemaValidation `json:"schema_validation,omitempty"`
 
 	DependencyValidation *DependencyValidation `json:"dependency_validation,omitempty"`
 
-	ValidationErrors     []string              `json:"validation_errors"`
+	ValidationErrors []string `json:"validation_errors"`
 
-	ValidationWarnings   []string              `json:"validation_warnings"`
-
+	ValidationWarnings []string `json:"validation_warnings"`
 }
-
-
 
 // ChecksumValidation holds checksum validation results.
 
 type ChecksumValidation struct {
-
-	Status           string          `json:"status"`
+	Status string `json:"status"`
 
 	ComponentResults map[string]bool `json:"component_results"`
 
-	FailedComponents []string        `json:"failed_components"`
-
+	FailedComponents []string `json:"failed_components"`
 }
-
-
 
 // SchemaValidation holds schema validation results.
 
 type SchemaValidation struct {
-
-	Status           string   `json:"status"`
+	Status string `json:"status"`
 
 	ValidatedSchemas []string `json:"validated_schemas"`
 
-	SchemaErrors     []string `json:"schema_errors"`
-
+	SchemaErrors []string `json:"schema_errors"`
 }
-
-
 
 // DependencyValidation holds dependency validation results.
 
 type DependencyValidation struct {
-
-	Status              string   `json:"status"`
+	Status string `json:"status"`
 
 	MissingDependencies []string `json:"missing_dependencies"`
 
 	ConflictingVersions []string `json:"conflicting_versions"`
-
 }
-
-
 
 // VerificationResults holds post-restore verification results.
 
 type VerificationResults struct {
+	OverallStatus string `json:"overall_status"`
 
-	OverallStatus         string                          `json:"overall_status"`
-
-	HealthCheckResults    map[string]bool                 `json:"health_check_results"`
+	HealthCheckResults map[string]bool `json:"health_check_results"`
 
 	FunctionalTestResults map[string]FunctionalTestResult `json:"functional_test_results"`
 
-	VerificationErrors    []string                        `json:"verification_errors"`
+	VerificationErrors []string `json:"verification_errors"`
 
-	VerificationTime      time.Duration                   `json:"verification_time"`
-
+	VerificationTime time.Duration `json:"verification_time"`
 }
-
-
 
 // FunctionalTestResult holds the result of a functional test.
 
 type FunctionalTestResult struct {
+	Name string `json:"name"`
 
-	Name         string        `json:"name"`
+	Status string `json:"status"`
 
-	Status       string        `json:"status"`
-
-	ResponseCode int           `json:"response_code"`
+	ResponseCode int `json:"response_code"`
 
 	ResponseTime time.Duration `json:"response_time"`
 
-	Error        string        `json:"error,omitempty"`
-
+	Error string `json:"error,omitempty"`
 }
-
-
 
 // RestoreParameters holds parameters for a restore operation.
 
 type RestoreParameters struct {
+	TargetNamespaces []string `json:"target_namespaces"`
 
-	TargetNamespaces  []string          `json:"target_namespaces"`
+	ComponentFilter []string `json:"component_filter"` // Only restore these components
 
-	ComponentFilter   []string          `json:"component_filter"`   // Only restore these components
+	ExcludeComponents []string `json:"exclude_components"` // Skip these components
 
-	ExcludeComponents []string          `json:"exclude_components"` // Skip these components
+	OverwriteExisting bool `json:"overwrite_existing"`
 
-	OverwriteExisting bool              `json:"overwrite_existing"`
+	DryRun bool `json:"dry_run"`
 
-	DryRun            bool              `json:"dry_run"`
+	RestoreSecrets bool `json:"restore_secrets"`
 
-	RestoreSecrets    bool              `json:"restore_secrets"`
+	RestorePVCs bool `json:"restore_pvcs"`
 
-	RestorePVCs       bool              `json:"restore_pvcs"`
-
-	CustomOptions     map[string]string `json:"custom_options"`
-
+	CustomOptions map[string]string `json:"custom_options"`
 }
-
-
 
 // RestoreValidationEngine handles restore validation.
 
 type RestoreValidationEngine struct {
-
-	logger    *slog.Logger
+	logger *slog.Logger
 
 	k8sClient kubernetes.Interface
 
-	config    *ValidationConfig
-
+	config *ValidationConfig
 }
-
-
 
 // NewRestoreManager creates a new restore manager.
 
@@ -527,35 +425,34 @@ func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.In
 
 	config := &RestoreConfig{
 
-		Enabled:               true,
+		Enabled: true,
 
 		DefaultRestoreTimeout: 30 * time.Minute,
 
-		ParallelRestores:      3,
+		ParallelRestores: 3,
 
-		ValidationEnabled:     true,
+		ValidationEnabled: true,
 
-		StorageProvider:       "s3",
+		StorageProvider: "s3",
 
 		S3Config: S3RestoreConfig{
 
-			Bucket:          "nephoran-backups",
+			Bucket: "nephoran-backups",
 
-			Region:          "us-west-2",
+			Region: "us-west-2",
 
-			Prefix:          "disaster-recovery",
+			Prefix: "disaster-recovery",
 
 			DownloadTimeout: 10 * time.Minute,
 
 			VerifyChecksums: true,
-
 		},
 
-		PITREnabled:     true,
+		PITREnabled: true,
 
 		PITRGranularity: 15 * time.Minute,
 
-		PITRRetention:   30 * 24 * time.Hour, // 30 days
+		PITRRetention: 30 * 24 * time.Hour, // 30 days
 
 		ComponentRestoreConfig: ComponentRestoreConfig{
 
@@ -570,68 +467,63 @@ func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.In
 				"weaviate",
 
 				"git-repositories",
-
 			},
 
 			ComponentTimeout: map[string]time.Duration{
 
 				"persistent-volumes": 15 * time.Minute,
 
-				"system-state":       2 * time.Minute,
+				"system-state": 2 * time.Minute,
 
-				"kubernetes-config":  5 * time.Minute,
+				"kubernetes-config": 5 * time.Minute,
 
-				"weaviate":           10 * time.Minute,
+				"weaviate": 10 * time.Minute,
 
-				"git-repositories":   5 * time.Minute,
-
+				"git-repositories": 5 * time.Minute,
 			},
 
 			ComponentValidation: map[string]bool{
 
 				"persistent-volumes": true,
 
-				"system-state":       true,
+				"system-state": true,
 
-				"kubernetes-config":  true,
+				"kubernetes-config": true,
 
-				"weaviate":           true,
+				"weaviate": true,
 
-				"git-repositories":   false,
-
+				"git-repositories": false,
 			},
 
 			SkipOnFailure: []string{"git-repositories"},
-
 		},
 
 		ValidationConfig: ValidationConfig{
 
-			Enabled:                   true,
+			Enabled: true,
 
-			ChecksumValidation:        true,
+			ChecksumValidation: true,
 
-			SchemaValidation:          true,
+			SchemaValidation: true,
 
-			DependencyValidation:      true,
+			DependencyValidation: true,
 
-			PreRestoreValidation:      true,
+			PreRestoreValidation: true,
 
-			PostRestoreValidation:     true,
+			PostRestoreValidation: true,
 
-			ValidationTimeout:         5 * time.Minute,
+			ValidationTimeout: 5 * time.Minute,
 
 			ContinueOnValidationError: false,
-
 		},
 
 		VerificationConfig: VerificationConfig{
 
-			Enabled:              true,
+			Enabled: true,
 
-			HealthCheckTimeout:   2 * time.Minute,
+			HealthCheckTimeout: 2 * time.Minute,
 
-			VerificationRetries:  3,
+			VerificationRetries: 3,
 
 			VerificationInterval: 30 * time.Second,
 
@@ -639,43 +531,36 @@ func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.In
 
 				{
 
-					Name:         "LLM Processor Health",
+					Name: "LLM Processor Health",
 
-					Type:         "http",
+					Type: "http",
 
-					Endpoint:     "http://llm-processor:8080/healthz",
+					Endpoint: "http://llm-processor:8080/healthz",
 
-					Method:       "GET",
+					Method: "GET",
 
 					ExpectedCode: 200,
 
-					Timeout:      10 * time.Second,
-
+					Timeout: 10 * time.Second,
 				},
 
 				{
 
-					Name:         "Weaviate Ready",
+					Name: "Weaviate Ready",
 
-					Type:         "http",
+					Type: "http",
 
-					Endpoint:     "http://weaviate:8080/v1/.well-known/ready",
+					Endpoint: "http://weaviate:8080/v1/.well-known/ready",
 
-					Method:       "GET",
+					Method: "GET",
 
 					ExpectedCode: 200,
 
-					Timeout:      10 * time.Second,
-
+					Timeout: 10 * time.Second,
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	// Create dynamic client for CRD operations.
 
@@ -685,33 +570,27 @@ func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.In
 
 	// dynamicClient, err = dynamic.NewForConfig(restConfig).
 
-
-
 	rm := &RestoreManager{
 
-		logger:         logger,
+		logger: logger,
 
-		k8sClient:      k8sClient,
+		k8sClient: k8sClient,
 
-		dynamicClient:  dynamicClient,
+		dynamicClient: dynamicClient,
 
-		config:         config,
+		config: config,
 
 		restoreHistory: make([]*RestoreRecord, 0),
 
 		validationEngine: &RestoreValidationEngine{
 
-			logger:    logger,
+			logger: logger,
 
 			k8sClient: k8sClient,
 
-			config:    &config.ValidationConfig,
-
+			config: &config.ValidationConfig,
 		},
-
 	}
-
-
 
 	// Initialize S3 client for downloads.
 
@@ -725,15 +604,11 @@ func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.In
 
 	}
 
-
-
 	logger.Info("Restore manager initialized successfully")
 
 	return rm, nil
 
 }
-
-
 
 // initializeS3Client initializes the S3 client for downloads.
 
@@ -742,7 +617,6 @@ func (rm *RestoreManager) initializeS3Client() error {
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 
 		config.WithRegion(rm.config.S3Config.Region),
-
 	)
 
 	if err != nil {
@@ -751,15 +625,11 @@ func (rm *RestoreManager) initializeS3Client() error {
 
 	}
 
-
-
 	rm.s3Client = s3.NewFromConfig(cfg)
 
 	return nil
 
 }
-
-
 
 // RestoreFromBackup performs a full restore from a backup.
 
@@ -768,8 +638,6 @@ func (rm *RestoreManager) RestoreFromBackup(ctx context.Context, backupID string
 	return rm.performRestore(ctx, "full", backupID, nil, params)
 
 }
-
-
 
 // RestoreFromPointInTime performs a point-in-time restore.
 
@@ -785,13 +653,9 @@ func (rm *RestoreManager) RestoreFromPointInTime(ctx context.Context, targetTime
 
 	}
 
-
-
 	return rm.performRestore(ctx, "pitr", backupID, &targetTime, params)
 
 }
-
-
 
 // performRestore performs the actual restore operation.
 
@@ -800,8 +664,6 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 	start := time.Now()
 
 	restoreID := fmt.Sprintf("%s-restore-%d", restoreType, start.Unix())
-
-
 
 	rm.logger.Info("Starting restore operation",
 
@@ -813,41 +675,34 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 
 		"point_in_time", pointInTime)
 
-
-
 	defer func() {
 
 		restoreDuration.WithLabelValues(restoreType).Observe(time.Since(start).Seconds())
 
 	}()
 
-
-
 	// Create restore record.
 
 	record := &RestoreRecord{
 
-		ID:                restoreID,
+		ID: restoreID,
 
-		Type:              restoreType,
+		Type: restoreType,
 
-		Status:            "in_progress",
+		Status: "in_progress",
 
-		BackupID:          backupID,
+		BackupID: backupID,
 
-		PointInTime:       pointInTime,
+		PointInTime: pointInTime,
 
-		StartTime:         start,
+		StartTime: start,
 
-		Components:        make(map[string]ComponentRestore),
+		Components: make(map[string]ComponentRestore),
 
-		Metadata:          make(map[string]interface{}),
+		Metadata: make(map[string]interface{}),
 
 		RestoreParameters: params,
-
 	}
-
-
 
 	// Set PITR age metric if applicable.
 
@@ -858,8 +713,6 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 		pointInTimeRecoveryAge.WithLabelValues(backupID).Set(age.Seconds())
 
 	}
-
-
 
 	// Download backup metadata.
 
@@ -877,11 +730,7 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 
 	}
 
-
-
 	record.Metadata["backup_metadata"] = backupMetadata
-
-
 
 	// Pre-restore validation.
 
@@ -909,21 +758,15 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 
 	}
 
-
-
 	// Execute restore plan.
 
 	err = rm.executeRestorePlan(ctx, record, backupMetadata)
-
-
 
 	endTime := time.Now()
 
 	record.EndTime = &endTime
 
 	record.Duration = endTime.Sub(start)
-
-
 
 	if err != nil {
 
@@ -945,8 +788,6 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 
 	}
 
-
-
 	// Post-restore validation.
 
 	if rm.config.ValidationConfig.PostRestoreValidation && record.Status == "completed" {
@@ -962,8 +803,6 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 		}
 
 	}
-
-
 
 	// Post-restore verification.
 
@@ -981,8 +820,6 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 
 	}
 
-
-
 	// Store restore record.
 
 	rm.mu.Lock()
@@ -991,13 +828,9 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 
 	rm.mu.Unlock()
 
-
-
 	return record, err
 
 }
-
-
 
 // downloadBackupMetadata downloads backup metadata from storage.
 
@@ -1009,22 +842,15 @@ func (rm *RestoreManager) downloadBackupMetadata(ctx context.Context, backupID s
 
 	}
 
-
-
 	key := fmt.Sprintf("%s/full/%s/metadata.json", rm.config.S3Config.Prefix, backupID)
 
-
-
 	rm.logger.Info("Downloading backup metadata", "key", key)
-
-
 
 	result, err := rm.s3Client.GetObject(ctx, &s3.GetObjectInput{
 
 		Bucket: aws.String(rm.config.S3Config.Bucket),
 
-		Key:    aws.String(key),
-
+		Key: aws.String(key),
 	})
 
 	if err != nil {
@@ -1035,8 +861,6 @@ func (rm *RestoreManager) downloadBackupMetadata(ctx context.Context, backupID s
 
 	defer result.Body.Close()
 
-
-
 	data, err := io.ReadAll(result.Body)
 
 	if err != nil {
@@ -1044,8 +868,6 @@ func (rm *RestoreManager) downloadBackupMetadata(ctx context.Context, backupID s
 		return nil, fmt.Errorf("failed to read backup metadata: %w", err)
 
 	}
-
-
 
 	var backup BackupRecord
 
@@ -1055,13 +877,9 @@ func (rm *RestoreManager) downloadBackupMetadata(ctx context.Context, backupID s
 
 	}
 
-
-
 	return &backup, nil
 
 }
-
-
 
 // executeRestorePlan executes the restore plan.
 
@@ -1069,13 +887,9 @@ func (rm *RestoreManager) executeRestorePlan(ctx context.Context, record *Restor
 
 	rm.logger.Info("Executing restore plan", "components", len(rm.config.ComponentRestoreConfig.RestoreOrder))
 
-
-
 	// Filter components based on restore parameters.
 
 	componentsToRestore := rm.filterComponents(backup.Components, record.RestoreParameters)
-
-
 
 	// Execute restore in specified order.
 
@@ -1088,8 +902,6 @@ func (rm *RestoreManager) executeRestorePlan(ctx context.Context, record *Restor
 			continue
 
 		}
-
-
 
 		backupComponent := componentsToRestore[componentName]
 
@@ -1113,13 +925,9 @@ func (rm *RestoreManager) executeRestorePlan(ctx context.Context, record *Restor
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // restoreComponent restores a specific component.
 
@@ -1129,27 +937,22 @@ func (rm *RestoreManager) restoreComponent(ctx context.Context, record *RestoreR
 
 	rm.logger.Info("Restoring component", "component", componentName, "source_path", backupComponent.Path)
 
-
-
 	componentRestore := ComponentRestore{
 
-		Name:       componentName,
+		Name: componentName,
 
-		Status:     "in_progress",
+		Status: "in_progress",
 
-		StartTime:  start,
+		StartTime: start,
 
 		SourcePath: backupComponent.Path,
 
-		Size:       backupComponent.Size,
+		Size: backupComponent.Size,
 
-		Checksum:   backupComponent.Checksum,
+		Checksum: backupComponent.Checksum,
 
-		Metadata:   make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}
-
-
 
 	// Set component timeout.
 
@@ -1161,13 +964,9 @@ func (rm *RestoreManager) restoreComponent(ctx context.Context, record *RestoreR
 
 	}
 
-
-
 	restoreCtx, cancel := context.WithTimeout(ctx, timeout)
 
 	defer cancel()
-
-
 
 	var err error
 
@@ -1199,15 +998,11 @@ func (rm *RestoreManager) restoreComponent(ctx context.Context, record *RestoreR
 
 	}
 
-
-
 	endTime := time.Now()
 
 	componentRestore.EndTime = &endTime
 
 	componentRestore.Duration = endTime.Sub(start)
-
-
 
 	if err != nil {
 
@@ -1229,15 +1024,11 @@ func (rm *RestoreManager) restoreComponent(ctx context.Context, record *RestoreR
 
 	}
 
-
-
 	record.Components[componentName] = componentRestore
 
 	return err
 
 }
-
-
 
 // restorePersistentVolumes restores persistent volumes.
 
@@ -1251,8 +1042,6 @@ func (rm *RestoreManager) restorePersistentVolumes(ctx context.Context, componen
 
 	}
 
-
-
 	// Download PV metadata.
 
 	tmpFile, err := rm.downloadComponentFile(ctx, componentRestore.SourcePath)
@@ -1265,8 +1054,6 @@ func (rm *RestoreManager) restorePersistentVolumes(ctx context.Context, componen
 
 	defer os.Remove(tmpFile)
 
-
-
 	// Read PV metadata.
 
 	data, err := os.ReadFile(tmpFile)
@@ -1277,8 +1064,6 @@ func (rm *RestoreManager) restorePersistentVolumes(ctx context.Context, componen
 
 	}
 
-
-
 	var pvMetadata map[string]interface{}
 
 	if err := json.Unmarshal(data, &pvMetadata); err != nil {
@@ -1287,21 +1072,15 @@ func (rm *RestoreManager) restorePersistentVolumes(ctx context.Context, componen
 
 	}
 
-
-
 	componentRestore.Metadata["pv_metadata"] = pvMetadata
 
 	componentRestore.TargetPath = "/tmp/restored-pvs"
-
-
 
 	rm.logger.Info("Persistent volumes restore completed (metadata only)")
 
 	return nil
 
 }
-
-
 
 // restoreSystemState restores system state.
 
@@ -1319,8 +1098,6 @@ func (rm *RestoreManager) restoreSystemState(ctx context.Context, componentResto
 
 	defer os.Remove(tmpFile)
 
-
-
 	// Read system state.
 
 	data, err := os.ReadFile(tmpFile)
@@ -1331,8 +1108,6 @@ func (rm *RestoreManager) restoreSystemState(ctx context.Context, componentResto
 
 	}
 
-
-
 	var systemState map[string]interface{}
 
 	if err := json.Unmarshal(data, &systemState); err != nil {
@@ -1341,21 +1116,15 @@ func (rm *RestoreManager) restoreSystemState(ctx context.Context, componentResto
 
 	}
 
-
-
 	componentRestore.Metadata["system_state"] = systemState
 
 	componentRestore.TargetPath = "/tmp/restored-system-state"
-
-
 
 	rm.logger.Info("System state restore completed")
 
 	return nil
 
 }
-
-
 
 // restoreKubernetesConfig restores Kubernetes configurations.
 
@@ -1373,8 +1142,6 @@ func (rm *RestoreManager) restoreKubernetesConfig(ctx context.Context, component
 
 	defer os.Remove(tmpFile)
 
-
-
 	// Extract archive.
 
 	extractDir := fmt.Sprintf("/tmp/k8s-restore-%d", time.Now().Unix())
@@ -1386,8 +1153,6 @@ func (rm *RestoreManager) restoreKubernetesConfig(ctx context.Context, component
 	}
 
 	defer os.RemoveAll(extractDir)
-
-
 
 	// Restore configurations.
 
@@ -1401,15 +1166,14 @@ func (rm *RestoreManager) restoreKubernetesConfig(ctx context.Context, component
 
 		}
 
-
-
 		// Skip if not in target namespaces.
 
-		relPath, _ := filepath.Rel(extractDir, path)
+		relPath, err := filepath.Rel(extractDir, path)
+		if err != nil {
+			return fmt.Errorf("failed to get relative path for %s: %w", path, err)
+		}
 
 		namespace := filepath.Dir(relPath)
-
-
 
 		if len(params.TargetNamespaces) > 0 {
 
@@ -1435,8 +1199,6 @@ func (rm *RestoreManager) restoreKubernetesConfig(ctx context.Context, component
 
 		}
 
-
-
 		// Restore resource.
 
 		if strings.HasSuffix(path, ".json") {
@@ -1461,8 +1223,6 @@ func (rm *RestoreManager) restoreKubernetesConfig(ctx context.Context, component
 
 		}
 
-
-
 		return nil
 
 	})
@@ -1473,21 +1233,15 @@ func (rm *RestoreManager) restoreKubernetesConfig(ctx context.Context, component
 
 	}
 
-
-
 	componentRestore.Metadata["restored_resources"] = restoredCount
 
 	componentRestore.TargetPath = extractDir
-
-
 
 	rm.logger.Info("Kubernetes config restore completed", "restored_count", restoredCount)
 
 	return nil
 
 }
-
-
 
 // restoreKubernetesResource restores a single Kubernetes resource.
 
@@ -1501,13 +1255,9 @@ func (rm *RestoreManager) restoreKubernetesResource(ctx context.Context, filePat
 
 	}
 
-
-
 	// Determine resource type based on file path.
 
 	filename := filepath.Base(filePath)
-
-
 
 	if strings.Contains(filename, "configmap") {
 
@@ -1519,13 +1269,9 @@ func (rm *RestoreManager) restoreKubernetesResource(ctx context.Context, filePat
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // restoreConfigMap restores a ConfigMap.
 
@@ -1539,8 +1285,6 @@ func (rm *RestoreManager) restoreConfigMap(ctx context.Context, data []byte, par
 
 	}
 
-
-
 	// Check if ConfigMap already exists.
 
 	existing, err := rm.k8sClient.CoreV1().ConfigMaps(configMap.Namespace).Get(ctx, configMap.Name, metav1.GetOptions{})
@@ -1551,8 +1295,6 @@ func (rm *RestoreManager) restoreConfigMap(ctx context.Context, data []byte, par
 
 	}
 
-
-
 	if existing != nil && !params.OverwriteExisting {
 
 		rm.logger.Info("ConfigMap already exists, skipping", "name", configMap.Name, "namespace", configMap.Namespace)
@@ -1560,8 +1302,6 @@ func (rm *RestoreManager) restoreConfigMap(ctx context.Context, data []byte, par
 		return nil
 
 	}
-
-
 
 	// Clear resource metadata.
 
@@ -1571,8 +1311,6 @@ func (rm *RestoreManager) restoreConfigMap(ctx context.Context, data []byte, par
 
 	configMap.CreationTimestamp = metav1.Time{}
 
-
-
 	if params.DryRun {
 
 		rm.logger.Info("Dry run: would restore ConfigMap", "name", configMap.Name, "namespace", configMap.Namespace)
@@ -1580,8 +1318,6 @@ func (rm *RestoreManager) restoreConfigMap(ctx context.Context, data []byte, par
 		return nil
 
 	}
-
-
 
 	if existing != nil {
 
@@ -1593,23 +1329,17 @@ func (rm *RestoreManager) restoreConfigMap(ctx context.Context, data []byte, par
 
 	}
 
-
-
 	if err != nil {
 
 		return fmt.Errorf("failed to restore ConfigMap: %w", err)
 
 	}
 
-
-
 	rm.logger.Info("ConfigMap restored", "name", configMap.Name, "namespace", configMap.Namespace)
 
 	return nil
 
 }
-
-
 
 // restoreSecret restores a Secret.
 
@@ -1623,8 +1353,6 @@ func (rm *RestoreManager) restoreSecret(ctx context.Context, data []byte, params
 
 	}
 
-
-
 	// Check if Secret already exists.
 
 	existing, err := rm.k8sClient.CoreV1().Secrets(secret.Namespace).Get(ctx, secret.Name, metav1.GetOptions{})
@@ -1635,8 +1363,6 @@ func (rm *RestoreManager) restoreSecret(ctx context.Context, data []byte, params
 
 	}
 
-
-
 	if existing != nil && !params.OverwriteExisting {
 
 		rm.logger.Info("Secret already exists, skipping", "name", secret.Name, "namespace", secret.Namespace)
@@ -1644,8 +1370,6 @@ func (rm *RestoreManager) restoreSecret(ctx context.Context, data []byte, params
 		return nil
 
 	}
-
-
 
 	// Clear resource metadata.
 
@@ -1655,8 +1379,6 @@ func (rm *RestoreManager) restoreSecret(ctx context.Context, data []byte, params
 
 	secret.CreationTimestamp = metav1.Time{}
 
-
-
 	if params.DryRun {
 
 		rm.logger.Info("Dry run: would restore Secret", "name", secret.Name, "namespace", secret.Namespace)
@@ -1664,8 +1386,6 @@ func (rm *RestoreManager) restoreSecret(ctx context.Context, data []byte, params
 		return nil
 
 	}
-
-
 
 	if existing != nil {
 
@@ -1677,23 +1397,17 @@ func (rm *RestoreManager) restoreSecret(ctx context.Context, data []byte, params
 
 	}
 
-
-
 	if err != nil {
 
 		return fmt.Errorf("failed to restore Secret: %w", err)
 
 	}
 
-
-
 	rm.logger.Info("Secret restored", "name", secret.Name, "namespace", secret.Namespace)
 
 	return nil
 
 }
-
-
 
 // restoreWeaviate restores Weaviate vector database.
 
@@ -1711,8 +1425,6 @@ func (rm *RestoreManager) restoreWeaviate(ctx context.Context, componentRestore 
 
 	defer os.Remove(tmpFile)
 
-
-
 	// In a real implementation, this would:.
 
 	// 1. Stop Weaviate temporarily.
@@ -1723,21 +1435,15 @@ func (rm *RestoreManager) restoreWeaviate(ctx context.Context, componentRestore 
 
 	// 4. Verify data integrity.
 
-
-
 	componentRestore.TargetPath = "/var/lib/weaviate/restored"
 
 	componentRestore.Metadata["weaviate_restore"] = "simulated"
-
-
 
 	rm.logger.Info("Weaviate restore completed (simulated)")
 
 	return nil
 
 }
-
-
 
 // restoreGitRepositories restores Git repositories.
 
@@ -1755,8 +1461,6 @@ func (rm *RestoreManager) restoreGitRepositories(ctx context.Context, componentR
 
 	defer os.Remove(tmpFile)
 
-
-
 	// Extract to temporary directory.
 
 	extractDir := fmt.Sprintf("/tmp/git-restore-%d", time.Now().Unix())
@@ -1769,13 +1473,9 @@ func (rm *RestoreManager) restoreGitRepositories(ctx context.Context, componentR
 
 	defer os.RemoveAll(extractDir)
 
-
-
 	componentRestore.TargetPath = extractDir
 
 	componentRestore.Metadata["git_repositories"] = "restored to temp directory"
-
-
 
 	rm.logger.Info("Git repositories restore completed")
 
@@ -1783,11 +1483,7 @@ func (rm *RestoreManager) restoreGitRepositories(ctx context.Context, componentR
 
 }
 
-
-
 // Helper methods.
-
-
 
 // downloadComponentFile downloads a component file from storage.
 
@@ -1799,8 +1495,6 @@ func (rm *RestoreManager) downloadComponentFile(ctx context.Context, s3Path stri
 
 	}
 
-
-
 	// Parse S3 path.
 
 	if !strings.HasPrefix(s3Path, "s3://") {
@@ -1808,8 +1502,6 @@ func (rm *RestoreManager) downloadComponentFile(ctx context.Context, s3Path stri
 		return "", fmt.Errorf("invalid S3 path: %s", s3Path)
 
 	}
-
-
 
 	path := strings.TrimPrefix(s3Path, "s3://")
 
@@ -1821,13 +1513,9 @@ func (rm *RestoreManager) downloadComponentFile(ctx context.Context, s3Path stri
 
 	}
 
-
-
 	bucket := parts[0]
 
 	key := parts[1]
-
-
 
 	// Create temporary file.
 
@@ -1841,16 +1529,13 @@ func (rm *RestoreManager) downloadComponentFile(ctx context.Context, s3Path stri
 
 	defer tmpFile.Close()
 
-
-
 	// Download file.
 
 	result, err := rm.s3Client.GetObject(ctx, &s3.GetObjectInput{
 
 		Bucket: aws.String(bucket),
 
-		Key:    aws.String(key),
-
+		Key: aws.String(key),
 	})
 
 	if err != nil {
@@ -1863,8 +1548,6 @@ func (rm *RestoreManager) downloadComponentFile(ctx context.Context, s3Path stri
 
 	defer result.Body.Close()
 
-
-
 	_, err = io.Copy(tmpFile, result.Body)
 
 	if err != nil {
@@ -1875,13 +1558,9 @@ func (rm *RestoreManager) downloadComponentFile(ctx context.Context, s3Path stri
 
 	}
 
-
-
 	return tmpFile.Name(), nil
 
 }
-
-
 
 // extractTarGz extracts a tar.gz file.
 
@@ -1897,8 +1576,6 @@ func (rm *RestoreManager) extractTarGz(archivePath, targetDir string) error {
 
 	defer file.Close()
 
-
-
 	gzr, err := gzip.NewReader(file)
 
 	if err != nil {
@@ -1909,11 +1586,7 @@ func (rm *RestoreManager) extractTarGz(archivePath, targetDir string) error {
 
 	defer gzr.Close()
 
-
-
 	tr := tar.NewReader(gzr)
-
-
 
 	for {
 
@@ -1931,17 +1604,41 @@ func (rm *RestoreManager) extractTarGz(archivePath, targetDir string) error {
 
 		}
 
+		// Security fix (G305): Sanitize file path to prevent directory traversal attacks
+		// Clean the header name and ensure it doesn't escape the target directory
+		cleanName := filepath.Clean(header.Name)
+		// Remove any leading path separators or drive letters
+		cleanName = strings.TrimPrefix(cleanName, string(filepath.Separator))
+		cleanName = strings.TrimPrefix(cleanName, "/")
+		// Remove any ../ or ..\  components
+		if strings.Contains(cleanName, "..") {
+			// Skip files with directory traversal attempts
+			continue
+		}
 
-
-		target := filepath.Join(targetDir, header.Name)
-
-
+		target := filepath.Join(targetDir, cleanName)
+		// Final safety check: ensure the target is within targetDir
+		targetAbs, err := filepath.Abs(target)
+		if err != nil {
+			return fmt.Errorf("failed to get absolute path: %w", err)
+		}
+		targetDirAbs, err := filepath.Abs(targetDir)
+		if err != nil {
+			return fmt.Errorf("failed to get absolute target dir: %w", err)
+		}
+		if !strings.HasPrefix(targetAbs, targetDirAbs+string(filepath.Separator)) && targetAbs != targetDirAbs {
+			// Path would escape target directory, skip it
+			continue
+		}
 
 		switch header.Typeflag {
 
 		case tar.TypeDir:
 
-			if err := os.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
+			// Security fix: Validate file mode before conversion
+			// Ensure mode is within valid range for os.FileMode (uint32)
+			fileMode := os.FileMode(header.Mode & 0777) // Use only permission bits
+			if err := os.MkdirAll(target, fileMode); err != nil {
 
 				return err
 
@@ -1955,17 +1652,15 @@ func (rm *RestoreManager) extractTarGz(archivePath, targetDir string) error {
 
 			}
 
-
-
-			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			// Security fix: Validate file mode before conversion
+			fileMode := os.FileMode(header.Mode & 0777) // Use only permission bits
+			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, fileMode)
 
 			if err != nil {
 
 				return err
 
 			}
-
-
 
 			_, err = io.Copy(f, tr)
 
@@ -1981,21 +1676,15 @@ func (rm *RestoreManager) extractTarGz(archivePath, targetDir string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // filterComponents filters components based on restore parameters.
 
 func (rm *RestoreManager) filterComponents(components map[string]ComponentBackup, params RestoreParameters) map[string]ComponentBackup {
 
 	filtered := make(map[string]ComponentBackup)
-
-
 
 	for name, component := range components {
 
@@ -2007,8 +1696,6 @@ func (rm *RestoreManager) filterComponents(components map[string]ComponentBackup
 
 		}
 
-
-
 		// Include only specified components if filter is provided.
 
 		if len(params.ComponentFilter) > 0 && !rm.isIncluded(name, params.ComponentFilter) {
@@ -2017,19 +1704,13 @@ func (rm *RestoreManager) filterComponents(components map[string]ComponentBackup
 
 		}
 
-
-
 		filtered[name] = component
 
 	}
 
-
-
 	return filtered
 
 }
-
-
 
 func (rm *RestoreManager) isExcluded(component string, excludeList []string) bool {
 
@@ -2047,8 +1728,6 @@ func (rm *RestoreManager) isExcluded(component string, excludeList []string) boo
 
 }
 
-
-
 func (rm *RestoreManager) isIncluded(component string, includeList []string) bool {
 
 	for _, included := range includeList {
@@ -2064,8 +1743,6 @@ func (rm *RestoreManager) isIncluded(component string, includeList []string) boo
 	return false
 
 }
-
-
 
 func (rm *RestoreManager) isSkippableComponent(component string) bool {
 
@@ -2083,8 +1760,6 @@ func (rm *RestoreManager) isSkippableComponent(component string) bool {
 
 }
 
-
-
 // findClosestBackup finds the closest backup to a target time for PITR.
 
 func (rm *RestoreManager) findClosestBackup(ctx context.Context, targetTime time.Time) (string, error) {
@@ -2097,15 +1772,11 @@ func (rm *RestoreManager) findClosestBackup(ctx context.Context, targetTime time
 
 	// 3. Return the backup ID.
 
-
-
 	// For simulation, return a dummy backup ID.
 
 	return fmt.Sprintf("pitr-backup-%d", targetTime.Unix()), nil
 
 }
-
-
 
 // performPostRestoreValidation performs post-restore validation.
 
@@ -2119,27 +1790,20 @@ func (rm *RestoreManager) performPostRestoreValidation(ctx context.Context, reco
 
 }
 
-
-
 // performPostRestoreVerification performs post-restore verification.
 
 func (rm *RestoreManager) performPostRestoreVerification(ctx context.Context, record *RestoreRecord) error {
 
 	verificationResults := &VerificationResults{
 
-		HealthCheckResults:    make(map[string]bool),
+		HealthCheckResults: make(map[string]bool),
 
 		FunctionalTestResults: make(map[string]FunctionalTestResult),
 
-		VerificationErrors:    make([]string, 0),
-
+		VerificationErrors: make([]string, 0),
 	}
 
-
-
 	start := time.Now()
-
-
 
 	// Run functional tests.
 
@@ -2151,11 +1815,7 @@ func (rm *RestoreManager) performPostRestoreVerification(ctx context.Context, re
 
 	}
 
-
-
 	verificationResults.VerificationTime = time.Since(start)
-
-
 
 	// Determine overall status.
 
@@ -2173,8 +1833,6 @@ func (rm *RestoreManager) performPostRestoreVerification(ctx context.Context, re
 
 	}
 
-
-
 	if allPassed {
 
 		verificationResults.OverallStatus = "passed"
@@ -2185,11 +1843,7 @@ func (rm *RestoreManager) performPostRestoreVerification(ctx context.Context, re
 
 	}
 
-
-
 	record.VerificationResults = verificationResults
-
-
 
 	rm.logger.Info("Post-restore verification completed",
 
@@ -2197,13 +1851,9 @@ func (rm *RestoreManager) performPostRestoreVerification(ctx context.Context, re
 
 		"duration", verificationResults.VerificationTime)
 
-
-
 	return nil
 
 }
-
-
 
 // runFunctionalTest runs a functional test.
 
@@ -2213,21 +1863,15 @@ func (rm *RestoreManager) runFunctionalTest(ctx context.Context, test Functional
 
 	result := FunctionalTestResult{
 
-		Name:   test.Name,
+		Name: test.Name,
 
 		Status: "failed",
-
 	}
-
-
 
 	client := &http.Client{
 
 		Timeout: test.Timeout,
-
 	}
-
-
 
 	resp, err := client.Get(test.Endpoint)
 
@@ -2243,13 +1887,9 @@ func (rm *RestoreManager) runFunctionalTest(ctx context.Context, test Functional
 
 	defer resp.Body.Close()
 
-
-
 	result.ResponseCode = resp.StatusCode
 
 	result.ResponseTime = time.Since(start)
-
-
 
 	if resp.StatusCode == test.ExpectedCode {
 
@@ -2261,17 +1901,11 @@ func (rm *RestoreManager) runFunctionalTest(ctx context.Context, test Functional
 
 	}
 
-
-
 	return result
 
 }
 
-
-
 // RestoreValidationEngine methods.
-
-
 
 // ValidateBackup validates a backup before restore.
 
@@ -2279,13 +1913,10 @@ func (rve *RestoreValidationEngine) ValidateBackup(ctx context.Context, backup *
 
 	results := &ValidationResults{
 
-		ValidationErrors:   make([]string, 0),
+		ValidationErrors: make([]string, 0),
 
 		ValidationWarnings: make([]string, 0),
-
 	}
-
-
 
 	// Checksum validation.
 
@@ -2297,8 +1928,6 @@ func (rve *RestoreValidationEngine) ValidateBackup(ctx context.Context, backup *
 
 	}
 
-
-
 	// Schema validation.
 
 	if rve.config.SchemaValidation {
@@ -2309,8 +1938,6 @@ func (rve *RestoreValidationEngine) ValidateBackup(ctx context.Context, backup *
 
 	}
 
-
-
 	// Dependency validation.
 
 	if rve.config.DependencyValidation {
@@ -2320,8 +1947,6 @@ func (rve *RestoreValidationEngine) ValidateBackup(ctx context.Context, backup *
 		results.DependencyValidation = depResults
 
 	}
-
-
 
 	// Determine overall status.
 
@@ -2335,13 +1960,9 @@ func (rve *RestoreValidationEngine) ValidateBackup(ctx context.Context, backup *
 
 	}
 
-
-
 	return results, nil
 
 }
-
-
 
 func (rve *RestoreValidationEngine) validateChecksums(backup *BackupRecord) *ChecksumValidation {
 
@@ -2350,10 +1971,7 @@ func (rve *RestoreValidationEngine) validateChecksums(backup *BackupRecord) *Che
 		ComponentResults: make(map[string]bool),
 
 		FailedComponents: make([]string, 0),
-
 	}
-
-
 
 	// Validate component checksums.
 
@@ -2367,8 +1985,6 @@ func (rve *RestoreValidationEngine) validateChecksums(backup *BackupRecord) *Che
 
 		results.ComponentResults[name] = valid
 
-
-
 		if !valid {
 
 			allValid = false
@@ -2378,8 +1994,6 @@ func (rve *RestoreValidationEngine) validateChecksums(backup *BackupRecord) *Che
 		}
 
 	}
-
-
 
 	if allValid {
 
@@ -2391,41 +2005,32 @@ func (rve *RestoreValidationEngine) validateChecksums(backup *BackupRecord) *Che
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 func (rve *RestoreValidationEngine) validateSchemas(backup *BackupRecord) *SchemaValidation {
 
 	return &SchemaValidation{
 
-		Status:           "passed",
+		Status: "passed",
 
 		ValidatedSchemas: []string{"v1", "nephoran.com/v1"},
 
-		SchemaErrors:     []string{},
-
+		SchemaErrors: []string{},
 	}
 
 }
-
-
 
 func (rve *RestoreValidationEngine) validateDependencies(ctx context.Context, backup *BackupRecord, params RestoreParameters) *DependencyValidation {
 
 	return &DependencyValidation{
 
-		Status:              "passed",
+		Status: "passed",
 
 		MissingDependencies: []string{},
 
 		ConflictingVersions: []string{},
-
 	}
 
 }
-

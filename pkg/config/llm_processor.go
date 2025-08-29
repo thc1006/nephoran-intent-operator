@@ -1335,7 +1335,8 @@ func parseAllowedOrigins(originsStr string) ([]string, error) {
 
 	origins := strings.Split(originsStr, ",")
 
-	var validOrigins []string
+	// Pre-allocate slice with known capacity for better performance
+	validOrigins := make([]string, 0, len(origins))
 
 	isProduction := GetEnvOrDefault("LLM_ENVIRONMENT", "") == "production"
 
@@ -1683,7 +1684,8 @@ func parseAndValidateCIDRs(cidrsStr string) ([]string, error) {
 
 	cidrs := strings.Split(cidrsStr, ",")
 
-	var validCIDRs []string
+	// Pre-allocate slice with known capacity for better performance
+	validCIDRs := make([]string, 0, len(cidrs))
 
 
 
@@ -1965,7 +1967,8 @@ func parseAndValidateIPs(ipsStr string) ([]string, error) {
 
 	ips := strings.Split(ipsStr, ",")
 
-	var validIPs []string
+	// Pre-allocate slice with known capacity for better performance
+	validIPs := make([]string, 0, len(ips))
 
 
 

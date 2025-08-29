@@ -83,19 +83,7 @@ func (c *MTLSGitClient) CommitFiles(ctx context.Context, files map[string]string
 
 
 
-	// Convert map to slice of file paths for the underlying client.
-
-	filePaths := make([]string, 0, len(files))
-
-	for path := range files {
-
-		filePaths = append(filePaths, path)
-
-	}
-
-
-
-	// Note: the underlying CommitFiles method doesn't handle file content,.
+	// Note: the underlying CommitFiles method doesn't handle file content,
 
 	// so we'll use CommitAndPush instead which handles both content and commit.
 

@@ -351,6 +351,11 @@ func (ow *OptimizedWatcher) scaleWorkers() {
 		optimalWorkers = 1 // Use 1 as minimum for at least one worker
 		log.Printf("Warning: OptimalWorkers %d is negative, using 1", prediction.OptimalWorkers)
 	}
+	// Security fix (G115): Safe int to int32 conversion with bounds checking
+	if optimalWorkers > math.MaxInt32 {
+		optimalWorkers = math.MaxInt32
+		log.Printf("Warning: optimalWorkers %d exceeds int32 max, capping to %d", optimalWorkers, math.MaxInt32)
+	}
 	target := int32(optimalWorkers)
 
 	// Apply energy constraints.
@@ -372,6 +377,7 @@ func (ow *OptimizedWatcher) scaleWorkers() {
 		minWorkersInt = 1 // Ensure at least 1 worker
 		log.Printf("Warning: minWorkers %d is negative, using 1", ow.predictiveScaler.minWorkers)
 	}
+	// Already validated above, safe to convert
 	minWorkers := int32(minWorkersInt)
 
 	maxWorkersInt := ow.predictiveScaler.maxWorkers
@@ -382,6 +388,7 @@ func (ow *OptimizedWatcher) scaleWorkers() {
 		maxWorkersInt = 1 // Ensure at least 1 worker
 		log.Printf("Warning: maxWorkers %d is invalid, using 1", ow.predictiveScaler.maxWorkers)
 	}
+	// Already validated above, safe to convert
 	maxWorkers := int32(maxWorkersInt)
 
 	if target < minWorkers {
@@ -545,11 +552,8 @@ func (ow *OptimizedWatcher) recordLatencyFast(duration time.Duration) {
 		// Log unexpected negative duration and use 0
 		log.Printf("Warning: Unexpected negative duration %v, using 0", duration)
 		nanos = 0
-	} else if nanosInt > math.MaxInt64 {
-		// Cap at max value if somehow exceeds int64 range
-		log.Printf("Warning: Duration %v exceeds max, using MaxInt64", duration)
-		nanos = math.MaxUint64
 	} else {
+		// Safe conversion from int64 to uint64 for non-negative values
 		nanos = uint64(nanosInt)
 	}
 

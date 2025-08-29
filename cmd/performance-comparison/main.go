@@ -611,18 +611,13 @@ func compareMetric(name string, oldValue, newValue float64) ComparisonResult {
 
 		improvement = -improvement
 
-		if improvement > 0 {
-
+		switch {
+		case improvement > 0:
 			status = "Improved"
-
-		} else if improvement < -1 {
-
+		case improvement < -1:
 			status = "Degraded"
-
-		} else {
-
+		default:
 			status = "Unchanged"
-
 		}
 
 	}

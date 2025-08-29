@@ -781,7 +781,7 @@ func (qmr *QualityMetricsReport) generateHTMLReport() {
 
         <tr><td>Lines of Code</td><td>%d</td></tr>
 
-        <tr><td>Code Coverage</td><td>%.2f%%</td></tr>
+        <tr><td>Code Coverage</td><td>%.2f%%%%</td></tr>
 
         <tr><td>Maintainability</td><td>%.2f</td></tr>
 

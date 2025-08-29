@@ -1656,6 +1656,12 @@ func (r *E2NodeSetReconciler) getNodeIndexFromConfigMap(configMap *corev1.Config
 	if indexStr, ok := configMap.Labels[E2NodeIndexLabelKey]; ok {
 
 		if index, err := strconv.Atoi(indexStr); err == nil {
+			// Security fix (G109/G115): Validate int to int32 conversion bounds
+			if index < 0 || index > math.MaxInt32 {
+				// Log invalid index and return default
+				// Invalid indices should not occur in normal operation
+				return 0
+			}
 
 			return int32(index)
 
@@ -1997,7 +2003,8 @@ func (r *E2NodeSetReconciler) updateE2NodeSetStatus(ctx context.Context, e2nodeS
 
 	var readyReplicas, currentReplicas, availableReplicas int32
 
-	var e2NodeStatuses []nephoranv1.E2NodeStatus
+	// Pre-allocate slice with known capacity for better performance
+	e2NodeStatuses := make([]nephoranv1.E2NodeStatus, 0, len(configMaps))
 
 
 

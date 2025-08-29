@@ -897,7 +897,8 @@ func (bm *BackupManager) createBackup(ctx context.Context, backupType string) (*
 
 	// Check for errors.
 
-	var errors []error
+	// Pre-allocate slice with max possible capacity for better performance
+	errors := make([]error, 0, len(components))
 
 	for err := range errCh {
 

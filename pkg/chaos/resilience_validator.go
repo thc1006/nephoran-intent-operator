@@ -1707,7 +1707,7 @@ func (v *ResilienceValidator) getHPAStatus(ctx context.Context, namespace string
 
 	// Query HPA metrics.
 
-	hpaMetrics, err := v.queryMetric(ctx, fmt.Sprintf(`kube_horizontalpodautoscaler_status_current_replicas{namespace="%s"}`, namespace))
+	hpaMetrics, err := v.queryMetric(ctx, fmt.Sprintf(`kube_horizontalpodautoscaler_status_current_replicas{namespace=%q}`, namespace))
 
 	if err != nil {
 
@@ -1737,7 +1737,7 @@ func (v *ResilienceValidator) getHPAStatus(ctx context.Context, namespace string
 
 		// Get target replicas.
 
-		targetReplicas, err := v.queryMetric(ctx, fmt.Sprintf(`kube_horizontalpodautoscaler_spec_target_replicas{horizontalpodautoscaler="%s"}`, hpaName))
+		targetReplicas, err := v.queryMetric(ctx, fmt.Sprintf(`kube_horizontalpodautoscaler_spec_target_replicas{horizontalpodautoscaler=%q}`, hpaName))
 
 		if err == nil && len(targetReplicas) > 0 {
 
@@ -1749,7 +1749,7 @@ func (v *ResilienceValidator) getHPAStatus(ctx context.Context, namespace string
 
 		// Get current CPU.
 
-		currentCPU, err := v.queryMetric(ctx, fmt.Sprintf(`kube_horizontalpodautoscaler_status_current_metrics_value{horizontalpodautoscaler="%s",metric_name="cpu"}`, hpaName))
+		currentCPU, err := v.queryMetric(ctx, fmt.Sprintf(`kube_horizontalpodautoscaler_status_current_metrics_value{horizontalpodautoscaler=%q,metric_name="cpu"}`, hpaName))
 
 		if err == nil && len(currentCPU) > 0 {
 
@@ -1855,7 +1855,7 @@ func (v *ResilienceValidator) getDegradationState(ctx context.Context) (*Degrada
 
 	for _, function := range functions {
 
-		query := fmt.Sprintf(`function_available{function="%s"}`, function)
+		query := fmt.Sprintf(`function_available{function=%q}`, function)
 
 		available, err := v.queryMetric(ctx, query)
 

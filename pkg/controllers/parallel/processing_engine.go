@@ -2185,13 +2185,7 @@ func (bm *BackpressureManager) ShouldReject(taskType TaskType) bool {
 
 
 
-	if bm.currentLoad > bm.thresholds["high"] {
-
-		return true
-
-	}
-
-	return false
+	return bm.currentLoad > bm.thresholds["high"]
 
 }
 

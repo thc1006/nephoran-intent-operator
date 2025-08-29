@@ -523,7 +523,7 @@ func (fp *FailurePrediction) predictWithLinearRegression(data []DataPoint, model
 
 	n := len(data)
 
-	recentData := data[max(0, n-20):] // Use last 20 data points
+	recentData := data[maxInt(0, n-20):] // Use last 20 data points
 
 
 
@@ -963,7 +963,9 @@ func (fp *FailurePrediction) updateModelParameters(model *PredictionModel, train
 
 	// Calculate statistics for threshold adjustment.
 
-	var errorRates, responseTimes []float64
+	// Pre-allocate slices with known capacity for better performance
+	errorRates := make([]float64, 0, len(trainingData))
+	responseTimes := make([]float64, 0, len(trainingData))
 
 	for _, point := range trainingData {
 
@@ -1039,7 +1041,7 @@ func (fp *FailurePrediction) recordPrediction(componentName string, probability 
 
 
 
-func max(a, b int) int {
+func maxInt(a, b int) int {
 
 	if a > b {
 

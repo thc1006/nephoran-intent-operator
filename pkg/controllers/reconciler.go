@@ -249,9 +249,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 
 
-	if result.Requeue || result.RequeueAfter > 0 {
+	if result.RequeueAfter > 0 {
 
-		logger.V(1).Info("Processing pipeline requires requeue", "requeue", result.Requeue, "requeue_after", result.RequeueAfter)
+		logger.V(1).Info("Processing pipeline requires requeue", "requeue_after", result.RequeueAfter)
 
 		return result, nil
 
@@ -365,7 +365,7 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 
 
 
-		if err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if err != nil ||  result.RequeueAfter > 0 {
 
 			return result, err
 
@@ -403,7 +403,7 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 
 
 
-		if err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if err != nil ||  result.RequeueAfter > 0 {
 
 			return result, err
 
@@ -441,7 +441,7 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 
 
 
-		if err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if err != nil ||  result.RequeueAfter > 0 {
 
 			return result, err
 
@@ -479,7 +479,7 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 
 
 
-		if err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if err != nil ||  result.RequeueAfter > 0 {
 
 			return result, err
 
@@ -517,7 +517,7 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 
 
 
-		if err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if err != nil ||  result.RequeueAfter > 0 {
 
 			return result, err
 

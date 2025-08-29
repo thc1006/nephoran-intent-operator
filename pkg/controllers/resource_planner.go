@@ -671,7 +671,8 @@ func (p *ResourcePlanner) planNetworkFunction(nfSpec *telecom.NetworkFunctionSpe
 
 	// Build health checks.
 
-	var healthChecks []HealthCheckSpec
+	// Pre-allocate slice with known capacity for better performance
+	healthChecks := make([]HealthCheckSpec, 0, len(nfSpec.HealthChecks))
 
 	for _, hc := range nfSpec.HealthChecks {
 
@@ -1591,13 +1592,12 @@ func (p *ResourcePlanner) generateReadinessProbe(nf *PlannedNetworkFunction) *co
 
 func (p *ResourcePlanner) generateServicePorts(nf *PlannedNetworkFunction) []corev1.ServicePort {
 
-	var ports []corev1.ServicePort
-
-
-
 	// Generate ports based on container ports.
 
 	containerPorts := p.generateContainerPorts(nf)
+
+	// Pre-allocate slice with known capacity for better performance
+	ports := make([]corev1.ServicePort, 0, len(containerPorts))
 
 	for _, cp := range containerPorts {
 

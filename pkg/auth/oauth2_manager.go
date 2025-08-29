@@ -89,7 +89,7 @@ func NewOAuth2Manager(ctx context.Context, config *OAuth2ManagerConfig, logger *
 
 
 
-	authConfig, err := LoadAuthConfig(config.AuthConfigFile)
+	authConfig, err := LoadAuthConfig(context.Background(), config.AuthConfigFile)
 
 	if err != nil {
 

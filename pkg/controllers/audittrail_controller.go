@@ -687,9 +687,7 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 
 	var stats audit.AuditStats
 
-	phase := "Pending"
-
-
+	var phase string
 
 	if auditSystem, exists := r.auditSystems[key]; exists {
 

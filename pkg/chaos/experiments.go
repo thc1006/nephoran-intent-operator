@@ -1577,7 +1577,7 @@ func (p *PredefinedExperiments) runParallelExperiments(ctx context.Context, expe
 
 	var errors []error
 
-	for range len(experiments) {
+	for range experiments {
 
 		if err := <-errChan; err != nil {
 

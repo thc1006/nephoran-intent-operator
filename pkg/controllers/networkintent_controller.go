@@ -1499,7 +1499,8 @@ func createLabelSelector(labels map[string]string) string {
 
 
 
-	var pairs []string
+	// Pre-allocate slice with known capacity for better performance
+	pairs := make([]string, 0, len(labels))
 
 	for key, value := range labels {
 

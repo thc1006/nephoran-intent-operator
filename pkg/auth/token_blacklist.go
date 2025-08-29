@@ -365,7 +365,7 @@ func (tb *TokenBlacklistManager) IsBlacklisted(ctx context.Context, token string
 
 		// Token expired, remove from Redis.
 
-		go tb.removeExpiredToken(tokenHash)
+		go tb.removeExpiredToken(ctx, tokenHash)
 
 		return false, nil
 
@@ -931,9 +931,9 @@ func (tb *TokenBlacklistManager) evictOldestCacheEntry() {
 
 
 
-func (tb *TokenBlacklistManager) removeExpiredToken(tokenHash string) {
+func (tb *TokenBlacklistManager) removeExpiredToken(ctx context.Context, tokenHash string) {
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 
 	defer cancel()
 

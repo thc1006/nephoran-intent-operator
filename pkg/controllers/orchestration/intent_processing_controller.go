@@ -797,7 +797,7 @@ func (r *IntentProcessingController) validateResponse(response *llm.ProcessingRe
 
 	// Check if response contains structured parameters (indicates network function information).
 
-	if structuredParams == nil || len(structuredParams) == 0 {
+	if len(structuredParams) == 0 {
 
 		validationErrors = append(validationErrors, "response lacks network function information")
 

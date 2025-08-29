@@ -173,20 +173,23 @@ func main() {
 		// Validate porch mode.
 
 		if *porchMode != "direct" && *porchMode != "structured" {
-			log.Fatalf("Invalid porch-mode: %s. Must be 'direct' or 'structured'", *porchMode)
+			log.Printf("Invalid porch-mode: %s. Must be 'direct' or 'structured'", *porchMode)
+			return
 		}
 
 		// Validate directories before creating.
 
 		if err := validateHandoffDir(*handoffDir); err != nil {
-			log.Fatalf("Invalid handoff directory path %s: %v", *handoffDir, err)
+			log.Printf("Invalid handoff directory path %s: %v", *handoffDir, err)
+			return
 		}
 
 		// Ensure directories exist.
 
 		for _, dir := range []string{*handoffDir, *errorDir} {
 			if err := os.MkdirAll(dir, 0o750); err != nil {
-				log.Fatalf("Failed to create directory %s: %v", dir, err)
+				log.Printf("Failed to create directory %s: %v", dir, err)
+				return
 			}
 		}
 
@@ -194,7 +197,8 @@ func main() {
 
 		absHandoffDir, err = filepath.Abs(*handoffDir)
 		if err != nil {
-			log.Fatalf("Failed to get absolute path for handoff dir: %v", err)
+			log.Printf("Failed to get absolute path for handoff dir: %v", err)
+			return
 		}
 	} else {
 		// Legacy Config-based approach.
@@ -204,18 +208,21 @@ func main() {
 		// Validate and create handoff directory.
 
 		if err := validateHandoffDir(config.HandoffDir); err != nil {
-			log.Fatalf("Invalid handoff directory path %s: %v", config.HandoffDir, err)
+			log.Printf("Invalid handoff directory path %s: %v", config.HandoffDir, err)
+			return
 		}
 
 		if err := os.MkdirAll(config.HandoffDir, 0o750); err != nil {
-			log.Fatalf("Failed to create handoff directory: %v", err)
+			log.Printf("Failed to create handoff directory: %v", err)
+			return
 		}
 
 		// Convert to absolute path for consistency.
 
 		absHandoffDir, err = filepath.Abs(config.HandoffDir)
 		if err != nil {
-			log.Fatalf("Failed to get absolute path for handoff dir: %v", err)
+			log.Printf("Failed to get absolute path for handoff dir: %v", err)
+			return
 		}
 
 		config.HandoffDir = absHandoffDir
@@ -228,7 +235,8 @@ func main() {
 
 		absErrorDir, err := filepath.Abs(*errorDir)
 		if err != nil {
-			log.Fatalf("Failed to get absolute path for error dir: %v", err)
+			log.Printf("Failed to get absolute path for error dir: %v", err)
+			return
 		}
 
 		// Determine schema path.
@@ -243,7 +251,8 @@ func main() {
 
 		validator, err := ingest.NewValidator(*schemaPath)
 		if err != nil {
-			log.Fatalf("Failed to create validator: %v", err)
+			log.Printf("Failed to create validator: %v", err)
+			return
 		}
 
 		// Create processor configuration.
@@ -266,7 +275,8 @@ func main() {
 
 		processor, err := loop.NewProcessor(processorConfig, validator, loop.DefaultPorchSubmit)
 		if err != nil {
-			log.Fatalf("Failed to create processor: %v", err)
+			log.Printf("Failed to create processor: %v", err)
+			return
 		}
 
 		// Start batch processor.
@@ -299,18 +309,21 @@ func main() {
 		// Validate and create output directory.
 
 		if err := validateHandoffDir(config.OutDir); err != nil {
-			log.Fatalf("Invalid output directory path %s: %v", config.OutDir, err)
+			log.Printf("Invalid output directory path %s: %v", config.OutDir, err)
+			return
 		}
 
 		if err := os.MkdirAll(config.OutDir, 0o750); err != nil {
-			log.Fatalf("Failed to create output directory: %v", err)
+			log.Printf("Failed to create output directory: %v", err)
+			return
 		}
 
 		// Convert output directory to absolute path.
 
 		absOutDir, err := filepath.Abs(config.OutDir)
 		if err != nil {
-			log.Fatalf("Failed to get absolute output path: %v", err)
+			log.Printf("Failed to get absolute output path: %v", err)
+			return
 		}
 
 		config.OutDir = absOutDir
@@ -351,7 +364,8 @@ func main() {
 			Period: config.Period,
 		})
 		if err != nil {
-			log.Fatalf("Failed to create watcher: %v", err)
+			log.Printf("Failed to create watcher: %v", err)
+			return
 		}
 	}
 
@@ -487,7 +501,9 @@ func main() {
 
 	log.Println("Conductor-loop stopped")
 
-	log.Fatal(exitCode)
+	if exitCode != 0 {
+		os.Exit(exitCode)
+	}
 }
 
 // parseFlags parses and validates command-line flags.
@@ -495,7 +511,8 @@ func main() {
 func parseFlags() Config {
 	config, err := parseFlagsWithFlagSet(flag.CommandLine, os.Args[1:])
 	if err != nil {
-		log.Fatalf("Error parsing flags: %v", err)
+		log.Printf("Error parsing flags: %v", err)
+		os.Exit(1)
 	}
 
 	// Note: directory creation is done in main() after validation.

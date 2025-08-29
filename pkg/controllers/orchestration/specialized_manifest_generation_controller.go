@@ -863,15 +863,10 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 	session.updateProgress(0.2, "generating_manifests")
 
-	generatedManifests := make(map[string]string)
-
-	manifestMetadata := make(map[string]interface{})
-
-
-
 	templateStartTime := time.Now()
 
-
+	var generatedManifests map[string]string
+	var manifestMetadata map[string]interface{}
 
 	if c.Config.ParallelGeneration {
 

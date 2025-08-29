@@ -659,7 +659,8 @@ func (g *GitOpsHandler) getNetworkFunctionsList(plan *ResourcePlan) string {
 
 
 
-	var names []string
+	// Pre-allocate slice with known capacity for better performance
+	names := make([]string, 0, len(plan.NetworkFunctions))
 
 	for _, nf := range plan.NetworkFunctions {
 

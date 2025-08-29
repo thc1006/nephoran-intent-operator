@@ -104,19 +104,6 @@ func ExampleUsage() {
 
 
 	// Critical configuration that must be present.
-
-	defer func() {
-
-		if r := recover(); r != nil {
-
-			fmt.Printf("Recovered from panic: %v\n", r)
-
-		}
-
-	}()
-
-
-
 	// This would panic if API_KEY is not set.
 
 	// apiKey := MustGetEnv("API_KEY").

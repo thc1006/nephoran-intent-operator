@@ -11,8 +11,6 @@ import (
 
 	"flag"
 
-	"log"
-
 	"os"
 
 	"os/exec"
@@ -230,7 +228,7 @@ func main() {
 
 		cancel() // Ensure proper cleanup
 
-		log.Fatal(1)
+		return
 
 	}
 

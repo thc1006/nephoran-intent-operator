@@ -1605,9 +1605,14 @@ func (fm *FailoverManager) validateServices(ctx context.Context, targetRegion st
 
 		}
 
+		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+		if err != nil {
+			fm.logger.Error("Failed to create request", "url", url, "error", err)
+			validationResults[checkPath] = false
+			continue
+		}
 
-
-		resp, err := client.Get(url)
+		resp, err := client.Do(req)
 
 		if err != nil {
 
@@ -1913,7 +1918,15 @@ func (h *HTTPRegionHealthChecker) CheckHealth(ctx context.Context, region string
 
 		checkStart := time.Now()
 
-		resp, err := client.Get(url)
+		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+		if err != nil {
+			status.HealthCheckResults[endpoint] = false
+			status.ErrorCount++
+			h.logger.Debug("Failed to create request", "url", url, "error", err)
+			continue
+		}
+
+		resp, err := client.Do(req)
 
 		checkDuration := time.Since(checkStart)
 
