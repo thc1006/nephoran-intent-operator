@@ -136,9 +136,9 @@ func (s *stubDependencyProvider) GetDependency(ctx context.Context, ref *Package
 
 func (s *stubDependencyProvider) GetMetadata(ctx context.Context, ref *PackageReference) (map[string]interface{}, error) {
 	return map[string]interface{}{
-		"name": ref.Name,
+		"name":       ref.Name,
 		"repository": ref.Repository,
-		"version": ref.Version,
+		"version":    ref.Version,
 	}, nil
 }
 

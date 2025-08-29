@@ -375,7 +375,7 @@ func (v *NetworkIntentValidator) checkRepetition(words []string) error {
 
 	consecutiveRepeats := 1
 	for i := 1; i < len(words); i++ {
-		if strings.ToLower(words[i]) == strings.ToLower(words[i-1]) {
+		if strings.EqualFold(words[i], words[i-1]) {
 			consecutiveRepeats++
 			if consecutiveRepeats > DefaultComplexityRules.MaxConsecutiveRepeats {
 				return fmt.Errorf("intent contains too many consecutive repeated words: '%s' (max allowed: %d)",

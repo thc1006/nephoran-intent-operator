@@ -452,7 +452,9 @@ func (rv *ReliabilityValidator) measureProcessingAvailability(ctx context.Contex
 	}
 
 	defer func() {
-		rv.k8sClient.Delete(ctx, testIntent)
+		if deleteErr := rv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+		}
 	}()
 
 	// Wait for processing to start (indicates system is responsive).
@@ -516,7 +518,9 @@ func (rv *ReliabilityValidator) testControllerRestartTolerance(ctx context.Conte
 	}
 
 	defer func() {
-		rv.k8sClient.Delete(ctx, testIntent)
+		if deleteErr := rv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+		}
 	}()
 
 	// Wait for initial processing.
@@ -574,7 +578,9 @@ func (rv *ReliabilityValidator) testNetworkFaultTolerance(ctx context.Context) b
 	}
 
 	defer func() {
-		rv.k8sClient.Delete(ctx, testIntent)
+		if deleteErr := rv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+		}
 	}()
 
 	// Verify that even under potential network issues, the system handles requests.
@@ -613,7 +619,9 @@ func (rv *ReliabilityValidator) testResourceConstraintTolerance(ctx context.Cont
 			ginkgo.By(fmt.Sprintf("Failed to create resource test intent %d: %v", i, err))
 			// Clean up created intents.
 			for _, createdIntent := range testIntents {
-				rv.k8sClient.Delete(ctx, createdIntent)
+				if deleteErr := rv.k8sClient.Delete(ctx, createdIntent); deleteErr != nil {
+					ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup created intent: %v", deleteErr))
+				}
 			}
 			return false
 		}
@@ -624,7 +632,9 @@ func (rv *ReliabilityValidator) testResourceConstraintTolerance(ctx context.Cont
 	// Cleanup.
 	defer func() {
 		for _, intent := range testIntents {
-			rv.k8sClient.Delete(ctx, intent)
+			if deleteErr := rv.k8sClient.Delete(ctx, intent); deleteErr != nil {
+				ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup intent: %v", deleteErr))
+			}
 		}
 	}()
 
@@ -669,7 +679,9 @@ func (rv *ReliabilityValidator) testDependencyFailureTolerance(ctx context.Conte
 	}
 
 	defer func() {
-		rv.k8sClient.Delete(ctx, testIntent)
+		if deleteErr := rv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+		}
 	}()
 
 	// In a real test, we would simulate dependency failures here.

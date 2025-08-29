@@ -1,5 +1,4 @@
 //go:build !disable_rag
-// +build !disable_rag.
 
 // Package llm provides LLM (Large Language Model) integration and processing for the Nephoran Intent Operator.
 package llm

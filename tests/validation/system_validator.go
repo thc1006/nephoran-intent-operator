@@ -54,7 +54,9 @@ func (sv *SystemValidator) ValidateIntentProcessingPipeline(ctx context.Context)
 	}
 
 	defer func() {
-		sv.k8sClient.Delete(ctx, testIntent)
+		if deleteErr := sv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+		}
 	}()
 
 	// Wait for processing to start.
@@ -177,7 +179,9 @@ func (sv *SystemValidator) ValidateLLMRAGIntegration(ctx context.Context) bool {
 		}
 
 		// Cleanup.
-		sv.k8sClient.Delete(ctx, testIntent)
+		if deleteErr := sv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+		}
 	}
 
 	// Require at least 80% accuracy (2 out of 3).
@@ -209,7 +213,9 @@ func (sv *SystemValidator) ValidatePorchIntegration(ctx context.Context) bool {
 	}
 
 	defer func() {
-		sv.k8sClient.Delete(ctx, testIntent)
+		if deleteErr := sv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+		}
 	}()
 
 	// Wait for package generation phase.
@@ -271,7 +277,9 @@ func (sv *SystemValidator) ValidateMultiClusterDeployment(ctx context.Context) b
 	}
 
 	defer func() {
-		sv.k8sClient.Delete(ctx, testIntent)
+		if deleteErr := sv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+		}
 	}()
 
 	// Wait for deployment phase.
@@ -360,7 +368,9 @@ func (sv *SystemValidator) validateE2Interface(ctx context.Context) bool {
 	}
 
 	defer func() {
-		sv.k8sClient.Delete(ctx, testE2NodeSet)
+		if deleteErr := sv.k8sClient.Delete(ctx, testE2NodeSet); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test E2NodeSet: %v", deleteErr))
+		}
 	}()
 
 	// Wait for E2NodeSet to become ready.
@@ -394,7 +404,9 @@ func (sv *SystemValidator) validateA1Interface(ctx context.Context) bool {
 	}
 
 	defer func() {
-		sv.k8sClient.Delete(ctx, testIntent)
+		if deleteErr := sv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+		}
 	}()
 
 	// Wait for processing.
@@ -428,7 +440,9 @@ func (sv *SystemValidator) validateO1Interface(ctx context.Context) bool {
 	}
 
 	defer func() {
-		sv.k8sClient.Delete(ctx, testIntent)
+		if deleteErr := sv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+		}
 	}()
 
 	gomega.Eventually(func() bool {
@@ -460,7 +474,9 @@ func (sv *SystemValidator) validateO2Interface(ctx context.Context) bool {
 	}
 
 	defer func() {
-		sv.k8sClient.Delete(ctx, testIntent)
+		if deleteErr := sv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+		}
 	}()
 
 	gomega.Eventually(func() bool {

@@ -41,8 +41,8 @@ type SessionManagerInterface interface {
 	Close()
 }
 
-// AuthHandlersInterface defines the interface for authentication handlers.
-type AuthHandlersInterface interface {
+// HandlersInterface defines the interface for authentication handlers.
+type HandlersInterface interface {
 	RegisterRoutes(router interface{})
 	GetProvidersHandler(w http.ResponseWriter, r *http.Request)
 	InitiateLoginHandler(w http.ResponseWriter, r *http.Request)
@@ -78,8 +78,8 @@ type UserSession struct {
 	SecureContext bool   `json:"secure_context"`
 }
 
-// AuthManagerInterface defines the interface for the main authentication manager.
-type AuthManagerInterface interface {
+// ManagerInterface defines the interface for the main authentication manager.
+type ManagerInterface interface {
 	GetMiddleware() interface{}
 	GetLDAPMiddleware() interface{}
 	GetOAuth2Manager() interface{}

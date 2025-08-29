@@ -577,7 +577,7 @@ func (c *ChiSquareValidator) Validate(data []float64, threshold float64) (bool, 
 
 	chiSquare := 0.0
 	for i, observed := range bins {
-		binCenter := min + float64(i)*binWidth + binWidth/2
+		binCenter := minVal + float64(i)*binWidth + binWidth/2
 		expected := n * normalPDF(binCenter, mean, stdDev) * binWidth
 		if expected > 0 {
 			chiSquare += math.Pow(float64(observed)-expected, 2) / expected

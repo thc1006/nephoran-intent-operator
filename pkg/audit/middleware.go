@@ -537,9 +537,8 @@ func (m *HTTPAuditMiddleware) sanitizeHeaders(headers http.Header) map[string]st
 }
 
 func (m *HTTPAuditMiddleware) isSensitiveHeader(header string) bool {
-	header = strings.ToLower(header)
 	for _, sensitive := range m.config.SensitiveHeaders {
-		if strings.ToLower(sensitive) == header {
+		if strings.EqualFold(sensitive, header) {
 			return true
 		}
 	}
@@ -550,7 +549,7 @@ func (m *HTTPAuditMiddleware) isSensitiveHeader(header string) bool {
 		"cookie", "set-cookie", "x-csrf-token",
 	}
 	for _, sensitive := range defaultSensitive {
-		if strings.ToLower(sensitive) == header {
+		if strings.EqualFold(sensitive, header) {
 			return true
 		}
 	}

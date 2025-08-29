@@ -482,7 +482,9 @@ func (sv *SecurityValidator) validateEncryptionAtRest(ctx context.Context) bool 
 
 	// Cleanup.
 	defer func() {
-		sv.k8sClient.Delete(ctx, testSecret)
+		if deleteErr := sv.k8sClient.Delete(ctx, testSecret); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test secret: %v", deleteErr))
+		}
 	}()
 
 	// Verify secret is encrypted in storage.

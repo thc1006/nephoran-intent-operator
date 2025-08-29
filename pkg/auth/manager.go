@@ -11,9 +11,9 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
-// AuthManager manages authentication providers and sessions.
-type AuthManager struct {
-	config         *AuthConfig
+// Manager manages authentication providers and sessions.
+type Manager struct {
+	config         *Config
 	logger         *slog.Logger
 	jwtManager     *JWTManager
 	sessionManager *SessionManager
@@ -31,7 +31,7 @@ type AuthManager struct {
 }
 
 // NewAuthManager creates a new authentication manager.
-func NewAuthManager(config *AuthConfig, logger *slog.Logger) (*AuthManager, error) {
+func NewAuthManager(config *Config, logger *slog.Logger) (*Manager, error) {
 	if config == nil {
 		return nil, fmt.Errorf("auth config is required")
 	}
@@ -40,7 +40,7 @@ func NewAuthManager(config *AuthConfig, logger *slog.Logger) (*AuthManager, erro
 		logger = slog.Default()
 	}
 
-	am := &AuthManager{
+	am := &Manager{
 		config:         config,
 		logger:         logger,
 		oauthProviders: make(map[string]providers.OAuthProvider),
@@ -161,42 +161,42 @@ func NewAuthManager(config *AuthConfig, logger *slog.Logger) (*AuthManager, erro
 }
 
 // GetMiddleware returns the auth middleware.
-func (am *AuthManager) GetMiddleware() *AuthMiddleware {
+func (am *Manager) GetMiddleware() *AuthMiddleware {
 	return am.middleware
 }
 
 // GetLDAPMiddleware returns the LDAP auth middleware.
-func (am *AuthManager) GetLDAPMiddleware() *LDAPAuthMiddleware {
+func (am *Manager) GetLDAPMiddleware() *LDAPAuthMiddleware {
 	return am.ldapMiddleware
 }
 
 // GetOAuth2Manager returns the OAuth2 manager.
-func (am *AuthManager) GetOAuth2Manager() *OAuth2Manager {
+func (am *Manager) GetOAuth2Manager() *OAuth2Manager {
 	return am.oauth2Manager
 }
 
 // GetSessionManager returns the session manager.
-func (am *AuthManager) GetSessionManager() *SessionManager {
+func (am *Manager) GetSessionManager() *SessionManager {
 	return am.sessionManager
 }
 
 // GetJWTManager returns the JWT manager.
-func (am *AuthManager) GetJWTManager() *JWTManager {
+func (am *Manager) GetJWTManager() *JWTManager {
 	return am.jwtManager
 }
 
 // GetRBACManager returns the RBAC manager.
-func (am *AuthManager) GetRBACManager() *RBACManager {
+func (am *Manager) GetRBACManager() *RBACManager {
 	return am.rbacManager
 }
 
 // GetHandlers returns the auth handlers.
-func (am *AuthManager) GetHandlers() *AuthHandlers {
+func (am *Manager) GetHandlers() *AuthHandlers {
 	return am.handlers
 }
 
 // ListProviders returns information about available authentication providers.
-func (am *AuthManager) ListProviders() map[string]interface{} {
+func (am *Manager) ListProviders() map[string]interface{} {
 	result := make(map[string]interface{})
 
 	// LDAP providers.
@@ -223,7 +223,7 @@ func (am *AuthManager) ListProviders() map[string]interface{} {
 }
 
 // RefreshTokens refreshes access and refresh tokens.
-func (am *AuthManager) RefreshTokens(ctx context.Context, refreshToken string) (string, string, error) {
+func (am *Manager) RefreshTokens(ctx context.Context, refreshToken string) (string, string, error) {
 	if am.jwtManager == nil {
 		return "", "", fmt.Errorf("JWT manager not initialized")
 	}
@@ -265,7 +265,7 @@ func (am *AuthManager) RefreshTokens(ctx context.Context, refreshToken string) (
 }
 
 // ValidateSession validates a session and returns session information.
-func (am *AuthManager) ValidateSession(ctx context.Context, sessionID string) (*UserSession, error) {
+func (am *Manager) ValidateSession(ctx context.Context, sessionID string) (*UserSession, error) {
 	if am.sessionManager == nil {
 		return nil, fmt.Errorf("session manager not initialized")
 	}
@@ -282,7 +282,7 @@ func (am *AuthManager) ValidateSession(ctx context.Context, sessionID string) (*
 }
 
 // HandleHealthCheck handles health check requests.
-func (am *AuthManager) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
+func (am *Manager) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	health := map[string]interface{}{
 		"status": "healthy",
 		"services": map[string]string{
@@ -309,7 +309,7 @@ func (am *AuthManager) HandleHealthCheck(w http.ResponseWriter, r *http.Request)
 }
 
 // Shutdown gracefully shuts down the auth manager.
-func (am *AuthManager) Shutdown(ctx context.Context) error {
+func (am *Manager) Shutdown(ctx context.Context) error {
 	am.logger.Info("Shutting down AuthManager")
 
 	var errors []error

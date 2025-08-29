@@ -27,7 +27,7 @@ type SessionManager struct {
 	config *SessionConfig
 
 	// State management.
-	stateStore map[string]*AuthState // CSRF state management
+	stateStore map[string]*State // CSRF state management
 
 	logger *slog.Logger
 	mutex  sync.RWMutex
@@ -35,8 +35,8 @@ type SessionManager struct {
 
 // UserSession is defined in interfaces.go.
 
-// AuthState represents OAuth2 authorization state.
-type AuthState struct {
+// State represents OAuth2 authorization state.
+type State struct {
 	State         string                   `json:"state"`
 	Provider      string                   `json:"provider"`
 	RedirectURI   string                   `json:"redirect_uri"`
@@ -149,7 +149,7 @@ func NewSessionManager(config *SessionConfig, jwtManager *JWTManager, rbacManage
 
 	manager := &SessionManager{
 		sessions:    make(map[string]*UserSession),
-		stateStore:  make(map[string]*AuthState),
+		stateStore:  make(map[string]*State),
 		providers:   make(map[string]providers.OAuthProvider),
 		jwtManager:  jwtManager,
 		rbacManager: rbacManager,
@@ -215,7 +215,7 @@ func (sm *SessionManager) InitiateLogin(ctx context.Context, request *LoginReque
 	}
 
 	// Store state.
-	authState := &AuthState{
+	authState := &State{
 		State:         state,
 		Provider:      request.Provider,
 		RedirectURI:   request.RedirectURI,

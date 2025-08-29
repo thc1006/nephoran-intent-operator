@@ -175,11 +175,11 @@ type StreamingPercentiles struct {
 	tdigest *TDigest
 
 	// Running statistics.
-	count int64
-	sum   int64
-	sumSq int64
-	min   int64
-	max   int64
+	count  int64
+	sum    int64
+	sumSq  int64
+	minVal int64
+	maxVal int64
 
 	// Percentile cache.
 	percentileCache map[float64]time.Duration
@@ -812,11 +812,11 @@ func (s *StreamingPercentiles) Add(latency time.Duration) {
 	s.sum += value
 	s.sumSq += value * value
 
-	if s.count == 1 || value < s.min {
-		s.min = value
+	if s.count == 1 || value < s.minVal {
+		s.minVal = value
 	}
-	if s.count == 1 || value > s.max {
-		s.max = value
+	if s.count == 1 || value > s.maxVal {
+		s.maxVal = value
 	}
 
 	s.tdigest.Add(float64(value))
@@ -878,14 +878,14 @@ func (s *StreamingPercentiles) GetStdDev() time.Duration {
 func (s *StreamingPercentiles) GetMin() time.Duration {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return time.Duration(s.min)
+	return time.Duration(s.minVal)
 }
 
 // GetMax performs getmax operation.
 func (s *StreamingPercentiles) GetMax() time.Duration {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return time.Duration(s.max)
+	return time.Duration(s.maxVal)
 }
 
 // GetCount performs getcount operation.

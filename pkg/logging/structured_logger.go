@@ -446,7 +446,7 @@ func DefaultConfig(serviceName, version, environment string) Config {
 }
 
 // NewLogger creates a simple logger for backwards compatibility.
-func NewLogger(serviceName string, level string) *StructuredLogger {
+func NewLogger(serviceName, level string) *StructuredLogger {
 	logLevel := LevelInfo
 	switch strings.ToLower(level) {
 	case "debug":

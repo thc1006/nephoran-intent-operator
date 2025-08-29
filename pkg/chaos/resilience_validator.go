@@ -915,8 +915,8 @@ func (v *ResilienceValidator) getDegradationState(ctx context.Context) (*Degrada
 	// Query degradation start time.
 	startTime, err := v.queryMetric(ctx, `system_degradation_start_timestamp`)
 	if err == nil && len(startTime) > 0 && startTime[0].Value > 0 {
-		if startTime[0].Value >= 0 && startTime[0].Value <= float64(1<<62) {
-			ts := time.Unix(int64(startTime[0].Value), 0)
+		if float64(startTime[0].Value) >= 0 && float64(startTime[0].Value) <= float64(1<<62) {
+			ts := time.Unix(int64(float64(startTime[0].Value)), 0)
 			state.StartTime = &ts
 		}
 	}

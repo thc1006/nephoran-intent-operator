@@ -469,21 +469,21 @@ func (opb *ORANPerformanceBenchmarker) runConcurrencyTesting(ctx context.Context
 }
 
 // calculateLatencyStats calculates basic latency statistics.
-func (opb *ORANPerformanceBenchmarker) calculateLatencyStats(latencies []time.Duration) (min, max, avg time.Duration) {
+func (opb *ORANPerformanceBenchmarker) calculateLatencyStats(latencies []time.Duration) (minLatency, maxLatency, avg time.Duration) {
 	if len(latencies) == 0 {
 		return
 	}
 
-	min = latencies[0]
-	max = latencies[0]
+	minLatency = latencies[0]
+	maxLatency = latencies[0]
 	var total int64
 
 	for _, latency := range latencies {
-		if latency < min {
-			min = latency
+		if latency < minLatency {
+			minLatency = latency
 		}
-		if latency > max {
-			max = latency
+		if latency > maxLatency {
+			maxLatency = latency
 		}
 		total += latency.Nanoseconds()
 	}

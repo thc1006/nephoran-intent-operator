@@ -246,7 +246,7 @@ func validateCredentialStrength(username, password string) {
 	weakPasswords := []string{"password", "admin", "123456", "12345678", "test", "demo"}
 
 	for _, weak := range weakPasswords {
-		if strings.ToLower(password) == weak {
+		if strings.EqualFold(password, weak) {
 			log.Println("⚠️  WARNING: Weak password detected. Please use a strong password in production.")
 			break
 		}

@@ -14,8 +14,8 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
-// AuthConfig holds authentication configuration.
-type AuthConfig struct {
+// Config holds authentication configuration.
+type Config struct {
 	Enabled       bool                          `json:"enabled"`
 	JWTSecretKey  string                        `json:"jwt_secret_key"`
 	TokenTTL      time.Duration                 `json:"token_ttl"`
@@ -145,11 +145,11 @@ const (
 
 // LoadAuthConfig loads authentication configuration from environment and file.
 // configPath: Path to the auth config file. If empty, falls back to AUTH_CONFIG_FILE env var.
-func LoadAuthConfig(configPath string) (*AuthConfig, error) {
+func LoadAuthConfig(configPath string) (*Config, error) {
 	// Load JWT secret key from file or env.
 	jwtSecretKey, _ := config.LoadJWTSecretKeyFromFile(security.GlobalAuditLogger)
 
-	authConfig := &AuthConfig{
+	authConfig := &Config{
 		Enabled:       config.GetBoolEnv("AUTH_ENABLED", false),
 		JWTSecretKey:  jwtSecretKey,
 		TokenTTL:      config.GetDurationEnv("TOKEN_TTL", 24*time.Hour),
@@ -207,7 +207,7 @@ func LoadAuthConfig(configPath string) (*AuthConfig, error) {
 }
 
 // loadProviders loads OAuth2 provider configurations from environment with secure error handling.
-func (c *AuthConfig) loadProviders() error {
+func (c *Config) loadProviders() error {
 	var errors []error
 
 	// Azure AD provider.
@@ -315,7 +315,7 @@ func (c *AuthConfig) loadProviders() error {
 }
 
 // loadLDAPProviders loads LDAP provider configurations from environment with secure error handling.
-func (c *AuthConfig) loadLDAPProviders() error {
+func (c *Config) loadLDAPProviders() error {
 	var errors []error
 
 	// LDAP provider (primary).
@@ -471,7 +471,7 @@ func parseRoleMappings(mappingStr string) map[string][]string {
 }
 
 // loadFromFile loads configuration from JSON file with comprehensive security validation.
-func (c *AuthConfig) loadFromFile(filename string) error {
+func (c *Config) loadFromFile(filename string) error {
 	// SECURITY: Validate config file path to prevent path traversal attacks.
 	if err := validateConfigFilePath(filename); err != nil {
 		// Log security event for audit trail.
@@ -571,7 +571,7 @@ func (c *AuthConfig) loadFromFile(filename string) error {
 }
 
 // validate validates the configuration with enhanced security checks.
-func (c *AuthConfig) validate() error {
+func (c *Config) validate() error {
 	if !c.Enabled {
 		return nil // Skip validation if auth is disabled
 	}
@@ -733,7 +733,7 @@ func validateJWTSecret(secret string) error {
 }
 
 // CreateOAuth2Providers creates OAuth2 provider instances from configuration with validation.
-func (c *AuthConfig) CreateOAuth2Providers() (map[string]*OAuth2Provider, error) {
+func (c *Config) CreateOAuth2Providers() (map[string]*OAuth2Provider, error) {
 	providers := make(map[string]*OAuth2Provider)
 	var errors []error
 
@@ -835,7 +835,7 @@ func (c *AuthConfig) CreateOAuth2Providers() (map[string]*OAuth2Provider, error)
 }
 
 // CreateLDAPProviders creates LDAP provider instances from configuration with validation.
-func (c *AuthConfig) CreateLDAPProviders() (map[string]providers.LDAPProvider, error) {
+func (c *Config) CreateLDAPProviders() (map[string]providers.LDAPProvider, error) {
 	ldapProviders := make(map[string]providers.LDAPProvider)
 	var errors []error
 
@@ -1450,7 +1450,7 @@ func determineSecretSource(filename, envVar string) string {
 }
 
 // ToOAuth2Config converts AuthConfig to OAuth2Config.
-func (c *AuthConfig) ToOAuth2Config() (*OAuth2Config, error) {
+func (c *Config) ToOAuth2Config() (*OAuth2Config, error) {
 	providers, err := c.CreateOAuth2Providers()
 	if err != nil {
 		return nil, err

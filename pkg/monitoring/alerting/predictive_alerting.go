@@ -1017,9 +1017,9 @@ func (pa *PredictiveAlerting) normalizeFeatures(features [][]float64) (*Normaliz
 			params.Params[fmt.Sprintf("max_%d", j)] = maxVal
 
 			// Normalize if range is non-zero.
-			if max > min {
+			if maxVal > minVal {
 				for i := 0; i < len(features); i++ {
-					normalized[i][j] = (features[i][j] - min) / (max - min)
+					normalized[i][j] = (features[i][j] - minVal) / (maxVal - minVal)
 				}
 			}
 		}

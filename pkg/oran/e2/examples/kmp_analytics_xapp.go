@@ -279,17 +279,17 @@ func (x *KMPAnalyticsXApp) updateStatistics(history *MeasurementHistory) {
 		return
 	}
 
-	var sum, min, max float64
-	min = history.Values[0].Value
-	max = history.Values[0].Value
+	var sum, minVal, maxVal float64
+	minVal = history.Values[0].Value
+	maxVal = history.Values[0].Value
 
 	for _, measurement := range history.Values {
 		sum += measurement.Value
-		if measurement.Value < min {
-			min = measurement.Value
+		if measurement.Value < minVal {
+			minVal = measurement.Value
 		}
-		if measurement.Value > max {
-			max = measurement.Value
+		if measurement.Value > maxVal {
+			maxVal = measurement.Value
 		}
 	}
 
@@ -310,8 +310,8 @@ func (x *KMPAnalyticsXApp) updateStatistics(history *MeasurementHistory) {
 
 	history.Statistics = MeasurementStatistics{
 		Mean:   mean,
-		Min:    min,
-		Max:    max,
+		Min:    minVal,
+		Max:    maxVal,
 		StdDev: stdDev,
 		Count:  int(count),
 	}

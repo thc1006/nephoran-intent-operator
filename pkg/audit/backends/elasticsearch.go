@@ -1,3 +1,5 @@
+// Package backends provides audit logging backend implementations
+// for various storage and forwarding systems.
 package backends
 
 import (

@@ -157,7 +157,7 @@ func (nif *NetworkIntentFactory) CreateNSSFIntent(name string) *nephranv1.Networ
 }
 
 // CreateSliceIntent creates a NetworkIntent for network slicing.
-func (nif *NetworkIntentFactory) CreateSliceIntent(name string, sliceType string) *nephranv1.NetworkIntent {
+func (nif *NetworkIntentFactory) CreateSliceIntent(name, sliceType string) *nephranv1.NetworkIntent {
 	intent := fmt.Sprintf("Create %s network slice with QoS requirements", sliceType)
 	ni := nif.CreateBasicNetworkIntent(name, intent)
 	ni.Labels["intent-type"] = "slice"

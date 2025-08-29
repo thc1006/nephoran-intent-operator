@@ -913,7 +913,7 @@ func (ta *TrendAnalyzer) calculateMeanAndStdDev(values []float64) (float64, floa
 func (ta *TrendAnalyzer) countCriticalVulns(findings []*SecurityFinding) int {
 	count := 0
 	for _, finding := range findings {
-		if strings.ToLower(finding.Severity) == "critical" {
+		if strings.EqualFold(finding.Severity, "critical") {
 			count++
 		}
 	}

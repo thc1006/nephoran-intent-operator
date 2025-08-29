@@ -1,3 +1,5 @@
+// Package types provides comprehensive audit event types and structures
+// for the Nephoran Intent Operator audit system.
 package types
 
 import (
@@ -85,7 +87,7 @@ const (
 	// EventTypeTokenRevocation holds eventtypetokenrevocation value.
 	EventTypeTokenRevocation EventType = "token_revocation"
 
-	// Data Access Events.
+	// EventTypeDataAccess represents data access events.
 	EventTypeDataAccess EventType = "data_access"
 	// EventTypeDataCreate holds eventtypedatacreate value.
 	EventTypeDataCreate EventType = "data_create"
@@ -106,7 +108,7 @@ const (
 	// EventTypeDataProcessing holds eventtypedataprocessing value.
 	EventTypeDataProcessing EventType = "data_processing"
 
-	// System Management Events.
+	// EventTypeSystemChange represents system management events.
 	EventTypeSystemChange EventType = "system_change"
 	// EventTypeConfigChange holds eventtypeconfigchange value.
 	EventTypeConfigChange EventType = "config_change"
@@ -127,7 +129,7 @@ const (
 	// EventTypeMaintenanceMode holds eventtypemaintenancemode value.
 	EventTypeMaintenanceMode EventType = "maintenance_mode"
 
-	// Security Events.
+	// EventTypeSecurityViolation represents security events.
 	EventTypeSecurityViolation EventType = "security_violation"
 	// EventTypeIntrusionAttempt holds eventtypeintrusionattempt value.
 	EventTypeIntrusionAttempt EventType = "intrusion_attempt"
@@ -142,7 +144,7 @@ const (
 	// EventTypeIncidentResponse holds eventtypeincidentresponse value.
 	EventTypeIncidentResponse EventType = "incident_response"
 
-	// Network and Infrastructure Events.
+	// EventTypeNetworkAccess represents network and infrastructure events.
 	EventTypeNetworkAccess EventType = "network_access"
 	// EventTypeFirewallRule holds eventtypefirewallrule value.
 	EventTypeFirewallRule EventType = "firewall_rule"
@@ -155,7 +157,7 @@ const (
 	// EventTypePerformanceAlert holds eventtypeperformancealert value.
 	EventTypePerformanceAlert EventType = "performance_alert"
 
-	// Application-Specific Events.
+	// EventTypeAPICall represents application-specific events.
 	EventTypeAPICall EventType = "api_call"
 	// EventTypeWorkflowExecution holds eventtypeworkflowexecution value.
 	EventTypeWorkflowExecution EventType = "workflow_execution"
@@ -168,7 +170,7 @@ const (
 	// EventTypeHealthCheck holds eventtypehealthcheck value.
 	EventTypeHealthCheck EventType = "health_check"
 
-	// O-RAN Specific Events.
+	// EventTypeIntentProcessing represents O-RAN specific events.
 	EventTypeIntentProcessing EventType = "intent_processing"
 	// EventTypeNetworkFunction holds eventtypenetworkfunction value.
 	EventTypeNetworkFunction EventType = "network_function"

@@ -705,7 +705,7 @@ func (h *LFUHeap[K, V]) ExtractMin() *CacheEntry[V] {
 		h.heapifyDown(0)
 	}
 
-	return min
+	return minEntry
 }
 
 // Clear clears the LFU heap.

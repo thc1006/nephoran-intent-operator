@@ -21,7 +21,7 @@ type NephoranAuthIntegration struct {
 
 // NephoranAuthConfig holds configuration.
 type NephoranAuthConfig struct {
-	AuthConfig         *AuthConfig
+	AuthConfig         *Config
 	ControllerAuth     *ControllerAuthConfig
 	EndpointProtection *EndpointProtectionConfig
 	NephoranRBAC       *NephoranRBACConfig

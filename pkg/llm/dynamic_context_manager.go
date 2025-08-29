@@ -629,7 +629,7 @@ func (s *TelecomContextStrategy) SelectContext(request *ContextInjectionRequest)
 }
 
 // EstimateTokens performs estimatetokens operation.
-func (s *TelecomContextStrategy) EstimateTokens(content string, modelName string) int {
+func (s *TelecomContextStrategy) EstimateTokens(content, modelName string) int {
 	return s.tokenEstimator.EstimateTokens(content, modelName)
 }
 
@@ -805,7 +805,7 @@ func convertFewShotToPromptExamples(fewShotExamples []FewShotExample) []PromptEx
 }
 
 // TokenEstimator implementation.
-func (te *TokenEstimator) EstimateTokens(content string, modelName string) int {
+func (te *TokenEstimator) EstimateTokens(content, modelName string) int {
 	te.mu.RLock()
 	defer te.mu.RUnlock()
 
@@ -834,7 +834,7 @@ func (s *ORANContextStrategy) SelectContext(request *ContextInjectionRequest) (*
 }
 
 // EstimateTokens performs estimatetokens operation.
-func (s *ORANContextStrategy) EstimateTokens(content string, modelName string) int {
+func (s *ORANContextStrategy) EstimateTokens(content, modelName string) int {
 	return s.tokenEstimator.EstimateTokens(content, modelName)
 }
 
@@ -872,7 +872,7 @@ func (s *FiveGCoreContextStrategy) SelectContext(request *ContextInjectionReques
 }
 
 // EstimateTokens performs estimatetokens operation.
-func (s *FiveGCoreContextStrategy) EstimateTokens(content string, modelName string) int {
+func (s *FiveGCoreContextStrategy) EstimateTokens(content, modelName string) int {
 	return s.tokenEstimator.EstimateTokens(content, modelName)
 }
 

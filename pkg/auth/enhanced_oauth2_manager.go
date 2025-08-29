@@ -317,7 +317,7 @@ func (eom *EnhancedOAuth2Manager) getClientIP(r *http.Request) string {
 	return ip
 }
 
-// Legacy compatibility methods to maintain existing API.
+// IsEnabled returns whether OAuth2 authentication is enabled.
 func (eom *EnhancedOAuth2Manager) IsEnabled() bool {
 	return eom.config.Enabled
 }

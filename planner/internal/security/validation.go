@@ -267,7 +267,7 @@ func (v *Validator) validateReplicaCount(replicas int) error {
 }
 
 // ValidateURL validates URLs from environment variables to prevent injection attacks.
-func (v *Validator) ValidateURL(urlStr string, context string) error {
+func (v *Validator) ValidateURL(urlStr, context string) error {
 	if urlStr == "" {
 		return ValidationError{
 			Field:   "url",
@@ -341,7 +341,7 @@ func (v *Validator) ValidateURL(urlStr string, context string) error {
 }
 
 // ValidateFilePath validates file paths to prevent directory traversal attacks.
-func (v *Validator) ValidateFilePath(path string, context string) error {
+func (v *Validator) ValidateFilePath(path, context string) error {
 	if path == "" {
 		return ValidationError{
 			Field:   "file_path",
@@ -404,7 +404,7 @@ func (v *Validator) ValidateFilePath(path string, context string) error {
 		if ext != "" {
 			extensionAllowed := false
 			for _, allowedExt := range v.config.AllowedExtensions {
-				if ext == strings.ToLower(allowedExt) {
+				if strings.EqualFold(ext, allowedExt) {
 					extensionAllowed = true
 					break
 				}

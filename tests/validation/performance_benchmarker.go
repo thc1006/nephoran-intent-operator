@@ -165,7 +165,9 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 	for {
 		select {
 		case <-timeout:
-			pb.k8sClient.Delete(ctx, testIntent)
+			if deleteErr := pb.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+				ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent on timeout: %v", deleteErr))
+			}
 			return 0, false
 		case <-ticker.C:
 			err := pb.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
@@ -182,7 +184,9 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 
 				// Cleanup.
 				go func() {
-					pb.k8sClient.Delete(context.Background(), testIntent)
+					if deleteErr := pb.k8sClient.Delete(context.Background(), testIntent); deleteErr != nil {
+						ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+					}
 				}()
 
 				return latency, true
@@ -190,7 +194,9 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 
 			// If failed, cleanup and return.
 			if testIntent.Status.Phase == "Failed" {
-				pb.k8sClient.Delete(ctx, testIntent)
+				if deleteErr := pb.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+					ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup failed test intent: %v", deleteErr))
+				}
 				return 0, false
 			}
 		}
@@ -319,7 +325,9 @@ func (pb *PerformanceBenchmarker) processThroughputIntent(ctx context.Context, w
 	for {
 		select {
 		case <-timeout:
-			pb.k8sClient.Delete(ctx, testIntent)
+			if deleteErr := pb.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+				ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent on timeout: %v", deleteErr))
+			}
 			return 0, false
 		case <-ticker.C:
 			err := pb.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
@@ -332,7 +340,9 @@ func (pb *PerformanceBenchmarker) processThroughputIntent(ctx context.Context, w
 
 				// Async cleanup.
 				go func() {
-					pb.k8sClient.Delete(context.Background(), testIntent)
+					if deleteErr := pb.k8sClient.Delete(context.Background(), testIntent); deleteErr != nil {
+						ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+					}
 				}()
 
 				return latency, testIntent.Status.Phase != "Failed"
@@ -417,7 +427,9 @@ func (pb *PerformanceBenchmarker) runScalabilityTest(ctx context.Context, concur
 				select {
 				case <-timeout:
 					atomic.AddInt64(&failCount, 1)
-					pb.k8sClient.Delete(ctx, testIntent)
+					if deleteErr := pb.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+						ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent on timeout: %v", deleteErr))
+					}
 					return
 				case <-ticker.C:
 					err := pb.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
@@ -433,7 +445,9 @@ func (pb *PerformanceBenchmarker) runScalabilityTest(ctx context.Context, concur
 						}
 
 						// Cleanup.
-						pb.k8sClient.Delete(ctx, testIntent)
+						if deleteErr := pb.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+							ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+						}
 						return
 					}
 				}
@@ -504,13 +518,18 @@ func (pb *PerformanceBenchmarker) testMemoryEfficiency(ctx context.Context) bool
 				},
 			}
 
-			pb.k8sClient.Create(ctx, testIntent)
+			if err := pb.k8sClient.Create(ctx, testIntent); err != nil {
+				ginkgo.By(fmt.Sprintf("Warning: Failed to create test intent: %v", err))
+				return
+			}
 
 			// Quick processing check.
 			time.Sleep(5 * time.Second)
 
 			// Cleanup.
-			pb.k8sClient.Delete(ctx, testIntent)
+			if deleteErr := pb.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+				ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+			}
 		}(i)
 	}
 
@@ -547,9 +566,14 @@ func (pb *PerformanceBenchmarker) testCPUEfficiency(ctx context.Context) bool {
 				},
 			}
 
-			pb.k8sClient.Create(ctx, testIntent)
+			if err := pb.k8sClient.Create(ctx, testIntent); err != nil {
+				ginkgo.By(fmt.Sprintf("Warning: Failed to create test intent: %v", err))
+				return
+			}
 			time.Sleep(3 * time.Second)
-			pb.k8sClient.Delete(ctx, testIntent)
+			if deleteErr := pb.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+				ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+			}
 		}(i)
 	}
 

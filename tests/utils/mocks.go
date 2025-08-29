@@ -209,7 +209,7 @@ func (m *MockGitClient) InitRepo() error {
 }
 
 // RemoveDirectory performs removedirectory operation.
-func (m *MockGitClient) RemoveDirectory(path string, commitMessage string) error {
+func (m *MockGitClient) RemoveDirectory(path, commitMessage string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.pushResults["RemoveDirectory"]

@@ -319,7 +319,9 @@ func (oiv *ORANInterfaceValidator) testA1PolicyManagement(ctx context.Context) b
 	}
 
 	defer func() {
-		oiv.k8sClient.Delete(ctx, testIntent)
+		if deleteErr := oiv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+		}
 	}()
 
 	// Wait for policy processing.
@@ -418,7 +420,9 @@ func (oiv *ORANInterfaceValidator) testA1RICIntegration(ctx context.Context) boo
 	}
 
 	defer func() {
-		oiv.k8sClient.Delete(ctx, testIntent)
+		if deleteErr := oiv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+		}
 	}()
 
 	// Test xApp deployment and configuration through RIC.
@@ -530,7 +534,9 @@ func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) boo
 	}
 
 	defer func() {
-		oiv.k8sClient.Delete(ctx, testE2NodeSet)
+		if deleteErr := oiv.k8sClient.Delete(ctx, testE2NodeSet); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test E2NodeSet: %v", deleteErr))
+		}
 	}()
 
 	// Wait for E2 nodes to become ready.
@@ -811,7 +817,9 @@ func (oiv *ORANInterfaceValidator) testO1FCAPSOperations(ctx context.Context) bo
 	}
 
 	defer func() {
-		oiv.k8sClient.Delete(ctx, testIntent)
+		if deleteErr := oiv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+		}
 	}()
 
 	// Test Fault Management.
@@ -995,7 +1003,9 @@ func (oiv *ORANInterfaceValidator) testO1NETCONFCompliance(ctx context.Context) 
 	}
 
 	defer func() {
-		oiv.k8sClient.Delete(ctx, testIntent)
+		if deleteErr := oiv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+		}
 	}()
 
 	// Test YANG model validation.
@@ -1156,7 +1166,9 @@ func (oiv *ORANInterfaceValidator) testO2CloudInfraManagement(ctx context.Contex
 	}
 
 	defer func() {
-		oiv.k8sClient.Delete(ctx, testIntent)
+		if deleteErr := oiv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
+			ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup test intent: %v", deleteErr))
+		}
 	}()
 
 	// Test Infrastructure as Code template generation.

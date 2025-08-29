@@ -188,7 +188,7 @@ func (sc *SecurityConfig) ResolveRepository(target string) (string, error) {
 	// Check each repository's allowed targets.
 	for _, repo := range sc.RepositoryAllowlist {
 		for _, allowedTarget := range repo.AllowedTargets {
-			if normalizedTarget == strings.ToLower(allowedTarget) {
+			if strings.EqualFold(target, allowedTarget) {
 				return repo.Name, nil
 			}
 		}
@@ -275,5 +275,5 @@ func getEnvBool(key string, defaultValue bool) bool {
 	if value == "" {
 		return defaultValue
 	}
-	return strings.ToLower(value) == "true" || value == "1"
+	return strings.EqualFold(value, "true") || value == "1"
 }

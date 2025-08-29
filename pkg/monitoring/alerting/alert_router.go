@@ -484,13 +484,13 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 
 	// Load default routing rules and channels.
 	if err := ar.loadDefaultRoutingRules(); err != nil {
-		ar.logger.ErrorWithContext("Failed to load default routing rules", "error", err)
+		ar.logger.ErrorWithContext("Failed to load default routing rules", err)
 	}
 	if err := ar.loadDefaultNotificationChannels(); err != nil {
-		ar.logger.ErrorWithContext("Failed to load default notification channels", "error", err)
+		ar.logger.ErrorWithContext("Failed to load default notification channels", err)
 	}
 	if err := ar.loadDefaultImpactProfiles(); err != nil {
-		ar.logger.ErrorWithContext("Failed to load default impact profiles", "error", err)
+		ar.logger.ErrorWithContext("Failed to load default impact profiles", err)
 	}
 
 	return ar, nil
@@ -623,13 +623,13 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 
 	// Step 2: Correlation with existing alerts.
 	if err := ar.correlateAlert(enrichedAlert.SLAAlert); err != nil {
-		ar.logger.ErrorWithContext("Failed to correlate alert", "error", err, "alert_id", enrichedAlert.ID)
+		ar.logger.ErrorWithContext("Failed to correlate alert", err, "alert_id", enrichedAlert.ID)
 	}
 
 	// Step 3: Priority calculation.
 	priority, err := ar.priorityCalculator.CalculatePriority(enrichedAlert.SLAAlert)
 	if err != nil {
-		ar.logger.ErrorWithContext("Failed to calculate priority", "error", err, "alert_id", enrichedAlert.ID)
+		ar.logger.ErrorWithContext("Failed to calculate priority", err, "alert_id", enrichedAlert.ID)
 		priority = "medium" // default priority
 	}
 	enrichedAlert.Priority = ar.convertPriorityToInt(priority)
@@ -637,7 +637,7 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 	// Step 4: Business impact analysis.
 	impact, err := ar.impactAnalyzer.AnalyzeImpact(enrichedAlert.SLAAlert)
 	if err != nil {
-		ar.logger.ErrorWithContext("Failed to analyze impact", "error", err, "alert_id", enrichedAlert.ID)
+		ar.logger.ErrorWithContext("Failed to analyze impact", err, "alert_id", enrichedAlert.ID)
 		impact = &ImpactAnalysis{Severity: "unknown", AffectedServices: []string{}}
 	}
 	businessImpact := BusinessImpactScore{

@@ -1338,7 +1338,7 @@ func (kb *TelecomKnowledgeBase) ValidateSliceConfiguration(sliceType, qosProfile
 	for _, required := range requiredFunctions {
 		found := false
 		for _, provided := range functions {
-			if strings.ToLower(required) == strings.ToLower(provided) {
+			if strings.EqualFold(required, provided) {
 				found = true
 				break
 			}

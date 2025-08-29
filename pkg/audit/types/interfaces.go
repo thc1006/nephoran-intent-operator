@@ -1,3 +1,5 @@
+// Package types provides comprehensive audit interfaces and contracts
+// for the Nephoran Intent Operator audit system.
 package types
 
 import (
