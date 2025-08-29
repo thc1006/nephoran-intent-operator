@@ -5,9 +5,10 @@
 package kpm
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"os"
 	"path/filepath"
 	"time"
@@ -42,7 +43,7 @@ type Generator struct {
 
 	outputDir string
 
-	rng *rand.Rand // instance-specific random number generator
+	// Removed rng field - using crypto/rand for secure random generation
 
 }
 
@@ -73,8 +74,6 @@ func NewGenerator(nodeID, outputDir string) (*Generator, error) {
 		nodeID: nodeID,
 
 		outputDir: outputDir,
-
-		rng: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}, nil
 
 }
@@ -87,9 +86,12 @@ func NewGenerator(nodeID, outputDir string) (*Generator, error) {
 
 func (g *Generator) GenerateMetric() error {
 
-	// Generate value and ensure it's clamped to [0, 1] range.
+	// Generate cryptographically secure random value between 0 and 1.
 
-	value := g.rng.Float64()
+	value, err := g.secureRandFloat64()
+	if err != nil {
+		return fmt.Errorf("generate random value: %w", err)
+	}
 
 	if value < 0 {
 
@@ -130,7 +132,7 @@ func (g *Generator) GenerateMetric() error {
 
 	metricPath := filepath.Join(g.outputDir, filename)
 
-	if err := os.WriteFile(metricPath, data, 0o600); err != nil {
+	if err := os.WriteFile(metricPath, data, 0o640); err != nil {
 
 		return fmt.Errorf("write file: %w", err)
 
@@ -138,4 +140,17 @@ func (g *Generator) GenerateMetric() error {
 
 	return nil
 
+}
+
+// secureRandFloat64 generates a cryptographically secure random float64 between 0 and 1.
+func (g *Generator) secureRandFloat64() (float64, error) {
+	// Generate a random 64-bit integer
+	max := big.NewInt(1 << 53) // Use 53 bits to avoid precision issues with float64
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		return 0, err
+	}
+	
+	// Convert to float64 and normalize to [0, 1)
+	return float64(n.Int64()) / float64(1<<53), nil
 }

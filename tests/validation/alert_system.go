@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -534,8 +535,11 @@ func (as *AlertSystem) sendSlackAlert(alert *AlertMessage) error {
 
 	if resp.StatusCode != http.StatusOK {
 
-		body, _ := io.ReadAll(resp.Body)
-
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Printf("ERROR: failed to read error response body: %v", err)
+			return fmt.Errorf("Slack API returned status %d (failed to read response)", resp.StatusCode)
+		}
 		return fmt.Errorf("Slack API returned status %d: %s", resp.StatusCode, string(body))
 
 	}
@@ -624,8 +628,11 @@ func (as *AlertSystem) sendWebhookAlert(alert *AlertMessage) error {
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 
-		body, _ := io.ReadAll(resp.Body)
-
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Printf("ERROR: failed to read webhook error response body: %v", err)
+			return fmt.Errorf("webhook returned status %d (failed to read response)", resp.StatusCode)
+		}
 		return fmt.Errorf("webhook returned status %d: %s", resp.StatusCode, string(body))
 
 	}

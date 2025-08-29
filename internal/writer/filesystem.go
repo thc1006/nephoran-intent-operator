@@ -1,3 +1,4 @@
+// Package writer provides filesystem writing utilities for KRM packages.
 package writer
 
 import (

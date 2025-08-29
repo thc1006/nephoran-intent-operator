@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -673,16 +672,22 @@ func (s *EventSender) sendEvent(event VESEvent) error {
 }
 
 // cryptoRandInt64 generates a cryptographically secure random int64 in [0, max).
+// Returns 0 if crypto/rand fails or if max is invalid.
 
 func cryptoRandInt64(max int64) int64 {
+
+	// Bounds checking to prevent overflow
+	if max <= 0 || max > (1<<62) {
+		return 0
+	}
 
 	n, err := cryptorand.Int(cryptorand.Reader, big.NewInt(max))
 
 	if err != nil {
 
-		// Fallback to math/rand if crypto/rand fails.
-
-		return rand.Int63n(max)
+		// Log error and return 0 instead of insecure fallback
+		log.Printf("cryptoRandInt64: failed to generate secure random number: %v", err)
+		return 0
 
 	}
 

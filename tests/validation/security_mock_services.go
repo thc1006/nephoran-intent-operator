@@ -11,7 +11,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"math/big"
-	mathrand "math/rand"
+	// Removed insecure math/rand - using crypto/rand for security
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -418,7 +418,12 @@ func (o *OAuthMockService) refreshAccessToken(refreshToken string) TokenInfo {
 
 func (o *OAuthMockService) generateRandomToken() string {
 
-	return fmt.Sprintf("tok_%d_%d", time.Now().UnixNano(), mathrand.Int63())
+	secureNum, err := rand.Int(rand.Reader, big.NewInt(1<<62))
+	if err != nil {
+		// Fallback with timestamp-based generation if crypto/rand fails
+		return fmt.Sprintf("tok_%d", time.Now().UnixNano())
+	}
+	return fmt.Sprintf("tok_%d_%d", time.Now().UnixNano(), secureNum.Int64())
 
 }
 
@@ -1009,7 +1014,8 @@ func (v *VulnerabilityScanMock) SimulateDependencyScan() bool {
 
 		// Simulate 90% pass rate.
 
-		if mathrand.Intn(10) < 1 {
+		secureRand, _ := rand.Int(rand.Reader, big.NewInt(10))
+		if secureRand.Int64() < 1 {
 
 			vulnerableDeps++
 
@@ -1264,7 +1270,8 @@ func (s *SecurityPolicyMock) ValidatePolicy(policyName string) bool {
 
 		// Simulate 95% compliance rate.
 
-		if mathrand.Intn(100) < 5 {
+		secureRand, _ := rand.Int(rand.Reader, big.NewInt(100))
+		if secureRand.Int64() < 5 {
 
 			violations++
 

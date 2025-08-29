@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"math/rand"
 	"net/http"
@@ -377,8 +378,11 @@ func (alg *AdvancedLoadGenerator) executeRequest(ctx context.Context, req *LoadR
 	defer resp.Body.Close()
 
 	// Read response body.
-
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("ERROR: failed to read response body: %v", err)
+		body = []byte("")
+	}
 
 	// Record metrics.
 

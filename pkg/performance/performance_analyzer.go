@@ -5,6 +5,7 @@ package performance
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"runtime"
 	"strings"
 	"sync"
@@ -331,12 +332,16 @@ func (pa *PerformanceAnalyzer) EstablishBaseline() error {
 	for range 1000 {
 
 		// Standard JSON operations.
-
-		data, _ := json.Marshal(testData)
+		data, err := json.Marshal(testData)
+		if err != nil {
+			log.Printf("WARNING: failed to marshal test data during benchmark: %v", err)
+			continue
+		}
 
 		var result map[string]interface{}
-
-		json.Unmarshal(data, &result)
+		if err := json.Unmarshal(data, &result); err != nil {
+			log.Printf("WARNING: failed to unmarshal test data during benchmark: %v", err)
+		}
 
 	}
 

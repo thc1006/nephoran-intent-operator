@@ -1,3 +1,4 @@
+// Package security provides OWASP-compliant input validation and security utilities.
 package security
 
 import (

@@ -34,6 +34,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	stdlog "log"
 	"regexp"
 	"strings"
 	"time"
@@ -700,7 +701,7 @@ Provide confidence scores for each extracted element.`,
 	// Convert RAG context to JSON string for the Context field.
 	ragContextJSON, err := json.Marshal(intentContext.RAGContext)
 	if err != nil {
-		log.Printf("WARNING: failed to marshal RAG context: %v", err)
+		stdlog.Printf("WARNING: failed to marshal RAG context: %v", err)
 		ragContextJSON = []byte("{}")
 	}
 
@@ -1377,7 +1378,7 @@ func (p *CNFIntentProcessor) estimateResourcesAndCosts(result *nephoranv1.CNFInt
 
 	resourceDataBytes, err := json.Marshal(resourceData)
 	if err != nil {
-		log.Printf("WARNING: failed to marshal resource data: %v", err)
+		stdlog.Printf("WARNING: failed to marshal resource data: %v", err)
 		resourceDataBytes = []byte("{}")
 	}
 
