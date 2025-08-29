@@ -260,8 +260,11 @@ func (m *MockLLMClient) generateDeploymentResponse(intent string) string {
 		},
 	}
 
-	jsonBytes, _ := json.Marshal(response)
-
+	jsonBytes, err := json.Marshal(response)
+	if err != nil {
+		log.Printf("ERROR: failed to marshal response: %v", err)
+		return `{"error":"failed to marshal response"}`
+	}
 	return string(jsonBytes)
 
 }
@@ -310,8 +313,11 @@ func (m *MockLLMClient) generateScaleResponse(intent string) string {
 		},
 	}
 
-	jsonBytes, _ := json.Marshal(response)
-
+	jsonBytes, err := json.Marshal(response)
+	if err != nil {
+		log.Printf("ERROR: failed to marshal scale response: %v", err)
+		return `{"error":"failed to marshal response"}`
+	}
 	return string(jsonBytes)
 
 }

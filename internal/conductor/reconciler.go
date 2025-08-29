@@ -28,6 +28,7 @@ limitations under the License.
 
 */
 
+// Package conductor implements the core reconciliation logic for network intent processing.
 package conductor
 
 import (
