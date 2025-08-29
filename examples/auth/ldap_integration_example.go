@@ -63,7 +63,7 @@ func main() {
 
 	// Load authentication configuration.
 
-	authConfig, err := auth.LoadAuthConfig("")
+	authConfig, err := auth.LoadAuthConfig(context.Background(), "")
 
 	if err != nil {
 

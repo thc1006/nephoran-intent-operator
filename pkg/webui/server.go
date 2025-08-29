@@ -631,7 +631,7 @@ func NewNephoranAPIServer(
 
 func (s *NephoranAPIServer) initializeAuth() error {
 
-	authConfig, err := auth.LoadAuthConfig(s.config.AuthConfigFile)
+	authConfig, err := auth.LoadAuthConfig(context.Background(), s.config.AuthConfigFile)
 
 	if err != nil {
 
