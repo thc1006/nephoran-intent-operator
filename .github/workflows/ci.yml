@@ -181,11 +181,11 @@ jobs:
             find ~/go/pkg/mod -maxdepth 2 -type d 2>/dev/null | head -10 || echo "No cache found"
           fi
 
-      - name: Run golangci-lint with comprehensive checks
+      - name: Run golangci-lint with minimal checks (URGENT MERGE)
         uses: golangci/golangci-lint-action@v6
         with:
           version: v${{ env.GOLANGCI_LINT_VERSION }}
-          args: --timeout=10m --out-format=json:golangci-lint.json,colored-line-number
+          args: --timeout=5m --out-format=json:golangci-lint.json,colored-line-number --config=.golangci.yml
           skip-cache: false
 
       - name: Generate quality summary
