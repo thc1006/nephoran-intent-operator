@@ -1,3 +1,5 @@
+//go:build !disable_rag
+
 package config
 
 import (
@@ -38,7 +40,7 @@ func ExampleUsageKubernetesSecretManager() error {
 		}
 
 		// Create the secret in Kubernetes
-		err = secretManager.CreateOrUpdateSecretFromAPIKeys(ctx, apiKeys)
+		err = secretManager.CreateOrUpdateSecretFromAPIKeys(ctx, "llm-api-keys", apiKeys)
 		if err != nil {
 			return fmt.Errorf("failed to create secret: %w", err)
 		}
