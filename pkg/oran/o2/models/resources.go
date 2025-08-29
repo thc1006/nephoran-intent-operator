@@ -35,6 +35,13 @@ type ResourcePoolStatus struct {
 	ErrorMessage    string    `json:"errorMessage,omitempty"`
 }
 
+// Resource pool health constants
+const (
+	ResourcePoolHealthHealthy   = "HEALTHY"
+	ResourcePoolHealthDegraded  = "DEGRADED" 
+	ResourcePoolHealthUnhealthy = "UNHEALTHY"
+)
+
 // Note: ResourceCapacity, ResourceMetric, AlarmDictionary, AlarmDefinition, 
 // ResourceStatus, and ResourceCondition are defined in resource_types.go
 
@@ -73,13 +80,14 @@ type CreateResourcePoolRequest struct {
 
 // UpdateResourcePoolRequest represents a request to update an existing resource pool
 type UpdateResourcePoolRequest struct {
-	Name        *string                `json:"name,omitempty"`
-	Description *string                `json:"description,omitempty"`
-	Location    *string                `json:"location,omitempty"`
-	Capacity    *ResourceCapacity      `json:"capacity,omitempty"`
-	Extensions  map[string]interface{} `json:"extensions,omitempty"`
-	Tags        map[string]string      `json:"tags,omitempty"`
-	Labels      map[string]string      `json:"labels,omitempty"`
+	Name             *string                `json:"name,omitempty"`
+	Description      *string                `json:"description,omitempty"`
+	Location         *string                `json:"location,omitempty"`
+	GlobalLocationID *string                `json:"globalLocationId,omitempty"`
+	Capacity         *ResourceCapacity      `json:"capacity,omitempty"`
+	Extensions       map[string]interface{} `json:"extensions,omitempty"`
+	Tags             map[string]string      `json:"tags,omitempty"`
+	Labels           map[string]string      `json:"labels,omitempty"`
 }
 
 // NodeFilter represents filters for querying nodes

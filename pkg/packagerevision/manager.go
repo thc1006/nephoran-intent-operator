@@ -1152,7 +1152,7 @@ func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context,
 			CreateRollbackPoint: opts.CreateRollbackPoint,
 			RollbackDescription: opts.RollbackDescription,
 			ForceTransition:     opts.ForceTransition,
-			Timeout:             opts.Timeout,
+			Timeout:             &metav1.Duration{Duration: opts.Timeout},
 			DryRun:              opts.DryRun,
 		}
 

@@ -967,15 +967,19 @@ type TransitionOptions struct {
 
 // TransitionResult contains the result of a lifecycle transition
 type TransitionResult struct {
-	Success       bool              `json:"success"`
-	FromState     PackageRevisionLifecycle `json:"fromState"`
-	ToState       PackageRevisionLifecycle `json:"toState"`
-	TransitionID  string            `json:"transitionId"`
-	Message       string            `json:"message,omitempty"`
-	Warnings      []string          `json:"warnings,omitempty"`
-	Metadata      map[string]string `json:"metadata,omitempty"`
-	CompletedAt   *metav1.Time      `json:"completedAt,omitempty"`
-	RollbackPoint *RollbackPoint    `json:"rollbackPoint,omitempty"`
+	Success         bool              `json:"success"`
+	FromState       PackageRevisionLifecycle `json:"fromState"`
+	ToState         PackageRevisionLifecycle `json:"toState"`
+	NewStage        PackageRevisionLifecycle `json:"newStage"`
+	PreviousStage   PackageRevisionLifecycle `json:"previousStage"`
+	TransitionID    string            `json:"transitionId"`
+	Message         string            `json:"message,omitempty"`
+	Warnings        []string          `json:"warnings,omitempty"`
+	Metadata        map[string]string `json:"metadata,omitempty"`
+	CompletedAt     *metav1.Time      `json:"completedAt,omitempty"`
+	TransitionTime  *metav1.Time      `json:"transitionTime,omitempty"`
+	Duration        time.Duration     `json:"duration,omitempty"`
+	RollbackPoint   *RollbackPoint    `json:"rollbackPoint,omitempty"`
 }
 
 // Network slice supporting types
