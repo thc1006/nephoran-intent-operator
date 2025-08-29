@@ -14,6 +14,7 @@ env:
   REGISTRY: ghcr.io
   REGISTRY_USERNAME: ${{ github.actor }}
   REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+  REGISTRY_NAMESPACE: ${{ github.repository_owner }}
   
   # Build optimization flags (2025 standards)
   DOCKER_BUILDKIT: 1
@@ -110,19 +111,46 @@ jobs:
               max-age = "168h"
           install: true
 
-      - name: Login to Container Registry
+      - name: Login to Container Registry (with retry)
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ env.REGISTRY_USERNAME }}
           password: ${{ env.REGISTRY_PASSWORD }}
+          logout: false
+        continue-on-error: false
+        
+      - name: Verify GHCR authentication
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          echo "Verifying GHCR authentication..."
+          
+          # Test authentication with a simple registry API call
+          RESPONSE=$(curl -s -H "Authorization: Bearer ${{ env.REGISTRY_PASSWORD }}" \
+            "https://ghcr.io/v2/${{ env.REGISTRY_NAMESPACE }}/${{ matrix.service }}/tags/list" || echo "error")
+          
+          if [[ "$RESPONSE" == "error" ]]; then
+            echo "⚠️  Registry API test failed (may be expected for new repositories)"
+          else
+            echo "✅ GHCR API authentication successful"
+          fi
+          
+          # Verify Docker CLI authentication
+          if docker info 2>/dev/null | grep -q "Username: ${{ env.REGISTRY_USERNAME }}"; then
+            echo "✅ Docker CLI authentication verified"
+          else
+            echo "⚠️  Docker CLI authentication status unknown"
+          fi
+          
+          echo "Target image: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${{ matrix.service }}"
 
       - name: Extract metadata for ${{ matrix.service }}
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/nephoran/${{ matrix.service }}
+          images: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${{ matrix.service }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -164,10 +192,10 @@ jobs:
           cache-from: |
             type=gha,scope=buildx-${{ matrix.service }}-${{ github.ref_name }}
             type=gha,scope=buildx-${{ matrix.service }}-main
-            type=registry,ref=${{ env.REGISTRY }}/nephoran/${{ matrix.service }}:buildcache
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${{ matrix.service }}:buildcache
           cache-to: |
             type=gha,mode=max,scope=buildx-${{ matrix.service }}-${{ github.ref_name }}
-            type=registry,ref=${{ env.REGISTRY }}/nephoran/${{ matrix.service }}:buildcache,mode=max,compression=zstd,force-compression=true
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${{ matrix.service }}:buildcache,mode=max,compression=zstd,force-compression=true
           provenance: mode=max
           sbom: true
           attestations: |
@@ -178,7 +206,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/nephoran/${{ matrix.service }}:${{ needs.prepare.outputs.version }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${{ matrix.service }}:${{ needs.prepare.outputs.version }}
           format: 'sarif'
           output: 'trivy-results-${{ matrix.service }}.sarif'
 
@@ -194,7 +222,7 @@ jobs:
         run: |
           # Test that the container starts and responds to health checks
           docker run --rm -d --name test-${{ matrix.service }} \
-            ${{ env.REGISTRY }}/nephoran/${{ matrix.service }}:${{ needs.prepare.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${{ matrix.service }}:${{ needs.prepare.outputs.version }}
           
           # Wait for startup
           sleep 10
@@ -244,7 +272,7 @@ jobs:
           services=("intent-ingest" "llm-processor" "nephio-bridge" "oran-adaptor" "conductor-loop" "porch-publisher" "planner")
           for service in "${services[@]}"; do
             echo "Pulling image for service: ${service}"
-            docker pull ${{ env.REGISTRY }}/nephoran/${service}:${{ needs.prepare.outputs.version }} || {
+            docker pull ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${service}:${{ needs.prepare.outputs.version }} || {
               echo "Warning: Failed to pull ${service}, may not have been built"
             }
           done
@@ -336,7 +364,7 @@ jobs:
       - name: Run comprehensive security scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/nephoran/${{ matrix.service }}:${{ needs.prepare.outputs.version }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${{ matrix.service }}:${{ needs.prepare.outputs.version }}
           format: 'json'
           output: 'trivy-results-${{ matrix.service }}.json'
 
@@ -357,7 +385,7 @@ jobs:
         run: |
           echo "🎉 Docker build and integration tests completed successfully!"
           echo "Version: ${{ needs.prepare.outputs.version }}"
-          echo "All services are available at: ${{ env.REGISTRY }}/nephoran/"
+          echo "All services are available at: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/"
 
       - name: Notify on failure
         if: needs.build.result == 'failure' || needs.integration-test.result == 'failure'

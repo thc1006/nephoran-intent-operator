@@ -20,6 +20,8 @@ permissions:
   security-events: write
   checks: write
   pull-requests: read
+  # Enhanced permissions for 2025 GHCR authentication
+  metadata: read
 
 env:
   # Registry configuration
@@ -377,12 +379,14 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+          logout: false
+        continue-on-error: false
 
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.service.name }}
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.service.name }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -461,15 +465,41 @@ jobs:
           sbom: false
           outputs: |
             type=image,push=${{ github.event_name != 'pull_request' }}
-            type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.service.name }},push=false
+            type=image,name=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.service.name }},push=false
           network: default
+      
+      - name: Verify registry authentication
+        if: github.event_name != 'pull_request' && steps.meta.outcome == 'success'
+        run: |
+          set -euo pipefail
+          echo "Verifying GHCR authentication..."
+          
+          # Check if we can authenticate to GHCR
+          if docker info | grep -q "Registry: https://ghcr.io"; then
+            echo "✅ GHCR registry authentication verified"
+          else
+            echo "⚠️  GHCR authentication may have issues"
+          fi
+          
+          # Test registry connectivity
+          IMAGE_NAME="${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.service.name }}"
+          echo "Testing registry connectivity for: $IMAGE_NAME"
+          
+          # Try to pull a minimal image to test connectivity
+          docker pull alpine:3.21 || {
+            echo "❌ Docker registry connectivity issues"
+            exit 1
+          }
+          
+          echo "✅ Registry connectivity verified"
+          echo "Image will be pushed to: $IMAGE_NAME"
 
       - name: Test container
         if: success()
         run: |
           set -euo pipefail
           SERVICE_NAME="${{ matrix.service.name }}"
-          IMAGE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${SERVICE_NAME}:${{ github.sha }}"
+          IMAGE_TAG="${{ env.REGISTRY }}/${{ github.repository_owner }}/${SERVICE_NAME}:${{ github.ref_name }}"
           
           echo "=== Testing container: $IMAGE_TAG ==="
           

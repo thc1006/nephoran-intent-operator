@@ -1,0 +1,36 @@
+# Go Module Proxy Configuration for Enhanced Reliability
+# =============================================================================
+# This file contains optimized Go proxy settings for reliable dependency
+# resolution in CI/CD environments, particularly for O-RAN/Nephio projects.
+
+# Primary proxy configuration with fallbacks
+GOPROXY=https://proxy.golang.org,https://goproxy.cn,https://goproxy.io,direct
+
+# Checksum database for security validation
+GOSUMDB=sum.golang.org
+
+# Module privacy configuration - prevent proxy for private repos
+GOPRIVATE=github.com/thc1006/*,github.com/nephoran/*
+
+# Network timeout configuration (increased for large modules)
+GONETWORK_TIMEOUT=300s
+
+# Module cache configuration
+GOMODCACHE_SIZE_LIMIT=2GB
+GOMODCACHE_TTL=24h
+
+# Build cache configuration
+GOCACHE_SIZE_LIMIT=1GB
+GOCACHE_COMPRESSION=true
+
+# Development-time optimizations
+GODEBUG=gocachetest=1,gocachehash=1,goproxyonce=1
+
+# CI/CD specific settings
+GOCACHE_CI=/tmp/.cache/go-build
+GOMODCACHE_CI=/tmp/.cache/go-mod
+
+# Version constraints for O-RAN/Nephio compatibility
+GO_MIN_VERSION=1.21.0
+GO_RECOMMENDED_VERSION=1.24.1
+KUBERNETES_VERSION_CONSTRAINT=>=1.28.0,<1.32.0

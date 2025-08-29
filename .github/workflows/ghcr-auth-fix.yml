@@ -1,0 +1,207 @@
+name: GHCR Authentication Fix 2025
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 'Force rebuild all images'
+        required: false
+        default: 'false'
+  push:
+    branches: [main, feat/*, integrate/*]
+  pull_request:
+    branches: [main, integrate/mvp]
+
+env:
+  REGISTRY: ghcr.io
+  REGISTRY_NAMESPACE: ${{ github.repository_owner }}
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+  actions: read
+
+jobs:
+  auth-test:
+    name: Test GHCR Authentication
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    timeout-minutes: 10
+    
+    outputs:
+      auth-status: ${{ steps.auth-check.outputs.status }}
+      registry-url: ${{ steps.auth-check.outputs.registry-url }}
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Test GHCR Authentication
+        id: auth-check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          
+          echo "=== GHCR Authentication Test ==="
+          echo "Registry: ${{ env.REGISTRY }}"
+          echo "Namespace: ${{ env.REGISTRY_NAMESPACE }}"
+          echo "Username: ${{ github.actor }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Repository Owner: ${{ github.repository_owner }}"
+          
+          # Test 1: Basic connectivity
+          echo ""
+          echo "Test 1: Basic GHCR connectivity..."
+          if curl -sf https://ghcr.io/v2/ > /dev/null; then
+            echo "✅ GHCR registry is accessible"
+          else
+            echo "❌ GHCR registry is not accessible"
+            exit 1
+          fi
+          
+          # Test 2: Token validation
+          echo ""
+          echo "Test 2: GitHub token validation..."
+          WHOAMI=$(curl -sf -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/user | jq -r .login || echo "error")
+          if [[ "$WHOAMI" == "${{ github.actor }}" ]]; then
+            echo "✅ GitHub token is valid for user: $WHOAMI"
+          elif [[ "$WHOAMI" == "error" ]]; then
+            echo "❌ GitHub token validation failed"
+            exit 1
+          else
+            echo "⚠️  GitHub token valid but for different user: $WHOAMI (expected: ${{ github.actor }})"
+          fi
+          
+          # Test 3: Package registry permissions
+          echo ""
+          echo "Test 3: Testing package registry permissions..."
+          PACKAGES_RESPONSE=$(curl -sf -H "Authorization: Bearer $GITHUB_TOKEN" \
+            "https://api.github.com/user/packages?package_type=container" || echo "error")
+          
+          if [[ "$PACKAGES_RESPONSE" != "error" ]]; then
+            echo "✅ Package registry API accessible"
+          else
+            echo "❌ Package registry API not accessible"
+            exit 1
+          fi
+          
+          # Test 4: Repository permissions
+          echo ""
+          echo "Test 4: Repository permissions..."
+          REPO_PERMISSIONS=$(curl -sf -H "Authorization: Bearer $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}" | jq -r .permissions.push || echo "false")
+          
+          if [[ "$REPO_PERMISSIONS" == "true" ]]; then
+            echo "✅ Repository push permissions confirmed"
+          else
+            echo "❌ No repository push permissions (got: $REPO_PERMISSIONS)"
+            exit 1
+          fi
+          
+          # Test 5: Docker login simulation
+          echo ""
+          echo "Test 5: Docker registry authentication..."
+          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          
+          if docker info | grep -q "Registry: https://ghcr.io"; then
+            echo "✅ Docker CLI authenticated to GHCR"
+          else
+            echo "❌ Docker CLI authentication to GHCR failed"
+            exit 1
+          fi
+          
+          # Output results
+          echo "auth-status=success" >> $GITHUB_OUTPUT
+          echo "registry-url=${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}" >> $GITHUB_OUTPUT
+          
+          echo ""
+          echo "=== Authentication Test Completed Successfully ==="
+          echo "Images will be pushed to: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/<service-name>"
+
+  test-image-push:
+    name: Test Image Push
+    needs: auth-test
+    runs-on: ubuntu-latest
+    if: needs.auth-test.outputs.auth-status == 'success'
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          version: latest
+          driver: docker-container
+          install: true
+          
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          logout: false
+        
+      - name: Build and push test image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/auth-test:${{ github.run_id }}
+          labels: |
+            org.opencontainers.image.title=GHCR Auth Test
+            org.opencontainers.image.description=Test image for GHCR authentication
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          build-args: |
+            SERVICE=auth-test
+            VERSION=${{ github.sha }}
+          file: |
+            FROM alpine:3.21
+            LABEL service=auth-test
+            RUN echo "GHCR auth test successful" > /test-result
+            CMD ["cat", "/test-result"]
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false
+          
+      - name: Test pushed image
+        run: |
+          set -euo pipefail
+          
+          echo "Testing pushed image..."
+          TEST_IMAGE="${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/auth-test:${{ github.run_id }}"
+          
+          # Pull and test the image
+          docker pull "$TEST_IMAGE"
+          RESULT=$(docker run --rm "$TEST_IMAGE")
+          
+          if [[ "$RESULT" == "GHCR auth test successful" ]]; then
+            echo "✅ Image push and pull test successful"
+          else
+            echo "❌ Image test failed. Got: $RESULT"
+            exit 1
+          fi
+          
+          # Clean up test image
+          echo "Cleaning up test image..."
+          docker rmi "$TEST_IMAGE" || true
+          
+      - name: Summary
+        run: |
+          echo "## GHCR Authentication Fix Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Registry:** ${{ env.REGISTRY }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Namespace:** ${{ env.REGISTRY_NAMESPACE }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Authentication:** Working" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Image Push:** Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Next steps:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Main CI workflows will now use the correct namespace" >> $GITHUB_STEP_SUMMARY
+          echo "2. Images will be pushed to: \`${{ needs.auth-test.outputs.registry-url }}/<service>\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. Authentication issues should be resolved" >> $GITHUB_STEP_SUMMARY
