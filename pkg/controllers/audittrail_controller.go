@@ -240,13 +240,15 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 	if auditTrail.Status.Stats == nil {
 		auditTrail.Status.Stats = &nephv1.AuditTrailStats{}
 	}
-	auditTrail.Status.Stats.EventsReceived = metrics.TotalEvents
+	auditTrail.Status.Stats.EventsReceived = metrics.EventsProcessed + metrics.EventsDropped
 	auditTrail.Status.Stats.EventsProcessed = metrics.EventsProcessed
 	auditTrail.Status.Stats.EventsDropped = metrics.EventsDropped
-	auditTrail.Status.Stats.QueueSize = metrics.QueueSize
-	auditTrail.Status.Stats.BackendCount = metrics.BackendsTotal
-	if !metrics.LastEventTime.IsZero() {
-		auditTrail.Status.Stats.LastEventTime = &metav1.Time{Time: metrics.LastEventTime}
+	auditTrail.Status.Stats.QueueSize = int(metrics.QueueSize)
+	auditTrail.Status.Stats.BackendCount = metrics.BackendsActive
+	// LastEventTime is not available in the metrics struct
+	if auditTrail.Status.Stats.LastEventTime == nil {
+		now := metav1.Now()
+		auditTrail.Status.Stats.LastEventTime = &now
 	}
 	auditTrail.Status.LastUpdate = &metav1.Time{Time: time.Now()}
 

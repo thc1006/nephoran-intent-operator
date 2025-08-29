@@ -67,13 +67,16 @@ func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// O1 Logic: If ready, apply intent-driven O1 configuration
 	// Check if there's O1 configuration in the general configuration map
 	if o1Config, exists := me.Spec.Configuration["o1Config"]; exists && o1Config != "" {
-		if err := r.O1Adaptor.ApplyConfiguration(ctx, me); err != nil {
-			logger.Error(err, "O1 configuration failed")
-			meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{Type: O1ConfiguredCondition, Status: metav1.ConditionFalse, Reason: "Failed", Message: err.Error()})
-		} else {
-			logger.Info("O1 configuration applied successfully", "ManagedElement", me.Name)
-			meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{Type: O1ConfiguredCondition, Status: metav1.ConditionTrue, Reason: "Success", Message: "O1 configuration applied."})
-		}
+		// TODO: Implement O1 configuration application
+		// The O1Adaptor doesn't have ApplyConfiguration method yet
+		// This needs to be implemented based on the actual O1 interface requirements
+		logger.Info("O1 configuration detected but not yet implemented", "ManagedElement", me.Name)
+		meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{
+			Type:    O1ConfiguredCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  "NotImplemented",
+			Message: "O1 configuration application not yet implemented",
+		})
 	}
 
 	// A1 Logic: If ready, apply intent-driven A1 policy

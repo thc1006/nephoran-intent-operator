@@ -59,6 +59,12 @@ const (
 const (
 	ComplianceSOC2     = audittypes.ComplianceSOC2
 	ComplianceISO27001 = audittypes.ComplianceISO27001
+	CompliancePCIDSS   = audittypes.CompliancePCIDSS
+	ComplianceHIPAA    = audittypes.ComplianceHIPAA
+	ComplianceGDPR     = audittypes.ComplianceGDPR
+	ComplianceCCPA     = audittypes.ComplianceCCPA
+	ComplianceFISMA    = audittypes.ComplianceFISMA
+	ComplianceNIST     = audittypes.ComplianceNIST
 )
 
 // NewEventBuilder creates a new event builder
