@@ -2,48 +2,32 @@
 
 // Following O-RAN.WG6.O2ims-Interface-v01.01 specification.
 
-
 package o2
 
-
-
 import (
-
 	"net/http"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
-
 )
-
-
 
 // HTTP Error Response following RFC 7807 Problem Details for HTTP APIs.
 
 type ProblemDetail struct {
+	Type string `json:"type"`
 
-	Type     string      `json:"type"`
+	Title string `json:"title"`
 
-	Title    string      `json:"title"`
+	Status int `json:"status"`
 
-	Status   int         `json:"status"`
+	Detail string `json:"detail,omitempty"`
 
-	Detail   string      `json:"detail,omitempty"`
+	Instance string `json:"instance,omitempty"`
 
-	Instance string      `json:"instance,omitempty"`
-
-	Extra    interface{} `json:"extra,omitempty"`
-
+	Extra interface{} `json:"extra,omitempty"`
 }
 
-
-
 // Service Information Handlers.
-
-
 
 // handleGetServiceInfo returns service information.
 
@@ -51,13 +35,13 @@ func (s *O2APIServer) handleGetServiceInfo(w http.ResponseWriter, r *http.Reques
 
 	serviceInfo := map[string]interface{}{
 
-		"name":          "Nephoran O2 IMS",
+		"name": "Nephoran O2 IMS",
 
-		"version":       "1.0.0",
+		"version": "1.0.0",
 
-		"description":   "O-RAN Infrastructure Management Service",
+		"description": "O-RAN Infrastructure Management Service",
 
-		"apiVersion":    "v1",
+		"apiVersion": "v1",
 
 		"specification": "O-RAN.WG6.O2ims-Interface-v01.01",
 
@@ -68,30 +52,22 @@ func (s *O2APIServer) handleGetServiceInfo(w http.ResponseWriter, r *http.Reques
 			"InfrastructureMonitoring",
 
 			"InfrastructureProvisioning",
-
 		},
 
 		"supported_providers": s.providerRegistry.GetSupportedProviders(),
 
-		"timestamp":           time.Now().Format(time.RFC3339),
-
+		"timestamp": time.Now().Format(time.RFC3339),
 	}
-
-
 
 	s.writeJSONResponse(w, r, StatusOK, serviceInfo)
 
 }
-
-
 
 // handleHealthCheck returns health status.
 
 func (s *O2APIServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 
 	health := s.healthChecker.GetHealthStatus()
-
-
 
 	status := StatusOK
 
@@ -105,13 +81,9 @@ func (s *O2APIServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, status, health)
 
 }
-
-
 
 // handleReadinessCheck returns readiness status.
 
@@ -119,39 +91,29 @@ func (s *O2APIServer) handleReadinessCheck(w http.ResponseWriter, r *http.Reques
 
 	ready := map[string]interface{}{
 
-		"status":    "READY",
+		"status": "READY",
 
 		"timestamp": time.Now().Format(time.RFC3339),
 
 		"checks": map[string]string{
 
-			"database":  "OK",
+			"database": "OK",
 
 			"providers": "OK",
-
 		},
-
 	}
-
-
 
 	s.writeJSONResponse(w, r, StatusOK, ready)
 
 }
 
-
-
 // Resource Pool Handlers.
-
-
 
 // handleGetResourcePools retrieves resource pools with filtering.
 
 func (s *O2APIServer) handleGetResourcePools(w http.ResponseWriter, r *http.Request) {
 
 	filter := s.parseResourcePoolFilter(r)
-
-
 
 	pools, err := s.imsService.GetResourcePools(r.Context(), filter)
 
@@ -163,13 +125,9 @@ func (s *O2APIServer) handleGetResourcePools(w http.ResponseWriter, r *http.Requ
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, pools)
 
 }
-
-
 
 // handleGetResourcePool retrieves a specific resource pool.
 
@@ -185,8 +143,6 @@ func (s *O2APIServer) handleGetResourcePool(w http.ResponseWriter, r *http.Reque
 
 	}
 
-
-
 	pool, err := s.imsService.GetResourcePool(r.Context(), poolID)
 
 	if err != nil {
@@ -197,13 +153,9 @@ func (s *O2APIServer) handleGetResourcePool(w http.ResponseWriter, r *http.Reque
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, pool)
 
 }
-
-
 
 // handleCreateResourcePool creates a new resource pool.
 
@@ -219,8 +171,6 @@ func (s *O2APIServer) handleCreateResourcePool(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	pool, err := s.imsService.CreateResourcePool(r.Context(), &req)
 
 	if err != nil {
@@ -231,15 +181,11 @@ func (s *O2APIServer) handleCreateResourcePool(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	s.metrics.RecordResourceOperation("create", "resource_pool", req.Provider, "success")
 
 	s.writeJSONResponse(w, r, StatusCreated, pool)
 
 }
-
-
 
 // handleUpdateResourcePool updates an existing resource pool.
 
@@ -255,8 +201,6 @@ func (s *O2APIServer) handleUpdateResourcePool(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	var req models.UpdateResourcePoolRequest
 
 	if err := s.decodeJSONRequest(r, &req); err != nil {
@@ -266,8 +210,6 @@ func (s *O2APIServer) handleUpdateResourcePool(w http.ResponseWriter, r *http.Re
 		return
 
 	}
-
-
 
 	pool, err := s.imsService.UpdateResourcePool(r.Context(), poolID, &req)
 
@@ -279,15 +221,11 @@ func (s *O2APIServer) handleUpdateResourcePool(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	s.metrics.RecordResourceOperation("update", "resource_pool", "unknown", "success")
 
 	s.writeJSONResponse(w, r, StatusOK, pool)
 
 }
-
-
 
 // handleDeleteResourcePool deletes a resource pool.
 
@@ -303,8 +241,6 @@ func (s *O2APIServer) handleDeleteResourcePool(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	if err := s.imsService.DeleteResourcePool(r.Context(), poolID); err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to delete resource pool", err)
@@ -313,27 +249,19 @@ func (s *O2APIServer) handleDeleteResourcePool(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	s.metrics.RecordResourceOperation("delete", "resource_pool", "unknown", "success")
 
 	w.WriteHeader(StatusNoContent)
 
 }
 
-
-
 // Resource Type Handlers.
-
-
 
 // handleGetResourceTypes retrieves resource types.
 
 func (s *O2APIServer) handleGetResourceTypes(w http.ResponseWriter, r *http.Request) {
 
 	filter := s.parseResourceTypeFilter(r)
-
-
 
 	resourceTypes, err := s.imsService.GetResourceTypes(r.Context(), filter)
 
@@ -345,13 +273,9 @@ func (s *O2APIServer) handleGetResourceTypes(w http.ResponseWriter, r *http.Requ
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, resourceTypes)
 
 }
-
-
 
 // handleGetResourceType retrieves a specific resource type.
 
@@ -367,8 +291,6 @@ func (s *O2APIServer) handleGetResourceType(w http.ResponseWriter, r *http.Reque
 
 	}
 
-
-
 	resourceType, err := s.imsService.GetResourceType(r.Context(), typeID)
 
 	if err != nil {
@@ -379,13 +301,9 @@ func (s *O2APIServer) handleGetResourceType(w http.ResponseWriter, r *http.Reque
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, resourceType)
 
 }
-
-
 
 // handleCreateResourceType creates a new resource type.
 
@@ -401,8 +319,6 @@ func (s *O2APIServer) handleCreateResourceType(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	createdType, err := s.imsService.CreateResourceType(r.Context(), &resourceType)
 
 	if err != nil {
@@ -413,15 +329,11 @@ func (s *O2APIServer) handleCreateResourceType(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	s.metrics.RecordResourceOperation("create", "resource_type", "system", "success")
 
 	s.writeJSONResponse(w, r, StatusCreated, createdType)
 
 }
-
-
 
 // handleUpdateResourceType updates an existing resource type.
 
@@ -437,8 +349,6 @@ func (s *O2APIServer) handleUpdateResourceType(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	var resourceType models.ResourceType
 
 	if err := s.decodeJSONRequest(r, &resourceType); err != nil {
@@ -448,8 +358,6 @@ func (s *O2APIServer) handleUpdateResourceType(w http.ResponseWriter, r *http.Re
 		return
 
 	}
-
-
 
 	updatedType, err := s.imsService.UpdateResourceType(r.Context(), typeID, &resourceType)
 
@@ -461,15 +369,11 @@ func (s *O2APIServer) handleUpdateResourceType(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	s.metrics.RecordResourceOperation("update", "resource_type", "system", "success")
 
 	s.writeJSONResponse(w, r, StatusOK, updatedType)
 
 }
-
-
 
 // handleDeleteResourceType deletes a resource type.
 
@@ -485,8 +389,6 @@ func (s *O2APIServer) handleDeleteResourceType(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	if err := s.imsService.DeleteResourceType(r.Context(), typeID); err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to delete resource type", err)
@@ -495,27 +397,19 @@ func (s *O2APIServer) handleDeleteResourceType(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	s.metrics.RecordResourceOperation("delete", "resource_type", "system", "success")
 
 	w.WriteHeader(StatusNoContent)
 
 }
 
-
-
 // Resource Handlers.
-
-
 
 // handleGetResources retrieves resources with filtering.
 
 func (s *O2APIServer) handleGetResources(w http.ResponseWriter, r *http.Request) {
 
 	filter := s.parseResourceFilter(r)
-
-
 
 	resources, err := s.imsService.GetResources(r.Context(), filter)
 
@@ -527,13 +421,9 @@ func (s *O2APIServer) handleGetResources(w http.ResponseWriter, r *http.Request)
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, resources)
 
 }
-
-
 
 // handleGetResource retrieves a specific resource.
 
@@ -549,8 +439,6 @@ func (s *O2APIServer) handleGetResource(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-
-
 	resource, err := s.imsService.GetResource(r.Context(), resourceID)
 
 	if err != nil {
@@ -561,13 +449,9 @@ func (s *O2APIServer) handleGetResource(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, resource)
 
 }
-
-
 
 // handleCreateResource creates a new resource.
 
@@ -583,8 +467,6 @@ func (s *O2APIServer) handleCreateResource(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	resource, err := s.imsService.CreateResource(r.Context(), &req)
 
 	if err != nil {
@@ -595,15 +477,11 @@ func (s *O2APIServer) handleCreateResource(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	s.metrics.RecordResourceOperation("create", req.ResourceTypeID, "unknown", "success")
 
 	s.writeJSONResponse(w, r, StatusCreated, resource)
 
 }
-
-
 
 // handleUpdateResource updates an existing resource.
 
@@ -619,8 +497,6 @@ func (s *O2APIServer) handleUpdateResource(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	var req models.UpdateResourceRequest
 
 	if err := s.decodeJSONRequest(r, &req); err != nil {
@@ -630,8 +506,6 @@ func (s *O2APIServer) handleUpdateResource(w http.ResponseWriter, r *http.Reques
 		return
 
 	}
-
-
 
 	resource, err := s.imsService.UpdateResource(r.Context(), resourceID, &req)
 
@@ -643,15 +517,11 @@ func (s *O2APIServer) handleUpdateResource(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	s.metrics.RecordResourceOperation("update", "resource", "unknown", "success")
 
 	s.writeJSONResponse(w, r, StatusOK, resource)
 
 }
-
-
 
 // handleDeleteResource deletes a resource.
 
@@ -667,8 +537,6 @@ func (s *O2APIServer) handleDeleteResource(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	if err := s.imsService.DeleteResource(r.Context(), resourceID); err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to delete resource", err)
@@ -677,19 +545,13 @@ func (s *O2APIServer) handleDeleteResource(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	s.metrics.RecordResourceOperation("delete", "resource", "unknown", "success")
 
 	w.WriteHeader(StatusNoContent)
 
 }
 
-
-
 // Resource Health and Monitoring Handlers.
-
-
 
 // handleGetResourceHealth retrieves resource health status.
 
@@ -705,8 +567,6 @@ func (s *O2APIServer) handleGetResourceHealth(w http.ResponseWriter, r *http.Req
 
 	}
 
-
-
 	health, err := s.imsService.GetResourceHealth(r.Context(), resourceID)
 
 	if err != nil {
@@ -717,13 +577,9 @@ func (s *O2APIServer) handleGetResourceHealth(w http.ResponseWriter, r *http.Req
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, health)
 
 }
-
-
 
 // handleGetResourceAlarms retrieves resource alarms.
 
@@ -739,8 +595,6 @@ func (s *O2APIServer) handleGetResourceAlarms(w http.ResponseWriter, r *http.Req
 
 	}
 
-
-
 	filter := s.parseAlarmFilter(r)
 
 	alarms, err := s.imsService.GetResourceAlarms(r.Context(), resourceID, filter)
@@ -753,13 +607,9 @@ func (s *O2APIServer) handleGetResourceAlarms(w http.ResponseWriter, r *http.Req
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, alarms)
 
 }
-
-
 
 // handleGetResourceMetrics retrieves resource metrics.
 
@@ -775,8 +625,6 @@ func (s *O2APIServer) handleGetResourceMetrics(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	filter := s.parseMetricsFilter(r)
 
 	metrics, err := s.imsService.GetResourceMetrics(r.Context(), resourceID, filter)
@@ -789,25 +637,17 @@ func (s *O2APIServer) handleGetResourceMetrics(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, metrics)
 
 }
 
-
-
 // Deployment Template Handlers.
-
-
 
 // handleGetDeploymentTemplates retrieves deployment templates.
 
 func (s *O2APIServer) handleGetDeploymentTemplates(w http.ResponseWriter, r *http.Request) {
 
 	filter := s.parseDeploymentTemplateFilter(r)
-
-
 
 	templates, err := s.imsService.GetDeploymentTemplates(r.Context(), filter)
 
@@ -819,13 +659,9 @@ func (s *O2APIServer) handleGetDeploymentTemplates(w http.ResponseWriter, r *htt
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, templates)
 
 }
-
-
 
 // handleGetDeploymentTemplate retrieves a specific deployment template.
 
@@ -841,8 +677,6 @@ func (s *O2APIServer) handleGetDeploymentTemplate(w http.ResponseWriter, r *http
 
 	}
 
-
-
 	template, err := s.imsService.GetDeploymentTemplate(r.Context(), templateID)
 
 	if err != nil {
@@ -853,13 +687,9 @@ func (s *O2APIServer) handleGetDeploymentTemplate(w http.ResponseWriter, r *http
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, template)
 
 }
-
-
 
 // handleCreateDeploymentTemplate creates a new deployment template.
 
@@ -875,8 +705,6 @@ func (s *O2APIServer) handleCreateDeploymentTemplate(w http.ResponseWriter, r *h
 
 	}
 
-
-
 	createdTemplate, err := s.imsService.CreateDeploymentTemplate(r.Context(), &template)
 
 	if err != nil {
@@ -887,15 +715,11 @@ func (s *O2APIServer) handleCreateDeploymentTemplate(w http.ResponseWriter, r *h
 
 	}
 
-
-
 	s.metrics.RecordResourceOperation("create", "deployment_template", "system", "success")
 
 	s.writeJSONResponse(w, r, StatusCreated, createdTemplate)
 
 }
-
-
 
 // handleUpdateDeploymentTemplate updates an existing deployment template.
 
@@ -911,8 +735,6 @@ func (s *O2APIServer) handleUpdateDeploymentTemplate(w http.ResponseWriter, r *h
 
 	}
 
-
-
 	var template DeploymentTemplate
 
 	if err := s.decodeJSONRequest(r, &template); err != nil {
@@ -922,8 +744,6 @@ func (s *O2APIServer) handleUpdateDeploymentTemplate(w http.ResponseWriter, r *h
 		return
 
 	}
-
-
 
 	updatedTemplate, err := s.imsService.UpdateDeploymentTemplate(r.Context(), templateID, &template)
 
@@ -935,15 +755,11 @@ func (s *O2APIServer) handleUpdateDeploymentTemplate(w http.ResponseWriter, r *h
 
 	}
 
-
-
 	s.metrics.RecordResourceOperation("update", "deployment_template", "system", "success")
 
 	s.writeJSONResponse(w, r, StatusOK, updatedTemplate)
 
 }
-
-
 
 // handleDeleteDeploymentTemplate deletes a deployment template.
 
@@ -959,8 +775,6 @@ func (s *O2APIServer) handleDeleteDeploymentTemplate(w http.ResponseWriter, r *h
 
 	}
 
-
-
 	if err := s.imsService.DeleteDeploymentTemplate(r.Context(), templateID); err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to delete deployment template", err)
@@ -969,27 +783,19 @@ func (s *O2APIServer) handleDeleteDeploymentTemplate(w http.ResponseWriter, r *h
 
 	}
 
-
-
 	s.metrics.RecordResourceOperation("delete", "deployment_template", "system", "success")
 
 	w.WriteHeader(StatusNoContent)
 
 }
 
-
-
 // Deployment Management Handlers.
-
-
 
 // handleGetDeployments retrieves deployments.
 
 func (s *O2APIServer) handleGetDeployments(w http.ResponseWriter, r *http.Request) {
 
 	filter := s.parseDeploymentFilter(r)
-
-
 
 	deployments, err := s.imsService.GetDeployments(r.Context(), filter)
 
@@ -1001,13 +807,9 @@ func (s *O2APIServer) handleGetDeployments(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, deployments)
 
 }
-
-
 
 // handleGetDeployment retrieves a specific deployment.
 
@@ -1023,8 +825,6 @@ func (s *O2APIServer) handleGetDeployment(w http.ResponseWriter, r *http.Request
 
 	}
 
-
-
 	deployment, err := s.imsService.GetDeployment(r.Context(), deploymentID)
 
 	if err != nil {
@@ -1035,13 +835,9 @@ func (s *O2APIServer) handleGetDeployment(w http.ResponseWriter, r *http.Request
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, deployment)
 
 }
-
-
 
 // handleCreateDeployment creates a new deployment.
 
@@ -1057,8 +853,6 @@ func (s *O2APIServer) handleCreateDeployment(w http.ResponseWriter, r *http.Requ
 
 	}
 
-
-
 	deployment, err := s.imsService.CreateDeployment(r.Context(), &req)
 
 	if err != nil {
@@ -1069,15 +863,11 @@ func (s *O2APIServer) handleCreateDeployment(w http.ResponseWriter, r *http.Requ
 
 	}
 
-
-
 	s.metrics.RecordResourceOperation("create", "deployment", "unknown", "success")
 
 	s.writeJSONResponse(w, r, StatusCreated, deployment)
 
 }
-
-
 
 // handleUpdateDeployment updates an existing deployment.
 
@@ -1093,8 +883,6 @@ func (s *O2APIServer) handleUpdateDeployment(w http.ResponseWriter, r *http.Requ
 
 	}
 
-
-
 	var req UpdateDeploymentRequest
 
 	if err := s.decodeJSONRequest(r, &req); err != nil {
@@ -1104,8 +892,6 @@ func (s *O2APIServer) handleUpdateDeployment(w http.ResponseWriter, r *http.Requ
 		return
 
 	}
-
-
 
 	deployment, err := s.imsService.UpdateDeployment(r.Context(), deploymentID, &req)
 
@@ -1117,15 +903,11 @@ func (s *O2APIServer) handleUpdateDeployment(w http.ResponseWriter, r *http.Requ
 
 	}
 
-
-
 	s.metrics.RecordResourceOperation("update", "deployment", "unknown", "success")
 
 	s.writeJSONResponse(w, r, StatusOK, deployment)
 
 }
-
-
 
 // handleDeleteDeployment deletes a deployment.
 
@@ -1141,8 +923,6 @@ func (s *O2APIServer) handleDeleteDeployment(w http.ResponseWriter, r *http.Requ
 
 	}
 
-
-
 	if err := s.imsService.DeleteDeployment(r.Context(), deploymentID); err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to delete deployment", err)
@@ -1151,19 +931,13 @@ func (s *O2APIServer) handleDeleteDeployment(w http.ResponseWriter, r *http.Requ
 
 	}
 
-
-
 	s.metrics.RecordResourceOperation("delete", "deployment", "unknown", "success")
 
 	w.WriteHeader(StatusNoContent)
 
 }
 
-
-
 // Subscription Handlers.
-
-
 
 // handleCreateSubscription creates a new subscription.
 
@@ -1179,8 +953,6 @@ func (s *O2APIServer) handleCreateSubscription(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	createdSubscription, err := s.imsService.CreateSubscription(r.Context(), &subscription)
 
 	if err != nil {
@@ -1191,21 +963,15 @@ func (s *O2APIServer) handleCreateSubscription(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusCreated, createdSubscription)
 
 }
-
-
 
 // handleGetSubscriptions retrieves subscriptions.
 
 func (s *O2APIServer) handleGetSubscriptions(w http.ResponseWriter, r *http.Request) {
 
 	filter := s.parseSubscriptionFilter(r)
-
-
 
 	subscriptions, err := s.imsService.GetSubscriptions(r.Context(), filter)
 
@@ -1217,13 +983,9 @@ func (s *O2APIServer) handleGetSubscriptions(w http.ResponseWriter, r *http.Requ
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, subscriptions)
 
 }
-
-
 
 // handleGetSubscription retrieves a specific subscription.
 
@@ -1239,8 +1001,6 @@ func (s *O2APIServer) handleGetSubscription(w http.ResponseWriter, r *http.Reque
 
 	}
 
-
-
 	subscription, err := s.imsService.GetSubscription(r.Context(), subscriptionID)
 
 	if err != nil {
@@ -1251,13 +1011,9 @@ func (s *O2APIServer) handleGetSubscription(w http.ResponseWriter, r *http.Reque
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, subscription)
 
 }
-
-
 
 // handleUpdateSubscription updates an existing subscription.
 
@@ -1273,8 +1029,6 @@ func (s *O2APIServer) handleUpdateSubscription(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	var subscription Subscription
 
 	if err := s.decodeJSONRequest(r, &subscription); err != nil {
@@ -1284,8 +1038,6 @@ func (s *O2APIServer) handleUpdateSubscription(w http.ResponseWriter, r *http.Re
 		return
 
 	}
-
-
 
 	updatedSubscription, err := s.imsService.UpdateSubscription(r.Context(), subscriptionID, &subscription)
 
@@ -1297,13 +1049,9 @@ func (s *O2APIServer) handleUpdateSubscription(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, updatedSubscription)
 
 }
-
-
 
 // handleDeleteSubscription deletes a subscription.
 
@@ -1319,8 +1067,6 @@ func (s *O2APIServer) handleDeleteSubscription(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	if err := s.imsService.DeleteSubscription(r.Context(), subscriptionID); err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to delete subscription", err)
@@ -1329,17 +1075,11 @@ func (s *O2APIServer) handleDeleteSubscription(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	w.WriteHeader(StatusNoContent)
 
 }
 
-
-
 // Cloud Provider Management Handlers.
-
-
 
 // handleRegisterCloudProvider registers a new cloud provider.
 
@@ -1355,8 +1095,6 @@ func (s *O2APIServer) handleRegisterCloudProvider(w http.ResponseWriter, r *http
 
 	}
 
-
-
 	_, err := s.imsService.RegisterCloudProvider(r.Context(), &provider)
 
 	if err != nil {
@@ -1367,13 +1105,9 @@ func (s *O2APIServer) handleRegisterCloudProvider(w http.ResponseWriter, r *http
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusCreated, provider)
 
 }
-
-
 
 // handleGetCloudProviders retrieves cloud providers.
 
@@ -1389,13 +1123,9 @@ func (s *O2APIServer) handleGetCloudProviders(w http.ResponseWriter, r *http.Req
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, providers)
 
 }
-
-
 
 // handleGetCloudProvider retrieves a specific cloud provider.
 
@@ -1411,8 +1141,6 @@ func (s *O2APIServer) handleGetCloudProvider(w http.ResponseWriter, r *http.Requ
 
 	}
 
-
-
 	provider, err := s.imsService.GetCloudProvider(r.Context(), providerID)
 
 	if err != nil {
@@ -1423,13 +1151,9 @@ func (s *O2APIServer) handleGetCloudProvider(w http.ResponseWriter, r *http.Requ
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, provider)
 
 }
-
-
 
 // handleUpdateCloudProvider updates an existing cloud provider.
 
@@ -1445,8 +1169,6 @@ func (s *O2APIServer) handleUpdateCloudProvider(w http.ResponseWriter, r *http.R
 
 	}
 
-
-
 	var provider CloudProviderConfig
 
 	if err := s.decodeJSONRequest(r, &provider); err != nil {
@@ -1456,8 +1178,6 @@ func (s *O2APIServer) handleUpdateCloudProvider(w http.ResponseWriter, r *http.R
 		return
 
 	}
-
-
 
 	_, err := s.imsService.UpdateCloudProvider(r.Context(), providerID, &provider)
 
@@ -1469,13 +1189,9 @@ func (s *O2APIServer) handleUpdateCloudProvider(w http.ResponseWriter, r *http.R
 
 	}
 
-
-
 	s.writeJSONResponse(w, r, StatusOK, provider)
 
 }
-
-
 
 // handleRemoveCloudProvider removes a cloud provider.
 
@@ -1491,8 +1207,6 @@ func (s *O2APIServer) handleRemoveCloudProvider(w http.ResponseWriter, r *http.R
 
 	}
 
-
-
 	if err := s.imsService.RemoveCloudProvider(r.Context(), providerID); err != nil {
 
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to remove cloud provider", err)
@@ -1501,9 +1215,6 @@ func (s *O2APIServer) handleRemoveCloudProvider(w http.ResponseWriter, r *http.R
 
 	}
 
-
-
 	w.WriteHeader(StatusNoContent)
 
 }
-

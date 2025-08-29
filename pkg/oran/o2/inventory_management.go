@@ -1,103 +1,66 @@
 // Package o2 implements comprehensive inventory management for O2 IMS.
 
-
 package o2
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"database/sql"
-
 	"encoding/json"
-
 	"errors"
-
 	"fmt"
-
 	"sort"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/google/uuid"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/providers"
-
 )
-
-
 
 // InventoryManagementService provides comprehensive inventory management and CMDB functionality.
 
 type InventoryManagementService struct {
-
 	config *InventoryConfig
 
 	logger *logging.StructuredLogger
-
-
 
 	// Provider registry for multi-cloud inventory.
 
 	providerRegistry *providers.ProviderRegistry
 
-
-
 	// Storage components.
 
-	cmdbStorage  CMDBStorage
+	cmdbStorage CMDBStorage
 
 	assetStorage AssetStorage
 
-
-
 	// Inventory components.
 
-	discoveryEngine    *DiscoveryEngine
+	discoveryEngine *DiscoveryEngine
 
 	relationshipEngine *RelationshipEngine
 
-	auditEngine        *AuditEngine
-
-
+	auditEngine *AuditEngine
 
 	// Caching and indexing.
 
-	assetIndex        *AssetIndex
+	assetIndex *AssetIndex
 
 	relationshipIndex *RelationshipIndex
-
-
 
 	// Synchronization.
 
 	mu sync.RWMutex
 
-
-
 	// Lifecycle management.
 
-	ctx    context.Context
+	ctx context.Context
 
 	cancel context.CancelFunc
 
-	wg     sync.WaitGroup
-
+	wg sync.WaitGroup
 }
-
-
 
 // InventoryConfig configuration for inventory management.
 
@@ -105,23 +68,19 @@ type InventoryConfig struct {
 
 	// Discovery settings.
 
-	AutoDiscoveryEnabled bool          `json:"autoDiscoveryEnabled,omitempty"`
+	AutoDiscoveryEnabled bool `json:"autoDiscoveryEnabled,omitempty"`
 
-	DiscoveryInterval    time.Duration `json:"discoveryInterval,omitempty"`
+	DiscoveryInterval time.Duration `json:"discoveryInterval,omitempty"`
 
-	DiscoveryTimeout     time.Duration `json:"discoveryTimeout,omitempty"`
-
-
+	DiscoveryTimeout time.Duration `json:"discoveryTimeout,omitempty"`
 
 	// Sync settings.
 
-	InventorySyncEnabled bool          `json:"inventorySyncEnabled,omitempty"`
+	InventorySyncEnabled bool `json:"inventorySyncEnabled,omitempty"`
 
-	SyncInterval         time.Duration `json:"syncInterval,omitempty"`
+	SyncInterval time.Duration `json:"syncInterval,omitempty"`
 
-	ConflictResolution   string        `json:"conflictResolution,omitempty"`
-
-
+	ConflictResolution string `json:"conflictResolution,omitempty"`
 
 	// Retention policies.
 
@@ -129,233 +88,196 @@ type InventoryConfig struct {
 
 	AuditRetentionPeriod time.Duration `json:"auditRetentionPeriod,omitempty"`
 
-
-
 	// CMDB settings.
 
-	CMDBEnabled          bool `json:"cmdbEnabled,omitempty"`
+	CMDBEnabled bool `json:"cmdbEnabled,omitempty"`
 
 	RelationshipTracking bool `json:"relationshipTracking,omitempty"`
 
-	ChangeTracking       bool `json:"changeTracking,omitempty"`
+	ChangeTracking bool `json:"changeTracking,omitempty"`
 
-	ComplianceReporting  bool `json:"complianceReporting,omitempty"`
-
-
+	ComplianceReporting bool `json:"complianceReporting,omitempty"`
 
 	// Database settings.
 
-	DatabaseURL       string        `json:"databaseUrl,omitempty"`
+	DatabaseURL string `json:"databaseUrl,omitempty"`
 
-	MaxConnections    int           `json:"maxConnections,omitempty"`
+	MaxConnections int `json:"maxConnections,omitempty"`
 
 	ConnectionTimeout time.Duration `json:"connectionTimeout,omitempty"`
-
 }
-
-
 
 // Asset represents a managed infrastructure asset.
 
 type Asset struct {
+	ID string `json:"id"`
 
-	ID       string `json:"id"`
+	Name string `json:"name"`
 
-	Name     string `json:"name"`
-
-	Type     string `json:"type"`
+	Type string `json:"type"`
 
 	Category string `json:"category"`
 
 	Provider string `json:"provider"`
 
-	Region   string `json:"region,omitempty"`
+	Region string `json:"region,omitempty"`
 
-	Zone     string `json:"zone,omitempty"`
-
-
+	Zone string `json:"zone,omitempty"`
 
 	// Asset properties.
 
-	Properties    map[string]interface{} `json:"properties"`
+	Properties map[string]interface{} `json:"properties"`
 
 	Configuration map[string]interface{} `json:"configuration,omitempty"`
 
-	Metadata      map[string]string      `json:"metadata,omitempty"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 
-	Tags          map[string]string      `json:"tags,omitempty"`
+	Tags map[string]string `json:"tags,omitempty"`
 
-	Labels        map[string]string      `json:"labels,omitempty"`
-
-
+	Labels map[string]string `json:"labels,omitempty"`
 
 	// Asset status.
 
-	Status      string    `json:"status"`
+	Status string `json:"status"`
 
-	Health      string    `json:"health"`
+	Health string `json:"health"`
 
-	State       string    `json:"state"`
+	State string `json:"state"`
 
-	LastSeen    time.Time `json:"lastSeen"`
+	LastSeen time.Time `json:"lastSeen"`
 
 	LastUpdated time.Time `json:"lastUpdated"`
 
-
-
 	// Relationships.
 
-	ParentAsset  string   `json:"parentAsset,omitempty"`
+	ParentAsset string `json:"parentAsset,omitempty"`
 
-	ChildAssets  []string `json:"childAssets,omitempty"`
+	ChildAssets []string `json:"childAssets,omitempty"`
 
 	Dependencies []string `json:"dependencies,omitempty"`
 
-	Dependents   []string `json:"dependents,omitempty"`
-
-
+	Dependents []string `json:"dependents,omitempty"`
 
 	// Compliance and audit.
 
-	ComplianceStatus string            `json:"complianceStatus"`
+	ComplianceStatus string `json:"complianceStatus"`
 
 	ComplianceChecks []ComplianceCheck `json:"complianceChecks,omitempty"`
 
-	AuditTrail       []AuditEntry      `json:"auditTrail,omitempty"`
-
-
+	AuditTrail []AuditEntry `json:"auditTrail,omitempty"`
 
 	// Lifecycle information.
 
 	CreatedAt time.Time `json:"createdAt"`
 
-	CreatedBy string    `json:"createdBy"`
+	CreatedBy string `json:"createdBy"`
 
 	UpdatedAt time.Time `json:"updatedAt"`
 
-	UpdatedBy string    `json:"updatedBy"`
-
+	UpdatedBy string `json:"updatedBy"`
 }
-
-
 
 // AssetRelationship represents a relationship between two assets.
 
 type AssetRelationship struct {
+	ID string `json:"id"`
 
-	ID            string                 `json:"id"`
+	SourceAssetID string `json:"sourceAssetId"`
 
-	SourceAssetID string                 `json:"sourceAssetId"`
+	TargetAssetID string `json:"targetAssetId"`
 
-	TargetAssetID string                 `json:"targetAssetId"`
+	RelationType string `json:"relationType"`
 
-	RelationType  string                 `json:"relationType"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
 
-	Properties    map[string]interface{} `json:"properties,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
-	CreatedAt     time.Time              `json:"createdAt"`
-
-	UpdatedAt     time.Time              `json:"updatedAt"`
-
+	UpdatedAt time.Time `json:"updatedAt"`
 }
-
-
 
 // ComplianceCheck represents a compliance check result.
 
 type ComplianceCheck struct {
+	ID string `json:"id"`
 
-	ID        string                 `json:"id"`
+	CheckType string `json:"checkType"`
 
-	CheckType string                 `json:"checkType"`
+	Status string `json:"status"`
 
-	Status    string                 `json:"status"`
+	Result string `json:"result"`
 
-	Result    string                 `json:"result"`
+	Details map[string]interface{} `json:"details,omitempty"`
 
-	Details   map[string]interface{} `json:"details,omitempty"`
-
-	Timestamp time.Time              `json:"timestamp"`
-
+	Timestamp time.Time `json:"timestamp"`
 }
-
-
 
 // AuditEntry represents an audit trail entry.
 
 type AuditEntry struct {
+	ID string `json:"id"`
 
-	ID           string                 `json:"id"`
+	Action string `json:"action"`
 
-	Action       string                 `json:"action"`
+	Actor string `json:"actor"`
 
-	Actor        string                 `json:"actor"`
+	ResourceType string `json:"resourceType"`
 
-	ResourceType string                 `json:"resourceType"`
+	ResourceID string `json:"resourceId"`
 
-	ResourceID   string                 `json:"resourceId"`
+	Changes map[string]interface{} `json:"changes,omitempty"`
 
-	Changes      map[string]interface{} `json:"changes,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp    time.Time              `json:"timestamp"`
-
-	Source       string                 `json:"source"`
-
+	Source string `json:"source"`
 }
-
-
 
 // AssetFilter defines filters for querying assets.
 
 type AssetFilter struct {
+	IDs []string `json:"ids,omitempty"`
 
-	IDs             []string          `json:"ids,omitempty"`
+	Names []string `json:"names,omitempty"`
 
-	Names           []string          `json:"names,omitempty"`
+	Types []string `json:"types,omitempty"`
 
-	Types           []string          `json:"types,omitempty"`
+	Categories []string `json:"categories,omitempty"`
 
-	Categories      []string          `json:"categories,omitempty"`
+	Providers []string `json:"providers,omitempty"`
 
-	Providers       []string          `json:"providers,omitempty"`
+	Regions []string `json:"regions,omitempty"`
 
-	Regions         []string          `json:"regions,omitempty"`
+	Zones []string `json:"zones,omitempty"`
 
-	Zones           []string          `json:"zones,omitempty"`
+	Status []string `json:"status,omitempty"`
 
-	Status          []string          `json:"status,omitempty"`
+	Health []string `json:"health,omitempty"`
 
-	Health          []string          `json:"health,omitempty"`
+	Tags map[string]string `json:"tags,omitempty"`
 
-	Tags            map[string]string `json:"tags,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
 
-	Labels          map[string]string `json:"labels,omitempty"`
+	CreatedAfter *time.Time `json:"createdAfter,omitempty"`
 
-	CreatedAfter    *time.Time        `json:"createdAfter,omitempty"`
+	CreatedBefore *time.Time `json:"createdBefore,omitempty"`
 
-	CreatedBefore   *time.Time        `json:"createdBefore,omitempty"`
+	UpdatedAfter *time.Time `json:"updatedAfter,omitempty"`
 
-	UpdatedAfter    *time.Time        `json:"updatedAfter,omitempty"`
+	UpdatedBefore *time.Time `json:"updatedBefore,omitempty"`
 
-	UpdatedBefore   *time.Time        `json:"updatedBefore,omitempty"`
+	HasParent *bool `json:"hasParent,omitempty"`
 
-	HasParent       *bool             `json:"hasParent,omitempty"`
+	HasChildren *bool `json:"hasChildren,omitempty"`
 
-	HasChildren     *bool             `json:"hasChildren,omitempty"`
+	HasDependencies *bool `json:"hasDependencies,omitempty"`
 
-	HasDependencies *bool             `json:"hasDependencies,omitempty"`
+	Limit int `json:"limit,omitempty"`
 
-	Limit           int               `json:"limit,omitempty"`
+	Offset int `json:"offset,omitempty"`
 
-	Offset          int               `json:"offset,omitempty"`
+	SortBy string `json:"sortBy,omitempty"`
 
-	SortBy          string            `json:"sortBy,omitempty"`
-
-	SortOrder       string            `json:"sortOrder,omitempty"`
-
+	SortOrder string `json:"sortOrder,omitempty"`
 }
-
-
 
 // CMDBStorage interface for CMDB storage operations.
 
@@ -373,8 +295,6 @@ type CMDBStorage interface {
 
 	ListAssets(ctx context.Context, filter *AssetFilter) ([]*Asset, error)
 
-
-
 	// Relationship operations.
 
 	CreateRelationship(ctx context.Context, rel *AssetRelationship) error
@@ -389,23 +309,17 @@ type CMDBStorage interface {
 
 	GetAssetRelationships(ctx context.Context, assetID string) ([]*AssetRelationship, error)
 
-
-
 	// Audit operations.
 
 	CreateAuditEntry(ctx context.Context, entry *AuditEntry) error
 
 	GetAuditTrail(ctx context.Context, resourceID string) ([]*AuditEntry, error)
 
-
-
 	// Compliance operations.
 
 	CreateComplianceCheck(ctx context.Context, check *ComplianceCheck) error
 
 	GetComplianceStatus(ctx context.Context, assetID string) ([]*ComplianceCheck, error)
-
-
 
 	// Maintenance operations.
 
@@ -414,15 +328,11 @@ type CMDBStorage interface {
 	Restore(ctx context.Context, path string) error
 
 	Cleanup(ctx context.Context, retentionPeriod time.Duration) error
-
 }
-
-
 
 // AssetStorage interface for asset storage operations.
 
 type AssetStorage interface {
-
 	Store(ctx context.Context, asset *Asset) error
 
 	Retrieve(ctx context.Context, id string) (*Asset, error)
@@ -430,32 +340,25 @@ type AssetStorage interface {
 	Delete(ctx context.Context, id string) error
 
 	List(ctx context.Context, filter *AssetFilter) ([]*Asset, error)
-
 }
-
-
 
 // RelationshipFilter defines filters for querying relationships.
 
 type RelationshipFilter struct {
+	SourceAssetIDs []string `json:"sourceAssetIds,omitempty"`
 
-	SourceAssetIDs []string   `json:"sourceAssetIds,omitempty"`
+	TargetAssetIDs []string `json:"targetAssetIds,omitempty"`
 
-	TargetAssetIDs []string   `json:"targetAssetIds,omitempty"`
+	RelationTypes []string `json:"relationTypes,omitempty"`
 
-	RelationTypes  []string   `json:"relationTypes,omitempty"`
+	CreatedAfter *time.Time `json:"createdAfter,omitempty"`
 
-	CreatedAfter   *time.Time `json:"createdAfter,omitempty"`
+	CreatedBefore *time.Time `json:"createdBefore,omitempty"`
 
-	CreatedBefore  *time.Time `json:"createdBefore,omitempty"`
+	Limit int `json:"limit,omitempty"`
 
-	Limit          int        `json:"limit,omitempty"`
-
-	Offset         int        `json:"offset,omitempty"`
-
+	Offset int `json:"offset,omitempty"`
 }
-
-
 
 // NewInventoryManagementService creates a new inventory management service.
 
@@ -475,25 +378,17 @@ func NewInventoryManagementService(
 
 	}
 
-
-
 	if logger == nil {
 
 		logger = logging.NewStructuredLogger(logging.DefaultConfig("inventory-management", "1.0.0", "production"))
 
 	}
 
-
-
 	ctx, cancel := context.WithCancel(context.Background())
-
-
 
 	// Initialize storage.
 
 	assetStorage := &stubAssetStorage{}
-
-
 
 	// Initialize engines.
 
@@ -503,49 +398,40 @@ func NewInventoryManagementService(
 
 	auditEngine := &AuditEngine{}
 
-
-
 	// Initialize indexes.
 
 	assetIndex := &AssetIndex{}
 
 	relationshipIndex := &RelationshipIndex{}
 
-
-
 	service := &InventoryManagementService{
 
-		config:             config,
+		config: config,
 
-		logger:             logger,
+		logger: logger,
 
-		providerRegistry:   providerRegistry,
+		providerRegistry: providerRegistry,
 
-		assetStorage:       assetStorage,
+		assetStorage: assetStorage,
 
-		discoveryEngine:    discoveryEngine,
+		discoveryEngine: discoveryEngine,
 
 		relationshipEngine: relationshipEngine,
 
-		auditEngine:        auditEngine,
+		auditEngine: auditEngine,
 
-		assetIndex:         assetIndex,
+		assetIndex: assetIndex,
 
-		relationshipIndex:  relationshipIndex,
+		relationshipIndex: relationshipIndex,
 
-		ctx:                ctx,
+		ctx: ctx,
 
-		cancel:             cancel,
-
+		cancel: cancel,
 	}
-
-
 
 	return service, nil
 
 }
-
-
 
 // DefaultInventoryConfig returns default configuration.
 
@@ -555,45 +441,40 @@ func DefaultInventoryConfig() *InventoryConfig {
 
 		AutoDiscoveryEnabled: true,
 
-		DiscoveryInterval:    5 * time.Minute,
+		DiscoveryInterval: 5 * time.Minute,
 
-		DiscoveryTimeout:     30 * time.Second,
+		DiscoveryTimeout: 30 * time.Second,
 
 		InventorySyncEnabled: true,
 
-		SyncInterval:         15 * time.Minute,
+		SyncInterval: 15 * time.Minute,
 
-		ConflictResolution:   "latest_wins",
+		ConflictResolution: "latest_wins",
 
 		AssetRetentionPeriod: 90 * 24 * time.Hour,
 
 		AuditRetentionPeriod: 365 * 24 * time.Hour,
 
-		CMDBEnabled:          true,
+		CMDBEnabled: true,
 
 		RelationshipTracking: true,
 
-		ChangeTracking:       true,
+		ChangeTracking: true,
 
-		ComplianceReporting:  true,
+		ComplianceReporting: true,
 
-		MaxConnections:       20,
+		MaxConnections: 20,
 
-		ConnectionTimeout:    30 * time.Second,
-
+		ConnectionTimeout: 30 * time.Second,
 	}
 
 }
-
-
 
 // Start starts the inventory management service.
 
 func (s *InventoryManagementService) Start(ctx context.Context) error {
 
 	s.logger.Info("starting inventory management service")
-
-
 
 	// Initialize database schema if needed.
 
@@ -603,13 +484,9 @@ func (s *InventoryManagementService) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start background processes.
 
 	s.wg.Add(3)
-
-
 
 	if s.config.AutoDiscoveryEnabled {
 
@@ -617,25 +494,17 @@ func (s *InventoryManagementService) Start(ctx context.Context) error {
 
 	}
 
-
-
 	if s.config.InventorySyncEnabled {
 
 		go s.syncLoop()
 
 	}
 
-
-
 	go s.maintenanceLoop()
-
-
 
 	return nil
 
 }
-
-
 
 // Stop stops the inventory management service.
 
@@ -643,13 +512,9 @@ func (s *InventoryManagementService) Stop() error {
 
 	s.logger.Info("stopping inventory management service")
 
-
-
 	s.cancel()
 
 	s.wg.Wait()
-
-
 
 	s.logger.Info("inventory management service stopped")
 
@@ -657,27 +522,19 @@ func (s *InventoryManagementService) Stop() error {
 
 }
 
-
-
 // discoveryLoop runs the asset discovery loop.
 
 func (s *InventoryManagementService) discoveryLoop() {
 
 	defer s.wg.Done()
 
-
-
 	ticker := time.NewTicker(s.config.DiscoveryInterval)
 
 	defer ticker.Stop()
 
-
-
 	// Run initial discovery.
 
 	s.performDiscovery()
-
-
 
 	for {
 
@@ -697,21 +554,15 @@ func (s *InventoryManagementService) discoveryLoop() {
 
 }
 
-
-
 // syncLoop runs the inventory synchronization loop.
 
 func (s *InventoryManagementService) syncLoop() {
 
 	defer s.wg.Done()
 
-
-
 	ticker := time.NewTicker(s.config.SyncInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -731,21 +582,15 @@ func (s *InventoryManagementService) syncLoop() {
 
 }
 
-
-
 // maintenanceLoop runs maintenance tasks.
 
 func (s *InventoryManagementService) maintenanceLoop() {
 
 	defer s.wg.Done()
 
-
-
 	ticker := time.NewTicker(24 * time.Hour) // Run maintenance daily
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -765,21 +610,15 @@ func (s *InventoryManagementService) maintenanceLoop() {
 
 }
 
-
-
 // performDiscovery performs asset discovery across all providers.
 
 func (s *InventoryManagementService) performDiscovery() {
 
 	s.logger.Info("performing asset discovery")
 
-
-
 	discoveryCtx, cancel := context.WithTimeout(s.ctx, s.config.DiscoveryTimeout)
 
 	defer cancel()
-
-
 
 	providerNames := s.providerRegistry.ListProviders()
 
@@ -801,8 +640,6 @@ func (s *InventoryManagementService) performDiscovery() {
 
 }
 
-
-
 // discoverProviderAssets discovers assets from a specific provider.
 
 func (s *InventoryManagementService) discoverProviderAssets(ctx context.Context, provider providers.CloudProvider) {
@@ -810,8 +647,6 @@ func (s *InventoryManagementService) discoverProviderAssets(ctx context.Context,
 	s.logger.Info("discovering assets from provider",
 
 		"provider", getProviderType(provider))
-
-
 
 	// Use discovery engine to find assets.
 
@@ -828,8 +663,6 @@ func (s *InventoryManagementService) discoverProviderAssets(ctx context.Context,
 		return
 
 	}
-
-
 
 	// Process discovered assets.
 
@@ -849,8 +682,6 @@ func (s *InventoryManagementService) discoverProviderAssets(ctx context.Context,
 
 	}
 
-
-
 	s.logger.Info("completed asset discovery for provider",
 
 		"provider", getProviderType(provider),
@@ -859,8 +690,6 @@ func (s *InventoryManagementService) discoverProviderAssets(ctx context.Context,
 
 }
 
-
-
 // processDiscoveredAsset processes a discovered asset.
 
 func (s *InventoryManagementService) processDiscoveredAsset(asset *Asset) error {
@@ -868,8 +697,6 @@ func (s *InventoryManagementService) processDiscoveredAsset(asset *Asset) error 
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
-
-
 
 	// Check if asset already exists.
 
@@ -880,8 +707,6 @@ func (s *InventoryManagementService) processDiscoveredAsset(asset *Asset) error 
 		return fmt.Errorf("failed to check existing asset: %w", err)
 
 	}
-
-
 
 	if existingAsset != nil {
 
@@ -903,43 +728,34 @@ func (s *InventoryManagementService) processDiscoveredAsset(asset *Asset) error 
 
 		asset.CreatedBy = "discovery-engine"
 
-
-
 		if err := s.cmdbStorage.CreateAsset(s.ctx, asset); err != nil {
 
 			return fmt.Errorf("failed to create asset: %w", err)
 
 		}
 
-
-
 		// Update index.
 
 		s.assetIndex.AddAsset(asset)
-
-
 
 		// Create audit entry.
 
 		auditEntry := &AuditEntry{
 
-			ID:           uuid.New().String(),
+			ID: uuid.New().String(),
 
-			Action:       "create",
+			Action: "create",
 
-			Actor:        "discovery-engine",
+			Actor: "discovery-engine",
 
 			ResourceType: "asset",
 
-			ResourceID:   asset.ID,
+			ResourceID: asset.ID,
 
-			Timestamp:    time.Now(),
+			Timestamp: time.Now(),
 
-			Source:       "inventory-discovery",
-
+			Source: "inventory-discovery",
 		}
-
-
 
 		if err := s.cmdbStorage.CreateAuditEntry(s.ctx, auditEntry); err != nil {
 
@@ -949,13 +765,9 @@ func (s *InventoryManagementService) processDiscoveredAsset(asset *Asset) error 
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // updateExistingAsset updates an existing asset with discovered information.
 
@@ -963,15 +775,11 @@ func (s *InventoryManagementService) updateExistingAsset(existing, discovered *A
 
 	changes := make(map[string]interface{})
 
-
-
 	// Update last seen timestamp.
 
 	existing.LastSeen = time.Now()
 
 	changes["lastSeen"] = existing.LastSeen
-
-
 
 	// Update properties if changed.
 
@@ -983,8 +791,6 @@ func (s *InventoryManagementService) updateExistingAsset(existing, discovered *A
 
 	}
 
-
-
 	// Update configuration if changed.
 
 	if !equalMaps(existing.Configuration, discovered.Configuration) {
@@ -994,8 +800,6 @@ func (s *InventoryManagementService) updateExistingAsset(existing, discovered *A
 		changes["configuration"] = existing.Configuration
 
 	}
-
-
 
 	// Update status if changed.
 
@@ -1007,8 +811,6 @@ func (s *InventoryManagementService) updateExistingAsset(existing, discovered *A
 
 	}
 
-
-
 	// Update health if changed.
 
 	if existing.Health != discovered.Health {
@@ -1018,8 +820,6 @@ func (s *InventoryManagementService) updateExistingAsset(existing, discovered *A
 		changes["health"] = existing.Health
 
 	}
-
-
 
 	// Update state if changed.
 
@@ -1031,8 +831,6 @@ func (s *InventoryManagementService) updateExistingAsset(existing, discovered *A
 
 	}
 
-
-
 	if len(changes) > 0 {
 
 		existing.UpdatedAt = time.Now()
@@ -1043,45 +841,36 @@ func (s *InventoryManagementService) updateExistingAsset(existing, discovered *A
 
 		changes["updatedBy"] = existing.UpdatedBy
 
-
-
 		if err := s.cmdbStorage.UpdateAsset(s.ctx, existing); err != nil {
 
 			return fmt.Errorf("failed to update asset in storage: %w", err)
 
 		}
 
-
-
 		// Update index.
 
 		s.assetIndex.UpdateAsset(existing)
-
-
 
 		// Create audit entry for changes.
 
 		auditEntry := &AuditEntry{
 
-			ID:           uuid.New().String(),
+			ID: uuid.New().String(),
 
-			Action:       "update",
+			Action: "update",
 
-			Actor:        "discovery-engine",
+			Actor: "discovery-engine",
 
 			ResourceType: "asset",
 
-			ResourceID:   existing.ID,
+			ResourceID: existing.ID,
 
-			Changes:      changes,
+			Changes: changes,
 
-			Timestamp:    time.Now(),
+			Timestamp: time.Now(),
 
-			Source:       "inventory-discovery",
-
+			Source: "inventory-discovery",
 		}
-
-
 
 		if err := s.cmdbStorage.CreateAuditEntry(s.ctx, auditEntry); err != nil {
 
@@ -1091,13 +880,9 @@ func (s *InventoryManagementService) updateExistingAsset(existing, discovered *A
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // performSync performs inventory synchronization.
 
@@ -1105,27 +890,19 @@ func (s *InventoryManagementService) performSync() {
 
 	s.logger.Info("performing inventory synchronization")
 
-
-
 	// Sync with external systems, validate relationships, etc.
 
 	// This is a placeholder for more complex sync logic.
 
-
-
 	s.logger.Info("completed inventory synchronization")
 
 }
-
-
 
 // performMaintenance performs maintenance tasks.
 
 func (s *InventoryManagementService) performMaintenance() {
 
 	s.logger.Info("performing inventory maintenance")
-
-
 
 	// Cleanup old audit entries.
 
@@ -1135,27 +912,19 @@ func (s *InventoryManagementService) performMaintenance() {
 
 	}
 
-
-
 	// Rebuild indexes if needed.
 
 	s.rebuildIndexes()
 
-
-
 	s.logger.Info("completed inventory maintenance")
 
 }
-
-
 
 // rebuildIndexes rebuilds asset and relationship indexes.
 
 func (s *InventoryManagementService) rebuildIndexes() {
 
 	s.logger.Info("rebuilding indexes")
-
-
 
 	// Rebuild asset index.
 
@@ -1169,8 +938,6 @@ func (s *InventoryManagementService) rebuildIndexes() {
 
 	}
 
-
-
 	s.assetIndex.Clear()
 
 	for _, asset := range assets {
@@ -1178,8 +945,6 @@ func (s *InventoryManagementService) rebuildIndexes() {
 		s.assetIndex.AddAsset(asset)
 
 	}
-
-
 
 	// Rebuild relationship index.
 
@@ -1193,8 +958,6 @@ func (s *InventoryManagementService) rebuildIndexes() {
 
 	}
 
-
-
 	s.relationshipIndex.Clear()
 
 	for _, rel := range relationships {
@@ -1203,13 +966,9 @@ func (s *InventoryManagementService) rebuildIndexes() {
 
 	}
 
-
-
 	s.logger.Info("completed index rebuild")
 
 }
-
-
 
 // initializeDatabase initializes the database schema.
 
@@ -1225,11 +984,7 @@ func (s *InventoryManagementService) initializeDatabase() error {
 
 }
 
-
-
 // Asset management operations.
-
-
 
 // CreateAsset creates a new asset in the inventory.
 
@@ -1238,8 +993,6 @@ func (s *InventoryManagementService) CreateAsset(ctx context.Context, asset *Ass
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
-
-
 
 	// Set timestamps and metadata.
 
@@ -1253,8 +1006,6 @@ func (s *InventoryManagementService) CreateAsset(ctx context.Context, asset *Ass
 
 	asset.LastSeen = now
 
-
-
 	// Store in CMDB.
 
 	if err := s.cmdbStorage.CreateAsset(ctx, asset); err != nil {
@@ -1263,35 +1014,28 @@ func (s *InventoryManagementService) CreateAsset(ctx context.Context, asset *Ass
 
 	}
 
-
-
 	// Update index.
 
 	s.assetIndex.AddAsset(asset)
-
-
 
 	// Create audit entry.
 
 	auditEntry := &AuditEntry{
 
-		ID:           uuid.New().String(),
+		ID: uuid.New().String(),
 
-		Action:       "create",
+		Action: "create",
 
-		Actor:        "user", // This would come from context
+		Actor: "user", // This would come from context
 
 		ResourceType: "asset",
 
-		ResourceID:   asset.ID,
+		ResourceID: asset.ID,
 
-		Timestamp:    now,
+		Timestamp: now,
 
-		Source:       "api",
-
+		Source: "api",
 	}
-
-
 
 	if err := s.cmdbStorage.CreateAuditEntry(ctx, auditEntry); err != nil {
 
@@ -1299,15 +1043,11 @@ func (s *InventoryManagementService) CreateAsset(ctx context.Context, asset *Ass
 
 	}
 
-
-
 	s.logger.Info("created asset", "asset_id", asset.ID, "name", asset.Name)
 
 	return nil
 
 }
-
-
 
 // GetAsset retrieves an asset by ID.
 
@@ -1317,8 +1057,6 @@ func (s *InventoryManagementService) GetAsset(ctx context.Context, id string) (*
 
 }
 
-
-
 // UpdateAsset updates an existing asset.
 
 func (s *InventoryManagementService) UpdateAsset(ctx context.Context, asset *Asset) error {
@@ -1326,8 +1064,6 @@ func (s *InventoryManagementService) UpdateAsset(ctx context.Context, asset *Ass
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
-
-
 
 	// Get existing asset to track changes.
 
@@ -1339,19 +1075,13 @@ func (s *InventoryManagementService) UpdateAsset(ctx context.Context, asset *Ass
 
 	}
 
-
-
 	// Track changes.
 
 	changes := s.trackAssetChanges(existing, asset)
 
-
-
 	// Update timestamps.
 
 	asset.UpdatedAt = time.Now()
-
-
 
 	// Store in CMDB.
 
@@ -1361,13 +1091,9 @@ func (s *InventoryManagementService) UpdateAsset(ctx context.Context, asset *Ass
 
 	}
 
-
-
 	// Update index.
 
 	s.assetIndex.UpdateAsset(asset)
-
-
 
 	// Create audit entry if there are changes.
 
@@ -1375,25 +1101,22 @@ func (s *InventoryManagementService) UpdateAsset(ctx context.Context, asset *Ass
 
 		auditEntry := &AuditEntry{
 
-			ID:           uuid.New().String(),
+			ID: uuid.New().String(),
 
-			Action:       "update",
+			Action: "update",
 
-			Actor:        "user", // This would come from context
+			Actor: "user", // This would come from context
 
 			ResourceType: "asset",
 
-			ResourceID:   asset.ID,
+			ResourceID: asset.ID,
 
-			Changes:      changes,
+			Changes: changes,
 
-			Timestamp:    time.Now(),
+			Timestamp: time.Now(),
 
-			Source:       "api",
-
+			Source: "api",
 		}
-
-
 
 		if err := s.cmdbStorage.CreateAuditEntry(ctx, auditEntry); err != nil {
 
@@ -1403,15 +1126,11 @@ func (s *InventoryManagementService) UpdateAsset(ctx context.Context, asset *Ass
 
 	}
 
-
-
 	s.logger.Info("updated asset", "asset_id", asset.ID, "changes", len(changes))
 
 	return nil
 
 }
-
-
 
 // DeleteAsset deletes an asset from the inventory.
 
@@ -1420,8 +1139,6 @@ func (s *InventoryManagementService) DeleteAsset(ctx context.Context, id string)
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
-
-
 
 	// Get asset before deletion for audit.
 
@@ -1433,8 +1150,6 @@ func (s *InventoryManagementService) DeleteAsset(ctx context.Context, id string)
 
 	}
 
-
-
 	// Delete from CMDB.
 
 	if err := s.cmdbStorage.DeleteAsset(ctx, id); err != nil {
@@ -1443,35 +1158,28 @@ func (s *InventoryManagementService) DeleteAsset(ctx context.Context, id string)
 
 	}
 
-
-
 	// Update index.
 
 	s.assetIndex.RemoveAsset(id)
-
-
 
 	// Create audit entry.
 
 	auditEntry := &AuditEntry{
 
-		ID:           uuid.New().String(),
+		ID: uuid.New().String(),
 
-		Action:       "delete",
+		Action: "delete",
 
-		Actor:        "user", // This would come from context
+		Actor: "user", // This would come from context
 
 		ResourceType: "asset",
 
-		ResourceID:   id,
+		ResourceID: id,
 
-		Timestamp:    time.Now(),
+		Timestamp: time.Now(),
 
-		Source:       "api",
-
+		Source: "api",
 	}
-
-
 
 	if err := s.cmdbStorage.CreateAuditEntry(ctx, auditEntry); err != nil {
 
@@ -1479,15 +1187,11 @@ func (s *InventoryManagementService) DeleteAsset(ctx context.Context, id string)
 
 	}
 
-
-
 	s.logger.Info("deleted asset", "asset_id", id, "name", asset.Name)
 
 	return nil
 
 }
-
-
 
 // ListAssets lists assets based on filter criteria.
 
@@ -1501,8 +1205,6 @@ func (s *InventoryManagementService) ListAssets(ctx context.Context, filter *Ass
 
 	}
 
-
-
 	// Apply sorting if specified.
 
 	if filter.SortBy != "" {
@@ -1511,13 +1213,9 @@ func (s *InventoryManagementService) ListAssets(ctx context.Context, filter *Ass
 
 	}
 
-
-
 	return assets, nil
 
 }
-
-
 
 // GetAssetRelationships retrieves relationships for an asset.
 
@@ -1527,8 +1225,6 @@ func (s *InventoryManagementService) GetAssetRelationships(ctx context.Context, 
 
 }
 
-
-
 // CreateRelationship creates a new asset relationship.
 
 func (s *InventoryManagementService) CreateRelationship(ctx context.Context, rel *AssetRelationship) error {
@@ -1536,8 +1232,6 @@ func (s *InventoryManagementService) CreateRelationship(ctx context.Context, rel
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
-
-
 
 	// Set ID and timestamps.
 
@@ -1547,8 +1241,6 @@ func (s *InventoryManagementService) CreateRelationship(ctx context.Context, rel
 
 	rel.UpdatedAt = time.Now()
 
-
-
 	// Store in CMDB.
 
 	if err := s.cmdbStorage.CreateRelationship(ctx, rel); err != nil {
@@ -1557,13 +1249,9 @@ func (s *InventoryManagementService) CreateRelationship(ctx context.Context, rel
 
 	}
 
-
-
 	// Update index.
 
 	s.relationshipIndex.AddRelationship(rel)
-
-
 
 	s.logger.Info("created relationship",
 
@@ -1575,13 +1263,9 @@ func (s *InventoryManagementService) CreateRelationship(ctx context.Context, rel
 
 		"type", rel.RelationType)
 
-
-
 	return nil
 
 }
-
-
 
 // GetComplianceStatus returns compliance status for an asset.
 
@@ -1591,8 +1275,6 @@ func (s *InventoryManagementService) GetComplianceStatus(ctx context.Context, as
 
 }
 
-
-
 // GetAuditTrail returns audit trail for a resource.
 
 func (s *InventoryManagementService) GetAuditTrail(ctx context.Context, resourceID string) ([]*AuditEntry, error) {
@@ -1600,8 +1282,6 @@ func (s *InventoryManagementService) GetAuditTrail(ctx context.Context, resource
 	return s.cmdbStorage.GetAuditTrail(ctx, resourceID)
 
 }
-
-
 
 // SyncInventory triggers manual inventory synchronization.
 
@@ -1615,8 +1295,6 @@ func (s *InventoryManagementService) SyncInventory(ctx context.Context) error {
 
 }
 
-
-
 // DiscoverInfrastructure triggers manual infrastructure discovery for a provider.
 
 func (s *InventoryManagementService) DiscoverInfrastructure(ctx context.Context, providerID string) error {
@@ -1629,13 +1307,9 @@ func (s *InventoryManagementService) DiscoverInfrastructure(ctx context.Context,
 
 	}
 
-
-
 	s.logger.Info("triggering manual infrastructure discovery",
 
 		"provider", providerID)
-
-
 
 	go s.discoverProviderAssets(ctx, provider)
 
@@ -1643,11 +1317,7 @@ func (s *InventoryManagementService) DiscoverInfrastructure(ctx context.Context,
 
 }
 
-
-
 // Helper functions.
-
-
 
 // trackAssetChanges tracks changes between existing and updated asset.
 
@@ -1655,15 +1325,11 @@ func (s *InventoryManagementService) trackAssetChanges(existing, updated *Asset)
 
 	changes := make(map[string]interface{})
 
-
-
 	if existing.Name != updated.Name {
 
 		changes["name"] = map[string]string{"from": existing.Name, "to": updated.Name}
 
 	}
-
-
 
 	if existing.Status != updated.Status {
 
@@ -1671,15 +1337,11 @@ func (s *InventoryManagementService) trackAssetChanges(existing, updated *Asset)
 
 	}
 
-
-
 	if existing.Health != updated.Health {
 
 		changes["health"] = map[string]string{"from": existing.Health, "to": updated.Health}
 
 	}
-
-
 
 	if existing.State != updated.State {
 
@@ -1687,21 +1349,16 @@ func (s *InventoryManagementService) trackAssetChanges(existing, updated *Asset)
 
 	}
 
-
-
 	if !equalMaps(existing.Properties, updated.Properties) {
 
 		changes["properties"] = map[string]interface{}{
 
 			"from": existing.Properties,
 
-			"to":   updated.Properties,
-
+			"to": updated.Properties,
 		}
 
 	}
-
-
 
 	if !equalStringMaps(existing.Tags, updated.Tags) {
 
@@ -1709,19 +1366,14 @@ func (s *InventoryManagementService) trackAssetChanges(existing, updated *Asset)
 
 			"from": existing.Tags,
 
-			"to":   updated.Tags,
-
+			"to": updated.Tags,
 		}
 
 	}
 
-
-
 	return changes
 
 }
-
-
 
 // sortAssets sorts assets based on the specified criteria.
 
@@ -1730,8 +1382,6 @@ func (s *InventoryManagementService) sortAssets(assets []*Asset, sortBy, sortOrd
 	sort.Slice(assets, func(i, j int) bool {
 
 		var result bool
-
-
 
 		switch sortBy {
 
@@ -1757,23 +1407,17 @@ func (s *InventoryManagementService) sortAssets(assets []*Asset, sortBy, sortOrd
 
 		}
 
-
-
 		if sortOrder == "DESC" {
 
 			result = !result
 
 		}
 
-
-
 		return result
 
 	})
 
 }
-
-
 
 // equalMaps compares two maps for equality.
 
@@ -1785,19 +1429,13 @@ func equalMaps(a, b map[string]interface{}) bool {
 
 	}
 
-
-
 	aJSON, _ := json.Marshal(a)
 
 	bJSON, _ := json.Marshal(b)
 
-
-
 	return bytes.Equal(aJSON, bJSON)
 
 }
-
-
 
 // equalStringMaps compares two string maps for equality.
 
@@ -1809,29 +1447,19 @@ func equalStringMaps(a, b map[string]string) bool {
 
 	}
 
-
-
 	aJSON, _ := json.Marshal(a)
 
 	bJSON, _ := json.Marshal(b)
-
-
 
 	return bytes.Equal(aJSON, bJSON)
 
 }
 
-
-
 // getProviderType helper is defined in infrastructure_monitoring.go.
-
-
 
 // stubAssetStorage provides a basic stub implementation of AssetStorage.
 
 type stubAssetStorage struct{}
-
-
 
 // Store performs store operation.
 
@@ -1841,8 +1469,6 @@ func (s *stubAssetStorage) Store(ctx context.Context, asset *Asset) error {
 
 }
 
-
-
 // Retrieve performs retrieve operation.
 
 func (s *stubAssetStorage) Retrieve(ctx context.Context, id string) (*Asset, error) {
@@ -1850,8 +1476,6 @@ func (s *stubAssetStorage) Retrieve(ctx context.Context, id string) (*Asset, err
 	return nil, fmt.Errorf("asset not found")
 
 }
-
-
 
 // List performs list operation.
 
@@ -1861,8 +1485,6 @@ func (s *stubAssetStorage) List(ctx context.Context, filter *AssetFilter) ([]*As
 
 }
 
-
-
 // Delete performs delete operation.
 
 func (s *stubAssetStorage) Delete(ctx context.Context, id string) error {
@@ -1870,8 +1492,6 @@ func (s *stubAssetStorage) Delete(ctx context.Context, id string) error {
 	return nil
 
 }
-
-
 
 // Stub implementations for DiscoveryEngine methods.
 
@@ -1881,8 +1501,6 @@ func (d *DiscoveryEngine) DiscoverAssets(ctx context.Context, provider providers
 
 }
 
-
-
 // Stub implementations for AssetIndex methods.
 
 func (a *AssetIndex) AddAsset(asset *Asset) error {
@@ -1890,8 +1508,6 @@ func (a *AssetIndex) AddAsset(asset *Asset) error {
 	return nil
 
 }
-
-
 
 // UpdateAsset performs updateasset operation.
 
@@ -1901,8 +1517,6 @@ func (a *AssetIndex) UpdateAsset(asset *Asset) error {
 
 }
 
-
-
 // Clear performs clear operation.
 
 func (a *AssetIndex) Clear() error {
@@ -1910,8 +1524,6 @@ func (a *AssetIndex) Clear() error {
 	return nil
 
 }
-
-
 
 // RemoveAsset performs removeasset operation.
 
@@ -1921,8 +1533,6 @@ func (a *AssetIndex) RemoveAsset(id string) error {
 
 }
 
-
-
 // Stub implementations for RelationshipIndex methods.
 
 func (r *RelationshipIndex) AddRelationship(relationship *AssetRelationship) error {
@@ -1931,8 +1541,6 @@ func (r *RelationshipIndex) AddRelationship(relationship *AssetRelationship) err
 
 }
 
-
-
 // Clear performs clear operation.
 
 func (r *RelationshipIndex) Clear() error {
@@ -1940,4 +1548,3 @@ func (r *RelationshipIndex) Clear() error {
 	return nil
 
 }
-

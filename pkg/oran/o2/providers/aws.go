@@ -1,103 +1,71 @@
-
 package providers
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/aws/aws-sdk-go-v2/aws"
-
 	"github.com/aws/aws-sdk-go-v2/config"
-
 	"github.com/aws/aws-sdk-go-v2/credentials"
-
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
-
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
-
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
-
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
-
 	"github.com/aws/aws-sdk-go-v2/service/eks"
-
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
-
 	"github.com/aws/aws-sdk-go-v2/service/iam"
-
 	"github.com/aws/aws-sdk-go-v2/service/rds"
-
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
 
-
-
 // ProviderTypeAWS is defined in interface.go.
-
-
 
 // AWSProvider implements CloudProvider for Amazon Web Services.
 
 type AWSProvider struct {
+	name string
 
-	name             string
+	config *ProviderConfiguration
 
-	config           *ProviderConfiguration
+	awsConfig aws.Config
 
-	awsConfig        aws.Config
+	ec2Client *ec2.Client
 
-	ec2Client        *ec2.Client
+	eksClient *eks.Client
 
-	eksClient        *eks.Client
+	ecsClient *ecs.Client
 
-	ecsClient        *ecs.Client
+	s3Client *s3.Client
 
-	s3Client         *s3.Client
+	rdsClient *rds.Client
 
-	rdsClient        *rds.Client
+	cfnClient *cloudformation.Client
 
-	cfnClient        *cloudformation.Client
-
-	elbClient        *elasticloadbalancingv2.Client
+	elbClient *elasticloadbalancingv2.Client
 
 	cloudwatchClient *cloudwatch.Client
 
-	iamClient        *iam.Client
+	iamClient *iam.Client
 
-	stsClient        *sts.Client
+	stsClient *sts.Client
 
-	connected        bool
+	connected bool
 
-	eventCallback    EventCallback
+	eventCallback EventCallback
 
-	stopChannel      chan struct{}
+	stopChannel chan struct{}
 
-	mutex            sync.RWMutex
+	mutex sync.RWMutex
 
-	accountID        string
+	accountID string
 
-	region           string
-
+	region string
 }
-
-
 
 // NewAWSProvider creates a new AWS provider instance.
 
@@ -109,35 +77,26 @@ func NewAWSProvider(config *ProviderConfiguration) (CloudProvider, error) {
 
 	}
 
-
-
 	if config.Type != ProviderTypeAWS {
 
 		return nil, fmt.Errorf("invalid provider type: expected %s, got %s", ProviderTypeAWS, config.Type)
 
 	}
 
-
-
 	provider := &AWSProvider{
 
-		name:        config.Name,
+		name: config.Name,
 
-		config:      config,
+		config: config,
 
 		stopChannel: make(chan struct{}),
 
-		region:      config.Region,
-
+		region: config.Region,
 	}
-
-
 
 	return provider, nil
 
 }
-
-
 
 // GetProviderInfo returns information about this AWS provider.
 
@@ -147,39 +106,33 @@ func (a *AWSProvider) GetProviderInfo() *ProviderInfo {
 
 	defer a.mutex.RUnlock()
 
-
-
 	return &ProviderInfo{
 
-		Name:        a.name,
+		Name: a.name,
 
-		Type:        ProviderTypeAWS,
+		Type: ProviderTypeAWS,
 
-		Version:     "1.0.0",
+		Version: "1.0.0",
 
 		Description: "Amazon Web Services cloud provider",
 
-		Vendor:      "Amazon",
+		Vendor: "Amazon",
 
-		Region:      a.region,
+		Region: a.region,
 
-		Endpoint:    fmt.Sprintf("https://%s.amazonaws.com", a.region),
+		Endpoint: fmt.Sprintf("https://%s.amazonaws.com", a.region),
 
 		Tags: map[string]string{
 
-			"region":     a.region,
+			"region": a.region,
 
 			"account_id": a.accountID,
-
 		},
 
 		LastUpdated: time.Now(),
-
 	}
 
 }
-
-
 
 // GetSupportedResourceTypes returns the resource types supported by AWS.
 
@@ -226,12 +179,9 @@ func (a *AWSProvider) GetSupportedResourceTypes() []string {
 		"cloudfront_distribution",
 
 		"route53_zone",
-
 	}
 
 }
-
-
 
 // GetCapabilities returns the capabilities of this AWS provider.
 
@@ -239,81 +189,67 @@ func (a *AWSProvider) GetCapabilities() *ProviderCapabilities {
 
 	return &ProviderCapabilities{
 
-		ComputeTypes:     []string{"ec2_instance", "lambda_function", "ecs_task", "eks_node"},
+		ComputeTypes: []string{"ec2_instance", "lambda_function", "ecs_task", "eks_node"},
 
-		StorageTypes:     []string{"s3_bucket", "ebs_volume", "efs_filesystem", "fsx"},
+		StorageTypes: []string{"s3_bucket", "ebs_volume", "efs_filesystem", "fsx"},
 
-		NetworkTypes:     []string{"vpc", "subnet", "security_group", "load_balancer", "api_gateway"},
+		NetworkTypes: []string{"vpc", "subnet", "security_group", "load_balancer", "api_gateway"},
 
 		AcceleratorTypes: []string{"gpu", "fpga", "inferentia"},
 
+		AutoScaling: true,
 
+		LoadBalancing: true,
 
-		AutoScaling:    true,
+		Monitoring: true,
 
-		LoadBalancing:  true,
+		Logging: true,
 
-		Monitoring:     true,
-
-		Logging:        true,
-
-		Networking:     true,
+		Networking: true,
 
 		StorageClasses: true,
 
-
-
 		HorizontalPodAutoscaling: true, // EKS
 
-		VerticalPodAutoscaling:   true, // EKS
+		VerticalPodAutoscaling: true, // EKS
 
-		ClusterAutoscaling:       true, // EKS/ECS
+		ClusterAutoscaling: true, // EKS/ECS
 
+		Namespaces: true, // EKS
 
-
-		Namespaces:      true, // EKS
-
-		ResourceQuotas:  true, // Service Quotas
+		ResourceQuotas: true, // Service Quotas
 
 		NetworkPolicies: true, // Security Groups/NACLs
 
-		RBAC:            true, // IAM
+		RBAC: true, // IAM
 
+		MultiZone: true, // Availability Zones
 
+		MultiRegion: true, // Global services
 
-		MultiZone:        true, // Availability Zones
-
-		MultiRegion:      true, // Global services
-
-		BackupRestore:    true, // AWS Backup
+		BackupRestore: true, // AWS Backup
 
 		DisasterRecovery: true, // Multi-region
 
-
-
-		Encryption:       true, // KMS
+		Encryption: true, // KMS
 
 		SecretManagement: true, // Secrets Manager
 
-		ImageScanning:    true, // ECR scanning
+		ImageScanning: true, // ECR scanning
 
-		PolicyEngine:     true, // IAM policies
+		PolicyEngine: true, // IAM policies
 
+		MaxNodes: 10000, // EKS limit
 
-
-		MaxNodes:    10000,  // EKS limit
-
-		MaxPods:     750000, // EKS with multiple node groups
+		MaxPods: 750000, // EKS with multiple node groups
 
 		MaxServices: 100000, // Practical limit
 
-		MaxVolumes:  500000, // EBS volumes
+		MaxVolumes: 500000, // EBS volumes
 
 	}
 
 }
-
-
 
 // Connect establishes connection to AWS.
 
@@ -322,8 +258,6 @@ func (a *AWSProvider) Connect(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	logger.Info("connecting to AWS", "region", a.region)
-
-
 
 	// Load AWS configuration.
 
@@ -335,17 +269,11 @@ func (a *AWSProvider) Connect(ctx context.Context) error {
 
 	}
 
-
-
 	a.awsConfig = cfg
-
-
 
 	// Initialize service clients.
 
 	a.initializeClients()
-
-
 
 	// Get account ID.
 
@@ -359,15 +287,11 @@ func (a *AWSProvider) Connect(ctx context.Context) error {
 
 	a.accountID = *stsOutput.Account
 
-
-
 	a.mutex.Lock()
 
 	a.connected = true
 
 	a.mutex.Unlock()
-
-
 
 	logger.Info("successfully connected to AWS", "account", a.accountID)
 
@@ -375,15 +299,11 @@ func (a *AWSProvider) Connect(ctx context.Context) error {
 
 }
 
-
-
 // loadAWSConfig loads AWS configuration based on provider config.
 
 func (a *AWSProvider) loadAWSConfig(ctx context.Context) (aws.Config, error) {
 
 	var optFns []func(*config.LoadOptions) error
-
-
 
 	// Set region.
 
@@ -393,8 +313,6 @@ func (a *AWSProvider) loadAWSConfig(ctx context.Context) (aws.Config, error) {
 
 	}
 
-
-
 	// Set credentials if provided.
 
 	if accessKey, exists := a.config.Credentials["access_key_id"]; exists {
@@ -403,17 +321,12 @@ func (a *AWSProvider) loadAWSConfig(ctx context.Context) (aws.Config, error) {
 
 		sessionToken := a.config.Credentials["session_token"]
 
-
-
 		optFns = append(optFns, config.WithCredentialsProvider(
 
 			credentials.NewStaticCredentialsProvider(accessKey, secretKey, sessionToken),
-
 		))
 
 	}
-
-
 
 	// Use profile if specified.
 
@@ -422,8 +335,6 @@ func (a *AWSProvider) loadAWSConfig(ctx context.Context) (aws.Config, error) {
 		optFns = append(optFns, config.WithSharedConfigProfile(profile))
 
 	}
-
-
 
 	// Use role ARN if specified.
 
@@ -435,13 +346,9 @@ func (a *AWSProvider) loadAWSConfig(ctx context.Context) (aws.Config, error) {
 
 	}
 
-
-
 	return config.LoadDefaultConfig(ctx, optFns...)
 
 }
-
-
 
 // initializeClients initializes AWS service clients.
 
@@ -469,8 +376,6 @@ func (a *AWSProvider) initializeClients() {
 
 }
 
-
-
 // Disconnect closes the connection to AWS.
 
 func (a *AWSProvider) Disconnect(ctx context.Context) error {
@@ -479,15 +384,11 @@ func (a *AWSProvider) Disconnect(ctx context.Context) error {
 
 	logger.Info("disconnecting from AWS")
 
-
-
 	a.mutex.Lock()
 
 	a.connected = false
 
 	a.mutex.Unlock()
-
-
 
 	// Stop event watching if running.
 
@@ -499,15 +400,11 @@ func (a *AWSProvider) Disconnect(ctx context.Context) error {
 
 	}
 
-
-
 	logger.Info("disconnected from AWS")
 
 	return nil
 
 }
-
-
 
 // HealthCheck performs a health check on AWS services.
 
@@ -523,8 +420,6 @@ func (a *AWSProvider) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	// Check S3 service.
 
 	_, err = a.s3Client.ListBuckets(ctx, &s3.ListBucketsInput{})
@@ -534,8 +429,6 @@ func (a *AWSProvider) HealthCheck(ctx context.Context) error {
 		return fmt.Errorf("health check failed: unable to access S3 service: %w", err)
 
 	}
-
-
 
 	// Check IAM service.
 
@@ -550,7 +443,6 @@ func (a *AWSProvider) HealthCheck(ctx context.Context) error {
 		_, err = a.iamClient.ListRoles(ctx, &iam.ListRolesInput{
 
 			MaxItems: aws.Int32(1),
-
 		})
 
 		if err != nil {
@@ -561,13 +453,9 @@ func (a *AWSProvider) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Close closes any resources held by the provider.
 
@@ -576,8 +464,6 @@ func (a *AWSProvider) Close() error {
 	a.mutex.Lock()
 
 	defer a.mutex.Unlock()
-
-
 
 	// Stop event watching.
 
@@ -589,15 +475,11 @@ func (a *AWSProvider) Close() error {
 
 	}
 
-
-
 	a.connected = false
 
 	return nil
 
 }
-
-
 
 // CreateResource creates a new AWS resource.
 
@@ -606,8 +488,6 @@ func (a *AWSProvider) CreateResource(ctx context.Context, req *CreateResourceReq
 	logger := log.FromContext(ctx)
 
 	logger.Info("creating AWS resource", "type", req.Type, "name", req.Name)
-
-
 
 	switch req.Type {
 
@@ -639,8 +519,6 @@ func (a *AWSProvider) CreateResource(ctx context.Context, req *CreateResourceReq
 
 }
 
-
-
 // GetResource retrieves an AWS resource.
 
 func (a *AWSProvider) GetResource(ctx context.Context, resourceID string) (*ResourceResponse, error) {
@@ -648,8 +526,6 @@ func (a *AWSProvider) GetResource(ctx context.Context, resourceID string) (*Reso
 	logger := log.FromContext(ctx)
 
 	logger.V(1).Info("getting AWS resource", "resourceID", resourceID)
-
-
 
 	// Parse resourceID format: type/id.
 
@@ -661,11 +537,7 @@ func (a *AWSProvider) GetResource(ctx context.Context, resourceID string) (*Reso
 
 	}
 
-
-
 	resourceType, id := parts[0], parts[1]
-
-
 
 	switch resourceType {
 
@@ -689,8 +561,6 @@ func (a *AWSProvider) GetResource(ctx context.Context, resourceID string) (*Reso
 
 }
 
-
-
 // UpdateResource updates an AWS resource.
 
 func (a *AWSProvider) UpdateResource(ctx context.Context, resourceID string, req *UpdateResourceRequest) (*ResourceResponse, error) {
@@ -698,8 +568,6 @@ func (a *AWSProvider) UpdateResource(ctx context.Context, resourceID string, req
 	logger := log.FromContext(ctx)
 
 	logger.Info("updating AWS resource", "resourceID", resourceID)
-
-
 
 	parts := splitResourceID(resourceID)
 
@@ -709,11 +577,7 @@ func (a *AWSProvider) UpdateResource(ctx context.Context, resourceID string, req
 
 	}
 
-
-
 	resourceType, id := parts[0], parts[1]
-
-
 
 	switch resourceType {
 
@@ -733,8 +597,6 @@ func (a *AWSProvider) UpdateResource(ctx context.Context, resourceID string, req
 
 }
 
-
-
 // DeleteResource deletes an AWS resource.
 
 func (a *AWSProvider) DeleteResource(ctx context.Context, resourceID string) error {
@@ -742,8 +604,6 @@ func (a *AWSProvider) DeleteResource(ctx context.Context, resourceID string) err
 	logger := log.FromContext(ctx)
 
 	logger.Info("deleting AWS resource", "resourceID", resourceID)
-
-
 
 	parts := splitResourceID(resourceID)
 
@@ -753,11 +613,7 @@ func (a *AWSProvider) DeleteResource(ctx context.Context, resourceID string) err
 
 	}
 
-
-
 	resourceType, id := parts[0], parts[1]
-
-
 
 	switch resourceType {
 
@@ -785,8 +641,6 @@ func (a *AWSProvider) DeleteResource(ctx context.Context, resourceID string) err
 
 }
 
-
-
 // ListResources lists AWS resources with optional filtering.
 
 func (a *AWSProvider) ListResources(ctx context.Context, filter *ResourceFilter) ([]*ResourceResponse, error) {
@@ -795,11 +649,7 @@ func (a *AWSProvider) ListResources(ctx context.Context, filter *ResourceFilter)
 
 	logger.V(1).Info("listing AWS resources", "filter", filter)
 
-
-
 	var resources []*ResourceResponse
-
-
 
 	resourceTypes := filter.Types
 
@@ -810,8 +660,6 @@ func (a *AWSProvider) ListResources(ctx context.Context, filter *ResourceFilter)
 		resourceTypes = []string{"ec2_instance", "s3_bucket", "vpc"}
 
 	}
-
-
 
 	for _, resourceType := range resourceTypes {
 
@@ -829,13 +677,9 @@ func (a *AWSProvider) ListResources(ctx context.Context, filter *ResourceFilter)
 
 	}
 
-
-
 	return resources, nil
 
 }
-
-
 
 // Deploy creates a deployment using CloudFormation or other orchestration.
 
@@ -844,8 +688,6 @@ func (a *AWSProvider) Deploy(ctx context.Context, req *DeploymentRequest) (*Depl
 	logger := log.FromContext(ctx)
 
 	logger.Info("deploying template", "name", req.Name, "type", req.TemplateType)
-
-
 
 	switch req.TemplateType {
 
@@ -869,8 +711,6 @@ func (a *AWSProvider) Deploy(ctx context.Context, req *DeploymentRequest) (*Depl
 
 }
 
-
-
 // GetDeployment retrieves a deployment (CloudFormation stack).
 
 func (a *AWSProvider) GetDeployment(ctx context.Context, deploymentID string) (*DeploymentResponse, error) {
@@ -878,8 +718,6 @@ func (a *AWSProvider) GetDeployment(ctx context.Context, deploymentID string) (*
 	return a.getCloudFormationStack(ctx, deploymentID)
 
 }
-
-
 
 // UpdateDeployment updates a deployment.
 
@@ -889,8 +727,6 @@ func (a *AWSProvider) UpdateDeployment(ctx context.Context, deploymentID string,
 
 }
 
-
-
 // DeleteDeployment deletes a deployment.
 
 func (a *AWSProvider) DeleteDeployment(ctx context.Context, deploymentID string) error {
@@ -898,8 +734,6 @@ func (a *AWSProvider) DeleteDeployment(ctx context.Context, deploymentID string)
 	return a.deleteCloudFormationStack(ctx, deploymentID)
 
 }
-
-
 
 // ListDeployments lists deployments (CloudFormation stacks).
 
@@ -909,8 +743,6 @@ func (a *AWSProvider) ListDeployments(ctx context.Context, filter *DeploymentFil
 
 }
 
-
-
 // ScaleResource scales an AWS resource.
 
 func (a *AWSProvider) ScaleResource(ctx context.Context, resourceID string, req *ScaleRequest) error {
@@ -918,8 +750,6 @@ func (a *AWSProvider) ScaleResource(ctx context.Context, resourceID string, req 
 	logger := log.FromContext(ctx)
 
 	logger.Info("scaling AWS resource", "resourceID", resourceID, "direction", req.Direction)
-
-
 
 	parts := splitResourceID(resourceID)
 
@@ -929,11 +759,7 @@ func (a *AWSProvider) ScaleResource(ctx context.Context, resourceID string, req 
 
 	}
 
-
-
 	resourceType, id := parts[0], parts[1]
-
-
 
 	switch resourceType {
 
@@ -957,8 +783,6 @@ func (a *AWSProvider) ScaleResource(ctx context.Context, resourceID string, req 
 
 }
 
-
-
 // GetScalingCapabilities returns scaling capabilities for a resource.
 
 func (a *AWSProvider) GetScalingCapabilities(ctx context.Context, resourceID string) (*ScalingCapabilities, error) {
@@ -971,11 +795,7 @@ func (a *AWSProvider) GetScalingCapabilities(ctx context.Context, resourceID str
 
 	}
 
-
-
 	resourceType := parts[0]
-
-
 
 	switch resourceType {
 
@@ -985,18 +805,17 @@ func (a *AWSProvider) GetScalingCapabilities(ctx context.Context, resourceID str
 
 			HorizontalScaling: true,
 
-			VerticalScaling:   false,
+			VerticalScaling: false,
 
-			MinReplicas:       0,
+			MinReplicas: 0,
 
-			MaxReplicas:       1000,
+			MaxReplicas: 1000,
 
-			SupportedMetrics:  []string{"cpu", "memory", "network", "custom"},
+			SupportedMetrics: []string{"cpu", "memory", "network", "custom"},
 
-			ScaleUpCooldown:   60 * time.Second,
+			ScaleUpCooldown: 60 * time.Second,
 
 			ScaleDownCooldown: 300 * time.Second,
-
 		}, nil
 
 	case "ecs_service":
@@ -1005,18 +824,17 @@ func (a *AWSProvider) GetScalingCapabilities(ctx context.Context, resourceID str
 
 			HorizontalScaling: true,
 
-			VerticalScaling:   true,
+			VerticalScaling: true,
 
-			MinReplicas:       0,
+			MinReplicas: 0,
 
-			MaxReplicas:       1000,
+			MaxReplicas: 1000,
 
-			SupportedMetrics:  []string{"cpu", "memory", "alb_requests"},
+			SupportedMetrics: []string{"cpu", "memory", "alb_requests"},
 
-			ScaleUpCooldown:   60 * time.Second,
+			ScaleUpCooldown: 60 * time.Second,
 
 			ScaleDownCooldown: 300 * time.Second,
-
 		}, nil
 
 	default:
@@ -1025,23 +843,18 @@ func (a *AWSProvider) GetScalingCapabilities(ctx context.Context, resourceID str
 
 			HorizontalScaling: false,
 
-			VerticalScaling:   false,
-
+			VerticalScaling: false,
 		}, nil
 
 	}
 
 }
 
-
-
 // GetMetrics returns cloud-level metrics.
 
 func (a *AWSProvider) GetMetrics(ctx context.Context) (map[string]interface{}, error) {
 
 	metrics := make(map[string]interface{})
-
-
 
 	// Get EC2 instance count.
 
@@ -1075,8 +888,6 @@ func (a *AWSProvider) GetMetrics(ctx context.Context) (map[string]interface{}, e
 
 	}
 
-
-
 	// Get VPC count.
 
 	vpcResult, err := a.ec2Client.DescribeVpcs(ctx, &ec2.DescribeVpcsInput{})
@@ -1087,8 +898,6 @@ func (a *AWSProvider) GetMetrics(ctx context.Context) (map[string]interface{}, e
 
 	}
 
-
-
 	// Get S3 bucket count.
 
 	s3Result, err := a.s3Client.ListBuckets(ctx, &s3.ListBucketsInput{})
@@ -1098,8 +907,6 @@ func (a *AWSProvider) GetMetrics(ctx context.Context) (map[string]interface{}, e
 		metrics["s3_buckets_total"] = len(s3Result.Buckets)
 
 	}
-
-
 
 	// Get EBS volume count.
 
@@ -1127,8 +934,6 @@ func (a *AWSProvider) GetMetrics(ctx context.Context) (map[string]interface{}, e
 
 	}
 
-
-
 	// Get RDS instance count.
 
 	rdsResult, err := a.rdsClient.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{})
@@ -1139,21 +944,15 @@ func (a *AWSProvider) GetMetrics(ctx context.Context) (map[string]interface{}, e
 
 	}
 
-
-
 	metrics["region"] = a.region
 
 	metrics["account_id"] = a.accountID
 
 	metrics["timestamp"] = time.Now().Unix()
 
-
-
 	return metrics, nil
 
 }
-
-
 
 // GetResourceMetrics returns metrics for a specific resource.
 
@@ -1167,13 +966,9 @@ func (a *AWSProvider) GetResourceMetrics(ctx context.Context, resourceID string)
 
 	}
 
-
-
 	resourceType, id := parts[0], parts[1]
 
 	metrics := make(map[string]interface{})
-
-
 
 	switch resourceType {
 
@@ -1184,7 +979,6 @@ func (a *AWSProvider) GetResourceMetrics(ctx context.Context, resourceID string)
 		result, err := a.ec2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 
 			InstanceIds: []string{id},
-
 		})
 
 		if err != nil {
@@ -1192,8 +986,6 @@ func (a *AWSProvider) GetResourceMetrics(ctx context.Context, resourceID string)
 			return nil, fmt.Errorf("failed to get instance: %w", err)
 
 		}
-
-
 
 		if len(result.Reservations) > 0 && len(result.Reservations[0].Instances) > 0 {
 
@@ -1213,21 +1005,15 @@ func (a *AWSProvider) GetResourceMetrics(ctx context.Context, resourceID string)
 
 		}
 
-
-
 		// Get CloudWatch metrics for the instance.
 
 		// This would involve querying CloudWatch for CPU, network, disk metrics.
-
-
 
 	case "s3_bucket":
 
 		// Get bucket metrics.
 
 		// This would involve CloudWatch metrics for bucket size, requests, etc.
-
-
 
 	case "rds_instance":
 
@@ -1236,7 +1022,6 @@ func (a *AWSProvider) GetResourceMetrics(ctx context.Context, resourceID string)
 		result, err := a.rdsClient.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{
 
 			DBInstanceIdentifier: aws.String(id),
-
 		})
 
 		if err != nil {
@@ -1244,8 +1029,6 @@ func (a *AWSProvider) GetResourceMetrics(ctx context.Context, resourceID string)
 			return nil, fmt.Errorf("failed to get RDS instance: %w", err)
 
 		}
-
-
 
 		if len(result.DBInstances) > 0 {
 
@@ -1263,15 +1046,11 @@ func (a *AWSProvider) GetResourceMetrics(ctx context.Context, resourceID string)
 
 	}
 
-
-
 	metrics["timestamp"] = time.Now().Unix()
 
 	return metrics, nil
 
 }
-
-
 
 // GetResourceHealth returns the health status of a resource.
 
@@ -1285,11 +1064,7 @@ func (a *AWSProvider) GetResourceHealth(ctx context.Context, resourceID string) 
 
 	}
 
-
-
 	resourceType, id := parts[0], parts[1]
-
-
 
 	switch resourceType {
 
@@ -1309,19 +1084,16 @@ func (a *AWSProvider) GetResourceHealth(ctx context.Context, resourceID string) 
 
 		return &HealthStatus{
 
-			Status:      HealthStatusUnknown,
+			Status: HealthStatusUnknown,
 
-			Message:     fmt.Sprintf("Health check not implemented for resource type: %s", resourceType),
+			Message: fmt.Sprintf("Health check not implemented for resource type: %s", resourceType),
 
 			LastUpdated: time.Now(),
-
 		}, nil
 
 	}
 
 }
-
-
 
 // Network operations.
 
@@ -1330,8 +1102,6 @@ func (a *AWSProvider) CreateNetworkService(ctx context.Context, req *NetworkServ
 	logger := log.FromContext(ctx)
 
 	logger.Info("creating network service", "type", req.Type, "name", req.Name)
-
-
 
 	switch req.Type {
 
@@ -1359,8 +1129,6 @@ func (a *AWSProvider) CreateNetworkService(ctx context.Context, req *NetworkServ
 
 }
 
-
-
 // GetNetworkService performs getnetworkservice operation.
 
 func (a *AWSProvider) GetNetworkService(ctx context.Context, serviceID string) (*NetworkServiceResponse, error) {
@@ -1373,11 +1141,7 @@ func (a *AWSProvider) GetNetworkService(ctx context.Context, serviceID string) (
 
 	}
 
-
-
 	serviceType, id := parts[0], parts[1]
-
-
 
 	switch serviceType {
 
@@ -1405,8 +1169,6 @@ func (a *AWSProvider) GetNetworkService(ctx context.Context, serviceID string) (
 
 }
 
-
-
 // DeleteNetworkService performs deletenetworkservice operation.
 
 func (a *AWSProvider) DeleteNetworkService(ctx context.Context, serviceID string) error {
@@ -1419,11 +1181,7 @@ func (a *AWSProvider) DeleteNetworkService(ctx context.Context, serviceID string
 
 	}
 
-
-
 	serviceType, id := parts[0], parts[1]
-
-
 
 	switch serviceType {
 
@@ -1451,15 +1209,11 @@ func (a *AWSProvider) DeleteNetworkService(ctx context.Context, serviceID string
 
 }
 
-
-
 // ListNetworkServices performs listnetworkservices operation.
 
 func (a *AWSProvider) ListNetworkServices(ctx context.Context, filter *NetworkServiceFilter) ([]*NetworkServiceResponse, error) {
 
 	var services []*NetworkServiceResponse
-
-
 
 	serviceTypes := filter.Types
 
@@ -1468,8 +1222,6 @@ func (a *AWSProvider) ListNetworkServices(ctx context.Context, filter *NetworkSe
 		serviceTypes = []string{"vpc", "subnet", "security_group", "load_balancer"}
 
 	}
-
-
 
 	for _, serviceType := range serviceTypes {
 
@@ -1485,13 +1237,9 @@ func (a *AWSProvider) ListNetworkServices(ctx context.Context, filter *NetworkSe
 
 	}
 
-
-
 	return services, nil
 
 }
-
-
 
 // Storage operations.
 
@@ -1500,8 +1248,6 @@ func (a *AWSProvider) CreateStorageResource(ctx context.Context, req *StorageRes
 	logger := log.FromContext(ctx)
 
 	logger.Info("creating storage resource", "type", req.Type, "name", req.Name)
-
-
 
 	switch req.Type {
 
@@ -1525,8 +1271,6 @@ func (a *AWSProvider) CreateStorageResource(ctx context.Context, req *StorageRes
 
 }
 
-
-
 // GetStorageResource performs getstorageresource operation.
 
 func (a *AWSProvider) GetStorageResource(ctx context.Context, resourceID string) (*StorageResourceResponse, error) {
@@ -1539,11 +1283,7 @@ func (a *AWSProvider) GetStorageResource(ctx context.Context, resourceID string)
 
 	}
 
-
-
 	resourceType, id := parts[0], parts[1]
-
-
 
 	switch resourceType {
 
@@ -1567,8 +1307,6 @@ func (a *AWSProvider) GetStorageResource(ctx context.Context, resourceID string)
 
 }
 
-
-
 // DeleteStorageResource performs deletestorageresource operation.
 
 func (a *AWSProvider) DeleteStorageResource(ctx context.Context, resourceID string) error {
@@ -1581,11 +1319,7 @@ func (a *AWSProvider) DeleteStorageResource(ctx context.Context, resourceID stri
 
 	}
 
-
-
 	resourceType, id := parts[0], parts[1]
-
-
 
 	switch resourceType {
 
@@ -1609,15 +1343,11 @@ func (a *AWSProvider) DeleteStorageResource(ctx context.Context, resourceID stri
 
 }
 
-
-
 // ListStorageResources performs liststorageresources operation.
 
 func (a *AWSProvider) ListStorageResources(ctx context.Context, filter *StorageResourceFilter) ([]*StorageResourceResponse, error) {
 
 	var resources []*StorageResourceResponse
-
-
 
 	resourceTypes := filter.Types
 
@@ -1626,8 +1356,6 @@ func (a *AWSProvider) ListStorageResources(ctx context.Context, filter *StorageR
 		resourceTypes = []string{"s3_bucket", "ebs_volume", "efs_filesystem"}
 
 	}
-
-
 
 	for _, resourceType := range resourceTypes {
 
@@ -1643,13 +1371,9 @@ func (a *AWSProvider) ListStorageResources(ctx context.Context, filter *StorageR
 
 	}
 
-
-
 	return resources, nil
 
 }
-
-
 
 // Event handling.
 
@@ -1659,27 +1383,19 @@ func (a *AWSProvider) SubscribeToEvents(ctx context.Context, callback EventCallb
 
 	logger.Info("subscribing to AWS events")
 
-
-
 	a.mutex.Lock()
 
 	a.eventCallback = callback
 
 	a.mutex.Unlock()
 
-
-
 	// Start watching CloudWatch Events/EventBridge.
 
 	go a.watchEvents(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // UnsubscribeFromEvents performs unsubscribefromevents operation.
 
@@ -1689,15 +1405,11 @@ func (a *AWSProvider) UnsubscribeFromEvents(ctx context.Context) error {
 
 	logger.Info("unsubscribing from AWS events")
 
-
-
 	a.mutex.Lock()
 
 	a.eventCallback = nil
 
 	a.mutex.Unlock()
-
-
 
 	select {
 
@@ -1707,13 +1419,9 @@ func (a *AWSProvider) UnsubscribeFromEvents(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Configuration management.
 
@@ -1723,19 +1431,13 @@ func (a *AWSProvider) ApplyConfiguration(ctx context.Context, config *ProviderCo
 
 	logger.Info("applying provider configuration", "name", config.Name)
 
-
-
 	a.mutex.Lock()
 
 	defer a.mutex.Unlock()
 
-
-
 	a.config = config
 
 	a.region = config.Region
-
-
 
 	// Reconnect if configuration changed.
 
@@ -1749,13 +1451,9 @@ func (a *AWSProvider) ApplyConfiguration(ctx context.Context, config *ProviderCo
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetConfiguration performs getconfiguration operation.
 
@@ -1765,13 +1463,9 @@ func (a *AWSProvider) GetConfiguration(ctx context.Context) (*ProviderConfigurat
 
 	defer a.mutex.RUnlock()
 
-
-
 	return a.config, nil
 
 }
-
-
 
 // ValidateConfiguration performs validateconfiguration operation.
 
@@ -1783,8 +1477,6 @@ func (a *AWSProvider) ValidateConfiguration(ctx context.Context, config *Provide
 
 	}
 
-
-
 	// Check for required credentials or authentication method.
 
 	hasAccessKey := false
@@ -1792,8 +1484,6 @@ func (a *AWSProvider) ValidateConfiguration(ctx context.Context, config *Provide
 	hasProfile := false
 
 	hasRole := false
-
-
 
 	if _, exists := config.Credentials["access_key_id"]; exists {
 
@@ -1807,23 +1497,17 @@ func (a *AWSProvider) ValidateConfiguration(ctx context.Context, config *Provide
 
 	}
 
-
-
 	if _, exists := config.Credentials["profile"]; exists {
 
 		hasProfile = true
 
 	}
 
-
-
 	if _, exists := config.Credentials["role_arn"]; exists {
 
 		hasRole = true
 
 	}
-
-
 
 	// At least one authentication method should be present.
 
@@ -1839,27 +1523,19 @@ func (a *AWSProvider) ValidateConfiguration(ctx context.Context, config *Provide
 
 	}
 
-
-
 	if config.Region == "" {
 
 		return fmt.Errorf("region is required")
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Placeholder implementations for helper methods.
 
 // These would be fully implemented in a production environment.
-
-
 
 func (a *AWSProvider) createEC2Instance(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
 
@@ -1867,15 +1543,11 @@ func (a *AWSProvider) createEC2Instance(ctx context.Context, req *CreateResource
 
 }
 
-
-
 func (a *AWSProvider) getEC2Instance(ctx context.Context, id string) (*ResourceResponse, error) {
 
 	return nil, fmt.Errorf("EC2 instance retrieval not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) updateEC2Instance(ctx context.Context, id string, req *UpdateResourceRequest) (*ResourceResponse, error) {
 
@@ -1883,15 +1555,11 @@ func (a *AWSProvider) updateEC2Instance(ctx context.Context, id string, req *Upd
 
 }
 
-
-
 func (a *AWSProvider) deleteEC2Instance(ctx context.Context, id string) error {
 
 	return fmt.Errorf("EC2 instance deletion not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) createS3Bucket(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
 
@@ -1899,15 +1567,11 @@ func (a *AWSProvider) createS3Bucket(ctx context.Context, req *CreateResourceReq
 
 }
 
-
-
 func (a *AWSProvider) getS3Bucket(ctx context.Context, id string) (*ResourceResponse, error) {
 
 	return nil, fmt.Errorf("S3 bucket retrieval not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) updateS3Bucket(ctx context.Context, id string, req *UpdateResourceRequest) (*ResourceResponse, error) {
 
@@ -1915,15 +1579,11 @@ func (a *AWSProvider) updateS3Bucket(ctx context.Context, id string, req *Update
 
 }
 
-
-
 func (a *AWSProvider) deleteS3Bucket(ctx context.Context, id string) error {
 
 	return fmt.Errorf("S3 bucket deletion not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) createVPC(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
 
@@ -1931,15 +1591,11 @@ func (a *AWSProvider) createVPC(ctx context.Context, req *CreateResourceRequest)
 
 }
 
-
-
 func (a *AWSProvider) getVPC(ctx context.Context, id string) (*ResourceResponse, error) {
 
 	return nil, fmt.Errorf("VPC retrieval not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) deleteVPC(ctx context.Context, id string) error {
 
@@ -1947,15 +1603,11 @@ func (a *AWSProvider) deleteVPC(ctx context.Context, id string) error {
 
 }
 
-
-
 func (a *AWSProvider) createSecurityGroup(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
 
 	return nil, fmt.Errorf("security group creation not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) createEBSVolume(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
 
@@ -1963,15 +1615,11 @@ func (a *AWSProvider) createEBSVolume(ctx context.Context, req *CreateResourceRe
 
 }
 
-
-
 func (a *AWSProvider) deleteEBSVolume(ctx context.Context, id string) error {
 
 	return fmt.Errorf("EBS volume deletion not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) listResourcesByType(ctx context.Context, resourceType string, filter *ResourceFilter) ([]*ResourceResponse, error) {
 
@@ -1979,15 +1627,11 @@ func (a *AWSProvider) listResourcesByType(ctx context.Context, resourceType stri
 
 }
 
-
-
 func (a *AWSProvider) deployCloudFormationStack(ctx context.Context, req *DeploymentRequest) (*DeploymentResponse, error) {
 
 	return nil, fmt.Errorf("CloudFormation stack deployment not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) deployCDKStack(ctx context.Context, req *DeploymentRequest) (*DeploymentResponse, error) {
 
@@ -1995,15 +1639,11 @@ func (a *AWSProvider) deployCDKStack(ctx context.Context, req *DeploymentRequest
 
 }
 
-
-
 func (a *AWSProvider) getCloudFormationStack(ctx context.Context, stackName string) (*DeploymentResponse, error) {
 
 	return nil, fmt.Errorf("CloudFormation stack retrieval not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) updateCloudFormationStack(ctx context.Context, stackName string, req *UpdateDeploymentRequest) (*DeploymentResponse, error) {
 
@@ -2011,15 +1651,11 @@ func (a *AWSProvider) updateCloudFormationStack(ctx context.Context, stackName s
 
 }
 
-
-
 func (a *AWSProvider) deleteCloudFormationStack(ctx context.Context, stackName string) error {
 
 	return fmt.Errorf("CloudFormation stack deletion not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) listCloudFormationStacks(ctx context.Context, filter *DeploymentFilter) ([]*DeploymentResponse, error) {
 
@@ -2027,15 +1663,11 @@ func (a *AWSProvider) listCloudFormationStacks(ctx context.Context, filter *Depl
 
 }
 
-
-
 func (a *AWSProvider) scaleAutoScalingGroup(ctx context.Context, id string, req *ScaleRequest) error {
 
 	return fmt.Errorf("auto scaling group scaling not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) scaleECSService(ctx context.Context, id string, req *ScaleRequest) error {
 
@@ -2043,15 +1675,11 @@ func (a *AWSProvider) scaleECSService(ctx context.Context, id string, req *Scale
 
 }
 
-
-
 func (a *AWSProvider) scaleEKSNodeGroup(ctx context.Context, id string, req *ScaleRequest) error {
 
 	return fmt.Errorf("EKS node group scaling not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) getEC2InstanceHealth(ctx context.Context, id string) (*HealthStatus, error) {
 
@@ -2059,15 +1687,11 @@ func (a *AWSProvider) getEC2InstanceHealth(ctx context.Context, id string) (*Hea
 
 }
 
-
-
 func (a *AWSProvider) getRDSInstanceHealth(ctx context.Context, id string) (*HealthStatus, error) {
 
 	return nil, fmt.Errorf("RDS instance health check not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) getEKSClusterHealth(ctx context.Context, id string) (*HealthStatus, error) {
 
@@ -2075,15 +1699,11 @@ func (a *AWSProvider) getEKSClusterHealth(ctx context.Context, id string) (*Heal
 
 }
 
-
-
 func (a *AWSProvider) createVPCService(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
 
 	return nil, fmt.Errorf("VPC service creation not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) getVPCService(ctx context.Context, id string) (*NetworkServiceResponse, error) {
 
@@ -2091,15 +1711,11 @@ func (a *AWSProvider) getVPCService(ctx context.Context, id string) (*NetworkSer
 
 }
 
-
-
 func (a *AWSProvider) createSubnetService(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
 
 	return nil, fmt.Errorf("subnet service creation not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) getSubnetService(ctx context.Context, id string) (*NetworkServiceResponse, error) {
 
@@ -2107,15 +1723,11 @@ func (a *AWSProvider) getSubnetService(ctx context.Context, id string) (*Network
 
 }
 
-
-
 func (a *AWSProvider) deleteSubnet(ctx context.Context, id string) error {
 
 	return fmt.Errorf("subnet deletion not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) createSecurityGroupService(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
 
@@ -2123,15 +1735,11 @@ func (a *AWSProvider) createSecurityGroupService(ctx context.Context, req *Netwo
 
 }
 
-
-
 func (a *AWSProvider) getSecurityGroupService(ctx context.Context, id string) (*NetworkServiceResponse, error) {
 
 	return nil, fmt.Errorf("security group service retrieval not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) deleteSecurityGroup(ctx context.Context, id string) error {
 
@@ -2139,15 +1747,11 @@ func (a *AWSProvider) deleteSecurityGroup(ctx context.Context, id string) error 
 
 }
 
-
-
 func (a *AWSProvider) createLoadBalancer(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
 
 	return nil, fmt.Errorf("load balancer creation not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) getLoadBalancer(ctx context.Context, id string) (*NetworkServiceResponse, error) {
 
@@ -2155,15 +1759,11 @@ func (a *AWSProvider) getLoadBalancer(ctx context.Context, id string) (*NetworkS
 
 }
 
-
-
 func (a *AWSProvider) deleteLoadBalancer(ctx context.Context, id string) error {
 
 	return fmt.Errorf("load balancer deletion not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) listNetworkServicesByType(ctx context.Context, serviceType string, filter *NetworkServiceFilter) ([]*NetworkServiceResponse, error) {
 
@@ -2171,15 +1771,11 @@ func (a *AWSProvider) listNetworkServicesByType(ctx context.Context, serviceType
 
 }
 
-
-
 func (a *AWSProvider) createS3BucketResource(ctx context.Context, req *StorageResourceRequest) (*StorageResourceResponse, error) {
 
 	return nil, fmt.Errorf("S3 bucket resource creation not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) getS3BucketResource(ctx context.Context, id string) (*StorageResourceResponse, error) {
 
@@ -2187,15 +1783,11 @@ func (a *AWSProvider) getS3BucketResource(ctx context.Context, id string) (*Stor
 
 }
 
-
-
 func (a *AWSProvider) createEBSVolumeResource(ctx context.Context, req *StorageResourceRequest) (*StorageResourceResponse, error) {
 
 	return nil, fmt.Errorf("EBS volume resource creation not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) getEBSVolumeResource(ctx context.Context, id string) (*StorageResourceResponse, error) {
 
@@ -2203,15 +1795,11 @@ func (a *AWSProvider) getEBSVolumeResource(ctx context.Context, id string) (*Sto
 
 }
 
-
-
 func (a *AWSProvider) createEFSFilesystem(ctx context.Context, req *StorageResourceRequest) (*StorageResourceResponse, error) {
 
 	return nil, fmt.Errorf("EFS filesystem creation not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) getEFSFilesystem(ctx context.Context, id string) (*StorageResourceResponse, error) {
 
@@ -2219,15 +1807,11 @@ func (a *AWSProvider) getEFSFilesystem(ctx context.Context, id string) (*Storage
 
 }
 
-
-
 func (a *AWSProvider) deleteEFSFilesystem(ctx context.Context, id string) error {
 
 	return fmt.Errorf("EFS filesystem deletion not yet implemented")
 
 }
-
-
 
 func (a *AWSProvider) listStorageResourcesByType(ctx context.Context, resourceType string, filter *StorageResourceFilter) ([]*StorageResourceResponse, error) {
 
@@ -2235,11 +1819,8 @@ func (a *AWSProvider) listStorageResourcesByType(ctx context.Context, resourceTy
 
 }
 
-
-
 func (a *AWSProvider) watchEvents(ctx context.Context) {
 
 	// Implementation would use CloudWatch Events/EventBridge to watch for events.
 
 }
-

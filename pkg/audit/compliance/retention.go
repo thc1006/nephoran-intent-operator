@@ -1,63 +1,42 @@
-
 package compliance
 
-
-
 import (
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/types"
-
 )
-
-
 
 // RetentionManager manages audit log retention policies.
 
 type RetentionManager struct {
-
 	config *RetentionConfig
-
 }
-
-
 
 // RetentionConfig holds retention configuration.
 
 type RetentionConfig struct {
+	ComplianceMode []types.ComplianceStandard
 
-	ComplianceMode     []types.ComplianceStandard
+	DefaultRetention time.Duration
 
-	DefaultRetention   time.Duration
+	MinRetention time.Duration
 
-	MinRetention       time.Duration
+	MaxRetention time.Duration
 
-	MaxRetention       time.Duration
+	PurgeInterval time.Duration
 
-	PurgeInterval      time.Duration
-
-	BackupBeforePurge  bool
+	BackupBeforePurge bool
 
 	CompressionEnabled bool
-
 }
-
-
 
 // RetentionPolicy defines retention for specific event types.
 
 type RetentionPolicy struct {
-
-	EventType       types.EventType
+	EventType types.EventType
 
 	RetentionPeriod time.Duration
-
 }
-
-
 
 // NewRetentionManager creates a new retention manager.
 
@@ -67,15 +46,11 @@ func NewRetentionManager(config *RetentionConfig) *RetentionManager {
 
 }
 
-
-
 // CalculateRetentionPeriod calculates retention period based on compliance standards.
 
 func (rm *RetentionManager) CalculateRetentionPeriod(event *types.AuditEvent, standards []types.ComplianceStandard) time.Duration {
 
 	maxRetention := rm.config.DefaultRetention
-
-
 
 	for _, standard := range standards {
 
@@ -101,8 +76,6 @@ func (rm *RetentionManager) CalculateRetentionPeriod(event *types.AuditEvent, st
 
 		}
 
-
-
 		if retention > maxRetention {
 
 			maxRetention = retention
@@ -110,8 +83,6 @@ func (rm *RetentionManager) CalculateRetentionPeriod(event *types.AuditEvent, st
 		}
 
 	}
-
-
 
 	// Security events may need longer retention.
 
@@ -127,13 +98,9 @@ func (rm *RetentionManager) CalculateRetentionPeriod(event *types.AuditEvent, st
 
 	}
 
-
-
 	return maxRetention
 
 }
-
-
 
 // ApplyRetentionPolicy applies retention policy to events.
 
@@ -142,8 +109,6 @@ func (rm *RetentionManager) ApplyRetentionPolicy(events []*types.AuditEvent, sta
 	now := time.Now()
 
 	var retained []*types.AuditEvent
-
-
 
 	for _, event := range events {
 
@@ -157,21 +122,15 @@ func (rm *RetentionManager) ApplyRetentionPolicy(events []*types.AuditEvent, sta
 
 	}
 
-
-
 	return retained
 
 }
-
-
 
 // GetPolicyRecommendations provides retention policy recommendations.
 
 func (rm *RetentionManager) GetPolicyRecommendations(standards []types.ComplianceStandard) []RetentionPolicy {
 
 	var policies []RetentionPolicy
-
-
 
 	// Base recommendations.
 
@@ -189,8 +148,6 @@ func (rm *RetentionManager) GetPolicyRecommendations(standards []types.Complianc
 			RetentionPeriod: 7 * 365 * 24 * time.Hour,
 		},
 	)
-
-
 
 	// Adjust based on compliance standards.
 
@@ -230,9 +187,6 @@ func (rm *RetentionManager) GetPolicyRecommendations(standards []types.Complianc
 
 	}
 
-
-
 	return policies
 
 }
-

@@ -1,223 +1,172 @@
 //go:build go1.24
 
-
-
-
 package performance
 
-
-
 import (
-
 	"context"
-
 	"crypto/tls"
-
 	"fmt"
-
 	"io"
-
 	"net"
-
 	"net/http"
-
 	"net/http/httptrace"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
 
-
-
 	"golang.org/x/net/http2"
-
 	"golang.org/x/sync/singleflight"
 
-
-
 	"k8s.io/klog/v2"
-
 )
-
-
 
 // OptimizedHTTPClient provides high-performance HTTP operations with Go 1.24+ optimizations.
 
 type OptimizedHTTPClient struct {
-
-	client         *http.Client
+	client *http.Client
 
 	connectionPool *DynamicConnectionPool
 
-	pushTargets    map[string][]string
+	pushTargets map[string][]string
 
 	requestDeduper *singleflight.Group
 
-	bufferPool     *BufferPool
+	bufferPool *BufferPool
 
-	healthChecker  *ConnectionHealthChecker
+	healthChecker *ConnectionHealthChecker
 
-	metrics        *HTTPMetrics
+	metrics *HTTPMetrics
 
-	config         *HTTPConfig
+	config *HTTPConfig
 
-	tlsConfig      *tls.Config
+	tlsConfig *tls.Config
 
-	mu             sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // HTTPConfig contains HTTP optimization configuration.
 
 type HTTPConfig struct {
-
-	MaxIdleConns        int
+	MaxIdleConns int
 
 	MaxIdleConnsPerHost int
 
-	IdleConnTimeout     time.Duration
+	IdleConnTimeout time.Duration
 
 	TLSHandshakeTimeout time.Duration
 
-	KeepAlive           time.Duration
+	KeepAlive time.Duration
 
-	DualStack           bool
+	DualStack bool
 
-	HTTP2Enabled        bool
+	HTTP2Enabled bool
 
-	HTTP3Enabled        bool
+	HTTP3Enabled bool
 
-	ConnectionPoolSize  int
+	ConnectionPoolSize int
 
-	ReadBufferSize      int
+	ReadBufferSize int
 
-	WriteBufferSize     int
+	WriteBufferSize int
 
-	CompressionEnabled  bool
+	CompressionEnabled bool
 
-	ServerPushEnabled   bool
+	ServerPushEnabled bool
 
-	ZeroRTTEnabled      bool
-
+	ZeroRTTEnabled bool
 }
-
-
 
 // DynamicConnectionPool manages HTTP connections with dynamic scaling.
 
 type DynamicConnectionPool struct {
+	conns chan *http.Client
 
-	conns         chan *http.Client
+	maxConns int64
 
-	maxConns      int64
+	activeConns int64
 
-	activeConns   int64
-
-	idleTimeout   time.Duration
+	idleTimeout time.Duration
 
 	healthChecker *ConnectionHealthChecker
 
-	config        *HTTPConfig
+	config *HTTPConfig
 
-	mu            sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // ConnectionHealthChecker monitors connection health.
 
 type ConnectionHealthChecker struct {
+	interval time.Duration
 
-	interval     time.Duration
-
-	timeout      time.Duration
+	timeout time.Duration
 
 	healthChecks map[string]*HealthCheckResult
 
-	mu           sync.RWMutex
+	mu sync.RWMutex
 
-	cancel       context.CancelFunc
-
+	cancel context.CancelFunc
 }
-
-
 
 // HealthCheckResult contains connection health information.
 
 type HealthCheckResult struct {
-
 	LastCheck time.Time
 
-	Latency   time.Duration
+	Latency time.Duration
 
-	Errors    int64
+	Errors int64
 
 	Successes int64
 
-	Healthy   bool
-
+	Healthy bool
 }
-
-
 
 // BufferPool provides optimized buffer management.
 
 type BufferPool struct {
-
-	smallBuffers  sync.Pool // 1KB buffers
+	smallBuffers sync.Pool // 1KB buffers
 
 	mediumBuffers sync.Pool // 16KB buffers
 
-	largeBuffers  sync.Pool // 64KB buffers
+	largeBuffers sync.Pool // 64KB buffers
 
-	hitCount      int64
+	hitCount int64
 
-	missCount     int64
-
+	missCount int64
 }
-
-
 
 // HTTPMetrics tracks HTTP performance metrics.
 
 type HTTPMetrics struct {
+	RequestCount int64
 
-	RequestCount       int64
+	ResponseTime int64 // in nanoseconds
 
-	ResponseTime       int64 // in nanoseconds
+	ErrorCount int64
 
-	ErrorCount         int64
-
-	ConnectionsActive  int64
+	ConnectionsActive int64
 
 	ConnectionsCreated int64
 
-	ConnectionsReused  int64
+	ConnectionsReused int64
 
-	CacheHits          int64
+	CacheHits int64
 
-	CacheMisses        int64
+	CacheMisses int64
 
-	BytesTransferred   int64
+	BytesTransferred int64
 
-	CompressionRatio   float64
+	CompressionRatio float64
 
-	HTTP2Connections   int64
+	HTTP2Connections int64
 
-	HTTP3Connections   int64
+	HTTP3Connections int64
 
-	TLSHandshakes      int64
+	TLSHandshakes int64
 
-	ZeroRTTSuccess     int64
-
+	ZeroRTTSuccess int64
 }
-
-
 
 // NewOptimizedHTTPClient creates a new optimized HTTP client with Go 1.24+ features.
 
@@ -229,27 +178,22 @@ func NewOptimizedHTTPClient(config *HTTPConfig) *OptimizedHTTPClient {
 
 	}
 
-
-
 	// Enhanced TLS configuration with Go 1.24 optimizations.
 
 	tlsConfig := &tls.Config{
 
-		MinVersion:             tls.VersionTLS13,
+		MinVersion: tls.VersionTLS13,
 
 		SessionTicketsDisabled: false,
 
-		ClientSessionCache:     tls.NewLRUClientSessionCache(256),
+		ClientSessionCache: tls.NewLRUClientSessionCache(256),
 
-		InsecureSkipVerify:     false,
+		InsecureSkipVerify: false,
 
-		Renegotiation:          tls.RenegotiateNever,
+		Renegotiation: tls.RenegotiateNever,
 
-		NextProtos:             []string{"h2", "http/1.1"},
-
+		NextProtos: []string{"h2", "http/1.1"},
 	}
-
-
 
 	if config.ZeroRTTEnabled {
 
@@ -259,8 +203,6 @@ func NewOptimizedHTTPClient(config *HTTPConfig) *OptimizedHTTPClient {
 
 	}
 
-
-
 	// Create optimized transport with Go 1.24+ features.
 
 	transport := &http.Transport{
@@ -269,37 +211,33 @@ func NewOptimizedHTTPClient(config *HTTPConfig) *OptimizedHTTPClient {
 
 		DialContext: (&net.Dialer{
 
-			Timeout:   30 * time.Second,
+			Timeout: 30 * time.Second,
 
 			KeepAlive: config.KeepAlive,
 
 			DualStack: config.DualStack,
-
 		}).DialContext,
 
-		ForceAttemptHTTP2:     config.HTTP2Enabled,
+		ForceAttemptHTTP2: config.HTTP2Enabled,
 
-		MaxIdleConns:          config.MaxIdleConns,
+		MaxIdleConns: config.MaxIdleConns,
 
-		MaxIdleConnsPerHost:   config.MaxIdleConnsPerHost,
+		MaxIdleConnsPerHost: config.MaxIdleConnsPerHost,
 
-		IdleConnTimeout:       config.IdleConnTimeout,
+		IdleConnTimeout: config.IdleConnTimeout,
 
-		TLSHandshakeTimeout:   config.TLSHandshakeTimeout,
+		TLSHandshakeTimeout: config.TLSHandshakeTimeout,
 
 		ExpectContinueTimeout: 1 * time.Second,
 
-		TLSClientConfig:       tlsConfig,
+		TLSClientConfig: tlsConfig,
 
-		ReadBufferSize:        config.ReadBufferSize,
+		ReadBufferSize: config.ReadBufferSize,
 
-		WriteBufferSize:       config.WriteBufferSize,
+		WriteBufferSize: config.WriteBufferSize,
 
-		DisableCompression:    !config.CompressionEnabled,
-
+		DisableCompression: !config.CompressionEnabled,
 	}
-
-
 
 	// Configure HTTP/2 settings.
 
@@ -309,31 +247,23 @@ func NewOptimizedHTTPClient(config *HTTPConfig) *OptimizedHTTPClient {
 
 	}
 
-
-
 	client := &http.Client{
 
 		Transport: transport,
 
-		Timeout:   30 * time.Second,
-
+		Timeout: 30 * time.Second,
 	}
-
-
 
 	// Create health checker.
 
 	healthChecker := &ConnectionHealthChecker{
 
-		interval:     30 * time.Second,
+		interval: 30 * time.Second,
 
-		timeout:      5 * time.Second,
+		timeout: 5 * time.Second,
 
 		healthChecks: make(map[string]*HealthCheckResult),
-
 	}
-
-
 
 	// Start health checking.
 
@@ -343,55 +273,45 @@ func NewOptimizedHTTPClient(config *HTTPConfig) *OptimizedHTTPClient {
 
 	go healthChecker.Start(ctx)
 
-
-
 	optimizedClient := &OptimizedHTTPClient{
 
 		client: client,
 
 		connectionPool: &DynamicConnectionPool{
 
-			conns:         make(chan *http.Client, config.ConnectionPoolSize),
+			conns: make(chan *http.Client, config.ConnectionPoolSize),
 
-			maxConns:      int64(config.ConnectionPoolSize),
+			maxConns: int64(config.ConnectionPoolSize),
 
-			idleTimeout:   config.IdleConnTimeout,
+			idleTimeout: config.IdleConnTimeout,
 
 			healthChecker: healthChecker,
 
-			config:        config,
-
+			config: config,
 		},
 
-		pushTargets:    make(map[string][]string),
+		pushTargets: make(map[string][]string),
 
 		requestDeduper: &singleflight.Group{},
 
-		bufferPool:     NewBufferPool(),
+		bufferPool: NewBufferPool(),
 
-		healthChecker:  healthChecker,
+		healthChecker: healthChecker,
 
-		metrics:        &HTTPMetrics{},
+		metrics: &HTTPMetrics{},
 
-		config:         config,
+		config: config,
 
-		tlsConfig:      tlsConfig,
-
+		tlsConfig: tlsConfig,
 	}
-
-
 
 	// Pre-populate connection pool.
 
 	optimizedClient.connectionPool.warmUp()
 
-
-
 	return optimizedClient
 
 }
-
-
 
 // DefaultHTTPConfig returns default HTTP configuration optimized for Go 1.24+.
 
@@ -399,39 +319,36 @@ func DefaultHTTPConfig() *HTTPConfig {
 
 	return &HTTPConfig{
 
-		MaxIdleConns:        200,
+		MaxIdleConns: 200,
 
 		MaxIdleConnsPerHost: 20,
 
-		IdleConnTimeout:     90 * time.Second,
+		IdleConnTimeout: 90 * time.Second,
 
 		TLSHandshakeTimeout: 10 * time.Second,
 
-		KeepAlive:           30 * time.Second,
+		KeepAlive: 30 * time.Second,
 
-		DualStack:           true,
+		DualStack: true,
 
-		HTTP2Enabled:        true,
+		HTTP2Enabled: true,
 
-		HTTP3Enabled:        false, // Enable when widely supported
+		HTTP3Enabled: false, // Enable when widely supported
 
-		ConnectionPoolSize:  100,
+		ConnectionPoolSize: 100,
 
-		ReadBufferSize:      32 * 1024, // 32KB
+		ReadBufferSize: 32 * 1024, // 32KB
 
-		WriteBufferSize:     32 * 1024, // 32KB
+		WriteBufferSize: 32 * 1024, // 32KB
 
-		CompressionEnabled:  true,
+		CompressionEnabled: true,
 
-		ServerPushEnabled:   true,
+		ServerPushEnabled: true,
 
-		ZeroRTTEnabled:      true,
-
+		ZeroRTTEnabled: true,
 	}
 
 }
-
-
 
 // NewBufferPool creates an optimized buffer pool.
 
@@ -446,7 +363,6 @@ func NewBufferPool() *BufferPool {
 				return make([]byte, 1024)
 
 			},
-
 		},
 
 		mediumBuffers: sync.Pool{
@@ -456,7 +372,6 @@ func NewBufferPool() *BufferPool {
 				return make([]byte, 16*1024)
 
 			},
-
 		},
 
 		largeBuffers: sync.Pool{
@@ -466,22 +381,16 @@ func NewBufferPool() *BufferPool {
 				return make([]byte, 64*1024)
 
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // GetBuffer returns a buffer of appropriate size from the pool.
 
 func (bp *BufferPool) GetBuffer(size int) []byte {
 
 	var buffer []byte
-
-
 
 	switch {
 
@@ -513,13 +422,9 @@ func (bp *BufferPool) GetBuffer(size int) []byte {
 
 	}
 
-
-
 	return buffer[:size]
 
 }
-
-
 
 // PutBuffer returns a buffer to the pool.
 
@@ -531,8 +436,6 @@ func (bp *BufferPool) PutBuffer(buffer []byte) {
 
 	}
 
-
-
 	// Reset buffer.
 
 	buffer = buffer[:cap(buffer)]
@@ -542,8 +445,6 @@ func (bp *BufferPool) PutBuffer(buffer []byte) {
 		buffer[i] = 0
 
 	}
-
-
 
 	switch cap(buffer) {
 
@@ -562,8 +463,6 @@ func (bp *BufferPool) PutBuffer(buffer []byte) {
 	}
 
 }
-
-
 
 // GetHitRate returns the buffer pool hit rate.
 
@@ -585,8 +484,6 @@ func (bp *BufferPool) GetHitRate() float64 {
 
 }
 
-
-
 // warmUp pre-populates the connection pool.
 
 func (dp *DynamicConnectionPool) warmUp() {
@@ -599,16 +496,14 @@ func (dp *DynamicConnectionPool) warmUp() {
 
 			Transport: &http.Transport{
 
-				MaxIdleConns:        dp.config.MaxIdleConns,
+				MaxIdleConns: dp.config.MaxIdleConns,
 
 				MaxIdleConnsPerHost: dp.config.MaxIdleConnsPerHost,
 
-				IdleConnTimeout:     dp.config.IdleConnTimeout,
+				IdleConnTimeout: dp.config.IdleConnTimeout,
 
 				TLSHandshakeTimeout: dp.config.TLSHandshakeTimeout,
-
 			},
-
 		}
 
 		select {
@@ -624,8 +519,6 @@ func (dp *DynamicConnectionPool) warmUp() {
 	}
 
 }
-
-
 
 // GetClient retrieves a client from the dynamic connection pool.
 
@@ -651,16 +544,14 @@ func (dp *DynamicConnectionPool) GetClient() *http.Client {
 
 				Transport: &http.Transport{
 
-					MaxIdleConns:        dp.config.MaxIdleConns,
+					MaxIdleConns: dp.config.MaxIdleConns,
 
 					MaxIdleConnsPerHost: dp.config.MaxIdleConnsPerHost,
 
-					IdleConnTimeout:     dp.config.IdleConnTimeout,
+					IdleConnTimeout: dp.config.IdleConnTimeout,
 
 					TLSHandshakeTimeout: dp.config.TLSHandshakeTimeout,
-
 				},
-
 			}
 
 			atomic.AddInt64(&dp.activeConns, 1)
@@ -691,8 +582,6 @@ func (dp *DynamicConnectionPool) GetClient() *http.Client {
 
 }
 
-
-
 // ReturnClient returns a client to the pool.
 
 func (dp *DynamicConnectionPool) ReturnClient(client *http.Client) {
@@ -713,8 +602,6 @@ func (dp *DynamicConnectionPool) ReturnClient(client *http.Client) {
 
 }
 
-
-
 // Start begins the connection health checking routine.
 
 func (hc *ConnectionHealthChecker) Start(ctx context.Context) {
@@ -722,8 +609,6 @@ func (hc *ConnectionHealthChecker) Start(ctx context.Context) {
 	ticker := time.NewTicker(hc.interval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -743,8 +628,6 @@ func (hc *ConnectionHealthChecker) Start(ctx context.Context) {
 
 }
 
-
-
 // performHealthChecks checks the health of all connections.
 
 func (hc *ConnectionHealthChecker) performHealthChecks() {
@@ -752,8 +635,6 @@ func (hc *ConnectionHealthChecker) performHealthChecks() {
 	hc.mu.Lock()
 
 	defer hc.mu.Unlock()
-
-
 
 	for endpoint, result := range hc.healthChecks {
 
@@ -765,15 +646,11 @@ func (hc *ConnectionHealthChecker) performHealthChecks() {
 
 			latency := time.Since(start)
 
-
-
 			hc.mu.Lock()
 
 			res.LastCheck = time.Now()
 
 			res.Latency = latency
-
-
 
 			if err != nil {
 
@@ -797,8 +674,6 @@ func (hc *ConnectionHealthChecker) performHealthChecks() {
 
 }
 
-
-
 // checkEndpoint performs a health check on a specific endpoint.
 
 func (hc *ConnectionHealthChecker) checkEndpoint(endpoint string) error {
@@ -807,8 +682,6 @@ func (hc *ConnectionHealthChecker) checkEndpoint(endpoint string) error {
 
 	defer cancel()
 
-
-
 	req, err := http.NewRequestWithContext(ctx, "HEAD", endpoint, http.NoBody)
 
 	if err != nil {
@@ -816,8 +689,6 @@ func (hc *ConnectionHealthChecker) checkEndpoint(endpoint string) error {
 		return err
 
 	}
-
-
 
 	client := &http.Client{Timeout: hc.timeout}
 
@@ -831,21 +702,15 @@ func (hc *ConnectionHealthChecker) checkEndpoint(endpoint string) error {
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode >= 400 {
 
 		return fmt.Errorf("unhealthy status code: %d", resp.StatusCode)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // DoWithOptimizations performs an HTTP request with all optimizations enabled.
 
@@ -862,8 +727,6 @@ func (c *OptimizedHTTPClient) DoWithOptimizations(ctx context.Context, req *http
 		atomic.AddInt64(&c.metrics.ResponseTime, duration.Nanoseconds())
 
 	}()
-
-
 
 	// Create request trace for detailed metrics.
 
@@ -902,14 +765,9 @@ func (c *OptimizedHTTPClient) DoWithOptimizations(ctx context.Context, req *http
 			}
 
 		},
-
 	}
 
-
-
 	req = req.WithContext(httptrace.WithClientTrace(ctx, trace))
-
-
 
 	// Check for request deduplication.
 
@@ -935,13 +793,9 @@ func (c *OptimizedHTTPClient) DoWithOptimizations(ctx context.Context, req *http
 
 	}
 
-
-
 	return c.performRequest(req)
 
 }
-
-
 
 // performRequest executes the actual HTTP request.
 
@@ -959,8 +813,6 @@ func (c *OptimizedHTTPClient) performRequest(req *http.Request) (*http.Response,
 
 	defer c.connectionPool.ReturnClient(client)
 
-
-
 	// Perform the request.
 
 	resp, err := client.Do(req)
@@ -973,8 +825,6 @@ func (c *OptimizedHTTPClient) performRequest(req *http.Request) (*http.Response,
 
 	}
 
-
-
 	// Update metrics.
 
 	if resp.Header.Get("Content-Encoding") == "gzip" {
@@ -985,8 +835,6 @@ func (c *OptimizedHTTPClient) performRequest(req *http.Request) (*http.Response,
 
 	}
 
-
-
 	contentLength := resp.ContentLength
 
 	if contentLength > 0 {
@@ -995,13 +843,9 @@ func (c *OptimizedHTTPClient) performRequest(req *http.Request) (*http.Response,
 
 	}
 
-
-
 	return resp, nil
 
 }
-
-
 
 // EnableServerPush configures HTTP/2 server push for specific routes.
 
@@ -1014,8 +858,6 @@ func (c *OptimizedHTTPClient) EnableServerPush(baseURL string, pushTargets []str
 	c.pushTargets[baseURL] = pushTargets
 
 }
-
-
 
 // StreamingRequest performs a streaming HTTP request with optimal buffering.
 
@@ -1031,15 +873,11 @@ func (c *OptimizedHTTPClient) StreamingRequest(ctx context.Context, req *http.Re
 
 	defer resp.Body.Close()
 
-
-
 	// Get appropriate buffer from pool.
 
 	buffer := c.bufferPool.GetBuffer(c.config.ReadBufferSize)
 
 	defer c.bufferPool.PutBuffer(buffer)
-
-
 
 	for {
 
@@ -1069,13 +907,9 @@ func (c *OptimizedHTTPClient) StreamingRequest(ctx context.Context, req *http.Re
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetMetrics returns current HTTP performance metrics.
 
@@ -1083,39 +917,36 @@ func (c *OptimizedHTTPClient) GetMetrics() HTTPMetrics {
 
 	return HTTPMetrics{
 
-		RequestCount:       atomic.LoadInt64(&c.metrics.RequestCount),
+		RequestCount: atomic.LoadInt64(&c.metrics.RequestCount),
 
-		ResponseTime:       atomic.LoadInt64(&c.metrics.ResponseTime),
+		ResponseTime: atomic.LoadInt64(&c.metrics.ResponseTime),
 
-		ErrorCount:         atomic.LoadInt64(&c.metrics.ErrorCount),
+		ErrorCount: atomic.LoadInt64(&c.metrics.ErrorCount),
 
-		ConnectionsActive:  atomic.LoadInt64(&c.metrics.ConnectionsActive),
+		ConnectionsActive: atomic.LoadInt64(&c.metrics.ConnectionsActive),
 
 		ConnectionsCreated: atomic.LoadInt64(&c.metrics.ConnectionsCreated),
 
-		ConnectionsReused:  atomic.LoadInt64(&c.metrics.ConnectionsReused),
+		ConnectionsReused: atomic.LoadInt64(&c.metrics.ConnectionsReused),
 
-		CacheHits:          atomic.LoadInt64(&c.metrics.CacheHits),
+		CacheHits: atomic.LoadInt64(&c.metrics.CacheHits),
 
-		CacheMisses:        atomic.LoadInt64(&c.metrics.CacheMisses),
+		CacheMisses: atomic.LoadInt64(&c.metrics.CacheMisses),
 
-		BytesTransferred:   atomic.LoadInt64(&c.metrics.BytesTransferred),
+		BytesTransferred: atomic.LoadInt64(&c.metrics.BytesTransferred),
 
-		CompressionRatio:   c.metrics.CompressionRatio,
+		CompressionRatio: c.metrics.CompressionRatio,
 
-		HTTP2Connections:   atomic.LoadInt64(&c.metrics.HTTP2Connections),
+		HTTP2Connections: atomic.LoadInt64(&c.metrics.HTTP2Connections),
 
-		HTTP3Connections:   atomic.LoadInt64(&c.metrics.HTTP3Connections),
+		HTTP3Connections: atomic.LoadInt64(&c.metrics.HTTP3Connections),
 
-		TLSHandshakes:      atomic.LoadInt64(&c.metrics.TLSHandshakes),
+		TLSHandshakes: atomic.LoadInt64(&c.metrics.TLSHandshakes),
 
-		ZeroRTTSuccess:     atomic.LoadInt64(&c.metrics.ZeroRTTSuccess),
-
+		ZeroRTTSuccess: atomic.LoadInt64(&c.metrics.ZeroRTTSuccess),
 	}
 
 }
-
-
 
 // GetAverageResponseTime returns the average response time in milliseconds.
 
@@ -1135,8 +966,6 @@ func (c *OptimizedHTTPClient) GetAverageResponseTime() float64 {
 
 }
 
-
-
 // Shutdown gracefully shuts down the HTTP client.
 
 func (c *OptimizedHTTPClient) Shutdown(ctx context.Context) error {
@@ -1149,8 +978,6 @@ func (c *OptimizedHTTPClient) Shutdown(ctx context.Context) error {
 
 	}
 
-
-
 	// Log final metrics.
 
 	metrics := c.GetMetrics()
@@ -1162,16 +989,11 @@ func (c *OptimizedHTTPClient) Shutdown(ctx context.Context) error {
 		c.GetAverageResponseTime(),
 
 		float64(metrics.ErrorCount)/float64(metrics.RequestCount)*100,
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // ResetMetrics resets all performance metrics.
 
@@ -1206,4 +1028,3 @@ func (c *OptimizedHTTPClient) ResetMetrics() {
 	c.metrics.CompressionRatio = 0
 
 }
-

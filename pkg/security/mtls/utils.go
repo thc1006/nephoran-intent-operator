@@ -1,27 +1,14 @@
-
 package mtls
 
-
-
 import (
-
 	"crypto/rand"
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/security/ca"
-
 )
-
-
 
 // loadCertificateFile loads a certificate file and returns its contents.
 
@@ -33,8 +20,6 @@ func loadCertificateFile(certPath string) ([]byte, error) {
 
 	}
 
-
-
 	// Check if file exists.
 
 	if _, err := os.Stat(certPath); os.IsNotExist(err) {
@@ -42,8 +27,6 @@ func loadCertificateFile(certPath string) ([]byte, error) {
 		return nil, fmt.Errorf("certificate file does not exist: %s", certPath)
 
 	}
-
-
 
 	// Read certificate file.
 
@@ -55,21 +38,15 @@ func loadCertificateFile(certPath string) ([]byte, error) {
 
 	}
 
-
-
 	if len(certData) == 0 {
 
 		return nil, fmt.Errorf("certificate file is empty: %s", certPath)
 
 	}
 
-
-
 	return certData, nil
 
 }
-
-
 
 // generateRequestID generates a unique request ID for certificate requests.
 
@@ -91,8 +68,6 @@ func generateRequestID() string {
 
 }
 
-
-
 // storeCertificateFiles stores certificate response to files for subsequent loading.
 
 func (c *Client) storeCertificateFiles(resp *ca.CertificateResponse) error {
@@ -102,8 +77,6 @@ func (c *Client) storeCertificateFiles(resp *ca.CertificateResponse) error {
 		return fmt.Errorf("certificate response is nil")
 
 	}
-
-
 
 	// Ensure certificate directory exists.
 
@@ -115,8 +88,6 @@ func (c *Client) storeCertificateFiles(resp *ca.CertificateResponse) error {
 
 	}
 
-
-
 	// Store certificate.
 
 	if err := os.WriteFile(c.config.ClientCertPath, []byte(resp.CertificatePEM), 0o640); err != nil {
@@ -125,8 +96,6 @@ func (c *Client) storeCertificateFiles(resp *ca.CertificateResponse) error {
 
 	}
 
-
-
 	// Store private key.
 
 	if err := os.WriteFile(c.config.ClientKeyPath, []byte(resp.PrivateKeyPEM), 0o600); err != nil {
@@ -134,8 +103,6 @@ func (c *Client) storeCertificateFiles(resp *ca.CertificateResponse) error {
 		return fmt.Errorf("failed to store client private key: %w", err)
 
 	}
-
-
 
 	// Store CA certificate if provided.
 
@@ -149,13 +116,9 @@ func (c *Client) storeCertificateFiles(resp *ca.CertificateResponse) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // storeCertificateFiles stores certificate response to files for subsequent loading (server version).
 
@@ -167,8 +130,6 @@ func (s *Server) storeCertificateFiles(resp *ca.CertificateResponse) error {
 
 	}
 
-
-
 	// Ensure certificate directory exists.
 
 	certDir := filepath.Dir(s.config.ServerCertPath)
@@ -179,8 +140,6 @@ func (s *Server) storeCertificateFiles(resp *ca.CertificateResponse) error {
 
 	}
 
-
-
 	// Store certificate.
 
 	if err := os.WriteFile(s.config.ServerCertPath, []byte(resp.CertificatePEM), 0o640); err != nil {
@@ -189,8 +148,6 @@ func (s *Server) storeCertificateFiles(resp *ca.CertificateResponse) error {
 
 	}
 
-
-
 	// Store private key.
 
 	if err := os.WriteFile(s.config.ServerKeyPath, []byte(resp.PrivateKeyPEM), 0o600); err != nil {
@@ -198,8 +155,6 @@ func (s *Server) storeCertificateFiles(resp *ca.CertificateResponse) error {
 		return fmt.Errorf("failed to store server private key: %w", err)
 
 	}
-
-
 
 	// Store CA certificate if provided.
 
@@ -213,13 +168,9 @@ func (s *Server) storeCertificateFiles(resp *ca.CertificateResponse) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateClientConfig validates client configuration.
 
@@ -231,15 +182,11 @@ func ValidateClientConfig(config *ClientConfig) error {
 
 	}
 
-
-
 	if config.ServiceName == "" {
 
 		return fmt.Errorf("service name is required")
 
 	}
-
-
 
 	if config.AutoProvision {
 
@@ -271,8 +218,6 @@ func ValidateClientConfig(config *ClientConfig) error {
 
 	}
 
-
-
 	if config.RotationEnabled {
 
 		if config.RotationInterval <= 0 {
@@ -289,13 +234,9 @@ func ValidateClientConfig(config *ClientConfig) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateServerConfig validates server configuration.
 
@@ -307,23 +248,17 @@ func ValidateServerConfig(config *ServerConfig) error {
 
 	}
 
-
-
 	if config.ServiceName == "" {
 
 		return fmt.Errorf("service name is required")
 
 	}
 
-
-
 	if config.Port <= 0 || config.Port > 65535 {
 
 		return fmt.Errorf("port must be between 1 and 65535")
 
 	}
-
-
 
 	if config.AutoProvision {
 
@@ -355,8 +290,6 @@ func ValidateServerConfig(config *ServerConfig) error {
 
 	}
 
-
-
 	if config.RotationEnabled {
 
 		if config.RotationInterval <= 0 {
@@ -373,13 +306,9 @@ func ValidateServerConfig(config *ServerConfig) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // DefaultClientConfig returns a client configuration with sensible defaults.
 
@@ -387,37 +316,34 @@ func DefaultClientConfig(serviceName string) *ClientConfig {
 
 	return &ClientConfig{
 
-		ServiceName:          serviceName,
+		ServiceName: serviceName,
 
-		TenantID:             "default",
+		TenantID: "default",
 
 		CertValidityDuration: 24 * time.Hour,
 
-		DialTimeout:          10 * time.Second,
+		DialTimeout: 10 * time.Second,
 
-		KeepAliveTimeout:     30 * time.Second,
+		KeepAliveTimeout: 30 * time.Second,
 
-		MaxIdleConns:         100,
+		MaxIdleConns: 100,
 
-		MaxConnsPerHost:      10,
+		MaxConnsPerHost: 10,
 
-		IdleConnTimeout:      90 * time.Second,
+		IdleConnTimeout: 90 * time.Second,
 
-		RotationEnabled:      true,
+		RotationEnabled: true,
 
-		RotationInterval:     1 * time.Hour,
+		RotationInterval: 1 * time.Hour,
 
-		RenewalThreshold:     6 * time.Hour,
+		RenewalThreshold: 6 * time.Hour,
 
-		AutoProvision:        false,
+		AutoProvision: false,
 
-		PolicyTemplate:       "client-auth",
-
+		PolicyTemplate: "client-auth",
 	}
 
 }
-
-
 
 // DefaultServerConfig returns a server configuration with sensible defaults.
 
@@ -425,53 +351,50 @@ func DefaultServerConfig(serviceName string) *ServerConfig {
 
 	return &ServerConfig{
 
-		ServiceName:          serviceName,
+		ServiceName: serviceName,
 
-		TenantID:             "default",
+		TenantID: "default",
 
-		Address:              "0.0.0.0",
+		Address: "0.0.0.0",
 
-		Port:                 8443,
+		Port: 8443,
 
 		CertValidityDuration: 24 * time.Hour,
 
-		ReadTimeout:          30 * time.Second,
+		ReadTimeout: 30 * time.Second,
 
-		WriteTimeout:         30 * time.Second,
+		WriteTimeout: 30 * time.Second,
 
-		IdleTimeout:          120 * time.Second,
+		IdleTimeout: 120 * time.Second,
 
-		ReadHeaderTimeout:    10 * time.Second,
+		ReadHeaderTimeout: 10 * time.Second,
 
-		MaxHeaderBytes:       1 << 20, // 1MB
+		MaxHeaderBytes: 1 << 20, // 1MB
 
-		MinTLSVersion:        0x0303,  // TLS 1.2
+		MinTLSVersion: 0x0303, // TLS 1.2
 
-		MaxTLSVersion:        0x0304,  // TLS 1.3
+		MaxTLSVersion: 0x0304, // TLS 1.3
 
 		ClientCertValidation: ClientCertRequiredVerify,
 
-		RotationEnabled:      true,
+		RotationEnabled: true,
 
-		RotationInterval:     1 * time.Hour,
+		RotationInterval: 1 * time.Hour,
 
-		RenewalThreshold:     6 * time.Hour,
+		RenewalThreshold: 6 * time.Hour,
 
-		AutoProvision:        false,
+		AutoProvision: false,
 
-		PolicyTemplate:       "server-auth",
+		PolicyTemplate: "server-auth",
 
-		EnableHSTS:           true,
+		EnableHSTS: true,
 
-		HSTSMaxAge:           31536000, // 1 year
+		HSTSMaxAge: 31536000, // 1 year
 
-		ClientCertRequired:   true,
-
+		ClientCertRequired: true,
 	}
 
 }
-
-
 
 // ensureDirectory ensures that a directory exists with the specified permissions.
 
@@ -487,8 +410,6 @@ func ensureDirectory(path string, perm os.FileMode) error {
 
 }
 
-
-
 // writeSecureFile writes data to a file with specified permissions, ensuring parent directory exists.
 
 func writeSecureFile(filepath string, data []byte, perm os.FileMode) error {
@@ -503,11 +424,8 @@ func writeSecureFile(filepath string, data []byte, perm os.FileMode) error {
 
 	}
 
-
-
 	// Write file with specified permissions.
 
 	return os.WriteFile(filepath, data, perm)
 
 }
-

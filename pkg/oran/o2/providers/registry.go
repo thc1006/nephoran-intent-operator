@@ -1,51 +1,33 @@
-
 package providers
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
-
-
 
 	"k8s.io/apimachinery/pkg/util/wait"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // ProviderRegistry manages cloud provider instances.
 
 type ProviderRegistry struct {
+	providers map[string]CloudProvider
 
-	providers           map[string]CloudProvider
+	configurations map[string]*ProviderConfiguration
 
-	configurations      map[string]*ProviderConfiguration
+	healthStatus map[string]*HealthStatus
 
-	healthStatus        map[string]*HealthStatus
+	metrics map[string]map[string]interface{}
 
-	metrics             map[string]map[string]interface{}
+	mu sync.RWMutex
 
-	mu                  sync.RWMutex
-
-	stopCh              chan struct{}
+	stopCh chan struct{}
 
 	healthCheckInterval time.Duration
-
 }
-
-
 
 // NewProviderRegistry creates a new provider registry.
 
@@ -53,23 +35,20 @@ func NewProviderRegistry() *ProviderRegistry {
 
 	return &ProviderRegistry{
 
-		providers:           make(map[string]CloudProvider),
+		providers: make(map[string]CloudProvider),
 
-		configurations:      make(map[string]*ProviderConfiguration),
+		configurations: make(map[string]*ProviderConfiguration),
 
-		healthStatus:        make(map[string]*HealthStatus),
+		healthStatus: make(map[string]*HealthStatus),
 
-		metrics:             make(map[string]map[string]interface{}),
+		metrics: make(map[string]map[string]interface{}),
 
-		stopCh:              make(chan struct{}),
+		stopCh: make(chan struct{}),
 
 		healthCheckInterval: 30 * time.Second,
-
 	}
 
 }
-
-
 
 // RegisterProvider registers a new cloud provider.
 
@@ -79,15 +58,11 @@ func (r *ProviderRegistry) RegisterProvider(name string, provider CloudProvider,
 
 	defer r.mu.Unlock()
 
-
-
 	if _, exists := r.providers[name]; exists {
 
 		return fmt.Errorf("provider %s already registered", name)
 
 	}
-
-
 
 	// Validate configuration if provided.
 
@@ -103,27 +78,20 @@ func (r *ProviderRegistry) RegisterProvider(name string, provider CloudProvider,
 
 	}
 
-
-
 	r.providers[name] = provider
 
 	r.healthStatus[name] = &HealthStatus{
 
-		Status:      HealthStatusUnknown,
+		Status: HealthStatusUnknown,
 
-		Message:     "Provider registered but not yet connected",
+		Message: "Provider registered but not yet connected",
 
 		LastUpdated: time.Now(),
-
 	}
-
-
 
 	return nil
 
 }
-
-
 
 // UnregisterProvider removes a provider from the registry.
 
@@ -133,8 +101,6 @@ func (r *ProviderRegistry) UnregisterProvider(name string) error {
 
 	defer r.mu.Unlock()
 
-
-
 	provider, exists := r.providers[name]
 
 	if !exists {
@@ -143,15 +109,11 @@ func (r *ProviderRegistry) UnregisterProvider(name string) error {
 
 	}
 
-
-
 	// Disconnect and close the provider.
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
 	defer cancel()
-
-
 
 	if err := provider.Disconnect(ctx); err != nil {
 
@@ -161,15 +123,11 @@ func (r *ProviderRegistry) UnregisterProvider(name string) error {
 
 	}
 
-
-
 	if err := provider.Close(); err != nil {
 
 		log.FromContext(ctx).Error(err, "failed to close provider", "provider", name)
 
 	}
-
-
 
 	delete(r.providers, name)
 
@@ -179,13 +137,9 @@ func (r *ProviderRegistry) UnregisterProvider(name string) error {
 
 	delete(r.metrics, name)
 
-
-
 	return nil
 
 }
-
-
 
 // GetProvider retrieves a registered provider.
 
@@ -195,8 +149,6 @@ func (r *ProviderRegistry) GetProvider(name string) (CloudProvider, error) {
 
 	defer r.mu.RUnlock()
 
-
-
 	provider, exists := r.providers[name]
 
 	if !exists {
@@ -205,13 +157,9 @@ func (r *ProviderRegistry) GetProvider(name string) (CloudProvider, error) {
 
 	}
 
-
-
 	return provider, nil
 
 }
-
-
 
 // GetProviderByType retrieves the first provider of a specific type.
 
@@ -220,8 +168,6 @@ func (r *ProviderRegistry) GetProviderByType(providerType string) (CloudProvider
 	r.mu.RLock()
 
 	defer r.mu.RUnlock()
-
-
 
 	for _, provider := range r.providers {
 
@@ -235,13 +181,9 @@ func (r *ProviderRegistry) GetProviderByType(providerType string) (CloudProvider
 
 	}
 
-
-
 	return nil, fmt.Errorf("no provider of type %s found", providerType)
 
 }
-
-
 
 // ListProviders returns all registered provider names.
 
@@ -251,8 +193,6 @@ func (r *ProviderRegistry) ListProviders() []string {
 
 	defer r.mu.RUnlock()
 
-
-
 	names := make([]string, 0, len(r.providers))
 
 	for name := range r.providers {
@@ -261,13 +201,9 @@ func (r *ProviderRegistry) ListProviders() []string {
 
 	}
 
-
-
 	return names
 
 }
-
-
 
 // ListProvidersByType returns providers of a specific type.
 
@@ -276,8 +212,6 @@ func (r *ProviderRegistry) ListProvidersByType(providerType string) []string {
 	r.mu.RLock()
 
 	defer r.mu.RUnlock()
-
-
 
 	var names []string
 
@@ -293,13 +227,9 @@ func (r *ProviderRegistry) ListProvidersByType(providerType string) []string {
 
 	}
 
-
-
 	return names
 
 }
-
-
 
 // GetSupportedProviders returns a list of supported provider types.
 
@@ -318,12 +248,9 @@ func (r *ProviderRegistry) GetSupportedProviders() []string {
 		ProviderTypeAzure,
 
 		ProviderTypeGCP,
-
 	}
 
 }
-
-
 
 // GetProviderInfo returns information about a provider.
 
@@ -333,8 +260,6 @@ func (r *ProviderRegistry) GetProviderInfo(name string) (*ProviderInfo, error) {
 
 	defer r.mu.RUnlock()
 
-
-
 	provider, exists := r.providers[name]
 
 	if !exists {
@@ -343,13 +268,9 @@ func (r *ProviderRegistry) GetProviderInfo(name string) (*ProviderInfo, error) {
 
 	}
 
-
-
 	return provider.GetProviderInfo(), nil
 
 }
-
-
 
 // GetProviderHealth returns the health status of a provider.
 
@@ -359,8 +280,6 @@ func (r *ProviderRegistry) GetProviderHealth(name string) (*HealthStatus, error)
 
 	defer r.mu.RUnlock()
 
-
-
 	health, exists := r.healthStatus[name]
 
 	if !exists {
@@ -369,13 +288,9 @@ func (r *ProviderRegistry) GetProviderHealth(name string) (*HealthStatus, error)
 
 	}
 
-
-
 	return health, nil
 
 }
-
-
 
 // GetAllProviderHealth returns health status for all providers.
 
@@ -385,8 +300,6 @@ func (r *ProviderRegistry) GetAllProviderHealth() map[string]*HealthStatus {
 
 	defer r.mu.RUnlock()
 
-
-
 	result := make(map[string]*HealthStatus)
 
 	for name, health := range r.healthStatus {
@@ -395,13 +308,9 @@ func (r *ProviderRegistry) GetAllProviderHealth() map[string]*HealthStatus {
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // GetProviderMetrics returns metrics for a provider.
 
@@ -411,8 +320,6 @@ func (r *ProviderRegistry) GetProviderMetrics(name string) (map[string]interface
 
 	defer r.mu.RUnlock()
 
-
-
 	metrics, exists := r.metrics[name]
 
 	if !exists {
@@ -421,13 +328,9 @@ func (r *ProviderRegistry) GetProviderMetrics(name string) (map[string]interface
 
 	}
 
-
-
 	return metrics, nil
 
 }
-
-
 
 // ConnectAll connects all registered providers.
 
@@ -444,8 +347,6 @@ func (r *ProviderRegistry) ConnectAll(ctx context.Context) error {
 	}
 
 	r.mu.RUnlock()
-
-
 
 	var firstError error
 
@@ -465,13 +366,9 @@ func (r *ProviderRegistry) ConnectAll(ctx context.Context) error {
 
 	}
 
-
-
 	return firstError
 
 }
-
-
 
 // ConnectProvider connects a specific provider.
 
@@ -485,13 +382,9 @@ func (r *ProviderRegistry) ConnectProvider(ctx context.Context, name string) err
 
 	}
 
-
-
 	return r.connectProvider(ctx, name, provider)
 
 }
-
-
 
 // connectProvider handles the actual connection logic.
 
@@ -505,20 +398,17 @@ func (r *ProviderRegistry) connectProvider(ctx context.Context, name string, pro
 
 	r.mu.RUnlock()
 
-
-
 	if config != nil {
 
 		if err := provider.ApplyConfiguration(ctx, config); err != nil {
 
 			r.updateHealthStatus(name, &HealthStatus{
 
-				Status:      HealthStatusUnhealthy,
+				Status: HealthStatusUnhealthy,
 
-				Message:     fmt.Sprintf("Failed to apply configuration: %v", err),
+				Message: fmt.Sprintf("Failed to apply configuration: %v", err),
 
 				LastUpdated: time.Now(),
-
 			})
 
 			return fmt.Errorf("failed to apply configuration for provider %s: %w", name, err)
@@ -527,27 +417,22 @@ func (r *ProviderRegistry) connectProvider(ctx context.Context, name string, pro
 
 	}
 
-
-
 	// Connect to the provider.
 
 	if err := provider.Connect(ctx); err != nil {
 
 		r.updateHealthStatus(name, &HealthStatus{
 
-			Status:      HealthStatusUnhealthy,
+			Status: HealthStatusUnhealthy,
 
-			Message:     fmt.Sprintf("Failed to connect: %v", err),
+			Message: fmt.Sprintf("Failed to connect: %v", err),
 
 			LastUpdated: time.Now(),
-
 		})
 
 		return fmt.Errorf("failed to connect provider %s: %w", name, err)
 
 	}
-
-
 
 	// Perform initial health check.
 
@@ -555,12 +440,11 @@ func (r *ProviderRegistry) connectProvider(ctx context.Context, name string, pro
 
 		r.updateHealthStatus(name, &HealthStatus{
 
-			Status:      HealthStatusUnhealthy,
+			Status: HealthStatusUnhealthy,
 
-			Message:     fmt.Sprintf("Health check failed: %v", err),
+			Message: fmt.Sprintf("Health check failed: %v", err),
 
 			LastUpdated: time.Now(),
-
 		})
 
 		// Don't return error here as provider is connected.
@@ -571,23 +455,18 @@ func (r *ProviderRegistry) connectProvider(ctx context.Context, name string, pro
 
 		r.updateHealthStatus(name, &HealthStatus{
 
-			Status:      HealthStatusHealthy,
+			Status: HealthStatusHealthy,
 
-			Message:     "Provider connected and healthy",
+			Message: "Provider connected and healthy",
 
 			LastUpdated: time.Now(),
-
 		})
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // DisconnectAll disconnects all providers.
 
@@ -605,8 +484,6 @@ func (r *ProviderRegistry) DisconnectAll(ctx context.Context) error {
 
 	r.mu.RUnlock()
 
-
-
 	var firstError error
 
 	for name, provider := range providers {
@@ -623,27 +500,20 @@ func (r *ProviderRegistry) DisconnectAll(ctx context.Context) error {
 
 		}
 
-
-
 		r.updateHealthStatus(name, &HealthStatus{
 
-			Status:      HealthStatusUnknown,
+			Status: HealthStatusUnknown,
 
-			Message:     "Provider disconnected",
+			Message: "Provider disconnected",
 
 			LastUpdated: time.Now(),
-
 		})
 
 	}
 
-
-
 	return firstError
 
 }
-
-
 
 // StartHealthChecks starts periodic health checks for all providers.
 
@@ -657,8 +527,6 @@ func (r *ProviderRegistry) StartHealthChecks(ctx context.Context) {
 
 }
 
-
-
 // StopHealthChecks stops periodic health checks.
 
 func (r *ProviderRegistry) StopHealthChecks() {
@@ -667,8 +535,6 @@ func (r *ProviderRegistry) StopHealthChecks() {
 
 }
 
-
-
 // performHealthChecks performs health checks on all providers.
 
 func (r *ProviderRegistry) performHealthChecks(ctx context.Context) {
@@ -676,8 +542,6 @@ func (r *ProviderRegistry) performHealthChecks(ctx context.Context) {
 	logger := log.FromContext(ctx)
 
 	logger.V(1).Info("performing health checks on all providers")
-
-
 
 	r.mu.RLock()
 
@@ -691,8 +555,6 @@ func (r *ProviderRegistry) performHealthChecks(ctx context.Context) {
 
 	r.mu.RUnlock()
 
-
-
 	for name, provider := range providers {
 
 		healthCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -701,37 +563,31 @@ func (r *ProviderRegistry) performHealthChecks(ctx context.Context) {
 
 		cancel()
 
-
-
 		if err != nil {
 
 			logger.Error(err, "provider health check failed", "provider", name)
 
 			r.updateHealthStatus(name, &HealthStatus{
 
-				Status:      HealthStatusUnhealthy,
+				Status: HealthStatusUnhealthy,
 
-				Message:     fmt.Sprintf("Health check failed: %v", err),
+				Message: fmt.Sprintf("Health check failed: %v", err),
 
 				LastUpdated: time.Now(),
-
 			})
 
 		} else {
 
 			r.updateHealthStatus(name, &HealthStatus{
 
-				Status:      HealthStatusHealthy,
+				Status: HealthStatusHealthy,
 
-				Message:     "Provider healthy",
+				Message: "Provider healthy",
 
 				LastUpdated: time.Now(),
-
 			})
 
 		}
-
-
 
 		// Collect metrics.
 
@@ -740,8 +596,6 @@ func (r *ProviderRegistry) performHealthChecks(ctx context.Context) {
 		metrics, err := provider.GetMetrics(metricsCtx)
 
 		cancel()
-
-
 
 		if err != nil {
 
@@ -757,8 +611,6 @@ func (r *ProviderRegistry) performHealthChecks(ctx context.Context) {
 
 }
 
-
-
 // updateHealthStatus updates the health status for a provider.
 
 func (r *ProviderRegistry) updateHealthStatus(name string, status *HealthStatus) {
@@ -770,8 +622,6 @@ func (r *ProviderRegistry) updateHealthStatus(name string, status *HealthStatus)
 	r.healthStatus[name] = status
 
 }
-
-
 
 // updateMetrics updates metrics for a provider.
 
@@ -785,8 +635,6 @@ func (r *ProviderRegistry) updateMetrics(name string, metrics map[string]interfa
 
 }
 
-
-
 // SelectProvider selects the best provider based on selection criteria.
 
 func (r *ProviderRegistry) SelectProvider(ctx context.Context, criteria *ProviderSelectionCriteria) (CloudProvider, error) {
@@ -795,11 +643,7 @@ func (r *ProviderRegistry) SelectProvider(ctx context.Context, criteria *Provide
 
 	defer r.mu.RUnlock()
 
-
-
 	var candidates []string
-
-
 
 	// Filter by type if specified.
 
@@ -827,15 +671,11 @@ func (r *ProviderRegistry) SelectProvider(ctx context.Context, criteria *Provide
 
 	}
 
-
-
 	if len(candidates) == 0 {
 
 		return nil, fmt.Errorf("no providers match selection criteria")
 
 	}
-
-
 
 	// Filter by health if required.
 
@@ -857,15 +697,11 @@ func (r *ProviderRegistry) SelectProvider(ctx context.Context, criteria *Provide
 
 	}
 
-
-
 	if len(candidates) == 0 {
 
 		return nil, fmt.Errorf("no healthy providers available")
 
 	}
-
-
 
 	// Filter by capabilities if specified.
 
@@ -891,15 +727,11 @@ func (r *ProviderRegistry) SelectProvider(ctx context.Context, criteria *Provide
 
 	}
 
-
-
 	if len(candidates) == 0 {
 
 		return nil, fmt.Errorf("no providers with required capabilities")
 
 	}
-
-
 
 	// Filter by region if specified.
 
@@ -929,8 +761,6 @@ func (r *ProviderRegistry) SelectProvider(ctx context.Context, criteria *Provide
 
 	}
 
-
-
 	// Select based on strategy.
 
 	switch criteria.SelectionStrategy {
@@ -958,8 +788,6 @@ func (r *ProviderRegistry) SelectProvider(ctx context.Context, criteria *Provide
 	}
 
 }
-
-
 
 // hasRequiredCapabilities checks if provider has required capabilities.
 
@@ -1041,8 +869,6 @@ func (r *ProviderRegistry) hasRequiredCapabilities(capabilities *ProviderCapabil
 
 }
 
-
-
 // selectLeastLoadedProvider selects the provider with the lowest load.
 
 func (r *ProviderRegistry) selectLeastLoadedProvider(candidates []string) (CloudProvider, error) {
@@ -1050,8 +876,6 @@ func (r *ProviderRegistry) selectLeastLoadedProvider(candidates []string) (Cloud
 	var selectedName string
 
 	lowestLoad := 100.0
-
-
 
 	for _, name := range candidates {
 
@@ -1069,15 +893,11 @@ func (r *ProviderRegistry) selectLeastLoadedProvider(candidates []string) (Cloud
 
 	}
 
-
-
 	if selectedName == "" && len(candidates) > 0 {
 
 		selectedName = candidates[0]
 
 	}
-
-
 
 	if selectedName == "" {
 
@@ -1085,13 +905,9 @@ func (r *ProviderRegistry) selectLeastLoadedProvider(candidates []string) (Cloud
 
 	}
 
-
-
 	return r.providers[selectedName], nil
 
 }
-
-
 
 // selectRoundRobinProvider selects providers in round-robin fashion.
 
@@ -1109,37 +925,28 @@ func (r *ProviderRegistry) selectRoundRobinProvider(candidates []string) (CloudP
 
 }
 
-
-
 // ProviderSelectionCriteria defines criteria for selecting a provider.
 
 type ProviderSelectionCriteria struct {
+	Type string // Provider type (kubernetes, openstack, aws, etc.)
 
-	Type                 string   // Provider type (kubernetes, openstack, aws, etc.)
+	Region string // Preferred region
 
-	Region               string   // Preferred region
+	Zone string // Preferred zone
 
-	Zone                 string   // Preferred zone
-
-	RequireHealthy       bool     // Only select healthy providers
+	RequireHealthy bool // Only select healthy providers
 
 	RequiredCapabilities []string // Required capabilities
 
-	SelectionStrategy    string   // Selection strategy (random, least-loaded, round-robin)
+	SelectionStrategy string // Selection strategy (random, least-loaded, round-robin)
 
 }
-
-
 
 // ProviderFactory creates provider instances.
 
 type ProviderFactory struct {
-
 	registry *ProviderRegistry
-
 }
-
-
 
 // NewProviderFactory creates a new provider factory.
 
@@ -1148,12 +955,9 @@ func NewProviderFactory(registry *ProviderRegistry) *ProviderFactory {
 	return &ProviderFactory{
 
 		registry: registry,
-
 	}
 
 }
-
-
 
 // CreateProvider creates a new provider instance based on configuration.
 
@@ -1195,8 +999,6 @@ func (f *ProviderFactory) CreateProvider(config *ProviderConfiguration) (CloudPr
 
 }
 
-
-
 // CreateAndRegisterProvider creates and registers a provider.
 
 func (f *ProviderFactory) CreateAndRegisterProvider(name string, config *ProviderConfiguration) error {
@@ -1209,17 +1011,12 @@ func (f *ProviderFactory) CreateAndRegisterProvider(name string, config *Provide
 
 	}
 
-
-
 	if err := f.registry.RegisterProvider(name, provider, config); err != nil {
 
 		return fmt.Errorf("failed to register provider: %w", err)
 
 	}
 
-
-
 	return nil
 
 }
-

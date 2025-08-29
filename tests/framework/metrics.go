@@ -1,35 +1,19 @@
 // Package framework provides comprehensive performance metrics and benchmarking.
 
-
 package framework
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"os"
-
 	"runtime"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/prometheus/client_golang/api"
-
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-
 )
-
-
 
 // TestMetrics provides comprehensive performance monitoring and analysis.
 
@@ -39,163 +23,130 @@ type TestMetrics struct {
 
 	testStartTime time.Time
 
-	testEndTime   time.Time
+	testEndTime time.Time
 
-	totalTests    int
+	totalTests int
 
-	passedTests   int
+	passedTests int
 
-	failedTests   int
+	failedTests int
 
-	skippedTests  int
-
-
+	skippedTests int
 
 	// Performance metrics.
 
-	latencyMetrics    map[string][]time.Duration
+	latencyMetrics map[string][]time.Duration
 
 	throughputMetrics map[string]float64
 
-	errorRateMetrics  map[string]float64
-
-
+	errorRateMetrics map[string]float64
 
 	// Resource utilization.
 
-	memoryUsage    []MemorySnapshot
+	memoryUsage []MemorySnapshot
 
-	cpuUsage       []CPUSnapshot
+	cpuUsage []CPUSnapshot
 
 	goroutineCount []int
-
-
 
 	// Load testing metrics.
 
 	loadTestResults map[string]*LoadTestResult
 
-
-
 	// Code coverage.
 
 	coverageData *CoverageData
-
-
 
 	// Benchmarking results.
 
 	benchmarkResults map[string]*BenchmarkResult
 
-
-
 	// Synchronization.
 
 	mu sync.RWMutex
 
-
-
 	// Prometheus client for external metrics.
 
 	prometheusClient v1.API
-
 }
-
-
 
 // MemorySnapshot captures memory usage at a point in time.
 
 type MemorySnapshot struct {
+	Timestamp time.Time
 
-	Timestamp  time.Time
-
-	Alloc      uint64
+	Alloc uint64
 
 	TotalAlloc uint64
 
-	Sys        uint64
+	Sys uint64
 
-	NumGC      uint32
+	NumGC uint32
 
-	HeapAlloc  uint64
+	HeapAlloc uint64
 
-	HeapSys    uint64
+	HeapSys uint64
 
-	HeapInuse  uint64
-
+	HeapInuse uint64
 }
-
-
 
 // CPUSnapshot captures CPU usage information.
 
 type CPUSnapshot struct {
+	Timestamp time.Time
 
-	Timestamp    time.Time
-
-	NumCPU       int
+	NumCPU int
 
 	NumGoroutine int
 
-	GOMAXPROCS   int
-
+	GOMAXPROCS int
 }
-
-
 
 // LoadTestResult contains results from load testing.
 
 type LoadTestResult struct {
+	TestName string
 
-	TestName        string
+	StartTime time.Time
 
-	StartTime       time.Time
+	EndTime time.Time
 
-	EndTime         time.Time
+	TotalRequests int
 
-	TotalRequests   int
+	SuccessfulReq int
 
-	SuccessfulReq   int
+	FailedReq int
 
-	FailedReq       int
+	AvgLatency time.Duration
 
-	AvgLatency      time.Duration
+	P95Latency time.Duration
 
-	P95Latency      time.Duration
+	P99Latency time.Duration
 
-	P99Latency      time.Duration
+	MaxLatency time.Duration
 
-	MaxLatency      time.Duration
+	MinLatency time.Duration
 
-	MinLatency      time.Duration
+	Throughput float64 // requests per second
 
-	Throughput      float64 // requests per second
-
-	ErrorRate       float64
+	ErrorRate float64
 
 	ConcurrentUsers int
-
 }
-
-
 
 // CoverageData contains code coverage information.
 
 type CoverageData struct {
+	TotalLines int
 
-	TotalLines      int
+	CoveredLines int
 
-	CoveredLines    int
-
-	Percentage      float64
+	Percentage float64
 
 	PackageCoverage map[string]float64
 
-	FileCoverage    map[string]float64
-
+	FileCoverage map[string]float64
 }
-
-
 
 // GetLoadTestResults returns the load test results.
 
@@ -204,8 +155,6 @@ func (tm *TestMetrics) GetLoadTestResults() map[string]*LoadTestResult {
 	tm.mu.RLock()
 
 	defer tm.mu.RUnlock()
-
-
 
 	// Create a copy to avoid race conditions.
 
@@ -221,29 +170,23 @@ func (tm *TestMetrics) GetLoadTestResults() map[string]*LoadTestResult {
 
 }
 
-
-
 // BenchmarkResult contains benchmark execution results.
 
 type BenchmarkResult struct {
+	Name string
 
-	Name           string
+	Iterations int
 
-	Iterations     int
+	NsPerOp int64
 
-	NsPerOp        int64
+	AllocsPerOp int64
 
-	AllocsPerOp    int64
-
-	BytesPerOp     int64
+	BytesPerOp int64
 
 	MemAllocsPerOp int64
 
-	MemBytesPerOp  int64
-
+	MemBytesPerOp int64
 }
-
-
 
 // NewTestMetrics creates a new test metrics collector.
 
@@ -251,29 +194,25 @@ func NewTestMetrics() *TestMetrics {
 
 	return &TestMetrics{
 
-		latencyMetrics:    make(map[string][]time.Duration),
+		latencyMetrics: make(map[string][]time.Duration),
 
 		throughputMetrics: make(map[string]float64),
 
-		errorRateMetrics:  make(map[string]float64),
+		errorRateMetrics: make(map[string]float64),
 
-		loadTestResults:   make(map[string]*LoadTestResult),
+		loadTestResults: make(map[string]*LoadTestResult),
 
-		benchmarkResults:  make(map[string]*BenchmarkResult),
+		benchmarkResults: make(map[string]*BenchmarkResult),
 
 		coverageData: &CoverageData{
 
 			PackageCoverage: make(map[string]float64),
 
-			FileCoverage:    make(map[string]float64),
-
+			FileCoverage: make(map[string]float64),
 		},
-
 	}
 
 }
-
-
 
 // Initialize sets up metrics collection.
 
@@ -283,25 +222,17 @@ func (tm *TestMetrics) Initialize() {
 
 	defer tm.mu.Unlock()
 
-
-
 	tm.testStartTime = time.Now()
-
-
 
 	// Start resource monitoring.
 
 	go tm.monitorResources()
-
-
 
 	// Initialize Prometheus client if available.
 
 	tm.initPrometheusClient()
 
 }
-
-
 
 // Reset resets all metrics for a new test run.
 
@@ -310,8 +241,6 @@ func (tm *TestMetrics) Reset() {
 	tm.mu.Lock()
 
 	defer tm.mu.Unlock()
-
-
 
 	tm.testStartTime = time.Now()
 
@@ -324,8 +253,6 @@ func (tm *TestMetrics) Reset() {
 	tm.failedTests = 0
 
 	tm.skippedTests = 0
-
-
 
 	tm.latencyMetrics = make(map[string][]time.Duration)
 
@@ -341,8 +268,6 @@ func (tm *TestMetrics) Reset() {
 
 }
 
-
-
 // RecordLatency records latency for a specific operation.
 
 func (tm *TestMetrics) RecordLatency(operation string, latency time.Duration) {
@@ -351,13 +276,9 @@ func (tm *TestMetrics) RecordLatency(operation string, latency time.Duration) {
 
 	defer tm.mu.Unlock()
 
-
-
 	tm.latencyMetrics[operation] = append(tm.latencyMetrics[operation], latency)
 
 }
-
-
 
 // RecordThroughput records throughput for a specific operation.
 
@@ -367,13 +288,9 @@ func (tm *TestMetrics) RecordThroughput(operation string, throughput float64) {
 
 	defer tm.mu.Unlock()
 
-
-
 	tm.throughputMetrics[operation] = throughput
 
 }
-
-
 
 // RecordErrorRate records error rate for a specific operation.
 
@@ -383,13 +300,9 @@ func (tm *TestMetrics) RecordErrorRate(operation string, errorRate float64) {
 
 	defer tm.mu.Unlock()
 
-
-
 	tm.errorRateMetrics[operation] = errorRate
 
 }
-
-
 
 // CollectTestMetrics collects metrics for a completed test.
 
@@ -399,15 +312,11 @@ func (tm *TestMetrics) CollectTestMetrics() {
 
 	defer tm.mu.Unlock()
 
-
-
 	tm.totalTests++
 
 	tm.testEndTime = time.Now()
 
 }
-
-
 
 // RecordTestResult records the result of a test.
 
@@ -416,8 +325,6 @@ func (tm *TestMetrics) RecordTestResult(passed, skipped bool) {
 	tm.mu.Lock()
 
 	defer tm.mu.Unlock()
-
-
 
 	if skipped {
 
@@ -435,43 +342,33 @@ func (tm *TestMetrics) RecordTestResult(passed, skipped bool) {
 
 }
 
-
-
 // ExecuteLoadTest runs a load test with specified parameters.
 
 func (tm *TestMetrics) ExecuteLoadTest(concurrency int, duration time.Duration, testFunc func() error) error {
 
 	testName := fmt.Sprintf("load_test_%d_users_%v", concurrency, duration)
 
-
-
 	result := &LoadTestResult{
 
-		TestName:        testName,
+		TestName: testName,
 
-		StartTime:       time.Now(),
+		StartTime: time.Now(),
 
 		ConcurrentUsers: concurrency,
 
-		MinLatency:      time.Hour, // Initialize to max value
+		MinLatency: time.Hour, // Initialize to max value
 
 	}
-
-
 
 	// Channel to collect results from goroutines.
 
 	resultChan := make(chan LoadTestRequest, concurrency*1000)
-
-
 
 	// Context for cancellation.
 
 	ctx, cancel := context.WithTimeout(context.Background(), duration)
 
 	defer cancel()
-
-
 
 	// Start concurrent workers.
 
@@ -491,8 +388,6 @@ func (tm *TestMetrics) ExecuteLoadTest(concurrency int, duration time.Duration, 
 
 	}
 
-
-
 	// Collect results.
 
 	go func() {
@@ -502,8 +397,6 @@ func (tm *TestMetrics) ExecuteLoadTest(concurrency int, duration time.Duration, 
 		close(resultChan)
 
 	}()
-
-
 
 	// Process results.
 
@@ -515,8 +408,6 @@ func (tm *TestMetrics) ExecuteLoadTest(concurrency int, duration time.Duration, 
 
 		latencies = append(latencies, req.Latency)
 
-
-
 		if req.Error != nil {
 
 			result.FailedReq++
@@ -526,8 +417,6 @@ func (tm *TestMetrics) ExecuteLoadTest(concurrency int, duration time.Duration, 
 			result.SuccessfulReq++
 
 		}
-
-
 
 		// Update min/max latency.
 
@@ -545,11 +434,7 @@ func (tm *TestMetrics) ExecuteLoadTest(concurrency int, duration time.Duration, 
 
 	}
 
-
-
 	result.EndTime = time.Now()
-
-
 
 	// Calculate metrics.
 
@@ -563,21 +448,15 @@ func (tm *TestMetrics) ExecuteLoadTest(concurrency int, duration time.Duration, 
 
 	}
 
-
-
 	testDuration := result.EndTime.Sub(result.StartTime).Seconds()
 
 	result.Throughput = float64(result.TotalRequests) / testDuration
-
-
 
 	if result.TotalRequests > 0 {
 
 		result.ErrorRate = float64(result.FailedReq) / float64(result.TotalRequests)
 
 	}
-
-
 
 	// Store result.
 
@@ -587,27 +466,19 @@ func (tm *TestMetrics) ExecuteLoadTest(concurrency int, duration time.Duration, 
 
 	tm.mu.Unlock()
 
-
-
 	return nil
 
 }
 
-
-
 // LoadTestRequest represents a single load test request.
 
 type LoadTestRequest struct {
-
 	Timestamp time.Time
 
-	Latency   time.Duration
+	Latency time.Duration
 
-	Error     error
-
+	Error error
 }
-
-
 
 // loadTestWorker executes load test requests.
 
@@ -629,18 +500,15 @@ func (tm *TestMetrics) loadTestWorker(ctx context.Context, testFunc func() error
 
 			latency := time.Since(start)
 
-
-
 			select {
 
 			case resultChan <- LoadTestRequest{
 
 				Timestamp: start,
 
-				Latency:   latency,
+				Latency: latency,
 
-				Error:     err,
-
+				Error: err,
 			}:
 
 			case <-ctx.Done():
@@ -655,8 +523,6 @@ func (tm *TestMetrics) loadTestWorker(ctx context.Context, testFunc func() error
 
 }
 
-
-
 // monitorResources continuously monitors system resources.
 
 func (tm *TestMetrics) monitorResources() {
@@ -664,8 +530,6 @@ func (tm *TestMetrics) monitorResources() {
 	ticker := time.NewTicker(1 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for range ticker.C {
 
@@ -675,8 +539,6 @@ func (tm *TestMetrics) monitorResources() {
 
 }
 
-
-
 // collectResourceSnapshot takes a snapshot of current resource usage.
 
 func (tm *TestMetrics) collectResourceSnapshot() {
@@ -685,59 +547,49 @@ func (tm *TestMetrics) collectResourceSnapshot() {
 
 	runtime.ReadMemStats(&memStats)
 
-
-
 	tm.mu.Lock()
 
 	defer tm.mu.Unlock()
-
-
 
 	// Memory snapshot.
 
 	memSnapshot := MemorySnapshot{
 
-		Timestamp:  time.Now(),
+		Timestamp: time.Now(),
 
-		Alloc:      memStats.Alloc,
+		Alloc: memStats.Alloc,
 
 		TotalAlloc: memStats.TotalAlloc,
 
-		Sys:        memStats.Sys,
+		Sys: memStats.Sys,
 
-		NumGC:      memStats.NumGC,
+		NumGC: memStats.NumGC,
 
-		HeapAlloc:  memStats.HeapAlloc,
+		HeapAlloc: memStats.HeapAlloc,
 
-		HeapSys:    memStats.HeapSys,
+		HeapSys: memStats.HeapSys,
 
-		HeapInuse:  memStats.HeapInuse,
-
+		HeapInuse: memStats.HeapInuse,
 	}
 
 	tm.memoryUsage = append(tm.memoryUsage, memSnapshot)
-
-
 
 	// CPU snapshot.
 
 	cpuSnapshot := CPUSnapshot{
 
-		Timestamp:    time.Now(),
+		Timestamp: time.Now(),
 
-		NumCPU:       runtime.NumCPU(),
+		NumCPU: runtime.NumCPU(),
 
 		NumGoroutine: runtime.NumGoroutine(),
 
-		GOMAXPROCS:   runtime.GOMAXPROCS(0),
-
+		GOMAXPROCS: runtime.GOMAXPROCS(0),
 	}
 
 	tm.cpuUsage = append(tm.cpuUsage, cpuSnapshot)
 
 	tm.goroutineCount = append(tm.goroutineCount, runtime.NumGoroutine())
-
-
 
 	// Keep only recent data (last 1000 samples).
 
@@ -761,8 +613,6 @@ func (tm *TestMetrics) collectResourceSnapshot() {
 
 }
 
-
-
 // calculateAverageLatency calculates average latency from a slice of durations.
 
 func (tm *TestMetrics) calculateAverageLatency(latencies []time.Duration) time.Duration {
@@ -773,8 +623,6 @@ func (tm *TestMetrics) calculateAverageLatency(latencies []time.Duration) time.D
 
 	}
 
-
-
 	var total time.Duration
 
 	for _, latency := range latencies {
@@ -783,13 +631,9 @@ func (tm *TestMetrics) calculateAverageLatency(latencies []time.Duration) time.D
 
 	}
 
-
-
 	return total / time.Duration(len(latencies))
 
 }
-
-
 
 // calculatePercentile calculates the specified percentile from latencies.
 
@@ -801,8 +645,6 @@ func (tm *TestMetrics) calculatePercentile(latencies []time.Duration, percentile
 
 	}
 
-
-
 	// Simple percentile calculation (would use proper sorting in production).
 
 	index := (percentile * len(latencies)) / 100
@@ -813,13 +655,9 @@ func (tm *TestMetrics) calculatePercentile(latencies []time.Duration, percentile
 
 	}
 
-
-
 	return latencies[index]
 
 }
-
-
 
 // GetCoveragePercentage returns the current code coverage percentage.
 
@@ -829,13 +667,9 @@ func (tm *TestMetrics) GetCoveragePercentage() float64 {
 
 	defer tm.mu.RUnlock()
 
-
-
 	return tm.coverageData.Percentage
 
 }
-
-
 
 // UpdateCoverageData updates code coverage information.
 
@@ -844,8 +678,6 @@ func (tm *TestMetrics) UpdateCoverageData(totalLines, coveredLines int) {
 	tm.mu.Lock()
 
 	defer tm.mu.Unlock()
-
-
 
 	tm.coverageData.TotalLines = totalLines
 
@@ -859,8 +691,6 @@ func (tm *TestMetrics) UpdateCoverageData(totalLines, coveredLines int) {
 
 }
 
-
-
 // RecordBenchmark records benchmark results.
 
 func (tm *TestMetrics) RecordBenchmark(name string, iterations int, nsPerOp, allocsPerOp, bytesPerOp int64) {
@@ -869,25 +699,20 @@ func (tm *TestMetrics) RecordBenchmark(name string, iterations int, nsPerOp, all
 
 	defer tm.mu.Unlock()
 
-
-
 	tm.benchmarkResults[name] = &BenchmarkResult{
 
-		Name:        name,
+		Name: name,
 
-		Iterations:  iterations,
+		Iterations: iterations,
 
-		NsPerOp:     nsPerOp,
+		NsPerOp: nsPerOp,
 
 		AllocsPerOp: allocsPerOp,
 
-		BytesPerOp:  bytesPerOp,
-
+		BytesPerOp: bytesPerOp,
 	}
 
 }
-
-
 
 // initPrometheusClient initializes Prometheus client for external metrics.
 
@@ -901,12 +726,9 @@ func (tm *TestMetrics) initPrometheusClient() {
 
 	}
 
-
-
 	client, err := api.NewClient(api.Config{
 
 		Address: prometheusURL,
-
 	})
 
 	if err == nil {
@@ -917,8 +739,6 @@ func (tm *TestMetrics) initPrometheusClient() {
 
 }
 
-
-
 // GenerateReport creates a comprehensive performance report.
 
 func (tm *TestMetrics) GenerateReport() {
@@ -927,11 +747,7 @@ func (tm *TestMetrics) GenerateReport() {
 
 	defer tm.mu.RUnlock()
 
-
-
 	report := tm.createTestReport()
-
-
 
 	// Write report to file.
 
@@ -955,15 +771,11 @@ func (tm *TestMetrics) GenerateReport() {
 
 	}
 
-
-
 	// Print summary to console.
 
 	tm.printSummary(report)
 
 }
-
-
 
 // createTestReport creates a comprehensive test report.
 
@@ -973,61 +785,53 @@ func (tm *TestMetrics) createTestReport() map[string]interface{} {
 
 		"test_execution": map[string]interface{}{
 
-			"start_time":    tm.testStartTime,
+			"start_time": tm.testStartTime,
 
-			"end_time":      tm.testEndTime,
+			"end_time": tm.testEndTime,
 
-			"duration":      tm.testEndTime.Sub(tm.testStartTime).String(),
+			"duration": tm.testEndTime.Sub(tm.testStartTime).String(),
 
-			"total_tests":   tm.totalTests,
+			"total_tests": tm.totalTests,
 
-			"passed_tests":  tm.passedTests,
+			"passed_tests": tm.passedTests,
 
-			"failed_tests":  tm.failedTests,
+			"failed_tests": tm.failedTests,
 
 			"skipped_tests": tm.skippedTests,
 
-			"success_rate":  float64(tm.passedTests) / float64(tm.totalTests) * 100,
-
+			"success_rate": float64(tm.passedTests) / float64(tm.totalTests) * 100,
 		},
 
 		"performance_metrics": map[string]interface{}{
 
-			"latency_metrics":    tm.latencyMetrics,
+			"latency_metrics": tm.latencyMetrics,
 
 			"throughput_metrics": tm.throughputMetrics,
 
 			"error_rate_metrics": tm.errorRateMetrics,
-
 		},
 
 		"resource_utilization": map[string]interface{}{
 
-			"peak_memory_usage":       tm.getPeakMemoryUsage(),
+			"peak_memory_usage": tm.getPeakMemoryUsage(),
 
-			"average_memory_usage":    tm.getAverageMemoryUsage(),
+			"average_memory_usage": tm.getAverageMemoryUsage(),
 
-			"peak_goroutine_count":    tm.getPeakGoroutineCount(),
+			"peak_goroutine_count": tm.getPeakGoroutineCount(),
 
 			"average_goroutine_count": tm.getAverageGoroutineCount(),
-
 		},
 
 		"load_test_results": tm.loadTestResults,
 
-		"coverage_data":     tm.coverageData,
+		"coverage_data": tm.coverageData,
 
 		"benchmark_results": tm.benchmarkResults,
-
 	}
-
-
 
 	return report
 
 }
-
-
 
 // Helper methods for report generation.
 
@@ -1049,8 +853,6 @@ func (tm *TestMetrics) getPeakMemoryUsage() uint64 {
 
 }
 
-
-
 func (tm *TestMetrics) getAverageMemoryUsage() uint64 {
 
 	if len(tm.memoryUsage) == 0 {
@@ -1058,8 +860,6 @@ func (tm *TestMetrics) getAverageMemoryUsage() uint64 {
 		return 0
 
 	}
-
-
 
 	var total uint64
 
@@ -1072,8 +872,6 @@ func (tm *TestMetrics) getAverageMemoryUsage() uint64 {
 	return total / uint64(len(tm.memoryUsage))
 
 }
-
-
 
 func (tm *TestMetrics) getPeakGoroutineCount() int {
 
@@ -1093,8 +891,6 @@ func (tm *TestMetrics) getPeakGoroutineCount() int {
 
 }
 
-
-
 func (tm *TestMetrics) getAverageGoroutineCount() int {
 
 	if len(tm.goroutineCount) == 0 {
@@ -1102,8 +898,6 @@ func (tm *TestMetrics) getAverageGoroutineCount() int {
 		return 0
 
 	}
-
-
 
 	var total int
 
@@ -1117,15 +911,11 @@ func (tm *TestMetrics) getAverageGoroutineCount() int {
 
 }
 
-
-
 // printSummary prints a summary of the test results.
 
 func (tm *TestMetrics) printSummary(report map[string]interface{}) {
 
 	fmt.Println("=== Test Execution Summary ===")
-
-
 
 	if testExec, ok := report["test_execution"].(map[string]interface{}); ok {
 
@@ -1141,11 +931,7 @@ func (tm *TestMetrics) printSummary(report map[string]interface{}) {
 
 	}
 
-
-
 	fmt.Printf("Code Coverage: %.2f%%\n", tm.coverageData.Percentage)
-
-
 
 	if len(tm.loadTestResults) > 0 {
 
@@ -1162,4 +948,3 @@ func (tm *TestMetrics) printSummary(report map[string]interface{}) {
 	}
 
 }
-

@@ -1,53 +1,31 @@
 //go:build go1.24
 
-
-
-
 package generics
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"os"
-
 	"reflect"
-
 	"strconv"
-
 	"strings"
-
 	"time"
-
 )
-
-
 
 // Configurable defines an interface for types that can be configured.
 
 type Configurable[T any] interface {
-
 	Configure(config T) Result[T, error]
 
 	Validate() Result[bool, error]
 
 	Default() T
-
 }
-
-
 
 // ConfigSource defines where configuration can be loaded from.
 
 type ConfigSource int
-
-
 
 const (
 
@@ -70,15 +48,11 @@ const (
 	// ConfigSourceConsul holds configsourceconsul value.
 
 	ConfigSourceConsul
-
 )
-
-
 
 // ConfigProvider defines an interface for configuration providers.
 
 type ConfigProvider[T any] interface {
-
 	Load(ctx context.Context, key string) Result[T, error]
 
 	Store(ctx context.Context, key string, value T) Result[bool, error]
@@ -86,56 +60,41 @@ type ConfigProvider[T any] interface {
 	Watch(ctx context.Context, key string) <-chan Result[T, error]
 
 	Close() error
-
 }
-
-
 
 // ConfigManager manages configuration with type safety and validation.
 
 type ConfigManager[T any] struct {
-
-	providers  map[ConfigSource]ConfigProvider[T]
+	providers map[ConfigSource]ConfigProvider[T]
 
 	validators []ConfigValidator[T]
 
 	transforms []ConfigTransform[T]
 
-	cache      *Map[string, ConfigEntry[T]]
+	cache *Map[string, ConfigEntry[T]]
 
-	defaults   T
-
+	defaults T
 }
-
-
 
 // ConfigEntry represents a cached configuration entry.
 
 type ConfigEntry[T any] struct {
+	Value T
 
-	Value     T
-
-	Source    ConfigSource
+	Source ConfigSource
 
 	Timestamp time.Time
 
-	Version   string
-
+	Version string
 }
-
-
 
 // ConfigValidator validates configuration values.
 
 type ConfigValidator[T any] func(T) Result[bool, error]
 
-
-
 // ConfigTransform transforms configuration values.
 
 type ConfigTransform[T any] func(T) Result[T, error]
-
-
 
 // NewConfigManager creates a new configuration manager.
 
@@ -145,15 +104,12 @@ func NewConfigManager[T any](defaults T) *ConfigManager[T] {
 
 		providers: make(map[ConfigSource]ConfigProvider[T]),
 
-		cache:     NewMap[string, ConfigEntry[T]](),
+		cache: NewMap[string, ConfigEntry[T]](),
 
-		defaults:  defaults,
-
+		defaults: defaults,
 	}
 
 }
-
-
 
 // RegisterProvider registers a configuration provider.
 
@@ -163,8 +119,6 @@ func (cm *ConfigManager[T]) RegisterProvider(source ConfigSource, provider Confi
 
 }
 
-
-
 // AddValidator adds a configuration validator.
 
 func (cm *ConfigManager[T]) AddValidator(validator ConfigValidator[T]) {
@@ -173,8 +127,6 @@ func (cm *ConfigManager[T]) AddValidator(validator ConfigValidator[T]) {
 
 }
 
-
-
 // AddTransform adds a configuration transformer.
 
 func (cm *ConfigManager[T]) AddTransform(transform ConfigTransform[T]) {
@@ -182,8 +134,6 @@ func (cm *ConfigManager[T]) AddTransform(transform ConfigTransform[T]) {
 	cm.transforms = append(cm.transforms, transform)
 
 }
-
-
 
 // Load loads configuration with cascading from multiple sources.
 
@@ -194,8 +144,6 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 		sources = []ConfigSource{ConfigSourceEnv, ConfigSourceFile, ConfigSourceKubernetes}
 
 	}
-
-
 
 	// Check cache first.
 
@@ -213,8 +161,6 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 
 	}
 
-
-
 	// Try each source in priority order.
 
 	var lastErr error
@@ -228,8 +174,6 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 			if result.IsOk() {
 
 				config := result.Value()
-
-
 
 				// Apply transforms.
 
@@ -248,8 +192,6 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 					config = transformResult.Value()
 
 				}
-
-
 
 				// Validate configuration.
 
@@ -275,25 +217,20 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 
 				}
 
-
-
 				// Cache the result.
 
 				entry := ConfigEntry[T]{
 
-					Value:     config,
+					Value: config,
 
-					Source:    source,
+					Source: source,
 
 					Timestamp: time.Now(),
 
-					Version:   fmt.Sprintf("%d", time.Now().Unix()),
-
+					Version: fmt.Sprintf("%d", time.Now().Unix()),
 				}
 
 				cm.cache.Set(key, entry)
-
-
 
 				return Ok[T, error](config)
 
@@ -305,8 +242,6 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 
 	}
 
-
-
 	// Return defaults if all sources fail.
 
 	if !isZero(cm.defaults) {
@@ -315,13 +250,9 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 
 	}
 
-
-
 	return Err[T, error](fmt.Errorf("failed to load config for key %s: %w", key, lastErr))
 
 }
-
-
 
 // Store stores configuration to the specified source.
 
@@ -334,8 +265,6 @@ func (cm *ConfigManager[T]) Store(ctx context.Context, key string, value T, sour
 		return Err[bool, error](fmt.Errorf("no provider registered for source: %d", source))
 
 	}
-
-
 
 	// Validate before storing.
 
@@ -357,8 +286,6 @@ func (cm *ConfigManager[T]) Store(ctx context.Context, key string, value T, sour
 
 	}
 
-
-
 	// Store the configuration.
 
 	result := provider.Store(ctx, key, value)
@@ -369,27 +296,22 @@ func (cm *ConfigManager[T]) Store(ctx context.Context, key string, value T, sour
 
 		entry := ConfigEntry[T]{
 
-			Value:     value,
+			Value: value,
 
-			Source:    source,
+			Source: source,
 
 			Timestamp: time.Now(),
 
-			Version:   fmt.Sprintf("%d", time.Now().Unix()),
-
+			Version: fmt.Sprintf("%d", time.Now().Unix()),
 		}
 
 		cm.cache.Set(key, entry)
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // Watch watches for configuration changes.
 
@@ -409,13 +331,9 @@ func (cm *ConfigManager[T]) Watch(ctx context.Context, key string, source Config
 
 	}
 
-
-
 	return provider.Watch(ctx, key)
 
 }
-
-
 
 // Reload reloads all cached configurations.
 
@@ -424,8 +342,6 @@ func (cm *ConfigManager[T]) Reload(ctx context.Context) Result[int, error] {
 	reloaded := 0
 
 	keys := cm.cache.Keys()
-
-
 
 	for _, key := range keys {
 
@@ -436,8 +352,6 @@ func (cm *ConfigManager[T]) Reload(ctx context.Context) Result[int, error] {
 			continue
 
 		}
-
-
 
 		cacheEntry := entry.Value()
 
@@ -451,21 +365,15 @@ func (cm *ConfigManager[T]) Reload(ctx context.Context) Result[int, error] {
 
 	}
 
-
-
 	return Ok[int, error](reloaded)
 
 }
-
-
 
 // Close closes all providers.
 
 func (cm *ConfigManager[T]) Close() error {
 
 	var errs []error
-
-
 
 	for _, provider := range cm.providers {
 
@@ -477,43 +385,29 @@ func (cm *ConfigManager[T]) Close() error {
 
 	}
 
-
-
 	if len(errs) > 0 {
 
 		return fmt.Errorf("errors closing providers: %v", errs)
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // EnvironmentProvider loads configuration from environment variables.
 
 type EnvironmentProvider[T any] struct {
-
 	prefix string
 
 	parser EnvParser[T]
-
 }
-
-
 
 // EnvParser parses environment variables into type T.
 
 type EnvParser[T any] interface {
-
 	Parse(env map[string]string) Result[T, error]
-
 }
-
-
 
 // NewEnvironmentProvider creates a new environment provider.
 
@@ -524,20 +418,15 @@ func NewEnvironmentProvider[T any](prefix string, parser EnvParser[T]) *Environm
 		prefix: prefix,
 
 		parser: parser,
-
 	}
 
 }
-
-
 
 // Load loads configuration from environment variables.
 
 func (ep *EnvironmentProvider[T]) Load(ctx context.Context, key string) Result[T, error] {
 
 	envVars := make(map[string]string)
-
-
 
 	// Collect all environment variables with the prefix.
 
@@ -551,13 +440,9 @@ func (ep *EnvironmentProvider[T]) Load(ctx context.Context, key string) Result[T
 
 		}
 
-
-
 		envKey := parts[0]
 
 		envValue := parts[1]
-
-
 
 		if strings.HasPrefix(envKey, ep.prefix) {
 
@@ -567,13 +452,9 @@ func (ep *EnvironmentProvider[T]) Load(ctx context.Context, key string) Result[T
 
 	}
 
-
-
 	return ep.parser.Parse(envVars)
 
 }
-
-
 
 // Store is not supported for environment provider.
 
@@ -582,8 +463,6 @@ func (ep *EnvironmentProvider[T]) Store(ctx context.Context, key string, value T
 	return Err[bool, error](fmt.Errorf("store not supported for environment provider"))
 
 }
-
-
 
 // Watch is not supported for environment provider.
 
@@ -599,8 +478,6 @@ func (ep *EnvironmentProvider[T]) Watch(ctx context.Context, key string) <-chan 
 
 }
 
-
-
 // Close closes the environment provider.
 
 func (ep *EnvironmentProvider[T]) Close() error {
@@ -609,13 +486,9 @@ func (ep *EnvironmentProvider[T]) Close() error {
 
 }
 
-
-
 // ReflectiveEnvParser uses reflection to parse environment variables.
 
 type ReflectiveEnvParser[T any] struct{}
-
-
 
 // Parse parses environment variables using reflection.
 
@@ -627,23 +500,17 @@ func (rep ReflectiveEnvParser[T]) Parse(env map[string]string) Result[T, error] 
 
 	configType := reflect.TypeOf(config)
 
-
-
 	for i := range configType.NumField() {
 
 		field := configType.Field(i)
 
 		fieldValue := configValue.Field(i)
 
-
-
 		if !fieldValue.CanSet() {
 
 			continue
 
 		}
-
-
 
 		// Get environment variable name from tag or field name.
 
@@ -654,8 +521,6 @@ func (rep ReflectiveEnvParser[T]) Parse(env map[string]string) Result[T, error] 
 			envName = strings.ToUpper(field.Name)
 
 		}
-
-
 
 		envValue, exists := env[envName]
 
@@ -675,8 +540,6 @@ func (rep ReflectiveEnvParser[T]) Parse(env map[string]string) Result[T, error] 
 
 		}
 
-
-
 		// Parse the value based on field type.
 
 		if err := setFieldValue(fieldValue, envValue); err != nil {
@@ -687,13 +550,9 @@ func (rep ReflectiveEnvParser[T]) Parse(env map[string]string) Result[T, error] 
 
 	}
 
-
-
 	return Ok[T, error](config)
 
 }
-
-
 
 // setFieldValue sets a reflect.Value from a string.
 
@@ -795,31 +654,21 @@ func setFieldValue(fieldValue reflect.Value, value string) error {
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // FileProvider loads configuration from files.
 
 type FileProvider[T any] struct {
-
 	basePath string
 
-	format   FileFormat
-
+	format FileFormat
 }
-
-
 
 // FileFormat represents configuration file formats.
 
 type FileFormat int
-
-
 
 const (
 
@@ -838,10 +687,7 @@ const (
 	// FormatProperties holds formatproperties value.
 
 	FormatProperties
-
 )
-
-
 
 // NewFileProvider creates a new file provider.
 
@@ -851,21 +697,16 @@ func NewFileProvider[T any](basePath string, format FileFormat) *FileProvider[T]
 
 		basePath: basePath,
 
-		format:   format,
-
+		format: format,
 	}
 
 }
-
-
 
 // Load loads configuration from a file.
 
 func (fp *FileProvider[T]) Load(ctx context.Context, key string) Result[T, error] {
 
 	filename := fp.getFilename(key)
-
-
 
 	data, err := os.ReadFile(filename)
 
@@ -875,11 +716,7 @@ func (fp *FileProvider[T]) Load(ctx context.Context, key string) Result[T, error
 
 	}
 
-
-
 	var config T
-
-
 
 	switch fp.format {
 
@@ -897,13 +734,9 @@ func (fp *FileProvider[T]) Load(ctx context.Context, key string) Result[T, error
 
 	}
 
-
-
 	return Ok[T, error](config)
 
 }
-
-
 
 // Store stores configuration to a file.
 
@@ -911,13 +744,9 @@ func (fp *FileProvider[T]) Store(ctx context.Context, key string, value T) Resul
 
 	filename := fp.getFilename(key)
 
-
-
 	var data []byte
 
 	var err error
-
-
 
 	switch fp.format {
 
@@ -937,21 +766,15 @@ func (fp *FileProvider[T]) Store(ctx context.Context, key string, value T) Resul
 
 	}
 
-
-
 	if err := os.WriteFile(filename, data, 0o640); err != nil {
 
 		return Err[bool, error](fmt.Errorf("failed to write config file %s: %w", filename, err))
 
 	}
 
-
-
 	return Ok[bool, error](true)
 
 }
-
-
 
 // Watch watches for file changes (simplified implementation).
 
@@ -959,25 +782,17 @@ func (fp *FileProvider[T]) Watch(ctx context.Context, key string) <-chan Result[
 
 	resultChan := make(chan Result[T, error])
 
-
-
 	go func() {
 
 		defer close(resultChan)
-
-
 
 		filename := fp.getFilename(key)
 
 		lastModTime := time.Time{}
 
-
-
 		ticker := time.NewTicker(1 * time.Second)
 
 		defer ticker.Stop()
-
-
 
 		for {
 
@@ -997,8 +812,6 @@ func (fp *FileProvider[T]) Watch(ctx context.Context, key string) <-chan Result[
 
 				}
 
-
-
 				if stat.ModTime().After(lastModTime) {
 
 					lastModTime = stat.ModTime()
@@ -1015,13 +828,9 @@ func (fp *FileProvider[T]) Watch(ctx context.Context, key string) <-chan Result[
 
 	}()
 
-
-
 	return resultChan
 
 }
-
-
 
 // Close closes the file provider.
 
@@ -1030,8 +839,6 @@ func (fp *FileProvider[T]) Close() error {
 	return nil
 
 }
-
-
 
 // getFilename constructs the filename for a configuration key.
 
@@ -1055,23 +862,15 @@ func (fp *FileProvider[T]) getFilename(key string) string {
 
 	}
 
-
-
 	return fmt.Sprintf("%s/%s%s", fp.basePath, key, extension)
 
 }
 
-
-
 // ConfigMerger merges multiple configurations.
 
 type ConfigMerger[T any] struct {
-
 	mergeFunc func(T, T) Result[T, error]
-
 }
-
-
 
 // NewConfigMerger creates a new configuration merger.
 
@@ -1080,12 +879,9 @@ func NewConfigMerger[T any](mergeFunc func(T, T) Result[T, error]) *ConfigMerger
 	return &ConfigMerger[T]{
 
 		mergeFunc: mergeFunc,
-
 	}
 
 }
-
-
 
 // Merge merges multiple configurations.
 
@@ -1097,11 +893,7 @@ func (cm *ConfigMerger[T]) Merge(configs ...T) Result[T, error] {
 
 	}
 
-
-
 	result := configs[0]
-
-
 
 	for i := 1; i < len(configs); i++ {
 
@@ -1117,17 +909,11 @@ func (cm *ConfigMerger[T]) Merge(configs ...T) Result[T, error] {
 
 	}
 
-
-
 	return Ok[T, error](result)
 
 }
 
-
-
 // Utility functions.
-
-
 
 // isZero checks if a value is the zero value of its type.
 
@@ -1136,8 +922,6 @@ func isZero[T any](v T) bool {
 	return reflect.ValueOf(v).IsZero()
 
 }
-
-
 
 // DeepCopy performs a deep copy of a configuration value.
 
@@ -1151,8 +935,6 @@ func DeepCopy[T any](original T) Result[T, error] {
 
 	}
 
-
-
 	var copy T
 
 	if err := json.Unmarshal(data, &copy); err != nil {
@@ -1161,17 +943,11 @@ func DeepCopy[T any](original T) Result[T, error] {
 
 	}
 
-
-
 	return Ok[T, error](copy)
 
 }
 
-
-
 // CommonValidators provides common configuration validators.
-
-
 
 // NonEmptyStringValidator validates that string fields are not empty.
 
@@ -1186,8 +962,6 @@ func NonEmptyStringValidator[T any]() ConfigValidator[T] {
 	}
 
 }
-
-
 
 // validateNonEmptyStrings recursively validates string fields.
 
@@ -1233,13 +1007,9 @@ func validateNonEmptyStrings(value reflect.Value) Result[bool, error] {
 
 	}
 
-
-
 	return Ok[bool, error](true)
 
 }
-
-
 
 // RangeValidator validates that numeric fields are within specified ranges.
 
@@ -1254,8 +1024,6 @@ func RangeValidator[T any](min, max int64) ConfigValidator[T] {
 	}
 
 }
-
-
 
 // validateRanges recursively validates numeric ranges.
 
@@ -1303,9 +1071,6 @@ func validateRanges(value reflect.Value, min, max int64) Result[bool, error] {
 
 	}
 
-
-
 	return Ok[bool, error](true)
 
 }
-

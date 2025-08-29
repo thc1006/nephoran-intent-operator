@@ -1,65 +1,44 @@
 // Main test execution script for comprehensive validation suite.
 
-
 package main
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"flag"
-
 	"fmt"
-
 	"html/template"
-
 	"log"
-
 	"os"
-
 	"path/filepath"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/tests/validation"
-
 )
-
-
 
 func main() {
 
 	var (
+		testScope = flag.String("scope", "all", "Test scope to run (all, functional, performance, security, production)")
 
-		testScope       = flag.String("scope", "all", "Test scope to run (all, functional, performance, security, production)")
+		targetScore = flag.Int("target-score", 90, "Target score to achieve (0-100)")
 
-		targetScore     = flag.Int("target-score", 90, "Target score to achieve (0-100)")
+		timeout = flag.Duration("timeout", 30*time.Minute, "Maximum test execution time")
 
-		timeout         = flag.Duration("timeout", 30*time.Minute, "Maximum test execution time")
+		concurrency = flag.Int("concurrency", 50, "Maximum concurrent operations")
 
-		concurrency     = flag.Int("concurrency", 50, "Maximum concurrent operations")
-
-		enableLoadTest  = flag.Bool("enable-load-test", true, "Enable load testing")
+		enableLoadTest = flag.Bool("enable-load-test", true, "Enable load testing")
 
 		enableChaosTest = flag.Bool("enable-chaos-test", false, "Enable chaos testing")
 
-		outputDir       = flag.String("output-dir", "test-results", "Output directory for test results")
+		outputDir = flag.String("output-dir", "test-results", "Output directory for test results")
 
-		reportFormat    = flag.String("report-format", "json", "Report format (json, html, both)")
+		reportFormat = flag.String("report-format", "json", "Report format (json, html, both)")
 
-		verbose         = flag.Bool("verbose", false, "Enable verbose logging")
-
+		verbose = flag.Bool("verbose", false, "Enable verbose logging")
 	)
 
 	flag.Parse()
-
-
 
 	if *verbose {
 
@@ -69,8 +48,6 @@ func main() {
 
 	}
 
-
-
 	// Create output directory.
 
 	if err := os.MkdirAll(*outputDir, 0o755); err != nil {
@@ -79,53 +56,42 @@ func main() {
 
 	}
 
-
-
 	// Create validation configuration.
 
 	config := &validation.ValidationConfig{
 
-		FunctionalTarget:  45,
+		FunctionalTarget: 45,
 
 		PerformanceTarget: 23,
 
-		SecurityTarget:    14,
+		SecurityTarget: 14,
 
-		ProductionTarget:  8,
+		ProductionTarget: 8,
 
-		TotalTarget:       *targetScore,
+		TotalTarget: *targetScore,
 
-
-
-		TimeoutDuration:  *timeout,
+		TimeoutDuration: *timeout,
 
 		ConcurrencyLevel: *concurrency,
 
 		LoadTestDuration: 5 * time.Minute,
 
-
-
-		LatencyThreshold:    2 * time.Second,
+		LatencyThreshold: 2 * time.Second,
 
 		ThroughputThreshold: 45.0,
 
-		AvailabilityTarget:  99.95,
+		AvailabilityTarget: 99.95,
 
-		CoverageThreshold:   90.0,
+		CoverageThreshold: 90.0,
 
+		EnableE2ETesting: true,
 
+		EnableLoadTesting: *enableLoadTest,
 
-		EnableE2ETesting:      true,
-
-		EnableLoadTesting:     *enableLoadTest,
-
-		EnableChaosTesting:    *enableChaosTest,
+		EnableChaosTesting: *enableChaosTest,
 
 		EnableSecurityTesting: true,
-
 	}
-
-
 
 	// Adjust configuration based on test scope.
 
@@ -139,15 +105,11 @@ func main() {
 
 		config.TotalTarget = config.FunctionalTarget
 
-
-
 	case "performance":
 
 		config.EnableLoadTesting = true
 
 		config.TotalTarget = config.PerformanceTarget
-
-
 
 	case "security":
 
@@ -157,8 +119,6 @@ func main() {
 
 		config.TotalTarget = config.SecurityTarget
 
-
-
 	case "production":
 
 		config.EnableLoadTesting = true
@@ -167,21 +127,15 @@ func main() {
 
 		config.TotalTarget = config.ProductionTarget
 
-
-
 	case "all":
 
 		// Use default configuration.
-
-
 
 	default:
 
 		log.Fatalf("Invalid test scope: %s", *testScope)
 
 	}
-
-
 
 	if *verbose {
 
@@ -191,21 +145,15 @@ func main() {
 
 	}
 
-
-
 	// Create validation suite.
 
 	suite := validation.NewValidationSuite(config)
-
-
 
 	// Create execution context with timeout.
 
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 
 	defer cancel()
-
-
 
 	// Setup test suite.
 
@@ -219,15 +167,11 @@ func main() {
 
 	defer suite.TearDownSuite()
 
-
-
 	// Execute validation based on scope.
 
 	var results *validation.ValidationResults
 
 	var err error
-
-
 
 	switch *testScope {
 
@@ -235,39 +179,27 @@ func main() {
 
 		results, err = runFunctionalValidation(ctx, suite)
 
-
-
 	case "performance":
 
 		results, err = runPerformanceValidation(ctx, suite)
-
-
 
 	case "security":
 
 		results, err = runSecurityValidation(ctx, suite)
 
-
-
 	case "production":
 
 		results, err = runProductionValidation(ctx, suite)
 
-
-
 	case "all":
 
 		results, err = suite.ExecuteComprehensiveValidation(ctx)
-
-
 
 	default:
 
 		log.Fatalf("Invalid test scope: %s", *testScope)
 
 	}
-
-
 
 	// Handle execution results.
 
@@ -285,8 +217,6 @@ func main() {
 
 	}
 
-
-
 	if *verbose {
 
 		log.Printf("Validation completed successfully: %d/%d points",
@@ -295,13 +225,9 @@ func main() {
 
 	}
 
-
-
 	// Generate reports.
 
 	generateReports(results, *outputDir, *reportFormat, *verbose)
-
-
 
 	// Check if target score was achieved.
 
@@ -315,23 +241,17 @@ func main() {
 
 	}
 
-
-
 	log.Printf("✅ Validation PASSED: Achieved %d points, target %d points",
 
 		results.TotalScore, config.TotalTarget)
 
 }
 
-
-
 // runFunctionalValidation executes only functional tests.
 
 func runFunctionalValidation(ctx context.Context, suite *validation.ValidationSuite) (*validation.ValidationResults, error) {
 
 	log.Println("Running Functional Completeness Validation...")
-
-
 
 	// Execute functional tests only.
 
@@ -343,43 +263,34 @@ func runFunctionalValidation(ctx context.Context, suite *validation.ValidationSu
 
 	}
 
-
-
 	// Create results structure.
 
 	results := &validation.ValidationResults{
 
-		TotalScore:       funcScore,
+		TotalScore: funcScore,
 
 		MaxPossibleScore: 50,
 
-		FunctionalScore:  funcScore,
+		FunctionalScore: funcScore,
 
-		ExecutionTime:    time.Minute,         // Placeholder
+		ExecutionTime: time.Minute, // Placeholder
 
-		TestsExecuted:    15,                  // Placeholder
+		TestsExecuted: 15, // Placeholder
 
-		TestsPassed:      funcScore * 15 / 50, // Approximate
+		TestsPassed: funcScore * 15 / 50, // Approximate
 
-		TestsFailed:      15 - (funcScore * 15 / 50),
-
+		TestsFailed: 15 - (funcScore * 15 / 50),
 	}
-
-
 
 	return results, nil
 
 }
-
-
 
 // runPerformanceValidation executes only performance tests.
 
 func runPerformanceValidation(ctx context.Context, suite *validation.ValidationSuite) (*validation.ValidationResults, error) {
 
 	log.Println("Running Performance Benchmarking...")
-
-
 
 	// Execute performance tests only.
 
@@ -391,41 +302,32 @@ func runPerformanceValidation(ctx context.Context, suite *validation.ValidationS
 
 	}
 
-
-
 	results := &validation.ValidationResults{
 
-		TotalScore:       perfScore,
+		TotalScore: perfScore,
 
 		MaxPossibleScore: 25,
 
 		PerformanceScore: perfScore,
 
-		ExecutionTime:    5 * time.Minute,    // Placeholder
+		ExecutionTime: 5 * time.Minute, // Placeholder
 
-		TestsExecuted:    8,                  // Placeholder
+		TestsExecuted: 8, // Placeholder
 
-		TestsPassed:      perfScore * 8 / 25, // Approximate
+		TestsPassed: perfScore * 8 / 25, // Approximate
 
-		TestsFailed:      8 - (perfScore * 8 / 25),
-
+		TestsFailed: 8 - (perfScore * 8 / 25),
 	}
-
-
 
 	return results, nil
 
 }
-
-
 
 // runSecurityValidation executes only security tests.
 
 func runSecurityValidation(ctx context.Context, suite *validation.ValidationSuite) (*validation.ValidationResults, error) {
 
 	log.Println("Running Security Compliance Validation...")
-
-
 
 	// Execute security tests only.
 
@@ -437,41 +339,32 @@ func runSecurityValidation(ctx context.Context, suite *validation.ValidationSuit
 
 	}
 
-
-
 	results := &validation.ValidationResults{
 
-		TotalScore:       secScore,
+		TotalScore: secScore,
 
 		MaxPossibleScore: 15,
 
-		SecurityScore:    secScore,
+		SecurityScore: secScore,
 
-		ExecutionTime:    3 * time.Minute,    // Placeholder
+		ExecutionTime: 3 * time.Minute, // Placeholder
 
-		TestsExecuted:    12,                 // Placeholder
+		TestsExecuted: 12, // Placeholder
 
-		TestsPassed:      secScore * 12 / 15, // Approximate
+		TestsPassed: secScore * 12 / 15, // Approximate
 
-		TestsFailed:      12 - (secScore * 12 / 15),
-
+		TestsFailed: 12 - (secScore * 12 / 15),
 	}
-
-
 
 	return results, nil
 
 }
-
-
 
 // runProductionValidation executes only production readiness tests.
 
 func runProductionValidation(ctx context.Context, suite *validation.ValidationSuite) (*validation.ValidationResults, error) {
 
 	log.Println("Running Production Readiness Validation...")
-
-
 
 	// Execute production tests only.
 
@@ -483,35 +376,29 @@ func runProductionValidation(ctx context.Context, suite *validation.ValidationSu
 
 	}
 
-
-
 	results := &validation.ValidationResults{
 
-		TotalScore:           prodScore,
+		TotalScore: prodScore,
 
-		MaxPossibleScore:     10,
+		MaxPossibleScore: 10,
 
-		ProductionScore:      prodScore,
+		ProductionScore: prodScore,
 
-		ExecutionTime:        10 * time.Minute,   // Placeholder
+		ExecutionTime: 10 * time.Minute, // Placeholder
 
-		TestsExecuted:        6,                  // Placeholder
+		TestsExecuted: 6, // Placeholder
 
-		TestsPassed:          prodScore * 6 / 10, // Approximate
+		TestsPassed: prodScore * 6 / 10, // Approximate
 
-		TestsFailed:          6 - (prodScore * 6 / 10),
+		TestsFailed: 6 - (prodScore * 6 / 10),
 
 		AvailabilityAchieved: 99.95, // Placeholder
 
 	}
 
-
-
 	return results, nil
 
 }
-
-
 
 // generateReports creates validation reports in requested formats.
 
@@ -523,29 +410,21 @@ func generateReports(results *validation.ValidationResults, outputDir, format st
 
 	}
 
-
-
 	switch format {
 
 	case "json":
 
 		generateJSONReport(results, outputDir, verbose)
 
-
-
 	case "html":
 
 		generateHTMLReport(results, outputDir, verbose)
-
-
 
 	case "both":
 
 		generateJSONReport(results, outputDir, verbose)
 
 		generateHTMLReport(results, outputDir, verbose)
-
-
 
 	default:
 
@@ -556,8 +435,6 @@ func generateReports(results *validation.ValidationResults, outputDir, format st
 	}
 
 }
-
-
 
 // generateJSONReport creates a JSON validation report.
 
@@ -577,8 +454,6 @@ func generateJSONReport(results *validation.ValidationResults, outputDir string,
 
 	defer file.Close()
 
-
-
 	encoder := json.NewEncoder(file)
 
 	encoder.SetIndent("", "  ")
@@ -591,8 +466,6 @@ func generateJSONReport(results *validation.ValidationResults, outputDir string,
 
 	}
 
-
-
 	if verbose {
 
 		log.Printf("JSON report written to: %s", filename)
@@ -600,8 +473,6 @@ func generateJSONReport(results *validation.ValidationResults, outputDir string,
 	}
 
 }
-
-
 
 // generateHTMLReport creates an HTML validation report.
 
@@ -747,8 +618,6 @@ func generateHTMLReport(results *validation.ValidationResults, outputDir string,
 
 `
 
-
-
 	filename := filepath.Join(outputDir, "validation-report.html")
 
 	file, err := os.Create(filename)
@@ -763,8 +632,6 @@ func generateHTMLReport(results *validation.ValidationResults, outputDir string,
 
 	defer file.Close()
 
-
-
 	tmpl, err := template.New("report").Parse(htmlTemplate)
 
 	if err != nil {
@@ -775,8 +642,6 @@ func generateHTMLReport(results *validation.ValidationResults, outputDir string,
 
 	}
 
-
-
 	if err := tmpl.Execute(file, results); err != nil {
 
 		log.Printf("Failed to generate HTML report: %v", err)
@@ -785,8 +650,6 @@ func generateHTMLReport(results *validation.ValidationResults, outputDir string,
 
 	}
 
-
-
 	if verbose {
 
 		log.Printf("HTML report written to: %s", filename)
@@ -794,4 +657,3 @@ func generateHTMLReport(results *validation.ValidationResults, outputDir string,
 	}
 
 }
-

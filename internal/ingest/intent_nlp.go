@@ -1,23 +1,12 @@
-
 package ingest
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"regexp"
-
 	"strconv"
-
 	"strings"
-
 )
-
-
 
 // IntentNLP defines the interface for natural language to intent conversion.
 
@@ -26,10 +15,7 @@ type IntentNLP interface {
 	// ParseIntent converts natural language text to structured Intent JSON.
 
 	ParseIntent(text string) (map[string]interface{}, error)
-
 }
-
-
 
 // RuleBasedIntentParser implements IntentNLP with deterministic rule-based parsing.
 
@@ -38,10 +24,7 @@ type RuleBasedIntentParser struct {
 	// Patterns for different intent types.
 
 	patterns map[string]*regexp.Regexp
-
 }
-
-
 
 // NewRuleBasedIntentParser creates a new rule-based intent parser.
 
@@ -53,19 +36,15 @@ func NewRuleBasedIntentParser() *RuleBasedIntentParser {
 
 			"scaling": regexp.MustCompile(`(?i)scale\s+(\S+)\s+to\s+(\d+)(?:\s+in\s+ns\s+(\S+))?`),
 
-			"deploy":  regexp.MustCompile(`(?i)deploy\s+(\S+)(?:\s+in\s+ns\s+(\S+))?`),
+			"deploy": regexp.MustCompile(`(?i)deploy\s+(\S+)(?:\s+in\s+ns\s+(\S+))?`),
 
-			"delete":  regexp.MustCompile(`(?i)delete\s+(\S+)(?:\s+from\s+ns\s+(\S+))?`),
+			"delete": regexp.MustCompile(`(?i)delete\s+(\S+)(?:\s+from\s+ns\s+(\S+))?`),
 
-			"update":  regexp.MustCompile(`(?i)update\s+(\S+)\s+set\s+(\S+)\s*=\s*(\S+)(?:\s+in\s+ns\s+(\S+))?`),
-
+			"update": regexp.MustCompile(`(?i)update\s+(\S+)\s+set\s+(\S+)\s*=\s*(\S+)(?:\s+in\s+ns\s+(\S+))?`),
 		},
-
 	}
 
 }
-
-
 
 // ParseIntent implements the IntentNLP interface.
 
@@ -81,8 +60,6 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 
 	}
 
-
-
 	// Try to match scaling pattern: "scale <target> to <N> in ns <namespace>".
 
 	if matches := p.patterns["scaling"].FindStringSubmatch(text); matches != nil {
@@ -95,19 +72,14 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 
 		}
 
-
-
 		intent := map[string]interface{}{
 
 			"intent_type": "scaling",
 
-			"target":      matches[1],
+			"target": matches[1],
 
-			"replicas":    replicas,
-
+			"replicas": replicas,
 		}
-
-
 
 		// Add namespace if provided.
 
@@ -121,13 +93,9 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 
 		}
 
-
-
 		return intent, nil
 
 	}
-
-
 
 	// Try to match deploy pattern: "deploy <target> in ns <namespace>".
 
@@ -137,11 +105,8 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 
 			"intent_type": "deployment",
 
-			"target":      matches[1],
-
+			"target": matches[1],
 		}
-
-
 
 		// Add namespace if provided.
 
@@ -155,13 +120,9 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 
 		}
 
-
-
 		return intent, nil
 
 	}
-
-
 
 	// Try to match delete pattern: "delete <target> from ns <namespace>".
 
@@ -171,11 +132,8 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 
 			"intent_type": "deletion",
 
-			"target":      matches[1],
-
+			"target": matches[1],
 		}
-
-
 
 		// Add namespace if provided.
 
@@ -189,13 +147,9 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 
 		}
 
-
-
 		return intent, nil
 
 	}
-
-
 
 	// Try to match update pattern: "update <target> set <key>=<value> in ns <namespace>".
 
@@ -205,17 +159,13 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 
 			"intent_type": "configuration",
 
-			"target":      matches[1],
+			"target": matches[1],
 
 			"config": map[string]interface{}{
 
 				matches[2]: matches[3],
-
 			},
-
 		}
-
-
 
 		// Add namespace if provided.
 
@@ -229,21 +179,15 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 
 		}
 
-
-
 		return intent, nil
 
 	}
-
-
 
 	// No pattern matched.
 
 	return nil, fmt.Errorf("unable to parse intent from text: %s", text)
 
 }
-
-
 
 // ValidateIntent validates the intent against expected structure.
 
@@ -259,8 +203,6 @@ func ValidateIntent(intent map[string]interface{}) error {
 
 	}
 
-
-
 	target, ok := intent["target"].(string)
 
 	if !ok || target == "" {
@@ -268,8 +210,6 @@ func ValidateIntent(intent map[string]interface{}) error {
 		return fmt.Errorf("missing or invalid target")
 
 	}
-
-
 
 	// Validate based on intent type.
 
@@ -305,8 +245,6 @@ func ValidateIntent(intent map[string]interface{}) error {
 
 	}
 
-
-
 	// Validate namespace.
 
 	namespace, ok := intent["namespace"].(string)
@@ -317,13 +255,9 @@ func ValidateIntent(intent map[string]interface{}) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // IntentToJSON converts an intent map to JSON string.
 
@@ -340,4 +274,3 @@ func IntentToJSON(intent map[string]interface{}) (string, error) {
 	return string(data), nil
 
 }
-

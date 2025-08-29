@@ -28,342 +28,276 @@ limitations under the License.
 
 */
 
-
-
-
 package porch
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sort"
-
 	"strings"
-
 	"sync"
-
 	"time"
-
-
 
 	"github.com/go-logr/logr"
 
-
-
 	corev1 "k8s.io/api/core/v1"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // ContextAwareDependencySelector selects dependencies based on deployment context.
 
 type ContextAwareDependencySelector struct {
+	logger logr.Logger
 
-	logger           logr.Logger
-
-	clusterProfiles  map[string]*ClusterProfile
+	clusterProfiles map[string]*ClusterProfile
 
 	resourceProfiles map[string]*ResourceProfile
 
-	policyEngine     *DependencyPolicyEngine
+	policyEngine *DependencyPolicyEngine
 
-	telcoProfiles    map[string]*TelcoProfile
+	telcoProfiles map[string]*TelcoProfile
 
 	metricsCollector *ContextMetricsCollector
 
-	mu               sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // ClusterProfile represents a cluster's capabilities and characteristics.
 
 type ClusterProfile struct {
+	ClusterID string
 
-	ClusterID       string
+	Name string
 
-	Name            string
+	Type ClusterType
 
-	Type            ClusterType
+	Region string
 
-	Region          string
+	Zone string
 
-	Zone            string
+	Capabilities *ClusterCapabilities
 
-	Capabilities    *ClusterCapabilities
+	Resources *ClusterResources
 
-	Resources       *ClusterResources
-
-	NetworkProfile  *NetworkProfile
+	NetworkProfile *NetworkProfile
 
 	SecurityProfile *SecurityProfile
 
 	ComplianceLevel ComplianceLevel
 
-	Tags            map[string]string
+	Tags map[string]string
 
-	LastUpdated     time.Time
-
+	LastUpdated time.Time
 }
-
-
 
 // ClusterCapabilities defines what a cluster can support.
 
 type ClusterCapabilities struct {
-
 	KubernetesVersion string
 
-	CNI               string
+	CNI string
 
-	CSI               []string
+	CSI []string
 
-	GPUSupport        bool
+	GPUSupport bool
 
-	SRIOVSupport      bool
+	SRIOVSupport bool
 
-	DPDKSupport       bool
+	DPDKSupport bool
 
-	RDMASupport       bool
+	RDMASupport bool
 
-	SGXSupport        bool
+	SGXSupport bool
 
-	FPGASupport       bool
+	FPGASupport bool
 
-	MaxPodsPerNode    int
+	MaxPodsPerNode int
 
-	MaxNodes          int
+	MaxNodes int
 
-	SupportedAPIs     []string
+	SupportedAPIs []string
 
-	InstalledCRDs     []string
-
+	InstalledCRDs []string
 }
-
-
 
 // ClusterResources represents available resources in a cluster.
 
 type ClusterResources struct {
+	TotalCPU int64
 
-	TotalCPU         int64
+	AvailableCPU int64
 
-	AvailableCPU     int64
+	TotalMemory int64
 
-	TotalMemory      int64
+	AvailableMemory int64
 
-	AvailableMemory  int64
+	TotalGPU int
 
-	TotalGPU         int
+	AvailableGPU int
 
-	AvailableGPU     int
-
-	TotalStorage     int64
+	TotalStorage int64
 
 	AvailableStorage int64
 
-	NodeCount        int
+	NodeCount int
 
-	PodCount         int
+	PodCount int
 
-	NamespaceCount   int
-
+	NamespaceCount int
 }
-
-
 
 // NetworkProfile describes network characteristics.
 
 type NetworkProfile struct {
+	LatencyClass LatencyClass
 
-	LatencyClass     LatencyClass
+	BandwidthClass BandwidthClass
 
-	BandwidthClass   BandwidthClass
+	JitterTolerance time.Duration
 
-	JitterTolerance  time.Duration
+	PacketLossRate float64
 
-	PacketLossRate   float64
+	MTU int
 
-	MTU              int
-
-	IPv6Enabled      bool
+	IPv6Enabled bool
 
 	MulticastEnabled bool
 
-	SREnabled        bool // Segment Routing
+	SREnabled bool // Segment Routing
 
-	TSNEnabled       bool // Time-Sensitive Networking
+	TSNEnabled bool // Time-Sensitive Networking
 
 }
-
-
 
 // TelcoProfile represents telecommunications-specific requirements.
 
 type TelcoProfile struct {
-
 	NetworkFunction string
 
-	DeploymentType  TelcoDeploymentType
+	DeploymentType TelcoDeploymentType
 
-	RANType         RANType
+	RANType RANType
 
-	CoreType        CoreType
+	CoreType CoreType
 
-	SliceType       SliceType
+	SliceType SliceType
 
 	QoSRequirements *QoSRequirements
 
 	SLARequirements *SLARequirements
 
-	Regulatory      *RegulatoryRequirements
-
+	Regulatory *RegulatoryRequirements
 }
-
-
 
 // QoSRequirements defines Quality of Service requirements.
 
 type QoSRequirements struct {
+	Latency time.Duration
 
-	Latency       time.Duration
+	Throughput int64
 
-	Throughput    int64
+	PacketLoss float64
 
-	PacketLoss    float64
+	Jitter time.Duration
 
-	Jitter        time.Duration
+	Availability float64
 
-	Availability  float64
-
-	Reliability   float64
+	Reliability float64
 
 	PriorityLevel int
 
-	FiveGQI       int // 5G QoS Identifier
+	FiveGQI int // 5G QoS Identifier
 
 }
-
-
 
 // SLARequirements defines Service Level Agreement requirements.
 
 type SLARequirements struct {
+	UptimePercent float64
 
-	UptimePercent     float64
+	MTTR time.Duration // Mean Time To Recovery
 
-	MTTR              time.Duration // Mean Time To Recovery
+	MTBF time.Duration // Mean Time Between Failures
 
-	MTBF              time.Duration // Mean Time Between Failures
+	RPO time.Duration // Recovery Point Objective
 
-	RPO               time.Duration // Recovery Point Objective
-
-	RTO               time.Duration // Recovery Time Objective
+	RTO time.Duration // Recovery Time Objective
 
 	MaintenanceWindow *MaintenanceWindow
-
 }
-
-
 
 // ContextualDependencies represents dependencies selected based on context.
 
 type ContextualDependencies struct {
-
-	PrimaryDependencies  []*ContextualDependency
+	PrimaryDependencies []*ContextualDependency
 
 	OptionalDependencies []*ContextualDependency
 
 	ExcludedDependencies []*ExcludedDependency
 
-	Substitutions        map[string]*DependencySubstitution
+	Substitutions map[string]*DependencySubstitution
 
 	PlacementConstraints []*PlacementConstraint
 
-	DeploymentOrder      []string
+	DeploymentOrder []string
 
-	ContextScore         float64
+	ContextScore float64
 
-	SelectionReasons     []string
-
+	SelectionReasons []string
 }
-
-
 
 // ContextualDependency represents a dependency with context.
 
 type ContextualDependency struct {
+	PackageRef *PackageReference
 
-	PackageRef       *PackageReference
+	Version string
 
-	Version          string
+	TargetCluster string
 
-	TargetCluster    string
-
-	PlacementReason  string
+	PlacementReason string
 
 	ResourceRequests *corev1.ResourceRequirements
 
-	AffinityRules    *AffinityRules
+	AffinityRules *AffinityRules
 
-	Priority         int
+	Priority int
 
-	Optional         bool
+	Optional bool
 
-	Deferrable       bool
-
+	Deferrable bool
 }
-
-
 
 // DependencySubstitution represents a context-based substitution.
 
 type DependencySubstitution struct {
-
-	Original   *PackageReference
+	Original *PackageReference
 
 	Substitute *PackageReference
 
-	Reason     string
+	Reason string
 
 	Conditions []SubstitutionCondition
 
 	Reversible bool
-
 }
-
-
 
 // PlacementConstraint defines where dependencies can be deployed.
 
 type PlacementConstraint struct {
-
-	Dependency      *PackageReference
+	Dependency *PackageReference
 
 	AllowedClusters []string
 
-	DeniedClusters  []string
+	DeniedClusters []string
 
-	RequiredLabels  map[string]string
+	RequiredLabels map[string]string
 
-	AntiAffinity    []string
+	AntiAffinity []string
 
-	CoLocation      []string
-
+	CoLocation []string
 }
-
-
 
 // NewContextAwareDependencySelector creates a new context-aware selector.
 
@@ -371,23 +305,20 @@ func NewContextAwareDependencySelector() *ContextAwareDependencySelector {
 
 	return &ContextAwareDependencySelector{
 
-		logger:           log.Log.WithName("context-selector"),
+		logger: log.Log.WithName("context-selector"),
 
-		clusterProfiles:  make(map[string]*ClusterProfile),
+		clusterProfiles: make(map[string]*ClusterProfile),
 
 		resourceProfiles: make(map[string]*ResourceProfile),
 
-		telcoProfiles:    make(map[string]*TelcoProfile),
+		telcoProfiles: make(map[string]*TelcoProfile),
 
-		policyEngine:     NewDependencyPolicyEngine(),
+		policyEngine: NewDependencyPolicyEngine(),
 
 		metricsCollector: NewContextMetricsCollector(),
-
 	}
 
 }
-
-
 
 // SelectDependencies selects appropriate dependencies based on deployment context.
 
@@ -409,8 +340,6 @@ func (cads *ContextAwareDependencySelector) SelectDependencies(
 
 		"clusters", len(targetClusters))
 
-
-
 	// Analyze deployment context.
 
 	deploymentContext, err := cads.analyzeDeploymentContext(ctx, pkg, targetClusters)
@@ -420,8 +349,6 @@ func (cads *ContextAwareDependencySelector) SelectDependencies(
 		return nil, fmt.Errorf("failed to analyze deployment context: %w", err)
 
 	}
-
-
 
 	// Get base dependencies.
 
@@ -433,25 +360,20 @@ func (cads *ContextAwareDependencySelector) SelectDependencies(
 
 	}
 
-
-
 	// Apply context-based selection.
 
 	contextualDeps := &ContextualDependencies{
 
-		PrimaryDependencies:  []*ContextualDependency{},
+		PrimaryDependencies: []*ContextualDependency{},
 
 		OptionalDependencies: []*ContextualDependency{},
 
 		ExcludedDependencies: []*ExcludedDependency{},
 
-		Substitutions:        make(map[string]*DependencySubstitution),
+		Substitutions: make(map[string]*DependencySubstitution),
 
 		PlacementConstraints: []*PlacementConstraint{},
-
 	}
-
-
 
 	// Process each base dependency.
 
@@ -468,8 +390,6 @@ func (cads *ContextAwareDependencySelector) SelectDependencies(
 			continue
 
 		}
-
-
 
 		if contextualDep != nil {
 
@@ -491,8 +411,6 @@ func (cads *ContextAwareDependencySelector) SelectDependencies(
 
 	}
 
-
-
 	// Apply telco-specific rules.
 
 	if deploymentContext.TelcoProfile != nil {
@@ -505,25 +423,17 @@ func (cads *ContextAwareDependencySelector) SelectDependencies(
 
 	}
 
-
-
 	// Determine deployment order.
 
 	contextualDeps.DeploymentOrder = cads.determineDeploymentOrder(contextualDeps)
-
-
 
 	// Calculate context score.
 
 	contextualDeps.ContextScore = cads.calculateContextScore(contextualDeps, deploymentContext)
 
-
-
 	// Add selection reasons.
 
 	contextualDeps.SelectionReasons = cads.generateSelectionReasons(contextualDeps, deploymentContext)
-
-
 
 	cads.logger.Info("Context-aware dependency selection completed",
 
@@ -535,13 +445,9 @@ func (cads *ContextAwareDependencySelector) SelectDependencies(
 
 		"score", contextualDeps.ContextScore)
 
-
-
 	return contextualDeps, nil
 
 }
-
-
 
 // processContextualDependency processes a dependency based on context.
 
@@ -563,8 +469,6 @@ func (cads *ContextAwareDependencySelector) processContextualDependency(
 
 	}
 
-
-
 	// Check for substitutions.
 
 	if substitute := cads.findSubstitute(baseDep, deploymentContext); substitute != nil {
@@ -572,8 +476,6 @@ func (cads *ContextAwareDependencySelector) processContextualDependency(
 		baseDep = substitute
 
 	}
-
-
 
 	// Select appropriate version based on context.
 
@@ -585,51 +487,40 @@ func (cads *ContextAwareDependencySelector) processContextualDependency(
 
 	}
 
-
-
 	// Determine target cluster.
 
 	targetCluster := cads.selectTargetCluster(baseDep, deploymentContext)
-
-
 
 	// Calculate resource requirements.
 
 	resourceReqs := cads.calculateResourceRequirements(baseDep, deploymentContext)
 
-
-
 	// Generate affinity rules.
 
 	affinityRules := cads.generateAffinityRules(baseDep, deploymentContext)
 
-
-
 	return &ContextualDependency{
 
-		PackageRef:       baseDep,
+		PackageRef: baseDep,
 
-		Version:          version,
+		Version: version,
 
-		TargetCluster:    targetCluster,
+		TargetCluster: targetCluster,
 
-		PlacementReason:  cads.getPlacementReason(baseDep, targetCluster, deploymentContext),
+		PlacementReason: cads.getPlacementReason(baseDep, targetCluster, deploymentContext),
 
 		ResourceRequests: resourceReqs,
 
-		AffinityRules:    affinityRules,
+		AffinityRules: affinityRules,
 
-		Priority:         cads.calculatePriority(baseDep, deploymentContext),
+		Priority: cads.calculatePriority(baseDep, deploymentContext),
 
-		Optional:         cads.isOptional(baseDep, deploymentContext),
+		Optional: cads.isOptional(baseDep, deploymentContext),
 
-		Deferrable:       cads.isDeferrable(baseDep, deploymentContext),
-
+		Deferrable: cads.isDeferrable(baseDep, deploymentContext),
 	}, nil
 
 }
-
-
 
 // applyTelcoRules applies telecommunications-specific dependency rules.
 
@@ -642,8 +533,6 @@ func (cads *ContextAwareDependencySelector) applyTelcoRules(
 ) error {
 
 	profile := context.TelcoProfile
-
-
 
 	switch profile.DeploymentType {
 
@@ -665,13 +554,9 @@ func (cads *ContextAwareDependencySelector) applyTelcoRules(
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // apply5GCoreRules applies 5G Core specific dependency rules.
 
@@ -693,23 +578,19 @@ func (cads *ContextAwareDependencySelector) apply5GCoreRules(
 
 				PackageName: "udm",
 
-				Repository:  "5g-core",
-
+				Repository: "5g-core",
 			},
 
-			Version:         "latest",
+			Version: "latest",
 
 			PlacementReason: "Required for AMF authentication",
 
-			Priority:        100,
-
+			Priority: 100,
 		}
 
 		deps.PrimaryDependencies = append(deps.PrimaryDependencies, udmDep)
 
 	}
-
-
 
 	// SMF requires UPF for user plane.
 
@@ -721,23 +602,19 @@ func (cads *ContextAwareDependencySelector) apply5GCoreRules(
 
 				PackageName: "upf",
 
-				Repository:  "5g-core",
-
+				Repository: "5g-core",
 			},
 
-			Version:         "latest",
+			Version: "latest",
 
 			PlacementReason: "Required for SMF user plane",
 
-			Priority:        100,
-
+			Priority: 100,
 		}
 
 		deps.PrimaryDependencies = append(deps.PrimaryDependencies, upfDep)
 
 	}
-
-
 
 	// NSSF requires NRF for service discovery.
 
@@ -749,29 +626,23 @@ func (cads *ContextAwareDependencySelector) apply5GCoreRules(
 
 				PackageName: "nrf",
 
-				Repository:  "5g-core",
-
+				Repository: "5g-core",
 			},
 
-			Version:         "latest",
+			Version: "latest",
 
 			PlacementReason: "Required for NSSF service discovery",
 
-			Priority:        100,
-
+			Priority: 100,
 		}
 
 		deps.PrimaryDependencies = append(deps.PrimaryDependencies, nrfDep)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // applyORANRules applies O-RAN specific dependency rules.
 
@@ -795,21 +666,17 @@ func (cads *ContextAwareDependencySelector) applyORANRules(
 
 				PackageName: "e2-termination",
 
-				Repository:  "oran",
-
+				Repository: "oran",
 			},
 
-			Version:         "latest",
+			Version: "latest",
 
 			PlacementReason: "Required for Near-RT RIC E2 interface",
 
-			Priority:        90,
-
+			Priority: 90,
 		}
 
 		deps.PrimaryDependencies = append(deps.PrimaryDependencies, e2termDep)
-
-
 
 		// Add A1 mediator dependency.
 
@@ -819,23 +686,19 @@ func (cads *ContextAwareDependencySelector) applyORANRules(
 
 				PackageName: "a1-mediator",
 
-				Repository:  "oran",
-
+				Repository: "oran",
 			},
 
-			Version:         "latest",
+			Version: "latest",
 
 			PlacementReason: "Required for Near-RT RIC A1 interface",
 
-			Priority:        85,
-
+			Priority: 85,
 		}
 
 		deps.PrimaryDependencies = append(deps.PrimaryDependencies, a1medDep)
 
 	}
-
-
 
 	// xApps require Near-RT RIC platform.
 
@@ -847,29 +710,23 @@ func (cads *ContextAwareDependencySelector) applyORANRules(
 
 				PackageName: "near-rt-ric-platform",
 
-				Repository:  "oran",
-
+				Repository: "oran",
 			},
 
-			Version:         "latest",
+			Version: "latest",
 
 			PlacementReason: "Required platform for xApps",
 
-			Priority:        100,
-
+			Priority: 100,
 		}
 
 		deps.PrimaryDependencies = append(deps.PrimaryDependencies, ricDep)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // applyEdgeRules applies edge deployment specific rules.
 
@@ -895,8 +752,6 @@ func (cads *ContextAwareDependencySelector) applyEdgeRules(
 
 	}
 
-
-
 	// Add edge-specific monitoring.
 
 	if !cads.hasDependency(deps, "edge-monitor") {
@@ -907,31 +762,25 @@ func (cads *ContextAwareDependencySelector) applyEdgeRules(
 
 				PackageName: "edge-monitor",
 
-				Repository:  "monitoring",
-
+				Repository: "monitoring",
 			},
 
-			Version:         "latest",
+			Version: "latest",
 
 			PlacementReason: "Edge deployment monitoring",
 
-			Priority:        50,
+			Priority: 50,
 
-			Optional:        true,
-
+			Optional: true,
 		}
 
 		deps.OptionalDependencies = append(deps.OptionalDependencies, monitorDep)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // applySliceRules applies network slice specific rules.
 
@@ -965,8 +814,6 @@ func (cads *ContextAwareDependencySelector) applySliceRules(
 
 	}
 
-
-
 	// Add slice-specific orchestrator.
 
 	if !cads.hasDependency(deps, "slice-orchestrator") {
@@ -977,29 +824,23 @@ func (cads *ContextAwareDependencySelector) applySliceRules(
 
 				PackageName: "slice-orchestrator",
 
-				Repository:  "nsmf",
-
+				Repository: "nsmf",
 			},
 
-			Version:         "latest",
+			Version: "latest",
 
 			PlacementReason: fmt.Sprintf("%s slice management", profile.SliceType),
 
-			Priority:        95,
-
+			Priority: 95,
 		}
 
 		deps.PrimaryDependencies = append(deps.PrimaryDependencies, orchDep)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // determineDeploymentOrder determines the order for deploying dependencies.
 
@@ -1019,8 +860,6 @@ func (cads *ContextAwareDependencySelector) determineDeploymentOrder(
 
 	})
 
-
-
 	order := []string{}
 
 	for _, dep := range allDeps {
@@ -1029,17 +868,11 @@ func (cads *ContextAwareDependencySelector) determineDeploymentOrder(
 
 	}
 
-
-
 	return order
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (cads *ContextAwareDependencySelector) hasDependency(
 
@@ -1073,8 +906,6 @@ func (cads *ContextAwareDependencySelector) hasDependency(
 
 }
 
-
-
 func (cads *ContextAwareDependencySelector) hasXAppDependency(
 
 	deps *ContextualDependencies,
@@ -1095,8 +926,6 @@ func (cads *ContextAwareDependencySelector) hasXAppDependency(
 
 }
 
-
-
 func (cads *ContextAwareDependencySelector) findLightweightVersion(
 
 	pkg *PackageReference,
@@ -1116,8 +945,6 @@ func (cads *ContextAwareDependencySelector) findLightweightVersion(
 	return ""
 
 }
-
-
 
 func (cads *ContextAwareDependencySelector) optimizeForThroughput(
 
@@ -1141,8 +968,6 @@ func (cads *ContextAwareDependencySelector) optimizeForThroughput(
 
 }
 
-
-
 func (cads *ContextAwareDependencySelector) optimizeForLatency(
 
 	deps *ContextualDependencies,
@@ -1157,15 +982,12 @@ func (cads *ContextAwareDependencySelector) optimizeForLatency(
 
 			NodeAffinity: "low-latency-nodes",
 
-			PodAffinity:  "co-locate-critical",
-
+			PodAffinity: "co-locate-critical",
 		}
 
 	}
 
 }
-
-
 
 func (cads *ContextAwareDependencySelector) optimizeForScale(
 
@@ -1189,11 +1011,7 @@ func (cads *ContextAwareDependencySelector) optimizeForScale(
 
 }
 
-
-
 // Additional helper methods would be implemented here...
-
-
 
 func (cads *ContextAwareDependencySelector) analyzeDeploymentContext(
 
@@ -1211,8 +1029,6 @@ func (cads *ContextAwareDependencySelector) analyzeDeploymentContext(
 
 }
 
-
-
 func (cads *ContextAwareDependencySelector) getBaseDependencies(
 
 	ctx context.Context,
@@ -1226,8 +1042,6 @@ func (cads *ContextAwareDependencySelector) getBaseDependencies(
 	return []*PackageReference{}, nil
 
 }
-
-
 
 func (cads *ContextAwareDependencySelector) shouldExclude(
 
@@ -1243,8 +1057,6 @@ func (cads *ContextAwareDependencySelector) shouldExclude(
 
 }
 
-
-
 func (cads *ContextAwareDependencySelector) findSubstitute(
 
 	dep *PackageReference,
@@ -1258,8 +1070,6 @@ func (cads *ContextAwareDependencySelector) findSubstitute(
 	return nil
 
 }
-
-
 
 func (cads *ContextAwareDependencySelector) selectVersion(
 
@@ -1277,8 +1087,6 @@ func (cads *ContextAwareDependencySelector) selectVersion(
 
 }
 
-
-
 func (cads *ContextAwareDependencySelector) selectTargetCluster(
 
 	dep *PackageReference,
@@ -1292,8 +1100,6 @@ func (cads *ContextAwareDependencySelector) selectTargetCluster(
 	return "default"
 
 }
-
-
 
 func (cads *ContextAwareDependencySelector) calculateResourceRequirements(
 
@@ -1309,8 +1115,6 @@ func (cads *ContextAwareDependencySelector) calculateResourceRequirements(
 
 }
 
-
-
 func (cads *ContextAwareDependencySelector) generateAffinityRules(
 
 	dep *PackageReference,
@@ -1324,8 +1128,6 @@ func (cads *ContextAwareDependencySelector) generateAffinityRules(
 	return &AffinityRules{}
 
 }
-
-
 
 func (cads *ContextAwareDependencySelector) getPlacementReason(
 
@@ -1343,8 +1145,6 @@ func (cads *ContextAwareDependencySelector) getPlacementReason(
 
 }
 
-
-
 func (cads *ContextAwareDependencySelector) calculatePriority(
 
 	dep *PackageReference,
@@ -1358,8 +1158,6 @@ func (cads *ContextAwareDependencySelector) calculatePriority(
 	return 50
 
 }
-
-
 
 func (cads *ContextAwareDependencySelector) isOptional(
 
@@ -1375,8 +1173,6 @@ func (cads *ContextAwareDependencySelector) isOptional(
 
 }
 
-
-
 func (cads *ContextAwareDependencySelector) isDeferrable(
 
 	dep *PackageReference,
@@ -1390,8 +1186,6 @@ func (cads *ContextAwareDependencySelector) isDeferrable(
 	return false
 
 }
-
-
 
 func (cads *ContextAwareDependencySelector) calculateContextScore(
 
@@ -1407,8 +1201,6 @@ func (cads *ContextAwareDependencySelector) calculateContextScore(
 
 }
 
-
-
 func (cads *ContextAwareDependencySelector) generateSelectionReasons(
 
 	deps *ContextualDependencies,
@@ -1422,4 +1214,3 @@ func (cads *ContextAwareDependencySelector) generateSelectionReasons(
 	return []string{"Context-aware selection completed"}
 
 }
-

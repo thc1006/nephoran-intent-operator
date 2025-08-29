@@ -28,42 +28,24 @@ limitations under the License.
 
 */
 
-
-
 // Package interfaces defines common interfaces and contracts for Nephoran controller implementations.
-
 
 package interfaces
 
-
-
 import (
-
 	"context"
-
 	"time"
-
-
 
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 )
-
-
 
 // ProcessingPhase represents the current phase of intent processing.
 
 type ProcessingPhase string
-
-
 
 const (
 
@@ -102,168 +84,135 @@ const (
 	// PhaseFailed holds phasefailed value.
 
 	PhaseFailed ProcessingPhase = "Failed"
-
 )
-
-
 
 // ProcessingResult contains the outcome of a phase.
 
 type ProcessingResult struct {
+	Success bool `json:"success"`
 
-	Success      bool                   `json:"success"`
+	NextPhase ProcessingPhase `json:"nextPhase,omitempty"`
 
-	NextPhase    ProcessingPhase        `json:"nextPhase,omitempty"`
+	Data map[string]interface{} `json:"data,omitempty"`
 
-	Data         map[string]interface{} `json:"data,omitempty"`
+	Metrics map[string]float64 `json:"metrics,omitempty"`
 
-	Metrics      map[string]float64     `json:"metrics,omitempty"`
+	Events []ProcessingEvent `json:"events,omitempty"`
 
-	Events       []ProcessingEvent      `json:"events,omitempty"`
+	RetryAfter *time.Duration `json:"retryAfter,omitempty"`
 
-	RetryAfter   *time.Duration         `json:"retryAfter,omitempty"`
+	ErrorMessage string `json:"errorMessage,omitempty"`
 
-	ErrorMessage string                 `json:"errorMessage,omitempty"`
-
-	ErrorCode    string                 `json:"errorCode,omitempty"`
-
+	ErrorCode string `json:"errorCode,omitempty"`
 }
-
-
 
 // ProcessingEvent represents an event during processing.
 
 type ProcessingEvent struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp     time.Time              `json:"timestamp"`
+	EventType string `json:"eventType"`
 
-	EventType     string                 `json:"eventType"`
+	Message string `json:"message"`
 
-	Message       string                 `json:"message"`
+	Data map[string]interface{} `json:"data,omitempty"`
 
-	Data          map[string]interface{} `json:"data,omitempty"`
-
-	CorrelationID string                 `json:"correlationId"`
-
+	CorrelationID string `json:"correlationId"`
 }
-
-
 
 // PhaseStatus tracks individual phase progress.
 
 type PhaseStatus struct {
+	Phase ProcessingPhase `json:"phase"`
 
-	Phase            ProcessingPhase     `json:"phase"`
+	Status string `json:"status"` // Pending, InProgress, Completed, Failed
 
-	Status           string              `json:"status"` // Pending, InProgress, Completed, Failed
+	StartTime *metav1.Time `json:"startTime,omitempty"`
 
-	StartTime        *metav1.Time        `json:"startTime,omitempty"`
+	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
 
-	CompletionTime   *metav1.Time        `json:"completionTime,omitempty"`
+	RetryCount int32 `json:"retryCount"`
 
-	RetryCount       int32               `json:"retryCount"`
+	LastError string `json:"lastError,omitempty"`
 
-	LastError        string              `json:"lastError,omitempty"`
+	Metrics map[string]float64 `json:"metrics,omitempty"`
 
-	Metrics          map[string]float64  `json:"metrics,omitempty"`
+	DependsOn []ProcessingPhase `json:"dependsOn,omitempty"`
 
-	DependsOn        []ProcessingPhase   `json:"dependsOn,omitempty"`
-
-	BlockedBy        []ProcessingPhase   `json:"blockedBy,omitempty"`
+	BlockedBy []ProcessingPhase `json:"blockedBy,omitempty"`
 
 	CreatedResources []ResourceReference `json:"createdResources,omitempty"`
-
 }
-
-
 
 // ResourceReference represents a reference to a created Kubernetes resource.
 
 type ResourceReference struct {
-
 	APIVersion string `json:"apiVersion"`
 
-	Kind       string `json:"kind"`
+	Kind string `json:"kind"`
 
-	Name       string `json:"name"`
+	Name string `json:"name"`
 
-	Namespace  string `json:"namespace,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
 
-	UID        string `json:"uid,omitempty"`
-
+	UID string `json:"uid,omitempty"`
 }
-
-
 
 // ProcessingContext holds context information for multi-phase processing.
 
 type ProcessingContext struct {
+	IntentID string `json:"intentId"`
 
-	IntentID      string          `json:"intentId"`
+	CorrelationID string `json:"correlationId"`
 
-	CorrelationID string          `json:"correlationId"`
+	StartTime time.Time `json:"startTime"`
 
-	StartTime     time.Time       `json:"startTime"`
-
-	CurrentPhase  ProcessingPhase `json:"currentPhase"`
-
-
+	CurrentPhase ProcessingPhase `json:"currentPhase"`
 
 	// Intent data.
 
-	IntentType        string                 `json:"intentType"`
+	IntentType string `json:"intentType"`
 
-	OriginalIntent    string                 `json:"originalIntent"`
+	OriginalIntent string `json:"originalIntent"`
 
 	ExtractedEntities map[string]interface{} `json:"extractedEntities,omitempty"`
 
-	TelecomContext    map[string]interface{} `json:"telecomContext,omitempty"`
-
-
+	TelecomContext map[string]interface{} `json:"telecomContext,omitempty"`
 
 	// Phase-specific data.
 
-	LLMResponse        map[string]interface{} `json:"llmResponse,omitempty"`
+	LLMResponse map[string]interface{} `json:"llmResponse,omitempty"`
 
-	ResourcePlan       map[string]interface{} `json:"resourcePlan,omitempty"`
+	ResourcePlan map[string]interface{} `json:"resourcePlan,omitempty"`
 
-	GeneratedManifests map[string]string      `json:"generatedManifests,omitempty"`
+	GeneratedManifests map[string]string `json:"generatedManifests,omitempty"`
 
-	GitCommitHash      string                 `json:"gitCommitHash,omitempty"`
+	GitCommitHash string `json:"gitCommitHash,omitempty"`
 
-	DeploymentStatus   map[string]interface{} `json:"deploymentStatus,omitempty"`
-
-
+	DeploymentStatus map[string]interface{} `json:"deploymentStatus,omitempty"`
 
 	// Performance tracking.
 
 	PhaseMetrics map[ProcessingPhase]PhaseMetrics `json:"phaseMetrics,omitempty"`
 
-	TotalMetrics map[string]float64               `json:"totalMetrics,omitempty"`
-
+	TotalMetrics map[string]float64 `json:"totalMetrics,omitempty"`
 }
-
-
 
 // PhaseMetrics tracks performance metrics for a processing phase.
 
 type PhaseMetrics struct {
+	Duration time.Duration `json:"duration"`
 
-	Duration      time.Duration      `json:"duration"`
+	CPUUsage float64 `json:"cpuUsage"`
 
-	CPUUsage      float64            `json:"cpuUsage"`
+	MemoryUsage int64 `json:"memoryUsage"`
 
-	MemoryUsage   int64              `json:"memoryUsage"`
+	APICallCount int `json:"apiCallCount"`
 
-	APICallCount  int                `json:"apiCallCount"`
-
-	ErrorCount    int                `json:"errorCount"`
+	ErrorCount int `json:"errorCount"`
 
 	CustomMetrics map[string]float64 `json:"customMetrics,omitempty"`
-
 }
-
-
 
 // PhaseController interface for all specialized controllers.
 
@@ -277,15 +226,11 @@ type PhaseController interface {
 
 	HandlePhaseError(ctx context.Context, intentID string, err error) error
 
-
-
 	// Dependency management.
 
 	GetDependencies() []ProcessingPhase
 
 	GetBlockedPhases() []ProcessingPhase
-
-
 
 	// Lifecycle methods.
 
@@ -295,41 +240,29 @@ type PhaseController interface {
 
 	Stop(ctx context.Context) error
 
-
-
 	// Health and metrics.
 
 	GetHealthStatus(ctx context.Context) (HealthStatus, error)
 
 	GetMetrics(ctx context.Context) (map[string]float64, error)
-
 }
-
-
 
 // HealthStatus represents the health status of a controller.
 
 type HealthStatus struct {
+	Status string `json:"status"` // Healthy, Degraded, Unhealthy
 
-	Status      string                 `json:"status"` // Healthy, Degraded, Unhealthy
+	Message string `json:"message"`
 
-	Message     string                 `json:"message"`
+	LastChecked time.Time `json:"lastChecked"`
 
-	LastChecked time.Time              `json:"lastChecked"`
-
-	Metrics     map[string]interface{} `json:"metrics,omitempty"`
-
+	Metrics map[string]interface{} `json:"metrics,omitempty"`
 }
-
-
 
 // IntentProcessor handles LLM-based intent interpretation.
 
 type IntentProcessor interface {
-
 	PhaseController
-
-
 
 	// Specialized methods for LLM processing.
 
@@ -340,18 +273,12 @@ type IntentProcessor interface {
 	EnhanceWithRAG(ctx context.Context, intent string) (map[string]interface{}, error)
 
 	GetSupportedIntentTypes() []string
-
 }
-
-
 
 // ResourcePlanner handles resource planning and optimization.
 
 type ResourcePlanner interface {
-
 	PhaseController
-
-
 
 	// Specialized methods for resource planning.
 
@@ -362,18 +289,12 @@ type ResourcePlanner interface {
 	ValidateResourceConstraints(ctx context.Context, plan *ResourcePlan) error
 
 	EstimateResourceCosts(ctx context.Context, plan *ResourcePlan) (*CostEstimate, error)
-
 }
-
-
 
 // ManifestGenerator handles Kubernetes manifest creation.
 
 type ManifestGenerator interface {
-
 	PhaseController
-
-
 
 	// Specialized methods for manifest generation.
 
@@ -384,18 +305,12 @@ type ManifestGenerator interface {
 	OptimizeManifests(ctx context.Context, manifests map[string]string) (map[string]string, error)
 
 	GetSupportedTemplates() []string
-
 }
-
-
 
 // GitOpsManager handles Git operations and deployment.
 
 type GitOpsManager interface {
-
 	PhaseController
-
-
 
 	// Specialized methods for GitOps operations.
 
@@ -406,18 +321,12 @@ type GitOpsManager interface {
 	ResolveConflicts(ctx context.Context, conflicts []GitConflict) error
 
 	TrackDeployment(ctx context.Context, commitHash string) (*DeploymentProgress, error)
-
 }
-
-
 
 // DeploymentVerifier handles deployment validation and monitoring.
 
 type DeploymentVerifier interface {
-
 	PhaseController
-
-
 
 	// Specialized methods for deployment verification.
 
@@ -428,468 +337,358 @@ type DeploymentVerifier interface {
 	CheckSLACompliance(ctx context.Context, slaRequirements *SLARequirements) (*ComplianceResult, error)
 
 	GenerateComplianceReport(ctx context.Context, deploymentID string) (*ComplianceReport, error)
-
 }
 
-
-
 // Supporting data structures.
-
-
 
 // ResourcePlan defines the comprehensive resource planning structure for network function deployment.
 
 type ResourcePlan struct {
+	NetworkFunctions []PlannedNetworkFunction `json:"networkFunctions"`
 
-	NetworkFunctions     []PlannedNetworkFunction `json:"networkFunctions"`
+	ResourceRequirements ResourceRequirements `json:"resourceRequirements"`
 
-	ResourceRequirements ResourceRequirements     `json:"resourceRequirements"`
+	DeploymentPattern string `json:"deploymentPattern"`
 
-	DeploymentPattern    string                   `json:"deploymentPattern"`
+	EstimatedCost *CostEstimate `json:"estimatedCost,omitempty"`
 
-	EstimatedCost        *CostEstimate            `json:"estimatedCost,omitempty"`
+	Constraints []ResourceConstraint `json:"constraints,omitempty"`
 
-	Constraints          []ResourceConstraint     `json:"constraints,omitempty"`
-
-	Dependencies         []Dependency             `json:"dependencies,omitempty"`
-
+	Dependencies []Dependency `json:"dependencies,omitempty"`
 }
-
-
 
 // PlannedNetworkFunction represents a network function that has been planned for deployment.
 
 type PlannedNetworkFunction struct {
+	Name string `json:"name"`
 
-	Name          string                 `json:"name"`
+	Type string `json:"type"`
 
-	Type          string                 `json:"type"`
+	Image string `json:"image"`
 
-	Image         string                 `json:"image"`
+	Version string `json:"version"`
 
-	Version       string                 `json:"version"`
-
-	Resources     ResourceSpec           `json:"resources"`
+	Resources ResourceSpec `json:"resources"`
 
 	Configuration map[string]interface{} `json:"configuration"`
 
-	Replicas      int32                  `json:"replicas"`
+	Replicas int32 `json:"replicas"`
 
-	Ports         []PortSpec             `json:"ports"`
+	Ports []PortSpec `json:"ports"`
 
-	Environment   []EnvVar               `json:"environment,omitempty"`
-
+	Environment []EnvVar `json:"environment,omitempty"`
 }
-
-
 
 // ResourceRequirements specifies the CPU, memory, and storage requirements for a resource.
 
 type ResourceRequirements struct {
+	CPU string `json:"cpu"`
 
-	CPU              string `json:"cpu"`
+	Memory string `json:"memory"`
 
-	Memory           string `json:"memory"`
-
-	Storage          string `json:"storage"`
+	Storage string `json:"storage"`
 
 	NetworkBandwidth string `json:"networkBandwidth,omitempty"`
-
 }
-
-
 
 // ResourceSpec defines both resource requests and limits for a workload.
 
 type ResourceSpec struct {
-
 	Requests ResourceRequirements `json:"requests"`
 
-	Limits   ResourceRequirements `json:"limits"`
-
+	Limits ResourceRequirements `json:"limits"`
 }
-
-
 
 // OptimizedPlan contains both the original and optimized resource plans with optimization details.
 
 type OptimizedPlan struct {
+	OriginalPlan *ResourcePlan `json:"originalPlan"`
 
-	OriginalPlan  *ResourcePlan   `json:"originalPlan"`
+	OptimizedPlan *ResourcePlan `json:"optimizedPlan"`
 
-	OptimizedPlan *ResourcePlan   `json:"optimizedPlan"`
+	Optimizations []Optimization `json:"optimizations"`
 
-	Optimizations []Optimization  `json:"optimizations"`
-
-	CostSavings   *CostComparison `json:"costSavings,omitempty"`
-
+	CostSavings *CostComparison `json:"costSavings,omitempty"`
 }
-
-
 
 // CostEstimate provides detailed cost estimation for resource deployment.
 
 type CostEstimate struct {
+	TotalCost float64 `json:"totalCost"`
 
-	TotalCost      float64            `json:"totalCost"`
+	Currency string `json:"currency"`
 
-	Currency       string             `json:"currency"`
+	BillingPeriod string `json:"billingPeriod"`
 
-	BillingPeriod  string             `json:"billingPeriod"`
+	CostBreakdown map[string]float64 `json:"costBreakdown"`
 
-	CostBreakdown  map[string]float64 `json:"costBreakdown"`
-
-	EstimationDate time.Time          `json:"estimationDate"`
-
+	EstimationDate time.Time `json:"estimationDate"`
 }
-
-
 
 // GitCommitResult contains information about a Git commit operation.
 
 type GitCommitResult struct {
+	CommitHash string `json:"commitHash"`
 
-	CommitHash    string                 `json:"commitHash"`
+	CommitMessage string `json:"commitMessage"`
 
-	CommitMessage string                 `json:"commitMessage"`
+	Branch string `json:"branch"`
 
-	Branch        string                 `json:"branch"`
+	Repository string `json:"repository"`
 
-	Repository    string                 `json:"repository"`
+	Files []string `json:"files"`
 
-	Files         []string               `json:"files"`
-
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // NephioPackage represents a Nephio package with its manifests and dependencies.
 
 type NephioPackage struct {
+	Name string `json:"name"`
 
-	Name         string                 `json:"name"`
+	Version string `json:"version"`
 
-	Version      string                 `json:"version"`
+	Dependencies []string `json:"dependencies"`
 
-	Dependencies []string               `json:"dependencies"`
+	Manifests map[string]string `json:"manifests"`
 
-	Manifests    map[string]string      `json:"manifests"`
-
-	Metadata     map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // DeploymentProgress tracks the progress of a network function deployment.
 
 type DeploymentProgress struct {
+	Status string `json:"status"`
 
-	Status            string              `json:"status"`
-
-	Progress          float64             `json:"progress"` // 0-100
+	Progress float64 `json:"progress"` // 0-100
 
 	DeployedResources []ResourceReference `json:"deployedResources"`
 
-	FailedResources   []ResourceReference `json:"failedResources"`
+	FailedResources []ResourceReference `json:"failedResources"`
 
-	Messages          []string            `json:"messages"`
+	Messages []string `json:"messages"`
 
-	LastUpdate        time.Time           `json:"lastUpdate"`
-
+	LastUpdate time.Time `json:"lastUpdate"`
 }
-
-
 
 // DeploymentReference provides reference information for a deployment.
 
 type DeploymentReference struct {
+	Name string `json:"name"`
 
-	Name       string            `json:"name"`
+	Namespace string `json:"namespace"`
 
-	Namespace  string            `json:"namespace"`
+	Labels map[string]string `json:"labels,omitempty"`
 
-	Labels     map[string]string `json:"labels,omitempty"`
-
-	CommitHash string            `json:"commitHash"`
-
+	CommitHash string `json:"commitHash"`
 }
-
-
 
 // VerificationResult contains the results of deployment verification and health checks.
 
 type VerificationResult struct {
+	Success bool `json:"success"`
 
-	Success            bool                `json:"success"`
-
-	HealthyResources   []ResourceReference `json:"healthyResources"`
+	HealthyResources []ResourceReference `json:"healthyResources"`
 
 	UnhealthyResources []ResourceReference `json:"unhealthyResources"`
 
-	Warnings           []string            `json:"warnings"`
+	Warnings []string `json:"warnings"`
 
-	Errors             []string            `json:"errors"`
+	Errors []string `json:"errors"`
 
-	SLACompliance      *ComplianceResult   `json:"slaCompliance,omitempty"`
+	SLACompliance *ComplianceResult `json:"slaCompliance,omitempty"`
 
-	Timestamp          time.Time           `json:"timestamp"`
-
+	Timestamp time.Time `json:"timestamp"`
 }
-
-
 
 // SLARequirements defines service level agreement targets for network functions.
 
 type SLARequirements struct {
+	AvailabilityTarget float64 `json:"availabilityTarget"`
 
-	AvailabilityTarget float64            `json:"availabilityTarget"`
+	ResponseTimeTarget time.Duration `json:"responseTimeTarget"`
 
-	ResponseTimeTarget time.Duration      `json:"responseTimeTarget"`
+	ThroughputTarget float64 `json:"throughputTarget"`
 
-	ThroughputTarget   float64            `json:"throughputTarget"`
+	ErrorRateTarget float64 `json:"errorRateTarget"`
 
-	ErrorRateTarget    float64            `json:"errorRateTarget"`
-
-	CustomMetrics      map[string]float64 `json:"customMetrics,omitempty"`
-
+	CustomMetrics map[string]float64 `json:"customMetrics,omitempty"`
 }
-
-
 
 // ComplianceResult contains the evaluation results against SLA requirements.
 
 type ComplianceResult struct {
+	Overall string `json:"overall"` // Compliant, NonCompliant, Unknown
 
-	Overall      string                 `json:"overall"` // Compliant, NonCompliant, Unknown
+	Availability float64 `json:"availability"`
 
-	Availability float64                `json:"availability"`
+	ResponseTime time.Duration `json:"responseTime"`
 
-	ResponseTime time.Duration          `json:"responseTime"`
+	Throughput float64 `json:"throughput"`
 
-	Throughput   float64                `json:"throughput"`
+	ErrorRate float64 `json:"errorRate"`
 
-	ErrorRate    float64                `json:"errorRate"`
+	Details map[string]interface{} `json:"details"`
 
-	Details      map[string]interface{} `json:"details"`
-
-	Violations   []ComplianceViolation  `json:"violations,omitempty"`
-
+	Violations []ComplianceViolation `json:"violations,omitempty"`
 }
-
-
 
 // ComplianceReport provides a comprehensive compliance assessment report.
 
 type ComplianceReport struct {
+	ReportID string `json:"reportId"`
 
-	ReportID         string            `json:"reportId"`
+	GeneratedAt time.Time `json:"generatedAt"`
 
-	GeneratedAt      time.Time         `json:"generatedAt"`
+	DeploymentID string `json:"deploymentId"`
 
-	DeploymentID     string            `json:"deploymentId"`
-
-	SLARequirements  *SLARequirements  `json:"slaRequirements"`
+	SLARequirements *SLARequirements `json:"slaRequirements"`
 
 	ComplianceResult *ComplianceResult `json:"complianceResult"`
 
-	Recommendations  []string          `json:"recommendations,omitempty"`
+	Recommendations []string `json:"recommendations,omitempty"`
 
-	NextReviewDate   time.Time         `json:"nextReviewDate"`
-
+	NextReviewDate time.Time `json:"nextReviewDate"`
 }
 
-
-
 // Additional supporting types.
-
-
 
 // ResourceConstraint defines a constraint that must be satisfied during resource planning.
 
 type ResourceConstraint struct {
+	Type string `json:"type"`
 
-	Type     string      `json:"type"`
+	Resource string `json:"resource"`
 
-	Resource string      `json:"resource"`
+	Operator string `json:"operator"`
 
-	Operator string      `json:"operator"`
+	Value interface{} `json:"value"`
 
-	Value    interface{} `json:"value"`
-
-	Message  string      `json:"message,omitempty"`
-
+	Message string `json:"message,omitempty"`
 }
-
-
 
 // Dependency represents a dependency requirement for a network function.
 
 type Dependency struct {
+	Name string `json:"name"`
 
-	Name     string            `json:"name"`
+	Type string `json:"type"`
 
-	Type     string            `json:"type"`
+	Version string `json:"version,omitempty"`
 
-	Version  string            `json:"version,omitempty"`
-
-	Required bool              `json:"required"`
+	Required bool `json:"required"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
-
 }
-
-
 
 // PortSpec defines a network port configuration for a service.
 
 type PortSpec struct {
+	Name string `json:"name"`
 
-	Name        string `json:"name"`
+	Port int32 `json:"port"`
 
-	Port        int32  `json:"port"`
+	TargetPort int32 `json:"targetPort,omitempty"`
 
-	TargetPort  int32  `json:"targetPort,omitempty"`
-
-	Protocol    string `json:"protocol,omitempty"`
+	Protocol string `json:"protocol,omitempty"`
 
 	ServiceType string `json:"serviceType,omitempty"`
-
 }
-
-
 
 // EnvVar represents an environment variable for a container.
 
 type EnvVar struct {
+	Name string `json:"name"`
 
-	Name      string        `json:"name"`
-
-	Value     string        `json:"value,omitempty"`
+	Value string `json:"value,omitempty"`
 
 	ValueFrom *EnvVarSource `json:"valueFrom,omitempty"`
-
 }
-
-
 
 // EnvVarSource defines sources for environment variable values.
 
 type EnvVarSource struct {
-
 	ConfigMapKeyRef *ConfigMapKeySelector `json:"configMapKeyRef,omitempty"`
 
-	SecretKeyRef    *SecretKeySelector    `json:"secretKeyRef,omitempty"`
+	SecretKeyRef *SecretKeySelector `json:"secretKeyRef,omitempty"`
 
-	FieldRef        *FieldSelector        `json:"fieldRef,omitempty"`
-
+	FieldRef *FieldSelector `json:"fieldRef,omitempty"`
 }
-
-
 
 // ConfigMapKeySelector selects a key from a ConfigMap.
 
 type ConfigMapKeySelector struct {
-
 	Name string `json:"name"`
 
-	Key  string `json:"key"`
-
+	Key string `json:"key"`
 }
-
-
 
 // SecretKeySelector selects a key from a Secret.
 
 type SecretKeySelector struct {
-
 	Name string `json:"name"`
 
-	Key  string `json:"key"`
-
+	Key string `json:"key"`
 }
-
-
 
 // FieldSelector selects a field from the pod spec.
 
 type FieldSelector struct {
-
 	FieldPath string `json:"fieldPath"`
-
 }
-
-
 
 // Optimization describes a performance or cost optimization that was applied.
 
 type Optimization struct {
+	Type string `json:"type"`
 
-	Type        string                 `json:"type"`
+	Description string `json:"description"`
 
-	Description string                 `json:"description"`
+	Impact string `json:"impact"`
 
-	Impact      string                 `json:"impact"`
-
-	Savings     map[string]interface{} `json:"savings,omitempty"`
-
+	Savings map[string]interface{} `json:"savings,omitempty"`
 }
-
-
 
 // CostComparison provides a comparison between original and optimized costs.
 
 type CostComparison struct {
+	OriginalCost float64 `json:"originalCost"`
 
-	OriginalCost   float64 `json:"originalCost"`
+	OptimizedCost float64 `json:"optimizedCost"`
 
-	OptimizedCost  float64 `json:"optimizedCost"`
-
-	SavingsAmount  float64 `json:"savingsAmount"`
+	SavingsAmount float64 `json:"savingsAmount"`
 
 	SavingsPercent float64 `json:"savingsPercent"`
-
 }
-
-
 
 // GitConflict represents a Git merge conflict that occurred during operations.
 
 type GitConflict struct {
+	File string `json:"file"`
 
-	File          string `json:"file"`
+	ConflictType string `json:"conflictType"`
 
-	ConflictType  string `json:"conflictType"`
-
-	LocalContent  string `json:"localContent"`
+	LocalContent string `json:"localContent"`
 
 	RemoteContent string `json:"remoteContent"`
 
-	Resolution    string `json:"resolution,omitempty"`
-
+	Resolution string `json:"resolution,omitempty"`
 }
-
-
 
 // ComplianceViolation represents a specific compliance rule violation.
 
 type ComplianceViolation struct {
+	Type string `json:"type"`
 
-	Type        string      `json:"type"`
+	Severity string `json:"severity"`
 
-	Severity    string      `json:"severity"`
+	Description string `json:"description"`
 
-	Description string      `json:"description"`
+	Resource string `json:"resource,omitempty"`
 
-	Resource    string      `json:"resource,omitempty"`
+	Value interface{} `json:"value"`
 
-	Value       interface{} `json:"value"`
+	Threshold interface{} `json:"threshold"`
 
-	Threshold   interface{} `json:"threshold"`
-
-	Timestamp   time.Time   `json:"timestamp"`
-
+	Timestamp time.Time `json:"timestamp"`
 }
-

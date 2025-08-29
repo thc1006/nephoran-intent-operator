@@ -28,28 +28,16 @@ limitations under the License.
 
 */
 
-
-
-
 package v1
 
-
-
 import (
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 )
-
-
 
 // SecretReference references a Kubernetes Secret for authentication credentials.
 
 // SecretReference is defined in audittrail_types.go to avoid duplication.
-
-
 
 // ManagedElementCredentials defines authentication credentials for a managed element.
 
@@ -76,24 +64,20 @@ type ManagedElementCredentials struct {
 	// ClientKeyRef references a secret containing the client key.
 
 	ClientKeyRef *SecretReference `json:"clientKeyRef,omitempty"`
-
 }
-
-
 
 // ManagedElementSpec defines the desired state of ManagedElement.
 
 type ManagedElementSpec struct {
+	DeploymentName string `json:"deploymentName"`
 
-	DeploymentName string                    `json:"deploymentName"`
+	Host string `json:"host"`
 
-	Host           string                    `json:"host"`
+	Port int `json:"port,omitempty"`
 
-	Port           int                       `json:"port,omitempty"`
+	Credentials ManagedElementCredentials `json:"credentials"`
 
-	Credentials    ManagedElementCredentials `json:"credentials"`
-
-	O1Config       string                    `json:"o1Config,omitempty"`
+	O1Config string `json:"o1Config,omitempty"`
 
 	// +kubebuilder:pruning:PreserveUnknownFields
 
@@ -102,10 +86,7 @@ type ManagedElementSpec struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 
 	E2Configuration runtime.RawExtension `json:"e2Configuration,omitempty"`
-
 }
-
-
 
 // ManagedElementStatus defines the observed state of ManagedElement.
 
@@ -114,56 +95,38 @@ type ManagedElementStatus struct {
 	// +optional.
 
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
-
 }
-
-
 
 //+kubebuilder:object:root=true
 
 //+kubebuilder:subresource:status
 
-
-
 // ManagedElement is the Schema for the managedelements API.
 
 type ManagedElement struct {
-
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-
-
-	Spec   ManagedElementSpec   `json:"spec,omitempty"`
+	Spec ManagedElementSpec `json:"spec,omitempty"`
 
 	Status ManagedElementStatus `json:"status,omitempty"`
-
 }
 
-
-
 //+kubebuilder:object:root=true
-
-
 
 // ManagedElementList contains a list of ManagedElement.
 
 type ManagedElementList struct {
-
 	metav1.TypeMeta `json:",inline"`
 
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-	Items           []ManagedElement `json:"items"`
-
+	Items []ManagedElement `json:"items"`
 }
-
-
 
 func init() {
 
 	SchemeBuilder.Register(&ManagedElement{}, &ManagedElementList{})
 
 }
-

@@ -28,342 +28,256 @@ limitations under the License.
 
 */
 
-
-
-
 package porch
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"math"
-
 	"sort"
-
 	"sync"
-
 	"time"
-
-
 
 	"github.com/go-logr/logr"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // DependencyGraphAnalyzer provides advanced graph analysis capabilities.
 
 type DependencyGraphAnalyzer struct {
+	logger logr.Logger
 
-	logger           logr.Logger
+	algorithms *GraphAlgorithms
 
-	algorithms       *GraphAlgorithms
-
-	visualizer       *GraphVisualizer
+	visualizer *GraphVisualizer
 
 	metricsCollector *GraphMetricsCollector
 
-	cache            *GraphAnalysisCache
+	cache *GraphAnalysisCache
 
-	mu               sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // GraphAlgorithms contains various graph algorithm implementations.
 
 type GraphAlgorithms struct {
+	tarjan *TarjanSCC
 
-	tarjan          *TarjanSCC
+	kosaraju *KosarajuSCC
 
-	kosaraju        *KosarajuSCC
+	dijkstra *DijkstraShortestPath
 
-	dijkstra        *DijkstraShortestPath
+	bellmanFord *BellmanFordShortestPath
 
-	bellmanFord     *BellmanFordShortestPath
+	floydWarshall *FloydWarshallAllPairs
 
-	floydWarshall   *FloydWarshallAllPairs
+	kruskal *KruskalMST
 
-	kruskal         *KruskalMST
+	prim *PrimMST
 
-	prim            *PrimMST
+	pageRank *PageRankAlgorithm
 
-	pageRank        *PageRankAlgorithm
-
-	betweenness     *BetweennessCentrality
+	betweenness *BetweennessCentrality
 
 	communityDetect *CommunityDetection
-
 }
-
-
 
 // TarjanSCC implements Tarjan's strongly connected components algorithm.
 
 type TarjanSCC struct {
+	index int
 
-	index      int
+	stack []*DependencyNode
 
-	stack      []*DependencyNode
+	indices map[string]int
 
-	indices    map[string]int
+	lowlinks map[string]int
 
-	lowlinks   map[string]int
-
-	onStack    map[string]bool
+	onStack map[string]bool
 
 	components [][]*DependencyNode
-
 }
-
-
 
 // KosarajuSCC implements Kosaraju's strongly connected components algorithm.
 
 type KosarajuSCC struct {
+	visited map[string]bool
 
-	visited    map[string]bool
-
-	stack      []*DependencyNode
+	stack []*DependencyNode
 
 	components [][]*DependencyNode
-
 }
-
-
 
 // DijkstraShortestPath implements Dijkstra's shortest path algorithm.
 
 type DijkstraShortestPath struct {
-
 	distances map[string]float64
 
-	previous  map[string]*DependencyNode
+	previous map[string]*DependencyNode
 
-	visited   map[string]bool
-
+	visited map[string]bool
 }
-
-
 
 // BellmanFordShortestPath implements Bellman-Ford shortest path algorithm.
 
 type BellmanFordShortestPath struct {
+	distances map[string]float64
 
-	distances   map[string]float64
-
-	previous    map[string]*DependencyNode
+	previous map[string]*DependencyNode
 
 	hasNegCycle bool
-
 }
-
-
 
 // FloydWarshallAllPairs implements Floyd-Warshall all-pairs shortest path algorithm.
 
 type FloydWarshallAllPairs struct {
-
 	distances map[string]map[string]float64
 
-	next      map[string]map[string]*DependencyNode
-
+	next map[string]map[string]*DependencyNode
 }
-
-
 
 // KruskalMST implements Kruskal's minimum spanning tree algorithm.
 
 type KruskalMST struct {
-
 	parent map[string]*DependencyNode
 
-	rank   map[string]int
+	rank map[string]int
 
-	edges  []*Edge
-
+	edges []*Edge
 }
-
-
 
 // PrimMST implements Prim's minimum spanning tree algorithm.
 
 type PrimMST struct {
-
-	key    map[string]float64
+	key map[string]float64
 
 	parent map[string]*DependencyNode
 
-	inMST  map[string]bool
-
+	inMST map[string]bool
 }
-
-
 
 // PageRankAlgorithm implements PageRank algorithm for node importance.
 
 type PageRankAlgorithm struct {
-
-	scores        map[string]float64
+	scores map[string]float64
 
 	dampingFactor float64
 
-	iterations    int
+	iterations int
 
-	tolerance     float64
-
+	tolerance float64
 }
-
-
 
 // BetweennessCentrality implements betweenness centrality calculation.
 
 type BetweennessCentrality struct {
-
 	centrality map[string]float64
 
-	sigma      map[string]float64
+	sigma map[string]float64
 
-	delta      map[string]float64
-
+	delta map[string]float64
 }
-
-
 
 // CommunityDetection implements community detection algorithms.
 
 type CommunityDetection struct {
-
 	communities [][]*DependencyNode
 
-	modularity  float64
-
+	modularity float64
 }
-
-
 
 // Edge represents a weighted edge in the graph.
 
 type Edge struct {
+	From *DependencyNode
 
-	From   *DependencyNode
-
-	To     *DependencyNode
+	To *DependencyNode
 
 	Weight float64
-
 }
-
-
 
 // GraphAnalysisResult contains comprehensive graph analysis results.
 
 type GraphAnalysisResult struct {
-
-	TopologicalOrder  []*DependencyNode
+	TopologicalOrder []*DependencyNode
 
 	StronglyConnected [][]*DependencyNode
 
-	CriticalPath      []*DependencyNode
+	CriticalPath []*DependencyNode
 
-	Bottlenecks       []*DependencyNode
+	Bottlenecks []*DependencyNode
 
-	CentralityScores  map[string]float64
+	CentralityScores map[string]float64
 
-	Communities       [][]*DependencyNode
+	Communities [][]*DependencyNode
 
-	GraphMetrics      *GraphMetrics
+	GraphMetrics *GraphMetrics
 
-	Anomalies         []*GraphAnomaly
+	Anomalies []*GraphAnomaly
 
 	OptimizationHints []*OptimizationHint
-
 }
-
-
 
 // GraphMetrics contains various graph metrics.
 
 type GraphMetrics struct {
+	Density float64
 
-	Density              float64
+	Diameter int
 
-	Diameter             int
+	Radius int
 
-	Radius               int
+	AveragePathLength float64
 
-	AveragePathLength    float64
+	ClusteringCoeff float64
 
-	ClusteringCoeff      float64
+	Modularity float64
 
-	Modularity           float64
+	Assortativity float64
 
-	Assortativity        float64
+	ConnectedComponents int
 
-	ConnectedComponents  int
+	MaxDegree int
 
-	MaxDegree            int
+	MinDegree int
 
-	MinDegree            int
-
-	AverageDegree        float64
+	AverageDegree float64
 
 	CyclomaticComplexity int
-
 }
-
-
 
 // GraphAnomaly represents an anomaly detected in the graph.
 
 type GraphAnomaly struct {
+	Type AnomalyType
 
-	Type        AnomalyType
+	Severity AnomalySeverity
 
-	Severity    AnomalySeverity
-
-	Nodes       []*DependencyNode
+	Nodes []*DependencyNode
 
 	Description string
 
-	Impact      string
+	Impact string
 
-	Suggestion  string
-
+	Suggestion string
 }
-
-
 
 // OptimizationHint provides graph optimization suggestions.
 
 type OptimizationHint struct {
+	Type OptimizationType
 
-	Type        OptimizationType
+	Priority int
 
-	Priority    int
-
-	Nodes       []*DependencyNode
+	Nodes []*DependencyNode
 
 	Description string
 
-	Benefit     string
+	Benefit string
 
-	Effort      EffortLevel
-
+	Effort EffortLevel
 }
-
-
 
 // NewDependencyGraphAnalyzer creates a new graph analyzer.
 
@@ -371,21 +285,18 @@ func NewDependencyGraphAnalyzer() *DependencyGraphAnalyzer {
 
 	return &DependencyGraphAnalyzer{
 
-		logger:           log.Log.WithName("graph-analyzer"),
+		logger: log.Log.WithName("graph-analyzer"),
 
-		algorithms:       initializeGraphAlgorithms(),
+		algorithms: initializeGraphAlgorithms(),
 
-		visualizer:       NewGraphVisualizer(),
+		visualizer: NewGraphVisualizer(),
 
 		metricsCollector: NewGraphMetricsCollector(),
 
-		cache:            NewGraphAnalysisCache(),
-
+		cache: NewGraphAnalysisCache(),
 	}
 
 }
-
-
 
 // AnalyzeGraph performs comprehensive graph analysis.
 
@@ -405,11 +316,7 @@ func (dga *DependencyGraphAnalyzer) AnalyzeGraph(
 
 		"edges", len(graph.Edges))
 
-
-
 	startTime := time.Now()
-
-
 
 	// Check cache.
 
@@ -425,23 +332,16 @@ func (dga *DependencyGraphAnalyzer) AnalyzeGraph(
 
 	}
 
-
-
 	result := &GraphAnalysisResult{
 
 		CentralityScores: make(map[string]float64),
-
 	}
-
-
 
 	// Perform various analyses in parallel.
 
 	var wg sync.WaitGroup
 
 	errChan := make(chan error, 10)
-
-
 
 	// Topological sort.
 
@@ -463,8 +363,6 @@ func (dga *DependencyGraphAnalyzer) AnalyzeGraph(
 
 	}()
 
-
-
 	// Strongly connected components.
 
 	wg.Add(1)
@@ -476,8 +374,6 @@ func (dga *DependencyGraphAnalyzer) AnalyzeGraph(
 		result.StronglyConnected = dga.findStronglyConnectedComponents(graph)
 
 	}()
-
-
 
 	// Critical path analysis.
 
@@ -491,8 +387,6 @@ func (dga *DependencyGraphAnalyzer) AnalyzeGraph(
 
 	}()
 
-
-
 	// Bottleneck detection.
 
 	wg.Add(1)
@@ -504,8 +398,6 @@ func (dga *DependencyGraphAnalyzer) AnalyzeGraph(
 		result.Bottlenecks = dga.detectBottlenecks(graph)
 
 	}()
-
-
 
 	// Centrality analysis.
 
@@ -519,8 +411,6 @@ func (dga *DependencyGraphAnalyzer) AnalyzeGraph(
 
 	}()
 
-
-
 	// Community detection.
 
 	wg.Add(1)
@@ -532,8 +422,6 @@ func (dga *DependencyGraphAnalyzer) AnalyzeGraph(
 		result.Communities = dga.detectCommunities(graph)
 
 	}()
-
-
 
 	// Graph metrics calculation.
 
@@ -547,8 +435,6 @@ func (dga *DependencyGraphAnalyzer) AnalyzeGraph(
 
 	}()
 
-
-
 	// Anomaly detection.
 
 	wg.Add(1)
@@ -560,8 +446,6 @@ func (dga *DependencyGraphAnalyzer) AnalyzeGraph(
 		result.Anomalies = dga.detectAnomalies(graph)
 
 	}()
-
-
 
 	// Optimization hints.
 
@@ -575,13 +459,9 @@ func (dga *DependencyGraphAnalyzer) AnalyzeGraph(
 
 	}()
 
-
-
 	wg.Wait()
 
 	close(errChan)
-
-
 
 	// Check for errors.
 
@@ -595,8 +475,6 @@ func (dga *DependencyGraphAnalyzer) AnalyzeGraph(
 
 	}
 
-
-
 	// Cache the result.
 
 	if opts.UseCache {
@@ -604,8 +482,6 @@ func (dga *DependencyGraphAnalyzer) AnalyzeGraph(
 		dga.cache.Set(graph.ID, result)
 
 	}
-
-
 
 	elapsed := time.Since(startTime)
 
@@ -617,13 +493,9 @@ func (dga *DependencyGraphAnalyzer) AnalyzeGraph(
 
 		"hints", len(result.OptimizationHints))
 
-
-
 	return result, nil
 
 }
-
-
 
 // topologicalSort performs topological sorting using DFS.
 
@@ -634,8 +506,6 @@ func (dga *DependencyGraphAnalyzer) topologicalSort(graph *DependencyGraph) ([]*
 	recStack := make(map[string]bool)
 
 	var result []*DependencyNode
-
-
 
 	var visit func(node *DependencyNode) error
 
@@ -653,13 +523,9 @@ func (dga *DependencyGraphAnalyzer) topologicalSort(graph *DependencyGraph) ([]*
 
 		}
 
-
-
 		visited[node.ID] = true
 
 		recStack[node.ID] = true
-
-
 
 		// Visit dependencies.
 
@@ -673,8 +539,6 @@ func (dga *DependencyGraphAnalyzer) topologicalSort(graph *DependencyGraph) ([]*
 
 		}
 
-
-
 		recStack[node.ID] = false
 
 		result = append([]*DependencyNode{node}, result...)
@@ -682,8 +546,6 @@ func (dga *DependencyGraphAnalyzer) topologicalSort(graph *DependencyGraph) ([]*
 		return nil
 
 	}
-
-
 
 	// Visit all nodes.
 
@@ -701,13 +563,9 @@ func (dga *DependencyGraphAnalyzer) topologicalSort(graph *DependencyGraph) ([]*
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // findStronglyConnectedComponents uses Tarjan's algorithm.
 
@@ -715,21 +573,18 @@ func (dga *DependencyGraphAnalyzer) findStronglyConnectedComponents(graph *Depen
 
 	tarjan := &TarjanSCC{
 
-		index:      0,
+		index: 0,
 
-		stack:      []*DependencyNode{},
+		stack: []*DependencyNode{},
 
-		indices:    make(map[string]int),
+		indices: make(map[string]int),
 
-		lowlinks:   make(map[string]int),
+		lowlinks: make(map[string]int),
 
-		onStack:    make(map[string]bool),
+		onStack: make(map[string]bool),
 
 		components: [][]*DependencyNode{},
-
 	}
-
-
 
 	for _, node := range graph.Nodes {
 
@@ -741,13 +596,9 @@ func (dga *DependencyGraphAnalyzer) findStronglyConnectedComponents(graph *Depen
 
 	}
 
-
-
 	return tarjan.components
 
 }
-
-
 
 // strongConnect is the main recursive function for Tarjan's algorithm.
 
@@ -762,8 +613,6 @@ func (t *TarjanSCC) strongConnect(node *DependencyNode) {
 	t.stack = append(t.stack, node)
 
 	t.onStack[node.ID] = true
-
-
 
 	// Consider successors.
 
@@ -788,8 +637,6 @@ func (t *TarjanSCC) strongConnect(node *DependencyNode) {
 		}
 
 	}
-
-
 
 	// If node is a root node, pop the stack and create SCC.
 
@@ -825,8 +672,6 @@ func (t *TarjanSCC) strongConnect(node *DependencyNode) {
 
 }
 
-
-
 // findCriticalPath finds the longest path in the DAG.
 
 func (dga *DependencyGraphAnalyzer) findCriticalPath(graph *DependencyGraph) []*DependencyNode {
@@ -843,8 +688,6 @@ func (dga *DependencyGraphAnalyzer) findCriticalPath(graph *DependencyGraph) []*
 
 	}
 
-
-
 	// Topological sort first.
 
 	order, err := dga.topologicalSort(graph)
@@ -856,8 +699,6 @@ func (dga *DependencyGraphAnalyzer) findCriticalPath(graph *DependencyGraph) []*
 		return nil
 
 	}
-
-
 
 	// Calculate longest paths.
 
@@ -877,8 +718,6 @@ func (dga *DependencyGraphAnalyzer) findCriticalPath(graph *DependencyGraph) []*
 
 	}
 
-
-
 	// Find the node with maximum distance.
 
 	maxDist := 0
@@ -897,8 +736,6 @@ func (dga *DependencyGraphAnalyzer) findCriticalPath(graph *DependencyGraph) []*
 
 	}
 
-
-
 	// Reconstruct path.
 
 	path := []*DependencyNode{}
@@ -909,13 +746,9 @@ func (dga *DependencyGraphAnalyzer) findCriticalPath(graph *DependencyGraph) []*
 
 	}
 
-
-
 	return path
 
 }
-
-
 
 // detectBottlenecks identifies bottleneck nodes in the graph.
 
@@ -923,13 +756,9 @@ func (dga *DependencyGraphAnalyzer) detectBottlenecks(graph *DependencyGraph) []
 
 	bottlenecks := []*DependencyNode{}
 
-
-
 	// Calculate betweenness centrality.
 
 	centrality := dga.calculateBetweennessCentrality(graph)
-
-
 
 	// Calculate average and standard deviation.
 
@@ -947,21 +776,15 @@ func (dga *DependencyGraphAnalyzer) detectBottlenecks(graph *DependencyGraph) []
 
 	}
 
-
-
 	if count == 0 {
 
 		return bottlenecks
 
 	}
 
-
-
 	avg := sum / float64(count)
 
 	stdDev := math.Sqrt(sumSq/float64(count) - avg*avg)
-
-
 
 	// Identify nodes with high betweenness (> avg + 2*stdDev).
 
@@ -981,8 +804,6 @@ func (dga *DependencyGraphAnalyzer) detectBottlenecks(graph *DependencyGraph) []
 
 	}
 
-
-
 	// Sort by centrality score.
 
 	sort.Slice(bottlenecks, func(i, j int) bool {
@@ -991,13 +812,9 @@ func (dga *DependencyGraphAnalyzer) detectBottlenecks(graph *DependencyGraph) []
 
 	})
 
-
-
 	return bottlenecks
 
 }
-
-
 
 // calculateBetweennessCentrality calculates betweenness centrality for all nodes.
 
@@ -1010,8 +827,6 @@ func (dga *DependencyGraphAnalyzer) calculateBetweennessCentrality(graph *Depend
 		centrality[node.ID] = 0.0
 
 	}
-
-
 
 	// For each pair of nodes, find shortest paths and update centrality.
 
@@ -1028,8 +843,6 @@ func (dga *DependencyGraphAnalyzer) calculateBetweennessCentrality(graph *Depend
 		dist := make(map[string]int)
 
 		delta := make(map[string]float64)
-
-
 
 		// Initialize.
 
@@ -1049,8 +862,6 @@ func (dga *DependencyGraphAnalyzer) calculateBetweennessCentrality(graph *Depend
 
 		dist[s.ID] = 0
 
-
-
 		// BFS.
 
 		queue := []*DependencyNode{s}
@@ -1062,8 +873,6 @@ func (dga *DependencyGraphAnalyzer) calculateBetweennessCentrality(graph *Depend
 			queue = queue[1:]
 
 			stack = append(stack, v)
-
-
 
 			for _, edge := range v.Dependencies {
 
@@ -1093,8 +902,6 @@ func (dga *DependencyGraphAnalyzer) calculateBetweennessCentrality(graph *Depend
 
 		}
 
-
-
 		// Accumulation.
 
 		for i := len(stack) - 1; i >= 0; i-- {
@@ -1117,8 +924,6 @@ func (dga *DependencyGraphAnalyzer) calculateBetweennessCentrality(graph *Depend
 
 	}
 
-
-
 	// Normalize.
 
 	n := float64(len(graph.Nodes))
@@ -1135,13 +940,9 @@ func (dga *DependencyGraphAnalyzer) calculateBetweennessCentrality(graph *Depend
 
 	}
 
-
-
 	return centrality
 
 }
-
-
 
 // calculateCentrality calculates various centrality measures.
 
@@ -1154,8 +955,6 @@ func (dga *DependencyGraphAnalyzer) calculateCentrality(graph *DependencyGraph) 
 	centrality := make(map[string]float64)
 
 	maxDegree := 0
-
-
 
 	for _, node := range graph.Nodes {
 
@@ -1171,8 +970,6 @@ func (dga *DependencyGraphAnalyzer) calculateCentrality(graph *DependencyGraph) 
 
 	}
 
-
-
 	// Normalize.
 
 	if maxDegree > 0 {
@@ -1185,13 +982,9 @@ func (dga *DependencyGraphAnalyzer) calculateCentrality(graph *DependencyGraph) 
 
 	}
 
-
-
 	return centrality
 
 }
-
-
 
 // detectCommunities uses Louvain algorithm for community detection.
 
@@ -1204,8 +997,6 @@ func (dga *DependencyGraphAnalyzer) detectCommunities(graph *DependencyGraph) []
 	visited := make(map[string]bool)
 
 	communities := [][]*DependencyNode{}
-
-
 
 	var dfs func(node *DependencyNode, community []*DependencyNode) []*DependencyNode
 
@@ -1221,8 +1012,6 @@ func (dga *DependencyGraphAnalyzer) detectCommunities(graph *DependencyGraph) []
 
 		community = append(community, node)
 
-
-
 		for _, edge := range node.Dependencies {
 
 			community = dfs(edge.To, community)
@@ -1235,13 +1024,9 @@ func (dga *DependencyGraphAnalyzer) detectCommunities(graph *DependencyGraph) []
 
 		}
 
-
-
 		return community
 
 	}
-
-
 
 	for _, node := range graph.Nodes {
 
@@ -1259,13 +1044,9 @@ func (dga *DependencyGraphAnalyzer) detectCommunities(graph *DependencyGraph) []
 
 	}
 
-
-
 	return communities
 
 }
-
-
 
 // calculateGraphMetrics calculates various graph metrics.
 
@@ -1275,15 +1056,10 @@ func (dga *DependencyGraphAnalyzer) calculateGraphMetrics(graph *DependencyGraph
 
 	m := float64(len(graph.Edges))
 
-
-
 	metrics := &GraphMetrics{
 
 		ConnectedComponents: len(dga.detectCommunities(graph)),
-
 	}
-
-
 
 	if n > 0 {
 
@@ -1295,8 +1071,6 @@ func (dga *DependencyGraphAnalyzer) calculateGraphMetrics(graph *DependencyGraph
 
 		}
 
-
-
 		// Degree statistics.
 
 		totalDegree := 0
@@ -1304,8 +1078,6 @@ func (dga *DependencyGraphAnalyzer) calculateGraphMetrics(graph *DependencyGraph
 		minDegree := math.MaxInt32
 
 		maxDegree := 0
-
-
 
 		for _, node := range graph.Nodes {
 
@@ -1327,15 +1099,11 @@ func (dga *DependencyGraphAnalyzer) calculateGraphMetrics(graph *DependencyGraph
 
 		}
 
-
-
 		metrics.MinDegree = minDegree
 
 		metrics.MaxDegree = maxDegree
 
 		metrics.AverageDegree = float64(totalDegree) / n
-
-
 
 		// Cyclomatic complexity = E - N + 2P.
 
@@ -1345,25 +1113,17 @@ func (dga *DependencyGraphAnalyzer) calculateGraphMetrics(graph *DependencyGraph
 
 	}
 
-
-
 	// Calculate diameter and radius (simplified).
 
 	metrics.Diameter, metrics.Radius = dga.calculateDiameterAndRadius(graph)
-
-
 
 	// Calculate clustering coefficient.
 
 	metrics.ClusteringCoeff = dga.calculateClusteringCoefficient(graph)
 
-
-
 	return metrics
 
 }
-
-
 
 // calculateDiameterAndRadius calculates graph diameter and radius.
 
@@ -1378,8 +1138,6 @@ func (dga *DependencyGraphAnalyzer) calculateDiameterAndRadius(graph *Dependency
 		return 0, 0
 
 	}
-
-
 
 	// Create distance matrix.
 
@@ -1413,8 +1171,6 @@ func (dga *DependencyGraphAnalyzer) calculateDiameterAndRadius(graph *Dependency
 
 	}
 
-
-
 	// Initialize with direct edges.
 
 	for _, edge := range graph.Edges {
@@ -1426,8 +1182,6 @@ func (dga *DependencyGraphAnalyzer) calculateDiameterAndRadius(graph *Dependency
 		dist[fromIdx][toIdx] = 1
 
 	}
-
-
 
 	// Floyd-Warshall.
 
@@ -1449,15 +1203,11 @@ func (dga *DependencyGraphAnalyzer) calculateDiameterAndRadius(graph *Dependency
 
 	}
 
-
-
 	// Calculate diameter and radius.
 
 	diameter := 0
 
 	radius := math.MaxInt32
-
-
 
 	for i := range n {
 
@@ -1487,13 +1237,9 @@ func (dga *DependencyGraphAnalyzer) calculateDiameterAndRadius(graph *Dependency
 
 	}
 
-
-
 	return diameter, radius
 
 }
-
-
 
 // calculateClusteringCoefficient calculates the clustering coefficient.
 
@@ -1502,8 +1248,6 @@ func (dga *DependencyGraphAnalyzer) calculateClusteringCoefficient(graph *Depend
 	totalCoeff := 0.0
 
 	count := 0
-
-
 
 	for _, node := range graph.Nodes {
 
@@ -1521,8 +1265,6 @@ func (dga *DependencyGraphAnalyzer) calculateClusteringCoefficient(graph *Depend
 
 		}
 
-
-
 		k := len(neighbors)
 
 		if k < 2 {
@@ -1530,8 +1272,6 @@ func (dga *DependencyGraphAnalyzer) calculateClusteringCoefficient(graph *Depend
 			continue
 
 		}
-
-
 
 		// Count edges between neighbors.
 
@@ -1551,8 +1291,6 @@ func (dga *DependencyGraphAnalyzer) calculateClusteringCoefficient(graph *Depend
 
 		}
 
-
-
 		// Local clustering coefficient.
 
 		maxPossibleEdges := k * (k - 1) / 2
@@ -1565,29 +1303,21 @@ func (dga *DependencyGraphAnalyzer) calculateClusteringCoefficient(graph *Depend
 
 	}
 
-
-
 	if count == 0 {
 
 		return 0
 
 	}
 
-
-
 	return totalCoeff / float64(count)
 
 }
-
-
 
 // detectAnomalies detects various anomalies in the graph.
 
 func (dga *DependencyGraphAnalyzer) detectAnomalies(graph *DependencyGraph) []*GraphAnomaly {
 
 	anomalies := []*GraphAnomaly{}
-
-
 
 	// Detect circular dependencies.
 
@@ -1599,25 +1329,22 @@ func (dga *DependencyGraphAnalyzer) detectAnomalies(graph *DependencyGraph) []*G
 
 			anomalies = append(anomalies, &GraphAnomaly{
 
-				Type:        AnomalyTypeCircularDependency,
+				Type: AnomalyTypeCircularDependency,
 
-				Severity:    AnomalySeverityCritical,
+				Severity: AnomalySeverityCritical,
 
-				Nodes:       component,
+				Nodes: component,
 
 				Description: fmt.Sprintf("Circular dependency involving %d nodes", len(component)),
 
-				Impact:      "Prevents proper initialization order",
+				Impact: "Prevents proper initialization order",
 
-				Suggestion:  "Break the cycle by introducing interfaces or restructuring dependencies",
-
+				Suggestion: "Break the cycle by introducing interfaces or restructuring dependencies",
 			})
 
 		}
 
 	}
-
-
 
 	// Detect orphaned nodes.
 
@@ -1627,25 +1354,22 @@ func (dga *DependencyGraphAnalyzer) detectAnomalies(graph *DependencyGraph) []*G
 
 			anomalies = append(anomalies, &GraphAnomaly{
 
-				Type:        AnomalyTypeOrphanedNode,
+				Type: AnomalyTypeOrphanedNode,
 
-				Severity:    AnomalySeverityLow,
+				Severity: AnomalySeverityLow,
 
-				Nodes:       []*DependencyNode{node},
+				Nodes: []*DependencyNode{node},
 
 				Description: fmt.Sprintf("Node %s has no dependencies", node.ID),
 
-				Impact:      "May indicate unused package",
+				Impact: "May indicate unused package",
 
-				Suggestion:  "Consider removing if unused",
-
+				Suggestion: "Consider removing if unused",
 			})
 
 		}
 
 	}
-
-
 
 	// Detect deep dependency chains.
 
@@ -1657,31 +1381,26 @@ func (dga *DependencyGraphAnalyzer) detectAnomalies(graph *DependencyGraph) []*G
 
 			anomalies = append(anomalies, &GraphAnomaly{
 
-				Type:        AnomalyTypeDeepChain,
+				Type: AnomalyTypeDeepChain,
 
-				Severity:    AnomalySeverityMedium,
+				Severity: AnomalySeverityMedium,
 
-				Nodes:       []*DependencyNode{node},
+				Nodes: []*DependencyNode{node},
 
 				Description: fmt.Sprintf("Deep dependency chain of depth %d", depth),
 
-				Impact:      "Increases complexity and deployment time",
+				Impact: "Increases complexity and deployment time",
 
-				Suggestion:  "Consider flattening the dependency structure",
-
+				Suggestion: "Consider flattening the dependency structure",
 			})
 
 		}
 
 	}
 
-
-
 	return anomalies
 
 }
-
-
 
 // generateOptimizationHints generates optimization suggestions.
 
@@ -1695,8 +1414,6 @@ func (dga *DependencyGraphAnalyzer) generateOptimizationHints(
 
 	hints := []*OptimizationHint{}
 
-
-
 	// Suggest removing bottlenecks.
 
 	if len(analysis.Bottlenecks) > 0 {
@@ -1705,25 +1422,22 @@ func (dga *DependencyGraphAnalyzer) generateOptimizationHints(
 
 			hints = append(hints, &OptimizationHint{
 
-				Type:        OptimizationTypeReduceBottleneck,
+				Type: OptimizationTypeReduceBottleneck,
 
-				Priority:    100,
+				Priority: 100,
 
-				Nodes:       []*DependencyNode{bottleneck},
+				Nodes: []*DependencyNode{bottleneck},
 
 				Description: fmt.Sprintf("Node %s is a bottleneck", bottleneck.ID),
 
-				Benefit:     "Reducing dependencies on this node will improve resilience",
+				Benefit: "Reducing dependencies on this node will improve resilience",
 
-				Effort:      EffortLevelMedium,
-
+				Effort: EffortLevelMedium,
 			})
 
 		}
 
 	}
-
-
 
 	// Suggest parallelization opportunities.
 
@@ -1731,21 +1445,18 @@ func (dga *DependencyGraphAnalyzer) generateOptimizationHints(
 
 		hints = append(hints, &OptimizationHint{
 
-			Type:        OptimizationTypeParallelization,
+			Type: OptimizationTypeParallelization,
 
-			Priority:    80,
+			Priority: 80,
 
 			Description: "Low graph density suggests parallelization opportunities",
 
-			Benefit:     "Parallel deployment can reduce overall deployment time",
+			Benefit: "Parallel deployment can reduce overall deployment time",
 
-			Effort:      EffortLevelLow,
-
+			Effort: EffortLevelLow,
 		})
 
 	}
-
-
 
 	// Suggest consolidation for highly fragmented graphs.
 
@@ -1753,31 +1464,24 @@ func (dga *DependencyGraphAnalyzer) generateOptimizationHints(
 
 		hints = append(hints, &OptimizationHint{
 
-			Type:        OptimizationTypeConsolidation,
+			Type: OptimizationTypeConsolidation,
 
-			Priority:    60,
+			Priority: 60,
 
 			Description: "High number of disconnected components",
 
-			Benefit:     "Consolidating related packages can simplify management",
+			Benefit: "Consolidating related packages can simplify management",
 
-			Effort:      EffortLevelHigh,
-
+			Effort: EffortLevelHigh,
 		})
 
 	}
-
-
 
 	return hints
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (dga *DependencyGraphAnalyzer) hasEdge(graph *DependencyGraph, from, to *DependencyNode) bool {
 
@@ -1795,8 +1499,6 @@ func (dga *DependencyGraphAnalyzer) hasEdge(graph *DependencyGraph, from, to *De
 
 }
 
-
-
 func (dga *DependencyGraphAnalyzer) calculateDependencyDepth(node *DependencyNode, depth int, visited map[string]bool) int {
 
 	if visited[node.ID] {
@@ -1806,8 +1508,6 @@ func (dga *DependencyGraphAnalyzer) calculateDependencyDepth(node *DependencyNod
 	}
 
 	visited[node.ID] = true
-
-
 
 	maxDepth := depth
 
@@ -1823,13 +1523,9 @@ func (dga *DependencyGraphAnalyzer) calculateDependencyDepth(node *DependencyNod
 
 	}
 
-
-
 	return maxDepth
 
 }
-
-
 
 func min(a, b int) int {
 
@@ -1843,8 +1539,6 @@ func min(a, b int) int {
 
 }
 
-
-
 func initializeGraphAlgorithms() *GraphAlgorithms {
 
 	return &GraphAlgorithms{
@@ -1855,17 +1549,11 @@ func initializeGraphAlgorithms() *GraphAlgorithms {
 
 }
 
-
-
 // Additional types and enums.
-
-
 
 // AnomalyType represents a anomalytype.
 
 type AnomalyType string
-
-
 
 const (
 
@@ -1884,16 +1572,11 @@ const (
 	// AnomalyTypeVersionConflict holds anomalytypeversionconflict value.
 
 	AnomalyTypeVersionConflict AnomalyType = "version_conflict"
-
 )
-
-
 
 // AnomalySeverity represents a anomalyseverity.
 
 type AnomalySeverity string
-
-
 
 const (
 
@@ -1912,16 +1595,11 @@ const (
 	// AnomalySeverityCritical holds anomalyseveritycritical value.
 
 	AnomalySeverityCritical AnomalySeverity = "critical"
-
 )
-
-
 
 // OptimizationType represents a optimizationtype.
 
 type OptimizationType string
-
-
 
 const (
 
@@ -1940,16 +1618,11 @@ const (
 	// OptimizationTypeCaching holds optimizationtypecaching value.
 
 	OptimizationTypeCaching OptimizationType = "caching"
-
 )
-
-
 
 // EffortLevel represents a effortlevel.
 
 type EffortLevel string
-
-
 
 const (
 
@@ -1964,22 +1637,16 @@ const (
 	// EffortLevelHigh holds effortlevelhigh value.
 
 	EffortLevelHigh EffortLevel = "high"
-
 )
-
-
 
 // AnalysisOptions represents a analysisoptions.
 
 type AnalysisOptions struct {
-
-	UseCache         bool
+	UseCache bool
 
 	ParallelAnalysis bool
 
-	MaxDepth         int
+	MaxDepth int
 
-	Timeout          time.Duration
-
+	Timeout time.Duration
 }
-

@@ -1,47 +1,28 @@
-
 package testutils
 
-
-
 import (
-
 	"context"
-
 	"time"
-
-
-
-	corev1 "k8s.io/api/core/v1"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/apimachinery/pkg/runtime"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-
 
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
-
-
 
 // TestFixtures provides common test fixtures and utilities.
 
 type TestFixtures struct {
+	Scheme *runtime.Scheme
 
-	Scheme    *runtime.Scheme
-
-	Client    client.Client
+	Client client.Client
 
 	Namespace string
-
 }
-
-
 
 // NewTestFixtures creates a new test fixtures instance.
 
@@ -53,27 +34,20 @@ func NewTestFixtures() *TestFixtures {
 
 	_ = nephoranv1.AddToScheme(scheme)
 
-
-
 	return &TestFixtures{
 
-		Scheme:    scheme,
+		Scheme: scheme,
 
-		Client:    fake.NewClientBuilder().WithScheme(scheme).Build(),
+		Client: fake.NewClientBuilder().WithScheme(scheme).Build(),
 
 		Namespace: "default",
-
 	}
 
 }
 
-
-
 // NetworkIntentFixtures provides NetworkIntent test fixtures.
 
 type NetworkIntentFixtures struct{}
-
-
 
 // CreateBasicNetworkIntent creates a basic NetworkIntent for testing.
 
@@ -85,33 +59,30 @@ func (nif *NetworkIntentFixtures) CreateBasicNetworkIntent(name, namespace strin
 
 			APIVersion: "nephoran.com/v1",
 
-			Kind:       "NetworkIntent",
-
+			Kind: "NetworkIntent",
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      name,
+			Name: name,
 
 			Namespace: namespace,
-
 		},
 
 		Spec: nephoranv1.NetworkIntentSpec{
 
-			Intent:          "Deploy a high-performance 5G AMF instance with auto-scaling enabled",
+			Intent: "Deploy a high-performance 5G AMF instance with auto-scaling enabled",
 
-			Priority:        nephoranv1.PriorityHigh,
+			Priority: nephoranv1.PriorityHigh,
 
 			TargetNamespace: "nephio-system",
 
-			TargetCluster:   "default",
-
+			TargetCluster: "default",
 		},
 
 		Status: nephoranv1.NetworkIntentStatus{
 
-			Phase:       nephoranv1.NetworkIntentPhasePending,
+			Phase: nephoranv1.NetworkIntentPhasePending,
 
 			LastMessage: "Intent created",
 
@@ -119,23 +90,17 @@ func (nif *NetworkIntentFixtures) CreateBasicNetworkIntent(name, namespace strin
 
 				{
 
-					Type:   "Ready",
+					Type: "Ready",
 
 					Status: metav1.ConditionFalse,
 
 					Reason: "Pending",
-
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // CreateProcessingNetworkIntent creates a NetworkIntent in Processing phase.
 
@@ -151,8 +116,6 @@ func (nif *NetworkIntentFixtures) CreateProcessingNetworkIntent(name, namespace 
 
 }
 
-
-
 // CreateDeployedNetworkIntent creates a NetworkIntent in Deployed phase.
 
 func (nif *NetworkIntentFixtures) CreateDeployedNetworkIntent(name, namespace string) *nephoranv1.NetworkIntent {
@@ -167,27 +130,21 @@ func (nif *NetworkIntentFixtures) CreateDeployedNetworkIntent(name, namespace st
 
 		{
 
-			Type:   "Ready",
+			Type: "Ready",
 
 			Status: metav1.ConditionTrue,
 
 			Reason: "Deployed",
-
 		},
-
 	}
 
 	return intent
 
 }
 
-
-
 // E2NodeSetFixtures provides E2NodeSet test fixtures.
 
 type E2NodeSetFixtures struct{}
-
-
 
 // CreateBasicE2NodeSet creates a basic E2NodeSet for testing.
 
@@ -199,16 +156,14 @@ func (enf *E2NodeSetFixtures) CreateBasicE2NodeSet(name, namespace string, repli
 
 			APIVersion: "nephoran.com/v1",
 
-			Kind:       "E2NodeSet",
-
+			Kind: "E2NodeSet",
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      name,
+			Name: name,
 
 			Namespace: namespace,
-
 		},
 
 		Spec: nephoranv1.E2NodeSetSpec{
@@ -219,7 +174,7 @@ func (enf *E2NodeSetFixtures) CreateBasicE2NodeSet(name, namespace string, repli
 
 				Spec: nephoranv1.E2NodeSpec{
 
-					NodeID:             "test-node",
+					NodeID: "test-node",
 
 					E2InterfaceVersion: "v3.0",
 
@@ -227,51 +182,41 @@ func (enf *E2NodeSetFixtures) CreateBasicE2NodeSet(name, namespace string, repli
 
 						{
 
-							FunctionID:  1,
+							FunctionID: 1,
 
-							Revision:    1,
+							Revision: 1,
 
 							Description: "KPM Service Model",
 
-							OID:         "1.3.6.1.4.1.53148.1.1.2.2",
-
+							OID: "1.3.6.1.4.1.53148.1.1.2.2",
 						},
-
 					},
-
 				},
-
 			},
 
 			SimulationConfig: &nephoranv1.SimulationConfig{
 
-				UECount:           100,
+				UECount: 100,
 
 				TrafficGeneration: true,
 
-				TrafficProfile:    nephoranv1.TrafficProfileHigh,
+				TrafficProfile: nephoranv1.TrafficProfileHigh,
 
-				MetricsInterval:   "30s",
-
+				MetricsInterval: "30s",
 			},
 
 			RicEndpoint: "http://ric-service:8080",
-
 		},
 
 		Status: nephoranv1.E2NodeSetStatus{
 
-			ReadyReplicas:   0,
+			ReadyReplicas: 0,
 
 			CurrentReplicas: 0,
-
 		},
-
 	}
 
 }
-
-
 
 // CreateReadyE2NodeSet creates an E2NodeSet in Ready phase.
 
@@ -287,21 +232,17 @@ func (enf *E2NodeSetFixtures) CreateReadyE2NodeSet(name, namespace string, repli
 
 		{
 
-			Type:   nephoranv1.E2NodeSetConditionAvailable,
+			Type: nephoranv1.E2NodeSetConditionAvailable,
 
 			Status: metav1.ConditionTrue,
 
 			Reason: "AllNodesReady",
-
 		},
-
 	}
 
 	return nodeSet
 
 }
-
-
 
 // CreateScalingE2NodeSet creates an E2NodeSet in Scaling phase.
 
@@ -317,27 +258,21 @@ func (enf *E2NodeSetFixtures) CreateScalingE2NodeSet(name, namespace string, rep
 
 		{
 
-			Type:   nephoranv1.E2NodeSetConditionProgressing,
+			Type: nephoranv1.E2NodeSetConditionProgressing,
 
 			Status: metav1.ConditionTrue,
 
 			Reason: "Scaling",
-
 		},
-
 	}
 
 	return nodeSet
 
 }
 
-
-
 // ConfigMapFixtures provides ConfigMap test fixtures.
 
 type ConfigMapFixtures struct{}
-
-
 
 // CreateE2NodeConfigMap creates a ConfigMap for E2 node configuration.
 
@@ -349,13 +284,12 @@ func (cmf *ConfigMapFixtures) CreateE2NodeConfigMap(name, namespace string, node
 
 			APIVersion: "v1",
 
-			Kind:       "ConfigMap",
-
+			Kind: "ConfigMap",
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      name,
+			Name: name,
 
 			Namespace: namespace,
 
@@ -363,12 +297,10 @@ func (cmf *ConfigMapFixtures) CreateE2NodeConfigMap(name, namespace string, node
 
 				"nephoran.com/e2-nodeset": "test-nodeset",
 
-				"app":                     "e2-node-simulator",
+				"app": "e2-node-simulator",
 
 				"nephoran.com/node-index": string(rune('0' + nodeIndex)),
-
 			},
-
 		},
 
 		Data: map[string]string{
@@ -424,14 +356,10 @@ func (cmf *ConfigMapFixtures) CreateE2NodeConfigMap(name, namespace string, node
 				"heartbeatCount": 1
 
 			}`,
-
 		},
-
 	}
 
 }
-
-
 
 // Global fixture instances.
 
@@ -448,10 +376,7 @@ var (
 	// ConfigMapFixture holds configmapfixture value.
 
 	ConfigMapFixture = &ConfigMapFixtures{}
-
 )
-
-
 
 // WaitForCondition is a helper function to wait for a condition.
 
@@ -461,13 +386,9 @@ func WaitForCondition(ctx context.Context, condition func() bool, timeout time.D
 
 	defer timer.Stop()
 
-
-
 	ticker := time.NewTicker(100 * time.Millisecond)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -495,8 +416,6 @@ func WaitForCondition(ctx context.Context, condition func() bool, timeout time.D
 
 }
 
-
-
 // CreateTestContext creates a context with timeout for tests.
 
 func CreateTestContext(timeout time.Duration) (context.Context, context.CancelFunc) {
@@ -504,4 +423,3 @@ func CreateTestContext(timeout time.Duration) (context.Context, context.CancelFu
 	return context.WithTimeout(context.Background(), timeout)
 
 }
-

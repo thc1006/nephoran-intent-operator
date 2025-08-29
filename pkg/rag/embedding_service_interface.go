@@ -1,23 +1,12 @@
 //go:build !disable_rag && !test
 
-
-
-
 package rag
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
-
 )
-
-
 
 // EmbeddingServiceInterface defines the interface for embedding services.
 
@@ -29,51 +18,34 @@ type EmbeddingServiceInterface interface {
 
 	GetEmbedding(ctx context.Context, text string) ([]float64, error)
 
-
-
 	// CalculateSimilarity calculates semantic similarity between two texts.
 
 	CalculateSimilarity(ctx context.Context, text1, text2 string) (float64, error)
-
-
 
 	// GenerateEmbeddings generates multiple embeddings in batch.
 
 	GenerateEmbeddings(ctx context.Context, request *EmbeddingRequest) (*EmbeddingResponse, error)
 
-
-
 	// HealthCheck verifies the service is operational.
 
 	HealthCheck(ctx context.Context) error
-
-
 
 	// GetMetrics returns service metrics.
 
 	GetMetrics() *EmbeddingMetrics
 
-
-
 	// Close releases resources.
 
 	Close() error
-
 }
-
-
 
 // EmbeddingServiceAdapter adapts the concrete EmbeddingService to the interface.
 
 // This provides backward compatibility while enabling proper interface abstraction.
 
 type EmbeddingServiceAdapter struct {
-
 	service *EmbeddingService
-
 }
-
-
 
 // NewEmbeddingServiceAdapter creates a new adapter for the concrete EmbeddingService.
 
@@ -82,12 +54,9 @@ func NewEmbeddingServiceAdapter(service *EmbeddingService) EmbeddingServiceInter
 	return &EmbeddingServiceAdapter{
 
 		service: service,
-
 	}
 
 }
-
-
 
 // GetEmbedding implements EmbeddingServiceInterface.
 
@@ -99,13 +68,11 @@ func (a *EmbeddingServiceAdapter) GetEmbedding(ctx context.Context, text string)
 
 	}
 
-
-
 	request := &EmbeddingRequest{
 
-		Texts:     []string{text},
+		Texts: []string{text},
 
-		UseCache:  true,
+		UseCache: true,
 
 		RequestID: generateRequestID("single_embedding"),
 
@@ -114,12 +81,8 @@ func (a *EmbeddingServiceAdapter) GetEmbedding(ctx context.Context, text string)
 			"operation": "single_embedding",
 
 			"timestamp": time.Now(),
-
 		},
-
 	}
-
-
 
 	response, err := a.service.GenerateEmbeddings(ctx, request)
 
@@ -129,15 +92,11 @@ func (a *EmbeddingServiceAdapter) GetEmbedding(ctx context.Context, text string)
 
 	}
 
-
-
 	if len(response.Embeddings) == 0 {
 
 		return nil, NewEmbeddingServiceError("no embeddings returned")
 
 	}
-
-
 
 	// Convert []float32 to []float64 for interface compatibility.
 
@@ -149,13 +108,9 @@ func (a *EmbeddingServiceAdapter) GetEmbedding(ctx context.Context, text string)
 
 	}
 
-
-
 	return embedding, nil
 
 }
-
-
 
 // CalculateSimilarity implements EmbeddingServiceInterface.
 
@@ -167,15 +122,13 @@ func (a *EmbeddingServiceAdapter) CalculateSimilarity(ctx context.Context, text1
 
 	}
 
-
-
 	// Generate embeddings for both texts.
 
 	request := &EmbeddingRequest{
 
-		Texts:     []string{text1, text2},
+		Texts: []string{text1, text2},
 
-		UseCache:  true,
+		UseCache: true,
 
 		RequestID: generateRequestID("similarity_calculation"),
 
@@ -184,12 +137,8 @@ func (a *EmbeddingServiceAdapter) CalculateSimilarity(ctx context.Context, text1
 			"operation": "similarity_calculation",
 
 			"timestamp": time.Now(),
-
 		},
-
 	}
-
-
 
 	response, err := a.service.GenerateEmbeddings(ctx, request)
 
@@ -199,15 +148,11 @@ func (a *EmbeddingServiceAdapter) CalculateSimilarity(ctx context.Context, text1
 
 	}
 
-
-
 	if len(response.Embeddings) < 2 {
 
 		return 0, NewEmbeddingServiceError("insufficient embeddings for similarity calculation")
 
 	}
-
-
 
 	// Calculate cosine similarity.
 
@@ -215,15 +160,11 @@ func (a *EmbeddingServiceAdapter) CalculateSimilarity(ctx context.Context, text1
 
 	embedding2 := response.Embeddings[1]
 
-
-
 	similarity := calculateCosineSimilarity(embedding1, embedding2)
 
 	return float64(similarity), nil
 
 }
-
-
 
 // GenerateEmbeddings implements EmbeddingServiceInterface.
 
@@ -235,13 +176,9 @@ func (a *EmbeddingServiceAdapter) GenerateEmbeddings(ctx context.Context, reques
 
 	}
 
-
-
 	return a.service.GenerateEmbeddings(ctx, request)
 
 }
-
-
 
 // HealthCheck implements EmbeddingServiceInterface.
 
@@ -253,8 +190,6 @@ func (a *EmbeddingServiceAdapter) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	status, err := a.service.CheckStatus(ctx)
 
 	if err != nil {
@@ -263,21 +198,15 @@ func (a *EmbeddingServiceAdapter) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	if status.Status != "healthy" {
 
 		return NewEmbeddingServiceError("service is not healthy: %s", status.Message)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetMetrics implements EmbeddingServiceInterface.
 
@@ -288,18 +217,13 @@ func (a *EmbeddingServiceAdapter) GetMetrics() *EmbeddingMetrics {
 		return &EmbeddingMetrics{
 
 			LastUpdated: time.Now(),
-
 		}
 
 	}
 
-
-
 	return a.service.GetMetrics()
 
 }
-
-
 
 // Close implements EmbeddingServiceInterface.
 
@@ -311,8 +235,6 @@ func (a *EmbeddingServiceAdapter) Close() error {
 
 	}
 
-
-
 	// The concrete EmbeddingService doesn't have a Close method,.
 
 	// so we don't need to do anything here.
@@ -323,11 +245,7 @@ func (a *EmbeddingServiceAdapter) Close() error {
 
 }
 
-
-
 // Helper functions.
-
-
 
 // calculateCosineSimilarity calculates cosine similarity between two float32 vectors.
 
@@ -339,11 +257,7 @@ func calculateCosineSimilarity(a, b []float32) float32 {
 
 	}
 
-
-
 	var dotProduct, normA, normB float32
-
-
 
 	for i := range a {
 
@@ -355,25 +269,17 @@ func calculateCosineSimilarity(a, b []float32) float32 {
 
 	}
 
-
-
 	if normA == 0 || normB == 0 {
 
 		return 0
 
 	}
 
-
-
 	return dotProduct / (float32(sqrt(float64(normA))) * float32(sqrt(float64(normB))))
 
 }
 
-
-
 // Note: sqrt function is defined in optimized_rag_pipeline.go.
-
-
 
 // generateRequestID generates a unique request ID.
 
@@ -383,19 +289,13 @@ func generateRequestID(operation string) string {
 
 }
 
-
-
 // EmbeddingServiceError represents errors from the embedding service.
 
 type EmbeddingServiceError struct {
-
 	message string
 
-	cause   error
-
+	cause error
 }
-
-
 
 // NewEmbeddingServiceError creates a new embedding service error.
 
@@ -404,8 +304,6 @@ func NewEmbeddingServiceError(format string, args ...interface{}) *EmbeddingServ
 	var message string
 
 	var cause error
-
-
 
 	if len(args) > 0 {
 
@@ -429,19 +327,14 @@ func NewEmbeddingServiceError(format string, args ...interface{}) *EmbeddingServ
 
 	}
 
-
-
 	return &EmbeddingServiceError{
 
 		message: message,
 
-		cause:   cause,
-
+		cause: cause,
 	}
 
 }
-
-
 
 // Error implements error interface.
 
@@ -457,8 +350,6 @@ func (e *EmbeddingServiceError) Error() string {
 
 }
 
-
-
 // Unwrap returns the underlying error.
 
 func (e *EmbeddingServiceError) Unwrap() error {
@@ -466,4 +357,3 @@ func (e *EmbeddingServiceError) Unwrap() error {
 	return e.cause
 
 }
-

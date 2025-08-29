@@ -1,59 +1,45 @@
-
 package main
 
-
-
 import (
-
 	"fmt"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-
 )
-
-
 
 // DocumentChunk represents a document chunk for RAG processing (stub type).
 
 type DocumentChunk struct {
+	ID string
 
-	ID             string
+	DocumentID string
 
-	DocumentID     string
+	Content string
 
-	Content        string
+	CleanContent string
 
-	CleanContent   string
+	ChunkIndex int
 
-	ChunkIndex     int
+	StartOffset int
 
-	StartOffset    int
-
-	EndOffset      int
+	EndOffset int
 
 	CharacterCount int
 
-	WordCount      int
+	WordCount int
 
-	SentenceCount  int
+	SentenceCount int
 
-	HierarchyPath  []string
+	HierarchyPath []string
 
-	SectionTitle   string
+	SectionTitle string
 
 	HierarchyLevel int
 
-	ChunkType      string
+	ChunkType string
 
-	ProcessedAt    time.Time
-
+	ProcessedAt time.Time
 }
-
-
 
 func main() {
 
@@ -61,85 +47,72 @@ func main() {
 
 	chunk := &DocumentChunk{
 
-		ID:             "test_chunk_1",
+		ID: "test_chunk_1",
 
-		DocumentID:     "test_doc",
+		DocumentID: "test_doc",
 
-		Content:        "This is test content",
+		Content: "This is test content",
 
-		CleanContent:   "This is test content",
+		CleanContent: "This is test content",
 
-		ChunkIndex:     1,
+		ChunkIndex: 1,
 
-		StartOffset:    0,
+		StartOffset: 0,
 
-		EndOffset:      20,
+		EndOffset: 20,
 
 		CharacterCount: 20,
 
-		WordCount:      4,
+		WordCount: 4,
 
-		SentenceCount:  1,
+		SentenceCount: 1,
 
-		HierarchyPath:  []string{"root", "section1"},
+		HierarchyPath: []string{"root", "section1"},
 
-		SectionTitle:   "Test Section",
+		SectionTitle: "Test Section",
 
 		HierarchyLevel: 2,
 
-		ChunkType:      "text",
+		ChunkType: "text",
 
-		ProcessedAt:    time.Now(),
-
+		ProcessedAt: time.Now(),
 	}
 
-
-
 	fmt.Printf("DocumentChunk created: ID=%s, Content=%s\n", chunk.ID, chunk.Content)
-
-
 
 	// Test SearchQuery type.
 
 	query := &shared.SearchQuery{
 
-		Query:         "test query",
+		Query: "test query",
 
-		Limit:         10,
+		Limit: 10,
 
-		Offset:        0,
+		Offset: 0,
 
-		HybridSearch:  true,
+		HybridSearch: true,
 
-		HybridAlpha:   0.5,
+		HybridAlpha: 0.5,
 
-		UseReranker:   false,
+		UseReranker: false,
 
 		MinConfidence: 0.8,
 
 		IncludeVector: true,
 
-		ExpandQuery:   false,
+		ExpandQuery: false,
 
 		TargetVectors: []string{"content_vector", "title_vector"},
-
 	}
-
-
 
 	fmt.Printf("SearchQuery created: Query=%s, Limit=%d, TargetVectors=%v\n",
 
 		query.Query, query.Limit, query.TargetVectors)
 
-
-
 	// Test type alias - for now just use shared.SearchQuery directly.
 
 	fmt.Printf("SearchQuery works: Query=%s\n", query.Query)
 
-
-
 	fmt.Println("✅ All types are working correctly!")
 
 }
-

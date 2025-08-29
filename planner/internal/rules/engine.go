@@ -1,23 +1,12 @@
-
 package rules
 
-
-
 import (
-
 	"encoding/json"
-
 	"log"
-
 	"os"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // min returns the smaller of two integers.
 
@@ -33,127 +22,103 @@ func min(a, b int) int {
 
 }
 
-
-
 // KPMData represents a kpmdata.
 
 type KPMData struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp       time.Time `json:"timestamp"`
+	NodeID string `json:"node_id"`
 
-	NodeID          string    `json:"node_id"`
+	PRBUtilization float64 `json:"prb_utilization"`
 
-	PRBUtilization  float64   `json:"prb_utilization"`
+	P95Latency float64 `json:"p95_latency"`
 
-	P95Latency      float64   `json:"p95_latency"`
+	ActiveUEs int `json:"active_ues"`
 
-	ActiveUEs       int       `json:"active_ues"`
-
-	CurrentReplicas int       `json:"current_replicas"`
-
+	CurrentReplicas int `json:"current_replicas"`
 }
-
-
 
 // ScalingDecision represents a scalingdecision.
 
 type ScalingDecision struct {
+	Action string `json:"action"`
 
-	Action         string    `json:"action"`
+	Target string `json:"target"`
 
-	Target         string    `json:"target"`
+	Namespace string `json:"namespace"`
 
-	Namespace      string    `json:"namespace"`
+	TargetReplicas int `json:"target_replicas"`
 
-	TargetReplicas int       `json:"target_replicas"`
+	Reason string `json:"reason"`
 
-	Reason         string    `json:"reason"`
-
-	Timestamp      time.Time `json:"timestamp"`
-
+	Timestamp time.Time `json:"timestamp"`
 }
-
-
 
 // State represents a state.
 
 type State struct {
+	LastDecisionTime time.Time `json:"last_decision_time"`
 
-	LastDecisionTime time.Time         `json:"last_decision_time"`
+	CurrentReplicas int `json:"current_replicas"`
 
-	CurrentReplicas  int               `json:"current_replicas"`
+	MetricsHistory []KPMData `json:"metrics_history"`
 
-	MetricsHistory   []KPMData         `json:"metrics_history"`
-
-	DecisionHistory  []ScalingDecision `json:"decision_history"`
-
+	DecisionHistory []ScalingDecision `json:"decision_history"`
 }
-
-
 
 // Config represents a config.
 
 type Config struct {
+	StateFile string
 
-	StateFile            string
+	CooldownDuration time.Duration
 
-	CooldownDuration     time.Duration
+	MinReplicas int
 
-	MinReplicas          int
-
-	MaxReplicas          int
+	MaxReplicas int
 
 	LatencyThresholdHigh float64
 
-	LatencyThresholdLow  float64
+	LatencyThresholdLow float64
 
-	PRBThresholdHigh     float64
+	PRBThresholdHigh float64
 
-	PRBThresholdLow      float64
+	PRBThresholdLow float64
 
-	EvaluationWindow     time.Duration
+	EvaluationWindow time.Duration
 
 	// Performance optimization settings.
 
-	MaxHistorySize int           // Maximum metrics history size (default: 300)
+	MaxHistorySize int // Maximum metrics history size (default: 300)
 
-	PruneInterval  time.Duration // How often to prune history (default: 30s)
+	PruneInterval time.Duration // How often to prune history (default: 30s)
 
 }
-
-
 
 // Validator interface for KMP data validation.
 
 type Validator interface {
-
 	ValidateKMPData(data KPMData) error
 
 	SanitizeForLogging(value string) string
-
 }
-
-
 
 // RuleEngine represents a ruleengine.
 
 type RuleEngine struct {
+	config Config
 
-	config         Config
+	state *State
 
-	state          *State
+	mu sync.RWMutex
 
-	mu             sync.RWMutex
-
-	lastPruneTime  time.Time
+	lastPruneTime time.Time
 
 	pruneThreshold time.Duration // Cached 24h threshold for pruning
 
-	validator      Validator     // Security validator for KMP data
+	validator Validator // Security validator for KMP data
 
 }
-
-
 
 // NewRuleEngine performs newruleengine operation.
 
@@ -173,13 +138,11 @@ func NewRuleEngine(cfg Config) *RuleEngine {
 
 	}
 
-
-
 	engine := &RuleEngine{
 
-		config:         cfg,
+		config: cfg,
 
-		lastPruneTime:  time.Now(),
+		lastPruneTime: time.Now(),
 
 		pruneThreshold: 24 * time.Hour,
 
@@ -189,23 +152,17 @@ func NewRuleEngine(cfg Config) *RuleEngine {
 
 			// Pre-allocate with reasonable capacity to reduce early reallocations.
 
-			MetricsHistory:  make([]KPMData, 0, min(cfg.MaxHistorySize/4, 50)),
+			MetricsHistory: make([]KPMData, 0, min(cfg.MaxHistorySize/4, 50)),
 
 			DecisionHistory: make([]ScalingDecision, 0, 20),
-
 		},
-
 	}
-
-
 
 	engine.loadState()
 
 	return engine
 
 }
-
-
 
 // SetValidator sets the security validator for KMP data validation.
 
@@ -219,8 +176,6 @@ func (e *RuleEngine) SetValidator(validator Validator) {
 
 }
 
-
-
 // Evaluate performs evaluate operation.
 
 func (e *RuleEngine) Evaluate(data KPMData) *ScalingDecision {
@@ -228,8 +183,6 @@ func (e *RuleEngine) Evaluate(data KPMData) *ScalingDecision {
 	e.mu.Lock()
 
 	defer e.mu.Unlock()
-
-
 
 	// SECURITY: Validate KMP data if validator is available.
 
@@ -245,13 +198,9 @@ func (e *RuleEngine) Evaluate(data KPMData) *ScalingDecision {
 
 	}
 
-
-
 	e.addMetric(data)
 
 	e.conditionalPrune()
-
-
 
 	if !e.canMakeDecision() {
 
@@ -261,63 +210,51 @@ func (e *RuleEngine) Evaluate(data KPMData) *ScalingDecision {
 
 	}
 
-
-
 	if data.CurrentReplicas > 0 {
 
 		e.state.CurrentReplicas = data.CurrentReplicas
 
 	}
 
-
-
 	avgMetrics := e.calculateAverageMetrics()
 
-
-
 	var decision *ScalingDecision
-
-
 
 	if e.shouldScaleOut(avgMetrics) {
 
 		decision = &ScalingDecision{
 
-			Action:         "scale-out",
+			Action: "scale-out",
 
-			Target:         data.NodeID,
+			Target: data.NodeID,
 
-			Namespace:      "default",
+			Namespace: "default",
 
 			TargetReplicas: e.state.CurrentReplicas + 1,
 
-			Reason:         e.getScaleOutReason(avgMetrics),
+			Reason: e.getScaleOutReason(avgMetrics),
 
-			Timestamp:      time.Now(),
-
+			Timestamp: time.Now(),
 		}
 
 	} else if e.shouldScaleIn(avgMetrics) {
 
 		decision = &ScalingDecision{
 
-			Action:         "scale-in",
+			Action: "scale-in",
 
-			Target:         data.NodeID,
+			Target: data.NodeID,
 
-			Namespace:      "default",
+			Namespace: "default",
 
 			TargetReplicas: e.state.CurrentReplicas - 1,
 
-			Reason:         e.getScaleInReason(avgMetrics),
+			Reason: e.getScaleInReason(avgMetrics),
 
-			Timestamp:      time.Now(),
-
+			Timestamp: time.Now(),
 		}
 
 	}
-
-
 
 	if decision != nil {
 
@@ -327,13 +264,9 @@ func (e *RuleEngine) Evaluate(data KPMData) *ScalingDecision {
 
 	}
 
-
-
 	return decision
 
 }
-
-
 
 func (e *RuleEngine) shouldScaleOut(metrics AverageMetrics) bool {
 
@@ -343,8 +276,6 @@ func (e *RuleEngine) shouldScaleOut(metrics AverageMetrics) bool {
 
 	}
 
-
-
 	return (metrics.AvgPRB > e.config.PRBThresholdHigh ||
 
 		metrics.AvgLatency > e.config.LatencyThresholdHigh) &&
@@ -352,8 +283,6 @@ func (e *RuleEngine) shouldScaleOut(metrics AverageMetrics) bool {
 		metrics.DataPoints >= 3
 
 }
-
-
 
 func (e *RuleEngine) shouldScaleIn(metrics AverageMetrics) bool {
 
@@ -363,8 +292,6 @@ func (e *RuleEngine) shouldScaleIn(metrics AverageMetrics) bool {
 
 	}
 
-
-
 	return metrics.AvgPRB < e.config.PRBThresholdLow &&
 
 		metrics.AvgLatency < e.config.LatencyThresholdLow &&
@@ -372,8 +299,6 @@ func (e *RuleEngine) shouldScaleIn(metrics AverageMetrics) bool {
 		metrics.DataPoints >= 3
 
 }
-
-
 
 func (e *RuleEngine) getScaleOutReason(metrics AverageMetrics) string {
 
@@ -391,8 +316,6 @@ func (e *RuleEngine) getScaleOutReason(metrics AverageMetrics) string {
 
 	}
 
-
-
 	if len(reasons) > 0 {
 
 		return reasons[0]
@@ -403,15 +326,11 @@ func (e *RuleEngine) getScaleOutReason(metrics AverageMetrics) string {
 
 }
 
-
-
 func (e *RuleEngine) getScaleInReason(metrics AverageMetrics) string {
 
 	return "Low resource utilization"
 
 }
-
-
 
 func (e *RuleEngine) canMakeDecision() bool {
 
@@ -421,13 +340,9 @@ func (e *RuleEngine) canMakeDecision() bool {
 
 	}
 
-
-
 	return time.Since(e.state.LastDecisionTime) >= e.config.CooldownDuration
 
 }
-
-
 
 func (e *RuleEngine) applyDecision(decision *ScalingDecision) {
 
@@ -437,8 +352,6 @@ func (e *RuleEngine) applyDecision(decision *ScalingDecision) {
 
 	e.state.DecisionHistory = append(e.state.DecisionHistory, *decision)
 
-
-
 	if len(e.state.DecisionHistory) > 100 {
 
 		e.state.DecisionHistory = e.state.DecisionHistory[len(e.state.DecisionHistory)-100:]
@@ -447,21 +360,15 @@ func (e *RuleEngine) applyDecision(decision *ScalingDecision) {
 
 }
 
-
-
 // AverageMetrics represents a averagemetrics.
 
 type AverageMetrics struct {
-
-	AvgPRB     float64
+	AvgPRB float64
 
 	AvgLatency float64
 
 	DataPoints int
-
 }
-
-
 
 func (e *RuleEngine) calculateAverageMetrics() AverageMetrics {
 
@@ -471,15 +378,11 @@ func (e *RuleEngine) calculateAverageMetrics() AverageMetrics {
 
 	}
 
-
-
 	cutoff := time.Now().Add(-e.config.EvaluationWindow)
 
 	var sumPRB, sumLatency float64
 
 	var count int
-
-
 
 	for _, m := range e.state.MetricsHistory {
 
@@ -495,29 +398,22 @@ func (e *RuleEngine) calculateAverageMetrics() AverageMetrics {
 
 	}
 
-
-
 	if count == 0 {
 
 		return AverageMetrics{}
 
 	}
 
-
-
 	return AverageMetrics{
 
-		AvgPRB:     sumPRB / float64(count),
+		AvgPRB: sumPRB / float64(count),
 
 		AvgLatency: sumLatency / float64(count),
 
 		DataPoints: count,
-
 	}
 
 }
-
-
 
 // addMetric adds a new metric with capacity management.
 
@@ -543,13 +439,9 @@ func (e *RuleEngine) addMetric(data KPMData) {
 
 	}
 
-
-
 	e.state.MetricsHistory = append(e.state.MetricsHistory, data)
 
 }
-
-
 
 // conditionalPrune performs pruning only when needed based on time interval.
 
@@ -563,23 +455,17 @@ func (e *RuleEngine) conditionalPrune() {
 
 	}
 
-
-
 	e.lastPruneTime = now
 
 	e.pruneHistoryInPlace()
 
 }
 
-
-
 // pruneHistoryInPlace performs in-place pruning to avoid slice reallocation.
 
 func (e *RuleEngine) pruneHistoryInPlace() {
 
 	cutoff := time.Now().Add(-e.pruneThreshold)
-
-
 
 	// Find first valid entry (binary search could be used for large datasets).
 
@@ -601,8 +487,6 @@ func (e *RuleEngine) pruneHistoryInPlace() {
 
 	}
 
-
-
 	// Truncate slice to new length without reallocation.
 
 	if writeIndex < len(e.state.MetricsHistory) {
@@ -621,8 +505,6 @@ func (e *RuleEngine) pruneHistoryInPlace() {
 
 }
 
-
-
 func (e *RuleEngine) loadState() {
 
 	if e.config.StateFile == "" {
@@ -630,8 +512,6 @@ func (e *RuleEngine) loadState() {
 		return
 
 	}
-
-
 
 	data, err := os.ReadFile(e.config.StateFile)
 
@@ -647,8 +527,6 @@ func (e *RuleEngine) loadState() {
 
 	}
 
-
-
 	if err := json.Unmarshal(data, e.state); err != nil {
 
 		log.Printf("Error parsing state: %v", err)
@@ -656,8 +534,6 @@ func (e *RuleEngine) loadState() {
 	}
 
 }
-
-
 
 // saveState securely persists the rule engine state with O-RAN compliant permissions.
 
@@ -673,8 +549,6 @@ func (e *RuleEngine) saveState() {
 
 	}
 
-
-
 	data, err := json.MarshalIndent(e.state, "", "  ")
 
 	if err != nil {
@@ -684,8 +558,6 @@ func (e *RuleEngine) saveState() {
 		return
 
 	}
-
-
 
 	// SECURITY: Use 0600 permissions to ensure only the owner can read/write state files.
 
@@ -707,9 +579,6 @@ func (e *RuleEngine) saveState() {
 
 	}
 
-
-
 	log.Printf("State saved securely to %s (permissions: 0600)", e.config.StateFile)
 
 }
-

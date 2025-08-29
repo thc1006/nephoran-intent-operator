@@ -1,195 +1,150 @@
-
 package security
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"log/slog"
-
 	"net"
-
 	"net/http"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/google/uuid"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/a1"
-
 )
-
-
 
 // SecurityMiddleware provides comprehensive security middleware for A1 service.
 
 type SecurityMiddleware struct {
+	config *SecurityConfig
 
-	config            *SecurityConfig
+	logger *logging.StructuredLogger
 
-	logger            *logging.StructuredLogger
+	authManager *AuthManager
 
-	authManager       *AuthManager
-
-	mtlsManager       *MTLSManager
+	mtlsManager *MTLSManager
 
 	encryptionManager *EncryptionManager
 
-	sanitizer         *SanitizationManager
+	sanitizer *SanitizationManager
 
-	auditLogger       *AuditLogger
+	auditLogger *AuditLogger
 
-	rateLimiter       *RateLimiter
-
+	rateLimiter *RateLimiter
 }
-
-
 
 // SecurityConfig holds comprehensive security configuration.
 
 type SecurityConfig struct {
+	Authentication *AuthConfig `json:"authentication"`
 
-	Authentication  *AuthConfig         `json:"authentication"`
+	MTLS *MTLSConfig `json:"mtls"`
 
-	MTLS            *MTLSConfig         `json:"mtls"`
+	Encryption *EncryptionConfig `json:"encryption"`
 
-	Encryption      *EncryptionConfig   `json:"encryption"`
+	Sanitization *SanitizationConfig `json:"sanitization"`
 
-	Sanitization    *SanitizationConfig `json:"sanitization"`
+	Audit *AuditConfig `json:"audit"`
 
-	Audit           *AuditConfig        `json:"audit"`
+	RateLimit *RateLimitConfig `json:"rate_limit"`
 
-	RateLimit       *RateLimitConfig    `json:"rate_limit"`
+	SecurityHeaders *HeadersConfig `json:"security_headers"`
 
-	SecurityHeaders *HeadersConfig      `json:"security_headers"`
+	CORS *CORSConfig `json:"cors"`
 
-	CORS            *CORSConfig         `json:"cors"`
-
-	CSRF            *CSRFConfig         `json:"csrf"`
-
+	CSRF *CSRFConfig `json:"csrf"`
 }
-
-
 
 // HeadersConfig holds security headers configuration.
 
 type HeadersConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled                   bool              `json:"enabled"`
+	StrictTransportSecurity string `json:"strict_transport_security"`
 
-	StrictTransportSecurity   string            `json:"strict_transport_security"`
+	ContentSecurityPolicy string `json:"content_security_policy"`
 
-	ContentSecurityPolicy     string            `json:"content_security_policy"`
+	XContentTypeOptions string `json:"x_content_type_options"`
 
-	XContentTypeOptions       string            `json:"x_content_type_options"`
+	XFrameOptions string `json:"x_frame_options"`
 
-	XFrameOptions             string            `json:"x_frame_options"`
+	XXSSProtection string `json:"x_xss_protection"`
 
-	XXSSProtection            string            `json:"x_xss_protection"`
+	ReferrerPolicy string `json:"referrer_policy"`
 
-	ReferrerPolicy            string            `json:"referrer_policy"`
+	PermissionsPolicy string `json:"permissions_policy"`
 
-	PermissionsPolicy         string            `json:"permissions_policy"`
+	CrossOriginEmbedderPolicy string `json:"cross_origin_embedder_policy"`
 
-	CrossOriginEmbedderPolicy string            `json:"cross_origin_embedder_policy"`
+	CrossOriginOpenerPolicy string `json:"cross_origin_opener_policy"`
 
-	CrossOriginOpenerPolicy   string            `json:"cross_origin_opener_policy"`
+	CrossOriginResourcePolicy string `json:"cross_origin_resource_policy"`
 
-	CrossOriginResourcePolicy string            `json:"cross_origin_resource_policy"`
-
-	CustomHeaders             map[string]string `json:"custom_headers"`
-
+	CustomHeaders map[string]string `json:"custom_headers"`
 }
-
-
 
 // CORSConfig holds CORS configuration.
 
 type CORSConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled          bool     `json:"enabled"`
+	AllowedOrigins []string `json:"allowed_origins"`
 
-	AllowedOrigins   []string `json:"allowed_origins"`
+	AllowedMethods []string `json:"allowed_methods"`
 
-	AllowedMethods   []string `json:"allowed_methods"`
+	AllowedHeaders []string `json:"allowed_headers"`
 
-	AllowedHeaders   []string `json:"allowed_headers"`
+	ExposedHeaders []string `json:"exposed_headers"`
 
-	ExposedHeaders   []string `json:"exposed_headers"`
+	AllowCredentials bool `json:"allow_credentials"`
 
-	AllowCredentials bool     `json:"allow_credentials"`
-
-	MaxAge           int      `json:"max_age"`
-
+	MaxAge int `json:"max_age"`
 }
-
-
 
 // CSRFConfig holds CSRF protection configuration.
 
 type CSRFConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled        bool     `json:"enabled"`
+	TokenLength int `json:"token_length"`
 
-	TokenLength    int      `json:"token_length"`
+	TokenHeader string `json:"token_header"`
 
-	TokenHeader    string   `json:"token_header"`
+	TokenCookie string `json:"token_cookie"`
 
-	TokenCookie    string   `json:"token_cookie"`
-
-	SafeMethods    []string `json:"safe_methods"`
+	SafeMethods []string `json:"safe_methods"`
 
 	TrustedOrigins []string `json:"trusted_origins"`
-
 }
-
-
 
 // RequestContext holds request-specific security context.
 
 type RequestContext struct {
+	RequestID string `json:"request_id"`
 
-	RequestID     string                 `json:"request_id"`
+	SessionID string `json:"session_id,omitempty"`
 
-	SessionID     string                 `json:"session_id,omitempty"`
+	CorrelationID string `json:"correlation_id,omitempty"`
 
-	CorrelationID string                 `json:"correlation_id,omitempty"`
+	User *User `json:"user,omitempty"`
 
-	User          *User                  `json:"user,omitempty"`
+	ClientIP string `json:"client_ip"`
 
-	ClientIP      string                 `json:"client_ip"`
+	UserAgent string `json:"user_agent"`
 
-	UserAgent     string                 `json:"user_agent"`
+	Method string `json:"method"`
 
-	Method        string                 `json:"method"`
+	Path string `json:"path"`
 
-	Path          string                 `json:"path"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime     time.Time              `json:"start_time"`
+	SecurityFlags map[string]bool `json:"security_flags,omitempty"`
 
-	SecurityFlags map[string]bool        `json:"security_flags,omitempty"`
-
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // NewSecurityMiddleware creates a new security middleware.
 
@@ -200,10 +155,7 @@ func NewSecurityMiddleware(config *SecurityConfig, logger *logging.StructuredLog
 		config: config,
 
 		logger: logger,
-
 	}
-
-
 
 	// Initialize authentication manager.
 
@@ -221,8 +173,6 @@ func NewSecurityMiddleware(config *SecurityConfig, logger *logging.StructuredLog
 
 	}
 
-
-
 	// Initialize mTLS manager.
 
 	if config.MTLS != nil && config.MTLS.Enabled {
@@ -238,8 +188,6 @@ func NewSecurityMiddleware(config *SecurityConfig, logger *logging.StructuredLog
 		sm.mtlsManager = mtlsManager
 
 	}
-
-
 
 	// Initialize encryption manager.
 
@@ -257,8 +205,6 @@ func NewSecurityMiddleware(config *SecurityConfig, logger *logging.StructuredLog
 
 	}
 
-
-
 	// Initialize sanitization manager.
 
 	if config.Sanitization != nil && config.Sanitization.Enabled {
@@ -274,8 +220,6 @@ func NewSecurityMiddleware(config *SecurityConfig, logger *logging.StructuredLog
 		sm.sanitizer = sanitizer
 
 	}
-
-
 
 	// Initialize audit logger.
 
@@ -293,8 +237,6 @@ func NewSecurityMiddleware(config *SecurityConfig, logger *logging.StructuredLog
 
 	}
 
-
-
 	// Initialize rate limiter.
 
 	if config.RateLimit != nil && config.RateLimit.Enabled {
@@ -311,13 +253,9 @@ func NewSecurityMiddleware(config *SecurityConfig, logger *logging.StructuredLog
 
 	}
 
-
-
 	return sm, nil
 
 }
-
-
 
 // CreateMiddlewareChain creates the complete security middleware chain.
 
@@ -329,13 +267,9 @@ func (sm *SecurityMiddleware) CreateMiddlewareChain() func(http.Handler) http.Ha
 
 		handler := next
 
-
-
 		// Apply response security headers.
 
 		handler = sm.securityHeadersMiddleware(handler)
-
-
 
 		// Apply CORS if enabled.
 
@@ -345,8 +279,6 @@ func (sm *SecurityMiddleware) CreateMiddlewareChain() func(http.Handler) http.Ha
 
 		}
 
-
-
 		// Apply CSRF protection if enabled.
 
 		if sm.config.CSRF != nil && sm.config.CSRF.Enabled {
@@ -354,8 +286,6 @@ func (sm *SecurityMiddleware) CreateMiddlewareChain() func(http.Handler) http.Ha
 			handler = sm.csrfMiddleware(handler)
 
 		}
-
-
 
 		// Apply audit logging.
 
@@ -365,8 +295,6 @@ func (sm *SecurityMiddleware) CreateMiddlewareChain() func(http.Handler) http.Ha
 
 		}
 
-
-
 		// Apply authorization.
 
 		if sm.authManager != nil {
@@ -374,8 +302,6 @@ func (sm *SecurityMiddleware) CreateMiddlewareChain() func(http.Handler) http.Ha
 			handler = sm.authorizationMiddleware(handler)
 
 		}
-
-
 
 		// Apply authentication.
 
@@ -385,8 +311,6 @@ func (sm *SecurityMiddleware) CreateMiddlewareChain() func(http.Handler) http.Ha
 
 		}
 
-
-
 		// Apply rate limiting.
 
 		if sm.rateLimiter != nil {
@@ -394,8 +318,6 @@ func (sm *SecurityMiddleware) CreateMiddlewareChain() func(http.Handler) http.Ha
 			handler = sm.rateLimitMiddleware(handler)
 
 		}
-
-
 
 		// Apply input sanitization.
 
@@ -405,21 +327,15 @@ func (sm *SecurityMiddleware) CreateMiddlewareChain() func(http.Handler) http.Ha
 
 		}
 
-
-
 		// Apply request context initialization (outermost).
 
 		handler = sm.requestContextMiddleware(handler)
-
-
 
 		return handler
 
 	}
 
 }
-
-
 
 // requestContextMiddleware initializes request context.
 
@@ -431,25 +347,22 @@ func (sm *SecurityMiddleware) requestContextMiddleware(next http.Handler) http.H
 
 		reqCtx := &RequestContext{
 
-			RequestID:     uuid.New().String(),
+			RequestID: uuid.New().String(),
 
-			ClientIP:      sm.getClientIP(r),
+			ClientIP: sm.getClientIP(r),
 
-			UserAgent:     r.UserAgent(),
+			UserAgent: r.UserAgent(),
 
-			Method:        r.Method,
+			Method: r.Method,
 
-			Path:          r.URL.Path,
+			Path: r.URL.Path,
 
-			StartTime:     time.Now(),
+			StartTime: time.Now(),
 
 			SecurityFlags: make(map[string]bool),
 
-			Metadata:      make(map[string]interface{}),
-
+			Metadata: make(map[string]interface{}),
 		}
-
-
 
 		// Extract correlation ID if present.
 
@@ -459,21 +372,15 @@ func (sm *SecurityMiddleware) requestContextMiddleware(next http.Handler) http.H
 
 		}
 
-
-
 		// Add request context to context.
 
 		ctx := context.WithValue(r.Context(), "request_context", reqCtx)
 
 		ctx = context.WithValue(ctx, "request_id", reqCtx.RequestID)
 
-
-
 		// Add request ID to response header.
 
 		w.Header().Set("X-Request-ID", reqCtx.RequestID)
-
-
 
 		// Continue with request.
 
@@ -482,8 +389,6 @@ func (sm *SecurityMiddleware) requestContextMiddleware(next http.Handler) http.H
 	})
 
 }
-
-
 
 // authenticationMiddleware handles authentication.
 
@@ -494,8 +399,6 @@ func (sm *SecurityMiddleware) authenticationMiddleware(next http.Handler) http.H
 		ctx := r.Context()
 
 		reqCtx := sm.getRequestContext(ctx)
-
-
 
 		// Perform authentication.
 
@@ -511,8 +414,6 @@ func (sm *SecurityMiddleware) authenticationMiddleware(next http.Handler) http.H
 
 				slog.String("error", err.Error()))
 
-
-
 			// Log authentication failure.
 
 			if sm.auditLogger != nil {
@@ -521,15 +422,11 @@ func (sm *SecurityMiddleware) authenticationMiddleware(next http.Handler) http.H
 
 			}
 
-
-
 			sm.sendErrorResponse(w, http.StatusUnauthorized, "Authentication failed")
 
 			return
 
 		}
-
-
 
 		// Add user to context.
 
@@ -543,8 +440,6 @@ func (sm *SecurityMiddleware) authenticationMiddleware(next http.Handler) http.H
 
 		}
 
-
-
 		// Add token claims to context if present.
 
 		if authResult.Claims != nil {
@@ -552,8 +447,6 @@ func (sm *SecurityMiddleware) authenticationMiddleware(next http.Handler) http.H
 			ctx = context.WithValue(ctx, "claims", authResult.Claims)
 
 		}
-
-
 
 		// Log successful authentication.
 
@@ -563,8 +456,6 @@ func (sm *SecurityMiddleware) authenticationMiddleware(next http.Handler) http.H
 
 		}
 
-
-
 		// Continue with authenticated request.
 
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -572,8 +463,6 @@ func (sm *SecurityMiddleware) authenticationMiddleware(next http.Handler) http.H
 	})
 
 }
-
-
 
 // authorizationMiddleware handles authorization.
 
@@ -584,8 +473,6 @@ func (sm *SecurityMiddleware) authorizationMiddleware(next http.Handler) http.Ha
 		ctx := r.Context()
 
 		reqCtx := sm.getRequestContext(ctx)
-
-
 
 		// Get user from context.
 
@@ -599,15 +486,11 @@ func (sm *SecurityMiddleware) authorizationMiddleware(next http.Handler) http.Ha
 
 		}
 
-
-
 		// Determine resource and action.
 
 		resource := r.URL.Path
 
 		action := r.Method
-
-
 
 		// Check authorization.
 
@@ -627,15 +510,11 @@ func (sm *SecurityMiddleware) authorizationMiddleware(next http.Handler) http.Ha
 
 				slog.String("error", err.Error()))
 
-
-
 			sm.sendErrorResponse(w, http.StatusInternalServerError, "Authorization check failed")
 
 			return
 
 		}
-
-
 
 		if !allowed {
 
@@ -647,15 +526,11 @@ func (sm *SecurityMiddleware) authorizationMiddleware(next http.Handler) http.Ha
 
 			}
 
-
-
 			sm.sendErrorResponse(w, http.StatusForbidden, "Access denied")
 
 			return
 
 		}
-
-
 
 		// Log successful authorization.
 
@@ -665,8 +540,6 @@ func (sm *SecurityMiddleware) authorizationMiddleware(next http.Handler) http.Ha
 
 		}
 
-
-
 		// Continue with authorized request.
 
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -674,8 +547,6 @@ func (sm *SecurityMiddleware) authorizationMiddleware(next http.Handler) http.Ha
 	})
 
 }
-
-
 
 // rateLimitMiddleware handles rate limiting.
 
@@ -686,8 +557,6 @@ func (sm *SecurityMiddleware) rateLimitMiddleware(next http.Handler) http.Handle
 		ctx := r.Context()
 
 		reqCtx := sm.getRequestContext(ctx)
-
-
 
 		// Check rate limit.
 
@@ -701,21 +570,15 @@ func (sm *SecurityMiddleware) rateLimitMiddleware(next http.Handler) http.Handle
 
 				slog.String("error", err.Error()))
 
-
-
 			sm.sendErrorResponse(w, http.StatusInternalServerError, "Rate limit check failed")
 
 			return
 
 		}
 
-
-
 		// Set rate limit headers.
 
 		sm.rateLimiter.SetResponseHeaders(w, result)
-
-
 
 		if !result.Allowed {
 
@@ -725,29 +588,24 @@ func (sm *SecurityMiddleware) rateLimitMiddleware(next http.Handler) http.Handle
 
 				event := &AuditEvent{
 
-					EventType:    EventTypeRateLimitExceeded,
+					EventType: EventTypeRateLimitExceeded,
 
-					Severity:     SeverityWarning,
+					Severity: SeverityWarning,
 
-					Result:       ResultDenied,
+					Result: ResultDenied,
 
 					ErrorMessage: result.Reason,
-
 				}
 
 				sm.auditLogger.LogEvent(ctx, event)
 
 			}
 
-
-
 			sm.sendErrorResponse(w, http.StatusTooManyRequests, "Rate limit exceeded")
 
 			return
 
 		}
-
-
 
 		// Continue with request.
 
@@ -756,8 +614,6 @@ func (sm *SecurityMiddleware) rateLimitMiddleware(next http.Handler) http.Handle
 	})
 
 }
-
-
 
 // sanitizationMiddleware handles input sanitization.
 
@@ -768,8 +624,6 @@ func (sm *SecurityMiddleware) sanitizationMiddleware(next http.Handler) http.Han
 		ctx := r.Context()
 
 		reqCtx := sm.getRequestContext(ctx)
-
-
 
 		// Only sanitize for methods with body.
 
@@ -787,15 +641,11 @@ func (sm *SecurityMiddleware) sanitizationMiddleware(next http.Handler) http.Han
 
 					slog.String("error", err.Error()))
 
-
-
 				sm.sendErrorResponse(w, http.StatusBadRequest, "Invalid request body")
 
 				return
 
 			}
-
-
 
 			// Sanitize input.
 
@@ -808,8 +658,6 @@ func (sm *SecurityMiddleware) sanitizationMiddleware(next http.Handler) http.Han
 					slog.String("request_id", reqCtx.RequestID),
 
 					slog.String("error", err.Error()))
-
-
 
 				// Log security violation if malicious patterns detected.
 
@@ -827,15 +675,11 @@ func (sm *SecurityMiddleware) sanitizationMiddleware(next http.Handler) http.Han
 
 				}
 
-
-
 				sm.sendErrorResponse(w, http.StatusBadRequest, "Input validation failed")
 
 				return
 
 			}
-
-
 
 			// Replace body with sanitized version.
 
@@ -851,8 +695,6 @@ func (sm *SecurityMiddleware) sanitizationMiddleware(next http.Handler) http.Han
 
 		}
 
-
-
 		// Continue with sanitized request.
 
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -860,8 +702,6 @@ func (sm *SecurityMiddleware) sanitizationMiddleware(next http.Handler) http.Han
 	})
 
 }
-
-
 
 // auditMiddleware handles audit logging.
 
@@ -873,45 +713,37 @@ func (sm *SecurityMiddleware) auditMiddleware(next http.Handler) http.Handler {
 
 		reqCtx := sm.getRequestContext(ctx)
 
-
-
 		// Create response wrapper to capture response details.
 
 		rw := &responseWrapper{
 
 			ResponseWriter: w,
 
-			statusCode:     http.StatusOK,
-
+			statusCode: http.StatusOK,
 		}
-
-
 
 		// Create audit event.
 
 		event := &AuditEvent{
 
-			EventType:     sm.getEventType(r),
+			EventType: sm.getEventType(r),
 
-			Severity:      SeverityInfo,
+			Severity: SeverityInfo,
 
-			RequestID:     reqCtx.RequestID,
+			RequestID: reqCtx.RequestID,
 
-			SessionID:     reqCtx.SessionID,
+			SessionID: reqCtx.SessionID,
 
 			CorrelationID: reqCtx.CorrelationID,
 
-			ClientIP:      reqCtx.ClientIP,
+			ClientIP: reqCtx.ClientIP,
 
-			UserAgent:     reqCtx.UserAgent,
+			UserAgent: reqCtx.UserAgent,
 
 			RequestMethod: r.Method,
 
-			RequestPath:   r.URL.Path,
-
+			RequestPath: r.URL.Path,
 		}
-
-
 
 		// Add actor information if available.
 
@@ -919,35 +751,28 @@ func (sm *SecurityMiddleware) auditMiddleware(next http.Handler) http.Handler {
 
 			event.Actor = &Actor{
 
-				Type:     ActorTypeUser,
+				Type: ActorTypeUser,
 
-				ID:       reqCtx.User.ID,
+				ID: reqCtx.User.ID,
 
 				Username: reqCtx.User.Username,
 
-				Email:    reqCtx.User.Email,
+				Email: reqCtx.User.Email,
 
-				Roles:    reqCtx.User.Roles,
-
+				Roles: reqCtx.User.Roles,
 			}
 
 		}
 
-
-
 		// Process request.
 
 		next.ServeHTTP(rw, r)
-
-
 
 		// Update event with response details.
 
 		event.ResponseStatus = rw.statusCode
 
 		event.Duration = time.Since(reqCtx.StartTime)
-
-
 
 		// Set result based on status code.
 
@@ -965,8 +790,6 @@ func (sm *SecurityMiddleware) auditMiddleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// Log audit event.
 
 		sm.auditLogger.LogEvent(ctx, event)
@@ -974,8 +797,6 @@ func (sm *SecurityMiddleware) auditMiddleware(next http.Handler) http.Handler {
 	})
 
 }
-
-
 
 // securityHeadersMiddleware adds security headers.
 
@@ -986,8 +807,6 @@ func (sm *SecurityMiddleware) securityHeadersMiddleware(next http.Handler) http.
 		if sm.config.SecurityHeaders != nil && sm.config.SecurityHeaders.Enabled {
 
 			headers := sm.config.SecurityHeaders
-
-
 
 			// Add standard security headers.
 
@@ -1051,8 +870,6 @@ func (sm *SecurityMiddleware) securityHeadersMiddleware(next http.Handler) http.
 
 			}
 
-
-
 			// Add custom headers.
 
 			for name, value := range headers.CustomHeaders {
@@ -1063,15 +880,11 @@ func (sm *SecurityMiddleware) securityHeadersMiddleware(next http.Handler) http.
 
 		}
 
-
-
 		next.ServeHTTP(w, r)
 
 	})
 
 }
-
-
 
 // corsMiddleware handles CORS.
 
@@ -1081,23 +894,17 @@ func (sm *SecurityMiddleware) corsMiddleware(next http.Handler) http.Handler {
 
 		origin := r.Header.Get("Origin")
 
-
-
 		// Check if origin is allowed.
 
 		if sm.isOriginAllowed(origin) {
 
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 
-
-
 			if sm.config.CORS.AllowCredentials {
 
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 			}
-
-
 
 			// Handle preflight requests.
 
@@ -1115,8 +922,6 @@ func (sm *SecurityMiddleware) corsMiddleware(next http.Handler) http.Handler {
 
 			}
 
-
-
 			// Set exposed headers.
 
 			if len(sm.config.CORS.ExposedHeaders) > 0 {
@@ -1127,15 +932,11 @@ func (sm *SecurityMiddleware) corsMiddleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		next.ServeHTTP(w, r)
 
 	})
 
 }
-
-
 
 // csrfMiddleware handles CSRF protection.
 
@@ -1157,8 +958,6 @@ func (sm *SecurityMiddleware) csrfMiddleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// Check CSRF token.
 
 		token := r.Header.Get(sm.config.CSRF.TokenHeader)
@@ -1175,8 +974,6 @@ func (sm *SecurityMiddleware) csrfMiddleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		if token == "" {
 
 			sm.sendErrorResponse(w, http.StatusForbidden, "CSRF token missing")
@@ -1185,15 +982,11 @@ func (sm *SecurityMiddleware) csrfMiddleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// Validate CSRF token.
 
 		// This is a simplified implementation.
 
 		// In production, you would validate against stored tokens.
-
-
 
 		next.ServeHTTP(w, r)
 
@@ -1201,11 +994,7 @@ func (sm *SecurityMiddleware) csrfMiddleware(next http.Handler) http.Handler {
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (sm *SecurityMiddleware) getRequestContext(ctx context.Context) *RequestContext {
 
@@ -1218,8 +1007,6 @@ func (sm *SecurityMiddleware) getRequestContext(ctx context.Context) *RequestCon
 	return &RequestContext{}
 
 }
-
-
 
 func (sm *SecurityMiddleware) getClientIP(r *http.Request) string {
 
@@ -1237,8 +1024,6 @@ func (sm *SecurityMiddleware) getClientIP(r *http.Request) string {
 
 	}
 
-
-
 	// Check X-Real-IP header.
 
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
@@ -1246,8 +1031,6 @@ func (sm *SecurityMiddleware) getClientIP(r *http.Request) string {
 		return xri
 
 	}
-
-
 
 	// Fall back to RemoteAddr.
 
@@ -1257,8 +1040,6 @@ func (sm *SecurityMiddleware) getClientIP(r *http.Request) string {
 
 }
 
-
-
 func (sm *SecurityMiddleware) getEventType(r *http.Request) EventType {
 
 	// Determine event type based on path and method.
@@ -1266,8 +1047,6 @@ func (sm *SecurityMiddleware) getEventType(r *http.Request) EventType {
 	path := r.URL.Path
 
 	method := r.Method
-
-
 
 	if strings.Contains(path, "/policies") {
 
@@ -1293,13 +1072,9 @@ func (sm *SecurityMiddleware) getEventType(r *http.Request) EventType {
 
 	}
 
-
-
 	return EventTypeDataAccess
 
 }
-
-
 
 func (sm *SecurityMiddleware) isOriginAllowed(origin string) bool {
 
@@ -1317,49 +1092,35 @@ func (sm *SecurityMiddleware) isOriginAllowed(origin string) bool {
 
 }
 
-
-
 func (sm *SecurityMiddleware) sendErrorResponse(w http.ResponseWriter, statusCode int, message string) {
 
 	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(statusCode)
 
-
-
 	response := map[string]interface{}{
 
 		"error": map[string]interface{}{
 
-			"code":    statusCode,
+			"code": statusCode,
 
 			"message": message,
-
 		},
-
 	}
-
-
 
 	json.NewEncoder(w).Encode(response)
 
 }
 
-
-
 // responseWrapper wraps http.ResponseWriter to capture response details.
 
 type responseWrapper struct {
-
 	http.ResponseWriter
 
 	statusCode int
 
-	written    bool
-
+	written bool
 }
-
-
 
 // WriteHeader performs writeheader operation.
 
@@ -1377,8 +1138,6 @@ func (rw *responseWrapper) WriteHeader(code int) {
 
 }
 
-
-
 // Write performs write operation.
 
 func (rw *responseWrapper) Write(b []byte) (int, error) {
@@ -1393,8 +1152,6 @@ func (rw *responseWrapper) Write(b []byte) (int, error) {
 
 }
 
-
-
 // CreateA1SecurityMiddleware creates security middleware specifically for A1 service.
 
 func CreateA1SecurityMiddleware(config *a1.A1ServerConfig) (func(http.Handler) http.Handler, error) {
@@ -1407,16 +1164,14 @@ func CreateA1SecurityMiddleware(config *a1.A1ServerConfig) (func(http.Handler) h
 
 			Enabled: config.AuthenticationConfig != nil && config.AuthenticationConfig.Enabled,
 
-			Type:    AuthType(config.AuthenticationConfig.Method),
+			Type: AuthType(config.AuthenticationConfig.Method),
 
 			JWTConfig: &JWTConfig{
 
-				Issuers:        config.AuthenticationConfig.AllowedIssuers,
+				Issuers: config.AuthenticationConfig.AllowedIssuers,
 
 				RequiredClaims: config.AuthenticationConfig.RequiredClaims,
-
 			},
-
 		},
 
 		RateLimit: &RateLimitConfig{
@@ -1427,51 +1182,44 @@ func CreateA1SecurityMiddleware(config *a1.A1ServerConfig) (func(http.Handler) h
 
 				RequestsPerMin: config.RateLimitConfig.RequestsPerMin,
 
-				BurstSize:      config.RateLimitConfig.BurstSize,
+				BurstSize: config.RateLimitConfig.BurstSize,
 
-				WindowSize:     config.RateLimitConfig.WindowSize,
-
+				WindowSize: config.RateLimitConfig.WindowSize,
 			},
-
 		},
 
 		SecurityHeaders: &HeadersConfig{
 
-			Enabled:                 true,
+			Enabled: true,
 
 			StrictTransportSecurity: "max-age=31536000; includeSubDomains",
 
-			ContentSecurityPolicy:   "default-src 'self'",
+			ContentSecurityPolicy: "default-src 'self'",
 
-			XContentTypeOptions:     "nosniff",
+			XContentTypeOptions: "nosniff",
 
-			XFrameOptions:           "DENY",
+			XFrameOptions: "DENY",
 
-			XXSSProtection:          "1; mode=block",
+			XXSSProtection: "1; mode=block",
 
-			ReferrerPolicy:          "strict-origin-when-cross-origin",
-
+			ReferrerPolicy: "strict-origin-when-cross-origin",
 		},
 
 		CORS: &CORSConfig{
 
-			Enabled:          true,
+			Enabled: true,
 
-			AllowedOrigins:   []string{"*"},
+			AllowedOrigins: []string{"*"},
 
-			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 
-			AllowedHeaders:   []string{"Content-Type", "Authorization"},
+			AllowedHeaders: []string{"Content-Type", "Authorization"},
 
 			AllowCredentials: true,
 
-			MaxAge:           3600,
-
+			MaxAge: 3600,
 		},
-
 	}
-
-
 
 	// Create security middleware.
 
@@ -1483,9 +1231,6 @@ func CreateA1SecurityMiddleware(config *a1.A1ServerConfig) (func(http.Handler) h
 
 	}
 
-
-
 	return middleware.CreateMiddlewareChain(), nil
 
 }
-

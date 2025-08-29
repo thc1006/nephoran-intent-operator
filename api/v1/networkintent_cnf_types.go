@@ -28,24 +28,13 @@ limitations under the License.
 
 */
 
-
-
-
 package v1
 
-
-
 import (
-
 	"k8s.io/apimachinery/pkg/api/resource"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
 )
-
-
 
 // CNFDeploymentIntent defines CNF deployment specifications derived from NetworkIntent.
 
@@ -57,15 +46,11 @@ type CNFDeploymentIntent struct {
 
 	CNFType CNFType `json:"cnfType,omitempty"`
 
-
-
 	// Specific CNF function.
 
 	// +optional
 
 	Function CNFFunction `json:"function,omitempty"`
-
-
 
 	// Deployment strategy preference.
 
@@ -74,8 +59,6 @@ type CNFDeploymentIntent struct {
 	// +kubebuilder:validation:Enum=Helm;Operator;Direct;GitOps
 
 	DeploymentStrategy DeploymentStrategy `json:"deploymentStrategy,omitempty"`
-
-
 
 	// Number of replicas.
 
@@ -87,15 +70,11 @@ type CNFDeploymentIntent struct {
 
 	Replicas *int32 `json:"replicas,omitempty"`
 
-
-
 	// Resource requirements.
 
 	// +optional
 
 	Resources *CNFResourceIntent `json:"resources,omitempty"`
-
-
 
 	// Auto-scaling preferences.
 
@@ -103,15 +82,11 @@ type CNFDeploymentIntent struct {
 
 	AutoScaling *AutoScalingIntent `json:"autoScaling,omitempty"`
 
-
-
 	// Service mesh integration preference.
 
 	// +optional
 
 	ServiceMesh *ServiceMeshIntent `json:"serviceMesh,omitempty"`
-
-
 
 	// Monitoring preferences.
 
@@ -119,15 +94,11 @@ type CNFDeploymentIntent struct {
 
 	Monitoring *MonitoringIntent `json:"monitoring,omitempty"`
 
-
-
 	// Security requirements.
 
 	// +optional
 
 	Security *SecurityIntent `json:"security,omitempty"`
-
-
 
 	// High availability requirements.
 
@@ -135,25 +106,18 @@ type CNFDeploymentIntent struct {
 
 	HighAvailability *HighAvailabilityIntent `json:"highAvailability,omitempty"`
 
-
-
 	// Performance requirements.
 
 	// +optional
 
 	Performance *PerformanceIntent `json:"performance,omitempty"`
 
-
-
 	// Network slice requirements.
 
 	// +optional
 
 	NetworkSlicing *NetworkSlicingIntent `json:"networkSlicing,omitempty"`
-
 }
-
-
 
 // CNFResourceIntent defines resource requirements from intent processing.
 
@@ -165,15 +129,11 @@ type CNFResourceIntent struct {
 
 	CPU *resource.Quantity `json:"cpu,omitempty"`
 
-
-
 	// Memory resource requirements.
 
 	// +optional
 
 	Memory *resource.Quantity `json:"memory,omitempty"`
-
-
 
 	// Storage resource requirements.
 
@@ -181,15 +141,11 @@ type CNFResourceIntent struct {
 
 	Storage *resource.Quantity `json:"storage,omitempty"`
 
-
-
 	// GPU requirements.
 
 	// +optional
 
 	GPU *int32 `json:"gpu,omitempty"`
-
-
 
 	// DPDK requirements.
 
@@ -197,15 +153,11 @@ type CNFResourceIntent struct {
 
 	DPDK *DPDKIntent `json:"dpdk,omitempty"`
 
-
-
 	// Hugepages requirements.
 
 	// +optional
 
 	Hugepages map[string]resource.Quantity `json:"hugepages,omitempty"`
-
-
 
 	// Performance tier (low, medium, high, extreme).
 
@@ -214,10 +166,7 @@ type CNFResourceIntent struct {
 	// +kubebuilder:validation:Enum=low;medium;high;extreme
 
 	PerformanceTier string `json:"performanceTier,omitempty"`
-
 }
-
-
 
 // DPDKIntent defines DPDK requirements from intent.
 
@@ -227,15 +176,11 @@ type DPDKIntent struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// Number of cores.
 
 	// +optional
 
 	Cores *int32 `json:"cores,omitempty"`
-
-
 
 	// Memory in MB.
 
@@ -243,17 +188,12 @@ type DPDKIntent struct {
 
 	Memory *int32 `json:"memory,omitempty"`
 
-
-
 	// Driver preference.
 
 	// +optional
 
 	Driver string `json:"driver,omitempty"`
-
 }
-
-
 
 // AutoScalingIntent defines auto-scaling preferences from intent.
 
@@ -263,15 +203,11 @@ type AutoScalingIntent struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// Minimum replicas.
 
 	// +optional
 
 	MinReplicas *int32 `json:"minReplicas,omitempty"`
-
-
 
 	// Maximum replicas.
 
@@ -279,15 +215,11 @@ type AutoScalingIntent struct {
 
 	MaxReplicas *int32 `json:"maxReplicas,omitempty"`
 
-
-
 	// Target CPU utilization.
 
 	// +optional
 
 	TargetCPUUtilization *int32 `json:"targetCpuUtilization,omitempty"`
-
-
 
 	// Target memory utilization.
 
@@ -295,15 +227,11 @@ type AutoScalingIntent struct {
 
 	TargetMemoryUtilization *int32 `json:"targetMemoryUtilization,omitempty"`
 
-
-
 	// Custom metrics.
 
 	// +optional
 
 	CustomMetrics []string `json:"customMetrics,omitempty"`
-
-
 
 	// Scaling policy (aggressive, moderate, conservative).
 
@@ -312,10 +240,7 @@ type AutoScalingIntent struct {
 	// +kubebuilder:validation:Enum=aggressive;moderate;conservative
 
 	ScalingPolicy string `json:"scalingPolicy,omitempty"`
-
 }
-
-
 
 // ServiceMeshIntent defines service mesh preferences from intent.
 
@@ -325,8 +250,6 @@ type ServiceMeshIntent struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// Preferred service mesh type.
 
 	// +optional
@@ -335,25 +258,18 @@ type ServiceMeshIntent struct {
 
 	Type string `json:"type,omitempty"`
 
-
-
 	// mTLS requirements.
 
 	// +optional
 
 	MTLS *MTLSIntent `json:"mtls,omitempty"`
 
-
-
 	// Traffic management preferences.
 
 	// +optional
 
 	TrafficManagement []string `json:"trafficManagement,omitempty"`
-
 }
-
-
 
 // MTLSIntent defines mTLS preferences.
 
@@ -363,8 +279,6 @@ type MTLSIntent struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// mTLS mode preference.
 
 	// +optional
@@ -372,10 +286,7 @@ type MTLSIntent struct {
 	// +kubebuilder:validation:Enum=strict;permissive
 
 	Mode string `json:"mode,omitempty"`
-
 }
-
-
 
 // MonitoringIntent defines monitoring preferences from intent.
 
@@ -385,15 +296,11 @@ type MonitoringIntent struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// Metrics collection preferences.
 
 	// +optional
 
 	Metrics []string `json:"metrics,omitempty"`
-
-
 
 	// Alerting preferences.
 
@@ -401,15 +308,11 @@ type MonitoringIntent struct {
 
 	Alerts []string `json:"alerts,omitempty"`
 
-
-
 	// Dashboard requirements.
 
 	// +optional
 
 	Dashboards []string `json:"dashboards,omitempty"`
-
-
 
 	// Logging level preference.
 
@@ -419,17 +322,12 @@ type MonitoringIntent struct {
 
 	LogLevel string `json:"logLevel,omitempty"`
 
-
-
 	// Tracing requirements.
 
 	// +optional
 
 	TracingEnabled bool `json:"tracingEnabled,omitempty"`
-
 }
-
-
 
 // SecurityIntent defines security requirements from intent.
 
@@ -443,15 +341,11 @@ type SecurityIntent struct {
 
 	Level string `json:"level,omitempty"`
 
-
-
 	// Encryption requirements.
 
 	// +optional
 
 	Encryption []string `json:"encryption,omitempty"`
-
-
 
 	// Authentication requirements.
 
@@ -459,15 +353,11 @@ type SecurityIntent struct {
 
 	Authentication []string `json:"authentication,omitempty"`
 
-
-
 	// Network policies.
 
 	// +optional
 
 	NetworkPolicies []string `json:"networkPolicies,omitempty"`
-
-
 
 	// Pod security standards.
 
@@ -477,17 +367,12 @@ type SecurityIntent struct {
 
 	PodSecurityStandard string `json:"podSecurityStandard,omitempty"`
 
-
-
 	// RBAC requirements.
 
 	// +optional
 
 	RBACEnabled bool `json:"rbacEnabled,omitempty"`
-
 }
-
-
 
 // HighAvailabilityIntent defines high availability requirements.
 
@@ -497,8 +382,6 @@ type HighAvailabilityIntent struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// Availability level (99.9%, 99.95%, 99.99%).
 
 	// +optional
@@ -507,15 +390,11 @@ type HighAvailabilityIntent struct {
 
 	AvailabilityLevel string `json:"availabilityLevel,omitempty"`
 
-
-
 	// Multi-zone deployment preference.
 
 	// +optional
 
 	MultiZone bool `json:"multiZone,omitempty"`
-
-
 
 	// Anti-affinity requirements.
 
@@ -523,25 +402,18 @@ type HighAvailabilityIntent struct {
 
 	AntiAffinity bool `json:"antiAffinity,omitempty"`
 
-
-
 	// Backup requirements.
 
 	// +optional
 
 	BackupEnabled bool `json:"backupEnabled,omitempty"`
 
-
-
 	// Disaster recovery requirements.
 
 	// +optional
 
 	DisasterRecovery bool `json:"disasterRecovery,omitempty"`
-
 }
-
-
 
 // PerformanceIntent defines performance requirements from intent.
 
@@ -553,15 +425,11 @@ type PerformanceIntent struct {
 
 	LatencyRequirement *int32 `json:"latencyRequirement,omitempty"`
 
-
-
 	// Throughput requirements (requests per second).
 
 	// +optional
 
 	ThroughputRequirement *int32 `json:"throughputRequirement,omitempty"`
-
-
 
 	// Bandwidth requirements.
 
@@ -569,23 +437,17 @@ type PerformanceIntent struct {
 
 	BandwidthRequirement string `json:"bandwidthRequirement,omitempty"`
 
-
-
 	// Packet loss tolerance.
 
 	// +optional
 
 	PacketLossTolerance *float64 `json:"packetLossTolerance,omitempty"`
 
-
-
 	// Jitter tolerance (in milliseconds).
 
 	// +optional
 
 	JitterTolerance *int32 `json:"jitterTolerance,omitempty"`
-
-
 
 	// Performance tier.
 
@@ -595,17 +457,12 @@ type PerformanceIntent struct {
 
 	Tier string `json:"tier,omitempty"`
 
-
-
 	// QoS requirements.
 
 	// +optional
 
 	QoSClass string `json:"qosClass,omitempty"`
-
 }
-
-
 
 // NetworkSlicingIntent defines network slicing requirements.
 
@@ -615,8 +472,6 @@ type NetworkSlicingIntent struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// Slice type (eMBB, URLLC, mMTC).
 
 	// +optional
@@ -624,8 +479,6 @@ type NetworkSlicingIntent struct {
 	// +kubebuilder:validation:Enum=eMBB;URLLC;mMTC;custom
 
 	SliceType string `json:"sliceType,omitempty"`
-
-
 
 	// SST (Slice/Service Type).
 
@@ -637,8 +490,6 @@ type NetworkSlicingIntent struct {
 
 	SST *int32 `json:"sst,omitempty"`
 
-
-
 	// SD (Slice Differentiator).
 
 	// +optional
@@ -646,8 +497,6 @@ type NetworkSlicingIntent struct {
 	// +kubebuilder:validation:Pattern=`^[0-9A-Fa-f]{6}$`
 
 	SD string `json:"sd,omitempty"`
-
-
 
 	// Isolation level (logical, physical, complete).
 
@@ -657,25 +506,18 @@ type NetworkSlicingIntent struct {
 
 	IsolationLevel string `json:"isolationLevel,omitempty"`
 
-
-
 	// Dedicated resources.
 
 	// +optional
 
 	DedicatedResources bool `json:"dedicatedResources,omitempty"`
 
-
-
 	// SLA requirements.
 
 	// +optional
 
 	SLARequirements map[string]string `json:"slaRequirements,omitempty"`
-
 }
-
-
 
 // CNFIntentProcessingResult represents the result of processing CNF-related intents.
 
@@ -685,19 +527,13 @@ type CNFIntentProcessingResult struct {
 
 	DetectedFunctions []CNFFunction `json:"detectedFunctions,omitempty"`
 
-
-
 	// Recommended deployment strategy.
 
 	RecommendedStrategy DeploymentStrategy `json:"recommendedStrategy,omitempty"`
 
-
-
 	// Generated CNF deployment specifications.
 
 	CNFDeployments []CNFDeploymentIntent `json:"cnfDeployments,omitempty"`
-
-
 
 	// Resource estimation.
 
@@ -707,47 +543,32 @@ type CNFIntentProcessingResult struct {
 
 	EstimatedResources runtime.RawExtension `json:"estimatedResources,omitempty"`
 
-
-
 	// Cost estimation.
 
 	EstimatedCost float64 `json:"estimatedCost,omitempty"`
-
-
 
 	// Deployment timeline estimation (in minutes).
 
 	EstimatedDeploymentTime int32 `json:"estimatedDeploymentTime,omitempty"`
 
-
-
 	// Confidence score (0.0 - 1.0).
 
 	ConfidenceScore float64 `json:"confidenceScore,omitempty"`
-
-
 
 	// Processing warnings.
 
 	Warnings []string `json:"warnings,omitempty"`
 
-
-
 	// Processing errors.
 
 	Errors []string `json:"errors,omitempty"`
-
-
 
 	// Additional context from LLM processing.
 
 	// +kubebuilder:pruning:PreserveUnknownFields
 
 	LLMContext runtime.RawExtension `json:"llmContext,omitempty"`
-
 }
-
-
 
 // GetObjectKind implements runtime.Object interface.
 
@@ -757,8 +578,6 @@ func (c *CNFIntentProcessingResult) GetObjectKind() schema.ObjectKind {
 
 }
 
-
-
 // GetObjectKind implements schema.ObjectKind interface.
 
 func (c *CNFIntentProcessingResult) SetGroupVersionKind(gvk schema.GroupVersionKind) {
@@ -767,8 +586,6 @@ func (c *CNFIntentProcessingResult) SetGroupVersionKind(gvk schema.GroupVersionK
 
 }
 
-
-
 // GroupVersionKind implements schema.ObjectKind interface.
 
 func (c *CNFIntentProcessingResult) GroupVersionKind() schema.GroupVersionKind {
@@ -776,8 +593,6 @@ func (c *CNFIntentProcessingResult) GroupVersionKind() schema.GroupVersionKind {
 	return schema.GroupVersionKind{}
 
 }
-
-
 
 // DeepCopyObject implements runtime.Object interface.
 
@@ -789,8 +604,6 @@ func (c *CNFIntentProcessingResult) DeepCopyObject() runtime.Object {
 
 	}
 
-
-
 	out := new(CNFIntentProcessingResult)
 
 	c.DeepCopyInto(out)
@@ -799,15 +612,11 @@ func (c *CNFIntentProcessingResult) DeepCopyObject() runtime.Object {
 
 }
 
-
-
 // DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out.
 
 func (c *CNFIntentProcessingResult) DeepCopyInto(out *CNFIntentProcessingResult) {
 
 	*out = *c
-
-
 
 	if c.DetectedFunctions != nil {
 
@@ -818,8 +627,6 @@ func (c *CNFIntentProcessingResult) DeepCopyInto(out *CNFIntentProcessingResult)
 		copy(*out, *in)
 
 	}
-
-
 
 	if c.CNFDeployments != nil {
 
@@ -835,15 +642,11 @@ func (c *CNFIntentProcessingResult) DeepCopyInto(out *CNFIntentProcessingResult)
 
 	}
 
-
-
 	if c.EstimatedResources.Raw != nil {
 
 		c.EstimatedResources.DeepCopyInto(&out.EstimatedResources)
 
 	}
-
-
 
 	if c.Warnings != nil {
 
@@ -855,8 +658,6 @@ func (c *CNFIntentProcessingResult) DeepCopyInto(out *CNFIntentProcessingResult)
 
 	}
 
-
-
 	if c.Errors != nil {
 
 		in, out := &c.Errors, &out.Errors
@@ -867,8 +668,6 @@ func (c *CNFIntentProcessingResult) DeepCopyInto(out *CNFIntentProcessingResult)
 
 	}
 
-
-
 	if c.LLMContext.Raw != nil {
 
 		c.LLMContext.DeepCopyInto(&out.LLMContext)
@@ -877,15 +676,11 @@ func (c *CNFIntentProcessingResult) DeepCopyInto(out *CNFIntentProcessingResult)
 
 }
 
-
-
 // DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out.
 
 func (c *CNFDeploymentIntent) DeepCopyInto(out *CNFDeploymentIntent) {
 
 	*out = *c
-
-
 
 	if c.Replicas != nil {
 
@@ -897,8 +692,6 @@ func (c *CNFDeploymentIntent) DeepCopyInto(out *CNFDeploymentIntent) {
 
 	}
 
-
-
 	if c.Resources != nil {
 
 		in, out := &c.Resources, &out.Resources
@@ -908,8 +701,6 @@ func (c *CNFDeploymentIntent) DeepCopyInto(out *CNFDeploymentIntent) {
 		(*in).DeepCopyInto(*out)
 
 	}
-
-
 
 	if c.AutoScaling != nil {
 
@@ -921,8 +712,6 @@ func (c *CNFDeploymentIntent) DeepCopyInto(out *CNFDeploymentIntent) {
 
 	}
 
-
-
 	if c.ServiceMesh != nil {
 
 		in, out := &c.ServiceMesh, &out.ServiceMesh
@@ -932,8 +721,6 @@ func (c *CNFDeploymentIntent) DeepCopyInto(out *CNFDeploymentIntent) {
 		(*in).DeepCopyInto(*out)
 
 	}
-
-
 
 	if c.Monitoring != nil {
 
@@ -945,8 +732,6 @@ func (c *CNFDeploymentIntent) DeepCopyInto(out *CNFDeploymentIntent) {
 
 	}
 
-
-
 	if c.Security != nil {
 
 		in, out := &c.Security, &out.Security
@@ -956,8 +741,6 @@ func (c *CNFDeploymentIntent) DeepCopyInto(out *CNFDeploymentIntent) {
 		(*in).DeepCopyInto(*out)
 
 	}
-
-
 
 	if c.HighAvailability != nil {
 
@@ -969,8 +752,6 @@ func (c *CNFDeploymentIntent) DeepCopyInto(out *CNFDeploymentIntent) {
 
 	}
 
-
-
 	if c.Performance != nil {
 
 		in, out := &c.Performance, &out.Performance
@@ -980,8 +761,6 @@ func (c *CNFDeploymentIntent) DeepCopyInto(out *CNFDeploymentIntent) {
 		(*in).DeepCopyInto(*out)
 
 	}
-
-
 
 	if c.NetworkSlicing != nil {
 
@@ -994,8 +773,6 @@ func (c *CNFDeploymentIntent) DeepCopyInto(out *CNFDeploymentIntent) {
 	}
 
 }
-
-
 
 // DeepCopyInto methods for supporting types.
 
@@ -1069,8 +846,6 @@ func (c *CNFResourceIntent) DeepCopyInto(out *CNFResourceIntent) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (c *DPDKIntent) DeepCopyInto(out *DPDKIntent) {
@@ -1098,8 +873,6 @@ func (c *DPDKIntent) DeepCopyInto(out *DPDKIntent) {
 	}
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -1159,8 +932,6 @@ func (c *AutoScalingIntent) DeepCopyInto(out *AutoScalingIntent) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (c *ServiceMeshIntent) DeepCopyInto(out *ServiceMeshIntent) {
@@ -1189,8 +960,6 @@ func (c *ServiceMeshIntent) DeepCopyInto(out *ServiceMeshIntent) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (c *MTLSIntent) DeepCopyInto(out *MTLSIntent) {
@@ -1198,8 +967,6 @@ func (c *MTLSIntent) DeepCopyInto(out *MTLSIntent) {
 	*out = *c
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -1239,8 +1006,6 @@ func (c *MonitoringIntent) DeepCopyInto(out *MonitoringIntent) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (c *SecurityIntent) DeepCopyInto(out *SecurityIntent) {
@@ -1279,8 +1044,6 @@ func (c *SecurityIntent) DeepCopyInto(out *SecurityIntent) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (c *HighAvailabilityIntent) DeepCopyInto(out *HighAvailabilityIntent) {
@@ -1288,8 +1051,6 @@ func (c *HighAvailabilityIntent) DeepCopyInto(out *HighAvailabilityIntent) {
 	*out = *c
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -1339,8 +1100,6 @@ func (c *PerformanceIntent) DeepCopyInto(out *PerformanceIntent) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (c *NetworkSlicingIntent) DeepCopyInto(out *NetworkSlicingIntent) {
@@ -1373,8 +1132,6 @@ func (c *NetworkSlicingIntent) DeepCopyInto(out *NetworkSlicingIntent) {
 
 }
 
-
-
 // CNFTopologyIntent defines network topology and connectivity requirements.
 
 type CNFTopologyIntent struct {
@@ -1383,33 +1140,22 @@ type CNFTopologyIntent struct {
 
 	Connectivity []CNFConnectivityRequirement `json:"connectivity,omitempty"`
 
-
-
 	// Service function chaining requirements.
 
 	ServiceChaining []ServiceChainRequirement `json:"serviceChaining,omitempty"`
-
-
 
 	// Load balancing requirements.
 
 	LoadBalancing *LoadBalancingRequirement `json:"loadBalancing,omitempty"`
 
-
-
 	// Multi-cluster deployment requirements.
 
 	MultiCluster *MultiClusterRequirement `json:"multiCluster,omitempty"`
 
-
-
 	// Edge deployment preferences.
 
 	EdgeDeployment *EdgeDeploymentRequirement `json:"edgeDeployment,omitempty"`
-
 }
-
-
 
 // CNFConnectivityRequirement defines connectivity between CNFs.
 
@@ -1419,45 +1165,30 @@ type CNFConnectivityRequirement struct {
 
 	Source CNFFunction `json:"source"`
 
-
-
 	// Destination CNF function.
 
 	Destination CNFFunction `json:"destination"`
-
-
 
 	// Interface type (N1, N2, N3, N4, SBI, etc.).
 
 	InterfaceType string `json:"interfaceType"`
 
-
-
 	// Protocol requirements.
 
 	Protocol []string `json:"protocol"`
-
-
 
 	// Bandwidth requirements.
 
 	Bandwidth string `json:"bandwidth,omitempty"`
 
-
-
 	// Latency requirements.
 
 	Latency *int32 `json:"latency,omitempty"`
 
-
-
 	// Security requirements.
 
 	Security []string `json:"security,omitempty"`
-
 }
-
-
 
 // ServiceChainRequirement defines service function chaining.
 
@@ -1467,27 +1198,18 @@ type ServiceChainRequirement struct {
 
 	Name string `json:"name"`
 
-
-
 	// Ordered list of CNF functions in the chain.
 
 	Functions []CNFFunction `json:"functions"`
-
-
 
 	// Traffic selection criteria.
 
 	TrafficSelector map[string]string `json:"trafficSelector,omitempty"`
 
-
-
 	// Chain performance requirements.
 
 	Performance *ChainPerformanceRequirement `json:"performance,omitempty"`
-
 }
-
-
 
 // ChainPerformanceRequirement defines performance for service chains.
 
@@ -1497,21 +1219,14 @@ type ChainPerformanceRequirement struct {
 
 	EndToEndLatency *int32 `json:"endToEndLatency,omitempty"`
 
-
-
 	// Throughput requirement.
 
 	Throughput *int32 `json:"throughput,omitempty"`
 
-
-
 	// Availability requirement.
 
 	Availability string `json:"availability,omitempty"`
-
 }
-
-
 
 // LoadBalancingRequirement defines load balancing requirements.
 
@@ -1521,27 +1236,18 @@ type LoadBalancingRequirement struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// Load balancing algorithm.
 
 	Algorithm string `json:"algorithm,omitempty"`
-
-
 
 	// Session affinity.
 
 	SessionAffinity bool `json:"sessionAffinity,omitempty"`
 
-
-
 	// Health check configuration.
 
 	HealthCheck *HealthCheckRequirement `json:"healthCheck,omitempty"`
-
 }
-
-
 
 // HealthCheckRequirement defines health check requirements.
 
@@ -1551,27 +1257,18 @@ type HealthCheckRequirement struct {
 
 	Type string `json:"type"`
 
-
-
 	// Check interval.
 
 	Interval *int32 `json:"interval,omitempty"`
-
-
 
 	// Timeout.
 
 	Timeout *int32 `json:"timeout,omitempty"`
 
-
-
 	// Retry count.
 
 	Retries *int32 `json:"retries,omitempty"`
-
 }
-
-
 
 // MultiClusterRequirement defines multi-cluster deployment requirements.
 
@@ -1581,33 +1278,22 @@ type MultiClusterRequirement struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// Target clusters.
 
 	TargetClusters []string `json:"targetClusters,omitempty"`
-
-
 
 	// Cluster selection strategy (round-robin, resource-based, geo-based).
 
 	SelectionStrategy string `json:"selectionStrategy,omitempty"`
 
-
-
 	// Inter-cluster communication requirements.
 
 	InterClusterCommunication bool `json:"interClusterCommunication,omitempty"`
 
-
-
 	// Failover requirements.
 
 	Failover bool `json:"failover,omitempty"`
-
 }
-
-
 
 // EdgeDeploymentRequirement defines edge deployment requirements.
 
@@ -1617,29 +1303,19 @@ type EdgeDeploymentRequirement struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// Edge locations.
 
 	EdgeLocations []string `json:"edgeLocations,omitempty"`
-
-
 
 	// Latency requirements for edge placement.
 
 	LatencyRequirement *int32 `json:"latencyRequirement,omitempty"`
 
-
-
 	// Resource constraints for edge deployment.
 
 	ResourceConstraints *CNFResourceIntent `json:"resourceConstraints,omitempty"`
 
-
-
 	// Connectivity to central functions.
 
 	CentralConnectivity bool `json:"centralConnectivity,omitempty"`
-
 }
-

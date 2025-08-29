@@ -1,91 +1,54 @@
-
 package auth
 
-
-
 import (
-
-	// "context".
-
-	// "fmt".
-
 	"log/slog"
 
-
-
-	// "github.com/gorilla/mux".
-
-	// "k8s.io/client-go/tools/record".
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // NephoranAuthIntegration provides comprehensive authentication integration.
 
 type NephoranAuthIntegration struct {
-
 	oauth2Manager *OAuth2Manager
 
-	rbacManager   *RBACManager
+	rbacManager *RBACManager
 
-	config        *NephoranAuthConfig
+	config *NephoranAuthConfig
 
-	logger        *slog.Logger
+	logger *slog.Logger
 
-	kubeClient    client.Client
-
+	kubeClient client.Client
 }
-
-
 
 // NephoranAuthConfig holds configuration.
 
 type NephoranAuthConfig struct {
+	AuthConfig *Config
 
-	AuthConfig         *Config
-
-	ControllerAuth     *ControllerAuthConfig
+	ControllerAuth *ControllerAuthConfig
 
 	EndpointProtection *EndpointProtectionConfig
 
-	NephoranRBAC       *NephoranRBACConfig
-
+	NephoranRBAC *NephoranRBACConfig
 }
-
-
 
 // ControllerAuthConfig represents a controllerauthconfig.
 
 type ControllerAuthConfig struct {
-
 	Enabled bool
-
 }
-
-
 
 // EndpointProtectionConfig represents a endpointprotectionconfig.
 
 type EndpointProtectionConfig struct {
-
 	RequireAuth bool
-
 }
-
-
 
 // NephoranRBACConfig represents a nephoranrbacconfig.
 
 type NephoranRBACConfig struct {
-
 	Enabled bool
-
 }
-
-
 
 // NewNephoranAuthIntegration creates integration.
 
@@ -93,13 +56,11 @@ func NewNephoranAuthIntegration(config *NephoranAuthConfig, kubeClient client.Cl
 
 	return &NephoranAuthIntegration{
 
-		config:     config,
+		config: config,
 
-		logger:     logger,
+		logger: logger,
 
 		kubeClient: kubeClient,
-
 	}, nil
 
 }
-

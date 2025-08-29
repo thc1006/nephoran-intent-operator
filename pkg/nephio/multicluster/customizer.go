@@ -1,53 +1,30 @@
-
 package multicluster
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
-
 
 	"github.com/go-logr/logr"
 
-
-
 	"k8s.io/apimachinery/pkg/types"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/kustomize/api/krusty"
-
 	ktypes "sigs.k8s.io/kustomize/api/types"
-
 	"sigs.k8s.io/kustomize/kyaml/filesys"
-
 )
-
-
 
 // Customizer manages package customization for different clusters.
 
 type Customizer struct {
-
 	client client.Client
 
 	logger logr.Logger
-
 }
-
-
 
 // CustomizationStrategy defines different package customization approaches.
 
 type CustomizationStrategy string
-
-
 
 const (
 
@@ -62,48 +39,37 @@ const (
 	// StrategyGenerated holds strategygenerated value.
 
 	StrategyGenerated CustomizationStrategy = "generated"
-
 )
-
-
 
 // CustomizationOptions configures package customization.
 
 type CustomizationOptions struct {
-
-	Strategy    CustomizationStrategy
+	Strategy CustomizationStrategy
 
 	Environment string
 
-	Region      string
+	Region string
 
 	Annotations map[string]string
 
-	Labels      map[string]string
+	Labels map[string]string
 
-	Resources   ResourceCustomization
-
+	Resources ResourceCustomization
 }
-
-
 
 // ResourceCustomization defines custom resource configurations.
 
 type ResourceCustomization struct {
+	Replicas int
 
-	Replicas     int
+	Resources map[string]interface{}
 
-	Resources    map[string]interface{}
+	Tolerations []interface{}
 
-	Tolerations  []interface{}
-
-	Affinity     map[string]interface{}
+	Affinity map[string]interface{}
 
 	NodeSelector map[string]string
-
 }
-
-
 
 // CustomizePackage creates a cluster-specific package variant.
 
@@ -127,8 +93,6 @@ func (c *Customizer) CustomizePackage(
 
 	}
 
-
-
 	// 2. Create temporary working directory.
 
 	tmpDir, err := c.createTempWorkspace(packageRevision)
@@ -140,8 +104,6 @@ func (c *Customizer) CustomizePackage(
 	}
 
 	defer c.cleanupWorkspace(tmpDir)
-
-
 
 	// 3. Apply customization based on strategy.
 
@@ -167,8 +129,6 @@ func (c *Customizer) CustomizePackage(
 
 }
 
-
-
 // extractCustomizationOptions determines package customization requirements.
 
 func (c *Customizer) extractCustomizationOptions(
@@ -193,11 +153,11 @@ func (c *Customizer) extractCustomizationOptions(
 
 	return &CustomizationOptions{
 
-		Strategy:    StrategyOverlay,
+		Strategy: StrategyOverlay,
 
 		Environment: "production",
 
-		Region:      "us-west-2",
+		Region: "us-west-2",
 
 		Resources: ResourceCustomization{
 
@@ -207,29 +167,22 @@ func (c *Customizer) extractCustomizationOptions(
 
 				"requests": map[string]string{
 
-					"cpu":    "500m",
+					"cpu": "500m",
 
 					"memory": "512Mi",
-
 				},
 
 				"limits": map[string]string{
 
-					"cpu":    "2",
+					"cpu": "2",
 
 					"memory": "2Gi",
-
 				},
-
 			},
-
 		},
-
 	}, nil
 
 }
-
-
 
 // customizeWithTemplate applies Golang template-based customization.
 
@@ -252,8 +205,6 @@ func (c *Customizer) customizeWithTemplate(
 	return nil, fmt.Errorf("template customization not implemented")
 
 }
-
-
 
 // customizeWithKustomize applies Kustomize-based customization.
 
@@ -281,15 +232,11 @@ func (c *Customizer) customizeWithKustomize(
 
 	}
 
-
-
 	// Build Kustomize overlay.
 
 	k := krusty.MakeKustomizer(krusty.MakeDefaultOptions())
 
 	filesys := filesys.MakeFsOnDisk()
-
-
 
 	result, err := k.Run(filesys, workspaceDir)
 
@@ -298,8 +245,6 @@ func (c *Customizer) customizeWithKustomize(
 		return nil, fmt.Errorf("kustomize build failed: %w", err)
 
 	}
-
-
 
 	// Write customized resources.
 
@@ -311,8 +256,6 @@ func (c *Customizer) customizeWithKustomize(
 
 	}
 
-
-
 	// Create new package revision with customized resources.
 
 	customizedPackage, err := c.createCustomizedPackageRevision(
@@ -322,7 +265,6 @@ func (c *Customizer) customizeWithKustomize(
 		packageRevision,
 
 		customizedResources,
-
 	)
 
 	if err != nil {
@@ -331,13 +273,9 @@ func (c *Customizer) customizeWithKustomize(
 
 	}
 
-
-
 	return customizedPackage, nil
 
 }
-
-
 
 // customizeWithGeneration generates new resources based on cluster requirements.
 
@@ -367,8 +305,6 @@ func (c *Customizer) customizeWithGeneration(
 
 }
 
-
-
 // Helper methods for package customization.
 
 func (c *Customizer) createTempWorkspace(
@@ -383,15 +319,11 @@ func (c *Customizer) createTempWorkspace(
 
 }
 
-
-
 func (c *Customizer) cleanupWorkspace(dir string) {
 
 	// Clean up temporary workspace.
 
 }
-
-
 
 func (c *Customizer) generateKustomizationFile(
 
@@ -405,15 +337,14 @@ func (c *Customizer) generateKustomizationFile(
 
 		TypeMeta: ktypes.TypeMeta{
 
-			Kind:       "Kustomization",
+			Kind: "Kustomization",
 
 			APIVersion: "kustomize.config.k8s.io/v1beta1",
-
 		},
 
-		Resources:  []string{"."},
+		Resources: []string{"."},
 
-		Namespace:  options.Environment,
+		Namespace: options.Environment,
 
 		NamePrefix: fmt.Sprintf("%s-", options.Region),
 
@@ -421,8 +352,7 @@ func (c *Customizer) generateKustomizationFile(
 
 			"environment": options.Environment,
 
-			"region":      options.Region,
-
+			"region": options.Region,
 		},
 
 		Patches: []ktypes.Patch{
@@ -454,20 +384,13 @@ spec:
       tolerations: {{ toYaml .Values.tolerations | indent 2 }}
 
 `,
-
 			},
-
 		},
-
 	}
-
-
 
 	return kustomization
 
 }
-
-
 
 func (c *Customizer) writeKustomizationFile(
 
@@ -482,8 +405,6 @@ func (c *Customizer) writeKustomizationFile(
 	return nil
 
 }
-
-
 
 func (c *Customizer) createCustomizedPackageRevision(
 
@@ -501,8 +422,6 @@ func (c *Customizer) createCustomizedPackageRevision(
 
 }
 
-
-
 // NewCustomizer creates a new package customizer.
 
 func NewCustomizer(
@@ -518,8 +437,6 @@ func NewCustomizer(
 		client: client,
 
 		logger: logger,
-
 	}
 
 }
-

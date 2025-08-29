@@ -1,37 +1,21 @@
 // Package errors provides structured error handling and classification for the Nephoran Intent Operator.
 
-
 package errors
 
-
-
 import (
-
 	"context"
-
 	"errors"
-
 	"fmt"
-
 	"log/slog"
-
 	"os"
-
 	"runtime"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // ErrorType represents different categories of errors.
 
 type ErrorType string
-
-
 
 const (
 
@@ -54,8 +38,6 @@ const (
 	// ErrorTypeRange holds errortyperange value.
 
 	ErrorTypeRange ErrorType = "range"
-
-
 
 	// Infrastructure errors.
 
@@ -81,8 +63,6 @@ const (
 
 	ErrorTypeQuota ErrorType = "quota"
 
-
-
 	// Authentication/Authorization errors.
 
 	ErrorTypeAuth ErrorType = "authentication"
@@ -98,8 +78,6 @@ const (
 	// ErrorTypeExpired holds errortypeexpired value.
 
 	ErrorTypeExpired ErrorType = "expired"
-
-
 
 	// Business logic errors.
 
@@ -120,8 +98,6 @@ const (
 	// ErrorTypePrecondition holds errortypeprecondition value.
 
 	ErrorTypePrecondition ErrorType = "precondition"
-
-
 
 	// System errors.
 
@@ -147,8 +123,6 @@ const (
 
 	ErrorTypeCPU ErrorType = "cpu"
 
-
-
 	// O-RAN specific errors.
 
 	ErrorTypeORANA1 ErrorType = "oran_a1"
@@ -173,8 +147,6 @@ const (
 
 	ErrorTypeNetworkSlice ErrorType = "network_slice"
 
-
-
 	// Kubernetes specific errors.
 
 	ErrorTypeK8sResource ErrorType = "k8s_resource"
@@ -191,8 +163,6 @@ const (
 
 	ErrorTypeK8sController ErrorType = "k8s_controller"
 
-
-
 	// LLM/AI specific errors.
 
 	ErrorTypeLLM ErrorType = "llm"
@@ -208,118 +178,97 @@ const (
 	// ErrorTypeVector holds errortypevector value.
 
 	ErrorTypeVector ErrorType = "vector"
-
 )
-
-
 
 // ServiceError represents a standardized error with context.
 
 type ServiceError struct {
-
 	mu sync.RWMutex // Mutex for thread safety
 
+	Type ErrorType `json:"type"`
 
+	Code string `json:"code"`
 
-	Type          ErrorType `json:"type"`
+	Message string `json:"message"`
 
-	Code          string    `json:"code"`
+	Details string `json:"details,omitempty"`
 
-	Message       string    `json:"message"`
+	Service string `json:"service"`
 
-	Details       string    `json:"details,omitempty"`
+	Operation string `json:"operation"`
 
-	Service       string    `json:"service"`
+	Component string `json:"component,omitempty"`
 
-	Operation     string    `json:"operation"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Component     string    `json:"component,omitempty"`
+	RequestID string `json:"request_id,omitempty"`
 
-	Timestamp     time.Time `json:"timestamp"`
+	UserID string `json:"user_id,omitempty"`
 
-	RequestID     string    `json:"request_id,omitempty"`
+	CorrelationID string `json:"correlation_id,omitempty"`
 
-	UserID        string    `json:"user_id,omitempty"`
-
-	CorrelationID string    `json:"correlation_id,omitempty"`
-
-	SessionID     string    `json:"session_id,omitempty"`
-
-
+	SessionID string `json:"session_id,omitempty"`
 
 	// Error classification.
 
-	Category  ErrorCategory `json:"category"`
+	Category ErrorCategory `json:"category"`
 
-	Severity  ErrorSeverity `json:"severity"`
+	Severity ErrorSeverity `json:"severity"`
 
-	Impact    ErrorImpact   `json:"impact"`
+	Impact ErrorImpact `json:"impact"`
 
-	Retryable bool          `json:"retryable"`
+	Retryable bool `json:"retryable"`
 
-	Temporary bool          `json:"temporary"`
-
-
+	Temporary bool `json:"temporary"`
 
 	// Error context.
 
-	Cause      error                  `json:"-"`
+	Cause error `json:"-"`
 
-	CauseChain []*ServiceError        `json:"cause_chain,omitempty"`
+	CauseChain []*ServiceError `json:"cause_chain,omitempty"`
 
-	StackTrace []StackFrame           `json:"stack_trace,omitempty"`
+	StackTrace []StackFrame `json:"stack_trace,omitempty"`
 
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 
-	Tags       []string               `json:"tags,omitempty"`
-
-
+	Tags []string `json:"tags,omitempty"`
 
 	// Recovery information.
 
-	RetryCount     int           `json:"retry_count,omitempty"`
+	RetryCount int `json:"retry_count,omitempty"`
 
-	RetryAfter     time.Duration `json:"retry_after,omitempty"`
+	RetryAfter time.Duration `json:"retry_after,omitempty"`
 
-	CircuitBreaker string        `json:"circuit_breaker,omitempty"`
-
-
+	CircuitBreaker string `json:"circuit_breaker,omitempty"`
 
 	// Performance information.
 
-	Latency   time.Duration     `json:"latency,omitempty"`
+	Latency time.Duration `json:"latency,omitempty"`
 
 	Resources map[string]string `json:"resources,omitempty"`
 
-
-
 	// HTTP information.
 
-	HTTPStatus int    `json:"http_status,omitempty"`
+	HTTPStatus int `json:"http_status,omitempty"`
 
 	HTTPMethod string `json:"http_method,omitempty"`
 
-	HTTPPath   string `json:"http_path,omitempty"`
+	HTTPPath string `json:"http_path,omitempty"`
 
 	RemoteAddr string `json:"remote_addr,omitempty"`
 
-	UserAgent  string `json:"user_agent,omitempty"`
-
-
+	UserAgent string `json:"user_agent,omitempty"`
 
 	// System information.
 
-	Hostname    string                 `json:"hostname,omitempty"`
+	Hostname string `json:"hostname,omitempty"`
 
-	PID         int                    `json:"pid,omitempty"`
+	PID int `json:"pid,omitempty"`
 
-	GoroutineID string                 `json:"goroutine_id,omitempty"`
+	GoroutineID string `json:"goroutine_id,omitempty"`
 
-	DebugInfo   map[string]interface{} `json:"debug_info,omitempty"`
-
+	DebugInfo map[string]interface{} `json:"debug_info,omitempty"`
 }
-
-
 
 // Error implements the error interface.
 
@@ -335,8 +284,6 @@ func (e *ServiceError) Error() string {
 
 }
 
-
-
 // Unwrap implements the error unwrapping interface.
 
 func (e *ServiceError) Unwrap() error {
@@ -344,8 +291,6 @@ func (e *ServiceError) Unwrap() error {
 	return e.Cause
 
 }
-
-
 
 // Is implements error comparison.
 
@@ -357,35 +302,25 @@ func (e *ServiceError) Is(target error) bool {
 
 	}
 
-
-
 	if se, ok := target.(*ServiceError); ok {
 
 		return e.Type == se.Type && e.Code == se.Code
 
 	}
 
-
-
 	return errors.Is(e.Cause, target)
 
 }
 
-
-
 // ErrorBuilder helps build standardized errors.
 
 type ErrorBuilder struct {
-
-	service   string
+	service string
 
 	operation string
 
-	logger    *slog.Logger
-
+	logger *slog.Logger
 }
-
-
 
 // NewErrorBuilder creates a new error builder for a service.
 
@@ -393,17 +328,14 @@ func NewErrorBuilder(service, operation string, logger *slog.Logger) *ErrorBuild
 
 	return &ErrorBuilder{
 
-		service:   service,
+		service: service,
 
 		operation: operation,
 
-		logger:    logger,
-
+		logger: logger,
 	}
 
 }
-
-
 
 // ValidationError creates a validation error.
 
@@ -412,8 +344,6 @@ func (eb *ErrorBuilder) ValidationError(code, message string) *ServiceError {
 	return eb.newError(ErrorTypeValidation, code, message, 400, true)
 
 }
-
-
 
 // RequiredFieldError creates a required field error.
 
@@ -425,8 +355,6 @@ func (eb *ErrorBuilder) RequiredFieldError(field string) *ServiceError {
 
 }
 
-
-
 // InvalidFieldError creates an invalid field error.
 
 func (eb *ErrorBuilder) InvalidFieldError(field, reason string) *ServiceError {
@@ -436,8 +364,6 @@ func (eb *ErrorBuilder) InvalidFieldError(field, reason string) *ServiceError {
 		fmt.Sprintf("Field '%s' is invalid: %s", field, reason), 400, false)
 
 }
-
-
 
 // NetworkError creates a network-related error.
 
@@ -451,8 +377,6 @@ func (eb *ErrorBuilder) NetworkError(code, message string, cause error) *Service
 
 }
 
-
-
 // TimeoutError creates a timeout error.
 
 func (eb *ErrorBuilder) TimeoutError(operation string, timeout time.Duration) *ServiceError {
@@ -463,8 +387,6 @@ func (eb *ErrorBuilder) TimeoutError(operation string, timeout time.Duration) *S
 
 }
 
-
-
 // NotFoundError creates a not found error.
 
 func (eb *ErrorBuilder) NotFoundError(resource, id string) *ServiceError {
@@ -474,8 +396,6 @@ func (eb *ErrorBuilder) NotFoundError(resource, id string) *ServiceError {
 		fmt.Sprintf("%s with ID '%s' not found", resource, id), 404, false)
 
 }
-
-
 
 // InternalError creates an internal error.
 
@@ -491,8 +411,6 @@ func (eb *ErrorBuilder) InternalError(message string, cause error) *ServiceError
 
 }
 
-
-
 // ConfigError creates a configuration error.
 
 func (eb *ErrorBuilder) ConfigError(setting, reason string) *ServiceError {
@@ -502,8 +420,6 @@ func (eb *ErrorBuilder) ConfigError(setting, reason string) *ServiceError {
 		fmt.Sprintf("Configuration error for '%s': %s", setting, reason), 500, false)
 
 }
-
-
 
 // ExternalServiceError creates an external service error.
 
@@ -518,8 +434,6 @@ func (eb *ErrorBuilder) ExternalServiceError(service string, cause error) *Servi
 	return err
 
 }
-
-
 
 // ContextCancelledError creates a context cancellation error.
 
@@ -537,8 +451,6 @@ func (eb *ErrorBuilder) ContextCancelledError(ctx context.Context) *ServiceError
 
 	}
 
-
-
 	err := eb.newError(ErrorTypeTimeout, "context_cancelled", message, 499, false)
 
 	err.Cause = ctx.Err()
@@ -546,8 +458,6 @@ func (eb *ErrorBuilder) ContextCancelledError(ctx context.Context) *ServiceError
 	return err
 
 }
-
-
 
 // WrapError wraps an external error with service context.
 
@@ -559,13 +469,9 @@ func (eb *ErrorBuilder) WrapError(cause error, message string) *ServiceError {
 
 	retryable := isRetryableError(errorType, cause)
 
-
-
 	err := eb.newError(errorType, "wrapped_error", message, httpStatus, retryable)
 
 	err.Cause = cause
-
-
 
 	if errorType == ErrorTypeInternal {
 
@@ -573,13 +479,9 @@ func (eb *ErrorBuilder) WrapError(cause error, message string) *ServiceError {
 
 	}
 
-
-
 	return err
 
 }
-
-
 
 // newError creates a new ServiceError with common fields populated.
 
@@ -587,27 +489,24 @@ func (eb *ErrorBuilder) newError(errType ErrorType, code, message string, httpSt
 
 	err := &ServiceError{
 
-		Type:       errType,
+		Type: errType,
 
-		Code:       code,
+		Code: code,
 
-		Message:    message,
+		Message: message,
 
-		Service:    eb.service,
+		Service: eb.service,
 
-		Operation:  eb.operation,
+		Operation: eb.operation,
 
-		Timestamp:  time.Now(),
+		Timestamp: time.Now(),
 
 		HTTPStatus: httpStatus,
 
-		Retryable:  retryable,
+		Retryable: retryable,
 
-		Metadata:   make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}
-
-
 
 	// Log the error.
 
@@ -620,8 +519,6 @@ func (eb *ErrorBuilder) newError(errType ErrorType, code, message string, httpSt
 			logLevel = slog.LevelWarn
 
 		}
-
-
 
 		eb.logger.Log(context.Background(), logLevel, "Service error created",
 
@@ -636,22 +533,15 @@ func (eb *ErrorBuilder) newError(errType ErrorType, code, message string, httpSt
 			"operation", eb.operation,
 
 			"retryable", retryable,
-
 		)
 
 	}
-
-
 
 	return err
 
 }
 
-
-
 // Helper functions.
-
-
 
 // categorizeError attempts to categorize an unknown error.
 
@@ -662,8 +552,6 @@ func categorizeError(err error) ErrorType {
 		return ErrorTypeInternal
 
 	}
-
-
 
 	switch {
 
@@ -682,8 +570,6 @@ func categorizeError(err error) ErrorType {
 	}
 
 }
-
-
 
 // getHTTPStatusForErrorType returns appropriate HTTP status for error type.
 
@@ -731,8 +617,6 @@ func getHTTPStatusForErrorType(errType ErrorType) int {
 
 }
 
-
-
 // isRetryableError determines if an error type is generally retryable.
 
 func isRetryableError(errType ErrorType, cause error) bool {
@@ -763,8 +647,6 @@ func isRetryableError(errType ErrorType, cause error) bool {
 
 }
 
-
-
 // getStackTrace captures the current stack trace.
 
 func getStackTrace(skip int) []StackFrame {
@@ -781,8 +663,6 @@ func getStackTrace(skip int) []StackFrame {
 
 		}
 
-
-
 		fn := runtime.FuncForPC(pc)
 
 		funcName := getSafeFunctionName(fn)
@@ -793,24 +673,19 @@ func getStackTrace(skip int) []StackFrame {
 
 		}
 
-
-
 		// Extract package name from function name.
 
 		packageName := extractPackageName(funcName)
 
-
-
 		stack = append(stack, StackFrame{
 
-			File:     file,
+			File: file,
 
-			Line:     line,
+			Line: line,
 
 			Function: funcName,
 
-			Package:  packageName,
-
+			Package: packageName,
 		})
 
 	}
@@ -818,8 +693,6 @@ func getStackTrace(skip int) []StackFrame {
 	return stack
 
 }
-
-
 
 // GetStackTraceStrings returns the stack trace as a slice of strings for backward compatibility.
 
@@ -830,8 +703,6 @@ func (e *ServiceError) GetStackTraceStrings() []string {
 		return nil
 
 	}
-
-
 
 	result := make([]string, len(e.StackTrace))
 
@@ -845,8 +716,6 @@ func (e *ServiceError) GetStackTraceStrings() []string {
 
 }
 
-
-
 // WithRequestID adds a request ID to the error.
 
 func (e *ServiceError) WithRequestID(requestID string) *ServiceError {
@@ -857,8 +726,6 @@ func (e *ServiceError) WithRequestID(requestID string) *ServiceError {
 
 }
 
-
-
 // WithUserID adds a user ID to the error.
 
 func (e *ServiceError) WithUserID(userID string) *ServiceError {
@@ -868,8 +735,6 @@ func (e *ServiceError) WithUserID(userID string) *ServiceError {
 	return e
 
 }
-
-
 
 // WithMetadata adds metadata to the error.
 
@@ -887,8 +752,6 @@ func (e *ServiceError) WithMetadata(key string, value interface{}) *ServiceError
 
 }
 
-
-
 // WithDetails adds additional details to the error.
 
 func (e *ServiceError) WithDetails(details string) *ServiceError {
@@ -898,8 +761,6 @@ func (e *ServiceError) WithDetails(details string) *ServiceError {
 	return e
 
 }
-
-
 
 // ToLogAttributes converts the error to structured log attributes.
 
@@ -916,10 +777,7 @@ func (e *ServiceError) ToLogAttributes() []slog.Attr {
 		slog.String("operation", e.Operation),
 
 		slog.Bool("retryable", e.Retryable),
-
 	}
-
-
 
 	if e.RequestID != "" {
 
@@ -927,15 +785,11 @@ func (e *ServiceError) ToLogAttributes() []slog.Attr {
 
 	}
 
-
-
 	if e.UserID != "" {
 
 		attrs = append(attrs, slog.String("user_id", e.UserID))
 
 	}
-
-
 
 	if e.Cause != nil {
 
@@ -943,13 +797,9 @@ func (e *ServiceError) ToLogAttributes() []slog.Attr {
 
 	}
 
-
-
 	return attrs
 
 }
-
-
 
 // IsRetryable returns whether this error is retryable.
 
@@ -959,8 +809,6 @@ func (e *ServiceError) IsRetryable() bool {
 
 }
 
-
-
 // IsTemporary returns whether this error is temporary.
 
 func (e *ServiceError) IsTemporary() bool {
@@ -968,8 +816,6 @@ func (e *ServiceError) IsTemporary() bool {
 	return e.Temporary
 
 }
-
-
 
 // AddTag adds a tag to the error.
 
@@ -991,8 +837,6 @@ func (e *ServiceError) AddTag(tag string) {
 
 }
 
-
-
 // GetHTTPStatus returns the appropriate HTTP status code for this error.
 
 func (e *ServiceError) GetHTTPStatus() int {
@@ -1006,8 +850,6 @@ func (e *ServiceError) GetHTTPStatus() int {
 	return getHTTPStatusForErrorType(e.Type)
 
 }
-
-
 
 // Helper functions for system information.
 
@@ -1023,15 +865,11 @@ func getCurrentHostname() string {
 
 }
 
-
-
 func getCurrentPID() int {
 
 	return os.Getpid()
 
 }
-
-
 
 func getCurrentGoroutineID() string {
 
@@ -1057,31 +895,27 @@ func getCurrentGoroutineID() string {
 
 }
 
-
-
 // NewProcessingError creates a processing-related error.
 
 func NewProcessingError(message string, category ErrorCategory) *ServiceError {
 
 	return &ServiceError{
 
-		Type:       ErrorTypeExternal,
+		Type: ErrorTypeExternal,
 
-		Code:       string(category),
+		Code: string(category),
 
-		Message:    message,
+		Message: message,
 
 		HTTPStatus: 500,
 
-		Timestamp:  time.Now(),
+		Timestamp: time.Now(),
 
-		Service:    "processing",
+		Service: "processing",
 
-		Operation:  "process",
+		Operation: "process",
 
-		Severity:   SeverityHigh,
-
+		Severity: SeverityHigh,
 	}
 
 }
-

@@ -28,42 +28,22 @@ limitations under the License.
 
 */
 
-
-
-
 package parallel
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
-
 )
-
-
 
 // IntentProcessor processes general intent tasks.
 
 type IntentProcessor struct {
-
 	logger logr.Logger
-
 }
-
-
 
 // NewIntentProcessor creates a new intent processor.
 
@@ -72,12 +52,9 @@ func NewIntentProcessor(logger logr.Logger) *IntentProcessor {
 	return &IntentProcessor{
 
 		logger: logger.WithName("intent-processor"),
-
 	}
 
 }
-
-
 
 // ProcessTask processes an intent task.
 
@@ -85,39 +62,29 @@ func (ip *IntentProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskRe
 
 	ip.logger.Info("Processing intent task", "taskId", task.ID, "intentId", task.IntentID)
 
-
-
 	// Simulate intent processing work.
 
 	time.Sleep(100 * time.Millisecond)
 
-
-
 	result := &TaskResult{
 
-		TaskID:  task.ID,
+		TaskID: task.ID,
 
 		Success: true,
 
 		OutputData: map[string]interface{}{
 
-			"processed":   true,
+			"processed": true,
 
 			"intent_type": "network", // NetworkIntent type
 
 			"intent_text": task.Intent.Spec.Intent,
-
 		},
-
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // GetProcessorType returns the processor type.
 
@@ -126,8 +93,6 @@ func (ip *IntentProcessor) GetProcessorType() TaskType {
 	return TaskTypeIntentProcessing
 
 }
-
-
 
 // HealthCheck performs a health check.
 
@@ -139,8 +104,6 @@ func (ip *IntentProcessor) HealthCheck(ctx context.Context) error {
 
 }
 
-
-
 // GetMetrics returns processor metrics.
 
 func (ip *IntentProcessor) GetMetrics() map[string]interface{} {
@@ -149,23 +112,16 @@ func (ip *IntentProcessor) GetMetrics() map[string]interface{} {
 
 		"processor_type": string(TaskTypeIntentProcessing),
 
-		"healthy":        true,
-
+		"healthy": true,
 	}
 
 }
 
-
-
 // LLMProcessor processes LLM tasks.
 
 type LLMProcessor struct {
-
 	logger logr.Logger
-
 }
-
-
 
 // NewLLMProcessor creates a new LLM processor.
 
@@ -174,12 +130,9 @@ func NewLLMProcessor(logger logr.Logger) *LLMProcessor {
 	return &LLMProcessor{
 
 		logger: logger.WithName("llm-processor"),
-
 	}
 
 }
-
-
 
 // ProcessTask processes an LLM task.
 
@@ -187,13 +140,9 @@ func (lp *LLMProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 
 	lp.logger.Info("Processing LLM task", "taskId", task.ID, "intentId", task.IntentID)
 
-
-
 	// Simulate LLM processing work.
 
 	time.Sleep(500 * time.Millisecond)
-
-
 
 	// Extract intent text from input data.
 
@@ -205,35 +154,29 @@ func (lp *LLMProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 
 	}
 
-
-
 	// Simulate LLM response.
 
 	llmResponse := map[string]interface{}{
 
-		"network_functions":  []string{"AMF", "SMF", "UPF"},
+		"network_functions": []string{"AMF", "SMF", "UPF"},
 
 		"deployment_pattern": "high_availability",
 
 		"resources": map[string]interface{}{
 
-			"cpu":    "2000m",
+			"cpu": "2000m",
 
 			"memory": "4Gi",
-
 		},
 
 		"confidence": 0.95,
 
-		"reasoning":  fmt.Sprintf("Analyzed intent: %s", intentText),
-
+		"reasoning": fmt.Sprintf("Analyzed intent: %s", intentText),
 	}
-
-
 
 	result := &TaskResult{
 
-		TaskID:  task.ID,
+		TaskID: task.ID,
 
 		Success: true,
 
@@ -241,41 +184,33 @@ func (lp *LLMProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 
 			"llm_response": llmResponse,
 
-			"tokens_used":  150,
+			"tokens_used": 150,
 
-			"model":        "gpt-4o-mini",
-
+			"model": "gpt-4o-mini",
 		},
 
 		ProcessingResult: &interfaces.ProcessingResult{
 
-			Success:   true,
+			Success: true,
 
 			NextPhase: interfaces.PhaseResourcePlanning,
 
-			Data:      llmResponse,
+			Data: llmResponse,
 
 			Metrics: map[string]float64{
 
-				"confidence":  0.95,
+				"confidence": 0.95,
 
 				"tokens_used": 150,
 
-				"latency_ms":  500,
-
+				"latency_ms": 500,
 			},
-
 		},
-
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // GetProcessorType returns the processor type.
 
@@ -284,8 +219,6 @@ func (lp *LLMProcessor) GetProcessorType() TaskType {
 	return TaskTypeLLMProcessing
 
 }
-
-
 
 // HealthCheck performs a health check.
 
@@ -297,8 +230,6 @@ func (lp *LLMProcessor) HealthCheck(ctx context.Context) error {
 
 }
 
-
-
 // GetMetrics returns processor metrics.
 
 func (lp *LLMProcessor) GetMetrics() map[string]interface{} {
@@ -307,25 +238,18 @@ func (lp *LLMProcessor) GetMetrics() map[string]interface{} {
 
 		"processor_type": string(TaskTypeLLMProcessing),
 
-		"healthy":        true,
+		"healthy": true,
 
-		"avg_latency":    500 * time.Millisecond,
-
+		"avg_latency": 500 * time.Millisecond,
 	}
 
 }
 
-
-
 // RAGProcessor processes RAG retrieval tasks.
 
 type RAGProcessor struct {
-
 	logger logr.Logger
-
 }
-
-
 
 // NewRAGProcessor creates a new RAG processor.
 
@@ -334,12 +258,9 @@ func NewRAGProcessor(logger logr.Logger) *RAGProcessor {
 	return &RAGProcessor{
 
 		logger: logger.WithName("rag-processor"),
-
 	}
 
 }
-
-
 
 // ProcessTask processes a RAG task.
 
@@ -347,13 +268,9 @@ func (rp *RAGProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 
 	rp.logger.Info("Processing RAG task", "taskId", task.ID, "intentId", task.IntentID)
 
-
-
 	// Simulate RAG retrieval work.
 
 	time.Sleep(300 * time.Millisecond)
-
-
 
 	// Extract query from input data.
 
@@ -365,8 +282,6 @@ func (rp *RAGProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 
 	}
 
-
-
 	// Simulate RAG response.
 
 	ragResponse := map[string]interface{}{
@@ -375,31 +290,28 @@ func (rp *RAGProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 
 			{
 
-				"title":      "5G Network Functions Deployment Guide",
+				"title": "5G Network Functions Deployment Guide",
 
-				"content":    "AMF, SMF, and UPF are core 5G network functions...",
+				"content": "AMF, SMF, and UPF are core 5G network functions...",
 
 				"similarity": 0.92,
 
-				"source":     "3GPP TS 23.501",
-
+				"source": "3GPP TS 23.501",
 			},
 
 			{
 
-				"title":      "High Availability Patterns for Telecom",
+				"title": "High Availability Patterns for Telecom",
 
-				"content":    "For production deployments, use redundant instances...",
+				"content": "For production deployments, use redundant instances...",
 
 				"similarity": 0.88,
 
-				"source":     "ETSI NFV Guidelines",
-
+				"source": "ETSI NFV Guidelines",
 			},
-
 		},
 
-		"chunk_count":    5,
+		"chunk_count": 5,
 
 		"max_similarity": 0.92,
 
@@ -407,65 +319,53 @@ func (rp *RAGProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 
 		"query_metadata": map[string]interface{}{
 
-			"query":           query,
+			"query": query,
 
 			"embedding_model": "text-embedding-3-large",
 
-			"search_type":     "hybrid",
-
+			"search_type": "hybrid",
 		},
-
 	}
-
-
 
 	result := &TaskResult{
 
-		TaskID:  task.ID,
+		TaskID: task.ID,
 
 		Success: true,
 
 		OutputData: map[string]interface{}{
 
-			"rag_response":    ragResponse,
+			"rag_response": ragResponse,
 
 			"documents_found": 5,
 
-			"search_time_ms":  300,
-
+			"search_time_ms": 300,
 		},
 
 		ProcessingResult: &interfaces.ProcessingResult{
 
-			Success:   true,
+			Success: true,
 
 			NextPhase: interfaces.PhaseResourcePlanning,
 
-			Data:      ragResponse,
+			Data: ragResponse,
 
 			Metrics: map[string]float64{
 
-				"max_similarity":  0.92,
+				"max_similarity": 0.92,
 
-				"avg_similarity":  0.86,
+				"avg_similarity": 0.86,
 
-				"search_time_ms":  300,
+				"search_time_ms": 300,
 
 				"documents_found": 5,
-
 			},
-
 		},
-
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // GetProcessorType returns the processor type.
 
@@ -474,8 +374,6 @@ func (rp *RAGProcessor) GetProcessorType() TaskType {
 	return TaskTypeRAGRetrieval
 
 }
-
-
 
 // HealthCheck performs a health check.
 
@@ -487,8 +385,6 @@ func (rp *RAGProcessor) HealthCheck(ctx context.Context) error {
 
 }
 
-
-
 // GetMetrics returns processor metrics.
 
 func (rp *RAGProcessor) GetMetrics() map[string]interface{} {
@@ -497,25 +393,18 @@ func (rp *RAGProcessor) GetMetrics() map[string]interface{} {
 
 		"processor_type": string(TaskTypeRAGRetrieval),
 
-		"healthy":        true,
+		"healthy": true,
 
-		"avg_latency":    300 * time.Millisecond,
-
+		"avg_latency": 300 * time.Millisecond,
 	}
 
 }
 
-
-
 // ResourceProcessor processes resource planning tasks.
 
 type ResourceProcessor struct {
-
 	logger logr.Logger
-
 }
-
-
 
 // NewResourceProcessor creates a new resource processor.
 
@@ -524,12 +413,9 @@ func NewResourceProcessor(logger logr.Logger) *ResourceProcessor {
 	return &ResourceProcessor{
 
 		logger: logger.WithName("resource-processor"),
-
 	}
 
 }
-
-
 
 // ProcessTask processes a resource planning task.
 
@@ -537,13 +423,9 @@ func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 
 	rsp.logger.Info("Processing resource planning task", "taskId", task.ID, "intentId", task.IntentID)
 
-
-
 	// Simulate resource planning work.
 
 	time.Sleep(400 * time.Millisecond)
-
-
 
 	// Create resource plan based on previous processing results.
 
@@ -553,11 +435,11 @@ func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 
 			{
 
-				"name":     "amf-instance",
+				"name": "amf-instance",
 
-				"type":     "AMF",
+				"type": "AMF",
 
-				"image":    "registry.local/5g/amf:v1.5.0",
+				"image": "registry.local/5g/amf:v1.5.0",
 
 				"replicas": 2,
 
@@ -565,8 +447,7 @@ func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 
 					"requests": map[string]string{"cpu": "1000m", "memory": "2Gi"},
 
-					"limits":   map[string]string{"cpu": "2000m", "memory": "4Gi"},
-
+					"limits": map[string]string{"cpu": "2000m", "memory": "4Gi"},
 				},
 
 				"ports": []map[string]interface{}{
@@ -574,18 +455,16 @@ func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 					{"name": "sbi", "port": 8080, "protocol": "HTTP"},
 
 					{"name": "metrics", "port": 9090, "protocol": "HTTP"},
-
 				},
-
 			},
 
 			{
 
-				"name":     "smf-instance",
+				"name": "smf-instance",
 
-				"type":     "SMF",
+				"type": "SMF",
 
-				"image":    "registry.local/5g/smf:v1.5.0",
+				"image": "registry.local/5g/smf:v1.5.0",
 
 				"replicas": 2,
 
@@ -593,12 +472,9 @@ func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 
 					"requests": map[string]string{"cpu": "800m", "memory": "1.5Gi"},
 
-					"limits":   map[string]string{"cpu": "1500m", "memory": "3Gi"},
-
+					"limits": map[string]string{"cpu": "1500m", "memory": "3Gi"},
 				},
-
 			},
-
 		},
 
 		"deployment_pattern": "high_availability",
@@ -607,7 +483,7 @@ func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 
 			"monthly_cost": 450.75,
 
-			"currency":     "USD",
+			"currency": "USD",
 
 			"breakdown": map[string]float64{
 
@@ -616,9 +492,7 @@ func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 				"storage": 85.25,
 
 				"network": 45.00,
-
 			},
-
 		},
 
 		"constraints": []string{
@@ -626,58 +500,46 @@ func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 			"anti_affinity_amf_smf",
 
 			"zone_distribution",
-
 		},
-
 	}
-
-
 
 	result := &TaskResult{
 
-		TaskID:  task.ID,
+		TaskID: task.ID,
 
 		Success: true,
 
 		OutputData: map[string]interface{}{
 
-			"resource_plan":      resourcePlan,
+			"resource_plan": resourcePlan,
 
 			"optimization_score": 0.87,
 
-			"planning_time_ms":   400,
-
+			"planning_time_ms": 400,
 		},
 
 		ProcessingResult: &interfaces.ProcessingResult{
 
-			Success:   true,
+			Success: true,
 
 			NextPhase: interfaces.PhaseManifestGeneration,
 
-			Data:      resourcePlan,
+			Data: resourcePlan,
 
 			Metrics: map[string]float64{
 
 				"optimization_score": 0.87,
 
-				"planning_time_ms":   400,
+				"planning_time_ms": 400,
 
-				"estimated_cost":     450.75,
-
+				"estimated_cost": 450.75,
 			},
-
 		},
-
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // GetProcessorType returns the processor type.
 
@@ -687,8 +549,6 @@ func (rsp *ResourceProcessor) GetProcessorType() TaskType {
 
 }
 
-
-
 // HealthCheck performs a health check.
 
 func (rsp *ResourceProcessor) HealthCheck(ctx context.Context) error {
@@ -696,8 +556,6 @@ func (rsp *ResourceProcessor) HealthCheck(ctx context.Context) error {
 	return nil
 
 }
-
-
 
 // GetMetrics returns processor metrics.
 
@@ -707,25 +565,18 @@ func (rsp *ResourceProcessor) GetMetrics() map[string]interface{} {
 
 		"processor_type": string(TaskTypeResourcePlanning),
 
-		"healthy":        true,
+		"healthy": true,
 
-		"avg_latency":    400 * time.Millisecond,
-
+		"avg_latency": 400 * time.Millisecond,
 	}
 
 }
 
-
-
 // ManifestProcessor processes manifest generation tasks.
 
 type ManifestProcessor struct {
-
 	logger logr.Logger
-
 }
-
-
 
 // NewManifestProcessor creates a new manifest processor.
 
@@ -734,12 +585,9 @@ func NewManifestProcessor(logger logr.Logger) *ManifestProcessor {
 	return &ManifestProcessor{
 
 		logger: logger.WithName("manifest-processor"),
-
 	}
 
 }
-
-
 
 // ProcessTask processes a manifest generation task.
 
@@ -747,13 +595,9 @@ func (mp *ManifestProcessor) ProcessTask(ctx context.Context, task *Task) (*Task
 
 	mp.logger.Info("Processing manifest generation task", "taskId", task.ID, "intentId", task.IntentID)
 
-
-
 	// Simulate manifest generation work.
 
 	time.Sleep(350 * time.Millisecond)
-
-
 
 	// Generate Kubernetes manifests.
 
@@ -815,8 +659,6 @@ spec:
 
           name: sbi`,
 
-
-
 		"smf-deployment.yaml": `apiVersion: apps/v1
 
 kind: Deployment
@@ -867,8 +709,6 @@ spec:
 
             memory: "3Gi"`,
 
-
-
 		"services.yaml": `apiVersion: v1
 
 kind: Service
@@ -918,56 +758,45 @@ spec:
     targetPort: 8080
 
     name: sbi`,
-
 	}
-
-
 
 	result := &TaskResult{
 
-		TaskID:  task.ID,
+		TaskID: task.ID,
 
 		Success: true,
 
 		OutputData: map[string]interface{}{
 
-			"manifests":          manifests,
+			"manifests": manifests,
 
-			"manifest_count":     len(manifests),
+			"manifest_count": len(manifests),
 
 			"generation_time_ms": 350,
 
-			"validation_passed":  true,
-
+			"validation_passed": true,
 		},
 
 		ProcessingResult: &interfaces.ProcessingResult{
 
-			Success:   true,
+			Success: true,
 
 			NextPhase: interfaces.PhaseGitOpsCommit,
 
-			Data:      map[string]interface{}{"manifests": manifests},
+			Data: map[string]interface{}{"manifests": manifests},
 
 			Metrics: map[string]float64{
 
-				"manifest_count":     float64(len(manifests)),
+				"manifest_count": float64(len(manifests)),
 
 				"generation_time_ms": 350,
-
 			},
-
 		},
-
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // GetProcessorType returns the processor type.
 
@@ -977,8 +806,6 @@ func (mp *ManifestProcessor) GetProcessorType() TaskType {
 
 }
 
-
-
 // HealthCheck performs a health check.
 
 func (mp *ManifestProcessor) HealthCheck(ctx context.Context) error {
@@ -986,8 +813,6 @@ func (mp *ManifestProcessor) HealthCheck(ctx context.Context) error {
 	return nil
 
 }
-
-
 
 // GetMetrics returns processor metrics.
 
@@ -997,25 +822,18 @@ func (mp *ManifestProcessor) GetMetrics() map[string]interface{} {
 
 		"processor_type": string(TaskTypeManifestGeneration),
 
-		"healthy":        true,
+		"healthy": true,
 
-		"avg_latency":    350 * time.Millisecond,
-
+		"avg_latency": 350 * time.Millisecond,
 	}
 
 }
 
-
-
 // GitOpsProcessor processes GitOps commit tasks.
 
 type GitOpsProcessor struct {
-
 	logger logr.Logger
-
 }
-
-
 
 // NewGitOpsProcessor creates a new GitOps processor.
 
@@ -1024,12 +842,9 @@ func NewGitOpsProcessor(logger logr.Logger) *GitOpsProcessor {
 	return &GitOpsProcessor{
 
 		logger: logger.WithName("gitops-processor"),
-
 	}
 
 }
-
-
 
 // ProcessTask processes a GitOps commit task.
 
@@ -1037,25 +852,21 @@ func (gp *GitOpsProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskRe
 
 	gp.logger.Info("Processing GitOps task", "taskId", task.ID, "intentId", task.IntentID)
 
-
-
 	// Simulate GitOps operations.
 
 	time.Sleep(600 * time.Millisecond)
-
-
 
 	// Simulate Git operations.
 
 	commitResult := map[string]interface{}{
 
-		"commit_hash":    "abc123def456",
+		"commit_hash": "abc123def456",
 
 		"commit_message": fmt.Sprintf("Deploy intent %s: 5G Core network functions", task.IntentID),
 
-		"branch":         "main",
+		"branch": "main",
 
-		"repository":     "git@github.com:telecom/deployments.git",
+		"repository": "git@github.com:telecom/deployments.git",
 
 		"files": []string{
 
@@ -1064,60 +875,48 @@ func (gp *GitOpsProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskRe
 			"clusters/prod/5g-core/smf-deployment.yaml",
 
 			"clusters/prod/5g-core/services.yaml",
-
 		},
 
 		"pr_created": false,
 
 		"auto_merge": true,
-
 	}
-
-
 
 	result := &TaskResult{
 
-		TaskID:  task.ID,
+		TaskID: task.ID,
 
 		Success: true,
 
 		OutputData: map[string]interface{}{
 
-			"commit_result":  commitResult,
+			"commit_result": commitResult,
 
 			"commit_time_ms": 600,
 
-			"files_updated":  3,
-
+			"files_updated": 3,
 		},
 
 		ProcessingResult: &interfaces.ProcessingResult{
 
-			Success:   true,
+			Success: true,
 
 			NextPhase: interfaces.PhaseDeploymentVerification,
 
-			Data:      commitResult,
+			Data: commitResult,
 
 			Metrics: map[string]float64{
 
 				"commit_time_ms": 600,
 
-				"files_updated":  3,
-
+				"files_updated": 3,
 			},
-
 		},
-
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // GetProcessorType returns the processor type.
 
@@ -1126,8 +925,6 @@ func (gp *GitOpsProcessor) GetProcessorType() TaskType {
 	return TaskTypeGitOpsCommit
 
 }
-
-
 
 // HealthCheck performs a health check.
 
@@ -1139,8 +936,6 @@ func (gp *GitOpsProcessor) HealthCheck(ctx context.Context) error {
 
 }
 
-
-
 // GetMetrics returns processor metrics.
 
 func (gp *GitOpsProcessor) GetMetrics() map[string]interface{} {
@@ -1149,25 +944,18 @@ func (gp *GitOpsProcessor) GetMetrics() map[string]interface{} {
 
 		"processor_type": string(TaskTypeGitOpsCommit),
 
-		"healthy":        true,
+		"healthy": true,
 
-		"avg_latency":    600 * time.Millisecond,
-
+		"avg_latency": 600 * time.Millisecond,
 	}
 
 }
 
-
-
 // DeploymentProcessor processes deployment verification tasks.
 
 type DeploymentProcessor struct {
-
 	logger logr.Logger
-
 }
-
-
 
 // NewDeploymentProcessor creates a new deployment processor.
 
@@ -1176,12 +964,9 @@ func NewDeploymentProcessor(logger logr.Logger) *DeploymentProcessor {
 	return &DeploymentProcessor{
 
 		logger: logger.WithName("deployment-processor"),
-
 	}
 
 }
-
-
 
 // ProcessTask processes a deployment verification task.
 
@@ -1189,13 +974,9 @@ func (dp *DeploymentProcessor) ProcessTask(ctx context.Context, task *Task) (*Ta
 
 	dp.logger.Info("Processing deployment verification task", "taskId", task.ID, "intentId", task.IntentID)
 
-
-
 	// Simulate deployment verification work.
 
 	time.Sleep(800 * time.Millisecond)
-
-
 
 	// Simulate verification results.
 
@@ -1208,7 +989,6 @@ func (dp *DeploymentProcessor) ProcessTask(ctx context.Context, task *Task) (*Ta
 			"amf": 2,
 
 			"smf": 2,
-
 		},
 
 		"services_ready": []string{
@@ -1216,96 +996,80 @@ func (dp *DeploymentProcessor) ProcessTask(ctx context.Context, task *Task) (*Ta
 			"amf-service",
 
 			"smf-service",
-
 		},
 
 		"health_checks": map[string]interface{}{
 
 			"amf": map[string]interface{}{
 
-				"status":        "healthy",
+				"status": "healthy",
 
 				"response_time": "45ms",
 
-				"uptime":        "100%",
-
+				"uptime": "100%",
 			},
 
 			"smf": map[string]interface{}{
 
-				"status":        "healthy",
+				"status": "healthy",
 
 				"response_time": "38ms",
 
-				"uptime":        "100%",
-
+				"uptime": "100%",
 			},
-
 		},
 
 		"sla_compliance": map[string]interface{}{
 
 			"availability": 99.9,
 
-			"latency":      "42ms",
+			"latency": "42ms",
 
-			"throughput":   "1250 req/s",
-
+			"throughput": "1250 req/s",
 		},
 
 		"verification_time": "800ms",
 
 		"all_checks_passed": true,
-
 	}
-
-
 
 	result := &TaskResult{
 
-		TaskID:  task.ID,
+		TaskID: task.ID,
 
 		Success: true,
 
 		OutputData: map[string]interface{}{
 
-			"verification_result":  verificationResult,
+			"verification_result": verificationResult,
 
 			"verification_time_ms": 800,
 
-			"all_healthy":          true,
-
+			"all_healthy": true,
 		},
 
 		ProcessingResult: &interfaces.ProcessingResult{
 
-			Success:   true,
+			Success: true,
 
 			NextPhase: interfaces.PhaseCompleted,
 
-			Data:      verificationResult,
+			Data: verificationResult,
 
 			Metrics: map[string]float64{
 
 				"verification_time_ms": 800,
 
-				"availability":         99.9,
+				"availability": 99.9,
 
-				"response_time_ms":     42,
-
+				"response_time_ms": 42,
 			},
-
 		},
-
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // GetProcessorType returns the processor type.
 
@@ -1314,8 +1078,6 @@ func (dp *DeploymentProcessor) GetProcessorType() TaskType {
 	return TaskTypeDeploymentVerify
 
 }
-
-
 
 // HealthCheck performs a health check.
 
@@ -1327,8 +1089,6 @@ func (dp *DeploymentProcessor) HealthCheck(ctx context.Context) error {
 
 }
 
-
-
 // GetMetrics returns processor metrics.
 
 func (dp *DeploymentProcessor) GetMetrics() map[string]interface{} {
@@ -1337,11 +1097,9 @@ func (dp *DeploymentProcessor) GetMetrics() map[string]interface{} {
 
 		"processor_type": string(TaskTypeDeploymentVerify),
 
-		"healthy":        true,
+		"healthy": true,
 
-		"avg_latency":    800 * time.Millisecond,
-
+		"avg_latency": 800 * time.Millisecond,
 	}
 
 }
-

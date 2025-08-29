@@ -1,43 +1,23 @@
-
 package o2
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"net/http"
-
 	"strings"
-
 	"time"
 
-
-
 	appsv1 "k8s.io/api/apps/v1"
-
 	corev1 "k8s.io/api/core/v1"
-
 	"k8s.io/apimachinery/pkg/api/resource"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/types"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
 
-
-
 // Test compatibility methods for O2Adaptor.
-
-
 
 // DeployVNF with interface{} parameter to handle both VNFDeployRequest and VNFDescriptor.
 
@@ -61,8 +41,6 @@ func (o2 *O2Adaptor) DeployVNF(ctx context.Context, request interface{}) (interf
 
 }
 
-
-
 // deployVNFFromRequest handles VNFDeployRequest.
 
 func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeployRequest) (*O2VNFInstance, error) {
@@ -75,28 +53,24 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 
 	}
 
-
-
 	// Create Kubernetes deployment.
 
 	deployment := &appsv1.Deployment{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      request.Name,
+			Name: request.Name,
 
 			Namespace: namespace,
 
 			Labels: map[string]string{
 
-				"app":               request.Name,
+				"app": request.Name,
 
-				"nephoran.com/vnf":  "true",
+				"nephoran.com/vnf": "true",
 
 				"nephoran.com/type": "o-ran",
-
 			},
-
 		},
 
 		Spec: appsv1.DeploymentSpec{
@@ -108,9 +82,7 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 				MatchLabels: map[string]string{
 
 					"app": request.Name,
-
 				},
-
 			},
 
 			Template: corev1.PodTemplateSpec{
@@ -120,9 +92,7 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 					Labels: map[string]string{
 
 						"app": request.Name,
-
 					},
-
 				},
 
 				Spec: corev1.PodSpec{
@@ -131,27 +101,19 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 
 						{
 
-							Name:  request.Name,
+							Name: request.Name,
 
 							Image: request.Image,
 
 							Ports: request.Ports,
 
-							Env:   request.Environment,
-
+							Env: request.Environment,
 						},
-
 					},
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	// Apply metadata labels.
 
@@ -165,13 +127,9 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 
 	}
 
-
-
 	// Apply resources, security context, health checks, volumes, etc.
 
 	container := &deployment.Spec.Template.Spec.Containers[0]
-
-
 
 	if request.Resources != nil {
 
@@ -207,8 +165,6 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 
 	}
 
-
-
 	if len(request.VolumeConfig) > 0 {
 
 		var volumeMounts []corev1.VolumeMount
@@ -219,18 +175,16 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 
 			volumeMounts = append(volumeMounts, corev1.VolumeMount{
 
-				Name:      volumeConfig.Name,
+				Name: volumeConfig.Name,
 
 				MountPath: volumeConfig.MountPath,
-
 			})
 
 			volumes = append(volumes, corev1.Volume{
 
-				Name:         volumeConfig.Name,
+				Name: volumeConfig.Name,
 
 				VolumeSource: volumeConfig.VolumeSource,
-
 			})
 
 		}
@@ -240,8 +194,6 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 		deployment.Spec.Template.Spec.Volumes = volumes
 
 	}
-
-
 
 	if request.Affinity != nil {
 
@@ -255,8 +207,6 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 
 	}
 
-
-
 	// Create deployment.
 
 	err := o2.kubeClient.Create(ctx, deployment)
@@ -267,8 +217,6 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 
 	}
 
-
-
 	// Create service if network config is specified.
 
 	if request.NetworkConfig != nil {
@@ -277,24 +225,21 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 
 			ObjectMeta: metav1.ObjectMeta{
 
-				Name:      request.Name + "-service",
+				Name: request.Name + "-service",
 
 				Namespace: namespace,
 
-				Labels:    map[string]string{"app": request.Name},
-
+				Labels: map[string]string{"app": request.Name},
 			},
 
 			Spec: corev1.ServiceSpec{
 
 				Selector: map[string]string{"app": request.Name},
 
-				Type:     request.NetworkConfig.ServiceType,
+				Type: request.NetworkConfig.ServiceType,
 
-				Ports:    request.NetworkConfig.Ports,
-
+				Ports: request.NetworkConfig.Ports,
 			},
-
 		}
 
 		err = o2.kubeClient.Create(ctx, service)
@@ -307,37 +252,31 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 
 	}
 
-
-
 	// Return VNF instance.
 
 	instance := &O2VNFInstance{
 
-		ID:           fmt.Sprintf("%s-%s", namespace, request.Name),
+		ID: fmt.Sprintf("%s-%s", namespace, request.Name),
 
-		Name:         request.Name,
+		Name: request.Name,
 
-		Namespace:    namespace,
+		Namespace: namespace,
 
 		VNFPackageID: request.VNFPackageID,
 
-		FlavorID:     request.FlavorID,
+		FlavorID: request.FlavorID,
 
 		Status: &VNFInstanceStatus{
 
-			State:         "INSTANTIATED",
+			State: "INSTANTIATED",
 
 			DetailedState: "RUNNING",
-
 		},
 
 		CreatedAt: time.Now(),
 
 		UpdatedAt: time.Now(),
-
 	}
-
-
 
 	if request.Resources != nil {
 
@@ -347,10 +286,9 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 
 				instance.Resources = &ResourceInfo{
 
-					CPU:    cpu.String(),
+					CPU: cpu.String(),
 
 					Memory: memory.String(),
-
 				}
 
 			}
@@ -358,8 +296,6 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 		}
 
 	}
-
-
 
 	// Add network endpoints.
 
@@ -369,27 +305,22 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 
 			instance.NetworkEndpoints = append(instance.NetworkEndpoints, NetworkEndpoint{
 
-				Name:     port.Name,
+				Name: port.Name,
 
-				Address:  "10.96.1.100", // Mock cluster IP
+				Address: "10.96.1.100", // Mock cluster IP
 
-				Port:     port.Port,
+				Port: port.Port,
 
 				Protocol: string(port.Protocol),
-
 			})
 
 		}
 
 	}
 
-
-
 	return instance, nil
 
 }
-
-
 
 // deployVNFFromDescriptor handles VNFDescriptor.
 
@@ -399,41 +330,38 @@ func (o2 *O2Adaptor) deployVNFFromDescriptor(ctx context.Context, descriptor *VN
 
 	request := &VNFDeployRequest{
 
-		Name:            descriptor.Name,
+		Name: descriptor.Name,
 
-		Namespace:       o2.config.Namespace,
+		Namespace: o2.config.Namespace,
 
-		VNFPackageID:    fmt.Sprintf("%s-%s", descriptor.Type, descriptor.Version),
+		VNFPackageID: fmt.Sprintf("%s-%s", descriptor.Type, descriptor.Version),
 
-		FlavorID:        "standard",
+		FlavorID: "standard",
 
-		Image:           descriptor.Image,
+		Image: descriptor.Image,
 
-		Replicas:        descriptor.Replicas,
+		Replicas: descriptor.Replicas,
 
-		Resources:       descriptor.Resources,
+		Resources: descriptor.Resources,
 
-		Environment:     descriptor.Environment,
+		Environment: descriptor.Environment,
 
-		Ports:           descriptor.Ports,
+		Ports: descriptor.Ports,
 
-		VolumeConfig:    descriptor.VolumeConfig,
+		VolumeConfig: descriptor.VolumeConfig,
 
-		NetworkConfig:   descriptor.NetworkConfig,
+		NetworkConfig: descriptor.NetworkConfig,
 
 		SecurityContext: descriptor.SecurityContext,
 
-		HealthCheck:     descriptor.HealthCheck,
+		HealthCheck: descriptor.HealthCheck,
 
-		Affinity:        descriptor.Affinity,
+		Affinity: descriptor.Affinity,
 
-		Tolerations:     descriptor.Tolerations,
+		Tolerations: descriptor.Tolerations,
 
-		Metadata:        descriptor.Metadata,
-
+		Metadata: descriptor.Metadata,
 	}
-
-
 
 	_, err := o2.deployVNFFromRequest(ctx, request)
 
@@ -443,23 +371,18 @@ func (o2 *O2Adaptor) deployVNFFromDescriptor(ctx context.Context, descriptor *VN
 
 	}
 
-
-
 	return &VNFDeploymentStatus{
 
-		Name:     descriptor.Name,
+		Name: descriptor.Name,
 
-		Status:   "PENDING",
+		Status: "PENDING",
 
-		Phase:    "Creating",
+		Phase: "Creating",
 
 		Replicas: descriptor.Replicas,
-
 	}, nil
 
 }
-
-
 
 // ScaleVNF scales a VNF instance.
 
@@ -473,18 +396,15 @@ func (o2 *O2Adaptor) ScaleVNF(ctx context.Context, instanceID string, request *V
 
 	}
 
-
-
 	namespace, name := parts[0], parts[1]
 
 	deployment := &appsv1.Deployment{}
 
 	err := o2.kubeClient.Get(ctx, types.NamespacedName{
 
-		Name:      name,
+		Name: name,
 
 		Namespace: namespace,
-
 	}, deployment)
 
 	if err != nil {
@@ -493,13 +413,9 @@ func (o2 *O2Adaptor) ScaleVNF(ctx context.Context, instanceID string, request *V
 
 	}
 
-
-
 	currentReplicas := *deployment.Spec.Replicas
 
 	var newReplicas int32
-
-
 
 	switch request.ScaleType {
 
@@ -523,15 +439,11 @@ func (o2 *O2Adaptor) ScaleVNF(ctx context.Context, instanceID string, request *V
 
 	}
 
-
-
 	deployment.Spec.Replicas = &newReplicas
 
 	return o2.kubeClient.Update(ctx, deployment)
 
 }
-
-
 
 // GetVNFInstance gets a VNF instance by ID.
 
@@ -545,18 +457,15 @@ func (o2 *O2Adaptor) GetVNFInstance(ctx context.Context, instanceID string) (*O2
 
 	}
 
-
-
 	namespace, name := parts[0], parts[1]
 
 	deployment := &appsv1.Deployment{}
 
 	err := o2.kubeClient.Get(ctx, types.NamespacedName{
 
-		Name:      name,
+		Name: name,
 
 		Namespace: namespace,
-
 	}, deployment)
 
 	if err != nil {
@@ -564,8 +473,6 @@ func (o2 *O2Adaptor) GetVNFInstance(ctx context.Context, instanceID string) (*O2
 		return nil, fmt.Errorf("failed to get deployment: %w", err)
 
 	}
-
-
 
 	// Get associated services.
 
@@ -579,31 +486,25 @@ func (o2 *O2Adaptor) GetVNFInstance(ctx context.Context, instanceID string) (*O2
 
 	}
 
-
-
 	instance := &O2VNFInstance{
 
-		ID:        instanceID,
+		ID: instanceID,
 
-		Name:      name,
+		Name: name,
 
 		Namespace: namespace,
 
 		Status: &VNFInstanceStatus{
 
-			State:         "INSTANTIATED",
+			State: "INSTANTIATED",
 
 			DetailedState: "RUNNING",
-
 		},
 
 		CreatedAt: deployment.CreationTimestamp.Time,
 
 		UpdatedAt: time.Now(),
-
 	}
-
-
 
 	// Add network endpoints from services.
 
@@ -613,27 +514,22 @@ func (o2 *O2Adaptor) GetVNFInstance(ctx context.Context, instanceID string) (*O2
 
 			instance.NetworkEndpoints = append(instance.NetworkEndpoints, NetworkEndpoint{
 
-				Name:     port.Name,
+				Name: port.Name,
 
-				Address:  service.Spec.ClusterIP,
+				Address: service.Spec.ClusterIP,
 
-				Port:     port.Port,
+				Port: port.Port,
 
 				Protocol: string(port.Protocol),
-
 			})
 
 		}
 
 	}
 
-
-
 	return instance, nil
 
 }
-
-
 
 // ScaleWorkload scales a workload by ID.
 
@@ -647,18 +543,15 @@ func (o2 *O2Adaptor) ScaleWorkload(ctx context.Context, workloadID string, repli
 
 	}
 
-
-
 	namespace, name := parts[0], parts[1]
 
 	deployment := &appsv1.Deployment{}
 
 	err := o2.kubeClient.Get(ctx, types.NamespacedName{
 
-		Name:      name,
+		Name: name,
 
 		Namespace: namespace,
-
 	}, deployment)
 
 	if err != nil {
@@ -667,15 +560,11 @@ func (o2 *O2Adaptor) ScaleWorkload(ctx context.Context, workloadID string, repli
 
 	}
 
-
-
 	deployment.Spec.Replicas = &replicas
 
 	return o2.kubeClient.Update(ctx, deployment)
 
 }
-
-
 
 // DiscoverResources discovers cluster resources.
 
@@ -683,23 +572,19 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 
 	resourceMap := &ResourceMap{
 
-		Nodes:      make(map[string]*NodeInfo),
+		Nodes: make(map[string]*NodeInfo),
 
 		Namespaces: make(map[string]*NamespaceInfo),
 
 		Metrics: &ClusterMetrics{
 
-			ReadyNodes:  0,
+			ReadyNodes: 0,
 
-			TotalCPU:    "0",
+			TotalCPU: "0",
 
 			TotalMemory: "0",
-
 		},
-
 	}
-
-
 
 	// Discover nodes.
 
@@ -713,23 +598,18 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 
 	}
 
-
-
 	var totalCPU, totalMemory resource.Quantity
 
 	for _, node := range nodeList.Items {
 
 		nodeInfo := &NodeInfo{
 
-			Name:   node.Name,
+			Name: node.Name,
 
 			Labels: node.Labels,
 
-			Roles:  []string{},
-
+			Roles: []string{},
 		}
-
-
 
 		// Determine roles.
 
@@ -757,11 +637,7 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 
 		}
 
-
-
 		resourceMap.Nodes[node.Name] = nodeInfo
-
-
 
 		// Count ready nodes.
 
@@ -776,8 +652,6 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 			}
 
 		}
-
-
 
 		// Sum resources.
 
@@ -795,13 +669,9 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 
 	}
 
-
-
 	resourceMap.Metrics.TotalCPU = totalCPU.String()
 
 	resourceMap.Metrics.TotalMemory = totalMemory.String()
-
-
 
 	// Discover namespaces.
 
@@ -815,27 +685,20 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 
 	}
 
-
-
 	for _, namespace := range namespaceList.Items {
 
 		resourceMap.Namespaces[namespace.Name] = &NamespaceInfo{
 
-			Name:   namespace.Name,
+			Name: namespace.Name,
 
 			Status: string(namespace.Status.Phase),
-
 		}
 
 	}
 
-
-
 	return resourceMap, nil
 
 }
-
-
 
 // GetInfrastructureInfo gets infrastructure information.
 
@@ -849,39 +712,29 @@ func (o2 *O2Adaptor) GetInfrastructureInfo(ctx context.Context) (*Infrastructure
 
 	}
 
-
-
 	info := &InfrastructureInfo{
 
-		NodeCount:         len(resourceMap.Nodes),
+		NodeCount: len(resourceMap.Nodes),
 
-		ClusterName:       "kubernetes-cluster",
+		ClusterName: "kubernetes-cluster",
 
 		KubernetesVersion: "v1.28.0",
-
 	}
-
-
 
 	if resourceMap.Metrics != nil {
 
 		info.TotalResources = &ResourceSummary{
 
-			CPU:    resourceMap.Metrics.TotalCPU,
+			CPU: resourceMap.Metrics.TotalCPU,
 
 			Memory: resourceMap.Metrics.TotalMemory,
-
 		}
 
 	}
 
-
-
 	return info, nil
 
 }
-
-
 
 // GetRouter returns the HTTP router (test compatibility method).
 
@@ -890,4 +743,3 @@ func (s *O2APIServer) GetRouter() http.Handler {
 	return s.router
 
 }
-

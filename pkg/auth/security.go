@@ -1,113 +1,77 @@
-
 package auth
 
-
-
 import (
-
 	"crypto/rand"
-
 	"crypto/sha256"
-
 	"crypto/subtle"
-
 	"encoding/base64"
-
 	"encoding/hex"
-
 	"fmt"
-
 	"net/http"
-
 	"strings"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // PKCEManager manages PKCE (Proof Key for Code Exchange) challenges.
 
 type PKCEManager struct {
-
 	challenges map[string]*PKCEChallenge
 
-	mu         sync.RWMutex
+	mu sync.RWMutex
 
-	ttl        time.Duration
-
+	ttl time.Duration
 }
-
-
 
 // PKCEChallenge represents a PKCE challenge.
 
 type PKCEChallenge struct {
+	CodeVerifier string `json:"code_verifier"`
 
-	CodeVerifier  string    `json:"code_verifier"`
+	CodeChallenge string `json:"code_challenge"`
 
-	CodeChallenge string    `json:"code_challenge"`
+	Method string `json:"code_challenge_method"`
 
-	Method        string    `json:"code_challenge_method"`
+	State string `json:"state"`
 
-	State         string    `json:"state"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt     time.Time `json:"created_at"`
+	ClientID string `json:"client_id"`
 
-	ClientID      string    `json:"client_id"`
-
-	RedirectURI   string    `json:"redirect_uri"`
-
+	RedirectURI string `json:"redirect_uri"`
 }
-
-
 
 // CSRFManager manages CSRF (Cross-Site Request Forgery) tokens.
 
 type CSRFManager struct {
-
 	tokens map[string]*CSRFToken
 
-	mu     sync.RWMutex
+	mu sync.RWMutex
 
-	ttl    time.Duration
+	ttl time.Duration
 
 	secret []byte
-
 }
-
-
 
 // CSRFToken represents a CSRF token.
 
 type CSRFToken struct {
+	Token string `json:"token"`
 
-	Token     string     `json:"token"`
+	SessionID string `json:"session_id"`
 
-	SessionID string     `json:"session_id"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt time.Time  `json:"created_at"`
-
-	UsedAt    *time.Time `json:"used_at,omitempty"`
-
+	UsedAt *time.Time `json:"used_at,omitempty"`
 }
-
-
 
 // SecurityManager provides comprehensive security features.
 
 type SecurityManager struct {
-
 	pkceManager *PKCEManager
 
 	csrfManager *CSRFManager
-
 }
-
-
 
 // NewPKCEManager creates a new PKCE manager.
 
@@ -119,29 +83,20 @@ func NewPKCEManager(ttl time.Duration) *PKCEManager {
 
 	}
 
-
-
 	pm := &PKCEManager{
 
 		challenges: make(map[string]*PKCEChallenge),
 
-		ttl:        ttl,
-
+		ttl: ttl,
 	}
-
-
 
 	// Start cleanup goroutine.
 
 	go pm.cleanup()
 
-
-
 	return pm
 
 }
-
-
 
 // GenerateChallenge generates a new PKCE challenge.
 
@@ -159,35 +114,28 @@ func (pm *PKCEManager) GenerateChallenge(state, clientID, redirectURI string) (*
 
 	codeVerifier := base64.RawURLEncoding.EncodeToString(verifierBytes)
 
-
-
 	// Generate code challenge using S256 method.
 
 	hash := sha256.Sum256([]byte(codeVerifier))
 
 	codeChallenge := base64.RawURLEncoding.EncodeToString(hash[:])
 
-
-
 	challenge := &PKCEChallenge{
 
-		CodeVerifier:  codeVerifier,
+		CodeVerifier: codeVerifier,
 
 		CodeChallenge: codeChallenge,
 
-		Method:        "S256",
+		Method: "S256",
 
-		State:         state,
+		State: state,
 
-		CreatedAt:     time.Now(),
+		CreatedAt: time.Now(),
 
-		ClientID:      clientID,
+		ClientID: clientID,
 
-		RedirectURI:   redirectURI,
-
+		RedirectURI: redirectURI,
 	}
-
-
 
 	pm.mu.Lock()
 
@@ -195,13 +143,9 @@ func (pm *PKCEManager) GenerateChallenge(state, clientID, redirectURI string) (*
 
 	pm.mu.Unlock()
 
-
-
 	return challenge, nil
 
 }
-
-
 
 // ValidateChallenge validates a PKCE challenge.
 
@@ -213,15 +157,11 @@ func (pm *PKCEManager) ValidateChallenge(state, codeVerifier, clientID, redirect
 
 	pm.mu.RUnlock()
 
-
-
 	if !exists {
 
 		return nil, fmt.Errorf("PKCE challenge not found or expired")
 
 	}
-
-
 
 	// Check expiration.
 
@@ -237,8 +177,6 @@ func (pm *PKCEManager) ValidateChallenge(state, codeVerifier, clientID, redirect
 
 	}
 
-
-
 	// Validate client ID and redirect URI.
 
 	if challenge.ClientID != clientID {
@@ -253,23 +191,17 @@ func (pm *PKCEManager) ValidateChallenge(state, codeVerifier, clientID, redirect
 
 	}
 
-
-
 	// Validate code verifier.
 
 	hash := sha256.Sum256([]byte(codeVerifier))
 
 	expectedChallenge := base64.RawURLEncoding.EncodeToString(hash[:])
 
-
-
 	if challenge.CodeChallenge != expectedChallenge {
 
 		return nil, fmt.Errorf("code verifier validation failed")
 
 	}
-
-
 
 	// Remove used challenge.
 
@@ -279,13 +211,9 @@ func (pm *PKCEManager) ValidateChallenge(state, codeVerifier, clientID, redirect
 
 	pm.mu.Unlock()
 
-
-
 	return challenge, nil
 
 }
-
-
 
 // GetChallenge retrieves a PKCE challenge by state.
 
@@ -301,8 +229,6 @@ func (pm *PKCEManager) GetChallenge(state string) (*PKCEChallenge, bool) {
 
 }
 
-
-
 // cleanup removes expired PKCE challenges.
 
 func (pm *PKCEManager) cleanup() {
@@ -310,8 +236,6 @@ func (pm *PKCEManager) cleanup() {
 	ticker := time.NewTicker(time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for range ticker.C {
 
@@ -335,8 +259,6 @@ func (pm *PKCEManager) cleanup() {
 
 }
 
-
-
 // NewCSRFManager creates a new CSRF manager.
 
 func NewCSRFManager(secret []byte, ttl time.Duration) *CSRFManager {
@@ -346,8 +268,6 @@ func NewCSRFManager(secret []byte, ttl time.Duration) *CSRFManager {
 		ttl = 1 * time.Hour // Default CSRF token TTL
 
 	}
-
-
 
 	if len(secret) == 0 {
 
@@ -363,31 +283,22 @@ func NewCSRFManager(secret []byte, ttl time.Duration) *CSRFManager {
 
 	}
 
-
-
 	cm := &CSRFManager{
 
 		tokens: make(map[string]*CSRFToken),
 
-		ttl:    ttl,
+		ttl: ttl,
 
 		secret: secret,
-
 	}
-
-
 
 	// Start cleanup goroutine.
 
 	go cm.cleanup()
 
-
-
 	return cm
 
 }
-
-
 
 // GenerateToken generates a new CSRF token for a session.
 
@@ -403,8 +314,6 @@ func (cm *CSRFManager) GenerateToken(sessionID string) (string, error) {
 
 	}
 
-
-
 	// Create token with session binding.
 
 	tokenData := append(tokenBytes, []byte(sessionID)...)
@@ -413,19 +322,14 @@ func (cm *CSRFManager) GenerateToken(sessionID string) (string, error) {
 
 	token := hex.EncodeToString(hash[:])
 
-
-
 	csrfToken := &CSRFToken{
 
-		Token:     token,
+		Token: token,
 
 		SessionID: sessionID,
 
 		CreatedAt: time.Now(),
-
 	}
-
-
 
 	cm.mu.Lock()
 
@@ -433,13 +337,9 @@ func (cm *CSRFManager) GenerateToken(sessionID string) (string, error) {
 
 	cm.mu.Unlock()
 
-
-
 	return token, nil
 
 }
-
-
 
 // ValidateToken validates a CSRF token for a session.
 
@@ -451,23 +351,17 @@ func (cm *CSRFManager) ValidateToken(token, sessionID string) error {
 
 	}
 
-
-
 	cm.mu.RLock()
 
 	csrfToken, exists := cm.tokens[token]
 
 	cm.mu.RUnlock()
 
-
-
 	if !exists {
 
 		return fmt.Errorf("CSRF token not found or expired")
 
 	}
-
-
 
 	// Check expiration.
 
@@ -483,8 +377,6 @@ func (cm *CSRFManager) ValidateToken(token, sessionID string) error {
 
 	}
 
-
-
 	// Validate session binding.
 
 	if csrfToken.SessionID != sessionID {
@@ -492,8 +384,6 @@ func (cm *CSRFManager) ValidateToken(token, sessionID string) error {
 		return fmt.Errorf("CSRF token session mismatch")
 
 	}
-
-
 
 	// Mark token as used (optional - for single-use tokens).
 
@@ -505,13 +395,9 @@ func (cm *CSRFManager) ValidateToken(token, sessionID string) error {
 
 	cm.mu.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 // InvalidateToken invalidates a CSRF token.
 
@@ -525,8 +411,6 @@ func (cm *CSRFManager) InvalidateToken(token string) {
 
 }
 
-
-
 // InvalidateSession invalidates all CSRF tokens for a session.
 
 func (cm *CSRFManager) InvalidateSession(sessionID string) {
@@ -534,8 +418,6 @@ func (cm *CSRFManager) InvalidateSession(sessionID string) {
 	cm.mu.Lock()
 
 	defer cm.mu.Unlock()
-
-
 
 	for token, csrfToken := range cm.tokens {
 
@@ -549,8 +431,6 @@ func (cm *CSRFManager) InvalidateSession(sessionID string) {
 
 }
 
-
-
 // cleanup removes expired CSRF tokens.
 
 func (cm *CSRFManager) cleanup() {
@@ -558,8 +438,6 @@ func (cm *CSRFManager) cleanup() {
 	ticker := time.NewTicker(10 * time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for range ticker.C {
 
@@ -583,8 +461,6 @@ func (cm *CSRFManager) cleanup() {
 
 }
 
-
-
 // NewSecurityManager creates a new security manager with PKCE and CSRF protection.
 
 func NewSecurityManager(csrfSecret []byte) *SecurityManager {
@@ -594,12 +470,9 @@ func NewSecurityManager(csrfSecret []byte) *SecurityManager {
 		pkceManager: NewPKCEManager(10 * time.Minute),
 
 		csrfManager: NewCSRFManager(csrfSecret, 1*time.Hour),
-
 	}
 
 }
-
-
 
 // GetPKCEManager returns the PKCE manager.
 
@@ -609,8 +482,6 @@ func (sm *SecurityManager) GetPKCEManager() *PKCEManager {
 
 }
 
-
-
 // GetCSRFManager returns the CSRF manager.
 
 func (sm *SecurityManager) GetCSRFManager() *CSRFManager {
@@ -619,43 +490,33 @@ func (sm *SecurityManager) GetCSRFManager() *CSRFManager {
 
 }
 
-
-
 // Enhanced CSRF middleware with double-submit cookie pattern.
 
 type CSRFMiddleware struct {
-
 	csrfManager *CSRFManager
 
-	config      *CSRFConfig
-
+	config *CSRFConfig
 }
-
-
 
 // CSRFConfig represents CSRF middleware configuration.
 
 type CSRFConfig struct {
+	TokenHeader string `json:"token_header"`
 
-	TokenHeader    string        `json:"token_header"`
+	CookieName string `json:"cookie_name"`
 
-	CookieName     string        `json:"cookie_name"`
+	SafeMethods []string `json:"safe_methods"`
 
-	SafeMethods    []string      `json:"safe_methods"`
+	RequireHTTPS bool `json:"require_https"`
 
-	RequireHTTPS   bool          `json:"require_https"`
+	CookieSecure bool `json:"cookie_secure"`
 
-	CookieSecure   bool          `json:"cookie_secure"`
-
-	CookieHTTPOnly bool          `json:"cookie_http_only"`
+	CookieHTTPOnly bool `json:"cookie_http_only"`
 
 	CookieSameSite http.SameSite `json:"cookie_same_site"`
 
-	MaxAge         int           `json:"max_age"`
-
+	MaxAge int `json:"max_age"`
 }
-
-
 
 // NewCSRFMiddleware creates new CSRF middleware.
 
@@ -665,39 +526,34 @@ func NewCSRFMiddleware(csrfManager *CSRFManager, config *CSRFConfig) *CSRFMiddle
 
 		config = &CSRFConfig{
 
-			TokenHeader:    "X-CSRF-Token",
+			TokenHeader: "X-CSRF-Token",
 
-			CookieName:     "csrf_token",
+			CookieName: "csrf_token",
 
-			SafeMethods:    []string{"GET", "HEAD", "OPTIONS", "TRACE"},
+			SafeMethods: []string{"GET", "HEAD", "OPTIONS", "TRACE"},
 
-			RequireHTTPS:   true,
+			RequireHTTPS: true,
 
-			CookieSecure:   true,
+			CookieSecure: true,
 
 			CookieHTTPOnly: false, // Must be false to access via JavaScript
 
 			CookieSameSite: http.SameSiteLaxMode,
 
-			MaxAge:         3600, // 1 hour
+			MaxAge: 3600, // 1 hour
 
 		}
 
 	}
 
-
-
 	return &CSRFMiddleware{
 
 		csrfManager: csrfManager,
 
-		config:      config,
-
+		config: config,
 	}
 
 }
-
-
 
 // Middleware returns HTTP middleware for CSRF protection.
 
@@ -719,8 +575,6 @@ func (cm *CSRFMiddleware) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// Require HTTPS in production.
 
 		if cm.config.RequireHTTPS && r.TLS == nil && !cm.isLocalhost(r) {
@@ -730,8 +584,6 @@ func (cm *CSRFMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 
 		}
-
-
 
 		// Get session ID.
 
@@ -745,8 +597,6 @@ func (cm *CSRFMiddleware) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// Get CSRF token from header or form.
 
 		token := r.Header.Get(cm.config.TokenHeader)
@@ -756,8 +606,6 @@ func (cm *CSRFMiddleware) Middleware(next http.Handler) http.Handler {
 			token = r.FormValue("csrf_token")
 
 		}
-
-
 
 		// Validate CSRF token.
 
@@ -769,8 +617,6 @@ func (cm *CSRFMiddleware) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// Set new CSRF token cookie.
 
 		cm.setCsrfCookie(w, r)
@@ -780,8 +626,6 @@ func (cm *CSRFMiddleware) Middleware(next http.Handler) http.Handler {
 	})
 
 }
-
-
 
 // GetToken returns a CSRF token for the current session.
 
@@ -795,8 +639,6 @@ func (cm *CSRFMiddleware) GetToken(w http.ResponseWriter, r *http.Request) (stri
 
 	}
 
-
-
 	token, err := cm.csrfManager.GenerateToken(sessionID)
 
 	if err != nil {
@@ -805,39 +647,30 @@ func (cm *CSRFMiddleware) GetToken(w http.ResponseWriter, r *http.Request) (stri
 
 	}
 
-
-
 	// Set cookie with token.
 
 	http.SetCookie(w, &http.Cookie{
 
-		Name:     cm.config.CookieName,
+		Name: cm.config.CookieName,
 
-		Value:    token,
+		Value: token,
 
-		Path:     "/",
+		Path: "/",
 
-		MaxAge:   cm.config.MaxAge,
+		MaxAge: cm.config.MaxAge,
 
-		Secure:   cm.config.CookieSecure,
+		Secure: cm.config.CookieSecure,
 
 		HttpOnly: cm.config.CookieHTTPOnly,
 
 		SameSite: cm.config.CookieSameSite,
-
 	})
-
-
 
 	return token, nil
 
 }
 
-
-
 // Private helper methods.
-
-
 
 func (cm *CSRFMiddleware) isSafeMethod(method string) bool {
 
@@ -855,8 +688,6 @@ func (cm *CSRFMiddleware) isSafeMethod(method string) bool {
 
 }
 
-
-
 func (cm *CSRFMiddleware) isLocalhost(r *http.Request) bool {
 
 	host := r.Host
@@ -871,8 +702,6 @@ func (cm *CSRFMiddleware) isLocalhost(r *http.Request) bool {
 
 }
 
-
-
 func (cm *CSRFMiddleware) getSessionID(r *http.Request) string {
 
 	// Try cookie first.
@@ -885,15 +714,11 @@ func (cm *CSRFMiddleware) getSessionID(r *http.Request) string {
 
 	}
 
-
-
 	// Try header.
 
 	return r.Header.Get("X-Session-ID")
 
 }
-
-
 
 func (cm *CSRFMiddleware) setCsrfCookie(w http.ResponseWriter, r *http.Request) {
 
@@ -904,8 +729,6 @@ func (cm *CSRFMiddleware) setCsrfCookie(w http.ResponseWriter, r *http.Request) 
 		return
 
 	}
-
-
 
 	// Check if CSRF token cookie already exists and is valid.
 
@@ -919,8 +742,6 @@ func (cm *CSRFMiddleware) setCsrfCookie(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-
-
 	// Generate new CSRF token.
 
 	token, err := cm.csrfManager.GenerateToken(sessionID)
@@ -931,35 +752,28 @@ func (cm *CSRFMiddleware) setCsrfCookie(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-
-
 	// Set new cookie.
 
 	http.SetCookie(w, &http.Cookie{
 
-		Name:     cm.config.CookieName,
+		Name: cm.config.CookieName,
 
-		Value:    token,
+		Value: token,
 
-		Path:     "/",
+		Path: "/",
 
-		MaxAge:   cm.config.MaxAge,
+		MaxAge: cm.config.MaxAge,
 
-		Secure:   cm.config.CookieSecure,
+		Secure: cm.config.CookieSecure,
 
 		HttpOnly: cm.config.CookieHTTPOnly,
 
 		SameSite: cm.config.CookieSameSite,
-
 	})
 
 }
 
-
-
 // Utility functions for generating secure random values.
-
-
 
 // GenerateState generates a secure random state parameter.
 
@@ -977,8 +791,6 @@ func GenerateState() (string, error) {
 
 }
 
-
-
 // GenerateNonce generates a secure random nonce.
 
 func GenerateNonce() (string, error) {
@@ -995,8 +807,6 @@ func GenerateNonce() (string, error) {
 
 }
 
-
-
 // ValidateState validates that state parameter is properly formatted.
 
 func ValidateState(state string) error {
@@ -1007,8 +817,6 @@ func ValidateState(state string) error {
 
 	}
 
-
-
 	// Decode to check if it's valid base64url.
 
 	if _, err := base64.RawURLEncoding.DecodeString(state); err != nil {
@@ -1016,8 +824,6 @@ func ValidateState(state string) error {
 		return fmt.Errorf("invalid state format: %w", err)
 
 	}
-
-
 
 	// Check minimum length (32 bytes = 43 base64url chars).
 
@@ -1027,13 +833,9 @@ func ValidateState(state string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // HashToken creates a secure hash of a token for storage.
 
@@ -1046,8 +848,6 @@ func HashToken(token string, salt []byte) string {
 	return hex.EncodeToString(hash[:])
 
 }
-
-
 
 // SecureCompare performs constant-time comparison of two strings.
 
@@ -1063,8 +863,6 @@ func SecureCompare(a, b string) bool {
 
 }
 
-
-
 // subtleCompareBytes performs constant-time comparison of byte slices.
 
 func subtleCompareBytes(a, b []byte) bool {
@@ -1072,4 +870,3 @@ func subtleCompareBytes(a, b []byte) bool {
 	return len(a) == len(b) && subtle.ConstantTimeCompare(a, b) == 1
 
 }
-

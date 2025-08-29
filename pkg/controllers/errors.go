@@ -4,38 +4,26 @@
 
 // Nephoran Intent Operator in O-RAN/5G network orchestration.
 
-
 package controllers
 
-
-
 import (
-
 	"fmt"
-
 	"time"
-
 )
-
-
 
 // NetworkIntentError represents an error that occurred during NetworkIntent processing.
 
 type NetworkIntentError struct {
-
-	Phase     string
+	Phase string
 
 	Operation string
 
-	Cause     error
+	Cause error
 
-	Retries   int
+	Retries int
 
 	Timestamp time.Time
-
 }
-
-
 
 // Error implements the error interface.
 
@@ -47,8 +35,6 @@ func (e *NetworkIntentError) Error() string {
 
 }
 
-
-
 // Unwrap returns the underlying cause.
 
 func (e *NetworkIntentError) Unwrap() error {
@@ -56,8 +42,6 @@ func (e *NetworkIntentError) Unwrap() error {
 	return e.Cause
 
 }
-
-
 
 // IsRetryable determines if an error condition is retryable.
 
@@ -87,43 +71,34 @@ func (e *NetworkIntentError) IsRetryable() bool {
 
 }
 
-
-
 // NewNetworkIntentError creates a new NetworkIntentError.
 
 func NewNetworkIntentError(phase, operation string, cause error, retries int) *NetworkIntentError {
 
 	return &NetworkIntentError{
 
-		Phase:     phase,
+		Phase: phase,
 
 		Operation: operation,
 
-		Cause:     cause,
+		Cause: cause,
 
-		Retries:   retries,
+		Retries: retries,
 
 		Timestamp: time.Now(),
-
 	}
 
 }
 
-
-
 // ValidationError represents a configuration validation error.
 
 type ValidationError struct {
+	Field string
 
-	Field   string
-
-	Value   interface{}
+	Value interface{}
 
 	Message string
-
 }
-
-
 
 // Error implements the error interface.
 
@@ -133,37 +108,28 @@ func (e *ValidationError) Error() string {
 
 }
 
-
-
 // NewValidationError creates a new ValidationError.
 
 func NewValidationError(field string, value interface{}, message string) *ValidationError {
 
 	return &ValidationError{
 
-		Field:   field,
+		Field: field,
 
-		Value:   value,
+		Value: value,
 
 		Message: message,
-
 	}
 
 }
 
-
-
 // DependencyError represents an error due to missing or invalid dependencies.
 
 type DependencyError struct {
-
 	Dependency string
 
-	Cause      error
-
+	Cause error
 }
-
-
 
 // Error implements the error interface.
 
@@ -173,8 +139,6 @@ func (e *DependencyError) Error() string {
 
 }
 
-
-
 // Unwrap returns the underlying cause.
 
 func (e *DependencyError) Unwrap() error {
@@ -182,8 +146,6 @@ func (e *DependencyError) Unwrap() error {
 	return e.Cause
 
 }
-
-
 
 // NewDependencyError creates a new DependencyError.
 
@@ -193,9 +155,7 @@ func NewDependencyError(dependency string, cause error) *DependencyError {
 
 		Dependency: dependency,
 
-		Cause:      cause,
-
+		Cause: cause,
 	}
 
 }
-

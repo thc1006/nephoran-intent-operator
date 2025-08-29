@@ -1,69 +1,44 @@
 //go:build !disable_rag && !test
 
-
-
-
 package rag
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"log/slog"
-
 	"net"
-
 	"net/http"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
 
-
-
 	"github.com/bytedance/sonic" // High-performance JSON library
-
 	"github.com/valyala/fasthttp"
-
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
-
 )
-
-
 
 // OptimizedConnectionPool provides high-performance connection pooling.
 
 type OptimizedConnectionPool struct {
+	config *ConnectionPoolConfig
 
-	config          *ConnectionPoolConfig
+	httpPool *HTTPConnectionPool
 
-	httpPool        *HTTPConnectionPool
+	fastHTTPPool *FastHTTPConnectionPool
 
-	fastHTTPPool    *FastHTTPConnectionPool
-
-	jsonCodec       *OptimizedJSONCodec
+	jsonCodec *OptimizedJSONCodec
 
 	weaviateClients []*weaviate.Client
 
-	clientIndex     int64
+	clientIndex int64
 
-	metrics         *ConnectionPoolMetrics
+	metrics *ConnectionPoolMetrics
 
-	logger          *slog.Logger
+	logger *slog.Logger
 
-	mutex           sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ConnectionPoolConfig holds connection pool configuration.
 
@@ -71,223 +46,186 @@ type ConnectionPoolConfig struct {
 
 	// HTTP connection settings.
 
-	MaxIdleConnections    int           `json:"max_idle_connections"`
+	MaxIdleConnections int `json:"max_idle_connections"`
 
-	MaxConnectionsPerHost int           `json:"max_connections_per_host"`
+	MaxConnectionsPerHost int `json:"max_connections_per_host"`
 
-	MaxConnsPerHost       int           `json:"max_conns_per_host"`
+	MaxConnsPerHost int `json:"max_conns_per_host"`
 
 	IdleConnectionTimeout time.Duration `json:"idle_connection_timeout"`
 
-	ConnectionTimeout     time.Duration `json:"connection_timeout"`
+	ConnectionTimeout time.Duration `json:"connection_timeout"`
 
 	ResponseHeaderTimeout time.Duration `json:"response_header_timeout"`
 
-	TLSHandshakeTimeout   time.Duration `json:"tls_handshake_timeout"`
+	TLSHandshakeTimeout time.Duration `json:"tls_handshake_timeout"`
 
 	ExpectContinueTimeout time.Duration `json:"expect_continue_timeout"`
 
-
-
 	// Connection pool management.
 
-	PoolSize                int           `json:"pool_size"`
+	PoolSize int `json:"pool_size"`
 
-	HealthCheckInterval     time.Duration `json:"health_check_interval"`
+	HealthCheckInterval time.Duration `json:"health_check_interval"`
 
-	ConnectionRetryAttempts int           `json:"connection_retry_attempts"`
+	ConnectionRetryAttempts int `json:"connection_retry_attempts"`
 
-	ConnectionRetryDelay    time.Duration `json:"connection_retry_delay"`
-
-
+	ConnectionRetryDelay time.Duration `json:"connection_retry_delay"`
 
 	// Performance optimizations.
 
-	EnableFastHTTP     bool          `json:"enable_fast_http"`
+	EnableFastHTTP bool `json:"enable_fast_http"`
 
-	EnableHTTP2        bool          `json:"enable_http2"`
+	EnableHTTP2 bool `json:"enable_http2"`
 
-	EnableCompression  bool          `json:"enable_compression"`
+	EnableCompression bool `json:"enable_compression"`
 
-	DisableCompression bool          `json:"disable_compression"`
+	DisableCompression bool `json:"disable_compression"`
 
-	EnableKeepalive    bool          `json:"enable_keepalive"`
+	EnableKeepalive bool `json:"enable_keepalive"`
 
-	KeepaliveTimeout   time.Duration `json:"keepalive_timeout"`
-
-
+	KeepaliveTimeout time.Duration `json:"keepalive_timeout"`
 
 	// JSON optimization settings.
 
-	UseOptimizedJSON     bool `json:"use_optimized_json"`
+	UseOptimizedJSON bool `json:"use_optimized_json"`
 
-	EnableJSONStreaming  bool `json:"enable_json_streaming"`
+	EnableJSONStreaming bool `json:"enable_json_streaming"`
 
-	JSONBufferSize       int  `json:"json_buffer_size"`
+	JSONBufferSize int `json:"json_buffer_size"`
 
 	EnableJSONValidation bool `json:"enable_json_validation"`
 
-
-
 	// Circuit breaker settings.
 
-	EnableCircuitBreaker    bool          `json:"enable_circuit_breaker"`
+	EnableCircuitBreaker bool `json:"enable_circuit_breaker"`
 
-	CircuitBreakerThreshold int           `json:"circuit_breaker_threshold"`
+	CircuitBreakerThreshold int `json:"circuit_breaker_threshold"`
 
-	CircuitBreakerTimeout   time.Duration `json:"circuit_breaker_timeout"`
-
-
+	CircuitBreakerTimeout time.Duration `json:"circuit_breaker_timeout"`
 
 	// Load balancing.
 
-	LoadBalancingStrategy    string `json:"load_balancing_strategy"`
+	LoadBalancingStrategy string `json:"load_balancing_strategy"`
 
-	EnableConnectionAffinity bool   `json:"enable_connection_affinity"`
-
+	EnableConnectionAffinity bool `json:"enable_connection_affinity"`
 }
-
-
 
 // HTTPConnectionPool manages HTTP connections with optimization.
 
 type HTTPConnectionPool struct {
+	transport *http.Transport
 
-	transport   *http.Transport
-
-	client      *http.Client
+	client *http.Client
 
 	connections chan *http.Client
 
-	config      *ConnectionPoolConfig
+	config *ConnectionPoolConfig
 
-	logger      *slog.Logger
-
+	logger *slog.Logger
 }
-
-
 
 // FastHTTPConnectionPool uses fasthttp for maximum performance.
 
 type FastHTTPConnectionPool struct {
-
-	client      *fasthttp.Client
+	client *fasthttp.Client
 
 	connections chan *fasthttp.Client
 
-	config      *ConnectionPoolConfig
+	config *ConnectionPoolConfig
 
-	logger      *slog.Logger
-
+	logger *slog.Logger
 }
-
-
 
 // OptimizedJSONCodec provides high-performance JSON encoding/decoding.
 
 type OptimizedJSONCodec struct {
+	encoderPool sync.Pool
 
-	encoderPool     sync.Pool
+	decoderPool sync.Pool
 
-	decoderPool     sync.Pool
+	bufferPool sync.Pool
 
-	bufferPool      sync.Pool
+	config *ConnectionPoolConfig
 
-	config          *ConnectionPoolConfig
-
-	useSonic        bool
+	useSonic bool
 
 	enableStreaming bool
 
-	metrics         *JSONCodecMetrics
-
+	metrics *JSONCodecMetrics
 }
-
-
 
 // JSONCodecMetrics tracks JSON codec performance.
 
 type JSONCodecMetrics struct {
+	TotalEncodes int64 `json:"total_encodes"`
 
-	TotalEncodes        int64         `json:"total_encodes"`
+	TotalDecodes int64 `json:"total_decodes"`
 
-	TotalDecodes        int64         `json:"total_decodes"`
+	AverageEncodeTime time.Duration `json:"average_encode_time"`
 
-	AverageEncodeTime   time.Duration `json:"average_encode_time"`
+	AverageDecodeTime time.Duration `json:"average_decode_time"`
 
-	AverageDecodeTime   time.Duration `json:"average_decode_time"`
+	BytesEncoded int64 `json:"bytes_encoded"`
 
-	BytesEncoded        int64         `json:"bytes_encoded"`
+	BytesDecoded int64 `json:"bytes_decoded"`
 
-	BytesDecoded        int64         `json:"bytes_decoded"`
+	CompressionSavings float64 `json:"compression_savings"`
 
-	CompressionSavings  float64       `json:"compression_savings"`
+	PoolHitRate float64 `json:"pool_hit_rate"`
 
-	PoolHitRate         float64       `json:"pool_hit_rate"`
+	StreamingOperations int64 `json:"streaming_operations"`
 
-	StreamingOperations int64         `json:"streaming_operations"`
+	ValidationErrors int64 `json:"validation_errors"`
 
-	ValidationErrors    int64         `json:"validation_errors"`
-
-	mutex               sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ConnectionPoolMetrics tracks connection pool performance.
 
 type ConnectionPoolMetrics struct {
+	ActiveConnections int32 `json:"active_connections"`
 
-	ActiveConnections    int32         `json:"active_connections"`
+	IdleConnections int32 `json:"idle_connections"`
 
-	IdleConnections      int32         `json:"idle_connections"`
+	TotalConnections int64 `json:"total_connections"`
 
-	TotalConnections     int64         `json:"total_connections"`
+	FailedConnections int64 `json:"failed_connections"`
 
-	FailedConnections    int64         `json:"failed_connections"`
+	ConnectionsCreated int64 `json:"connections_created"`
 
-	ConnectionsCreated   int64         `json:"connections_created"`
+	ConnectionsDestroyed int64 `json:"connections_destroyed"`
 
-	ConnectionsDestroyed int64         `json:"connections_destroyed"`
+	AverageResponseTime time.Duration `json:"average_response_time"`
 
-	AverageResponseTime  time.Duration `json:"average_response_time"`
+	ConnectionPoolHits int64 `json:"connection_pool_hits"`
 
-	ConnectionPoolHits   int64         `json:"connection_pool_hits"`
+	ConnectionPoolMisses int64 `json:"connection_pool_misses"`
 
-	ConnectionPoolMisses int64         `json:"connection_pool_misses"`
+	CircuitBreakerTrips int64 `json:"circuit_breaker_trips"`
 
-	CircuitBreakerTrips  int64         `json:"circuit_breaker_trips"`
+	LoadBalancerSwitches int64 `json:"load_balancer_switches"`
 
-	LoadBalancerSwitches int64         `json:"load_balancer_switches"`
-
-	mutex                sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // PooledConnection represents a connection from the pool.
 
 type PooledConnection struct {
-
-	HTTPClient     *http.Client
+	HTTPClient *http.Client
 
 	FastHTTPClient *fasthttp.Client
 
 	WeaviateClient *weaviate.Client
 
-	CreatedAt      time.Time
+	CreatedAt time.Time
 
-	LastUsed       time.Time
+	LastUsed time.Time
 
-	UseCount       int64
+	UseCount int64
 
-	IsHealthy      bool
-
+	IsHealthy bool
 }
-
-
 
 // NewOptimizedConnectionPool creates a new optimized connection pool.
 
@@ -299,11 +237,7 @@ func NewOptimizedConnectionPool(config *ConnectionPoolConfig) (*OptimizedConnect
 
 	}
 
-
-
 	logger := slog.Default().With("component", "optimized-connection-pool")
-
-
 
 	// Create HTTP connection pool.
 
@@ -315,8 +249,6 @@ func NewOptimizedConnectionPool(config *ConnectionPoolConfig) (*OptimizedConnect
 
 	}
 
-
-
 	// Create FastHTTP connection pool if enabled.
 
 	var fastHTTPPool *FastHTTPConnectionPool
@@ -327,31 +259,24 @@ func NewOptimizedConnectionPool(config *ConnectionPoolConfig) (*OptimizedConnect
 
 	}
 
-
-
 	// Create optimized JSON codec.
 
 	jsonCodec := newOptimizedJSONCodec(config)
 
-
-
 	pool := &OptimizedConnectionPool{
 
-		config:       config,
+		config: config,
 
-		httpPool:     httpPool,
+		httpPool: httpPool,
 
 		fastHTTPPool: fastHTTPPool,
 
-		jsonCodec:    jsonCodec,
+		jsonCodec: jsonCodec,
 
-		metrics:      &ConnectionPoolMetrics{},
+		metrics: &ConnectionPoolMetrics{},
 
-		logger:       logger,
-
+		logger: logger,
 	}
-
-
 
 	// Create Weaviate client pool.
 
@@ -363,13 +288,9 @@ func NewOptimizedConnectionPool(config *ConnectionPoolConfig) (*OptimizedConnect
 
 	}
 
-
-
 	// Start background maintenance.
 
 	go pool.startBackgroundMaintenance()
-
-
 
 	logger.Info("Optimized connection pool created",
 
@@ -378,16 +299,11 @@ func NewOptimizedConnectionPool(config *ConnectionPoolConfig) (*OptimizedConnect
 		"enable_fast_http", config.EnableFastHTTP,
 
 		"use_optimized_json", config.UseOptimizedJSON,
-
 	)
-
-
 
 	return pool, nil
 
 }
-
-
 
 // getDefaultConnectionPoolConfig returns default configuration.
 
@@ -395,75 +311,62 @@ func getDefaultConnectionPoolConfig() *ConnectionPoolConfig {
 
 	return &ConnectionPoolConfig{
 
-		MaxIdleConnections:    100,
+		MaxIdleConnections: 100,
 
 		MaxConnectionsPerHost: 50,
 
-		MaxConnsPerHost:       50,
+		MaxConnsPerHost: 50,
 
 		IdleConnectionTimeout: 90 * time.Second,
 
-		ConnectionTimeout:     30 * time.Second,
+		ConnectionTimeout: 30 * time.Second,
 
 		ResponseHeaderTimeout: 30 * time.Second,
 
-		TLSHandshakeTimeout:   10 * time.Second,
+		TLSHandshakeTimeout: 10 * time.Second,
 
 		ExpectContinueTimeout: 1 * time.Second,
 
+		PoolSize: 10,
 
-
-		PoolSize:                10,
-
-		HealthCheckInterval:     30 * time.Second,
+		HealthCheckInterval: 30 * time.Second,
 
 		ConnectionRetryAttempts: 3,
 
-		ConnectionRetryDelay:    time.Second,
+		ConnectionRetryDelay: time.Second,
 
+		EnableFastHTTP: true,
 
+		EnableHTTP2: true,
 
-		EnableFastHTTP:     true,
-
-		EnableHTTP2:        true,
-
-		EnableCompression:  true,
+		EnableCompression: true,
 
 		DisableCompression: false,
 
-		EnableKeepalive:    true,
+		EnableKeepalive: true,
 
-		KeepaliveTimeout:   30 * time.Second,
+		KeepaliveTimeout: 30 * time.Second,
 
+		UseOptimizedJSON: true,
 
+		EnableJSONStreaming: true,
 
-		UseOptimizedJSON:     true,
+		JSONBufferSize: 64 * 1024, // 64KB
 
-		EnableJSONStreaming:  true,
+		EnableJSONValidation: false, // Disable for performance
 
-		JSONBufferSize:       64 * 1024, // 64KB
-
-		EnableJSONValidation: false,     // Disable for performance
-
-
-
-		EnableCircuitBreaker:    true,
+		EnableCircuitBreaker: true,
 
 		CircuitBreakerThreshold: 10,
 
-		CircuitBreakerTimeout:   60 * time.Second,
+		CircuitBreakerTimeout: 60 * time.Second,
 
-
-
-		LoadBalancingStrategy:    "round_robin",
+		LoadBalancingStrategy: "round_robin",
 
 		EnableConnectionAffinity: true,
-
 	}
 
 }
-
-
 
 // newHTTPConnectionPool creates an optimized HTTP connection pool.
 
@@ -473,23 +376,21 @@ func newHTTPConnectionPool(config *ConnectionPoolConfig, logger *slog.Logger) (*
 
 	transport := &http.Transport{
 
-		MaxIdleConns:          config.MaxIdleConnections,
+		MaxIdleConns: config.MaxIdleConnections,
 
-		MaxConnsPerHost:       config.MaxConnsPerHost,
+		MaxConnsPerHost: config.MaxConnsPerHost,
 
-		MaxIdleConnsPerHost:   config.MaxConnectionsPerHost,
+		MaxIdleConnsPerHost: config.MaxConnectionsPerHost,
 
-		IdleConnTimeout:       config.IdleConnectionTimeout,
+		IdleConnTimeout: config.IdleConnectionTimeout,
 
 		ResponseHeaderTimeout: config.ResponseHeaderTimeout,
 
-		TLSHandshakeTimeout:   config.TLSHandshakeTimeout,
+		TLSHandshakeTimeout: config.TLSHandshakeTimeout,
 
 		ExpectContinueTimeout: config.ExpectContinueTimeout,
 
-		DisableCompression:    config.DisableCompression,
-
-
+		DisableCompression: config.DisableCompression,
 
 		// Advanced optimizations.
 
@@ -497,23 +398,18 @@ func newHTTPConnectionPool(config *ConnectionPoolConfig, logger *slog.Logger) (*
 
 		DisableKeepAlives: !config.EnableKeepalive,
 
-
-
 		// Custom dialer for connection optimization.
 
 		DialContext: (&net.Dialer{
 
-			Timeout:   config.ConnectionTimeout,
+			Timeout: config.ConnectionTimeout,
 
 			KeepAlive: config.KeepaliveTimeout,
 
 			DualStack: true, // Enable IPv6
 
 		}).DialContext,
-
 	}
-
-
 
 	// Create HTTP client.
 
@@ -521,27 +417,21 @@ func newHTTPConnectionPool(config *ConnectionPoolConfig, logger *slog.Logger) (*
 
 		Transport: transport,
 
-		Timeout:   config.ConnectionTimeout,
-
+		Timeout: config.ConnectionTimeout,
 	}
-
-
 
 	pool := &HTTPConnectionPool{
 
-		transport:   transport,
+		transport: transport,
 
-		client:      client,
+		client: client,
 
 		connections: make(chan *http.Client, config.PoolSize),
 
-		config:      config,
+		config: config,
 
-		logger:      logger,
-
+		logger: logger,
 	}
-
-
 
 	// Pre-warm the connection pool.
 
@@ -553,13 +443,9 @@ func newHTTPConnectionPool(config *ConnectionPoolConfig, logger *slog.Logger) (*
 
 	}
 
-
-
 	return pool, nil
 
 }
-
-
 
 // newFastHTTPConnectionPool creates a FastHTTP connection pool.
 
@@ -567,43 +453,38 @@ func newFastHTTPConnectionPool(config *ConnectionPoolConfig, logger *slog.Logger
 
 	client := &fasthttp.Client{
 
-		MaxConnsPerHost:               config.MaxConnsPerHost,
+		MaxConnsPerHost: config.MaxConnsPerHost,
 
-		MaxIdleConnDuration:           config.IdleConnectionTimeout,
+		MaxIdleConnDuration: config.IdleConnectionTimeout,
 
-		MaxConnDuration:               24 * time.Hour, // Max connection lifetime
+		MaxConnDuration: 24 * time.Hour, // Max connection lifetime
 
-		MaxConnWaitTimeout:            config.ConnectionTimeout,
+		MaxConnWaitTimeout: config.ConnectionTimeout,
 
-		ReadTimeout:                   config.ResponseHeaderTimeout,
+		ReadTimeout: config.ResponseHeaderTimeout,
 
-		WriteTimeout:                  config.ResponseHeaderTimeout,
+		WriteTimeout: config.ResponseHeaderTimeout,
 
-		MaxResponseBodySize:           10 * 1024 * 1024, // 10MB max response
+		MaxResponseBodySize: 10 * 1024 * 1024, // 10MB max response
 
-		DisableHeaderNamesNormalizing: true,             // Performance optimization
+		DisableHeaderNamesNormalizing: true, // Performance optimization
 
-		DisablePathNormalizing:        true,             // Performance optimization
+		DisablePathNormalizing: true, // Performance optimization
 
-		NoDefaultUserAgentHeader:      true,             // Reduce header size
+		NoDefaultUserAgentHeader: true, // Reduce header size
 
 	}
-
-
 
 	pool := &FastHTTPConnectionPool{
 
-		client:      client,
+		client: client,
 
 		connections: make(chan *fasthttp.Client, config.PoolSize),
 
-		config:      config,
+		config: config,
 
-		logger:      logger,
-
+		logger: logger,
 	}
-
-
 
 	// Pre-warm the connection pool.
 
@@ -615,13 +496,9 @@ func newFastHTTPConnectionPool(config *ConnectionPoolConfig, logger *slog.Logger
 
 	}
 
-
-
 	return pool
 
 }
-
-
 
 // newOptimizedJSONCodec creates an optimized JSON codec.
 
@@ -629,17 +506,14 @@ func newOptimizedJSONCodec(config *ConnectionPoolConfig) *OptimizedJSONCodec {
 
 	codec := &OptimizedJSONCodec{
 
-		config:          config,
+		config: config,
 
-		useSonic:        config.UseOptimizedJSON,
+		useSonic: config.UseOptimizedJSON,
 
 		enableStreaming: config.EnableJSONStreaming,
 
-		metrics:         &JSONCodecMetrics{},
-
+		metrics: &JSONCodecMetrics{},
 	}
-
-
 
 	// Initialize encoder pool.
 
@@ -657,8 +531,6 @@ func newOptimizedJSONCodec(config *ConnectionPoolConfig) *OptimizedJSONCodec {
 
 	}
 
-
-
 	// Initialize decoder pool.
 
 	codec.decoderPool.New = func() interface{} {
@@ -675,8 +547,6 @@ func newOptimizedJSONCodec(config *ConnectionPoolConfig) *OptimizedJSONCodec {
 
 	}
 
-
-
 	// Initialize buffer pool.
 
 	codec.bufferPool.New = func() interface{} {
@@ -685,13 +555,9 @@ func newOptimizedJSONCodec(config *ConnectionPoolConfig) *OptimizedJSONCodec {
 
 	}
 
-
-
 	return codec
 
 }
-
-
 
 // GetConnection returns an optimized connection from the pool.
 
@@ -701,23 +567,18 @@ func (p *OptimizedConnectionPool) GetConnection() (*PooledConnection, error) {
 
 	index := atomic.AddInt64(&p.clientIndex, 1) % int64(len(p.weaviateClients))
 
-
-
 	connection := &PooledConnection{
 
 		WeaviateClient: p.weaviateClients[index],
 
-		CreatedAt:      time.Now(),
+		CreatedAt: time.Now(),
 
-		LastUsed:       time.Now(),
+		LastUsed: time.Now(),
 
-		UseCount:       1,
+		UseCount: 1,
 
-		IsHealthy:      true,
-
+		IsHealthy: true,
 	}
-
-
 
 	// Try to get HTTP client from pool.
 
@@ -734,8 +595,6 @@ func (p *OptimizedConnectionPool) GetConnection() (*PooledConnection, error) {
 		connection.HTTPClient = p.httpPool.client
 
 	}
-
-
 
 	// Try to get FastHTTP client if enabled.
 
@@ -755,15 +614,11 @@ func (p *OptimizedConnectionPool) GetConnection() (*PooledConnection, error) {
 
 	}
 
-
-
 	p.updateConnectionMetrics(true)
 
 	return connection, nil
 
 }
-
-
 
 // ReturnConnection returns a connection to the pool.
 
@@ -775,13 +630,9 @@ func (p *OptimizedConnectionPool) ReturnConnection(conn *PooledConnection) {
 
 	}
 
-
-
 	conn.LastUsed = time.Now()
 
 	conn.UseCount++
-
-
 
 	// Return HTTP client to pool.
 
@@ -798,8 +649,6 @@ func (p *OptimizedConnectionPool) ReturnConnection(conn *PooledConnection) {
 		}
 
 	}
-
-
 
 	// Return FastHTTP client to pool.
 
@@ -819,21 +668,15 @@ func (p *OptimizedConnectionPool) ReturnConnection(conn *PooledConnection) {
 
 }
 
-
-
 // OptimizedEncode provides high-performance JSON encoding.
 
 func (c *OptimizedJSONCodec) OptimizedEncode(v interface{}) ([]byte, error) {
 
 	startTime := time.Now()
 
-
-
 	var data []byte
 
 	var err error
-
-
 
 	if c.useSonic {
 
@@ -849,39 +692,27 @@ func (c *OptimizedJSONCodec) OptimizedEncode(v interface{}) ([]byte, error) {
 
 		defer c.encoderPool.Put(encoder)
 
-
-
 		buffer := c.bufferPool.Get().([]byte)
 
 		defer c.bufferPool.Put(buffer[:0])
-
-
 
 		data, err = json.Marshal(v)
 
 	}
 
-
-
 	// Update metrics.
 
 	c.updateEncodeMetrics(time.Since(startTime), len(data))
 
-
-
 	return data, err
 
 }
-
-
 
 // OptimizedDecode provides high-performance JSON decoding.
 
 func (c *OptimizedJSONCodec) OptimizedDecode(data []byte, v interface{}) error {
 
 	startTime := time.Now()
-
-
 
 	var err error
 
@@ -899,19 +730,13 @@ func (c *OptimizedJSONCodec) OptimizedDecode(data []byte, v interface{}) error {
 
 	}
 
-
-
 	// Update metrics.
 
 	c.updateDecodeMetrics(time.Since(startTime), len(data))
 
-
-
 	return err
 
 }
-
-
 
 // StreamingEncode provides streaming JSON encoding for large objects.
 
@@ -923,8 +748,6 @@ func (c *OptimizedJSONCodec) StreamingEncode(v interface{}, writer interface{}) 
 
 	}
 
-
-
 	// Implementation would depend on the specific writer type.
 
 	// This is a placeholder for the streaming encoding logic.
@@ -932,8 +755,6 @@ func (c *OptimizedJSONCodec) StreamingEncode(v interface{}, writer interface{}) 
 	return nil
 
 }
-
-
 
 // StreamingDecode provides streaming JSON decoding for large objects.
 
@@ -945,8 +766,6 @@ func (c *OptimizedJSONCodec) StreamingDecode(reader interface{}, v interface{}) 
 
 	}
 
-
-
 	// Implementation would depend on the specific reader type.
 
 	// This is a placeholder for the streaming decoding logic.
@@ -955,15 +774,11 @@ func (c *OptimizedJSONCodec) StreamingDecode(reader interface{}, v interface{}) 
 
 }
 
-
-
 // HighPerformanceRequest performs an optimized HTTP request.
 
 func (p *OptimizedConnectionPool) HighPerformanceRequest(ctx context.Context, method, url string, body []byte, headers map[string]string) ([]byte, error) {
 
 	startTime := time.Now()
-
-
 
 	// Get connection from pool.
 
@@ -977,11 +792,7 @@ func (p *OptimizedConnectionPool) HighPerformanceRequest(ctx context.Context, me
 
 	defer p.ReturnConnection(conn)
 
-
-
 	var response []byte
-
-
 
 	if p.config.EnableFastHTTP && conn.FastHTTPClient != nil {
 
@@ -997,19 +808,13 @@ func (p *OptimizedConnectionPool) HighPerformanceRequest(ctx context.Context, me
 
 	}
 
-
-
 	// Update metrics.
 
 	p.updateRequestMetrics(time.Since(startTime), err == nil)
 
-
-
 	return response, err
 
 }
-
-
 
 // performFastHTTPRequest performs a FastHTTP request.
 
@@ -1023,15 +828,11 @@ func (p *OptimizedConnectionPool) performFastHTTPRequest(ctx context.Context, cl
 
 	defer fasthttp.ReleaseResponse(resp)
 
-
-
 	// Set up request.
 
 	req.SetRequestURI(url)
 
 	req.Header.SetMethod(method)
-
-
 
 	// Set headers.
 
@@ -1041,8 +842,6 @@ func (p *OptimizedConnectionPool) performFastHTTPRequest(ctx context.Context, cl
 
 	}
 
-
-
 	// Set body.
 
 	if body != nil {
@@ -1050,8 +849,6 @@ func (p *OptimizedConnectionPool) performFastHTTPRequest(ctx context.Context, cl
 		req.SetBody(body)
 
 	}
-
-
 
 	// Perform request with timeout.
 
@@ -1063,8 +860,6 @@ func (p *OptimizedConnectionPool) performFastHTTPRequest(ctx context.Context, cl
 
 	}
 
-
-
 	// Check status code.
 
 	if resp.StatusCode() >= 400 {
@@ -1073,15 +868,11 @@ func (p *OptimizedConnectionPool) performFastHTTPRequest(ctx context.Context, cl
 
 	}
 
-
-
 	// Return response body.
 
 	return resp.Body(), nil
 
 }
-
-
 
 // performHTTPRequest performs a standard HTTP request.
 
@@ -1095,15 +886,11 @@ func (p *OptimizedConnectionPool) performHTTPRequest(ctx context.Context, client
 
 }
 
-
-
 // initializeWeaviateClients creates a pool of Weaviate clients.
 
 func (p *OptimizedConnectionPool) initializeWeaviateClients() error {
 
 	p.weaviateClients = make([]*weaviate.Client, p.config.PoolSize)
-
-
 
 	for i := range p.config.PoolSize {
 
@@ -1115,13 +902,9 @@ func (p *OptimizedConnectionPool) initializeWeaviateClients() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // startBackgroundMaintenance starts background maintenance tasks.
 
@@ -1130,8 +913,6 @@ func (p *OptimizedConnectionPool) startBackgroundMaintenance() {
 	ticker := time.NewTicker(p.config.HealthCheckInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1149,8 +930,6 @@ func (p *OptimizedConnectionPool) startBackgroundMaintenance() {
 
 }
 
-
-
 // performHealthCheck checks the health of connections.
 
 func (p *OptimizedConnectionPool) performHealthCheck() {
@@ -1160,8 +939,6 @@ func (p *OptimizedConnectionPool) performHealthCheck() {
 	p.logger.Debug("Performing connection health check")
 
 }
-
-
 
 // cleanupIdleConnections removes idle connections.
 
@@ -1173,8 +950,6 @@ func (p *OptimizedConnectionPool) cleanupIdleConnections() {
 
 }
 
-
-
 // Update metrics methods.
 
 func (p *OptimizedConnectionPool) updateConnectionMetrics(success bool) {
@@ -1182,8 +957,6 @@ func (p *OptimizedConnectionPool) updateConnectionMetrics(success bool) {
 	p.metrics.mutex.Lock()
 
 	defer p.metrics.mutex.Unlock()
-
-
 
 	if success {
 
@@ -1199,15 +972,11 @@ func (p *OptimizedConnectionPool) updateConnectionMetrics(success bool) {
 
 }
 
-
-
 func (p *OptimizedConnectionPool) updateRequestMetrics(duration time.Duration, success bool) {
 
 	p.metrics.mutex.Lock()
 
 	defer p.metrics.mutex.Unlock()
-
-
 
 	// Update average response time.
 
@@ -1223,13 +992,9 @@ func (p *OptimizedConnectionPool) updateRequestMetrics(duration time.Duration, s
 
 	}
 
-
-
 	p.metrics.TotalConnections++
 
 }
-
-
 
 func (c *OptimizedJSONCodec) updateEncodeMetrics(duration time.Duration, bytes int) {
 
@@ -1237,13 +1002,9 @@ func (c *OptimizedJSONCodec) updateEncodeMetrics(duration time.Duration, bytes i
 
 	defer c.metrics.mutex.Unlock()
 
-
-
 	c.metrics.TotalEncodes++
 
 	c.metrics.BytesEncoded += int64(bytes)
-
-
 
 	// Update average encode time.
 
@@ -1261,21 +1022,15 @@ func (c *OptimizedJSONCodec) updateEncodeMetrics(duration time.Duration, bytes i
 
 }
 
-
-
 func (c *OptimizedJSONCodec) updateDecodeMetrics(duration time.Duration, bytes int) {
 
 	c.metrics.mutex.Lock()
 
 	defer c.metrics.mutex.Unlock()
 
-
-
 	c.metrics.TotalDecodes++
 
 	c.metrics.BytesDecoded += int64(bytes)
-
-
 
 	// Update average decode time.
 
@@ -1293,8 +1048,6 @@ func (c *OptimizedJSONCodec) updateDecodeMetrics(duration time.Duration, bytes i
 
 }
 
-
-
 // GetMetrics returns connection pool metrics.
 
 func (p *OptimizedConnectionPool) GetMetrics() *ConnectionPoolMetrics {
@@ -1303,41 +1056,36 @@ func (p *OptimizedConnectionPool) GetMetrics() *ConnectionPoolMetrics {
 
 	defer p.metrics.mutex.RUnlock()
 
-
-
 	// Return a copy without the mutex.
 
 	metrics := &ConnectionPoolMetrics{
 
-		ActiveConnections:    p.metrics.ActiveConnections,
+		ActiveConnections: p.metrics.ActiveConnections,
 
-		IdleConnections:      p.metrics.IdleConnections,
+		IdleConnections: p.metrics.IdleConnections,
 
-		TotalConnections:     p.metrics.TotalConnections,
+		TotalConnections: p.metrics.TotalConnections,
 
-		FailedConnections:    p.metrics.FailedConnections,
+		FailedConnections: p.metrics.FailedConnections,
 
-		ConnectionsCreated:   p.metrics.ConnectionsCreated,
+		ConnectionsCreated: p.metrics.ConnectionsCreated,
 
 		ConnectionsDestroyed: p.metrics.ConnectionsDestroyed,
 
-		AverageResponseTime:  p.metrics.AverageResponseTime,
+		AverageResponseTime: p.metrics.AverageResponseTime,
 
-		ConnectionPoolHits:   p.metrics.ConnectionPoolHits,
+		ConnectionPoolHits: p.metrics.ConnectionPoolHits,
 
 		ConnectionPoolMisses: p.metrics.ConnectionPoolMisses,
 
-		CircuitBreakerTrips:  p.metrics.CircuitBreakerTrips,
+		CircuitBreakerTrips: p.metrics.CircuitBreakerTrips,
 
 		LoadBalancerSwitches: p.metrics.LoadBalancerSwitches,
-
 	}
 
 	return metrics
 
 }
-
-
 
 // GetJSONCodecMetrics returns JSON codec metrics.
 
@@ -1347,47 +1095,40 @@ func (p *OptimizedConnectionPool) GetJSONCodecMetrics() *JSONCodecMetrics {
 
 	defer p.jsonCodec.metrics.mutex.RUnlock()
 
-
-
 	// Return a copy without the mutex.
 
 	metrics := &JSONCodecMetrics{
 
-		TotalEncodes:        p.jsonCodec.metrics.TotalEncodes,
+		TotalEncodes: p.jsonCodec.metrics.TotalEncodes,
 
-		TotalDecodes:        p.jsonCodec.metrics.TotalDecodes,
+		TotalDecodes: p.jsonCodec.metrics.TotalDecodes,
 
-		AverageEncodeTime:   p.jsonCodec.metrics.AverageEncodeTime,
+		AverageEncodeTime: p.jsonCodec.metrics.AverageEncodeTime,
 
-		AverageDecodeTime:   p.jsonCodec.metrics.AverageDecodeTime,
+		AverageDecodeTime: p.jsonCodec.metrics.AverageDecodeTime,
 
-		BytesEncoded:        p.jsonCodec.metrics.BytesEncoded,
+		BytesEncoded: p.jsonCodec.metrics.BytesEncoded,
 
-		BytesDecoded:        p.jsonCodec.metrics.BytesDecoded,
+		BytesDecoded: p.jsonCodec.metrics.BytesDecoded,
 
-		CompressionSavings:  p.jsonCodec.metrics.CompressionSavings,
+		CompressionSavings: p.jsonCodec.metrics.CompressionSavings,
 
-		PoolHitRate:         p.jsonCodec.metrics.PoolHitRate,
+		PoolHitRate: p.jsonCodec.metrics.PoolHitRate,
 
 		StreamingOperations: p.jsonCodec.metrics.StreamingOperations,
 
-		ValidationErrors:    p.jsonCodec.metrics.ValidationErrors,
-
+		ValidationErrors: p.jsonCodec.metrics.ValidationErrors,
 	}
 
 	return metrics
 
 }
 
-
-
 // Close closes the connection pool and all connections.
 
 func (p *OptimizedConnectionPool) Close() error {
 
 	p.logger.Info("Closing optimized connection pool")
-
-
 
 	// Close HTTP clients.
 
@@ -1397,9 +1138,6 @@ func (p *OptimizedConnectionPool) Close() error {
 
 	}
 
-
-
 	return nil
 
 }
-

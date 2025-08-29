@@ -1,33 +1,20 @@
-
 package e2
 
-
-
 import (
-
 	"bytes"
-
 	"encoding/binary"
-
 	"fmt"
-
 	"io"
-
 )
-
-
 
 // ASN1Codec provides ASN.1 PER (Packed Encoding Rules) encoding/decoding.
 
 // for E2AP messages following O-RAN.WG3.E2AP-v03.01 specification.
 
 type ASN1Codec struct {
-
 	aligned bool // PER aligned or unaligned variant
 
 }
-
-
 
 // NewASN1Codec creates a new ASN.1 codec.
 
@@ -37,15 +24,11 @@ func NewASN1Codec(aligned bool) *ASN1Codec {
 
 }
 
-
-
 // EncodeE2APMessage encodes an E2AP message to ASN.1 PER format.
 
 func (c *ASN1Codec) EncodeE2APMessage(msg *E2APMessage) ([]byte, error) {
 
 	buf := &bytes.Buffer{}
-
-
 
 	// Encode procedure code (16 bits).
 
@@ -54,8 +37,6 @@ func (c *ASN1Codec) EncodeE2APMessage(msg *E2APMessage) ([]byte, error) {
 		return nil, fmt.Errorf("failed to encode procedure code: %w", err)
 
 	}
-
-
 
 	// Encode criticality (2 bits).
 
@@ -67,8 +48,6 @@ func (c *ASN1Codec) EncodeE2APMessage(msg *E2APMessage) ([]byte, error) {
 
 	}
 
-
-
 	// Encode transaction ID (8 bits for now, can be extended).
 
 	if err := binary.Write(buf, binary.BigEndian, uint8(msg.TransactionID)); err != nil {
@@ -76,8 +55,6 @@ func (c *ASN1Codec) EncodeE2APMessage(msg *E2APMessage) ([]byte, error) {
 		return nil, fmt.Errorf("failed to encode transaction ID: %w", err)
 
 	}
-
-
 
 	// Encode message type specific payload.
 
@@ -89,8 +66,6 @@ func (c *ASN1Codec) EncodeE2APMessage(msg *E2APMessage) ([]byte, error) {
 
 	}
 
-
-
 	// Write payload length (32 bits).
 
 	if err := binary.Write(buf, binary.BigEndian, uint32(len(payloadBytes))); err != nil {
@@ -98,8 +73,6 @@ func (c *ASN1Codec) EncodeE2APMessage(msg *E2APMessage) ([]byte, error) {
 		return nil, fmt.Errorf("failed to encode payload length: %w", err)
 
 	}
-
-
 
 	// Write payload.
 
@@ -109,13 +82,9 @@ func (c *ASN1Codec) EncodeE2APMessage(msg *E2APMessage) ([]byte, error) {
 
 	}
 
-
-
 	return buf.Bytes(), nil
 
 }
-
-
 
 // DecodeE2APMessage decodes an ASN.1 PER format message to E2AP message.
 
@@ -127,13 +96,9 @@ func (c *ASN1Codec) DecodeE2APMessage(data []byte) (*E2APMessage, error) {
 
 	}
 
-
-
 	buf := bytes.NewReader(data)
 
 	msg := &E2APMessage{}
-
-
 
 	// Decode procedure code.
 
@@ -147,8 +112,6 @@ func (c *ASN1Codec) DecodeE2APMessage(data []byte) (*E2APMessage, error) {
 
 	msg.ProcedureCode = int32(procedureCode)
 
-
-
 	// Decode criticality.
 
 	var criticalityByte uint8
@@ -160,8 +123,6 @@ func (c *ASN1Codec) DecodeE2APMessage(data []byte) (*E2APMessage, error) {
 	}
 
 	msg.Criticality = Criticality(criticalityByte >> 6)
-
-
 
 	// Decode transaction ID.
 
@@ -175,8 +136,6 @@ func (c *ASN1Codec) DecodeE2APMessage(data []byte) (*E2APMessage, error) {
 
 	msg.TransactionID = int32(transactionID)
 
-
-
 	// Decode payload length.
 
 	var payloadLength uint32
@@ -186,8 +145,6 @@ func (c *ASN1Codec) DecodeE2APMessage(data []byte) (*E2APMessage, error) {
 		return nil, fmt.Errorf("failed to decode payload length: %w", err)
 
 	}
-
-
 
 	// Read payload.
 
@@ -199,13 +156,9 @@ func (c *ASN1Codec) DecodeE2APMessage(data []byte) (*E2APMessage, error) {
 
 	}
 
-
-
 	// Determine message type from procedure code.
 
 	msg.MessageType = c.getMessageTypeFromProcedureCode(msg.ProcedureCode)
-
-
 
 	// Decode payload based on message type.
 
@@ -219,13 +172,9 @@ func (c *ASN1Codec) DecodeE2APMessage(data []byte) (*E2APMessage, error) {
 
 	msg.Payload = payload
 
-
-
 	return msg, nil
 
 }
-
-
 
 // encodePayload encodes message-specific payload.
 
@@ -269,8 +218,6 @@ func (c *ASN1Codec) encodePayload(msgType E2APMessageType, payload interface{}) 
 
 }
 
-
-
 // decodePayload decodes message-specific payload.
 
 func (c *ASN1Codec) decodePayload(msgType E2APMessageType, data []byte) (interface{}, error) {
@@ -313,15 +260,11 @@ func (c *ASN1Codec) decodePayload(msgType E2APMessageType, data []byte) (interfa
 
 }
 
-
-
 // E2 Setup Request encoding.
 
 func (c *ASN1Codec) encodeE2SetupRequest(req *E2SetupRequest) ([]byte, error) {
 
 	buf := &bytes.Buffer{}
-
-
 
 	// Encode Global E2 Node ID.
 
@@ -331,8 +274,6 @@ func (c *ASN1Codec) encodeE2SetupRequest(req *E2SetupRequest) ([]byte, error) {
 
 	}
 
-
-
 	// Encode RAN Functions List.
 
 	if err := c.encodeRANFunctionsList(buf, req.RANFunctionsList); err != nil {
@@ -340,8 +281,6 @@ func (c *ASN1Codec) encodeE2SetupRequest(req *E2SetupRequest) ([]byte, error) {
 		return nil, err
 
 	}
-
-
 
 	// Encode E2 Node Component Configuration List (optional).
 
@@ -355,13 +294,9 @@ func (c *ASN1Codec) encodeE2SetupRequest(req *E2SetupRequest) ([]byte, error) {
 
 	}
 
-
-
 	return buf.Bytes(), nil
 
 }
-
-
 
 // E2 Setup Request decoding.
 
@@ -370,8 +305,6 @@ func (c *ASN1Codec) decodeE2SetupRequest(data []byte) (*E2SetupRequest, error) {
 	buf := bytes.NewReader(data)
 
 	req := &E2SetupRequest{}
-
-
 
 	// Decode Global E2 Node ID.
 
@@ -385,8 +318,6 @@ func (c *ASN1Codec) decodeE2SetupRequest(data []byte) (*E2SetupRequest, error) {
 
 	req.GlobalE2NodeID = globalID
 
-
-
 	// Decode RAN Functions List.
 
 	functions, err := c.decodeRANFunctionsList(buf)
@@ -398,8 +329,6 @@ func (c *ASN1Codec) decodeE2SetupRequest(data []byte) (*E2SetupRequest, error) {
 	}
 
 	req.RANFunctionsList = functions
-
-
 
 	// Check for optional E2 Node Component Configuration List.
 
@@ -417,21 +346,15 @@ func (c *ASN1Codec) decodeE2SetupRequest(data []byte) (*E2SetupRequest, error) {
 
 	}
 
-
-
 	return req, nil
 
 }
-
-
 
 // RIC Subscription Request encoding.
 
 func (c *ASN1Codec) encodeRICSubscriptionRequest(req *RICSubscriptionRequest) ([]byte, error) {
 
 	buf := &bytes.Buffer{}
-
-
 
 	// Encode RIC Request ID.
 
@@ -441,8 +364,6 @@ func (c *ASN1Codec) encodeRICSubscriptionRequest(req *RICSubscriptionRequest) ([
 
 	}
 
-
-
 	// Encode RAN Function ID (16 bits).
 
 	if err := binary.Write(buf, binary.BigEndian, uint16(req.RANFunctionID)); err != nil {
@@ -450,8 +371,6 @@ func (c *ASN1Codec) encodeRICSubscriptionRequest(req *RICSubscriptionRequest) ([
 		return nil, err
 
 	}
-
-
 
 	// Encode Event Trigger Definition.
 
@@ -461,8 +380,6 @@ func (c *ASN1Codec) encodeRICSubscriptionRequest(req *RICSubscriptionRequest) ([
 
 	}
 
-
-
 	// Encode Actions to be setup list.
 
 	if err := c.encodeRICActionsList(buf, req.RICSubscriptionDetails.RICActionToBeSetupList); err != nil {
@@ -471,13 +388,9 @@ func (c *ASN1Codec) encodeRICSubscriptionRequest(req *RICSubscriptionRequest) ([
 
 	}
 
-
-
 	return buf.Bytes(), nil
 
 }
-
-
 
 // RIC Subscription Request decoding.
 
@@ -486,8 +399,6 @@ func (c *ASN1Codec) decodeRICSubscriptionRequest(data []byte) (*RICSubscriptionR
 	buf := bytes.NewReader(data)
 
 	req := &RICSubscriptionRequest{}
-
-
 
 	// Decode RIC Request ID.
 
@@ -501,8 +412,6 @@ func (c *ASN1Codec) decodeRICSubscriptionRequest(data []byte) (*RICSubscriptionR
 
 	req.RICRequestID = requestID
 
-
-
 	// Decode RAN Function ID.
 
 	var ranFunctionID uint16
@@ -514,8 +423,6 @@ func (c *ASN1Codec) decodeRICSubscriptionRequest(data []byte) (*RICSubscriptionR
 	}
 
 	req.RANFunctionID = RANFunctionID(ranFunctionID)
-
-
 
 	// Decode Event Trigger Definition.
 
@@ -529,8 +436,6 @@ func (c *ASN1Codec) decodeRICSubscriptionRequest(data []byte) (*RICSubscriptionR
 
 	req.RICSubscriptionDetails.RICEventTriggerDefinition = eventTrigger
 
-
-
 	// Decode Actions to be setup list.
 
 	actions, err := c.decodeRICActionsList(buf)
@@ -543,21 +448,15 @@ func (c *ASN1Codec) decodeRICSubscriptionRequest(data []byte) (*RICSubscriptionR
 
 	req.RICSubscriptionDetails.RICActionToBeSetupList = actions
 
-
-
 	return req, nil
 
 }
-
-
 
 // RIC Indication encoding.
 
 func (c *ASN1Codec) encodeRICIndication(ind *RICIndication) ([]byte, error) {
 
 	buf := &bytes.Buffer{}
-
-
 
 	// Encode RIC Request ID.
 
@@ -567,8 +466,6 @@ func (c *ASN1Codec) encodeRICIndication(ind *RICIndication) ([]byte, error) {
 
 	}
 
-
-
 	// Encode RAN Function ID.
 
 	if err := binary.Write(buf, binary.BigEndian, uint16(ind.RANFunctionID)); err != nil {
@@ -577,8 +474,6 @@ func (c *ASN1Codec) encodeRICIndication(ind *RICIndication) ([]byte, error) {
 
 	}
 
-
-
 	// Encode Action ID.
 
 	if err := binary.Write(buf, binary.BigEndian, uint16(ind.RICActionID)); err != nil {
@@ -586,8 +481,6 @@ func (c *ASN1Codec) encodeRICIndication(ind *RICIndication) ([]byte, error) {
 		return nil, err
 
 	}
-
-
 
 	// Encode Indication SN (optional).
 
@@ -601,8 +494,6 @@ func (c *ASN1Codec) encodeRICIndication(ind *RICIndication) ([]byte, error) {
 
 	}
 
-
-
 	// Encode Indication Type.
 
 	if err := c.encodeIndicationType(buf, ind.RICIndicationType); err != nil {
@@ -610,8 +501,6 @@ func (c *ASN1Codec) encodeRICIndication(ind *RICIndication) ([]byte, error) {
 		return nil, err
 
 	}
-
-
 
 	// Encode Indication Header.
 
@@ -621,8 +510,6 @@ func (c *ASN1Codec) encodeRICIndication(ind *RICIndication) ([]byte, error) {
 
 	}
 
-
-
 	// Encode Indication Message.
 
 	if err := c.encodeOctetString(buf, ind.RICIndicationMessage); err != nil {
@@ -630,8 +517,6 @@ func (c *ASN1Codec) encodeRICIndication(ind *RICIndication) ([]byte, error) {
 		return nil, err
 
 	}
-
-
 
 	// Encode Call Process ID (optional).
 
@@ -645,13 +530,9 @@ func (c *ASN1Codec) encodeRICIndication(ind *RICIndication) ([]byte, error) {
 
 	}
 
-
-
 	return buf.Bytes(), nil
 
 }
-
-
 
 // RIC Indication decoding.
 
@@ -660,8 +541,6 @@ func (c *ASN1Codec) decodeRICIndication(data []byte) (*RICIndication, error) {
 	buf := bytes.NewReader(data)
 
 	ind := &RICIndication{}
-
-
 
 	// Decode RIC Request ID.
 
@@ -675,8 +554,6 @@ func (c *ASN1Codec) decodeRICIndication(data []byte) (*RICIndication, error) {
 
 	ind.RICRequestID = requestID
 
-
-
 	// Decode RAN Function ID.
 
 	var ranFunctionID uint16
@@ -689,8 +566,6 @@ func (c *ASN1Codec) decodeRICIndication(data []byte) (*RICIndication, error) {
 
 	ind.RANFunctionID = RANFunctionID(ranFunctionID)
 
-
-
 	// Decode Action ID.
 
 	var actionID uint16
@@ -702,8 +577,6 @@ func (c *ASN1Codec) decodeRICIndication(data []byte) (*RICIndication, error) {
 	}
 
 	ind.RICActionID = RICActionID(actionID)
-
-
 
 	// Check for optional Indication SN.
 
@@ -721,8 +594,6 @@ func (c *ASN1Codec) decodeRICIndication(data []byte) (*RICIndication, error) {
 
 	}
 
-
-
 	// Decode Indication Type.
 
 	indicationType, err := c.decodeIndicationType(buf)
@@ -734,8 +605,6 @@ func (c *ASN1Codec) decodeRICIndication(data []byte) (*RICIndication, error) {
 	}
 
 	ind.RICIndicationType = indicationType
-
-
 
 	// Decode Indication Header.
 
@@ -749,8 +618,6 @@ func (c *ASN1Codec) decodeRICIndication(data []byte) (*RICIndication, error) {
 
 	ind.RICIndicationHeader = header
 
-
-
 	// Decode Indication Message.
 
 	message, err := c.decodeOctetString(buf)
@@ -762,8 +629,6 @@ func (c *ASN1Codec) decodeRICIndication(data []byte) (*RICIndication, error) {
 	}
 
 	ind.RICIndicationMessage = message
-
-
 
 	// Check for optional Call Process ID.
 
@@ -781,17 +646,11 @@ func (c *ASN1Codec) decodeRICIndication(data []byte) (*RICIndication, error) {
 
 	}
 
-
-
 	return ind, nil
 
 }
 
-
-
 // Helper encoding functions.
-
-
 
 func (c *ASN1Codec) encodeGlobalE2NodeID(w io.Writer, id GlobalE2NodeID) error {
 
@@ -803,8 +662,6 @@ func (c *ASN1Codec) encodeGlobalE2NodeID(w io.Writer, id GlobalE2NodeID) error {
 
 	}
 
-
-
 	// Encode PLMN Identity (3 bytes).
 
 	plmnBytes := c.encodePLMNIdentity(id.PLMNIdentity)
@@ -814,8 +671,6 @@ func (c *ASN1Codec) encodeGlobalE2NodeID(w io.Writer, id GlobalE2NodeID) error {
 		return err
 
 	}
-
-
 
 	// Encode Node ID based on type.
 
@@ -845,13 +700,9 @@ func (c *ASN1Codec) encodeGlobalE2NodeID(w io.Writer, id GlobalE2NodeID) error {
 
 }
 
-
-
 func (c *ASN1Codec) decodeGlobalE2NodeID(r io.Reader) (GlobalE2NodeID, error) {
 
 	var id GlobalE2NodeID
-
-
 
 	// Decode node type.
 
@@ -865,8 +716,6 @@ func (c *ASN1Codec) decodeGlobalE2NodeID(r io.Reader) (GlobalE2NodeID, error) {
 
 	id.NodeType = E2NodeType(nodeType)
 
-
-
 	// Decode PLMN Identity.
 
 	plmnBytes := make([]byte, 3)
@@ -878,8 +727,6 @@ func (c *ASN1Codec) decodeGlobalE2NodeID(r io.Reader) (GlobalE2NodeID, error) {
 	}
 
 	id.PLMNIdentity = c.decodePLMNIdentity(plmnBytes)
-
-
 
 	// Decode Node ID based on type.
 
@@ -939,13 +786,9 @@ func (c *ASN1Codec) decodeGlobalE2NodeID(r io.Reader) (GlobalE2NodeID, error) {
 
 	}
 
-
-
 	return id, nil
 
 }
-
-
 
 func (c *ASN1Codec) encodePLMNIdentity(plmn PLMNIdentity) []byte {
 
@@ -953,15 +796,11 @@ func (c *ASN1Codec) encodePLMNIdentity(plmn PLMNIdentity) []byte {
 
 	bytes := make([]byte, 3)
 
-
-
 	// Convert MCC and MNC strings to BCD.
 
 	mcc := []byte(plmn.MCC)
 
 	mnc := []byte(plmn.MNC)
-
-
 
 	if len(mcc) >= 3 && len(mnc) >= 2 {
 
@@ -981,13 +820,9 @@ func (c *ASN1Codec) encodePLMNIdentity(plmn PLMNIdentity) []byte {
 
 	}
 
-
-
 	return bytes
 
 }
-
-
 
 func (c *ASN1Codec) decodePLMNIdentity(bytes []byte) PLMNIdentity {
 
@@ -997,8 +832,6 @@ func (c *ASN1Codec) decodePLMNIdentity(bytes []byte) PLMNIdentity {
 
 	}
 
-
-
 	mcc := fmt.Sprintf("%d%d%d",
 
 		bytes[0]&0x0F,
@@ -1007,15 +840,11 @@ func (c *ASN1Codec) decodePLMNIdentity(bytes []byte) PLMNIdentity {
 
 		bytes[1]&0x0F)
 
-
-
 	mnc2 := (bytes[1] >> 4) & 0x0F
 
 	mnc1 := bytes[2] & 0x0F
 
 	mnc3 := (bytes[2] >> 4) & 0x0F
-
-
 
 	var mnc string
 
@@ -1029,13 +858,9 @@ func (c *ASN1Codec) decodePLMNIdentity(bytes []byte) PLMNIdentity {
 
 	}
 
-
-
 	return PLMNIdentity{MCC: mcc, MNC: mnc}
 
 }
-
-
 
 func (c *ASN1Codec) encodeOctetString(w io.Writer, data []byte) error {
 
@@ -1047,8 +872,6 @@ func (c *ASN1Codec) encodeOctetString(w io.Writer, data []byte) error {
 
 	}
 
-
-
 	// Write data.
 
 	_, err := w.Write(data)
@@ -1056,8 +879,6 @@ func (c *ASN1Codec) encodeOctetString(w io.Writer, data []byte) error {
 	return err
 
 }
-
-
 
 func (c *ASN1Codec) decodeOctetString(r io.Reader) ([]byte, error) {
 
@@ -1071,8 +892,6 @@ func (c *ASN1Codec) decodeOctetString(r io.Reader) ([]byte, error) {
 
 	}
 
-
-
 	// Read data.
 
 	data := make([]byte, length)
@@ -1082,8 +901,6 @@ func (c *ASN1Codec) decodeOctetString(r io.Reader) ([]byte, error) {
 	return data, err
 
 }
-
-
 
 func (c *ASN1Codec) encodeLength(w io.Writer, length int) error {
 
@@ -1121,8 +938,6 @@ func (c *ASN1Codec) encodeLength(w io.Writer, length int) error {
 
 }
 
-
-
 func (c *ASN1Codec) decodeLength(r io.Reader) (int, error) {
 
 	var firstByte uint8
@@ -1133,8 +948,6 @@ func (c *ASN1Codec) decodeLength(r io.Reader) (int, error) {
 
 	}
 
-
-
 	if firstByte < 128 {
 
 		// Short form.
@@ -1142,8 +955,6 @@ func (c *ASN1Codec) decodeLength(r io.Reader) (int, error) {
 		return int(firstByte), nil
 
 	}
-
-
 
 	// Long form.
 
@@ -1182,8 +993,6 @@ func (c *ASN1Codec) decodeLength(r io.Reader) (int, error) {
 	}
 
 }
-
-
 
 // Helper function to map procedure codes to message types.
 
@@ -1279,11 +1088,7 @@ func (c *ASN1Codec) getMessageTypeFromProcedureCode(procedureCode int32) E2APMes
 
 }
 
-
-
 // Additional helper methods for encoding/decoding specific node ID types.
-
-
 
 func (c *ASN1Codec) encodeGNBID(w io.Writer, nodeID string) error {
 
@@ -1292,8 +1097,6 @@ func (c *ASN1Codec) encodeGNBID(w io.Writer, nodeID string) error {
 	return c.encodeOctetString(w, []byte(nodeID))
 
 }
-
-
 
 func (c *ASN1Codec) decodeGNBID(r io.Reader) (string, error) {
 
@@ -1309,15 +1112,11 @@ func (c *ASN1Codec) decodeGNBID(r io.Reader) (string, error) {
 
 }
 
-
-
 func (c *ASN1Codec) encodeENBID(w io.Writer, nodeID string) error {
 
 	return c.encodeOctetString(w, []byte(nodeID))
 
 }
-
-
 
 func (c *ASN1Codec) decodeENBID(r io.Reader) (string, error) {
 
@@ -1333,15 +1132,11 @@ func (c *ASN1Codec) decodeENBID(r io.Reader) (string, error) {
 
 }
 
-
-
 func (c *ASN1Codec) encodeNgENBID(w io.Writer, nodeID string) error {
 
 	return c.encodeOctetString(w, []byte(nodeID))
 
 }
-
-
 
 func (c *ASN1Codec) decodeNgENBID(r io.Reader) (string, error) {
 
@@ -1357,15 +1152,11 @@ func (c *ASN1Codec) decodeNgENBID(r io.Reader) (string, error) {
 
 }
 
-
-
 func (c *ASN1Codec) encodeEnGNBID(w io.Writer, nodeID string) error {
 
 	return c.encodeOctetString(w, []byte(nodeID))
 
 }
-
-
 
 func (c *ASN1Codec) decodeEnGNBID(r io.Reader) (string, error) {
 
@@ -1381,8 +1172,6 @@ func (c *ASN1Codec) decodeEnGNBID(r io.Reader) (string, error) {
 
 }
 
-
-
 // Encode/decode RAN functions list.
 
 func (c *ASN1Codec) encodeRANFunctionsList(w io.Writer, functions []RANFunctionItem) error {
@@ -1394,8 +1183,6 @@ func (c *ASN1Codec) encodeRANFunctionsList(w io.Writer, functions []RANFunctionI
 		return err
 
 	}
-
-
 
 	// Encode each function.
 
@@ -1409,13 +1196,9 @@ func (c *ASN1Codec) encodeRANFunctionsList(w io.Writer, functions []RANFunctionI
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (c *ASN1Codec) decodeRANFunctionsList(r io.Reader) ([]RANFunctionItem, error) {
 
@@ -1428,8 +1211,6 @@ func (c *ASN1Codec) decodeRANFunctionsList(r io.Reader) ([]RANFunctionItem, erro
 		return nil, err
 
 	}
-
-
 
 	functions := make([]RANFunctionItem, count)
 
@@ -1447,13 +1228,9 @@ func (c *ASN1Codec) decodeRANFunctionsList(r io.Reader) ([]RANFunctionItem, erro
 
 	}
 
-
-
 	return functions, nil
 
 }
-
-
 
 func (c *ASN1Codec) encodeRANFunction(w io.Writer, fn RANFunctionItem) error {
 
@@ -1465,8 +1242,6 @@ func (c *ASN1Codec) encodeRANFunction(w io.Writer, fn RANFunctionItem) error {
 
 	}
 
-
-
 	// Encode RAN Function Definition.
 
 	if err := c.encodeOctetString(w, fn.RANFunctionDefinition); err != nil {
@@ -1475,8 +1250,6 @@ func (c *ASN1Codec) encodeRANFunction(w io.Writer, fn RANFunctionItem) error {
 
 	}
 
-
-
 	// Encode RAN Function Revision.
 
 	if err := binary.Write(w, binary.BigEndian, uint16(fn.RANFunctionRevision)); err != nil {
@@ -1484,8 +1257,6 @@ func (c *ASN1Codec) encodeRANFunction(w io.Writer, fn RANFunctionItem) error {
 		return err
 
 	}
-
-
 
 	// Encode RAN Function OID.
 
@@ -1507,19 +1278,13 @@ func (c *ASN1Codec) encodeRANFunction(w io.Writer, fn RANFunctionItem) error {
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 func (c *ASN1Codec) decodeRANFunction(r io.Reader) (RANFunctionItem, error) {
 
 	var fn RANFunctionItem
-
-
 
 	// Decode RAN Function ID.
 
@@ -1533,8 +1298,6 @@ func (c *ASN1Codec) decodeRANFunction(r io.Reader) (RANFunctionItem, error) {
 
 	fn.RANFunctionID = RANFunctionID(functionID)
 
-
-
 	// Decode RAN Function Definition.
 
 	definition, err := c.decodeOctetString(r)
@@ -1547,8 +1310,6 @@ func (c *ASN1Codec) decodeRANFunction(r io.Reader) (RANFunctionItem, error) {
 
 	fn.RANFunctionDefinition = definition
 
-
-
 	// Decode RAN Function Revision.
 
 	var revision uint16
@@ -1560,8 +1321,6 @@ func (c *ASN1Codec) decodeRANFunction(r io.Reader) (RANFunctionItem, error) {
 	}
 
 	fn.RANFunctionRevision = RANFunctionRevision(revision)
-
-
 
 	// Decode RAN Function OID.
 
@@ -1581,13 +1340,9 @@ func (c *ASN1Codec) decodeRANFunction(r io.Reader) (RANFunctionItem, error) {
 
 	}
 
-
-
 	return fn, nil
 
 }
-
-
 
 // E2 Node Component Configuration encoding/decoding.
 
@@ -1601,8 +1356,6 @@ func (c *ASN1Codec) encodeE2NodeComponentConfigList(w io.Writer, configs []E2Nod
 
 	}
 
-
-
 	// Encode each configuration.
 
 	for _, config := range configs {
@@ -1615,13 +1368,9 @@ func (c *ASN1Codec) encodeE2NodeComponentConfigList(w io.Writer, configs []E2Nod
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (c *ASN1Codec) decodeE2NodeComponentConfigList(r io.Reader) ([]E2NodeComponentConfigurationItem, error) {
 
@@ -1634,8 +1383,6 @@ func (c *ASN1Codec) decodeE2NodeComponentConfigList(r io.Reader) ([]E2NodeCompon
 		return nil, err
 
 	}
-
-
 
 	configs := make([]E2NodeComponentConfigurationItem, count)
 
@@ -1653,13 +1400,9 @@ func (c *ASN1Codec) decodeE2NodeComponentConfigList(r io.Reader) ([]E2NodeCompon
 
 	}
 
-
-
 	return configs, nil
 
 }
-
-
 
 func (c *ASN1Codec) encodeE2NodeComponentConfig(w io.Writer, config E2NodeComponentConfigurationItem) error {
 
@@ -1671,8 +1414,6 @@ func (c *ASN1Codec) encodeE2NodeComponentConfig(w io.Writer, config E2NodeCompon
 
 	}
 
-
-
 	// Encode component ID.
 
 	if err := c.encodeE2NodeComponentID(w, config.E2NodeComponentID); err != nil {
@@ -1680,8 +1421,6 @@ func (c *ASN1Codec) encodeE2NodeComponentConfig(w io.Writer, config E2NodeCompon
 		return err
 
 	}
-
-
 
 	// Encode component configuration.
 
@@ -1691,19 +1430,13 @@ func (c *ASN1Codec) encodeE2NodeComponentConfig(w io.Writer, config E2NodeCompon
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 func (c *ASN1Codec) decodeE2NodeComponentConfig(r io.Reader) (E2NodeComponentConfigurationItem, error) {
 
 	var config E2NodeComponentConfigurationItem
-
-
 
 	// Decode component interface type.
 
@@ -1717,8 +1450,6 @@ func (c *ASN1Codec) decodeE2NodeComponentConfig(r io.Reader) (E2NodeComponentCon
 
 	config.E2NodeComponentInterfaceType = E2NodeComponentInterfaceType(interfaceType)
 
-
-
 	// Decode component ID.
 
 	id, err := c.decodeE2NodeComponentID(r)
@@ -1730,8 +1461,6 @@ func (c *ASN1Codec) decodeE2NodeComponentConfig(r io.Reader) (E2NodeComponentCon
 	}
 
 	config.E2NodeComponentID = id
-
-
 
 	// Decode component configuration.
 
@@ -1745,23 +1474,15 @@ func (c *ASN1Codec) decodeE2NodeComponentConfig(r io.Reader) (E2NodeComponentCon
 
 	config.E2NodeComponentConfiguration = configuration
 
-
-
 	return config, nil
 
 }
 
-
-
 // Additional encoding/decoding methods for other message types.
-
-
 
 func (c *ASN1Codec) encodeE2SetupResponse(resp *E2SetupResponse) ([]byte, error) {
 
 	buf := &bytes.Buffer{}
-
-
 
 	// Encode Global RIC ID.
 
@@ -1770,8 +1491,6 @@ func (c *ASN1Codec) encodeE2SetupResponse(resp *E2SetupResponse) ([]byte, error)
 		return nil, err
 
 	}
-
-
 
 	// Encode RAN Functions Accepted (optional).
 
@@ -1784,8 +1503,6 @@ func (c *ASN1Codec) encodeE2SetupResponse(resp *E2SetupResponse) ([]byte, error)
 		}
 
 	}
-
-
 
 	// Encode RAN Functions Rejected (optional).
 
@@ -1803,12 +1520,11 @@ func (c *ASN1Codec) encodeE2SetupResponse(resp *E2SetupResponse) ([]byte, error)
 
 				Cause: E2Cause{
 
-					CauseType:  E2CauseTypeRIC, // Simplified mapping
+					CauseType: E2CauseTypeRIC, // Simplified mapping
 
-					CauseValue: 0,              // Default value
+					CauseValue: 0, // Default value
 
 				},
-
 			}
 
 		}
@@ -1821,21 +1537,15 @@ func (c *ASN1Codec) encodeE2SetupResponse(resp *E2SetupResponse) ([]byte, error)
 
 	}
 
-
-
 	return buf.Bytes(), nil
 
 }
-
-
 
 func (c *ASN1Codec) decodeE2SetupResponse(data []byte) (*E2SetupResponse, error) {
 
 	buf := bytes.NewReader(data)
 
 	resp := &E2SetupResponse{}
-
-
 
 	// Decode Global RIC ID.
 
@@ -1848,8 +1558,6 @@ func (c *ASN1Codec) decodeE2SetupResponse(data []byte) (*E2SetupResponse, error)
 	}
 
 	resp.GlobalRICID = ricID
-
-
 
 	// Check for optional RAN Functions Accepted.
 
@@ -1864,8 +1572,6 @@ func (c *ASN1Codec) decodeE2SetupResponse(data []byte) (*E2SetupResponse, error)
 		}
 
 	}
-
-
 
 	// Check for optional RAN Functions Rejected.
 
@@ -1885,7 +1591,7 @@ func (c *ASN1Codec) decodeE2SetupResponse(data []byte) (*E2SetupResponse, error)
 
 					RANFunctionID: RANFunctionID(item.RANFunctionID),
 
-					Cause:         E2APCause{}, // Simplified - would need proper conversion
+					Cause: E2APCause{}, // Simplified - would need proper conversion
 
 				}
 
@@ -1895,13 +1601,9 @@ func (c *ASN1Codec) decodeE2SetupResponse(data []byte) (*E2SetupResponse, error)
 
 	}
 
-
-
 	return resp, nil
 
 }
-
-
 
 func (c *ASN1Codec) encodeGlobalRICID(w io.Writer, id GlobalRICID) error {
 
@@ -1915,21 +1617,15 @@ func (c *ASN1Codec) encodeGlobalRICID(w io.Writer, id GlobalRICID) error {
 
 	}
 
-
-
 	// Encode RIC ID (32 bits).
 
 	return binary.Write(w, binary.BigEndian, uint32(id.RICID))
 
 }
 
-
-
 func (c *ASN1Codec) decodeGlobalRICID(r io.Reader) (GlobalRICID, error) {
 
 	var id GlobalRICID
-
-
 
 	// Decode PLMN Identity.
 
@@ -1943,8 +1639,6 @@ func (c *ASN1Codec) decodeGlobalRICID(r io.Reader) (GlobalRICID, error) {
 
 	id.PLMNIdentity = c.decodePLMNIdentity(plmnBytes)
 
-
-
 	// Decode RIC ID.
 
 	var ricID uint32
@@ -1957,13 +1651,9 @@ func (c *ASN1Codec) decodeGlobalRICID(r io.Reader) (GlobalRICID, error) {
 
 	id.RICID = RICID(ricID)
 
-
-
 	return id, nil
 
 }
-
-
 
 func (c *ASN1Codec) encodeRANFunctionIDList(w io.Writer, functions []RANFunctionIDItem) error {
 
@@ -1974,8 +1664,6 @@ func (c *ASN1Codec) encodeRANFunctionIDList(w io.Writer, functions []RANFunction
 		return err
 
 	}
-
-
 
 	// Encode each function ID.
 
@@ -1995,13 +1683,9 @@ func (c *ASN1Codec) encodeRANFunctionIDList(w io.Writer, functions []RANFunction
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (c *ASN1Codec) decodeRANFunctionIDList(r io.Reader) ([]RANFunctionIDItem, error) {
 
@@ -2014,8 +1698,6 @@ func (c *ASN1Codec) decodeRANFunctionIDList(r io.Reader) ([]RANFunctionIDItem, e
 		return nil, err
 
 	}
-
-
 
 	functions := make([]RANFunctionIDItem, count)
 
@@ -2037,21 +1719,16 @@ func (c *ASN1Codec) decodeRANFunctionIDList(r io.Reader) ([]RANFunctionIDItem, e
 
 		functions[i] = RANFunctionIDItem{
 
-			RANFunctionID:       RANFunctionID(functionID),
+			RANFunctionID: RANFunctionID(functionID),
 
 			RANFunctionRevision: RANFunctionRevision(revision),
-
 		}
 
 	}
 
-
-
 	return functions, nil
 
 }
-
-
 
 func (c *ASN1Codec) encodeRANFunctionIDCauseList(w io.Writer, functions []RANFunctionIDCauseItem) error {
 
@@ -2062,8 +1739,6 @@ func (c *ASN1Codec) encodeRANFunctionIDCauseList(w io.Writer, functions []RANFun
 		return err
 
 	}
-
-
 
 	// Encode each function with cause.
 
@@ -2083,13 +1758,9 @@ func (c *ASN1Codec) encodeRANFunctionIDCauseList(w io.Writer, functions []RANFun
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (c *ASN1Codec) decodeRANFunctionIDCauseList(r io.Reader) ([]RANFunctionIDCauseItem, error) {
 
@@ -2103,8 +1774,6 @@ func (c *ASN1Codec) decodeRANFunctionIDCauseList(r io.Reader) ([]RANFunctionIDCa
 
 	}
 
-
-
 	functions := make([]RANFunctionIDCauseItem, count)
 
 	for i := range count {
@@ -2117,8 +1786,6 @@ func (c *ASN1Codec) decodeRANFunctionIDCauseList(r io.Reader) ([]RANFunctionIDCa
 
 		}
 
-
-
 		cause, err := c.decodeCause(r)
 
 		if err != nil {
@@ -2127,25 +1794,18 @@ func (c *ASN1Codec) decodeRANFunctionIDCauseList(r io.Reader) ([]RANFunctionIDCa
 
 		}
 
-
-
 		functions[i] = RANFunctionIDCauseItem{
 
 			RANFunctionID: int(functionID),
 
-			Cause:         cause,
-
+			Cause: cause,
 		}
 
 	}
 
-
-
 	return functions, nil
 
 }
-
-
 
 func (c *ASN1Codec) encodeCause(w io.Writer, cause E2Cause) error {
 
@@ -2157,21 +1817,15 @@ func (c *ASN1Codec) encodeCause(w io.Writer, cause E2Cause) error {
 
 	}
 
-
-
 	// Encode cause value (2 bytes).
 
 	return binary.Write(w, binary.BigEndian, uint16(cause.CauseValue))
 
 }
 
-
-
 func (c *ASN1Codec) decodeCause(r io.Reader) (E2Cause, error) {
 
 	var cause E2Cause
-
-
 
 	// Decode cause type.
 
@@ -2185,8 +1839,6 @@ func (c *ASN1Codec) decodeCause(r io.Reader) (E2Cause, error) {
 
 	cause.CauseType = E2CauseType(causeType)
 
-
-
 	// Decode cause value.
 
 	var causeValue uint16
@@ -2199,21 +1851,15 @@ func (c *ASN1Codec) decodeCause(r io.Reader) (E2Cause, error) {
 
 	cause.CauseValue = int(causeValue)
 
-
-
 	return cause, nil
 
 }
-
-
 
 // RIC Control Request encoding/decoding.
 
 func (c *ASN1Codec) encodeRICControlRequest(req *RICControlRequest) ([]byte, error) {
 
 	buf := &bytes.Buffer{}
-
-
 
 	// Encode RIC Request ID.
 
@@ -2223,8 +1869,6 @@ func (c *ASN1Codec) encodeRICControlRequest(req *RICControlRequest) ([]byte, err
 
 	}
 
-
-
 	// Encode RAN Function ID.
 
 	if err := binary.Write(buf, binary.BigEndian, uint16(req.RANFunctionID)); err != nil {
@@ -2232,8 +1876,6 @@ func (c *ASN1Codec) encodeRICControlRequest(req *RICControlRequest) ([]byte, err
 		return nil, err
 
 	}
-
-
 
 	// Encode Call Process ID (optional).
 
@@ -2247,8 +1889,6 @@ func (c *ASN1Codec) encodeRICControlRequest(req *RICControlRequest) ([]byte, err
 
 	}
 
-
-
 	// Encode Control Header.
 
 	if err := c.encodeOctetString(buf, req.RICControlHeader); err != nil {
@@ -2257,8 +1897,6 @@ func (c *ASN1Codec) encodeRICControlRequest(req *RICControlRequest) ([]byte, err
 
 	}
 
-
-
 	// Encode Control Message.
 
 	if err := c.encodeOctetString(buf, req.RICControlMessage); err != nil {
@@ -2266,8 +1904,6 @@ func (c *ASN1Codec) encodeRICControlRequest(req *RICControlRequest) ([]byte, err
 		return nil, err
 
 	}
-
-
 
 	// Encode Control Ack Request (optional).
 
@@ -2285,21 +1921,15 @@ func (c *ASN1Codec) encodeRICControlRequest(req *RICControlRequest) ([]byte, err
 
 	}
 
-
-
 	return buf.Bytes(), nil
 
 }
-
-
 
 func (c *ASN1Codec) decodeRICControlRequest(data []byte) (*RICControlRequest, error) {
 
 	buf := bytes.NewReader(data)
 
 	req := &RICControlRequest{}
-
-
 
 	// Decode RIC Request ID.
 
@@ -2313,8 +1943,6 @@ func (c *ASN1Codec) decodeRICControlRequest(data []byte) (*RICControlRequest, er
 
 	req.RICRequestID = requestID
 
-
-
 	// Decode RAN Function ID.
 
 	var ranFunctionID uint16
@@ -2326,8 +1954,6 @@ func (c *ASN1Codec) decodeRICControlRequest(data []byte) (*RICControlRequest, er
 	}
 
 	req.RANFunctionID = RANFunctionID(ranFunctionID)
-
-
 
 	// Try to decode optional Call Process ID.
 
@@ -2343,8 +1969,6 @@ func (c *ASN1Codec) decodeRICControlRequest(data []byte) (*RICControlRequest, er
 
 	}
 
-
-
 	// Decode Control Header.
 
 	header, err := c.decodeOctetString(buf)
@@ -2357,8 +1981,6 @@ func (c *ASN1Codec) decodeRICControlRequest(data []byte) (*RICControlRequest, er
 
 	req.RICControlHeader = header
 
-
-
 	// Decode Control Message.
 
 	message, err := c.decodeOctetString(buf)
@@ -2370,8 +1992,6 @@ func (c *ASN1Codec) decodeRICControlRequest(data []byte) (*RICControlRequest, er
 	}
 
 	req.RICControlMessage = message
-
-
 
 	// Decode Control Ack Request.
 
@@ -2391,21 +2011,15 @@ func (c *ASN1Codec) decodeRICControlRequest(data []byte) (*RICControlRequest, er
 
 	}
 
-
-
 	return req, nil
 
 }
-
-
 
 // RIC Control Acknowledge encoding/decoding.
 
 func (c *ASN1Codec) encodeRICControlAcknowledge(ack *RICControlAcknowledge) ([]byte, error) {
 
 	buf := &bytes.Buffer{}
-
-
 
 	// Encode RIC Request ID.
 
@@ -2415,8 +2029,6 @@ func (c *ASN1Codec) encodeRICControlAcknowledge(ack *RICControlAcknowledge) ([]b
 
 	}
 
-
-
 	// Encode RAN Function ID.
 
 	if err := binary.Write(buf, binary.BigEndian, uint16(ack.RANFunctionID)); err != nil {
@@ -2424,8 +2036,6 @@ func (c *ASN1Codec) encodeRICControlAcknowledge(ack *RICControlAcknowledge) ([]b
 		return nil, err
 
 	}
-
-
 
 	// Encode Call Process ID (optional).
 
@@ -2439,8 +2049,6 @@ func (c *ASN1Codec) encodeRICControlAcknowledge(ack *RICControlAcknowledge) ([]b
 
 	}
 
-
-
 	// Encode Control Outcome (optional).
 
 	if len(ack.RICControlOutcome) > 0 {
@@ -2453,21 +2061,15 @@ func (c *ASN1Codec) encodeRICControlAcknowledge(ack *RICControlAcknowledge) ([]b
 
 	}
 
-
-
 	return buf.Bytes(), nil
 
 }
-
-
 
 func (c *ASN1Codec) decodeRICControlAcknowledge(data []byte) (*RICControlAcknowledge, error) {
 
 	buf := bytes.NewReader(data)
 
 	ack := &RICControlAcknowledge{}
-
-
 
 	// Decode RIC Request ID.
 
@@ -2481,8 +2083,6 @@ func (c *ASN1Codec) decodeRICControlAcknowledge(data []byte) (*RICControlAcknowl
 
 	ack.RICRequestID = requestID
 
-
-
 	// Decode RAN Function ID.
 
 	var ranFunctionID uint16
@@ -2494,8 +2094,6 @@ func (c *ASN1Codec) decodeRICControlAcknowledge(data []byte) (*RICControlAcknowl
 	}
 
 	ack.RANFunctionID = RANFunctionID(ranFunctionID)
-
-
 
 	// Check for optional Call Process ID.
 
@@ -2513,8 +2111,6 @@ func (c *ASN1Codec) decodeRICControlAcknowledge(data []byte) (*RICControlAcknowl
 
 	}
 
-
-
 	// Check for optional Control Outcome.
 
 	if buf.Len() > 0 {
@@ -2529,21 +2125,15 @@ func (c *ASN1Codec) decodeRICControlAcknowledge(data []byte) (*RICControlAcknowl
 
 	}
 
-
-
 	return ack, nil
 
 }
-
-
 
 // RIC Subscription Response encoding/decoding.
 
 func (c *ASN1Codec) encodeRICSubscriptionResponse(resp *RICSubscriptionResponse) ([]byte, error) {
 
 	buf := &bytes.Buffer{}
-
-
 
 	// Encode RIC Request ID.
 
@@ -2553,8 +2143,6 @@ func (c *ASN1Codec) encodeRICSubscriptionResponse(resp *RICSubscriptionResponse)
 
 	}
 
-
-
 	// Encode RAN Function ID.
 
 	if err := binary.Write(buf, binary.BigEndian, uint16(resp.RANFunctionID)); err != nil {
@@ -2562,8 +2150,6 @@ func (c *ASN1Codec) encodeRICSubscriptionResponse(resp *RICSubscriptionResponse)
 		return nil, err
 
 	}
-
-
 
 	// Encode Actions Admitted List - convert RICActionID slice to RICActionAdmittedItem slice.
 
@@ -2581,8 +2167,6 @@ func (c *ASN1Codec) encodeRICSubscriptionResponse(resp *RICSubscriptionResponse)
 
 	}
 
-
-
 	// Encode Actions Not Admitted List (optional).
 
 	if len(resp.RICActionNotAdmittedList) > 0 {
@@ -2595,21 +2179,15 @@ func (c *ASN1Codec) encodeRICSubscriptionResponse(resp *RICSubscriptionResponse)
 
 	}
 
-
-
 	return buf.Bytes(), nil
 
 }
-
-
 
 func (c *ASN1Codec) decodeRICSubscriptionResponse(data []byte) (*RICSubscriptionResponse, error) {
 
 	buf := bytes.NewReader(data)
 
 	resp := &RICSubscriptionResponse{}
-
-
 
 	// Decode RIC Request ID.
 
@@ -2623,8 +2201,6 @@ func (c *ASN1Codec) decodeRICSubscriptionResponse(data []byte) (*RICSubscription
 
 	resp.RICRequestID = requestID
 
-
-
 	// Decode RAN Function ID.
 
 	var ranFunctionID uint16
@@ -2636,8 +2212,6 @@ func (c *ASN1Codec) decodeRICSubscriptionResponse(data []byte) (*RICSubscription
 	}
 
 	resp.RANFunctionID = RANFunctionID(ranFunctionID)
-
-
 
 	// Decode Actions Admitted List.
 
@@ -2659,8 +2233,6 @@ func (c *ASN1Codec) decodeRICSubscriptionResponse(data []byte) (*RICSubscription
 
 	}
 
-
-
 	// Check for optional Actions Not Admitted List.
 
 	if buf.Len() > 0 {
@@ -2675,13 +2247,9 @@ func (c *ASN1Codec) decodeRICSubscriptionResponse(data []byte) (*RICSubscription
 
 	}
 
-
-
 	return resp, nil
 
 }
-
-
 
 // Helper methods for RIC Request ID.
 
@@ -2695,21 +2263,15 @@ func (c *ASN1Codec) encodeRICRequestID(w io.Writer, id RICRequestID) error {
 
 	}
 
-
-
 	// Encode Instance ID (16 bits).
 
 	return binary.Write(w, binary.BigEndian, uint16(id.RICInstanceID))
 
 }
 
-
-
 func (c *ASN1Codec) decodeRICRequestID(r io.Reader) (RICRequestID, error) {
 
 	var id RICRequestID
-
-
 
 	// Decode Requestor ID.
 
@@ -2723,8 +2285,6 @@ func (c *ASN1Codec) decodeRICRequestID(r io.Reader) (RICRequestID, error) {
 
 	id.RICRequestorID = RICRequestorID(requestorID)
 
-
-
 	// Decode Instance ID.
 
 	var instanceID uint16
@@ -2737,13 +2297,9 @@ func (c *ASN1Codec) decodeRICRequestID(r io.Reader) (RICRequestID, error) {
 
 	id.RICInstanceID = RICInstanceID(instanceID)
 
-
-
 	return id, nil
 
 }
-
-
 
 // Helper methods for RIC Actions.
 
@@ -2757,8 +2313,6 @@ func (c *ASN1Codec) encodeRICActionsList(w io.Writer, actions []RICActionToBeSet
 
 	}
 
-
-
 	// Encode each action.
 
 	for _, action := range actions {
@@ -2771,13 +2325,9 @@ func (c *ASN1Codec) encodeRICActionsList(w io.Writer, actions []RICActionToBeSet
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (c *ASN1Codec) decodeRICActionsList(r io.Reader) ([]RICActionToBeSetupItem, error) {
 
@@ -2790,8 +2340,6 @@ func (c *ASN1Codec) decodeRICActionsList(r io.Reader) ([]RICActionToBeSetupItem,
 		return nil, err
 
 	}
-
-
 
 	actions := make([]RICActionToBeSetupItem, count)
 
@@ -2809,13 +2357,9 @@ func (c *ASN1Codec) decodeRICActionsList(r io.Reader) ([]RICActionToBeSetupItem,
 
 	}
 
-
-
 	return actions, nil
 
 }
-
-
 
 func (c *ASN1Codec) encodeRICAction(w io.Writer, action RICActionToBeSetupItem) error {
 
@@ -2827,8 +2371,6 @@ func (c *ASN1Codec) encodeRICAction(w io.Writer, action RICActionToBeSetupItem) 
 
 	}
 
-
-
 	// Encode Action Type.
 
 	if err := binary.Write(w, binary.BigEndian, uint8(action.RICActionType)); err != nil {
@@ -2836,8 +2378,6 @@ func (c *ASN1Codec) encodeRICAction(w io.Writer, action RICActionToBeSetupItem) 
 		return err
 
 	}
-
-
 
 	// Encode Action Definition (optional).
 
@@ -2851,8 +2391,6 @@ func (c *ASN1Codec) encodeRICAction(w io.Writer, action RICActionToBeSetupItem) 
 
 	}
 
-
-
 	// Encode Subsequent Action (optional).
 
 	if action.RICSubsequentAction != nil {
@@ -2865,19 +2403,13 @@ func (c *ASN1Codec) encodeRICAction(w io.Writer, action RICActionToBeSetupItem) 
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 func (c *ASN1Codec) decodeRICAction(r io.Reader) (RICActionToBeSetupItem, error) {
 
 	var action RICActionToBeSetupItem
-
-
 
 	// Decode Action ID.
 
@@ -2891,8 +2423,6 @@ func (c *ASN1Codec) decodeRICAction(r io.Reader) (RICActionToBeSetupItem, error)
 
 	action.RICActionID = RICActionID(actionID)
 
-
-
 	// Decode Action Type.
 
 	var actionType uint8
@@ -2904,8 +2434,6 @@ func (c *ASN1Codec) decodeRICAction(r io.Reader) (RICActionToBeSetupItem, error)
 	}
 
 	action.RICActionType = RICActionType(actionType)
-
-
 
 	// Check for optional Action Definition.
 
@@ -2919,19 +2447,13 @@ func (c *ASN1Codec) decodeRICAction(r io.Reader) (RICActionToBeSetupItem, error)
 
 	}
 
-
-
 	// Check for optional Subsequent Action.
 
 	// This needs proper optional field handling.
 
-
-
 	return action, nil
 
 }
-
-
 
 func (c *ASN1Codec) encodeSubsequentAction(w io.Writer, action RICSubsequentAction) error {
 
@@ -2942,8 +2464,6 @@ func (c *ASN1Codec) encodeSubsequentAction(w io.Writer, action RICSubsequentActi
 		return err
 
 	}
-
-
 
 	// Encode Time to Wait (optional).
 
@@ -2957,8 +2477,6 @@ func (c *ASN1Codec) encodeSubsequentAction(w io.Writer, action RICSubsequentActi
 
 }
 
-
-
 func (c *ASN1Codec) encodeRICActionAdmittedList(w io.Writer, actions []RICActionAdmittedItem) error {
 
 	// Encode count.
@@ -2968,8 +2486,6 @@ func (c *ASN1Codec) encodeRICActionAdmittedList(w io.Writer, actions []RICAction
 		return err
 
 	}
-
-
 
 	// Encode each admitted action.
 
@@ -2983,13 +2499,9 @@ func (c *ASN1Codec) encodeRICActionAdmittedList(w io.Writer, actions []RICAction
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (c *ASN1Codec) decodeRICActionAdmittedList(r io.Reader) ([]RICActionAdmittedItem, error) {
 
@@ -3002,8 +2514,6 @@ func (c *ASN1Codec) decodeRICActionAdmittedList(r io.Reader) ([]RICActionAdmitte
 		return nil, err
 
 	}
-
-
 
 	actions := make([]RICActionAdmittedItem, count)
 
@@ -3021,13 +2531,9 @@ func (c *ASN1Codec) decodeRICActionAdmittedList(r io.Reader) ([]RICActionAdmitte
 
 	}
 
-
-
 	return actions, nil
 
 }
-
-
 
 func (c *ASN1Codec) encodeRICActionNotAdmittedList(w io.Writer, actions []RICActionNotAdmittedItem) error {
 
@@ -3038,8 +2544,6 @@ func (c *ASN1Codec) encodeRICActionNotAdmittedList(w io.Writer, actions []RICAct
 		return err
 
 	}
-
-
 
 	// Encode each not admitted action.
 
@@ -3055,9 +2559,9 @@ func (c *ASN1Codec) encodeRICActionNotAdmittedList(w io.Writer, actions []RICAct
 
 		e2Cause := E2Cause{
 
-			CauseType:  E2CauseTypeRIC, // Simplified mapping
+			CauseType: E2CauseTypeRIC, // Simplified mapping
 
-			CauseValue: 0,              // Default value
+			CauseValue: 0, // Default value
 
 		}
 
@@ -3069,13 +2573,9 @@ func (c *ASN1Codec) encodeRICActionNotAdmittedList(w io.Writer, actions []RICAct
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (c *ASN1Codec) decodeRICActionNotAdmittedList(r io.Reader) ([]RICActionNotAdmittedItem, error) {
 
@@ -3089,8 +2589,6 @@ func (c *ASN1Codec) decodeRICActionNotAdmittedList(r io.Reader) ([]RICActionNotA
 
 	}
 
-
-
 	actions := make([]RICActionNotAdmittedItem, count)
 
 	for i := range count {
@@ -3103,8 +2601,6 @@ func (c *ASN1Codec) decodeRICActionNotAdmittedList(r io.Reader) ([]RICActionNotA
 
 		}
 
-
-
 		_, err := c.decodeCause(r) // Decode but don't use - simplified implementation
 
 		if err != nil {
@@ -3113,25 +2609,19 @@ func (c *ASN1Codec) decodeRICActionNotAdmittedList(r io.Reader) ([]RICActionNotA
 
 		}
 
-
-
 		actions[i] = RICActionNotAdmittedItem{
 
 			RICActionID: RICActionID(actionID),
 
-			Cause:       E2APCause{}, // Simplified - would need proper conversion from E2Cause
+			Cause: E2APCause{}, // Simplified - would need proper conversion from E2Cause
 
 		}
 
 	}
 
-
-
 	return actions, nil
 
 }
-
-
 
 // Indication Type encoding/decoding.
 
@@ -3140,8 +2630,6 @@ func (c *ASN1Codec) encodeIndicationType(w io.Writer, indType RICIndicationType)
 	return binary.Write(w, binary.BigEndian, uint8(indType))
 
 }
-
-
 
 func (c *ASN1Codec) decodeIndicationType(r io.Reader) (RICIndicationType, error) {
 
@@ -3157,8 +2645,6 @@ func (c *ASN1Codec) decodeIndicationType(r io.Reader) (RICIndicationType, error)
 
 }
 
-
-
 // E2NodeComponentID encoding/decoding.
 
 func (c *ASN1Codec) encodeE2NodeComponentID(w io.Writer, id E2NodeComponentID) error {
@@ -3166,8 +2652,6 @@ func (c *ASN1Codec) encodeE2NodeComponentID(w io.Writer, id E2NodeComponentID) e
 	// For simplicity, encode as a choice indicator followed by the active field.
 
 	// In real ASN.1 PER, this would use choice encoding rules.
-
-
 
 	if id.E2NodeComponentInterfaceTypeNG != nil {
 
@@ -3281,21 +2765,15 @@ func (c *ASN1Codec) encodeE2NodeComponentID(w io.Writer, id E2NodeComponentID) e
 
 	}
 
-
-
 	// Default case - empty choice.
 
 	return binary.Write(w, binary.BigEndian, uint8(255))
 
 }
 
-
-
 func (c *ASN1Codec) decodeE2NodeComponentID(r io.Reader) (E2NodeComponentID, error) {
 
 	var id E2NodeComponentID
-
-
 
 	// Decode choice indicator.
 
@@ -3306,8 +2784,6 @@ func (c *ASN1Codec) decodeE2NodeComponentID(r io.Reader) (E2NodeComponentID, err
 		return id, err
 
 	}
-
-
 
 	switch choice {
 
@@ -3324,7 +2800,6 @@ func (c *ASN1Codec) decodeE2NodeComponentID(r io.Reader) (E2NodeComponentID, err
 		id.E2NodeComponentInterfaceTypeNG = &E2NodeComponentInterfaceNG{
 
 			AMFName: string(name),
-
 		}
 
 	case 1: // Xn
@@ -3340,7 +2815,6 @@ func (c *ASN1Codec) decodeE2NodeComponentID(r io.Reader) (E2NodeComponentID, err
 		id.E2NodeComponentInterfaceTypeXn = &E2NodeComponentInterfaceXn{
 
 			GlobalNGRANNodeID: string(nodeID),
-
 		}
 
 	case 2: // E1
@@ -3356,7 +2830,6 @@ func (c *ASN1Codec) decodeE2NodeComponentID(r io.Reader) (E2NodeComponentID, err
 		id.E2NodeComponentInterfaceTypeE1 = &E2NodeComponentInterfaceE1{
 
 			GNBCUCPID: string(cuCPID),
-
 		}
 
 	case 3: // F1
@@ -3372,7 +2845,6 @@ func (c *ASN1Codec) decodeE2NodeComponentID(r io.Reader) (E2NodeComponentID, err
 		id.E2NodeComponentInterfaceTypeF1 = &E2NodeComponentInterfaceF1{
 
 			GNBDUID: string(duID),
-
 		}
 
 	case 4: // W1
@@ -3388,7 +2860,6 @@ func (c *ASN1Codec) decodeE2NodeComponentID(r io.Reader) (E2NodeComponentID, err
 		id.E2NodeComponentInterfaceTypeW1 = &E2NodeComponentInterfaceW1{
 
 			NGENBDUID: string(duID),
-
 		}
 
 	case 5: // S1
@@ -3404,7 +2875,6 @@ func (c *ASN1Codec) decodeE2NodeComponentID(r io.Reader) (E2NodeComponentID, err
 		id.E2NodeComponentInterfaceTypeS1 = &E2NodeComponentInterfaceS1{
 
 			MMEName: string(name),
-
 		}
 
 	case 6: // X2
@@ -3420,18 +2890,13 @@ func (c *ASN1Codec) decodeE2NodeComponentID(r io.Reader) (E2NodeComponentID, err
 		id.E2NodeComponentInterfaceTypeX2 = &E2NodeComponentInterfaceX2{
 
 			ENBID: string(enbID),
-
 		}
 
 	}
 
-
-
 	return id, nil
 
 }
-
-
 
 // E2NodeComponentConfiguration encoding/decoding.
 
@@ -3445,21 +2910,15 @@ func (c *ASN1Codec) encodeE2NodeComponentConfiguration(w io.Writer, config E2Nod
 
 	}
 
-
-
 	// Encode response part.
 
 	return c.encodeOctetString(w, config.E2NodeComponentResponsePart)
 
 }
 
-
-
 func (c *ASN1Codec) decodeE2NodeComponentConfiguration(r io.Reader) (E2NodeComponentConfiguration, error) {
 
 	var config E2NodeComponentConfiguration
-
-
 
 	// Decode request part.
 
@@ -3473,8 +2932,6 @@ func (c *ASN1Codec) decodeE2NodeComponentConfiguration(r io.Reader) (E2NodeCompo
 
 	config.E2NodeComponentRequestPart = requestPart
 
-
-
 	// Decode response part.
 
 	responsePart, err := c.decodeOctetString(r)
@@ -3487,9 +2944,6 @@ func (c *ASN1Codec) decodeE2NodeComponentConfiguration(r io.Reader) (E2NodeCompo
 
 	config.E2NodeComponentResponsePart = responsePart
 
-
-
 	return config, nil
 
 }
-

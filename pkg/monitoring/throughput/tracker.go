@@ -1,33 +1,18 @@
-
 package throughput
 
-
-
 import (
-
 	"fmt"
-
 	"math"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 )
-
-
 
 // IntentType represents the different types of intents.
 
 type IntentType string
-
-
 
 const (
 
@@ -46,24 +31,16 @@ const (
 	// IntentTypeDefault holds intenttypedefault value.
 
 	IntentTypeDefault IntentType = "default"
-
 )
-
-
 
 // ThroughputTracker provides real-time throughput monitoring.
 
 type ThroughputTracker struct {
-
 	mu sync.RWMutex
-
-
 
 	// Sliding window counters for different time windows.
 
 	windows map[time.Duration]*SlidingWindowCounter
-
-
 
 	// Prometheus metrics.
 
@@ -71,23 +48,16 @@ type ThroughputTracker struct {
 
 	intentProcessingTime *prometheus.HistogramVec
 
-	queueDepth           *prometheus.GaugeVec
-
-
+	queueDepth *prometheus.GaugeVec
 
 	// Burst detection.
 
 	burstDetector *BurstDetector
 
-
-
 	// Geographic tracking.
 
 	regionCounters map[string]*SlidingWindowCounter
-
 }
-
-
 
 // NewThroughputTracker creates a new throughput tracker.
 
@@ -95,17 +65,14 @@ func NewThroughputTracker() *ThroughputTracker {
 
 	windows := map[time.Duration]*SlidingWindowCounter{
 
-		time.Minute:      NewSlidingWindowCounter(time.Minute),
+		time.Minute: NewSlidingWindowCounter(time.Minute),
 
-		time.Minute * 5:  NewSlidingWindowCounter(time.Minute * 5),
+		time.Minute * 5: NewSlidingWindowCounter(time.Minute * 5),
 
 		time.Minute * 15: NewSlidingWindowCounter(time.Minute * 15),
 
-		time.Hour:        NewSlidingWindowCounter(time.Hour),
-
+		time.Hour: NewSlidingWindowCounter(time.Hour),
 	}
-
-
 
 	return &ThroughputTracker{
 
@@ -116,17 +83,15 @@ func NewThroughputTracker() *ThroughputTracker {
 			Name: "nephoran_intent_processed_total",
 
 			Help: "Total number of intents processed",
-
 		}, []string{"type", "status", "region"}),
 
 		intentProcessingTime: promauto.NewHistogramVec(prometheus.HistogramOpts{
 
-			Name:    "nephoran_intent_processing_duration_seconds",
+			Name: "nephoran_intent_processing_duration_seconds",
 
-			Help:    "Duration of intent processing",
+			Help: "Duration of intent processing",
 
 			Buckets: prometheus.DefBuckets,
-
 		}, []string{"type", "status"}),
 
 		queueDepth: promauto.NewGaugeVec(prometheus.GaugeOpts{
@@ -134,18 +99,14 @@ func NewThroughputTracker() *ThroughputTracker {
 			Name: "nephoran_intent_queue_depth",
 
 			Help: "Current depth of intent processing queues",
-
 		}, []string{"queue"}),
 
-		burstDetector:  NewBurstDetector(),
+		burstDetector: NewBurstDetector(),
 
 		regionCounters: make(map[string]*SlidingWindowCounter),
-
 	}
 
 }
-
-
 
 // RecordIntent records an intent processing event.
 
@@ -165,8 +126,6 @@ func (t *ThroughputTracker) RecordIntent(
 
 	defer t.mu.Unlock()
 
-
-
 	// Update sliding window counters.
 
 	for _, window := range t.windows {
@@ -174,8 +133,6 @@ func (t *ThroughputTracker) RecordIntent(
 		window.Increment()
 
 	}
-
-
 
 	// Update region-specific counter.
 
@@ -187,23 +144,17 @@ func (t *ThroughputTracker) RecordIntent(
 
 	t.regionCounters[region].Increment()
 
-
-
 	// Prometheus metrics.
 
 	t.intentProcessedTotal.WithLabelValues(string(intentType), status, region).Inc()
 
 	t.intentProcessingTime.WithLabelValues(string(intentType), status).Observe(processingTime.Seconds())
 
-
-
 	// Burst detection.
 
 	t.burstDetector.Record()
 
 }
-
-
 
 // GetThroughputRates returns throughput rates for different windows.
 
@@ -212,8 +163,6 @@ func (t *ThroughputTracker) GetThroughputRates() map[string]float64 {
 	t.mu.RLock()
 
 	defer t.mu.RUnlock()
-
-
 
 	rates := make(map[string]float64)
 
@@ -227,8 +176,6 @@ func (t *ThroughputTracker) GetThroughputRates() map[string]float64 {
 
 }
 
-
-
 // GetRegionalThroughput returns throughput rates by region.
 
 func (t *ThroughputTracker) GetRegionalThroughput() map[string]float64 {
@@ -236,8 +183,6 @@ func (t *ThroughputTracker) GetRegionalThroughput() map[string]float64 {
 	t.mu.RLock()
 
 	defer t.mu.RUnlock()
-
-
 
 	regionalRates := make(map[string]float64)
 
@@ -251,25 +196,19 @@ func (t *ThroughputTracker) GetRegionalThroughput() map[string]float64 {
 
 }
 
-
-
 // SlidingWindowCounter tracks events in a sliding time window.
 
 type SlidingWindowCounter struct {
+	mu sync.Mutex
 
-	mu        sync.Mutex
+	window time.Duration
 
-	window    time.Duration
+	buckets map[int64]int
 
-	buckets   map[int64]int
-
-	totalSum  int
+	totalSum int
 
 	startTime int64
-
 }
-
-
 
 // NewSlidingWindowCounter creates a new sliding window counter.
 
@@ -277,17 +216,14 @@ func NewSlidingWindowCounter(window time.Duration) *SlidingWindowCounter {
 
 	return &SlidingWindowCounter{
 
-		window:    window,
+		window: window,
 
-		buckets:   make(map[int64]int),
+		buckets: make(map[int64]int),
 
 		startTime: time.Now().Unix(),
-
 	}
 
 }
-
-
 
 // Increment adds a new event to the counter.
 
@@ -297,23 +233,17 @@ func (c *SlidingWindowCounter) Increment() {
 
 	defer c.mu.Unlock()
 
-
-
 	now := time.Now().Unix()
 
 	c.buckets[now]++
 
 	c.totalSum++
 
-
-
 	// Remove old buckets.
 
 	c.prune(now)
 
 }
-
-
 
 // Rate calculates the rate of events.
 
@@ -323,21 +253,15 @@ func (c *SlidingWindowCounter) Rate() float64 {
 
 	defer c.mu.Unlock()
 
-
-
 	now := time.Now().Unix()
 
 	c.prune(now)
-
-
 
 	elapsed := math.Max(float64(now-c.startTime), 1)
 
 	return float64(c.totalSum) / elapsed * 60 // Per minute rate
 
 }
-
-
 
 // prune removes old buckets outside the time window.
 
@@ -357,21 +281,15 @@ func (c *SlidingWindowCounter) prune(now int64) {
 
 }
 
-
-
 // BurstDetector tracks burst events.
 
 type BurstDetector struct {
+	mu sync.Mutex
 
-	mu             sync.Mutex
-
-	timestamps     []time.Time
+	timestamps []time.Time
 
 	burstThreshold int
-
 }
-
-
 
 // NewBurstDetector creates a new burst detector.
 
@@ -379,15 +297,13 @@ func NewBurstDetector() *BurstDetector {
 
 	return &BurstDetector{
 
-		timestamps:     make([]time.Time, 0),
+		timestamps: make([]time.Time, 0),
 
 		burstThreshold: 1000, // 1000 intents per second threshold
 
 	}
 
 }
-
-
 
 // Record adds a new timestamp.
 
@@ -397,8 +313,6 @@ func (b *BurstDetector) Record() {
 
 	defer b.mu.Unlock()
 
-
-
 	now := time.Now()
 
 	b.timestamps = append(b.timestamps, now)
@@ -406,8 +320,6 @@ func (b *BurstDetector) Record() {
 	b.prune(now)
 
 }
-
-
 
 // prune removes old timestamps and checks for bursts.
 
@@ -423,8 +335,6 @@ func (b *BurstDetector) prune(now time.Time) {
 
 }
 
-
-
 // IsBurstDetected checks if a burst has occurred.
 
 func (b *BurstDetector) IsBurstDetected() bool {
@@ -433,9 +343,6 @@ func (b *BurstDetector) IsBurstDetected() bool {
 
 	defer b.mu.Unlock()
 
-
-
 	return len(b.timestamps) >= b.burstThreshold
 
 }
-

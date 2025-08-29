@@ -2,78 +2,53 @@
 
 // for the Nephoran Intent Operator security infrastructure.
 
-
 package ca
 
-
-
 import (
-
 	"context"
-
 	"crypto/x509"
-
 	"crypto/x509/pkix"
-
 	"fmt"
-
 	"strings"
-
 	"sync"
-
 	"time"
-
-
 
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 
-
-
 	v1 "k8s.io/api/core/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/fields"
-
 	"k8s.io/client-go/kubernetes"
-
 	"k8s.io/client-go/tools/cache"
-
 )
-
-
 
 // AutomationEngine manages automated certificate operations.
 
 type AutomationEngine struct {
+	logger *logging.StructuredLogger
 
-	logger          *logging.StructuredLogger
+	config *AutomationConfig
 
-	config          *AutomationConfig
+	manager *CAManager
 
-	manager         *CAManager
+	healthChecker *HealthChecker
 
-	healthChecker   *HealthChecker
+	kubeClient kubernetes.Interface
 
-	kubeClient      kubernetes.Interface
+	watchers map[string]*ServiceWatcher
 
-	watchers        map[string]*ServiceWatcher
+	watchersMux sync.RWMutex
 
-	watchersMux     sync.RWMutex
+	stopCh chan struct{}
 
-	stopCh          chan struct{}
+	running bool
 
-	running         bool
+	runningMux sync.RWMutex
 
-	runningMux      sync.RWMutex
-
-	requestQueue    []*AutomationRequest
+	requestQueue []*AutomationRequest
 
 	requestQueueMux sync.RWMutex
-
 }
-
-
 
 // AutomationConfig holds automation configuration.
 
@@ -81,187 +56,152 @@ type AutomationConfig struct {
 
 	// Discovery settings.
 
-	ServiceDiscoveryEnabled bool          `yaml:"service_discovery_enabled"`
+	ServiceDiscoveryEnabled bool `yaml:"service_discovery_enabled"`
 
-	DiscoveryInterval       time.Duration `yaml:"discovery_interval"`
+	DiscoveryInterval time.Duration `yaml:"discovery_interval"`
 
-	DiscoveryNamespaces     []string      `yaml:"discovery_namespaces"`
+	DiscoveryNamespaces []string `yaml:"discovery_namespaces"`
 
-	DiscoverySelectors      []string      `yaml:"discovery_selectors"`
-
-
+	DiscoverySelectors []string `yaml:"discovery_selectors"`
 
 	// Certificate management.
 
-	AutoRenewalEnabled   bool          `yaml:"auto_renewal_enabled"`
+	AutoRenewalEnabled bool `yaml:"auto_renewal_enabled"`
 
-	RenewalThreshold     time.Duration `yaml:"renewal_threshold"`
+	RenewalThreshold time.Duration `yaml:"renewal_threshold"`
 
 	RenewalCheckInterval time.Duration `yaml:"renewal_check_interval"`
 
-	CertificateBackup    bool          `yaml:"certificate_backup"`
+	CertificateBackup bool `yaml:"certificate_backup"`
 
-	BackupRetention      int           `yaml:"backup_retention"`
-
-
+	BackupRetention int `yaml:"backup_retention"`
 
 	// Health checking.
 
-	HealthCheckEnabled  bool          `yaml:"health_check_enabled"`
+	HealthCheckEnabled bool `yaml:"health_check_enabled"`
 
-	HealthCheckTimeout  time.Duration `yaml:"health_check_timeout"`
+	HealthCheckTimeout time.Duration `yaml:"health_check_timeout"`
 
-	HealthCheckRetries  int           `yaml:"health_check_retries"`
+	HealthCheckRetries int `yaml:"health_check_retries"`
 
 	HealthCheckInterval time.Duration `yaml:"health_check_interval"`
 
-
-
 	// Notification settings.
 
-	NotificationEnabled   bool           `yaml:"notification_enabled"`
+	NotificationEnabled bool `yaml:"notification_enabled"`
 
-	NotificationEndpoints []string       `yaml:"notification_endpoints"`
+	NotificationEndpoints []string `yaml:"notification_endpoints"`
 
-	AlertThresholds       map[string]int `yaml:"alert_thresholds"`
-
-
+	AlertThresholds map[string]int `yaml:"alert_thresholds"`
 
 	// Performance tuning.
 
-	MaxConcurrentOps   int           `yaml:"max_concurrent_operations"`
+	MaxConcurrentOps int `yaml:"max_concurrent_operations"`
 
-	OperationTimeout   time.Duration `yaml:"operation_timeout"`
+	OperationTimeout time.Duration `yaml:"operation_timeout"`
 
-	BatchSize          int           `yaml:"batch_size"`
+	BatchSize int `yaml:"batch_size"`
 
 	ProcessingInterval time.Duration `yaml:"processing_interval"`
 
-
-
 	// Security.
 
-	AllowedServiceTypes []string          `yaml:"allowed_service_types"`
+	AllowedServiceTypes []string `yaml:"allowed_service_types"`
 
 	RequiredAnnotations map[string]string `yaml:"required_annotations"`
 
-	TLSValidation       bool              `yaml:"tls_validation"`
+	TLSValidation bool `yaml:"tls_validation"`
 
-	PolicyValidation    bool              `yaml:"policy_validation"`
-
+	PolicyValidation bool `yaml:"policy_validation"`
 }
-
-
 
 // ServiceWatcher watches for service changes.
 
 type ServiceWatcher struct {
-
 	namespace string
 
-	selector  fields.Selector
+	selector fields.Selector
 
-	informer  cache.SharedIndexInformer
+	informer cache.SharedIndexInformer
 
-	stopCh    chan struct{}
-
+	stopCh chan struct{}
 }
-
-
 
 // ServiceDiscoveryResult represents a discovered service.
 
 type ServiceDiscoveryResult struct {
+	Name string `json:"name"`
 
-	Name        string            `json:"name"`
+	Namespace string `json:"namespace"`
 
-	Namespace   string            `json:"namespace"`
+	Type string `json:"type"`
 
-	Type        string            `json:"type"`
+	Endpoint string `json:"endpoint"`
 
-	Endpoint    string            `json:"endpoint"`
-
-	Labels      map[string]string `json:"labels"`
+	Labels map[string]string `json:"labels"`
 
 	Annotations map[string]string `json:"annotations"`
 
-	Ports       []ServicePort     `json:"ports"`
+	Ports []ServicePort `json:"ports"`
 
-	TLSEnabled  bool              `json:"tls_enabled"`
+	TLSEnabled bool `json:"tls_enabled"`
 
-	CertInfo    *CertificateInfo  `json:"cert_info,omitempty"`
-
+	CertInfo *CertificateInfo `json:"cert_info,omitempty"`
 }
-
-
 
 // ServicePort represents a service port.
 
 type ServicePort struct {
+	Name string `json:"name"`
 
-	Name     string `json:"name"`
-
-	Port     int32  `json:"port"`
+	Port int32 `json:"port"`
 
 	Protocol string `json:"protocol"`
-
 }
-
-
 
 // CertificateInfo represents certificate information for a service.
 
 type CertificateInfo struct {
+	SerialNumber string `json:"serial_number"`
 
-	SerialNumber string    `json:"serial_number"`
+	Subject string `json:"subject"`
 
-	Subject      string    `json:"subject"`
+	Issuer string `json:"issuer"`
 
-	Issuer       string    `json:"issuer"`
+	NotBefore time.Time `json:"not_before"`
 
-	NotBefore    time.Time `json:"not_before"`
+	NotAfter time.Time `json:"not_after"`
 
-	NotAfter     time.Time `json:"not_after"`
+	DNSNames []string `json:"dns_names"`
 
-	DNSNames     []string  `json:"dns_names"`
-
-	IPAddresses  []string  `json:"ip_addresses"`
-
+	IPAddresses []string `json:"ip_addresses"`
 }
-
-
 
 // AutomationRequest represents an automation request.
 
 type AutomationRequest struct {
+	Type RequestType `json:"type"`
 
-	Type                RequestType                   `json:"type"`
+	ServiceName string `json:"service_name"`
 
-	ServiceName         string                        `json:"service_name"`
+	ServiceNamespace string `json:"service_namespace"`
 
-	ServiceNamespace    string                        `json:"service_namespace"`
+	CertificateTemplate *x509.Certificate `json:"certificate_template"`
 
-	CertificateTemplate *x509.Certificate             `json:"certificate_template"`
+	RenewalConfig *RenewalConfig `json:"renewal_config,omitempty"`
 
-	RenewalConfig       *RenewalConfig                `json:"renewal_config,omitempty"`
+	HealthCheckConfig *HealthCheckConfig `json:"health_check_config,omitempty"`
 
-	HealthCheckConfig   *HealthCheckConfig            `json:"health_check_config,omitempty"`
+	NotificationConfig *AutomationNotificationConfig `json:"notification_config,omitempty"`
 
-	NotificationConfig  *AutomationNotificationConfig `json:"notification_config,omitempty"`
+	Priority RequestPriority `json:"priority"`
 
-	Priority            RequestPriority               `json:"priority"`
-
-	Metadata            map[string]interface{}        `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // RequestType defines types of automation requests.
 
 type RequestType string
-
-
 
 const (
 
@@ -284,16 +224,11 @@ const (
 	// RequestTypeHealthCheck holds requesttypehealthcheck value.
 
 	RequestTypeHealthCheck RequestType = "health_check"
-
 )
-
-
 
 // RequestPriority defines request priorities.
 
 type RequestPriority int
-
-
 
 const (
 
@@ -312,100 +247,79 @@ const (
 	// PriorityCritical holds prioritycritical value.
 
 	PriorityCritical
-
 )
-
-
 
 // RenewalConfig holds renewal configuration.
 
 type RenewalConfig struct {
+	Threshold time.Duration `json:"threshold"`
 
-	Threshold    time.Duration `json:"threshold"`
-
-	MaxRetries   int           `json:"max_retries"`
+	MaxRetries int `json:"max_retries"`
 
 	BackoffDelay time.Duration `json:"backoff_delay"`
-
 }
-
-
 
 // HealthCheckConfig holds health check configuration.
 
 type HealthCheckConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled          bool          `json:"enabled"`
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout          time.Duration `json:"timeout"`
+	Retries int `json:"retries"`
 
-	Retries          int           `json:"retries"`
+	Interval time.Duration `json:"interval"`
 
-	Interval         time.Duration `json:"interval"`
+	CheckInterval time.Duration `json:"check_interval"`
 
-	CheckInterval    time.Duration `json:"check_interval"`
+	TimeoutPerCheck time.Duration `json:"timeout_per_check"`
 
-	TimeoutPerCheck  time.Duration `json:"timeout_per_check"`
+	ExpectedStatus int `json:"expected_status"`
 
-	ExpectedStatus   int           `json:"expected_status"`
+	HTTPEndpoint string `json:"http_endpoint"`
 
-	HTTPEndpoint     string        `json:"http_endpoint"`
+	GRPCService string `json:"grpc_service"`
 
-	GRPCService      string        `json:"grpc_service"`
+	HealthyThreshold int `json:"healthy_threshold"`
 
-	HealthyThreshold int           `json:"healthy_threshold"`
-
-	ValidationMode   string        `json:"validation_mode"`
-
+	ValidationMode string `json:"validation_mode"`
 }
-
-
 
 // NotificationConfig holds notification configuration.
 
 type AutomationNotificationConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled   bool              `json:"enabled"`
+	Channels []string `json:"channels"`
 
-	Channels  []string          `json:"channels"`
-
-	Events    []string          `json:"events"`
+	Events []string `json:"events"`
 
 	Templates map[string]string `json:"templates"`
-
 }
-
-
 
 // AutomationResponse represents an automation response.
 
 type AutomationResponse struct {
+	RequestID string `json:"request_id"`
 
-	RequestID   string                 `json:"request_id"`
+	Status ResponseStatus `json:"status"`
 
-	Status      ResponseStatus         `json:"status"`
+	Message string `json:"message"`
 
-	Message     string                 `json:"message"`
+	Certificate *x509.Certificate `json:"certificate,omitempty"`
 
-	Certificate *x509.Certificate      `json:"certificate,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp   time.Time              `json:"timestamp"`
+	Duration time.Duration `json:"duration"`
 
-	Duration    time.Duration          `json:"duration"`
-
-	Error       string                 `json:"error,omitempty"`
-
+	Error string `json:"error,omitempty"`
 }
-
-
 
 // ResponseStatus defines response statuses.
 
 type ResponseStatus string
-
-
 
 const (
 
@@ -428,10 +342,7 @@ const (
 	// StatusCanceled holds statuscanceled value.
 
 	StatusCanceled ResponseStatus = "canceled"
-
 )
-
-
 
 // NewAutomationEngine creates a new automation engine.
 
@@ -442,38 +353,30 @@ func NewAutomationEngine(config *AutomationConfig, logger *logging.StructuredLog
 	healthChecker := &HealthChecker{
 
 		logger: logger,
-
 	}
-
-
 
 	engine := &AutomationEngine{
 
-		logger:        logger,
+		logger: logger,
 
-		config:        config,
+		config: config,
 
-		manager:       manager,
+		manager: manager,
 
 		healthChecker: healthChecker,
 
-		kubeClient:    kubeClient,
+		kubeClient: kubeClient,
 
-		watchers:      make(map[string]*ServiceWatcher),
+		watchers: make(map[string]*ServiceWatcher),
 
-		stopCh:        make(chan struct{}),
+		stopCh: make(chan struct{}),
 
-		requestQueue:  make([]*AutomationRequest, 0),
-
+		requestQueue: make([]*AutomationRequest, 0),
 	}
-
-
 
 	return engine, nil
 
 }
-
-
 
 // Start starts the automation engine.
 
@@ -483,15 +386,11 @@ func (e *AutomationEngine) Start(ctx context.Context) error {
 
 	defer e.runningMux.Unlock()
 
-
-
 	if e.running {
 
 		return fmt.Errorf("automation engine already running")
 
 	}
-
-
 
 	e.logger.Info("Starting automation engine",
 
@@ -500,8 +399,6 @@ func (e *AutomationEngine) Start(ctx context.Context) error {
 		"auto_renewal_enabled", e.config.AutoRenewalEnabled,
 
 		"health_check_enabled", e.config.HealthCheckEnabled)
-
-
 
 	// Start service discovery if enabled.
 
@@ -515,8 +412,6 @@ func (e *AutomationEngine) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start renewal checker if enabled.
 
 	if e.config.AutoRenewalEnabled {
@@ -524,8 +419,6 @@ func (e *AutomationEngine) Start(ctx context.Context) error {
 		go e.runRenewalChecker(ctx)
 
 	}
-
-
 
 	// Start health checker if enabled.
 
@@ -535,25 +428,17 @@ func (e *AutomationEngine) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start request processor.
 
 	go e.runRequestProcessor(ctx)
-
-
 
 	e.running = true
 
 	e.logger.Info("Automation engine started successfully")
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the automation engine.
 
@@ -563,19 +448,13 @@ func (e *AutomationEngine) Stop() error {
 
 	defer e.runningMux.Unlock()
 
-
-
 	if !e.running {
 
 		return nil
 
 	}
 
-
-
 	e.logger.Info("Stopping automation engine")
-
-
 
 	// Stop all watchers.
 
@@ -591,27 +470,19 @@ func (e *AutomationEngine) Stop() error {
 
 	e.watchersMux.Unlock()
 
-
-
 	// Send stop signal.
 
 	close(e.stopCh)
 
 	e.stopCh = make(chan struct{})
 
-
-
 	e.running = false
 
 	e.logger.Info("Automation engine stopped")
 
-
-
 	return nil
 
 }
-
-
 
 // startServiceDiscovery starts service discovery.
 
@@ -622,8 +493,6 @@ func (e *AutomationEngine) startServiceDiscovery(ctx context.Context) error {
 		"namespaces", e.config.DiscoveryNamespaces,
 
 		"selectors", e.config.DiscoverySelectors)
-
-
 
 	// Start watchers for each namespace.
 
@@ -637,13 +506,9 @@ func (e *AutomationEngine) startServiceDiscovery(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // startNamespaceWatcher starts a watcher for a specific namespace.
 
@@ -653,8 +518,6 @@ func (e *AutomationEngine) startNamespaceWatcher(namespace string) error {
 
 	defer e.watchersMux.Unlock()
 
-
-
 	// Check if watcher already exists.
 
 	if _, exists := e.watchers[namespace]; exists {
@@ -662,8 +525,6 @@ func (e *AutomationEngine) startNamespaceWatcher(namespace string) error {
 		return nil
 
 	}
-
-
 
 	// Create list watcher.
 
@@ -676,10 +537,7 @@ func (e *AutomationEngine) startNamespaceWatcher(namespace string) error {
 		namespace,
 
 		fields.Everything(),
-
 	)
-
-
 
 	// Create informer.
 
@@ -692,24 +550,18 @@ func (e *AutomationEngine) startNamespaceWatcher(namespace string) error {
 		e.config.DiscoveryInterval,
 
 		cache.Indexers{},
-
 	)
-
-
 
 	// Add event handlers.
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 
-		AddFunc:    e.onServiceAdded,
+		AddFunc: e.onServiceAdded,
 
 		UpdateFunc: e.onServiceUpdated,
 
 		DeleteFunc: e.onServiceDeleted,
-
 	})
-
-
 
 	// Create watcher.
 
@@ -717,25 +569,18 @@ func (e *AutomationEngine) startNamespaceWatcher(namespace string) error {
 
 		namespace: namespace,
 
-		selector:  fields.Everything(),
+		selector: fields.Everything(),
 
-		informer:  informer,
+		informer: informer,
 
-		stopCh:    make(chan struct{}),
-
+		stopCh: make(chan struct{}),
 	}
 
-
-
 	e.watchers[namespace] = watcher
-
-
 
 	// Start informer.
 
 	go informer.Run(watcher.stopCh)
-
-
 
 	// Wait for cache sync.
 
@@ -745,19 +590,13 @@ func (e *AutomationEngine) startNamespaceWatcher(namespace string) error {
 
 	}
 
-
-
 	e.logger.Info("Started namespace watcher",
 
 		"namespace", namespace)
 
-
-
 	return nil
 
 }
-
-
 
 // onServiceAdded handles service addition events.
 
@@ -773,23 +612,17 @@ func (e *AutomationEngine) onServiceAdded(obj interface{}) {
 
 	}
 
-
-
 	e.logger.Debug("Service added",
 
 		"name", service.Name,
 
 		"namespace", service.Namespace)
 
-
-
 	// Process service for certificate provisioning.
 
 	go e.processServiceForProvisioning(service)
 
 }
-
-
 
 // onServiceUpdated handles service update events.
 
@@ -803,8 +636,6 @@ func (e *AutomationEngine) onServiceUpdated(oldObj, newObj interface{}) {
 
 	}
 
-
-
 	newService, ok := newObj.(*v1.Service)
 
 	if !ok {
@@ -813,15 +644,11 @@ func (e *AutomationEngine) onServiceUpdated(oldObj, newObj interface{}) {
 
 	}
 
-
-
 	e.logger.Debug("Service updated",
 
 		"name", newService.Name,
 
 		"namespace", newService.Namespace)
-
-
 
 	// Check if service configuration changed.
 
@@ -832,8 +659,6 @@ func (e *AutomationEngine) onServiceUpdated(oldObj, newObj interface{}) {
 	}
 
 }
-
-
 
 // onServiceDeleted handles service deletion events.
 
@@ -847,23 +672,17 @@ func (e *AutomationEngine) onServiceDeleted(obj interface{}) {
 
 	}
 
-
-
 	e.logger.Debug("Service deleted",
 
 		"name", service.Name,
 
 		"namespace", service.Namespace)
 
-
-
 	// Process service for certificate revocation.
 
 	go e.processServiceForRevocation(service)
 
 }
-
-
 
 // serviceConfigChanged checks if service configuration changed.
 
@@ -877,8 +696,6 @@ func (e *AutomationEngine) serviceConfigChanged(oldService, newService *v1.Servi
 
 	}
 
-
-
 	// Check if certificate annotations changed.
 
 	if oldService.Annotations["cert.auto-provision"] != newService.Annotations["cert.auto-provision"] {
@@ -887,8 +704,6 @@ func (e *AutomationEngine) serviceConfigChanged(oldService, newService *v1.Servi
 
 	}
 
-
-
 	// Check if service ports changed.
 
 	if len(oldService.Spec.Ports) != len(newService.Spec.Ports) {
@@ -896,8 +711,6 @@ func (e *AutomationEngine) serviceConfigChanged(oldService, newService *v1.Servi
 		return true
 
 	}
-
-
 
 	for i, oldPort := range oldService.Spec.Ports {
 
@@ -911,13 +724,9 @@ func (e *AutomationEngine) serviceConfigChanged(oldService, newService *v1.Servi
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // processServiceForProvisioning processes a service for certificate provisioning.
 
@@ -931,41 +740,33 @@ func (e *AutomationEngine) processServiceForProvisioning(service *v1.Service) {
 
 	}
 
-
-
 	e.logger.Info("Processing service for certificate provisioning",
 
 		"name", service.Name,
 
 		"namespace", service.Namespace)
 
-
-
 	// Create automation request.
 
 	req := &AutomationRequest{
 
-		Type:             RequestTypeProvisioning,
+		Type: RequestTypeProvisioning,
 
-		ServiceName:      service.Name,
+		ServiceName: service.Name,
 
 		ServiceNamespace: service.Namespace,
 
-		Priority:         PriorityNormal,
+		Priority: PriorityNormal,
 
 		Metadata: map[string]interface{}{
 
 			"service_uid": string(service.UID),
 
-			"labels":      service.Labels,
+			"labels": service.Labels,
 
 			"annotations": service.Annotations,
-
 		},
-
 	}
-
-
 
 	// Add health check configuration if enabled.
 
@@ -973,29 +774,24 @@ func (e *AutomationEngine) processServiceForProvisioning(service *v1.Service) {
 
 		req.HealthCheckConfig = &HealthCheckConfig{
 
-			Enabled:        true,
+			Enabled: true,
 
-			Timeout:        e.config.HealthCheckTimeout,
+			Timeout: e.config.HealthCheckTimeout,
 
-			Retries:        e.config.HealthCheckRetries,
+			Retries: e.config.HealthCheckRetries,
 
-			Interval:       e.config.HealthCheckInterval,
+			Interval: e.config.HealthCheckInterval,
 
 			ExpectedStatus: 200,
-
 		}
 
 	}
-
-
 
 	// Process request.
 
 	go e.processAutomationRequest(req)
 
 }
-
-
 
 // processServiceForRevocation processes a service for certificate revocation.
 
@@ -1009,49 +805,39 @@ func (e *AutomationEngine) processServiceForRevocation(service *v1.Service) {
 
 	}
 
-
-
 	e.logger.Info("Processing service for certificate revocation",
 
 		"name", service.Name,
 
 		"namespace", service.Namespace)
 
-
-
 	// Create automation request.
 
 	req := &AutomationRequest{
 
-		Type:             RequestTypeRevocation,
+		Type: RequestTypeRevocation,
 
-		ServiceName:      service.Name,
+		ServiceName: service.Name,
 
 		ServiceNamespace: service.Namespace,
 
-		Priority:         PriorityHigh,
+		Priority: PriorityHigh,
 
 		Metadata: map[string]interface{}{
 
 			"service_uid": string(service.UID),
 
-			"labels":      service.Labels,
+			"labels": service.Labels,
 
 			"annotations": service.Annotations,
-
 		},
-
 	}
-
-
 
 	// Process request.
 
 	go e.processAutomationRequest(req)
 
 }
-
-
 
 // serviceRequiresCertificate checks if a service requires certificate management.
 
@@ -1065,8 +851,6 @@ func (e *AutomationEngine) serviceRequiresCertificate(service *v1.Service) bool 
 
 	}
 
-
-
 	// Check if service has auto-provision annotation.
 
 	if provision, exists := service.Annotations["cert.auto-provision"]; exists && provision == "true" {
@@ -1074,8 +858,6 @@ func (e *AutomationEngine) serviceRequiresCertificate(service *v1.Service) bool 
 		return true
 
 	}
-
-
 
 	// Check if service type is in allowed list.
 
@@ -1091,8 +873,6 @@ func (e *AutomationEngine) serviceRequiresCertificate(service *v1.Service) bool 
 
 	}
 
-
-
 	// Check for HTTPS ports.
 
 	for _, port := range service.Spec.Ports {
@@ -1105,13 +885,9 @@ func (e *AutomationEngine) serviceRequiresCertificate(service *v1.Service) bool 
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // runRenewalChecker runs the certificate renewal checker.
 
@@ -1120,8 +896,6 @@ func (e *AutomationEngine) runRenewalChecker(ctx context.Context) {
 	ticker := time.NewTicker(e.config.RenewalCheckInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1145,15 +919,11 @@ func (e *AutomationEngine) runRenewalChecker(ctx context.Context) {
 
 }
 
-
-
 // checkForRenewals checks for certificates that need renewal.
 
 func (e *AutomationEngine) checkForRenewals(ctx context.Context) {
 
 	e.logger.Debug("Checking for certificate renewals")
-
-
 
 	// Get all managed certificates.
 
@@ -1168,8 +938,6 @@ func (e *AutomationEngine) checkForRenewals(ctx context.Context) {
 		return
 
 	}
-
-
 
 	renewalCount := 0
 
@@ -1191,15 +959,13 @@ func (e *AutomationEngine) checkForRenewals(ctx context.Context) {
 
 				"time_until_expiry", timeUntilExpiry)
 
-
-
 			// Create renewal request.
 
 			req := &AutomationRequest{
 
-				Type:                RequestTypeRenewal,
+				Type: RequestTypeRenewal,
 
-				Priority:            PriorityHigh,
+				Priority: PriorityHigh,
 
 				CertificateTemplate: cert.Certificate,
 
@@ -1207,13 +973,9 @@ func (e *AutomationEngine) checkForRenewals(ctx context.Context) {
 
 					"serial_number": cert.SerialNumber,
 
-					"expires":       cert.ExpiresAt,
-
+					"expires": cert.ExpiresAt,
 				},
-
 			}
-
-
 
 			// Process renewal request.
 
@@ -1225,8 +987,6 @@ func (e *AutomationEngine) checkForRenewals(ctx context.Context) {
 
 	}
 
-
-
 	if renewalCount > 0 {
 
 		e.logger.Info("Initiated certificate renewals",
@@ -1237,8 +997,6 @@ func (e *AutomationEngine) checkForRenewals(ctx context.Context) {
 
 }
 
-
-
 // runHealthChecker runs the health checker.
 
 func (e *AutomationEngine) runHealthChecker(ctx context.Context) {
@@ -1246,8 +1004,6 @@ func (e *AutomationEngine) runHealthChecker(ctx context.Context) {
 	ticker := time.NewTicker(e.config.HealthCheckInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1271,15 +1027,11 @@ func (e *AutomationEngine) runHealthChecker(ctx context.Context) {
 
 }
 
-
-
 // performHealthChecks performs health checks on managed services.
 
 func (e *AutomationEngine) performHealthChecks(ctx context.Context) {
 
 	e.logger.Debug("Performing health checks")
-
-
 
 	// Get all discovered services.
 
@@ -1295,13 +1047,9 @@ func (e *AutomationEngine) performHealthChecks(ctx context.Context) {
 
 	}
 
-
-
 	healthyCount := 0
 
 	unhealthyCount := 0
-
-
 
 	for _, service := range services {
 
@@ -1311,29 +1059,23 @@ func (e *AutomationEngine) performHealthChecks(ctx context.Context) {
 
 			target := &HealthCheckTarget{
 
-				Name:    service.Name,
+				Name: service.Name,
 
 				Address: strings.Split(service.Endpoint, ":")[0],
 
-				Port:    e.parsePort(service.Endpoint),
-
+				Port: e.parsePort(service.Endpoint),
 			}
-
-
 
 			config := &HealthCheckConfig{
 
-				Enabled:        true,
+				Enabled: true,
 
-				Timeout:        e.config.HealthCheckTimeout,
+				Timeout: e.config.HealthCheckTimeout,
 
-				Retries:        e.config.HealthCheckRetries,
+				Retries: e.config.HealthCheckRetries,
 
 				ExpectedStatus: 200,
-
 			}
-
-
 
 			session, err := e.healthChecker.StartHealthCheck(target, config)
 
@@ -1391,8 +1133,6 @@ func (e *AutomationEngine) performHealthChecks(ctx context.Context) {
 
 	}
 
-
-
 	e.logger.Debug("Health checks completed",
 
 		"healthy_services", healthyCount,
@@ -1401,8 +1141,6 @@ func (e *AutomationEngine) performHealthChecks(ctx context.Context) {
 
 }
 
-
-
 // runRequestProcessor runs the automation request processor.
 
 func (e *AutomationEngine) runRequestProcessor(ctx context.Context) {
@@ -1410,8 +1148,6 @@ func (e *AutomationEngine) runRequestProcessor(ctx context.Context) {
 	ticker := time.NewTicker(e.config.ProcessingInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1439,15 +1175,11 @@ func (e *AutomationEngine) runRequestProcessor(ctx context.Context) {
 
 }
 
-
-
 // processAutomationRequest processes an automation request.
 
 func (e *AutomationEngine) processAutomationRequest(req *AutomationRequest) {
 
 	startTime := time.Now()
-
-
 
 	e.logger.Info("Processing automation request",
 
@@ -1459,11 +1191,7 @@ func (e *AutomationEngine) processAutomationRequest(req *AutomationRequest) {
 
 		"priority", req.Priority)
 
-
-
 	var response *AutomationResponse
-
-
 
 	switch req.Type {
 
@@ -1491,19 +1219,16 @@ func (e *AutomationEngine) processAutomationRequest(req *AutomationRequest) {
 
 		response = &AutomationResponse{
 
-			Status:    StatusFailed,
+			Status: StatusFailed,
 
-			Message:   fmt.Sprintf("unknown request type: %s", req.Type),
+			Message: fmt.Sprintf("unknown request type: %s", req.Type),
 
 			Timestamp: time.Now(),
 
-			Duration:  time.Since(startTime),
-
+			Duration: time.Since(startTime),
 		}
 
 	}
-
-
 
 	e.logger.Info("Automation request processed",
 
@@ -1515,8 +1240,6 @@ func (e *AutomationEngine) processAutomationRequest(req *AutomationRequest) {
 
 		"message", response.Message)
 
-
-
 	// Send notifications if configured.
 
 	if e.config.NotificationEnabled && req.NotificationConfig != nil && req.NotificationConfig.Enabled {
@@ -1527,15 +1250,11 @@ func (e *AutomationEngine) processAutomationRequest(req *AutomationRequest) {
 
 }
 
-
-
 // processProvisioningRequest processes a certificate provisioning request.
 
 func (e *AutomationEngine) processProvisioningRequest(req *AutomationRequest) *AutomationResponse {
 
 	startTime := time.Now()
-
-
 
 	// Generate certificate for service.
 
@@ -1545,21 +1264,18 @@ func (e *AutomationEngine) processProvisioningRequest(req *AutomationRequest) *A
 
 		return &AutomationResponse{
 
-			Status:    StatusFailed,
+			Status: StatusFailed,
 
-			Message:   "failed to generate certificate",
+			Message: "failed to generate certificate",
 
-			Error:     err.Error(),
+			Error: err.Error(),
 
 			Timestamp: time.Now(),
 
-			Duration:  time.Since(startTime),
-
+			Duration: time.Since(startTime),
 		}
 
 	}
-
-
 
 	// Store certificate.
 
@@ -1567,21 +1283,18 @@ func (e *AutomationEngine) processProvisioningRequest(req *AutomationRequest) *A
 
 		return &AutomationResponse{
 
-			Status:    StatusFailed,
+			Status: StatusFailed,
 
-			Message:   "failed to store certificate",
+			Message: "failed to store certificate",
 
-			Error:     err.Error(),
+			Error: err.Error(),
 
 			Timestamp: time.Now(),
 
-			Duration:  time.Since(startTime),
-
+			Duration: time.Since(startTime),
 		}
 
 	}
-
-
 
 	// Perform health check if configured.
 
@@ -1595,21 +1308,18 @@ func (e *AutomationEngine) processProvisioningRequest(req *AutomationRequest) *A
 
 			return &AutomationResponse{
 
-				Status:    StatusFailed,
+				Status: StatusFailed,
 
-				Message:   "failed to discover service for health check",
+				Message: "failed to discover service for health check",
 
-				Error:     err.Error(),
+				Error: err.Error(),
 
 				Timestamp: time.Now(),
 
-				Duration:  time.Since(startTime),
-
+				Duration: time.Since(startTime),
 			}
 
 		}
-
-
 
 		// Find the service.
 
@@ -1627,39 +1337,31 @@ func (e *AutomationEngine) processProvisioningRequest(req *AutomationRequest) *A
 
 		}
 
-
-
 		if serviceInstance == nil {
 
 			return &AutomationResponse{
 
-				Status:    StatusFailed,
+				Status: StatusFailed,
 
-				Message:   "service not found for health check",
+				Message: "service not found for health check",
 
 				Timestamp: time.Now(),
 
-				Duration:  time.Since(startTime),
-
+				Duration: time.Since(startTime),
 			}
 
 		}
-
-
 
 		// Perform health check.
 
 		target := &HealthCheckTarget{
 
-			Name:    serviceInstance.Name,
+			Name: serviceInstance.Name,
 
 			Address: strings.Split(serviceInstance.Endpoint, ":")[0],
 
-			Port:    e.parsePort(serviceInstance.Endpoint),
-
+			Port: e.parsePort(serviceInstance.Endpoint),
 		}
-
-
 
 		healthSession, err := e.healthChecker.StartHealthCheck(target, req.HealthCheckConfig)
 
@@ -1667,21 +1369,18 @@ func (e *AutomationEngine) processProvisioningRequest(req *AutomationRequest) *A
 
 			return &AutomationResponse{
 
-				Status:    StatusFailed,
+				Status: StatusFailed,
 
-				Message:   "failed to start health check",
+				Message: "failed to start health check",
 
-				Error:     err.Error(),
+				Error: err.Error(),
 
 				Timestamp: time.Now(),
 
-				Duration:  time.Since(startTime),
-
+				Duration: time.Since(startTime),
 			}
 
 		}
-
-
 
 		// Get health check result.
 
@@ -1703,41 +1402,35 @@ func (e *AutomationEngine) processProvisioningRequest(req *AutomationRequest) *A
 
 			return &AutomationResponse{
 
-				Status:    StatusFailed,
+				Status: StatusFailed,
 
-				Message:   "service health check failed after certificate provisioning",
+				Message: "service health check failed after certificate provisioning",
 
-				Error:     errorMsg,
+				Error: errorMsg,
 
 				Timestamp: time.Now(),
 
-				Duration:  time.Since(startTime),
-
+				Duration: time.Since(startTime),
 			}
 
 		}
 
 	}
 
-
-
 	return &AutomationResponse{
 
-		Status:      StatusCompleted,
+		Status: StatusCompleted,
 
-		Message:     "certificate provisioned successfully",
+		Message: "certificate provisioned successfully",
 
 		Certificate: cert,
 
-		Timestamp:   time.Now(),
+		Timestamp: time.Now(),
 
-		Duration:    time.Since(startTime),
-
+		Duration: time.Since(startTime),
 	}
 
 }
-
-
 
 // processRenewalRequest processes a certificate renewal request.
 
@@ -1745,25 +1438,20 @@ func (e *AutomationEngine) processRenewalRequest(req *AutomationRequest) *Automa
 
 	startTime := time.Now()
 
-
-
 	if req.CertificateTemplate == nil {
 
 		return &AutomationResponse{
 
-			Status:    StatusFailed,
+			Status: StatusFailed,
 
-			Message:   "certificate template required for renewal",
+			Message: "certificate template required for renewal",
 
 			Timestamp: time.Now(),
 
-			Duration:  time.Since(startTime),
-
+			Duration: time.Since(startTime),
 		}
 
 	}
-
-
 
 	// Renew certificate.
 
@@ -1773,47 +1461,39 @@ func (e *AutomationEngine) processRenewalRequest(req *AutomationRequest) *Automa
 
 		return &AutomationResponse{
 
-			Status:    StatusFailed,
+			Status: StatusFailed,
 
-			Message:   "failed to renew certificate",
+			Message: "failed to renew certificate",
 
-			Error:     err.Error(),
+			Error: err.Error(),
 
 			Timestamp: time.Now(),
 
-			Duration:  time.Since(startTime),
-
+			Duration: time.Since(startTime),
 		}
 
 	}
 
-
-
 	return &AutomationResponse{
 
-		Status:      StatusCompleted,
+		Status: StatusCompleted,
 
-		Message:     "certificate renewed successfully",
+		Message: "certificate renewed successfully",
 
 		Certificate: newCert.Certificate,
 
-		Timestamp:   time.Now(),
+		Timestamp: time.Now(),
 
-		Duration:    time.Since(startTime),
-
+		Duration: time.Since(startTime),
 	}
 
 }
-
-
 
 // processRevocationRequest processes a certificate revocation request.
 
 func (e *AutomationEngine) processRevocationRequest(req *AutomationRequest) *AutomationResponse {
 
 	startTime := time.Now()
-
-
 
 	// Get certificates for service.
 
@@ -1823,21 +1503,18 @@ func (e *AutomationEngine) processRevocationRequest(req *AutomationRequest) *Aut
 
 		return &AutomationResponse{
 
-			Status:    StatusFailed,
+			Status: StatusFailed,
 
-			Message:   "failed to get service certificates",
+			Message: "failed to get service certificates",
 
-			Error:     err.Error(),
+			Error: err.Error(),
 
 			Timestamp: time.Now(),
 
-			Duration:  time.Since(startTime),
-
+			Duration: time.Since(startTime),
 		}
 
 	}
-
-
 
 	revokedCount := 0
 
@@ -1859,29 +1536,23 @@ func (e *AutomationEngine) processRevocationRequest(req *AutomationRequest) *Aut
 
 	}
 
-
-
 	return &AutomationResponse{
 
-		Status:    StatusCompleted,
+		Status: StatusCompleted,
 
-		Message:   fmt.Sprintf("revoked %d certificates", revokedCount),
+		Message: fmt.Sprintf("revoked %d certificates", revokedCount),
 
 		Timestamp: time.Now(),
 
-		Duration:  time.Since(startTime),
+		Duration: time.Since(startTime),
 
 		Metadata: map[string]interface{}{
 
 			"revoked_count": revokedCount,
-
 		},
-
 	}
 
 }
-
-
 
 // processDiscoveryRequest processes a service discovery request.
 
@@ -1889,53 +1560,44 @@ func (e *AutomationEngine) processDiscoveryRequest(req *AutomationRequest) *Auto
 
 	startTime := time.Now()
 
-
-
 	services, err := e.discoverServices(context.Background())
 
 	if err != nil {
 
 		return &AutomationResponse{
 
-			Status:    StatusFailed,
+			Status: StatusFailed,
 
-			Message:   "service discovery failed",
+			Message: "service discovery failed",
 
-			Error:     err.Error(),
+			Error: err.Error(),
 
 			Timestamp: time.Now(),
 
-			Duration:  time.Since(startTime),
-
+			Duration: time.Since(startTime),
 		}
 
 	}
 
-
-
 	return &AutomationResponse{
 
-		Status:    StatusCompleted,
+		Status: StatusCompleted,
 
-		Message:   fmt.Sprintf("discovered %d services", len(services)),
+		Message: fmt.Sprintf("discovered %d services", len(services)),
 
 		Timestamp: time.Now(),
 
-		Duration:  time.Since(startTime),
+		Duration: time.Since(startTime),
 
 		Metadata: map[string]interface{}{
 
-			"services":      services,
+			"services": services,
 
 			"service_count": len(services),
-
 		},
-
 	}
 
 }
-
-
 
 // processHealthCheckRequest processes a health check request.
 
@@ -1943,37 +1605,28 @@ func (e *AutomationEngine) processHealthCheckRequest(req *AutomationRequest) *Au
 
 	startTime := time.Now()
 
-
-
 	// This would implement health checking logic.
 
 	// For now, it's a placeholder.
 
-
-
 	return &AutomationResponse{
 
-		Status:    StatusCompleted,
+		Status: StatusCompleted,
 
-		Message:   "health check completed",
+		Message: "health check completed",
 
 		Timestamp: time.Now(),
 
-		Duration:  time.Since(startTime),
-
+		Duration: time.Since(startTime),
 	}
 
 }
-
-
 
 // discoverServices discovers services in the cluster.
 
 func (e *AutomationEngine) discoverServices(ctx context.Context) ([]*ServiceDiscoveryResult, error) {
 
 	var allServices []*ServiceDiscoveryResult
-
-
 
 	for _, namespace := range e.config.DiscoveryNamespaces {
 
@@ -1984,8 +1637,6 @@ func (e *AutomationEngine) discoverServices(ctx context.Context) ([]*ServiceDisc
 			return nil, fmt.Errorf("failed to list services in namespace %s: %w", namespace, err)
 
 		}
-
-
 
 		for _, service := range services.Items {
 
@@ -2001,13 +1652,9 @@ func (e *AutomationEngine) discoverServices(ctx context.Context) ([]*ServiceDisc
 
 	}
 
-
-
 	return allServices, nil
 
 }
-
-
 
 // convertServiceToDiscoveryResult converts a Kubernetes service to discovery result.
 
@@ -2015,21 +1662,18 @@ func (e *AutomationEngine) convertServiceToDiscoveryResult(service *v1.Service) 
 
 	result := &ServiceDiscoveryResult{
 
-		Name:        service.Name,
+		Name: service.Name,
 
-		Namespace:   service.Namespace,
+		Namespace: service.Namespace,
 
-		Type:        string(service.Spec.Type),
+		Type: string(service.Spec.Type),
 
-		Labels:      service.Labels,
+		Labels: service.Labels,
 
 		Annotations: service.Annotations,
 
-		TLSEnabled:  e.serviceRequiresCertificate(service),
-
+		TLSEnabled: e.serviceRequiresCertificate(service),
 	}
-
-
 
 	// Extract service ports.
 
@@ -2037,17 +1681,14 @@ func (e *AutomationEngine) convertServiceToDiscoveryResult(service *v1.Service) 
 
 		result.Ports = append(result.Ports, ServicePort{
 
-			Name:     port.Name,
+			Name: port.Name,
 
-			Port:     port.Port,
+			Port: port.Port,
 
 			Protocol: string(port.Protocol),
-
 		})
 
 	}
-
-
 
 	// Determine service endpoint.
 
@@ -2071,13 +1712,9 @@ func (e *AutomationEngine) convertServiceToDiscoveryResult(service *v1.Service) 
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // generateServiceCertificate generates a certificate for a service.
 
@@ -2087,18 +1724,15 @@ func (e *AutomationEngine) generateServiceCertificate(serviceName, namespace str
 
 	subject := fmt.Sprintf("%s.%s.svc.cluster.local", serviceName, namespace)
 
-
-
 	template := &x509.Certificate{
 
 		Subject: pkix.Name{
 
-			CommonName:         subject,
+			CommonName: subject,
 
 			OrganizationalUnit: []string{"Automated Certificate Management"},
 
-			Organization:       []string{"Nephoran Intent Operator"},
-
+			Organization: []string{"Nephoran Intent Operator"},
 		},
 
 		DNSNames: []string{
@@ -2108,38 +1742,31 @@ func (e *AutomationEngine) generateServiceCertificate(serviceName, namespace str
 			fmt.Sprintf("%s.%s", serviceName, namespace),
 
 			serviceName,
-
 		},
-
 	}
-
-
 
 	// Create certificate request from template.
 
 	req := &CertificateRequest{
 
-		ID:               fmt.Sprintf("auto-%s-%s", serviceName, namespace),
+		ID: fmt.Sprintf("auto-%s-%s", serviceName, namespace),
 
-		TenantID:         "default",
+		TenantID: "default",
 
-		CommonName:       template.Subject.CommonName,
+		CommonName: template.Subject.CommonName,
 
-		DNSNames:         template.DNSNames,
+		DNSNames: template.DNSNames,
 
-		KeySize:          2048,
+		KeySize: 2048,
 
 		ValidityDuration: 24 * time.Hour * 365, // 1 year
 
-		KeyUsage:         []string{"digital_signature", "key_encipherment"},
+		KeyUsage: []string{"digital_signature", "key_encipherment"},
 
-		ExtKeyUsage:      []string{"server_auth", "client_auth"},
+		ExtKeyUsage: []string{"server_auth", "client_auth"},
 
-		AutoRenew:        true,
-
+		AutoRenew: true,
 	}
-
-
 
 	// Generate certificate.
 
@@ -2151,13 +1778,9 @@ func (e *AutomationEngine) generateServiceCertificate(serviceName, namespace str
 
 	}
 
-
-
 	return cert.Certificate, nil
 
 }
-
-
 
 // storeServiceCertificate stores a certificate for a service.
 
@@ -2167,8 +1790,6 @@ func (e *AutomationEngine) storeServiceCertificate(serviceName, namespace string
 
 	// For now, it's a placeholder.
 
-
-
 	e.logger.Debug("Storing service certificate",
 
 		"service", serviceName,
@@ -2177,13 +1798,9 @@ func (e *AutomationEngine) storeServiceCertificate(serviceName, namespace string
 
 		"serial", cert.SerialNumber.String())
 
-
-
 	return nil
 
 }
-
-
 
 // getServiceCertificates gets certificates for a service.
 
@@ -2193,13 +1810,9 @@ func (e *AutomationEngine) getServiceCertificates(serviceName, namespace string)
 
 	// For now, it's a placeholder.
 
-
-
 	return []*x509.Certificate{}, nil
 
 }
-
-
 
 // parsePort parses port from endpoint string.
 
@@ -2213,8 +1826,6 @@ func (e *AutomationEngine) parsePort(endpoint string) int {
 
 	}
 
-
-
 	port := 443
 
 	if _, err := fmt.Sscanf(parts[1], "%d", &port); err != nil {
@@ -2223,13 +1834,9 @@ func (e *AutomationEngine) parsePort(endpoint string) int {
 
 	}
 
-
-
 	return port
 
 }
-
-
 
 // sendNotification sends a notification for an automation request.
 
@@ -2243,15 +1850,11 @@ func (e *AutomationEngine) sendNotification(req *AutomationRequest, resp *Automa
 
 		"channels", req.NotificationConfig.Channels)
 
-
-
 	// This would implement notification sending logic.
 
 	// For now, it's a placeholder.
 
 }
-
-
 
 // GetMetrics returns automation engine metrics.
 
@@ -2263,19 +1866,15 @@ func (e *AutomationEngine) GetMetrics() map[string]interface{} {
 
 	e.runningMux.RUnlock()
 
-
-
 	e.watchersMux.RLock()
 
 	watcherCount := len(e.watchers)
 
 	e.watchersMux.RUnlock()
 
-
-
 	return map[string]interface{}{
 
-		"running":       running,
+		"running": running,
 
 		"watcher_count": watcherCount,
 
@@ -2283,19 +1882,15 @@ func (e *AutomationEngine) GetMetrics() map[string]interface{} {
 
 			"service_discovery_enabled": e.config.ServiceDiscoveryEnabled,
 
-			"auto_renewal_enabled":      e.config.AutoRenewalEnabled,
+			"auto_renewal_enabled": e.config.AutoRenewalEnabled,
 
-			"health_check_enabled":      e.config.HealthCheckEnabled,
+			"health_check_enabled": e.config.HealthCheckEnabled,
 
-			"notification_enabled":      e.config.NotificationEnabled,
-
+			"notification_enabled": e.config.NotificationEnabled,
 		},
-
 	}
 
 }
-
-
 
 // IsRunning returns whether the automation engine is running.
 
@@ -2309,8 +1904,6 @@ func (e *AutomationEngine) IsRunning() bool {
 
 }
 
-
-
 // GetDiscoveredServices returns currently discovered services.
 
 func (e *AutomationEngine) GetDiscoveredServices(ctx context.Context) ([]*ServiceDiscoveryResult, error) {
@@ -2321,21 +1914,15 @@ func (e *AutomationEngine) GetDiscoveredServices(ctx context.Context) ([]*Servic
 
 	}
 
-
-
 	return e.discoverServices(ctx)
 
 }
-
-
 
 // ProcessManualRequest processes a manual automation request synchronously.
 
 func (e *AutomationEngine) ProcessManualRequest(req *AutomationRequest) *AutomationResponse {
 
 	startTime := time.Now()
-
-
 
 	switch req.Type {
 
@@ -2355,21 +1942,18 @@ func (e *AutomationEngine) ProcessManualRequest(req *AutomationRequest) *Automat
 
 		return &AutomationResponse{
 
-			Status:    StatusFailed,
+			Status: StatusFailed,
 
-			Message:   fmt.Sprintf("unknown request type: %s", req.Type),
+			Message: fmt.Sprintf("unknown request type: %s", req.Type),
 
 			Timestamp: time.Now(),
 
-			Duration:  time.Since(startTime),
-
+			Duration: time.Since(startTime),
 		}
 
 	}
 
 }
-
-
 
 // GetProvisioningQueueSize returns the current size of the provisioning queue.
 
@@ -2378,8 +1962,6 @@ func (e *AutomationEngine) GetProvisioningQueueSize() int {
 	return len(e.requestQueue)
 
 }
-
-
 
 // GetRenewalQueueSize returns the current size of the renewal queue.
 
@@ -2392,4 +1974,3 @@ func (e *AutomationEngine) GetRenewalQueueSize() int {
 	return 0
 
 }
-

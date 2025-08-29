@@ -1,87 +1,56 @@
 //go:build !disable_rag
-
 // +build !disable_rag
-
-
-
 
 package main
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"log/slog"
-
 	"net/http"
-
 	"os"
-
 	"time"
 
-
-
 	"github.com/gorilla/mux"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/handlers"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
-
 )
-
-
 
 // ServiceManager manages the overall service lifecycle and components.
 
 type ServiceManager struct {
+	config *config.LLMProcessorConfig
 
-	config             *config.LLMProcessorConfig
+	logger *slog.Logger
 
-	logger             *slog.Logger
+	healthChecker *health.HealthChecker
 
-	healthChecker      *health.HealthChecker
+	secretManager *config.SecretManager
 
-	secretManager      *config.SecretManager
+	oauth2Manager *auth.OAuth2Manager
 
-	oauth2Manager      *auth.OAuth2Manager
-
-	processor          *handlers.IntentProcessor
+	processor *handlers.IntentProcessor
 
 	streamingProcessor interface {
-
 		HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *llm.StreamingRequest) error
 
 		GetMetrics() map[string]interface{}
-
 	}
 
 	circuitBreakerMgr *llm.CircuitBreakerManager
 
-	tokenManager      *llm.TokenManager
+	tokenManager *llm.TokenManager
 
-	contextBuilder    *llm.ContextBuilder
+	contextBuilder *llm.ContextBuilder
 
-	relevanceScorer   *llm.RelevanceScorer
+	relevanceScorer *llm.RelevanceScorer
 
-	promptBuilder     *llm.RAGAwarePromptBuilder
-
+	promptBuilder *llm.RAGAwarePromptBuilder
 }
-
-
 
 // NewServiceManager creates a new service manager.
 
@@ -92,12 +61,9 @@ func NewServiceManager(config *config.LLMProcessorConfig, logger *slog.Logger) *
 		config: config,
 
 		logger: logger,
-
 	}
 
 }
-
-
 
 // Initialize initializes all service components.
 
@@ -107,8 +73,6 @@ func (sm *ServiceManager) Initialize(ctx context.Context) error {
 
 	sm.healthChecker = health.NewHealthChecker("llm-processor", sm.config.ServiceVersion, sm.logger)
 
-
-
 	// Initialize secret manager.
 
 	if err := sm.initializeSecretManager(); err != nil {
@@ -116,8 +80,6 @@ func (sm *ServiceManager) Initialize(ctx context.Context) error {
 		return fmt.Errorf("failed to initialize secret manager: %w", err)
 
 	}
-
-
 
 	// Initialize OAuth2 manager.
 
@@ -127,8 +89,6 @@ func (sm *ServiceManager) Initialize(ctx context.Context) error {
 
 	}
 
-
-
 	// Initialize processing components.
 
 	if err := sm.initializeProcessingComponents(ctx); err != nil {
@@ -137,21 +97,15 @@ func (sm *ServiceManager) Initialize(ctx context.Context) error {
 
 	}
 
-
-
 	// Register health checks.
 
 	sm.registerHealthChecks()
-
-
 
 	sm.logger.Info("Service manager initialized successfully")
 
 	return nil
 
 }
-
-
 
 // initializeSecretManager initializes the secret manager.
 
@@ -183,37 +137,30 @@ func (sm *ServiceManager) initializeSecretManager() error {
 
 }
 
-
-
 // initializeOAuth2Manager initializes the OAuth2 manager.
 
 func (sm *ServiceManager) initializeOAuth2Manager(ctx context.Context) error {
 
 	oauth2Config := &auth.OAuth2ManagerConfig{
 
-		Enabled:        sm.config.AuthEnabled,
+		Enabled: sm.config.AuthEnabled,
 
 		AuthConfigFile: sm.config.AuthConfigFile,
 
-		JWTSecretKey:   sm.config.JWTSecretKey,
+		JWTSecretKey: sm.config.JWTSecretKey,
 
-		RequireAuth:    sm.config.RequireAuth,
+		RequireAuth: sm.config.RequireAuth,
 
-		AdminUsers:     sm.config.AdminUsers,
+		AdminUsers: sm.config.AdminUsers,
 
-		OperatorUsers:  sm.config.OperatorUsers,
-
+		OperatorUsers: sm.config.OperatorUsers,
 	}
-
-
 
 	if err := oauth2Config.Validate(); err != nil {
 
 		return err
 
 	}
-
-
 
 	var err error
 
@@ -225,13 +172,9 @@ func (sm *ServiceManager) initializeOAuth2Manager(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // initializeProcessingComponents initializes all LLM and RAG processing components.
 
@@ -241,13 +184,9 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 
 	sm.tokenManager = llm.NewTokenManager()
 
-
-
 	// Initialize circuit breaker manager.
 
 	sm.circuitBreakerMgr = llm.NewCircuitBreakerManager(nil)
-
-
 
 	// Validate configuration.
 
@@ -256,8 +195,6 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 		return fmt.Errorf("RAG API URL is required but not configured")
 
 	}
-
-
 
 	// Load API keys securely.
 
@@ -269,8 +206,6 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 
 	}
 
-
-
 	// Use the secure API key for LLM client.
 
 	apiKey := apiKeys.OpenAI
@@ -281,23 +216,18 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 
 	}
 
-
-
 	clientConfig := llm.ClientConfig{
 
-		APIKey:      apiKey,
+		APIKey: apiKey,
 
-		ModelName:   sm.config.LLMModelName,
+		ModelName: sm.config.LLMModelName,
 
-		MaxTokens:   sm.config.LLMMaxTokens,
+		MaxTokens: sm.config.LLMMaxTokens,
 
 		BackendType: sm.config.LLMBackendType,
 
-		Timeout:     sm.config.LLMTimeout,
-
+		Timeout: sm.config.LLMTimeout,
 	}
-
-
 
 	// Validate client configuration.
 
@@ -307,8 +237,6 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 
 	}
 
-
-
 	llmClient := llm.NewClientWithConfig(sm.config.RAGAPIURL, clientConfig)
 
 	if llmClient == nil {
@@ -317,13 +245,9 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 
 	}
 
-
-
 	// Initialize supporting components.
 
 	sm.relevanceScorer = llm.NewRelevanceScorerStub()
-
-
 
 	if sm.config.EnableContextBuilder {
 
@@ -331,11 +255,7 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 
 	}
 
-
-
 	sm.promptBuilder = llm.NewRAGAwarePromptBuilder(sm.tokenManager, nil)
-
-
 
 	// Initialize RAG-enhanced processor if enabled (stubbed).
 
@@ -347,8 +267,6 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 
 	}
 
-
-
 	// Initialize streaming processor if enabled.
 
 	if sm.config.StreamingEnabled {
@@ -359,31 +277,24 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 
 	}
 
-
-
 	// Initialize main processor with circuit breaker.
 
 	circuitBreaker := sm.circuitBreakerMgr.GetOrCreate("llm-processor", nil)
 
 	sm.processor = &handlers.IntentProcessor{
 
-		LLMClient:         llmClient,
+		LLMClient: llmClient,
 
 		RAGEnhancedClient: ragEnhanced,
 
-		CircuitBreaker:    circuitBreaker,
+		CircuitBreaker: circuitBreaker,
 
-		Logger:            sm.logger,
-
+		Logger: sm.logger,
 	}
-
-
 
 	return nil
 
 }
-
-
 
 // registerHealthChecks registers all health checks for the service.
 
@@ -395,15 +306,12 @@ func (sm *ServiceManager) registerHealthChecks() {
 
 		return &health.Check{
 
-			Status:  health.StatusHealthy,
+			Status: health.StatusHealthy,
 
 			Message: "Service is running normally",
-
 		}
 
 	})
-
-
 
 	// Circuit breaker health check.
 
@@ -413,15 +321,12 @@ func (sm *ServiceManager) registerHealthChecks() {
 
 			return &health.Check{
 
-				Status:  health.StatusHealthy,
+				Status: health.StatusHealthy,
 
 				Message: "No circuit breakers registered",
-
 			}
 
 		}
-
-
 
 		stats := sm.circuitBreakerMgr.GetAllStats()
 
@@ -429,15 +334,12 @@ func (sm *ServiceManager) registerHealthChecks() {
 
 			return &health.Check{
 
-				Status:  health.StatusHealthy,
+				Status: health.StatusHealthy,
 
 				Message: "No circuit breakers registered",
-
 			}
 
 		}
-
-
 
 		// Check if any circuit breakers are open.
 
@@ -459,33 +361,25 @@ func (sm *ServiceManager) registerHealthChecks() {
 
 		}
 
-
-
 		if len(openBreakers) > 0 {
 
 			return &health.Check{
 
-				Status:  health.StatusUnhealthy,
+				Status: health.StatusUnhealthy,
 
 				Message: fmt.Sprintf("Circuit breakers in open state: %v", openBreakers),
-
 			}
 
 		}
 
-
-
 		return &health.Check{
 
-			Status:  health.StatusHealthy,
+			Status: health.StatusHealthy,
 
 			Message: "All circuit breakers operational",
-
 		}
 
 	})
-
-
 
 	// Token manager health check.
 
@@ -497,23 +391,19 @@ func (sm *ServiceManager) registerHealthChecks() {
 
 			return &health.Check{
 
-				Status:  health.StatusHealthy,
+				Status: health.StatusHealthy,
 
 				Message: fmt.Sprintf("Token manager operational with %d supported models", len(models)),
 
 				Metadata: map[string]interface{}{
 
 					"supported_models": models,
-
 				},
-
 			}
 
 		})
 
 	}
-
-
 
 	// Streaming processor health check.
 
@@ -525,19 +415,16 @@ func (sm *ServiceManager) registerHealthChecks() {
 
 			return &health.Check{
 
-				Status:   health.StatusHealthy,
+				Status: health.StatusHealthy,
 
-				Message:  "Streaming processor operational",
+				Message: "Streaming processor operational",
 
 				Metadata: metrics,
-
 			}
 
 		})
 
 	}
-
-
 
 	// RAG API dependency check with smart endpoint detection.
 
@@ -549,13 +436,9 @@ func (sm *ServiceManager) registerHealthChecks() {
 
 	}
 
-
-
 	sm.logger.Info("Health checks registered")
 
 }
-
-
 
 // loadSecureAPIKeys loads API keys from Kubernetes secrets or environment variables.
 
@@ -567,25 +450,20 @@ func (sm *ServiceManager) loadSecureAPIKeys(ctx context.Context) (*config.APIKey
 
 		return &config.APIKeys{
 
-			OpenAI:    getEnvString("OPENAI_API_KEY", ""),
+			OpenAI: getEnvString("OPENAI_API_KEY", ""),
 
-			Weaviate:  getEnvString("WEAVIATE_API_KEY", ""),
+			Weaviate: getEnvString("WEAVIATE_API_KEY", ""),
 
-			Generic:   getEnvString("API_KEY", ""),
+			Generic: getEnvString("API_KEY", ""),
 
 			JWTSecret: getEnvString("JWT_SECRET_KEY", ""),
-
 		}, nil
 
 	}
 
-
-
 	return sm.secretManager.GetAPIKeys(ctx)
 
 }
-
-
 
 // validateClientConfig validates the LLM client configuration.
 
@@ -619,21 +497,15 @@ func (sm *ServiceManager) validateClientConfig(config llm.ClientConfig) error {
 
 }
 
-
-
 // CreateRouter creates and configures the HTTP router.
 
 func (sm *ServiceManager) CreateRouter() *mux.Router {
 
 	router := mux.NewRouter()
 
-
-
 	// Setup OAuth2 routes.
 
 	sm.oauth2Manager.SetupRoutes(router)
-
-
 
 	// Public health endpoints (no authentication required).
 
@@ -643,23 +515,18 @@ func (sm *ServiceManager) CreateRouter() *mux.Router {
 
 	router.HandleFunc("/metrics", sm.metricsHandler).Methods("GET")
 
-
-
 	// Setup protected/unprotected routes based on configuration.
 
 	handlers := &auth.RouteHandlers{
 
-		ProcessIntent:        sm.processIntentHandler,
+		ProcessIntent: sm.processIntentHandler,
 
-		Status:               sm.statusHandler,
+		Status: sm.statusHandler,
 
 		CircuitBreakerStatus: sm.circuitBreakerStatusHandler,
 
-		Metrics:              sm.metricsHandler,
-
+		Metrics: sm.metricsHandler,
 	}
-
-
 
 	if sm.config.StreamingEnabled {
 
@@ -667,17 +534,11 @@ func (sm *ServiceManager) CreateRouter() *mux.Router {
 
 	}
 
-
-
 	sm.oauth2Manager.ConfigureProtectedRoutes(router, handlers)
-
-
 
 	return router
 
 }
-
-
 
 // CreateServer creates the HTTP server.
 
@@ -685,21 +546,18 @@ func (sm *ServiceManager) CreateServer(router *mux.Router) *http.Server {
 
 	return &http.Server{
 
-		Addr:         ":" + sm.config.Port,
+		Addr: ":" + sm.config.Port,
 
-		Handler:      router,
+		Handler: router,
 
-		ReadTimeout:  sm.config.RequestTimeout,
+		ReadTimeout: sm.config.RequestTimeout,
 
 		WriteTimeout: sm.config.RequestTimeout,
 
-		IdleTimeout:  2 * time.Minute,
-
+		IdleTimeout: 2 * time.Minute,
 	}
 
 }
-
-
 
 // MarkReady marks the service as ready.
 
@@ -709,8 +567,6 @@ func (sm *ServiceManager) MarkReady() {
 
 }
 
-
-
 // MarkNotReady marks the service as not ready.
 
 func (sm *ServiceManager) MarkNotReady() {
@@ -718,8 +574,6 @@ func (sm *ServiceManager) MarkNotReady() {
 	sm.healthChecker.SetReady(false)
 
 }
-
-
 
 // GetHealthChecker returns the health checker.
 
@@ -729,8 +583,6 @@ func (sm *ServiceManager) GetHealthChecker() *health.HealthChecker {
 
 }
 
-
-
 // GetOAuth2Manager returns the OAuth2 manager.
 
 func (sm *ServiceManager) GetOAuth2Manager() *auth.OAuth2Manager {
@@ -738,8 +590,6 @@ func (sm *ServiceManager) GetOAuth2Manager() *auth.OAuth2Manager {
 	return sm.oauth2Manager
 
 }
-
-
 
 // GetProcessor returns the intent processor.
 
@@ -749,23 +599,17 @@ func (sm *ServiceManager) GetProcessor() *handlers.IntentProcessor {
 
 }
 
-
-
 // GetStreamingProcessor returns the streaming processor.
 
 func (sm *ServiceManager) GetStreamingProcessor() interface {
-
 	HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *llm.StreamingRequest) error
 
 	GetMetrics() map[string]interface{}
-
 } {
 
 	return sm.streamingProcessor
 
 }
-
-
 
 // GetCircuitBreakerMgr returns the circuit breaker manager.
 
@@ -774,8 +618,6 @@ func (sm *ServiceManager) GetCircuitBreakerMgr() *llm.CircuitBreakerManager {
 	return sm.circuitBreakerMgr
 
 }
-
-
 
 // getEnvString gets a string environment variable with a default value.
 
@@ -791,11 +633,7 @@ func getEnvString(key, defaultValue string) string {
 
 }
 
-
-
 // HTTP Handlers.
-
-
 
 // processIntentHandler handles intent processing requests.
 
@@ -809,17 +647,11 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	startTime := time.Now()
 
 	reqID := fmt.Sprintf("%d", time.Now().UnixNano())
 
-
-
 	sm.logger.Info("Processing intent request", slog.String("request_id", reqID))
-
-
 
 	var req handlers.ProcessIntentRequest
 
@@ -833,8 +665,6 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	if req.Intent == "" {
 
 		sm.logger.Error("Empty intent provided")
@@ -844,8 +674,6 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 		return
 
 	}
-
-
 
 	// Process intent.
 
@@ -858,21 +686,19 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 			slog.String("error", err.Error()),
 
 			slog.String("intent", req.Intent),
-
 		)
 
 		response := handlers.ProcessIntentResponse{
 
-			Status:         "error",
+			Status: "error",
 
-			Error:          err.Error(),
+			Error: err.Error(),
 
-			RequestID:      reqID,
+			RequestID: reqID,
 
 			ServiceVersion: sm.config.ServiceVersion,
 
 			ProcessingTime: time.Since(startTime).String(),
-
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -893,23 +719,18 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	response := handlers.ProcessIntentResponse{
 
-		Result:         result.Result,
+		Result: result.Result,
 
-		Status:         "success",
+		Status: "success",
 
 		ProcessingTime: time.Since(startTime).String(),
 
-		RequestID:      reqID,
+		RequestID: reqID,
 
 		ServiceVersion: sm.config.ServiceVersion,
-
 	}
-
-
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -923,19 +744,14 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 
 	}
 
-
-
 	sm.logger.Info("Intent processed successfully",
 
 		slog.String("request_id", reqID),
 
 		slog.Duration("processing_time", time.Since(startTime)),
-
 	)
 
 }
-
-
 
 // statusHandler provides service status information.
 
@@ -943,29 +759,26 @@ func (sm *ServiceManager) statusHandler(w http.ResponseWriter, r *http.Request) 
 
 	status := map[string]interface{}{
 
-		"service":        "llm-processor",
+		"service": "llm-processor",
 
-		"version":        sm.config.ServiceVersion,
+		"version": sm.config.ServiceVersion,
 
-		"uptime":         time.Since(startTime).String(),
+		"uptime": time.Since(startTime).String(),
 
-		"healthy":        sm.healthChecker.IsHealthy(),
+		"healthy": sm.healthChecker.IsHealthy(),
 
-		"ready":          sm.healthChecker.IsReady(),
+		"ready": sm.healthChecker.IsReady(),
 
-		"backend_type":   sm.config.LLMBackendType,
+		"backend_type": sm.config.LLMBackendType,
 
-		"model":          sm.config.LLMModelName,
+		"model": sm.config.LLMModelName,
 
-		"rag_enabled":    sm.config.RAGEnabled,
+		"rag_enabled": sm.config.RAGEnabled,
 
 		"authentication": sm.oauth2Manager.GetAuthenticationInfo(),
 
-		"timestamp":      time.Now().UTC().Format(time.RFC3339),
-
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	}
-
-
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -981,8 +794,6 @@ func (sm *ServiceManager) statusHandler(w http.ResponseWriter, r *http.Request) 
 
 }
 
-
-
 // metricsHandler provides comprehensive metrics.
 
 func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request) {
@@ -993,11 +804,8 @@ func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request)
 
 		"version": sm.config.ServiceVersion,
 
-		"uptime":  time.Since(startTime).String(),
-
+		"uptime": time.Since(startTime).String(),
 	}
-
-
 
 	// Add token manager metrics.
 
@@ -1007,8 +815,6 @@ func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request)
 
 	}
 
-
-
 	// Add circuit breaker metrics.
 
 	if sm.circuitBreakerMgr != nil {
@@ -1016,8 +822,6 @@ func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request)
 		metrics["circuit_breakers"] = sm.circuitBreakerMgr.GetAllStats()
 
 	}
-
-
 
 	// Add streaming metrics.
 
@@ -1027,8 +831,6 @@ func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request)
 
 	}
 
-
-
 	// Add context builder metrics.
 
 	if sm.contextBuilder != nil {
@@ -1036,8 +838,6 @@ func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request)
 		metrics["context_builder"] = sm.contextBuilder.GetMetrics()
 
 	}
-
-
 
 	// Add relevance scorer metrics.
 
@@ -1047,8 +847,6 @@ func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request)
 
 	}
 
-
-
 	// Add prompt builder metrics.
 
 	if sm.promptBuilder != nil {
@@ -1056,8 +854,6 @@ func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request)
 		metrics["prompt_builder"] = sm.promptBuilder.GetMetrics()
 
 	}
-
-
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -1073,8 +869,6 @@ func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request)
 
 }
 
-
-
 // streamingHandler handles Server-Sent Events streaming requests.
 
 func (sm *ServiceManager) streamingHandler(w http.ResponseWriter, r *http.Request) {
@@ -1087,8 +881,6 @@ func (sm *ServiceManager) streamingHandler(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	if sm.streamingProcessor == nil {
 
 		http.Error(w, "Streaming not enabled", http.StatusServiceUnavailable)
@@ -1096,8 +888,6 @@ func (sm *ServiceManager) streamingHandler(w http.ResponseWriter, r *http.Reques
 		return
 
 	}
-
-
 
 	var req llm.StreamingRequest
 
@@ -1111,8 +901,6 @@ func (sm *ServiceManager) streamingHandler(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	if req.Query == "" {
 
 		http.Error(w, "Query is required", http.StatusBadRequest)
@@ -1120,8 +908,6 @@ func (sm *ServiceManager) streamingHandler(w http.ResponseWriter, r *http.Reques
 		return
 
 	}
-
-
 
 	// Set defaults.
 
@@ -1137,8 +923,6 @@ func (sm *ServiceManager) streamingHandler(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	sm.logger.Info("Starting streaming request",
 
 		slog.String("query", req.Query),
@@ -1146,10 +930,7 @@ func (sm *ServiceManager) streamingHandler(w http.ResponseWriter, r *http.Reques
 		slog.String("model", req.ModelName),
 
 		slog.Bool("enable_rag", req.EnableRAG),
-
 	)
-
-
 
 	err := sm.streamingProcessor.HandleStreamingRequest(w, r, &req)
 
@@ -1163,8 +944,6 @@ func (sm *ServiceManager) streamingHandler(w http.ResponseWriter, r *http.Reques
 
 }
 
-
-
 // circuitBreakerStatusHandler provides circuit breaker status and controls.
 
 func (sm *ServiceManager) circuitBreakerStatusHandler(w http.ResponseWriter, r *http.Request) {
@@ -1177,21 +956,15 @@ func (sm *ServiceManager) circuitBreakerStatusHandler(w http.ResponseWriter, r *
 
 	}
 
-
-
 	// Handle POST requests for circuit breaker operations.
 
 	if r.Method == http.MethodPost {
 
 		var req struct {
-
 			Action string `json:"action"`
 
-			Name   string `json:"name"`
-
+			Name string `json:"name"`
 		}
-
-
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 
@@ -1200,8 +973,6 @@ func (sm *ServiceManager) circuitBreakerStatusHandler(w http.ResponseWriter, r *
 			return
 
 		}
-
-
 
 		cb, exists := sm.circuitBreakerMgr.Get(req.Name)
 
@@ -1212,8 +983,6 @@ func (sm *ServiceManager) circuitBreakerStatusHandler(w http.ResponseWriter, r *
 			return
 
 		}
-
-
 
 		switch req.Action {
 
@@ -1237,8 +1006,6 @@ func (sm *ServiceManager) circuitBreakerStatusHandler(w http.ResponseWriter, r *
 
 		}
 
-
-
 		w.WriteHeader(http.StatusOK)
 
 		// FIXME: Adding error check for json encoder per errcheck linter.
@@ -1254,8 +1021,6 @@ func (sm *ServiceManager) circuitBreakerStatusHandler(w http.ResponseWriter, r *
 		return
 
 	}
-
-
 
 	// Handle GET requests for status.
 
@@ -1274,4 +1039,3 @@ func (sm *ServiceManager) circuitBreakerStatusHandler(w http.ResponseWriter, r *
 	}
 
 }
-

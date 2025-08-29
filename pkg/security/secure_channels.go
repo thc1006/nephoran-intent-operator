@@ -1,43 +1,23 @@
 // Package security provides secure communication channel implementations.
 
-
 package security
 
-
-
 import (
-
 	"crypto/aes"
-
 	"crypto/cipher"
-
 	"crypto/hmac"
-
 	"crypto/rand"
-
 	"crypto/sha256"
-
 	"crypto/tls"
-
 	"encoding/binary"
-
 	"errors"
-
 	"fmt"
-
 	"io"
-
 	"net"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
-
 )
-
-
 
 // SecureChannel provides end-to-end encrypted communication.
 
@@ -45,21 +25,17 @@ type SecureChannel struct {
 
 	// Connection.
 
-	conn      net.Conn
+	conn net.Conn
 
 	tlsConfig *tls.Config
 
-
-
 	// Encryption.
 
-	cipher    cipher.AEAD
+	cipher cipher.AEAD
 
 	sendNonce []byte
 
 	recvNonce []byte
-
-
 
 	// Authentication.
 
@@ -67,147 +43,112 @@ type SecureChannel struct {
 
 	recvMAC secureHash
 
-
-
 	// Perfect Forward Secrecy.
 
 	ephemeralKey []byte
 
-	sessionKey   []byte
-
-
+	sessionKey []byte
 
 	// Anti-replay.
 
 	replayWindow *ReplayWindow
 
-	sequenceNum  uint64
-
-
+	sequenceNum uint64
 
 	// Session management.
 
-	sessionID    string
+	sessionID string
 
-	established  time.Time
+	established time.Time
 
 	lastActivity time.Time
-
-
 
 	// Multicast support.
 
 	multicastGroup *MulticastGroup
 
-
-
 	// Metrics.
 
-	bytesSent     uint64
+	bytesSent uint64
 
 	bytesReceived uint64
 
-	messagesSent  uint64
+	messagesSent uint64
 
-	messagesRecv  uint64
-
-
+	messagesRecv uint64
 
 	mu sync.RWMutex
-
 }
-
-
 
 // secureHash interface for MAC operations.
 
 type secureHash interface {
-
 	Write([]byte) (int, error)
 
 	Sum([]byte) []byte
 
 	Reset()
-
 }
-
-
 
 // ReplayWindow implements anti-replay protection.
 
 type ReplayWindow struct {
-
 	windowSize uint32
 
-	bitmap     []uint64
+	bitmap []uint64
 
-	lastSeq    uint64
+	lastSeq uint64
 
-	mu         sync.Mutex
-
+	mu sync.Mutex
 }
-
-
 
 // MulticastGroup manages secure multicast communication.
 
 type MulticastGroup struct {
+	groupID string
 
-	groupID    string
+	members map[string]*GroupMember
 
-	members    map[string]*GroupMember
-
-	groupKey   []byte
+	groupKey []byte
 
 	keyVersion int
 
-	mu         sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // GroupMember represents a multicast group member.
 
 type GroupMember struct {
-
-	ID        string
+	ID string
 
 	PublicKey []byte
 
-	Address   string
+	Address string
 
-	Joined    time.Time
+	Joined time.Time
 
-	Active    bool
-
+	Active bool
 }
-
-
 
 // SecureMessage represents an encrypted message.
 
 type SecureMessage struct {
-
-	Version     uint8
+	Version uint8
 
 	MessageType uint8
 
 	SequenceNum uint64
 
-	Timestamp   int64
+	Timestamp int64
 
-	SessionID   []byte
+	SessionID []byte
 
-	Ciphertext  []byte
+	Ciphertext []byte
 
-	MAC         []byte
+	MAC []byte
 
-	Nonce       []byte
-
+	Nonce []byte
 }
-
-
 
 // MessageType constants.
 
@@ -232,10 +173,7 @@ const (
 	// MessageTypeClose holds messagetypeclose value.
 
 	MessageTypeClose uint8 = 0x05
-
 )
-
-
 
 // ChannelConfig contains secure channel configuration.
 
@@ -245,47 +183,34 @@ type ChannelConfig struct {
 
 	CipherSuite string
 
-	KeySize     int
-
-
+	KeySize int
 
 	// Authentication.
 
 	MACAlgorithm string
 
-
-
 	// PFS.
 
 	EnablePFS bool
 
-	DHGroup   string
-
-
+	DHGroup string
 
 	// Anti-replay.
 
 	ReplayWindow uint32
 
-
-
 	// Session.
 
-	SessionTimeout    time.Duration
+	SessionTimeout time.Duration
 
 	HeartbeatInterval time.Duration
-
-
 
 	// Multicast.
 
 	EnableMulticast bool
 
-	MulticastTTL    int
-
+	MulticastTTL int
 }
-
-
 
 // DefaultChannelConfig returns default secure channel configuration.
 
@@ -293,31 +218,28 @@ func DefaultChannelConfig() *ChannelConfig {
 
 	return &ChannelConfig{
 
-		CipherSuite:       "AES-256-GCM",
+		CipherSuite: "AES-256-GCM",
 
-		KeySize:           32,
+		KeySize: 32,
 
-		MACAlgorithm:      "HMAC-SHA256",
+		MACAlgorithm: "HMAC-SHA256",
 
-		EnablePFS:         true,
+		EnablePFS: true,
 
-		DHGroup:           "P-256",
+		DHGroup: "P-256",
 
-		ReplayWindow:      1024,
+		ReplayWindow: 1024,
 
-		SessionTimeout:    24 * time.Hour,
+		SessionTimeout: 24 * time.Hour,
 
 		HeartbeatInterval: 30 * time.Second,
 
-		EnableMulticast:   false,
+		EnableMulticast: false,
 
-		MulticastTTL:      1,
-
+		MulticastTTL: 1,
 	}
 
 }
-
-
 
 // NewSecureChannel creates a new secure channel.
 
@@ -325,19 +247,16 @@ func NewSecureChannel(conn net.Conn, config *ChannelConfig) (*SecureChannel, err
 
 	sc := &SecureChannel{
 
-		conn:         conn,
+		conn: conn,
 
 		replayWindow: NewReplayWindow(config.ReplayWindow),
 
-		sessionID:    generateSessionID(),
+		sessionID: generateSessionID(),
 
-		established:  time.Now(),
+		established: time.Now(),
 
 		lastActivity: time.Now(),
-
 	}
-
-
 
 	// Initialize encryption.
 
@@ -347,8 +266,6 @@ func NewSecureChannel(conn net.Conn, config *ChannelConfig) (*SecureChannel, err
 
 	}
 
-
-
 	// Initialize MAC.
 
 	if err := sc.initializeMAC(config); err != nil {
@@ -356,8 +273,6 @@ func NewSecureChannel(conn net.Conn, config *ChannelConfig) (*SecureChannel, err
 		return nil, fmt.Errorf("failed to initialize MAC: %w", err)
 
 	}
-
-
 
 	// Setup PFS if enabled.
 
@@ -371,8 +286,6 @@ func NewSecureChannel(conn net.Conn, config *ChannelConfig) (*SecureChannel, err
 
 	}
 
-
-
 	// Setup multicast if enabled.
 
 	if config.EnableMulticast {
@@ -380,24 +293,17 @@ func NewSecureChannel(conn net.Conn, config *ChannelConfig) (*SecureChannel, err
 		sc.multicastGroup = &MulticastGroup{
 
 			members: make(map[string]*GroupMember),
-
 		}
 
 	}
-
-
 
 	// Start heartbeat.
 
 	go sc.heartbeatLoop(config.HeartbeatInterval)
 
-
-
 	return sc, nil
 
 }
-
-
 
 // NewReplayWindow creates a new replay window.
 
@@ -409,15 +315,12 @@ func NewReplayWindow(size uint32) *ReplayWindow {
 
 		windowSize: size,
 
-		bitmap:     make([]uint64, bitmapSize),
+		bitmap: make([]uint64, bitmapSize),
 
-		lastSeq:    0,
-
+		lastSeq: 0,
 	}
 
 }
-
-
 
 // initializeEncryption sets up the encryption cipher.
 
@@ -435,8 +338,6 @@ func (sc *SecureChannel) initializeEncryption(config *ChannelConfig) error {
 
 	sc.sessionKey = sessionKey
 
-
-
 	// Create cipher.
 
 	switch config.CipherSuite {
@@ -451,8 +352,6 @@ func (sc *SecureChannel) initializeEncryption(config *ChannelConfig) error {
 
 		}
 
-
-
 		aead, err := cipher.NewGCM(block)
 
 		if err != nil {
@@ -461,15 +360,11 @@ func (sc *SecureChannel) initializeEncryption(config *ChannelConfig) error {
 
 		}
 
-
-
 		sc.cipher = aead
 
 		sc.sendNonce = make([]byte, aead.NonceSize())
 
 		sc.recvNonce = make([]byte, aead.NonceSize())
-
-
 
 	default:
 
@@ -477,13 +372,9 @@ func (sc *SecureChannel) initializeEncryption(config *ChannelConfig) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // initializeMAC sets up message authentication.
 
@@ -495,23 +386,17 @@ func (sc *SecureChannel) initializeMAC(config *ChannelConfig) error {
 
 	recvMACKey := make([]byte, 32)
 
-
-
 	if _, err := rand.Read(sendMACKey); err != nil {
 
 		return fmt.Errorf("failed to generate send MAC key: %w", err)
 
 	}
 
-
-
 	if _, err := rand.Read(recvMACKey); err != nil {
 
 		return fmt.Errorf("failed to generate recv MAC key: %w", err)
 
 	}
-
-
 
 	// Create MACs.
 
@@ -523,21 +408,15 @@ func (sc *SecureChannel) initializeMAC(config *ChannelConfig) error {
 
 		sc.recvMAC = hmac.New(sha256.New, recvMACKey)
 
-
-
 	default:
 
 		return fmt.Errorf("unsupported MAC algorithm: %s", config.MACAlgorithm)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // setupPFS establishes perfect forward secrecy.
 
@@ -555,19 +434,13 @@ func (sc *SecureChannel) setupPFS(config *ChannelConfig) error {
 
 	sc.ephemeralKey = ephemeralKey
 
-
-
 	// Perform key exchange (simplified).
 
 	// In production, use proper DH or ECDH.
 
-
-
 	return nil
 
 }
-
-
 
 // Send sends an encrypted message.
 
@@ -577,37 +450,28 @@ func (sc *SecureChannel) Send(data []byte) error {
 
 	defer sc.mu.Unlock()
 
-
-
 	// Increment sequence number.
 
 	seqNum := atomic.AddUint64(&sc.sequenceNum, 1)
-
-
 
 	// Create message.
 
 	msg := &SecureMessage{
 
-		Version:     1,
+		Version: 1,
 
 		MessageType: MessageTypeData,
 
 		SequenceNum: seqNum,
 
-		Timestamp:   time.Now().UnixNano(),
+		Timestamp: time.Now().UnixNano(),
 
-		SessionID:   []byte(sc.sessionID),
-
+		SessionID: []byte(sc.sessionID),
 	}
-
-
 
 	// Increment nonce.
 
 	incrementNonce(sc.sendNonce)
-
-
 
 	// Encrypt data.
 
@@ -619,15 +483,11 @@ func (sc *SecureChannel) Send(data []byte) error {
 
 	copy(msg.Nonce, sc.sendNonce)
 
-
-
 	// Calculate MAC.
 
 	mac := sc.calculateMAC(msg)
 
 	msg.MAC = mac
-
-
 
 	// Serialize and send.
 
@@ -639,15 +499,11 @@ func (sc *SecureChannel) Send(data []byte) error {
 
 	}
 
-
-
 	if _, err := sc.conn.Write(encoded); err != nil {
 
 		return fmt.Errorf("failed to send message: %w", err)
 
 	}
-
-
 
 	// Update metrics.
 
@@ -657,13 +513,9 @@ func (sc *SecureChannel) Send(data []byte) error {
 
 	sc.lastActivity = time.Now()
 
-
-
 	return nil
 
 }
-
-
 
 // Receive receives and decrypts a message.
 
@@ -672,8 +524,6 @@ func (sc *SecureChannel) Receive() ([]byte, error) {
 	sc.mu.Lock()
 
 	defer sc.mu.Unlock()
-
-
 
 	// Read message.
 
@@ -687,8 +537,6 @@ func (sc *SecureChannel) Receive() ([]byte, error) {
 
 	}
 
-
-
 	// Decode message.
 
 	msg, err := sc.decodeMessage(encoded[:n])
@@ -699,8 +547,6 @@ func (sc *SecureChannel) Receive() ([]byte, error) {
 
 	}
 
-
-
 	// Check replay.
 
 	if !sc.checkReplay(msg.SequenceNum) {
@@ -708,8 +554,6 @@ func (sc *SecureChannel) Receive() ([]byte, error) {
 		return nil, errors.New("replay attack detected")
 
 	}
-
-
 
 	// Verify MAC.
 
@@ -721,8 +565,6 @@ func (sc *SecureChannel) Receive() ([]byte, error) {
 
 	}
 
-
-
 	// Decrypt data.
 
 	plaintext, err := sc.cipher.Open(nil, msg.Nonce, msg.Ciphertext, msg.SessionID)
@@ -733,8 +575,6 @@ func (sc *SecureChannel) Receive() ([]byte, error) {
 
 	}
 
-
-
 	// Update metrics.
 
 	atomic.AddUint64(&sc.bytesReceived, uint64(len(plaintext)))
@@ -743,13 +583,9 @@ func (sc *SecureChannel) Receive() ([]byte, error) {
 
 	sc.lastActivity = time.Now()
 
-
-
 	return plaintext, nil
 
 }
-
-
 
 // SendMulticast sends an encrypted multicast message.
 
@@ -761,21 +597,15 @@ func (sc *SecureChannel) SendMulticast(data []byte, groupID string) error {
 
 	}
 
-
-
 	sc.multicastGroup.mu.RLock()
 
 	defer sc.multicastGroup.mu.RUnlock()
-
-
 
 	if sc.multicastGroup.groupID != groupID {
 
 		return fmt.Errorf("invalid group ID: %s", groupID)
 
 	}
-
-
 
 	// Encrypt with group key.
 
@@ -787,8 +617,6 @@ func (sc *SecureChannel) SendMulticast(data []byte, groupID string) error {
 
 	}
 
-
-
 	// Send to all active members.
 
 	for _, member := range sc.multicastGroup.members {
@@ -799,8 +627,6 @@ func (sc *SecureChannel) SendMulticast(data []byte, groupID string) error {
 
 		}
 
-
-
 		// Send to member.
 
 		// Implementation depends on transport.
@@ -809,13 +635,9 @@ func (sc *SecureChannel) SendMulticast(data []byte, groupID string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // JoinMulticastGroup joins a multicast group.
 
@@ -827,13 +649,9 @@ func (sc *SecureChannel) JoinMulticastGroup(groupID string, groupKey []byte) err
 
 	}
 
-
-
 	sc.multicastGroup.mu.Lock()
 
 	defer sc.multicastGroup.mu.Unlock()
-
-
 
 	sc.multicastGroup.groupID = groupID
 
@@ -841,13 +659,9 @@ func (sc *SecureChannel) JoinMulticastGroup(groupID string, groupKey []byte) err
 
 	sc.multicastGroup.keyVersion++
 
-
-
 	return nil
 
 }
-
-
 
 // Rekey performs session rekeying.
 
@@ -856,8 +670,6 @@ func (sc *SecureChannel) Rekey() error {
 	sc.mu.Lock()
 
 	defer sc.mu.Unlock()
-
-
 
 	// Generate new session key.
 
@@ -869,27 +681,23 @@ func (sc *SecureChannel) Rekey() error {
 
 	}
 
-
-
 	// Send rekey message.
 
 	msg := &SecureMessage{
 
-		Version:     1,
+		Version: 1,
 
 		MessageType: MessageTypeRekey,
 
 		SequenceNum: atomic.AddUint64(&sc.sequenceNum, 1),
 
-		Timestamp:   time.Now().UnixNano(),
+		Timestamp: time.Now().UnixNano(),
 
-		SessionID:   []byte(sc.sessionID),
+		SessionID: []byte(sc.sessionID),
 
-		Ciphertext:  newKey, // In production, encrypt this
+		Ciphertext: newKey, // In production, encrypt this
 
 	}
-
-
 
 	encoded, err := sc.encodeMessage(msg)
 
@@ -899,21 +707,15 @@ func (sc *SecureChannel) Rekey() error {
 
 	}
 
-
-
 	if _, err := sc.conn.Write(encoded); err != nil {
 
 		return fmt.Errorf("failed to send rekey message: %w", err)
 
 	}
 
-
-
 	// Update session key.
 
 	sc.sessionKey = newKey
-
-
 
 	// Recreate cipher with new key.
 
@@ -925,8 +727,6 @@ func (sc *SecureChannel) Rekey() error {
 
 	}
 
-
-
 	aead, err := cipher.NewGCM(block)
 
 	if err != nil {
@@ -935,17 +735,11 @@ func (sc *SecureChannel) Rekey() error {
 
 	}
 
-
-
 	sc.cipher = aead
-
-
 
 	return nil
 
 }
-
-
 
 // checkReplay checks for replay attacks.
 
@@ -955,8 +749,6 @@ func (sc *SecureChannel) checkReplay(seqNum uint64) bool {
 
 }
 
-
-
 // Check verifies if a sequence number is valid (not a replay).
 
 func (rw *ReplayWindow) Check(seqNum uint64) bool {
@@ -965,8 +757,6 @@ func (rw *ReplayWindow) Check(seqNum uint64) bool {
 
 	defer rw.mu.Unlock()
 
-
-
 	// Sequence number too old.
 
 	if seqNum <= rw.lastSeq-uint64(rw.windowSize) {
@@ -974,8 +764,6 @@ func (rw *ReplayWindow) Check(seqNum uint64) bool {
 		return false
 
 	}
-
-
 
 	// Future sequence number.
 
@@ -1003,8 +791,6 @@ func (rw *ReplayWindow) Check(seqNum uint64) bool {
 
 		}
 
-
-
 		rw.lastSeq = seqNum
 
 		rw.setBit(0)
@@ -1012,8 +798,6 @@ func (rw *ReplayWindow) Check(seqNum uint64) bool {
 		return true
 
 	}
-
-
 
 	// Within window - check if already seen.
 
@@ -1025,15 +809,11 @@ func (rw *ReplayWindow) Check(seqNum uint64) bool {
 
 	}
 
-
-
 	rw.setBit(uint32(offset))
 
 	return true
 
 }
-
-
 
 // shiftBitmap shifts the replay window bitmap.
 
@@ -1063,8 +843,6 @@ func (rw *ReplayWindow) shiftBitmap(shift uint32) {
 
 }
 
-
-
 // setBit sets a bit in the replay window.
 
 func (rw *ReplayWindow) setBit(offset uint32) {
@@ -1080,8 +858,6 @@ func (rw *ReplayWindow) setBit(offset uint32) {
 	}
 
 }
-
-
 
 // getBit gets a bit from the replay window.
 
@@ -1101,15 +877,11 @@ func (rw *ReplayWindow) getBit(offset uint32) bool {
 
 }
 
-
-
 // calculateMAC calculates message authentication code.
 
 func (sc *SecureChannel) calculateMAC(msg *SecureMessage) []byte {
 
 	sc.sendMAC.Reset()
-
-
 
 	// MAC covers all fields except MAC itself.
 
@@ -1127,13 +899,9 @@ func (sc *SecureChannel) calculateMAC(msg *SecureMessage) []byte {
 
 	sc.sendMAC.Write(msg.Nonce)
 
-
-
 	return sc.sendMAC.Sum(nil)
 
 }
-
-
 
 // encodeMessage encodes a message for transmission.
 
@@ -1142,8 +910,6 @@ func (sc *SecureChannel) encodeMessage(msg *SecureMessage) ([]byte, error) {
 	// Simple length-prefixed encoding.
 
 	// In production, use proper protocol encoding.
-
-
 
 	totalLen := 1 + 1 + 8 + 8 + // version, type, seq, timestamp
 
@@ -1155,21 +921,15 @@ func (sc *SecureChannel) encodeMessage(msg *SecureMessage) ([]byte, error) {
 
 		4 + len(msg.Nonce)
 
-
-
 	buf := make([]byte, 4+totalLen)
 
 	offset := 0
-
-
 
 	// Length prefix.
 
 	binary.BigEndian.PutUint32(buf[offset:], uint32(totalLen))
 
 	offset += 4
-
-
 
 	// Message fields.
 
@@ -1181,19 +941,13 @@ func (sc *SecureChannel) encodeMessage(msg *SecureMessage) ([]byte, error) {
 
 	offset++
 
-
-
 	binary.BigEndian.PutUint64(buf[offset:], msg.SequenceNum)
 
 	offset += 8
 
-
-
 	binary.BigEndian.PutUint64(buf[offset:], uint64(msg.Timestamp))
 
 	offset += 8
-
-
 
 	// Variable length fields.
 
@@ -1205,13 +959,9 @@ func (sc *SecureChannel) encodeMessage(msg *SecureMessage) ([]byte, error) {
 
 	offset = encodeBytes(buf, offset, msg.Nonce)
 
-
-
 	return buf[:offset], nil
 
 }
-
-
 
 // decodeMessage decodes a received message.
 
@@ -1223,8 +973,6 @@ func (sc *SecureChannel) decodeMessage(data []byte) (*SecureMessage, error) {
 
 	}
 
-
-
 	// Read length prefix.
 
 	totalLen := binary.BigEndian.Uint32(data[:4])
@@ -1235,13 +983,9 @@ func (sc *SecureChannel) decodeMessage(data []byte) (*SecureMessage, error) {
 
 	}
 
-
-
 	offset := 4
 
 	msg := &SecureMessage{}
-
-
 
 	// Fixed fields.
 
@@ -1253,19 +997,13 @@ func (sc *SecureChannel) decodeMessage(data []byte) (*SecureMessage, error) {
 
 	offset++
 
-
-
 	msg.SequenceNum = binary.BigEndian.Uint64(data[offset:])
 
 	offset += 8
 
-
-
 	msg.Timestamp = int64(binary.BigEndian.Uint64(data[offset:]))
 
 	offset += 8
-
-
 
 	// Variable fields.
 
@@ -1279,8 +1017,6 @@ func (sc *SecureChannel) decodeMessage(data []byte) (*SecureMessage, error) {
 
 	}
 
-
-
 	msg.Ciphertext, offset, err = decodeBytes(data, offset)
 
 	if err != nil {
@@ -1288,8 +1024,6 @@ func (sc *SecureChannel) decodeMessage(data []byte) (*SecureMessage, error) {
 		return nil, err
 
 	}
-
-
 
 	msg.MAC, offset, err = decodeBytes(data, offset)
 
@@ -1299,8 +1033,6 @@ func (sc *SecureChannel) decodeMessage(data []byte) (*SecureMessage, error) {
 
 	}
 
-
-
 	msg.Nonce, offset, err = decodeBytes(data, offset)
 
 	if err != nil {
@@ -1309,13 +1041,9 @@ func (sc *SecureChannel) decodeMessage(data []byte) (*SecureMessage, error) {
 
 	}
 
-
-
 	return msg, nil
 
 }
-
-
 
 // encodeBytes encodes a byte slice with length prefix.
 
@@ -1331,8 +1059,6 @@ func encodeBytes(buf []byte, offset int, data []byte) int {
 
 }
 
-
-
 // decodeBytes decodes a length-prefixed byte slice.
 
 func decodeBytes(buf []byte, offset int) ([]byte, int, error) {
@@ -1343,13 +1069,9 @@ func decodeBytes(buf []byte, offset int) ([]byte, int, error) {
 
 	}
 
-
-
 	length := binary.BigEndian.Uint32(buf[offset:])
 
 	offset += 4
-
-
 
 	if offset+int(length) > len(buf) {
 
@@ -1357,19 +1079,13 @@ func decodeBytes(buf []byte, offset int) ([]byte, int, error) {
 
 	}
 
-
-
 	data := make([]byte, length)
 
 	copy(data, buf[offset:offset+int(length)])
 
-
-
 	return data, offset + int(length), nil
 
 }
-
-
 
 // encryptWithGroupKey encrypts data with multicast group key.
 
@@ -1381,8 +1097,6 @@ func (sc *SecureChannel) encryptWithGroupKey(data []byte) ([]byte, error) {
 
 	}
 
-
-
 	// Create cipher with group key.
 
 	block, err := aes.NewCipher(sc.multicastGroup.groupKey)
@@ -1393,8 +1107,6 @@ func (sc *SecureChannel) encryptWithGroupKey(data []byte) ([]byte, error) {
 
 	}
 
-
-
 	gcm, err := cipher.NewGCM(block)
 
 	if err != nil {
@@ -1402,8 +1114,6 @@ func (sc *SecureChannel) encryptWithGroupKey(data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("failed to create GCM: %w", err)
 
 	}
-
-
 
 	// Generate nonce.
 
@@ -1415,19 +1125,13 @@ func (sc *SecureChannel) encryptWithGroupKey(data []byte) ([]byte, error) {
 
 	}
 
-
-
 	// Encrypt.
 
 	ciphertext := gcm.Seal(nonce, nonce, data, []byte(sc.multicastGroup.groupID))
 
-
-
 	return ciphertext, nil
 
 }
-
-
 
 // heartbeatLoop sends periodic heartbeats.
 
@@ -1436,8 +1140,6 @@ func (sc *SecureChannel) heartbeatLoop(interval time.Duration) {
 	ticker := time.NewTicker(interval)
 
 	defer ticker.Stop()
-
-
 
 	for range ticker.C {
 
@@ -1449,19 +1151,16 @@ func (sc *SecureChannel) heartbeatLoop(interval time.Duration) {
 
 			msg := &SecureMessage{
 
-				Version:     1,
+				Version: 1,
 
 				MessageType: MessageTypeHeartbeat,
 
 				SequenceNum: atomic.AddUint64(&sc.sequenceNum, 1),
 
-				Timestamp:   time.Now().UnixNano(),
+				Timestamp: time.Now().UnixNano(),
 
-				SessionID:   []byte(sc.sessionID),
-
+				SessionID: []byte(sc.sessionID),
 			}
-
-
 
 			encoded, _ := sc.encodeMessage(msg)
 
@@ -1475,8 +1174,6 @@ func (sc *SecureChannel) heartbeatLoop(interval time.Duration) {
 
 }
 
-
-
 // Close closes the secure channel.
 
 func (sc *SecureChannel) Close() error {
@@ -1485,31 +1182,24 @@ func (sc *SecureChannel) Close() error {
 
 	defer sc.mu.Unlock()
 
-
-
 	// Send close message.
 
 	msg := &SecureMessage{
 
-		Version:     1,
+		Version: 1,
 
 		MessageType: MessageTypeClose,
 
 		SequenceNum: atomic.AddUint64(&sc.sequenceNum, 1),
 
-		Timestamp:   time.Now().UnixNano(),
+		Timestamp: time.Now().UnixNano(),
 
-		SessionID:   []byte(sc.sessionID),
-
+		SessionID: []byte(sc.sessionID),
 	}
-
-
 
 	encoded, _ := sc.encodeMessage(msg)
 
 	sc.conn.Write(encoded)
-
-
 
 	// Clear sensitive data.
 
@@ -1523,13 +1213,9 @@ func (sc *SecureChannel) Close() error {
 
 	}
 
-
-
 	return sc.conn.Close()
 
 }
-
-
 
 // GetMetrics returns channel metrics.
 
@@ -1537,25 +1223,20 @@ func (sc *SecureChannel) GetMetrics() map[string]uint64 {
 
 	return map[string]uint64{
 
-		"bytes_sent":     atomic.LoadUint64(&sc.bytesSent),
+		"bytes_sent": atomic.LoadUint64(&sc.bytesSent),
 
 		"bytes_received": atomic.LoadUint64(&sc.bytesReceived),
 
-		"messages_sent":  atomic.LoadUint64(&sc.messagesSent),
+		"messages_sent": atomic.LoadUint64(&sc.messagesSent),
 
-		"messages_recv":  atomic.LoadUint64(&sc.messagesRecv),
+		"messages_recv": atomic.LoadUint64(&sc.messagesRecv),
 
-		"sequence_num":   atomic.LoadUint64(&sc.sequenceNum),
-
+		"sequence_num": atomic.LoadUint64(&sc.sequenceNum),
 	}
 
 }
 
-
-
 // Helper functions.
-
-
 
 // generateSessionID generates a unique session ID.
 
@@ -1575,8 +1256,6 @@ func generateSessionID() string {
 
 }
 
-
-
 // incrementNonce increments a nonce.
 
 func incrementNonce(nonce []byte) {
@@ -1594,4 +1273,3 @@ func incrementNonce(nonce []byte) {
 	}
 
 }
-

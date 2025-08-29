@@ -1,47 +1,26 @@
-
 package main
 
-
-
 import (
-
 	"bufio"
-
 	"fmt"
-
 	"go/ast"
-
 	"go/format"
-
 	"go/parser"
-
 	"go/token"
-
 	"log"
-
 	"os"
-
 	"path/filepath"
-
 	"regexp"
-
 	"strings"
-
 )
-
-
 
 // LintFixer applies common golangci-lint fixes for 2025 best practices.
 
 type LintFixer struct {
-
 	fileSet *token.FileSet
 
-	fixes   map[string]func(*ast.File) bool
-
+	fixes map[string]func(*ast.File) bool
 }
-
-
 
 // NewLintFixer creates a new lint fixer with 2025 patterns.
 
@@ -51,11 +30,8 @@ func NewLintFixer() *LintFixer {
 
 		fileSet: token.NewFileSet(),
 
-		fixes:   make(map[string]func(*ast.File) bool),
-
+		fixes: make(map[string]func(*ast.File) bool),
 	}
-
-
 
 	// Register fix functions.
 
@@ -69,13 +45,9 @@ func NewLintFixer() *LintFixer {
 
 	fixer.fixes["context-first"] = fixer.ensureContextFirst
 
-
-
 	return fixer
 
 }
-
-
 
 // FixFile applies all registered fixes to a Go file.
 
@@ -91,8 +63,6 @@ func (lf *LintFixer) FixFile(filename string) error {
 
 	}
 
-
-
 	file, err := parser.ParseFile(lf.fileSet, filename, src, parser.ParseComments)
 
 	if err != nil {
@@ -100,8 +70,6 @@ func (lf *LintFixer) FixFile(filename string) error {
 		return fmt.Errorf("failed to parse file %s: %w", filename, err)
 
 	}
-
-
 
 	// Apply fixes.
 
@@ -119,8 +87,6 @@ func (lf *LintFixer) FixFile(filename string) error {
 
 	}
 
-
-
 	// Write back if modified.
 
 	if modified {
@@ -133,27 +99,19 @@ func (lf *LintFixer) FixFile(filename string) error {
 
 		}
 
-
-
 		if err := os.WriteFile(filename, []byte(buf.String()), 0o640); err != nil {
 
 			return fmt.Errorf("failed to write file %s: %w", filename, err)
 
 		}
 
-
-
 		fmt.Printf("Updated %s\n", filename)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // addPackageComment adds missing package comments.
 
@@ -167,15 +125,11 @@ func (lf *LintFixer) addPackageComment(file *ast.File) bool {
 
 	}
 
-
-
 	// Generate package comment based on package name.
 
 	packageName := file.Name.Name
 
 	comment := generatePackageComment(packageName)
-
-
 
 	// Create comment group.
 
@@ -184,20 +138,14 @@ func (lf *LintFixer) addPackageComment(file *ast.File) bool {
 		List: []*ast.Comment{
 
 			{Text: comment},
-
 		},
-
 	}
-
-
 
 	file.Doc = commentGroup
 
 	return true
 
 }
-
-
 
 // generatePackageComment generates appropriate package comment based on name.
 
@@ -249,15 +197,11 @@ func generatePackageComment(packageName string) string {
 
 }
 
-
-
 // addExportedDocs adds missing documentation for exported functions and types.
 
 func (lf *LintFixer) addExportedDocs(file *ast.File) bool {
 
 	modified := false
-
-
 
 	ast.Inspect(file, func(n ast.Node) bool {
 
@@ -301,21 +245,15 @@ func (lf *LintFixer) addExportedDocs(file *ast.File) bool {
 
 	})
 
-
-
 	return modified
 
 }
-
-
 
 // generateFunctionDoc generates documentation for a function.
 
 func generateFunctionDoc(funcDecl *ast.FuncDecl) *ast.CommentGroup {
 
 	funcName := funcDecl.Name.Name
-
-
 
 	var comment string
 
@@ -367,29 +305,21 @@ func generateFunctionDoc(funcDecl *ast.FuncDecl) *ast.CommentGroup {
 
 	}
 
-
-
 	return &ast.CommentGroup{
 
 		List: []*ast.Comment{
 
 			{Text: comment},
-
 		},
-
 	}
 
 }
-
-
 
 // generateTypeDoc generates documentation for a type.
 
 func generateTypeDoc(typeSpec *ast.TypeSpec) *ast.CommentGroup {
 
 	typeName := typeSpec.Name.Name
-
-
 
 	var comment string
 
@@ -429,29 +359,21 @@ func generateTypeDoc(typeSpec *ast.TypeSpec) *ast.CommentGroup {
 
 	}
 
-
-
 	return &ast.CommentGroup{
 
 		List: []*ast.Comment{
 
 			{Text: comment},
-
 		},
-
 	}
 
 }
-
-
 
 // fixErrorWrapping fixes error handling to use %w format.
 
 func (lf *LintFixer) fixErrorWrapping(file *ast.File) bool {
 
 	modified := false
-
-
 
 	ast.Inspect(file, func(n ast.Node) bool {
 
@@ -507,21 +429,15 @@ func (lf *LintFixer) fixErrorWrapping(file *ast.File) bool {
 
 	})
 
-
-
 	return modified
 
 }
-
-
 
 // fixUnusedParams replaces unused parameters with underscore.
 
 func (lf *LintFixer) fixUnusedParams(file *ast.File) bool {
 
 	modified := false
-
-
 
 	ast.Inspect(file, func(n ast.Node) bool {
 
@@ -555,13 +471,9 @@ func (lf *LintFixer) fixUnusedParams(file *ast.File) bool {
 
 	})
 
-
-
 	return modified
 
 }
-
-
 
 // isParamUsed checks if a parameter is used in the function body.
 
@@ -587,15 +499,11 @@ func (lf *LintFixer) isParamUsed(body *ast.BlockStmt, paramName string) bool {
 
 }
 
-
-
 // ensureContextFirst ensures context.Context is the first parameter.
 
 func (lf *LintFixer) ensureContextFirst(file *ast.File) bool {
 
 	modified := false
-
-
 
 	ast.Inspect(file, func(n ast.Node) bool {
 
@@ -641,13 +549,9 @@ func (lf *LintFixer) ensureContextFirst(file *ast.File) bool {
 
 	})
 
-
-
 	return modified
 
 }
-
-
 
 // isContextType checks if a type is context.Context.
 
@@ -667,15 +571,11 @@ func (lf *LintFixer) isContextType(expr ast.Expr) bool {
 
 }
 
-
-
 // ApplyCommonFixes applies the most common fixes to a directory.
 
 func ApplyCommonFixes(dir string) error {
 
 	fixer := NewLintFixer()
-
-
 
 	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 
@@ -685,8 +585,6 @@ func ApplyCommonFixes(dir string) error {
 
 		}
 
-
-
 		// Skip non-Go files and generated files.
 
 		if !strings.HasSuffix(path, ".go") {
@@ -694,8 +592,6 @@ func ApplyCommonFixes(dir string) error {
 			return nil
 
 		}
-
-
 
 		// Skip generated files.
 
@@ -709,8 +605,6 @@ func ApplyCommonFixes(dir string) error {
 
 		}
 
-
-
 		fmt.Printf("Processing %s\n", path)
 
 		return fixer.FixFile(path)
@@ -718,8 +612,6 @@ func ApplyCommonFixes(dir string) error {
 	})
 
 }
-
-
 
 // Quick fixes for specific issues.
 
@@ -734,8 +626,6 @@ var QuickFixes = map[string]string{
 
 package <name>`,
 
-
-
 	// Exported function documentation.
 
 	"missing-doc-exported": `// Add function documentation:
@@ -746,8 +636,6 @@ package <name>`,
 
 func FunctionName()`,
 
-
-
 	// Error wrapping.
 
 	"errorlint": `// Fix error wrapping:
@@ -755,8 +643,6 @@ func FunctionName()`,
 // Bad:  fmt.Errorf("failed: %s", err.Error())
 
 // Good: fmt.Errorf("failed: %w", err)`,
-
-
 
 	// Unused variables.
 
@@ -766,8 +652,6 @@ func FunctionName()`,
 
 // Good: _ = someFunction() // or handle the result`,
 
-
-
 	// Context patterns.
 
 	"context-first": `// Context should be first parameter:
@@ -776,17 +660,12 @@ func FunctionName()`,
 
 // Good: func Process(ctx context.Context, data []byte)`,
 
-
-
 	// Interface compliance.
 
 	"interface-check": `// Add interface compliance check:
 
 var _ InterfaceName = (*StructName)(nil)`,
-
 }
-
-
 
 // PrintQuickFix shows a quick fix for a specific linter error.
 
@@ -803,8 +682,6 @@ func PrintQuickFix(linterName string) {
 	}
 
 }
-
-
 
 func main() {
 
@@ -830,11 +707,7 @@ func main() {
 
 	}
 
-
-
 	command := os.Args[1]
-
-
 
 	switch command {
 
@@ -872,11 +745,7 @@ func main() {
 
 }
 
-
-
 // Additional utility functions for manual fixes.
-
-
 
 // ReadFileLines reads a file and returns lines for manual processing.
 
@@ -892,8 +761,6 @@ func ReadFileLines(filename string) ([]string, error) {
 
 	defer file.Close()
 
-
-
 	var lines []string
 
 	scanner := bufio.NewScanner(file)
@@ -907,8 +774,6 @@ func ReadFileLines(filename string) ([]string, error) {
 	return lines, scanner.Err()
 
 }
-
-
 
 // WriteFileLines writes lines back to a file.
 
@@ -924,13 +789,9 @@ func WriteFileLines(filename string, lines []string) error {
 
 	defer file.Close()
 
-
-
 	writer := bufio.NewWriter(file)
 
 	defer writer.Flush()
-
-
 
 	for _, line := range lines {
 
@@ -946,29 +807,22 @@ func WriteFileLines(filename string, lines []string) error {
 
 }
 
-
-
 // Common regex patterns for manual fixes.
 
 var LintPatterns = struct {
-
-	UnusedVar        *regexp.Regexp
+	UnusedVar *regexp.Regexp
 
 	MissingErrorWrap *regexp.Regexp
 
-	MissingDoc       *regexp.Regexp
-
+	MissingDoc *regexp.Regexp
 }{
 
-	UnusedVar:        regexp.MustCompile(`^(\s*)(\w+)\s*:=.*$`),
+	UnusedVar: regexp.MustCompile(`^(\s*)(\w+)\s*:=.*$`),
 
 	MissingErrorWrap: regexp.MustCompile(`fmt\.Errorf\([^,]+,\s*.*\.Error\(\)\)`),
 
-	MissingDoc:       regexp.MustCompile(`^func\s+[A-Z]\w*`),
-
+	MissingDoc: regexp.MustCompile(`^func\s+[A-Z]\w*`),
 }
-
-
 
 // FixUnusedVariables replaces unused variables with underscore.
 
@@ -981,8 +835,6 @@ func FixUnusedVariables(lines, unusedVars []string) []string {
 		varMap[v] = true
 
 	}
-
-
 
 	for i, line := range lines {
 
@@ -1001,4 +853,3 @@ func FixUnusedVariables(lines, unusedVars []string) []string {
 	return lines
 
 }
-

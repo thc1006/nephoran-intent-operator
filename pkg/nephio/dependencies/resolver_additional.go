@@ -30,34 +30,18 @@ limitations under the License.
 
 */
 
-
-
-
 package dependencies
 
-
-
 import (
-
 	"context"
-
 	"crypto/sha256"
-
 	"fmt"
-
 	"time"
-
 )
-
-
 
 // Note: VersionRequirement type is already defined in types.go to avoid duplicate declarations
 
-
-
 // Additional missing methods for core resolution
-
-
 
 // buildDependencyTree builds a dependency tree from the resolution context.
 
@@ -66,8 +50,6 @@ func (r *dependencyResolver) buildDependencyTree(ctx context.Context, resCtx *Re
 	return &DependencyTree{}, nil
 
 }
-
-
 
 // solveConstraints solves constraints using the resolution context.
 
@@ -78,12 +60,9 @@ func (r *dependencyResolver) solveConstraints(ctx context.Context, resCtx *Resol
 		Satisfiable: true,
 
 		Assignments: make(map[string]interface{}),
-
 	}, nil
 
 }
-
-
 
 // resolveVersions resolves versions from constraints and solution.
 
@@ -91,15 +70,12 @@ func (r *dependencyResolver) resolveVersions(ctx context.Context, resCtx *Resolu
 
 	return &VersionResolutionResult{
 
-		Success:     true,
+		Success: true,
 
 		Resolutions: make(map[string]*VersionResolution),
-
 	}, nil
 
 }
-
-
 
 // detectAndResolveConflicts detects and resolves conflicts from version resolution.
 
@@ -108,8 +84,6 @@ func (r *dependencyResolver) detectAndResolveConflicts(ctx context.Context, resC
 	return []*DependencyConflict{}, nil
 
 }
-
-
 
 // extractResolvedPackages extracts resolved packages from resolution context.
 
@@ -127,8 +101,6 @@ func (r *dependencyResolver) extractResolvedPackages(resCtx *ResolutionContext) 
 
 }
 
-
-
 // buildResultMetadata builds metadata for the resolution result.
 
 func (r *dependencyResolver) buildResultMetadata(resCtx *ResolutionContext) map[string]interface{} {
@@ -137,13 +109,10 @@ func (r *dependencyResolver) buildResultMetadata(resCtx *ResolutionContext) map[
 
 		"resolver_version": "1.0.0",
 
-		"timestamp":        time.Now(),
-
+		"timestamp": time.Now(),
 	}
 
 }
-
-
 
 // updateResolutionMetrics updates metrics based on resolution result.
 
@@ -159,8 +128,6 @@ func (r *dependencyResolver) updateResolutionMetrics(result *ResolutionResult) {
 
 }
 
-
-
 // resolveVersionsConcurrently resolves versions concurrently.
 
 func (r *dependencyResolver) resolveVersionsConcurrently(ctx context.Context, packageRequirements map[string][]*VersionRequirement, resolution *VersionResolutionResult) error {
@@ -171,8 +138,6 @@ func (r *dependencyResolver) resolveVersionsConcurrently(ctx context.Context, pa
 
 }
 
-
-
 // resolveVersionsSequentially resolves versions sequentially.
 
 func (r *dependencyResolver) resolveVersionsSequentially(ctx context.Context, packageRequirements map[string][]*VersionRequirement, resolution *VersionResolutionResult) error {
@@ -182,8 +147,6 @@ func (r *dependencyResolver) resolveVersionsSequentially(ctx context.Context, pa
 	return nil
 
 }
-
-
 
 // groupVersionRequirements groups version requirements by package.
 
@@ -207,8 +170,6 @@ func (r *dependencyResolver) groupVersionRequirements(requirements []*VersionReq
 
 }
 
-
-
 // detectVersionConflicts detects version conflicts in resolutions.
 
 func (r *dependencyResolver) detectVersionConflicts(resolutions map[string]*VersionResolution) []*VersionConflict {
@@ -216,8 +177,6 @@ func (r *dependencyResolver) detectVersionConflicts(resolutions map[string]*Vers
 	return []*VersionConflict{}
 
 }
-
-
 
 // validateConstraints validates a list of constraints.
 
@@ -249,8 +208,6 @@ func (r *dependencyResolver) validateConstraints(constraints []*DependencyConstr
 
 }
 
-
-
 // generateConstraintCacheKey generates cache key for constraints.
 
 func (r *dependencyResolver) generateConstraintCacheKey(constraints []*DependencyConstraint) string {
@@ -267,8 +224,6 @@ func (r *dependencyResolver) generateConstraintCacheKey(constraints []*Dependenc
 
 }
 
-
-
 // collectConflicts collects conflicts from multiple detection channels.
 
 func (r *dependencyResolver) collectConflicts(ctx context.Context, conflictChannels []<-chan *DependencyConflict, report *ConflictReport) error {
@@ -279,8 +234,6 @@ func (r *dependencyResolver) collectConflicts(ctx context.Context, conflictChann
 
 }
 
-
-
 // deduplicateConflicts removes duplicate conflicts from the report.
 
 func (r *dependencyResolver) deduplicateConflicts(report *ConflictReport) {
@@ -288,8 +241,6 @@ func (r *dependencyResolver) deduplicateConflicts(report *ConflictReport) {
 	// Deduplication logic would go here
 
 }
-
-
 
 // classifyConflicts classifies conflicts by type and severity.
 
@@ -299,8 +250,6 @@ func (r *dependencyResolver) classifyConflicts(report *ConflictReport) {
 
 }
 
-
-
 // calculateConflictStatistics calculates statistics for the conflict report.
 
 func (r *dependencyResolver) calculateConflictStatistics(report *ConflictReport) {
@@ -308,8 +257,6 @@ func (r *dependencyResolver) calculateConflictStatistics(report *ConflictReport)
 	// Statistics calculation would go here
 
 }
-
-
 
 // cleanupCaches performs cache cleanup.
 
@@ -319,8 +266,6 @@ func (r *dependencyResolver) cleanupCaches() {
 
 }
 
-
-
 // collectAndReportMetrics collects and reports metrics.
 
 func (r *dependencyResolver) collectAndReportMetrics() {
@@ -328,8 +273,6 @@ func (r *dependencyResolver) collectAndReportMetrics() {
 	// Metrics collection implementation
 
 }
-
-
 
 // performHealthCheck performs health checks.
 
@@ -339,8 +282,6 @@ func (r *dependencyResolver) performHealthCheck() {
 
 }
 
-
-
 // ResolveConflicts resolves dependency conflicts using the specified strategy.
 
 func (r *dependencyResolver) ResolveConflicts(ctx context.Context, conflicts *ConflictReport, strategy ConflictStrategy) (*ConflictResolution, error) {
@@ -349,25 +290,22 @@ func (r *dependencyResolver) ResolveConflicts(ctx context.Context, conflicts *Co
 
 		ConflictID: fmt.Sprintf("conflict-%d", time.Now().Unix()),
 
-		Strategy:   strategy,
+		Strategy: strategy,
 
 		Resolution: make([]*ConflictResolutionStrategy, 0),
 
-		Success:    true,
+		Success: true,
 
-		Changes:    make([]*ConstraintChange, 0),
+		Changes: make([]*ConstraintChange, 0),
 
 		ResolvedAt: time.Now(),
 
-		Duration:   time.Millisecond * 10, // Stub duration
+		Duration: time.Millisecond * 10, // Stub duration
 
 	}
-
-
 
 	// Simple resolution strategy implementation - just mark as resolved
 
 	return resolution, nil
 
 }
-

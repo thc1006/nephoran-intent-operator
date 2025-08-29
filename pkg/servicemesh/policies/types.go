@@ -1,31 +1,18 @@
 // Package policies provides policy types and definitions.
 
-
 package policies
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
-
 )
-
-
 
 // PolicyType represents the type of policy.
 
 type PolicyType string
-
-
 
 const (
 
@@ -52,36 +39,29 @@ const (
 	// PolicyTypeCircuitBreaker represents a circuit breaker policy.
 
 	PolicyTypeCircuitBreaker PolicyType = "circuit-breaker"
-
 )
-
-
 
 // Policy represents a service mesh policy.
 
 type Policy struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name        string                     `json:"name" yaml:"name"`
+	Type PolicyType `json:"type" yaml:"type"`
 
-	Type        PolicyType                 `json:"type" yaml:"type"`
+	Namespace string `json:"namespace" yaml:"namespace"`
 
-	Namespace   string                     `json:"namespace" yaml:"namespace"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 
-	Description string                     `json:"description,omitempty" yaml:"description,omitempty"`
+	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
-	Labels      map[string]string          `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Selector *abstraction.LabelSelector `json:"selector,omitempty" yaml:"selector,omitempty"`
 
-	Selector    *abstraction.LabelSelector `json:"selector,omitempty" yaml:"selector,omitempty"`
+	Spec PolicySpec `json:"spec" yaml:"spec"`
 
-	Spec        PolicySpec                 `json:"spec" yaml:"spec"`
+	Priority int `json:"priority,omitempty" yaml:"priority,omitempty"`
 
-	Priority    int                        `json:"priority,omitempty" yaml:"priority,omitempty"`
-
-	Enabled     bool                       `json:"enabled" yaml:"enabled"`
-
+	Enabled bool `json:"enabled" yaml:"enabled"`
 }
-
-
 
 // PolicySpec contains the specification for a policy.
 
@@ -89,129 +69,100 @@ type PolicySpec struct {
 
 	// mTLS settings.
 
-	MTLSMode      string      `json:"mtlsMode,omitempty" yaml:"mtlsMode,omitempty"`
+	MTLSMode string `json:"mtlsMode,omitempty" yaml:"mtlsMode,omitempty"`
 
 	PortLevelMTLS interface{} `json:"portLevelMtls,omitempty" yaml:"portLevelMtls,omitempty"`
 
-
-
 	// Authorization settings.
 
-	Action string      `json:"action,omitempty" yaml:"action,omitempty"`
+	Action string `json:"action,omitempty" yaml:"action,omitempty"`
 
-	Rules  interface{} `json:"rules,omitempty" yaml:"rules,omitempty"`
-
-
+	Rules interface{} `json:"rules,omitempty" yaml:"rules,omitempty"`
 
 	// Traffic management settings.
 
 	TrafficShifting interface{} `json:"trafficShifting,omitempty" yaml:"trafficShifting,omitempty"`
 
-	CircuitBreaker  interface{} `json:"circuitBreaker,omitempty" yaml:"circuitBreaker,omitempty"`
+	CircuitBreaker interface{} `json:"circuitBreaker,omitempty" yaml:"circuitBreaker,omitempty"`
 
-	Retry           interface{} `json:"retry,omitempty" yaml:"retry,omitempty"`
+	Retry interface{} `json:"retry,omitempty" yaml:"retry,omitempty"`
 
-	Timeout         interface{} `json:"timeout,omitempty" yaml:"timeout,omitempty"`
+	Timeout interface{} `json:"timeout,omitempty" yaml:"timeout,omitempty"`
 
-	LoadBalancer    interface{} `json:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty"`
-
-
+	LoadBalancer interface{} `json:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty"`
 
 	// Network segmentation settings.
 
 	AllowedSegments interface{} `json:"allowedSegments,omitempty" yaml:"allowedSegments,omitempty"`
 
-
-
 	// Rate limiting settings.
 
 	RateLimit interface{} `json:"rateLimit,omitempty" yaml:"rateLimit,omitempty"`
-
 }
-
-
 
 // PolicySet represents a collection of policies.
 
 type PolicySet struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name        string            `json:"name" yaml:"name"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 
-	Description string            `json:"description,omitempty" yaml:"description,omitempty"`
+	Version string `json:"version" yaml:"version"`
 
-	Version     string            `json:"version" yaml:"version"`
+	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
-	Labels      map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Policies []Policy `json:"policies" yaml:"policies"`
 
-	Policies    []Policy          `json:"policies" yaml:"policies"`
+	CreatedAt time.Time `json:"createdAt" yaml:"createdAt"`
 
-	CreatedAt   time.Time         `json:"createdAt" yaml:"createdAt"`
-
-	UpdatedAt   time.Time         `json:"updatedAt" yaml:"updatedAt"`
-
+	UpdatedAt time.Time `json:"updatedAt" yaml:"updatedAt"`
 }
-
-
 
 // ZeroTrustConfig represents zero-trust configuration.
 
 type ZeroTrustConfig struct {
+	Namespace string `json:"namespace" yaml:"namespace"`
 
-	Namespace             string                 `json:"namespace" yaml:"namespace"`
+	EnforceStrictMTLS bool `json:"enforceStrictMtls" yaml:"enforceStrictMtls"`
 
-	EnforceStrictMTLS     bool                   `json:"enforceStrictMtls" yaml:"enforceStrictMtls"`
-
-	DefaultDenyAll        bool                   `json:"defaultDenyAll" yaml:"defaultDenyAll"`
+	DefaultDenyAll bool `json:"defaultDenyAll" yaml:"defaultDenyAll"`
 
 	AllowedCommunications []AllowedCommunication `json:"allowedCommunications" yaml:"allowedCommunications"`
 
-	NetworkSegments       []NetworkSegment       `json:"networkSegments,omitempty" yaml:"networkSegments,omitempty"`
+	NetworkSegments []NetworkSegment `json:"networkSegments,omitempty" yaml:"networkSegments,omitempty"`
 
-	AuditLogging          bool                   `json:"auditLogging" yaml:"auditLogging"`
-
+	AuditLogging bool `json:"auditLogging" yaml:"auditLogging"`
 }
-
-
 
 // AllowedCommunication represents allowed service-to-service communication.
 
 type AllowedCommunication struct {
+	Source string `json:"source" yaml:"source"`
 
-	Source      string   `json:"source" yaml:"source"`
+	Destination string `json:"destination" yaml:"destination"`
 
-	Destination string   `json:"destination" yaml:"destination"`
+	Ports []int `json:"ports,omitempty" yaml:"ports,omitempty"`
 
-	Ports       []int    `json:"ports,omitempty" yaml:"ports,omitempty"`
+	Methods []string `json:"methods,omitempty" yaml:"methods,omitempty"`
 
-	Methods     []string `json:"methods,omitempty" yaml:"methods,omitempty"`
-
-	Paths       []string `json:"paths,omitempty" yaml:"paths,omitempty"`
-
+	Paths []string `json:"paths,omitempty" yaml:"paths,omitempty"`
 }
-
-
 
 // NetworkSegment represents a network segment.
 
 type NetworkSegment struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name        string            `json:"name" yaml:"name"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 
-	Description string            `json:"description,omitempty" yaml:"description,omitempty"`
+	Labels map[string]string `json:"labels" yaml:"labels"`
 
-	Labels      map[string]string `json:"labels" yaml:"labels"`
-
-	Namespaces  []string          `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
-
+	Namespaces []string `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
 }
-
-
 
 // ComplianceStandard represents a compliance standard.
 
 type ComplianceStandard string
-
-
 
 const (
 
@@ -234,62 +185,47 @@ const (
 	// ComplianceCIS represents CIS benchmark compliance.
 
 	ComplianceCIS ComplianceStandard = "CIS"
-
 )
-
-
 
 // ComplianceReport represents a compliance validation report.
 
 type ComplianceReport struct {
+	Standard ComplianceStandard `json:"standard" yaml:"standard"`
 
-	Standard    ComplianceStandard `json:"standard" yaml:"standard"`
+	Timestamp time.Time `json:"timestamp" yaml:"timestamp"`
 
-	Timestamp   time.Time          `json:"timestamp" yaml:"timestamp"`
+	Compliant bool `json:"compliant" yaml:"compliant"`
 
-	Compliant   bool               `json:"compliant" yaml:"compliant"`
+	Score float64 `json:"score" yaml:"score"`
 
-	Score       float64            `json:"score" yaml:"score"`
+	Checks []ComplianceCheck `json:"checks" yaml:"checks"`
 
-	Checks      []ComplianceCheck  `json:"checks" yaml:"checks"`
-
-	Remediation []string           `json:"remediation,omitempty" yaml:"remediation,omitempty"`
-
+	Remediation []string `json:"remediation,omitempty" yaml:"remediation,omitempty"`
 }
-
-
 
 // ComplianceCheck represents a single compliance check.
 
 type ComplianceCheck struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name        string   `json:"name" yaml:"name"`
+	Description string `json:"description" yaml:"description"`
 
-	Description string   `json:"description" yaml:"description"`
+	Passed bool `json:"passed" yaml:"passed"`
 
-	Passed      bool     `json:"passed" yaml:"passed"`
+	Issues []string `json:"issues,omitempty" yaml:"issues,omitempty"`
 
-	Issues      []string `json:"issues,omitempty" yaml:"issues,omitempty"`
-
-	Severity    string   `json:"severity,omitempty" yaml:"severity,omitempty"`
-
+	Severity string `json:"severity,omitempty" yaml:"severity,omitempty"`
 }
-
-
 
 // PolicyStore stores and manages policies.
 
 type PolicyStore struct {
+	policies map[string]Policy
 
-	policies    map[string]Policy
-
-	policySets  map[string]*PolicySet
+	policySets map[string]*PolicySet
 
 	lastUpdated time.Time
-
 }
-
-
 
 // NewPolicyStore creates a new policy store.
 
@@ -297,15 +233,12 @@ func NewPolicyStore() *PolicyStore {
 
 	return &PolicyStore{
 
-		policies:   make(map[string]Policy),
+		policies: make(map[string]Policy),
 
 		policySets: make(map[string]*PolicySet),
-
 	}
 
 }
-
-
 
 // StorePolicy stores a policy.
 
@@ -316,8 +249,6 @@ func (s *PolicyStore) StorePolicy(policy Policy) {
 	s.lastUpdated = time.Now()
 
 }
-
-
 
 // StorePolicySet stores a policy set.
 
@@ -335,8 +266,6 @@ func (s *PolicyStore) StorePolicySet(policySet *PolicySet) {
 
 }
 
-
-
 // GetPolicy retrieves a policy by name.
 
 func (s *PolicyStore) GetPolicy(name string) (Policy, bool) {
@@ -347,8 +276,6 @@ func (s *PolicyStore) GetPolicy(name string) (Policy, bool) {
 
 }
 
-
-
 // GetPolicySet retrieves a policy set by name.
 
 func (s *PolicyStore) GetPolicySet(name string) (*PolicySet, bool) {
@@ -358,8 +285,6 @@ func (s *PolicyStore) GetPolicySet(name string) (*PolicySet, bool) {
 	return policySet, exists
 
 }
-
-
 
 // GetAllPolicies returns all stored policies.
 
@@ -377,8 +302,6 @@ func (s *PolicyStore) GetAllPolicies() []Policy {
 
 }
 
-
-
 // GetAllPolicySets returns all stored policy sets.
 
 func (s *PolicyStore) GetAllPolicySets() []*PolicySet {
@@ -395,8 +318,6 @@ func (s *PolicyStore) GetAllPolicySets() []*PolicySet {
 
 }
 
-
-
 // DeletePolicy deletes a policy.
 
 func (s *PolicyStore) DeletePolicy(name string) {
@@ -406,8 +327,6 @@ func (s *PolicyStore) DeletePolicy(name string) {
 	s.lastUpdated = time.Now()
 
 }
-
-
 
 // DeletePolicySet deletes a policy set.
 
@@ -431,17 +350,11 @@ func (s *PolicyStore) DeletePolicySet(name string) {
 
 }
 
-
-
 // PolicyValidator validates policies.
 
 type PolicyValidator struct {
-
 	mesh abstraction.ServiceMeshInterface
-
 }
-
-
 
 // NewPolicyValidator creates a new policy validator.
 
@@ -450,12 +363,9 @@ func NewPolicyValidator(mesh abstraction.ServiceMeshInterface) *PolicyValidator 
 	return &PolicyValidator{
 
 		mesh: mesh,
-
 	}
 
 }
-
-
 
 // ValidatePolicy validates a single policy.
 
@@ -481,8 +391,6 @@ func (v *PolicyValidator) ValidatePolicy(ctx context.Context, policy Policy) err
 
 	}
 
-
-
 	// Type-specific validation.
 
 	switch policy.Type {
@@ -507,23 +415,18 @@ func (v *PolicyValidator) ValidatePolicy(ctx context.Context, policy Policy) err
 
 }
 
-
-
 // validateMTLSPolicy validates an mTLS policy.
 
 func (v *PolicyValidator) validateMTLSPolicy(policy Policy) error {
 
 	validModes := map[string]bool{
 
-		"STRICT":     true,
+		"STRICT": true,
 
 		"PERMISSIVE": true,
 
-		"DISABLE":    true,
-
+		"DISABLE": true,
 	}
-
-
 
 	if !validModes[policy.Spec.MTLSMode] {
 
@@ -531,13 +434,9 @@ func (v *PolicyValidator) validateMTLSPolicy(policy Policy) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateAuthorizationPolicy validates an authorization policy.
 
@@ -545,17 +444,14 @@ func (v *PolicyValidator) validateAuthorizationPolicy(policy Policy) error {
 
 	validActions := map[string]bool{
 
-		"ALLOW":  true,
+		"ALLOW": true,
 
-		"DENY":   true,
+		"DENY": true,
 
-		"AUDIT":  true,
+		"AUDIT": true,
 
 		"CUSTOM": true,
-
 	}
-
-
 
 	if !validActions[policy.Spec.Action] {
 
@@ -563,13 +459,9 @@ func (v *PolicyValidator) validateAuthorizationPolicy(policy Policy) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateTrafficPolicy validates a traffic policy.
 
@@ -591,21 +483,15 @@ func (v *PolicyValidator) validateTrafficPolicy(policy Policy) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // CheckConflicts checks for policy conflicts.
 
 func (v *PolicyValidator) CheckConflicts(policies []Policy) []string {
 
 	conflicts := []string{}
-
-
 
 	// Check for conflicting mTLS modes.
 
@@ -639,8 +525,6 @@ func (v *PolicyValidator) CheckConflicts(policies []Policy) []string {
 
 	}
 
-
-
 	// Check for conflicting authorization policies.
 
 	authPolicies := make(map[string][]Policy)
@@ -656,8 +540,6 @@ func (v *PolicyValidator) CheckConflicts(policies []Policy) []string {
 		}
 
 	}
-
-
 
 	for key, policies := range authPolicies {
 
@@ -689,13 +571,9 @@ func (v *PolicyValidator) CheckConflicts(policies []Policy) []string {
 
 	}
 
-
-
 	return conflicts
 
 }
-
-
 
 // getSelectorKey creates a key from a label selector.
 
@@ -706,8 +584,6 @@ func getSelectorKey(selector *abstraction.LabelSelector) string {
 		return "default"
 
 	}
-
-
 
 	key := ""
 
@@ -727,17 +603,11 @@ func getSelectorKey(selector *abstraction.LabelSelector) string {
 
 }
 
-
-
 // PolicyEnforcer enforces policies.
 
 type PolicyEnforcer struct {
-
 	mesh abstraction.ServiceMeshInterface
-
 }
-
-
 
 // NewPolicyEnforcer creates a new policy enforcer.
 
@@ -746,12 +616,9 @@ func NewPolicyEnforcer(mesh abstraction.ServiceMeshInterface) *PolicyEnforcer {
 	return &PolicyEnforcer{
 
 		mesh: mesh,
-
 	}
 
 }
-
-
 
 // EnforcePolicy enforces a policy.
 
@@ -763,8 +630,6 @@ func (e *PolicyEnforcer) EnforcePolicy(ctx context.Context, policy Policy) error
 
 }
 
-
-
 // RemovePolicy removes a policy.
 
 func (e *PolicyEnforcer) RemovePolicy(ctx context.Context, policy Policy) error {
@@ -774,4 +639,3 @@ func (e *PolicyEnforcer) RemovePolicy(ctx context.Context, policy Policy) error 
 	return nil
 
 }
-

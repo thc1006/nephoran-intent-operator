@@ -1,43 +1,25 @@
 // Package validation provides regression detection engine for identifying quality degradations.
 
-
 package validation
 
-
-
 import (
-
 	"fmt"
-
 	"math"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/onsi/ginkgo/v2"
-
 )
-
-
 
 // RegressionDetectionEngine analyzes current results against baselines to detect regressions.
 
 type RegressionDetectionEngine struct {
-
 	config *RegressionConfig
-
-
 
 	// Thresholds for different regression severities.
 
 	severityThresholds map[string]float64
-
 }
-
-
 
 // NewRegressionDetectionEngine creates a new regression detection engine.
 
@@ -49,21 +31,18 @@ func NewRegressionDetectionEngine(config *RegressionConfig) *RegressionDetection
 
 		severityThresholds: map[string]float64{
 
-			"low":      5.0,  // 5% degradation
+			"low": 5.0, // 5% degradation
 
-			"medium":   15.0, // 15% degradation
+			"medium": 15.0, // 15% degradation
 
-			"high":     30.0, // 30% degradation
+			"high": 30.0, // 30% degradation
 
 			"critical": 50.0, // 50% degradation
 
 		},
-
 	}
 
 }
-
-
 
 // DetectRegressions analyzes current results against baseline to detect regressions.
 
@@ -71,35 +50,30 @@ func (rde *RegressionDetectionEngine) DetectRegressions(baseline *BaselineSnapsh
 
 	ginkgo.By("Analyzing results for regression detection")
 
-
-
 	detection := &RegressionDetection{
 
-		HasRegression:           false,
+		HasRegression: false,
 
-		RegressionSeverity:      "none",
+		RegressionSeverity: "none",
 
-		BaselineID:              baseline.ID,
+		BaselineID: baseline.ID,
 
-		ComparisonTime:          time.Now(),
+		ComparisonTime: time.Now(),
 
-		ExecutionContext:        "regression-analysis",
+		ExecutionContext: "regression-analysis",
 
-		PerformanceRegressions:  []*PerformanceRegression{},
+		PerformanceRegressions: []*PerformanceRegression{},
 
-		FunctionalRegressions:   []*FunctionalRegression{},
+		FunctionalRegressions: []*FunctionalRegression{},
 
-		SecurityRegressions:     []*SecurityRegression{},
+		SecurityRegressions: []*SecurityRegression{},
 
-		ProductionRegressions:   []*ProductionRegression{},
+		ProductionRegressions: []*ProductionRegression{},
 
 		StatisticalSignificance: 95.0,
 
-		ConfidenceLevel:         rde.config.StatisticalConfidence,
-
+		ConfidenceLevel: rde.config.StatisticalConfidence,
 	}
-
-
 
 	// Detect performance regressions.
 
@@ -107,15 +81,11 @@ func (rde *RegressionDetectionEngine) DetectRegressions(baseline *BaselineSnapsh
 
 	detection.PerformanceRegressions = perfRegressions
 
-
-
 	// Detect functional regressions.
 
 	funcRegressions := rde.detectFunctionalRegressions(baseline, current)
 
 	detection.FunctionalRegressions = funcRegressions
-
-
 
 	// Detect security regressions.
 
@@ -123,15 +93,11 @@ func (rde *RegressionDetectionEngine) DetectRegressions(baseline *BaselineSnapsh
 
 	detection.SecurityRegressions = secRegressions
 
-
-
 	// Detect production readiness regressions.
 
 	prodRegressions := rde.detectProductionRegressions(baseline, current)
 
 	detection.ProductionRegressions = prodRegressions
-
-
 
 	// Determine overall regression status and severity.
 
@@ -139,15 +105,11 @@ func (rde *RegressionDetectionEngine) DetectRegressions(baseline *BaselineSnapsh
 
 		len(secRegressions) > 0 || len(prodRegressions) > 0
 
-
-
 	if detection.HasRegression {
 
 		detection.RegressionSeverity = rde.calculateOverallSeverity(detection)
 
 	}
-
-
 
 	ginkgo.By(fmt.Sprintf("Regression detection completed: %s",
 
@@ -163,21 +125,15 @@ func (rde *RegressionDetectionEngine) DetectRegressions(baseline *BaselineSnapsh
 
 		}()))
 
-
-
 	return detection, nil
 
 }
-
-
 
 // detectPerformanceRegressions identifies performance degradations.
 
 func (rde *RegressionDetectionEngine) detectPerformanceRegressions(baseline *BaselineSnapshot, current *ValidationResults) []*PerformanceRegression {
 
 	var regressions []*PerformanceRegression
-
-
 
 	// Check P95 Latency regression.
 
@@ -188,31 +144,27 @@ func (rde *RegressionDetectionEngine) detectPerformanceRegressions(baseline *Bas
 			float64(baseline.Results.P95Latency.Nanoseconds()),
 
 			float64(current.P95Latency.Nanoseconds()),
-
 		)
-
-
 
 		if degradation > rde.config.PerformanceThreshold {
 
 			regression := &PerformanceRegression{
 
-				MetricName:         "P95 Latency",
+				MetricName: "P95 Latency",
 
-				BaselineValue:      float64(baseline.Results.P95Latency.Nanoseconds()),
+				BaselineValue: float64(baseline.Results.P95Latency.Nanoseconds()),
 
-				CurrentValue:       float64(current.P95Latency.Nanoseconds()),
+				CurrentValue: float64(current.P95Latency.Nanoseconds()),
 
 				DegradationPercent: degradation,
 
-				Severity:           rde.classifySeverity(degradation),
+				Severity: rde.classifySeverity(degradation),
 
-				Impact:             rde.describeLatencyImpact(degradation, baseline.Results.P95Latency, current.P95Latency),
+				Impact: rde.describeLatencyImpact(degradation, baseline.Results.P95Latency, current.P95Latency),
 
-				Recommendation:     rde.getLatencyRecommendation(degradation),
+				Recommendation: rde.getLatencyRecommendation(degradation),
 
-				DetectionTime:      time.Now(),
-
+				DetectionTime: time.Now(),
 			}
 
 			regressions = append(regressions, regression)
@@ -220,8 +172,6 @@ func (rde *RegressionDetectionEngine) detectPerformanceRegressions(baseline *Bas
 		}
 
 	}
-
-
 
 	// Check P99 Latency regression.
 
@@ -232,31 +182,27 @@ func (rde *RegressionDetectionEngine) detectPerformanceRegressions(baseline *Bas
 			float64(baseline.Results.P99Latency.Nanoseconds()),
 
 			float64(current.P99Latency.Nanoseconds()),
-
 		)
-
-
 
 		if degradation > rde.config.PerformanceThreshold {
 
 			regression := &PerformanceRegression{
 
-				MetricName:         "P99 Latency",
+				MetricName: "P99 Latency",
 
-				BaselineValue:      float64(baseline.Results.P99Latency.Nanoseconds()),
+				BaselineValue: float64(baseline.Results.P99Latency.Nanoseconds()),
 
-				CurrentValue:       float64(current.P99Latency.Nanoseconds()),
+				CurrentValue: float64(current.P99Latency.Nanoseconds()),
 
 				DegradationPercent: degradation,
 
-				Severity:           rde.classifySeverity(degradation),
+				Severity: rde.classifySeverity(degradation),
 
-				Impact:             rde.describeLatencyImpact(degradation, baseline.Results.P99Latency, current.P99Latency),
+				Impact: rde.describeLatencyImpact(degradation, baseline.Results.P99Latency, current.P99Latency),
 
-				Recommendation:     rde.getLatencyRecommendation(degradation),
+				Recommendation: rde.getLatencyRecommendation(degradation),
 
-				DetectionTime:      time.Now(),
-
+				DetectionTime: time.Now(),
 			}
 
 			regressions = append(regressions, regression)
@@ -264,8 +210,6 @@ func (rde *RegressionDetectionEngine) detectPerformanceRegressions(baseline *Bas
 		}
 
 	}
-
-
 
 	// Check Throughput regression (inverted - lower is worse).
 
@@ -276,10 +220,7 @@ func (rde *RegressionDetectionEngine) detectPerformanceRegressions(baseline *Bas
 			baseline.Results.ThroughputAchieved,
 
 			current.ThroughputAchieved,
-
 		)
-
-
 
 		// For throughput, we want to detect decreases (negative degradation).
 
@@ -287,28 +228,25 @@ func (rde *RegressionDetectionEngine) detectPerformanceRegressions(baseline *Bas
 
 			reduction := ((baseline.Results.ThroughputAchieved - current.ThroughputAchieved) / baseline.Results.ThroughputAchieved) * 100
 
-
-
 			if reduction > rde.config.PerformanceThreshold {
 
 				regression := &PerformanceRegression{
 
-					MetricName:         "Throughput",
+					MetricName: "Throughput",
 
-					BaselineValue:      baseline.Results.ThroughputAchieved,
+					BaselineValue: baseline.Results.ThroughputAchieved,
 
-					CurrentValue:       current.ThroughputAchieved,
+					CurrentValue: current.ThroughputAchieved,
 
 					DegradationPercent: reduction,
 
-					Severity:           rde.classifySeverity(reduction),
+					Severity: rde.classifySeverity(reduction),
 
-					Impact:             rde.describeThroughputImpact(reduction, baseline.Results.ThroughputAchieved, current.ThroughputAchieved),
+					Impact: rde.describeThroughputImpact(reduction, baseline.Results.ThroughputAchieved, current.ThroughputAchieved),
 
-					Recommendation:     rde.getThroughputRecommendation(reduction),
+					Recommendation: rde.getThroughputRecommendation(reduction),
 
-					DetectionTime:      time.Now(),
-
+					DetectionTime: time.Now(),
 				}
 
 				regressions = append(regressions, regression)
@@ -318,8 +256,6 @@ func (rde *RegressionDetectionEngine) detectPerformanceRegressions(baseline *Bas
 		}
 
 	}
-
-
 
 	// Check Availability regression (inverted - lower is worse).
 
@@ -329,30 +265,27 @@ func (rde *RegressionDetectionEngine) detectPerformanceRegressions(baseline *Bas
 
 			reduction := baseline.Results.AvailabilityAchieved - current.AvailabilityAchieved
 
-
-
 			// Any availability reduction is significant.
 
 			if reduction > 0.01 { // 0.01% reduction threshold
 
 				regression := &PerformanceRegression{
 
-					MetricName:         "Availability",
+					MetricName: "Availability",
 
-					BaselineValue:      baseline.Results.AvailabilityAchieved,
+					BaselineValue: baseline.Results.AvailabilityAchieved,
 
-					CurrentValue:       current.AvailabilityAchieved,
+					CurrentValue: current.AvailabilityAchieved,
 
 					DegradationPercent: (reduction / baseline.Results.AvailabilityAchieved) * 100,
 
-					Severity:           "high", // Availability regression is always high severity
+					Severity: "high", // Availability regression is always high severity
 
-					Impact:             rde.describeAvailabilityImpact(reduction, baseline.Results.AvailabilityAchieved, current.AvailabilityAchieved),
+					Impact: rde.describeAvailabilityImpact(reduction, baseline.Results.AvailabilityAchieved, current.AvailabilityAchieved),
 
-					Recommendation:     rde.getAvailabilityRecommendation(reduction),
+					Recommendation: rde.getAvailabilityRecommendation(reduction),
 
-					DetectionTime:      time.Now(),
-
+					DetectionTime: time.Now(),
 				}
 
 				regressions = append(regressions, regression)
@@ -363,21 +296,15 @@ func (rde *RegressionDetectionEngine) detectPerformanceRegressions(baseline *Bas
 
 	}
 
-
-
 	return regressions
 
 }
-
-
 
 // detectFunctionalRegressions identifies functional test failures and degradations.
 
 func (rde *RegressionDetectionEngine) detectFunctionalRegressions(baseline *BaselineSnapshot, current *ValidationResults) []*FunctionalRegression {
 
 	var regressions []*FunctionalRegression
-
-
 
 	// Check overall functional score regression.
 
@@ -387,30 +314,27 @@ func (rde *RegressionDetectionEngine) detectFunctionalRegressions(baseline *Base
 
 		reductionPercent := (reduction / float64(baseline.Results.FunctionalScore)) * 100
 
-
-
 		if reductionPercent > rde.config.FunctionalThreshold {
 
 			regression := &FunctionalRegression{
 
-				TestCategory:     "Overall Functional",
+				TestCategory: "Overall Functional",
 
 				BaselinePassRate: (float64(baseline.Results.FunctionalScore) / 50.0) * 100, // Assuming 50 is max functional score
 
-				CurrentPassRate:  (float64(current.FunctionalScore) / 50.0) * 100,
+				CurrentPassRate: (float64(current.FunctionalScore) / 50.0) * 100,
 
-				FailedTests:      rde.identifyFailedFunctionalTests(baseline, current),
+				FailedTests: rde.identifyFailedFunctionalTests(baseline, current),
 
-				NewFailures:      rde.identifyNewFunctionalFailures(baseline, current),
+				NewFailures: rde.identifyNewFunctionalFailures(baseline, current),
 
-				Severity:         rde.classifySeverity(reductionPercent),
+				Severity: rde.classifySeverity(reductionPercent),
 
-				Impact:           rde.describeFunctionalImpact(reductionPercent, baseline.Results.FunctionalScore, current.FunctionalScore),
+				Impact: rde.describeFunctionalImpact(reductionPercent, baseline.Results.FunctionalScore, current.FunctionalScore),
 
-				Recommendation:   rde.getFunctionalRecommendation(reductionPercent),
+				Recommendation: rde.getFunctionalRecommendation(reductionPercent),
 
-				DetectionTime:    time.Now(),
-
+				DetectionTime: time.Now(),
 			}
 
 			regressions = append(regressions, regression)
@@ -418,8 +342,6 @@ func (rde *RegressionDetectionEngine) detectFunctionalRegressions(baseline *Base
 		}
 
 	}
-
-
 
 	// Check specific test category regressions.
 
@@ -435,32 +357,29 @@ func (rde *RegressionDetectionEngine) detectFunctionalRegressions(baseline *Base
 
 				currentPassRate := (float64(currentResult.PassedTests) / float64(currentResult.TotalTests)) * 100
 
-
-
 				reduction := baselinePassRate - currentPassRate
 
 				if reduction > rde.config.FunctionalThreshold {
 
 					regression := &FunctionalRegression{
 
-						TestCategory:     category,
+						TestCategory: category,
 
 						BaselinePassRate: baselinePassRate,
 
-						CurrentPassRate:  currentPassRate,
+						CurrentPassRate: currentPassRate,
 
-						FailedTests:      rde.extractFailedTestNames(currentResult),
+						FailedTests: rde.extractFailedTestNames(currentResult),
 
-						NewFailures:      rde.compareTestFailures(baselineResult, currentResult),
+						NewFailures: rde.compareTestFailures(baselineResult, currentResult),
 
-						Severity:         rde.classifySeverity(reduction),
+						Severity: rde.classifySeverity(reduction),
 
-						Impact:           rde.describeCategoryImpact(category, reduction),
+						Impact: rde.describeCategoryImpact(category, reduction),
 
-						Recommendation:   rde.getCategoryRecommendation(category, reduction),
+						Recommendation: rde.getCategoryRecommendation(category, reduction),
 
-						DetectionTime:    time.Now(),
-
+						DetectionTime: time.Now(),
 					}
 
 					regressions = append(regressions, regression)
@@ -473,21 +392,15 @@ func (rde *RegressionDetectionEngine) detectFunctionalRegressions(baseline *Base
 
 	}
 
-
-
 	return regressions
 
 }
-
-
 
 // detectSecurityRegressions identifies new security vulnerabilities and compliance failures.
 
 func (rde *RegressionDetectionEngine) detectSecurityRegressions(baseline *BaselineSnapshot, current *ValidationResults) []*SecurityRegression {
 
 	var regressions []*SecurityRegression
-
-
 
 	// Check for new security vulnerabilities.
 
@@ -499,8 +412,6 @@ func (rde *RegressionDetectionEngine) detectSecurityRegressions(baseline *Baseli
 
 	}
 
-
-
 	for _, currentFinding := range current.SecurityFindings {
 
 		if baselineFinding, exists := baselineFindings[currentFinding.Type]; exists {
@@ -511,18 +422,17 @@ func (rde *RegressionDetectionEngine) detectSecurityRegressions(baseline *Baseli
 
 				regression := &SecurityRegression{
 
-					Finding:            currentFinding,
+					Finding: currentFinding,
 
 					IsNewVulnerability: false,
 
-					SeverityChange:     fmt.Sprintf("%s → %s", baselineFinding.Severity, currentFinding.Severity),
+					SeverityChange: fmt.Sprintf("%s → %s", baselineFinding.Severity, currentFinding.Severity),
 
-					Impact:             rde.describeSecurityImpact(currentFinding, false),
+					Impact: rde.describeSecurityImpact(currentFinding, false),
 
-					Recommendation:     rde.getSecurityRecommendation(currentFinding),
+					Recommendation: rde.getSecurityRecommendation(currentFinding),
 
-					DetectionTime:      time.Now(),
-
+					DetectionTime: time.Now(),
 				}
 
 				regressions = append(regressions, regression)
@@ -537,18 +447,17 @@ func (rde *RegressionDetectionEngine) detectSecurityRegressions(baseline *Baseli
 
 				regression := &SecurityRegression{
 
-					Finding:            currentFinding,
+					Finding: currentFinding,
 
 					IsNewVulnerability: true,
 
-					SeverityChange:     fmt.Sprintf("None → %s", currentFinding.Severity),
+					SeverityChange: fmt.Sprintf("None → %s", currentFinding.Severity),
 
-					Impact:             rde.describeSecurityImpact(currentFinding, true),
+					Impact: rde.describeSecurityImpact(currentFinding, true),
 
-					Recommendation:     rde.getSecurityRecommendation(currentFinding),
+					Recommendation: rde.getSecurityRecommendation(currentFinding),
 
-					DetectionTime:      time.Now(),
-
+					DetectionTime: time.Now(),
 				}
 
 				regressions = append(regressions, regression)
@@ -558,8 +467,6 @@ func (rde *RegressionDetectionEngine) detectSecurityRegressions(baseline *Baseli
 		}
 
 	}
-
-
 
 	// Check overall security score regression.
 
@@ -577,30 +484,28 @@ func (rde *RegressionDetectionEngine) detectSecurityRegressions(baseline *Baseli
 
 					Finding: &SecurityFinding{
 
-						Type:        "General Security",
+						Type: "General Security",
 
-						Severity:    "medium",
+						Severity: "medium",
 
 						Description: fmt.Sprintf("Overall security score decreased from %d to %d", baseline.Results.SecurityScore, current.SecurityScore),
 
-						Component:   "Security Framework",
+						Component: "Security Framework",
 
 						Remediation: "Review all security test failures and compliance issues",
 
-						Passed:      false,
-
+						Passed: false,
 					},
 
 					IsNewVulnerability: false,
 
-					SeverityChange:     "Degradation",
+					SeverityChange: "Degradation",
 
-					Impact:             "Overall security posture has deteriorated",
+					Impact: "Overall security posture has deteriorated",
 
-					Recommendation:     "Conduct comprehensive security review and address all failing security tests",
+					Recommendation: "Conduct comprehensive security review and address all failing security tests",
 
-					DetectionTime:      time.Now(),
-
+					DetectionTime: time.Now(),
 				}
 
 				regressions = append(regressions, regression)
@@ -611,21 +516,15 @@ func (rde *RegressionDetectionEngine) detectSecurityRegressions(baseline *Baseli
 
 	}
 
-
-
 	return regressions
 
 }
-
-
 
 // detectProductionRegressions identifies production readiness degradations.
 
 func (rde *RegressionDetectionEngine) detectProductionRegressions(baseline *BaselineSnapshot, current *ValidationResults) []*ProductionRegression {
 
 	var regressions []*ProductionRegression
-
-
 
 	// Check production readiness score regression.
 
@@ -637,18 +536,17 @@ func (rde *RegressionDetectionEngine) detectProductionRegressions(baseline *Base
 
 			regression := &ProductionRegression{
 
-				Metric:         "Production Readiness Score",
+				Metric: "Production Readiness Score",
 
-				BaselineValue:  float64(baseline.Results.ProductionScore),
+				BaselineValue: float64(baseline.Results.ProductionScore),
 
-				CurrentValue:   float64(current.ProductionScore),
+				CurrentValue: float64(current.ProductionScore),
 
-				Impact:         rde.describeProductionScoreImpact(reduction),
+				Impact: rde.describeProductionScoreImpact(reduction),
 
 				Recommendation: rde.getProductionScoreRecommendation(reduction),
 
-				DetectionTime:  time.Now(),
-
+				DetectionTime: time.Now(),
 			}
 
 			regressions = append(regressions, regression)
@@ -656,8 +554,6 @@ func (rde *RegressionDetectionEngine) detectProductionRegressions(baseline *Base
 		}
 
 	}
-
-
 
 	// Check specific production metrics if available.
 
@@ -673,18 +569,17 @@ func (rde *RegressionDetectionEngine) detectProductionRegressions(baseline *Base
 
 				regression := &ProductionRegression{
 
-					Metric:         "Mean Time To Recovery (MTTR)",
+					Metric: "Mean Time To Recovery (MTTR)",
 
-					BaselineValue:  float64(baseline.ProductionBaselines.MTTR.Seconds()),
+					BaselineValue: float64(baseline.ProductionBaselines.MTTR.Seconds()),
 
-					CurrentValue:   float64(current.ReliabilityMetrics.MTTR.Seconds()),
+					CurrentValue: float64(current.ReliabilityMetrics.MTTR.Seconds()),
 
-					Impact:         "Increased recovery time affects service reliability",
+					Impact: "Increased recovery time affects service reliability",
 
 					Recommendation: "Review incident response procedures and automation",
 
-					DetectionTime:  time.Now(),
-
+					DetectionTime: time.Now(),
 				}
 
 				regressions = append(regressions, regression)
@@ -692,8 +587,6 @@ func (rde *RegressionDetectionEngine) detectProductionRegressions(baseline *Base
 			}
 
 		}
-
-
 
 		// Error rate regression (higher is worse).
 
@@ -705,18 +598,17 @@ func (rde *RegressionDetectionEngine) detectProductionRegressions(baseline *Base
 
 				regression := &ProductionRegression{
 
-					Metric:         "Error Rate",
+					Metric: "Error Rate",
 
-					BaselineValue:  baseline.ProductionBaselines.ErrorRate,
+					BaselineValue: baseline.ProductionBaselines.ErrorRate,
 
-					CurrentValue:   current.ReliabilityMetrics.ErrorRate,
+					CurrentValue: current.ReliabilityMetrics.ErrorRate,
 
-					Impact:         "Increased error rate affects user experience and system reliability",
+					Impact: "Increased error rate affects user experience and system reliability",
 
 					Recommendation: "Investigate root causes of increased errors and implement fixes",
 
-					DetectionTime:  time.Now(),
-
+					DetectionTime: time.Now(),
 				}
 
 				regressions = append(regressions, regression)
@@ -727,17 +619,11 @@ func (rde *RegressionDetectionEngine) detectProductionRegressions(baseline *Base
 
 	}
 
-
-
 	return regressions
 
 }
 
-
-
 // Helper methods for impact description and recommendations.
-
-
 
 func (rde *RegressionDetectionEngine) calculatePercentDegradation(baseline, current float64) float64 {
 
@@ -751,13 +637,9 @@ func (rde *RegressionDetectionEngine) calculatePercentDegradation(baseline, curr
 
 }
 
-
-
 func (rde *RegressionDetectionEngine) classifySeverity(degradationPercent float64) string {
 
 	absPercent := math.Abs(degradationPercent)
-
-
 
 	if absPercent >= rde.severityThresholds["critical"] {
 
@@ -777,15 +659,11 @@ func (rde *RegressionDetectionEngine) classifySeverity(degradationPercent float6
 
 }
 
-
-
 func (rde *RegressionDetectionEngine) calculateOverallSeverity(detection *RegressionDetection) string {
 
 	maxSeverity := "low"
 
 	severityOrder := map[string]int{"low": 1, "medium": 2, "high": 3, "critical": 4}
-
-
 
 	// Check performance regressions.
 
@@ -799,8 +677,6 @@ func (rde *RegressionDetectionEngine) calculateOverallSeverity(detection *Regres
 
 	}
 
-
-
 	// Check functional regressions.
 
 	for _, reg := range detection.FunctionalRegressions {
@@ -813,8 +689,6 @@ func (rde *RegressionDetectionEngine) calculateOverallSeverity(detection *Regres
 
 	}
 
-
-
 	// Security regressions are always at least medium severity.
 
 	if len(detection.SecurityRegressions) > 0 && severityOrder[maxSeverity] < severityOrder["medium"] {
@@ -822,8 +696,6 @@ func (rde *RegressionDetectionEngine) calculateOverallSeverity(detection *Regres
 		maxSeverity = "medium"
 
 	}
-
-
 
 	// Production regressions are always at least high severity.
 
@@ -833,13 +705,9 @@ func (rde *RegressionDetectionEngine) calculateOverallSeverity(detection *Regres
 
 	}
 
-
-
 	return maxSeverity
 
 }
-
-
 
 // Impact description methods.
 
@@ -851,8 +719,6 @@ func (rde *RegressionDetectionEngine) describeLatencyImpact(degradation float64,
 
 }
 
-
-
 func (rde *RegressionDetectionEngine) describeThroughputImpact(reduction, baseline, current float64) string {
 
 	return fmt.Sprintf("Throughput decreased by %.1f%% (%.1f → %.1f intents/min), reducing system capacity",
@@ -860,8 +726,6 @@ func (rde *RegressionDetectionEngine) describeThroughputImpact(reduction, baseli
 		reduction, baseline, current)
 
 }
-
-
 
 func (rde *RegressionDetectionEngine) describeAvailabilityImpact(reduction, baseline, current float64) string {
 
@@ -871,8 +735,6 @@ func (rde *RegressionDetectionEngine) describeAvailabilityImpact(reduction, base
 
 }
 
-
-
 func (rde *RegressionDetectionEngine) describeFunctionalImpact(reductionPercent float64, baseline, current int) string {
 
 	return fmt.Sprintf("Functional tests degraded by %.1f%% (%d → %d points), indicating feature regressions",
@@ -881,8 +743,6 @@ func (rde *RegressionDetectionEngine) describeFunctionalImpact(reductionPercent 
 
 }
 
-
-
 func (rde *RegressionDetectionEngine) describeCategoryImpact(category string, reduction float64) string {
 
 	return fmt.Sprintf("%s functionality degraded by %.1f%%, affecting system reliability",
@@ -890,8 +750,6 @@ func (rde *RegressionDetectionEngine) describeCategoryImpact(category string, re
 		strings.ReplaceAll(category, "-", " "), reduction)
 
 }
-
-
 
 func (rde *RegressionDetectionEngine) describeSecurityImpact(finding *SecurityFinding, isNew bool) string {
 
@@ -905,15 +763,11 @@ func (rde *RegressionDetectionEngine) describeSecurityImpact(finding *SecurityFi
 
 }
 
-
-
 func (rde *RegressionDetectionEngine) describeProductionScoreImpact(reduction float64) string {
 
 	return fmt.Sprintf("Production readiness score decreased by %.0f points, affecting deployment confidence", reduction)
 
 }
-
-
 
 // Recommendation methods.
 
@@ -933,8 +787,6 @@ func (rde *RegressionDetectionEngine) getLatencyRecommendation(degradation float
 
 }
 
-
-
 func (rde *RegressionDetectionEngine) getThroughputRecommendation(reduction float64) string {
 
 	if reduction > 50 {
@@ -951,15 +803,11 @@ func (rde *RegressionDetectionEngine) getThroughputRecommendation(reduction floa
 
 }
 
-
-
 func (rde *RegressionDetectionEngine) getAvailabilityRecommendation(reduction float64) string {
 
 	return "Availability regression detected - review health checks, failover mechanisms, and incident response procedures immediately"
 
 }
-
-
 
 func (rde *RegressionDetectionEngine) getFunctionalRecommendation(reductionPercent float64) string {
 
@@ -973,8 +821,6 @@ func (rde *RegressionDetectionEngine) getFunctionalRecommendation(reductionPerce
 
 }
 
-
-
 func (rde *RegressionDetectionEngine) getCategoryRecommendation(category string, reduction float64) string {
 
 	return fmt.Sprintf("Review and fix %s test failures - focus on critical path functionality",
@@ -983,23 +829,17 @@ func (rde *RegressionDetectionEngine) getCategoryRecommendation(category string,
 
 }
 
-
-
 func (rde *RegressionDetectionEngine) getSecurityRecommendation(finding *SecurityFinding) string {
 
 	return fmt.Sprintf("Address security issue immediately: %s. %s", finding.Description, finding.Remediation)
 
 }
 
-
-
 func (rde *RegressionDetectionEngine) getProductionScoreRecommendation(reduction float64) string {
 
 	return "Review production readiness checklist and address failing reliability, monitoring, or disaster recovery tests"
 
 }
-
-
 
 // Helper methods for test analysis.
 
@@ -1011,8 +851,6 @@ func (rde *RegressionDetectionEngine) identifyFailedFunctionalTests(baseline *Ba
 
 }
 
-
-
 func (rde *RegressionDetectionEngine) identifyNewFunctionalFailures(baseline *BaselineSnapshot, current *ValidationResults) []string {
 
 	// This would identify tests that passed in baseline but failed in current.
@@ -1020,8 +858,6 @@ func (rde *RegressionDetectionEngine) identifyNewFunctionalFailures(baseline *Ba
 	return []string{} // Placeholder
 
 }
-
-
 
 func (rde *RegressionDetectionEngine) extractFailedTestNames(result *TestCategoryResult) []string {
 
@@ -1041,8 +877,6 @@ func (rde *RegressionDetectionEngine) extractFailedTestNames(result *TestCategor
 
 }
 
-
-
 func (rde *RegressionDetectionEngine) compareTestFailures(baseline, current *TestCategoryResult) []string {
 
 	baselineFailures := make(map[string]bool)
@@ -1057,8 +891,6 @@ func (rde *RegressionDetectionEngine) compareTestFailures(baseline, current *Tes
 
 	}
 
-
-
 	var newFailures []string
 
 	for _, detail := range current.Details {
@@ -1071,31 +903,23 @@ func (rde *RegressionDetectionEngine) compareTestFailures(baseline, current *Tes
 
 	}
 
-
-
 	return newFailures
 
 }
-
-
 
 func (rde *RegressionDetectionEngine) isSecuritySeverityWorse(current, baseline string) bool {
 
 	severityOrder := map[string]int{
 
-		"low":      1,
+		"low": 1,
 
-		"medium":   2,
+		"medium": 2,
 
-		"high":     3,
+		"high": 3,
 
 		"critical": 4,
-
 	}
-
-
 
 	return severityOrder[strings.ToLower(current)] > severityOrder[strings.ToLower(baseline)]
 
 }
-

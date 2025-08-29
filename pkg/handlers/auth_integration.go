@@ -1,43 +1,26 @@
-
 package handlers
 
-
-
 import (
-
 	"encoding/json"
-
 	"log/slog"
-
 	"net/http"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-
 )
-
-
 
 // AuthenticatedLLMProcessorHandler wraps with authentication.
 
 type AuthenticatedLLMProcessorHandler struct {
-
 	*LLMProcessorHandler
 
 	authIntegration *auth.NephoranAuthIntegration
 
-	config          *config.LLMProcessorConfig
+	config *config.LLMProcessorConfig
 
-	logger          *slog.Logger
-
+	logger *slog.Logger
 }
-
-
 
 // NewAuthenticatedLLMProcessorHandler creates authenticated handler.
 
@@ -57,17 +40,14 @@ func NewAuthenticatedLLMProcessorHandler(
 
 		LLMProcessorHandler: originalHandler,
 
-		authIntegration:     authIntegration,
+		authIntegration: authIntegration,
 
-		config:              config,
+		config: config,
 
-		logger:              logger,
-
+		logger: logger,
 	}
 
 }
-
-
 
 // ProcessIntentHandler wraps original with authentication.
 
@@ -85,8 +65,6 @@ func (ah *AuthenticatedLLMProcessorHandler) ProcessIntentHandler(w http.Response
 
 		}
 
-
-
 		if !ah.hasProcessPermission(authContext) {
 
 			ah.writeAuthError(w, "Insufficient permissions")
@@ -95,19 +73,13 @@ func (ah *AuthenticatedLLMProcessorHandler) ProcessIntentHandler(w http.Response
 
 		}
 
-
-
 		ah.logAuthenticatedRequest(r, authContext, "process_intent")
 
 	}
 
-
-
 	ah.LLMProcessorHandler.ProcessIntentHandler(w, r)
 
 }
-
-
 
 // hasProcessPermission checks if user can process intents.
 
@@ -127,8 +99,6 @@ func (ah *AuthenticatedLLMProcessorHandler) hasProcessPermission(authContext *au
 
 }
 
-
-
 // logAuthenticatedRequest logs authenticated requests.
 
 func (ah *AuthenticatedLLMProcessorHandler) logAuthenticatedRequest(r *http.Request, authContext *auth.AuthContext, operation string) {
@@ -145,8 +115,6 @@ func (ah *AuthenticatedLLMProcessorHandler) logAuthenticatedRequest(r *http.Requ
 
 }
 
-
-
 // writeAuthError writes authentication error.
 
 func (ah *AuthenticatedLLMProcessorHandler) writeAuthError(w http.ResponseWriter, message string) {
@@ -155,25 +123,19 @@ func (ah *AuthenticatedLLMProcessorHandler) writeAuthError(w http.ResponseWriter
 
 	w.WriteHeader(http.StatusUnauthorized)
 
-
-
 	response := map[string]interface{}{
 
-		"error":     "authentication_required",
+		"error": "authentication_required",
 
-		"message":   message,
+		"message": message,
 
 		"timestamp": time.Now().Format(time.RFC3339),
 
-		"status":    "error",
-
+		"status": "error",
 	}
-
-
 
 	// Ignore JSON encoding error - error would be written to response writer anyway.
 
 	_ = json.NewEncoder(w).Encode(response)
 
 }
-

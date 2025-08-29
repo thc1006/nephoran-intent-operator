@@ -1,83 +1,50 @@
-
 package security
 
-
-
 import (
-
 	"context"
-
 	"crypto/rand"
-
 	"encoding/base64"
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/interfaces"
 
-
-
 	corev1 "k8s.io/api/core/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/client-go/kubernetes"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // SecretRotationManager handles automatic secret rotation.
 
 type SecretRotationManager struct {
-
 	secretManager interfaces.SecretManager
 
-	k8sClient     kubernetes.Interface
+	k8sClient kubernetes.Interface
 
-	namespace     string
+	namespace string
 
-	logger        logr.Logger
+	logger logr.Logger
 
-	auditLogger   *AuditLogger
-
+	auditLogger *AuditLogger
 }
-
-
 
 // RotationConfig holds configuration for secret rotation.
 
 type SecretRotationConfig struct {
+	SecretName string `json:"secret_name"`
 
-	SecretName       string        `json:"secret_name"`
+	RotationPeriod time.Duration `json:"rotation_period"`
 
-	RotationPeriod   time.Duration `json:"rotation_period"`
+	BackupCount int `json:"backup_count"`
 
-	BackupCount      int           `json:"backup_count"`
-
-	NotifyBeforeDays int           `json:"notify_before_days"`
-
+	NotifyBeforeDays int `json:"notify_before_days"`
 }
-
-
 
 // NewSecretRotationManager creates a new secret rotation manager.
 
@@ -87,19 +54,16 @@ func NewSecretRotationManager(secretManager interfaces.SecretManager, k8sClient 
 
 		secretManager: secretManager,
 
-		k8sClient:     k8sClient,
+		k8sClient: k8sClient,
 
-		namespace:     namespace,
+		namespace: namespace,
 
-		logger:        log.Log.WithName("secret-rotation"),
+		logger: log.Log.WithName("secret-rotation"),
 
-		auditLogger:   auditLogger,
-
+		auditLogger: auditLogger,
 	}
 
 }
-
-
 
 // RotateJWTSecret rotates the JWT secret key.
 
@@ -109,19 +73,14 @@ func (srm *SecretRotationManager) RotateJWTSecret(ctx context.Context, userID st
 
 	secretKey := "jwt-secret"
 
-
-
 	result := &interfaces.RotationResult{
 
-		SecretName:   secretName,
+		SecretName: secretName,
 
 		RotationType: "jwt_secret",
 
-		Timestamp:    time.Now().UTC(),
-
+		Timestamp: time.Now().UTC(),
 	}
-
-
 
 	// Get current secret for backup.
 
@@ -137,13 +96,9 @@ func (srm *SecretRotationManager) RotateJWTSecret(ctx context.Context, userID st
 
 	}
 
-
-
 	if currentSecret != "" {
 
 		result.OldSecretHash = hashSecret(currentSecret)
-
-
 
 		// Create backup.
 
@@ -158,8 +113,6 @@ func (srm *SecretRotationManager) RotateJWTSecret(ctx context.Context, userID st
 		}
 
 	}
-
-
 
 	// Generate new JWT secret (256-bit).
 
@@ -175,11 +128,7 @@ func (srm *SecretRotationManager) RotateJWTSecret(ctx context.Context, userID st
 
 	}
 
-
-
 	result.NewSecretHash = hashSecret(newSecret)
-
-
 
 	// Update Kubernetes secret.
 
@@ -193,8 +142,6 @@ func (srm *SecretRotationManager) RotateJWTSecret(ctx context.Context, userID st
 
 	}
 
-
-
 	// Update file-based secret if it exists.
 
 	if err := srm.updateFileSecret("/secrets/jwt/jwt-secret-key", newSecret); err != nil {
@@ -203,19 +150,13 @@ func (srm *SecretRotationManager) RotateJWTSecret(ctx context.Context, userID st
 
 	}
 
-
-
 	result.Success = true
 
 	srm.auditRotation(result, userID, true, nil)
 
-
-
 	return result, nil
 
 }
-
-
 
 // RotateOAuth2ClientSecret rotates OAuth2 client secrets.
 
@@ -225,19 +166,14 @@ func (srm *SecretRotationManager) RotateOAuth2ClientSecret(ctx context.Context, 
 
 	secretKey := fmt.Sprintf("%s-client-secret", strings.ToLower(provider))
 
-
-
 	result := &interfaces.RotationResult{
 
-		SecretName:   secretName,
+		SecretName: secretName,
 
 		RotationType: "oauth2_client_secret",
 
-		Timestamp:    time.Now().UTC(),
-
+		Timestamp: time.Now().UTC(),
 	}
-
-
 
 	// Validate new secret.
 
@@ -253,8 +189,6 @@ func (srm *SecretRotationManager) RotateOAuth2ClientSecret(ctx context.Context, 
 
 	}
 
-
-
 	// Get current secret for backup.
 
 	currentSecret, err := srm.getCurrentSecret(ctx, secretName, secretKey)
@@ -269,13 +203,9 @@ func (srm *SecretRotationManager) RotateOAuth2ClientSecret(ctx context.Context, 
 
 	}
 
-
-
 	if currentSecret != "" {
 
 		result.OldSecretHash = hashSecret(currentSecret)
-
-
 
 		// Create backup.
 
@@ -291,11 +221,7 @@ func (srm *SecretRotationManager) RotateOAuth2ClientSecret(ctx context.Context, 
 
 	}
 
-
-
 	result.NewSecretHash = hashSecret(newClientSecret)
-
-
 
 	// Update Kubernetes secret.
 
@@ -309,8 +235,6 @@ func (srm *SecretRotationManager) RotateOAuth2ClientSecret(ctx context.Context, 
 
 	}
 
-
-
 	// Update file-based secret if it exists.
 
 	filePath := fmt.Sprintf("/secrets/oauth2/%s-client-secret", strings.ToLower(provider))
@@ -321,19 +245,13 @@ func (srm *SecretRotationManager) RotateOAuth2ClientSecret(ctx context.Context, 
 
 	}
 
-
-
 	result.Success = true
 
 	srm.auditRotation(result, userID, true, nil)
 
-
-
 	return result, nil
 
 }
-
-
 
 // RotateAPIKey rotates API keys for LLM providers.
 
@@ -343,19 +261,14 @@ func (srm *SecretRotationManager) RotateAPIKey(ctx context.Context, provider, ne
 
 	secretKey := fmt.Sprintf("%s-api-key", strings.ToLower(provider))
 
-
-
 	result := &interfaces.RotationResult{
 
-		SecretName:   secretName,
+		SecretName: secretName,
 
 		RotationType: "api_key",
 
-		Timestamp:    time.Now().UTC(),
-
+		Timestamp: time.Now().UTC(),
 	}
-
-
 
 	// Validate new API key format.
 
@@ -368,8 +281,6 @@ func (srm *SecretRotationManager) RotateAPIKey(ctx context.Context, provider, ne
 		return result, err
 
 	}
-
-
 
 	// Get current secret for backup.
 
@@ -385,13 +296,9 @@ func (srm *SecretRotationManager) RotateAPIKey(ctx context.Context, provider, ne
 
 	}
 
-
-
 	if currentSecret != "" {
 
 		result.OldSecretHash = hashSecret(currentSecret)
-
-
 
 		// Create backup.
 
@@ -407,11 +314,7 @@ func (srm *SecretRotationManager) RotateAPIKey(ctx context.Context, provider, ne
 
 	}
 
-
-
 	result.NewSecretHash = hashSecret(newAPIKey)
-
-
 
 	// Update Kubernetes secret.
 
@@ -425,8 +328,6 @@ func (srm *SecretRotationManager) RotateAPIKey(ctx context.Context, provider, ne
 
 	}
 
-
-
 	// Update file-based secret if it exists.
 
 	filePath := fmt.Sprintf("/secrets/llm/%s-api-key", strings.ToLower(provider))
@@ -437,19 +338,13 @@ func (srm *SecretRotationManager) RotateAPIKey(ctx context.Context, provider, ne
 
 	}
 
-
-
 	result.Success = true
 
 	srm.auditRotation(result, userID, true, nil)
 
-
-
 	return result, nil
 
 }
-
-
 
 // getCurrentSecret retrieves the current secret value.
 
@@ -461,8 +356,6 @@ func (srm *SecretRotationManager) getCurrentSecret(ctx context.Context, secretNa
 
 	}
 
-
-
 	secret, err := srm.k8sClient.CoreV1().Secrets(srm.namespace).Get(ctx, secretName, metav1.GetOptions{})
 
 	if err != nil {
@@ -471,21 +364,15 @@ func (srm *SecretRotationManager) getCurrentSecret(ctx context.Context, secretNa
 
 	}
 
-
-
 	if value, exists := secret.Data[secretKey]; exists {
 
 		return string(value), nil
 
 	}
 
-
-
 	return "", fmt.Errorf("key %s not found in secret %s", secretKey, secretName)
 
 }
-
-
 
 // createSecretBackup creates a backup of the current secret.
 
@@ -497,42 +384,35 @@ func (srm *SecretRotationManager) createSecretBackup(ctx context.Context, secret
 
 	}
 
-
-
 	backupName := fmt.Sprintf("%s-backup-%s", secretName, time.Now().Format("20060102-150405"))
-
-
 
 	backup := &corev1.Secret{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      backupName,
+			Name: backupName,
 
 			Namespace: srm.namespace,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":      "nephoran-intent-operator",
+				"app.kubernetes.io/name": "nephoran-intent-operator",
 
 				"app.kubernetes.io/component": "secret-backup",
 
-				"backup-of":                   secretName,
+				"backup-of": secretName,
 
-				"backup-key":                  secretKey,
-
+				"backup-key": secretKey,
 			},
 
 			Annotations: map[string]string{
 
 				"backup-timestamp": time.Now().UTC().Format(time.RFC3339),
 
-				"original-secret":  secretName,
+				"original-secret": secretName,
 
-				"original-key":     secretKey,
-
+				"original-key": secretKey,
 			},
-
 		},
 
 		Type: corev1.SecretTypeOpaque,
@@ -540,20 +420,14 @@ func (srm *SecretRotationManager) createSecretBackup(ctx context.Context, secret
 		Data: map[string][]byte{
 
 			secretKey: []byte(secretValue),
-
 		},
-
 	}
-
-
 
 	_, err := srm.k8sClient.CoreV1().Secrets(srm.namespace).Create(ctx, backup, metav1.CreateOptions{})
 
 	return err
 
 }
-
-
 
 // updateKubernetesSecret updates a secret in Kubernetes.
 
@@ -564,8 +438,6 @@ func (srm *SecretRotationManager) updateKubernetesSecret(ctx context.Context, se
 		return fmt.Errorf("no Kubernetes client available")
 
 	}
-
-
 
 	// Get existing secret.
 
@@ -579,35 +451,28 @@ func (srm *SecretRotationManager) updateKubernetesSecret(ctx context.Context, se
 
 			ObjectMeta: metav1.ObjectMeta{
 
-				Name:      secretName,
+				Name: secretName,
 
 				Namespace: srm.namespace,
 
 				Labels: map[string]string{
 
-					"app.kubernetes.io/name":      "nephoran-intent-operator",
+					"app.kubernetes.io/name": "nephoran-intent-operator",
 
 					"app.kubernetes.io/component": "secrets",
-
 				},
-
 			},
 
 			Type: corev1.SecretTypeOpaque,
 
 			Data: make(map[string][]byte),
-
 		}
 
 	}
 
-
-
 	// Update the specific key.
 
 	secret.Data[secretKey] = []byte(newValue)
-
-
 
 	// Add rotation metadata.
 
@@ -618,8 +483,6 @@ func (srm *SecretRotationManager) updateKubernetesSecret(ctx context.Context, se
 	}
 
 	secret.Annotations[fmt.Sprintf("%s-rotated-at", secretKey)] = time.Now().UTC().Format(time.RFC3339)
-
-
 
 	// Update or create the secret.
 
@@ -633,13 +496,9 @@ func (srm *SecretRotationManager) updateKubernetesSecret(ctx context.Context, se
 
 	}
 
-
-
 	return err
 
 }
-
-
 
 // updateFileSecret updates a file-based secret.
 
@@ -655,8 +514,6 @@ func (srm *SecretRotationManager) updateFileSecret(filePath, newValue string) er
 
 	}
 
-
-
 	// Write the new secret with secure permissions.
 
 	if err := os.WriteFile(filePath, []byte(newValue), 0o600); err != nil {
@@ -665,13 +522,9 @@ func (srm *SecretRotationManager) updateFileSecret(filePath, newValue string) er
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateAPIKey validates API key format for different providers.
 
@@ -709,8 +562,6 @@ func (srm *SecretRotationManager) validateAPIKey(provider, apiKey string) error 
 
 }
 
-
-
 // generateJWTSecret generates a new JWT secret.
 
 func generateJWTSecret() (string, error) {
@@ -727,8 +578,6 @@ func generateJWTSecret() (string, error) {
 
 }
 
-
-
 // hashSecret creates a hash of the secret for audit purposes.
 
 func hashSecret(secret string) string {
@@ -743,8 +592,6 @@ func hashSecret(secret string) string {
 
 }
 
-
-
 // auditRotation logs the rotation event.
 
 func (srm *SecretRotationManager) auditRotation(result *interfaces.RotationResult, userID string, success bool, err error) {
@@ -756,4 +603,3 @@ func (srm *SecretRotationManager) auditRotation(result *interfaces.RotationResul
 	}
 
 }
-

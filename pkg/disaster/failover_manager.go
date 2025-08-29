@@ -28,54 +28,28 @@ limitations under the License.
 
 */
 
-
-
-
 package disaster
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"log/slog"
-
 	"net"
-
 	"net/http"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/aws/aws-sdk-go-v2/aws"
-
 	"github.com/aws/aws-sdk-go-v2/config"
-
 	"github.com/aws/aws-sdk-go-v2/service/route53"
-
 	"github.com/aws/aws-sdk-go-v2/service/route53/types"
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/client-go/kubernetes"
-
 )
-
-
 
 var (
 
@@ -86,94 +60,71 @@ var (
 		Name: "failover_operations_total",
 
 		Help: "Total number of failover operations",
-
 	}, []string{"source_region", "target_region", "status"})
-
-
 
 	failoverDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
 
-		Name:    "failover_duration_seconds",
+		Name: "failover_duration_seconds",
 
-		Help:    "Duration of failover operations",
+		Help: "Duration of failover operations",
 
 		Buckets: prometheus.ExponentialBuckets(60, 2, 10), // Start at 1 minute
 
 	}, []string{"type"})
-
-
 
 	regionHealth = promauto.NewGaugeVec(prometheus.GaugeOpts{
 
 		Name: "region_health_status",
 
 		Help: "Health status of regions (0=unhealthy, 1=healthy)",
-
 	}, []string{"region"})
-
-
 
 	primaryRegionStatus = promauto.NewGaugeVec(prometheus.GaugeOpts{
 
 		Name: "primary_region_status",
 
 		Help: "Status of primary region (0=failed, 1=active)",
-
 	}, []string{"region"})
-
-
 
 	rtoMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
 
 		Name: "rto_target_seconds",
 
 		Help: "Recovery Time Objective target in seconds",
-
 	}, []string{"scenario"})
-
 )
-
-
 
 // FailoverManager manages multi-region failover operations with RTO target of 1 hour.
 
 type FailoverManager struct {
+	mu sync.RWMutex
 
-	mu              sync.RWMutex
+	logger *slog.Logger
 
-	logger          *slog.Logger
+	k8sClient kubernetes.Interface
 
-	k8sClient       kubernetes.Interface
+	config *FailoverConfig
 
-	config          *FailoverConfig
+	route53Client *route53.Client
 
-	route53Client   *route53.Client
+	healthCheckers map[string]RegionHealthChecker
 
-	healthCheckers  map[string]RegionHealthChecker
-
-	currentRegion   string
+	currentRegion string
 
 	failoverHistory []*FailoverRecord
 
-	rtoPlan         *RTOPlan
-
-
+	rtoPlan *RTOPlan
 
 	// State synchronization.
 
 	syncManager *StateSyncManager
 
-
-
 	// Failover automation.
 
-	autoFailover  bool
+	autoFailover bool
 
 	healthMonitor *RegionHealthMonitor
-
 }
-
-
 
 // FailoverConfig holds failover configuration.
 
@@ -181,275 +132,216 @@ type FailoverConfig struct {
 
 	// Basic configuration.
 
-	Enabled          bool     `json:"enabled"`
+	Enabled bool `json:"enabled"`
 
-	PrimaryRegion    string   `json:"primary_region"`
+	PrimaryRegion string `json:"primary_region"`
 
-	FailoverRegions  []string `json:"failover_regions"`
+	FailoverRegions []string `json:"failover_regions"`
 
-	RTOTargetMinutes int      `json:"rto_target_minutes"`
-
-
+	RTOTargetMinutes int `json:"rto_target_minutes"`
 
 	// DNS configuration for traffic redirection.
 
 	DNSConfig DNSConfig `json:"dns_config"`
 
-
-
 	// Health monitoring configuration.
 
 	HealthCheckConfig HealthCheckConfig `json:"health_check_config"`
-
-
 
 	// State synchronization configuration.
 
 	StateSyncConfig StateSyncConfig `json:"state_sync_config"`
 
-
-
 	// Automation configuration.
 
-	AutoFailoverEnabled bool          `json:"auto_failover_enabled"`
+	AutoFailoverEnabled bool `json:"auto_failover_enabled"`
 
-	FailoverThreshold   int           `json:"failover_threshold"` // Failed checks before failover
+	FailoverThreshold int `json:"failover_threshold"` // Failed checks before failover
 
-	FailoverCooldown    time.Duration `json:"failover_cooldown"`  // Time between failovers
-
-
+	FailoverCooldown time.Duration `json:"failover_cooldown"` // Time between failovers
 
 	// Regional endpoints.
 
 	RegionalEndpoints map[string]RegionalEndpoint `json:"regional_endpoints"`
-
 }
-
-
 
 // DNSConfig holds DNS failover configuration.
 
 type DNSConfig struct {
+	Provider string `json:"provider"` // route53, cloudflare, etc.
 
-	Provider      string   `json:"provider"` // route53, cloudflare, etc.
+	ZoneID string `json:"zone_id"`
 
-	ZoneID        string   `json:"zone_id"`
+	DomainName string `json:"domain_name"`
 
-	DomainName    string   `json:"domain_name"`
+	RecordSets []string `json:"record_sets"` // DNS records to update
 
-	RecordSets    []string `json:"record_sets"`     // DNS records to update
+	TTL int `json:"ttl"` // DNS TTL in seconds
 
-	TTL           int      `json:"ttl"`             // DNS TTL in seconds
-
-	HealthCheckID string   `json:"health_check_id"` // Route53 health check ID
+	HealthCheckID string `json:"health_check_id"` // Route53 health check ID
 
 }
-
-
 
 // HealthCheckConfig holds health check configuration.
 
 type HealthCheckConfig struct {
+	CheckInterval time.Duration `json:"check_interval"`
 
-	CheckInterval      time.Duration `json:"check_interval"`
+	CheckTimeout time.Duration `json:"check_timeout"`
 
-	CheckTimeout       time.Duration `json:"check_timeout"`
+	HealthyThreshold int `json:"healthy_threshold"`
 
-	HealthyThreshold   int           `json:"healthy_threshold"`
+	UnhealthyThreshold int `json:"unhealthy_threshold"`
 
-	UnhealthyThreshold int           `json:"unhealthy_threshold"`
-
-	CheckEndpoints     []string      `json:"check_endpoints"`
-
+	CheckEndpoints []string `json:"check_endpoints"`
 }
-
-
 
 // StateSyncConfig holds state synchronization configuration.
 
 type StateSyncConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled            bool          `json:"enabled"`
+	SyncInterval time.Duration `json:"sync_interval"`
 
-	SyncInterval       time.Duration `json:"sync_interval"`
+	ConflictResolution string `json:"conflict_resolution"` // latest_wins, manual
 
-	ConflictResolution string        `json:"conflict_resolution"` // latest_wins, manual
-
-	DataSources        []string      `json:"data_sources"`        // weaviate, redis, k8s_config
+	DataSources []string `json:"data_sources"` // weaviate, redis, k8s_config
 
 }
-
-
 
 // RegionalEndpoint holds endpoint information for a region.
 
 type RegionalEndpoint struct {
+	Region string `json:"region"`
 
-	Region          string            `json:"region"`
+	LoadBalancerIP string `json:"load_balancer_ip"`
 
-	LoadBalancerIP  string            `json:"load_balancer_ip"`
+	IngressEndpoint string `json:"ingress_endpoint"`
 
-	IngressEndpoint string            `json:"ingress_endpoint"`
+	HealthCheckURL string `json:"health_check_url"`
 
-	HealthCheckURL  string            `json:"health_check_url"`
-
-	Metadata        map[string]string `json:"metadata"`
-
+	Metadata map[string]string `json:"metadata"`
 }
-
-
 
 // FailoverRecord represents a failover operation record.
 
 type FailoverRecord struct {
+	ID string `json:"id"`
 
-	ID           string                 `json:"id"`
+	TriggerType string `json:"trigger_type"` // manual, automatic
 
-	TriggerType  string                 `json:"trigger_type"` // manual, automatic
+	SourceRegion string `json:"source_region"`
 
-	SourceRegion string                 `json:"source_region"`
+	TargetRegion string `json:"target_region"`
 
-	TargetRegion string                 `json:"target_region"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime    time.Time              `json:"start_time"`
+	EndTime *time.Time `json:"end_time,omitempty"`
 
-	EndTime      *time.Time             `json:"end_time,omitempty"`
+	Duration time.Duration `json:"duration"`
 
-	Duration     time.Duration          `json:"duration"`
+	Status string `json:"status"` // in_progress, completed, failed
 
-	Status       string                 `json:"status"` // in_progress, completed, failed
+	Steps []FailoverStep `json:"steps"`
 
-	Steps        []FailoverStep         `json:"steps"`
+	RTOAchieved time.Duration `json:"rto_achieved"`
 
-	RTOAchieved  time.Duration          `json:"rto_achieved"`
+	Error string `json:"error,omitempty"`
 
-	Error        string                 `json:"error,omitempty"`
-
-	Metadata     map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // FailoverStep represents a step in the failover process.
 
 type FailoverStep struct {
+	Name string `json:"name"`
 
-	Name      string                 `json:"name"`
+	Type string `json:"type"` // dns_update, traffic_redirect, state_sync
 
-	Type      string                 `json:"type"` // dns_update, traffic_redirect, state_sync
+	Status string `json:"status"`
 
-	Status    string                 `json:"status"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime time.Time              `json:"start_time"`
+	EndTime *time.Time `json:"end_time,omitempty"`
 
-	EndTime   *time.Time             `json:"end_time,omitempty"`
+	Duration time.Duration `json:"duration"`
 
-	Duration  time.Duration          `json:"duration"`
+	Error string `json:"error,omitempty"`
 
-	Error     string                 `json:"error,omitempty"`
-
-	Metadata  map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // RTOPlan defines the Recovery Time Objective plan.
 
 type RTOPlan struct {
+	TargetRTO time.Duration `json:"target_rto"`
 
-	TargetRTO      time.Duration `json:"target_rto"`
-
-	Steps          []RTOStep     `json:"steps"`
+	Steps []RTOStep `json:"steps"`
 
 	TotalEstimated time.Duration `json:"total_estimated"`
-
 }
-
-
 
 // RTOStep represents a step in the RTO plan.
 
 type RTOStep struct {
-
-	Name          string        `json:"name"`
+	Name string `json:"name"`
 
 	EstimatedTime time.Duration `json:"estimated_time"`
 
-	Critical      bool          `json:"critical"`
+	Critical bool `json:"critical"`
 
-	Dependencies  []string      `json:"dependencies"`
-
+	Dependencies []string `json:"dependencies"`
 }
-
-
 
 // RegionHealthChecker interface for checking region health.
 
 type RegionHealthChecker interface {
-
 	CheckHealth(ctx context.Context, region string) (*RegionHealthStatus, error)
 
 	GetRegionName() string
-
 }
-
-
 
 // RegionHealthStatus represents the health status of a region.
 
 type RegionHealthStatus struct {
+	Region string `json:"region"`
 
-	Region             string                 `json:"region"`
+	Healthy bool `json:"healthy"`
 
-	Healthy            bool                   `json:"healthy"`
+	LastCheck time.Time `json:"last_check"`
 
-	LastCheck          time.Time              `json:"last_check"`
+	ResponseTime time.Duration `json:"response_time"`
 
-	ResponseTime       time.Duration          `json:"response_time"`
+	ErrorCount int `json:"error_count"`
 
-	ErrorCount         int                    `json:"error_count"`
+	HealthCheckResults map[string]bool `json:"health_check_results"`
 
-	HealthCheckResults map[string]bool        `json:"health_check_results"`
-
-	Metadata           map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // StateSyncManager manages state synchronization between regions.
 
 type StateSyncManager struct {
+	logger *slog.Logger
 
-	logger   *slog.Logger
-
-	config   *StateSyncConfig
+	config *StateSyncConfig
 
 	syncLock sync.Mutex
-
 }
-
-
 
 // RegionHealthMonitor monitors health of all regions.
 
 type RegionHealthMonitor struct {
+	manager *FailoverManager
 
-	manager   *FailoverManager
+	ticker *time.Ticker
 
-	ticker    *time.Ticker
-
-	stopCh    chan struct{}
+	stopCh chan struct{}
 
 	isRunning bool
 
-	mu        sync.Mutex
-
+	mu sync.Mutex
 }
-
-
 
 // NewFailoverManager creates a new failover manager.
 
@@ -459,115 +351,102 @@ func NewFailoverManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.I
 
 	config := &FailoverConfig{
 
-		Enabled:          true,
+		Enabled: true,
 
-		PrimaryRegion:    "us-west-2",
+		PrimaryRegion: "us-west-2",
 
-		FailoverRegions:  []string{"us-east-1", "eu-west-1"},
+		FailoverRegions: []string{"us-east-1", "eu-west-1"},
 
 		RTOTargetMinutes: 60, // 1 hour target
 
 		DNSConfig: DNSConfig{
 
-			Provider:   "route53",
+			Provider: "route53",
 
 			DomainName: "nephoran.com",
 
 			RecordSets: []string{"api.nephoran.com", "llm.nephoran.com"},
 
-			TTL:        60,
-
+			TTL: 60,
 		},
 
 		HealthCheckConfig: HealthCheckConfig{
 
-			CheckInterval:      30 * time.Second,
+			CheckInterval: 30 * time.Second,
 
-			CheckTimeout:       10 * time.Second,
+			CheckTimeout: 10 * time.Second,
 
-			HealthyThreshold:   3,
+			HealthyThreshold: 3,
 
 			UnhealthyThreshold: 3,
 
-			CheckEndpoints:     []string{"/healthz", "/ready"},
-
+			CheckEndpoints: []string{"/healthz", "/ready"},
 		},
 
 		StateSyncConfig: StateSyncConfig{
 
-			Enabled:            true,
+			Enabled: true,
 
-			SyncInterval:       5 * time.Minute,
+			SyncInterval: 5 * time.Minute,
 
 			ConflictResolution: "latest_wins",
 
-			DataSources:        []string{"weaviate", "k8s_config"},
-
+			DataSources: []string{"weaviate", "k8s_config"},
 		},
 
 		AutoFailoverEnabled: true,
 
-		FailoverThreshold:   3,
+		FailoverThreshold: 3,
 
-		FailoverCooldown:    10 * time.Minute,
+		FailoverCooldown: 10 * time.Minute,
 
 		RegionalEndpoints: map[string]RegionalEndpoint{
 
 			"us-west-2": {
 
-				Region:          "us-west-2",
+				Region: "us-west-2",
 
-				HealthCheckURL:  "https://us-west-2.nephoran.com/healthz",
+				HealthCheckURL: "https://us-west-2.nephoran.com/healthz",
 
 				IngressEndpoint: "us-west-2-lb.nephoran.com",
-
 			},
 
 			"us-east-1": {
 
-				Region:          "us-east-1",
+				Region: "us-east-1",
 
-				HealthCheckURL:  "https://us-east-1.nephoran.com/healthz",
+				HealthCheckURL: "https://us-east-1.nephoran.com/healthz",
 
 				IngressEndpoint: "us-east-1-lb.nephoran.com",
-
 			},
 
 			"eu-west-1": {
 
-				Region:          "eu-west-1",
+				Region: "eu-west-1",
 
-				HealthCheckURL:  "https://eu-west-1.nephoran.com/healthz",
+				HealthCheckURL: "https://eu-west-1.nephoran.com/healthz",
 
 				IngressEndpoint: "eu-west-1-lb.nephoran.com",
-
 			},
-
 		},
-
 	}
-
-
 
 	fm := &FailoverManager{
 
-		logger:          logger,
+		logger: logger,
 
-		k8sClient:       k8sClient,
+		k8sClient: k8sClient,
 
-		config:          config,
+		config: config,
 
-		currentRegion:   config.PrimaryRegion,
+		currentRegion: config.PrimaryRegion,
 
-		healthCheckers:  make(map[string]RegionHealthChecker),
+		healthCheckers: make(map[string]RegionHealthChecker),
 
 		failoverHistory: make([]*FailoverRecord, 0),
 
-		autoFailover:    config.AutoFailoverEnabled,
-
+		autoFailover: config.AutoFailoverEnabled,
 	}
-
-
 
 	// Initialize Route53 client for DNS updates.
 
@@ -581,19 +460,13 @@ func NewFailoverManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.I
 
 	}
 
-
-
 	// Initialize health checkers for each region.
 
 	fm.initializeHealthCheckers()
 
-
-
 	// Initialize RTO plan.
 
 	fm.rtoPlan = fm.createRTOPlan()
-
-
 
 	// Initialize state sync manager.
 
@@ -602,10 +475,7 @@ func NewFailoverManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.I
 		logger: logger,
 
 		config: &config.StateSyncConfig,
-
 	}
-
-
 
 	// Initialize health monitor.
 
@@ -613,17 +483,12 @@ func NewFailoverManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.I
 
 		manager: fm,
 
-		stopCh:  make(chan struct{}),
-
+		stopCh: make(chan struct{}),
 	}
-
-
 
 	// Set RTO metric.
 
 	rtoMetric.WithLabelValues("failover").Set(float64(config.RTOTargetMinutes * 60))
-
-
 
 	logger.Info("Failover manager initialized successfully",
 
@@ -633,13 +498,9 @@ func NewFailoverManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.I
 
 		"rto_target", fmt.Sprintf("%dm", config.RTOTargetMinutes))
 
-
-
 	return fm, nil
 
 }
-
-
 
 // initializeRoute53Client initializes the Route53 client for DNS updates.
 
@@ -653,15 +514,11 @@ func (fm *FailoverManager) initializeRoute53Client() error {
 
 	}
 
-
-
 	fm.route53Client = route53.NewFromConfig(cfg)
 
 	return nil
 
 }
-
-
 
 // initializeHealthCheckers sets up health checkers for all regions.
 
@@ -671,16 +528,15 @@ func (fm *FailoverManager) initializeHealthCheckers() {
 
 		checker := &HTTPRegionHealthChecker{
 
-			region:    region,
+			region: region,
 
-			endpoint:  endpoint,
+			endpoint: endpoint,
 
-			timeout:   fm.config.HealthCheckConfig.CheckTimeout,
+			timeout: fm.config.HealthCheckConfig.CheckTimeout,
 
 			endpoints: fm.config.HealthCheckConfig.CheckEndpoints,
 
-			logger:    fm.logger,
-
+			logger: fm.logger,
 		}
 
 		fm.healthCheckers[region] = checker
@@ -688,8 +544,6 @@ func (fm *FailoverManager) initializeHealthCheckers() {
 	}
 
 }
-
-
 
 // createRTOPlan creates a Recovery Time Objective plan.
 
@@ -699,79 +553,70 @@ func (fm *FailoverManager) createRTOPlan() *RTOPlan {
 
 		{
 
-			Name:          "Health Check Validation",
+			Name: "Health Check Validation",
 
 			EstimatedTime: 30 * time.Second,
 
-			Critical:      true,
+			Critical: true,
 
-			Dependencies:  []string{},
-
+			Dependencies: []string{},
 		},
 
 		{
 
-			Name:          "State Synchronization",
+			Name: "State Synchronization",
 
 			EstimatedTime: 2 * time.Minute,
 
-			Critical:      true,
+			Critical: true,
 
-			Dependencies:  []string{"Health Check Validation"},
-
+			Dependencies: []string{"Health Check Validation"},
 		},
 
 		{
 
-			Name:          "DNS Record Updates",
+			Name: "DNS Record Updates",
 
 			EstimatedTime: 5 * time.Minute,
 
-			Critical:      true,
+			Critical: true,
 
-			Dependencies:  []string{"State Synchronization"},
-
+			Dependencies: []string{"State Synchronization"},
 		},
 
 		{
 
-			Name:          "Traffic Redirection",
+			Name: "Traffic Redirection",
 
 			EstimatedTime: 3 * time.Minute,
 
-			Critical:      true,
+			Critical: true,
 
-			Dependencies:  []string{"DNS Record Updates"},
-
+			Dependencies: []string{"DNS Record Updates"},
 		},
 
 		{
 
-			Name:          "Service Validation",
+			Name: "Service Validation",
 
 			EstimatedTime: 2 * time.Minute,
 
-			Critical:      true,
+			Critical: true,
 
-			Dependencies:  []string{"Traffic Redirection"},
-
+			Dependencies: []string{"Traffic Redirection"},
 		},
 
 		{
 
-			Name:          "Monitoring Setup",
+			Name: "Monitoring Setup",
 
 			EstimatedTime: 1 * time.Minute,
 
-			Critical:      false,
+			Critical: false,
 
-			Dependencies:  []string{"Service Validation"},
-
+			Dependencies: []string{"Service Validation"},
 		},
-
 	}
-
-
 
 	var totalTime time.Duration
 
@@ -781,21 +626,16 @@ func (fm *FailoverManager) createRTOPlan() *RTOPlan {
 
 	}
 
-
-
 	return &RTOPlan{
 
-		TargetRTO:      time.Duration(fm.config.RTOTargetMinutes) * time.Minute,
+		TargetRTO: time.Duration(fm.config.RTOTargetMinutes) * time.Minute,
 
-		Steps:          steps,
+		Steps: steps,
 
 		TotalEstimated: totalTime,
-
 	}
 
 }
-
-
 
 // Start starts the failover manager.
 
@@ -809,11 +649,7 @@ func (fm *FailoverManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	fm.logger.Info("Starting failover manager")
-
-
 
 	// Start region health monitoring.
 
@@ -823,8 +659,6 @@ func (fm *FailoverManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start state synchronization if enabled.
 
 	if fm.config.StateSyncConfig.Enabled {
@@ -832,8 +666,6 @@ func (fm *FailoverManager) Start(ctx context.Context) error {
 		go fm.syncManager.StartSynchronization(ctx)
 
 	}
-
-
 
 	// Set initial region status.
 
@@ -845,15 +677,11 @@ func (fm *FailoverManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	fm.logger.Info("Failover manager started successfully", "current_region", fm.currentRegion)
 
 	return nil
 
 }
-
-
 
 // TriggerFailover initiates a manual failover to the specified target region.
 
@@ -863,15 +691,11 @@ func (fm *FailoverManager) TriggerFailover(ctx context.Context, targetRegion str
 
 	fm.logger.Info("Triggering manual failover", "from", fm.currentRegion, "to", targetRegion)
 
-
-
 	defer func() {
 
 		failoverDuration.WithLabelValues("manual").Observe(time.Since(start).Seconds())
 
 	}()
-
-
 
 	// Validate target region.
 
@@ -885,8 +709,6 @@ func (fm *FailoverManager) TriggerFailover(ctx context.Context, targetRegion str
 
 	}
 
-
-
 	// Check for cooldown period.
 
 	if !fm.canFailover() {
@@ -899,41 +721,33 @@ func (fm *FailoverManager) TriggerFailover(ctx context.Context, targetRegion str
 
 	}
 
-
-
 	// Create failover record.
 
 	record := &FailoverRecord{
 
-		ID:           fmt.Sprintf("failover-%d", start.Unix()),
+		ID: fmt.Sprintf("failover-%d", start.Unix()),
 
-		TriggerType:  "manual",
+		TriggerType: "manual",
 
 		SourceRegion: fm.currentRegion,
 
 		TargetRegion: targetRegion,
 
-		StartTime:    start,
+		StartTime: start,
 
-		Status:       "in_progress",
+		Status: "in_progress",
 
-		Steps:        make([]FailoverStep, 0),
+		Steps: make([]FailoverStep, 0),
 
 		Metadata: map[string]interface{}{
 
 			"rto_target": fm.rtoPlan.TargetRTO.String(),
-
 		},
-
 	}
-
-
 
 	// Execute failover plan.
 
 	err := fm.executeFailover(ctx, record)
-
-
 
 	endTime := time.Now()
 
@@ -942,8 +756,6 @@ func (fm *FailoverManager) TriggerFailover(ctx context.Context, targetRegion str
 	record.Duration = endTime.Sub(start)
 
 	record.RTOAchieved = record.Duration
-
-
 
 	if err != nil {
 
@@ -963,15 +775,11 @@ func (fm *FailoverManager) TriggerFailover(ctx context.Context, targetRegion str
 
 		fm.currentRegion = targetRegion
 
-
-
 		// Update region status metrics.
 
 		primaryRegionStatus.WithLabelValues(record.SourceRegion).Set(0)
 
 		primaryRegionStatus.WithLabelValues(targetRegion).Set(1)
-
-
 
 		fm.logger.Info("Manual failover completed successfully",
 
@@ -985,8 +793,6 @@ func (fm *FailoverManager) TriggerFailover(ctx context.Context, targetRegion str
 
 	}
 
-
-
 	// Store failover record.
 
 	fm.mu.Lock()
@@ -995,21 +801,15 @@ func (fm *FailoverManager) TriggerFailover(ctx context.Context, targetRegion str
 
 	fm.mu.Unlock()
 
-
-
 	return err
 
 }
-
-
 
 // executeFailover executes the failover plan.
 
 func (fm *FailoverManager) executeFailover(ctx context.Context, record *FailoverRecord) error {
 
 	fm.logger.Info("Executing failover plan", "steps", len(fm.rtoPlan.Steps))
-
-
 
 	// Execute each step in the RTO plan.
 
@@ -1019,23 +819,18 @@ func (fm *FailoverManager) executeFailover(ctx context.Context, record *Failover
 
 		step := FailoverStep{
 
-			Name:      rtoStep.Name,
+			Name: rtoStep.Name,
 
-			Type:      fm.getStepType(rtoStep.Name),
+			Type: fm.getStepType(rtoStep.Name),
 
-			Status:    "in_progress",
+			Status: "in_progress",
 
 			StartTime: stepStart,
 
-			Metadata:  make(map[string]interface{}),
-
+			Metadata: make(map[string]interface{}),
 		}
 
-
-
 		fm.logger.Info("Executing failover step", "step", step.Name)
-
-
 
 		var err error
 
@@ -1071,15 +866,11 @@ func (fm *FailoverManager) executeFailover(ctx context.Context, record *Failover
 
 		}
 
-
-
 		stepEnd := time.Now()
 
 		step.EndTime = &stepEnd
 
 		step.Duration = stepEnd.Sub(stepStart)
-
-
 
 		if err != nil {
 
@@ -1089,15 +880,11 @@ func (fm *FailoverManager) executeFailover(ctx context.Context, record *Failover
 
 			record.Steps = append(record.Steps, step)
 
-
-
 			if rtoStep.Critical {
 
 				return fmt.Errorf("critical step failed: %s - %w", step.Name, err)
 
 			}
-
-
 
 			fm.logger.Error("Non-critical failover step failed", "step", step.Name, "error", err)
 
@@ -1109,19 +896,13 @@ func (fm *FailoverManager) executeFailover(ctx context.Context, record *Failover
 
 		}
 
-
-
 		record.Steps = append(record.Steps, step)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateTargetRegionHealth validates that the target region is healthy.
 
@@ -1135,8 +916,6 @@ func (fm *FailoverManager) validateTargetRegionHealth(ctx context.Context, targe
 
 	}
 
-
-
 	status, err := checker.CheckHealth(ctx, targetRegion)
 
 	if err != nil {
@@ -1145,25 +924,17 @@ func (fm *FailoverManager) validateTargetRegionHealth(ctx context.Context, targe
 
 	}
 
-
-
 	if !status.Healthy {
 
 		return fmt.Errorf("target region %s is not healthy", targetRegion)
 
 	}
 
-
-
 	step.Metadata["health_status"] = status
 
 	step.Metadata["response_time"] = status.ResponseTime.String()
 
-
-
 	regionHealth.WithLabelValues(targetRegion).Set(1)
-
-
 
 	fm.logger.Info("Target region health validated",
 
@@ -1171,13 +942,9 @@ func (fm *FailoverManager) validateTargetRegionHealth(ctx context.Context, targe
 
 		"response_time", status.ResponseTime)
 
-
-
 	return nil
 
 }
-
-
 
 // synchronizeState synchronizes state between source and target regions.
 
@@ -1191,11 +958,7 @@ func (fm *FailoverManager) synchronizeState(ctx context.Context, sourceRegion, t
 
 	}
 
-
-
 	fm.logger.Info("Synchronizing state between regions", "source", sourceRegion, "target", targetRegion)
-
-
 
 	// In a real implementation, this would:.
 
@@ -1207,19 +970,13 @@ func (fm *FailoverManager) synchronizeState(ctx context.Context, sourceRegion, t
 
 	// 4. Sync any application-specific state.
 
-
-
 	syncStart := time.Now()
-
-
 
 	// Simulate state synchronization.
 
 	for _, dataSource := range fm.config.StateSyncConfig.DataSources {
 
 		fm.logger.Info("Synchronizing data source", "source", dataSource, "from", sourceRegion, "to", targetRegion)
-
-
 
 		switch dataSource {
 
@@ -1243,23 +1000,17 @@ func (fm *FailoverManager) synchronizeState(ctx context.Context, sourceRegion, t
 
 	}
 
-
-
 	syncDuration := time.Since(syncStart)
 
 	step.Metadata["sync_duration"] = syncDuration.String()
 
 	step.Metadata["data_sources"] = fm.config.StateSyncConfig.DataSources
 
-
-
 	fm.logger.Info("State synchronization completed", "duration", syncDuration)
 
 	return nil
 
 }
-
-
 
 // updateDNSRecords updates DNS records to point to the new region.
 
@@ -1271,8 +1022,6 @@ func (fm *FailoverManager) updateDNSRecords(ctx context.Context, targetRegion st
 
 	}
 
-
-
 	endpoint, exists := fm.config.RegionalEndpoints[targetRegion]
 
 	if !exists {
@@ -1281,23 +1030,15 @@ func (fm *FailoverManager) updateDNSRecords(ctx context.Context, targetRegion st
 
 	}
 
-
-
 	fm.logger.Info("Updating DNS records", "target_region", targetRegion, "endpoint", endpoint.IngressEndpoint)
 
-
-
 	updatedRecords := make([]string, 0)
-
-
 
 	// Update each DNS record to point to the new region.
 
 	for _, recordName := range fm.config.DNSConfig.RecordSets {
 
 		fm.logger.Info("Updating DNS record", "record", recordName, "target_ip", endpoint.LoadBalancerIP)
-
-
 
 		// Resolve the new target IP if not provided.
 
@@ -1317,8 +1058,6 @@ func (fm *FailoverManager) updateDNSRecords(ctx context.Context, targetRegion st
 
 		}
 
-
-
 		// Prepare the Route53 change batch.
 
 		changeBatch := &types.ChangeBatch{
@@ -1335,27 +1074,19 @@ func (fm *FailoverManager) updateDNSRecords(ctx context.Context, targetRegion st
 
 						Type: types.RRTypeA,
 
-						TTL:  aws.Int64(int64(fm.config.DNSConfig.TTL)),
+						TTL: aws.Int64(int64(fm.config.DNSConfig.TTL)),
 
 						ResourceRecords: []types.ResourceRecord{
 
 							{
 
 								Value: aws.String(targetIP),
-
 							},
-
 						},
-
 					},
-
 				},
-
 			},
-
 		}
-
-
 
 		// Execute the DNS update.
 
@@ -1363,8 +1094,7 @@ func (fm *FailoverManager) updateDNSRecords(ctx context.Context, targetRegion st
 
 			HostedZoneId: aws.String(fm.config.DNSConfig.ZoneID),
 
-			ChangeBatch:  changeBatch,
-
+			ChangeBatch: changeBatch,
 		})
 
 		if err != nil {
@@ -1372,8 +1102,6 @@ func (fm *FailoverManager) updateDNSRecords(ctx context.Context, targetRegion st
 			return fmt.Errorf("failed to update DNS record %s: %w", recordName, err)
 
 		}
-
-
 
 		// Wait for the change to propagate.
 
@@ -1393,21 +1121,15 @@ func (fm *FailoverManager) updateDNSRecords(ctx context.Context, targetRegion st
 
 	}
 
-
-
 	step.Metadata["updated_records"] = updatedRecords
 
 	step.Metadata["target_endpoint"] = endpoint.IngressEndpoint
-
-
 
 	fm.logger.Info("DNS records updated", "count", len(updatedRecords))
 
 	return nil
 
 }
-
-
 
 // waitForDNSChange waits for a DNS change to propagate.
 
@@ -1417,13 +1139,9 @@ func (fm *FailoverManager) waitForDNSChange(ctx context.Context, changeID string
 
 	checkInterval := 10 * time.Second
 
-
-
 	ctx, cancel := context.WithTimeout(ctx, maxWait)
 
 	defer cancel()
-
-
 
 	for {
 
@@ -1437,12 +1155,9 @@ func (fm *FailoverManager) waitForDNSChange(ctx context.Context, changeID string
 
 		}
 
-
-
 		result, err := fm.route53Client.GetChange(ctx, &route53.GetChangeInput{
 
 			Id: aws.String(changeID),
-
 		})
 
 		if err != nil {
@@ -1455,15 +1170,11 @@ func (fm *FailoverManager) waitForDNSChange(ctx context.Context, changeID string
 
 		}
 
-
-
 		if result.ChangeInfo.Status == types.ChangeStatusInsync {
 
 			return nil
 
 		}
-
-
 
 		fm.logger.Debug("Waiting for DNS change propagation", "change_id", changeID, "status", result.ChangeInfo.Status)
 
@@ -1473,15 +1184,11 @@ func (fm *FailoverManager) waitForDNSChange(ctx context.Context, changeID string
 
 }
 
-
-
 // redirectTraffic handles traffic redirection (application-level).
 
 func (fm *FailoverManager) redirectTraffic(ctx context.Context, targetRegion string, step *FailoverStep) error {
 
 	fm.logger.Info("Redirecting traffic to target region", "region", targetRegion)
-
-
 
 	// In a real implementation, this would:.
 
@@ -1493,22 +1200,17 @@ func (fm *FailoverManager) redirectTraffic(ctx context.Context, targetRegion str
 
 	// 4. Update API gateway configurations.
 
-
-
 	// For simulation, we'll update some Kubernetes services.
 
 	namespaces := []string{"nephoran-system", "default"}
 
 	updatedServices := make([]string, 0)
 
-
-
 	for _, ns := range namespaces {
 
 		services, err := fm.k8sClient.CoreV1().Services(ns).List(ctx, metav1.ListOptions{
 
 			LabelSelector: "app.kubernetes.io/component=gateway",
-
 		})
 
 		if err != nil {
@@ -1518,8 +1220,6 @@ func (fm *FailoverManager) redirectTraffic(ctx context.Context, targetRegion str
 			continue
 
 		}
-
-
 
 		for _, svc := range services.Items {
 
@@ -1534,8 +1234,6 @@ func (fm *FailoverManager) redirectTraffic(ctx context.Context, targetRegion str
 			svc.Annotations["nephoran.com/active-region"] = targetRegion
 
 			svc.Annotations["nephoran.com/failover-timestamp"] = time.Now().Format(time.RFC3339)
-
-
 
 			_, err := fm.k8sClient.CoreV1().Services(ns).Update(ctx, &svc, metav1.UpdateOptions{})
 
@@ -1553,21 +1251,15 @@ func (fm *FailoverManager) redirectTraffic(ctx context.Context, targetRegion str
 
 	}
 
-
-
 	step.Metadata["updated_services"] = updatedServices
 
 	step.Metadata["target_region"] = targetRegion
-
-
 
 	fm.logger.Info("Traffic redirection completed", "updated_services", len(updatedServices))
 
 	return nil
 
 }
-
-
 
 // validateServices validates that services are working in the target region.
 
@@ -1581,15 +1273,9 @@ func (fm *FailoverManager) validateServices(ctx context.Context, targetRegion st
 
 	}
 
-
-
 	fm.logger.Info("Validating services in target region", "region", targetRegion)
 
-
-
 	validationResults := make(map[string]bool)
-
-
 
 	// Test each health check endpoint.
 
@@ -1597,12 +1283,9 @@ func (fm *FailoverManager) validateServices(ctx context.Context, targetRegion st
 
 		url := fmt.Sprintf("https://%s%s", endpoint.IngressEndpoint, checkPath)
 
-
-
 		client := &http.Client{
 
 			Timeout: fm.config.HealthCheckConfig.CheckTimeout,
-
 		}
 
 		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -1626,13 +1309,9 @@ func (fm *FailoverManager) validateServices(ctx context.Context, targetRegion st
 
 		resp.Body.Close()
 
-
-
 		healthy := resp.StatusCode >= 200 && resp.StatusCode < 300
 
 		validationResults[checkPath] = healthy
-
-
 
 		if healthy {
 
@@ -1645,8 +1324,6 @@ func (fm *FailoverManager) validateServices(ctx context.Context, targetRegion st
 		}
 
 	}
-
-
 
 	// Check if all critical services are healthy.
 
@@ -1664,13 +1341,9 @@ func (fm *FailoverManager) validateServices(ctx context.Context, targetRegion st
 
 	}
 
-
-
 	step.Metadata["validation_results"] = validationResults
 
 	step.Metadata["all_healthy"] = allHealthy
-
-
 
 	if !allHealthy {
 
@@ -1678,23 +1351,17 @@ func (fm *FailoverManager) validateServices(ctx context.Context, targetRegion st
 
 	}
 
-
-
 	fm.logger.Info("All services validated successfully in target region", "region", targetRegion)
 
 	return nil
 
 }
 
-
-
 // setupMonitoring sets up monitoring for the new active region.
 
 func (fm *FailoverManager) setupMonitoring(ctx context.Context, targetRegion string, step *FailoverStep) error {
 
 	fm.logger.Info("Setting up monitoring for new active region", "region", targetRegion)
-
-
 
 	// In a real implementation, this would:.
 
@@ -1706,23 +1373,18 @@ func (fm *FailoverManager) setupMonitoring(ctx context.Context, targetRegion str
 
 	// 4. Notify monitoring teams.
 
-
-
 	// For simulation, we'll update some configuration.
 
 	step.Metadata["monitoring_setup"] = map[string]interface{}{
 
 		"prometheus_updated": true,
 
-		"grafana_updated":    true,
+		"grafana_updated": true,
 
-		"alerts_updated":     true,
+		"alerts_updated": true,
 
-		"region":             targetRegion,
-
+		"region": targetRegion,
 	}
-
-
 
 	fm.logger.Info("Monitoring setup completed for new active region", "region", targetRegion)
 
@@ -1730,11 +1392,7 @@ func (fm *FailoverManager) setupMonitoring(ctx context.Context, targetRegion str
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (fm *FailoverManager) isValidFailoverRegion(region string) bool {
 
@@ -1752,8 +1410,6 @@ func (fm *FailoverManager) isValidFailoverRegion(region string) bool {
 
 }
 
-
-
 func (fm *FailoverManager) canFailover() bool {
 
 	if len(fm.failoverHistory) == 0 {
@@ -1761,8 +1417,6 @@ func (fm *FailoverManager) canFailover() bool {
 		return true
 
 	}
-
-
 
 	// Check cooldown period.
 
@@ -1774,13 +1428,9 @@ func (fm *FailoverManager) canFailover() bool {
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 func (fm *FailoverManager) getStepType(stepName string) string {
 
@@ -1818,11 +1468,7 @@ func (fm *FailoverManager) getStepType(stepName string) string {
 
 }
 
-
-
 // Sync methods (simplified implementations).
-
-
 
 func (fm *FailoverManager) syncWeaviateData(ctx context.Context, sourceRegion, targetRegion string) error {
 
@@ -1836,8 +1482,6 @@ func (fm *FailoverManager) syncWeaviateData(ctx context.Context, sourceRegion, t
 
 }
 
-
-
 func (fm *FailoverManager) syncKubernetesConfig(ctx context.Context, sourceRegion, targetRegion string) error {
 
 	fm.logger.Info("Synchronizing Kubernetes config", "from", sourceRegion, "to", targetRegion)
@@ -1850,25 +1494,19 @@ func (fm *FailoverManager) syncKubernetesConfig(ctx context.Context, sourceRegio
 
 }
 
-
-
 // HTTPRegionHealthChecker implements RegionHealthChecker for HTTP endpoints.
 
 type HTTPRegionHealthChecker struct {
+	region string
 
-	region    string
+	endpoint RegionalEndpoint
 
-	endpoint  RegionalEndpoint
-
-	timeout   time.Duration
+	timeout time.Duration
 
 	endpoints []string
 
-	logger    *slog.Logger
-
+	logger *slog.Logger
 }
-
-
 
 // CheckHealth performs checkhealth operation.
 
@@ -1878,31 +1516,23 @@ func (h *HTTPRegionHealthChecker) CheckHealth(ctx context.Context, region string
 
 	status := &RegionHealthStatus{
 
-		Region:             region,
+		Region: region,
 
-		LastCheck:          start,
+		LastCheck: start,
 
 		HealthCheckResults: make(map[string]bool),
 
-		Metadata:           make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}
-
-
 
 	client := &http.Client{
 
 		Timeout: h.timeout,
-
 	}
-
-
 
 	healthyCount := 0
 
 	totalChecks := len(h.endpoints)
-
-
 
 	for _, endpoint := range h.endpoints {
 
@@ -1913,8 +1543,6 @@ func (h *HTTPRegionHealthChecker) CheckHealth(ctx context.Context, region string
 			url = fmt.Sprintf("https://%s%s", h.endpoint.IngressEndpoint, endpoint)
 
 		}
-
-
 
 		checkStart := time.Now()
 
@@ -1930,8 +1558,6 @@ func (h *HTTPRegionHealthChecker) CheckHealth(ctx context.Context, region string
 
 		checkDuration := time.Since(checkStart)
 
-
-
 		if err != nil {
 
 			status.HealthCheckResults[endpoint] = false
@@ -1946,13 +1572,9 @@ func (h *HTTPRegionHealthChecker) CheckHealth(ctx context.Context, region string
 
 		resp.Body.Close()
 
-
-
 		healthy := resp.StatusCode >= 200 && resp.StatusCode < 300
 
 		status.HealthCheckResults[endpoint] = healthy
-
-
 
 		if healthy {
 
@@ -1964,13 +1586,9 @@ func (h *HTTPRegionHealthChecker) CheckHealth(ctx context.Context, region string
 
 		}
 
-
-
 		h.logger.Debug("Health check completed", "url", url, "status", resp.StatusCode, "duration", checkDuration)
 
 	}
-
-
 
 	status.ResponseTime = time.Since(start)
 
@@ -1980,13 +1598,9 @@ func (h *HTTPRegionHealthChecker) CheckHealth(ctx context.Context, region string
 
 	status.Metadata["total_checks"] = totalChecks
 
-
-
 	return status, nil
 
 }
-
-
 
 // GetRegionName performs getregionname operation.
 
@@ -1996,11 +1610,7 @@ func (h *HTTPRegionHealthChecker) GetRegionName() string {
 
 }
 
-
-
 // RegionHealthMonitor methods.
-
-
 
 // Start performs start operation.
 
@@ -2010,25 +1620,17 @@ func (rhm *RegionHealthMonitor) Start(ctx context.Context) error {
 
 	defer rhm.mu.Unlock()
 
-
-
 	if rhm.isRunning {
 
 		return fmt.Errorf("region health monitor is already running")
 
 	}
 
-
-
 	rhm.ticker = time.NewTicker(rhm.manager.config.HealthCheckConfig.CheckInterval)
 
 	rhm.isRunning = true
 
-
-
 	go rhm.run(ctx)
-
-
 
 	rhm.manager.logger.Info("Region health monitor started",
 
@@ -2037,8 +1639,6 @@ func (rhm *RegionHealthMonitor) Start(ctx context.Context) error {
 	return nil
 
 }
-
-
 
 func (rhm *RegionHealthMonitor) run(ctx context.Context) {
 
@@ -2066,8 +1666,6 @@ func (rhm *RegionHealthMonitor) run(ctx context.Context) {
 
 }
 
-
-
 func (rhm *RegionHealthMonitor) performHealthChecks(ctx context.Context) {
 
 	for region, checker := range rhm.manager.healthCheckers {
@@ -2086,8 +1684,6 @@ func (rhm *RegionHealthMonitor) performHealthChecks(ctx context.Context) {
 
 			}
 
-
-
 			if status.Healthy {
 
 				regionHealth.WithLabelValues(r).Set(1)
@@ -2095,8 +1691,6 @@ func (rhm *RegionHealthMonitor) performHealthChecks(ctx context.Context) {
 			} else {
 
 				regionHealth.WithLabelValues(r).Set(0)
-
-
 
 				// Trigger automatic failover if conditions are met.
 
@@ -2114,8 +1708,6 @@ func (rhm *RegionHealthMonitor) performHealthChecks(ctx context.Context) {
 
 }
 
-
-
 func (rhm *RegionHealthMonitor) checkAutoFailoverConditions(ctx context.Context, region string, status *RegionHealthStatus) {
 
 	if status.ErrorCount >= rhm.manager.config.FailoverThreshold {
@@ -2127,8 +1719,6 @@ func (rhm *RegionHealthMonitor) checkAutoFailoverConditions(ctx context.Context,
 			"error_count", status.ErrorCount,
 
 			"threshold", rhm.manager.config.FailoverThreshold)
-
-
 
 		// Select best failover target.
 
@@ -2154,8 +1744,6 @@ func (rhm *RegionHealthMonitor) checkAutoFailoverConditions(ctx context.Context,
 
 }
 
-
-
 func (rhm *RegionHealthMonitor) selectBestFailoverTarget(ctx context.Context) string {
 
 	// Simple implementation - select first healthy region.
@@ -2170,8 +1758,6 @@ func (rhm *RegionHealthMonitor) selectBestFailoverTarget(ctx context.Context) st
 
 		}
 
-
-
 		status, err := checker.CheckHealth(ctx, region)
 
 		if err != nil {
@@ -2179,8 +1765,6 @@ func (rhm *RegionHealthMonitor) selectBestFailoverTarget(ctx context.Context) st
 			continue
 
 		}
-
-
 
 		if status.Healthy {
 
@@ -2194,23 +1778,17 @@ func (rhm *RegionHealthMonitor) selectBestFailoverTarget(ctx context.Context) st
 
 }
 
-
-
 func (rhm *RegionHealthMonitor) stop() {
 
 	rhm.mu.Lock()
 
 	defer rhm.mu.Unlock()
 
-
-
 	if !rhm.isRunning {
 
 		return
 
 	}
-
-
 
 	rhm.ticker.Stop()
 
@@ -2220,11 +1798,7 @@ func (rhm *RegionHealthMonitor) stop() {
 
 }
 
-
-
 // StateSyncManager methods.
-
-
 
 // StartSynchronization performs startsynchronization operation.
 
@@ -2233,8 +1807,6 @@ func (ssm *StateSyncManager) StartSynchronization(ctx context.Context) {
 	ticker := time.NewTicker(ssm.config.SyncInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2254,19 +1826,14 @@ func (ssm *StateSyncManager) StartSynchronization(ctx context.Context) {
 
 }
 
-
-
 func (ssm *StateSyncManager) performSync(ctx context.Context) {
 
 	ssm.syncLock.Lock()
 
 	defer ssm.syncLock.Unlock()
 
-
-
 	ssm.logger.Debug("Performing periodic state synchronization")
 
 	// Implementation would sync state between regions.
 
 }
-

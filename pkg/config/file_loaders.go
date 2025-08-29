@@ -1,25 +1,13 @@
-
 package config
 
-
-
 import (
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 	"strings"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/interfaces"
-
 )
-
-
 
 // LoadLLMAPIKeyFromFile loads the LLM API key from file or environment variable.
 
@@ -41,8 +29,6 @@ func LoadLLMAPIKeyFromFile(backendType string, logger interfaces.AuditLogger) (s
 
 	}
 
-
-
 	// Try loading from file.
 
 	homeDir, err := os.UserHomeDir()
@@ -52,8 +38,6 @@ func LoadLLMAPIKeyFromFile(backendType string, logger interfaces.AuditLogger) (s
 		return "", fmt.Errorf("failed to get home directory: %w", err)
 
 	}
-
-
 
 	keyFile := filepath.Join(homeDir, ".nephoran", fmt.Sprintf("%s_api_key", strings.ToLower(backendType)))
 
@@ -75,8 +59,6 @@ func LoadLLMAPIKeyFromFile(backendType string, logger interfaces.AuditLogger) (s
 
 	}
 
-
-
 	// Try generic LLM_API_KEY as fallback.
 
 	if apiKey := os.Getenv("LLM_API_KEY"); apiKey != "" {
@@ -91,8 +73,6 @@ func LoadLLMAPIKeyFromFile(backendType string, logger interfaces.AuditLogger) (s
 
 	}
 
-
-
 	err = fmt.Errorf("no API key found for backend %s", backendType)
 
 	if logger != nil {
@@ -104,8 +84,6 @@ func LoadLLMAPIKeyFromFile(backendType string, logger interfaces.AuditLogger) (s
 	return "", err
 
 }
-
-
 
 // LoadAPIKeyFromFile loads the application API key from file or environment variable.
 
@@ -125,8 +103,6 @@ func LoadAPIKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 
 	}
 
-
-
 	// Try loading from file.
 
 	homeDir, err := os.UserHomeDir()
@@ -136,8 +112,6 @@ func LoadAPIKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
 
 	}
-
-
 
 	keyFile := filepath.Join(homeDir, ".nephoran", "api_key")
 
@@ -159,8 +133,6 @@ func LoadAPIKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 
 	}
 
-
-
 	err = fmt.Errorf("no API key found")
 
 	if logger != nil {
@@ -172,8 +144,6 @@ func LoadAPIKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 	return "", err
 
 }
-
-
 
 // LoadJWTSecretKeyFromFile loads the JWT secret key from file or environment variable.
 
@@ -193,8 +163,6 @@ func LoadJWTSecretKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 
 	}
 
-
-
 	// Try loading from file.
 
 	homeDir, err := os.UserHomeDir()
@@ -204,8 +172,6 @@ func LoadJWTSecretKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
 
 	}
-
-
 
 	keyFile := filepath.Join(homeDir, ".nephoran", "jwt_secret")
 
@@ -227,8 +193,6 @@ func LoadJWTSecretKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 
 	}
 
-
-
 	// Generate a default secret key for development (not recommended for production).
 
 	defaultSecret := "default-development-secret-key-change-in-production"
@@ -242,4 +206,3 @@ func LoadJWTSecretKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 	return defaultSecret, nil
 
 }
-

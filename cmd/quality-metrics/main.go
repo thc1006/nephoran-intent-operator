@@ -1,181 +1,138 @@
-
 package main
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"log"
-
 	"os"
-
 	"runtime"
-
 	"time"
 
-
-
 	"golang.org/x/text/cases"
-
 	"golang.org/x/text/language"
-
 )
-
-
 
 // QualityMetricsReport represents comprehensive code quality metrics.
 
 type QualityMetricsReport struct {
+	ProjectPath string `json:"project_path"`
 
-	ProjectPath     string              `json:"project_path"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp       time.Time           `json:"timestamp"`
+	GoVersion string `json:"go_version"`
 
-	GoVersion       string              `json:"go_version"`
+	Summary QualitySummary `json:"summary"`
 
-	Summary         QualitySummary      `json:"summary"`
+	CodeMetrics CodeMetrics `json:"code_metrics"`
 
-	CodeMetrics     CodeMetrics         `json:"code_metrics"`
+	TestMetrics TestMetrics `json:"test_metrics"`
 
-	TestMetrics     TestMetrics         `json:"test_metrics"`
+	SecurityMetrics SecurityMetrics `json:"security_metrics"`
 
-	SecurityMetrics SecurityMetrics     `json:"security_metrics"`
+	TechnicalDebt TechnicalDebtReport `json:"technical_debt"`
 
-	TechnicalDebt   TechnicalDebtReport `json:"technical_debt"`
-
-	Recommendations []Recommendation    `json:"recommendations"`
-
+	Recommendations []Recommendation `json:"recommendations"`
 }
-
-
 
 // QualitySummary represents a qualitysummary.
 
 type QualitySummary struct {
+	OverallScore float64 `json:"overall_score"`
 
-	OverallScore   float64 `json:"overall_score"`
+	Grade string `json:"grade"`
 
-	Grade          string  `json:"grade"`
+	Status string `json:"status"`
 
-	Status         string  `json:"status"`
+	TotalIssues int `json:"total_issues"`
 
-	TotalIssues    int     `json:"total_issues"`
+	CriticalIssues int `json:"critical_issues"`
 
-	CriticalIssues int     `json:"critical_issues"`
+	WarningIssues int `json:"warning_issues"`
 
-	WarningIssues  int     `json:"warning_issues"`
-
-	InfoIssues     int     `json:"info_issues"`
-
+	InfoIssues int `json:"info_issues"`
 }
-
-
 
 // CodeMetrics represents a codemetrics.
 
 type CodeMetrics struct {
+	LinesOfCode int `json:"lines_of_code"`
 
-	LinesOfCode          int     `json:"lines_of_code"`
+	LinesOfComments int `json:"lines_of_comments"`
 
-	LinesOfComments      int     `json:"lines_of_comments"`
+	LinesOfBlank int `json:"lines_of_blank"`
 
-	LinesOfBlank         int     `json:"lines_of_blank"`
+	CyclomaticComplexity int `json:"cyclomatic_complexity"`
 
-	CyclomaticComplexity int     `json:"cyclomatic_complexity"`
+	CodeCoverage float64 `json:"code_coverage"`
 
-	CodeCoverage         float64 `json:"code_coverage"`
+	DuplicationRatio float64 `json:"duplication_ratio"`
 
-	DuplicationRatio     float64 `json:"duplication_ratio"`
+	TechnicalDebtRatio float64 `json:"technical_debt_ratio"`
 
-	TechnicalDebtRatio   float64 `json:"technical_debt_ratio"`
-
-	Maintainability      float64 `json:"maintainability"`
-
+	Maintainability float64 `json:"maintainability"`
 }
-
-
 
 // TestMetrics represents a testmetrics.
 
 type TestMetrics struct {
+	TotalTests int `json:"total_tests"`
 
-	TotalTests       int     `json:"total_tests"`
+	PassingTests int `json:"passing_tests"`
 
-	PassingTests     int     `json:"passing_tests"`
+	FailingTests int `json:"failing_tests"`
 
-	FailingTests     int     `json:"failing_tests"`
+	TestCoverage float64 `json:"test_coverage"`
 
-	TestCoverage     float64 `json:"test_coverage"`
+	BenchmarkTests int `json:"benchmark_tests"`
 
-	BenchmarkTests   int     `json:"benchmark_tests"`
+	IntegrationTests int `json:"integration_tests"`
 
-	IntegrationTests int     `json:"integration_tests"`
-
-	UnitTests        int     `json:"unit_tests"`
-
+	UnitTests int `json:"unit_tests"`
 }
-
-
 
 // SecurityMetrics represents a securitymetrics.
 
 type SecurityMetrics struct {
+	Vulnerabilities int `json:"vulnerabilities"`
 
-	Vulnerabilities    int      `json:"vulnerabilities"`
+	HighSeverity int `json:"high_severity"`
 
-	HighSeverity       int      `json:"high_severity"`
+	MediumSeverity int `json:"medium_severity"`
 
-	MediumSeverity     int      `json:"medium_severity"`
+	LowSeverity int `json:"low_severity"`
 
-	LowSeverity        int      `json:"low_severity"`
-
-	SecurityScore      float64  `json:"security_score"`
+	SecurityScore float64 `json:"security_score"`
 
 	VulnerablePackages []string `json:"vulnerable_packages"`
-
 }
-
-
 
 // TechnicalDebtReport represents a technicaldebtreport.
 
 type TechnicalDebtReport struct {
+	EstimatedHours float64 `json:"estimated_hours"`
 
-	EstimatedHours   float64        `json:"estimated_hours"`
+	DebtRatio float64 `json:"debt_ratio"`
 
-	DebtRatio        float64        `json:"debt_ratio"`
+	IssuesByType map[string]int `json:"issues_by_type"`
 
-	IssuesByType     map[string]int `json:"issues_by_type"`
-
-	IssuesByPackage  map[string]int `json:"issues_by_package"`
+	IssuesByPackage map[string]int `json:"issues_by_package"`
 
 	IssuesBySeverity map[string]int `json:"issues_by_severity"`
-
 }
-
-
 
 // Recommendation represents a recommendation.
 
 type Recommendation struct {
+	Type string `json:"type"`
 
-	Type        string `json:"type"`
-
-	Severity    string `json:"severity"`
+	Severity string `json:"severity"`
 
 	Description string `json:"description"`
 
-	Action      string `json:"action"`
+	Action string `json:"action"`
 
-	Priority    int    `json:"priority"`
-
+	Priority int `json:"priority"`
 }
-
-
 
 func main() {
 
@@ -183,21 +140,16 @@ func main() {
 
 	fmt.Println("====================================")
 
-
-
 	// Initialize report.
 
 	report := &QualityMetricsReport{
 
 		ProjectPath: ".",
 
-		Timestamp:   time.Now(),
+		Timestamp: time.Now(),
 
-		GoVersion:   runtime.Version(),
-
+		GoVersion: runtime.Version(),
 	}
-
-
 
 	// Analyze code quality.
 
@@ -207,103 +159,82 @@ func main() {
 
 	}
 
-
-
 	// Generate quality summary.
 
 	report.generateQualitySummary()
-
-
 
 	// Generate recommendations.
 
 	report.generateRecommendations()
 
-
-
 	// Generate reports.
 
 	report.generateReports()
-
-
 
 	fmt.Println("✅ Quality metrics analysis completed!")
 
 }
 
-
-
 func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
 
 	fmt.Println("📊 Analyzing code quality metrics...")
-
-
 
 	// Analyze code metrics.
 
 	qmr.CodeMetrics = CodeMetrics{
 
-		LinesOfCode:          50000,
+		LinesOfCode: 50000,
 
-		LinesOfComments:      8000,
+		LinesOfComments: 8000,
 
-		LinesOfBlank:         6000,
+		LinesOfBlank: 6000,
 
 		CyclomaticComplexity: 250,
 
-		CodeCoverage:         75.5,
+		CodeCoverage: 75.5,
 
-		DuplicationRatio:     2.3,
+		DuplicationRatio: 2.3,
 
-		TechnicalDebtRatio:   5.2,
+		TechnicalDebtRatio: 5.2,
 
-		Maintainability:      85.0,
-
+		Maintainability: 85.0,
 	}
-
-
 
 	// Analyze test metrics.
 
 	qmr.TestMetrics = TestMetrics{
 
-		TotalTests:       450,
+		TotalTests: 450,
 
-		PassingTests:     430,
+		PassingTests: 430,
 
-		FailingTests:     20,
+		FailingTests: 20,
 
-		TestCoverage:     75.5,
+		TestCoverage: 75.5,
 
-		BenchmarkTests:   25,
+		BenchmarkTests: 25,
 
 		IntegrationTests: 75,
 
-		UnitTests:        350,
-
+		UnitTests: 350,
 	}
-
-
 
 	// Analyze security metrics.
 
 	qmr.SecurityMetrics = SecurityMetrics{
 
-		Vulnerabilities:    3,
+		Vulnerabilities: 3,
 
-		HighSeverity:       0,
+		HighSeverity: 0,
 
-		MediumSeverity:     1,
+		MediumSeverity: 1,
 
-		LowSeverity:        2,
+		LowSeverity: 2,
 
-		SecurityScore:      92.5,
+		SecurityScore: 92.5,
 
 		VulnerablePackages: []string{"old-package-v1.0"},
-
 	}
-
-
 
 	// Analyze technical debt.
 
@@ -311,18 +242,17 @@ func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
 
 		EstimatedHours: 24.5,
 
-		DebtRatio:      5.2,
+		DebtRatio: 5.2,
 
 		IssuesByType: map[string]int{
 
-			"complexity":  15,
+			"complexity": 15,
 
 			"duplication": 8,
 
-			"style":       12,
+			"style": 12,
 
-			"bugs":        3,
-
+			"bugs": 3,
 		},
 
 		IssuesByPackage: map[string]int{
@@ -331,35 +261,26 @@ func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
 
 			"pkg/services": 8,
 
-			"pkg/models":   5,
-
+			"pkg/models": 5,
 		},
 
 		IssuesBySeverity: map[string]int{
 
 			"critical": 3,
 
-			"major":    12,
+			"major": 12,
 
-			"minor":    23,
-
+			"minor": 23,
 		},
-
 	}
-
-
 
 	return nil
 
 }
 
-
-
 func (qmr *QualityMetricsReport) generateQualitySummary() {
 
 	fmt.Println("🔍 Generating quality summary...")
-
-
 
 	// Calculate overall score based on multiple factors.
 
@@ -369,11 +290,7 @@ func (qmr *QualityMetricsReport) generateQualitySummary() {
 
 	securityScore := qmr.SecurityMetrics.SecurityScore
 
-
-
 	overallScore := (codeScore + testScore + securityScore) / 3
-
-
 
 	grade := "A"
 
@@ -407,103 +324,84 @@ func (qmr *QualityMetricsReport) generateQualitySummary() {
 
 	}
 
-
-
 	qmr.Summary = QualitySummary{
 
-		OverallScore:   overallScore,
+		OverallScore: overallScore,
 
-		Grade:          grade,
+		Grade: grade,
 
-		Status:         status,
+		Status: status,
 
-		TotalIssues:    38,
+		TotalIssues: 38,
 
 		CriticalIssues: 3,
 
-		WarningIssues:  12,
+		WarningIssues: 12,
 
-		InfoIssues:     23,
-
+		InfoIssues: 23,
 	}
 
 }
-
-
 
 func (qmr *QualityMetricsReport) generateRecommendations() {
 
 	fmt.Println("💡 Generating recommendations...")
 
-
-
 	qmr.Recommendations = []Recommendation{
 
 		{
 
-			Type:        "Testing",
+			Type: "Testing",
 
-			Severity:    "medium",
+			Severity: "medium",
 
 			Description: "Increase test coverage to above 80%",
 
-			Action:      "Add more unit tests for uncovered functions",
+			Action: "Add more unit tests for uncovered functions",
 
-			Priority:    2,
-
+			Priority: 2,
 		},
 
 		{
 
-			Type:        "Security",
+			Type: "Security",
 
-			Severity:    "high",
+			Severity: "high",
 
 			Description: "Update vulnerable packages",
 
-			Action:      "Run 'go get -u' and audit dependencies",
+			Action: "Run 'go get -u' and audit dependencies",
 
-			Priority:    1,
-
+			Priority: 1,
 		},
 
 		{
 
-			Type:        "Technical Debt",
+			Type: "Technical Debt",
 
-			Severity:    "medium",
+			Severity: "medium",
 
 			Description: "Reduce code complexity in handlers package",
 
-			Action:      "Refactor complex functions into smaller units",
+			Action: "Refactor complex functions into smaller units",
 
-			Priority:    3,
-
+			Priority: 3,
 		},
-
 	}
 
 }
-
-
 
 func (qmr *QualityMetricsReport) generateReports() {
 
 	fmt.Println("📄 Generating quality reports...")
 
-
-
 	// Generate JSON report.
 
 	qmr.generateJSONReport()
 
-
-
 	// Generate markdown report.
 
 	qmr.generateMarkdownReport()
-
-
 
 	// Generate HTML report.
 
@@ -511,15 +409,11 @@ func (qmr *QualityMetricsReport) generateReports() {
 
 }
 
-
-
 func (qmr *QualityMetricsReport) generateJSONReport() {
 
 	filename := fmt.Sprintf("quality-metrics-report-%s.json",
 
 		time.Now().Format("20060102-150405"))
-
-
 
 	file, err := os.Create(filename)
 
@@ -533,8 +427,6 @@ func (qmr *QualityMetricsReport) generateJSONReport() {
 
 	defer func() { _ = file.Close() }()
 
-
-
 	encoder := json.NewEncoder(file)
 
 	encoder.SetIndent("", "  ")
@@ -547,21 +439,15 @@ func (qmr *QualityMetricsReport) generateJSONReport() {
 
 	}
 
-
-
 	fmt.Printf("📄 JSON report generated: %s\n", filename)
 
 }
-
-
 
 func (qmr *QualityMetricsReport) generateMarkdownReport() {
 
 	filename := fmt.Sprintf("quality-metrics-report-%s.md",
 
 		time.Now().Format("20060102-150405"))
-
-
 
 	file, err := os.Create(filename)
 
@@ -574,8 +460,6 @@ func (qmr *QualityMetricsReport) generateMarkdownReport() {
 	}
 
 	defer func() { _ = file.Close() }()
-
-
 
 	// FIXME: Batch error handling for multiple fmt.Fprintf calls in markdown generation.
 
@@ -604,8 +488,6 @@ func (qmr *QualityMetricsReport) generateMarkdownReport() {
 		mdWriteErr = err
 
 	}
-
-
 
 	if _, err := fmt.Fprintf(file, "## Summary\n\n"); err != nil && mdWriteErr == nil {
 
@@ -637,8 +519,6 @@ func (qmr *QualityMetricsReport) generateMarkdownReport() {
 
 	}
 
-
-
 	if _, err := fmt.Fprintf(file, "\n## Code Metrics\n\n"); err != nil && mdWriteErr == nil {
 
 		mdWriteErr = err
@@ -662,8 +542,6 @@ func (qmr *QualityMetricsReport) generateMarkdownReport() {
 		mdWriteErr = err
 
 	}
-
-
 
 	if _, err := fmt.Fprintf(file, "\n## Recommendations\n\n"); err != nil && mdWriteErr == nil {
 
@@ -693,8 +571,6 @@ func (qmr *QualityMetricsReport) generateMarkdownReport() {
 
 	}
 
-
-
 	// Check for any write errors.
 
 	if mdWriteErr != nil {
@@ -705,21 +581,15 @@ func (qmr *QualityMetricsReport) generateMarkdownReport() {
 
 	}
 
-
-
 	fmt.Printf("📄 Markdown report generated: %s\n", filename)
 
 }
-
-
 
 func (qmr *QualityMetricsReport) generateHTMLReport() {
 
 	filename := fmt.Sprintf("quality-metrics-report-%s.html",
 
 		time.Now().Format("20060102-150405"))
-
-
 
 	file, err := os.Create(filename)
 
@@ -732,8 +602,6 @@ func (qmr *QualityMetricsReport) generateHTMLReport() {
 	}
 
 	defer func() { _ = file.Close() }()
-
-
 
 	html := `<!DOCTYPE html>
 
@@ -791,8 +659,6 @@ func (qmr *QualityMetricsReport) generateHTMLReport() {
 
 </html>`
 
-
-
 	// Fixed: Break down format arguments to resolve SA5009 format string parsing issue
 	overallScore := qmr.Summary.OverallScore
 	grade := qmr.Summary.Grade
@@ -801,7 +667,7 @@ func (qmr *QualityMetricsReport) generateHTMLReport() {
 	linesOfCode := qmr.CodeMetrics.LinesOfCode
 	codeCoverage := qmr.CodeMetrics.CodeCoverage
 	maintainability := qmr.CodeMetrics.Maintainability
-	
+
 	formattedHTML := fmt.Sprintf(html,
 		overallScore, grade, status, timestamp,
 		linesOfCode, codeCoverage, maintainability)
@@ -814,9 +680,6 @@ func (qmr *QualityMetricsReport) generateHTMLReport() {
 
 	}
 
-
-
 	fmt.Printf("📄 HTML report generated: %s\n", filename)
 
 }
-

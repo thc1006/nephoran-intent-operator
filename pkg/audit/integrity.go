@@ -1,51 +1,26 @@
-
 package audit
 
-
-
 import (
-
 	"crypto"
-
 	"crypto/rand"
-
 	"crypto/rsa"
-
 	"crypto/sha256"
-
 	"crypto/x509"
-
 	"encoding/base64"
-
 	"encoding/hex"
-
 	"encoding/json"
-
 	"encoding/pem"
-
 	"fmt"
-
 	"sort"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 const (
 
@@ -53,201 +28,155 @@ const (
 
 	IntegrityVersion = "1.0"
 
-
-
 	// HashAlgorithm defines the hash algorithm used for integrity protection.
 
 	HashAlgorithm = "SHA256"
-
-
 
 	// SignatureAlgorithm defines the signature algorithm.
 
 	SignatureAlgorithm = "RSA-PSS"
 
-
-
 	// MinKeySize defines the minimum RSA key size.
 
 	MinKeySize = 2048
 
-
-
 	// MaxChainLength defines maximum length of integrity chain to keep in memory.
 
 	MaxChainLength = 10000
-
 )
 
-
-
 var (
-
 	integrityOperationsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 
 		Name: "audit_integrity_operations_total",
 
 		Help: "Total number of integrity operations",
-
 	}, []string{"operation", "status"})
-
-
 
 	integrityChainLength = promauto.NewGauge(prometheus.GaugeOpts{
 
 		Name: "audit_integrity_chain_length",
 
 		Help: "Current length of integrity chain",
-
 	})
-
-
 
 	integrityVerificationDuration = promauto.NewHistogram(prometheus.HistogramOpts{
 
 		Name: "audit_integrity_verification_duration_seconds",
 
 		Help: "Duration of integrity verification operations",
-
 	})
-
 )
-
-
 
 // IntegrityChain maintains a cryptographic chain of audit events.
 
 type IntegrityChain struct {
+	mutex sync.RWMutex
 
-	mutex       sync.RWMutex
+	chain []IntegrityLink
 
-	chain       []IntegrityLink
+	privateKey *rsa.PrivateKey
 
-	privateKey  *rsa.PrivateKey
+	publicKey *rsa.PublicKey
 
-	publicKey   *rsa.PublicKey
+	logger logr.Logger
 
-	logger      logr.Logger
+	keyID string
 
-	keyID       string
-
-	lastHash    string
+	lastHash string
 
 	sequenceNum uint64
 
-	enabled     bool
-
+	enabled bool
 }
-
-
 
 // IntegrityLink represents a single link in the integrity chain.
 
 type IntegrityLink struct {
+	SequenceNumber uint64 `json:"sequence_number"`
 
-	SequenceNumber uint64    `json:"sequence_number"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp      time.Time `json:"timestamp"`
+	EventID string `json:"event_id"`
 
-	EventID        string    `json:"event_id"`
+	EventHash string `json:"event_hash"`
 
-	EventHash      string    `json:"event_hash"`
+	PreviousHash string `json:"previous_hash"`
 
-	PreviousHash   string    `json:"previous_hash"`
+	ChainHash string `json:"chain_hash"`
 
-	ChainHash      string    `json:"chain_hash"`
+	Signature string `json:"signature"`
 
-	Signature      string    `json:"signature"`
+	KeyID string `json:"key_id"`
 
-	KeyID          string    `json:"key_id"`
-
-	Version        string    `json:"version"`
-
+	Version string `json:"version"`
 }
-
-
 
 // IntegrityConfig holds configuration for integrity protection.
 
 type IntegrityConfig struct {
+	Enabled bool `json:"enabled" yaml:"enabled"`
 
-	Enabled          bool   `json:"enabled" yaml:"enabled"`
+	KeyPairPath string `json:"key_pair_path" yaml:"key_pair_path"`
 
-	KeyPairPath      string `json:"key_pair_path" yaml:"key_pair_path"`
+	KeySize int `json:"key_size" yaml:"key_size"`
 
-	KeySize          int    `json:"key_size" yaml:"key_size"`
+	AutoGenerateKeys bool `json:"auto_generate_keys" yaml:"auto_generate_keys"`
 
-	AutoGenerateKeys bool   `json:"auto_generate_keys" yaml:"auto_generate_keys"`
-
-	ChainFile        string `json:"chain_file" yaml:"chain_file"`
+	ChainFile string `json:"chain_file" yaml:"chain_file"`
 
 	VerificationMode string `json:"verification_mode" yaml:"verification_mode"`
 
-	MaxChainLength   int    `json:"max_chain_length" yaml:"max_chain_length"`
-
+	MaxChainLength int `json:"max_chain_length" yaml:"max_chain_length"`
 }
-
-
 
 // IntegrityReport contains the result of integrity verification.
 
 type IntegrityReport struct {
+	Valid bool `json:"valid"`
 
-	Valid               bool                    `json:"valid"`
+	TotalEvents int `json:"total_events"`
 
-	TotalEvents         int                     `json:"total_events"`
+	VerifiedEvents int `json:"verified_events"`
 
-	VerifiedEvents      int                     `json:"verified_events"`
+	FailedEvents int `json:"failed_events"`
 
-	FailedEvents        int                     `json:"failed_events"`
+	MissingEvents []string `json:"missing_events"`
 
-	MissingEvents       []string                `json:"missing_events"`
+	TamperedEvents []string `json:"tampered_events"`
 
-	TamperedEvents      []string                `json:"tampered_events"`
+	ChainBreaks []IntegrityChainBreak `json:"chain_breaks"`
 
-	ChainBreaks         []IntegrityChainBreak   `json:"chain_breaks"`
-
-	VerificationTime    time.Time               `json:"verification_time"`
+	VerificationTime time.Time `json:"verification_time"`
 
 	VerificationDetails []IntegrityVerification `json:"verification_details"`
-
 }
-
-
 
 // IntegrityChainBreak represents a break in the integrity chain.
 
 type IntegrityChainBreak struct {
-
 	SequenceNumber uint64 `json:"sequence_number"`
 
-	EventID        string `json:"event_id"`
+	EventID string `json:"event_id"`
 
-	Reason         string `json:"reason"`
+	Reason string `json:"reason"`
 
-	Expected       string `json:"expected"`
+	Expected string `json:"expected"`
 
-	Actual         string `json:"actual"`
-
+	Actual string `json:"actual"`
 }
-
-
 
 // IntegrityVerification contains details of a single event verification.
 
 type IntegrityVerification struct {
-
-	EventID        string `json:"event_id"`
+	EventID string `json:"event_id"`
 
 	SequenceNumber uint64 `json:"sequence_number"`
 
-	Valid          bool   `json:"valid"`
+	Valid bool `json:"valid"`
 
-	Error          string `json:"error,omitempty"`
-
+	Error string `json:"error,omitempty"`
 }
-
-
 
 // NewIntegrityChain creates a new integrity chain.
 
@@ -259,8 +188,6 @@ func NewIntegrityChain() (*IntegrityChain, error) {
 
 }
 
-
-
 // NewIntegrityChainWithConfig creates a new integrity chain with specific configuration.
 
 func NewIntegrityChainWithConfig(config *IntegrityConfig) (*IntegrityChain, error) {
@@ -271,21 +198,16 @@ func NewIntegrityChainWithConfig(config *IntegrityConfig) (*IntegrityChain, erro
 
 	}
 
-
-
 	ic := &IntegrityChain{
 
-		chain:       make([]IntegrityLink, 0),
+		chain: make([]IntegrityLink, 0),
 
-		logger:      log.Log.WithName("integrity-chain"),
+		logger: log.Log.WithName("integrity-chain"),
 
-		enabled:     true,
+		enabled: true,
 
 		sequenceNum: 0,
-
 	}
-
-
 
 	// Initialize cryptographic keys.
 
@@ -294,8 +216,6 @@ func NewIntegrityChainWithConfig(config *IntegrityConfig) (*IntegrityChain, erro
 		return nil, fmt.Errorf("failed to initialize cryptographic keys: %w", err)
 
 	}
-
-
 
 	// Load existing chain if available.
 
@@ -311,8 +231,6 @@ func NewIntegrityChainWithConfig(config *IntegrityConfig) (*IntegrityChain, erro
 
 	}
 
-
-
 	ic.logger.Info("Integrity chain initialized",
 
 		"key_id", ic.keyID,
@@ -321,13 +239,9 @@ func NewIntegrityChainWithConfig(config *IntegrityConfig) (*IntegrityChain, erro
 
 		"last_sequence", ic.sequenceNum)
 
-
-
 	return ic, nil
 
 }
-
-
 
 // ProcessEvent adds an audit event to the integrity chain.
 
@@ -339,13 +253,9 @@ func (ic *IntegrityChain) ProcessEvent(event *AuditEvent) error {
 
 	}
 
-
-
 	ic.mutex.Lock()
 
 	defer ic.mutex.Unlock()
-
-
 
 	// Calculate event hash.
 
@@ -359,8 +269,6 @@ func (ic *IntegrityChain) ProcessEvent(event *AuditEvent) error {
 
 	}
 
-
-
 	// Create integrity link.
 
 	ic.sequenceNum++
@@ -369,21 +277,18 @@ func (ic *IntegrityChain) ProcessEvent(event *AuditEvent) error {
 
 		SequenceNumber: ic.sequenceNum,
 
-		Timestamp:      time.Now().UTC(),
+		Timestamp: time.Now().UTC(),
 
-		EventID:        event.ID,
+		EventID: event.ID,
 
-		EventHash:      eventHash,
+		EventHash: eventHash,
 
-		PreviousHash:   ic.lastHash,
+		PreviousHash: ic.lastHash,
 
-		Version:        IntegrityVersion,
+		Version: IntegrityVersion,
 
-		KeyID:          ic.keyID,
-
+		KeyID: ic.keyID,
 	}
-
-
 
 	// Calculate chain hash.
 
@@ -399,8 +304,6 @@ func (ic *IntegrityChain) ProcessEvent(event *AuditEvent) error {
 
 	link.ChainHash = chainHash
 
-
-
 	// Sign the link.
 
 	signature, err := ic.signLink(&link)
@@ -415,15 +318,11 @@ func (ic *IntegrityChain) ProcessEvent(event *AuditEvent) error {
 
 	link.Signature = signature
 
-
-
 	// Add to chain.
 
 	ic.chain = append(ic.chain, link)
 
 	ic.lastHash = chainHash
-
-
 
 	// Enforce maximum chain length.
 
@@ -435,8 +334,6 @@ func (ic *IntegrityChain) ProcessEvent(event *AuditEvent) error {
 
 	}
 
-
-
 	// Update event with integrity information.
 
 	event.Hash = eventHash
@@ -447,21 +344,15 @@ func (ic *IntegrityChain) ProcessEvent(event *AuditEvent) error {
 
 	event.IntegrityFields = []string{"id", "timestamp", "event_type", "component", "action", "user_context", "result"}
 
-
-
 	// Update metrics.
 
 	integrityOperationsTotal.WithLabelValues("process_event", "success").Inc()
 
 	integrityChainLength.Set(float64(len(ic.chain)))
 
-
-
 	return nil
 
 }
-
-
 
 // VerifyEvent verifies the integrity of a single audit event.
 
@@ -473,8 +364,6 @@ func (ic *IntegrityChain) VerifyEvent(event *AuditEvent) error {
 
 	}
 
-
-
 	start := time.Now()
 
 	defer func() {
@@ -483,15 +372,11 @@ func (ic *IntegrityChain) VerifyEvent(event *AuditEvent) error {
 
 	}()
 
-
-
 	// Find the corresponding link in the chain.
 
 	ic.mutex.RLock()
 
 	defer ic.mutex.RUnlock()
-
-
 
 	var link *IntegrityLink
 
@@ -507,8 +392,6 @@ func (ic *IntegrityChain) VerifyEvent(event *AuditEvent) error {
 
 	}
 
-
-
 	if link == nil {
 
 		integrityOperationsTotal.WithLabelValues("verify_event", "not_found").Inc()
@@ -516,8 +399,6 @@ func (ic *IntegrityChain) VerifyEvent(event *AuditEvent) error {
 		return fmt.Errorf("integrity link not found for event %s", event.ID)
 
 	}
-
-
 
 	// Verify event hash.
 
@@ -531,8 +412,6 @@ func (ic *IntegrityChain) VerifyEvent(event *AuditEvent) error {
 
 	}
 
-
-
 	if expectedHash != link.EventHash {
 
 		integrityOperationsTotal.WithLabelValues("verify_event", "hash_mismatch").Inc()
@@ -540,8 +419,6 @@ func (ic *IntegrityChain) VerifyEvent(event *AuditEvent) error {
 		return fmt.Errorf("event hash mismatch: expected %s, got %s", link.EventHash, expectedHash)
 
 	}
-
-
 
 	// Verify signature.
 
@@ -553,15 +430,11 @@ func (ic *IntegrityChain) VerifyEvent(event *AuditEvent) error {
 
 	}
 
-
-
 	integrityOperationsTotal.WithLabelValues("verify_event", "success").Inc()
 
 	return nil
 
 }
-
-
 
 // VerifyChain verifies the integrity of the entire chain.
 
@@ -573,8 +446,6 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 
 	}
 
-
-
 	start := time.Now()
 
 	defer func() {
@@ -583,27 +454,20 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 
 	}()
 
-
-
 	ic.mutex.RLock()
 
 	defer ic.mutex.RUnlock()
 
-
-
 	report := &IntegrityReport{
 
-		Valid:               true,
+		Valid: true,
 
-		TotalEvents:         len(ic.chain),
+		TotalEvents: len(ic.chain),
 
-		VerificationTime:    time.Now().UTC(),
+		VerificationTime: time.Now().UTC(),
 
 		VerificationDetails: make([]IntegrityVerification, 0, len(ic.chain)),
-
 	}
-
-
 
 	var previousHash string
 
@@ -611,15 +475,12 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 
 		verification := IntegrityVerification{
 
-			EventID:        link.EventID,
+			EventID: link.EventID,
 
 			SequenceNumber: link.SequenceNumber,
 
-			Valid:          true,
-
+			Valid: true,
 		}
-
-
 
 		// Check sequence number.
 
@@ -635,8 +496,6 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 
 		}
 
-
-
 		// Check previous hash.
 
 		if link.PreviousHash != previousHash {
@@ -649,25 +508,20 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 
 			report.FailedEvents++
 
-
-
 			report.ChainBreaks = append(report.ChainBreaks, IntegrityChainBreak{
 
 				SequenceNumber: link.SequenceNumber,
 
-				EventID:        link.EventID,
+				EventID: link.EventID,
 
-				Reason:         "previous hash mismatch",
+				Reason: "previous hash mismatch",
 
-				Expected:       previousHash,
+				Expected: previousHash,
 
-				Actual:         link.PreviousHash,
-
+				Actual: link.PreviousHash,
 			})
 
 		}
-
-
 
 		// Verify signature.
 
@@ -681,13 +535,9 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 
 			report.FailedEvents++
 
-
-
 			report.TamperedEvents = append(report.TamperedEvents, link.EventID)
 
 		}
-
-
 
 		// Verify chain hash.
 
@@ -711,23 +561,17 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 
 		}
 
-
-
 		if verification.Valid {
 
 			report.VerifiedEvents++
 
 		}
 
-
-
 		report.VerificationDetails = append(report.VerificationDetails, verification)
 
 		previousHash = link.ChainHash
 
 	}
-
-
 
 	if report.Valid {
 
@@ -739,13 +583,9 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 
 	}
 
-
-
 	return report, nil
 
 }
-
-
 
 // GetChainInfo returns information about the integrity chain.
 
@@ -756,42 +596,34 @@ func (ic *IntegrityChain) GetChainInfo() map[string]interface{} {
 		return map[string]interface{}{
 
 			"enabled": false,
-
 		}
 
 	}
-
-
 
 	ic.mutex.RLock()
 
 	defer ic.mutex.RUnlock()
 
-
-
 	return map[string]interface{}{
 
-		"enabled":        true,
+		"enabled": true,
 
-		"length":         len(ic.chain),
+		"length": len(ic.chain),
 
-		"last_sequence":  ic.sequenceNum,
+		"last_sequence": ic.sequenceNum,
 
-		"last_hash":      ic.lastHash,
+		"last_hash": ic.lastHash,
 
-		"key_id":         ic.keyID,
+		"key_id": ic.keyID,
 
-		"version":        IntegrityVersion,
+		"version": IntegrityVersion,
 
 		"hash_algorithm": HashAlgorithm,
 
 		"sign_algorithm": SignatureAlgorithm,
-
 	}
 
 }
-
-
 
 // ExportChain exports the integrity chain for backup or transfer.
 
@@ -803,51 +635,38 @@ func (ic *IntegrityChain) ExportChain() ([]byte, error) {
 
 	}
 
-
-
 	ic.mutex.RLock()
 
 	defer ic.mutex.RUnlock()
 
-
-
 	export := struct {
+		Version string `json:"version"`
 
-		Version    string          `json:"version"`
+		KeyID string `json:"key_id"`
 
-		KeyID      string          `json:"key_id"`
+		PublicKey string `json:"public_key"`
 
-		PublicKey  string          `json:"public_key"`
+		Chain []IntegrityLink `json:"chain"`
 
-		Chain      []IntegrityLink `json:"chain"`
-
-		ExportTime time.Time       `json:"export_time"`
-
+		ExportTime time.Time `json:"export_time"`
 	}{
 
-		Version:    IntegrityVersion,
+		Version: IntegrityVersion,
 
-		KeyID:      ic.keyID,
+		KeyID: ic.keyID,
 
-		PublicKey:  ic.exportPublicKey(),
+		PublicKey: ic.exportPublicKey(),
 
-		Chain:      ic.chain,
+		Chain: ic.chain,
 
 		ExportTime: time.Now().UTC(),
-
 	}
-
-
 
 	return json.MarshalIndent(export, "", "  ")
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (ic *IntegrityChain) initializeKeys(config *IntegrityConfig) error {
 
@@ -858,8 +677,6 @@ func (ic *IntegrityChain) initializeKeys(config *IntegrityConfig) error {
 		keySize = MinKeySize
 
 	}
-
-
 
 	if config.AutoGenerateKeys {
 
@@ -872,8 +689,6 @@ func (ic *IntegrityChain) initializeKeys(config *IntegrityConfig) error {
 			return fmt.Errorf("failed to generate RSA key pair: %w", err)
 
 		}
-
-
 
 		ic.privateKey = privateKey
 
@@ -897,57 +712,48 @@ func (ic *IntegrityChain) initializeKeys(config *IntegrityConfig) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (ic *IntegrityChain) calculateEventHash(event *AuditEvent) (string, error) {
 
 	// Create a canonical representation of the event for hashing.
 
 	hashData := struct {
+		ID string `json:"id"`
 
-		ID          string                 `json:"id"`
+		Timestamp time.Time `json:"timestamp"`
 
-		Timestamp   time.Time              `json:"timestamp"`
+		EventType EventType `json:"event_type"`
 
-		EventType   EventType              `json:"event_type"`
+		Component string `json:"component"`
 
-		Component   string                 `json:"component"`
+		Action string `json:"action"`
 
-		Action      string                 `json:"action"`
+		UserContext *UserContext `json:"user_context"`
 
-		UserContext *UserContext           `json:"user_context"`
+		Result EventResult `json:"result"`
 
-		Result      EventResult            `json:"result"`
-
-		Data        map[string]interface{} `json:"data"`
-
+		Data map[string]interface{} `json:"data"`
 	}{
 
-		ID:          event.ID,
+		ID: event.ID,
 
-		Timestamp:   event.Timestamp,
+		Timestamp: event.Timestamp,
 
-		EventType:   event.EventType,
+		EventType: event.EventType,
 
-		Component:   event.Component,
+		Component: event.Component,
 
-		Action:      event.Action,
+		Action: event.Action,
 
 		UserContext: event.UserContext,
 
-		Result:      event.Result,
+		Result: event.Result,
 
-		Data:        event.Data,
-
+		Data: event.Data,
 	}
-
-
 
 	// Sort data keys for deterministic hashing.
 
@@ -975,8 +781,6 @@ func (ic *IntegrityChain) calculateEventHash(event *AuditEvent) (string, error) 
 
 	}
 
-
-
 	jsonBytes, err := json.Marshal(hashData)
 
 	if err != nil {
@@ -985,47 +789,38 @@ func (ic *IntegrityChain) calculateEventHash(event *AuditEvent) (string, error) 
 
 	}
 
-
-
 	hash := sha256.Sum256(jsonBytes)
 
 	return hex.EncodeToString(hash[:]), nil
 
 }
 
-
-
 func (ic *IntegrityChain) calculateChainHash(link *IntegrityLink) (string, error) {
 
 	// Create canonical representation for chain hash.
 
 	hashData := struct {
-
 		SequenceNumber uint64 `json:"sequence_number"`
 
-		EventID        string `json:"event_id"`
+		EventID string `json:"event_id"`
 
-		EventHash      string `json:"event_hash"`
+		EventHash string `json:"event_hash"`
 
-		PreviousHash   string `json:"previous_hash"`
+		PreviousHash string `json:"previous_hash"`
 
-		KeyID          string `json:"key_id"`
-
+		KeyID string `json:"key_id"`
 	}{
 
 		SequenceNumber: link.SequenceNumber,
 
-		EventID:        link.EventID,
+		EventID: link.EventID,
 
-		EventHash:      link.EventHash,
+		EventHash: link.EventHash,
 
-		PreviousHash:   link.PreviousHash,
+		PreviousHash: link.PreviousHash,
 
-		KeyID:          link.KeyID,
-
+		KeyID: link.KeyID,
 	}
-
-
 
 	jsonBytes, err := json.Marshal(hashData)
 
@@ -1035,15 +830,11 @@ func (ic *IntegrityChain) calculateChainHash(link *IntegrityLink) (string, error
 
 	}
 
-
-
 	hash := sha256.Sum256(jsonBytes)
 
 	return hex.EncodeToString(hash[:]), nil
 
 }
-
-
 
 func (ic *IntegrityChain) signLink(link *IntegrityLink) (string, error) {
 
@@ -1053,15 +844,11 @@ func (ic *IntegrityChain) signLink(link *IntegrityLink) (string, error) {
 
 	}
 
-
-
 	// Create signature payload.
 
 	payload := fmt.Sprintf("%d:%s:%s:%s", link.SequenceNumber, link.EventID, link.EventHash, link.ChainHash)
 
 	payloadHash := sha256.Sum256([]byte(payload))
-
-
 
 	// Sign using RSA-PSS.
 
@@ -1073,13 +860,9 @@ func (ic *IntegrityChain) signLink(link *IntegrityLink) (string, error) {
 
 	}
 
-
-
 	return base64.StdEncoding.EncodeToString(signature), nil
 
 }
-
-
 
 func (ic *IntegrityChain) verifyLinkSignature(link *IntegrityLink) error {
 
@@ -1088,8 +871,6 @@ func (ic *IntegrityChain) verifyLinkSignature(link *IntegrityLink) error {
 		return fmt.Errorf("public key not available for verification")
 
 	}
-
-
 
 	// Decode signature.
 
@@ -1101,15 +882,11 @@ func (ic *IntegrityChain) verifyLinkSignature(link *IntegrityLink) error {
 
 	}
 
-
-
 	// Create signature payload.
 
 	payload := fmt.Sprintf("%d:%s:%s:%s", link.SequenceNumber, link.EventID, link.EventHash, link.ChainHash)
 
 	payloadHash := sha256.Sum256([]byte(payload))
-
-
 
 	// Verify using RSA-PSS.
 
@@ -1121,13 +898,9 @@ func (ic *IntegrityChain) verifyLinkSignature(link *IntegrityLink) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (ic *IntegrityChain) calculateKeyID(publicKey *rsa.PublicKey) string {
 
@@ -1145,8 +918,6 @@ func (ic *IntegrityChain) calculateKeyID(publicKey *rsa.PublicKey) string {
 
 }
 
-
-
 func (ic *IntegrityChain) exportPublicKey() string {
 
 	if ic.publicKey == nil {
@@ -1154,8 +925,6 @@ func (ic *IntegrityChain) exportPublicKey() string {
 		return ""
 
 	}
-
-
 
 	publicKeyBytes, err := x509.MarshalPKIXPublicKey(ic.publicKey)
 	if err != nil {
@@ -1165,19 +934,14 @@ func (ic *IntegrityChain) exportPublicKey() string {
 
 	block := &pem.Block{
 
-		Type:  "PUBLIC KEY",
+		Type: "PUBLIC KEY",
 
 		Bytes: publicKeyBytes,
-
 	}
-
-
 
 	return string(pem.EncodeToMemory(block))
 
 }
-
-
 
 func (ic *IntegrityChain) loadKeyPair(keyPath string) error {
 
@@ -1189,8 +953,6 @@ func (ic *IntegrityChain) loadKeyPair(keyPath string) error {
 
 }
 
-
-
 func (ic *IntegrityChain) loadChain(chainFile string) error {
 
 	// This is a placeholder implementation.
@@ -1201,25 +963,21 @@ func (ic *IntegrityChain) loadChain(chainFile string) error {
 
 }
 
-
-
 // DefaultIntegrityConfig returns a default integrity configuration.
 
 func DefaultIntegrityConfig() *IntegrityConfig {
 
 	return &IntegrityConfig{
 
-		Enabled:          true,
+		Enabled: true,
 
-		KeySize:          2048,
+		KeySize: 2048,
 
 		AutoGenerateKeys: true,
 
 		VerificationMode: "strict",
 
-		MaxChainLength:   MaxChainLength,
-
+		MaxChainLength: MaxChainLength,
 	}
 
 }
-

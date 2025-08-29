@@ -1,29 +1,15 @@
 //go:build !disable_rag && !test
 
-
-
-
 package rag
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"log/slog"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-
 )
-
-
 
 // OptimizedRAGManager integrates all RAG optimizations.
 
@@ -31,39 +17,30 @@ type OptimizedRAGManager struct {
 
 	// Core components.
 
-	originalClient    *WeaviateClient
+	originalClient *WeaviateClient
 
 	optimizedPipeline *OptimizedRAGPipeline
 
 	batchSearchClient *OptimizedBatchSearchClient
 
-	grpcClient        *GRPCWeaviateClient
+	grpcClient *GRPCWeaviateClient
 
-	connectionPool    *OptimizedConnectionPool
+	connectionPool *OptimizedConnectionPool
 
-	hnswOptimizer     *HNSWOptimizer
-
-
+	hnswOptimizer *HNSWOptimizer
 
 	// Performance monitoring.
 
 	benchmarker *PerformanceBenchmarker
-
-
 
 	// Configuration.
 
 	config *OptimizedRAGConfig
 
 	logger *slog.Logger
-
 }
 
-
-
 // Note: OptimizedRAGConfig and PerformanceReport are defined in optimized_rag_service.go.
-
-
 
 // NewOptimizedRAGManager creates a new optimized RAG manager with all optimizations.
 
@@ -77,20 +54,15 @@ func NewOptimizedRAGManager(config *OptimizedRAGConfig) (*OptimizedRAGManager, e
 
 	}
 
-
-
 	logger := slog.Default().With("component", "optimized-rag-manager")
-
-
 
 	// Create core Weaviate client with default Weaviate configuration.
 
 	weaviateConfig := &WeaviateConfig{
 
-		Host:   "localhost:8080",
+		Host: "localhost:8080",
 
 		Scheme: "http",
-
 	}
 
 	originalClient, err := NewWeaviateClient(weaviateConfig)
@@ -101,24 +73,21 @@ func NewOptimizedRAGManager(config *OptimizedRAGConfig) (*OptimizedRAGManager, e
 
 	}
 
-
-
 	// Create optimized connection pool (using default config).
 
 	poolConfig := &ConnectionPoolConfig{
 
-		MaxIdleConnections:    10,
+		MaxIdleConnections: 10,
 
 		MaxConnectionsPerHost: 5,
 
-		PoolSize:              10,
+		PoolSize: 10,
 
 		IdleConnectionTimeout: 5 * time.Minute,
 
-		ConnectionTimeout:     30 * time.Second,
+		ConnectionTimeout: 30 * time.Second,
 
-		HealthCheckInterval:   30 * time.Second,
-
+		HealthCheckInterval: 30 * time.Second,
 	}
 
 	connectionPool, err := NewOptimizedConnectionPool(poolConfig)
@@ -129,31 +98,26 @@ func NewOptimizedRAGManager(config *OptimizedRAGConfig) (*OptimizedRAGManager, e
 
 	}
 
-
-
 	// Create batch search client (using default config).
 
 	batchConfig := &BatchSearchConfig{
 
-		MaxBatchSize:            100,
+		MaxBatchSize: 100,
 
-		MaxConcurrency:          4,
+		MaxConcurrency: 4,
 
-		MaxWaitTime:             1 * time.Second,
+		MaxWaitTime: 1 * time.Second,
 
-		EnableVectorCaching:     true,
+		EnableVectorCaching: true,
 
 		EnableQueryOptimization: true,
 
-		EnableDeduplication:     true,
+		EnableDeduplication: true,
 
-		SimilarityThreshold:     0.8,
-
+		SimilarityThreshold: 0.8,
 	}
 
 	batchSearchClient := NewOptimizedBatchSearchClient(originalClient, batchConfig)
-
-
 
 	// Create gRPC client if enabled.
 
@@ -161,36 +125,33 @@ func NewOptimizedRAGManager(config *OptimizedRAGConfig) (*OptimizedRAGManager, e
 
 	grpcClient = nil // Disabled for now
 
-
-
 	// Create optimized RAG pipeline (using default config).
 
 	pipelineConfig := &RAGPipelineConfig{
 
-		EnableSemanticCache:         true,
+		EnableSemanticCache: true,
 
-		SemanticCacheSize:           1000,
+		SemanticCacheSize: 1000,
 
-		SemanticCacheTTL:            30 * time.Second,
+		SemanticCacheTTL: 30 * time.Second,
 
 		SemanticSimilarityThreshold: 0.95,
 
-		EnableQueryPreprocessing:    true,
+		EnableQueryPreprocessing: true,
 
-		EnableQueryExpansion:        true,
+		EnableQueryExpansion: true,
 
-		EnableQueryNormalization:    true,
+		EnableQueryNormalization: true,
 
-		EnableTelecomNER:            false,
+		EnableTelecomNER: false,
 
-		EnableResultAggregation:     true,
+		EnableResultAggregation: true,
 
-		EnableResultDeduplication:   true,
+		EnableResultDeduplication: true,
 
-		EnableResultRanking:         true,
+		EnableResultRanking: true,
 
-		MaxResultsPerQuery:          10,
-
+		MaxResultsPerQuery: 10,
 	}
 
 	optimizedPipeline := NewOptimizedRAGPipeline(
@@ -202,10 +163,7 @@ func NewOptimizedRAGManager(config *OptimizedRAGConfig) (*OptimizedRAGManager, e
 		connectionPool,
 
 		pipelineConfig,
-
 	)
-
-
 
 	// Create HNSW optimizer if enabled.
 
@@ -213,39 +171,32 @@ func NewOptimizedRAGManager(config *OptimizedRAGConfig) (*OptimizedRAGManager, e
 
 	hnswOptimizer = nil // Disabled for now
 
-
-
 	// Create performance benchmarker if enabled.
 
 	var benchmarker *PerformanceBenchmarker
 
 	benchmarker = nil // Disabled for now
 
-
-
 	manager := &OptimizedRAGManager{
 
-		originalClient:    originalClient,
+		originalClient: originalClient,
 
 		optimizedPipeline: optimizedPipeline,
 
 		batchSearchClient: batchSearchClient,
 
-		grpcClient:        grpcClient,
+		grpcClient: grpcClient,
 
-		connectionPool:    connectionPool,
+		connectionPool: connectionPool,
 
-		hnswOptimizer:     hnswOptimizer,
+		hnswOptimizer: hnswOptimizer,
 
-		benchmarker:       benchmarker,
+		benchmarker: benchmarker,
 
-		config:            config,
+		config: config,
 
-		logger:            logger,
-
+		logger: logger,
 	}
-
-
 
 	logger.Info("Optimized RAG manager created successfully",
 
@@ -256,20 +207,13 @@ func NewOptimizedRAGManager(config *OptimizedRAGConfig) (*OptimizedRAGManager, e
 		"hnsw_optimization_enabled", false,
 
 		"performance_monitoring_enabled", false,
-
 	)
-
-
 
 	return manager, nil
 
 }
 
-
-
 // Note: getDefaultOptimizedRAGConfig is defined in optimized_rag_service.go.
-
-
 
 // ProcessSingleQuery processes a single query with all optimizations.
 
@@ -277,15 +221,11 @@ func (m *OptimizedRAGManager) ProcessSingleQuery(ctx context.Context, request *R
 
 	m.logger.Debug("Processing single query with optimizations", "query", request.Query)
 
-
-
 	// Use optimized pipeline for best performance.
 
 	return m.optimizedPipeline.ProcessQuery(ctx, request)
 
 }
-
-
 
 // ProcessBatchQueries processes multiple queries with batch optimization.
 
@@ -293,15 +233,11 @@ func (m *OptimizedRAGManager) ProcessBatchQueries(ctx context.Context, requests 
 
 	m.logger.Info("Processing batch queries with optimizations", "count", len(requests))
 
-
-
 	// Use optimized pipeline batch processing.
 
 	return m.optimizedPipeline.ProcessBatch(ctx, requests)
 
 }
-
-
 
 // ProcessWithGRPC processes queries using gRPC for maximum performance.
 
@@ -313,11 +249,7 @@ func (m *OptimizedRAGManager) ProcessWithGRPC(ctx context.Context, requests []*R
 
 	}
 
-
-
 	m.logger.Info("Processing queries with gRPC client", "count", len(requests))
-
-
 
 	// Convert RAG requests to search queries.
 
@@ -327,23 +259,20 @@ func (m *OptimizedRAGManager) ProcessWithGRPC(ctx context.Context, requests []*R
 
 		searchQueries[i] = &SearchQuery{
 
-			Query:         req.Query,
+			Query: req.Query,
 
-			Limit:         req.MaxResults,
+			Limit: req.MaxResults,
 
-			Filters:       req.SearchFilters,
+			Filters: req.SearchFilters,
 
-			HybridSearch:  req.UseHybridSearch,
+			HybridSearch: req.UseHybridSearch,
 
-			UseReranker:   req.EnableReranking,
+			UseReranker: req.EnableReranking,
 
 			MinConfidence: req.MinConfidence,
-
 		}
 
 	}
-
-
 
 	// Use gRPC batch search.
 
@@ -355,8 +284,6 @@ func (m *OptimizedRAGManager) ProcessWithGRPC(ctx context.Context, requests []*R
 
 	}
 
-
-
 	// Convert back to RAG responses.
 
 	ragResponses := make([]*RAGResponse, len(searchResponses))
@@ -365,23 +292,20 @@ func (m *OptimizedRAGManager) ProcessWithGRPC(ctx context.Context, requests []*R
 
 		ragResponses[i] = &RAGResponse{
 
-			Answer:          "", // Would be filled by LLM processing
+			Answer: "", // Would be filled by LLM processing
 
 			SourceDocuments: make([]*shared.SearchResult, len(searchResp.Results)),
 
-			Confidence:      m.calculateConfidence(searchResp.Results),
+			Confidence: m.calculateConfidence(searchResp.Results),
 
-			ProcessingTime:  searchResp.Took,
+			ProcessingTime: searchResp.Took,
 
-			RetrievalTime:   searchResp.Took,
+			RetrievalTime: searchResp.Took,
 
-			Query:           requests[i].Query,
+			Query: requests[i].Query,
 
-			ProcessedAt:     time.Now(),
-
+			ProcessedAt: time.Now(),
 		}
-
-
 
 		// Convert search results.
 
@@ -393,13 +317,9 @@ func (m *OptimizedRAGManager) ProcessWithGRPC(ctx context.Context, requests []*R
 
 	}
 
-
-
 	return ragResponses, nil
 
 }
-
-
 
 // OptimizeHNSWParameters optimizes HNSW parameters for better performance.
 
@@ -411,17 +331,11 @@ func (m *OptimizedRAGManager) OptimizeHNSWParameters(ctx context.Context, classN
 
 	}
 
-
-
 	m.logger.Info("Optimizing HNSW parameters", "class_name", className, "query_patterns", len(queryPatterns))
-
-
 
 	return m.hnswOptimizer.OptimizeForWorkload(ctx, className, queryPatterns, nil)
 
 }
-
-
 
 // RunPerformanceBenchmark runs comprehensive performance benchmarks.
 
@@ -433,11 +347,7 @@ func (m *OptimizedRAGManager) RunPerformanceBenchmark(ctx context.Context) (*Per
 
 	}
 
-
-
 	m.logger.Info("Running comprehensive performance benchmark")
-
-
 
 	// Run benchmark.
 
@@ -449,35 +359,30 @@ func (m *OptimizedRAGManager) RunPerformanceBenchmark(ctx context.Context) (*Per
 
 	}
 
-
-
 	// Create performance report using actual struct fields.
 
 	report := &PerformanceReport{
 
-		GeneratedAt:   time.Now(),
+		GeneratedAt: time.Now(),
 
-		SystemUptime:  time.Since(time.Now().Add(-time.Hour)), // Mock uptime
+		SystemUptime: time.Since(time.Now().Add(-time.Hour)), // Mock uptime
 
 		OverallHealth: "healthy",
 
 		// Set other fields to nil for now - they require proper initialization.
 
-		QueryPerformance:      nil,
+		QueryPerformance: nil,
 
-		CachePerformance:      nil,
+		CachePerformance: nil,
 
 		ConnectionPerformance: nil,
 
-		ErrorAnalysis:         nil,
+		ErrorAnalysis: nil,
 
-		ResourceUtilization:   nil,
+		ResourceUtilization: nil,
 
-		Recommendations:       []PerformanceRecommendation{},
-
+		Recommendations: []PerformanceRecommendation{},
 	}
-
-
 
 	// Log benchmark results instead of putting them in the report struct.
 
@@ -493,31 +398,22 @@ func (m *OptimizedRAGManager) RunPerformanceBenchmark(ctx context.Context) (*Per
 
 	}
 
-
-
 	m.logger.Info("Performance benchmark completed",
 
 		"report_generated", report.GeneratedAt,
 
 		"overall_health", report.OverallHealth,
-
 	)
-
-
 
 	return report, nil
 
 }
-
-
 
 // DemonstrateOptimizations provides a comprehensive demonstration of all optimizations.
 
 func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*PerformanceReport, error) {
 
 	m.logger.Info("Starting comprehensive RAG optimization demonstration")
-
-
 
 	// Step 1: Run baseline performance test.
 
@@ -530,10 +426,7 @@ func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*Pe
 		{Query: "network slicing optimization techniques", MaxResults: 10},
 
 		{Query: "O-RAN interface specifications", MaxResults: 10},
-
 	}
-
-
 
 	// Measure baseline performance.
 
@@ -546,7 +439,6 @@ func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*Pe
 			Query: query.Query,
 
 			Limit: query.MaxResults,
-
 		}
 
 		_, err := m.originalClient.Search(ctx, searchQuery)
@@ -562,8 +454,6 @@ func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*Pe
 	baselineTime := time.Since(baselineStart)
 
 	m.logger.Info("Baseline performance measured", "total_time", baselineTime)
-
-
 
 	// Step 2: Demonstrate batch processing optimization.
 
@@ -588,8 +478,6 @@ func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*Pe
 		"improvement", float64(baselineTime-batchTime)/float64(baselineTime)*100,
 
 		"responses", len(batchResponses))
-
-
 
 	// Step 3: Demonstrate gRPC optimization (if available).
 
@@ -621,8 +509,6 @@ func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*Pe
 
 	}
 
-
-
 	// Step 4: Demonstrate HNSW optimization (if available).
 
 	if m.hnswOptimizer != nil {
@@ -636,10 +522,7 @@ func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*Pe
 			{Query: "network optimization", Frequency: 8, ExpectedResults: 7},
 
 			{Query: "O-RAN specifications", Frequency: 12, ExpectedResults: 10},
-
 		}
-
-
 
 		optimizationResult, err := m.OptimizeHNSWParameters(ctx, "TelecomKnowledge", queryPatterns)
 
@@ -661,13 +544,9 @@ func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*Pe
 
 	}
 
-
-
 	// Step 5: Demonstrate semantic caching.
 
 	m.logger.Info("Step 5: Demonstrating semantic caching benefits")
-
-
 
 	// First query (cache miss).
 
@@ -685,8 +564,6 @@ func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*Pe
 
 	uncachedTime := time.Since(uncachedStart)
 
-
-
 	// Second query (cache hit).
 
 	cachedStart := time.Now()
@@ -701,8 +578,6 @@ func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*Pe
 
 	cachedTime := time.Since(cachedStart)
 
-
-
 	cacheImprovement := float64(uncachedTime-cachedTime) / float64(uncachedTime) * 100
 
 	m.logger.Info("Semantic caching demonstrated",
@@ -712,8 +587,6 @@ func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*Pe
 		"cached_time", cachedTime,
 
 		"improvement", cacheImprovement)
-
-
 
 	// Step 6: Run comprehensive benchmark.
 
@@ -727,8 +600,6 @@ func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*Pe
 
 	}
 
-
-
 	m.logger.Info("RAG optimization demonstration completed successfully",
 
 		"report_generated", report.GeneratedAt,
@@ -737,13 +608,9 @@ func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*Pe
 
 		"recommendations_count", len(report.Recommendations))
 
-
-
 	return report, nil
 
 }
-
-
 
 // GetOptimizationStatus returns the current status of all optimizations.
 
@@ -755,37 +622,32 @@ func (m *OptimizedRAGManager) GetOptimizationStatus() map[string]interface{} {
 
 		"components": map[string]interface{}{
 
-			"original_client":     m.originalClient != nil,
+			"original_client": m.originalClient != nil,
 
-			"optimized_pipeline":  m.optimizedPipeline != nil,
+			"optimized_pipeline": m.optimizedPipeline != nil,
 
 			"batch_search_client": m.batchSearchClient != nil,
 
-			"grpc_client":         m.grpcClient != nil,
+			"grpc_client": m.grpcClient != nil,
 
-			"connection_pool":     m.connectionPool != nil,
+			"connection_pool": m.connectionPool != nil,
 
-			"hnsw_optimizer":      m.hnswOptimizer != nil,
+			"hnsw_optimizer": m.hnswOptimizer != nil,
 
-			"benchmarker":         m.benchmarker != nil,
-
+			"benchmarker": m.benchmarker != nil,
 		},
 
 		"configuration": map[string]interface{}{
 
-			"grpc_enabled":                   false,
+			"grpc_enabled": false,
 
-			"batching_enabled":               true,
+			"batching_enabled": true,
 
-			"hnsw_optimization_enabled":      false,
+			"hnsw_optimization_enabled": false,
 
 			"performance_monitoring_enabled": false,
-
 		},
-
 	}
-
-
 
 	// Add metrics if available.
 
@@ -795,15 +657,11 @@ func (m *OptimizedRAGManager) GetOptimizationStatus() map[string]interface{} {
 
 	}
 
-
-
 	if m.batchSearchClient != nil {
 
 		status["batch_search_metrics"] = m.batchSearchClient.GetMetrics()
 
 	}
-
-
 
 	if m.grpcClient != nil {
 
@@ -813,8 +671,6 @@ func (m *OptimizedRAGManager) GetOptimizationStatus() map[string]interface{} {
 
 	}
 
-
-
 	if m.connectionPool != nil {
 
 		status["connection_pool_metrics"] = m.connectionPool.GetMetrics()
@@ -822,8 +678,6 @@ func (m *OptimizedRAGManager) GetOptimizationStatus() map[string]interface{} {
 		status["json_codec_metrics"] = m.connectionPool.GetJSONCodecMetrics()
 
 	}
-
-
 
 	if m.hnswOptimizer != nil {
 
@@ -833,17 +687,11 @@ func (m *OptimizedRAGManager) GetOptimizationStatus() map[string]interface{} {
 
 	}
 
-
-
 	return status
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (m *OptimizedRAGManager) calculateConfidence(results []*shared.SearchResult) float32 {
 
@@ -853,8 +701,6 @@ func (m *OptimizedRAGManager) calculateConfidence(results []*shared.SearchResult
 
 	}
 
-
-
 	var totalScore float32
 
 	for _, result := range results {
@@ -863,19 +709,13 @@ func (m *OptimizedRAGManager) calculateConfidence(results []*shared.SearchResult
 
 	}
 
-
-
 	return totalScore / float32(len(results))
 
 }
 
-
-
 func (m *OptimizedRAGManager) generateOptimalSettings(benchmarkResults *BenchmarkResults) map[string]interface{} {
 
 	settings := make(map[string]interface{})
-
-
 
 	// Recommend optimal batch size based on benchmark results.
 
@@ -884,8 +724,6 @@ func (m *OptimizedRAGManager) generateOptimalSettings(benchmarkResults *Benchmar
 		bestBatchSize := 1
 
 		bestThroughput := 0.0
-
-
 
 		for batchSize, throughput := range benchmarkResults.ThroughputResults.BatchThroughput {
 
@@ -899,13 +737,9 @@ func (m *OptimizedRAGManager) generateOptimalSettings(benchmarkResults *Benchmar
 
 		}
 
-
-
 		settings["recommended_batch_size"] = bestBatchSize
 
 	}
-
-
 
 	// Recommend optimal concurrency level.
 
@@ -914,8 +748,6 @@ func (m *OptimizedRAGManager) generateOptimalSettings(benchmarkResults *Benchmar
 		bestConcurrency := 1
 
 		bestThroughput := 0.0
-
-
 
 		for concurrency, throughput := range benchmarkResults.ThroughputResults.ConcurrentThroughput {
 
@@ -929,13 +761,9 @@ func (m *OptimizedRAGManager) generateOptimalSettings(benchmarkResults *Benchmar
 
 		}
 
-
-
 		settings["recommended_concurrency"] = bestConcurrency
 
 	}
-
-
 
 	// Recommend client type based on comparison.
 
@@ -946,8 +774,6 @@ func (m *OptimizedRAGManager) generateOptimalSettings(benchmarkResults *Benchmar
 		settings["recommended_client"] = comparison.RecommendedApproach
 
 	}
-
-
 
 	// Recommend caching settings.
 
@@ -967,8 +793,6 @@ func (m *OptimizedRAGManager) generateOptimalSettings(benchmarkResults *Benchmar
 
 	}
 
-
-
 	// Recommend HNSW parameters.
 
 	if m.hnswOptimizer != nil {
@@ -983,13 +807,9 @@ func (m *OptimizedRAGManager) generateOptimalSettings(benchmarkResults *Benchmar
 
 	}
 
-
-
 	return settings
 
 }
-
-
 
 // Close closes all optimized components.
 
@@ -997,11 +817,7 @@ func (m *OptimizedRAGManager) Close() error {
 
 	m.logger.Info("Closing optimized RAG manager")
 
-
-
 	var lastErr error
-
-
 
 	if m.connectionPool != nil {
 
@@ -1015,8 +831,6 @@ func (m *OptimizedRAGManager) Close() error {
 
 	}
 
-
-
 	if m.grpcClient != nil {
 
 		if err := m.grpcClient.Close(); err != nil {
@@ -1028,8 +842,6 @@ func (m *OptimizedRAGManager) Close() error {
 		}
 
 	}
-
-
 
 	if m.batchSearchClient != nil {
 
@@ -1043,8 +855,6 @@ func (m *OptimizedRAGManager) Close() error {
 
 	}
 
-
-
 	if m.optimizedPipeline != nil {
 
 		if err := m.optimizedPipeline.Close(); err != nil {
@@ -1056,8 +866,6 @@ func (m *OptimizedRAGManager) Close() error {
 		}
 
 	}
-
-
 
 	if m.originalClient != nil {
 
@@ -1071,13 +879,9 @@ func (m *OptimizedRAGManager) Close() error {
 
 	}
 
-
-
 	return lastErr
 
 }
-
-
 
 // Example usage function.
 
@@ -1097,11 +901,7 @@ func ExampleUsage() {
 
 	defer manager.Close()
 
-
-
 	ctx := context.Background()
-
-
 
 	// Example 1: Process a single query with all optimizations.
 
@@ -1109,17 +909,14 @@ func ExampleUsage() {
 
 	singleQuery := &RAGRequest{
 
-		Query:           "5G AMF configuration parameters for high availability",
+		Query: "5G AMF configuration parameters for high availability",
 
-		MaxResults:      10,
+		MaxResults: 10,
 
 		UseHybridSearch: true,
 
 		EnableReranking: true,
-
 	}
-
-
 
 	response, err := manager.ProcessSingleQuery(ctx, singleQuery)
 
@@ -1135,8 +932,6 @@ func ExampleUsage() {
 
 	}
 
-
-
 	// Example 2: Process batch queries for maximum throughput.
 
 	fmt.Println("\n=== Example 2: Batch Query Processing ===")
@@ -1150,10 +945,7 @@ func ExampleUsage() {
 		{Query: "5G security architecture", MaxResults: 5},
 
 		{Query: "UPF deployment strategies", MaxResults: 5},
-
 	}
-
-
 
 	batchResponses, err := manager.ProcessBatchQueries(ctx, batchQueries)
 
@@ -1174,8 +966,6 @@ func ExampleUsage() {
 		}
 
 	}
-
-
 
 	// Example 3: Run comprehensive performance demonstration.
 
@@ -1201,8 +991,6 @@ func ExampleUsage() {
 
 	}
 
-
-
 	// Example 4: Get optimization status.
 
 	fmt.Println("\n=== Example 4: Optimization Status ===")
@@ -1212,8 +1000,6 @@ func ExampleUsage() {
 	fmt.Printf("Optimization Status: %+v\n", status["components"])
 
 }
-
-
 
 // This demonstrates how to achieve the target performance improvements:.
 
@@ -1225,8 +1011,6 @@ func ExampleUsage() {
 
 // - Comprehensive monitoring and optimization recommendations.
 
-
-
 func init() {
 
 	// This init function would run the example when the package is imported.
@@ -1236,4 +1020,3 @@ func init() {
 	// ExampleUsage().
 
 }
-

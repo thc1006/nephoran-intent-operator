@@ -1,79 +1,50 @@
 //go:build !disable_rag && !test
 
-
-
-
 package rag
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
 
-
-
 	"go.opentelemetry.io/otel"
-
 	"go.opentelemetry.io/otel/attribute"
-
 	"go.opentelemetry.io/otel/codes"
-
 	"go.opentelemetry.io/otel/exporters/jaeger"
-
 	"go.opentelemetry.io/otel/propagation"
-
 	"go.opentelemetry.io/otel/sdk/resource"
-
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
-
 	"go.opentelemetry.io/otel/trace"
-
 )
-
-
 
 // TracingManager handles distributed tracing for RAG components.
 
 type TracingManager struct {
-
-	tracer         trace.Tracer
+	tracer trace.Tracer
 
 	tracerProvider *sdktrace.TracerProvider
 
-	serviceName    string
+	serviceName string
 
-	version        string
-
+	version string
 }
-
-
 
 // TracingConfig holds tracing configuration.
 
 type TracingConfig struct {
+	ServiceName string `json:"service_name"`
 
-	ServiceName    string  `json:"service_name"`
+	ServiceVersion string `json:"service_version"`
 
-	ServiceVersion string  `json:"service_version"`
+	JaegerEndpoint string `json:"jaeger_endpoint"`
 
-	JaegerEndpoint string  `json:"jaeger_endpoint"`
+	SamplingRate float64 `json:"sampling_rate"`
 
-	SamplingRate   float64 `json:"sampling_rate"`
+	Environment string `json:"environment"`
 
-	Environment    string  `json:"environment"`
-
-	EnableTracing  bool    `json:"enable_tracing"`
-
+	EnableTracing bool `json:"enable_tracing"`
 }
-
-
 
 // NewTracingManager creates a new tracing manager.
 
@@ -83,17 +54,14 @@ func NewTracingManager(config *TracingConfig) (*TracingManager, error) {
 
 		return &TracingManager{
 
-			tracer:      otel.Tracer("noop"),
+			tracer: otel.Tracer("noop"),
 
 			serviceName: config.ServiceName,
 
-			version:     config.ServiceVersion,
-
+			version: config.ServiceVersion,
 		}, nil
 
 	}
-
-
 
 	// Create Jaeger exporter.
 
@@ -104,8 +72,6 @@ func NewTracingManager(config *TracingConfig) (*TracingManager, error) {
 		return nil, fmt.Errorf("failed to create Jaeger exporter: %w", err)
 
 	}
-
-
 
 	// Create resource.
 
@@ -124,9 +90,7 @@ func NewTracingManager(config *TracingConfig) (*TracingManager, error) {
 			semconv.DeploymentEnvironmentKey.String(config.Environment),
 
 			attribute.String("nephoran.component", "rag-pipeline"),
-
 		),
-
 	)
 
 	if err != nil {
@@ -134,8 +98,6 @@ func NewTracingManager(config *TracingConfig) (*TracingManager, error) {
 		return nil, fmt.Errorf("failed to create resource: %w", err)
 
 	}
-
-
 
 	// Create tracer provider.
 
@@ -146,10 +108,7 @@ func NewTracingManager(config *TracingConfig) (*TracingManager, error) {
 		sdktrace.WithResource(res),
 
 		sdktrace.WithSampler(sdktrace.TraceIDRatioBased(config.SamplingRate)),
-
 	)
-
-
 
 	// Set global tracer provider.
 
@@ -160,30 +119,22 @@ func NewTracingManager(config *TracingConfig) (*TracingManager, error) {
 		propagation.TraceContext{},
 
 		propagation.Baggage{},
-
 	))
-
-
 
 	tracer := tp.Tracer(config.ServiceName)
 
-
-
 	return &TracingManager{
 
-		tracer:         tracer,
+		tracer: tracer,
 
 		tracerProvider: tp,
 
-		serviceName:    config.ServiceName,
+		serviceName: config.ServiceName,
 
-		version:        config.ServiceVersion,
-
+		version: config.ServiceVersion,
 	}, nil
 
 }
-
-
 
 // Shutdown gracefully shuts down the tracing manager.
 
@@ -198,8 +149,6 @@ func (tm *TracingManager) Shutdown(ctx context.Context) error {
 	return nil
 
 }
-
-
 
 // StartSpan starts a new trace span with comprehensive attributes.
 
@@ -216,24 +165,16 @@ func (tm *TracingManager) StartSpan(ctx context.Context, operationName string, o
 			attribute.String("nephoran.version", tm.version),
 
 			attribute.String("nephoran.operation", operationName),
-
 		),
-
 	}
-
-
 
 	// Merge with provided options.
 
 	allOpts := append(defaultOpts, opts...)
 
-
-
 	return tm.tracer.Start(ctx, operationName, allOpts...)
 
 }
-
-
 
 // InstrumentDocumentProcessing adds tracing to document processing.
 
@@ -248,32 +189,21 @@ func (tm *TracingManager) InstrumentDocumentProcessing(ctx context.Context, docI
 			attribute.String("document.type", docType),
 
 			attribute.String("nephoran.component", "document-processor"),
-
 		),
-
 	)
 
 	defer span.End()
 
-
-
 	startTime := time.Now()
 
-
-
 	err := fn(ctx)
-
-
 
 	duration := time.Since(startTime)
 
 	span.SetAttributes(
 
 		attribute.Int64("document.processing_duration_ms", duration.Milliseconds()),
-
 	)
-
-
 
 	if err != nil {
 
@@ -289,13 +219,9 @@ func (tm *TracingManager) InstrumentDocumentProcessing(ctx context.Context, docI
 
 	}
 
-
-
 	return err
 
 }
-
-
 
 // InstrumentChunking adds tracing to document chunking.
 
@@ -310,22 +236,14 @@ func (tm *TracingManager) InstrumentChunking(ctx context.Context, docID string, 
 			attribute.String("chunking.strategy", strategy),
 
 			attribute.String("nephoran.component", "chunking-service"),
-
 		),
-
 	)
 
 	defer span.End()
 
-
-
 	startTime := time.Now()
 
-
-
 	chunks, err := fn(ctx)
-
-
 
 	duration := time.Since(startTime)
 
@@ -334,10 +252,7 @@ func (tm *TracingManager) InstrumentChunking(ctx context.Context, docID string, 
 		attribute.Int64("chunking.duration_ms", duration.Milliseconds()),
 
 		attribute.Int("chunking.chunks_created", len(chunks)),
-
 	)
-
-
 
 	if err != nil {
 
@@ -350,8 +265,6 @@ func (tm *TracingManager) InstrumentChunking(ctx context.Context, docID string, 
 	} else {
 
 		span.SetStatus(codes.Ok, "document chunked successfully")
-
-
 
 		// Add chunk statistics.
 
@@ -367,27 +280,20 @@ func (tm *TracingManager) InstrumentChunking(ctx context.Context, docID string, 
 
 			avgChunkSize := totalSize / len(chunks)
 
-
-
 			span.SetAttributes(
 
 				attribute.Int("chunking.total_content_size", totalSize),
 
 				attribute.Int("chunking.avg_chunk_size", avgChunkSize),
-
 			)
 
 		}
 
 	}
 
-
-
 	return chunks, err
 
 }
-
-
 
 // InstrumentEmbeddingGeneration adds tracing to embedding generation.
 
@@ -402,22 +308,14 @@ func (tm *TracingManager) InstrumentEmbeddingGeneration(ctx context.Context, mod
 			attribute.Int("embedding.input_count", len(inputTexts)),
 
 			attribute.String("nephoran.component", "embedding-service"),
-
 		),
-
 	)
 
 	defer span.End()
 
-
-
 	startTime := time.Now()
 
-
-
 	embeddings, err := fn(ctx)
-
-
 
 	duration := time.Since(startTime)
 
@@ -426,10 +324,7 @@ func (tm *TracingManager) InstrumentEmbeddingGeneration(ctx context.Context, mod
 		attribute.Int64("embedding.generation_duration_ms", duration.Milliseconds()),
 
 		attribute.Int("embedding.output_count", len(embeddings)),
-
 	)
-
-
 
 	if len(inputTexts) > 0 {
 
@@ -443,19 +338,14 @@ func (tm *TracingManager) InstrumentEmbeddingGeneration(ctx context.Context, mod
 
 		avgInputLength := totalInputLength / len(inputTexts)
 
-
-
 		span.SetAttributes(
 
 			attribute.Int("embedding.total_input_length", totalInputLength),
 
 			attribute.Int("embedding.avg_input_length", avgInputLength),
-
 		)
 
 	}
-
-
 
 	if err != nil {
 
@@ -469,27 +359,20 @@ func (tm *TracingManager) InstrumentEmbeddingGeneration(ctx context.Context, mod
 
 		span.SetStatus(codes.Ok, "embeddings generated successfully")
 
-
-
 		if len(embeddings) > 0 && len(embeddings[0]) > 0 {
 
 			span.SetAttributes(
 
 				attribute.Int("embedding.vector_dimension", len(embeddings[0])),
-
 			)
 
 		}
 
 	}
 
-
-
 	return embeddings, err
 
 }
-
-
 
 // InstrumentVectorStore adds tracing to vector store operations.
 
@@ -504,32 +387,21 @@ func (tm *TracingManager) InstrumentVectorStore(ctx context.Context, operation s
 			attribute.Int("vector_store.object_count", objectCount),
 
 			attribute.String("nephoran.component", "weaviate-client"),
-
 		),
-
 	)
 
 	defer span.End()
 
-
-
 	startTime := time.Now()
 
-
-
 	err := fn(ctx)
-
-
 
 	duration := time.Since(startTime)
 
 	span.SetAttributes(
 
 		attribute.Int64("vector_store.operation_duration_ms", duration.Milliseconds()),
-
 	)
-
-
 
 	if err != nil {
 
@@ -545,13 +417,9 @@ func (tm *TracingManager) InstrumentVectorStore(ctx context.Context, operation s
 
 	}
 
-
-
 	return err
 
 }
-
-
 
 // InstrumentRetrieval adds tracing to document retrieval.
 
@@ -568,22 +436,14 @@ func (tm *TracingManager) InstrumentRetrieval(ctx context.Context, query string,
 			attribute.Int("retrieval.query_length", len(query)),
 
 			attribute.String("nephoran.component", "retrieval-service"),
-
 		),
-
 	)
 
 	defer span.End()
 
-
-
 	startTime := time.Now()
 
-
-
 	documents, err := fn(ctx)
-
-
 
 	duration := time.Since(startTime)
 
@@ -592,10 +452,7 @@ func (tm *TracingManager) InstrumentRetrieval(ctx context.Context, query string,
 		attribute.Int64("retrieval.duration_ms", duration.Milliseconds()),
 
 		attribute.Int("retrieval.documents_found", len(documents)),
-
 	)
-
-
 
 	if err != nil {
 
@@ -608,8 +465,6 @@ func (tm *TracingManager) InstrumentRetrieval(ctx context.Context, query string,
 	} else {
 
 		span.SetStatus(codes.Ok, "documents retrieved successfully")
-
-
 
 		// Add retrieval quality metrics.
 
@@ -625,27 +480,20 @@ func (tm *TracingManager) InstrumentRetrieval(ctx context.Context, query string,
 
 			avgScore := totalScore / float64(len(documents))
 
-
-
 			span.SetAttributes(
 
 				attribute.Float64("retrieval.avg_score", avgScore),
 
 				attribute.Float64("retrieval.top_score", float64(documents[0].Score)),
-
 			)
 
 		}
 
 	}
 
-
-
 	return documents, err
 
 }
-
-
 
 // InstrumentContextAssembly adds tracing to context assembly.
 
@@ -660,22 +508,14 @@ func (tm *TracingManager) InstrumentContextAssembly(ctx context.Context, documen
 			attribute.Int("context.input_documents", len(documents)),
 
 			attribute.String("nephoran.component", "context-assembler"),
-
 		),
-
 	)
 
 	defer span.End()
 
-
-
 	startTime := time.Now()
 
-
-
 	context_str, err := fn(ctx)
-
-
 
 	duration := time.Since(startTime)
 
@@ -684,10 +524,7 @@ func (tm *TracingManager) InstrumentContextAssembly(ctx context.Context, documen
 		attribute.Int64("context.assembly_duration_ms", duration.Milliseconds()),
 
 		attribute.Int("context.output_length", len(context_str)),
-
 	)
-
-
 
 	if err != nil {
 
@@ -701,8 +538,6 @@ func (tm *TracingManager) InstrumentContextAssembly(ctx context.Context, documen
 
 		span.SetStatus(codes.Ok, "context assembled successfully")
 
-
-
 		// Calculate compression ratio.
 
 		if len(documents) > 0 {
@@ -715,8 +550,6 @@ func (tm *TracingManager) InstrumentContextAssembly(ctx context.Context, documen
 
 			}
 
-
-
 			compressionRatio := float64(len(context_str)) / float64(totalInputLength)
 
 			span.SetAttributes(
@@ -724,20 +557,15 @@ func (tm *TracingManager) InstrumentContextAssembly(ctx context.Context, documen
 				attribute.Int("context.total_input_length", totalInputLength),
 
 				attribute.Float64("context.compression_ratio", compressionRatio),
-
 			)
 
 		}
 
 	}
 
-
-
 	return context_str, err
 
 }
-
-
 
 // InstrumentRAGQuery adds end-to-end tracing for RAG queries.
 
@@ -754,32 +582,21 @@ func (tm *TracingManager) InstrumentRAGQuery(ctx context.Context, query string, 
 			attribute.Int("rag.query_length", len(query)),
 
 			attribute.String("nephoran.component", "rag-service"),
-
 		),
-
 	)
 
 	defer span.End()
 
-
-
 	startTime := time.Now()
 
-
-
 	response, err := fn(ctx)
-
-
 
 	duration := time.Since(startTime)
 
 	span.SetAttributes(
 
 		attribute.Int64("rag.total_duration_ms", duration.Milliseconds()),
-
 	)
-
-
 
 	if err != nil {
 
@@ -793,8 +610,6 @@ func (tm *TracingManager) InstrumentRAGQuery(ctx context.Context, query string, 
 
 		span.SetStatus(codes.Ok, "RAG query completed successfully")
 
-
-
 		if response != nil {
 
 			span.SetAttributes(
@@ -804,10 +619,7 @@ func (tm *TracingManager) InstrumentRAGQuery(ctx context.Context, query string, 
 				attribute.Int("rag.sources_used", len(response.SourceDocuments)),
 
 				attribute.Float64("rag.confidence_score", float64(response.Confidence)),
-
 			)
-
-
 
 			// Add source quality metrics.
 
@@ -823,12 +635,9 @@ func (tm *TracingManager) InstrumentRAGQuery(ctx context.Context, query string, 
 
 				avgRelevance := totalScore / float64(len(response.SourceDocuments))
 
-
-
 				span.SetAttributes(
 
 					attribute.Float64("rag.avg_source_relevance", avgRelevance),
-
 				)
 
 			}
@@ -837,13 +646,9 @@ func (tm *TracingManager) InstrumentRAGQuery(ctx context.Context, query string, 
 
 	}
 
-
-
 	return response, err
 
 }
-
-
 
 // InstrumentCacheOperation adds tracing to cache operations.
 
@@ -858,22 +663,14 @@ func (tm *TracingManager) InstrumentCacheOperation(ctx context.Context, operatio
 			attribute.String("cache.key", cacheKey),
 
 			attribute.String("nephoran.component", "redis-cache"),
-
 		),
-
 	)
 
 	defer span.End()
 
-
-
 	startTime := time.Now()
 
-
-
 	value, hit, err := fn(ctx)
-
-
 
 	duration := time.Since(startTime)
 
@@ -882,10 +679,7 @@ func (tm *TracingManager) InstrumentCacheOperation(ctx context.Context, operatio
 		attribute.Int64("cache.operation_duration_ms", duration.Milliseconds()),
 
 		attribute.Bool("cache.hit", hit),
-
 	)
-
-
 
 	if err != nil {
 
@@ -899,8 +693,6 @@ func (tm *TracingManager) InstrumentCacheOperation(ctx context.Context, operatio
 
 		span.SetStatus(codes.Ok, "cache operation completed successfully")
 
-
-
 		if hit {
 
 			span.SetAttributes(attribute.String("cache.status", "hit"))
@@ -913,13 +705,9 @@ func (tm *TracingManager) InstrumentCacheOperation(ctx context.Context, operatio
 
 	}
 
-
-
 	return value, hit, err
 
 }
-
-
 
 // PropagateTraceContext extracts trace context for cross-service calls.
 
@@ -933,8 +721,6 @@ func (tm *TracingManager) PropagateTraceContext(ctx context.Context) map[string]
 
 }
 
-
-
 // ExtractTraceContext injects trace context from incoming requests.
 
 func (tm *TracingManager) ExtractTraceContext(ctx context.Context, headers map[string]string) context.Context {
@@ -942,8 +728,6 @@ func (tm *TracingManager) ExtractTraceContext(ctx context.Context, headers map[s
 	return otel.GetTextMapPropagator().Extract(ctx, propagation.MapCarrier(headers))
 
 }
-
-
 
 // AddCustomAttributes adds custom attributes to the current span.
 
@@ -958,8 +742,6 @@ func (tm *TracingManager) AddCustomAttributes(ctx context.Context, attributes ..
 	}
 
 }
-
-
 
 // RecordException records an exception in the current span.
 
@@ -978,14 +760,11 @@ func (tm *TracingManager) RecordException(ctx context.Context, err error, descri
 			attribute.String("exception.message", err.Error()),
 
 			attribute.String("exception.description", description),
-
 		)
 
 	}
 
 }
-
-
 
 // CreateChildSpan creates a child span from the current context.
 
@@ -995,27 +774,23 @@ func (tm *TracingManager) CreateChildSpan(ctx context.Context, operationName str
 
 }
 
-
-
 // GetDefaultTracingConfig returns default tracing configuration.
 
 func GetDefaultTracingConfig() *TracingConfig {
 
 	return &TracingConfig{
 
-		ServiceName:    "nephoran-rag-service",
+		ServiceName: "nephoran-rag-service",
 
 		ServiceVersion: "1.0.0",
 
 		JaegerEndpoint: "http://jaeger-collector:14268/api/traces",
 
-		SamplingRate:   0.1,
+		SamplingRate: 0.1,
 
-		Environment:    "production",
+		Environment: "production",
 
-		EnableTracing:  true,
-
+		EnableTracing: true,
 	}
 
 }
-

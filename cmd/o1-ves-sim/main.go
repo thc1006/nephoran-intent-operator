@@ -1,31 +1,16 @@
-
 package main
 
-
-
 import (
-
 	"encoding/json"
-
 	"flag"
-
 	"fmt"
-
 	"log"
-
 	"os"
-
 	"path/filepath"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/ves"
-
 )
-
-
 
 func main() {
 
@@ -39,8 +24,6 @@ func main() {
 
 	flag.Parse()
 
-
-
 	// Create output directory if it doesn't exist.
 
 	if err := os.MkdirAll(*outDir, 0o750); err != nil {
@@ -49,11 +32,7 @@ func main() {
 
 	}
 
-
-
 	var event *ves.Event
-
-
 
 	switch *domain {
 
@@ -76,50 +55,43 @@ func main() {
 		event = &ves.Event{
 
 			Event: struct {
+				CommonEventHeader ves.CommonEventHeader `json:"commonEventHeader"`
 
-				CommonEventHeader ves.CommonEventHeader  `json:"commonEventHeader"`
+				HeartbeatFields *ves.HeartbeatFields `json:"heartbeatFields,omitempty"`
 
-				HeartbeatFields   *ves.HeartbeatFields   `json:"heartbeatFields,omitempty"`
-
-				FaultFields       *ves.FaultFields       `json:"faultFields,omitempty"`
+				FaultFields *ves.FaultFields `json:"faultFields,omitempty"`
 
 				MeasurementFields map[string]interface{} `json:"measurementFields,omitempty"`
-
 			}{
 
 				CommonEventHeader: ves.CommonEventHeader{
 
-					Domain:                  *domain,
+					Domain: *domain,
 
-					EventID:                 fmt.Sprintf("%s-%d", *domain, time.Now().Unix()),
+					EventID: fmt.Sprintf("%s-%d", *domain, time.Now().Unix()),
 
-					EventName:               fmt.Sprintf("%s_Event", *domain),
+					EventName: fmt.Sprintf("%s_Event", *domain),
 
-					Priority:                "Normal",
+					Priority: "Normal",
 
-					ReportingEntityName:     *sourceName,
+					ReportingEntityName: *sourceName,
 
-					Sequence:                1,
+					Sequence: 1,
 
-					SourceName:              *sourceName,
+					SourceName: *sourceName,
 
-					StartEpochMicrosec:      nowMicros,
+					StartEpochMicrosec: nowMicros,
 
-					LastEpochMicrosec:       nowMicros,
+					LastEpochMicrosec: nowMicros,
 
-					Version:                 "4.0.1",
+					Version: "4.0.1",
 
 					VesEventListenerVersion: "7.0.1",
-
 				},
-
 			},
-
 		}
 
 	}
-
-
 
 	// Marshal event to JSON with indentation.
 
@@ -131,15 +103,11 @@ func main() {
 
 	}
 
-
-
 	// Generate filename with timestamp.
 
 	filename := time.Now().UTC().Format("20060102T150405Z") + ".json"
 
 	filepath := filepath.Join(*outDir, filename)
-
-
 
 	// Write to file.
 
@@ -149,9 +117,6 @@ func main() {
 
 	}
 
-
-
 	log.Printf("VES event written to: %s", filepath)
 
 }
-

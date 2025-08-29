@@ -1,59 +1,37 @@
 // Package loadtesting provides performance validation for load tests.
 
-
 package loadtesting
 
-
-
 import (
-
 	"fmt"
-
 	"math"
-
 	"sort"
-
 	"time"
 
-
-
 	"go.uber.org/zap"
-
 	"gonum.org/v1/gonum/stat"
-
 	"gonum.org/v1/gonum/stat/distuv"
-
 )
-
-
 
 // PerformanceValidatorImpl validates performance claims against test results.
 
 type PerformanceValidatorImpl struct {
+	config *LoadTestConfig
 
-	config     *LoadTestConfig
-
-	logger     *zap.Logger
+	logger *zap.Logger
 
 	thresholds ValidationThresholds
 
-	tests      []StatisticalValidator
-
+	tests []StatisticalValidator
 }
-
-
 
 // StatisticalValidator interface for statistical validation methods.
 
 type StatisticalValidator interface {
-
 	Validate(data []float64, threshold float64) (bool, float64, string)
 
 	GetName() string
-
 }
-
-
 
 // NewPerformanceValidator creates a new performance validator.
 
@@ -65,8 +43,6 @@ func NewPerformanceValidator(config *LoadTestConfig, logger *zap.Logger) *Perfor
 
 	}
 
-
-
 	validator := &PerformanceValidatorImpl{
 
 		config: config,
@@ -75,49 +51,40 @@ func NewPerformanceValidator(config *LoadTestConfig, logger *zap.Logger) *Perfor
 
 		thresholds: ValidationThresholds{
 
-			MinThroughput:   config.TargetThroughput * 0.95, // Allow 5% tolerance
+			MinThroughput: config.TargetThroughput * 0.95, // Allow 5% tolerance
 
-			MaxLatencyP50:   1000 * time.Millisecond,
+			MaxLatencyP50: 1000 * time.Millisecond,
 
-			MaxLatencyP95:   2000 * time.Millisecond,
+			MaxLatencyP95: 2000 * time.Millisecond,
 
-			MaxLatencyP99:   3000 * time.Millisecond,
+			MaxLatencyP99: 3000 * time.Millisecond,
 
 			MinAvailability: 0.9995, // 99.95%
 
-			MaxErrorRate:    0.05,   // 5%
+			MaxErrorRate: 0.05, // 5%
 
 			MaxResourceUsage: ResourceLimits{
 
-				CPUPercent:  config.MaxCPU,
+				CPUPercent: config.MaxCPU,
 
-				MemoryGB:    config.MaxMemoryGB,
+				MemoryGB: config.MaxMemoryGB,
 
 				NetworkMbps: config.MaxNetworkMbps,
 
-				DiskIOPS:    10000,
-
+				DiskIOPS: 10000,
 			},
-
 		},
 
 		tests: make([]StatisticalValidator, 0),
-
 	}
-
-
 
 	// Initialize statistical tests.
 
 	validator.initializeTests()
 
-
-
 	return validator
 
 }
-
-
 
 // Validate checks if performance meets requirements.
 
@@ -125,23 +92,20 @@ func (v *PerformanceValidatorImpl) Validate(results *LoadTestResults) Validation
 
 	report := ValidationReport{
 
-		Passed:          true,
+		Passed: true,
 
-		Score:           100.0,
+		Score: 100.0,
 
-		FailedCriteria:  make([]string, 0),
+		FailedCriteria: make([]string, 0),
 
-		Warnings:        make([]string, 0),
+		Warnings: make([]string, 0),
 
 		DetailedResults: make(map[string]interface{}),
 
 		Recommendations: make([]string, 0),
 
-		Evidence:        make([]Evidence, 0),
-
+		Evidence: make([]Evidence, 0),
 	}
-
-
 
 	// Validate each performance claim.
 
@@ -157,25 +121,17 @@ func (v *PerformanceValidatorImpl) Validate(results *LoadTestResults) Validation
 
 	v.validateStatisticalSignificance(results, &report)
 
-
-
 	// Calculate final score.
 
 	report.Score = v.calculateScore(&report)
-
-
 
 	// Generate recommendations.
 
 	v.generateRecommendations(results, &report)
 
-
-
 	return report
 
 }
-
-
 
 // ValidateRealtime performs real-time validation during test execution.
 
@@ -195,8 +151,6 @@ func (v *PerformanceValidatorImpl) ValidateRealtime(metrics GeneratorMetrics) bo
 
 	}
 
-
-
 	// Check latency.
 
 	if metrics.AverageLatency > v.thresholds.MaxLatencyP95 {
@@ -211,11 +165,9 @@ func (v *PerformanceValidatorImpl) ValidateRealtime(metrics GeneratorMetrics) bo
 
 	}
 
-
-
 	// Check throughput.
 
-	currentThroughput := metrics.CurrentRate * 60           // Convert to per minute
+	currentThroughput := metrics.CurrentRate * 60 // Convert to per minute
 
 	if currentThroughput < v.thresholds.MinThroughput*0.8 { // Allow 20% tolerance during ramp-up
 
@@ -229,13 +181,9 @@ func (v *PerformanceValidatorImpl) ValidateRealtime(metrics GeneratorMetrics) bo
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // GetThresholds returns validation thresholds.
 
@@ -245,11 +193,7 @@ func (v *PerformanceValidatorImpl) GetThresholds() ValidationThresholds {
 
 }
 
-
-
 // Private validation methods.
-
-
 
 func (v *PerformanceValidatorImpl) validateConcurrentIntents(results *LoadTestResults, report *ValidationReport) {
 
@@ -257,11 +201,9 @@ func (v *PerformanceValidatorImpl) validateConcurrentIntents(results *LoadTestRe
 
 	maxConcurrent := v.calculateMaxConcurrent(results)
 
-
-
 	evidence := Evidence{
 
-		Type:        "concurrent_intents",
+		Type: "concurrent_intents",
 
 		Description: fmt.Sprintf("Maximum concurrent intents: %d", maxConcurrent),
 
@@ -269,17 +211,13 @@ func (v *PerformanceValidatorImpl) validateConcurrentIntents(results *LoadTestRe
 
 			"max_concurrent": maxConcurrent,
 
-			"target":         200,
+			"target": 200,
 
-			"test_duration":  results.Duration,
-
+			"test_duration": results.Duration,
 		},
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	if maxConcurrent >= 200 {
 
@@ -301,15 +239,11 @@ func (v *PerformanceValidatorImpl) validateConcurrentIntents(results *LoadTestRe
 
 	}
 
-
-
 	report.Evidence = append(report.Evidence, evidence)
 
 	report.DetailedResults["concurrent_intents"] = maxConcurrent
 
 }
-
-
 
 func (v *PerformanceValidatorImpl) validateThroughput(results *LoadTestResults, report *ValidationReport) {
 
@@ -317,11 +251,9 @@ func (v *PerformanceValidatorImpl) validateThroughput(results *LoadTestResults, 
 
 	targetThroughput := 45.0
 
-
-
 	evidence := Evidence{
 
-		Type:        "throughput",
+		Type: "throughput",
 
 		Description: fmt.Sprintf("Average throughput: %.2f intents/min", results.AverageThroughput),
 
@@ -329,19 +261,15 @@ func (v *PerformanceValidatorImpl) validateThroughput(results *LoadTestResults, 
 
 			"average_throughput": results.AverageThroughput,
 
-			"peak_throughput":    results.PeakThroughput,
+			"peak_throughput": results.PeakThroughput,
 
-			"min_throughput":     results.MinThroughput,
+			"min_throughput": results.MinThroughput,
 
-			"target":             targetThroughput,
-
+			"target": targetThroughput,
 		},
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	if results.AverageThroughput >= targetThroughput {
 
@@ -363,8 +291,6 @@ func (v *PerformanceValidatorImpl) validateThroughput(results *LoadTestResults, 
 
 	}
 
-
-
 	// Check consistency.
 
 	if results.MinThroughput < targetThroughput*0.8 {
@@ -375,23 +301,18 @@ func (v *PerformanceValidatorImpl) validateThroughput(results *LoadTestResults, 
 
 	}
 
-
-
 	report.Evidence = append(report.Evidence, evidence)
 
 	report.DetailedResults["throughput"] = map[string]float64{
 
 		"average": results.AverageThroughput,
 
-		"peak":    results.PeakThroughput,
+		"peak": results.PeakThroughput,
 
-		"min":     results.MinThroughput,
-
+		"min": results.MinThroughput,
 	}
 
 }
-
-
 
 func (v *PerformanceValidatorImpl) validateLatency(results *LoadTestResults, report *ValidationReport) {
 
@@ -399,33 +320,27 @@ func (v *PerformanceValidatorImpl) validateLatency(results *LoadTestResults, rep
 
 	targetP95 := 2000 * time.Millisecond
 
-
-
 	evidence := Evidence{
 
-		Type:        "latency",
+		Type: "latency",
 
 		Description: fmt.Sprintf("P95 latency: %v", results.LatencyP95),
 
 		Data: map[string]interface{}{
 
-			"p50":    results.LatencyP50,
+			"p50": results.LatencyP50,
 
-			"p95":    results.LatencyP95,
+			"p95": results.LatencyP95,
 
-			"p99":    results.LatencyP99,
+			"p99": results.LatencyP99,
 
-			"mean":   results.LatencyMean,
+			"mean": results.LatencyMean,
 
 			"target": targetP95,
-
 		},
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	if results.LatencyP95 <= targetP95 {
 
@@ -447,8 +362,6 @@ func (v *PerformanceValidatorImpl) validateLatency(results *LoadTestResults, rep
 
 	}
 
-
-
 	// Additional latency checks.
 
 	if results.LatencyP99 > 5*time.Second {
@@ -459,29 +372,24 @@ func (v *PerformanceValidatorImpl) validateLatency(results *LoadTestResults, rep
 
 	}
 
-
-
 	report.Evidence = append(report.Evidence, evidence)
 
 	report.DetailedResults["latency"] = map[string]time.Duration{
 
-		"p50":  results.LatencyP50,
+		"p50": results.LatencyP50,
 
-		"p95":  results.LatencyP95,
+		"p95": results.LatencyP95,
 
-		"p99":  results.LatencyP99,
+		"p99": results.LatencyP99,
 
-		"min":  results.LatencyMin,
+		"min": results.LatencyMin,
 
-		"max":  results.LatencyMax,
+		"max": results.LatencyMax,
 
 		"mean": results.LatencyMean,
-
 	}
 
 }
-
-
 
 func (v *PerformanceValidatorImpl) validateAvailability(results *LoadTestResults, report *ValidationReport) {
 
@@ -489,35 +397,29 @@ func (v *PerformanceValidatorImpl) validateAvailability(results *LoadTestResults
 
 	targetAvailability := 0.9995
 
-
-
 	evidence := Evidence{
 
-		Type:        "availability",
+		Type: "availability",
 
 		Description: fmt.Sprintf("Availability: %.4f%%", results.Availability*100),
 
 		Data: map[string]interface{}{
 
-			"availability":        results.Availability,
+			"availability": results.Availability,
 
 			"successful_requests": results.SuccessfulRequests,
 
-			"failed_requests":     results.FailedRequests,
+			"failed_requests": results.FailedRequests,
 
-			"total_requests":      results.TotalRequests,
+			"total_requests": results.TotalRequests,
 
-			"downtime":            results.Downtime,
+			"downtime": results.Downtime,
 
-			"target":              targetAvailability,
-
+			"target": targetAvailability,
 		},
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	if results.Availability >= targetAvailability {
 
@@ -539,8 +441,6 @@ func (v *PerformanceValidatorImpl) validateAvailability(results *LoadTestResults
 
 	}
 
-
-
 	// Calculate allowed downtime.
 
 	allowedDowntime := results.Duration * time.Duration(1-targetAvailability)
@@ -553,43 +453,35 @@ func (v *PerformanceValidatorImpl) validateAvailability(results *LoadTestResults
 
 	}
 
-
-
 	report.Evidence = append(report.Evidence, evidence)
 
 	report.DetailedResults["availability"] = results.Availability
 
 }
 
-
-
 func (v *PerformanceValidatorImpl) validateResourceUsage(results *LoadTestResults, report *ValidationReport) {
 
 	evidence := Evidence{
 
-		Type:        "resource_usage",
+		Type: "resource_usage",
 
 		Description: "Resource utilization during test",
 
 		Data: map[string]interface{}{
 
-			"peak_cpu":          results.PeakCPU,
+			"peak_cpu": results.PeakCPU,
 
-			"average_cpu":       results.AverageCPU,
+			"average_cpu": results.AverageCPU,
 
-			"peak_memory_gb":    results.PeakMemoryGB,
+			"peak_memory_gb": results.PeakMemoryGB,
 
 			"average_memory_gb": results.AverageMemoryGB,
 
 			"peak_network_mbps": results.PeakNetworkMbps,
-
 		},
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	// Check CPU usage.
 
@@ -605,8 +497,6 @@ func (v *PerformanceValidatorImpl) validateResourceUsage(results *LoadTestResult
 
 	}
 
-
-
 	// Check memory usage.
 
 	if results.PeakMemoryGB > v.thresholds.MaxResourceUsage.MemoryGB {
@@ -620,8 +510,6 @@ func (v *PerformanceValidatorImpl) validateResourceUsage(results *LoadTestResult
 		evidence.Data["memory_exceeded"] = true
 
 	}
-
-
 
 	// Check network usage.
 
@@ -637,23 +525,18 @@ func (v *PerformanceValidatorImpl) validateResourceUsage(results *LoadTestResult
 
 	}
 
-
-
 	report.Evidence = append(report.Evidence, evidence)
 
 	report.DetailedResults["resource_usage"] = map[string]interface{}{
 
-		"cpu":     map[string]float64{"peak": results.PeakCPU, "average": results.AverageCPU},
+		"cpu": map[string]float64{"peak": results.PeakCPU, "average": results.AverageCPU},
 
-		"memory":  map[string]float64{"peak": results.PeakMemoryGB, "average": results.AverageMemoryGB},
+		"memory": map[string]float64{"peak": results.PeakMemoryGB, "average": results.AverageMemoryGB},
 
 		"network": map[string]float64{"peak": results.PeakNetworkMbps},
-
 	}
 
 }
-
-
 
 func (v *PerformanceValidatorImpl) validateStatisticalSignificance(results *LoadTestResults, report *ValidationReport) {
 
@@ -665,8 +548,6 @@ func (v *PerformanceValidatorImpl) validateStatisticalSignificance(results *Load
 
 	}
 
-
-
 	// Validate statistical tests.
 
 	for testName, testResult := range results.StatisticalAnalysis.TestResults {
@@ -677,37 +558,29 @@ func (v *PerformanceValidatorImpl) validateStatisticalSignificance(results *Load
 
 		}
 
-
-
 		evidence := Evidence{
 
-			Type:        "statistical_test",
+			Type: "statistical_test",
 
 			Description: fmt.Sprintf("%s: %s", testName, testResult.Conclusion),
 
 			Data: map[string]interface{}{
 
-				"test_name":   testName,
+				"test_name": testName,
 
-				"statistic":   testResult.Statistic,
+				"statistic": testResult.Statistic,
 
-				"p_value":     testResult.PValue,
+				"p_value": testResult.PValue,
 
 				"significant": testResult.Significant,
 
-				"conclusion":  testResult.Conclusion,
-
+				"conclusion": testResult.Conclusion,
 			},
 
 			Timestamp: time.Now(),
-
 		}
 
-
-
 		report.Evidence = append(report.Evidence, evidence)
-
-
 
 		// Check if test indicates performance issue.
 
@@ -720,8 +593,6 @@ func (v *PerformanceValidatorImpl) validateStatisticalSignificance(results *Load
 		}
 
 	}
-
-
 
 	// Validate confidence intervals.
 
@@ -739,8 +610,6 @@ func (v *PerformanceValidatorImpl) validateStatisticalSignificance(results *Load
 
 		}
 
-
-
 		if metric == "throughput" {
 
 			if ci.Lower < v.thresholds.MinThroughput {
@@ -757,8 +626,6 @@ func (v *PerformanceValidatorImpl) validateStatisticalSignificance(results *Load
 
 }
 
-
-
 func (v *PerformanceValidatorImpl) initializeTests() {
 
 	// Add statistical test validators.
@@ -773,8 +640,6 @@ func (v *PerformanceValidatorImpl) initializeTests() {
 
 }
 
-
-
 func (v *PerformanceValidatorImpl) calculateMaxConcurrent(results *LoadTestResults) int {
 
 	// Calculate based on Little's Law: L = λW.
@@ -785,25 +650,17 @@ func (v *PerformanceValidatorImpl) calculateMaxConcurrent(results *LoadTestResul
 
 	// W = average time in system (latency).
 
-
-
 	if results.AverageThroughput == 0 || results.LatencyMean == 0 {
 
 		return 0
 
 	}
 
-
-
 	arrivalRate := results.AverageThroughput / 60.0 // Convert to per second
 
 	avgTimeInSystem := results.LatencyMean.Seconds()
 
-
-
 	maxConcurrent := int(math.Ceil(arrivalRate * avgTimeInSystem))
-
-
 
 	// Adjust based on concurrency setting.
 
@@ -813,19 +670,13 @@ func (v *PerformanceValidatorImpl) calculateMaxConcurrent(results *LoadTestResul
 
 	}
 
-
-
 	return maxConcurrent
 
 }
 
-
-
 func (v *PerformanceValidatorImpl) calculateScore(report *ValidationReport) float64 {
 
 	score := 100.0
-
-
 
 	// Deduct points for failed criteria.
 
@@ -833,15 +684,11 @@ func (v *PerformanceValidatorImpl) calculateScore(report *ValidationReport) floa
 
 	score -= float64(len(report.FailedCriteria)) * deductionPerFailure
 
-
-
 	// Deduct points for warnings.
 
 	deductionPerWarning := 5.0
 
 	score -= float64(len(report.Warnings)) * deductionPerWarning
-
-
 
 	// Ensure score doesn't go below 0.
 
@@ -851,19 +698,13 @@ func (v *PerformanceValidatorImpl) calculateScore(report *ValidationReport) floa
 
 	}
 
-
-
 	return score
 
 }
 
-
-
 func (v *PerformanceValidatorImpl) generateRecommendations(results *LoadTestResults, report *ValidationReport) {
 
 	// Based on validation results, generate recommendations.
-
-
 
 	if results.Availability < v.thresholds.MinAvailability {
 
@@ -872,8 +713,6 @@ func (v *PerformanceValidatorImpl) generateRecommendations(results *LoadTestResu
 			"Improve error handling and retry mechanisms to increase availability")
 
 	}
-
-
 
 	if results.LatencyP95 > v.thresholds.MaxLatencyP95 {
 
@@ -891,8 +730,6 @@ func (v *PerformanceValidatorImpl) generateRecommendations(results *LoadTestResu
 
 	}
 
-
-
 	if results.AverageThroughput < v.thresholds.MinThroughput {
 
 		report.Recommendations = append(report.Recommendations,
@@ -905,8 +742,6 @@ func (v *PerformanceValidatorImpl) generateRecommendations(results *LoadTestResu
 
 	}
 
-
-
 	if results.PeakCPU > 80 {
 
 		report.Recommendations = append(report.Recommendations,
@@ -915,8 +750,6 @@ func (v *PerformanceValidatorImpl) generateRecommendations(results *LoadTestResu
 
 	}
 
-
-
 	if results.PeakMemoryGB > v.thresholds.MaxResourceUsage.MemoryGB*0.8 {
 
 		report.Recommendations = append(report.Recommendations,
@@ -924,8 +757,6 @@ func (v *PerformanceValidatorImpl) generateRecommendations(results *LoadTestResu
 			"Memory usage approaching limit - check for memory leaks")
 
 	}
-
-
 
 	// Recommendations based on breaking point analysis.
 
@@ -941,8 +772,6 @@ func (v *PerformanceValidatorImpl) generateRecommendations(results *LoadTestResu
 
 		}
 
-
-
 		if results.BreakingPoint.ResourceBottleneck != "" {
 
 			report.Recommendations = append(report.Recommendations,
@@ -957,21 +786,13 @@ func (v *PerformanceValidatorImpl) generateRecommendations(results *LoadTestResu
 
 }
 
-
-
 // Statistical Test Validators.
-
-
 
 // TTestValidator performs Student's t-test validation.
 
 type TTestValidator struct {
-
 	logger *zap.Logger
-
 }
-
-
 
 // Validate performs validate operation.
 
@@ -983,41 +804,27 @@ func (t *TTestValidator) Validate(data []float64, threshold float64) (bool, floa
 
 	}
 
-
-
 	mean := stat.Mean(data, nil)
 
 	stdDev := stat.StdDev(data, nil)
 
 	n := float64(len(data))
 
-
-
 	// Calculate t-statistic.
 
 	tStatistic := (mean - threshold) / (stdDev / math.Sqrt(n))
-
-
 
 	// Calculate p-value (simplified - in production use proper t-distribution).
 
 	pValue := 2 * (1 - cumulativeNormal(math.Abs(tStatistic)))
 
-
-
 	significant := pValue < 0.05
 
-
-
 	conclusion := fmt.Sprintf("Mean=%.2f, StdDev=%.2f, t=%.2f, p=%.4f", mean, stdDev, tStatistic, pValue)
-
-
 
 	return significant, pValue, conclusion
 
 }
-
-
 
 // GetName performs getname operation.
 
@@ -1027,17 +834,11 @@ func (t *TTestValidator) GetName() string {
 
 }
 
-
-
 // MannWhitneyValidator performs Mann-Whitney U test.
 
 type MannWhitneyValidator struct {
-
 	logger *zap.Logger
-
 }
-
-
 
 // Validate performs validate operation.
 
@@ -1049,8 +850,6 @@ func (m *MannWhitneyValidator) Validate(data []float64, threshold float64) (bool
 
 	}
 
-
-
 	// Create comparison sample around threshold.
 
 	comparisonData := make([]float64, len(data))
@@ -1061,25 +860,17 @@ func (m *MannWhitneyValidator) Validate(data []float64, threshold float64) (bool
 
 	}
 
-
-
 	// Perform Mann-Whitney U test.
 
 	u, pValue := mannWhitneyU(data, comparisonData)
-
-
 
 	significant := pValue < 0.05
 
 	conclusion := fmt.Sprintf("U=%.2f, p=%.4f", u, pValue)
 
-
-
 	return significant, pValue, conclusion
 
 }
-
-
 
 // GetName performs getname operation.
 
@@ -1089,17 +880,11 @@ func (m *MannWhitneyValidator) GetName() string {
 
 }
 
-
-
 // ChiSquareValidator performs Chi-square goodness of fit test.
 
 type ChiSquareValidator struct {
-
 	logger *zap.Logger
-
 }
-
-
 
 // Validate performs validate operation.
 
@@ -1111,8 +896,6 @@ func (c *ChiSquareValidator) Validate(data []float64, threshold float64) (bool, 
 
 	}
 
-
-
 	// Create bins.
 
 	numBins := 10
@@ -1122,8 +905,6 @@ func (c *ChiSquareValidator) Validate(data []float64, threshold float64) (bool, 
 	minVal, maxVal := minMax(data)
 
 	binWidth := (maxVal - minVal) / float64(numBins)
-
-
 
 	// Count observations in each bin.
 
@@ -1141,8 +922,6 @@ func (c *ChiSquareValidator) Validate(data []float64, threshold float64) (bool, 
 
 	}
 
-
-
 	// Calculate expected frequencies (assuming normal distribution).
 
 	n := float64(len(data))
@@ -1150,8 +929,6 @@ func (c *ChiSquareValidator) Validate(data []float64, threshold float64) (bool, 
 	mean := stat.Mean(data, nil)
 
 	stdDev := stat.StdDev(data, nil)
-
-
 
 	chiSquare := 0.0
 
@@ -1169,27 +946,19 @@ func (c *ChiSquareValidator) Validate(data []float64, threshold float64) (bool, 
 
 	}
 
-
-
 	// Calculate p-value (simplified).
 
 	df := float64(numBins - 1)
 
 	pValue := 1 - chiSquareCDF(chiSquare, df)
 
-
-
 	significant := pValue < 0.05
 
 	conclusion := fmt.Sprintf("χ²=%.2f, df=%.0f, p=%.4f", chiSquare, df, pValue)
 
-
-
 	return significant, pValue, conclusion
 
 }
-
-
 
 // GetName performs getname operation.
 
@@ -1199,17 +968,11 @@ func (c *ChiSquareValidator) GetName() string {
 
 }
 
-
-
 // AndersonDarlingValidator performs Anderson-Darling test for normality.
 
 type AndersonDarlingValidator struct {
-
 	logger *zap.Logger
-
 }
-
-
 
 // Validate performs validate operation.
 
@@ -1221,8 +984,6 @@ func (a *AndersonDarlingValidator) Validate(data []float64, threshold float64) (
 
 	}
 
-
-
 	// Sort data.
 
 	sorted := make([]float64, len(data))
@@ -1231,15 +992,11 @@ func (a *AndersonDarlingValidator) Validate(data []float64, threshold float64) (
 
 	sort.Float64s(sorted)
 
-
-
 	n := float64(len(sorted))
 
 	mean := stat.Mean(sorted, nil)
 
 	stdDev := stat.StdDev(sorted, nil)
-
-
 
 	// Calculate A² statistic.
 
@@ -1261,35 +1018,23 @@ func (a *AndersonDarlingValidator) Validate(data []float64, threshold float64) (
 
 	}
 
-
-
 	// Adjust for sample size.
 
 	aSquaredAdjusted := aSquared * (1 + 0.75/n + 2.25/(n*n))
-
-
 
 	// Critical value at 0.05 significance level.
 
 	criticalValue := 0.752
 
-
-
 	significant := aSquaredAdjusted > criticalValue
 
 	pValue := andersonDarlingPValue(aSquaredAdjusted)
 
-
-
 	conclusion := fmt.Sprintf("A²=%.3f, critical=%.3f, p=%.4f", aSquaredAdjusted, criticalValue, pValue)
-
-
 
 	return significant, pValue, conclusion
 
 }
-
-
 
 // GetName performs getname operation.
 
@@ -1299,11 +1044,7 @@ func (a *AndersonDarlingValidator) GetName() string {
 
 }
 
-
-
 // Helper functions for statistical calculations.
-
-
 
 func cumulativeNormal(z float64) float64 {
 
@@ -1311,15 +1052,11 @@ func cumulativeNormal(z float64) float64 {
 
 }
 
-
-
 func normalPDF(x, mu, sigma float64) float64 {
 
 	return math.Exp(-math.Pow(x-mu, 2)/(2*math.Pow(sigma, 2))) / (sigma * math.Sqrt(2*math.Pi))
 
 }
-
-
 
 func chiSquareCDF(x, df float64) float64 {
 
@@ -1335,23 +1072,17 @@ func chiSquareCDF(x, df float64) float64 {
 
 	}
 
-
-
 	// Using Wilson-Hilferty approximation for chi-square CDF.
 
 	z := math.Pow(x/df, 1.0/3.0) - (1.0 - 2.0/(9.0*df))
 
 	z = z / math.Sqrt(2.0/(9.0*df))
 
-
-
 	// Standard normal CDF approximation.
 
 	return 0.5 * (1.0 + math.Erf(z/math.Sqrt(2.0)))
 
 }
-
-
 
 func andersonDarlingPValue(aSquared float64) float64 {
 
@@ -1377,15 +1108,11 @@ func andersonDarlingPValue(aSquared float64) float64 {
 
 }
 
-
-
 func mannWhitneyU(x, y []float64) (float64, float64) {
 
 	// Simplified Mann-Whitney U test.
 
 	// In production, use proper implementation.
-
-
 
 	// Combine and rank.
 
@@ -1395,15 +1122,11 @@ func mannWhitneyU(x, y []float64) (float64, float64) {
 
 	sort.Float64s(combined)
 
-
-
 	for i, val := range combined {
 
 		ranks[val] = float64(i + 1)
 
 	}
-
-
 
 	// Calculate U statistic.
 
@@ -1415,17 +1138,11 @@ func mannWhitneyU(x, y []float64) (float64, float64) {
 
 	}
 
-
-
 	nx := float64(len(x))
 
 	ny := float64(len(y))
 
-
-
 	u := sumRanksX - nx*(nx+1)/2
-
-
 
 	// Calculate z-score for large samples.
 
@@ -1435,19 +1152,13 @@ func mannWhitneyU(x, y []float64) (float64, float64) {
 
 	z := (u - mu) / sigma
 
-
-
 	// Calculate p-value.
 
 	pValue := 2 * (1 - cumulativeNormal(math.Abs(z)))
 
-
-
 	return u, pValue
 
 }
-
-
 
 func minMax(data []float64) (float64, float64) {
 
@@ -1456,8 +1167,6 @@ func minMax(data []float64) (float64, float64) {
 		return 0, 0
 
 	}
-
-
 
 	minVal, maxVal := data[0], data[0]
 
@@ -1477,9 +1186,6 @@ func minMax(data []float64) (float64, float64) {
 
 	}
 
-
-
 	return minVal, maxVal
 
 }
-

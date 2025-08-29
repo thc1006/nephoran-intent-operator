@@ -1,105 +1,72 @@
-
 package sla
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"runtime"
-
 	"strings"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
 
-
-
-	"github.com/prometheus/client_golang/prometheus"
-
-	"golang.org/x/time/rate"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
+	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/time/rate"
 )
-
-
 
 // Collector provides high-performance metrics collection with sub-100ms latency.
 
 // and 100,000+ metrics/second throughput with intelligent sampling.
 
 type Collector struct {
+	config *CollectorConfig
 
-	config  *CollectorConfig
-
-	logger  *logging.StructuredLogger
+	logger *logging.StructuredLogger
 
 	started atomic.Bool
 
-
-
 	// High-performance buffering.
 
-	metricsBuffer  chan *MetricSample
+	metricsBuffer chan *MetricSample
 
 	batchProcessor *BatchProcessor
 
 	cardinalityMgr *CardinalityManager
 
-	rateLimiter    *rate.Limiter
-
-
+	rateLimiter *rate.Limiter
 
 	// Connection pools for data sources.
 
 	connPool *ConnectionPool
 
-
-
 	// Performance metrics.
 
-	metrics          *CollectorMetrics
+	metrics *CollectorMetrics
 
-	collectionCount  atomic.Uint64
+	collectionCount atomic.Uint64
 
 	processingErrors atomic.Uint64
 
-	sampledMetrics   atomic.Uint64
+	sampledMetrics atomic.Uint64
 
-	droppedMetrics   atomic.Uint64
-
-
+	droppedMetrics atomic.Uint64
 
 	// Worker management.
 
-	workers        []*CollectorWorker
+	workers []*CollectorWorker
 
-	workerCount    int
+	workerCount int
 
 	processingRate atomic.Uint64
 
-
-
 	// Synchronization.
 
-	mu     sync.RWMutex
+	mu sync.RWMutex
 
 	stopCh chan struct{}
 
-	wg     sync.WaitGroup
-
+	wg sync.WaitGroup
 }
-
-
 
 // CollectorConfig holds configuration for the metrics collector.
 
@@ -107,53 +74,42 @@ type CollectorConfig struct {
 
 	// Buffer configuration for high throughput.
 
-	BufferSize    int           `yaml:"buffer_size"`
+	BufferSize int `yaml:"buffer_size"`
 
-	BatchSize     int           `yaml:"batch_size"`
+	BatchSize int `yaml:"batch_size"`
 
 	FlushInterval time.Duration `yaml:"flush_interval"`
 
-	WorkerCount   int           `yaml:"worker_count"`
-
-
+	WorkerCount int `yaml:"worker_count"`
 
 	// Cardinality management.
 
-	MaxCardinality    int            `yaml:"max_cardinality"`
+	MaxCardinality int `yaml:"max_cardinality"`
 
 	CardinalityLimits map[string]int `yaml:"cardinality_limits"`
 
-
-
 	// Sampling configuration.
 
-	SamplingRate      float64 `yaml:"sampling_rate"`
+	SamplingRate float64 `yaml:"sampling_rate"`
 
-	AdaptiveSampling  bool    `yaml:"adaptive_sampling"`
+	AdaptiveSampling bool `yaml:"adaptive_sampling"`
 
-	SamplingThreshold int     `yaml:"sampling_threshold"`
-
-
+	SamplingThreshold int `yaml:"sampling_threshold"`
 
 	// Connection pooling.
 
-	MaxConnections    int           `yaml:"max_connections"`
+	MaxConnections int `yaml:"max_connections"`
 
 	ConnectionTimeout time.Duration `yaml:"connection_timeout"`
 
-	IdleTimeout       time.Duration `yaml:"idle_timeout"`
-
-
+	IdleTimeout time.Duration `yaml:"idle_timeout"`
 
 	// Performance limits.
 
-	MaxThroughput     int `yaml:"max_throughput"`
+	MaxThroughput int `yaml:"max_throughput"`
 
 	BackpressureLimit int `yaml:"backpressure_limit"`
-
 }
-
-
 
 // DefaultCollectorConfig returns optimized default configuration.
 
@@ -161,85 +117,68 @@ func DefaultCollectorConfig() *CollectorConfig {
 
 	return &CollectorConfig{
 
-		BufferSize:    50000, // 50k metrics buffer
+		BufferSize: 50000, // 50k metrics buffer
 
-		BatchSize:     1000,  // Process in 1k batches
+		BatchSize: 1000, // Process in 1k batches
 
 		FlushInterval: 100 * time.Millisecond,
 
-		WorkerCount:   runtime.NumCPU(),
-
-
+		WorkerCount: runtime.NumCPU(),
 
 		MaxCardinality: 10000, // Prevent cardinality explosion
 
 		CardinalityLimits: map[string]int{
 
-			"intent_metrics":    5000,
+			"intent_metrics": 5000,
 
 			"component_metrics": 2000,
 
-			"system_metrics":    1000,
-
+			"system_metrics": 1000,
 		},
 
+		SamplingRate: 1.0, // Start with no sampling
 
-
-		SamplingRate:      1.0,   // Start with no sampling
-
-		AdaptiveSampling:  true,  // Enable adaptive sampling under load
+		AdaptiveSampling: true, // Enable adaptive sampling under load
 
 		SamplingThreshold: 75000, // Start sampling above 75k/sec
 
-
-
-		MaxConnections:    20, // Connection pool size
+		MaxConnections: 20, // Connection pool size
 
 		ConnectionTimeout: 5 * time.Second,
 
-		IdleTimeout:       30 * time.Second,
+		IdleTimeout: 30 * time.Second,
 
+		MaxThroughput: 100000, // 100k metrics/second limit
 
-
-		MaxThroughput:     100000, // 100k metrics/second limit
-
-		BackpressureLimit: 40000,  // Apply backpressure at 40k buffer
+		BackpressureLimit: 40000, // Apply backpressure at 40k buffer
 
 	}
 
 }
 
-
-
 // MetricSample represents a single metric measurement.
 
 type MetricSample struct {
+	Name string `json:"name"`
 
-	Name      string                 `json:"name"`
+	Value float64 `json:"value"`
 
-	Value     float64                `json:"value"`
+	Labels map[string]string `json:"labels"`
 
-	Labels    map[string]string      `json:"labels"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time              `json:"timestamp"`
+	Type MetricType `json:"type"`
 
-	Type      MetricType             `json:"type"`
+	Source string `json:"source"`
 
-	Source    string                 `json:"source"`
+	Priority Priority `json:"priority"`
 
-	Priority  Priority               `json:"priority"`
-
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // MetricType defines the type of metric.
 
 type MetricType string
-
-
 
 const (
 
@@ -258,10 +197,7 @@ const (
 	// MetricTypeSummary holds metrictypesummary value.
 
 	MetricTypeSummary MetricType = "summary"
-
 )
-
-
 
 // CollectorMetrics contains Prometheus metrics for the collector.
 
@@ -269,201 +205,156 @@ type CollectorMetrics struct {
 
 	// Collection metrics.
 
-	MetricsCollected  *prometheus.CounterVec
+	MetricsCollected *prometheus.CounterVec
 
 	CollectionLatency *prometheus.HistogramVec
 
-	CollectionRate    prometheus.Gauge
-
-
+	CollectionRate prometheus.Gauge
 
 	// Buffer metrics.
 
 	BufferUtilization prometheus.Gauge
 
-	BufferOverflows   prometheus.Counter
+	BufferOverflows prometheus.Counter
 
-	DroppedMetrics    *prometheus.CounterVec
-
-
+	DroppedMetrics *prometheus.CounterVec
 
 	// Processing metrics.
 
-	BatchesProcessed  prometheus.Counter
+	BatchesProcessed prometheus.Counter
 
 	ProcessingLatency prometheus.Histogram
 
-	ProcessingErrors  *prometheus.CounterVec
-
-
+	ProcessingErrors *prometheus.CounterVec
 
 	// Cardinality metrics.
 
-	CardinalityCount   *prometheus.GaugeVec
+	CardinalityCount *prometheus.GaugeVec
 
 	CardinalityLimited *prometheus.CounterVec
 
-
-
 	// Sampling metrics.
 
-	SamplingRate   prometheus.Gauge
+	SamplingRate prometheus.Gauge
 
 	SampledMetrics prometheus.Counter
-
-
 
 	// Connection pool metrics.
 
 	ActiveConnections prometheus.Gauge
 
-	ConnectionErrors  *prometheus.CounterVec
+	ConnectionErrors *prometheus.CounterVec
 
 	ConnectionLatency prometheus.Histogram
-
 }
-
-
 
 // BatchProcessor handles batch processing of metrics for efficiency.
 
 type BatchProcessor struct {
-
-	batchSize     int
+	batchSize int
 
 	flushInterval time.Duration
 
-	processor     func([]*MetricSample) error
+	processor func([]*MetricSample) error
 
-	buffer        []*MetricSample
+	buffer []*MetricSample
 
-	mu            sync.Mutex
+	mu sync.Mutex
 
-	lastFlush     time.Time
+	lastFlush time.Time
 
-	metrics       *BatchProcessorMetrics
-
+	metrics *BatchProcessorMetrics
 }
-
-
 
 // BatchProcessorMetrics tracks batch processor performance.
 
 type BatchProcessorMetrics struct {
-
 	BatchesProcessed prometheus.Counter
 
-	BatchSize        prometheus.Histogram
+	BatchSize prometheus.Histogram
 
-	ProcessingTime   prometheus.Histogram
+	ProcessingTime prometheus.Histogram
 
 	ProcessingErrors prometheus.Counter
-
 }
-
-
 
 // CardinalityManager prevents metric cardinality explosion.
 
 type CardinalityManager struct {
+	maxCardinality int
 
-	maxCardinality     int
-
-	familyLimits       map[string]int
+	familyLimits map[string]int
 
 	currentCardinality map[string]int
 
-	totalCardinality   atomic.Int64
+	totalCardinality atomic.Int64
 
-	mu                 sync.RWMutex
+	mu sync.RWMutex
 
-	metrics            *CardinalityMetrics
-
+	metrics *CardinalityMetrics
 }
-
-
 
 // CardinalityMetrics tracks cardinality management.
 
 type CardinalityMetrics struct {
-
-	TotalCardinality  prometheus.Gauge
+	TotalCardinality prometheus.Gauge
 
 	FamilyCardinality *prometheus.GaugeVec
 
-	DroppedMetrics    *prometheus.CounterVec
+	DroppedMetrics *prometheus.CounterVec
 
-	LimitViolations   *prometheus.CounterVec
-
+	LimitViolations *prometheus.CounterVec
 }
-
-
 
 // CollectorWorker processes metrics in parallel.
 
 type CollectorWorker struct {
-
-	id        int
+	id int
 
 	collector *Collector
 
-	tasks     chan *MetricSample
+	tasks chan *MetricSample
 
-	quit      chan struct{}
+	quit chan struct{}
 
-	metrics   *WorkerMetrics
-
+	metrics *WorkerMetrics
 }
-
-
 
 // ConnectionPool manages connections to data sources.
 
 type ConnectionPool struct {
-
 	maxConnections int
 
-	connections    chan *Connection
+	connections chan *Connection
 
-	factory        func() (*Connection, error)
+	factory func() (*Connection, error)
 
-	metrics        *ConnectionPoolMetrics
-
+	metrics *ConnectionPoolMetrics
 }
-
-
 
 // Connection represents a connection to a data source.
 
 type Connection struct {
-
-	ID        int
+	ID int
 
 	CreatedAt time.Time
 
-	LastUsed  time.Time
+	LastUsed time.Time
 
-	InUse     atomic.Bool
-
+	InUse atomic.Bool
 }
-
-
 
 // ConnectionPoolMetrics tracks connection pool performance.
 
 type ConnectionPoolMetrics struct {
-
 	ActiveConnections prometheus.Gauge
 
-	TotalConnections  prometheus.Gauge
+	TotalConnections prometheus.Gauge
 
-	ConnectionTime    prometheus.Histogram
+	ConnectionTime prometheus.Histogram
 
-	ConnectionErrors  *prometheus.CounterVec
-
+	ConnectionErrors *prometheus.CounterVec
 }
-
-
 
 // NewCollector creates a new high-performance metrics collector.
 
@@ -475,15 +366,11 @@ func NewCollector(config *CollectorConfig, logger *logging.StructuredLogger) (*C
 
 	}
 
-
-
 	if logger == nil {
 
 		return nil, fmt.Errorf("logger is required")
 
 	}
-
-
 
 	// Initialize metrics.
 
@@ -494,176 +381,129 @@ func NewCollector(config *CollectorConfig, logger *logging.StructuredLogger) (*C
 			Name: "sla_collector_metrics_collected_total",
 
 			Help: "Total number of metrics collected",
-
 		}, []string{"source", "type", "status"}),
-
-
 
 		CollectionLatency: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 
-			Name:    "sla_collector_collection_latency_seconds",
+			Name: "sla_collector_collection_latency_seconds",
 
-			Help:    "Latency of metrics collection operations",
+			Help: "Latency of metrics collection operations",
 
 			Buckets: prometheus.ExponentialBuckets(0.00001, 2, 15), // 10μs to ~300ms
 
 		}, []string{"source", "type"}),
-
-
 
 		CollectionRate: prometheus.NewGauge(prometheus.GaugeOpts{
 
 			Name: "sla_collector_collection_rate",
 
 			Help: "Current metrics collection rate per second",
-
 		}),
-
-
 
 		BufferUtilization: prometheus.NewGauge(prometheus.GaugeOpts{
 
 			Name: "sla_collector_buffer_utilization_percent",
 
 			Help: "Buffer utilization percentage",
-
 		}),
-
-
 
 		BufferOverflows: prometheus.NewCounter(prometheus.CounterOpts{
 
 			Name: "sla_collector_buffer_overflows_total",
 
 			Help: "Total number of buffer overflows",
-
 		}),
-
-
 
 		DroppedMetrics: prometheus.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "sla_collector_dropped_metrics_total",
 
 			Help: "Total number of dropped metrics",
-
 		}, []string{"reason"}),
-
-
 
 		BatchesProcessed: prometheus.NewCounter(prometheus.CounterOpts{
 
 			Name: "sla_collector_batches_processed_total",
 
 			Help: "Total number of metric batches processed",
-
 		}),
-
-
 
 		ProcessingLatency: prometheus.NewHistogram(prometheus.HistogramOpts{
 
-			Name:    "sla_collector_processing_latency_seconds",
+			Name: "sla_collector_processing_latency_seconds",
 
-			Help:    "Latency of batch processing operations",
+			Help: "Latency of batch processing operations",
 
 			Buckets: prometheus.ExponentialBuckets(0.0001, 2, 12), // 0.1ms to ~400ms
 
 		}),
-
-
 
 		ProcessingErrors: prometheus.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "sla_collector_processing_errors_total",
 
 			Help: "Total number of processing errors",
-
 		}, []string{"error_type"}),
-
-
 
 		CardinalityCount: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 
 			Name: "sla_collector_cardinality_count",
 
 			Help: "Current cardinality count by metric family",
-
 		}, []string{"family"}),
-
-
 
 		CardinalityLimited: prometheus.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "sla_collector_cardinality_limited_total",
 
 			Help: "Total number of metrics dropped due to cardinality limits",
-
 		}, []string{"family", "reason"}),
-
-
 
 		SamplingRate: prometheus.NewGauge(prometheus.GaugeOpts{
 
 			Name: "sla_collector_sampling_rate",
 
 			Help: "Current sampling rate (0.0-1.0)",
-
 		}),
-
-
 
 		SampledMetrics: prometheus.NewCounter(prometheus.CounterOpts{
 
 			Name: "sla_collector_sampled_metrics_total",
 
 			Help: "Total number of metrics processed via sampling",
-
 		}),
-
-
 
 		ActiveConnections: prometheus.NewGauge(prometheus.GaugeOpts{
 
 			Name: "sla_collector_active_connections",
 
 			Help: "Number of active connections in the pool",
-
 		}),
-
-
 
 		ConnectionErrors: prometheus.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "sla_collector_connection_errors_total",
 
 			Help: "Total number of connection errors",
-
 		}, []string{"error_type"}),
-
-
 
 		ConnectionLatency: prometheus.NewHistogram(prometheus.HistogramOpts{
 
-			Name:    "sla_collector_connection_latency_seconds",
+			Name: "sla_collector_connection_latency_seconds",
 
-			Help:    "Connection establishment latency",
+			Help: "Connection establishment latency",
 
 			Buckets: prometheus.ExponentialBuckets(0.001, 2, 10),
-
 		}),
-
 	}
-
-
 
 	// Initialize cardinality manager.
 
 	cardinalityMgr := &CardinalityManager{
 
-		maxCardinality:     config.MaxCardinality,
+		maxCardinality: config.MaxCardinality,
 
-		familyLimits:       config.CardinalityLimits,
+		familyLimits: config.CardinalityLimits,
 
 		currentCardinality: make(map[string]int),
 
@@ -674,7 +514,6 @@ func NewCollector(config *CollectorConfig, logger *logging.StructuredLogger) (*C
 				Name: "sla_collector_total_cardinality",
 
 				Help: "Total metric cardinality across all families",
-
 			}),
 
 			FamilyCardinality: prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -682,7 +521,6 @@ func NewCollector(config *CollectorConfig, logger *logging.StructuredLogger) (*C
 				Name: "sla_collector_family_cardinality",
 
 				Help: "Cardinality by metric family",
-
 			}, []string{"family"}),
 
 			DroppedMetrics: prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -690,7 +528,6 @@ func NewCollector(config *CollectorConfig, logger *logging.StructuredLogger) (*C
 				Name: "sla_collector_cardinality_dropped_total",
 
 				Help: "Metrics dropped due to cardinality limits",
-
 			}, []string{"family", "reason"}),
 
 			LimitViolations: prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -698,14 +535,9 @@ func NewCollector(config *CollectorConfig, logger *logging.StructuredLogger) (*C
 				Name: "sla_collector_cardinality_violations_total",
 
 				Help: "Cardinality limit violations",
-
 			}, []string{"family", "violation_type"}),
-
 		},
-
 	}
-
-
 
 	// Initialize connection pool.
 
@@ -713,18 +545,17 @@ func NewCollector(config *CollectorConfig, logger *logging.StructuredLogger) (*C
 
 		maxConnections: config.MaxConnections,
 
-		connections:    make(chan *Connection, config.MaxConnections),
+		connections: make(chan *Connection, config.MaxConnections),
 
 		factory: func() (*Connection, error) {
 
 			return &Connection{
 
-				ID:        int(time.Now().UnixNano()),
+				ID: int(time.Now().UnixNano()),
 
 				CreatedAt: time.Now(),
 
-				LastUsed:  time.Now(),
-
+				LastUsed: time.Now(),
 			}, nil
 
 		},
@@ -736,7 +567,6 @@ func NewCollector(config *CollectorConfig, logger *logging.StructuredLogger) (*C
 				Name: "sla_collector_pool_active_connections",
 
 				Help: "Active connections in the pool",
-
 			}),
 
 			TotalConnections: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -744,7 +574,6 @@ func NewCollector(config *CollectorConfig, logger *logging.StructuredLogger) (*C
 				Name: "sla_collector_pool_total_connections",
 
 				Help: "Total connections created",
-
 			}),
 
 			ConnectionTime: prometheus.NewHistogram(prometheus.HistogramOpts{
@@ -752,7 +581,6 @@ func NewCollector(config *CollectorConfig, logger *logging.StructuredLogger) (*C
 				Name: "sla_collector_pool_connection_time_seconds",
 
 				Help: "Time to acquire connection from pool",
-
 			}),
 
 			ConnectionErrors: prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -760,26 +588,21 @@ func NewCollector(config *CollectorConfig, logger *logging.StructuredLogger) (*C
 				Name: "sla_collector_pool_connection_errors_total",
 
 				Help: "Connection pool errors",
-
 			}, []string{"error_type"}),
-
 		},
-
 	}
-
-
 
 	// Initialize batch processor.
 
 	batchProcessor := &BatchProcessor{
 
-		batchSize:     config.BatchSize,
+		batchSize: config.BatchSize,
 
 		flushInterval: config.FlushInterval,
 
-		buffer:        make([]*MetricSample, 0, config.BatchSize),
+		buffer: make([]*MetricSample, 0, config.BatchSize),
 
-		lastFlush:     time.Now(),
+		lastFlush: time.Now(),
 
 		metrics: &BatchProcessorMetrics{
 
@@ -788,14 +611,13 @@ func NewCollector(config *CollectorConfig, logger *logging.StructuredLogger) (*C
 				Name: "sla_collector_batch_processor_batches_total",
 
 				Help: "Total batches processed",
-
 			}),
 
 			BatchSize: prometheus.NewHistogram(prometheus.HistogramOpts{
 
-				Name:    "sla_collector_batch_processor_batch_size",
+				Name: "sla_collector_batch_processor_batch_size",
 
-				Help:    "Size of processed batches",
+				Help: "Size of processed batches",
 
 				Buckets: prometheus.LinearBuckets(0, 100, 20), // 0 to 2000
 
@@ -803,12 +625,11 @@ func NewCollector(config *CollectorConfig, logger *logging.StructuredLogger) (*C
 
 			ProcessingTime: prometheus.NewHistogram(prometheus.HistogramOpts{
 
-				Name:    "sla_collector_batch_processor_processing_time_seconds",
+				Name: "sla_collector_batch_processor_processing_time_seconds",
 
-				Help:    "Batch processing time",
+				Help: "Batch processing time",
 
 				Buckets: prometheus.ExponentialBuckets(0.0001, 2, 12),
-
 			}),
 
 			ProcessingErrors: prometheus.NewCounter(prometheus.CounterOpts{
@@ -816,46 +637,36 @@ func NewCollector(config *CollectorConfig, logger *logging.StructuredLogger) (*C
 				Name: "sla_collector_batch_processor_errors_total",
 
 				Help: "Batch processing errors",
-
 			}),
-
 		},
-
 	}
-
-
 
 	// Initialize rate limiter.
 
 	rateLimiter := rate.NewLimiter(rate.Limit(config.MaxThroughput), config.MaxThroughput/10)
 
-
-
 	collector := &Collector{
 
-		config:         config,
+		config: config,
 
-		logger:         logger.WithComponent("collector"),
+		logger: logger.WithComponent("collector"),
 
-		metricsBuffer:  make(chan *MetricSample, config.BufferSize),
+		metricsBuffer: make(chan *MetricSample, config.BufferSize),
 
 		batchProcessor: batchProcessor,
 
 		cardinalityMgr: cardinalityMgr,
 
-		rateLimiter:    rateLimiter,
+		rateLimiter: rateLimiter,
 
-		connPool:       connPool,
+		connPool: connPool,
 
-		metrics:        metrics,
+		metrics: metrics,
 
-		workerCount:    config.WorkerCount,
+		workerCount: config.WorkerCount,
 
-		stopCh:         make(chan struct{}),
-
+		stopCh: make(chan struct{}),
 	}
-
-
 
 	// Initialize workers.
 
@@ -865,65 +676,54 @@ func NewCollector(config *CollectorConfig, logger *logging.StructuredLogger) (*C
 
 		collector.workers[i] = &CollectorWorker{
 
-			id:        i,
+			id: i,
 
 			collector: collector,
 
-			tasks:     make(chan *MetricSample, 100),
+			tasks: make(chan *MetricSample, 100),
 
-			quit:      make(chan struct{}),
+			quit: make(chan struct{}),
 
 			metrics: &WorkerMetrics{
 
 				TasksProcessed: prometheus.NewCounter(prometheus.CounterOpts{
 
-					Name:        "sla_collector_worker_tasks_processed_total",
+					Name: "sla_collector_worker_tasks_processed_total",
 
-					Help:        "Tasks processed by worker",
+					Help: "Tasks processed by worker",
 
 					ConstLabels: map[string]string{"worker_id": fmt.Sprintf("%d", i)},
-
 				}),
 
 				ProcessingTime: prometheus.NewHistogram(prometheus.HistogramOpts{
 
-					Name:        "sla_collector_worker_processing_time_seconds",
+					Name: "sla_collector_worker_processing_time_seconds",
 
-					Help:        "Processing time by worker",
+					Help: "Processing time by worker",
 
 					ConstLabels: map[string]string{"worker_id": fmt.Sprintf("%d", i)},
-
 				}),
 
 				Errors: prometheus.NewCounter(prometheus.CounterOpts{
 
-					Name:        "sla_collector_worker_errors_total",
+					Name: "sla_collector_worker_errors_total",
 
-					Help:        "Errors by worker",
+					Help: "Errors by worker",
 
 					ConstLabels: map[string]string{"worker_id": fmt.Sprintf("%d", i)},
-
 				}),
-
 			},
-
 		}
 
 	}
-
-
 
 	// Set processor function.
 
 	batchProcessor.processor = collector.processBatch
 
-
-
 	return collector, nil
 
 }
-
-
 
 // Start begins the metrics collection process.
 
@@ -935,8 +735,6 @@ func (c *Collector) Start(ctx context.Context) error {
 
 	}
 
-
-
 	c.logger.InfoWithContext("Starting metrics collector",
 
 		"buffer_size", c.config.BufferSize,
@@ -946,10 +744,7 @@ func (c *Collector) Start(ctx context.Context) error {
 		"worker_count", c.workerCount,
 
 		"max_throughput", c.config.MaxThroughput,
-
 	)
-
-
 
 	// Initialize connection pool.
 
@@ -958,8 +753,6 @@ func (c *Collector) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to initialize connection pool: %w", err)
 
 	}
-
-
 
 	// Start workers.
 
@@ -971,15 +764,11 @@ func (c *Collector) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start main collection loop.
 
 	c.wg.Add(1)
 
 	go c.runCollectionLoop(ctx)
-
-
 
 	// Start batch processor.
 
@@ -987,27 +776,19 @@ func (c *Collector) Start(ctx context.Context) error {
 
 	go c.runBatchProcessor(ctx)
 
-
-
 	// Start metrics updater.
 
 	c.wg.Add(1)
 
 	go c.updateMetrics(ctx)
 
-
-
 	c.started.Store(true)
 
 	c.logger.InfoWithContext("Metrics collector started successfully")
 
-
-
 	return nil
 
 }
-
-
 
 // Stop gracefully stops the metrics collector.
 
@@ -1019,17 +800,11 @@ func (c *Collector) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	c.logger.InfoWithContext("Stopping metrics collector")
-
-
 
 	// Signal stop.
 
 	close(c.stopCh)
-
-
 
 	// Stop workers.
 
@@ -1039,29 +814,19 @@ func (c *Collector) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	// Wait for workers to finish.
 
 	c.wg.Wait()
-
-
 
 	// Close buffer.
 
 	close(c.metricsBuffer)
 
-
-
 	c.logger.InfoWithContext("Metrics collector stopped")
-
-
 
 	return nil
 
 }
-
-
 
 // CollectMetric collects a single metric with sub-100ms latency.
 
@@ -1077,8 +842,6 @@ func (c *Collector) CollectMetric(ctx context.Context, sample *MetricSample) err
 
 	}()
 
-
-
 	// Apply rate limiting.
 
 	if !c.rateLimiter.Allow() {
@@ -1091,8 +854,6 @@ func (c *Collector) CollectMetric(ctx context.Context, sample *MetricSample) err
 
 	}
 
-
-
 	// Check cardinality limits.
 
 	if !c.cardinalityMgr.ShouldAcceptMetric(sample.Name, sample.Labels) {
@@ -1104,8 +865,6 @@ func (c *Collector) CollectMetric(ctx context.Context, sample *MetricSample) err
 		return fmt.Errorf("cardinality limit exceeded")
 
 	}
-
-
 
 	// Apply adaptive sampling if enabled.
 
@@ -1122,8 +881,6 @@ func (c *Collector) CollectMetric(ctx context.Context, sample *MetricSample) err
 		}
 
 	}
-
-
 
 	// Add to buffer with timeout.
 
@@ -1157,8 +914,6 @@ func (c *Collector) CollectMetric(ctx context.Context, sample *MetricSample) err
 
 }
 
-
-
 // CollectBatch collects multiple metrics efficiently.
 
 func (c *Collector) CollectBatch(ctx context.Context, samples []*MetricSample) error {
@@ -1173,8 +928,6 @@ func (c *Collector) CollectBatch(ctx context.Context, samples []*MetricSample) e
 
 	}()
 
-
-
 	successCount := 0
 
 	for _, sample := range samples {
@@ -1186,7 +939,6 @@ func (c *Collector) CollectBatch(ctx context.Context, samples []*MetricSample) e
 				"metric", sample.Name,
 
 				"error", err.Error(),
-
 			)
 
 		} else {
@@ -1197,8 +949,6 @@ func (c *Collector) CollectBatch(ctx context.Context, samples []*MetricSample) e
 
 	}
 
-
-
 	c.logger.DebugWithContext("Batch collection completed",
 
 		"total", len(samples),
@@ -1206,16 +956,11 @@ func (c *Collector) CollectBatch(ctx context.Context, samples []*MetricSample) e
 		"successful", successCount,
 
 		"failed", len(samples)-successCount,
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // GetStats returns current collector statistics.
 
@@ -1223,55 +968,46 @@ func (c *Collector) GetStats() CollectorStats {
 
 	return CollectorStats{
 
-		MetricsCollected:  c.collectionCount.Load(),
+		MetricsCollected: c.collectionCount.Load(),
 
-		ProcessingErrors:  c.processingErrors.Load(),
+		ProcessingErrors: c.processingErrors.Load(),
 
-		SampledMetrics:    c.sampledMetrics.Load(),
+		SampledMetrics: c.sampledMetrics.Load(),
 
-		DroppedMetrics:    c.droppedMetrics.Load(),
+		DroppedMetrics: c.droppedMetrics.Load(),
 
 		BufferUtilization: float64(len(c.metricsBuffer)) / float64(cap(c.metricsBuffer)) * 100,
 
-		ProcessingRate:    c.processingRate.Load(),
+		ProcessingRate: c.processingRate.Load(),
 
-		TotalCardinality:  c.cardinalityMgr.totalCardinality.Load(),
-
+		TotalCardinality: c.cardinalityMgr.totalCardinality.Load(),
 	}
 
 }
 
-
-
 // CollectorStats contains collector performance statistics.
 
 type CollectorStats struct {
+	MetricsCollected uint64 `json:"metrics_collected"`
 
-	MetricsCollected  uint64  `json:"metrics_collected"`
+	ProcessingErrors uint64 `json:"processing_errors"`
 
-	ProcessingErrors  uint64  `json:"processing_errors"`
+	SampledMetrics uint64 `json:"sampled_metrics"`
 
-	SampledMetrics    uint64  `json:"sampled_metrics"`
-
-	DroppedMetrics    uint64  `json:"dropped_metrics"`
+	DroppedMetrics uint64 `json:"dropped_metrics"`
 
 	BufferUtilization float64 `json:"buffer_utilization_percent"`
 
-	ProcessingRate    uint64  `json:"processing_rate"`
+	ProcessingRate uint64 `json:"processing_rate"`
 
-	TotalCardinality  int64   `json:"total_cardinality"`
-
+	TotalCardinality int64 `json:"total_cardinality"`
 }
-
-
 
 // runCollectionLoop runs the main collection loop.
 
 func (c *Collector) runCollectionLoop(ctx context.Context) {
 
 	defer c.wg.Done()
-
-
 
 	for {
 
@@ -1293,8 +1029,6 @@ func (c *Collector) runCollectionLoop(ctx context.Context) {
 
 			worker := c.workers[workerIndex]
 
-
-
 			select {
 
 			case worker.tasks <- sample:
@@ -1315,19 +1049,13 @@ func (c *Collector) runCollectionLoop(ctx context.Context) {
 
 }
 
-
-
 // runWorker runs a collector worker goroutine.
 
 func (c *Collector) runWorker(ctx context.Context, worker *CollectorWorker, workerID int) {
 
 	defer c.wg.Done()
 
-
-
 	c.logger.DebugWithContext("Starting collector worker", "worker_id", workerID)
-
-
 
 	for {
 
@@ -1351,8 +1079,6 @@ func (c *Collector) runWorker(ctx context.Context, worker *CollectorWorker, work
 
 }
 
-
-
 // processMetricSample processes a single metric sample.
 
 func (c *Collector) processMetricSample(ctx context.Context, worker *CollectorWorker, sample *MetricSample) {
@@ -1369,8 +1095,6 @@ func (c *Collector) processMetricSample(ctx context.Context, worker *CollectorWo
 
 	}()
 
-
-
 	// Process the metric sample.
 
 	if err := c.storeSample(ctx, sample); err != nil {
@@ -1386,14 +1110,11 @@ func (c *Collector) processMetricSample(ctx context.Context, worker *CollectorWo
 			"worker_id", worker.id,
 
 			"metric", sample.Name,
-
 		)
 
 		return
 
 	}
-
-
 
 	// Update cardinality tracking.
 
@@ -1403,21 +1124,15 @@ func (c *Collector) processMetricSample(ctx context.Context, worker *CollectorWo
 
 }
 
-
-
 // runBatchProcessor runs the batch processor.
 
 func (c *Collector) runBatchProcessor(ctx context.Context) {
 
 	defer c.wg.Done()
 
-
-
 	ticker := time.NewTicker(c.config.FlushInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1447,27 +1162,19 @@ func (c *Collector) runBatchProcessor(ctx context.Context) {
 
 }
 
-
-
 // updateMetrics updates collector performance metrics.
 
 func (c *Collector) updateMetrics(ctx context.Context) {
 
 	defer c.wg.Done()
 
-
-
 	ticker := time.NewTicker(5 * time.Second)
 
 	defer ticker.Stop()
 
-
-
 	var lastCollected uint64
 
 	lastUpdate := time.Now()
-
-
 
 	for {
 
@@ -1487,8 +1194,6 @@ func (c *Collector) updateMetrics(ctx context.Context) {
 
 			duration := now.Sub(lastUpdate).Seconds()
 
-
-
 			// Calculate collection rate.
 
 			currentCollected := c.collectionCount.Load()
@@ -1497,27 +1202,19 @@ func (c *Collector) updateMetrics(ctx context.Context) {
 
 			c.metrics.CollectionRate.Set(rate)
 
-
-
 			// Update buffer utilization.
 
 			utilization := float64(len(c.metricsBuffer)) / float64(cap(c.metricsBuffer)) * 100
 
 			c.metrics.BufferUtilization.Set(utilization)
 
-
-
 			// Update sampling rate.
 
 			c.metrics.SamplingRate.Set(c.getCurrentSamplingRate())
 
-
-
 			// Update cardinality metrics.
 
 			c.cardinalityMgr.updateMetrics()
-
-
 
 			lastCollected = currentCollected
 
@@ -1529,8 +1226,6 @@ func (c *Collector) updateMetrics(ctx context.Context) {
 
 }
 
-
-
 // shouldSample determines if a metric should be sampled based on current load.
 
 func (c *Collector) shouldSample() bool {
@@ -1541,8 +1236,6 @@ func (c *Collector) shouldSample() bool {
 
 	}
 
-
-
 	currentRate := c.processingRate.Load()
 
 	if currentRate < uint64(c.config.SamplingThreshold) {
@@ -1551,15 +1244,11 @@ func (c *Collector) shouldSample() bool {
 
 	}
 
-
-
 	// Calculate adaptive sampling rate.
 
 	overloadFactor := float64(currentRate) / float64(c.config.SamplingThreshold)
 
 	samplingRate := 1.0 / overloadFactor
-
-
 
 	// Ensure minimum sampling rate.
 
@@ -1569,13 +1258,9 @@ func (c *Collector) shouldSample() bool {
 
 	}
 
-
-
 	return c.config.SamplingRate >= samplingRate
 
 }
-
-
 
 // getCurrentSamplingRate returns the current effective sampling rate.
 
@@ -1587,8 +1272,6 @@ func (c *Collector) getCurrentSamplingRate() float64 {
 
 	}
 
-
-
 	currentRate := c.processingRate.Load()
 
 	if currentRate < uint64(c.config.SamplingThreshold) {
@@ -1597,15 +1280,11 @@ func (c *Collector) getCurrentSamplingRate() float64 {
 
 	}
 
-
-
 	overloadFactor := float64(currentRate) / float64(c.config.SamplingThreshold)
 
 	return 1.0 / overloadFactor
 
 }
-
-
 
 // initializeConnectionPool initializes the connection pool.
 
@@ -1621,25 +1300,17 @@ func (c *Collector) initializeConnectionPool() error {
 
 		}
 
-
-
 		c.connPool.connections <- conn
 
 		c.connPool.metrics.TotalConnections.Inc()
 
 	}
 
-
-
 	c.connPool.metrics.ActiveConnections.Set(float64(c.config.MaxConnections))
-
-
 
 	return nil
 
 }
-
-
 
 // storeSample stores a metric sample (placeholder implementation).
 
@@ -1648,8 +1319,6 @@ func (c *Collector) storeSample(ctx context.Context, sample *MetricSample) error
 	// This would integrate with actual storage backend.
 
 	// For now, we'll simulate storage operation.
-
-
 
 	// Acquire connection from pool.
 
@@ -1663,19 +1332,13 @@ func (c *Collector) storeSample(ctx context.Context, sample *MetricSample) error
 
 	defer c.releaseConnection(conn)
 
-
-
 	// Simulate storage operation.
 
 	time.Sleep(time.Microsecond * 50) // 50μs simulated storage latency
 
-
-
 	return nil
 
 }
-
-
 
 // acquireConnection acquires a connection from the pool.
 
@@ -1688,8 +1351,6 @@ func (c *Collector) acquireConnection(ctx context.Context) (*Connection, error) 
 		c.connPool.metrics.ConnectionTime.Observe(time.Since(start).Seconds())
 
 	}()
-
-
 
 	select {
 
@@ -1717,15 +1378,11 @@ func (c *Collector) acquireConnection(ctx context.Context) (*Connection, error) 
 
 }
 
-
-
 // releaseConnection releases a connection back to the pool.
 
 func (c *Collector) releaseConnection(conn *Connection) {
 
 	conn.InUse.Store(false)
-
-
 
 	select {
 
@@ -1743,8 +1400,6 @@ func (c *Collector) releaseConnection(conn *Connection) {
 
 }
 
-
-
 // processBatch processes a batch of metric samples.
 
 func (c *Collector) processBatch(samples []*MetricSample) error {
@@ -1761,15 +1416,11 @@ func (c *Collector) processBatch(samples []*MetricSample) error {
 
 	}()
 
-
-
 	// Process batch in parallel.
 
 	errCh := make(chan error, len(samples))
 
 	semaphore := make(chan struct{}, runtime.NumCPU())
-
-
 
 	for _, sample := range samples {
 
@@ -1778,8 +1429,6 @@ func (c *Collector) processBatch(samples []*MetricSample) error {
 			semaphore <- struct{}{}
 
 			defer func() { <-semaphore }()
-
-
 
 			if err := c.storeSample(context.Background(), s); err != nil {
 
@@ -1795,8 +1444,6 @@ func (c *Collector) processBatch(samples []*MetricSample) error {
 
 	}
 
-
-
 	// Collect results.
 
 	errorCount := 0
@@ -1811,8 +1458,6 @@ func (c *Collector) processBatch(samples []*MetricSample) error {
 
 	}
 
-
-
 	if errorCount > 0 {
 
 		c.batchProcessor.metrics.ProcessingErrors.Add(float64(errorCount))
@@ -1821,13 +1466,9 @@ func (c *Collector) processBatch(samples []*MetricSample) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // AddSample adds a sample to the batch processor.
 
@@ -1837,11 +1478,7 @@ func (bp *BatchProcessor) AddSample(sample *MetricSample) {
 
 	defer bp.mu.Unlock()
 
-
-
 	bp.buffer = append(bp.buffer, sample)
-
-
 
 	if len(bp.buffer) >= bp.batchSize {
 
@@ -1851,8 +1488,6 @@ func (bp *BatchProcessor) AddSample(sample *MetricSample) {
 
 }
 
-
-
 // FlushIfNeeded flushes the batch if needed.
 
 func (bp *BatchProcessor) FlushIfNeeded() {
@@ -1861,8 +1496,6 @@ func (bp *BatchProcessor) FlushIfNeeded() {
 
 	defer bp.mu.Unlock()
 
-
-
 	if len(bp.buffer) > 0 && time.Since(bp.lastFlush) >= bp.flushInterval {
 
 		bp.flush()
@@ -1870,8 +1503,6 @@ func (bp *BatchProcessor) FlushIfNeeded() {
 	}
 
 }
-
-
 
 // Flush flushes all pending samples.
 
@@ -1885,8 +1516,6 @@ func (bp *BatchProcessor) Flush() {
 
 }
 
-
-
 // flush internal flush implementation (must hold mutex).
 
 func (bp *BatchProcessor) flush() {
@@ -1897,8 +1526,6 @@ func (bp *BatchProcessor) flush() {
 
 	}
 
-
-
 	// Process the batch.
 
 	if bp.processor != nil {
@@ -1906,8 +1533,6 @@ func (bp *BatchProcessor) flush() {
 		bp.processor(bp.buffer)
 
 	}
-
-
 
 	// Reset buffer.
 
@@ -1917,8 +1542,6 @@ func (bp *BatchProcessor) flush() {
 
 }
 
-
-
 // ShouldAcceptMetric determines if a metric should be accepted based on cardinality.
 
 func (cm *CardinalityManager) ShouldAcceptMetric(name string, labels map[string]string) bool {
@@ -1927,13 +1550,9 @@ func (cm *CardinalityManager) ShouldAcceptMetric(name string, labels map[string]
 
 	defer cm.mu.RUnlock()
 
-
-
 	// Generate metric key.
 
 	metricKey := cm.generateMetricKey(name, labels)
-
-
 
 	// Check if metric already exists.
 
@@ -1942,8 +1561,6 @@ func (cm *CardinalityManager) ShouldAcceptMetric(name string, labels map[string]
 		return true
 
 	}
-
-
 
 	// Check total cardinality limit.
 
@@ -1954,8 +1571,6 @@ func (cm *CardinalityManager) ShouldAcceptMetric(name string, labels map[string]
 		return false
 
 	}
-
-
 
 	// Check family-specific limits.
 
@@ -1975,13 +1590,9 @@ func (cm *CardinalityManager) ShouldAcceptMetric(name string, labels map[string]
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // UpdateCardinality updates cardinality tracking.
 
@@ -1991,11 +1602,7 @@ func (cm *CardinalityManager) UpdateCardinality(name string, labels map[string]s
 
 	defer cm.mu.Unlock()
 
-
-
 	metricKey := cm.generateMetricKey(name, labels)
-
-
 
 	if _, exists := cm.currentCardinality[metricKey]; !exists {
 
@@ -2006,8 +1613,6 @@ func (cm *CardinalityManager) UpdateCardinality(name string, labels map[string]s
 	}
 
 }
-
-
 
 // generateMetricKey generates a unique key for cardinality tracking.
 
@@ -2024,8 +1629,6 @@ func (cm *CardinalityManager) generateMetricKey(name string, labels map[string]s
 	return key
 
 }
-
-
 
 // getFamilyCardinality returns cardinality for a metric family.
 
@@ -2047,8 +1650,6 @@ func (cm *CardinalityManager) getFamilyCardinality(family string) int {
 
 }
 
-
-
 // updateMetrics updates cardinality metrics.
 
 func (cm *CardinalityManager) updateMetrics() {
@@ -2057,13 +1658,9 @@ func (cm *CardinalityManager) updateMetrics() {
 
 	defer cm.mu.RUnlock()
 
-
-
 	// Update total cardinality.
 
 	cm.metrics.TotalCardinality.Set(float64(cm.totalCardinality.Load()))
-
-
 
 	// Update per-family cardinality.
 
@@ -2085,8 +1682,6 @@ func (cm *CardinalityManager) updateMetrics() {
 
 	}
 
-
-
 	for family, count := range familyCounts {
 
 		cm.metrics.FamilyCardinality.WithLabelValues(family).Set(float64(count))
@@ -2094,4 +1689,3 @@ func (cm *CardinalityManager) updateMetrics() {
 	}
 
 }
-

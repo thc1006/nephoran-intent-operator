@@ -1,59 +1,29 @@
-
 package o1
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
+	oranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
 	"github.com/prometheus/client_golang/prometheus"
-
 	"go.uber.org/zap"
 
-
-
-	oranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
-
-
-
 	corev1 "k8s.io/api/core/v1"
-
 	"k8s.io/apimachinery/pkg/api/errors"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/apimachinery/pkg/types"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-
 )
-
-
 
 const (
 
@@ -64,240 +34,195 @@ const (
 	// FinalizerName holds finalizername value.
 
 	FinalizerName = "o1.oran.nephio.org/finalizer"
-
 )
-
-
 
 // O1InterfaceController reconciles O1Interface objects.
 
 type O1InterfaceController struct {
-
 	client.Client
 
-	Log                  logr.Logger
+	Log logr.Logger
 
-	Scheme               *runtime.Scheme
+	Scheme *runtime.Scheme
 
-	o1AdapterManager     *O1AdapterManager
+	o1AdapterManager *O1AdapterManager
 
-	streamingService     *StreamingService
+	streamingService *StreamingService
 
 	netconfServerManager *NetconfServerManager
 
-	performanceManager   *CompletePerformanceManager
+	performanceManager *CompletePerformanceManager
 
-	faultManager         *EnhancedFaultManager
+	faultManager *EnhancedFaultManager
 
-	configManager        *AdvancedConfigurationManager
+	configManager *AdvancedConfigurationManager
 
-	securityManager      *ComprehensiveSecurityManager
+	securityManager *ComprehensiveSecurityManager
 
-	accountingManager    *ComprehensiveAccountingManager
+	accountingManager *ComprehensiveAccountingManager
 
-	smoIntegration       *SMOIntegrationLayer
+	smoIntegration *SMOIntegrationLayer
 
-	metrics              *O1ControllerMetrics
+	metrics *O1ControllerMetrics
 
-	config               *O1ControllerConfig
-
+	config *O1ControllerConfig
 }
-
-
 
 // O1ControllerConfig holds configuration for the O1 controller.
 
 type O1ControllerConfig struct {
+	ReconcileInterval time.Duration `yaml:"reconcile_interval"`
 
-	ReconcileInterval       time.Duration  `yaml:"reconcile_interval"`
+	MaxConcurrentReconciles int `yaml:"max_concurrent_reconciles"`
 
-	MaxConcurrentReconciles int            `yaml:"max_concurrent_reconciles"`
+	EnableMetrics bool `yaml:"enable_metrics"`
 
-	EnableMetrics           bool           `yaml:"enable_metrics"`
+	EnableWebhooks bool `yaml:"enable_webhooks"`
 
-	EnableWebhooks          bool           `yaml:"enable_webhooks"`
+	DefaultO1Config *oran.O1Config `yaml:"default_o1_config"`
 
-	DefaultO1Config         *oran.O1Config `yaml:"default_o1_config"`
+	HealthCheckInterval time.Duration `yaml:"health_check_interval"`
 
-	HealthCheckInterval     time.Duration  `yaml:"health_check_interval"`
-
-	StatusUpdateInterval    time.Duration  `yaml:"status_update_interval"`
-
+	StatusUpdateInterval time.Duration `yaml:"status_update_interval"`
 }
-
-
 
 // O1InterfaceConfig represents O1 interface configuration.
 
 type O1InterfaceConfig struct {
+	NetconfPort int `yaml:"netconf_port"`
 
-	NetconfPort           int               `yaml:"netconf_port"`
+	StreamingPort int `yaml:"streaming_port"`
 
-	StreamingPort         int               `yaml:"streaming_port"`
+	EnableTLS bool `yaml:"enable_tls"`
 
-	EnableTLS             bool              `yaml:"enable_tls"`
+	TLSCertSecret string `yaml:"tls_cert_secret"`
 
-	TLSCertSecret         string            `yaml:"tls_cert_secret"`
+	AuthenticationMethod string `yaml:"authentication_method"`
 
-	AuthenticationMethod  string            `yaml:"authentication_method"`
+	MaxConnections int `yaml:"max_connections"`
 
-	MaxConnections        int               `yaml:"max_connections"`
-
-	SessionTimeout        time.Duration     `yaml:"session_timeout"`
+	SessionTimeout time.Duration `yaml:"session_timeout"`
 
 	PerformanceCollection PerformanceConfig `yaml:"performance_collection"`
 
-	FaultManagement       FaultConfig       `yaml:"fault_management"`
+	FaultManagement FaultConfig `yaml:"fault_management"`
 
-	SecurityPolicies      SecurityConfig    `yaml:"security_policies"`
-
+	SecurityPolicies SecurityConfig `yaml:"security_policies"`
 }
-
-
 
 // PerformanceConfig holds performance management configuration.
 
 type PerformanceConfig struct {
-
-	Enabled            bool          `yaml:"enabled"`
+	Enabled bool `yaml:"enabled"`
 
 	CollectionInterval time.Duration `yaml:"collection_interval"`
 
-	RetentionPeriod    time.Duration `yaml:"retention_period"`
+	RetentionPeriod time.Duration `yaml:"retention_period"`
 
-	Metrics            []string      `yaml:"metrics"`
-
+	Metrics []string `yaml:"metrics"`
 }
-
-
 
 // FaultConfig holds fault management configuration.
 
 type FaultConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled             bool     `yaml:"enabled"`
+	AlarmForwarding bool `yaml:"alarm_forwarding"`
 
-	AlarmForwarding     bool     `yaml:"alarm_forwarding"`
-
-	CorrelationEnabled  bool     `yaml:"correlation_enabled"`
+	CorrelationEnabled bool `yaml:"correlation_enabled"`
 
 	NotificationTargets []string `yaml:"notification_targets"`
 
-	SeverityFilters     []string `yaml:"severity_filters"`
-
+	SeverityFilters []string `yaml:"severity_filters"`
 }
-
-
 
 // SecurityConfig holds security configuration.
 
 type SecurityConfig struct {
+	EnableAuthentication bool `yaml:"enable_authentication"`
 
-	EnableAuthentication  bool     `yaml:"enable_authentication"`
+	EnableAuthorization bool `yaml:"enable_authorization"`
 
-	EnableAuthorization   bool     `yaml:"enable_authorization"`
+	RequiredRoles []string `yaml:"required_roles"`
 
-	RequiredRoles         []string `yaml:"required_roles"`
+	CertificateValidation bool `yaml:"certificate_validation"`
 
-	CertificateValidation bool     `yaml:"certificate_validation"`
-
-	AuditLogging          bool     `yaml:"audit_logging"`
-
+	AuditLogging bool `yaml:"audit_logging"`
 }
-
-
 
 // O1ControllerMetrics holds Prometheus metrics for the controller.
 
 type O1ControllerMetrics struct {
-
-	ReconciliationsTotal   prometheus.CounterVec
+	ReconciliationsTotal prometheus.CounterVec
 
 	ReconciliationDuration prometheus.HistogramVec
 
-	ReconciliationErrors   prometheus.CounterVec
+	ReconciliationErrors prometheus.CounterVec
 
-	ActiveO1Interfaces     prometheus.Gauge
+	ActiveO1Interfaces prometheus.Gauge
 
-	O1ConnectionsActive    prometheus.GaugeVec
+	O1ConnectionsActive prometheus.GaugeVec
 
-	ConfigurationChanges   prometheus.CounterVec
+	ConfigurationChanges prometheus.CounterVec
 
-	AlarmsSent             prometheus.CounterVec
+	AlarmsSent prometheus.CounterVec
 
-	PerformanceDataPoints  prometheus.CounterVec
-
+	PerformanceDataPoints prometheus.CounterVec
 }
-
-
 
 // O1AdapterManager manages O1 adapter instances.
 
 type O1AdapterManager struct {
-
 	adapters map[string]*O1AdaptorInstance
 
-	mutex    sync.RWMutex
+	mutex sync.RWMutex
 
-	logger   logr.Logger
-
+	logger logr.Logger
 }
-
-
 
 // O1AdaptorInstance represents an instance of O1 adaptor for a specific network function.
 
 type O1AdaptorInstance struct {
+	Name string
 
-	Name             string
+	Namespace string
 
-	Namespace        string
+	NetworkFunction string
 
-	NetworkFunction  string
+	O1Adaptor *O1Adaptor
 
-	O1Adaptor        *O1Adaptor
-
-	NetconfServer    *NetconfServer
+	NetconfServer *NetconfServer
 
 	StreamingHandler *StreamingService
 
-	Status           O1InstanceStatus
+	Status O1InstanceStatus
 
-	CreatedAt        time.Time
+	CreatedAt time.Time
 
-	LastUpdate       time.Time
-
+	LastUpdate time.Time
 }
-
-
 
 // O1InstanceStatus represents the status of an O1 adapter instance.
 
 type O1InstanceStatus struct {
+	Phase O1InstancePhase `json:"phase"`
 
-	Phase                O1InstancePhase `json:"phase"`
+	Message string `json:"message,omitempty"`
 
-	Message              string          `json:"message,omitempty"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 
-	LastTransitionTime   metav1.Time     `json:"lastTransitionTime,omitempty"`
+	ActiveConnections int32 `json:"activeConnections"`
 
-	ActiveConnections    int32           `json:"activeConnections"`
+	ProcessedAlarms int64 `json:"processedAlarms"`
 
-	ProcessedAlarms      int64           `json:"processedAlarms"`
+	ProcessedPerfData int64 `json:"processedPerfData"`
 
-	ProcessedPerfData    int64           `json:"processedPerfData"`
-
-	ConfigurationVersion string          `json:"configurationVersion"`
-
+	ConfigurationVersion string `json:"configurationVersion"`
 }
-
-
 
 // O1InstancePhase represents the phase of an O1 instance.
 
 type O1InstancePhase string
-
-
 
 const (
 
@@ -320,24 +245,17 @@ const (
 	// O1InstancePhaseTerminating holds o1instancephaseterminating value.
 
 	O1InstancePhaseTerminating O1InstancePhase = "Terminating"
-
 )
-
-
 
 // NetconfServerManager manages NETCONF server instances.
 
 type NetconfServerManager struct {
-
 	servers map[string]*NetconfServer
 
-	mutex   sync.RWMutex
+	mutex sync.RWMutex
 
-	logger  logr.Logger
-
+	logger logr.Logger
 }
-
-
 
 // NewO1InterfaceController creates a new O1 interface controller.
 
@@ -364,11 +282,9 @@ func NewO1InterfaceController(
 				Name: "o1_controller_reconciliations_total",
 
 				Help: "Total number of reconciliations performed by O1 controller",
-
 			},
 
 			[]string{"namespace", "name", "result"},
-
 		),
 
 		ReconciliationDuration: *prometheus.NewHistogramVec(
@@ -378,11 +294,9 @@ func NewO1InterfaceController(
 				Name: "o1_controller_reconciliation_duration_seconds",
 
 				Help: "Duration of reconciliation operations",
-
 			},
 
 			[]string{"namespace", "name"},
-
 		),
 
 		ReconciliationErrors: *prometheus.NewCounterVec(
@@ -392,11 +306,9 @@ func NewO1InterfaceController(
 				Name: "o1_controller_reconciliation_errors_total",
 
 				Help: "Total number of reconciliation errors",
-
 			},
 
 			[]string{"namespace", "name", "error_type"},
-
 		),
 
 		ActiveO1Interfaces: prometheus.NewGauge(
@@ -406,9 +318,7 @@ func NewO1InterfaceController(
 				Name: "o1_controller_active_interfaces",
 
 				Help: "Number of active O1 interfaces",
-
 			},
-
 		),
 
 		O1ConnectionsActive: *prometheus.NewGaugeVec(
@@ -418,11 +328,9 @@ func NewO1InterfaceController(
 				Name: "o1_interface_connections_active",
 
 				Help: "Number of active connections per O1 interface",
-
 			},
 
 			[]string{"namespace", "name", "protocol"},
-
 		),
 
 		ConfigurationChanges: *prometheus.NewCounterVec(
@@ -432,11 +340,9 @@ func NewO1InterfaceController(
 				Name: "o1_interface_configuration_changes_total",
 
 				Help: "Total number of configuration changes",
-
 			},
 
 			[]string{"namespace", "name", "change_type"},
-
 		),
 
 		AlarmsSent: *prometheus.NewCounterVec(
@@ -446,11 +352,9 @@ func NewO1InterfaceController(
 				Name: "o1_interface_alarms_sent_total",
 
 				Help: "Total number of alarms sent",
-
 			},
 
 			[]string{"namespace", "name", "severity"},
-
 		),
 
 		PerformanceDataPoints: *prometheus.NewCounterVec(
@@ -460,16 +364,11 @@ func NewO1InterfaceController(
 				Name: "o1_interface_performance_data_points_total",
 
 				Help: "Total number of performance data points collected",
-
 			},
 
 			[]string{"namespace", "name", "metric_type"},
-
 		),
-
 	}
-
-
 
 	// Register metrics.
 
@@ -492,12 +391,9 @@ func NewO1InterfaceController(
 			metrics.AlarmsSent,
 
 			metrics.PerformanceDataPoints,
-
 		)
 
 	}
-
-
 
 	// Initialize managers.
 
@@ -505,42 +401,35 @@ func NewO1InterfaceController(
 
 		adapters: make(map[string]*O1AdaptorInstance),
 
-		logger:   logger,
-
+		logger: logger,
 	}
-
-
 
 	netconfServerManager := &NetconfServerManager{
 
 		servers: make(map[string]*NetconfServer),
 
-		logger:  logger,
-
+		logger: logger,
 	}
-
-
 
 	// Initialize streaming service with proper zap logger.
 
 	streamingConfig := &StreamingConfig{
 
-		MaxConnections:          1000,
+		MaxConnections: 1000,
 
-		ConnectionTimeout:       5 * time.Minute,
+		ConnectionTimeout: 5 * time.Minute,
 
-		HeartbeatInterval:       30 * time.Second,
+		HeartbeatInterval: 30 * time.Second,
 
 		MaxSubscriptionsPerConn: 100,
 
-		BufferSize:              1024,
+		BufferSize: 1024,
 
-		CompressionEnabled:      true,
+		CompressionEnabled: true,
 
-		EnableAuth:              true,
+		EnableAuth: true,
 
-		RateLimitPerSecond:      100,
-
+		RateLimitPerSecond: 100,
 	}
 
 	// Create a simple zap logger - for now we'll use a basic logger.
@@ -555,31 +444,26 @@ func NewO1InterfaceController(
 
 	streamingService := NewStreamingService(streamingConfig, zapLogger)
 
-
-
 	return &O1InterfaceController{
 
-		Client:               client,
+		Client: client,
 
-		Log:                  logger,
+		Log: logger,
 
-		Scheme:               scheme,
+		Scheme: scheme,
 
-		o1AdapterManager:     o1AdapterManager,
+		o1AdapterManager: o1AdapterManager,
 
-		streamingService:     streamingService,
+		streamingService: streamingService,
 
 		netconfServerManager: netconfServerManager,
 
-		metrics:              metrics,
+		metrics: metrics,
 
-		config:               config,
-
+		config: config,
 	}
 
 }
-
-
 
 // SetupWithManager sets up the controller with the manager.
 
@@ -588,30 +472,18 @@ func (r *O1InterfaceController) SetupWithManager(mgr ctrl.Manager) error {
 	controllerOptions := controller.Options{
 
 		MaxConcurrentReconciles: r.config.MaxConcurrentReconciles,
-
 	}
 
-
-
 	return ctrl.NewControllerManagedBy(mgr).
-
 		For(&oranv1.O1Interface{}).
-
 		Owns(&corev1.Service{}).
-
 		Owns(&corev1.ConfigMap{}).
-
 		Owns(&corev1.Secret{}).
-
 		WithOptions(controllerOptions).
-
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
-
 		Complete(r)
 
 }
-
-
 
 // Reconcile reconciles O1Interface resources.
 
@@ -620,8 +492,6 @@ func (r *O1InterfaceController) Reconcile(ctx context.Context, req ctrl.Request)
 	log := r.Log.WithValues("o1interface", req.NamespacedName)
 
 	startTime := time.Now()
-
-
 
 	// Get O1Interface instance.
 
@@ -649,8 +519,6 @@ func (r *O1InterfaceController) Reconcile(ctx context.Context, req ctrl.Request)
 
 	}
 
-
-
 	// Handle deletion.
 
 	if !o1Interface.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -658,8 +526,6 @@ func (r *O1InterfaceController) Reconcile(ctx context.Context, req ctrl.Request)
 		return r.reconcileDeletion(ctx, o1Interface)
 
 	}
-
-
 
 	// Add finalizer if not present.
 
@@ -681,8 +547,6 @@ func (r *O1InterfaceController) Reconcile(ctx context.Context, req ctrl.Request)
 
 	}
 
-
-
 	// Reconcile the O1Interface.
 
 	result, err := r.reconcileO1Interface(ctx, o1Interface)
@@ -698,7 +562,6 @@ func (r *O1InterfaceController) Reconcile(ctx context.Context, req ctrl.Request)
 			req.Name,
 
 			"reconcile_error",
-
 		).Inc()
 
 	} else {
@@ -707,21 +570,15 @@ func (r *O1InterfaceController) Reconcile(ctx context.Context, req ctrl.Request)
 
 	}
 
-
-
 	return result, err
 
 }
-
-
 
 // reconcileO1Interface reconciles the O1Interface resource.
 
 func (r *O1InterfaceController) reconcileO1Interface(ctx context.Context, o1Interface *oranv1.O1Interface) (ctrl.Result, error) {
 
 	log := r.Log.WithValues("o1interface", o1Interface.Name, "namespace", o1Interface.Namespace)
-
-
 
 	// Validate configuration.
 
@@ -734,8 +591,6 @@ func (r *O1InterfaceController) reconcileO1Interface(ctx context.Context, o1Inte
 		return ctrl.Result{}, err
 
 	}
-
-
 
 	// Get or create O1 adapter instance.
 
@@ -751,13 +606,9 @@ func (r *O1InterfaceController) reconcileO1Interface(ctx context.Context, o1Inte
 
 	}
 
-
-
 	// Update status to initializing.
 
 	r.updateStatus(ctx, o1Interface, O1InstancePhaseInitializing, "Initializing O1 interface components")
-
-
 
 	// Create or update NETCONF server.
 
@@ -771,8 +622,6 @@ func (r *O1InterfaceController) reconcileO1Interface(ctx context.Context, o1Inte
 
 	}
 
-
-
 	// Create or update streaming service.
 
 	if err := r.reconcileStreamingService(ctx, o1Interface, adapterInstance); err != nil {
@@ -784,8 +633,6 @@ func (r *O1InterfaceController) reconcileO1Interface(ctx context.Context, o1Inte
 		return ctrl.Result{}, err
 
 	}
-
-
 
 	// Initialize FCAPS managers.
 
@@ -799,8 +646,6 @@ func (r *O1InterfaceController) reconcileO1Interface(ctx context.Context, o1Inte
 
 	}
 
-
-
 	// Create Kubernetes resources (Services, ConfigMaps, etc.).
 
 	if err := r.reconcileKubernetesResources(ctx, o1Interface); err != nil {
@@ -813,19 +658,13 @@ func (r *O1InterfaceController) reconcileO1Interface(ctx context.Context, o1Inte
 
 	}
 
-
-
 	// Start health monitoring.
 
 	go r.startHealthMonitoring(ctx, adapterInstance)
 
-
-
 	// Update status to ready.
 
 	r.updateStatus(ctx, o1Interface, O1InstancePhaseReady, "O1 interface is ready and operational")
-
-
 
 	// Update metrics.
 
@@ -838,10 +677,7 @@ func (r *O1InterfaceController) reconcileO1Interface(ctx context.Context, o1Inte
 		o1Interface.Name,
 
 		"netconf",
-
 	).Set(float64(adapterInstance.Status.ActiveConnections))
-
-
 
 	log.Info("Successfully reconciled O1Interface")
 
@@ -849,25 +685,17 @@ func (r *O1InterfaceController) reconcileO1Interface(ctx context.Context, o1Inte
 
 }
 
-
-
 // reconcileDeletion handles deletion of O1Interface resources.
 
 func (r *O1InterfaceController) reconcileDeletion(ctx context.Context, o1Interface *oranv1.O1Interface) (ctrl.Result, error) {
 
 	log := r.Log.WithValues("o1interface", o1Interface.Name, "namespace", o1Interface.Namespace)
 
-
-
 	log.Info("Handling O1Interface deletion")
-
-
 
 	// Update status.
 
 	r.updateStatus(ctx, o1Interface, O1InstancePhaseTerminating, "Terminating O1 interface")
-
-
 
 	// Clean up adapter instance.
 
@@ -881,8 +709,6 @@ func (r *O1InterfaceController) reconcileDeletion(ctx context.Context, o1Interfa
 
 	}
 
-
-
 	// Clean up NETCONF server.
 
 	if err := r.cleanupNetconfServer(ctx, instanceKey); err != nil {
@@ -892,8 +718,6 @@ func (r *O1InterfaceController) reconcileDeletion(ctx context.Context, o1Interfa
 		return ctrl.Result{}, err
 
 	}
-
-
 
 	// Update metrics.
 
@@ -906,10 +730,7 @@ func (r *O1InterfaceController) reconcileDeletion(ctx context.Context, o1Interfa
 		o1Interface.Name,
 
 		"netconf",
-
 	)
-
-
 
 	// Remove finalizer.
 
@@ -925,15 +746,11 @@ func (r *O1InterfaceController) reconcileDeletion(ctx context.Context, o1Interfa
 
 	}
 
-
-
 	log.Info("Successfully handled O1Interface deletion")
 
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // validateO1InterfaceSpec validates the O1Interface specification.
 
@@ -947,8 +764,6 @@ func (r *O1InterfaceController) validateO1InterfaceSpec(o1Interface *oranv1.O1In
 
 	}
 
-
-
 	// Validate port range.
 
 	if o1Interface.Spec.Port < 1 || o1Interface.Spec.Port > 65535 {
@@ -957,8 +772,6 @@ func (r *O1InterfaceController) validateO1InterfaceSpec(o1Interface *oranv1.O1In
 
 	}
 
-
-
 	// Validate protocol.
 
 	if o1Interface.Spec.Protocol != "" && o1Interface.Spec.Protocol != "ssh" && o1Interface.Spec.Protocol != "tls" {
@@ -966,8 +779,6 @@ func (r *O1InterfaceController) validateO1InterfaceSpec(o1Interface *oranv1.O1In
 		return fmt.Errorf("invalid protocol: %s, must be 'ssh' or 'tls'", o1Interface.Spec.Protocol)
 
 	}
-
-
 
 	// Validate TLS configuration if needed.
 
@@ -981,13 +792,9 @@ func (r *O1InterfaceController) validateO1InterfaceSpec(o1Interface *oranv1.O1In
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // getOrCreateAdapterInstance gets or creates an O1 adapter instance.
 
@@ -995,13 +802,9 @@ func (r *O1InterfaceController) getOrCreateAdapterInstance(ctx context.Context, 
 
 	instanceKey := fmt.Sprintf("%s/%s", o1Interface.Namespace, o1Interface.Name)
 
-
-
 	r.o1AdapterManager.mutex.Lock()
 
 	defer r.o1AdapterManager.mutex.Unlock()
-
-
 
 	// Check if instance already exists.
 
@@ -1023,71 +826,56 @@ func (r *O1InterfaceController) getOrCreateAdapterInstance(ctx context.Context, 
 
 	}
 
-
-
 	// Create new O1 adapter configuration using oran.O1Config.
 
 	o1Config := &oran.O1Config{
 
-		Endpoint:       fmt.Sprintf("%s:%d", o1Interface.Spec.Host, o1Interface.Spec.Port),
+		Endpoint: fmt.Sprintf("%s:%d", o1Interface.Spec.Host, o1Interface.Spec.Port),
 
-		Timeout:        30 * time.Second,
+		Timeout: 30 * time.Second,
 
-		RetryAttempts:  3,
+		RetryAttempts: 3,
 
-		TLSConfig:      r.buildTLSConfig(o1Interface),
+		TLSConfig: r.buildTLSConfig(o1Interface),
 
 		Authentication: r.buildAuthConfig(o1Interface),
-
 	}
-
-
 
 	// Create O1 adapter.
 
 	o1Adaptor := NewO1Adaptor(o1Config, r.Client)
 
-
-
 	// Create adapter instance.
 
 	instance := &O1AdaptorInstance{
 
-		Name:            o1Interface.Name,
+		Name: o1Interface.Name,
 
-		Namespace:       o1Interface.Namespace,
+		Namespace: o1Interface.Namespace,
 
 		NetworkFunction: fmt.Sprintf("%s-%s", o1Interface.Namespace, o1Interface.Name),
 
-		O1Adaptor:       o1Adaptor,
+		O1Adaptor: o1Adaptor,
 
-		CreatedAt:       time.Now(),
+		CreatedAt: time.Now(),
 
-		LastUpdate:      time.Now(),
+		LastUpdate: time.Now(),
 
 		Status: O1InstanceStatus{
 
-			Phase:                O1InstancePhasePending,
+			Phase: O1InstancePhasePending,
 
-			LastTransitionTime:   metav1.Now(),
+			LastTransitionTime: metav1.Now(),
 
 			ConfigurationVersion: fmt.Sprintf("%s:%d:%s", o1Interface.Spec.Host, o1Interface.Spec.Port, o1Interface.Spec.Protocol),
-
 		},
-
 	}
 
-
-
 	r.o1AdapterManager.adapters[instanceKey] = instance
-
-
 
 	return instance, nil
 
 }
-
-
 
 // reconcileNetconfServer creates or updates the NETCONF server.
 
@@ -1095,13 +883,9 @@ func (r *O1InterfaceController) reconcileNetconfServer(ctx context.Context, o1In
 
 	serverKey := fmt.Sprintf("%s/%s", o1Interface.Namespace, o1Interface.Name)
 
-
-
 	r.netconfServerManager.mutex.Lock()
 
 	defer r.netconfServerManager.mutex.Unlock()
-
-
 
 	// Check if server already exists.
 
@@ -1113,15 +897,11 @@ func (r *O1InterfaceController) reconcileNetconfServer(ctx context.Context, o1In
 
 	}
 
-
-
 	// Create new NETCONF server.
 
 	serverConfig := r.buildNetconfServerConfig(o1Interface)
 
 	server := NewNetconfServer(serverConfig)
-
-
 
 	// Start server.
 
@@ -1131,19 +911,13 @@ func (r *O1InterfaceController) reconcileNetconfServer(ctx context.Context, o1In
 
 	}
 
-
-
 	r.netconfServerManager.servers[serverKey] = server
 
 	instance.NetconfServer = server
 
-
-
 	return nil
 
 }
-
-
 
 // reconcileStreamingService configures the streaming service for the O1 interface.
 
@@ -1153,8 +927,6 @@ func (r *O1InterfaceController) reconcileStreamingService(ctx context.Context, o
 
 	instance.StreamingHandler = r.streamingService
 
-
-
 	// Start streaming service if not already running.
 
 	if r.streamingService != nil {
@@ -1163,13 +935,9 @@ func (r *O1InterfaceController) reconcileStreamingService(ctx context.Context, o
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // initializeFCAPSManagers initializes FCAPS management components.
 
@@ -1181,25 +949,22 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 
 		faultConfig := &FaultManagerConfig{
 
-			MaxAlarms:           10000,
+			MaxAlarms: 10000,
 
-			MaxHistoryEntries:   1000,
+			MaxHistoryEntries: 1000,
 
-			CorrelationWindow:   5 * time.Minute,
+			CorrelationWindow: 5 * time.Minute,
 
 			NotificationTimeout: 30 * time.Second,
 
-			EnableWebSocket:     true,
+			EnableWebSocket: true,
 
-			PrometheusURL:       "http://prometheus:9090",
+			PrometheusURL: "http://prometheus:9090",
 
-			AlertManagerURL:     "http://alertmanager:9093",
+			AlertManagerURL: "http://alertmanager:9093",
 
-			EnableRootCause:     o1Interface.Spec.FCAPS.FaultManagement.RootCauseAnalysis,
-
+			EnableRootCause: o1Interface.Spec.FCAPS.FaultManagement.RootCauseAnalysis,
 		}
-
-
 
 		faultManager := NewEnhancedFaultManager(faultConfig)
 
@@ -1207,37 +972,32 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 
 	}
 
-
-
 	// Initialize performance manager.
 
 	if o1Interface.Spec.FCAPS.PerformanceManagement.Enabled {
 
 		perfConfig := &PerformanceManagerConfig{
 
-			PrometheusURL:           "http://prometheus:9090",
+			PrometheusURL: "http://prometheus:9090",
 
-			GrafanaURL:              "http://grafana:3000",
+			GrafanaURL: "http://grafana:3000",
 
-			CollectionIntervals:     map[string]time.Duration{"default": time.Duration(o1Interface.Spec.FCAPS.PerformanceManagement.CollectionInterval) * time.Second},
+			CollectionIntervals: map[string]time.Duration{"default": time.Duration(o1Interface.Spec.FCAPS.PerformanceManagement.CollectionInterval) * time.Second},
 
-			RetentionPeriods:        map[string]time.Duration{"default": 30 * 24 * time.Hour},
+			RetentionPeriods: map[string]time.Duration{"default": 30 * 24 * time.Hour},
 
-			DefaultGranularity:      time.Minute,
+			DefaultGranularity: time.Minute,
 
-			MaxDataPoints:           10000,
+			MaxDataPoints: 10000,
 
 			EnableRealTimeStreaming: true,
 
-			EnableAnomalyDetection:  o1Interface.Spec.FCAPS.PerformanceManagement.AnomalyDetection,
+			EnableAnomalyDetection: o1Interface.Spec.FCAPS.PerformanceManagement.AnomalyDetection,
 
-			EnableReporting:         true,
+			EnableReporting: true,
 
-			ReportingInterval:       time.Hour,
-
+			ReportingInterval: time.Hour,
 		}
-
-
 
 		perfManager := NewCompletePerformanceManager(perfConfig)
 
@@ -1245,25 +1005,20 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 
 	}
 
-
-
 	// Initialize configuration manager.
 
 	configMgrConfig := &ConfigManagerConfig{
 
-		MaxVersions:          100,
+		MaxVersions: 100,
 
-		GitRepository:        "", // Will be configured externally
+		GitRepository: "", // Will be configured externally
 
-		GitBranch:            "main",
+		GitBranch: "main",
 
 		EnableDriftDetection: o1Interface.Spec.FCAPS.ConfigurationManagement.DriftDetection,
 
-		EnableBulkOps:        true,
-
+		EnableBulkOps: true,
 	}
-
-
 
 	// Create a proper YANG registry.
 
@@ -1272,8 +1027,6 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 	configManager := NewAdvancedConfigurationManager(configMgrConfig, yangRegistry)
 
 	r.configManager = configManager
-
-
 
 	// Initialize security manager.
 
@@ -1287,8 +1040,6 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 
 	}
 
-
-
 	// Initialize accounting manager.
 
 	if o1Interface.Spec.FCAPS.AccountingManagement.Enabled {
@@ -1301,13 +1052,9 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // reconcileKubernetesResources creates or updates Kubernetes resources.
 
@@ -1323,8 +1070,6 @@ func (r *O1InterfaceController) reconcileKubernetesResources(ctx context.Context
 
 	}
 
-
-
 	// Create Service for streaming.
 
 	streamingService := r.buildStreamingService(o1Interface)
@@ -1334,8 +1079,6 @@ func (r *O1InterfaceController) reconcileKubernetesResources(ctx context.Context
 		return fmt.Errorf("failed to create streaming service: %w", err)
 
 	}
-
-
 
 	// Create ConfigMap for YANG models.
 
@@ -1347,13 +1090,9 @@ func (r *O1InterfaceController) reconcileKubernetesResources(ctx context.Context
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // updateStatus updates the O1Interface status.
 
@@ -1366,8 +1105,6 @@ func (r *O1InterfaceController) updateStatus(ctx context.Context, o1Interface *o
 	now := metav1.Now()
 
 	o1Interface.Status.LastSyncTime = &now
-
-
 
 	// Update conditions.
 
@@ -1390,8 +1127,6 @@ func (r *O1InterfaceController) updateStatus(ctx context.Context, o1Interface *o
 		conditionReason = "Initializing"
 
 	}
-
-
 
 	// Find existing condition or create new one.
 
@@ -1417,27 +1152,22 @@ func (r *O1InterfaceController) updateStatus(ctx context.Context, o1Interface *o
 
 	}
 
-
-
 	if !conditionFound {
 
 		o1Interface.Status.Conditions = append(o1Interface.Status.Conditions, metav1.Condition{
 
-			Type:               conditionType,
+			Type: conditionType,
 
-			Status:             conditionStatus,
+			Status: conditionStatus,
 
-			Reason:             conditionReason,
+			Reason: conditionReason,
 
-			Message:            message,
+			Message: message,
 
 			LastTransitionTime: now,
-
 		})
 
 	}
-
-
 
 	if err := r.Status().Update(ctx, o1Interface); err != nil {
 
@@ -1447,8 +1177,6 @@ func (r *O1InterfaceController) updateStatus(ctx context.Context, o1Interface *o
 
 }
 
-
-
 // startHealthMonitoring starts health monitoring for the adapter instance.
 
 func (r *O1InterfaceController) startHealthMonitoring(ctx context.Context, instance *O1AdaptorInstance) {
@@ -1456,8 +1184,6 @@ func (r *O1InterfaceController) startHealthMonitoring(ctx context.Context, insta
 	ticker := time.NewTicker(r.config.HealthCheckInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1477,8 +1203,6 @@ func (r *O1InterfaceController) startHealthMonitoring(ctx context.Context, insta
 
 }
 
-
-
 // performHealthCheck performs health check on the adapter instance.
 
 func (r *O1InterfaceController) performHealthCheck(instance *O1AdaptorInstance) {
@@ -1495,8 +1219,6 @@ func (r *O1InterfaceController) performHealthCheck(instance *O1AdaptorInstance) 
 
 	}
 
-
-
 	if instance.O1Adaptor == nil {
 
 		instance.Status.Phase = O1InstancePhaseFailed
@@ -1506,8 +1228,6 @@ func (r *O1InterfaceController) performHealthCheck(instance *O1AdaptorInstance) 
 		return
 
 	}
-
-
 
 	// Update status if healthy.
 
@@ -1521,11 +1241,7 @@ func (r *O1InterfaceController) performHealthCheck(instance *O1AdaptorInstance) 
 
 }
 
-
-
 // Helper methods for building configurations and resources.
-
-
 
 func (r *O1InterfaceController) buildNetconfServerConfig(o1Interface *oranv1.O1Interface) *NetconfServerConfig {
 
@@ -1539,8 +1255,6 @@ func (r *O1InterfaceController) buildNetconfServerConfig(o1Interface *oranv1.O1I
 
 	}
 
-
-
 	maxConnections := 100 // Default value
 
 	if o1Interface.Spec.StreamingConfig != nil {
@@ -1549,41 +1263,36 @@ func (r *O1InterfaceController) buildNetconfServerConfig(o1Interface *oranv1.O1I
 
 	}
 
-
-
 	return &NetconfServerConfig{
 
-		Host:                "0.0.0.0",
+		Host: "0.0.0.0",
 
-		Port:                port,
+		Port: port,
 
-		TLSPort:             port + 1000,
+		TLSPort: port + 1000,
 
-		SSHPort:             port + 2000,
+		SSHPort: port + 2000,
 
-		TLSConfig:           nil, // Will be configured later if needed
+		TLSConfig: nil, // Will be configured later if needed
 
-		SSHHostKeyFile:      "/etc/ssh/host_key",
+		SSHHostKeyFile: "/etc/ssh/host_key",
 
-		MaxSessions:         maxConnections,
+		MaxSessions: maxConnections,
 
-		SessionTimeout:      5 * time.Minute,
+		SessionTimeout: 5 * time.Minute,
 
 		EnableNotifications: true,
 
-		EnableCandidate:     true,
+		EnableCandidate: true,
 
-		EnableStartup:       true,
+		EnableStartup: true,
 
-		EnableXPath:         true,
+		EnableXPath: true,
 
-		EnableValidation:    true,
-
+		EnableValidation: true,
 	}
 
 }
-
-
 
 func (r *O1InterfaceController) buildPerformanceConfig(o1Interface *oranv1.O1Interface) interface{} {
 
@@ -1591,14 +1300,13 @@ func (r *O1InterfaceController) buildPerformanceConfig(o1Interface *oranv1.O1Int
 
 		return PerformanceConfig{
 
-			Enabled:            true,
+			Enabled: true,
 
 			CollectionInterval: time.Duration(o1Interface.Spec.FCAPS.PerformanceManagement.CollectionInterval) * time.Second,
 
-			RetentionPeriod:    30 * 24 * time.Hour, // Default 30 days
+			RetentionPeriod: 30 * 24 * time.Hour, // Default 30 days
 
-			Metrics:            []string{"cpu", "memory", "network", "storage"},
-
+			Metrics: []string{"cpu", "memory", "network", "storage"},
 		}
 
 	}
@@ -1607,29 +1315,24 @@ func (r *O1InterfaceController) buildPerformanceConfig(o1Interface *oranv1.O1Int
 
 }
 
-
-
 func (r *O1InterfaceController) buildFaultConfig(o1Interface *oranv1.O1Interface) interface{} {
 
 	faultMgmt := o1Interface.Spec.FCAPS.FaultManagement
 
 	return FaultConfig{
 
-		Enabled:             faultMgmt.Enabled,
+		Enabled: faultMgmt.Enabled,
 
-		AlarmForwarding:     true, // Default enabled
+		AlarmForwarding: true, // Default enabled
 
-		CorrelationEnabled:  faultMgmt.CorrelationEnabled,
+		CorrelationEnabled: faultMgmt.CorrelationEnabled,
 
 		NotificationTargets: []string{}, // Will be populated from external config
 
-		SeverityFilters:     faultMgmt.SeverityFilter,
-
+		SeverityFilters: faultMgmt.SeverityFilter,
 	}
 
 }
-
-
 
 func (r *O1InterfaceController) buildSecurityConfig(o1Interface *oranv1.O1Interface) interface{} {
 
@@ -1637,21 +1340,18 @@ func (r *O1InterfaceController) buildSecurityConfig(o1Interface *oranv1.O1Interf
 
 	return SecurityConfig{
 
-		EnableAuthentication:  securityMgmt.Enabled,
+		EnableAuthentication: securityMgmt.Enabled,
 
-		EnableAuthorization:   securityMgmt.ComplianceMonitoring,
+		EnableAuthorization: securityMgmt.ComplianceMonitoring,
 
-		RequiredRoles:         []string{"admin", "operator"}, // Default roles
+		RequiredRoles: []string{"admin", "operator"}, // Default roles
 
 		CertificateValidation: securityMgmt.CertificateManagement,
 
-		AuditLogging:          securityMgmt.Enabled,
-
+		AuditLogging: securityMgmt.Enabled,
 	}
 
 }
-
-
 
 func (r *O1InterfaceController) buildStreamingConfig(o1Interface *oranv1.O1Interface) interface{} {
 
@@ -1663,51 +1363,45 @@ func (r *O1InterfaceController) buildStreamingConfig(o1Interface *oranv1.O1Inter
 
 		return &StreamingConfig{
 
-			MaxConnections:          100,
+			MaxConnections: 100,
 
-			ConnectionTimeout:       5 * time.Minute,
+			ConnectionTimeout: 5 * time.Minute,
 
-			HeartbeatInterval:       30 * time.Second,
+			HeartbeatInterval: 30 * time.Second,
 
 			MaxSubscriptionsPerConn: 100,
 
-			BufferSize:              1024,
+			BufferSize: 1024,
 
-			CompressionEnabled:      true,
+			CompressionEnabled: true,
 
-			EnableAuth:              true,
+			EnableAuth: true,
 
-			RateLimitPerSecond:      100,
-
+			RateLimitPerSecond: 100,
 		}
 
 	}
 
-
-
 	return &StreamingConfig{
 
-		MaxConnections:          streamingConfig.MaxConnections,
+		MaxConnections: streamingConfig.MaxConnections,
 
-		ConnectionTimeout:       5 * time.Minute, // Use default timeout
+		ConnectionTimeout: 5 * time.Minute, // Use default timeout
 
-		HeartbeatInterval:       30 * time.Second,
+		HeartbeatInterval: 30 * time.Second,
 
 		MaxSubscriptionsPerConn: 100,
 
-		BufferSize:              1024,
+		BufferSize: 1024,
 
-		CompressionEnabled:      true,
+		CompressionEnabled: true,
 
-		EnableAuth:              true,
+		EnableAuth: true,
 
-		RateLimitPerSecond:      100,
-
+		RateLimitPerSecond: 100,
 	}
 
 }
-
-
 
 func (r *O1InterfaceController) buildNetconfService(o1Interface *oranv1.O1Interface) *corev1.Service {
 
@@ -1715,22 +1409,20 @@ func (r *O1InterfaceController) buildNetconfService(o1Interface *oranv1.O1Interf
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      fmt.Sprintf("%s-netconf", o1Interface.Name),
+			Name: fmt.Sprintf("%s-netconf", o1Interface.Name),
 
 			Namespace: o1Interface.Namespace,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":       "o1-interface",
+				"app.kubernetes.io/name": "o1-interface",
 
-				"app.kubernetes.io/instance":   o1Interface.Name,
+				"app.kubernetes.io/instance": o1Interface.Name,
 
-				"app.kubernetes.io/component":  "netconf",
+				"app.kubernetes.io/component": "netconf",
 
 				"app.kubernetes.io/managed-by": O1ControllerName,
-
 			},
-
 		},
 
 		Spec: corev1.ServiceSpec{
@@ -1741,41 +1433,33 @@ func (r *O1InterfaceController) buildNetconfService(o1Interface *oranv1.O1Interf
 
 				{
 
-					Name:     "netconf",
+					Name: "netconf",
 
-					Port:     int32(o1Interface.Spec.Port),
+					Port: int32(o1Interface.Spec.Port),
 
 					Protocol: corev1.ProtocolTCP,
-
 				},
 
 				{
 
-					Name:     "netconf-ssh",
+					Name: "netconf-ssh",
 
-					Port:     int32(o1Interface.Spec.Port + 1000),
+					Port: int32(o1Interface.Spec.Port + 1000),
 
 					Protocol: corev1.ProtocolTCP,
-
 				},
-
 			},
 
 			Selector: map[string]string{
 
-				"app.kubernetes.io/name":     "o1-interface",
+				"app.kubernetes.io/name": "o1-interface",
 
 				"app.kubernetes.io/instance": o1Interface.Name,
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 func (r *O1InterfaceController) buildStreamingService(o1Interface *oranv1.O1Interface) *corev1.Service {
 
@@ -1783,22 +1467,20 @@ func (r *O1InterfaceController) buildStreamingService(o1Interface *oranv1.O1Inte
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      fmt.Sprintf("%s-streaming", o1Interface.Name),
+			Name: fmt.Sprintf("%s-streaming", o1Interface.Name),
 
 			Namespace: o1Interface.Namespace,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":       "o1-interface",
+				"app.kubernetes.io/name": "o1-interface",
 
-				"app.kubernetes.io/instance":   o1Interface.Name,
+				"app.kubernetes.io/instance": o1Interface.Name,
 
-				"app.kubernetes.io/component":  "streaming",
+				"app.kubernetes.io/component": "streaming",
 
 				"app.kubernetes.io/managed-by": O1ControllerName,
-
 			},
-
 		},
 
 		Spec: corev1.ServiceSpec{
@@ -1824,26 +1506,19 @@ func (r *O1InterfaceController) buildStreamingService(o1Interface *oranv1.O1Inte
 					}()),
 
 					Protocol: corev1.ProtocolTCP,
-
 				},
-
 			},
 
 			Selector: map[string]string{
 
-				"app.kubernetes.io/name":     "o1-interface",
+				"app.kubernetes.io/name": "o1-interface",
 
 				"app.kubernetes.io/instance": o1Interface.Name,
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 func (r *O1InterfaceController) buildYANGModelsConfigMap(o1Interface *oranv1.O1Interface) *corev1.ConfigMap {
 
@@ -1861,37 +1536,30 @@ func (r *O1InterfaceController) buildYANGModelsConfigMap(o1Interface *oranv1.O1I
 
 	yangModelsData["o-ran-fault-management.yang"] = getORANFaultYANG()
 
-
-
 	return &corev1.ConfigMap{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      fmt.Sprintf("%s-yang-models", o1Interface.Name),
+			Name: fmt.Sprintf("%s-yang-models", o1Interface.Name),
 
 			Namespace: o1Interface.Namespace,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":       "o1-interface",
+				"app.kubernetes.io/name": "o1-interface",
 
-				"app.kubernetes.io/instance":   o1Interface.Name,
+				"app.kubernetes.io/instance": o1Interface.Name,
 
-				"app.kubernetes.io/component":  "yang-models",
+				"app.kubernetes.io/component": "yang-models",
 
 				"app.kubernetes.io/managed-by": O1ControllerName,
-
 			},
-
 		},
 
 		Data: yangModelsData,
-
 	}
 
 }
-
-
 
 // Utility methods for resource management.
 
@@ -1911,8 +1579,6 @@ func (r *O1InterfaceController) createOrUpdateService(ctx context.Context, servi
 
 	}
 
-
-
 	// Update existing service.
 
 	service.ResourceVersion = existing.ResourceVersion
@@ -1920,8 +1586,6 @@ func (r *O1InterfaceController) createOrUpdateService(ctx context.Context, servi
 	return r.Update(ctx, service)
 
 }
-
-
 
 func (r *O1InterfaceController) createOrUpdateConfigMap(ctx context.Context, configMap *corev1.ConfigMap) error {
 
@@ -1939,8 +1603,6 @@ func (r *O1InterfaceController) createOrUpdateConfigMap(ctx context.Context, con
 
 	}
 
-
-
 	// Update existing configMap.
 
 	configMap.ResourceVersion = existing.ResourceVersion
@@ -1948,8 +1610,6 @@ func (r *O1InterfaceController) createOrUpdateConfigMap(ctx context.Context, con
 	return r.Update(ctx, configMap)
 
 }
-
-
 
 // Cleanup methods.
 
@@ -1963,33 +1623,23 @@ func (r *O1InterfaceController) handleDeletion(ctx context.Context, namespacedNa
 
 }
 
-
-
 func (r *O1InterfaceController) cleanupAdapterInstance(ctx context.Context, instanceKey string) error {
 
 	r.o1AdapterManager.mutex.Lock()
 
 	defer r.o1AdapterManager.mutex.Unlock()
 
-
-
 	delete(r.o1AdapterManager.adapters, instanceKey)
-
-
 
 	return nil
 
 }
-
-
 
 func (r *O1InterfaceController) cleanupNetconfServer(ctx context.Context, instanceKey string) error {
 
 	r.netconfServerManager.mutex.Lock()
 
 	defer r.netconfServerManager.mutex.Unlock()
-
-
 
 	if server, exists := r.netconfServerManager.servers[instanceKey]; exists {
 
@@ -2005,13 +1655,9 @@ func (r *O1InterfaceController) cleanupNetconfServer(ctx context.Context, instan
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (r *O1InterfaceController) updateNetconfServerConfig(server *NetconfServer, o1Interface *oranv1.O1Interface) error {
 
@@ -2024,8 +1670,6 @@ func (r *O1InterfaceController) updateNetconfServerConfig(server *NetconfServer,
 	return nil
 
 }
-
-
 
 // Metrics recording.
 
@@ -2040,7 +1684,6 @@ func (r *O1InterfaceController) recordReconciliationMetrics(namespacedName types
 		namespacedName.Name,
 
 		result,
-
 	).Inc()
 
 	r.metrics.ReconciliationDuration.WithLabelValues(
@@ -2048,12 +1691,9 @@ func (r *O1InterfaceController) recordReconciliationMetrics(namespacedName types
 		namespacedName.Namespace,
 
 		namespacedName.Name,
-
 	).Observe(duration.Seconds())
 
 }
-
-
 
 // YANG model helpers (simplified).
 
@@ -2067,8 +1707,6 @@ func getORANHardwareYANG() string {
 
 }
 
-
-
 func getORANSoftwareYANG() string {
 
 	return `module o-ran-software-management {
@@ -2078,8 +1716,6 @@ func getORANSoftwareYANG() string {
 }`
 
 }
-
-
 
 func getORANPerformanceYANG() string {
 
@@ -2091,8 +1727,6 @@ func getORANPerformanceYANG() string {
 
 }
 
-
-
 func getORANFaultYANG() string {
 
 	return `module o-ran-fault-management {
@@ -2102,8 +1736,6 @@ func getORANFaultYANG() string {
 }`
 
 }
-
-
 
 // buildTLSConfig creates TLS configuration from O1Interface spec.
 
@@ -2115,23 +1747,18 @@ func (r *O1InterfaceController) buildTLSConfig(o1Interface *oranv1.O1Interface) 
 
 	}
 
-
-
 	return &oran.TLSConfig{
 
-		CertFile:   "/etc/certs/tls.crt",
+		CertFile: "/etc/certs/tls.crt",
 
-		KeyFile:    "/etc/certs/tls.key",
+		KeyFile: "/etc/certs/tls.key",
 
-		CAFile:     "/etc/certs/ca.crt",
+		CAFile: "/etc/certs/ca.crt",
 
 		SkipVerify: false,
-
 	}
 
 }
-
-
 
 // buildAuthConfig creates authentication configuration from O1Interface spec.
 
@@ -2143,17 +1770,14 @@ func (r *O1InterfaceController) buildAuthConfig(o1Interface *oranv1.O1Interface)
 
 	}
 
-
-
 	return &oran.AuthConfig{
 
-		Type:     "basic",
+		Type: "basic",
 
-		Username: "netconf",    // Default username
+		Username: "netconf", // Default username
 
 		Password: "netconf123", // This should be retrieved from Secret
 
 	}
 
 }
-

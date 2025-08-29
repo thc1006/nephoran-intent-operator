@@ -1,134 +1,95 @@
-
 package chaos
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
-
-
 
 	"go.uber.org/zap"
 
-
-
 	appsv1 "k8s.io/api/apps/v1"
-
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
-
 	"k8s.io/apimachinery/pkg/api/errors"
-
 	"k8s.io/apimachinery/pkg/labels"
-
 	"k8s.io/apimachinery/pkg/util/wait"
-
 	"k8s.io/client-go/kubernetes"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // RecoveryResult represents the result of recovery testing.
 
 type RecoveryResult struct {
-
-	Success               bool
+	Success bool
 
 	AutoRecoveryTriggered bool
 
-	ManualRequired        bool
+	ManualRequired bool
 
-	RecoveryTime          time.Duration
+	RecoveryTime time.Duration
 
-	DataLoss              bool
+	DataLoss bool
 
-	DegradedServices      []string
+	DegradedServices []string
 
-	RecoverySteps         []RecoveryStep
+	RecoverySteps []RecoveryStep
 
-	StateValidation       StateValidationResult
+	StateValidation StateValidationResult
 
-	Recommendations       []string
-
+	Recommendations []string
 }
-
-
 
 // RecoveryStep represents a single recovery step.
 
 type RecoveryStep struct {
-
-	Name        string
+	Name string
 
 	Description string
 
-	StartTime   time.Time
+	StartTime time.Time
 
-	EndTime     time.Time
+	EndTime time.Time
 
-	Success     bool
+	Success bool
 
-	Error       error
+	Error error
 
-	Output      string
-
+	Output string
 }
-
-
 
 // StateValidationResult represents state validation after recovery.
 
 type StateValidationResult struct {
+	ConfigurationValid bool
 
-	ConfigurationValid  bool
+	DataConsistent bool
 
-	DataConsistent      bool
-
-	ServicesHealthy     bool
+	ServicesHealthy bool
 
 	NetworkConnectivity bool
 
-	Issues              []string
-
+	Issues []string
 }
-
-
 
 // RecoveryStrategy defines how to recover from failures.
 
 type RecoveryStrategy struct {
-
-	Type              RecoveryType
+	Type RecoveryType
 
 	AutomaticTriggers []AutomaticTrigger
 
-	ManualSteps       []ManualStep
+	ManualSteps []ManualStep
 
-	ValidationChecks  []ValidationCheck
+	ValidationChecks []ValidationCheck
 
-	Timeout           time.Duration
-
+	Timeout time.Duration
 }
-
-
 
 // RecoveryType defines the type of recovery strategy.
 
 type RecoveryType string
-
-
 
 const (
 
@@ -143,32 +104,23 @@ const (
 	// RecoveryTypeHybrid holds recoverytypehybrid value.
 
 	RecoveryTypeHybrid RecoveryType = "hybrid"
-
 )
-
-
 
 // AutomaticTrigger defines conditions that trigger automatic recovery.
 
 type AutomaticTrigger struct {
-
-	Name      string
+	Name string
 
 	Condition string
 
-	Action    RecoveryAction
+	Action RecoveryAction
 
-	Delay     time.Duration
-
+	Delay time.Duration
 }
-
-
 
 // RecoveryAction defines an action to take during recovery.
 
 type RecoveryAction string
-
-
 
 const (
 
@@ -203,46 +155,35 @@ const (
 	// RecoveryActionRestoreBackup holds recoveryactionrestorebackup value.
 
 	RecoveryActionRestoreBackup RecoveryAction = "restore-backup"
-
 )
-
-
 
 // ManualStep defines a manual recovery step.
 
 type ManualStep struct {
+	Name string
 
-	Name         string
-
-	Description  string
+	Description string
 
 	Instructions []string
 
 	Verification string
-
 }
-
-
 
 // RecoveryTester tests recovery mechanisms.
 
 type RecoveryTester struct {
+	client client.Client
 
-	client          client.Client
+	kubeClient kubernetes.Interface
 
-	kubeClient      kubernetes.Interface
+	logger *zap.Logger
 
-	logger          *zap.Logger
-
-	strategies      map[ExperimentType]*RecoveryStrategy
+	strategies map[ExperimentType]*RecoveryStrategy
 
 	recoveryHistory []RecoveryResult
 
-	mu              sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewRecoveryTester creates a new recovery tester.
 
@@ -250,19 +191,16 @@ func NewRecoveryTester(client client.Client, kubeClient kubernetes.Interface, lo
 
 	rt := &RecoveryTester{
 
-		client:          client,
+		client: client,
 
-		kubeClient:      kubeClient,
+		kubeClient: kubeClient,
 
-		logger:          logger,
+		logger: logger,
 
-		strategies:      make(map[ExperimentType]*RecoveryStrategy),
+		strategies: make(map[ExperimentType]*RecoveryStrategy),
 
 		recoveryHistory: []RecoveryResult{},
-
 	}
-
-
 
 	// Initialize default recovery strategies.
 
@@ -271,8 +209,6 @@ func NewRecoveryTester(client client.Client, kubeClient kubernetes.Interface, lo
 	return rt
 
 }
-
-
 
 // initializeStrategies initializes default recovery strategies for each experiment type.
 
@@ -288,55 +224,46 @@ func (r *RecoveryTester) initializeStrategies() {
 
 			{
 
-				Name:      "Pod restart",
+				Name: "Pod restart",
 
 				Condition: "pod_crashed",
 
-				Action:    RecoveryActionRestartPod,
+				Action: RecoveryActionRestartPod,
 
-				Delay:     10 * time.Second,
-
+				Delay: 10 * time.Second,
 			},
 
 			{
 
-				Name:      "Scale up",
+				Name: "Scale up",
 
 				Condition: "insufficient_replicas",
 
-				Action:    RecoveryActionScaleUp,
+				Action: RecoveryActionScaleUp,
 
-				Delay:     30 * time.Second,
-
+				Delay: 30 * time.Second,
 			},
-
 		},
 
 		ValidationChecks: []ValidationCheck{
 
 			{
 
-				Name:        "Pod health",
+				Name: "Pod health",
 
 				Description: "Verify all pods are running",
-
 			},
 
 			{
 
-				Name:        "Service availability",
+				Name: "Service availability",
 
 				Description: "Verify services are reachable",
-
 			},
-
 		},
 
 		Timeout: 5 * time.Minute,
-
 	}
-
-
 
 	// Network failure recovery strategy.
 
@@ -348,55 +275,46 @@ func (r *RecoveryTester) initializeStrategies() {
 
 			{
 
-				Name:      "Clear network rules",
+				Name: "Clear network rules",
 
 				Condition: "network_partition",
 
-				Action:    RecoveryActionRestartPod,
+				Action: RecoveryActionRestartPod,
 
-				Delay:     5 * time.Second,
-
+				Delay: 5 * time.Second,
 			},
 
 			{
 
-				Name:      "Reset circuit breaker",
+				Name: "Reset circuit breaker",
 
 				Condition: "circuit_breaker_open",
 
-				Action:    RecoveryActionResetCircuitBreaker,
+				Action: RecoveryActionResetCircuitBreaker,
 
-				Delay:     60 * time.Second,
-
+				Delay: 60 * time.Second,
 			},
-
 		},
 
 		ValidationChecks: []ValidationCheck{
 
 			{
 
-				Name:        "Network connectivity",
+				Name: "Network connectivity",
 
 				Description: "Verify network connectivity restored",
-
 			},
 
 			{
 
-				Name:        "Latency normal",
+				Name: "Latency normal",
 
 				Description: "Verify latency within acceptable range",
-
 			},
-
 		},
 
 		Timeout: 3 * time.Minute,
-
 	}
-
-
 
 	// Database failure recovery strategy.
 
@@ -408,35 +326,32 @@ func (r *RecoveryTester) initializeStrategies() {
 
 			{
 
-				Name:      "Reconnect database",
+				Name: "Reconnect database",
 
 				Condition: "connection_lost",
 
-				Action:    RecoveryActionReconnectDatabase,
+				Action: RecoveryActionReconnectDatabase,
 
-				Delay:     5 * time.Second,
-
+				Delay: 5 * time.Second,
 			},
 
 			{
 
-				Name:      "Clear connection pool",
+				Name: "Clear connection pool",
 
 				Condition: "pool_exhausted",
 
-				Action:    RecoveryActionClearCache,
+				Action: RecoveryActionClearCache,
 
-				Delay:     10 * time.Second,
-
+				Delay: 10 * time.Second,
 			},
-
 		},
 
 		ManualSteps: []ManualStep{
 
 			{
 
-				Name:        "Verify data consistency",
+				Name: "Verify data consistency",
 
 				Description: "Check database for data corruption",
 
@@ -447,40 +362,31 @@ func (r *RecoveryTester) initializeStrategies() {
 					"Run consistency checks",
 
 					"Verify transaction logs",
-
 				},
 
 				Verification: "All data integrity checks pass",
-
 			},
-
 		},
 
 		ValidationChecks: []ValidationCheck{
 
 			{
 
-				Name:        "Database connectivity",
+				Name: "Database connectivity",
 
 				Description: "Verify database connections restored",
-
 			},
 
 			{
 
-				Name:        "Data consistency",
+				Name: "Data consistency",
 
 				Description: "Verify no data loss or corruption",
-
 			},
-
 		},
 
 		Timeout: 10 * time.Minute,
-
 	}
-
-
 
 	// Resource exhaustion recovery strategy.
 
@@ -492,55 +398,46 @@ func (r *RecoveryTester) initializeStrategies() {
 
 			{
 
-				Name:      "Kill stress processes",
+				Name: "Kill stress processes",
 
 				Condition: "high_resource_usage",
 
-				Action:    RecoveryActionRestartPod,
+				Action: RecoveryActionRestartPod,
 
-				Delay:     5 * time.Second,
-
+				Delay: 5 * time.Second,
 			},
 
 			{
 
-				Name:      "Scale horizontally",
+				Name: "Scale horizontally",
 
 				Condition: "sustained_high_load",
 
-				Action:    RecoveryActionScaleUp,
+				Action: RecoveryActionScaleUp,
 
-				Delay:     60 * time.Second,
-
+				Delay: 60 * time.Second,
 			},
-
 		},
 
 		ValidationChecks: []ValidationCheck{
 
 			{
 
-				Name:        "Resource utilization",
+				Name: "Resource utilization",
 
 				Description: "Verify resources within normal range",
-
 			},
 
 			{
 
-				Name:        "Performance metrics",
+				Name: "Performance metrics",
 
 				Description: "Verify performance restored",
-
 			},
-
 		},
 
 		Timeout: 5 * time.Minute,
-
 	}
-
-
 
 	// External service failure recovery strategy.
 
@@ -552,57 +449,48 @@ func (r *RecoveryTester) initializeStrategies() {
 
 			{
 
-				Name:      "Switch to fallback",
+				Name: "Switch to fallback",
 
 				Condition: "service_unavailable",
 
-				Action:    RecoveryActionClearCache,
+				Action: RecoveryActionClearCache,
 
-				Delay:     10 * time.Second,
-
+				Delay: 10 * time.Second,
 			},
 
 			{
 
-				Name:      "Reset circuit breaker",
+				Name: "Reset circuit breaker",
 
 				Condition: "circuit_breaker_triggered",
 
-				Action:    RecoveryActionResetCircuitBreaker,
+				Action: RecoveryActionResetCircuitBreaker,
 
-				Delay:     30 * time.Second,
-
+				Delay: 30 * time.Second,
 			},
-
 		},
 
 		ValidationChecks: []ValidationCheck{
 
 			{
 
-				Name:        "External service connectivity",
+				Name: "External service connectivity",
 
 				Description: "Verify external services accessible",
-
 			},
 
 			{
 
-				Name:        "Fallback mechanism",
+				Name: "Fallback mechanism",
 
 				Description: "Verify fallback working correctly",
-
 			},
-
 		},
 
 		Timeout: 5 * time.Minute,
-
 	}
 
 }
-
-
 
 // TestRecovery tests recovery from injected failures.
 
@@ -614,21 +502,14 @@ func (r *RecoveryTester) TestRecovery(ctx context.Context, experiment *Experimen
 
 		zap.String("injection", injection.InjectionID))
 
-
-
 	result := &RecoveryResult{
 
-		RecoverySteps:    []RecoveryStep{},
+		RecoverySteps: []RecoveryStep{},
 
 		DegradedServices: []string{},
-
 	}
 
-
-
 	startTime := time.Now()
-
-
 
 	// Get recovery strategy for experiment type.
 
@@ -644,8 +525,6 @@ func (r *RecoveryTester) TestRecovery(ctx context.Context, experiment *Experimen
 
 	}
 
-
-
 	// Wait for automatic recovery triggers.
 
 	autoRecoveryResult := r.waitForAutomaticRecovery(ctx, experiment, strategy)
@@ -653,8 +532,6 @@ func (r *RecoveryTester) TestRecovery(ctx context.Context, experiment *Experimen
 	result.AutoRecoveryTriggered = autoRecoveryResult.triggered
 
 	result.RecoverySteps = append(result.RecoverySteps, autoRecoveryResult.steps...)
-
-
 
 	// If automatic recovery didn't complete, try manual recovery.
 
@@ -676,39 +553,27 @@ func (r *RecoveryTester) TestRecovery(ctx context.Context, experiment *Experimen
 
 	}
 
-
-
 	// Validate system state after recovery.
 
 	stateValidation := r.validateStateAfterRecovery(ctx, experiment)
 
 	result.StateValidation = stateValidation
 
-
-
 	// Check for data loss.
 
 	result.DataLoss = r.checkDataLoss(ctx, experiment)
-
-
 
 	// Identify degraded services.
 
 	result.DegradedServices = r.identifyDegradedServices(ctx, experiment)
 
-
-
 	// Calculate total recovery time.
 
 	result.RecoveryTime = time.Since(startTime)
 
-
-
 	// Generate recommendations.
 
 	result.Recommendations = r.generateRecoveryRecommendations(result, experiment)
-
-
 
 	// Store recovery result in history.
 
@@ -718,8 +583,6 @@ func (r *RecoveryTester) TestRecovery(ctx context.Context, experiment *Experimen
 
 	r.mu.Unlock()
 
-
-
 	r.logger.Info("Recovery test completed",
 
 		zap.Bool("success", result.Success),
@@ -728,27 +591,19 @@ func (r *RecoveryTester) TestRecovery(ctx context.Context, experiment *Experimen
 
 		zap.Bool("data_loss", result.DataLoss))
 
-
-
 	return result
 
 }
 
-
-
 // AutoRecoveryResult represents automatic recovery test result.
 
 type AutoRecoveryResult struct {
-
 	triggered bool
 
-	complete  bool
+	complete bool
 
-	steps     []RecoveryStep
-
+	steps []RecoveryStep
 }
-
-
 
 // waitForAutomaticRecovery waits for automatic recovery mechanisms to trigger.
 
@@ -758,13 +613,10 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 
 		triggered: false,
 
-		complete:  false,
+		complete: false,
 
-		steps:     []RecoveryStep{},
-
+		steps: []RecoveryStep{},
 	}
-
-
 
 	if strategy.Type == RecoveryTypeManual {
 
@@ -772,11 +624,7 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 
 	}
 
-
-
 	r.logger.Info("Waiting for automatic recovery triggers")
-
-
 
 	// Create a timeout context.
 
@@ -784,15 +632,11 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 
 	defer cancel()
 
-
-
 	// Monitor each automatic trigger.
 
 	var wg sync.WaitGroup
 
 	triggerResults := make(chan RecoveryStep, len(strategy.AutomaticTriggers))
-
-
 
 	for _, trigger := range strategy.AutomaticTriggers {
 
@@ -802,19 +646,14 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 
 			defer wg.Done()
 
-
-
 			step := RecoveryStep{
 
-				Name:        t.Name,
+				Name: t.Name,
 
 				Description: fmt.Sprintf("Waiting for %s", t.Condition),
 
-				StartTime:   time.Now(),
-
+				StartTime: time.Now(),
 			}
-
-
 
 			// Wait for trigger delay.
 
@@ -832,8 +671,6 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 
 			}
 
-
-
 			// Check if condition is met.
 
 			if r.checkTriggerCondition(timeoutCtx, experiment, t.Condition) {
@@ -841,8 +678,6 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 				r.logger.Info("Automatic recovery trigger activated",
 
 					zap.String("trigger", t.Name))
-
-
 
 				// Execute recovery action.
 
@@ -868,8 +703,6 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 
 			}
 
-
-
 			step.EndTime = time.Now()
 
 			triggerResults <- step
@@ -877,8 +710,6 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 		}(trigger)
 
 	}
-
-
 
 	// Wait for all triggers to complete or timeout.
 
@@ -889,8 +720,6 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 		close(triggerResults)
 
 	}()
-
-
 
 	// Collect results.
 
@@ -906,8 +735,6 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 
 	}
 
-
-
 	// Check if recovery is complete.
 
 	if result.triggered {
@@ -916,13 +743,9 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // checkTriggerCondition checks if a trigger condition is met.
 
@@ -968,15 +791,11 @@ func (r *RecoveryTester) checkTriggerCondition(ctx context.Context, experiment *
 
 }
 
-
-
 // executeRecoveryAction executes a recovery action.
 
 func (r *RecoveryTester) executeRecoveryAction(ctx context.Context, experiment *Experiment, action RecoveryAction) error {
 
 	r.logger.Info("Executing recovery action", zap.String("action", string(action)))
-
-
 
 	switch action {
 
@@ -1020,11 +839,7 @@ func (r *RecoveryTester) executeRecoveryAction(ctx context.Context, experiment *
 
 }
 
-
-
 // Condition checking methods.
-
-
 
 func (r *RecoveryTester) checkPodsCrashed(ctx context.Context, namespace string) bool {
 
@@ -1035,8 +850,6 @@ func (r *RecoveryTester) checkPodsCrashed(ctx context.Context, namespace string)
 		return false
 
 	}
-
-
 
 	for _, pod := range podList.Items {
 
@@ -1064,8 +877,6 @@ func (r *RecoveryTester) checkPodsCrashed(ctx context.Context, namespace string)
 
 }
 
-
-
 func (r *RecoveryTester) checkInsufficientReplicas(ctx context.Context, namespace string) bool {
 
 	deployList := &appsv1.DeploymentList{}
@@ -1075,8 +886,6 @@ func (r *RecoveryTester) checkInsufficientReplicas(ctx context.Context, namespac
 		return false
 
 	}
-
-
 
 	for _, deploy := range deployList.Items {
 
@@ -1092,8 +901,6 @@ func (r *RecoveryTester) checkInsufficientReplicas(ctx context.Context, namespac
 
 }
 
-
-
 func (r *RecoveryTester) checkNetworkPartition(ctx context.Context, namespace string) bool {
 
 	// Check for network policies that might indicate partition.
@@ -1103,8 +910,6 @@ func (r *RecoveryTester) checkNetworkPartition(ctx context.Context, namespace st
 	return false
 
 }
-
-
 
 func (r *RecoveryTester) checkCircuitBreakerOpen(ctx context.Context, namespace string) bool {
 
@@ -1116,8 +921,6 @@ func (r *RecoveryTester) checkCircuitBreakerOpen(ctx context.Context, namespace 
 
 }
 
-
-
 func (r *RecoveryTester) checkDatabaseConnectionLost(ctx context.Context, namespace string) bool {
 
 	// Check database connectivity.
@@ -1127,8 +930,6 @@ func (r *RecoveryTester) checkDatabaseConnectionLost(ctx context.Context, namesp
 	return false
 
 }
-
-
 
 func (r *RecoveryTester) checkHighResourceUsage(ctx context.Context, namespace string) bool {
 
@@ -1140,8 +941,6 @@ func (r *RecoveryTester) checkHighResourceUsage(ctx context.Context, namespace s
 
 }
 
-
-
 func (r *RecoveryTester) checkServiceUnavailable(ctx context.Context, namespace string) bool {
 
 	// Check external service availability.
@@ -1152,11 +951,7 @@ func (r *RecoveryTester) checkServiceUnavailable(ctx context.Context, namespace 
 
 }
 
-
-
 // Recovery action implementations.
-
-
 
 func (r *RecoveryTester) restartPods(ctx context.Context, namespace string, labelSelector map[string]string) error {
 
@@ -1174,8 +969,6 @@ func (r *RecoveryTester) restartPods(ctx context.Context, namespace string, labe
 
 	}
 
-
-
 	for _, pod := range podList.Items {
 
 		r.logger.Info("Restarting pod", zap.String("pod", pod.Name))
@@ -1187,8 +980,6 @@ func (r *RecoveryTester) restartPods(ctx context.Context, namespace string, labe
 		}
 
 	}
-
-
 
 	// Wait for pods to be recreated.
 
@@ -1206,8 +997,6 @@ func (r *RecoveryTester) restartPods(ctx context.Context, namespace string, labe
 
 		}
 
-
-
 		for _, pod := range newPodList.Items {
 
 			if pod.Status.Phase != corev1.PodPhase("Running") {
@@ -1224,8 +1013,6 @@ func (r *RecoveryTester) restartPods(ctx context.Context, namespace string, labe
 
 }
 
-
-
 func (r *RecoveryTester) scaleDeployment(ctx context.Context, namespace string, delta int32) error {
 
 	deployList := &appsv1.DeploymentList{}
@@ -1235,8 +1022,6 @@ func (r *RecoveryTester) scaleDeployment(ctx context.Context, namespace string, 
 		return err
 
 	}
-
-
 
 	for _, deploy := range deployList.Items {
 
@@ -1248,8 +1033,6 @@ func (r *RecoveryTester) scaleDeployment(ctx context.Context, namespace string, 
 
 		}
 
-
-
 		r.logger.Info("Scaling deployment",
 
 			zap.String("deployment", deploy.Name),
@@ -1257,8 +1040,6 @@ func (r *RecoveryTester) scaleDeployment(ctx context.Context, namespace string, 
 			zap.Int32("from", *deploy.Spec.Replicas),
 
 			zap.Int32("to", newReplicas))
-
-
 
 		deploy.Spec.Replicas = &newReplicas
 
@@ -1270,13 +1051,9 @@ func (r *RecoveryTester) scaleDeployment(ctx context.Context, namespace string, 
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (r *RecoveryTester) rollbackDeployment(ctx context.Context, namespace string) error {
 
@@ -1287,8 +1064,6 @@ func (r *RecoveryTester) rollbackDeployment(ctx context.Context, namespace strin
 	return nil
 
 }
-
-
 
 func (r *RecoveryTester) resetCircuitBreaker(ctx context.Context, namespace string) error {
 
@@ -1302,8 +1077,6 @@ func (r *RecoveryTester) resetCircuitBreaker(ctx context.Context, namespace stri
 
 }
 
-
-
 func (r *RecoveryTester) clearCache(ctx context.Context, namespace string) error {
 
 	// Clear application caches.
@@ -1315,8 +1088,6 @@ func (r *RecoveryTester) clearCache(ctx context.Context, namespace string) error
 	return nil
 
 }
-
-
 
 func (r *RecoveryTester) reconnectDatabase(ctx context.Context, namespace string) error {
 
@@ -1330,8 +1101,6 @@ func (r *RecoveryTester) reconnectDatabase(ctx context.Context, namespace string
 
 }
 
-
-
 func (r *RecoveryTester) restoreFromBackup(ctx context.Context, namespace string) error {
 
 	// Restore from backup.
@@ -1344,8 +1113,6 @@ func (r *RecoveryTester) restoreFromBackup(ctx context.Context, namespace string
 
 }
 
-
-
 // testManualRecovery tests manual recovery procedures.
 
 func (r *RecoveryTester) testManualRecovery(ctx context.Context, experiment *Experiment, strategy *RecoveryStrategy) *ManualRecoveryResult {
@@ -1354,11 +1121,8 @@ func (r *RecoveryTester) testManualRecovery(ctx context.Context, experiment *Exp
 
 		success: false,
 
-		steps:   []RecoveryStep{},
-
+		steps: []RecoveryStep{},
 	}
-
-
 
 	if len(strategy.ManualSteps) == 0 {
 
@@ -1368,21 +1132,16 @@ func (r *RecoveryTester) testManualRecovery(ctx context.Context, experiment *Exp
 
 	}
 
-
-
 	for _, manualStep := range strategy.ManualSteps {
 
 		step := RecoveryStep{
 
-			Name:        manualStep.Name,
+			Name: manualStep.Name,
 
 			Description: manualStep.Description,
 
-			StartTime:   time.Now(),
-
+			StartTime: time.Now(),
 		}
-
-
 
 		// Simulate manual step execution.
 
@@ -1392,15 +1151,11 @@ func (r *RecoveryTester) testManualRecovery(ctx context.Context, experiment *Exp
 
 			zap.Strings("instructions", manualStep.Instructions))
 
-
-
 		// In a real scenario, this would wait for operator confirmation.
 
 		// For testing, we simulate the step was completed.
 
 		time.Sleep(5 * time.Second)
-
-
 
 		// Verify the manual step was successful.
 
@@ -1418,13 +1173,9 @@ func (r *RecoveryTester) testManualRecovery(ctx context.Context, experiment *Exp
 
 		}
 
-
-
 		step.EndTime = time.Now()
 
 		result.steps = append(result.steps, step)
-
-
 
 		if !step.Success {
 
@@ -1433,8 +1184,6 @@ func (r *RecoveryTester) testManualRecovery(ctx context.Context, experiment *Exp
 		}
 
 	}
-
-
 
 	// Check if all manual steps succeeded.
 
@@ -1452,25 +1201,17 @@ func (r *RecoveryTester) testManualRecovery(ctx context.Context, experiment *Exp
 
 	}
 
-
-
 	return result
 
 }
 
-
-
 // ManualRecoveryResult represents manual recovery test result.
 
 type ManualRecoveryResult struct {
-
 	success bool
 
-	steps   []RecoveryStep
-
+	steps []RecoveryStep
 }
-
-
 
 // verifyManualStep verifies a manual recovery step was completed.
 
@@ -1483,8 +1224,6 @@ func (r *RecoveryTester) verifyManualStep(ctx context.Context, experiment *Exper
 	return true
 
 }
-
-
 
 // verifyRecoveryComplete verifies that recovery is complete.
 
@@ -1499,8 +1238,6 @@ func (r *RecoveryTester) verifyRecoveryComplete(ctx context.Context, experiment 
 		return false
 
 	}
-
-
 
 	for _, pod := range podList.Items {
 
@@ -1522,8 +1259,6 @@ func (r *RecoveryTester) verifyRecoveryComplete(ctx context.Context, experiment 
 
 	}
 
-
-
 	// Check if services are available.
 
 	svcList := &corev1.ServiceList{}
@@ -1533,8 +1268,6 @@ func (r *RecoveryTester) verifyRecoveryComplete(ctx context.Context, experiment 
 		return false
 
 	}
-
-
 
 	for _, svc := range svcList.Items {
 
@@ -1546,8 +1279,6 @@ func (r *RecoveryTester) verifyRecoveryComplete(ctx context.Context, experiment 
 			return false
 
 		}
-
-
 
 		hasEndpoints := false
 		for _, esl := range eslList.Items {
@@ -1565,13 +1296,9 @@ func (r *RecoveryTester) verifyRecoveryComplete(ctx context.Context, experiment 
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // validateStateAfterRecovery validates system state after recovery.
 
@@ -1579,19 +1306,16 @@ func (r *RecoveryTester) validateStateAfterRecovery(ctx context.Context, experim
 
 	result := StateValidationResult{
 
-		ConfigurationValid:  true,
+		ConfigurationValid: true,
 
-		DataConsistent:      true,
+		DataConsistent: true,
 
-		ServicesHealthy:     true,
+		ServicesHealthy: true,
 
 		NetworkConnectivity: true,
 
-		Issues:              []string{},
-
+		Issues: []string{},
 	}
-
-
 
 	// Validate configuration.
 
@@ -1603,8 +1327,6 @@ func (r *RecoveryTester) validateStateAfterRecovery(ctx context.Context, experim
 
 	}
 
-
-
 	// Validate data consistency.
 
 	if !r.validateDataConsistency(ctx, experiment) {
@@ -1614,8 +1336,6 @@ func (r *RecoveryTester) validateStateAfterRecovery(ctx context.Context, experim
 		result.Issues = append(result.Issues, "Data consistency check failed")
 
 	}
-
-
 
 	// Validate service health.
 
@@ -1627,8 +1347,6 @@ func (r *RecoveryTester) validateStateAfterRecovery(ctx context.Context, experim
 
 	}
 
-
-
 	// Validate network connectivity.
 
 	if !r.validateNetworkConnectivity(ctx, experiment) {
@@ -1639,13 +1357,9 @@ func (r *RecoveryTester) validateStateAfterRecovery(ctx context.Context, experim
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // validateConfiguration validates configuration after recovery.
 
@@ -1661,8 +1375,6 @@ func (r *RecoveryTester) validateConfiguration(ctx context.Context, experiment *
 
 	}
 
-
-
 	// Check Secrets.
 
 	secretList := &corev1.SecretList{}
@@ -1673,8 +1385,6 @@ func (r *RecoveryTester) validateConfiguration(ctx context.Context, experiment *
 
 	}
 
-
-
 	// Verify critical configurations exist.
 
 	// This would check for specific required configurations.
@@ -1682,8 +1392,6 @@ func (r *RecoveryTester) validateConfiguration(ctx context.Context, experiment *
 	return true
 
 }
-
-
 
 // validateDataConsistency validates data consistency after recovery.
 
@@ -1696,8 +1404,6 @@ func (r *RecoveryTester) validateDataConsistency(ctx context.Context, experiment
 	return true
 
 }
-
-
 
 // validateServiceHealth validates service health after recovery.
 
@@ -1713,8 +1419,6 @@ func (r *RecoveryTester) validateServiceHealth(ctx context.Context, experiment *
 
 	}
 
-
-
 	for _, svc := range svcList.Items {
 
 		// Check if service has ready endpoints.
@@ -1727,8 +1431,6 @@ func (r *RecoveryTester) validateServiceHealth(ctx context.Context, experiment *
 			return false
 
 		}
-
-
 
 		hasReadyEndpoints := false
 
@@ -1752,8 +1454,6 @@ func (r *RecoveryTester) validateServiceHealth(ctx context.Context, experiment *
 
 		}
 
-
-
 		if !hasReadyEndpoints {
 
 			r.logger.Warn("Service has no ready endpoints",
@@ -1766,13 +1466,9 @@ func (r *RecoveryTester) validateServiceHealth(ctx context.Context, experiment *
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // validateNetworkConnectivity validates network connectivity after recovery.
 
@@ -1786,8 +1482,6 @@ func (r *RecoveryTester) validateNetworkConnectivity(ctx context.Context, experi
 
 }
 
-
-
 // checkDataLoss checks for data loss during the experiment.
 
 func (r *RecoveryTester) checkDataLoss(ctx context.Context, experiment *Experiment) bool {
@@ -1800,15 +1494,11 @@ func (r *RecoveryTester) checkDataLoss(ctx context.Context, experiment *Experime
 
 }
 
-
-
 // identifyDegradedServices identifies services that are degraded.
 
 func (r *RecoveryTester) identifyDegradedServices(ctx context.Context, experiment *Experiment) []string {
 
 	degradedServices := []string{}
-
-
 
 	// Check deployment status.
 
@@ -1828,8 +1518,6 @@ func (r *RecoveryTester) identifyDegradedServices(ctx context.Context, experimen
 
 	}
 
-
-
 	// Check StatefulSet status.
 
 	statefulSetList := &appsv1.StatefulSetList{}
@@ -1848,21 +1536,15 @@ func (r *RecoveryTester) identifyDegradedServices(ctx context.Context, experimen
 
 	}
 
-
-
 	return degradedServices
 
 }
-
-
 
 // generateRecoveryRecommendations generates recommendations based on recovery results.
 
 func (r *RecoveryTester) generateRecoveryRecommendations(result *RecoveryResult, experiment *Experiment) []string {
 
 	recommendations := []string{}
-
-
 
 	// Recommendation based on recovery time.
 
@@ -1874,8 +1556,6 @@ func (r *RecoveryTester) generateRecoveryRecommendations(result *RecoveryResult,
 
 	}
 
-
-
 	// Recommendation based on manual intervention.
 
 	if result.ManualRequired {
@@ -1885,8 +1565,6 @@ func (r *RecoveryTester) generateRecoveryRecommendations(result *RecoveryResult,
 			"Manual intervention was required. Consider automating recovery steps.")
 
 	}
-
-
 
 	// Recommendation based on data loss.
 
@@ -1898,8 +1576,6 @@ func (r *RecoveryTester) generateRecoveryRecommendations(result *RecoveryResult,
 
 	}
 
-
-
 	// Recommendation based on degraded services.
 
 	if len(result.DegradedServices) > 0 {
@@ -1910,8 +1586,6 @@ func (r *RecoveryTester) generateRecoveryRecommendations(result *RecoveryResult,
 
 	}
 
-
-
 	// Recommendation based on state validation.
 
 	if len(result.StateValidation.Issues) > 0 {
@@ -1921,8 +1595,6 @@ func (r *RecoveryTester) generateRecoveryRecommendations(result *RecoveryResult,
 			fmt.Sprintf("State validation issues: %v. Address these issues.", result.StateValidation.Issues))
 
 	}
-
-
 
 	// Experiment-specific recommendations.
 
@@ -1958,13 +1630,9 @@ func (r *RecoveryTester) generateRecoveryRecommendations(result *RecoveryResult,
 
 	}
 
-
-
 	return recommendations
 
 }
-
-
 
 // TriggerRecovery manually triggers recovery procedures.
 
@@ -1974,8 +1642,6 @@ func (r *RecoveryTester) TriggerRecovery(ctx context.Context, experiment *Experi
 
 		zap.String("experiment", experiment.ID))
 
-
-
 	strategy, exists := r.strategies[experiment.Type]
 
 	if !exists {
@@ -1983,8 +1649,6 @@ func (r *RecoveryTester) TriggerRecovery(ctx context.Context, experiment *Experi
 		strategy = r.getDefaultStrategy()
 
 	}
-
-
 
 	// Execute all automatic recovery actions.
 
@@ -2004,8 +1668,6 @@ func (r *RecoveryTester) TriggerRecovery(ctx context.Context, experiment *Experi
 
 	}
 
-
-
 	// Wait for recovery to complete.
 
 	return wait.PollUntilContextTimeout(ctx, 5*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
@@ -2015,8 +1677,6 @@ func (r *RecoveryTester) TriggerRecovery(ctx context.Context, experiment *Experi
 	})
 
 }
-
-
 
 // getDefaultStrategy returns a default recovery strategy.
 
@@ -2030,37 +1690,30 @@ func (r *RecoveryTester) getDefaultStrategy() *RecoveryStrategy {
 
 			{
 
-				Name:      "Restart pods",
+				Name: "Restart pods",
 
 				Condition: "pod_crashed",
 
-				Action:    RecoveryActionRestartPod,
+				Action: RecoveryActionRestartPod,
 
-				Delay:     10 * time.Second,
-
+				Delay: 10 * time.Second,
 			},
-
 		},
 
 		ValidationChecks: []ValidationCheck{
 
 			{
 
-				Name:        "Basic health",
+				Name: "Basic health",
 
 				Description: "Verify basic system health",
-
 			},
-
 		},
 
 		Timeout: 5 * time.Minute,
-
 	}
 
 }
-
-
 
 // GetRecoveryHistory returns the recovery test history.
 
@@ -2070,8 +1723,6 @@ func (r *RecoveryTester) GetRecoveryHistory() []RecoveryResult {
 
 	defer r.mu.RUnlock()
 
-
-
 	history := make([]RecoveryResult, len(r.recoveryHistory))
 
 	copy(history, r.recoveryHistory)
@@ -2079,8 +1730,6 @@ func (r *RecoveryTester) GetRecoveryHistory() []RecoveryResult {
 	return history
 
 }
-
-
 
 // AnalyzeRecoveryTrends analyzes recovery trends over time.
 
@@ -2090,43 +1739,34 @@ func (r *RecoveryTester) AnalyzeRecoveryTrends() *RecoveryTrendAnalysis {
 
 	defer r.mu.RUnlock()
 
-
-
 	if len(r.recoveryHistory) == 0 {
 
 		return &RecoveryTrendAnalysis{}
 
 	}
 
-
-
 	analysis := &RecoveryTrendAnalysis{
 
-		TotalTests:            len(r.recoveryHistory),
+		TotalTests: len(r.recoveryHistory),
 
-		SuccessfulRecoveries:  0,
+		SuccessfulRecoveries: 0,
 
-		AutoRecoveries:        0,
+		AutoRecoveries: 0,
 
-		ManualRecoveries:      0,
+		ManualRecoveries: 0,
 
-		DataLossIncidents:     0,
+		DataLossIncidents: 0,
 
-		AverageRecoveryTime:   0,
+		AverageRecoveryTime: 0,
 
-		MaxRecoveryTime:       0,
+		MaxRecoveryTime: 0,
 
-		MinRecoveryTime:       time.Hour * 24, // Start with a large value
+		MinRecoveryTime: time.Hour * 24, // Start with a large value
 
 		CommonFailurePatterns: make(map[string]int),
-
 	}
 
-
-
 	var totalRecoveryTime time.Duration
-
-
 
 	for _, result := range r.recoveryHistory {
 
@@ -2154,8 +1794,6 @@ func (r *RecoveryTester) AnalyzeRecoveryTrends() *RecoveryTrendAnalysis {
 
 		}
 
-
-
 		totalRecoveryTime += result.RecoveryTime
 
 		if result.RecoveryTime > analysis.MaxRecoveryTime {
@@ -2170,8 +1808,6 @@ func (r *RecoveryTester) AnalyzeRecoveryTrends() *RecoveryTrendAnalysis {
 
 		}
 
-
-
 		// Track failure patterns.
 
 		for _, service := range result.DegradedServices {
@@ -2181,8 +1817,6 @@ func (r *RecoveryTester) AnalyzeRecoveryTrends() *RecoveryTrendAnalysis {
 		}
 
 	}
-
-
 
 	if len(r.recoveryHistory) > 0 {
 
@@ -2194,39 +1828,32 @@ func (r *RecoveryTester) AnalyzeRecoveryTrends() *RecoveryTrendAnalysis {
 
 	}
 
-
-
 	return analysis
 
 }
 
-
-
 // RecoveryTrendAnalysis represents analysis of recovery trends.
 
 type RecoveryTrendAnalysis struct {
+	TotalTests int
 
-	TotalTests            int
+	SuccessfulRecoveries int
 
-	SuccessfulRecoveries  int
+	AutoRecoveries int
 
-	AutoRecoveries        int
+	ManualRecoveries int
 
-	ManualRecoveries      int
+	DataLossIncidents int
 
-	DataLossIncidents     int
+	AverageRecoveryTime time.Duration
 
-	AverageRecoveryTime   time.Duration
+	MaxRecoveryTime time.Duration
 
-	MaxRecoveryTime       time.Duration
+	MinRecoveryTime time.Duration
 
-	MinRecoveryTime       time.Duration
+	SuccessRate float64
 
-	SuccessRate           float64
-
-	AutoRecoveryRate      float64
+	AutoRecoveryRate float64
 
 	CommonFailurePatterns map[string]int
-
 }
-

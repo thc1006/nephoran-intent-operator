@@ -28,48 +28,26 @@ limitations under the License.
 
 */
 
-
-
-
 package templates
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"strings"
-
 	"sync"
-
 	"text/template"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/validation/yang"
 
 	"k8s.io/apimachinery/pkg/api/resource"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-
-
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
-
-	"github.com/nephio-project/nephoran-intent-operator/pkg/validation/yang"
-
 )
-
-
 
 // TemplateEngine provides comprehensive template management and rendering capabilities.
 
@@ -93,8 +71,6 @@ type TemplateEngine interface {
 
 	ListTemplates(ctx context.Context, filter *TemplateFilter) ([]*BlueprintTemplate, error)
 
-
-
 	// Template rendering.
 
 	RenderTemplate(ctx context.Context, templateID string, parameters map[string]interface{}) ([]*porch.KRMResource, error)
@@ -102,8 +78,6 @@ type TemplateEngine interface {
 	RenderTemplateWithValidation(ctx context.Context, templateID string, parameters map[string]interface{}) (*RenderResult, error)
 
 	ValidateParameters(ctx context.Context, templateID string, parameters map[string]interface{}) (*ParameterValidationResult, error)
-
-
 
 	// Template catalog management.
 
@@ -113,15 +87,11 @@ type TemplateEngine interface {
 
 	SearchTemplates(ctx context.Context, query *SearchQuery) ([]*BlueprintTemplate, error)
 
-
-
 	// Template composition.
 
 	ComposeTemplates(ctx context.Context, templates []*TemplateComposition) (*CompositeTemplate, error)
 
 	RenderCompositeTemplate(ctx context.Context, composite *CompositeTemplate, parameters map[string]interface{}) ([]*porch.KRMResource, error)
-
-
 
 	// Template versioning.
 
@@ -131,17 +101,12 @@ type TemplateEngine interface {
 
 	RollbackTemplateVersion(ctx context.Context, templateID, version string) error
 
-
-
 	// Health and maintenance.
 
 	GetEngineHealth(ctx context.Context) (*EngineHealth, error)
 
 	Close() error
-
 }
-
-
 
 // templateEngine implements comprehensive template management and rendering.
 
@@ -151,39 +116,28 @@ type templateEngine struct {
 
 	yangValidator yang.YANGValidator
 
-	logger        logr.Logger
-
-
+	logger logr.Logger
 
 	// Template storage.
 
-	templates       map[string]*BlueprintTemplate
+	templates map[string]*BlueprintTemplate
 
-	templateMutex   sync.RWMutex
+	templateMutex sync.RWMutex
 
 	templateCatalog *TemplateCatalog
-
-
 
 	// Configuration.
 
 	config *EngineConfig
 
-
-
 	// Background processing.
 
 	shutdown chan struct{}
 
-	wg       sync.WaitGroup
-
+	wg sync.WaitGroup
 }
 
-
-
 // Core template types.
-
-
 
 // BlueprintTemplate represents a network function deployment template.
 
@@ -191,111 +145,90 @@ type BlueprintTemplate struct {
 
 	// Metadata.
 
-	ID          string            `json:"id" yaml:"id"`
+	ID string `json:"id" yaml:"id"`
 
-	Name        string            `json:"name" yaml:"name"`
+	Name string `json:"name" yaml:"name"`
 
-	Version     string            `json:"version" yaml:"version"`
+	Version string `json:"version" yaml:"version"`
 
-	Description string            `json:"description" yaml:"description"`
+	Description string `json:"description" yaml:"description"`
 
-	Author      string            `json:"author" yaml:"author"`
+	Author string `json:"author" yaml:"author"`
 
-	CreatedAt   time.Time         `json:"createdAt" yaml:"createdAt"`
+	CreatedAt time.Time `json:"createdAt" yaml:"createdAt"`
 
-	UpdatedAt   time.Time         `json:"updatedAt" yaml:"updatedAt"`
+	UpdatedAt time.Time `json:"updatedAt" yaml:"updatedAt"`
 
-	Tags        []string          `json:"tags" yaml:"tags"`
+	Tags []string `json:"tags" yaml:"tags"`
 
-	Keywords    []string          `json:"keywords" yaml:"keywords"`
+	Keywords []string `json:"keywords" yaml:"keywords"`
 
-	Labels      map[string]string `json:"labels" yaml:"labels"`
+	Labels map[string]string `json:"labels" yaml:"labels"`
 
 	Annotations map[string]string `json:"annotations" yaml:"annotations"`
 
-
-
 	// Template classification.
 
-	Category        TemplateCategory         `json:"category" yaml:"category"`
+	Category TemplateCategory `json:"category" yaml:"category"`
 
-	Type            TemplateType             `json:"type" yaml:"type"`
+	Type TemplateType `json:"type" yaml:"type"`
 
 	TargetComponent nephoranv1.ORANComponent `json:"targetComponent" yaml:"targetComponent"`
 
-	Vendor          string                   `json:"vendor" yaml:"vendor"`
+	Vendor string `json:"vendor" yaml:"vendor"`
 
-	Standard        string                   `json:"standard" yaml:"standard"` // O-RAN, 3GPP, etc.
-
-
+	Standard string `json:"standard" yaml:"standard"` // O-RAN, 3GPP, etc.
 
 	// Template content.
 
-	Schema      *ParameterSchema    `json:"schema" yaml:"schema"`
+	Schema *ParameterSchema `json:"schema" yaml:"schema"`
 
-	Resources   []*KRMTemplate      `json:"resources" yaml:"resources"`
+	Resources []*KRMTemplate `json:"resources" yaml:"resources"`
 
-	Functions   []*FunctionTemplate `json:"functions" yaml:"functions"`
+	Functions []*FunctionTemplate `json:"functions" yaml:"functions"`
 
-	Validations []*ValidationRule   `json:"validations" yaml:"validations"`
-
-
+	Validations []*ValidationRule `json:"validations" yaml:"validations"`
 
 	// Template inheritance.
 
-	BaseTemplate string                 `json:"baseTemplate,omitempty" yaml:"baseTemplate,omitempty"`
+	BaseTemplate string `json:"baseTemplate,omitempty" yaml:"baseTemplate,omitempty"`
 
-	Overrides    map[string]interface{} `json:"overrides,omitempty" yaml:"overrides,omitempty"`
+	Overrides map[string]interface{} `json:"overrides,omitempty" yaml:"overrides,omitempty"`
 
-	Extensions   []*TemplateExtension   `json:"extensions,omitempty" yaml:"extensions,omitempty"`
-
-
+	Extensions []*TemplateExtension `json:"extensions,omitempty" yaml:"extensions,omitempty"`
 
 	// O-RAN specific configurations.
 
 	ORANConfig *ORANTemplateConfig `json:"oranConfig,omitempty" yaml:"oranConfig,omitempty"`
 
-
-
 	// 5G Core specific configurations.
 
 	FiveGConfig *FiveGTemplateConfig `json:"5gConfig,omitempty" yaml:"5gConfig,omitempty"`
-
-
 
 	// Multi-vendor support.
 
 	VendorVariants []*VendorVariant `json:"vendorVariants,omitempty" yaml:"vendorVariants,omitempty"`
 
-
-
 	// Template maturity and compliance.
 
-	MaturityLevel  MaturityLevel   `json:"maturityLevel" yaml:"maturityLevel"`
+	MaturityLevel MaturityLevel `json:"maturityLevel" yaml:"maturityLevel"`
 
 	ComplianceInfo *ComplianceInfo `json:"complianceInfo" yaml:"complianceInfo"`
 
-	TestingStatus  *TestingStatus  `json:"testingStatus" yaml:"testingStatus"`
-
-
+	TestingStatus *TestingStatus `json:"testingStatus" yaml:"testingStatus"`
 
 	// Usage and analytics.
 
-	UsageCount  int64      `json:"usageCount" yaml:"-"`
+	UsageCount int64 `json:"usageCount" yaml:"-"`
 
-	LastUsed    *time.Time `json:"lastUsed" yaml:"-"`
+	LastUsed *time.Time `json:"lastUsed" yaml:"-"`
 
-	SuccessRate float64    `json:"successRate" yaml:"-"`
-
+	SuccessRate float64 `json:"successRate" yaml:"-"`
 }
-
-
 
 // Template classification enums.
 
 type TemplateCategory string
-
-
 
 const (
 
@@ -318,16 +251,11 @@ const (
 	// TemplateCategoryComposite holds templatecategorycomposite value.
 
 	TemplateCategoryComposite TemplateCategory = "composite"
-
 )
-
-
 
 // TemplateType represents a templatetype.
 
 type TemplateType string
-
-
 
 const (
 
@@ -350,16 +278,11 @@ const (
 	// TemplateTypeNetworkSlice holds templatetypenetworkslice value.
 
 	TemplateTypeNetworkSlice TemplateType = "network-slice"
-
 )
-
-
 
 // MaturityLevel represents a maturitylevel.
 
 type MaturityLevel string
-
-
 
 const (
 
@@ -378,182 +301,142 @@ const (
 	// MaturityLevelDeprecated holds maturityleveldeprecated value.
 
 	MaturityLevelDeprecated MaturityLevel = "deprecated"
-
 )
 
-
-
 // Parameter schema and validation.
-
-
 
 // ParameterSchema defines the schema for template parameters.
 
 type ParameterSchema struct {
-
-	Version    string                    `json:"version" yaml:"version"`
+	Version string `json:"version" yaml:"version"`
 
 	Properties map[string]*ParameterSpec `json:"properties" yaml:"properties"`
 
-	Required   []string                  `json:"required" yaml:"required"`
+	Required []string `json:"required" yaml:"required"`
 
-	Groups     []*ParameterGroup         `json:"groups,omitempty" yaml:"groups,omitempty"`
-
+	Groups []*ParameterGroup `json:"groups,omitempty" yaml:"groups,omitempty"`
 }
-
-
 
 // ParameterSpec defines a single parameter specification.
 
 type ParameterSpec struct {
+	Type string `json:"type" yaml:"type"` // string, integer, boolean, object, array
 
-	Type         string        `json:"type" yaml:"type"` // string, integer, boolean, object, array
+	Description string `json:"description" yaml:"description"`
 
-	Description  string        `json:"description" yaml:"description"`
+	Default interface{} `json:"default,omitempty" yaml:"default,omitempty"`
 
-	Default      interface{}   `json:"default,omitempty" yaml:"default,omitempty"`
+	Examples []interface{} `json:"examples,omitempty" yaml:"examples,omitempty"`
 
-	Examples     []interface{} `json:"examples,omitempty" yaml:"examples,omitempty"`
+	Enum []interface{} `json:"enum,omitempty" yaml:"enum,omitempty"`
 
-	Enum         []interface{} `json:"enum,omitempty" yaml:"enum,omitempty"`
+	Pattern string `json:"pattern,omitempty" yaml:"pattern,omitempty"`
 
-	Pattern      string        `json:"pattern,omitempty" yaml:"pattern,omitempty"`
+	Minimum *float64 `json:"minimum,omitempty" yaml:"minimum,omitempty"`
 
-	Minimum      *float64      `json:"minimum,omitempty" yaml:"minimum,omitempty"`
+	Maximum *float64 `json:"maximum,omitempty" yaml:"maximum,omitempty"`
 
-	Maximum      *float64      `json:"maximum,omitempty" yaml:"maximum,omitempty"`
+	MinLength *int `json:"minLength,omitempty" yaml:"minLength,omitempty"`
 
-	MinLength    *int          `json:"minLength,omitempty" yaml:"minLength,omitempty"`
+	MaxLength *int `json:"maxLength,omitempty" yaml:"maxLength,omitempty"`
 
-	MaxLength    *int          `json:"maxLength,omitempty" yaml:"maxLength,omitempty"`
+	Format string `json:"format,omitempty" yaml:"format,omitempty"` // uuid, ipv4, ipv6, etc.
 
-	Format       string        `json:"format,omitempty" yaml:"format,omitempty"` // uuid, ipv4, ipv6, etc.
+	Sensitive bool `json:"sensitive,omitempty" yaml:"sensitive,omitempty"`
 
-	Sensitive    bool          `json:"sensitive,omitempty" yaml:"sensitive,omitempty"`
-
-	Dependencies []string      `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
-
+	Dependencies []string `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
 }
-
-
 
 // ParameterGroup groups related parameters for better UX.
 
 type ParameterGroup struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name        string   `json:"name" yaml:"name"`
+	Description string `json:"description" yaml:"description"`
 
-	Description string   `json:"description" yaml:"description"`
+	Parameters []string `json:"parameters" yaml:"parameters"`
 
-	Parameters  []string `json:"parameters" yaml:"parameters"`
-
-	Conditional string   `json:"conditional,omitempty" yaml:"conditional,omitempty"`
-
+	Conditional string `json:"conditional,omitempty" yaml:"conditional,omitempty"`
 }
 
-
-
 // Template resource definitions.
-
-
 
 // KRMTemplate defines a Kubernetes resource template.
 
 type KRMTemplate struct {
+	APIVersion string `json:"apiVersion" yaml:"apiVersion"`
 
-	APIVersion string                 `json:"apiVersion" yaml:"apiVersion"`
+	Kind string `json:"kind" yaml:"kind"`
 
-	Kind       string                 `json:"kind" yaml:"kind"`
+	Metadata *ResourceMetadata `json:"metadata" yaml:"metadata"`
 
-	Metadata   *ResourceMetadata      `json:"metadata" yaml:"metadata"`
+	Spec map[string]interface{} `json:"spec,omitempty" yaml:"spec,omitempty"`
 
-	Spec       map[string]interface{} `json:"spec,omitempty" yaml:"spec,omitempty"`
+	Data map[string]interface{} `json:"data,omitempty" yaml:"data,omitempty"`
 
-	Data       map[string]interface{} `json:"data,omitempty" yaml:"data,omitempty"`
+	Template string `json:"template,omitempty" yaml:"template,omitempty"` // Go template string
 
-	Template   string                 `json:"template,omitempty" yaml:"template,omitempty"` // Go template string
-
-	Conditions []*RenderCondition     `json:"conditions,omitempty" yaml:"conditions,omitempty"`
-
+	Conditions []*RenderCondition `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 }
-
-
 
 // ResourceMetadata defines metadata for generated resources.
 
 type ResourceMetadata struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name        string            `json:"name" yaml:"name"`
+	Namespace string `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 
-	Namespace   string            `json:"namespace,omitempty" yaml:"namespace,omitempty"`
-
-	Labels      map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	Annotations map[string]string `json:"annotations,omitempty" yaml:"annotations,omitempty"`
-
 }
-
-
 
 // RenderCondition defines when a resource should be included in rendering.
 
 type RenderCondition struct {
-
 	Expression string `json:"expression" yaml:"expression"`
 
-	Action     string `json:"action" yaml:"action"` // include, exclude, warn
+	Action string `json:"action" yaml:"action"` // include, exclude, warn
 
 }
-
-
 
 // FunctionTemplate defines a KRM function template.
 
 type FunctionTemplate struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name       string                 `json:"name" yaml:"name"`
+	Image string `json:"image" yaml:"image"`
 
-	Image      string                 `json:"image" yaml:"image"`
+	ConfigPath string `json:"configPath,omitempty" yaml:"configPath,omitempty"`
 
-	ConfigPath string                 `json:"configPath,omitempty" yaml:"configPath,omitempty"`
+	ConfigMap map[string]interface{} `json:"configMap,omitempty" yaml:"configMap,omitempty"`
 
-	ConfigMap  map[string]interface{} `json:"configMap,omitempty" yaml:"configMap,omitempty"`
+	Type string `json:"type" yaml:"type"` // mutator, validator
 
-	Type       string                 `json:"type" yaml:"type"`   // mutator, validator
+	Stage string `json:"stage" yaml:"stage"` // pre-render, post-render
 
-	Stage      string                 `json:"stage" yaml:"stage"` // pre-render, post-render
-
-	Conditions []*RenderCondition     `json:"conditions,omitempty" yaml:"conditions,omitempty"`
-
+	Conditions []*RenderCondition `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 }
-
-
 
 // ValidationRule defines template validation rules.
 
 type ValidationRule struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name        string             `json:"name" yaml:"name"`
+	Type string `json:"type" yaml:"type"` // yang, policy, custom
 
-	Type        string             `json:"type" yaml:"type"` // yang, policy, custom
+	Rule string `json:"rule" yaml:"rule"`
 
-	Rule        string             `json:"rule" yaml:"rule"`
+	Severity string `json:"severity" yaml:"severity"`
 
-	Severity    string             `json:"severity" yaml:"severity"`
+	Message string `json:"message" yaml:"message"`
 
-	Message     string             `json:"message" yaml:"message"`
+	Remediation string `json:"remediation,omitempty" yaml:"remediation,omitempty"`
 
-	Remediation string             `json:"remediation,omitempty" yaml:"remediation,omitempty"`
-
-	Conditions  []*RenderCondition `json:"conditions,omitempty" yaml:"conditions,omitempty"`
-
+	Conditions []*RenderCondition `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 }
 
-
-
 // O-RAN specific configurations.
-
-
 
 // ORANTemplateConfig defines O-RAN specific template configuration.
 
@@ -563,319 +446,238 @@ type ORANTemplateConfig struct {
 
 	Specifications []*SpecificationRef `json:"specifications" yaml:"specifications"`
 
-
-
 	// O-RAN interfaces configuration.
 
 	Interfaces []*ORANInterface `json:"interfaces" yaml:"interfaces"`
-
-
 
 	// SMO integration.
 
 	SMOIntegration *SMOIntegration `json:"smoIntegration,omitempty" yaml:"smoIntegration,omitempty"`
 
-
-
 	// RIC applications (xApps/rApps).
 
 	RICApplications []*RICApplication `json:"ricApplications,omitempty" yaml:"ricApplications,omitempty"`
 
-
-
 	// Cloud native network functions.
 
 	CNFs []*CNFConfig `json:"cnfs,omitempty" yaml:"cnfs,omitempty"`
-
 }
-
-
 
 // SpecificationRef references an O-RAN specification.
 
 type SpecificationRef struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name     string `json:"name" yaml:"name"`
-
-	Version  string `json:"version" yaml:"version"`
+	Version string `json:"version" yaml:"version"`
 
 	Document string `json:"document" yaml:"document"`
 
-	Section  string `json:"section,omitempty" yaml:"section,omitempty"`
-
+	Section string `json:"section,omitempty" yaml:"section,omitempty"`
 }
-
-
 
 // ORANInterface defines O-RAN interface configuration.
 
 type ORANInterface struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name     string                 `json:"name" yaml:"name"`
+	Type string `json:"type" yaml:"type"` // A1, O1, O2, E2, Open-FH
 
-	Type     string                 `json:"type" yaml:"type"` // A1, O1, O2, E2, Open-FH
+	Version string `json:"version" yaml:"version"`
 
-	Version  string                 `json:"version" yaml:"version"`
+	Endpoint string `json:"endpoint" yaml:"endpoint"`
 
-	Endpoint string                 `json:"endpoint" yaml:"endpoint"`
+	Protocol string `json:"protocol" yaml:"protocol"`
 
-	Protocol string                 `json:"protocol" yaml:"protocol"`
+	Config map[string]interface{} `json:"config" yaml:"config"`
 
-	Config   map[string]interface{} `json:"config" yaml:"config"`
-
-	Security *InterfaceSecurity     `json:"security,omitempty" yaml:"security,omitempty"`
-
+	Security *InterfaceSecurity `json:"security,omitempty" yaml:"security,omitempty"`
 }
-
-
 
 // InterfaceSecurity defines security configuration for O-RAN interfaces.
 
 type InterfaceSecurity struct {
+	TLSEnabled bool `json:"tlsEnabled" yaml:"tlsEnabled"`
 
-	TLSEnabled     bool              `json:"tlsEnabled" yaml:"tlsEnabled"`
+	MTLSEnabled bool `json:"mtlsEnabled" yaml:"mtlsEnabled"`
 
-	MTLSEnabled    bool              `json:"mtlsEnabled" yaml:"mtlsEnabled"`
+	Certificates map[string]string `json:"certificates,omitempty" yaml:"certificates,omitempty"`
 
-	Certificates   map[string]string `json:"certificates,omitempty" yaml:"certificates,omitempty"`
-
-	Authentication *AuthConfig       `json:"authentication,omitempty" yaml:"authentication,omitempty"`
-
+	Authentication *AuthConfig `json:"authentication,omitempty" yaml:"authentication,omitempty"`
 }
-
-
 
 // AuthConfig defines authentication configuration.
 
 type AuthConfig struct {
+	Type string `json:"type" yaml:"type"` // oauth2, jwt, basic
 
-	Type       string            `json:"type" yaml:"type"` // oauth2, jwt, basic
-
-	Config     map[string]string `json:"config" yaml:"config"`
+	Config map[string]string `json:"config" yaml:"config"`
 
 	SecretRefs map[string]string `json:"secretRefs,omitempty" yaml:"secretRefs,omitempty"`
-
 }
-
-
 
 // SMOIntegration defines SMO integration configuration.
 
 type SMOIntegration struct {
+	Enabled bool `json:"enabled" yaml:"enabled"`
 
-	Enabled      bool             `json:"enabled" yaml:"enabled"`
-
-	SMOEndpoint  string           `json:"smoEndpoint" yaml:"smoEndpoint"`
+	SMOEndpoint string `json:"smoEndpoint" yaml:"smoEndpoint"`
 
 	Registration *SMORegistration `json:"registration" yaml:"registration"`
 
-	Monitoring   *SMOMonitoring   `json:"monitoring,omitempty" yaml:"monitoring,omitempty"`
-
+	Monitoring *SMOMonitoring `json:"monitoring,omitempty" yaml:"monitoring,omitempty"`
 }
-
-
 
 // SMORegistration defines SMO registration configuration.
 
 type SMORegistration struct {
-
-	RegistryURL string            `json:"registryUrl" yaml:"registryUrl"`
+	RegistryURL string `json:"registryUrl" yaml:"registryUrl"`
 
 	Credentials map[string]string `json:"credentials" yaml:"credentials"`
 
-	Metadata    map[string]string `json:"metadata" yaml:"metadata"`
-
+	Metadata map[string]string `json:"metadata" yaml:"metadata"`
 }
-
-
 
 // SMOMonitoring defines SMO monitoring configuration.
 
 type SMOMonitoring struct {
+	Enabled bool `json:"enabled" yaml:"enabled"`
 
-	Enabled       bool            `json:"enabled" yaml:"enabled"`
+	MetricsURL string `json:"metricsUrl" yaml:"metricsUrl"`
 
-	MetricsURL    string          `json:"metricsUrl" yaml:"metricsUrl"`
-
-	LoggingURL    string          `json:"loggingUrl" yaml:"loggingUrl"`
+	LoggingURL string `json:"loggingUrl" yaml:"loggingUrl"`
 
 	AlertingRules []*AlertingRule `json:"alertingRules,omitempty" yaml:"alertingRules,omitempty"`
-
 }
-
-
 
 // AlertingRule defines monitoring alerting rules.
 
 type AlertingRule struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name        string            `json:"name" yaml:"name"`
+	Expression string `json:"expression" yaml:"expression"`
 
-	Expression  string            `json:"expression" yaml:"expression"`
+	Severity string `json:"severity" yaml:"severity"`
 
-	Severity    string            `json:"severity" yaml:"severity"`
+	Description string `json:"description" yaml:"description"`
 
-	Description string            `json:"description" yaml:"description"`
-
-	Labels      map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-
+	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
-
-
 
 // RICApplication defines RIC application configuration.
 
 type RICApplication struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name         string                 `json:"name" yaml:"name"`
+	Type string `json:"type" yaml:"type"` // xApp, rApp
 
-	Type         string                 `json:"type" yaml:"type"` // xApp, rApp
+	Version string `json:"version" yaml:"version"`
 
-	Version      string                 `json:"version" yaml:"version"`
+	Image string `json:"image" yaml:"image"`
 
-	Image        string                 `json:"image" yaml:"image"`
+	Config map[string]interface{} `json:"config" yaml:"config"`
 
-	Config       map[string]interface{} `json:"config" yaml:"config"`
+	Dependencies []string `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
 
-	Dependencies []string               `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
-
-	Resources    *ResourceRequirements  `json:"resources,omitempty" yaml:"resources,omitempty"`
-
+	Resources *ResourceRequirements `json:"resources,omitempty" yaml:"resources,omitempty"`
 }
-
-
 
 // ResourceRequirements defines resource requirements.
 
 type ResourceRequirements struct {
+	CPU *resource.Quantity `json:"cpu,omitempty" yaml:"cpu,omitempty"`
 
-	CPU     *resource.Quantity `json:"cpu,omitempty" yaml:"cpu,omitempty"`
-
-	Memory  *resource.Quantity `json:"memory,omitempty" yaml:"memory,omitempty"`
+	Memory *resource.Quantity `json:"memory,omitempty" yaml:"memory,omitempty"`
 
 	Storage *resource.Quantity `json:"storage,omitempty" yaml:"storage,omitempty"`
 
-	Limits  *ResourceLimits    `json:"limits,omitempty" yaml:"limits,omitempty"`
-
+	Limits *ResourceLimits `json:"limits,omitempty" yaml:"limits,omitempty"`
 }
-
-
 
 // ResourceLimits defines resource limits.
 
 type ResourceLimits struct {
-
-	CPU    *resource.Quantity `json:"cpu,omitempty" yaml:"cpu,omitempty"`
+	CPU *resource.Quantity `json:"cpu,omitempty" yaml:"cpu,omitempty"`
 
 	Memory *resource.Quantity `json:"memory,omitempty" yaml:"memory,omitempty"`
-
 }
-
-
 
 // CNFConfig defines Cloud Native Network Function configuration.
 
 type CNFConfig struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name            string                   `json:"name" yaml:"name"`
+	Helm *HelmConfig `json:"helm,omitempty" yaml:"helm,omitempty"`
 
-	Helm            *HelmConfig              `json:"helm,omitempty" yaml:"helm,omitempty"`
+	Operator *OperatorConfig `json:"operator,omitempty" yaml:"operator,omitempty"`
 
-	Operator        *OperatorConfig          `json:"operator,omitempty" yaml:"operator,omitempty"`
+	ConfigMaps []*ConfigMapTemplate `json:"configMaps,omitempty" yaml:"configMaps,omitempty"`
 
-	ConfigMaps      []*ConfigMapTemplate     `json:"configMaps,omitempty" yaml:"configMaps,omitempty"`
-
-	Secrets         []*SecretTemplate        `json:"secrets,omitempty" yaml:"secrets,omitempty"`
+	Secrets []*SecretTemplate `json:"secrets,omitempty" yaml:"secrets,omitempty"`
 
 	NetworkPolicies []*NetworkPolicyTemplate `json:"networkPolicies,omitempty" yaml:"networkPolicies,omitempty"`
-
 }
-
-
 
 // HelmConfig defines Helm chart configuration.
 
 type HelmConfig struct {
+	Chart string `json:"chart" yaml:"chart"`
 
-	Chart     string                 `json:"chart" yaml:"chart"`
+	Version string `json:"version" yaml:"version"`
 
-	Version   string                 `json:"version" yaml:"version"`
+	Values map[string]interface{} `json:"values" yaml:"values"`
 
-	Values    map[string]interface{} `json:"values" yaml:"values"`
-
-	Variables map[string]string      `json:"variables,omitempty" yaml:"variables,omitempty"`
-
+	Variables map[string]string `json:"variables,omitempty" yaml:"variables,omitempty"`
 }
-
-
 
 // OperatorConfig defines Kubernetes operator configuration.
 
 type OperatorConfig struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name      string                 `json:"name" yaml:"name"`
+	Namespace string `json:"namespace" yaml:"namespace"`
 
-	Namespace string                 `json:"namespace" yaml:"namespace"`
+	CRD string `json:"crd" yaml:"crd"`
 
-	CRD       string                 `json:"crd" yaml:"crd"`
-
-	Config    map[string]interface{} `json:"config" yaml:"config"`
-
+	Config map[string]interface{} `json:"config" yaml:"config"`
 }
-
-
 
 // ConfigMapTemplate defines ConfigMap template.
 
 type ConfigMapTemplate struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name      string            `json:"name" yaml:"name"`
+	Namespace string `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 
-	Namespace string            `json:"namespace,omitempty" yaml:"namespace,omitempty"`
+	Data map[string]string `json:"data" yaml:"data"`
 
-	Data      map[string]string `json:"data" yaml:"data"`
-
-	Template  bool              `json:"template,omitempty" yaml:"template,omitempty"`
-
+	Template bool `json:"template,omitempty" yaml:"template,omitempty"`
 }
-
-
 
 // SecretTemplate defines Secret template.
 
 type SecretTemplate struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name      string            `json:"name" yaml:"name"`
+	Namespace string `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 
-	Namespace string            `json:"namespace,omitempty" yaml:"namespace,omitempty"`
+	Type string `json:"type" yaml:"type"`
 
-	Type      string            `json:"type" yaml:"type"`
+	Data map[string]string `json:"data" yaml:"data"`
 
-	Data      map[string]string `json:"data" yaml:"data"`
-
-	Template  bool              `json:"template,omitempty" yaml:"template,omitempty"`
-
+	Template bool `json:"template,omitempty" yaml:"template,omitempty"`
 }
-
-
 
 // NetworkPolicyTemplate defines NetworkPolicy template.
 
 type NetworkPolicyTemplate struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name      string                 `json:"name" yaml:"name"`
+	Namespace string `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 
-	Namespace string                 `json:"namespace,omitempty" yaml:"namespace,omitempty"`
-
-	Spec      map[string]interface{} `json:"spec" yaml:"spec"`
-
+	Spec map[string]interface{} `json:"spec" yaml:"spec"`
 }
 
-
-
 // 5G Core specific configurations.
-
-
 
 // FiveGTemplateConfig defines 5G Core specific template configuration.
 
@@ -885,1083 +687,809 @@ type FiveGTemplateConfig struct {
 
 	NetworkFunctions []*NetworkFunction `json:"networkFunctions" yaml:"networkFunctions"`
 
-
-
 	// Network slicing configuration.
 
 	NetworkSlicing *NetworkSlicingConfig `json:"networkSlicing,omitempty" yaml:"networkSlicing,omitempty"`
-
-
 
 	// QoS configuration.
 
 	QoSConfiguration *QoSConfiguration `json:"qosConfiguration,omitempty" yaml:"qosConfiguration,omitempty"`
 
-
-
 	// Security configuration.
 
 	Security *SecurityConfig `json:"security,omitempty" yaml:"security,omitempty"`
 
-
-
 	// Service-based architecture.
 
 	SBA *SBAConfig `json:"sba,omitempty" yaml:"sba,omitempty"`
-
 }
-
-
 
 // NetworkFunction defines 5G Core network function configuration.
 
 type NetworkFunction struct {
+	Type nephoranv1.ORANComponent `json:"type" yaml:"type"`
 
-	Type             nephoranv1.ORANComponent `json:"type" yaml:"type"`
+	Version string `json:"version" yaml:"version"`
 
-	Version          string                   `json:"version" yaml:"version"`
+	Configuration map[string]interface{} `json:"configuration" yaml:"configuration"`
 
-	Configuration    map[string]interface{}   `json:"configuration" yaml:"configuration"`
+	Interfaces []*NFInterface `json:"interfaces" yaml:"interfaces"`
 
-	Interfaces       []*NFInterface           `json:"interfaces" yaml:"interfaces"`
+	Resources *ResourceRequirements `json:"resources,omitempty" yaml:"resources,omitempty"`
 
-	Resources        *ResourceRequirements    `json:"resources,omitempty" yaml:"resources,omitempty"`
-
-	HighAvailability *HAConfig                `json:"highAvailability,omitempty" yaml:"highAvailability,omitempty"`
-
+	HighAvailability *HAConfig `json:"highAvailability,omitempty" yaml:"highAvailability,omitempty"`
 }
-
-
 
 // NFInterface defines network function interface.
 
 type NFInterface struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name     string                 `json:"name" yaml:"name"`
+	Type string `json:"type" yaml:"type"` // SBI, N1, N2, N3, etc.
 
-	Type     string                 `json:"type" yaml:"type"` // SBI, N1, N2, N3, etc.
+	Protocol string `json:"protocol" yaml:"protocol"`
 
-	Protocol string                 `json:"protocol" yaml:"protocol"`
-
-	Config   map[string]interface{} `json:"config" yaml:"config"`
-
+	Config map[string]interface{} `json:"config" yaml:"config"`
 }
-
-
 
 // HAConfig defines high availability configuration.
 
 type HAConfig struct {
+	Enabled bool `json:"enabled" yaml:"enabled"`
 
-	Enabled      bool   `json:"enabled" yaml:"enabled"`
+	Replicas int32 `json:"replicas" yaml:"replicas"`
 
-	Replicas     int32  `json:"replicas" yaml:"replicas"`
+	Strategy string `json:"strategy" yaml:"strategy"` // active-passive, active-active
 
-	Strategy     string `json:"strategy" yaml:"strategy"` // active-passive, active-active
-
-	AntiAffinity bool   `json:"antiAffinity" yaml:"antiAffinity"`
-
+	AntiAffinity bool `json:"antiAffinity" yaml:"antiAffinity"`
 }
-
-
 
 // NetworkSlicingConfig defines network slicing configuration.
 
 type NetworkSlicingConfig struct {
-
-	Enabled        bool             `json:"enabled" yaml:"enabled"`
+	Enabled bool `json:"enabled" yaml:"enabled"`
 
 	SliceTemplates []*SliceTemplate `json:"sliceTemplates" yaml:"sliceTemplates"`
 
-	Isolation      *IsolationConfig `json:"isolation,omitempty" yaml:"isolation,omitempty"`
-
+	Isolation *IsolationConfig `json:"isolation,omitempty" yaml:"isolation,omitempty"`
 }
-
-
 
 // SliceTemplate defines network slice template.
 
 type SliceTemplate struct {
+	ID string `json:"id" yaml:"id"`
 
-	ID        string                 `json:"id" yaml:"id"`
+	Type string `json:"type" yaml:"type"` // eMBB, URLLC, mMTC
 
-	Type      string                 `json:"type" yaml:"type"` // eMBB, URLLC, mMTC
+	SLA *SLAConfig `json:"sla" yaml:"sla"`
 
-	SLA       *SLAConfig             `json:"sla" yaml:"sla"`
+	QoS *QoSConfig `json:"qos" yaml:"qos"`
 
-	QoS       *QoSConfig             `json:"qos" yaml:"qos"`
+	Resources *SliceResources `json:"resources" yaml:"resources"`
 
-	Resources *SliceResources        `json:"resources" yaml:"resources"`
-
-	Config    map[string]interface{} `json:"config" yaml:"config"`
-
+	Config map[string]interface{} `json:"config" yaml:"config"`
 }
-
-
 
 // SLAConfig defines service level agreement configuration.
 
 type SLAConfig struct {
+	Latency *LatencyRequirement `json:"latency,omitempty" yaml:"latency,omitempty"`
 
-	Latency      *LatencyRequirement      `json:"latency,omitempty" yaml:"latency,omitempty"`
-
-	Throughput   *ThroughputRequirement   `json:"throughput,omitempty" yaml:"throughput,omitempty"`
+	Throughput *ThroughputRequirement `json:"throughput,omitempty" yaml:"throughput,omitempty"`
 
 	Availability *AvailabilityRequirement `json:"availability,omitempty" yaml:"availability,omitempty"`
 
-	Reliability  *ReliabilityRequirement  `json:"reliability,omitempty" yaml:"reliability,omitempty"`
-
+	Reliability *ReliabilityRequirement `json:"reliability,omitempty" yaml:"reliability,omitempty"`
 }
-
-
 
 // LatencyRequirement defines latency requirements.
 
 type LatencyRequirement struct {
-
-	MaxLatency     *metav1.Duration `json:"maxLatency" yaml:"maxLatency"`
+	MaxLatency *metav1.Duration `json:"maxLatency" yaml:"maxLatency"`
 
 	TypicalLatency *metav1.Duration `json:"typicalLatency,omitempty" yaml:"typicalLatency,omitempty"`
 
-	Percentile     float64          `json:"percentile,omitempty" yaml:"percentile,omitempty"`
-
+	Percentile float64 `json:"percentile,omitempty" yaml:"percentile,omitempty"`
 }
-
-
 
 // ThroughputRequirement defines throughput requirements.
 
 type ThroughputRequirement struct {
-
 	MinDownlink *resource.Quantity `json:"minDownlink,omitempty" yaml:"minDownlink,omitempty"`
 
-	MinUplink   *resource.Quantity `json:"minUplink,omitempty" yaml:"minUplink,omitempty"`
+	MinUplink *resource.Quantity `json:"minUplink,omitempty" yaml:"minUplink,omitempty"`
 
 	MaxDownlink *resource.Quantity `json:"maxDownlink,omitempty" yaml:"maxDownlink,omitempty"`
 
-	MaxUplink   *resource.Quantity `json:"maxUplink,omitempty" yaml:"maxUplink,omitempty"`
+	MaxUplink *resource.Quantity `json:"maxUplink,omitempty" yaml:"maxUplink,omitempty"`
 
-	UserDensity int32              `json:"userDensity,omitempty" yaml:"userDensity,omitempty"`
-
+	UserDensity int32 `json:"userDensity,omitempty" yaml:"userDensity,omitempty"`
 }
-
-
 
 // AvailabilityRequirement defines availability requirements.
 
 type AvailabilityRequirement struct {
+	Target float64 `json:"target" yaml:"target"` // 0.999, 0.9999, etc.
 
-	Target       float64          `json:"target" yaml:"target"` // 0.999, 0.9999, etc.
+	ServiceLevel string `json:"serviceLevel,omitempty" yaml:"serviceLevel,omitempty"`
 
-	ServiceLevel string           `json:"serviceLevel,omitempty" yaml:"serviceLevel,omitempty"`
-
-	Downtime     *metav1.Duration `json:"downtime,omitempty" yaml:"downtime,omitempty"`
-
+	Downtime *metav1.Duration `json:"downtime,omitempty" yaml:"downtime,omitempty"`
 }
-
-
 
 // ReliabilityRequirement defines reliability requirements.
 
 type ReliabilityRequirement struct {
+	SuccessRate float64 `json:"successRate" yaml:"successRate"`
 
-	SuccessRate             float64          `json:"successRate" yaml:"successRate"`
-
-	ErrorRate               float64          `json:"errorRate,omitempty" yaml:"errorRate,omitempty"`
+	ErrorRate float64 `json:"errorRate,omitempty" yaml:"errorRate,omitempty"`
 
 	MeanTimeBetweenFailures *metav1.Duration `json:"mtbf,omitempty" yaml:"mtbf,omitempty"`
 
-	MeanTimeToRepair        *metav1.Duration `json:"mttr,omitempty" yaml:"mttr,omitempty"`
-
+	MeanTimeToRepair *metav1.Duration `json:"mttr,omitempty" yaml:"mttr,omitempty"`
 }
-
-
 
 // QoSConfig and QoSConfiguration define QoS settings.
 
 type QoSConfig struct {
+	FiveQI int32 `json:"5qi,omitempty" yaml:"5qi,omitempty"`
 
-	FiveQI            int32  `json:"5qi,omitempty" yaml:"5qi,omitempty"`
+	PriorityLevel int32 `json:"priorityLevel,omitempty" yaml:"priorityLevel,omitempty"`
 
-	PriorityLevel     int32  `json:"priorityLevel,omitempty" yaml:"priorityLevel,omitempty"`
+	PacketDelayBudget int32 `json:"packetDelayBudget,omitempty" yaml:"packetDelayBudget,omitempty"`
 
-	PacketDelayBudget int32  `json:"packetDelayBudget,omitempty" yaml:"packetDelayBudget,omitempty"`
-
-	PacketErrorRate   string `json:"packetErrorRate,omitempty" yaml:"packetErrorRate,omitempty"`
-
+	PacketErrorRate string `json:"packetErrorRate,omitempty" yaml:"packetErrorRate,omitempty"`
 }
-
-
 
 // QoSConfiguration represents a qosconfiguration.
 
 type QoSConfiguration struct {
-
 	Profiles []*QoSProfile `json:"profiles" yaml:"profiles"`
 
-	Rules    []*QoSRule    `json:"rules,omitempty" yaml:"rules,omitempty"`
-
+	Rules []*QoSRule `json:"rules,omitempty" yaml:"rules,omitempty"`
 }
-
-
 
 // QoSProfile defines QoS profile.
 
 type QoSProfile struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name        string          `json:"name" yaml:"name"`
+	Description string `json:"description" yaml:"description"`
 
-	Description string          `json:"description" yaml:"description"`
+	QoS *QoSConfig `json:"qos" yaml:"qos"`
 
-	QoS         *QoSConfig      `json:"qos" yaml:"qos"`
-
-	Conditions  []*QoSCondition `json:"conditions,omitempty" yaml:"conditions,omitempty"`
-
+	Conditions []*QoSCondition `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 }
-
-
 
 // QoSRule defines QoS rule.
 
 type QoSRule struct {
+	ID string `json:"id" yaml:"id"`
 
-	ID          string          `json:"id" yaml:"id"`
+	Description string `json:"description" yaml:"description"`
 
-	Description string          `json:"description" yaml:"description"`
+	Conditions []*QoSCondition `json:"conditions" yaml:"conditions"`
 
-	Conditions  []*QoSCondition `json:"conditions" yaml:"conditions"`
-
-	Actions     []*QoSAction    `json:"actions" yaml:"actions"`
-
+	Actions []*QoSAction `json:"actions" yaml:"actions"`
 }
-
-
 
 // QoSCondition defines QoS condition.
 
 type QoSCondition struct {
+	Field string `json:"field" yaml:"field"`
 
-	Field    string      `json:"field" yaml:"field"`
+	Operator string `json:"operator" yaml:"operator"`
 
-	Operator string      `json:"operator" yaml:"operator"`
-
-	Value    interface{} `json:"value" yaml:"value"`
-
+	Value interface{} `json:"value" yaml:"value"`
 }
-
-
 
 // QoSAction defines QoS action.
 
 type QoSAction struct {
-
-	Type   string      `json:"type" yaml:"type"`
+	Type string `json:"type" yaml:"type"`
 
 	Config interface{} `json:"config" yaml:"config"`
-
 }
-
-
 
 // SliceResources defines slice-specific resource requirements.
 
 type SliceResources struct {
+	CPU *resource.Quantity `json:"cpu,omitempty" yaml:"cpu,omitempty"`
 
-	CPU         *resource.Quantity `json:"cpu,omitempty" yaml:"cpu,omitempty"`
+	Memory *resource.Quantity `json:"memory,omitempty" yaml:"memory,omitempty"`
 
-	Memory      *resource.Quantity `json:"memory,omitempty" yaml:"memory,omitempty"`
+	Storage *resource.Quantity `json:"storage,omitempty" yaml:"storage,omitempty"`
 
-	Storage     *resource.Quantity `json:"storage,omitempty" yaml:"storage,omitempty"`
+	Bandwidth *resource.Quantity `json:"bandwidth,omitempty" yaml:"bandwidth,omitempty"`
 
-	Bandwidth   *resource.Quantity `json:"bandwidth,omitempty" yaml:"bandwidth,omitempty"`
-
-	Connections int32              `json:"connections,omitempty" yaml:"connections,omitempty"`
-
+	Connections int32 `json:"connections,omitempty" yaml:"connections,omitempty"`
 }
-
-
 
 // IsolationConfig defines isolation configuration.
 
 type IsolationConfig struct {
-
-	Level      string   `json:"level" yaml:"level"` // physical, logical, none
+	Level string `json:"level" yaml:"level"` // physical, logical, none
 
 	Mechanisms []string `json:"mechanisms,omitempty" yaml:"mechanisms,omitempty"`
 
-	Encryption bool     `json:"encryption,omitempty" yaml:"encryption,omitempty"`
-
+	Encryption bool `json:"encryption,omitempty" yaml:"encryption,omitempty"`
 }
-
-
 
 // SecurityConfig defines security configuration.
 
 type SecurityConfig struct {
-
-	Encryption     *EncryptionConfig     `json:"encryption,omitempty" yaml:"encryption,omitempty"`
+	Encryption *EncryptionConfig `json:"encryption,omitempty" yaml:"encryption,omitempty"`
 
 	Authentication *AuthenticationConfig `json:"authentication,omitempty" yaml:"authentication,omitempty"`
 
-	Authorization  *AuthorizationConfig  `json:"authorization,omitempty" yaml:"authorization,omitempty"`
+	Authorization *AuthorizationConfig `json:"authorization,omitempty" yaml:"authorization,omitempty"`
 
-	Certificates   *CertificateConfig    `json:"certificates,omitempty" yaml:"certificates,omitempty"`
-
+	Certificates *CertificateConfig `json:"certificates,omitempty" yaml:"certificates,omitempty"`
 }
-
-
 
 // EncryptionConfig defines encryption configuration.
 
 type EncryptionConfig struct {
+	InTransit bool `json:"inTransit" yaml:"inTransit"`
 
-	InTransit     bool           `json:"inTransit" yaml:"inTransit"`
+	AtRest bool `json:"atRest" yaml:"atRest"`
 
-	AtRest        bool           `json:"atRest" yaml:"atRest"`
-
-	Algorithms    []string       `json:"algorithms" yaml:"algorithms"`
+	Algorithms []string `json:"algorithms" yaml:"algorithms"`
 
 	KeyManagement *KeyManagement `json:"keyManagement,omitempty" yaml:"keyManagement,omitempty"`
-
 }
-
-
 
 // KeyManagement defines key management configuration.
 
 type KeyManagement struct {
+	Type string `json:"type" yaml:"type"` // vault, k8s-secrets, external
 
-	Type     string            `json:"type" yaml:"type"` // vault, k8s-secrets, external
+	Config map[string]string `json:"config" yaml:"config"`
 
-	Config   map[string]string `json:"config" yaml:"config"`
-
-	Rotation *KeyRotation      `json:"rotation,omitempty" yaml:"rotation,omitempty"`
-
+	Rotation *KeyRotation `json:"rotation,omitempty" yaml:"rotation,omitempty"`
 }
-
-
 
 // KeyRotation defines key rotation policy.
 
 type KeyRotation struct {
-
-	Enabled  bool             `json:"enabled" yaml:"enabled"`
+	Enabled bool `json:"enabled" yaml:"enabled"`
 
 	Interval *metav1.Duration `json:"interval" yaml:"interval"`
 
-	Policy   string           `json:"policy" yaml:"policy"`
-
+	Policy string `json:"policy" yaml:"policy"`
 }
-
-
 
 // AuthenticationConfig defines authentication configuration.
 
 type AuthenticationConfig struct {
+	Methods []string `json:"methods" yaml:"methods"`
 
-	Methods         []string        `json:"methods" yaml:"methods"`
+	Providers []*AuthProvider `json:"providers" yaml:"providers"`
 
-	Providers       []*AuthProvider `json:"providers" yaml:"providers"`
-
-	MultiFactorAuth bool            `json:"multiFactorAuth,omitempty" yaml:"multiFactorAuth,omitempty"`
-
+	MultiFactorAuth bool `json:"multiFactorAuth,omitempty" yaml:"multiFactorAuth,omitempty"`
 }
-
-
 
 // AuthProvider defines authentication provider.
 
 type AuthProvider struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name     string            `json:"name" yaml:"name"`
+	Type string `json:"type" yaml:"type"`
 
-	Type     string            `json:"type" yaml:"type"`
+	Config map[string]string `json:"config" yaml:"config"`
 
-	Config   map[string]string `json:"config" yaml:"config"`
-
-	Priority int               `json:"priority,omitempty" yaml:"priority,omitempty"`
-
+	Priority int `json:"priority,omitempty" yaml:"priority,omitempty"`
 }
-
-
 
 // AuthorizationConfig defines authorization configuration.
 
 type AuthorizationConfig struct {
-
-	RBAC     *RBACConfig     `json:"rbac,omitempty" yaml:"rbac,omitempty"`
+	RBAC *RBACConfig `json:"rbac,omitempty" yaml:"rbac,omitempty"`
 
 	Policies []*PolicyConfig `json:"policies,omitempty" yaml:"policies,omitempty"`
-
 }
-
-
 
 // RBACConfig defines RBAC configuration.
 
 type RBACConfig struct {
+	Enabled bool `json:"enabled" yaml:"enabled"`
 
-	Enabled  bool             `json:"enabled" yaml:"enabled"`
-
-	Roles    []*RoleConfig    `json:"roles" yaml:"roles"`
+	Roles []*RoleConfig `json:"roles" yaml:"roles"`
 
 	Bindings []*BindingConfig `json:"bindings" yaml:"bindings"`
-
 }
-
-
 
 // RoleConfig defines role configuration.
 
 type RoleConfig struct {
-
-	Name        string              `json:"name" yaml:"name"`
+	Name string `json:"name" yaml:"name"`
 
 	Permissions []*PermissionConfig `json:"permissions" yaml:"permissions"`
-
 }
-
-
 
 // PermissionConfig defines permission configuration.
 
 type PermissionConfig struct {
+	Resource string `json:"resource" yaml:"resource"`
 
-	Resource string   `json:"resource" yaml:"resource"`
-
-	Actions  []string `json:"actions" yaml:"actions"`
-
+	Actions []string `json:"actions" yaml:"actions"`
 }
-
-
 
 // BindingConfig defines role binding configuration.
 
 type BindingConfig struct {
-
-	Role     string   `json:"role" yaml:"role"`
+	Role string `json:"role" yaml:"role"`
 
 	Subjects []string `json:"subjects" yaml:"subjects"`
-
 }
-
-
 
 // PolicyConfig defines policy configuration.
 
 type PolicyConfig struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name   string      `json:"name" yaml:"name"`
-
-	Type   string      `json:"type" yaml:"type"`
+	Type string `json:"type" yaml:"type"`
 
 	Policy interface{} `json:"policy" yaml:"policy"`
-
 }
-
-
 
 // CertificateConfig defines certificate configuration.
 
 type CertificateConfig struct {
-
-	CA           *CAConfig     `json:"ca,omitempty" yaml:"ca,omitempty"`
+	CA *CAConfig `json:"ca,omitempty" yaml:"ca,omitempty"`
 
 	Certificates []*CertConfig `json:"certificates" yaml:"certificates"`
 
 	AutoRotation *CertRotation `json:"autoRotation,omitempty" yaml:"autoRotation,omitempty"`
-
 }
-
-
 
 // CAConfig defines certificate authority configuration.
 
 type CAConfig struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name   string            `json:"name" yaml:"name"`
-
-	Type   string            `json:"type" yaml:"type"` // self-signed, external, vault
+	Type string `json:"type" yaml:"type"` // self-signed, external, vault
 
 	Config map[string]string `json:"config" yaml:"config"`
-
 }
-
-
 
 // CertConfig defines certificate configuration.
 
 type CertConfig struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name     string           `json:"name" yaml:"name"`
+	Subject *Subject `json:"subject" yaml:"subject"`
 
-	Subject  *Subject         `json:"subject" yaml:"subject"`
-
-	Usage    []string         `json:"usage" yaml:"usage"`
+	Usage []string `json:"usage" yaml:"usage"`
 
 	Validity *metav1.Duration `json:"validity" yaml:"validity"`
-
 }
-
-
 
 // Subject defines certificate subject.
 
 type Subject struct {
-
-	CommonName   string `json:"commonName" yaml:"commonName"`
+	CommonName string `json:"commonName" yaml:"commonName"`
 
 	Organization string `json:"organization" yaml:"organization"`
 
-	Country      string `json:"country" yaml:"country"`
-
+	Country string `json:"country" yaml:"country"`
 }
-
-
 
 // CertRotation defines certificate rotation configuration.
 
 type CertRotation struct {
-
-	Enabled       bool             `json:"enabled" yaml:"enabled"`
+	Enabled bool `json:"enabled" yaml:"enabled"`
 
 	RenewalBefore *metav1.Duration `json:"renewalBefore" yaml:"renewalBefore"`
-
 }
-
-
 
 // SBAConfig defines Service-Based Architecture configuration.
 
 type SBAConfig struct {
-
 	ServiceRegistry *ServiceRegistry `json:"serviceRegistry" yaml:"serviceRegistry"`
 
-	ServiceMesh     *ServiceMesh     `json:"serviceMesh,omitempty" yaml:"serviceMesh,omitempty"`
+	ServiceMesh *ServiceMesh `json:"serviceMesh,omitempty" yaml:"serviceMesh,omitempty"`
 
-	LoadBalancing   *LoadBalancing   `json:"loadBalancing,omitempty" yaml:"loadBalancing,omitempty"`
-
+	LoadBalancing *LoadBalancing `json:"loadBalancing,omitempty" yaml:"loadBalancing,omitempty"`
 }
-
-
 
 // ServiceRegistry defines service registry configuration.
 
 type ServiceRegistry struct {
+	Type string `json:"type" yaml:"type"` // consul, etcd, kubernetes
 
-	Type     string            `json:"type" yaml:"type"` // consul, etcd, kubernetes
+	Config map[string]string `json:"config" yaml:"config"`
 
-	Config   map[string]string `json:"config" yaml:"config"`
-
-	Security *SecurityConfig   `json:"security,omitempty" yaml:"security,omitempty"`
-
+	Security *SecurityConfig `json:"security,omitempty" yaml:"security,omitempty"`
 }
-
-
 
 // ServiceMesh defines service mesh configuration.
 
 type ServiceMesh struct {
+	Enabled bool `json:"enabled" yaml:"enabled"`
 
-	Enabled bool              `json:"enabled" yaml:"enabled"`
+	Type string `json:"type" yaml:"type"` // istio, linkerd, consul-connect
 
-	Type    string            `json:"type" yaml:"type"` // istio, linkerd, consul-connect
-
-	Config  map[string]string `json:"config" yaml:"config"`
-
+	Config map[string]string `json:"config" yaml:"config"`
 }
-
-
 
 // LoadBalancing defines load balancing configuration.
 
 type LoadBalancing struct {
+	Algorithm string `json:"algorithm" yaml:"algorithm"`
 
-	Algorithm string            `json:"algorithm" yaml:"algorithm"`
-
-	Config    map[string]string `json:"config" yaml:"config"`
-
+	Config map[string]string `json:"config" yaml:"config"`
 }
 
-
-
 // Multi-vendor support.
-
-
 
 // VendorVariant defines vendor-specific template variations.
 
 type VendorVariant struct {
+	Vendor string `json:"vendor" yaml:"vendor"`
 
-	Vendor    string                 `json:"vendor" yaml:"vendor"`
-
-	Version   string                 `json:"version" yaml:"version"`
+	Version string `json:"version" yaml:"version"`
 
 	Overrides map[string]interface{} `json:"overrides" yaml:"overrides"`
 
-	Resources []*KRMTemplate         `json:"resources,omitempty" yaml:"resources,omitempty"`
+	Resources []*KRMTemplate `json:"resources,omitempty" yaml:"resources,omitempty"`
 
-	Functions []*FunctionTemplate    `json:"functions,omitempty" yaml:"functions,omitempty"`
+	Functions []*FunctionTemplate `json:"functions,omitempty" yaml:"functions,omitempty"`
 
-	Config    map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
-
+	Config map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
 }
 
-
-
 // Template extensions and composition.
-
-
 
 // TemplateExtension defines template extensions.
 
 type TemplateExtension struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name       string                 `json:"name" yaml:"name"`
+	Type string `json:"type" yaml:"type"` // addon, plugin, overlay
 
-	Type       string                 `json:"type" yaml:"type"` // addon, plugin, overlay
+	Config map[string]interface{} `json:"config" yaml:"config"`
 
-	Config     map[string]interface{} `json:"config" yaml:"config"`
+	Resources []*KRMTemplate `json:"resources,omitempty" yaml:"resources,omitempty"`
 
-	Resources  []*KRMTemplate         `json:"resources,omitempty" yaml:"resources,omitempty"`
+	Functions []*FunctionTemplate `json:"functions,omitempty" yaml:"functions,omitempty"`
 
-	Functions  []*FunctionTemplate    `json:"functions,omitempty" yaml:"functions,omitempty"`
-
-	Conditions []*RenderCondition     `json:"conditions,omitempty" yaml:"conditions,omitempty"`
-
+	Conditions []*RenderCondition `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 }
-
-
 
 // TemplateComposition defines how multiple templates are composed.
 
 type TemplateComposition struct {
+	TemplateID string `json:"templateId" yaml:"templateId"`
 
-	TemplateID   string                 `json:"templateId" yaml:"templateId"`
+	Parameters map[string]interface{} `json:"parameters" yaml:"parameters"`
 
-	Parameters   map[string]interface{} `json:"parameters" yaml:"parameters"`
+	Overrides map[string]interface{} `json:"overrides,omitempty" yaml:"overrides,omitempty"`
 
-	Overrides    map[string]interface{} `json:"overrides,omitempty" yaml:"overrides,omitempty"`
+	Dependencies []string `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
 
-	Dependencies []string               `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
-
-	Order        int                    `json:"order" yaml:"order"`
-
+	Order int `json:"order" yaml:"order"`
 }
-
-
 
 // CompositeTemplate represents a composed template from multiple base templates.
 
 type CompositeTemplate struct {
+	ID string `json:"id" yaml:"id"`
 
-	ID          string                 `json:"id" yaml:"id"`
+	Name string `json:"name" yaml:"name"`
 
-	Name        string                 `json:"name" yaml:"name"`
+	Description string `json:"description" yaml:"description"`
 
-	Description string                 `json:"description" yaml:"description"`
+	Components []*TemplateComposition `json:"components" yaml:"components"`
 
-	Components  []*TemplateComposition `json:"components" yaml:"components"`
+	Schema *ParameterSchema `json:"schema" yaml:"schema"`
 
-	Schema      *ParameterSchema       `json:"schema" yaml:"schema"`
+	Resources []*KRMTemplate `json:"resources" yaml:"resources"`
 
-	Resources   []*KRMTemplate         `json:"resources" yaml:"resources"`
+	Functions []*FunctionTemplate `json:"functions" yaml:"functions"`
 
-	Functions   []*FunctionTemplate    `json:"functions" yaml:"functions"`
-
-	Validations []*ValidationRule      `json:"validations" yaml:"validations"`
-
+	Validations []*ValidationRule `json:"validations" yaml:"validations"`
 }
 
-
-
 // Template catalog and management.
-
-
 
 // TemplateCatalog manages the template repository.
 
 type TemplateCatalog struct {
+	Repository string `json:"repository" yaml:"repository"`
 
-	Repository string                                    `json:"repository" yaml:"repository"`
+	Branch string `json:"branch" yaml:"branch"`
 
-	Branch     string                                    `json:"branch" yaml:"branch"`
-
-	Templates  map[string]*BlueprintTemplate             `json:"templates" yaml:"-"`
+	Templates map[string]*BlueprintTemplate `json:"templates" yaml:"-"`
 
 	Categories map[TemplateCategory][]*BlueprintTemplate `json:"categories" yaml:"-"`
 
-	Index      *TemplateIndex                            `json:"index" yaml:"index"`
+	Index *TemplateIndex `json:"index" yaml:"index"`
 
-	LastUpdate time.Time                                 `json:"lastUpdate" yaml:"lastUpdate"`
-
+	LastUpdate time.Time `json:"lastUpdate" yaml:"lastUpdate"`
 }
-
-
 
 // TemplateIndex provides efficient template lookups.
 
 type TemplateIndex struct {
-
 	ByComponent map[nephoranv1.ORANComponent][]*BlueprintTemplate `json:"byComponent" yaml:"byComponent"`
 
-	ByVendor    map[string][]*BlueprintTemplate                   `json:"byVendor" yaml:"byVendor"`
+	ByVendor map[string][]*BlueprintTemplate `json:"byVendor" yaml:"byVendor"`
 
-	ByStandard  map[string][]*BlueprintTemplate                   `json:"byStandard" yaml:"byStandard"`
+	ByStandard map[string][]*BlueprintTemplate `json:"byStandard" yaml:"byStandard"`
 
-	ByMaturity  map[MaturityLevel][]*BlueprintTemplate            `json:"byMaturity" yaml:"byMaturity"`
+	ByMaturity map[MaturityLevel][]*BlueprintTemplate `json:"byMaturity" yaml:"byMaturity"`
 
-	ByKeyword   map[string][]*BlueprintTemplate                   `json:"byKeyword" yaml:"byKeyword"`
-
+	ByKeyword map[string][]*BlueprintTemplate `json:"byKeyword" yaml:"byKeyword"`
 }
 
-
-
 // Template versioning and lifecycle.
-
-
 
 // TemplateVersion represents a template version.
 
 type TemplateVersion struct {
+	Version string `json:"version" yaml:"version"`
 
-	Version   string             `json:"version" yaml:"version"`
+	Template *BlueprintTemplate `json:"template" yaml:"template"`
 
-	Template  *BlueprintTemplate `json:"template" yaml:"template"`
+	CreatedAt time.Time `json:"createdAt" yaml:"createdAt"`
 
-	CreatedAt time.Time          `json:"createdAt" yaml:"createdAt"`
+	Author string `json:"author" yaml:"author"`
 
-	Author    string             `json:"author" yaml:"author"`
+	Changes []string `json:"changes" yaml:"changes"`
 
-	Changes   []string           `json:"changes" yaml:"changes"`
-
-	Status    string             `json:"status" yaml:"status"` // draft, released, deprecated
+	Status string `json:"status" yaml:"status"` // draft, released, deprecated
 
 }
 
-
-
 // Template compliance and testing.
-
-
 
 // ComplianceInfo contains template compliance information.
 
 type ComplianceInfo struct {
+	Standards []*StandardCompliance `json:"standards" yaml:"standards"`
 
-	Standards      []*StandardCompliance `json:"standards" yaml:"standards"`
+	Certifications []*Certification `json:"certifications,omitempty" yaml:"certifications,omitempty"`
 
-	Certifications []*Certification      `json:"certifications,omitempty" yaml:"certifications,omitempty"`
+	LastAudit *time.Time `json:"lastAudit,omitempty" yaml:"lastAudit,omitempty"`
 
-	LastAudit      *time.Time            `json:"lastAudit,omitempty" yaml:"lastAudit,omitempty"`
-
-	AuditResults   []*AuditResult        `json:"auditResults,omitempty" yaml:"auditResults,omitempty"`
-
+	AuditResults []*AuditResult `json:"auditResults,omitempty" yaml:"auditResults,omitempty"`
 }
-
-
 
 // StandardCompliance represents compliance with a standard.
 
 type StandardCompliance struct {
+	Standard string `json:"standard" yaml:"standard"`
 
-	Standard    string    `json:"standard" yaml:"standard"`
+	Version string `json:"version" yaml:"version"`
 
-	Version     string    `json:"version" yaml:"version"`
-
-	Status      string    `json:"status" yaml:"status"` // compliant, partial, non-compliant
+	Status string `json:"status" yaml:"status"` // compliant, partial, non-compliant
 
 	LastChecked time.Time `json:"lastChecked" yaml:"lastChecked"`
 
-	Issues      []string  `json:"issues,omitempty" yaml:"issues,omitempty"`
-
+	Issues []string `json:"issues,omitempty" yaml:"issues,omitempty"`
 }
-
-
 
 // Certification represents a certification.
 
 type Certification struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name        string    `json:"name" yaml:"name"`
+	Authority string `json:"authority" yaml:"authority"`
 
-	Authority   string    `json:"authority" yaml:"authority"`
+	ValidFrom time.Time `json:"validFrom" yaml:"validFrom"`
 
-	ValidFrom   time.Time `json:"validFrom" yaml:"validFrom"`
+	ValidUntil time.Time `json:"validUntil" yaml:"validUntil"`
 
-	ValidUntil  time.Time `json:"validUntil" yaml:"validUntil"`
-
-	Certificate string    `json:"certificate" yaml:"certificate"`
-
+	Certificate string `json:"certificate" yaml:"certificate"`
 }
-
-
 
 // AuditResult represents an audit result.
 
 type AuditResult struct {
+	ID string `json:"id" yaml:"id"`
 
-	ID          string    `json:"id" yaml:"id"`
+	AuditDate time.Time `json:"auditDate" yaml:"auditDate"`
 
-	AuditDate   time.Time `json:"auditDate" yaml:"auditDate"`
+	Auditor string `json:"auditor" yaml:"auditor"`
 
-	Auditor     string    `json:"auditor" yaml:"auditor"`
+	Score float64 `json:"score" yaml:"score"`
 
-	Score       float64   `json:"score" yaml:"score"`
+	Findings []string `json:"findings" yaml:"findings"`
 
-	Findings    []string  `json:"findings" yaml:"findings"`
-
-	Remediation []string  `json:"remediation,omitempty" yaml:"remediation,omitempty"`
-
+	Remediation []string `json:"remediation,omitempty" yaml:"remediation,omitempty"`
 }
-
-
 
 // TestingStatus contains template testing information.
 
 type TestingStatus struct {
-
-	LastTested *time.Time   `json:"lastTested,omitempty" yaml:"lastTested,omitempty"`
+	LastTested *time.Time `json:"lastTested,omitempty" yaml:"lastTested,omitempty"`
 
 	TestSuites []*TestSuite `json:"testSuites,omitempty" yaml:"testSuites,omitempty"`
 
-	Coverage   float64      `json:"coverage" yaml:"coverage"`
+	Coverage float64 `json:"coverage" yaml:"coverage"`
 
-	PassRate   float64      `json:"passRate" yaml:"passRate"`
-
+	PassRate float64 `json:"passRate" yaml:"passRate"`
 }
-
-
 
 // TestSuite represents a test suite.
 
 type TestSuite struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name     string        `json:"name" yaml:"name"`
+	Type string `json:"type" yaml:"type"` // unit, integration, e2e
 
-	Type     string        `json:"type" yaml:"type"` // unit, integration, e2e
+	Tests []*TestCase `json:"tests" yaml:"tests"`
 
-	Tests    []*TestCase   `json:"tests" yaml:"tests"`
+	LastRun time.Time `json:"lastRun" yaml:"lastRun"`
 
-	LastRun  time.Time     `json:"lastRun" yaml:"lastRun"`
-
-	Status   string        `json:"status" yaml:"status"`
+	Status string `json:"status" yaml:"status"`
 
 	Duration time.Duration `json:"duration" yaml:"duration"`
-
 }
-
-
 
 // TestCase represents a test case.
 
 type TestCase struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name        string        `json:"name" yaml:"name"`
+	Description string `json:"description" yaml:"description"`
 
-	Description string        `json:"description" yaml:"description"`
+	Status string `json:"status" yaml:"status"` // passed, failed, skipped
 
-	Status      string        `json:"status" yaml:"status"` // passed, failed, skipped
+	Duration time.Duration `json:"duration" yaml:"duration"`
 
-	Duration    time.Duration `json:"duration" yaml:"duration"`
-
-	Error       string        `json:"error,omitempty" yaml:"error,omitempty"`
-
+	Error string `json:"error,omitempty" yaml:"error,omitempty"`
 }
 
-
-
 // Template filtering and searching.
-
-
 
 // TemplateFilter defines template filtering criteria.
 
 type TemplateFilter struct {
+	Category *TemplateCategory `json:"category,omitempty"`
 
-	Category      *TemplateCategory         `json:"category,omitempty"`
+	Type *TemplateType `json:"type,omitempty"`
 
-	Type          *TemplateType             `json:"type,omitempty"`
+	Component *nephoranv1.ORANComponent `json:"component,omitempty"`
 
-	Component     *nephoranv1.ORANComponent `json:"component,omitempty"`
+	Vendor string `json:"vendor,omitempty"`
 
-	Vendor        string                    `json:"vendor,omitempty"`
+	Standard string `json:"standard,omitempty"`
 
-	Standard      string                    `json:"standard,omitempty"`
+	MaturityLevel *MaturityLevel `json:"maturityLevel,omitempty"`
 
-	MaturityLevel *MaturityLevel            `json:"maturityLevel,omitempty"`
+	Tags []string `json:"tags,omitempty"`
 
-	Tags          []string                  `json:"tags,omitempty"`
+	Keywords []string `json:"keywords,omitempty"`
 
-	Keywords      []string                  `json:"keywords,omitempty"`
+	MinVersion string `json:"minVersion,omitempty"`
 
-	MinVersion    string                    `json:"minVersion,omitempty"`
-
-	MaxVersion    string                    `json:"maxVersion,omitempty"`
-
+	MaxVersion string `json:"maxVersion,omitempty"`
 }
-
-
 
 // SearchQuery defines template search criteria.
 
 type SearchQuery struct {
+	Query string `json:"query"`
 
-	Query     string          `json:"query"`
+	Filter *TemplateFilter `json:"filter,omitempty"`
 
-	Filter    *TemplateFilter `json:"filter,omitempty"`
+	SortBy string `json:"sortBy,omitempty"` // name, version, usage, rating
 
-	SortBy    string          `json:"sortBy,omitempty"`    // name, version, usage, rating
+	SortOrder string `json:"sortOrder,omitempty"` // asc, desc
 
-	SortOrder string          `json:"sortOrder,omitempty"` // asc, desc
+	Limit int `json:"limit,omitempty"`
 
-	Limit     int             `json:"limit,omitempty"`
-
-	Offset    int             `json:"offset,omitempty"`
-
+	Offset int `json:"offset,omitempty"`
 }
 
-
-
 // Template rendering results.
-
-
 
 // RenderResult contains template rendering results.
 
 type RenderResult struct {
+	Success bool `json:"success"`
 
-	Success           bool                       `json:"success"`
+	Resources []*porch.KRMResource `json:"resources"`
 
-	Resources         []*porch.KRMResource       `json:"resources"`
+	ValidationResult *ParameterValidationResult `json:"validationResult"`
 
-	ValidationResult  *ParameterValidationResult `json:"validationResult"`
+	RenderingErrors []*RenderingError `json:"renderingErrors,omitempty"`
 
-	RenderingErrors   []*RenderingError          `json:"renderingErrors,omitempty"`
+	RenderingWarnings []*RenderingWarning `json:"renderingWarnings,omitempty"`
 
-	RenderingWarnings []*RenderingWarning        `json:"renderingWarnings,omitempty"`
+	GeneratedFiles map[string]string `json:"generatedFiles,omitempty"`
 
-	GeneratedFiles    map[string]string          `json:"generatedFiles,omitempty"`
+	Functions []*FunctionExecution `json:"functions,omitempty"`
 
-	Functions         []*FunctionExecution       `json:"functions,omitempty"`
+	Duration time.Duration `json:"duration"`
 
-	Duration          time.Duration              `json:"duration"`
-
-	Metadata          map[string]interface{}     `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // ParameterValidationResult contains parameter validation results.
 
 type ParameterValidationResult struct {
+	Valid bool `json:"valid"`
 
-	Valid      bool                          `json:"valid"`
+	Errors []*ParameterValidationError `json:"errors,omitempty"`
 
-	Errors     []*ParameterValidationError   `json:"errors,omitempty"`
+	Warnings []*ParameterValidationWarning `json:"warnings,omitempty"`
 
-	Warnings   []*ParameterValidationWarning `json:"warnings,omitempty"`
+	Missing []string `json:"missing,omitempty"`
 
-	Missing    []string                      `json:"missing,omitempty"`
-
-	Unexpected []string                      `json:"unexpected,omitempty"`
-
+	Unexpected []string `json:"unexpected,omitempty"`
 }
-
-
 
 // ParameterValidationError represents a parameter validation error.
 
 type ParameterValidationError struct {
+	Parameter string `json:"parameter"`
 
-	Parameter  string `json:"parameter"`
+	Message string `json:"message"`
 
-	Message    string `json:"message"`
+	Expected string `json:"expected,omitempty"`
 
-	Expected   string `json:"expected,omitempty"`
-
-	Actual     string `json:"actual,omitempty"`
+	Actual string `json:"actual,omitempty"`
 
 	Suggestion string `json:"suggestion,omitempty"`
-
 }
-
-
 
 // ParameterValidationWarning represents a parameter validation warning.
 
 type ParameterValidationWarning struct {
+	Parameter string `json:"parameter"`
 
-	Parameter  string `json:"parameter"`
-
-	Message    string `json:"message"`
+	Message string `json:"message"`
 
 	Suggestion string `json:"suggestion,omitempty"`
-
 }
-
-
 
 // RenderingError represents a template rendering error.
 
 type RenderingError struct {
-
 	Resource string `json:"resource,omitempty"`
 
 	Template string `json:"template,omitempty"`
 
-	Line     int    `json:"line,omitempty"`
+	Line int `json:"line,omitempty"`
 
-	Column   int    `json:"column,omitempty"`
+	Column int `json:"column,omitempty"`
 
-	Message  string `json:"message"`
+	Message string `json:"message"`
 
-	Code     string `json:"code,omitempty"`
-
+	Code string `json:"code,omitempty"`
 }
-
-
 
 // RenderingWarning represents a template rendering warning.
 
 type RenderingWarning struct {
+	Resource string `json:"resource,omitempty"`
 
-	Resource   string `json:"resource,omitempty"`
+	Template string `json:"template,omitempty"`
 
-	Template   string `json:"template,omitempty"`
-
-	Message    string `json:"message"`
+	Message string `json:"message"`
 
 	Suggestion string `json:"suggestion,omitempty"`
-
 }
-
-
 
 // FunctionExecution represents function execution results.
 
 type FunctionExecution struct {
+	Name string `json:"name"`
 
-	Name     string        `json:"name"`
+	Type string `json:"type"`
 
-	Type     string        `json:"type"`
-
-	Success  bool          `json:"success"`
+	Success bool `json:"success"`
 
 	Duration time.Duration `json:"duration"`
 
-	Output   interface{}   `json:"output,omitempty"`
+	Output interface{} `json:"output,omitempty"`
 
-	Error    string        `json:"error,omitempty"`
-
+	Error string `json:"error,omitempty"`
 }
 
-
-
 // Engine configuration and health.
-
-
 
 // EngineConfig contains template engine configuration.
 
@@ -1969,107 +1497,88 @@ type EngineConfig struct {
 
 	// Repository settings.
 
-	TemplateRepository string        `yaml:"templateRepository"`
+	TemplateRepository string `yaml:"templateRepository"`
 
-	RepositoryBranch   string        `yaml:"repositoryBranch"`
+	RepositoryBranch string `yaml:"repositoryBranch"`
 
-	RepositoryPath     string        `yaml:"repositoryPath"`
+	RepositoryPath string `yaml:"repositoryPath"`
 
-	RefreshInterval    time.Duration `yaml:"refreshInterval"`
-
-
+	RefreshInterval time.Duration `yaml:"refreshInterval"`
 
 	// Rendering settings.
 
-	MaxConcurrentRenders int           `yaml:"maxConcurrentRenders"`
+	MaxConcurrentRenders int `yaml:"maxConcurrentRenders"`
 
-	RenderTimeout        time.Duration `yaml:"renderTimeout"`
+	RenderTimeout time.Duration `yaml:"renderTimeout"`
 
-	EnableCaching        bool          `yaml:"enableCaching"`
+	EnableCaching bool `yaml:"enableCaching"`
 
-	CacheSize            int           `yaml:"cacheSize"`
+	CacheSize int `yaml:"cacheSize"`
 
-	CacheTTL             time.Duration `yaml:"cacheTTL"`
-
-
+	CacheTTL time.Duration `yaml:"cacheTTL"`
 
 	// Validation settings.
 
-	EnableParameterValidation bool          `yaml:"enableParameterValidation"`
+	EnableParameterValidation bool `yaml:"enableParameterValidation"`
 
-	EnableYANGValidation      bool          `yaml:"enableYangValidation"`
+	EnableYANGValidation bool `yaml:"enableYangValidation"`
 
-	EnableTemplateValidation  bool          `yaml:"enableTemplateValidation"`
+	EnableTemplateValidation bool `yaml:"enableTemplateValidation"`
 
-	ValidationTimeout         time.Duration `yaml:"validationTimeout"`
-
-
+	ValidationTimeout time.Duration `yaml:"validationTimeout"`
 
 	// Security settings.
 
-	EnableSecurityScanning bool     `yaml:"enableSecurityScanning"`
+	EnableSecurityScanning bool `yaml:"enableSecurityScanning"`
 
-	SecurityScanners       []string `yaml:"securityScanners"`
+	SecurityScanners []string `yaml:"securityScanners"`
 
-	AllowUnsignedTemplates bool     `yaml:"allowUnsignedTemplates"`
-
-
+	AllowUnsignedTemplates bool `yaml:"allowUnsignedTemplates"`
 
 	// Performance settings.
 
-	EnableMetrics   bool          `yaml:"enableMetrics"`
+	EnableMetrics bool `yaml:"enableMetrics"`
 
 	MetricsInterval time.Duration `yaml:"metricsInterval"`
-
 }
-
-
 
 // CatalogInfo contains template catalog information.
 
 type CatalogInfo struct {
+	Repository string `json:"repository"`
 
-	Repository           string                           `json:"repository"`
+	Branch string `json:"branch"`
 
-	Branch               string                           `json:"branch"`
+	LastUpdate time.Time `json:"lastUpdate"`
 
-	LastUpdate           time.Time                        `json:"lastUpdate"`
+	TotalTemplates int `json:"totalTemplates"`
 
-	TotalTemplates       int                              `json:"totalTemplates"`
-
-	TemplatesByCategory  map[TemplateCategory]int         `json:"templatesByCategory"`
+	TemplatesByCategory map[TemplateCategory]int `json:"templatesByCategory"`
 
 	TemplatesByComponent map[nephoranv1.ORANComponent]int `json:"templatesByComponent"`
 
-	TemplatesByVendor    map[string]int                   `json:"templatesByVendor"`
+	TemplatesByVendor map[string]int `json:"templatesByVendor"`
 
-	TemplatesByMaturity  map[MaturityLevel]int            `json:"templatesByMaturity"`
-
+	TemplatesByMaturity map[MaturityLevel]int `json:"templatesByMaturity"`
 }
-
-
 
 // EngineHealth contains template engine health information.
 
 type EngineHealth struct {
+	Status string `json:"status"`
 
-	Status             string            `json:"status"`
+	TemplatesLoaded int `json:"templatesLoaded"`
 
-	TemplatesLoaded    int               `json:"templatesLoaded"`
+	CacheHitRate float64 `json:"cacheHitRate"`
 
-	CacheHitRate       float64           `json:"cacheHitRate"`
+	AverageRenderTime time.Duration `json:"averageRenderTime"`
 
-	AverageRenderTime  time.Duration     `json:"averageRenderTime"`
+	ActiveRenders int `json:"activeRenders"`
 
-	ActiveRenders      int               `json:"activeRenders"`
+	LastCatalogRefresh time.Time `json:"lastCatalogRefresh"`
 
-	LastCatalogRefresh time.Time         `json:"lastCatalogRefresh"`
-
-	ComponentHealth    map[string]string `json:"componentHealth"`
-
+	ComponentHealth map[string]string `json:"componentHealth"`
 }
-
-
 
 // NewTemplateEngine creates a new template engine.
 
@@ -2081,25 +1590,23 @@ func NewTemplateEngine(yangValidator yang.YANGValidator, config *EngineConfig) (
 
 	}
 
-
-
 	engine := &templateEngine{
 
 		yangValidator: yangValidator,
 
-		logger:        log.Log.WithName("template-engine"),
+		logger: log.Log.WithName("template-engine"),
 
-		config:        config,
+		config: config,
 
-		templates:     make(map[string]*BlueprintTemplate),
+		templates: make(map[string]*BlueprintTemplate),
 
 		templateCatalog: &TemplateCatalog{
 
 			Repository: config.TemplateRepository,
 
-			Branch:     config.RepositoryBranch,
+			Branch: config.RepositoryBranch,
 
-			Templates:  make(map[string]*BlueprintTemplate),
+			Templates: make(map[string]*BlueprintTemplate),
 
 			Categories: make(map[TemplateCategory][]*BlueprintTemplate),
 
@@ -2107,33 +1614,26 @@ func NewTemplateEngine(yangValidator yang.YANGValidator, config *EngineConfig) (
 
 				ByComponent: make(map[nephoranv1.ORANComponent][]*BlueprintTemplate),
 
-				ByVendor:    make(map[string][]*BlueprintTemplate),
+				ByVendor: make(map[string][]*BlueprintTemplate),
 
-				ByStandard:  make(map[string][]*BlueprintTemplate),
+				ByStandard: make(map[string][]*BlueprintTemplate),
 
-				ByMaturity:  make(map[MaturityLevel][]*BlueprintTemplate),
+				ByMaturity: make(map[MaturityLevel][]*BlueprintTemplate),
 
-				ByKeyword:   make(map[string][]*BlueprintTemplate),
-
+				ByKeyword: make(map[string][]*BlueprintTemplate),
 			},
 
 			LastUpdate: time.Now(),
-
 		},
 
 		shutdown: make(chan struct{}),
-
 	}
-
-
 
 	// Start background workers.
 
 	engine.wg.Add(1)
 
 	go engine.catalogRefreshWorker()
-
-
 
 	// Load built-in templates.
 
@@ -2143,15 +1643,11 @@ func NewTemplateEngine(yangValidator yang.YANGValidator, config *EngineConfig) (
 
 	}
 
-
-
 	engine.logger.Info("Template engine initialized successfully")
 
 	return engine, nil
 
 }
-
-
 
 // GetTemplate retrieves a template by ID.
 
@@ -2161,8 +1657,6 @@ func (e *templateEngine) GetTemplate(ctx context.Context, templateID string) (*B
 
 	defer e.templateMutex.RUnlock()
 
-
-
 	template, exists := e.templates[templateID]
 
 	if !exists {
@@ -2171,13 +1665,9 @@ func (e *templateEngine) GetTemplate(ctx context.Context, templateID string) (*B
 
 	}
 
-
-
 	return template, nil
 
 }
-
-
 
 // ListTemplates lists templates with optional filtering.
 
@@ -2187,11 +1677,7 @@ func (e *templateEngine) ListTemplates(ctx context.Context, filter *TemplateFilt
 
 	defer e.templateMutex.RUnlock()
 
-
-
 	var result []*BlueprintTemplate
-
-
 
 	for _, template := range e.templates {
 
@@ -2203,13 +1689,9 @@ func (e *templateEngine) ListTemplates(ctx context.Context, filter *TemplateFilt
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // RenderTemplate renders a template with given parameters.
 
@@ -2223,21 +1705,15 @@ func (e *templateEngine) RenderTemplate(ctx context.Context, templateID string, 
 
 	}
 
-
-
 	if !result.Success {
 
 		return nil, fmt.Errorf("template rendering failed")
 
 	}
 
-
-
 	return result.Resources, nil
 
 }
-
-
 
 // RenderTemplateWithValidation renders a template with comprehensive validation.
 
@@ -2245,23 +1721,18 @@ func (e *templateEngine) RenderTemplateWithValidation(ctx context.Context, templ
 
 	startTime := time.Now()
 
-
-
 	result := &RenderResult{
 
-		Success:        true,
+		Success: true,
 
-		Resources:      []*porch.KRMResource{},
+		Resources: []*porch.KRMResource{},
 
 		GeneratedFiles: make(map[string]string),
 
-		Functions:      []*FunctionExecution{},
+		Functions: []*FunctionExecution{},
 
-		Metadata:       make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}
-
-
 
 	// Get template.
 
@@ -2278,8 +1749,6 @@ func (e *templateEngine) RenderTemplateWithValidation(ctx context.Context, templ
 		return result, err
 
 	}
-
-
 
 	// Validate parameters.
 
@@ -2301,8 +1770,6 @@ func (e *templateEngine) RenderTemplateWithValidation(ctx context.Context, templ
 
 		result.ValidationResult = validationResult
 
-
-
 		if !validationResult.Valid {
 
 			result.Success = false
@@ -2314,8 +1781,6 @@ func (e *templateEngine) RenderTemplateWithValidation(ctx context.Context, templ
 		}
 
 	}
-
-
 
 	// Render resources.
 
@@ -2335,8 +1800,6 @@ func (e *templateEngine) RenderTemplateWithValidation(ctx context.Context, templ
 
 	result.Resources = resources
 
-
-
 	// Execute functions if any.
 
 	if len(template.Functions) > 0 {
@@ -2353,11 +1816,7 @@ func (e *templateEngine) RenderTemplateWithValidation(ctx context.Context, templ
 
 	}
 
-
-
 	result.Duration = time.Since(startTime)
-
-
 
 	e.logger.V(1).Info("Template rendered successfully",
 
@@ -2367,13 +1826,9 @@ func (e *templateEngine) RenderTemplateWithValidation(ctx context.Context, templ
 
 		"duration", result.Duration)
 
-
-
 	return result, nil
 
 }
-
-
 
 // ValidateParameters validates template parameters against schema.
 
@@ -2387,8 +1842,6 @@ func (e *templateEngine) ValidateParameters(ctx context.Context, templateID stri
 
 	}
 
-
-
 	if template.Schema == nil {
 
 		// No schema defined, assume all parameters are valid.
@@ -2397,23 +1850,18 @@ func (e *templateEngine) ValidateParameters(ctx context.Context, templateID stri
 
 	}
 
-
-
 	result := &ParameterValidationResult{
 
-		Valid:      true,
+		Valid: true,
 
-		Errors:     []*ParameterValidationError{},
+		Errors: []*ParameterValidationError{},
 
-		Warnings:   []*ParameterValidationWarning{},
+		Warnings: []*ParameterValidationWarning{},
 
-		Missing:    []string{},
+		Missing: []string{},
 
 		Unexpected: []string{},
-
 	}
-
-
 
 	// Check required parameters.
 
@@ -2429,15 +1877,12 @@ func (e *templateEngine) ValidateParameters(ctx context.Context, templateID stri
 
 				Parameter: required,
 
-				Message:   fmt.Sprintf("Required parameter %s is missing", required),
-
+				Message: fmt.Sprintf("Required parameter %s is missing", required),
 			})
 
 		}
 
 	}
-
-
 
 	// Validate parameter values.
 
@@ -2453,15 +1898,12 @@ func (e *templateEngine) ValidateParameters(ctx context.Context, templateID stri
 
 				Parameter: paramName,
 
-				Message:   fmt.Sprintf("Unexpected parameter %s", paramName),
-
+				Message: fmt.Sprintf("Unexpected parameter %s", paramName),
 			})
 
 			continue
 
 		}
-
-
 
 		// Validate parameter according to spec.
 
@@ -2473,25 +1915,18 @@ func (e *templateEngine) ValidateParameters(ctx context.Context, templateID stri
 
 				Parameter: paramName,
 
-				Message:   err.Error(),
-
+				Message: err.Error(),
 			})
 
 		}
 
 	}
 
-
-
 	return result, nil
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (e *templateEngine) matchesFilter(template *BlueprintTemplate, filter *TemplateFilter) bool {
 
@@ -2501,15 +1936,11 @@ func (e *templateEngine) matchesFilter(template *BlueprintTemplate, filter *Temp
 
 	}
 
-
-
 	if filter.Category != nil && template.Category != *filter.Category {
 
 		return false
 
 	}
-
-
 
 	if filter.Type != nil && template.Type != *filter.Type {
 
@@ -2517,15 +1948,11 @@ func (e *templateEngine) matchesFilter(template *BlueprintTemplate, filter *Temp
 
 	}
 
-
-
 	if filter.Component != nil && template.TargetComponent != *filter.Component {
 
 		return false
 
 	}
-
-
 
 	if filter.Vendor != "" && template.Vendor != filter.Vendor {
 
@@ -2533,23 +1960,17 @@ func (e *templateEngine) matchesFilter(template *BlueprintTemplate, filter *Temp
 
 	}
 
-
-
 	if filter.Standard != "" && template.Standard != filter.Standard {
 
 		return false
 
 	}
 
-
-
 	if filter.MaturityLevel != nil && template.MaturityLevel != *filter.MaturityLevel {
 
 		return false
 
 	}
-
-
 
 	// Check tags.
 
@@ -2575,8 +1996,6 @@ func (e *templateEngine) matchesFilter(template *BlueprintTemplate, filter *Temp
 
 	}
 
-
-
 	// Check keywords.
 
 	if len(filter.Keywords) > 0 {
@@ -2601,19 +2020,13 @@ func (e *templateEngine) matchesFilter(template *BlueprintTemplate, filter *Temp
 
 	}
 
-
-
 	return true
 
 }
 
-
-
 func (e *templateEngine) renderResources(ctx context.Context, template *BlueprintTemplate, parameters map[string]interface{}) ([]*porch.KRMResource, error) {
 
 	var resources []*porch.KRMResource
-
-
 
 	for _, resourceTemplate := range template.Resources {
 
@@ -2625,8 +2038,6 @@ func (e *templateEngine) renderResources(ctx context.Context, template *Blueprin
 
 		}
 
-
-
 		// Render the resource.
 
 		resource, err := e.renderResource(ctx, resourceTemplate, parameters)
@@ -2637,19 +2048,13 @@ func (e *templateEngine) renderResources(ctx context.Context, template *Blueprin
 
 		}
 
-
-
 		resources = append(resources, resource)
 
 	}
 
-
-
 	return resources, nil
 
 }
-
-
 
 func (e *templateEngine) renderResource(ctx context.Context, resourceTemplate *KRMTemplate, parameters map[string]interface{}) (*porch.KRMResource, error) {
 
@@ -2657,15 +2062,12 @@ func (e *templateEngine) renderResource(ctx context.Context, resourceTemplate *K
 
 		APIVersion: resourceTemplate.APIVersion,
 
-		Kind:       resourceTemplate.Kind,
+		Kind: resourceTemplate.Kind,
 
-		Metadata:   make(map[string]interface{}),
+		Metadata: make(map[string]interface{}),
 
-		Spec:       make(map[string]interface{}),
-
+		Spec: make(map[string]interface{}),
 	}
-
-
 
 	// Render metadata.
 
@@ -2674,18 +2076,13 @@ func (e *templateEngine) renderResource(ctx context.Context, resourceTemplate *K
 		metadata := map[string]interface{}{
 
 			"name": e.renderString(resourceTemplate.Metadata.Name, parameters),
-
 		}
-
-
 
 		if resourceTemplate.Metadata.Namespace != "" {
 
 			metadata["namespace"] = e.renderString(resourceTemplate.Metadata.Namespace, parameters)
 
 		}
-
-
 
 		if resourceTemplate.Metadata.Labels != nil {
 
@@ -2701,8 +2098,6 @@ func (e *templateEngine) renderResource(ctx context.Context, resourceTemplate *K
 
 		}
 
-
-
 		if resourceTemplate.Metadata.Annotations != nil {
 
 			annotations := make(map[string]string)
@@ -2717,13 +2112,9 @@ func (e *templateEngine) renderResource(ctx context.Context, resourceTemplate *K
 
 		}
 
-
-
 		resource.Metadata = metadata
 
 	}
-
-
 
 	// Render spec.
 
@@ -2741,8 +2132,6 @@ func (e *templateEngine) renderResource(ctx context.Context, resourceTemplate *K
 
 	}
 
-
-
 	// Render data.
 
 	if resourceTemplate.Data != nil {
@@ -2759,13 +2148,9 @@ func (e *templateEngine) renderResource(ctx context.Context, resourceTemplate *K
 
 	}
 
-
-
 	return resource, nil
 
 }
-
-
 
 func (e *templateEngine) renderString(templateStr string, parameters map[string]interface{}) string {
 
@@ -2774,8 +2159,6 @@ func (e *templateEngine) renderString(templateStr string, parameters map[string]
 		return templateStr
 
 	}
-
-
 
 	tmpl, err := template.New("render").Parse(templateStr)
 
@@ -2787,8 +2170,6 @@ func (e *templateEngine) renderString(templateStr string, parameters map[string]
 
 	}
 
-
-
 	var result strings.Builder
 
 	if err := tmpl.Execute(&result, parameters); err != nil {
@@ -2799,25 +2180,17 @@ func (e *templateEngine) renderString(templateStr string, parameters map[string]
 
 	}
 
-
-
 	return result.String()
 
 }
-
-
 
 func (e *templateEngine) renderMapInterface(data map[string]interface{}, parameters map[string]interface{}) (map[string]interface{}, error) {
 
 	result := make(map[string]interface{})
 
-
-
 	for key, value := range data {
 
 		renderedKey := e.renderString(key, parameters)
-
-
 
 		switch v := value.(type) {
 
@@ -2857,19 +2230,13 @@ func (e *templateEngine) renderMapInterface(data map[string]interface{}, paramet
 
 	}
 
-
-
 	return result, nil
 
 }
 
-
-
 func (e *templateEngine) renderSliceInterface(data []interface{}, parameters map[string]interface{}) ([]interface{}, error) {
 
 	result := make([]interface{}, len(data))
-
-
 
 	for i, value := range data {
 
@@ -2911,13 +2278,9 @@ func (e *templateEngine) renderSliceInterface(data []interface{}, parameters map
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 func (e *templateEngine) evaluateConditions(conditions []*RenderCondition, parameters map[string]interface{}) bool {
 
@@ -2926,8 +2289,6 @@ func (e *templateEngine) evaluateConditions(conditions []*RenderCondition, param
 		return true
 
 	}
-
-
 
 	// Simple condition evaluation (in a real implementation, this would be more sophisticated).
 
@@ -2943,13 +2304,9 @@ func (e *templateEngine) evaluateConditions(conditions []*RenderCondition, param
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 func (e *templateEngine) validateParameterValue(paramName string, value interface{}, spec *ParameterSpec) error {
 
@@ -2964,8 +2321,6 @@ func (e *templateEngine) validateParameterValue(paramName string, value interfac
 			return fmt.Errorf("parameter %s must be a string", paramName)
 
 		}
-
-
 
 		// String-specific validations.
 
@@ -2989,8 +2344,6 @@ func (e *templateEngine) validateParameterValue(paramName string, value interfac
 
 		}
 
-
-
 	case "integer":
 
 		switch v := value.(type) {
@@ -3005,8 +2358,6 @@ func (e *templateEngine) validateParameterValue(paramName string, value interfac
 
 		}
 
-
-
 	case "boolean":
 
 		if _, ok := value.(bool); !ok {
@@ -3015,8 +2366,6 @@ func (e *templateEngine) validateParameterValue(paramName string, value interfac
 
 		}
 
-
-
 	case "object":
 
 		if _, ok := value.(map[string]interface{}); !ok {
@@ -3024,8 +2373,6 @@ func (e *templateEngine) validateParameterValue(paramName string, value interfac
 			return fmt.Errorf("parameter %s must be an object", paramName)
 
 		}
-
-
 
 	case "array":
 
@@ -3036,8 +2383,6 @@ func (e *templateEngine) validateParameterValue(paramName string, value interfac
 		}
 
 	}
-
-
 
 	// Enum validation.
 
@@ -3065,19 +2410,13 @@ func (e *templateEngine) validateParameterValue(paramName string, value interfac
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 func (e *templateEngine) executeFunctions(ctx context.Context, template *BlueprintTemplate, parameters map[string]interface{}, resources []*porch.KRMResource) ([]*FunctionExecution, error) {
 
 	var results []*FunctionExecution
-
-
 
 	for _, function := range template.Functions {
 
@@ -3089,8 +2428,6 @@ func (e *templateEngine) executeFunctions(ctx context.Context, template *Bluepri
 
 		}
 
-
-
 		startTime := time.Now()
 
 		execution := &FunctionExecution{
@@ -3098,10 +2435,7 @@ func (e *templateEngine) executeFunctions(ctx context.Context, template *Bluepri
 			Name: function.Name,
 
 			Type: function.Type,
-
 		}
-
-
 
 		// Execute function (this would integrate with actual KRM function execution).
 
@@ -3113,19 +2447,13 @@ func (e *templateEngine) executeFunctions(ctx context.Context, template *Bluepri
 
 		execution.Output = "Function executed successfully"
 
-
-
 		results = append(results, execution)
 
 	}
 
-
-
 	return results, nil
 
 }
-
-
 
 func (e *templateEngine) loadBuiltInTemplates() error {
 
@@ -3133,13 +2461,9 @@ func (e *templateEngine) loadBuiltInTemplates() error {
 
 	builtInTemplates := e.getBuiltInTemplates()
 
-
-
 	e.templateMutex.Lock()
 
 	defer e.templateMutex.Unlock()
-
-
 
 	for _, template := range builtInTemplates {
 
@@ -3149,15 +2473,11 @@ func (e *templateEngine) loadBuiltInTemplates() error {
 
 	}
 
-
-
 	e.logger.Info("Loaded built-in templates", "count", len(builtInTemplates))
 
 	return nil
 
 }
-
-
 
 func (e *templateEngine) updateTemplateIndex(template *BlueprintTemplate) {
 
@@ -3171,8 +2491,6 @@ func (e *templateEngine) updateTemplateIndex(template *BlueprintTemplate) {
 
 	e.templateCatalog.Categories[template.Category] = append(e.templateCatalog.Categories[template.Category], template)
 
-
-
 	// Update component index.
 
 	if e.templateCatalog.Index.ByComponent[template.TargetComponent] == nil {
@@ -3183,13 +2501,9 @@ func (e *templateEngine) updateTemplateIndex(template *BlueprintTemplate) {
 
 	e.templateCatalog.Index.ByComponent[template.TargetComponent] = append(e.templateCatalog.Index.ByComponent[template.TargetComponent], template)
 
-
-
 	// Update other indices...
 
 }
-
-
 
 func (e *templateEngine) catalogRefreshWorker() {
 
@@ -3198,8 +2512,6 @@ func (e *templateEngine) catalogRefreshWorker() {
 	ticker := time.NewTicker(e.config.RefreshInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -3223,8 +2535,6 @@ func (e *templateEngine) catalogRefreshWorker() {
 
 }
 
-
-
 // Close gracefully shuts down the template engine.
 
 func (e *templateEngine) Close() error {
@@ -3241,11 +2551,7 @@ func (e *templateEngine) Close() error {
 
 }
 
-
-
 // Placeholder implementations for interface compliance.
-
-
 
 // LoadTemplate performs loadtemplate operation.
 
@@ -3255,8 +2561,6 @@ func (e *templateEngine) LoadTemplate(ctx context.Context, templateID string) (*
 
 }
 
-
-
 // LoadTemplateFromRepository performs loadtemplatefromrepository operation.
 
 func (e *templateEngine) LoadTemplateFromRepository(ctx context.Context, repoURL, templatePath string) (*BlueprintTemplate, error) {
@@ -3264,8 +2568,6 @@ func (e *templateEngine) LoadTemplateFromRepository(ctx context.Context, repoURL
 	return nil, fmt.Errorf("not implemented")
 
 }
-
-
 
 // RegisterTemplate performs registertemplate operation.
 
@@ -3275,8 +2577,6 @@ func (e *templateEngine) RegisterTemplate(ctx context.Context, template *Bluepri
 
 	defer e.templateMutex.Unlock()
 
-
-
 	e.templates[template.ID] = template
 
 	e.updateTemplateIndex(template)
@@ -3284,8 +2584,6 @@ func (e *templateEngine) RegisterTemplate(ctx context.Context, template *Bluepri
 	return nil
 
 }
-
-
 
 // UnregisterTemplate performs unregistertemplate operation.
 
@@ -3295,15 +2593,11 @@ func (e *templateEngine) UnregisterTemplate(ctx context.Context, templateID stri
 
 	defer e.templateMutex.Unlock()
 
-
-
 	delete(e.templates, templateID)
 
 	return nil
 
 }
-
-
 
 // RefreshCatalog performs refreshcatalog operation.
 
@@ -3317,8 +2611,6 @@ func (e *templateEngine) RefreshCatalog(ctx context.Context) error {
 
 }
 
-
-
 // GetCatalogInfo performs getcataloginfo operation.
 
 func (e *templateEngine) GetCatalogInfo(ctx context.Context) (*CatalogInfo, error) {
@@ -3327,29 +2619,24 @@ func (e *templateEngine) GetCatalogInfo(ctx context.Context) (*CatalogInfo, erro
 
 	defer e.templateMutex.RUnlock()
 
-
-
 	info := &CatalogInfo{
 
-		Repository:           e.templateCatalog.Repository,
+		Repository: e.templateCatalog.Repository,
 
-		Branch:               e.templateCatalog.Branch,
+		Branch: e.templateCatalog.Branch,
 
-		LastUpdate:           e.templateCatalog.LastUpdate,
+		LastUpdate: e.templateCatalog.LastUpdate,
 
-		TotalTemplates:       len(e.templates),
+		TotalTemplates: len(e.templates),
 
-		TemplatesByCategory:  make(map[TemplateCategory]int),
+		TemplatesByCategory: make(map[TemplateCategory]int),
 
 		TemplatesByComponent: make(map[nephoranv1.ORANComponent]int),
 
-		TemplatesByVendor:    make(map[string]int),
+		TemplatesByVendor: make(map[string]int),
 
-		TemplatesByMaturity:  make(map[MaturityLevel]int),
-
+		TemplatesByMaturity: make(map[MaturityLevel]int),
 	}
-
-
 
 	for _, template := range e.templates {
 
@@ -3363,13 +2650,9 @@ func (e *templateEngine) GetCatalogInfo(ctx context.Context) (*CatalogInfo, erro
 
 	}
 
-
-
 	return info, nil
 
 }
-
-
 
 // SearchTemplates performs searchtemplates operation.
 
@@ -3382,8 +2665,6 @@ func (e *templateEngine) SearchTemplates(ctx context.Context, query *SearchQuery
 		return nil, err
 
 	}
-
-
 
 	// Simple search implementation.
 
@@ -3406,8 +2687,6 @@ func (e *templateEngine) SearchTemplates(ctx context.Context, query *SearchQuery
 		templates = filtered
 
 	}
-
-
 
 	// Apply limit and offset.
 
@@ -3433,13 +2712,9 @@ func (e *templateEngine) SearchTemplates(ctx context.Context, query *SearchQuery
 
 	}
 
-
-
 	return templates, nil
 
 }
-
-
 
 // ComposeTemplates performs composetemplates operation.
 
@@ -3449,8 +2724,6 @@ func (e *templateEngine) ComposeTemplates(ctx context.Context, templates []*Temp
 
 }
 
-
-
 // RenderCompositeTemplate performs rendercompositetemplate operation.
 
 func (e *templateEngine) RenderCompositeTemplate(ctx context.Context, composite *CompositeTemplate, parameters map[string]interface{}) ([]*porch.KRMResource, error) {
@@ -3458,8 +2731,6 @@ func (e *templateEngine) RenderCompositeTemplate(ctx context.Context, composite 
 	return nil, fmt.Errorf("not implemented")
 
 }
-
-
 
 // GetTemplateVersions performs gettemplateversions operation.
 
@@ -3469,8 +2740,6 @@ func (e *templateEngine) GetTemplateVersions(ctx context.Context, templateName s
 
 }
 
-
-
 // PromoteTemplateVersion performs promotetemplateversion operation.
 
 func (e *templateEngine) PromoteTemplateVersion(ctx context.Context, templateID, version string) error {
@@ -3479,8 +2748,6 @@ func (e *templateEngine) PromoteTemplateVersion(ctx context.Context, templateID,
 
 }
 
-
-
 // RollbackTemplateVersion performs rollbacktemplateversion operation.
 
 func (e *templateEngine) RollbackTemplateVersion(ctx context.Context, templateID, version string) error {
@@ -3488,8 +2755,6 @@ func (e *templateEngine) RollbackTemplateVersion(ctx context.Context, templateID
 	return fmt.Errorf("not implemented")
 
 }
-
-
 
 // GetEngineHealth performs getenginehealth operation.
 
@@ -3501,87 +2766,76 @@ func (e *templateEngine) GetEngineHealth(ctx context.Context) (*EngineHealth, er
 
 	e.templateMutex.RUnlock()
 
-
-
 	return &EngineHealth{
 
-		Status:             "healthy",
+		Status: "healthy",
 
-		TemplatesLoaded:    templatesCount,
+		TemplatesLoaded: templatesCount,
 
-		CacheHitRate:       0.85,                   // Mock value
+		CacheHitRate: 0.85, // Mock value
 
-		AverageRenderTime:  100 * time.Millisecond, // Mock value
+		AverageRenderTime: 100 * time.Millisecond, // Mock value
 
-		ActiveRenders:      0,
+		ActiveRenders: 0,
 
 		LastCatalogRefresh: e.templateCatalog.LastUpdate,
 
 		ComponentHealth: map[string]string{
 
-			"catalog":   "healthy",
+			"catalog": "healthy",
 
 			"validator": "healthy",
 
-			"renderer":  "healthy",
-
+			"renderer": "healthy",
 		},
-
 	}, nil
 
 }
 
-
-
 // Utility functions.
-
-
 
 func getDefaultEngineConfig() *EngineConfig {
 
 	return &EngineConfig{
 
-		TemplateRepository:        "https://github.com/nephoran/templates.git",
+		TemplateRepository: "https://github.com/nephoran/templates.git",
 
-		RepositoryBranch:          "main",
+		RepositoryBranch: "main",
 
-		RepositoryPath:            "templates",
+		RepositoryPath: "templates",
 
-		RefreshInterval:           60 * time.Minute,
+		RefreshInterval: 60 * time.Minute,
 
-		MaxConcurrentRenders:      10,
+		MaxConcurrentRenders: 10,
 
-		RenderTimeout:             5 * time.Minute,
+		RenderTimeout: 5 * time.Minute,
 
-		EnableCaching:             true,
+		EnableCaching: true,
 
-		CacheSize:                 1000,
+		CacheSize: 1000,
 
-		CacheTTL:                  24 * time.Hour,
+		CacheTTL: 24 * time.Hour,
 
 		EnableParameterValidation: true,
 
-		EnableYANGValidation:      true,
+		EnableYANGValidation: true,
 
-		EnableTemplateValidation:  true,
+		EnableTemplateValidation: true,
 
-		ValidationTimeout:         30 * time.Second,
+		ValidationTimeout: 30 * time.Second,
 
-		EnableSecurityScanning:    true,
+		EnableSecurityScanning: true,
 
-		SecurityScanners:          []string{"trivy", "snyk"},
+		SecurityScanners: []string{"trivy", "snyk"},
 
-		AllowUnsignedTemplates:    false,
+		AllowUnsignedTemplates: false,
 
-		EnableMetrics:             true,
+		EnableMetrics: true,
 
-		MetricsInterval:           30 * time.Second,
-
+		MetricsInterval: 30 * time.Second,
 	}
 
 }
-
-
 
 // getBuiltInTemplates returns built-in O-RAN and 5G Core templates.
 
@@ -3589,41 +2843,39 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 
 	var templates []*BlueprintTemplate
 
-
-
 	// AMF Template.
 
 	amfTemplate := &BlueprintTemplate{
 
-		ID:              "oran-5g-amf-v1",
+		ID: "oran-5g-amf-v1",
 
-		Name:            "O-RAN 5G AMF",
+		Name: "O-RAN 5G AMF",
 
-		Version:         "1.0.0",
+		Version: "1.0.0",
 
-		Description:     "Access and Mobility Management Function template for O-RAN compliant 5G Core",
+		Description: "Access and Mobility Management Function template for O-RAN compliant 5G Core",
 
-		Author:          "Nephoran Team",
+		Author: "Nephoran Team",
 
-		CreatedAt:       time.Now(),
+		CreatedAt: time.Now(),
 
-		UpdatedAt:       time.Now(),
+		UpdatedAt: time.Now(),
 
-		Category:        TemplateCategoryNetworkFunction,
+		Category: TemplateCategoryNetworkFunction,
 
-		Type:            TemplateTypeDeployment,
+		Type: TemplateTypeDeployment,
 
 		TargetComponent: nephoranv1.ORANComponentAMF,
 
-		Vendor:          "open-source",
+		Vendor: "open-source",
 
-		Standard:        "O-RAN",
+		Standard: "O-RAN",
 
-		MaturityLevel:   MaturityLevelStable,
+		MaturityLevel: MaturityLevelStable,
 
-		Tags:            []string{"5g", "core", "amf", "oran"},
+		Tags: []string{"5g", "core", "amf", "oran"},
 
-		Keywords:        []string{"access", "mobility", "management", "5g-core"},
+		Keywords: []string{"access", "mobility", "management", "5g-core"},
 
 		Schema: &ParameterSchema{
 
@@ -3633,38 +2885,33 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 
 				"replicas": {
 
-					Type:        "integer",
+					Type: "integer",
 
 					Description: "Number of AMF replicas",
 
-					Default:     3,
+					Default: 3,
 
-					Minimum:     func() *float64 { v := 1.0; return &v }(),
+					Minimum: func() *float64 { v := 1.0; return &v }(),
 
-					Maximum:     func() *float64 { v := 10.0; return &v }(),
-
+					Maximum: func() *float64 { v := 10.0; return &v }(),
 				},
 
 				"resources": {
 
-					Type:        "object",
+					Type: "object",
 
 					Description: "Resource requirements for AMF",
-
 				},
 
 				"plmnList": {
 
-					Type:        "array",
+					Type: "array",
 
 					Description: "List of PLMN identifiers",
-
 				},
-
 			},
 
 			Required: []string{"replicas", "plmnList"},
-
 		},
 
 		Resources: []*KRMTemplate{
@@ -3673,22 +2920,20 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 
 				APIVersion: "apps/v1",
 
-				Kind:       "Deployment",
+				Kind: "Deployment",
 
 				Metadata: &ResourceMetadata{
 
-					Name:      "amf-deployment",
+					Name: "amf-deployment",
 
 					Namespace: "5g-core",
 
 					Labels: map[string]string{
 
-						"app":       "amf",
+						"app": "amf",
 
 						"component": "5g-core",
-
 					},
-
 				},
 
 				Spec: map[string]interface{}{
@@ -3700,9 +2945,7 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 						"matchLabels": map[string]string{
 
 							"app": "amf",
-
 						},
-
 					},
 
 					"template": map[string]interface{}{
@@ -3712,9 +2955,7 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 							"labels": map[string]string{
 
 								"app": "amf",
-
 							},
-
 						},
 
 						"spec": map[string]interface{}{
@@ -3723,7 +2964,7 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 
 								map[string]interface{}{
 
-									"name":  "amf",
+									"name": "amf",
 
 									"image": "nephoran/amf:latest",
 
@@ -3733,24 +2974,15 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 
 											"containerPort": 8080,
 
-											"name":          "sbi",
-
+											"name": "sbi",
 										},
-
 									},
-
 								},
-
 							},
-
 						},
-
 					},
-
 				},
-
 			},
-
 		},
 
 		FiveGConfig: &FiveGTemplateConfig{
@@ -3759,7 +2991,7 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 
 				{
 
-					Type:    nephoranv1.ORANComponentAMF,
+					Type: nephoranv1.ORANComponentAMF,
 
 					Version: "rel-16",
 
@@ -3774,24 +3006,20 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 									"mcc": "001",
 
 									"mnc": "01",
-
 								},
 
 								"amfId": "cafe00",
-
 							},
-
 						},
-
 					},
 
 					Interfaces: []*NFInterface{
 
 						{
 
-							Name:     "namf-comm",
+							Name: "namf-comm",
 
-							Type:     "SBI",
+							Type: "SBI",
 
 							Protocol: "HTTP/2",
 
@@ -3799,37 +3027,32 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 
 								"port": 8080,
 
-								"tls":  true,
-
+								"tls": true,
 							},
-
 						},
 
 						{
 
-							Name:     "n1",
+							Name: "n1",
 
-							Type:     "N1",
+							Type: "N1",
 
 							Protocol: "NAS",
-
 						},
 
 						{
 
-							Name:     "n2",
+							Name: "n2",
 
-							Type:     "N2",
+							Type: "N2",
 
 							Protocol: "NGAP",
-
 						},
-
 					},
 
 					Resources: &ResourceRequirements{
 
-						CPU:    resource.NewMilliQuantity(500, resource.DecimalSI),
+						CPU: resource.NewMilliQuantity(500, resource.DecimalSI),
 
 						Memory: resource.NewQuantity(1*1024*1024*1024, resource.BinarySI), // 1Gi
 
@@ -3837,20 +3060,16 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 
 					HighAvailability: &HAConfig{
 
-						Enabled:      true,
+						Enabled: true,
 
-						Replicas:     3,
+						Replicas: 3,
 
-						Strategy:     "active-active",
+						Strategy: "active-active",
 
 						AntiAffinity: true,
-
 					},
-
 				},
-
 			},
-
 		},
 
 		ComplianceInfo: &ComplianceInfo{
@@ -3859,57 +3078,44 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 
 				{
 
-					Standard:    "3GPP TS 23.501",
+					Standard: "3GPP TS 23.501",
 
-					Version:     "16.8.0",
+					Version: "16.8.0",
 
-					Status:      "compliant",
+					Status: "compliant",
 
 					LastChecked: time.Now(),
-
 				},
 
 				{
 
-					Standard:    "O-RAN WG6",
+					Standard: "O-RAN WG6",
 
-					Version:     "3.0",
+					Version: "3.0",
 
-					Status:      "compliant",
+					Status: "compliant",
 
 					LastChecked: time.Now(),
-
 				},
-
 			},
-
 		},
 
 		TestingStatus: &TestingStatus{
 
 			LastTested: func() *time.Time { t := time.Now(); return &t }(),
 
-			Coverage:   85.5,
+			Coverage: 85.5,
 
-			PassRate:   98.2,
-
+			PassRate: 98.2,
 		},
-
 	}
 
-
-
 	templates = append(templates, amfTemplate)
-
-
 
 	// Add more templates for other components...
 
 	// SMF, UPF, gNodeB, O-DU, O-CU, Near-RT RIC, etc.
 
-
-
 	return templates
 
 }
-

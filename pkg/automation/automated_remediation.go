@@ -1,45 +1,23 @@
-
 package automation
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"log/slog"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/google/uuid"
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-
-
 	batchv1 "k8s.io/api/batch/v1"
-
 	corev1 "k8s.io/api/core/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/client-go/kubernetes"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 var (
 
@@ -50,74 +28,57 @@ var (
 		Name: "nephoran_remediation_operations_total",
 
 		Help: "Total number of remediation operations performed",
-
 	}, []string{"component", "strategy", "status"})
-
-
 
 	remediationDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
 
-		Name:    "nephoran_remediation_duration_seconds",
+		Name: "nephoran_remediation_duration_seconds",
 
-		Help:    "Duration of remediation operations",
+		Help: "Duration of remediation operations",
 
 		Buckets: prometheus.ExponentialBuckets(1, 2, 12),
-
 	}, []string{"component", "strategy"})
-
-
 
 	remediationSuccessRate = promauto.NewGaugeVec(prometheus.GaugeOpts{
 
 		Name: "nephoran_remediation_success_rate",
 
 		Help: "Success rate of remediation strategies",
-
 	}, []string{"component", "strategy"})
-
-
 
 	activeSessions = promauto.NewGaugeVec(prometheus.GaugeOpts{
 
 		Name: "nephoran_active_remediations",
 
 		Help: "Number of active remediation sessions",
-
 	}, []string{"component"})
-
 )
-
-
 
 // AutomatedRemediation handles automated remediation of system issues.
 
 type AutomatedRemediation struct {
+	mu sync.RWMutex
 
-	mu              sync.RWMutex
+	config *SelfHealingConfig
 
-	config          *SelfHealingConfig
+	k8sClient kubernetes.Interface
 
-	k8sClient       kubernetes.Interface
+	ctrlClient client.Client
 
-	ctrlClient      client.Client
+	logger *slog.Logger
 
-	logger          *slog.Logger
+	activeSessions map[string]*RemediationSession
 
-	activeSessions  map[string]*RemediationSession
-
-	learningEngine  *LearningEngine
+	learningEngine *LearningEngine
 
 	rollbackManager *RollbackManager
 
-	strategies      map[string]*RemediationStrategy
+	strategies map[string]*RemediationStrategy
 
-	running         bool
+	running bool
 
-	stopCh          chan struct{}
-
+	stopCh chan struct{}
 }
-
-
 
 // NewAutomatedRemediation creates a new automated remediation system.
 
@@ -129,43 +90,34 @@ func NewAutomatedRemediation(config *SelfHealingConfig, k8sClient kubernetes.Int
 
 	}
 
-
-
 	ar := &AutomatedRemediation{
 
-		config:          config,
+		config: config,
 
-		logger:          logger,
+		logger: logger,
 
-		k8sClient:       k8sClient,
+		k8sClient: k8sClient,
 
-		ctrlClient:      ctrlClient,
+		ctrlClient: ctrlClient,
 
-		activeSessions:  make(map[string]*RemediationSession),
+		activeSessions: make(map[string]*RemediationSession),
 
-		strategies:      make(map[string]*RemediationStrategy),
+		strategies: make(map[string]*RemediationStrategy),
 
-		learningEngine:  NewLearningEngine(logger),
+		learningEngine: NewLearningEngine(logger),
 
 		rollbackManager: NewRollbackManager(logger),
 
-		stopCh:          make(chan struct{}),
-
+		stopCh: make(chan struct{}),
 	}
-
-
 
 	// Initialize default remediation strategies.
 
 	ar.initializeDefaultStrategies()
 
-
-
 	return ar, nil
 
 }
-
-
 
 // Start starts the automated remediation system.
 
@@ -173,25 +125,17 @@ func (ar *AutomatedRemediation) Start(ctx context.Context) {
 
 	ar.logger.Info("Starting automated remediation system")
 
-
-
 	// Start remediation session monitor.
 
 	go ar.runRemediationMonitor(ctx)
-
-
 
 	// Start strategy optimization.
 
 	go ar.runStrategyOptimization(ctx)
 
-
-
 	ar.logger.Info("Automated remediation system started successfully")
 
 }
-
-
 
 // InitiateRemediation initiates remediation for a component.
 
@@ -200,8 +144,6 @@ func (ar *AutomatedRemediation) InitiateRemediation(ctx context.Context, compone
 	ar.mu.Lock()
 
 	defer ar.mu.Unlock()
-
-
 
 	// Check if remediation is already active for this component.
 
@@ -215,8 +157,6 @@ func (ar *AutomatedRemediation) InitiateRemediation(ctx context.Context, compone
 
 	}
 
-
-
 	// Check concurrent remediation limit.
 
 	if len(ar.activeSessions) >= ar.config.MaxConcurrentRemediations {
@@ -225,11 +165,7 @@ func (ar *AutomatedRemediation) InitiateRemediation(ctx context.Context, compone
 
 	}
 
-
-
 	ar.logger.Info("Initiating remediation", "component", component, "reason", reason)
-
-
 
 	// Select appropriate strategy.
 
@@ -241,29 +177,24 @@ func (ar *AutomatedRemediation) InitiateRemediation(ctx context.Context, compone
 
 	}
 
-
-
 	// Create remediation session.
 
 	session := &RemediationSession{
 
-		ID:        uuid.New().String(),
+		ID: uuid.New().String(),
 
 		Component: component,
 
-		Strategy:  strategy.Name,
+		Strategy: strategy.Name,
 
-		Status:    "PENDING",
+		Status: "PENDING",
 
 		StartTime: time.Now(),
 
-		Actions:   make([]*RemediationAction, 0),
+		Actions: make([]*RemediationAction, 0),
 
-		Results:   make(map[string]interface{}),
-
+		Results: make(map[string]interface{}),
 	}
-
-
 
 	// Create backup if required.
 
@@ -289,8 +220,6 @@ func (ar *AutomatedRemediation) InitiateRemediation(ctx context.Context, compone
 
 	}
 
-
-
 	// Create rollback plan.
 
 	if ar.config.RollbackOnFailure {
@@ -301,25 +230,17 @@ func (ar *AutomatedRemediation) InitiateRemediation(ctx context.Context, compone
 
 	}
 
-
-
 	ar.activeSessions[component] = session
 
 	activeSessions.WithLabelValues(component).Inc()
-
-
 
 	// Start remediation in background.
 
 	go ar.executeRemediation(ctx, session, strategy)
 
-
-
 	return nil
 
 }
-
-
 
 // InitiatePreventiveRemediation initiates preventive remediation based on predictions.
 
@@ -331,21 +252,15 @@ func (ar *AutomatedRemediation) InitiatePreventiveRemediation(ctx context.Contex
 
 		"failure_probability", failureProbability)
 
-
-
 	// Select preventive strategy based on probability.
 
 	reason := fmt.Sprintf("preventive_action_probability_%.2f", failureProbability)
-
-
 
 	// Use lighter remediation strategies for preventive actions.
 
 	return ar.InitiateRemediation(ctx, component, reason)
 
 }
-
-
 
 // executeRemediation executes a remediation session.
 
@@ -359,17 +274,11 @@ func (ar *AutomatedRemediation) executeRemediation(ctx context.Context, session 
 
 	}()
 
-
-
 	ar.logger.Info("Executing remediation", "session", session.ID, "component", session.Component, "strategy", strategy.Name)
-
-
 
 	session.Status = "RUNNING"
 
 	success := true
-
-
 
 	// Execute actions in sequence.
 
@@ -377,23 +286,18 @@ func (ar *AutomatedRemediation) executeRemediation(ctx context.Context, session 
 
 		action := &RemediationAction{
 
-			Type:       actionTemplate.Type,
+			Type: actionTemplate.Type,
 
-			Target:     session.Component,
+			Target: session.Component,
 
 			Parameters: actionTemplate.Parameters,
 
-			Status:     "PENDING",
+			Status: "PENDING",
 
-			StartTime:  time.Now(),
-
+			StartTime: time.Now(),
 		}
 
-
-
 		session.Actions = append(session.Actions, action)
-
-
 
 		// Execute action with retry policy.
 
@@ -407,8 +311,6 @@ func (ar *AutomatedRemediation) executeRemediation(ctx context.Context, session 
 
 			success = false
 
-
-
 			ar.logger.Error("Remediation action failed",
 
 				"session", session.ID,
@@ -418,8 +320,6 @@ func (ar *AutomatedRemediation) executeRemediation(ctx context.Context, session 
 				"type", action.Type,
 
 				"error", err)
-
-
 
 			// Check if we should continue or abort.
 
@@ -441,15 +341,11 @@ func (ar *AutomatedRemediation) executeRemediation(ctx context.Context, session 
 
 	}
 
-
-
 	// Update session status.
 
 	endTime := time.Now()
 
 	session.EndTime = &endTime
-
-
 
 	if success {
 
@@ -469,8 +365,6 @@ func (ar *AutomatedRemediation) executeRemediation(ctx context.Context, session 
 
 		ar.logger.Error("Remediation failed", "session", session.ID)
 
-
-
 		// Attempt rollback if configured.
 
 		if ar.config.RollbackOnFailure && session.RollbackPlan != nil {
@@ -480,8 +374,6 @@ func (ar *AutomatedRemediation) executeRemediation(ctx context.Context, session 
 		}
 
 	}
-
-
 
 	strategy.Total++
 
@@ -493,8 +385,6 @@ func (ar *AutomatedRemediation) executeRemediation(ctx context.Context, session 
 
 	}
 
-
-
 	// Learn from this remediation.
 
 	if ar.config.LearningEnabled {
@@ -502,8 +392,6 @@ func (ar *AutomatedRemediation) executeRemediation(ctx context.Context, session 
 		ar.learningEngine.RecordRemediation(session, strategy, success)
 
 	}
-
-
 
 	// Clean up.
 
@@ -517,8 +405,6 @@ func (ar *AutomatedRemediation) executeRemediation(ctx context.Context, session 
 
 }
 
-
-
 // executeActionWithRetry executes an action with retry policy.
 
 func (ar *AutomatedRemediation) executeActionWithRetry(ctx context.Context, action *RemediationAction, retryPolicy *RetryPolicy) error {
@@ -527,15 +413,11 @@ func (ar *AutomatedRemediation) executeActionWithRetry(ctx context.Context, acti
 
 	attempts := 1
 
-
-
 	if retryPolicy != nil {
 
 		attempts = retryPolicy.MaxAttempts
 
 	}
-
-
 
 	delay := 1 * time.Second
 
@@ -544,8 +426,6 @@ func (ar *AutomatedRemediation) executeActionWithRetry(ctx context.Context, acti
 		delay = retryPolicy.InitialDelay
 
 	}
-
-
 
 	for attempt := 1; attempt <= attempts; attempt++ {
 
@@ -557,8 +437,6 @@ func (ar *AutomatedRemediation) executeActionWithRetry(ctx context.Context, acti
 
 		}
 
-
-
 		lastError = err
 
 		ar.logger.Warn("Remediation action attempt failed",
@@ -568,8 +446,6 @@ func (ar *AutomatedRemediation) executeActionWithRetry(ctx context.Context, acti
 			"max_attempts", attempts,
 
 			"error", err)
-
-
 
 		if attempt < attempts {
 
@@ -584,8 +460,6 @@ func (ar *AutomatedRemediation) executeActionWithRetry(ctx context.Context, acti
 			case <-time.After(delay):
 
 			}
-
-
 
 			// Increase delay for next attempt.
 
@@ -605,21 +479,15 @@ func (ar *AutomatedRemediation) executeActionWithRetry(ctx context.Context, acti
 
 	}
 
-
-
 	return fmt.Errorf("action failed after %d attempts: %w", attempts, lastError)
 
 }
-
-
 
 // executeAction executes a single remediation action.
 
 func (ar *AutomatedRemediation) executeAction(ctx context.Context, action *RemediationAction) error {
 
 	ar.logger.Debug("Executing remediation action", "type", action.Type, "target", action.Target)
-
-
 
 	switch action.Type {
 
@@ -659,22 +527,15 @@ func (ar *AutomatedRemediation) executeAction(ctx context.Context, action *Remed
 
 }
 
-
-
 // Remediation action implementations.
-
-
 
 func (ar *AutomatedRemediation) restartComponent(ctx context.Context, componentName string) error {
 
 	ar.logger.Info("Restarting component", "component", componentName)
 
-
-
 	// Get deployment.
 
 	deployment, err := ar.k8sClient.AppsV1().Deployments(ar.config.ComponentConfigs[componentName].Name).
-
 		Get(ctx, componentName, metav1.GetOptions{})
 
 	if err != nil {
@@ -682,8 +543,6 @@ func (ar *AutomatedRemediation) restartComponent(ctx context.Context, componentN
 		return fmt.Errorf("failed to get deployment: %w", err)
 
 	}
-
-
 
 	// Trigger rolling restart by updating annotation.
 
@@ -695,10 +554,7 @@ func (ar *AutomatedRemediation) restartComponent(ctx context.Context, componentN
 
 	deployment.Spec.Template.Annotations["nephoran.com/restarted-at"] = time.Now().Format(time.RFC3339)
 
-
-
 	_, err = ar.k8sClient.AppsV1().Deployments(ar.config.ComponentConfigs[componentName].Name).
-
 		Update(ctx, deployment, metav1.UpdateOptions{})
 
 	if err != nil {
@@ -707,15 +563,11 @@ func (ar *AutomatedRemediation) restartComponent(ctx context.Context, componentN
 
 	}
 
-
-
 	// Wait for rollout to complete.
 
 	return ar.waitForDeploymentReady(ctx, componentName, 5*time.Minute)
 
 }
-
-
 
 func (ar *AutomatedRemediation) scaleComponent(ctx context.Context, componentName string, parameters map[string]interface{}) error {
 
@@ -727,16 +579,11 @@ func (ar *AutomatedRemediation) scaleComponent(ctx context.Context, componentNam
 
 	}
 
-
-
 	ar.logger.Info("Scaling component", "component", componentName, "replicas", replicas)
-
-
 
 	// Get current deployment.
 
 	deployment, err := ar.k8sClient.AppsV1().Deployments(ar.config.ComponentConfigs[componentName].Name).
-
 		Get(ctx, componentName, metav1.GetOptions{})
 
 	if err != nil {
@@ -745,18 +592,13 @@ func (ar *AutomatedRemediation) scaleComponent(ctx context.Context, componentNam
 
 	}
 
-
-
 	// Update replica count.
 
 	replicaCount := int32(replicas)
 
 	deployment.Spec.Replicas = &replicaCount
 
-
-
 	_, err = ar.k8sClient.AppsV1().Deployments(ar.config.ComponentConfigs[componentName].Name).
-
 		Update(ctx, deployment, metav1.UpdateOptions{})
 
 	if err != nil {
@@ -765,26 +607,19 @@ func (ar *AutomatedRemediation) scaleComponent(ctx context.Context, componentNam
 
 	}
 
-
-
 	// Wait for scaling to complete.
 
 	return ar.waitForDeploymentReady(ctx, componentName, 3*time.Minute)
 
 }
 
-
-
 func (ar *AutomatedRemediation) redeployComponent(ctx context.Context, componentName string) error {
 
 	ar.logger.Info("Redeploying component", "component", componentName)
 
-
-
 	// Get current deployment.
 
 	deployment, err := ar.k8sClient.AppsV1().Deployments(ar.config.ComponentConfigs[componentName].Name).
-
 		Get(ctx, componentName, metav1.GetOptions{})
 
 	if err != nil {
@@ -793,12 +628,9 @@ func (ar *AutomatedRemediation) redeployComponent(ctx context.Context, component
 
 	}
 
-
-
 	// Delete deployment.
 
 	err = ar.k8sClient.AppsV1().Deployments(ar.config.ComponentConfigs[componentName].Name).
-
 		Delete(ctx, componentName, metav1.DeleteOptions{})
 
 	if err != nil {
@@ -807,13 +639,9 @@ func (ar *AutomatedRemediation) redeployComponent(ctx context.Context, component
 
 	}
 
-
-
 	// Wait for deletion.
 
 	time.Sleep(10 * time.Second)
-
-
 
 	// Recreate deployment.
 
@@ -822,7 +650,6 @@ func (ar *AutomatedRemediation) redeployComponent(ctx context.Context, component
 	deployment.UID = ""
 
 	_, err = ar.k8sClient.AppsV1().Deployments(ar.config.ComponentConfigs[componentName].Name).
-
 		Create(ctx, deployment, metav1.CreateOptions{})
 
 	if err != nil {
@@ -831,24 +658,17 @@ func (ar *AutomatedRemediation) redeployComponent(ctx context.Context, component
 
 	}
 
-
-
 	return ar.waitForDeploymentReady(ctx, componentName, 5*time.Minute)
 
 }
-
-
 
 func (ar *AutomatedRemediation) updateConfiguration(ctx context.Context, componentName string, parameters map[string]interface{}) error {
 
 	ar.logger.Info("Updating configuration", "component", componentName)
 
-
-
 	configMapName := fmt.Sprintf("%s-config", componentName)
 
 	configMap, err := ar.k8sClient.CoreV1().ConfigMaps(ar.config.ComponentConfigs[componentName].Name).
-
 		Get(ctx, configMapName, metav1.GetOptions{})
 
 	if err != nil {
@@ -856,8 +676,6 @@ func (ar *AutomatedRemediation) updateConfiguration(ctx context.Context, compone
 		return fmt.Errorf("failed to get configmap: %w", err)
 
 	}
-
-
 
 	// Update configuration data.
 
@@ -871,10 +689,7 @@ func (ar *AutomatedRemediation) updateConfiguration(ctx context.Context, compone
 
 	}
 
-
-
 	_, err = ar.k8sClient.CoreV1().ConfigMaps(ar.config.ComponentConfigs[componentName].Name).
-
 		Update(ctx, configMap, metav1.UpdateOptions{})
 
 	if err != nil {
@@ -883,21 +698,15 @@ func (ar *AutomatedRemediation) updateConfiguration(ctx context.Context, compone
 
 	}
 
-
-
 	// Restart component to pick up new configuration.
 
 	return ar.restartComponent(ctx, componentName)
 
 }
 
-
-
 func (ar *AutomatedRemediation) clearCache(ctx context.Context, componentName string) error {
 
 	ar.logger.Info("Clearing cache", "component", componentName)
-
-
 
 	// Implementation depends on cache type.
 
@@ -910,24 +719,17 @@ func (ar *AutomatedRemediation) clearCache(ctx context.Context, componentName st
 		return ar.executeCustomScript(ctx, componentName, map[string]interface{}{
 
 			"script": "kubectl exec deployment/rag-api -- redis-cli FLUSHALL",
-
 		})
 
 	}
-
-
 
 	return nil
 
 }
 
-
-
 func (ar *AutomatedRemediation) restartDependencies(ctx context.Context, componentName string) error {
 
 	ar.logger.Info("Restarting dependencies", "component", componentName)
-
-
 
 	config := ar.config.ComponentConfigs[componentName]
 
@@ -936,8 +738,6 @@ func (ar *AutomatedRemediation) restartDependencies(ctx context.Context, compone
 		return fmt.Errorf("component configuration not found")
 
 	}
-
-
 
 	// Restart each dependency.
 
@@ -955,13 +755,9 @@ func (ar *AutomatedRemediation) restartDependencies(ctx context.Context, compone
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (ar *AutomatedRemediation) executeCustomScript(ctx context.Context, componentName string, parameters map[string]interface{}) error {
 
@@ -973,11 +769,7 @@ func (ar *AutomatedRemediation) executeCustomScript(ctx context.Context, compone
 
 	}
 
-
-
 	ar.logger.Info("Executing custom script", "component", componentName, "script", script)
-
-
 
 	// Create a job to execute the script.
 
@@ -985,10 +777,9 @@ func (ar *AutomatedRemediation) executeCustomScript(ctx context.Context, compone
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      fmt.Sprintf("remediation-script-%s-%d", componentName, time.Now().Unix()),
+			Name: fmt.Sprintf("remediation-script-%s-%d", componentName, time.Now().Unix()),
 
 			Namespace: ar.config.ComponentConfigs[componentName].Name,
-
 		},
 
 		Spec: batchv1.JobSpec{
@@ -1003,28 +794,19 @@ func (ar *AutomatedRemediation) executeCustomScript(ctx context.Context, compone
 
 						{
 
-							Name:    "script-executor",
+							Name: "script-executor",
 
-							Image:   "kubectl:latest",
+							Image: "kubectl:latest",
 
 							Command: []string{"/bin/sh", "-c", script},
-
 						},
-
 					},
-
 				},
-
 			},
-
 		},
-
 	}
 
-
-
 	_, err := ar.k8sClient.BatchV1().Jobs(ar.config.ComponentConfigs[componentName].Name).
-
 		Create(ctx, job, metav1.CreateOptions{})
 
 	if err != nil {
@@ -1033,34 +815,23 @@ func (ar *AutomatedRemediation) executeCustomScript(ctx context.Context, compone
 
 	}
 
-
-
 	// Wait for job completion (simplified).
 
 	time.Sleep(30 * time.Second)
-
-
 
 	return nil
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (ar *AutomatedRemediation) waitForDeploymentReady(ctx context.Context, componentName string, timeout time.Duration) error {
 
 	deadline := time.Now().Add(timeout)
 
-
-
 	for time.Now().Before(deadline) {
 
 		deployment, err := ar.k8sClient.AppsV1().Deployments(ar.config.ComponentConfigs[componentName].Name).
-
 			Get(ctx, componentName, metav1.GetOptions{})
 
 		if err != nil {
@@ -1069,15 +840,11 @@ func (ar *AutomatedRemediation) waitForDeploymentReady(ctx context.Context, comp
 
 		}
 
-
-
 		if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
 
 			return nil
 
 		}
-
-
 
 		select {
 
@@ -1091,13 +858,9 @@ func (ar *AutomatedRemediation) waitForDeploymentReady(ctx context.Context, comp
 
 	}
 
-
-
 	return fmt.Errorf("timeout waiting for deployment to be ready")
 
 }
-
-
 
 func (ar *AutomatedRemediation) selectBestStrategy(component, reason string) *RemediationStrategy {
 
@@ -1106,8 +869,6 @@ func (ar *AutomatedRemediation) selectBestStrategy(component, reason string) *Re
 	var bestStrategy *RemediationStrategy
 
 	var bestScore float64
-
-
 
 	for _, strategy := range ar.strategies {
 
@@ -1123,13 +884,9 @@ func (ar *AutomatedRemediation) selectBestStrategy(component, reason string) *Re
 
 	}
 
-
-
 	return bestStrategy
 
 }
-
-
 
 // findBestStrategy is an alias for selectBestStrategy for test compatibility.
 
@@ -1139,21 +896,15 @@ func (ar *AutomatedRemediation) findBestStrategy(component, reason string) *Reme
 
 }
 
-
-
 func (ar *AutomatedRemediation) calculateStrategyScore(strategy *RemediationStrategy, component, reason string) float64 {
 
 	// Base score from success rate.
 
 	score := strategy.SuccessRate
 
-
-
 	// Adjust based on strategy priority.
 
 	score += float64(strategy.Priority) * 0.1
-
-
 
 	// Adjust based on reason matching.
 
@@ -1163,13 +914,9 @@ func (ar *AutomatedRemediation) calculateStrategyScore(strategy *RemediationStra
 
 	}
 
-
-
 	return score
 
 }
-
-
 
 func (ar *AutomatedRemediation) reasonMatchesStrategy(reason string, strategy *RemediationStrategy) bool {
 
@@ -1199,8 +946,6 @@ func (ar *AutomatedRemediation) reasonMatchesStrategy(reason string, strategy *R
 
 }
 
-
-
 func (ar *AutomatedRemediation) shouldAbortRemediation(session *RemediationSession, strategy *RemediationStrategy) bool {
 
 	// Count failed actions.
@@ -1217,15 +962,11 @@ func (ar *AutomatedRemediation) shouldAbortRemediation(session *RemediationSessi
 
 	}
 
-
-
 	// Abort if more than half the actions failed.
 
 	return float64(failedActions)/float64(len(session.Actions)) > 0.5
 
 }
-
-
 
 func (ar *AutomatedRemediation) createBackup(ctx context.Context, component string) (string, error) {
 
@@ -1233,25 +974,17 @@ func (ar *AutomatedRemediation) createBackup(ctx context.Context, component stri
 
 	backupID := fmt.Sprintf("pre-remediation-%s-%d", component, time.Now().Unix())
 
-
-
 	// Implementation would create actual backup.
 
 	ar.logger.Info("Creating backup", "component", component, "backup_id", backupID)
-
-
 
 	return backupID, nil
 
 }
 
-
-
 func (ar *AutomatedRemediation) performRollback(ctx context.Context, session *RemediationSession) {
 
 	ar.logger.Info("Performing rollback", "session", session.ID, "component", session.Component)
-
-
 
 	if session.RollbackPlan == nil {
 
@@ -1260,8 +993,6 @@ func (ar *AutomatedRemediation) performRollback(ctx context.Context, session *Re
 		return
 
 	}
-
-
 
 	err := ar.rollbackManager.ExecuteRollback(session.RollbackPlan.ID)
 
@@ -1277,8 +1008,6 @@ func (ar *AutomatedRemediation) performRollback(ctx context.Context, session *Re
 
 }
 
-
-
 // GetActiveRemediations returns active remediation sessions.
 
 func (ar *AutomatedRemediation) GetActiveRemediations() map[string]*RemediationSession {
@@ -1286,8 +1015,6 @@ func (ar *AutomatedRemediation) GetActiveRemediations() map[string]*RemediationS
 	ar.mu.RLock()
 
 	defer ar.mu.RUnlock()
-
-
 
 	sessions := make(map[string]*RemediationSession)
 
@@ -1301,8 +1028,6 @@ func (ar *AutomatedRemediation) GetActiveRemediations() map[string]*RemediationS
 
 }
 
-
-
 // Monitoring and optimization methods.
 
 func (ar *AutomatedRemediation) runRemediationMonitor(ctx context.Context) {
@@ -1310,8 +1035,6 @@ func (ar *AutomatedRemediation) runRemediationMonitor(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1331,15 +1054,11 @@ func (ar *AutomatedRemediation) runRemediationMonitor(ctx context.Context) {
 
 }
 
-
-
 func (ar *AutomatedRemediation) runStrategyOptimization(ctx context.Context) {
 
 	ticker := time.NewTicker(1 * time.Hour)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1359,15 +1078,11 @@ func (ar *AutomatedRemediation) runStrategyOptimization(ctx context.Context) {
 
 }
 
-
-
 func (ar *AutomatedRemediation) monitorActiveSessions(ctx context.Context) {
 
 	ar.mu.RLock()
 
 	defer ar.mu.RUnlock()
-
-
 
 	for component, session := range ar.activeSessions {
 
@@ -1389,13 +1104,9 @@ func (ar *AutomatedRemediation) monitorActiveSessions(ctx context.Context) {
 
 }
 
-
-
 func (ar *AutomatedRemediation) optimizeStrategies() {
 
 	ar.logger.Info("Optimizing remediation strategies")
-
-
 
 	// Update strategy priorities based on success rates.
 
@@ -1421,8 +1132,6 @@ func (ar *AutomatedRemediation) optimizeStrategies() {
 
 }
 
-
-
 func min(a, b int) int {
 
 	if a < b {
@@ -1435,8 +1144,6 @@ func min(a, b int) int {
 
 }
 
-
-
 func (ar *AutomatedRemediation) initializeDefaultStrategies() {
 
 	// Restart strategy.
@@ -1448,40 +1155,33 @@ func (ar *AutomatedRemediation) initializeDefaultStrategies() {
 		Conditions: []*RemediationCondition{
 
 			{Metric: "health_score", Operator: "LT", Threshold: 0.5, Duration: 2 * time.Minute},
-
 		},
 
 		Actions: []*RemediationActionTemplate{
 
 			{
 
-				Type:     "RESTART",
+				Type: "RESTART",
 
 				Template: "restart_deployment",
 
-				Timeout:  5 * time.Minute,
+				Timeout: 5 * time.Minute,
 
 				RetryPolicy: &RetryPolicy{
 
-					MaxAttempts:       3,
+					MaxAttempts: 3,
 
-					InitialDelay:      10 * time.Second,
+					InitialDelay: 10 * time.Second,
 
-					MaxDelay:          1 * time.Minute,
+					MaxDelay: 1 * time.Minute,
 
 					BackoffMultiplier: 2.0,
-
 				},
-
 			},
-
 		},
 
 		Priority: 5,
-
 	}
-
-
 
 	// Scale up strategy.
 
@@ -1492,14 +1192,13 @@ func (ar *AutomatedRemediation) initializeDefaultStrategies() {
 		Conditions: []*RemediationCondition{
 
 			{Metric: "cpu_usage", Operator: "GT", Threshold: 0.8, Duration: 5 * time.Minute},
-
 		},
 
 		Actions: []*RemediationActionTemplate{
 
 			{
 
-				Type:     "SCALE",
+				Type: "SCALE",
 
 				Template: "scale_deployment",
 
@@ -1510,16 +1209,11 @@ func (ar *AutomatedRemediation) initializeDefaultStrategies() {
 				},
 
 				Timeout: 3 * time.Minute,
-
 			},
-
 		},
 
 		Priority: 7,
-
 	}
-
-
 
 	// Clear cache strategy.
 
@@ -1530,28 +1224,21 @@ func (ar *AutomatedRemediation) initializeDefaultStrategies() {
 		Conditions: []*RemediationCondition{
 
 			{Metric: "cache_hit_rate", Operator: "LT", Threshold: 0.5, Duration: 10 * time.Minute},
-
 		},
 
 		Actions: []*RemediationActionTemplate{
 
 			{
 
-				Type:    "CLEAR_CACHE",
+				Type: "CLEAR_CACHE",
 
 				Timeout: 1 * time.Minute,
-
 			},
-
 		},
 
 		Priority: 3,
-
 	}
 
 }
 
-
-
 // Supporting types and components - implementations moved to specialized files.
-

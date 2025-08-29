@@ -1,2083 +1,1713 @@
-
 package o1
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // ComprehensiveAccountingManager provides complete O-RAN accounting management.
 
 // following O-RAN.WG10.O1-Interface.0-v07.00 specification.
 
 type ComprehensiveAccountingManager struct {
+	config *AccountingManagerConfig
 
-	config            *AccountingManagerConfig
+	usageCollector *UsageDataCollector
 
-	usageCollector    *UsageDataCollector
+	meteringEngine *MeteringEngine
 
-	meteringEngine    *MeteringEngine
+	billingEngine *BillingEngine
 
-	billingEngine     *BillingEngine
+	chargingManager *ChargingManager
 
-	chargingManager   *ChargingManager
+	usageAggregator *UsageAggregator
 
-	usageAggregator   *UsageAggregator
+	reportGenerator *AccountingReportGenerator
 
-	reportGenerator   *AccountingReportGenerator
+	auditTrail *AccountingAuditTrail
 
-	auditTrail        *AccountingAuditTrail
+	dataRetention *DataRetentionManager
 
-	dataRetention     *DataRetentionManager
+	rateLimitManager *RateLimitManager
 
-	rateLimitManager  *RateLimitManager
+	quotaManager *QuotaManager
 
-	quotaManager      *QuotaManager
-
-	fraudDetection    *FraudDetectionEngine
+	fraudDetection *FraudDetectionEngine
 
 	settlementManager *SettlementManager
 
-	revenueTracking   *RevenueTrackingService
+	revenueTracking *RevenueTrackingService
 
-	usageStorage      UsageDataStorage
+	usageStorage UsageDataStorage
 
-	metrics           *AccountingMetrics
+	metrics *AccountingMetrics
 
-	running           bool
+	running bool
 
-	stopChan          chan struct{}
+	stopChan chan struct{}
 
-	mutex             sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // AccountingManagerConfig holds accounting configuration.
 
 type AccountingManagerConfig struct {
+	CollectionInterval time.Duration
 
-	CollectionInterval    time.Duration
+	AggregationIntervals map[string]time.Duration
 
-	AggregationIntervals  map[string]time.Duration
+	RetentionPeriods map[string]time.Duration
 
-	RetentionPeriods      map[string]time.Duration
+	BillingCycle time.Duration
 
-	BillingCycle          time.Duration
+	ChargingRates map[string]*ChargingRate
 
-	ChargingRates         map[string]*ChargingRate
+	CurrencyCode string
 
-	CurrencyCode          string
+	TaxRates map[string]float64
 
-	TaxRates              map[string]float64
+	DiscountRules []*DiscountRule
 
-	DiscountRules         []*DiscountRule
+	FraudThresholds map[string]float64
 
-	FraudThresholds       map[string]float64
+	QuotaLimits map[string]*QuotaLimit
 
-	QuotaLimits           map[string]*QuotaLimit
-
-	RateLimits            map[string]*RateLimit
+	RateLimits map[string]*RateLimit
 
 	EnableRealTimeBilling bool
 
-	EnableUsageAlerts     bool
+	EnableUsageAlerts bool
 
-	EnableFraudDetection  bool
+	EnableFraudDetection bool
 
-	ReportingSchedule     map[string]string
+	ReportingSchedule map[string]string
 
-	AuditRetention        time.Duration
-
+	AuditRetention time.Duration
 }
-
-
 
 // RateLimit defines rate limiting configuration.
 
 type RateLimit struct {
+	RequestsPerSecond int `yaml:"requests_per_second"`
 
-	RequestsPerSecond int           `yaml:"requests_per_second"`
+	BurstSize int `yaml:"burst_size"`
 
-	BurstSize         int           `yaml:"burst_size"`
+	Window time.Duration `yaml:"window"`
 
-	Window            time.Duration `yaml:"window"`
-
-	Enabled           bool          `yaml:"enabled"`
-
+	Enabled bool `yaml:"enabled"`
 }
-
-
 
 // ChargingRate defines charging rates for different services.
 
 type ChargingRate struct {
+	ServiceID string `json:"service_id"`
 
-	ServiceID      string                 `json:"service_id"`
+	RateType string `json:"rate_type"` // FLAT, USAGE, TIERED, DYNAMIC
 
-	RateType       string                 `json:"rate_type"` // FLAT, USAGE, TIERED, DYNAMIC
+	BaseRate float64 `json:"base_rate"`
 
-	BaseRate       float64                `json:"base_rate"`
+	UsageRates map[string]float64 `json:"usage_rates"`
 
-	UsageRates     map[string]float64     `json:"usage_rates"`
+	TieredRates []*TierRate `json:"tiered_rates"`
 
-	TieredRates    []*TierRate            `json:"tiered_rates"`
+	TimeBasedRates map[string]float64 `json:"time_based_rates"`
 
-	TimeBasedRates map[string]float64     `json:"time_based_rates"`
+	Currency string `json:"currency"`
 
-	Currency       string                 `json:"currency"`
+	ValidFrom time.Time `json:"valid_from"`
 
-	ValidFrom      time.Time              `json:"valid_from"`
+	ValidUntil time.Time `json:"valid_until"`
 
-	ValidUntil     time.Time              `json:"valid_until"`
-
-	Conditions     map[string]interface{} `json:"conditions"`
-
+	Conditions map[string]interface{} `json:"conditions"`
 }
-
-
 
 // TierRate represents tiered pricing rates.
 
 type TierRate struct {
-
 	FromUsage float64 `json:"from_usage"`
 
-	ToUsage   float64 `json:"to_usage"`
+	ToUsage float64 `json:"to_usage"`
 
-	Rate      float64 `json:"rate"`
+	Rate float64 `json:"rate"`
 
-	Unit      string  `json:"unit"`
-
+	Unit string `json:"unit"`
 }
-
-
 
 // DiscountRule defines discount rules.
 
 type DiscountRule struct {
+	ID string `json:"id"`
 
-	ID           string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name         string                 `json:"name"`
+	Type string `json:"type"` // PERCENTAGE, FIXED, TIER_BASED
 
-	Type         string                 `json:"type"` // PERCENTAGE, FIXED, TIER_BASED
+	Value float64 `json:"value"`
 
-	Value        float64                `json:"value"`
+	Conditions map[string]interface{} `json:"conditions"`
 
-	Conditions   map[string]interface{} `json:"conditions"`
+	ApplicableTo []string `json:"applicable_to"`
 
-	ApplicableTo []string               `json:"applicable_to"`
+	ValidFrom time.Time `json:"valid_from"`
 
-	ValidFrom    time.Time              `json:"valid_from"`
+	ValidUntil time.Time `json:"valid_until"`
 
-	ValidUntil   time.Time              `json:"valid_until"`
+	MaxDiscount float64 `json:"max_discount"`
 
-	MaxDiscount  float64                `json:"max_discount"`
+	Priority int `json:"priority"`
 
-	Priority     int                    `json:"priority"`
-
-	Enabled      bool                   `json:"enabled"`
-
+	Enabled bool `json:"enabled"`
 }
-
-
 
 // QuotaLimit defines resource quota limits.
 
 type QuotaLimit struct {
+	ResourceType string `json:"resource_type"`
 
-	ResourceType string    `json:"resource_type"`
+	Limit float64 `json:"limit"`
 
-	Limit        float64   `json:"limit"`
+	Unit string `json:"unit"`
 
-	Unit         string    `json:"unit"`
+	Period string `json:"period"` // DAILY, WEEKLY, MONTHLY
 
-	Period       string    `json:"period"`  // DAILY, WEEKLY, MONTHLY
+	Warning float64 `json:"warning"` // Warning threshold percentage
 
-	Warning      float64   `json:"warning"` // Warning threshold percentage
+	Action string `json:"action"` // ALERT, THROTTLE, BLOCK
 
-	Action       string    `json:"action"`  // ALERT, THROTTLE, BLOCK
-
-	ResetTime    time.Time `json:"reset_time"`
-
+	ResetTime time.Time `json:"reset_time"`
 }
-
-
 
 // AccountingRateLimit defines rate limiting parameters for accounting.
 
 type AccountingRateLimit struct {
+	ResourceType string `json:"resource_type"`
 
-	ResourceType string        `json:"resource_type"`
+	Limit int `json:"limit"`
 
-	Limit        int           `json:"limit"`
+	Window time.Duration `json:"window"`
 
-	Window       time.Duration `json:"window"`
+	BurstLimit int `json:"burst_limit"`
 
-	BurstLimit   int           `json:"burst_limit"`
-
-	Action       string        `json:"action"` // THROTTLE, REJECT, QUEUE
+	Action string `json:"action"` // THROTTLE, REJECT, QUEUE
 
 }
-
-
 
 // UsageDataCollector collects resource usage data.
 
 type UsageDataCollector struct {
-
-	collectors      map[string]*ResourceCollector
+	collectors map[string]*ResourceCollector
 
 	collectionQueue chan *UsageEvent
 
-	processors      []*UsageProcessor
+	processors []*UsageProcessor
 
-	workerPool      *UsageWorkerPool
+	workerPool *UsageWorkerPool
 
-	config          *CollectorConfig
+	config *CollectorConfig
 
-	running         bool
+	running bool
 
-	mutex           sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ResourceCollector collects usage data for specific resources.
 
 type ResourceCollector struct {
+	ID string
 
-	ID               string
+	ResourceType string
 
-	ResourceType     string
-
-	ElementID        string
+	ElementID string
 
 	CollectionMethod string // PERIODIC, EVENT_DRIVEN, ON_DEMAND
 
-	Interval         time.Duration
+	Interval time.Duration
 
-	LastCollection   time.Time
+	LastCollection time.Time
 
-	Status           string // ACTIVE, INACTIVE, ERROR
+	Status string // ACTIVE, INACTIVE, ERROR
 
-	ErrorCount       int64
+	ErrorCount int64
 
-	SuccessCount     int64
+	SuccessCount int64
 
-	Config           map[string]interface{}
+	Config map[string]interface{}
 
-	running          bool
+	running bool
 
-	cancel           context.CancelFunc
-
+	cancel context.CancelFunc
 }
-
-
 
 // UsageEvent represents a resource usage event.
 
 type UsageEvent struct {
+	ID string `json:"id"`
 
-	ID            string                 `json:"id"`
+	ElementID string `json:"element_id"`
 
-	ElementID     string                 `json:"element_id"`
+	UserID string `json:"user_id"`
 
-	UserID        string                 `json:"user_id"`
+	ServiceID string `json:"service_id"`
 
-	ServiceID     string                 `json:"service_id"`
+	ResourceType string `json:"resource_type"`
 
-	ResourceType  string                 `json:"resource_type"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp     time.Time              `json:"timestamp"`
+	StartTime time.Time `json:"start_time,omitempty"`
 
-	StartTime     time.Time              `json:"start_time,omitempty"`
+	EndTime time.Time `json:"end_time,omitempty"`
 
-	EndTime       time.Time              `json:"end_time,omitempty"`
+	Duration time.Duration `json:"duration,omitempty"`
 
-	Duration      time.Duration          `json:"duration,omitempty"`
+	Quantity float64 `json:"quantity"`
 
-	Quantity      float64                `json:"quantity"`
+	Unit string `json:"unit"`
 
-	Unit          string                 `json:"unit"`
+	Quality string `json:"quality"` // GOOD, DEGRADED, POOR
 
-	Quality       string                 `json:"quality"` // GOOD, DEGRADED, POOR
+	Location string `json:"location,omitempty"`
 
-	Location      string                 `json:"location,omitempty"`
+	SessionID string `json:"session_id,omitempty"`
 
-	SessionID     string                 `json:"session_id,omitempty"`
+	Attributes map[string]interface{} `json:"attributes"`
 
-	Attributes    map[string]interface{} `json:"attributes"`
+	EventType string `json:"event_type"` // START, STOP, INTERIM, ERROR
 
-	EventType     string                 `json:"event_type"` // START, STOP, INTERIM, ERROR
-
-	CorrelationID string                 `json:"correlation_id"`
-
+	CorrelationID string `json:"correlation_id"`
 }
-
-
 
 // UsageProcessor processes usage events.
 
 type UsageProcessor interface {
-
 	ProcessEvent(ctx context.Context, event *UsageEvent) (*ProcessedUsage, error)
 
 	GetProcessorType() string
 
 	GetSupportedResourceTypes() []string
-
 }
-
-
 
 // ProcessedUsage represents processed usage data.
 
 type ProcessedUsage struct {
+	Event *UsageEvent `json:"event"`
 
-	Event              *UsageEvent            `json:"event"`
+	ProcessedAt time.Time `json:"processed_at"`
 
-	ProcessedAt        time.Time              `json:"processed_at"`
+	NormalizedQuantity float64 `json:"normalized_quantity"`
 
-	NormalizedQuantity float64                `json:"normalized_quantity"`
+	NormalizedUnit string `json:"normalized_unit"`
 
-	NormalizedUnit     string                 `json:"normalized_unit"`
+	ChargingAmount float64 `json:"charging_amount"`
 
-	ChargingAmount     float64                `json:"charging_amount"`
+	Currency string `json:"currency"`
 
-	Currency           string                 `json:"currency"`
+	Billable bool `json:"billable"`
 
-	Billable           bool                   `json:"billable"`
+	TaxAmount float64 `json:"tax_amount"`
 
-	TaxAmount          float64                `json:"tax_amount"`
+	DiscountAmount float64 `json:"discount_amount"`
 
-	DiscountAmount     float64                `json:"discount_amount"`
+	NetAmount float64 `json:"net_amount"`
 
-	NetAmount          float64                `json:"net_amount"`
-
-	Metadata           map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // UsageWorkerPool manages usage processing workers.
 
 type UsageWorkerPool struct {
+	workers int
 
-	workers     int
-
-	eventQueue  chan *UsageEvent
+	eventQueue chan *UsageEvent
 
 	resultQueue chan *ProcessedUsage
 
-	processors  []UsageProcessor
+	processors []UsageProcessor
 
-	workerWg    sync.WaitGroup
+	workerWg sync.WaitGroup
 
-	running     bool
+	running bool
 
-	stopChan    chan struct{}
-
+	stopChan chan struct{}
 }
-
-
 
 // CollectorConfig holds usage collector configuration.
 
 type CollectorConfig struct {
-
-	MaxEventQueueSize    int
+	MaxEventQueueSize int
 
 	MaxConcurrentWorkers int
 
-	ProcessingTimeout    time.Duration
+	ProcessingTimeout time.Duration
 
-	RetryAttempts        int
+	RetryAttempts int
 
-	RetryInterval        time.Duration
+	RetryInterval time.Duration
 
-	EnableDeduplication  bool
+	EnableDeduplication bool
 
-	DeduplicationWindow  time.Duration
-
+	DeduplicationWindow time.Duration
 }
-
-
 
 // MeteringEngine performs usage metering and calculation.
 
 type MeteringEngine struct {
+	meters map[string]*UsageMeter
 
-	meters           map[string]*UsageMeter
-
-	calculators      map[string]*UsageCalculator
+	calculators map[string]*UsageCalculator
 
 	aggregationRules []*AggregationRule
 
-	config           *MeteringConfig
+	config *MeteringConfig
 
-	mutex            sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // UsageMeter tracks resource usage.
 
 type UsageMeter struct {
-
-	ID           string
+	ID string
 
 	ResourceType string
 
-	Unit         string
+	Unit string
 
-	Precision    int
+	Precision int
 
-	Accumulator  *UsageAccumulator
+	Accumulator *UsageAccumulator
 
-	ResetPolicy  string // NEVER, DAILY, WEEKLY, MONTHLY
+	ResetPolicy string // NEVER, DAILY, WEEKLY, MONTHLY
 
-	LastReset    time.Time
+	LastReset time.Time
 
 	CurrentValue float64
 
-	PeakValue    float64
+	PeakValue float64
 
 	AverageValue float64
 
-	SampleCount  int64
+	SampleCount int64
 
-	Status       string // ACTIVE, INACTIVE, ERROR
+	Status string // ACTIVE, INACTIVE, ERROR
 
 }
-
-
 
 // UsageAccumulator accumulates usage values.
 
 type UsageAccumulator struct {
+	Type string // SUM, AVERAGE, MAX, MIN, DELTA
 
-	Type       string // SUM, AVERAGE, MAX, MIN, DELTA
+	Window time.Duration
 
-	Window     time.Duration
-
-	Samples    []*UsageSample
+	Samples []*UsageSample
 
 	MaxSamples int
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // UsageSample represents a usage sample.
 
 type UsageSample struct {
-
 	Timestamp time.Time
 
-	Value     float64
+	Value float64
 
-	Quality   string
+	Quality string
 
-	Metadata  map[string]interface{}
-
+	Metadata map[string]interface{}
 }
-
-
 
 // UsageCalculator performs usage calculations.
 
 type UsageCalculator interface {
-
 	CalculateUsage(ctx context.Context, samples []*UsageSample) (*CalculatedUsage, error)
 
 	GetCalculatorType() string
 
 	GetSupportedUnits() []string
-
 }
-
-
 
 // CalculatedUsage represents calculated usage.
 
 type CalculatedUsage struct {
+	ResourceType string `json:"resource_type"`
 
-	ResourceType    string                 `json:"resource_type"`
+	Period string `json:"period"`
 
-	Period          string                 `json:"period"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime       time.Time              `json:"start_time"`
+	EndTime time.Time `json:"end_time"`
 
-	EndTime         time.Time              `json:"end_time"`
+	TotalUsage float64 `json:"total_usage"`
 
-	TotalUsage      float64                `json:"total_usage"`
+	PeakUsage float64 `json:"peak_usage"`
 
-	PeakUsage       float64                `json:"peak_usage"`
+	AverageUsage float64 `json:"average_usage"`
 
-	AverageUsage    float64                `json:"average_usage"`
+	MinUsage float64 `json:"min_usage"`
 
-	MinUsage        float64                `json:"min_usage"`
+	Unit string `json:"unit"`
 
-	Unit            string                 `json:"unit"`
+	Quality string `json:"quality"`
 
-	Quality         string                 `json:"quality"`
+	SampleCount int64 `json:"sample_count"`
 
-	SampleCount     int64                  `json:"sample_count"`
+	CalculationTime time.Time `json:"calculation_time"`
 
-	CalculationTime time.Time              `json:"calculation_time"`
-
-	Metadata        map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // AggregationRule defines usage aggregation rules.
 
 type AggregationRule struct {
+	ID string `json:"id"`
 
-	ID              string                 `json:"id"`
+	ResourceTypes []string `json:"resource_types"`
 
-	ResourceTypes   []string               `json:"resource_types"`
+	AggregationType string `json:"aggregation_type"` // SUM, AVERAGE, MAX, MIN
 
-	AggregationType string                 `json:"aggregation_type"` // SUM, AVERAGE, MAX, MIN
+	TimeWindow time.Duration `json:"time_window"`
 
-	TimeWindow      time.Duration          `json:"time_window"`
+	GroupBy []string `json:"group_by"`
 
-	GroupBy         []string               `json:"group_by"`
+	Filters map[string]interface{} `json:"filters"`
 
-	Filters         map[string]interface{} `json:"filters"`
+	OutputFormat string `json:"output_format"`
 
-	OutputFormat    string                 `json:"output_format"`
-
-	Enabled         bool                   `json:"enabled"`
-
+	Enabled bool `json:"enabled"`
 }
-
-
 
 // MeteringConfig holds metering configuration.
 
 type MeteringConfig struct {
+	DefaultUnit string
 
-	DefaultUnit            string
+	DefaultPrecision int
 
-	DefaultPrecision       int
+	MaxAccumulatorSamples int
 
-	MaxAccumulatorSamples  int
+	AggregationSchedule map[string]string
 
-	AggregationSchedule    map[string]string
-
-	CalculationTimeout     time.Duration
+	CalculationTimeout time.Duration
 
 	EnableRealTimeMetering bool
-
 }
-
-
 
 // BillingEngine generates bills and invoices.
 
 type BillingEngine struct {
-
-	billingCycles    map[string]*BillingCycle
+	billingCycles map[string]*BillingCycle
 
 	invoiceGenerator *InvoiceGenerator
 
 	paymentProcessor *PaymentProcessor
 
-	taxCalculator    *TaxCalculator
+	taxCalculator *TaxCalculator
 
-	discountEngine   *DiscountEngine
+	discountEngine *DiscountEngine
 
-	creditManager    *CreditManager
+	creditManager *CreditManager
 
-	config           *BillingConfig
+	config *BillingConfig
 
-	mutex            sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // BillingCycle represents a billing cycle.
 
 type BillingCycle struct {
+	ID string `json:"id"`
 
-	ID             string               `json:"id"`
+	CustomerID string `json:"customer_id"`
 
-	CustomerID     string               `json:"customer_id"`
+	ServiceID string `json:"service_id"`
 
-	ServiceID      string               `json:"service_id"`
+	CycleType string `json:"cycle_type"` // PREPAID, POSTPAID
 
-	CycleType      string               `json:"cycle_type"` // PREPAID, POSTPAID
+	Period string `json:"period"` // MONTHLY, QUARTERLY, ANNUAL
 
-	Period         string               `json:"period"`     // MONTHLY, QUARTERLY, ANNUAL
+	StartDate time.Time `json:"start_date"`
 
-	StartDate      time.Time            `json:"start_date"`
+	EndDate time.Time `json:"end_date"`
 
-	EndDate        time.Time            `json:"end_date"`
+	DueDate time.Time `json:"due_date"`
 
-	DueDate        time.Time            `json:"due_date"`
+	Status string `json:"status"` // ACTIVE, SUSPENDED, CLOSED
 
-	Status         string               `json:"status"` // ACTIVE, SUSPENDED, CLOSED
+	BillingDay int `json:"billing_day"`
 
-	BillingDay     int                  `json:"billing_day"`
+	GracePeriod time.Duration `json:"grace_period"`
 
-	GracePeriod    time.Duration        `json:"grace_period"`
+	UsageData []*ProcessedUsage `json:"usage_data"`
 
-	UsageData      []*ProcessedUsage    `json:"usage_data"`
+	Charges []*BillingCharge `json:"charges"`
 
-	Charges        []*BillingCharge     `json:"charges"`
+	Credits []*BillingCredit `json:"credits"`
 
-	Credits        []*BillingCredit     `json:"credits"`
+	Adjustments []*BillingAdjustment `json:"adjustments"`
 
-	Adjustments    []*BillingAdjustment `json:"adjustments"`
+	SubTotal float64 `json:"sub_total"`
 
-	SubTotal       float64              `json:"sub_total"`
+	TaxAmount float64 `json:"tax_amount"`
 
-	TaxAmount      float64              `json:"tax_amount"`
+	DiscountAmount float64 `json:"discount_amount"`
 
-	DiscountAmount float64              `json:"discount_amount"`
+	TotalAmount float64 `json:"total_amount"`
 
-	TotalAmount    float64              `json:"total_amount"`
+	PaidAmount float64 `json:"paid_amount"`
 
-	PaidAmount     float64              `json:"paid_amount"`
-
-	Balance        float64              `json:"balance"`
-
+	Balance float64 `json:"balance"`
 }
-
-
 
 // BillingCharge represents a billing charge.
 
 type BillingCharge struct {
+	ID string `json:"id"`
 
-	ID          string                 `json:"id"`
+	Type string `json:"type"` // USAGE, SUBSCRIPTION, ONE_TIME
 
-	Type        string                 `json:"type"` // USAGE, SUBSCRIPTION, ONE_TIME
+	Description string `json:"description"`
 
-	Description string                 `json:"description"`
+	Quantity float64 `json:"quantity"`
 
-	Quantity    float64                `json:"quantity"`
+	Unit string `json:"unit"`
 
-	Unit        string                 `json:"unit"`
+	Rate float64 `json:"rate"`
 
-	Rate        float64                `json:"rate"`
+	Amount float64 `json:"amount"`
 
-	Amount      float64                `json:"amount"`
+	Currency string `json:"currency"`
 
-	Currency    string                 `json:"currency"`
+	TaxRate float64 `json:"tax_rate"`
 
-	TaxRate     float64                `json:"tax_rate"`
+	TaxAmount float64 `json:"tax_amount"`
 
-	TaxAmount   float64                `json:"tax_amount"`
+	Period string `json:"period,omitempty"`
 
-	Period      string                 `json:"period,omitempty"`
+	StartDate time.Time `json:"start_date,omitempty"`
 
-	StartDate   time.Time              `json:"start_date,omitempty"`
+	EndDate time.Time `json:"end_date,omitempty"`
 
-	EndDate     time.Time              `json:"end_date,omitempty"`
-
-	Metadata    map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // BillingCredit represents a billing credit.
 
 type BillingCredit struct {
+	ID string `json:"id"`
 
-	ID          string                 `json:"id"`
+	Type string `json:"type"` // ADJUSTMENT, REFUND, PROMOTIONAL
 
-	Type        string                 `json:"type"` // ADJUSTMENT, REFUND, PROMOTIONAL
+	Description string `json:"description"`
 
-	Description string                 `json:"description"`
+	Amount float64 `json:"amount"`
 
-	Amount      float64                `json:"amount"`
+	Currency string `json:"currency"`
 
-	Currency    string                 `json:"currency"`
+	AppliedDate time.Time `json:"applied_date"`
 
-	AppliedDate time.Time              `json:"applied_date"`
+	ExpiryDate time.Time `json:"expiry_date,omitempty"`
 
-	ExpiryDate  time.Time              `json:"expiry_date,omitempty"`
+	Reason string `json:"reason"`
 
-	Reason      string                 `json:"reason"`
+	Reference string `json:"reference"`
 
-	Reference   string                 `json:"reference"`
-
-	Metadata    map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // BillingAdjustment represents a billing adjustment.
 
 type BillingAdjustment struct {
+	ID string `json:"id"`
 
-	ID          string                 `json:"id"`
+	Type string `json:"type"` // CREDIT, DEBIT, REVERSAL
 
-	Type        string                 `json:"type"` // CREDIT, DEBIT, REVERSAL
+	Amount float64 `json:"amount"`
 
-	Amount      float64                `json:"amount"`
+	Currency string `json:"currency"`
 
-	Currency    string                 `json:"currency"`
+	Description string `json:"description"`
 
-	Description string                 `json:"description"`
+	Reason string `json:"reason"`
 
-	Reason      string                 `json:"reason"`
+	Reference string `json:"reference"`
 
-	Reference   string                 `json:"reference"`
+	AppliedDate time.Time `json:"applied_date"`
 
-	AppliedDate time.Time              `json:"applied_date"`
+	AppliedBy string `json:"applied_by"`
 
-	AppliedBy   string                 `json:"applied_by"`
+	Approved bool `json:"approved"`
 
-	Approved    bool                   `json:"approved"`
+	ApprovedBy string `json:"approved_by,omitempty"`
 
-	ApprovedBy  string                 `json:"approved_by,omitempty"`
-
-	Metadata    map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // InvoiceGenerator generates invoices.
 
 type InvoiceGenerator struct {
-
-	templates  map[string]*InvoiceTemplate
+	templates map[string]*InvoiceTemplate
 
 	generators map[string]*InvoiceFormatGenerator
 
-	numbering  *InvoiceNumberGenerator
+	numbering *InvoiceNumberGenerator
 
-	config     *InvoiceConfig
-
+	config *InvoiceConfig
 }
-
-
 
 // InvoiceTemplate defines invoice template structure.
 
 type InvoiceTemplate struct {
+	ID string `json:"id"`
 
-	ID       string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name     string                 `json:"name"`
+	Format string `json:"format"` // PDF, HTML, XML, JSON
 
-	Format   string                 `json:"format"` // PDF, HTML, XML, JSON
+	Template string `json:"template"`
 
-	Template string                 `json:"template"`
-
-	Sections []*InvoiceSection      `json:"sections"`
+	Sections []*InvoiceSection `json:"sections"`
 
 	Metadata map[string]interface{} `json:"metadata"`
-
 }
-
-
 
 // InvoiceSection represents a section in an invoice template.
 
 type InvoiceSection struct {
+	ID string `json:"id"`
 
-	ID       string `json:"id"`
+	Name string `json:"name"`
 
-	Name     string `json:"name"`
+	Type string `json:"type"` // HEADER, BODY, FOOTER, SUMMARY
 
-	Type     string `json:"type"` // HEADER, BODY, FOOTER, SUMMARY
+	Content string `json:"content"`
 
-	Content  string `json:"content"`
+	Order int `json:"order"`
 
-	Order    int    `json:"order"`
-
-	Required bool   `json:"required"`
-
+	Required bool `json:"required"`
 }
-
-
 
 // InvoiceFormatGenerator generates invoices in specific formats.
 
 type InvoiceFormatGenerator interface {
-
 	GenerateInvoice(ctx context.Context, cycle *BillingCycle, template *InvoiceTemplate) (*GeneratedInvoice, error)
 
 	GetSupportedFormats() []string
-
 }
-
-
 
 // GeneratedInvoice represents a generated invoice.
 
 type GeneratedInvoice struct {
+	ID string `json:"id"`
 
-	ID          string                 `json:"id"`
+	Number string `json:"number"`
 
-	Number      string                 `json:"number"`
+	CycleID string `json:"cycle_id"`
 
-	CycleID     string                 `json:"cycle_id"`
+	CustomerID string `json:"customer_id"`
 
-	CustomerID  string                 `json:"customer_id"`
+	Format string `json:"format"`
 
-	Format      string                 `json:"format"`
+	Content []byte `json:"content"`
 
-	Content     []byte                 `json:"content"`
+	Size int64 `json:"size"`
 
-	Size        int64                  `json:"size"`
+	Checksum string `json:"checksum"`
 
-	Checksum    string                 `json:"checksum"`
+	GeneratedAt time.Time `json:"generated_at"`
 
-	GeneratedAt time.Time              `json:"generated_at"`
+	DueDate time.Time `json:"due_date"`
 
-	DueDate     time.Time              `json:"due_date"`
+	Status string `json:"status"` // DRAFT, SENT, PAID, OVERDUE, CANCELLED
 
-	Status      string                 `json:"status"` // DRAFT, SENT, PAID, OVERDUE, CANCELLED
-
-	Metadata    map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // InvoiceNumberGenerator generates unique invoice numbers.
 
 type InvoiceNumberGenerator struct {
+	format string
 
-	format      string
-
-	sequence    int64
+	sequence int64
 
 	resetPeriod string
 
-	lastReset   time.Time
+	lastReset time.Time
 
-	prefix      string
+	prefix string
 
-	suffix      string
+	suffix string
 
-	mutex       sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // PaymentProcessor processes payments.
 
 type PaymentProcessor struct {
-
-	providers    map[string]*PaymentProvider
+	providers map[string]*PaymentProvider
 
 	transactions map[string]*PaymentTransaction
 
-	config       *PaymentConfig
+	config *PaymentConfig
 
-	mutex        sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // PaymentProvider represents a payment provider.
 
 type PaymentProvider struct {
+	ID string `json:"id"`
 
-	ID                  string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name                string                 `json:"name"`
+	Type string `json:"type"` // CREDIT_CARD, BANK_TRANSFER, DIGITAL_WALLET
 
-	Type                string                 `json:"type"` // CREDIT_CARD, BANK_TRANSFER, DIGITAL_WALLET
+	Endpoint string `json:"endpoint"`
 
-	Endpoint            string                 `json:"endpoint"`
+	Credentials map[string]string `json:"credentials"`
 
-	Credentials         map[string]string      `json:"credentials"`
+	SupportedCurrencies []string `json:"supported_currencies"`
 
-	SupportedCurrencies []string               `json:"supported_currencies"`
+	Fees map[string]float64 `json:"fees"`
 
-	Fees                map[string]float64     `json:"fees"`
+	Limits map[string]float64 `json:"limits"`
 
-	Limits              map[string]float64     `json:"limits"`
+	Enabled bool `json:"enabled"`
 
-	Enabled             bool                   `json:"enabled"`
-
-	Config              map[string]interface{} `json:"config"`
-
+	Config map[string]interface{} `json:"config"`
 }
-
-
 
 // PaymentTransaction represents a payment transaction.
 
 type PaymentTransaction struct {
+	ID string `json:"id"`
 
-	ID            string                 `json:"id"`
+	InvoiceID string `json:"invoice_id"`
 
-	InvoiceID     string                 `json:"invoice_id"`
+	CustomerID string `json:"customer_id"`
 
-	CustomerID    string                 `json:"customer_id"`
+	ProviderID string `json:"provider_id"`
 
-	ProviderID    string                 `json:"provider_id"`
+	Amount float64 `json:"amount"`
 
-	Amount        float64                `json:"amount"`
+	Currency string `json:"currency"`
 
-	Currency      string                 `json:"currency"`
+	Fee float64 `json:"fee"`
 
-	Fee           float64                `json:"fee"`
+	NetAmount float64 `json:"net_amount"`
 
-	NetAmount     float64                `json:"net_amount"`
+	Type string `json:"type"` // PAYMENT, REFUND, CHARGEBACK
 
-	Type          string                 `json:"type"` // PAYMENT, REFUND, CHARGEBACK
+	Method string `json:"method"`
 
-	Method        string                 `json:"method"`
+	Status string `json:"status"` // PENDING, COMPLETED, FAILED, CANCELLED
 
-	Status        string                 `json:"status"` // PENDING, COMPLETED, FAILED, CANCELLED
+	Reference string `json:"reference"`
 
-	Reference     string                 `json:"reference"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt     time.Time              `json:"created_at"`
+	ProcessedAt time.Time `json:"processed_at"`
 
-	ProcessedAt   time.Time              `json:"processed_at"`
+	FailureReason string `json:"failure_reason,omitempty"`
 
-	FailureReason string                 `json:"failure_reason,omitempty"`
-
-	Metadata      map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // TaxCalculator calculates taxes.
 
 type TaxCalculator struct {
-
-	taxRules   []*TaxRule
+	taxRules []*TaxRule
 
 	exemptions []*TaxExemption
 
-	config     *TaxConfig
-
+	config *TaxConfig
 }
-
-
 
 // TaxRule defines tax calculation rules.
 
 type TaxRule struct {
+	ID string `json:"id"`
 
-	ID           string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name         string                 `json:"name"`
+	Type string `json:"type"` // PERCENTAGE, FIXED, COMPOUND
 
-	Type         string                 `json:"type"` // PERCENTAGE, FIXED, COMPOUND
+	Rate float64 `json:"rate"`
 
-	Rate         float64                `json:"rate"`
+	ApplicableTo []string `json:"applicable_to"`
 
-	ApplicableTo []string               `json:"applicable_to"`
+	Jurisdiction string `json:"jurisdiction"`
 
-	Jurisdiction string                 `json:"jurisdiction"`
+	Conditions map[string]interface{} `json:"conditions"`
 
-	Conditions   map[string]interface{} `json:"conditions"`
+	ValidFrom time.Time `json:"valid_from"`
 
-	ValidFrom    time.Time              `json:"valid_from"`
+	ValidUntil time.Time `json:"valid_until"`
 
-	ValidUntil   time.Time              `json:"valid_until"`
+	Priority int `json:"priority"`
 
-	Priority     int                    `json:"priority"`
-
-	Enabled      bool                   `json:"enabled"`
-
+	Enabled bool `json:"enabled"`
 }
-
-
 
 // TaxExemption defines tax exemptions.
 
 type TaxExemption struct {
+	ID string `json:"id"`
 
-	ID            string                 `json:"id"`
+	CustomerID string `json:"customer_id"`
 
-	CustomerID    string                 `json:"customer_id"`
+	ServiceTypes []string `json:"service_types"`
 
-	ServiceTypes  []string               `json:"service_types"`
+	ExemptionType string `json:"exemption_type"`
 
-	ExemptionType string                 `json:"exemption_type"`
+	Certificate string `json:"certificate"`
 
-	Certificate   string                 `json:"certificate"`
+	ValidFrom time.Time `json:"valid_from"`
 
-	ValidFrom     time.Time              `json:"valid_from"`
+	ValidUntil time.Time `json:"valid_until"`
 
-	ValidUntil    time.Time              `json:"valid_until"`
-
-	Conditions    map[string]interface{} `json:"conditions"`
-
+	Conditions map[string]interface{} `json:"conditions"`
 }
-
-
 
 // DiscountEngine applies discounts.
 
 type DiscountEngine struct {
+	rules []*DiscountRule
 
-	rules      []*DiscountRule
+	coupons map[string]*DiscountCoupon
 
-	coupons    map[string]*DiscountCoupon
-
-	campaigns  map[string]*DiscountCampaign
+	campaigns map[string]*DiscountCampaign
 
 	calculator *DiscountCalculator
-
 }
-
-
 
 // DiscountCoupon represents a discount coupon.
 
 type DiscountCoupon struct {
+	ID string `json:"id"`
 
-	ID          string                 `json:"id"`
+	Code string `json:"code"`
 
-	Code        string                 `json:"code"`
+	Type string `json:"type"`
 
-	Type        string                 `json:"type"`
+	Value float64 `json:"value"`
 
-	Value       float64                `json:"value"`
+	MinAmount float64 `json:"min_amount"`
 
-	MinAmount   float64                `json:"min_amount"`
+	MaxDiscount float64 `json:"max_discount"`
 
-	MaxDiscount float64                `json:"max_discount"`
+	UsageLimit int `json:"usage_limit"`
 
-	UsageLimit  int                    `json:"usage_limit"`
+	UsedCount int `json:"used_count"`
 
-	UsedCount   int                    `json:"used_count"`
+	ValidFrom time.Time `json:"valid_from"`
 
-	ValidFrom   time.Time              `json:"valid_from"`
+	ValidUntil time.Time `json:"valid_until"`
 
-	ValidUntil  time.Time              `json:"valid_until"`
+	Conditions map[string]interface{} `json:"conditions"`
 
-	Conditions  map[string]interface{} `json:"conditions"`
-
-	Active      bool                   `json:"active"`
-
+	Active bool `json:"active"`
 }
-
-
 
 // DiscountCampaign represents a discount campaign.
 
 type DiscountCampaign struct {
+	ID string `json:"id"`
 
-	ID          string          `json:"id"`
+	Name string `json:"name"`
 
-	Name        string          `json:"name"`
+	Description string `json:"description"`
 
-	Description string          `json:"description"`
+	Rules []*DiscountRule `json:"rules"`
 
-	Rules       []*DiscountRule `json:"rules"`
+	StartDate time.Time `json:"start_date"`
 
-	StartDate   time.Time       `json:"start_date"`
+	EndDate time.Time `json:"end_date"`
 
-	EndDate     time.Time       `json:"end_date"`
+	Budget float64 `json:"budget"`
 
-	Budget      float64         `json:"budget"`
+	SpentAmount float64 `json:"spent_amount"`
 
-	SpentAmount float64         `json:"spent_amount"`
-
-	Active      bool            `json:"active"`
-
+	Active bool `json:"active"`
 }
-
-
 
 // DiscountCalculator calculates discount amounts.
 
 type DiscountCalculator interface {
-
 	CalculateDiscount(ctx context.Context, amount float64, rules []*DiscountRule) (*DiscountCalculation, error)
-
 }
-
-
 
 // DiscountCalculation represents discount calculation results.
 
 type DiscountCalculation struct {
+	OriginalAmount float64 `json:"original_amount"`
 
-	OriginalAmount  float64                `json:"original_amount"`
+	DiscountAmount float64 `json:"discount_amount"`
 
-	DiscountAmount  float64                `json:"discount_amount"`
+	FinalAmount float64 `json:"final_amount"`
 
-	FinalAmount     float64                `json:"final_amount"`
+	AppliedRules []string `json:"applied_rules"`
 
-	AppliedRules    []string               `json:"applied_rules"`
+	CalculationTime time.Time `json:"calculation_time"`
 
-	CalculationTime time.Time              `json:"calculation_time"`
-
-	Metadata        map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // CreditManager manages customer credits.
 
 type CreditManager struct {
+	credits map[string]*CustomerCredit
 
-	credits    map[string]*CustomerCredit
-
-	policies   []*CreditPolicy
+	policies []*CreditPolicy
 
 	calculator *CreditCalculator
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // CustomerCredit represents customer credit balance.
 
 type CustomerCredit struct {
+	CustomerID string `json:"customer_id"`
 
-	CustomerID      string               `json:"customer_id"`
+	Balance float64 `json:"balance"`
 
-	Balance         float64              `json:"balance"`
+	Currency string `json:"currency"`
 
-	Currency        string               `json:"currency"`
+	CreditLimit float64 `json:"credit_limit"`
 
-	CreditLimit     float64              `json:"credit_limit"`
+	AvailableCredit float64 `json:"available_credit"`
 
-	AvailableCredit float64              `json:"available_credit"`
+	LastUpdate time.Time `json:"last_update"`
 
-	LastUpdate      time.Time            `json:"last_update"`
+	Status string `json:"status"` // ACTIVE, SUSPENDED, FROZEN
 
-	Status          string               `json:"status"` // ACTIVE, SUSPENDED, FROZEN
-
-	Transactions    []*CreditTransaction `json:"transactions"`
-
+	Transactions []*CreditTransaction `json:"transactions"`
 }
-
-
 
 // CreditTransaction represents a credit transaction.
 
 type CreditTransaction struct {
+	ID string `json:"id"`
 
-	ID          string    `json:"id"`
+	Type string `json:"type"` // CREDIT, DEBIT, ADJUSTMENT
 
-	Type        string    `json:"type"` // CREDIT, DEBIT, ADJUSTMENT
+	Amount float64 `json:"amount"`
 
-	Amount      float64   `json:"amount"`
+	Description string `json:"description"`
 
-	Description string    `json:"description"`
+	Reference string `json:"reference"`
 
-	Reference   string    `json:"reference"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp   time.Time `json:"timestamp"`
-
-	Balance     float64   `json:"balance"`
-
+	Balance float64 `json:"balance"`
 }
-
-
 
 // CreditPolicy defines credit policies.
 
 type CreditPolicy struct {
+	ID string `json:"id"`
 
-	ID            string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name          string                 `json:"name"`
+	CustomerTypes []string `json:"customer_types"`
 
-	CustomerTypes []string               `json:"customer_types"`
+	CreditLimit float64 `json:"credit_limit"`
 
-	CreditLimit   float64                `json:"credit_limit"`
+	InterestRate float64 `json:"interest_rate"`
 
-	InterestRate  float64                `json:"interest_rate"`
+	PaymentTerms int `json:"payment_terms"`
 
-	PaymentTerms  int                    `json:"payment_terms"`
+	Conditions map[string]interface{} `json:"conditions"`
 
-	Conditions    map[string]interface{} `json:"conditions"`
-
-	Enabled       bool                   `json:"enabled"`
-
+	Enabled bool `json:"enabled"`
 }
-
-
 
 // CreditCalculator calculates credit-related amounts.
 
 type CreditCalculator interface {
-
 	CalculateInterest(balance, rate float64, days int) float64
 
 	CalculateCreditLimit(customerData map[string]interface{}) float64
-
 }
-
-
 
 // ChargingManager manages charging operations.
 
 type ChargingManager struct {
-
 	chargingRules []*ChargingRule
 
-	rateCards     map[string]*RateCard
+	rateCards map[string]*RateCard
 
-	priceBooks    map[string]*PriceBook
+	priceBooks map[string]*PriceBook
 
-	ratingEngine  *RatingEngine
+	ratingEngine *RatingEngine
 
-	config        *ChargingConfig
+	config *ChargingConfig
 
-	mutex         sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ChargingRule defines charging rules.
 
 type ChargingRule struct {
+	ID string `json:"id"`
 
-	ID            string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name          string                 `json:"name"`
+	ResourceTypes []string `json:"resource_types"`
 
-	ResourceTypes []string               `json:"resource_types"`
+	RateCardID string `json:"rate_card_id"`
 
-	RateCardID    string                 `json:"rate_card_id"`
+	Conditions map[string]interface{} `json:"conditions"`
 
-	Conditions    map[string]interface{} `json:"conditions"`
+	Priority int `json:"priority"`
 
-	Priority      int                    `json:"priority"`
+	ValidFrom time.Time `json:"valid_from"`
 
-	ValidFrom     time.Time              `json:"valid_from"`
+	ValidUntil time.Time `json:"valid_until"`
 
-	ValidUntil    time.Time              `json:"valid_until"`
-
-	Enabled       bool                   `json:"enabled"`
-
+	Enabled bool `json:"enabled"`
 }
-
-
 
 // RateCard defines rate cards for charging.
 
 type RateCard struct {
+	ID string `json:"id"`
 
-	ID         string                   `json:"id"`
+	Name string `json:"name"`
 
-	Name       string                   `json:"name"`
+	Version string `json:"version"`
 
-	Version    string                   `json:"version"`
+	Currency string `json:"currency"`
 
-	Currency   string                   `json:"currency"`
+	Rates map[string]*ChargingRate `json:"rates"`
 
-	Rates      map[string]*ChargingRate `json:"rates"`
+	ValidFrom time.Time `json:"valid_from"`
 
-	ValidFrom  time.Time                `json:"valid_from"`
+	ValidUntil time.Time `json:"valid_until"`
 
-	ValidUntil time.Time                `json:"valid_until"`
-
-	Status     string                   `json:"status"`
-
+	Status string `json:"status"`
 }
-
-
 
 // PriceBook contains pricing information.
 
 type PriceBook struct {
+	ID string `json:"id"`
 
-	ID         string                   `json:"id"`
+	Name string `json:"name"`
 
-	Name       string                   `json:"name"`
+	Version string `json:"version"`
 
-	Version    string                   `json:"version"`
+	Currency string `json:"currency"`
 
-	Currency   string                   `json:"currency"`
+	Services map[string]*ServicePrice `json:"services"`
 
-	Services   map[string]*ServicePrice `json:"services"`
+	ValidFrom time.Time `json:"valid_from"`
 
-	ValidFrom  time.Time                `json:"valid_from"`
+	ValidUntil time.Time `json:"valid_until"`
 
-	ValidUntil time.Time                `json:"valid_until"`
-
-	Status     string                   `json:"status"`
-
+	Status string `json:"status"`
 }
-
-
 
 // ServicePrice defines service pricing.
 
 type ServicePrice struct {
+	ServiceID string `json:"service_id"`
 
-	ServiceID     string             `json:"service_id"`
+	BasePrice float64 `json:"base_price"`
 
-	BasePrice     float64            `json:"base_price"`
+	SetupFee float64 `json:"setup_fee"`
 
-	SetupFee      float64            `json:"setup_fee"`
+	RecurringFee float64 `json:"recurring_fee"`
 
-	RecurringFee  float64            `json:"recurring_fee"`
+	UsageRates map[string]float64 `json:"usage_rates"`
 
-	UsageRates    map[string]float64 `json:"usage_rates"`
+	DiscountRules []string `json:"discount_rules"`
 
-	DiscountRules []string           `json:"discount_rules"`
-
-	BundleOptions []*BundleOption    `json:"bundle_options"`
-
+	BundleOptions []*BundleOption `json:"bundle_options"`
 }
-
-
 
 // BundleOption represents service bundle options.
 
 type BundleOption struct {
+	ID string `json:"id"`
 
-	ID          string   `json:"id"`
+	Name string `json:"name"`
 
-	Name        string   `json:"name"`
+	Price float64 `json:"price"`
 
-	Price       float64  `json:"price"`
+	Discount float64 `json:"discount"`
 
-	Discount    float64  `json:"discount"`
+	Services []string `json:"services"`
 
-	Services    []string `json:"services"`
+	MinQuantity int `json:"min_quantity"`
 
-	MinQuantity int      `json:"min_quantity"`
-
-	MaxQuantity int      `json:"max_quantity"`
-
+	MaxQuantity int `json:"max_quantity"`
 }
-
-
 
 // RatingEngine performs rating calculations.
 
 type RatingEngine struct {
-
-	raters      map[string]UsageRater
+	raters map[string]UsageRater
 
 	calculators map[string]*RateCalculator
 
-	cache       *RatingCache
+	cache *RatingCache
 
-	config      *RatingConfig
-
+	config *RatingConfig
 }
-
-
 
 // UsageRater rates usage events.
 
 type UsageRater interface {
-
 	RateUsage(ctx context.Context, usage *ProcessedUsage, rateCard *RateCard) (*RatedUsage, error)
 
 	GetRaterType() string
 
 	GetSupportedResourceTypes() []string
-
 }
-
-
 
 // RatedUsage represents rated usage.
 
 type RatedUsage struct {
+	Usage *ProcessedUsage `json:"usage"`
 
-	Usage       *ProcessedUsage        `json:"usage"`
+	RateCard string `json:"rate_card"`
 
-	RateCard    string                 `json:"rate_card"`
+	BaseAmount float64 `json:"base_amount"`
 
-	BaseAmount  float64                `json:"base_amount"`
+	UsageAmount float64 `json:"usage_amount"`
 
-	UsageAmount float64                `json:"usage_amount"`
+	TotalAmount float64 `json:"total_amount"`
 
-	TotalAmount float64                `json:"total_amount"`
+	Currency string `json:"currency"`
 
-	Currency    string                 `json:"currency"`
-
-	RatingTime  time.Time              `json:"rating_time"`
+	RatingTime time.Time `json:"rating_time"`
 
 	RateDetails map[string]interface{} `json:"rate_details"`
-
 }
-
-
 
 // RateCalculator performs rate calculations.
 
 type RateCalculator struct {
+	ID string
 
-	ID         string
+	Type string
 
-	Type       string
-
-	Formula    string
+	Formula string
 
 	Parameters map[string]interface{}
 
-	Enabled    bool
-
+	Enabled bool
 }
-
-
 
 // RatingCache caches rating results.
 
 type RatingCache struct {
+	cache map[string]*CachedRating
 
-	cache   map[string]*CachedRating
+	mutex sync.RWMutex
 
-	mutex   sync.RWMutex
-
-	ttl     time.Duration
+	ttl time.Duration
 
 	maxSize int
-
 }
-
-
 
 // CachedRating represents cached rating data.
 
 type CachedRating struct {
-
-	Rating    *RatedUsage
+	Rating *RatedUsage
 
 	ExpiresAt time.Time
 
-	HitCount  int
-
+	HitCount int
 }
-
-
 
 // UsageAggregator aggregates usage data.
 
 type UsageAggregator struct {
-
 	aggregators map[string]*DataAggregator
 
-	schedules   map[string]*AggregationSchedule
+	schedules map[string]*AggregationSchedule
 
-	storage     *AggregatedDataStorage
+	storage *AggregatedDataStorage
 
-	config      *AggregationConfig
+	config *AggregationConfig
 
-	running     bool
+	running bool
 
-	mutex       sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // DataAggregator aggregates usage data.
 
 type DataAggregator struct {
+	ID string
 
-	ID              string
-
-	ResourceTypes   []string
+	ResourceTypes []string
 
 	AggregationType string // SUM, AVERAGE, MAX, MIN, COUNT
 
-	TimeWindow      time.Duration
+	TimeWindow time.Duration
 
-	GroupByFields   []string
+	GroupByFields []string
 
-	Filters         map[string]interface{}
+	Filters map[string]interface{}
 
-	LastRun         time.Time
+	LastRun time.Time
 
-	Status          string
-
+	Status string
 }
-
-
 
 // AggregationSchedule defines aggregation schedules.
 
 type AggregationSchedule struct {
-
 	AggregatorID string
 
-	Schedule     string // CRON expression
+	Schedule string // CRON expression
 
-	NextRun      time.Time
+	NextRun time.Time
 
-	LastRun      time.Time
+	LastRun time.Time
 
-	Enabled      bool
-
+	Enabled bool
 }
-
-
 
 // AggregatedDataStorage stores aggregated data.
 
 type AggregatedDataStorage interface {
-
 	Store(ctx context.Context, data *AggregatedUsageData) error
 
 	Query(ctx context.Context, query *AggregationQuery) ([]*AggregatedUsageData, error)
 
 	Delete(ctx context.Context, criteria *DeletionCriteria) error
-
 }
-
-
 
 // AggregatedUsageData represents aggregated usage data.
 
 type AggregatedUsageData struct {
+	ID string `json:"id"`
 
-	ID              string                 `json:"id"`
+	ResourceType string `json:"resource_type"`
 
-	ResourceType    string                 `json:"resource_type"`
+	AggregationType string `json:"aggregation_type"`
 
-	AggregationType string                 `json:"aggregation_type"`
+	Period string `json:"period"`
 
-	Period          string                 `json:"period"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime       time.Time              `json:"start_time"`
+	EndTime time.Time `json:"end_time"`
 
-	EndTime         time.Time              `json:"end_time"`
+	Value float64 `json:"value"`
 
-	Value           float64                `json:"value"`
+	Unit string `json:"unit"`
 
-	Unit            string                 `json:"unit"`
+	Count int64 `json:"count"`
 
-	Count           int64                  `json:"count"`
+	Dimensions map[string]interface{} `json:"dimensions"`
 
-	Dimensions      map[string]interface{} `json:"dimensions"`
+	Metadata map[string]interface{} `json:"metadata"`
 
-	Metadata        map[string]interface{} `json:"metadata"`
-
-	CreatedAt       time.Time              `json:"created_at"`
-
+	CreatedAt time.Time `json:"created_at"`
 }
-
-
 
 // AggregationQuery represents a query for aggregated data.
 
 type AggregationQuery struct {
+	ResourceTypes []string `json:"resource_types,omitempty"`
 
-	ResourceTypes []string               `json:"resource_types,omitempty"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime     time.Time              `json:"start_time"`
+	EndTime time.Time `json:"end_time"`
 
-	EndTime       time.Time              `json:"end_time"`
+	Granularity string `json:"granularity,omitempty"`
 
-	Granularity   string                 `json:"granularity,omitempty"`
+	GroupBy []string `json:"group_by,omitempty"`
 
-	GroupBy       []string               `json:"group_by,omitempty"`
+	Filters map[string]interface{} `json:"filters,omitempty"`
 
-	Filters       map[string]interface{} `json:"filters,omitempty"`
+	OrderBy string `json:"order_by,omitempty"`
 
-	OrderBy       string                 `json:"order_by,omitempty"`
-
-	Limit         int                    `json:"limit,omitempty"`
-
+	Limit int `json:"limit,omitempty"`
 }
-
-
 
 // AccountingReportGenerator generates accounting reports.
 
 type AccountingReportGenerator struct {
+	templates map[string]*ReportTemplate
 
-	templates   map[string]*ReportTemplate
+	generators map[string]ReportGenerator
 
-	generators  map[string]ReportGenerator
-
-	scheduler   *ReportScheduler
+	scheduler *ReportScheduler
 
 	distributor *ReportDistributor
 
-	config      *ReportingConfig
-
+	config *ReportingConfig
 }
-
-
 
 // AccountingAuditTrail maintains audit trail for accounting operations.
 
 type AccountingAuditTrail struct {
+	entries []*AuditEntry
 
-	entries    []*AuditEntry
+	storage AuditStorage
 
-	storage    AuditStorage
-
-	retention  *AuditRetentionPolicy
+	retention *AuditRetentionPolicy
 
 	encryption *AuditEncryption
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // DataRetentionManager manages data retention policies.
 
 type DataRetentionManager struct {
-
-	policies  map[string]*RetentionPolicy
+	policies map[string]*RetentionPolicy
 
 	scheduler *RetentionScheduler
 
-	archiver  *DataArchiver
+	archiver *DataArchiver
 
-	config    *RetentionConfig
-
+	config *RetentionConfig
 }
-
-
 
 // RateLimitManager manages rate limiting.
 
 type RateLimitManager struct {
+	limiters map[string]*ResourceLimiter
 
-	limiters   map[string]*ResourceLimiter
-
-	policies   []*RateLimitPolicy
+	policies []*RateLimitPolicy
 
 	violations map[string]*RateLimitViolation
 
-	config     *RateLimitConfig
+	config *RateLimitConfig
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ResourceLimiter limits resource usage rates.
 
 type ResourceLimiter struct {
-
 	ResourceType string
 
-	Limit        int
+	Limit int
 
-	Window       time.Duration
+	Window time.Duration
 
-	Current      int
+	Current int
 
-	ResetTime    time.Time
+	ResetTime time.Time
 
-	Tokens       chan struct{}
+	Tokens chan struct{}
 
-	mutex        sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // RateLimitPolicy defines rate limiting policies.
 
 type RateLimitPolicy struct {
-
-	ID           string
+	ID string
 
 	ResourceType string
 
-	Limit        int
+	Limit int
 
-	Window       time.Duration
+	Window time.Duration
 
-	Action       string // THROTTLE, REJECT, ALERT
+	Action string // THROTTLE, REJECT, ALERT
 
-	Conditions   map[string]interface{}
+	Conditions map[string]interface{}
 
-	Enabled      bool
-
+	Enabled bool
 }
-
-
 
 // RateLimitViolation represents a rate limit violation.
 
 type RateLimitViolation struct {
-
-	ID           string
+	ID string
 
 	ResourceType string
 
-	Timestamp    time.Time
+	Timestamp time.Time
 
-	Limit        int
+	Limit int
 
-	Attempted    int
+	Attempted int
 
-	Action       string
+	Action string
 
-	UserID       string
+	UserID string
 
-	ElementID    string
-
+	ElementID string
 }
-
-
 
 // QuotaManager manages resource quotas.
 
 type QuotaManager struct {
+	quotas map[string]*ResourceQuota
 
-	quotas     map[string]*ResourceQuota
+	usage map[string]*QuotaUsage
 
-	usage      map[string]*QuotaUsage
-
-	policies   []*QuotaPolicy
+	policies []*QuotaPolicy
 
 	violations map[string]*QuotaViolation
 
-	config     *QuotaConfig
+	config *QuotaConfig
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ResourceQuota defines resource quotas.
 
 type ResourceQuota struct {
-
-	ID           string
+	ID string
 
 	ResourceType string
 
-	UserID       string
+	UserID string
 
-	ElementID    string
+	ElementID string
 
-	Limit        float64
+	Limit float64
 
-	Unit         string
+	Unit string
 
-	Period       string
+	Period string
 
-	ResetTime    time.Time
+	ResetTime time.Time
 
-	Warning      float64
+	Warning float64
 
-	Action       string
+	Action string
 
-	Status       string
-
+	Status string
 }
-
-
 
 // QuotaUsage tracks quota usage.
 
 type QuotaUsage struct {
+	QuotaID string
 
-	QuotaID    string
-
-	Current    float64
+	Current float64
 
 	Percentage float64
 
 	LastUpdate time.Time
 
-	ResetTime  time.Time
+	ResetTime time.Time
 
 	Violations int
 
-	Status     string
-
+	Status string
 }
-
-
 
 // QuotaPolicy defines quota policies.
 
 type QuotaPolicy struct {
+	ID string
 
-	ID           string
-
-	Name         string
+	Name string
 
 	ResourceType string
 
 	DefaultLimit float64
 
-	Unit         string
+	Unit string
 
-	Period       string
+	Period string
 
-	Action       string
+	Action string
 
-	Conditions   map[string]interface{}
+	Conditions map[string]interface{}
 
-	Enabled      bool
-
+	Enabled bool
 }
-
-
 
 // QuotaViolation represents a quota violation.
 
 type QuotaViolation struct {
+	ID string
 
-	ID        string
-
-	QuotaID   string
+	QuotaID string
 
 	Timestamp time.Time
 
 	Attempted float64
 
-	Limit     float64
+	Limit float64
 
-	Action    string
+	Action string
 
-	UserID    string
+	UserID string
 
 	ElementID string
 
-	Resolved  bool
-
+	Resolved bool
 }
-
-
 
 // FraudDetectionEngine detects fraudulent usage patterns.
 
 type FraudDetectionEngine struct {
-
 	detectors map[string]*FraudDetector
 
-	rules     []*FraudRule
+	rules []*FraudRule
 
-	patterns  []*FraudPattern
+	patterns []*FraudPattern
 
-	alerts    chan *FraudAlert
+	alerts chan *FraudAlert
 
-	analyzer  *FraudAnalyzer
+	analyzer *FraudAnalyzer
 
-	config    *FraudDetectionConfig
+	config *FraudDetectionConfig
 
-	running   bool
+	running bool
 
-	mutex     sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // FraudDetector detects specific types of fraud.
 
 type FraudDetector interface {
-
 	DetectFraud(ctx context.Context, usage *ProcessedUsage) []*FraudAlert
 
 	GetDetectorType() string
 
 	GetRiskScore(usage *ProcessedUsage) float64
-
 }
-
-
 
 // FraudRule defines fraud detection rules.
 
 type FraudRule struct {
+	ID string
 
-	ID         string
+	Name string
 
-	Name       string
-
-	Type       string // THRESHOLD, PATTERN, ANOMALY
+	Type string // THRESHOLD, PATTERN, ANOMALY
 
 	Conditions map[string]interface{}
 
-	RiskScore  float64
+	RiskScore float64
 
-	Action     string // ALERT, BLOCK, FLAG
+	Action string // ALERT, BLOCK, FLAG
 
-	Enabled    bool
+	Enabled bool
 
-	Priority   int
-
+	Priority int
 }
-
-
 
 // FraudPattern represents fraud patterns.
 
 type FraudPattern struct {
+	ID string
 
-	ID           string
+	Name string
 
-	Name         string
+	Description string
 
-	Description  string
+	Indicators []string
 
-	Indicators   []string
+	RiskScore float64
 
-	RiskScore    float64
-
-	Frequency    string
+	Frequency string
 
 	LastDetected time.Time
-
 }
-
-
 
 // FraudAlert represents a fraud alert.
 
 type FraudAlert struct {
+	ID string
 
-	ID          string
+	Type string
 
-	Type        string
+	Severity string
 
-	Severity    string
+	RiskScore float64
 
-	RiskScore   float64
+	Usage *ProcessedUsage
 
-	Usage       *ProcessedUsage
-
-	Rule        string
+	Rule string
 
 	Description string
 
-	Timestamp   time.Time
+	Timestamp time.Time
 
-	Status      string // NEW, INVESTIGATING, RESOLVED, FALSE_POSITIVE
+	Status string // NEW, INVESTIGATING, RESOLVED, FALSE_POSITIVE
 
-	AssignedTo  string
+	AssignedTo string
 
-	Metadata    map[string]interface{}
-
+	Metadata map[string]interface{}
 }
-
-
 
 // FraudAnalyzer analyzes usage patterns for fraud.
 
 type FraudAnalyzer struct {
+	mlModels map[string]*FraudMLModel
 
-	mlModels    map[string]*FraudMLModel
-
-	baselines   map[string]*UsageBaseline
+	baselines map[string]*UsageBaseline
 
 	riskScoring *RiskScoringEngine
 
 	correlation *FraudCorrelationEngine
-
 }
-
-
 
 // FraudMLModel represents ML models for fraud detection.
 
 type FraudMLModel struct {
+	ID string
 
-	ID          string
+	Type string
 
-	Type        string
+	Algorithm string
 
-	Algorithm   string
-
-	Accuracy    float64
+	Accuracy float64
 
 	LastTrained time.Time
 
-	ModelPath   string
+	ModelPath string
 
-	Features    []string
-
+	Features []string
 }
-
-
 
 // UsageBaseline represents normal usage baselines.
 
 type UsageBaseline struct {
-
 	ResourceType string
 
-	UserID       string
+	UserID string
 
-	Statistics   *StatisticalSummary
+	Statistics *StatisticalSummary
 
-	CreatedAt    time.Time
+	CreatedAt time.Time
 
-	UpdatedAt    time.Time
-
+	UpdatedAt time.Time
 }
-
-
 
 // RiskScoringEngine calculates risk scores.
 
 type RiskScoringEngine struct {
-
 	scoringModels map[string]*RiskScoringModel
 
-	factors       []*RiskFactor
+	factors []*RiskFactor
 
-	thresholds    map[string]float64
-
+	thresholds map[string]float64
 }
-
-
 
 // RiskScoringModel defines risk scoring models.
 
 type RiskScoringModel struct {
+	ID string
 
-	ID      string
+	Name string
 
-	Name    string
-
-	Type    string
+	Type string
 
 	Factors []string
 
@@ -2086,413 +1716,333 @@ type RiskScoringModel struct {
 	Formula string
 
 	Enabled bool
-
 }
-
-
 
 // FraudCorrelationEngine correlates fraud events.
 
 type FraudCorrelationEngine struct {
-
-	rules     []*CorrelationRule
+	rules []*CorrelationRule
 
 	incidents map[string]*FraudIncident
 
-	networks  map[string]*FraudNetwork
-
+	networks map[string]*FraudNetwork
 }
-
-
 
 // FraudIncident represents a fraud incident.
 
 type FraudIncident struct {
+	ID string
 
-	ID            string
+	Type string
 
-	Type          string
+	Severity string
 
-	Severity      string
+	Alerts []string
 
-	Alerts        []string
+	StartTime time.Time
 
-	StartTime     time.Time
+	EndTime time.Time
 
-	EndTime       time.Time
-
-	Status        string
+	Status string
 
 	Investigation *FraudInvestigation
-
 }
-
-
 
 // FraudInvestigation represents fraud investigation.
 
 type FraudInvestigation struct {
+	ID string
 
-	ID           string
-
-	IncidentID   string
+	IncidentID string
 
 	Investigator string
 
-	Status       string
+	Status string
 
-	StartDate    time.Time
+	StartDate time.Time
 
-	Evidence     []*FraudEvidence
+	Evidence []*FraudEvidence
 
-	Findings     []string
+	Findings []string
 
-	Actions      []string
+	Actions []string
 
-	Conclusion   string
-
+	Conclusion string
 }
-
-
 
 // FraudEvidence represents fraud evidence.
 
 type FraudEvidence struct {
+	ID string
 
-	ID          string
-
-	Type        string
+	Type string
 
 	Description string
 
-	Data        interface{}
+	Data interface{}
 
 	CollectedAt time.Time
 
-	Hash        string
-
+	Hash string
 }
-
-
 
 // FraudNetwork represents fraud networks.
 
 type FraudNetwork struct {
+	ID string
 
-	ID        string
+	Name string
 
-	Name      string
+	Members []string
 
-	Members   []string
-
-	Patterns  []string
+	Patterns []string
 
 	RiskScore float64
 
-	Active    bool
-
+	Active bool
 }
-
-
 
 // SettlementManager manages financial settlements.
 
 type SettlementManager struct {
-
 	settlements map[string]*Settlement
 
-	reconciler  *SettlementReconciler
+	reconciler *SettlementReconciler
 
-	clearing    *ClearingHouse
+	clearing *ClearingHouse
 
-	config      *SettlementConfig
+	config *SettlementConfig
 
-	mutex       sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // Settlement represents a financial settlement.
 
 type Settlement struct {
+	ID string
 
-	ID           string
-
-	Type         string // REVENUE_SHARE, INTERCONNECT, ROAMING
+	Type string // REVENUE_SHARE, INTERCONNECT, ROAMING
 
 	Participants []string
 
-	Period       string
+	Period string
 
-	StartDate    time.Time
+	StartDate time.Time
 
-	EndDate      time.Time
+	EndDate time.Time
 
-	TotalAmount  float64
+	TotalAmount float64
 
-	Currency     string
+	Currency string
 
-	Allocations  []*SettlementAllocation
+	Allocations []*SettlementAllocation
 
-	Status       string // PENDING, PROCESSED, DISPUTED, COMPLETED
+	Status string // PENDING, PROCESSED, DISPUTED, COMPLETED
 
-	ProcessedAt  time.Time
+	ProcessedAt time.Time
 
-	Reference    string
-
+	Reference string
 }
-
-
 
 // SettlementAllocation represents settlement allocation.
 
 type SettlementAllocation struct {
-
 	ParticipantID string
 
-	Amount        float64
+	Amount float64
 
-	Percentage    float64
+	Percentage float64
 
-	Type          string // REVENUE, COST, TAX
+	Type string // REVENUE, COST, TAX
 
-	Description   string
-
+	Description string
 }
-
-
 
 // SettlementReconciler reconciles settlements.
 
 type SettlementReconciler struct {
-
-	rules      []*ReconciliationRule
+	rules []*ReconciliationRule
 
 	exceptions []*ReconciliationException
 
-	tolerance  float64
-
+	tolerance float64
 }
-
-
 
 // ReconciliationRule defines reconciliation rules.
 
 type ReconciliationRule struct {
+	ID string
 
-	ID        string
+	Name string
 
-	Name      string
-
-	Type      string
+	Type string
 
 	Condition string
 
-	Action    string
+	Action string
 
 	Tolerance float64
 
-	Enabled   bool
-
+	Enabled bool
 }
-
-
 
 // ReconciliationException represents reconciliation exceptions.
 
 type ReconciliationException struct {
+	ID string
 
-	ID          string
+	Type string
 
-	Type        string
-
-	Amount      float64
+	Amount float64
 
 	Description string
 
-	Timestamp   time.Time
+	Timestamp time.Time
 
-	Status      string
+	Status string
 
-	Resolution  string
-
+	Resolution string
 }
-
-
 
 // ClearingHouse manages clearing operations.
 
 type ClearingHouse struct {
-
 	transactions map[string]*ClearingTransaction
 
-	batches      map[string]*ClearingBatch
+	batches map[string]*ClearingBatch
 
-	config       *ClearingConfig
-
+	config *ClearingConfig
 }
-
-
 
 // ClearingTransaction represents a clearing transaction.
 
 type ClearingTransaction struct {
+	ID string
 
-	ID        string
+	BatchID string
 
-	BatchID   string
+	Amount float64
 
-	Amount    float64
+	Currency string
 
-	Currency  string
+	Type string
 
-	Type      string
-
-	Status    string
+	Status string
 
 	Timestamp time.Time
 
 	Reference string
-
 }
-
-
 
 // ClearingBatch represents a clearing batch.
 
 type ClearingBatch struct {
+	ID string
 
-	ID           string
-
-	Date         time.Time
+	Date time.Time
 
 	Transactions []string
 
-	TotalAmount  float64
+	TotalAmount float64
 
-	Currency     string
+	Currency string
 
-	Status       string
+	Status string
 
-	SubmittedAt  time.Time
+	SubmittedAt time.Time
 
-	ProcessedAt  time.Time
-
+	ProcessedAt time.Time
 }
-
-
 
 // RevenueTrackingService tracks revenue metrics.
 
 type RevenueTrackingService struct {
+	trackers map[string]*RevenueTracker
 
-	trackers  map[string]*RevenueTracker
-
-	metrics   map[string]*RevenueMetric
+	metrics map[string]*RevenueMetric
 
 	forecasts map[string]*RevenueForecast
 
-	kpis      map[string]*RevenueKPI
+	kpis map[string]*RevenueKPI
 
-	config    *RevenueConfig
-
+	config *RevenueConfig
 }
-
-
 
 // RevenueTracker tracks revenue by category.
 
 type RevenueTracker struct {
-
-	ID       string
+	ID string
 
 	Category string
 
-	Period   string
+	Period string
 
-	Revenue  float64
+	Revenue float64
 
 	Currency string
 
-	Trend    string
+	Trend string
 
-	Growth   float64
-
+	Growth float64
 }
-
-
 
 // RevenueMetric represents revenue metrics.
 
 type RevenueMetric struct {
+	Name string
 
-	Name      string
+	Value float64
 
-	Value     float64
+	Unit string
 
-	Unit      string
-
-	Period    string
+	Period string
 
 	Timestamp time.Time
 
-	Target    float64
+	Target float64
 
-	Variance  float64
-
+	Variance float64
 }
-
-
 
 // RevenueForecast represents revenue forecasts.
 
 type RevenueForecast struct {
+	ID string
 
-	ID         string
+	Period string
 
-	Period     string
+	Forecast float64
 
-	Forecast   float64
+	Currency string
 
-	Currency   string
-
-	Method     string
+	Method string
 
 	Confidence float64
 
-	CreatedAt  time.Time
-
+	CreatedAt time.Time
 }
-
-
 
 // RevenueKPI represents revenue KPIs.
 
 type RevenueKPI struct {
+	Name string
 
-	Name        string
+	Value float64
 
-	Value       float64
+	Target float64
 
-	Target      float64
+	Threshold float64
 
-	Threshold   float64
-
-	Status      string
+	Status string
 
 	Description string
 
-	Period      string
-
+	Period string
 }
-
-
 
 // UsageDataStorage stores raw usage data.
 
 type UsageDataStorage interface {
-
 	Store(ctx context.Context, events []*UsageEvent) error
 
 	Query(ctx context.Context, query *UsageQuery) ([]*UsageEvent, error)
@@ -2500,310 +2050,239 @@ type UsageDataStorage interface {
 	Delete(ctx context.Context, criteria *DeletionCriteria) error
 
 	GetStatistics() *StorageStatistics
-
 }
-
-
 
 // UsageQuery represents a usage data query.
 
 type UsageQuery struct {
+	ElementIDs []string `json:"element_ids,omitempty"`
 
-	ElementIDs    []string               `json:"element_ids,omitempty"`
+	UserIDs []string `json:"user_ids,omitempty"`
 
-	UserIDs       []string               `json:"user_ids,omitempty"`
+	ServiceIDs []string `json:"service_ids,omitempty"`
 
-	ServiceIDs    []string               `json:"service_ids,omitempty"`
+	ResourceTypes []string `json:"resource_types,omitempty"`
 
-	ResourceTypes []string               `json:"resource_types,omitempty"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime     time.Time              `json:"start_time"`
+	EndTime time.Time `json:"end_time"`
 
-	EndTime       time.Time              `json:"end_time"`
+	Filters map[string]interface{} `json:"filters,omitempty"`
 
-	Filters       map[string]interface{} `json:"filters,omitempty"`
+	OrderBy string `json:"order_by,omitempty"`
 
-	OrderBy       string                 `json:"order_by,omitempty"`
+	Limit int `json:"limit,omitempty"`
 
-	Limit         int                    `json:"limit,omitempty"`
-
-	Offset        int                    `json:"offset,omitempty"`
-
+	Offset int `json:"offset,omitempty"`
 }
-
-
 
 // AccountingMetrics holds Prometheus metrics for accounting management.
 
 type AccountingMetrics struct {
+	UsageEventsProcessed prometheus.Counter
 
-	UsageEventsProcessed   prometheus.Counter
-
-	ProcessingErrors       prometheus.Counter
+	ProcessingErrors prometheus.Counter
 
 	BillingCyclesGenerated prometheus.Counter
 
-	InvoicesGenerated      prometheus.Counter
+	InvoicesGenerated prometheus.Counter
 
-	PaymentsProcessed      *prometheus.CounterVec
+	PaymentsProcessed *prometheus.CounterVec
 
-	FraudAlertsGenerated   prometheus.Counter
+	FraudAlertsGenerated prometheus.Counter
 
-	QuotaViolations        prometheus.Counter
+	QuotaViolations prometheus.Counter
 
-	RateLimitViolations    prometheus.Counter
+	RateLimitViolations prometheus.Counter
 
-	RevenueTracked         *prometheus.GaugeVec
-
+	RevenueTracked *prometheus.GaugeVec
 }
-
-
 
 // Configuration structures.
 
 type BillingConfig struct {
+	DefaultCurrency string
 
-	DefaultCurrency     string
-
-	TaxCalculation      bool
+	TaxCalculation bool
 
 	DiscountApplication bool
 
-	CreditManagement    bool
+	CreditManagement bool
 
-	PaymentProcessing   bool
-
+	PaymentProcessing bool
 }
-
-
 
 // InvoiceConfig represents a invoiceconfig.
 
 type InvoiceConfig struct {
-
 	DefaultTemplate string
 
-	NumberFormat    string
+	NumberFormat string
 
-	DueDays         int
+	DueDays int
 
-	ReminderDays    []int
+	ReminderDays []int
 
-	OverdueDays     int
-
+	OverdueDays int
 }
-
-
 
 // PaymentConfig represents a paymentconfig.
 
 type PaymentConfig struct {
-
 	DefaultProvider string
 
-	RetryAttempts   int
+	RetryAttempts int
 
-	RetryInterval   time.Duration
+	RetryInterval time.Duration
 
 	TimeoutDuration time.Duration
-
 }
-
-
 
 // TaxConfig represents a taxconfig.
 
 type TaxConfig struct {
-
-	DefaultRate       float64
+	DefaultRate float64
 
 	CalculationMethod string
 
 	RoundingPrecision int
 
-	InclusiveOfTax    bool
-
+	InclusiveOfTax bool
 }
-
-
 
 // ChargingConfig represents a chargingconfig.
 
 type ChargingConfig struct {
-
-	DefaultRateCard  string
+	DefaultRateCard string
 
 	RealTimeCharging bool
 
-	CacheSize        int
+	CacheSize int
 
-	CacheTTL         time.Duration
-
+	CacheTTL time.Duration
 }
-
-
 
 // RatingConfig represents a ratingconfig.
 
 type RatingConfig struct {
+	CacheEnabled bool
 
-	CacheEnabled   bool
+	CacheSize int
 
-	CacheSize      int
-
-	CacheTTL       time.Duration
+	CacheTTL time.Duration
 
 	ParallelRating bool
 
-	MaxWorkers     int
-
+	MaxWorkers int
 }
-
-
 
 // AggregationConfig represents a aggregationconfig.
 
 type AggregationConfig struct {
-
 	DefaultGranularity time.Duration
 
-	MaxAggregationAge  time.Duration
+	MaxAggregationAge time.Duration
 
-	RetentionPeriod    time.Duration
+	RetentionPeriod time.Duration
 
 	CompressionEnabled bool
-
 }
-
-
 
 // ReportingConfig represents a reportingconfig.
 
 type ReportingConfig struct {
+	DefaultFormat string
 
-	DefaultFormat        string
+	MaxReportSize int64
 
-	MaxReportSize        int64
-
-	RetentionPeriod      time.Duration
+	RetentionPeriod time.Duration
 
 	DistributionChannels []string
-
 }
-
-
 
 // RetentionConfig represents a retentionconfig.
 
 type RetentionConfig struct {
-
-	DefaultPolicy   string
+	DefaultPolicy string
 
 	ArchiveLocation string
 
 	CompressionType string
 
 	EncryptArchives bool
-
 }
-
-
 
 // RateLimitConfig represents a ratelimitconfig.
 
 type RateLimitConfig struct {
+	DefaultWindow time.Duration
 
-	DefaultWindow      time.Duration
-
-	DefaultLimit       int
+	DefaultLimit int
 
 	ViolationThreshold int
 
-	CleanupInterval    time.Duration
-
+	CleanupInterval time.Duration
 }
-
-
 
 // QuotaConfig represents a quotaconfig.
 
 type QuotaConfig struct {
-
-	DefaultPeriod    string
+	DefaultPeriod string
 
 	WarningThreshold float64
 
-	GracePercentage  float64
+	GracePercentage float64
 
-	ResetSchedule    string
-
+	ResetSchedule string
 }
-
-
 
 // FraudDetectionConfig represents a frauddetectionconfig.
 
 type FraudDetectionConfig struct {
+	EnabledDetectors []string
 
-	EnabledDetectors    []string
+	RiskThreshold float64
 
-	RiskThreshold       float64
+	AlertThreshold float64
 
-	AlertThreshold      float64
-
-	AnalysisWindow      time.Duration
+	AnalysisWindow time.Duration
 
 	ModelUpdateInterval time.Duration
-
 }
-
-
 
 // SettlementConfig represents a settlementconfig.
 
 type SettlementConfig struct {
-
-	DefaultCurrency         string
+	DefaultCurrency string
 
 	ReconciliationTolerance float64
 
-	ProcessingSchedule      string
+	ProcessingSchedule string
 
-	NotificationChannels    []string
-
+	NotificationChannels []string
 }
-
-
 
 // ClearingConfig represents a clearingconfig.
 
 type ClearingConfig struct {
-
-	BatchSize        int
+	BatchSize int
 
 	ProcessingWindow time.Duration
 
-	RetryAttempts    int
-
+	RetryAttempts int
 }
-
-
 
 // RevenueConfig represents a revenueconfig.
 
 type RevenueConfig struct {
-
 	TrackingGranularity time.Duration
 
-	ForecastHorizon     time.Duration
+	ForecastHorizon time.Duration
 
-	KPIUpdateInterval   time.Duration
+	KPIUpdateInterval time.Duration
 
-	TargetAccuracy      float64
-
+	TargetAccuracy float64
 }
-
-
 
 // NewComprehensiveAccountingManager creates a new accounting manager.
 
@@ -2817,243 +2296,197 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 
 			AggregationIntervals: map[string]time.Duration{
 
-				"hourly":  time.Hour,
+				"hourly": time.Hour,
 
-				"daily":   24 * time.Hour,
+				"daily": 24 * time.Hour,
 
 				"monthly": 30 * 24 * time.Hour,
-
 			},
 
 			RetentionPeriods: map[string]time.Duration{
 
-				"raw":        30 * 24 * time.Hour,
+				"raw": 30 * 24 * time.Hour,
 
 				"aggregated": 365 * 24 * time.Hour,
-
 			},
 
-			BillingCycle:          30 * 24 * time.Hour,
+			BillingCycle: 30 * 24 * time.Hour,
 
-			CurrencyCode:          "USD",
+			CurrencyCode: "USD",
 
 			EnableRealTimeBilling: true,
 
-			EnableUsageAlerts:     true,
+			EnableUsageAlerts: true,
 
-			EnableFraudDetection:  true,
+			EnableFraudDetection: true,
 
-			AuditRetention:        90 * 24 * time.Hour,
-
+			AuditRetention: 90 * 24 * time.Hour,
 		}
 
 	}
 
-
-
 	cam := &ComprehensiveAccountingManager{
 
-		config:   config,
+		config: config,
 
-		metrics:  initializeAccountingMetrics(),
+		metrics: initializeAccountingMetrics(),
 
 		stopChan: make(chan struct{}),
-
 	}
-
-
 
 	// Initialize components.
 
 	cam.usageCollector = NewUsageDataCollector(&CollectorConfig{
 
-		MaxEventQueueSize:    10000,
+		MaxEventQueueSize: 10000,
 
 		MaxConcurrentWorkers: 10,
 
-		ProcessingTimeout:    30 * time.Second,
+		ProcessingTimeout: 30 * time.Second,
 
-		RetryAttempts:        3,
+		RetryAttempts: 3,
 
-		RetryInterval:        5 * time.Second,
+		RetryInterval: 5 * time.Second,
 
-		EnableDeduplication:  true,
+		EnableDeduplication: true,
 
-		DeduplicationWindow:  5 * time.Minute,
-
+		DeduplicationWindow: 5 * time.Minute,
 	})
-
-
 
 	cam.meteringEngine = NewMeteringEngine(&MeteringConfig{
 
-		DefaultUnit:            "units",
+		DefaultUnit: "units",
 
-		DefaultPrecision:       2,
+		DefaultPrecision: 2,
 
-		MaxAccumulatorSamples:  1000,
+		MaxAccumulatorSamples: 1000,
 
-		CalculationTimeout:     10 * time.Second,
+		CalculationTimeout: 10 * time.Second,
 
 		EnableRealTimeMetering: true,
-
 	})
-
-
 
 	cam.billingEngine = NewBillingEngine(&BillingConfig{
 
-		DefaultCurrency:     config.CurrencyCode,
+		DefaultCurrency: config.CurrencyCode,
 
-		TaxCalculation:      true,
+		TaxCalculation: true,
 
 		DiscountApplication: true,
 
-		CreditManagement:    true,
+		CreditManagement: true,
 
-		PaymentProcessing:   true,
-
+		PaymentProcessing: true,
 	})
-
-
 
 	cam.chargingManager = NewChargingManager(&ChargingConfig{
 
 		RealTimeCharging: config.EnableRealTimeBilling,
 
-		CacheSize:        10000,
+		CacheSize: 10000,
 
-		CacheTTL:         time.Hour,
-
+		CacheTTL: time.Hour,
 	})
-
-
 
 	cam.usageAggregator = NewUsageAggregator(&AggregationConfig{
 
 		DefaultGranularity: time.Hour,
 
-		MaxAggregationAge:  24 * time.Hour,
+		MaxAggregationAge: 24 * time.Hour,
 
-		RetentionPeriod:    365 * 24 * time.Hour,
+		RetentionPeriod: 365 * 24 * time.Hour,
 
 		CompressionEnabled: true,
-
 	})
-
-
 
 	cam.reportGenerator = NewAccountingReportGenerator(&ReportingConfig{
 
-		DefaultFormat:        "PDF",
+		DefaultFormat: "PDF",
 
-		MaxReportSize:        100 * 1024 * 1024, // 100MB
+		MaxReportSize: 100 * 1024 * 1024, // 100MB
 
-		RetentionPeriod:      365 * 24 * time.Hour,
+		RetentionPeriod: 365 * 24 * time.Hour,
 
 		DistributionChannels: []string{"email", "api"},
-
 	})
-
-
 
 	cam.auditTrail = NewAccountingAuditTrail(config.AuditRetention)
 
-
-
 	cam.dataRetention = NewDataRetentionManager(&RetentionConfig{
 
-		DefaultPolicy:   "standard",
+		DefaultPolicy: "standard",
 
 		ArchiveLocation: "/archive",
 
 		CompressionType: "gzip",
 
 		EncryptArchives: true,
-
 	})
-
-
 
 	if config.EnableFraudDetection {
 
 		cam.fraudDetection = NewFraudDetectionEngine(&FraudDetectionConfig{
 
-			EnabledDetectors:    []string{"threshold", "anomaly", "pattern"},
+			EnabledDetectors: []string{"threshold", "anomaly", "pattern"},
 
-			RiskThreshold:       0.7,
+			RiskThreshold: 0.7,
 
-			AlertThreshold:      0.8,
+			AlertThreshold: 0.8,
 
-			AnalysisWindow:      time.Hour,
+			AnalysisWindow: time.Hour,
 
 			ModelUpdateInterval: 24 * time.Hour,
-
 		})
 
 	}
 
-
-
 	cam.rateLimitManager = NewRateLimitManager(&RateLimitConfig{
 
-		DefaultWindow:      time.Minute,
+		DefaultWindow: time.Minute,
 
-		DefaultLimit:       1000,
+		DefaultLimit: 1000,
 
 		ViolationThreshold: 5,
 
-		CleanupInterval:    time.Hour,
-
+		CleanupInterval: time.Hour,
 	})
-
-
 
 	cam.quotaManager = NewQuotaManager(&QuotaConfig{
 
-		DefaultPeriod:    "monthly",
+		DefaultPeriod: "monthly",
 
 		WarningThreshold: 0.8,
 
-		GracePercentage:  0.1,
+		GracePercentage: 0.1,
 
-		ResetSchedule:    "0 0 1 * *", // First day of each month
+		ResetSchedule: "0 0 1 * *", // First day of each month
 
 	})
-
-
 
 	cam.settlementManager = NewSettlementManager(&SettlementConfig{
 
-		DefaultCurrency:         config.CurrencyCode,
+		DefaultCurrency: config.CurrencyCode,
 
 		ReconciliationTolerance: 0.01,
 
-		ProcessingSchedule:      "0 2 * * *", // 2 AM daily
+		ProcessingSchedule: "0 2 * * *", // 2 AM daily
 
 	})
-
-
 
 	cam.revenueTracking = NewRevenueTrackingService(&RevenueConfig{
 
 		TrackingGranularity: time.Hour,
 
-		ForecastHorizon:     90 * 24 * time.Hour,
+		ForecastHorizon: 90 * 24 * time.Hour,
 
-		KPIUpdateInterval:   time.Hour,
+		KPIUpdateInterval: time.Hour,
 
-		TargetAccuracy:      0.95,
-
+		TargetAccuracy: 0.95,
 	})
-
-
 
 	return cam
 
 }
-
-
 
 // Start starts the accounting manager.
 
@@ -3063,21 +2496,15 @@ func (cam *ComprehensiveAccountingManager) Start(ctx context.Context) error {
 
 	defer cam.mutex.Unlock()
 
-
-
 	if cam.running {
 
 		return fmt.Errorf("accounting manager already running")
 
 	}
 
-
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("starting comprehensive accounting manager")
-
-
 
 	// Start usage collection.
 
@@ -3087,8 +2514,6 @@ func (cam *ComprehensiveAccountingManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start metering engine.
 
 	if err := cam.meteringEngine.Start(ctx); err != nil {
@@ -3096,8 +2521,6 @@ func (cam *ComprehensiveAccountingManager) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start metering engine: %w", err)
 
 	}
-
-
 
 	// Start billing engine.
 
@@ -3107,8 +2530,6 @@ func (cam *ComprehensiveAccountingManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start usage aggregator.
 
 	if err := cam.usageAggregator.Start(ctx); err != nil {
@@ -3116,8 +2537,6 @@ func (cam *ComprehensiveAccountingManager) Start(ctx context.Context) error {
 		logger.Error(err, "failed to start usage aggregator")
 
 	}
-
-
 
 	// Start fraud detection if enabled.
 
@@ -3131,8 +2550,6 @@ func (cam *ComprehensiveAccountingManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	cam.running = true
 
 	logger.Info("comprehensive accounting manager started successfully")
@@ -3140,8 +2557,6 @@ func (cam *ComprehensiveAccountingManager) Start(ctx context.Context) error {
 	return nil
 
 }
-
-
 
 // Stop stops the accounting manager.
 
@@ -3151,25 +2566,17 @@ func (cam *ComprehensiveAccountingManager) Stop(ctx context.Context) error {
 
 	defer cam.mutex.Unlock()
 
-
-
 	if !cam.running {
 
 		return nil
 
 	}
 
-
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("stopping comprehensive accounting manager")
 
-
-
 	close(cam.stopChan)
-
-
 
 	// Stop all components.
 
@@ -3179,15 +2586,11 @@ func (cam *ComprehensiveAccountingManager) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	if cam.meteringEngine != nil {
 
 		cam.meteringEngine.Stop(ctx)
 
 	}
-
-
 
 	if cam.billingEngine != nil {
 
@@ -3195,23 +2598,17 @@ func (cam *ComprehensiveAccountingManager) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	if cam.usageAggregator != nil {
 
 		cam.usageAggregator.Stop(ctx)
 
 	}
 
-
-
 	if cam.fraudDetection != nil {
 
 		cam.fraudDetection.Stop(ctx)
 
 	}
-
-
 
 	cam.running = false
 
@@ -3221,11 +2618,7 @@ func (cam *ComprehensiveAccountingManager) Stop(ctx context.Context) error {
 
 }
 
-
-
 // Core accounting operations.
-
-
 
 // RecordUsage records a usage event.
 
@@ -3235,8 +2628,6 @@ func (cam *ComprehensiveAccountingManager) RecordUsage(ctx context.Context, even
 
 	logger.Info("recording usage event", "eventID", event.ID, "resourceType", event.ResourceType)
 
-
-
 	// Check rate limits.
 
 	if violation := cam.rateLimitManager.CheckLimit(event.ResourceType, event.ElementID); violation != nil {
@@ -3244,8 +2635,6 @@ func (cam *ComprehensiveAccountingManager) RecordUsage(ctx context.Context, even
 		return fmt.Errorf("rate limit exceeded: %s", violation.ID)
 
 	}
-
-
 
 	// Check quotas.
 
@@ -3257,8 +2646,6 @@ func (cam *ComprehensiveAccountingManager) RecordUsage(ctx context.Context, even
 
 	}
 
-
-
 	// Process usage event.
 
 	if err := cam.usageCollector.ProcessEvent(ctx, event); err != nil {
@@ -3269,15 +2656,11 @@ func (cam *ComprehensiveAccountingManager) RecordUsage(ctx context.Context, even
 
 	}
 
-
-
 	cam.metrics.UsageEventsProcessed.Inc()
 
 	return nil
 
 }
-
-
 
 // GetUsageRecords retrieves usage records with filtering.
 
@@ -3287,8 +2670,6 @@ func (cam *ComprehensiveAccountingManager) GetUsageRecords(ctx context.Context, 
 
 }
 
-
-
 // GenerateBill generates a bill for a billing cycle.
 
 func (cam *ComprehensiveAccountingManager) GenerateBill(ctx context.Context, cycleID string) (*BillingCycle, error) {
@@ -3296,8 +2677,6 @@ func (cam *ComprehensiveAccountingManager) GenerateBill(ctx context.Context, cyc
 	logger := log.FromContext(ctx)
 
 	logger.Info("generating bill", "cycleID", cycleID)
-
-
 
 	cycle, err := cam.billingEngine.GenerateBill(ctx, cycleID)
 
@@ -3307,15 +2686,11 @@ func (cam *ComprehensiveAccountingManager) GenerateBill(ctx context.Context, cyc
 
 	}
 
-
-
 	cam.metrics.BillingCyclesGenerated.Inc()
 
 	return cycle, nil
 
 }
-
-
 
 // ProcessPayment processes a payment.
 
@@ -3324,8 +2699,6 @@ func (cam *ComprehensiveAccountingManager) ProcessPayment(ctx context.Context, p
 	logger := log.FromContext(ctx)
 
 	logger.Info("processing payment", "paymentID", payment.ID, "amount", payment.Amount)
-
-
 
 	result, err := cam.billingEngine.ProcessPayment(ctx, payment)
 
@@ -3337,15 +2710,11 @@ func (cam *ComprehensiveAccountingManager) ProcessPayment(ctx context.Context, p
 
 	}
 
-
-
 	cam.metrics.PaymentsProcessed.WithLabelValues("success").Inc()
 
 	return result, nil
 
 }
-
-
 
 // GetAccountingStatistics returns comprehensive accounting statistics.
 
@@ -3353,33 +2722,26 @@ func (cam *ComprehensiveAccountingManager) GetAccountingStatistics(ctx context.C
 
 	stats := &AccountingStatistics{
 
-		UsageEventsTotal:    cam.getUsageEventsCount(),
+		UsageEventsTotal: cam.getUsageEventsCount(),
 
 		BillingCyclesActive: cam.getActiveBillingCycles(),
 
-		RevenueTotal:        cam.getTotalRevenue(),
+		RevenueTotal: cam.getTotalRevenue(),
 
-		PendingPayments:     cam.getPendingPayments(),
+		PendingPayments: cam.getPendingPayments(),
 
-		FraudAlertsActive:   cam.getActiveFraudAlerts(),
+		FraudAlertsActive: cam.getActiveFraudAlerts(),
 
-		SystemHealth:        cam.assessSystemHealth(),
+		SystemHealth: cam.assessSystemHealth(),
 
-		Timestamp:           time.Now(),
-
+		Timestamp: time.Now(),
 	}
-
-
 
 	return stats, nil
 
 }
 
-
-
 // Helper methods and placeholder implementations.
-
-
 
 func (cam *ComprehensiveAccountingManager) getUsageEventsCount() int64 {
 
@@ -3389,8 +2751,6 @@ func (cam *ComprehensiveAccountingManager) getUsageEventsCount() int64 {
 
 }
 
-
-
 func (cam *ComprehensiveAccountingManager) getActiveBillingCycles() int {
 
 	// Placeholder - would query billing engine.
@@ -3398,8 +2758,6 @@ func (cam *ComprehensiveAccountingManager) getActiveBillingCycles() int {
 	return 250
 
 }
-
-
 
 func (cam *ComprehensiveAccountingManager) getTotalRevenue() float64 {
 
@@ -3409,8 +2767,6 @@ func (cam *ComprehensiveAccountingManager) getTotalRevenue() float64 {
 
 }
 
-
-
 func (cam *ComprehensiveAccountingManager) getPendingPayments() int {
 
 	// Placeholder - would query payment processor.
@@ -3418,8 +2774,6 @@ func (cam *ComprehensiveAccountingManager) getPendingPayments() int {
 	return 125
 
 }
-
-
 
 func (cam *ComprehensiveAccountingManager) getActiveFraudAlerts() int {
 
@@ -3435,8 +2789,6 @@ func (cam *ComprehensiveAccountingManager) getActiveFraudAlerts() int {
 
 }
 
-
-
 func (cam *ComprehensiveAccountingManager) assessSystemHealth() string {
 
 	// Placeholder - would assess overall system health.
@@ -3444,8 +2796,6 @@ func (cam *ComprehensiveAccountingManager) assessSystemHealth() string {
 	return "HEALTHY"
 
 }
-
-
 
 func initializeAccountingMetrics() *AccountingMetrics {
 
@@ -3456,7 +2806,6 @@ func initializeAccountingMetrics() *AccountingMetrics {
 			Name: "oran_accounting_usage_events_processed_total",
 
 			Help: "Total number of usage events processed",
-
 		}),
 
 		ProcessingErrors: promauto.NewCounter(prometheus.CounterOpts{
@@ -3464,7 +2813,6 @@ func initializeAccountingMetrics() *AccountingMetrics {
 			Name: "oran_accounting_processing_errors_total",
 
 			Help: "Total number of processing errors",
-
 		}),
 
 		BillingCyclesGenerated: promauto.NewCounter(prometheus.CounterOpts{
@@ -3472,7 +2820,6 @@ func initializeAccountingMetrics() *AccountingMetrics {
 			Name: "oran_accounting_billing_cycles_generated_total",
 
 			Help: "Total number of billing cycles generated",
-
 		}),
 
 		InvoicesGenerated: promauto.NewCounter(prometheus.CounterOpts{
@@ -3480,7 +2827,6 @@ func initializeAccountingMetrics() *AccountingMetrics {
 			Name: "oran_accounting_invoices_generated_total",
 
 			Help: "Total number of invoices generated",
-
 		}),
 
 		PaymentsProcessed: promauto.NewCounterVec(prometheus.CounterOpts{
@@ -3488,7 +2834,6 @@ func initializeAccountingMetrics() *AccountingMetrics {
 			Name: "oran_accounting_payments_processed_total",
 
 			Help: "Total number of payments processed",
-
 		}, []string{"status"}),
 
 		FraudAlertsGenerated: promauto.NewCounter(prometheus.CounterOpts{
@@ -3496,7 +2841,6 @@ func initializeAccountingMetrics() *AccountingMetrics {
 			Name: "oran_accounting_fraud_alerts_generated_total",
 
 			Help: "Total number of fraud alerts generated",
-
 		}),
 
 		QuotaViolations: promauto.NewCounter(prometheus.CounterOpts{
@@ -3504,7 +2848,6 @@ func initializeAccountingMetrics() *AccountingMetrics {
 			Name: "oran_accounting_quota_violations_total",
 
 			Help: "Total number of quota violations",
-
 		}),
 
 		RateLimitViolations: promauto.NewCounter(prometheus.CounterOpts{
@@ -3512,7 +2855,6 @@ func initializeAccountingMetrics() *AccountingMetrics {
 			Name: "oran_accounting_rate_limit_violations_total",
 
 			Help: "Total number of rate limit violations",
-
 		}),
 
 		RevenueTracked: promauto.NewGaugeVec(prometheus.GaugeOpts{
@@ -3520,42 +2862,32 @@ func initializeAccountingMetrics() *AccountingMetrics {
 			Name: "oran_accounting_revenue_tracked",
 
 			Help: "Revenue tracked by category",
-
 		}, []string{"category", "currency"}),
-
 	}
 
 }
 
-
-
 // AccountingStatistics provides comprehensive accounting statistics.
 
 type AccountingStatistics struct {
+	UsageEventsTotal int64 `json:"usage_events_total"`
 
-	UsageEventsTotal    int64     `json:"usage_events_total"`
+	BillingCyclesActive int `json:"billing_cycles_active"`
 
-	BillingCyclesActive int       `json:"billing_cycles_active"`
+	RevenueTotal float64 `json:"revenue_total"`
 
-	RevenueTotal        float64   `json:"revenue_total"`
+	PendingPayments int `json:"pending_payments"`
 
-	PendingPayments     int       `json:"pending_payments"`
+	FraudAlertsActive int `json:"fraud_alerts_active"`
 
-	FraudAlertsActive   int       `json:"fraud_alerts_active"`
+	SystemHealth string `json:"system_health"`
 
-	SystemHealth        string    `json:"system_health"`
-
-	Timestamp           time.Time `json:"timestamp"`
-
+	Timestamp time.Time `json:"timestamp"`
 }
-
-
 
 // Placeholder implementations for major components.
 
 // In production, each would be fully implemented.
-
-
 
 // NewUsageDataCollector performs newusagedatacollector operation.
 
@@ -3563,21 +2895,18 @@ func NewUsageDataCollector(config *CollectorConfig) *UsageDataCollector {
 
 	return &UsageDataCollector{
 
-		collectors:      make(map[string]*ResourceCollector),
+		collectors: make(map[string]*ResourceCollector),
 
 		collectionQueue: make(chan *UsageEvent, config.MaxEventQueueSize),
 
-		processors:      make([]*UsageProcessor, 0),
+		processors: make([]*UsageProcessor, 0),
 
-		workerPool:      NewUsageWorkerPool(config.MaxConcurrentWorkers),
+		workerPool: NewUsageWorkerPool(config.MaxConcurrentWorkers),
 
-		config:          config,
-
+		config: config,
 	}
 
 }
-
-
 
 // Start performs start operation.
 
@@ -3589,8 +2918,6 @@ func (udc *UsageDataCollector) Start(ctx context.Context) error {
 
 }
 
-
-
 // Stop performs stop operation.
 
 func (udc *UsageDataCollector) Stop(ctx context.Context) error {
@@ -3600,8 +2927,6 @@ func (udc *UsageDataCollector) Stop(ctx context.Context) error {
 	return udc.workerPool.Stop(ctx)
 
 }
-
-
 
 // ProcessEvent performs processevent operation.
 
@@ -3621,39 +2946,30 @@ func (udc *UsageDataCollector) ProcessEvent(ctx context.Context, event *UsageEve
 
 }
 
-
-
 // NewUsageWorkerPool performs newusageworkerpool operation.
 
 func NewUsageWorkerPool(workers int) *UsageWorkerPool {
 
 	return &UsageWorkerPool{
 
-		workers:     workers,
+		workers: workers,
 
-		eventQueue:  make(chan *UsageEvent, workers*2),
+		eventQueue: make(chan *UsageEvent, workers*2),
 
 		resultQueue: make(chan *ProcessedUsage, workers*2),
 
-		stopChan:    make(chan struct{}),
-
+		stopChan: make(chan struct{}),
 	}
 
 }
-
-
 
 // Start performs start operation.
 
 func (uwp *UsageWorkerPool) Start(ctx context.Context) error { uwp.running = true; return nil }
 
-
-
 // Stop performs stop operation.
 
 func (uwp *UsageWorkerPool) Stop(ctx context.Context) error { uwp.running = false; return nil }
-
-
 
 // NewMeteringEngine performs newmeteringengine operation.
 
@@ -3661,31 +2977,24 @@ func NewMeteringEngine(config *MeteringConfig) *MeteringEngine {
 
 	return &MeteringEngine{
 
-		meters:           make(map[string]*UsageMeter),
+		meters: make(map[string]*UsageMeter),
 
-		calculators:      make(map[string]*UsageCalculator),
+		calculators: make(map[string]*UsageCalculator),
 
 		aggregationRules: make([]*AggregationRule, 0),
 
-		config:           config,
-
+		config: config,
 	}
 
 }
-
-
 
 // Start performs start operation.
 
 func (me *MeteringEngine) Start(ctx context.Context) error { return nil }
 
-
-
 // Stop performs stop operation.
 
 func (me *MeteringEngine) Stop(ctx context.Context) error { return nil }
-
-
 
 // NewBillingEngine performs newbillingengine operation.
 
@@ -3693,37 +3002,30 @@ func NewBillingEngine(config *BillingConfig) *BillingEngine {
 
 	return &BillingEngine{
 
-		billingCycles:    make(map[string]*BillingCycle),
+		billingCycles: make(map[string]*BillingCycle),
 
 		invoiceGenerator: &InvoiceGenerator{},
 
 		paymentProcessor: &PaymentProcessor{},
 
-		taxCalculator:    &TaxCalculator{},
+		taxCalculator: &TaxCalculator{},
 
-		discountEngine:   &DiscountEngine{},
+		discountEngine: &DiscountEngine{},
 
-		creditManager:    &CreditManager{},
+		creditManager: &CreditManager{},
 
-		config:           config,
-
+		config: config,
 	}
 
 }
-
-
 
 // Start performs start operation.
 
 func (be *BillingEngine) Start(ctx context.Context) error { return nil }
 
-
-
 // Stop performs stop operation.
 
 func (be *BillingEngine) Stop(ctx context.Context) error { return nil }
-
-
 
 // GenerateBill performs generatebill operation.
 
@@ -3732,8 +3034,6 @@ func (be *BillingEngine) GenerateBill(ctx context.Context, cycleID string) (*Bil
 	return &BillingCycle{ID: cycleID}, nil
 
 }
-
-
 
 // ProcessPayment performs processpayment operation.
 
@@ -3745,8 +3045,6 @@ func (be *BillingEngine) ProcessPayment(ctx context.Context, payment *PaymentTra
 
 }
 
-
-
 // NewChargingManager performs newchargingmanager operation.
 
 func NewChargingManager(config *ChargingConfig) *ChargingManager {
@@ -3755,19 +3053,16 @@ func NewChargingManager(config *ChargingConfig) *ChargingManager {
 
 		chargingRules: make([]*ChargingRule, 0),
 
-		rateCards:     make(map[string]*RateCard),
+		rateCards: make(map[string]*RateCard),
 
-		priceBooks:    make(map[string]*PriceBook),
+		priceBooks: make(map[string]*PriceBook),
 
-		ratingEngine:  &RatingEngine{},
+		ratingEngine: &RatingEngine{},
 
-		config:        config,
-
+		config: config,
 	}
 
 }
-
-
 
 // NewUsageAggregator performs newusageaggregator operation.
 
@@ -3777,27 +3072,20 @@ func NewUsageAggregator(config *AggregationConfig) *UsageAggregator {
 
 		aggregators: make(map[string]*DataAggregator),
 
-		schedules:   make(map[string]*AggregationSchedule),
+		schedules: make(map[string]*AggregationSchedule),
 
-		config:      config,
-
+		config: config,
 	}
 
 }
-
-
 
 // Start performs start operation.
 
 func (ua *UsageAggregator) Start(ctx context.Context) error { ua.running = true; return nil }
 
-
-
 // Stop performs stop operation.
 
 func (ua *UsageAggregator) Stop(ctx context.Context) error { ua.running = false; return nil }
-
-
 
 // NewAccountingReportGenerator performs newaccountingreportgenerator operation.
 
@@ -3805,17 +3093,14 @@ func NewAccountingReportGenerator(config *ReportingConfig) *AccountingReportGene
 
 	return &AccountingReportGenerator{
 
-		templates:  make(map[string]*ReportTemplate),
+		templates: make(map[string]*ReportTemplate),
 
 		generators: make(map[string]ReportGenerator),
 
-		config:     config,
-
+		config: config,
 	}
 
 }
-
-
 
 // NewAccountingAuditTrail performs newaccountingaudittrail operation.
 
@@ -3824,12 +3109,9 @@ func NewAccountingAuditTrail(retention time.Duration) *AccountingAuditTrail {
 	return &AccountingAuditTrail{
 
 		entries: make([]*AuditEntry, 0),
-
 	}
 
 }
-
-
 
 // NewDataRetentionManager performs newdataretentionmanager operation.
 
@@ -3839,13 +3121,10 @@ func NewDataRetentionManager(config *RetentionConfig) *DataRetentionManager {
 
 		policies: make(map[string]*RetentionPolicy),
 
-		config:   config,
-
+		config: config,
 	}
 
 }
-
-
 
 // NewRateLimitManager performs newratelimitmanager operation.
 
@@ -3853,19 +3132,16 @@ func NewRateLimitManager(config *RateLimitConfig) *RateLimitManager {
 
 	return &RateLimitManager{
 
-		limiters:   make(map[string]*ResourceLimiter),
+		limiters: make(map[string]*ResourceLimiter),
 
-		policies:   make([]*RateLimitPolicy, 0),
+		policies: make([]*RateLimitPolicy, 0),
 
 		violations: make(map[string]*RateLimitViolation),
 
-		config:     config,
-
+		config: config,
 	}
 
 }
-
-
 
 // CheckLimit performs checklimit operation.
 
@@ -3877,29 +3153,24 @@ func (rlm *RateLimitManager) CheckLimit(resourceType, elementID string) *RateLim
 
 }
 
-
-
 // NewQuotaManager performs newquotamanager operation.
 
 func NewQuotaManager(config *QuotaConfig) *QuotaManager {
 
 	return &QuotaManager{
 
-		quotas:     make(map[string]*ResourceQuota),
+		quotas: make(map[string]*ResourceQuota),
 
-		usage:      make(map[string]*QuotaUsage),
+		usage: make(map[string]*QuotaUsage),
 
-		policies:   make([]*QuotaPolicy, 0),
+		policies: make([]*QuotaPolicy, 0),
 
 		violations: make(map[string]*QuotaViolation),
 
-		config:     config,
-
+		config: config,
 	}
 
 }
-
-
 
 // CheckQuota performs checkquota operation.
 
@@ -3911,8 +3182,6 @@ func (qm *QuotaManager) CheckQuota(resourceType, userID string, quantity float64
 
 }
 
-
-
 // NewFraudDetectionEngine performs newfrauddetectionengine operation.
 
 func NewFraudDetectionEngine(config *FraudDetectionConfig) *FraudDetectionEngine {
@@ -3921,37 +3190,28 @@ func NewFraudDetectionEngine(config *FraudDetectionConfig) *FraudDetectionEngine
 
 		detectors: make(map[string]*FraudDetector),
 
-		rules:     make([]*FraudRule, 0),
+		rules: make([]*FraudRule, 0),
 
-		patterns:  make([]*FraudPattern, 0),
+		patterns: make([]*FraudPattern, 0),
 
-		alerts:    make(chan *FraudAlert, 1000),
+		alerts: make(chan *FraudAlert, 1000),
 
-		config:    config,
-
+		config: config,
 	}
 
 }
-
-
 
 // Start performs start operation.
 
 func (fde *FraudDetectionEngine) Start(ctx context.Context) error { fde.running = true; return nil }
 
-
-
 // Stop performs stop operation.
 
 func (fde *FraudDetectionEngine) Stop(ctx context.Context) error { fde.running = false; return nil }
 
-
-
 // GetActiveAlerts performs getactivealerts operation.
 
 func (fde *FraudDetectionEngine) GetActiveAlerts() int { return 5 }
-
-
 
 // NewSettlementManager performs newsettlementmanager operation.
 
@@ -3961,17 +3221,14 @@ func NewSettlementManager(config *SettlementConfig) *SettlementManager {
 
 		settlements: make(map[string]*Settlement),
 
-		reconciler:  &SettlementReconciler{},
+		reconciler: &SettlementReconciler{},
 
-		clearing:    &ClearingHouse{},
+		clearing: &ClearingHouse{},
 
-		config:      config,
-
+		config: config,
 	}
 
 }
-
-
 
 // NewRevenueTrackingService performs newrevenuetrackingservice operation.
 
@@ -3979,138 +3236,108 @@ func NewRevenueTrackingService(config *RevenueConfig) *RevenueTrackingService {
 
 	return &RevenueTrackingService{
 
-		trackers:  make(map[string]*RevenueTracker),
+		trackers: make(map[string]*RevenueTracker),
 
-		metrics:   make(map[string]*RevenueMetric),
+		metrics: make(map[string]*RevenueMetric),
 
 		forecasts: make(map[string]*RevenueForecast),
 
-		kpis:      make(map[string]*RevenueKPI),
+		kpis: make(map[string]*RevenueKPI),
 
-		config:    config,
-
+		config: config,
 	}
 
 }
 
-
-
 // Missing types for compilation.
-
-
 
 // AuditRetentionPolicy defines data retention policies for audit records.
 
 type AuditRetentionPolicy struct {
-
-	DefaultRetention  time.Duration `json:"default_retention"`
+	DefaultRetention time.Duration `json:"default_retention"`
 
 	CriticalRetention time.Duration `json:"critical_retention"`
 
-	CompliancePolicy  string        `json:"compliance_policy"`
+	CompliancePolicy string `json:"compliance_policy"`
 
-	AutoCleanup       bool          `json:"auto_cleanup"`
+	AutoCleanup bool `json:"auto_cleanup"`
 
-	BackupRequired    bool          `json:"backup_required"`
-
+	BackupRequired bool `json:"backup_required"`
 }
-
-
 
 // AuditEncryption defines encryption settings for audit data.
 
 type AuditEncryption struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled     bool          `json:"enabled"`
-
-	Algorithm   string        `json:"algorithm"`
+	Algorithm string `json:"algorithm"`
 
 	KeyRotation time.Duration `json:"key_rotation"`
 
-	KeySize     int           `json:"key_size"`
+	KeySize int `json:"key_size"`
 
-	Compression bool          `json:"compression"`
-
+	Compression bool `json:"compression"`
 }
-
-
 
 // RetentionScheduler schedules data retention activities.
 
 type RetentionScheduler struct {
-
 	schedules map[string]*ScheduleEntry
 
-	ticker    *time.Ticker
+	ticker *time.Ticker
 
-	running   bool
+	running bool
 
-	mutex     sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ScheduleEntry defines a scheduled retention task.
 
 type ScheduleEntry struct {
+	ID string `json:"id"`
 
-	ID         string                 `json:"id"`
+	Interval time.Duration `json:"interval"`
 
-	Interval   time.Duration          `json:"interval"`
+	LastRun time.Time `json:"last_run"`
 
-	LastRun    time.Time              `json:"last_run"`
+	NextRun time.Time `json:"next_run"`
 
-	NextRun    time.Time              `json:"next_run"`
-
-	TaskType   string                 `json:"task_type"`
+	TaskType string `json:"task_type"`
 
 	Parameters map[string]interface{} `json:"parameters"`
-
 }
-
-
 
 // DataArchiver handles data archiving operations.
 
 type DataArchiver struct {
+	config *ArchiverConfig
 
-	config     *ArchiverConfig
-
-	storage    ArchiveStorage
+	storage ArchiveStorage
 
 	compressor DataCompressor
 
-	encryptor  DataEncryptor
+	encryptor DataEncryptor
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ArchiverConfig defines archiver configuration.
 
 type ArchiverConfig struct {
+	ArchiveLocation string `json:"archive_location"`
 
-	ArchiveLocation string        `json:"archive_location"`
+	CompressionType string `json:"compression_type"`
 
-	CompressionType string        `json:"compression_type"`
+	EncryptionType string `json:"encryption_type"`
 
-	EncryptionType  string        `json:"encryption_type"`
+	BackupInterval time.Duration `json:"backup_interval"`
 
-	BackupInterval  time.Duration `json:"backup_interval"`
-
-	MaxArchiveSize  int64         `json:"max_archive_size"`
-
+	MaxArchiveSize int64 `json:"max_archive_size"`
 }
-
-
 
 // ArchiveStorage interface for archive storage operations.
 
 type ArchiveStorage interface {
-
 	Store(key string, data []byte) error
 
 	Retrieve(key string) ([]byte, error)
@@ -4118,30 +3345,20 @@ type ArchiveStorage interface {
 	Delete(key string) error
 
 	List(prefix string) ([]string, error)
-
 }
-
-
 
 // AccountingDataCompressor interface for data compression in accounting.
 
 type AccountingDataCompressor interface {
-
 	Compress(data []byte) ([]byte, error)
 
 	Decompress(data []byte) ([]byte, error)
-
 }
-
-
 
 // DataEncryptor interface for data encryption.
 
 type DataEncryptor interface {
-
 	Encrypt(data []byte) ([]byte, error)
 
 	Decrypt(data []byte) ([]byte, error)
-
 }
-

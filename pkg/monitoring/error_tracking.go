@@ -28,96 +28,68 @@ limitations under the License.
 
 */
 
-
-
-
 package monitoring
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
 )
-
-
 
 // ErrorTracker provides error tracking capabilities.
 
 // This is a simplified version focused on the core functionality needed by tests.
 
 type ErrorTracker struct {
+	config *ErrorTrackingConfig
 
-	config   *ErrorTrackingConfig
+	logger logr.Logger
 
-	logger   logr.Logger
+	mutex sync.RWMutex
 
-	mutex    sync.RWMutex
-
-	started  bool
+	started bool
 
 	stopChan chan struct{}
 
-
-
 	// Error statistics.
 
-	errorCounts  map[string]int64
+	errorCounts map[string]int64
 
 	errorsByType map[string]int64
 
-	lastError    time.Time
-
+	lastError time.Time
 }
-
-
 
 // ErrorTrackingConfig holds configuration for error tracking.
 
 type ErrorTrackingConfig struct {
-
-	EnablePrometheus    bool `json:"enablePrometheus"`
+	EnablePrometheus bool `json:"enablePrometheus"`
 
 	EnableOpenTelemetry bool `json:"enableOpenTelemetry"`
 
-	AlertingEnabled     bool `json:"alertingEnabled"`
+	AlertingEnabled bool `json:"alertingEnabled"`
 
-	DashboardEnabled    bool `json:"dashboardEnabled"`
+	DashboardEnabled bool `json:"dashboardEnabled"`
 
-	ReportsEnabled      bool `json:"reportsEnabled"`
-
+	ReportsEnabled bool `json:"reportsEnabled"`
 }
-
-
 
 // ErrorSummary provides a summary of errors.
 
 type ErrorSummary struct {
+	TotalErrors int64 `json:"totalErrors"`
 
-	TotalErrors     int64            `json:"totalErrors"`
-
-	ErrorsByType    map[string]int64 `json:"errorsByType"`
+	ErrorsByType map[string]int64 `json:"errorsByType"`
 
 	ErrorsByPattern map[string]int64 `json:"errorsByPattern"`
 
-	LastErrorTime   time.Time        `json:"lastErrorTime"`
+	LastErrorTime time.Time `json:"lastErrorTime"`
 
-	ErrorRate       float64          `json:"errorRate"`
-
+	ErrorRate float64 `json:"errorRate"`
 }
-
-
 
 // NewErrorTracker creates a new error tracker.
 
@@ -127,39 +99,33 @@ func NewErrorTracker(config *ErrorTrackingConfig, logger logr.Logger) (*ErrorTra
 
 		config = &ErrorTrackingConfig{
 
-			EnablePrometheus:    false,
+			EnablePrometheus: false,
 
 			EnableOpenTelemetry: false,
 
-			AlertingEnabled:     false,
+			AlertingEnabled: false,
 
-			DashboardEnabled:    false,
+			DashboardEnabled: false,
 
-			ReportsEnabled:      false,
-
+			ReportsEnabled: false,
 		}
 
 	}
 
-
-
 	return &ErrorTracker{
 
-		config:       config,
+		config: config,
 
-		logger:       logger.WithName("error-tracker"),
+		logger: logger.WithName("error-tracker"),
 
-		stopChan:     make(chan struct{}),
+		stopChan: make(chan struct{}),
 
-		errorCounts:  make(map[string]int64),
+		errorCounts: make(map[string]int64),
 
 		errorsByType: make(map[string]int64),
-
 	}, nil
 
 }
-
-
 
 // Start starts the error tracker.
 
@@ -169,15 +135,11 @@ func (et *ErrorTracker) Start(ctx context.Context) error {
 
 	defer et.mutex.Unlock()
 
-
-
 	if et.started {
 
 		return fmt.Errorf("error tracker already started")
 
 	}
-
-
 
 	et.started = true
 
@@ -187,8 +149,6 @@ func (et *ErrorTracker) Start(ctx context.Context) error {
 
 }
 
-
-
 // Stop stops the error tracker.
 
 func (et *ErrorTracker) Stop() error {
@@ -197,15 +157,11 @@ func (et *ErrorTracker) Stop() error {
 
 	defer et.mutex.Unlock()
 
-
-
 	if !et.started {
 
 		return nil
 
 	}
-
-
 
 	close(et.stopChan)
 
@@ -217,8 +173,6 @@ func (et *ErrorTracker) Stop() error {
 
 }
 
-
-
 // TrackError tracks an error.
 
 func (et *ErrorTracker) TrackError(ctx context.Context, errorType, errorMessage string) {
@@ -227,21 +181,15 @@ func (et *ErrorTracker) TrackError(ctx context.Context, errorType, errorMessage 
 
 	defer et.mutex.Unlock()
 
-
-
 	et.errorCounts[errorType]++
 
 	et.errorsByType[errorType]++
 
 	et.lastError = time.Now()
 
-
-
 	et.logger.Info("Tracked error", "type", errorType, "message", errorMessage)
 
 }
-
-
 
 // GetErrorSummary returns a summary of errors.
 
@@ -251,13 +199,9 @@ func (et *ErrorTracker) GetErrorSummary() *ErrorSummary {
 
 	defer et.mutex.RUnlock()
 
-
-
 	total := int64(0)
 
 	errorsByType := make(map[string]int64)
-
-
 
 	for errorType, count := range et.errorsByType {
 
@@ -267,25 +211,21 @@ func (et *ErrorTracker) GetErrorSummary() *ErrorSummary {
 
 	}
 
-
-
 	return &ErrorSummary{
 
-		TotalErrors:     total,
+		TotalErrors: total,
 
-		ErrorsByType:    errorsByType,
+		ErrorsByType: errorsByType,
 
 		ErrorsByPattern: make(map[string]int64), // Simplified for now
 
-		LastErrorTime:   et.lastError,
+		LastErrorTime: et.lastError,
 
-		ErrorRate:       0.0, // Would calculate based on time window
+		ErrorRate: 0.0, // Would calculate based on time window
 
 	}
 
 }
-
-
 
 // GetErrorsByPattern returns errors matching a pattern.
 
@@ -295,8 +235,6 @@ func (et *ErrorTracker) GetErrorsByPattern(pattern string) []map[string]interfac
 
 	defer et.mutex.RUnlock()
 
-
-
 	// Simplified implementation - just return empty slice for now.
 
 	// In a full implementation, this would search through stored error events.
@@ -304,8 +242,6 @@ func (et *ErrorTracker) GetErrorsByPattern(pattern string) []map[string]interfac
 	return make([]map[string]interface{}, 0)
 
 }
-
-
 
 // GetMetrics returns error tracking metrics.
 
@@ -315,23 +251,18 @@ func (et *ErrorTracker) GetMetrics() map[string]interface{} {
 
 	defer et.mutex.RUnlock()
 
-
-
 	return map[string]interface{}{
 
-		"total_errors":    len(et.errorCounts),
+		"total_errors": len(et.errorCounts),
 
-		"errors_by_type":  et.errorsByType,
+		"errors_by_type": et.errorsByType,
 
 		"last_error_time": et.lastError,
 
-		"started":         et.started,
-
+		"started": et.started,
 	}
 
 }
-
-
 
 // HealthCheck returns the health status of the error tracker.
 
@@ -341,17 +272,12 @@ func (et *ErrorTracker) HealthCheck() error {
 
 	defer et.mutex.RUnlock()
 
-
-
 	if !et.started {
 
 		return fmt.Errorf("error tracker not started")
 
 	}
 
-
-
 	return nil
 
 }
-

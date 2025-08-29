@@ -2,46 +2,30 @@
 
 // Package models provides machine learning models for performance prediction and optimization.
 
-
 package models
 
-
-
 import (
-
 	"gonum.org/v1/gonum/mat"
-
 	"gonum.org/v1/gonum/optimize"
-
 )
-
-
 
 // PerformancePredictor uses machine learning techniques for performance forecasting.
 
 type PerformancePredictor struct {
-
-	trainingData    *mat.Dense
+	trainingData *mat.Dense
 
 	performanceData *mat.Dense
 
 	regressionModel *LinearRegressionModel
-
 }
-
-
 
 // LinearRegressionModel represents a simple linear regression model.
 
 type LinearRegressionModel struct {
-
 	Coefficients []float64
 
-	Intercept    float64
-
+	Intercept float64
 }
-
-
 
 // NewPerformancePredictor initializes a new performance prediction model.
 
@@ -51,19 +35,14 @@ func NewPerformancePredictor(features, performance [][]float64) *PerformancePred
 
 	performanceData := mat.NewDense(len(performance), len(performance[0]), flattenMatrix(performance))
 
-
-
 	return &PerformancePredictor{
 
-		trainingData:    trainingData,
+		trainingData: trainingData,
 
 		performanceData: performanceData,
-
 	}
 
 }
-
-
 
 // Train performs machine learning model training.
 
@@ -74,8 +53,6 @@ func (pp *PerformancePredictor) Train() error {
 	nFeatures := pp.trainingData.RawMatrix().Cols
 
 	nSamples := pp.trainingData.RawMatrix().Rows
-
-
 
 	// Prepare problem for optimization.
 
@@ -121,13 +98,9 @@ func (pp *PerformancePredictor) Train() error {
 
 				copy(xMinus, x)
 
-
-
 				xPlus[j] += h
 
 				xMinus[j] -= h
-
-
 
 				grad[j] = (optimize.Problem{Func: func(y []float64) float64 {
 
@@ -138,10 +111,7 @@ func (pp *PerformancePredictor) Train() error {
 			}
 
 		},
-
 	}
-
-
 
 	// Perform optimization.
 
@@ -153,25 +123,18 @@ func (pp *PerformancePredictor) Train() error {
 
 	}
 
-
-
 	// Store model parameters.
 
 	pp.regressionModel = &LinearRegressionModel{
 
 		Coefficients: result.X[:nFeatures],
 
-		Intercept:    result.X[nFeatures],
-
+		Intercept: result.X[nFeatures],
 	}
-
-
 
 	return nil
 
 }
-
-
 
 // Predict generates performance predictions.
 
@@ -186,8 +149,6 @@ func (pp *PerformancePredictor) Predict(features []float64) float64 {
 	return pp.predictSingle(pp.regressionModel.Coefficients, features) + pp.regressionModel.Intercept
 
 }
-
-
 
 // predictSingle is a helper for single prediction.
 
@@ -205,8 +166,6 @@ func (pp *PerformancePredictor) predictSingle(coeffs, features []float64) float6
 
 }
 
-
-
 // evaluateLoss calculates model loss.
 
 func (pp *PerformancePredictor) evaluateLoss(params []float64) float64 {
@@ -214,8 +173,6 @@ func (pp *PerformancePredictor) evaluateLoss(params []float64) float64 {
 	nFeatures := pp.trainingData.RawMatrix().Cols
 
 	nSamples := pp.trainingData.RawMatrix().Rows
-
-
 
 	var mse float64
 
@@ -235,8 +192,6 @@ func (pp *PerformancePredictor) evaluateLoss(params []float64) float64 {
 
 }
 
-
-
 // Utility function to flatten 2D slice to 1D.
 
 func flattenMatrix(matrix [][]float64) []float64 {
@@ -253,23 +208,16 @@ func flattenMatrix(matrix [][]float64) []float64 {
 
 }
 
-
-
 // PerformanceForecast represents a prediction result.
 
 type PerformanceForecast struct {
-
-	PredictedValue     float64
+	PredictedValue float64
 
 	ConfidenceInterval struct {
-
 		Lower float64
 
 		Upper float64
-
 	}
 
 	Timestamp int64
-
 }
-

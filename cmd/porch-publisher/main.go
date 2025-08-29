@@ -1,41 +1,25 @@
-
 package main
 
-
-
 import (
-
 	"encoding/json"
-
 	"flag"
-
 	"fmt"
-
 	"os"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/porch"
-
 )
-
-
 
 // Intent represents a network intent - kept for public API compatibility.
 
 type Intent struct {
-
 	IntentType string `json:"intent_type"`
 
-	Target     string `json:"target"`
+	Target string `json:"target"`
 
-	Namespace  string `json:"namespace"`
+	Namespace string `json:"namespace"`
 
-	Replicas   int    `json:"replicas"`
-
+	Replicas int `json:"replicas"`
 }
-
-
 
 func main() {
 
@@ -53,8 +37,6 @@ func main() {
 
 	flag.Parse()
 
-
-
 	if intentPath == "" {
 
 		fmt.Println("usage: porch-publisher -intent <path-to-intent.json> [-out examples/packages/scaling] [-format full|smp]")
@@ -62,8 +44,6 @@ func main() {
 		os.Exit(1)
 
 	}
-
-
 
 	b, err := os.ReadFile(intentPath)
 
@@ -75,8 +55,6 @@ func main() {
 
 	}
 
-
-
 	var in Intent
 
 	if err := json.Unmarshal(b, &in); err != nil {
@@ -86,8 +64,6 @@ func main() {
 		os.Exit(1)
 
 	}
-
-
 
 	// Use the internal package to write the intent.
 
@@ -100,4 +76,3 @@ func main() {
 	}
 
 }
-

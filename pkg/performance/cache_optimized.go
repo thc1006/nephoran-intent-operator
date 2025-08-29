@@ -1,163 +1,127 @@
 //go:build go1.24
 
-
-
-
 package performance
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"hash/fnv"
-
 	"runtime"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
-
 	"unsafe"
 
-
-
 	"k8s.io/klog/v2"
-
 )
-
-
 
 // OptimizedCache provides high-performance caching with Go 1.24+ optimizations.
 
 type OptimizedCache[K comparable, V any] struct {
+	shards []*CacheShard[K, V]
 
-	shards         []*CacheShard[K, V]
+	shardCount int
 
-	shardCount     int
+	config *CacheConfig
 
-	config         *CacheConfig
-
-	metrics        *CacheMetrics
+	metrics *CacheMetrics
 
 	evictionPolicy EvictionPolicy
 
-	hasher         Hasher[K]
+	hasher Hasher[K]
 
-	shutdown       chan struct{}
+	shutdown chan struct{}
 
-	wg             sync.WaitGroup
-
+	wg sync.WaitGroup
 }
-
-
 
 // CacheConfig contains cache optimization configuration.
 
 type CacheConfig struct {
+	ShardCount int
 
-	ShardCount       int
+	MaxSize int64
 
-	MaxSize          int64
+	TTL time.Duration
 
-	TTL              time.Duration
+	CleanupInterval time.Duration
 
-	CleanupInterval  time.Duration
+	EvictionPolicy EvictionPolicy
 
-	EvictionPolicy   EvictionPolicy
+	EnableMetrics bool
 
-	EnableMetrics    bool
-
-	EnableWarmup     bool
+	EnableWarmup bool
 
 	CompressionLevel int
 
-	SerializerType   SerializerType
+	SerializerType SerializerType
 
-	MemoryLimit      int64
+	MemoryLimit int64
 
-	Preallocation    bool
-
+	Preallocation bool
 }
-
-
 
 // CacheShard represents a cache shard with improved type safety.
 
 type CacheShard[K comparable, V any] struct {
+	entries map[K]*CacheEntry[V]
 
-	entries        map[K]*CacheEntry[V]
+	lruHead *CacheEntry[V]
 
-	lruHead        *CacheEntry[V]
+	lruTail *CacheEntry[V]
 
-	lruTail        *CacheEntry[V]
+	lfuHeap *LFUHeap[K, V]
 
-	lfuHeap        *LFUHeap[K, V]
+	size int64
 
-	size           int64
+	maxSize int64
 
-	maxSize        int64
+	hitCount int64
 
-	hitCount       int64
+	missCount int64
 
-	missCount      int64
+	evictions int64
 
-	evictions      int64
+	mu sync.RWMutex
 
-	mu             sync.RWMutex
+	lastCleanup time.Time
 
-	lastCleanup    time.Time
-
-	ttl            time.Duration
+	ttl time.Duration
 
 	evictionPolicy EvictionPolicy
-
 }
-
-
 
 // CacheEntry represents a cache entry with metadata.
 
 type CacheEntry[V any] struct {
+	key interface{}
 
-	key         interface{}
+	value V
 
-	value       V
+	size int64
 
-	size        int64
-
-	expiration  time.Time
+	expiration time.Time
 
 	accessCount int64
 
-	lastAccess  time.Time
+	lastAccess time.Time
 
-	createdAt   time.Time
+	createdAt time.Time
 
-	prev        *CacheEntry[V]
+	prev *CacheEntry[V]
 
-	next        *CacheEntry[V]
+	next *CacheEntry[V]
 
-	frequency   int64
+	frequency int64
 
-	compressed  bool
+	compressed bool
 
-	version     uint64
-
+	version uint64
 }
-
-
 
 // EvictionPolicy defines cache eviction strategies.
 
 type EvictionPolicy int
-
-
 
 const (
 
@@ -180,16 +144,11 @@ const (
 	// EvictionAdaptive holds evictionadaptive value.
 
 	EvictionAdaptive
-
 )
-
-
 
 // SerializerType defines serialization methods.
 
 type SerializerType int
-
-
 
 const (
 
@@ -208,26 +167,17 @@ const (
 	// SerializerProtobuf holds serializerprotobuf value.
 
 	SerializerProtobuf
-
 )
-
-
 
 // Hasher provides generic hash function interface.
 
 type Hasher[K comparable] interface {
-
 	Hash(key K) uint64
-
 }
-
-
 
 // DefaultHasher provides default hashing implementation.
 
 type DefaultHasher[K comparable] struct{}
-
-
 
 // Hash implements the Hasher interface.
 
@@ -245,97 +195,79 @@ func (h DefaultHasher[K]) Hash(key K) uint64 {
 
 }
 
-
-
 // LFUHeap implements a min-heap for LFU eviction.
 
 type LFUHeap[K comparable, V any] struct {
-
-	entries  []*CacheEntry[V]
+	entries []*CacheEntry[V]
 
 	indexMap map[K]int
 
-	mu       sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // CacheMetrics tracks cache performance metrics.
 
 type CacheMetrics struct {
+	Hits int64
 
-	Hits              int64
+	Misses int64
 
-	Misses            int64
+	Evictions int64
 
-	Evictions         int64
+	Size int64
 
-	Size              int64
+	MemoryUsage int64
 
-	MemoryUsage       int64
-
-	CompressionRatio  float64
+	CompressionRatio float64
 
 	AverageAccessTime int64 // nanoseconds
 
-	HitRatio          float64
+	HitRatio float64
 
-	Throughput        float64 // operations per second
+	Throughput float64 // operations per second
 
 	ShardDistribution []int64
 
-	Collisions        int64
+	Collisions int64
 
-	ExpiredEntries    int64
-
+	ExpiredEntries int64
 }
-
-
 
 // CacheStats provides detailed cache statistics.
 
 type CacheStats struct {
+	TotalEntries int64
 
-	TotalEntries     int64
+	TotalHits int64
 
-	TotalHits        int64
+	TotalMisses int64
 
-	TotalMisses      int64
+	TotalEvictions int64
 
-	TotalEvictions   int64
-
-	HitRatio         float64
+	HitRatio float64
 
 	AverageEntrySize int64
 
 	MemoryEfficiency float64
 
-	ShardStats       []ShardStats
-
+	ShardStats []ShardStats
 }
-
-
 
 // ShardStats provides per-shard statistics.
 
 type ShardStats struct {
+	ShardID int
 
-	ShardID   int
+	Entries int64
 
-	Entries   int64
+	Hits int64
 
-	Hits      int64
-
-	Misses    int64
+	Misses int64
 
 	Evictions int64
 
-	Size      int64
-
+	Size int64
 }
-
-
 
 // NewOptimizedCache creates a new optimized cache with Go 1.24+ generics.
 
@@ -347,8 +279,6 @@ func NewOptimizedCache[K comparable, V any](config *CacheConfig) *OptimizedCache
 
 	}
 
-
-
 	// Ensure shard count is power of 2 for efficient modulo.
 
 	shardCount := config.ShardCount
@@ -358,8 +288,6 @@ func NewOptimizedCache[K comparable, V any](config *CacheConfig) *OptimizedCache
 		shardCount = runtime.NumCPU()
 
 	}
-
-
 
 	// Round up to next power of 2.
 
@@ -373,27 +301,22 @@ func NewOptimizedCache[K comparable, V any](config *CacheConfig) *OptimizedCache
 
 	shardCount = powerOf2
 
-
-
 	cache := &OptimizedCache[K, V]{
 
-		shards:         make([]*CacheShard[K, V], shardCount),
+		shards: make([]*CacheShard[K, V], shardCount),
 
-		shardCount:     shardCount,
+		shardCount: shardCount,
 
-		config:         config,
+		config: config,
 
-		metrics:        &CacheMetrics{ShardDistribution: make([]int64, shardCount)},
+		metrics: &CacheMetrics{ShardDistribution: make([]int64, shardCount)},
 
 		evictionPolicy: config.EvictionPolicy,
 
-		hasher:         DefaultHasher[K]{},
+		hasher: DefaultHasher[K]{},
 
-		shutdown:       make(chan struct{}),
-
+		shutdown: make(chan struct{}),
 	}
-
-
 
 	// Initialize shards.
 
@@ -405,19 +328,13 @@ func NewOptimizedCache[K comparable, V any](config *CacheConfig) *OptimizedCache
 
 	}
 
-
-
 	// Start background tasks.
 
 	cache.startBackgroundTasks()
 
-
-
 	return cache
 
 }
-
-
 
 // DefaultCacheConfig returns default cache configuration.
 
@@ -425,33 +342,30 @@ func DefaultCacheConfig() *CacheConfig {
 
 	return &CacheConfig{
 
-		ShardCount:       runtime.NumCPU(),
+		ShardCount: runtime.NumCPU(),
 
-		MaxSize:          10000,
+		MaxSize: 10000,
 
-		TTL:              5 * time.Minute,
+		TTL: 5 * time.Minute,
 
-		CleanupInterval:  1 * time.Minute,
+		CleanupInterval: 1 * time.Minute,
 
-		EvictionPolicy:   EvictionLRU,
+		EvictionPolicy: EvictionLRU,
 
-		EnableMetrics:    true,
+		EnableMetrics: true,
 
-		EnableWarmup:     false,
+		EnableWarmup: false,
 
 		CompressionLevel: 0,
 
-		SerializerType:   SerializerNone,
+		SerializerType: SerializerNone,
 
-		MemoryLimit:      100 * 1024 * 1024, // 100MB
+		MemoryLimit: 100 * 1024 * 1024, // 100MB
 
-		Preallocation:    true,
-
+		Preallocation: true,
 	}
 
 }
-
-
 
 // NewCacheShard creates a new cache shard.
 
@@ -459,17 +373,14 @@ func NewCacheShard[K comparable, V any](maxSize int64, config *CacheConfig) *Cac
 
 	shard := &CacheShard[K, V]{
 
-		maxSize:        maxSize,
+		maxSize: maxSize,
 
-		ttl:            config.TTL,
+		ttl: config.TTL,
 
 		evictionPolicy: config.EvictionPolicy,
 
-		lastCleanup:    time.Now(),
-
+		lastCleanup: time.Now(),
 	}
-
-
 
 	if config.Preallocation {
 
@@ -483,27 +394,20 @@ func NewCacheShard[K comparable, V any](maxSize int64, config *CacheConfig) *Cac
 
 	}
 
-
-
 	if config.EvictionPolicy == EvictionLFU {
 
 		shard.lfuHeap = &LFUHeap[K, V]{
 
-			entries:  make([]*CacheEntry[V], 0, maxSize/10),
+			entries: make([]*CacheEntry[V], 0, maxSize/10),
 
 			indexMap: make(map[K]int),
-
 		}
 
 	}
 
-
-
 	return shard
 
 }
-
-
 
 // getShard returns the shard for a given key.
 
@@ -517,8 +421,6 @@ func (c *OptimizedCache[K, V]) getShard(key K) *CacheShard[K, V] {
 
 }
 
-
-
 // Set stores a value in the cache.
 
 func (c *OptimizedCache[K, V]) Set(key K, value V) error {
@@ -526,8 +428,6 @@ func (c *OptimizedCache[K, V]) Set(key K, value V) error {
 	return c.SetWithTTL(key, value, c.config.TTL)
 
 }
-
-
 
 // SetWithTTL stores a value in the cache with specific TTL.
 
@@ -543,15 +443,11 @@ func (c *OptimizedCache[K, V]) SetWithTTL(key K, value V, ttl time.Duration) err
 
 	}()
 
-
-
 	shard := c.getShard(key)
 
 	return shard.Set(key, value, ttl)
 
 }
-
-
 
 // Get retrieves a value from the cache.
 
@@ -567,15 +463,11 @@ func (c *OptimizedCache[K, V]) Get(key K) (V, bool) {
 
 	}()
 
-
-
 	shard := c.getShard(key)
 
 	return shard.Get(key)
 
 }
-
-
 
 // GetOrSet gets a value or sets it if not present (atomic operation).
 
@@ -587,8 +479,6 @@ func (c *OptimizedCache[K, V]) GetOrSet(key K, valueFunc func() V) (V, bool) {
 
 }
 
-
-
 // Delete removes a value from the cache.
 
 func (c *OptimizedCache[K, V]) Delete(key K) bool {
@@ -598,8 +488,6 @@ func (c *OptimizedCache[K, V]) Delete(key K) bool {
 	return shard.Delete(key)
 
 }
-
-
 
 // Clear removes all entries from the cache.
 
@@ -614,8 +502,6 @@ func (c *OptimizedCache[K, V]) Clear() {
 	c.resetMetrics()
 
 }
-
-
 
 // Size returns the current cache size.
 
@@ -633,8 +519,6 @@ func (c *OptimizedCache[K, V]) Size() int64 {
 
 }
 
-
-
 // Set stores a value in the shard.
 
 func (s *CacheShard[K, V]) Set(key K, value V, ttl time.Duration) error {
@@ -643,13 +527,9 @@ func (s *CacheShard[K, V]) Set(key K, value V, ttl time.Duration) error {
 
 	defer s.mu.Unlock()
 
-
-
 	now := time.Now()
 
 	expiration := now.Add(ttl)
-
-
 
 	// Check if entry already exists.
 
@@ -671,29 +551,24 @@ func (s *CacheShard[K, V]) Set(key K, value V, ttl time.Duration) error {
 
 	}
 
-
-
 	// Create new entry.
 
 	entry := &CacheEntry[V]{
 
-		key:        key,
+		key: key,
 
-		value:      value,
+		value: value,
 
-		size:       s.calculateSize(value),
+		size: s.calculateSize(value),
 
 		expiration: expiration,
 
 		lastAccess: now,
 
-		createdAt:  now,
+		createdAt: now,
 
-		version:    1,
-
+		version: 1,
 	}
-
-
 
 	// Check if we need to evict.
 
@@ -703,8 +578,6 @@ func (s *CacheShard[K, V]) Set(key K, value V, ttl time.Duration) error {
 
 	}
 
-
-
 	// Add new entry.
 
 	s.entries[key] = entry
@@ -713,21 +586,15 @@ func (s *CacheShard[K, V]) Set(key K, value V, ttl time.Duration) error {
 
 	s.addToFront(entry)
 
-
-
 	if s.evictionPolicy == EvictionLFU {
 
 		s.lfuHeap.Add(key, entry)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Get retrieves a value from the shard.
 
@@ -739,8 +606,6 @@ func (s *CacheShard[K, V]) Get(key K) (V, bool) {
 
 	s.mu.RUnlock()
 
-
-
 	if !exists {
 
 		atomic.AddInt64(&s.missCount, 1)
@@ -750,8 +615,6 @@ func (s *CacheShard[K, V]) Get(key K) (V, bool) {
 		return zero, false
 
 	}
-
-
 
 	// Check expiration.
 
@@ -769,8 +632,6 @@ func (s *CacheShard[K, V]) Get(key K) (V, bool) {
 
 		s.mu.Unlock()
 
-
-
 		atomic.AddInt64(&s.missCount, 1)
 
 		var zero V
@@ -778,8 +639,6 @@ func (s *CacheShard[K, V]) Get(key K) (V, bool) {
 		return zero, false
 
 	}
-
-
 
 	// Update access information.
 
@@ -793,8 +652,6 @@ func (s *CacheShard[K, V]) Get(key K) (V, bool) {
 
 	s.moveToFront(entry)
 
-
-
 	if s.evictionPolicy == EvictionLFU {
 
 		s.lfuHeap.Update(key, entry)
@@ -803,15 +660,11 @@ func (s *CacheShard[K, V]) Get(key K) (V, bool) {
 
 	s.mu.Unlock()
 
-
-
 	atomic.AddInt64(&s.hitCount, 1)
 
 	return entry.value, true
 
 }
-
-
 
 // GetOrSet gets a value or sets it if not present.
 
@@ -825,15 +678,11 @@ func (s *CacheShard[K, V]) GetOrSet(key K, valueFunc func() V, ttl time.Duration
 
 	}
 
-
-
 	// Doesn't exist, need to set (slow path).
 
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
-
-
 
 	// Double-check after acquiring lock.
 
@@ -842,8 +691,6 @@ func (s *CacheShard[K, V]) GetOrSet(key K, valueFunc func() V, ttl time.Duration
 		return entry.value, true
 
 	}
-
-
 
 	// Generate value and set it.
 
@@ -855,8 +702,6 @@ func (s *CacheShard[K, V]) GetOrSet(key K, valueFunc func() V, ttl time.Duration
 
 }
 
-
-
 // setUnsafe sets a value without locking (caller must hold lock).
 
 func (s *CacheShard[K, V]) setUnsafe(key K, value V, ttl time.Duration) {
@@ -865,27 +710,22 @@ func (s *CacheShard[K, V]) setUnsafe(key K, value V, ttl time.Duration) {
 
 	expiration := now.Add(ttl)
 
-
-
 	entry := &CacheEntry[V]{
 
-		key:        key,
+		key: key,
 
-		value:      value,
+		value: value,
 
-		size:       s.calculateSize(value),
+		size: s.calculateSize(value),
 
 		expiration: expiration,
 
 		lastAccess: now,
 
-		createdAt:  now,
+		createdAt: now,
 
-		version:    1,
-
+		version: 1,
 	}
-
-
 
 	// Evict if necessary.
 
@@ -895,8 +735,6 @@ func (s *CacheShard[K, V]) setUnsafe(key K, value V, ttl time.Duration) {
 
 	}
 
-
-
 	s.entries[key] = entry
 
 	s.size += entry.size
@@ -904,8 +742,6 @@ func (s *CacheShard[K, V]) setUnsafe(key K, value V, ttl time.Duration) {
 	s.addToFront(entry)
 
 }
-
-
 
 // Delete removes a value from the shard.
 
@@ -915,8 +751,6 @@ func (s *CacheShard[K, V]) Delete(key K) bool {
 
 	defer s.mu.Unlock()
 
-
-
 	entry, exists := s.entries[key]
 
 	if !exists {
@@ -925,15 +759,11 @@ func (s *CacheShard[K, V]) Delete(key K) bool {
 
 	}
 
-
-
 	delete(s.entries, key)
 
 	s.size -= entry.size
 
 	s.removeFromList(entry)
-
-
 
 	if s.evictionPolicy == EvictionLFU {
 
@@ -941,13 +771,9 @@ func (s *CacheShard[K, V]) Delete(key K) bool {
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // Clear removes all entries from the shard.
 
@@ -956,8 +782,6 @@ func (s *CacheShard[K, V]) Clear() {
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
-
-
 
 	s.entries = make(map[K]*CacheEntry[V])
 
@@ -973,8 +797,6 @@ func (s *CacheShard[K, V]) Clear() {
 
 	atomic.StoreInt64(&s.evictions, 0)
 
-
-
 	if s.lfuHeap != nil {
 
 		s.lfuHeap.Clear()
@@ -982,8 +804,6 @@ func (s *CacheShard[K, V]) Clear() {
 	}
 
 }
-
-
 
 // Size returns the shard size.
 
@@ -996,8 +816,6 @@ func (s *CacheShard[K, V]) Size() int64 {
 	return int64(len(s.entries))
 
 }
-
-
 
 // evictOne evicts one entry based on the eviction policy.
 
@@ -1033,8 +851,6 @@ func (s *CacheShard[K, V]) evictOne() {
 
 }
 
-
-
 // evictLRU evicts the least recently used entry.
 
 func (s *CacheShard[K, V]) evictLRU() {
@@ -1044,8 +860,6 @@ func (s *CacheShard[K, V]) evictLRU() {
 		return
 
 	}
-
-
 
 	entry := s.lruTail
 
@@ -1059,8 +873,6 @@ func (s *CacheShard[K, V]) evictLRU() {
 
 }
 
-
-
 // evictLFU evicts the least frequently used entry.
 
 func (s *CacheShard[K, V]) evictLFU() {
@@ -1072,8 +884,6 @@ func (s *CacheShard[K, V]) evictLFU() {
 		return
 
 	}
-
-
 
 	entry := s.lfuHeap.ExtractMin()
 
@@ -1090,8 +900,6 @@ func (s *CacheShard[K, V]) evictLFU() {
 	}
 
 }
-
-
 
 // evictExpired evicts expired entries.
 
@@ -1117,15 +925,11 @@ func (s *CacheShard[K, V]) evictExpired() {
 
 	}
 
-
-
 	// No expired entries, fallback to LRU.
 
 	s.evictLRU()
 
 }
-
-
 
 // evictRandom evicts a random entry.
 
@@ -1136,8 +940,6 @@ func (s *CacheShard[K, V]) evictRandom() {
 		return
 
 	}
-
-
 
 	// Simple random eviction (not cryptographically secure).
 
@@ -1157,8 +959,6 @@ func (s *CacheShard[K, V]) evictRandom() {
 
 }
 
-
-
 // evictAdaptive uses adaptive eviction based on access patterns.
 
 func (s *CacheShard[K, V]) evictAdaptive() {
@@ -1176,8 +976,6 @@ func (s *CacheShard[K, V]) evictAdaptive() {
 	}
 
 }
-
-
 
 // LRU list management.
 
@@ -1201,8 +999,6 @@ func (s *CacheShard[K, V]) addToFront(entry *CacheEntry[V]) {
 
 }
 
-
-
 // moveToFront moves an entry to the front of the LRU list.
 
 func (s *CacheShard[K, V]) moveToFront(entry *CacheEntry[V]) {
@@ -1213,15 +1009,11 @@ func (s *CacheShard[K, V]) moveToFront(entry *CacheEntry[V]) {
 
 	}
 
-
-
 	s.removeFromList(entry)
 
 	s.addToFront(entry)
 
 }
-
-
 
 // removeFromList removes an entry from the LRU list.
 
@@ -1237,8 +1029,6 @@ func (s *CacheShard[K, V]) removeFromList(entry *CacheEntry[V]) {
 
 	}
 
-
-
 	if entry.next != nil {
 
 		entry.next.prev = entry.prev
@@ -1249,15 +1039,11 @@ func (s *CacheShard[K, V]) removeFromList(entry *CacheEntry[V]) {
 
 	}
 
-
-
 	entry.prev = nil
 
 	entry.next = nil
 
 }
-
-
 
 // calculateSize estimates the size of a value (simplified).
 
@@ -1269,8 +1055,6 @@ func (s *CacheShard[K, V]) calculateSize(value V) int64 {
 
 }
 
-
-
 // LFU Heap implementation.
 
 func (h *LFUHeap[K, V]) Add(key K, entry *CacheEntry[V]) {
@@ -1279,15 +1063,11 @@ func (h *LFUHeap[K, V]) Add(key K, entry *CacheEntry[V]) {
 
 	defer h.mu.Unlock()
 
-
-
 	if _, exists := h.indexMap[key]; exists {
 
 		return // Already exists
 
 	}
-
-
 
 	h.entries = append(h.entries, entry)
 
@@ -1299,8 +1079,6 @@ func (h *LFUHeap[K, V]) Add(key K, entry *CacheEntry[V]) {
 
 }
 
-
-
 // Update updates an entry in the LFU heap.
 
 func (h *LFUHeap[K, V]) Update(key K, entry *CacheEntry[V]) {
@@ -1309,8 +1087,6 @@ func (h *LFUHeap[K, V]) Update(key K, entry *CacheEntry[V]) {
 
 	defer h.mu.Unlock()
 
-
-
 	idx, exists := h.indexMap[key]
 
 	if !exists {
@@ -1318,8 +1094,6 @@ func (h *LFUHeap[K, V]) Update(key K, entry *CacheEntry[V]) {
 		return
 
 	}
-
-
 
 	h.entries[idx] = entry
 
@@ -1329,8 +1103,6 @@ func (h *LFUHeap[K, V]) Update(key K, entry *CacheEntry[V]) {
 
 }
 
-
-
 // Remove removes an entry from the LFU heap.
 
 func (h *LFUHeap[K, V]) Remove(key K) {
@@ -1338,8 +1110,6 @@ func (h *LFUHeap[K, V]) Remove(key K) {
 	h.mu.Lock()
 
 	defer h.mu.Unlock()
-
-
 
 	idx, exists := h.indexMap[key]
 
@@ -1349,8 +1119,6 @@ func (h *LFUHeap[K, V]) Remove(key K) {
 
 	}
 
-
-
 	lastIdx := len(h.entries) - 1
 
 	h.entries[idx] = h.entries[lastIdx]
@@ -1358,8 +1126,6 @@ func (h *LFUHeap[K, V]) Remove(key K) {
 	h.entries = h.entries[:lastIdx]
 
 	delete(h.indexMap, key)
-
-
 
 	if idx < len(h.entries) {
 
@@ -1371,8 +1137,6 @@ func (h *LFUHeap[K, V]) Remove(key K) {
 
 }
 
-
-
 // ExtractMin extracts the minimum (least frequently used) entry.
 
 func (h *LFUHeap[K, V]) ExtractMin() *CacheEntry[V] {
@@ -1381,15 +1145,11 @@ func (h *LFUHeap[K, V]) ExtractMin() *CacheEntry[V] {
 
 	defer h.mu.Unlock()
 
-
-
 	if len(h.entries) == 0 {
 
 		return nil
 
 	}
-
-
 
 	minEntry := h.entries[0]
 
@@ -1401,8 +1161,6 @@ func (h *LFUHeap[K, V]) ExtractMin() *CacheEntry[V] {
 
 	delete(h.indexMap, minEntry.key.(K))
 
-
-
 	if len(h.entries) > 0 {
 
 		h.indexMap[h.entries[0].key.(K)] = 0
@@ -1411,13 +1169,9 @@ func (h *LFUHeap[K, V]) ExtractMin() *CacheEntry[V] {
 
 	}
 
-
-
 	return minEntry
 
 }
-
-
 
 // Clear clears the LFU heap.
 
@@ -1427,15 +1181,11 @@ func (h *LFUHeap[K, V]) Clear() {
 
 	defer h.mu.Unlock()
 
-
-
 	h.entries = h.entries[:0]
 
 	h.indexMap = make(map[K]int)
 
 }
-
-
 
 // heapifyUp maintains heap property upward.
 
@@ -1459,8 +1209,6 @@ func (h *LFUHeap[K, V]) heapifyUp(idx int) {
 
 }
 
-
-
 // heapifyDown maintains heap property downward.
 
 func (h *LFUHeap[K, V]) heapifyDown(idx int) {
@@ -1472,8 +1220,6 @@ func (h *LFUHeap[K, V]) heapifyDown(idx int) {
 		left := 2*idx + 1
 
 		right := 2*idx + 2
-
-
 
 		if left < len(h.entries) && atomic.LoadInt64(&h.entries[left].frequency) < atomic.LoadInt64(&h.entries[smallest].frequency) {
 
@@ -1487,15 +1233,11 @@ func (h *LFUHeap[K, V]) heapifyDown(idx int) {
 
 		}
 
-
-
 		if smallest == idx {
 
 			break
 
 		}
-
-
 
 		h.swap(idx, smallest)
 
@@ -1504,8 +1246,6 @@ func (h *LFUHeap[K, V]) heapifyDown(idx int) {
 	}
 
 }
-
-
 
 // swap swaps two entries in the heap.
 
@@ -1518,8 +1258,6 @@ func (h *LFUHeap[K, V]) swap(i, j int) {
 	h.indexMap[h.entries[j].key.(K)] = j
 
 }
-
-
 
 // startBackgroundTasks starts background maintenance tasks.
 
@@ -1536,8 +1274,6 @@ func (c *OptimizedCache[K, V]) startBackgroundTasks() {
 		ticker := time.NewTicker(c.config.CleanupInterval)
 
 		defer ticker.Stop()
-
-
 
 		for {
 
@@ -1557,8 +1293,6 @@ func (c *OptimizedCache[K, V]) startBackgroundTasks() {
 
 	}()
 
-
-
 	// Metrics collection.
 
 	if c.config.EnableMetrics {
@@ -1572,8 +1306,6 @@ func (c *OptimizedCache[K, V]) startBackgroundTasks() {
 			ticker := time.NewTicker(30 * time.Second)
 
 			defer ticker.Stop()
-
-
 
 			for {
 
@@ -1597,8 +1329,6 @@ func (c *OptimizedCache[K, V]) startBackgroundTasks() {
 
 }
 
-
-
 // cleanup removes expired entries from all shards.
 
 func (c *OptimizedCache[K, V]) cleanup() {
@@ -1615,8 +1345,6 @@ func (c *OptimizedCache[K, V]) cleanup() {
 
 }
 
-
-
 // cleanupExpired removes expired entries from the shard.
 
 func (s *CacheShard[K, V]) cleanupExpired(now time.Time) {
@@ -1624,8 +1352,6 @@ func (s *CacheShard[K, V]) cleanupExpired(now time.Time) {
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
-
-
 
 	for key, entry := range s.entries {
 
@@ -1643,13 +1369,9 @@ func (s *CacheShard[K, V]) cleanupExpired(now time.Time) {
 
 	}
 
-
-
 	s.lastCleanup = now
 
 }
-
-
 
 // updateAccessTime updates average access time metric.
 
@@ -1663,15 +1385,11 @@ func (c *OptimizedCache[K, V]) updateAccessTime(duration time.Duration) {
 
 }
 
-
-
 // updateMetrics updates cache metrics.
 
 func (c *OptimizedCache[K, V]) updateMetrics() {
 
 	var totalHits, totalMisses, totalEvictions, totalSize, totalMemory int64
-
-
 
 	for i, shard := range c.shards {
 
@@ -1683,8 +1401,6 @@ func (c *OptimizedCache[K, V]) updateMetrics() {
 
 		size := shard.Size()
 
-
-
 		totalHits += hits
 
 		totalMisses += misses
@@ -1695,13 +1411,9 @@ func (c *OptimizedCache[K, V]) updateMetrics() {
 
 		totalMemory += shard.size
 
-
-
 		atomic.StoreInt64(&c.metrics.ShardDistribution[i], size)
 
 	}
-
-
 
 	atomic.StoreInt64(&c.metrics.Hits, totalHits)
 
@@ -1712,8 +1424,6 @@ func (c *OptimizedCache[K, V]) updateMetrics() {
 	atomic.StoreInt64(&c.metrics.Size, totalSize)
 
 	atomic.StoreInt64(&c.metrics.MemoryUsage, totalMemory)
-
-
 
 	// Calculate hit ratio.
 
@@ -1726,8 +1436,6 @@ func (c *OptimizedCache[K, V]) updateMetrics() {
 	}
 
 }
-
-
 
 // resetMetrics resets all cache metrics.
 
@@ -1751,15 +1459,11 @@ func (c *OptimizedCache[K, V]) resetMetrics() {
 
 	c.metrics.CompressionRatio = 0
 
-
-
 	for i := range c.metrics.ShardDistribution {
 
 		atomic.StoreInt64(&c.metrics.ShardDistribution[i], 0)
 
 	}
-
-
 
 	// Reset shard metrics.
 
@@ -1775,47 +1479,40 @@ func (c *OptimizedCache[K, V]) resetMetrics() {
 
 }
 
-
-
 // GetMetrics returns current cache metrics.
 
 func (c *OptimizedCache[K, V]) GetMetrics() CacheMetrics {
 
 	c.updateMetrics() // Ensure metrics are current
 
-
-
 	return CacheMetrics{
 
-		Hits:              atomic.LoadInt64(&c.metrics.Hits),
+		Hits: atomic.LoadInt64(&c.metrics.Hits),
 
-		Misses:            atomic.LoadInt64(&c.metrics.Misses),
+		Misses: atomic.LoadInt64(&c.metrics.Misses),
 
-		Evictions:         atomic.LoadInt64(&c.metrics.Evictions),
+		Evictions: atomic.LoadInt64(&c.metrics.Evictions),
 
-		Size:              atomic.LoadInt64(&c.metrics.Size),
+		Size: atomic.LoadInt64(&c.metrics.Size),
 
-		MemoryUsage:       atomic.LoadInt64(&c.metrics.MemoryUsage),
+		MemoryUsage: atomic.LoadInt64(&c.metrics.MemoryUsage),
 
-		CompressionRatio:  c.metrics.CompressionRatio,
+		CompressionRatio: c.metrics.CompressionRatio,
 
 		AverageAccessTime: atomic.LoadInt64(&c.metrics.AverageAccessTime),
 
-		HitRatio:          c.metrics.HitRatio,
+		HitRatio: c.metrics.HitRatio,
 
-		Throughput:        c.metrics.Throughput,
+		Throughput: c.metrics.Throughput,
 
 		ShardDistribution: append([]int64(nil), c.metrics.ShardDistribution...),
 
-		Collisions:        atomic.LoadInt64(&c.metrics.Collisions),
+		Collisions: atomic.LoadInt64(&c.metrics.Collisions),
 
-		ExpiredEntries:    atomic.LoadInt64(&c.metrics.ExpiredEntries),
-
+		ExpiredEntries: atomic.LoadInt64(&c.metrics.ExpiredEntries),
 	}
 
 }
-
-
 
 // GetStats returns detailed cache statistics.
 
@@ -1825,29 +1522,24 @@ func (c *OptimizedCache[K, V]) GetStats() CacheStats {
 
 	shardStats := make([]ShardStats, len(c.shards))
 
-
-
 	for i, shard := range c.shards {
 
 		shardStats[i] = ShardStats{
 
-			ShardID:   i,
+			ShardID: i,
 
-			Entries:   shard.Size(),
+			Entries: shard.Size(),
 
-			Hits:      atomic.LoadInt64(&shard.hitCount),
+			Hits: atomic.LoadInt64(&shard.hitCount),
 
-			Misses:    atomic.LoadInt64(&shard.missCount),
+			Misses: atomic.LoadInt64(&shard.missCount),
 
 			Evictions: atomic.LoadInt64(&shard.evictions),
 
-			Size:      shard.size,
-
+			Size: shard.size,
 		}
 
 	}
-
-
 
 	var averageEntrySize int64
 
@@ -1857,8 +1549,6 @@ func (c *OptimizedCache[K, V]) GetStats() CacheStats {
 
 	}
 
-
-
 	memoryEfficiency := float64(0)
 
 	if c.config.MemoryLimit > 0 {
@@ -1867,31 +1557,26 @@ func (c *OptimizedCache[K, V]) GetStats() CacheStats {
 
 	}
 
-
-
 	return CacheStats{
 
-		TotalEntries:     metrics.Size,
+		TotalEntries: metrics.Size,
 
-		TotalHits:        metrics.Hits,
+		TotalHits: metrics.Hits,
 
-		TotalMisses:      metrics.Misses,
+		TotalMisses: metrics.Misses,
 
-		TotalEvictions:   metrics.Evictions,
+		TotalEvictions: metrics.Evictions,
 
-		HitRatio:         metrics.HitRatio,
+		HitRatio: metrics.HitRatio,
 
 		AverageEntrySize: averageEntrySize,
 
 		MemoryEfficiency: memoryEfficiency,
 
-		ShardStats:       shardStats,
-
+		ShardStats: shardStats,
 	}
 
 }
-
-
 
 // GetHitRatio returns the current hit ratio.
 
@@ -1900,8 +1585,6 @@ func (c *OptimizedCache[K, V]) GetHitRatio() float64 {
 	return c.metrics.HitRatio
 
 }
-
-
 
 // GetAverageAccessTime returns the average access time in microseconds.
 
@@ -1912,8 +1595,6 @@ func (c *OptimizedCache[K, V]) GetAverageAccessTime() float64 {
 	return float64(accessTime) / 1000 // Convert to microseconds
 
 }
-
-
 
 // Keys returns all keys in the cache (expensive operation).
 
@@ -1933,8 +1614,6 @@ func (c *OptimizedCache[K, V]) Keys() []K {
 
 }
 
-
-
 // Keys returns all keys in the shard.
 
 func (s *CacheShard[K, V]) Keys() []K {
@@ -1942,8 +1621,6 @@ func (s *CacheShard[K, V]) Keys() []K {
 	s.mu.RLock()
 
 	defer s.mu.RUnlock()
-
-
 
 	keys := make([]K, 0, len(s.entries))
 
@@ -1957,15 +1634,11 @@ func (s *CacheShard[K, V]) Keys() []K {
 
 }
 
-
-
 // Shutdown gracefully shuts down the cache.
 
 func (c *OptimizedCache[K, V]) Shutdown(ctx context.Context) error {
 
 	close(c.shutdown)
-
-
 
 	// Wait for background tasks to finish.
 
@@ -1979,8 +1652,6 @@ func (c *OptimizedCache[K, V]) Shutdown(ctx context.Context) error {
 
 	}()
 
-
-
 	select {
 
 	case <-done:
@@ -1993,8 +1664,6 @@ func (c *OptimizedCache[K, V]) Shutdown(ctx context.Context) error {
 
 	}
 
-
-
 	// Log final metrics.
 
 	metrics := c.GetMetrics()
@@ -2006,16 +1675,11 @@ func (c *OptimizedCache[K, V]) Shutdown(ctx context.Context) error {
 		metrics.HitRatio*100,
 
 		metrics.MemoryUsage,
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // ResetMetrics resets all cache metrics.
 
@@ -2024,4 +1688,3 @@ func (c *OptimizedCache[K, V]) ResetMetrics() {
 	c.resetMetrics()
 
 }
-

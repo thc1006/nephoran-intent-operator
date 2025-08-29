@@ -1,43 +1,22 @@
 // Package consul provides Consul Connect service mesh implementation.
 
-
 package consul
 
-
-
 import (
-
 	"context"
-
 	"crypto/x509"
-
 	"fmt"
 
-
-
 	"github.com/go-logr/logr"
-
+	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"github.com/prometheus/client_golang/prometheus"
 
-
-
-	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
-
-
-
 	"k8s.io/client-go/kubernetes"
-
 	"k8s.io/client-go/rest"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 func init() {
 
@@ -47,19 +26,16 @@ func init() {
 
 		consulConfig := &Config{
 
-			Namespace:           meshConfig.Namespace,
+			Namespace: meshConfig.Namespace,
 
-			TrustDomain:         meshConfig.TrustDomain,
+			TrustDomain: meshConfig.TrustDomain,
 
-			CertificateConfig:   meshConfig.CertificateConfig,
+			CertificateConfig: meshConfig.CertificateConfig,
 
-			PolicyDefaults:      meshConfig.PolicyDefaults,
+			PolicyDefaults: meshConfig.PolicyDefaults,
 
 			ObservabilityConfig: meshConfig.ObservabilityConfig,
-
 		}
-
-
 
 		// Extract Consul-specific settings from custom config.
 
@@ -85,59 +61,47 @@ func init() {
 
 		}
 
-
-
 		return NewConsulMesh(kubeClient, dynamicClient, config, consulConfig)
 
 	})
 
 }
 
-
-
 // Config contains Consul-specific configuration.
 
 type Config struct {
+	Namespace string `json:"namespace"`
 
-	Namespace           string                           `json:"namespace"`
+	TrustDomain string `json:"trustDomain"`
 
-	TrustDomain         string                           `json:"trustDomain"`
+	Datacenter string `json:"datacenter"`
 
-	Datacenter          string                           `json:"datacenter"`
+	GossipKey string `json:"gossipKey"`
 
-	GossipKey           string                           `json:"gossipKey"`
+	ACLEnabled bool `json:"aclEnabled"`
 
-	ACLEnabled          bool                             `json:"aclEnabled"`
+	CertificateConfig *abstraction.CertificateConfig `json:"certificateConfig"`
 
-	CertificateConfig   *abstraction.CertificateConfig   `json:"certificateConfig"`
-
-	PolicyDefaults      *abstraction.PolicyDefaults      `json:"policyDefaults"`
+	PolicyDefaults *abstraction.PolicyDefaults `json:"policyDefaults"`
 
 	ObservabilityConfig *abstraction.ObservabilityConfig `json:"observabilityConfig"`
-
 }
-
-
 
 // ConsulMesh implements ServiceMeshInterface for Consul Connect.
 
 type ConsulMesh struct {
-
-	kubeClient    kubernetes.Interface
+	kubeClient kubernetes.Interface
 
 	dynamicClient client.Client
 
-	config        *rest.Config
+	config *rest.Config
 
-	meshConfig    *Config
+	meshConfig *Config
 
-	certProvider  *ConsulCertificateProvider
+	certProvider *ConsulCertificateProvider
 
-	logger        logr.Logger
-
+	logger logr.Logger
 }
-
-
 
 // NewConsulMesh creates a new Consul mesh implementation.
 
@@ -155,35 +119,29 @@ func NewConsulMesh(
 
 	certProvider := &ConsulCertificateProvider{
 
-		kubeClient:  kubeClient,
+		kubeClient: kubeClient,
 
 		trustDomain: meshConfig.TrustDomain,
 
-		datacenter:  meshConfig.Datacenter,
-
+		datacenter: meshConfig.Datacenter,
 	}
-
-
 
 	return &ConsulMesh{
 
-		kubeClient:    kubeClient,
+		kubeClient: kubeClient,
 
 		dynamicClient: dynamicClient,
 
-		config:        config,
+		config: config,
 
-		meshConfig:    meshConfig,
+		meshConfig: meshConfig,
 
-		certProvider:  certProvider,
+		certProvider: certProvider,
 
-		logger:        log.Log.WithName("consul-mesh"),
-
+		logger: log.Log.WithName("consul-mesh"),
 	}, nil
 
 }
-
-
 
 // Initialize initializes the Consul mesh.
 
@@ -197,8 +155,6 @@ func (m *ConsulMesh) Initialize(ctx context.Context, config *abstraction.Service
 
 }
 
-
-
 // GetCertificateProvider returns the certificate provider.
 
 func (m *ConsulMesh) GetCertificateProvider() abstraction.CertificateProvider {
@@ -206,8 +162,6 @@ func (m *ConsulMesh) GetCertificateProvider() abstraction.CertificateProvider {
 	return m.certProvider
 
 }
-
-
 
 // RotateCertificates rotates certificates.
 
@@ -219,8 +173,6 @@ func (m *ConsulMesh) RotateCertificates(ctx context.Context, namespace string) e
 
 }
 
-
-
 // ValidateCertificateChain validates the certificate chain.
 
 func (m *ConsulMesh) ValidateCertificateChain(ctx context.Context, namespace string) error {
@@ -230,8 +182,6 @@ func (m *ConsulMesh) ValidateCertificateChain(ctx context.Context, namespace str
 	return nil
 
 }
-
-
 
 // ApplyMTLSPolicy applies an mTLS policy.
 
@@ -243,8 +193,6 @@ func (m *ConsulMesh) ApplyMTLSPolicy(ctx context.Context, policy *abstraction.MT
 
 }
 
-
-
 // ApplyAuthorizationPolicy applies an authorization policy.
 
 func (m *ConsulMesh) ApplyAuthorizationPolicy(ctx context.Context, policy *abstraction.AuthorizationPolicy) error {
@@ -254,8 +202,6 @@ func (m *ConsulMesh) ApplyAuthorizationPolicy(ctx context.Context, policy *abstr
 	return nil
 
 }
-
-
 
 // ApplyTrafficPolicy applies a traffic policy.
 
@@ -267,8 +213,6 @@ func (m *ConsulMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction
 
 }
 
-
-
 // ValidatePolicies validates policies.
 
 func (m *ConsulMesh) ValidatePolicies(ctx context.Context, namespace string) (*abstraction.PolicyValidationResult, error) {
@@ -277,15 +221,12 @@ func (m *ConsulMesh) ValidatePolicies(ctx context.Context, namespace string) (*a
 
 	return &abstraction.PolicyValidationResult{
 
-		Valid:    true,
+		Valid: true,
 
 		Coverage: 0,
-
 	}, nil
 
 }
-
-
 
 // RegisterService registers a service.
 
@@ -297,8 +238,6 @@ func (m *ConsulMesh) RegisterService(ctx context.Context, service *abstraction.S
 
 }
 
-
-
 // UnregisterService unregisters a service.
 
 func (m *ConsulMesh) UnregisterService(ctx context.Context, serviceName, namespace string) error {
@@ -309,8 +248,6 @@ func (m *ConsulMesh) UnregisterService(ctx context.Context, serviceName, namespa
 
 }
 
-
-
 // GetServiceStatus gets service status.
 
 func (m *ConsulMesh) GetServiceStatus(ctx context.Context, serviceName, namespace string) (*abstraction.ServiceStatus, error) {
@@ -319,17 +256,14 @@ func (m *ConsulMesh) GetServiceStatus(ctx context.Context, serviceName, namespac
 
 	return &abstraction.ServiceStatus{
 
-		Name:      serviceName,
+		Name: serviceName,
 
 		Namespace: namespace,
 
-		Healthy:   true,
-
+		Healthy: true,
 	}, nil
 
 }
-
-
 
 // GetMetrics returns metrics collectors.
 
@@ -338,8 +272,6 @@ func (m *ConsulMesh) GetMetrics() []prometheus.Collector {
 	return []prometheus.Collector{}
 
 }
-
-
 
 // GetServiceDependencies gets service dependencies.
 
@@ -351,8 +283,6 @@ func (m *ConsulMesh) GetServiceDependencies(ctx context.Context, namespace strin
 
 }
 
-
-
 // GetMTLSStatus gets mTLS status.
 
 func (m *ConsulMesh) GetMTLSStatus(ctx context.Context, namespace string) (*abstraction.MTLSStatusReport, error) {
@@ -362,8 +292,6 @@ func (m *ConsulMesh) GetMTLSStatus(ctx context.Context, namespace string) (*abst
 	return &abstraction.MTLSStatusReport{}, nil
 
 }
-
-
 
 // IsHealthy checks if the mesh is healthy.
 
@@ -375,8 +303,6 @@ func (m *ConsulMesh) IsHealthy(ctx context.Context) error {
 
 }
 
-
-
 // IsReady checks if the mesh is ready.
 
 func (m *ConsulMesh) IsReady(ctx context.Context) error {
@@ -385,8 +311,6 @@ func (m *ConsulMesh) IsReady(ctx context.Context) error {
 
 }
 
-
-
 // GetProvider returns the provider type.
 
 func (m *ConsulMesh) GetProvider() abstraction.ServiceMeshProvider {
@@ -394,8 +318,6 @@ func (m *ConsulMesh) GetProvider() abstraction.ServiceMeshProvider {
 	return abstraction.ProviderConsul
 
 }
-
-
 
 // GetVersion returns the version.
 
@@ -406,8 +328,6 @@ func (m *ConsulMesh) GetVersion() string {
 	return "unknown"
 
 }
-
-
 
 // GetCapabilities returns capabilities.
 
@@ -422,26 +342,19 @@ func (m *ConsulMesh) GetCapabilities() []abstraction.Capability {
 		abstraction.CapabilityObservability,
 
 		abstraction.CapabilityMultiCluster,
-
 	}
 
 }
 
-
-
 // ConsulCertificateProvider implements CertificateProvider for Consul.
 
 type ConsulCertificateProvider struct {
-
-	kubeClient  kubernetes.Interface
+	kubeClient kubernetes.Interface
 
 	trustDomain string
 
-	datacenter  string
-
+	datacenter string
 }
-
-
 
 // IssueCertificate issues a certificate.
 
@@ -453,8 +366,6 @@ func (p *ConsulCertificateProvider) IssueCertificate(ctx context.Context, servic
 
 }
 
-
-
 // GetRootCA gets the root CA.
 
 func (p *ConsulCertificateProvider) GetRootCA(ctx context.Context) (*x509.Certificate, error) {
@@ -465,8 +376,6 @@ func (p *ConsulCertificateProvider) GetRootCA(ctx context.Context) (*x509.Certif
 
 }
 
-
-
 // GetIntermediateCA gets the intermediate CA.
 
 func (p *ConsulCertificateProvider) GetIntermediateCA(ctx context.Context) (*x509.Certificate, error) {
@@ -474,8 +383,6 @@ func (p *ConsulCertificateProvider) GetIntermediateCA(ctx context.Context) (*x50
 	return nil, nil // Consul doesn't use intermediate CAs by default
 
 }
-
-
 
 // ValidateCertificate validates a certificate.
 
@@ -487,8 +394,6 @@ func (p *ConsulCertificateProvider) ValidateCertificate(ctx context.Context, cer
 
 }
 
-
-
 // RotateCertificate rotates a certificate.
 
 func (p *ConsulCertificateProvider) RotateCertificate(ctx context.Context, service, namespace string) (*x509.Certificate, error) {
@@ -499,8 +404,6 @@ func (p *ConsulCertificateProvider) RotateCertificate(ctx context.Context, servi
 
 }
 
-
-
 // GetCertificateChain gets the certificate chain.
 
 func (p *ConsulCertificateProvider) GetCertificateChain(ctx context.Context, service, namespace string) ([]*x509.Certificate, error) {
@@ -510,8 +413,6 @@ func (p *ConsulCertificateProvider) GetCertificateChain(ctx context.Context, ser
 	return nil, fmt.Errorf("not implemented")
 
 }
-
-
 
 // GetSPIFFEID gets the SPIFFE ID for a service.
 
@@ -528,4 +429,3 @@ func (p *ConsulCertificateProvider) GetSPIFFEID(service, namespace, trustDomain 
 	return fmt.Sprintf("spiffe://%s/ns/%s/dc/%s/svc/%s", trustDomain, namespace, p.datacenter, service)
 
 }
-

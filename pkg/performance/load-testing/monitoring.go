@@ -1,191 +1,136 @@
 // Package loadtesting provides monitoring and validation for load tests.
 
-
 package loadtesting
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"math"
-
 	"os"
-
 	"runtime"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/shirou/gopsutil/v3/cpu"
-
 	"github.com/shirou/gopsutil/v3/mem"
-
 	"github.com/shirou/gopsutil/v3/net"
-
 	"go.uber.org/zap"
-
 )
-
-
 
 // ComprehensiveMonitor provides comprehensive monitoring during load tests.
 
 type ComprehensiveMonitor struct {
+	config *LoadTestConfig
 
-	config       *LoadTestConfig
+	logger *zap.Logger
 
-	logger       *zap.Logger
+	collectors []MetricCollector
 
-	collectors   []MetricCollector
-
-	analyzers    []MetricAnalyzer
+	analyzers []MetricAnalyzer
 
 	alertManager *AlertManager
 
 	metricsStore *MetricsStore
 
-	stopChan     chan struct{}
+	stopChan chan struct{}
 
-	wg           sync.WaitGroup
+	wg sync.WaitGroup
 
-	mu           sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // MetricCollector interface for collecting different types of metrics.
 
 type MetricCollector interface {
-
 	Collect(ctx context.Context) (map[string]float64, error)
 
 	GetName() string
-
 }
-
-
 
 // MetricAnalyzer interface for analyzing collected metrics.
 
 type MetricAnalyzer interface {
-
 	Analyze(metrics map[string]float64) AnalysisResult
 
 	GetName() string
-
 }
-
-
 
 // AlertManager manages alerts during load testing.
 
 type AlertManager struct {
-
-	logger     *zap.Logger
+	logger *zap.Logger
 
 	thresholds AlertThresholds
 
-	alertChan  chan Alert
+	alertChan chan Alert
 
-	handlers   []AlertHandler
+	handlers []AlertHandler
 
-	mu         sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // Alert represents an alert condition.
 
 type Alert struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp   time.Time `json:"timestamp"`
+	Level string `json:"level"` // info, warning, critical
 
-	Level       string    `json:"level"` // info, warning, critical
+	Type string `json:"type"`
 
-	Type        string    `json:"type"`
+	Metric string `json:"metric"`
 
-	Metric      string    `json:"metric"`
+	Value float64 `json:"value"`
 
-	Value       float64   `json:"value"`
+	Threshold float64 `json:"threshold"`
 
-	Threshold   float64   `json:"threshold"`
+	Description string `json:"description"`
 
-	Description string    `json:"description"`
-
-	Action      string    `json:"action"`
-
+	Action string `json:"action"`
 }
-
-
 
 // AlertThresholds defines thresholds for alerts.
 
 type AlertThresholds struct {
+	CPUPercent float64 `json:"cpuPercent"`
 
-	CPUPercent            float64 `json:"cpuPercent"`
+	MemoryPercent float64 `json:"memoryPercent"`
 
-	MemoryPercent         float64 `json:"memoryPercent"`
+	NetworkMbps float64 `json:"networkMbps"`
 
-	NetworkMbps           float64 `json:"networkMbps"`
+	LatencyP95Ms float64 `json:"latencyP95Ms"`
 
-	LatencyP95Ms          float64 `json:"latencyP95Ms"`
-
-	ErrorRatePercent      float64 `json:"errorRatePercent"`
+	ErrorRatePercent float64 `json:"errorRatePercent"`
 
 	ThroughputDropPercent float64 `json:"throughputDropPercent"`
-
 }
-
-
 
 // AlertHandler interface for handling alerts.
 
 type AlertHandler interface {
-
 	Handle(alert Alert) error
-
 }
-
-
 
 // MetricsStore stores historical metrics for analysis.
 
 type MetricsStore struct {
-
-	data    []MetricSnapshot
+	data []MetricSnapshot
 
 	maxSize int
 
-	mu      sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // MetricSnapshot represents metrics at a point in time.
 
 type MetricSnapshot struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time          `json:"timestamp"`
+	Metrics map[string]float64 `json:"metrics"`
 
-	Metrics   map[string]float64 `json:"metrics"`
-
-	Labels    map[string]string  `json:"labels"`
-
+	Labels map[string]string `json:"labels"`
 }
-
-
 
 // NewComprehensiveMonitor creates a new comprehensive monitor.
 
@@ -197,53 +142,40 @@ func NewComprehensiveMonitor(config *LoadTestConfig, logger *zap.Logger) (*Compr
 
 	}
 
-
-
 	if logger == nil {
 
 		logger = zap.NewNop()
 
 	}
 
-
-
 	monitor := &ComprehensiveMonitor{
 
-		config:       config,
+		config: config,
 
-		logger:       logger,
+		logger: logger,
 
-		collectors:   make([]MetricCollector, 0),
+		collectors: make([]MetricCollector, 0),
 
-		analyzers:    make([]MetricAnalyzer, 0),
+		analyzers: make([]MetricAnalyzer, 0),
 
 		alertManager: newAlertManager(logger),
 
 		metricsStore: newMetricsStore(10000),
 
-		stopChan:     make(chan struct{}),
-
+		stopChan: make(chan struct{}),
 	}
-
-
 
 	// Initialize collectors.
 
 	monitor.initializeCollectors()
 
-
-
 	// Initialize analyzers.
 
 	monitor.initializeAnalyzers()
 
-
-
 	return monitor, nil
 
 }
-
-
 
 // Start begins monitoring.
 
@@ -251,25 +183,17 @@ func (m *ComprehensiveMonitor) Start(ctx context.Context) error {
 
 	m.logger.Info("Starting comprehensive monitoring")
 
-
-
 	m.wg.Add(1)
 
 	go m.monitorLoop(ctx)
-
-
 
 	// Start alert manager.
 
 	m.alertManager.Start(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // Collect gathers current metrics.
 
@@ -277,19 +201,16 @@ func (m *ComprehensiveMonitor) Collect() (MonitoringData, error) {
 
 	data := MonitoringData{
 
-		Timestamp:          time.Now(),
+		Timestamp: time.Now(),
 
 		ApplicationMetrics: make(map[string]float64),
 
-		SystemMetrics:      make(map[string]float64),
+		SystemMetrics: make(map[string]float64),
 
-		NetworkMetrics:     make(map[string]float64),
+		NetworkMetrics: make(map[string]float64),
 
-		CustomMetrics:      make(map[string]interface{}),
-
+		CustomMetrics: make(map[string]interface{}),
 	}
-
-
 
 	// Collect from all collectors.
 
@@ -308,8 +229,6 @@ func (m *ComprehensiveMonitor) Collect() (MonitoringData, error) {
 			continue
 
 		}
-
-
 
 		// Categorize metrics.
 
@@ -335,25 +254,18 @@ func (m *ComprehensiveMonitor) Collect() (MonitoringData, error) {
 
 	}
 
-
-
 	// Store snapshot.
 
 	m.metricsStore.Add(MetricSnapshot{
 
 		Timestamp: data.Timestamp,
 
-		Metrics:   mergeMetrics(data.ApplicationMetrics, data.SystemMetrics, data.NetworkMetrics),
-
+		Metrics: mergeMetrics(data.ApplicationMetrics, data.SystemMetrics, data.NetworkMetrics),
 	})
-
-
 
 	return data, nil
 
 }
-
-
 
 // Analyze performs real-time analysis.
 
@@ -361,33 +273,26 @@ func (m *ComprehensiveMonitor) Analyze(data MonitoringData) AnalysisResult {
 
 	result := AnalysisResult{
 
-		Timestamp:       data.Timestamp,
+		Timestamp: data.Timestamp,
 
-		Anomalies:       make([]Anomaly, 0),
+		Anomalies: make([]Anomaly, 0),
 
-		Trends:          make(map[string]Trend),
+		Trends: make(map[string]Trend),
 
-		Predictions:     make(map[string]Prediction),
+		Predictions: make(map[string]Prediction),
 
 		Recommendations: make([]string, 0),
-
 	}
-
-
 
 	// Merge all metrics for analysis.
 
 	allMetrics := mergeMetrics(data.ApplicationMetrics, data.SystemMetrics, data.NetworkMetrics)
-
-
 
 	// Run analyzers.
 
 	for _, analyzer := range m.analyzers {
 
 		analysisResult := analyzer.Analyze(allMetrics)
-
-
 
 		// Merge results.
 
@@ -409,19 +314,13 @@ func (m *ComprehensiveMonitor) Analyze(data MonitoringData) AnalysisResult {
 
 	}
 
-
-
 	// Deduplicate recommendations.
 
 	result.Recommendations = deduplicateStrings(result.Recommendations)
 
-
-
 	return result
 
 }
-
-
 
 // Alert triggers alerts for anomalies.
 
@@ -431,25 +330,22 @@ func (m *ComprehensiveMonitor) Alert(result AnalysisResult) error {
 
 		alert := Alert{
 
-			Timestamp:   result.Timestamp,
+			Timestamp: result.Timestamp,
 
-			Level:       anomaly.Severity,
+			Level: anomaly.Severity,
 
-			Type:        anomaly.Type,
+			Type: anomaly.Type,
 
-			Metric:      anomaly.Metric,
+			Metric: anomaly.Metric,
 
-			Value:       anomaly.Value,
+			Value: anomaly.Value,
 
-			Threshold:   anomaly.Expected,
+			Threshold: anomaly.Expected,
 
 			Description: anomaly.Description,
 
-			Action:      m.determineAction(anomaly),
-
+			Action: m.determineAction(anomaly),
 		}
-
-
 
 		if err := m.alertManager.Send(alert); err != nil {
 
@@ -459,13 +355,9 @@ func (m *ComprehensiveMonitor) Alert(result AnalysisResult) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops monitoring.
 
@@ -481,11 +373,7 @@ func (m *ComprehensiveMonitor) Stop() error {
 
 }
 
-
-
 // Private methods.
-
-
 
 func (m *ComprehensiveMonitor) initializeCollectors() {
 
@@ -493,19 +381,13 @@ func (m *ComprehensiveMonitor) initializeCollectors() {
 
 	m.collectors = append(m.collectors, NewSystemMetricsCollector(m.logger))
 
-
-
 	// Network metrics collector.
 
 	m.collectors = append(m.collectors, NewNetworkMetricsCollector(m.logger))
 
-
-
 	// Application metrics collector.
 
 	m.collectors = append(m.collectors, NewApplicationMetricsCollector(m.config, m.logger))
-
-
 
 	// Kubernetes metrics collector (if in K8s environment).
 
@@ -517,27 +399,19 @@ func (m *ComprehensiveMonitor) initializeCollectors() {
 
 }
 
-
-
 func (m *ComprehensiveMonitor) initializeAnalyzers() {
 
 	// Anomaly detection analyzer.
 
 	m.analyzers = append(m.analyzers, NewAnomalyDetector(m.metricsStore, m.logger))
 
-
-
 	// Trend analyzer.
 
 	m.analyzers = append(m.analyzers, NewTrendAnalyzer(m.metricsStore, m.logger))
 
-
-
 	// Predictive analyzer.
 
 	m.analyzers = append(m.analyzers, NewPredictiveAnalyzer(m.metricsStore, m.logger))
-
-
 
 	// Bottleneck analyzer.
 
@@ -545,19 +419,13 @@ func (m *ComprehensiveMonitor) initializeAnalyzers() {
 
 }
 
-
-
 func (m *ComprehensiveMonitor) monitorLoop(ctx context.Context) {
 
 	defer m.wg.Done()
 
-
-
 	ticker := time.NewTicker(m.config.MetricsInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -585,13 +453,9 @@ func (m *ComprehensiveMonitor) monitorLoop(ctx context.Context) {
 
 			}
 
-
-
 			// Analyze metrics.
 
 			result := m.Analyze(data)
-
-
 
 			// Send alerts if needed.
 
@@ -610,8 +474,6 @@ func (m *ComprehensiveMonitor) monitorLoop(ctx context.Context) {
 	}
 
 }
-
-
 
 func (m *ComprehensiveMonitor) determineAction(anomaly Anomaly) string {
 
@@ -645,17 +507,11 @@ func (m *ComprehensiveMonitor) determineAction(anomaly Anomaly) string {
 
 }
 
-
-
 // SystemMetricsCollector collects system-level metrics.
 
 type SystemMetricsCollector struct {
-
 	logger *zap.Logger
-
 }
-
-
 
 // NewSystemMetricsCollector performs newsystemmetricscollector operation.
 
@@ -665,15 +521,11 @@ func NewSystemMetricsCollector(logger *zap.Logger) *SystemMetricsCollector {
 
 }
 
-
-
 // Collect performs collect operation.
 
 func (c *SystemMetricsCollector) Collect(ctx context.Context) (map[string]float64, error) {
 
 	metrics := make(map[string]float64)
-
-
 
 	// CPU metrics.
 
@@ -684,8 +536,6 @@ func (c *SystemMetricsCollector) Collect(ctx context.Context) (map[string]float6
 		metrics["cpu_percent"] = cpuPercent[0]
 
 	}
-
-
 
 	// Memory metrics.
 
@@ -701,13 +551,9 @@ func (c *SystemMetricsCollector) Collect(ctx context.Context) (map[string]float6
 
 	}
 
-
-
 	// Goroutine metrics.
 
 	metrics["goroutines"] = float64(runtime.NumGoroutine())
-
-
 
 	// GC metrics.
 
@@ -719,13 +565,9 @@ func (c *SystemMetricsCollector) Collect(ctx context.Context) (map[string]float6
 
 	metrics["gc_runs"] = float64(gcStats.NumGC)
 
-
-
 	return metrics, nil
 
 }
-
-
 
 // GetName performs getname operation.
 
@@ -735,23 +577,17 @@ func (c *SystemMetricsCollector) GetName() string {
 
 }
 
-
-
 // NetworkMetricsCollector collects network-level metrics.
 
 type NetworkMetricsCollector struct {
+	logger *zap.Logger
 
-	logger      *zap.Logger
-
-	lastStats   *net.IOCountersStat
+	lastStats *net.IOCountersStat
 
 	lastCollect time.Time
 
-	mu          sync.Mutex
-
+	mu sync.Mutex
 }
-
-
 
 // NewNetworkMetricsCollector performs newnetworkmetricscollector operation.
 
@@ -760,12 +596,9 @@ func NewNetworkMetricsCollector(logger *zap.Logger) *NetworkMetricsCollector {
 	return &NetworkMetricsCollector{
 
 		logger: logger,
-
 	}
 
 }
-
-
 
 // Collect performs collect operation.
 
@@ -775,11 +608,7 @@ func (c *NetworkMetricsCollector) Collect(ctx context.Context) (map[string]float
 
 	defer c.mu.Unlock()
 
-
-
 	metrics := make(map[string]float64)
-
-
 
 	// Get network I/O stats.
 
@@ -791,13 +620,9 @@ func (c *NetworkMetricsCollector) Collect(ctx context.Context) (map[string]float
 
 	}
 
-
-
 	currentStats := &stats[0]
 
 	now := time.Now()
-
-
 
 	// Calculate rates if we have previous stats.
 
@@ -813,23 +638,17 @@ func (c *NetworkMetricsCollector) Collect(ctx context.Context) (map[string]float
 
 			metrics["network_tx_mbps"] = float64(currentStats.BytesSent-c.lastStats.BytesSent) * 8 / (duration * 1e6)
 
-
-
 			// Packet rates.
 
 			metrics["network_rx_pps"] = float64(currentStats.PacketsRecv-c.lastStats.PacketsRecv) / duration
 
 			metrics["network_tx_pps"] = float64(currentStats.PacketsSent-c.lastStats.PacketsSent) / duration
 
-
-
 			// Error rates.
 
 			metrics["network_rx_errors"] = float64(currentStats.Errin-c.lastStats.Errin) / duration
 
 			metrics["network_tx_errors"] = float64(currentStats.Errout-c.lastStats.Errout) / duration
-
-
 
 			// Drop rates.
 
@@ -841,21 +660,15 @@ func (c *NetworkMetricsCollector) Collect(ctx context.Context) (map[string]float
 
 	}
 
-
-
 	// Update last stats.
 
 	c.lastStats = currentStats
 
 	c.lastCollect = now
 
-
-
 	return metrics, nil
 
 }
-
-
 
 // GetName performs getname operation.
 
@@ -865,21 +678,15 @@ func (c *NetworkMetricsCollector) GetName() string {
 
 }
 
-
-
 // ApplicationMetricsCollector collects application-specific metrics.
 
 type ApplicationMetricsCollector struct {
+	config *LoadTestConfig
 
-	config   *LoadTestConfig
-
-	logger   *zap.Logger
+	logger *zap.Logger
 
 	registry *prometheus.Registry
-
 }
-
-
 
 // NewApplicationMetricsCollector performs newapplicationmetricscollector operation.
 
@@ -887,25 +694,20 @@ func NewApplicationMetricsCollector(config *LoadTestConfig, logger *zap.Logger) 
 
 	return &ApplicationMetricsCollector{
 
-		config:   config,
+		config: config,
 
-		logger:   logger,
+		logger: logger,
 
 		registry: prometheus.DefaultRegisterer.(*prometheus.Registry),
-
 	}
 
 }
-
-
 
 // Collect performs collect operation.
 
 func (c *ApplicationMetricsCollector) Collect(ctx context.Context) (map[string]float64, error) {
 
 	metrics := make(map[string]float64)
-
-
 
 	// Collect from Prometheus metrics.
 
@@ -916,8 +718,6 @@ func (c *ApplicationMetricsCollector) Collect(ctx context.Context) (map[string]f
 		return metrics, err
 
 	}
-
-
 
 	for _, mf := range mfs {
 
@@ -965,13 +765,9 @@ func (c *ApplicationMetricsCollector) Collect(ctx context.Context) (map[string]f
 
 	}
 
-
-
 	return metrics, nil
 
 }
-
-
 
 // GetName performs getname operation.
 
@@ -981,17 +777,11 @@ func (c *ApplicationMetricsCollector) GetName() string {
 
 }
 
-
-
 // KubernetesMetricsCollector collects Kubernetes-specific metrics.
 
 type KubernetesMetricsCollector struct {
-
 	logger *zap.Logger
-
 }
-
-
 
 // NewKubernetesMetricsCollector performs newkubernetesmetricscollector operation.
 
@@ -1001,27 +791,19 @@ func NewKubernetesMetricsCollector(logger *zap.Logger) *KubernetesMetricsCollect
 
 }
 
-
-
 // Collect performs collect operation.
 
 func (c *KubernetesMetricsCollector) Collect(ctx context.Context) (map[string]float64, error) {
 
 	metrics := make(map[string]float64)
 
-
-
 	// This would connect to Kubernetes metrics API.
 
 	// For now, return placeholder metrics.
 
-
-
 	return metrics, nil
 
 }
-
-
 
 // GetName performs getname operation.
 
@@ -1031,19 +813,13 @@ func (c *KubernetesMetricsCollector) GetName() string {
 
 }
 
-
-
 // AnomalyDetector detects anomalies in metrics.
 
 type AnomalyDetector struct {
-
-	store  *MetricsStore
+	store *MetricsStore
 
 	logger *zap.Logger
-
 }
-
-
 
 // NewAnomalyDetector performs newanomalydetector operation.
 
@@ -1051,15 +827,12 @@ func NewAnomalyDetector(store *MetricsStore, logger *zap.Logger) *AnomalyDetecto
 
 	return &AnomalyDetector{
 
-		store:  store,
+		store: store,
 
 		logger: logger,
-
 	}
 
 }
-
-
 
 // Analyze performs analyze operation.
 
@@ -1070,10 +843,7 @@ func (d *AnomalyDetector) Analyze(metrics map[string]float64) AnalysisResult {
 		Timestamp: time.Now(),
 
 		Anomalies: make([]Anomaly, 0),
-
 	}
-
-
 
 	// Get historical data for comparison.
 
@@ -1085,23 +855,17 @@ func (d *AnomalyDetector) Analyze(metrics map[string]float64) AnalysisResult {
 
 	}
 
-
-
 	// Calculate statistics for each metric.
 
 	for metric, value := range metrics {
 
 		stats := d.calculateStats(metric, historical)
 
-
-
 		// Z-score anomaly detection.
 
 		if stats.stdDev > 0 {
 
 			zScore := math.Abs((value - stats.mean) / stats.stdDev)
-
-
 
 			if zScore > 3 {
 
@@ -1113,33 +877,28 @@ func (d *AnomalyDetector) Analyze(metrics map[string]float64) AnalysisResult {
 
 				}
 
-
-
 				result.Anomalies = append(result.Anomalies, Anomaly{
 
-					Type:        d.categorizeMetric(metric),
+					Type: d.categorizeMetric(metric),
 
-					Severity:    severity,
+					Severity: severity,
 
 					Description: fmt.Sprintf("%s is %.2f standard deviations from mean", metric, zScore),
 
-					Metric:      metric,
+					Metric: metric,
 
-					Value:       value,
+					Value: value,
 
-					Expected:    stats.mean,
+					Expected: stats.mean,
 
-					Deviation:   zScore,
+					Deviation: zScore,
 
-					Timestamp:   time.Now(),
-
+					Timestamp: time.Now(),
 				})
 
 			}
 
 		}
-
-
 
 		// Check for sudden changes.
 
@@ -1149,28 +908,25 @@ func (d *AnomalyDetector) Analyze(metrics map[string]float64) AnalysisResult {
 
 			changePercent := math.Abs((value - recent) / recent * 100)
 
-
-
 			if changePercent > 50 {
 
 				result.Anomalies = append(result.Anomalies, Anomaly{
 
-					Type:        "sudden_change",
+					Type: "sudden_change",
 
-					Severity:    "warning",
+					Severity: "warning",
 
 					Description: fmt.Sprintf("%s changed by %.1f%%", metric, changePercent),
 
-					Metric:      metric,
+					Metric: metric,
 
-					Value:       value,
+					Value: value,
 
-					Expected:    recent,
+					Expected: recent,
 
-					Deviation:   changePercent,
+					Deviation: changePercent,
 
-					Timestamp:   time.Now(),
-
+					Timestamp: time.Now(),
 				})
 
 			}
@@ -1179,13 +935,9 @@ func (d *AnomalyDetector) Analyze(metrics map[string]float64) AnalysisResult {
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // GetName performs getname operation.
 
@@ -1195,29 +947,21 @@ func (d *AnomalyDetector) GetName() string {
 
 }
 
-
-
 func (d *AnomalyDetector) calculateStats(metric string, historical []MetricSnapshot) struct {
-
-	mean   float64
+	mean float64
 
 	stdDev float64
-
 } {
 
 	if len(historical) == 0 {
 
 		return struct {
-
-			mean   float64
+			mean float64
 
 			stdDev float64
-
 		}{}
 
 	}
-
-
 
 	// Calculate mean.
 
@@ -1237,25 +981,17 @@ func (d *AnomalyDetector) calculateStats(metric string, historical []MetricSnaps
 
 	}
 
-
-
 	if count == 0 {
 
 		return struct {
-
-			mean   float64
+			mean float64
 
 			stdDev float64
-
 		}{}
 
 	}
 
-
-
 	mean := sum / float64(count)
-
-
 
 	// Calculate standard deviation.
 
@@ -1273,25 +1009,17 @@ func (d *AnomalyDetector) calculateStats(metric string, historical []MetricSnaps
 
 	}
 
-
-
 	variance := varianceSum / float64(count)
 
 	stdDev := math.Sqrt(variance)
 
-
-
 	return struct {
-
-		mean   float64
+		mean float64
 
 		stdDev float64
-
 	}{mean: mean, stdDev: stdDev}
 
 }
-
-
 
 func (d *AnomalyDetector) categorizeMetric(metric string) string {
 
@@ -1329,19 +1057,13 @@ func (d *AnomalyDetector) categorizeMetric(metric string) string {
 
 }
 
-
-
 // TrendAnalyzer analyzes trends in metrics.
 
 type TrendAnalyzer struct {
-
-	store  *MetricsStore
+	store *MetricsStore
 
 	logger *zap.Logger
-
 }
-
-
 
 // NewTrendAnalyzer performs newtrendanalyzer operation.
 
@@ -1349,15 +1071,12 @@ func NewTrendAnalyzer(store *MetricsStore, logger *zap.Logger) *TrendAnalyzer {
 
 	return &TrendAnalyzer{
 
-		store:  store,
+		store: store,
 
 		logger: logger,
-
 	}
 
 }
-
-
 
 // Analyze performs analyze operation.
 
@@ -1367,11 +1086,8 @@ func (a *TrendAnalyzer) Analyze(metrics map[string]float64) AnalysisResult {
 
 		Timestamp: time.Now(),
 
-		Trends:    make(map[string]Trend),
-
+		Trends: make(map[string]Trend),
 	}
-
-
 
 	// Get historical data for trend analysis.
 
@@ -1382,8 +1098,6 @@ func (a *TrendAnalyzer) Analyze(metrics map[string]float64) AnalysisResult {
 		return result // Not enough data for trend analysis
 
 	}
-
-
 
 	for metric := range metrics {
 
@@ -1401,21 +1115,15 @@ func (a *TrendAnalyzer) Analyze(metrics map[string]float64) AnalysisResult {
 
 		}
 
-
-
 		if len(timeSeries) < 5 {
 
 			continue
 
 		}
 
-
-
 		// Calculate trend using linear regression.
 
 		slope, intercept := linearRegression(timeSeries)
-
-
 
 		// Determine trend direction.
 
@@ -1435,41 +1143,30 @@ func (a *TrendAnalyzer) Analyze(metrics map[string]float64) AnalysisResult {
 
 		}
 
-
-
 		// Calculate R-squared for confidence.
 
 		rSquared := calculateRSquared(timeSeries, slope, intercept)
-
-
 
 		// Predict next value.
 
 		nextValue := slope*float64(len(timeSeries)) + intercept
 
-
-
 		result.Trends[metric] = Trend{
 
-			Direction:  direction,
+			Direction: direction,
 
-			Rate:       slope,
+			Rate: slope,
 
 			Confidence: rSquared,
 
 			Prediction: nextValue,
-
 		}
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // GetName performs getname operation.
 
@@ -1479,19 +1176,13 @@ func (a *TrendAnalyzer) GetName() string {
 
 }
 
-
-
 // PredictiveAnalyzer performs predictive analysis.
 
 type PredictiveAnalyzer struct {
-
-	store  *MetricsStore
+	store *MetricsStore
 
 	logger *zap.Logger
-
 }
-
-
 
 // NewPredictiveAnalyzer performs newpredictiveanalyzer operation.
 
@@ -1499,15 +1190,12 @@ func NewPredictiveAnalyzer(store *MetricsStore, logger *zap.Logger) *PredictiveA
 
 	return &PredictiveAnalyzer{
 
-		store:  store,
+		store: store,
 
 		logger: logger,
-
 	}
 
 }
-
-
 
 // Analyze performs analyze operation.
 
@@ -1515,15 +1203,12 @@ func (a *PredictiveAnalyzer) Analyze(metrics map[string]float64) AnalysisResult 
 
 	result := AnalysisResult{
 
-		Timestamp:       time.Now(),
+		Timestamp: time.Now(),
 
-		Predictions:     make(map[string]Prediction),
+		Predictions: make(map[string]Prediction),
 
 		Recommendations: make([]string, 0),
-
 	}
-
-
 
 	// Predict resource exhaustion.
 
@@ -1535,17 +1220,14 @@ func (a *PredictiveAnalyzer) Analyze(metrics map[string]float64) AnalysisResult 
 
 			result.Predictions["cpu_exhaustion"] = Prediction{
 
-				Metric:      "cpu_percent",
+				Metric: "cpu_percent",
 
-				Value:       95,
+				Value: 95,
 
-				Confidence:  0.8,
+				Confidence: 0.8,
 
 				TimeHorizon: timeToExhaustion,
-
 			}
-
-
 
 			if timeToExhaustion < 10*time.Minute {
 
@@ -1559,8 +1241,6 @@ func (a *PredictiveAnalyzer) Analyze(metrics map[string]float64) AnalysisResult 
 
 	}
 
-
-
 	if memPercent, ok := metrics["memory_percent"]; ok {
 
 		if memPercent > 75 {
@@ -1569,17 +1249,14 @@ func (a *PredictiveAnalyzer) Analyze(metrics map[string]float64) AnalysisResult 
 
 			result.Predictions["memory_exhaustion"] = Prediction{
 
-				Metric:      "memory_percent",
+				Metric: "memory_percent",
 
-				Value:       95,
+				Value: 95,
 
-				Confidence:  0.8,
+				Confidence: 0.8,
 
 				TimeHorizon: timeToExhaustion,
-
 			}
-
-
 
 			if timeToExhaustion < 10*time.Minute {
 
@@ -1593,13 +1270,9 @@ func (a *PredictiveAnalyzer) Analyze(metrics map[string]float64) AnalysisResult 
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // GetName performs getname operation.
 
@@ -1608,8 +1281,6 @@ func (a *PredictiveAnalyzer) GetName() string {
 	return "predictive_analyzer"
 
 }
-
-
 
 func (a *PredictiveAnalyzer) predictTimeToExhaustion(metric string, threshold float64) time.Duration {
 
@@ -1620,8 +1291,6 @@ func (a *PredictiveAnalyzer) predictTimeToExhaustion(metric string, threshold fl
 		return time.Hour // Default to 1 hour if insufficient data
 
 	}
-
-
 
 	// Extract time series.
 
@@ -1637,13 +1306,9 @@ func (a *PredictiveAnalyzer) predictTimeToExhaustion(metric string, threshold fl
 
 	}
 
-
-
 	// Calculate rate of change.
 
 	slope, _ := linearRegression(timeSeries)
-
-
 
 	if slope <= 0 {
 
@@ -1651,15 +1316,11 @@ func (a *PredictiveAnalyzer) predictTimeToExhaustion(metric string, threshold fl
 
 	}
 
-
-
 	// Calculate time to reach threshold.
 
 	currentValue := timeSeries[len(timeSeries)-1]
 
 	stepsToThreshold := (threshold - currentValue) / slope
-
-
 
 	// Convert steps to duration (assuming metrics interval).
 
@@ -1667,17 +1328,11 @@ func (a *PredictiveAnalyzer) predictTimeToExhaustion(metric string, threshold fl
 
 }
 
-
-
 // BottleneckAnalyzer identifies system bottlenecks.
 
 type BottleneckAnalyzer struct {
-
 	logger *zap.Logger
-
 }
-
-
 
 // NewBottleneckAnalyzer performs newbottleneckanalyzer operation.
 
@@ -1687,21 +1342,16 @@ func NewBottleneckAnalyzer(logger *zap.Logger) *BottleneckAnalyzer {
 
 }
 
-
-
 // Analyze performs analyze operation.
 
 func (a *BottleneckAnalyzer) Analyze(metrics map[string]float64) AnalysisResult {
 
 	result := AnalysisResult{
 
-		Timestamp:       time.Now(),
+		Timestamp: time.Now(),
 
 		Recommendations: make([]string, 0),
-
 	}
-
-
 
 	// Check for CPU bottleneck.
 
@@ -1713,8 +1363,6 @@ func (a *BottleneckAnalyzer) Analyze(metrics map[string]float64) AnalysisResult 
 
 	}
 
-
-
 	// Check for memory bottleneck.
 
 	if mem, ok := metrics["memory_percent"]; ok && mem > 85 {
@@ -1724,8 +1372,6 @@ func (a *BottleneckAnalyzer) Analyze(metrics map[string]float64) AnalysisResult 
 			"Memory bottleneck detected - check for memory leaks or increase allocation")
 
 	}
-
-
 
 	// Check for network bottleneck.
 
@@ -1747,8 +1393,6 @@ func (a *BottleneckAnalyzer) Analyze(metrics map[string]float64) AnalysisResult 
 
 	}
 
-
-
 	// Check for high error rates.
 
 	if errors, ok := metrics["network_rx_errors"]; ok && errors > 100 {
@@ -1759,13 +1403,9 @@ func (a *BottleneckAnalyzer) Analyze(metrics map[string]float64) AnalysisResult 
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // GetName performs getname operation.
 
@@ -1775,43 +1415,35 @@ func (a *BottleneckAnalyzer) GetName() string {
 
 }
 
-
-
 // AlertManager implementation.
-
-
 
 func newAlertManager(logger *zap.Logger) *AlertManager {
 
 	return &AlertManager{
 
-		logger:    logger,
+		logger: logger,
 
 		alertChan: make(chan Alert, 100),
 
-		handlers:  make([]AlertHandler, 0),
+		handlers: make([]AlertHandler, 0),
 
 		thresholds: AlertThresholds{
 
-			CPUPercent:            85,
+			CPUPercent: 85,
 
-			MemoryPercent:         80,
+			MemoryPercent: 80,
 
-			NetworkMbps:           800,
+			NetworkMbps: 800,
 
-			LatencyP95Ms:          2000,
+			LatencyP95Ms: 2000,
 
-			ErrorRatePercent:      5,
+			ErrorRatePercent: 5,
 
 			ThroughputDropPercent: 20,
-
 		},
-
 	}
 
 }
-
-
 
 // Start performs start operation.
 
@@ -1820,8 +1452,6 @@ func (am *AlertManager) Start(ctx context.Context) {
 	go am.processAlerts(ctx)
 
 }
-
-
 
 // Send performs send operation.
 
@@ -1841,8 +1471,6 @@ func (am *AlertManager) Send(alert Alert) error {
 
 }
 
-
-
 // Stop performs stop operation.
 
 func (am *AlertManager) Stop() error {
@@ -1852,8 +1480,6 @@ func (am *AlertManager) Stop() error {
 	return nil
 
 }
-
-
 
 func (am *AlertManager) processAlerts(ctx context.Context) {
 
@@ -1873,8 +1499,6 @@ func (am *AlertManager) processAlerts(ctx context.Context) {
 
 			}
 
-
-
 			am.logger.Warn("Alert triggered",
 
 				zap.String("level", alert.Level),
@@ -1886,8 +1510,6 @@ func (am *AlertManager) processAlerts(ctx context.Context) {
 				zap.Float64("value", alert.Value),
 
 				zap.String("description", alert.Description))
-
-
 
 			// Process through handlers.
 
@@ -1907,25 +1529,18 @@ func (am *AlertManager) processAlerts(ctx context.Context) {
 
 }
 
-
-
 // MetricsStore implementation.
-
-
 
 func newMetricsStore(maxSize int) *MetricsStore {
 
 	return &MetricsStore{
 
-		data:    make([]MetricSnapshot, 0, maxSize),
+		data: make([]MetricSnapshot, 0, maxSize),
 
 		maxSize: maxSize,
-
 	}
 
 }
-
-
 
 // Add performs add operation.
 
@@ -1935,11 +1550,7 @@ func (ms *MetricsStore) Add(snapshot MetricSnapshot) {
 
 	defer ms.mu.Unlock()
 
-
-
 	ms.data = append(ms.data, snapshot)
-
-
 
 	// Trim if exceeds max size.
 
@@ -1951,8 +1562,6 @@ func (ms *MetricsStore) Add(snapshot MetricSnapshot) {
 
 }
 
-
-
 // GetRecent performs getrecent operation.
 
 func (ms *MetricsStore) GetRecent(count int) []MetricSnapshot {
@@ -1961,15 +1570,11 @@ func (ms *MetricsStore) GetRecent(count int) []MetricSnapshot {
 
 	defer ms.mu.RUnlock()
 
-
-
 	if count > len(ms.data) {
 
 		count = len(ms.data)
 
 	}
-
-
 
 	if count == 0 {
 
@@ -1977,17 +1582,11 @@ func (ms *MetricsStore) GetRecent(count int) []MetricSnapshot {
 
 	}
 
-
-
 	return ms.data[len(ms.data)-count:]
 
 }
 
-
-
 // Helper functions.
-
-
 
 func mergeMetrics(maps ...map[string]float64) map[string]float64 {
 
@@ -2007,15 +1606,11 @@ func mergeMetrics(maps ...map[string]float64) map[string]float64 {
 
 }
 
-
-
 func deduplicateStrings(strings []string) []string {
 
 	seen := make(map[string]bool)
 
 	result := make([]string, 0)
-
-
 
 	for _, s := range strings {
 
@@ -2029,21 +1624,15 @@ func deduplicateStrings(strings []string) []string {
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 func contains(s, substr string) bool {
 
 	return len(s) >= len(substr) && s[:len(substr)] == substr
 
 }
-
-
 
 func linearRegression(data []float64) (slope, intercept float64) {
 
@@ -2054,8 +1643,6 @@ func linearRegression(data []float64) (slope, intercept float64) {
 		return 0, 0
 
 	}
-
-
 
 	var sumX, sumY, sumXY, sumX2 float64
 
@@ -2073,8 +1660,6 @@ func linearRegression(data []float64) (slope, intercept float64) {
 
 	}
 
-
-
 	denominator := n*sumX2 - sumX*sumX
 
 	if denominator == 0 {
@@ -2083,19 +1668,13 @@ func linearRegression(data []float64) (slope, intercept float64) {
 
 	}
 
-
-
 	slope = (n*sumXY - sumX*sumY) / denominator
 
 	intercept = (sumY - slope*sumX) / n
 
-
-
 	return slope, intercept
 
 }
-
-
 
 func calculateRSquared(data []float64, slope, intercept float64) float64 {
 
@@ -2104,8 +1683,6 @@ func calculateRSquared(data []float64, slope, intercept float64) float64 {
 		return 0
 
 	}
-
-
 
 	// Calculate mean.
 
@@ -2119,8 +1696,6 @@ func calculateRSquared(data []float64, slope, intercept float64) float64 {
 
 	mean := sum / float64(len(data))
 
-
-
 	// Calculate total sum of squares.
 
 	var totalSS float64
@@ -2132,8 +1707,6 @@ func calculateRSquared(data []float64, slope, intercept float64) float64 {
 		totalSS += diff * diff
 
 	}
-
-
 
 	// Calculate residual sum of squares.
 
@@ -2149,21 +1722,15 @@ func calculateRSquared(data []float64, slope, intercept float64) float64 {
 
 	}
 
-
-
 	if totalSS == 0 {
 
 		return 0
 
 	}
 
-
-
 	return 1 - (residualSS / totalSS)
 
 }
-
-
 
 func isKubernetesEnvironment() bool {
 
@@ -2174,4 +1741,3 @@ func isKubernetesEnvironment() bool {
 	return err == nil
 
 }
-

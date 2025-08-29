@@ -1,51 +1,27 @@
 // Package security provides enhanced certificate management with automation.
 
-
 package security
 
-
-
 import (
-
 	"context"
-
 	"crypto"
-
 	"crypto/rand"
-
 	"crypto/rsa"
-
 	"crypto/tls"
-
 	"crypto/x509"
-
 	"crypto/x509/pkix"
-
 	"encoding/pem"
-
 	"errors"
-
 	"fmt"
-
 	"math/big"
-
 	"net"
-
 	"net/http"
-
 	"sync"
-
 	"time"
 
-
-
 	"golang.org/x/crypto/acme"
-
 	"golang.org/x/crypto/acme/autocert"
-
 )
-
-
 
 // CertManager provides comprehensive certificate lifecycle management.
 
@@ -55,76 +31,54 @@ type CertManager struct {
 
 	acmeManager *autocert.Manager
 
-	acmeClient  *acme.Client
-
-
+	acmeClient *acme.Client
 
 	// Certificate storage.
 
 	certStore CertificateStore
 
-
-
 	// Root and intermediate CAs.
 
-	rootCA          *x509.Certificate
+	rootCA *x509.Certificate
 
-	rootKey         crypto.PrivateKey
+	rootKey crypto.PrivateKey
 
-	intermediateCA  *x509.Certificate
+	intermediateCA *x509.Certificate
 
 	intermediateKey crypto.PrivateKey
 
-
-
 	// Certificate transparency.
 
-	ctLogs      []string
+	ctLogs []string
 
 	ctSubmitter *CTSubmitter
-
-
 
 	// OCSP responder.
 
 	ocspResponder *OCSPResponder
 
-
-
 	// CRL management.
 
 	crlManager *CRLManager
-
-
 
 	// Certificate rotation.
 
 	rotationScheduler *CertRotationScheduler
 
-
-
 	// Certificate pinning.
 
 	pinnedCerts map[string][]byte
-
-
 
 	// Monitoring.
 
 	monitor *CertMonitor
 
-
-
 	mu sync.RWMutex
-
 }
-
-
 
 // CertificateStore interface for certificate storage.
 
 type CertificateStore interface {
-
 	Get(ctx context.Context, name string) (*tls.Certificate, error)
 
 	Put(ctx context.Context, name string, cert *tls.Certificate) error
@@ -132,176 +86,133 @@ type CertificateStore interface {
 	Delete(ctx context.Context, name string) error
 
 	List(ctx context.Context) ([]string, error)
-
 }
-
-
 
 // CTSubmitter handles Certificate Transparency submissions.
 
 type CTSubmitter struct {
+	logs []string
 
-	logs    []string
-
-	client  *http.Client
+	client *http.Client
 
 	timeout time.Duration
-
 }
-
-
 
 // OCSPResponder provides OCSP responses.
 
 type OCSPResponder struct {
+	signer crypto.Signer
 
-	signer    crypto.Signer
+	cert *x509.Certificate
 
-	cert      *x509.Certificate
-
-	issuer    *x509.Certificate
+	issuer *x509.Certificate
 
 	responses map[string]*OCSPResponse
 
-	mu        sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // OCSPResponse represents an OCSP response.
 
 type OCSPResponse struct {
-
-	Status    int
+	Status int
 
 	RevokedAt time.Time
 
-	Reason    int
+	Reason int
 
 	UpdatedAt time.Time
-
 }
-
-
 
 // CRLManager manages Certificate Revocation Lists.
 
 type CRLManager struct {
+	revoked map[string]*RevokedCert
 
-	revoked    map[string]*RevokedCert
+	crl *x509.RevocationList
 
-	crl        *x509.RevocationList
+	signer crypto.Signer
 
-	signer     crypto.Signer
-
-	issuer     *x509.Certificate
+	issuer *x509.Certificate
 
 	nextUpdate time.Time
 
-	mu         sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // RevokedCert represents a revoked certificate.
 
 type RevokedCert struct {
-
 	SerialNumber *big.Int
 
-	RevokedAt    time.Time
+	RevokedAt time.Time
 
-	Reason       int
-
+	Reason int
 }
-
-
 
 // CertRotationScheduler handles automatic certificate rotation.
 
 type CertRotationScheduler struct {
-
 	rotations map[string]*RotationConfig
 
-	ticker    *time.Ticker
+	ticker *time.Ticker
 
-	done      chan bool
+	done chan bool
 
-	mu        sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // RotationConfig defines certificate rotation parameters.
 
 type RotationConfig struct {
-
-	Name          string
+	Name string
 
 	CheckInterval time.Duration
 
-	RenewBefore   time.Duration
+	RenewBefore time.Duration
 
 	RenewCallback func(name string, cert *tls.Certificate) error
 
 	ErrorCallback func(name string, err error)
-
 }
-
-
 
 // CertMonitor monitors certificate health and expiry.
 
 type CertMonitor struct {
-
 	certificates map[string]*MonitoredCert
 
-	alerts       chan *CertAlert
+	alerts chan *CertAlert
 
-	mu           sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // MonitoredCert represents a monitored certificate.
 
 type MonitoredCert struct {
+	Name string
 
-	Name       string
-
-	Cert       *x509.Certificate
+	Cert *x509.Certificate
 
 	ExpiryTime time.Time
 
-	Healthy    bool
+	Healthy bool
 
-	LastCheck  time.Time
-
+	LastCheck time.Time
 }
-
-
 
 // CertAlert represents a certificate alert.
 
 type CertAlert struct {
+	Type string
 
-	Type      string
+	Severity string
 
-	Severity  string
+	Name string
 
-	Name      string
-
-	Message   string
+	Message string
 
 	Timestamp time.Time
-
 }
-
-
 
 // NewCertManager creates a new certificate manager.
 
@@ -316,33 +227,28 @@ func NewCertManager(store CertificateStore) *CertManager {
 			"https://ct.googleapis.com/logs/xenon2024/",
 
 			"https://ct.cloudflare.com/logs/nimbus2024/",
-
 		},
 
 		ctSubmitter: &CTSubmitter{
 
-			client:  &http.Client{Timeout: 10 * time.Second},
+			client: &http.Client{Timeout: 10 * time.Second},
 
 			timeout: 10 * time.Second,
-
 		},
 
 		ocspResponder: &OCSPResponder{
 
 			responses: make(map[string]*OCSPResponse),
-
 		},
 
 		crlManager: &CRLManager{
 
 			revoked: make(map[string]*RevokedCert),
-
 		},
 
 		rotationScheduler: &CertRotationScheduler{
 
 			rotations: make(map[string]*RotationConfig),
-
 		},
 
 		pinnedCerts: make(map[string][]byte),
@@ -351,15 +257,11 @@ func NewCertManager(store CertificateStore) *CertManager {
 
 			certificates: make(map[string]*MonitoredCert),
 
-			alerts:       make(chan *CertAlert, 100),
-
+			alerts: make(chan *CertAlert, 100),
 		},
-
 	}
 
 }
-
-
 
 // SetupACME configures ACME/Let's Encrypt.
 
@@ -369,37 +271,27 @@ func (cm *CertManager) SetupACME(email string, domains []string, cacheDir string
 
 	defer cm.mu.Unlock()
 
-
-
 	cm.acmeManager = &autocert.Manager{
 
-		Prompt:     autocert.AcceptTOS,
+		Prompt: autocert.AcceptTOS,
 
-		Email:      email,
+		Email: email,
 
 		HostPolicy: autocert.HostWhitelist(domains...),
 
-		Cache:      autocert.DirCache(cacheDir),
-
+		Cache: autocert.DirCache(cacheDir),
 	}
-
-
 
 	// Create ACME client.
 
 	cm.acmeClient = &acme.Client{
 
 		DirectoryURL: acme.LetsEncryptURL,
-
 	}
-
-
 
 	return nil
 
 }
-
-
 
 // GetACMECertificate obtains a certificate via ACME.
 
@@ -411,14 +303,11 @@ func (cm *CertManager) GetACMECertificate(domain string) (*tls.Certificate, erro
 
 	}
 
-
-
 	// Get certificate from cache or request new one.
 
 	cert, err := cm.acmeManager.GetCertificate(&tls.ClientHelloInfo{
 
 		ServerName: domain,
-
 	})
 
 	if err != nil {
@@ -426,8 +315,6 @@ func (cm *CertManager) GetACMECertificate(domain string) (*tls.Certificate, erro
 		return nil, fmt.Errorf("failed to get ACME certificate: %w", err)
 
 	}
-
-
 
 	// Submit to CT logs.
 
@@ -439,8 +326,6 @@ func (cm *CertManager) GetACMECertificate(domain string) (*tls.Certificate, erro
 
 	}
 
-
-
 	// Store certificate.
 
 	if err := cm.certStore.Put(context.Background(), domain, cert); err != nil {
@@ -449,19 +334,13 @@ func (cm *CertManager) GetACMECertificate(domain string) (*tls.Certificate, erro
 
 	}
 
-
-
 	// Start monitoring.
 
 	cm.monitor.AddCertificate(domain, cert)
 
-
-
 	return cert, nil
 
 }
-
-
 
 // GenerateRootCA generates a new root CA.
 
@@ -470,8 +349,6 @@ func (cm *CertManager) GenerateRootCA(commonName string, validYears int) error {
 	cm.mu.Lock()
 
 	defer cm.mu.Unlock()
-
-
 
 	// Generate key.
 
@@ -483,8 +360,6 @@ func (cm *CertManager) GenerateRootCA(commonName string, validYears int) error {
 
 	}
 
-
-
 	// Create certificate template.
 
 	template := &x509.Certificate{
@@ -493,39 +368,35 @@ func (cm *CertManager) GenerateRootCA(commonName string, validYears int) error {
 
 		Subject: pkix.Name{
 
-			Organization:  []string{"Nephoran Intent Operator"},
+			Organization: []string{"Nephoran Intent Operator"},
 
-			Country:       []string{"US"},
+			Country: []string{"US"},
 
-			Province:      []string{""},
+			Province: []string{""},
 
-			Locality:      []string{""},
+			Locality: []string{""},
 
 			StreetAddress: []string{""},
 
-			PostalCode:    []string{""},
+			PostalCode: []string{""},
 
-			CommonName:    commonName,
-
+			CommonName: commonName,
 		},
 
-		NotBefore:             time.Now(),
+		NotBefore: time.Now(),
 
-		NotAfter:              time.Now().AddDate(validYears, 0, 0),
+		NotAfter: time.Now().AddDate(validYears, 0, 0),
 
-		IsCA:                  true,
+		IsCA: true,
 
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		KeyUsage: x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
 
 		BasicConstraintsValid: true,
 
-		MaxPathLen:            2,
-
+		MaxPathLen: 2,
 	}
-
-
 
 	// Create certificate.
 
@@ -537,8 +408,6 @@ func (cm *CertManager) GenerateRootCA(commonName string, validYears int) error {
 
 	}
 
-
-
 	cert, err := x509.ParseCertificate(certDER)
 
 	if err != nil {
@@ -547,19 +416,13 @@ func (cm *CertManager) GenerateRootCA(commonName string, validYears int) error {
 
 	}
 
-
-
 	cm.rootCA = cert
 
 	cm.rootKey = key
 
-
-
 	return nil
 
 }
-
-
 
 // GenerateIntermediateCA generates an intermediate CA.
 
@@ -571,13 +434,9 @@ func (cm *CertManager) GenerateIntermediateCA(commonName string, validYears int)
 
 	}
 
-
-
 	cm.mu.Lock()
 
 	defer cm.mu.Unlock()
-
-
 
 	// Generate key.
 
@@ -589,8 +448,6 @@ func (cm *CertManager) GenerateIntermediateCA(commonName string, validYears int)
 
 	}
 
-
-
 	// Create certificate template.
 
 	template := &x509.Certificate{
@@ -601,29 +458,25 @@ func (cm *CertManager) GenerateIntermediateCA(commonName string, validYears int)
 
 			Organization: []string{"Nephoran Intent Operator"},
 
-			Country:      []string{"US"},
+			Country: []string{"US"},
 
-			CommonName:   commonName,
-
+			CommonName: commonName,
 		},
 
-		NotBefore:             time.Now(),
+		NotBefore: time.Now(),
 
-		NotAfter:              time.Now().AddDate(validYears, 0, 0),
+		NotAfter: time.Now().AddDate(validYears, 0, 0),
 
-		IsCA:                  true,
+		IsCA: true,
 
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		KeyUsage: x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
 
 		BasicConstraintsValid: true,
 
-		MaxPathLen:            0,
-
+		MaxPathLen: 0,
 	}
-
-
 
 	// Create certificate signed by root CA.
 
@@ -635,8 +488,6 @@ func (cm *CertManager) GenerateIntermediateCA(commonName string, validYears int)
 
 	}
 
-
-
 	cert, err := x509.ParseCertificate(certDER)
 
 	if err != nil {
@@ -645,19 +496,13 @@ func (cm *CertManager) GenerateIntermediateCA(commonName string, validYears int)
 
 	}
 
-
-
 	cm.intermediateCA = cert
 
 	cm.intermediateKey = key
 
-
-
 	return nil
 
 }
-
-
 
 // IssueCertificate issues a new certificate.
 
@@ -669,8 +514,6 @@ func (cm *CertManager) IssueCertificate(commonName string, hosts []string, valid
 
 	}
 
-
-
 	// Generate key.
 
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -680,8 +523,6 @@ func (cm *CertManager) IssueCertificate(commonName string, hosts []string, valid
 		return nil, fmt.Errorf("failed to generate key: %w", err)
 
 	}
-
-
 
 	// Create certificate template.
 
@@ -693,21 +534,17 @@ func (cm *CertManager) IssueCertificate(commonName string, hosts []string, valid
 
 			Organization: []string{"Nephoran Intent Operator"},
 
-			CommonName:   commonName,
-
+			CommonName: commonName,
 		},
 
-		NotBefore:   time.Now(),
+		NotBefore: time.Now(),
 
-		NotAfter:    time.Now().AddDate(0, 0, validDays),
+		NotAfter: time.Now().AddDate(0, 0, validDays),
 
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 
-		KeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
-
+		KeyUsage: x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
 	}
-
-
 
 	// Add hosts.
 
@@ -725,8 +562,6 @@ func (cm *CertManager) IssueCertificate(commonName string, hosts []string, valid
 
 	}
 
-
-
 	// Create certificate signed by intermediate CA.
 
 	certDER, err := x509.CreateCertificate(rand.Reader, template, cm.intermediateCA, &key.PublicKey, cm.intermediateKey)
@@ -737,19 +572,14 @@ func (cm *CertManager) IssueCertificate(commonName string, hosts []string, valid
 
 	}
 
-
-
 	// Create TLS certificate.
 
 	tlsCert := &tls.Certificate{
 
 		Certificate: [][]byte{certDER, cm.intermediateCA.Raw},
 
-		PrivateKey:  key,
-
+		PrivateKey: key,
 	}
-
-
 
 	// Parse leaf certificate.
 
@@ -763,8 +593,6 @@ func (cm *CertManager) IssueCertificate(commonName string, hosts []string, valid
 
 	tlsCert.Leaf = leaf
 
-
-
 	// Store certificate.
 
 	if err := cm.certStore.Put(context.Background(), commonName, tlsCert); err != nil {
@@ -772,8 +600,6 @@ func (cm *CertManager) IssueCertificate(commonName string, hosts []string, valid
 		return nil, fmt.Errorf("failed to store certificate: %w", err)
 
 	}
-
-
 
 	// Submit to CT logs.
 
@@ -783,19 +609,13 @@ func (cm *CertManager) IssueCertificate(commonName string, hosts []string, valid
 
 	}
 
-
-
 	// Start monitoring.
 
 	cm.monitor.AddCertificate(commonName, tlsCert)
 
-
-
 	return tlsCert, nil
 
 }
-
-
 
 // RevokeCertificate revokes a certificate.
 
@@ -805,21 +625,16 @@ func (cm *CertManager) RevokeCertificate(serialNumber *big.Int, reason int) erro
 
 	defer cm.crlManager.mu.Unlock()
 
-
-
 	// Add to revoked list.
 
 	cm.crlManager.revoked[serialNumber.String()] = &RevokedCert{
 
 		SerialNumber: serialNumber,
 
-		RevokedAt:    time.Now(),
+		RevokedAt: time.Now(),
 
-		Reason:       reason,
-
+		Reason: reason,
 	}
-
-
 
 	// Update CRL.
 
@@ -829,33 +644,26 @@ func (cm *CertManager) RevokeCertificate(serialNumber *big.Int, reason int) erro
 
 	}
 
-
-
 	// Update OCSP response.
 
 	cm.ocspResponder.mu.Lock()
 
 	cm.ocspResponder.responses[serialNumber.String()] = &OCSPResponse{
 
-		Status:    1, // Revoked
+		Status: 1, // Revoked
 
 		RevokedAt: time.Now(),
 
-		Reason:    reason,
+		Reason: reason,
 
 		UpdatedAt: time.Now(),
-
 	}
 
 	cm.ocspResponder.mu.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 // ScheduleRotation schedules automatic certificate rotation.
 
@@ -865,11 +673,7 @@ func (cm *CertManager) ScheduleRotation(config *RotationConfig) error {
 
 	defer cm.rotationScheduler.mu.Unlock()
 
-
-
 	cm.rotationScheduler.rotations[config.Name] = config
-
-
 
 	// Start rotation scheduler if not running.
 
@@ -879,13 +683,9 @@ func (cm *CertManager) ScheduleRotation(config *RotationConfig) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Start rotation scheduler.
 
@@ -894,8 +694,6 @@ func (rs *CertRotationScheduler) Start() {
 	rs.ticker = time.NewTicker(1 * time.Hour)
 
 	rs.done = make(chan bool)
-
-
 
 	go func() {
 
@@ -919,8 +717,6 @@ func (rs *CertRotationScheduler) Start() {
 
 }
 
-
-
 // checkRotations checks and performs necessary rotations.
 
 func (rs *CertRotationScheduler) checkRotations() {
@@ -929,8 +725,6 @@ func (rs *CertRotationScheduler) checkRotations() {
 
 	defer rs.mu.RUnlock()
 
-
-
 	for name, config := range rs.rotations {
 
 		go rs.checkAndRotate(name, config)
@@ -938,8 +732,6 @@ func (rs *CertRotationScheduler) checkRotations() {
 	}
 
 }
-
-
 
 // checkAndRotate checks and rotates a single certificate.
 
@@ -951,8 +743,6 @@ func (rs *CertRotationScheduler) checkAndRotate(name string, config *RotationCon
 
 }
 
-
-
 // submitToCTLogs submits certificate to CT logs.
 
 func (cm *CertManager) submitToCTLogs(cert *tls.Certificate) error {
@@ -962,8 +752,6 @@ func (cm *CertManager) submitToCTLogs(cert *tls.Certificate) error {
 		return errors.New("no certificate to submit")
 
 	}
-
-
 
 	// Submit to each CT log.
 
@@ -979,13 +767,9 @@ func (cm *CertManager) submitToCTLogs(cert *tls.Certificate) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Submit submits certificate to a CT log.
 
@@ -999,8 +783,6 @@ func (cts *CTSubmitter) Submit(logURL string, certDER []byte) error {
 
 }
 
-
-
 // updateCRL updates the Certificate Revocation List.
 
 func (crlm *CRLManager) updateCRL() error {
@@ -1013,15 +795,12 @@ func (crlm *CRLManager) updateCRL() error {
 
 		revokedCerts = append(revokedCerts, x509.RevocationListEntry{
 
-			SerialNumber:   revoked.SerialNumber,
+			SerialNumber: revoked.SerialNumber,
 
 			RevocationTime: revoked.RevokedAt,
-
 		})
 
 	}
-
-
 
 	// Create CRL template.
 
@@ -1029,13 +808,10 @@ func (crlm *CRLManager) updateCRL() error {
 
 		RevokedCertificateEntries: revokedCerts,
 
-		ThisUpdate:                time.Now(),
+		ThisUpdate: time.Now(),
 
-		NextUpdate:                time.Now().Add(24 * time.Hour),
-
+		NextUpdate: time.Now().Add(24 * time.Hour),
 	}
-
-
 
 	// Sign CRL.
 
@@ -1047,8 +823,6 @@ func (crlm *CRLManager) updateCRL() error {
 
 	}
 
-
-
 	crl, err := x509.ParseRevocationList(crlDER)
 
 	if err != nil {
@@ -1057,19 +831,13 @@ func (crlm *CRLManager) updateCRL() error {
 
 	}
 
-
-
 	crlm.crl = crl
 
 	crlm.nextUpdate = template.NextUpdate
 
-
-
 	return nil
 
 }
-
-
 
 // AddCertificate adds a certificate to monitoring.
 
@@ -1078,8 +846,6 @@ func (cm *CertMonitor) AddCertificate(name string, cert *tls.Certificate) {
 	cm.mu.Lock()
 
 	defer cm.mu.Unlock()
-
-
 
 	if cert.Leaf == nil && len(cert.Certificate) > 0 {
 
@@ -1091,16 +857,15 @@ func (cm *CertMonitor) AddCertificate(name string, cert *tls.Certificate) {
 
 			cm.alerts <- &CertAlert{
 
-				Type:      "PARSE_ERROR",
+				Type: "PARSE_ERROR",
 
-				Severity:  "ERROR",
+				Severity: "ERROR",
 
-				Name:      name,
+				Name: name,
 
-				Message:   fmt.Sprintf("Failed to parse certificate: %v", err),
+				Message: fmt.Sprintf("Failed to parse certificate: %v", err),
 
 				Timestamp: time.Now(),
-
 			}
 
 			return
@@ -1111,23 +876,18 @@ func (cm *CertMonitor) AddCertificate(name string, cert *tls.Certificate) {
 
 	}
 
-
-
 	cm.certificates[name] = &MonitoredCert{
 
-		Name:       name,
+		Name: name,
 
-		Cert:       cert.Leaf,
+		Cert: cert.Leaf,
 
 		ExpiryTime: cert.Leaf.NotAfter,
 
-		Healthy:    true,
+		Healthy: true,
 
-		LastCheck:  time.Now(),
-
+		LastCheck: time.Now(),
 	}
-
-
 
 	// Check if certificate is expiring soon.
 
@@ -1143,27 +903,22 @@ func (cm *CertMonitor) AddCertificate(name string, cert *tls.Certificate) {
 
 		}
 
-
-
 		cm.alerts <- &CertAlert{
 
-			Type:      "EXPIRY_WARNING",
+			Type: "EXPIRY_WARNING",
 
-			Severity:  severity,
+			Severity: severity,
 
-			Name:      name,
+			Name: name,
 
-			Message:   fmt.Sprintf("Certificate expires in %.0f days", daysUntilExpiry),
+			Message: fmt.Sprintf("Certificate expires in %.0f days", daysUntilExpiry),
 
 			Timestamp: time.Now(),
-
 		}
 
 	}
 
 }
-
-
 
 // PinCertificate adds a certificate to the pinning list.
 
@@ -1173,13 +928,9 @@ func (cm *CertManager) PinCertificate(name string, certDER []byte) {
 
 	defer cm.mu.Unlock()
 
-
-
 	cm.pinnedCerts[name] = certDER
 
 }
-
-
 
 // ValidatePinnedCertificate validates a certificate against pinned certificates.
 
@@ -1189,8 +940,6 @@ func (cm *CertManager) ValidatePinnedCertificate(name string, cert *x509.Certifi
 
 	defer cm.mu.RUnlock()
 
-
-
 	pinnedDER, ok := cm.pinnedCerts[name]
 
 	if !ok {
@@ -1199,21 +948,15 @@ func (cm *CertManager) ValidatePinnedCertificate(name string, cert *x509.Certifi
 
 	}
 
-
-
 	if !equalDER(cert.Raw, pinnedDER) {
 
 		return errors.New("certificate does not match pinned certificate")
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // equalDER compares two DER-encoded certificates.
 
@@ -1239,23 +982,18 @@ func equalDER(a, b []byte) bool {
 
 }
 
-
-
 // ExportCertificate exports a certificate in PEM format.
 
 func ExportCertificate(cert *x509.Certificate) []byte {
 
 	return pem.EncodeToMemory(&pem.Block{
 
-		Type:  "CERTIFICATE",
+		Type: "CERTIFICATE",
 
 		Bytes: cert.Raw,
-
 	})
 
 }
-
-
 
 // ExportPrivateKey exports a private key in PEM format.
 
@@ -1267,10 +1005,9 @@ func ExportPrivateKey(key crypto.PrivateKey) ([]byte, error) {
 
 		return pem.EncodeToMemory(&pem.Block{
 
-			Type:  "RSA PRIVATE KEY",
+			Type: "RSA PRIVATE KEY",
 
 			Bytes: x509.MarshalPKCS1PrivateKey(k),
-
 		}), nil
 
 	default:
@@ -1280,4 +1017,3 @@ func ExportPrivateKey(key crypto.PrivateKey) ([]byte, error) {
 	}
 
 }
-

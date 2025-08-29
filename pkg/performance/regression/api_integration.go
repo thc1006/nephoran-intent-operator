@@ -1,81 +1,51 @@
 //go:build go1.24
 
-
-
-
 package regression
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"strconv"
-
 	"time"
 
-
-
 	"github.com/gin-gonic/gin"
-
 	"github.com/prometheus/client_golang/api"
-
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-
 	"github.com/prometheus/common/model"
 
-
-
 	"k8s.io/klog/v2"
-
 )
-
-
 
 // APIIntegrationManager handles external API integrations for the regression detection system.
 
 type APIIntegrationManager struct {
-
-	config           *APIIntegrationConfig
+	config *APIIntegrationConfig
 
 	prometheusClient v1.API
 
-	grafanaClient    *GrafanaClient
+	grafanaClient *GrafanaClient
 
-	webhookManager   *WebhookManager
+	webhookManager *WebhookManager
 
-	httpServer       *http.Server
-
-
+	httpServer *http.Server
 
 	// API handlers.
 
 	regressionAPI *RegressionAPI
 
-	metricsAPI    *MetricsAPI
+	metricsAPI *MetricsAPI
 
-	alertsAPI     *AlertsAPI
-
-
+	alertsAPI *AlertsAPI
 
 	// Integration state.
 
-	connectedSystems   map[string]*SystemConnection
+	connectedSystems map[string]*SystemConnection
 
 	integrationMetrics *IntegrationMetrics
-
 }
-
-
 
 // APIIntegrationConfig configures external system integrations.
 
@@ -83,405 +53,312 @@ type APIIntegrationConfig struct {
 
 	// API Server configuration.
 
-	EnableAPIServer bool   `json:"enableApiServer"`
+	EnableAPIServer bool `json:"enableApiServer"`
 
-	APIServerPort   int    `json:"apiServerPort"`
+	APIServerPort int `json:"apiServerPort"`
 
-	APIServerHost   string `json:"apiServerHost"`
+	APIServerHost string `json:"apiServerHost"`
 
-	EnableTLS       bool   `json:"enableTLS"`
+	EnableTLS bool `json:"enableTLS"`
 
-	TLSCertPath     string `json:"tlsCertPath"`
+	TLSCertPath string `json:"tlsCertPath"`
 
-	TLSKeyPath      string `json:"tlsKeyPath"`
-
-
+	TLSKeyPath string `json:"tlsKeyPath"`
 
 	// Prometheus integration.
 
-	PrometheusEnabled       bool          `json:"prometheusEnabled"`
+	PrometheusEnabled bool `json:"prometheusEnabled"`
 
-	PrometheusEndpoint      string        `json:"prometheusEndpoint"`
+	PrometheusEndpoint string `json:"prometheusEndpoint"`
 
-	PrometheusTimeout       time.Duration `json:"prometheusTimeout"`
+	PrometheusTimeout time.Duration `json:"prometheusTimeout"`
 
-	PrometheusRetryAttempts int           `json:"prometheusRetryAttempts"`
-
-
+	PrometheusRetryAttempts int `json:"prometheusRetryAttempts"`
 
 	// Grafana integration.
 
-	GrafanaEnabled       bool   `json:"grafanaEnabled"`
+	GrafanaEnabled bool `json:"grafanaEnabled"`
 
-	GrafanaEndpoint      string `json:"grafanaEndpoint"`
+	GrafanaEndpoint string `json:"grafanaEndpoint"`
 
-	GrafanaAPIKey        string `json:"grafanaApiKey"`
+	GrafanaAPIKey string `json:"grafanaApiKey"`
 
-	GrafanaOrgID         int    `json:"grafanaOrgId"`
+	GrafanaOrgID int `json:"grafanaOrgId"`
 
-	AutoCreateDashboards bool   `json:"autoCreateDashboards"`
-
-
+	AutoCreateDashboards bool `json:"autoCreateDashboards"`
 
 	// Webhook configuration.
 
-	WebhooksEnabled      bool          `json:"webhooksEnabled"`
+	WebhooksEnabled bool `json:"webhooksEnabled"`
 
-	WebhookEndpoints     []string      `json:"webhookEndpoints"`
+	WebhookEndpoints []string `json:"webhookEndpoints"`
 
-	WebhookTimeout       time.Duration `json:"webhookTimeout"`
+	WebhookTimeout time.Duration `json:"webhookTimeout"`
 
-	WebhookRetryAttempts int           `json:"webhookRetryAttempts"`
+	WebhookRetryAttempts int `json:"webhookRetryAttempts"`
 
-	WebhookSecretKey     string        `json:"webhookSecretKey"`
-
-
+	WebhookSecretKey string `json:"webhookSecretKey"`
 
 	// Rate limiting.
 
 	APIRateLimitEnabled bool `json:"apiRateLimitEnabled"`
 
-	RequestsPerMinute   int  `json:"requestsPerMinute"`
+	RequestsPerMinute int `json:"requestsPerMinute"`
 
-	BurstLimit          int  `json:"burstLimit"`
-
-
+	BurstLimit int `json:"burstLimit"`
 
 	// Authentication.
 
-	AuthenticationEnabled bool   `json:"authenticationEnabled"`
+	AuthenticationEnabled bool `json:"authenticationEnabled"`
 
-	APIKeyRequired        bool   `json:"apiKeyRequired"`
+	APIKeyRequired bool `json:"apiKeyRequired"`
 
-	JWTEnabled            bool   `json:"jwtEnabled"`
+	JWTEnabled bool `json:"jwtEnabled"`
 
-	JWTSecret             string `json:"jwtSecret"`
-
-
+	JWTSecret string `json:"jwtSecret"`
 
 	// External monitoring integration.
 
-	ExternalMonitoringEnabled bool   `json:"externalMonitoringEnabled"`
+	ExternalMonitoringEnabled bool `json:"externalMonitoringEnabled"`
 
-	DatadogEnabled            bool   `json:"datadogEnabled"`
+	DatadogEnabled bool `json:"datadogEnabled"`
 
-	DatadogAPIKey             string `json:"datadogApiKey"`
+	DatadogAPIKey string `json:"datadogApiKey"`
 
-	NewRelicEnabled           bool   `json:"newRelicEnabled"`
+	NewRelicEnabled bool `json:"newRelicEnabled"`
 
-	NewRelicAPIKey            string `json:"newRelicApiKey"`
-
+	NewRelicAPIKey string `json:"newRelicApiKey"`
 }
-
-
 
 // RegressionAPI provides REST API endpoints for regression detection.
 
 type RegressionAPI struct {
+	engine *IntelligentRegressionEngine
 
-	engine           *IntelligentRegressionEngine
-
-	config           *APIIntegrationConfig
+	config *APIIntegrationConfig
 
 	requestValidator *RequestValidator
-
 }
-
-
 
 // MetricsAPI provides REST API endpoints for metrics access.
 
 type MetricsAPI struct {
-
-	metricStore      *MetricStore
+	metricStore *MetricStore
 
 	prometheusClient v1.API
 
-	config           *APIIntegrationConfig
-
+	config *APIIntegrationConfig
 }
-
-
 
 // AlertsAPI provides REST API endpoints for alert management.
 
 type AlertsAPI struct {
-
 	alertManager *IntelligentAlertManager
 
-	config       *APIIntegrationConfig
-
+	config *APIIntegrationConfig
 }
-
-
 
 // GrafanaClient handles Grafana integration for dashboard management.
 
 type GrafanaClient struct {
+	baseURL string
 
-	baseURL    string
+	apiKey string
 
-	apiKey     string
-
-	orgID      int
+	orgID int
 
 	httpClient *http.Client
-
 }
-
-
 
 // WebhookManager handles webhook notifications to external systems.
 
 type WebhookManager struct {
+	config *WebhookConfig
 
-	config        *WebhookConfig
-
-	endpoints     []*WebhookEndpoint
+	endpoints []*WebhookEndpoint
 
 	deliveryQueue chan *WebhookDelivery
 
-	workers       []*WebhookWorker
-
+	workers []*WebhookWorker
 }
-
-
 
 // WebhookEndpoint represents a configured webhook endpoint.
 
 type WebhookEndpoint struct {
+	ID string `json:"id"`
 
-	ID            string            `json:"id"`
+	Name string `json:"name"`
 
-	Name          string            `json:"name"`
+	URL string `json:"url"`
 
-	URL           string            `json:"url"`
+	Method string `json:"method"`
 
-	Method        string            `json:"method"`
+	Headers map[string]string `json:"headers"`
 
-	Headers       map[string]string `json:"headers"`
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout       time.Duration     `json:"timeout"`
+	RetryAttempts int `json:"retryAttempts"`
 
-	RetryAttempts int               `json:"retryAttempts"`
+	SecretKey string `json:"secretKey"`
 
-	SecretKey     string            `json:"secretKey"`
+	EventTypes []string `json:"eventTypes"`
 
-	EventTypes    []string          `json:"eventTypes"`
-
-	Enabled       bool              `json:"enabled"`
-
+	Enabled bool `json:"enabled"`
 }
-
-
 
 // WebhookDelivery represents a webhook delivery request.
 
 type WebhookDelivery struct {
+	ID string `json:"id"`
 
-	ID              string               `json:"id"`
+	EndpointID string `json:"endpointId"`
 
-	EndpointID      string               `json:"endpointId"`
+	EventType string `json:"eventType"`
 
-	EventType       string               `json:"eventType"`
+	Payload interface{} `json:"payload"`
 
-	Payload         interface{}          `json:"payload"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp       time.Time            `json:"timestamp"`
-
-	Attempt         int                  `json:"attempt"`
+	Attempt int `json:"attempt"`
 
 	ResponseChannel chan *DeliveryResult `json:"-"`
-
 }
 
-
-
 // API Request/Response types.
-
-
 
 // RegressionAnalysisRequest represents a request for regression analysis.
 
 type RegressionAnalysisRequest struct {
+	MetricQuery string `json:"metricQuery"`
 
-	MetricQuery     string           `json:"metricQuery"`
+	TimeRange *TimeRange `json:"timeRange"`
 
-	TimeRange       *TimeRange       `json:"timeRange"`
-
-	BaselineConfig  *BaselineConfig  `json:"baselineConfig"`
+	BaselineConfig *BaselineConfig `json:"baselineConfig"`
 
 	AnalysisOptions *AnalysisOptions `json:"analysisOptions"`
-
 }
-
-
 
 // RegressionAnalysisResponse represents the response from regression analysis.
 
 type RegressionAnalysisResponse struct {
+	AnalysisID string `json:"analysisId"`
 
-	AnalysisID     string                    `json:"analysisId"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp      time.Time                 `json:"timestamp"`
+	Status string `json:"status"`
 
-	Status         string                    `json:"status"`
+	Results *RegressionAnalysisResult `json:"results"`
 
-	Results        *RegressionAnalysisResult `json:"results"`
+	ProcessingTime time.Duration `json:"processingTime"`
 
-	ProcessingTime time.Duration             `json:"processingTime"`
-
-	Error          *APIError                 `json:"error,omitempty"`
-
+	Error *APIError `json:"error,omitempty"`
 }
-
-
 
 // MetricsQueryRequest represents a metrics query request.
 
 type MetricsQueryRequest struct {
-
-	Query     string     `json:"query"`
+	Query string `json:"query"`
 
 	TimeRange *TimeRange `json:"timeRange"`
 
-	Step      string     `json:"step,omitempty"`
-
+	Step string `json:"step,omitempty"`
 }
-
-
 
 // MetricsQueryResponse represents metrics query response.
 
 type MetricsQueryResponse struct {
+	Status string `json:"status"`
 
-	Status         string        `json:"status"`
-
-	Data           *MetricsData  `json:"data"`
+	Data *MetricsData `json:"data"`
 
 	ProcessingTime time.Duration `json:"processingTime"`
 
-	Error          *APIError     `json:"error,omitempty"`
-
+	Error *APIError `json:"error,omitempty"`
 }
-
-
 
 // AlertsListRequest represents a request to list alerts.
 
 type AlertsListRequest struct {
+	Status []string `json:"status,omitempty"`
 
-	Status    []string   `json:"status,omitempty"`
-
-	Severity  []string   `json:"severity,omitempty"`
+	Severity []string `json:"severity,omitempty"`
 
 	TimeRange *TimeRange `json:"timeRange,omitempty"`
 
-	Limit     int        `json:"limit,omitempty"`
+	Limit int `json:"limit,omitempty"`
 
-	Offset    int        `json:"offset,omitempty"`
-
+	Offset int `json:"offset,omitempty"`
 }
-
-
 
 // AlertsListResponse represents the response from listing alerts.
 
 type AlertsListResponse struct {
+	Alerts []*EnrichedAlert `json:"alerts"`
 
-	Alerts         []*EnrichedAlert `json:"alerts"`
+	TotalCount int `json:"totalCount"`
 
-	TotalCount     int              `json:"totalCount"`
+	ProcessingTime time.Duration `json:"processingTime"`
 
-	ProcessingTime time.Duration    `json:"processingTime"`
-
-	Error          *APIError        `json:"error,omitempty"`
-
+	Error *APIError `json:"error,omitempty"`
 }
-
-
 
 // Supporting types.
 
 type TimeRange struct {
-
 	Start time.Time `json:"start"`
 
-	End   time.Time `json:"end"`
-
+	End time.Time `json:"end"`
 }
-
-
 
 // BaselineConfig represents a baselineconfig.
 
 type BaselineConfig struct {
-
-	AutoUpdate     bool          `json:"autoUpdate"`
+	AutoUpdate bool `json:"autoUpdate"`
 
 	UpdateInterval time.Duration `json:"updateInterval"`
 
-	MinDataPoints  int           `json:"minDataPoints"`
-
+	MinDataPoints int `json:"minDataPoints"`
 }
-
-
 
 // AnalysisOptions represents a analysisoptions.
 
 type AnalysisOptions struct {
-
-	IncludeAnomalies    bool `json:"includeAnomalies"`
+	IncludeAnomalies bool `json:"includeAnomalies"`
 
 	IncludeChangePoints bool `json:"includeChangePoints"`
 
-	IncludeForecasting  bool `json:"includeForecasting"`
+	IncludeForecasting bool `json:"includeForecasting"`
 
-	IncludeNWDAF        bool `json:"includeNwdaf"`
-
+	IncludeNWDAF bool `json:"includeNwdaf"`
 }
-
-
 
 // MetricsData represents a metricsdata.
 
 type MetricsData struct {
+	ResultType string `json:"resultType"`
 
-	ResultType string        `json:"resultType"`
-
-	Result     []MetricValue `json:"result"`
-
+	Result []MetricValue `json:"result"`
 }
-
-
 
 // MetricValue represents a metricvalue.
 
 type MetricValue struct {
-
 	Metric map[string]string `json:"metric"`
 
-	Value  []interface{}     `json:"value"`
+	Value []interface{} `json:"value"`
 
-	Values [][]interface{}   `json:"values,omitempty"`
-
+	Values [][]interface{} `json:"values,omitempty"`
 }
-
-
 
 // APIError represents a apierror.
 
 type APIError struct {
-
-	Code    int    `json:"code"`
+	Code int `json:"code"`
 
 	Message string `json:"message"`
 
 	Details string `json:"details,omitempty"`
-
 }
-
-
 
 // NewAPIIntegrationManager creates a new API integration manager.
 
@@ -493,19 +370,14 @@ func NewAPIIntegrationManager(config *APIIntegrationConfig, regressionEngine *In
 
 	}
 
-
-
 	manager := &APIIntegrationManager{
 
-		config:             config,
+		config: config,
 
-		connectedSystems:   make(map[string]*SystemConnection),
+		connectedSystems: make(map[string]*SystemConnection),
 
 		integrationMetrics: NewIntegrationMetrics(),
-
 	}
-
-
 
 	// Initialize Prometheus client if enabled.
 
@@ -514,7 +386,6 @@ func NewAPIIntegrationManager(config *APIIntegrationConfig, regressionEngine *In
 		promClient, err := api.NewClient(api.Config{
 
 			Address: config.PrometheusEndpoint,
-
 		})
 
 		if err != nil {
@@ -527,8 +398,6 @@ func NewAPIIntegrationManager(config *APIIntegrationConfig, regressionEngine *In
 
 	}
 
-
-
 	// Initialize Grafana client if enabled.
 
 	if config.GrafanaEnabled {
@@ -537,29 +406,24 @@ func NewAPIIntegrationManager(config *APIIntegrationConfig, regressionEngine *In
 
 	}
 
-
-
 	// Initialize webhook manager if enabled.
 
 	if config.WebhooksEnabled {
 
 		webhookConfig := &WebhookConfig{
 
-			Endpoints:     parseWebhookEndpoints(config.WebhookEndpoints),
+			Endpoints: parseWebhookEndpoints(config.WebhookEndpoints),
 
-			Timeout:       config.WebhookTimeout,
+			Timeout: config.WebhookTimeout,
 
 			RetryAttempts: config.WebhookRetryAttempts,
 
-			SecretKey:     config.WebhookSecretKey,
-
+			SecretKey: config.WebhookSecretKey,
 		}
 
 		manager.webhookManager = NewWebhookManager(webhookConfig)
 
 	}
-
-
 
 	// Initialize API handlers.
 
@@ -569,21 +433,15 @@ func NewAPIIntegrationManager(config *APIIntegrationConfig, regressionEngine *In
 
 	manager.alertsAPI = NewAlertsAPI(alertManager, config)
 
-
-
 	return manager, nil
 
 }
-
-
 
 // Start initializes and starts all API integrations.
 
 func (aim *APIIntegrationManager) Start(ctx context.Context) error {
 
 	klog.Info("Starting API Integration Manager")
-
-
 
 	// Start HTTP API server if enabled.
 
@@ -597,8 +455,6 @@ func (aim *APIIntegrationManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start webhook manager if enabled.
 
 	if aim.config.WebhooksEnabled && aim.webhookManager != nil {
@@ -606,8 +462,6 @@ func (aim *APIIntegrationManager) Start(ctx context.Context) error {
 		go aim.webhookManager.Start(ctx)
 
 	}
-
-
 
 	// Initialize Grafana dashboards if enabled.
 
@@ -621,19 +475,13 @@ func (aim *APIIntegrationManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Test external connections.
 
 	go aim.testConnections(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // startAPIServer starts the HTTP API server.
 
@@ -645,8 +493,6 @@ func (aim *APIIntegrationManager) startAPIServer(ctx context.Context) error {
 
 	router.Use(gin.Logger(), gin.Recovery())
 
-
-
 	// Add middleware.
 
 	if aim.config.APIRateLimitEnabled {
@@ -655,27 +501,19 @@ func (aim *APIIntegrationManager) startAPIServer(ctx context.Context) error {
 
 	}
 
-
-
 	if aim.config.AuthenticationEnabled {
 
 		router.Use(aim.authMiddleware())
 
 	}
 
-
-
 	// Add CORS middleware.
 
 	router.Use(aim.corsMiddleware())
 
-
-
 	// Register API routes.
 
 	aim.registerAPIRoutes(router)
-
-
 
 	// Start server.
 
@@ -683,13 +521,10 @@ func (aim *APIIntegrationManager) startAPIServer(ctx context.Context) error {
 
 	aim.httpServer = &http.Server{
 
-		Addr:    addr,
+		Addr: addr,
 
 		Handler: router,
-
 	}
-
-
 
 	go func() {
 
@@ -705,8 +540,6 @@ func (aim *APIIntegrationManager) startAPIServer(ctx context.Context) error {
 
 		}
 
-
-
 		if err != nil && err != http.ErrServerClosed {
 
 			klog.Errorf("API server error: %v", err)
@@ -714,8 +547,6 @@ func (aim *APIIntegrationManager) startAPIServer(ctx context.Context) error {
 		}
 
 	}()
-
-
 
 	// Handle graceful shutdown.
 
@@ -727,8 +558,6 @@ func (aim *APIIntegrationManager) startAPIServer(ctx context.Context) error {
 
 		defer cancel()
 
-
-
 		if err := aim.httpServer.Shutdown(shutdownCtx); err != nil {
 
 			klog.Errorf("API server shutdown error: %v", err)
@@ -737,15 +566,11 @@ func (aim *APIIntegrationManager) startAPIServer(ctx context.Context) error {
 
 	}()
 
-
-
 	klog.Infof("API server started on %s", addr)
 
 	return nil
 
 }
-
-
 
 // registerAPIRoutes registers all API routes.
 
@@ -755,13 +580,9 @@ func (aim *APIIntegrationManager) registerAPIRoutes(router *gin.Engine) {
 
 	v1 := router.Group("/api/v1")
 
-
-
 	// Health check.
 
 	v1.GET("/health", aim.handleHealthCheck)
-
-
 
 	// Regression analysis endpoints.
 
@@ -783,8 +604,6 @@ func (aim *APIIntegrationManager) registerAPIRoutes(router *gin.Engine) {
 
 	}
 
-
-
 	// Metrics endpoints.
 
 	metrics := v1.Group("/metrics")
@@ -800,8 +619,6 @@ func (aim *APIIntegrationManager) registerAPIRoutes(router *gin.Engine) {
 		metrics.GET("/label/:label/values", aim.metricsAPI.HandleLabelValues)
 
 	}
-
-
 
 	// Alerts endpoints.
 
@@ -823,8 +640,6 @@ func (aim *APIIntegrationManager) registerAPIRoutes(router *gin.Engine) {
 
 	}
 
-
-
 	// System endpoints.
 
 	system := v1.Group("/system")
@@ -841,11 +656,7 @@ func (aim *APIIntegrationManager) registerAPIRoutes(router *gin.Engine) {
 
 }
 
-
-
 // API Handler implementations.
-
-
 
 // HandleAnalyze processes regression analysis requests.
 
@@ -861,8 +672,6 @@ func (ra *RegressionAPI) HandleAnalyze(c *gin.Context) {
 
 	}
 
-
-
 	// Validate request.
 
 	if err := ra.requestValidator.ValidateAnalysisRequest(&request); err != nil {
@@ -873,41 +682,31 @@ func (ra *RegressionAPI) HandleAnalyze(c *gin.Context) {
 
 	}
 
-
-
 	startTime := time.Now()
-
-
 
 	// Execute analysis (this would integrate with the actual regression engine).
 
 	analysisID := fmt.Sprintf("api-analysis-%d", time.Now().Unix())
 
-
-
 	// For now, return a mock response.
 
 	response := &RegressionAnalysisResponse{
 
-		AnalysisID:     analysisID,
+		AnalysisID: analysisID,
 
-		Timestamp:      time.Now(),
+		Timestamp: time.Now(),
 
-		Status:         "completed",
+		Status: "completed",
 
 		ProcessingTime: time.Since(startTime),
 
-		Results:        &RegressionAnalysisResult{}, // Would be populated by actual analysis
+		Results: &RegressionAnalysisResult{}, // Would be populated by actual analysis
 
 	}
-
-
 
 	c.JSON(http.StatusOK, response)
 
 }
-
-
 
 // HandleQuery processes metrics query requests.
 
@@ -923,19 +722,13 @@ func (ma *MetricsAPI) HandleQuery(c *gin.Context) {
 
 	}
 
-
-
 	startTime := time.Now()
-
-
 
 	// Query Prometheus.
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
 	defer cancel()
-
-
 
 	result, warnings, err := ma.prometheusClient.Query(ctx, request.Query, request.TimeRange.End)
 
@@ -947,33 +740,24 @@ func (ma *MetricsAPI) HandleQuery(c *gin.Context) {
 
 	}
 
-
-
 	if len(warnings) > 0 {
 
 		klog.Warningf("Prometheus query warnings: %v", warnings)
 
 	}
 
-
-
 	response := &MetricsQueryResponse{
 
-		Status:         "success",
+		Status: "success",
 
-		Data:           convertPrometheusResult(result),
+		Data: convertPrometheusResult(result),
 
 		ProcessingTime: time.Since(startTime),
-
 	}
-
-
 
 	c.JSON(http.StatusOK, response)
 
 }
-
-
 
 // HandleList processes alert listing requests.
 
@@ -983,23 +767,17 @@ func (aa *AlertsAPI) HandleList(c *gin.Context) {
 
 	var request AlertsListRequest
 
-
-
 	if statuses := c.QueryArray("status"); len(statuses) > 0 {
 
 		request.Status = statuses
 
 	}
 
-
-
 	if severities := c.QueryArray("severity"); len(severities) > 0 {
 
 		request.Severity = severities
 
 	}
-
-
 
 	if limitStr := c.Query("limit"); limitStr != "" {
 
@@ -1011,8 +789,6 @@ func (aa *AlertsAPI) HandleList(c *gin.Context) {
 
 	}
 
-
-
 	if offsetStr := c.Query("offset"); offsetStr != "" {
 
 		if offset, err := strconv.Atoi(offsetStr); err == nil {
@@ -1023,8 +799,6 @@ func (aa *AlertsAPI) HandleList(c *gin.Context) {
 
 	}
 
-
-
 	// Default limit.
 
 	if request.Limit == 0 {
@@ -1033,11 +807,7 @@ func (aa *AlertsAPI) HandleList(c *gin.Context) {
 
 	}
 
-
-
 	startTime := time.Now()
-
-
 
 	// Get alerts from alert manager (mock implementation).
 
@@ -1045,29 +815,20 @@ func (aa *AlertsAPI) HandleList(c *gin.Context) {
 
 	totalCount := 0
 
-
-
 	response := &AlertsListResponse{
 
-		Alerts:         alerts,
+		Alerts: alerts,
 
-		TotalCount:     totalCount,
+		TotalCount: totalCount,
 
 		ProcessingTime: time.Since(startTime),
-
 	}
-
-
 
 	c.JSON(http.StatusOK, response)
 
 }
 
-
-
 // Middleware implementations.
-
-
 
 func (aim *APIIntegrationManager) rateLimitMiddleware() gin.HandlerFunc {
 
@@ -1082,8 +843,6 @@ func (aim *APIIntegrationManager) rateLimitMiddleware() gin.HandlerFunc {
 	}
 
 }
-
-
 
 func (aim *APIIntegrationManager) authMiddleware() gin.HandlerFunc {
 
@@ -1113,8 +872,6 @@ func (aim *APIIntegrationManager) authMiddleware() gin.HandlerFunc {
 
 }
 
-
-
 func (aim *APIIntegrationManager) corsMiddleware() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
@@ -1125,8 +882,6 @@ func (aim *APIIntegrationManager) corsMiddleware() gin.HandlerFunc {
 
 		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
 
-
-
 		if c.Request.Method == "OPTIONS" {
 
 			c.AbortWithStatus(204)
@@ -1135,41 +890,31 @@ func (aim *APIIntegrationManager) corsMiddleware() gin.HandlerFunc {
 
 		}
 
-
-
 		c.Next()
 
 	}
 
 }
 
-
-
 // System handlers.
-
-
 
 func (aim *APIIntegrationManager) handleHealthCheck(c *gin.Context) {
 
 	health := gin.H{
 
-		"status":    "healthy",
+		"status": "healthy",
 
 		"timestamp": time.Now(),
 
-		"version":   "1.0.0",
+		"version": "1.0.0",
 
 		"services": gin.H{
 
 			"regression_engine": "healthy",
 
-			"alert_manager":     "healthy",
-
+			"alert_manager": "healthy",
 		},
-
 	}
-
-
 
 	// Check external connections.
 
@@ -1178,8 +923,6 @@ func (aim *APIIntegrationManager) handleHealthCheck(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 		defer cancel()
-
-
 
 		if _, _, err := aim.prometheusClient.Query(ctx, "up", time.Now()); err != nil {
 
@@ -1193,85 +936,67 @@ func (aim *APIIntegrationManager) handleHealthCheck(c *gin.Context) {
 
 	}
 
-
-
 	c.JSON(http.StatusOK, health)
 
 }
-
-
 
 func (aim *APIIntegrationManager) handleSystemInfo(c *gin.Context) {
 
 	info := gin.H{
 
-		"version":    "1.0.0",
+		"version": "1.0.0",
 
 		"build_time": "2024-08-08T10:00:00Z",
 
 		"features": gin.H{
 
-			"regression_detection":   true,
+			"regression_detection": true,
 
-			"anomaly_detection":      true,
+			"anomaly_detection": true,
 
 			"change_point_detection": true,
 
-			"nwdaf_analytics":        true,
+			"nwdaf_analytics": true,
 
-			"intelligent_alerting":   true,
-
+			"intelligent_alerting": true,
 		},
 
 		"integrations": gin.H{
 
 			"prometheus": aim.config.PrometheusEnabled,
 
-			"grafana":    aim.config.GrafanaEnabled,
+			"grafana": aim.config.GrafanaEnabled,
 
-			"webhooks":   aim.config.WebhooksEnabled,
-
+			"webhooks": aim.config.WebhooksEnabled,
 		},
-
 	}
-
-
 
 	c.JSON(http.StatusOK, info)
 
 }
 
-
-
 func (aim *APIIntegrationManager) handleConnectionStatus(c *gin.Context) {
 
 	status := make(map[string]interface{})
-
-
 
 	for name, conn := range aim.connectedSystems {
 
 		status[name] = gin.H{
 
-			"connected":     conn.Connected,
+			"connected": conn.Connected,
 
-			"last_check":    conn.LastCheck,
+			"last_check": conn.LastCheck,
 
 			"response_time": conn.ResponseTime,
 
-			"error":         conn.LastError,
-
+			"error": conn.LastError,
 		}
 
 	}
 
-
-
 	c.JSON(http.StatusOK, gin.H{"connections": status})
 
 }
-
-
 
 func (aim *APIIntegrationManager) handleTestWebhook(c *gin.Context) {
 
@@ -1283,21 +1008,16 @@ func (aim *APIIntegrationManager) handleTestWebhook(c *gin.Context) {
 
 	}
 
-
-
 	// Send test webhook.
 
 	testPayload := map[string]interface{}{
 
 		"event_type": "test",
 
-		"message":    "Test webhook from Nephoran Intent Operator",
+		"message": "Test webhook from Nephoran Intent Operator",
 
-		"timestamp":  time.Now(),
-
+		"timestamp": time.Now(),
 	}
-
-
 
 	if err := aim.webhookManager.SendWebhook("test", testPayload); err != nil {
 
@@ -1307,17 +1027,11 @@ func (aim *APIIntegrationManager) handleTestWebhook(c *gin.Context) {
 
 	}
 
-
-
 	c.JSON(http.StatusOK, gin.H{"message": "Test webhook sent successfully"})
 
 }
 
-
-
 // Webhook manager implementation.
-
-
 
 // NewWebhookManager performs newwebhookmanager operation.
 
@@ -1325,25 +1039,20 @@ func NewWebhookManager(config *WebhookConfig) *WebhookManager {
 
 	return &WebhookManager{
 
-		config:        config,
+		config: config,
 
-		endpoints:     config.Endpoints,
+		endpoints: config.Endpoints,
 
 		deliveryQueue: make(chan *WebhookDelivery, 1000),
-
 	}
 
 }
-
-
 
 // Start performs start operation.
 
 func (wm *WebhookManager) Start(ctx context.Context) {
 
 	klog.Info("Starting webhook manager")
-
-
 
 	// Start worker goroutines.
 
@@ -1359,8 +1068,6 @@ func (wm *WebhookManager) Start(ctx context.Context) {
 
 }
 
-
-
 // SendWebhook performs sendwebhook operation.
 
 func (wm *WebhookManager) SendWebhook(eventType string, payload interface{}) error {
@@ -1373,8 +1080,6 @@ func (wm *WebhookManager) SendWebhook(eventType string, payload interface{}) err
 
 		}
 
-
-
 		// Check if endpoint accepts this event type.
 
 		if !wm.acceptsEventType(endpoint, eventType) {
@@ -1383,27 +1088,22 @@ func (wm *WebhookManager) SendWebhook(eventType string, payload interface{}) err
 
 		}
 
-
-
 		delivery := &WebhookDelivery{
 
-			ID:              fmt.Sprintf("webhook-%d", time.Now().UnixNano()),
+			ID: fmt.Sprintf("webhook-%d", time.Now().UnixNano()),
 
-			EndpointID:      endpoint.ID,
+			EndpointID: endpoint.ID,
 
-			EventType:       eventType,
+			EventType: eventType,
 
-			Payload:         payload,
+			Payload: payload,
 
-			Timestamp:       time.Now(),
+			Timestamp: time.Now(),
 
-			Attempt:         1,
+			Attempt: 1,
 
 			ResponseChannel: make(chan *DeliveryResult, 1),
-
 		}
-
-
 
 		select {
 
@@ -1435,65 +1135,54 @@ func (wm *WebhookManager) SendWebhook(eventType string, payload interface{}) err
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Helper functions.
-
-
 
 func getDefaultAPIIntegrationConfig() *APIIntegrationConfig {
 
 	return &APIIntegrationConfig{
 
-		EnableAPIServer:           true,
+		EnableAPIServer: true,
 
-		APIServerPort:             8080,
+		APIServerPort: 8080,
 
-		APIServerHost:             "0.0.0.0",
+		APIServerHost: "0.0.0.0",
 
-		EnableTLS:                 false,
+		EnableTLS: false,
 
-		PrometheusEnabled:         true,
+		PrometheusEnabled: true,
 
-		PrometheusEndpoint:        "http://prometheus:9090",
+		PrometheusEndpoint: "http://prometheus:9090",
 
-		PrometheusTimeout:         30 * time.Second,
+		PrometheusTimeout: 30 * time.Second,
 
-		PrometheusRetryAttempts:   3,
+		PrometheusRetryAttempts: 3,
 
-		GrafanaEnabled:            false,
+		GrafanaEnabled: false,
 
-		WebhooksEnabled:           false,
+		WebhooksEnabled: false,
 
-		WebhookTimeout:            30 * time.Second,
+		WebhookTimeout: 30 * time.Second,
 
-		WebhookRetryAttempts:      3,
+		WebhookRetryAttempts: 3,
 
-		APIRateLimitEnabled:       true,
+		APIRateLimitEnabled: true,
 
-		RequestsPerMinute:         100,
+		RequestsPerMinute: 100,
 
-		BurstLimit:                20,
+		BurstLimit: 20,
 
-		AuthenticationEnabled:     false,
+		AuthenticationEnabled: false,
 
 		ExternalMonitoringEnabled: false,
-
 	}
 
 }
 
-
-
 // Placeholder implementations for supporting components.
-
-
 
 // NewRegressionAPI performs newregressionapi operation.
 
@@ -1501,17 +1190,14 @@ func NewRegressionAPI(engine *IntelligentRegressionEngine, config *APIIntegratio
 
 	return &RegressionAPI{
 
-		engine:           engine,
+		engine: engine,
 
-		config:           config,
+		config: config,
 
 		requestValidator: NewRequestValidator(),
-
 	}
 
 }
-
-
 
 // NewMetricsAPI performs newmetricsapi operation.
 
@@ -1521,13 +1207,10 @@ func NewMetricsAPI(prometheusClient v1.API, config *APIIntegrationConfig) *Metri
 
 		prometheusClient: prometheusClient,
 
-		config:           config,
-
+		config: config,
 	}
 
 }
-
-
 
 // NewAlertsAPI performs newalertsapi operation.
 
@@ -1537,13 +1220,10 @@ func NewAlertsAPI(alertManager *IntelligentAlertManager, config *APIIntegrationC
 
 		alertManager: alertManager,
 
-		config:       config,
-
+		config: config,
 	}
 
 }
-
-
 
 // NewGrafanaClient performs newgrafanaclient operation.
 
@@ -1551,19 +1231,16 @@ func NewGrafanaClient(baseURL, apiKey string, orgID int) *GrafanaClient {
 
 	return &GrafanaClient{
 
-		baseURL:    baseURL,
+		baseURL: baseURL,
 
-		apiKey:     apiKey,
+		apiKey: apiKey,
 
-		orgID:      orgID,
+		orgID: orgID,
 
 		httpClient: &http.Client{Timeout: 30 * time.Second},
-
 	}
 
 }
-
-
 
 // NewIntegrationMetrics performs newintegrationmetrics operation.
 
@@ -1573,8 +1250,6 @@ func NewIntegrationMetrics() *IntegrationMetrics {
 
 }
 
-
-
 // NewRequestValidator performs newrequestvalidator operation.
 
 func NewRequestValidator() *RequestValidator {
@@ -1582,8 +1257,6 @@ func NewRequestValidator() *RequestValidator {
 	return &RequestValidator{}
 
 }
-
-
 
 func parseWebhookEndpoints(endpoints []string) []*WebhookEndpoint {
 
@@ -1593,20 +1266,19 @@ func parseWebhookEndpoints(endpoints []string) []*WebhookEndpoint {
 
 		parsed[i] = &WebhookEndpoint{
 
-			ID:      fmt.Sprintf("webhook-%d", i),
+			ID: fmt.Sprintf("webhook-%d", i),
 
-			Name:    fmt.Sprintf("Webhook %d", i+1),
+			Name: fmt.Sprintf("Webhook %d", i+1),
 
-			URL:     endpoint,
+			URL: endpoint,
 
-			Method:  "POST",
+			Method: "POST",
 
 			Headers: make(map[string]string),
 
 			Timeout: 30 * time.Second,
 
 			Enabled: true,
-
 		}
 
 	}
@@ -1614,8 +1286,6 @@ func parseWebhookEndpoints(endpoints []string) []*WebhookEndpoint {
 	return parsed
 
 }
-
-
 
 func convertPrometheusResult(result model.Value) *MetricsData {
 
@@ -1625,13 +1295,11 @@ func convertPrometheusResult(result model.Value) *MetricsData {
 
 		ResultType: result.Type().String(),
 
-		Result:     []MetricValue{}, // Would be populated with actual conversion
+		Result: []MetricValue{}, // Would be populated with actual conversion
 
 	}
 
 }
-
-
 
 func (aim *APIIntegrationManager) createGrafanaDashboards(ctx context.Context) error {
 
@@ -1641,8 +1309,6 @@ func (aim *APIIntegrationManager) createGrafanaDashboards(ctx context.Context) e
 
 	}
 
-
-
 	// Create regression detection dashboard.
 
 	dashboard := aim.buildRegressionDashboard()
@@ -1650,8 +1316,6 @@ func (aim *APIIntegrationManager) createGrafanaDashboards(ctx context.Context) e
 	return aim.grafanaClient.CreateDashboard(dashboard)
 
 }
-
-
 
 func (aim *APIIntegrationManager) buildRegressionDashboard() *GrafanaDashboard {
 
@@ -1663,31 +1327,25 @@ func (aim *APIIntegrationManager) buildRegressionDashboard() *GrafanaDashboard {
 
 			{
 
-				Title:   "Intent Processing Latency",
+				Title: "Intent Processing Latency",
 
-				Type:    "graph",
+				Type: "graph",
 
 				Targets: []string{"histogram_quantile(0.95, nephoran_networkintent_duration_seconds)"},
-
 			},
 
 			{
 
-				Title:   "Throughput",
+				Title: "Throughput",
 
-				Type:    "graph",
+				Type: "graph",
 
 				Targets: []string{"rate(nephoran_networkintent_total[1m]) * 60"},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // CreateDashboard performs createdashboard operation.
 
@@ -1700,20 +1358,13 @@ func (gc *GrafanaClient) CreateDashboard(dashboard *GrafanaDashboard) error {
 		"dashboard": dashboard,
 
 		"overwrite": true,
-
 	}
 
-
-
 	jsonPayload, _ := json.Marshal(payload)
-
-
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
 	defer cancel()
-
-
 
 	req, err := http.NewRequestWithContext(ctx, "POST", gc.baseURL+"/api/dashboards/db", bytes.NewBuffer(jsonPayload))
 
@@ -1723,13 +1374,9 @@ func (gc *GrafanaClient) CreateDashboard(dashboard *GrafanaDashboard) error {
 
 	}
 
-
-
 	req.Header.Set("Authorization", "Bearer "+gc.apiKey)
 
 	req.Header.Set("Content-Type", "application/json")
-
-
 
 	resp, err := gc.httpClient.Do(req)
 
@@ -1741,21 +1388,15 @@ func (gc *GrafanaClient) CreateDashboard(dashboard *GrafanaDashboard) error {
 
 	defer resp.Body.Close()
 
-
-
 	return nil
 
 }
-
-
 
 func (aim *APIIntegrationManager) testConnections(ctx context.Context) {
 
 	ticker := time.NewTicker(5 * time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1775,8 +1416,6 @@ func (aim *APIIntegrationManager) testConnections(ctx context.Context) {
 
 }
 
-
-
 func (aim *APIIntegrationManager) performConnectionTests() {
 
 	// Test Prometheus connection.
@@ -1786,8 +1425,6 @@ func (aim *APIIntegrationManager) performConnectionTests() {
 		aim.testPrometheusConnection()
 
 	}
-
-
 
 	// Test Grafana connection.
 
@@ -1799,15 +1436,11 @@ func (aim *APIIntegrationManager) performConnectionTests() {
 
 }
 
-
-
 func (aim *APIIntegrationManager) testPrometheusConnection() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 	defer cancel()
-
-
 
 	start := time.Now()
 
@@ -1815,23 +1448,18 @@ func (aim *APIIntegrationManager) testPrometheusConnection() {
 
 	duration := time.Since(start)
 
-
-
 	conn := &SystemConnection{
 
-		Name:         "prometheus",
+		Name: "prometheus",
 
-		Connected:    err == nil,
+		Connected: err == nil,
 
-		LastCheck:    time.Now(),
+		LastCheck: time.Now(),
 
 		ResponseTime: duration,
 
-		LastError:    "",
-
+		LastError: "",
 	}
-
-
 
 	if err != nil {
 
@@ -1839,13 +1467,9 @@ func (aim *APIIntegrationManager) testPrometheusConnection() {
 
 	}
 
-
-
 	aim.connectedSystems["prometheus"] = conn
 
 }
-
-
 
 func (aim *APIIntegrationManager) testGrafanaConnection() {
 
@@ -1855,21 +1479,16 @@ func (aim *APIIntegrationManager) testGrafanaConnection() {
 
 	connected := err == nil && resp != nil && resp.StatusCode == 200
 
-
-
 	conn := &SystemConnection{
 
-		Name:      "grafana",
+		Name: "grafana",
 
 		Connected: connected,
 
 		LastCheck: time.Now(),
 
 		LastError: "",
-
 	}
-
-
 
 	if err != nil {
 
@@ -1877,21 +1496,15 @@ func (aim *APIIntegrationManager) testGrafanaConnection() {
 
 	}
 
-
-
 	if resp != nil {
 
 		resp.Body.Close()
 
 	}
 
-
-
 	aim.connectedSystems["grafana"] = conn
 
 }
-
-
 
 func (wm *WebhookManager) acceptsEventType(endpoint *WebhookEndpoint, eventType string) bool {
 
@@ -1900,8 +1513,6 @@ func (wm *WebhookManager) acceptsEventType(endpoint *WebhookEndpoint, eventType 
 		return true // Accept all event types if none specified
 
 	}
-
-
 
 	for _, acceptedType := range endpoint.EventTypes {
 
@@ -1913,17 +1524,11 @@ func (wm *WebhookManager) acceptsEventType(endpoint *WebhookEndpoint, eventType 
 
 	}
 
-
-
 	return false
 
 }
 
-
-
 // Additional placeholder implementations.
-
-
 
 // ValidateAnalysisRequest performs validateanalysisrequest operation.
 
@@ -1939,8 +1544,6 @@ func (rv *RequestValidator) ValidateAnalysisRequest(request *RegressionAnalysisR
 
 }
 
-
-
 // Continue with other handler implementations...
 
 func (ra *RegressionAPI) HandleGetStatus(c *gin.Context) {
@@ -1953,8 +1556,6 @@ func (ra *RegressionAPI) HandleGetStatus(c *gin.Context) {
 
 }
 
-
-
 // HandleGetHistory performs handlegethistory operation.
 
 func (ra *RegressionAPI) HandleGetHistory(c *gin.Context) {
@@ -1964,8 +1565,6 @@ func (ra *RegressionAPI) HandleGetHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"history": []string{}})
 
 }
-
-
 
 // HandleCreateBaseline performs handlecreatebaseline operation.
 
@@ -1977,8 +1576,6 @@ func (ra *RegressionAPI) HandleCreateBaseline(c *gin.Context) {
 
 }
 
-
-
 // HandleUpdateBaseline performs handleupdatebaseline operation.
 
 func (ra *RegressionAPI) HandleUpdateBaseline(c *gin.Context) {
@@ -1988,8 +1585,6 @@ func (ra *RegressionAPI) HandleUpdateBaseline(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "baseline updated"})
 
 }
-
-
 
 // HandleListBaselines performs handlelistbaselines operation.
 
@@ -2001,8 +1596,6 @@ func (ra *RegressionAPI) HandleListBaselines(c *gin.Context) {
 
 }
 
-
-
 // HandleQueryRange performs handlequeryrange operation.
 
 func (ma *MetricsAPI) HandleQueryRange(c *gin.Context) {
@@ -2012,8 +1605,6 @@ func (ma *MetricsAPI) HandleQueryRange(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": []string{}})
 
 }
-
-
 
 // HandleLabels performs handlelabels operation.
 
@@ -2025,8 +1616,6 @@ func (ma *MetricsAPI) HandleLabels(c *gin.Context) {
 
 }
 
-
-
 // HandleLabelValues performs handlelabelvalues operation.
 
 func (ma *MetricsAPI) HandleLabelValues(c *gin.Context) {
@@ -2036,8 +1625,6 @@ func (ma *MetricsAPI) HandleLabelValues(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"values": []string{}})
 
 }
-
-
 
 // HandleGet performs handleget operation.
 
@@ -2051,8 +1638,6 @@ func (aa *AlertsAPI) HandleGet(c *gin.Context) {
 
 }
 
-
-
 // HandleAcknowledge performs handleacknowledge operation.
 
 func (aa *AlertsAPI) HandleAcknowledge(c *gin.Context) {
@@ -2062,8 +1647,6 @@ func (aa *AlertsAPI) HandleAcknowledge(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "alert acknowledged"})
 
 }
-
-
 
 // HandleResolve performs handleresolve operation.
 
@@ -2075,8 +1658,6 @@ func (aa *AlertsAPI) HandleResolve(c *gin.Context) {
 
 }
 
-
-
 // HandleHistory performs handlehistory operation.
 
 func (aa *AlertsAPI) HandleHistory(c *gin.Context) {
@@ -2086,8 +1667,6 @@ func (aa *AlertsAPI) HandleHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"history": []string{}})
 
 }
-
-
 
 // HandleSuppress performs handlesuppress operation.
 
@@ -2099,30 +1678,23 @@ func (aa *AlertsAPI) HandleSuppress(c *gin.Context) {
 
 }
 
-
-
 // Supporting types.
 
 type SystemConnection struct {
+	Name string `json:"name"`
 
-	Name         string        `json:"name"`
+	Connected bool `json:"connected"`
 
-	Connected    bool          `json:"connected"`
-
-	LastCheck    time.Time     `json:"lastCheck"`
+	LastCheck time.Time `json:"lastCheck"`
 
 	ResponseTime time.Duration `json:"responseTime"`
 
-	LastError    string        `json:"lastError"`
-
+	LastError string `json:"lastError"`
 }
-
-
 
 // IntegrationMetrics represents a integrationmetrics.
 
 type (
-
 	IntegrationMetrics struct{}
 
 	// RequestValidator represents a requestvalidator.
@@ -2132,70 +1704,49 @@ type (
 	// WebhookConfig represents a webhookconfig.
 
 	WebhookConfig struct {
+		Endpoints []*WebhookEndpoint
 
-		Endpoints     []*WebhookEndpoint
-
-		Timeout       time.Duration
+		Timeout time.Duration
 
 		RetryAttempts int
 
-		SecretKey     string
-
+		SecretKey string
 	}
-
 )
-
-
 
 // WebhookWorker represents a webhookworker.
 
 type WebhookWorker struct {
-
-	ID      int
+	ID int
 
 	Manager *WebhookManager
-
 }
-
-
 
 // DeliveryResult represents a deliveryresult.
 
 type DeliveryResult struct {
-
 	Success bool
 
-	Error   error
-
+	Error error
 }
-
-
 
 // GrafanaDashboard represents a grafanadashboard.
 
 type GrafanaDashboard struct {
-
-	Title  string          `json:"title"`
+	Title string `json:"title"`
 
 	Panels []*GrafanaPanel `json:"panels"`
-
 }
-
-
 
 // GrafanaPanel represents a grafanapanel.
 
 type GrafanaPanel struct {
+	Title string `json:"title"`
 
-	Title   string   `json:"title"`
-
-	Type    string   `json:"type"`
+	Type string `json:"type"`
 
 	Targets []string `json:"targets"`
-
 }
-
-
 
 // NewWebhookWorker performs newwebhookworker operation.
 
@@ -2204,8 +1755,6 @@ func NewWebhookWorker(id int, manager *WebhookManager) *WebhookWorker {
 	return &WebhookWorker{ID: id, Manager: manager}
 
 }
-
-
 
 // Start performs start operation.
 
@@ -2231,8 +1780,6 @@ func (ww *WebhookWorker) Start(ctx context.Context) {
 
 }
 
-
-
 func (ww *WebhookWorker) processDelivery(delivery *WebhookDelivery) *DeliveryResult {
 
 	// Mock webhook delivery processing.
@@ -2241,9 +1788,7 @@ func (ww *WebhookWorker) processDelivery(delivery *WebhookDelivery) *DeliveryRes
 
 		Success: true,
 
-		Error:   nil,
-
+		Error: nil,
 	}
 
 }
-

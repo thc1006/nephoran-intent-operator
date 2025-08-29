@@ -1,75 +1,50 @@
-
 package intent
 
-
-
 import (
-
 	"encoding/json"
-
 	"errors"
-
 	"fmt"
-
 	"log/slog"
-
 	"os"
-
 	"path/filepath"
-
 	"strings"
-
 	"sync/atomic"
-
 	"time"
 
-
-
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
-
 )
-
-
 
 // ValidatorMetrics tracks validation statistics for security monitoring.
 
 type ValidatorMetrics struct {
-
-	TotalValidations    int64
+	TotalValidations int64
 
 	ValidationSuccesses int64
 
-	ValidationErrors    int64
+	ValidationErrors int64
 
-	SchemaLoadFailures  int64
+	SchemaLoadFailures int64
 
-	LastValidationTime  time.Time
-
+	LastValidationTime time.Time
 }
-
-
 
 // Validator handles JSON schema validation for scaling intents.
 
 type Validator struct {
+	schema *jsonschema.Schema
 
-	schema       *jsonschema.Schema
+	schemaURI string
 
-	schemaURI    string
-
-	schemaPath   string
+	schemaPath string
 
 	schemaLoader *jsonschema.Schema // For compatibility with tests (points to same as schema)
 
-	logger       *slog.Logger
+	logger *slog.Logger
 
-	metrics      atomic.Pointer[ValidatorMetrics]
+	metrics atomic.Pointer[ValidatorMetrics]
 
-	initialized  atomic.Bool
-
+	initialized atomic.Bool
 }
-
-
 
 // NewValidator creates a new validator using the schema from docs/contracts/intent.schema.json.
 
@@ -79,13 +54,9 @@ func NewValidator(projectRoot string) (*Validator, error) {
 
 	schemaPath := filepath.Join(projectRoot, "docs", "contracts", "intent.schema.json")
 
-
-
 	// Log validation initialization for security audit.
 
 	logger.Info("initializing schema validator", "schema_path", schemaPath)
-
-
 
 	// Read the schema file.
 
@@ -105,8 +76,6 @@ func NewValidator(projectRoot string) (*Validator, error) {
 
 	}
 
-
-
 	// Parse the schema JSON to validate it's well-formed.
 
 	var schemaObj map[string]interface{}
@@ -125,15 +94,11 @@ func NewValidator(projectRoot string) (*Validator, error) {
 
 	}
 
-
-
 	// Try to compile the schema.
 
 	compiler := jsonschema.NewCompiler()
 
 	schemaURI := "https://example.com/schemas/intent.schema.json"
-
-
 
 	// Load the schema as a resource - parse JSON first.
 
@@ -149,15 +114,11 @@ func NewValidator(projectRoot string) (*Validator, error) {
 
 	}
 
-
-
 	if err := compiler.AddResource(schemaURI, schemaInterface); err != nil {
 
 		return nil, fmt.Errorf("failed to add schema resource: %w", err)
 
 	}
-
-
 
 	schema, err := compiler.Compile(schemaURI)
 
@@ -179,23 +140,18 @@ func NewValidator(projectRoot string) (*Validator, error) {
 
 	}
 
-
-
 	v := &Validator{
 
-		schema:       schema,
+		schema: schema,
 
-		schemaURI:    schemaURI,
+		schemaURI: schemaURI,
 
-		schemaPath:   schemaPath,
+		schemaPath: schemaPath,
 
 		schemaLoader: schema, // For test compatibility
 
-		logger:       logger,
-
+		logger: logger,
 	}
-
-
 
 	// Initialize metrics.
 
@@ -203,21 +159,15 @@ func NewValidator(projectRoot string) (*Validator, error) {
 
 	v.initialized.Store(true)
 
-
-
 	logger.Info("schema validator initialized successfully",
 
 		"schema_uri", schemaURI,
 
 		"schema_path", schemaPath)
 
-
-
 	return v, nil
 
 }
-
-
 
 // ValidateIntent validates a ScalingIntent against the JSON schema.
 
@@ -234,8 +184,6 @@ func (v *Validator) ValidateIntent(intent *ScalingIntent) []ValidationError {
 		metrics.LastValidationTime = time.Now()
 
 	}
-
-
 
 	// Schema should never be nil if validator was created successfully.
 
@@ -257,15 +205,12 @@ func (v *Validator) ValidateIntent(intent *ScalingIntent) []ValidationError {
 
 		return []ValidationError{{
 
-			Field:   "validator",
+			Field: "validator",
 
 			Message: "internal error: schema validator not initialized",
-
 		}}
 
 	}
-
-
 
 	// Convert intent to JSON for validation.
 
@@ -275,15 +220,12 @@ func (v *Validator) ValidateIntent(intent *ScalingIntent) []ValidationError {
 
 		return []ValidationError{{
 
-			Field:   "json",
+			Field: "json",
 
 			Message: fmt.Sprintf("failed to marshal intent: %v", err),
-
 		}}
 
 	}
-
-
 
 	// Parse JSON.
 
@@ -293,15 +235,12 @@ func (v *Validator) ValidateIntent(intent *ScalingIntent) []ValidationError {
 
 		return []ValidationError{{
 
-			Field:   "json",
+			Field: "json",
 
 			Message: fmt.Sprintf("failed to unmarshal intent: %v", err),
-
 		}}
 
 	}
-
-
 
 	// Validate against schema.
 
@@ -325,8 +264,6 @@ func (v *Validator) ValidateIntent(intent *ScalingIntent) []ValidationError {
 
 	}
 
-
-
 	if metrics != nil {
 
 		atomic.AddInt64(&metrics.ValidationSuccesses, 1)
@@ -336,8 +273,6 @@ func (v *Validator) ValidateIntent(intent *ScalingIntent) []ValidationError {
 	return nil
 
 }
-
-
 
 // ValidateJSON validates raw JSON data against the schema.
 
@@ -355,8 +290,6 @@ func (v *Validator) ValidateJSON(data []byte) []ValidationError {
 
 	}
 
-
-
 	var obj interface{}
 
 	if err := json.Unmarshal(data, &obj); err != nil {
@@ -369,15 +302,12 @@ func (v *Validator) ValidateJSON(data []byte) []ValidationError {
 
 		return []ValidationError{{
 
-			Field:   "json",
+			Field: "json",
 
 			Message: fmt.Sprintf("invalid JSON: %v", err),
-
 		}}
 
 	}
-
-
 
 	// Schema should never be nil if validator was created successfully.
 
@@ -399,15 +329,12 @@ func (v *Validator) ValidateJSON(data []byte) []ValidationError {
 
 		return []ValidationError{{
 
-			Field:   "validator",
+			Field: "validator",
 
 			Message: "internal error: schema validator not initialized",
-
 		}}
 
 	}
-
-
 
 	if err := v.schema.Validate(obj); err != nil {
 
@@ -423,8 +350,6 @@ func (v *Validator) ValidateJSON(data []byte) []ValidationError {
 
 	}
 
-
-
 	if metrics != nil {
 
 		atomic.AddInt64(&metrics.ValidationSuccesses, 1)
@@ -435,15 +360,11 @@ func (v *Validator) ValidateJSON(data []byte) []ValidationError {
 
 }
 
-
-
 // convertValidationError converts jsonschema validation errors to our ValidationError type.
 
 func (v *Validator) convertValidationError(err error) []ValidationError {
 
 	var validationErrors []ValidationError
-
-
 
 	var validationErr *jsonschema.ValidationError
 	if errors.As(err, &validationErr) {
@@ -464,17 +385,13 @@ func (v *Validator) convertValidationError(err error) []ValidationError {
 
 		}
 
-
-
 		validationErrors = append(validationErrors, ValidationError{
 
-			Field:   fieldPath,
+			Field: fieldPath,
 
 			Message: err.Error(), // Use the error string representation
 
 		})
-
-
 
 		// Add any nested validation errors.
 
@@ -504,21 +421,16 @@ func (v *Validator) convertValidationError(err error) []ValidationError {
 
 		validationErrors = append(validationErrors, ValidationError{
 
-			Field:   "unknown",
+			Field: "unknown",
 
 			Message: err.Error(),
-
 		})
 
 	}
 
-
-
 	return validationErrors
 
 }
-
-
 
 // GetSchemaURI returns the schema URI used by this validator.
 
@@ -528,8 +440,6 @@ func (v *Validator) GetSchemaURI() string {
 
 }
 
-
-
 // IsHealthy returns true if the validator is properly initialized and ready.
 
 func (v *Validator) IsHealthy() bool {
@@ -537,8 +447,6 @@ func (v *Validator) IsHealthy() bool {
 	return v != nil && v.schema != nil && v.initialized.Load()
 
 }
-
-
 
 // GetMetrics returns the current validation metrics for monitoring.
 
@@ -554,21 +462,18 @@ func (v *Validator) GetMetrics() ValidatorMetrics {
 
 	return ValidatorMetrics{
 
-		TotalValidations:    atomic.LoadInt64(&metrics.TotalValidations),
+		TotalValidations: atomic.LoadInt64(&metrics.TotalValidations),
 
 		ValidationSuccesses: atomic.LoadInt64(&metrics.ValidationSuccesses),
 
-		ValidationErrors:    atomic.LoadInt64(&metrics.ValidationErrors),
+		ValidationErrors: atomic.LoadInt64(&metrics.ValidationErrors),
 
-		SchemaLoadFailures:  atomic.LoadInt64(&metrics.SchemaLoadFailures),
+		SchemaLoadFailures: atomic.LoadInt64(&metrics.SchemaLoadFailures),
 
-		LastValidationTime:  metrics.LastValidationTime,
-
+		LastValidationTime: metrics.LastValidationTime,
 	}
 
 }
-
-
 
 // GetSchemaInfo returns information about the loaded schema for diagnostics.
 
@@ -589,4 +494,3 @@ func (v *Validator) GetSchemaInfo() map[string]interface{} {
 	return info
 
 }
-

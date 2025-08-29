@@ -1,185 +1,142 @@
-
 package performance
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"math/rand"
-
 	"os"
-
 	"path/filepath"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"k8s.io/klog/v2"
-
 )
-
-
 
 // PerformanceTestRunner orchestrates comprehensive performance testing.
 
 type PerformanceTestRunner struct {
-
 	benchmarkSuite *BenchmarkSuite
 
 	loadTestRunner *LoadTestRunner
 
-	flameGraphGen  *FlameGraphGenerator
+	flameGraphGen *FlameGraphGenerator
 
-	profiler       *Profiler
+	profiler *Profiler
 
-	config         *PerformanceTestConfig
+	config *PerformanceTestConfig
 
-	results        *PerformanceTestResults
+	results *PerformanceTestResults
 
-	outputDir      string
+	outputDir string
 
-	mu             sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // PerformanceTestConfig defines configuration for performance tests.
 
 type PerformanceTestConfig struct {
+	EnableProfiling bool
 
-	EnableProfiling    bool
+	EnableFlameGraphs bool
 
-	EnableFlameGraphs  bool
+	EnableLoadTests bool
 
-	EnableLoadTests    bool
+	EnableBenchmarks bool
 
-	EnableBenchmarks   bool
+	ProfileDuration time.Duration
 
-	ProfileDuration    time.Duration
+	LoadTestDuration time.Duration
 
-	LoadTestDuration   time.Duration
+	TargetCPUPercent float64
 
-	TargetCPUPercent   float64
+	TargetP99Latency time.Duration
 
-	TargetP99Latency   time.Duration
+	OutputDirectory string
 
-	OutputDirectory    string
-
-	ClusterCores       int
+	ClusterCores int
 
 	ComparisonBaseline string // Path to baseline results for comparison
 
 }
 
-
-
 // PerformanceTestResults aggregates all test results.
 
 type PerformanceTestResults struct {
+	Timestamp time.Time
 
-	Timestamp          time.Time
+	Config *PerformanceTestConfig
 
-	Config             *PerformanceTestConfig
+	BenchmarkResults []BenchmarkResult
 
-	BenchmarkResults   []BenchmarkResult
+	LoadTestResults map[string]*LoadTestResult
 
-	LoadTestResults    map[string]*LoadTestResult
+	FlameGraphs map[string]*FlameGraphComparisonResult
 
-	FlameGraphs        map[string]*FlameGraphComparisonResult
-
-	ProfileAnalysis    map[string]*TestProfileReport
+	ProfileAnalysis map[string]*TestProfileReport
 
 	PerformanceTargets *TargetValidation
 
-	Summary            *PerformanceSummary
-
+	Summary *PerformanceSummary
 }
-
-
 
 // TargetValidation tracks performance target achievement.
 
 type TargetValidation struct {
+	P99LatencyTarget time.Duration
 
-	P99LatencyTarget    time.Duration
-
-	P99LatencyActual    time.Duration
+	P99LatencyActual time.Duration
 
 	P99LatencyReduction float64
 
-	P99TargetMet        bool
+	P99TargetMet bool
 
+	CPUTarget float64
 
-
-	CPUTarget    float64
-
-	CPUActual    float64
+	CPUActual float64
 
 	CPUReduction float64
 
 	CPUTargetMet bool
 
-
-
 	OverallTargetsMet bool
-
 }
-
-
 
 // PerformanceSummary provides executive summary.
 
 type PerformanceSummary struct {
+	TotalTestsRun int
 
-	TotalTestsRun      int
+	TestsPassed int
 
-	TestsPassed        int
-
-	TestsFailed        int
+	TestsFailed int
 
 	AverageImprovement float64
 
-	TopOptimizations   []OptimizationResult
+	TopOptimizations []OptimizationResult
 
-	CriticalIssues     []string
+	CriticalIssues []string
 
-	Recommendations    []string
-
+	Recommendations []string
 }
-
-
 
 // OptimizationResult represents a specific optimization outcome.
 
 type OptimizationResult struct {
-
-	Component        string
+	Component string
 
 	OptimizationType string
 
-	BeforeMetric     float64
+	BeforeMetric float64
 
-	AfterMetric      float64
+	AfterMetric float64
 
-	Improvement      float64
+	Improvement float64
 
-	ImpactLevel      string // "High", "Medium", "Low"
+	ImpactLevel string // "High", "Medium", "Low"
 
 }
-
-
 
 // NewPerformanceTestRunner creates a new performance test runner.
 
@@ -190,8 +147,6 @@ func NewPerformanceTestRunner(config *PerformanceTestConfig) *PerformanceTestRun
 		config.OutputDirectory = "/tmp/performance-results"
 
 	}
-
-
 
 	// Create output directory.
 
@@ -205,49 +160,41 @@ func NewPerformanceTestRunner(config *PerformanceTestConfig) *PerformanceTestRun
 
 	os.MkdirAll(flameGraphDir, 0o755)
 
-
-
 	return &PerformanceTestRunner{
 
 		benchmarkSuite: NewBenchmarkSuite(),
 
 		loadTestRunner: NewLoadTestRunner(),
 
-		flameGraphGen:  NewFlameGraphGenerator(profileDir, flameGraphDir),
+		flameGraphGen: NewFlameGraphGenerator(profileDir, flameGraphDir),
 
-		profiler:       NewProfiler(),
+		profiler: NewProfiler(),
 
-		config:         config,
+		config: config,
 
-		outputDir:      config.OutputDirectory,
+		outputDir: config.OutputDirectory,
 
 		results: &PerformanceTestResults{
 
-			Timestamp:       time.Now(),
+			Timestamp: time.Now(),
 
-			Config:          config,
+			Config: config,
 
 			LoadTestResults: make(map[string]*LoadTestResult),
 
-			FlameGraphs:     make(map[string]*FlameGraphComparisonResult),
+			FlameGraphs: make(map[string]*FlameGraphComparisonResult),
 
 			ProfileAnalysis: make(map[string]*TestProfileReport),
-
 		},
-
 	}
 
 }
-
-
 
 // RunFullPerformanceTest runs the complete performance test suite.
 
 func (ptr *PerformanceTestRunner) RunFullPerformanceTest(ctx context.Context) (*PerformanceTestResults, error) {
 
 	klog.Info("Starting comprehensive performance test suite")
-
-
 
 	// Phase 1: Capture BEFORE profiles and flamegraphs.
 
@@ -263,8 +210,6 @@ func (ptr *PerformanceTestRunner) RunFullPerformanceTest(ctx context.Context) (*
 
 	}
 
-
-
 	// Phase 2: Run BEFORE benchmarks.
 
 	if ptr.config.EnableBenchmarks {
@@ -279,15 +224,11 @@ func (ptr *PerformanceTestRunner) RunFullPerformanceTest(ctx context.Context) (*
 
 	}
 
-
-
 	// Phase 3: Apply optimizations (simulated).
 
 	klog.Info("Phase 3: Applying performance optimizations")
 
 	ptr.applyOptimizations()
-
-
 
 	// Phase 4: Capture AFTER profiles and flamegraphs.
 
@@ -303,8 +244,6 @@ func (ptr *PerformanceTestRunner) RunFullPerformanceTest(ctx context.Context) (*
 
 	}
 
-
-
 	// Phase 5: Run AFTER benchmarks.
 
 	if ptr.config.EnableBenchmarks {
@@ -318,8 +257,6 @@ func (ptr *PerformanceTestRunner) RunFullPerformanceTest(ctx context.Context) (*
 		}
 
 	}
-
-
 
 	// Phase 6: Generate comparison flamegraphs.
 
@@ -335,8 +272,6 @@ func (ptr *PerformanceTestRunner) RunFullPerformanceTest(ctx context.Context) (*
 
 	}
 
-
-
 	// Phase 7: Run load tests.
 
 	if ptr.config.EnableLoadTests {
@@ -351,23 +286,17 @@ func (ptr *PerformanceTestRunner) RunFullPerformanceTest(ctx context.Context) (*
 
 	}
 
-
-
 	// Phase 8: Validate performance targets.
 
 	klog.Info("Phase 8: Validating performance targets")
 
 	ptr.validatePerformanceTargets()
 
-
-
 	// Phase 9: Generate summary and recommendations.
 
 	klog.Info("Phase 9: Generating summary and recommendations")
 
 	ptr.generateSummary()
-
-
 
 	// Phase 10: Export results.
 
@@ -379,15 +308,11 @@ func (ptr *PerformanceTestRunner) RunFullPerformanceTest(ctx context.Context) (*
 
 	}
 
-
-
 	klog.Info("Performance test suite completed successfully")
 
 	return ptr.results, nil
 
 }
-
-
 
 // captureBeforeProfiles captures profiles before optimization.
 
@@ -395,13 +320,9 @@ func (ptr *PerformanceTestRunner) captureBeforeProfiles(ctx context.Context) err
 
 	profileTypes := []string{"cpu", "memory", "goroutine", "block", "mutex"}
 
-
-
 	for _, profileType := range profileTypes {
 
 		klog.Infof("Capturing BEFORE %s profile", profileType)
-
-
 
 		profileData, err := ptr.flameGraphGen.CaptureBeforeProfile(ctx, profileType, ptr.config.ProfileDuration)
 
@@ -413,8 +334,6 @@ func (ptr *PerformanceTestRunner) captureBeforeProfiles(ctx context.Context) err
 
 		}
 
-
-
 		ptr.mu.Lock()
 
 		if ptr.results.ProfileAnalysis == nil {
@@ -425,27 +344,22 @@ func (ptr *PerformanceTestRunner) captureBeforeProfiles(ctx context.Context) err
 
 		ptr.results.ProfileAnalysis[profileType+"_before"] = &TestProfileReport{
 
-			Type:      profileType,
+			Type: profileType,
 
-			Phase:     "before",
+			Phase: "before",
 
-			Profile:   profileData,
+			Profile: profileData,
 
 			Timestamp: time.Now(),
-
 		}
 
 		ptr.mu.Unlock()
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // captureAfterProfiles captures profiles after optimization.
 
@@ -453,13 +367,9 @@ func (ptr *PerformanceTestRunner) captureAfterProfiles(ctx context.Context) erro
 
 	profileTypes := []string{"cpu", "memory", "goroutine", "block", "mutex"}
 
-
-
 	for _, profileType := range profileTypes {
 
 		klog.Infof("Capturing AFTER %s profile", profileType)
-
-
 
 		profileData, err := ptr.flameGraphGen.CaptureAfterProfile(ctx, profileType, ptr.config.ProfileDuration)
 
@@ -471,33 +381,26 @@ func (ptr *PerformanceTestRunner) captureAfterProfiles(ctx context.Context) erro
 
 		}
 
-
-
 		ptr.mu.Lock()
 
 		ptr.results.ProfileAnalysis[profileType+"_after"] = &TestProfileReport{
 
-			Type:      profileType,
+			Type: profileType,
 
-			Phase:     "after",
+			Phase: "after",
 
-			Profile:   profileData,
+			Profile: profileData,
 
 			Timestamp: time.Now(),
-
 		}
 
 		ptr.mu.Unlock()
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // runBeforeBenchmarks runs benchmarks before optimization.
 
@@ -506,11 +409,9 @@ func (ptr *PerformanceTestRunner) runBeforeBenchmarks(ctx context.Context) error
 	// Define benchmark workloads.
 
 	benchmarks := []struct {
-
-		name     string
+		name string
 
 		workload func() error
-
 	}{
 
 		{
@@ -526,7 +427,6 @@ func (ptr *PerformanceTestRunner) runBeforeBenchmarks(ctx context.Context) error
 				return nil
 
 			},
-
 		},
 
 		{
@@ -542,7 +442,6 @@ func (ptr *PerformanceTestRunner) runBeforeBenchmarks(ctx context.Context) error
 				return nil
 
 			},
-
 		},
 
 		{
@@ -558,18 +457,12 @@ func (ptr *PerformanceTestRunner) runBeforeBenchmarks(ctx context.Context) error
 				return nil
 
 			},
-
 		},
-
 	}
-
-
 
 	for _, bm := range benchmarks {
 
 		klog.Infof("Running BEFORE benchmark: %s", bm.name)
-
-
 
 		result, err := ptr.benchmarkSuite.RunSingleIntentBenchmark(ctx, bm.workload)
 
@@ -581,8 +474,6 @@ func (ptr *PerformanceTestRunner) runBeforeBenchmarks(ctx context.Context) error
 
 		}
 
-
-
 		result.Name = "before_" + bm.name
 
 		ptr.mu.Lock()
@@ -593,13 +484,9 @@ func (ptr *PerformanceTestRunner) runBeforeBenchmarks(ctx context.Context) error
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // runAfterBenchmarks runs benchmarks after optimization.
 
@@ -608,11 +495,9 @@ func (ptr *PerformanceTestRunner) runAfterBenchmarks(ctx context.Context) error 
 	// Define optimized benchmark workloads.
 
 	benchmarks := []struct {
-
-		name     string
+		name string
 
 		workload func() error
-
 	}{
 
 		{
@@ -628,7 +513,6 @@ func (ptr *PerformanceTestRunner) runAfterBenchmarks(ctx context.Context) error 
 				return nil
 
 			},
-
 		},
 
 		{
@@ -644,7 +528,6 @@ func (ptr *PerformanceTestRunner) runAfterBenchmarks(ctx context.Context) error 
 				return nil
 
 			},
-
 		},
 
 		{
@@ -660,18 +543,12 @@ func (ptr *PerformanceTestRunner) runAfterBenchmarks(ctx context.Context) error 
 				return nil
 
 			},
-
 		},
-
 	}
-
-
 
 	for _, bm := range benchmarks {
 
 		klog.Infof("Running AFTER benchmark: %s", bm.name)
-
-
 
 		result, err := ptr.benchmarkSuite.RunSingleIntentBenchmark(ctx, bm.workload)
 
@@ -683,8 +560,6 @@ func (ptr *PerformanceTestRunner) runAfterBenchmarks(ctx context.Context) error 
 
 		}
 
-
-
 		result.Name = "after_" + bm.name
 
 		ptr.mu.Lock()
@@ -695,13 +570,9 @@ func (ptr *PerformanceTestRunner) runAfterBenchmarks(ctx context.Context) error 
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // applyOptimizations simulates applying performance optimizations.
 
@@ -726,10 +597,7 @@ func (ptr *PerformanceTestRunner) applyOptimizations() {
 		"Exponential backoff configured",
 
 		"Status update batching enabled",
-
 	}
-
-
 
 	for _, opt := range optimizations {
 
@@ -741,21 +609,15 @@ func (ptr *PerformanceTestRunner) applyOptimizations() {
 
 }
 
-
-
 // generateComparisonFlameGraphs generates comparison flamegraphs.
 
 func (ptr *PerformanceTestRunner) generateComparisonFlameGraphs() error {
 
 	profileTypes := []string{"cpu", "memory", "goroutine"}
 
-
-
 	for _, profileType := range profileTypes {
 
 		klog.Infof("Generating comparison flamegraph for %s", profileType)
-
-
 
 		comparison, err := ptr.flameGraphGen.GenerateComparison(profileType)
 
@@ -767,8 +629,6 @@ func (ptr *PerformanceTestRunner) generateComparisonFlameGraphs() error {
 
 		}
 
-
-
 		ptr.mu.Lock()
 
 		ptr.results.FlameGraphs[profileType] = comparison
@@ -777,13 +637,9 @@ func (ptr *PerformanceTestRunner) generateComparisonFlameGraphs() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // runLoadTests runs load test scenarios.
 
@@ -793,15 +649,15 @@ func (ptr *PerformanceTestRunner) runLoadTests(ctx context.Context) error {
 
 		{
 
-			Name:            "constant_load",
+			Name: "constant_load",
 
-			Description:     "Constant load at target RPS",
+			Description: "Constant load at target RPS",
 
-			Duration:        ptr.config.LoadTestDuration,
+			Duration: ptr.config.LoadTestDuration,
 
-			MaxConcurrency:  50,
+			MaxConcurrency: 50,
 
-			TargetRPS:       100,
+			TargetRPS: 100,
 
 			WorkloadPattern: PatternConstant,
 
@@ -814,20 +670,19 @@ func (ptr *PerformanceTestRunner) runLoadTests(ctx context.Context) error {
 				return nil
 
 			},
-
 		},
 
 		{
 
-			Name:            "spike_load",
+			Name: "spike_load",
 
-			Description:     "Spike load pattern",
+			Description: "Spike load pattern",
 
-			Duration:        ptr.config.LoadTestDuration,
+			Duration: ptr.config.LoadTestDuration,
 
-			MaxConcurrency:  100,
+			MaxConcurrency: 100,
 
-			TargetRPS:       200,
+			TargetRPS: 200,
 
 			WorkloadPattern: PatternSpike,
 
@@ -840,20 +695,19 @@ func (ptr *PerformanceTestRunner) runLoadTests(ctx context.Context) error {
 				return nil
 
 			},
-
 		},
 
 		{
 
-			Name:            "realistic_telecom",
+			Name: "realistic_telecom",
 
-			Description:     "Realistic telecom workload",
+			Description: "Realistic telecom workload",
 
-			Duration:        ptr.config.LoadTestDuration,
+			Duration: ptr.config.LoadTestDuration,
 
-			MaxConcurrency:  75,
+			MaxConcurrency: 75,
 
-			TargetRPS:       150,
+			TargetRPS: 150,
 
 			WorkloadPattern: PatternRealistic,
 
@@ -866,18 +720,12 @@ func (ptr *PerformanceTestRunner) runLoadTests(ctx context.Context) error {
 				return nil
 
 			},
-
 		},
-
 	}
-
-
 
 	for _, scenario := range scenarios {
 
 		klog.Infof("Running load test scenario: %s", scenario.Name)
-
-
 
 		ptr.loadTestRunner.AddScenario(scenario)
 
@@ -891,8 +739,6 @@ func (ptr *PerformanceTestRunner) runLoadTests(ctx context.Context) error {
 
 		}
 
-
-
 		ptr.mu.Lock()
 
 		ptr.results.LoadTestResults[scenario.Name] = result
@@ -901,13 +747,9 @@ func (ptr *PerformanceTestRunner) runLoadTests(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validatePerformanceTargets validates if performance targets are met.
 
@@ -917,11 +759,8 @@ func (ptr *PerformanceTestRunner) validatePerformanceTargets() {
 
 		P99LatencyTarget: ptr.config.TargetP99Latency,
 
-		CPUTarget:        ptr.config.TargetCPUPercent,
-
+		CPUTarget: ptr.config.TargetCPUPercent,
 	}
-
-
 
 	// Calculate actual P99 latency from load tests.
 
@@ -939,8 +778,6 @@ func (ptr *PerformanceTestRunner) validatePerformanceTargets() {
 
 	validation.P99LatencyActual = maxP99
 
-
-
 	// Calculate latency reduction.
 
 	// Simulated before P99: 45s.
@@ -950,8 +787,6 @@ func (ptr *PerformanceTestRunner) validatePerformanceTargets() {
 	validation.P99LatencyReduction = (1 - float64(validation.P99LatencyActual)/float64(beforeP99)) * 100
 
 	validation.P99TargetMet = validation.P99LatencyActual <= validation.P99LatencyTarget
-
-
 
 	// Calculate actual CPU usage.
 
@@ -965,19 +800,13 @@ func (ptr *PerformanceTestRunner) validatePerformanceTargets() {
 
 	validation.CPUTargetMet = validation.CPUActual <= validation.CPUTarget
 
-
-
 	validation.OverallTargetsMet = validation.P99TargetMet && validation.CPUTargetMet
-
-
 
 	ptr.mu.Lock()
 
 	ptr.results.PerformanceTargets = validation
 
 	ptr.mu.Unlock()
-
-
 
 	klog.Infof("Performance targets validation:")
 
@@ -999,8 +828,6 @@ func (ptr *PerformanceTestRunner) validatePerformanceTargets() {
 
 }
 
-
-
 // generateSummary generates performance test summary.
 
 func (ptr *PerformanceTestRunner) generateSummary() {
@@ -1009,13 +836,10 @@ func (ptr *PerformanceTestRunner) generateSummary() {
 
 		TopOptimizations: make([]OptimizationResult, 0),
 
-		CriticalIssues:   make([]string, 0),
+		CriticalIssues: make([]string, 0),
 
-		Recommendations:  make([]string, 0),
-
+		Recommendations: make([]string, 0),
 	}
-
-
 
 	// Count test results.
 
@@ -1035,83 +859,72 @@ func (ptr *PerformanceTestRunner) generateSummary() {
 
 	}
 
-
-
 	// Identify top optimizations.
 
 	optimizations := []OptimizationResult{
 
 		{
 
-			Component:        "LLM Pipeline",
+			Component: "LLM Pipeline",
 
 			OptimizationType: "HTTP Connection Pooling",
 
-			BeforeMetric:     100.0,
+			BeforeMetric: 100.0,
 
-			AfterMetric:      30.0,
+			AfterMetric: 30.0,
 
-			Improvement:      70.0,
+			Improvement: 70.0,
 
-			ImpactLevel:      "High",
-
+			ImpactLevel: "High",
 		},
 
 		{
 
-			Component:        "RAG System",
+			Component: "RAG System",
 
 			OptimizationType: "Response Caching",
 
-			BeforeMetric:     50.0,
+			BeforeMetric: 50.0,
 
-			AfterMetric:      10.0,
+			AfterMetric: 10.0,
 
-			Improvement:      80.0,
+			Improvement: 80.0,
 
-			ImpactLevel:      "High",
-
+			ImpactLevel: "High",
 		},
 
 		{
 
-			Component:        "Weaviate",
+			Component: "Weaviate",
 
 			OptimizationType: "Batch Search",
 
-			BeforeMetric:     200.0,
+			BeforeMetric: 200.0,
 
-			AfterMetric:      50.0,
+			AfterMetric: 50.0,
 
-			Improvement:      75.0,
+			Improvement: 75.0,
 
-			ImpactLevel:      "High",
-
+			ImpactLevel: "High",
 		},
 
 		{
 
-			Component:        "Controller",
+			Component: "Controller",
 
 			OptimizationType: "Status Batching",
 
-			BeforeMetric:     80.0,
+			BeforeMetric: 80.0,
 
-			AfterMetric:      20.0,
+			AfterMetric: 20.0,
 
-			Improvement:      75.0,
+			Improvement: 75.0,
 
-			ImpactLevel:      "Medium",
-
+			ImpactLevel: "Medium",
 		},
-
 	}
 
-
-
 	summary.TopOptimizations = optimizations
-
-
 
 	// Calculate average improvement.
 
@@ -1124,8 +937,6 @@ func (ptr *PerformanceTestRunner) generateSummary() {
 	}
 
 	summary.AverageImprovement = totalImprovement / float64(len(optimizations))
-
-
 
 	// Identify critical issues.
 
@@ -1147,8 +958,6 @@ func (ptr *PerformanceTestRunner) generateSummary() {
 
 	}
 
-
-
 	// Generate recommendations.
 
 	if ptr.results.PerformanceTargets != nil && !ptr.results.PerformanceTargets.OverallTargetsMet {
@@ -1159,8 +968,6 @@ func (ptr *PerformanceTestRunner) generateSummary() {
 
 	}
 
-
-
 	if len(summary.CriticalIssues) > 0 {
 
 		summary.Recommendations = append(summary.Recommendations,
@@ -1168,8 +975,6 @@ func (ptr *PerformanceTestRunner) generateSummary() {
 			"Address critical performance bottlenecks identified in load tests")
 
 	}
-
-
 
 	summary.Recommendations = append(summary.Recommendations,
 
@@ -1179,8 +984,6 @@ func (ptr *PerformanceTestRunner) generateSummary() {
 
 		"Consider horizontal scaling for peak load scenarios")
 
-
-
 	ptr.mu.Lock()
 
 	ptr.results.Summary = summary
@@ -1188,8 +991,6 @@ func (ptr *PerformanceTestRunner) generateSummary() {
 	ptr.mu.Unlock()
 
 }
-
-
 
 // exportResults exports all results to files.
 
@@ -1207,15 +1008,11 @@ func (ptr *PerformanceTestRunner) exportResults() error {
 
 	}
 
-
-
 	if err := os.WriteFile(jsonPath, jsonData, 0o640); err != nil {
 
 		return fmt.Errorf("failed to write JSON results: %w", err)
 
 	}
-
-
 
 	// Export detailed report.
 
@@ -1229,8 +1026,6 @@ func (ptr *PerformanceTestRunner) exportResults() error {
 
 	}
 
-
-
 	// Export summary.
 
 	summaryPath := filepath.Join(ptr.outputDir, "executive_summary.txt")
@@ -1243,15 +1038,11 @@ func (ptr *PerformanceTestRunner) exportResults() error {
 
 	}
 
-
-
 	klog.Infof("Results exported to %s", ptr.outputDir)
 
 	return nil
 
 }
-
-
 
 // GenerateDetailedReport generates a detailed performance report.
 
@@ -1259,15 +1050,11 @@ func (ptr *PerformanceTestRunner) GenerateDetailedReport() string {
 
 	var report strings.Builder
 
-
-
 	report.WriteString("=== NEPHORAN INTENT OPERATOR PERFORMANCE ANALYSIS REPORT ===\n\n")
 
 	report.WriteString(fmt.Sprintf("Test Date: %s\n", ptr.results.Timestamp.Format(time.RFC3339)))
 
 	report.WriteString(fmt.Sprintf("Configuration: %d-core cluster\n\n", ptr.config.ClusterCores))
-
-
 
 	// Performance targets section.
 
@@ -1276,8 +1063,6 @@ func (ptr *PerformanceTestRunner) GenerateDetailedReport() string {
 		report.WriteString("=== PERFORMANCE TARGETS VALIDATION ===\n\n")
 
 		targets := ptr.results.PerformanceTargets
-
-
 
 		report.WriteString(fmt.Sprintf("99th Percentile Latency:\n"))
 
@@ -1289,8 +1074,6 @@ func (ptr *PerformanceTestRunner) GenerateDetailedReport() string {
 
 		report.WriteString(fmt.Sprintf("  Status: %s\n\n", getTargetStatus(targets.P99TargetMet)))
 
-
-
 		report.WriteString(fmt.Sprintf("CPU Usage:\n"))
 
 		report.WriteString(fmt.Sprintf("  Target: ≤%.0f%%\n", targets.CPUTarget))
@@ -1301,13 +1084,9 @@ func (ptr *PerformanceTestRunner) GenerateDetailedReport() string {
 
 		report.WriteString(fmt.Sprintf("  Status: %s\n\n", getTargetStatus(targets.CPUTargetMet)))
 
-
-
 		report.WriteString(fmt.Sprintf("Overall Targets Met: %s\n\n", getTargetStatus(targets.OverallTargetsMet)))
 
 	}
-
-
 
 	// Flamegraph comparisons.
 
@@ -1335,8 +1114,6 @@ func (ptr *PerformanceTestRunner) GenerateDetailedReport() string {
 
 	}
 
-
-
 	// Benchmark results.
 
 	if len(ptr.results.BenchmarkResults) > 0 {
@@ -1348,8 +1125,6 @@ func (ptr *PerformanceTestRunner) GenerateDetailedReport() string {
 		report.WriteString("\n")
 
 	}
-
-
 
 	// Load test results.
 
@@ -1363,8 +1138,6 @@ func (ptr *PerformanceTestRunner) GenerateDetailedReport() string {
 
 	}
 
-
-
 	// Summary and recommendations.
 
 	if ptr.results.Summary != nil {
@@ -1372,8 +1145,6 @@ func (ptr *PerformanceTestRunner) GenerateDetailedReport() string {
 		report.WriteString("=== OPTIMIZATION SUMMARY ===\n\n")
 
 		summary := ptr.results.Summary
-
-
 
 		report.WriteString("Top Optimizations:\n")
 
@@ -1387,8 +1158,6 @@ func (ptr *PerformanceTestRunner) GenerateDetailedReport() string {
 
 		report.WriteString(fmt.Sprintf("\nAverage Improvement: %.1f%%\n", summary.AverageImprovement))
 
-
-
 		if len(summary.CriticalIssues) > 0 {
 
 			report.WriteString("\nCritical Issues:\n")
@@ -1401,8 +1170,6 @@ func (ptr *PerformanceTestRunner) GenerateDetailedReport() string {
 
 		}
 
-
-
 		report.WriteString("\nRecommendations:\n")
 
 		for _, rec := range summary.Recommendations {
@@ -1413,13 +1180,9 @@ func (ptr *PerformanceTestRunner) GenerateDetailedReport() string {
 
 	}
 
-
-
 	return report.String()
 
 }
-
-
 
 // GenerateExecutiveSummary generates an executive summary.
 
@@ -1427,27 +1190,19 @@ func (ptr *PerformanceTestRunner) GenerateExecutiveSummary() string {
 
 	var summary strings.Builder
 
-
-
 	summary.WriteString("=== EXECUTIVE SUMMARY ===\n\n")
 
 	summary.WriteString("NEPHORAN INTENT OPERATOR PERFORMANCE OPTIMIZATION RESULTS\n")
 
 	summary.WriteString(fmt.Sprintf("Date: %s\n\n", ptr.results.Timestamp.Format("January 2, 2006")))
 
-
-
 	summary.WriteString("KEY ACHIEVEMENTS:\n")
 
 	summary.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 
-
-
 	if ptr.results.PerformanceTargets != nil {
 
 		targets := ptr.results.PerformanceTargets
-
-
 
 		summary.WriteString(fmt.Sprintf("✓ 99th Percentile Latency: %.1f%% reduction (from 45s to %.0fs)\n",
 
@@ -1463,13 +1218,9 @@ func (ptr *PerformanceTestRunner) GenerateExecutiveSummary() string {
 
 	}
 
-
-
 	summary.WriteString("OPTIMIZATION HIGHLIGHTS:\n")
 
 	summary.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-
-
 
 	if ptr.results.Summary != nil {
 
@@ -1489,13 +1240,9 @@ func (ptr *PerformanceTestRunner) GenerateExecutiveSummary() string {
 
 	}
 
-
-
 	summary.WriteString("TEST RESULTS:\n")
 
 	summary.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-
-
 
 	if ptr.results.Summary != nil {
 
@@ -1511,13 +1258,9 @@ func (ptr *PerformanceTestRunner) GenerateExecutiveSummary() string {
 
 	}
 
-
-
 	summary.WriteString("PRODUCTION READINESS:\n")
 
 	summary.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-
-
 
 	if ptr.results.PerformanceTargets != nil && ptr.results.PerformanceTargets.OverallTargetsMet {
 
@@ -1535,13 +1278,9 @@ func (ptr *PerformanceTestRunner) GenerateExecutiveSummary() string {
 
 	}
 
-
-
 	summary.WriteString("\nNEXT STEPS:\n")
 
 	summary.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-
-
 
 	if ptr.results.Summary != nil && len(ptr.results.Summary.Recommendations) > 0 {
 
@@ -1559,23 +1298,15 @@ func (ptr *PerformanceTestRunner) GenerateExecutiveSummary() string {
 
 	}
 
-
-
 	summary.WriteString("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 
 	summary.WriteString("Report generated by Nephoran Performance Test Suite v1.0\n")
-
-
 
 	return summary.String()
 
 }
 
-
-
 // Helper functions.
-
-
 
 func getTargetStatus(met bool) string {
 
@@ -1588,8 +1319,6 @@ func getTargetStatus(met bool) string {
 	return "✗ NOT MET"
 
 }
-
-
 
 func countEliminatedHotSpots(comparison *FlameGraphComparisonResult) int {
 
@@ -1609,19 +1338,14 @@ func countEliminatedHotSpots(comparison *FlameGraphComparisonResult) int {
 
 }
 
-
-
 // TestProfileReport represents a profile analysis report for testing.
 
 type TestProfileReport struct {
+	Type string
 
-	Type      string
+	Phase string // "before" or "after"
 
-	Phase     string // "before" or "after"
-
-	Profile   *ProfileData
+	Profile *ProfileData
 
 	Timestamp time.Time
-
 }
-

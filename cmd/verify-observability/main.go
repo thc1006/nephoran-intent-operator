@@ -1,31 +1,15 @@
-
 package main
 
-
-
 import (
-
 	"fmt"
-
 	"log/slog"
-
 	"os"
-
 	"sync"
-
 	"time"
 
-
-
-	"github.com/prometheus/client_golang/prometheus"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
-
+	"github.com/prometheus/client_golang/prometheus"
 )
-
-
 
 func main() {
 
@@ -34,18 +18,13 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 
 		Level: slog.LevelDebug,
-
 	}))
-
-
 
 	// Initialize metrics.
 
 	registry := prometheus.NewRegistry()
 
 	git.InitMetrics(registry)
-
-
 
 	// Create a git client with limited concurrency.
 
@@ -58,16 +37,11 @@ func main() {
 		"test-key",
 
 		logger,
-
 	)
-
-
 
 	// Set concurrent push limit via environment.
 
 	_ = os.Setenv("GIT_CONCURRENT_PUSH_LIMIT", "2")
-
-
 
 	logger.Info("=== Observability Features Verification ===")
 
@@ -79,15 +53,11 @@ func main() {
 
 	logger.Info("")
 
-
-
 	logger.Info("2. Testing concurrent semaphore acquisition:")
 
 	logger.Info("   (Watch for debug logs with in_flight and limit fields)")
 
 	logger.Info("")
-
-
 
 	// Test concurrent operations.
 
@@ -101,8 +71,6 @@ func main() {
 
 			defer wg.Done()
 
-
-
 			// This will trigger semaphore acquisition/release with logging.
 
 			// Note: actual push will fail without a real repo, but that's ok.
@@ -110,10 +78,7 @@ func main() {
 			files := map[string]string{
 
 				fmt.Sprintf("test%d.txt", id): fmt.Sprintf("content %d", id),
-
 			}
-
-
 
 			logger.Info("Operation starting", "id", id)
 
@@ -131,25 +96,17 @@ func main() {
 
 		}(i)
 
-
-
 		// Small delay between launches to see semaphore behavior.
 
 		time.Sleep(100 * time.Millisecond)
 
 	}
 
-
-
 	wg.Wait()
-
-
 
 	logger.Info("")
 
 	logger.Info("3. Metrics verification:")
-
-
 
 	// Gather metrics.
 
@@ -175,8 +132,6 @@ func main() {
 
 	}
 
-
-
 	logger.Info("")
 
 	logger.Info("=== Verification Complete ===")
@@ -194,4 +149,3 @@ func main() {
 	logger.Info("✓ Semaphore-based concurrency control")
 
 }
-

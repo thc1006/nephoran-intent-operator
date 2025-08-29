@@ -2,60 +2,36 @@
 
 // for processing network intent commands from various input sources.
 
-
 package ingest
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"log"
-
 	"net/http"
-
 	"os"
-
 	"path/filepath"
-
 	"regexp"
-
 	"strings"
-
 	"time"
-
 )
-
-
 
 // ValidatorInterface defines the contract for validation.
 
 type ValidatorInterface interface {
-
 	ValidateBytes([]byte) (*Intent, error)
-
 }
-
-
 
 // Handler represents a handler.
 
 type Handler struct {
+	v ValidatorInterface
 
-	v        ValidatorInterface
-
-	outDir   string
+	outDir string
 
 	provider IntentProvider
-
 }
-
-
 
 // NewHandler performs newhandler operation.
 
@@ -71,11 +47,7 @@ func NewHandler(v ValidatorInterface, outDir string, provider IntentProvider) *H
 
 }
 
-
-
 var simple = regexp.MustCompile(`(?i)scale\s+([a-z0-9\-]+)\s+to\s+(\d+)\s+in\s+ns\s+([a-z0-9\-]+)`)
-
-
 
 // HandleIntent supports two input types:.
 
@@ -93,8 +65,6 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("X-XSS-Protection", "1; mode=block")
 
-
-
 	if r.Method != http.MethodPost {
 
 		w.Header().Set("Allow", "POST")
@@ -104,8 +74,6 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	// SECURITY: Validate Content-Type header to prevent MIME confusion attacks.
 
@@ -119,8 +87,6 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	// SECURITY: Limit request body size to prevent DoS attacks.
 
 	const maxRequestSize = 1 << 20 // 1MB
@@ -132,8 +98,6 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	// Use LimitReader as an additional safeguard.
 
@@ -150,8 +114,6 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer r.Body.Close()
-
-
 
 	var payload []byte
 
@@ -185,8 +147,6 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 		}
 
-
-
 		// Fallback to regex parsing if provider failed or not available.
 
 		if payload == nil {
@@ -214,8 +174,6 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-
-
 
 	intent, err := h.v.ValidateBytes(payload)
 
@@ -249,8 +207,6 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	ts := time.Now().UTC().Format("20060102T150405Z")
 
 	fileName := fmt.Sprintf("intent-%s.json", ts)
@@ -265,8 +221,6 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	// Log with correlation ID if present.
 
 	logMsg := fmt.Sprintf("Intent accepted and saved to %s", outFile)
@@ -279,20 +233,17 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	log.Println(logMsg)
 
-
-
 	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(http.StatusAccepted)
 
 	if err := json.NewEncoder(w).Encode(map[string]any{
 
-		"status":  "accepted",
+		"status": "accepted",
 
-		"saved":   outFile,
+		"saved": outFile,
 
 		"preview": intent,
-
 	}); err != nil {
 
 		log.Printf("Failed to encode response JSON: %v", err)
@@ -300,4 +251,3 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-

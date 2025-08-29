@@ -2,26 +2,15 @@
 
 // for various storage and forwarding systems.
 
-
 package backends
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/types"
-
 )
-
-
 
 // Backend represents an audit log destination.
 
@@ -31,51 +20,34 @@ type Backend interface {
 
 	Type() string
 
-
-
 	// Initialize sets up the backend with configuration.
 
 	Initialize(config BackendConfig) error
-
-
 
 	// WriteEvent writes a single audit event.
 
 	WriteEvent(ctx context.Context, event *types.AuditEvent) error
 
-
-
 	// WriteEvents writes multiple audit events in a batch.
 
 	WriteEvents(ctx context.Context, events []*types.AuditEvent) error
-
-
 
 	// Query searches for audit events (optional for compliance reporting).
 
 	Query(ctx context.Context, query *QueryRequest) (*QueryResponse, error)
 
-
-
 	// Health checks the backend connectivity and status.
 
 	Health(ctx context.Context) error
 
-
-
 	// Close gracefully shuts down the backend.
 
 	Close() error
-
 }
-
-
 
 // BackendType represents the type of audit backend.
 
 type BackendType string
-
-
 
 const (
 
@@ -118,10 +90,7 @@ const (
 	// BackendTypeWebhook holds backendtypewebhook value.
 
 	BackendTypeWebhook BackendType = "webhook"
-
 )
-
-
 
 // BackendConfig holds configuration for a specific backend.
 
@@ -131,241 +100,184 @@ type BackendConfig struct {
 
 	Type BackendType `json:"type" yaml:"type"`
 
-
-
 	// Enabled controls whether this backend is active.
 
 	Enabled bool `json:"enabled" yaml:"enabled"`
-
-
 
 	// Name is a unique identifier for this backend instance.
 
 	Name string `json:"name" yaml:"name"`
 
-
-
 	// Settings contains backend-specific configuration.
 
 	Settings map[string]interface{} `json:"settings" yaml:"settings"`
-
-
 
 	// Format specifies the output format.
 
 	Format string `json:"format" yaml:"format"`
 
-
-
 	// Compression enables compression for the backend.
 
 	Compression bool `json:"compression" yaml:"compression"`
-
-
 
 	// BufferSize controls the internal buffer size.
 
 	BufferSize int `json:"buffer_size" yaml:"buffer_size"`
 
-
-
 	// Timeout for backend operations.
 
 	Timeout time.Duration `json:"timeout" yaml:"timeout"`
-
-
 
 	// RetryPolicy for failed operations.
 
 	RetryPolicy RetryPolicy `json:"retry_policy" yaml:"retry_policy"`
 
-
-
 	// TLS configuration for secure connections.
 
 	TLS TLSConfig `json:"tls" yaml:"tls"`
-
-
 
 	// Authentication configuration.
 
 	Auth AuthConfig `json:"auth" yaml:"auth"`
 
-
-
 	// Filter configuration for this backend.
 
 	Filter FilterConfig `json:"filter" yaml:"filter"`
-
 }
-
-
 
 // RetryPolicy defines retry behavior for failed operations.
 
 type RetryPolicy struct {
+	MaxRetries int `json:"max_retries" yaml:"max_retries"`
 
-	MaxRetries    int           `json:"max_retries" yaml:"max_retries"`
+	InitialDelay time.Duration `json:"initial_delay" yaml:"initial_delay"`
 
-	InitialDelay  time.Duration `json:"initial_delay" yaml:"initial_delay"`
+	MaxDelay time.Duration `json:"max_delay" yaml:"max_delay"`
 
-	MaxDelay      time.Duration `json:"max_delay" yaml:"max_delay"`
-
-	BackoffFactor float64       `json:"backoff_factor" yaml:"backoff_factor"`
-
+	BackoffFactor float64 `json:"backoff_factor" yaml:"backoff_factor"`
 }
-
-
 
 // TLSConfig defines TLS settings for secure connections.
 
 type TLSConfig struct {
+	Enabled bool `json:"enabled" yaml:"enabled"`
 
-	Enabled            bool   `json:"enabled" yaml:"enabled"`
+	CertFile string `json:"cert_file" yaml:"cert_file"`
 
-	CertFile           string `json:"cert_file" yaml:"cert_file"`
+	KeyFile string `json:"key_file" yaml:"key_file"`
 
-	KeyFile            string `json:"key_file" yaml:"key_file"`
+	CAFile string `json:"ca_file" yaml:"ca_file"`
 
-	CAFile             string `json:"ca_file" yaml:"ca_file"`
+	ServerName string `json:"server_name" yaml:"server_name"`
 
-	ServerName         string `json:"server_name" yaml:"server_name"`
-
-	InsecureSkipVerify bool   `json:"insecure_skip_verify" yaml:"insecure_skip_verify"`
-
+	InsecureSkipVerify bool `json:"insecure_skip_verify" yaml:"insecure_skip_verify"`
 }
-
-
 
 // AuthConfig defines authentication settings.
 
 type AuthConfig struct {
+	Type string `json:"type" yaml:"type"`
 
-	Type     string            `json:"type" yaml:"type"`
+	Username string `json:"username" yaml:"username"`
 
-	Username string            `json:"username" yaml:"username"`
+	Password string `json:"password" yaml:"password"`
 
-	Password string            `json:"password" yaml:"password"`
+	Token string `json:"token" yaml:"token"`
 
-	Token    string            `json:"token" yaml:"token"`
+	APIKey string `json:"api_key" yaml:"api_key"`
 
-	APIKey   string            `json:"api_key" yaml:"api_key"`
-
-	Headers  map[string]string `json:"headers" yaml:"headers"`
-
+	Headers map[string]string `json:"headers" yaml:"headers"`
 }
-
-
 
 // FilterConfig defines event filtering for backends.
 
 type FilterConfig struct {
+	MinSeverity types.Severity `json:"min_severity" yaml:"min_severity"`
 
-	MinSeverity   types.Severity    `json:"min_severity" yaml:"min_severity"`
+	EventTypes []types.EventType `json:"event_types" yaml:"event_types"`
 
-	EventTypes    []types.EventType `json:"event_types" yaml:"event_types"`
+	Components []string `json:"components" yaml:"components"`
 
-	Components    []string          `json:"components" yaml:"components"`
+	ExcludeTypes []types.EventType `json:"exclude_types" yaml:"exclude_types"`
 
-	ExcludeTypes  []types.EventType `json:"exclude_types" yaml:"exclude_types"`
+	IncludeFields []string `json:"include_fields" yaml:"include_fields"`
 
-	IncludeFields []string          `json:"include_fields" yaml:"include_fields"`
-
-	ExcludeFields []string          `json:"exclude_fields" yaml:"exclude_fields"`
-
+	ExcludeFields []string `json:"exclude_fields" yaml:"exclude_fields"`
 }
-
-
 
 // QueryRequest represents a search query for audit events.
 
 type QueryRequest struct {
+	Query string `json:"query"`
 
-	Query         string                 `json:"query"`
+	Filters map[string]interface{} `json:"filters"`
 
-	Filters       map[string]interface{} `json:"filters"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime     time.Time              `json:"start_time"`
+	EndTime time.Time `json:"end_time"`
 
-	EndTime       time.Time              `json:"end_time"`
+	Limit int `json:"limit"`
 
-	Limit         int                    `json:"limit"`
+	Offset int `json:"offset"`
 
-	Offset        int                    `json:"offset"`
+	SortBy string `json:"sort_by"`
 
-	SortBy        string                 `json:"sort_by"`
+	SortOrder string `json:"sort_order"`
 
-	SortOrder     string                 `json:"sort_order"`
+	IncludeFields []string `json:"include_fields"`
 
-	IncludeFields []string               `json:"include_fields"`
-
-	ExcludeFields []string               `json:"exclude_fields"`
-
+	ExcludeFields []string `json:"exclude_fields"`
 }
-
-
 
 // QueryResponse represents the result of a search query.
 
 type QueryResponse struct {
+	Events []*types.AuditEvent `json:"events"`
 
-	Events       []*types.AuditEvent    `json:"events"`
+	TotalCount int64 `json:"total_count"`
 
-	TotalCount   int64                  `json:"total_count"`
+	HasMore bool `json:"has_more"`
 
-	HasMore      bool                   `json:"has_more"`
+	NextOffset int `json:"next_offset"`
 
-	NextOffset   int                    `json:"next_offset"`
-
-	QueryTime    time.Duration          `json:"query_time"`
+	QueryTime time.Duration `json:"query_time"`
 
 	Aggregations map[string]interface{} `json:"aggregations,omitempty"`
-
 }
-
-
 
 // BackendStatus represents the health status of a backend.
 
 type BackendStatus struct {
+	Type BackendType `json:"type"`
 
-	Type      BackendType    `json:"type"`
+	Name string `json:"name"`
 
-	Name      string         `json:"name"`
+	Healthy bool `json:"healthy"`
 
-	Healthy   bool           `json:"healthy"`
+	LastCheck time.Time `json:"last_check"`
 
-	LastCheck time.Time      `json:"last_check"`
+	Error string `json:"error,omitempty"`
 
-	Error     string         `json:"error,omitempty"`
-
-	Metrics   BackendMetrics `json:"metrics"`
-
+	Metrics BackendMetrics `json:"metrics"`
 }
-
-
 
 // BackendMetrics contains operational metrics for a backend.
 
 type BackendMetrics struct {
+	EventsWritten int64 `json:"events_written"`
 
-	EventsWritten    int64         `json:"events_written"`
+	EventsFailed int64 `json:"events_failed"`
 
-	EventsFailed     int64         `json:"events_failed"`
+	LastEventTime time.Time `json:"last_event_time"`
 
-	LastEventTime    time.Time     `json:"last_event_time"`
+	AverageLatency time.Duration `json:"average_latency"`
 
-	AverageLatency   time.Duration `json:"average_latency"`
+	ConnectionStatus string `json:"connection_status"`
 
-	ConnectionStatus string        `json:"connection_status"`
+	QueueSize int `json:"queue_size"`
 
-	QueueSize        int           `json:"queue_size"`
-
-	ErrorRate        float64       `json:"error_rate"`
-
+	ErrorRate float64 `json:"error_rate"`
 }
-
-
 
 // NewBackend creates a new backend instance based on configuration.
 
@@ -376,8 +288,6 @@ func NewBackend(config BackendConfig) (Backend, error) {
 		return nil, fmt.Errorf("backend %s is disabled", config.Name)
 
 	}
-
-
 
 	switch config.Type {
 
@@ -405,8 +315,6 @@ func NewBackend(config BackendConfig) (Backend, error) {
 
 }
 
-
-
 // ShouldProcessEvent determines if an event should be processed by this backend.
 
 func (f *FilterConfig) ShouldProcessEvent(event *types.AuditEvent) bool {
@@ -419,8 +327,6 @@ func (f *FilterConfig) ShouldProcessEvent(event *types.AuditEvent) bool {
 
 	}
 
-
-
 	// Check excluded event types.
 
 	for _, excludeType := range f.ExcludeTypes {
@@ -432,8 +338,6 @@ func (f *FilterConfig) ShouldProcessEvent(event *types.AuditEvent) bool {
 		}
 
 	}
-
-
 
 	// Check included event types (if specified).
 
@@ -461,8 +365,6 @@ func (f *FilterConfig) ShouldProcessEvent(event *types.AuditEvent) bool {
 
 	}
 
-
-
 	// Check included components (if specified).
 
 	if len(f.Components) > 0 {
@@ -489,13 +391,9 @@ func (f *FilterConfig) ShouldProcessEvent(event *types.AuditEvent) bool {
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // ApplyFieldFilters applies include/exclude field filters to an event.
 
@@ -507,13 +405,9 @@ func (f *FilterConfig) ApplyFieldFilters(event *types.AuditEvent) *types.AuditEv
 
 	}
 
-
-
 	// Create a copy of the event to avoid modifying the original.
 
 	filteredEvent := *event
-
-
 
 	// Apply field filtering logic here.
 
@@ -521,13 +415,9 @@ func (f *FilterConfig) ApplyFieldFilters(event *types.AuditEvent) *types.AuditEv
 
 	// handle nested field filtering more thoroughly.
 
-
-
 	return &filteredEvent
 
 }
-
-
 
 // DefaultRetryPolicy returns a sensible default retry policy.
 
@@ -535,19 +425,16 @@ func DefaultRetryPolicy() RetryPolicy {
 
 	return RetryPolicy{
 
-		MaxRetries:    3,
+		MaxRetries: 3,
 
-		InitialDelay:  1 * time.Second,
+		InitialDelay: 1 * time.Second,
 
-		MaxDelay:      30 * time.Second,
+		MaxDelay: 30 * time.Second,
 
 		BackoffFactor: 2.0,
-
 	}
 
 }
-
-
 
 // DefaultFilterConfig returns a default filter configuration.
 
@@ -556,8 +443,6 @@ func DefaultFilterConfig() FilterConfig {
 	return FilterConfig{
 
 		MinSeverity: types.SeverityInfo,
-
 	}
 
 }
-

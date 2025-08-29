@@ -1,294 +1,220 @@
-
 package o1
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // ExtendedYANGModelRegistry provides comprehensive O-RAN YANG model support.
 
 // following O-RAN.WG10.O1-Interface.0-v07.00 specification.
 
 type ExtendedYANGModelRegistry struct {
-
 	*YANGModelRegistry
 
-	oranModels       map[string]*ORANYANGModel
+	oranModels map[string]*ORANYANGModel
 
-	modelValidator   *ORANModelValidator
+	modelValidator *ORANModelValidator
 
-	schemaCompiler   *YANGSchemaCompiler
+	schemaCompiler *YANGSchemaCompiler
 
 	conversionEngine *YANGConversionEngine
-
 }
-
-
 
 // ORANYANGModel extends YANGModel with O-RAN specific features.
 
 type ORANYANGModel struct {
-
 	*YANGModel
 
-	ORANVersion    string                 `json:"oran_version"`
+	ORANVersion string `json:"oran_version"`
 
-	Conformance    string                 `json:"conformance"`    // MANDATORY, OPTIONAL
+	Conformance string `json:"conformance"` // MANDATORY, OPTIONAL
 
-	Implementation string                 `json:"implementation"` // COMPLETE, PARTIAL, NOT_IMPLEMENTED
+	Implementation string `json:"implementation"` // COMPLETE, PARTIAL, NOT_IMPLEMENTED
 
-	Features       []string               `json:"features"`
+	Features []string `json:"features"`
 
-	Deviations     []YANGDeviation        `json:"deviations"`
+	Deviations []YANGDeviation `json:"deviations"`
 
-	Augmentations  []YANGAugmentation     `json:"augmentations"`
+	Augmentations []YANGAugmentation `json:"augmentations"`
 
-	Extensions     map[string]interface{} `json:"extensions"`
-
+	Extensions map[string]interface{} `json:"extensions"`
 }
-
-
 
 // YANGDeviation represents YANG model deviations.
 
 type YANGDeviation struct {
+	TargetNode string `json:"target_node"`
 
-	TargetNode  string `json:"target_node"`
-
-	Type        string `json:"type"` // not-supported, add, replace, delete
+	Type string `json:"type"` // not-supported, add, replace, delete
 
 	Description string `json:"description"`
 
-	Reference   string `json:"reference,omitempty"`
-
+	Reference string `json:"reference,omitempty"`
 }
-
-
 
 // YANGAugmentation represents YANG model augmentations.
 
 type YANGAugmentation struct {
+	TargetNode string `json:"target_node"`
 
-	TargetNode string                 `json:"target_node"`
-
-	Nodes      map[string]*YANGNode   `json:"nodes"`
+	Nodes map[string]*YANGNode `json:"nodes"`
 
 	Conditions map[string]interface{} `json:"conditions,omitempty"`
-
 }
-
-
 
 // ORANModelValidator provides O-RAN specific validation.
 
 type ORANModelValidator struct {
+	registry *ExtendedYANGModelRegistry
 
-	registry     *ExtendedYANGModelRegistry
-
-	constraints  map[string][]ValidationConstraint
+	constraints map[string][]ValidationConstraint
 
 	typeCheckers map[string]TypeChecker
 
-	mutex        sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ValidationConstraint defines validation rules.
 
 type ValidationConstraint struct {
-
-	Type       string                 `json:"type"`
+	Type string `json:"type"`
 
 	Parameters map[string]interface{} `json:"parameters"`
 
-	ErrorMsg   string                 `json:"error_message"`
+	ErrorMsg string `json:"error_message"`
 
-	Severity   string                 `json:"severity"` // ERROR, WARNING
+	Severity string `json:"severity"` // ERROR, WARNING
 
 }
-
-
 
 // TypeChecker interface for custom type validation.
 
 type TypeChecker interface {
-
 	CheckType(value interface{}, constraints map[string]interface{}) error
 
 	GetTypeName() string
-
 }
-
-
 
 // YANGSchemaCompiler compiles YANG schemas to runtime structures.
 
 type YANGSchemaCompiler struct {
-
-	registry        *ExtendedYANGModelRegistry
+	registry *ExtendedYANGModelRegistry
 
 	compiledSchemas map[string]*CompiledSchema
 
-	mutex           sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // CompiledSchema represents a compiled YANG schema.
 
 type CompiledSchema struct {
+	ModelName string `json:"model_name"`
 
-	ModelName    string                 `json:"model_name"`
+	RootNodes map[string]*SchemaNode `json:"root_nodes"`
 
-	RootNodes    map[string]*SchemaNode `json:"root_nodes"`
+	Identities map[string]*Identity `json:"identities"`
 
-	Identities   map[string]*Identity   `json:"identities"`
+	GroupingDefs map[string]*Grouping `json:"grouping_definitions"`
 
-	GroupingDefs map[string]*Grouping   `json:"grouping_definitions"`
+	TypeDefs map[string]*TypeDef `json:"type_definitions"`
 
-	TypeDefs     map[string]*TypeDef    `json:"type_definitions"`
-
-	CompileTime  time.Time              `json:"compile_time"`
-
+	CompileTime time.Time `json:"compile_time"`
 }
-
-
 
 // SchemaNode represents a compiled schema node.
 
 type SchemaNode struct {
-
 	*YANGNode
 
 	CompiledConstraints []CompiledConstraint `json:"compiled_constraints"`
 
-	RuntimeChecks       []RuntimeCheck       `json:"runtime_checks"`
+	RuntimeChecks []RuntimeCheck `json:"runtime_checks"`
 
-	OptimizedQueries    map[string]string    `json:"optimized_queries"`
-
+	OptimizedQueries map[string]string `json:"optimized_queries"`
 }
-
-
 
 // CompiledConstraint represents a pre-compiled validation constraint.
 
 type CompiledConstraint struct {
+	Type string `json:"type"`
 
-	Type       string      `json:"type"`
-
-	Checker    interface{} `json:"checker"`
+	Checker interface{} `json:"checker"`
 
 	Parameters interface{} `json:"parameters"`
-
 }
-
-
 
 // RuntimeCheck represents a runtime validation check.
 
 type RuntimeCheck struct {
+	CheckFunc func(interface{}) error `json:"-"`
 
-	CheckFunc   func(interface{}) error `json:"-"`
+	Description string `json:"description"`
 
-	Description string                  `json:"description"`
-
-	Cost        int                     `json:"cost"` // Performance cost estimate
+	Cost int `json:"cost"` // Performance cost estimate
 
 }
-
-
 
 // Identity represents a YANG identity.
 
 type Identity struct {
+	Name string `json:"name"`
 
-	Name        string `json:"name"`
-
-	Base        string `json:"base,omitempty"`
+	Base string `json:"base,omitempty"`
 
 	Description string `json:"description,omitempty"`
 
-	Reference   string `json:"reference,omitempty"`
+	Reference string `json:"reference,omitempty"`
 
-	Status      string `json:"status"` // current, deprecated, obsolete
+	Status string `json:"status"` // current, deprecated, obsolete
 
 }
-
-
 
 // Grouping represents a YANG grouping.
 
 type Grouping struct {
+	Name string `json:"name"`
 
-	Name        string               `json:"name"`
+	Description string `json:"description,omitempty"`
 
-	Description string               `json:"description,omitempty"`
+	Nodes map[string]*YANGNode `json:"nodes"`
 
-	Nodes       map[string]*YANGNode `json:"nodes"`
-
-	Status      string               `json:"status"`
-
+	Status string `json:"status"`
 }
-
-
 
 // TypeDef represents a YANG typedef.
 
 type TypeDef struct {
+	Name string `json:"name"`
 
-	Name        string                 `json:"name"`
-
-	Type        string                 `json:"type"`
+	Type string `json:"type"`
 
 	Constraints map[string]interface{} `json:"constraints"`
 
-	Default     interface{}            `json:"default,omitempty"`
+	Default interface{} `json:"default,omitempty"`
 
-	Units       string                 `json:"units,omitempty"`
+	Units string `json:"units,omitempty"`
 
-	Description string                 `json:"description,omitempty"`
-
+	Description string `json:"description,omitempty"`
 }
-
-
 
 // YANGConversionEngine handles format conversions.
 
 type YANGConversionEngine struct {
-
-	registry   *ExtendedYANGModelRegistry
+	registry *ExtendedYANGModelRegistry
 
 	converters map[string]FormatConverter
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // FormatConverter interface for different data format conversions.
 
 type FormatConverter interface {
-
 	XMLToJSON(xmlData, modelName string) (string, error)
 
 	JSONToXML(jsonData, modelName string) (string, error)
@@ -296,10 +222,7 @@ type FormatConverter interface {
 	ValidateFormat(data, format, modelName string) error
 
 	GetSupportedFormats() []string
-
 }
-
-
 
 // NewExtendedYANGModelRegistry creates a new extended YANG model registry.
 
@@ -307,17 +230,12 @@ func NewExtendedYANGModelRegistry() *ExtendedYANGModelRegistry {
 
 	baseRegistry := NewYANGModelRegistry()
 
-
-
 	extended := &ExtendedYANGModelRegistry{
 
 		YANGModelRegistry: baseRegistry,
 
-		oranModels:        make(map[string]*ORANYANGModel),
-
+		oranModels: make(map[string]*ORANYANGModel),
 	}
-
-
 
 	extended.modelValidator = NewORANModelValidator(extended)
 
@@ -325,27 +243,19 @@ func NewExtendedYANGModelRegistry() *ExtendedYANGModelRegistry {
 
 	extended.conversionEngine = NewYANGConversionEngine(extended)
 
-
-
 	// Load all O-RAN WG10 models.
 
 	extended.loadAllORANModels()
 
-
-
 	return extended
 
 }
-
-
 
 // loadAllORANModels loads all O-RAN WG10 specified YANG models.
 
 func (eyr *ExtendedYANGModelRegistry) loadAllORANModels() {
 
 	logger := log.Log.WithName("extended-yang-registry")
-
-
 
 	models := []*ORANYANGModel{
 
@@ -388,10 +298,7 @@ func (eyr *ExtendedYANGModelRegistry) loadAllORANModels() {
 		// O-RAN Processing Elements.
 
 		eyr.createORANProcessingElementsModel(),
-
 	}
-
-
 
 	for _, model := range models {
 
@@ -409,8 +316,6 @@ func (eyr *ExtendedYANGModelRegistry) loadAllORANModels() {
 
 }
 
-
-
 // createORANFaultManagementModel creates the o-ran-fm.yang model.
 
 func (eyr *ExtendedYANGModelRegistry) createORANFaultManagementModel() *ORANYANGModel {
@@ -419,155 +324,148 @@ func (eyr *ExtendedYANGModelRegistry) createORANFaultManagementModel() *ORANYANG
 
 		YANGModel: &YANGModel{
 
-			Name:         "o-ran-fm",
+			Name: "o-ran-fm",
 
-			Namespace:    "urn:o-ran:fm:1.0",
+			Namespace: "urn:o-ran:fm:1.0",
 
-			Version:      "1.0",
+			Version: "1.0",
 
-			Revision:     "2023-05-26",
+			Revision: "2023-05-26",
 
-			Description:  "O-RAN Fault Management YANG module",
+			Description: "O-RAN Fault Management YANG module",
 
 			Organization: "O-RAN Alliance",
 
-			Contact:      "www.o-ran.org",
+			Contact: "www.o-ran.org",
 
 			Schema: map[string]interface{}{
 
 				"active-alarm-list": &YANGNode{
 
-					Name:        "active-alarm-list",
+					Name: "active-alarm-list",
 
-					Type:        "container",
+					Type: "container",
 
 					Description: "List of active alarms",
 
-					Config:      false,
+					Config: false,
 
 					Children: map[string]*YANGNode{
 
 						"active-alarms": {
 
-							Name:        "active-alarms",
+							Name: "active-alarms",
 
-							Type:        "list",
+							Type: "list",
 
 							Description: "List of active alarms in the system",
 
-							Keys:        []string{"fault-id", "fault-source"},
+							Keys: []string{"fault-id", "fault-source"},
 
-							Config:      false,
+							Config: false,
 
 							Children: map[string]*YANGNode{
 
 								"fault-id": {
 
-									Name:        "fault-id",
+									Name: "fault-id",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "uint16",
+									DataType: "uint16",
 
 									Description: "Fault identifier",
 
-									Mandatory:   true,
+									Mandatory: true,
 
-									Config:      false,
-
+									Config: false,
 								},
 
 								"fault-source": {
 
-									Name:        "fault-source",
+									Name: "fault-source",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "string",
+									DataType: "string",
 
 									Description: "Source of the fault",
 
-									Mandatory:   true,
+									Mandatory: true,
 
-									Config:      false,
-
+									Config: false,
 								},
 
 								"fault-severity": {
 
-									Name:        "fault-severity",
+									Name: "fault-severity",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "enumeration",
+									DataType: "enumeration",
 
 									Description: "Severity level of the fault",
 
-									Config:      false,
+									Config: false,
 
 									Constraints: map[string]interface{}{
 
 										"enum": []string{"critical", "major", "minor", "warning"},
-
 									},
-
 								},
 
 								"is-cleared": {
 
-									Name:        "is-cleared",
+									Name: "is-cleared",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "boolean",
+									DataType: "boolean",
 
 									Description: "Indicates if the alarm is cleared",
 
-									Config:      false,
-
+									Config: false,
 								},
 
 								"fault-text": {
 
-									Name:        "fault-text",
+									Name: "fault-text",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "string",
+									DataType: "string",
 
 									Description: "Fault description text",
 
-									Config:      false,
-
+									Config: false,
 								},
 
 								"event-time": {
 
-									Name:        "event-time",
+									Name: "event-time",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "yang:date-and-time",
+									DataType: "yang:date-and-time",
 
 									Description: "Time when the fault occurred",
 
-									Mandatory:   true,
+									Mandatory: true,
 
-									Config:      false,
-
+									Config: false,
 								},
 
 								"fault-category": {
 
-									Name:        "fault-category",
+									Name: "fault-category",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "enumeration",
+									DataType: "enumeration",
 
 									Description: "Category of the fault",
 
-									Config:      false,
+									Config: false,
 
 									Constraints: map[string]interface{}{
 
@@ -576,56 +474,46 @@ func (eyr *ExtendedYANGModelRegistry) createORANFaultManagementModel() *ORANYANG
 											"communications", "quality-of-service", "processing-error",
 
 											"equipment", "environmental",
-
 										},
-
 									},
-
 								},
 
 								"vendor-specific-data": {
 
-									Name:        "vendor-specific-data",
+									Name: "vendor-specific-data",
 
-									Type:        "container",
+									Type: "container",
 
 									Description: "Vendor-specific fault information",
 
-									Config:      false,
+									Config: false,
 
 									Children: map[string]*YANGNode{
 
 										"data": {
 
-											Name:        "data",
+											Name: "data",
 
-											Type:        "leaf",
+											Type: "leaf",
 
-											DataType:    "string",
+											DataType: "string",
 
 											Description: "Vendor-specific fault data",
 
-											Config:      false,
-
+											Config: false,
 										},
-
 									},
-
 								},
-
 							},
-
 						},
-
 					},
-
 				},
 
 				"alarm-notification": &YANGNode{
 
-					Name:        "alarm-notification",
+					Name: "alarm-notification",
 
-					Type:        "notification",
+					Type: "notification",
 
 					Description: "Alarm notification",
 
@@ -633,83 +521,71 @@ func (eyr *ExtendedYANGModelRegistry) createORANFaultManagementModel() *ORANYANG
 
 						"fault-id": {
 
-							Name:        "fault-id",
+							Name: "fault-id",
 
-							Type:        "leaf",
+							Type: "leaf",
 
-							DataType:    "uint16",
+							DataType: "uint16",
 
 							Description: "Fault identifier",
 
-							Mandatory:   true,
-
+							Mandatory: true,
 						},
 
 						"fault-source": {
 
-							Name:        "fault-source",
+							Name: "fault-source",
 
-							Type:        "leaf",
+							Type: "leaf",
 
-							DataType:    "string",
+							DataType: "string",
 
 							Description: "Source of the fault",
 
-							Mandatory:   true,
-
+							Mandatory: true,
 						},
 
 						"fault-severity": {
 
-							Name:     "fault-severity",
+							Name: "fault-severity",
 
-							Type:     "leaf",
+							Type: "leaf",
 
 							DataType: "enumeration",
 
 							Constraints: map[string]interface{}{
 
 								"enum": []string{"critical", "major", "minor", "warning"},
-
 							},
-
 						},
 
 						"event-time": {
 
-							Name:        "event-time",
+							Name: "event-time",
 
-							Type:        "leaf",
+							Type: "leaf",
 
-							DataType:    "yang:date-and-time",
+							DataType: "yang:date-and-time",
 
 							Description: "Time when the fault occurred",
 
-							Mandatory:   true,
-
+							Mandatory: true,
 						},
-
 					},
-
 				},
-
 			},
-
 		},
 
-		ORANVersion:    "7.0.0",
+		ORANVersion: "7.0.0",
 
-		Conformance:    "MANDATORY",
+		Conformance: "MANDATORY",
 
 		Implementation: "COMPLETE",
 
-		Features:       []string{"alarm-history", "alarm-correlation", "alarm-masking"},
-
+		Features: []string{"alarm-history", "alarm-correlation", "alarm-masking"},
 	}
 
 }
-
-
 
 // createORANPerformanceManagementModel creates the o-ran-pm.yang model.
 
@@ -719,27 +595,27 @@ func (eyr *ExtendedYANGModelRegistry) createORANPerformanceManagementModel() *OR
 
 		YANGModel: &YANGModel{
 
-			Name:         "o-ran-pm",
+			Name: "o-ran-pm",
 
-			Namespace:    "urn:o-ran:pm:1.0",
+			Namespace: "urn:o-ran:pm:1.0",
 
-			Version:      "1.0",
+			Version: "1.0",
 
-			Revision:     "2023-05-26",
+			Revision: "2023-05-26",
 
-			Description:  "O-RAN Performance Management YANG module",
+			Description: "O-RAN Performance Management YANG module",
 
 			Organization: "O-RAN Alliance",
 
-			Contact:      "www.o-ran.org",
+			Contact: "www.o-ran.org",
 
 			Schema: map[string]interface{}{
 
 				"performance-measurement-objects": &YANGNode{
 
-					Name:        "performance-measurement-objects",
+					Name: "performance-measurement-objects",
 
-					Type:        "container",
+					Type: "container",
 
 					Description: "Performance measurement object definitions",
 
@@ -747,11 +623,11 @@ func (eyr *ExtendedYANGModelRegistry) createORANPerformanceManagementModel() *OR
 
 						"measurement-object": {
 
-							Name:        "measurement-object",
+							Name: "measurement-object",
 
-							Type:        "list",
+							Type: "list",
 
-							Keys:        []string{"measurement-object-id"},
+							Keys: []string{"measurement-object-id"},
 
 							Description: "List of measurement objects",
 
@@ -759,55 +635,51 @@ func (eyr *ExtendedYANGModelRegistry) createORANPerformanceManagementModel() *OR
 
 								"measurement-object-id": {
 
-									Name:        "measurement-object-id",
+									Name: "measurement-object-id",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "string",
+									DataType: "string",
 
 									Description: "Unique identifier for measurement object",
 
-									Mandatory:   true,
-
+									Mandatory: true,
 								},
 
 								"object-unit": {
 
-									Name:        "object-unit",
+									Name: "object-unit",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "string",
+									DataType: "string",
 
 									Description: "Unit of measurement",
-
 								},
 
 								"function": {
 
-									Name:        "function",
+									Name: "function",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "enumeration",
+									DataType: "enumeration",
 
 									Description: "Measurement function",
 
 									Constraints: map[string]interface{}{
 
 										"enum": []string{"O-RU", "O-DU", "O-CU", "SMO", "NON-RT-RIC", "NEAR-RT-RIC"},
-
 									},
-
 								},
 
 								"measurement-type": {
 
-									Name:        "measurement-type",
+									Name: "measurement-type",
 
-									Type:        "list",
+									Type: "list",
 
-									Keys:        []string{"measurement-type-id"},
+									Keys: []string{"measurement-type-id"},
 
 									Description: "Types of measurements for this object",
 
@@ -815,163 +687,140 @@ func (eyr *ExtendedYANGModelRegistry) createORANPerformanceManagementModel() *OR
 
 										"measurement-type-id": {
 
-											Name:        "measurement-type-id",
+											Name: "measurement-type-id",
 
-											Type:        "leaf",
+											Type: "leaf",
 
-											DataType:    "string",
+											DataType: "string",
 
 											Description: "Measurement type identifier",
 
-											Mandatory:   true,
-
+											Mandatory: true,
 										},
 
 										"measurement-name": {
 
-											Name:        "measurement-name",
+											Name: "measurement-name",
 
-											Type:        "leaf",
+											Type: "leaf",
 
-											DataType:    "string",
+											DataType: "string",
 
 											Description: "Human readable name",
-
 										},
 
 										"measurement-description": {
 
-											Name:        "measurement-description",
+											Name: "measurement-description",
 
-											Type:        "leaf",
+											Type: "leaf",
 
-											DataType:    "string",
+											DataType: "string",
 
 											Description: "Description of measurement",
-
 										},
 
 										"collection-method": {
 
-											Name:     "collection-method",
+											Name: "collection-method",
 
-											Type:     "leaf",
+											Type: "leaf",
 
 											DataType: "enumeration",
 
 											Constraints: map[string]interface{}{
 
 												"enum": []string{"CC", "SI", "DER", "GAUGE"},
-
 											},
-
 										},
 
 										"measurement-interval": {
 
-											Name:        "measurement-interval",
+											Name: "measurement-interval",
 
-											Type:        "leaf",
+											Type: "leaf",
 
-											DataType:    "uint32",
+											DataType: "uint32",
 
 											Description: "Collection interval in seconds",
 
 											Constraints: map[string]interface{}{
 
 												"range": "1..86400",
-
 											},
-
 										},
-
 									},
-
 								},
-
 							},
-
 						},
-
 					},
-
 				},
 
 				"measurement-capabilities": &YANGNode{
 
-					Name:        "measurement-capabilities",
+					Name: "measurement-capabilities",
 
-					Type:        "container",
+					Type: "container",
 
 					Description: "Measurement capabilities of the system",
 
-					Config:      false,
+					Config: false,
 
 					Children: map[string]*YANGNode{
 
 						"supported-measurement-groups": {
 
-							Name:        "supported-measurement-groups",
+							Name: "supported-measurement-groups",
 
-							Type:        "leaf-list",
+							Type: "leaf-list",
 
-							DataType:    "string",
+							DataType: "string",
 
 							Description: "List of supported measurement groups",
 
-							Config:      false,
-
+							Config: false,
 						},
 
 						"max-bin-count": {
 
-							Name:        "max-bin-count",
+							Name: "max-bin-count",
 
-							Type:        "leaf",
+							Type: "leaf",
 
-							DataType:    "uint32",
+							DataType: "uint32",
 
 							Description: "Maximum number of measurement bins",
 
-							Config:      false,
-
+							Config: false,
 						},
 
 						"max-measurement-object-count": {
 
-							Name:        "max-measurement-object-count",
+							Name: "max-measurement-object-count",
 
-							Type:        "leaf",
+							Type: "leaf",
 
-							DataType:    "uint32",
+							DataType: "uint32",
 
 							Description: "Maximum number of measurement objects",
 
-							Config:      false,
-
+							Config: false,
 						},
-
 					},
-
 				},
-
 			},
-
 		},
 
-		ORANVersion:    "7.0.0",
+		ORANVersion: "7.0.0",
 
-		Conformance:    "MANDATORY",
+		Conformance: "MANDATORY",
 
 		Implementation: "COMPLETE",
 
-		Features:       []string{"real-time-pm", "historical-pm", "pm-threshold", "pm-streaming"},
-
+		Features: []string{"real-time-pm", "historical-pm", "pm-threshold", "pm-streaming"},
 	}
 
 }
-
-
 
 // createORANConfigurationManagementModel creates the o-ran-cm.yang model.
 
@@ -981,27 +830,27 @@ func (eyr *ExtendedYANGModelRegistry) createORANConfigurationManagementModel() *
 
 		YANGModel: &YANGModel{
 
-			Name:         "o-ran-cm",
+			Name: "o-ran-cm",
 
-			Namespace:    "urn:o-ran:cm:1.0",
+			Namespace: "urn:o-ran:cm:1.0",
 
-			Version:      "1.0",
+			Version: "1.0",
 
-			Revision:     "2023-05-26",
+			Revision: "2023-05-26",
 
-			Description:  "O-RAN Configuration Management YANG module",
+			Description: "O-RAN Configuration Management YANG module",
 
 			Organization: "O-RAN Alliance",
 
-			Contact:      "www.o-ran.org",
+			Contact: "www.o-ran.org",
 
 			Schema: map[string]interface{}{
 
 				"managed-element": &YANGNode{
 
-					Name:        "managed-element",
+					Name: "managed-element",
 
-					Type:        "container",
+					Type: "container",
 
 					Description: "Managed element configuration",
 
@@ -1009,29 +858,27 @@ func (eyr *ExtendedYANGModelRegistry) createORANConfigurationManagementModel() *
 
 						"function-type": {
 
-							Name:        "function-type",
+							Name: "function-type",
 
-							Type:        "leaf",
+							Type: "leaf",
 
-							DataType:    "enumeration",
+							DataType: "enumeration",
 
 							Description: "Type of O-RAN function",
 
-							Mandatory:   true,
+							Mandatory: true,
 
 							Constraints: map[string]interface{}{
 
 								"enum": []string{"O-RU", "O-DU", "O-CU-CP", "O-CU-UP", "SMO", "NON-RT-RIC", "NEAR-RT-RIC"},
-
 							},
-
 						},
 
 						"interfaces": {
 
-							Name:        "interfaces",
+							Name: "interfaces",
 
-							Type:        "container",
+							Type: "container",
 
 							Description: "Interface configurations",
 
@@ -1039,11 +886,11 @@ func (eyr *ExtendedYANGModelRegistry) createORANConfigurationManagementModel() *
 
 								"o-ran-interface": {
 
-									Name:        "o-ran-interface",
+									Name: "o-ran-interface",
 
-									Type:        "list",
+									Type: "list",
 
-									Keys:        []string{"name"},
+									Keys: []string{"name"},
 
 									Description: "O-RAN interface configuration",
 
@@ -1051,165 +898,140 @@ func (eyr *ExtendedYANGModelRegistry) createORANConfigurationManagementModel() *
 
 										"name": {
 
-											Name:        "name",
+											Name: "name",
 
-											Type:        "leaf",
+											Type: "leaf",
 
-											DataType:    "string",
+											DataType: "string",
 
 											Description: "Interface name",
 
-											Mandatory:   true,
-
+											Mandatory: true,
 										},
 
 										"interface-type": {
 
-											Name:     "interface-type",
+											Name: "interface-type",
 
-											Type:     "leaf",
+											Type: "leaf",
 
 											DataType: "enumeration",
 
 											Constraints: map[string]interface{}{
 
 												"enum": []string{"A1", "E2", "F1", "Xn", "N1", "N2", "N3", "O1", "O2", "OPEN-FRONTHAUL"},
-
 											},
-
 										},
 
 										"administrative-state": {
 
-											Name:     "administrative-state",
+											Name: "administrative-state",
 
-											Type:     "leaf",
+											Type: "leaf",
 
 											DataType: "enumeration",
 
 											Constraints: map[string]interface{}{
 
 												"enum": []string{"locked", "unlocked", "shutting-down"},
-
 											},
-
 										},
 
 										"operational-state": {
 
-											Name:     "operational-state",
+											Name: "operational-state",
 
-											Type:     "leaf",
+											Type: "leaf",
 
 											DataType: "enumeration",
 
-											Config:   false,
+											Config: false,
 
 											Constraints: map[string]interface{}{
 
 												"enum": []string{"enabled", "disabled"},
-
 											},
-
 										},
-
 									},
-
 								},
-
 							},
-
 						},
 
 						"software-inventory": {
 
-							Name:        "software-inventory",
+							Name: "software-inventory",
 
-							Type:        "container",
+							Type: "container",
 
 							Description: "Software inventory information",
 
-							Config:      false,
+							Config: false,
 
 							Children: map[string]*YANGNode{
 
 								"software-slot": {
 
-									Name:        "software-slot",
+									Name: "software-slot",
 
-									Type:        "list",
+									Type: "list",
 
-									Keys:        []string{"name"},
+									Keys: []string{"name"},
 
 									Description: "Software slots in the system",
 
-									Config:      false,
+									Config: false,
 
 									Children: map[string]*YANGNode{
 
 										"name": {
 
-											Name:        "name",
+											Name: "name",
 
-											Type:        "leaf",
+											Type: "leaf",
 
-											DataType:    "string",
+											DataType: "string",
 
 											Description: "Software slot name",
 
-											Mandatory:   true,
+											Mandatory: true,
 
-											Config:      false,
-
+											Config: false,
 										},
 
 										"status": {
 
-											Name:     "status",
+											Name: "status",
 
-											Type:     "leaf",
+											Type: "leaf",
 
 											DataType: "enumeration",
 
-											Config:   false,
+											Config: false,
 
 											Constraints: map[string]interface{}{
 
 												"enum": []string{"valid", "invalid", "empty"},
-
 											},
-
 										},
-
 									},
-
 								},
-
 							},
-
 						},
-
 					},
-
 				},
-
 			},
-
 		},
 
-		ORANVersion:    "7.0.0",
+		ORANVersion: "7.0.0",
 
-		Conformance:    "MANDATORY",
+		Conformance: "MANDATORY",
 
 		Implementation: "COMPLETE",
 
-		Features:       []string{"configuration-backup", "configuration-restore", "configuration-validation"},
-
+		Features: []string{"configuration-backup", "configuration-restore", "configuration-validation"},
 	}
 
 }
-
-
 
 // createORANSecurityManagementModel creates the o-ran-security.yang model.
 
@@ -1219,27 +1041,27 @@ func (eyr *ExtendedYANGModelRegistry) createORANSecurityManagementModel() *ORANY
 
 		YANGModel: &YANGModel{
 
-			Name:         "o-ran-security",
+			Name: "o-ran-security",
 
-			Namespace:    "urn:o-ran:security:1.0",
+			Namespace: "urn:o-ran:security:1.0",
 
-			Version:      "1.0",
+			Version: "1.0",
 
-			Revision:     "2023-05-26",
+			Revision: "2023-05-26",
 
-			Description:  "O-RAN Security Management YANG module",
+			Description: "O-RAN Security Management YANG module",
 
 			Organization: "O-RAN Alliance",
 
-			Contact:      "www.o-ran.org",
+			Contact: "www.o-ran.org",
 
 			Schema: map[string]interface{}{
 
 				"security-policies": &YANGNode{
 
-					Name:        "security-policies",
+					Name: "security-policies",
 
-					Type:        "container",
+					Type: "container",
 
 					Description: "Security policy configuration",
 
@@ -1247,9 +1069,9 @@ func (eyr *ExtendedYANGModelRegistry) createORANSecurityManagementModel() *ORANY
 
 						"access-control-policy": {
 
-							Name:        "access-control-policy",
+							Name: "access-control-policy",
 
-							Type:        "container",
+							Type: "container",
 
 							Description: "Access control policy configuration",
 
@@ -1257,9 +1079,9 @@ func (eyr *ExtendedYANGModelRegistry) createORANSecurityManagementModel() *ORANY
 
 								"authentication": {
 
-									Name:        "authentication",
+									Name: "authentication",
 
-									Type:        "container",
+									Type: "container",
 
 									Description: "Authentication configuration",
 
@@ -1267,25 +1089,23 @@ func (eyr *ExtendedYANGModelRegistry) createORANSecurityManagementModel() *ORANY
 
 										"method": {
 
-											Name:     "method",
+											Name: "method",
 
-											Type:     "leaf",
+											Type: "leaf",
 
 											DataType: "enumeration",
 
 											Constraints: map[string]interface{}{
 
 												"enum": []string{"password", "public-key", "certificate", "oauth2"},
-
 											},
-
 										},
 
 										"certificate-validation": {
 
-											Name:        "certificate-validation",
+											Name: "certificate-validation",
 
-											Type:        "container",
+											Type: "container",
 
 											Description: "Certificate validation settings",
 
@@ -1293,53 +1113,46 @@ func (eyr *ExtendedYANGModelRegistry) createORANSecurityManagementModel() *ORANY
 
 												"ca-certificates": {
 
-													Name:        "ca-certificates",
+													Name: "ca-certificates",
 
-													Type:        "leaf-list",
+													Type: "leaf-list",
 
-													DataType:    "string",
+													DataType: "string",
 
 													Description: "List of trusted CA certificates",
-
 												},
 
 												"crl-check": {
 
-													Name:        "crl-check",
+													Name: "crl-check",
 
-													Type:        "leaf",
+													Type: "leaf",
 
-													DataType:    "boolean",
+													DataType: "boolean",
 
 													Description: "Enable CRL checking",
-
 												},
 
 												"ocsp-check": {
 
-													Name:        "ocsp-check",
+													Name: "ocsp-check",
 
-													Type:        "leaf",
+													Type: "leaf",
 
-													DataType:    "boolean",
+													DataType: "boolean",
 
 													Description: "Enable OCSP checking",
-
 												},
-
 											},
-
 										},
-
 									},
-
 								},
 
 								"authorization": {
 
-									Name:        "authorization",
+									Name: "authorization",
 
-									Type:        "container",
+									Type: "container",
 
 									Description: "Authorization configuration",
 
@@ -1347,11 +1160,11 @@ func (eyr *ExtendedYANGModelRegistry) createORANSecurityManagementModel() *ORANY
 
 										"rbac-policy": {
 
-											Name:        "rbac-policy",
+											Name: "rbac-policy",
 
-											Type:        "list",
+											Type: "list",
 
-											Keys:        []string{"role"},
+											Keys: []string{"role"},
 
 											Description: "Role-based access control policies",
 
@@ -1359,47 +1172,39 @@ func (eyr *ExtendedYANGModelRegistry) createORANSecurityManagementModel() *ORANY
 
 												"role": {
 
-													Name:        "role",
+													Name: "role",
 
-													Type:        "leaf",
+													Type: "leaf",
 
-													DataType:    "string",
+													DataType: "string",
 
 													Description: "Role name",
 
-													Mandatory:   true,
-
+													Mandatory: true,
 												},
 
 												"permissions": {
 
-													Name:        "permissions",
+													Name: "permissions",
 
-													Type:        "leaf-list",
+													Type: "leaf-list",
 
-													DataType:    "string",
+													DataType: "string",
 
 													Description: "List of permissions for the role",
-
 												},
-
 											},
-
 										},
-
 									},
-
 								},
-
 							},
-
 						},
 
 						"encryption-policy": {
 
-							Name:        "encryption-policy",
+							Name: "encryption-policy",
 
-							Type:        "container",
+							Type: "container",
 
 							Description: "Encryption policy configuration",
 
@@ -1407,9 +1212,9 @@ func (eyr *ExtendedYANGModelRegistry) createORANSecurityManagementModel() *ORANY
 
 								"algorithms": {
 
-									Name:        "algorithms",
+									Name: "algorithms",
 
-									Type:        "container",
+									Type: "container",
 
 									Description: "Supported encryption algorithms",
 
@@ -1417,131 +1222,111 @@ func (eyr *ExtendedYANGModelRegistry) createORANSecurityManagementModel() *ORANY
 
 										"symmetric": {
 
-											Name:        "symmetric",
+											Name: "symmetric",
 
-											Type:        "leaf-list",
+											Type: "leaf-list",
 
-											DataType:    "string",
+											DataType: "string",
 
 											Description: "Supported symmetric encryption algorithms",
-
 										},
 
 										"asymmetric": {
 
-											Name:        "asymmetric",
+											Name: "asymmetric",
 
-											Type:        "leaf-list",
+											Type: "leaf-list",
 
-											DataType:    "string",
+											DataType: "string",
 
 											Description: "Supported asymmetric encryption algorithms",
-
 										},
 
 										"hash": {
 
-											Name:        "hash",
+											Name: "hash",
 
-											Type:        "leaf-list",
+											Type: "leaf-list",
 
-											DataType:    "string",
+											DataType: "string",
 
 											Description: "Supported hash algorithms",
-
 										},
-
 									},
-
 								},
-
 							},
-
 						},
-
 					},
-
 				},
 
 				"security-status": &YANGNode{
 
-					Name:        "security-status",
+					Name: "security-status",
 
-					Type:        "container",
+					Type: "container",
 
 					Description: "Current security status",
 
-					Config:      false,
+					Config: false,
 
 					Children: map[string]*YANGNode{
 
 						"threat-level": {
 
-							Name:     "threat-level",
+							Name: "threat-level",
 
-							Type:     "leaf",
+							Type: "leaf",
 
 							DataType: "enumeration",
 
-							Config:   false,
+							Config: false,
 
 							Constraints: map[string]interface{}{
 
 								"enum": []string{"low", "medium", "high", "critical"},
-
 							},
-
 						},
 
 						"active-threats": {
 
-							Name:        "active-threats",
+							Name: "active-threats",
 
-							Type:        "leaf-list",
+							Type: "leaf-list",
 
-							DataType:    "string",
+							DataType: "string",
 
 							Description: "List of active security threats",
 
-							Config:      false,
-
+							Config: false,
 						},
 
 						"last-security-scan": {
 
-							Name:        "last-security-scan",
+							Name: "last-security-scan",
 
-							Type:        "leaf",
+							Type: "leaf",
 
-							DataType:    "yang:date-and-time",
+							DataType: "yang:date-and-time",
 
 							Description: "Timestamp of last security scan",
 
-							Config:      false,
-
+							Config: false,
 						},
-
 					},
-
 				},
-
 			},
-
 		},
 
-		ORANVersion:    "7.0.0",
+		ORANVersion: "7.0.0",
 
-		Conformance:    "MANDATORY",
+		Conformance: "MANDATORY",
 
 		Implementation: "COMPLETE",
 
-		Features:       []string{"certificate-management", "intrusion-detection", "security-audit"},
-
+		Features: []string{"certificate-management", "intrusion-detection", "security-audit"},
 	}
 
 }
-
-
 
 // createORANFileManagementModel creates the o-ran-file-management.yang model.
 
@@ -1551,27 +1336,27 @@ func (eyr *ExtendedYANGModelRegistry) createORANFileManagementModel() *ORANYANGM
 
 		YANGModel: &YANGModel{
 
-			Name:         "o-ran-file-management",
+			Name: "o-ran-file-management",
 
-			Namespace:    "urn:o-ran:file-management:1.0",
+			Namespace: "urn:o-ran:file-management:1.0",
 
-			Version:      "1.0",
+			Version: "1.0",
 
-			Revision:     "2023-05-26",
+			Revision: "2023-05-26",
 
-			Description:  "O-RAN File Management YANG module",
+			Description: "O-RAN File Management YANG module",
 
 			Organization: "O-RAN Alliance",
 
-			Contact:      "www.o-ran.org",
+			Contact: "www.o-ran.org",
 
 			Schema: map[string]interface{}{
 
 				"file-download": &YANGNode{
 
-					Name:        "file-download",
+					Name: "file-download",
 
-					Type:        "rpc",
+					Type: "rpc",
 
 					Description: "Download file from remote location",
 
@@ -1587,37 +1372,35 @@ func (eyr *ExtendedYANGModelRegistry) createORANFileManagementModel() *ORANYANGM
 
 								"remote-file-path": {
 
-									Name:        "remote-file-path",
+									Name: "remote-file-path",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "string",
+									DataType: "string",
 
 									Description: "Remote file path",
 
-									Mandatory:   true,
-
+									Mandatory: true,
 								},
 
 								"local-file-path": {
 
-									Name:        "local-file-path",
+									Name: "local-file-path",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "string",
+									DataType: "string",
 
 									Description: "Local file path",
 
-									Mandatory:   true,
-
+									Mandatory: true,
 								},
 
 								"credentials": {
 
-									Name:        "credentials",
+									Name: "credentials",
 
-									Type:        "container",
+									Type: "container",
 
 									Description: "Download credentials",
 
@@ -1625,30 +1408,24 @@ func (eyr *ExtendedYANGModelRegistry) createORANFileManagementModel() *ORANYANGM
 
 										"username": {
 
-											Name:     "username",
+											Name: "username",
 
-											Type:     "leaf",
+											Type: "leaf",
 
 											DataType: "string",
-
 										},
 
 										"password": {
 
-											Name:     "password",
+											Name: "password",
 
-											Type:     "leaf",
+											Type: "leaf",
 
 											DataType: "string",
-
 										},
-
 									},
-
 								},
-
 							},
-
 						},
 
 						"output": {
@@ -1661,43 +1438,36 @@ func (eyr *ExtendedYANGModelRegistry) createORANFileManagementModel() *ORANYANGM
 
 								"status": {
 
-									Name:     "status",
+									Name: "status",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "enumeration",
 
 									Constraints: map[string]interface{}{
 
 										"enum": []string{"success", "failure", "in-progress"},
-
 									},
-
 								},
 
 								"failure-reason": {
 
-									Name:     "failure-reason",
+									Name: "failure-reason",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "string",
-
 								},
-
 							},
-
 						},
-
 					},
-
 				},
 
 				"file-upload": &YANGNode{
 
-					Name:        "file-upload",
+					Name: "file-upload",
 
-					Type:        "rpc",
+					Type: "rpc",
 
 					Description: "Upload file to remote location",
 
@@ -1713,135 +1483,117 @@ func (eyr *ExtendedYANGModelRegistry) createORANFileManagementModel() *ORANYANGM
 
 								"local-file-path": {
 
-									Name:        "local-file-path",
+									Name: "local-file-path",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "string",
+									DataType: "string",
 
 									Description: "Local file path",
 
-									Mandatory:   true,
-
+									Mandatory: true,
 								},
 
 								"remote-file-path": {
 
-									Name:        "remote-file-path",
+									Name: "remote-file-path",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "string",
+									DataType: "string",
 
 									Description: "Remote file path",
 
-									Mandatory:   true,
-
+									Mandatory: true,
 								},
-
 							},
-
 						},
-
 					},
-
 				},
 
 				"files": &YANGNode{
 
-					Name:        "files",
+					Name: "files",
 
-					Type:        "container",
+					Type: "container",
 
 					Description: "File system information",
 
-					Config:      false,
+					Config: false,
 
 					Children: map[string]*YANGNode{
 
 						"file": {
 
-							Name:        "file",
+							Name: "file",
 
-							Type:        "list",
+							Type: "list",
 
-							Keys:        []string{"name"},
+							Keys: []string{"name"},
 
 							Description: "File information",
 
-							Config:      false,
+							Config: false,
 
 							Children: map[string]*YANGNode{
 
 								"name": {
 
-									Name:        "name",
+									Name: "name",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "string",
+									DataType: "string",
 
 									Description: "File name",
 
-									Mandatory:   true,
+									Mandatory: true,
 
-									Config:      false,
-
+									Config: false,
 								},
 
 								"size": {
 
-									Name:        "size",
+									Name: "size",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "uint64",
+									DataType: "uint64",
 
 									Description: "File size in bytes",
 
-									Config:      false,
-
+									Config: false,
 								},
 
 								"last-modified": {
 
-									Name:        "last-modified",
+									Name: "last-modified",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "yang:date-and-time",
+									DataType: "yang:date-and-time",
 
 									Description: "Last modification time",
 
-									Config:      false,
-
+									Config: false,
 								},
-
 							},
-
 						},
-
 					},
-
 				},
-
 			},
-
 		},
 
-		ORANVersion:    "7.0.0",
+		ORANVersion: "7.0.0",
 
-		Conformance:    "MANDATORY",
+		Conformance: "MANDATORY",
 
 		Implementation: "COMPLETE",
 
-		Features:       []string{"secure-transfer", "file-integrity", "bulk-transfer"},
-
+		Features: []string{"secure-transfer", "file-integrity", "bulk-transfer"},
 	}
 
 }
-
-
 
 // createORANTroubleshootingModel creates the o-ran-troubleshooting.yang model.
 
@@ -1851,27 +1603,27 @@ func (eyr *ExtendedYANGModelRegistry) createORANTroubleshootingModel() *ORANYANG
 
 		YANGModel: &YANGModel{
 
-			Name:         "o-ran-troubleshooting",
+			Name: "o-ran-troubleshooting",
 
-			Namespace:    "urn:o-ran:troubleshooting:1.0",
+			Namespace: "urn:o-ran:troubleshooting:1.0",
 
-			Version:      "1.0",
+			Version: "1.0",
 
-			Revision:     "2023-05-26",
+			Revision: "2023-05-26",
 
-			Description:  "O-RAN Troubleshooting YANG module",
+			Description: "O-RAN Troubleshooting YANG module",
 
 			Organization: "O-RAN Alliance",
 
-			Contact:      "www.o-ran.org",
+			Contact: "www.o-ran.org",
 
 			Schema: map[string]interface{}{
 
 				"troubleshooting-log": &YANGNode{
 
-					Name:        "troubleshooting-log",
+					Name: "troubleshooting-log",
 
-					Type:        "rpc",
+					Type: "rpc",
 
 					Description: "Start troubleshooting log collection",
 
@@ -1887,175 +1639,151 @@ func (eyr *ExtendedYANGModelRegistry) createORANTroubleshootingModel() *ORANYANG
 
 								"log-file-name": {
 
-									Name:        "log-file-name",
+									Name: "log-file-name",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "string",
+									DataType: "string",
 
 									Description: "Log file name",
 
-									Mandatory:   true,
-
+									Mandatory: true,
 								},
 
 								"log-level": {
 
-									Name:     "log-level",
+									Name: "log-level",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "enumeration",
 
 									Constraints: map[string]interface{}{
 
 										"enum": []string{"error", "warn", "info", "debug", "trace"},
-
 									},
-
 								},
 
 								"duration": {
 
-									Name:        "duration",
+									Name: "duration",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "uint32",
+									DataType: "uint32",
 
 									Description: "Log collection duration in seconds",
-
 								},
-
 							},
-
 						},
-
 					},
-
 				},
 
 				"log-entries": &YANGNode{
 
-					Name:        "log-entries",
+					Name: "log-entries",
 
-					Type:        "container",
+					Type: "container",
 
 					Description: "System log entries",
 
-					Config:      false,
+					Config: false,
 
 					Children: map[string]*YANGNode{
 
 						"log-entry": {
 
-							Name:        "log-entry",
+							Name: "log-entry",
 
-							Type:        "list",
+							Type: "list",
 
-							Keys:        []string{"timestamp", "sequence-number"},
+							Keys: []string{"timestamp", "sequence-number"},
 
 							Description: "Individual log entry",
 
-							Config:      false,
+							Config: false,
 
 							Children: map[string]*YANGNode{
 
 								"timestamp": {
 
-									Name:        "timestamp",
+									Name: "timestamp",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "yang:date-and-time",
+									DataType: "yang:date-and-time",
 
 									Description: "Log entry timestamp",
 
-									Mandatory:   true,
+									Mandatory: true,
 
-									Config:      false,
-
+									Config: false,
 								},
 
 								"sequence-number": {
 
-									Name:        "sequence-number",
+									Name: "sequence-number",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "uint64",
+									DataType: "uint64",
 
 									Description: "Sequence number",
 
-									Mandatory:   true,
+									Mandatory: true,
 
-									Config:      false,
-
+									Config: false,
 								},
 
 								"severity": {
 
-									Name:     "severity",
+									Name: "severity",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "enumeration",
 
-									Config:   false,
+									Config: false,
 
 									Constraints: map[string]interface{}{
 
 										"enum": []string{"emergency", "alert", "critical", "error", "warning", "notice", "info", "debug"},
-
 									},
-
 								},
 
 								"message": {
 
-									Name:        "message",
+									Name: "message",
 
-									Type:        "leaf",
+									Type: "leaf",
 
-									DataType:    "string",
+									DataType: "string",
 
 									Description: "Log message",
 
-									Config:      false,
-
+									Config: false,
 								},
-
 							},
-
 						},
-
 					},
-
 				},
-
 			},
-
 		},
 
-		ORANVersion:    "7.0.0",
+		ORANVersion: "7.0.0",
 
-		Conformance:    "MANDATORY",
+		Conformance: "MANDATORY",
 
 		Implementation: "COMPLETE",
 
-		Features:       []string{"remote-logging", "log-filtering", "log-compression"},
-
+		Features: []string{"remote-logging", "log-filtering", "log-compression"},
 	}
 
 }
 
-
-
 // Additional model creation methods would continue here...
 
 // For brevity, I'll include placeholders for the remaining models.
-
-
 
 // createExtendedORANHardwareModel creates extended hardware management model.
 
@@ -2071,8 +1799,6 @@ func (eyr *ExtendedYANGModelRegistry) createExtendedORANHardwareModel() *ORANYAN
 
 }
 
-
-
 // createExtendedORANSoftwareModel creates extended software management model.
 
 func (eyr *ExtendedYANGModelRegistry) createExtendedORANSoftwareModel() *ORANYANGModel {
@@ -2087,8 +1813,6 @@ func (eyr *ExtendedYANGModelRegistry) createExtendedORANSoftwareModel() *ORANYAN
 
 }
 
-
-
 // createORANInterfaceManagementModel creates interface management model.
 
 func (eyr *ExtendedYANGModelRegistry) createORANInterfaceManagementModel() *ORANYANGModel {
@@ -2099,37 +1823,33 @@ func (eyr *ExtendedYANGModelRegistry) createORANInterfaceManagementModel() *ORAN
 
 		YANGModel: &YANGModel{
 
-			Name:         "o-ran-interfaces",
+			Name: "o-ran-interfaces",
 
-			Namespace:    "urn:o-ran:interfaces:1.0",
+			Namespace: "urn:o-ran:interfaces:1.0",
 
-			Version:      "1.0",
+			Version: "1.0",
 
-			Revision:     "2023-05-26",
+			Revision: "2023-05-26",
 
-			Description:  "O-RAN Interface Management YANG module",
+			Description: "O-RAN Interface Management YANG module",
 
 			Organization: "O-RAN Alliance",
 
-			Schema:       map[string]interface{}{
+			Schema: map[string]interface{}{
 
 				// Full schema would be implemented here.
 
 			},
-
 		},
 
-		ORANVersion:    "7.0.0",
+		ORANVersion: "7.0.0",
 
-		Conformance:    "MANDATORY",
+		Conformance: "MANDATORY",
 
 		Implementation: "COMPLETE",
-
 	}
 
 }
-
-
 
 // createORANProcessingElementsModel creates processing elements model.
 
@@ -2141,37 +1861,33 @@ func (eyr *ExtendedYANGModelRegistry) createORANProcessingElementsModel() *ORANY
 
 		YANGModel: &YANGModel{
 
-			Name:         "o-ran-processing-element",
+			Name: "o-ran-processing-element",
 
-			Namespace:    "urn:o-ran:processing-element:1.0",
+			Namespace: "urn:o-ran:processing-element:1.0",
 
-			Version:      "1.0",
+			Version: "1.0",
 
-			Revision:     "2023-05-26",
+			Revision: "2023-05-26",
 
-			Description:  "O-RAN Processing Element YANG module",
+			Description: "O-RAN Processing Element YANG module",
 
 			Organization: "O-RAN Alliance",
 
-			Schema:       map[string]interface{}{
+			Schema: map[string]interface{}{
 
 				// Full schema would be implemented here.
 
 			},
-
 		},
 
-		ORANVersion:    "7.0.0",
+		ORANVersion: "7.0.0",
 
-		Conformance:    "OPTIONAL",
+		Conformance: "OPTIONAL",
 
 		Implementation: "PARTIAL",
-
 	}
 
 }
-
-
 
 // Helper methods for base models.
 
@@ -2181,29 +1897,26 @@ func (eyr *ExtendedYANGModelRegistry) createORANHardwareBaseModel() *ORANYANGMod
 
 		YANGModel: &YANGModel{
 
-			Name:         "o-ran-hardware",
+			Name: "o-ran-hardware",
 
-			Namespace:    "urn:o-ran:hardware:1.0",
+			Namespace: "urn:o-ran:hardware:1.0",
 
-			Version:      "1.0",
+			Version: "1.0",
 
 			Organization: "O-RAN Alliance",
 
-			Schema:       map[string]interface{}{}, // Base schema
+			Schema: map[string]interface{}{}, // Base schema
 
 		},
 
-		ORANVersion:    "7.0.0",
+		ORANVersion: "7.0.0",
 
-		Conformance:    "MANDATORY",
+		Conformance: "MANDATORY",
 
 		Implementation: "COMPLETE",
-
 	}
 
 }
-
-
 
 func (eyr *ExtendedYANGModelRegistry) createORANSoftwareBaseModel() *ORANYANGModel {
 
@@ -2211,29 +1924,26 @@ func (eyr *ExtendedYANGModelRegistry) createORANSoftwareBaseModel() *ORANYANGMod
 
 		YANGModel: &YANGModel{
 
-			Name:         "o-ran-software-management",
+			Name: "o-ran-software-management",
 
-			Namespace:    "urn:o-ran:software-management:1.0",
+			Namespace: "urn:o-ran:software-management:1.0",
 
-			Version:      "1.0",
+			Version: "1.0",
 
 			Organization: "O-RAN Alliance",
 
-			Schema:       map[string]interface{}{}, // Base schema
+			Schema: map[string]interface{}{}, // Base schema
 
 		},
 
-		ORANVersion:    "7.0.0",
+		ORANVersion: "7.0.0",
 
-		Conformance:    "MANDATORY",
+		Conformance: "MANDATORY",
 
 		Implementation: "COMPLETE",
-
 	}
 
 }
-
-
 
 // RegisterORANModel registers an O-RAN YANG model.
 
@@ -2245,19 +1955,13 @@ func (eyr *ExtendedYANGModelRegistry) RegisterORANModel(model *ORANYANGModel) er
 
 	}
 
-
-
 	eyr.oranModels[model.Name] = model
-
-
 
 	// Compile schema for runtime optimization.
 
 	return eyr.schemaCompiler.CompileSchema(model)
 
 }
-
-
 
 // GetORANModel retrieves an O-RAN YANG model by name.
 
@@ -2275,8 +1979,6 @@ func (eyr *ExtendedYANGModelRegistry) GetORANModel(name string) (*ORANYANGModel,
 
 }
 
-
-
 // ValidateORANConfig validates configuration against O-RAN models.
 
 func (eyr *ExtendedYANGModelRegistry) ValidateORANConfig(ctx context.Context, data interface{}, modelName string) error {
@@ -2285,11 +1987,7 @@ func (eyr *ExtendedYANGModelRegistry) ValidateORANConfig(ctx context.Context, da
 
 }
 
-
-
 // Additional initialization methods would be implemented here...
-
-
 
 // NewORANModelValidator creates a new O-RAN model validator.
 
@@ -2297,17 +1995,14 @@ func NewORANModelValidator(registry *ExtendedYANGModelRegistry) *ORANModelValida
 
 	return &ORANModelValidator{
 
-		registry:     registry,
+		registry: registry,
 
-		constraints:  make(map[string][]ValidationConstraint),
+		constraints: make(map[string][]ValidationConstraint),
 
 		typeCheckers: make(map[string]TypeChecker),
-
 	}
 
 }
-
-
 
 // ValidateORANData validates data against O-RAN specific rules.
 
@@ -2319,23 +2014,18 @@ func (omv *ORANModelValidator) ValidateORANData(data interface{}, modelName stri
 
 }
 
-
-
 // NewYANGSchemaCompiler creates a new schema compiler.
 
 func NewYANGSchemaCompiler(registry *ExtendedYANGModelRegistry) *YANGSchemaCompiler {
 
 	return &YANGSchemaCompiler{
 
-		registry:        registry,
+		registry: registry,
 
 		compiledSchemas: make(map[string]*CompiledSchema),
-
 	}
 
 }
-
-
 
 // CompileSchema compiles a YANG schema for runtime optimization.
 
@@ -2347,19 +2037,15 @@ func (ysc *YANGSchemaCompiler) CompileSchema(model *ORANYANGModel) error {
 
 }
 
-
-
 // NewYANGConversionEngine creates a new conversion engine.
 
 func NewYANGConversionEngine(registry *ExtendedYANGModelRegistry) *YANGConversionEngine {
 
 	return &YANGConversionEngine{
 
-		registry:   registry,
+		registry: registry,
 
 		converters: make(map[string]FormatConverter),
-
 	}
 
 }
-

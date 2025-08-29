@@ -1,207 +1,164 @@
-
 package providers
 
-
-
 import (
-
 	"context"
-
 	"crypto/tls"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"strings"
-
 	"time"
 
-
-
 	"golang.org/x/oauth2"
-
 )
-
-
 
 // AzureADProvider implements OAuth2/OIDC authentication for Microsoft Azure AD.
 
 type AzureADProvider struct {
+	config *ProviderConfig
 
-	config        *ProviderConfig
+	httpClient *http.Client
 
-	httpClient    *http.Client
+	oauth2Cfg *oauth2.Config
 
-	oauth2Cfg     *oauth2.Config
+	oidcConfig *OIDCConfiguration
 
-	oidcConfig    *OIDCConfiguration
+	jwksCache *JWKSCache
 
-	jwksCache     *JWKSCache
-
-	tenantID      string
+	tenantID string
 
 	isMultiTenant bool
-
 }
-
-
 
 // AzureADUserInfo represents Azure AD user information.
 
 type AzureADUserInfo struct {
+	ID string `json:"id"`
 
-	ID                           string `json:"id"`
+	UserPrincipalName string `json:"userPrincipalName"`
 
-	UserPrincipalName            string `json:"userPrincipalName"`
+	DisplayName string `json:"displayName"`
 
-	DisplayName                  string `json:"displayName"`
+	GivenName string `json:"givenName"`
 
-	GivenName                    string `json:"givenName"`
+	Surname string `json:"surname"`
 
-	Surname                      string `json:"surname"`
+	Mail string `json:"mail"`
 
-	Mail                         string `json:"mail"`
+	MailNickname string `json:"mailNickname"`
 
-	MailNickname                 string `json:"mailNickname"`
+	JobTitle string `json:"jobTitle"`
 
-	JobTitle                     string `json:"jobTitle"`
+	Department string `json:"department"`
 
-	Department                   string `json:"department"`
+	CompanyName string `json:"companyName"`
 
-	CompanyName                  string `json:"companyName"`
+	OfficeLocation string `json:"officeLocation"`
 
-	OfficeLocation               string `json:"officeLocation"`
+	PreferredLanguage string `json:"preferredLanguage"`
 
-	PreferredLanguage            string `json:"preferredLanguage"`
+	AccountEnabled bool `json:"accountEnabled"`
 
-	AccountEnabled               bool   `json:"accountEnabled"`
-
-	UserType                     string `json:"userType"`
+	UserType string `json:"userType"`
 
 	OnPremisesSecurityIdentifier string `json:"onPremisesSecurityIdentifier"`
-
 }
-
-
 
 // AzureADGroup represents an Azure AD group.
 
 type AzureADGroup struct {
+	ID string `json:"id"`
 
-	ID              string   `json:"id"`
+	DisplayName string `json:"displayName"`
 
-	DisplayName     string   `json:"displayName"`
+	Description string `json:"description"`
 
-	Description     string   `json:"description"`
+	GroupTypes []string `json:"groupTypes"`
 
-	GroupTypes      []string `json:"groupTypes"`
+	SecurityEnabled bool `json:"securityEnabled"`
 
-	SecurityEnabled bool     `json:"securityEnabled"`
+	MailEnabled bool `json:"mailEnabled"`
 
-	MailEnabled     bool     `json:"mailEnabled"`
-
-	Mail            string   `json:"mail"`
-
+	Mail string `json:"mail"`
 }
-
-
 
 // AzureADDirectoryRole represents an Azure AD directory role.
 
 type AzureADDirectoryRole struct {
+	ID string `json:"id"`
 
-	ID             string `json:"id"`
+	DisplayName string `json:"displayName"`
 
-	DisplayName    string `json:"displayName"`
-
-	Description    string `json:"description"`
+	Description string `json:"description"`
 
 	RoleTemplateID string `json:"roleTemplateId"`
-
 }
-
-
 
 // AzureADApplication represents an Azure AD application.
 
 type AzureADApplication struct {
+	ID string `json:"id"`
 
-	ID          string           `json:"id"`
+	DisplayName string `json:"displayName"`
 
-	DisplayName string           `json:"displayName"`
+	AppID string `json:"appId"`
 
-	AppID       string           `json:"appId"`
-
-	AppRoles    []AzureADAppRole `json:"appRoles"`
-
+	AppRoles []AzureADAppRole `json:"appRoles"`
 }
-
-
 
 // AzureADAppRole represents an application role.
 
 type AzureADAppRole struct {
+	ID string `json:"id"`
 
-	ID                 string   `json:"id"`
+	DisplayName string `json:"displayName"`
 
-	DisplayName        string   `json:"displayName"`
+	Description string `json:"description"`
 
-	Description        string   `json:"description"`
-
-	Value              string   `json:"value"`
+	Value string `json:"value"`
 
 	AllowedMemberTypes []string `json:"allowedMemberTypes"`
 
-	IsEnabled          bool     `json:"isEnabled"`
-
+	IsEnabled bool `json:"isEnabled"`
 }
-
-
 
 // AzureADIDToken represents Azure AD ID token claims.
 
 type AzureADIDToken struct {
+	Issuer string `json:"iss"`
 
-	Issuer            string   `json:"iss"`
+	Subject string `json:"sub"`
 
-	Subject           string   `json:"sub"`
+	Audience string `json:"aud"`
 
-	Audience          string   `json:"aud"`
+	ExpiresAt int64 `json:"exp"`
 
-	ExpiresAt         int64    `json:"exp"`
+	IssuedAt int64 `json:"iat"`
 
-	IssuedAt          int64    `json:"iat"`
+	NotBefore int64 `json:"nbf"`
 
-	NotBefore         int64    `json:"nbf"`
+	AuthTime int64 `json:"auth_time,omitempty"`
 
-	AuthTime          int64    `json:"auth_time,omitempty"`
+	Nonce string `json:"nonce,omitempty"`
 
-	Nonce             string   `json:"nonce,omitempty"`
+	Name string `json:"name"`
 
-	Name              string   `json:"name"`
+	PreferredUsername string `json:"preferred_username"`
 
-	PreferredUsername string   `json:"preferred_username"`
+	Email string `json:"email"`
 
-	Email             string   `json:"email"`
+	Groups []string `json:"groups,omitempty"`
 
-	Groups            []string `json:"groups,omitempty"`
+	Roles []string `json:"roles,omitempty"`
 
-	Roles             []string `json:"roles,omitempty"`
+	TenantID string `json:"tid"`
 
-	TenantID          string   `json:"tid"`
+	ObjectID string `json:"oid"`
 
-	ObjectID          string   `json:"oid"`
+	Version string `json:"ver"`
 
-	Version           string   `json:"ver"`
-
-	AtHash            string   `json:"at_hash,omitempty"`
-
+	AtHash string `json:"at_hash,omitempty"`
 }
-
-
 
 // NewAzureADProvider creates a new Azure AD OAuth2/OIDC provider.
 
@@ -209,42 +166,37 @@ func NewAzureADProvider(tenantID, clientID, clientSecret, redirectURL string) *A
 
 	isMultiTenant := tenantID == "common" || tenantID == "organizations" || tenantID == "consumers"
 
-
-
 	authURL := fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/authorize", tenantID)
 
 	tokenURL := fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/token", tenantID)
 
 	discoveryURL := fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0/.well-known/openid_configuration", tenantID)
 
-
-
 	config := &ProviderConfig{
 
-		Name:         "azuread",
+		Name: "azuread",
 
-		Type:         "azuread",
+		Type: "azuread",
 
-		ClientID:     clientID,
+		ClientID: clientID,
 
 		ClientSecret: clientSecret,
 
-		RedirectURL:  redirectURL,
+		RedirectURL: redirectURL,
 
-		Scopes:       []string{"openid", "profile", "email", "User.Read", "Directory.Read.All"},
+		Scopes: []string{"openid", "profile", "email", "User.Read", "Directory.Read.All"},
 
 		Endpoints: ProviderEndpoints{
 
-			AuthURL:      authURL,
+			AuthURL: authURL,
 
-			TokenURL:     tokenURL,
+			TokenURL: tokenURL,
 
-			UserInfoURL:  "https://graph.microsoft.com/v1.0/me",
+			UserInfoURL: "https://graph.microsoft.com/v1.0/me",
 
-			JWKSURL:      fmt.Sprintf("https://login.microsoftonline.com/%s/discovery/v2.0/keys", tenantID),
+			JWKSURL: fmt.Sprintf("https://login.microsoftonline.com/%s/discovery/v2.0/keys", tenantID),
 
 			DiscoveryURL: discoveryURL,
-
 		},
 
 		Features: []ProviderFeature{
@@ -268,46 +220,38 @@ func NewAzureADProvider(tenantID, clientID, clientSecret, redirectURL string) *A
 			FeatureJWTTokens,
 
 			FeatureDiscovery,
-
 		},
-
 	}
-
-
 
 	oauth2Cfg := &oauth2.Config{
 
-		ClientID:     clientID,
+		ClientID: clientID,
 
 		ClientSecret: clientSecret,
 
-		RedirectURL:  redirectURL,
+		RedirectURL: redirectURL,
 
-		Scopes:       config.Scopes,
+		Scopes: config.Scopes,
 
 		Endpoint: oauth2.Endpoint{
 
-			AuthURL:  authURL,
+			AuthURL: authURL,
 
 			TokenURL: tokenURL,
-
 		},
-
 	}
-
-
 
 	return &AzureADProvider{
 
-		config:        config,
+		config: config,
 
-		oauth2Cfg:     oauth2Cfg,
+		oauth2Cfg: oauth2Cfg,
 
-		tenantID:      tenantID,
+		tenantID: tenantID,
 
 		isMultiTenant: isMultiTenant,
 
-		jwksCache:     &JWKSCache{},
+		jwksCache: &JWKSCache{},
 
 		httpClient: &http.Client{
 
@@ -318,18 +262,12 @@ func NewAzureADProvider(tenantID, clientID, clientSecret, redirectURL string) *A
 				TLSClientConfig: &tls.Config{
 
 					MinVersion: tls.VersionTLS12,
-
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // GetProviderName returns the provider name.
 
@@ -339,15 +277,11 @@ func (p *AzureADProvider) GetProviderName() string {
 
 }
 
-
-
 // GetAuthorizationURL generates OAuth2 authorization URL with PKCE support.
 
 func (p *AzureADProvider) GetAuthorizationURL(state, redirectURI string, options ...AuthOption) (string, *PKCEChallenge, error) {
 
 	opts := ApplyOptions(options...)
-
-
 
 	// Update redirect URI if provided.
 
@@ -359,18 +293,12 @@ func (p *AzureADProvider) GetAuthorizationURL(state, redirectURI string, options
 
 	}
 
-
-
 	// Pre-allocate with capacity 1 since we know we're adding exactly one option
 	authOpts := []oauth2.AuthCodeOption{oauth2.AccessTypeOffline}
-
-
 
 	var challenge *PKCEChallenge
 
 	var err error
-
-
 
 	if opts.UsePKCE {
 
@@ -382,19 +310,14 @@ func (p *AzureADProvider) GetAuthorizationURL(state, redirectURI string, options
 
 		}
 
-
-
 		authOpts = append(authOpts,
 
 			oauth2.SetAuthURLParam("code_challenge", challenge.CodeChallenge),
 
 			oauth2.SetAuthURLParam("code_challenge_method", challenge.Method),
-
 		)
 
 	}
-
-
 
 	// Add Azure AD specific options.
 
@@ -404,15 +327,11 @@ func (p *AzureADProvider) GetAuthorizationURL(state, redirectURI string, options
 
 	}
 
-
-
 	if opts.LoginHint != "" {
 
 		authOpts = append(authOpts, oauth2.SetAuthURLParam("login_hint", opts.LoginHint))
 
 	}
-
-
 
 	if opts.DomainHint != "" {
 
@@ -420,21 +339,15 @@ func (p *AzureADProvider) GetAuthorizationURL(state, redirectURI string, options
 
 	}
 
-
-
 	if opts.MaxAge > 0 {
 
 		authOpts = append(authOpts, oauth2.SetAuthURLParam("max_age", fmt.Sprintf("%d", opts.MaxAge)))
 
 	}
 
-
-
 	// Add response_mode=query for better compatibility.
 
 	authOpts = append(authOpts, oauth2.SetAuthURLParam("response_mode", "query"))
-
-
 
 	for key, value := range opts.CustomParams {
 
@@ -442,17 +355,11 @@ func (p *AzureADProvider) GetAuthorizationURL(state, redirectURI string, options
 
 	}
 
-
-
 	authURL := config.AuthCodeURL(state, authOpts...)
-
-
 
 	return authURL, challenge, nil
 
 }
-
-
 
 // ExchangeCodeForToken exchanges authorization code for access token.
 
@@ -466,8 +373,6 @@ func (p *AzureADProvider) ExchangeCodeForToken(ctx context.Context, code, redire
 
 	}
 
-
-
 	var opts []oauth2.AuthCodeOption
 
 	if challenge != nil {
@@ -475,8 +380,6 @@ func (p *AzureADProvider) ExchangeCodeForToken(ctx context.Context, code, redire
 		opts = append(opts, oauth2.SetAuthURLParam("code_verifier", challenge.CodeVerifier))
 
 	}
-
-
 
 	token, err := config.Exchange(ctx, code, opts...)
 
@@ -488,23 +391,18 @@ func (p *AzureADProvider) ExchangeCodeForToken(ctx context.Context, code, redire
 
 	}
 
-
-
 	response := &TokenResponse{
 
-		AccessToken:  token.AccessToken,
+		AccessToken: token.AccessToken,
 
 		RefreshToken: token.RefreshToken,
 
-		TokenType:    token.TokenType,
+		TokenType: token.TokenType,
 
-		ExpiresIn:    int64(time.Until(token.Expiry).Seconds()),
+		ExpiresIn: int64(time.Until(token.Expiry).Seconds()),
 
-		IssuedAt:     time.Now(),
-
+		IssuedAt: time.Now(),
 	}
-
-
 
 	// Extract ID token if present.
 
@@ -514,13 +412,9 @@ func (p *AzureADProvider) ExchangeCodeForToken(ctx context.Context, code, redire
 
 	}
 
-
-
 	return response, nil
 
 }
-
-
 
 // RefreshToken refreshes an access token using refresh token.
 
@@ -529,10 +423,7 @@ func (p *AzureADProvider) RefreshToken(ctx context.Context, refreshToken string)
 	token := &oauth2.Token{
 
 		RefreshToken: refreshToken,
-
 	}
-
-
 
 	tokenSource := p.oauth2Cfg.TokenSource(ctx, token)
 
@@ -546,23 +437,18 @@ func (p *AzureADProvider) RefreshToken(ctx context.Context, refreshToken string)
 
 	}
 
-
-
 	response := &TokenResponse{
 
-		AccessToken:  newToken.AccessToken,
+		AccessToken: newToken.AccessToken,
 
 		RefreshToken: newToken.RefreshToken,
 
-		TokenType:    newToken.TokenType,
+		TokenType: newToken.TokenType,
 
-		ExpiresIn:    int64(time.Until(newToken.Expiry).Seconds()),
+		ExpiresIn: int64(time.Until(newToken.Expiry).Seconds()),
 
-		IssuedAt:     time.Now(),
-
+		IssuedAt: time.Now(),
 	}
-
-
 
 	// Extract ID token if present.
 
@@ -572,13 +458,9 @@ func (p *AzureADProvider) RefreshToken(ctx context.Context, refreshToken string)
 
 	}
 
-
-
 	return response, nil
 
 }
-
-
 
 // GetUserInfo retrieves user information using access token.
 
@@ -592,13 +474,9 @@ func (p *AzureADProvider) GetUserInfo(ctx context.Context, accessToken string) (
 
 	}
 
-
-
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	req.Header.Set("Accept", "application/json")
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -610,8 +488,6 @@ func (p *AzureADProvider) GetUserInfo(ctx context.Context, accessToken string) (
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, NewProviderError(p.GetProviderName(), "userinfo_failed",
@@ -620,8 +496,6 @@ func (p *AzureADProvider) GetUserInfo(ctx context.Context, accessToken string) (
 
 	}
 
-
-
 	var azureUser AzureADUserInfo
 
 	if err := json.NewDecoder(resp.Body).Decode(&azureUser); err != nil {
@@ -629,8 +503,6 @@ func (p *AzureADProvider) GetUserInfo(ctx context.Context, accessToken string) (
 		return nil, fmt.Errorf("failed to decode user info: %w", err)
 
 	}
-
-
 
 	// Get user groups.
 
@@ -644,8 +516,6 @@ func (p *AzureADProvider) GetUserInfo(ctx context.Context, accessToken string) (
 
 	}
 
-
-
 	// Get user roles.
 
 	roles, err := p.GetRoles(ctx, accessToken)
@@ -658,61 +528,55 @@ func (p *AzureADProvider) GetUserInfo(ctx context.Context, accessToken string) (
 
 	}
 
-
-
 	userInfo := &UserInfo{
 
-		Subject:       azureUser.ID,
+		Subject: azureUser.ID,
 
-		Email:         azureUser.Mail,
+		Email: azureUser.Mail,
 
 		EmailVerified: azureUser.Mail != "",
 
-		Name:          azureUser.DisplayName,
+		Name: azureUser.DisplayName,
 
-		GivenName:     azureUser.GivenName,
+		GivenName: azureUser.GivenName,
 
-		FamilyName:    azureUser.Surname,
+		FamilyName: azureUser.Surname,
 
 		PreferredName: azureUser.UserPrincipalName,
 
-		Username:      azureUser.MailNickname,
+		Username: azureUser.MailNickname,
 
-		Groups:        groups,
+		Groups: groups,
 
-		Roles:         roles,
+		Roles: roles,
 
-		Provider:      p.GetProviderName(),
+		Provider: p.GetProviderName(),
 
-		ProviderID:    azureUser.ID,
+		ProviderID: azureUser.ID,
 
 		Attributes: map[string]interface{}{
 
-			"azure_id":            azureUser.ID,
+			"azure_id": azureUser.ID,
 
 			"user_principal_name": azureUser.UserPrincipalName,
 
-			"job_title":           azureUser.JobTitle,
+			"job_title": azureUser.JobTitle,
 
-			"department":          azureUser.Department,
+			"department": azureUser.Department,
 
-			"company_name":        azureUser.CompanyName,
+			"company_name": azureUser.CompanyName,
 
-			"office_location":     azureUser.OfficeLocation,
+			"office_location": azureUser.OfficeLocation,
 
-			"preferred_language":  azureUser.PreferredLanguage,
+			"preferred_language": azureUser.PreferredLanguage,
 
-			"account_enabled":     azureUser.AccountEnabled,
+			"account_enabled": azureUser.AccountEnabled,
 
-			"user_type":           azureUser.UserType,
+			"user_type": azureUser.UserType,
 
-			"tenant_id":           p.tenantID,
-
+			"tenant_id": p.tenantID,
 		},
-
 	}
-
-
 
 	// Add tenant as organization if not multi-tenant.
 
@@ -722,27 +586,21 @@ func (p *AzureADProvider) GetUserInfo(ctx context.Context, accessToken string) (
 
 			{
 
-				ID:          p.tenantID,
+				ID: p.tenantID,
 
-				Name:        p.tenantID,
+				Name: p.tenantID,
 
 				DisplayName: azureUser.CompanyName,
 
-				Role:        "member",
-
+				Role: "member",
 			},
-
 		}
 
 	}
 
-
-
 	return userInfo, nil
 
 }
-
-
 
 // ValidateToken validates an access token.
 
@@ -758,13 +616,9 @@ func (p *AzureADProvider) ValidateToken(ctx context.Context, accessToken string)
 
 	}
 
-
-
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	req.Header.Set("Accept", "application/json")
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -775,14 +629,11 @@ func (p *AzureADProvider) ValidateToken(ctx context.Context, accessToken string)
 			Valid: false,
 
 			Error: err.Error(),
-
 		}, nil
 
 	}
 
 	defer resp.Body.Close()
-
-
 
 	if resp.StatusCode == http.StatusUnauthorized {
 
@@ -791,12 +642,9 @@ func (p *AzureADProvider) ValidateToken(ctx context.Context, accessToken string)
 			Valid: false,
 
 			Error: "Token is invalid or expired",
-
 		}, nil
 
 	}
-
-
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -805,12 +653,9 @@ func (p *AzureADProvider) ValidateToken(ctx context.Context, accessToken string)
 			Valid: false,
 
 			Error: fmt.Sprintf("Unexpected status code: %d", resp.StatusCode),
-
 		}, nil
 
 	}
-
-
 
 	var azureUser AzureADUserInfo
 
@@ -821,16 +666,13 @@ func (p *AzureADProvider) ValidateToken(ctx context.Context, accessToken string)
 			Valid: false,
 
 			Error: "Failed to decode user info",
-
 		}, nil
 
 	}
 
-
-
 	return &TokenValidation{
 
-		Valid:    true,
+		Valid: true,
 
 		Username: azureUser.UserPrincipalName,
 
@@ -839,12 +681,9 @@ func (p *AzureADProvider) ValidateToken(ctx context.Context, accessToken string)
 		// Azure AD access tokens typically have 1 hour expiry.
 
 		ExpiresAt: time.Now().Add(time.Hour),
-
 	}, nil
 
 }
-
-
 
 // RevokeToken revokes an access token.
 
@@ -859,8 +698,6 @@ func (p *AzureADProvider) RevokeToken(ctx context.Context, token string) error {
 		"Azure AD does not support programmatic token revocation", nil)
 
 }
-
-
 
 // SupportsFeature checks if provider supports specific features.
 
@@ -880,8 +717,6 @@ func (p *AzureADProvider) SupportsFeature(feature ProviderFeature) bool {
 
 }
 
-
-
 // GetConfiguration returns provider configuration.
 
 func (p *AzureADProvider) GetConfiguration() *ProviderConfig {
@@ -890,11 +725,7 @@ func (p *AzureADProvider) GetConfiguration() *ProviderConfig {
 
 }
 
-
-
 // Enterprise Provider Implementation.
-
-
 
 // GetGroups retrieves user groups from Azure AD.
 
@@ -908,13 +739,9 @@ func (p *AzureADProvider) GetGroups(ctx context.Context, accessToken string) ([]
 
 	}
 
-
-
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	req.Header.Set("Accept", "application/json")
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -926,20 +753,14 @@ func (p *AzureADProvider) GetGroups(ctx context.Context, accessToken string) ([]
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("groups request failed with status %d", resp.StatusCode)
 
 	}
 
-
-
 	var response struct {
-
 		Value []AzureADGroup `json:"value"`
-
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
@@ -947,8 +768,6 @@ func (p *AzureADProvider) GetGroups(ctx context.Context, accessToken string) ([]
 		return nil, fmt.Errorf("failed to decode groups: %w", err)
 
 	}
-
-
 
 	groups := make([]string, len(response.Value))
 
@@ -958,13 +777,9 @@ func (p *AzureADProvider) GetGroups(ctx context.Context, accessToken string) ([]
 
 	}
 
-
-
 	return groups, nil
 
 }
-
-
 
 // GetRoles retrieves user roles from Azure AD.
 
@@ -980,13 +795,9 @@ func (p *AzureADProvider) GetRoles(ctx context.Context, accessToken string) ([]s
 
 	}
 
-
-
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	req.Header.Set("Accept", "application/json")
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -998,20 +809,14 @@ func (p *AzureADProvider) GetRoles(ctx context.Context, accessToken string) ([]s
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return []string{}, nil // Directory roles might not be accessible
 
 	}
 
-
-
 	var response struct {
-
 		Value []AzureADDirectoryRole `json:"value"`
-
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
@@ -1019,8 +824,6 @@ func (p *AzureADProvider) GetRoles(ctx context.Context, accessToken string) ([]s
 		return []string{}, nil // Continue without roles if decoding fails
 
 	}
-
-
 
 	roles := make([]string, len(response.Value))
 
@@ -1030,13 +833,9 @@ func (p *AzureADProvider) GetRoles(ctx context.Context, accessToken string) ([]s
 
 	}
 
-
-
 	return roles, nil
 
 }
-
-
 
 // CheckGroupMembership checks if user belongs to specific groups.
 
@@ -1050,8 +849,6 @@ func (p *AzureADProvider) CheckGroupMembership(ctx context.Context, accessToken 
 
 	}
 
-
-
 	userGroupMap := make(map[string]bool)
 
 	for _, group := range userGroups {
@@ -1061,8 +858,6 @@ func (p *AzureADProvider) CheckGroupMembership(ctx context.Context, accessToken 
 		userGroupMap[strings.ToLower(group)] = true
 
 	}
-
-
 
 	var memberGroups []string
 
@@ -1076,13 +871,9 @@ func (p *AzureADProvider) CheckGroupMembership(ctx context.Context, accessToken 
 
 	}
 
-
-
 	return memberGroups, nil
 
 }
-
-
 
 // GetOrganizations retrieves user's organizations (tenant information).
 
@@ -1096,8 +887,6 @@ func (p *AzureADProvider) GetOrganizations(ctx context.Context, accessToken stri
 
 	}
 
-
-
 	// Get organization info.
 
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://graph.microsoft.com/v1.0/organization", http.NoBody)
@@ -1108,13 +897,9 @@ func (p *AzureADProvider) GetOrganizations(ctx context.Context, accessToken stri
 
 	}
 
-
-
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	req.Header.Set("Accept", "application/json")
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -1126,26 +911,18 @@ func (p *AzureADProvider) GetOrganizations(ctx context.Context, accessToken stri
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return []Organization{}, nil // Organization info might not be accessible
 
 	}
 
-
-
 	var response struct {
-
 		Value []struct {
-
-			ID          string `json:"id"`
+			ID string `json:"id"`
 
 			DisplayName string `json:"displayName"`
-
 		} `json:"value"`
-
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
@@ -1154,33 +931,26 @@ func (p *AzureADProvider) GetOrganizations(ctx context.Context, accessToken stri
 
 	}
 
-
-
 	organizations := make([]Organization, len(response.Value))
 
 	for i, org := range response.Value {
 
 		organizations[i] = Organization{
 
-			ID:          org.ID,
+			ID: org.ID,
 
-			Name:        org.DisplayName,
+			Name: org.DisplayName,
 
 			DisplayName: org.DisplayName,
 
-			Role:        "member",
-
+			Role: "member",
 		}
 
 	}
 
-
-
 	return organizations, nil
 
 }
-
-
 
 // ValidateUserAccess validates if user has required access level.
 
@@ -1194,8 +964,6 @@ func (p *AzureADProvider) ValidateUserAccess(ctx context.Context, accessToken st
 
 	}
 
-
-
 	// Check if account is enabled.
 
 	if accountEnabled, ok := userInfo.Attributes["account_enabled"].(bool); ok && !accountEnabled {
@@ -1203,8 +971,6 @@ func (p *AzureADProvider) ValidateUserAccess(ctx context.Context, accessToken st
 		return fmt.Errorf("user account is disabled")
 
 	}
-
-
 
 	// For admin levels, check if user has any admin roles.
 
@@ -1217,8 +983,6 @@ func (p *AzureADProvider) ValidateUserAccess(ctx context.Context, accessToken st
 			return fmt.Errorf("failed to get user roles for access validation: %w", err)
 
 		}
-
-
 
 		hasAdminRole := false
 
@@ -1246,8 +1010,6 @@ func (p *AzureADProvider) ValidateUserAccess(ctx context.Context, accessToken st
 
 		}
 
-
-
 		if !hasAdminRole {
 
 			return fmt.Errorf("user does not have required administrative privileges")
@@ -1256,17 +1018,11 @@ func (p *AzureADProvider) ValidateUserAccess(ctx context.Context, accessToken st
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // OIDC Provider Implementation.
-
-
 
 // DiscoverConfiguration discovers OIDC configuration from well-known endpoint.
 
@@ -1278,8 +1034,6 @@ func (p *AzureADProvider) DiscoverConfiguration(ctx context.Context) (*OIDCConfi
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, "GET", p.config.Endpoints.DiscoveryURL, http.NoBody)
 
 	if err != nil {
@@ -1287,8 +1041,6 @@ func (p *AzureADProvider) DiscoverConfiguration(ctx context.Context) (*OIDCConfi
 		return nil, fmt.Errorf("failed to create discovery request: %w", err)
 
 	}
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -1300,15 +1052,11 @@ func (p *AzureADProvider) DiscoverConfiguration(ctx context.Context) (*OIDCConfi
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("OIDC discovery failed with status %d", resp.StatusCode)
 
 	}
-
-
 
 	var config OIDCConfiguration
 
@@ -1318,15 +1066,11 @@ func (p *AzureADProvider) DiscoverConfiguration(ctx context.Context) (*OIDCConfi
 
 	}
 
-
-
 	p.oidcConfig = &config
 
 	return &config, nil
 
 }
-
-
 
 // ValidateIDToken validates an OpenID Connect ID token.
 
@@ -1339,8 +1083,6 @@ func (p *AzureADProvider) ValidateIDToken(ctx context.Context, idToken string) (
 	return nil, fmt.Errorf("ID token validation not fully implemented for Azure AD")
 
 }
-
-
 
 // GetJWKS retrieves JSON Web Key Set for token validation.
 
@@ -1360,8 +1102,6 @@ func (p *AzureADProvider) GetJWKS(ctx context.Context) (*JWKS, error) {
 
 	p.jwksCache.mutex.RUnlock()
 
-
-
 	// Fetch JWKS.
 
 	req, err := http.NewRequestWithContext(ctx, "GET", p.config.Endpoints.JWKSURL, http.NoBody)
@@ -1371,8 +1111,6 @@ func (p *AzureADProvider) GetJWKS(ctx context.Context) (*JWKS, error) {
 		return nil, fmt.Errorf("failed to create JWKS request: %w", err)
 
 	}
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -1384,15 +1122,11 @@ func (p *AzureADProvider) GetJWKS(ctx context.Context) (*JWKS, error) {
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("JWKS request failed with status %d", resp.StatusCode)
 
 	}
-
-
 
 	var jwks JWKS
 
@@ -1401,8 +1135,6 @@ func (p *AzureADProvider) GetJWKS(ctx context.Context) (*JWKS, error) {
 		return nil, fmt.Errorf("failed to decode JWKS: %w", err)
 
 	}
-
-
 
 	// Cache JWKS for 24 hours.
 
@@ -1414,13 +1146,9 @@ func (p *AzureADProvider) GetJWKS(ctx context.Context) (*JWKS, error) {
 
 	p.jwksCache.mutex.Unlock()
 
-
-
 	return &jwks, nil
 
 }
-
-
 
 // GetUserInfoFromIDToken extracts user info from ID token claims.
 
@@ -1434,41 +1162,32 @@ func (p *AzureADProvider) GetUserInfoFromIDToken(idToken string) (*UserInfo, err
 
 	}
 
-
-
 	userInfo := &UserInfo{
 
-		Subject:       claims.Subject,
+		Subject: claims.Subject,
 
-		Email:         claims.Email,
+		Email: claims.Email,
 
 		EmailVerified: claims.EmailVerified,
 
-		Name:          claims.Name,
+		Name: claims.Name,
 
-		Groups:        claims.Groups,
+		Groups: claims.Groups,
 
-		Roles:         claims.Roles,
+		Roles: claims.Roles,
 
-		Provider:      p.GetProviderName(),
+		Provider: p.GetProviderName(),
 
-		ProviderID:    claims.Subject,
+		ProviderID: claims.Subject,
 
-		Attributes:    claims.Extra,
-
+		Attributes: claims.Extra,
 	}
-
-
 
 	return userInfo, nil
 
 }
 
-
-
 // Additional Azure AD specific methods.
-
-
 
 // GetTenantID returns the tenant ID.
 
@@ -1478,8 +1197,6 @@ func (p *AzureADProvider) GetTenantID() string {
 
 }
 
-
-
 // IsMultiTenant returns whether this is a multi-tenant application.
 
 func (p *AzureADProvider) IsMultiTenant() bool {
@@ -1487,8 +1204,6 @@ func (p *AzureADProvider) IsMultiTenant() bool {
 	return p.isMultiTenant
 
 }
-
-
 
 // SetTenantID updates the tenant ID (useful for multi-tenant apps).
 
@@ -1498,15 +1213,11 @@ func (p *AzureADProvider) SetTenantID(tenantID string) {
 
 	p.isMultiTenant = tenantID == "common" || tenantID == "organizations" || tenantID == "consumers"
 
-
-
 	// Update endpoints.
 
 	authURL := fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/authorize", tenantID)
 
 	tokenURL := fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/token", tenantID)
-
-
 
 	p.config.Endpoints.AuthURL = authURL
 
@@ -1516,21 +1227,15 @@ func (p *AzureADProvider) SetTenantID(tenantID string) {
 
 	p.config.Endpoints.DiscoveryURL = fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0/.well-known/openid_configuration", tenantID)
 
-
-
 	p.oauth2Cfg.Endpoint = oauth2.Endpoint{
 
-		AuthURL:  authURL,
+		AuthURL: authURL,
 
 		TokenURL: tokenURL,
-
 	}
-
-
 
 	// Clear cached OIDC config.
 
 	p.oidcConfig = nil
 
 }
-

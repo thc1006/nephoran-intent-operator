@@ -28,64 +28,38 @@ limitations under the License.
 
 */
 
-
-
-
 package shared
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
-
-
 
 	"k8s.io/apimachinery/pkg/types"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 )
-
-
 
 // CoordinationManager orchestrates the specialized controllers.
 
 type CoordinationManager struct {
-
-	logger       logr.Logger
+	logger logr.Logger
 
 	stateManager *StateManager
 
-	eventBus     EventBus
-
-
+	eventBus EventBus
 
 	// Controller coordination.
 
-	controllers  map[ComponentType]ControllerInterface
+	controllers map[ComponentType]ControllerInterface
 
 	dependencies map[interfaces.ProcessingPhase][]interfaces.ProcessingPhase
 
-	transitions  map[interfaces.ProcessingPhase][]interfaces.ProcessingPhase
-
-
+	transitions map[interfaces.ProcessingPhase][]interfaces.ProcessingPhase
 
 	// Phase execution.
 
@@ -93,23 +67,17 @@ type CoordinationManager struct {
 
 	executionQueue *ExecutionQueue
 
-
-
 	// Parallel processing.
 
 	parallelGroups map[string][]interfaces.ProcessingPhase
 
 	parallelLimits map[interfaces.ProcessingPhase]int
 
-
-
 	// Timeout management.
 
-	phaseTimeouts  map[interfaces.ProcessingPhase]time.Duration
+	phaseTimeouts map[interfaces.ProcessingPhase]time.Duration
 
 	activeTimeouts map[string]*time.Timer
-
-
 
 	// Error handling and recovery.
 
@@ -117,27 +85,20 @@ type CoordinationManager struct {
 
 	recoveryManager *RecoveryManager
 
-
-
 	// Configuration.
 
 	config *CoordinationConfig
 
-
-
 	// Internal state.
 
-	mutex    sync.RWMutex
+	mutex sync.RWMutex
 
-	started  bool
+	started bool
 
 	stopChan chan bool
 
 	workerWG sync.WaitGroup
-
 }
-
-
 
 // CoordinationConfig provides configuration for coordination.
 
@@ -145,55 +106,44 @@ type CoordinationConfig struct {
 
 	// Execution configuration.
 
-	MaxConcurrentIntents   int           `json:"maxConcurrentIntents"`
+	MaxConcurrentIntents int `json:"maxConcurrentIntents"`
 
-	DefaultPhaseTimeout    time.Duration `json:"defaultPhaseTimeout"`
+	DefaultPhaseTimeout time.Duration `json:"defaultPhaseTimeout"`
 
 	PhaseTransitionTimeout time.Duration `json:"phaseTransitionTimeout"`
 
-
-
 	// Parallel processing.
 
-	EnableParallelProcessing bool                                    `json:"enableParallelProcessing"`
+	EnableParallelProcessing bool `json:"enableParallelProcessing"`
 
-	ParallelLimits           map[interfaces.ProcessingPhase]int      `json:"parallelLimits"`
+	ParallelLimits map[interfaces.ProcessingPhase]int `json:"parallelLimits"`
 
-	ParallelGroups           map[string][]interfaces.ProcessingPhase `json:"parallelGroups"`
-
-
+	ParallelGroups map[string][]interfaces.ProcessingPhase `json:"parallelGroups"`
 
 	// Error handling.
 
-	MaxRetryAttempts int                                          `json:"maxRetryAttempts"`
+	MaxRetryAttempts int `json:"maxRetryAttempts"`
 
-	RetryBackoff     time.Duration                                `json:"retryBackoff"`
+	RetryBackoff time.Duration `json:"retryBackoff"`
 
-	ErrorStrategies  map[interfaces.ProcessingPhase]ErrorStrategy `json:"errorStrategies"`
-
-
+	ErrorStrategies map[interfaces.ProcessingPhase]ErrorStrategy `json:"errorStrategies"`
 
 	// Health monitoring.
 
 	HealthCheckInterval time.Duration `json:"healthCheckInterval"`
 
-	UnhealthyThreshold  int           `json:"unhealthyThreshold"`
-
-
+	UnhealthyThreshold int `json:"unhealthyThreshold"`
 
 	// Performance tuning.
 
-	WorkerPoolSize  int  `json:"workerPoolSize"`
+	WorkerPoolSize int `json:"workerPoolSize"`
 
-	QueueCapacity   int  `json:"queueCapacity"`
+	QueueCapacity int `json:"queueCapacity"`
 
 	BatchProcessing bool `json:"batchProcessing"`
 
-	BatchSize       int  `json:"batchSize"`
-
+	BatchSize int `json:"batchSize"`
 }
-
-
 
 // DefaultCoordinationConfig returns default configuration.
 
@@ -201,26 +151,25 @@ func DefaultCoordinationConfig() *CoordinationConfig {
 
 	return &CoordinationConfig{
 
-		MaxConcurrentIntents:     100,
+		MaxConcurrentIntents: 100,
 
-		DefaultPhaseTimeout:      5 * time.Minute,
+		DefaultPhaseTimeout: 5 * time.Minute,
 
-		PhaseTransitionTimeout:   30 * time.Second,
+		PhaseTransitionTimeout: 30 * time.Second,
 
 		EnableParallelProcessing: true,
 
 		ParallelLimits: map[interfaces.ProcessingPhase]int{
 
-			interfaces.PhaseLLMProcessing:          10,
+			interfaces.PhaseLLMProcessing: 10,
 
-			interfaces.PhaseResourcePlanning:       20,
+			interfaces.PhaseResourcePlanning: 20,
 
-			interfaces.PhaseManifestGeneration:     15,
+			interfaces.PhaseManifestGeneration: 15,
 
-			interfaces.PhaseGitOpsCommit:           5,
+			interfaces.PhaseGitOpsCommit: 5,
 
 			interfaces.PhaseDeploymentVerification: 10,
-
 		},
 
 		ParallelGroups: map[string][]interfaces.ProcessingPhase{
@@ -230,37 +179,31 @@ func DefaultCoordinationConfig() *CoordinationConfig {
 				interfaces.PhaseResourcePlanning,
 
 				interfaces.PhaseManifestGeneration,
-
 			},
-
 		},
 
-		MaxRetryAttempts:    3,
+		MaxRetryAttempts: 3,
 
-		RetryBackoff:        2 * time.Second,
+		RetryBackoff: 2 * time.Second,
 
 		HealthCheckInterval: 30 * time.Second,
 
-		UnhealthyThreshold:  3,
+		UnhealthyThreshold: 3,
 
-		WorkerPoolSize:      10,
+		WorkerPoolSize: 10,
 
-		QueueCapacity:       1000,
+		QueueCapacity: 1000,
 
-		BatchProcessing:     false,
+		BatchProcessing: false,
 
-		BatchSize:           10,
-
+		BatchSize: 10,
 	}
 
 }
 
-
-
 // ControllerInterface defines the interface for specialized controllers.
 
 type ControllerInterface interface {
-
 	GetComponentType() ComponentType
 
 	ProcessPhase(ctx context.Context, intent types.NamespacedName, phase interfaces.ProcessingPhase, data interface{}) error
@@ -270,15 +213,11 @@ type ControllerInterface interface {
 	GetMetrics() map[string]interface{}
 
 	ValidatePhaseData(phase interfaces.ProcessingPhase, data interface{}) error
-
 }
-
-
 
 // PhaseExecutor executes a specific processing phase.
 
 type PhaseExecutor interface {
-
 	Execute(ctx context.Context, intent types.NamespacedName, phase interfaces.ProcessingPhase, data interface{}) error
 
 	Validate(phase interfaces.ProcessingPhase, data interface{}) error
@@ -286,28 +225,21 @@ type PhaseExecutor interface {
 	GetEstimatedDuration(phase interfaces.ProcessingPhase) time.Duration
 
 	CanExecuteParallel() bool
-
 }
-
-
 
 // ErrorStrategy defines how to handle errors in a phase.
 
 type ErrorStrategy struct {
+	Type string `json:"type"` // "retry", "skip", "fail", "rollback"
 
-	Type          string        `json:"type"` // "retry", "skip", "fail", "rollback"
+	MaxRetries int `json:"maxRetries"`
 
-	MaxRetries    int           `json:"maxRetries"`
+	RetryBackoff time.Duration `json:"retryBackoff"`
 
-	RetryBackoff  time.Duration `json:"retryBackoff"`
+	FallbackPhase string `json:"fallbackPhase,omitempty"`
 
-	FallbackPhase string        `json:"fallbackPhase,omitempty"`
-
-	NotifyOnError bool          `json:"notifyOnError"`
-
+	NotifyOnError bool `json:"notifyOnError"`
 }
-
-
 
 // NewCoordinationManager creates a new coordination manager.
 
@@ -319,41 +251,36 @@ func NewCoordinationManager(stateManager *StateManager, eventBus EventBus, confi
 
 	}
 
-
-
 	cm := &CoordinationManager{
 
-		logger:          ctrl.Log.WithName("coordination-manager"),
+		logger: ctrl.Log.WithName("coordination-manager"),
 
-		stateManager:    stateManager,
+		stateManager: stateManager,
 
-		eventBus:        eventBus,
+		eventBus: eventBus,
 
-		controllers:     make(map[ComponentType]ControllerInterface),
+		controllers: make(map[ComponentType]ControllerInterface),
 
-		dependencies:    make(map[interfaces.ProcessingPhase][]interfaces.ProcessingPhase),
+		dependencies: make(map[interfaces.ProcessingPhase][]interfaces.ProcessingPhase),
 
-		transitions:     make(map[interfaces.ProcessingPhase][]interfaces.ProcessingPhase),
+		transitions: make(map[interfaces.ProcessingPhase][]interfaces.ProcessingPhase),
 
-		phaseExecutors:  make(map[interfaces.ProcessingPhase]PhaseExecutor),
+		phaseExecutors: make(map[interfaces.ProcessingPhase]PhaseExecutor),
 
-		parallelGroups:  config.ParallelGroups,
+		parallelGroups: config.ParallelGroups,
 
-		parallelLimits:  config.ParallelLimits,
+		parallelLimits: config.ParallelLimits,
 
-		phaseTimeouts:   make(map[interfaces.ProcessingPhase]time.Duration),
+		phaseTimeouts: make(map[interfaces.ProcessingPhase]time.Duration),
 
-		activeTimeouts:  make(map[string]*time.Timer),
+		activeTimeouts: make(map[string]*time.Timer),
 
 		errorStrategies: config.ErrorStrategies,
 
-		config:          config,
+		config: config,
 
-		stopChan:        make(chan bool),
-
+		stopChan: make(chan bool),
 	}
-
-
 
 	// Initialize components.
 
@@ -365,25 +292,17 @@ func NewCoordinationManager(stateManager *StateManager, eventBus EventBus, confi
 
 	cm.initializeErrorStrategies()
 
-
-
 	// Create execution queue.
 
 	cm.executionQueue = NewExecutionQueue(config.QueueCapacity)
-
-
 
 	// Create recovery manager.
 
 	cm.recoveryManager = NewRecoveryManager(cm.stateManager, cm.eventBus)
 
-
-
 	return cm
 
 }
-
-
 
 // RegisterController registers a specialized controller.
 
@@ -393,23 +312,15 @@ func (cm *CoordinationManager) RegisterController(controller ControllerInterface
 
 	defer cm.mutex.Unlock()
 
-
-
 	componentType := controller.GetComponentType()
 
 	cm.controllers[componentType] = controller
 
-
-
 	cm.logger.Info("Registered controller", "componentType", componentType)
-
-
 
 	return nil
 
 }
-
-
 
 // RegisterPhaseExecutor registers a phase executor.
 
@@ -419,17 +330,11 @@ func (cm *CoordinationManager) RegisterPhaseExecutor(phase interfaces.Processing
 
 	defer cm.mutex.Unlock()
 
-
-
 	cm.phaseExecutors[phase] = executor
-
-
 
 	cm.logger.Info("Registered phase executor", "phase", phase)
 
 }
-
-
 
 // Start starts the coordination manager.
 
@@ -439,15 +344,11 @@ func (cm *CoordinationManager) Start(ctx context.Context) error {
 
 	defer cm.mutex.Unlock()
 
-
-
 	if cm.started {
 
 		return fmt.Errorf("coordination manager already started")
 
 	}
-
-
 
 	// Subscribe to relevant events.
 
@@ -456,8 +357,6 @@ func (cm *CoordinationManager) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to subscribe to events: %w", err)
 
 	}
-
-
 
 	// Start worker pool.
 
@@ -469,15 +368,11 @@ func (cm *CoordinationManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start health monitoring.
 
 	cm.workerWG.Add(1)
 
 	go cm.healthMonitor(ctx)
-
-
 
 	// Start recovery manager.
 
@@ -487,19 +382,13 @@ func (cm *CoordinationManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	cm.started = true
 
 	cm.logger.Info("Coordination manager started", "workers", cm.config.WorkerPoolSize)
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the coordination manager.
 
@@ -509,31 +398,21 @@ func (cm *CoordinationManager) Stop(ctx context.Context) error {
 
 	defer cm.mutex.Unlock()
 
-
-
 	if !cm.started {
 
 		return nil
 
 	}
 
-
-
 	cm.logger.Info("Stopping coordination manager")
-
-
 
 	// Signal stop.
 
 	close(cm.stopChan)
 
-
-
 	// Stop recovery manager.
 
 	cm.recoveryManager.Stop(ctx)
-
-
 
 	// Wait for workers to finish.
 
@@ -547,8 +426,6 @@ func (cm *CoordinationManager) Stop(ctx context.Context) error {
 
 	}()
 
-
-
 	select {
 
 	case <-done:
@@ -561,17 +438,11 @@ func (cm *CoordinationManager) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	cm.started = false
-
-
 
 	return nil
 
 }
-
-
 
 // ProcessIntent processes a network intent through the coordination pipeline.
 
@@ -587,8 +458,6 @@ func (cm *CoordinationManager) ProcessIntent(ctx context.Context, intentName typ
 
 	}
 
-
-
 	// Determine next phase.
 
 	nextPhase, err := cm.determineNextPhase(state)
@@ -599,8 +468,6 @@ func (cm *CoordinationManager) ProcessIntent(ctx context.Context, intentName typ
 
 	}
 
-
-
 	if nextPhase == "" {
 
 		// Intent is complete or failed.
@@ -609,25 +476,20 @@ func (cm *CoordinationManager) ProcessIntent(ctx context.Context, intentName typ
 
 	}
 
-
-
 	// Create execution task.
 
 	task := &ExecutionTask{
 
 		IntentName: intentName,
 
-		Phase:      nextPhase,
+		Phase: nextPhase,
 
-		Priority:   cm.calculatePriority(state),
+		Priority: cm.calculatePriority(state),
 
-		Timestamp:  time.Now(),
+		Timestamp: time.Now(),
 
-		Context:    make(map[string]interface{}),
-
+		Context: make(map[string]interface{}),
 	}
-
-
 
 	// Add to execution queue.
 
@@ -637,17 +499,11 @@ func (cm *CoordinationManager) ProcessIntent(ctx context.Context, intentName typ
 
 	}
 
-
-
 	cm.logger.V(1).Info("Intent processing queued", "intent", intentName, "phase", nextPhase)
-
-
 
 	return nil
 
 }
-
-
 
 // TransitionPhase transitions an intent to the next phase.
 
@@ -661,8 +517,6 @@ func (cm *CoordinationManager) TransitionPhase(ctx context.Context, intentName t
 
 	}
 
-
-
 	// Check dependencies.
 
 	if err := cm.checkPhaseDependencies(ctx, intentName, toPhase); err != nil {
@@ -671,19 +525,13 @@ func (cm *CoordinationManager) TransitionPhase(ctx context.Context, intentName t
 
 	}
 
-
-
 	// Execute the transition.
 
 	return cm.executePhaseTransition(ctx, intentName, fromPhase, toPhase, data)
 
 }
 
-
-
 // Internal methods.
-
-
 
 func (cm *CoordinationManager) initializeDependencies() {
 
@@ -700,8 +548,6 @@ func (cm *CoordinationManager) initializeDependencies() {
 	cm.dependencies[interfaces.PhaseDeploymentVerification] = []interfaces.ProcessingPhase{interfaces.PhaseGitOpsCommit}
 
 }
-
-
 
 func (cm *CoordinationManager) initializeTransitions() {
 
@@ -725,8 +571,6 @@ func (cm *CoordinationManager) initializeTransitions() {
 
 }
 
-
-
 func (cm *CoordinationManager) initializeTimeouts() {
 
 	// Default timeouts for each phase.
@@ -743,8 +587,6 @@ func (cm *CoordinationManager) initializeTimeouts() {
 
 }
 
-
-
 func (cm *CoordinationManager) initializeErrorStrategies() {
 
 	if cm.errorStrategies == nil {
@@ -753,23 +595,18 @@ func (cm *CoordinationManager) initializeErrorStrategies() {
 
 	}
 
-
-
 	// Default error strategies.
 
 	defaultStrategy := ErrorStrategy{
 
-		Type:          "retry",
+		Type: "retry",
 
-		MaxRetries:    3,
+		MaxRetries: 3,
 
-		RetryBackoff:  2 * time.Second,
+		RetryBackoff: 2 * time.Second,
 
 		NotifyOnError: true,
-
 	}
-
-
 
 	phases := []interfaces.ProcessingPhase{
 
@@ -782,10 +619,7 @@ func (cm *CoordinationManager) initializeErrorStrategies() {
 		interfaces.PhaseGitOpsCommit,
 
 		interfaces.PhaseDeploymentVerification,
-
 	}
-
-
 
 	for _, phase := range phases {
 
@@ -799,8 +633,6 @@ func (cm *CoordinationManager) initializeErrorStrategies() {
 
 }
 
-
-
 func (cm *CoordinationManager) subscribeToEvents() error {
 
 	// Subscribe to state change events.
@@ -810,8 +642,6 @@ func (cm *CoordinationManager) subscribeToEvents() error {
 		return err
 
 	}
-
-
 
 	// Subscribe to phase completion events.
 
@@ -826,10 +656,7 @@ func (cm *CoordinationManager) subscribeToEvents() error {
 		"gitops.commit.completed",
 
 		"deployment.verification.completed",
-
 	}
-
-
 
 	for _, eventType := range phaseEvents {
 
@@ -840,8 +667,6 @@ func (cm *CoordinationManager) subscribeToEvents() error {
 		}
 
 	}
-
-
 
 	// Subscribe to error events.
 
@@ -856,10 +681,7 @@ func (cm *CoordinationManager) subscribeToEvents() error {
 		"gitops.commit.failed",
 
 		"deployment.verification.failed",
-
 	}
-
-
 
 	for _, eventType := range errorEvents {
 
@@ -871,13 +693,9 @@ func (cm *CoordinationManager) subscribeToEvents() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (cm *CoordinationManager) handleStateChangeEvent(ctx context.Context, event ProcessingEvent) error {
 
@@ -891,15 +709,11 @@ func (cm *CoordinationManager) handleStateChangeEvent(ctx context.Context, event
 
 	}
 
-
-
 	// Queue for processing if needed.
 
 	return cm.ProcessIntent(ctx, intentName)
 
 }
-
-
 
 func (cm *CoordinationManager) handlePhaseCompletionEvent(ctx context.Context, event ProcessingEvent) error {
 
@@ -911,21 +725,15 @@ func (cm *CoordinationManager) handlePhaseCompletionEvent(ctx context.Context, e
 
 	}
 
-
-
 	// Cancel timeout if active.
 
 	cm.cancelPhaseTimeout(event.IntentID)
-
-
 
 	// Process next phase.
 
 	return cm.ProcessIntent(ctx, intentName)
 
 }
-
-
 
 func (cm *CoordinationManager) handlePhaseErrorEvent(ctx context.Context, event ProcessingEvent) error {
 
@@ -937,13 +745,9 @@ func (cm *CoordinationManager) handlePhaseErrorEvent(ctx context.Context, event 
 
 	}
 
-
-
 	// Cancel timeout if active.
 
 	cm.cancelPhaseTimeout(event.IntentID)
-
-
 
 	// Handle error based on strategy.
 
@@ -951,23 +755,15 @@ func (cm *CoordinationManager) handlePhaseErrorEvent(ctx context.Context, event 
 
 	strategy := cm.errorStrategies[phase]
 
-
-
 	return cm.handlePhaseError(ctx, intentName, phase, fmt.Errorf("phase failed"), strategy)
 
 }
-
-
 
 func (cm *CoordinationManager) worker(ctx context.Context, workerID int) {
 
 	defer cm.workerWG.Done()
 
-
-
 	cm.logger.V(1).Info("Coordination worker started", "workerID", workerID)
-
-
 
 	for {
 
@@ -977,15 +773,11 @@ func (cm *CoordinationManager) worker(ctx context.Context, workerID int) {
 
 			cm.executeTask(ctx, task)
 
-
-
 		case <-cm.stopChan:
 
 			cm.logger.V(1).Info("Coordination worker stopping", "workerID", workerID)
 
 			return
-
-
 
 		case <-ctx.Done():
 
@@ -999,45 +791,31 @@ func (cm *CoordinationManager) worker(ctx context.Context, workerID int) {
 
 }
 
-
-
 func (cm *CoordinationManager) executeTask(ctx context.Context, task *ExecutionTask) {
 
 	taskCtx, cancel := context.WithTimeout(ctx, cm.getPhaseTimeout(task.Phase))
 
 	defer cancel()
 
-
-
 	cm.logger.Info("Executing task", "intent", task.IntentName, "phase", task.Phase)
-
-
 
 	// Set up phase timeout.
 
 	cm.setupPhaseTimeout(task.IntentName.String(), task.Phase, taskCtx)
 
-
-
 	// Execute the phase.
 
 	err := cm.executePhase(taskCtx, task.IntentName, task.Phase)
 
-
-
 	// Cancel timeout.
 
 	cm.cancelPhaseTimeout(task.IntentName.String())
-
-
 
 	// Handle result.
 
 	if err != nil {
 
 		cm.logger.Error(err, "Task execution failed", "intent", task.IntentName, "phase", task.Phase)
-
-
 
 		strategy := cm.errorStrategies[task.Phase]
 
@@ -1051,8 +829,6 @@ func (cm *CoordinationManager) executeTask(ctx context.Context, task *ExecutionT
 
 }
 
-
-
 func (cm *CoordinationManager) executePhase(ctx context.Context, intentName types.NamespacedName, phase interfaces.ProcessingPhase) error {
 
 	// Get phase executor.
@@ -1065,8 +841,6 @@ func (cm *CoordinationManager) executePhase(ctx context.Context, intentName type
 
 	}
 
-
-
 	// Get phase data from state.
 
 	data, err := cm.stateManager.GetPhaseData(ctx, intentName, phase)
@@ -1077,8 +851,6 @@ func (cm *CoordinationManager) executePhase(ctx context.Context, intentName type
 
 	}
 
-
-
 	// Validate phase data.
 
 	if err := executor.Validate(phase, data); err != nil {
@@ -1087,8 +859,6 @@ func (cm *CoordinationManager) executePhase(ctx context.Context, intentName type
 
 	}
 
-
-
 	// Execute phase.
 
 	if err := executor.Execute(ctx, intentName, phase, data); err != nil {
@@ -1096,8 +866,6 @@ func (cm *CoordinationManager) executePhase(ctx context.Context, intentName type
 		return fmt.Errorf("phase execution failed: %w", err)
 
 	}
-
-
 
 	// Update state to next phase.
 
@@ -1109,29 +877,21 @@ func (cm *CoordinationManager) executePhase(ctx context.Context, intentName type
 
 			"completedPhase": phase,
 
-			"duration":       time.Since(time.Now()), // This would be properly calculated
+			"duration": time.Since(time.Now()), // This would be properly calculated
 
 		}
-
-
 
 		return cm.stateManager.TransitionPhase(ctx, intentName, nextPhase, metadata)
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 func (cm *CoordinationManager) determineNextPhase(state *IntentState) (interfaces.ProcessingPhase, error) {
 
 	currentPhase := state.CurrentPhase
-
-
 
 	// Check if in terminal state.
 
@@ -1140,8 +900,6 @@ func (cm *CoordinationManager) determineNextPhase(state *IntentState) (interface
 		return "", nil
 
 	}
-
-
 
 	// Get possible transitions.
 
@@ -1153,15 +911,11 @@ func (cm *CoordinationManager) determineNextPhase(state *IntentState) (interface
 
 	}
 
-
-
 	// Return the primary transition (first one).
 
 	return transitions[0], nil
 
 }
-
-
 
 func (cm *CoordinationManager) isValidTransition(from, to interfaces.ProcessingPhase) bool {
 
@@ -1173,8 +927,6 @@ func (cm *CoordinationManager) isValidTransition(from, to interfaces.ProcessingP
 
 	}
 
-
-
 	for _, validTransition := range transitions {
 
 		if validTransition == to {
@@ -1185,13 +937,9 @@ func (cm *CoordinationManager) isValidTransition(from, to interfaces.ProcessingP
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 func (cm *CoordinationManager) checkPhaseDependencies(ctx context.Context, intentName types.NamespacedName, phase interfaces.ProcessingPhase) error {
 
@@ -1203,8 +951,6 @@ func (cm *CoordinationManager) checkPhaseDependencies(ctx context.Context, inten
 
 	}
 
-
-
 	state, err := cm.stateManager.GetIntentState(ctx, intentName)
 
 	if err != nil {
@@ -1212,8 +958,6 @@ func (cm *CoordinationManager) checkPhaseDependencies(ctx context.Context, inten
 		return err
 
 	}
-
-
 
 	// Check each dependency.
 
@@ -1227,13 +971,9 @@ func (cm *CoordinationManager) checkPhaseDependencies(ctx context.Context, inten
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (cm *CoordinationManager) isPhaseSatisfied(state *IntentState, phase interfaces.ProcessingPhase) bool {
 
@@ -1249,13 +989,9 @@ func (cm *CoordinationManager) isPhaseSatisfied(state *IntentState, phase interf
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 func (cm *CoordinationManager) executePhaseTransition(ctx context.Context, intentName types.NamespacedName, fromPhase, toPhase interfaces.ProcessingPhase, data interface{}) error {
 
@@ -1265,19 +1001,14 @@ func (cm *CoordinationManager) executePhaseTransition(ctx context.Context, inten
 
 		"fromPhase": fromPhase,
 
-		"toPhase":   toPhase,
+		"toPhase": toPhase,
 
-		"data":      data,
-
+		"data": data,
 	}
-
-
 
 	return cm.stateManager.TransitionPhase(ctx, intentName, toPhase, metadata)
 
 }
-
-
 
 func (cm *CoordinationManager) calculatePriority(state *IntentState) int {
 
@@ -1287,13 +1018,9 @@ func (cm *CoordinationManager) calculatePriority(state *IntentState) int {
 
 	priority := int(age.Minutes()) + state.RetryCount*10
 
-
-
 	return priority
 
 }
-
-
 
 func (cm *CoordinationManager) getPhaseTimeout(phase interfaces.ProcessingPhase) time.Duration {
 
@@ -1303,27 +1030,19 @@ func (cm *CoordinationManager) getPhaseTimeout(phase interfaces.ProcessingPhase)
 
 	}
 
-
-
 	return cm.config.DefaultPhaseTimeout
 
 }
 
-
-
 func (cm *CoordinationManager) setupPhaseTimeout(intentID string, phase interfaces.ProcessingPhase, ctx context.Context) {
 
 	timeout := cm.getPhaseTimeout(phase)
-
-
 
 	timer := time.AfterFunc(timeout, func() {
 
 		cm.handlePhaseTimeout(ctx, intentID, phase)
 
 	})
-
-
 
 	cm.mutex.Lock()
 
@@ -1333,15 +1052,11 @@ func (cm *CoordinationManager) setupPhaseTimeout(intentID string, phase interfac
 
 }
 
-
-
 func (cm *CoordinationManager) cancelPhaseTimeout(intentID string) {
 
 	cm.mutex.Lock()
 
 	defer cm.mutex.Unlock()
-
-
 
 	if timer, exists := cm.activeTimeouts[intentID]; exists {
 
@@ -1353,13 +1068,9 @@ func (cm *CoordinationManager) cancelPhaseTimeout(intentID string) {
 
 }
 
-
-
 func (cm *CoordinationManager) handlePhaseTimeout(ctx context.Context, intentID string, phase interfaces.ProcessingPhase) {
 
 	cm.logger.Error(fmt.Errorf("phase timeout"), "Phase timed out", "intentID", intentID, "phase", phase)
-
-
 
 	// Parse intent name and handle as error.
 
@@ -1373,21 +1084,15 @@ func (cm *CoordinationManager) handlePhaseTimeout(ctx context.Context, intentID 
 
 	}
 
-
-
 	strategy := cm.errorStrategies[phase]
 
 	cm.handlePhaseError(ctx, intentName, phase, fmt.Errorf("phase timeout"), strategy)
 
 }
 
-
-
 func (cm *CoordinationManager) handlePhaseError(ctx context.Context, intentName types.NamespacedName, phase interfaces.ProcessingPhase, err error, strategy ErrorStrategy) error {
 
 	cm.logger.Error(err, "Handling phase error", "intent", intentName, "phase", phase, "strategy", strategy.Type)
-
-
 
 	switch strategy.Type {
 
@@ -1415,8 +1120,6 @@ func (cm *CoordinationManager) handlePhaseError(ctx context.Context, intentName 
 
 }
 
-
-
 func (cm *CoordinationManager) retryPhase(ctx context.Context, intentName types.NamespacedName, phase interfaces.ProcessingPhase, strategy ErrorStrategy) error {
 
 	// Get current state to check retry count.
@@ -1429,15 +1132,11 @@ func (cm *CoordinationManager) retryPhase(ctx context.Context, intentName types.
 
 	}
 
-
-
 	if state.RetryCount >= strategy.MaxRetries {
 
 		return cm.failIntent(ctx, intentName, fmt.Errorf("max retries exceeded"))
 
 	}
-
-
 
 	// Increment retry count and schedule retry.
 
@@ -1451,8 +1150,6 @@ func (cm *CoordinationManager) retryPhase(ctx context.Context, intentName types.
 
 }
 
-
-
 func (cm *CoordinationManager) skipPhase(ctx context.Context, intentName types.NamespacedName, phase interfaces.ProcessingPhase) error {
 
 	// Move to next phase.
@@ -1465,39 +1162,27 @@ func (cm *CoordinationManager) skipPhase(ctx context.Context, intentName types.N
 
 	}
 
-
-
 	metadata := map[string]interface{}{
 
 		"skippedPhase": phase,
 
-		"reason":       "error_strategy_skip",
-
+		"reason": "error_strategy_skip",
 	}
-
-
 
 	return cm.stateManager.TransitionPhase(ctx, intentName, nextPhase, metadata)
 
 }
-
-
 
 func (cm *CoordinationManager) failIntent(ctx context.Context, intentName types.NamespacedName, err error) error {
 
 	metadata := map[string]interface{}{
 
 		"error": err.Error(),
-
 	}
-
-
 
 	return cm.stateManager.TransitionPhase(ctx, intentName, interfaces.PhaseFailed, metadata)
 
 }
-
-
 
 func (cm *CoordinationManager) rollbackIntent(ctx context.Context, intentName types.NamespacedName, phase interfaces.ProcessingPhase) error {
 
@@ -1509,17 +1194,12 @@ func (cm *CoordinationManager) rollbackIntent(ctx context.Context, intentName ty
 
 		"rollbackFromPhase": phase,
 
-		"reason":            "error_strategy_rollback",
-
+		"reason": "error_strategy_rollback",
 	}
-
-
 
 	return cm.stateManager.TransitionPhase(ctx, intentName, interfaces.PhaseFailed, metadata)
 
 }
-
-
 
 func (cm *CoordinationManager) getNextPhase(currentPhase interfaces.ProcessingPhase) interfaces.ProcessingPhase {
 
@@ -1531,13 +1211,9 @@ func (cm *CoordinationManager) getNextPhase(currentPhase interfaces.ProcessingPh
 
 	}
 
-
-
 	return ""
 
 }
-
-
 
 func (cm *CoordinationManager) parseIntentName(intentID string) (types.NamespacedName, error) {
 
@@ -1547,25 +1223,18 @@ func (cm *CoordinationManager) parseIntentName(intentID string) (types.Namespace
 
 		Namespace: "default",
 
-		Name:      intentID,
-
+		Name: intentID,
 	}, nil
 
 }
-
-
 
 func (cm *CoordinationManager) healthMonitor(ctx context.Context) {
 
 	defer cm.workerWG.Done()
 
-
-
 	ticker := time.NewTicker(cm.config.HealthCheckInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1575,13 +1244,9 @@ func (cm *CoordinationManager) healthMonitor(ctx context.Context) {
 
 			cm.performHealthCheck()
 
-
-
 		case <-cm.stopChan:
 
 			return
-
-
 
 		case <-ctx.Done():
 
@@ -1592,8 +1257,6 @@ func (cm *CoordinationManager) healthMonitor(ctx context.Context) {
 	}
 
 }
-
-
 
 func (cm *CoordinationManager) performHealthCheck() {
 
@@ -1608,8 +1271,6 @@ func (cm *CoordinationManager) performHealthCheck() {
 	}
 
 	cm.mutex.RUnlock()
-
-
 
 	unhealthyCount := 0
 
@@ -1627,8 +1288,6 @@ func (cm *CoordinationManager) performHealthCheck() {
 
 	}
 
-
-
 	if unhealthyCount > cm.config.UnhealthyThreshold {
 
 		cm.logger.Error(fmt.Errorf("system unhealthy"), "Too many unhealthy controllers",
@@ -1638,4 +1297,3 @@ func (cm *CoordinationManager) performHealthCheck() {
 	}
 
 }
-

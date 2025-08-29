@@ -1,187 +1,126 @@
-
 package controllers
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"strings"
-
 	"time"
 
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
 
-
-
 	appsv1 "k8s.io/api/apps/v1"
-
 	corev1 "k8s.io/api/core/v1"
-
 	networkingv1 "k8s.io/api/networking/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	"sigs.k8s.io/yaml"
-
 )
-
-
 
 // Additional types for resource planning.
 
 type InterfaceConfiguration struct {
+	Name string `json:"name"`
 
-	Name      string         `json:"name"`
+	Type string `json:"type"`
 
-	Type      string         `json:"type"`
-
-	Protocol  string         `json:"protocol"`
+	Protocol string `json:"protocol"`
 
 	Endpoints []EndpointSpec `json:"endpoints"`
 
-	Security  SecuritySpec   `json:"security"`
+	Security SecuritySpec `json:"security"`
 
-	QoS       QoSSpec        `json:"qos"`
-
+	QoS QoSSpec `json:"qos"`
 }
-
-
 
 // EndpointSpec represents a endpointspec.
 
 type EndpointSpec struct {
+	Name string `json:"name"`
 
-	Name     string `json:"name"`
-
-	Port     int    `json:"port"`
+	Port int `json:"port"`
 
 	Protocol string `json:"protocol"`
 
-	Path     string `json:"path,omitempty"`
-
+	Path string `json:"path,omitempty"`
 }
-
-
 
 // SecuritySpec represents a securityspec.
 
 type SecuritySpec struct {
-
 	Authentication string `json:"authentication"`
 
-	Encryption     string `json:"encryption"`
-
+	Encryption string `json:"encryption"`
 }
-
-
 
 // QoSSpec represents a qosspec.
 
 type QoSSpec struct {
+	Bandwidth string `json:"bandwidth"`
 
-	Bandwidth  string  `json:"bandwidth"`
+	Latency string `json:"latency"`
 
-	Latency    string  `json:"latency"`
-
-	Jitter     string  `json:"jitter"`
+	Jitter string `json:"jitter"`
 
 	PacketLoss float64 `json:"packet_loss"`
-
 }
-
-
 
 // SecurityPolicy represents a securitypolicy.
 
 type SecurityPolicy struct {
+	Name string `json:"name"`
 
-	Name   string                 `json:"name"`
-
-	Type   string                 `json:"type"`
+	Type string `json:"type"`
 
 	Config map[string]interface{} `json:"config"`
-
 }
-
-
 
 // HealthCheckSpec represents a healthcheckspec.
 
 type HealthCheckSpec struct {
+	Type string `json:"type"`
 
-	Type     string `json:"type"`
+	Path string `json:"path"`
 
-	Path     string `json:"path"`
-
-	Port     int    `json:"port"`
+	Port int `json:"port"`
 
 	Interval string `json:"interval"`
 
-	Timeout  string `json:"timeout"`
+	Timeout string `json:"timeout"`
 
-	Retries  int    `json:"retries"`
-
+	Retries int `json:"retries"`
 }
-
-
 
 // MonitoringSpec represents a monitoringspec.
 
 type MonitoringSpec struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled    bool     `json:"enabled"`
+	Metrics []string `json:"metrics"`
 
-	Metrics    []string `json:"metrics"`
-
-	Alerts     []string `json:"alerts"`
+	Alerts []string `json:"alerts"`
 
 	Dashboards []string `json:"dashboards"`
-
 }
-
-
 
 // ResourcePlanner handles resource planning and manifest generation phases.
 
 type ResourcePlanner struct {
-
 	*NetworkIntentReconciler
-
 }
-
-
 
 // Ensure ResourcePlanner implements the required interfaces.
 
 var (
-
 	_ ResourcePlannerInterface = (*ResourcePlanner)(nil)
 
-	_ PhaseProcessor           = (*ResourcePlanner)(nil)
-
+	_ PhaseProcessor = (*ResourcePlanner)(nil)
 )
-
-
 
 // NewResourcePlanner creates a new resource planner.
 
@@ -190,12 +129,9 @@ func NewResourcePlanner(r *NetworkIntentReconciler) *ResourcePlanner {
 	return &ResourcePlanner{
 
 		NetworkIntentReconciler: r,
-
 	}
 
 }
-
-
 
 // PlanResources implements Phase 2: Resource planning with telecom knowledge.
 
@@ -205,11 +141,7 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 
 	startTime := time.Now()
 
-
-
 	processingCtx.CurrentPhase = PhaseResourcePlanning
-
-
 
 	// Get telecom knowledge base.
 
@@ -226,8 +158,6 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 		return ctrl.Result{}, err
 
 	}
-
-
 
 	// Parse extracted parameters from LLM phase.
 
@@ -249,21 +179,16 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 
 	}
 
-
-
 	// Create resource plan.
 
 	resourcePlan := &ResourcePlan{
 
 		NetworkFunctions: []PlannedNetworkFunction{},
 
-		Interfaces:       []InterfaceConfiguration{},
+		Interfaces: []InterfaceConfiguration{},
 
 		SecurityPolicies: []SecurityPolicy{},
-
 	}
-
-
 
 	// Extract network functions from LLM parameters.
 
@@ -287,8 +212,6 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 
 	}
 
-
-
 	// Plan slice configuration if specified.
 
 	if sliceConfig, ok := llmParams["slice_configuration"].(map[string]interface{}); ok {
@@ -301,25 +224,20 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 
 		}
 
-
-
 		if sliceSpec, exists := kb.GetSliceType(sliceType); exists {
 
 			resourcePlan.SliceConfiguration = &SliceConfiguration{
 
-				SliceType:  sliceType,
+				SliceType: sliceType,
 
-				SST:        sliceSpec.SST,
+				SST: sliceSpec.SST,
 
 				QoSProfile: sliceSpec.QosProfile,
 
-				Isolation:  "standard",
+				Isolation: "standard",
 
 				Parameters: make(map[string]interface{}),
-
 			}
-
-
 
 			// Copy slice requirements to parameters.
 
@@ -332,8 +250,6 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 		}
 
 	}
-
-
 
 	// Plan interfaces based on network functions.
 
@@ -349,11 +265,11 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 
 					interfaceConfig := InterfaceConfiguration{
 
-						Name:      ifaceSpec.Name,
+						Name: ifaceSpec.Name,
 
-						Type:      ifaceSpec.Type,
+						Type: ifaceSpec.Type,
 
-						Protocol:  strings.Join(ifaceSpec.Protocol, ","),
+						Protocol: strings.Join(ifaceSpec.Protocol, ","),
 
 						Endpoints: []EndpointSpec{},
 
@@ -361,25 +277,20 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 
 							Authentication: ifaceSpec.SecurityModel.Authentication,
 
-							Encryption:     strings.Join(ifaceSpec.SecurityModel.Encryption, ","),
-
+							Encryption: strings.Join(ifaceSpec.SecurityModel.Encryption, ","),
 						},
 
 						QoS: QoSSpec{
 
-							Bandwidth:  ifaceSpec.QosRequirements.Bandwidth,
+							Bandwidth: ifaceSpec.QosRequirements.Bandwidth,
 
-							Latency:    fmt.Sprintf("%.2fms", ifaceSpec.QosRequirements.Latency),
+							Latency: fmt.Sprintf("%.2fms", ifaceSpec.QosRequirements.Latency),
 
-							Jitter:     fmt.Sprintf("%.2fms", ifaceSpec.QosRequirements.Jitter),
+							Jitter: fmt.Sprintf("%.2fms", ifaceSpec.QosRequirements.Jitter),
 
 							PacketLoss: ifaceSpec.QosRequirements.PacketLoss,
-
 						},
-
 					}
-
-
 
 					// Add endpoints from interface spec.
 
@@ -387,19 +298,16 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 
 						interfaceConfig.Endpoints = append(interfaceConfig.Endpoints, EndpointSpec{
 
-							Name:     endpoint.Name,
+							Name: endpoint.Name,
 
-							Port:     endpoint.Port,
+							Port: endpoint.Port,
 
 							Protocol: endpoint.Protocol,
 
-							Path:     endpoint.Path,
-
+							Path: endpoint.Path,
 						})
 
 					}
-
-
 
 					resourcePlan.Interfaces = append(resourcePlan.Interfaces, interfaceConfig)
 
@@ -413,21 +321,16 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 
 	}
 
-
-
 	// Calculate total resource requirements.
 
 	totalResources := ResourceRequirements{
 
-		CPU:     "0",
+		CPU: "0",
 
-		Memory:  "0Gi",
+		Memory: "0Gi",
 
 		Storage: "0Gi",
-
 	}
-
-
 
 	var totalCPU, totalMemory, totalStorage float64
 
@@ -441,8 +344,6 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 
 		totalCPU += cpu * float64(nf.Replicas)
 
-
-
 		// Parse Memory.
 
 		var memory float64
@@ -450,8 +351,6 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 		fmt.Sscanf(nf.Resources.Memory, "%fGi", &memory)
 
 		totalMemory += memory * float64(nf.Replicas)
-
-
 
 		// Parse Storage.
 
@@ -463,8 +362,6 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 
 	}
 
-
-
 	totalResources.CPU = fmt.Sprintf("%.1f", totalCPU)
 
 	totalResources.Memory = fmt.Sprintf("%.1fGi", totalMemory)
@@ -472,8 +369,6 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 	totalResources.Storage = fmt.Sprintf("%.1fGi", totalStorage)
 
 	resourcePlan.ResourceRequirements = totalResources
-
-
 
 	// Determine deployment pattern.
 
@@ -487,19 +382,13 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 
 	resourcePlan.DeploymentPattern = deploymentPattern
 
-
-
 	// Estimate cost (simplified calculation).
 
 	resourcePlan.EstimatedCost = p.calculateEstimatedCost(totalCPU, totalMemory, totalStorage)
 
-
-
 	// Store resource plan in processing context.
 
 	processingCtx.ResourcePlan = resourcePlan
-
-
 
 	// Update NetworkIntent status.
 
@@ -510,8 +399,6 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 		return ctrl.Result{RequeueAfter: p.config.RetryDelay}, fmt.Errorf("failed to marshal resource plan: %w", err)
 
 	}
-
-
 
 	// Store resource plan in status.
 
@@ -525,33 +412,26 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 
 	networkIntent.Status.Extensions["resourcePlan"] = runtime.RawExtension{Raw: planData}
 
-
-
 	condition := metav1.Condition{
 
-		Type:               "ResourcesPlanned",
+		Type: "ResourcesPlanned",
 
-		Status:             metav1.ConditionTrue,
+		Status: metav1.ConditionTrue,
 
-		Reason:             "ResourcePlanningSucceeded",
+		Reason: "ResourcePlanningSucceeded",
 
-		Message:            fmt.Sprintf("Resource plan created with %d network functions, estimated cost $%.2f", len(resourcePlan.NetworkFunctions), resourcePlan.EstimatedCost),
+		Message: fmt.Sprintf("Resource plan created with %d network functions, estimated cost $%.2f", len(resourcePlan.NetworkFunctions), resourcePlan.EstimatedCost),
 
 		LastTransitionTime: metav1.Now(),
-
 	}
 
 	updateCondition(&networkIntent.Status.Conditions, condition)
-
-
 
 	if err := p.safeStatusUpdate(ctx, networkIntent); err != nil {
 
 		return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update status: %w", err)
 
 	}
-
-
 
 	planningDuration := time.Since(startTime)
 
@@ -560,8 +440,6 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 	processingCtx.Metrics["planned_network_functions"] = float64(len(resourcePlan.NetworkFunctions))
 
 	processingCtx.Metrics["estimated_cost"] = resourcePlan.EstimatedCost
-
-
 
 	p.recordEvent(networkIntent, "Normal", "ResourcePlanningSucceeded",
 
@@ -575,13 +453,9 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 
 		"estimated_cost", resourcePlan.EstimatedCost)
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // planNetworkFunction creates a planned network function from the knowledge base spec.
 
@@ -596,8 +470,6 @@ func (p *ResourcePlanner) planNetworkFunction(nfSpec *telecom.NetworkFunctionSpe
 		deploymentType = dt
 
 	}
-
-
 
 	deployConfig, exists := nfSpec.DeploymentPatterns[deploymentType]
 
@@ -615,17 +487,14 @@ func (p *ResourcePlanner) planNetworkFunction(nfSpec *telecom.NetworkFunctionSpe
 
 			deployConfig = telecom.DeploymentConfig{
 
-				Replicas:        1,
+				Replicas: 1,
 
 				ResourceProfile: "medium",
-
 			}
 
 		}
 
 	}
-
-
 
 	// Adjust replicas based on scaling requirements.
 
@@ -641,8 +510,6 @@ func (p *ResourcePlanner) planNetworkFunction(nfSpec *telecom.NetworkFunctionSpe
 
 	}
 
-
-
 	// Build configuration parameters.
 
 	configuration := make(map[string]interface{})
@@ -652,8 +519,6 @@ func (p *ResourcePlanner) planNetworkFunction(nfSpec *telecom.NetworkFunctionSpe
 		configuration[paramName] = param.Default
 
 	}
-
-
 
 	// Override with any specific configuration from LLM.
 
@@ -667,8 +532,6 @@ func (p *ResourcePlanner) planNetworkFunction(nfSpec *telecom.NetworkFunctionSpe
 
 	}
 
-
-
 	// Build health checks.
 
 	// Pre-allocate slice with known capacity for better performance
@@ -678,39 +541,33 @@ func (p *ResourcePlanner) planNetworkFunction(nfSpec *telecom.NetworkFunctionSpe
 
 		healthChecks = append(healthChecks, HealthCheckSpec{
 
-			Type:     hc.Type,
+			Type: hc.Type,
 
-			Path:     hc.Path,
+			Path: hc.Path,
 
-			Port:     hc.Port,
+			Port: hc.Port,
 
 			Interval: fmt.Sprintf("%ds", hc.Interval),
 
-			Timeout:  fmt.Sprintf("%ds", hc.Timeout),
+			Timeout: fmt.Sprintf("%ds", hc.Timeout),
 
-			Retries:  hc.Retries,
-
+			Retries: hc.Retries,
 		})
 
 	}
-
-
 
 	// Build monitoring spec.
 
 	monitoring := MonitoringSpec{
 
-		Enabled:    true,
+		Enabled: true,
 
-		Metrics:    []string{},
+		Metrics: []string{},
 
-		Alerts:     []string{},
+		Alerts: []string{},
 
 		Dashboards: []string{},
-
 	}
-
-
 
 	for _, metric := range nfSpec.MonitoringMetrics {
 
@@ -724,47 +581,41 @@ func (p *ResourcePlanner) planNetworkFunction(nfSpec *telecom.NetworkFunctionSpe
 
 	}
 
-
-
 	return PlannedNetworkFunction{
 
-		Name:     strings.ToLower(nfSpec.Name),
+		Name: strings.ToLower(nfSpec.Name),
 
-		Type:     nfSpec.Type,
+		Type: nfSpec.Type,
 
-		Version:  nfSpec.Version,
+		Version: nfSpec.Version,
 
 		Replicas: replicas,
 
 		Resources: ResourceRequirements{
 
-			CPU:         nfSpec.Resources.MaxCPU,
+			CPU: nfSpec.Resources.MaxCPU,
 
-			Memory:      nfSpec.Resources.MaxMemory,
+			Memory: nfSpec.Resources.MaxMemory,
 
-			Storage:     nfSpec.Resources.Storage,
+			Storage: nfSpec.Resources.Storage,
 
-			NetworkBW:   nfSpec.Resources.NetworkBW,
+			NetworkBW: nfSpec.Resources.NetworkBW,
 
 			Accelerator: nfSpec.Resources.Accelerator,
-
 		},
 
 		Configuration: configuration,
 
-		Dependencies:  nfSpec.Dependencies,
+		Dependencies: nfSpec.Dependencies,
 
-		Interfaces:    nfSpec.Interfaces,
+		Interfaces: nfSpec.Interfaces,
 
-		HealthChecks:  healthChecks,
+		HealthChecks: healthChecks,
 
-		Monitoring:    monitoring,
-
+		Monitoring: monitoring,
 	}
 
 }
-
-
 
 // calculateEstimatedCost calculates estimated monthly cost for resources.
 
@@ -772,21 +623,17 @@ func (p *ResourcePlanner) calculateEstimatedCost(cpu, memory, storage float64) f
 
 	// Simplified cost calculation (in USD per month).
 
-	cpuCostPerCore := 50.0  // $50 per CPU core per month
+	cpuCostPerCore := 50.0 // $50 per CPU core per month
 
 	memoryCostPerGi := 10.0 // $10 per Gi memory per month
 
 	storageCostPerGi := 2.0 // $2 per Gi storage per month
-
-
 
 	totalCost := (cpu * cpuCostPerCore) + (memory * memoryCostPerGi) + (storage * storageCostPerGi)
 
 	return totalCost
 
 }
-
-
 
 // GenerateManifests implements Phase 3: Deployment manifest generation.
 
@@ -796,11 +643,7 @@ func (p *ResourcePlanner) GenerateManifests(ctx context.Context, networkIntent *
 
 	startTime := time.Now()
 
-
-
 	processingCtx.CurrentPhase = PhaseManifestGeneration
-
-
 
 	if processingCtx.ResourcePlan == nil {
 
@@ -814,11 +657,7 @@ func (p *ResourcePlanner) GenerateManifests(ctx context.Context, networkIntent *
 
 	}
 
-
-
 	manifestMap := make(map[string]string)
-
-
 
 	// Generate manifests for each network function.
 
@@ -838,8 +677,6 @@ func (p *ResourcePlanner) GenerateManifests(ctx context.Context, networkIntent *
 
 		manifestMap[fmt.Sprintf("deployment-%s.yaml", nf.Name)] = string(deploymentYaml)
 
-
-
 		// Generate Service manifest.
 
 		service := p.generateServiceManifest(networkIntent, &nf)
@@ -853,8 +690,6 @@ func (p *ResourcePlanner) GenerateManifests(ctx context.Context, networkIntent *
 		}
 
 		manifestMap[fmt.Sprintf("service-%s.yaml", nf.Name)] = string(serviceYaml)
-
-
 
 		// Generate ConfigMap if needed.
 
@@ -874,8 +709,6 @@ func (p *ResourcePlanner) GenerateManifests(ctx context.Context, networkIntent *
 
 		}
 
-
-
 		// Generate NetworkPolicy for security.
 
 		networkPolicy := p.generateNetworkPolicyManifest(networkIntent, &nf)
@@ -891,8 +724,6 @@ func (p *ResourcePlanner) GenerateManifests(ctx context.Context, networkIntent *
 		manifestMap[fmt.Sprintf("networkpolicy-%s.yaml", nf.Name)] = string(networkPolicyYaml)
 
 	}
-
-
 
 	// Generate slice configuration if specified.
 
@@ -912,33 +743,26 @@ func (p *ResourcePlanner) GenerateManifests(ctx context.Context, networkIntent *
 
 	}
 
-
-
 	// Store manifests in processing context.
 
 	processingCtx.Manifests = manifestMap
-
-
 
 	// Update NetworkIntent status.
 
 	condition := metav1.Condition{
 
-		Type:               "ManifestsGenerated",
+		Type: "ManifestsGenerated",
 
-		Status:             metav1.ConditionTrue,
+		Status: metav1.ConditionTrue,
 
-		Reason:             "ManifestGenerationSucceeded",
+		Reason: "ManifestGenerationSucceeded",
 
-		Message:            fmt.Sprintf("Generated %d deployment manifests for network functions", len(manifestMap)),
+		Message: fmt.Sprintf("Generated %d deployment manifests for network functions", len(manifestMap)),
 
 		LastTransitionTime: metav1.Now(),
-
 	}
 
 	updateCondition(&networkIntent.Status.Conditions, condition)
-
-
 
 	if err := p.safeStatusUpdate(ctx, networkIntent); err != nil {
 
@@ -946,15 +770,11 @@ func (p *ResourcePlanner) GenerateManifests(ctx context.Context, networkIntent *
 
 	}
 
-
-
 	generationDuration := time.Since(startTime)
 
 	processingCtx.Metrics["manifest_generation_duration"] = generationDuration.Seconds()
 
 	processingCtx.Metrics["generated_manifests_count"] = float64(len(manifestMap))
-
-
 
 	p.recordEvent(networkIntent, "Normal", "ManifestGenerationSucceeded",
 
@@ -966,13 +786,9 @@ func (p *ResourcePlanner) GenerateManifests(ctx context.Context, networkIntent *
 
 		"manifest_count", len(manifestMap))
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // generateDeploymentManifest generates a Kubernetes Deployment manifest for a network function.
 
@@ -980,21 +796,18 @@ func (p *ResourcePlanner) generateDeploymentManifest(networkIntent *nephoranv1.N
 
 	labels := map[string]string{
 
-		"app":                           nf.Name,
+		"app": nf.Name,
 
-		"networkintent":                 networkIntent.Name,
+		"networkintent": networkIntent.Name,
 
-		"networkfunction":               nf.Type,
+		"networkfunction": nf.Type,
 
-		"nephoran.com/managed":          "true",
+		"nephoran.com/managed": "true",
 
-		"nephoran.com/network-intent":   networkIntent.Name,
+		"nephoran.com/network-intent": networkIntent.Name,
 
 		"nephoran.com/network-function": nf.Type,
-
 	}
-
-
 
 	deployment := &appsv1.Deployment{
 
@@ -1002,18 +815,16 @@ func (p *ResourcePlanner) generateDeploymentManifest(networkIntent *nephoranv1.N
 
 			APIVersion: "apps/v1",
 
-			Kind:       "Deployment",
-
+			Kind: "Deployment",
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      nf.Name,
+			Name: nf.Name,
 
 			Namespace: networkIntent.Namespace,
 
-			Labels:    labels,
-
+			Labels: labels,
 		},
 
 		Spec: appsv1.DeploymentSpec{
@@ -1024,12 +835,10 @@ func (p *ResourcePlanner) generateDeploymentManifest(networkIntent *nephoranv1.N
 
 				MatchLabels: map[string]string{
 
-					"app":             nf.Name,
+					"app": nf.Name,
 
 					"networkfunction": nf.Type,
-
 				},
-
 			},
 
 			Template: corev1.PodTemplateSpec{
@@ -1037,7 +846,6 @@ func (p *ResourcePlanner) generateDeploymentManifest(networkIntent *nephoranv1.N
 				ObjectMeta: metav1.ObjectMeta{
 
 					Labels: labels,
-
 				},
 
 				Spec: corev1.PodSpec{
@@ -1046,23 +854,22 @@ func (p *ResourcePlanner) generateDeploymentManifest(networkIntent *nephoranv1.N
 
 						{
 
-							Name:  nf.Name,
+							Name: nf.Name,
 
 							Image: fmt.Sprintf("%s:%s", strings.ToLower(nf.Type), nf.Version),
 
 							Ports: p.generateContainerPorts(nf),
 
-							Env:   p.generateEnvironmentVariables(nf),
+							Env: p.generateEnvironmentVariables(nf),
 
 							Resources: corev1.ResourceRequirements{
 
-								Limits:   parseQuantity(nf.Resources.CPU + "," + nf.Resources.Memory),
+								Limits: parseQuantity(nf.Resources.CPU + "," + nf.Resources.Memory),
 
 								Requests: parseQuantity(nf.Resources.CPU + "," + nf.Resources.Memory),
-
 							},
 
-							LivenessProbe:  p.generateLivenessProbe(nf),
+							LivenessProbe: p.generateLivenessProbe(nf),
 
 							ReadinessProbe: p.generateReadinessProbe(nf),
 
@@ -1070,18 +877,14 @@ func (p *ResourcePlanner) generateDeploymentManifest(networkIntent *nephoranv1.N
 
 								{
 
-									Name:      "config",
+									Name: "config",
 
 									MountPath: "/etc/config",
 
-									ReadOnly:  true,
-
+									ReadOnly: true,
 								},
-
 							},
-
 						},
-
 					},
 
 					Volumes: []corev1.Volume{
@@ -1097,32 +900,19 @@ func (p *ResourcePlanner) generateDeploymentManifest(networkIntent *nephoranv1.N
 									LocalObjectReference: corev1.LocalObjectReference{
 
 										Name: fmt.Sprintf("%s-config", nf.Name),
-
 									},
-
 								},
-
 							},
-
 						},
-
 					},
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	return deployment
 
 }
-
-
 
 // generateServiceManifest generates a Kubernetes Service manifest for a network function.
 
@@ -1130,21 +920,18 @@ func (p *ResourcePlanner) generateServiceManifest(networkIntent *nephoranv1.Netw
 
 	labels := map[string]string{
 
-		"app":                           nf.Name,
+		"app": nf.Name,
 
-		"networkintent":                 networkIntent.Name,
+		"networkintent": networkIntent.Name,
 
-		"networkfunction":               nf.Type,
+		"networkfunction": nf.Type,
 
-		"nephoran.com/managed":          "true",
+		"nephoran.com/managed": "true",
 
-		"nephoran.com/network-intent":   networkIntent.Name,
+		"nephoran.com/network-intent": networkIntent.Name,
 
 		"nephoran.com/network-function": nf.Type,
-
 	}
-
-
 
 	service := &corev1.Service{
 
@@ -1152,45 +939,36 @@ func (p *ResourcePlanner) generateServiceManifest(networkIntent *nephoranv1.Netw
 
 			APIVersion: "v1",
 
-			Kind:       "Service",
-
+			Kind: "Service",
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      fmt.Sprintf("%s-service", nf.Name),
+			Name: fmt.Sprintf("%s-service", nf.Name),
 
 			Namespace: networkIntent.Namespace,
 
-			Labels:    labels,
-
+			Labels: labels,
 		},
 
 		Spec: corev1.ServiceSpec{
 
 			Selector: map[string]string{
 
-				"app":             nf.Name,
+				"app": nf.Name,
 
 				"networkfunction": nf.Type,
-
 			},
 
 			Ports: p.generateServicePorts(nf),
 
-			Type:  corev1.ServiceTypeClusterIP,
-
+			Type: corev1.ServiceTypeClusterIP,
 		},
-
 	}
-
-
 
 	return service
 
 }
-
-
 
 // generateConfigMapManifest generates a ConfigMap for network function configuration.
 
@@ -1198,21 +976,18 @@ func (p *ResourcePlanner) generateConfigMapManifest(networkIntent *nephoranv1.Ne
 
 	labels := map[string]string{
 
-		"app":                           nf.Name,
+		"app": nf.Name,
 
-		"networkintent":                 networkIntent.Name,
+		"networkintent": networkIntent.Name,
 
-		"networkfunction":               nf.Type,
+		"networkfunction": nf.Type,
 
-		"nephoran.com/managed":          "true",
+		"nephoran.com/managed": "true",
 
-		"nephoran.com/network-intent":   networkIntent.Name,
+		"nephoran.com/network-intent": networkIntent.Name,
 
 		"nephoran.com/network-function": nf.Type,
-
 	}
-
-
 
 	// Convert configuration to string values.
 
@@ -1234,39 +1009,30 @@ func (p *ResourcePlanner) generateConfigMapManifest(networkIntent *nephoranv1.Ne
 
 	}
 
-
-
 	configMap := &corev1.ConfigMap{
 
 		TypeMeta: metav1.TypeMeta{
 
 			APIVersion: "v1",
 
-			Kind:       "ConfigMap",
-
+			Kind: "ConfigMap",
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      fmt.Sprintf("%s-config", nf.Name),
+			Name: fmt.Sprintf("%s-config", nf.Name),
 
 			Namespace: networkIntent.Namespace,
 
-			Labels:    labels,
-
+			Labels: labels,
 		},
 
 		Data: data,
-
 	}
-
-
 
 	return configMap
 
 }
-
-
 
 // generateNetworkPolicyManifest generates a NetworkPolicy for security.
 
@@ -1274,21 +1040,18 @@ func (p *ResourcePlanner) generateNetworkPolicyManifest(networkIntent *nephoranv
 
 	labels := map[string]string{
 
-		"app":                           nf.Name,
+		"app": nf.Name,
 
-		"networkintent":                 networkIntent.Name,
+		"networkintent": networkIntent.Name,
 
-		"networkfunction":               nf.Type,
+		"networkfunction": nf.Type,
 
-		"nephoran.com/managed":          "true",
+		"nephoran.com/managed": "true",
 
-		"nephoran.com/network-intent":   networkIntent.Name,
+		"nephoran.com/network-intent": networkIntent.Name,
 
 		"nephoran.com/network-function": nf.Type,
-
 	}
-
-
 
 	networkPolicy := &networkingv1.NetworkPolicy{
 
@@ -1296,18 +1059,16 @@ func (p *ResourcePlanner) generateNetworkPolicyManifest(networkIntent *nephoranv
 
 			APIVersion: "networking.k8s.io/v1",
 
-			Kind:       "NetworkPolicy",
-
+			Kind: "NetworkPolicy",
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      fmt.Sprintf("%s-netpol", nf.Name),
+			Name: fmt.Sprintf("%s-netpol", nf.Name),
 
 			Namespace: networkIntent.Namespace,
 
-			Labels:    labels,
-
+			Labels: labels,
 		},
 
 		Spec: networkingv1.NetworkPolicySpec{
@@ -1316,12 +1077,10 @@ func (p *ResourcePlanner) generateNetworkPolicyManifest(networkIntent *nephoranv
 
 				MatchLabels: map[string]string{
 
-					"app":             nf.Name,
+					"app": nf.Name,
 
 					"networkfunction": nf.Type,
-
 				},
-
 			},
 
 			PolicyTypes: []networkingv1.PolicyType{
@@ -1329,24 +1088,17 @@ func (p *ResourcePlanner) generateNetworkPolicyManifest(networkIntent *nephoranv
 				networkingv1.PolicyTypeIngress,
 
 				networkingv1.PolicyTypeEgress,
-
 			},
 
 			Ingress: p.generateIngressRules(nf),
 
-			Egress:  p.generateEgressRules(nf),
-
+			Egress: p.generateEgressRules(nf),
 		},
-
 	}
-
-
 
 	return networkPolicy
 
 }
-
-
 
 // generateSliceConfigMap generates a ConfigMap for network slice configuration.
 
@@ -1354,25 +1106,20 @@ func (p *ResourcePlanner) generateSliceConfigMap(networkIntent *nephoranv1.Netwo
 
 	labels := map[string]string{
 
-		"networkintent":               networkIntent.Name,
+		"networkintent": networkIntent.Name,
 
-		"slice-type":                  sliceConfig.SliceType,
+		"slice-type": sliceConfig.SliceType,
 
-		"nephoran.com/managed":        "true",
+		"nephoran.com/managed": "true",
 
 		"nephoran.com/network-intent": networkIntent.Name,
 
-		"nephoran.com/slice-config":   "true",
-
+		"nephoran.com/slice-config": "true",
 	}
-
-
 
 	// Convert slice configuration to YAML.
 
 	sliceYaml, _ := yaml.Marshal(sliceConfig)
-
-
 
 	configMap := &corev1.ConfigMap{
 
@@ -1380,49 +1127,39 @@ func (p *ResourcePlanner) generateSliceConfigMap(networkIntent *nephoranv1.Netwo
 
 			APIVersion: "v1",
 
-			Kind:       "ConfigMap",
-
+			Kind: "ConfigMap",
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      fmt.Sprintf("%s-slice-config", networkIntent.Name),
+			Name: fmt.Sprintf("%s-slice-config", networkIntent.Name),
 
 			Namespace: networkIntent.Namespace,
 
-			Labels:    labels,
-
+			Labels: labels,
 		},
 
 		Data: map[string]string{
 
 			"slice-config.yaml": string(sliceYaml),
 
-			"sst":               fmt.Sprintf("%d", sliceConfig.SST),
+			"sst": fmt.Sprintf("%d", sliceConfig.SST),
 
-			"qos-profile":       sliceConfig.QoSProfile,
+			"qos-profile": sliceConfig.QoSProfile,
 
-			"isolation":         sliceConfig.Isolation,
-
+			"isolation": sliceConfig.Isolation,
 		},
-
 	}
-
-
 
 	return configMap
 
 }
-
-
 
 // Helper functions for manifest generation.
 
 func (p *ResourcePlanner) generateContainerPorts(nf *PlannedNetworkFunction) []corev1.ContainerPort {
 
 	var ports []corev1.ContainerPort
-
-
 
 	// Default ports based on network function type.
 
@@ -1452,42 +1189,32 @@ func (p *ResourcePlanner) generateContainerPorts(nf *PlannedNetworkFunction) []c
 
 	}
 
-
-
 	// Add management port.
 
 	ports = append(ports, corev1.ContainerPort{Name: "mgmt", ContainerPort: 9090, Protocol: corev1.ProtocolTCP})
-
-
 
 	return ports
 
 }
 
-
-
 func (p *ResourcePlanner) generateEnvironmentVariables(nf *PlannedNetworkFunction) []corev1.EnvVar {
 
 	var envVars []corev1.EnvVar
-
-
 
 	// Add common environment variables.
 
 	envVars = append(envVars, corev1.EnvVar{
 
-		Name:  "NF_TYPE",
+		Name: "NF_TYPE",
 
 		Value: nf.Type,
-
 	})
 
 	envVars = append(envVars, corev1.EnvVar{
 
-		Name:  "NF_NAME",
+		Name: "NF_NAME",
 
 		Value: nf.Name,
-
 	})
 
 	envVars = append(envVars, corev1.EnvVar{
@@ -1499,11 +1226,8 @@ func (p *ResourcePlanner) generateEnvironmentVariables(nf *PlannedNetworkFunctio
 			FieldRef: &corev1.ObjectFieldSelector{
 
 				FieldPath: "metadata.name",
-
 			},
-
 		},
-
 	})
 
 	envVars = append(envVars, corev1.EnvVar{
@@ -1515,20 +1239,13 @@ func (p *ResourcePlanner) generateEnvironmentVariables(nf *PlannedNetworkFunctio
 			FieldRef: &corev1.ObjectFieldSelector{
 
 				FieldPath: "metadata.namespace",
-
 			},
-
 		},
-
 	})
-
-
 
 	return envVars
 
 }
-
-
 
 func (p *ResourcePlanner) generateLivenessProbe(nf *PlannedNetworkFunction) *corev1.Probe {
 
@@ -1541,24 +1258,19 @@ func (p *ResourcePlanner) generateLivenessProbe(nf *PlannedNetworkFunction) *cor
 				Path: "/health",
 
 				Port: intstr.FromString("mgmt"),
-
 			},
-
 		},
 
 		InitialDelaySeconds: 30,
 
-		PeriodSeconds:       10,
+		PeriodSeconds: 10,
 
-		TimeoutSeconds:      5,
+		TimeoutSeconds: 5,
 
-		FailureThreshold:    3,
-
+		FailureThreshold: 3,
 	}
 
 }
-
-
 
 func (p *ResourcePlanner) generateReadinessProbe(nf *PlannedNetworkFunction) *corev1.Probe {
 
@@ -1571,24 +1283,19 @@ func (p *ResourcePlanner) generateReadinessProbe(nf *PlannedNetworkFunction) *co
 				Path: "/ready",
 
 				Port: intstr.FromString("mgmt"),
-
 			},
-
 		},
 
 		InitialDelaySeconds: 10,
 
-		PeriodSeconds:       5,
+		PeriodSeconds: 5,
 
-		TimeoutSeconds:      3,
+		TimeoutSeconds: 3,
 
-		FailureThreshold:    3,
-
+		FailureThreshold: 3,
 	}
 
 }
-
-
 
 func (p *ResourcePlanner) generateServicePorts(nf *PlannedNetworkFunction) []corev1.ServicePort {
 
@@ -1603,31 +1310,24 @@ func (p *ResourcePlanner) generateServicePorts(nf *PlannedNetworkFunction) []cor
 
 		ports = append(ports, corev1.ServicePort{
 
-			Name:       cp.Name,
+			Name: cp.Name,
 
-			Port:       cp.ContainerPort,
+			Port: cp.ContainerPort,
 
 			TargetPort: intstr.FromString(cp.Name),
 
-			Protocol:   cp.Protocol,
-
+			Protocol: cp.Protocol,
 		})
 
 	}
-
-
 
 	return ports
 
 }
 
-
-
 func (p *ResourcePlanner) generateIngressRules(nf *PlannedNetworkFunction) []networkingv1.NetworkPolicyIngressRule {
 
 	var rules []networkingv1.NetworkPolicyIngressRule
-
-
 
 	// Allow traffic from same namespace.
 
@@ -1644,40 +1344,26 @@ func (p *ResourcePlanner) generateIngressRules(nf *PlannedNetworkFunction) []net
 						"name": nf.Name, // This should match the namespace name
 
 					},
-
 				},
-
 			},
-
 		},
-
 	})
-
-
 
 	return rules
 
 }
-
-
 
 func (p *ResourcePlanner) generateEgressRules(nf *PlannedNetworkFunction) []networkingv1.NetworkPolicyEgressRule {
 
 	var rules []networkingv1.NetworkPolicyEgressRule
 
-
-
 	// Allow all egress (can be restricted based on requirements).
 
 	rules = append(rules, networkingv1.NetworkPolicyEgressRule{})
 
-
-
 	return rules
 
 }
-
-
 
 // Helper functions.
 
@@ -1687,11 +1373,7 @@ func int32Ptr(i int32) *int32 {
 
 }
 
-
-
 // Interface implementation methods.
-
-
 
 // ProcessPhase implements PhaseProcessor interface.
 
@@ -1715,8 +1397,6 @@ func (p *ResourcePlanner) ProcessPhase(ctx context.Context, networkIntent *nepho
 
 }
 
-
-
 // GetPhaseName implements PhaseProcessor interface.
 
 func (p *ResourcePlanner) GetPhaseName() ProcessingPhase {
@@ -1724,8 +1404,6 @@ func (p *ResourcePlanner) GetPhaseName() ProcessingPhase {
 	return PhaseResourcePlanning
 
 }
-
-
 
 // IsPhaseComplete implements PhaseProcessor interface.
 
@@ -1736,8 +1414,6 @@ func (p *ResourcePlanner) IsPhaseComplete(networkIntent *nephoranv1.NetworkInten
 		isConditionTrue(networkIntent.Status.Conditions, "ManifestsGenerated")
 
 }
-
-
 
 // PlanNetworkFunction implements ResourcePlannerInterface (expose existing method).
 
@@ -1751,8 +1427,6 @@ func (p *ResourcePlanner) PlanNetworkFunction(nfName string, llmParams, telecomC
 
 	}
 
-
-
 	nfSpec, exists := kb.GetNetworkFunction(nfName)
 
 	if !exists {
@@ -1761,15 +1435,11 @@ func (p *ResourcePlanner) PlanNetworkFunction(nfName string, llmParams, telecomC
 
 	}
 
-
-
 	plannedNF := p.planNetworkFunction(nfSpec, llmParams, telecomContext)
 
 	return &plannedNF, nil
 
 }
-
-
 
 // CalculateEstimatedCost implements ResourcePlannerInterface.
 
@@ -1781,11 +1451,7 @@ func (p *ResourcePlanner) CalculateEstimatedCost(plan *ResourcePlan) (float64, e
 
 	}
 
-
-
 	var totalCPU, totalMemory, totalStorage float64
-
-
 
 	for _, nf := range plan.NetworkFunctions {
 
@@ -1797,8 +1463,6 @@ func (p *ResourcePlanner) CalculateEstimatedCost(plan *ResourcePlan) (float64, e
 
 		totalCPU += cpu * float64(nf.Replicas)
 
-
-
 		// Parse Memory.
 
 		var memory float64
@@ -1806,8 +1470,6 @@ func (p *ResourcePlanner) CalculateEstimatedCost(plan *ResourcePlan) (float64, e
 		fmt.Sscanf(nf.Resources.Memory, "%fGi", &memory)
 
 		totalMemory += memory * float64(nf.Replicas)
-
-
 
 		// Parse Storage.
 
@@ -1819,9 +1481,6 @@ func (p *ResourcePlanner) CalculateEstimatedCost(plan *ResourcePlan) (float64, e
 
 	}
 
-
-
 	return p.calculateEstimatedCost(totalCPU, totalMemory, totalStorage), nil
 
 }
-

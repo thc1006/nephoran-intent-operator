@@ -1,63 +1,38 @@
-
 package optimized
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sort"
-
 	"sync"
-
 	"time"
-
-
 
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/types"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // StatusUpdate represents a pending status update.
 
 type StatusUpdate struct {
-
 	NamespacedName types.NamespacedName
 
-	UpdateFunc     func(obj client.Object) error
+	UpdateFunc func(obj client.Object) error
 
-	Priority       UpdatePriority
+	Priority UpdatePriority
 
-	Timestamp      time.Time
+	Timestamp time.Time
 
-	RetryCount     int
-
+	RetryCount int
 }
-
-
 
 // UpdatePriority defines the priority of status updates.
 
 type UpdatePriority int
-
-
 
 const (
 
@@ -76,78 +51,66 @@ const (
 	// CriticalPriority holds criticalpriority value.
 
 	CriticalPriority
-
 )
-
-
 
 // BatchConfig configures the status batcher behavior.
 
 type BatchConfig struct {
+	MaxBatchSize int // Maximum number of updates per batch
 
-	MaxBatchSize   int           // Maximum number of updates per batch
+	BatchTimeout time.Duration // Maximum time to wait for a batch
 
-	BatchTimeout   time.Duration // Maximum time to wait for a batch
+	FlushInterval time.Duration // Periodic flush interval
 
-	FlushInterval  time.Duration // Periodic flush interval
+	MaxRetries int // Maximum retries per update
 
-	MaxRetries     int           // Maximum retries per update
+	RetryDelay time.Duration // Base delay between retries
 
-	RetryDelay     time.Duration // Base delay between retries
+	EnablePriority bool // Whether to prioritize updates
 
-	EnablePriority bool          // Whether to prioritize updates
-
-	MaxQueueSize   int           // Maximum queue size before dropping updates
+	MaxQueueSize int // Maximum queue size before dropping updates
 
 }
-
-
 
 // DefaultBatchConfig provides sensible defaults.
 
 var DefaultBatchConfig = BatchConfig{
 
-	MaxBatchSize:   10,
+	MaxBatchSize: 10,
 
-	BatchTimeout:   2 * time.Second,
+	BatchTimeout: 2 * time.Second,
 
-	FlushInterval:  5 * time.Second,
+	FlushInterval: 5 * time.Second,
 
-	MaxRetries:     3,
+	MaxRetries: 3,
 
-	RetryDelay:     1 * time.Second,
+	RetryDelay: 1 * time.Second,
 
 	EnablePriority: true,
 
-	MaxQueueSize:   1000,
-
+	MaxQueueSize: 1000,
 }
-
-
 
 // StatusBatcher batches status updates to reduce API server load.
 
 type StatusBatcher struct {
+	client client.Client
 
-	client     client.Client
+	config BatchConfig
 
-	config     BatchConfig
+	mu sync.RWMutex
 
-	mu         sync.RWMutex
+	updates map[types.NamespacedName]*StatusUpdate
 
-	updates    map[types.NamespacedName]*StatusUpdate
-
-	queue      []*StatusUpdate
+	queue []*StatusUpdate
 
 	flushTimer *time.Timer
 
-	ctx        context.Context
+	ctx context.Context
 
-	cancel     context.CancelFunc
+	cancel context.CancelFunc
 
-	wg         sync.WaitGroup
-
-
+	wg sync.WaitGroup
 
 	// Metrics.
 
@@ -155,15 +118,12 @@ type StatusBatcher struct {
 
 	updatesProcessed int64
 
-	updatesDropped   int64
+	updatesDropped int64
 
-	updatesFailed    int64
+	updatesFailed int64
 
 	averageBatchSize float64
-
 }
-
-
 
 // NewStatusBatcher creates a new status batcher.
 
@@ -171,25 +131,20 @@ func NewStatusBatcher(client client.Client, config BatchConfig) *StatusBatcher {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-
-
 	batcher := &StatusBatcher{
 
-		client:  client,
+		client: client,
 
-		config:  config,
+		config: config,
 
 		updates: make(map[types.NamespacedName]*StatusUpdate),
 
-		queue:   make([]*StatusUpdate, 0, config.MaxBatchSize),
+		queue: make([]*StatusUpdate, 0, config.MaxBatchSize),
 
-		ctx:     ctx,
+		ctx: ctx,
 
-		cancel:  cancel,
-
+		cancel: cancel,
 	}
-
-
 
 	// Start background processor.
 
@@ -197,13 +152,9 @@ func NewStatusBatcher(client client.Client, config BatchConfig) *StatusBatcher {
 
 	go batcher.processUpdates()
 
-
-
 	return batcher
 
 }
-
-
 
 // QueueUpdate queues a status update for batching.
 
@@ -212,8 +163,6 @@ func (sb *StatusBatcher) QueueUpdate(namespacedName types.NamespacedName, update
 	sb.mu.Lock()
 
 	defer sb.mu.Unlock()
-
-
 
 	// Check queue size limit.
 
@@ -225,23 +174,18 @@ func (sb *StatusBatcher) QueueUpdate(namespacedName types.NamespacedName, update
 
 	}
 
-
-
 	update := &StatusUpdate{
 
 		NamespacedName: namespacedName,
 
-		UpdateFunc:     updateFunc,
+		UpdateFunc: updateFunc,
 
-		Priority:       priority,
+		Priority: priority,
 
-		Timestamp:      time.Now(),
+		Timestamp: time.Now(),
 
-		RetryCount:     0,
-
+		RetryCount: 0,
 	}
-
-
 
 	// Replace existing update for the same resource (latest wins).
 
@@ -267,8 +211,6 @@ func (sb *StatusBatcher) QueueUpdate(namespacedName types.NamespacedName, update
 
 	}
 
-
-
 	// Trigger immediate flush for critical updates.
 
 	if priority == CriticalPriority {
@@ -285,13 +227,9 @@ func (sb *StatusBatcher) QueueUpdate(namespacedName types.NamespacedName, update
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // QueueNetworkIntentUpdate queues a NetworkIntent status update.
 
@@ -307,8 +245,6 @@ func (sb *StatusBatcher) QueueNetworkIntentUpdate(namespacedName types.Namespace
 
 		}
 
-
-
 		// Apply condition updates.
 
 		for _, condition := range conditionUpdates {
@@ -316,8 +252,6 @@ func (sb *StatusBatcher) QueueNetworkIntentUpdate(namespacedName types.Namespace
 			updateCondition(&networkIntent.Status.Conditions, condition)
 
 		}
-
-
 
 		// Update phase if provided.
 
@@ -327,19 +261,13 @@ func (sb *StatusBatcher) QueueNetworkIntentUpdate(namespacedName types.Namespace
 
 		}
 
-
-
 		return nil
 
 	}
 
-
-
 	return sb.QueueUpdate(namespacedName, updateFunc, priority)
 
 }
-
-
 
 // QueueE2NodeSetUpdate queues an E2NodeSet status update.
 
@@ -355,15 +283,11 @@ func (sb *StatusBatcher) QueueE2NodeSetUpdate(namespacedName types.NamespacedNam
 
 		}
 
-
-
 		// Update replica status.
 
 		e2nodeSet.Status.ReadyReplicas = readyReplicas
 
 		e2nodeSet.Status.CurrentReplicas = totalReplicas
-
-
 
 		// Apply condition updates.
 
@@ -373,19 +297,13 @@ func (sb *StatusBatcher) QueueE2NodeSetUpdate(namespacedName types.NamespacedNam
 
 		}
 
-
-
 		return nil
 
 	}
 
-
-
 	return sb.QueueUpdate(namespacedName, updateFunc, priority)
 
 }
-
-
 
 // Flush immediately processes all queued updates.
 
@@ -403,13 +321,9 @@ func (sb *StatusBatcher) Flush() error {
 
 	sb.mu.Unlock()
 
-
-
 	return sb.processBatch()
 
 }
-
-
 
 // Stop gracefully shuts down the status batcher.
 
@@ -419,8 +333,6 @@ func (sb *StatusBatcher) Stop() error {
 
 	sb.cancel()
 
-
-
 	// Process any remaining updates.
 
 	if err := sb.Flush(); err != nil {
@@ -429,19 +341,13 @@ func (sb *StatusBatcher) Stop() error {
 
 	}
 
-
-
 	// Wait for background goroutine to finish.
 
 	sb.wg.Wait()
 
-
-
 	return nil
 
 }
-
-
 
 // GetStats returns statistics about the batcher.
 
@@ -451,47 +357,38 @@ func (sb *StatusBatcher) GetStats() StatusBatcherStats {
 
 	defer sb.mu.RUnlock()
 
-
-
 	return StatusBatcherStats{
 
-		QueueSize:        len(sb.queue),
+		QueueSize: len(sb.queue),
 
 		BatchesProcessed: sb.batchesProcessed,
 
 		UpdatesProcessed: sb.updatesProcessed,
 
-		UpdatesDropped:   sb.updatesDropped,
+		UpdatesDropped: sb.updatesDropped,
 
-		UpdatesFailed:    sb.updatesFailed,
+		UpdatesFailed: sb.updatesFailed,
 
 		AverageBatchSize: sb.averageBatchSize,
-
 	}
 
 }
 
-
-
 // StatusBatcherStats contains statistics about the batcher.
 
 type StatusBatcherStats struct {
+	QueueSize int `json:"queue_size"`
 
-	QueueSize        int     `json:"queue_size"`
+	BatchesProcessed int64 `json:"batches_processed"`
 
-	BatchesProcessed int64   `json:"batches_processed"`
+	UpdatesProcessed int64 `json:"updates_processed"`
 
-	UpdatesProcessed int64   `json:"updates_processed"`
+	UpdatesDropped int64 `json:"updates_dropped"`
 
-	UpdatesDropped   int64   `json:"updates_dropped"`
-
-	UpdatesFailed    int64   `json:"updates_failed"`
+	UpdatesFailed int64 `json:"updates_failed"`
 
 	AverageBatchSize float64 `json:"average_batch_size"`
-
 }
-
-
 
 // processUpdates runs in a background goroutine to periodically flush updates.
 
@@ -499,13 +396,9 @@ func (sb *StatusBatcher) processUpdates() {
 
 	defer sb.wg.Done()
 
-
-
 	ticker := time.NewTicker(sb.config.FlushInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -529,8 +422,6 @@ func (sb *StatusBatcher) processUpdates() {
 
 }
 
-
-
 // triggerFlush triggers an immediate flush.
 
 func (sb *StatusBatcher) triggerFlush() {
@@ -547,15 +438,11 @@ func (sb *StatusBatcher) triggerFlush() {
 
 }
 
-
-
 // processBatch processes a batch of status updates.
 
 func (sb *StatusBatcher) processBatch() error {
 
 	sb.mu.Lock()
-
-
 
 	if len(sb.queue) == 0 {
 
@@ -564,8 +451,6 @@ func (sb *StatusBatcher) processBatch() error {
 		return nil
 
 	}
-
-
 
 	// Extract batch for processing.
 
@@ -577,13 +462,9 @@ func (sb *StatusBatcher) processBatch() error {
 
 	}
 
-
-
 	batch := make([]*StatusUpdate, batchSize)
 
 	copy(batch, sb.queue[:batchSize])
-
-
 
 	// Sort by priority if enabled.
 
@@ -593,8 +474,6 @@ func (sb *StatusBatcher) processBatch() error {
 
 	}
 
-
-
 	// Clear processed items from queue and map.
 
 	remaining := sb.queue[batchSize:]
@@ -603,15 +482,11 @@ func (sb *StatusBatcher) processBatch() error {
 
 	sb.queue = append(sb.queue, remaining...)
 
-
-
 	for _, update := range batch {
 
 		delete(sb.updates, update.NamespacedName)
 
 	}
-
-
 
 	// Reset flush timer.
 
@@ -623,11 +498,7 @@ func (sb *StatusBatcher) processBatch() error {
 
 	}
 
-
-
 	sb.mu.Unlock()
-
-
 
 	// Process batch outside of lock.
 
@@ -639,15 +510,11 @@ func (sb *StatusBatcher) processBatch() error {
 
 			log.Log.Error(err, "Failed to process status update", "resource", update.NamespacedName)
 
-
-
 			// Retry logic for failed updates.
 
 			if update.RetryCount < sb.config.MaxRetries {
 
 				update.RetryCount++
-
-
 
 				// Requeue with delay.
 
@@ -673,15 +540,11 @@ func (sb *StatusBatcher) processBatch() error {
 
 	}
 
-
-
 	// Update metrics.
 
 	sb.batchesProcessed++
 
 	sb.updatesProcessed += int64(successCount)
-
-
 
 	// Update average batch size (exponential moving average).
 
@@ -697,13 +560,9 @@ func (sb *StatusBatcher) processBatch() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // processUpdate processes a single status update.
 
@@ -712,8 +571,6 @@ func (sb *StatusBatcher) processUpdate(update *StatusUpdate) error {
 	// Determine object type based on the resource.
 
 	var obj client.Object
-
-
 
 	// Create appropriate object type - this is a simplified approach.
 
@@ -745,8 +602,6 @@ func (sb *StatusBatcher) processUpdate(update *StatusUpdate) error {
 
 	}
 
-
-
 	// Apply the update function.
 
 	if err := update.UpdateFunc(obj); err != nil {
@@ -754,8 +609,6 @@ func (sb *StatusBatcher) processUpdate(update *StatusUpdate) error {
 		return fmt.Errorf("failed to apply update function: %w", err)
 
 	}
-
-
 
 	// Update the object status.
 
@@ -765,13 +618,9 @@ func (sb *StatusBatcher) processUpdate(update *StatusUpdate) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // sortByPriority sorts updates by priority (highest first).
 
@@ -785,8 +634,6 @@ func (sb *StatusBatcher) sortByPriority(updates []*StatusUpdate) {
 
 }
 
-
-
 // updateCondition updates a condition in a condition slice.
 
 func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Condition) {
@@ -796,8 +643,6 @@ func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Conditi
 		*conditions = make([]metav1.Condition, 0, 1) // Preallocate for typical single condition
 
 	}
-
-
 
 	// Find existing condition.
 
@@ -815,15 +660,11 @@ func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Conditi
 
 	}
 
-
-
 	// Add new condition.
 
 	*conditions = append(*conditions, newCondition)
 
 }
-
-
 
 // updateE2NodeSetCondition updates a condition in an E2NodeSet condition slice.
 
@@ -837,25 +678,20 @@ func updateE2NodeSetCondition(conditions *[]nephoranv1.E2NodeSetCondition, newCo
 
 	}
 
-
-
 	// Convert metav1.Condition to E2NodeSetCondition.
 
 	e2Condition := nephoranv1.E2NodeSetCondition{
 
-		Type:               nephoranv1.E2NodeSetConditionType(newCondition.Type),
+		Type: nephoranv1.E2NodeSetConditionType(newCondition.Type),
 
-		Status:             newCondition.Status,
+		Status: newCondition.Status,
 
 		LastTransitionTime: newCondition.LastTransitionTime,
 
-		Reason:             newCondition.Reason,
+		Reason: newCondition.Reason,
 
-		Message:            newCondition.Message,
-
+		Message: newCondition.Message,
 	}
-
-
 
 	// Find existing condition.
 
@@ -873,11 +709,8 @@ func updateE2NodeSetCondition(conditions *[]nephoranv1.E2NodeSetCondition, newCo
 
 	}
 
-
-
 	// Add new condition.
 
 	*conditions = append(*conditions, e2Condition)
 
 }
-

@@ -1,27 +1,14 @@
-
 package o2
 
-
-
 import (
-
 	"context"
-
 	"net/http"
-
 	"strconv"
-
 	"strings"
-
 	"time"
 
-
-
 	"golang.org/x/time/rate"
-
 )
-
-
 
 // loggingMiddleware logs HTTP requests and responses.
 
@@ -30,8 +17,6 @@ func (s *O2APIServer) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		start := time.Now()
-
-
 
 		// Create request context with correlation ID.
 
@@ -43,25 +28,17 @@ func (s *O2APIServer) loggingMiddleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		ctx := context.WithValue(r.Context(), "request_id", requestID)
 
 		r = r.WithContext(ctx)
-
-
 
 		// Add request ID to response headers.
 
 		w.Header().Set("X-Request-ID", requestID)
 
-
-
 		// Wrap response writer to capture status and size.
 
 		wrappedWriter := &responseWriter{ResponseWriter: w}
-
-
 
 		// Log request.
 
@@ -76,16 +53,11 @@ func (s *O2APIServer) loggingMiddleware(next http.Handler) http.Handler {
 			"remote_addr", r.RemoteAddr,
 
 			"user_agent", r.Header.Get("User-Agent"),
-
 		)
-
-
 
 		// Process request.
 
 		next.ServeHTTP(wrappedWriter, r)
-
-
 
 		// Log response.
 
@@ -104,14 +76,11 @@ func (s *O2APIServer) loggingMiddleware(next http.Handler) http.Handler {
 			"response_size", wrappedWriter.size,
 
 			"duration_ms", duration.Milliseconds(),
-
 		)
 
 	})
 
 }
-
-
 
 // metricsMiddleware records metrics for HTTP requests.
 
@@ -121,27 +90,19 @@ func (s *O2APIServer) metricsMiddleware(next http.Handler) http.Handler {
 
 		start := time.Now()
 
-
-
 		// Wrap response writer to capture metrics.
 
 		wrappedWriter := &responseWriter{ResponseWriter: w}
 
-
-
 		// Process request.
 
 		next.ServeHTTP(wrappedWriter, r)
-
-
 
 		// Record metrics.
 
 		duration := time.Since(start)
 
 		endpoint := s.normalizeEndpoint(r.URL.Path)
-
-
 
 		s.metrics.RecordRequest(
 
@@ -154,10 +115,7 @@ func (s *O2APIServer) metricsMiddleware(next http.Handler) http.Handler {
 			duration,
 
 			int64(wrappedWriter.size),
-
 		)
-
-
 
 		// Record errors if status code indicates an error.
 
@@ -178,8 +136,6 @@ func (s *O2APIServer) metricsMiddleware(next http.Handler) http.Handler {
 	})
 
 }
-
-
 
 // recoveryMiddleware recovers from panics and returns 500 status.
 
@@ -202,14 +158,9 @@ func (s *O2APIServer) recoveryMiddleware(next http.Handler) http.Handler {
 					"method", r.Method,
 
 					"path", r.URL.Path,
-
 				)
 
-
-
 				s.metrics.RecordError("panic", s.normalizeEndpoint(r.URL.Path))
-
-
 
 				w.Header().Set("Content-Type", ContentTypeProblemJSON)
 
@@ -221,23 +172,17 @@ func (s *O2APIServer) recoveryMiddleware(next http.Handler) http.Handler {
 
 		}()
 
-
-
 		next.ServeHTTP(w, r)
 
 	})
 
 }
 
-
-
 // createRateLimitMiddleware creates a rate limiting middleware.
 
 func (s *O2APIServer) createRateLimitMiddleware() http.Handler {
 
 	config := s.config.SecurityConfig.RateLimitConfig
-
-
 
 	// Create rate limiter based on configuration.
 
@@ -246,10 +191,7 @@ func (s *O2APIServer) createRateLimitMiddleware() http.Handler {
 		rate.Limit(float64(config.RequestsPerMin)/60.0), // requests per second
 
 		config.BurstSize,
-
 	)
-
-
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -293,8 +235,6 @@ func (s *O2APIServer) createRateLimitMiddleware() http.Handler {
 
 		}
 
-
-
 		// Check rate limit.
 
 		if !limiter.Allow() {
@@ -306,14 +246,9 @@ func (s *O2APIServer) createRateLimitMiddleware() http.Handler {
 				"method", r.Method,
 
 				"path", r.URL.Path,
-
 			)
 
-
-
 			s.metrics.RecordError("rate_limit", s.normalizeEndpoint(r.URL.Path))
-
-
 
 			w.Header().Set("Content-Type", ContentTypeProblemJSON)
 
@@ -329,21 +264,15 @@ func (s *O2APIServer) createRateLimitMiddleware() http.Handler {
 
 }
 
-
-
 // responseWriter wraps http.ResponseWriter to capture response metrics.
 
 type responseWriter struct {
-
 	http.ResponseWriter
 
 	statusCode int
 
-	size       int
-
+	size int
 }
-
-
 
 // WriteHeader captures the status code.
 
@@ -354,8 +283,6 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 
 }
-
-
 
 // Write captures the response size.
 
@@ -369,8 +296,6 @@ func (rw *responseWriter) Write(data []byte) (int, error) {
 
 }
 
-
-
 // normalizeEndpoint normalizes the endpoint path for metrics.
 
 func (s *O2APIServer) normalizeEndpoint(path string) string {
@@ -379,13 +304,9 @@ func (s *O2APIServer) normalizeEndpoint(path string) string {
 
 	// This helps avoid high cardinality issues with metrics.
 
-
-
 	// Use mux.CurrentRoute to get the route template if available.
 
 	// For now, implement basic normalization.
-
-
 
 	if strings.HasPrefix(path, "/ims/v1/") {
 
@@ -394,8 +315,6 @@ func (s *O2APIServer) normalizeEndpoint(path string) string {
 		if len(parts) >= 4 {
 
 			endpoint := "/" + parts[1] + "/" + parts[2] + "/" + parts[3]
-
-
 
 			// Replace IDs with placeholders.
 
@@ -411,21 +330,15 @@ func (s *O2APIServer) normalizeEndpoint(path string) string {
 
 			}
 
-
-
 			return endpoint
 
 		}
 
 	}
 
-
-
 	return path
 
 }
-
-
 
 // getClientIP extracts the client IP address from the request.
 
@@ -443,8 +356,6 @@ func getClientIP(r *http.Request) string {
 
 	}
 
-
-
 	// Check X-Real-IP header.
 
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
@@ -453,15 +364,11 @@ func getClientIP(r *http.Request) string {
 
 	}
 
-
-
 	// Fall back to remote address.
 
 	return r.RemoteAddr
 
 }
-
-
 
 // generateRequestID generates a unique request ID.
 
@@ -474,8 +381,6 @@ func generateRequestID() string {
 	return strconv.FormatInt(time.Now().UnixNano(), 36)
 
 }
-
-
 
 // requestSizeMiddleware limits the size of incoming requests.
 
@@ -496,14 +401,9 @@ func (s *O2APIServer) requestSizeMiddleware(maxSize int64) func(http.Handler) ht
 					"method", r.Method,
 
 					"path", r.URL.Path,
-
 				)
 
-
-
 				s.metrics.RecordError("request_too_large", s.normalizeEndpoint(r.URL.Path))
-
-
 
 				w.Header().Set("Content-Type", ContentTypeProblemJSON)
 
@@ -515,13 +415,9 @@ func (s *O2APIServer) requestSizeMiddleware(maxSize int64) func(http.Handler) ht
 
 			}
 
-
-
 			// Wrap the request body with a limited reader as additional protection.
 
 			r.Body = http.MaxBytesReader(w, r.Body, maxSize)
-
-
 
 			next.ServeHTTP(w, r)
 
@@ -530,4 +426,3 @@ func (s *O2APIServer) requestSizeMiddleware(maxSize int64) func(http.Handler) ht
 	}
 
 }
-

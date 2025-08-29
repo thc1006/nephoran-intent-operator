@@ -1,81 +1,50 @@
 // Package validation provides comprehensive security compliance validation.
 
-
 package validation
 
-
-
 import (
-
 	"context"
-
 	"crypto/tls"
-
 	"crypto/x509"
-
 	"fmt"
-
 	"net/http"
-
 	"strings"
-
 	"time"
-
-
 
 	"github.com/onsi/ginkgo/v2"
 
-
-
 	corev1 "k8s.io/api/core/v1"
-
 	networkingv1 "k8s.io/api/networking/v1"
-
 	rbacv1 "k8s.io/api/rbac/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // SecurityValidator provides comprehensive security compliance testing.
 
 // Targets 14/15 points for security category in the validation suite.
 
 type SecurityValidator struct {
-
-	config    *ValidationConfig
+	config *ValidationConfig
 
 	k8sClient client.Client
 
-
-
 	// Security test infrastructure.
 
-	oauthMock  *OAuthMockService
+	oauthMock *OAuthMockService
 
-	tlsMock    *TLSMockService
+	tlsMock *TLSMockService
 
-	scanMock   *VulnerabilityScanMock
+	scanMock *VulnerabilityScanMock
 
 	policyMock *SecurityPolicyMock
-
-
 
 	// Security findings tracker.
 
 	findings []*SecurityFinding
-
 }
-
-
 
 // NewSecurityValidator creates a new security validator with comprehensive testing capabilities.
 
@@ -83,23 +52,20 @@ func NewSecurityValidator(config *ValidationConfig) *SecurityValidator {
 
 	return &SecurityValidator{
 
-		config:     config,
+		config: config,
 
-		findings:   make([]*SecurityFinding, 0),
+		findings: make([]*SecurityFinding, 0),
 
-		oauthMock:  NewOAuthMockService(),
+		oauthMock: NewOAuthMockService(),
 
-		tlsMock:    NewTLSMockService(),
+		tlsMock: NewTLSMockService(),
 
-		scanMock:   NewVulnerabilityScanMock(),
+		scanMock: NewVulnerabilityScanMock(),
 
 		policyMock: NewSecurityPolicyMock(),
-
 	}
 
 }
-
-
 
 // SetK8sClient sets the Kubernetes client for security validation.
 
@@ -109,21 +75,15 @@ func (sv *SecurityValidator) SetK8sClient(client client.Client) {
 
 }
 
-
-
 // ValidateAuthentication validates OAuth2/OIDC, service accounts, RBAC, MFA, and token lifecycle (5/5 points).
 
 func (sv *SecurityValidator) ValidateAuthentication(ctx context.Context) int {
 
 	ginkgo.By("🔐 Validating Authentication & Authorization (Target: 5/5 points)")
 
-
-
 	score := 0
 
 	maxScore := 5
-
-
 
 	// Test 1: OAuth2/OIDC Integration (2 points).
 
@@ -143,8 +103,6 @@ func (sv *SecurityValidator) ValidateAuthentication(ctx context.Context) int {
 
 	}
 
-
-
 	// Test 2: Service Account Authentication (1 point).
 
 	ginkgo.By("Testing Service Account Authentication")
@@ -162,8 +120,6 @@ func (sv *SecurityValidator) ValidateAuthentication(ctx context.Context) int {
 		sv.addSecurityFinding("Authentication", "MEDIUM", "Service account authentication not properly configured", "serviceaccount", "Configure proper service account with minimal permissions")
 
 	}
-
-
 
 	// Test 3: RBAC Policy Enforcement (1 point).
 
@@ -183,8 +139,6 @@ func (sv *SecurityValidator) ValidateAuthentication(ctx context.Context) int {
 
 	}
 
-
-
 	// Test 4: Token Lifecycle Management (1 point).
 
 	ginkgo.By("Testing Token Lifecycle Management")
@@ -203,15 +157,11 @@ func (sv *SecurityValidator) ValidateAuthentication(ctx context.Context) int {
 
 	}
 
-
-
 	ginkgo.By(fmt.Sprintf("🔐 Authentication & Authorization: %d/%d points", score, maxScore))
 
 	return score
 
 }
-
-
 
 // ValidateEncryption validates TLS/mTLS, encryption at rest, key management, certificates, and data integrity (4/4 points).
 
@@ -219,13 +169,9 @@ func (sv *SecurityValidator) ValidateEncryption(ctx context.Context) int {
 
 	ginkgo.By("🔒 Validating Data Encryption (Target: 4/4 points)")
 
-
-
 	score := 0
 
 	maxScore := 4
-
-
 
 	// Test 1: TLS/mTLS Configuration (2 points).
 
@@ -245,8 +191,6 @@ func (sv *SecurityValidator) ValidateEncryption(ctx context.Context) int {
 
 	}
 
-
-
 	// Test 2: Encryption at Rest (1 point).
 
 	ginkgo.By("Testing Encryption at Rest")
@@ -264,8 +208,6 @@ func (sv *SecurityValidator) ValidateEncryption(ctx context.Context) int {
 		sv.addSecurityFinding("Encryption", "HIGH", "Data not encrypted at rest", "storage", "Enable etcd encryption and persistent volume encryption")
 
 	}
-
-
 
 	// Test 3: Key Management and Certificate Lifecycle (1 point).
 
@@ -285,15 +227,11 @@ func (sv *SecurityValidator) ValidateEncryption(ctx context.Context) int {
 
 	}
 
-
-
 	ginkgo.By(fmt.Sprintf("🔒 Data Encryption: %d/%d points", score, maxScore))
 
 	return score
 
 }
-
-
 
 // ValidateNetworkSecurity validates network policies, zero-trust, firewalls, VPNs, and segmentation (3/3 points).
 
@@ -301,13 +239,9 @@ func (sv *SecurityValidator) ValidateNetworkSecurity(ctx context.Context) int {
 
 	ginkgo.By("🛡️ Validating Network Security (Target: 3/3 points)")
 
-
-
 	score := 0
 
 	maxScore := 3
-
-
 
 	// Test 1: Network Policy Enforcement and Zero-Trust (2 points).
 
@@ -327,8 +261,6 @@ func (sv *SecurityValidator) ValidateNetworkSecurity(ctx context.Context) int {
 
 	}
 
-
-
 	// Test 2: Network Segmentation and Security Controls (1 point).
 
 	ginkgo.By("Testing Network Segmentation and Security Controls")
@@ -347,15 +279,11 @@ func (sv *SecurityValidator) ValidateNetworkSecurity(ctx context.Context) int {
 
 	}
 
-
-
 	ginkgo.By(fmt.Sprintf("🛡️ Network Security: %d/%d points", score, maxScore))
 
 	return score
 
 }
-
-
 
 // ValidateVulnerabilityScanning validates container scanning, dependency assessment, runtime monitoring, and compliance (2/2 points).
 
@@ -363,13 +291,9 @@ func (sv *SecurityValidator) ValidateVulnerabilityScanning(ctx context.Context) 
 
 	ginkgo.By("🔍 Validating Vulnerability Management (Target: 2/2 points)")
 
-
-
 	score := 0
 
 	maxScore := 2
-
-
 
 	// Test 1: Container Image Security and Runtime Monitoring (1 point).
 
@@ -389,8 +313,6 @@ func (sv *SecurityValidator) ValidateVulnerabilityScanning(ctx context.Context) 
 
 	}
 
-
-
 	// Test 2: Dependency Assessment and Security Compliance (1 point).
 
 	ginkgo.By("Testing Dependency Assessment and Security Configuration Compliance")
@@ -409,19 +331,13 @@ func (sv *SecurityValidator) ValidateVulnerabilityScanning(ctx context.Context) 
 
 	}
 
-
-
 	ginkgo.By(fmt.Sprintf("🔍 Vulnerability Management: %d/%d points", score, maxScore))
 
 	return score
 
 }
 
-
-
 // O-RAN Security Compliance Validation.
-
-
 
 // ValidateORANSecurityCompliance validates O-RAN WG11 security specifications.
 
@@ -429,13 +345,9 @@ func (sv *SecurityValidator) ValidateORANSecurityCompliance(ctx context.Context)
 
 	ginkgo.By("📡 Validating O-RAN Security Compliance")
 
-
-
 	score := 0
 
 	maxScore := 2 // Bonus points for O-RAN compliance
-
-
 
 	// Test 1: O-RAN Interface Security (A1, O1, O2, E2).
 
@@ -455,8 +367,6 @@ func (sv *SecurityValidator) ValidateORANSecurityCompliance(ctx context.Context)
 
 	}
 
-
-
 	// Test 2: Zero-Trust in Multi-Vendor Environment.
 
 	ginkgo.By("Testing Zero-Trust in Multi-Vendor Environment")
@@ -475,27 +385,19 @@ func (sv *SecurityValidator) ValidateORANSecurityCompliance(ctx context.Context)
 
 	}
 
-
-
 	ginkgo.By(fmt.Sprintf("📡 O-RAN Security Compliance: %d/%d points", score, maxScore))
 
 	return score
 
 }
 
-
-
 // Implementation of detailed security validation methods.
-
-
 
 // validateOAuth2Integration tests OAuth2/OIDC integration with multiple providers.
 
 func (sv *SecurityValidator) validateOAuth2Integration(ctx context.Context) bool {
 
 	ginkgo.By("Validating OAuth2/OIDC Integration")
-
-
 
 	// Test OAuth2 configuration secret.
 
@@ -505,8 +407,7 @@ func (sv *SecurityValidator) validateOAuth2Integration(ctx context.Context) bool
 
 		Namespace: "default",
 
-		Name:      "oauth2-config",
-
+		Name: "oauth2-config",
 	}, configSecret)
 
 	if err != nil {
@@ -523,8 +424,7 @@ func (sv *SecurityValidator) validateOAuth2Integration(ctx context.Context) bool
 
 				Namespace: "default",
 
-				Name:      name,
-
+				Name: name,
 			}, configSecret)
 
 			if err == nil {
@@ -545,15 +445,11 @@ func (sv *SecurityValidator) validateOAuth2Integration(ctx context.Context) bool
 
 	}
 
-
-
 	// Validate OAuth2 configuration.
 
 	data := configSecret.Data
 
 	requiredKeys := []string{"client_id", "client_secret", "issuer_url", "redirect_uri"}
-
-
 
 	for _, key := range requiredKeys {
 
@@ -567,8 +463,6 @@ func (sv *SecurityValidator) validateOAuth2Integration(ctx context.Context) bool
 
 	}
 
-
-
 	// Test token validation endpoint.
 
 	if issuerURL, exists := data["issuer_url"]; exists {
@@ -577,21 +471,15 @@ func (sv *SecurityValidator) validateOAuth2Integration(ctx context.Context) bool
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // validateServiceAccountAuthentication tests service account configuration.
 
 func (sv *SecurityValidator) validateServiceAccountAuthentication(ctx context.Context) bool {
 
 	ginkgo.By("Validating Service Account Authentication")
-
-
 
 	// Check for operator service account with proper configuration.
 
@@ -607,8 +495,6 @@ func (sv *SecurityValidator) validateServiceAccountAuthentication(ctx context.Co
 
 	}
 
-
-
 	operatorSAFound := false
 
 	for _, sa := range serviceAccounts.Items {
@@ -616,8 +502,6 @@ func (sv *SecurityValidator) validateServiceAccountAuthentication(ctx context.Co
 		if strings.Contains(sa.Name, "nephoran") || strings.Contains(sa.Name, "intent-operator") {
 
 			operatorSAFound = true
-
-
 
 			// Validate service account security settings.
 
@@ -627,8 +511,6 @@ func (sv *SecurityValidator) validateServiceAccountAuthentication(ctx context.Co
 
 			}
 
-
-
 			// Check for image pull secrets.
 
 			if len(sa.ImagePullSecrets) > 0 {
@@ -637,29 +519,21 @@ func (sv *SecurityValidator) validateServiceAccountAuthentication(ctx context.Co
 
 			}
 
-
-
 			break
 
 		}
 
 	}
 
-
-
 	return operatorSAFound
 
 }
-
-
 
 // validateRBACPolicyEnforcement tests RBAC configuration and enforcement.
 
 func (sv *SecurityValidator) validateRBACPolicyEnforcement(ctx context.Context) bool {
 
 	ginkgo.By("Validating RBAC Policy Enforcement")
-
-
 
 	// Check ClusterRole configuration.
 
@@ -675,21 +549,15 @@ func (sv *SecurityValidator) validateRBACPolicyEnforcement(ctx context.Context) 
 
 	}
 
-
-
 	hasOperatorRole := false
 
 	hasMinimalPermissions := true
-
-
 
 	for _, role := range clusterRoles.Items {
 
 		if strings.Contains(role.Name, "nephoran") || strings.Contains(role.Name, "intent-operator") {
 
 			hasOperatorRole = true
-
-
 
 			// Validate permissions follow least privilege.
 
@@ -719,8 +587,6 @@ func (sv *SecurityValidator) validateRBACPolicyEnforcement(ctx context.Context) 
 
 			}
 
-
-
 			// Check for required permissions.
 
 			hasRequiredPerms := sv.validateRequiredRBACPermissions(role.Rules)
@@ -731,15 +597,11 @@ func (sv *SecurityValidator) validateRBACPolicyEnforcement(ctx context.Context) 
 
 			}
 
-
-
 			break
 
 		}
 
 	}
-
-
 
 	// Check ClusterRoleBinding.
 
@@ -755,8 +617,6 @@ func (sv *SecurityValidator) validateRBACPolicyEnforcement(ctx context.Context) 
 
 	}
 
-
-
 	hasOperatorBinding := false
 
 	for _, binding := range clusterRoleBindings.Items {
@@ -771,21 +631,15 @@ func (sv *SecurityValidator) validateRBACPolicyEnforcement(ctx context.Context) 
 
 	}
 
-
-
 	return hasOperatorRole && hasOperatorBinding && hasMinimalPermissions
 
 }
-
-
 
 // validateTokenLifecycleManagement tests token rotation and expiration.
 
 func (sv *SecurityValidator) validateTokenLifecycleManagement(ctx context.Context) bool {
 
 	ginkgo.By("Validating Token Lifecycle Management")
-
-
 
 	// Check for token refresh configuration.
 
@@ -801,8 +655,6 @@ func (sv *SecurityValidator) validateTokenLifecycleManagement(ctx context.Contex
 
 	}
 
-
-
 	hasTokenConfig := false
 
 	for _, secret := range secrets.Items {
@@ -815,8 +667,6 @@ func (sv *SecurityValidator) validateTokenLifecycleManagement(ctx context.Contex
 
 			hasTokenConfig = true
 
-
-
 			// Check for token expiration annotation.
 
 			if expiry, exists := secret.Annotations["nephoran.io/token-expiry"]; exists {
@@ -825,29 +675,21 @@ func (sv *SecurityValidator) validateTokenLifecycleManagement(ctx context.Contex
 
 			}
 
-
-
 			break
 
 		}
 
 	}
 
-
-
 	return hasTokenConfig
 
 }
-
-
 
 // validateTLSmTLSConfiguration tests TLS/mTLS setup.
 
 func (sv *SecurityValidator) validateTLSmTLSConfiguration(ctx context.Context) bool {
 
 	ginkgo.By("Validating TLS/mTLS Configuration")
-
-
 
 	// Check for TLS certificates.
 
@@ -863,13 +705,9 @@ func (sv *SecurityValidator) validateTLSmTLSConfiguration(ctx context.Context) b
 
 	}
 
-
-
 	hasTLSSecret := false
 
 	hasValidCert := false
-
-
 
 	for _, secret := range secrets.Items {
 
@@ -880,8 +718,6 @@ func (sv *SecurityValidator) validateTLSmTLSConfiguration(ctx context.Context) b
 			strings.Contains(secret.Name, "cert") {
 
 			hasTLSSecret = true
-
-
 
 			// Validate certificate data.
 
@@ -905,8 +741,6 @@ func (sv *SecurityValidator) validateTLSmTLSConfiguration(ctx context.Context) b
 
 	}
 
-
-
 	// Test mTLS capability.
 
 	if hasTLSSecret && hasValidCert {
@@ -915,13 +749,9 @@ func (sv *SecurityValidator) validateTLSmTLSConfiguration(ctx context.Context) b
 
 	}
 
-
-
 	return hasTLSSecret && hasValidCert
 
 }
-
-
 
 // validateEncryptionAtRest tests data encryption at rest.
 
@@ -929,18 +759,15 @@ func (sv *SecurityValidator) validateEncryptionAtRest(ctx context.Context) bool 
 
 	ginkgo.By("Validating Encryption at Rest")
 
-
-
 	// Test secret encryption by creating and verifying a test secret.
 
 	testSecret := &corev1.Secret{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "encryption-test-secret",
+			Name: "encryption-test-secret",
 
 			Namespace: "default",
-
 		},
 
 		Type: corev1.SecretTypeOpaque,
@@ -948,12 +775,8 @@ func (sv *SecurityValidator) validateEncryptionAtRest(ctx context.Context) bool 
 		Data: map[string][]byte{
 
 			"test-key": []byte("sensitive-test-data-12345"),
-
 		},
-
 	}
-
-
 
 	err := sv.k8sClient.Create(ctx, testSecret)
 
@@ -964,8 +787,6 @@ func (sv *SecurityValidator) validateEncryptionAtRest(ctx context.Context) bool 
 		return false
 
 	}
-
-
 
 	// Cleanup.
 
@@ -978,8 +799,6 @@ func (sv *SecurityValidator) validateEncryptionAtRest(ctx context.Context) bool 
 		}
 
 	}()
-
-
 
 	// Verify secret is encrypted in storage.
 
@@ -995,8 +814,6 @@ func (sv *SecurityValidator) validateEncryptionAtRest(ctx context.Context) bool 
 
 	}
 
-
-
 	// Check for encryption indicators.
 
 	if string(retrievedSecret.Data["test-key"]) == "sensitive-test-data-12345" {
@@ -1007,21 +824,15 @@ func (sv *SecurityValidator) validateEncryptionAtRest(ctx context.Context) bool 
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // validateKeyManagementAndCertificateLifecycle tests key and certificate management.
 
 func (sv *SecurityValidator) validateKeyManagementAndCertificateLifecycle(ctx context.Context) bool {
 
 	ginkgo.By("Validating Key Management and Certificate Lifecycle")
-
-
 
 	// Check for cert-manager or similar certificate management.
 
@@ -1035,13 +846,9 @@ func (sv *SecurityValidator) validateKeyManagementAndCertificateLifecycle(ctx co
 
 	}
 
-
-
 	hasAutomatedCertManagement := false
 
 	hasCertRotation := false
-
-
 
 	for _, secret := range secrets.Items {
 
@@ -1056,8 +863,6 @@ func (sv *SecurityValidator) validateKeyManagementAndCertificateLifecycle(ctx co
 				ginkgo.By("✅ Automated certificate management detected")
 
 			}
-
-
 
 			// Check certificate validity period.
 
@@ -1077,21 +882,15 @@ func (sv *SecurityValidator) validateKeyManagementAndCertificateLifecycle(ctx co
 
 	}
 
-
-
 	return hasAutomatedCertManagement || hasCertRotation
 
 }
-
-
 
 // validateNetworkPolicyAndZeroTrust tests network policies and zero-trust implementation.
 
 func (sv *SecurityValidator) validateNetworkPolicyAndZeroTrust(ctx context.Context) bool {
 
 	ginkgo.By("Validating Network Policy and Zero-Trust Architecture")
-
-
 
 	// Check for NetworkPolicy resources.
 
@@ -1107,13 +906,9 @@ func (sv *SecurityValidator) validateNetworkPolicyAndZeroTrust(ctx context.Conte
 
 	}
 
-
-
 	hasDefaultDeny := false
 
 	hasProperSegmentation := false
-
-
 
 	for _, policy := range networkPolicies.Items {
 
@@ -1127,8 +922,6 @@ func (sv *SecurityValidator) validateNetworkPolicyAndZeroTrust(ctx context.Conte
 
 		}
 
-
-
 		// Check for proper ingress/egress rules.
 
 		if len(policy.Spec.Ingress) > 0 || len(policy.Spec.Egress) > 0 {
@@ -1141,27 +934,19 @@ func (sv *SecurityValidator) validateNetworkPolicyAndZeroTrust(ctx context.Conte
 
 	}
 
-
-
 	// Validate zero-trust principles.
 
 	zeroTrustCompliant := sv.validateZeroTrustPrinciples(ctx)
 
-
-
 	return (hasDefaultDeny || hasProperSegmentation) && zeroTrustCompliant
 
 }
-
-
 
 // validateNetworkSegmentationAndControls tests network segmentation.
 
 func (sv *SecurityValidator) validateNetworkSegmentationAndControls(ctx context.Context) bool {
 
 	ginkgo.By("Validating Network Segmentation and Security Controls")
-
-
 
 	// Check for namespace-based segmentation.
 
@@ -1175,13 +960,9 @@ func (sv *SecurityValidator) validateNetworkSegmentationAndControls(ctx context.
 
 	}
 
-
-
 	hasSecurityLabels := false
 
 	hasNetworkPolicies := false
-
-
 
 	for _, ns := range namespaces.Items {
 
@@ -1201,8 +982,6 @@ func (sv *SecurityValidator) validateNetworkSegmentationAndControls(ctx context.
 
 		}
 
-
-
 		// Check for network policies in namespace.
 
 		policies := &networkingv1.NetworkPolicyList{}
@@ -1219,13 +998,9 @@ func (sv *SecurityValidator) validateNetworkSegmentationAndControls(ctx context.
 
 	}
 
-
-
 	return hasSecurityLabels || hasNetworkPolicies
 
 }
-
-
 
 // validateContainerImageSecurityAndRuntime tests container security and runtime monitoring.
 
@@ -1233,23 +1008,18 @@ func (sv *SecurityValidator) validateContainerImageSecurityAndRuntime(ctx contex
 
 	ginkgo.By("Validating Container Image Security and Runtime Monitoring")
 
-
-
 	// Check for admission controllers or policy engines.
 
 	webhooks := &metav1.PartialObjectMetadataList{}
 
 	webhooks.SetGroupVersionKind(schema.GroupVersionKind{
 
-		Group:   "admissionregistration.k8s.io",
+		Group: "admissionregistration.k8s.io",
 
 		Version: "v1",
 
-		Kind:    "ValidatingAdmissionWebhook",
-
+		Kind: "ValidatingAdmissionWebhook",
 	})
-
-
 
 	err := sv.k8sClient.List(ctx, webhooks)
 
@@ -1260,8 +1030,6 @@ func (sv *SecurityValidator) validateContainerImageSecurityAndRuntime(ctx contex
 		return sv.scanMock.SimulateContainerScan()
 
 	}
-
-
 
 	hasImagePolicyWebhook := false
 
@@ -1283,27 +1051,19 @@ func (sv *SecurityValidator) validateContainerImageSecurityAndRuntime(ctx contex
 
 	}
 
-
-
 	// Check for runtime security monitoring (simulated).
 
 	hasRuntimeMonitoring := sv.validateRuntimeSecurityMonitoring(ctx)
 
-
-
 	return hasImagePolicyWebhook || hasRuntimeMonitoring
 
 }
-
-
 
 // validateDependencyAssessmentAndCompliance tests dependency scanning and compliance.
 
 func (sv *SecurityValidator) validateDependencyAssessmentAndCompliance(ctx context.Context) bool {
 
 	ginkgo.By("Validating Dependency Assessment and Security Configuration Compliance")
-
-
 
 	// Check for vulnerability scanning results or configurations.
 
@@ -1316,8 +1076,6 @@ func (sv *SecurityValidator) validateDependencyAssessmentAndCompliance(ctx conte
 		return sv.scanMock.SimulateDependencyScan()
 
 	}
-
-
 
 	hasVulnConfig := false
 
@@ -1339,31 +1097,21 @@ func (sv *SecurityValidator) validateDependencyAssessmentAndCompliance(ctx conte
 
 	}
 
-
-
 	// Validate compliance with security standards.
 
 	complianceScore := sv.validateSecurityComplianceStandards(ctx)
-
-
 
 	return hasVulnConfig || complianceScore >= 0.8
 
 }
 
-
-
 // O-RAN specific security validation methods.
-
-
 
 // validateORANInterfaceSecurity tests O-RAN interface security.
 
 func (sv *SecurityValidator) validateORANInterfaceSecurity(ctx context.Context) bool {
 
 	ginkgo.By("Validating O-RAN Interface Security (A1, O1, O2, E2)")
-
-
 
 	// Check for O-RAN interface certificates and security configurations.
 
@@ -1377,13 +1125,9 @@ func (sv *SecurityValidator) validateORANInterfaceSecurity(ctx context.Context) 
 
 	}
 
-
-
 	oranInterfaces := []string{"a1", "o1", "o2", "e2"}
 
 	securedInterfaces := 0
-
-
 
 	for _, secret := range secrets.Items {
 
@@ -1405,27 +1149,19 @@ func (sv *SecurityValidator) validateORANInterfaceSecurity(ctx context.Context) 
 
 	}
 
-
-
 	// Check for O-RAN security policies.
 
 	hasORANSecurityPolicies := sv.validateORANSecurityPolicies(ctx)
 
-
-
 	return securedInterfaces >= 2 || hasORANSecurityPolicies
 
 }
-
-
 
 // validateMultiVendorZeroTrust tests zero-trust in multi-vendor environment.
 
 func (sv *SecurityValidator) validateMultiVendorZeroTrust(ctx context.Context) bool {
 
 	ginkgo.By("Validating Zero-Trust in Multi-Vendor Environment")
-
-
 
 	// Check for inter-vendor communication security.
 
@@ -1438,8 +1174,6 @@ func (sv *SecurityValidator) validateMultiVendorZeroTrust(ctx context.Context) b
 		return false
 
 	}
-
-
 
 	hasVendorSegmentation := false
 
@@ -1461,23 +1195,15 @@ func (sv *SecurityValidator) validateMultiVendorZeroTrust(ctx context.Context) b
 
 	}
 
-
-
 	// Check for vendor-specific authentication.
 
 	hasVendorAuth := sv.validateVendorSpecificAuthentication(ctx)
-
-
 
 	return hasVendorSegmentation || hasVendorAuth
 
 }
 
-
-
 // Helper methods for security validation.
-
-
 
 // validateOIDCEndpoint tests OIDC discovery endpoint.
 
@@ -1488,8 +1214,6 @@ func (sv *SecurityValidator) validateOIDCEndpoint(issuerURL string) bool {
 		return false
 
 	}
-
-
 
 	// Test OIDC discovery endpoint (with timeout).
 
@@ -1510,12 +1234,8 @@ func (sv *SecurityValidator) validateOIDCEndpoint(issuerURL string) bool {
 				MinVersion: tls.VersionTLS12, // Enforce minimum TLS 1.2
 
 			},
-
 		},
-
 	}
-
-
 
 	discoveryURL := strings.TrimSuffix(issuerURL, "/") + "/.well-known/openid_configuration"
 
@@ -1531,13 +1251,9 @@ func (sv *SecurityValidator) validateOIDCEndpoint(issuerURL string) bool {
 
 	defer resp.Body.Close()
 
-
-
 	return resp.StatusCode == http.StatusOK
 
 }
-
-
 
 // validateRequiredRBACPermissions checks for necessary RBAC permissions.
 
@@ -1547,13 +1263,9 @@ func (sv *SecurityValidator) validateRequiredRBACPermissions(rules []rbacv1.Poli
 
 	requiredVerbs := []string{"get", "list", "create", "update", "patch"}
 
-
-
 	resourceCoverage := make(map[string]bool)
 
 	verbCoverage := make(map[string]bool)
-
-
 
 	for _, rule := range rules {
 
@@ -1571,8 +1283,6 @@ func (sv *SecurityValidator) validateRequiredRBACPermissions(rules []rbacv1.Poli
 
 		}
 
-
-
 		for _, verb := range rule.Verbs {
 
 			for _, reqVerb := range requiredVerbs {
@@ -1589,21 +1299,15 @@ func (sv *SecurityValidator) validateRequiredRBACPermissions(rules []rbacv1.Poli
 
 	}
 
-
-
 	// Check if we have adequate coverage.
 
 	resourceScore := float64(len(resourceCoverage)) / float64(len(requiredResources))
 
 	verbScore := float64(len(verbCoverage)) / float64(len(requiredVerbs))
 
-
-
 	return resourceScore >= 0.8 && verbScore >= 0.8
 
 }
-
-
 
 // validateCertificateQuality validates certificate strength and configuration.
 
@@ -1621,8 +1325,6 @@ func (sv *SecurityValidator) validateCertificateQuality(certData, keyData []byte
 
 	}
 
-
-
 	// Check certificate validity.
 
 	now := time.Now()
@@ -1634,8 +1336,6 @@ func (sv *SecurityValidator) validateCertificateQuality(certData, keyData []byte
 		return false
 
 	}
-
-
 
 	// Check key size.
 
@@ -1653,8 +1353,6 @@ func (sv *SecurityValidator) validateCertificateQuality(certData, keyData []byte
 
 	}
 
-
-
 	// Check signature algorithm.
 
 	weakAlgorithms := []x509.SignatureAlgorithm{
@@ -1664,10 +1362,7 @@ func (sv *SecurityValidator) validateCertificateQuality(certData, keyData []byte
 		x509.MD5WithRSA,
 
 		x509.SHA1WithRSA,
-
 	}
-
-
 
 	for _, weakAlg := range weakAlgorithms {
 
@@ -1681,13 +1376,9 @@ func (sv *SecurityValidator) validateCertificateQuality(certData, keyData []byte
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // validateCertificateExpiry checks certificate expiration policy.
 
@@ -1701,15 +1392,11 @@ func (sv *SecurityValidator) validateCertificateExpiry(certData []byte) bool {
 
 	}
 
-
-
 	// Check if certificate has reasonable validity period (not too long).
 
 	validityPeriod := cert.NotAfter.Sub(cert.NotBefore)
 
 	maxValidityPeriod := 365 * 24 * time.Hour // 1 year
-
-
 
 	if validityPeriod > maxValidityPeriod {
 
@@ -1719,15 +1406,11 @@ func (sv *SecurityValidator) validateCertificateExpiry(certData []byte) bool {
 
 	}
 
-
-
 	// Check if certificate is close to expiration.
 
 	timeUntilExpiry := time.Until(cert.NotAfter)
 
 	minTimeUntilExpiry := 30 * 24 * time.Hour // 30 days
-
-
 
 	if timeUntilExpiry < minTimeUntilExpiry {
 
@@ -1737,21 +1420,15 @@ func (sv *SecurityValidator) validateCertificateExpiry(certData []byte) bool {
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // testMutualTLS tests mutual TLS capability.
 
 func (sv *SecurityValidator) testMutualTLS(ctx context.Context) bool {
 
 	ginkgo.By("Testing mutual TLS capability")
-
-
 
 	// This would typically involve testing actual mTLS connections.
 
@@ -1761,15 +1438,11 @@ func (sv *SecurityValidator) testMutualTLS(ctx context.Context) bool {
 
 }
 
-
-
 // validateZeroTrustPrinciples checks zero-trust implementation.
 
 func (sv *SecurityValidator) validateZeroTrustPrinciples(ctx context.Context) bool {
 
 	ginkgo.By("Validating Zero-Trust Principles")
-
-
 
 	principles := []string{
 
@@ -1782,14 +1455,9 @@ func (sv *SecurityValidator) validateZeroTrustPrinciples(ctx context.Context) bo
 		"continuous-monitoring",
 
 		"encryption-everywhere",
-
 	}
 
-
-
 	principlesMet := 0
-
-
 
 	// Check for network policies (micro-segmentation).
 
@@ -1805,8 +1473,6 @@ func (sv *SecurityValidator) validateZeroTrustPrinciples(ctx context.Context) bo
 
 	}
 
-
-
 	// Check for RBAC (least privilege).
 
 	rbacPolicies := &rbacv1.ClusterRoleList{}
@@ -1820,8 +1486,6 @@ func (sv *SecurityValidator) validateZeroTrustPrinciples(ctx context.Context) bo
 		ginkgo.By("✅ Least privilege: RBAC policies implemented")
 
 	}
-
-
 
 	// Check for TLS secrets (encryption everywhere).
 
@@ -1847,27 +1511,19 @@ func (sv *SecurityValidator) validateZeroTrustPrinciples(ctx context.Context) bo
 
 	}
 
-
-
 	// Simulate other principle checks.
 
 	principlesMet += 2 // Assume continuous monitoring and never-trust-always-verify
 
-
-
 	return float64(principlesMet)/float64(len(principles)) >= 0.6
 
 }
-
-
 
 // validateRuntimeSecurityMonitoring checks for runtime security monitoring.
 
 func (sv *SecurityValidator) validateRuntimeSecurityMonitoring(ctx context.Context) bool {
 
 	ginkgo.By("Validating Runtime Security Monitoring")
-
-
 
 	// Check for security monitoring pods or daemonsets.
 
@@ -1881,11 +1537,7 @@ func (sv *SecurityValidator) validateRuntimeSecurityMonitoring(ctx context.Conte
 
 	}
 
-
-
 	securityPods := []string{"falco", "twistlock", "aqua", "sysdig", "security"}
-
-
 
 	for _, pod := range pods.Items {
 
@@ -1903,21 +1555,15 @@ func (sv *SecurityValidator) validateRuntimeSecurityMonitoring(ctx context.Conte
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // validateSecurityComplianceStandards checks compliance with security standards.
 
 func (sv *SecurityValidator) validateSecurityComplianceStandards(ctx context.Context) float64 {
 
 	ginkgo.By("Validating Security Compliance Standards")
-
-
 
 	complianceChecks := []string{
 
@@ -1934,14 +1580,9 @@ func (sv *SecurityValidator) validateSecurityComplianceStandards(ctx context.Con
 		"security-contexts",
 
 		"admission-controllers",
-
 	}
 
-
-
 	passedChecks := 0
-
-
 
 	// Check each compliance requirement.
 
@@ -1961,21 +1602,15 @@ func (sv *SecurityValidator) validateSecurityComplianceStandards(ctx context.Con
 
 	}
 
-
-
 	return float64(passedChecks) / float64(len(complianceChecks))
 
 }
-
-
 
 // validateORANSecurityPolicies checks for O-RAN specific security policies.
 
 func (sv *SecurityValidator) validateORANSecurityPolicies(ctx context.Context) bool {
 
 	ginkgo.By("Validating O-RAN Security Policies")
-
-
 
 	// Check for O-RAN specific configurations.
 
@@ -1989,11 +1624,7 @@ func (sv *SecurityValidator) validateORANSecurityPolicies(ctx context.Context) b
 
 	}
 
-
-
 	oranPolicies := []string{"oran", "a1", "o1", "o2", "e2", "ric", "xapp"}
-
-
 
 	for _, cm := range configMaps.Items {
 
@@ -2011,21 +1642,15 @@ func (sv *SecurityValidator) validateORANSecurityPolicies(ctx context.Context) b
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // validateVendorSpecificAuthentication checks for vendor-specific auth mechanisms.
 
 func (sv *SecurityValidator) validateVendorSpecificAuthentication(ctx context.Context) bool {
 
 	ginkgo.By("Validating Vendor-Specific Authentication")
-
-
 
 	// Check for vendor-specific authentication secrets or configurations.
 
@@ -2039,11 +1664,7 @@ func (sv *SecurityValidator) validateVendorSpecificAuthentication(ctx context.Co
 
 	}
 
-
-
 	vendors := []string{"ericsson", "nokia", "samsung", "huawei", "vendor"}
-
-
 
 	for _, secret := range secrets.Items {
 
@@ -2067,13 +1688,9 @@ func (sv *SecurityValidator) validateVendorSpecificAuthentication(ctx context.Co
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // checkComplianceRequirement checks a specific compliance requirement.
 
@@ -2117,11 +1734,7 @@ func (sv *SecurityValidator) checkComplianceRequirement(ctx context.Context, req
 
 }
 
-
-
 // Helper methods for compliance checks.
-
-
 
 func (sv *SecurityValidator) checkPodSecurityStandards(ctx context.Context) bool {
 
@@ -2134,8 +1747,6 @@ func (sv *SecurityValidator) checkPodSecurityStandards(ctx context.Context) bool
 		return false
 
 	}
-
-
 
 	for _, ns := range namespaces.Items {
 
@@ -2155,8 +1766,6 @@ func (sv *SecurityValidator) checkPodSecurityStandards(ctx context.Context) bool
 
 }
 
-
-
 func (sv *SecurityValidator) checkNetworkPoliciesExist(ctx context.Context) bool {
 
 	policies := &networkingv1.NetworkPolicyList{}
@@ -2167,8 +1776,6 @@ func (sv *SecurityValidator) checkNetworkPoliciesExist(ctx context.Context) bool
 
 }
 
-
-
 func (sv *SecurityValidator) checkRBACPoliciesExist(ctx context.Context) bool {
 
 	roles := &rbacv1.ClusterRoleList{}
@@ -2178,8 +1785,6 @@ func (sv *SecurityValidator) checkRBACPoliciesExist(ctx context.Context) bool {
 	return err == nil && len(roles.Items) > 0
 
 }
-
-
 
 func (sv *SecurityValidator) checkTLSCertificatesExist(ctx context.Context) bool {
 
@@ -2192,8 +1797,6 @@ func (sv *SecurityValidator) checkTLSCertificatesExist(ctx context.Context) bool
 		return false
 
 	}
-
-
 
 	for _, secret := range secrets.Items {
 
@@ -2209,8 +1812,6 @@ func (sv *SecurityValidator) checkTLSCertificatesExist(ctx context.Context) bool
 
 }
 
-
-
 func (sv *SecurityValidator) checkResourceLimitsSet(ctx context.Context) bool {
 
 	pods := &corev1.PodList{}
@@ -2222,8 +1823,6 @@ func (sv *SecurityValidator) checkResourceLimitsSet(ctx context.Context) bool {
 		return false
 
 	}
-
-
 
 	for _, pod := range pods.Items {
 
@@ -2243,8 +1842,6 @@ func (sv *SecurityValidator) checkResourceLimitsSet(ctx context.Context) bool {
 
 }
 
-
-
 func (sv *SecurityValidator) checkSecurityContextsSet(ctx context.Context) bool {
 
 	pods := &corev1.PodList{}
@@ -2256,8 +1853,6 @@ func (sv *SecurityValidator) checkSecurityContextsSet(ctx context.Context) bool 
 		return false
 
 	}
-
-
 
 	for _, pod := range pods.Items {
 
@@ -2273,23 +1868,18 @@ func (sv *SecurityValidator) checkSecurityContextsSet(ctx context.Context) bool 
 
 }
 
-
-
 func (sv *SecurityValidator) checkAdmissionControllersExist(ctx context.Context) bool {
 
 	webhooks := &metav1.PartialObjectMetadataList{}
 
 	webhooks.SetGroupVersionKind(schema.GroupVersionKind{
 
-		Group:   "admissionregistration.k8s.io",
+		Group: "admissionregistration.k8s.io",
 
 		Version: "v1",
 
-		Kind:    "ValidatingAdmissionWebhook",
-
+		Kind: "ValidatingAdmissionWebhook",
 	})
-
-
 
 	err := sv.k8sClient.List(ctx, webhooks)
 
@@ -2297,33 +1887,28 @@ func (sv *SecurityValidator) checkAdmissionControllersExist(ctx context.Context)
 
 }
 
-
-
 // addSecurityFinding adds a security finding to the results.
 
 func (sv *SecurityValidator) addSecurityFinding(findingType, severity, description, component, remediation string) {
 
 	finding := &SecurityFinding{
 
-		Type:        findingType,
+		Type: findingType,
 
-		Severity:    severity,
+		Severity: severity,
 
 		Description: description,
 
-		Component:   component,
+		Component: component,
 
 		Remediation: remediation,
 
-		Passed:      false,
-
+		Passed: false,
 	}
 
 	sv.findings = append(sv.findings, finding)
 
 }
-
-
 
 // GetSecurityFindings returns all security findings.
 
@@ -2333,15 +1918,11 @@ func (sv *SecurityValidator) GetSecurityFindings() []*SecurityFinding {
 
 }
 
-
-
 // GenerateSecurityReport creates a comprehensive security report.
 
 func (sv *SecurityValidator) GenerateSecurityReport() string {
 
 	report := "=== SECURITY COMPLIANCE REPORT ===\n\n"
-
-
 
 	if len(sv.findings) == 0 {
 
@@ -2350,8 +1931,6 @@ func (sv *SecurityValidator) GenerateSecurityReport() string {
 	} else {
 
 		report += fmt.Sprintf("⚠️  Found %d security findings:\n\n", len(sv.findings))
-
-
 
 		for i, finding := range sv.findings {
 
@@ -2365,15 +1944,11 @@ func (sv *SecurityValidator) GenerateSecurityReport() string {
 
 	}
 
-
-
 	report += "=== END SECURITY REPORT ===\n"
 
 	return report
 
 }
-
-
 
 // ExecuteSecurityTests executes security tests and returns score.
 
@@ -2381,11 +1956,7 @@ func (sv *SecurityValidator) ExecuteSecurityTests(ctx context.Context) (int, err
 
 	ginkgo.By("Executing Security Compliance Tests")
 
-
-
 	score := 0
-
-
 
 	// Test 1: Authentication & Authorization (5 points).
 
@@ -2397,8 +1968,6 @@ func (sv *SecurityValidator) ExecuteSecurityTests(ctx context.Context) (int, err
 
 	ginkgo.By(fmt.Sprintf("Authentication & Authorization: %d/5 points", authScore))
 
-
-
 	// Test 2: Data Encryption (4 points).
 
 	ginkgo.By("Testing Data Encryption")
@@ -2408,8 +1977,6 @@ func (sv *SecurityValidator) ExecuteSecurityTests(ctx context.Context) (int, err
 	score += encryptionScore
 
 	ginkgo.By(fmt.Sprintf("Data Encryption: %d/4 points", encryptionScore))
-
-
 
 	// Test 3: Network Security (3 points).
 
@@ -2421,8 +1988,6 @@ func (sv *SecurityValidator) ExecuteSecurityTests(ctx context.Context) (int, err
 
 	ginkgo.By(fmt.Sprintf("Network Security: %d/3 points", networkScore))
 
-
-
 	// Test 4: Vulnerability Scanning (3 points).
 
 	ginkgo.By("Testing Vulnerability Scanning")
@@ -2433,9 +1998,6 @@ func (sv *SecurityValidator) ExecuteSecurityTests(ctx context.Context) (int, err
 
 	ginkgo.By(fmt.Sprintf("Vulnerability Scanning: %d/3 points", vulnScore))
 
-
-
 	return score, nil
 
 }
-

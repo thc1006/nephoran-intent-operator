@@ -4,22 +4,13 @@
 
 // use canonical root-anchored paths.
 
-
 package pathutil
 
-
-
 import (
-
 	"fmt"
-
 	"path/filepath"
-
 	"strings"
-
 )
-
-
 
 // safeJoin safely joins a root directory with a relative path.
 
@@ -65,15 +56,11 @@ func safeJoin(root, p string) (string, error) {
 
 	}
 
-
-
 	if p == "" {
 
 		return filepath.Clean(root), nil
 
 	}
-
-
 
 	// Security check: reject absolute paths in the second parameter.
 
@@ -84,8 +71,6 @@ func safeJoin(root, p string) (string, error) {
 		return "", fmt.Errorf("absolute path not allowed: %q", p)
 
 	}
-
-
 
 	// Additional security check: reject absolute paths that start with separators.
 
@@ -103,8 +88,6 @@ func safeJoin(root, p string) (string, error) {
 
 	}
 
-
-
 	// Handle single separator (treat as current directory).
 
 	if p == "/" || p == "\\" {
@@ -112,8 +95,6 @@ func safeJoin(root, p string) (string, error) {
 		p = "."
 
 	}
-
-
 
 	// Early path traversal detection before processing.
 
@@ -125,25 +106,17 @@ func safeJoin(root, p string) (string, error) {
 
 	}
 
-
-
 	// Remove null bytes from the path (not supported on Windows).
 
 	p = strings.ReplaceAll(p, "\x00", "")
-
-
 
 	// Clean both paths to normalize them.
 
 	root = filepath.Clean(root)
 
-
-
 	// Join the paths and clean the result.
 
 	joined := filepath.Clean(filepath.Join(root, p))
-
-
 
 	// Check if the resulting path is still within the root directory.
 
@@ -155,8 +128,6 @@ func safeJoin(root, p string) (string, error) {
 
 	}
 
-
-
 	// If the relative path starts with "..", it means the joined path.
 
 	// has traversed outside the root directory - reject it as a security violation.
@@ -167,13 +138,9 @@ func safeJoin(root, p string) (string, error) {
 
 	}
 
-
-
 	return joined, nil
 
 }
-
-
 
 // SafeJoin safely joins a root directory with a relative path, preventing directory traversal attacks.
 // This function ensures that the resulting path always stays within the specified root directory.
@@ -186,18 +153,18 @@ func safeJoin(root, p string) (string, error) {
 //   - Compatible with both Windows and Unix-like systems
 //
 // Parameters:
-//   root: The root directory that serves as a boundary for path resolution
-//   p: The relative path to join with the root
+//
+//	root: The root directory that serves as a boundary for path resolution
+//	p: The relative path to join with the root
 //
 // Returns:
-//   A canonicalized, safe path within the root directory, or an error if the path is unsafe
+//
+//	A canonicalized, safe path within the root directory, or an error if the path is unsafe
 func SafeJoin(root, p string) (string, error) {
 
 	return safeJoin(root, p)
 
 }
-
-
 
 // MustSafeJoin is like SafeJoin but panics if the path is unsafe.
 // Use this method only when you are absolutely certain the path is safe or during development/testing.
@@ -209,14 +176,17 @@ func SafeJoin(root, p string) (string, error) {
 // Warning: This method should not be used in production code where error handling is crucial.
 //
 // Parameters:
-//   root: The root directory that serves as a boundary for path resolution
-//   p: The relative path to join with the root
+//
+//	root: The root directory that serves as a boundary for path resolution
+//	p: The relative path to join with the root
 //
 // Returns:
-//   A canonicalized, safe path within the root directory
+//
+//	A canonicalized, safe path within the root directory
 //
 // Panics:
-//   If the path would escape the root directory or is otherwise unsafe
+//
+//	If the path would escape the root directory or is otherwise unsafe
 func MustSafeJoin(root, p string) string {
 
 	result, err := safeJoin(root, p)
@@ -231,8 +201,6 @@ func MustSafeJoin(root, p string) string {
 
 }
 
-
-
 // IsPathSafe checks if joining a root directory with a path would be safe without actually performing the join.
 // This method provides a lightweight way to validate a path before using SafeJoin.
 //
@@ -242,11 +210,13 @@ func MustSafeJoin(root, p string) string {
 //   - Ensuring the path remains within the root directory
 //
 // Parameters:
-//   root: The root directory that serves as a boundary for path resolution
-//   p: The relative path to validate
+//
+//	root: The root directory that serves as a boundary for path resolution
+//	p: The relative path to validate
 //
 // Returns:
-//   true if the path is safe to join with the root directory, false otherwise
+//
+//	true if the path is safe to join with the root directory, false otherwise
 func IsPathSafe(root, p string) bool {
 
 	_, err := safeJoin(root, p)
@@ -254,8 +224,6 @@ func IsPathSafe(root, p string) bool {
 	return err == nil
 
 }
-
-
 
 // detectObviousPathTraversal checks for obvious path traversal attacks.
 
@@ -269,27 +237,23 @@ func detectObviousPathTraversal(p string) bool {
 
 	lowerPath := strings.ToLower(normalized)
 
-
-
 	// Check for URL-encoded traversal patterns (always malicious).
 
 	encodedPatterns := []string{
 
-		"..%2f",    // URL encoded forward slash
+		"..%2f", // URL encoded forward slash
 
-		"..%5c",    // URL encoded backslash
+		"..%5c", // URL encoded backslash
 
-		"%2e%2e/",  // URL encoded dots with slash
+		"%2e%2e/", // URL encoded dots with slash
 
 		"%2e%2e\\", // URL encoded dots with backslash
 
-		"...//",    // Triple dots (suspicious)
+		"...//", // Triple dots (suspicious)
 
-		"....//",   // Quad dots (suspicious)
+		"....//", // Quad dots (suspicious)
 
 	}
-
-
 
 	for _, pattern := range encodedPatterns {
 
@@ -301,8 +265,6 @@ func detectObviousPathTraversal(p string) bool {
 
 	}
 
-
-
 	// Check if path starts with ../ (immediate parent directory escape).
 
 	if strings.HasPrefix(normalized, "../") {
@@ -310,8 +272,6 @@ func detectObviousPathTraversal(p string) bool {
 		return true
 
 	}
-
-
 
 	// Check for excessive .. sequences (3 or more levels up is suspicious).
 
@@ -321,9 +281,6 @@ func detectObviousPathTraversal(p string) bool {
 
 	}
 
-
-
 	return false
 
 }
-

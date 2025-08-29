@@ -1,205 +1,157 @@
-
 package workload
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"math"
-
 	"sort"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
 	"github.com/prometheus/client_golang/prometheus"
 
-
-
 	"k8s.io/apimachinery/pkg/api/resource"
-
 	"k8s.io/apimachinery/pkg/labels"
-
 )
-
-
 
 // FleetManager manages fleets of Nephio workload clusters.
 
 type FleetManager struct {
+	registry *ClusterRegistry
 
-	registry     *ClusterRegistry
+	fleets map[string]*Fleet
 
-	fleets       map[string]*Fleet
+	policies map[string]*FleetPolicy
 
-	policies     map[string]*FleetPolicy
-
-	scheduler    *WorkloadScheduler
+	scheduler *WorkloadScheduler
 
 	loadBalancer *LoadBalancer
 
-	analytics    *FleetAnalytics
+	analytics *FleetAnalytics
 
-	logger       logr.Logger
+	logger logr.Logger
 
-	metrics      *fleetMetrics
+	metrics *fleetMetrics
 
-	mu           sync.RWMutex
+	mu sync.RWMutex
 
-	stopCh       chan struct{}
-
+	stopCh chan struct{}
 }
-
-
 
 // Fleet represents a group of clusters managed together.
 
 type Fleet struct {
+	ID string `json:"id"`
 
-	ID          string            `json:"id"`
+	Name string `json:"name"`
 
-	Name        string            `json:"name"`
+	Description string `json:"description"`
 
-	Description string            `json:"description"`
+	ClusterIDs []string `json:"cluster_ids"`
 
-	ClusterIDs  []string          `json:"cluster_ids"`
+	Selector labels.Selector `json:"-"`
 
-	Selector    labels.Selector   `json:"-"`
+	Policy *FleetPolicy `json:"policy"`
 
-	Policy      *FleetPolicy      `json:"policy"`
+	Metadata map[string]string `json:"metadata"`
 
-	Metadata    map[string]string `json:"metadata"`
+	Status FleetStatus `json:"status"`
 
-	Status      FleetStatus       `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt   time.Time         `json:"created_at"`
-
-	UpdatedAt   time.Time         `json:"updated_at"`
-
+	UpdatedAt time.Time `json:"updated_at"`
 }
-
-
 
 // FleetStatus represents the status of a fleet.
 
 type FleetStatus struct {
+	State string `json:"state"`
 
-	State           string               `json:"state"`
+	ClusterCount int `json:"cluster_count"`
 
-	ClusterCount    int                  `json:"cluster_count"`
+	HealthyClusters int `json:"healthy_clusters"`
 
-	HealthyClusters int                  `json:"healthy_clusters"`
+	TotalResources ResourceCapacity `json:"total_resources"`
 
-	TotalResources  ResourceCapacity     `json:"total_resources"`
+	UsedResources ResourceCapacity `json:"used_resources"`
 
-	UsedResources   ResourceCapacity     `json:"used_resources"`
+	Workloads []WorkloadDeployment `json:"workloads"`
 
-	Workloads       []WorkloadDeployment `json:"workloads"`
+	LastSync time.Time `json:"last_sync"`
 
-	LastSync        time.Time            `json:"last_sync"`
-
-	Message         string               `json:"message"`
-
+	Message string `json:"message"`
 }
-
-
 
 // FleetPolicy defines policies for fleet management.
 
 type FleetPolicy struct {
+	ID string `json:"id"`
 
-	ID                  string              `json:"id"`
+	Name string `json:"name"`
 
-	Name                string              `json:"name"`
+	ScalingPolicy ScalingPolicy `json:"scaling_policy"`
 
-	ScalingPolicy       ScalingPolicy       `json:"scaling_policy"`
-
-	PlacementPolicy     PlacementPolicy     `json:"placement_policy"`
+	PlacementPolicy PlacementPolicy `json:"placement_policy"`
 
 	LoadBalancingPolicy LoadBalancingPolicy `json:"load_balancing_policy"`
 
-	FailoverPolicy      FailoverPolicy      `json:"failover_policy"`
+	FailoverPolicy FailoverPolicy `json:"failover_policy"`
 
-	SecurityPolicy      SecurityPolicy      `json:"security_policy"`
+	SecurityPolicy SecurityPolicy `json:"security_policy"`
 
-	CompliancePolicy    CompliancePolicy    `json:"compliance_policy"`
+	CompliancePolicy CompliancePolicy `json:"compliance_policy"`
 
-	CostPolicy          CostPolicy          `json:"cost_policy"`
+	CostPolicy CostPolicy `json:"cost_policy"`
 
-	Constraints         []FleetConstraint   `json:"constraints"`
-
+	Constraints []FleetConstraint `json:"constraints"`
 }
-
-
 
 // ScalingPolicy defines scaling rules for the fleet.
 
 type ScalingPolicy struct {
+	MinClusters int `json:"min_clusters"`
 
-	MinClusters       int            `json:"min_clusters"`
+	MaxClusters int `json:"max_clusters"`
 
-	MaxClusters       int            `json:"max_clusters"`
+	AutoScale bool `json:"auto_scale"`
 
-	AutoScale         bool           `json:"auto_scale"`
-
-	ScaleUpTriggers   []ScaleTrigger `json:"scale_up_triggers"`
+	ScaleUpTriggers []ScaleTrigger `json:"scale_up_triggers"`
 
 	ScaleDownTriggers []ScaleTrigger `json:"scale_down_triggers"`
 
-	CooldownPeriod    time.Duration  `json:"cooldown_period"`
-
+	CooldownPeriod time.Duration `json:"cooldown_period"`
 }
-
-
 
 // ScaleTrigger defines a trigger for scaling operations.
 
 type ScaleTrigger struct {
+	Metric string `json:"metric"`
 
-	Metric    string        `json:"metric"`
+	Threshold float64 `json:"threshold"`
 
-	Threshold float64       `json:"threshold"`
+	Duration time.Duration `json:"duration"`
 
-	Duration  time.Duration `json:"duration"`
-
-	Action    string        `json:"action"`
-
+	Action string `json:"action"`
 }
-
-
 
 // PlacementPolicy defines workload placement rules.
 
 type PlacementPolicy struct {
+	Strategy PlacementStrategy `json:"strategy"`
 
-	Strategy          PlacementStrategy     `json:"strategy"`
+	AffinityRules []AffinityRule `json:"affinity_rules"`
 
-	AffinityRules     []AffinityRule        `json:"affinity_rules"`
+	AntiAffinityRules []AntiAffinityRule `json:"anti_affinity_rules"`
 
-	AntiAffinityRules []AntiAffinityRule    `json:"anti_affinity_rules"`
+	SpreadConstraints []SpreadConstraint `json:"spread_constraints"`
 
-	SpreadConstraints []SpreadConstraint    `json:"spread_constraints"`
-
-	Preferences       []PlacementPreference `json:"preferences"`
-
+	Preferences []PlacementPreference `json:"preferences"`
 }
-
-
 
 // PlacementStrategy defines the strategy for workload placement.
 
 type PlacementStrategy string
-
-
 
 const (
 
@@ -222,94 +174,69 @@ const (
 	// PlacementStrategyBalanced holds placementstrategybalanced value.
 
 	PlacementStrategyBalanced PlacementStrategy = "balanced"
-
 )
-
-
 
 // AffinityRule defines affinity requirements.
 
 type AffinityRule struct {
-
-	Type     string          `json:"type"`
+	Type string `json:"type"`
 
 	Selector labels.Selector `json:"-"`
 
-	Weight   int             `json:"weight"`
+	Weight int `json:"weight"`
 
-	Topology string          `json:"topology"`
-
+	Topology string `json:"topology"`
 }
-
-
 
 // AntiAffinityRule defines anti-affinity requirements.
 
 type AntiAffinityRule struct {
-
-	Type     string          `json:"type"`
+	Type string `json:"type"`
 
 	Selector labels.Selector `json:"-"`
 
-	Weight   int             `json:"weight"`
+	Weight int `json:"weight"`
 
-	Topology string          `json:"topology"`
-
+	Topology string `json:"topology"`
 }
-
-
 
 // SpreadConstraint defines spread requirements.
 
 type SpreadConstraint struct {
+	MaxSkew int `json:"max_skew"`
 
-	MaxSkew           int    `json:"max_skew"`
-
-	TopologyKey       string `json:"topology_key"`
+	TopologyKey string `json:"topology_key"`
 
 	WhenUnsatisfiable string `json:"when_unsatisfiable"`
-
 }
-
-
 
 // PlacementPreference defines placement preferences.
 
 type PlacementPreference struct {
+	Type string `json:"type"`
 
-	Type   string `json:"type"`
+	Weight int `json:"weight"`
 
-	Weight int    `json:"weight"`
-
-	Value  string `json:"value"`
-
+	Value string `json:"value"`
 }
-
-
 
 // LoadBalancingPolicy defines load balancing rules.
 
 type LoadBalancingPolicy struct {
+	Algorithm LoadBalancingAlgorithm `json:"algorithm"`
 
-	Algorithm           LoadBalancingAlgorithm `json:"algorithm"`
+	HealthCheckPath string `json:"health_check_path"`
 
-	HealthCheckPath     string                 `json:"health_check_path"`
+	HealthCheckInterval time.Duration `json:"health_check_interval"`
 
-	HealthCheckInterval time.Duration          `json:"health_check_interval"`
+	SessionAffinity bool `json:"session_affinity"`
 
-	SessionAffinity     bool                   `json:"session_affinity"`
-
-	WeightedTargets     map[string]int         `json:"weighted_targets"`
-
+	WeightedTargets map[string]int `json:"weighted_targets"`
 }
-
-
 
 // LoadBalancingAlgorithm defines the load balancing algorithm.
 
 type LoadBalancingAlgorithm string
-
-
 
 const (
 
@@ -332,382 +259,291 @@ const (
 	// LoadBalancingIPHash holds loadbalancingiphash value.
 
 	LoadBalancingIPHash LoadBalancingAlgorithm = "ip-hash"
-
 )
-
-
 
 // FailoverPolicy defines failover rules.
 
 type FailoverPolicy struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled             bool          `json:"enabled"`
+	FailoverThreshold int `json:"failover_threshold"`
 
-	FailoverThreshold   int           `json:"failover_threshold"`
+	FailbackDelay time.Duration `json:"failback_delay"`
 
-	FailbackDelay       time.Duration `json:"failback_delay"`
+	PreferredClusters []string `json:"preferred_clusters"`
 
-	PreferredClusters   []string      `json:"preferred_clusters"`
+	BackupClusters []string `json:"backup_clusters"`
 
-	BackupClusters      []string      `json:"backup_clusters"`
-
-	DataReplicationMode string        `json:"data_replication_mode"`
-
+	DataReplicationMode string `json:"data_replication_mode"`
 }
-
-
 
 // SecurityPolicy defines security requirements for the fleet.
 
 type SecurityPolicy struct {
+	NetworkPolicies []string `json:"network_policies"`
 
-	NetworkPolicies     []string `json:"network_policies"`
+	PodSecurityStandard string `json:"pod_security_standard"`
 
-	PodSecurityStandard string   `json:"pod_security_standard"`
+	EncryptionRequired bool `json:"encryption_required"`
 
-	EncryptionRequired  bool     `json:"encryption_required"`
-
-	MutualTLS           bool     `json:"mutual_tls"`
+	MutualTLS bool `json:"mutual_tls"`
 
 	ComplianceStandards []string `json:"compliance_standards"`
-
 }
-
-
 
 // CompliancePolicy defines compliance requirements.
 
 type CompliancePolicy struct {
+	DataResidency []string `json:"data_residency"`
 
-	DataResidency   []string      `json:"data_residency"`
+	Standards []string `json:"standards"`
 
-	Standards       []string      `json:"standards"`
-
-	AuditLogging    bool          `json:"audit_logging"`
+	AuditLogging bool `json:"audit_logging"`
 
 	RetentionPeriod time.Duration `json:"retention_period"`
-
 }
-
-
 
 // CostPolicy defines cost management rules.
 
 type CostPolicy struct {
+	MaxMonthlyCost float64 `json:"max_monthly_cost"`
 
-	MaxMonthlyCost       float64         `json:"max_monthly_cost"`
+	PreferredProviders []CloudProvider `json:"preferred_providers"`
 
-	PreferredProviders   []CloudProvider `json:"preferred_providers"`
+	SpotInstancesAllowed bool `json:"spot_instances_allowed"`
 
-	SpotInstancesAllowed bool            `json:"spot_instances_allowed"`
+	ReservedInstances bool `json:"reserved_instances"`
 
-	ReservedInstances    bool            `json:"reserved_instances"`
-
-	CostAlerts           []CostAlert     `json:"cost_alerts"`
-
+	CostAlerts []CostAlert `json:"cost_alerts"`
 }
-
-
 
 // CostAlert defines a cost alert threshold.
 
 type CostAlert struct {
+	Threshold float64 `json:"threshold"`
 
-	Threshold float64  `json:"threshold"`
+	Type string `json:"type"`
 
-	Type      string   `json:"type"`
-
-	Actions   []string `json:"actions"`
-
+	Actions []string `json:"actions"`
 }
-
-
 
 // FleetConstraint defines a constraint for the fleet.
 
 type FleetConstraint struct {
+	Type string `json:"type"`
 
-	Type        string `json:"type"`
-
-	Value       string `json:"value"`
+	Value string `json:"value"`
 
 	Enforcement string `json:"enforcement"`
-
 }
-
-
 
 // WorkloadDeployment represents a workload deployed across the fleet.
 
 type WorkloadDeployment struct {
+	ID string `json:"id"`
 
-	ID           string               `json:"id"`
+	Name string `json:"name"`
 
-	Name         string               `json:"name"`
+	Type string `json:"type"`
 
-	Type         string               `json:"type"`
+	Replicas int `json:"replicas"`
 
-	Replicas     int                  `json:"replicas"`
+	Distribution map[string]int `json:"distribution"`
 
-	Distribution map[string]int       `json:"distribution"`
+	Resources ResourceRequirements `json:"resources"`
 
-	Resources    ResourceRequirements `json:"resources"`
+	Status WorkloadStatus `json:"status"`
 
-	Status       WorkloadStatus       `json:"status"`
-
-	CreatedAt    time.Time            `json:"created_at"`
-
+	CreatedAt time.Time `json:"created_at"`
 }
-
-
 
 // WorkloadStatus represents the status of a workload.
 
 type WorkloadStatus struct {
+	State string `json:"state"`
 
-	State         string    `json:"state"`
+	ReadyReplicas int `json:"ready_replicas"`
 
-	ReadyReplicas int       `json:"ready_replicas"`
+	TotalReplicas int `json:"total_replicas"`
 
-	TotalReplicas int       `json:"total_replicas"`
+	Message string `json:"message"`
 
-	Message       string    `json:"message"`
-
-	LastUpdate    time.Time `json:"last_update"`
-
+	LastUpdate time.Time `json:"last_update"`
 }
-
-
 
 // WorkloadScheduler handles workload scheduling across clusters.
 
 type WorkloadScheduler struct {
+	registry *ClusterRegistry
 
-	registry  *ClusterRegistry
-
-	policies  map[string]*PlacementPolicy
+	policies map[string]*PlacementPolicy
 
 	optimizer *PlacementOptimizer
 
-	logger    logr.Logger
-
+	logger logr.Logger
 }
-
-
 
 // LoadBalancer handles load balancing across clusters.
 
 type LoadBalancer struct {
-
-	backends     map[string]*LoadBalancerBackend
+	backends map[string]*LoadBalancerBackend
 
 	healthChecks map[string]*LoadBalancerHealthCheck
 
-	algorithm    LoadBalancingAlgorithm
+	algorithm LoadBalancingAlgorithm
 
-	mu           sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // LoadBalancerBackend represents a backend for load balancing.
 
 type LoadBalancerBackend struct {
+	ClusterID string `json:"cluster_id"`
 
-	ClusterID   string    `json:"cluster_id"`
+	Endpoint string `json:"endpoint"`
 
-	Endpoint    string    `json:"endpoint"`
+	Weight int `json:"weight"`
 
-	Weight      int       `json:"weight"`
+	Healthy bool `json:"healthy"`
 
-	Healthy     bool      `json:"healthy"`
+	Connections int `json:"connections"`
 
-	Connections int       `json:"connections"`
-
-	LastCheck   time.Time `json:"last_check"`
-
+	LastCheck time.Time `json:"last_check"`
 }
-
-
 
 // LoadBalancerHealthCheck represents a health check configuration for load balancer.
 
 type LoadBalancerHealthCheck struct {
-
-	Path     string        `json:"path"`
+	Path string `json:"path"`
 
 	Interval time.Duration `json:"interval"`
 
-	Timeout  time.Duration `json:"timeout"`
+	Timeout time.Duration `json:"timeout"`
 
-	Retries  int           `json:"retries"`
-
+	Retries int `json:"retries"`
 }
-
-
 
 // FleetAnalytics provides analytics for fleet operations.
 
 type FleetAnalytics struct {
+	metrics map[string]*FleetMetrics
 
-	metrics     map[string]*FleetMetrics
-
-	trends      map[string]*FleetTrends
+	trends map[string]*FleetTrends
 
 	predictions map[string]*FleetPredictions
 
-	mu          sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // FleetMetrics contains metrics for a fleet.
 
 type FleetMetrics struct {
-
 	ResourceUtilization float64 `json:"resource_utilization"`
 
-	CostPerWorkload     float64 `json:"cost_per_workload"`
+	CostPerWorkload float64 `json:"cost_per_workload"`
 
-	AvailabilityScore   float64 `json:"availability_score"`
+	AvailabilityScore float64 `json:"availability_score"`
 
-	PerformanceScore    float64 `json:"performance_score"`
+	PerformanceScore float64 `json:"performance_score"`
 
-	ComplianceScore     float64 `json:"compliance_score"`
+	ComplianceScore float64 `json:"compliance_score"`
 
-	WorkloadCount       int     `json:"workload_count"`
+	WorkloadCount int `json:"workload_count"`
 
-	ErrorRate           float64 `json:"error_rate"`
+	ErrorRate float64 `json:"error_rate"`
 
-	Throughput          float64 `json:"throughput"`
-
+	Throughput float64 `json:"throughput"`
 }
-
-
 
 // FleetTrends contains trend analysis for a fleet.
 
 type FleetTrends struct {
+	GrowthRate float64 `json:"growth_rate"`
 
-	GrowthRate         float64  `json:"growth_rate"`
+	CostTrend string `json:"cost_trend"`
 
-	CostTrend          string   `json:"cost_trend"`
+	UtilizationTrend string `json:"utilization_trend"`
 
-	UtilizationTrend   string   `json:"utilization_trend"`
-
-	PredictedDemand    float64  `json:"predicted_demand"`
+	PredictedDemand float64 `json:"predicted_demand"`
 
 	RecommendedActions []string `json:"recommended_actions"`
-
 }
-
-
 
 // FleetPredictions contains predictions for fleet operations.
 
 type FleetPredictions struct {
-
 	FutureCapacityNeeds ResourceCapacity `json:"future_capacity_needs"`
 
-	ExpectedCost        float64          `json:"expected_cost"`
+	ExpectedCost float64 `json:"expected_cost"`
 
-	ScalingEvents       []ScalingEvent   `json:"scaling_events"`
+	ScalingEvents []ScalingEvent `json:"scaling_events"`
 
-	MaintenanceWindows  []time.Time      `json:"maintenance_windows"`
-
+	MaintenanceWindows []time.Time `json:"maintenance_windows"`
 }
-
-
 
 // ResourceRequirements represents resource requirements for a workload.
 
 type ResourceRequirements struct {
-
 	Requests ResourceList `json:"requests,omitempty"`
 
-	Limits   ResourceList `json:"limits,omitempty"`
-
+	Limits ResourceList `json:"limits,omitempty"`
 }
-
-
 
 // ResourceList represents a list of resources.
 
 type ResourceList map[string]resource.Quantity
 
-
-
 // ScalingEvent represents a predicted scaling event.
 
 type ScalingEvent struct {
+	Time time.Time `json:"time"`
 
-	Time      time.Time `json:"time"`
+	Type string `json:"type"`
 
-	Type      string    `json:"type"`
+	Magnitude int `json:"magnitude"`
 
-	Magnitude int       `json:"magnitude"`
-
-	Reason    string    `json:"reason"`
-
+	Reason string `json:"reason"`
 }
-
-
 
 // PlacementOptimizer optimizes workload placement.
 
 type PlacementOptimizer struct {
-
 	strategies map[PlacementStrategy]PlacementFunction
 
-	logger     logr.Logger
-
+	logger logr.Logger
 }
-
-
 
 // PlacementFunction is a function that implements a placement strategy.
 
 type PlacementFunction func(workload *WorkloadDeployment, clusters []*ClusterEntry) (*PlacementDecision, error)
 
-
-
 // PlacementDecision represents a placement decision.
 
 type PlacementDecision struct {
-
 	ClusterDistribution map[string]int `json:"cluster_distribution"`
 
-	Score               float64        `json:"score"`
+	Score float64 `json:"score"`
 
-	Constraints         []string       `json:"constraints"`
+	Constraints []string `json:"constraints"`
 
-	Reasons             []string       `json:"reasons"`
-
+	Reasons []string `json:"reasons"`
 }
-
-
 
 // fleetMetrics contains Prometheus metrics for fleet operations.
 
 type fleetMetrics struct {
+	fleetsTotal *prometheus.GaugeVec
 
-	fleetsTotal            *prometheus.GaugeVec
+	workloadsTotal *prometheus.GaugeVec
 
-	workloadsTotal         *prometheus.GaugeVec
+	placementDuration *prometheus.HistogramVec
 
-	placementDuration      *prometheus.HistogramVec
-
-	scalingOperations      *prometheus.CounterVec
+	scalingOperations *prometheus.CounterVec
 
 	loadBalancingDecisions *prometheus.CounterVec
 
-	failoverEvents         *prometheus.CounterVec
-
+	failoverEvents *prometheus.CounterVec
 }
-
-
 
 // NewFleetManager creates a new fleet manager.
 
@@ -722,11 +558,9 @@ func NewFleetManager(registry *ClusterRegistry, logger logr.Logger) *FleetManage
 				Name: "nephio_fleet_total",
 
 				Help: "Total number of fleets",
-
 			},
 
 			[]string{"status"},
-
 		),
 
 		workloadsTotal: prometheus.NewGaugeVec(
@@ -736,27 +570,23 @@ func NewFleetManager(registry *ClusterRegistry, logger logr.Logger) *FleetManage
 				Name: "nephio_fleet_workloads_total",
 
 				Help: "Total number of workloads in fleets",
-
 			},
 
 			[]string{"fleet", "type"},
-
 		),
 
 		placementDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "nephio_fleet_placement_duration_seconds",
+				Name: "nephio_fleet_placement_duration_seconds",
 
-				Help:    "Duration of workload placement operations",
+				Help: "Duration of workload placement operations",
 
 				Buckets: prometheus.DefBuckets,
-
 			},
 
 			[]string{"strategy"},
-
 		),
 
 		scalingOperations: prometheus.NewCounterVec(
@@ -766,11 +596,9 @@ func NewFleetManager(registry *ClusterRegistry, logger logr.Logger) *FleetManage
 				Name: "nephio_fleet_scaling_operations_total",
 
 				Help: "Total number of scaling operations",
-
 			},
 
 			[]string{"fleet", "direction", "result"},
-
 		),
 
 		loadBalancingDecisions: prometheus.NewCounterVec(
@@ -780,11 +608,9 @@ func NewFleetManager(registry *ClusterRegistry, logger logr.Logger) *FleetManage
 				Name: "nephio_fleet_load_balancing_decisions_total",
 
 				Help: "Total number of load balancing decisions",
-
 			},
 
 			[]string{"algorithm", "result"},
-
 		),
 
 		failoverEvents: prometheus.NewCounterVec(
@@ -794,16 +620,11 @@ func NewFleetManager(registry *ClusterRegistry, logger logr.Logger) *FleetManage
 				Name: "nephio_fleet_failover_events_total",
 
 				Help: "Total number of failover events",
-
 			},
 
 			[]string{"fleet", "reason"},
-
 		),
-
 	}
-
-
 
 	// Register metrics.
 
@@ -820,74 +641,59 @@ func NewFleetManager(registry *ClusterRegistry, logger logr.Logger) *FleetManage
 		metrics.loadBalancingDecisions,
 
 		metrics.failoverEvents,
-
 	)
-
-
 
 	scheduler := &WorkloadScheduler{
 
-		registry:  registry,
+		registry: registry,
 
-		policies:  make(map[string]*PlacementPolicy),
+		policies: make(map[string]*PlacementPolicy),
 
 		optimizer: NewPlacementOptimizer(logger),
 
-		logger:    logger.WithName("scheduler"),
-
+		logger: logger.WithName("scheduler"),
 	}
-
-
 
 	loadBalancer := &LoadBalancer{
 
-		backends:     make(map[string]*LoadBalancerBackend),
+		backends: make(map[string]*LoadBalancerBackend),
 
 		healthChecks: make(map[string]*LoadBalancerHealthCheck),
 
-		algorithm:    LoadBalancingRoundRobin,
-
+		algorithm: LoadBalancingRoundRobin,
 	}
-
-
 
 	analytics := &FleetAnalytics{
 
-		metrics:     make(map[string]*FleetMetrics),
+		metrics: make(map[string]*FleetMetrics),
 
-		trends:      make(map[string]*FleetTrends),
+		trends: make(map[string]*FleetTrends),
 
 		predictions: make(map[string]*FleetPredictions),
-
 	}
-
-
 
 	return &FleetManager{
 
-		registry:     registry,
+		registry: registry,
 
-		fleets:       make(map[string]*Fleet),
+		fleets: make(map[string]*Fleet),
 
-		policies:     make(map[string]*FleetPolicy),
+		policies: make(map[string]*FleetPolicy),
 
-		scheduler:    scheduler,
+		scheduler: scheduler,
 
 		loadBalancer: loadBalancer,
 
-		analytics:    analytics,
+		analytics: analytics,
 
-		logger:       logger.WithName("fleet-manager"),
+		logger: logger.WithName("fleet-manager"),
 
-		metrics:      metrics,
+		metrics: metrics,
 
-		stopCh:       make(chan struct{}),
-
+		stopCh: make(chan struct{}),
 	}
 
 }
-
-
 
 // Start starts the fleet manager.
 
@@ -895,37 +701,25 @@ func (fm *FleetManager) Start(ctx context.Context) error {
 
 	fm.logger.Info("Starting fleet manager")
 
-
-
 	// Start fleet synchronization.
 
 	go fm.runFleetSync(ctx)
-
-
 
 	// Start auto-scaling.
 
 	go fm.runAutoScaling(ctx)
 
-
-
 	// Start health monitoring.
 
 	go fm.runHealthMonitoring(ctx)
-
-
 
 	// Start analytics.
 
 	go fm.runAnalytics(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the fleet manager.
 
@@ -937,8 +731,6 @@ func (fm *FleetManager) Stop() {
 
 }
 
-
-
 // CreateFleet creates a new fleet.
 
 func (fm *FleetManager) CreateFleet(ctx context.Context, fleet *Fleet) error {
@@ -947,59 +739,42 @@ func (fm *FleetManager) CreateFleet(ctx context.Context, fleet *Fleet) error {
 
 	defer fm.mu.Unlock()
 
-
-
 	if _, exists := fm.fleets[fleet.ID]; exists {
 
 		return fmt.Errorf("fleet %s already exists", fleet.ID)
 
 	}
 
-
-
 	fm.logger.Info("Creating fleet", "id", fleet.ID, "name", fleet.Name)
-
-
 
 	// Initialize fleet status.
 
 	fleet.Status = FleetStatus{
 
-		State:        "active",
+		State: "active",
 
 		ClusterCount: len(fleet.ClusterIDs),
 
-		LastSync:     time.Now(),
-
+		LastSync: time.Now(),
 	}
-
-
 
 	// Calculate initial resources.
 
 	fleet.Status.TotalResources = fm.calculateFleetResources(fleet.ClusterIDs)
 
-
-
 	// Add fleet to manager.
 
 	fm.fleets[fleet.ID] = fleet
 
-
-
 	// Update metrics.
 
 	fm.metrics.fleetsTotal.WithLabelValues("active").Inc()
-
-
 
 	fm.logger.Info("Successfully created fleet", "id", fleet.ID)
 
 	return nil
 
 }
-
-
 
 // UpdateFleet updates an existing fleet.
 
@@ -1009,8 +784,6 @@ func (fm *FleetManager) UpdateFleet(ctx context.Context, fleetID string, updates
 
 	defer fm.mu.Unlock()
 
-
-
 	fleet, exists := fm.fleets[fleetID]
 
 	if !exists {
@@ -1019,11 +792,7 @@ func (fm *FleetManager) UpdateFleet(ctx context.Context, fleetID string, updates
 
 	}
 
-
-
 	fm.logger.Info("Updating fleet", "id", fleetID)
-
-
 
 	// Update fleet properties.
 
@@ -1055,19 +824,13 @@ func (fm *FleetManager) UpdateFleet(ctx context.Context, fleetID string, updates
 
 	}
 
-
-
 	fleet.UpdatedAt = time.Now()
-
-
 
 	fm.logger.Info("Successfully updated fleet", "id", fleetID)
 
 	return nil
 
 }
-
-
 
 // DeleteFleet deletes a fleet.
 
@@ -1077,8 +840,6 @@ func (fm *FleetManager) DeleteFleet(ctx context.Context, fleetID string) error {
 
 	defer fm.mu.Unlock()
 
-
-
 	fleet, exists := fm.fleets[fleetID]
 
 	if !exists {
@@ -1087,11 +848,7 @@ func (fm *FleetManager) DeleteFleet(ctx context.Context, fleetID string) error {
 
 	}
 
-
-
 	fm.logger.Info("Deleting fleet", "id", fleetID)
-
-
 
 	// Check for active workloads.
 
@@ -1101,27 +858,19 @@ func (fm *FleetManager) DeleteFleet(ctx context.Context, fleetID string) error {
 
 	}
 
-
-
 	// Remove fleet.
 
 	delete(fm.fleets, fleetID)
 
-
-
 	// Update metrics.
 
 	fm.metrics.fleetsTotal.WithLabelValues("active").Dec()
-
-
 
 	fm.logger.Info("Successfully deleted fleet", "id", fleetID)
 
 	return nil
 
 }
-
-
 
 // GetFleet retrieves a fleet by ID.
 
@@ -1131,8 +880,6 @@ func (fm *FleetManager) GetFleet(fleetID string) (*Fleet, error) {
 
 	defer fm.mu.RUnlock()
 
-
-
 	fleet, exists := fm.fleets[fleetID]
 
 	if !exists {
@@ -1141,13 +888,9 @@ func (fm *FleetManager) GetFleet(fleetID string) (*Fleet, error) {
 
 	}
 
-
-
 	return fleet, nil
 
 }
-
-
 
 // ListFleets lists all fleets.
 
@@ -1157,8 +900,6 @@ func (fm *FleetManager) ListFleets() []*Fleet {
 
 	defer fm.mu.RUnlock()
 
-
-
 	fleets := make([]*Fleet, 0, len(fm.fleets))
 
 	for _, fleet := range fm.fleets {
@@ -1167,13 +908,9 @@ func (fm *FleetManager) ListFleets() []*Fleet {
 
 	}
 
-
-
 	return fleets
 
 }
-
-
 
 // DeployWorkload deploys a workload across a fleet.
 
@@ -1183,8 +920,6 @@ func (fm *FleetManager) DeployWorkload(ctx context.Context, fleetID string, work
 
 	defer fm.mu.Unlock()
 
-
-
 	fleet, exists := fm.fleets[fleetID]
 
 	if !exists {
@@ -1193,11 +928,7 @@ func (fm *FleetManager) DeployWorkload(ctx context.Context, fleetID string, work
 
 	}
 
-
-
 	fm.logger.Info("Deploying workload", "fleet", fleetID, "workload", workload.Name)
-
-
 
 	// Get available clusters.
 
@@ -1209,8 +940,6 @@ func (fm *FleetManager) DeployWorkload(ctx context.Context, fleetID string, work
 
 	}
 
-
-
 	// Calculate placement.
 
 	timer := prometheus.NewTimer(fm.metrics.placementDuration.WithLabelValues(string(fleet.Policy.PlacementPolicy.Strategy)))
@@ -1219,15 +948,11 @@ func (fm *FleetManager) DeployWorkload(ctx context.Context, fleetID string, work
 
 	timer.ObserveDuration()
 
-
-
 	if err != nil {
 
 		return fmt.Errorf("failed to schedule workload: %w", err)
 
 	}
-
-
 
 	// Apply placement decision.
 
@@ -1235,35 +960,26 @@ func (fm *FleetManager) DeployWorkload(ctx context.Context, fleetID string, work
 
 	workload.Status = WorkloadStatus{
 
-		State:         "deploying",
+		State: "deploying",
 
 		TotalReplicas: workload.Replicas,
 
-		LastUpdate:    time.Now(),
-
+		LastUpdate: time.Now(),
 	}
-
-
 
 	// Add workload to fleet.
 
 	fleet.Status.Workloads = append(fleet.Status.Workloads, *workload)
 
-
-
 	// Update metrics.
 
 	fm.metrics.workloadsTotal.WithLabelValues(fleetID, workload.Type).Inc()
-
-
 
 	fm.logger.Info("Successfully scheduled workload", "fleet", fleetID, "workload", workload.Name)
 
 	return nil
 
 }
-
-
 
 // ScaleWorkload scales a workload in a fleet.
 
@@ -1273,8 +989,6 @@ func (fm *FleetManager) ScaleWorkload(ctx context.Context, fleetID, workloadID s
 
 	defer fm.mu.Unlock()
 
-
-
 	fleet, exists := fm.fleets[fleetID]
 
 	if !exists {
@@ -1282,8 +996,6 @@ func (fm *FleetManager) ScaleWorkload(ctx context.Context, fleetID, workloadID s
 		return fmt.Errorf("fleet %s not found", fleetID)
 
 	}
-
-
 
 	// Find workload.
 
@@ -1301,25 +1013,17 @@ func (fm *FleetManager) ScaleWorkload(ctx context.Context, fleetID, workloadID s
 
 	}
 
-
-
 	if workload == nil {
 
 		return fmt.Errorf("workload %s not found in fleet %s", workloadID, fleetID)
 
 	}
 
-
-
 	fm.logger.Info("Scaling workload", "fleet", fleetID, "workload", workloadID, "replicas", replicas)
-
-
 
 	oldReplicas := workload.Replicas
 
 	workload.Replicas = replicas
-
-
 
 	// Recalculate distribution.
 
@@ -1335,15 +1039,11 @@ func (fm *FleetManager) ScaleWorkload(ctx context.Context, fleetID, workloadID s
 
 	}
 
-
-
 	workload.Distribution = decision.ClusterDistribution
 
 	workload.Status.TotalReplicas = replicas
 
 	workload.Status.LastUpdate = time.Now()
-
-
 
 	// Update metrics.
 
@@ -1357,15 +1057,11 @@ func (fm *FleetManager) ScaleWorkload(ctx context.Context, fleetID, workloadID s
 
 	fm.metrics.scalingOperations.WithLabelValues(fleetID, direction, "success").Inc()
 
-
-
 	fm.logger.Info("Successfully scaled workload", "fleet", fleetID, "workload", workloadID)
 
 	return nil
 
 }
-
-
 
 // MigrateWorkload migrates a workload between clusters.
 
@@ -1375,8 +1071,6 @@ func (fm *FleetManager) MigrateWorkload(ctx context.Context, fleetID, workloadID
 
 	defer fm.mu.Unlock()
 
-
-
 	fleet, exists := fm.fleets[fleetID]
 
 	if !exists {
@@ -1384,8 +1078,6 @@ func (fm *FleetManager) MigrateWorkload(ctx context.Context, fleetID, workloadID
 		return fmt.Errorf("fleet %s not found", fleetID)
 
 	}
-
-
 
 	// Find workload.
 
@@ -1403,19 +1095,13 @@ func (fm *FleetManager) MigrateWorkload(ctx context.Context, fleetID, workloadID
 
 	}
 
-
-
 	if workload == nil {
 
 		return fmt.Errorf("workload %s not found in fleet %s", workloadID, fleetID)
 
 	}
 
-
-
 	fm.logger.Info("Migrating workload", "fleet", fleetID, "workload", workloadID, "from", fromCluster, "to", toCluster)
-
-
 
 	// Check if migration is valid.
 
@@ -1426,8 +1112,6 @@ func (fm *FleetManager) MigrateWorkload(ctx context.Context, fleetID, workloadID
 		return fmt.Errorf("workload %s has no replicas on cluster %s", workloadID, fromCluster)
 
 	}
-
-
 
 	// Perform migration.
 
@@ -1441,21 +1125,15 @@ func (fm *FleetManager) MigrateWorkload(ctx context.Context, fleetID, workloadID
 
 	workload.Distribution[toCluster]++
 
-
-
 	workload.Status.LastUpdate = time.Now()
 
 	workload.Status.Message = fmt.Sprintf("Migrated from %s to %s", fromCluster, toCluster)
-
-
 
 	fm.logger.Info("Successfully migrated workload", "fleet", fleetID, "workload", workloadID)
 
 	return nil
 
 }
-
-
 
 // BalanceFleet rebalances workloads across a fleet.
 
@@ -1465,8 +1143,6 @@ func (fm *FleetManager) BalanceFleet(ctx context.Context, fleetID string) error 
 
 	defer fm.mu.Unlock()
 
-
-
 	fleet, exists := fm.fleets[fleetID]
 
 	if !exists {
@@ -1475,11 +1151,7 @@ func (fm *FleetManager) BalanceFleet(ctx context.Context, fleetID string) error 
 
 	}
 
-
-
 	fm.logger.Info("Balancing fleet", "id", fleetID)
-
-
 
 	clusters := fm.getFleetClusters(fleet)
 
@@ -1489,15 +1161,11 @@ func (fm *FleetManager) BalanceFleet(ctx context.Context, fleetID string) error 
 
 	}
 
-
-
 	// Rebalance each workload.
 
 	for i := range fleet.Status.Workloads {
 
 		workload := &fleet.Status.Workloads[i]
-
-
 
 		decision, err := fm.scheduler.ScheduleWorkload(ctx, workload, clusters, &fleet.Policy.PlacementPolicy)
 
@@ -1509,8 +1177,6 @@ func (fm *FleetManager) BalanceFleet(ctx context.Context, fleetID string) error 
 
 		}
 
-
-
 		workload.Distribution = decision.ClusterDistribution
 
 		workload.Status.LastUpdate = time.Now()
@@ -1519,21 +1185,15 @@ func (fm *FleetManager) BalanceFleet(ctx context.Context, fleetID string) error 
 
 	}
 
-
-
 	fleet.Status.LastSync = time.Now()
 
 	fleet.Status.Message = "Fleet rebalanced"
-
-
 
 	fm.logger.Info("Successfully balanced fleet", "id", fleetID)
 
 	return nil
 
 }
-
-
 
 // GetFleetAnalytics retrieves analytics for a fleet.
 
@@ -1543,15 +1203,11 @@ func (fm *FleetManager) GetFleetAnalytics(fleetID string) (*FleetMetrics, *Fleet
 
 	defer fm.analytics.mu.RUnlock()
 
-
-
 	metrics, metricsExists := fm.analytics.metrics[fleetID]
 
 	trends, trendsExists := fm.analytics.trends[fleetID]
 
 	predictions, predictionsExists := fm.analytics.predictions[fleetID]
-
-
 
 	if !metricsExists || !trendsExists || !predictionsExists {
 
@@ -1559,25 +1215,17 @@ func (fm *FleetManager) GetFleetAnalytics(fleetID string) (*FleetMetrics, *Fleet
 
 	}
 
-
-
 	return metrics, trends, predictions, nil
 
 }
 
-
-
 // Private methods.
-
-
 
 func (fm *FleetManager) runFleetSync(ctx context.Context) {
 
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1601,8 +1249,6 @@ func (fm *FleetManager) runFleetSync(ctx context.Context) {
 
 }
 
-
-
 func (fm *FleetManager) syncFleets(ctx context.Context) {
 
 	fm.mu.RLock()
@@ -1617,8 +1263,6 @@ func (fm *FleetManager) syncFleets(ctx context.Context) {
 
 	fm.mu.RUnlock()
 
-
-
 	for _, fleet := range fleets {
 
 		fm.syncSingleFleet(ctx, fleet)
@@ -1627,23 +1271,17 @@ func (fm *FleetManager) syncFleets(ctx context.Context) {
 
 }
 
-
-
 func (fm *FleetManager) syncSingleFleet(ctx context.Context, fleet *Fleet) {
 
 	// Update cluster membership.
 
 	clusters := fm.getFleetClusters(fleet)
 
-
-
 	fm.mu.Lock()
 
 	fleet.Status.ClusterCount = len(clusters)
 
 	fleet.Status.HealthyClusters = 0
-
-
 
 	for _, cluster := range clusters {
 
@@ -1655,13 +1293,9 @@ func (fm *FleetManager) syncSingleFleet(ctx context.Context, fleet *Fleet) {
 
 	}
 
-
-
 	// Update resource totals.
 
 	fleet.Status.TotalResources = fm.calculateFleetResources(fleet.ClusterIDs)
-
-
 
 	// Update workload status.
 
@@ -1673,23 +1307,17 @@ func (fm *FleetManager) syncSingleFleet(ctx context.Context, fleet *Fleet) {
 
 	}
 
-
-
 	fleet.Status.LastSync = time.Now()
 
 	fm.mu.Unlock()
 
 }
 
-
-
 func (fm *FleetManager) runAutoScaling(ctx context.Context) {
 
 	ticker := time.NewTicker(1 * time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1713,8 +1341,6 @@ func (fm *FleetManager) runAutoScaling(ctx context.Context) {
 
 }
 
-
-
 func (fm *FleetManager) checkAutoScaling(ctx context.Context) {
 
 	fm.mu.RLock()
@@ -1733,8 +1359,6 @@ func (fm *FleetManager) checkAutoScaling(ctx context.Context) {
 
 	fm.mu.RUnlock()
 
-
-
 	for _, fleet := range fleets {
 
 		fm.checkFleetScaling(ctx, fleet)
@@ -1742,8 +1366,6 @@ func (fm *FleetManager) checkAutoScaling(ctx context.Context) {
 	}
 
 }
-
-
 
 func (fm *FleetManager) checkFleetScaling(ctx context.Context, fleet *Fleet) {
 
@@ -1763,8 +1385,6 @@ func (fm *FleetManager) checkFleetScaling(ctx context.Context, fleet *Fleet) {
 
 	}
 
-
-
 	// Check scale down triggers.
 
 	for _, trigger := range fleet.Policy.ScalingPolicy.ScaleDownTriggers {
@@ -1783,8 +1403,6 @@ func (fm *FleetManager) checkFleetScaling(ctx context.Context, fleet *Fleet) {
 
 }
 
-
-
 func (fm *FleetManager) evaluateScaleTrigger(fleet *Fleet, trigger ScaleTrigger) bool {
 
 	// Evaluate trigger based on fleet metrics.
@@ -1798,8 +1416,6 @@ func (fm *FleetManager) evaluateScaleTrigger(fleet *Fleet, trigger ScaleTrigger)
 		return false
 
 	}
-
-
 
 	switch trigger.Metric {
 
@@ -1823,8 +1439,6 @@ func (fm *FleetManager) evaluateScaleTrigger(fleet *Fleet, trigger ScaleTrigger)
 
 }
 
-
-
 func (fm *FleetManager) scaleFleet(ctx context.Context, fleet *Fleet, delta int) error {
 
 	// Implementation would provision or deprovision clusters.
@@ -1835,15 +1449,11 @@ func (fm *FleetManager) scaleFleet(ctx context.Context, fleet *Fleet, delta int)
 
 }
 
-
-
 func (fm *FleetManager) runHealthMonitoring(ctx context.Context) {
 
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1867,8 +1477,6 @@ func (fm *FleetManager) runHealthMonitoring(ctx context.Context) {
 
 }
 
-
-
 func (fm *FleetManager) monitorFleetHealth(ctx context.Context) {
 
 	fm.mu.RLock()
@@ -1883,8 +1491,6 @@ func (fm *FleetManager) monitorFleetHealth(ctx context.Context) {
 
 	fm.mu.RUnlock()
 
-
-
 	for _, fleet := range fleets {
 
 		fm.checkFleetHealth(ctx, fleet)
@@ -1893,13 +1499,9 @@ func (fm *FleetManager) monitorFleetHealth(ctx context.Context) {
 
 }
 
-
-
 func (fm *FleetManager) checkFleetHealth(ctx context.Context, fleet *Fleet) {
 
 	clusters := fm.getFleetClusters(fleet)
-
-
 
 	// Check for failover conditions.
 
@@ -1917,8 +1519,6 @@ func (fm *FleetManager) checkFleetHealth(ctx context.Context, fleet *Fleet) {
 
 		}
 
-
-
 		if unhealthyCount >= fleet.Policy.FailoverPolicy.FailoverThreshold {
 
 			fm.triggerFailover(ctx, fleet)
@@ -1931,13 +1531,9 @@ func (fm *FleetManager) checkFleetHealth(ctx context.Context, fleet *Fleet) {
 
 }
 
-
-
 func (fm *FleetManager) triggerFailover(ctx context.Context, fleet *Fleet) {
 
 	fm.logger.Info("Triggering failover", "fleet", fleet.ID)
-
-
 
 	// Implementation would:.
 
@@ -1951,15 +1547,11 @@ func (fm *FleetManager) triggerFailover(ctx context.Context, fleet *Fleet) {
 
 }
 
-
-
 func (fm *FleetManager) runAnalytics(ctx context.Context) {
 
 	ticker := time.NewTicker(5 * time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1983,8 +1575,6 @@ func (fm *FleetManager) runAnalytics(ctx context.Context) {
 
 }
 
-
-
 func (fm *FleetManager) updateAnalytics(ctx context.Context) {
 
 	fm.mu.RLock()
@@ -1999,8 +1589,6 @@ func (fm *FleetManager) updateAnalytics(ctx context.Context) {
 
 	fm.mu.RUnlock()
 
-
-
 	for _, fleet := range fleets {
 
 		fm.updateFleetAnalytics(ctx, fleet)
@@ -2009,15 +1597,11 @@ func (fm *FleetManager) updateAnalytics(ctx context.Context) {
 
 }
 
-
-
 func (fm *FleetManager) updateFleetAnalytics(ctx context.Context, fleet *Fleet) {
 
 	fm.analytics.mu.Lock()
 
 	defer fm.analytics.mu.Unlock()
-
-
 
 	// Update metrics.
 
@@ -2025,15 +1609,11 @@ func (fm *FleetManager) updateFleetAnalytics(ctx context.Context, fleet *Fleet) 
 
 	fm.analytics.metrics[fleet.ID] = metrics
 
-
-
 	// Update trends.
 
 	trends := fm.analyzeFleetTrends(fleet, metrics)
 
 	fm.analytics.trends[fleet.ID] = trends
-
-
 
 	// Update predictions.
 
@@ -2043,21 +1623,14 @@ func (fm *FleetManager) updateFleetAnalytics(ctx context.Context, fleet *Fleet) 
 
 }
 
-
-
 func (fm *FleetManager) calculateFleetMetrics(fleet *Fleet) *FleetMetrics {
 
 	clusters := fm.getFleetClusters(fleet)
 
-
-
 	metrics := &FleetMetrics{
 
 		WorkloadCount: len(fleet.Status.Workloads),
-
 	}
-
-
 
 	// Calculate resource utilization.
 
@@ -2068,8 +1641,6 @@ func (fm *FleetManager) calculateFleetMetrics(fleet *Fleet) *FleetMetrics {
 			float64(fleet.Status.TotalResources.TotalCPU)
 
 	}
-
-
 
 	// Calculate availability score.
 
@@ -2091,8 +1662,6 @@ func (fm *FleetManager) calculateFleetMetrics(fleet *Fleet) *FleetMetrics {
 
 	}
 
-
-
 	// Calculate cost per workload.
 
 	totalCost := 0.0
@@ -2109,19 +1678,13 @@ func (fm *FleetManager) calculateFleetMetrics(fleet *Fleet) *FleetMetrics {
 
 	}
 
-
-
 	return metrics
 
 }
 
-
-
 func (fm *FleetManager) analyzeFleetTrends(fleet *Fleet, metrics *FleetMetrics) *FleetTrends {
 
 	trends := &FleetTrends{}
-
-
 
 	// Analyze resource utilization trend.
 
@@ -2143,8 +1706,6 @@ func (fm *FleetManager) analyzeFleetTrends(fleet *Fleet, metrics *FleetMetrics) 
 
 	}
 
-
-
 	// Analyze cost trend.
 
 	if metrics.CostPerWorkload > 1000 {
@@ -2159,19 +1720,13 @@ func (fm *FleetManager) analyzeFleetTrends(fleet *Fleet, metrics *FleetMetrics) 
 
 	}
 
-
-
 	return trends
 
 }
 
-
-
 func (fm *FleetManager) predictFleetNeeds(fleet *Fleet, metrics *FleetMetrics, trends *FleetTrends) *FleetPredictions {
 
 	predictions := &FleetPredictions{}
-
-
 
 	// Predict future capacity needs based on trends.
 
@@ -2179,47 +1734,35 @@ func (fm *FleetManager) predictFleetNeeds(fleet *Fleet, metrics *FleetMetrics, t
 
 		predictions.FutureCapacityNeeds = ResourceCapacity{
 
-			TotalCPU:    int64(float64(fleet.Status.TotalResources.TotalCPU) * 1.3),
+			TotalCPU: int64(float64(fleet.Status.TotalResources.TotalCPU) * 1.3),
 
 			TotalMemory: int64(float64(fleet.Status.TotalResources.TotalMemory) * 1.3),
-
 		}
-
-
 
 		predictions.ScalingEvents = append(predictions.ScalingEvents, ScalingEvent{
 
-			Time:      time.Now().Add(7 * 24 * time.Hour),
+			Time: time.Now().Add(7 * 24 * time.Hour),
 
-			Type:      "scale-up",
+			Type: "scale-up",
 
 			Magnitude: 1,
 
-			Reason:    "Predicted capacity shortage",
-
+			Reason: "Predicted capacity shortage",
 		})
 
 	}
-
-
 
 	// Predict costs.
 
 	predictions.ExpectedCost = metrics.CostPerWorkload * float64(metrics.WorkloadCount) * 1.1
 
-
-
 	return predictions
 
 }
 
-
-
 func (fm *FleetManager) getFleetClusters(fleet *Fleet) []*ClusterEntry {
 
 	clusters := make([]*ClusterEntry, 0, len(fleet.ClusterIDs))
-
-
 
 	for _, clusterID := range fleet.ClusterIDs {
 
@@ -2230,8 +1773,6 @@ func (fm *FleetManager) getFleetClusters(fleet *Fleet) []*ClusterEntry {
 		}
 
 	}
-
-
 
 	// Also check selector-based membership.
 
@@ -2253,19 +1794,13 @@ func (fm *FleetManager) getFleetClusters(fleet *Fleet) []*ClusterEntry {
 
 	}
 
-
-
 	return clusters
 
 }
 
-
-
 func (fm *FleetManager) calculateFleetResources(clusterIDs []string) ResourceCapacity {
 
 	resources := ResourceCapacity{}
-
-
 
 	for _, clusterID := range clusterIDs {
 
@@ -2293,27 +1828,19 @@ func (fm *FleetManager) calculateFleetResources(clusterIDs []string) ResourceCap
 
 	}
 
-
-
 	if resources.TotalCPU > 0 {
 
 		resources.Utilization = float64(resources.TotalCPU-resources.AvailableCPU) / float64(resources.TotalCPU)
 
 	}
 
-
-
 	return resources
 
 }
 
-
-
 func (fm *FleetManager) updateWorkloadStatus(ctx context.Context, workload *WorkloadDeployment, clusters []*ClusterEntry) {
 
 	readyReplicas := 0
-
-
 
 	for clusterID, replicas := range workload.Distribution {
 
@@ -2333,8 +1860,6 @@ func (fm *FleetManager) updateWorkloadStatus(ctx context.Context, workload *Work
 
 	}
 
-
-
 	workload.Status.ReadyReplicas = readyReplicas
 
 	if readyReplicas == workload.Replicas {
@@ -2353,11 +1878,7 @@ func (fm *FleetManager) updateWorkloadStatus(ctx context.Context, workload *Work
 
 }
 
-
-
 // WorkloadScheduler methods.
-
-
 
 // ScheduleWorkload schedules a workload across clusters based on placement policy.
 
@@ -2369,8 +1890,6 @@ func (ws *WorkloadScheduler) ScheduleWorkload(ctx context.Context, workload *Wor
 
 	}
 
-
-
 	// Filter clusters based on constraints.
 
 	eligible := ws.filterEligibleClusters(clusters, workload, policy)
@@ -2380,8 +1899,6 @@ func (ws *WorkloadScheduler) ScheduleWorkload(ctx context.Context, workload *Wor
 		return nil, fmt.Errorf("no eligible clusters after applying constraints")
 
 	}
-
-
 
 	// Apply placement strategy.
 
@@ -2393,37 +1910,25 @@ func (ws *WorkloadScheduler) ScheduleWorkload(ctx context.Context, workload *Wor
 
 	}
 
-
-
 	// Apply affinity rules.
 
 	decision = ws.applyAffinityRules(decision, eligible, policy.AffinityRules)
-
-
 
 	// Apply anti-affinity rules.
 
 	decision = ws.applyAntiAffinityRules(decision, eligible, policy.AntiAffinityRules)
 
-
-
 	// Apply spread constraints.
 
 	decision = ws.applySpreadConstraints(decision, eligible, policy.SpreadConstraints)
-
-
 
 	return decision, nil
 
 }
 
-
-
 func (ws *WorkloadScheduler) filterEligibleClusters(clusters []*ClusterEntry, workload *WorkloadDeployment, policy *PlacementPolicy) []*ClusterEntry {
 
 	eligible := []*ClusterEntry{}
-
-
 
 	for _, cluster := range clusters {
 
@@ -2435,8 +1940,6 @@ func (ws *WorkloadScheduler) filterEligibleClusters(clusters []*ClusterEntry, wo
 
 		}
 
-
-
 		// Check resource availability.
 
 		if !ws.hasRequiredResources(cluster, workload) {
@@ -2444,8 +1947,6 @@ func (ws *WorkloadScheduler) filterEligibleClusters(clusters []*ClusterEntry, wo
 			continue
 
 		}
-
-
 
 		// Check placement preferences.
 
@@ -2455,19 +1956,13 @@ func (ws *WorkloadScheduler) filterEligibleClusters(clusters []*ClusterEntry, wo
 
 		}
 
-
-
 		eligible = append(eligible, cluster)
 
 	}
 
-
-
 	return eligible
 
 }
-
-
 
 func (ws *WorkloadScheduler) hasRequiredResources(cluster *ClusterEntry, workload *WorkloadDeployment) bool {
 
@@ -2499,13 +1994,9 @@ func (ws *WorkloadScheduler) hasRequiredResources(cluster *ClusterEntry, workloa
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 func (ws *WorkloadScheduler) matchesPreferences(cluster *ClusterEntry, preferences []PlacementPreference) bool {
 
@@ -2555,13 +2046,9 @@ func (ws *WorkloadScheduler) matchesPreferences(cluster *ClusterEntry, preferenc
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 func (ws *WorkloadScheduler) applyAffinityRules(decision *PlacementDecision, clusters []*ClusterEntry, rules []AffinityRule) *PlacementDecision {
 
@@ -2571,8 +2058,6 @@ func (ws *WorkloadScheduler) applyAffinityRules(decision *PlacementDecision, clu
 
 }
 
-
-
 func (ws *WorkloadScheduler) applyAntiAffinityRules(decision *PlacementDecision, clusters []*ClusterEntry, rules []AntiAffinityRule) *PlacementDecision {
 
 	// Implementation would apply anti-affinity rules to avoid certain clusters.
@@ -2580,8 +2065,6 @@ func (ws *WorkloadScheduler) applyAntiAffinityRules(decision *PlacementDecision,
 	return decision
 
 }
-
-
 
 func (ws *WorkloadScheduler) applySpreadConstraints(decision *PlacementDecision, clusters []*ClusterEntry, constraints []SpreadConstraint) *PlacementDecision {
 
@@ -2591,11 +2074,7 @@ func (ws *WorkloadScheduler) applySpreadConstraints(decision *PlacementDecision,
 
 }
 
-
-
 // PlacementOptimizer methods.
-
-
 
 // NewPlacementOptimizer creates a new placement optimizer.
 
@@ -2605,11 +2084,8 @@ func NewPlacementOptimizer(logger logr.Logger) *PlacementOptimizer {
 
 		strategies: make(map[PlacementStrategy]PlacementFunction),
 
-		logger:     logger,
-
+		logger: logger,
 	}
-
-
 
 	// Register placement strategies.
 
@@ -2623,13 +2099,9 @@ func NewPlacementOptimizer(logger logr.Logger) *PlacementOptimizer {
 
 	po.strategies[PlacementStrategyBalanced] = po.balancedStrategy
 
-
-
 	return po
 
 }
-
-
 
 // Optimize optimizes workload placement using the specified strategy.
 
@@ -2643,13 +2115,9 @@ func (po *PlacementOptimizer) Optimize(workload *WorkloadDeployment, clusters []
 
 	}
 
-
-
 	return fn(workload, clusters)
 
 }
-
-
 
 func (po *PlacementOptimizer) binPackingStrategy(workload *WorkloadDeployment, clusters []*ClusterEntry) (*PlacementDecision, error) {
 
@@ -2661,13 +2129,9 @@ func (po *PlacementOptimizer) binPackingStrategy(workload *WorkloadDeployment, c
 
 	})
 
-
-
 	distribution := make(map[string]int)
 
 	remainingReplicas := workload.Replicas
-
-
 
 	// Pack replicas into clusters with least available resources first.
 
@@ -2679,15 +2143,11 @@ func (po *PlacementOptimizer) binPackingStrategy(workload *WorkloadDeployment, c
 
 		}
 
-
-
 		// Calculate how many replicas this cluster can handle.
 
 		capacity := po.calculateClusterCapacity(cluster, workload)
 
 		replicas := int(math.Min(float64(capacity), float64(remainingReplicas)))
-
-
 
 		if replicas > 0 {
 
@@ -2699,43 +2159,32 @@ func (po *PlacementOptimizer) binPackingStrategy(workload *WorkloadDeployment, c
 
 	}
 
-
-
 	if remainingReplicas > 0 {
 
 		return nil, fmt.Errorf("insufficient cluster capacity for %d replicas", remainingReplicas)
 
 	}
 
-
-
 	return &PlacementDecision{
 
 		ClusterDistribution: distribution,
 
-		Score:               0.8,
+		Score: 0.8,
 
-		Reasons:             []string{"Bin packing strategy applied"},
-
+		Reasons: []string{"Bin packing strategy applied"},
 	}, nil
 
 }
 
-
-
 func (po *PlacementOptimizer) spreadStrategy(workload *WorkloadDeployment, clusters []*ClusterEntry) (*PlacementDecision, error) {
 
 	distribution := make(map[string]int)
-
-
 
 	// Spread replicas evenly across all clusters.
 
 	replicasPerCluster := workload.Replicas / len(clusters)
 
 	remainder := workload.Replicas % len(clusters)
-
-
 
 	for i, cluster := range clusters {
 
@@ -2755,21 +2204,16 @@ func (po *PlacementOptimizer) spreadStrategy(workload *WorkloadDeployment, clust
 
 	}
 
-
-
 	return &PlacementDecision{
 
 		ClusterDistribution: distribution,
 
-		Score:               0.9,
+		Score: 0.9,
 
-		Reasons:             []string{"Spread strategy applied for high availability"},
-
+		Reasons: []string{"Spread strategy applied for high availability"},
 	}, nil
 
 }
-
-
 
 func (po *PlacementOptimizer) costOptimizedStrategy(workload *WorkloadDeployment, clusters []*ClusterEntry) (*PlacementDecision, error) {
 
@@ -2781,13 +2225,9 @@ func (po *PlacementOptimizer) costOptimizedStrategy(workload *WorkloadDeployment
 
 	})
 
-
-
 	distribution := make(map[string]int)
 
 	remainingReplicas := workload.Replicas
-
-
 
 	// Place replicas on cheapest clusters first.
 
@@ -2799,13 +2239,9 @@ func (po *PlacementOptimizer) costOptimizedStrategy(workload *WorkloadDeployment
 
 		}
 
-
-
 		capacity := po.calculateClusterCapacity(cluster, workload)
 
 		replicas := int(math.Min(float64(capacity), float64(remainingReplicas)))
-
-
 
 		if replicas > 0 {
 
@@ -2817,29 +2253,22 @@ func (po *PlacementOptimizer) costOptimizedStrategy(workload *WorkloadDeployment
 
 	}
 
-
-
 	if remainingReplicas > 0 {
 
 		return nil, fmt.Errorf("insufficient cluster capacity for %d replicas", remainingReplicas)
 
 	}
 
-
-
 	return &PlacementDecision{
 
 		ClusterDistribution: distribution,
 
-		Score:               0.85,
+		Score: 0.85,
 
-		Reasons:             []string{"Cost-optimized placement strategy applied"},
-
+		Reasons: []string{"Cost-optimized placement strategy applied"},
 	}, nil
 
 }
-
-
 
 func (po *PlacementOptimizer) latencyOptimizedStrategy(workload *WorkloadDeployment, clusters []*ClusterEntry) (*PlacementDecision, error) {
 
@@ -2853,15 +2282,11 @@ func (po *PlacementOptimizer) latencyOptimizedStrategy(workload *WorkloadDeploym
 
 	}
 
-
-
 	distribution := make(map[string]int)
 
 	replicasPerRegion := workload.Replicas / len(clustersByRegion)
 
 	remainder := workload.Replicas % len(clustersByRegion)
-
-
 
 	regionIndex := 0
 
@@ -2874,8 +2299,6 @@ func (po *PlacementOptimizer) latencyOptimizedStrategy(workload *WorkloadDeploym
 			regionReplicas++
 
 		}
-
-
 
 		// Distribute within region.
 
@@ -2893,27 +2316,20 @@ func (po *PlacementOptimizer) latencyOptimizedStrategy(workload *WorkloadDeploym
 
 		}
 
-
-
 		regionIndex++
 
 	}
-
-
 
 	return &PlacementDecision{
 
 		ClusterDistribution: distribution,
 
-		Score:               0.95,
+		Score: 0.95,
 
-		Reasons:             []string{"Latency-optimized placement for geographic distribution"},
-
+		Reasons: []string{"Latency-optimized placement for geographic distribution"},
 	}, nil
 
 }
-
-
 
 func (po *PlacementOptimizer) balancedStrategy(workload *WorkloadDeployment, clusters []*ClusterEntry) (*PlacementDecision, error) {
 
@@ -2927,15 +2343,11 @@ func (po *PlacementOptimizer) balancedStrategy(workload *WorkloadDeployment, clu
 
 		resourceScore := (1 - cluster.Metadata.Resources.Utilization) * 0.4
 
-
-
 		// Cost efficiency (30%).
 
 		maxCost := 100.0 // Assume max hourly cost
 
 		costScore := (1 - cluster.Metadata.Cost.HourlyCost/maxCost) * 0.3
-
-
 
 		// Health and reliability (30%).
 
@@ -2955,13 +2367,9 @@ func (po *PlacementOptimizer) balancedStrategy(workload *WorkloadDeployment, clu
 
 		}
 
-
-
 		scores[cluster.Metadata.ID] = resourceScore + costScore + healthScore
 
 	}
-
-
 
 	// Sort clusters by score (descending).
 
@@ -2971,13 +2379,9 @@ func (po *PlacementOptimizer) balancedStrategy(workload *WorkloadDeployment, clu
 
 	})
 
-
-
 	distribution := make(map[string]int)
 
 	remainingReplicas := workload.Replicas
-
-
 
 	// Distribute based on scores.
 
@@ -2989,8 +2393,6 @@ func (po *PlacementOptimizer) balancedStrategy(workload *WorkloadDeployment, clu
 
 		}
 
-
-
 		// Allocate replicas proportional to score.
 
 		capacity := po.calculateClusterCapacity(cluster, workload)
@@ -2998,8 +2400,6 @@ func (po *PlacementOptimizer) balancedStrategy(workload *WorkloadDeployment, clu
 		idealReplicas := int(float64(workload.Replicas) * scores[cluster.Metadata.ID])
 
 		replicas := int(math.Min(float64(capacity), math.Min(float64(idealReplicas), float64(remainingReplicas))))
-
-
 
 		if replicas > 0 {
 
@@ -3010,8 +2410,6 @@ func (po *PlacementOptimizer) balancedStrategy(workload *WorkloadDeployment, clu
 		}
 
 	}
-
-
 
 	// Distribute any remaining replicas.
 
@@ -3033,29 +2431,22 @@ func (po *PlacementOptimizer) balancedStrategy(workload *WorkloadDeployment, clu
 
 	}
 
-
-
 	return &PlacementDecision{
 
 		ClusterDistribution: distribution,
 
-		Score:               0.88,
+		Score: 0.88,
 
-		Reasons:             []string{"Balanced placement considering resources, cost, and health"},
-
+		Reasons: []string{"Balanced placement considering resources, cost, and health"},
 	}, nil
 
 }
-
-
 
 func (po *PlacementOptimizer) calculateClusterCapacity(cluster *ClusterEntry, workload *WorkloadDeployment) int {
 
 	// Calculate how many replicas the cluster can handle.
 
 	capacity := cluster.Metadata.Resources.AvailablePods
-
-
 
 	// Check CPU capacity.
 
@@ -3069,8 +2460,6 @@ func (po *PlacementOptimizer) calculateClusterCapacity(cluster *ClusterEntry, wo
 
 		}
 
-
-
 		// Check memory capacity.
 
 		if memory, ok := workload.Resources.Requests["memory"]; ok && memory.Value() > 0 {
@@ -3083,9 +2472,6 @@ func (po *PlacementOptimizer) calculateClusterCapacity(cluster *ClusterEntry, wo
 
 	}
 
-
-
 	return capacity
 
 }
-

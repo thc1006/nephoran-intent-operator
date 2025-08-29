@@ -1,39 +1,20 @@
-
 package main
 
-
-
 import (
-
 	"context"
-
 	"errors"
-
 	"flag"
-
 	"fmt"
-
 	"os"
-
 	"os/exec"
-
 	"path/filepath"
-
 	"regexp"
-
 	"runtime"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/patchgen"
-
 )
-
-
 
 func main() {
 
@@ -43,8 +24,6 @@ func main() {
 
 	var apply bool
 
-
-
 	flag.StringVar(&intentPath, "intent", "", "Path to the intent JSON file")
 
 	flag.StringVar(&outputDir, "out", "", "Output directory for generated patches")
@@ -52,8 +31,6 @@ func main() {
 	flag.BoolVar(&apply, "apply", false, "Apply the patch using porch-direct after generation")
 
 	flag.Parse()
-
-
 
 	if intentPath == "" {
 
@@ -65,15 +42,11 @@ func main() {
 
 	}
 
-
-
 	if outputDir == "" {
 
 		outputDir = filepath.Join(".", "examples", "packages", "scaling")
 
 	}
-
-
 
 	if err := run(intentPath, outputDir, apply); err != nil {
 
@@ -85,8 +58,6 @@ func main() {
 
 }
 
-
-
 func run(intentPath, outputDir string, apply bool) error {
 
 	// Validate output directory first.
@@ -97,8 +68,6 @@ func run(intentPath, outputDir string, apply bool) error {
 
 	}
 
-
-
 	// Validate intent path.
 
 	if err := validateFilePath(intentPath); err != nil {
@@ -106,8 +75,6 @@ func run(intentPath, outputDir string, apply bool) error {
 		return fmt.Errorf("intent path validation failed: %w", err)
 
 	}
-
-
 
 	// Load intent.
 
@@ -119,8 +86,6 @@ func run(intentPath, outputDir string, apply bool) error {
 
 	}
 
-
-
 	// Generate patch.
 
 	generator := patchgen.NewPatchPackage(intent, outputDir)
@@ -130,8 +95,6 @@ func run(intentPath, outputDir string, apply bool) error {
 		return fmt.Errorf("failed to generate patch: %w", err)
 
 	}
-
-
 
 	// Optionally apply using porch-direct.
 
@@ -151,13 +114,9 @@ func run(intentPath, outputDir string, apply bool) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // getAllowedBaseDirs returns a list of allowed base directories for the current platform.
 
@@ -180,7 +139,6 @@ func getAllowedBaseDirs() []string {
 			".\\packages",
 
 			".\\output",
-
 		}
 
 	}
@@ -200,12 +158,9 @@ func getAllowedBaseDirs() []string {
 		"./packages",
 
 		"./output",
-
 	}
 
 }
-
-
 
 // validateFilePath validates file paths to prevent path traversal attacks.
 
@@ -214,8 +169,6 @@ func validateFilePath(filePath string) error {
 	// Clean the path.
 
 	cleanPath := filepath.Clean(filePath)
-
-
 
 	// Convert to absolute path for better validation.
 
@@ -227,8 +180,6 @@ func validateFilePath(filePath string) error {
 
 	}
 
-
-
 	// Check for path traversal attempts in the original path.
 
 	if strings.Contains(filePath, "..") {
@@ -236,8 +187,6 @@ func validateFilePath(filePath string) error {
 		return fmt.Errorf("path traversal detected in file path: %s", filePath)
 
 	}
-
-
 
 	// Validate path format - stricter for file paths.
 
@@ -249,8 +198,6 @@ func validateFilePath(filePath string) error {
 
 	}
 
-
-
 	// Check if file exists and is readable.
 
 	if _, err := os.Stat(absPath); os.IsNotExist(err) {
@@ -259,13 +206,9 @@ func validateFilePath(filePath string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateOutputDir validates and sanitizes the output directory path with security controls.
 
@@ -274,8 +217,6 @@ func validateOutputDir(outputDir string) error {
 	// Clean the path to resolve any ".." or other unsafe elements.
 
 	cleanPath := filepath.Clean(outputDir)
-
-
 
 	// Convert to absolute path for proper validation.
 
@@ -287,8 +228,6 @@ func validateOutputDir(outputDir string) error {
 
 	}
 
-
-
 	// Check for path traversal attempts in the original path.
 
 	if strings.Contains(outputDir, "..") {
@@ -296,8 +235,6 @@ func validateOutputDir(outputDir string) error {
 		return fmt.Errorf("path traversal detected in output directory: %s", outputDir)
 
 	}
-
-
 
 	// Validate against whitelist of allowed base directories.
 
@@ -315,8 +252,6 @@ func validateOutputDir(outputDir string) error {
 
 		}
 
-
-
 		// Check if the path is within an allowed directory.
 
 		if strings.HasPrefix(absPath, allowedAbs) {
@@ -329,15 +264,11 @@ func validateOutputDir(outputDir string) error {
 
 	}
 
-
-
 	if !isAllowed {
 
 		return fmt.Errorf("output directory %s is not within allowed base directories", outputDir)
 
 	}
-
-
 
 	// Validate path format (allow alphanumeric, hyphens, underscores, dots, and path separators).
 
@@ -349,8 +280,6 @@ func validateOutputDir(outputDir string) error {
 
 	}
 
-
-
 	// Ensure the path is not empty after cleaning.
 
 	if cleanPath == "" {
@@ -358,8 +287,6 @@ func validateOutputDir(outputDir string) error {
 		return fmt.Errorf("output directory path cannot be empty")
 
 	}
-
-
 
 	// Additional security: prevent writing to system directories.
 
@@ -370,8 +297,6 @@ func validateOutputDir(outputDir string) error {
 		systemDirs = []string{"C:\\Windows", "C:\\Program Files", "C:\\Program Files (x86)"}
 
 	}
-
-
 
 	for _, sysDir := range systemDirs {
 
@@ -391,13 +316,9 @@ func validateOutputDir(outputDir string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateBinaryPath validates that the binary exists and is in an allowed location.
 
@@ -413,8 +334,6 @@ func validateBinaryPath(binaryName string) (string, error) {
 
 	}
 
-
-
 	// Get absolute path for validation.
 
 	absBinaryPath, err := filepath.Abs(binaryPath)
@@ -424,8 +343,6 @@ func validateBinaryPath(binaryName string) (string, error) {
 		return "", fmt.Errorf("failed to resolve absolute path for binary: %w", err)
 
 	}
-
-
 
 	// Basic security: ensure it's not in a suspicious location.
 
@@ -441,13 +358,9 @@ func validateBinaryPath(binaryName string) (string, error) {
 
 	}
 
-
-
 	return absBinaryPath, nil
 
 }
-
-
 
 // applyWithPorchDirect securely executes porch-direct command with enhanced security controls.
 
@@ -461,8 +374,6 @@ func applyWithPorchDirect(outputDir string) error {
 
 	}
 
-
-
 	// Validate the binary path.
 
 	binaryPath, err := validateBinaryPath("porch-direct")
@@ -473,17 +384,11 @@ func applyWithPorchDirect(outputDir string) error {
 
 	}
 
-
-
 	// Clean the path to prevent injection.
 
 	cleanOutputDir := filepath.Clean(outputDir)
 
-
-
 	fmt.Printf("Calling porch-direct (%s) to apply patch...\n", binaryPath)
-
-
 
 	// Create a context with timeout to prevent hanging.
 
@@ -491,15 +396,11 @@ func applyWithPorchDirect(outputDir string) error {
 
 	defer cancel()
 
-
-
 	// Create command with context for timeout support.
 
 	// Use the validated binary path directly to prevent PATH manipulation.
 
 	cmd := exec.CommandContext(ctx, binaryPath, "--package", cleanOutputDir)
-
-
 
 	// Set up secure environment - inherit minimal environment.
 
@@ -510,10 +411,7 @@ func applyWithPorchDirect(outputDir string) error {
 		"HOME=" + os.Getenv("HOME"),
 
 		"USER=" + os.Getenv("USER"),
-
 	}
-
-
 
 	// Set working directory to a safe location.
 
@@ -523,21 +421,15 @@ func applyWithPorchDirect(outputDir string) error {
 
 	}
 
-
-
 	// Capture output for better error reporting.
 
 	cmd.Stdout = os.Stdout
 
 	cmd.Stderr = os.Stderr
 
-
-
 	// Log command execution for audit trail.
 
 	fmt.Printf("Executing: %s --package %s\n", binaryPath, cleanOutputDir)
-
-
 
 	// Execute with timeout.
 
@@ -551,8 +443,6 @@ func applyWithPorchDirect(outputDir string) error {
 
 		}
 
-
-
 		// Check for specific error types.
 
 		var exitError *exec.ExitError
@@ -562,17 +452,12 @@ func applyWithPorchDirect(outputDir string) error {
 
 		}
 
-
-
 		return fmt.Errorf("porch-direct command failed: %w", err)
 
 	}
-
-
 
 	fmt.Println("Patch applied successfully")
 
 	return nil
 
 }
-

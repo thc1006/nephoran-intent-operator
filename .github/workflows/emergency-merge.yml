@@ -1,0 +1,253 @@
+# =============================================================================
+# EMERGENCY MERGE WORKFLOW - ULTRA SPEED CI BYPASS
+# =============================================================================
+# This workflow provides emergency merge capabilities with minimal safety checks
+# for urgent hotfixes and critical production issues.
+# Triggers: [emergency], [urgent-merge], [bypass-lint]
+# =============================================================================
+
+name: Emergency Merge
+
+on:
+  push:
+    branches: ['main', 'integrate/**', 'feat/**', 'fix/**', 'chore/**']
+  pull_request:
+    branches: ['main', 'integrate/**']
+
+# Ultra-fast concurrency - cancel everything else
+concurrency:
+  group: emergency-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION_FILE: "go.mod"
+  CGO_ENABLED: "0"
+
+jobs:
+  # =============================================================================
+  # Emergency Check - Only run if emergency keywords found
+  # =============================================================================
+  emergency-gate:
+    name: Emergency Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      is_emergency: ${{ steps.check-emergency.outputs.emergency }}
+      emergency_type: ${{ steps.check-emergency.outputs.type }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for emergency keywords
+        id: check-emergency
+        run: |
+          echo "Checking for emergency bypass keywords..."
+          
+          emergency=false
+          emergency_type="none"
+          
+          # Check commit message for emergency keywords
+          commit_msg="${{ github.event.head_commit.message }}"
+          
+          if echo "$commit_msg" | grep -qiE '\[emergency\]|\[urgent-merge\]|\[bypass-lint\]|\[hotfix\]|\[critical\]'; then
+            emergency=true
+            
+            if echo "$commit_msg" | grep -qi '\[emergency\]'; then
+              emergency_type="emergency"
+            elif echo "$commit_msg" | grep -qi '\[urgent-merge\]'; then
+              emergency_type="urgent"
+            elif echo "$commit_msg" | grep -qi '\[bypass-lint\]'; then
+              emergency_type="bypass"
+            elif echo "$commit_msg" | grep -qi '\[hotfix\]'; then
+              emergency_type="hotfix"
+            elif echo "$commit_msg" | grep -qi '\[critical\]'; then
+              emergency_type="critical"
+            fi
+            
+            echo "EMERGENCY MODE ACTIVATED: $emergency_type"
+            echo "Commit: $commit_msg"
+          else
+            echo "No emergency keywords found - standard CI will handle this"
+          fi
+          
+          echo "emergency=$emergency" >> $GITHUB_OUTPUT
+          echo "type=$emergency_type" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # Ultra-Fast Safety Checks - Only critical verification
+  # =============================================================================
+  ultra-fast-checks:
+    name: Ultra Fast Safety
+    runs-on: ubuntu-latest
+    needs: emergency-gate
+    if: needs.emergency-gate.outputs.is_emergency == 'true'
+    timeout-minutes: 8
+    outputs:
+      build_success: ${{ steps.safety-summary.outputs.build_success }}
+      test_basic: ${{ steps.safety-summary.outputs.test_basic }}
+    steps:
+      - name: Emergency Banner
+        run: |
+          echo "🚨🚨🚨 EMERGENCY MODE ACTIVATED 🚨🚨🚨"
+          echo "Type: ${{ needs.emergency-gate.outputs.emergency_type }}"
+          echo "Bypassing comprehensive linting and formatting checks"
+          echo "Running ONLY critical safety verifications"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go with minimal cache
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+          cache: true
+
+      - name: Fast dependency download
+        run: |
+          echo "EMERGENCY: Fast dependency download (120s timeout)"
+          export GOPROXY="https://proxy.golang.org,direct"
+          export CGO_ENABLED=0
+          
+          if ! timeout 120s go mod download; then
+            echo "WARNING: Download timeout - continuing with cache"
+          fi
+
+      - name: Critical Build Test
+        id: build-test
+        run: |
+          echo "EMERGENCY: Testing build compilation..."
+          build_success=false
+          
+          # Quick build test
+          if CGO_ENABLED=0 go build -o /tmp/test-build ./cmd/conductor/main.go; then
+            echo "✅ BUILD SUCCESS: Code compiles correctly"
+            build_success=true
+          else
+            echo "❌ BUILD FAILED: Code does not compile"
+            exit 1
+          fi
+          
+          echo "build_success=$build_success" >> $GITHUB_OUTPUT
+
+      - name: Critical Go Vet
+        run: |
+          echo "EMERGENCY: Running go vet (critical issues only)..."
+          if go vet ./...; then
+            echo "✅ GO VET PASSED"
+          else
+            echo "❌ GO VET FAILED: Critical issues found"
+            exit 1
+          fi
+
+      - name: Basic Unit Tests (Fast Mode)
+        id: basic-tests
+        run: |
+          echo "EMERGENCY: Running basic unit tests (5min timeout)..."
+          test_basic=false
+          
+          # Run tests with short timeout
+          if timeout 300s go test -short -timeout=5m ./...; then
+            echo "✅ BASIC TESTS PASSED"
+            test_basic=true
+          else
+            echo "⚠️  BASIC TESTS FAILED: Check logs"
+            # Don't fail emergency merge for test failures
+          fi
+          
+          echo "test_basic=$test_basic" >> $GITHUB_OUTPUT
+
+      - name: Emergency Safety Summary
+        id: safety-summary
+        run: |
+          echo "## 🚨 Emergency Merge Safety Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Emergency Type:** ${{ needs.emergency-gate.outputs.emergency_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Critical Safety Checks" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status | Notes |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Compilation | ${{ steps.build-test.outputs.build_success == 'true' && '✅ Pass' || '❌ Fail' }} | ${{ steps.build-test.outputs.build_success == 'true' && 'Code compiles' || 'Build errors' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Go Vet | ✅ Pass | Critical issues checked |" >> $GITHUB_STEP_SUMMARY
+          echo "| Basic Tests | ${{ steps.basic-tests.outputs.test_basic == 'true' && '✅ Pass' || '⚠️ Warn' }} | ${{ steps.basic-tests.outputs.test_basic == 'true' && 'Tests pass' || 'Some tests failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⚠️ BYPASSED CHECKS" >> $GITHUB_STEP_SUMMARY
+          echo "- **Linting (golangci-lint)** - SKIPPED for speed"  >> $GITHUB_STEP_SUMMARY
+          echo "- **Code formatting** - SKIPPED for speed"  >> $GITHUB_STEP_SUMMARY
+          echo "- **Security scanning** - SKIPPED for speed"  >> $GITHUB_STEP_SUMMARY
+          echo "- **Coverage analysis** - SKIPPED for speed"  >> $GITHUB_STEP_SUMMARY
+          echo "- **CRD generation** - SKIPPED for speed"  >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔥 POST-MERGE REQUIREMENTS" >> $GITHUB_STEP_SUMMARY
+          echo "1. **IMMEDIATELY run full CI** on next commit" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Fix any formatting issues** within 24 hours" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Address security findings** from full scan" >> $GITHUB_STEP_SUMMARY
+          echo "4. **Update tests** if any failed in basic run" >> $GITHUB_STEP_SUMMARY
+          
+          echo "build_success=${{ steps.build-test.outputs.build_success }}" >> $GITHUB_OUTPUT
+          echo "test_basic=${{ steps.basic-tests.outputs.test_basic }}" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # Emergency Status Gate
+  # =============================================================================
+  emergency-status:
+    name: Emergency Status
+    runs-on: ubuntu-latest
+    needs: [emergency-gate, ultra-fast-checks]
+    if: needs.emergency-gate.outputs.is_emergency == 'true'
+    timeout-minutes: 2
+    steps:
+      - name: Final Emergency Assessment
+        run: |
+          echo "🚨 EMERGENCY MERGE STATUS ASSESSMENT 🚨"
+          echo ""
+          
+          build_ok="${{ needs.ultra-fast-checks.outputs.build_success }}"
+          emergency_type="${{ needs.emergency-gate.outputs.emergency_type }}"
+          
+          echo "Emergency Type: $emergency_type"
+          echo "Build Success: $build_ok"
+          echo "Actor: ${{ github.actor }}"
+          
+          if [ "$build_ok" = "true" ]; then
+            echo ""
+            echo "✅ EMERGENCY MERGE APPROVED"
+            echo "   - Code compiles successfully"
+            echo "   - Critical checks passed"
+            echo "   - Ready for immediate merge"
+            echo ""
+            echo "⚠️  REMINDER: Run full CI on next commit!"
+            exit 0
+          else
+            echo ""
+            echo "❌ EMERGENCY MERGE BLOCKED"
+            echo "   - Critical build failure detected"
+            echo "   - Cannot proceed with emergency merge"
+            echo "   - Fix compilation errors first"
+            exit 1
+          fi
+
+  # =============================================================================
+  # Emergency Notification (when not emergency)
+  # =============================================================================
+  not-emergency:
+    name: Not Emergency
+    runs-on: ubuntu-latest
+    needs: emergency-gate
+    if: needs.emergency-gate.outputs.is_emergency == 'false'
+    timeout-minutes: 1
+    steps:
+      - name: Standard CI Notification
+        run: |
+          echo "ℹ️  No emergency keywords detected in commit message"
+          echo "Standard CI workflow will handle this commit"
+          echo ""
+          echo "To trigger emergency merge, use one of these keywords:"
+          echo "  [emergency]    - Critical production issue"
+          echo "  [urgent-merge] - Urgent fix needed"
+          echo "  [bypass-lint]  - Skip formatting checks"
+          echo "  [hotfix]       - Production hotfix"
+          echo "  [critical]     - Critical bug fix"

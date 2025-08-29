@@ -1,23 +1,13 @@
 // Package middleware provides HTTP middleware components for the Nephoran Intent Operator.
 
-
 package middleware
 
-
-
 import (
-
 	"fmt"
-
 	"log/slog"
-
 	"net/http"
-
 	"strings"
-
 )
-
-
 
 // SecurityHeadersConfig defines configuration for security headers middleware.
 
@@ -31,23 +21,17 @@ type SecurityHeadersConfig struct {
 
 	EnableHSTS bool
 
-
-
 	// HSTSMaxAge defines max-age directive in seconds for HSTS.
 
 	// Default: 31536000 (1 year) as recommended by OWASP.
 
 	HSTSMaxAge int
 
-
-
 	// HSTSIncludeSubDomains adds includeSubDomains directive to HSTS.
 
 	// Applies HSTS policy to all subdomains.
 
 	HSTSIncludeSubDomains bool
-
-
 
 	// HSTSPreload adds preload directive to HSTS.
 
@@ -57,8 +41,6 @@ type SecurityHeadersConfig struct {
 
 	HSTSPreload bool
 
-
-
 	// FrameOptions controls X-Frame-Options header value.
 
 	// Options: "DENY" (default), "SAMEORIGIN", or specific origin.
@@ -67,15 +49,11 @@ type SecurityHeadersConfig struct {
 
 	FrameOptions string
 
-
-
 	// ContentTypeOptions controls X-Content-Type-Options header.
 
 	// When true, sets "nosniff" to prevent MIME type sniffing.
 
 	ContentTypeOptions bool
-
-
 
 	// ReferrerPolicy controls Referrer-Policy header.
 
@@ -85,8 +63,6 @@ type SecurityHeadersConfig struct {
 
 	ReferrerPolicy string
 
-
-
 	// ContentSecurityPolicy defines CSP directives.
 
 	// Default: "default-src 'none'; frame-ancestors 'none'".
@@ -94,8 +70,6 @@ type SecurityHeadersConfig struct {
 	// Can be customized based on application requirements.
 
 	ContentSecurityPolicy string
-
-
 
 	// PermissionsPolicy defines Permissions-Policy header.
 
@@ -105,8 +79,6 @@ type SecurityHeadersConfig struct {
 
 	PermissionsPolicy string
 
-
-
 	// XSSProtection controls X-XSS-Protection header.
 
 	// Legacy header, but still useful for older browsers.
@@ -115,17 +87,12 @@ type SecurityHeadersConfig struct {
 
 	XSSProtection string
 
-
-
 	// CustomHeaders allows adding additional security headers.
 
 	// Key-value pairs for headers not covered by standard options.
 
 	CustomHeaders map[string]string
-
 }
-
-
 
 // DefaultSecurityHeadersConfig returns a secure default configuration.
 
@@ -135,47 +102,40 @@ func DefaultSecurityHeadersConfig() *SecurityHeadersConfig {
 
 	return &SecurityHeadersConfig{
 
-		EnableHSTS:            false,    // Disabled by default, enable only with proper TLS
+		EnableHSTS: false, // Disabled by default, enable only with proper TLS
 
-		HSTSMaxAge:            31536000, // 1 year
+		HSTSMaxAge: 31536000, // 1 year
 
 		HSTSIncludeSubDomains: false,
 
-		HSTSPreload:           false,
+		HSTSPreload: false,
 
-		FrameOptions:          "DENY",
+		FrameOptions: "DENY",
 
-		ContentTypeOptions:    true,
+		ContentTypeOptions: true,
 
-		ReferrerPolicy:        "strict-origin-when-cross-origin",
+		ReferrerPolicy: "strict-origin-when-cross-origin",
 
 		ContentSecurityPolicy: "default-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
 
-		PermissionsPolicy:     "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()",
+		PermissionsPolicy: "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()",
 
-		XSSProtection:         "1; mode=block",
+		XSSProtection: "1; mode=block",
 
-		CustomHeaders:         make(map[string]string),
-
+		CustomHeaders: make(map[string]string),
 	}
 
 }
-
-
 
 // SecurityHeaders implements security headers middleware.
 
 // Adds comprehensive security headers to HTTP responses.
 
 type SecurityHeaders struct {
-
 	config *SecurityHeadersConfig
 
 	logger *slog.Logger
-
 }
-
-
 
 // NewSecurityHeaders creates a new security headers middleware instance.
 
@@ -191,8 +151,6 @@ func NewSecurityHeaders(config *SecurityHeadersConfig, logger *slog.Logger) *Sec
 
 	}
 
-
-
 	// Validate configuration.
 
 	if config.HSTSMaxAge < 0 {
@@ -201,15 +159,11 @@ func NewSecurityHeaders(config *SecurityHeadersConfig, logger *slog.Logger) *Sec
 
 	}
 
-
-
 	if config.FrameOptions == "" {
 
 		config.FrameOptions = "DENY"
 
 	}
-
-
 
 	if config.ReferrerPolicy == "" {
 
@@ -217,19 +171,14 @@ func NewSecurityHeaders(config *SecurityHeadersConfig, logger *slog.Logger) *Sec
 
 	}
 
-
-
 	return &SecurityHeaders{
 
 		config: config,
 
 		logger: logger.With(slog.String("component", "security-headers")),
-
 	}
 
 }
-
-
 
 // Middleware returns an HTTP middleware that adds security headers to responses.
 
@@ -249,8 +198,6 @@ func (sh *SecurityHeaders) Middleware(next http.Handler) http.Handler {
 
 			w.Header().Set("Strict-Transport-Security", hstsValue)
 
-
-
 			sh.logger.Debug("HSTS header set",
 
 				slog.String("value", hstsValue),
@@ -258,8 +205,6 @@ func (sh *SecurityHeaders) Middleware(next http.Handler) http.Handler {
 				slog.String("path", r.URL.Path))
 
 		}
-
-
 
 		// X-Frame-Options prevents clickjacking attacks.
 
@@ -273,8 +218,6 @@ func (sh *SecurityHeaders) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// X-Content-Type-Options prevents MIME type sniffing.
 
 		// nosniff: Blocks requests if the MIME type doesn't match.
@@ -284,8 +227,6 @@ func (sh *SecurityHeaders) Middleware(next http.Handler) http.Handler {
 			w.Header().Set("X-Content-Type-Options", "nosniff")
 
 		}
-
-
 
 		// Referrer-Policy controls referrer information sent with requests.
 
@@ -297,8 +238,6 @@ func (sh *SecurityHeaders) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// Content-Security-Policy provides fine-grained control over resource loading.
 
 		// Helps prevent XSS, data injection, and other attacks.
@@ -308,8 +247,6 @@ func (sh *SecurityHeaders) Middleware(next http.Handler) http.Handler {
 			w.Header().Set("Content-Security-Policy", sh.config.ContentSecurityPolicy)
 
 		}
-
-
 
 		// Permissions-Policy (formerly Feature-Policy) controls browser features.
 
@@ -321,8 +258,6 @@ func (sh *SecurityHeaders) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// X-XSS-Protection for older browsers that don't support CSP.
 
 		// Modern browsers have this built-in, but keeping for compatibility.
@@ -333,8 +268,6 @@ func (sh *SecurityHeaders) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// Apply any custom headers.
 
 		for header, value := range sh.config.CustomHeaders {
@@ -342,8 +275,6 @@ func (sh *SecurityHeaders) Middleware(next http.Handler) http.Handler {
 			w.Header().Set(header, value)
 
 		}
-
-
 
 		// Log security headers application for audit trail.
 
@@ -357,8 +288,6 @@ func (sh *SecurityHeaders) Middleware(next http.Handler) http.Handler {
 
 			slog.Bool("secure", sh.isSecureConnection(r)))
 
-
-
 		// Call the next handler.
 
 		next.ServeHTTP(w, r)
@@ -367,21 +296,15 @@ func (sh *SecurityHeaders) Middleware(next http.Handler) http.Handler {
 
 }
 
-
-
 // buildHSTSHeader constructs the HSTS header value based on configuration.
 
 func (sh *SecurityHeaders) buildHSTSHeader() string {
 
 	var directives []string
 
-
-
 	// max-age is required.
 
 	directives = append(directives, fmt.Sprintf("max-age=%d", sh.config.HSTSMaxAge))
-
-
 
 	// includeSubDomains is optional but recommended.
 
@@ -390,8 +313,6 @@ func (sh *SecurityHeaders) buildHSTSHeader() string {
 		directives = append(directives, "includeSubDomains")
 
 	}
-
-
 
 	// preload requires includeSubDomains and careful consideration.
 
@@ -403,13 +324,9 @@ func (sh *SecurityHeaders) buildHSTSHeader() string {
 
 	}
 
-
-
 	return strings.Join(directives, "; ")
 
 }
-
-
 
 // isSecureConnection determines if the request is over HTTPS.
 
@@ -425,8 +342,6 @@ func (sh *SecurityHeaders) isSecureConnection(r *http.Request) bool {
 
 	}
 
-
-
 	// Check X-Forwarded-Proto header (common with reverse proxies).
 
 	if forwarded := r.Header.Get("X-Forwarded-Proto"); forwarded == "https" {
@@ -434,8 +349,6 @@ func (sh *SecurityHeaders) isSecureConnection(r *http.Request) bool {
 		return true
 
 	}
-
-
 
 	// Check Forwarded header (RFC 7239).
 
@@ -445,8 +358,6 @@ func (sh *SecurityHeaders) isSecureConnection(r *http.Request) bool {
 
 	}
 
-
-
 	// Check URL scheme.
 
 	if r.URL.Scheme == "https" {
@@ -455,13 +366,9 @@ func (sh *SecurityHeaders) isSecureConnection(r *http.Request) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // ValidateConfig checks if the security headers configuration is valid.
 
@@ -483,8 +390,6 @@ func (sh *SecurityHeaders) ValidateConfig() error {
 
 		}
 
-
-
 		if sh.config.HSTSPreload && !sh.config.HSTSIncludeSubDomains {
 
 			return fmt.Errorf("HSTS preload requires includeSubDomains to be enabled")
@@ -493,16 +398,13 @@ func (sh *SecurityHeaders) ValidateConfig() error {
 
 	}
 
-
-
 	// Validate FrameOptions.
 
 	validFrameOptions := map[string]bool{
 
-		"DENY":       true,
+		"DENY": true,
 
 		"SAMEORIGIN": true,
-
 	}
 
 	if sh.config.FrameOptions != "" && !validFrameOptions[sh.config.FrameOptions] {
@@ -516,8 +418,6 @@ func (sh *SecurityHeaders) ValidateConfig() error {
 		}
 
 	}
-
-
 
 	// Validate CSP if provided.
 
@@ -539,13 +439,9 @@ func (sh *SecurityHeaders) ValidateConfig() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetActiveHeaders returns a map of headers that will be set based on current configuration.
 
@@ -555,15 +451,11 @@ func (sh *SecurityHeaders) GetActiveHeaders(isSecure bool) map[string]string {
 
 	headers := make(map[string]string)
 
-
-
 	if sh.config.EnableHSTS && isSecure {
 
 		headers["Strict-Transport-Security"] = sh.buildHSTSHeader()
 
 	}
-
-
 
 	if sh.config.FrameOptions != "" {
 
@@ -571,15 +463,11 @@ func (sh *SecurityHeaders) GetActiveHeaders(isSecure bool) map[string]string {
 
 	}
 
-
-
 	if sh.config.ContentTypeOptions {
 
 		headers["X-Content-Type-Options"] = "nosniff"
 
 	}
-
-
 
 	if sh.config.ReferrerPolicy != "" {
 
@@ -587,15 +475,11 @@ func (sh *SecurityHeaders) GetActiveHeaders(isSecure bool) map[string]string {
 
 	}
 
-
-
 	if sh.config.ContentSecurityPolicy != "" {
 
 		headers["Content-Security-Policy"] = sh.config.ContentSecurityPolicy
 
 	}
-
-
 
 	if sh.config.PermissionsPolicy != "" {
 
@@ -603,15 +487,11 @@ func (sh *SecurityHeaders) GetActiveHeaders(isSecure bool) map[string]string {
 
 	}
 
-
-
 	if sh.config.XSSProtection != "" {
 
 		headers["X-XSS-Protection"] = sh.config.XSSProtection
 
 	}
-
-
 
 	// Add custom headers.
 
@@ -621,13 +501,9 @@ func (sh *SecurityHeaders) GetActiveHeaders(isSecure bool) map[string]string {
 
 	}
 
-
-
 	return headers
 
 }
-
-
 
 // ReportOnlyCSP sets a Content-Security-Policy-Report-Only header.
 
@@ -650,4 +526,3 @@ func (sh *SecurityHeaders) ReportOnlyCSP(policy, reportURI string) http.Handler 
 	})
 
 }
-

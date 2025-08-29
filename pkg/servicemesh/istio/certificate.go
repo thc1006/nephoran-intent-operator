@@ -1,47 +1,27 @@
 // Package istio provides certificate management for Istio service mesh.
 
-
 package istio
 
-
-
 import (
-
 	"context"
-
 	"crypto/x509"
-
 	"crypto/x509/pkix"
-
 	"encoding/pem"
-
 	"fmt"
-
 	"math/big"
-
 	"time"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/client-go/kubernetes"
-
 )
-
-
 
 // IstioCertificateProvider implements CertificateProvider for Istio.
 
 type IstioCertificateProvider struct {
-
-	kubeClient  kubernetes.Interface
+	kubeClient kubernetes.Interface
 
 	trustDomain string
-
 }
-
-
 
 // NewIstioCertificateProvider creates a new Istio certificate provider.
 
@@ -55,15 +35,12 @@ func NewIstioCertificateProvider(kubeClient kubernetes.Interface, trustDomain st
 
 	return &IstioCertificateProvider{
 
-		kubeClient:  kubeClient,
+		kubeClient: kubeClient,
 
 		trustDomain: trustDomain,
-
 	}
 
 }
-
-
 
 // IssueCertificate issues a new certificate for a service.
 
@@ -73,14 +50,11 @@ func (p *IstioCertificateProvider) IssueCertificate(ctx context.Context, service
 
 	// We can retrieve the certificate from the pod's mounted volume.
 
-
-
 	// Get pods for the service.
 
 	pods, err := p.kubeClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
 
 		LabelSelector: fmt.Sprintf("app=%s", service),
-
 	})
 
 	if err != nil {
@@ -89,15 +63,11 @@ func (p *IstioCertificateProvider) IssueCertificate(ctx context.Context, service
 
 	}
 
-
-
 	if len(pods.Items) == 0 {
 
 		return nil, fmt.Errorf("no pods found for service %s", service)
 
 	}
-
-
 
 	// For demonstration, we'll create a placeholder certificate.
 
@@ -107,27 +77,21 @@ func (p *IstioCertificateProvider) IssueCertificate(ctx context.Context, service
 
 		Subject: pkix.Name{
 
-			CommonName:   fmt.Sprintf("%s.%s.svc.%s", service, namespace, p.trustDomain),
+			CommonName: fmt.Sprintf("%s.%s.svc.%s", service, namespace, p.trustDomain),
 
 			Organization: []string{namespace},
-
 		},
 
-		NotBefore:    time.Now(),
+		NotBefore: time.Now(),
 
-		NotAfter:     time.Now().Add(90 * 24 * time.Hour), // 90 days
+		NotAfter: time.Now().Add(90 * 24 * time.Hour), // 90 days
 
 		SerialNumber: big.NewInt(1),
-
 	}
-
-
 
 	return cert, nil
 
 }
-
-
 
 // GetRootCA returns the root CA certificate.
 
@@ -151,8 +115,6 @@ func (p *IstioCertificateProvider) GetRootCA(ctx context.Context) (*x509.Certifi
 
 	}
 
-
-
 	// Parse the root certificate.
 
 	rootCertPEM, ok := secret.Data["root-cert.pem"]
@@ -169,8 +131,6 @@ func (p *IstioCertificateProvider) GetRootCA(ctx context.Context) (*x509.Certifi
 
 	}
 
-
-
 	block, _ := pem.Decode(rootCertPEM)
 
 	if block == nil {
@@ -178,8 +138,6 @@ func (p *IstioCertificateProvider) GetRootCA(ctx context.Context) (*x509.Certifi
 		return nil, fmt.Errorf("failed to decode root certificate PEM")
 
 	}
-
-
 
 	cert, err := x509.ParseCertificate(block.Bytes)
 
@@ -189,13 +147,9 @@ func (p *IstioCertificateProvider) GetRootCA(ctx context.Context) (*x509.Certifi
 
 	}
 
-
-
 	return cert, nil
 
 }
-
-
 
 // GetIntermediateCA returns intermediate CA if applicable.
 
@@ -219,8 +173,6 @@ func (p *IstioCertificateProvider) GetIntermediateCA(ctx context.Context) (*x509
 
 	}
 
-
-
 	// Parse the intermediate certificate.
 
 	certChainPEM, ok := secret.Data["cert-chain.pem"]
@@ -233,8 +185,6 @@ func (p *IstioCertificateProvider) GetIntermediateCA(ctx context.Context) (*x509
 
 	}
 
-
-
 	block, _ := pem.Decode(certChainPEM)
 
 	if block == nil {
@@ -242,8 +192,6 @@ func (p *IstioCertificateProvider) GetIntermediateCA(ctx context.Context) (*x509
 		return nil, fmt.Errorf("failed to decode certificate chain PEM")
 
 	}
-
-
 
 	cert, err := x509.ParseCertificate(block.Bytes)
 
@@ -253,13 +201,9 @@ func (p *IstioCertificateProvider) GetIntermediateCA(ctx context.Context) (*x509
 
 	}
 
-
-
 	return cert, nil
 
 }
-
-
 
 // ValidateCertificate validates a certificate.
 
@@ -270,8 +214,6 @@ func (p *IstioCertificateProvider) ValidateCertificate(ctx context.Context, cert
 		return fmt.Errorf("certificate is nil")
 
 	}
-
-
 
 	// Check certificate validity period.
 
@@ -289,8 +231,6 @@ func (p *IstioCertificateProvider) ValidateCertificate(ctx context.Context, cert
 
 	}
 
-
-
 	// Get root CA for validation.
 
 	rootCA, err := p.GetRootCA(ctx)
@@ -301,29 +241,22 @@ func (p *IstioCertificateProvider) ValidateCertificate(ctx context.Context, cert
 
 	}
 
-
-
 	// Create certificate pool with root CA.
 
 	roots := x509.NewCertPool()
 
 	roots.AddCert(rootCA)
 
-
-
 	// Verify certificate chain.
 
 	opts := x509.VerifyOptions{
 
-		Roots:       roots,
+		Roots: roots,
 
 		CurrentTime: now,
 
-		DNSName:     cert.Subject.CommonName,
-
+		DNSName: cert.Subject.CommonName,
 	}
-
-
 
 	_, err = cert.Verify(opts)
 
@@ -333,13 +266,9 @@ func (p *IstioCertificateProvider) ValidateCertificate(ctx context.Context, cert
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // RotateCertificate rotates a certificate for a service.
 
@@ -349,13 +278,9 @@ func (p *IstioCertificateProvider) RotateCertificate(ctx context.Context, servic
 
 	// We can trigger rotation by deleting the secret and letting Citadel recreate it.
 
-
-
 	// Find the certificate secret for the service.
 
 	secretName := fmt.Sprintf("istio.%s", service)
-
-
 
 	// Delete the existing secret.
 
@@ -367,13 +292,9 @@ func (p *IstioCertificateProvider) RotateCertificate(ctx context.Context, servic
 
 	}
 
-
-
 	// Wait for Citadel to issue a new certificate.
 
 	time.Sleep(2 * time.Second)
-
-
 
 	// Return the new certificate.
 
@@ -381,15 +302,11 @@ func (p *IstioCertificateProvider) RotateCertificate(ctx context.Context, servic
 
 }
 
-
-
 // GetCertificateChain returns the certificate chain for a service.
 
 func (p *IstioCertificateProvider) GetCertificateChain(ctx context.Context, service, namespace string) ([]*x509.Certificate, error) {
 
 	chain := []*x509.Certificate{}
-
-
 
 	// Get service certificate.
 
@@ -403,8 +320,6 @@ func (p *IstioCertificateProvider) GetCertificateChain(ctx context.Context, serv
 
 	chain = append(chain, serviceCert)
 
-
-
 	// Get intermediate CA if exists.
 
 	intermediateCert, err := p.GetIntermediateCA(ctx)
@@ -414,8 +329,6 @@ func (p *IstioCertificateProvider) GetCertificateChain(ctx context.Context, serv
 		chain = append(chain, intermediateCert)
 
 	}
-
-
 
 	// Get root CA.
 
@@ -429,13 +342,9 @@ func (p *IstioCertificateProvider) GetCertificateChain(ctx context.Context, serv
 
 	chain = append(chain, rootCert)
 
-
-
 	return chain, nil
 
 }
-
-
 
 // GetSPIFFEID returns the SPIFFE ID for a service.
 
@@ -453,8 +362,6 @@ func (p *IstioCertificateProvider) GetSPIFFEID(service, namespace, trustDomain s
 
 }
 
-
-
 // GetCertificateExpiry returns the expiry time of a certificate.
 
 func (p *IstioCertificateProvider) GetCertificateExpiry(ctx context.Context, service, namespace string) (time.Time, error) {
@@ -471,8 +378,6 @@ func (p *IstioCertificateProvider) GetCertificateExpiry(ctx context.Context, ser
 
 }
 
-
-
 // IsCertificateExpiringSoon checks if a certificate is expiring soon.
 
 func (p *IstioCertificateProvider) IsCertificateExpiringSoon(ctx context.Context, service, namespace string, threshold time.Duration) (bool, error) {
@@ -485,9 +390,6 @@ func (p *IstioCertificateProvider) IsCertificateExpiringSoon(ctx context.Context
 
 	}
 
-
-
 	return time.Until(expiry) < threshold, nil
 
 }
-

@@ -1,63 +1,40 @@
-
 package testutils
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
 
-
-
 	"k8s.io/client-go/tools/record"
-
 )
-
-
 
 // MockLLMClient provides a mock implementation of the LLM client interface.
 
 type MockLLMClient struct {
+	responses map[string]string
 
-	responses         map[string]string
+	errors map[string]error
 
-	errors            map[string]error
+	processingDelay time.Duration
 
-	processingDelay   time.Duration
+	callCount int
 
-	callCount         int
-
-	lastIntent        string
+	lastIntent string
 
 	shouldReturnError bool
 
-	Error             error // Public field for direct error control in tests
+	Error error // Public field for direct error control in tests
 
 }
-
-
 
 // NewMockLLMClient creates a new mock LLM client.
 
@@ -65,17 +42,14 @@ func NewMockLLMClient() *MockLLMClient {
 
 	return &MockLLMClient{
 
-		responses:       make(map[string]string),
+		responses: make(map[string]string),
 
-		errors:          make(map[string]error),
+		errors: make(map[string]error),
 
 		processingDelay: 100 * time.Millisecond,
-
 	}
 
 }
-
-
 
 // ProcessIntent implements the LLM client interface.
 
@@ -84,8 +58,6 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 	m.callCount++
 
 	m.lastIntent = intent
-
-
 
 	// Simulate processing delay.
 
@@ -99,8 +71,6 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 
 	}
 
-
-
 	// Check for direct Error field first.
 
 	if m.Error != nil {
@@ -108,8 +78,6 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 		return "", m.Error
 
 	}
-
-
 
 	// Check for global error flag.
 
@@ -119,8 +87,6 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 
 	}
 
-
-
 	// Check for specific error responses.
 
 	if err, exists := m.errors[intent]; exists {
@@ -128,8 +94,6 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 		return "", err
 
 	}
-
-
 
 	// Check for specific responses.
 
@@ -139,15 +103,11 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 
 	}
 
-
-
 	// Generate default response based on intent content.
 
 	return m.generateDefaultResponse(intent), nil
 
 }
-
-
 
 // SetResponse sets a specific response for a given intent.
 
@@ -157,8 +117,6 @@ func (m *MockLLMClient) SetResponse(intent, response string) {
 
 }
 
-
-
 // SetError sets an error to be returned for a specific intent.
 
 func (m *MockLLMClient) SetError(intent string, err error) {
@@ -166,8 +124,6 @@ func (m *MockLLMClient) SetError(intent string, err error) {
 	m.errors[intent] = err
 
 }
-
-
 
 // SetProcessingDelay sets the simulated processing delay.
 
@@ -177,8 +133,6 @@ func (m *MockLLMClient) SetProcessingDelay(delay time.Duration) {
 
 }
 
-
-
 // SetShouldReturnError sets whether the mock should return errors for all requests.
 
 func (m *MockLLMClient) SetShouldReturnError(shouldError bool) {
@@ -186,8 +140,6 @@ func (m *MockLLMClient) SetShouldReturnError(shouldError bool) {
 	m.shouldReturnError = shouldError
 
 }
-
-
 
 // GetCallCount returns the number of times ProcessIntent was called.
 
@@ -197,8 +149,6 @@ func (m *MockLLMClient) GetCallCount() int {
 
 }
 
-
-
 // GetLastIntent returns the last intent that was processed.
 
 func (m *MockLLMClient) GetLastIntent() string {
@@ -206,8 +156,6 @@ func (m *MockLLMClient) GetLastIntent() string {
 	return m.lastIntent
 
 }
-
-
 
 // ResetMock clears all mock state.
 
@@ -227,15 +175,11 @@ func (m *MockLLMClient) ResetMock() {
 
 }
 
-
-
 // generateDefaultResponse creates a default response based on intent content.
 
 func (m *MockLLMClient) generateDefaultResponse(intent string) string {
 
 	lowerIntent := strings.ToLower(intent)
-
-
 
 	// Determine response type based on intent content.
 
@@ -245,13 +189,9 @@ func (m *MockLLMClient) generateDefaultResponse(intent string) string {
 
 	}
 
-
-
 	return m.generateDeploymentResponse(intent)
 
 }
-
-
 
 // generateDeploymentResponse generates a default deployment response.
 
@@ -259,15 +199,11 @@ func (m *MockLLMClient) generateDeploymentResponse(intent string) string {
 
 	lowerIntent := strings.ToLower(intent)
 
-
-
 	// Determine network function type.
 
 	nfType := "generic-nf"
 
 	namespace := "default"
-
-
 
 	if strings.Contains(lowerIntent, "upf") {
 
@@ -301,13 +237,11 @@ func (m *MockLLMClient) generateDeploymentResponse(intent string) string {
 
 	}
 
-
-
 	response := map[string]interface{}{
 
-		"type":      "NetworkFunctionDeployment",
+		"type": "NetworkFunctionDeployment",
 
-		"name":      fmt.Sprintf("%s-deployment", nfType),
+		"name": fmt.Sprintf("%s-deployment", nfType),
 
 		"namespace": namespace,
 
@@ -315,21 +249,16 @@ func (m *MockLLMClient) generateDeploymentResponse(intent string) string {
 
 			"replicas": 1,
 
-			"image":    fmt.Sprintf("registry.local/%s:latest", nfType),
+			"image": fmt.Sprintf("registry.local/%s:latest", nfType),
 
 			"resources": map[string]interface{}{
 
 				"requests": map[string]string{"cpu": "500m", "memory": "1Gi"},
 
-				"limits":   map[string]string{"cpu": "1000m", "memory": "2Gi"},
-
+				"limits": map[string]string{"cpu": "1000m", "memory": "2Gi"},
 			},
-
 		},
-
 	}
-
-
 
 	jsonBytes, _ := json.Marshal(response)
 
@@ -337,21 +266,15 @@ func (m *MockLLMClient) generateDeploymentResponse(intent string) string {
 
 }
 
-
-
 // generateScaleResponse generates a default scaling response.
 
 func (m *MockLLMClient) generateScaleResponse(intent string) string {
 
 	lowerIntent := strings.ToLower(intent)
 
-
-
 	nfType := "generic-nf"
 
 	namespace := "default"
-
-
 
 	if strings.Contains(lowerIntent, "upf") {
 
@@ -367,13 +290,11 @@ func (m *MockLLMClient) generateScaleResponse(intent string) string {
 
 	}
 
-
-
 	response := map[string]interface{}{
 
-		"type":      "NetworkFunctionScale",
+		"type": "NetworkFunctionScale",
 
-		"name":      fmt.Sprintf("%s-deployment", nfType),
+		"name": fmt.Sprintf("%s-deployment", nfType),
 
 		"namespace": namespace,
 
@@ -384,24 +305,16 @@ func (m *MockLLMClient) generateScaleResponse(intent string) string {
 				"horizontal": map[string]interface{}{
 
 					"replicas": 3,
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	jsonBytes, _ := json.Marshal(response)
 
 	return string(jsonBytes)
 
 }
-
-
 
 // ProcessIntentStream implements the shared.ClientInterface.
 
@@ -417,21 +330,16 @@ func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 
 	}
 
-
-
 	chunk := &shared.StreamingChunk{
 
-		Content:   response,
+		Content: response,
 
-		IsLast:    true,
+		IsLast: true,
 
-		Metadata:  make(map[string]interface{}),
+		Metadata: make(map[string]interface{}),
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	select {
 
@@ -443,13 +351,9 @@ func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetSupportedModels implements the shared.ClientInterface.
 
@@ -459,31 +363,26 @@ func (m *MockLLMClient) GetSupportedModels() []string {
 
 }
 
-
-
 // GetModelCapabilities implements the shared.ClientInterface.
 
 func (m *MockLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
 
 	return &shared.ModelCapabilities{
 
-		MaxTokens:         4096,
+		MaxTokens: 4096,
 
-		SupportsChat:      true,
+		SupportsChat: true,
 
-		SupportsFunction:  true,
+		SupportsFunction: true,
 
 		SupportsStreaming: true,
 
-		CostPerToken:      0.001,
+		CostPerToken: 0.001,
 
-		Features:          make(map[string]interface{}),
-
+		Features: make(map[string]interface{}),
 	}, nil
 
 }
-
-
 
 // ValidateModel implements the shared.ClientInterface.
 
@@ -505,8 +404,6 @@ func (m *MockLLMClient) ValidateModel(modelName string) error {
 
 }
 
-
-
 // EstimateTokens implements the shared.ClientInterface.
 
 func (m *MockLLMClient) EstimateTokens(text string) int {
@@ -517,8 +414,6 @@ func (m *MockLLMClient) EstimateTokens(text string) int {
 
 }
 
-
-
 // GetMaxTokens implements the shared.ClientInterface.
 
 func (m *MockLLMClient) GetMaxTokens(modelName string) int {
@@ -526,8 +421,6 @@ func (m *MockLLMClient) GetMaxTokens(modelName string) int {
 	return 4096 // Default max tokens for testing
 
 }
-
-
 
 // Close implements the shared.ClientInterface.
 
@@ -537,8 +430,6 @@ func (m *MockLLMClient) Close() error {
 
 }
 
-
-
 // GetError returns the current error state for test convenience.
 
 func (m *MockLLMClient) GetError() error {
@@ -547,29 +438,23 @@ func (m *MockLLMClient) GetError() error {
 
 }
 
-
-
 // MockGitClient provides a mock implementation of the Git client interface.
 
 type MockGitClient struct {
+	files map[string]string
 
-	files           map[string]string
+	commits []string
 
-	commits         []string
-
-	initError       error
+	initError error
 
 	commitPushError error
 
-	callLog         []string
+	callLog []string
 
-	commitCount     int
+	commitCount int
 
-	lastCommitHash  string
-
+	lastCommitHash string
 }
-
-
 
 // NewMockGitClient creates a new mock Git client.
 
@@ -577,19 +462,16 @@ func NewMockGitClient() *MockGitClient {
 
 	return &MockGitClient{
 
-		files:          make(map[string]string),
+		files: make(map[string]string),
 
-		commits:        make([]string, 0),
+		commits: make([]string, 0),
 
-		callLog:        make([]string, 0),
+		callLog: make([]string, 0),
 
 		lastCommitHash: "initial-commit-hash",
-
 	}
 
 }
-
-
 
 // InitRepo implements the Git client interface.
 
@@ -597,21 +479,15 @@ func (m *MockGitClient) InitRepo() error {
 
 	m.callLog = append(m.callLog, "InitRepo()")
 
-
-
 	if m.initError != nil {
 
 		return m.initError
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // CommitAndPush implements the Git client interface.
 
@@ -621,15 +497,11 @@ func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (
 
 	m.commitCount++
 
-
-
 	if m.commitPushError != nil {
 
 		return "", m.commitPushError
 
 	}
-
-
 
 	// Store files.
 
@@ -639,13 +511,9 @@ func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (
 
 	}
 
-
-
 	// Store commit message.
 
 	m.commits = append(m.commits, message)
-
-
 
 	// Use pre-set commit hash or generate one.
 
@@ -659,13 +527,9 @@ func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (
 
 	}
 
-
-
 	return commitHash, nil
 
 }
-
-
 
 // CommitAndPushChanges implements the Git client interface.
 
@@ -675,21 +539,15 @@ func (m *MockGitClient) CommitAndPushChanges(message string) error {
 
 	m.commitCount++
 
-
-
 	if m.commitPushError != nil {
 
 		return m.commitPushError
 
 	}
 
-
-
 	// Store commit message.
 
 	m.commits = append(m.commits, message)
-
-
 
 	// Generate commit hash.
 
@@ -697,13 +555,9 @@ func (m *MockGitClient) CommitAndPushChanges(message string) error {
 
 	m.lastCommitHash = commitHash
 
-
-
 	return nil
 
 }
-
-
 
 // RemoveDirectory implements the Git client interface.
 
@@ -713,15 +567,11 @@ func (m *MockGitClient) RemoveDirectory(path, commitMessage string) error {
 
 	m.commitCount++
 
-
-
 	if m.commitPushError != nil {
 
 		return m.commitPushError
 
 	}
-
-
 
 	// Remove files that start with the path.
 
@@ -735,19 +585,13 @@ func (m *MockGitClient) RemoveDirectory(path, commitMessage string) error {
 
 	}
 
-
-
 	// Store commit message.
 
 	m.commits = append(m.commits, commitMessage)
 
-
-
 	return nil
 
 }
-
-
 
 // SetInitError sets an error to be returned by InitRepo operations.
 
@@ -757,8 +601,6 @@ func (m *MockGitClient) SetInitError(err error) {
 
 }
 
-
-
 // SetCommitPushError sets an error to be returned by CommitAndPush operations.
 
 func (m *MockGitClient) SetCommitPushError(err error) {
@@ -766,8 +608,6 @@ func (m *MockGitClient) SetCommitPushError(err error) {
 	m.commitPushError = err
 
 }
-
-
 
 // GetCallLog returns the log of all method calls.
 
@@ -777,8 +617,6 @@ func (m *MockGitClient) GetCallLog() []string {
 
 }
 
-
-
 // GetCommitCount returns the number of commits made.
 
 func (m *MockGitClient) GetCommitCount() int {
@@ -786,8 +624,6 @@ func (m *MockGitClient) GetCommitCount() int {
 	return m.commitCount
 
 }
-
-
 
 // CommitFiles implements the Git client interface (new method).
 
@@ -797,15 +633,11 @@ func (m *MockGitClient) CommitFiles(files []string, msg string) error {
 
 	m.commitCount++
 
-
-
 	if m.commitPushError != nil {
 
 		return m.commitPushError
 
 	}
-
-
 
 	// Mock committing files.
 
@@ -815,13 +647,9 @@ func (m *MockGitClient) CommitFiles(files []string, msg string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // CreateBranch implements the Git client interface (new method).
 
@@ -833,8 +661,6 @@ func (m *MockGitClient) CreateBranch(name string) error {
 
 }
 
-
-
 // SwitchBranch implements the Git client interface (new method).
 
 func (m *MockGitClient) SwitchBranch(name string) error {
@@ -844,8 +670,6 @@ func (m *MockGitClient) SwitchBranch(name string) error {
 	return nil
 
 }
-
-
 
 // GetCurrentBranch implements the Git client interface (new method).
 
@@ -857,8 +681,6 @@ func (m *MockGitClient) GetCurrentBranch() (string, error) {
 
 }
 
-
-
 // ListBranches implements the Git client interface (new method).
 
 func (m *MockGitClient) ListBranches() ([]string, error) {
@@ -868,8 +690,6 @@ func (m *MockGitClient) ListBranches() ([]string, error) {
 	return []string{"main", "dev", "feature-branch"}, nil
 
 }
-
-
 
 // GetFileContent implements the Git client interface (new method - updated signature).
 
@@ -887,8 +707,6 @@ func (m *MockGitClient) GetFileContent(path string) ([]byte, error) {
 
 }
 
-
-
 // GetFileContentString returns the content of a file in the mock repository as string (for backwards compatibility).
 
 func (m *MockGitClient) GetFileContentString(filePath string) string {
@@ -903,8 +721,6 @@ func (m *MockGitClient) GetFileContentString(filePath string) string {
 
 }
 
-
-
 // GetCommits returns all commits made to the mock repository.
 
 func (m *MockGitClient) GetCommits() []string {
@@ -912,8 +728,6 @@ func (m *MockGitClient) GetCommits() []string {
 	return m.commits
 
 }
-
-
 
 // SetCommitHash sets the commit hash that will be returned by CommitAndPush.
 
@@ -923,8 +737,6 @@ func (m *MockGitClient) SetCommitHash(hash string) {
 
 }
 
-
-
 // GetLastCommitHash returns the last commit hash.
 
 func (m *MockGitClient) GetLastCommitHash() string {
@@ -932,8 +744,6 @@ func (m *MockGitClient) GetLastCommitHash() string {
 	return m.lastCommitHash
 
 }
-
-
 
 // ResetMock clears all mock state.
 
@@ -955,8 +765,6 @@ func (m *MockGitClient) ResetMock() {
 
 }
 
-
-
 // File operations.
 
 func (m *MockGitClient) Add(path string) error {
@@ -966,8 +774,6 @@ func (m *MockGitClient) Add(path string) error {
 	return nil
 
 }
-
-
 
 // Remove performs remove operation.
 
@@ -980,8 +786,6 @@ func (m *MockGitClient) Remove(path string) error {
 	return nil
 
 }
-
-
 
 // Move performs move operation.
 
@@ -1001,8 +805,6 @@ func (m *MockGitClient) Move(oldPath, newPath string) error {
 
 }
 
-
-
 // Restore performs restore operation.
 
 func (m *MockGitClient) Restore(path string) error {
@@ -1012,8 +814,6 @@ func (m *MockGitClient) Restore(path string) error {
 	return nil
 
 }
-
-
 
 // Branch operations.
 
@@ -1025,8 +825,6 @@ func (m *MockGitClient) DeleteBranch(name string) error {
 
 }
 
-
-
 // MergeBranch performs mergebranch operation.
 
 func (m *MockGitClient) MergeBranch(sourceBranch, targetBranch string) error {
@@ -1036,8 +834,6 @@ func (m *MockGitClient) MergeBranch(sourceBranch, targetBranch string) error {
 	return nil
 
 }
-
-
 
 // RebaseBranch performs rebasebranch operation.
 
@@ -1049,8 +845,6 @@ func (m *MockGitClient) RebaseBranch(sourceBranch, targetBranch string) error {
 
 }
 
-
-
 // Commit operations.
 
 func (m *MockGitClient) CherryPick(commitHash string) error {
@@ -1060,8 +854,6 @@ func (m *MockGitClient) CherryPick(commitHash string) error {
 	return nil
 
 }
-
-
 
 // Reset performs reset operation.
 
@@ -1073,8 +865,6 @@ func (m *MockGitClient) Reset(options git.ResetOptions) error {
 
 }
 
-
-
 // Clean performs clean operation.
 
 func (m *MockGitClient) Clean(force bool) error {
@@ -1084,8 +874,6 @@ func (m *MockGitClient) Clean(force bool) error {
 	return nil
 
 }
-
-
 
 // GetCommitHistory performs getcommithistory operation.
 
@@ -1097,23 +885,19 @@ func (m *MockGitClient) GetCommitHistory(options git.LogOptions) ([]git.CommitIn
 
 		{
 
-			Hash:      "abc123",
+			Hash: "abc123",
 
-			Message:   "Test commit",
+			Message: "Test commit",
 
-			Author:    "Test Author",
+			Author: "Test Author",
 
-			Email:     "test@example.com",
+			Email: "test@example.com",
 
 			Timestamp: time.Now(),
-
 		},
-
 	}, nil
 
 }
-
-
 
 // Tag operations.
 
@@ -1125,8 +909,6 @@ func (m *MockGitClient) CreateTag(name, message string) error {
 
 }
 
-
-
 // ListTags performs listtags operation.
 
 func (m *MockGitClient) ListTags() ([]git.TagInfo, error) {
@@ -1137,25 +919,21 @@ func (m *MockGitClient) ListTags() ([]git.TagInfo, error) {
 
 		{
 
-			Name:      "v1.0.0",
+			Name: "v1.0.0",
 
-			Hash:      "def456",
+			Hash: "def456",
 
-			Message:   "Release v1.0.0",
+			Message: "Release v1.0.0",
 
-			Author:    "Test Author",
+			Author: "Test Author",
 
-			Email:     "test@example.com",
+			Email: "test@example.com",
 
 			Timestamp: time.Now(),
-
 		},
-
 	}, nil
 
 }
-
-
 
 // GetTagInfo performs gettaginfo operation.
 
@@ -1165,23 +943,20 @@ func (m *MockGitClient) GetTagInfo(name string) (git.TagInfo, error) {
 
 	return git.TagInfo{
 
-		Name:      name,
+		Name: name,
 
-		Hash:      "ghi789",
+		Hash: "ghi789",
 
-		Message:   fmt.Sprintf("Tag %s", name),
+		Message: fmt.Sprintf("Tag %s", name),
 
-		Author:    "Test Author",
+		Author: "Test Author",
 
-		Email:     "test@example.com",
+		Email: "test@example.com",
 
 		Timestamp: time.Now(),
-
 	}, nil
 
 }
-
-
 
 // Pull request operations.
 
@@ -1191,33 +966,30 @@ func (m *MockGitClient) CreatePullRequest(options git.PullRequestOptions) (git.P
 
 	return git.PullRequestInfo{
 
-		ID:           1,
+		ID: 1,
 
-		Number:       1,
+		Number: 1,
 
-		Title:        options.Title,
+		Title: options.Title,
 
-		Description:  options.Description,
+		Description: options.Description,
 
-		State:        "open",
+		State: "open",
 
 		SourceBranch: options.SourceBranch,
 
 		TargetBranch: options.TargetBranch,
 
-		Author:       "Test Author",
+		Author: "Test Author",
 
-		URL:          "https://github.com/test/repo/pull/1",
+		URL: "https://github.com/test/repo/pull/1",
 
-		CreatedAt:    time.Now(),
+		CreatedAt: time.Now(),
 
-		UpdatedAt:    time.Now(),
-
+		UpdatedAt: time.Now(),
 	}, nil
 
 }
-
-
 
 // GetPullRequestStatus performs getpullrequeststatus operation.
 
@@ -1229,8 +1001,6 @@ func (m *MockGitClient) GetPullRequestStatus(id int) (string, error) {
 
 }
 
-
-
 // ApprovePullRequest performs approvepullrequest operation.
 
 func (m *MockGitClient) ApprovePullRequest(id int) error {
@@ -1240,8 +1010,6 @@ func (m *MockGitClient) ApprovePullRequest(id int) error {
 	return nil
 
 }
-
-
 
 // MergePullRequest performs mergepullrequest operation.
 
@@ -1253,8 +1021,6 @@ func (m *MockGitClient) MergePullRequest(id int) error {
 
 }
 
-
-
 // Status and diff operations.
 
 func (m *MockGitClient) GetDiff(options git.DiffOptions) (string, error) {
@@ -1264,8 +1030,6 @@ func (m *MockGitClient) GetDiff(options git.DiffOptions) (string, error) {
 	return "diff --git a/test.txt b/test.txt\nindex 123..456 789\n--- a/test.txt\n+++ b/test.txt\n@@ -1 +1 @@\n-old content\n+new content", nil
 
 }
-
-
 
 // GetStatus performs getstatus operation.
 
@@ -1277,21 +1041,17 @@ func (m *MockGitClient) GetStatus() ([]git.StatusInfo, error) {
 
 		{
 
-			Path:     "test.txt",
+			Path: "test.txt",
 
-			Status:   "modified",
+			Status: "modified",
 
-			Staging:  "M",
+			Staging: "M",
 
 			Worktree: " ",
-
 		},
-
 	}, nil
 
 }
-
-
 
 // Patch operations.
 
@@ -1303,8 +1063,6 @@ func (m *MockGitClient) ApplyPatch(patch string) error {
 
 }
 
-
-
 // CreatePatch performs createpatch operation.
 
 func (m *MockGitClient) CreatePatch(options git.DiffOptions) (string, error) {
@@ -1314,8 +1072,6 @@ func (m *MockGitClient) CreatePatch(options git.DiffOptions) (string, error) {
 	return "patch content", nil
 
 }
-
-
 
 // Remote operations.
 
@@ -1329,17 +1085,13 @@ func (m *MockGitClient) GetRemotes() ([]git.RemoteInfo, error) {
 
 			Name: "origin",
 
-			URL:  "https://github.com/test/repo.git",
+			URL: "https://github.com/test/repo.git",
 
 			Type: "fetch",
-
 		},
-
 	}, nil
 
 }
-
-
 
 // AddRemote performs addremote operation.
 
@@ -1351,8 +1103,6 @@ func (m *MockGitClient) AddRemote(name, url string) error {
 
 }
 
-
-
 // RemoveRemote performs removeremote operation.
 
 func (m *MockGitClient) RemoveRemote(name string) error {
@@ -1362,8 +1112,6 @@ func (m *MockGitClient) RemoveRemote(name string) error {
 	return nil
 
 }
-
-
 
 // Fetch performs fetch operation.
 
@@ -1375,8 +1123,6 @@ func (m *MockGitClient) Fetch(remote string) error {
 
 }
 
-
-
 // Pull performs pull operation.
 
 func (m *MockGitClient) Pull(remote string) error {
@@ -1386,8 +1132,6 @@ func (m *MockGitClient) Pull(remote string) error {
 	return nil
 
 }
-
-
 
 // Push performs push operation.
 
@@ -1399,8 +1143,6 @@ func (m *MockGitClient) Push(remote string) error {
 
 }
 
-
-
 // Log operations.
 
 func (m *MockGitClient) GetLog(options git.LogOptions) ([]git.CommitInfo, error) {
@@ -1411,35 +1153,27 @@ func (m *MockGitClient) GetLog(options git.LogOptions) ([]git.CommitInfo, error)
 
 		{
 
-			Hash:      "abc123",
+			Hash: "abc123",
 
-			Message:   "Test commit",
+			Message: "Test commit",
 
-			Author:    "Test Author",
+			Author: "Test Author",
 
-			Email:     "test@example.com",
+			Email: "test@example.com",
 
 			Timestamp: time.Now(),
-
 		},
-
 	}, nil
 
 }
 
-
-
 // MockDependencies provides a mock implementation of the Dependencies interface.
 
 type MockDependencies struct {
-
 	LLMClient *MockLLMClient
 
 	GitClient *MockGitClient
-
 }
-
-
 
 // GetLLMClient returns the mock LLM client.
 
@@ -1449,8 +1183,6 @@ func (m *MockDependencies) GetLLMClient() shared.ClientInterface {
 
 }
 
-
-
 // GetGitClient returns the mock Git client.
 
 func (m *MockDependencies) GetGitClient() git.ClientInterface {
@@ -1459,49 +1191,33 @@ func (m *MockDependencies) GetGitClient() git.ClientInterface {
 
 }
 
-
-
 // Placeholder implementations for other dependencies (can be extended as needed).
 
 func (m *MockDependencies) GetPackageGenerator() *nephio.PackageGenerator { return nil }
-
-
 
 // GetHTTPClient performs gethttpclient operation.
 
 func (m *MockDependencies) GetHTTPClient() *http.Client { return &http.Client{} }
 
-
-
 // GetEventRecorder performs geteventrecorder operation.
 
 func (m *MockDependencies) GetEventRecorder() record.EventRecorder { return &record.FakeRecorder{} }
-
-
 
 // GetTelecomKnowledgeBase performs gettelecomknowledgebase operation.
 
 func (m *MockDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase { return nil }
 
-
-
 // GetMetricsCollector performs getmetricscollector operation.
 
 func (m *MockDependencies) GetMetricsCollector() *monitoring.MetricsCollector { return nil }
 
-
-
 // MockDependenciesBuilder provides a builder pattern for creating mock dependencies.
 
 type MockDependenciesBuilder struct {
-
 	llmClient *MockLLMClient
 
 	gitClient *MockGitClient
-
 }
-
-
 
 // NewMockDependenciesBuilder creates a new builder for mock dependencies.
 
@@ -1512,12 +1228,9 @@ func NewMockDependenciesBuilder() *MockDependenciesBuilder {
 		llmClient: NewMockLLMClient(),
 
 		gitClient: NewMockGitClient(),
-
 	}
 
 }
-
-
 
 // WithLLMClient sets the LLM client.
 
@@ -1529,8 +1242,6 @@ func (b *MockDependenciesBuilder) WithLLMClient(client *MockLLMClient) *MockDepe
 
 }
 
-
-
 // WithGitClient sets the Git client.
 
 func (b *MockDependenciesBuilder) WithGitClient(client *MockGitClient) *MockDependenciesBuilder {
@@ -1541,8 +1252,6 @@ func (b *MockDependenciesBuilder) WithGitClient(client *MockGitClient) *MockDepe
 
 }
 
-
-
 // Build creates the mock dependencies.
 
 func (b *MockDependenciesBuilder) Build() *MockDependencies {
@@ -1552,30 +1261,21 @@ func (b *MockDependenciesBuilder) Build() *MockDependencies {
 		LLMClient: b.llmClient,
 
 		GitClient: b.gitClient,
-
 	}
 
 }
-
-
 
 // MockLLMClientInterface is an alias for MockLLMClient for backward compatibility.
 
 type MockLLMClientInterface = MockLLMClient
 
-
-
 // MockGitClientInterface is an alias for MockGitClient for interface compatibility.
 
 type MockGitClientInterface = MockGitClient
 
-
-
 // EnhancedMockGitClient is an alias for MockGitClient with enhanced functionality.
 
 type EnhancedMockGitClient = MockGitClient
-
-
 
 // NewEnhancedMockGitClient creates a new enhanced mock git client.
 
@@ -1585,33 +1285,22 @@ func NewEnhancedMockGitClient() *EnhancedMockGitClient {
 
 }
 
-
-
 // MockGitClientComprehensive is an alias for MockGitClient.
 
 type MockGitClientComprehensive = MockGitClient
 
-
-
 // MockDependenciesComprehensive provides comprehensive mock dependencies.
 
 type MockDependenciesComprehensive struct {
-
 	llmClient *MockLLMClient
 
 	gitClient *MockGitClientComprehensive
-
 }
-
-
 
 // Ensure mock clients implement the expected interfaces.
 
 var (
-
 	_ shared.ClientInterface = (*MockLLMClient)(nil)
 
-	_ git.ClientInterface    = (*MockGitClient)(nil)
-
+	_ git.ClientInterface = (*MockGitClient)(nil)
 )
-

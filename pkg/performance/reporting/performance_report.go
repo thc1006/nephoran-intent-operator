@@ -1,41 +1,22 @@
-
 package reporting
 
-
-
 import (
-
 	"bytes"
-
 	"encoding/csv"
-
 	"encoding/json"
-
 	"fmt"
-
 	"html/template"
-
 	"os"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/performance/analysis"
-
 )
-
-
 
 // ReportGenerator creates comprehensive performance reports.
 
 type ReportGenerator struct {
-
 	performanceData []analysis.PerformanceMetric
-
 }
-
-
 
 // NewReportGenerator initializes a report generator.
 
@@ -44,8 +25,6 @@ func NewReportGenerator(metrics []analysis.PerformanceMetric) *ReportGenerator {
 	return &ReportGenerator{performanceData: metrics}
 
 }
-
-
 
 // GenerateJSONReport creates a machine-readable JSON report.
 
@@ -57,33 +36,24 @@ func (rg *ReportGenerator) GenerateJSONReport() ([]byte, error) {
 
 	outliers := analyzer.OutlierDetection()
 
-
-
 	report := struct {
-
-		Timestamp        time.Time                 `json:"timestamp"`
+		Timestamp time.Time `json:"timestamp"`
 
 		DescriptiveStats analysis.DescriptiveStats `json:"descriptive_stats"`
 
-		Outliers         analysis.OutlierResult    `json:"outliers"`
-
+		Outliers analysis.OutlierResult `json:"outliers"`
 	}{
 
-		Timestamp:        time.Now(),
+		Timestamp: time.Now(),
 
 		DescriptiveStats: descriptiveStats,
 
-		Outliers:         outliers,
-
+		Outliers: outliers,
 	}
-
-
 
 	return json.MarshalIndent(report, "", "  ")
 
 }
-
-
 
 // GenerateCSVReport exports performance data to CSV.
 
@@ -99,13 +69,9 @@ func (rg *ReportGenerator) GenerateCSVReport(filename string) error {
 
 	defer file.Close()
 
-
-
 	writer := csv.NewWriter(file)
 
 	defer writer.Flush()
-
-
 
 	// Write CSV headers.
 
@@ -117,8 +83,6 @@ func (rg *ReportGenerator) GenerateCSVReport(filename string) error {
 
 	}
 
-
-
 	// Write performance metrics.
 
 	for _, metric := range rg.performanceData {
@@ -128,7 +92,6 @@ func (rg *ReportGenerator) GenerateCSVReport(filename string) error {
 			fmt.Sprintf("%d", metric.Timestamp),
 
 			fmt.Sprintf("%f", metric.Value),
-
 		}
 
 		if err := writer.Write(record); err != nil {
@@ -139,13 +102,9 @@ func (rg *ReportGenerator) GenerateCSVReport(filename string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GenerateHTMLReport creates a human-readable HTML report.
 
@@ -156,8 +115,6 @@ func (rg *ReportGenerator) GenerateHTMLReport() (string, error) {
 	descriptiveStats := analyzer.DescriptiveStatistics()
 
 	outliers := analyzer.OutlierDetection()
-
-
 
 	htmlTemplate := `
 
@@ -251,27 +208,20 @@ func (rg *ReportGenerator) GenerateHTMLReport() (string, error) {
 
 	`
 
-
-
 	data := struct {
-
-		Timestamp        time.Time
+		Timestamp time.Time
 
 		DescriptiveStats analysis.DescriptiveStats
 
-		Outliers         analysis.OutlierResult
-
+		Outliers analysis.OutlierResult
 	}{
 
-		Timestamp:        time.Now(),
+		Timestamp: time.Now(),
 
 		DescriptiveStats: descriptiveStats,
 
-		Outliers:         outliers,
-
+		Outliers: outliers,
 	}
-
-
 
 	tmpl, err := template.New("report").Parse(htmlTemplate)
 
@@ -281,8 +231,6 @@ func (rg *ReportGenerator) GenerateHTMLReport() (string, error) {
 
 	}
 
-
-
 	var renderedReport bytes.Buffer
 
 	if err := tmpl.Execute(&renderedReport, data); err != nil {
@@ -291,9 +239,6 @@ func (rg *ReportGenerator) GenerateHTMLReport() (string, error) {
 
 	}
 
-
-
 	return renderedReport.String(), nil
 
 }
-

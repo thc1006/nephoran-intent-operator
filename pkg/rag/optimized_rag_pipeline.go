@@ -1,65 +1,43 @@
 //go:build !disable_rag && !test
 
-
-
-
 package rag
 
-
-
 import (
-
 	"context"
-
 	"crypto/md5"
-
 	"fmt"
-
 	"log/slog"
-
 	"sort"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-
 )
-
-
 
 // OptimizedRAGPipeline provides a high-performance RAG processing pipeline.
 
 type OptimizedRAGPipeline struct {
+	config *RAGPipelineConfig
 
-	config            *RAGPipelineConfig
-
-	semanticCache     *SemanticCache
+	semanticCache *SemanticCache
 
 	queryPreprocessor *QueryPreprocessor
 
-	resultAggregator  *ResultAggregator
+	resultAggregator *ResultAggregator
 
-	embeddingCache    EmbeddingCache
+	embeddingCache EmbeddingCache
 
-	weaviateClient    *WeaviateClient
+	weaviateClient *WeaviateClient
 
 	batchSearchClient *OptimizedBatchSearchClient
 
-	connectionPool    *OptimizedConnectionPool
+	connectionPool *OptimizedConnectionPool
 
-	logger            *slog.Logger
+	logger *slog.Logger
 
-	metrics           *RAGPipelineMetrics
-
+	metrics *RAGPipelineMetrics
 }
-
-
 
 // RAGPipelineConfig holds configuration for the optimized RAG pipeline.
 
@@ -67,277 +45,226 @@ type RAGPipelineConfig struct {
 
 	// Caching configuration.
 
-	EnableSemanticCache         bool          `json:"enable_semantic_cache"`
+	EnableSemanticCache bool `json:"enable_semantic_cache"`
 
-	SemanticCacheSize           int           `json:"semantic_cache_size"`
+	SemanticCacheSize int `json:"semantic_cache_size"`
 
-	SemanticCacheTTL            time.Duration `json:"semantic_cache_ttl"`
+	SemanticCacheTTL time.Duration `json:"semantic_cache_ttl"`
 
-	SemanticSimilarityThreshold float32       `json:"semantic_similarity_threshold"`
-
-
+	SemanticSimilarityThreshold float32 `json:"semantic_similarity_threshold"`
 
 	// Query preprocessing.
 
 	EnableQueryPreprocessing bool `json:"enable_query_preprocessing"`
 
-	EnableQueryExpansion     bool `json:"enable_query_expansion"`
+	EnableQueryExpansion bool `json:"enable_query_expansion"`
 
 	EnableQueryNormalization bool `json:"enable_query_normalization"`
 
-	EnableTelecomNER         bool `json:"enable_telecom_ner"`
-
-
+	EnableTelecomNER bool `json:"enable_telecom_ner"`
 
 	// Result processing.
 
-	EnableResultAggregation   bool `json:"enable_result_aggregation"`
+	EnableResultAggregation bool `json:"enable_result_aggregation"`
 
 	EnableResultDeduplication bool `json:"enable_result_deduplication"`
 
-	EnableResultRanking       bool `json:"enable_result_ranking"`
+	EnableResultRanking bool `json:"enable_result_ranking"`
 
-	MaxResultsPerQuery        int  `json:"max_results_per_query"`
-
-
+	MaxResultsPerQuery int `json:"max_results_per_query"`
 
 	// Performance optimizations.
 
-	EnableBatchProcessing bool          `json:"enable_batch_processing"`
+	EnableBatchProcessing bool `json:"enable_batch_processing"`
 
-	BatchSize             int           `json:"batch_size"`
+	BatchSize int `json:"batch_size"`
 
-	MaxConcurrency        int           `json:"max_concurrency"`
+	MaxConcurrency int `json:"max_concurrency"`
 
-	ProcessingTimeout     time.Duration `json:"processing_timeout"`
-
-
+	ProcessingTimeout time.Duration `json:"processing_timeout"`
 
 	// Embedding caching.
 
-	EnableEmbeddingCache bool          `json:"enable_embedding_cache"`
+	EnableEmbeddingCache bool `json:"enable_embedding_cache"`
 
-	EmbeddingCacheSize   int           `json:"embedding_cache_size"`
+	EmbeddingCacheSize int `json:"embedding_cache_size"`
 
-	EmbeddingCacheTTL    time.Duration `json:"embedding_cache_ttl"`
-
-
+	EmbeddingCacheTTL time.Duration `json:"embedding_cache_ttl"`
 
 	// Quality thresholds.
 
-	MinSemanticSimilarity float32       `json:"min_semantic_similarity"`
+	MinSemanticSimilarity float32 `json:"min_semantic_similarity"`
 
-	MinResultConfidence   float32       `json:"min_result_confidence"`
+	MinResultConfidence float32 `json:"min_result_confidence"`
 
-	MaxLatencyTarget      time.Duration `json:"max_latency_target"`
-
+	MaxLatencyTarget time.Duration `json:"max_latency_target"`
 }
-
-
 
 // SemanticCache provides intelligent semantic-aware caching.
 
 type SemanticCache struct {
-
 	entries map[string]*SemanticCacheEntry
 
 	vectors map[string][]float32
 
-	config  *RAGPipelineConfig
+	config *RAGPipelineConfig
 
-	mutex   sync.RWMutex
+	mutex sync.RWMutex
 
 	metrics *SemanticCacheMetrics
 
-	logger  *slog.Logger
-
+	logger *slog.Logger
 }
-
-
 
 // SemanticCacheEntry represents a cached semantic result.
 
 type SemanticCacheEntry struct {
+	Query string `json:"query"`
 
-	Query           string       `json:"query"`
+	QueryVector []float32 `json:"query_vector"`
 
-	QueryVector     []float32    `json:"query_vector"`
+	Result *RAGResponse `json:"result"`
 
-	Result          *RAGResponse `json:"result"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt       time.Time    `json:"created_at"`
+	LastAccessed time.Time `json:"last_accessed"`
 
-	LastAccessed    time.Time    `json:"last_accessed"`
+	AccessCount int64 `json:"access_count"`
 
-	AccessCount     int64        `json:"access_count"`
+	SemanticHash string `json:"semantic_hash"`
 
-	SemanticHash    string       `json:"semantic_hash"`
-
-	OriginalQueries []string     `json:"original_queries"`
-
+	OriginalQueries []string `json:"original_queries"`
 }
-
-
 
 // SemanticCacheMetrics tracks semantic cache performance.
 
 type SemanticCacheMetrics struct {
+	TotalQueries int64 `json:"total_queries"`
 
-	TotalQueries         int64   `json:"total_queries"`
+	SemanticHits int64 `json:"semantic_hits"`
 
-	SemanticHits         int64   `json:"semantic_hits"`
+	ExactHits int64 `json:"exact_hits"`
 
-	ExactHits            int64   `json:"exact_hits"`
+	Misses int64 `json:"misses"`
 
-	Misses               int64   `json:"misses"`
-
-	SemanticHitRate      float64 `json:"semantic_hit_rate"`
+	SemanticHitRate float64 `json:"semantic_hit_rate"`
 
 	AverageSemanticScore float32 `json:"average_semantic_score"`
 
-	CacheEvictions       int64   `json:"cache_evictions"`
+	CacheEvictions int64 `json:"cache_evictions"`
 
-	mutex                sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // QueryPreprocessor handles intelligent query preprocessing.
 
 type QueryPreprocessor struct {
+	config *RAGPipelineConfig
 
-	config            *RAGPipelineConfig
-
-	telecomTerms      map[string][]string
+	telecomTerms map[string][]string
 
 	acronymExpansions map[string]string
 
-	synonyms          map[string][]string
+	synonyms map[string][]string
 
-	stopWords         map[string]bool
+	stopWords map[string]bool
 
-	nerPatterns       map[string]string
+	nerPatterns map[string]string
 
-	logger            *slog.Logger
+	logger *slog.Logger
 
-	metrics           *QueryPreprocessorMetrics
-
+	metrics *QueryPreprocessorMetrics
 }
-
-
 
 // QueryPreprocessorMetrics tracks preprocessing performance.
 
 type QueryPreprocessorMetrics struct {
+	TotalQueries int64 `json:"total_queries"`
 
-	TotalQueries          int64         `json:"total_queries"`
+	ProcessedQueries int64 `json:"processed_queries"`
 
-	ProcessedQueries      int64         `json:"processed_queries"`
+	ExpandedQueries int64 `json:"expanded_queries"`
 
-	ExpandedQueries       int64         `json:"expanded_queries"`
+	NormalizedQueries int64 `json:"normalized_queries"`
 
-	NormalizedQueries     int64         `json:"normalized_queries"`
-
-	ExtractedEntities     int64         `json:"extracted_entities"`
+	ExtractedEntities int64 `json:"extracted_entities"`
 
 	AverageProcessingTime time.Duration `json:"average_processing_time"`
 
-	mutex                 sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ResultAggregator handles intelligent result aggregation and ranking.
 
 type ResultAggregator struct {
+	config *RAGPipelineConfig
 
-	config  *RAGPipelineConfig
-
-	logger  *slog.Logger
+	logger *slog.Logger
 
 	metrics *ResultAggregatorMetrics
-
 }
-
-
 
 // ResultAggregatorMetrics tracks aggregation performance.
 
 type ResultAggregatorMetrics struct {
+	TotalAggregations int64 `json:"total_aggregations"`
 
-	TotalAggregations      int64         `json:"total_aggregations"`
+	DeduplicatedResults int64 `json:"deduplicated_results"`
 
-	DeduplicatedResults    int64         `json:"deduplicated_results"`
-
-	RankedResults          int64         `json:"ranked_results"`
+	RankedResults int64 `json:"ranked_results"`
 
 	AverageAggregationTime time.Duration `json:"average_aggregation_time"`
 
-	mutex                  sync.RWMutex
-
+	mutex sync.RWMutex
 }
 
-
-
 // Note: EmbeddingCache interface and related types are defined in embedding_service.go.
-
-
 
 // RAGPipelineMetrics tracks overall pipeline performance.
 
 type RAGPipelineMetrics struct {
+	TotalPipelineRuns int64 `json:"total_pipeline_runs"`
 
-	TotalPipelineRuns  int64         `json:"total_pipeline_runs"`
+	SuccessfulRuns int64 `json:"successful_runs"`
 
-	SuccessfulRuns     int64         `json:"successful_runs"`
+	FailedRuns int64 `json:"failed_runs"`
 
-	FailedRuns         int64         `json:"failed_runs"`
+	AverageLatency time.Duration `json:"average_latency"`
 
-	AverageLatency     time.Duration `json:"average_latency"`
+	LatencyP95 time.Duration `json:"latency_p95"`
 
-	LatencyP95         time.Duration `json:"latency_p95"`
+	LatencyP99 time.Duration `json:"latency_p99"`
 
-	LatencyP99         time.Duration `json:"latency_p99"`
+	CacheUtilization float64 `json:"cache_utilization"`
 
-	CacheUtilization   float64       `json:"cache_utilization"`
+	BatchingEfficiency float64 `json:"batching_efficiency"`
 
-	BatchingEfficiency float64       `json:"batching_efficiency"`
+	PreprocessingTime time.Duration `json:"preprocessing_time"`
 
-	PreprocessingTime  time.Duration `json:"preprocessing_time"`
+	SearchTime time.Duration `json:"search_time"`
 
-	SearchTime         time.Duration `json:"search_time"`
+	AggregationTime time.Duration `json:"aggregation_time"`
 
-	AggregationTime    time.Duration `json:"aggregation_time"`
-
-	mutex              sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ProcessedQuery represents a preprocessed query.
 
 type ProcessedQuery struct {
+	OriginalQuery string `json:"original_query"`
 
-	OriginalQuery     string            `json:"original_query"`
+	NormalizedQuery string `json:"normalized_query"`
 
-	NormalizedQuery   string            `json:"normalized_query"`
-
-	ExpandedQuery     string            `json:"expanded_query"`
+	ExpandedQuery string `json:"expanded_query"`
 
 	ExtractedEntities map[string]string `json:"extracted_entities"`
 
-	Synonyms          []string          `json:"synonyms"`
+	Synonyms []string `json:"synonyms"`
 
-	TelecomTerms      []string          `json:"telecom_terms"`
+	TelecomTerms []string `json:"telecom_terms"`
 
-	ProcessingTime    time.Duration     `json:"processing_time"`
-
+	ProcessingTime time.Duration `json:"processing_time"`
 }
-
-
 
 // NewOptimizedRAGPipeline creates a new optimized RAG pipeline.
 
@@ -359,11 +286,7 @@ func NewOptimizedRAGPipeline(
 
 	}
 
-
-
 	logger := slog.Default().With("component", "optimized-rag-pipeline")
-
-
 
 	// Initialize semantic cache.
 
@@ -373,91 +296,75 @@ func NewOptimizedRAGPipeline(
 
 		vectors: make(map[string][]float32),
 
-		config:  config,
+		config: config,
 
 		metrics: &SemanticCacheMetrics{},
 
-		logger:  logger,
-
+		logger: logger,
 	}
-
-
 
 	// Initialize query preprocessor.
 
 	queryPreprocessor := &QueryPreprocessor{
 
-		config:            config,
+		config: config,
 
-		telecomTerms:      initializeTelecomTerms(),
+		telecomTerms: initializeTelecomTerms(),
 
 		acronymExpansions: initializeAcronymExpansions(),
 
-		synonyms:          initializeSynonyms(),
+		synonyms: initializeSynonyms(),
 
-		stopWords:         initializeStopWords(),
+		stopWords: initializeStopWords(),
 
-		nerPatterns:       initializeNERPatterns(),
+		nerPatterns: initializeNERPatterns(),
 
-		logger:            logger,
+		logger: logger,
 
-		metrics:           &QueryPreprocessorMetrics{},
-
+		metrics: &QueryPreprocessorMetrics{},
 	}
-
-
 
 	// Initialize result aggregator.
 
 	resultAggregator := &ResultAggregator{
 
-		config:  config,
+		config: config,
 
-		logger:  logger,
+		logger: logger,
 
 		metrics: &ResultAggregatorMetrics{},
-
 	}
-
-
 
 	// Initialize embedding cache - use the in-memory implementation.
 
 	embeddingCache := NewInMemoryCache(int64(config.EmbeddingCacheSize))
 
-
-
 	pipeline := &OptimizedRAGPipeline{
 
-		config:            config,
+		config: config,
 
-		semanticCache:     semanticCache,
+		semanticCache: semanticCache,
 
 		queryPreprocessor: queryPreprocessor,
 
-		resultAggregator:  resultAggregator,
+		resultAggregator: resultAggregator,
 
-		embeddingCache:    embeddingCache,
+		embeddingCache: embeddingCache,
 
-		weaviateClient:    weaviateClient,
+		weaviateClient: weaviateClient,
 
 		batchSearchClient: batchSearchClient,
 
-		connectionPool:    connectionPool,
+		connectionPool: connectionPool,
 
-		logger:            logger,
+		logger: logger,
 
-		metrics:           &RAGPipelineMetrics{},
-
+		metrics: &RAGPipelineMetrics{},
 	}
-
-
 
 	// Start background maintenance.
 
 	go pipeline.startBackgroundMaintenance()
-
-
 
 	logger.Info("Optimized RAG pipeline created",
 
@@ -466,16 +373,11 @@ func NewOptimizedRAGPipeline(
 		"preprocessing_enabled", config.EnableQueryPreprocessing,
 
 		"batch_processing_enabled", config.EnableBatchProcessing,
-
 	)
-
-
 
 	return pipeline
 
 }
-
-
 
 // getDefaultRAGPipelineConfig returns default pipeline configuration.
 
@@ -483,73 +385,58 @@ func getDefaultRAGPipelineConfig() *RAGPipelineConfig {
 
 	return &RAGPipelineConfig{
 
-		EnableSemanticCache:         true,
+		EnableSemanticCache: true,
 
-		SemanticCacheSize:           10000,
+		SemanticCacheSize: 10000,
 
-		SemanticCacheTTL:            time.Hour,
+		SemanticCacheTTL: time.Hour,
 
 		SemanticSimilarityThreshold: 0.85,
 
-
-
 		EnableQueryPreprocessing: true,
 
-		EnableQueryExpansion:     true,
+		EnableQueryExpansion: true,
 
 		EnableQueryNormalization: true,
 
-		EnableTelecomNER:         true,
+		EnableTelecomNER: true,
 
-
-
-		EnableResultAggregation:   true,
+		EnableResultAggregation: true,
 
 		EnableResultDeduplication: true,
 
-		EnableResultRanking:       true,
+		EnableResultRanking: true,
 
-		MaxResultsPerQuery:        50,
-
-
+		MaxResultsPerQuery: 50,
 
 		EnableBatchProcessing: true,
 
-		BatchSize:             20,
+		BatchSize: 20,
 
-		MaxConcurrency:        10,
+		MaxConcurrency: 10,
 
-		ProcessingTimeout:     30 * time.Second,
-
-
+		ProcessingTimeout: 30 * time.Second,
 
 		EnableEmbeddingCache: true,
 
-		EmbeddingCacheSize:   5000,
+		EmbeddingCacheSize: 5000,
 
-		EmbeddingCacheTTL:    2 * time.Hour,
-
-
+		EmbeddingCacheTTL: 2 * time.Hour,
 
 		MinSemanticSimilarity: 0.7,
 
-		MinResultConfidence:   0.6,
+		MinResultConfidence: 0.6,
 
-		MaxLatencyTarget:      500 * time.Millisecond,
-
+		MaxLatencyTarget: 500 * time.Millisecond,
 	}
 
 }
-
-
 
 // ProcessQuery processes a query through the optimized RAG pipeline.
 
 func (p *OptimizedRAGPipeline) ProcessQuery(ctx context.Context, request *RAGRequest) (*RAGResponse, error) {
 
 	startTime := time.Now()
-
-
 
 	// Step 1: Check semantic cache.
 
@@ -567,8 +454,6 @@ func (p *OptimizedRAGPipeline) ProcessQuery(ctx context.Context, request *RAGReq
 
 	}
 
-
-
 	// Step 2: Preprocess query.
 
 	var processedQuery *ProcessedQuery
@@ -580,8 +465,6 @@ func (p *OptimizedRAGPipeline) ProcessQuery(ctx context.Context, request *RAGReq
 		request.Query = processedQuery.ExpandedQuery // Use expanded query for search
 
 	}
-
-
 
 	// Step 3: Execute search with optimization.
 
@@ -595,8 +478,6 @@ func (p *OptimizedRAGPipeline) ProcessQuery(ctx context.Context, request *RAGReq
 
 	}
 
-
-
 	// Step 4: Aggregate and rank results.
 
 	if p.config.EnableResultAggregation {
@@ -604,8 +485,6 @@ func (p *OptimizedRAGPipeline) ProcessQuery(ctx context.Context, request *RAGReq
 		searchResponse = p.resultAggregator.AggregateResults(searchResponse)
 
 	}
-
-
 
 	// Step 5: Cache the result.
 
@@ -615,11 +494,7 @@ func (p *OptimizedRAGPipeline) ProcessQuery(ctx context.Context, request *RAGReq
 
 	}
 
-
-
 	p.updatePipelineMetrics(true, time.Since(startTime), "success")
-
-
 
 	p.logger.Info("RAG pipeline completed",
 
@@ -628,16 +503,11 @@ func (p *OptimizedRAGPipeline) ProcessQuery(ctx context.Context, request *RAGReq
 		"processing_time", time.Since(startTime),
 
 		"results", len(searchResponse.SourceDocuments),
-
 	)
-
-
 
 	return searchResponse, nil
 
 }
-
-
 
 // ProcessBatch processes multiple queries in an optimized batch.
 
@@ -649,19 +519,13 @@ func (p *OptimizedRAGPipeline) ProcessBatch(ctx context.Context, requests []*RAG
 
 	}
 
-
-
 	startTime := time.Now()
-
-
 
 	// Step 1: Check semantic cache for all requests.
 
 	var cachedResponses []*RAGResponse
 
 	var remainingRequests []*RAGRequest
-
-
 
 	if p.config.EnableSemanticCache {
 
@@ -685,8 +549,6 @@ func (p *OptimizedRAGPipeline) ProcessBatch(ctx context.Context, requests []*RAG
 
 	}
 
-
-
 	// Step 2: Batch preprocess remaining queries.
 
 	var processedQueries []*ProcessedQuery
@@ -694,8 +556,6 @@ func (p *OptimizedRAGPipeline) ProcessBatch(ctx context.Context, requests []*RAG
 	if p.config.EnableQueryPreprocessing && len(remainingRequests) > 0 {
 
 		processedQueries = p.queryPreprocessor.ProcessBatch(remainingRequests)
-
-
 
 		// Update requests with processed queries.
 
@@ -710,8 +570,6 @@ func (p *OptimizedRAGPipeline) ProcessBatch(ctx context.Context, requests []*RAG
 		}
 
 	}
-
-
 
 	// Step 3: Execute batch search.
 
@@ -733,13 +591,9 @@ func (p *OptimizedRAGPipeline) ProcessBatch(ctx context.Context, requests []*RAG
 
 	}
 
-
-
 	// Step 4: Combine cached and fresh responses.
 
 	allResponses := append(cachedResponses, freshResponses...)
-
-
 
 	// Step 5: Aggregate results if enabled.
 
@@ -752,8 +606,6 @@ func (p *OptimizedRAGPipeline) ProcessBatch(ctx context.Context, requests []*RAG
 		}
 
 	}
-
-
 
 	// Step 6: Cache fresh results.
 
@@ -771,11 +623,7 @@ func (p *OptimizedRAGPipeline) ProcessBatch(ctx context.Context, requests []*RAG
 
 	}
 
-
-
 	p.updatePipelineMetrics(true, time.Since(startTime), "batch_success")
-
-
 
 	p.logger.Info("RAG batch pipeline completed",
 
@@ -786,16 +634,11 @@ func (p *OptimizedRAGPipeline) ProcessBatch(ctx context.Context, requests []*RAG
 		"fresh_responses", len(freshResponses),
 
 		"processing_time", time.Since(startTime),
-
 	)
-
-
 
 	return allResponses, nil
 
 }
-
-
 
 // executeOptimizedSearch performs optimized single query search.
 
@@ -805,21 +648,18 @@ func (p *OptimizedRAGPipeline) executeOptimizedSearch(ctx context.Context, reque
 
 	searchQuery := &SearchQuery{
 
-		Query:         request.Query,
+		Query: request.Query,
 
-		Limit:         request.MaxResults,
+		Limit: request.MaxResults,
 
-		Filters:       request.SearchFilters,
+		Filters: request.SearchFilters,
 
-		HybridSearch:  request.UseHybridSearch,
+		HybridSearch: request.UseHybridSearch,
 
-		UseReranker:   request.EnableReranking,
+		UseReranker: request.EnableReranking,
 
 		MinConfidence: request.MinConfidence,
-
 	}
-
-
 
 	// Execute search.
 
@@ -831,29 +671,24 @@ func (p *OptimizedRAGPipeline) executeOptimizedSearch(ctx context.Context, reque
 
 	}
 
-
-
 	// Convert to RAG response.
 
 	ragResponse := &RAGResponse{
 
-		Answer:          "", // Will be filled by LLM processing
+		Answer: "", // Will be filled by LLM processing
 
 		SourceDocuments: make([]*shared.SearchResult, len(searchResponse.Results)),
 
-		Confidence:      p.calculateAggregateConfidence(searchResponse.Results),
+		Confidence: p.calculateAggregateConfidence(searchResponse.Results),
 
-		ProcessingTime:  searchResponse.Took,
+		ProcessingTime: searchResponse.Took,
 
-		RetrievalTime:   searchResponse.Took,
+		RetrievalTime: searchResponse.Took,
 
-		Query:           request.Query,
+		Query: request.Query,
 
-		ProcessedAt:     time.Now(),
-
+		ProcessedAt: time.Now(),
 	}
-
-
 
 	// Convert search results.
 
@@ -863,19 +698,14 @@ func (p *OptimizedRAGPipeline) executeOptimizedSearch(ctx context.Context, reque
 
 			Document: result.Document,
 
-			Score:    result.Score,
-
+			Score: result.Score,
 		}
 
 	}
 
-
-
 	return ragResponse, nil
 
 }
-
-
 
 // executeBatchSearch performs optimized batch search.
 
@@ -889,37 +719,31 @@ func (p *OptimizedRAGPipeline) executeBatchSearch(ctx context.Context, requests 
 
 		searchQueries[i] = &SearchQuery{
 
-			Query:         request.Query,
+			Query: request.Query,
 
-			Limit:         request.MaxResults,
+			Limit: request.MaxResults,
 
-			Filters:       request.SearchFilters,
+			Filters: request.SearchFilters,
 
-			HybridSearch:  request.UseHybridSearch,
+			HybridSearch: request.UseHybridSearch,
 
-			UseReranker:   request.EnableReranking,
+			UseReranker: request.EnableReranking,
 
 			MinConfidence: request.MinConfidence,
-
 		}
 
 	}
-
-
 
 	// Execute batch search.
 
 	batchRequest := &BatchSearchRequest{
 
-		Queries:           searchQueries,
+		Queries: searchQueries,
 
-		MaxConcurrency:    p.config.MaxConcurrency,
+		MaxConcurrency: p.config.MaxConcurrency,
 
 		EnableAggregation: p.config.EnableResultAggregation,
-
 	}
-
-
 
 	batchResponse, err := p.batchSearchClient.BatchSearch(ctx, batchRequest)
 
@@ -929,8 +753,6 @@ func (p *OptimizedRAGPipeline) executeBatchSearch(ctx context.Context, requests 
 
 	}
 
-
-
 	// Convert to RAG responses.
 
 	ragResponses := make([]*RAGResponse, len(batchResponse.Results))
@@ -939,23 +761,20 @@ func (p *OptimizedRAGPipeline) executeBatchSearch(ctx context.Context, requests 
 
 		ragResponses[i] = &RAGResponse{
 
-			Answer:          "",
+			Answer: "",
 
 			SourceDocuments: make([]*shared.SearchResult, len(searchResponse.Results)),
 
-			Confidence:      p.calculateAggregateConfidence(searchResponse.Results),
+			Confidence: p.calculateAggregateConfidence(searchResponse.Results),
 
-			ProcessingTime:  searchResponse.Took,
+			ProcessingTime: searchResponse.Took,
 
-			RetrievalTime:   searchResponse.Took,
+			RetrievalTime: searchResponse.Took,
 
-			Query:           requests[i].Query,
+			Query: requests[i].Query,
 
-			ProcessedAt:     time.Now(),
-
+			ProcessedAt: time.Now(),
 		}
-
-
 
 		// Convert search results.
 
@@ -965,25 +784,18 @@ func (p *OptimizedRAGPipeline) executeBatchSearch(ctx context.Context, requests 
 
 				Document: result.Document,
 
-				Score:    result.Score,
-
+				Score: result.Score,
 			}
 
 		}
 
 	}
 
-
-
 	return ragResponses, nil
 
 }
 
-
-
 // Semantic Cache Implementation.
-
-
 
 // GetSimilar retrieves semantically similar cached results.
 
@@ -995,21 +807,15 @@ func (c *SemanticCache) GetSimilar(query string) *SemanticCacheEntry {
 
 	}
 
-
-
 	c.mutex.RLock()
 
 	defer c.mutex.RUnlock()
-
-
 
 	c.metrics.mutex.Lock()
 
 	c.metrics.TotalQueries++
 
 	c.metrics.mutex.Unlock()
-
-
 
 	// First try exact match.
 
@@ -1021,15 +827,11 @@ func (c *SemanticCache) GetSimilar(query string) *SemanticCacheEntry {
 
 	}
 
-
-
 	// Then try semantic similarity.
 
 	queryVector := c.generateQueryVector(query) // Placeholder implementation
 
 	bestMatch := c.findBestSemanticMatch(query, queryVector)
-
-
 
 	if bestMatch != nil {
 
@@ -1039,21 +841,15 @@ func (c *SemanticCache) GetSimilar(query string) *SemanticCacheEntry {
 
 	}
 
-
-
 	c.metrics.mutex.Lock()
 
 	c.metrics.Misses++
 
 	c.metrics.mutex.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 // Store caches a result with semantic awareness.
 
@@ -1065,13 +861,9 @@ func (c *SemanticCache) Store(query string, result *RAGResponse) {
 
 	}
 
-
-
 	c.mutex.Lock()
 
 	defer c.mutex.Unlock()
-
-
 
 	// Generate semantic hash and vector.
 
@@ -1079,35 +871,28 @@ func (c *SemanticCache) Store(query string, result *RAGResponse) {
 
 	semanticHash := c.generateSemanticHash(query, queryVector)
 
-
-
 	entry := &SemanticCacheEntry{
 
-		Query:           query,
+		Query: query,
 
-		QueryVector:     queryVector,
+		QueryVector: queryVector,
 
-		Result:          result,
+		Result: result,
 
-		CreatedAt:       time.Now(),
+		CreatedAt: time.Now(),
 
-		LastAccessed:    time.Now(),
+		LastAccessed: time.Now(),
 
-		AccessCount:     0,
+		AccessCount: 0,
 
-		SemanticHash:    semanticHash,
+		SemanticHash: semanticHash,
 
 		OriginalQueries: []string{query},
-
 	}
-
-
 
 	c.entries[query] = entry
 
 	c.vectors[semanticHash] = queryVector
-
-
 
 	// Evict old entries if necessary.
 
@@ -1119,11 +904,7 @@ func (c *SemanticCache) Store(query string, result *RAGResponse) {
 
 }
 
-
-
 // Helper methods for semantic cache.
-
-
 
 func (c *SemanticCache) generateQueryVector(query string) []float32 {
 
@@ -1141,8 +922,6 @@ func (c *SemanticCache) generateQueryVector(query string) []float32 {
 
 }
 
-
-
 func (c *SemanticCache) generateSemanticHash(query string, vector []float32) string {
 
 	// Combine query text and vector signature for hash.
@@ -1153,15 +932,11 @@ func (c *SemanticCache) generateSemanticHash(query string, vector []float32) str
 
 }
 
-
-
 func (c *SemanticCache) findBestSemanticMatch(query string, queryVector []float32) *SemanticCacheEntry {
 
 	var bestMatch *SemanticCacheEntry
 
 	var bestSimilarity float32
-
-
 
 	for _, entry := range c.entries {
 
@@ -1170,8 +945,6 @@ func (c *SemanticCache) findBestSemanticMatch(query string, queryVector []float3
 			continue // Skip expired entries
 
 		}
-
-
 
 		similarity := c.calculateCosineSimilarity(queryVector, entry.QueryVector)
 
@@ -1185,13 +958,9 @@ func (c *SemanticCache) findBestSemanticMatch(query string, queryVector []float3
 
 	}
 
-
-
 	return bestMatch
 
 }
-
-
 
 func (c *SemanticCache) calculateCosineSimilarity(vec1, vec2 []float32) float32 {
 
@@ -1200,8 +969,6 @@ func (c *SemanticCache) calculateCosineSimilarity(vec1, vec2 []float32) float32 
 		return 0
 
 	}
-
-
 
 	var dotProduct, norm1, norm2 float32
 
@@ -1215,21 +982,15 @@ func (c *SemanticCache) calculateCosineSimilarity(vec1, vec2 []float32) float32 
 
 	}
 
-
-
 	if norm1 == 0 || norm2 == 0 {
 
 		return 0
 
 	}
 
-
-
 	return dotProduct / (float32(sqrt(float64(norm1))) * float32(sqrt(float64(norm2))))
 
 }
-
-
 
 func sqrt(x float64) float64 {
 
@@ -1255,21 +1016,15 @@ func sqrt(x float64) float64 {
 
 }
 
-
-
 func (c *SemanticCache) updateCacheHit(entry *SemanticCacheEntry, exact bool) {
 
 	entry.LastAccessed = time.Now()
 
 	entry.AccessCount++
 
-
-
 	c.metrics.mutex.Lock()
 
 	defer c.metrics.mutex.Unlock()
-
-
 
 	if exact {
 
@@ -1283,15 +1038,11 @@ func (c *SemanticCache) updateCacheHit(entry *SemanticCacheEntry, exact bool) {
 
 }
 
-
-
 func (c *SemanticCache) evictOldest() {
 
 	var oldestKey string
 
 	var oldestTime time.Time = time.Now()
-
-
 
 	for key, entry := range c.entries {
 
@@ -1304,8 +1055,6 @@ func (c *SemanticCache) evictOldest() {
 		}
 
 	}
-
-
 
 	if oldestKey != "" {
 
@@ -1321,11 +1070,7 @@ func (c *SemanticCache) evictOldest() {
 
 }
 
-
-
 // Query Preprocessor Implementation.
-
-
 
 // Process preprocesses a single query.
 
@@ -1333,17 +1078,12 @@ func (p *QueryPreprocessor) Process(query string) *ProcessedQuery {
 
 	startTime := time.Now()
 
-
-
 	processed := &ProcessedQuery{
 
-		OriginalQuery:     query,
+		OriginalQuery: query,
 
 		ExtractedEntities: make(map[string]string),
-
 	}
-
-
 
 	// Step 1: Normalize query.
 
@@ -1357,8 +1097,6 @@ func (p *QueryPreprocessor) Process(query string) *ProcessedQuery {
 
 	}
 
-
-
 	// Step 2: Extract telecom entities.
 
 	if p.config.EnableTelecomNER {
@@ -1366,8 +1104,6 @@ func (p *QueryPreprocessor) Process(query string) *ProcessedQuery {
 		processed.ExtractedEntities = p.extractTelecomEntities(processed.NormalizedQuery)
 
 	}
-
-
 
 	// Step 3: Expand query with synonyms and related terms.
 
@@ -1385,11 +1121,7 @@ func (p *QueryPreprocessor) Process(query string) *ProcessedQuery {
 
 	}
 
-
-
 	processed.ProcessingTime = time.Since(startTime)
-
-
 
 	p.updatePreprocessorMetrics(processed)
 
@@ -1397,15 +1129,11 @@ func (p *QueryPreprocessor) Process(query string) *ProcessedQuery {
 
 }
 
-
-
 // ProcessBatch preprocesses multiple queries efficiently.
 
 func (p *QueryPreprocessor) ProcessBatch(requests []*RAGRequest) []*ProcessedQuery {
 
 	results := make([]*ProcessedQuery, len(requests))
-
-
 
 	// Use goroutines for parallel processing.
 
@@ -1425,27 +1153,19 @@ func (p *QueryPreprocessor) ProcessBatch(requests []*RAGRequest) []*ProcessedQue
 
 	}
 
-
-
 	wg.Wait()
 
 	return results
 
 }
 
-
-
 // Helper methods for query preprocessing.
-
-
 
 func (p *QueryPreprocessor) normalizeQuery(query string) string {
 
 	// Convert to lowercase.
 
 	normalized := strings.ToLower(query)
-
-
 
 	// Expand acronyms.
 
@@ -1454,8 +1174,6 @@ func (p *QueryPreprocessor) normalizeQuery(query string) string {
 		normalized = strings.ReplaceAll(normalized, acronym, expansion)
 
 	}
-
-
 
 	// Remove stop words.
 
@@ -1473,19 +1191,13 @@ func (p *QueryPreprocessor) normalizeQuery(query string) string {
 
 	}
 
-
-
 	return strings.Join(filteredWords, " ")
 
 }
 
-
-
 func (p *QueryPreprocessor) extractTelecomEntities(query string) map[string]string {
 
 	entities := make(map[string]string)
-
-
 
 	// Use pattern matching for telecom entity recognition.
 
@@ -1501,19 +1213,13 @@ func (p *QueryPreprocessor) extractTelecomEntities(query string) map[string]stri
 
 	}
 
-
-
 	return entities
 
 }
 
-
-
 func (p *QueryPreprocessor) expandQuery(query string, entities map[string]string) string {
 
 	expanded := query
-
-
 
 	// Add synonyms.
 
@@ -1525,8 +1231,6 @@ func (p *QueryPreprocessor) expandQuery(query string, entities map[string]string
 
 	}
 
-
-
 	// Add related telecom terms.
 
 	telecomTerms := p.findTelecomTerms(query)
@@ -1537,21 +1241,15 @@ func (p *QueryPreprocessor) expandQuery(query string, entities map[string]string
 
 	}
 
-
-
 	return expanded
 
 }
-
-
 
 func (p *QueryPreprocessor) findSynonyms(query string) []string {
 
 	var synonyms []string
 
 	words := strings.Fields(query)
-
-
 
 	for _, word := range words {
 
@@ -1563,19 +1261,13 @@ func (p *QueryPreprocessor) findSynonyms(query string) []string {
 
 	}
 
-
-
 	return synonyms
 
 }
 
-
-
 func (p *QueryPreprocessor) findTelecomTerms(query string) []string {
 
 	var terms []string
-
-
 
 	for term, relatedTerms := range p.telecomTerms {
 
@@ -1587,13 +1279,9 @@ func (p *QueryPreprocessor) findTelecomTerms(query string) []string {
 
 	}
 
-
-
 	return terms
 
 }
-
-
 
 func (p *QueryPreprocessor) updatePreprocessorMetrics(processed *ProcessedQuery) {
 
@@ -1601,13 +1289,9 @@ func (p *QueryPreprocessor) updatePreprocessorMetrics(processed *ProcessedQuery)
 
 	defer p.metrics.mutex.Unlock()
 
-
-
 	p.metrics.TotalQueries++
 
 	p.metrics.ProcessedQueries++
-
-
 
 	if processed.ExpandedQuery != processed.OriginalQuery {
 
@@ -1615,19 +1299,13 @@ func (p *QueryPreprocessor) updatePreprocessorMetrics(processed *ProcessedQuery)
 
 	}
 
-
-
 	if processed.NormalizedQuery != processed.OriginalQuery {
 
 		p.metrics.NormalizedQueries++
 
 	}
 
-
-
 	p.metrics.ExtractedEntities += int64(len(processed.ExtractedEntities))
-
-
 
 	// Update average processing time.
 
@@ -1645,11 +1323,7 @@ func (p *QueryPreprocessor) updatePreprocessorMetrics(processed *ProcessedQuery)
 
 }
 
-
-
 // Result Aggregator Implementation.
-
-
 
 // AggregateResults performs intelligent result aggregation.
 
@@ -1661,11 +1335,7 @@ func (r *ResultAggregator) AggregateResults(response *RAGResponse) *RAGResponse 
 
 	}
 
-
-
 	startTime := time.Now()
-
-
 
 	// Step 1: Deduplicate results if enabled.
 
@@ -1675,8 +1345,6 @@ func (r *ResultAggregator) AggregateResults(response *RAGResponse) *RAGResponse 
 
 	}
 
-
-
 	// Step 2: Rank results if enabled.
 
 	if r.config.EnableResultRanking {
@@ -1684,8 +1352,6 @@ func (r *ResultAggregator) AggregateResults(response *RAGResponse) *RAGResponse 
 		response.SourceDocuments = r.rankResults(response.SourceDocuments)
 
 	}
-
-
 
 	// Step 3: Limit results to maximum.
 
@@ -1695,23 +1361,17 @@ func (r *ResultAggregator) AggregateResults(response *RAGResponse) *RAGResponse 
 
 	}
 
-
-
 	r.updateAggregatorMetrics(response, time.Since(startTime))
 
 	return response
 
 }
 
-
-
 func (r *ResultAggregator) deduplicateResults(results []*shared.SearchResult) []*shared.SearchResult {
 
 	seen := make(map[string]*shared.SearchResult)
 
 	var deduplicated []*shared.SearchResult
-
-
 
 	for _, result := range results {
 
@@ -1720,8 +1380,6 @@ func (r *ResultAggregator) deduplicateResults(results []*shared.SearchResult) []
 			continue
 
 		}
-
-
 
 		key := result.Document.ID
 
@@ -1745,13 +1403,9 @@ func (r *ResultAggregator) deduplicateResults(results []*shared.SearchResult) []
 
 	}
 
-
-
 	return deduplicated
 
 }
-
-
 
 func (r *ResultAggregator) rankResults(results []*shared.SearchResult) []*shared.SearchResult {
 
@@ -1763,13 +1417,9 @@ func (r *ResultAggregator) rankResults(results []*shared.SearchResult) []*shared
 
 	})
 
-
-
 	return results
 
 }
-
-
 
 func (r *ResultAggregator) updateAggregatorMetrics(response *RAGResponse, duration time.Duration) {
 
@@ -1777,13 +1427,9 @@ func (r *ResultAggregator) updateAggregatorMetrics(response *RAGResponse, durati
 
 	defer r.metrics.mutex.Unlock()
 
-
-
 	r.metrics.TotalAggregations++
 
 	r.metrics.RankedResults += int64(len(response.SourceDocuments))
-
-
 
 	// Update average aggregation time.
 
@@ -1801,17 +1447,13 @@ func (r *ResultAggregator) updateAggregatorMetrics(response *RAGResponse, durati
 
 }
 
-
-
 // Helper initialization functions.
-
-
 
 func initializeTelecomTerms() map[string][]string {
 
 	return map[string][]string{
 
-		"5G":  {"fifth generation", "nr", "new radio"},
+		"5G": {"fifth generation", "nr", "new radio"},
 
 		"AMF": {"access and mobility management function"},
 
@@ -1820,12 +1462,9 @@ func initializeTelecomTerms() map[string][]string {
 		"UPF": {"user plane function"},
 
 		"gNB": {"next generation node b"},
-
 	}
 
 }
-
-
 
 func initializeAcronymExpansions() map[string]string {
 
@@ -1838,12 +1477,9 @@ func initializeAcronymExpansions() map[string]string {
 		"upf": "user plane function",
 
 		"gnb": "next generation node b",
-
 	}
 
 }
-
-
 
 func initializeSynonyms() map[string][]string {
 
@@ -1851,15 +1487,12 @@ func initializeSynonyms() map[string][]string {
 
 		"configuration": {"config", "setup", "settings"},
 
-		"optimization":  {"tuning", "optimization", "enhancement"},
+		"optimization": {"tuning", "optimization", "enhancement"},
 
-		"network":       {"telecom", "telecommunications", "cellular"},
-
+		"network": {"telecom", "telecommunications", "cellular"},
 	}
 
 }
-
-
 
 func initializeStopWords() map[string]bool {
 
@@ -1870,12 +1503,9 @@ func initializeStopWords() map[string]bool {
 		"but": true, "in": true, "on": true, "at": true, "to": true,
 
 		"for": true, "of": true, "with": true, "by": true, "is": true,
-
 	}
 
 }
-
-
 
 func initializeNERPatterns() map[string]string {
 
@@ -1883,19 +1513,14 @@ func initializeNERPatterns() map[string]string {
 
 		"network_function": "AMF|SMF|UPF|AUSF|UDM|NSSF",
 
-		"interface":        "N1|N2|N3|N4|N6|A1|O1|O2|E2",
+		"interface": "N1|N2|N3|N4|N6|A1|O1|O2|E2",
 
-		"technology":       "5G|4G|LTE|NR|O-RAN|vRAN",
-
+		"technology": "5G|4G|LTE|NR|O-RAN|vRAN",
 	}
 
 }
 
-
-
 // Utility methods.
-
-
 
 func (p *OptimizedRAGPipeline) calculateAggregateConfidence(results []*SearchResult) float32 {
 
@@ -1905,8 +1530,6 @@ func (p *OptimizedRAGPipeline) calculateAggregateConfidence(results []*SearchRes
 
 	}
 
-
-
 	var totalScore float32
 
 	for _, result := range results {
@@ -1915,21 +1538,15 @@ func (p *OptimizedRAGPipeline) calculateAggregateConfidence(results []*SearchRes
 
 	}
 
-
-
 	return totalScore / float32(len(results))
 
 }
-
-
 
 func (p *OptimizedRAGPipeline) updatePipelineMetrics(success bool, duration time.Duration, operation string) {
 
 	p.metrics.mutex.Lock()
 
 	defer p.metrics.mutex.Unlock()
-
-
 
 	p.metrics.TotalPipelineRuns++
 
@@ -1942,8 +1559,6 @@ func (p *OptimizedRAGPipeline) updatePipelineMetrics(success bool, duration time
 		p.metrics.FailedRuns++
 
 	}
-
-
 
 	// Update average latency.
 
@@ -1959,21 +1574,15 @@ func (p *OptimizedRAGPipeline) updatePipelineMetrics(success bool, duration time
 
 	}
 
-
-
 	p.logger.Debug("Pipeline metrics updated", "operation", operation, "duration", duration, "success", success)
 
 }
-
-
 
 func (p *OptimizedRAGPipeline) startBackgroundMaintenance() {
 
 	ticker := time.NewTicker(time.Hour)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1989,8 +1598,6 @@ func (p *OptimizedRAGPipeline) startBackgroundMaintenance() {
 
 }
 
-
-
 func (p *OptimizedRAGPipeline) performMaintenance() {
 
 	// Clean up expired cache entries.
@@ -2001,8 +1608,6 @@ func (p *OptimizedRAGPipeline) performMaintenance() {
 
 	}
 
-
-
 	// Clean up embedding cache.
 
 	if p.config.EnableEmbeddingCache {
@@ -2011,13 +1616,9 @@ func (p *OptimizedRAGPipeline) performMaintenance() {
 
 	}
 
-
-
 	p.logger.Debug("Background maintenance completed")
 
 }
-
-
 
 func (c *SemanticCache) cleanupExpired() {
 
@@ -2025,13 +1626,9 @@ func (c *SemanticCache) cleanupExpired() {
 
 	defer c.mutex.Unlock()
 
-
-
 	now := time.Now()
 
 	var keysToDelete []string
-
-
 
 	for key, entry := range c.entries {
 
@@ -2042,8 +1639,6 @@ func (c *SemanticCache) cleanupExpired() {
 		}
 
 	}
-
-
 
 	for _, key := range keysToDelete {
 
@@ -2057,17 +1652,11 @@ func (c *SemanticCache) cleanupExpired() {
 
 	}
 
-
-
 	c.logger.Debug("Semantic cache cleanup completed", "evicted", len(keysToDelete))
 
 }
 
-
-
 // Note: EmbeddingCache cleanup is handled by the cache implementation.
-
-
 
 // GetMetrics returns all pipeline metrics.
 
@@ -2075,21 +1664,18 @@ func (p *OptimizedRAGPipeline) GetMetrics() map[string]interface{} {
 
 	return map[string]interface{}{
 
-		"pipeline":        p.metrics,
+		"pipeline": p.metrics,
 
-		"semantic_cache":  p.semanticCache.metrics,
+		"semantic_cache": p.semanticCache.metrics,
 
-		"preprocessor":    p.queryPreprocessor.metrics,
+		"preprocessor": p.queryPreprocessor.metrics,
 
-		"aggregator":      p.resultAggregator.metrics,
+		"aggregator": p.resultAggregator.metrics,
 
 		"embedding_cache": p.embeddingCache.Stats(),
-
 	}
 
 }
-
-
 
 // Close cleans up pipeline resources.
 
@@ -2100,4 +1686,3 @@ func (p *OptimizedRAGPipeline) Close() error {
 	return nil
 
 }
-

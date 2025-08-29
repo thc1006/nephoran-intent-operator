@@ -1,83 +1,44 @@
-
 package main
 
-
-
 import (
-
 	"context"
-
 	"flag"
-
 	"net/http"
-
 	"os"
-
 	"time"
 
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
 
-
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-
 	"k8s.io/client-go/tools/record"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
-
 )
-
-
 
 var (
-
-	scheme   = runtime.NewScheme()
+	scheme = runtime.NewScheme()
 
 	setupLog = ctrl.Log.WithName("setup")
-
 )
-
-
 
 // llmClientAdapter adapts llm.Client to shared.ClientInterface.
 
 type llmClientAdapter struct {
-
 	client *llm.Client
-
 }
-
-
 
 // ProcessIntent performs processintent operation.
 
@@ -86,8 +47,6 @@ func (a *llmClientAdapter) ProcessIntent(ctx context.Context, prompt string) (st
 	return a.client.ProcessIntent(ctx, prompt)
 
 }
-
-
 
 // ProcessIntentStream performs processintentstream operation.
 
@@ -103,16 +62,13 @@ func (a *llmClientAdapter) ProcessIntentStream(ctx context.Context, prompt strin
 
 	}
 
-
-
 	if chunks != nil {
 
 		chunks <- &shared.StreamingChunk{
 
 			Content: result,
 
-			IsLast:  true,
-
+			IsLast: true,
 		}
 
 		close(chunks)
@@ -123,8 +79,6 @@ func (a *llmClientAdapter) ProcessIntentStream(ctx context.Context, prompt strin
 
 }
 
-
-
 // GetSupportedModels performs getsupportedmodels operation.
 
 func (a *llmClientAdapter) GetSupportedModels() []string {
@@ -133,31 +87,26 @@ func (a *llmClientAdapter) GetSupportedModels() []string {
 
 }
 
-
-
 // GetModelCapabilities performs getmodelcapabilities operation.
 
 func (a *llmClientAdapter) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
 
 	return &shared.ModelCapabilities{
 
-		MaxTokens:         8192,
+		MaxTokens: 8192,
 
-		SupportsChat:      true,
+		SupportsChat: true,
 
-		SupportsFunction:  false,
+		SupportsFunction: false,
 
 		SupportsStreaming: false,
 
-		CostPerToken:      0.001,
+		CostPerToken: 0.001,
 
-		Features:          make(map[string]interface{}),
-
+		Features: make(map[string]interface{}),
 	}, nil
 
 }
-
-
 
 // ValidateModel performs validatemodel operation.
 
@@ -169,8 +118,6 @@ func (a *llmClientAdapter) ValidateModel(modelName string) error {
 
 }
 
-
-
 // EstimateTokens performs estimatetokens operation.
 
 func (a *llmClientAdapter) EstimateTokens(text string) int {
@@ -181,8 +128,6 @@ func (a *llmClientAdapter) EstimateTokens(text string) int {
 
 }
 
-
-
 // GetMaxTokens performs getmaxtokens operation.
 
 func (a *llmClientAdapter) GetMaxTokens(modelName string) int {
@@ -190,8 +135,6 @@ func (a *llmClientAdapter) GetMaxTokens(modelName string) int {
 	return 8192
 
 }
-
-
 
 // Close performs close operation.
 
@@ -203,25 +146,19 @@ func (a *llmClientAdapter) Close() error {
 
 }
 
-
-
 // dependencyImpl implements the Dependencies interface.
 
 type dependencyImpl struct {
+	gitClient git.ClientInterface
 
-	gitClient     git.ClientInterface
+	llmClient shared.ClientInterface
 
-	llmClient     shared.ClientInterface
+	packageGen *nephio.PackageGenerator
 
-	packageGen    *nephio.PackageGenerator
-
-	httpClient    *http.Client
+	httpClient *http.Client
 
 	eventRecorder record.EventRecorder
-
 }
-
-
 
 // GetGitClient performs getgitclient operation.
 
@@ -231,8 +168,6 @@ func (d *dependencyImpl) GetGitClient() git.ClientInterface {
 
 }
 
-
-
 // GetLLMClient performs getllmclient operation.
 
 func (d *dependencyImpl) GetLLMClient() shared.ClientInterface {
@@ -240,8 +175,6 @@ func (d *dependencyImpl) GetLLMClient() shared.ClientInterface {
 	return d.llmClient
 
 }
-
-
 
 // GetPackageGenerator performs getpackagegenerator operation.
 
@@ -251,8 +184,6 @@ func (d *dependencyImpl) GetPackageGenerator() *nephio.PackageGenerator {
 
 }
 
-
-
 // GetHTTPClient performs gethttpclient operation.
 
 func (d *dependencyImpl) GetHTTPClient() *http.Client {
@@ -260,8 +191,6 @@ func (d *dependencyImpl) GetHTTPClient() *http.Client {
 	return d.httpClient
 
 }
-
-
 
 // GetEventRecorder performs geteventrecorder operation.
 
@@ -271,8 +200,6 @@ func (d *dependencyImpl) GetEventRecorder() record.EventRecorder {
 
 }
 
-
-
 // GetMetricsCollector returns the metrics collector (placeholder implementation).
 
 func (d *dependencyImpl) GetMetricsCollector() *monitoring.MetricsCollector {
@@ -280,8 +207,6 @@ func (d *dependencyImpl) GetMetricsCollector() *monitoring.MetricsCollector {
 	return nil // TODO: Implement metrics collector
 
 }
-
-
 
 // GetTelecomKnowledgeBase returns the telecom knowledge base (placeholder implementation).
 
@@ -291,8 +216,6 @@ func (d *dependencyImpl) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase
 
 }
 
-
-
 func init() {
 
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
@@ -300,8 +223,6 @@ func init() {
 	utilruntime.Must(nephoranv1.AddToScheme(scheme))
 
 }
-
-
 
 func main() {
 
@@ -317,8 +238,6 @@ func main() {
 
 	}
 
-
-
 	// Set up flags with configuration defaults.
 
 	flag.StringVar(&cfg.MetricsAddr, "metrics-bind-address", cfg.MetricsAddr, "The address the metric endpoint binds to.")
@@ -331,23 +250,16 @@ func main() {
 
 			"Enabling this will ensure there is only one active controller manager.")
 
-
-
 	opts := zap.Options{
 
 		Development: true,
-
 	}
 
 	opts.BindFlags(flag.CommandLine)
 
 	flag.Parse()
 
-
-
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
-
-
 
 	setupLog.Info("Starting with configuration",
 
@@ -359,8 +271,6 @@ func main() {
 
 		"namespace", cfg.Namespace)
 
-
-
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 
 		Scheme: scheme,
@@ -368,15 +278,13 @@ func main() {
 		Metrics: metricsserver.Options{
 
 			BindAddress: cfg.MetricsAddr,
-
 		},
 
 		HealthProbeBindAddress: cfg.ProbeAddr,
 
-		LeaderElection:         cfg.EnableLeaderElection,
+		LeaderElection: cfg.EnableLeaderElection,
 
-		LeaderElectionID:       "nephoran-intent-operator",
-
+		LeaderElectionID: "nephoran-intent-operator",
 	})
 
 	if err != nil {
@@ -387,13 +295,9 @@ func main() {
 
 	}
 
-
-
 	// Initialize clients with configuration.
 
 	llmClient := llm.NewClient(cfg.LLMProcessorURL)
-
-
 
 	// Create Git client with token file support.
 
@@ -429,8 +333,6 @@ func main() {
 
 	}
 
-
-
 	// Initialize Nephio package generator if enabled.
 
 	var packageGen *nephio.PackageGenerator
@@ -455,49 +357,41 @@ func main() {
 
 	}
 
-
-
 	// Create dependencies struct that implements Dependencies interface.
 
 	deps := &dependencyImpl{
 
-		gitClient:     gitClient,
+		gitClient: gitClient,
 
-		llmClient:     &llmClientAdapter{client: llmClient},
+		llmClient: &llmClientAdapter{client: llmClient},
 
-		packageGen:    packageGen,
+		packageGen: packageGen,
 
-		httpClient:    &http.Client{Timeout: 30 * time.Second},
+		httpClient: &http.Client{Timeout: 30 * time.Second},
 
 		eventRecorder: mgr.GetEventRecorderFor("network-intent-controller"),
-
 	}
-
-
 
 	// Create controller configuration.
 
 	controllerConfig := &controllers.Config{
 
-		MaxRetries:      3,
+		MaxRetries: 3,
 
-		RetryDelay:      time.Minute * 2,
+		RetryDelay: time.Minute * 2,
 
-		Timeout:         time.Minute * 10,
+		Timeout: time.Minute * 10,
 
-		GitRepoURL:      cfg.GitRepoURL,
+		GitRepoURL: cfg.GitRepoURL,
 
-		GitBranch:       cfg.GitBranch,
+		GitBranch: cfg.GitBranch,
 
-		GitDeployPath:   "deployments",
+		GitDeployPath: "deployments",
 
 		LLMProcessorURL: cfg.LLMProcessorURL,
 
-		UseNephioPorch:  useNephioPorch,
-
+		UseNephioPorch: useNephioPorch,
 	}
-
-
 
 	// Setup NetworkIntent controller.
 
@@ -510,7 +404,6 @@ func main() {
 		deps,
 
 		controllerConfig,
-
 	)
 
 	if err != nil {
@@ -521,8 +414,6 @@ func main() {
 
 	}
 
-
-
 	if err = networkIntentController.SetupWithManager(mgr); err != nil {
 
 		setupLog.Error(err, "unable to setup controller", "controller", "NetworkIntent")
@@ -531,18 +422,15 @@ func main() {
 
 	}
 
-
-
 	// Setup E2NodeSet controller.
 
 	if err = (&controllers.E2NodeSetReconciler{
 
-		Client:   mgr.GetClient(),
+		Client: mgr.GetClient(),
 
-		Scheme:   mgr.GetScheme(),
+		Scheme: mgr.GetScheme(),
 
 		Recorder: mgr.GetEventRecorderFor("e2nodeset-controller"),
-
 	}).SetupWithManager(mgr); err != nil {
 
 		setupLog.Error(err, "unable to create controller", "controller", "E2NodeSet")
@@ -550,8 +438,6 @@ func main() {
 		os.Exit(1)
 
 	}
-
-
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 
@@ -569,8 +455,6 @@ func main() {
 
 	}
 
-
-
 	setupLog.Info("starting manager")
 
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
@@ -582,4 +466,3 @@ func main() {
 	}
 
 }
-

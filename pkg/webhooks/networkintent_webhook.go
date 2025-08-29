@@ -28,68 +28,38 @@ limitations under the License.
 
 */
 
-
-
-
 package webhooks
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"net/http"
-
 	"regexp"
-
 	"strings"
-
 	"unicode"
-
-
 
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
-
-
 	admissionv1 "k8s.io/api/admission/v1"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-
 )
-
-
 
 // log is for logging in this package.
 
 var networkIntentWebhookLog = logf.Log.WithName("networkintent-webhook")
 
-
-
 // NetworkIntentValidator provides validation logic for NetworkIntent resources.
 
 // +kubebuilder:webhook:path=/validate-nephoran-io-v1-networkintent,mutating=false,failurePolicy=fail,sideEffects=None,groups=nephoran.io,resources=networkintents,verbs=create;update,versions=v1,name=vnetworkintent.kb.io,admissionReviewVersions=v1.
 
-
-
 // NetworkIntentValidator represents a networkintentvalidator.
 
 type NetworkIntentValidator struct {
-
 	decoder admission.Decoder
-
 }
-
-
 
 // TelecomKeywords contains telecommunications-related keywords that validate the intent is relevant.
 
@@ -101,23 +71,17 @@ var TelecomKeywords = []string{
 
 	"nef", "chf", "scp", "sepp", "udsf", "unef", "tngf", "twif", "n3iwf",
 
-
-
 	// O-RAN components.
 
 	"oran", "o-ran", "ran", "ric", "near-rt-ric", "non-rt-ric", "o-du",
 
 	"o-cu", "o-ru", "e2", "a1", "o1", "o2", "smo", "xapp", "rapp",
 
-
-
 	// Network functions and services.
 
 	"vnf", "cnf", "nf", "network function", "network slice", "slicing",
 
 	"qos", "quality of service", "sla", "service level", "urllc", "embb", "mmtc",
-
-
 
 	// Infrastructure and deployment terms.
 
@@ -127,15 +91,11 @@ var TelecomKeywords = []string{
 
 	"high availability", "ha", "failover", "redundancy", "backup",
 
-
-
 	// Performance and optimization.
 
 	"latency", "throughput", "bandwidth", "performance", "optimization",
 
 	"monitoring", "metrics", "alerting", "logging", "observability",
-
-
 
 	// Security and compliance.
 
@@ -143,25 +103,18 @@ var TelecomKeywords = []string{
 
 	"certificate", "rbac", "policy", "compliance", "audit",
 
-
-
 	// Network and connectivity.
 
 	"network", "connectivity", "routing", "switching", "gateway", "proxy",
 
 	"firewall", "dns", "dhcp", "vlan", "subnet", "cidr", "ip", "ipv4", "ipv6",
 
-
-
 	// Cloud native and orchestration.
 
 	"helm", "chart", "yaml", "manifest", "config", "configuration",
 
 	"template", "operator", "controller", "crd", "custom resource",
-
 }
-
-
 
 // Note: SecurityPatterns variable has been removed as the new restricted character set.
 
@@ -169,39 +122,31 @@ var TelecomKeywords = []string{
 
 // function now checks for suspicious patterns within the allowed character set.
 
-
-
 // ComplexityRules defines validation rules for intent complexity.
 
 type ComplexityRules struct {
+	MaxWords int
 
-	MaxWords              int
-
-	MaxSentences          int
+	MaxSentences int
 
 	MaxConsecutiveRepeats int
 
-	MinTelecomKeywords    int
-
+	MinTelecomKeywords int
 }
-
-
 
 // DefaultComplexityRules holds defaultcomplexityrules value.
 
 var DefaultComplexityRules = ComplexityRules{
 
-	MaxWords:              300, // Maximum number of words
+	MaxWords: 300, // Maximum number of words
 
-	MaxSentences:          20,  // Maximum number of sentences
+	MaxSentences: 20, // Maximum number of sentences
 
-	MaxConsecutiveRepeats: 5,   // Maximum consecutive repeated words/phrases
+	MaxConsecutiveRepeats: 5, // Maximum consecutive repeated words/phrases
 
-	MinTelecomKeywords:    1,   // Minimum telecom-related keywords required
+	MinTelecomKeywords: 1, // Minimum telecom-related keywords required
 
 }
-
-
 
 // NewNetworkIntentValidator creates a new NetworkIntent validator.
 
@@ -211,8 +156,6 @@ func NewNetworkIntentValidator() *NetworkIntentValidator {
 
 }
 
-
-
 // Handle processes admission requests for NetworkIntent validation.
 
 func (v *NetworkIntentValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
@@ -221,11 +164,7 @@ func (v *NetworkIntentValidator) Handle(ctx context.Context, req admission.Reque
 
 	logger.Info("Processing NetworkIntent validation request", "operation", req.Operation)
 
-
-
 	networkIntent := &nephoranv1.NetworkIntent{}
-
-
 
 	// Decode the object based on operation type.
 
@@ -241,8 +180,6 @@ func (v *NetworkIntentValidator) Handle(ctx context.Context, req admission.Reque
 
 	}
 
-
-
 	if req.Object.Raw != nil {
 
 		err = v.decoder.Decode(req, networkIntent)
@@ -255,8 +192,6 @@ func (v *NetworkIntentValidator) Handle(ctx context.Context, req admission.Reque
 
 	}
 
-
-
 	if err != nil {
 
 		logger.Error(err, "Failed to decode NetworkIntent object")
@@ -264,8 +199,6 @@ func (v *NetworkIntentValidator) Handle(ctx context.Context, req admission.Reque
 		return admission.Errored(http.StatusBadRequest, err)
 
 	}
-
-
 
 	// Perform comprehensive validation.
 
@@ -277,23 +210,17 @@ func (v *NetworkIntentValidator) Handle(ctx context.Context, req admission.Reque
 
 	}
 
-
-
 	logger.Info("NetworkIntent validation successful")
 
 	return admission.Allowed("NetworkIntent validation passed")
 
 }
 
-
-
 // validateNetworkIntent performs comprehensive validation of NetworkIntent.
 
 func (v *NetworkIntentValidator) validateNetworkIntent(ctx context.Context, ni *nephoranv1.NetworkIntent) error {
 
 	logger := networkIntentWebhookLog.WithValues("namespace", ni.Namespace, "name", ni.Name)
-
-
 
 	// 1. Basic intent content validation.
 
@@ -305,8 +232,6 @@ func (v *NetworkIntentValidator) validateNetworkIntent(ctx context.Context, ni *
 
 	}
 
-
-
 	// 2. Security validation - check for malicious patterns.
 
 	if err := v.validateSecurity(ni.Spec.Intent); err != nil {
@@ -316,8 +241,6 @@ func (v *NetworkIntentValidator) validateNetworkIntent(ctx context.Context, ni *
 		return fmt.Errorf("security validation failed: %w", err)
 
 	}
-
-
 
 	// 3. Telecommunications keywords validation.
 
@@ -329,8 +252,6 @@ func (v *NetworkIntentValidator) validateNetworkIntent(ctx context.Context, ni *
 
 	}
 
-
-
 	// 4. Intent complexity and structure validation.
 
 	if err := v.validateComplexity(ni.Spec.Intent); err != nil {
@@ -340,8 +261,6 @@ func (v *NetworkIntentValidator) validateNetworkIntent(ctx context.Context, ni *
 		return fmt.Errorf("intent complexity validation failed: %w", err)
 
 	}
-
-
 
 	// 5. Business logic validation.
 
@@ -353,13 +272,9 @@ func (v *NetworkIntentValidator) validateNetworkIntent(ctx context.Context, ni *
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateIntentContent performs basic intent content validation.
 
@@ -372,8 +287,6 @@ func (v *NetworkIntentValidator) validateIntentContent(intent string) error {
 		return fmt.Errorf("intent cannot be empty or only whitespace")
 
 	}
-
-
 
 	// SECURITY: Enforce strict character allowlist matching CRD pattern.
 
@@ -399,8 +312,6 @@ func (v *NetworkIntentValidator) validateIntentContent(intent string) error {
 
 	}
 
-
-
 	// Additional length check (redundant with CRD but provides defense in depth).
 
 	if len(intent) > 1000 {
@@ -408,8 +319,6 @@ func (v *NetworkIntentValidator) validateIntentContent(intent string) error {
 		return fmt.Errorf("intent exceeds maximum length of 1000 characters (got %d)", len(intent))
 
 	}
-
-
 
 	// Check for suspicious patterns even within allowed characters.
 
@@ -423,8 +332,6 @@ func (v *NetworkIntentValidator) validateIntentContent(intent string) error {
 
 	}
 
-
-
 	// Check for control characters (should not be present with our allowlist, but defense in depth).
 
 	for i, r := range intent {
@@ -437,13 +344,9 @@ func (v *NetworkIntentValidator) validateIntentContent(intent string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // isAllowedChar checks if a rune is in our allowed character set.
 
@@ -465,8 +368,6 @@ func isAllowedChar(r rune) bool {
 
 }
 
-
-
 // validateSecurity checks for potentially malicious patterns.
 
 func (v *NetworkIntentValidator) validateSecurity(intent string) error {
@@ -476,8 +377,6 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 	// This function provides additional defense-in-depth by checking for suspicious patterns.
 
 	// even within the allowed character set.
-
-
 
 	// Check for patterns that might indicate obfuscation attempts.
 
@@ -502,10 +401,7 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 		// Path traversal attempts.
 
 		"dot dot slash", "dot dot backslash",
-
 	}
-
-
 
 	intentLower := strings.ToLower(intent)
 
@@ -519,8 +415,6 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 
 	}
 
-
-
 	// Check for base64-like patterns (continuous alphanumeric strings).
 
 	// Even without = or +/, long unbroken alphanumeric could be encoding.
@@ -533,8 +427,6 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 
 	}
 
-
-
 	// Check for repeated patterns that might indicate fuzzing or automated attacks.
 
 	// Look for unusual repetition of allowed punctuation.
@@ -546,10 +438,7 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 		'(': 0, ')': 0, '[': 0, ']': 0,
 
 		'-': 0, '_': 0,
-
 	}
-
-
 
 	for _, r := range intent {
 
@@ -560,8 +449,6 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 		}
 
 	}
-
-
 
 	// Check for excessive use of any single punctuation mark.
 
@@ -585,8 +472,6 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 
 	}
 
-
-
 	// Check for patterns that look like attempts to bypass validation.
 
 	// e.g., "d r o p  t a b l e" (spaced out malicious commands).
@@ -596,10 +481,7 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 		"d r o p", "s e l e c t", "d e l e t e", "i n s e r t",
 
 		"e x e c", "s c r i p t", "j a v a",
-
 	}
-
-
 
 	for _, pattern := range spacedPatterns {
 
@@ -611,13 +493,9 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateTelecomRelevance ensures the intent is relevant to telecommunications.
 
@@ -628,8 +506,6 @@ func (v *NetworkIntentValidator) validateTelecomRelevance(intent string) error {
 	keywordCount := 0
 
 	foundKeywords := make([]string, 0)
-
-
 
 	// Check for telecommunications keywords.
 
@@ -645,8 +521,6 @@ func (v *NetworkIntentValidator) validateTelecomRelevance(intent string) error {
 
 	}
 
-
-
 	if keywordCount < DefaultComplexityRules.MinTelecomKeywords {
 
 		return fmt.Errorf("intent does not appear to be telecommunications-related (found %d telecom keywords, minimum required: %d)",
@@ -655,21 +529,15 @@ func (v *NetworkIntentValidator) validateTelecomRelevance(intent string) error {
 
 	}
 
-
-
 	networkIntentWebhookLog.V(1).Info("Telecommunications validation passed",
 
 		"keywordCount", keywordCount,
 
 		"foundKeywords", foundKeywords[:min(len(foundKeywords), 5)]) // Log first 5 keywords
 
-
-
 	return nil
 
 }
-
-
 
 // validateComplexity checks the complexity and structure of the intent.
 
@@ -687,15 +555,11 @@ func (v *NetworkIntentValidator) validateComplexity(intent string) error {
 
 	}
 
-
-
 	if len(words) == 0 {
 
 		return fmt.Errorf("intent contains no recognizable words")
 
 	}
-
-
 
 	// Count sentences (approximate).
 
@@ -713,8 +577,6 @@ func (v *NetworkIntentValidator) validateComplexity(intent string) error {
 
 	}
 
-
-
 	// Check for excessive repetition.
 
 	if err := v.checkRepetition(words); err != nil {
@@ -722,8 +584,6 @@ func (v *NetworkIntentValidator) validateComplexity(intent string) error {
 		return err
 
 	}
-
-
 
 	// Check for reasonable word length distribution.
 
@@ -733,13 +593,9 @@ func (v *NetworkIntentValidator) validateComplexity(intent string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // checkRepetition checks for excessive word repetition.
 
@@ -750,8 +606,6 @@ func (v *NetworkIntentValidator) checkRepetition(words []string) error {
 		return nil
 
 	}
-
-
 
 	consecutiveRepeats := 1
 
@@ -777,13 +631,9 @@ func (v *NetworkIntentValidator) checkRepetition(words []string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateWordDistribution checks for reasonable word length distribution.
 
@@ -794,8 +644,6 @@ func (v *NetworkIntentValidator) validateWordDistribution(words []string) error 
 		return nil
 
 	}
-
-
 
 	// Check average word length.
 
@@ -815,8 +663,6 @@ func (v *NetworkIntentValidator) validateWordDistribution(words []string) error 
 
 	}
 
-
-
 	avgLength := float64(totalLength) / float64(len(words))
 
 	if avgLength > 20.0 {
@@ -825,21 +671,15 @@ func (v *NetworkIntentValidator) validateWordDistribution(words []string) error 
 
 	}
 
-
-
 	if veryLongWords > len(words)/4 {
 
 		return fmt.Errorf("intent contains too many very long words (%d words longer than 25 characters)", veryLongWords)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateBusinessLogic performs advanced business logic validation.
 
@@ -853,8 +693,6 @@ func (v *NetworkIntentValidator) validateBusinessLogic(ctx context.Context, ni *
 
 	}
 
-
-
 	// 2. Validate intent coherence and actionability.
 
 	if err := v.validateIntentCoherence(ni.Spec.Intent); err != nil {
@@ -863,29 +701,21 @@ func (v *NetworkIntentValidator) validateBusinessLogic(ctx context.Context, ni *
 
 	}
 
-
-
 	// 3. Validate against conflicting intents (if we had a way to query existing ones).
 
 	// This would require additional context/client to check existing NetworkIntents.
 
 	// For now, we'll skip this but it's a placeholder for future enhancement.
 
-
-
 	return nil
 
 }
-
-
 
 // validateResourceNaming checks for naming consistency and best practices.
 
 func (v *NetworkIntentValidator) validateResourceNaming(ni *nephoranv1.NetworkIntent) error {
 
 	name := ni.Name
-
-
 
 	// Basic Kubernetes naming validation (beyond what's already enforced by k8s).
 
@@ -895,8 +725,6 @@ func (v *NetworkIntentValidator) validateResourceNaming(ni *nephoranv1.NetworkIn
 
 	}
 
-
-
 	// Check for meaningful naming.
 
 	if len(name) < 3 {
@@ -904,8 +732,6 @@ func (v *NetworkIntentValidator) validateResourceNaming(ni *nephoranv1.NetworkIn
 		return fmt.Errorf("NetworkIntent name is too short (%d characters, minimum 3)", len(name))
 
 	}
-
-
 
 	// Check for descriptive naming patterns.
 
@@ -916,8 +742,6 @@ func (v *NetworkIntentValidator) validateResourceNaming(ni *nephoranv1.NetworkIn
 		return fmt.Errorf("NetworkIntent name does not follow Kubernetes naming conventions")
 
 	}
-
-
 
 	// Encourage meaningful names by checking for generic patterns to avoid.
 
@@ -939,21 +763,15 @@ func (v *NetworkIntentValidator) validateResourceNaming(ni *nephoranv1.NetworkIn
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateIntentCoherence checks if the intent is coherent and actionable.
 
 func (v *NetworkIntentValidator) validateIntentCoherence(intent string) error {
 
 	intentLower := strings.ToLower(intent)
-
-
 
 	// Check for action verbs that indicate actionable intent.
 
@@ -966,10 +784,7 @@ func (v *NetworkIntentValidator) validateIntentCoherence(intent string) error {
 		"implement", "establish", "initialize", "activate", "deactivate",
 
 		"optimize", "tune", "adjust", "migrate", "backup", "restore",
-
 	}
-
-
 
 	hasActionVerb := false
 
@@ -985,15 +800,11 @@ func (v *NetworkIntentValidator) validateIntentCoherence(intent string) error {
 
 	}
 
-
-
 	if !hasActionVerb {
 
 		return fmt.Errorf("intent does not contain actionable verbs - please specify what action should be performed")
 
 	}
-
-
 
 	// Check for contradictory statements.
 
@@ -1010,10 +821,7 @@ func (v *NetworkIntentValidator) validateIntentCoherence(intent string) error {
 		{"high availability", "single instance"},
 
 		{"production", "development", "testing"},
-
 	}
-
-
 
 	for _, contradiction := range contradictions {
 
@@ -1029,8 +837,6 @@ func (v *NetworkIntentValidator) validateIntentCoherence(intent string) error {
 
 		}
 
-
-
 		if len(foundTerms) > 1 {
 
 			return fmt.Errorf("intent contains potentially contradictory terms: %v", foundTerms)
@@ -1039,8 +845,6 @@ func (v *NetworkIntentValidator) validateIntentCoherence(intent string) error {
 
 	}
 
-
-
 	// Check for reasonable specificity - not too vague.
 
 	vaguePhrases := []string{
@@ -1048,10 +852,7 @@ func (v *NetworkIntentValidator) validateIntentCoherence(intent string) error {
 		"do something", "make it work", "fix it", "handle this", "deal with",
 
 		"just do", "somehow", "whatever", "anything", "everything",
-
 	}
-
-
 
 	for _, phrase := range vaguePhrases {
 
@@ -1063,13 +864,9 @@ func (v *NetworkIntentValidator) validateIntentCoherence(intent string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // InjectDecoder injects the decoder into the validator.
 
@@ -1080,8 +877,6 @@ func (v *NetworkIntentValidator) InjectDecoder(d admission.Decoder) error {
 	return nil
 
 }
-
-
 
 // min returns the minimum of two integers.
 
@@ -1097,23 +892,16 @@ func min(a, b int) int {
 
 }
 
-
-
 // SetupNetworkIntentWebhookWithManager registers the NetworkIntent webhook with the manager.
 
 func SetupNetworkIntentWebhookWithManager(mgr ctrl.Manager) error {
 
 	validator := NewNetworkIntentValidator()
 
-
-
 	mgr.GetWebhookServer().Register("/validate-nephoran-io-v1-networkintent",
 
 		&admission.Webhook{Handler: validator})
 
-
-
 	return nil
 
 }
-

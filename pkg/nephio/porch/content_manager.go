@@ -28,45 +28,25 @@ limitations under the License.
 
 */
 
-
-
-
 package porch
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"strings"
-
 	"sync"
-
 	"text/template"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
 	"github.com/prometheus/client_golang/prometheus"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // Validation types.
 
 type (
-
 	ValidationIssueType string
 
 	// ValidationSeverity represents a validationseverity.
@@ -152,10 +132,7 @@ type (
 	// OptimizationImpact represents a optimizationimpact.
 
 	OptimizationImpact string
-
 )
-
-
 
 const (
 
@@ -170,10 +147,7 @@ const (
 	// ValidationIssueTypeStructure holds validationissuetypestructure value.
 
 	ValidationIssueTypeStructure ValidationIssueType = "structure"
-
 )
-
-
 
 const (
 
@@ -192,10 +166,7 @@ const (
 	// ValidationSeverityCritical holds validationseveritycritical value.
 
 	ValidationSeverityCritical ValidationSeverity = "critical"
-
 )
-
-
 
 // ContentManager provides comprehensive package content manipulation and validation.
 
@@ -215,8 +186,6 @@ type ContentManager interface {
 
 	DeleteContent(ctx context.Context, ref *PackageReference, filePatterns []string) error
 
-
-
 	// Content validation.
 
 	ValidateContent(ctx context.Context, ref *PackageReference, content *PackageContent, opts *ValidationOptions) (*ContentValidationResult, error)
@@ -227,8 +196,6 @@ type ContentManager interface {
 
 	ValidateJSONSyntax(ctx context.Context, jsonContent []byte) (*JSONValidationResult, error)
 
-
-
 	// Template processing.
 
 	ProcessTemplates(ctx context.Context, ref *PackageReference, templateData interface{}, opts *TemplateProcessingOptions) (*PackageContent, error)
@@ -237,8 +204,6 @@ type ContentManager interface {
 
 	ListTemplateVariables(ctx context.Context, ref *PackageReference) ([]TemplateVariable, error)
 
-
-
 	// Conflict resolution.
 
 	DetectConflicts(ctx context.Context, ref *PackageReference, incomingContent *PackageContent) (*ConflictDetectionResult, error)
@@ -246,8 +211,6 @@ type ContentManager interface {
 	ResolveConflicts(ctx context.Context, ref *PackageReference, conflicts *ConflictResolution) (*PackageContent, error)
 
 	CreateMergeProposal(ctx context.Context, ref *PackageReference, baseContent, incomingContent *PackageContent) (*MergeProposal, error)
-
-
 
 	// Version diffing.
 
@@ -259,15 +222,11 @@ type ContentManager interface {
 
 	ApplyPatch(ctx context.Context, ref *PackageReference, patch *ContentPatch) (*ContentPatch, error)
 
-
-
 	// Content merging.
 
 	MergeContent(ctx context.Context, baseContent, sourceContent, targetContent *PackageContent, opts *MergeOptions) (*MergeResult, error)
 
 	ThreeWayMerge(ctx context.Context, base, source, target []byte, opts *MergeOptions) (*FileMergeResult, error)
-
-
 
 	// Binary content handling.
 
@@ -279,8 +238,6 @@ type ContentManager interface {
 
 	ListBinaryContent(ctx context.Context, ref *PackageReference) ([]BinaryContentInfo, error)
 
-
-
 	// Content analysis and metrics.
 
 	AnalyzeContent(ctx context.Context, ref *PackageReference) (*ContentAnalysis, error)
@@ -289,15 +246,11 @@ type ContentManager interface {
 
 	OptimizeContent(ctx context.Context, ref *PackageReference, opts *OptimizationOptions) (*OptimizationResult, error)
 
-
-
 	// Content indexing and search.
 
 	IndexContent(ctx context.Context, ref *PackageReference) error
 
 	SearchContent(ctx context.Context, query *ContentSearchQuery) (*ContentSearchResult, error)
-
-
 
 	// Health and maintenance.
 
@@ -306,10 +259,7 @@ type ContentManager interface {
 	CleanupOrphanedContent(ctx context.Context, olderThan time.Duration) (*CleanupResult, error)
 
 	Close() error
-
 }
-
-
 
 // contentManager implements comprehensive package content management.
 
@@ -317,458 +267,360 @@ type contentManager struct {
 
 	// Core dependencies.
 
-	client  *Client
+	client *Client
 
-	logger  logr.Logger
+	logger logr.Logger
 
 	metrics *ContentManagerMetrics
 
-
-
 	// Content storage and processing.
 
-	contentStore   ContentStore
+	contentStore ContentStore
 
 	templateEngine *TemplateEngine
 
-	validator      *ContentValidator
-
-
+	validator *ContentValidator
 
 	// Conflict resolution and merging.
 
 	conflictResolver *ConflictResolver
 
-	mergeEngine      *MergeEngine
-
-
+	mergeEngine *MergeEngine
 
 	// Content indexing and search.
 
 	indexer ContentIndexer
 
-
-
 	// Binary content handling.
 
 	binaryStore BinaryContentStore
-
-
 
 	// Configuration.
 
 	config *ContentManagerConfig
 
-
-
 	// Template functions registry.
 
 	templateFunctions map[string]interface{}
 
-	functionsMutex    sync.RWMutex
-
-
+	functionsMutex sync.RWMutex
 
 	// Content processing pipeline.
 
-	processors     map[string]ContentProcessor
+	processors map[string]ContentProcessor
 
 	processorMutex sync.RWMutex
-
-
 
 	// Caching.
 
 	cache ContentCache
 
-
-
 	// Concurrency control.
 
 	operationLocks map[string]*sync.RWMutex
 
-	locksMutex     sync.Mutex
-
-
+	locksMutex sync.Mutex
 
 	// Shutdown coordination.
 
 	shutdown chan struct{}
 
-	wg       sync.WaitGroup
-
+	wg sync.WaitGroup
 }
 
-
-
 // Request and option types.
-
-
 
 // PackageContentRequest represents a content creation request.
 
 type PackageContentRequest struct {
+	Files map[string][]byte
 
-	Files            map[string][]byte
-
-	TemplateData     interface{}
+	TemplateData interface{}
 
 	ProcessTemplates bool
 
-	ValidateContent  bool
+	ValidateContent bool
 
-	Metadata         map[string]string
+	Metadata map[string]string
 
-	BinaryFiles      map[string]BinaryFileRequest
-
+	BinaryFiles map[string]BinaryFileRequest
 }
-
-
 
 // BinaryFileRequest represents a binary file in content request.
 
 type BinaryFileRequest struct {
-
-	Data        []byte
+	Data []byte
 
 	ContentType string
 
-	Compressed  bool
+	Compressed bool
 
-	Checksum    string
-
+	Checksum string
 }
-
-
 
 // ContentQueryOptions configures content retrieval.
 
 type ContentQueryOptions struct {
-
 	IncludeBinaryFiles bool
 
-	FilePatterns       []string
+	FilePatterns []string
 
-	ExcludePatterns    []string
+	ExcludePatterns []string
 
-	MaxFileSize        int64
+	MaxFileSize int64
 
-	IncludeMetadata    bool
+	IncludeMetadata bool
 
-	ResolveTemplates   bool
+	ResolveTemplates bool
 
-	TemplateData       interface{}
-
+	TemplateData interface{}
 }
-
-
 
 // ContentUpdateRequest represents a content update request.
 
 type ContentUpdateRequest struct {
+	FilesToAdd map[string][]byte
 
-	FilesToAdd         map[string][]byte
+	FilesToUpdate map[string][]byte
 
-	FilesToUpdate      map[string][]byte
+	FilesToDelete []string
 
-	FilesToDelete      []string
+	TemplateData interface{}
 
-	TemplateData       interface{}
-
-	ProcessTemplates   bool
+	ProcessTemplates bool
 
 	ConflictResolution ConflictResolutionStrategy
 
-	ValidateChanges    bool
+	ValidateChanges bool
 
-	CreateBackup       bool
+	CreateBackup bool
 
-	Metadata           map[string]string
-
+	Metadata map[string]string
 }
-
-
 
 // ValidationOptions configures content validation.
 
 type ValidationOptions struct {
+	ValidateYAMLSyntax bool
 
-	ValidateYAMLSyntax   bool
-
-	ValidateJSONSyntax   bool
+	ValidateJSONSyntax bool
 
 	ValidateKRMResources bool
 
-	ValidateSchemas      bool
+	ValidateSchemas bool
 
-	ValidateReferences   bool
+	ValidateReferences bool
 
-	CustomValidators     []string
+	CustomValidators []string
 
-	StrictMode           bool
+	StrictMode bool
 
-	FailOnWarnings       bool
-
+	FailOnWarnings bool
 }
-
-
 
 // TemplateProcessingOptions configures template processing.
 
 type TemplateProcessingOptions struct {
-
-	TemplateData      interface{}
+	TemplateData interface{}
 
 	FunctionWhitelist []string
 
-	StrictMode        bool
+	StrictMode bool
 
-	FailOnMissing     bool
+	FailOnMissing bool
 
-	OutputFormat      string
+	OutputFormat string
 
-	PreserveComments  bool
-
+	PreserveComments bool
 }
 
-
-
 // Conflict resolution types.
-
-
 
 // ConflictDetectionResult contains conflict detection results.
 
 type ConflictDetectionResult struct {
+	HasConflicts bool
 
-	HasConflicts      bool
+	ConflictFiles []FileConflict
 
-	ConflictFiles     []FileConflict
-
-	ConflictSummary   *ConflictSummary
+	ConflictSummary *ConflictSummary
 
 	RecommendedAction ConflictResolutionStrategy
 
-	AutoResolvable    bool
-
+	AutoResolvable bool
 }
-
-
 
 // FileConflict represents a conflict in a specific file.
 
 type FileConflict struct {
+	FileName string
 
-	FileName        string
+	ConflictType ConflictType
 
-	ConflictType    ConflictType
+	BaseContent []byte
 
-	BaseContent     []byte
-
-	CurrentContent  []byte
+	CurrentContent []byte
 
 	IncomingContent []byte
 
 	ConflictMarkers []ConflictMarker
 
-	Severity        ConflictSeverity
+	Severity ConflictSeverity
 
-	AutoResolvable  bool
-
+	AutoResolvable bool
 }
-
-
 
 // ConflictMarker represents a specific conflict within a file.
 
 type ConflictMarker struct {
-
-	LineNumber   int
+	LineNumber int
 
 	ConflictType ConflictType
 
-	BaseText     string
+	BaseText string
 
-	CurrentText  string
+	CurrentText string
 
 	IncomingText string
 
-	Context      string
-
+	Context string
 }
-
-
 
 // ConflictSummary provides an overview of all conflicts.
 
 type ConflictSummary struct {
+	TotalConflicts int
 
-	TotalConflicts      int
-
-	ConflictsByType     map[ConflictType]int
+	ConflictsByType map[ConflictType]int
 
 	ConflictsBySeverity map[ConflictSeverity]int
 
 	AutoResolvableCount int
 
-	FilesAffected       []string
-
+	FilesAffected []string
 }
-
-
 
 // ConflictResolution defines how to resolve conflicts.
 
 type ConflictResolution struct {
+	Strategy ConflictResolutionStrategy
 
-	Strategy          ConflictResolutionStrategy
-
-	FileResolutions   map[string]FileResolution
+	FileResolutions map[string]FileResolution
 
 	CustomResolutions map[string][]byte
 
-	PreferredSource   ConflictSource
-
+	PreferredSource ConflictSource
 }
-
-
 
 // FileResolution defines resolution for a specific file.
 
 type FileResolution struct {
+	Action ResolutionAction
 
-	Action            ResolutionAction
-
-	Content           []byte
+	Content []byte
 
 	MarkerResolutions map[int]MarkerResolution
-
 }
-
-
 
 // MarkerResolution defines resolution for a specific conflict marker.
 
 type MarkerResolution struct {
-
-	ChosenSource  ConflictSource
+	ChosenSource ConflictSource
 
 	CustomContent string
-
 }
-
-
 
 // MergeProposal represents a proposed merge.
 
 type MergeProposal struct {
+	ID string
 
-	ID                string
+	BaseRef *PackageReference
 
-	BaseRef           *PackageReference
+	SourceRef *PackageReference
 
-	SourceRef         *PackageReference
+	ProposedContent *PackageContent
 
-	ProposedContent   *PackageContent
+	ConflictSummary *ConflictSummary
 
-	ConflictSummary   *ConflictSummary
+	MergeStrategy MergeStrategy
 
-	MergeStrategy     MergeStrategy
-
-	AutoApplicable    bool
+	AutoApplicable bool
 
 	RequiredApprovals []string
 
-	CreatedAt         time.Time
+	CreatedAt time.Time
 
-	ExpiresAt         time.Time
-
+	ExpiresAt time.Time
 }
 
-
-
 // Diffing types.
-
-
 
 // DiffOptions configures content diffing.
 
 type DiffOptions struct {
+	Format DiffFormat
 
-	Format           DiffFormat
-
-	Context          int
+	Context int
 
 	IgnoreWhitespace bool
 
-	IgnoreCase       bool
+	IgnoreCase bool
 
-	BinaryThreshold  int64
+	BinaryThreshold int64
 
-	ShowBinaryDiff   bool
+	ShowBinaryDiff bool
 
-	PathFilters      []string
-
+	PathFilters []string
 }
-
-
 
 // ContentDiff represents differences between package contents.
 
 type ContentDiff struct {
+	PackageRef1 *PackageReference
 
-	PackageRef1   *PackageReference
+	PackageRef2 *PackageReference
 
-	PackageRef2   *PackageReference
+	FileDiffs map[string]*FileDiff
 
-	FileDiffs     map[string]*FileDiff
+	AddedFiles []string
 
-	AddedFiles    []string
-
-	DeletedFiles  []string
+	DeletedFiles []string
 
 	ModifiedFiles []string
 
-	BinaryFiles   []string
+	BinaryFiles []string
 
-	Summary       *DiffSummary
+	Summary *DiffSummary
 
-	GeneratedAt   time.Time
-
+	GeneratedAt time.Time
 }
-
-
 
 // FileDiff represents differences in a single file.
 
 type FileDiff struct {
+	FileName string
 
-	FileName    string
+	DiffType DiffType
 
-	DiffType    DiffType
+	Format DiffFormat
 
-	Format      DiffFormat
-
-	Content     string
+	Content string
 
 	LineChanges []*LineChange
 
-	Statistics  *DiffStatistics
+	Statistics *DiffStatistics
 
-	IsBinary    bool
+	IsBinary bool
 
-	OldSize     int64
+	OldSize int64
 
-	NewSize     int64
-
+	NewSize int64
 }
-
-
 
 // LineChange represents a change in a specific line.
 
 type LineChange struct {
-
 	LineNumber int
 
 	ChangeType ChangeType
@@ -777,545 +629,436 @@ type LineChange struct {
 
 	NewContent string
 
-	Context    []string
-
+	Context []string
 }
-
-
 
 // ContentPatch represents a set of changes to apply.
 
 type ContentPatch struct {
-
-	PackageRef  *PackageReference
+	PackageRef *PackageReference
 
 	PatchFormat PatchFormat
 
 	FilePatches map[string]*FilePatch
 
-	CreatedAt   time.Time
+	CreatedAt time.Time
 
-	CreatedBy   string
+	CreatedBy string
 
 	Description string
 
-	Reversible  bool
-
+	Reversible bool
 }
-
-
 
 // FilePatch represents changes to a single file.
 
 type FilePatch struct {
-
-	FileName  string
+	FileName string
 
 	Operation PatchOperation
 
-	Content   []byte
+	Content []byte
 
-	Hunks     []*PatchHunk
+	Hunks []*PatchHunk
 
-	Checksum  string
-
+	Checksum string
 }
-
-
 
 // PatchHunk represents a contiguous set of changes.
 
 type PatchHunk struct {
+	OldStart int
 
-	OldStart  int
+	OldLines int
 
-	OldLines  int
+	NewStart int
 
-	NewStart  int
+	NewLines int
 
-	NewLines  int
-
-	Context   []string
+	Context []string
 
 	Additions []string
 
 	Deletions []string
-
 }
 
-
-
 // Merging types.
-
-
 
 // MergeOptions configures content merging behavior.
 
 type MergeOptions struct {
+	Strategy MergeStrategy
 
-	Strategy             MergeStrategy
-
-	ConflictResolution   ConflictResolutionStrategy
+	ConflictResolution ConflictResolutionStrategy
 
 	AutoResolveConflicts bool
 
-	PreferredSource      ConflictSource
+	PreferredSource ConflictSource
 
-	CustomMergeRules     []MergeRule
+	CustomMergeRules []MergeRule
 
-	ValidateResult       bool
+	ValidateResult bool
 
-	CreateBackup         bool
-
+	CreateBackup bool
 }
-
-
 
 // MergeResult contains the result of a merge operation.
 
 type MergeResult struct {
-
-	Success       bool
+	Success bool
 
 	MergedContent *PackageContent
 
-	Conflicts     []*FileConflict
+	Conflicts []*FileConflict
 
-	Statistics    *MergeStatistics
+	Statistics *MergeStatistics
 
-	AppliedRules  []string
+	AppliedRules []string
 
-	Warnings      []string
+	Warnings []string
 
-	BackupRef     *PackageReference
-
+	BackupRef *PackageReference
 }
-
-
 
 // FileMergeResult contains the result of merging a single file.
 
 type FileMergeResult struct {
-
-	Success       bool
+	Success bool
 
 	MergedContent []byte
 
-	Conflicts     []*ConflictMarker
+	Conflicts []*ConflictMarker
 
-	Statistics    *FileMergeStatistics
-
+	Statistics *FileMergeStatistics
 }
-
-
 
 // MergeRule defines custom merge behavior.
 
 type MergeRule struct {
-
-	Name        string
+	Name string
 
 	FilePattern string
 
 	ContentType string
 
-	Strategy    MergeStrategy
+	Strategy MergeStrategy
 
-	Priority    int
+	Priority int
 
-	Conditions  []MergeCondition
-
+	Conditions []MergeCondition
 }
-
-
 
 // MergeCondition defines when a merge rule applies.
 
 type MergeCondition struct {
+	Type ConditionType
 
-	Type     ConditionType
+	Pattern string
 
-	Pattern  string
-
-	Value    interface{}
+	Value interface{}
 
 	Operator ComparisonOperator
-
 }
 
-
-
 // Binary content types.
-
-
 
 // BinaryStorageOptions configures binary content storage.
 
 type BinaryStorageOptions struct {
+	ContentType string
 
-	ContentType    string
+	Compress bool
 
-	Compress       bool
+	Encrypt bool
 
-	Encrypt        bool
+	Deduplicate bool
 
-	Deduplicate    bool
-
-	Metadata       map[string]string
+	Metadata map[string]string
 
 	ExpirationTime *time.Time
-
 }
-
-
 
 // BinaryContentInfo provides information about binary content.
 
 type BinaryContentInfo struct {
+	FileName string
 
-	FileName       string
+	ContentType string
 
-	ContentType    string
-
-	Size           int64
+	Size int64
 
 	CompressedSize int64
 
-	Checksum       string
+	Checksum string
 
-	StoragePath    string
+	StoragePath string
 
-	Compressed     bool
+	Compressed bool
 
-	Encrypted      bool
+	Encrypted bool
 
-	CreatedAt      time.Time
+	CreatedAt time.Time
 
-	UpdatedAt      time.Time
+	UpdatedAt time.Time
 
-	AccessedAt     time.Time
+	AccessedAt time.Time
 
-	Metadata       map[string]string
-
+	Metadata map[string]string
 }
 
-
-
 // Analysis and optimization types.
-
-
 
 // ContentAnalysis provides comprehensive content analysis.
 
 type ContentAnalysis struct {
+	PackageRef *PackageReference
 
-	PackageRef              *PackageReference
+	TotalFiles int
 
-	TotalFiles              int
+	TotalSize int64
 
-	TotalSize               int64
+	FilesByType map[string]int
 
-	FilesByType             map[string]int
+	SizeByType map[string]int64
 
-	SizeByType              map[string]int64
+	LargestFiles []FileInfo
 
-	LargestFiles            []FileInfo
+	TemplateFiles []string
 
-	TemplateFiles           []string
+	BinaryFiles []string
 
-	BinaryFiles             []string
-
-	DuplicateContent        []DuplicateGroup
+	DuplicateContent []DuplicateGroup
 
 	OptimizationSuggestions []OptimizationSuggestion
 
-	SecurityIssues          []SecurityIssue
+	SecurityIssues []SecurityIssue
 
-	QualityMetrics          *ContentQualityMetrics
+	QualityMetrics *ContentQualityMetrics
 
-	GeneratedAt             time.Time
-
+	GeneratedAt time.Time
 }
-
-
 
 // FileInfo provides information about a file.
 
 type FileInfo struct {
+	Name string
 
-	Name         string
+	Size int64
 
-	Size         int64
+	Type string
 
-	Type         string
-
-	Checksum     string
+	Checksum string
 
 	LastModified time.Time
-
 }
-
-
 
 // DuplicateGroup represents a group of duplicate files.
 
 type DuplicateGroup struct {
+	Checksum string
 
-	Checksum         string
+	Files []string
 
-	Files            []string
+	Size int64
 
-	Size             int64
-
-	Occurrences      int
+	Occurrences int
 
 	SavingsPotential int64
-
 }
-
-
 
 // OptimizationSuggestion suggests content optimizations.
 
 type OptimizationSuggestion struct {
+	Type OptimizationType
 
-	Type             OptimizationType
+	Description string
 
-	Description      string
+	Impact OptimizationImpact
 
-	Impact           OptimizationImpact
-
-	Files            []string
+	Files []string
 
 	EstimatedSavings int64
 
-	AutoApplicable   bool
-
+	AutoApplicable bool
 }
-
-
 
 // SecurityIssue represents a security concern in content.
 
 type SecurityIssue struct {
+	Type SecurityIssueType
 
-	Type        SecurityIssueType
-
-	Severity    SecuritySeverity
+	Severity SecuritySeverity
 
 	Description string
 
-	Files       []string
+	Files []string
 
 	Remediation string
-
 }
-
-
 
 // ContentQualityMetrics provides quality assessment.
 
 type ContentQualityMetrics struct {
+	OverallScore float64
 
-	OverallScore        float64
+	ConsistencyScore float64
 
-	ConsistencyScore    float64
+	CompletenessScore float64
 
-	CompletenessScore   float64
-
-	SecurityScore       float64
+	SecurityScore float64
 
 	MaintenabilityScore float64
 
-	Issues              []QualityIssue
-
+	Issues []QualityIssue
 }
-
-
 
 // QualityIssue represents a quality concern.
 
 type QualityIssue struct {
+	Type QualityIssueType
 
-	Type        QualityIssueType
-
-	Severity    string
+	Severity string
 
 	Description string
 
-	File        string
+	File string
 
-	Line        int
+	Line int
 
-	Suggestion  string
-
+	Suggestion string
 }
-
-
 
 // OptimizationOptions configures content optimization.
 
 type OptimizationOptions struct {
+	RemoveDuplicates bool
 
-	RemoveDuplicates    bool
+	CompressBinary bool
 
-	CompressBinary      bool
+	MinifyJSON bool
 
-	MinifyJSON          bool
+	MinifyYAML bool
 
-	MinifyYAML          bool
+	RemoveComments bool
 
-	RemoveComments      bool
+	OptimizeImages bool
 
-	OptimizeImages      bool
-
-	DeduplicateStrings  bool
+	DeduplicateStrings bool
 
 	TargetSizeReduction float64
-
 }
-
-
 
 // OptimizationResult contains optimization results.
 
 type OptimizationResult struct {
+	Success bool
 
-	Success              bool
+	OriginalSize int64
 
-	OriginalSize         int64
+	OptimizedSize int64
 
-	OptimizedSize        int64
+	SizeReduction int64
 
-	SizeReduction        int64
-
-	ReductionPercentage  float64
+	ReductionPercentage float64
 
 	OptimizationsApplied []string
 
-	FilesModified        []string
+	FilesModified []string
 
-	Warnings             []string
+	Warnings []string
 
-	Duration             time.Duration
-
+	Duration time.Duration
 }
 
-
-
 // Search types.
-
-
 
 // ContentSearchQuery defines search parameters.
 
 type ContentSearchQuery struct {
+	Query string
 
-	Query          string
+	FilePatterns []string
 
-	FilePatterns   []string
+	ContentTypes []string
 
-	ContentTypes   []string
+	CaseSensitive bool
 
-	CaseSensitive  bool
-
-	RegexSearch    bool
+	RegexSearch bool
 
 	IncludeContent bool
 
-	MaxResults     int
+	MaxResults int
 
-	Repositories   []string
+	Repositories []string
 
-	TimeRange      *TimeRange
-
+	TimeRange *TimeRange
 }
-
-
 
 // ContentSearchResult contains search results.
 
 type ContentSearchResult struct {
+	Query string
 
-	Query            string
+	TotalMatches int
 
-	TotalMatches     int
+	FileMatches []FileSearchMatch
 
-	FileMatches      []FileSearchMatch
-
-	ExecutionTime    time.Duration
+	ExecutionTime time.Duration
 
 	TruncatedResults bool
-
 }
-
-
 
 // FileSearchMatch represents a match in a file.
 
 type FileSearchMatch struct {
+	PackageRef *PackageReference
 
-	PackageRef     *PackageReference
+	FileName string
 
-	FileName       string
+	FileType string
 
-	FileType       string
+	TotalMatches int
 
-	TotalMatches   int
-
-	LineMatches    []LineSearchMatch
+	LineMatches []LineSearchMatch
 
 	ContentPreview string
-
 }
-
-
 
 // LineSearchMatch represents a match in a specific line.
 
 type LineSearchMatch struct {
-
 	LineNumber int
 
-	Content    string
+	Content string
 
 	MatchStart int
 
-	MatchEnd   int
+	MatchEnd int
 
-	Context    []string
-
+	Context []string
 }
 
-
-
 // Validation result types.
-
-
 
 // ContentValidationResult contains comprehensive validation results.
 
 type ContentValidationResult struct {
+	Valid bool
 
-	Valid          bool
+	FileResults map[string]*FileValidationResult
 
-	FileResults    map[string]*FileValidationResult
+	KRMResults []*KRMValidationResult
 
-	KRMResults     []*KRMValidationResult
-
-	OverallScore   float64
+	OverallScore float64
 
 	CriticalIssues []ValidationIssue
 
-	Warnings       []ValidationIssue
+	Warnings []ValidationIssue
 
-	Suggestions    []ValidationSuggestion
+	Suggestions []ValidationSuggestion
 
 	ValidationTime time.Duration
-
 }
-
-
 
 // getStatusString returns a string representation of validation status.
 
@@ -1331,271 +1074,213 @@ func (cvr *ContentValidationResult) getStatusString() string {
 
 }
 
-
-
 // FileValidationResult contains validation results for a single file.
 
 type FileValidationResult struct {
+	FileName string
 
-	FileName     string
+	Valid bool
 
-	Valid        bool
+	ContentType string
 
-	ContentType  string
+	Size int64
 
-	Size         int64
+	Encoding string
 
-	Encoding     string
+	SyntaxValid bool
 
-	SyntaxValid  bool
+	SchemaValid bool
 
-	SchemaValid  bool
+	Issues []ValidationIssue
 
-	Issues       []ValidationIssue
-
-	Warnings     []ValidationIssue
+	Warnings []ValidationIssue
 
 	QualityScore float64
-
 }
-
-
 
 // ValidationIssue represents a validation problem.
 
 type ValidationIssue struct {
+	Type ValidationIssueType
 
-	Type       ValidationIssueType
+	Severity ValidationSeverity
 
-	Severity   ValidationSeverity
+	Message string
 
-	Message    string
+	File string
 
-	File       string
+	Line int
 
-	Line       int
+	Column int
 
-	Column     int
-
-	Rule       string
+	Rule string
 
 	Suggestion string
-
 }
-
-
 
 // ValidationSuggestion provides improvement suggestions.
 
 type ValidationSuggestion struct {
-
-	Type        SuggestionType
+	Type SuggestionType
 
 	Description string
 
-	File        string
+	File string
 
-	Line        int
+	Line int
 
-	Example     string
+	Example string
 
 	AutoFixable bool
-
 }
-
-
 
 // KRMValidationResult contains KRM-specific validation results.
 
 type KRMValidationResult struct {
+	Valid bool
 
-	Valid            bool
+	Resource *KRMResource
 
-	Resource         *KRMResource
+	APIVersion string
 
-	APIVersion       string
+	Kind string
 
-	Kind             string
+	Issues []KRMValidationIssue
 
-	Issues           []KRMValidationIssue
-
-	SchemaValidated  bool
+	SchemaValidated bool
 
 	CustomValidation map[string]interface{}
-
 }
-
-
 
 // KRMValidationIssue represents a KRM validation problem.
 
 type KRMValidationIssue struct {
+	Type KRMIssueType
 
-	Type       KRMIssueType
+	Severity ValidationSeverity
 
-	Severity   ValidationSeverity
+	Message string
 
-	Message    string
+	Path string
 
-	Path       string
+	Value interface{}
 
-	Value      interface{}
-
-	Rule       string
+	Rule string
 
 	Suggestion string
-
 }
 
-
-
 // YAML/JSON validation result types.
-
-
 
 // YAMLValidationResult contains YAML validation results.
 
 type YAMLValidationResult struct {
-
-	Valid      bool
+	Valid bool
 
 	ParsedData interface{}
 
-	Issues     []YAMLIssue
+	Issues []YAMLIssue
 
-	Structure  *YAMLStructureInfo
-
+	Structure *YAMLStructureInfo
 }
-
-
 
 // YAMLIssue represents a YAML parsing or structure issue.
 
 type YAMLIssue struct {
+	Type YAMLIssueType
 
-	Type     YAMLIssueType
+	Message string
 
-	Message  string
+	Line int
 
-	Line     int
-
-	Column   int
+	Column int
 
 	Severity ValidationSeverity
-
 }
-
-
 
 // YAMLStructureInfo provides information about YAML structure.
 
 type YAMLStructureInfo struct {
+	Documents int
 
-	Documents   int
+	MaxDepth int
 
-	MaxDepth    int
+	KeyCount int
 
-	KeyCount    int
-
-	ArrayCount  int
+	ArrayCount int
 
 	ScalarCount int
-
 }
-
-
 
 // JSONValidationResult contains JSON validation results.
 
 type JSONValidationResult struct {
-
-	Valid      bool
+	Valid bool
 
 	ParsedData interface{}
 
-	Issues     []JSONIssue
+	Issues []JSONIssue
 
-	Structure  *JSONStructureInfo
-
+	Structure *JSONStructureInfo
 }
-
-
 
 // JSONIssue represents a JSON parsing or structure issue.
 
 type JSONIssue struct {
+	Type JSONIssueType
 
-	Type     JSONIssueType
-
-	Message  string
+	Message string
 
 	Position int64
 
-	Line     int
+	Line int
 
-	Column   int
+	Column int
 
 	Severity ValidationSeverity
-
 }
-
-
 
 // JSONStructureInfo provides information about JSON structure.
 
 type JSONStructureInfo struct {
-
 	ObjectCount int
 
-	ArrayCount  int
+	ArrayCount int
 
 	StringCount int
 
 	NumberCount int
 
-	BoolCount   int
+	BoolCount int
 
-	NullCount   int
+	NullCount int
 
-	MaxDepth    int
-
+	MaxDepth int
 }
 
-
-
 // Template types.
-
-
 
 // TemplateVariable represents a template variable.
 
 type TemplateVariable struct {
+	Name string
 
-	Name         string
+	Type string
 
-	Type         string
-
-	Required     bool
+	Required bool
 
 	DefaultValue interface{}
 
-	Description  string
+	Description string
 
-	Example      string
-
+	Example string
 }
 
-
-
 // Enums and constants.
-
-
 
 // ContentConflictType defines types of content conflicts.
 
 type ContentConflictType string
-
-
 
 const (
 
@@ -1622,16 +1307,11 @@ const (
 	// ConflictTypeMetadata holds conflicttypemetadata value.
 
 	ConflictTypeMetadata ContentConflictType = "metadata"
-
 )
-
-
 
 // ContentConflictSeverity defines conflict severity levels.
 
 type ContentConflictSeverity string
-
-
 
 const (
 
@@ -1650,16 +1330,11 @@ const (
 	// ConflictSeverityCritical holds conflictseveritycritical value.
 
 	ConflictSeverityCritical ConflictSeverity = "critical"
-
 )
-
-
 
 // ConflictResolutionStrategy defines how to resolve conflicts.
 
 type ConflictResolutionStrategy string
-
-
 
 const (
 
@@ -1682,16 +1357,11 @@ const (
 	// ConflictResolutionAbort holds conflictresolutionabort value.
 
 	ConflictResolutionAbort ConflictResolutionStrategy = "abort"
-
 )
-
-
 
 // ConflictSource defines the source of a conflict resolution.
 
 type ConflictSource string
-
-
 
 const (
 
@@ -1710,10 +1380,7 @@ const (
 	// ConflictSourceCustom holds conflictsourcecustom value.
 
 	ConflictSourceCustom ConflictSource = "custom"
-
 )
-
-
 
 // DiffFormat defines format for diffs.
 
@@ -1730,45 +1397,35 @@ const (
 	// DiffTypeDeleted holds difftypedeleted value.
 
 	DiffTypeDeleted DiffType = "deleted"
-
 )
 
-
-
 // Additional supporting interfaces and types.
-
-
 
 // ContentManagerConfig holds configuration for content manager.
 
 type ContentManagerConfig struct {
+	MaxFileSize int64
 
-	MaxFileSize      int64
-
-	MaxFiles         int
+	MaxFiles int
 
 	EnableValidation bool
 
 	EnableTemplating bool
 
-	EnableIndexing   bool
+	EnableIndexing bool
 
-	TemplateConfig   *TemplateConfig
+	TemplateConfig *TemplateConfig
 
 	ValidationConfig *ValidationConfig
 
-	ConflictConfig   *ConflictConfig
+	ConflictConfig *ConflictConfig
 
-	MergeConfig      *MergeConfig
-
+	MergeConfig *MergeConfig
 }
-
-
 
 // TemplateConfig represents a templateconfig.
 
 type (
-
 	TemplateConfig struct{}
 
 	// ValidationConfig represents a validationconfig.
@@ -1782,94 +1439,65 @@ type (
 	// MergeConfig represents a mergeconfig.
 
 	MergeConfig struct{}
-
 )
-
-
 
 // ContentManagerMetrics holds Prometheus metrics.
 
 type ContentManagerMetrics struct {
+	contentOperations *prometheus.CounterVec
 
-	contentOperations     *prometheus.CounterVec
-
-	contentSize           *prometheus.GaugeVec
+	contentSize *prometheus.GaugeVec
 
 	contentProcessingTime *prometheus.HistogramVec
 
-	validationOperations  *prometheus.CounterVec
+	validationOperations *prometheus.CounterVec
 
-	validationDuration    prometheus.Observer
-
+	validationDuration prometheus.Observer
 }
-
-
 
 // Additional interfaces.
 
 type ContentIndexer interface {
-
 	IndexContent(ctx context.Context, ref *PackageReference, content *PackageContent) error
 
 	Close() error
-
 }
-
-
 
 // BinaryContentStore represents a binarycontentstore.
 
 type BinaryContentStore interface {
-
 	ListBinaryContent(ctx context.Context, ref *PackageReference) ([]BinaryContentInfo, error)
 
 	Close() error
-
 }
-
-
 
 // ContentCache represents a contentcache.
 
 type ContentCache interface{}
 
-
-
 // MergeEngine represents a mergeengine.
 
 type MergeEngine struct{}
-
-
 
 // NewMergeEngine performs newmergeengine operation.
 
 func NewMergeEngine(config *MergeConfig) *MergeEngine { return &MergeEngine{} }
 
-
-
 // ConflictResolver represents a conflictresolver.
 
 type ConflictResolver struct{}
-
-
 
 // NewConflictResolver performs newconflictresolver operation.
 
 func NewConflictResolver(config *ConflictConfig) *ConflictResolver { return &ConflictResolver{} }
 
-
-
 // TemplateEngine handles template processing.
 
 type TemplateEngine struct {
-
 	templates map[string]*template.Template
 
-	funcs     template.FuncMap
-
+	funcs template.FuncMap
 }
-
-
 
 // NewTemplateEngine performs newtemplateengine operation.
 
@@ -1879,31 +1507,22 @@ func NewTemplateEngine(config *TemplateConfig) *TemplateEngine {
 
 		templates: make(map[string]*template.Template),
 
-		funcs:     make(template.FuncMap),
-
+		funcs: make(template.FuncMap),
 	}
 
 }
-
-
 
 // Close performs close operation.
 
 func (te *TemplateEngine) Close() error { return nil }
 
-
-
 // ContentValidator validates package content.
 
 type ContentValidator struct {
-
 	schemas map[string]interface{}
 
-	rules   []ContentValidationRule
-
+	rules []ContentValidationRule
 }
-
-
 
 // NewContentValidator performs newcontentvalidator operation.
 
@@ -1913,41 +1532,30 @@ func NewContentValidator(config *ValidationConfig) *ContentValidator {
 
 		schemas: make(map[string]interface{}),
 
-		rules:   []ContentValidationRule{},
-
+		rules: []ContentValidationRule{},
 	}
 
 }
-
-
 
 // Close performs close operation.
 
 func (cv *ContentValidator) Close() error { return nil }
 
-
-
 // ContentValidationRule defines content validation rules.
 
 type ContentValidationRule struct {
+	Name string
 
-	Name     string
-
-	Pattern  string
+	Pattern string
 
 	Required bool
 
 	ErrorMsg string
-
 }
-
-
 
 // Additional enums.
 
 type SecurityIssueType string
-
-
 
 const (
 
@@ -1962,16 +1570,11 @@ const (
 	// SecurityIssueTypeSecretExposure holds securityissuetypesecretexposure value.
 
 	SecurityIssueTypeSecretExposure SecurityIssueType = "secret_exposure"
-
 )
-
-
 
 // SecuritySeverity represents a securityseverity.
 
 type SecuritySeverity string
-
-
 
 const (
 
@@ -1990,16 +1593,11 @@ const (
 	// SecuritySeverityCritical holds securityseveritycritical value.
 
 	SecuritySeverityCritical SecuritySeverity = "critical"
-
 )
-
-
 
 // QualityIssueType represents a qualityissuetype.
 
 type QualityIssueType string
-
-
 
 const (
 
@@ -2014,15 +1612,11 @@ const (
 	// QualityIssueTypeMaintainability holds qualityissuetypemaintainability value.
 
 	QualityIssueTypeMaintainability QualityIssueType = "maintainability"
-
 )
-
-
 
 // ContentStore interface.
 
 type ContentStore interface {
-
 	Store(ctx context.Context, key string, content []byte) error
 
 	Retrieve(ctx context.Context, key string) ([]byte, error)
@@ -2032,14 +1626,9 @@ type ContentStore interface {
 	List(ctx context.Context, prefix string) ([]string, error)
 
 	Close() error
-
 }
 
-
-
 // Interface implementations.
-
-
 
 // NewContentManager creates a new content manager instance.
 
@@ -2057,29 +1646,24 @@ func NewContentManager(client *Client, config *ContentManagerConfig) (ContentMan
 
 	}
 
-
-
 	cm := &contentManager{
 
-		client:            client,
+		client: client,
 
-		logger:            log.Log.WithName("content-manager"),
+		logger: log.Log.WithName("content-manager"),
 
-		config:            config,
+		config: config,
 
 		templateFunctions: make(map[string]interface{}),
 
-		processors:        make(map[string]ContentProcessor),
+		processors: make(map[string]ContentProcessor),
 
-		operationLocks:    make(map[string]*sync.RWMutex),
+		operationLocks: make(map[string]*sync.RWMutex),
 
-		shutdown:          make(chan struct{}),
+		shutdown: make(chan struct{}),
 
-		metrics:           initContentManagerMetrics(),
-
+		metrics: initContentManagerMetrics(),
 	}
-
-
 
 	// Initialize components.
 
@@ -2091,13 +1675,9 @@ func NewContentManager(client *Client, config *ContentManagerConfig) (ContentMan
 
 	cm.mergeEngine = NewMergeEngine(config.MergeConfig)
 
-
-
 	// Register default template functions.
 
 	cm.registerDefaultTemplateFunctions()
-
-
 
 	// Start background processes.
 
@@ -2105,21 +1685,15 @@ func NewContentManager(client *Client, config *ContentManagerConfig) (ContentMan
 
 	go cm.metricsCollectionLoop()
 
-
-
 	return cm, nil
 
 }
-
-
 
 // CreateContent creates new package content.
 
 func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReference, req *PackageContentRequest) (*PackageContent, error) {
 
 	cm.logger.Info("Creating package content", "package", ref.GetPackageKey(), "files", len(req.Files))
-
-
 
 	// Acquire operation lock.
 
@@ -2129,11 +1703,7 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 
 	defer lock.Unlock()
 
-
-
 	startTime := time.Now()
-
-
 
 	// Validate request.
 
@@ -2142,8 +1712,6 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 		return nil, fmt.Errorf("invalid content request: %w", err)
 
 	}
-
-
 
 	// Process templates if requested.
 
@@ -2163,8 +1731,6 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 
 	}
 
-
-
 	// Create package content.
 
 	content := &PackageContent{
@@ -2175,25 +1741,19 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 
 			APIVersion: "kpt.dev/v1",
 
-			Kind:       "Kptfile",
+			Kind: "Kptfile",
 
 			Metadata: map[string]interface{}{
 
 				"name": ref.PackageName,
-
 			},
 
 			Info: &PackageMetadata{
 
 				Description: fmt.Sprintf("Package %s revision %s", ref.PackageName, ref.Revision),
-
 			},
-
 		},
-
 	}
-
-
 
 	// Store binary files if any.
 
@@ -2207,20 +1767,17 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 
 	}
 
-
-
 	// Validate content if requested.
 
 	if req.ValidateContent {
 
 		validationResult, err := cm.ValidateContent(ctx, ref, content, &ValidationOptions{
 
-			ValidateYAMLSyntax:   true,
+			ValidateYAMLSyntax: true,
 
-			ValidateJSONSyntax:   true,
+			ValidateJSONSyntax: true,
 
 			ValidateKRMResources: true,
-
 		})
 
 		if err != nil {
@@ -2237,8 +1794,6 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 
 	}
 
-
-
 	// Store content using Porch client.
 
 	if err := cm.client.UpdatePackageContents(ctx, ref.PackageName, ref.Revision, processedContent); err != nil {
@@ -2246,8 +1801,6 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 		return nil, fmt.Errorf("failed to store content in Porch: %w", err)
 
 	}
-
-
 
 	// Index content if indexer is available.
 
@@ -2260,8 +1813,6 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 		}
 
 	}
-
-
 
 	// Update metrics.
 
@@ -2277,8 +1828,6 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 
 	}
 
-
-
 	cm.logger.Info("Package content created successfully",
 
 		"package", ref.GetPackageKey(),
@@ -2287,13 +1836,9 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 
 		"duration", time.Since(startTime))
 
-
-
 	return content, nil
 
 }
-
-
 
 // GetContent retrieves package content with optional filtering and processing.
 
@@ -2301,15 +1846,11 @@ func (cm *contentManager) GetContent(ctx context.Context, ref *PackageReference,
 
 	cm.logger.V(1).Info("Getting package content", "package", ref.GetPackageKey())
 
-
-
 	if opts == nil {
 
 		opts = &ContentQueryOptions{}
 
 	}
-
-
 
 	// Get content from Porch.
 
@@ -2321,13 +1862,9 @@ func (cm *contentManager) GetContent(ctx context.Context, ref *PackageReference,
 
 	}
 
-
-
 	// Apply file filtering.
 
 	filteredContent := cm.applyFileFilters(rawContent, opts)
-
-
 
 	// Process templates if requested.
 
@@ -2349,15 +1886,10 @@ func (cm *contentManager) GetContent(ctx context.Context, ref *PackageReference,
 
 	}
 
-
-
 	content := &PackageContent{
 
 		Files: filteredContent,
-
 	}
-
-
 
 	// Add binary content if requested.
 
@@ -2377,8 +1909,6 @@ func (cm *contentManager) GetContent(ctx context.Context, ref *PackageReference,
 
 	}
 
-
-
 	// Update access metrics.
 
 	if cm.metrics != nil {
@@ -2387,13 +1917,9 @@ func (cm *contentManager) GetContent(ctx context.Context, ref *PackageReference,
 
 	}
 
-
-
 	return content, nil
 
 }
-
-
 
 // ValidateContent performs comprehensive content validation.
 
@@ -2401,39 +1927,29 @@ func (cm *contentManager) ValidateContent(ctx context.Context, ref *PackageRefer
 
 	cm.logger.V(1).Info("Validating package content", "package", ref.GetPackageKey(), "files", len(content.Files))
 
-
-
 	startTime := time.Now()
-
-
 
 	if opts == nil {
 
 		opts = &ValidationOptions{
 
-			ValidateYAMLSyntax:   true,
+			ValidateYAMLSyntax: true,
 
-			ValidateJSONSyntax:   true,
+			ValidateJSONSyntax: true,
 
 			ValidateKRMResources: true,
-
 		}
 
 	}
 
-
-
 	result := &ContentValidationResult{
 
-		Valid:       true,
+		Valid: true,
 
 		FileResults: make(map[string]*FileValidationResult),
 
-		KRMResults:  []*KRMValidationResult{},
-
+		KRMResults: []*KRMValidationResult{},
 	}
-
-
 
 	// Validate each file.
 
@@ -2449,8 +1965,6 @@ func (cm *contentManager) ValidateContent(ctx context.Context, ref *PackageRefer
 
 		}
 
-
-
 		result.FileResults[filename] = fileResult
 
 		if !fileResult.Valid {
@@ -2458,8 +1972,6 @@ func (cm *contentManager) ValidateContent(ctx context.Context, ref *PackageRefer
 			result.Valid = false
 
 		}
-
-
 
 		// Extract and validate KRM resources.
 
@@ -2483,8 +1995,6 @@ func (cm *contentManager) ValidateContent(ctx context.Context, ref *PackageRefer
 
 	}
 
-
-
 	// Perform cross-file validations.
 
 	crossFileIssues := cm.performCrossFileValidation(ctx, content, opts)
@@ -2505,15 +2015,11 @@ func (cm *contentManager) ValidateContent(ctx context.Context, ref *PackageRefer
 
 	}
 
-
-
 	// Calculate overall quality score.
 
 	result.OverallScore = cm.calculateQualityScore(result)
 
 	result.ValidationTime = time.Since(startTime)
-
-
 
 	// Update metrics.
 
@@ -2525,8 +2031,6 @@ func (cm *contentManager) ValidateContent(ctx context.Context, ref *PackageRefer
 
 	}
 
-
-
 	cm.logger.V(1).Info("Content validation completed",
 
 		"package", ref.GetPackageKey(),
@@ -2537,13 +2041,9 @@ func (cm *contentManager) ValidateContent(ctx context.Context, ref *PackageRefer
 
 		"duration", result.ValidationTime)
 
-
-
 	return result, nil
 
 }
-
-
 
 // Close gracefully shuts down the content manager.
 
@@ -2551,13 +2051,9 @@ func (cm *contentManager) Close() error {
 
 	cm.logger.Info("Shutting down content manager")
 
-
-
 	close(cm.shutdown)
 
 	cm.wg.Wait()
-
-
 
 	// Close components.
 
@@ -2585,15 +2081,11 @@ func (cm *contentManager) Close() error {
 
 	}
 
-
-
 	cm.logger.Info("Content manager shutdown complete")
 
 	return nil
 
 }
-
-
 
 // Helper methods (placeholder implementations).
 
@@ -2603,15 +2095,11 @@ func (cm *contentManager) getOperationLock(key string) *sync.RWMutex {
 
 	defer cm.locksMutex.Unlock()
 
-
-
 	if lock, exists := cm.operationLocks[key]; exists {
 
 		return lock
 
 	}
-
-
 
 	lock := &sync.RWMutex{}
 
@@ -2620,8 +2108,6 @@ func (cm *contentManager) getOperationLock(key string) *sync.RWMutex {
 	return lock
 
 }
-
-
 
 func (cm *contentManager) validateContentRequest(req *PackageContentRequest) error {
 
@@ -2635,23 +2121,17 @@ func (cm *contentManager) validateContentRequest(req *PackageContentRequest) err
 
 }
 
-
-
 func (cm *contentManager) processContentTemplates(ctx context.Context, content map[string][]byte, templateData interface{}) (map[string][]byte, error) {
 
 	return content, nil
 
 }
 
-
-
 func (cm *contentManager) applyFileFilters(content map[string][]byte, opts *ContentQueryOptions) map[string][]byte {
 
 	return content
 
 }
-
-
 
 func (cm *contentManager) calculateContentSize(content map[string][]byte) int64 {
 
@@ -2667,15 +2147,11 @@ func (cm *contentManager) calculateContentSize(content map[string][]byte) int64 
 
 }
 
-
-
 func (cm *contentManager) storeBinaryFiles(ctx context.Context, ref *PackageReference, files map[string]BinaryFileRequest) error {
 
 	return nil
 
 }
-
-
 
 func (cm *contentManager) validateSingleFile(ctx context.Context, filename string, content []byte, opts *ValidationOptions) (*FileValidationResult, error) {
 
@@ -2683,15 +2159,12 @@ func (cm *contentManager) validateSingleFile(ctx context.Context, filename strin
 
 		FileName: filename,
 
-		Valid:    true,
+		Valid: true,
 
-		Size:     int64(len(content)),
-
+		Size: int64(len(content)),
 	}, nil
 
 }
-
-
 
 func (cm *contentManager) isKRMFile(filename string) bool {
 
@@ -2699,15 +2172,11 @@ func (cm *contentManager) isKRMFile(filename string) bool {
 
 }
 
-
-
 func (cm *contentManager) extractAndValidateKRMResources(ctx context.Context, content []byte) ([]*KRMValidationResult, error) {
 
 	return []*KRMValidationResult{}, nil
 
 }
-
-
 
 func (cm *contentManager) performCrossFileValidation(ctx context.Context, content *PackageContent, opts *ValidationOptions) []ValidationIssue {
 
@@ -2715,19 +2184,13 @@ func (cm *contentManager) performCrossFileValidation(ctx context.Context, conten
 
 }
 
-
-
 func (cm *contentManager) calculateQualityScore(result *ContentValidationResult) float64 {
 
 	return 1.0
 
 }
 
-
-
 func (cm *contentManager) registerDefaultTemplateFunctions() {}
-
-
 
 func (cm *contentManager) metricsCollectionLoop() {
 
@@ -2736,8 +2199,6 @@ func (cm *contentManager) metricsCollectionLoop() {
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2757,27 +2218,22 @@ func (cm *contentManager) metricsCollectionLoop() {
 
 }
 
-
-
 func getDefaultContentManagerConfig() *ContentManagerConfig {
 
 	return &ContentManagerConfig{
 
-		MaxFileSize:      100 * 1024 * 1024, // 100MB
+		MaxFileSize: 100 * 1024 * 1024, // 100MB
 
-		MaxFiles:         10000,
+		MaxFiles: 10000,
 
 		EnableValidation: true,
 
 		EnableTemplating: true,
 
-		EnableIndexing:   true,
-
+		EnableIndexing: true,
 	}
 
 }
-
-
 
 func initContentManagerMetrics() *ContentManagerMetrics {
 
@@ -2790,11 +2246,9 @@ func initContentManagerMetrics() *ContentManagerMetrics {
 				Name: "porch_content_operations_total",
 
 				Help: "Total number of content operations",
-
 			},
 
 			[]string{"operation", "status"},
-
 		),
 
 		contentSize: prometheus.NewGaugeVec(
@@ -2804,11 +2258,9 @@ func initContentManagerMetrics() *ContentManagerMetrics {
 				Name: "porch_content_size_bytes",
 
 				Help: "Size of package content in bytes",
-
 			},
 
 			[]string{"repository", "package"},
-
 		),
 
 		contentProcessingTime: prometheus.NewHistogramVec(
@@ -2818,11 +2270,9 @@ func initContentManagerMetrics() *ContentManagerMetrics {
 				Name: "porch_content_processing_duration_seconds",
 
 				Help: "Time spent processing content",
-
 			},
 
 			[]string{"operation"},
-
 		),
 
 		validationOperations: prometheus.NewCounterVec(
@@ -2832,11 +2282,9 @@ func initContentManagerMetrics() *ContentManagerMetrics {
 				Name: "porch_validation_operations_total",
 
 				Help: "Total number of validation operations",
-
 			},
 
 			[]string{"type", "status"},
-
 		),
 
 		validationDuration: prometheus.NewHistogram(
@@ -2846,16 +2294,11 @@ func initContentManagerMetrics() *ContentManagerMetrics {
 				Name: "porch_validation_duration_seconds",
 
 				Help: "Time spent on validation operations",
-
 			},
-
 		),
-
 	}
 
 }
-
-
 
 // Stub implementations for remaining ContentManager interface methods.
 
@@ -2865,8 +2308,6 @@ func (cm *contentManager) UpdateContent(ctx context.Context, ref *PackageReferen
 
 }
 
-
-
 // DeleteContent performs deletecontent operation.
 
 func (cm *contentManager) DeleteContent(ctx context.Context, ref *PackageReference, filePatterns []string) error {
@@ -2874,8 +2315,6 @@ func (cm *contentManager) DeleteContent(ctx context.Context, ref *PackageReferen
 	return fmt.Errorf("not implemented")
 
 }
-
-
 
 // ValidateKRMResources performs validatekrmresources operation.
 
@@ -2885,8 +2324,6 @@ func (cm *contentManager) ValidateKRMResources(ctx context.Context, resources []
 
 }
 
-
-
 // ValidateYAMLSyntax performs validateyamlsyntax operation.
 
 func (cm *contentManager) ValidateYAMLSyntax(ctx context.Context, yamlContent []byte) (*YAMLValidationResult, error) {
@@ -2894,8 +2331,6 @@ func (cm *contentManager) ValidateYAMLSyntax(ctx context.Context, yamlContent []
 	return nil, fmt.Errorf("not implemented")
 
 }
-
-
 
 // ValidateJSONSyntax performs validatejsonsyntax operation.
 
@@ -2905,8 +2340,6 @@ func (cm *contentManager) ValidateJSONSyntax(ctx context.Context, jsonContent []
 
 }
 
-
-
 // ProcessTemplates performs processtemplates operation.
 
 func (cm *contentManager) ProcessTemplates(ctx context.Context, ref *PackageReference, templateData interface{}, opts *TemplateProcessingOptions) (*PackageContent, error) {
@@ -2914,8 +2347,6 @@ func (cm *contentManager) ProcessTemplates(ctx context.Context, ref *PackageRefe
 	return nil, fmt.Errorf("not implemented")
 
 }
-
-
 
 // RegisterTemplateFunction performs registertemplatefunction operation.
 
@@ -2925,8 +2356,6 @@ func (cm *contentManager) RegisterTemplateFunction(name string, fn interface{}) 
 
 }
 
-
-
 // ListTemplateVariables performs listtemplatevariables operation.
 
 func (cm *contentManager) ListTemplateVariables(ctx context.Context, ref *PackageReference) ([]TemplateVariable, error) {
@@ -2934,8 +2363,6 @@ func (cm *contentManager) ListTemplateVariables(ctx context.Context, ref *Packag
 	return nil, fmt.Errorf("not implemented")
 
 }
-
-
 
 // DetectConflicts performs detectconflicts operation.
 
@@ -2945,8 +2372,6 @@ func (cm *contentManager) DetectConflicts(ctx context.Context, ref *PackageRefer
 
 }
 
-
-
 // ResolveConflicts performs resolveconflicts operation.
 
 func (cm *contentManager) ResolveConflicts(ctx context.Context, ref *PackageReference, conflicts *ConflictResolution) (*PackageContent, error) {
@@ -2954,8 +2379,6 @@ func (cm *contentManager) ResolveConflicts(ctx context.Context, ref *PackageRefe
 	return nil, fmt.Errorf("not implemented")
 
 }
-
-
 
 // CreateMergeProposal performs createmergeproposal operation.
 
@@ -2965,8 +2388,6 @@ func (cm *contentManager) CreateMergeProposal(ctx context.Context, ref *PackageR
 
 }
 
-
-
 // DiffContent performs diffcontent operation.
 
 func (cm *contentManager) DiffContent(ctx context.Context, ref1, ref2 *PackageReference, opts *DiffOptions) (*ContentDiff, error) {
@@ -2974,8 +2395,6 @@ func (cm *contentManager) DiffContent(ctx context.Context, ref1, ref2 *PackageRe
 	return nil, fmt.Errorf("not implemented")
 
 }
-
-
 
 // DiffFiles performs difffiles operation.
 
@@ -2985,8 +2404,6 @@ func (cm *contentManager) DiffFiles(ctx context.Context, file1, file2 []byte, fo
 
 }
 
-
-
 // GeneratePatch performs generatepatch operation.
 
 func (cm *contentManager) GeneratePatch(ctx context.Context, oldContent, newContent *PackageContent) (*ContentPatch, error) {
@@ -2994,8 +2411,6 @@ func (cm *contentManager) GeneratePatch(ctx context.Context, oldContent, newCont
 	return nil, fmt.Errorf("not implemented")
 
 }
-
-
 
 // ApplyPatch performs applypatch operation.
 
@@ -3005,8 +2420,6 @@ func (cm *contentManager) ApplyPatch(ctx context.Context, ref *PackageReference,
 
 }
 
-
-
 // MergeContent performs mergecontent operation.
 
 func (cm *contentManager) MergeContent(ctx context.Context, baseContent, sourceContent, targetContent *PackageContent, opts *MergeOptions) (*MergeResult, error) {
@@ -3014,8 +2427,6 @@ func (cm *contentManager) MergeContent(ctx context.Context, baseContent, sourceC
 	return nil, fmt.Errorf("not implemented")
 
 }
-
-
 
 // ThreeWayMerge performs threewaymerge operation.
 
@@ -3025,8 +2436,6 @@ func (cm *contentManager) ThreeWayMerge(ctx context.Context, base, source, targe
 
 }
 
-
-
 // StoreBinaryContent performs storebinarycontent operation.
 
 func (cm *contentManager) StoreBinaryContent(ctx context.Context, ref *PackageReference, filename string, data []byte, opts *BinaryStorageOptions) (*BinaryContentInfo, error) {
@@ -3034,8 +2443,6 @@ func (cm *contentManager) StoreBinaryContent(ctx context.Context, ref *PackageRe
 	return nil, fmt.Errorf("not implemented")
 
 }
-
-
 
 // RetrieveBinaryContent performs retrievebinarycontent operation.
 
@@ -3045,8 +2452,6 @@ func (cm *contentManager) RetrieveBinaryContent(ctx context.Context, ref *Packag
 
 }
 
-
-
 // DeleteBinaryContent performs deletebinarycontent operation.
 
 func (cm *contentManager) DeleteBinaryContent(ctx context.Context, ref *PackageReference, filename string) error {
@@ -3054,8 +2459,6 @@ func (cm *contentManager) DeleteBinaryContent(ctx context.Context, ref *PackageR
 	return fmt.Errorf("not implemented")
 
 }
-
-
 
 // ListBinaryContent performs listbinarycontent operation.
 
@@ -3065,8 +2468,6 @@ func (cm *contentManager) ListBinaryContent(ctx context.Context, ref *PackageRef
 
 }
 
-
-
 // AnalyzeContent performs analyzecontent operation.
 
 func (cm *contentManager) AnalyzeContent(ctx context.Context, ref *PackageReference) (*ContentAnalysis, error) {
@@ -3074,8 +2475,6 @@ func (cm *contentManager) AnalyzeContent(ctx context.Context, ref *PackageRefere
 	return nil, fmt.Errorf("not implemented")
 
 }
-
-
 
 // GetContentMetrics performs getcontentmetrics operation.
 
@@ -3085,8 +2484,6 @@ func (cm *contentManager) GetContentMetrics(ctx context.Context, ref *PackageRef
 
 }
 
-
-
 // OptimizeContent performs optimizecontent operation.
 
 func (cm *contentManager) OptimizeContent(ctx context.Context, ref *PackageReference, opts *OptimizationOptions) (*OptimizationResult, error) {
@@ -3094,8 +2491,6 @@ func (cm *contentManager) OptimizeContent(ctx context.Context, ref *PackageRefer
 	return nil, fmt.Errorf("not implemented")
 
 }
-
-
 
 // IndexContent performs indexcontent operation.
 
@@ -3105,8 +2500,6 @@ func (cm *contentManager) IndexContent(ctx context.Context, ref *PackageReferenc
 
 }
 
-
-
 // SearchContent performs searchcontent operation.
 
 func (cm *contentManager) SearchContent(ctx context.Context, query *ContentSearchQuery) (*ContentSearchResult, error) {
@@ -3114,8 +2507,6 @@ func (cm *contentManager) SearchContent(ctx context.Context, query *ContentSearc
 	return nil, fmt.Errorf("not implemented")
 
 }
-
-
 
 // GetContentHealth performs getcontenthealth operation.
 
@@ -3125,8 +2516,6 @@ func (cm *contentManager) GetContentHealth(ctx context.Context) (*ContentManager
 
 }
 
-
-
 // CleanupOrphanedContent performs cleanuporphanedcontent operation.
 
 func (cm *contentManager) CleanupOrphanedContent(ctx context.Context, olderThan time.Duration) (*CleanupResult, error) {
@@ -3134,4 +2523,3 @@ func (cm *contentManager) CleanupOrphanedContent(ctx context.Context, olderThan 
 	return nil, fmt.Errorf("not implemented")
 
 }
-

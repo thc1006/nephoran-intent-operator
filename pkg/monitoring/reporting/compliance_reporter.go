@@ -6,40 +6,22 @@
 
 // you may not use this file except in compliance with the License.
 
-
-
-
 package reporting
 
-
-
 import (
-
 	"context"
-
 	"crypto/sha256"
-
 	"fmt"
-
 	"sort"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/sirupsen/logrus"
-
 )
-
-
 
 // ComplianceFramework represents different compliance frameworks.
 
 type ComplianceFramework string
-
-
 
 const (
 
@@ -74,200 +56,155 @@ const (
 	// SOC2 holds soc2 value.
 
 	SOC2 ComplianceFramework = "soc2"
-
 )
-
-
 
 // ComplianceConfig contains compliance reporting configuration.
 
 type ComplianceConfig struct {
+	Frameworks []ComplianceFramework `yaml:"frameworks"`
 
-	Frameworks     []ComplianceFramework `yaml:"frameworks"`
+	AuditRetention time.Duration `yaml:"audit_retention"`
 
-	AuditRetention time.Duration         `yaml:"audit_retention"`
+	ReportSchedule ReportScheduleConfig `yaml:"report_schedule"`
 
-	ReportSchedule ReportScheduleConfig  `yaml:"report_schedule"`
+	Attestation AttestationConfig `yaml:"attestation"`
 
-	Attestation    AttestationConfig     `yaml:"attestation"`
+	DataRetention DataRetentionConfig `yaml:"data_retention"`
 
-	DataRetention  DataRetentionConfig   `yaml:"data_retention"`
+	Encryption EncryptionConfig `yaml:"encryption"`
 
-	Encryption     EncryptionConfig      `yaml:"encryption"`
-
-	AccessControl  AccessControlConfig   `yaml:"access_control"`
-
+	AccessControl AccessControlConfig `yaml:"access_control"`
 }
-
-
 
 // ReportScheduleConfig contains report scheduling configuration.
 
 type ReportScheduleConfig struct {
+	Daily bool `yaml:"daily"`
 
-	Daily     bool `yaml:"daily"`
+	Weekly bool `yaml:"weekly"`
 
-	Weekly    bool `yaml:"weekly"`
-
-	Monthly   bool `yaml:"monthly"`
+	Monthly bool `yaml:"monthly"`
 
 	Quarterly bool `yaml:"quarterly"`
 
-	Annual    bool `yaml:"annual"`
-
+	Annual bool `yaml:"annual"`
 }
-
-
 
 // AttestationConfig contains attestation configuration.
 
 type AttestationConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled          bool          `yaml:"enabled"`
+	SigningKey string `yaml:"signing_key"`
 
-	SigningKey       string        `yaml:"signing_key"`
-
-	ValidityPeriod   time.Duration `yaml:"validity_period"`
+	ValidityPeriod time.Duration `yaml:"validity_period"`
 
 	RenewalThreshold time.Duration `yaml:"renewal_threshold"`
-
 }
-
-
 
 // DataRetentionConfig contains data retention policy configuration.
 
 type DataRetentionConfig struct {
+	LogRetention time.Duration `yaml:"log_retention"`
 
-	LogRetention      time.Duration            `yaml:"log_retention"`
+	MetricRetention time.Duration `yaml:"metric_retention"`
 
-	MetricRetention   time.Duration            `yaml:"metric_retention"`
+	AuditRetention time.Duration `yaml:"audit_retention"`
 
-	AuditRetention    time.Duration            `yaml:"audit_retention"`
+	BackupRetention time.Duration `yaml:"backup_retention"`
 
-	BackupRetention   time.Duration            `yaml:"backup_retention"`
+	ArchiveSchedule string `yaml:"archive_schedule"`
 
-	ArchiveSchedule   string                   `yaml:"archive_schedule"`
-
-	PurgeSchedule     string                   `yaml:"purge_schedule"`
+	PurgeSchedule string `yaml:"purge_schedule"`
 
 	RetentionPolicies map[string]time.Duration `yaml:"retention_policies"`
-
 }
-
-
 
 // EncryptionConfig contains encryption configuration.
 
 type EncryptionConfig struct {
+	AtRest EncryptionAtRestConfig `yaml:"at_rest"`
 
-	AtRest        EncryptionAtRestConfig    `yaml:"at_rest"`
+	InTransit EncryptionInTransitConfig `yaml:"in_transit"`
 
-	InTransit     EncryptionInTransitConfig `yaml:"in_transit"`
-
-	KeyManagement KeyManagementConfig       `yaml:"key_management"`
-
+	KeyManagement KeyManagementConfig `yaml:"key_management"`
 }
-
-
 
 // EncryptionAtRestConfig contains encryption at rest configuration.
 
 type EncryptionAtRestConfig struct {
-
-	Enabled   bool   `yaml:"enabled"`
+	Enabled bool `yaml:"enabled"`
 
 	Algorithm string `yaml:"algorithm"`
 
-	KeySize   int    `yaml:"key_size"`
-
+	KeySize int `yaml:"key_size"`
 }
-
-
 
 // EncryptionInTransitConfig contains encryption in transit configuration.
 
 type EncryptionInTransitConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled    bool     `yaml:"enabled"`
+	TLSVersion string `yaml:"tls_version"`
 
-	TLSVersion string   `yaml:"tls_version"`
-
-	Protocols  []string `yaml:"protocols"`
-
+	Protocols []string `yaml:"protocols"`
 }
-
-
 
 // KeyManagementConfig contains key management configuration.
 
 type KeyManagementConfig struct {
-
-	Provider    string        `yaml:"provider"`
+	Provider string `yaml:"provider"`
 
 	KeyRotation time.Duration `yaml:"key_rotation"`
 
-	BackupKeys  bool          `yaml:"backup_keys"`
-
+	BackupKeys bool `yaml:"backup_keys"`
 }
-
-
 
 // AccessControlConfig contains access control configuration.
 
 type AccessControlConfig struct {
+	RBAC bool `yaml:"rbac"`
 
-	RBAC           bool                `yaml:"rbac"`
+	MFA bool `yaml:"mfa"`
 
-	MFA            bool                `yaml:"mfa"`
+	SessionTimeout time.Duration `yaml:"session_timeout"`
 
-	SessionTimeout time.Duration       `yaml:"session_timeout"`
-
-	Permissions    map[string][]string `yaml:"permissions"`
-
+	Permissions map[string][]string `yaml:"permissions"`
 }
-
-
 
 // ComplianceRequirement represents a specific compliance requirement.
 
 type ComplianceRequirement struct {
+	ID string `json:"id"`
 
-	ID             string                 `json:"id"`
+	Framework ComplianceFramework `json:"framework"`
 
-	Framework      ComplianceFramework    `json:"framework"`
+	Title string `json:"title"`
 
-	Title          string                 `json:"title"`
+	Description string `json:"description"`
 
-	Description    string                 `json:"description"`
+	Category string `json:"category"`
 
-	Category       string                 `json:"category"`
+	Severity string `json:"severity"` // critical, high, medium, low
 
-	Severity       string                 `json:"severity"` // critical, high, medium, low
+	Status ComplianceStatus `json:"status"`
 
-	Status         ComplianceStatus       `json:"status"`
+	Evidence []Evidence `json:"evidence"`
 
-	Evidence       []Evidence             `json:"evidence"`
+	Controls []Control `json:"controls"`
 
-	Controls       []Control              `json:"controls"`
+	LastAssessed time.Time `json:"last_assessed"`
 
-	LastAssessed   time.Time              `json:"last_assessed"`
+	NextAssessment time.Time `json:"next_assessment"`
 
-	NextAssessment time.Time              `json:"next_assessment"`
+	Remediation *RemediationPlan `json:"remediation,omitempty"`
 
-	Remediation    *RemediationPlan       `json:"remediation,omitempty"`
-
-	Metadata       map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // ComplianceStatus represents the status of compliance.
 
 type ComplianceStatus string
-
-
 
 const (
 
@@ -294,405 +231,337 @@ const (
 	// StatusExempt holds statusexempt value.
 
 	StatusExempt ComplianceStatus = "exempt"
-
 )
-
-
 
 // Evidence represents evidence for compliance.
 
 type Evidence struct {
+	ID string `json:"id"`
 
-	ID          string                 `json:"id"`
+	Type string `json:"type"` // document, log, metric, screenshot, audit
 
-	Type        string                 `json:"type"` // document, log, metric, screenshot, audit
+	Source string `json:"source"`
 
-	Source      string                 `json:"source"`
+	Location string `json:"location"`
 
-	Location    string                 `json:"location"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp   time.Time              `json:"timestamp"`
+	Collector string `json:"collector"`
 
-	Collector   string                 `json:"collector"`
+	Hash string `json:"hash"`
 
-	Hash        string                 `json:"hash"`
+	Signature string `json:"signature,omitempty"`
 
-	Signature   string                 `json:"signature,omitempty"`
+	Description string `json:"description"`
 
-	Description string                 `json:"description"`
-
-	Metadata    map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // Control represents a security control.
 
 type Control struct {
+	ID string `json:"id"`
 
-	ID             string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name           string                 `json:"name"`
+	Description string `json:"description"`
 
-	Description    string                 `json:"description"`
+	Implementation string `json:"implementation"`
 
-	Implementation string                 `json:"implementation"`
+	Status string `json:"status"` // active, inactive, disabled
 
-	Status         string                 `json:"status"`        // active, inactive, disabled
+	Effectiveness string `json:"effectiveness"` // effective, partially_effective, ineffective
 
-	Effectiveness  string                 `json:"effectiveness"` // effective, partially_effective, ineffective
+	LastTested time.Time `json:"last_tested"`
 
-	LastTested     time.Time              `json:"last_tested"`
+	NextTest time.Time `json:"next_test"`
 
-	NextTest       time.Time              `json:"next_test"`
+	TestResults []TestResult `json:"test_results"`
 
-	TestResults    []TestResult           `json:"test_results"`
-
-	Metadata       map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // TestResult represents control test results.
 
 type TestResult struct {
+	ID string `json:"id"`
 
-	ID        string                 `json:"id"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time              `json:"timestamp"`
+	Tester string `json:"tester"`
 
-	Tester    string                 `json:"tester"`
+	Method string `json:"method"` // manual, automated, hybrid
 
-	Method    string                 `json:"method"` // manual, automated, hybrid
+	Result string `json:"result"` // pass, fail, partial
 
-	Result    string                 `json:"result"` // pass, fail, partial
+	Score float64 `json:"score"`
 
-	Score     float64                `json:"score"`
+	Notes string `json:"notes"`
 
-	Notes     string                 `json:"notes"`
+	Evidence []string `json:"evidence"`
 
-	Evidence  []string               `json:"evidence"`
-
-	Metadata  map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // RemediationPlan represents a plan to address non-compliance.
 
 type RemediationPlan struct {
+	ID string `json:"id"`
 
-	ID          string                 `json:"id"`
+	Title string `json:"title"`
 
-	Title       string                 `json:"title"`
+	Description string `json:"description"`
 
-	Description string                 `json:"description"`
+	Priority string `json:"priority"` // critical, high, medium, low
 
-	Priority    string                 `json:"priority"` // critical, high, medium, low
+	Owner string `json:"owner"`
 
-	Owner       string                 `json:"owner"`
+	DueDate time.Time `json:"due_date"`
 
-	DueDate     time.Time              `json:"due_date"`
+	Status string `json:"status"` // planned, in_progress, completed, cancelled
 
-	Status      string                 `json:"status"` // planned, in_progress, completed, cancelled
+	Progress float64 `json:"progress"`
 
-	Progress    float64                `json:"progress"`
+	Tasks []RemediationTask `json:"tasks"`
 
-	Tasks       []RemediationTask      `json:"tasks"`
+	Cost float64 `json:"cost"`
 
-	Cost        float64                `json:"cost"`
+	Risk string `json:"risk"`
 
-	Risk        string                 `json:"risk"`
-
-	Metadata    map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // RemediationTask represents a task in a remediation plan.
 
 type RemediationTask struct {
+	ID string `json:"id"`
 
-	ID           string                 `json:"id"`
+	Title string `json:"title"`
 
-	Title        string                 `json:"title"`
+	Description string `json:"description"`
 
-	Description  string                 `json:"description"`
+	Assignee string `json:"assignee"`
 
-	Assignee     string                 `json:"assignee"`
+	DueDate time.Time `json:"due_date"`
 
-	DueDate      time.Time              `json:"due_date"`
+	Status string `json:"status"`
 
-	Status       string                 `json:"status"`
+	Effort float64 `json:"effort"`
 
-	Effort       float64                `json:"effort"`
+	Dependencies []string `json:"dependencies"`
 
-	Dependencies []string               `json:"dependencies"`
-
-	Metadata     map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // ComplianceReport represents a comprehensive compliance report.
 
 type ComplianceReport struct {
+	ID string `json:"id"`
 
-	ID              string                     `json:"id"`
+	GeneratedAt time.Time `json:"generated_at"`
 
-	GeneratedAt     time.Time                  `json:"generated_at"`
+	Period Period `json:"period"`
 
-	Period          Period                     `json:"period"`
+	Framework ComplianceFramework `json:"framework"`
 
-	Framework       ComplianceFramework        `json:"framework"`
+	OverallStatus ComplianceStatus `json:"overall_status"`
 
-	OverallStatus   ComplianceStatus           `json:"overall_status"`
+	ComplianceScore float64 `json:"compliance_score"`
 
-	ComplianceScore float64                    `json:"compliance_score"`
+	Requirements []ComplianceRequirement `json:"requirements"`
 
-	Requirements    []ComplianceRequirement    `json:"requirements"`
+	Summary ComplianceSummary `json:"summary"`
 
-	Summary         ComplianceSummary          `json:"summary"`
+	AuditTrail []AuditEvent `json:"audit_trail"`
 
-	AuditTrail      []AuditEvent               `json:"audit_trail"`
-
-	Attestation     *Attestation               `json:"attestation,omitempty"`
+	Attestation *Attestation `json:"attestation,omitempty"`
 
 	Recommendations []ComplianceRecommendation `json:"recommendations"`
 
-	Metadata        map[string]interface{}     `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // ComplianceSummary provides high-level compliance summary.
 
 type ComplianceSummary struct {
+	TotalRequirements int `json:"total_requirements"`
 
-	TotalRequirements        int                          `json:"total_requirements"`
+	CompliantRequirements int `json:"compliant_requirements"`
 
-	CompliantRequirements    int                          `json:"compliant_requirements"`
+	NonCompliantRequirements int `json:"non_compliant_requirements"`
 
-	NonCompliantRequirements int                          `json:"non_compliant_requirements"`
+	ExemptRequirements int `json:"exempt_requirements"`
 
-	ExemptRequirements       int                          `json:"exempt_requirements"`
+	ComplianceByCategory map[string]ComplianceMetrics `json:"compliance_by_category"`
 
-	ComplianceByCategory     map[string]ComplianceMetrics `json:"compliance_by_category"`
+	ComplianceTrend []ComplianceDataPoint `json:"compliance_trend"`
 
-	ComplianceTrend          []ComplianceDataPoint        `json:"compliance_trend"`
-
-	RiskAssessment           RiskAssessment               `json:"risk_assessment"`
-
+	RiskAssessment RiskAssessment `json:"risk_assessment"`
 }
-
-
 
 // ComplianceMetrics contains compliance metrics.
 
 type ComplianceMetrics struct {
+	Total int `json:"total"`
 
-	Total      int     `json:"total"`
-
-	Compliant  int     `json:"compliant"`
+	Compliant int `json:"compliant"`
 
 	Percentage float64 `json:"percentage"`
-
 }
-
-
 
 // ComplianceDataPoint represents a compliance data point over time.
 
 type ComplianceDataPoint struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time        `json:"timestamp"`
+	Score float64 `json:"score"`
 
-	Score     float64          `json:"score"`
-
-	Status    ComplianceStatus `json:"status"`
-
+	Status ComplianceStatus `json:"status"`
 }
-
-
 
 // RiskAssessment contains risk assessment information.
 
 type RiskAssessment struct {
+	OverallRisk string `json:"overall_risk"` // low, medium, high, critical
 
-	OverallRisk    string              `json:"overall_risk"` // low, medium, high, critical
+	RiskFactors []RiskFactor `json:"risk_factors"`
 
-	RiskFactors    []RiskFactor        `json:"risk_factors"`
+	Mitigation []MitigationMeasure `json:"mitigation"`
 
-	Mitigation     []MitigationMeasure `json:"mitigation"`
+	ResidualRisk string `json:"residual_risk"`
 
-	ResidualRisk   string              `json:"residual_risk"`
+	LastAssessment time.Time `json:"last_assessment"`
 
-	LastAssessment time.Time           `json:"last_assessment"`
-
-	NextAssessment time.Time           `json:"next_assessment"`
-
+	NextAssessment time.Time `json:"next_assessment"`
 }
-
-
 
 // RiskFactor represents a risk factor.
 
 type RiskFactor struct {
+	ID string `json:"id"`
 
-	ID          string  `json:"id"`
+	Name string `json:"name"`
 
-	Name        string  `json:"name"`
+	Description string `json:"description"`
 
-	Description string  `json:"description"`
+	Likelihood string `json:"likelihood"` // low, medium, high
 
-	Likelihood  string  `json:"likelihood"` // low, medium, high
+	Impact string `json:"impact"` // low, medium, high
 
-	Impact      string  `json:"impact"`     // low, medium, high
+	RiskScore float64 `json:"risk_score"`
 
-	RiskScore   float64 `json:"risk_score"`
-
-	Category    string  `json:"category"`
-
+	Category string `json:"category"`
 }
-
-
 
 // MitigationMeasure represents a risk mitigation measure.
 
 type MitigationMeasure struct {
+	ID string `json:"id"`
 
-	ID            string    `json:"id"`
+	Name string `json:"name"`
 
-	Name          string    `json:"name"`
+	Description string `json:"description"`
 
-	Description   string    `json:"description"`
+	Status string `json:"status"` // planned, implemented, verified
 
-	Status        string    `json:"status"` // planned, implemented, verified
+	Effectiveness float64 `json:"effectiveness"`
 
-	Effectiveness float64   `json:"effectiveness"`
+	Owner string `json:"owner"`
 
-	Owner         string    `json:"owner"`
-
-	DueDate       time.Time `json:"due_date"`
-
+	DueDate time.Time `json:"due_date"`
 }
-
-
 
 // AuditEvent represents an audit trail event.
 
 type AuditEvent struct {
+	ID string `json:"id"`
 
-	ID        string                 `json:"id"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time              `json:"timestamp"`
+	User string `json:"user"`
 
-	User      string                 `json:"user"`
+	Action string `json:"action"`
 
-	Action    string                 `json:"action"`
+	Resource string `json:"resource"`
 
-	Resource  string                 `json:"resource"`
+	Result string `json:"result"`
 
-	Result    string                 `json:"result"`
+	Details string `json:"details"`
 
-	Details   string                 `json:"details"`
+	IP string `json:"ip"`
 
-	IP        string                 `json:"ip"`
+	UserAgent string `json:"user_agent"`
 
-	UserAgent string                 `json:"user_agent"`
-
-	Metadata  map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // Attestation represents a compliance attestation.
 
 type Attestation struct {
+	ID string `json:"id"`
 
-	ID               string              `json:"id"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp        time.Time           `json:"timestamp"`
+	Attestor string `json:"attestor"`
 
-	Attestor         string              `json:"attestor"`
+	Framework ComplianceFramework `json:"framework"`
 
-	Framework        ComplianceFramework `json:"framework"`
+	Period Period `json:"period"`
 
-	Period           Period              `json:"period"`
+	Statement string `json:"statement"`
 
-	Statement        string              `json:"statement"`
+	Signature string `json:"signature"`
 
-	Signature        string              `json:"signature"`
+	ValidUntil time.Time `json:"valid_until"`
 
-	ValidUntil       time.Time           `json:"valid_until"`
-
-	CertificateChain []string            `json:"certificate_chain"`
-
+	CertificateChain []string `json:"certificate_chain"`
 }
-
-
 
 // ComplianceRecommendation provides actionable compliance recommendations.
 
 type ComplianceRecommendation struct {
+	ID string `json:"id"`
 
-	ID          string    `json:"id"`
+	Priority string `json:"priority"`
 
-	Priority    string    `json:"priority"`
+	Category string `json:"category"`
 
-	Category    string    `json:"category"`
+	Title string `json:"title"`
 
-	Title       string    `json:"title"`
+	Description string `json:"description"`
 
-	Description string    `json:"description"`
+	Impact string `json:"impact"`
 
-	Impact      string    `json:"impact"`
+	Effort string `json:"effort"`
 
-	Effort      string    `json:"effort"`
+	DueDate time.Time `json:"due_date"`
 
-	DueDate     time.Time `json:"due_date"`
-
-	Owner       string    `json:"owner"`
-
+	Owner string `json:"owner"`
 }
-
-
 
 // ComplianceReporter manages compliance reporting and monitoring.
 
 type ComplianceReporter struct {
+	config ComplianceConfig
 
-	config         ComplianceConfig
+	requirements map[string]*ComplianceRequirement
 
-	requirements   map[string]*ComplianceRequirement
+	auditTrail []AuditEvent
 
-	auditTrail     []AuditEvent
-
-	evidenceStore  EvidenceStore
+	evidenceStore EvidenceStore
 
 	attestationMgr AttestationManager
 
-	logger         *logrus.Logger
+	logger *logrus.Logger
 
-	mu             sync.RWMutex
+	mu sync.RWMutex
 
-	stopCh         chan struct{}
-
+	stopCh chan struct{}
 }
-
-
 
 // EvidenceStore interface for storing compliance evidence.
 
 type EvidenceStore interface {
-
 	Store(evidence Evidence) error
 
 	Get(id string) (*Evidence, error)
@@ -702,15 +571,11 @@ type EvidenceStore interface {
 	Delete(id string) error
 
 	Verify(id string) (bool, error)
-
 }
-
-
 
 // AttestationManager interface for managing attestations.
 
 type AttestationManager interface {
-
 	Create(report ComplianceReport) (*Attestation, error)
 
 	Verify(attestation Attestation) (bool, error)
@@ -718,10 +583,7 @@ type AttestationManager interface {
 	Renew(id string) (*Attestation, error)
 
 	Revoke(id string) error
-
 }
-
-
 
 // NewComplianceReporter creates a new compliance reporter.
 
@@ -729,29 +591,24 @@ func NewComplianceReporter(config ComplianceConfig, logger *logrus.Logger) *Comp
 
 	return &ComplianceReporter{
 
-		config:       config,
+		config: config,
 
 		requirements: make(map[string]*ComplianceRequirement),
 
-		auditTrail:   make([]AuditEvent, 0, 1000),
+		auditTrail: make([]AuditEvent, 0, 1000),
 
-		logger:       logger,
+		logger: logger,
 
-		stopCh:       make(chan struct{}),
-
+		stopCh: make(chan struct{}),
 	}
 
 }
-
-
 
 // Start starts the compliance reporter.
 
 func (cr *ComplianceReporter) Start(ctx context.Context) error {
 
 	cr.logger.Info("Starting Compliance Reporter")
-
-
 
 	// Initialize compliance requirements.
 
@@ -761,31 +618,21 @@ func (cr *ComplianceReporter) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start compliance monitoring loop.
 
 	go cr.monitoringLoop(ctx)
-
-
 
 	// Start data retention enforcement.
 
 	go cr.dataRetentionLoop(ctx)
 
-
-
 	// Start scheduled reporting.
 
 	go cr.scheduledReportingLoop(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the compliance reporter.
 
@@ -797,8 +644,6 @@ func (cr *ComplianceReporter) Stop() {
 
 }
 
-
-
 // RecordAuditEvent records an audit event.
 
 func (cr *ComplianceReporter) RecordAuditEvent(event AuditEvent) error {
@@ -806,8 +651,6 @@ func (cr *ComplianceReporter) RecordAuditEvent(event AuditEvent) error {
 	cr.mu.Lock()
 
 	defer cr.mu.Unlock()
-
-
 
 	// Generate ID if not provided.
 
@@ -817,8 +660,6 @@ func (cr *ComplianceReporter) RecordAuditEvent(event AuditEvent) error {
 
 	}
 
-
-
 	// Set timestamp if not provided.
 
 	if event.Timestamp.IsZero() {
@@ -827,13 +668,9 @@ func (cr *ComplianceReporter) RecordAuditEvent(event AuditEvent) error {
 
 	}
 
-
-
 	// Add to audit trail.
 
 	cr.auditTrail = append(cr.auditTrail, event)
-
-
 
 	// Enforce retention policy.
 
@@ -859,27 +696,20 @@ func (cr *ComplianceReporter) RecordAuditEvent(event AuditEvent) error {
 
 	}
 
-
-
 	cr.logger.WithFields(logrus.Fields{
 
 		"event_id": event.ID,
 
-		"user":     event.User,
+		"user": event.User,
 
-		"action":   event.Action,
+		"action": event.Action,
 
 		"resource": event.Resource,
-
 	}).Debug("Recorded audit event")
-
-
 
 	return nil
 
 }
-
-
 
 // CollectEvidence collects and stores evidence for compliance.
 
@@ -889,8 +719,6 @@ func (cr *ComplianceReporter) CollectEvidence(requirementID string, evidence Evi
 
 	defer cr.mu.Unlock()
 
-
-
 	requirement, exists := cr.requirements[requirementID]
 
 	if !exists {
@@ -898,8 +726,6 @@ func (cr *ComplianceReporter) CollectEvidence(requirementID string, evidence Evi
 		return fmt.Errorf("requirement %s not found", requirementID)
 
 	}
-
-
 
 	// Generate ID if not provided.
 
@@ -909,8 +735,6 @@ func (cr *ComplianceReporter) CollectEvidence(requirementID string, evidence Evi
 
 	}
 
-
-
 	// Set timestamp if not provided.
 
 	if evidence.Timestamp.IsZero() {
@@ -918,8 +742,6 @@ func (cr *ComplianceReporter) CollectEvidence(requirementID string, evidence Evi
 		evidence.Timestamp = time.Now()
 
 	}
-
-
 
 	// Generate hash for integrity.
 
@@ -933,8 +755,6 @@ func (cr *ComplianceReporter) CollectEvidence(requirementID string, evidence Evi
 
 	}
 
-
-
 	// Store evidence.
 
 	if cr.evidenceStore != nil {
@@ -947,31 +767,22 @@ func (cr *ComplianceReporter) CollectEvidence(requirementID string, evidence Evi
 
 	}
 
-
-
 	// Add to requirement.
 
 	requirement.Evidence = append(requirement.Evidence, evidence)
-
-
 
 	cr.logger.WithFields(logrus.Fields{
 
 		"requirement_id": requirementID,
 
-		"evidence_id":    evidence.ID,
+		"evidence_id": evidence.ID,
 
-		"evidence_type":  evidence.Type,
-
+		"evidence_type": evidence.Type,
 	}).Debug("Collected evidence")
-
-
 
 	return nil
 
 }
-
-
 
 // AssessCompliance assesses compliance for a specific requirement.
 
@@ -981,8 +792,6 @@ func (cr *ComplianceReporter) AssessCompliance(requirementID string) (*Complianc
 
 	defer cr.mu.Unlock()
 
-
-
 	requirement, exists := cr.requirements[requirementID]
 
 	if !exists {
@@ -990,8 +799,6 @@ func (cr *ComplianceReporter) AssessCompliance(requirementID string) (*Complianc
 		return nil, fmt.Errorf("requirement %s not found", requirementID)
 
 	}
-
-
 
 	// Perform compliance assessment.
 
@@ -1001,29 +808,20 @@ func (cr *ComplianceReporter) AssessCompliance(requirementID string) (*Complianc
 
 	requirement.LastAssessed = time.Now()
 
-
-
 	// Schedule next assessment.
 
 	requirement.NextAssessment = cr.calculateNextAssessment(requirement)
-
-
 
 	cr.logger.WithFields(logrus.Fields{
 
 		"requirement_id": requirementID,
 
-		"status":         status,
-
+		"status": status,
 	}).Info("Assessed compliance")
-
-
 
 	return requirement, nil
 
 }
-
-
 
 // GenerateComplianceReport generates a comprehensive compliance report.
 
@@ -1032,8 +830,6 @@ func (cr *ComplianceReporter) GenerateComplianceReport(framework ComplianceFrame
 	cr.mu.RLock()
 
 	defer cr.mu.RUnlock()
-
-
 
 	// Filter requirements by framework.
 
@@ -1049,53 +845,40 @@ func (cr *ComplianceReporter) GenerateComplianceReport(framework ComplianceFrame
 
 	}
 
-
-
 	if len(frameworkRequirements) == 0 {
 
 		return nil, fmt.Errorf("no requirements found for framework %s", framework)
 
 	}
 
-
-
 	report := &ComplianceReport{
 
-		ID:           fmt.Sprintf("compliance-report-%s-%d", framework, time.Now().Unix()),
+		ID: fmt.Sprintf("compliance-report-%s-%d", framework, time.Now().Unix()),
 
-		GeneratedAt:  time.Now(),
+		GeneratedAt: time.Now(),
 
-		Period:       period,
+		Period: period,
 
-		Framework:    framework,
+		Framework: framework,
 
 		Requirements: frameworkRequirements,
 
-		AuditTrail:   cr.getAuditTrailForPeriod(period),
+		AuditTrail: cr.getAuditTrailForPeriod(period),
 
-		Metadata:     make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}
-
-
 
 	// Calculate overall status and score.
 
 	report.OverallStatus, report.ComplianceScore = cr.calculateOverallCompliance(frameworkRequirements)
 
-
-
 	// Generate summary.
 
 	report.Summary = cr.generateComplianceSummary(frameworkRequirements)
 
-
-
 	// Generate recommendations.
 
 	report.Recommendations = cr.generateComplianceRecommendations(frameworkRequirements)
-
-
 
 	// Create attestation if enabled.
 
@@ -1115,27 +898,20 @@ func (cr *ComplianceReporter) GenerateComplianceReport(framework ComplianceFrame
 
 	}
 
-
-
 	cr.logger.WithFields(logrus.Fields{
 
-		"framework":        framework,
+		"framework": framework,
 
-		"overall_status":   report.OverallStatus,
+		"overall_status": report.OverallStatus,
 
 		"compliance_score": report.ComplianceScore,
 
-		"requirements":     len(frameworkRequirements),
-
+		"requirements": len(frameworkRequirements),
 	}).Info("Generated compliance report")
-
-
 
 	return report, nil
 
 }
-
-
 
 // GetComplianceStatus returns the current compliance status.
 
@@ -1145,11 +921,7 @@ func (cr *ComplianceReporter) GetComplianceStatus() map[ComplianceFramework]Comp
 
 	defer cr.mu.RUnlock()
 
-
-
 	status := make(map[ComplianceFramework]ComplianceStatus)
-
-
 
 	for _, framework := range cr.config.Frameworks {
 
@@ -1165,8 +937,6 @@ func (cr *ComplianceReporter) GetComplianceStatus() map[ComplianceFramework]Comp
 
 		}
 
-
-
 		if len(frameworkRequirements) == 0 {
 
 			status[framework] = StatusNotAssessed
@@ -1175,8 +945,6 @@ func (cr *ComplianceReporter) GetComplianceStatus() map[ComplianceFramework]Comp
 
 		}
 
-
-
 		// Calculate framework status.
 
 		compliant := 0
@@ -1184,8 +952,6 @@ func (cr *ComplianceReporter) GetComplianceStatus() map[ComplianceFramework]Comp
 		nonCompliant := 0
 
 		partiallyCompliant := 0
-
-
 
 		for _, req := range frameworkRequirements {
 
@@ -1207,8 +973,6 @@ func (cr *ComplianceReporter) GetComplianceStatus() map[ComplianceFramework]Comp
 
 		}
 
-
-
 		if nonCompliant > 0 {
 
 			status[framework] = StatusNonCompliant
@@ -1229,13 +993,9 @@ func (cr *ComplianceReporter) GetComplianceStatus() map[ComplianceFramework]Comp
 
 	}
 
-
-
 	return status
 
 }
-
-
 
 // initializeRequirements initializes compliance requirements.
 
@@ -1255,15 +1015,11 @@ func (cr *ComplianceReporter) initializeRequirements() error {
 
 	}
 
-
-
 	cr.logger.WithField("count", len(cr.requirements)).Info("Initialized compliance requirements")
 
 	return nil
 
 }
-
-
 
 // getRequirementsForFramework returns requirements for a specific framework.
 
@@ -1311,8 +1067,6 @@ func (cr *ComplianceReporter) getRequirementsForFramework(framework ComplianceFr
 
 }
 
-
-
 // getSOXRequirements returns SOX compliance requirements.
 
 func (cr *ComplianceReporter) getSOXRequirements() []ComplianceRequirement {
@@ -1321,65 +1075,60 @@ func (cr *ComplianceReporter) getSOXRequirements() []ComplianceRequirement {
 
 		{
 
-			ID:             "sox-302",
+			ID: "sox-302",
 
-			Framework:      SOX,
+			Framework: SOX,
 
-			Title:          "Corporate Responsibility for Financial Reports",
+			Title: "Corporate Responsibility for Financial Reports",
 
-			Description:    "Management must certify the accuracy of financial reports",
+			Description: "Management must certify the accuracy of financial reports",
 
-			Category:       "Financial Reporting",
+			Category: "Financial Reporting",
 
-			Severity:       "critical",
+			Severity: "critical",
 
-			Status:         StatusNotAssessed,
+			Status: StatusNotAssessed,
 
-			Evidence:       make([]Evidence, 0, 3),
+			Evidence: make([]Evidence, 0, 3),
 
-			Controls:       make([]Control, 0, 5),
+			Controls: make([]Control, 0, 5),
 
-			LastAssessed:   time.Time{},
+			LastAssessed: time.Time{},
 
 			NextAssessment: time.Now().AddDate(0, 3, 0), // Quarterly
 
-			Metadata:       make(map[string]interface{}),
-
+			Metadata: make(map[string]interface{}),
 		},
 
 		{
 
-			ID:             "sox-404",
+			ID: "sox-404",
 
-			Framework:      SOX,
+			Framework: SOX,
 
-			Title:          "Management Assessment of Internal Controls",
+			Title: "Management Assessment of Internal Controls",
 
-			Description:    "Management must assess internal control over financial reporting",
+			Description: "Management must assess internal control over financial reporting",
 
-			Category:       "Internal Controls",
+			Category: "Internal Controls",
 
-			Severity:       "critical",
+			Severity: "critical",
 
-			Status:         StatusNotAssessed,
+			Status: StatusNotAssessed,
 
-			Evidence:       make([]Evidence, 0, 3),
+			Evidence: make([]Evidence, 0, 3),
 
-			Controls:       make([]Control, 0, 5),
+			Controls: make([]Control, 0, 5),
 
-			LastAssessed:   time.Time{},
+			LastAssessed: time.Time{},
 
 			NextAssessment: time.Now().AddDate(1, 0, 0), // Annual
 
-			Metadata:       make(map[string]interface{}),
-
+			Metadata: make(map[string]interface{}),
 		},
-
 	}
 
 }
-
-
 
 // getPCIDSSRequirements returns PCI DSS compliance requirements.
 
@@ -1389,65 +1138,60 @@ func (cr *ComplianceReporter) getPCIDSSRequirements() []ComplianceRequirement {
 
 		{
 
-			ID:             "pci-dss-1",
+			ID: "pci-dss-1",
 
-			Framework:      PCIDSS,
+			Framework: PCIDSS,
 
-			Title:          "Install and maintain a firewall configuration",
+			Title: "Install and maintain a firewall configuration",
 
-			Description:    "Firewalls are devices that control computer traffic allowed between untrusted networks",
+			Description: "Firewalls are devices that control computer traffic allowed between untrusted networks",
 
-			Category:       "Network Security",
+			Category: "Network Security",
 
-			Severity:       "high",
+			Severity: "high",
 
-			Status:         StatusNotAssessed,
+			Status: StatusNotAssessed,
 
-			Evidence:       make([]Evidence, 0, 3),
+			Evidence: make([]Evidence, 0, 3),
 
-			Controls:       make([]Control, 0, 5),
+			Controls: make([]Control, 0, 5),
 
-			LastAssessed:   time.Time{},
+			LastAssessed: time.Time{},
 
 			NextAssessment: time.Now().AddDate(0, 3, 0),
 
-			Metadata:       make(map[string]interface{}),
-
+			Metadata: make(map[string]interface{}),
 		},
 
 		{
 
-			ID:             "pci-dss-2",
+			ID: "pci-dss-2",
 
-			Framework:      PCIDSS,
+			Framework: PCIDSS,
 
-			Title:          "Do not use vendor-supplied defaults for system passwords",
+			Title: "Do not use vendor-supplied defaults for system passwords",
 
-			Description:    "Change default passwords and remove unnecessary default accounts",
+			Description: "Change default passwords and remove unnecessary default accounts",
 
-			Category:       "Access Control",
+			Category: "Access Control",
 
-			Severity:       "high",
+			Severity: "high",
 
-			Status:         StatusNotAssessed,
+			Status: StatusNotAssessed,
 
-			Evidence:       make([]Evidence, 0, 3),
+			Evidence: make([]Evidence, 0, 3),
 
-			Controls:       make([]Control, 0, 5),
+			Controls: make([]Control, 0, 5),
 
-			LastAssessed:   time.Time{},
+			LastAssessed: time.Time{},
 
 			NextAssessment: time.Now().AddDate(0, 3, 0),
 
-			Metadata:       make(map[string]interface{}),
-
+			Metadata: make(map[string]interface{}),
 		},
-
 	}
 
 }
-
-
 
 // getISO27001Requirements returns ISO 27001 compliance requirements.
 
@@ -1457,65 +1201,60 @@ func (cr *ComplianceReporter) getISO27001Requirements() []ComplianceRequirement 
 
 		{
 
-			ID:             "iso-27001-a5",
+			ID: "iso-27001-a5",
 
-			Framework:      ISO27001,
+			Framework: ISO27001,
 
-			Title:          "Information Security Policies",
+			Title: "Information Security Policies",
 
-			Description:    "Management direction and support for information security",
+			Description: "Management direction and support for information security",
 
-			Category:       "Policy",
+			Category: "Policy",
 
-			Severity:       "high",
+			Severity: "high",
 
-			Status:         StatusNotAssessed,
+			Status: StatusNotAssessed,
 
-			Evidence:       make([]Evidence, 0, 3),
+			Evidence: make([]Evidence, 0, 3),
 
-			Controls:       make([]Control, 0, 5),
+			Controls: make([]Control, 0, 5),
 
-			LastAssessed:   time.Time{},
+			LastAssessed: time.Time{},
 
 			NextAssessment: time.Now().AddDate(1, 0, 0),
 
-			Metadata:       make(map[string]interface{}),
-
+			Metadata: make(map[string]interface{}),
 		},
 
 		{
 
-			ID:             "iso-27001-a6",
+			ID: "iso-27001-a6",
 
-			Framework:      ISO27001,
+			Framework: ISO27001,
 
-			Title:          "Organization of Information Security",
+			Title: "Organization of Information Security",
 
-			Description:    "Organization and responsibilities for information security",
+			Description: "Organization and responsibilities for information security",
 
-			Category:       "Organization",
+			Category: "Organization",
 
-			Severity:       "high",
+			Severity: "high",
 
-			Status:         StatusNotAssessed,
+			Status: StatusNotAssessed,
 
-			Evidence:       make([]Evidence, 0, 3),
+			Evidence: make([]Evidence, 0, 3),
 
-			Controls:       make([]Control, 0, 5),
+			Controls: make([]Control, 0, 5),
 
-			LastAssessed:   time.Time{},
+			LastAssessed: time.Time{},
 
 			NextAssessment: time.Now().AddDate(1, 0, 0),
 
-			Metadata:       make(map[string]interface{}),
-
+			Metadata: make(map[string]interface{}),
 		},
-
 	}
 
 }
-
-
 
 // getHIPAARequirements returns HIPAA compliance requirements.
 
@@ -1525,37 +1264,33 @@ func (cr *ComplianceReporter) getHIPAARequirements() []ComplianceRequirement {
 
 		{
 
-			ID:             "hipaa-164.308",
+			ID: "hipaa-164.308",
 
-			Framework:      HIPAA,
+			Framework: HIPAA,
 
-			Title:          "Administrative Safeguards",
+			Title: "Administrative Safeguards",
 
-			Description:    "Assigned security responsibility and workforce training",
+			Description: "Assigned security responsibility and workforce training",
 
-			Category:       "Administrative",
+			Category: "Administrative",
 
-			Severity:       "critical",
+			Severity: "critical",
 
-			Status:         StatusNotAssessed,
+			Status: StatusNotAssessed,
 
-			Evidence:       make([]Evidence, 0, 3),
+			Evidence: make([]Evidence, 0, 3),
 
-			Controls:       make([]Control, 0, 5),
+			Controls: make([]Control, 0, 5),
 
-			LastAssessed:   time.Time{},
+			LastAssessed: time.Time{},
 
 			NextAssessment: time.Now().AddDate(1, 0, 0),
 
-			Metadata:       make(map[string]interface{}),
-
+			Metadata: make(map[string]interface{}),
 		},
-
 	}
 
 }
-
-
 
 // getGDPRRequirements returns GDPR compliance requirements.
 
@@ -1565,37 +1300,33 @@ func (cr *ComplianceReporter) getGDPRRequirements() []ComplianceRequirement {
 
 		{
 
-			ID:             "gdpr-art-25",
+			ID: "gdpr-art-25",
 
-			Framework:      GDPR,
+			Framework: GDPR,
 
-			Title:          "Data Protection by Design and by Default",
+			Title: "Data Protection by Design and by Default",
 
-			Description:    "Implement appropriate technical and organizational measures",
+			Description: "Implement appropriate technical and organizational measures",
 
-			Category:       "Data Protection",
+			Category: "Data Protection",
 
-			Severity:       "critical",
+			Severity: "critical",
 
-			Status:         StatusNotAssessed,
+			Status: StatusNotAssessed,
 
-			Evidence:       make([]Evidence, 0, 3),
+			Evidence: make([]Evidence, 0, 3),
 
-			Controls:       make([]Control, 0, 5),
+			Controls: make([]Control, 0, 5),
 
-			LastAssessed:   time.Time{},
+			LastAssessed: time.Time{},
 
 			NextAssessment: time.Now().AddDate(1, 0, 0),
 
-			Metadata:       make(map[string]interface{}),
-
+			Metadata: make(map[string]interface{}),
 		},
-
 	}
 
 }
-
-
 
 // getNISTRequirements returns NIST compliance requirements.
 
@@ -1605,37 +1336,33 @@ func (cr *ComplianceReporter) getNISTRequirements() []ComplianceRequirement {
 
 		{
 
-			ID:             "nist-ac-1",
+			ID: "nist-ac-1",
 
-			Framework:      NIST,
+			Framework: NIST,
 
-			Title:          "Access Control Policy and Procedures",
+			Title: "Access Control Policy and Procedures",
 
-			Description:    "Develop, document, and disseminate access control policy",
+			Description: "Develop, document, and disseminate access control policy",
 
-			Category:       "Access Control",
+			Category: "Access Control",
 
-			Severity:       "high",
+			Severity: "high",
 
-			Status:         StatusNotAssessed,
+			Status: StatusNotAssessed,
 
-			Evidence:       make([]Evidence, 0, 3),
+			Evidence: make([]Evidence, 0, 3),
 
-			Controls:       make([]Control, 0, 5),
+			Controls: make([]Control, 0, 5),
 
-			LastAssessed:   time.Time{},
+			LastAssessed: time.Time{},
 
 			NextAssessment: time.Now().AddDate(1, 0, 0),
 
-			Metadata:       make(map[string]interface{}),
-
+			Metadata: make(map[string]interface{}),
 		},
-
 	}
 
 }
-
-
 
 // getFedRAMPRequirements returns FedRAMP compliance requirements.
 
@@ -1645,37 +1372,33 @@ func (cr *ComplianceReporter) getFedRAMPRequirements() []ComplianceRequirement {
 
 		{
 
-			ID:             "fedramp-ac-2",
+			ID: "fedramp-ac-2",
 
-			Framework:      FedRAMP,
+			Framework: FedRAMP,
 
-			Title:          "Account Management",
+			Title: "Account Management",
 
-			Description:    "Manage information system accounts",
+			Description: "Manage information system accounts",
 
-			Category:       "Access Control",
+			Category: "Access Control",
 
-			Severity:       "high",
+			Severity: "high",
 
-			Status:         StatusNotAssessed,
+			Status: StatusNotAssessed,
 
-			Evidence:       make([]Evidence, 0, 3),
+			Evidence: make([]Evidence, 0, 3),
 
-			Controls:       make([]Control, 0, 5),
+			Controls: make([]Control, 0, 5),
 
-			LastAssessed:   time.Time{},
+			LastAssessed: time.Time{},
 
 			NextAssessment: time.Now().AddDate(1, 0, 0),
 
-			Metadata:       make(map[string]interface{}),
-
+			Metadata: make(map[string]interface{}),
 		},
-
 	}
 
 }
-
-
 
 // getSOC2Requirements returns SOC 2 compliance requirements.
 
@@ -1685,37 +1408,33 @@ func (cr *ComplianceReporter) getSOC2Requirements() []ComplianceRequirement {
 
 		{
 
-			ID:             "soc2-cc1",
+			ID: "soc2-cc1",
 
-			Framework:      SOC2,
+			Framework: SOC2,
 
-			Title:          "Control Environment",
+			Title: "Control Environment",
 
-			Description:    "Commitment to integrity and ethical values",
+			Description: "Commitment to integrity and ethical values",
 
-			Category:       "Common Criteria",
+			Category: "Common Criteria",
 
-			Severity:       "high",
+			Severity: "high",
 
-			Status:         StatusNotAssessed,
+			Status: StatusNotAssessed,
 
-			Evidence:       make([]Evidence, 0, 3),
+			Evidence: make([]Evidence, 0, 3),
 
-			Controls:       make([]Control, 0, 5),
+			Controls: make([]Control, 0, 5),
 
-			LastAssessed:   time.Time{},
+			LastAssessed: time.Time{},
 
 			NextAssessment: time.Now().AddDate(1, 0, 0),
 
-			Metadata:       make(map[string]interface{}),
-
+			Metadata: make(map[string]interface{}),
 		},
-
 	}
 
 }
-
-
 
 // performComplianceAssessment performs compliance assessment for a requirement.
 
@@ -1725,23 +1444,17 @@ func (cr *ComplianceReporter) performComplianceAssessment(requirement *Complianc
 
 	// In practice, this would involve complex rule evaluation.
 
-
-
 	if len(requirement.Evidence) == 0 {
 
 		return StatusNotAssessed
 
 	}
 
-
-
 	// Check if controls are effective.
 
 	effectiveControls := 0
 
 	totalControls := len(requirement.Controls)
-
-
 
 	for _, control := range requirement.Controls {
 
@@ -1753,19 +1466,13 @@ func (cr *ComplianceReporter) performComplianceAssessment(requirement *Complianc
 
 	}
 
-
-
 	if totalControls == 0 {
 
 		return StatusPartiallyCompliant
 
 	}
 
-
-
 	effectivenessRatio := float64(effectiveControls) / float64(totalControls)
-
-
 
 	if effectivenessRatio >= 1.0 {
 
@@ -1782,8 +1489,6 @@ func (cr *ComplianceReporter) performComplianceAssessment(requirement *Complianc
 	}
 
 }
-
-
 
 // calculateNextAssessment calculates the next assessment date.
 
@@ -1815,8 +1520,6 @@ func (cr *ComplianceReporter) calculateNextAssessment(requirement *ComplianceReq
 
 }
 
-
-
 // calculateOverallCompliance calculates overall compliance status and score.
 
 func (cr *ComplianceReporter) calculateOverallCompliance(requirements []ComplianceRequirement) (ComplianceStatus, float64) {
@@ -1827,8 +1530,6 @@ func (cr *ComplianceReporter) calculateOverallCompliance(requirements []Complian
 
 	}
 
-
-
 	compliant := 0
 
 	partiallyCompliant := 0
@@ -1836,8 +1537,6 @@ func (cr *ComplianceReporter) calculateOverallCompliance(requirements []Complian
 	nonCompliant := 0
 
 	notAssessed := 0
-
-
 
 	for _, req := range requirements {
 
@@ -1863,13 +1562,9 @@ func (cr *ComplianceReporter) calculateOverallCompliance(requirements []Complian
 
 	}
 
-
-
 	// Calculate score (weighted).
 
 	score := (float64(compliant)*100 + float64(partiallyCompliant)*50) / float64(len(requirements))
-
-
 
 	// Determine overall status.
 
@@ -1893,13 +1588,9 @@ func (cr *ComplianceReporter) calculateOverallCompliance(requirements []Complian
 
 	}
 
-
-
 	return status, score
 
 }
-
-
 
 // generateComplianceSummary generates compliance summary.
 
@@ -1907,17 +1598,14 @@ func (cr *ComplianceReporter) generateComplianceSummary(requirements []Complianc
 
 	summary := ComplianceSummary{
 
-		TotalRequirements:    len(requirements),
+		TotalRequirements: len(requirements),
 
 		ComplianceByCategory: make(map[string]ComplianceMetrics),
 
-		ComplianceTrend:      make([]ComplianceDataPoint, 0, 30),
+		ComplianceTrend: make([]ComplianceDataPoint, 0, 30),
 
-		RiskAssessment:       RiskAssessment{},
-
+		RiskAssessment: RiskAssessment{},
 	}
-
-
 
 	// Count by status.
 
@@ -1941,8 +1629,6 @@ func (cr *ComplianceReporter) generateComplianceSummary(requirements []Complianc
 
 	}
 
-
-
 	// Group by category.
 
 	categoryMap := make(map[string][]ComplianceRequirement)
@@ -1958,8 +1644,6 @@ func (cr *ComplianceReporter) generateComplianceSummary(requirements []Complianc
 		categoryMap[req.Category] = append(categoryMap[req.Category], req)
 
 	}
-
-
 
 	// Calculate category metrics.
 
@@ -1977,47 +1661,37 @@ func (cr *ComplianceReporter) generateComplianceSummary(requirements []Complianc
 
 		}
 
-
-
 		summary.ComplianceByCategory[category] = ComplianceMetrics{
 
-			Total:      len(categoryReqs),
+			Total: len(categoryReqs),
 
-			Compliant:  compliant,
+			Compliant: compliant,
 
 			Percentage: float64(compliant) / float64(len(categoryReqs)) * 100,
-
 		}
 
 	}
-
-
 
 	// Generate risk assessment.
 
 	summary.RiskAssessment = RiskAssessment{
 
-		OverallRisk:    "medium",
+		OverallRisk: "medium",
 
-		RiskFactors:    make([]RiskFactor, 0, 5),
+		RiskFactors: make([]RiskFactor, 0, 5),
 
-		Mitigation:     make([]MitigationMeasure, 0, 8),
+		Mitigation: make([]MitigationMeasure, 0, 8),
 
-		ResidualRisk:   "low",
+		ResidualRisk: "low",
 
 		LastAssessment: time.Now(),
 
 		NextAssessment: time.Now().AddDate(0, 6, 0),
-
 	}
-
-
 
 	return summary
 
 }
-
-
 
 // generateComplianceRecommendations generates compliance recommendations.
 
@@ -2025,32 +1699,29 @@ func (cr *ComplianceReporter) generateComplianceRecommendations(requirements []C
 
 	recommendations := make([]ComplianceRecommendation, 0, 10)
 
-
-
 	for _, req := range requirements {
 
 		if req.Status == StatusNonCompliant || req.Status == StatusPartiallyCompliant {
 
 			recommendation := ComplianceRecommendation{
 
-				ID:          fmt.Sprintf("rec-%s", req.ID),
+				ID: fmt.Sprintf("rec-%s", req.ID),
 
-				Priority:    req.Severity,
+				Priority: req.Severity,
 
-				Category:    req.Category,
+				Category: req.Category,
 
-				Title:       fmt.Sprintf("Address %s", req.Title),
+				Title: fmt.Sprintf("Address %s", req.Title),
 
 				Description: fmt.Sprintf("Requirement %s is %s and needs attention", req.ID, req.Status),
 
-				Impact:      "high",
+				Impact: "high",
 
-				Effort:      "medium",
+				Effort: "medium",
 
-				DueDate:     time.Now().AddDate(0, 1, 0), // 1 month
+				DueDate: time.Now().AddDate(0, 1, 0), // 1 month
 
-				Owner:       "compliance-team",
-
+				Owner: "compliance-team",
 			}
 
 			recommendations = append(recommendations, recommendation)
@@ -2059,21 +1730,15 @@ func (cr *ComplianceReporter) generateComplianceRecommendations(requirements []C
 
 	}
 
-
-
 	return recommendations
 
 }
-
-
 
 // getAuditTrailForPeriod returns audit trail events for a specific period.
 
 func (cr *ComplianceReporter) getAuditTrailForPeriod(period Period) []AuditEvent {
 
 	filtered := make([]AuditEvent, 0)
-
-
 
 	for _, event := range cr.auditTrail {
 
@@ -2085,8 +1750,6 @@ func (cr *ComplianceReporter) getAuditTrailForPeriod(period Period) []AuditEvent
 
 	}
 
-
-
 	// Sort by timestamp.
 
 	sort.Slice(filtered, func(i, j int) bool {
@@ -2095,13 +1758,9 @@ func (cr *ComplianceReporter) getAuditTrailForPeriod(period Period) []AuditEvent
 
 	})
 
-
-
 	return filtered
 
 }
-
-
 
 // monitoringLoop continuously monitors compliance.
 
@@ -2110,8 +1769,6 @@ func (cr *ComplianceReporter) monitoringLoop(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Hour) // Check every hour
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2135,8 +1792,6 @@ func (cr *ComplianceReporter) monitoringLoop(ctx context.Context) {
 
 }
 
-
-
 // performContinuousMonitoring performs continuous compliance monitoring.
 
 func (cr *ComplianceReporter) performContinuousMonitoring(ctx context.Context) {
@@ -2144,8 +1799,6 @@ func (cr *ComplianceReporter) performContinuousMonitoring(ctx context.Context) {
 	cr.mu.RLock()
 
 	defer cr.mu.RUnlock()
-
-
 
 	// Check for requirements that need assessment.
 
@@ -2171,8 +1824,6 @@ func (cr *ComplianceReporter) performContinuousMonitoring(ctx context.Context) {
 
 }
 
-
-
 // dataRetentionLoop enforces data retention policies.
 
 func (cr *ComplianceReporter) dataRetentionLoop(ctx context.Context) {
@@ -2180,8 +1831,6 @@ func (cr *ComplianceReporter) dataRetentionLoop(ctx context.Context) {
 	ticker := time.NewTicker(24 * time.Hour) // Check daily
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2205,8 +1854,6 @@ func (cr *ComplianceReporter) dataRetentionLoop(ctx context.Context) {
 
 }
 
-
-
 // enforceDataRetention enforces data retention policies.
 
 func (cr *ComplianceReporter) enforceDataRetention(ctx context.Context) {
@@ -2214,8 +1861,6 @@ func (cr *ComplianceReporter) enforceDataRetention(ctx context.Context) {
 	cr.mu.Lock()
 
 	defer cr.mu.Unlock()
-
-
 
 	// Clean up old audit events.
 
@@ -2235,13 +1880,9 @@ func (cr *ComplianceReporter) enforceDataRetention(ctx context.Context) {
 
 		}
 
-
-
 		purged := len(cr.auditTrail) - len(filtered)
 
 		cr.auditTrail = filtered
-
-
 
 		if purged > 0 {
 
@@ -2253,8 +1894,6 @@ func (cr *ComplianceReporter) enforceDataRetention(ctx context.Context) {
 
 }
 
-
-
 // scheduledReportingLoop handles scheduled compliance reporting.
 
 func (cr *ComplianceReporter) scheduledReportingLoop(ctx context.Context) {
@@ -2264,8 +1903,6 @@ func (cr *ComplianceReporter) scheduledReportingLoop(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Hour)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2289,15 +1926,11 @@ func (cr *ComplianceReporter) scheduledReportingLoop(ctx context.Context) {
 
 }
 
-
-
 // checkScheduledReports checks for and generates scheduled reports.
 
 func (cr *ComplianceReporter) checkScheduledReports(ctx context.Context) {
 
 	now := time.Now()
-
-
 
 	// Check for daily reports.
 
@@ -2307,8 +1940,6 @@ func (cr *ComplianceReporter) checkScheduledReports(ctx context.Context) {
 
 	}
 
-
-
 	// Check for weekly reports.
 
 	if cr.config.ReportSchedule.Weekly && now.Weekday() == time.Monday && now.Hour() == 0 {
@@ -2316,8 +1947,6 @@ func (cr *ComplianceReporter) checkScheduledReports(ctx context.Context) {
 		cr.generateScheduledReports(ctx, "weekly")
 
 	}
-
-
 
 	// Check for monthly reports.
 
@@ -2327,8 +1956,6 @@ func (cr *ComplianceReporter) checkScheduledReports(ctx context.Context) {
 
 	}
 
-
-
 	// Check for quarterly reports.
 
 	if cr.config.ReportSchedule.Quarterly && isFirstDayOfQuarter(now) && now.Hour() == 0 {
@@ -2336,8 +1963,6 @@ func (cr *ComplianceReporter) checkScheduledReports(ctx context.Context) {
 		cr.generateScheduledReports(ctx, "quarterly")
 
 	}
-
-
 
 	// Check for annual reports.
 
@@ -2349,8 +1974,6 @@ func (cr *ComplianceReporter) checkScheduledReports(ctx context.Context) {
 
 }
 
-
-
 // generateScheduledReports generates scheduled reports for all frameworks.
 
 func (cr *ComplianceReporter) generateScheduledReports(ctx context.Context, schedule string) {
@@ -2358,8 +1981,6 @@ func (cr *ComplianceReporter) generateScheduledReports(ctx context.Context, sche
 	for _, framework := range cr.config.Frameworks {
 
 		period := cr.getPeriodForSchedule(schedule)
-
-
 
 		report, err := cr.GenerateComplianceReport(framework, period)
 
@@ -2369,41 +1990,33 @@ func (cr *ComplianceReporter) generateScheduledReports(ctx context.Context, sche
 
 				"framework": framework,
 
-				"schedule":  schedule,
-
+				"schedule": schedule,
 			}).Error("Failed to generate scheduled compliance report")
 
 			continue
 
 		}
 
-
-
 		cr.logger.WithFields(logrus.Fields{
 
-			"framework":      framework,
+			"framework": framework,
 
-			"schedule":       schedule,
+			"schedule": schedule,
 
-			"report_id":      report.ID,
+			"report_id": report.ID,
 
 			"overall_status": report.OverallStatus,
-
 		}).Info("Generated scheduled compliance report")
 
 	}
 
 }
 
-
-
 // getPeriodForSchedule returns the appropriate period for a schedule.
 
 func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
 
 	now := time.Now()
-
-
 
 	switch schedule {
 
@@ -2413,10 +2026,9 @@ func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
 
 			StartTime: now.AddDate(0, 0, -1),
 
-			EndTime:   now,
+			EndTime: now,
 
-			Duration:  "24h",
-
+			Duration: "24h",
 		}
 
 	case "weekly":
@@ -2425,10 +2037,9 @@ func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
 
 			StartTime: now.AddDate(0, 0, -7),
 
-			EndTime:   now,
+			EndTime: now,
 
-			Duration:  "7d",
-
+			Duration: "7d",
 		}
 
 	case "monthly":
@@ -2437,10 +2048,9 @@ func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
 
 			StartTime: now.AddDate(0, -1, 0),
 
-			EndTime:   now,
+			EndTime: now,
 
-			Duration:  "30d",
-
+			Duration: "30d",
 		}
 
 	case "quarterly":
@@ -2449,10 +2059,9 @@ func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
 
 			StartTime: now.AddDate(0, -3, 0),
 
-			EndTime:   now,
+			EndTime: now,
 
-			Duration:  "90d",
-
+			Duration: "90d",
 		}
 
 	case "annual":
@@ -2461,10 +2070,9 @@ func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
 
 			StartTime: now.AddDate(-1, 0, 0),
 
-			EndTime:   now,
+			EndTime: now,
 
-			Duration:  "365d",
-
+			Duration: "365d",
 		}
 
 	default:
@@ -2473,17 +2081,14 @@ func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
 
 			StartTime: now.AddDate(0, 0, -1),
 
-			EndTime:   now,
+			EndTime: now,
 
-			Duration:  "24h",
-
+			Duration: "24h",
 		}
 
 	}
 
 }
-
-
 
 // isFirstDayOfQuarter checks if the given date is the first day of a quarter.
 
@@ -2493,9 +2098,6 @@ func isFirstDayOfQuarter(t time.Time) bool {
 
 	day := t.Day()
 
-
-
 	return day == 1 && (month == time.January || month == time.April || month == time.July || month == time.October)
 
 }
-

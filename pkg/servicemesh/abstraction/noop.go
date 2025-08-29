@@ -1,35 +1,20 @@
 // Package abstraction provides a no-op service mesh implementation.
 
-
 package abstraction
 
-
-
 import (
-
 	"context"
-
 	"crypto/x509"
-
 	"fmt"
 
-
-
 	"github.com/prometheus/client_golang/prometheus"
-
 )
-
-
 
 // NoOpMesh provides a no-op implementation of ServiceMeshInterface.
 
 type NoOpMesh struct {
-
 	certProvider *NoOpCertificateProvider
-
 }
-
-
 
 // NewNoOpMesh creates a new no-op service mesh.
 
@@ -38,12 +23,9 @@ func NewNoOpMesh() *NoOpMesh {
 	return &NoOpMesh{
 
 		certProvider: &NoOpCertificateProvider{},
-
 	}
 
 }
-
-
 
 // Initialize initializes the no-op mesh.
 
@@ -55,8 +37,6 @@ func (n *NoOpMesh) Initialize(ctx context.Context, config *ServiceMeshConfig) er
 
 }
 
-
-
 // GetCertificateProvider returns the certificate provider.
 
 func (n *NoOpMesh) GetCertificateProvider() CertificateProvider {
@@ -64,8 +44,6 @@ func (n *NoOpMesh) GetCertificateProvider() CertificateProvider {
 	return n.certProvider
 
 }
-
-
 
 // RotateCertificates rotates certificates (no-op).
 
@@ -77,8 +55,6 @@ func (n *NoOpMesh) RotateCertificates(ctx context.Context, namespace string) err
 
 }
 
-
-
 // ValidateCertificateChain validates the certificate chain (no-op).
 
 func (n *NoOpMesh) ValidateCertificateChain(ctx context.Context, namespace string) error {
@@ -88,8 +64,6 @@ func (n *NoOpMesh) ValidateCertificateChain(ctx context.Context, namespace strin
 	return nil
 
 }
-
-
 
 // ApplyMTLSPolicy applies an mTLS policy (no-op).
 
@@ -101,8 +75,6 @@ func (n *NoOpMesh) ApplyMTLSPolicy(ctx context.Context, policy *MTLSPolicy) erro
 
 }
 
-
-
 // ApplyAuthorizationPolicy applies an authorization policy (no-op).
 
 func (n *NoOpMesh) ApplyAuthorizationPolicy(ctx context.Context, policy *AuthorizationPolicy) error {
@@ -112,8 +84,6 @@ func (n *NoOpMesh) ApplyAuthorizationPolicy(ctx context.Context, policy *Authori
 	return nil
 
 }
-
-
 
 // ApplyTrafficPolicy applies a traffic policy (no-op).
 
@@ -125,35 +95,29 @@ func (n *NoOpMesh) ApplyTrafficPolicy(ctx context.Context, policy *TrafficPolicy
 
 }
 
-
-
 // ValidatePolicies validates policies (no-op).
 
 func (n *NoOpMesh) ValidatePolicies(ctx context.Context, namespace string) (*PolicyValidationResult, error) {
 
 	return &PolicyValidationResult{
 
-		Valid:    true,
+		Valid: true,
 
 		Coverage: 0,
 
 		Compliance: PolicyCompliance{
 
-			MTLSCompliant:      false,
+			MTLSCompliant: false,
 
 			ZeroTrustCompliant: false,
 
-			NetworkSegmented:   false,
+			NetworkSegmented: false,
 
-			ComplianceScore:    0,
-
+			ComplianceScore: 0,
 		},
-
 	}, nil
 
 }
-
-
 
 // RegisterService registers a service (no-op).
 
@@ -165,8 +129,6 @@ func (n *NoOpMesh) RegisterService(ctx context.Context, service *ServiceRegistra
 
 }
 
-
-
 // UnregisterService unregisters a service (no-op).
 
 func (n *NoOpMesh) UnregisterService(ctx context.Context, serviceName, namespace string) error {
@@ -177,27 +139,22 @@ func (n *NoOpMesh) UnregisterService(ctx context.Context, serviceName, namespace
 
 }
 
-
-
 // GetServiceStatus gets service status (no-op).
 
 func (n *NoOpMesh) GetServiceStatus(ctx context.Context, serviceName, namespace string) (*ServiceStatus, error) {
 
 	return &ServiceStatus{
 
-		Name:        serviceName,
+		Name: serviceName,
 
-		Namespace:   namespace,
+		Namespace: namespace,
 
-		Healthy:     true,
+		Healthy: true,
 
 		MTLSEnabled: false,
-
 	}, nil
 
 }
-
-
 
 // GetMetrics returns metrics collectors (empty for no-op).
 
@@ -206,8 +163,6 @@ func (n *NoOpMesh) GetMetrics() []prometheus.Collector {
 	return []prometheus.Collector{}
 
 }
-
-
 
 // GetServiceDependencies gets service dependencies (no-op).
 
@@ -218,12 +173,9 @@ func (n *NoOpMesh) GetServiceDependencies(ctx context.Context, namespace string)
 		Nodes: []ServiceNode{},
 
 		Edges: []ServiceEdge{},
-
 	}, nil
 
 }
-
-
 
 // GetMTLSStatus gets mTLS status (no-op).
 
@@ -231,17 +183,14 @@ func (n *NoOpMesh) GetMTLSStatus(ctx context.Context, namespace string) (*MTLSSt
 
 	return &MTLSStatusReport{
 
-		TotalServices:    0,
+		TotalServices: 0,
 
 		MTLSEnabledCount: 0,
 
-		Coverage:         0,
-
+		Coverage: 0,
 	}, nil
 
 }
-
-
 
 // IsHealthy checks if the mesh is healthy (always true for no-op).
 
@@ -251,8 +200,6 @@ func (n *NoOpMesh) IsHealthy(ctx context.Context) error {
 
 }
 
-
-
 // IsReady checks if the mesh is ready (always true for no-op).
 
 func (n *NoOpMesh) IsReady(ctx context.Context) error {
@@ -260,8 +207,6 @@ func (n *NoOpMesh) IsReady(ctx context.Context) error {
 	return nil
 
 }
-
-
 
 // GetProvider returns the provider type.
 
@@ -271,8 +216,6 @@ func (n *NoOpMesh) GetProvider() ServiceMeshProvider {
 
 }
 
-
-
 // GetVersion returns the version.
 
 func (n *NoOpMesh) GetVersion() string {
@@ -280,8 +223,6 @@ func (n *NoOpMesh) GetVersion() string {
 	return "none"
 
 }
-
-
 
 // GetCapabilities returns capabilities (empty for no-op).
 
@@ -291,13 +232,9 @@ func (n *NoOpMesh) GetCapabilities() []Capability {
 
 }
 
-
-
 // NoOpCertificateProvider provides a no-op certificate provider.
 
 type NoOpCertificateProvider struct{}
-
-
 
 // IssueCertificate issues a certificate (returns error for no-op).
 
@@ -307,8 +244,6 @@ func (n *NoOpCertificateProvider) IssueCertificate(ctx context.Context, service,
 
 }
 
-
-
 // GetRootCA gets the root CA (returns error for no-op).
 
 func (n *NoOpCertificateProvider) GetRootCA(ctx context.Context) (*x509.Certificate, error) {
@@ -316,8 +251,6 @@ func (n *NoOpCertificateProvider) GetRootCA(ctx context.Context) (*x509.Certific
 	return nil, fmt.Errorf("certificate management not available without service mesh")
 
 }
-
-
 
 // GetIntermediateCA gets the intermediate CA (returns error for no-op).
 
@@ -327,8 +260,6 @@ func (n *NoOpCertificateProvider) GetIntermediateCA(ctx context.Context) (*x509.
 
 }
 
-
-
 // ValidateCertificate validates a certificate (returns error for no-op).
 
 func (n *NoOpCertificateProvider) ValidateCertificate(ctx context.Context, cert *x509.Certificate) error {
@@ -336,8 +267,6 @@ func (n *NoOpCertificateProvider) ValidateCertificate(ctx context.Context, cert 
 	return fmt.Errorf("certificate management not available without service mesh")
 
 }
-
-
 
 // RotateCertificate rotates a certificate (returns error for no-op).
 
@@ -347,8 +276,6 @@ func (n *NoOpCertificateProvider) RotateCertificate(ctx context.Context, service
 
 }
 
-
-
 // GetCertificateChain gets the certificate chain (returns error for no-op).
 
 func (n *NoOpCertificateProvider) GetCertificateChain(ctx context.Context, service, namespace string) ([]*x509.Certificate, error) {
@@ -357,8 +284,6 @@ func (n *NoOpCertificateProvider) GetCertificateChain(ctx context.Context, servi
 
 }
 
-
-
 // GetSPIFFEID gets the SPIFFE ID for a service.
 
 func (n *NoOpCertificateProvider) GetSPIFFEID(service, namespace, trustDomain string) string {
@@ -366,4 +291,3 @@ func (n *NoOpCertificateProvider) GetSPIFFEID(service, namespace, trustDomain st
 	return fmt.Sprintf("spiffe://%s/ns/%s/sa/%s", trustDomain, namespace, service)
 
 }
-

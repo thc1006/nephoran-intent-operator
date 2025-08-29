@@ -1,87 +1,56 @@
-
 package main
 
-
-
 import (
-
 	"encoding/json"
-
 	"flag"
-
 	"fmt"
-
 	"io"
-
 	"log"
-
 	"net/http"
-
 	"os"
-
 	"path/filepath"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/fcaps"
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/ingest"
-
 )
-
-
 
 // Config represents a config.
 
 type Config struct {
+	ListenAddr string
 
-	ListenAddr     string
-
-	HandoffDir     string
+	HandoffDir string
 
 	BurstThreshold int
 
-	WindowSeconds  int
+	WindowSeconds int
 
-	Verbose        bool
-
+	Verbose bool
 }
-
-
 
 // EventTracker represents a eventtracker.
 
 type EventTracker struct {
+	mu sync.Mutex
 
-	mu             sync.Mutex
+	events []fcaps.FCAPSEvent
 
-	events         []fcaps.FCAPSEvent
-
-	lastIntent     time.Time
+	lastIntent time.Time
 
 	intentCooldown time.Duration
-
 }
-
-
 
 func main() {
 
 	config := parseFlags()
-
-
 
 	if config.Verbose {
 
 		log.Printf("FCAPS Reducer starting with config: %+v", config)
 
 	}
-
-
 
 	// Ensure handoff directory exists.
 
@@ -91,23 +60,16 @@ func main() {
 
 	}
 
-
-
 	tracker := &EventTracker{
 
-		events:         make([]fcaps.FCAPSEvent, 0),
+		events: make([]fcaps.FCAPSEvent, 0),
 
 		intentCooldown: time.Duration(config.WindowSeconds) * time.Second,
-
 	}
-
-
 
 	// Start periodic burst detection.
 
 	go tracker.detectBursts(config)
-
-
 
 	// Start HTTP server to receive VES events.
 
@@ -115,30 +77,25 @@ func main() {
 
 	http.HandleFunc("/health", handleHealth)
 
-
-
 	log.Printf("FCAPS Reducer listening on %s", config.ListenAddr)
 
 	log.Printf("Burst detection: %d events in %d seconds triggers scaling intent",
 
 		config.BurstThreshold, config.WindowSeconds)
 
-
-
 	// Use http.Server with timeouts to fix G114 security warning.
 
 	server := &http.Server{
 
-		Addr:         config.ListenAddr,
+		Addr: config.ListenAddr,
 
-		Handler:      nil,
+		Handler: nil,
 
-		ReadTimeout:  15 * time.Second,
+		ReadTimeout: 15 * time.Second,
 
 		WriteTimeout: 15 * time.Second,
 
-		IdleTimeout:  60 * time.Second,
-
+		IdleTimeout: 60 * time.Second,
 	}
 
 	if err := server.ListenAndServe(); err != nil {
@@ -149,13 +106,9 @@ func main() {
 
 }
 
-
-
 func parseFlags() Config {
 
 	var config Config
-
-
 
 	flag.StringVar(&config.ListenAddr, "listen", ":9999", "Listen address for VES collector")
 
@@ -169,13 +122,9 @@ func parseFlags() Config {
 
 	flag.Parse()
 
-
-
 	return config
 
 }
-
-
 
 func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 
@@ -189,8 +138,6 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 
 		}
 
-
-
 		body, err := io.ReadAll(r.Body)
 
 		if err != nil {
@@ -203,8 +150,6 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 
 		defer func() { _ = r.Body.Close() }()
 
-
-
 		var event fcaps.FCAPSEvent
 
 		if err := json.Unmarshal(body, &event); err != nil {
@@ -214,8 +159,6 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 			return
 
 		}
-
-
 
 		// Track the event.
 
@@ -235,8 +178,6 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 
 		t.mu.Unlock()
 
-
-
 		if config.Verbose {
 
 			log.Printf("Received VES event: domain=%s, name=%s, severity=%s (total: %d)",
@@ -250,8 +191,6 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 				eventCount)
 
 		}
-
-
 
 		// Return VES standard response.
 
@@ -267,21 +206,15 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 
 }
 
-
-
 func (t *EventTracker) detectBursts(config Config) {
 
 	ticker := time.NewTicker(10 * time.Second)
 
 	defer ticker.Stop()
 
-
-
 	for range ticker.C {
 
 		t.mu.Lock()
-
-
 
 		// Clean old events outside the window.
 
@@ -290,8 +223,6 @@ func (t *EventTracker) detectBursts(config Config) {
 		filtered := make([]fcaps.FCAPSEvent, 0)
 
 		criticalCount := 0
-
-
 
 		for _, event := range t.events {
 
@@ -321,19 +252,13 @@ func (t *EventTracker) detectBursts(config Config) {
 
 		}
 
-
-
 		t.events = filtered
 
 		shouldTrigger := criticalCount >= config.BurstThreshold
 
 		canTrigger := time.Since(t.lastIntent) > t.intentCooldown
 
-
-
 		t.mu.Unlock()
-
-
 
 		if config.Verbose && len(filtered) > 0 {
 
@@ -343,15 +268,11 @@ func (t *EventTracker) detectBursts(config Config) {
 
 		}
 
-
-
 		// Check if we should generate an intent.
 
 		if shouldTrigger && canTrigger {
 
 			t.generateScalingIntent(config, criticalCount)
-
-
 
 			t.mu.Lock()
 
@@ -365,8 +286,6 @@ func (t *EventTracker) detectBursts(config Config) {
 
 }
 
-
-
 func (t *EventTracker) generateScalingIntent(config Config, eventCount int) {
 
 	// Calculate scaling factor based on burst size.
@@ -379,27 +298,22 @@ func (t *EventTracker) generateScalingIntent(config Config, eventCount int) {
 
 	}
 
-
-
 	intent := &ingest.Intent{
 
-		IntentType:    "scaling",
+		IntentType: "scaling",
 
-		Target:        "nf-sim",
+		Target: "nf-sim",
 
-		Namespace:     "ran-a",
+		Namespace: "ran-a",
 
-		Replicas:      scaleFactor * 2, // Scale to 2x, 4x, or 6x
+		Replicas: scaleFactor * 2, // Scale to 2x, 4x, or 6x
 
-		Reason:        fmt.Sprintf("Burst detected: %d critical events in %ds window", eventCount, config.WindowSeconds),
+		Reason: fmt.Sprintf("Burst detected: %d critical events in %ds window", eventCount, config.WindowSeconds),
 
-		Source:        "fcaps-reducer",
+		Source: "fcaps-reducer",
 
 		CorrelationID: fmt.Sprintf("burst-%d", time.Now().Unix()),
-
 	}
-
-
 
 	// Write intent to handoff directory.
 
@@ -413,13 +327,9 @@ func (t *EventTracker) generateScalingIntent(config Config, eventCount int) {
 
 	}
 
-
-
 	timestamp := time.Now().UTC().Format("20060102T150405Z")
 
 	filename := filepath.Join(config.HandoffDir, fmt.Sprintf("intent-%s.json", timestamp))
-
-
 
 	if err := os.WriteFile(filename, intentJSON, 0o640); err != nil {
 
@@ -429,8 +339,6 @@ func (t *EventTracker) generateScalingIntent(config Config, eventCount int) {
 
 	}
 
-
-
 	log.Printf("SCALING INTENT GENERATED: %s", filename)
 
 	log.Printf("Intent details: scale %s to %d replicas in namespace %s",
@@ -438,8 +346,6 @@ func (t *EventTracker) generateScalingIntent(config Config, eventCount int) {
 		intent.Target, intent.Replicas, intent.Namespace)
 
 }
-
-
 
 func isCriticalEvent(event fcaps.FCAPSEvent) bool {
 
@@ -456,8 +362,6 @@ func isCriticalEvent(event fcaps.FCAPSEvent) bool {
 		}
 
 	}
-
-
 
 	// Check performance thresholds.
 
@@ -495,13 +399,9 @@ func isCriticalEvent(event fcaps.FCAPSEvent) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 func getEventSeverity(event fcaps.FCAPSEvent) string {
 
@@ -521,8 +421,6 @@ func getEventSeverity(event fcaps.FCAPSEvent) string {
 
 }
 
-
-
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
@@ -534,4 +432,3 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-

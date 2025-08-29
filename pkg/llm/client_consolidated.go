@@ -1,75 +1,47 @@
 //go:build !disable_rag
-
 // +build !disable_rag
-
-
-
 
 package llm
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"crypto/tls"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"log/slog"
-
 	"net"
-
 	"net/http"
-
 	"os"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-
 )
-
-
 
 // ClientMetrics tracks client performance metrics.
 
 type ClientMetrics struct {
+	RequestsTotal int64 `json:"requests_total"`
 
-	RequestsTotal    int64         `json:"requests_total"`
+	RequestsSuccess int64 `json:"requests_success"`
 
-	RequestsSuccess  int64         `json:"requests_success"`
+	RequestsFailure int64 `json:"requests_failure"`
 
-	RequestsFailure  int64         `json:"requests_failure"`
+	TotalLatency time.Duration `json:"total_latency"`
 
-	TotalLatency     time.Duration `json:"total_latency"`
+	CacheHits int64 `json:"cache_hits"`
 
-	CacheHits        int64         `json:"cache_hits"`
+	CacheMisses int64 `json:"cache_misses"`
 
-	CacheMisses      int64         `json:"cache_misses"`
+	RetryAttempts int64 `json:"retry_attempts"`
 
-	RetryAttempts    int64         `json:"retry_attempts"`
+	FallbackAttempts int64 `json:"fallback_attempts"`
 
-	FallbackAttempts int64         `json:"fallback_attempts"`
-
-	mutex            sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // Client is the unified LLM client with all performance optimizations built-in.
 
@@ -79,159 +51,116 @@ type Client struct {
 
 	httpClient *http.Client
 
-	transport  *http.Transport
-
-
+	transport *http.Transport
 
 	// Core configuration.
 
-	url         string
+	url string
 
-	apiKey      string
+	apiKey string
 
-	modelName   string
+	modelName string
 
-	maxTokens   int
+	maxTokens int
 
 	backendType string
-
-
 
 	// Smart endpoints for RAG backend.
 
 	processEndpoint string
 
-	healthEndpoint  string
-
-
+	healthEndpoint string
 
 	// Performance components.
 
-	cache          *ResponseCache
+	cache *ResponseCache
 
 	circuitBreaker *CircuitBreaker
 
-	retryConfig    RetryConfig
-
-
+	retryConfig RetryConfig
 
 	// Observability.
 
-	logger            *slog.Logger
+	logger *slog.Logger
 
-	metrics           *ClientMetrics
+	metrics *ClientMetrics
 
 	metricsIntegrator *MetricsIntegrator
 
-
-
 	// Concurrency control.
 
-	mutex        sync.RWMutex
+	mutex sync.RWMutex
 
 	fallbackURLs []string
-
-
 
 	// Token and cost tracking.
 
 	tokenTracker *SimpleTokenTracker
-
 }
-
-
 
 // ClientConfig holds unified configuration.
 
 type ClientConfig struct {
+	APIKey string `json:"api_key"`
 
-	APIKey              string        `json:"api_key"`
+	ModelName string `json:"model_name"`
 
-	ModelName           string        `json:"model_name"`
+	MaxTokens int `json:"max_tokens"`
 
-	MaxTokens           int           `json:"max_tokens"`
+	BackendType string `json:"backend_type"`
 
-	BackendType         string        `json:"backend_type"`
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout             time.Duration `json:"timeout"`
-
-	SkipTLSVerification bool          `json:"skip_tls_verification"`
-
-
+	SkipTLSVerification bool `json:"skip_tls_verification"`
 
 	// Performance settings.
 
-	MaxConnsPerHost  int           `json:"max_conns_per_host"`
+	MaxConnsPerHost int `json:"max_conns_per_host"`
 
-	MaxIdleConns     int           `json:"max_idle_conns"`
+	MaxIdleConns int `json:"max_idle_conns"`
 
-	IdleConnTimeout  time.Duration `json:"idle_conn_timeout"`
+	IdleConnTimeout time.Duration `json:"idle_conn_timeout"`
 
 	KeepAliveTimeout time.Duration `json:"keep_alive_timeout"`
 
-
-
 	// Cache settings.
 
-	CacheTTL     time.Duration `json:"cache_ttl"`
+	CacheTTL time.Duration `json:"cache_ttl"`
 
-	CacheMaxSize int           `json:"cache_max_size"`
-
-
+	CacheMaxSize int `json:"cache_max_size"`
 
 	// Circuit breaker settings.
 
 	CircuitBreakerConfig *CircuitBreakerConfig `json:"circuit_breaker_config"`
-
 }
-
-
 
 // RetryConfig defines retry behavior.
 
 type RetryConfig struct {
+	MaxRetries int `json:"max_retries"`
 
-	MaxRetries    int           `json:"max_retries"`
+	BaseDelay time.Duration `json:"base_delay"`
 
-	BaseDelay     time.Duration `json:"base_delay"`
+	MaxDelay time.Duration `json:"max_delay"`
 
-	MaxDelay      time.Duration `json:"max_delay"`
+	JitterEnabled bool `json:"jitter_enabled"`
 
-	JitterEnabled bool          `json:"jitter_enabled"`
-
-	BackoffFactor float64       `json:"backoff_factor"`
-
+	BackoffFactor float64 `json:"backoff_factor"`
 }
-
-
 
 // Use CircuitState and constants from circuit_breaker.go to avoid duplicates.
 
-
-
 // Use CircuitBreaker from circuit_breaker.go to avoid duplicates.
-
-
 
 // Use NewCircuitBreaker from circuit_breaker.go to avoid duplicates.
 
-
-
 // Use Execute method from circuit_breaker.go to avoid duplicates.
-
-
 
 // Use shouldTrip method from circuit_breaker.go to avoid duplicates.
 
-
-
 // Use Reset method from circuit_breaker.go to avoid duplicates.
 
-
-
 // Use ForceOpen method from circuit_breaker.go to avoid duplicates.
-
-
 
 // NewClientMetrics creates new client metrics.
 
@@ -241,55 +170,44 @@ func NewClientMetrics() *ClientMetrics {
 
 }
 
-
-
 // NewClient creates a new unified LLM client.
 
 func NewClient(url string) *Client {
 
 	return NewClientWithConfig(url, ClientConfig{
 
-		ModelName:   "gpt-4o-mini",
+		ModelName: "gpt-4o-mini",
 
-		MaxTokens:   2048,
+		MaxTokens: 2048,
 
 		BackendType: "openai",
 
-		Timeout:     60 * time.Second,
-
-
+		Timeout: 60 * time.Second,
 
 		// Performance defaults.
 
-		MaxConnsPerHost:  100,
+		MaxConnsPerHost: 100,
 
-		MaxIdleConns:     50,
+		MaxIdleConns: 50,
 
-		IdleConnTimeout:  90 * time.Second,
+		IdleConnTimeout: 90 * time.Second,
 
 		KeepAliveTimeout: 30 * time.Second,
 
-
-
 		// Cache defaults.
 
-		CacheTTL:     5 * time.Minute,
+		CacheTTL: 5 * time.Minute,
 
 		CacheMaxSize: 1000,
-
 	})
 
 }
-
-
 
 // NewClientWithConfig creates a client with specific configuration.
 
 func NewClientWithConfig(url string, config ClientConfig) *Client {
 
 	logger := slog.Default().With("component", "llm-client")
-
-
 
 	// Create optimized TLS configuration.
 
@@ -306,14 +224,10 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 
 			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-
 		},
 
 		PreferServerCipherSuites: true,
-
 	}
-
-
 
 	// Security check for TLS verification.
 
@@ -333,55 +247,44 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 
 	}
 
-
-
 	// Create optimized HTTP transport.
 
 	transport := &http.Transport{
 
 		DialContext: (&net.Dialer{
 
-			Timeout:   10 * time.Second,
+			Timeout: 10 * time.Second,
 
 			KeepAlive: config.KeepAliveTimeout,
-
 		}).DialContext,
 
-		MaxIdleConns:          config.MaxIdleConns,
+		MaxIdleConns: config.MaxIdleConns,
 
-		MaxIdleConnsPerHost:   config.MaxConnsPerHost,
+		MaxIdleConnsPerHost: config.MaxConnsPerHost,
 
-		IdleConnTimeout:       config.IdleConnTimeout,
+		IdleConnTimeout: config.IdleConnTimeout,
 
-		TLSHandshakeTimeout:   10 * time.Second,
+		TLSHandshakeTimeout: 10 * time.Second,
 
 		ExpectContinueTimeout: 1 * time.Second,
 
-		TLSClientConfig:       tlsConfig,
-
-
+		TLSClientConfig: tlsConfig,
 
 		// Performance optimizations.
 
-		WriteBufferSize:   32 * 1024, // 32KB
+		WriteBufferSize: 32 * 1024, // 32KB
 
-		ReadBufferSize:    32 * 1024, // 32KB
+		ReadBufferSize: 32 * 1024, // 32KB
 
 		ForceAttemptHTTP2: true,
-
 	}
-
-
 
 	httpClient := &http.Client{
 
-		Timeout:   config.Timeout,
+		Timeout: config.Timeout,
 
 		Transport: transport,
-
 	}
-
-
 
 	// Create circuit breaker with config or defaults.
 
@@ -395,59 +298,51 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 
 	circuitBreaker := NewCircuitBreaker("llm-client", cbConfig)
 
-
-
 	client := &Client{
 
-		httpClient:     httpClient,
+		httpClient: httpClient,
 
-		transport:      transport,
+		transport: transport,
 
-		url:            url,
+		url: url,
 
-		apiKey:         config.APIKey,
+		apiKey: config.APIKey,
 
-		modelName:      config.ModelName,
+		modelName: config.ModelName,
 
-		maxTokens:      config.MaxTokens,
+		maxTokens: config.MaxTokens,
 
-		backendType:    config.BackendType,
+		backendType: config.BackendType,
 
-		logger:         logger,
+		logger: logger,
 
-		metrics:        NewClientMetrics(),
+		metrics: NewClientMetrics(),
 
-		cache:          NewResponseCache(config.CacheTTL, config.CacheMaxSize),
+		cache: NewResponseCache(config.CacheTTL, config.CacheMaxSize),
 
 		circuitBreaker: circuitBreaker,
 
 		retryConfig: RetryConfig{
 
-			MaxRetries:    3,
+			MaxRetries: 3,
 
-			BaseDelay:     time.Second,
+			BaseDelay: time.Second,
 
-			MaxDelay:      30 * time.Second,
+			MaxDelay: 30 * time.Second,
 
 			JitterEnabled: true,
 
 			BackoffFactor: 2.0,
-
 		},
 
 		tokenTracker: NewSimpleTokenTracker(),
-
 	}
-
-
 
 	// Initialize metrics integrator for Prometheus support.
 
 	metricsCollector := NewMetricsCollector()
 
 	client.metricsIntegrator = NewMetricsIntegrator(metricsCollector)
-
-
 
 	// Initialize smart endpoints for RAG backend.
 
@@ -457,21 +352,15 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 
 	}
 
-
-
 	return client
 
 }
-
-
 
 // initializeRAGEndpoints initializes smart endpoints for RAG backend.
 
 func (c *Client) initializeRAGEndpoints() {
 
 	baseURL := strings.TrimSuffix(c.url, "/")
-
-
 
 	// Determine process endpoint based on URL pattern.
 
@@ -495,8 +384,6 @@ func (c *Client) initializeRAGEndpoints() {
 
 	}
 
-
-
 	// Health endpoint.
 
 	processBase := baseURL
@@ -513,19 +400,14 @@ func (c *Client) initializeRAGEndpoints() {
 
 	c.healthEndpoint = processBase + "/health"
 
-
-
 	c.logger.Info("Initialized RAG client endpoints",
 
 		slog.String("process_endpoint", c.processEndpoint),
 
 		slog.String("health_endpoint", c.healthEndpoint),
-
 	)
 
 }
-
-
 
 // ProcessIntent processes an intent with all optimizations.
 
@@ -540,8 +422,6 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 	var retryCount int
 
 	var processingError error
-
-
 
 	defer func() {
 
@@ -559,11 +439,7 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 	}()
 
-
-
 	c.logger.Debug("Processing intent", slog.String("intent", intent))
-
-
 
 	// Check cache first.
 
@@ -578,8 +454,6 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 		return cached, nil
 
 	}
-
-
 
 	// Process with circuit breaker protection.
 
@@ -605,11 +479,7 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 	}
 
-
-
 	response := result.(string)
-
-
 
 	// Cache successful response.
 
@@ -617,13 +487,9 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 	success = true
 
-
-
 	return response, nil
 
 }
-
-
 
 // processWithRetry handles retry logic.
 
@@ -632,8 +498,6 @@ func (c *Client) processWithRetry(ctx context.Context, intent string, retryCount
 	var lastErr error
 
 	delay := c.retryConfig.BaseDelay
-
-
 
 	for attempt := 0; attempt <= c.retryConfig.MaxRetries; attempt++ {
 
@@ -669,11 +533,7 @@ func (c *Client) processWithRetry(ctx context.Context, intent string, retryCount
 
 		}
 
-
-
 		*retryCount = attempt
-
-
 
 		result, err := c.processWithBackend(ctx, intent)
 
@@ -682,8 +542,6 @@ func (c *Client) processWithRetry(ctx context.Context, intent string, retryCount
 			return result, nil
 
 		}
-
-
 
 		lastErr = err
 
@@ -695,13 +553,9 @@ func (c *Client) processWithRetry(ctx context.Context, intent string, retryCount
 
 	}
 
-
-
 	return "", fmt.Errorf("operation failed after %d retries: %w", c.retryConfig.MaxRetries, lastErr)
 
 }
-
-
 
 // processWithBackend handles different LLM backends.
 
@@ -725,8 +579,6 @@ func (c *Client) processWithBackend(ctx context.Context, intent string) (string,
 
 }
 
-
-
 // processWithChatCompletion handles OpenAI/Mistral-style APIs.
 
 func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (string, error) {
@@ -740,18 +592,14 @@ func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (
 			{"role": "system", "content": "You are a telecommunications network expert."},
 
 			{"role": "user", "content": intent},
-
 		},
 
-		"max_tokens":      c.maxTokens,
+		"max_tokens": c.maxTokens,
 
-		"temperature":     0.0,
+		"temperature": 0.0,
 
 		"response_format": map[string]string{"type": "json_object"},
-
 	}
-
-
 
 	reqBody, err := json.Marshal(requestBody)
 
@@ -761,8 +609,6 @@ func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, "POST", c.url, bytes.NewBuffer(reqBody))
 
 	if err != nil {
@@ -770,8 +616,6 @@ func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (
 		return "", fmt.Errorf("failed to create request: %w", err)
 
 	}
-
-
 
 	req.Header.Set("Content-Type", "application/json")
 
@@ -783,8 +627,6 @@ func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (
 
 	}
 
-
-
 	resp, err := c.httpClient.Do(req)
 
 	if err != nil {
@@ -795,8 +637,6 @@ func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (
 
 	defer resp.Body.Close()
 
-
-
 	respBody, err := io.ReadAll(resp.Body)
 
 	if err != nil {
@@ -805,39 +645,25 @@ func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (
 
 	}
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return "", fmt.Errorf("LLM API returned status %d: %s", resp.StatusCode, string(respBody))
 
 	}
 
-
-
 	// Parse response.
 
 	var chatResp struct {
-
 		Choices []struct {
-
 			Message struct {
-
 				Content string `json:"content"`
-
 			} `json:"message"`
-
 		} `json:"choices"`
 
 		Usage struct {
-
 			TotalTokens int `json:"total_tokens"`
-
 		} `json:"usage"`
-
 	}
-
-
 
 	if err := json.Unmarshal(respBody, &chatResp); err != nil {
 
@@ -845,27 +671,19 @@ func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (
 
 	}
 
-
-
 	if len(chatResp.Choices) == 0 {
 
 		return "", fmt.Errorf("no choices in response")
 
 	}
 
-
-
 	// Track token usage.
 
 	c.tokenTracker.RecordUsage(chatResp.Usage.TotalTokens)
 
-
-
 	return chatResp.Choices[0].Message.Content, nil
 
 }
-
-
 
 // processWithRAGAPI handles RAG API requests.
 
@@ -876,12 +694,8 @@ func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, 
 		"spec": map[string]string{
 
 			"intent": intent,
-
 		},
-
 	}
-
-
 
 	reqBody, err := json.Marshal(req)
 
@@ -890,8 +704,6 @@ func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, 
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 
 	}
-
-
 
 	// Use smart endpoint if available, otherwise fall back to URL construction.
 
@@ -903,8 +715,6 @@ func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, 
 
 	}
 
-
-
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", endpointURL, bytes.NewBuffer(reqBody))
 
 	if err != nil {
@@ -913,13 +723,9 @@ func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, 
 
 	}
 
-
-
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	httpReq.Header.Set("User-Agent", "nephoran-intent-operator/v1.0.0")
-
-
 
 	resp, err := c.httpClient.Do(httpReq)
 
@@ -931,8 +737,6 @@ func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, 
 
 	defer resp.Body.Close()
 
-
-
 	respBody, err := io.ReadAll(resp.Body)
 
 	if err != nil {
@@ -941,21 +745,15 @@ func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, 
 
 	}
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return "", fmt.Errorf("RAG API returned status %d: %s", resp.StatusCode, string(respBody))
 
 	}
 
-
-
 	return string(respBody), nil
 
 }
-
-
 
 // Helper methods.
 
@@ -964,8 +762,6 @@ func (c *Client) generateCacheKey(intent string) string {
 	return fmt.Sprintf("%s:%s:%s", c.backendType, c.modelName, intent)
 
 }
-
-
 
 func (c *Client) isRetryableError(err error) bool {
 
@@ -976,10 +772,7 @@ func (c *Client) isRetryableError(err error) bool {
 		"connection refused", "timeout", "temporary failure",
 
 		"service unavailable", "internal server error", "bad gateway",
-
 	}
-
-
 
 	for _, pattern := range retryablePatterns {
 
@@ -995,15 +788,11 @@ func (c *Client) isRetryableError(err error) bool {
 
 }
 
-
-
 func allowInsecureClient() bool {
 
 	return os.Getenv("ALLOW_INSECURE_CLIENT") == "true"
 
 }
-
-
 
 // GetMetrics returns current client metrics.
 
@@ -1017,27 +806,24 @@ func (c *Client) GetMetrics() ClientMetrics {
 
 	return ClientMetrics{
 
-		RequestsTotal:    c.metrics.RequestsTotal,
+		RequestsTotal: c.metrics.RequestsTotal,
 
-		RequestsSuccess:  c.metrics.RequestsSuccess,
+		RequestsSuccess: c.metrics.RequestsSuccess,
 
-		RequestsFailure:  c.metrics.RequestsFailure,
+		RequestsFailure: c.metrics.RequestsFailure,
 
-		TotalLatency:     c.metrics.TotalLatency,
+		TotalLatency: c.metrics.TotalLatency,
 
-		CacheHits:        c.metrics.CacheHits,
+		CacheHits: c.metrics.CacheHits,
 
-		CacheMisses:      c.metrics.CacheMisses,
+		CacheMisses: c.metrics.CacheMisses,
 
-		RetryAttempts:    c.metrics.RetryAttempts,
+		RetryAttempts: c.metrics.RetryAttempts,
 
 		FallbackAttempts: c.metrics.FallbackAttempts,
-
 	}
 
 }
-
-
 
 // SetFallbackURLs configures fallback URLs.
 
@@ -1051,8 +837,6 @@ func (c *Client) SetFallbackURLs(urls []string) {
 
 }
 
-
-
 // Shutdown gracefully shuts down the client.
 
 func (c *Client) Shutdown() {
@@ -1061,15 +845,11 @@ func (c *Client) Shutdown() {
 
 	defer c.mutex.Unlock()
 
-
-
 	if c.cache != nil {
 
 		c.cache.Stop()
 
 	}
-
-
 
 	if c.transport != nil {
 
@@ -1078,8 +858,6 @@ func (c *Client) Shutdown() {
 	}
 
 }
-
-
 
 // categorizeError categorizes errors for better Prometheus metrics.
 
@@ -1090,8 +868,6 @@ func (c *Client) categorizeError(err error) string {
 		return "none"
 
 	}
-
-
 
 	errMsg := err.Error()
 
@@ -1153,8 +929,6 @@ func (c *Client) categorizeError(err error) string {
 
 }
 
-
-
 // updateMetrics updates client metrics.
 
 func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit bool, retryCount int) {
@@ -1162,8 +936,6 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 	c.metrics.mutex.Lock()
 
 	defer c.metrics.mutex.Unlock()
-
-
 
 	c.metrics.RequestsTotal++
 
@@ -1179,8 +951,6 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 
 	c.metrics.TotalLatency += latency
 
-
-
 	if cacheHit {
 
 		c.metrics.CacheHits++
@@ -1191,11 +961,7 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 
 	}
 
-
-
 	c.metrics.RetryAttempts += int64(retryCount)
-
-
 
 	// Record Prometheus metrics via integrator.
 
@@ -1209,8 +975,6 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 
 		}
 
-
-
 		// Get current token stats for this request.
 
 		// Note: This gives cumulative stats, not per-request, but it's the best we can do.
@@ -1221,19 +985,13 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 
 		totalTokens := int(tokenStats["total_tokens"].(int64))
 
-
-
 		// Record LLM request metrics.
 
 		c.metricsIntegrator.RecordLLMRequest(c.modelName, status, latency, totalTokens)
 
-
-
 		// Record cache operation.
 
 		c.metricsIntegrator.RecordCacheOperation(c.modelName, "get", cacheHit)
-
-
 
 		// Record retry attempts if any occurred.
 
@@ -1247,11 +1005,7 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 
 }
 
-
-
 // Missing interface methods for shared.ClientInterface.
-
-
 
 // ProcessIntentStream processes intent with streaming.
 
@@ -1267,15 +1021,11 @@ func (c *Client) ProcessIntentStream(ctx context.Context, prompt string, chunks 
 
 	}
 
-
-
 	// Split response into chunks and send.
 
 	words := strings.Fields(response)
 
 	chunkSize := 10 // words per chunk
-
-
 
 	for i := 0; i < len(words); i += chunkSize {
 
@@ -1287,19 +1037,14 @@ func (c *Client) ProcessIntentStream(ctx context.Context, prompt string, chunks 
 
 		}
 
-
-
 		chunk := &shared.StreamingChunk{
 
-			Content:   strings.Join(words[i:end], " "),
+			Content: strings.Join(words[i:end], " "),
 
-			IsLast:    end >= len(words),
+			IsLast: end >= len(words),
 
 			Timestamp: time.Now(),
-
 		}
-
-
 
 		select {
 
@@ -1311,23 +1056,17 @@ func (c *Client) ProcessIntentStream(ctx context.Context, prompt string, chunks 
 
 		}
 
-
-
 		// Add small delay to simulate streaming.
 
 		time.Sleep(50 * time.Millisecond)
 
 	}
 
-
-
 	close(chunks)
 
 	return nil
 
 }
-
-
 
 // GetSupportedModels returns supported models.
 
@@ -1336,8 +1075,6 @@ func (c *Client) GetSupportedModels() []string {
 	return []string{c.modelName, "gpt-4o-mini", "gpt-3.5-turbo"}
 
 }
-
-
 
 // GetModelCapabilities returns model capabilities.
 
@@ -1349,55 +1086,50 @@ func (c *Client) GetModelCapabilities(modelName string) (*shared.ModelCapabiliti
 
 		return &shared.ModelCapabilities{
 
-			MaxTokens:         128000,
+			MaxTokens: 128000,
 
-			SupportsChat:      true,
+			SupportsChat: true,
 
-			SupportsFunction:  true,
+			SupportsFunction: true,
 
 			SupportsStreaming: true,
 
-			CostPerToken:      0.00015,
-
+			CostPerToken: 0.00015,
 		}, nil
 
 	case "gpt-3.5-turbo":
 
 		return &shared.ModelCapabilities{
 
-			MaxTokens:         4096,
+			MaxTokens: 4096,
 
-			SupportsChat:      true,
+			SupportsChat: true,
 
-			SupportsFunction:  false,
+			SupportsFunction: false,
 
 			SupportsStreaming: true,
 
-			CostPerToken:      0.0015,
-
+			CostPerToken: 0.0015,
 		}, nil
 
 	default:
 
 		return &shared.ModelCapabilities{
 
-			MaxTokens:         c.maxTokens,
+			MaxTokens: c.maxTokens,
 
-			SupportsChat:      true,
+			SupportsChat: true,
 
-			SupportsFunction:  false,
+			SupportsFunction: false,
 
 			SupportsStreaming: false,
 
-			CostPerToken:      0.001,
-
+			CostPerToken: 0.001,
 		}, nil
 
 	}
 
 }
-
-
 
 // ValidateModel validates if model is supported.
 
@@ -1419,8 +1151,6 @@ func (c *Client) ValidateModel(modelName string) error {
 
 }
 
-
-
 // EstimateTokens estimates token count for text.
 
 func (c *Client) EstimateTokens(text string) int {
@@ -1430,8 +1160,6 @@ func (c *Client) EstimateTokens(text string) int {
 	return len(text) / 4
 
 }
-
-
 
 // GetMaxTokens returns maximum tokens for model.
 
@@ -1449,8 +1177,6 @@ func (c *Client) GetMaxTokens(modelName string) int {
 
 }
 
-
-
 // Close closes the client and cleans up resources.
 
 func (c *Client) Close() error {
@@ -1460,4 +1186,3 @@ func (c *Client) Close() error {
 	return nil
 
 }
-

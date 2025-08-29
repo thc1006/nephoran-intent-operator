@@ -2,72 +2,43 @@
 
 // This validator tests various deployment patterns including blue-green, canary, and rolling updates.
 
-
 package validation
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"strings"
-
 	"sync"
-
 	"time"
-
-
 
 	"github.com/onsi/ginkgo/v2"
 
-
-
 	appsv1 "k8s.io/api/apps/v1"
-
 	corev1 "k8s.io/api/core/v1"
-
 	networkingv1 "k8s.io/api/networking/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	"k8s.io/apimachinery/pkg/util/intstr"
-
 	"k8s.io/client-go/kubernetes"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // DeploymentScenariosValidator validates various deployment scenarios and strategies.
 
 type DeploymentScenariosValidator struct {
-
-	client    client.Client
+	client client.Client
 
 	clientset *kubernetes.Clientset
 
-	config    *ValidationConfig
-
-
+	config *ValidationConfig
 
 	// Deployment metrics.
 
 	metrics *DeploymentScenariosMetrics
 
-	mu      sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // DeploymentScenariosMetrics tracks deployment scenario validation results.
 
@@ -75,177 +46,140 @@ type DeploymentScenariosMetrics struct {
 
 	// Deployment Strategy Support.
 
-	BlueGreenSupported     bool
+	BlueGreenSupported bool
 
-	CanarySupported        bool
+	CanarySupported bool
 
 	RollingUpdateSupported bool
-
-
 
 	// Zero Downtime Capabilities.
 
 	ZeroDowntimeAchieved bool
 
-	AverageDowntime      time.Duration
+	AverageDowntime time.Duration
 
-	MaxDowntime          time.Duration
-
-
+	MaxDowntime time.Duration
 
 	// Rollback Capabilities.
 
-	RollbackSupported      bool
+	RollbackSupported bool
 
-	RollbackTime           time.Duration
+	RollbackTime time.Duration
 
 	AutoRollbackConfigured bool
-
-
 
 	// Traffic Management.
 
 	TrafficSplittingConfigured bool
 
-	LoadBalancingOptimal       bool
+	LoadBalancingOptimal bool
 
-	HealthChecksDuringDeploy   bool
-
-
+	HealthChecksDuringDeploy bool
 
 	// Infrastructure Validation.
 
-	MultiClusterSupport      bool
+	MultiClusterSupport bool
 
-	CrossRegionDeployment    bool
+	CrossRegionDeployment bool
 
 	EdgeDeploymentCapability bool
-
-
 
 	// Deployment Results.
 
 	SuccessfulDeployments int
 
-	FailedDeployments     int
+	FailedDeployments int
 
-	DeploymentScenarios   map[string]*DeploymentScenarioResult
-
+	DeploymentScenarios map[string]*DeploymentScenarioResult
 }
-
-
 
 // DeploymentScenarioResult represents the result of a deployment scenario test.
 
 type DeploymentScenarioResult struct {
+	ScenarioName string
 
-	ScenarioName     string
+	DeploymentType string
 
-	DeploymentType   string
+	StartTime time.Time
 
-	StartTime        time.Time
+	EndTime time.Time
 
-	EndTime          time.Time
-
-	Duration         time.Duration
+	Duration time.Duration
 
 	DowntimeObserved time.Duration
 
-	Success          bool
+	Success bool
 
-	ErrorMessage     string
+	ErrorMessage string
 
-	HealthChecks     []HealthCheckResult
+	HealthChecks []HealthCheckResult
 
-	TrafficMetrics   *TrafficMetrics
-
+	TrafficMetrics *TrafficMetrics
 }
-
-
 
 // HealthCheckResult represents a health check result during deployment.
 
 type HealthCheckResult struct {
+	Timestamp time.Time
 
-	Timestamp    time.Time
+	Endpoint string
 
-	Endpoint     string
-
-	Status       int
+	Status int
 
 	ResponseTime time.Duration
 
-	Success      bool
+	Success bool
 
-	Message      string
-
+	Message string
 }
-
-
 
 // TrafficMetrics represents traffic distribution during deployment.
 
 type TrafficMetrics struct {
-
-	BlueTrafficPercentage  float64
+	BlueTrafficPercentage float64
 
 	GreenTrafficPercentage float64
 
-	TotalRequests          int
+	TotalRequests int
 
-	SuccessfulRequests     int
+	SuccessfulRequests int
 
-	FailedRequests         int
+	FailedRequests int
 
-	AverageLatency         time.Duration
-
+	AverageLatency time.Duration
 }
-
-
 
 // DeploymentStrategy defines the deployment strategy configuration.
 
 type DeploymentStrategy struct {
+	Name string
 
-	Name                    string
+	Type DeploymentStrategyType
 
-	Type                    DeploymentStrategyType
+	MaxUnavailable *intstr.IntOrString
 
-	MaxUnavailable          *intstr.IntOrString
-
-	MaxSurge                *intstr.IntOrString
+	MaxSurge *intstr.IntOrString
 
 	ProgressDeadlineSeconds *int32
 
-	RevisionHistoryLimit    *int32
-
-
+	RevisionHistoryLimit *int32
 
 	// Blue-Green specific.
 
 	BlueGreenConfig *BlueGreenConfig
 
-
-
 	// Canary specific.
 
 	CanaryConfig *CanaryConfig
 
-
-
 	// Health check configuration.
 
 	HealthCheckConfig *HealthCheckConfig
-
 }
-
-
 
 // DeploymentStrategyType defines the type of deployment strategy.
 
 type DeploymentStrategyType string
-
-
 
 const (
 
@@ -264,36 +198,28 @@ const (
 	// DeploymentStrategyRecreate holds deploymentstrategyrecreate value.
 
 	DeploymentStrategyRecreate DeploymentStrategyType = "recreate"
-
 )
-
-
 
 // BlueGreenConfig contains blue-green deployment configuration.
 
 type BlueGreenConfig struct {
-
-	PrePromotionAnalysis  *AnalysisConfig
+	PrePromotionAnalysis *AnalysisConfig
 
 	PostPromotionAnalysis *AnalysisConfig
 
 	ScaleDownDelaySeconds int32
 
-	PreviewService        string
+	PreviewService string
 
-	ActiveService         string
+	ActiveService string
 
-	AutoPromotionEnabled  bool
-
+	AutoPromotionEnabled bool
 }
-
-
 
 // CanaryConfig contains canary deployment configuration.
 
 type CanaryConfig struct {
-
-	Steps          []CanaryStep
+	Steps []CanaryStep
 
 	TrafficRouting *TrafficRoutingConfig
 
@@ -301,133 +227,94 @@ type CanaryConfig struct {
 
 	MaxUnavailable *intstr.IntOrString
 
-	MaxSurge       *intstr.IntOrString
-
+	MaxSurge *intstr.IntOrString
 }
-
-
 
 // CanaryStep defines a step in canary deployment.
 
 type CanaryStep struct {
-
 	SetWeight *int32
 
-	Pause     *PauseConfig
+	Pause *PauseConfig
 
-	Analysis  *AnalysisConfig
-
+	Analysis *AnalysisConfig
 }
-
-
 
 // PauseConfig defines pause configuration for canary steps.
 
 type PauseConfig struct {
-
 	Duration *metav1.Duration
-
 }
-
-
 
 // AnalysisConfig defines analysis configuration for deployment validation.
 
 type AnalysisConfig struct {
+	Templates []string
 
-	Templates    []string
-
-	Args         []AnalysisArgument
+	Args []AnalysisArgument
 
 	StartingStep int32
-
 }
-
-
 
 // AnalysisArgument defines arguments for analysis templates.
 
 type AnalysisArgument struct {
-
-	Name  string
+	Name string
 
 	Value string
-
 }
-
-
 
 // TrafficRoutingConfig defines traffic routing configuration.
 
 type TrafficRoutingConfig struct {
-
 	Istio *IstioConfig
 
 	Nginx *NginxConfig
 
-	ALB   *ALBConfig
-
+	ALB *ALBConfig
 }
-
-
 
 // IstioConfig defines Istio-specific traffic routing.
 
 type IstioConfig struct {
-
-	VirtualService  string
+	VirtualService string
 
 	DestinationRule string
-
 }
-
-
 
 // NginxConfig defines NGINX-specific traffic routing.
 
 type NginxConfig struct {
-
-	IngressName      string
+	IngressName string
 
 	AnnotationPrefix string
-
 }
-
-
 
 // ALBConfig defines AWS ALB-specific traffic routing.
 
 type ALBConfig struct {
-
 	IngressName string
 
 	ServicePort int32
-
 }
-
-
 
 // HealthCheckConfig defines health check configuration during deployment.
 
 type HealthCheckConfig struct {
+	Path string
 
-	Path             string
+	Port intstr.IntOrString
 
-	Port             intstr.IntOrString
+	InitialDelay time.Duration
 
-	InitialDelay     time.Duration
+	PeriodSeconds int32
 
-	PeriodSeconds    int32
-
-	TimeoutSeconds   int32
+	TimeoutSeconds int32
 
 	FailureThreshold int32
 
 	SuccessThreshold int32
-
 }
-
-
 
 // NewDeploymentScenariosValidator creates a new deployment scenarios validator.
 
@@ -435,23 +322,19 @@ func NewDeploymentScenariosValidator(client client.Client, clientset *kubernetes
 
 	return &DeploymentScenariosValidator{
 
-		client:    client,
+		client: client,
 
 		clientset: clientset,
 
-		config:    config,
+		config: config,
 
 		metrics: &DeploymentScenariosMetrics{
 
 			DeploymentScenarios: make(map[string]*DeploymentScenarioResult),
-
 		},
-
 	}
 
 }
-
-
 
 // ValidateDeploymentScenarios executes comprehensive deployment scenario validation.
 
@@ -459,13 +342,9 @@ func (dsv *DeploymentScenariosValidator) ValidateDeploymentScenarios(ctx context
 
 	ginkgo.By("Starting Deployment Scenarios Validation")
 
-
-
 	totalScore := 0
 
 	scenarios := dsv.getDeploymentScenarios()
-
-
 
 	for _, scenario := range scenarios {
 
@@ -477,27 +356,22 @@ func (dsv *DeploymentScenariosValidator) ValidateDeploymentScenarios(ctx context
 
 			result = &DeploymentScenarioResult{
 
-				ScenarioName:   scenario.Name,
+				ScenarioName: scenario.Name,
 
 				DeploymentType: string(scenario.Type),
 
-				Success:        false,
+				Success: false,
 
-				ErrorMessage:   err.Error(),
-
+				ErrorMessage: err.Error(),
 			}
 
 		}
-
-
 
 		dsv.mu.Lock()
 
 		dsv.metrics.DeploymentScenarios[scenario.Name] = result
 
 		dsv.mu.Unlock()
-
-
 
 		if result.Success {
 
@@ -517,25 +391,17 @@ func (dsv *DeploymentScenariosValidator) ValidateDeploymentScenarios(ctx context
 
 	}
 
-
-
 	// Update overall metrics.
 
 	dsv.updateOverallMetrics()
-
-
 
 	ginkgo.By(fmt.Sprintf("Deployment Scenarios Validation: %d/%d scenarios passed",
 
 		totalScore, len(scenarios)))
 
-
-
 	return totalScore, nil
 
 }
-
-
 
 // getDeploymentScenarios returns the list of deployment scenarios to test.
 
@@ -551,40 +417,36 @@ func (dsv *DeploymentScenariosValidator) getDeploymentScenarios() []*DeploymentS
 
 			MaxUnavailable: &intstr.IntOrString{
 
-				Type:   intstr.String,
+				Type: intstr.String,
 
 				StrVal: "25%",
-
 			},
 
 			MaxSurge: &intstr.IntOrString{
 
-				Type:   intstr.String,
+				Type: intstr.String,
 
 				StrVal: "25%",
-
 			},
 
 			ProgressDeadlineSeconds: int32Ptr(300),
 
 			HealthCheckConfig: &HealthCheckConfig{
 
-				Path:             "/health",
+				Path: "/health",
 
-				Port:             intstr.FromInt(8080),
+				Port: intstr.FromInt(8080),
 
-				InitialDelay:     10 * time.Second,
+				InitialDelay: 10 * time.Second,
 
-				PeriodSeconds:    10,
+				PeriodSeconds: 10,
 
-				TimeoutSeconds:   5,
+				TimeoutSeconds: 5,
 
 				FailureThreshold: 3,
 
 				SuccessThreshold: 1,
-
 			},
-
 		},
 
 		{
@@ -597,38 +459,34 @@ func (dsv *DeploymentScenariosValidator) getDeploymentScenarios() []*DeploymentS
 
 				ScaleDownDelaySeconds: 30,
 
-				PreviewService:        "nephoran-preview",
+				PreviewService: "nephoran-preview",
 
-				ActiveService:         "nephoran-active",
+				ActiveService: "nephoran-active",
 
-				AutoPromotionEnabled:  false,
+				AutoPromotionEnabled: false,
 
 				PrePromotionAnalysis: &AnalysisConfig{
 
 					Templates: []string{"success-rate", "response-time"},
-
 				},
-
 			},
 
 			HealthCheckConfig: &HealthCheckConfig{
 
-				Path:             "/health",
+				Path: "/health",
 
-				Port:             intstr.FromInt(8080),
+				Port: intstr.FromInt(8080),
 
-				InitialDelay:     15 * time.Second,
+				InitialDelay: 15 * time.Second,
 
-				PeriodSeconds:    5,
+				PeriodSeconds: 5,
 
-				TimeoutSeconds:   10,
+				TimeoutSeconds: 10,
 
 				FailureThreshold: 2,
 
 				SuccessThreshold: 2,
-
 			},
-
 		},
 
 		{
@@ -648,9 +506,7 @@ func (dsv *DeploymentScenariosValidator) getDeploymentScenarios() []*DeploymentS
 						Pause: &PauseConfig{
 
 							Duration: &metav1.Duration{Duration: 30 * time.Second},
-
 						},
-
 					},
 
 					{
@@ -660,62 +516,50 @@ func (dsv *DeploymentScenariosValidator) getDeploymentScenarios() []*DeploymentS
 						Analysis: &AnalysisConfig{
 
 							Templates: []string{"success-rate", "error-rate"},
-
 						},
-
 					},
 
 					{
 
 						SetWeight: int32Ptr(100),
-
 					},
-
 				},
 
 				TrafficRouting: &TrafficRoutingConfig{
 
 					Istio: &IstioConfig{
 
-						VirtualService:  "nephoran-vs",
+						VirtualService: "nephoran-vs",
 
 						DestinationRule: "nephoran-dr",
-
 					},
-
 				},
 
 				MaxUnavailable: &intstr.IntOrString{Type: intstr.Int, IntVal: 0},
 
-				MaxSurge:       &intstr.IntOrString{Type: intstr.String, StrVal: "20%"},
-
+				MaxSurge: &intstr.IntOrString{Type: intstr.String, StrVal: "20%"},
 			},
 
 			HealthCheckConfig: &HealthCheckConfig{
 
-				Path:             "/health",
+				Path: "/health",
 
-				Port:             intstr.FromInt(8080),
+				Port: intstr.FromInt(8080),
 
-				InitialDelay:     20 * time.Second,
+				InitialDelay: 20 * time.Second,
 
-				PeriodSeconds:    5,
+				PeriodSeconds: 5,
 
-				TimeoutSeconds:   10,
+				TimeoutSeconds: 10,
 
 				FailureThreshold: 3,
 
 				SuccessThreshold: 1,
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // executeDeploymentScenario executes a single deployment scenario.
 
@@ -723,21 +567,16 @@ func (dsv *DeploymentScenariosValidator) executeDeploymentScenario(ctx context.C
 
 	ginkgo.By(fmt.Sprintf("Executing deployment scenario: %s", strategy.Name))
 
-
-
 	result := &DeploymentScenarioResult{
 
-		ScenarioName:   strategy.Name,
+		ScenarioName: strategy.Name,
 
 		DeploymentType: string(strategy.Type),
 
-		StartTime:      time.Now(),
+		StartTime: time.Now(),
 
-		HealthChecks:   []HealthCheckResult{},
-
+		HealthChecks: []HealthCheckResult{},
 	}
-
-
 
 	switch strategy.Type {
 
@@ -761,15 +600,11 @@ func (dsv *DeploymentScenariosValidator) executeDeploymentScenario(ctx context.C
 
 }
 
-
-
 // executeRollingUpdateScenario tests rolling update deployment.
 
 func (dsv *DeploymentScenariosValidator) executeRollingUpdateScenario(ctx context.Context, strategy *DeploymentStrategy, result *DeploymentScenarioResult) (*DeploymentScenarioResult, error) {
 
 	ginkgo.By("Testing Rolling Update deployment scenario")
-
-
 
 	// Find existing deployment to test rolling update.
 
@@ -781,8 +616,6 @@ func (dsv *DeploymentScenariosValidator) executeRollingUpdateScenario(ctx contex
 
 	}
 
-
-
 	// Validate rolling update configuration.
 
 	if deployment.Spec.Strategy.Type != appsv1.RollingUpdateDeploymentStrategyType {
@@ -791,19 +624,13 @@ func (dsv *DeploymentScenariosValidator) executeRollingUpdateScenario(ctx contex
 
 	}
 
-
-
 	// Simulate rolling update by updating deployment image or labels.
 
 	originalReplicas := *deployment.Spec.Replicas
 
-
-
 	// Update deployment to trigger rolling update.
 
 	deployment.Spec.Template.Labels["deployment-test"] = fmt.Sprintf("test-%d", time.Now().Unix())
-
-
 
 	if err := dsv.client.Update(ctx, deployment); err != nil {
 
@@ -811,13 +638,9 @@ func (dsv *DeploymentScenariosValidator) executeRollingUpdateScenario(ctx contex
 
 	}
 
-
-
 	// Monitor rolling update progress.
 
 	success, downtime := dsv.monitorRollingUpdate(ctx, deployment, strategy.HealthCheckConfig)
-
-
 
 	result.EndTime = time.Now()
 
@@ -827,15 +650,11 @@ func (dsv *DeploymentScenariosValidator) executeRollingUpdateScenario(ctx contex
 
 	result.Success = success
 
-
-
 	if !success {
 
 		result.ErrorMessage = "Rolling update failed or exceeded timeout"
 
 	}
-
-
 
 	// Validate that all replicas are available.
 
@@ -853,21 +672,15 @@ func (dsv *DeploymentScenariosValidator) executeRollingUpdateScenario(ctx contex
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // executeBlueGreenScenario tests blue-green deployment.
 
 func (dsv *DeploymentScenariosValidator) executeBlueGreenScenario(ctx context.Context, strategy *DeploymentStrategy, result *DeploymentScenarioResult) (*DeploymentScenarioResult, error) {
 
 	ginkgo.By("Testing Blue-Green deployment scenario")
-
-
 
 	// Check for blue-green deployment infrastructure.
 
@@ -879,21 +692,15 @@ func (dsv *DeploymentScenariosValidator) executeBlueGreenScenario(ctx context.Co
 
 	}
 
-
-
 	if !blueGreenSupported {
 
 		return result, fmt.Errorf("blue-green deployment infrastructure not properly configured")
 
 	}
 
-
-
 	// Simulate blue-green deployment by checking for dual deployment setup.
 
 	success := dsv.validateBlueGreenDeploymentPattern(ctx)
-
-
 
 	result.EndTime = time.Now()
 
@@ -901,13 +708,9 @@ func (dsv *DeploymentScenariosValidator) executeBlueGreenScenario(ctx context.Co
 
 	result.Success = success
 
-
-
 	// Blue-green should have zero downtime.
 
 	result.DowntimeObserved = 0 * time.Second
-
-
 
 	if !success {
 
@@ -915,21 +718,15 @@ func (dsv *DeploymentScenariosValidator) executeBlueGreenScenario(ctx context.Co
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // executeCanaryScenario tests canary deployment.
 
 func (dsv *DeploymentScenariosValidator) executeCanaryScenario(ctx context.Context, strategy *DeploymentStrategy, result *DeploymentScenarioResult) (*DeploymentScenarioResult, error) {
 
 	ginkgo.By("Testing Canary deployment scenario")
-
-
 
 	// Check for canary deployment infrastructure (Istio, Flagger, Argo Rollouts).
 
@@ -941,21 +738,15 @@ func (dsv *DeploymentScenariosValidator) executeCanaryScenario(ctx context.Conte
 
 	}
 
-
-
 	if !canarySupported {
 
 		return result, fmt.Errorf("canary deployment infrastructure not properly configured")
 
 	}
 
-
-
 	// Validate traffic splitting capabilities.
 
 	trafficSplittingSupported := dsv.validateTrafficSplitting(ctx, strategy.CanaryConfig.TrafficRouting)
-
-
 
 	result.EndTime = time.Now()
 
@@ -963,13 +754,9 @@ func (dsv *DeploymentScenariosValidator) executeCanaryScenario(ctx context.Conte
 
 	result.Success = canarySupported && trafficSplittingSupported
 
-
-
 	// Canary deployment should have minimal downtime.
 
 	result.DowntimeObserved = 5 * time.Second // Minimal downtime expected
-
-
 
 	if !result.Success {
 
@@ -977,33 +764,26 @@ func (dsv *DeploymentScenariosValidator) executeCanaryScenario(ctx context.Conte
 
 	}
 
-
-
 	// Create mock traffic metrics.
 
 	result.TrafficMetrics = &TrafficMetrics{
 
-		BlueTrafficPercentage:  80.0,
+		BlueTrafficPercentage: 80.0,
 
 		GreenTrafficPercentage: 20.0,
 
-		TotalRequests:          1000,
+		TotalRequests: 1000,
 
-		SuccessfulRequests:     995,
+		SuccessfulRequests: 995,
 
-		FailedRequests:         5,
+		FailedRequests: 5,
 
-		AverageLatency:         50 * time.Millisecond,
-
+		AverageLatency: 50 * time.Millisecond,
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // findTestDeployment finds a deployment to use for testing.
 
@@ -1017,23 +797,17 @@ func (dsv *DeploymentScenariosValidator) findTestDeployment(ctx context.Context)
 
 	}
 
-
-
 	if len(deployments.Items) == 0 {
 
 		return nil, fmt.Errorf("no deployments found in nephoran-system namespace")
 
 	}
 
-
-
 	// Return the first deployment found.
 
 	return &deployments.Items[0], nil
 
 }
-
-
 
 // monitorRollingUpdate monitors the progress of a rolling update.
 
@@ -1043,25 +817,17 @@ func (dsv *DeploymentScenariosValidator) monitorRollingUpdate(ctx context.Contex
 
 	checkInterval := 10 * time.Second
 
-
-
 	monitorCtx, cancel := context.WithTimeout(ctx, timeout)
 
 	defer cancel()
-
-
 
 	ticker := time.NewTicker(checkInterval)
 
 	defer ticker.Stop()
 
-
-
 	startTime := time.Now()
 
 	var downtime time.Duration
-
-
 
 	for {
 
@@ -1083,8 +849,6 @@ func (dsv *DeploymentScenariosValidator) monitorRollingUpdate(ctx context.Contex
 
 			}
 
-
-
 			// Check if rolling update is complete.
 
 			if currentDeployment.Status.UpdatedReplicas == *currentDeployment.Spec.Replicas &&
@@ -1098,8 +862,6 @@ func (dsv *DeploymentScenariosValidator) monitorRollingUpdate(ctx context.Contex
 				return true, downtime
 
 			}
-
-
 
 			// Check if there are unavailable replicas (indicating potential downtime).
 
@@ -1115,8 +877,6 @@ func (dsv *DeploymentScenariosValidator) monitorRollingUpdate(ctx context.Contex
 
 }
 
-
-
 // validateBlueGreenInfrastructure validates blue-green deployment infrastructure.
 
 func (dsv *DeploymentScenariosValidator) validateBlueGreenInfrastructure(ctx context.Context, config *BlueGreenConfig) (bool, error) {
@@ -1126,8 +886,6 @@ func (dsv *DeploymentScenariosValidator) validateBlueGreenInfrastructure(ctx con
 		return false, fmt.Errorf("blue-green configuration is nil")
 
 	}
-
-
 
 	// Check for preview and active services.
 
@@ -1139,13 +897,9 @@ func (dsv *DeploymentScenariosValidator) validateBlueGreenInfrastructure(ctx con
 
 	}
 
-
-
 	previewServiceFound := false
 
 	activeServiceFound := false
-
-
 
 	for _, service := range services.Items {
 
@@ -1163,13 +917,9 @@ func (dsv *DeploymentScenariosValidator) validateBlueGreenInfrastructure(ctx con
 
 	}
 
-
-
 	return previewServiceFound && activeServiceFound, nil
 
 }
-
-
 
 // validateBlueGreenDeploymentPattern validates blue-green deployment pattern.
 
@@ -1185,13 +935,9 @@ func (dsv *DeploymentScenariosValidator) validateBlueGreenDeploymentPattern(ctx 
 
 	}
 
-
-
 	blueFound := false
 
 	greenFound := false
-
-
 
 	for _, deployment := range deployments.Items {
 
@@ -1217,13 +963,9 @@ func (dsv *DeploymentScenariosValidator) validateBlueGreenDeploymentPattern(ctx 
 
 	}
 
-
-
 	return blueFound || greenFound // At least one version should exist
 
 }
-
-
 
 // validateCanaryInfrastructure validates canary deployment infrastructure.
 
@@ -1235,15 +977,11 @@ func (dsv *DeploymentScenariosValidator) validateCanaryInfrastructure(ctx contex
 
 	}
 
-
-
 	// Check for canary deployment tools.
 
 	canaryTools := []string{"flagger", "argo-rollouts", "istio"}
 
 	toolsFound := 0
-
-
 
 	deployments := &appsv1.DeploymentList{}
 
@@ -1252,8 +990,6 @@ func (dsv *DeploymentScenariosValidator) validateCanaryInfrastructure(ctx contex
 		return false, err
 
 	}
-
-
 
 	for _, deployment := range deployments.Items {
 
@@ -1273,13 +1009,9 @@ func (dsv *DeploymentScenariosValidator) validateCanaryInfrastructure(ctx contex
 
 	}
 
-
-
 	return toolsFound > 0, nil
 
 }
-
-
 
 // validateTrafficSplitting validates traffic splitting capabilities.
 
@@ -1291,8 +1023,6 @@ func (dsv *DeploymentScenariosValidator) validateTrafficSplitting(ctx context.Co
 
 	}
 
-
-
 	// Check for Istio VirtualService.
 
 	if routing.Istio != nil {
@@ -1301,15 +1031,12 @@ func (dsv *DeploymentScenariosValidator) validateTrafficSplitting(ctx context.Co
 
 		virtualServices.SetGroupVersionKind(schema.GroupVersionKind{
 
-			Group:   "networking.istio.io",
+			Group: "networking.istio.io",
 
 			Version: "v1beta1",
 
-			Kind:    "VirtualServiceList",
-
+			Kind: "VirtualServiceList",
 		})
-
-
 
 		if err := dsv.client.List(ctx, virtualServices, client.InNamespace("nephoran-system")); err == nil {
 
@@ -1326,8 +1053,6 @@ func (dsv *DeploymentScenariosValidator) validateTrafficSplitting(ctx context.Co
 		}
 
 	}
-
-
 
 	// Check for NGINX ingress with traffic splitting annotations.
 
@@ -1353,8 +1078,6 @@ func (dsv *DeploymentScenariosValidator) validateTrafficSplitting(ctx context.Co
 
 						}
 
-
-
 						if _, exists := ingress.Annotations[annotationPrefix+"/canary"]; exists {
 
 							return true
@@ -1371,13 +1094,9 @@ func (dsv *DeploymentScenariosValidator) validateTrafficSplitting(ctx context.Co
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // updateOverallMetrics updates overall deployment scenarios metrics.
 
@@ -1387,8 +1106,6 @@ func (dsv *DeploymentScenariosValidator) updateOverallMetrics() {
 
 	defer dsv.mu.Unlock()
 
-
-
 	successfulDeployments := 0
 
 	failedDeployments := 0
@@ -1397,15 +1114,11 @@ func (dsv *DeploymentScenariosValidator) updateOverallMetrics() {
 
 	maxDowntime := time.Duration(0)
 
-
-
 	blueGreenFound := false
 
 	canaryFound := false
 
 	rollingFound := false
-
-
 
 	for _, result := range dsv.metrics.DeploymentScenarios {
 
@@ -1419,8 +1132,6 @@ func (dsv *DeploymentScenariosValidator) updateOverallMetrics() {
 
 		}
 
-
-
 		totalDowntime += result.DowntimeObserved
 
 		if result.DowntimeObserved > maxDowntime {
@@ -1428,8 +1139,6 @@ func (dsv *DeploymentScenariosValidator) updateOverallMetrics() {
 			maxDowntime = result.DowntimeObserved
 
 		}
-
-
 
 		switch result.DeploymentType {
 
@@ -1449,8 +1158,6 @@ func (dsv *DeploymentScenariosValidator) updateOverallMetrics() {
 
 	}
 
-
-
 	dsv.metrics.SuccessfulDeployments = successfulDeployments
 
 	dsv.metrics.FailedDeployments = failedDeployments
@@ -1463,23 +1170,17 @@ func (dsv *DeploymentScenariosValidator) updateOverallMetrics() {
 
 	dsv.metrics.MaxDowntime = maxDowntime
 
-
-
 	if len(dsv.metrics.DeploymentScenarios) > 0 {
 
 		dsv.metrics.AverageDowntime = totalDowntime / time.Duration(len(dsv.metrics.DeploymentScenarios))
 
 	}
 
-
-
 	// Zero downtime achieved if max downtime is less than 30 seconds.
 
 	dsv.metrics.ZeroDowntimeAchieved = maxDowntime < 30*time.Second
 
 }
-
-
 
 // GetDeploymentScenariosMetrics returns the current deployment scenarios metrics.
 
@@ -1493,8 +1194,6 @@ func (dsv *DeploymentScenariosValidator) GetDeploymentScenariosMetrics() *Deploy
 
 }
 
-
-
 // GenerateDeploymentScenariosReport generates a comprehensive deployment scenarios report.
 
 func (dsv *DeploymentScenariosValidator) GenerateDeploymentScenariosReport() string {
@@ -1502,8 +1201,6 @@ func (dsv *DeploymentScenariosValidator) GenerateDeploymentScenariosReport() str
 	dsv.mu.RLock()
 
 	defer dsv.mu.RUnlock()
-
-
 
 	report := fmt.Sprintf(`
 
@@ -1566,10 +1263,7 @@ SCENARIO DETAILS:
 		dsv.metrics.FailedDeployments,
 
 		len(dsv.metrics.DeploymentScenarios),
-
 	)
-
-
 
 	// Add scenario details.
 
@@ -1583,13 +1277,9 @@ SCENARIO DETAILS:
 
 		}
 
-
-
 		report += fmt.Sprintf("├── %-25s %s (Duration: %v, Downtime: %v)\n",
 
 			name, status, result.Duration, result.DowntimeObserved)
-
-
 
 		if result.ErrorMessage != "" {
 
@@ -1599,25 +1289,17 @@ SCENARIO DETAILS:
 
 	}
 
-
-
 	report += `
 
 =============================================================================
 
 `
 
-
-
 	return report
 
 }
 
-
-
 // Helper function to get strings from interface.
-
-
 
 // int32Ptr returns a pointer to the provided int32 value.
 
@@ -1626,4 +1308,3 @@ func int32Ptr(i int32) *int32 {
 	return &i
 
 }
-

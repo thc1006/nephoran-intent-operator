@@ -28,66 +28,35 @@ limitations under the License.
 
 */
 
-
-
-
 package cnf
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"strings"
-
 	"time"
 
-
-
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
 	"helm.sh/helm/v3/pkg/action"
-
 	"helm.sh/helm/v3/pkg/chart/loader"
-
 	"helm.sh/helm/v3/pkg/cli"
 
-
-
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
-	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
-
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
-
-
-
 	"k8s.io/apimachinery/pkg/api/errors"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/client-go/tools/record"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 const (
 
 	// CNFOrchestratorFinalizer holds cnforchestratorfinalizer value.
 
 	CNFOrchestratorFinalizer = "cnfdeployment.nephoran.com/finalizer"
-
-
 
 	// Default timeout values.
 
@@ -101,8 +70,6 @@ const (
 
 	DefaultHealthCheckTimeout = 2 * time.Minute
 
-
-
 	// Chart repository defaults.
 
 	Default5GCoreChartsRepo = "https://charts.5g-core.io"
@@ -114,8 +81,6 @@ const (
 	// DefaultEdgeChartsRepo holds defaultedgechartsrepo value.
 
 	DefaultEdgeChartsRepo = "https://charts.edge.io"
-
-
 
 	// Events.
 
@@ -140,260 +105,203 @@ const (
 	// EventCNFHealthCheckFailed holds eventcnfhealthcheckfailed value.
 
 	EventCNFHealthCheckFailed = "CNFHealthCheckFailed"
-
 )
-
-
 
 // PackageGeneratorInterface defines the interface for CNF package generation.
 
 type PackageGeneratorInterface interface {
-
 	GenerateCNFPackage(cnf *nephoranv1.CNFDeployment, config map[string]interface{}) ([]byte, error)
-
 }
-
-
 
 // MetricsCollectorInterface defines the interface for metrics collection.
 
 type MetricsCollectorInterface interface {
-
 	RecordCNFDeployment(function nephoranv1.CNFFunction, duration time.Duration)
 
 	RecordCNFDeletion(function nephoranv1.CNFFunction, duration time.Duration)
 
 	RecordCNFHealthCheck(function nephoranv1.CNFFunction, status string)
-
 }
-
-
 
 // CNFOrchestrator manages the lifecycle of Cloud Native Functions.
 
 type CNFOrchestrator struct {
-
 	client.Client
 
-	Scheme           *runtime.Scheme
+	Scheme *runtime.Scheme
 
-	Recorder         record.EventRecorder
+	Recorder record.EventRecorder
 
 	PackageGenerator PackageGeneratorInterface
 
-	GitClient        git.ClientInterface
+	GitClient git.ClientInterface
 
 	MetricsCollector MetricsCollectorInterface
 
-	ORANClient       *oran.Client
+	ORANClient *oran.Client
 
-	HelmSettings     *cli.EnvSettings
-
-
+	HelmSettings *cli.EnvSettings
 
 	// Configuration.
 
 	Config *CNFOrchestratorConfig
 
-
-
 	// Chart repositories.
 
 	ChartRepositories map[nephoranv1.CNFType]string
 
-
-
 	// Template registry.
 
 	TemplateRegistry *CNFTemplateRegistry
-
 }
-
-
 
 // CNFOrchestratorConfig holds configuration for the CNF orchestrator.
 
 type CNFOrchestratorConfig struct {
+	DefaultNamespace string
 
-	DefaultNamespace     string
+	EnableServiceMesh bool
 
-	EnableServiceMesh    bool
+	ServiceMeshType string
 
-	ServiceMeshType      string
+	EnableMonitoring bool
 
-	EnableMonitoring     bool
+	MonitoringNamespace string
 
-	MonitoringNamespace  string
+	EnableBackup bool
 
-	EnableBackup         bool
+	BackupStorage string
 
-	BackupStorage        string
+	GitRepoURL string
 
-	GitRepoURL           string
+	GitBranch string
 
-	GitBranch            string
+	GitDeployPath string
 
-	GitDeployPath        string
-
-	HelmTimeout          time.Duration
+	HelmTimeout time.Duration
 
 	MaxConcurrentDeploys int
-
 }
-
-
 
 // CNFTemplateRegistry manages CNF deployment templates.
 
 type CNFTemplateRegistry struct {
-
 	Templates map[nephoranv1.CNFFunction]*CNFTemplate
-
 }
-
-
 
 // CNFTemplate defines a deployment template for a specific CNF function.
 
 type CNFTemplate struct {
+	Function nephoranv1.CNFFunction
 
-	Function        nephoranv1.CNFFunction
+	ChartReference ChartReference
 
-	ChartReference  ChartReference
-
-	DefaultValues   map[string]interface{}
+	DefaultValues map[string]interface{}
 
 	RequiredConfigs []string
 
-	Dependencies    []nephoranv1.CNFFunction
+	Dependencies []nephoranv1.CNFFunction
 
-	Interfaces      []InterfaceSpec
+	Interfaces []InterfaceSpec
 
-	HealthChecks    []HealthCheckSpec
+	HealthChecks []HealthCheckSpec
 
 	MonitoringSpecs []MonitoringSpec
-
 }
-
-
 
 // ChartReference specifies Helm chart information.
 
 type ChartReference struct {
+	Repository string
 
-	Repository   string
-
-	ChartName    string
+	ChartName string
 
 	ChartVersion string
 
-	Values       map[string]interface{}
-
+	Values map[string]interface{}
 }
-
-
 
 // InterfaceSpec defines network interface specifications.
 
 type InterfaceSpec struct {
+	Name string
 
-	Name         string
+	Type string // N1, N2, N3, N4, N6, SBI, etc.
 
-	Type         string // N1, N2, N3, N4, N6, SBI, etc.
+	Protocol []string
 
-	Protocol     []string
+	Port int32
 
-	Port         int32
-
-	Mandatory    bool
+	Mandatory bool
 
 	Dependencies []string
-
 }
-
-
 
 // HealthCheckSpec defines health check specifications.
 
 type HealthCheckSpec struct {
+	Name string
 
-	Name         string
+	Type string // HTTP, TCP, gRPC
 
-	Type         string // HTTP, TCP, gRPC
+	Path string
 
-	Path         string
+	Port int32
 
-	Port         int32
+	Interval time.Duration
 
-	Interval     time.Duration
+	Timeout time.Duration
 
-	Timeout      time.Duration
-
-	Retries      int32
+	Retries int32
 
 	InitialDelay time.Duration
-
 }
-
-
 
 // MonitoringSpec defines monitoring specifications.
 
 type MonitoringSpec struct {
-
 	MetricName string
 
 	MetricType string
 
-	Path       string
+	Path string
 
-	Port       int32
+	Port int32
 
 	AlertRules []AlertRule
-
 }
-
-
 
 // AlertRule defines alerting rule.
 
 type AlertRule struct {
+	Name string
 
-	Name        string
+	Expression string
 
-	Expression  string
+	Duration time.Duration
 
-	Duration    time.Duration
-
-	Severity    string
+	Severity string
 
 	Description string
-
 }
-
-
 
 // DeploymentResult represents the result of a CNF deployment.
 
 type DeploymentResult struct {
+	Success bool
 
-	Success          bool
+	ReleaseName string
 
-	ReleaseName      string
-
-	Namespace        string
+	Namespace string
 
 	ServiceEndpoints []nephoranv1.ServiceEndpoint
 
-	ResourceStatus   map[string]string
+	ResourceStatus map[string]string
 
-	Errors           []string
+	Errors []string
 
-	Duration         time.Duration
-
+	Duration time.Duration
 }
-
-
 
 // NewCNFOrchestrator creates a new CNF orchestrator instance.
 
@@ -401,49 +309,44 @@ func NewCNFOrchestrator(client client.Client, scheme *runtime.Scheme, recorder r
 
 	orchestrator := &CNFOrchestrator{
 
-		Client:   client,
+		Client: client,
 
-		Scheme:   scheme,
+		Scheme: scheme,
 
 		Recorder: recorder,
 
 		Config: &CNFOrchestratorConfig{
 
-			DefaultNamespace:     "default",
+			DefaultNamespace: "default",
 
-			EnableServiceMesh:    true,
+			EnableServiceMesh: true,
 
-			ServiceMeshType:      "istio",
+			ServiceMeshType: "istio",
 
-			EnableMonitoring:     true,
+			EnableMonitoring: true,
 
-			MonitoringNamespace:  "monitoring",
+			MonitoringNamespace: "monitoring",
 
-			EnableBackup:         true,
+			EnableBackup: true,
 
-			BackupStorage:        "s3",
+			BackupStorage: "s3",
 
-			HelmTimeout:          DefaultCNFDeployTimeout,
+			HelmTimeout: DefaultCNFDeployTimeout,
 
 			MaxConcurrentDeploys: 5,
-
 		},
 
 		ChartRepositories: map[nephoranv1.CNFType]string{
 
 			nephoranv1.CNF5GCore: Default5GCoreChartsRepo,
 
-			nephoranv1.CNFORAN:   DefaultORANChartsRepo,
+			nephoranv1.CNFORAN: DefaultORANChartsRepo,
 
-			nephoranv1.CNFEdge:   DefaultEdgeChartsRepo,
-
+			nephoranv1.CNFEdge: DefaultEdgeChartsRepo,
 		},
 
 		HelmSettings: cli.New(),
-
 	}
-
-
 
 	orchestrator.initializeTemplateRegistry()
 
@@ -451,23 +354,17 @@ func NewCNFOrchestrator(client client.Client, scheme *runtime.Scheme, recorder r
 
 }
 
-
-
 // DeployRequest represents a CNF deployment request.
 
 type DeployRequest struct {
+	CNFDeployment *nephoranv1.CNFDeployment
 
-	CNFDeployment   *nephoranv1.CNFDeployment
+	NetworkIntent *nephoranv1.NetworkIntent
 
-	NetworkIntent   *nephoranv1.NetworkIntent
-
-	Context         context.Context
+	Context context.Context
 
 	ProcessingPhase string
-
 }
-
-
 
 // Deploy orchestrates the deployment of a CNF.
 
@@ -477,21 +374,15 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 
 	logger.Info("Starting CNF deployment", "cnf", req.CNFDeployment.Name, "function", req.CNFDeployment.Spec.Function)
 
-
-
 	// Record deployment start event.
 
 	c.Recorder.Event(req.CNFDeployment, "Normal", EventCNFDeploymentStarted,
 
 		fmt.Sprintf("Starting deployment of %s CNF", req.CNFDeployment.Spec.Function))
 
-
-
 	startTime := time.Now()
 
 	result := &DeploymentResult{}
-
-
 
 	// Validate deployment request.
 
@@ -500,8 +391,6 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 		return nil, fmt.Errorf("deployment validation failed: %w", err)
 
 	}
-
-
 
 	// Get CNF template.
 
@@ -513,8 +402,6 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 
 	}
 
-
-
 	// Check dependencies.
 
 	if err := c.checkDependencies(ctx, req.CNFDeployment, template); err != nil {
@@ -522,8 +409,6 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 		return nil, fmt.Errorf("dependency check failed: %w", err)
 
 	}
-
-
 
 	// Prepare deployment configuration.
 
@@ -534,8 +419,6 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 		return nil, fmt.Errorf("failed to prepare deployment config: %w", err)
 
 	}
-
-
 
 	// Deploy based on strategy.
 
@@ -563,8 +446,6 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 
 	}
 
-
-
 	if err != nil {
 
 		c.Recorder.Event(req.CNFDeployment, "Warning", EventCNFDeploymentFailed,
@@ -574,8 +455,6 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 		return result, err
 
 	}
-
-
 
 	// Configure service mesh if enabled.
 
@@ -591,8 +470,6 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 
 	}
 
-
-
 	// Setup monitoring.
 
 	if req.CNFDeployment.Spec.Monitoring != nil && req.CNFDeployment.Spec.Monitoring.Enabled {
@@ -606,8 +483,6 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 		}
 
 	}
-
-
 
 	// Configure auto-scaling.
 
@@ -623,8 +498,6 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 
 	}
 
-
-
 	// Perform health checks.
 
 	if err := c.performHealthChecks(ctx, req.CNFDeployment, template); err != nil {
@@ -637,21 +510,15 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 
 	}
 
-
-
 	result.Duration = time.Since(startTime)
 
 	result.Success = true
-
-
 
 	// Record successful deployment.
 
 	c.Recorder.Event(req.CNFDeployment, "Normal", EventCNFDeploymentCompleted,
 
 		fmt.Sprintf("CNF deployment completed successfully in %v", result.Duration))
-
-
 
 	// Update metrics.
 
@@ -661,8 +528,6 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 
 	}
 
-
-
 	logger.Info("CNF deployment completed successfully",
 
 		"cnf", req.CNFDeployment.Name,
@@ -671,13 +536,9 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 
 		"duration", result.Duration)
 
-
-
 	return result, nil
 
 }
-
-
 
 // validateDeploymentRequest validates the deployment request.
 
@@ -689,15 +550,11 @@ func (c *CNFOrchestrator) validateDeploymentRequest(req *DeployRequest) error {
 
 	}
 
-
-
 	if err := req.CNFDeployment.ValidateCNFDeployment(); err != nil {
 
 		return fmt.Errorf("CNF deployment validation failed: %w", err)
 
 	}
-
-
 
 	// Validate strategy-specific requirements.
 
@@ -721,13 +578,9 @@ func (c *CNFOrchestrator) validateDeploymentRequest(req *DeployRequest) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // getCNFTemplate retrieves the deployment template for a CNF function.
 
@@ -739,8 +592,6 @@ func (c *CNFOrchestrator) getCNFTemplate(function nephoranv1.CNFFunction) (*CNFT
 
 	}
 
-
-
 	template, exists := c.TemplateRegistry.Templates[function]
 
 	if !exists {
@@ -749,13 +600,9 @@ func (c *CNFOrchestrator) getCNFTemplate(function nephoranv1.CNFFunction) (*CNFT
 
 	}
 
-
-
 	return template, nil
 
 }
-
-
 
 // checkDependencies checks if required dependencies are deployed.
 
@@ -767,13 +614,9 @@ func (c *CNFOrchestrator) checkDependencies(ctx context.Context, cnf *nephoranv1
 
 	}
 
-
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("Checking CNF dependencies", "dependencies", template.Dependencies)
-
-
 
 	for _, dep := range template.Dependencies {
 
@@ -786,18 +629,13 @@ func (c *CNFOrchestrator) checkDependencies(ctx context.Context, cnf *nephoranv1
 			client.InNamespace(cnf.Namespace),
 
 			client.MatchingFields{"spec.function": string(dep)},
-
 		}
-
-
 
 		if err := c.List(ctx, dependencyList, listOpts...); err != nil {
 
 			return fmt.Errorf("failed to check dependency %s: %w", dep, err)
 
 		}
-
-
 
 		found := false
 
@@ -813,8 +651,6 @@ func (c *CNFOrchestrator) checkDependencies(ctx context.Context, cnf *nephoranv1
 
 		}
 
-
-
 		if !found {
 
 			return fmt.Errorf("required dependency %s is not deployed or not running", dep)
@@ -823,21 +659,15 @@ func (c *CNFOrchestrator) checkDependencies(ctx context.Context, cnf *nephoranv1
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // prepareDeploymentConfig prepares the deployment configuration.
 
 func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment, template *CNFTemplate) (map[string]interface{}, error) {
 
 	config := make(map[string]interface{})
-
-
 
 	// Start with template default values.
 
@@ -846,8 +676,6 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 		config[k] = v
 
 	}
-
-
 
 	// Apply CNF-specific configuration.
 
@@ -861,8 +689,6 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 
 		}
 
-
-
 		for k, v := range cnfConfig {
 
 			config[k] = v
@@ -871,31 +697,24 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 
 	}
 
-
-
 	// Set resource requirements.
 
 	config["resources"] = map[string]interface{}{
 
 		"requests": map[string]interface{}{
 
-			"cpu":    cnf.Spec.Resources.CPU.String(),
+			"cpu": cnf.Spec.Resources.CPU.String(),
 
 			"memory": cnf.Spec.Resources.Memory.String(),
-
 		},
 
 		"limits": map[string]interface{}{
 
-			"cpu":    cnf.Spec.Resources.CPU.String(),
+			"cpu": cnf.Spec.Resources.CPU.String(),
 
 			"memory": cnf.Spec.Resources.Memory.String(),
-
 		},
-
 	}
-
-
 
 	// Override limits if specified.
 
@@ -907,8 +726,6 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 
 	}
 
-
-
 	if cnf.Spec.Resources.MaxMemory != nil {
 
 		limits := config["resources"].(map[string]interface{})["limits"].(map[string]interface{})
@@ -917,13 +734,9 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 
 	}
 
-
-
 	// Set replica count.
 
 	config["replicaCount"] = cnf.Spec.Replicas
-
-
 
 	// Configure storage if specified.
 
@@ -933,13 +746,10 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 
 			"enabled": true,
 
-			"size":    cnf.Spec.Resources.Storage.String(),
-
+			"size": cnf.Spec.Resources.Storage.String(),
 		}
 
 	}
-
-
 
 	// Configure DPDK if specified.
 
@@ -949,17 +759,14 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 
 			"enabled": true,
 
-			"cores":   cnf.Spec.Resources.DPDK.Cores,
+			"cores": cnf.Spec.Resources.DPDK.Cores,
 
-			"memory":  cnf.Spec.Resources.DPDK.Memory,
+			"memory": cnf.Spec.Resources.DPDK.Memory,
 
-			"driver":  cnf.Spec.Resources.DPDK.Driver,
-
+			"driver": cnf.Spec.Resources.DPDK.Driver,
 		}
 
 	}
-
-
 
 	// Configure hugepages if specified.
 
@@ -969,13 +776,9 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 
 	}
 
-
-
 	return config, nil
 
 }
-
-
 
 // deployViaHelm deploys CNF using Helm charts.
 
@@ -984,8 +787,6 @@ func (c *CNFOrchestrator) deployViaHelm(ctx context.Context, cnf *nephoranv1.CNF
 	logger := log.FromContext(ctx)
 
 	logger.Info("Deploying CNF via Helm", "cnf", cnf.Name, "chart", cnf.Spec.Helm.ChartName)
-
-
 
 	// Prepare Helm configuration.
 
@@ -1001,8 +802,6 @@ func (c *CNFOrchestrator) deployViaHelm(ctx context.Context, cnf *nephoranv1.CNF
 
 	}
 
-
-
 	// Determine release name.
 
 	releaseName := cnf.Spec.Helm.ReleaseName
@@ -1012,8 +811,6 @@ func (c *CNFOrchestrator) deployViaHelm(ctx context.Context, cnf *nephoranv1.CNF
 		releaseName = fmt.Sprintf("%s-%s", strings.ToLower(string(cnf.Spec.Function)), cnf.Name)
 
 	}
-
-
 
 	// Install or upgrade the chart.
 
@@ -1027,8 +824,6 @@ func (c *CNFOrchestrator) deployViaHelm(ctx context.Context, cnf *nephoranv1.CNF
 
 	installAction.Timeout = c.Config.HelmTimeout
 
-
-
 	// Load chart.
 
 	chart, err := loader.LoadDir(cnf.Spec.Helm.ChartName) // This would need proper chart loading
@@ -1038,8 +833,6 @@ func (c *CNFOrchestrator) deployViaHelm(ctx context.Context, cnf *nephoranv1.CNF
 		return nil, fmt.Errorf("failed to load Helm chart: %w", err)
 
 	}
-
-
 
 	// Merge values.
 
@@ -1063,8 +856,6 @@ func (c *CNFOrchestrator) deployViaHelm(ctx context.Context, cnf *nephoranv1.CNF
 
 	}
 
-
-
 	// Install the release.
 
 	release, err := installAction.Run(chart, values)
@@ -1075,25 +866,18 @@ func (c *CNFOrchestrator) deployViaHelm(ctx context.Context, cnf *nephoranv1.CNF
 
 	}
 
-
-
 	result := &DeploymentResult{
 
-		Success:     true,
+		Success: true,
 
 		ReleaseName: release.Name,
 
-		Namespace:   release.Namespace,
-
+		Namespace: release.Namespace,
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // deployViaOperator deploys CNF using Kubernetes operators.
 
@@ -1102,8 +886,6 @@ func (c *CNFOrchestrator) deployViaOperator(ctx context.Context, cnf *nephoranv1
 	logger := log.FromContext(ctx)
 
 	logger.Info("Deploying CNF via Operator", "cnf", cnf.Name, "operator", cnf.Spec.Operator.Name)
-
-
 
 	// Create the custom resource for the operator.
 
@@ -1115,31 +897,22 @@ func (c *CNFOrchestrator) deployViaOperator(ctx context.Context, cnf *nephoranv1
 
 	}
 
-
-
 	// For now, skip custom resource creation as we need proper type conversion.
 
 	// TODO: Implement proper custom resource creation with typed objects.
 
 	logger.Info("Custom resource creation skipped - requires proper type conversion")
 
-
-
 	result := &DeploymentResult{
 
-		Success:   true,
+		Success: true,
 
 		Namespace: cnf.Namespace,
-
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // deployViaGitOps deploys CNF using GitOps workflow.
 
@@ -1149,23 +922,17 @@ func (c *CNFOrchestrator) deployViaGitOps(ctx context.Context, cnf *nephoranv1.C
 
 	logger.Info("Deploying CNF via GitOps", "cnf", cnf.Name)
 
-
-
 	if c.PackageGenerator == nil {
 
 		return nil, fmt.Errorf("package generator not configured")
 
 	}
 
-
-
 	if c.GitClient == nil {
 
 		return nil, fmt.Errorf("git client not configured")
 
 	}
-
-
 
 	// Generate Nephio package.
 
@@ -1176,8 +943,6 @@ func (c *CNFOrchestrator) deployViaGitOps(ctx context.Context, cnf *nephoranv1.C
 		return nil, fmt.Errorf("failed to generate CNF package: %w", err)
 
 	}
-
-
 
 	// Commit to Git repository.
 
@@ -1191,29 +956,21 @@ func (c *CNFOrchestrator) deployViaGitOps(ctx context.Context, cnf *nephoranv1.C
 
 	}
 
-
-
 	result := &DeploymentResult{
 
-		Success:   true,
+		Success: true,
 
 		Namespace: cnf.Namespace,
 
 		ResourceStatus: map[string]string{
 
 			"gitCommit": commitHash,
-
 		},
-
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // deployDirect deploys CNF using direct Kubernetes manifests.
 
@@ -1222,8 +979,6 @@ func (c *CNFOrchestrator) deployDirect(ctx context.Context, cnf *nephoranv1.CNFD
 	logger := log.FromContext(ctx)
 
 	logger.Info("Deploying CNF directly", "cnf", cnf.Name)
-
-
 
 	// Generate Kubernetes manifests.
 
@@ -1234,8 +989,6 @@ func (c *CNFOrchestrator) deployDirect(ctx context.Context, cnf *nephoranv1.CNFD
 		return nil, fmt.Errorf("failed to generate manifests: %w", err)
 
 	}
-
-
 
 	// Apply manifests.
 
@@ -1249,23 +1002,16 @@ func (c *CNFOrchestrator) deployDirect(ctx context.Context, cnf *nephoranv1.CNFD
 
 	}
 
-
-
 	result := &DeploymentResult{
 
-		Success:   true,
+		Success: true,
 
 		Namespace: cnf.Namespace,
-
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // generateDirectManifests generates Kubernetes manifests for direct deployment.
 
@@ -1275,8 +1021,6 @@ func (c *CNFOrchestrator) generateDirectManifests(cnf *nephoranv1.CNFDeployment,
 
 	// based on the CNF function type and configuration.
 
-
-
 	// For now, return empty slice - this would be implemented with specific.
 
 	// manifest generation logic for each CNF type.
@@ -1284,8 +1028,6 @@ func (c *CNFOrchestrator) generateDirectManifests(cnf *nephoranv1.CNFDeployment,
 	return []client.Object{}, nil
 
 }
-
-
 
 // configureServiceMesh configures service mesh integration.
 
@@ -1295,19 +1037,13 @@ func (c *CNFOrchestrator) configureServiceMesh(ctx context.Context, cnf *nephora
 
 	logger.Info("Configuring service mesh", "cnf", cnf.Name, "mesh", cnf.Spec.ServiceMesh.Type)
 
-
-
 	// Service mesh configuration would be implemented here.
 
 	// This is a placeholder for the actual implementation.
 
-
-
 	return nil
 
 }
-
-
 
 // setupMonitoring sets up monitoring for the CNF.
 
@@ -1317,19 +1053,13 @@ func (c *CNFOrchestrator) setupMonitoring(ctx context.Context, cnf *nephoranv1.C
 
 	logger.Info("Setting up monitoring", "cnf", cnf.Name)
 
-
-
 	// Monitoring setup would be implemented here.
 
 	// This is a placeholder for the actual implementation.
 
-
-
 	return nil
 
 }
-
-
 
 // configureAutoScaling configures auto-scaling for the CNF.
 
@@ -1339,19 +1069,13 @@ func (c *CNFOrchestrator) configureAutoScaling(ctx context.Context, cnf *nephora
 
 	logger.Info("Configuring auto-scaling", "cnf", cnf.Name)
 
-
-
 	// Auto-scaling configuration would be implemented here.
 
 	// This is a placeholder for the actual implementation.
 
-
-
 	return nil
 
 }
-
-
 
 // performHealthChecks performs health checks on the deployed CNF.
 
@@ -1361,19 +1085,13 @@ func (c *CNFOrchestrator) performHealthChecks(ctx context.Context, cnf *nephoran
 
 	logger.Info("Performing health checks", "cnf", cnf.Name)
 
-
-
 	// Health check implementation would be here.
 
 	// This is a placeholder for the actual implementation.
 
-
-
 	return nil
 
 }
-
-
 
 // initializeTemplateRegistry initializes the CNF template registry with predefined templates.
 
@@ -1382,30 +1100,21 @@ func (c *CNFOrchestrator) initializeTemplateRegistry() {
 	c.TemplateRegistry = &CNFTemplateRegistry{
 
 		Templates: make(map[nephoranv1.CNFFunction]*CNFTemplate),
-
 	}
-
-
 
 	// Initialize 5G Core function templates.
 
 	c.init5GCoreTemplates()
 
-
-
 	// Initialize O-RAN function templates.
 
 	c.initORANTemplates()
-
-
 
 	// Initialize edge function templates.
 
 	c.initEdgeTemplates()
 
 }
-
-
 
 // init5GCoreTemplates initializes templates for 5G Core functions.
 
@@ -1419,12 +1128,11 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 
 		ChartReference: ChartReference{
 
-			Repository:   c.ChartRepositories[nephoranv1.CNF5GCore],
+			Repository: c.ChartRepositories[nephoranv1.CNF5GCore],
 
-			ChartName:    "amf",
+			ChartName: "amf",
 
 			ChartVersion: "1.0.0",
-
 		},
 
 		DefaultValues: map[string]interface{}{
@@ -1433,126 +1141,7 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 
 				"repository": "5gc/amf",
 
-				"tag":        "latest",
-
-			},
-
-			"service": map[string]interface{}{
-
-				"type": "ClusterIP",
-
-				"ports": map[string]interface{}{
-
-					"sbi":  8080,
-
-					"sctp": 38412,
-
-				},
-
-			},
-
-		},
-
-		RequiredConfigs: []string{"plmnId", "amfId", "guami"},
-
-		Interfaces: []InterfaceSpec{
-
-			{
-
-				Name:      "N1",
-
-				Type:      "NAS",
-
-				Protocol:  []string{"NAS"},
-
-				Port:      38412,
-
-				Mandatory: true,
-
-			},
-
-			{
-
-				Name:      "N2",
-
-				Type:      "NGAP",
-
-				Protocol:  []string{"SCTP"},
-
-				Port:      38412,
-
-				Mandatory: true,
-
-			},
-
-			{
-
-				Name:      "SBI",
-
-				Type:      "HTTP",
-
-				Protocol:  []string{"HTTP2"},
-
-				Port:      8080,
-
-				Mandatory: true,
-
-			},
-
-		},
-
-		HealthChecks: []HealthCheckSpec{
-
-			{
-
-				Name:         "http-health",
-
-				Type:         "HTTP",
-
-				Path:         "/health",
-
-				Port:         8080,
-
-				Interval:     30 * time.Second,
-
-				Timeout:      10 * time.Second,
-
-				Retries:      3,
-
-				InitialDelay: 30 * time.Second,
-
-			},
-
-		},
-
-	}
-
-
-
-	// SMF template.
-
-	c.TemplateRegistry.Templates[nephoranv1.CNFFunctionSMF] = &CNFTemplate{
-
-		Function: nephoranv1.CNFFunctionSMF,
-
-		ChartReference: ChartReference{
-
-			Repository:   c.ChartRepositories[nephoranv1.CNF5GCore],
-
-			ChartName:    "smf",
-
-			ChartVersion: "1.0.0",
-
-		},
-
-		DefaultValues: map[string]interface{}{
-
-			"image": map[string]interface{}{
-
-				"repository": "5gc/smf",
-
-				"tag":        "latest",
-
+				"tag": "latest",
 			},
 
 			"service": map[string]interface{}{
@@ -1563,75 +1152,168 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 
 					"sbi": 8080,
 
+					"sctp": 38412,
 				},
-
 			},
-
 		},
 
-		RequiredConfigs: []string{"plmnId", "nfInstanceId"},
-
-		Dependencies:    []nephoranv1.CNFFunction{nephoranv1.CNFFunctionNRF, nephoranv1.CNFFunctionUDM},
+		RequiredConfigs: []string{"plmnId", "amfId", "guami"},
 
 		Interfaces: []InterfaceSpec{
 
 			{
 
-				Name:      "N4",
+				Name: "N1",
 
-				Type:      "PFCP",
+				Type: "NAS",
 
-				Protocol:  []string{"UDP"},
+				Protocol: []string{"NAS"},
 
-				Port:      8805,
+				Port: 38412,
 
 				Mandatory: true,
-
 			},
 
 			{
 
-				Name:      "SBI",
+				Name: "N2",
 
-				Type:      "HTTP",
+				Type: "NGAP",
 
-				Protocol:  []string{"HTTP2"},
+				Protocol: []string{"SCTP"},
 
-				Port:      8080,
+				Port: 38412,
 
 				Mandatory: true,
-
 			},
 
+			{
+
+				Name: "SBI",
+
+				Type: "HTTP",
+
+				Protocol: []string{"HTTP2"},
+
+				Port: 8080,
+
+				Mandatory: true,
+			},
 		},
 
 		HealthChecks: []HealthCheckSpec{
 
 			{
 
-				Name:         "http-health",
+				Name: "http-health",
 
-				Type:         "HTTP",
+				Type: "HTTP",
 
-				Path:         "/health",
+				Path: "/health",
 
-				Port:         8080,
+				Port: 8080,
 
-				Interval:     30 * time.Second,
+				Interval: 30 * time.Second,
 
-				Timeout:      10 * time.Second,
+				Timeout: 10 * time.Second,
 
-				Retries:      3,
+				Retries: 3,
 
 				InitialDelay: 30 * time.Second,
-
 			},
-
 		},
-
 	}
 
+	// SMF template.
 
+	c.TemplateRegistry.Templates[nephoranv1.CNFFunctionSMF] = &CNFTemplate{
+
+		Function: nephoranv1.CNFFunctionSMF,
+
+		ChartReference: ChartReference{
+
+			Repository: c.ChartRepositories[nephoranv1.CNF5GCore],
+
+			ChartName: "smf",
+
+			ChartVersion: "1.0.0",
+		},
+
+		DefaultValues: map[string]interface{}{
+
+			"image": map[string]interface{}{
+
+				"repository": "5gc/smf",
+
+				"tag": "latest",
+			},
+
+			"service": map[string]interface{}{
+
+				"type": "ClusterIP",
+
+				"ports": map[string]interface{}{
+
+					"sbi": 8080,
+				},
+			},
+		},
+
+		RequiredConfigs: []string{"plmnId", "nfInstanceId"},
+
+		Dependencies: []nephoranv1.CNFFunction{nephoranv1.CNFFunctionNRF, nephoranv1.CNFFunctionUDM},
+
+		Interfaces: []InterfaceSpec{
+
+			{
+
+				Name: "N4",
+
+				Type: "PFCP",
+
+				Protocol: []string{"UDP"},
+
+				Port: 8805,
+
+				Mandatory: true,
+			},
+
+			{
+
+				Name: "SBI",
+
+				Type: "HTTP",
+
+				Protocol: []string{"HTTP2"},
+
+				Port: 8080,
+
+				Mandatory: true,
+			},
+		},
+
+		HealthChecks: []HealthCheckSpec{
+
+			{
+
+				Name: "http-health",
+
+				Type: "HTTP",
+
+				Path: "/health",
+
+				Port: 8080,
+
+				Interval: 30 * time.Second,
+
+				Timeout: 10 * time.Second,
+
+				Retries: 3,
+
+				InitialDelay: 30 * time.Second,
+			},
+		},
+	}
 
 	// UPF template.
 
@@ -1641,12 +1323,11 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 
 		ChartReference: ChartReference{
 
-			Repository:   c.ChartRepositories[nephoranv1.CNF5GCore],
+			Repository: c.ChartRepositories[nephoranv1.CNF5GCore],
 
-			ChartName:    "upf",
+			ChartName: "upf",
 
 			ChartVersion: "1.0.0",
-
 		},
 
 		DefaultValues: map[string]interface{}{
@@ -1655,8 +1336,7 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 
 				"repository": "5gc/upf",
 
-				"tag":        "latest",
-
+				"tag": "latest",
 			},
 
 			"service": map[string]interface{}{
@@ -1668,21 +1348,17 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 					"pfcp": 8805,
 
 					"gtpu": 2152,
-
 				},
-
 			},
 
 			"dpdk": map[string]interface{}{
 
 				"enabled": true,
 
-				"cores":   4,
+				"cores": 4,
 
-				"memory":  2048,
-
+				"memory": 2048,
 			},
-
 		},
 
 		RequiredConfigs: []string{"dnn", "pfcpAddress", "gtpuAddress"},
@@ -1691,75 +1367,66 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 
 			{
 
-				Name:      "N3",
+				Name: "N3",
 
-				Type:      "GTP-U",
+				Type: "GTP-U",
 
-				Protocol:  []string{"UDP"},
+				Protocol: []string{"UDP"},
 
-				Port:      2152,
+				Port: 2152,
 
 				Mandatory: true,
-
 			},
 
 			{
 
-				Name:      "N4",
+				Name: "N4",
 
-				Type:      "PFCP",
+				Type: "PFCP",
 
-				Protocol:  []string{"UDP"},
+				Protocol: []string{"UDP"},
 
-				Port:      8805,
+				Port: 8805,
 
 				Mandatory: true,
-
 			},
 
 			{
 
-				Name:      "N6",
+				Name: "N6",
 
-				Type:      "Data",
+				Type: "Data",
 
-				Protocol:  []string{"IP"},
+				Protocol: []string{"IP"},
 
-				Port:      0,
+				Port: 0,
 
 				Mandatory: true,
-
 			},
-
 		},
 
 		HealthChecks: []HealthCheckSpec{
 
 			{
 
-				Name:         "pfcp-health",
+				Name: "pfcp-health",
 
-				Type:         "UDP",
+				Type: "UDP",
 
-				Port:         8805,
+				Port: 8805,
 
-				Interval:     30 * time.Second,
+				Interval: 30 * time.Second,
 
-				Timeout:      10 * time.Second,
+				Timeout: 10 * time.Second,
 
-				Retries:      3,
+				Retries: 3,
 
 				InitialDelay: 30 * time.Second,
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // initORANTemplates initializes templates for O-RAN functions.
 
@@ -1773,12 +1440,11 @@ func (c *CNFOrchestrator) initORANTemplates() {
 
 		ChartReference: ChartReference{
 
-			Repository:   c.ChartRepositories[nephoranv1.CNFORAN],
+			Repository: c.ChartRepositories[nephoranv1.CNFORAN],
 
-			ChartName:    "near-rt-ric",
+			ChartName: "near-rt-ric",
 
 			ChartVersion: "1.0.0",
-
 		},
 
 		DefaultValues: map[string]interface{}{
@@ -1787,8 +1453,7 @@ func (c *CNFOrchestrator) initORANTemplates() {
 
 				"repository": "oran/near-rt-ric",
 
-				"tag":        "latest",
-
+				"tag": "latest",
 			},
 
 			"service": map[string]interface{}{
@@ -1800,11 +1465,8 @@ func (c *CNFOrchestrator) initORANTemplates() {
 					"a1": 10000,
 
 					"e2": 36421,
-
 				},
-
 			},
-
 		},
 
 		RequiredConfigs: []string{"ricId", "plmnId"},
@@ -1813,61 +1475,53 @@ func (c *CNFOrchestrator) initORANTemplates() {
 
 			{
 
-				Name:      "A1",
+				Name: "A1",
 
-				Type:      "REST",
+				Type: "REST",
 
-				Protocol:  []string{"HTTP"},
+				Protocol: []string{"HTTP"},
 
-				Port:      10000,
+				Port: 10000,
 
 				Mandatory: true,
-
 			},
 
 			{
 
-				Name:      "E2",
+				Name: "E2",
 
-				Type:      "SCTP",
+				Type: "SCTP",
 
-				Protocol:  []string{"SCTP"},
+				Protocol: []string{"SCTP"},
 
-				Port:      36421,
+				Port: 36421,
 
 				Mandatory: true,
-
 			},
-
 		},
 
 		HealthChecks: []HealthCheckSpec{
 
 			{
 
-				Name:         "http-health",
+				Name: "http-health",
 
-				Type:         "HTTP",
+				Type: "HTTP",
 
-				Path:         "/a1-p/healthcheck",
+				Path: "/a1-p/healthcheck",
 
-				Port:         10000,
+				Port: 10000,
 
-				Interval:     30 * time.Second,
+				Interval: 30 * time.Second,
 
-				Timeout:      10 * time.Second,
+				Timeout: 10 * time.Second,
 
-				Retries:      3,
+				Retries: 3,
 
 				InitialDelay: 30 * time.Second,
-
 			},
-
 		},
-
 	}
-
-
 
 	// O-DU template.
 
@@ -1877,12 +1531,11 @@ func (c *CNFOrchestrator) initORANTemplates() {
 
 		ChartReference: ChartReference{
 
-			Repository:   c.ChartRepositories[nephoranv1.CNFORAN],
+			Repository: c.ChartRepositories[nephoranv1.CNFORAN],
 
-			ChartName:    "o-du",
+			ChartName: "o-du",
 
 			ChartVersion: "1.0.0",
-
 		},
 
 		DefaultValues: map[string]interface{}{
@@ -1891,8 +1544,7 @@ func (c *CNFOrchestrator) initORANTemplates() {
 
 				"repository": "oran/o-du",
 
-				"tag":        "latest",
-
+				"tag": "latest",
 			},
 
 			"service": map[string]interface{}{
@@ -1904,90 +1556,78 @@ func (c *CNFOrchestrator) initORANTemplates() {
 					"f1": 38472,
 
 					"e2": 36421,
-
 				},
-
 			},
-
 		},
 
 		RequiredConfigs: []string{"duId", "cellId"},
 
-		Dependencies:    []nephoranv1.CNFFunction{nephoranv1.CNFFunctionNearRTRIC},
+		Dependencies: []nephoranv1.CNFFunction{nephoranv1.CNFFunctionNearRTRIC},
 
 		Interfaces: []InterfaceSpec{
 
 			{
 
-				Name:      "F1-C",
+				Name: "F1-C",
 
-				Type:      "F1AP",
+				Type: "F1AP",
 
-				Protocol:  []string{"SCTP"},
+				Protocol: []string{"SCTP"},
 
-				Port:      38472,
+				Port: 38472,
 
 				Mandatory: true,
-
 			},
 
 			{
 
-				Name:      "F1-U",
+				Name: "F1-U",
 
-				Type:      "GTP-U",
+				Type: "GTP-U",
 
-				Protocol:  []string{"UDP"},
+				Protocol: []string{"UDP"},
 
-				Port:      2152,
+				Port: 2152,
 
 				Mandatory: true,
-
 			},
 
 			{
 
-				Name:      "E2",
+				Name: "E2",
 
-				Type:      "SCTP",
+				Type: "SCTP",
 
-				Protocol:  []string{"SCTP"},
+				Protocol: []string{"SCTP"},
 
-				Port:      36421,
+				Port: 36421,
 
 				Mandatory: true,
-
 			},
-
 		},
 
 		HealthChecks: []HealthCheckSpec{
 
 			{
 
-				Name:         "f1-health",
+				Name: "f1-health",
 
-				Type:         "TCP",
+				Type: "TCP",
 
-				Port:         38472,
+				Port: 38472,
 
-				Interval:     30 * time.Second,
+				Interval: 30 * time.Second,
 
-				Timeout:      10 * time.Second,
+				Timeout: 10 * time.Second,
 
-				Retries:      3,
+				Retries: 3,
 
 				InitialDelay: 30 * time.Second,
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // initEdgeTemplates initializes templates for edge functions.
 
@@ -2001,12 +1641,11 @@ func (c *CNFOrchestrator) initEdgeTemplates() {
 
 		ChartReference: ChartReference{
 
-			Repository:   c.ChartRepositories[nephoranv1.CNFEdge],
+			Repository: c.ChartRepositories[nephoranv1.CNFEdge],
 
-			ChartName:    "ue-simulator",
+			ChartName: "ue-simulator",
 
 			ChartVersion: "1.0.0",
-
 		},
 
 		DefaultValues: map[string]interface{}{
@@ -2015,27 +1654,21 @@ func (c *CNFOrchestrator) initEdgeTemplates() {
 
 				"repository": "edge/ue-simulator",
 
-				"tag":        "latest",
-
+				"tag": "latest",
 			},
 
 			"ues": map[string]interface{}{
 
-				"count":     100,
+				"count": 100,
 
 				"imsiStart": "001010000000001",
-
 			},
-
 		},
 
 		RequiredConfigs: []string{"amfAddress", "gnbAddress"},
-
 	}
 
 }
-
-
 
 // generateCNFPackage generates a CNF package for GitOps deployment.
 
@@ -2051,8 +1684,6 @@ func (c *CNFOrchestrator) generateCNFPackage(cnf *nephoranv1.CNFDeployment, conf
 
 }
 
-
-
 // commitPackage commits a package to the Git repository.
 
 func (c *CNFOrchestrator) commitPackage(ctx context.Context, packageData []byte, commitMsg string) (string, error) {
@@ -2062,8 +1693,6 @@ func (c *CNFOrchestrator) commitPackage(ctx context.Context, packageData []byte,
 	return "commit-hash-stub", nil
 
 }
-
-
 
 // applyManifest applies a Kubernetes manifest.
 
@@ -2080,4 +1709,3 @@ func (c *CNFOrchestrator) applyManifest(ctx context.Context, manifest client.Obj
 	return nil
 
 }
-

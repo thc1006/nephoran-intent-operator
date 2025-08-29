@@ -1,57 +1,34 @@
-
 package sla
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"math"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
 
-
-
 	"github.com/google/uuid"
-
-	"github.com/prometheus/client_golang/prometheus"
-
-	"go.opentelemetry.io/otel/trace"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
+	"github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/otel/trace"
 )
-
-
 
 // CircularBuffer represents a circular buffer for storing historical data.
 
 type CircularBuffer struct {
-
 	buffer []interface{}
 
-	size   int
+	size int
 
-	head   int
+	head int
 
-	tail   int
+	tail int
 
-	count  int
+	count int
 
-	mutex  sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewCircularBuffer creates a new circular buffer.
 
@@ -61,15 +38,12 @@ func NewCircularBuffer(size int) *CircularBuffer {
 
 		buffer: make([]interface{}, size),
 
-		size:   size,
+		size: size,
 
-		mutex:  sync.RWMutex{},
-
+		mutex: sync.RWMutex{},
 	}
 
 }
-
-
 
 // Add adds an item to the circular buffer.
 
@@ -95,75 +69,57 @@ func (cb *CircularBuffer) Add(item interface{}) {
 
 }
 
-
-
 // Tracker provides end-to-end intent processing tracking with distributed tracing correlation.
 
 type Tracker struct {
+	config *TrackerConfig
 
-	config  *TrackerConfig
-
-	logger  *logging.StructuredLogger
+	logger *logging.StructuredLogger
 
 	started atomic.Bool
-
-
 
 	// Active intent tracking.
 
 	activeIntents map[string]*IntentExecution
 
-	intentsMu     sync.RWMutex
-
-
+	intentsMu sync.RWMutex
 
 	// Component tracking.
 
 	componentLatency map[string]*ComponentLatencyTracker
 
-	componentMu      sync.RWMutex
-
-
+	componentMu sync.RWMutex
 
 	// Error tracking and categorization.
 
 	errorCategorizer *ErrorCategorizer
 
-	impactWeighter   *ImpactWeighter
-
-
+	impactWeighter *ImpactWeighter
 
 	// Queue depth monitoring.
 
 	queueMonitor *QueueDepthMonitor
 
-
-
 	// Performance metrics.
 
-	metrics         *TrackerMetrics
+	metrics *TrackerMetrics
 
-	trackingCount   atomic.Uint64
+	trackingCount atomic.Uint64
 
 	completionCount atomic.Uint64
 
-	errorCount      atomic.Uint64
+	errorCount atomic.Uint64
 
-	timeoutCount    atomic.Uint64
-
-
+	timeoutCount atomic.Uint64
 
 	// Background processing.
 
 	cleanupTicker *time.Ticker
 
-	stopCh        chan struct{}
+	stopCh chan struct{}
 
-	wg            sync.WaitGroup
-
+	wg sync.WaitGroup
 }
-
-
 
 // TrackerConfig holds configuration for the intent tracker.
 
@@ -171,13 +127,11 @@ type TrackerConfig struct {
 
 	// Tracking limits.
 
-	MaxActiveIntents    int           `yaml:"max_active_intents"`
+	MaxActiveIntents int `yaml:"max_active_intents"`
 
-	TrackingTimeout     time.Duration `yaml:"tracking_timeout"`
+	TrackingTimeout time.Duration `yaml:"tracking_timeout"`
 
 	CompletionThreshold time.Duration `yaml:"completion_threshold"`
-
-
 
 	// Cleanup configuration.
 
@@ -185,29 +139,20 @@ type TrackerConfig struct {
 
 	RetentionPeriod time.Duration `yaml:"retention_period"`
 
-
-
 	// Component timeout thresholds.
 
 	ComponentTimeouts map[string]time.Duration `yaml:"component_timeouts"`
-
-
 
 	// Error impact weights.
 
 	ErrorImpactWeights map[string]float64 `yaml:"error_impact_weights"`
 
-
-
 	// Queue monitoring.
 
 	QueueMonitoringEnabled bool `yaml:"queue_monitoring_enabled"`
 
-	QueueDepthThreshold    int  `yaml:"queue_depth_threshold"`
-
+	QueueDepthThreshold int `yaml:"queue_depth_threshold"`
 }
-
-
 
 // DefaultTrackerConfig returns optimized default configuration.
 
@@ -215,63 +160,50 @@ func DefaultTrackerConfig() *TrackerConfig {
 
 	return &TrackerConfig{
 
-		MaxActiveIntents:    1000,
+		MaxActiveIntents: 1000,
 
-		TrackingTimeout:     10 * time.Minute,
+		TrackingTimeout: 10 * time.Minute,
 
 		CompletionThreshold: 30 * time.Second,
-
-
 
 		CleanupInterval: 1 * time.Minute,
 
 		RetentionPeriod: 1 * time.Hour,
 
-
-
 		ComponentTimeouts: map[string]time.Duration{
 
-			"llm-processing":     30 * time.Second,
+			"llm-processing": 30 * time.Second,
 
-			"rag-retrieval":      10 * time.Second,
+			"rag-retrieval": 10 * time.Second,
 
 			"package-generation": 2 * time.Minute,
 
-			"gitops-commit":      30 * time.Second,
+			"gitops-commit": 30 * time.Second,
 
-			"deployment":         5 * time.Minute,
-
+			"deployment": 5 * time.Minute,
 		},
-
-
 
 		ErrorImpactWeights: map[string]float64{
 
 			"authentication_failure": 0.9,
 
-			"llm_timeout":            0.8,
+			"llm_timeout": 0.8,
 
-			"rag_unavailable":        0.7,
+			"rag_unavailable": 0.7,
 
-			"git_commit_failed":      0.6,
+			"git_commit_failed": 0.6,
 
-			"deployment_failed":      0.8,
+			"deployment_failed": 0.8,
 
-			"validation_error":       0.3,
-
+			"validation_error": 0.3,
 		},
-
-
 
 		QueueMonitoringEnabled: true,
 
-		QueueDepthThreshold:    100,
-
+		QueueDepthThreshold: 100,
 	}
 
 }
-
-
 
 // IntentExecution tracks the lifecycle of a single intent processing request.
 
@@ -279,93 +211,72 @@ type IntentExecution struct {
 
 	// Basic identification.
 
-	ID         string `json:"id"`
+	ID string `json:"id"`
 
 	IntentType string `json:"intent_type"`
 
-	UserID     string `json:"user_id,omitempty"`
+	UserID string `json:"user_id,omitempty"`
 
-	RequestID  string `json:"request_id,omitempty"`
-
-
+	RequestID string `json:"request_id,omitempty"`
 
 	// Timing information.
 
-	StartTime     time.Time     `json:"start_time"`
+	StartTime time.Time `json:"start_time"`
 
-	EndTime       time.Time     `json:"end_time,omitempty"`
+	EndTime time.Time `json:"end_time,omitempty"`
 
 	TotalDuration time.Duration `json:"total_duration"`
-
-
 
 	// Distributed tracing.
 
 	TraceID string `json:"trace_id,omitempty"`
 
-	SpanID  string `json:"span_id,omitempty"`
-
-
+	SpanID string `json:"span_id,omitempty"`
 
 	// Component latencies.
 
-	ComponentLatencies map[string]time.Duration   `json:"component_latencies"`
+	ComponentLatencies map[string]time.Duration `json:"component_latencies"`
 
-	ComponentErrors    map[string]error           `json:"component_errors,omitempty"`
+	ComponentErrors map[string]error `json:"component_errors,omitempty"`
 
-	ComponentStatus    map[string]ComponentStatus `json:"component_status"`
-
-
+	ComponentStatus map[string]ComponentStatus `json:"component_status"`
 
 	// Processing stages.
 
-	Stages       []*ProcessingStage `json:"stages"`
+	Stages []*ProcessingStage `json:"stages"`
 
-	CurrentStage string             `json:"current_stage"`
-
-
+	CurrentStage string `json:"current_stage"`
 
 	// Status and completion.
 
-	Status       IntentStatus `json:"status"`
+	Status IntentStatus `json:"status"`
 
-	Success      bool         `json:"success"`
+	Success bool `json:"success"`
 
 	ErrorDetails *IntentError `json:"error_details,omitempty"`
 
-
-
 	// Queue information.
 
-	QueuedAt     time.Time     `json:"queued_at,omitempty"`
+	QueuedAt time.Time `json:"queued_at,omitempty"`
 
-	QueueDepth   int           `json:"queue_depth,omitempty"`
+	QueueDepth int `json:"queue_depth,omitempty"`
 
 	QueueLatency time.Duration `json:"queue_latency,omitempty"`
-
-
 
 	// Business impact.
 
 	BusinessImpact float64 `json:"business_impact"`
 
-	CriticalPath   bool    `json:"critical_path"`
-
-
+	CriticalPath bool `json:"critical_path"`
 
 	// Synchronization.
 
 	mu sync.RWMutex
-
 }
-
-
 
 // IntentStatus represents the current status of intent processing.
 
 type IntentStatus string
-
-
 
 const (
 
@@ -396,16 +307,11 @@ const (
 	// IntentStatusCancelled holds intentstatuscancelled value.
 
 	IntentStatusCancelled IntentStatus = "cancelled"
-
 )
-
-
 
 // ComponentStatus represents the status of a component in the processing pipeline.
 
 type ComponentStatus string
-
-
 
 const (
 
@@ -428,58 +334,47 @@ const (
 	// ComponentStatusSkipped holds componentstatusskipped value.
 
 	ComponentStatusSkipped ComponentStatus = "skipped"
-
 )
-
-
 
 // ProcessingStage represents a stage in the intent processing pipeline.
 
 type ProcessingStage struct {
+	Name string `json:"name"`
 
-	Name      string                 `json:"name"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime time.Time              `json:"start_time"`
+	EndTime time.Time `json:"end_time,omitempty"`
 
-	EndTime   time.Time              `json:"end_time,omitempty"`
+	Duration time.Duration `json:"duration"`
 
-	Duration  time.Duration          `json:"duration"`
+	Status ComponentStatus `json:"status"`
 
-	Status    ComponentStatus        `json:"status"`
+	Error string `json:"error,omitempty"`
 
-	Error     string                 `json:"error,omitempty"`
-
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // IntentError provides detailed error information with categorization.
 
 type IntentError struct {
+	Type string `json:"type"`
 
-	Type       string    `json:"type"`
+	Message string `json:"message"`
 
-	Message    string    `json:"message"`
+	Component string `json:"component"`
 
-	Component  string    `json:"component"`
+	Stage string `json:"stage"`
 
-	Stage      string    `json:"stage"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp  time.Time `json:"timestamp"`
+	Severity string `json:"severity"`
 
-	Severity   string    `json:"severity"`
+	Impact float64 `json:"impact"`
 
-	Impact     float64   `json:"impact"`
+	Retryable bool `json:"retryable"`
 
-	Retryable  bool      `json:"retryable"`
-
-	StackTrace []string  `json:"stack_trace,omitempty"`
-
+	StackTrace []string `json:"stack_trace,omitempty"`
 }
-
-
 
 // TrackerMetrics contains Prometheus metrics for the tracker.
 
@@ -487,153 +382,118 @@ type TrackerMetrics struct {
 
 	// Intent tracking metrics.
 
-	ActiveIntents  prometheus.Gauge
+	ActiveIntents prometheus.Gauge
 
 	IntentsTracked *prometheus.CounterVec
 
 	IntentDuration *prometheus.HistogramVec
 
-	IntentSuccess  *prometheus.CounterVec
-
-
+	IntentSuccess *prometheus.CounterVec
 
 	// Component latency metrics.
 
 	ComponentLatency *prometheus.HistogramVec
 
-	ComponentErrors  *prometheus.CounterVec
+	ComponentErrors *prometheus.CounterVec
 
-	ComponentStatus  *prometheus.GaugeVec
-
-
+	ComponentStatus *prometheus.GaugeVec
 
 	// Queue metrics.
 
-	QueueDepth      *prometheus.GaugeVec
+	QueueDepth *prometheus.GaugeVec
 
-	QueueLatency    *prometheus.HistogramVec
+	QueueLatency *prometheus.HistogramVec
 
 	QueueThroughput prometheus.Gauge
 
-
-
 	// Error categorization metrics.
 
-	ErrorsByCategory   *prometheus.CounterVec
+	ErrorsByCategory *prometheus.CounterVec
 
-	ErrorImpact        *prometheus.HistogramVec
+	ErrorImpact *prometheus.HistogramVec
 
 	CriticalPathErrors prometheus.Counter
 
-
-
 	// Tracking performance metrics.
 
-	TrackingLatency   prometheus.Histogram
+	TrackingLatency prometheus.Histogram
 
-	MemoryUsage       prometheus.Gauge
+	MemoryUsage prometheus.Gauge
 
 	CleanupOperations prometheus.Counter
-
 }
-
-
 
 // ComponentLatencyTracker tracks latency for individual components.
 
 type ComponentLatencyTracker struct {
+	componentName string
 
-	componentName  string
+	measurements *CircularBuffer
 
-	measurements   *CircularBuffer
-
-	quantiles      *QuantileEstimator
+	quantiles *QuantileEstimator
 
 	violationCount atomic.Uint64
 
-	mu             sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // ErrorCategorizer categorizes errors by type and impact.
 
 type ErrorCategorizer struct {
-
-	categories    map[string]*ErrorCategory
+	categories map[string]*ErrorCategory
 
 	impactWeights map[string]float64
 
-	mu            sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // ErrorCategory represents a category of errors.
 
 type ErrorCategory struct {
+	Name string `json:"name"`
 
-	Name        string        `json:"name"`
+	Description string `json:"description"`
 
-	Description string        `json:"description"`
+	Severity string `json:"severity"`
 
-	Severity    string        `json:"severity"`
+	Impact float64 `json:"impact"`
 
-	Impact      float64       `json:"impact"`
+	Retryable bool `json:"retryable"`
 
-	Retryable   bool          `json:"retryable"`
-
-	Count       atomic.Uint64 `json:"count"`
-
+	Count atomic.Uint64 `json:"count"`
 }
-
-
 
 // ImpactWeighter calculates business impact of failures.
 
 type ImpactWeighter struct {
-
 	weights map[string]float64
 
-	mu      sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // QueueDepthMonitor tracks queue depths across components.
 
 type QueueDepthMonitor struct {
-
-	queues    map[string]*QueueMetrics
+	queues map[string]*QueueMetrics
 
 	threshold int
 
-	enabled   bool
+	enabled bool
 
-	mu        sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // QueueMetrics tracks metrics for a specific queue.
 
 type QueueMetrics struct {
+	Name string
 
-	Name       string
-
-	Depth      atomic.Int64
+	Depth atomic.Int64
 
 	Throughput atomic.Uint64
 
-	Latency    *CircularBuffer
-
+	Latency *CircularBuffer
 }
-
-
 
 // NewTracker creates a new intent tracker with the given configuration.
 
@@ -645,15 +505,11 @@ func NewTracker(config *TrackerConfig, logger *logging.StructuredLogger) (*Track
 
 	}
 
-
-
 	if logger == nil {
 
 		return nil, fmt.Errorf("logger is required")
 
 	}
-
-
 
 	// Initialize metrics.
 
@@ -664,172 +520,128 @@ func NewTracker(config *TrackerConfig, logger *logging.StructuredLogger) (*Track
 			Name: "sla_tracker_active_intents",
 
 			Help: "Number of actively tracked intents",
-
 		}),
-
-
 
 		IntentsTracked: prometheus.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "sla_tracker_intents_tracked_total",
 
 			Help: "Total number of intents tracked",
-
 		}, []string{"intent_type", "user_type"}),
-
-
 
 		IntentDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 
-			Name:    "sla_tracker_intent_duration_seconds",
+			Name: "sla_tracker_intent_duration_seconds",
 
-			Help:    "Duration of intent processing",
+			Help: "Duration of intent processing",
 
 			Buckets: prometheus.ExponentialBuckets(0.1, 2, 12), // 0.1s to ~400s
 
 		}, []string{"intent_type", "status", "critical_path"}),
-
-
 
 		IntentSuccess: prometheus.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "sla_tracker_intent_success_total",
 
 			Help: "Total successful intent completions",
-
 		}, []string{"intent_type", "completion_reason"}),
-
-
 
 		ComponentLatency: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 
-			Name:    "sla_tracker_component_latency_seconds",
+			Name: "sla_tracker_component_latency_seconds",
 
-			Help:    "Component processing latency",
+			Help: "Component processing latency",
 
 			Buckets: prometheus.ExponentialBuckets(0.001, 2, 15), // 1ms to ~30s
 
 		}, []string{"component", "intent_type"}),
-
-
 
 		ComponentErrors: prometheus.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "sla_tracker_component_errors_total",
 
 			Help: "Component processing errors",
-
 		}, []string{"component", "error_type", "severity"}),
-
-
 
 		ComponentStatus: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 
 			Name: "sla_tracker_component_status",
 
 			Help: "Current component status (0=pending, 1=processing, 2=completed, 3=failed)",
-
 		}, []string{"component", "intent_id"}),
-
-
 
 		QueueDepth: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 
 			Name: "sla_tracker_queue_depth",
 
 			Help: "Current queue depth by component",
-
 		}, []string{"queue_name", "component"}),
-
-
 
 		QueueLatency: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 
-			Name:    "sla_tracker_queue_latency_seconds",
+			Name: "sla_tracker_queue_latency_seconds",
 
-			Help:    "Time spent waiting in queue",
+			Help: "Time spent waiting in queue",
 
 			Buckets: prometheus.ExponentialBuckets(0.001, 2, 12), // 1ms to ~4s
 
 		}, []string{"queue_name"}),
-
-
 
 		QueueThroughput: prometheus.NewGauge(prometheus.GaugeOpts{
 
 			Name: "sla_tracker_queue_throughput",
 
 			Help: "Current queue processing throughput",
-
 		}),
-
-
 
 		ErrorsByCategory: prometheus.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "sla_tracker_errors_by_category_total",
 
 			Help: "Total errors by category",
-
 		}, []string{"category", "severity", "retryable"}),
-
-
 
 		ErrorImpact: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 
-			Name:    "sla_tracker_error_impact",
+			Name: "sla_tracker_error_impact",
 
-			Help:    "Business impact of errors (0.0-1.0)",
+			Help: "Business impact of errors (0.0-1.0)",
 
 			Buckets: prometheus.LinearBuckets(0, 0.1, 11), // 0.0 to 1.0
 
 		}, []string{"error_type"}),
-
-
 
 		CriticalPathErrors: prometheus.NewCounter(prometheus.CounterOpts{
 
 			Name: "sla_tracker_critical_path_errors_total",
 
 			Help: "Total errors on critical path",
-
 		}),
-
-
 
 		TrackingLatency: prometheus.NewHistogram(prometheus.HistogramOpts{
 
-			Name:    "sla_tracker_tracking_latency_seconds",
+			Name: "sla_tracker_tracking_latency_seconds",
 
-			Help:    "Latency of tracking operations",
+			Help: "Latency of tracking operations",
 
 			Buckets: prometheus.ExponentialBuckets(0.00001, 2, 12), // 10μs to ~40ms
 
 		}),
-
-
 
 		MemoryUsage: prometheus.NewGauge(prometheus.GaugeOpts{
 
 			Name: "sla_tracker_memory_usage_bytes",
 
 			Help: "Memory usage of tracker",
-
 		}),
-
-
 
 		CleanupOperations: prometheus.NewCounter(prometheus.CounterOpts{
 
 			Name: "sla_tracker_cleanup_operations_total",
 
 			Help: "Total cleanup operations performed",
-
 		}),
-
 	}
-
-
 
 	// Initialize error categorizer.
 
@@ -839,115 +651,98 @@ func NewTracker(config *TrackerConfig, logger *logging.StructuredLogger) (*Track
 
 			"authentication": {
 
-				Name:        "Authentication",
+				Name: "Authentication",
 
 				Description: "Authentication and authorization failures",
 
-				Severity:    "high",
+				Severity: "high",
 
-				Impact:      0.9,
+				Impact: 0.9,
 
-				Retryable:   true,
-
+				Retryable: true,
 			},
 
 			"llm_timeout": {
 
-				Name:        "LLM Timeout",
+				Name: "LLM Timeout",
 
 				Description: "LLM processing timeout",
 
-				Severity:    "medium",
+				Severity: "medium",
 
-				Impact:      0.7,
+				Impact: 0.7,
 
-				Retryable:   true,
-
+				Retryable: true,
 			},
 
 			"validation": {
 
-				Name:        "Validation",
+				Name: "Validation",
 
 				Description: "Input validation errors",
 
-				Severity:    "low",
+				Severity: "low",
 
-				Impact:      0.3,
+				Impact: 0.3,
 
-				Retryable:   false,
-
+				Retryable: false,
 			},
 
 			"infrastructure": {
 
-				Name:        "Infrastructure",
+				Name: "Infrastructure",
 
 				Description: "Infrastructure and dependency failures",
 
-				Severity:    "high",
+				Severity: "high",
 
-				Impact:      0.8,
+				Impact: 0.8,
 
-				Retryable:   true,
-
+				Retryable: true,
 			},
-
 		},
 
 		impactWeights: config.ErrorImpactWeights,
-
 	}
-
-
 
 	// Initialize impact weighter.
 
 	impactWeighter := &ImpactWeighter{
 
 		weights: config.ErrorImpactWeights,
-
 	}
-
-
 
 	// Initialize queue monitor.
 
 	queueMonitor := &QueueDepthMonitor{
 
-		queues:    make(map[string]*QueueMetrics),
+		queues: make(map[string]*QueueMetrics),
 
 		threshold: config.QueueDepthThreshold,
 
-		enabled:   config.QueueMonitoringEnabled,
-
+		enabled: config.QueueMonitoringEnabled,
 	}
-
-
 
 	tracker := &Tracker{
 
-		config:           config,
+		config: config,
 
-		logger:           logger.WithComponent("tracker"),
+		logger: logger.WithComponent("tracker"),
 
-		activeIntents:    make(map[string]*IntentExecution),
+		activeIntents: make(map[string]*IntentExecution),
 
 		componentLatency: make(map[string]*ComponentLatencyTracker),
 
 		errorCategorizer: errorCategorizer,
 
-		impactWeighter:   impactWeighter,
+		impactWeighter: impactWeighter,
 
-		queueMonitor:     queueMonitor,
+		queueMonitor: queueMonitor,
 
-		metrics:          metrics,
+		metrics: metrics,
 
-		stopCh:           make(chan struct{}),
-
+		stopCh: make(chan struct{}),
 	}
-
-
 
 	// Initialize component latency trackers.
 
@@ -957,21 +752,16 @@ func NewTracker(config *TrackerConfig, logger *logging.StructuredLogger) (*Track
 
 			componentName: component,
 
-			measurements:  NewCircularBuffer(1000),
+			measurements: NewCircularBuffer(1000),
 
-			quantiles:     NewQuantileEstimator(),
-
+			quantiles: NewQuantileEstimator(),
 		}
 
 	}
 
-
-
 	return tracker, nil
 
 }
-
-
 
 // Start begins the intent tracking service.
 
@@ -983,8 +773,6 @@ func (t *Tracker) Start(ctx context.Context) error {
 
 	}
 
-
-
 	t.logger.InfoWithContext("Starting intent tracker",
 
 		"max_active_intents", t.config.MaxActiveIntents,
@@ -992,16 +780,11 @@ func (t *Tracker) Start(ctx context.Context) error {
 		"tracking_timeout", t.config.TrackingTimeout,
 
 		"cleanup_interval", t.config.CleanupInterval,
-
 	)
-
-
 
 	// Start cleanup ticker.
 
 	t.cleanupTicker = time.NewTicker(t.config.CleanupInterval)
-
-
 
 	// Start background processing.
 
@@ -1009,25 +792,17 @@ func (t *Tracker) Start(ctx context.Context) error {
 
 	go t.runCleanupLoop(ctx)
 
-
-
 	t.wg.Add(1)
 
 	go t.updateMetrics(ctx)
-
-
 
 	t.started.Store(true)
 
 	t.logger.InfoWithContext("Intent tracker started successfully")
 
-
-
 	return nil
 
 }
-
-
 
 // Stop gracefully stops the intent tracker.
 
@@ -1039,11 +814,7 @@ func (t *Tracker) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	t.logger.InfoWithContext("Stopping intent tracker")
-
-
 
 	// Stop cleanup ticker.
 
@@ -1053,29 +824,19 @@ func (t *Tracker) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	// Signal stop.
 
 	close(t.stopCh)
-
-
 
 	// Wait for background goroutines.
 
 	t.wg.Wait()
 
-
-
 	t.logger.InfoWithContext("Intent tracker stopped")
-
-
 
 	return nil
 
 }
-
-
 
 // StartIntent begins tracking a new intent execution.
 
@@ -1089,8 +850,6 @@ func (t *Tracker) StartIntent(ctx context.Context, intentType, userID, requestID
 
 	}()
 
-
-
 	// Check capacity limits.
 
 	t.intentsMu.RLock()
@@ -1099,21 +858,15 @@ func (t *Tracker) StartIntent(ctx context.Context, intentType, userID, requestID
 
 	t.intentsMu.RUnlock()
 
-
-
 	if currentCount >= t.config.MaxActiveIntents {
 
 		return nil, fmt.Errorf("maximum active intents reached: %d", t.config.MaxActiveIntents)
 
 	}
 
-
-
 	// Create new intent execution.
 
 	intentID := uuid.New().String()
-
-
 
 	// Extract tracing information.
 
@@ -1127,41 +880,36 @@ func (t *Tracker) StartIntent(ctx context.Context, intentType, userID, requestID
 
 	}
 
-
-
 	intent := &IntentExecution{
 
-		ID:                 intentID,
+		ID: intentID,
 
-		IntentType:         intentType,
+		IntentType: intentType,
 
-		UserID:             userID,
+		UserID: userID,
 
-		RequestID:          requestID,
+		RequestID: requestID,
 
-		StartTime:          time.Now(),
+		StartTime: time.Now(),
 
-		TraceID:            traceID,
+		TraceID: traceID,
 
-		SpanID:             spanID,
+		SpanID: spanID,
 
 		ComponentLatencies: make(map[string]time.Duration),
 
-		ComponentErrors:    make(map[string]error),
+		ComponentErrors: make(map[string]error),
 
-		ComponentStatus:    make(map[string]ComponentStatus),
+		ComponentStatus: make(map[string]ComponentStatus),
 
-		Stages:             make([]*ProcessingStage, 0),
+		Stages: make([]*ProcessingStage, 0),
 
-		Status:             IntentStatusReceived,
+		Status: IntentStatusReceived,
 
-		BusinessImpact:     t.calculateBusinessImpact(intentType, userID),
+		BusinessImpact: t.calculateBusinessImpact(intentType, userID),
 
-		CriticalPath:       t.isCriticalPath(intentType),
-
+		CriticalPath: t.isCriticalPath(intentType),
 	}
-
-
 
 	// Add to active tracking.
 
@@ -1171,8 +919,6 @@ func (t *Tracker) StartIntent(ctx context.Context, intentType, userID, requestID
 
 	t.intentsMu.Unlock()
 
-
-
 	// Update metrics.
 
 	t.trackingCount.Add(1)
@@ -1180,8 +926,6 @@ func (t *Tracker) StartIntent(ctx context.Context, intentType, userID, requestID
 	t.metrics.ActiveIntents.Inc()
 
 	t.metrics.IntentsTracked.WithLabelValues(intentType, t.getUserType(userID)).Inc()
-
-
 
 	t.logger.InfoWithContext("Started tracking intent",
 
@@ -1198,16 +942,11 @@ func (t *Tracker) StartIntent(ctx context.Context, intentType, userID, requestID
 		"business_impact", intent.BusinessImpact,
 
 		"critical_path", intent.CriticalPath,
-
 	)
-
-
 
 	return intent, nil
 
 }
-
-
 
 // CompleteIntent marks an intent as completed successfully.
 
@@ -1221,8 +960,6 @@ func (t *Tracker) CompleteIntent(intentID string, success bool, errorDetails *In
 
 	}()
 
-
-
 	t.intentsMu.Lock()
 
 	intent, exists := t.activeIntents[intentID]
@@ -1234,8 +971,6 @@ func (t *Tracker) CompleteIntent(intentID string, success bool, errorDetails *In
 		return fmt.Errorf("intent not found: %s", intentID)
 
 	}
-
-
 
 	// Update intent completion.
 
@@ -1249,8 +984,6 @@ func (t *Tracker) CompleteIntent(intentID string, success bool, errorDetails *In
 
 	intent.ErrorDetails = errorDetails
 
-
-
 	if success {
 
 		intent.Status = IntentStatusCompleted
@@ -1260,8 +993,6 @@ func (t *Tracker) CompleteIntent(intentID string, success bool, errorDetails *In
 		intent.Status = IntentStatusFailed
 
 	}
-
-
 
 	// Complete current stage if any.
 
@@ -1295,11 +1026,7 @@ func (t *Tracker) CompleteIntent(intentID string, success bool, errorDetails *In
 
 	}
 
-
-
 	intent.mu.Unlock()
-
-
 
 	// Remove from active tracking.
 
@@ -1307,15 +1034,11 @@ func (t *Tracker) CompleteIntent(intentID string, success bool, errorDetails *In
 
 	t.intentsMu.Unlock()
 
-
-
 	// Update metrics.
 
 	t.completionCount.Add(1)
 
 	t.metrics.ActiveIntents.Dec()
-
-
 
 	criticalPathStr := "false"
 
@@ -1325,8 +1048,6 @@ func (t *Tracker) CompleteIntent(intentID string, success bool, errorDetails *In
 
 	}
 
-
-
 	statusStr := "completed"
 
 	if !success {
@@ -1335,15 +1056,11 @@ func (t *Tracker) CompleteIntent(intentID string, success bool, errorDetails *In
 
 		t.errorCount.Add(1)
 
-
-
 		if intent.CriticalPath {
 
 			t.metrics.CriticalPathErrors.Inc()
 
 		}
-
-
 
 		if errorDetails != nil {
 
@@ -1353,15 +1070,10 @@ func (t *Tracker) CompleteIntent(intentID string, success bool, errorDetails *In
 
 	}
 
-
-
 	t.metrics.IntentDuration.WithLabelValues(intent.IntentType, statusStr, criticalPathStr).
-
 		Observe(intent.TotalDuration.Seconds())
 
 	t.metrics.IntentSuccess.WithLabelValues(intent.IntentType, statusStr).Inc()
-
-
 
 	// Record component latencies.
 
@@ -1370,8 +1082,6 @@ func (t *Tracker) CompleteIntent(intentID string, success bool, errorDetails *In
 		t.recordComponentLatency(component, intent.IntentType, latency)
 
 	}
-
-
 
 	t.logger.InfoWithContext("Completed tracking intent",
 
@@ -1384,16 +1094,11 @@ func (t *Tracker) CompleteIntent(intentID string, success bool, errorDetails *In
 		"duration", intent.TotalDuration,
 
 		"critical_path", intent.CriticalPath,
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // StartStage begins tracking a processing stage for an intent.
 
@@ -1405,21 +1110,15 @@ func (t *Tracker) StartStage(intentID, stageName string, metadata map[string]int
 
 	t.intentsMu.RUnlock()
 
-
-
 	if !exists {
 
 		return fmt.Errorf("intent not found: %s", intentID)
 
 	}
 
-
-
 	intent.mu.Lock()
 
 	defer intent.mu.Unlock()
-
-
 
 	// Complete previous stage if still processing.
 
@@ -1439,31 +1138,24 @@ func (t *Tracker) StartStage(intentID, stageName string, metadata map[string]int
 
 	}
 
-
-
 	// Create new stage.
 
 	stage := &ProcessingStage{
 
-		Name:      stageName,
+		Name: stageName,
 
 		StartTime: time.Now(),
 
-		Status:    ComponentStatusProcessing,
+		Status: ComponentStatusProcessing,
 
-		Metadata:  metadata,
-
+		Metadata: metadata,
 	}
-
-
 
 	intent.Stages = append(intent.Stages, stage)
 
 	intent.CurrentStage = stageName
 
 	intent.Status = IntentStatusProcessing
-
-
 
 	t.logger.DebugWithContext("Started processing stage",
 
@@ -1472,16 +1164,11 @@ func (t *Tracker) StartStage(intentID, stageName string, metadata map[string]int
 		"stage", stageName,
 
 		"metadata", metadata,
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // CompleteStage marks a processing stage as completed.
 
@@ -1493,21 +1180,15 @@ func (t *Tracker) CompleteStage(intentID, stageName string, success bool, errorM
 
 	t.intentsMu.RUnlock()
 
-
-
 	if !exists {
 
 		return fmt.Errorf("intent not found: %s", intentID)
 
 	}
 
-
-
 	intent.mu.Lock()
 
 	defer intent.mu.Unlock()
-
-
 
 	// Find and complete the stage.
 
@@ -1518,8 +1199,6 @@ func (t *Tracker) CompleteStage(intentID, stageName string, success bool, errorM
 			stage.EndTime = time.Now()
 
 			stage.Duration = stage.EndTime.Sub(stage.StartTime)
-
-
 
 			if success {
 
@@ -1533,8 +1212,6 @@ func (t *Tracker) CompleteStage(intentID, stageName string, success bool, errorM
 
 			}
 
-
-
 			// Record component latency.
 
 			intent.ComponentLatencies[stageName] = stage.Duration
@@ -1545,15 +1222,11 @@ func (t *Tracker) CompleteStage(intentID, stageName string, success bool, errorM
 
 			}
 
-
-
 			break
 
 		}
 
 	}
-
-
 
 	// Clear current stage.
 
@@ -1562,8 +1235,6 @@ func (t *Tracker) CompleteStage(intentID, stageName string, success bool, errorM
 		intent.CurrentStage = ""
 
 	}
-
-
 
 	t.logger.DebugWithContext("Completed processing stage",
 
@@ -1574,16 +1245,11 @@ func (t *Tracker) CompleteStage(intentID, stageName string, success bool, errorM
 		"success", success,
 
 		"error", errorMsg,
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // RecordQueueMetrics records queue depth and latency metrics.
 
@@ -1595,13 +1261,9 @@ func (t *Tracker) RecordQueueMetrics(queueName string, depth int, latency time.D
 
 	}
 
-
-
 	t.queueMonitor.mu.Lock()
 
 	defer t.queueMonitor.mu.Unlock()
-
-
 
 	queue, exists := t.queueMonitor.queues[queueName]
 
@@ -1609,17 +1271,14 @@ func (t *Tracker) RecordQueueMetrics(queueName string, depth int, latency time.D
 
 		queue = &QueueMetrics{
 
-			Name:    queueName,
+			Name: queueName,
 
 			Latency: NewCircularBuffer(1000),
-
 		}
 
 		t.queueMonitor.queues[queueName] = queue
 
 	}
-
-
 
 	queue.Depth.Store(int64(depth))
 
@@ -1627,15 +1286,11 @@ func (t *Tracker) RecordQueueMetrics(queueName string, depth int, latency time.D
 
 	queue.Latency.Add(float64(latency.Milliseconds()))
 
-
-
 	// Update Prometheus metrics.
 
 	t.metrics.QueueDepth.WithLabelValues(queueName, "default").Set(float64(depth))
 
 	t.metrics.QueueLatency.WithLabelValues(queueName).Observe(latency.Seconds())
-
-
 
 	// Check threshold violations.
 
@@ -1648,14 +1303,11 @@ func (t *Tracker) RecordQueueMetrics(queueName string, depth int, latency time.D
 			"depth", depth,
 
 			"threshold", t.queueMonitor.threshold,
-
 		)
 
 	}
 
 }
-
-
 
 // GetActiveIntents returns a snapshot of currently active intents.
 
@@ -1664,8 +1316,6 @@ func (t *Tracker) GetActiveIntents() map[string]*IntentExecution {
 	t.intentsMu.RLock()
 
 	defer t.intentsMu.RUnlock()
-
-
 
 	// Return a copy to avoid race conditions.
 
@@ -1677,53 +1327,50 @@ func (t *Tracker) GetActiveIntents() map[string]*IntentExecution {
 
 		intentCopy := IntentExecution{
 
-			ID:                 intent.ID,
+			ID: intent.ID,
 
-			IntentType:         intent.IntentType,
+			IntentType: intent.IntentType,
 
-			UserID:             intent.UserID,
+			UserID: intent.UserID,
 
-			RequestID:          intent.RequestID,
+			RequestID: intent.RequestID,
 
-			StartTime:          intent.StartTime,
+			StartTime: intent.StartTime,
 
-			EndTime:            intent.EndTime,
+			EndTime: intent.EndTime,
 
-			TotalDuration:      intent.TotalDuration,
+			TotalDuration: intent.TotalDuration,
 
-			TraceID:            intent.TraceID,
+			TraceID: intent.TraceID,
 
-			SpanID:             intent.SpanID,
+			SpanID: intent.SpanID,
 
 			ComponentLatencies: make(map[string]time.Duration),
 
-			ComponentErrors:    make(map[string]error),
+			ComponentErrors: make(map[string]error),
 
-			ComponentStatus:    make(map[string]ComponentStatus),
+			ComponentStatus: make(map[string]ComponentStatus),
 
-			Stages:             make([]*ProcessingStage, len(intent.Stages)),
+			Stages: make([]*ProcessingStage, len(intent.Stages)),
 
-			CurrentStage:       intent.CurrentStage,
+			CurrentStage: intent.CurrentStage,
 
-			Status:             intent.Status,
+			Status: intent.Status,
 
-			Success:            intent.Success,
+			Success: intent.Success,
 
-			ErrorDetails:       intent.ErrorDetails,
+			ErrorDetails: intent.ErrorDetails,
 
-			QueuedAt:           intent.QueuedAt,
+			QueuedAt: intent.QueuedAt,
 
-			QueueDepth:         intent.QueueDepth,
+			QueueDepth: intent.QueueDepth,
 
-			QueueLatency:       intent.QueueLatency,
+			QueueLatency: intent.QueueLatency,
 
-			BusinessImpact:     intent.BusinessImpact,
+			BusinessImpact: intent.BusinessImpact,
 
-			CriticalPath:       intent.CriticalPath,
-
+			CriticalPath: intent.CriticalPath,
 		}
-
-
 
 		// Deep copy maps and slices.
 
@@ -1747,21 +1394,15 @@ func (t *Tracker) GetActiveIntents() map[string]*IntentExecution {
 
 		copy(intentCopy.Stages, intent.Stages)
 
-
-
 		intent.mu.RUnlock()
 
 		result[id] = &intentCopy
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // GetIntentStatus returns the current status of a specific intent.
 
@@ -1771,8 +1412,6 @@ func (t *Tracker) GetIntentStatus(intentID string) (*IntentExecution, error) {
 
 	defer t.intentsMu.RUnlock()
 
-
-
 	intent, exists := t.activeIntents[intentID]
 
 	if !exists {
@@ -1781,65 +1420,58 @@ func (t *Tracker) GetIntentStatus(intentID string) (*IntentExecution, error) {
 
 	}
 
-
-
 	// Return a copy.
 
 	intent.mu.RLock()
 
 	defer intent.mu.RUnlock()
 
-
-
 	intentCopy := IntentExecution{
 
-		ID:                 intent.ID,
+		ID: intent.ID,
 
-		IntentType:         intent.IntentType,
+		IntentType: intent.IntentType,
 
-		UserID:             intent.UserID,
+		UserID: intent.UserID,
 
-		RequestID:          intent.RequestID,
+		RequestID: intent.RequestID,
 
-		StartTime:          intent.StartTime,
+		StartTime: intent.StartTime,
 
-		EndTime:            intent.EndTime,
+		EndTime: intent.EndTime,
 
-		TotalDuration:      intent.TotalDuration,
+		TotalDuration: intent.TotalDuration,
 
-		TraceID:            intent.TraceID,
+		TraceID: intent.TraceID,
 
-		SpanID:             intent.SpanID,
+		SpanID: intent.SpanID,
 
 		ComponentLatencies: make(map[string]time.Duration),
 
-		ComponentErrors:    make(map[string]error),
+		ComponentErrors: make(map[string]error),
 
-		ComponentStatus:    make(map[string]ComponentStatus),
+		ComponentStatus: make(map[string]ComponentStatus),
 
-		Stages:             make([]*ProcessingStage, len(intent.Stages)),
+		Stages: make([]*ProcessingStage, len(intent.Stages)),
 
-		CurrentStage:       intent.CurrentStage,
+		CurrentStage: intent.CurrentStage,
 
-		Status:             intent.Status,
+		Status: intent.Status,
 
-		Success:            intent.Success,
+		Success: intent.Success,
 
-		ErrorDetails:       intent.ErrorDetails,
+		ErrorDetails: intent.ErrorDetails,
 
-		QueuedAt:           intent.QueuedAt,
+		QueuedAt: intent.QueuedAt,
 
-		QueueDepth:         intent.QueueDepth,
+		QueueDepth: intent.QueueDepth,
 
-		QueueLatency:       intent.QueueLatency,
+		QueueLatency: intent.QueueLatency,
 
-		BusinessImpact:     intent.BusinessImpact,
+		BusinessImpact: intent.BusinessImpact,
 
-		CriticalPath:       intent.CriticalPath,
-
+		CriticalPath: intent.CriticalPath,
 	}
-
-
 
 	// Deep copy maps and slices.
 
@@ -1863,13 +1495,9 @@ func (t *Tracker) GetIntentStatus(intentID string) (*IntentExecution, error) {
 
 	copy(intentCopy.Stages, intent.Stages)
 
-
-
 	return &intentCopy, nil
 
 }
-
-
 
 // GetTrackerStats returns current tracker statistics.
 
@@ -1881,51 +1509,40 @@ func (t *Tracker) GetTrackerStats() TrackerStats {
 
 	t.intentsMu.RUnlock()
 
-
-
 	return TrackerStats{
 
-		ActiveIntents:  activeCount,
+		ActiveIntents: activeCount,
 
-		TotalTracked:   t.trackingCount.Load(),
+		TotalTracked: t.trackingCount.Load(),
 
 		TotalCompleted: t.completionCount.Load(),
 
-		TotalErrors:    t.errorCount.Load(),
+		TotalErrors: t.errorCount.Load(),
 
-		TotalTimeouts:  t.timeoutCount.Load(),
-
+		TotalTimeouts: t.timeoutCount.Load(),
 	}
 
 }
 
-
-
 // TrackerStats contains tracker performance statistics.
 
 type TrackerStats struct {
+	ActiveIntents int `json:"active_intents"`
 
-	ActiveIntents  int    `json:"active_intents"`
-
-	TotalTracked   uint64 `json:"total_tracked"`
+	TotalTracked uint64 `json:"total_tracked"`
 
 	TotalCompleted uint64 `json:"total_completed"`
 
-	TotalErrors    uint64 `json:"total_errors"`
+	TotalErrors uint64 `json:"total_errors"`
 
-	TotalTimeouts  uint64 `json:"total_timeouts"`
-
+	TotalTimeouts uint64 `json:"total_timeouts"`
 }
-
-
 
 // runCleanupLoop performs periodic cleanup of expired intent tracking data.
 
 func (t *Tracker) runCleanupLoop(ctx context.Context) {
 
 	defer t.wg.Done()
-
-
 
 	for {
 
@@ -1949,8 +1566,6 @@ func (t *Tracker) runCleanupLoop(ctx context.Context) {
 
 }
 
-
-
 // performCleanup removes expired and timed-out intent tracking data.
 
 func (t *Tracker) performCleanup() {
@@ -1965,23 +1580,15 @@ func (t *Tracker) performCleanup() {
 
 	}()
 
-
-
 	now := time.Now()
 
 	timeoutThreshold := now.Add(-t.config.TrackingTimeout)
-
-
 
 	t.intentsMu.Lock()
 
 	defer t.intentsMu.Unlock()
 
-
-
 	expiredIntents := make([]string, 0)
-
-
 
 	for intentID, intent := range t.activeIntents {
 
@@ -1999,13 +1606,9 @@ func (t *Tracker) performCleanup() {
 
 			intent.mu.Unlock()
 
-
-
 			expiredIntents = append(expiredIntents, intentID)
 
 			t.timeoutCount.Add(1)
-
-
 
 			// Record timeout metrics.
 
@@ -2017,13 +1620,8 @@ func (t *Tracker) performCleanup() {
 
 			}
 
-
-
 			t.metrics.IntentDuration.WithLabelValues(intent.IntentType, "timeout", criticalPathStr).
-
 				Observe(intent.TotalDuration.Seconds())
-
-
 
 			t.logger.WarnWithContext("Intent tracking timed out",
 
@@ -2034,14 +1632,11 @@ func (t *Tracker) performCleanup() {
 				"duration", intent.TotalDuration,
 
 				"timeout_threshold", t.config.TrackingTimeout,
-
 			)
 
 		}
 
 	}
-
-
 
 	// Remove expired intents.
 
@@ -2053,8 +1648,6 @@ func (t *Tracker) performCleanup() {
 
 	}
 
-
-
 	if len(expiredIntents) > 0 {
 
 		t.logger.InfoWithContext("Cleaned up expired intents", "count", len(expiredIntents))
@@ -2063,21 +1656,15 @@ func (t *Tracker) performCleanup() {
 
 }
 
-
-
 // updateMetrics updates tracker performance metrics.
 
 func (t *Tracker) updateMetrics(ctx context.Context) {
 
 	defer t.wg.Done()
 
-
-
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2101,8 +1688,6 @@ func (t *Tracker) updateMetrics(ctx context.Context) {
 
 }
 
-
-
 // updatePerformanceMetrics updates performance and resource usage metrics.
 
 func (t *Tracker) updatePerformanceMetrics() {
@@ -2115,15 +1700,11 @@ func (t *Tracker) updatePerformanceMetrics() {
 
 	t.intentsMu.RUnlock()
 
-
-
 	// Estimate memory usage: ~1KB per active intent.
 
 	estimatedMemory := activeCount * 1024
 
 	t.metrics.MemoryUsage.Set(float64(estimatedMemory))
-
-
 
 	// Update queue throughput.
 
@@ -2141,13 +1722,9 @@ func (t *Tracker) updatePerformanceMetrics() {
 
 	t.queueMonitor.mu.RUnlock()
 
-
-
 	t.metrics.QueueThroughput.Set(totalThroughput / 30.0) // Per second over 30s window
 
 }
-
-
 
 // recordComponentLatency records latency for a specific component.
 
@@ -2157,8 +1734,6 @@ func (t *Tracker) recordComponentLatency(component, intentType string, latency t
 
 	defer t.componentMu.Unlock()
 
-
-
 	tracker, exists := t.componentLatency[component]
 
 	if !exists {
@@ -2167,17 +1742,14 @@ func (t *Tracker) recordComponentLatency(component, intentType string, latency t
 
 			componentName: component,
 
-			measurements:  NewCircularBuffer(1000),
+			measurements: NewCircularBuffer(1000),
 
-			quantiles:     NewQuantileEstimator(),
-
+			quantiles: NewQuantileEstimator(),
 		}
 
 		t.componentLatency[component] = tracker
 
 	}
-
-
 
 	latencyMs := float64(latency.Milliseconds())
 
@@ -2185,13 +1757,9 @@ func (t *Tracker) recordComponentLatency(component, intentType string, latency t
 
 	tracker.quantiles.AddObservation(latencyMs)
 
-
-
 	// Record Prometheus metrics.
 
 	t.metrics.ComponentLatency.WithLabelValues(component, intentType).Observe(latency.Seconds())
-
-
 
 	// Check for SLO violations.
 
@@ -2200,8 +1768,6 @@ func (t *Tracker) recordComponentLatency(component, intentType string, latency t
 		tracker.violationCount.Add(1)
 
 		t.metrics.ComponentErrors.WithLabelValues(component, "timeout", "medium").Inc()
-
-
 
 		t.logger.WarnWithContext("Component latency SLO violation",
 
@@ -2212,14 +1778,11 @@ func (t *Tracker) recordComponentLatency(component, intentType string, latency t
 			"latency", latency,
 
 			"slo_target", timeout,
-
 		)
 
 	}
 
 }
-
-
 
 // categorizeError categorizes and records an error for impact analysis.
 
@@ -2229,19 +1792,13 @@ func (t *Tracker) categorizeError(errorDetails *IntentError) {
 
 	defer t.errorCategorizer.mu.Unlock()
 
-
-
 	// Determine error category.
 
 	category := t.determineErrorCategory(errorDetails)
 
-
-
 	if cat, exists := t.errorCategorizer.categories[category]; exists {
 
 		cat.Count.Add(1)
-
-
 
 		// Update Prometheus metrics.
 
@@ -2253,8 +1810,6 @@ func (t *Tracker) categorizeError(errorDetails *IntentError) {
 
 		}
 
-
-
 		t.metrics.ErrorsByCategory.WithLabelValues(category, cat.Severity, retryableStr).Inc()
 
 		t.metrics.ErrorImpact.WithLabelValues(errorDetails.Type).Observe(cat.Impact)
@@ -2263,15 +1818,11 @@ func (t *Tracker) categorizeError(errorDetails *IntentError) {
 
 }
 
-
-
 // determineErrorCategory determines the category of an error.
 
 func (t *Tracker) determineErrorCategory(errorDetails *IntentError) string {
 
 	errorType := errorDetails.Type
-
-
 
 	// Simple categorization logic - in production this would be more sophisticated.
 
@@ -2301,8 +1852,6 @@ func (t *Tracker) determineErrorCategory(errorDetails *IntentError) string {
 
 }
 
-
-
 // calculateBusinessImpact calculates the business impact score for an intent.
 
 func (t *Tracker) calculateBusinessImpact(intentType, userID string) float64 {
@@ -2310,8 +1859,6 @@ func (t *Tracker) calculateBusinessImpact(intentType, userID string) float64 {
 	// Simplified business impact calculation.
 
 	baseImpact := 0.5 // Default impact
-
-
 
 	// Adjust based on intent type.
 
@@ -2335,8 +1882,6 @@ func (t *Tracker) calculateBusinessImpact(intentType, userID string) float64 {
 
 	}
 
-
-
 	// Adjust based on user type (simplified).
 
 	if userID != "" && len(userID) > 0 {
@@ -2351,13 +1896,9 @@ func (t *Tracker) calculateBusinessImpact(intentType, userID string) float64 {
 
 	}
 
-
-
 	return math.Min(baseImpact, 1.0)
 
 }
-
-
 
 // isCriticalPath determines if an intent is on the critical path.
 
@@ -2372,10 +1913,7 @@ func (t *Tracker) isCriticalPath(intentType string) bool {
 		"security-update",
 
 		"incident-response",
-
 	}
-
-
 
 	for _, criticalType := range criticalTypes {
 
@@ -2387,13 +1925,9 @@ func (t *Tracker) isCriticalPath(intentType string) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // getUserType determines the user type for metrics.
 
@@ -2404,8 +1938,6 @@ func (t *Tracker) getUserType(userID string) string {
 		return "anonymous"
 
 	}
-
-
 
 	// Simplified user type detection.
 
@@ -2433,13 +1965,9 @@ func (t *Tracker) getUserType(userID string) string {
 
 	}
 
-
-
 	return "unknown"
 
 }
-
-
 
 // Helper function to check if a string contains any of the given substrings.
 
@@ -2466,4 +1994,3 @@ func contains(str string, substrings ...string) bool {
 	return false
 
 }
-

@@ -32,49 +32,29 @@ package disaster
 
 import (
 	"archive/tar"
-
 	"compress/gzip"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"log/slog"
-
 	"net/http"
-
 	"os"
-
 	"path/filepath"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-
 	"github.com/aws/aws-sdk-go-v2/config"
-
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	corev1 "k8s.io/api/core/v1"
-
 	"k8s.io/apimachinery/pkg/api/errors"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/client-go/dynamic"
-
 	"k8s.io/client-go/kubernetes"
 )
 

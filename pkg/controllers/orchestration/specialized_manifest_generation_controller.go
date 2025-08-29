@@ -28,128 +28,84 @@ limitations under the License.
 
 */
 
-
-
-
 package orchestration
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"strings"
-
 	"sync"
-
 	"text/template"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
 
-
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/apimachinery/pkg/util/yaml"
-
 	"k8s.io/client-go/tools/record"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // SpecializedManifestGenerationController handles Kubernetes manifest generation.
 
 type SpecializedManifestGenerationController struct {
-
 	client.Client
 
-	Scheme   *runtime.Scheme
+	Scheme *runtime.Scheme
 
 	Recorder record.EventRecorder
 
-	Logger   logr.Logger
-
-
+	Logger logr.Logger
 
 	// Manifest generation services.
 
-	TemplateEngine       *KubernetesTemplateEngine
+	TemplateEngine *KubernetesTemplateEngine
 
-	ManifestValidator    *ManifestValidator
+	ManifestValidator *ManifestValidator
 
-	PolicyEnforcer       *ManifestPolicyEnforcer
+	PolicyEnforcer *ManifestPolicyEnforcer
 
-	ManifestOptimizer    *ManifestOptimizer
+	ManifestOptimizer *ManifestOptimizer
 
-	HelmIntegration      *HelmManifestIntegration
+	HelmIntegration *HelmManifestIntegration
 
 	KustomizeIntegration *KustomizeManifestIntegration
 
-
-
 	// Configuration.
 
-	Config      ManifestGenerationConfig
+	Config ManifestGenerationConfig
 
-	Templates   map[string]*ManifestTemplate
+	Templates map[string]*ManifestTemplate
 
 	PolicyRules []*ManifestPolicyRule
-
-
 
 	// Internal state.
 
 	activeGeneration sync.Map // map[string]*GenerationSession
 
-	manifestCache    *ManifestCache
+	manifestCache *ManifestCache
 
-	metrics          *ManifestGenerationMetrics
-
-
+	metrics *ManifestGenerationMetrics
 
 	// Health and lifecycle.
 
-	started      bool
+	started bool
 
-	stopChan     chan struct{}
+	stopChan chan struct{}
 
 	healthStatus interfaces.HealthStatus
 
-	mutex        sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ManifestGenerationConfig holds configuration for manifest generation.
 
@@ -159,351 +115,274 @@ type ManifestGenerationConfig struct {
 
 	TemplateDirectory string `json:"templateDirectory"`
 
-	DefaultNamespace  string `json:"defaultNamespace"`
+	DefaultNamespace string `json:"defaultNamespace"`
 
-	EnableHelm        bool   `json:"enableHelm"`
+	EnableHelm bool `json:"enableHelm"`
 
-	EnableKustomize   bool   `json:"enableKustomize"`
-
-
+	EnableKustomize bool `json:"enableKustomize"`
 
 	// Validation settings.
 
 	ValidateManifests bool `json:"validateManifests"`
 
-	DryRunValidation  bool `json:"dryRunValidation"`
+	DryRunValidation bool `json:"dryRunValidation"`
 
-	SchemaValidation  bool `json:"schemaValidation"`
-
-
+	SchemaValidation bool `json:"schemaValidation"`
 
 	// Optimization settings.
 
 	OptimizeManifests bool `json:"optimizeManifests"`
 
-	MinifyManifests   bool `json:"minifyManifests"`
+	MinifyManifests bool `json:"minifyManifests"`
 
-	RemoveDuplicates  bool `json:"removeDuplicates"`
-
-
+	RemoveDuplicates bool `json:"removeDuplicates"`
 
 	// Policy enforcement.
 
-	EnforcePolicies  bool `json:"enforcePolicies"`
+	EnforcePolicies bool `json:"enforcePolicies"`
 
 	SecurityPolicies bool `json:"securityPolicies"`
 
 	ResourcePolicies bool `json:"resourcePolicies"`
 
-
-
 	// Cache configuration.
 
-	CacheEnabled    bool          `json:"cacheEnabled"`
+	CacheEnabled bool `json:"cacheEnabled"`
 
-	CacheTTL        time.Duration `json:"cacheTtl"`
+	CacheTTL time.Duration `json:"cacheTtl"`
 
-	MaxCacheEntries int           `json:"maxCacheEntries"`
-
-
+	MaxCacheEntries int `json:"maxCacheEntries"`
 
 	// Generation parameters.
 
-	MaxGenerationTime   time.Duration `json:"maxGenerationTime"`
+	MaxGenerationTime time.Duration `json:"maxGenerationTime"`
 
-	ParallelGeneration  bool          `json:"parallelGeneration"`
+	ParallelGeneration bool `json:"parallelGeneration"`
 
-	ConcurrentTemplates int           `json:"concurrentTemplates"`
-
+	ConcurrentTemplates int `json:"concurrentTemplates"`
 }
-
-
 
 // KubernetesTemplateEngine handles template processing.
 
 type KubernetesTemplateEngine struct {
+	logger logr.Logger
 
-	logger          logr.Logger
+	templates map[string]*template.Template
 
-	templates       map[string]*template.Template
-
-	functions       template.FuncMap
+	functions template.FuncMap
 
 	globalVariables map[string]interface{}
-
 }
-
-
 
 // ManifestTemplate defines a template for generating manifests.
 
 type ManifestTemplate struct {
+	Name string `json:"name"`
 
-	Name         string                 `json:"name"`
+	Type string `json:"type"` // deployment, service, configmap, etc.
 
-	Type         string                 `json:"type"`     // deployment, service, configmap, etc.
+	Category string `json:"category"` // 5GC, RAN, monitoring, etc.
 
-	Category     string                 `json:"category"` // 5GC, RAN, monitoring, etc.
+	Template string `json:"template"`
 
-	Template     string                 `json:"template"`
+	Variables []string `json:"variables"`
 
-	Variables    []string               `json:"variables"`
+	Dependencies []string `json:"dependencies"`
 
-	Dependencies []string               `json:"dependencies"`
-
-	Metadata     map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // ManifestPolicyRule defines policy enforcement rules.
 
 type ManifestPolicyRule struct {
+	ID string `json:"id"`
 
-	ID              string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name            string                 `json:"name"`
+	Type string `json:"type"` // security, resource, compliance
 
-	Type            string                 `json:"type"`     // security, resource, compliance
+	Severity string `json:"severity"` // info, warning, error
 
-	Severity        string                 `json:"severity"` // info, warning, error
+	Rule ManifestPolicyCheck `json:"rule"`
 
-	Rule            ManifestPolicyCheck    `json:"rule"`
+	ViolationAction string `json:"violationAction"` // reject, modify, warn
 
-	ViolationAction string                 `json:"violationAction"` // reject, modify, warn
-
-	Metadata        map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // ManifestPolicyCheck defines policy checking logic.
 
 type ManifestPolicyCheck func(manifest map[string]interface{}) error
 
-
-
 // GenerationSession tracks active manifest generation.
 
 type GenerationSession struct {
+	IntentID string `json:"intentId"`
 
-	IntentID      string    `json:"intentId"`
+	CorrelationID string `json:"correlationId"`
 
-	CorrelationID string    `json:"correlationId"`
+	StartTime time.Time `json:"startTime"`
 
-	StartTime     time.Time `json:"startTime"`
+	Status string `json:"status"`
 
-	Status        string    `json:"status"`
+	Progress float64 `json:"progress"`
 
-	Progress      float64   `json:"progress"`
-
-	CurrentStep   string    `json:"currentStep"`
-
-
+	CurrentStep string `json:"currentStep"`
 
 	// Input data.
 
-	ResourcePlan     *interfaces.ResourcePlan            `json:"resourcePlan"`
+	ResourcePlan *interfaces.ResourcePlan `json:"resourcePlan"`
 
 	NetworkFunctions []interfaces.PlannedNetworkFunction `json:"networkFunctions"`
 
-
-
 	// Generation results.
 
-	GeneratedManifests map[string]string      `json:"generatedManifests"`
+	GeneratedManifests map[string]string `json:"generatedManifests"`
 
-	ManifestMetadata   map[string]interface{} `json:"manifestMetadata"`
+	ManifestMetadata map[string]interface{} `json:"manifestMetadata"`
 
-	ValidationResults  []ValidationResult     `json:"validationResults"`
+	ValidationResults []ValidationResult `json:"validationResults"`
 
-	PolicyResults      []PolicyResult         `json:"policyResults"`
-
-
+	PolicyResults []PolicyResult `json:"policyResults"`
 
 	// Error handling.
 
-	Errors    []string `json:"errors"`
+	Errors []string `json:"errors"`
 
-	Warnings  []string `json:"warnings"`
+	Warnings []string `json:"warnings"`
 
-	LastError string   `json:"lastError"`
-
-
+	LastError string `json:"lastError"`
 
 	// Performance tracking.
 
 	Metrics GenerationSessionMetrics `json:"metrics"`
 
-
-
 	mutex sync.RWMutex
-
 }
-
-
 
 // GenerationSessionMetrics tracks metrics for generation session.
 
 type GenerationSessionMetrics struct {
-
 	TemplateProcessingTime time.Duration `json:"templateProcessingTime"`
 
-	ValidationTime         time.Duration `json:"validationTime"`
+	ValidationTime time.Duration `json:"validationTime"`
 
-	PolicyCheckTime        time.Duration `json:"policyCheckTime"`
+	PolicyCheckTime time.Duration `json:"policyCheckTime"`
 
-	OptimizationTime       time.Duration `json:"optimizationTime"`
+	OptimizationTime time.Duration `json:"optimizationTime"`
 
-	TotalTime              time.Duration `json:"totalTime"`
+	TotalTime time.Duration `json:"totalTime"`
 
-	ManifestsGenerated     int           `json:"manifestsGenerated"`
+	ManifestsGenerated int `json:"manifestsGenerated"`
 
-	TemplatesProcessed     int           `json:"templatesProcessed"`
+	TemplatesProcessed int `json:"templatesProcessed"`
 
-	ValidationErrors       int           `json:"validationErrors"`
+	ValidationErrors int `json:"validationErrors"`
 
-	PolicyViolations       int           `json:"policyViolations"`
+	PolicyViolations int `json:"policyViolations"`
 
-	CacheHit               bool          `json:"cacheHit"`
-
+	CacheHit bool `json:"cacheHit"`
 }
-
-
 
 // ManifestGenerationMetrics tracks overall controller metrics.
 
 type ManifestGenerationMetrics struct {
+	TotalGenerated int64 `json:"totalGenerated"`
 
-	TotalGenerated             int64         `json:"totalGenerated"`
+	SuccessfulGenerated int64 `json:"successfulGenerated"`
 
-	SuccessfulGenerated        int64         `json:"successfulGenerated"`
+	FailedGenerated int64 `json:"failedGenerated"`
 
-	FailedGenerated            int64         `json:"failedGenerated"`
+	AverageGenerationTime time.Duration `json:"averageGenerationTime"`
 
-	AverageGenerationTime      time.Duration `json:"averageGenerationTime"`
-
-	AverageManifestsPerRequest int64         `json:"averageManifestsPerRequest"`
-
-
+	AverageManifestsPerRequest int64 `json:"averageManifestsPerRequest"`
 
 	// Per template metrics.
 
 	TemplateMetrics map[string]*TemplateGenerationMetrics `json:"templateMetrics"`
 
-
-
 	// Validation and policy metrics.
 
 	ValidationSuccessRate float64 `json:"validationSuccessRate"`
 
-	PolicyComplianceRate  float64 `json:"policyComplianceRate"`
-
-
+	PolicyComplianceRate float64 `json:"policyComplianceRate"`
 
 	// Cache metrics.
 
-	CacheHitRate          float64 `json:"cacheHitRate"`
+	CacheHitRate float64 `json:"cacheHitRate"`
 
-	TemplateCompileErrors int64   `json:"templateCompileErrors"`
-
-
+	TemplateCompileErrors int64 `json:"templateCompileErrors"`
 
 	LastUpdated time.Time `json:"lastUpdated"`
 
-	mutex       sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // TemplateGenerationMetrics tracks metrics per template.
 
 type TemplateGenerationMetrics struct {
+	TemplateName string `json:"templateName"`
 
-	TemplateName          string        `json:"templateName"`
+	UsageCount int64 `json:"usageCount"`
 
-	UsageCount            int64         `json:"usageCount"`
-
-	SuccessRate           float64       `json:"successRate"`
+	SuccessRate float64 `json:"successRate"`
 
 	AverageProcessingTime time.Duration `json:"averageProcessingTime"`
 
-	LastUsed              time.Time     `json:"lastUsed"`
-
+	LastUsed time.Time `json:"lastUsed"`
 }
-
-
 
 // ManifestCache provides caching for generated manifests.
 
 type ManifestCache struct {
+	entries map[string]*ManifestCacheEntry
 
-	entries    map[string]*ManifestCacheEntry
+	mutex sync.RWMutex
 
-	mutex      sync.RWMutex
-
-	ttl        time.Duration
+	ttl time.Duration
 
 	maxEntries int
-
 }
-
-
 
 // ManifestCacheEntry represents a cached manifest.
 
 type ManifestCacheEntry struct {
+	Manifests map[string]string `json:"manifests"`
 
-	Manifests map[string]string      `json:"manifests"`
+	Metadata map[string]interface{} `json:"metadata"`
 
-	Metadata  map[string]interface{} `json:"metadata"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time              `json:"timestamp"`
+	HitCount int64 `json:"hitCount"`
 
-	HitCount  int64                  `json:"hitCount"`
-
-	PlanHash  string                 `json:"planHash"`
-
+	PlanHash string `json:"planHash"`
 }
-
-
 
 // ValidationResult represents manifest validation result.
 
 type ValidationResult struct {
+	ManifestName string `json:"manifestName"`
 
-	ManifestName string   `json:"manifestName"`
+	Valid bool `json:"valid"`
 
-	Valid        bool     `json:"valid"`
+	Errors []string `json:"errors"`
 
-	Errors       []string `json:"errors"`
-
-	Warnings     []string `json:"warnings"`
-
+	Warnings []string `json:"warnings"`
 }
-
-
 
 // PolicyResult represents policy enforcement result.
 
 type PolicyResult struct {
+	PolicyID string `json:"policyId"`
 
-	PolicyID   string   `json:"policyId"`
+	PolicyName string `json:"policyName"`
 
-	PolicyName string   `json:"policyName"`
-
-	Compliant  bool     `json:"compliant"`
+	Compliant bool `json:"compliant"`
 
 	Violations []string `json:"violations"`
 
-	Action     string   `json:"action"`
-
+	Action string `json:"action"`
 }
-
-
 
 // NewSpecializedManifestGenerationController creates a new manifest generation controller.
 
@@ -511,31 +390,21 @@ func NewSpecializedManifestGenerationController(mgr ctrl.Manager, config Manifes
 
 	logger := log.FromContext(context.Background()).WithName("specialized-manifest-generator")
 
-
-
 	// Initialize template engine.
 
 	templateEngine := NewKubernetesTemplateEngine(logger, config)
-
-
 
 	// Initialize manifest validator.
 
 	manifestValidator := NewManifestValidator(logger, config)
 
-
-
 	// Initialize policy enforcer.
 
 	policyEnforcer := NewManifestPolicyEnforcer(logger, config)
 
-
-
 	// Initialize manifest optimizer.
 
 	manifestOptimizer := NewManifestOptimizer(logger, config)
-
-
 
 	// Initialize integrations.
 
@@ -543,15 +412,11 @@ func NewSpecializedManifestGenerationController(mgr ctrl.Manager, config Manifes
 
 	var kustomizeIntegration *KustomizeManifestIntegration
 
-
-
 	if config.EnableHelm {
 
 		helmIntegration = NewHelmManifestIntegration(logger)
 
 	}
-
-
 
 	if config.EnableKustomize {
 
@@ -559,61 +424,47 @@ func NewSpecializedManifestGenerationController(mgr ctrl.Manager, config Manifes
 
 	}
 
-
-
 	controller := &SpecializedManifestGenerationController{
 
-		Client:   mgr.GetClient(),
+		Client: mgr.GetClient(),
 
-		Scheme:   mgr.GetScheme(),
+		Scheme: mgr.GetScheme(),
 
 		Recorder: mgr.GetEventRecorderFor("specialized-manifest-generator"),
 
-		Logger:   logger,
+		Logger: logger,
 
+		TemplateEngine: templateEngine,
 
+		ManifestValidator: manifestValidator,
 
-		TemplateEngine:       templateEngine,
+		PolicyEnforcer: policyEnforcer,
 
-		ManifestValidator:    manifestValidator,
+		ManifestOptimizer: manifestOptimizer,
 
-		PolicyEnforcer:       policyEnforcer,
-
-		ManifestOptimizer:    manifestOptimizer,
-
-		HelmIntegration:      helmIntegration,
+		HelmIntegration: helmIntegration,
 
 		KustomizeIntegration: kustomizeIntegration,
 
+		Config: config,
 
-
-		Config:      config,
-
-		Templates:   initializeManifestTemplates(),
+		Templates: initializeManifestTemplates(),
 
 		PolicyRules: initializeManifestPolicyRules(),
 
-
-
-		metrics:  NewManifestGenerationMetrics(),
+		metrics: NewManifestGenerationMetrics(),
 
 		stopChan: make(chan struct{}),
 
-
-
 		healthStatus: interfaces.HealthStatus{
 
-			Status:      "Healthy",
+			Status: "Healthy",
 
-			Message:     "Manifest generation controller initialized",
+			Message: "Manifest generation controller initialized",
 
 			LastChecked: time.Now(),
-
 		},
-
 	}
-
-
 
 	// Initialize cache if enabled.
 
@@ -621,23 +472,18 @@ func NewSpecializedManifestGenerationController(mgr ctrl.Manager, config Manifes
 
 		controller.manifestCache = &ManifestCache{
 
-			entries:    make(map[string]*ManifestCacheEntry),
+			entries: make(map[string]*ManifestCacheEntry),
 
-			ttl:        config.CacheTTL,
+			ttl: config.CacheTTL,
 
 			maxEntries: config.MaxCacheEntries,
-
 		}
 
 	}
 
-
-
 	return controller, nil
 
 }
-
-
 
 // ProcessPhase implements the PhaseController interface.
 
@@ -647,15 +493,12 @@ func (c *SpecializedManifestGenerationController) ProcessPhase(ctx context.Conte
 
 		return interfaces.ProcessingResult{
 
-			Success:      false,
+			Success: false,
 
 			ErrorMessage: fmt.Sprintf("unsupported phase: %s", phase),
-
 		}, nil
 
 	}
-
-
 
 	// Extract resource plan from intent status extensions.
 
@@ -665,17 +508,14 @@ func (c *SpecializedManifestGenerationController) ProcessPhase(ctx context.Conte
 
 		return interfaces.ProcessingResult{
 
-			Success:      false,
+			Success: false,
 
 			ErrorMessage: "invalid or missing resource plan data",
 
-			ErrorCode:    "INVALID_INPUT",
-
+			ErrorCode: "INVALID_INPUT",
 		}, nil
 
 	}
-
-
 
 	// Convert RawExtension to map.
 
@@ -685,17 +525,14 @@ func (c *SpecializedManifestGenerationController) ProcessPhase(ctx context.Conte
 
 		return interfaces.ProcessingResult{
 
-			Success:      false,
+			Success: false,
 
 			ErrorMessage: fmt.Sprintf("failed to unmarshal resource plan: %v", err),
 
-			ErrorCode:    "UNMARSHAL_ERROR",
-
+			ErrorCode: "UNMARSHAL_ERROR",
 		}, nil
 
 	}
-
-
 
 	// Convert to ResourcePlan struct.
 
@@ -705,23 +542,18 @@ func (c *SpecializedManifestGenerationController) ProcessPhase(ctx context.Conte
 
 		return interfaces.ProcessingResult{
 
-			Success:      false,
+			Success: false,
 
 			ErrorMessage: fmt.Sprintf("failed to convert resource plan: %v", err),
 
-			ErrorCode:    "CONVERSION_ERROR",
-
+			ErrorCode: "CONVERSION_ERROR",
 		}, nil
 
 	}
 
-
-
 	return c.generateManifestsFromResourcePlan(ctx, intent, resourcePlan)
 
 }
-
-
 
 // GenerateManifests implements the ManifestGenerator interface.
 
@@ -735,15 +567,11 @@ func (c *SpecializedManifestGenerationController) GenerateManifests(ctx context.
 
 	}
 
-
-
 	if !result.Success {
 
 		return nil, fmt.Errorf("manifest generation failed: %s", result.ErrorMessage)
 
 	}
-
-
 
 	if manifests, ok := result.Data["generatedManifests"].(map[string]string); ok {
 
@@ -751,21 +579,15 @@ func (c *SpecializedManifestGenerationController) GenerateManifests(ctx context.
 
 	}
 
-
-
 	return nil, fmt.Errorf("invalid manifests in result")
 
 }
-
-
 
 // generateManifestsFromResourcePlan performs manifest generation based on resource plan.
 
 func (c *SpecializedManifestGenerationController) generateManifestsFromResourcePlan(ctx context.Context, intent *nephoranv1.NetworkIntent, resourcePlan *interfaces.ResourcePlan) (interfaces.ProcessingResult, error) {
 
 	startTime := time.Now()
-
-
 
 	intentID := "unknown"
 
@@ -775,43 +597,34 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 	}
 
-
-
 	c.Logger.Info("Generating manifests from resource plan", "intentId", intentID)
-
-
 
 	// Create generation session.
 
 	session := &GenerationSession{
 
-		IntentID:         intentID,
+		IntentID: intentID,
 
-		CorrelationID:    fmt.Sprintf("manifest-%s-%d", intentID, startTime.Unix()),
+		CorrelationID: fmt.Sprintf("manifest-%s-%d", intentID, startTime.Unix()),
 
-		StartTime:        startTime,
+		StartTime: startTime,
 
-		Status:           "generating",
+		Status: "generating",
 
-		Progress:         0.0,
+		Progress: 0.0,
 
-		CurrentStep:      "initialization",
+		CurrentStep: "initialization",
 
-		ResourcePlan:     resourcePlan,
+		ResourcePlan: resourcePlan,
 
 		NetworkFunctions: resourcePlan.NetworkFunctions,
-
 	}
-
-
 
 	// Store session for tracking.
 
 	c.activeGeneration.Store(intentID, session)
 
 	defer c.activeGeneration.Delete(intentID)
-
-
 
 	// Check cache first.
 
@@ -825,11 +638,9 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 			c.updateMetrics(session, true, time.Since(startTime))
 
-
-
 			return interfaces.ProcessingResult{
 
-				Success:   true,
+				Success: true,
 
 				NextPhase: interfaces.PhaseGitOpsCommit,
 
@@ -837,27 +648,22 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 					"generatedManifests": cached.Manifests,
 
-					"manifestMetadata":   cached.Metadata,
+					"manifestMetadata": cached.Metadata,
 
-					"correlationId":      session.CorrelationID,
-
+					"correlationId": session.CorrelationID,
 				},
 
 				Metrics: map[string]float64{
 
 					"generation_time_ms": float64(time.Since(startTime).Milliseconds()),
 
-					"cache_hit":          1,
-
+					"cache_hit": 1,
 				},
-
 			}, nil
 
 		}
 
 	}
-
-
 
 	// Generate manifests for each network function.
 
@@ -880,12 +686,11 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 			return interfaces.ProcessingResult{
 
-				Success:      false,
+				Success: false,
 
 				ErrorMessage: err.Error(),
 
-				ErrorCode:    "GENERATION_ERROR",
-
+				ErrorCode: "GENERATION_ERROR",
 			}, nil
 
 		}
@@ -906,12 +711,11 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 			return interfaces.ProcessingResult{
 
-				Success:      false,
+				Success: false,
 
 				ErrorMessage: err.Error(),
 
-				ErrorCode:    "GENERATION_ERROR",
-
+				ErrorCode: "GENERATION_ERROR",
 			}, nil
 
 		}
@@ -922,8 +726,6 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 	}
 
-
-
 	session.Metrics.TemplateProcessingTime = time.Since(templateStartTime)
 
 	session.GeneratedManifests = generatedManifests
@@ -931,8 +733,6 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 	session.ManifestMetadata = manifestMetadata
 
 	session.Metrics.ManifestsGenerated = len(generatedManifests)
-
-
 
 	// Validate manifests if enabled.
 
@@ -942,8 +742,6 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 		validationStartTime := time.Now()
 
-
-
 		if err := c.ValidateManifests(ctx, generatedManifests); err != nil {
 
 			session.addWarning(fmt.Sprintf("manifest validation failed: %v", err))
@@ -952,13 +750,9 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 		}
 
-
-
 		session.Metrics.ValidationTime = time.Since(validationStartTime)
 
 	}
-
-
 
 	// Enforce policies if enabled.
 
@@ -967,8 +761,6 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 		session.updateProgress(0.7, "enforcing_policies")
 
 		policyStartTime := time.Now()
-
-
 
 		policyResults, modifiedManifests, err := c.enforcePolicies(ctx, generatedManifests)
 
@@ -990,8 +782,6 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 			}
 
-
-
 			// Check for policy violations.
 
 			for _, result := range policyResults {
@@ -1008,13 +798,9 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 		}
 
-
-
 		session.Metrics.PolicyCheckTime = time.Since(policyStartTime)
 
 	}
-
-
 
 	// Optimize manifests if enabled.
 
@@ -1023,8 +809,6 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 		session.updateProgress(0.8, "optimizing_manifests")
 
 		optimizationStartTime := time.Now()
-
-
 
 		optimizedManifests, err := c.OptimizeManifests(ctx, generatedManifests)
 
@@ -1042,13 +826,9 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 		}
 
-
-
 		session.Metrics.OptimizationTime = time.Since(optimizationStartTime)
 
 	}
-
-
 
 	// Finalize.
 
@@ -1056,23 +836,18 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 	session.Metrics.TotalTime = time.Since(startTime)
 
-
-
 	// Create result.
 
 	resultData := map[string]interface{}{
 
 		"generatedManifests": generatedManifests,
 
-		"manifestMetadata":   manifestMetadata,
+		"manifestMetadata": manifestMetadata,
 
-		"correlationId":      session.CorrelationID,
+		"correlationId": session.CorrelationID,
 
-		"networkFunctions":   len(session.NetworkFunctions),
-
+		"networkFunctions": len(session.NetworkFunctions),
 	}
-
-
 
 	if len(session.ValidationResults) > 0 {
 
@@ -1086,65 +861,56 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 	}
 
-
-
 	result := interfaces.ProcessingResult{
 
-		Success:   true,
+		Success: true,
 
 		NextPhase: interfaces.PhaseGitOpsCommit,
 
-		Data:      resultData,
+		Data: resultData,
 
 		Metrics: map[string]float64{
 
-			"generation_time_ms":          float64(session.Metrics.TotalTime.Milliseconds()),
+			"generation_time_ms": float64(session.Metrics.TotalTime.Milliseconds()),
 
 			"template_processing_time_ms": float64(session.Metrics.TemplateProcessingTime.Milliseconds()),
 
-			"validation_time_ms":          float64(session.Metrics.ValidationTime.Milliseconds()),
+			"validation_time_ms": float64(session.Metrics.ValidationTime.Milliseconds()),
 
-			"policy_check_time_ms":        float64(session.Metrics.PolicyCheckTime.Milliseconds()),
+			"policy_check_time_ms": float64(session.Metrics.PolicyCheckTime.Milliseconds()),
 
-			"optimization_time_ms":        float64(session.Metrics.OptimizationTime.Milliseconds()),
+			"optimization_time_ms": float64(session.Metrics.OptimizationTime.Milliseconds()),
 
-			"manifests_generated":         float64(session.Metrics.ManifestsGenerated),
+			"manifests_generated": float64(session.Metrics.ManifestsGenerated),
 
-			"validation_errors":           float64(session.Metrics.ValidationErrors),
+			"validation_errors": float64(session.Metrics.ValidationErrors),
 
-			"policy_violations":           float64(session.Metrics.PolicyViolations),
-
+			"policy_violations": float64(session.Metrics.PolicyViolations),
 		},
 
 		Events: []interfaces.ProcessingEvent{
 
 			{
 
-				Timestamp:     time.Now(),
+				Timestamp: time.Now(),
 
-				EventType:     "ManifestsGenerated",
+				EventType: "ManifestsGenerated",
 
-				Message:       fmt.Sprintf("Generated %d manifests for %d network functions", len(generatedManifests), len(session.NetworkFunctions)),
+				Message: fmt.Sprintf("Generated %d manifests for %d network functions", len(generatedManifests), len(session.NetworkFunctions)),
 
 				CorrelationID: session.CorrelationID,
 
 				Data: map[string]interface{}{
 
-					"intentId":           intentID,
+					"intentId": intentID,
 
 					"manifestsGenerated": len(generatedManifests),
 
-					"generationTimeMs":   session.Metrics.TotalTime.Milliseconds(),
-
+					"generationTimeMs": session.Metrics.TotalTime.Milliseconds(),
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	// Cache result if enabled.
 
@@ -1154,13 +920,9 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 	}
 
-
-
 	// Update metrics.
 
 	c.updateMetrics(session, true, time.Since(startTime))
-
-
 
 	c.Logger.Info("Manifest generation completed successfully",
 
@@ -1170,13 +932,9 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 		"duration", time.Since(startTime))
 
-
-
 	return result, nil
 
 }
-
-
 
 // generateManifestsSequential generates manifests sequentially.
 
@@ -1186,15 +944,11 @@ func (c *SpecializedManifestGenerationController) generateManifestsSequential(ct
 
 	manifestMetadata := make(map[string]interface{})
 
-
-
 	for i, nf := range session.NetworkFunctions {
 
 		progress := 0.2 + (float64(i)/float64(len(session.NetworkFunctions)))*0.4 // 20% to 60%
 
 		session.updateProgress(progress, fmt.Sprintf("generating_manifest_%s", nf.Name))
-
-
 
 		manifests, metadata, err := c.generateNetworkFunctionManifests(ctx, &nf, session.ResourcePlan)
 
@@ -1204,8 +958,6 @@ func (c *SpecializedManifestGenerationController) generateManifestsSequential(ct
 
 		}
 
-
-
 		// Merge manifests.
 
 		for name, manifest := range manifests {
@@ -1213,8 +965,6 @@ func (c *SpecializedManifestGenerationController) generateManifestsSequential(ct
 			generatedManifests[name] = manifest
 
 		}
-
-
 
 		// Merge metadata.
 
@@ -1224,19 +974,13 @@ func (c *SpecializedManifestGenerationController) generateManifestsSequential(ct
 
 		}
 
-
-
 		session.Metrics.TemplatesProcessed++
 
 	}
 
-
-
 	return generatedManifests, manifestMetadata, nil
 
 }
-
-
 
 // generateManifestsParallel generates manifests in parallel.
 
@@ -1248,13 +992,9 @@ func (c *SpecializedManifestGenerationController) generateManifestsParallel(ctx 
 
 	errorChan := make(chan error, len(session.NetworkFunctions))
 
-
-
 	// Limit concurrency.
 
 	semaphore := make(chan struct{}, c.Config.ConcurrentTemplates)
-
-
 
 	// Generate manifests concurrently.
 
@@ -1262,11 +1002,9 @@ func (c *SpecializedManifestGenerationController) generateManifestsParallel(ctx 
 
 		go func(networkFunction interfaces.PlannedNetworkFunction) {
 
-			semaphore <- struct{}{}        // Acquire semaphore
+			semaphore <- struct{}{} // Acquire semaphore
 
 			defer func() { <-semaphore }() // Release semaphore
-
-
 
 			manifests, metadata, err := c.generateNetworkFunctionManifests(ctx, &networkFunction, session.ResourcePlan)
 
@@ -1278,23 +1016,18 @@ func (c *SpecializedManifestGenerationController) generateManifestsParallel(ctx 
 
 			}
 
-
-
 			resultChan <- &nfManifestResult{
 
-				NFName:    networkFunction.Name,
+				NFName: networkFunction.Name,
 
 				Manifests: manifests,
 
-				Metadata:  metadata,
-
+				Metadata: metadata,
 			}
 
 		}(nf)
 
 	}
-
-
 
 	// Collect results.
 
@@ -1303,8 +1036,6 @@ func (c *SpecializedManifestGenerationController) generateManifestsParallel(ctx 
 	manifestMetadata := make(map[string]interface{})
 
 	completedCount := 0
-
-
 
 	for completedCount < len(session.NetworkFunctions) {
 
@@ -1320,8 +1051,6 @@ func (c *SpecializedManifestGenerationController) generateManifestsParallel(ctx 
 
 			}
 
-
-
 			// Merge metadata.
 
 			for key, value := range result.Metadata {
@@ -1330,13 +1059,9 @@ func (c *SpecializedManifestGenerationController) generateManifestsParallel(ctx 
 
 			}
 
-
-
 			completedCount++
 
 			session.Metrics.TemplatesProcessed++
-
-
 
 			// Update progress.
 
@@ -1344,13 +1069,9 @@ func (c *SpecializedManifestGenerationController) generateManifestsParallel(ctx 
 
 			session.updateProgress(progress, fmt.Sprintf("completed_%d_of_%d_manifests", completedCount, len(session.NetworkFunctions)))
 
-
-
 		case err := <-errorChan:
 
 			return nil, nil, err
-
-
 
 		case <-ctx.Done():
 
@@ -1360,27 +1081,19 @@ func (c *SpecializedManifestGenerationController) generateManifestsParallel(ctx 
 
 	}
 
-
-
 	return generatedManifests, manifestMetadata, nil
 
 }
 
-
-
 // nfManifestResult holds result of network function manifest generation.
 
 type nfManifestResult struct {
+	NFName string `json:"nfName"`
 
-	NFName    string                 `json:"nfName"`
+	Manifests map[string]string `json:"manifests"`
 
-	Manifests map[string]string      `json:"manifests"`
-
-	Metadata  map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // generateNetworkFunctionManifests generates manifests for a single network function.
 
@@ -1390,13 +1103,9 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 
 	metadata := make(map[string]interface{})
 
-
-
 	// Prepare template variables.
 
 	templateVars := c.prepareTemplateVariables(nf, resourcePlan)
-
-
 
 	// Generate deployment manifest.
 
@@ -1410,8 +1119,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 
 			"type": "deployment",
 
-			"nf":   nf.Name,
-
+			"nf": nf.Name,
 		}
 
 	} else {
@@ -1419,8 +1127,6 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 		return nil, nil, fmt.Errorf("failed to generate deployment manifest: %w", err)
 
 	}
-
-
 
 	// Generate service manifest if ports are defined.
 
@@ -1436,8 +1142,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 
 				"type": "service",
 
-				"nf":   nf.Name,
-
+				"nf": nf.Name,
 			}
 
 		} else {
@@ -1447,8 +1152,6 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 		}
 
 	}
-
-
 
 	// Generate configmap manifest if configuration is present.
 
@@ -1464,8 +1167,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 
 				"type": "configmap",
 
-				"nf":   nf.Name,
-
+				"nf": nf.Name,
 			}
 
 		} else {
@@ -1475,8 +1177,6 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 		}
 
 	}
-
-
 
 	// Generate RBAC manifests for certain network functions.
 
@@ -1492,8 +1192,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 
 					"type": "rbac",
 
-					"nf":   nf.Name,
-
+					"nf": nf.Name,
 				}
 
 			}
@@ -1506,13 +1205,9 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 
 	}
 
-
-
 	return manifests, metadata, nil
 
 }
-
-
 
 // prepareTemplateVariables prepares variables for template processing.
 
@@ -1520,47 +1215,43 @@ func (c *SpecializedManifestGenerationController) prepareTemplateVariables(nf *i
 
 	return map[string]interface{}{
 
-		"NetworkFunction":   nf,
+		"NetworkFunction": nf,
 
-		"ResourcePlan":      resourcePlan,
+		"ResourcePlan": resourcePlan,
 
-		"Namespace":         c.Config.DefaultNamespace,
+		"Namespace": c.Config.DefaultNamespace,
 
-		"Name":              nf.Name,
+		"Name": nf.Name,
 
-		"Type":              nf.Type,
+		"Type": nf.Type,
 
-		"Image":             nf.Image,
+		"Image": nf.Image,
 
-		"Version":           nf.Version,
+		"Version": nf.Version,
 
-		"Replicas":          nf.Replicas,
+		"Replicas": nf.Replicas,
 
-		"Resources":         nf.Resources,
+		"Resources": nf.Resources,
 
-		"Ports":             nf.Ports,
+		"Ports": nf.Ports,
 
-		"Environment":       nf.Environment,
+		"Environment": nf.Environment,
 
-		"Configuration":     nf.Configuration,
+		"Configuration": nf.Configuration,
 
 		"DeploymentPattern": resourcePlan.DeploymentPattern,
 
 		"Labels": map[string]string{
 
-			"app.kubernetes.io/name":       nf.Name,
+			"app.kubernetes.io/name": nf.Name,
 
-			"app.kubernetes.io/component":  nf.Type,
+			"app.kubernetes.io/component": nf.Type,
 
 			"app.kubernetes.io/managed-by": "nephoran-intent-operator",
-
 		},
-
 	}
 
 }
-
-
 
 // requiresRBAC checks if network function requires RBAC.
 
@@ -1582,15 +1273,11 @@ func (c *SpecializedManifestGenerationController) requiresRBAC(nfType string) bo
 
 }
 
-
-
 // generateRBACManifests generates RBAC manifests.
 
 func (c *SpecializedManifestGenerationController) generateRBACManifests(nf *interfaces.PlannedNetworkFunction, templateVars map[string]interface{}) (map[string]string, error) {
 
 	rbacManifests := make(map[string]string)
-
-
 
 	// Generate service account.
 
@@ -1600,8 +1287,6 @@ func (c *SpecializedManifestGenerationController) generateRBACManifests(nf *inte
 
 	}
 
-
-
 	// Generate cluster role.
 
 	if crManifest, err := c.TemplateEngine.ProcessTemplate("clusterrole", nf.Type, templateVars); err == nil {
@@ -1609,8 +1294,6 @@ func (c *SpecializedManifestGenerationController) generateRBACManifests(nf *inte
 		rbacManifests[fmt.Sprintf("%s-clusterrole.yaml", nf.Name)] = crManifest
 
 	}
-
-
 
 	// Generate cluster role binding.
 
@@ -1620,13 +1303,9 @@ func (c *SpecializedManifestGenerationController) generateRBACManifests(nf *inte
 
 	}
 
-
-
 	return rbacManifests, nil
 
 }
-
-
 
 // convertToResourcePlan converts interface to ResourcePlan struct.
 
@@ -1635,8 +1314,6 @@ func (c *SpecializedManifestGenerationController) convertToResourcePlan(data map
 	// This is a simplified conversion - in practice, you'd use proper serialization.
 
 	plan := &interfaces.ResourcePlan{}
-
-
 
 	// Convert network functions.
 
@@ -1674,8 +1351,6 @@ func (c *SpecializedManifestGenerationController) convertToResourcePlan(data map
 
 	}
 
-
-
 	// Convert resource requirements.
 
 	if resourcesInterface, exists := data["resourceRequirements"]; exists {
@@ -1704,8 +1379,6 @@ func (c *SpecializedManifestGenerationController) convertToResourcePlan(data map
 
 	}
 
-
-
 	// Convert deployment pattern.
 
 	if pattern, exists := data["deploymentPattern"]; exists {
@@ -1714,13 +1387,9 @@ func (c *SpecializedManifestGenerationController) convertToResourcePlan(data map
 
 	}
 
-
-
 	return plan, nil
 
 }
-
-
 
 // ValidateManifests implements the ManifestGenerator interface.
 
@@ -1732,13 +1401,9 @@ func (c *SpecializedManifestGenerationController) ValidateManifests(ctx context.
 
 	}
 
-
-
 	return c.ManifestValidator.ValidateManifests(ctx, manifests)
 
 }
-
-
 
 // OptimizeManifests implements the ManifestGenerator interface.
 
@@ -1750,13 +1415,9 @@ func (c *SpecializedManifestGenerationController) OptimizeManifests(ctx context.
 
 	}
 
-
-
 	return c.ManifestOptimizer.OptimizeManifests(ctx, manifests)
 
 }
-
-
 
 // GetSupportedTemplates implements the ManifestGenerator interface.
 
@@ -1774,8 +1435,6 @@ func (c *SpecializedManifestGenerationController) GetSupportedTemplates() []stri
 
 }
 
-
-
 // enforcePolicies enforces manifest policies.
 
 func (c *SpecializedManifestGenerationController) enforcePolicies(ctx context.Context, manifests map[string]string) ([]PolicyResult, map[string]string, error) {
@@ -1786,17 +1445,11 @@ func (c *SpecializedManifestGenerationController) enforcePolicies(ctx context.Co
 
 	}
 
-
-
 	return c.PolicyEnforcer.EnforcePolicies(ctx, manifests, c.PolicyRules)
 
 }
 
-
-
 // Helper methods for session management.
-
-
 
 // updateProgress updates session progress.
 
@@ -1812,8 +1465,6 @@ func (s *GenerationSession) updateProgress(progress float64, step string) {
 
 }
 
-
-
 // addError adds error to session.
 
 func (s *GenerationSession) addError(errorMsg string) {
@@ -1828,8 +1479,6 @@ func (s *GenerationSession) addError(errorMsg string) {
 
 }
 
-
-
 // addWarning adds warning to session.
 
 func (s *GenerationSession) addWarning(warningMsg string) {
@@ -1842,11 +1491,7 @@ func (s *GenerationSession) addWarning(warningMsg string) {
 
 }
 
-
-
 // Cache management methods.
-
-
 
 // getCachedManifests retrieves cached manifests.
 
@@ -1858,13 +1503,9 @@ func (c *SpecializedManifestGenerationController) getCachedManifests(resourcePla
 
 	}
 
-
-
 	c.manifestCache.mutex.RLock()
 
 	defer c.manifestCache.mutex.RUnlock()
-
-
 
 	planHash := c.hashResourcePlan(resourcePlan)
 
@@ -1886,13 +1527,9 @@ func (c *SpecializedManifestGenerationController) getCachedManifests(resourcePla
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // cacheManifests stores manifests in cache.
 
@@ -1904,17 +1541,11 @@ func (c *SpecializedManifestGenerationController) cacheManifests(resourcePlan *i
 
 	}
 
-
-
 	c.manifestCache.mutex.Lock()
 
 	defer c.manifestCache.mutex.Unlock()
 
-
-
 	planHash := c.hashResourcePlan(resourcePlan)
-
-
 
 	// Check cache size limit.
 
@@ -1946,25 +1577,20 @@ func (c *SpecializedManifestGenerationController) cacheManifests(resourcePlan *i
 
 	}
 
-
-
 	c.manifestCache.entries[planHash] = &ManifestCacheEntry{
 
 		Manifests: manifests,
 
-		Metadata:  metadata,
+		Metadata: metadata,
 
 		Timestamp: time.Now(),
 
-		HitCount:  0,
+		HitCount: 0,
 
-		PlanHash:  planHash,
-
+		PlanHash: planHash,
 	}
 
 }
-
-
 
 // hashResourcePlan creates a hash for resource plan.
 
@@ -1973,8 +1599,6 @@ func (c *SpecializedManifestGenerationController) hashResourcePlan(resourcePlan 
 	// Simple hash based on key characteristics - in production, use proper hashing.
 
 	var hashComponents []string
-
-
 
 	for _, nf := range resourcePlan.NetworkFunctions {
 
@@ -1988,15 +1612,11 @@ func (c *SpecializedManifestGenerationController) hashResourcePlan(resourcePlan 
 
 	hashComponents = append(hashComponents, resourcePlan.ResourceRequirements.Memory)
 
-
-
 	combined := strings.Join(hashComponents, "|")
 
 	return fmt.Sprintf("manifest_%x", len(combined)+int(combined[0]))
 
 }
-
-
 
 // updateMetrics updates controller metrics.
 
@@ -2005,8 +1625,6 @@ func (c *SpecializedManifestGenerationController) updateMetrics(session *Generat
 	c.metrics.mutex.Lock()
 
 	defer c.metrics.mutex.Unlock()
-
-
 
 	c.metrics.TotalGenerated++
 
@@ -2019,8 +1637,6 @@ func (c *SpecializedManifestGenerationController) updateMetrics(session *Generat
 		c.metrics.FailedGenerated++
 
 	}
-
-
 
 	// Update average generation time.
 
@@ -2038,8 +1654,6 @@ func (c *SpecializedManifestGenerationController) updateMetrics(session *Generat
 
 	}
 
-
-
 	// Update average manifests per request.
 
 	if c.metrics.TotalGenerated > 0 {
@@ -2053,8 +1667,6 @@ func (c *SpecializedManifestGenerationController) updateMetrics(session *Generat
 		c.metrics.AverageManifestsPerRequest = int64(session.Metrics.ManifestsGenerated)
 
 	}
-
-
 
 	// Update validation success rate.
 
@@ -2078,8 +1690,6 @@ func (c *SpecializedManifestGenerationController) updateMetrics(session *Generat
 
 	}
 
-
-
 	// Update policy compliance rate.
 
 	if c.Config.EnforcePolicies && len(session.PolicyResults) > 0 {
@@ -2102,8 +1712,6 @@ func (c *SpecializedManifestGenerationController) updateMetrics(session *Generat
 
 	}
 
-
-
 	// Update cache hit rate.
 
 	if c.manifestCache != nil {
@@ -2122,8 +1730,6 @@ func (c *SpecializedManifestGenerationController) updateMetrics(session *Generat
 
 		c.manifestCache.mutex.RUnlock()
 
-
-
 		if totalRequests > 0 {
 
 			c.metrics.CacheHitRate = float64(cacheHits) / float64(totalRequests)
@@ -2132,13 +1738,9 @@ func (c *SpecializedManifestGenerationController) updateMetrics(session *Generat
 
 	}
 
-
-
 	c.metrics.LastUpdated = time.Now()
 
 }
-
-
 
 // NewManifestGenerationMetrics creates new metrics instance.
 
@@ -2147,16 +1749,11 @@ func NewManifestGenerationMetrics() *ManifestGenerationMetrics {
 	return &ManifestGenerationMetrics{
 
 		TemplateMetrics: make(map[string]*TemplateGenerationMetrics),
-
 	}
 
 }
 
-
-
 // Interface implementation methods.
-
-
 
 // GetPhaseStatus returns the status of a processing phase.
 
@@ -2169,8 +1766,6 @@ func (c *SpecializedManifestGenerationController) GetPhaseStatus(ctx context.Con
 		s.mutex.RLock()
 
 		defer s.mutex.RUnlock()
-
-
 
 		status := "Pending"
 
@@ -2190,13 +1785,11 @@ func (c *SpecializedManifestGenerationController) GetPhaseStatus(ctx context.Con
 
 		}
 
-
-
 		return &interfaces.PhaseStatus{
 
-			Phase:     interfaces.PhaseManifestGeneration,
+			Phase: interfaces.PhaseManifestGeneration,
 
-			Status:    status,
+			Status: status,
 
 			StartTime: &metav1.Time{Time: s.StartTime},
 
@@ -2204,47 +1797,38 @@ func (c *SpecializedManifestGenerationController) GetPhaseStatus(ctx context.Con
 
 			Metrics: map[string]float64{
 
-				"progress":                    s.Progress,
+				"progress": s.Progress,
 
 				"template_processing_time_ms": float64(s.Metrics.TemplateProcessingTime.Milliseconds()),
 
-				"validation_time_ms":          float64(s.Metrics.ValidationTime.Milliseconds()),
+				"validation_time_ms": float64(s.Metrics.ValidationTime.Milliseconds()),
 
-				"policy_check_time_ms":        float64(s.Metrics.PolicyCheckTime.Milliseconds()),
+				"policy_check_time_ms": float64(s.Metrics.PolicyCheckTime.Milliseconds()),
 
-				"manifests_generated":         float64(s.Metrics.ManifestsGenerated),
+				"manifests_generated": float64(s.Metrics.ManifestsGenerated),
 
-				"validation_errors":           float64(s.Metrics.ValidationErrors),
+				"validation_errors": float64(s.Metrics.ValidationErrors),
 
-				"policy_violations":           float64(s.Metrics.PolicyViolations),
-
+				"policy_violations": float64(s.Metrics.PolicyViolations),
 			},
-
 		}, nil
 
 	}
 
-
-
 	return &interfaces.PhaseStatus{
 
-		Phase:  interfaces.PhaseManifestGeneration,
+		Phase: interfaces.PhaseManifestGeneration,
 
 		Status: "Pending",
-
 	}, nil
 
 }
-
-
 
 // HandlePhaseError handles errors during phase processing.
 
 func (c *SpecializedManifestGenerationController) HandlePhaseError(ctx context.Context, intentID string, err error) error {
 
 	c.Logger.Error(err, "Manifest generation error", "intentId", intentID)
-
-
 
 	if session, exists := c.activeGeneration.Load(intentID); exists {
 
@@ -2254,13 +1838,9 @@ func (c *SpecializedManifestGenerationController) HandlePhaseError(ctx context.C
 
 	}
 
-
-
 	return err
 
 }
-
-
 
 // GetDependencies returns phase dependencies.
 
@@ -2269,8 +1849,6 @@ func (c *SpecializedManifestGenerationController) GetDependencies() []interfaces
 	return []interfaces.ProcessingPhase{interfaces.PhaseResourcePlanning}
 
 }
-
-
 
 // GetBlockedPhases returns phases blocked by this controller.
 
@@ -2281,26 +1859,19 @@ func (c *SpecializedManifestGenerationController) GetBlockedPhases() []interface
 		interfaces.PhaseGitOpsCommit,
 
 		interfaces.PhaseDeploymentVerification,
-
 	}
 
 }
-
-
 
 // SetupWithManager sets up the controller with the Manager.
 
 func (c *SpecializedManifestGenerationController) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
-
 		For(&nephoranv1.NetworkIntent{}).
-
 		Complete(c)
 
 }
-
-
 
 // Start starts the controller.
 
@@ -2310,19 +1881,13 @@ func (c *SpecializedManifestGenerationController) Start(ctx context.Context) err
 
 	defer c.mutex.Unlock()
 
-
-
 	if c.started {
 
 		return fmt.Errorf("controller already started")
 
 	}
 
-
-
 	c.Logger.Info("Starting specialized manifest generation controller")
-
-
 
 	// Start background goroutines.
 
@@ -2330,27 +1895,20 @@ func (c *SpecializedManifestGenerationController) Start(ctx context.Context) err
 
 	go c.healthMonitoring(ctx)
 
-
-
 	c.started = true
 
 	c.healthStatus = interfaces.HealthStatus{
 
-		Status:      "Healthy",
+		Status: "Healthy",
 
-		Message:     "Manifest generation controller started successfully",
+		Message: "Manifest generation controller started successfully",
 
 		LastChecked: time.Now(),
-
 	}
-
-
 
 	return nil
 
 }
-
-
 
 // Stop stops the controller.
 
@@ -2360,19 +1918,13 @@ func (c *SpecializedManifestGenerationController) Stop(ctx context.Context) erro
 
 	defer c.mutex.Unlock()
 
-
-
 	if !c.started {
 
 		return nil
 
 	}
 
-
-
 	c.Logger.Info("Stopping specialized manifest generation controller")
-
-
 
 	close(c.stopChan)
 
@@ -2380,21 +1932,16 @@ func (c *SpecializedManifestGenerationController) Stop(ctx context.Context) erro
 
 	c.healthStatus = interfaces.HealthStatus{
 
-		Status:      "Stopped",
+		Status: "Stopped",
 
-		Message:     "Controller stopped",
+		Message: "Controller stopped",
 
 		LastChecked: time.Now(),
-
 	}
-
-
 
 	return nil
 
 }
-
-
 
 // GetHealthStatus returns the health status of the controller.
 
@@ -2404,35 +1951,28 @@ func (c *SpecializedManifestGenerationController) GetHealthStatus(ctx context.Co
 
 	defer c.mutex.RUnlock()
 
-
-
 	c.healthStatus.Metrics = map[string]interface{}{
 
-		"totalGenerated":        c.metrics.TotalGenerated,
+		"totalGenerated": c.metrics.TotalGenerated,
 
-		"successRate":           c.getSuccessRate(),
+		"successRate": c.getSuccessRate(),
 
 		"averageGenerationTime": c.metrics.AverageGenerationTime.Milliseconds(),
 
 		"validationSuccessRate": c.metrics.ValidationSuccessRate,
 
-		"policyComplianceRate":  c.metrics.PolicyComplianceRate,
+		"policyComplianceRate": c.metrics.PolicyComplianceRate,
 
-		"cacheHitRate":          c.metrics.CacheHitRate,
+		"cacheHitRate": c.metrics.CacheHitRate,
 
-		"activeGeneration":      c.getActiveGenerationCount(),
-
+		"activeGeneration": c.getActiveGenerationCount(),
 	}
 
 	c.healthStatus.LastChecked = time.Now()
 
-
-
 	return c.healthStatus, nil
 
 }
-
-
 
 // GetMetrics returns controller metrics.
 
@@ -2442,45 +1982,38 @@ func (c *SpecializedManifestGenerationController) GetMetrics(ctx context.Context
 
 	defer c.metrics.mutex.RUnlock()
 
-
-
 	return map[string]float64{
 
-		"total_generated":               float64(c.metrics.TotalGenerated),
+		"total_generated": float64(c.metrics.TotalGenerated),
 
-		"successful_generated":          float64(c.metrics.SuccessfulGenerated),
+		"successful_generated": float64(c.metrics.SuccessfulGenerated),
 
-		"failed_generated":              float64(c.metrics.FailedGenerated),
+		"failed_generated": float64(c.metrics.FailedGenerated),
 
-		"success_rate":                  c.getSuccessRate(),
+		"success_rate": c.getSuccessRate(),
 
-		"average_generation_time_ms":    float64(c.metrics.AverageGenerationTime.Milliseconds()),
+		"average_generation_time_ms": float64(c.metrics.AverageGenerationTime.Milliseconds()),
 
 		"average_manifests_per_request": float64(c.metrics.AverageManifestsPerRequest),
 
-		"validation_success_rate":       c.metrics.ValidationSuccessRate,
+		"validation_success_rate": c.metrics.ValidationSuccessRate,
 
-		"policy_compliance_rate":        c.metrics.PolicyComplianceRate,
+		"policy_compliance_rate": c.metrics.PolicyComplianceRate,
 
-		"cache_hit_rate":                c.metrics.CacheHitRate,
+		"cache_hit_rate": c.metrics.CacheHitRate,
 
-		"template_compile_errors":       float64(c.metrics.TemplateCompileErrors),
+		"template_compile_errors": float64(c.metrics.TemplateCompileErrors),
 
-		"active_generation":             float64(c.getActiveGenerationCount()),
-
+		"active_generation": float64(c.getActiveGenerationCount()),
 	}, nil
 
 }
-
-
 
 // Reconcile implements the controller reconciliation logic.
 
 func (c *SpecializedManifestGenerationController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	logger := log.FromContext(ctx)
-
-
 
 	// Get the NetworkIntent.
 
@@ -2502,8 +2035,6 @@ func (c *SpecializedManifestGenerationController) Reconcile(ctx context.Context,
 
 	}
 
-
-
 	// Check if this intent should be processed by this controller.
 
 	// Convert Phase to ProcessingPhase for comparison.
@@ -2516,8 +2047,6 @@ func (c *SpecializedManifestGenerationController) Reconcile(ctx context.Context,
 
 	}
 
-
-
 	// Process the intent.
 
 	result, err := c.ProcessPhase(ctx, &intent, interfaces.PhaseManifestGeneration)
@@ -2529,8 +2058,6 @@ func (c *SpecializedManifestGenerationController) Reconcile(ctx context.Context,
 		return ctrl.Result{RequeueAfter: time.Minute * 1}, err
 
 	}
-
-
 
 	// Update intent status based on result.
 
@@ -2564,8 +2091,6 @@ func (c *SpecializedManifestGenerationController) Reconcile(ctx context.Context,
 
 	}
 
-
-
 	// Update the intent status.
 
 	if err := c.Status().Update(ctx, &intent); err != nil {
@@ -2576,21 +2101,13 @@ func (c *SpecializedManifestGenerationController) Reconcile(ctx context.Context,
 
 	}
 
-
-
 	logger.Info("Manifest generation completed", "intentId", intent.Name, "success", result.Success)
-
-
 
 	return ctrl.Result{}, nil
 
 }
 
-
-
 // Helper methods.
-
-
 
 // backgroundCleanup performs background cleanup tasks.
 
@@ -2599,8 +2116,6 @@ func (c *SpecializedManifestGenerationController) backgroundCleanup(ctx context.
 	ticker := time.NewTicker(10 * time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2612,13 +2127,9 @@ func (c *SpecializedManifestGenerationController) backgroundCleanup(ctx context.
 
 			c.cleanupExpiredCache()
 
-
-
 		case <-c.stopChan:
 
 			return
-
-
 
 		case <-ctx.Done():
 
@@ -2629,8 +2140,6 @@ func (c *SpecializedManifestGenerationController) backgroundCleanup(ctx context.
 	}
 
 }
-
-
 
 // healthMonitoring performs periodic health monitoring.
 
@@ -2640,8 +2149,6 @@ func (c *SpecializedManifestGenerationController) healthMonitoring(ctx context.C
 
 	defer ticker.Stop()
 
-
-
 	for {
 
 		select {
@@ -2650,13 +2157,9 @@ func (c *SpecializedManifestGenerationController) healthMonitoring(ctx context.C
 
 			c.performHealthCheck()
 
-
-
 		case <-c.stopChan:
 
 			return
-
-
 
 		case <-ctx.Done():
 
@@ -2668,15 +2171,11 @@ func (c *SpecializedManifestGenerationController) healthMonitoring(ctx context.C
 
 }
 
-
-
 // cleanupExpiredSessions removes expired generation sessions.
 
 func (c *SpecializedManifestGenerationController) cleanupExpiredSessions() {
 
 	expiredSessions := make([]string, 0)
-
-
 
 	c.activeGeneration.Range(func(key, value interface{}) bool {
 
@@ -2692,8 +2191,6 @@ func (c *SpecializedManifestGenerationController) cleanupExpiredSessions() {
 
 	})
 
-
-
 	for _, sessionID := range expiredSessions {
 
 		c.activeGeneration.Delete(sessionID)
@@ -2703,8 +2200,6 @@ func (c *SpecializedManifestGenerationController) cleanupExpiredSessions() {
 	}
 
 }
-
-
 
 // cleanupExpiredCache removes expired cache entries.
 
@@ -2716,13 +2211,9 @@ func (c *SpecializedManifestGenerationController) cleanupExpiredCache() {
 
 	}
 
-
-
 	c.manifestCache.mutex.Lock()
 
 	defer c.manifestCache.mutex.Unlock()
-
-
 
 	expiredKeys := make([]string, 0)
 
@@ -2736,15 +2227,11 @@ func (c *SpecializedManifestGenerationController) cleanupExpiredCache() {
 
 	}
 
-
-
 	for _, key := range expiredKeys {
 
 		delete(c.manifestCache.entries, key)
 
 	}
-
-
 
 	if len(expiredKeys) > 0 {
 
@@ -2754,8 +2241,6 @@ func (c *SpecializedManifestGenerationController) cleanupExpiredCache() {
 
 }
 
-
-
 // performHealthCheck performs controller health checking.
 
 func (c *SpecializedManifestGenerationController) performHealthCheck() {
@@ -2764,19 +2249,13 @@ func (c *SpecializedManifestGenerationController) performHealthCheck() {
 
 	defer c.mutex.Unlock()
 
-
-
 	successRate := c.getSuccessRate()
 
 	activeCount := c.getActiveGenerationCount()
 
-
-
 	status := "Healthy"
 
 	message := "Manifest generation controller operating normally"
-
-
 
 	if successRate < 0.8 && c.metrics.TotalGenerated > 10 {
 
@@ -2786,8 +2265,6 @@ func (c *SpecializedManifestGenerationController) performHealthCheck() {
 
 	}
 
-
-
 	if activeCount > 20 { // Threshold for too many active sessions
 
 		status = "Degraded"
@@ -2795,8 +2272,6 @@ func (c *SpecializedManifestGenerationController) performHealthCheck() {
 		message = fmt.Sprintf("High active generation count: %d", activeCount)
 
 	}
-
-
 
 	if c.metrics.ValidationSuccessRate < 0.9 && c.Config.ValidateManifests {
 
@@ -2806,33 +2281,27 @@ func (c *SpecializedManifestGenerationController) performHealthCheck() {
 
 	}
 
-
-
 	c.healthStatus = interfaces.HealthStatus{
 
-		Status:      status,
+		Status: status,
 
-		Message:     message,
+		Message: message,
 
 		LastChecked: time.Now(),
 
 		Metrics: map[string]interface{}{
 
-			"successRate":           successRate,
+			"successRate": successRate,
 
-			"activeGeneration":      activeCount,
+			"activeGeneration": activeCount,
 
-			"totalGenerated":        c.metrics.TotalGenerated,
+			"totalGenerated": c.metrics.TotalGenerated,
 
 			"validationSuccessRate": c.metrics.ValidationSuccessRate,
-
 		},
-
 	}
 
 }
-
-
 
 // getSuccessRate calculates success rate.
 
@@ -2847,8 +2316,6 @@ func (c *SpecializedManifestGenerationController) getSuccessRate() float64 {
 	return float64(c.metrics.SuccessfulGenerated) / float64(c.metrics.TotalGenerated)
 
 }
-
-
 
 // getActiveGenerationCount returns count of active generation sessions.
 
@@ -2868,11 +2335,7 @@ func (c *SpecializedManifestGenerationController) getActiveGenerationCount() int
 
 }
 
-
-
 // Helper service implementations.
-
-
 
 // NewKubernetesTemplateEngine creates a new template engine.
 
@@ -2880,9 +2343,9 @@ func NewKubernetesTemplateEngine(logger logr.Logger, config ManifestGenerationCo
 
 	engine := &KubernetesTemplateEngine{
 
-		logger:          logger,
+		logger: logger,
 
-		templates:       make(map[string]*template.Template),
+		templates: make(map[string]*template.Template),
 
 		globalVariables: make(map[string]interface{}),
 
@@ -2892,33 +2355,23 @@ func NewKubernetesTemplateEngine(logger logr.Logger, config ManifestGenerationCo
 
 			"lower": strings.ToLower,
 
-			"join":  strings.Join,
-
+			"join": strings.Join,
 		},
-
 	}
-
-
 
 	// Load and compile templates.
 
 	engine.loadTemplates()
 
-
-
 	return engine
 
 }
-
-
 
 // ProcessTemplate processes a template with given variables.
 
 func (e *KubernetesTemplateEngine) ProcessTemplate(templateType, nfType string, variables map[string]interface{}) (string, error) {
 
 	templateName := fmt.Sprintf("%s-%s", templateType, nfType)
-
-
 
 	// Try specific template first.
 
@@ -2940,8 +2393,6 @@ func (e *KubernetesTemplateEngine) ProcessTemplate(templateType, nfType string, 
 
 	}
 
-
-
 	// Merge global variables with provided variables.
 
 	mergedVars := make(map[string]interface{})
@@ -2958,8 +2409,6 @@ func (e *KubernetesTemplateEngine) ProcessTemplate(templateType, nfType string, 
 
 	}
 
-
-
 	// Execute template.
 
 	var buf bytes.Buffer
@@ -2970,13 +2419,9 @@ func (e *KubernetesTemplateEngine) ProcessTemplate(templateType, nfType string, 
 
 	}
 
-
-
 	return buf.String(), nil
 
 }
-
-
 
 // loadTemplates loads all templates.
 
@@ -2985,8 +2430,6 @@ func (e *KubernetesTemplateEngine) loadTemplates() {
 	// Define basic templates inline for simplicity.
 
 	// In production, these would be loaded from files.
-
-
 
 	// Deployment template.
 
@@ -3088,8 +2531,6 @@ spec:
 
         {{- end }}`
 
-
-
 	// Service template.
 
 	serviceTemplate := `apiVersion: v1
@@ -3132,8 +2573,6 @@ spec:
 
   {{- end }}`
 
-
-
 	// ConfigMap template.
 
 	configMapTemplate := `apiVersion: v1
@@ -3162,8 +2601,6 @@ data:
 
   {{- end }}`
 
-
-
 	// Parse and store templates.
 
 	e.parseAndStoreTemplate("deployment-generic", deploymentTemplate)
@@ -3173,8 +2610,6 @@ data:
 	e.parseAndStoreTemplate("configmap-generic", configMapTemplate)
 
 }
-
-
 
 // parseAndStoreTemplate parses and stores a template.
 
@@ -3194,19 +2629,13 @@ func (e *KubernetesTemplateEngine) parseAndStoreTemplate(name, templateStr strin
 
 }
 
-
-
 // ManifestValidator handles manifest validation.
 
 type ManifestValidator struct {
-
 	logger logr.Logger
 
 	config ManifestGenerationConfig
-
 }
-
-
 
 // NewManifestValidator creates a new manifest validator.
 
@@ -3217,12 +2646,9 @@ func NewManifestValidator(logger logr.Logger, config ManifestGenerationConfig) *
 		logger: logger,
 
 		config: config,
-
 	}
 
 }
-
-
 
 // ValidateManifests validates a set of manifests.
 
@@ -3242,8 +2668,6 @@ func (v *ManifestValidator) ValidateManifests(ctx context.Context, manifests map
 
 }
 
-
-
 // validateSingleManifest validates a single manifest.
 
 func (v *ManifestValidator) validateSingleManifest(name, manifest string) error {
@@ -3259,8 +2683,6 @@ func (v *ManifestValidator) validateSingleManifest(name, manifest string) error 
 		return fmt.Errorf("invalid YAML: %w", err)
 
 	}
-
-
 
 	// Check required fields.
 
@@ -3282,25 +2704,17 @@ func (v *ManifestValidator) validateSingleManifest(name, manifest string) error 
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // ManifestPolicyEnforcer handles policy enforcement.
 
 type ManifestPolicyEnforcer struct {
-
 	logger logr.Logger
 
 	config ManifestGenerationConfig
-
 }
-
-
 
 // NewManifestPolicyEnforcer creates a new policy enforcer.
 
@@ -3311,12 +2725,9 @@ func NewManifestPolicyEnforcer(logger logr.Logger, config ManifestGenerationConf
 		logger: logger,
 
 		config: config,
-
 	}
 
 }
-
-
 
 // EnforcePolicies enforces policies on manifests.
 
@@ -3325,8 +2736,6 @@ func (e *ManifestPolicyEnforcer) EnforcePolicies(ctx context.Context, manifests 
 	var results []PolicyResult
 
 	modifiedManifests := make(map[string]string)
-
-
 
 	for manifestName, manifestContent := range manifests {
 
@@ -3342,23 +2751,18 @@ func (e *ManifestPolicyEnforcer) EnforcePolicies(ctx context.Context, manifests 
 
 		}
 
-
-
 		// Check each policy rule.
 
 		for _, rule := range rules {
 
 			result := PolicyResult{
 
-				PolicyID:   rule.ID,
+				PolicyID: rule.ID,
 
 				PolicyName: rule.Name,
 
-				Compliant:  true,
-
+				Compliant: true,
 			}
-
-
 
 			if err := rule.Rule(manifestObj); err != nil {
 
@@ -3370,33 +2774,23 @@ func (e *ManifestPolicyEnforcer) EnforcePolicies(ctx context.Context, manifests 
 
 			}
 
-
-
 			results = append(results, result)
 
 		}
 
 	}
 
-
-
 	return results, modifiedManifests, nil
 
 }
 
-
-
 // ManifestOptimizer handles manifest optimization.
 
 type ManifestOptimizer struct {
-
 	logger logr.Logger
 
 	config ManifestGenerationConfig
-
 }
-
-
 
 // NewManifestOptimizer creates a new manifest optimizer.
 
@@ -3407,20 +2801,15 @@ func NewManifestOptimizer(logger logr.Logger, config ManifestGenerationConfig) *
 		logger: logger,
 
 		config: config,
-
 	}
 
 }
-
-
 
 // OptimizeManifests optimizes a set of manifests.
 
 func (o *ManifestOptimizer) OptimizeManifests(ctx context.Context, manifests map[string]string) (map[string]string, error) {
 
 	optimized := make(map[string]string)
-
-
 
 	for name, manifest := range manifests {
 
@@ -3434,13 +2823,9 @@ func (o *ManifestOptimizer) OptimizeManifests(ctx context.Context, manifests map
 
 	}
 
-
-
 	return optimized, nil
 
 }
-
-
 
 // minifyManifest removes unnecessary whitespace.
 
@@ -3451,8 +2836,6 @@ func (o *ManifestOptimizer) minifyManifest(manifest string) string {
 	lines := strings.Split(manifest, "\n")
 
 	var minified []string
-
-
 
 	for _, line := range lines {
 
@@ -3466,23 +2849,15 @@ func (o *ManifestOptimizer) minifyManifest(manifest string) string {
 
 	}
 
-
-
 	return strings.Join(minified, "\n")
 
 }
 
-
-
 // Helm and Kustomize integration stubs.
 
 type HelmManifestIntegration struct {
-
 	logger logr.Logger
-
 }
-
-
 
 // NewHelmManifestIntegration performs newhelmmanifestintegration operation.
 
@@ -3492,17 +2867,11 @@ func NewHelmManifestIntegration(logger logr.Logger) *HelmManifestIntegration {
 
 }
 
-
-
 // KustomizeManifestIntegration represents a kustomizemanifestintegration.
 
 type KustomizeManifestIntegration struct {
-
 	logger logr.Logger
-
 }
-
-
 
 // NewKustomizeManifestIntegration performs newkustomizemanifestintegration operation.
 
@@ -3512,11 +2881,7 @@ func NewKustomizeManifestIntegration(logger logr.Logger) *KustomizeManifestInteg
 
 }
 
-
-
 // Initialize helper functions.
-
-
 
 // initializeManifestTemplates initializes manifest templates.
 
@@ -3524,55 +2889,42 @@ func initializeManifestTemplates() map[string]*ManifestTemplate {
 
 	templates := make(map[string]*ManifestTemplate)
 
-
-
 	templates["deployment-generic"] = &ManifestTemplate{
 
-		Name:      "deployment-generic",
+		Name: "deployment-generic",
 
-		Type:      "deployment",
+		Type: "deployment",
 
-		Category:  "kubernetes",
+		Category: "kubernetes",
 
 		Variables: []string{"Name", "Image", "Version", "Replicas", "Resources", "Ports", "Environment"},
-
 	}
-
-
 
 	templates["service-generic"] = &ManifestTemplate{
 
-		Name:      "service-generic",
+		Name: "service-generic",
 
-		Type:      "service",
+		Type: "service",
 
-		Category:  "kubernetes",
+		Category: "kubernetes",
 
 		Variables: []string{"Name", "Ports"},
-
 	}
-
-
 
 	templates["configmap-generic"] = &ManifestTemplate{
 
-		Name:      "configmap-generic",
+		Name: "configmap-generic",
 
-		Type:      "configmap",
+		Type: "configmap",
 
-		Category:  "kubernetes",
+		Category: "kubernetes",
 
 		Variables: []string{"Name", "Configuration"},
-
 	}
-
-
 
 	return templates
 
 }
-
-
 
 // initializeManifestPolicyRules initializes policy rules.
 
@@ -3580,17 +2932,15 @@ func initializeManifestPolicyRules() []*ManifestPolicyRule {
 
 	var rules []*ManifestPolicyRule
 
-
-
 	// Security policy - require resource limits.
 
 	rules = append(rules, &ManifestPolicyRule{
 
-		ID:       "resource-limits-required",
+		ID: "resource-limits-required",
 
-		Name:     "Resource Limits Required",
+		Name: "Resource Limits Required",
 
-		Type:     "security",
+		Type: "security",
 
 		Severity: "warning",
 
@@ -3610,8 +2960,6 @@ func initializeManifestPolicyRules() []*ManifestPolicyRule {
 
 				}
 
-
-
 				template, ok := spec["template"].(map[string]interface{})
 
 				if !ok {
@@ -3619,8 +2967,6 @@ func initializeManifestPolicyRules() []*ManifestPolicyRule {
 					return nil // Skip non-deployment resources
 
 				}
-
-
 
 				podSpec, ok := template["spec"].(map[string]interface{})
 
@@ -3630,8 +2976,6 @@ func initializeManifestPolicyRules() []*ManifestPolicyRule {
 
 				}
 
-
-
 				containers, ok := podSpec["containers"].([]interface{})
 
 				if !ok {
@@ -3639,8 +2983,6 @@ func initializeManifestPolicyRules() []*ManifestPolicyRule {
 					return nil
 
 				}
-
-
 
 				for _, containerInterface := range containers {
 
@@ -3652,8 +2994,6 @@ func initializeManifestPolicyRules() []*ManifestPolicyRule {
 
 					}
 
-
-
 					resources, ok := container["resources"].(map[string]interface{})
 
 					if !ok {
@@ -3661,8 +3001,6 @@ func initializeManifestPolicyRules() []*ManifestPolicyRule {
 						return fmt.Errorf("container missing resource limits")
 
 					}
-
-
 
 					if _, exists := resources["limits"]; !exists {
 
@@ -3679,12 +3017,8 @@ func initializeManifestPolicyRules() []*ManifestPolicyRule {
 		},
 
 		ViolationAction: "warn",
-
 	})
-
-
 
 	return rules
 
 }
-

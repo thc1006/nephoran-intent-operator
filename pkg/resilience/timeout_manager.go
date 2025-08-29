@@ -1,25 +1,13 @@
-
 package resilience
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
-
 )
-
-
 
 // TimeoutConfig holds timeout configuration for different operation types.
 
@@ -29,45 +17,30 @@ type TimeoutConfig struct {
 
 	LLMTimeout time.Duration `json:"llm_timeout" yaml:"llm_timeout"`
 
-
-
 	// Git operations timeout.
 
 	GitTimeout time.Duration `json:"git_timeout" yaml:"git_timeout"`
-
-
 
 	// Kubernetes API timeout.
 
 	KubernetesTimeout time.Duration `json:"kubernetes_timeout" yaml:"kubernetes_timeout"`
 
-
-
 	// Package generation timeout.
 
 	PackageGenerationTimeout time.Duration `json:"package_generation_timeout" yaml:"package_generation_timeout"`
-
-
 
 	// RAG system timeout.
 
 	RAGTimeout time.Duration `json:"rag_timeout" yaml:"rag_timeout"`
 
-
-
 	// Overall reconciliation timeout.
 
 	ReconciliationTimeout time.Duration `json:"reconciliation_timeout" yaml:"reconciliation_timeout"`
 
-
-
 	// Default timeout for unspecified operations.
 
 	DefaultTimeout time.Duration `json:"default_timeout" yaml:"default_timeout"`
-
 }
-
-
 
 // DefaultTimeoutConfig returns the default timeout configuration.
 
@@ -75,31 +48,26 @@ func DefaultTimeoutConfig() *TimeoutConfig {
 
 	return &TimeoutConfig{
 
-		LLMTimeout:               30 * time.Second,
+		LLMTimeout: 30 * time.Second,
 
-		GitTimeout:               60 * time.Second,
+		GitTimeout: 60 * time.Second,
 
-		KubernetesTimeout:        30 * time.Second,
+		KubernetesTimeout: 30 * time.Second,
 
 		PackageGenerationTimeout: 120 * time.Second,
 
-		RAGTimeout:               15 * time.Second,
+		RAGTimeout: 15 * time.Second,
 
-		ReconciliationTimeout:    300 * time.Second,
+		ReconciliationTimeout: 300 * time.Second,
 
-		DefaultTimeout:           30 * time.Second,
-
+		DefaultTimeout: 30 * time.Second,
 	}
 
 }
 
-
-
 // OperationType represents different types of operations that can timeout.
 
 type OperationType string
-
-
 
 const (
 
@@ -130,26 +98,19 @@ const (
 	// OperationTypeDefault holds operationtypedefault value.
 
 	OperationTypeDefault OperationType = "default"
-
 )
-
-
 
 // TimeoutManager manages timeouts for various operations.
 
 type TimeoutManager struct {
-
-	config           *TimeoutConfig
+	config *TimeoutConfig
 
 	metricsCollector *monitoring.MetricsCollector
 
-	activeContexts   map[string]context.CancelFunc
+	activeContexts map[string]context.CancelFunc
 
-	mutex            sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewTimeoutManager creates a new timeout manager.
 
@@ -161,21 +122,16 @@ func NewTimeoutManager(config *TimeoutConfig, metricsCollector *monitoring.Metri
 
 	}
 
-
-
 	return &TimeoutManager{
 
-		config:           config,
+		config: config,
 
 		metricsCollector: metricsCollector,
 
-		activeContexts:   make(map[string]context.CancelFunc),
-
+		activeContexts: make(map[string]context.CancelFunc),
 	}
 
 }
-
-
 
 // GetTimeoutForOperation returns the configured timeout for a specific operation type.
 
@@ -215,8 +171,6 @@ func (tm *TimeoutManager) GetTimeoutForOperation(operationType OperationType) ti
 
 }
 
-
-
 // CreateTimeoutContext creates a context with timeout for the specified operation type.
 
 func (tm *TimeoutManager) CreateTimeoutContext(parent context.Context, operationType OperationType) (context.Context, context.CancelFunc) {
@@ -227,8 +181,6 @@ func (tm *TimeoutManager) CreateTimeoutContext(parent context.Context, operation
 
 }
 
-
-
 // CreateTimeoutContextWithID creates a context with timeout and tracks it with an ID.
 
 func (tm *TimeoutManager) CreateTimeoutContextWithID(parent context.Context, operationType OperationType, contextID string) (context.Context, context.CancelFunc) {
@@ -237,8 +189,6 @@ func (tm *TimeoutManager) CreateTimeoutContextWithID(parent context.Context, ope
 
 	ctx, cancel := context.WithTimeout(parent, timeout)
 
-
-
 	// Track the context.
 
 	tm.mutex.Lock()
@@ -246,8 +196,6 @@ func (tm *TimeoutManager) CreateTimeoutContextWithID(parent context.Context, ope
 	tm.activeContexts[contextID] = cancel
 
 	tm.mutex.Unlock()
-
-
 
 	// Return a cancel function that also removes tracking.
 
@@ -263,13 +211,9 @@ func (tm *TimeoutManager) CreateTimeoutContextWithID(parent context.Context, ope
 
 	}
 
-
-
 	return ctx, wrappedCancel
 
 }
-
-
 
 // ExecuteWithTimeout executes a function with timeout for the specified operation type.
 
@@ -285,23 +229,17 @@ func (tm *TimeoutManager) ExecuteWithTimeout(
 
 	startTime := time.Now()
 
-
-
 	// Create timeout context.
 
 	timeoutCtx, cancel := tm.CreateTimeoutContext(ctx, operationType)
 
 	defer cancel()
 
-
-
 	// Channel to capture result.
 
 	resultChan := make(chan interface{}, 1)
 
 	errorChan := make(chan error, 1)
-
-
 
 	// Execute operation in goroutine.
 
@@ -317,8 +255,6 @@ func (tm *TimeoutManager) ExecuteWithTimeout(
 
 		}()
 
-
-
 		result, err := operation(timeoutCtx)
 
 		if err != nil {
@@ -332,8 +268,6 @@ func (tm *TimeoutManager) ExecuteWithTimeout(
 		}
 
 	}()
-
-
 
 	// Wait for result or timeout.
 
@@ -369,8 +303,6 @@ func (tm *TimeoutManager) ExecuteWithTimeout(
 
 }
 
-
-
 // ExecuteWithCustomTimeout executes a function with a custom timeout.
 
 func (tm *TimeoutManager) ExecuteWithCustomTimeout(
@@ -385,23 +317,17 @@ func (tm *TimeoutManager) ExecuteWithCustomTimeout(
 
 	startTime := time.Now()
 
-
-
 	// Create timeout context.
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 
 	defer cancel()
 
-
-
 	// Channel to capture result.
 
 	resultChan := make(chan interface{}, 1)
 
 	errorChan := make(chan error, 1)
-
-
 
 	// Execute operation in goroutine.
 
@@ -417,8 +343,6 @@ func (tm *TimeoutManager) ExecuteWithCustomTimeout(
 
 		}()
 
-
-
 		result, err := operation(timeoutCtx)
 
 		if err != nil {
@@ -432,8 +356,6 @@ func (tm *TimeoutManager) ExecuteWithCustomTimeout(
 		}
 
 	}()
-
-
 
 	// Wait for result or timeout.
 
@@ -469,8 +391,6 @@ func (tm *TimeoutManager) ExecuteWithCustomTimeout(
 
 }
 
-
-
 // ExecuteWithGracefulDegradation executes an operation with graceful degradation on timeout.
 
 func (tm *TimeoutManager) ExecuteWithGracefulDegradation(
@@ -487,8 +407,6 @@ func (tm *TimeoutManager) ExecuteWithGracefulDegradation(
 
 	result, err := tm.ExecuteWithTimeout(ctx, operationType, operation)
 
-
-
 	// If timeout occurred and fallback is provided, use fallback.
 
 	if err != nil && isTimeoutError(err) && fallback != nil {
@@ -497,13 +415,9 @@ func (tm *TimeoutManager) ExecuteWithGracefulDegradation(
 
 	}
 
-
-
 	return result, err
 
 }
-
-
 
 // CancelContext cancels a tracked context by ID.
 
@@ -512,8 +426,6 @@ func (tm *TimeoutManager) CancelContext(contextID string) bool {
 	tm.mutex.Lock()
 
 	defer tm.mutex.Unlock()
-
-
 
 	if cancel, exists := tm.activeContexts[contextID]; exists {
 
@@ -529,8 +441,6 @@ func (tm *TimeoutManager) CancelContext(contextID string) bool {
 
 }
 
-
-
 // GetActiveContextCount returns the number of active tracked contexts.
 
 func (tm *TimeoutManager) GetActiveContextCount() int {
@@ -543,8 +453,6 @@ func (tm *TimeoutManager) GetActiveContextCount() int {
 
 }
 
-
-
 // CancelAllContexts cancels all tracked contexts.
 
 func (tm *TimeoutManager) CancelAllContexts() {
@@ -552,8 +460,6 @@ func (tm *TimeoutManager) CancelAllContexts() {
 	tm.mutex.Lock()
 
 	defer tm.mutex.Unlock()
-
-
 
 	for contextID, cancel := range tm.activeContexts {
 
@@ -564,8 +470,6 @@ func (tm *TimeoutManager) CancelAllContexts() {
 	}
 
 }
-
-
 
 // UpdateConfig updates the timeout configuration.
 
@@ -579,8 +483,6 @@ func (tm *TimeoutManager) UpdateConfig(config *TimeoutConfig) {
 
 }
 
-
-
 // GetConfig returns the current timeout configuration.
 
 func (tm *TimeoutManager) GetConfig() *TimeoutConfig {
@@ -589,31 +491,26 @@ func (tm *TimeoutManager) GetConfig() *TimeoutConfig {
 
 	defer tm.mutex.RUnlock()
 
-
-
 	// Return a copy to prevent external modification.
 
 	return &TimeoutConfig{
 
-		LLMTimeout:               tm.config.LLMTimeout,
+		LLMTimeout: tm.config.LLMTimeout,
 
-		GitTimeout:               tm.config.GitTimeout,
+		GitTimeout: tm.config.GitTimeout,
 
-		KubernetesTimeout:        tm.config.KubernetesTimeout,
+		KubernetesTimeout: tm.config.KubernetesTimeout,
 
 		PackageGenerationTimeout: tm.config.PackageGenerationTimeout,
 
-		RAGTimeout:               tm.config.RAGTimeout,
+		RAGTimeout: tm.config.RAGTimeout,
 
-		ReconciliationTimeout:    tm.config.ReconciliationTimeout,
+		ReconciliationTimeout: tm.config.ReconciliationTimeout,
 
-		DefaultTimeout:           tm.config.DefaultTimeout,
-
+		DefaultTimeout: tm.config.DefaultTimeout,
 	}
 
 }
-
-
 
 // recordSuccess records a successful operation.
 
@@ -625,11 +522,7 @@ func (tm *TimeoutManager) recordSuccess(operationType OperationType, duration ti
 
 	}
 
-
-
 	_ = operationType // avoid unused variable
-
-
 
 	// Record operation duration.
 
@@ -638,8 +531,6 @@ func (tm *TimeoutManager) recordSuccess(operationType OperationType, duration ti
 		histogram.Observe(duration.Seconds())
 
 	}
-
-
 
 	// Increment success counter.
 
@@ -651,8 +542,6 @@ func (tm *TimeoutManager) recordSuccess(operationType OperationType, duration ti
 
 }
 
-
-
 // recordError records a failed operation.
 
 func (tm *TimeoutManager) recordError(operationType OperationType, duration time.Duration, err error) {
@@ -663,11 +552,7 @@ func (tm *TimeoutManager) recordError(operationType OperationType, duration time
 
 	}
 
-
-
 	_ = operationType // avoid unused variable
-
-
 
 	// Record operation duration.
 
@@ -676,8 +561,6 @@ func (tm *TimeoutManager) recordError(operationType OperationType, duration time
 		histogram.Observe(duration.Seconds())
 
 	}
-
-
 
 	// Increment error counter.
 
@@ -689,8 +572,6 @@ func (tm *TimeoutManager) recordError(operationType OperationType, duration time
 
 }
 
-
-
 // recordTimeout records a timed out operation.
 
 func (tm *TimeoutManager) recordTimeout(operationType OperationType, duration time.Duration) {
@@ -701,11 +582,7 @@ func (tm *TimeoutManager) recordTimeout(operationType OperationType, duration ti
 
 	}
 
-
-
 	_ = operationType // avoid unused variable
-
-
 
 	// Record operation duration.
 
@@ -714,8 +591,6 @@ func (tm *TimeoutManager) recordTimeout(operationType OperationType, duration ti
 		histogram.Observe(duration.Seconds())
 
 	}
-
-
 
 	// Increment timeout counter.
 
@@ -727,8 +602,6 @@ func (tm *TimeoutManager) recordTimeout(operationType OperationType, duration ti
 
 }
 
-
-
 // isTimeoutError checks if an error is a timeout error.
 
 func isTimeoutError(err error) bool {
@@ -739,8 +612,6 @@ func isTimeoutError(err error) bool {
 
 	}
 
-
-
 	// Check for context timeout.
 
 	if err == context.DeadlineExceeded {
@@ -749,8 +620,6 @@ func isTimeoutError(err error) bool {
 
 	}
 
-
-
 	// Check if error message contains timeout information.
 
 	errStr := err.Error()
@@ -758,8 +627,6 @@ func isTimeoutError(err error) bool {
 	return contains(errStr, "timeout") || contains(errStr, "deadline exceeded") || contains(errStr, "context deadline exceeded")
 
 }
-
-
 
 // contains is a helper function to check if a string contains a substring.
 
@@ -770,8 +637,6 @@ func contains(str, substr string) bool {
 		(indexOf(str, substr) >= 0)))
 
 }
-
-
 
 // indexOf is a helper function to find the index of a substring.
 
@@ -790,4 +655,3 @@ func indexOf(str, substr string) int {
 	return -1
 
 }
-

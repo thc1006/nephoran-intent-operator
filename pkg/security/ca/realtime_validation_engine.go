@@ -1,83 +1,57 @@
-
 package ca
 
-
-
 import (
-
 	"context"
-
 	"crypto/tls"
-
 	"crypto/x509"
-
 	"fmt"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
 
-
-
-	"github.com/prometheus/client_golang/prometheus"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
+	"github.com/prometheus/client_golang/prometheus"
 )
-
-
 
 // RealtimeValidationEngine provides real-time certificate validation during TLS handshakes.
 
 type RealtimeValidationEngine struct {
+	config *RealtimeValidationConfig
 
-	config            *RealtimeValidationConfig
+	logger *logging.StructuredLogger
 
-	logger            *logging.StructuredLogger
-
-	validator         *ValidationFramework
+	validator *ValidationFramework
 
 	revocationChecker *RevocationChecker
 
-	policyEngine      *PolicyEngine
+	policyEngine *PolicyEngine
 
-	cache             *ValidationCacheOptimized
+	cache *ValidationCacheOptimized
 
-	circuitBreaker    *ValidationCircuitBreaker
+	circuitBreaker *ValidationCircuitBreaker
 
-	connectionPool    *OCSPConnectionPool
+	connectionPool *OCSPConnectionPool
 
-	metricsRecorder   *ValidationMetricsRecorder
+	metricsRecorder *ValidationMetricsRecorder
 
-	webhookNotifier   *ValidationWebhookNotifier
+	webhookNotifier *ValidationWebhookNotifier
 
-	emergencyBypass   *EmergencyBypassController
-
-
+	emergencyBypass *EmergencyBypassController
 
 	// Statistics.
 
 	stats *ValidationStatistics
 
-
-
 	// Control.
 
-	ctx    context.Context
+	ctx context.Context
 
 	cancel context.CancelFunc
 
-	wg     sync.WaitGroup
+	wg sync.WaitGroup
 
-	mu     sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // RealtimeValidationConfig configures real-time validation.
 
@@ -85,175 +59,146 @@ type RealtimeValidationConfig struct {
 
 	// Core validation settings.
 
-	Enabled                  bool          `yaml:"enabled"`
+	Enabled bool `yaml:"enabled"`
 
-	ValidationTimeout        time.Duration `yaml:"validation_timeout"`
+	ValidationTimeout time.Duration `yaml:"validation_timeout"`
 
-	MaxConcurrentValidations int           `yaml:"max_concurrent_validations"`
-
-
+	MaxConcurrentValidations int `yaml:"max_concurrent_validations"`
 
 	// Chain validation.
 
-	ChainValidationEnabled   bool   `yaml:"chain_validation_enabled"`
+	ChainValidationEnabled bool `yaml:"chain_validation_enabled"`
 
-	IntermediateCAValidation bool   `yaml:"intermediate_ca_validation"`
+	IntermediateCAValidation bool `yaml:"intermediate_ca_validation"`
 
-	MaxChainDepth            int    `yaml:"max_chain_depth"`
+	MaxChainDepth int `yaml:"max_chain_depth"`
 
-	TrustedRootStore         string `yaml:"trusted_root_store"`
-
-
+	TrustedRootStore string `yaml:"trusted_root_store"`
 
 	// Certificate Transparency.
 
-	CTLogValidationEnabled bool          `yaml:"ct_log_validation_enabled"`
+	CTLogValidationEnabled bool `yaml:"ct_log_validation_enabled"`
 
-	CTLogEndpoints         []string      `yaml:"ct_log_endpoints"`
+	CTLogEndpoints []string `yaml:"ct_log_endpoints"`
 
-	CTLogTimeout           time.Duration `yaml:"ct_log_timeout"`
+	CTLogTimeout time.Duration `yaml:"ct_log_timeout"`
 
-	RequireSCTValidation   bool          `yaml:"require_sct_validation"`
-
-
+	RequireSCTValidation bool `yaml:"require_sct_validation"`
 
 	// Revocation checking.
 
-	CRLValidationEnabled  bool          `yaml:"crl_validation_enabled"`
+	CRLValidationEnabled bool `yaml:"crl_validation_enabled"`
 
-	OCSPValidationEnabled bool          `yaml:"ocsp_validation_enabled"`
+	OCSPValidationEnabled bool `yaml:"ocsp_validation_enabled"`
 
-	OCSPStaplingEnabled   bool          `yaml:"ocsp_stapling_enabled"`
+	OCSPStaplingEnabled bool `yaml:"ocsp_stapling_enabled"`
 
-	RevocationCacheSize   int           `yaml:"revocation_cache_size"`
+	RevocationCacheSize int `yaml:"revocation_cache_size"`
 
-	RevocationCacheTTL    time.Duration `yaml:"revocation_cache_ttl"`
+	RevocationCacheTTL time.Duration `yaml:"revocation_cache_ttl"`
 
-	SoftFailRevocation    bool          `yaml:"soft_fail_revocation"`
+	SoftFailRevocation bool `yaml:"soft_fail_revocation"`
 
-	HardFailRevocation    bool          `yaml:"hard_fail_revocation"`
-
-
+	HardFailRevocation bool `yaml:"hard_fail_revocation"`
 
 	// Performance optimization.
 
-	AsyncValidationEnabled bool          `yaml:"async_validation_enabled"`
+	AsyncValidationEnabled bool `yaml:"async_validation_enabled"`
 
-	BatchValidationEnabled bool          `yaml:"batch_validation_enabled"`
+	BatchValidationEnabled bool `yaml:"batch_validation_enabled"`
 
-	BatchSize              int           `yaml:"batch_size"`
+	BatchSize int `yaml:"batch_size"`
 
-	BatchTimeout           time.Duration `yaml:"batch_timeout"`
+	BatchTimeout time.Duration `yaml:"batch_timeout"`
 
-	ConnectionPoolSize     int           `yaml:"connection_pool_size"`
+	ConnectionPoolSize int `yaml:"connection_pool_size"`
 
-	CircuitBreakerEnabled  bool          `yaml:"circuit_breaker_enabled"`
-
-
+	CircuitBreakerEnabled bool `yaml:"circuit_breaker_enabled"`
 
 	// Security policies.
 
-	PolicyValidationEnabled   bool     `yaml:"policy_validation_enabled"`
+	PolicyValidationEnabled bool `yaml:"policy_validation_enabled"`
 
-	CertificatePinningEnabled bool     `yaml:"certificate_pinning_enabled"`
+	CertificatePinningEnabled bool `yaml:"certificate_pinning_enabled"`
 
-	AlgorithmStrengthCheck    bool     `yaml:"algorithm_strength_check"`
+	AlgorithmStrengthCheck bool `yaml:"algorithm_strength_check"`
 
-	MinimumRSAKeySize         int      `yaml:"minimum_rsa_key_size"`
+	MinimumRSAKeySize int `yaml:"minimum_rsa_key_size"`
 
-	AllowedECCurves           []string `yaml:"allowed_ec_curves"`
+	AllowedECCurves []string `yaml:"allowed_ec_curves"`
 
-	RequireExtendedValidation bool     `yaml:"require_extended_validation"`
-
-
+	RequireExtendedValidation bool `yaml:"require_extended_validation"`
 
 	// O-RAN compliance.
 
-	ORANComplianceEnabled     bool         `yaml:"oran_compliance_enabled"`
+	ORANComplianceEnabled bool `yaml:"oran_compliance_enabled"`
 
-	ORANPolicyRules           []PolicyRule `yaml:"oran_policy_rules"`
+	ORANPolicyRules []PolicyRule `yaml:"oran_policy_rules"`
 
-	TelecomSpecificValidation bool         `yaml:"telecom_specific_validation"`
-
-
+	TelecomSpecificValidation bool `yaml:"telecom_specific_validation"`
 
 	// Monitoring and alerting.
 
-	MetricsEnabled       bool                      `yaml:"metrics_enabled"`
+	MetricsEnabled bool `yaml:"metrics_enabled"`
 
-	DetailedMetrics      bool                      `yaml:"detailed_metrics"`
+	DetailedMetrics bool `yaml:"detailed_metrics"`
 
-	WebhookNotifications bool                      `yaml:"webhook_notifications"`
+	WebhookNotifications bool `yaml:"webhook_notifications"`
 
-	WebhookEndpoints     []string                  `yaml:"webhook_endpoints"`
+	WebhookEndpoints []string `yaml:"webhook_endpoints"`
 
-	AlertThresholds      ValidationAlertThresholds `yaml:"alert_thresholds"`
-
-
+	AlertThresholds ValidationAlertThresholds `yaml:"alert_thresholds"`
 
 	// Emergency procedures.
 
-	EmergencyBypassEnabled  bool          `yaml:"emergency_bypass_enabled"`
+	EmergencyBypassEnabled bool `yaml:"emergency_bypass_enabled"`
 
-	BypassAuthorizationKeys []string      `yaml:"bypass_authorization_keys"`
+	BypassAuthorizationKeys []string `yaml:"bypass_authorization_keys"`
 
-	BypassDuration          time.Duration `yaml:"bypass_duration"`
+	BypassDuration time.Duration `yaml:"bypass_duration"`
 
-	BypassAuditEnabled      bool          `yaml:"bypass_audit_enabled"`
-
+	BypassAuditEnabled bool `yaml:"bypass_audit_enabled"`
 }
-
-
 
 // ValidationAlertThresholds defines thresholds for validation alerts.
 
 type ValidationAlertThresholds struct {
+	ValidationFailureRate float64 `yaml:"validation_failure_rate"`
 
-	ValidationFailureRate      float64       `yaml:"validation_failure_rate"`
+	RevocationCheckFailureRate float64 `yaml:"revocation_check_failure_rate"`
 
-	RevocationCheckFailureRate float64       `yaml:"revocation_check_failure_rate"`
+	ResponseTimeP95 time.Duration `yaml:"response_time_p95"`
 
-	ResponseTimeP95            time.Duration `yaml:"response_time_p95"`
-
-	CacheHitRateMin            float64       `yaml:"cache_hit_rate_min"`
-
+	CacheHitRateMin float64 `yaml:"cache_hit_rate_min"`
 }
-
-
 
 // ValidationStatistics tracks validation statistics.
 
 type ValidationStatistics struct {
-
-	TotalValidations      atomic.Uint64
+	TotalValidations atomic.Uint64
 
 	SuccessfulValidations atomic.Uint64
 
-	FailedValidations     atomic.Uint64
+	FailedValidations atomic.Uint64
 
-	CacheHits             atomic.Uint64
+	CacheHits atomic.Uint64
 
-	CacheMisses           atomic.Uint64
+	CacheMisses atomic.Uint64
 
-	RevocationChecks      atomic.Uint64
+	RevocationChecks atomic.Uint64
 
-	CTLogChecks           atomic.Uint64
+	CTLogChecks atomic.Uint64
 
-	PolicyViolations      atomic.Uint64
+	PolicyViolations atomic.Uint64
 
-	EmergencyBypasses     atomic.Uint64
-
-
+	EmergencyBypasses atomic.Uint64
 
 	// Performance metrics.
 
 	ValidationDurations []time.Duration
 
-	mu                  sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // L2ValidationCache represents distributed cache for validation results.
 
@@ -262,8 +207,6 @@ type L2ValidationCache struct {
 	// Placeholder for distributed cache implementation.
 
 }
-
-
 
 // Get retrieves a cached validation result from L2 cache.
 
@@ -275,8 +218,6 @@ func (c *L2ValidationCache) Get(key string) *CachedValidationResult {
 
 }
 
-
-
 // Put stores a validation result in L2 cache.
 
 func (c *L2ValidationCache) Put(key string, result *CachedValidationResult) {
@@ -284,8 +225,6 @@ func (c *L2ValidationCache) Put(key string, result *CachedValidationResult) {
 	// Placeholder implementation - would connect to Redis/Memcached.
 
 }
-
-
 
 // PreloadCache represents pre-validated certificates cache.
 
@@ -295,105 +234,81 @@ type PreloadCache struct {
 
 }
 
-
-
 // ValidationCacheOptimized provides optimized caching for validation results.
 
 type ValidationCacheOptimized struct {
+	l1Cache *L1ValidationCache // In-memory hot cache
 
-	l1Cache      *L1ValidationCache // In-memory hot cache
+	l2Cache *L2ValidationCache // Distributed cache
 
-	l2Cache      *L2ValidationCache // Distributed cache
+	preloadCache *PreloadCache // Pre-validated certificates
 
-	preloadCache *PreloadCache      // Pre-validated certificates
+	stats *CacheStatistics
 
-	stats        *CacheStatistics
-
-	mu           sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // L1ValidationCache is a fast in-memory cache.
 
 type L1ValidationCache struct {
+	cache map[string]*CachedValidationResult
 
-	cache   map[string]*CachedValidationResult
-
-	lru     *LRUEvictionPolicy
+	lru *LRUEvictionPolicy
 
 	maxSize int
 
-	ttl     time.Duration
+	ttl time.Duration
 
-	mu      sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // CachedValidationResult represents a cached validation result.
 
 type CachedValidationResult struct {
-
-	Result           *ValidationResult
+	Result *ValidationResult
 
 	RevocationStatus *RevocationCheckResult
 
-	PolicyResult     *PolicyValidationResult
+	PolicyResult *PolicyValidationResult
 
-	CachedAt         time.Time
+	CachedAt time.Time
 
-	TTL              time.Duration
+	TTL time.Duration
 
-	HitCount         atomic.Uint32
-
+	HitCount atomic.Uint32
 }
-
-
 
 // ValidationCircuitBreaker provides circuit breaker pattern for validation.
 
 type ValidationCircuitBreaker struct {
+	state atomic.Value // CircuitState
 
-	state           atomic.Value // CircuitState
+	failureCount atomic.Uint32
 
-	failureCount    atomic.Uint32
-
-	successCount    atomic.Uint32
+	successCount atomic.Uint32
 
 	lastFailureTime atomic.Value // time.Time
 
-	config          *CircuitBreakerConfig
+	config *CircuitBreakerConfig
 
-	mu              sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // CircuitBreakerConfig configures the circuit breaker.
 
 type CircuitBreakerConfig struct {
+	FailureThreshold uint32 `yaml:"failure_threshold"`
 
-	FailureThreshold uint32        `yaml:"failure_threshold"`
+	SuccessThreshold uint32 `yaml:"success_threshold"`
 
-	SuccessThreshold uint32        `yaml:"success_threshold"`
+	Timeout time.Duration `yaml:"timeout"`
 
-	Timeout          time.Duration `yaml:"timeout"`
-
-	HalfOpenRequests uint32        `yaml:"half_open_requests"`
-
+	HalfOpenRequests uint32 `yaml:"half_open_requests"`
 }
-
-
 
 // CircuitState represents circuit breaker states.
 
 type CircuitState int
-
-
 
 const (
 
@@ -408,126 +323,99 @@ const (
 	// CircuitHalfOpen holds circuithalfopen value.
 
 	CircuitHalfOpen
-
 )
-
-
 
 // OCSPConnectionPool manages OCSP responder connections.
 
 type OCSPConnectionPool struct {
-
 	connections map[string]*PooledConnection
 
-	maxSize     int
+	maxSize int
 
-	timeout     time.Duration
+	timeout time.Duration
 
-	mu          sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // PooledConnection represents a pooled OCSP connection.
 
 type PooledConnection struct {
+	URL string
 
-	URL          string
+	Client *OCSPClient
 
-	Client       *OCSPClient
+	InUse atomic.Bool
 
-	InUse        atomic.Bool
-
-	LastUsed     time.Time
+	LastUsed time.Time
 
 	RequestCount atomic.Uint64
 
-	ErrorCount   atomic.Uint64
+	ErrorCount atomic.Uint64
 
 	ResponseTime time.Duration
-
 }
-
-
 
 // ValidationMetricsRecorder records validation metrics.
 
 type ValidationMetricsRecorder struct {
+	validationTotal *prometheus.CounterVec
 
-	validationTotal      *prometheus.CounterVec
-
-	validationDuration   *prometheus.HistogramVec
+	validationDuration *prometheus.HistogramVec
 
 	revocationCheckTotal *prometheus.CounterVec
 
-	cacheHitRate         prometheus.Gauge
+	cacheHitRate prometheus.Gauge
 
-	policyViolations     *prometheus.CounterVec
+	policyViolations *prometheus.CounterVec
 
-	circuitBreakerState  *prometheus.GaugeVec
-
+	circuitBreakerState *prometheus.GaugeVec
 }
-
-
 
 // ValidationWebhookNotifier sends webhook notifications for validation events.
 
 type ValidationWebhookNotifier struct {
+	endpoints []string
 
-	endpoints  []string
-
-	client     *WebhookClient
+	client *WebhookClient
 
 	eventQueue chan *ValidationEvent
 
-	workers    int
+	workers int
 
-	mu         sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // ValidationEvent represents a validation event for notification.
 
 type ValidationEvent struct {
+	Type string `json:"type"`
 
-	Type        string                 `json:"type"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp   time.Time              `json:"timestamp"`
+	Certificate *CertificateInfo `json:"certificate"`
 
-	Certificate *CertificateInfo       `json:"certificate"`
+	Result *ValidationResult `json:"result"`
 
-	Result      *ValidationResult      `json:"result"`
+	Severity string `json:"severity"`
 
-	Severity    string                 `json:"severity"`
-
-	Details     map[string]interface{} `json:"details"`
-
+	Details map[string]interface{} `json:"details"`
 }
-
-
 
 // EmergencyBypassController manages emergency bypass procedures.
 
 type EmergencyBypassController struct {
+	enabled atomic.Bool
 
-	enabled      atomic.Bool
-
-	bypassUntil  atomic.Value // time.Time
+	bypassUntil atomic.Value // time.Time
 
 	authorizedBy string
 
-	reason       string
+	reason string
 
-	auditLogger  *AuditLogger
+	auditLogger *AuditLogger
 
-	mu           sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewRealtimeValidationEngine creates a new real-time validation engine.
 
@@ -549,31 +437,24 @@ func NewRealtimeValidationEngine(
 
 	}
 
-
-
 	ctx, cancel := context.WithCancel(context.Background())
-
-
 
 	engine := &RealtimeValidationEngine{
 
-		config:            config,
+		config: config,
 
-		logger:            logger,
+		logger: logger,
 
-		validator:         validator,
+		validator: validator,
 
 		revocationChecker: revocationChecker,
 
-		stats:             &ValidationStatistics{},
+		stats: &ValidationStatistics{},
 
-		ctx:               ctx,
+		ctx: ctx,
 
-		cancel:            cancel,
-
+		cancel: cancel,
 	}
-
-
 
 	// Initialize policy engine.
 
@@ -581,20 +462,19 @@ func NewRealtimeValidationEngine(
 
 		policyEngine, err := NewPolicyEngine(&PolicyEngineConfig{
 
-			Enabled:                   true,
+			Enabled: true,
 
-			Rules:                     config.ORANPolicyRules,
+			Rules: config.ORANPolicyRules,
 
-			CertificatePinning:        config.CertificatePinningEnabled,
+			CertificatePinning: config.CertificatePinningEnabled,
 
-			AlgorithmStrengthCheck:    config.AlgorithmStrengthCheck,
+			AlgorithmStrengthCheck: config.AlgorithmStrengthCheck,
 
-			MinimumRSAKeySize:         config.MinimumRSAKeySize,
+			MinimumRSAKeySize: config.MinimumRSAKeySize,
 
-			AllowedECCurves:           config.AllowedECCurves,
+			AllowedECCurves: config.AllowedECCurves,
 
 			RequireExtendedValidation: config.RequireExtendedValidation,
-
 		}, logger)
 
 		if err != nil {
@@ -609,27 +489,21 @@ func NewRealtimeValidationEngine(
 
 	}
 
-
-
 	// Initialize optimized cache.
 
 	engine.cache = &ValidationCacheOptimized{
 
 		l1Cache: &L1ValidationCache{
 
-			cache:   make(map[string]*CachedValidationResult),
+			cache: make(map[string]*CachedValidationResult),
 
 			maxSize: config.RevocationCacheSize,
 
-			ttl:     config.RevocationCacheTTL,
-
+			ttl: config.RevocationCacheTTL,
 		},
 
 		stats: &CacheStatistics{},
-
 	}
-
-
 
 	// Initialize circuit breaker.
 
@@ -643,12 +517,10 @@ func NewRealtimeValidationEngine(
 
 				SuccessThreshold: 2,
 
-				Timeout:          30 * time.Second,
+				Timeout: 30 * time.Second,
 
 				HalfOpenRequests: 3,
-
 			},
-
 		}
 
 		engine.circuitBreaker.state.Store(CircuitClosed)
@@ -656,8 +528,6 @@ func NewRealtimeValidationEngine(
 		engine.circuitBreaker.lastFailureTime.Store(time.Now())
 
 	}
-
-
 
 	// Initialize connection pool.
 
@@ -667,15 +537,12 @@ func NewRealtimeValidationEngine(
 
 			connections: make(map[string]*PooledConnection),
 
-			maxSize:     config.ConnectionPoolSize,
+			maxSize: config.ConnectionPoolSize,
 
-			timeout:     config.ValidationTimeout,
-
+			timeout: config.ValidationTimeout,
 		}
 
 	}
-
-
 
 	// Initialize metrics recorder.
 
@@ -685,27 +552,22 @@ func NewRealtimeValidationEngine(
 
 	}
 
-
-
 	// Initialize webhook notifier.
 
 	if config.WebhookNotifications {
 
 		engine.webhookNotifier = &ValidationWebhookNotifier{
 
-			endpoints:  config.WebhookEndpoints,
+			endpoints: config.WebhookEndpoints,
 
-			client:     NewWebhookClient(logger),
+			client: NewWebhookClient(logger),
 
 			eventQueue: make(chan *ValidationEvent, 1000),
 
-			workers:    5,
-
+			workers: 5,
 		}
 
 	}
-
-
 
 	// Initialize emergency bypass controller.
 
@@ -714,20 +576,15 @@ func NewRealtimeValidationEngine(
 		engine.emergencyBypass = &EmergencyBypassController{
 
 			auditLogger: NewAuditLogger(logger),
-
 		}
 
 		engine.emergencyBypass.enabled.Store(false)
 
 	}
 
-
-
 	return engine, nil
 
 }
-
-
 
 // ValidateCertificateRealtime performs real-time certificate validation.
 
@@ -736,8 +593,6 @@ func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Conte
 	start := time.Now()
 
 	e.stats.TotalValidations.Add(1)
-
-
 
 	// Check emergency bypass.
 
@@ -753,19 +608,16 @@ func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Conte
 
 		return &ValidationResult{
 
-			SerialNumber:   cert.SerialNumber.String(),
+			SerialNumber: cert.SerialNumber.String(),
 
-			Valid:          true,
+			Valid: true,
 
 			ValidationTime: start,
 
-			Warnings:       []string{"validation bypassed due to emergency override"},
-
+			Warnings: []string{"validation bypassed due to emergency override"},
 		}, nil
 
 	}
-
-
 
 	// Check circuit breaker.
 
@@ -774,8 +626,6 @@ func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Conte
 		return nil, fmt.Errorf("validation circuit breaker is open")
 
 	}
-
-
 
 	// Check cache first.
 
@@ -793,33 +643,26 @@ func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Conte
 
 	e.stats.CacheMisses.Add(1)
 
-
-
 	// Create validation context with timeout.
 
 	validationCtx, cancel := context.WithTimeout(ctx, e.config.ValidationTimeout)
 
 	defer cancel()
 
-
-
 	// Initialize result.
 
 	result := &ValidationResult{
 
-		SerialNumber:   cert.SerialNumber.String(),
+		SerialNumber: cert.SerialNumber.String(),
 
-		Valid:          true,
+		Valid: true,
 
 		ValidationTime: start,
 
-		Errors:         []string{},
+		Errors: []string{},
 
-		Warnings:       []string{},
-
+		Warnings: []string{},
 	}
-
-
 
 	// Perform validations in parallel if configured.
 
@@ -833,13 +676,9 @@ func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Conte
 
 	}
 
-
-
 	// Cache the result.
 
 	e.cacheResult(cacheKey, result)
-
-
 
 	// Record metrics.
 
@@ -849,8 +688,6 @@ func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Conte
 
 	e.recordValidationDuration(duration)
 
-
-
 	// Send webhook notification if needed.
 
 	if !result.Valid && e.webhookNotifier != nil {
@@ -858,8 +695,6 @@ func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Conte
 		e.sendValidationEvent(cert, result, "validation_failed")
 
 	}
-
-
 
 	// Update circuit breaker.
 
@@ -877,8 +712,6 @@ func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Conte
 
 	}
 
-
-
 	// Update statistics.
 
 	if result.Valid {
@@ -891,8 +724,6 @@ func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Conte
 
 	}
 
-
-
 	e.logger.Info("real-time certificate validation completed",
 
 		"serial_number", cert.SerialNumber.String(),
@@ -903,13 +734,9 @@ func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Conte
 
 		"cached", false)
 
-
-
 	return result, nil
 
 }
-
-
 
 // performAsyncValidation performs validations asynchronously.
 
@@ -918,8 +745,6 @@ func (e *RealtimeValidationEngine) performAsyncValidation(ctx context.Context, c
 	var wg sync.WaitGroup
 
 	resultChan := make(chan validationComponent, 5)
-
-
 
 	// Chain validation.
 
@@ -939,8 +764,6 @@ func (e *RealtimeValidationEngine) performAsyncValidation(ctx context.Context, c
 
 	}
 
-
-
 	// Revocation checking.
 
 	if e.config.CRLValidationEnabled || e.config.OCSPValidationEnabled {
@@ -958,8 +781,6 @@ func (e *RealtimeValidationEngine) performAsyncValidation(ctx context.Context, c
 		}()
 
 	}
-
-
 
 	// CT log validation.
 
@@ -979,8 +800,6 @@ func (e *RealtimeValidationEngine) performAsyncValidation(ctx context.Context, c
 
 	}
 
-
-
 	// Policy validation.
 
 	if e.policyEngine != nil {
@@ -998,8 +817,6 @@ func (e *RealtimeValidationEngine) performAsyncValidation(ctx context.Context, c
 		}()
 
 	}
-
-
 
 	// O-RAN compliance validation.
 
@@ -1019,8 +836,6 @@ func (e *RealtimeValidationEngine) performAsyncValidation(ctx context.Context, c
 
 	}
 
-
-
 	// Wait for all validations to complete.
 
 	go func() {
@@ -1031,8 +846,6 @@ func (e *RealtimeValidationEngine) performAsyncValidation(ctx context.Context, c
 
 	}()
 
-
-
 	// Aggregate results.
 
 	for component := range resultChan {
@@ -1042,8 +855,6 @@ func (e *RealtimeValidationEngine) performAsyncValidation(ctx context.Context, c
 	}
 
 }
-
-
 
 // performSyncValidation performs validations synchronously.
 
@@ -1059,8 +870,6 @@ func (e *RealtimeValidationEngine) performSyncValidation(ctx context.Context, ce
 
 	}
 
-
-
 	// Revocation checking.
 
 	if e.config.CRLValidationEnabled || e.config.OCSPValidationEnabled {
@@ -1070,8 +879,6 @@ func (e *RealtimeValidationEngine) performSyncValidation(ctx context.Context, ce
 		e.aggregateValidationResult(result, validationComponent{Type: "revocation", Result: revocationResult})
 
 	}
-
-
 
 	// CT log validation.
 
@@ -1083,8 +890,6 @@ func (e *RealtimeValidationEngine) performSyncValidation(ctx context.Context, ce
 
 	}
 
-
-
 	// Policy validation.
 
 	if e.policyEngine != nil {
@@ -1094,8 +899,6 @@ func (e *RealtimeValidationEngine) performSyncValidation(ctx context.Context, ce
 		e.aggregateValidationResult(result, validationComponent{Type: "policy", Result: policyResult})
 
 	}
-
-
 
 	// O-RAN compliance validation.
 
@@ -1108,8 +911,6 @@ func (e *RealtimeValidationEngine) performSyncValidation(ctx context.Context, ce
 	}
 
 }
-
-
 
 // validateChain validates the certificate chain.
 
@@ -1133,15 +934,11 @@ func (e *RealtimeValidationEngine) validateChain(ctx context.Context, cert *x509
 
 }
 
-
-
 // checkRevocation performs revocation checking with optimization.
 
 func (e *RealtimeValidationEngine) checkRevocation(ctx context.Context, cert *x509.Certificate) interface{} {
 
 	e.stats.RevocationChecks.Add(1)
-
-
 
 	// Use connection pool for OCSP if available.
 
@@ -1151,15 +948,11 @@ func (e *RealtimeValidationEngine) checkRevocation(ctx context.Context, cert *x5
 
 	}
 
-
-
 	result, _ := e.revocationChecker.CheckRevocationDetailed(ctx, cert)
 
 	return result
 
 }
-
-
 
 // checkRevocationWithPool uses connection pooling for OCSP checks.
 
@@ -1174,12 +967,9 @@ func (e *RealtimeValidationEngine) checkRevocationWithPool(ctx context.Context, 
 			Status: RevocationStatusUnknown,
 
 			Errors: []string{"no OCSP responder URL in certificate"},
-
 		}
 
 	}
-
-
 
 	ocspURL := cert.OCSPServer[0]
 
@@ -1193,11 +983,7 @@ func (e *RealtimeValidationEngine) checkRevocationWithPool(ctx context.Context, 
 
 	}
 
-
-
 	defer e.connectionPool.ReleaseConnection(conn)
-
-
 
 	// Perform OCSP check using pooled connection.
 
@@ -1205,15 +991,11 @@ func (e *RealtimeValidationEngine) checkRevocationWithPool(ctx context.Context, 
 
 }
 
-
-
 // validateCTLog validates Certificate Transparency logs.
 
 func (e *RealtimeValidationEngine) validateCTLog(ctx context.Context, cert *x509.Certificate) interface{} {
 
 	e.stats.CTLogChecks.Add(1)
-
-
 
 	// Check for embedded SCTs if stapling is required.
 
@@ -1223,15 +1005,11 @@ func (e *RealtimeValidationEngine) validateCTLog(ctx context.Context, cert *x509
 
 	}
 
-
-
 	result, _ := e.validator.validateCTLog(ctx, cert)
 
 	return result
 
 }
-
-
 
 // validatePolicy validates against security policies.
 
@@ -1239,21 +1017,15 @@ func (e *RealtimeValidationEngine) validatePolicy(ctx context.Context, cert *x50
 
 	result := e.policyEngine.ValidateCertificate(ctx, cert)
 
-
-
 	if !result.Valid {
 
 		e.stats.PolicyViolations.Add(1)
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // validateORANCompliance validates O-RAN compliance.
 
@@ -1263,61 +1035,43 @@ func (e *RealtimeValidationEngine) validateORANCompliance(ctx context.Context, c
 
 	result := &ORANComplianceResult{
 
-		Valid:  true,
+		Valid: true,
 
 		Checks: []ORANCheck{},
 
-		Score:  100.0,
-
+		Score: 100.0,
 	}
-
-
 
 	// Check for required O-RAN extensions.
 
 	e.checkORANExtensions(cert, result)
 
-
-
 	// Validate key usage for O-RAN components.
 
 	e.checkORANKeyUsage(cert, result)
-
-
 
 	// Validate subject naming conventions.
 
 	e.checkORANNaming(cert, result)
 
-
-
 	// Check algorithm compliance.
 
 	e.checkORANAlgorithms(cert, result)
-
-
 
 	return result
 
 }
 
-
-
 // Helper validation methods.
-
-
 
 func (e *RealtimeValidationEngine) checkORANExtensions(cert *x509.Certificate, result *ORANComplianceResult) {
 
 	check := ORANCheck{
 
-		Name:   "O-RAN Extensions",
+		Name: "O-RAN Extensions",
 
 		Passed: true,
-
 	}
-
-
 
 	// Check for O-RAN specific extensions.
 
@@ -1328,8 +1082,6 @@ func (e *RealtimeValidationEngine) checkORANExtensions(cert *x509.Certificate, r
 		"1.3.6.1.4.1.53148.1.2", // O-RAN role identifier
 
 	}
-
-
 
 	for _, oid := range requiredExtensions {
 
@@ -1359,8 +1111,6 @@ func (e *RealtimeValidationEngine) checkORANExtensions(cert *x509.Certificate, r
 
 	}
 
-
-
 	result.Checks = append(result.Checks, check)
 
 	if !check.Passed {
@@ -1371,19 +1121,14 @@ func (e *RealtimeValidationEngine) checkORANExtensions(cert *x509.Certificate, r
 
 }
 
-
-
 func (e *RealtimeValidationEngine) checkORANKeyUsage(cert *x509.Certificate, result *ORANComplianceResult) {
 
 	check := ORANCheck{
 
-		Name:   "O-RAN Key Usage",
+		Name: "O-RAN Key Usage",
 
 		Passed: true,
-
 	}
-
-
 
 	// Validate key usage based on O-RAN component type.
 
@@ -1397,8 +1142,6 @@ func (e *RealtimeValidationEngine) checkORANKeyUsage(cert *x509.Certificate, res
 
 	}
 
-
-
 	if cert.IsCA && cert.KeyUsage&x509.KeyUsageCertSign == 0 {
 
 		check.Passed = false
@@ -1408,8 +1151,6 @@ func (e *RealtimeValidationEngine) checkORANKeyUsage(cert *x509.Certificate, res
 		result.Score -= 20.0
 
 	}
-
-
 
 	result.Checks = append(result.Checks, check)
 
@@ -1421,19 +1162,14 @@ func (e *RealtimeValidationEngine) checkORANKeyUsage(cert *x509.Certificate, res
 
 }
 
-
-
 func (e *RealtimeValidationEngine) checkORANNaming(cert *x509.Certificate, result *ORANComplianceResult) {
 
 	check := ORANCheck{
 
-		Name:   "O-RAN Naming Convention",
+		Name: "O-RAN Naming Convention",
 
 		Passed: true,
-
 	}
-
-
 
 	// Check subject naming convention.
 
@@ -1449,25 +1185,18 @@ func (e *RealtimeValidationEngine) checkORANNaming(cert *x509.Certificate, resul
 
 	}
 
-
-
 	result.Checks = append(result.Checks, check)
 
 }
-
-
 
 func (e *RealtimeValidationEngine) checkORANAlgorithms(cert *x509.Certificate, result *ORANComplianceResult) {
 
 	check := ORANCheck{
 
-		Name:   "O-RAN Algorithm Compliance",
+		Name: "O-RAN Algorithm Compliance",
 
 		Passed: true,
-
 	}
-
-
 
 	// Check signature algorithm.
 
@@ -1484,10 +1213,7 @@ func (e *RealtimeValidationEngine) checkORANAlgorithms(cert *x509.Certificate, r
 		x509.ECDSAWithSHA384,
 
 		x509.ECDSAWithSHA512,
-
 	}
-
-
 
 	allowed := false
 
@@ -1503,8 +1229,6 @@ func (e *RealtimeValidationEngine) checkORANAlgorithms(cert *x509.Certificate, r
 
 	}
 
-
-
 	if !allowed {
 
 		check.Passed = false
@@ -1517,13 +1241,9 @@ func (e *RealtimeValidationEngine) checkORANAlgorithms(cert *x509.Certificate, r
 
 	}
 
-
-
 	result.Checks = append(result.Checks, check)
 
 }
-
-
 
 func (e *RealtimeValidationEngine) validateORANSubjectFormat(subject string) bool {
 
@@ -1535,19 +1255,13 @@ func (e *RealtimeValidationEngine) validateORANSubjectFormat(subject string) boo
 
 }
 
-
-
 // Cache management.
-
-
 
 func (e *RealtimeValidationEngine) generateCacheKey(cert *x509.Certificate) string {
 
 	return fmt.Sprintf("%s-%x", cert.SerialNumber.String(), cert.AuthorityKeyId)
 
 }
-
-
 
 func (e *RealtimeValidationEngine) getFromCache(key string) *CachedValidationResult {
 
@@ -1556,8 +1270,6 @@ func (e *RealtimeValidationEngine) getFromCache(key string) *CachedValidationRes
 		return nil
 
 	}
-
-
 
 	// Check L1 cache first.
 
@@ -1569,8 +1281,6 @@ func (e *RealtimeValidationEngine) getFromCache(key string) *CachedValidationRes
 
 	}
 
-
-
 	// Check L2 cache if available.
 
 	if e.cache.l2Cache != nil {
@@ -1579,13 +1289,9 @@ func (e *RealtimeValidationEngine) getFromCache(key string) *CachedValidationRes
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (e *RealtimeValidationEngine) cacheResult(key string, result *ValidationResult) {
 
@@ -1595,25 +1301,18 @@ func (e *RealtimeValidationEngine) cacheResult(key string, result *ValidationRes
 
 	}
 
-
-
 	cached := &CachedValidationResult{
 
-		Result:   result,
+		Result: result,
 
 		CachedAt: time.Now(),
 
-		TTL:      e.config.RevocationCacheTTL,
-
+		TTL: e.config.RevocationCacheTTL,
 	}
-
-
 
 	// Store in L1 cache.
 
 	e.cache.l1Cache.Put(key, cached)
-
-
 
 	// Store in L2 cache if available.
 
@@ -1625,19 +1324,13 @@ func (e *RealtimeValidationEngine) cacheResult(key string, result *ValidationRes
 
 }
 
-
-
 // Circuit breaker methods.
-
-
 
 // AllowRequest performs allowrequest operation.
 
 func (cb *ValidationCircuitBreaker) AllowRequest() bool {
 
 	state := cb.state.Load().(CircuitState)
-
-
 
 	switch state {
 
@@ -1675,8 +1368,6 @@ func (cb *ValidationCircuitBreaker) AllowRequest() bool {
 
 }
 
-
-
 // RecordSuccess performs recordsuccess operation.
 
 func (cb *ValidationCircuitBreaker) RecordSuccess() {
@@ -1684,8 +1375,6 @@ func (cb *ValidationCircuitBreaker) RecordSuccess() {
 	cb.successCount.Add(1)
 
 	state := cb.state.Load().(CircuitState)
-
-
 
 	if state == CircuitHalfOpen && cb.successCount.Load() >= cb.config.SuccessThreshold {
 
@@ -1699,8 +1388,6 @@ func (cb *ValidationCircuitBreaker) RecordSuccess() {
 
 }
 
-
-
 // RecordFailure performs recordfailure operation.
 
 func (cb *ValidationCircuitBreaker) RecordFailure() {
@@ -1708,8 +1395,6 @@ func (cb *ValidationCircuitBreaker) RecordFailure() {
 	cb.failureCount.Add(1)
 
 	cb.lastFailureTime.Store(time.Now())
-
-
 
 	if cb.failureCount.Load() >= cb.config.FailureThreshold {
 
@@ -1719,11 +1404,7 @@ func (cb *ValidationCircuitBreaker) RecordFailure() {
 
 }
 
-
-
 // Connection pool methods.
-
-
 
 // GetConnection performs getconnection operation.
 
@@ -1735,8 +1416,6 @@ func (pool *OCSPConnectionPool) GetConnection(url string) *PooledConnection {
 
 	pool.mu.RUnlock()
 
-
-
 	if exists && !conn.InUse.Load() {
 
 		conn.InUse.Store(true)
@@ -1745,13 +1424,9 @@ func (pool *OCSPConnectionPool) GetConnection(url string) *PooledConnection {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // CreateConnection performs createconnection operation.
 
@@ -1761,8 +1436,6 @@ func (pool *OCSPConnectionPool) CreateConnection(url string) *PooledConnection {
 
 	defer pool.mu.Unlock()
 
-
-
 	if len(pool.connections) >= pool.maxSize {
 
 		// Evict least recently used.
@@ -1771,29 +1444,22 @@ func (pool *OCSPConnectionPool) CreateConnection(url string) *PooledConnection {
 
 	}
 
-
-
 	conn := &PooledConnection{
 
-		URL:      url,
+		URL: url,
 
-		Client:   NewOCSPClient(url, pool.timeout),
+		Client: NewOCSPClient(url, pool.timeout),
 
 		LastUsed: time.Now(),
-
 	}
 
 	conn.InUse.Store(true)
-
-
 
 	pool.connections[url] = conn
 
 	return conn
 
 }
-
-
 
 // ReleaseConnection performs releaseconnection operation.
 
@@ -1809,15 +1475,11 @@ func (pool *OCSPConnectionPool) ReleaseConnection(conn *PooledConnection) {
 
 }
 
-
-
 func (pool *OCSPConnectionPool) evictLRU() {
 
 	var oldestURL string
 
 	var oldestTime time.Time
-
-
 
 	for url, conn := range pool.connections {
 
@@ -1831,8 +1493,6 @@ func (pool *OCSPConnectionPool) evictLRU() {
 
 	}
 
-
-
 	if oldestURL != "" {
 
 		delete(pool.connections, oldestURL)
@@ -1841,11 +1501,7 @@ func (pool *OCSPConnectionPool) evictLRU() {
 
 }
 
-
-
 // Emergency bypass methods.
-
-
 
 func (e *RealtimeValidationEngine) isEmergencyBypassActive() bool {
 
@@ -1854,8 +1510,6 @@ func (e *RealtimeValidationEngine) isEmergencyBypassActive() bool {
 		return false
 
 	}
-
-
 
 	bypassUntil := e.emergencyBypass.bypassUntil.Load().(time.Time)
 
@@ -1867,13 +1521,9 @@ func (e *RealtimeValidationEngine) isEmergencyBypassActive() bool {
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // EnableEmergencyBypass performs enableemergencybypass operation.
 
@@ -1884,8 +1534,6 @@ func (e *RealtimeValidationEngine) EnableEmergencyBypass(authKey string, duratio
 		return fmt.Errorf("emergency bypass not configured")
 
 	}
-
-
 
 	// Validate authorization key.
 
@@ -1903,21 +1551,15 @@ func (e *RealtimeValidationEngine) EnableEmergencyBypass(authKey string, duratio
 
 	}
 
-
-
 	if !authorized {
 
 		return fmt.Errorf("invalid authorization key")
 
 	}
 
-
-
 	e.emergencyBypass.mu.Lock()
 
 	defer e.emergencyBypass.mu.Unlock()
-
-
 
 	e.emergencyBypass.enabled.Store(true)
 
@@ -1927,8 +1569,6 @@ func (e *RealtimeValidationEngine) EnableEmergencyBypass(authKey string, duratio
 
 	e.emergencyBypass.reason = reason
 
-
-
 	// Audit log.
 
 	if e.emergencyBypass.auditLogger != nil {
@@ -1936,8 +1576,6 @@ func (e *RealtimeValidationEngine) EnableEmergencyBypass(authKey string, duratio
 		e.emergencyBypass.auditLogger.LogEmergencyBypass(authKey, duration, reason)
 
 	}
-
-
 
 	e.logger.Warn("emergency bypass enabled",
 
@@ -1947,17 +1585,11 @@ func (e *RealtimeValidationEngine) EnableEmergencyBypass(authKey string, duratio
 
 		"reason", reason)
 
-
-
 	return nil
 
 }
 
-
-
 // Metrics recording.
-
-
 
 func (e *RealtimeValidationEngine) recordValidationMetrics(start time.Time, success bool, source string) {
 
@@ -1967,8 +1599,6 @@ func (e *RealtimeValidationEngine) recordValidationMetrics(start time.Time, succ
 
 	}
 
-
-
 	status := "success"
 
 	if !success {
@@ -1977,13 +1607,9 @@ func (e *RealtimeValidationEngine) recordValidationMetrics(start time.Time, succ
 
 	}
 
-
-
 	e.metricsRecorder.validationTotal.WithLabelValues(status, source).Inc()
 
 }
-
-
 
 func (e *RealtimeValidationEngine) recordValidationDuration(duration time.Duration) {
 
@@ -2001,8 +1627,6 @@ func (e *RealtimeValidationEngine) recordValidationDuration(duration time.Durati
 
 	e.mu.Unlock()
 
-
-
 	if e.metricsRecorder != nil {
 
 		e.metricsRecorder.validationDuration.WithLabelValues("realtime").Observe(duration.Seconds())
@@ -2011,11 +1635,7 @@ func (e *RealtimeValidationEngine) recordValidationDuration(duration time.Durati
 
 }
 
-
-
 // Webhook notification.
-
-
 
 func (e *RealtimeValidationEngine) sendValidationEvent(cert *x509.Certificate, result *ValidationResult, eventType string) {
 
@@ -2025,11 +1645,9 @@ func (e *RealtimeValidationEngine) sendValidationEvent(cert *x509.Certificate, r
 
 	}
 
-
-
 	event := &ValidationEvent{
 
-		Type:      eventType,
+		Type: eventType,
 
 		Timestamp: time.Now(),
 
@@ -2037,31 +1655,26 @@ func (e *RealtimeValidationEngine) sendValidationEvent(cert *x509.Certificate, r
 
 			SerialNumber: cert.SerialNumber.String(),
 
-			Subject:      cert.Subject.String(),
+			Subject: cert.Subject.String(),
 
-			Issuer:       cert.Issuer.String(),
+			Issuer: cert.Issuer.String(),
 
-			NotBefore:    cert.NotBefore,
+			NotBefore: cert.NotBefore,
 
-			NotAfter:     cert.NotAfter,
-
+			NotAfter: cert.NotAfter,
 		},
 
-		Result:   result,
+		Result: result,
 
 		Severity: "high",
 
 		Details: map[string]interface{}{
 
-			"errors":   result.Errors,
+			"errors": result.Errors,
 
 			"warnings": result.Warnings,
-
 		},
-
 	}
-
-
 
 	select {
 
@@ -2074,8 +1687,6 @@ func (e *RealtimeValidationEngine) sendValidationEvent(cert *x509.Certificate, r
 	}
 
 }
-
-
 
 // Initialize metrics.
 
@@ -2090,27 +1701,23 @@ func (e *RealtimeValidationEngine) initializeMetrics() *ValidationMetricsRecorde
 				Name: "cert_validation_total",
 
 				Help: "Total number of certificate validations",
-
 			},
 
 			[]string{"status", "source"},
-
 		),
 
 		validationDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "cert_validation_duration_seconds",
+				Name: "cert_validation_duration_seconds",
 
-				Help:    "Certificate validation duration in seconds",
+				Help: "Certificate validation duration in seconds",
 
 				Buckets: prometheus.ExponentialBuckets(0.001, 2, 10),
-
 			},
 
 			[]string{"type"},
-
 		),
 
 		revocationCheckTotal: prometheus.NewCounterVec(
@@ -2120,11 +1727,9 @@ func (e *RealtimeValidationEngine) initializeMetrics() *ValidationMetricsRecorde
 				Name: "cert_revocation_check_total",
 
 				Help: "Total number of revocation checks",
-
 			},
 
 			[]string{"method", "status"},
-
 		),
 
 		cacheHitRate: prometheus.NewGauge(
@@ -2134,9 +1739,7 @@ func (e *RealtimeValidationEngine) initializeMetrics() *ValidationMetricsRecorde
 				Name: "cert_validation_cache_hit_rate",
 
 				Help: "Certificate validation cache hit rate",
-
 			},
-
 		),
 
 		policyViolations: prometheus.NewCounterVec(
@@ -2146,11 +1749,9 @@ func (e *RealtimeValidationEngine) initializeMetrics() *ValidationMetricsRecorde
 				Name: "cert_policy_violations_total",
 
 				Help: "Total number of certificate policy violations",
-
 			},
 
 			[]string{"rule", "severity"},
-
 		),
 
 		circuitBreakerState: prometheus.NewGaugeVec(
@@ -2160,18 +1761,13 @@ func (e *RealtimeValidationEngine) initializeMetrics() *ValidationMetricsRecorde
 				Name: "cert_validation_circuit_breaker_state",
 
 				Help: "Certificate validation circuit breaker state (0=closed, 1=open, 2=half-open)",
-
 			},
 
 			[]string{"component"},
-
 		),
-
 	}
 
 }
-
-
 
 // GetStatistics returns validation statistics.
 
@@ -2181,29 +1777,21 @@ func (e *RealtimeValidationEngine) GetStatistics() *ValidationStatistics {
 
 }
 
-
-
 // GetCacheStatistics returns cache statistics.
 
 func (e *RealtimeValidationEngine) GetCacheStatistics() map[string]interface{} {
 
 	stats := make(map[string]interface{})
 
-
-
 	totalValidations := e.stats.TotalValidations.Load()
 
 	cacheHits := e.stats.CacheHits.Load()
-
-
 
 	if totalValidations > 0 {
 
 		stats["cache_hit_rate"] = float64(cacheHits) / float64(totalValidations)
 
 	}
-
-
 
 	stats["total_validations"] = totalValidations
 
@@ -2223,8 +1811,6 @@ func (e *RealtimeValidationEngine) GetCacheStatistics() map[string]interface{} {
 
 	stats["emergency_bypasses"] = e.stats.EmergencyBypasses.Load()
 
-
-
 	// Calculate P95 validation duration.
 
 	e.mu.RLock()
@@ -2236,8 +1822,6 @@ func (e *RealtimeValidationEngine) GetCacheStatistics() map[string]interface{} {
 		copy(durations, e.stats.ValidationDurations)
 
 		e.mu.RUnlock()
-
-
 
 		// Sort and calculate P95.
 
@@ -2255,21 +1839,15 @@ func (e *RealtimeValidationEngine) GetCacheStatistics() map[string]interface{} {
 
 	}
 
-
-
 	return stats
 
 }
-
-
 
 // Start starts the validation engine.
 
 func (e *RealtimeValidationEngine) Start(ctx context.Context) error {
 
 	e.logger.Info("starting real-time validation engine")
-
-
 
 	// Start webhook notifier workers.
 
@@ -2285,8 +1863,6 @@ func (e *RealtimeValidationEngine) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start metrics updater.
 
 	if e.metricsRecorder != nil {
@@ -2297,21 +1873,15 @@ func (e *RealtimeValidationEngine) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start cache cleanup.
 
 	e.wg.Add(1)
 
 	go e.runCacheCleanup()
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the validation engine.
 
@@ -2325,17 +1895,11 @@ func (e *RealtimeValidationEngine) Stop() {
 
 }
 
-
-
 // Worker routines.
-
-
 
 func (e *RealtimeValidationEngine) runWebhookWorker() {
 
 	defer e.wg.Done()
-
-
 
 	for {
 
@@ -2359,19 +1923,13 @@ func (e *RealtimeValidationEngine) runWebhookWorker() {
 
 }
 
-
-
 func (e *RealtimeValidationEngine) runMetricsUpdater() {
 
 	defer e.wg.Done()
 
-
-
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2391,19 +1949,13 @@ func (e *RealtimeValidationEngine) runMetricsUpdater() {
 
 }
 
-
-
 func (e *RealtimeValidationEngine) runCacheCleanup() {
 
 	defer e.wg.Done()
 
-
-
 	ticker := time.NewTicker(5 * time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2423,21 +1975,15 @@ func (e *RealtimeValidationEngine) runCacheCleanup() {
 
 }
 
-
-
 func (e *RealtimeValidationEngine) updateMetrics() {
 
 	stats := e.GetCacheStatistics()
-
-
 
 	if e.metricsRecorder != nil && stats["cache_hit_rate"] != nil {
 
 		e.metricsRecorder.cacheHitRate.Set(stats["cache_hit_rate"].(float64))
 
 	}
-
-
 
 	// Update circuit breaker state.
 
@@ -2451,8 +1997,6 @@ func (e *RealtimeValidationEngine) updateMetrics() {
 
 }
 
-
-
 func (e *RealtimeValidationEngine) cleanupCache() {
 
 	if e.cache != nil && e.cache.l1Cache != nil {
@@ -2463,53 +2007,35 @@ func (e *RealtimeValidationEngine) cleanupCache() {
 
 }
 
-
-
 // Helper types.
 
-
-
 type validationComponent struct {
-
-	Type   string
+	Type string
 
 	Result interface{}
-
 }
-
-
 
 // ORANComplianceResult represents a orancomplianceresult.
 
 type ORANComplianceResult struct {
-
-	Valid  bool        `json:"valid"`
+	Valid bool `json:"valid"`
 
 	Checks []ORANCheck `json:"checks"`
 
-	Score  float64     `json:"score"`
-
+	Score float64 `json:"score"`
 }
-
-
 
 // ORANCheck represents a orancheck.
 
 type ORANCheck struct {
+	Name string `json:"name"`
 
-	Name    string `json:"name"`
-
-	Passed  bool   `json:"passed"`
+	Passed bool `json:"passed"`
 
 	Message string `json:"message,omitempty"`
-
 }
 
-
-
 // L1 Cache methods.
-
-
 
 // Get performs get operation.
 
@@ -2519,8 +2045,6 @@ func (cache *L1ValidationCache) Get(key string) *CachedValidationResult {
 
 	defer cache.mu.RUnlock()
 
-
-
 	result, exists := cache.cache[key]
 
 	if !exists {
@@ -2528,8 +2052,6 @@ func (cache *L1ValidationCache) Get(key string) *CachedValidationResult {
 		return nil
 
 	}
-
-
 
 	// Check TTL.
 
@@ -2539,13 +2061,9 @@ func (cache *L1ValidationCache) Get(key string) *CachedValidationResult {
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // Put performs put operation.
 
@@ -2554,8 +2072,6 @@ func (cache *L1ValidationCache) Put(key string, result *CachedValidationResult) 
 	cache.mu.Lock()
 
 	defer cache.mu.Unlock()
-
-
 
 	// Check size limit.
 
@@ -2567,21 +2083,15 @@ func (cache *L1ValidationCache) Put(key string, result *CachedValidationResult) 
 
 	}
 
-
-
 	cache.cache[key] = result
 
 }
-
-
 
 func (cache *L1ValidationCache) evictOldest() {
 
 	var oldestKey string
 
 	var oldestTime time.Time
-
-
 
 	for key, result := range cache.cache {
 
@@ -2595,8 +2105,6 @@ func (cache *L1ValidationCache) evictOldest() {
 
 	}
 
-
-
 	if oldestKey != "" {
 
 		delete(cache.cache, oldestKey)
@@ -2605,8 +2113,6 @@ func (cache *L1ValidationCache) evictOldest() {
 
 }
 
-
-
 // Cleanup performs cleanup operation.
 
 func (cache *L1ValidationCache) Cleanup() {
@@ -2614,8 +2120,6 @@ func (cache *L1ValidationCache) Cleanup() {
 	cache.mu.Lock()
 
 	defer cache.mu.Unlock()
-
-
 
 	now := time.Now()
 
@@ -2630,8 +2134,6 @@ func (cache *L1ValidationCache) Cleanup() {
 	}
 
 }
-
-
 
 // aggregateValidationResult aggregates component validation results.
 
@@ -2745,8 +2247,6 @@ func (e *RealtimeValidationEngine) aggregateValidationResult(result *ValidationR
 
 }
 
-
-
 // validateSCTs validates Signed Certificate Timestamps.
 
 func (e *RealtimeValidationEngine) validateSCTs(ctx context.Context, cert *x509.Certificate) bool {
@@ -2769,11 +2269,8 @@ func (e *RealtimeValidationEngine) validateSCTs(ctx context.Context, cert *x509.
 
 	}
 
-
-
 	// No SCTs found.
 
 	return false
 
 }
-

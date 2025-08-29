@@ -28,48 +28,25 @@ limitations under the License.
 
 */
 
-
-
-
 package porch
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"sort"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
 	"github.com/prometheus/client_golang/prometheus"
-
-
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // packageRevisionManager implements the PackageRevisionManager interface.
 
@@ -79,71 +56,48 @@ type packageRevisionManager struct {
 
 	client *Client
 
-
-
 	// Logger for package operations.
 
 	logger logr.Logger
-
-
 
 	// Metrics for package operations.
 
 	metrics *PackageRevisionMetrics
 
-
-
 	// Package state tracking.
 
-	packages   map[string]*packageState
+	packages map[string]*packageState
 
 	stateMutex sync.RWMutex
-
-
 
 	// Content processors for different package types.
 
 	contentProcessors map[string]ContentProcessor
 
-
-
 	// Validation engines for package content.
 
 	validators []PackageValidator
-
-
 
 	// State change handlers.
 
 	stateChangeHandlers []StateChangeHandler
 
-
-
 	// Approval workflow engine.
 
 	workflowEngine WorkflowEngine
-
-
 
 	// Diff engine for package comparison.
 
 	diffEngine DiffEngine
 
-
-
 	// Content storage interface.
 
 	contentStorage ContentStorage
 
-
-
 	// Lock manager for concurrent access.
 
 	lockManager LockManager
-
 }
-
-
 
 // packageState tracks the runtime state of a package revision.
 
@@ -153,142 +107,106 @@ type packageState struct {
 
 	reference *PackageReference
 
-
-
 	// Current lifecycle state.
 
 	lifecycle PackageRevisionLifecycle
 
-
-
 	// Content metadata.
 
-	contentSize  int64
+	contentSize int64
 
-	contentHash  string
+	contentHash string
 
 	lastModified time.Time
-
-
 
 	// Validation results.
 
 	validationResults []*ValidationResult
 
-	lastValidation    time.Time
-
-
+	lastValidation time.Time
 
 	// Approval workflow status.
 
-	workflowState  WorkflowPhase
+	workflowState WorkflowPhase
 
 	approvalStatus string
 
-	approvers      []string
-
-
+	approvers []string
 
 	// Performance metrics.
 
-	renderTime     time.Duration
+	renderTime time.Duration
 
 	validationTime time.Duration
-
-
 
 	// Deployment tracking.
 
 	deployments []DeploymentTarget
 
-
-
 	// Lock information.
 
-	locked     bool
+	locked bool
 
-	lockedBy   string
+	lockedBy string
 
-	lockedAt   time.Time
+	lockedAt time.Time
 
 	lockReason string
-
-
 
 	// Mutex for thread-safe access.
 
 	mutex sync.RWMutex
-
 }
-
-
 
 // PackageRevisionMetrics defines Prometheus metrics for package operations.
 
 type PackageRevisionMetrics struct {
+	packageOperations *prometheus.CounterVec
 
-	packageOperations  *prometheus.CounterVec
-
-	packageStates      *prometheus.GaugeVec
+	packageStates *prometheus.GaugeVec
 
 	validationDuration *prometheus.HistogramVec
 
-	renderDuration     *prometheus.HistogramVec
+	renderDuration *prometheus.HistogramVec
 
-	contentSize        *prometheus.GaugeVec
+	contentSize *prometheus.GaugeVec
 
-	approvalStatus     *prometheus.GaugeVec
+	approvalStatus *prometheus.GaugeVec
 
-	deploymentStatus   *prometheus.GaugeVec
-
+	deploymentStatus *prometheus.GaugeVec
 }
-
-
 
 // ContentProcessor processes different types of package content.
 
 type ContentProcessor interface {
-
 	ProcessContent(ctx context.Context, content map[string][]byte) (map[string][]byte, error)
 
 	ValidateContent(ctx context.Context, content map[string][]byte) error
 
 	GetContentType() string
-
 }
-
-
 
 // PackageValidator validates package content according to specific rules.
 
 type PackageValidator interface {
-
 	Validate(ctx context.Context, pkg *PackageRevision, content map[string][]byte) (*ValidationResult, error)
 
 	GetValidatorName() string
 
 	GetSeverity() string
-
 }
-
-
 
 // StateChangeHandler handles package lifecycle state changes.
 
 type StateChangeHandler interface {
-
 	OnStateChange(ctx context.Context, pkg *PackageRevision, oldState, newState PackageRevisionLifecycle)
 
 	GetHandlerName() string
-
 }
-
-
 
 // PackageWorkflowEngine manages approval workflows for packages.
 
 type PackageWorkflowEngine interface {
-
 	StartWorkflow(ctx context.Context, pkg *PackageRevision, workflowType string) error
 
 	ApproveWorkflow(ctx context.Context, pkg *PackageRevision, approver string) error
@@ -296,47 +214,33 @@ type PackageWorkflowEngine interface {
 	RejectWorkflow(ctx context.Context, pkg *PackageRevision, approver, reason string) error
 
 	GetWorkflowStatus(ctx context.Context, pkg *PackageRevision) (*WorkflowStatus, error)
-
 }
 
-
-
 // WorkflowStatus is defined in types.go.
-
-
 
 // ApprovalRecord tracks individual approval/rejection actions.
 
 type ApprovalRecord struct {
+	Approver string
 
-	Approver  string
-
-	Action    string // approve, reject
+	Action string // approve, reject
 
 	Timestamp time.Time
 
-	Reason    string
-
+	Reason string
 }
-
-
 
 // DiffEngine compares package revisions.
 
 type DiffEngine interface {
-
 	ComparePackages(ctx context.Context, pkg1, pkg2 *PackageRevision) (*ComparisonResult, error)
 
 	CompareContent(ctx context.Context, content1, content2 map[string][]byte) (*ComparisonResult, error)
-
 }
-
-
 
 // ContentStorage provides persistent storage for package content.
 
 type ContentStorage interface {
-
 	StoreContent(ctx context.Context, ref *PackageReference, content map[string][]byte) error
 
 	RetrieveContent(ctx context.Context, ref *PackageReference) (map[string][]byte, error)
@@ -344,31 +248,23 @@ type ContentStorage interface {
 	DeleteContent(ctx context.Context, ref *PackageReference) error
 
 	GetContentMetadata(ctx context.Context, ref *PackageReference) (*ContentMetadata, error)
-
 }
-
-
 
 // ContentMetadata provides metadata about stored content.
 
 type ContentMetadata struct {
+	Size int64
 
-	Size         int64
-
-	Hash         string
+	Hash string
 
 	ModifiedTime time.Time
 
-	ContentType  string
-
+	ContentType string
 }
-
-
 
 // LockManager manages locks on packages to prevent concurrent modifications.
 
 type LockManager interface {
-
 	AcquireLock(ctx context.Context, ref *PackageReference, owner, reason string) error
 
 	ReleaseLock(ctx context.Context, ref *PackageReference, owner string) error
@@ -376,28 +272,21 @@ type LockManager interface {
 	IsLocked(ctx context.Context, ref *PackageReference) (bool, string, error)
 
 	GetLockInfo(ctx context.Context, ref *PackageReference) (*LockInfo, error)
-
 }
-
-
 
 // LockInfo provides information about a package lock.
 
 type LockInfo struct {
+	Locked bool
 
-	Locked     bool
+	Owner string
 
-	Owner      string
-
-	Reason     string
+	Reason string
 
 	AcquiredAt time.Time
 
-	ExpiresAt  *time.Time
-
+	ExpiresAt *time.Time
 }
-
-
 
 // NewPackageRevisionManager creates a new package revision manager.
 
@@ -405,29 +294,24 @@ func NewPackageRevisionManager(client *Client) PackageRevisionManager {
 
 	return &packageRevisionManager{
 
-		client:            client,
+		client: client,
 
-		logger:            log.Log.WithName("package-revision-manager"),
+		logger: log.Log.WithName("package-revision-manager"),
 
-		packages:          make(map[string]*packageState),
+		packages: make(map[string]*packageState),
 
 		contentProcessors: make(map[string]ContentProcessor),
 
-		metrics:           initPackageRevisionMetrics(),
-
+		metrics: initPackageRevisionMetrics(),
 	}
 
 }
-
-
 
 // CreatePackage creates a new package from a specification.
 
 func (prm *packageRevisionManager) CreatePackage(ctx context.Context, spec *PackageSpec) (*PackageRevision, error) {
 
 	prm.logger.Info("Creating package", "repository", spec.Repository, "package", spec.PackageName)
-
-
 
 	// Validate package specification.
 
@@ -437,29 +321,22 @@ func (prm *packageRevisionManager) CreatePackage(ctx context.Context, spec *Pack
 
 	}
 
-
-
 	// Check if package already exists.
 
 	ref := &PackageReference{
 
-		Repository:  spec.Repository,
+		Repository: spec.Repository,
 
 		PackageName: spec.PackageName,
 
-		Revision:    spec.Revision,
-
+		Revision: spec.Revision,
 	}
-
-
 
 	if spec.Revision == "" {
 
 		ref.Revision = "v1"
 
 	}
-
-
 
 	// Create package revision.
 
@@ -471,40 +348,36 @@ func (prm *packageRevisionManager) CreatePackage(ctx context.Context, spec *Pack
 
 			Labels: map[string]string{
 
-				LabelComponent:   "package-revision",
+				LabelComponent: "package-revision",
 
-				LabelRepository:  spec.Repository,
+				LabelRepository: spec.Repository,
 
 				LabelPackageName: spec.PackageName,
 
-				LabelRevision:    ref.Revision,
+				LabelRevision: ref.Revision,
 
-				LabelLifecycle:   string(PackageRevisionLifecycleDraft),
-
+				LabelLifecycle: string(PackageRevisionLifecycleDraft),
 			},
 
 			Annotations: map[string]string{
 
-				AnnotationManagedBy:   "nephoran-porch-client",
+				AnnotationManagedBy: "nephoran-porch-client",
 
 				AnnotationPackageName: spec.PackageName,
 
-				AnnotationRevision:    ref.Revision,
-
+				AnnotationRevision: ref.Revision,
 			},
-
 		},
 
 		Spec: PackageRevisionSpec{
 
 			PackageName: spec.PackageName,
 
-			Repository:  spec.Repository,
+			Repository: spec.Repository,
 
-			Revision:    ref.Revision,
+			Revision: ref.Revision,
 
-			Lifecycle:   PackageRevisionLifecycleDraft,
-
+			Lifecycle: PackageRevisionLifecycleDraft,
 		},
 
 		Status: PackageRevisionStatus{
@@ -513,23 +386,17 @@ func (prm *packageRevisionManager) CreatePackage(ctx context.Context, spec *Pack
 
 				{
 
-					Type:    "Created",
+					Type: "Created",
 
-					Status:  metav1.ConditionTrue,
+					Status: metav1.ConditionTrue,
 
-					Reason:  "PackageCreated",
+					Reason: "PackageCreated",
 
 					Message: "Package revision successfully created",
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	// Apply labels and annotations from spec.
 
@@ -537,7 +404,9 @@ func (prm *packageRevisionManager) CreatePackage(ctx context.Context, spec *Pack
 
 		for k, v := range spec.Labels {
 
-		if pkg.ObjectMeta.Labels == nil { pkg.ObjectMeta.Labels = make(map[string]string) }
+			if pkg.ObjectMeta.Labels == nil {
+				pkg.ObjectMeta.Labels = make(map[string]string)
+			}
 			pkg.ObjectMeta.Labels[k] = v
 
 		}
@@ -547,15 +416,15 @@ func (prm *packageRevisionManager) CreatePackage(ctx context.Context, spec *Pack
 	if spec.Annotations != nil {
 
 		for k, v := range spec.Annotations {
-		if pkg.ObjectMeta.Annotations == nil { pkg.ObjectMeta.Annotations = make(map[string]string) }
+			if pkg.ObjectMeta.Annotations == nil {
+				pkg.ObjectMeta.Annotations = make(map[string]string)
+			}
 
 			pkg.ObjectMeta.Annotations[k] = v
 
 		}
 
 	}
-
-
 
 	// Create package using Porch client.
 
@@ -567,31 +436,24 @@ func (prm *packageRevisionManager) CreatePackage(ctx context.Context, spec *Pack
 
 	}
 
-
-
 	// Initialize package state.
 
 	state := &packageState{
 
-		reference:     ref,
+		reference: ref,
 
-		lifecycle:     PackageRevisionLifecycleDraft,
+		lifecycle: PackageRevisionLifecycleDraft,
 
-		lastModified:  time.Now(),
+		lastModified: time.Now(),
 
 		workflowState: WorkflowPhasePending,
-
 	}
-
-
 
 	prm.stateMutex.Lock()
 
 	prm.packages[ref.GetPackageKey()] = state
 
 	prm.stateMutex.Unlock()
-
-
 
 	// Update metrics.
 
@@ -603,23 +465,17 @@ func (prm *packageRevisionManager) CreatePackage(ctx context.Context, spec *Pack
 
 	}
 
-
-
 	prm.logger.Info("Successfully created package", "repository", spec.Repository, "package", spec.PackageName, "revision", ref.Revision)
 
 	return created, nil
 
 }
 
-
-
 // ClonePackage creates a new package by cloning an existing one.
 
 func (prm *packageRevisionManager) ClonePackage(ctx context.Context, source *PackageReference, target *PackageSpec) (*PackageRevision, error) {
 
 	prm.logger.Info("Cloning package", "source", source.GetPackageKey(), "target", target.PackageName)
-
-
 
 	// Get source package content.
 
@@ -631,8 +487,6 @@ func (prm *packageRevisionManager) ClonePackage(ctx context.Context, source *Pac
 
 	}
 
-
-
 	// Create target package.
 
 	targetPkg, err := prm.CreatePackage(ctx, target)
@@ -643,18 +497,15 @@ func (prm *packageRevisionManager) ClonePackage(ctx context.Context, source *Pac
 
 	}
 
-
-
 	// Copy content to target.
 
 	targetRef := &PackageReference{
 
-		Repository:  target.Repository,
+		Repository: target.Repository,
 
 		PackageName: target.PackageName,
 
-		Revision:    target.Revision,
-
+		Revision: target.Revision,
 	}
 
 	if targetRef.Revision == "" {
@@ -663,15 +514,11 @@ func (prm *packageRevisionManager) ClonePackage(ctx context.Context, source *Pac
 
 	}
 
-
-
 	if err := prm.UpdateContent(ctx, targetRef, sourceContent.Files); err != nil {
 
 		return nil, fmt.Errorf("failed to update target package content: %w", err)
 
 	}
-
-
 
 	prm.logger.Info("Successfully cloned package", "source", source.GetPackageKey(), "target", targetRef.GetPackageKey())
 
@@ -679,15 +526,11 @@ func (prm *packageRevisionManager) ClonePackage(ctx context.Context, source *Pac
 
 }
 
-
-
 // DeletePackage deletes a package and all its revisions.
 
 func (prm *packageRevisionManager) DeletePackage(ctx context.Context, ref *PackageReference) error {
 
 	prm.logger.Info("Deleting package", "package", ref.GetPackageKey())
-
-
 
 	// Check if package is locked.
 
@@ -709,8 +552,6 @@ func (prm *packageRevisionManager) DeletePackage(ctx context.Context, ref *Packa
 
 	}
 
-
-
 	// Delete package revision from Porch.
 
 	if err := prm.client.DeletePackageRevision(ctx, ref.PackageName, ref.Revision); err != nil {
@@ -718,8 +559,6 @@ func (prm *packageRevisionManager) DeletePackage(ctx context.Context, ref *Packa
 		return fmt.Errorf("failed to delete package revision: %w", err)
 
 	}
-
-
 
 	// Delete content from storage.
 
@@ -733,8 +572,6 @@ func (prm *packageRevisionManager) DeletePackage(ctx context.Context, ref *Packa
 
 	}
 
-
-
 	// Remove from state tracking.
 
 	prm.stateMutex.Lock()
@@ -742,8 +579,6 @@ func (prm *packageRevisionManager) DeletePackage(ctx context.Context, ref *Packa
 	delete(prm.packages, ref.GetPackageKey())
 
 	prm.stateMutex.Unlock()
-
-
 
 	// Update metrics.
 
@@ -753,23 +588,17 @@ func (prm *packageRevisionManager) DeletePackage(ctx context.Context, ref *Packa
 
 	}
 
-
-
 	prm.logger.Info("Successfully deleted package", "package", ref.GetPackageKey())
 
 	return nil
 
 }
 
-
-
 // CreateRevision creates a new revision of an existing package.
 
 func (prm *packageRevisionManager) CreateRevision(ctx context.Context, ref *PackageReference) (*PackageRevision, error) {
 
 	prm.logger.Info("Creating revision", "package", ref.GetPackageKey())
-
-
 
 	// Get existing package revisions.
 
@@ -781,29 +610,22 @@ func (prm *packageRevisionManager) CreateRevision(ctx context.Context, ref *Pack
 
 	}
 
-
-
 	// Determine next revision number.
 
 	nextRevision := prm.calculateNextRevision(revisions)
-
-
 
 	// Create new revision spec.
 
 	spec := &PackageSpec{
 
-		Repository:  ref.Repository,
+		Repository: ref.Repository,
 
 		PackageName: ref.PackageName,
 
-		Revision:    nextRevision,
+		Revision: nextRevision,
 
-		Lifecycle:   PackageRevisionLifecycleDraft,
-
+		Lifecycle: PackageRevisionLifecycleDraft,
 	}
-
-
 
 	// Clone from the latest published revision if available.
 
@@ -813,25 +635,20 @@ func (prm *packageRevisionManager) CreateRevision(ctx context.Context, ref *Pack
 
 		return prm.ClonePackage(ctx, &PackageReference{
 
-			Repository:  ref.Repository,
+			Repository: ref.Repository,
 
 			PackageName: ref.PackageName,
 
-			Revision:    latestPublished.Spec.Revision,
-
+			Revision: latestPublished.Spec.Revision,
 		}, spec)
 
 	}
-
-
 
 	// Create new revision.
 
 	return prm.CreatePackage(ctx, spec)
 
 }
-
-
 
 // GetRevision retrieves a specific package revision.
 
@@ -845,19 +662,13 @@ func (prm *packageRevisionManager) GetRevision(ctx context.Context, ref *Package
 
 	}
 
-
-
 	// Update state tracking.
 
 	prm.updatePackageState(ref, pkg)
 
-
-
 	return pkg, nil
 
 }
-
-
 
 // ListRevisions lists all revisions of a package.
 
@@ -866,10 +677,7 @@ func (prm *packageRevisionManager) ListRevisions(ctx context.Context, packageNam
 	opts := &ListOptions{
 
 		LabelSelector: fmt.Sprintf("%s=%s", LabelPackageName, packageName),
-
 	}
-
-
 
 	list, err := prm.client.ListPackageRevisions(ctx, opts)
 
@@ -878,8 +686,6 @@ func (prm *packageRevisionManager) ListRevisions(ctx context.Context, packageNam
 		return nil, fmt.Errorf("failed to list package revisions: %w", err)
 
 	}
-
-
 
 	// Convert to slice and sort by revision.
 
@@ -891,29 +697,21 @@ func (prm *packageRevisionManager) ListRevisions(ctx context.Context, packageNam
 
 	}
 
-
-
 	sort.Slice(revisions, func(i, j int) bool {
 
 		return revisions[i].Spec.Revision < revisions[j].Spec.Revision
 
 	})
 
-
-
 	return revisions, nil
 
 }
-
-
 
 // CompareRevisions compares two package revisions.
 
 func (prm *packageRevisionManager) CompareRevisions(ctx context.Context, ref1, ref2 *PackageReference) (*ComparisonResult, error) {
 
 	prm.logger.V(1).Info("Comparing revisions", "ref1", ref1.GetPackageKey(), "ref2", ref2.GetPackageKey())
-
-
 
 	// Get package revisions.
 
@@ -925,8 +723,6 @@ func (prm *packageRevisionManager) CompareRevisions(ctx context.Context, ref1, r
 
 	}
 
-
-
 	pkg2, err := prm.GetRevision(ctx, ref2)
 
 	if err != nil {
@@ -934,8 +730,6 @@ func (prm *packageRevisionManager) CompareRevisions(ctx context.Context, ref1, r
 		return nil, fmt.Errorf("failed to get second package revision: %w", err)
 
 	}
-
-
 
 	// Use diff engine if available.
 
@@ -945,13 +739,9 @@ func (prm *packageRevisionManager) CompareRevisions(ctx context.Context, ref1, r
 
 	}
 
-
-
 	// Basic comparison.
 
 	result := &ComparisonResult{}
-
-
 
 	// Compare lifecycle states.
 
@@ -961,15 +751,11 @@ func (prm *packageRevisionManager) CompareRevisions(ctx context.Context, ref1, r
 
 	}
 
-
-
 	// Compare content if available.
 
 	content1, err1 := prm.GetContent(ctx, ref1)
 
 	content2, err2 := prm.GetContent(ctx, ref2)
-
-
 
 	if err1 == nil && err2 == nil {
 
@@ -983,13 +769,9 @@ func (prm *packageRevisionManager) CompareRevisions(ctx context.Context, ref1, r
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // PromoteToProposed promotes a package revision to proposed state.
 
@@ -999,8 +781,6 @@ func (prm *packageRevisionManager) PromoteToProposed(ctx context.Context, ref *P
 
 }
 
-
-
 // PromoteToPublished promotes a package revision to published state.
 
 func (prm *packageRevisionManager) PromoteToPublished(ctx context.Context, ref *PackageReference) error {
@@ -1009,29 +789,22 @@ func (prm *packageRevisionManager) PromoteToPublished(ctx context.Context, ref *
 
 }
 
-
-
 // RevertToRevision reverts a package to a previous revision.
 
 func (prm *packageRevisionManager) RevertToRevision(ctx context.Context, ref *PackageReference, targetRevision string) error {
 
 	prm.logger.Info("Reverting to revision", "package", ref.GetPackageKey(), "targetRevision", targetRevision)
 
-
-
 	// Get target revision content.
 
 	targetRef := &PackageReference{
 
-		Repository:  ref.Repository,
+		Repository: ref.Repository,
 
 		PackageName: ref.PackageName,
 
-		Revision:    targetRevision,
-
+		Revision: targetRevision,
 	}
-
-
 
 	targetContent, err := prm.GetContent(ctx, targetRef)
 
@@ -1041,8 +814,6 @@ func (prm *packageRevisionManager) RevertToRevision(ctx context.Context, ref *Pa
 
 	}
 
-
-
 	// Update current revision content.
 
 	if err := prm.UpdateContent(ctx, ref, targetContent.Files); err != nil {
@@ -1051,23 +822,17 @@ func (prm *packageRevisionManager) RevertToRevision(ctx context.Context, ref *Pa
 
 	}
 
-
-
 	prm.logger.Info("Successfully reverted to revision", "package", ref.GetPackageKey(), "targetRevision", targetRevision)
 
 	return nil
 
 }
 
-
-
 // UpdateContent updates the content of a package revision.
 
 func (prm *packageRevisionManager) UpdateContent(ctx context.Context, ref *PackageReference, updates map[string][]byte) error {
 
 	prm.logger.V(1).Info("Updating content", "package", ref.GetPackageKey(), "files", len(updates))
-
-
 
 	// Check if package is locked.
 
@@ -1089,8 +854,6 @@ func (prm *packageRevisionManager) UpdateContent(ctx context.Context, ref *Packa
 
 	}
 
-
-
 	// Validate content.
 
 	if err := prm.validateContent(ctx, ref, updates); err != nil {
@@ -1098,8 +861,6 @@ func (prm *packageRevisionManager) UpdateContent(ctx context.Context, ref *Packa
 		return fmt.Errorf("content validation failed: %w", err)
 
 	}
-
-
 
 	// Process content through processors.
 
@@ -1110,8 +871,6 @@ func (prm *packageRevisionManager) UpdateContent(ctx context.Context, ref *Packa
 		return fmt.Errorf("content processing failed: %w", err)
 
 	}
-
-
 
 	// Store content.
 
@@ -1125,8 +884,6 @@ func (prm *packageRevisionManager) UpdateContent(ctx context.Context, ref *Packa
 
 	}
 
-
-
 	// Update package using Porch client.
 
 	if err := prm.client.UpdatePackageContents(ctx, ref.PackageName, ref.Revision, processedContent); err != nil {
@@ -1135,13 +892,9 @@ func (prm *packageRevisionManager) UpdateContent(ctx context.Context, ref *Packa
 
 	}
 
-
-
 	// Update package state.
 
 	prm.updateContentMetrics(ref, processedContent)
-
-
 
 	// Trigger validation.
 
@@ -1155,15 +908,11 @@ func (prm *packageRevisionManager) UpdateContent(ctx context.Context, ref *Packa
 
 	}()
 
-
-
 	prm.logger.Info("Successfully updated content", "package", ref.GetPackageKey(), "files", len(processedContent))
 
 	return nil
 
 }
-
-
 
 // GetContent retrieves the content of a package revision.
 
@@ -1185,8 +934,6 @@ func (prm *packageRevisionManager) GetContent(ctx context.Context, ref *PackageR
 
 	}
 
-
-
 	// Fall back to Porch client.
 
 	content, err := prm.client.GetPackageContents(ctx, ref.PackageName, ref.Revision)
@@ -1197,13 +944,9 @@ func (prm *packageRevisionManager) GetContent(ctx context.Context, ref *PackageR
 
 	}
 
-
-
 	return &PackageContent{Files: content}, nil
 
 }
-
-
 
 // ValidateContent validates the content of a package revision.
 
@@ -1221,11 +964,7 @@ func (prm *packageRevisionManager) ValidateContent(ctx context.Context, ref *Pac
 
 	}()
 
-
-
 	prm.logger.V(1).Info("Validating content", "package", ref.GetPackageKey())
-
-
 
 	// Get package and content.
 
@@ -1237,8 +976,6 @@ func (prm *packageRevisionManager) ValidateContent(ctx context.Context, ref *Pac
 
 	}
 
-
-
 	content, err := prm.GetContent(ctx, ref)
 
 	if err != nil {
@@ -1247,21 +984,16 @@ func (prm *packageRevisionManager) ValidateContent(ctx context.Context, ref *Pac
 
 	}
 
-
-
 	// Run all validators.
 
 	result := &ValidationResult{
 
-		Valid:    true,
+		Valid: true,
 
-		Errors:   []ValidationError{},
+		Errors: []ValidationError{},
 
 		Warnings: []ValidationError{},
-
 	}
-
-
 
 	for _, validator := range prm.validators {
 
@@ -1273,12 +1005,11 @@ func (prm *packageRevisionManager) ValidateContent(ctx context.Context, ref *Pac
 
 			result.Errors = append(result.Errors, ValidationError{
 
-				Message:  fmt.Sprintf("Validator %s failed: %v", validator.GetValidatorName(), err),
+				Message: fmt.Sprintf("Validator %s failed: %v", validator.GetValidatorName(), err),
 
 				Severity: "error",
 
-				Code:     "VALIDATOR_ERROR",
-
+				Code: "VALIDATOR_ERROR",
 			})
 
 			result.Valid = false
@@ -1286,8 +1017,6 @@ func (prm *packageRevisionManager) ValidateContent(ctx context.Context, ref *Pac
 			continue
 
 		}
-
-
 
 		// Merge results.
 
@@ -1303,13 +1032,9 @@ func (prm *packageRevisionManager) ValidateContent(ctx context.Context, ref *Pac
 
 	}
 
-
-
 	// Update package state with validation results.
 
 	prm.updateValidationResults(ref, result)
-
-
 
 	prm.logger.V(1).Info("Content validation complete", "package", ref.GetPackageKey(), "valid", result.Valid, "errors", len(result.Errors), "warnings", len(result.Warnings))
 
@@ -1317,11 +1042,7 @@ func (prm *packageRevisionManager) ValidateContent(ctx context.Context, ref *Pac
 
 }
 
-
-
 // Private helper methods.
-
-
 
 // validatePackageSpec validates a package specification.
 
@@ -1343,15 +1064,11 @@ func (prm *packageRevisionManager) validatePackageSpec(spec *PackageSpec) error 
 
 }
 
-
-
 // changeLifecycle changes the lifecycle state of a package revision.
 
 func (prm *packageRevisionManager) changeLifecycle(ctx context.Context, ref *PackageReference, newLifecycle PackageRevisionLifecycle) error {
 
 	prm.logger.Info("Changing lifecycle", "package", ref.GetPackageKey(), "newLifecycle", newLifecycle)
-
-
 
 	// Get current package.
 
@@ -1363,11 +1080,7 @@ func (prm *packageRevisionManager) changeLifecycle(ctx context.Context, ref *Pac
 
 	}
 
-
-
 	oldLifecycle := pkg.Spec.Lifecycle
-
-
 
 	// Validate transition (simplified check).
 
@@ -1377,23 +1090,15 @@ func (prm *packageRevisionManager) changeLifecycle(ctx context.Context, ref *Pac
 
 	}
 
-
-
 	// Workflow requirements for certain transitions are skipped for now.
-
-
 
 	// Update lifecycle.
 
 	pkg.Spec.Lifecycle = newLifecycle
 
-
-
 	// Update labels.
 
 	pkg.Labels[LabelLifecycle] = string(newLifecycle)
-
-
 
 	// Update package.
 
@@ -1405,13 +1110,9 @@ func (prm *packageRevisionManager) changeLifecycle(ctx context.Context, ref *Pac
 
 	}
 
-
-
 	// Update state tracking.
 
 	prm.updatePackageState(ref, updated)
-
-
 
 	// Update metrics.
 
@@ -1423,8 +1124,6 @@ func (prm *packageRevisionManager) changeLifecycle(ctx context.Context, ref *Pac
 
 	}
 
-
-
 	// Notify state change handlers.
 
 	for _, handler := range prm.stateChangeHandlers {
@@ -1433,15 +1132,11 @@ func (prm *packageRevisionManager) changeLifecycle(ctx context.Context, ref *Pac
 
 	}
 
-
-
 	prm.logger.Info("Successfully changed lifecycle", "package", ref.GetPackageKey(), "oldLifecycle", oldLifecycle, "newLifecycle", newLifecycle)
 
 	return nil
 
 }
-
-
 
 // calculateNextRevision calculates the next revision number.
 
@@ -1452,8 +1147,6 @@ func (prm *packageRevisionManager) calculateNextRevision(revisions []*PackageRev
 		return "v1"
 
 	}
-
-
 
 	// Find highest revision number.
 
@@ -1479,13 +1172,9 @@ func (prm *packageRevisionManager) calculateNextRevision(revisions []*PackageRev
 
 	}
 
-
-
 	return fmt.Sprintf("v%d", maxVersion+1)
 
 }
-
-
 
 // findLatestPublishedRevision finds the latest published revision.
 
@@ -1511,8 +1200,6 @@ func (prm *packageRevisionManager) findLatestPublishedRevision(revisions []*Pack
 
 }
 
-
-
 // validateContent validates package content using all validators.
 
 func (prm *packageRevisionManager) validateContent(ctx context.Context, ref *PackageReference, content map[string][]byte) error {
@@ -1524,8 +1211,6 @@ func (prm *packageRevisionManager) validateContent(ctx context.Context, ref *Pac
 		return fmt.Errorf("package content cannot be empty")
 
 	}
-
-
 
 	// Check for required files (could be configurable).
 
@@ -1540,8 +1225,6 @@ func (prm *packageRevisionManager) validateContent(ctx context.Context, ref *Pac
 		}
 
 	}
-
-
 
 	// Validate Kptfile format.
 
@@ -1561,8 +1244,6 @@ func (prm *packageRevisionManager) validateContent(ctx context.Context, ref *Pac
 
 		}
 
-
-
 		// Validate required Kptfile fields.
 
 		if _, exists := kptfile["apiVersion"]; !exists {
@@ -1579,13 +1260,9 @@ func (prm *packageRevisionManager) validateContent(ctx context.Context, ref *Pac
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // processContent processes content through registered processors.
 
@@ -1598,8 +1275,6 @@ func (prm *packageRevisionManager) processContent(ctx context.Context, content m
 		result[k] = v
 
 	}
-
-
 
 	// Apply content processors.
 
@@ -1621,13 +1296,9 @@ func (prm *packageRevisionManager) processContent(ctx context.Context, content m
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // shouldApplyProcessor determines if a processor should be applied.
 
@@ -1667,15 +1338,11 @@ func (prm *packageRevisionManager) shouldApplyProcessor(contentType string, cont
 
 }
 
-
-
 // compareContent compares two content maps.
 
 func (prm *packageRevisionManager) compareContent(content1, content2 map[string][]byte) *ComparisonResult {
 
 	result := &ComparisonResult{}
-
-
 
 	// Find added and modified files.
 
@@ -1701,8 +1368,6 @@ func (prm *packageRevisionManager) compareContent(content1, content2 map[string]
 
 	}
 
-
-
 	// Find deleted files.
 
 	for filename := range content1 {
@@ -1715,13 +1380,9 @@ func (prm *packageRevisionManager) compareContent(content1, content2 map[string]
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // updatePackageState updates the cached package state.
 
@@ -1730,8 +1391,6 @@ func (prm *packageRevisionManager) updatePackageState(ref *PackageReference, pkg
 	prm.stateMutex.Lock()
 
 	defer prm.stateMutex.Unlock()
-
-
 
 	state, exists := prm.packages[ref.GetPackageKey()]
 
@@ -1743,19 +1402,13 @@ func (prm *packageRevisionManager) updatePackageState(ref *PackageReference, pkg
 
 	}
 
-
-
 	state.mutex.Lock()
 
 	defer state.mutex.Unlock()
 
-
-
 	state.lifecycle = pkg.Spec.Lifecycle
 
 	state.lastModified = time.Now()
-
-
 
 	// Note: ValidationResults field doesn't exist in multicluster.PackageRevisionStatus.
 
@@ -1771,22 +1424,20 @@ func (prm *packageRevisionManager) updatePackageState(ref *PackageReference, pkg
 
 			validationResult := &ValidationResult{
 
-				Valid:    condition.Status == "True",
+				Valid: condition.Status == "True",
 
-				Errors:   []ValidationError{},
+				Errors: []ValidationError{},
 
 				Warnings: []ValidationError{},
-
 			}
 
 			if condition.Status != "True" {
 
 				validationResult.Errors = append(validationResult.Errors, ValidationError{
 
-					Message:  condition.Message,
+					Message: condition.Message,
 
 					Severity: "error",
-
 				})
 
 			}
@@ -1803,8 +1454,6 @@ func (prm *packageRevisionManager) updatePackageState(ref *PackageReference, pkg
 
 }
 
-
-
 // updateContentMetrics updates content-related metrics.
 
 func (prm *packageRevisionManager) updateContentMetrics(ref *PackageReference, content map[string][]byte) {
@@ -1814,8 +1463,6 @@ func (prm *packageRevisionManager) updateContentMetrics(ref *PackageReference, c
 		return
 
 	}
-
-
 
 	// Calculate total content size.
 
@@ -1827,11 +1474,7 @@ func (prm *packageRevisionManager) updateContentMetrics(ref *PackageReference, c
 
 	}
 
-
-
 	prm.metrics.contentSize.WithLabelValues(ref.Repository, ref.PackageName).Set(float64(totalSize))
-
-
 
 	// Update package state.
 
@@ -1840,8 +1483,6 @@ func (prm *packageRevisionManager) updateContentMetrics(ref *PackageReference, c
 	state, exists := prm.packages[ref.GetPackageKey()]
 
 	prm.stateMutex.RUnlock()
-
-
 
 	if exists {
 
@@ -1857,8 +1498,6 @@ func (prm *packageRevisionManager) updateContentMetrics(ref *PackageReference, c
 
 }
 
-
-
 // updateValidationResults updates validation results in package state.
 
 func (prm *packageRevisionManager) updateValidationResults(ref *PackageReference, result *ValidationResult) {
@@ -1868,8 +1507,6 @@ func (prm *packageRevisionManager) updateValidationResults(ref *PackageReference
 	state, exists := prm.packages[ref.GetPackageKey()]
 
 	prm.stateMutex.RUnlock()
-
-
 
 	if exists {
 
@@ -1885,8 +1522,6 @@ func (prm *packageRevisionManager) updateValidationResults(ref *PackageReference
 
 }
 
-
-
 // initPackageRevisionMetrics initializes Prometheus metrics.
 
 func initPackageRevisionMetrics() *PackageRevisionMetrics {
@@ -1900,11 +1535,9 @@ func initPackageRevisionMetrics() *PackageRevisionMetrics {
 				Name: "porch_package_operations_total",
 
 				Help: "Total number of package operations",
-
 			},
 
 			[]string{"operation", "status"},
-
 		),
 
 		packageStates: prometheus.NewGaugeVec(
@@ -1914,43 +1547,37 @@ func initPackageRevisionMetrics() *PackageRevisionMetrics {
 				Name: "porch_package_states_total",
 
 				Help: "Number of packages in each state",
-
 			},
 
 			[]string{"repository", "package", "state"},
-
 		),
 
 		validationDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "porch_package_validation_duration_seconds",
+				Name: "porch_package_validation_duration_seconds",
 
-				Help:    "Duration of package validation operations",
+				Help: "Duration of package validation operations",
 
 				Buckets: prometheus.DefBuckets,
-
 			},
 
 			[]string{"repository", "package"},
-
 		),
 
 		renderDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "porch_package_render_duration_seconds",
+				Name: "porch_package_render_duration_seconds",
 
-				Help:    "Duration of package rendering operations",
+				Help: "Duration of package rendering operations",
 
 				Buckets: prometheus.DefBuckets,
-
 			},
 
 			[]string{"repository", "package"},
-
 		),
 
 		contentSize: prometheus.NewGaugeVec(
@@ -1960,11 +1587,9 @@ func initPackageRevisionMetrics() *PackageRevisionMetrics {
 				Name: "porch_package_content_size_bytes",
 
 				Help: "Size of package content in bytes",
-
 			},
 
 			[]string{"repository", "package"},
-
 		),
 
 		approvalStatus: prometheus.NewGaugeVec(
@@ -1974,11 +1599,9 @@ func initPackageRevisionMetrics() *PackageRevisionMetrics {
 				Name: "porch_package_approval_status",
 
 				Help: "Package approval status (1=approved, 0=pending/rejected)",
-
 			},
 
 			[]string{"repository", "package"},
-
 		),
 
 		deploymentStatus: prometheus.NewGaugeVec(
@@ -1988,18 +1611,13 @@ func initPackageRevisionMetrics() *PackageRevisionMetrics {
 				Name: "porch_package_deployment_status",
 
 				Help: "Package deployment status (1=deployed, 0=not deployed)",
-
 			},
 
 			[]string{"repository", "package", "cluster"},
-
 		),
-
 	}
 
 }
-
-
 
 // GetPackageRevisionMetrics returns package revision metrics.
 
@@ -2009,8 +1627,6 @@ func (prm *packageRevisionManager) GetPackageRevisionMetrics() *PackageRevisionM
 
 }
 
-
-
 // AddContentProcessor adds a content processor.
 
 func (prm *packageRevisionManager) AddContentProcessor(processor ContentProcessor) {
@@ -2018,8 +1634,6 @@ func (prm *packageRevisionManager) AddContentProcessor(processor ContentProcesso
 	prm.contentProcessors[processor.GetContentType()] = processor
 
 }
-
-
 
 // AddValidator adds a package validator.
 
@@ -2029,8 +1643,6 @@ func (prm *packageRevisionManager) AddValidator(validator PackageValidator) {
 
 }
 
-
-
 // AddStateChangeHandler adds a state change handler.
 
 func (prm *packageRevisionManager) AddStateChangeHandler(handler StateChangeHandler) {
@@ -2038,8 +1650,6 @@ func (prm *packageRevisionManager) AddStateChangeHandler(handler StateChangeHand
 	prm.stateChangeHandlers = append(prm.stateChangeHandlers, handler)
 
 }
-
-
 
 // SetWorkflowEngine sets the workflow engine.
 
@@ -2049,8 +1659,6 @@ func (prm *packageRevisionManager) SetWorkflowEngine(engine WorkflowEngine) {
 
 }
 
-
-
 // SetDiffEngine sets the diff engine.
 
 func (prm *packageRevisionManager) SetDiffEngine(engine DiffEngine) {
@@ -2058,8 +1666,6 @@ func (prm *packageRevisionManager) SetDiffEngine(engine DiffEngine) {
 	prm.diffEngine = engine
 
 }
-
-
 
 // SetContentStorage sets the content storage.
 
@@ -2069,8 +1675,6 @@ func (prm *packageRevisionManager) SetContentStorage(storage ContentStorage) {
 
 }
 
-
-
 // SetLockManager sets the lock manager.
 
 func (prm *packageRevisionManager) SetLockManager(manager LockManager) {
@@ -2079,15 +1683,11 @@ func (prm *packageRevisionManager) SetLockManager(manager LockManager) {
 
 }
 
-
-
 // Close gracefully shuts down the package revision manager.
 
 func (prm *packageRevisionManager) Close() error {
 
 	prm.logger.Info("Shutting down package revision manager")
-
-
 
 	// Clear state.
 
@@ -2097,11 +1697,8 @@ func (prm *packageRevisionManager) Close() error {
 
 	prm.stateMutex.Unlock()
 
-
-
 	prm.logger.Info("Package revision manager shut down complete")
 
 	return nil
 
 }
-

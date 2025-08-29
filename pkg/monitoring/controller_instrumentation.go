@@ -1,49 +1,29 @@
-
 package monitoring
 
-
-
 import (
-
 	"context"
-
 	"time"
-
-
 
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
-
-
 	"k8s.io/client-go/kubernetes"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
 )
-
-
 
 // InstrumentedReconciler wraps a reconciler with monitoring instrumentation.
 
 type InstrumentedReconciler struct {
-
 	reconcile.Reconciler
 
-	Name          string
+	Name string
 
-	Metrics       *MetricsCollector
+	Metrics *MetricsCollector
 
 	HealthChecker *HealthChecker
-
 }
-
-
 
 // NewInstrumentedReconciler creates a new instrumented reconciler.
 
@@ -51,19 +31,16 @@ func NewInstrumentedReconciler(reconciler reconcile.Reconciler, name string, met
 
 	return &InstrumentedReconciler{
 
-		Reconciler:    reconciler,
+		Reconciler: reconciler,
 
-		Name:          name,
+		Name: name,
 
-		Metrics:       metrics,
+		Metrics: metrics,
 
 		HealthChecker: NewHealthChecker("1.0.0", kubeClient, metricsRecorder),
-
 	}
 
 }
-
-
 
 // Reconcile wraps the reconciler with monitoring.
 
@@ -73,23 +50,15 @@ func (ir *InstrumentedReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	logger := log.FromContext(ctx)
 
-
-
 	// Record API latency for Kubernetes operations.
 
 	ir.recordAPILatency(ctx, start)
-
-
 
 	// Call the wrapped reconciler.
 
 	result, err := ir.Reconciler.Reconcile(ctx, req)
 
-
-
 	duration := time.Since(start)
-
-
 
 	// Record reconciliation metrics.
 
@@ -103,19 +72,13 @@ func (ir *InstrumentedReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	}
 
-
-
 	// Update controller health status.
 
 	ir.Metrics.UpdateControllerHealth(ir.Name, "reconciler", err == nil)
 
-
-
 	return result, err
 
 }
-
-
 
 func (ir *InstrumentedReconciler) recordAPILatency(ctx context.Context, start time.Time) {
 
@@ -127,17 +90,11 @@ func (ir *InstrumentedReconciler) recordAPILatency(ctx context.Context, start ti
 
 }
 
-
-
 // NetworkIntentInstrumentation provides instrumentation for NetworkIntent controller.
 
 type NetworkIntentInstrumentation struct {
-
 	Metrics *MetricsCollector
-
 }
-
-
 
 // NewNetworkIntentInstrumentation creates new NetworkIntent instrumentation.
 
@@ -146,12 +103,9 @@ func NewNetworkIntentInstrumentation(metrics *MetricsCollector) *NetworkIntentIn
 	return &NetworkIntentInstrumentation{
 
 		Metrics: metrics,
-
 	}
 
 }
-
-
 
 // RecordIntentProcessingStart records the start of intent processing.
 
@@ -162,8 +116,6 @@ func (ni *NetworkIntentInstrumentation) RecordIntentProcessingStart(intent *neph
 	ni.Metrics.UpdateNetworkIntentStatus(intent.Name, intent.Namespace, intentType, "processing")
 
 }
-
-
 
 // RecordIntentProcessingComplete records the completion of intent processing.
 
@@ -177,8 +129,6 @@ func (ni *NetworkIntentInstrumentation) RecordIntentProcessingComplete(intent *n
 
 	}
 
-
-
 	intentType := "network_intent" // Default type since we don't have Spec.Type field
 
 	ni.Metrics.RecordNetworkIntentProcessed(intentType, status, duration)
@@ -186,8 +136,6 @@ func (ni *NetworkIntentInstrumentation) RecordIntentProcessingComplete(intent *n
 	ni.Metrics.UpdateNetworkIntentStatus(intent.Name, intent.Namespace, intentType, status)
 
 }
-
-
 
 // RecordLLMProcessing records LLM processing metrics.
 
@@ -201,13 +149,9 @@ func (ni *NetworkIntentInstrumentation) RecordLLMProcessing(model string, durati
 
 	}
 
-
-
 	ni.Metrics.RecordLLMRequest(model, status, duration, tokensUsed)
 
 }
-
-
 
 // RecordRetry records a retry event.
 
@@ -217,17 +161,11 @@ func (ni *NetworkIntentInstrumentation) RecordRetry(intent *nephoranv1.NetworkIn
 
 }
 
-
-
 // E2NodeSetInstrumentation provides instrumentation for E2NodeSet controller.
 
 type E2NodeSetInstrumentation struct {
-
 	Metrics *MetricsCollector
-
 }
-
-
 
 // NewE2NodeSetInstrumentation creates new E2NodeSet instrumentation.
 
@@ -236,12 +174,9 @@ func NewE2NodeSetInstrumentation(metrics *MetricsCollector) *E2NodeSetInstrument
 	return &E2NodeSetInstrumentation{
 
 		Metrics: metrics,
-
 	}
 
 }
-
-
 
 // RecordReconciliation records an E2NodeSet reconciliation.
 
@@ -250,8 +185,6 @@ func (e2i *E2NodeSetInstrumentation) RecordReconciliation(operation string, dura
 	e2i.Metrics.RecordE2NodeSetOperation(operation, duration)
 
 }
-
-
 
 // UpdateReplicaStatus updates replica status metrics.
 
@@ -266,10 +199,7 @@ func (e2i *E2NodeSetInstrumentation) UpdateReplicaStatus(e2nodeSet *nephoranv1.E
 		"desired",
 
 		int(e2nodeSet.Spec.Replicas),
-
 	)
-
-
 
 	e2i.Metrics.UpdateE2NodeSetReplicas(
 
@@ -280,12 +210,9 @@ func (e2i *E2NodeSetInstrumentation) UpdateReplicaStatus(e2nodeSet *nephoranv1.E
 		"ready",
 
 		int(e2nodeSet.Status.ReadyReplicas),
-
 	)
 
 }
-
-
 
 // RecordScalingEvent records a scaling event.
 
@@ -299,23 +226,15 @@ func (e2i *E2NodeSetInstrumentation) RecordScalingEvent(e2nodeSet *nephoranv1.E2
 
 	}
 
-
-
 	e2i.Metrics.RecordE2NodeSetScaling(e2nodeSet.Name, e2nodeSet.Namespace, direction)
 
 }
 
-
-
 // ORANInstrumentation provides instrumentation for O-RAN interfaces.
 
 type ORANInstrumentation struct {
-
 	Metrics *MetricsCollector
-
 }
-
-
 
 // NewORANInstrumentation creates new O-RAN instrumentation.
 
@@ -324,12 +243,9 @@ func NewORANInstrumentation(metrics *MetricsCollector) *ORANInstrumentation {
 	return &ORANInstrumentation{
 
 		Metrics: metrics,
-
 	}
 
 }
-
-
 
 // RecordA1Operation records an A1 interface operation.
 
@@ -345,13 +261,9 @@ func (oi *ORANInstrumentation) RecordA1Operation(operation string, duration time
 
 	}
 
-
-
 	oi.Metrics.RecordORANInterfaceRequest("A1", operation, status, duration)
 
 }
-
-
 
 // RecordO1Operation records an O1 interface operation.
 
@@ -367,13 +279,9 @@ func (oi *ORANInstrumentation) RecordO1Operation(operation string, duration time
 
 	}
 
-
-
 	oi.Metrics.RecordORANInterfaceRequest("O1", operation, status, duration)
 
 }
-
-
 
 // RecordO2Operation records an O2 interface operation.
 
@@ -389,13 +297,9 @@ func (oi *ORANInstrumentation) RecordO2Operation(operation string, duration time
 
 	}
 
-
-
 	oi.Metrics.RecordORANInterfaceRequest("O2", operation, status, duration)
 
 }
-
-
 
 // UpdateConnectionStatus updates O-RAN connection status.
 
@@ -405,8 +309,6 @@ func (oi *ORANInstrumentation) UpdateConnectionStatus(interfaceType, endpoint st
 
 }
 
-
-
 // UpdatePolicyInstances updates policy instance counts.
 
 func (oi *ORANInstrumentation) UpdatePolicyInstances(policyType, status string, count int) {
@@ -415,17 +317,11 @@ func (oi *ORANInstrumentation) UpdatePolicyInstances(policyType, status string, 
 
 }
 
-
-
 // RAGInstrumentation provides instrumentation for RAG operations.
 
 type RAGInstrumentation struct {
-
 	Metrics *MetricsCollector
-
 }
-
-
 
 // NewRAGInstrumentation creates new RAG instrumentation.
 
@@ -434,12 +330,9 @@ func NewRAGInstrumentation(metrics *MetricsCollector) *RAGInstrumentation {
 	return &RAGInstrumentation{
 
 		Metrics: metrics,
-
 	}
 
 }
-
-
 
 // RecordRetrieval records a RAG retrieval operation.
 
@@ -449,8 +342,6 @@ func (ri *RAGInstrumentation) RecordRetrieval(duration time.Duration, cacheHit b
 
 }
 
-
-
 // UpdateDocumentCount updates the indexed document count.
 
 func (ri *RAGInstrumentation) UpdateDocumentCount(count int) {
@@ -459,17 +350,11 @@ func (ri *RAGInstrumentation) UpdateDocumentCount(count int) {
 
 }
 
-
-
 // GitOpsInstrumentation provides instrumentation for GitOps operations.
 
 type GitOpsInstrumentation struct {
-
 	Metrics *MetricsCollector
-
 }
-
-
 
 // NewGitOpsInstrumentation creates new GitOps instrumentation.
 
@@ -478,12 +363,9 @@ func NewGitOpsInstrumentation(metrics *MetricsCollector) *GitOpsInstrumentation 
 	return &GitOpsInstrumentation{
 
 		Metrics: metrics,
-
 	}
 
 }
-
-
 
 // RecordPackageGeneration records package generation.
 
@@ -493,8 +375,6 @@ func (gi *GitOpsInstrumentation) RecordPackageGeneration(duration time.Duration,
 
 }
 
-
-
 // RecordCommit records a Git commit operation.
 
 func (gi *GitOpsInstrumentation) RecordCommit(duration time.Duration, success bool) {
@@ -502,8 +382,6 @@ func (gi *GitOpsInstrumentation) RecordCommit(duration time.Duration, success bo
 	gi.Metrics.RecordGitOpsOperation("commit", duration, success)
 
 }
-
-
 
 // UpdateSyncStatus updates GitOps sync status.
 
@@ -513,17 +391,11 @@ func (gi *GitOpsInstrumentation) UpdateSyncStatus(repository, branch string, inS
 
 }
 
-
-
 // SystemInstrumentation provides system-level instrumentation.
 
 type SystemInstrumentation struct {
-
 	Metrics *MetricsCollector
-
 }
-
-
 
 // NewSystemInstrumentation creates new system instrumentation.
 
@@ -532,12 +404,9 @@ func NewSystemInstrumentation(metrics *MetricsCollector) *SystemInstrumentation 
 	return &SystemInstrumentation{
 
 		Metrics: metrics,
-
 	}
 
 }
-
-
 
 // UpdateResourceUtilization updates resource utilization metrics.
 
@@ -547,8 +416,6 @@ func (si *SystemInstrumentation) UpdateResourceUtilization(resourceType, unit st
 
 }
 
-
-
 // UpdateWorkerQueueMetrics updates worker queue metrics.
 
 func (si *SystemInstrumentation) UpdateWorkerQueueMetrics(queueName string, depth int, latency time.Duration) {
@@ -557,31 +424,25 @@ func (si *SystemInstrumentation) UpdateWorkerQueueMetrics(queueName string, dept
 
 }
 
-
-
 // InstrumentationManager manages all instrumentation components.
 
 type InstrumentationManager struct {
+	Metrics *MetricsCollector
 
-	Metrics                      *MetricsCollector
-
-	HealthChecker                *HealthChecker
+	HealthChecker *HealthChecker
 
 	NetworkIntentInstrumentation *NetworkIntentInstrumentation
 
-	E2NodeSetInstrumentation     *E2NodeSetInstrumentation
+	E2NodeSetInstrumentation *E2NodeSetInstrumentation
 
-	ORANInstrumentation          *ORANInstrumentation
+	ORANInstrumentation *ORANInstrumentation
 
-	RAGInstrumentation           *RAGInstrumentation
+	RAGInstrumentation *RAGInstrumentation
 
-	GitOpsInstrumentation        *GitOpsInstrumentation
+	GitOpsInstrumentation *GitOpsInstrumentation
 
-	SystemInstrumentation        *SystemInstrumentation
-
+	SystemInstrumentation *SystemInstrumentation
 }
-
-
 
 // NewInstrumentationManager creates a new instrumentation manager.
 
@@ -591,37 +452,30 @@ func NewInstrumentationManager(kubeClient kubernetes.Interface, metricsRecorder 
 
 	healthChecker := NewHealthChecker("1.0.0", kubeClient, metricsRecorder)
 
-
-
 	// Register health checks (these are now handled internally by healthChecker).
 
 	// The health checks are registered automatically in the Start() method.
 
-
-
 	return &InstrumentationManager{
 
-		Metrics:                      metrics,
+		Metrics: metrics,
 
-		HealthChecker:                healthChecker,
+		HealthChecker: healthChecker,
 
 		NetworkIntentInstrumentation: NewNetworkIntentInstrumentation(metrics),
 
-		E2NodeSetInstrumentation:     NewE2NodeSetInstrumentation(metrics),
+		E2NodeSetInstrumentation: NewE2NodeSetInstrumentation(metrics),
 
-		ORANInstrumentation:          NewORANInstrumentation(metrics),
+		ORANInstrumentation: NewORANInstrumentation(metrics),
 
-		RAGInstrumentation:           NewRAGInstrumentation(metrics),
+		RAGInstrumentation: NewRAGInstrumentation(metrics),
 
-		GitOpsInstrumentation:        NewGitOpsInstrumentation(metrics),
+		GitOpsInstrumentation: NewGitOpsInstrumentation(metrics),
 
-		SystemInstrumentation:        NewSystemInstrumentation(metrics),
-
+		SystemInstrumentation: NewSystemInstrumentation(metrics),
 	}
 
 }
-
-
 
 // StartHealthChecks starts periodic health checks.
 
@@ -631,8 +485,6 @@ func (im *InstrumentationManager) StartHealthChecks(ctx context.Context) error {
 
 }
 
-
-
 // GetMetricsCollector returns the metrics collector.
 
 func (im *InstrumentationManager) GetMetricsCollector() *MetricsCollector {
@@ -640,4 +492,3 @@ func (im *InstrumentationManager) GetMetricsCollector() *MetricsCollector {
 	return im.Metrics
 
 }
-

@@ -1,75 +1,54 @@
-
 package fcaps
 
-
-
 import (
-
 	"fmt"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // Reducer tracks events and detects bursts for scaling decisions.
 
 type Reducer struct {
+	mu sync.Mutex
 
-	mu             sync.Mutex
-
-	events         []timestampedEvent
+	events []timestampedEvent
 
 	burstThreshold int
 
 	windowDuration time.Duration
 
-	outHandoff     string
+	outHandoff string
 
 	lastIntentTime time.Time
 
-	criticalCount  int
-
+	criticalCount int
 }
-
-
 
 type timestampedEvent struct {
-
-	event     FCAPSEvent
+	event FCAPSEvent
 
 	timestamp time.Time
-
 }
-
-
 
 // ScalingIntent represents the reducer's scaling intent output.
 
 type ScalingIntent struct {
+	IntentType string `json:"intent_type"`
 
-	IntentType    string `json:"intent_type"`
+	Target string `json:"target"`
 
-	Target        string `json:"target"`
+	Namespace string `json:"namespace"`
 
-	Namespace     string `json:"namespace"`
+	Replicas int `json:"replicas"`
 
-	Replicas      int    `json:"replicas"`
+	Reason string `json:"reason"`
 
-	Reason        string `json:"reason"`
-
-	Source        string `json:"source"`
+	Source string `json:"source"`
 
 	CorrelationID string `json:"correlation_id"`
 
-	Timestamp     string `json:"timestamp"`
-
+	Timestamp string `json:"timestamp"`
 }
-
-
 
 // NewReducer creates a new event reducer.
 
@@ -77,19 +56,16 @@ func NewReducer(burstThreshold int, outHandoff string) *Reducer {
 
 	return &Reducer{
 
-		events:         make([]timestampedEvent, 0),
+		events: make([]timestampedEvent, 0),
 
 		burstThreshold: burstThreshold,
 
 		windowDuration: 60 * time.Second,
 
-		outHandoff:     outHandoff,
-
+		outHandoff: outHandoff,
 	}
 
 }
-
-
 
 // ProcessEvent processes an event and returns a scaling intent if burst detected.
 
@@ -99,19 +75,14 @@ func (r *Reducer) ProcessEvent(event FCAPSEvent) *ScalingIntent {
 
 	defer r.mu.Unlock()
 
-
-
 	now := time.Now()
 
 	r.events = append(r.events, timestampedEvent{
 
-		event:     event,
+		event: event,
 
 		timestamp: now,
-
 	})
-
-
 
 	// Clean old events outside window.
 
@@ -120,8 +91,6 @@ func (r *Reducer) ProcessEvent(event FCAPSEvent) *ScalingIntent {
 	filtered := make([]timestampedEvent, 0)
 
 	criticalCount := 0
-
-
 
 	for _, te := range r.events {
 
@@ -139,13 +108,9 @@ func (r *Reducer) ProcessEvent(event FCAPSEvent) *ScalingIntent {
 
 	}
 
-
-
 	r.events = filtered
 
 	r.criticalCount = criticalCount
-
-
 
 	// Check burst condition with 30s cooldown.
 
@@ -154,8 +119,6 @@ func (r *Reducer) ProcessEvent(event FCAPSEvent) *ScalingIntent {
 		if time.Since(r.lastIntentTime) > 30*time.Second {
 
 			r.lastIntentTime = now
-
-
 
 			// Calculate scaling factor.
 
@@ -167,8 +130,6 @@ func (r *Reducer) ProcessEvent(event FCAPSEvent) *ScalingIntent {
 
 			}
 
-
-
 			sourceName := event.Event.CommonEventHeader.SourceName
 
 			if sourceName == "" {
@@ -177,39 +138,32 @@ func (r *Reducer) ProcessEvent(event FCAPSEvent) *ScalingIntent {
 
 			}
 
-
-
 			return &ScalingIntent{
 
-				IntentType:    "scaling",
+				IntentType: "scaling",
 
-				Target:        sourceName,
+				Target: sourceName,
 
-				Namespace:     "ran-a",
+				Namespace: "ran-a",
 
-				Replicas:      replicas,
+				Replicas: replicas,
 
-				Reason:        fmt.Sprintf("Burst detected: %d critical events in %v window", criticalCount, r.windowDuration),
+				Reason: fmt.Sprintf("Burst detected: %d critical events in %v window", criticalCount, r.windowDuration),
 
-				Source:        "fcaps-reducer",
+				Source: "fcaps-reducer",
 
 				CorrelationID: fmt.Sprintf("burst-%d", now.Unix()),
 
-				Timestamp:     now.UTC().Format(time.RFC3339),
-
+				Timestamp: now.UTC().Format(time.RFC3339),
 			}
 
 		}
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func isCriticalEvent(event FCAPSEvent) bool {
 
@@ -226,8 +180,6 @@ func isCriticalEvent(event FCAPSEvent) bool {
 		}
 
 	}
-
-
 
 	// Check performance thresholds.
 
@@ -265,13 +217,9 @@ func isCriticalEvent(event FCAPSEvent) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // GetStats returns current event statistics.
 
@@ -284,4 +232,3 @@ func (r *Reducer) GetStats() (total, critical int) {
 	return len(r.events), r.criticalCount
 
 }
-

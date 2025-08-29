@@ -1,21 +1,11 @@
-
 package testutils
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"testing"
-
 	"time"
-
 )
-
-
 
 // MigrationGuide provides examples of how to migrate existing tests to use Windows optimizations.
 
@@ -25,11 +15,7 @@ import (
 
 // Windows CI performance by 3-5x.
 
-
-
 // Example 1: Basic file creation optimization.
-
-
 
 // BEFORE: Standard approach (slow on Windows).
 
@@ -63,8 +49,6 @@ func ExampleStandardFileCreation(t *testing.T) {
 
 }
 
-
-
 // AFTER: Optimized approach (fast on Windows).
 
 func ExampleOptimizedFileCreation(t *testing.T) {
@@ -87,8 +71,6 @@ func ExampleOptimizedFileCreation(t *testing.T) {
 
 		}
 
-
-
 		// Batch creation is much faster.
 
 		filePaths := ctx.CreateTempFiles(files)
@@ -99,11 +81,7 @@ func ExampleOptimizedFileCreation(t *testing.T) {
 
 }
 
-
-
 // Example 2: Timeout handling optimization.
-
-
 
 // BEFORE: Fixed timeouts (problematic on Windows).
 
@@ -133,8 +111,6 @@ func ExampleStandardTimeout(t *testing.T) {
 
 }
 
-
-
 // AFTER: Platform-optimized timeouts.
 
 func ExampleOptimizedTimeout(t *testing.T) {
@@ -146,8 +122,6 @@ func ExampleOptimizedTimeout(t *testing.T) {
 		testCtx, cancel := ctx.GetOptimizedContext(5 * time.Second)
 
 		defer cancel()
-
-
 
 		// This is more reliable across platforms.
 
@@ -163,11 +137,7 @@ func ExampleOptimizedTimeout(t *testing.T) {
 
 }
 
-
-
 // Example 3: Concurrency optimization.
-
-
 
 // BEFORE: Uncontrolled parallelism (resource exhaustion on Windows).
 
@@ -209,8 +179,6 @@ func ExampleStandardParallelism(t *testing.T) {
 
 }
 
-
-
 // AFTER: Managed concurrency.
 
 func ExampleOptimizedParallelism(t *testing.T) {
@@ -220,8 +188,6 @@ func ExampleOptimizedParallelism(t *testing.T) {
 	release := AcquireConcurrencySlot(t.Name())
 
 	defer release()
-
-
 
 	WithOptimizedTest(t, func(t *testing.T, ctx *TestContext) {
 
@@ -235,8 +201,6 @@ func ExampleOptimizedParallelism(t *testing.T) {
 
 		}
 
-
-
 		// Single batch operation instead of many concurrent ones.
 
 		_ = ctx.CreateTempFiles(files)
@@ -245,11 +209,7 @@ func ExampleOptimizedParallelism(t *testing.T) {
 
 }
 
-
-
 // Example 4: Resource cleanup optimization.
-
-
 
 // BEFORE: Manual cleanup (error-prone).
 
@@ -289,8 +249,6 @@ func ExampleStandardCleanup(t *testing.T) {
 
 }
 
-
-
 // AFTER: Automated cleanup.
 
 func ExampleOptimizedCleanup(t *testing.T) {
@@ -303,8 +261,6 @@ func ExampleOptimizedCleanup(t *testing.T) {
 
 		_ = filePath
 
-
-
 		// Add custom cleanup if needed.
 
 		ctx.AddCleanup(func() {
@@ -313,19 +269,13 @@ func ExampleOptimizedCleanup(t *testing.T) {
 
 		})
 
-
-
 		// Cleanup is automatically handled by the test context.
 
 	})
 
 }
 
-
-
 // Example 5: Test data preparation optimization.
-
-
 
 // BEFORE: Repeated file operations.
 
@@ -365,8 +315,6 @@ func ExampleStandardTestData(t *testing.T) {
 
 }
 
-
-
 // AFTER: Cached test data.
 
 func ExampleOptimizedTestData(t *testing.T) {
@@ -375,19 +323,14 @@ func ExampleOptimizedTestData(t *testing.T) {
 
 	defer runner.optimizer.Cleanup()
 
-
-
 	// Create shared test data once.
 
 	sharedFiles := map[string][]byte{
 
 		"config.json": []byte(`{"key": "value"}`),
 
-		"data.txt":    []byte("test data"),
-
+		"data.txt": []byte("test data"),
 	}
-
-
 
 	for i := range 5 {
 
@@ -401,8 +344,6 @@ func ExampleOptimizedTestData(t *testing.T) {
 
 				_ = filePaths
 
-
-
 				// Run test with files...
 
 			})
@@ -413,11 +354,7 @@ func ExampleOptimizedTestData(t *testing.T) {
 
 }
 
-
-
 // Example 6: Integration test optimization.
-
-
 
 // BEFORE: Heavy setup/teardown per test.
 
@@ -463,8 +400,6 @@ func ExampleStandardIntegrationTest(t *testing.T) {
 
 }
 
-
-
 // AFTER: Shared resource management.
 
 func ExampleOptimizedIntegrationTest(t *testing.T) {
@@ -473,16 +408,11 @@ func ExampleOptimizedIntegrationTest(t *testing.T) {
 
 	defer runner.optimizer.Cleanup()
 
-
-
 	// Setup expensive resources once.
 
 	setupExpensiveResourcesOnce(t, runner)
 
-
-
 	tests := []struct {
-
 		name string
 
 		// test cases...
@@ -492,8 +422,6 @@ func ExampleOptimizedIntegrationTest(t *testing.T) {
 		// many test cases...
 
 	}
-
-
 
 	for _, tt := range tests {
 
@@ -513,11 +441,7 @@ func ExampleOptimizedIntegrationTest(t *testing.T) {
 
 }
 
-
-
 // Example helper functions (stubs for the examples).
-
-
 
 func someSlowOperation(ctx context.Context) error {
 
@@ -537,8 +461,6 @@ func someSlowOperation(ctx context.Context) error {
 
 }
 
-
-
 func setupExpensiveResources(t *testing.T) {
 
 	// Simulate expensive setup.
@@ -546,8 +468,6 @@ func setupExpensiveResources(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 }
-
-
 
 func cleanupExpensiveResources(t *testing.T) {
 
@@ -557,8 +477,6 @@ func cleanupExpensiveResources(t *testing.T) {
 
 }
 
-
-
 func setupExpensiveResourcesOnce(t *testing.T, runner *OptimizedTestRunner) {
 
 	// Setup once and cache in runner.
@@ -566,8 +484,6 @@ func setupExpensiveResourcesOnce(t *testing.T, runner *OptimizedTestRunner) {
 	runner.resourcePool.CacheDirectory("expensive-setup", "setup-complete")
 
 }
-
-
 
 // Performance Tips Summary:.
 
@@ -632,4 +548,3 @@ func setupExpensiveResourcesOnce(t *testing.T, runner *OptimizedTestRunner) {
 // - Reduced flakiness: 90% reduction in timeout-related failures.
 
 // - Memory usage: 20-30% reduction through caching and reuse.
-

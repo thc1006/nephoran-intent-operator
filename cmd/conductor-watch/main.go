@@ -1,33 +1,17 @@
-
 package main
 
-
-
 import (
-
 	"flag"
-
 	"log"
-
 	"net/url"
-
 	"os"
-
 	"os/signal"
-
 	"path/filepath"
-
 	"syscall"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/watch"
-
 )
-
-
 
 func main() {
 
@@ -41,8 +25,6 @@ func main() {
 
 	debounceMs := flag.Int("debounce-ms", 300, "Debounce delay in milliseconds to handle partial writes")
 
-
-
 	// Security flags.
 
 	bearerToken := flag.String("bearer-token", "", "Bearer token for authentication")
@@ -53,11 +35,7 @@ func main() {
 
 	insecureSkipVerify := flag.Bool("insecure-skip-verify", false, "Skip TLS certificate verification (for development only)")
 
-
-
 	flag.Parse()
-
-
 
 	// Validate POST URL if provided.
 
@@ -83,15 +61,11 @@ func main() {
 
 	}
 
-
-
 	// Set up structured logging.
 
 	log.SetPrefix("[conductor-watch] ")
 
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
-
-
 
 	// Convert to absolute paths for Windows compatibility.
 
@@ -103,8 +77,6 @@ func main() {
 
 	}
 
-
-
 	absSchemaPath, err := filepath.Abs(*schemaPath)
 
 	if err != nil {
@@ -112,8 +84,6 @@ func main() {
 		log.Fatalf("Failed to get absolute path for schema: %v", err)
 
 	}
-
-
 
 	// Ensure handoff directory exists.
 
@@ -123,8 +93,6 @@ func main() {
 
 	}
 
-
-
 	// Verify schema file exists.
 
 	if _, err := os.Stat(absSchemaPath); err != nil {
@@ -132,8 +100,6 @@ func main() {
 		log.Fatalf("Schema file not found at %s: %v", absSchemaPath, err)
 
 	}
-
-
 
 	log.Printf("Starting conductor-watch:")
 
@@ -167,31 +133,26 @@ func main() {
 
 	}
 
-
-
 	// Create watcher configuration.
 
 	config := &watch.Config{
 
-		HandoffDir:         absHandoffDir,
+		HandoffDir: absHandoffDir,
 
-		SchemaPath:         absSchemaPath,
+		SchemaPath: absSchemaPath,
 
-		PostURL:            *postURL,
+		PostURL: *postURL,
 
-		DebounceDelay:      time.Duration(*debounceMs) * time.Millisecond,
+		DebounceDelay: time.Duration(*debounceMs) * time.Millisecond,
 
-		BearerToken:        *bearerToken,
+		BearerToken: *bearerToken,
 
-		APIKey:             *apiKey,
+		APIKey: *apiKey,
 
-		APIKeyHeader:       *apiKeyHeader,
+		APIKeyHeader: *apiKeyHeader,
 
 		InsecureSkipVerify: *insecureSkipVerify,
-
 	}
-
-
 
 	// Create and start watcher.
 
@@ -203,15 +164,11 @@ func main() {
 
 	}
 
-
-
 	// Setup signal handling for graceful shutdown.
 
 	sigChan := make(chan os.Signal, 1)
 
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-
-
 
 	// Start watching in a goroutine.
 
@@ -222,8 +179,6 @@ func main() {
 		done <- watcher.Start()
 
 	}()
-
-
 
 	// Wait for either error or interrupt signal.
 
@@ -249,9 +204,6 @@ func main() {
 
 	}
 
-
-
 	log.Println("Conductor-watch stopped")
 
 }
-

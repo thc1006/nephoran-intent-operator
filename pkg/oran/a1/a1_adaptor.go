@@ -2,100 +2,66 @@
 
 // for policy management, service orchestration, and event-driven workflows.
 
-
 package a1
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"math"
-
 	"math/rand"
-
 	"net/http"
-
 	"sync"
-
 	"time"
 
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // A1PolicyType represents an A1 policy type.
 
 type A1PolicyType struct {
+	PolicyTypeID int `json:"policy_type_id"`
 
-	PolicyTypeID int                    `json:"policy_type_id"`
+	Name string `json:"name"`
 
-	Name         string                 `json:"name"`
-
-	Description  string                 `json:"description"`
+	Description string `json:"description"`
 
 	PolicySchema map[string]interface{} `json:"policy_schema"`
 
 	CreateSchema map[string]interface{} `json:"create_schema"`
-
 }
-
-
 
 // A1PolicyInstance represents an A1 policy instance.
 
 type A1PolicyInstance struct {
+	PolicyInstanceID string `json:"policy_instance_id"`
 
-	PolicyInstanceID string                 `json:"policy_instance_id"`
+	PolicyTypeID int `json:"policy_type_id"`
 
-	PolicyTypeID     int                    `json:"policy_type_id"`
+	PolicyData map[string]interface{} `json:"policy_data"`
 
-	PolicyData       map[string]interface{} `json:"policy_data"`
+	Status A1PolicyStatus `json:"status"`
 
-	Status           A1PolicyStatus         `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt        time.Time              `json:"created_at"`
-
-	UpdatedAt        time.Time              `json:"updated_at"`
-
+	UpdatedAt time.Time `json:"updated_at"`
 }
-
-
 
 // A1PolicyStatus represents the status of an A1 policy.
 
 type A1PolicyStatus struct {
+	EnforcementStatus string `json:"enforcement_status"` // NOT_ENFORCED, ENFORCED
 
-	EnforcementStatus string    `json:"enforcement_status"` // NOT_ENFORCED, ENFORCED
+	EnforcementReason string `json:"enforcement_reason,omitempty"`
 
-	EnforcementReason string    `json:"enforcement_reason,omitempty"`
-
-	LastModified      time.Time `json:"last_modified"`
-
+	LastModified time.Time `json:"last_modified"`
 }
-
-
 
 // A1AdaptorInterface defines the interface for A1 operations.
 
@@ -111,8 +77,6 @@ type A1AdaptorInterface interface {
 
 	DeletePolicyType(ctx context.Context, policyTypeID int) error
 
-
-
 	// Policy Instance Management.
 
 	CreatePolicyInstance(ctx context.Context, policyTypeID int, instance *A1PolicyInstance) error
@@ -125,247 +89,196 @@ type A1AdaptorInterface interface {
 
 	DeletePolicyInstance(ctx context.Context, policyTypeID int, instanceID string) error
 
-
-
 	// Policy Status.
 
 	GetPolicyStatus(ctx context.Context, policyTypeID int, instanceID string) (*A1PolicyStatus, error)
-
-
 
 	// High-level operations.
 
 	ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedElement) error
 
 	RemovePolicy(ctx context.Context, me *nephoranv1.ManagedElement) error
-
 }
-
-
 
 // A1Adaptor implements the A1 interface for Near-RT RIC communication.
 
 type A1Adaptor struct {
-
 	httpClient *http.Client
 
-	ricURL     string
+	ricURL string
 
 	apiVersion string
 
-	timeout    time.Duration
-
-
+	timeout time.Duration
 
 	// Resilience components.
 
 	circuitBreaker *llm.CircuitBreaker
 
-	retryConfig    *RetryConfig
-
-
+	retryConfig *RetryConfig
 
 	// Policy management.
 
-	policyTypes     map[int]*A1PolicyType
+	policyTypes map[int]*A1PolicyType
 
 	policyInstances map[string]*A1PolicyInstance
 
-	mutex           sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // RetryConfig holds retry configuration for A1 interface.
 
 type RetryConfig struct {
+	MaxRetries int `json:"max_retries"`
 
-	MaxRetries      int           `json:"max_retries"`
+	InitialDelay time.Duration `json:"initial_delay"`
 
-	InitialDelay    time.Duration `json:"initial_delay"`
+	MaxDelay time.Duration `json:"max_delay"`
 
-	MaxDelay        time.Duration `json:"max_delay"`
+	BackoffFactor float64 `json:"backoff_factor"`
 
-	BackoffFactor   float64       `json:"backoff_factor"`
+	Jitter bool `json:"jitter"`
 
-	Jitter          bool          `json:"jitter"`
-
-	RetryableErrors []string      `json:"retryable_errors"`
-
+	RetryableErrors []string `json:"retryable_errors"`
 }
-
-
 
 // A1AdaptorConfig holds configuration for the A1 adaptor.
 
 type A1AdaptorConfig struct {
+	RICURL string
 
-	RICURL               string
+	APIVersion string
 
-	APIVersion           string
+	Timeout time.Duration
 
-	Timeout              time.Duration
-
-	TLSConfig            *oran.TLSConfig
+	TLSConfig *oran.TLSConfig
 
 	CircuitBreakerConfig *llm.CircuitBreakerConfig
 
-	RetryConfig          *RetryConfig
-
+	RetryConfig *RetryConfig
 }
-
-
 
 // SMOServiceRegistry represents the SMO service registry integration.
 
 type SMOServiceRegistry struct {
+	URL string
 
-	URL        string
-
-	APIKey     string
+	APIKey string
 
 	httpClient *http.Client
-
 }
-
-
 
 // SMOPolicyOrchestrator manages cross-domain policy coordination.
 
 type SMOPolicyOrchestrator struct {
-
-	registry   *SMOServiceRegistry
+	registry *SMOServiceRegistry
 
 	a1Adaptors map[string]*A1Adaptor
 
 	eventQueue chan *PolicyEvent
 
-	workflows  map[string]*PolicyWorkflow
-
+	workflows map[string]*PolicyWorkflow
 }
-
-
 
 // PolicyEvent represents a policy-related event.
 
 type PolicyEvent struct {
+	ID string `json:"id"`
 
-	ID        string                 `json:"id"`
+	Type string `json:"type"` // CREATE, UPDATE, DELETE, ENFORCE
 
-	Type      string                 `json:"type"` // CREATE, UPDATE, DELETE, ENFORCE
+	PolicyID string `json:"policy_id"`
 
-	PolicyID  string                 `json:"policy_id"`
+	Source string `json:"source"`
 
-	Source    string                 `json:"source"`
+	Target string `json:"target"`
 
-	Target    string                 `json:"target"`
+	Data map[string]interface{} `json:"data"`
 
-	Data      map[string]interface{} `json:"data"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time              `json:"timestamp"`
-
-	Status    string                 `json:"status"`
-
+	Status string `json:"status"`
 }
-
-
 
 // PolicyWorkflow represents a multi-step policy orchestration workflow.
 
 type PolicyWorkflow struct {
+	ID string `json:"id"`
 
-	ID          string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name        string                 `json:"name"`
+	Description string `json:"description"`
 
-	Description string                 `json:"description"`
+	Steps []*PolicyWorkflowStep `json:"steps"`
 
-	Steps       []*PolicyWorkflowStep  `json:"steps"`
+	CurrentStep int `json:"current_step"`
 
-	CurrentStep int                    `json:"current_step"`
+	Status string `json:"status"` // PENDING, RUNNING, COMPLETED, FAILED
 
-	Status      string                 `json:"status"` // PENDING, RUNNING, COMPLETED, FAILED
+	Context map[string]interface{} `json:"context"`
 
-	Context     map[string]interface{} `json:"context"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt   time.Time              `json:"created_at"`
-
-	UpdatedAt   time.Time              `json:"updated_at"`
-
+	UpdatedAt time.Time `json:"updated_at"`
 }
-
-
 
 // PolicyWorkflowStep represents a single step in a policy workflow.
 
 type PolicyWorkflowStep struct {
+	ID string `json:"id"`
 
-	ID         string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name       string                 `json:"name"`
+	Type string `json:"type"` // POLICY_CREATE, POLICY_UPDATE, VALIDATION, NOTIFICATION
 
-	Type       string                 `json:"type"` // POLICY_CREATE, POLICY_UPDATE, VALIDATION, NOTIFICATION
-
-	Target     string                 `json:"target"`
+	Target string `json:"target"`
 
 	Parameters map[string]interface{} `json:"parameters"`
 
-	Conditions []string               `json:"conditions"`
+	Conditions []string `json:"conditions"`
 
-	OnSuccess  string                 `json:"on_success"`
+	OnSuccess string `json:"on_success"`
 
-	OnFailure  string                 `json:"on_failure"`
+	OnFailure string `json:"on_failure"`
 
-	Status     string                 `json:"status"`
+	Status string `json:"status"`
 
-	ExecutedAt *time.Time             `json:"executed_at,omitempty"`
-
+	ExecutedAt *time.Time `json:"executed_at,omitempty"`
 }
-
-
 
 // ServiceInfo represents information about registered services.
 
 type ServiceInfo struct {
+	ID string `json:"id"`
 
-	ID           string            `json:"id"`
+	Name string `json:"name"`
 
-	Name         string            `json:"name"`
+	Type string `json:"type"` // RIC, xApp, rApp
 
-	Type         string            `json:"type"` // RIC, xApp, rApp
+	Version string `json:"version"`
 
-	Version      string            `json:"version"`
+	Status string `json:"status"`
 
-	Status       string            `json:"status"`
+	Endpoints []ServiceEndpoint `json:"endpoints"`
 
-	Endpoints    []ServiceEndpoint `json:"endpoints"`
+	Capabilities []string `json:"capabilities"`
 
-	Capabilities []string          `json:"capabilities"`
+	Metadata map[string]string `json:"metadata"`
 
-	Metadata     map[string]string `json:"metadata"`
-
-	RegisteredAt time.Time         `json:"registered_at"`
-
+	RegisteredAt time.Time `json:"registered_at"`
 }
-
-
 
 // ServiceEndpoint represents a service endpoint.
 
 type ServiceEndpoint struct {
+	Name string `json:"name"`
 
-	Name     string `json:"name"`
-
-	URL      string `json:"url"`
+	URL string `json:"url"`
 
 	Protocol string `json:"protocol"`
 
-	Version  string `json:"version"`
-
+	Version string `json:"version"`
 }
-
-
 
 // NewA1Adaptor creates a new A1 adaptor with the given configuration.
 
@@ -375,17 +288,14 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 
 		config = &A1AdaptorConfig{
 
-			RICURL:     "http://near-rt-ric:8080",
+			RICURL: "http://near-rt-ric:8080",
 
 			APIVersion: "v1",
 
-			Timeout:    30 * time.Second,
-
+			Timeout: 30 * time.Second,
 		}
 
 	}
-
-
 
 	// Set default retry configuration.
 
@@ -393,15 +303,15 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 
 		config.RetryConfig = &RetryConfig{
 
-			MaxRetries:    3,
+			MaxRetries: 3,
 
-			InitialDelay:  1 * time.Second,
+			InitialDelay: 1 * time.Second,
 
-			MaxDelay:      30 * time.Second,
+			MaxDelay: 30 * time.Second,
 
 			BackoffFactor: 2.0,
 
-			Jitter:        true,
+			Jitter: true,
 
 			RetryableErrors: []string{
 
@@ -412,14 +322,10 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 				"temporary failure",
 
 				"service unavailable",
-
 			},
-
 		}
 
 	}
-
-
 
 	// Set default circuit breaker configuration.
 
@@ -427,43 +333,37 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 
 		config.CircuitBreakerConfig = &llm.CircuitBreakerConfig{
 
-			FailureThreshold:    5,
+			FailureThreshold: 5,
 
-			FailureRate:         0.5,
+			FailureRate: 0.5,
 
 			MinimumRequestCount: 10,
 
-			Timeout:             config.Timeout,
+			Timeout: config.Timeout,
 
-			HalfOpenTimeout:     60 * time.Second,
+			HalfOpenTimeout: 60 * time.Second,
 
-			SuccessThreshold:    3,
+			SuccessThreshold: 3,
 
 			HalfOpenMaxRequests: 5,
 
-			ResetTimeout:        60 * time.Second,
+			ResetTimeout: 60 * time.Second,
 
-			SlidingWindowSize:   100,
+			SlidingWindowSize: 100,
 
-			EnableHealthCheck:   true,
+			EnableHealthCheck: true,
 
 			HealthCheckInterval: 30 * time.Second,
 
-			HealthCheckTimeout:  10 * time.Second,
-
+			HealthCheckTimeout: 10 * time.Second,
 		}
 
 	}
 
-
-
 	httpClient := &http.Client{
 
 		Timeout: config.Timeout,
-
 	}
-
-
 
 	// Configure TLS if provided.
 
@@ -477,8 +377,6 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 
 		}
 
-
-
 		// Build TLS configuration.
 
 		tlsConfig, err := oran.BuildTLSConfig(config.TLSConfig)
@@ -489,51 +387,41 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 
 		}
 
-
-
 		// Create HTTP transport with TLS configuration.
 
 		transport := &http.Transport{
 
 			TLSClientConfig: tlsConfig,
-
 		}
 
 		httpClient.Transport = transport
 
 	}
 
-
-
 	// Create circuit breaker.
 
 	circuitBreaker := llm.NewCircuitBreaker("a1-adaptor", config.CircuitBreakerConfig)
 
-
-
 	return &A1Adaptor{
 
-		httpClient:      httpClient,
+		httpClient: httpClient,
 
-		ricURL:          config.RICURL,
+		ricURL: config.RICURL,
 
-		apiVersion:      config.APIVersion,
+		apiVersion: config.APIVersion,
 
-		timeout:         config.Timeout,
+		timeout: config.Timeout,
 
-		circuitBreaker:  circuitBreaker,
+		circuitBreaker: circuitBreaker,
 
-		retryConfig:     config.RetryConfig,
+		retryConfig: config.RetryConfig,
 
-		policyTypes:     make(map[int]*A1PolicyType),
+		policyTypes: make(map[int]*A1PolicyType),
 
 		policyInstances: make(map[string]*A1PolicyInstance),
-
 	}, nil
 
 }
-
-
 
 // CreatePolicyType creates a new policy type in the Near-RT RIC.
 
@@ -541,11 +429,7 @@ func (a *A1Adaptor) CreatePolicyType(ctx context.Context, policyType *A1PolicyTy
 
 	logger := log.FromContext(ctx)
 
-
-
 	url := fmt.Sprintf("%s/a1-p/%s/policytypes/%d", a.ricURL, a.apiVersion, policyType.PolicyTypeID)
-
-
 
 	body, err := json.Marshal(policyType)
 
@@ -555,8 +439,6 @@ func (a *A1Adaptor) CreatePolicyType(ctx context.Context, policyType *A1PolicyTy
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
 
 	if err != nil {
@@ -565,11 +447,7 @@ func (a *A1Adaptor) CreatePolicyType(ctx context.Context, policyType *A1PolicyTy
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
-
-
 
 	resp, err := a.httpClient.Do(req)
 
@@ -581,8 +459,6 @@ func (a *A1Adaptor) CreatePolicyType(ctx context.Context, policyType *A1PolicyTy
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -591,23 +467,17 @@ func (a *A1Adaptor) CreatePolicyType(ctx context.Context, policyType *A1PolicyTy
 
 	}
 
-
-
 	logger.Info("successfully created policy type", "policyTypeID", policyType.PolicyTypeID)
 
 	return nil
 
 }
 
-
-
 // GetPolicyType retrieves a policy type from the Near-RT RIC.
 
 func (a *A1Adaptor) GetPolicyType(ctx context.Context, policyTypeID int) (*A1PolicyType, error) {
 
 	url := fmt.Sprintf("%s/a1-p/%s/policytypes/%d", a.ricURL, a.apiVersion, policyTypeID)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
@@ -616,8 +486,6 @@ func (a *A1Adaptor) GetPolicyType(ctx context.Context, policyTypeID int) (*A1Pol
 		return nil, fmt.Errorf("failed to create request: %w", err)
 
 	}
-
-
 
 	resp, err := a.httpClient.Do(req)
 
@@ -629,15 +497,11 @@ func (a *A1Adaptor) GetPolicyType(ctx context.Context, policyTypeID int) (*A1Pol
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("failed to get policy type: status=%d", resp.StatusCode)
 
 	}
-
-
 
 	var policyType A1PolicyType
 
@@ -647,21 +511,15 @@ func (a *A1Adaptor) GetPolicyType(ctx context.Context, policyTypeID int) (*A1Pol
 
 	}
 
-
-
 	return &policyType, nil
 
 }
-
-
 
 // ListPolicyTypes lists all policy types in the Near-RT RIC.
 
 func (a *A1Adaptor) ListPolicyTypes(ctx context.Context) ([]*A1PolicyType, error) {
 
 	url := fmt.Sprintf("%s/a1-p/%s/policytypes", a.ricURL, a.apiVersion)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
@@ -670,8 +528,6 @@ func (a *A1Adaptor) ListPolicyTypes(ctx context.Context) ([]*A1PolicyType, error
 		return nil, fmt.Errorf("failed to create request: %w", err)
 
 	}
-
-
 
 	resp, err := a.httpClient.Do(req)
 
@@ -683,15 +539,11 @@ func (a *A1Adaptor) ListPolicyTypes(ctx context.Context) ([]*A1PolicyType, error
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("failed to list policy types: status=%d", resp.StatusCode)
 
 	}
-
-
 
 	var policyTypeIDs []int
 
@@ -700,8 +552,6 @@ func (a *A1Adaptor) ListPolicyTypes(ctx context.Context) ([]*A1PolicyType, error
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 
 	}
-
-
 
 	// Fetch details for each policy type.
 
@@ -721,21 +571,15 @@ func (a *A1Adaptor) ListPolicyTypes(ctx context.Context) ([]*A1PolicyType, error
 
 	}
 
-
-
 	return policyTypes, nil
 
 }
-
-
 
 // DeletePolicyType deletes a policy type from the Near-RT RIC.
 
 func (a *A1Adaptor) DeletePolicyType(ctx context.Context, policyTypeID int) error {
 
 	url := fmt.Sprintf("%s/a1-p/%s/policytypes/%d", a.ricURL, a.apiVersion, policyTypeID)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, http.NoBody)
 
@@ -745,8 +589,6 @@ func (a *A1Adaptor) DeletePolicyType(ctx context.Context, policyTypeID int) erro
 
 	}
 
-
-
 	resp, err := a.httpClient.Do(req)
 
 	if err != nil {
@@ -757,21 +599,15 @@ func (a *A1Adaptor) DeletePolicyType(ctx context.Context, policyTypeID int) erro
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
 
 		return fmt.Errorf("failed to delete policy type: status=%d", resp.StatusCode)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // CreatePolicyInstance creates a new policy instance.
 
@@ -779,13 +615,9 @@ func (a *A1Adaptor) CreatePolicyInstance(ctx context.Context, policyTypeID int, 
 
 	logger := log.FromContext(ctx)
 
-
-
 	url := fmt.Sprintf("%s/a1-p/%s/policytypes/%d/policies/%s",
 
 		a.ricURL, a.apiVersion, policyTypeID, instance.PolicyInstanceID)
-
-
 
 	body, err := json.Marshal(instance.PolicyData)
 
@@ -795,8 +627,6 @@ func (a *A1Adaptor) CreatePolicyInstance(ctx context.Context, policyTypeID int, 
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
 
 	if err != nil {
@@ -805,11 +635,7 @@ func (a *A1Adaptor) CreatePolicyInstance(ctx context.Context, policyTypeID int, 
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
-
-
 
 	resp, err := a.httpClient.Do(req)
 
@@ -821,8 +647,6 @@ func (a *A1Adaptor) CreatePolicyInstance(ctx context.Context, policyTypeID int, 
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -830,8 +654,6 @@ func (a *A1Adaptor) CreatePolicyInstance(ctx context.Context, policyTypeID int, 
 		return fmt.Errorf("failed to create policy instance: status=%d, body=%s", resp.StatusCode, string(bodyBytes))
 
 	}
-
-
 
 	logger.Info("successfully created policy instance",
 
@@ -843,8 +665,6 @@ func (a *A1Adaptor) CreatePolicyInstance(ctx context.Context, policyTypeID int, 
 
 }
 
-
-
 // GetPolicyInstance retrieves a policy instance.
 
 func (a *A1Adaptor) GetPolicyInstance(ctx context.Context, policyTypeID int, instanceID string) (*A1PolicyInstance, error) {
@@ -853,8 +673,6 @@ func (a *A1Adaptor) GetPolicyInstance(ctx context.Context, policyTypeID int, ins
 
 		a.ricURL, a.apiVersion, policyTypeID, instanceID)
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
 	if err != nil {
@@ -862,8 +680,6 @@ func (a *A1Adaptor) GetPolicyInstance(ctx context.Context, policyTypeID int, ins
 		return nil, fmt.Errorf("failed to create request: %w", err)
 
 	}
-
-
 
 	resp, err := a.httpClient.Do(req)
 
@@ -875,15 +691,11 @@ func (a *A1Adaptor) GetPolicyInstance(ctx context.Context, policyTypeID int, ins
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("failed to get policy instance: status=%d", resp.StatusCode)
 
 	}
-
-
 
 	var policyData map[string]interface{}
 
@@ -892,8 +704,6 @@ func (a *A1Adaptor) GetPolicyInstance(ctx context.Context, policyTypeID int, ins
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 
 	}
-
-
 
 	// Get status separately.
 
@@ -905,31 +715,24 @@ func (a *A1Adaptor) GetPolicyInstance(ctx context.Context, policyTypeID int, ins
 
 	}
 
-
-
 	return &A1PolicyInstance{
 
 		PolicyInstanceID: instanceID,
 
-		PolicyTypeID:     policyTypeID,
+		PolicyTypeID: policyTypeID,
 
-		PolicyData:       policyData,
+		PolicyData: policyData,
 
-		Status:           *status,
-
+		Status: *status,
 	}, nil
 
 }
-
-
 
 // ListPolicyInstances lists all policy instances for a policy type.
 
 func (a *A1Adaptor) ListPolicyInstances(ctx context.Context, policyTypeID int) ([]*A1PolicyInstance, error) {
 
 	url := fmt.Sprintf("%s/a1-p/%s/policytypes/%d/policies", a.ricURL, a.apiVersion, policyTypeID)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
@@ -938,8 +741,6 @@ func (a *A1Adaptor) ListPolicyInstances(ctx context.Context, policyTypeID int) (
 		return nil, fmt.Errorf("failed to create request: %w", err)
 
 	}
-
-
 
 	resp, err := a.httpClient.Do(req)
 
@@ -951,15 +752,11 @@ func (a *A1Adaptor) ListPolicyInstances(ctx context.Context, policyTypeID int) (
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("failed to list policy instances: status=%d", resp.StatusCode)
 
 	}
-
-
 
 	var instanceIDs []string
 
@@ -968,8 +765,6 @@ func (a *A1Adaptor) ListPolicyInstances(ctx context.Context, policyTypeID int) (
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 
 	}
-
-
 
 	// Fetch details for each instance.
 
@@ -989,13 +784,9 @@ func (a *A1Adaptor) ListPolicyInstances(ctx context.Context, policyTypeID int) (
 
 	}
 
-
-
 	return instances, nil
 
 }
-
-
 
 // UpdatePolicyInstance updates an existing policy instance.
 
@@ -1007,8 +798,6 @@ func (a *A1Adaptor) UpdatePolicyInstance(ctx context.Context, policyTypeID int, 
 
 }
 
-
-
 // DeletePolicyInstance deletes a policy instance.
 
 func (a *A1Adaptor) DeletePolicyInstance(ctx context.Context, policyTypeID int, instanceID string) error {
@@ -1017,8 +806,6 @@ func (a *A1Adaptor) DeletePolicyInstance(ctx context.Context, policyTypeID int, 
 
 		a.ricURL, a.apiVersion, policyTypeID, instanceID)
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, http.NoBody)
 
 	if err != nil {
@@ -1026,8 +813,6 @@ func (a *A1Adaptor) DeletePolicyInstance(ctx context.Context, policyTypeID int, 
 		return fmt.Errorf("failed to create request: %w", err)
 
 	}
-
-
 
 	resp, err := a.httpClient.Do(req)
 
@@ -1039,21 +824,15 @@ func (a *A1Adaptor) DeletePolicyInstance(ctx context.Context, policyTypeID int, 
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
 
 		return fmt.Errorf("failed to delete policy instance: status=%d", resp.StatusCode)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetPolicyStatus retrieves the status of a policy instance.
 
@@ -1063,8 +842,6 @@ func (a *A1Adaptor) GetPolicyStatus(ctx context.Context, policyTypeID int, insta
 
 		a.ricURL, a.apiVersion, policyTypeID, instanceID)
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
 	if err != nil {
@@ -1072,8 +849,6 @@ func (a *A1Adaptor) GetPolicyStatus(ctx context.Context, policyTypeID int, insta
 		return nil, fmt.Errorf("failed to create request: %w", err)
 
 	}
-
-
 
 	resp, err := a.httpClient.Do(req)
 
@@ -1085,15 +860,11 @@ func (a *A1Adaptor) GetPolicyStatus(ctx context.Context, policyTypeID int, insta
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("failed to get policy status: status=%d", resp.StatusCode)
 
 	}
-
-
 
 	var status A1PolicyStatus
 
@@ -1103,13 +874,9 @@ func (a *A1Adaptor) GetPolicyStatus(ctx context.Context, policyTypeID int, insta
 
 	}
 
-
-
 	return &status, nil
 
 }
-
-
 
 // ApplyPolicy applies an A1 policy from a ManagedElement.
 
@@ -1119,8 +886,6 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 
 	logger.Info("applying A1 policy", "managedElement", me.Name)
 
-
-
 	if me.Spec.A1Policy.Raw == nil {
 
 		logger.Info("no A1 policy to apply", "managedElement", me.Name)
@@ -1128,8 +893,6 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 		return nil
 
 	}
-
-
 
 	// Parse the A1 policy.
 
@@ -1141,8 +904,6 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 
 	}
 
-
-
 	// Extract policy type ID and instance ID.
 
 	policyTypeID, ok := policySpec["policy_type_id"].(float64)
@@ -1153,8 +914,6 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 
 	}
 
-
-
 	instanceID, ok := policySpec["policy_instance_id"].(string)
 
 	if !ok {
@@ -1162,8 +921,6 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 		instanceID = fmt.Sprintf("%s-policy-%d", me.Name, int(policyTypeID))
 
 	}
-
-
 
 	// Extract policy data.
 
@@ -1175,25 +932,20 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 
 	}
 
-
-
 	// Create policy instance.
 
 	instance := &A1PolicyInstance{
 
 		PolicyInstanceID: instanceID,
 
-		PolicyTypeID:     int(policyTypeID),
+		PolicyTypeID: int(policyTypeID),
 
-		PolicyData:       policyData,
+		PolicyData: policyData,
 
-		CreatedAt:        time.Now(),
+		CreatedAt: time.Now(),
 
-		UpdatedAt:        time.Now(),
-
+		UpdatedAt: time.Now(),
 	}
-
-
 
 	// Apply the policy.
 
@@ -1202,8 +954,6 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 		return fmt.Errorf("failed to create policy instance: %w", err)
 
 	}
-
-
 
 	// Wait for policy to be enforced (with timeout).
 
@@ -1214,8 +964,6 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 	ticker := time.NewTicker(2 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for !enforced {
 
@@ -1253,13 +1001,9 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // RemovePolicy removes an A1 policy from a ManagedElement.
 
@@ -1269,8 +1013,6 @@ func (a *A1Adaptor) RemovePolicy(ctx context.Context, me *nephoranv1.ManagedElem
 
 	logger.Info("removing A1 policy", "managedElement", me.Name)
 
-
-
 	if me.Spec.A1Policy.Raw == nil {
 
 		logger.Info("no A1 policy to remove", "managedElement", me.Name)
@@ -1278,8 +1020,6 @@ func (a *A1Adaptor) RemovePolicy(ctx context.Context, me *nephoranv1.ManagedElem
 		return nil
 
 	}
-
-
 
 	// Parse the A1 policy to get IDs.
 
@@ -1291,8 +1031,6 @@ func (a *A1Adaptor) RemovePolicy(ctx context.Context, me *nephoranv1.ManagedElem
 
 	}
 
-
-
 	policyTypeID, ok := policySpec["policy_type_id"].(float64)
 
 	if !ok {
@@ -1300,8 +1038,6 @@ func (a *A1Adaptor) RemovePolicy(ctx context.Context, me *nephoranv1.ManagedElem
 		return fmt.Errorf("policy_type_id not found in A1 policy")
 
 	}
-
-
 
 	instanceID, ok := policySpec["policy_instance_id"].(string)
 
@@ -1311,8 +1047,6 @@ func (a *A1Adaptor) RemovePolicy(ctx context.Context, me *nephoranv1.ManagedElem
 
 	}
 
-
-
 	// Delete the policy instance.
 
 	if err := a.DeletePolicyInstance(ctx, int(policyTypeID), instanceID); err != nil {
@@ -1321,25 +1055,17 @@ func (a *A1Adaptor) RemovePolicy(ctx context.Context, me *nephoranv1.ManagedElem
 
 	}
 
-
-
 	logger.Info("successfully removed policy",
 
 		"policyTypeID", int(policyTypeID),
 
 		"instanceID", instanceID)
 
-
-
 	return nil
 
 }
 
-
-
 // Helper function to create common policy types.
-
-
 
 // CreateQoSPolicyType creates a QoS policy type for network slicing.
 
@@ -1349,22 +1075,21 @@ func CreateQoSPolicyType() *A1PolicyType {
 
 		PolicyTypeID: 1000,
 
-		Name:         "Network Slice QoS Policy",
+		Name: "Network Slice QoS Policy",
 
-		Description:  "Policy for managing QoS parameters in network slices",
+		Description: "Policy for managing QoS parameters in network slices",
 
 		PolicySchema: map[string]interface{}{
 
 			"$schema": "http://json-schema.org/draft-07/schema#",
 
-			"type":    "object",
+			"type": "object",
 
 			"properties": map[string]interface{}{
 
 				"slice_id": map[string]interface{}{
 
 					"type": "string",
-
 				},
 
 				"qos_parameters": map[string]interface{}{
@@ -1376,40 +1101,30 @@ func CreateQoSPolicyType() *A1PolicyType {
 						"latency_ms": map[string]interface{}{
 
 							"type": "number",
-
 						},
 
 						"throughput_mbps": map[string]interface{}{
 
 							"type": "number",
-
 						},
 
 						"reliability": map[string]interface{}{
 
-							"type":    "number",
+							"type": "number",
 
 							"minimum": 0,
 
 							"maximum": 1,
-
 						},
-
 					},
-
 				},
-
 			},
 
 			"required": []string{"slice_id", "qos_parameters"},
-
 		},
-
 	}
 
 }
-
-
 
 // CreateTrafficSteeringPolicyType creates a traffic steering policy type.
 
@@ -1419,51 +1134,43 @@ func CreateTrafficSteeringPolicyType() *A1PolicyType {
 
 		PolicyTypeID: 2000,
 
-		Name:         "Traffic Steering Policy",
+		Name: "Traffic Steering Policy",
 
-		Description:  "Policy for steering traffic between cells or network functions",
+		Description: "Policy for steering traffic between cells or network functions",
 
 		PolicySchema: map[string]interface{}{
 
 			"$schema": "http://json-schema.org/draft-07/schema#",
 
-			"type":    "object",
+			"type": "object",
 
 			"properties": map[string]interface{}{
 
 				"ue_id": map[string]interface{}{
 
 					"type": "string",
-
 				},
 
 				"target_cell": map[string]interface{}{
 
 					"type": "string",
-
 				},
 
 				"traffic_percentage": map[string]interface{}{
 
-					"type":    "number",
+					"type": "number",
 
 					"minimum": 0,
 
 					"maximum": 100,
-
 				},
-
 			},
 
 			"required": []string{"target_cell", "traffic_percentage"},
-
 		},
-
 	}
 
 }
-
-
 
 // NewSMOServiceRegistry creates a new SMO service registry client.
 
@@ -1471,29 +1178,23 @@ func NewSMOServiceRegistry(url, apiKey string) *SMOServiceRegistry {
 
 	return &SMOServiceRegistry{
 
-		URL:    url,
+		URL: url,
 
 		APIKey: apiKey,
 
 		httpClient: &http.Client{
 
 			Timeout: 30 * time.Second,
-
 		},
-
 	}
 
 }
-
-
 
 // RegisterService registers a service with the SMO service registry.
 
 func (r *SMOServiceRegistry) RegisterService(ctx context.Context, service *ServiceInfo) error {
 
 	logger := log.FromContext(ctx)
-
-
 
 	url := fmt.Sprintf("%s/services", r.URL)
 
@@ -1505,8 +1206,6 @@ func (r *SMOServiceRegistry) RegisterService(ctx context.Context, service *Servi
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 
 	if err != nil {
@@ -1515,13 +1214,9 @@ func (r *SMOServiceRegistry) RegisterService(ctx context.Context, service *Servi
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
 
 	req.Header.Set("X-API-Key", r.APIKey)
-
-
 
 	resp, err := r.httpClient.Do(req)
 
@@ -1533,8 +1228,6 @@ func (r *SMOServiceRegistry) RegisterService(ctx context.Context, service *Servi
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusCreated {
 
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -1543,15 +1236,11 @@ func (r *SMOServiceRegistry) RegisterService(ctx context.Context, service *Servi
 
 	}
 
-
-
 	logger.Info("service registered with SMO", "serviceID", service.ID, "name", service.Name)
 
 	return nil
 
 }
-
-
 
 // DiscoverServices discovers available services from the SMO service registry.
 
@@ -1565,8 +1254,6 @@ func (r *SMOServiceRegistry) DiscoverServices(ctx context.Context, serviceType s
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
 	if err != nil {
@@ -1575,11 +1262,7 @@ func (r *SMOServiceRegistry) DiscoverServices(ctx context.Context, serviceType s
 
 	}
 
-
-
 	req.Header.Set("X-API-Key", r.APIKey)
-
-
 
 	resp, err := r.httpClient.Do(req)
 
@@ -1591,15 +1274,11 @@ func (r *SMOServiceRegistry) DiscoverServices(ctx context.Context, serviceType s
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("failed to discover services: status=%d", resp.StatusCode)
 
 	}
-
-
 
 	var services []*ServiceInfo
 
@@ -1609,21 +1288,15 @@ func (r *SMOServiceRegistry) DiscoverServices(ctx context.Context, serviceType s
 
 	}
 
-
-
 	return services, nil
 
 }
-
-
 
 // NotifyPolicyEvent sends a policy event notification to the SMO.
 
 func (r *SMOServiceRegistry) NotifyPolicyEvent(ctx context.Context, event *PolicyEvent) error {
 
 	url := fmt.Sprintf("%s/events", r.URL)
-
-
 
 	body, err := json.Marshal(event)
 
@@ -1633,8 +1306,6 @@ func (r *SMOServiceRegistry) NotifyPolicyEvent(ctx context.Context, event *Polic
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 
 	if err != nil {
@@ -1643,13 +1314,9 @@ func (r *SMOServiceRegistry) NotifyPolicyEvent(ctx context.Context, event *Polic
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
 
 	req.Header.Set("X-API-Key", r.APIKey)
-
-
 
 	resp, err := r.httpClient.Do(req)
 
@@ -1661,21 +1328,15 @@ func (r *SMOServiceRegistry) NotifyPolicyEvent(ctx context.Context, event *Polic
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusAccepted {
 
 		return fmt.Errorf("failed to notify policy event: status=%d", resp.StatusCode)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // NewSMOPolicyOrchestrator creates a new SMO policy orchestrator.
 
@@ -1683,19 +1344,16 @@ func NewSMOPolicyOrchestrator(registry *SMOServiceRegistry) *SMOPolicyOrchestrat
 
 	return &SMOPolicyOrchestrator{
 
-		registry:   registry,
+		registry: registry,
 
 		a1Adaptors: make(map[string]*A1Adaptor),
 
 		eventQueue: make(chan *PolicyEvent, 100),
 
-		workflows:  make(map[string]*PolicyWorkflow),
-
+		workflows: make(map[string]*PolicyWorkflow),
 	}
 
 }
-
-
 
 // RegisterA1Adaptor registers an A1 adaptor with the orchestrator.
 
@@ -1705,8 +1363,6 @@ func (o *SMOPolicyOrchestrator) RegisterA1Adaptor(ricID string, adaptor *A1Adapt
 
 }
 
-
-
 // StartEventProcessor starts the event processing loop.
 
 func (o *SMOPolicyOrchestrator) StartEventProcessor(ctx context.Context) {
@@ -1714,8 +1370,6 @@ func (o *SMOPolicyOrchestrator) StartEventProcessor(ctx context.Context) {
 	logger := log.FromContext(ctx)
 
 	logger.Info("starting SMO policy orchestrator event processor")
-
-
 
 	go func() {
 
@@ -1745,8 +1399,6 @@ func (o *SMOPolicyOrchestrator) StartEventProcessor(ctx context.Context) {
 
 }
 
-
-
 // processEvent processes a single policy event.
 
 func (o *SMOPolicyOrchestrator) processEvent(ctx context.Context, event *PolicyEvent) error {
@@ -1754,8 +1406,6 @@ func (o *SMOPolicyOrchestrator) processEvent(ctx context.Context, event *PolicyE
 	logger := log.FromContext(ctx)
 
 	logger.Info("processing policy event", "eventID", event.ID, "type", event.Type)
-
-
 
 	switch event.Type {
 
@@ -1783,15 +1433,11 @@ func (o *SMOPolicyOrchestrator) processEvent(ctx context.Context, event *PolicyE
 
 }
 
-
-
 // handlePolicyCreate handles policy creation events.
 
 func (o *SMOPolicyOrchestrator) handlePolicyCreate(ctx context.Context, event *PolicyEvent) error {
 
 	logger := log.FromContext(ctx)
-
-
 
 	// Extract policy information from event data.
 
@@ -1803,8 +1449,6 @@ func (o *SMOPolicyOrchestrator) handlePolicyCreate(ctx context.Context, event *P
 
 	}
 
-
-
 	instanceID, ok := event.Data["policy_instance_id"].(string)
 
 	if !ok {
@@ -1812,8 +1456,6 @@ func (o *SMOPolicyOrchestrator) handlePolicyCreate(ctx context.Context, event *P
 		return fmt.Errorf("policy_instance_id not found in event data")
 
 	}
-
-
 
 	policyData, ok := event.Data["policy_data"].(map[string]interface{})
 
@@ -1823,25 +1465,20 @@ func (o *SMOPolicyOrchestrator) handlePolicyCreate(ctx context.Context, event *P
 
 	}
 
-
-
 	// Create policy instance.
 
 	instance := &A1PolicyInstance{
 
 		PolicyInstanceID: instanceID,
 
-		PolicyTypeID:     int(policyTypeID),
+		PolicyTypeID: int(policyTypeID),
 
-		PolicyData:       policyData,
+		PolicyData: policyData,
 
-		CreatedAt:        time.Now(),
+		CreatedAt: time.Now(),
 
-		UpdatedAt:        time.Now(),
-
+		UpdatedAt: time.Now(),
 	}
-
-
 
 	// Apply policy to target RIC.
 
@@ -1853,39 +1490,33 @@ func (o *SMOPolicyOrchestrator) handlePolicyCreate(ctx context.Context, event *P
 
 	}
 
-
-
 	if err := adaptor.CreatePolicyInstance(ctx, int(policyTypeID), instance); err != nil {
 
 		// Notify SMO of failure.
 
 		failureEvent := &PolicyEvent{
 
-			ID:       fmt.Sprintf("%s-failure", event.ID),
+			ID: fmt.Sprintf("%s-failure", event.ID),
 
-			Type:     "FAILURE",
+			Type: "FAILURE",
 
 			PolicyID: event.PolicyID,
 
-			Source:   event.Target,
+			Source: event.Target,
 
-			Target:   event.Source,
+			Target: event.Source,
 
 			Data: map[string]interface{}{
 
-				"error":          err.Error(),
+				"error": err.Error(),
 
 				"original_event": event.ID,
-
 			},
 
 			Timestamp: time.Now(),
 
-			Status:    "FAILED",
-
+			Status: "FAILED",
 		}
-
-
 
 		o.registry.NotifyPolicyEvent(ctx, failureEvent)
 
@@ -1893,51 +1524,41 @@ func (o *SMOPolicyOrchestrator) handlePolicyCreate(ctx context.Context, event *P
 
 	}
 
-
-
 	// Notify SMO of success.
 
 	successEvent := &PolicyEvent{
 
-		ID:       fmt.Sprintf("%s-success", event.ID),
+		ID: fmt.Sprintf("%s-success", event.ID),
 
-		Type:     "SUCCESS",
+		Type: "SUCCESS",
 
 		PolicyID: event.PolicyID,
 
-		Source:   event.Target,
+		Source: event.Target,
 
-		Target:   event.Source,
+		Target: event.Source,
 
 		Data: map[string]interface{}{
 
 			"policy_instance_id": instanceID,
 
-			"policy_type_id":     int(policyTypeID),
+			"policy_type_id": int(policyTypeID),
 
-			"original_event":     event.ID,
-
+			"original_event": event.ID,
 		},
 
 		Timestamp: time.Now(),
 
-		Status:    "COMPLETED",
-
+		Status: "COMPLETED",
 	}
 
-
-
 	o.registry.NotifyPolicyEvent(ctx, successEvent)
-
-
 
 	logger.Info("policy creation completed", "eventID", event.ID, "policyID", event.PolicyID)
 
 	return nil
 
 }
-
-
 
 // handlePolicyUpdate handles policy update events.
 
@@ -1949,15 +1570,11 @@ func (o *SMOPolicyOrchestrator) handlePolicyUpdate(ctx context.Context, event *P
 
 }
 
-
-
 // handlePolicyDelete handles policy deletion events.
 
 func (o *SMOPolicyOrchestrator) handlePolicyDelete(ctx context.Context, event *PolicyEvent) error {
 
 	logger := log.FromContext(ctx)
-
-
 
 	policyTypeID, ok := event.Data["policy_type_id"].(float64)
 
@@ -1967,8 +1584,6 @@ func (o *SMOPolicyOrchestrator) handlePolicyDelete(ctx context.Context, event *P
 
 	}
 
-
-
 	instanceID, ok := event.Data["policy_instance_id"].(string)
 
 	if !ok {
@@ -1976,8 +1591,6 @@ func (o *SMOPolicyOrchestrator) handlePolicyDelete(ctx context.Context, event *P
 		return fmt.Errorf("policy_instance_id not found in event data")
 
 	}
-
-
 
 	// Delete policy from target RIC.
 
@@ -1989,15 +1602,11 @@ func (o *SMOPolicyOrchestrator) handlePolicyDelete(ctx context.Context, event *P
 
 	}
 
-
-
 	if err := adaptor.DeletePolicyInstance(ctx, int(policyTypeID), instanceID); err != nil {
 
 		return fmt.Errorf("failed to delete policy instance: %w", err)
 
 	}
-
-
 
 	logger.Info("policy deletion completed", "eventID", event.ID, "policyID", event.PolicyID)
 
@@ -2005,15 +1614,11 @@ func (o *SMOPolicyOrchestrator) handlePolicyDelete(ctx context.Context, event *P
 
 }
 
-
-
 // handlePolicyEnforce handles policy enforcement events.
 
 func (o *SMOPolicyOrchestrator) handlePolicyEnforce(ctx context.Context, event *PolicyEvent) error {
 
 	logger := log.FromContext(ctx)
-
-
 
 	policyTypeID, ok := event.Data["policy_type_id"].(float64)
 
@@ -2023,8 +1628,6 @@ func (o *SMOPolicyOrchestrator) handlePolicyEnforce(ctx context.Context, event *
 
 	}
 
-
-
 	instanceID, ok := event.Data["policy_instance_id"].(string)
 
 	if !ok {
@@ -2032,8 +1635,6 @@ func (o *SMOPolicyOrchestrator) handlePolicyEnforce(ctx context.Context, event *
 		return fmt.Errorf("policy_instance_id not found in event data")
 
 	}
-
-
 
 	// Check policy status.
 
@@ -2045,8 +1646,6 @@ func (o *SMOPolicyOrchestrator) handlePolicyEnforce(ctx context.Context, event *
 
 	}
 
-
-
 	status, err := adaptor.GetPolicyStatus(ctx, int(policyTypeID), instanceID)
 
 	if err != nil {
@@ -2055,21 +1654,19 @@ func (o *SMOPolicyOrchestrator) handlePolicyEnforce(ctx context.Context, event *
 
 	}
 
-
-
 	// Notify SMO of enforcement status.
 
 	statusEvent := &PolicyEvent{
 
-		ID:       fmt.Sprintf("%s-status", event.ID),
+		ID: fmt.Sprintf("%s-status", event.ID),
 
-		Type:     "STATUS",
+		Type: "STATUS",
 
 		PolicyID: event.PolicyID,
 
-		Source:   event.Target,
+		Source: event.Target,
 
-		Target:   event.Source,
+		Target: event.Source,
 
 		Data: map[string]interface{}{
 
@@ -2077,21 +1674,15 @@ func (o *SMOPolicyOrchestrator) handlePolicyEnforce(ctx context.Context, event *
 
 			"enforcement_reason": status.EnforcementReason,
 
-			"last_modified":      status.LastModified,
-
+			"last_modified": status.LastModified,
 		},
 
 		Timestamp: time.Now(),
 
-		Status:    "COMPLETED",
-
+		Status: "COMPLETED",
 	}
 
-
-
 	o.registry.NotifyPolicyEvent(ctx, statusEvent)
-
-
 
 	logger.Info("policy enforcement check completed", "eventID", event.ID, "status", status.EnforcementStatus)
 
@@ -2099,15 +1690,11 @@ func (o *SMOPolicyOrchestrator) handlePolicyEnforce(ctx context.Context, event *
 
 }
 
-
-
 // CreatePolicyWorkflow creates a new policy workflow.
 
 func (o *SMOPolicyOrchestrator) CreatePolicyWorkflow(ctx context.Context, workflow *PolicyWorkflow) error {
 
 	logger := log.FromContext(ctx)
-
-
 
 	workflow.ID = fmt.Sprintf("workflow-%d", time.Now().UnixNano())
 
@@ -2119,25 +1706,17 @@ func (o *SMOPolicyOrchestrator) CreatePolicyWorkflow(ctx context.Context, workfl
 
 	workflow.UpdatedAt = time.Now()
 
-
-
 	if workflow.Context == nil {
 
 		workflow.Context = make(map[string]interface{})
 
 	}
 
-
-
 	o.workflows[workflow.ID] = workflow
-
-
 
 	// Start workflow execution.
 
 	go o.executeWorkflow(context.Background(), workflow.ID)
-
-
 
 	logger.Info("policy workflow created", "workflowID", workflow.ID, "name", workflow.Name)
 
@@ -2145,15 +1724,11 @@ func (o *SMOPolicyOrchestrator) CreatePolicyWorkflow(ctx context.Context, workfl
 
 }
 
-
-
 // executeWorkflow executes a policy workflow.
 
 func (o *SMOPolicyOrchestrator) executeWorkflow(ctx context.Context, workflowID string) {
 
 	logger := log.FromContext(ctx)
-
-
 
 	workflow, ok := o.workflows[workflowID]
 
@@ -2165,13 +1740,9 @@ func (o *SMOPolicyOrchestrator) executeWorkflow(ctx context.Context, workflowID 
 
 	}
 
-
-
 	workflow.Status = "RUNNING"
 
 	workflow.UpdatedAt = time.Now()
-
-
 
 	for i, step := range workflow.Steps {
 
@@ -2181,13 +1752,9 @@ func (o *SMOPolicyOrchestrator) executeWorkflow(ctx context.Context, workflowID 
 
 		}
 
-
-
 		workflow.CurrentStep = i
 
 		logger.Info("executing workflow step", "workflowID", workflowID, "step", i, "stepName", step.Name)
-
-
 
 		if err := o.executeWorkflowStep(ctx, workflow, step); err != nil {
 
@@ -2201,8 +1768,6 @@ func (o *SMOPolicyOrchestrator) executeWorkflow(ctx context.Context, workflowID 
 
 		}
 
-
-
 		step.Status = "COMPLETED"
 
 		step.ExecutedAt = &[]time.Time{time.Now()}[0]
@@ -2211,8 +1776,6 @@ func (o *SMOPolicyOrchestrator) executeWorkflow(ctx context.Context, workflowID 
 
 	}
 
-
-
 	workflow.Status = "COMPLETED"
 
 	workflow.UpdatedAt = time.Now()
@@ -2220,8 +1783,6 @@ func (o *SMOPolicyOrchestrator) executeWorkflow(ctx context.Context, workflowID 
 	logger.Info("workflow completed", "workflowID", workflowID)
 
 }
-
-
 
 // executeWorkflowStep executes a single workflow step.
 
@@ -2253,33 +1814,28 @@ func (o *SMOPolicyOrchestrator) executeWorkflowStep(ctx context.Context, workflo
 
 }
 
-
-
 // executeCreatePolicyStep executes a policy creation step.
 
 func (o *SMOPolicyOrchestrator) executeCreatePolicyStep(ctx context.Context, workflow *PolicyWorkflow, step *PolicyWorkflowStep) error {
 
 	event := &PolicyEvent{
 
-		ID:        fmt.Sprintf("%s-step-%s", workflow.ID, step.ID),
+		ID: fmt.Sprintf("%s-step-%s", workflow.ID, step.ID),
 
-		Type:      "CREATE",
+		Type: "CREATE",
 
-		PolicyID:  fmt.Sprintf("%s-policy", workflow.ID),
+		PolicyID: fmt.Sprintf("%s-policy", workflow.ID),
 
-		Source:    "orchestrator",
+		Source: "orchestrator",
 
-		Target:    step.Target,
+		Target: step.Target,
 
-		Data:      step.Parameters,
+		Data: step.Parameters,
 
 		Timestamp: time.Now(),
 
-		Status:    "PENDING",
-
+		Status: "PENDING",
 	}
-
-
 
 	select {
 
@@ -2294,8 +1850,6 @@ func (o *SMOPolicyOrchestrator) executeCreatePolicyStep(ctx context.Context, wor
 	}
 
 }
-
-
 
 // executeUpdatePolicyStep executes a policy update step.
 
@@ -2305,25 +1859,22 @@ func (o *SMOPolicyOrchestrator) executeUpdatePolicyStep(ctx context.Context, wor
 
 	event := &PolicyEvent{
 
-		ID:        fmt.Sprintf("%s-step-%s", workflow.ID, step.ID),
+		ID: fmt.Sprintf("%s-step-%s", workflow.ID, step.ID),
 
-		Type:      "UPDATE",
+		Type: "UPDATE",
 
-		PolicyID:  fmt.Sprintf("%s-policy", workflow.ID),
+		PolicyID: fmt.Sprintf("%s-policy", workflow.ID),
 
-		Source:    "orchestrator",
+		Source: "orchestrator",
 
-		Target:    step.Target,
+		Target: step.Target,
 
-		Data:      step.Parameters,
+		Data: step.Parameters,
 
 		Timestamp: time.Now(),
 
-		Status:    "PENDING",
-
+		Status: "PENDING",
 	}
-
-
 
 	select {
 
@@ -2338,8 +1889,6 @@ func (o *SMOPolicyOrchestrator) executeUpdatePolicyStep(ctx context.Context, wor
 	}
 
 }
-
-
 
 // executeValidationStep executes a validation step.
 
@@ -2354,8 +1903,6 @@ func (o *SMOPolicyOrchestrator) executeValidationStep(ctx context.Context, workf
 		return fmt.Errorf("validation_type not specified in step parameters")
 
 	}
-
-
 
 	switch validationType {
 
@@ -2379,8 +1926,6 @@ func (o *SMOPolicyOrchestrator) executeValidationStep(ctx context.Context, workf
 
 }
 
-
-
 // executeNotificationStep executes a notification step.
 
 func (o *SMOPolicyOrchestrator) executeNotificationStep(ctx context.Context, workflow *PolicyWorkflow, step *PolicyWorkflowStep) error {
@@ -2395,8 +1940,6 @@ func (o *SMOPolicyOrchestrator) executeNotificationStep(ctx context.Context, wor
 
 	}
 
-
-
 	message, ok := step.Parameters["message"].(string)
 
 	if !ok {
@@ -2405,38 +1948,34 @@ func (o *SMOPolicyOrchestrator) executeNotificationStep(ctx context.Context, wor
 
 	}
 
-
-
 	switch notificationType {
 
 	case "smo_event":
 
 		event := &PolicyEvent{
 
-			ID:       fmt.Sprintf("%s-notification-%s", workflow.ID, step.ID),
+			ID: fmt.Sprintf("%s-notification-%s", workflow.ID, step.ID),
 
-			Type:     "NOTIFICATION",
+			Type: "NOTIFICATION",
 
 			PolicyID: fmt.Sprintf("%s-policy", workflow.ID),
 
-			Source:   "orchestrator",
+			Source: "orchestrator",
 
-			Target:   "smo",
+			Target: "smo",
 
 			Data: map[string]interface{}{
 
 				"workflow_id": workflow.ID,
 
-				"step_id":     step.ID,
+				"step_id": step.ID,
 
-				"message":     message,
-
+				"message": message,
 			},
 
 			Timestamp: time.Now(),
 
-			Status:    "PENDING",
-
+			Status: "PENDING",
 		}
 
 		return o.registry.NotifyPolicyEvent(ctx, event)
@@ -2448,8 +1987,6 @@ func (o *SMOPolicyOrchestrator) executeNotificationStep(ctx context.Context, wor
 	}
 
 }
-
-
 
 // validatePolicyEnforcement validates that policies are properly enforced.
 
@@ -2463,8 +2000,6 @@ func (o *SMOPolicyOrchestrator) validatePolicyEnforcement(ctx context.Context, w
 
 	}
 
-
-
 	adaptor, ok := o.a1Adaptors[ricID]
 
 	if !ok {
@@ -2472,8 +2007,6 @@ func (o *SMOPolicyOrchestrator) validatePolicyEnforcement(ctx context.Context, w
 		return fmt.Errorf("A1 adaptor not found for RIC: %s", ricID)
 
 	}
-
-
 
 	// List all policy instances and check their status.
 
@@ -2485,8 +2018,6 @@ func (o *SMOPolicyOrchestrator) validatePolicyEnforcement(ctx context.Context, w
 
 	}
 
-
-
 	for _, policyType := range policyTypes {
 
 		instances, err := adaptor.ListPolicyInstances(ctx, policyType.PolicyTypeID)
@@ -2496,8 +2027,6 @@ func (o *SMOPolicyOrchestrator) validatePolicyEnforcement(ctx context.Context, w
 			continue // Skip if unable to list instances
 
 		}
-
-
 
 		for _, instance := range instances {
 
@@ -2511,13 +2040,9 @@ func (o *SMOPolicyOrchestrator) validatePolicyEnforcement(ctx context.Context, w
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateResourceAvailability validates that resources are available.
 
@@ -2527,8 +2052,6 @@ func (o *SMOPolicyOrchestrator) validateResourceAvailability(ctx context.Context
 
 	// For now, we'll do a simple validation.
 
-
-
 	requiredCPU, ok := step.Parameters["required_cpu"].(float64)
 
 	if !ok {
@@ -2537,8 +2060,6 @@ func (o *SMOPolicyOrchestrator) validateResourceAvailability(ctx context.Context
 
 	}
 
-
-
 	requiredMemory, ok := step.Parameters["required_memory"].(float64)
 
 	if !ok {
@@ -2546,8 +2067,6 @@ func (o *SMOPolicyOrchestrator) validateResourceAvailability(ctx context.Context
 		requiredMemory = 0
 
 	}
-
-
 
 	// In a real implementation, this would check actual resource availability.
 
@@ -2559,17 +2078,11 @@ func (o *SMOPolicyOrchestrator) validateResourceAvailability(ctx context.Context
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Retry and Circuit Breaker Helper Methods for A1 Adaptor.
-
-
 
 // executeWithRetry executes an operation with exponential backoff retry.
 
@@ -2578,8 +2091,6 @@ func (a *A1Adaptor) executeWithRetry(ctx context.Context, operation func() error
 	_, err := a.circuitBreaker.Execute(ctx, func(ctx context.Context) (interface{}, error) {
 
 		var lastErr error
-
-
 
 		for attempt := 0; attempt <= a.retryConfig.MaxRetries; attempt++ {
 
@@ -2599,8 +2110,6 @@ func (a *A1Adaptor) executeWithRetry(ctx context.Context, operation func() error
 
 			}
 
-
-
 			if err := operation(); err != nil {
 
 				lastErr = err
@@ -2615,25 +2124,17 @@ func (a *A1Adaptor) executeWithRetry(ctx context.Context, operation func() error
 
 			}
 
-
-
 			return nil, nil
 
 		}
-
-
 
 		return nil, fmt.Errorf("operation failed after %d attempts: %w", a.retryConfig.MaxRetries+1, lastErr)
 
 	})
 
-
-
 	return err
 
 }
-
-
 
 // calculateBackoffDelay calculates the delay for exponential backoff with jitter.
 
@@ -2641,15 +2142,11 @@ func (a *A1Adaptor) calculateBackoffDelay(attempt int) time.Duration {
 
 	delay := time.Duration(float64(a.retryConfig.InitialDelay) * math.Pow(a.retryConfig.BackoffFactor, float64(attempt-1)))
 
-
-
 	if delay > a.retryConfig.MaxDelay {
 
 		delay = a.retryConfig.MaxDelay
 
 	}
-
-
 
 	if a.retryConfig.Jitter {
 
@@ -2659,13 +2156,9 @@ func (a *A1Adaptor) calculateBackoffDelay(attempt int) time.Duration {
 
 	}
 
-
-
 	return delay
 
 }
-
-
 
 // isRetryableError checks if an error is retryable based on configuration.
 
@@ -2676,8 +2169,6 @@ func (a *A1Adaptor) isRetryableError(err error) bool {
 		return false
 
 	}
-
-
 
 	errMsg := err.Error()
 
@@ -2691,13 +2182,9 @@ func (a *A1Adaptor) isRetryableError(err error) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // contains checks if a string contains a substring (case-insensitive).
 
@@ -2717,8 +2204,6 @@ func contains(s, substr string) bool {
 
 }
 
-
-
 // indexOf returns the index of substr in s, or -1 if not found.
 
 func indexOf(s, substr string) int {
@@ -2737,8 +2222,6 @@ func indexOf(s, substr string) int {
 
 }
 
-
-
 // GetCircuitBreakerStats returns circuit breaker statistics.
 
 func (a *A1Adaptor) GetCircuitBreakerStats() map[string]interface{} {
@@ -2746,8 +2229,6 @@ func (a *A1Adaptor) GetCircuitBreakerStats() map[string]interface{} {
 	return a.circuitBreaker.GetStats()
 
 }
-
-
 
 // ResetCircuitBreaker manually resets the circuit breaker.
 
@@ -2757,11 +2238,7 @@ func (a *A1Adaptor) ResetCircuitBreaker() {
 
 }
 
-
-
 // Enhanced Policy Management Methods with Circuit Breaker Protection.
-
-
 
 // createPolicyTypeWithRetry creates a policy type with retry and circuit breaker protection.
 
@@ -2777,8 +2254,6 @@ func (a *A1Adaptor) createPolicyTypeWithRetry(ctx context.Context, policyType *A
 
 		}
 
-
-
 		url := fmt.Sprintf("%s/a1-p/policytypes/%d", a.ricURL, policyType.PolicyTypeID)
 
 		req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewBuffer(jsonData))
@@ -2789,11 +2264,7 @@ func (a *A1Adaptor) createPolicyTypeWithRetry(ctx context.Context, policyType *A
 
 		}
 
-
-
 		req.Header.Set("Content-Type", "application/json")
-
-
 
 		resp, err := a.httpClient.Do(req)
 
@@ -2805,15 +2276,11 @@ func (a *A1Adaptor) createPolicyTypeWithRetry(ctx context.Context, policyType *A
 
 		defer resp.Body.Close()
 
-
-
 		if resp.StatusCode >= 400 {
 
 			return fmt.Errorf("failed to create policy type, status: %d", resp.StatusCode)
 
 		}
-
-
 
 		// Cache the policy type locally.
 
@@ -2823,15 +2290,11 @@ func (a *A1Adaptor) createPolicyTypeWithRetry(ctx context.Context, policyType *A
 
 		a.mutex.Unlock()
 
-
-
 		return nil
 
 	})
 
 }
-
-
 
 // createPolicyInstanceWithRetry creates a policy instance with retry and circuit breaker protection.
 
@@ -2847,8 +2310,6 @@ func (a *A1Adaptor) createPolicyInstanceWithRetry(ctx context.Context, policyTyp
 
 		}
 
-
-
 		url := fmt.Sprintf("%s/a1-p/policytypes/%d/policies/%s", a.ricURL, policyTypeID, policyInstanceID)
 
 		req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewBuffer(jsonData))
@@ -2859,11 +2320,7 @@ func (a *A1Adaptor) createPolicyInstanceWithRetry(ctx context.Context, policyTyp
 
 		}
 
-
-
 		req.Header.Set("Content-Type", "application/json")
-
-
 
 		resp, err := a.httpClient.Do(req)
 
@@ -2875,15 +2332,11 @@ func (a *A1Adaptor) createPolicyInstanceWithRetry(ctx context.Context, policyTyp
 
 		defer resp.Body.Close()
 
-
-
 		if resp.StatusCode >= 400 {
 
 			return fmt.Errorf("failed to create policy instance, status: %d", resp.StatusCode)
 
 		}
-
-
 
 		// Cache the policy instance locally.
 
@@ -2891,25 +2344,21 @@ func (a *A1Adaptor) createPolicyInstanceWithRetry(ctx context.Context, policyTyp
 
 			PolicyInstanceID: policyInstanceID,
 
-			PolicyTypeID:     policyTypeID,
+			PolicyTypeID: policyTypeID,
 
-			PolicyData:       policyData,
+			PolicyData: policyData,
 
 			Status: A1PolicyStatus{
 
 				EnforcementStatus: "ENFORCED",
 
-				LastModified:      time.Now(),
-
+				LastModified: time.Now(),
 			},
 
 			CreatedAt: time.Now(),
 
 			UpdatedAt: time.Now(),
-
 		}
-
-
 
 		a.mutex.Lock()
 
@@ -2917,11 +2366,8 @@ func (a *A1Adaptor) createPolicyInstanceWithRetry(ctx context.Context, policyTyp
 
 		a.mutex.Unlock()
 
-
-
 		return nil
 
 	})
 
 }
-

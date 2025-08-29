@@ -1,19 +1,10 @@
-
 package testutil
 
-
-
 import (
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 )
-
-
 
 // GetCondition finds a condition by type and returns a pointer to it.
 
@@ -33,8 +24,6 @@ func GetCondition(conditions []metav1.Condition, conditionType string) *metav1.C
 
 }
 
-
-
 // GetConditionStatus finds a condition by type and returns its status.
 
 func GetConditionStatus(conditions []metav1.Condition, conditionType string) metav1.ConditionStatus {
@@ -53,8 +42,6 @@ func GetConditionStatus(conditions []metav1.Condition, conditionType string) met
 
 }
 
-
-
 // GetConditionByType is an alias for GetCondition for backward compatibility.
 
 func GetConditionByType(conditions []metav1.Condition, conditionType string) *metav1.Condition {
@@ -63,8 +50,6 @@ func GetConditionByType(conditions []metav1.Condition, conditionType string) *me
 
 }
 
-
-
 // HasCondition checks if a condition of the given type exists.
 
 func HasCondition(conditions []metav1.Condition, conditionType string) bool {
@@ -72,8 +57,6 @@ func HasCondition(conditions []metav1.Condition, conditionType string) bool {
 	return GetCondition(conditions, conditionType) != nil
 
 }
-
-
 
 // IsConditionTrue checks if a condition exists and has status True.
 
@@ -85,8 +68,6 @@ func IsConditionTrue(conditions []metav1.Condition, conditionType string) bool {
 
 }
 
-
-
 // IsConditionFalse checks if a condition exists and has status False.
 
 func IsConditionFalse(conditions []metav1.Condition, conditionType string) bool {
@@ -97,8 +78,6 @@ func IsConditionFalse(conditions []metav1.Condition, conditionType string) bool 
 
 }
 
-
-
 // IsConditionUnknown checks if a condition exists and has status Unknown.
 
 func IsConditionUnknown(conditions []metav1.Condition, conditionType string) bool {
@@ -108,8 +87,6 @@ func IsConditionUnknown(conditions []metav1.Condition, conditionType string) boo
 	return condition != nil && condition.Status == metav1.ConditionUnknown
 
 }
-
-
 
 // GetRetryCount extracts retry count from NetworkIntent conditions.
 
@@ -132,4 +109,3 @@ func GetRetryCount(ni *nephoranv1.NetworkIntent, operation string) int {
 	return 0
 
 }
-

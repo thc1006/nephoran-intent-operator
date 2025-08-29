@@ -1,141 +1,98 @@
-
 package ca
 
-
-
 import (
-
 	"context"
-
 	"crypto/sha256"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"os"
-
 	"path/filepath"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/fsnotify/fsnotify"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 
-
-
 	appsv1 "k8s.io/api/apps/v1"
-
 	corev1 "k8s.io/api/core/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/labels"
-
 	"k8s.io/apimachinery/pkg/types"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // CertificateDistributor manages certificate distribution and hot-reload.
 
 type CertificateDistributor struct {
+	config *DistributionConfig
 
-	config           *DistributionConfig
+	logger *logging.StructuredLogger
 
-	logger           *logging.StructuredLogger
+	client client.Client
 
-	client           client.Client
-
-	watchers         map[string]*FileWatcher
+	watchers map[string]*FileWatcher
 
 	distributionJobs map[string]*DistributionJob
 
-	notifier         *CertificateNotifier
+	notifier *CertificateNotifier
 
-	mu               sync.RWMutex
+	mu sync.RWMutex
 
-	ctx              context.Context
+	ctx context.Context
 
-	cancel           context.CancelFunc
-
+	cancel context.CancelFunc
 }
-
-
 
 // DistributionJob represents a certificate distribution job.
 
 type DistributionJob struct {
-
-	ID          string               `json:"id"`
+	ID string `json:"id"`
 
 	Certificate *CertificateResponse `json:"certificate"`
 
-	Targets     []DistributionTarget `json:"targets"`
+	Targets []DistributionTarget `json:"targets"`
 
-	Status      DistributionStatus   `json:"status"`
+	Status DistributionStatus `json:"status"`
 
-	Progress    int                  `json:"progress"`
+	Progress int `json:"progress"`
 
-	StartedAt   time.Time            `json:"started_at"`
+	StartedAt time.Time `json:"started_at"`
 
-	CompletedAt time.Time            `json:"completed_at"`
+	CompletedAt time.Time `json:"completed_at"`
 
-	Errors      []string             `json:"errors"`
+	Errors []string `json:"errors"`
 
-	RetryCount  int                  `json:"retry_count"`
-
+	RetryCount int `json:"retry_count"`
 }
-
-
 
 // DistributionTarget represents a target for certificate distribution.
 
 type DistributionTarget struct {
+	Type TargetType `json:"type"`
 
-	Type         TargetType         `json:"type"`
+	Name string `json:"name"`
 
-	Name         string             `json:"name"`
+	Namespace string `json:"namespace,omitempty"`
 
-	Namespace    string             `json:"namespace,omitempty"`
+	Path string `json:"path,omitempty"`
 
-	Path         string             `json:"path,omitempty"`
+	Config TargetConfig `json:"config,omitempty"`
 
-	Config       TargetConfig       `json:"config,omitempty"`
+	Status DistributionStatus `json:"status"`
 
-	Status       DistributionStatus `json:"status"`
+	LastUpdated time.Time `json:"last_updated"`
 
-	LastUpdated  time.Time          `json:"last_updated"`
+	Hash string `json:"hash"`
 
-	Hash         string             `json:"hash"`
-
-	ErrorMessage string             `json:"error_message,omitempty"`
-
+	ErrorMessage string `json:"error_message,omitempty"`
 }
-
-
 
 // TargetType represents different distribution target types.
 
 type TargetType string
-
-
 
 const (
 
@@ -166,16 +123,11 @@ const (
 	// TargetTypeIngress holds targettypeingress value.
 
 	TargetTypeIngress TargetType = "ingress"
-
 )
-
-
 
 // DistributionStatus represents distribution status.
 
 type DistributionStatus string
-
-
 
 const (
 
@@ -198,40 +150,31 @@ const (
 	// StatusRetrying holds statusretrying value.
 
 	StatusRetrying DistributionStatus = "retrying"
-
 )
-
-
 
 // TargetConfig holds target-specific configuration.
 
 type TargetConfig struct {
+	SecretType corev1.SecretType `json:"secret_type,omitempty"`
 
-	SecretType      corev1.SecretType `json:"secret_type,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
 
-	Labels          map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 
-	Annotations     map[string]string `json:"annotations,omitempty"`
+	FileName string `json:"file_name,omitempty"`
 
-	FileName        string            `json:"file_name,omitempty"`
+	FileMode os.FileMode `json:"file_mode,omitempty"`
 
-	FileMode        os.FileMode       `json:"file_mode,omitempty"`
+	RestartPolicy RestartPolicy `json:"restart_policy,omitempty"`
 
-	RestartPolicy   RestartPolicy     `json:"restart_policy,omitempty"`
+	HealthCheckPath string `json:"health_check_path,omitempty"`
 
-	HealthCheckPath string            `json:"health_check_path,omitempty"`
-
-	GracefulTimeout time.Duration     `json:"graceful_timeout,omitempty"`
-
+	GracefulTimeout time.Duration `json:"graceful_timeout,omitempty"`
 }
-
-
 
 // RestartPolicy defines how to restart services after certificate updates.
 
 type RestartPolicy string
-
-
 
 const (
 
@@ -250,40 +193,29 @@ const (
 	// RestartPolicySignal holds restartpolicysignal value.
 
 	RestartPolicySignal RestartPolicy = "signal"
-
 )
-
-
 
 // FileWatcher watches certificate files for changes.
 
 type FileWatcher struct {
+	path string
 
-	path     string
-
-	watcher  *fsnotify.Watcher
+	watcher *fsnotify.Watcher
 
 	callback func(path string)
 
-	logger   *logging.StructuredLogger
-
+	logger *logging.StructuredLogger
 }
-
-
 
 // CertificateNotifier handles certificate-related notifications.
 
 type CertificateNotifier struct {
-
 	config *NotificationConfig
 
 	logger *logging.StructuredLogger
 
 	client *http.Client
-
 }
-
-
 
 // NewCertificateDistributor creates a new certificate distributor.
 
@@ -291,27 +223,22 @@ func NewCertificateDistributor(config *DistributionConfig, logger *logging.Struc
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-
-
 	distributor := &CertificateDistributor{
 
-		config:           config,
+		config: config,
 
-		logger:           logger,
+		logger: logger,
 
-		client:           client,
+		client: client,
 
-		watchers:         make(map[string]*FileWatcher),
+		watchers: make(map[string]*FileWatcher),
 
 		distributionJobs: make(map[string]*DistributionJob),
 
-		ctx:              ctx,
+		ctx: ctx,
 
-		cancel:           cancel,
-
+		cancel: cancel,
 	}
-
-
 
 	// Initialize notifier if configured.
 
@@ -324,20 +251,15 @@ func NewCertificateDistributor(config *DistributionConfig, logger *logging.Struc
 			logger: logger,
 
 			client: &http.Client{Timeout: 30 * time.Second},
-
 		}
 
 		distributor.notifier = notifier
 
 	}
 
-
-
 	return distributor, nil
 
 }
-
-
 
 // Start starts the certificate distributor.
 
@@ -345,13 +267,9 @@ func (d *CertificateDistributor) Start(ctx context.Context) {
 
 	d.logger.Info("starting certificate distributor")
 
-
-
 	// Start distribution job processor.
 
 	go d.processDistributionJobs()
-
-
 
 	// Start file watchers if hot-reload is enabled.
 
@@ -361,8 +279,6 @@ func (d *CertificateDistributor) Start(ctx context.Context) {
 
 	}
 
-
-
 	// Start notification processor.
 
 	if d.notifier != nil {
@@ -371,15 +287,11 @@ func (d *CertificateDistributor) Start(ctx context.Context) {
 
 	}
 
-
-
 	<-ctx.Done()
 
 	d.logger.Info("certificate distributor stopped")
 
 }
-
-
 
 // Stop stops the certificate distributor.
 
@@ -388,8 +300,6 @@ func (d *CertificateDistributor) Stop() {
 	d.logger.Info("stopping certificate distributor")
 
 	d.cancel()
-
-
 
 	// Close file watchers.
 
@@ -405,8 +315,6 @@ func (d *CertificateDistributor) Stop() {
 
 }
 
-
-
 // DistributeCertificate distributes a certificate to configured targets.
 
 func (d *CertificateDistributor) DistributeCertificate(cert *CertificateResponse) error {
@@ -417,25 +325,20 @@ func (d *CertificateDistributor) DistributeCertificate(cert *CertificateResponse
 
 		"request_id", cert.RequestID)
 
-
-
 	// Create distribution job.
 
 	job := &DistributionJob{
 
-		ID:          generateJobID(cert),
+		ID: generateJobID(cert),
 
 		Certificate: cert,
 
-		Targets:     d.buildDistributionTargets(cert),
+		Targets: d.buildDistributionTargets(cert),
 
-		Status:      StatusPendingDist,
+		Status: StatusPendingDist,
 
-		StartedAt:   time.Now(),
-
+		StartedAt: time.Now(),
 	}
-
-
 
 	// Queue job for processing.
 
@@ -445,21 +348,15 @@ func (d *CertificateDistributor) DistributeCertificate(cert *CertificateResponse
 
 	d.mu.Unlock()
 
-
-
 	d.logger.Info("certificate distribution job queued",
 
 		"job_id", job.ID,
 
 		"targets", len(job.Targets))
 
-
-
 	return nil
 
 }
-
-
 
 // processDistributionJobs processes queued distribution jobs.
 
@@ -468,8 +365,6 @@ func (d *CertificateDistributor) processDistributionJobs() {
 	ticker := time.NewTicker(5 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -489,8 +384,6 @@ func (d *CertificateDistributor) processDistributionJobs() {
 
 }
 
-
-
 func (d *CertificateDistributor) processPendingJobs() {
 
 	d.mu.Lock()
@@ -509,8 +402,6 @@ func (d *CertificateDistributor) processPendingJobs() {
 
 	d.mu.Unlock()
 
-
-
 	for _, job := range pendingJobs {
 
 		go d.processDistributionJob(job)
@@ -518,8 +409,6 @@ func (d *CertificateDistributor) processPendingJobs() {
 	}
 
 }
-
-
 
 func (d *CertificateDistributor) processDistributionJob(job *DistributionJob) {
 
@@ -529,19 +418,13 @@ func (d *CertificateDistributor) processDistributionJob(job *DistributionJob) {
 
 		"certificate", job.Certificate.SerialNumber)
 
-
-
 	job.Status = StatusInProgress
 
 	job.Errors = []string{}
 
-
-
 	successCount := 0
 
 	totalTargets := len(job.Targets)
-
-
 
 	for i := range job.Targets {
 
@@ -558,8 +441,6 @@ func (d *CertificateDistributor) processDistributionJob(job *DistributionJob) {
 				"type", target.Type,
 
 				"error", err)
-
-
 
 			target.Status = StatusFailedDist
 
@@ -579,13 +460,9 @@ func (d *CertificateDistributor) processDistributionJob(job *DistributionJob) {
 
 		}
 
-
-
 		job.Progress = (successCount * 100) / totalTargets
 
 	}
-
-
 
 	// Update job status.
 
@@ -598,8 +475,6 @@ func (d *CertificateDistributor) processDistributionJob(job *DistributionJob) {
 			"job_id", job.ID,
 
 			"targets", totalTargets)
-
-
 
 		// Send success notification.
 
@@ -627,8 +502,6 @@ func (d *CertificateDistributor) processDistributionJob(job *DistributionJob) {
 
 				"retry_count", job.RetryCount)
 
-
-
 			// Schedule retry after delay.
 
 			go func() {
@@ -653,8 +526,6 @@ func (d *CertificateDistributor) processDistributionJob(job *DistributionJob) {
 
 				"errors", job.Errors)
 
-
-
 			// Send failure notification.
 
 			if d.notifier != nil {
@@ -667,13 +538,9 @@ func (d *CertificateDistributor) processDistributionJob(job *DistributionJob) {
 
 	}
 
-
-
 	job.CompletedAt = time.Now()
 
 }
-
-
 
 func (d *CertificateDistributor) distributeToTarget(cert *CertificateResponse, target *DistributionTarget) error {
 
@@ -707,22 +574,19 @@ func (d *CertificateDistributor) distributeToTarget(cert *CertificateResponse, t
 
 }
 
-
-
 func (d *CertificateDistributor) distributeToSecret(cert *CertificateResponse, target *DistributionTarget) error {
 
 	secret := &corev1.Secret{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:        target.Name,
+			Name: target.Name,
 
-			Namespace:   target.Namespace,
+			Namespace: target.Namespace,
 
-			Labels:      target.Config.Labels,
+			Labels: target.Config.Labels,
 
 			Annotations: target.Config.Annotations,
-
 		},
 
 		Type: target.Config.SecretType,
@@ -732,12 +596,8 @@ func (d *CertificateDistributor) distributeToSecret(cert *CertificateResponse, t
 			"tls.crt": []byte(cert.CertificatePEM),
 
 			"tls.key": []byte(cert.PrivateKeyPEM),
-
 		},
-
 	}
-
-
 
 	if cert.CACertificatePEM != "" {
 
@@ -745,15 +605,11 @@ func (d *CertificateDistributor) distributeToSecret(cert *CertificateResponse, t
 
 	}
 
-
-
 	if target.Config.SecretType == "" {
 
 		secret.Type = corev1.SecretTypeTLS
 
 	}
-
-
 
 	// Add distribution metadata.
 
@@ -767,8 +623,6 @@ func (d *CertificateDistributor) distributeToSecret(cert *CertificateResponse, t
 
 	secret.Annotations["nephoran.io/distributed-at"] = time.Now().Format(time.RFC3339)
 
-
-
 	// Create or update secret.
 
 	err := d.client.Create(d.ctx, secret)
@@ -781,10 +635,9 @@ func (d *CertificateDistributor) distributeToSecret(cert *CertificateResponse, t
 
 		if getErr := d.client.Get(d.ctx, types.NamespacedName{
 
-			Name:      target.Name,
+			Name: target.Name,
 
 			Namespace: target.Namespace,
-
 		}, existingSecret); getErr == nil {
 
 			secret.ResourceVersion = existingSecret.ResourceVersion
@@ -795,13 +648,9 @@ func (d *CertificateDistributor) distributeToSecret(cert *CertificateResponse, t
 
 	}
 
-
-
 	return err
 
 }
-
-
 
 func (d *CertificateDistributor) distributeToConfigMap(cert *CertificateResponse, target *DistributionTarget) error {
 
@@ -809,33 +658,26 @@ func (d *CertificateDistributor) distributeToConfigMap(cert *CertificateResponse
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:        target.Name,
+			Name: target.Name,
 
-			Namespace:   target.Namespace,
+			Namespace: target.Namespace,
 
-			Labels:      target.Config.Labels,
+			Labels: target.Config.Labels,
 
 			Annotations: target.Config.Annotations,
-
 		},
 
 		Data: map[string]string{
 
 			"certificate.pem": cert.CertificatePEM,
-
 		},
-
 	}
-
-
 
 	if cert.CACertificatePEM != "" {
 
 		configMap.Data["ca.pem"] = cert.CACertificatePEM
 
 	}
-
-
 
 	// Add trust chain if available.
 
@@ -844,8 +686,6 @@ func (d *CertificateDistributor) distributeToConfigMap(cert *CertificateResponse
 		configMap.Data["chain.pem"] = strings.Join(cert.TrustChainPEM, "\n")
 
 	}
-
-
 
 	// Add distribution metadata.
 
@@ -859,8 +699,6 @@ func (d *CertificateDistributor) distributeToConfigMap(cert *CertificateResponse
 
 	configMap.Annotations["nephoran.io/distributed-at"] = time.Now().Format(time.RFC3339)
 
-
-
 	// Create or update configmap.
 
 	err := d.client.Create(d.ctx, configMap)
@@ -873,10 +711,9 @@ func (d *CertificateDistributor) distributeToConfigMap(cert *CertificateResponse
 
 		if getErr := d.client.Get(d.ctx, types.NamespacedName{
 
-			Name:      target.Name,
+			Name: target.Name,
 
 			Namespace: target.Namespace,
-
 		}, existingConfigMap); getErr == nil {
 
 			configMap.ResourceVersion = existingConfigMap.ResourceVersion
@@ -887,13 +724,9 @@ func (d *CertificateDistributor) distributeToConfigMap(cert *CertificateResponse
 
 	}
 
-
-
 	return err
 
 }
-
-
 
 func (d *CertificateDistributor) distributeToFile(cert *CertificateResponse, target *DistributionTarget) error {
 
@@ -907,8 +740,6 @@ func (d *CertificateDistributor) distributeToFile(cert *CertificateResponse, tar
 
 	}
 
-
-
 	// Determine file content based on filename.
 
 	var content string
@@ -920,8 +751,6 @@ func (d *CertificateDistributor) distributeToFile(cert *CertificateResponse, tar
 		fileName = filepath.Base(target.Path)
 
 	}
-
-
 
 	switch {
 
@@ -949,8 +778,6 @@ func (d *CertificateDistributor) distributeToFile(cert *CertificateResponse, tar
 
 	}
 
-
-
 	// Set file mode.
 
 	mode := target.Config.FileMode
@@ -969,8 +796,6 @@ func (d *CertificateDistributor) distributeToFile(cert *CertificateResponse, tar
 
 	}
 
-
-
 	// Write file.
 
 	if err := os.WriteFile(target.Path, []byte(content), mode); err != nil {
@@ -978,8 +803,6 @@ func (d *CertificateDistributor) distributeToFile(cert *CertificateResponse, tar
 		return fmt.Errorf("failed to write certificate file %s: %w", target.Path, err)
 
 	}
-
-
 
 	// Set up file watcher for hot reload if enabled.
 
@@ -989,13 +812,9 @@ func (d *CertificateDistributor) distributeToFile(cert *CertificateResponse, tar
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (d *CertificateDistributor) distributeToPod(cert *CertificateResponse, target *DistributionTarget) error {
 
@@ -1005,21 +824,16 @@ func (d *CertificateDistributor) distributeToPod(cert *CertificateResponse, targ
 
 	listOpts := &client.ListOptions{
 
-		Namespace:     target.Namespace,
+		Namespace: target.Namespace,
 
 		LabelSelector: labels.SelectorFromSet(target.Config.Labels),
-
 	}
-
-
 
 	if err := d.client.List(d.ctx, podList, listOpts); err != nil {
 
 		return fmt.Errorf("failed to list pods: %w", err)
 
 	}
-
-
 
 	// Update pod annotations to trigger restart if needed.
 
@@ -1039,8 +853,6 @@ func (d *CertificateDistributor) distributeToPod(cert *CertificateResponse, targ
 
 			pod.Annotations["nephoran.io/certificate-serial"] = cert.SerialNumber
 
-
-
 			if err := d.client.Update(d.ctx, &pod); err != nil {
 
 				d.logger.Warn("failed to update pod annotation",
@@ -1057,13 +869,9 @@ func (d *CertificateDistributor) distributeToPod(cert *CertificateResponse, targ
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (d *CertificateDistributor) distributeToDeployment(cert *CertificateResponse, target *DistributionTarget) error {
 
@@ -1071,17 +879,14 @@ func (d *CertificateDistributor) distributeToDeployment(cert *CertificateRespons
 
 	if err := d.client.Get(d.ctx, types.NamespacedName{
 
-		Name:      target.Name,
+		Name: target.Name,
 
 		Namespace: target.Namespace,
-
 	}, deployment); err != nil {
 
 		return fmt.Errorf("failed to get deployment: %w", err)
 
 	}
-
-
 
 	// Update deployment to trigger rolling update.
 
@@ -1097,8 +902,6 @@ func (d *CertificateDistributor) distributeToDeployment(cert *CertificateRespons
 
 		deployment.Spec.Template.Annotations["nephoran.io/certificate-serial"] = cert.SerialNumber
 
-
-
 		if err := d.client.Update(d.ctx, deployment); err != nil {
 
 			return fmt.Errorf("failed to update deployment: %w", err)
@@ -1107,25 +910,17 @@ func (d *CertificateDistributor) distributeToDeployment(cert *CertificateRespons
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (d *CertificateDistributor) buildDistributionTargets(cert *CertificateResponse) []DistributionTarget {
 
 	var targets []DistributionTarget
 
-
-
 	// Build targets based on certificate metadata and configuration.
 
 	tenantID := cert.Metadata["tenant_id"]
-
-
 
 	// Add configured distribution paths.
 
@@ -1133,19 +928,16 @@ func (d *CertificateDistributor) buildDistributionTargets(cert *CertificateRespo
 
 		targets = append(targets, DistributionTarget{
 
-			Type:   TargetTypeSecret, // Default type
+			Type: TargetTypeSecret, // Default type
 
-			Name:   fmt.Sprintf("%s-%s", targetName, cert.SerialNumber),
+			Name: fmt.Sprintf("%s-%s", targetName, cert.SerialNumber),
 
-			Path:   targetPath,
+			Path: targetPath,
 
 			Status: StatusPendingDist,
-
 		})
 
 	}
-
-
 
 	// Add tenant-specific targets if configured.
 
@@ -1153,13 +945,13 @@ func (d *CertificateDistributor) buildDistributionTargets(cert *CertificateRespo
 
 		targets = append(targets, DistributionTarget{
 
-			Type:      TargetTypeSecret,
+			Type: TargetTypeSecret,
 
-			Name:      fmt.Sprintf("tenant-%s-cert", tenantID),
+			Name: fmt.Sprintf("tenant-%s-cert", tenantID),
 
 			Namespace: fmt.Sprintf("tenant-%s", tenantID),
 
-			Status:    StatusPendingDist,
+			Status: StatusPendingDist,
 
 			Config: TargetConfig{
 
@@ -1167,31 +959,22 @@ func (d *CertificateDistributor) buildDistributionTargets(cert *CertificateRespo
 
 					"nephoran.io/tenant": tenantID,
 
-					"nephoran.io/cert":   "true",
-
+					"nephoran.io/cert": "true",
 				},
-
 			},
-
 		})
 
 	}
 
-
-
 	return targets
 
 }
-
-
 
 func (d *CertificateDistributor) setupFileWatcher(path string, cert *CertificateResponse) {
 
 	d.mu.Lock()
 
 	defer d.mu.Unlock()
-
-
 
 	// Skip if watcher already exists.
 
@@ -1201,8 +984,6 @@ func (d *CertificateDistributor) setupFileWatcher(path string, cert *Certificate
 
 	}
 
-
-
 	watcher, err := NewFileWatcher(path, func(watchPath string) {
 
 		d.logger.Info("certificate file changed, triggering reload",
@@ -1210,8 +991,6 @@ func (d *CertificateDistributor) setupFileWatcher(path string, cert *Certificate
 			"path", watchPath,
 
 			"serial_number", cert.SerialNumber)
-
-
 
 		// Trigger hot reload for services using this certificate.
 
@@ -1231,13 +1010,9 @@ func (d *CertificateDistributor) setupFileWatcher(path string, cert *Certificate
 
 	}
 
-
-
 	d.watchers[path] = watcher
 
 }
-
-
 
 func (d *CertificateDistributor) triggerHotReload(cert *CertificateResponse, path string) {
 
@@ -1249,15 +1024,11 @@ func (d *CertificateDistributor) triggerHotReload(cert *CertificateResponse, pat
 
 	}
 
-
-
 	// Trigger any configured hot reload actions.
 
 	// This could include sending signals to processes, updating load balancers, etc.
 
 }
-
-
 
 func (d *CertificateDistributor) runFileWatchers() {
 
@@ -1266,8 +1037,6 @@ func (d *CertificateDistributor) runFileWatchers() {
 	// This function could be used for watcher management.
 
 }
-
-
 
 func (d *CertificateDistributor) calculateCertificateHash(cert *CertificateResponse) string {
 
@@ -1279,8 +1048,6 @@ func (d *CertificateDistributor) calculateCertificateHash(cert *CertificateRespo
 
 }
 
-
-
 // GetDistributionStatus returns the status of a distribution job.
 
 func (d *CertificateDistributor) GetDistributionStatus(jobID string) (*DistributionJob, error) {
@@ -1288,8 +1055,6 @@ func (d *CertificateDistributor) GetDistributionStatus(jobID string) (*Distribut
 	d.mu.RLock()
 
 	defer d.mu.RUnlock()
-
-
 
 	job, exists := d.distributionJobs[jobID]
 
@@ -1299,13 +1064,9 @@ func (d *CertificateDistributor) GetDistributionStatus(jobID string) (*Distribut
 
 	}
 
-
-
 	return job, nil
 
 }
-
-
 
 // ListDistributionJobs returns all distribution jobs.
 
@@ -1315,8 +1076,6 @@ func (d *CertificateDistributor) ListDistributionJobs() []*DistributionJob {
 
 	defer d.mu.RUnlock()
 
-
-
 	jobs := make([]*DistributionJob, 0, len(d.distributionJobs))
 
 	for _, job := range d.distributionJobs {
@@ -1325,25 +1084,17 @@ func (d *CertificateDistributor) ListDistributionJobs() []*DistributionJob {
 
 	}
 
-
-
 	return jobs
 
 }
 
-
-
 // Helper functions.
-
-
 
 func generateJobID(cert *CertificateResponse) string {
 
 	return fmt.Sprintf("dist-%s-%d", cert.SerialNumber, time.Now().Unix())
 
 }
-
-
 
 // NewFileWatcher creates a new file watcher.
 
@@ -1357,21 +1108,16 @@ func NewFileWatcher(path string, callback func(string), logger *logging.Structur
 
 	}
 
-
-
 	fw := &FileWatcher{
 
-		path:     path,
+		path: path,
 
-		watcher:  watcher,
+		watcher: watcher,
 
 		callback: callback,
 
-		logger:   logger,
-
+		logger: logger,
 	}
-
-
 
 	// Add path to watcher.
 
@@ -1383,19 +1129,13 @@ func NewFileWatcher(path string, callback func(string), logger *logging.Structur
 
 	}
 
-
-
 	// Start watching.
 
 	go fw.watch()
 
-
-
 	return fw, nil
 
 }
-
-
 
 func (fw *FileWatcher) watch() {
 
@@ -1433,8 +1173,6 @@ func (fw *FileWatcher) watch() {
 
 }
 
-
-
 // Close performs close operation.
 
 func (fw *FileWatcher) Close() error {
@@ -1443,19 +1181,13 @@ func (fw *FileWatcher) Close() error {
 
 }
 
-
-
 // CertificateNotifier methods.
-
-
 
 func (n *CertificateNotifier) processNotifications(ctx context.Context) {
 
 	// Process queued notifications.
 
 }
-
-
 
 func (n *CertificateNotifier) sendDistributionNotification(job *DistributionJob, success bool) {
 
@@ -1465,21 +1197,15 @@ func (n *CertificateNotifier) sendDistributionNotification(job *DistributionJob,
 
 	}
 
-
-
 	message := fmt.Sprintf("Certificate distribution %s for serial %s",
 
 		map[bool]string{true: "succeeded", false: "failed"}[success],
 
 		job.Certificate.SerialNumber)
 
-
-
 	n.sendNotification(message, job)
 
 }
-
-
 
 func (n *CertificateNotifier) sendHotReloadNotification(cert *CertificateResponse, path string) {
 
@@ -1489,19 +1215,13 @@ func (n *CertificateNotifier) sendHotReloadNotification(cert *CertificateRespons
 
 	}
 
-
-
 	message := fmt.Sprintf("Certificate hot reload triggered for %s (serial: %s)",
 
 		path, cert.SerialNumber)
 
-
-
 	n.sendNotification(message, cert)
 
 }
-
-
 
 func (n *CertificateNotifier) sendNotification(message string, data interface{}) {
 
@@ -1513,8 +1233,6 @@ func (n *CertificateNotifier) sendNotification(message string, data interface{})
 
 	}
 
-
-
 	// Send email if configured.
 
 	if n.config.EmailSMTP != nil {
@@ -1522,8 +1240,6 @@ func (n *CertificateNotifier) sendNotification(message string, data interface{})
 		go n.sendEmail(message, data)
 
 	}
-
-
 
 	// Send Slack if configured.
 
@@ -1535,21 +1251,16 @@ func (n *CertificateNotifier) sendNotification(message string, data interface{})
 
 }
 
-
-
 func (n *CertificateNotifier) sendWebhook(url, message string, data interface{}) {
 
 	payload := map[string]interface{}{
 
-		"message":   message,
+		"message": message,
 
-		"data":      data,
+		"data": data,
 
 		"timestamp": time.Now(),
-
 	}
-
-
 
 	jsonData, err := json.Marshal(payload)
 
@@ -1560,8 +1271,6 @@ func (n *CertificateNotifier) sendWebhook(url, message string, data interface{})
 		return
 
 	}
-
-
 
 	resp, err := n.client.Post(url, "application/json", strings.NewReader(string(jsonData)))
 
@@ -1575,8 +1284,6 @@ func (n *CertificateNotifier) sendWebhook(url, message string, data interface{})
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode >= 400 {
 
 		n.logger.Warn("webhook returned error status",
@@ -1589,8 +1296,6 @@ func (n *CertificateNotifier) sendWebhook(url, message string, data interface{})
 
 }
 
-
-
 func (n *CertificateNotifier) sendEmail(message string, data interface{}) {
 
 	// Implementation for email notifications.
@@ -1599,8 +1304,6 @@ func (n *CertificateNotifier) sendEmail(message string, data interface{}) {
 
 }
 
-
-
 func (n *CertificateNotifier) sendSlack(message string, data interface{}) {
 
 	// Implementation for Slack notifications.
@@ -1608,4 +1311,3 @@ func (n *CertificateNotifier) sendSlack(message string, data interface{}) {
 	n.logger.Debug("sending Slack notification", "message", message)
 
 }
-

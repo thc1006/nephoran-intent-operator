@@ -1,21 +1,12 @@
 // Package generator provides utilities for sanitizing and validating patch generation inputs.
 
-
 package generator
 
-
-
 import (
-
 	"path/filepath"
-
 	"regexp"
-
 	"strings"
-
 )
-
-
 
 // SanitizePath sanitizes and prevents directory traversal in path generation.
 // It removes absolute path references, directory traversal attempts, and cleans the input path.
@@ -31,8 +22,6 @@ func SanitizePath(path string) string {
 
 	path = filepath.Clean(path)
 
-
-
 	// Prevent absolute paths.
 
 	if filepath.IsAbs(path) {
@@ -40,8 +29,6 @@ func SanitizePath(path string) string {
 		path = filepath.Base(path)
 
 	}
-
-
 
 	// Remove any remaining ".." or leading/trailing slashes.
 
@@ -51,13 +38,9 @@ func SanitizePath(path string) string {
 
 	path = strings.ReplaceAll(path, "../", "")
 
-
-
 	return path
 
 }
-
-
 
 // SanitizeCommand sanitizes a command string to prevent command injection attacks.
 // It removes dangerous shell characters and special symbols that could be used for malicious purposes.
@@ -74,13 +57,9 @@ func SanitizeCommand(cmd string) string {
 
 	dangerousChars := regexp.MustCompile("[;&|<>()$`]")
 
-
-
 	// Remove dangerous characters.
 
 	sanitizedCmd := dangerousChars.ReplaceAllString(cmd, "")
-
-
 
 	// Additional layer of sanitization for critical characters.
 
@@ -90,19 +69,15 @@ func SanitizeCommand(cmd string) string {
 
 	sanitizedCmd = strings.ReplaceAll(sanitizedCmd, "&", "")
 
-
-
 	return sanitizedCmd
 
 }
 
-
-
 // ValidateBinaryContent performs security validations on binary content.
 // It checks:
-//   1. Content size (max 5 MB)
-//   2. Presence of non-printable characters
-//   3. Basic YAML structure validation
+//  1. Content size (max 5 MB)
+//  2. Presence of non-printable characters
+//  3. Basic YAML structure validation
 //
 // Parameters:
 //   - content: The byte slice containing the binary data to validate
@@ -118,8 +93,6 @@ func ValidateBinaryContent(content []byte) bool {
 
 	}
 
-
-
 	// Check for binary/non-printable characters.
 
 	for _, b := range content {
@@ -131,8 +104,6 @@ func ValidateBinaryContent(content []byte) bool {
 		}
 
 	}
-
-
 
 	// Basic YAML validation - checks for simple key:value multi-line format.
 
@@ -152,9 +123,6 @@ func ValidateBinaryContent(content []byte) bool {
 
 	yamlValidationRegex := regexp.MustCompile(`^(\s*[a-zA-Z0-9_-]+\s*:\s*[^\n]+\n)*$`)
 
-
-
 	return yamlValidationRegex.MatchString(contentStr)
 
 }
-

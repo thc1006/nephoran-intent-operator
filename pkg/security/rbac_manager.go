@@ -1,49 +1,29 @@
 // Package security provides comprehensive security management for the Nephoran Intent Operator.
 
-
 package security
 
-
-
 import (
-
 	"context"
-
 	"fmt"
 
-
-
 	corev1 "k8s.io/api/core/v1"
-
 	rbacv1 "k8s.io/api/rbac/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/client-go/kubernetes"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // RBACManager manages RBAC policies with least privilege principle.
 
 type RBACManager struct {
-
-	client    client.Client
+	client client.Client
 
 	clientset *kubernetes.Clientset
 
 	namespace string
-
 }
-
-
 
 // NewRBACManager creates a new RBAC manager instance.
 
@@ -51,23 +31,18 @@ func NewRBACManager(client client.Client, clientset *kubernetes.Clientset, names
 
 	return &RBACManager{
 
-		client:    client,
+		client: client,
 
 		clientset: clientset,
 
 		namespace: namespace,
-
 	}
 
 }
 
-
-
 // OperatorRole defines different operator personas with specific permissions.
 
 type OperatorRole string
-
-
 
 const (
 
@@ -90,26 +65,19 @@ const (
 	// RoleServiceOperator can manage specific services.
 
 	RoleServiceOperator OperatorRole = "service-operator"
-
 )
-
-
 
 // RoleDefinition contains RBAC rules for a specific role.
 
 type RoleDefinition struct {
+	Name string
 
-	Name        string
-
-	Rules       []rbacv1.PolicyRule
+	Rules []rbacv1.PolicyRule
 
 	ClusterRole bool
 
-	Labels      map[string]string
-
+	Labels map[string]string
 }
-
-
 
 // GetRoleDefinitions returns role definitions following least privilege principle.
 
@@ -119,18 +87,17 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 
 		RoleNetworkOperator: {
 
-			Name:        "nephoran-network-operator",
+			Name: "nephoran-network-operator",
 
 			ClusterRole: false,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":      "nephoran-intent-operator",
+				"app.kubernetes.io/name": "nephoran-intent-operator",
 
 				"app.kubernetes.io/component": "rbac",
 
-				"security.nephoran.io/level":  "operator",
-
+				"security.nephoran.io/level": "operator",
 			},
 
 			Rules: []rbacv1.PolicyRule{
@@ -141,8 +108,7 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 
 					Resources: []string{"networkintents", "networkintents/status"},
 
-					Verbs:     []string{"get", "list", "watch", "create", "update", "patch", "delete"},
-
+					Verbs: []string{"get", "list", "watch", "create", "update", "patch", "delete"},
 				},
 
 				{
@@ -151,8 +117,7 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 
 					Resources: []string{"packagerevisions", "packagerevisionresources"},
 
-					Verbs:     []string{"get", "list", "watch", "create", "update", "patch"},
-
+					Verbs: []string{"get", "list", "watch", "create", "update", "patch"},
 				},
 
 				{
@@ -161,8 +126,7 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 
 					Resources: []string{"configmaps", "secrets"},
 
-					Verbs:     []string{"get", "list", "watch"},
-
+					Verbs: []string{"get", "list", "watch"},
 				},
 
 				{
@@ -171,28 +135,24 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 
 					Resources: []string{"events"},
 
-					Verbs:     []string{"create", "patch"},
-
+					Verbs: []string{"create", "patch"},
 				},
-
 			},
-
 		},
 
 		RoleNetworkViewer: {
 
-			Name:        "nephoran-network-viewer",
+			Name: "nephoran-network-viewer",
 
 			ClusterRole: false,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":      "nephoran-intent-operator",
+				"app.kubernetes.io/name": "nephoran-intent-operator",
 
 				"app.kubernetes.io/component": "rbac",
 
-				"security.nephoran.io/level":  "viewer",
-
+				"security.nephoran.io/level": "viewer",
 			},
 
 			Rules: []rbacv1.PolicyRule{
@@ -203,8 +163,7 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 
 					Resources: []string{"networkintents", "networkintents/status"},
 
-					Verbs:     []string{"get", "list", "watch"},
-
+					Verbs: []string{"get", "list", "watch"},
 				},
 
 				{
@@ -213,8 +172,7 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 
 					Resources: []string{"packagerevisions", "packagerevisionresources"},
 
-					Verbs:     []string{"get", "list", "watch"},
-
+					Verbs: []string{"get", "list", "watch"},
 				},
 
 				{
@@ -223,28 +181,24 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 
 					Resources: []string{"configmaps"},
 
-					Verbs:     []string{"get", "list"},
-
+					Verbs: []string{"get", "list"},
 				},
-
 			},
-
 		},
 
 		RoleSecurityAuditor: {
 
-			Name:        "nephoran-security-auditor",
+			Name: "nephoran-security-auditor",
 
 			ClusterRole: true,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":      "nephoran-intent-operator",
+				"app.kubernetes.io/name": "nephoran-intent-operator",
 
 				"app.kubernetes.io/component": "rbac",
 
-				"security.nephoran.io/level":  "auditor",
-
+				"security.nephoran.io/level": "auditor",
 			},
 
 			Rules: []rbacv1.PolicyRule{
@@ -255,8 +209,7 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 
 					Resources: []string{"*"},
 
-					Verbs:     []string{"get", "list", "watch"},
-
+					Verbs: []string{"get", "list", "watch"},
 				},
 
 				{
@@ -265,8 +218,7 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 
 					Resources: []string{"events"},
 
-					Verbs:     []string{"get", "list", "watch"},
-
+					Verbs: []string{"get", "list", "watch"},
 				},
 
 				{
@@ -275,28 +227,24 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 
 					Resources: []string{"validatingwebhookconfigurations", "mutatingwebhookconfigurations"},
 
-					Verbs:     []string{"get", "list", "watch"},
-
+					Verbs: []string{"get", "list", "watch"},
 				},
-
 			},
-
 		},
 
 		RoleServiceOperator: {
 
-			Name:        "nephoran-service-operator",
+			Name: "nephoran-service-operator",
 
 			ClusterRole: false,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":      "nephoran-intent-operator",
+				"app.kubernetes.io/name": "nephoran-intent-operator",
 
 				"app.kubernetes.io/component": "rbac",
 
-				"security.nephoran.io/level":  "service",
-
+				"security.nephoran.io/level": "service",
 			},
 
 			Rules: []rbacv1.PolicyRule{
@@ -307,8 +255,7 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 
 					Resources: []string{"deployments", "statefulsets", "daemonsets"},
 
-					Verbs:     []string{"get", "list", "watch", "update", "patch"},
-
+					Verbs: []string{"get", "list", "watch", "update", "patch"},
 				},
 
 				{
@@ -317,8 +264,7 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 
 					Resources: []string{"services", "endpoints", "pods"},
 
-					Verbs:     []string{"get", "list", "watch"},
-
+					Verbs: []string{"get", "list", "watch"},
 				},
 
 				{
@@ -327,8 +273,7 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 
 					Resources: []string{"pods/log"},
 
-					Verbs:     []string{"get"},
-
+					Verbs: []string{"get"},
 				},
 
 				{
@@ -337,19 +282,13 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 
 					Resources: []string{"horizontalpodautoscalers"},
 
-					Verbs:     []string{"get", "list", "watch", "create", "update", "patch"},
-
+					Verbs: []string{"get", "list", "watch", "create", "update", "patch"},
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // CreateRole creates a Role or ClusterRole with least privilege permissions.
 
@@ -359,8 +298,6 @@ func (m *RBACManager) CreateRole(ctx context.Context, role OperatorRole) error {
 
 	definitions := m.GetRoleDefinitions()
 
-
-
 	def, exists := definitions[role]
 
 	if !exists {
@@ -369,25 +306,19 @@ func (m *RBACManager) CreateRole(ctx context.Context, role OperatorRole) error {
 
 	}
 
-
-
 	if def.ClusterRole {
 
 		clusterRole := &rbacv1.ClusterRole{
 
 			ObjectMeta: metav1.ObjectMeta{
 
-				Name:   def.Name,
+				Name: def.Name,
 
 				Labels: def.Labels,
-
 			},
 
 			Rules: def.Rules,
-
 		}
-
-
 
 		if err := m.client.Create(ctx, clusterRole); err != nil {
 
@@ -403,19 +334,15 @@ func (m *RBACManager) CreateRole(ctx context.Context, role OperatorRole) error {
 
 			ObjectMeta: metav1.ObjectMeta{
 
-				Name:      def.Name,
+				Name: def.Name,
 
 				Namespace: m.namespace,
 
-				Labels:    def.Labels,
-
+				Labels: def.Labels,
 			},
 
 			Rules: def.Rules,
-
 		}
-
-
 
 		if err := m.client.Create(ctx, role); err != nil {
 
@@ -427,15 +354,11 @@ func (m *RBACManager) CreateRole(ctx context.Context, role OperatorRole) error {
 
 	}
 
-
-
 	logger.Info("Created RBAC role", "role", def.Name, "clusterRole", def.ClusterRole)
 
 	return nil
 
 }
-
-
 
 // CreateServiceAccount creates a ServiceAccount with appropriate labels.
 
@@ -443,39 +366,31 @@ func (m *RBACManager) CreateServiceAccount(ctx context.Context, name string, rol
 
 	logger := log.FromContext(ctx)
 
-
-
 	sa := &corev1.ServiceAccount{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      name,
+			Name: name,
 
 			Namespace: m.namespace,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":      "nephoran-intent-operator",
+				"app.kubernetes.io/name": "nephoran-intent-operator",
 
 				"app.kubernetes.io/component": "rbac",
 
-				"security.nephoran.io/role":   string(role),
-
+				"security.nephoran.io/role": string(role),
 			},
 
 			Annotations: map[string]string{
 
 				"security.nephoran.io/created-by": "rbac-manager",
 
-				"security.nephoran.io/purpose":    "operator-authentication",
-
+				"security.nephoran.io/purpose": "operator-authentication",
 			},
-
 		},
-
 	}
-
-
 
 	if err := m.client.Create(ctx, sa); err != nil {
 
@@ -485,15 +400,11 @@ func (m *RBACManager) CreateServiceAccount(ctx context.Context, name string, rol
 
 	}
 
-
-
 	logger.Info("Created ServiceAccount", "name", name, "role", role)
 
 	return nil
 
 }
-
-
 
 // BindRoleToServiceAccount creates RoleBinding or ClusterRoleBinding.
 
@@ -503,8 +414,6 @@ func (m *RBACManager) BindRoleToServiceAccount(ctx context.Context, saName strin
 
 	definitions := m.GetRoleDefinitions()
 
-
-
 	def, exists := definitions[role]
 
 	if !exists {
@@ -513,11 +422,7 @@ func (m *RBACManager) BindRoleToServiceAccount(ctx context.Context, saName strin
 
 	}
 
-
-
 	bindingName := fmt.Sprintf("%s-binding", saName)
-
-
 
 	if def.ClusterRole {
 
@@ -529,43 +434,35 @@ func (m *RBACManager) BindRoleToServiceAccount(ctx context.Context, saName strin
 
 				Labels: map[string]string{
 
-					"app.kubernetes.io/name":      "nephoran-intent-operator",
+					"app.kubernetes.io/name": "nephoran-intent-operator",
 
 					"app.kubernetes.io/component": "rbac",
 
-					"security.nephoran.io/role":   string(role),
-
+					"security.nephoran.io/role": string(role),
 				},
-
 			},
 
 			RoleRef: rbacv1.RoleRef{
 
 				APIGroup: "rbac.authorization.k8s.io",
 
-				Kind:     "ClusterRole",
+				Kind: "ClusterRole",
 
-				Name:     def.Name,
-
+				Name: def.Name,
 			},
 
 			Subjects: []rbacv1.Subject{
 
 				{
 
-					Kind:      "ServiceAccount",
+					Kind: "ServiceAccount",
 
-					Name:      saName,
+					Name: saName,
 
 					Namespace: m.namespace,
-
 				},
-
 			},
-
 		}
-
-
 
 		if err := m.client.Create(ctx, binding); err != nil {
 
@@ -581,49 +478,41 @@ func (m *RBACManager) BindRoleToServiceAccount(ctx context.Context, saName strin
 
 			ObjectMeta: metav1.ObjectMeta{
 
-				Name:      bindingName,
+				Name: bindingName,
 
 				Namespace: m.namespace,
 
 				Labels: map[string]string{
 
-					"app.kubernetes.io/name":      "nephoran-intent-operator",
+					"app.kubernetes.io/name": "nephoran-intent-operator",
 
 					"app.kubernetes.io/component": "rbac",
 
-					"security.nephoran.io/role":   string(role),
-
+					"security.nephoran.io/role": string(role),
 				},
-
 			},
 
 			RoleRef: rbacv1.RoleRef{
 
 				APIGroup: "rbac.authorization.k8s.io",
 
-				Kind:     "Role",
+				Kind: "Role",
 
-				Name:     def.Name,
-
+				Name: def.Name,
 			},
 
 			Subjects: []rbacv1.Subject{
 
 				{
 
-					Kind:      "ServiceAccount",
+					Kind: "ServiceAccount",
 
-					Name:      saName,
+					Name: saName,
 
 					Namespace: m.namespace,
-
 				},
-
 			},
-
 		}
-
-
 
 		if err := m.client.Create(ctx, binding); err != nil {
 
@@ -635,15 +524,11 @@ func (m *RBACManager) BindRoleToServiceAccount(ctx context.Context, saName strin
 
 	}
 
-
-
 	logger.Info("Created role binding", "binding", bindingName, "serviceAccount", saName, "role", def.Name)
 
 	return nil
 
 }
-
-
 
 // ValidatePermissions validates that permissions follow least privilege principle.
 
@@ -663,8 +548,6 @@ func (m *RBACManager) ValidatePermissions(ctx context.Context, rules []rbacv1.Po
 
 		}
 
-
-
 		for _, resource := range rule.Resources {
 
 			if resource == "*" {
@@ -675,8 +558,6 @@ func (m *RBACManager) ValidatePermissions(ctx context.Context, rules []rbacv1.Po
 
 		}
 
-
-
 		for _, verb := range rule.Verbs {
 
 			if verb == "*" {
@@ -686,8 +567,6 @@ func (m *RBACManager) ValidatePermissions(ctx context.Context, rules []rbacv1.Po
 			}
 
 		}
-
-
 
 		// Check for dangerous verb combinations.
 
@@ -700,8 +579,6 @@ func (m *RBACManager) ValidatePermissions(ctx context.Context, rules []rbacv1.Po
 			return fmt.Errorf("both delete and deletecollection verbs present: consider separating concerns")
 
 		}
-
-
 
 		// Check for escalation permissions.
 
@@ -717,13 +594,9 @@ func (m *RBACManager) ValidatePermissions(ctx context.Context, rules []rbacv1.Po
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // AuditRBACCompliance performs comprehensive RBAC audit.
 
@@ -737,13 +610,10 @@ func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport
 
 		Namespace: m.namespace,
 
-		Issues:    []string{},
+		Issues: []string{},
 
-		Warnings:  []string{},
-
+		Warnings: []string{},
 	}
-
-
 
 	// Audit ClusterRoles.
 
@@ -755,8 +625,6 @@ func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport
 
 	}
 
-
-
 	for _, cr := range clusterRoles.Items {
 
 		if err := m.ValidatePermissions(ctx, cr.Rules); err != nil {
@@ -764,8 +632,6 @@ func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport
 			report.Issues = append(report.Issues, fmt.Sprintf("ClusterRole %s: %s", cr.Name, err.Error()))
 
 		}
-
-
 
 		// Check for system:masters binding (critical security issue).
 
@@ -777,8 +643,6 @@ func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport
 
 	}
 
-
-
 	// Audit Roles in namespace.
 
 	roles := &rbacv1.RoleList{}
@@ -788,8 +652,6 @@ func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport
 		return nil, fmt.Errorf("failed to list Roles: %w", err)
 
 	}
-
-
 
 	for _, r := range roles.Items {
 
@@ -801,8 +663,6 @@ func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport
 
 	}
 
-
-
 	// Audit ServiceAccounts.
 
 	serviceAccounts := &corev1.ServiceAccountList{}
@@ -813,11 +673,7 @@ func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport
 
 	}
 
-
-
 	report.ServiceAccountCount = len(serviceAccounts.Items)
-
-
 
 	// Check for default service account usage.
 
@@ -831,39 +687,29 @@ func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport
 
 	}
 
-
-
 	report.Compliant = len(report.Issues) == 0
 
 	logger.Info("RBAC audit completed", "compliant", report.Compliant, "issues", len(report.Issues), "warnings", len(report.Warnings))
-
-
 
 	return report, nil
 
 }
 
-
-
 // RBACAuditReport contains RBAC compliance audit results.
 
 type RBACAuditReport struct {
+	Timestamp metav1.Time
 
-	Timestamp           metav1.Time
+	Namespace string
 
-	Namespace           string
+	Compliant bool
 
-	Compliant           bool
+	Issues []string
 
-	Issues              []string
-
-	Warnings            []string
+	Warnings []string
 
 	ServiceAccountCount int
-
 }
-
-
 
 // EnforceMinimalPermissions ensures minimal required permissions for operation.
 
@@ -871,26 +717,22 @@ func (m *RBACManager) EnforceMinimalPermissions(ctx context.Context) error {
 
 	logger := log.FromContext(ctx)
 
-
-
 	// Create minimal operator role.
 
 	minimalRole := &rbacv1.Role{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "nephoran-minimal-operator",
+			Name: "nephoran-minimal-operator",
 
 			Namespace: m.namespace,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":       "nephoran-intent-operator",
+				"app.kubernetes.io/name": "nephoran-intent-operator",
 
 				"security.nephoran.io/minimal": "true",
-
 			},
-
 		},
 
 		Rules: []rbacv1.PolicyRule{
@@ -901,8 +743,7 @@ func (m *RBACManager) EnforceMinimalPermissions(ctx context.Context) error {
 
 				Resources: []string{"networkintents"},
 
-				Verbs:     []string{"get", "list", "watch"},
-
+				Verbs: []string{"get", "list", "watch"},
 			},
 
 			{
@@ -911,15 +752,10 @@ func (m *RBACManager) EnforceMinimalPermissions(ctx context.Context) error {
 
 				Resources: []string{"events"},
 
-				Verbs:     []string{"create"},
-
+				Verbs: []string{"create"},
 			},
-
 		},
-
 	}
-
-
 
 	if err := m.client.Create(ctx, minimalRole); err != nil {
 
@@ -929,15 +765,11 @@ func (m *RBACManager) EnforceMinimalPermissions(ctx context.Context) error {
 
 	}
 
-
-
 	logger.Info("Enforced minimal permissions")
 
 	return nil
 
 }
-
-
 
 // contains checks if a string slice contains a value.
 
@@ -957,8 +789,6 @@ func contains(slice []string, value string) bool {
 
 }
 
-
-
 // GetServiceAccountToken retrieves a token for a ServiceAccount.
 
 func (m *RBACManager) GetServiceAccountToken(ctx context.Context, saName string) (string, error) {
@@ -967,17 +797,14 @@ func (m *RBACManager) GetServiceAccountToken(ctx context.Context, saName string)
 
 	if err := m.client.Get(ctx, client.ObjectKey{
 
-		Name:      saName,
+		Name: saName,
 
 		Namespace: m.namespace,
-
 	}, sa); err != nil {
 
 		return "", fmt.Errorf("failed to get ServiceAccount: %w", err)
 
 	}
-
-
 
 	if len(sa.Secrets) == 0 {
 
@@ -985,25 +812,20 @@ func (m *RBACManager) GetServiceAccountToken(ctx context.Context, saName string)
 
 	}
 
-
-
 	// Get the first secret (usually the token).
 
 	secret := &corev1.Secret{}
 
 	if err := m.client.Get(ctx, client.ObjectKey{
 
-		Name:      sa.Secrets[0].Name,
+		Name: sa.Secrets[0].Name,
 
 		Namespace: m.namespace,
-
 	}, secret); err != nil {
 
 		return "", fmt.Errorf("failed to get secret: %w", err)
 
 	}
-
-
 
 	token, exists := secret.Data["token"]
 
@@ -1013,13 +835,9 @@ func (m *RBACManager) GetServiceAccountToken(ctx context.Context, saName string)
 
 	}
 
-
-
 	return string(token), nil
 
 }
-
-
 
 // ValidateServiceAccountPermissions validates a ServiceAccount has expected permissions.
 
@@ -1035,8 +853,6 @@ func (m *RBACManager) ValidateServiceAccountPermissions(ctx context.Context, saN
 
 	}
 
-
-
 	definitions := m.GetRoleDefinitions()
 
 	expectedDef, exists := definitions[expectedRole]
@@ -1046,8 +862,6 @@ func (m *RBACManager) ValidateServiceAccountPermissions(ctx context.Context, saN
 		return fmt.Errorf("unknown role: %s", expectedRole)
 
 	}
-
-
 
 	found := false
 
@@ -1071,17 +885,12 @@ func (m *RBACManager) ValidateServiceAccountPermissions(ctx context.Context, saN
 
 	}
 
-
-
 	if !found {
 
 		return fmt.Errorf("ServiceAccount %s does not have expected role %s", saName, expectedRole)
 
 	}
 
-
-
 	return nil
 
 }
-

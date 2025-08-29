@@ -1,43 +1,23 @@
 // Package security provides comprehensive security testing framework.
 
-
 package security
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"crypto/rand"
-
 	"crypto/rsa"
-
 	"crypto/tls"
-
 	"crypto/x509"
-
 	"crypto/x509/pkix"
-
 	"encoding/pem"
-
 	"errors"
-
 	"fmt"
-
 	"math/big"
-
 	"net"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // TestSuite provides comprehensive security testing.
 
@@ -45,91 +25,70 @@ type TestSuite struct {
 
 	// Test configurations.
 
-	tlsConfig    *TLSEnhancedConfig
+	tlsConfig *TLSEnhancedConfig
 
 	cryptoModern *CryptoModern
 
-	certManager  *CertManager
+	certManager *CertManager
 
-	keyManager   *KeyManager
-
-
+	keyManager *KeyManager
 
 	// Test results.
 
 	results map[string]*TestResult
 
-
-
 	// Performance metrics.
 
 	benchmarks map[string]*BenchmarkResult
 
-
-
 	mu sync.RWMutex
-
 }
-
-
 
 // TestResult represents a security test result.
 
 type TestResult struct {
+	TestName string
 
-	TestName  string
+	Passed bool
 
-	Passed    bool
+	Duration time.Duration
 
-	Duration  time.Duration
+	ErrorMsg string
 
-	ErrorMsg  string
-
-	Details   map[string]interface{}
+	Details map[string]interface{}
 
 	Timestamp time.Time
-
 }
-
-
 
 // BenchmarkResult represents a performance benchmark result.
 
 type BenchmarkResult struct {
+	Name string
 
-	Name        string
+	Operations int
 
-	Operations  int
+	Duration time.Duration
 
-	Duration    time.Duration
-
-	BytesPerOp  int64
+	BytesPerOp int64
 
 	AllocsPerOp int64
 
-	NsPerOp     int64
-
+	NsPerOp int64
 }
-
-
 
 // ComplianceTest represents a compliance validation test.
 
 type ComplianceTest struct {
+	Name string
 
-	Name      string
+	Standard string
 
-	Standard  string
-
-	Category  string
+	Category string
 
 	Validator func() error
 
-	Required  bool
-
+	Required bool
 }
-
-
 
 // NewTestSuite creates a new security test suite.
 
@@ -137,19 +96,16 @@ func NewTestSuite() *TestSuite {
 
 	return &TestSuite{
 
-		tlsConfig:    NewTLSEnhancedConfig(),
+		tlsConfig: NewTLSEnhancedConfig(),
 
 		cryptoModern: NewCryptoModern(),
 
-		results:      make(map[string]*TestResult),
+		results: make(map[string]*TestResult),
 
-		benchmarks:   make(map[string]*BenchmarkResult),
-
+		benchmarks: make(map[string]*BenchmarkResult),
 	}
 
 }
-
-
 
 // RunAllTests runs all security tests.
 
@@ -172,10 +128,7 @@ func (sts *TestSuite) RunAllTests() map[string]*TestResult {
 		sts.TestPerfectForwardSecrecy,
 
 		sts.TestQuantumReadiness,
-
 	}
-
-
 
 	for _, test := range tests {
 
@@ -189,13 +142,9 @@ func (sts *TestSuite) RunAllTests() map[string]*TestResult {
 
 	}
 
-
-
 	return sts.results
 
 }
-
-
 
 // TestTLSConfiguration tests TLS configuration security.
 
@@ -205,17 +154,14 @@ func (sts *TestSuite) TestTLSConfiguration() *TestResult {
 
 	result := &TestResult{
 
-		TestName:  "TLS Configuration",
+		TestName: "TLS Configuration",
 
-		Passed:    true,
+		Passed: true,
 
-		Details:   make(map[string]interface{}),
+		Details: make(map[string]interface{}),
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	// Test TLS 1.3 enforcement.
 
@@ -227,21 +173,16 @@ func (sts *TestSuite) TestTLSConfiguration() *TestResult {
 
 	}
 
-
-
 	// Test cipher suites.
 
 	acceptableCiphers := map[uint16]bool{
 
-		tls.TLS_AES_256_GCM_SHA384:       true,
+		tls.TLS_AES_256_GCM_SHA384: true,
 
-		tls.TLS_AES_128_GCM_SHA256:       true,
+		tls.TLS_AES_128_GCM_SHA256: true,
 
 		tls.TLS_CHACHA20_POLY1305_SHA256: true,
-
 	}
-
-
 
 	for _, cipher := range sts.tlsConfig.CipherSuites {
 
@@ -257,8 +198,6 @@ func (sts *TestSuite) TestTLSConfiguration() *TestResult {
 
 	}
 
-
-
 	// Test curve preferences.
 
 	if len(sts.tlsConfig.CurvePreferences) == 0 {
@@ -269,8 +208,6 @@ func (sts *TestSuite) TestTLSConfiguration() *TestResult {
 
 	}
 
-
-
 	// Test OCSP stapling.
 
 	if !sts.tlsConfig.OCSPStapling {
@@ -278,8 +215,6 @@ func (sts *TestSuite) TestTLSConfiguration() *TestResult {
 		result.Details["ocsp_warning"] = "OCSP stapling disabled"
 
 	}
-
-
 
 	// Test session resumption.
 
@@ -289,15 +224,11 @@ func (sts *TestSuite) TestTLSConfiguration() *TestResult {
 
 	}
 
-
-
 	result.Duration = time.Since(start)
 
 	return result
 
 }
-
-
 
 // TestCryptographicAlgorithms tests cryptographic algorithm implementations.
 
@@ -307,17 +238,14 @@ func (sts *TestSuite) TestCryptographicAlgorithms() *TestResult {
 
 	result := &TestResult{
 
-		TestName:  "Cryptographic Algorithms",
+		TestName: "Cryptographic Algorithms",
 
-		Passed:    true,
+		Passed: true,
 
-		Details:   make(map[string]interface{}),
+		Details: make(map[string]interface{}),
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	// Test AES-GCM.
 
@@ -335,8 +263,6 @@ func (sts *TestSuite) TestCryptographicAlgorithms() *TestResult {
 
 	}
 
-
-
 	encrypted, err := sts.cryptoModern.EncryptAESGCM(plaintext, key, []byte("aad"))
 
 	if err != nil {
@@ -351,8 +277,6 @@ func (sts *TestSuite) TestCryptographicAlgorithms() *TestResult {
 
 	}
 
-
-
 	decrypted, err := sts.cryptoModern.DecryptAESGCM(encrypted, key)
 
 	if err != nil || !bytes.Equal(decrypted, plaintext) {
@@ -362,8 +286,6 @@ func (sts *TestSuite) TestCryptographicAlgorithms() *TestResult {
 		result.ErrorMsg = "AES-GCM decryption failed or data mismatch"
 
 	}
-
-
 
 	// Test ChaCha20-Poly1305.
 
@@ -379,8 +301,6 @@ func (sts *TestSuite) TestCryptographicAlgorithms() *TestResult {
 
 	}
 
-
-
 	encrypted, err = sts.cryptoModern.EncryptChaCha20Poly1305(plaintext, key, []byte("aad"))
 
 	if err != nil {
@@ -395,8 +315,6 @@ func (sts *TestSuite) TestCryptographicAlgorithms() *TestResult {
 
 	}
 
-
-
 	decrypted, err = sts.cryptoModern.DecryptChaCha20Poly1305(encrypted, key)
 
 	if err != nil || !bytes.Equal(decrypted, plaintext) {
@@ -406,8 +324,6 @@ func (sts *TestSuite) TestCryptographicAlgorithms() *TestResult {
 		result.ErrorMsg = "ChaCha20-Poly1305 decryption failed or data mismatch"
 
 	}
-
-
 
 	// Test Ed25519.
 
@@ -425,8 +341,6 @@ func (sts *TestSuite) TestCryptographicAlgorithms() *TestResult {
 
 	}
 
-
-
 	message := []byte("message to sign")
 
 	signature, err := sts.cryptoModern.SignEd25519(message, keyPair.PrivateKey)
@@ -439,8 +353,6 @@ func (sts *TestSuite) TestCryptographicAlgorithms() *TestResult {
 
 	}
 
-
-
 	if !sts.cryptoModern.VerifyEd25519(message, signature, keyPair.PublicKey) {
 
 		result.Passed = false
@@ -448,8 +360,6 @@ func (sts *TestSuite) TestCryptographicAlgorithms() *TestResult {
 		result.ErrorMsg = "Ed25519 signature verification failed"
 
 	}
-
-
 
 	// Test key derivation functions.
 
@@ -467,8 +377,6 @@ func (sts *TestSuite) TestCryptographicAlgorithms() *TestResult {
 
 	}
 
-
-
 	// Test Argon2.
 
 	derived := sts.cryptoModern.DeriveKeyArgon2(password, salt)
@@ -483,8 +391,6 @@ func (sts *TestSuite) TestCryptographicAlgorithms() *TestResult {
 
 	result.Details["argon2_tested"] = true
 
-
-
 	// Test PBKDF2.
 
 	derived = sts.cryptoModern.DeriveKeyPBKDF2(password, salt, 32)
@@ -498,8 +404,6 @@ func (sts *TestSuite) TestCryptographicAlgorithms() *TestResult {
 	}
 
 	result.Details["pbkdf2_tested"] = true
-
-
 
 	// Test HKDF.
 
@@ -519,15 +423,11 @@ func (sts *TestSuite) TestCryptographicAlgorithms() *TestResult {
 
 	result.Details["hkdf_tested"] = true
 
-
-
 	result.Duration = time.Since(start)
 
 	return result
 
 }
-
-
 
 // TestCertificateValidation tests certificate validation mechanisms.
 
@@ -537,17 +437,14 @@ func (sts *TestSuite) TestCertificateValidation() *TestResult {
 
 	result := &TestResult{
 
-		TestName:  "Certificate Validation",
+		TestName: "Certificate Validation",
 
-		Passed:    true,
+		Passed: true,
 
-		Details:   make(map[string]interface{}),
+		Details: make(map[string]interface{}),
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	// Generate test certificates.
 
@@ -560,20 +457,16 @@ func (sts *TestSuite) TestCertificateValidation() *TestResult {
 		Subject: pkix.Name{
 
 			CommonName: "Test Root CA",
-
 		},
 
-		NotBefore:             time.Now(),
+		NotBefore: time.Now(),
 
-		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+		NotAfter: time.Now().Add(365 * 24 * time.Hour),
 
-		IsCA:                  true,
+		IsCA: true,
 
 		BasicConstraintsValid: true,
-
 	}
-
-
 
 	rootCertDER, err := x509.CreateCertificate(rand.Reader, rootTemplate, rootTemplate, &rootKey.PublicKey, rootKey)
 
@@ -589,13 +482,9 @@ func (sts *TestSuite) TestCertificateValidation() *TestResult {
 
 	}
 
-
-
 	// Test certificate chain validation.
 
 	rootPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: rootCertDER})
-
-
 
 	err = ValidateCertificateChain(rootPEM, nil, rootPEM)
 
@@ -607,33 +496,23 @@ func (sts *TestSuite) TestCertificateValidation() *TestResult {
 
 	}
 
-
-
 	// Test OCSP checking (mock).
 
 	result.Details["ocsp_check"] = "simulated"
-
-
 
 	// Test CRL checking (mock).
 
 	result.Details["crl_check"] = "simulated"
 
-
-
 	// Test certificate pinning.
 
 	result.Details["cert_pinning"] = "tested"
-
-
 
 	result.Duration = time.Since(start)
 
 	return result
 
 }
-
-
 
 // TestKeyManagement tests key management operations.
 
@@ -643,23 +522,18 @@ func (sts *TestSuite) TestKeyManagement() *TestResult {
 
 	result := &TestResult{
 
-		TestName:  "Key Management",
+		TestName: "Key Management",
 
-		Passed:    true,
+		Passed: true,
 
-		Details:   make(map[string]interface{}),
+		Details: make(map[string]interface{}),
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	// Initialize key manager with mock store.
 
 	km := NewKeyManager(&MockKeyStore{})
-
-
 
 	// Test master key generation.
 
@@ -677,8 +551,6 @@ func (sts *TestSuite) TestKeyManagement() *TestResult {
 
 	}
 
-
-
 	// Test key derivation.
 
 	derivedKey, err := km.DeriveKey("encryption", 1)
@@ -692,8 +564,6 @@ func (sts *TestSuite) TestKeyManagement() *TestResult {
 	}
 
 	result.Details["key_derivation"] = "tested"
-
-
 
 	// Test key rotation.
 
@@ -711,8 +581,6 @@ func (sts *TestSuite) TestKeyManagement() *TestResult {
 
 	}
 
-
-
 	// Test key escrow (mock).
 
 	agents := []EscrowAgent{
@@ -722,10 +590,7 @@ func (sts *TestSuite) TestKeyManagement() *TestResult {
 		{ID: "agent2", Active: true},
 
 		{ID: "agent3", Active: true},
-
 	}
-
-
 
 	err = km.EscrowKey("test-key", agents, 2)
 
@@ -734,8 +599,6 @@ func (sts *TestSuite) TestKeyManagement() *TestResult {
 		result.Details["key_escrow"] = "tested"
 
 	}
-
-
 
 	// Test threshold cryptography.
 
@@ -747,15 +610,11 @@ func (sts *TestSuite) TestKeyManagement() *TestResult {
 
 	}
 
-
-
 	result.Duration = time.Since(start)
 
 	return result
 
 }
-
-
 
 // TestSecureChannels tests secure channel implementations.
 
@@ -765,17 +624,14 @@ func (sts *TestSuite) TestSecureChannels() *TestResult {
 
 	result := &TestResult{
 
-		TestName:  "Secure Channels",
+		TestName: "Secure Channels",
 
-		Passed:    true,
+		Passed: true,
 
-		Details:   make(map[string]interface{}),
+		Details: make(map[string]interface{}),
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	// Create mock connection.
 
@@ -785,11 +641,7 @@ func (sts *TestSuite) TestSecureChannels() *TestResult {
 
 	defer client.Close()
 
-
-
 	config := DefaultChannelConfig()
-
-
 
 	// Test channel creation.
 
@@ -803,15 +655,11 @@ func (sts *TestSuite) TestSecureChannels() *TestResult {
 
 	}
 
-
-
 	// Test encryption modes.
 
 	result.Details["aes_gcm"] = "tested"
 
 	result.Details["chacha20_poly1305"] = "available"
-
-
 
 	// Test perfect forward secrecy.
 
@@ -821,8 +669,6 @@ func (sts *TestSuite) TestSecureChannels() *TestResult {
 
 	}
 
-
-
 	// Test anti-replay.
 
 	if config.ReplayWindow > 0 {
@@ -830,8 +676,6 @@ func (sts *TestSuite) TestSecureChannels() *TestResult {
 		result.Details["anti_replay"] = fmt.Sprintf("window size: %d", config.ReplayWindow)
 
 	}
-
-
 
 	// Test multicast.
 
@@ -841,15 +685,11 @@ func (sts *TestSuite) TestSecureChannels() *TestResult {
 
 	}
 
-
-
 	result.Duration = time.Since(start)
 
 	return result
 
 }
-
-
 
 // TestAntiReplay tests anti-replay protection.
 
@@ -859,21 +699,16 @@ func (sts *TestSuite) TestAntiReplay() *TestResult {
 
 	result := &TestResult{
 
-		TestName:  "Anti-Replay Protection",
+		TestName: "Anti-Replay Protection",
 
-		Passed:    true,
+		Passed: true,
 
-		Details:   make(map[string]interface{}),
+		Details: make(map[string]interface{}),
 
 		Timestamp: time.Now(),
-
 	}
 
-
-
 	window := NewReplayWindow(1024)
-
-
 
 	// Test sequential sequence numbers.
 
@@ -891,8 +726,6 @@ func (sts *TestSuite) TestAntiReplay() *TestResult {
 
 	}
 
-
-
 	// Test replay detection.
 
 	if window.Check(50) {
@@ -902,8 +735,6 @@ func (sts *TestSuite) TestAntiReplay() *TestResult {
 		result.ErrorMsg = "Failed to detect replay of sequence 50"
 
 	}
-
-
 
 	// Test out-of-order but within window.
 
@@ -915,8 +746,6 @@ func (sts *TestSuite) TestAntiReplay() *TestResult {
 
 	}
 
-
-
 	// Test sequence too old.
 
 	if window.Check(1) {
@@ -927,21 +756,15 @@ func (sts *TestSuite) TestAntiReplay() *TestResult {
 
 	}
 
-
-
 	result.Details["window_size"] = 1024
 
 	result.Details["tests_passed"] = result.Passed
-
-
 
 	result.Duration = time.Since(start)
 
 	return result
 
 }
-
-
 
 // TestPerfectForwardSecrecy tests PFS implementation.
 
@@ -951,17 +774,14 @@ func (sts *TestSuite) TestPerfectForwardSecrecy() *TestResult {
 
 	result := &TestResult{
 
-		TestName:  "Perfect Forward Secrecy",
+		TestName: "Perfect Forward Secrecy",
 
-		Passed:    true,
+		Passed: true,
 
-		Details:   make(map[string]interface{}),
+		Details: make(map[string]interface{}),
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	// Test ephemeral key generation.
 
@@ -975,21 +795,15 @@ func (sts *TestSuite) TestPerfectForwardSecrecy() *TestResult {
 
 	}
 
-
-
 	// Test key exchange simulation.
 
 	result.Details["dh_group"] = "P-256"
 
 	result.Details["ephemeral_keys"] = "generated"
 
-
-
 	// Test session key derivation.
 
 	result.Details["session_keys"] = "derived"
-
-
 
 	// Test key deletion after use.
 
@@ -1009,8 +823,6 @@ func (sts *TestSuite) TestPerfectForwardSecrecy() *TestResult {
 
 	}
 
-
-
 	if !allZero {
 
 		result.Passed = false
@@ -1019,15 +831,11 @@ func (sts *TestSuite) TestPerfectForwardSecrecy() *TestResult {
 
 	}
 
-
-
 	result.Duration = time.Since(start)
 
 	return result
 
 }
-
-
 
 // TestQuantumReadiness tests post-quantum cryptography readiness.
 
@@ -1037,23 +845,18 @@ func (sts *TestSuite) TestQuantumReadiness() *TestResult {
 
 	result := &TestResult{
 
-		TestName:  "Quantum Readiness",
+		TestName: "Quantum Readiness",
 
-		Passed:    true,
+		Passed: true,
 
-		Details:   make(map[string]interface{}),
+		Details: make(map[string]interface{}),
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	// Test PQ configuration.
 
 	sts.tlsConfig.EnablePostQuantum(true)
-
-
 
 	if !sts.tlsConfig.PostQuantumEnabled {
 
@@ -1063,21 +866,15 @@ func (sts *TestSuite) TestQuantumReadiness() *TestResult {
 
 	}
 
-
-
 	if sts.tlsConfig.HybridMode {
 
 		result.Details["hybrid_mode"] = "enabled"
 
 	}
 
-
-
 	// Test crypto agility.
 
 	result.Details["crypto_agility"] = "supported"
-
-
 
 	// Test algorithm readiness.
 
@@ -1088,10 +885,7 @@ func (sts *TestSuite) TestQuantumReadiness() *TestResult {
 		"Dilithium (Signatures)",
 
 		"SPHINCS+ (Signatures)",
-
 	}
-
-
 
 	for _, algo := range algorithms {
 
@@ -1099,15 +893,11 @@ func (sts *TestSuite) TestQuantumReadiness() *TestResult {
 
 	}
 
-
-
 	result.Duration = time.Since(start)
 
 	return result
 
 }
-
-
 
 // RunBenchmarks runs performance benchmarks.
 
@@ -1124,10 +914,7 @@ func (sts *TestSuite) RunBenchmarks() map[string]*BenchmarkResult {
 		sts.BenchmarkArgon2,
 
 		sts.BenchmarkTLSHandshake,
-
 	}
-
-
 
 	for _, benchmark := range benchmarks {
 
@@ -1141,13 +928,9 @@ func (sts *TestSuite) RunBenchmarks() map[string]*BenchmarkResult {
 
 	}
 
-
-
 	return sts.benchmarks
 
 }
-
-
 
 // BenchmarkAESGCM benchmarks AES-GCM operations.
 
@@ -1156,10 +939,7 @@ func (sts *TestSuite) BenchmarkAESGCM() *BenchmarkResult {
 	result := &BenchmarkResult{
 
 		Name: "AES-GCM",
-
 	}
-
-
 
 	key := make([]byte, 32)
 
@@ -1169,13 +949,9 @@ func (sts *TestSuite) BenchmarkAESGCM() *BenchmarkResult {
 
 	rand.Read(plaintext)
 
-
-
 	start := time.Now()
 
 	ops := 0
-
-
 
 	for time.Since(start) < time.Second {
 
@@ -1187,8 +963,6 @@ func (sts *TestSuite) BenchmarkAESGCM() *BenchmarkResult {
 
 	}
 
-
-
 	result.Operations = ops
 
 	result.Duration = time.Since(start)
@@ -1197,13 +971,9 @@ func (sts *TestSuite) BenchmarkAESGCM() *BenchmarkResult {
 
 	result.BytesPerOp = 2048 // encrypt + decrypt
 
-
-
 	return result
 
 }
-
-
 
 // BenchmarkChaCha20Poly1305 benchmarks ChaCha20-Poly1305 operations.
 
@@ -1212,10 +982,7 @@ func (sts *TestSuite) BenchmarkChaCha20Poly1305() *BenchmarkResult {
 	result := &BenchmarkResult{
 
 		Name: "ChaCha20-Poly1305",
-
 	}
-
-
 
 	key := make([]byte, 32)
 
@@ -1225,13 +992,9 @@ func (sts *TestSuite) BenchmarkChaCha20Poly1305() *BenchmarkResult {
 
 	rand.Read(plaintext)
 
-
-
 	start := time.Now()
 
 	ops := 0
-
-
 
 	for time.Since(start) < time.Second {
 
@@ -1243,8 +1006,6 @@ func (sts *TestSuite) BenchmarkChaCha20Poly1305() *BenchmarkResult {
 
 	}
 
-
-
 	result.Operations = ops
 
 	result.Duration = time.Since(start)
@@ -1253,13 +1014,9 @@ func (sts *TestSuite) BenchmarkChaCha20Poly1305() *BenchmarkResult {
 
 	result.BytesPerOp = 2048
 
-
-
 	return result
 
 }
-
-
 
 // BenchmarkEd25519 benchmarks Ed25519 operations.
 
@@ -1268,10 +1025,7 @@ func (sts *TestSuite) BenchmarkEd25519() *BenchmarkResult {
 	result := &BenchmarkResult{
 
 		Name: "Ed25519",
-
 	}
-
-
 
 	keyPair, _ := sts.cryptoModern.GenerateEd25519KeyPair()
 
@@ -1279,13 +1033,9 @@ func (sts *TestSuite) BenchmarkEd25519() *BenchmarkResult {
 
 	rand.Read(message)
 
-
-
 	start := time.Now()
 
 	ops := 0
-
-
 
 	for time.Since(start) < time.Second {
 
@@ -1297,21 +1047,15 @@ func (sts *TestSuite) BenchmarkEd25519() *BenchmarkResult {
 
 	}
 
-
-
 	result.Operations = ops
 
 	result.Duration = time.Since(start)
 
 	result.NsPerOp = int64(result.Duration.Nanoseconds()) / int64(ops)
 
-
-
 	return result
 
 }
-
-
 
 // BenchmarkArgon2 benchmarks Argon2 key derivation.
 
@@ -1320,10 +1064,7 @@ func (sts *TestSuite) BenchmarkArgon2() *BenchmarkResult {
 	result := &BenchmarkResult{
 
 		Name: "Argon2",
-
 	}
-
-
 
 	password := []byte("test password")
 
@@ -1331,13 +1072,9 @@ func (sts *TestSuite) BenchmarkArgon2() *BenchmarkResult {
 
 	rand.Read(salt)
 
-
-
 	start := time.Now()
 
 	ops := 0
-
-
 
 	for time.Since(start) < time.Second {
 
@@ -1347,21 +1084,15 @@ func (sts *TestSuite) BenchmarkArgon2() *BenchmarkResult {
 
 	}
 
-
-
 	result.Operations = ops
 
 	result.Duration = time.Since(start)
 
 	result.NsPerOp = int64(result.Duration.Nanoseconds()) / int64(ops)
 
-
-
 	return result
 
 }
-
-
 
 // BenchmarkTLSHandshake benchmarks TLS handshake performance.
 
@@ -1370,10 +1101,7 @@ func (sts *TestSuite) BenchmarkTLSHandshake() *BenchmarkResult {
 	result := &BenchmarkResult{
 
 		Name: "TLS Handshake",
-
 	}
-
-
 
 	// This would require actual TLS setup.
 
@@ -1385,13 +1113,9 @@ func (sts *TestSuite) BenchmarkTLSHandshake() *BenchmarkResult {
 
 	result.NsPerOp = 10000000 // 10ms per handshake
 
-
-
 	return result
 
 }
-
-
 
 // RunComplianceTests runs compliance validation tests.
 
@@ -1401,7 +1125,7 @@ func (sts *TestSuite) RunComplianceTests() map[string]bool {
 
 		{
 
-			Name:     "FIPS 140-2 Compliance",
+			Name: "FIPS 140-2 Compliance",
 
 			Standard: "FIPS 140-2",
 
@@ -1416,12 +1140,11 @@ func (sts *TestSuite) RunComplianceTests() map[string]bool {
 			},
 
 			Required: true,
-
 		},
 
 		{
 
-			Name:     "TLS 1.3 Enforcement",
+			Name: "TLS 1.3 Enforcement",
 
 			Standard: "RFC 8446",
 
@@ -1440,12 +1163,11 @@ func (sts *TestSuite) RunComplianceTests() map[string]bool {
 			},
 
 			Required: true,
-
 		},
 
 		{
 
-			Name:     "OWASP TLS Guidelines",
+			Name: "OWASP TLS Guidelines",
 
 			Standard: "OWASP",
 
@@ -1460,16 +1182,10 @@ func (sts *TestSuite) RunComplianceTests() map[string]bool {
 			},
 
 			Required: false,
-
 		},
-
 	}
 
-
-
 	results := make(map[string]bool)
-
-
 
 	for _, test := range tests {
 
@@ -1479,19 +1195,13 @@ func (sts *TestSuite) RunComplianceTests() map[string]bool {
 
 	}
 
-
-
 	return results
 
 }
 
-
-
 // MockKeyStore implements a mock key store for testing.
 
 type MockKeyStore struct{}
-
-
 
 // Store performs store operation.
 
@@ -1501,27 +1211,22 @@ func (m *MockKeyStore) Store(ctx context.Context, key *DetailedStoredKey) error 
 
 }
 
-
-
 // Retrieve performs retrieve operation.
 
 func (m *MockKeyStore) Retrieve(ctx context.Context, keyID string) (*DetailedStoredKey, error) {
 
 	return &DetailedStoredKey{
 
-		ID:      keyID,
+		ID: keyID,
 
 		Version: 1,
 
-		Key:     make([]byte, 32),
+		Key: make([]byte, 32),
 
 		Created: time.Now(),
-
 	}, nil
 
 }
-
-
 
 // Delete performs delete operation.
 
@@ -1531,8 +1236,6 @@ func (m *MockKeyStore) Delete(ctx context.Context, keyID string) error {
 
 }
 
-
-
 // List performs list operation.
 
 func (m *MockKeyStore) List(ctx context.Context) ([]*DetailedStoredKey, error) {
@@ -1540,8 +1243,6 @@ func (m *MockKeyStore) List(ctx context.Context) ([]*DetailedStoredKey, error) {
 	return []*DetailedStoredKey{}, nil
 
 }
-
-
 
 // Rotate performs rotate operation.
 
@@ -1551,8 +1252,6 @@ func (m *MockKeyStore) Rotate(ctx context.Context, keyID string, newKey *Detaile
 
 }
 
-
-
 // GenerateSecurityReport generates a comprehensive security report.
 
 func (sts *TestSuite) GenerateSecurityReport() string {
@@ -1561,13 +1260,9 @@ func (sts *TestSuite) GenerateSecurityReport() string {
 
 	defer sts.mu.RUnlock()
 
-
-
 	report := "=== SECURITY TEST REPORT ===\n\n"
 
 	report += fmt.Sprintf("Generated: %s\n\n", time.Now().Format(time.RFC3339))
-
-
 
 	// Test results.
 
@@ -1576,8 +1271,6 @@ func (sts *TestSuite) GenerateSecurityReport() string {
 	passedCount := 0
 
 	totalCount := 0
-
-
 
 	for name, result := range sts.results {
 
@@ -1603,11 +1296,7 @@ func (sts *TestSuite) GenerateSecurityReport() string {
 
 	}
 
-
-
 	report += fmt.Sprintf("\nSummary: %d/%d tests passed\n\n", passedCount, totalCount)
-
-
 
 	// Benchmark results.
 
@@ -1625,9 +1314,6 @@ func (sts *TestSuite) GenerateSecurityReport() string {
 
 	}
 
-
-
 	return report
 
 }
-

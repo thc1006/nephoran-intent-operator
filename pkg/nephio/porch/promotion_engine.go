@@ -28,36 +28,19 @@ limitations under the License.
 
 */
 
-
-
-
 package porch
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
 	"github.com/prometheus/client_golang/prometheus"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // PromotionEngine provides comprehensive cross-environment package promotion capabilities.
 
@@ -77,8 +60,6 @@ type PromotionEngine interface {
 
 	ListPromotions(ctx context.Context, opts *PromotionListOptions) (*PromotionList, error)
 
-
-
 	// Canary deployments.
 
 	StartCanaryPromotion(ctx context.Context, ref *PackageReference, config *CanaryConfig) (*CanaryPromotion, error)
@@ -91,8 +72,6 @@ type PromotionEngine interface {
 
 	GetCanaryMetrics(ctx context.Context, canaryID string) (*CanaryMetrics, error)
 
-
-
 	// Blue-green promotion.
 
 	StartBlueGreenPromotion(ctx context.Context, ref *PackageReference, config *BlueGreenConfig) (*BlueGreenPromotion, error)
@@ -102,8 +81,6 @@ type PromotionEngine interface {
 	RollbackToBlue(ctx context.Context, promotionID, reason string) (*BlueGreenRollback, error)
 
 	CleanupBlueEnvironment(ctx context.Context, promotionID string) (*CleanupResult, error)
-
-
 
 	// Rollback capabilities.
 
@@ -115,8 +92,6 @@ type PromotionEngine interface {
 
 	ListRollbackOptions(ctx context.Context, ref *PackageReference, env string) ([]*RollbackOption, error)
 
-
-
 	// Health checks and validation.
 
 	ValidatePromotion(ctx context.Context, ref *PackageReference, targetEnv string) (*PromotionValidationResult, error)
@@ -127,8 +102,6 @@ type PromotionEngine interface {
 
 	ConfigureHealthChecks(ctx context.Context, env string, checks []HealthCheck) error
 
-
-
 	// Approval integration.
 
 	RequireApprovalForPromotion(ctx context.Context, ref *PackageReference, targetEnv string, approvers []string) (*PromotionApprovalRequirement, error)
@@ -137,8 +110,6 @@ type PromotionEngine interface {
 
 	BypassPromotionApproval(ctx context.Context, promotionID, reason, bypassUser string) error
 
-
-
 	// Cross-cluster promotion.
 
 	PromoteAcrossClusters(ctx context.Context, ref *PackageReference, targetClusters []*ClusterTarget, opts *CrossClusterOptions) (*CrossClusterPromotionResult, error)
@@ -146,8 +117,6 @@ type PromotionEngine interface {
 	GetClusterPromotionStatus(ctx context.Context, promotionID, clusterName string) (*ClusterPromotionStatus, error)
 
 	SynchronizeAcrossClusters(ctx context.Context, ref *PackageReference, clusters []*ClusterTarget) (*SyncResult, error)
-
-
 
 	// Environment management.
 
@@ -161,8 +130,6 @@ type PromotionEngine interface {
 
 	ValidateEnvironmentChain(ctx context.Context, chain []string) (*ChainValidationResult, error)
 
-
-
 	// Promotion pipelines.
 
 	CreatePromotionPipeline(ctx context.Context, pipeline *PromotionPipeline) error
@@ -175,8 +142,6 @@ type PromotionEngine interface {
 
 	ExecutePipeline(ctx context.Context, pipelineID string, ref *PackageReference) (*PipelineExecutionResult, error)
 
-
-
 	// Metrics and monitoring.
 
 	GetPromotionMetrics(ctx context.Context, env string) (*PromotionMetrics, error)
@@ -185,8 +150,6 @@ type PromotionEngine interface {
 
 	GeneratePromotionReport(ctx context.Context, opts *PromotionReportOptions) (*PromotionReport, error)
 
-
-
 	// Health and maintenance.
 
 	GetEngineHealth(ctx context.Context) (*PromotionEngineHealth, error)
@@ -194,10 +157,7 @@ type PromotionEngine interface {
 	CleanupCompletedPromotions(ctx context.Context, olderThan time.Duration) (*CleanupResult, error)
 
 	Close() error
-
 }
-
-
 
 // promotionEngine implements comprehensive cross-environment package promotion.
 
@@ -205,645 +165,530 @@ type promotionEngine struct {
 
 	// Core dependencies.
 
-	client  *Client
+	client *Client
 
-	logger  logr.Logger
+	logger logr.Logger
 
 	metrics *PromotionEngineMetrics
-
-
 
 	// Environment management.
 
 	environmentRegistry *EnvironmentRegistry
 
-	clusterManager      *ClusterManager
-
-
+	clusterManager *ClusterManager
 
 	// Promotion strategies.
 
-	canaryManager    *CanaryManager
+	canaryManager *CanaryManager
 
 	blueGreenManager *BlueGreenManager
 
-	rolloutStrategy  *RolloutStrategyManager
-
-
+	rolloutStrategy *RolloutStrategyManager
 
 	// Health and validation.
 
 	healthChecker *PromotionHealthChecker
 
-	validator     *PromotionValidator
-
-
+	validator *PromotionValidator
 
 	// Pipeline management.
 
 	pipelineRegistry *PipelineRegistry
 
-	executionEngine  *PipelineExecutionEngine
-
-
+	executionEngine *PipelineExecutionEngine
 
 	// Approval integration.
 
 	approvalIntegrator *ApprovalIntegrator
 
-
-
 	// Cross-cluster support.
 
 	crossClusterManager *CrossClusterManager
 
-
-
 	// State management.
 
-	promotionTracker  *PromotionTracker
+	promotionTracker *PromotionTracker
 
 	checkpointManager *CheckpointManager
-
-
 
 	// Configuration.
 
 	config *PromotionEngineConfig
 
-
-
 	// Concurrency control.
 
 	promotionLocks map[string]*sync.Mutex
 
-	lockMutex      sync.RWMutex
-
-
+	lockMutex sync.RWMutex
 
 	// Background processing.
 
-	healthMonitor    *PromotionHealthMonitor
+	healthMonitor *PromotionHealthMonitor
 
 	metricsCollector *PromotionMetricsCollector
-
-
 
 	// Shutdown coordination.
 
 	shutdown chan struct{}
 
-	wg       sync.WaitGroup
-
+	wg sync.WaitGroup
 }
 
-
-
 // Core data structures.
-
-
 
 // PromotionOptions configures promotion behavior.
 
 type PromotionOptions struct {
+	Strategy PromotionStrategy
 
-	Strategy            PromotionStrategy
+	RequireApproval bool
 
-	RequireApproval     bool
+	Approvers []string
 
-	Approvers           []string
+	RunHealthChecks bool
 
-	RunHealthChecks     bool
+	HealthCheckTimeout time.Duration
 
-	HealthCheckTimeout  time.Duration
+	DryRun bool
 
-	DryRun              bool
+	Force bool
 
-	Force               bool
-
-	RollbackOnFailure   bool
+	RollbackOnFailure bool
 
 	NotificationTargets []string
 
-	Metadata            map[string]string
+	Metadata map[string]string
 
-	Timeout             time.Duration
+	Timeout time.Duration
 
-	PrePromotionHooks   []PromotionHook
+	PrePromotionHooks []PromotionHook
 
-	PostPromotionHooks  []PromotionHook
-
+	PostPromotionHooks []PromotionHook
 }
-
-
 
 // PromotionResult contains promotion operation results.
 
 type PromotionResult struct {
+	ID string
 
-	ID                 string
+	PackageRef *PackageReference
 
-	PackageRef         *PackageReference
+	SourceEnvironment string
 
-	SourceEnvironment  string
+	TargetEnvironment string
 
-	TargetEnvironment  string
+	Strategy PromotionStrategy
 
-	Strategy           PromotionStrategy
+	Status PromotionResultStatus
 
-	Status             PromotionResultStatus
+	StartTime time.Time
 
-	StartTime          time.Time
+	EndTime *time.Time
 
-	EndTime            *time.Time
-
-	Duration           time.Duration
+	Duration time.Duration
 
 	HealthCheckResults []*HealthCheckResult
 
-	ValidationResults  *PromotionValidationResult
+	ValidationResults *PromotionValidationResult
 
-	ApprovalResults    *PromotionApprovalStatus
+	ApprovalResults *PromotionApprovalStatus
 
-	Errors             []PromotionError
+	Errors []PromotionError
 
-	Warnings           []string
+	Warnings []string
 
-	Metadata           map[string]interface{}
+	Metadata map[string]interface{}
 
-	RollbackInfo       *RollbackInfo
-
+	RollbackInfo *RollbackInfo
 }
-
-
 
 // PromotionPipeline defines a multi-stage promotion pipeline.
 
 type PromotionPipeline struct {
+	ID string
 
-	ID                   string
+	Name string
 
-	Name                 string
+	Description string
 
-	Description          string
+	Environments []string
 
-	Environments         []string
-
-	Stages               []*PipelineStage
+	Stages []*PipelineStage
 
 	ApprovalRequirements map[string]*PromotionApprovalRequirement
 
-	HealthChecks         map[string][]HealthCheck
+	HealthChecks map[string][]HealthCheck
 
-	RollbackPolicy       *PipelineRollbackPolicy
+	RollbackPolicy *PipelineRollbackPolicy
 
-	Timeout              time.Duration
+	Timeout time.Duration
 
-	ParallelExecution    bool
+	ParallelExecution bool
 
-	CreatedAt            time.Time
+	CreatedAt time.Time
 
-	CreatedBy            string
+	CreatedBy string
 
-	Metadata             map[string]string
-
+	Metadata map[string]string
 }
-
-
 
 // PipelineStage represents a single stage in promotion pipeline.
 
 type PipelineStage struct {
+	ID string
 
-	ID               string
+	Name string
 
-	Name             string
+	Environment string
 
-	Environment      string
+	Strategy PromotionStrategy
 
-	Strategy         PromotionStrategy
+	Prerequisites []string
 
-	Prerequisites    []string
+	Actions []PipelineAction
 
-	Actions          []PipelineAction
-
-	HealthChecks     []HealthCheck
+	HealthChecks []HealthCheck
 
 	ApprovalRequired bool
 
-	Approvers        []string
+	Approvers []string
 
-	Timeout          time.Duration
+	Timeout time.Duration
 
-	OnFailure        PipelineFailureAction
+	OnFailure PipelineFailureAction
 
-	Conditions       []StageCondition
-
+	Conditions []StageCondition
 }
 
-
-
 // Canary deployment types.
-
-
 
 // CanaryConfig configures canary deployment.
 
 type CanaryConfig struct {
-
 	InitialTrafficPercent int
 
-	TrafficIncrements     []TrafficIncrement
+	TrafficIncrements []TrafficIncrement
 
-	AnalysisInterval      time.Duration
+	AnalysisInterval time.Duration
 
-	SuccessThreshold      *SuccessMetrics
+	SuccessThreshold *SuccessMetrics
 
-	FailureThreshold      *FailureMetrics
+	FailureThreshold *FailureMetrics
 
-	AutoPromotion         bool
+	AutoPromotion bool
 
-	MaxDuration           time.Duration
+	MaxDuration time.Duration
 
-	RollbackOnFailure     bool
+	RollbackOnFailure bool
 
-	NotificationHooks     []NotificationHook
-
+	NotificationHooks []NotificationHook
 }
-
-
 
 // CanaryPromotion represents an active canary deployment.
 
 type CanaryPromotion struct {
+	ID string
 
-	ID                    string
+	PackageRef *PackageReference
 
-	PackageRef            *PackageReference
+	Environment string
 
-	Environment           string
+	Config *CanaryConfig
 
-	Config                *CanaryConfig
-
-	Status                CanaryStatus
+	Status CanaryStatus
 
 	CurrentTrafficPercent int
 
-	StartTime             time.Time
+	StartTime time.Time
 
-	LastUpdate            time.Time
+	LastUpdate time.Time
 
-	AnalysisResults       []*CanaryAnalysis
+	AnalysisResults []*CanaryAnalysis
 
-	HealthMetrics         *CanaryMetrics
+	HealthMetrics *CanaryMetrics
 
-	NextIncrement         *time.Time
+	NextIncrement *time.Time
 
-	AutoPromotionEnabled  bool
-
+	AutoPromotionEnabled bool
 }
-
-
 
 // TrafficIncrement defines traffic increment schedule.
 
 type TrafficIncrement struct {
+	Percentage int
 
-	Percentage      int
-
-	Duration        time.Duration
+	Duration time.Duration
 
 	RequireApproval bool
 
-	HealthChecks    []HealthCheck
-
+	HealthChecks []HealthCheck
 }
 
-
-
 // Blue-green deployment types.
-
-
 
 // BlueGreenConfig configures blue-green deployment.
 
 type BlueGreenConfig struct {
+	BlueEnvironment string
 
-	BlueEnvironment    string
+	GreenEnvironment string
 
-	GreenEnvironment   string
+	TrafficSwitchMode TrafficSwitchMode
 
-	TrafficSwitchMode  TrafficSwitchMode
+	ValidationChecks []ValidationCheck
 
-	ValidationChecks   []ValidationCheck
-
-	WarmupDuration     time.Duration
+	WarmupDuration time.Duration
 
 	MonitoringDuration time.Duration
 
-	AutoSwitch         bool
+	AutoSwitch bool
 
-	RollbackTimeout    time.Duration
-
+	RollbackTimeout time.Duration
 }
-
-
 
 // BlueGreenPromotion represents an active blue-green deployment.
 
 type BlueGreenPromotion struct {
+	ID string
 
-	ID                 string
+	PackageRef *PackageReference
 
-	PackageRef         *PackageReference
+	Config *BlueGreenConfig
 
-	Config             *BlueGreenConfig
-
-	Status             BlueGreenStatus
+	Status BlueGreenStatus
 
 	CurrentEnvironment BlueGreenEnvironment
 
-	StartTime          time.Time
+	StartTime time.Time
 
-	SwitchTime         *time.Time
+	SwitchTime *time.Time
 
-	ValidationResults  []*ValidationResult
+	ValidationResults []*ValidationResult
 
-	MonitoringResults  []*MonitoringResult
+	MonitoringResults []*MonitoringResult
 
-	ReadinessChecks    *ReadinessStatus
-
+	ReadinessChecks *ReadinessStatus
 }
 
-
-
 // Environment management types.
-
-
 
 // Environment represents a deployment environment.
 
 type Environment struct {
+	ID string
 
-	ID                string
+	Name string
 
-	Name              string
+	Description string
 
-	Description       string
+	Type EnvironmentType
 
-	Type              EnvironmentType
-
-	Clusters          []*ClusterTarget
+	Clusters []*ClusterTarget
 
 	PromotionPolicies []*PromotionPolicy
 
-	HealthChecks      []HealthCheck
+	HealthChecks []HealthCheck
 
-	Configuration     map[string]interface{}
+	Configuration map[string]interface{}
 
-	Constraints       []EnvironmentConstraint
+	Constraints []EnvironmentConstraint
 
-	Metadata          map[string]string
+	Metadata map[string]string
 
-	Status            EnvironmentStatus
+	Status EnvironmentStatus
 
-	CreatedAt         time.Time
+	CreatedAt time.Time
 
-	UpdatedAt         time.Time
-
+	UpdatedAt time.Time
 }
-
-
 
 // PromotionPolicy defines promotion rules for an environment.
 
 type PromotionPolicy struct {
+	ID string
 
-	ID                 string
-
-	Name               string
+	Name string
 
 	SourceEnvironments []string
 
-	RequiredApprovals  int
+	RequiredApprovals int
 
-	Approvers          []string
+	Approvers []string
 
-	RequiredChecks     []string
+	RequiredChecks []string
 
 	BlockingConditions []string
 
-	AutoPromotion      bool
+	AutoPromotion bool
 
-	Schedule           *PromotionSchedule
-
+	Schedule *PromotionSchedule
 }
 
-
-
 // Health check types.
-
-
 
 // HealthCheck defines a health check.
 
 type HealthCheck struct {
+	ID string
 
-	ID              string
+	Name string
 
-	Name            string
+	Type HealthCheckType
 
-	Type            HealthCheckType
+	Configuration map[string]interface{}
 
-	Configuration   map[string]interface{}
+	Timeout time.Duration
 
-	Timeout         time.Duration
-
-	RetryPolicy     *RetryPolicy
+	RetryPolicy *RetryPolicy
 
 	SuccessCriteria []SuccessCriterion
 
 	FailureCriteria []FailureCriterion
-
 }
-
-
 
 // HealthCheckResult contains health check execution results.
 
 type HealthCheckResult struct {
+	CheckID string
 
-	CheckID    string
+	CheckName string
 
-	CheckName  string
+	Status HealthCheckStatus
 
-	Status     HealthCheckStatus
+	StartTime time.Time
 
-	StartTime  time.Time
+	EndTime time.Time
 
-	EndTime    time.Time
+	Duration time.Duration
 
-	Duration   time.Duration
+	Result map[string]interface{}
 
-	Result     map[string]interface{}
+	Metrics map[string]float64
 
-	Metrics    map[string]float64
+	Errors []string
 
-	Errors     []string
-
-	Warnings   []string
+	Warnings []string
 
 	RetryCount int
-
 }
 
-
-
 // Cross-cluster types.
-
-
 
 // CrossClusterOptions configures cross-cluster promotion.
 
 type CrossClusterOptions struct {
+	Strategy CrossClusterStrategy
 
-	Strategy           CrossClusterStrategy
+	Concurrency int
 
-	Concurrency        int
+	FailFast bool
 
-	FailFast           bool
+	RequireAllSuccess bool
 
-	RequireAllSuccess  bool
+	RollbackOnFailure bool
 
-	RollbackOnFailure  bool
-
-	SyncTimeout        time.Duration
+	SyncTimeout time.Duration
 
 	HealthCheckTimeout time.Duration
 
-	ClusterPolicies    map[string]*ClusterPromotionPolicy
-
+	ClusterPolicies map[string]*ClusterPromotionPolicy
 }
-
-
 
 // CrossClusterPromotionResult contains cross-cluster promotion results.
 
 type CrossClusterPromotionResult struct {
+	ID string
 
-	ID                 string
+	PackageRef *PackageReference
 
-	PackageRef         *PackageReference
+	TargetClusters []*ClusterTarget
 
-	TargetClusters     []*ClusterTarget
+	Status CrossClusterStatusType
 
-	Status             CrossClusterStatusType
+	StartTime time.Time
 
-	StartTime          time.Time
+	EndTime *time.Time
 
-	EndTime            *time.Time
+	ClusterResults map[string]*ClusterPromotionResult
 
-	ClusterResults     map[string]*ClusterPromotionResult
+	OverallSuccess bool
 
-	OverallSuccess     bool
-
-	FailedClusters     []string
+	FailedClusters []string
 
 	SuccessfulClusters []string
 
-	Errors             []CrossClusterError
-
+	Errors []CrossClusterError
 }
-
-
 
 // ClusterPromotionResult contains single cluster promotion results.
 
 type ClusterPromotionResult struct {
+	ClusterName string
 
-	ClusterName        string
+	Status ClusterPromotionResultStatus
 
-	Status             ClusterPromotionResultStatus
+	StartTime time.Time
 
-	StartTime          time.Time
+	EndTime *time.Time
 
-	EndTime            *time.Time
-
-	PromotionResult    *PromotionResult
+	PromotionResult *PromotionResult
 
 	HealthCheckResults []*HealthCheckResult
 
-	Error              string
+	Error string
 
-	Metadata           map[string]interface{}
-
+	Metadata map[string]interface{}
 }
 
-
-
 // Metrics and monitoring types.
-
-
 
 // PromotionMetrics provides promotion metrics for an environment.
 
 type PromotionMetrics struct {
+	Environment string
 
-	Environment          string
-
-	TotalPromotions      int64
+	TotalPromotions int64
 
 	SuccessfulPromotions int64
 
-	FailedPromotions     int64
+	FailedPromotions int64
 
 	AveragePromotionTime time.Duration
 
-	CanaryPromotions     int64
+	CanaryPromotions int64
 
-	BlueGreenPromotions  int64
+	BlueGreenPromotions int64
 
-	RollbackCount        int64
+	RollbackCount int64
 
-	HealthCheckMetrics   *HealthCheckMetrics
+	HealthCheckMetrics *HealthCheckMetrics
 
-	LastPromotionTime    time.Time
-
+	LastPromotionTime time.Time
 }
-
-
 
 // EnvironmentMetrics provides system-wide environment metrics.
 
 type EnvironmentMetrics struct {
-
 	TotalEnvironments int
 
-	ActivePromotions  int
+	ActivePromotions int
 
-	QueuedPromotions  int
+	QueuedPromotions int
 
 	PromotionsPerHour float64
 
 	EnvironmentHealth map[string]float64
 
-	PromotionLatency  map[string]time.Duration
+	PromotionLatency map[string]time.Duration
 
-	ErrorRates        map[string]float64
-
+	ErrorRates map[string]float64
 }
 
-
-
 // Enums and constants.
-
-
 
 // PromotionStrategy defines promotion strategies.
 
 type PromotionStrategy string
-
-
 
 const (
 
@@ -866,16 +711,11 @@ const (
 	// PromotionStrategyRecreate holds promotionstrategyrecreate value.
 
 	PromotionStrategyRecreate PromotionStrategy = "recreate"
-
 )
-
-
 
 // PromotionResultStatus defines promotion result status.
 
 type PromotionResultStatus string
-
-
 
 const (
 
@@ -902,16 +742,11 @@ const (
 	// PromotionResultStatusCancelled holds promotionresultstatuscancelled value.
 
 	PromotionResultStatusCancelled PromotionResultStatus = "cancelled"
-
 )
-
-
 
 // CanaryStatus defines canary deployment status.
 
 type CanaryStatus string
-
-
 
 const (
 
@@ -942,16 +777,11 @@ const (
 	// CanaryStatusAborted holds canarystatusaborted value.
 
 	CanaryStatusAborted CanaryStatus = "aborted"
-
 )
-
-
 
 // BlueGreenStatus defines blue-green deployment status.
 
 type BlueGreenStatus string
-
-
 
 const (
 
@@ -982,16 +812,11 @@ const (
 	// BlueGreenStatusRolledBack holds bluegreenstatusrolledback value.
 
 	BlueGreenStatusRolledBack BlueGreenStatus = "rolled_back"
-
 )
-
-
 
 // EnvironmentType defines environment types.
 
 type EnvironmentType string
-
-
 
 const (
 
@@ -1022,16 +847,11 @@ const (
 	// EnvironmentTypeGreen holds environmenttypegreen value.
 
 	EnvironmentTypeGreen EnvironmentType = "green"
-
 )
-
-
 
 // HealthCheckStatus defines health check status.
 
 type HealthCheckStatus string
-
-
 
 const (
 
@@ -1058,14 +878,9 @@ const (
 	// HealthCheckStatusSkipped holds healthcheckstatusskipped value.
 
 	HealthCheckStatusSkipped HealthCheckStatus = "skipped"
-
 )
 
-
-
 // Implementation.
-
-
 
 // NewPromotionEngine creates a new promotion engine instance.
 
@@ -1083,25 +898,20 @@ func NewPromotionEngine(client *Client, config *PromotionEngineConfig) (Promotio
 
 	}
 
-
-
 	pe := &promotionEngine{
 
-		client:         client,
+		client: client,
 
-		logger:         log.Log.WithName("promotion-engine"),
+		logger: log.Log.WithName("promotion-engine"),
 
-		config:         config,
+		config: config,
 
 		promotionLocks: make(map[string]*sync.Mutex),
 
-		shutdown:       make(chan struct{}),
+		shutdown: make(chan struct{}),
 
-		metrics:        initPromotionEngineMetrics(),
-
+		metrics: initPromotionEngineMetrics(),
 	}
-
-
 
 	// Initialize components.
 
@@ -1135,13 +945,9 @@ func NewPromotionEngine(client *Client, config *PromotionEngineConfig) (Promotio
 
 	pe.metricsCollector = NewPromotionMetricsCollector(config.MetricsCollectorConfig)
 
-
-
 	// Register default environments.
 
 	pe.registerDefaultEnvironments()
-
-
 
 	// Start background workers.
 
@@ -1149,25 +955,17 @@ func NewPromotionEngine(client *Client, config *PromotionEngineConfig) (Promotio
 
 	go pe.healthMonitorWorker()
 
-
-
 	pe.wg.Add(1)
 
 	go pe.metricsCollectionWorker()
-
-
 
 	pe.wg.Add(1)
 
 	go pe.promotionCleanupWorker()
 
-
-
 	return pe, nil
 
 }
-
-
 
 // PromoteToEnvironment promotes a package to a target environment.
 
@@ -1181,27 +979,20 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 
 		"strategy", opts.Strategy)
 
-
-
 	startTime := time.Now()
-
-
 
 	if opts == nil {
 
 		opts = &PromotionOptions{
 
-			Strategy:           PromotionStrategyDirect,
+			Strategy: PromotionStrategyDirect,
 
-			RunHealthChecks:    true,
+			RunHealthChecks: true,
 
 			HealthCheckTimeout: 5 * time.Minute,
-
 		}
 
 	}
-
-
 
 	// Create promotion result.
 
@@ -1209,23 +1000,20 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 
 	result := &PromotionResult{
 
-		ID:                promotionID,
+		ID: promotionID,
 
-		PackageRef:        ref,
+		PackageRef: ref,
 
 		TargetEnvironment: targetEnv,
 
-		Strategy:          opts.Strategy,
+		Strategy: opts.Strategy,
 
-		Status:            PromotionResultStatusRunning,
+		Status: PromotionResultStatusRunning,
 
-		StartTime:         startTime,
+		StartTime: startTime,
 
-		Metadata:          make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}
-
-
 
 	// Acquire promotion lock.
 
@@ -1235,13 +1023,9 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 
 	defer lock.Unlock()
 
-
-
 	// Register promotion with tracker.
 
 	pe.promotionTracker.RegisterPromotion(ctx, result)
-
-
 
 	// Get target environment.
 
@@ -1253,17 +1037,14 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 
 		result.Errors = append(result.Errors, PromotionError{
 
-			Code:    "ENV_NOT_FOUND",
+			Code: "ENV_NOT_FOUND",
 
 			Message: fmt.Sprintf("Target environment %s not found: %v", targetEnv, err),
-
 		})
 
 		return result, fmt.Errorf("failed to get target environment: %w", err)
 
 	}
-
-
 
 	// Determine source environment.
 
@@ -1277,13 +1058,9 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 
 	}
 
-
-
 	sourceEnv := pe.determineSourceEnvironment(currentPkg)
 
 	result.SourceEnvironment = sourceEnv
-
-
 
 	// Execute pre-promotion hooks.
 
@@ -1306,8 +1083,6 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 		}
 
 	}
-
-
 
 	// Validate promotion.
 
@@ -1335,8 +1110,6 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 
 	}
 
-
-
 	// Check approval requirements.
 
 	if opts.RequireApproval {
@@ -1355,8 +1128,6 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 
 		result.ApprovalResults = approvalResult
 
-
-
 		if approvalResult.Status != PromotionApprovalStatusApproved && !opts.Force {
 
 			result.Status = PromotionResultStatusPending
@@ -1366,8 +1137,6 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 		}
 
 	}
-
-
 
 	// Execute promotion based on strategy.
 
@@ -1393,21 +1162,16 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 
 	}
 
-
-
 	if promotionErr != nil {
 
 		result.Status = PromotionResultStatusFailed
 
 		result.Errors = append(result.Errors, PromotionError{
 
-			Code:    "PROMOTION_FAILED",
+			Code: "PROMOTION_FAILED",
 
 			Message: promotionErr.Error(),
-
 		})
-
-
 
 		if opts.RollbackOnFailure {
 
@@ -1415,13 +1179,9 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 
 		}
 
-
-
 		return result, promotionErr
 
 	}
-
-
 
 	// Run health checks if requested.
 
@@ -1441,15 +1201,11 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 
 		}
 
-
-
 		if err != nil || !allPassed {
 
 			pe.logger.Error(err, "Health checks failed", "package", ref.GetPackageKey(), "environment", targetEnv)
 
 			result.HealthCheckResults = []*HealthCheckResult{healthResult}
-
-
 
 			if opts.RollbackOnFailure {
 
@@ -1464,8 +1220,6 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 				result.Status = PromotionResultStatusFailed
 
 			}
-
-
 
 			if !opts.Force {
 
@@ -1483,8 +1237,6 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 
 	}
 
-
-
 	// Execute post-promotion hooks.
 
 	if len(opts.PostPromotionHooks) > 0 {
@@ -1498,8 +1250,6 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 		}
 
 	}
-
-
 
 	// Finalize promotion.
 
@@ -1515,8 +1265,6 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 
 	result.Duration = endTime.Sub(result.StartTime)
 
-
-
 	// Update metrics.
 
 	if pe.metrics != nil {
@@ -1527,13 +1275,9 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 
 	}
 
-
-
 	// Update tracker.
 
 	pe.promotionTracker.UpdatePromotion(ctx, result)
-
-
 
 	pe.logger.Info("Environment promotion completed",
 
@@ -1545,13 +1289,9 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 
 		"duration", result.Duration)
 
-
-
 	return result, nil
 
 }
-
-
 
 // StartCanaryPromotion initiates a canary deployment.
 
@@ -1559,33 +1299,28 @@ func (pe *promotionEngine) StartCanaryPromotion(ctx context.Context, ref *Packag
 
 	pe.logger.Info("Starting canary promotion", "package", ref.GetPackageKey(), "initialTraffic", config.InitialTrafficPercent)
 
-
-
 	canaryID := fmt.Sprintf("canary-%s-%d", ref.GetPackageKey(), time.Now().UnixNano())
 
 	canary := &CanaryPromotion{
 
-		ID:                    canaryID,
+		ID: canaryID,
 
-		PackageRef:            ref,
+		PackageRef: ref,
 
-		Config:                config,
+		Config: config,
 
-		Status:                CanaryStatusInitializing,
+		Status: CanaryStatusInitializing,
 
 		CurrentTrafficPercent: 0,
 
-		StartTime:             time.Now(),
+		StartTime: time.Now(),
 
-		LastUpdate:            time.Now(),
+		LastUpdate: time.Now(),
 
-		AnalysisResults:       []*CanaryAnalysis{},
+		AnalysisResults: []*CanaryAnalysis{},
 
-		AutoPromotionEnabled:  config.AutoPromotion,
-
+		AutoPromotionEnabled: config.AutoPromotion,
 	}
-
-
 
 	// Register canary with manager.
 
@@ -1594,8 +1329,6 @@ func (pe *promotionEngine) StartCanaryPromotion(ctx context.Context, ref *Packag
 		return nil, fmt.Errorf("failed to register canary: %w", err)
 
 	}
-
-
 
 	// Start initial deployment.
 
@@ -1607,8 +1340,6 @@ func (pe *promotionEngine) StartCanaryPromotion(ctx context.Context, ref *Packag
 
 	}
 
-
-
 	// Set initial traffic.
 
 	if err := pe.canaryManager.SetTrafficPercent(ctx, canaryID, config.InitialTrafficPercent); err != nil {
@@ -1619,13 +1350,9 @@ func (pe *promotionEngine) StartCanaryPromotion(ctx context.Context, ref *Packag
 
 	}
 
-
-
 	canary.Status = CanaryStatusRunning
 
 	canary.CurrentTrafficPercent = config.InitialTrafficPercent
-
-
 
 	// Update metrics.
 
@@ -1637,15 +1364,11 @@ func (pe *promotionEngine) StartCanaryPromotion(ctx context.Context, ref *Packag
 
 	}
 
-
-
 	pe.logger.Info("Canary promotion started successfully", "canaryID", canaryID, "trafficPercent", config.InitialTrafficPercent)
 
 	return canary, nil
 
 }
-
-
 
 // StartBlueGreenPromotion initiates a blue-green deployment.
 
@@ -1653,31 +1376,26 @@ func (pe *promotionEngine) StartBlueGreenPromotion(ctx context.Context, ref *Pac
 
 	pe.logger.Info("Starting blue-green promotion", "package", ref.GetPackageKey(), "blueEnv", config.BlueEnvironment, "greenEnv", config.GreenEnvironment)
 
-
-
 	promotionID := fmt.Sprintf("bluegreen-%s-%d", ref.GetPackageKey(), time.Now().UnixNano())
 
 	blueGreen := &BlueGreenPromotion{
 
-		ID:                 promotionID,
+		ID: promotionID,
 
-		PackageRef:         ref,
+		PackageRef: ref,
 
-		Config:             config,
+		Config: config,
 
-		Status:             BlueGreenStatusInitializing,
+		Status: BlueGreenStatusInitializing,
 
 		CurrentEnvironment: BlueGreenEnvironmentBlue,
 
-		StartTime:          time.Now(),
+		StartTime: time.Now(),
 
-		ValidationResults:  []*ValidationResult{},
+		ValidationResults: []*ValidationResult{},
 
-		MonitoringResults:  []*MonitoringResult{},
-
+		MonitoringResults: []*MonitoringResult{},
 	}
-
-
 
 	// Register with manager.
 
@@ -1686,8 +1404,6 @@ func (pe *promotionEngine) StartBlueGreenPromotion(ctx context.Context, ref *Pac
 		return nil, fmt.Errorf("failed to register blue-green promotion: %w", err)
 
 	}
-
-
 
 	// Deploy to green environment.
 
@@ -1698,8 +1414,6 @@ func (pe *promotionEngine) StartBlueGreenPromotion(ctx context.Context, ref *Pac
 		return blueGreen, fmt.Errorf("failed to deploy to green: %w", err)
 
 	}
-
-
 
 	// Run validation checks.
 
@@ -1717,11 +1431,7 @@ func (pe *promotionEngine) StartBlueGreenPromotion(ctx context.Context, ref *Pac
 
 	blueGreen.ValidationResults = validationResults
 
-
-
 	blueGreen.Status = BlueGreenStatusReady
-
-
 
 	// Update metrics.
 
@@ -1733,15 +1443,11 @@ func (pe *promotionEngine) StartBlueGreenPromotion(ctx context.Context, ref *Pac
 
 	}
 
-
-
 	pe.logger.Info("Blue-green promotion started successfully", "promotionID", promotionID)
 
 	return blueGreen, nil
 
 }
-
-
 
 // AbortCanaryPromotion aborts a canary deployment.
 
@@ -1749,21 +1455,16 @@ func (pe *promotionEngine) AbortCanaryPromotion(ctx context.Context, canaryID, r
 
 	pe.logger.Info("Aborting canary promotion", "canaryID", canaryID, "reason", reason)
 
-
-
 	result := &CanaryAbortResult{
 
-		CanaryID:    canaryID,
+		CanaryID: canaryID,
 
 		AbortReason: reason,
 
-		Success:     true,
+		Success: true,
 
-		AbortedAt:   time.Now(),
-
+		AbortedAt: time.Now(),
 	}
-
-
 
 	// In a real implementation, this would:.
 
@@ -1775,8 +1476,6 @@ func (pe *promotionEngine) AbortCanaryPromotion(ctx context.Context, canaryID, r
 
 	// 4. Trigger rollback if necessary.
 
-
-
 	// Update metrics.
 
 	if pe.metrics != nil {
@@ -1785,15 +1484,11 @@ func (pe *promotionEngine) AbortCanaryPromotion(ctx context.Context, canaryID, r
 
 	}
 
-
-
 	pe.logger.Info("Canary promotion aborted successfully", "canaryID", canaryID)
 
 	return result, nil
 
 }
-
-
 
 // UpdateCanaryTraffic updates traffic percentage for a canary deployment.
 
@@ -1801,31 +1496,24 @@ func (pe *promotionEngine) UpdateCanaryTraffic(ctx context.Context, canaryID str
 
 	pe.logger.Info("Updating canary traffic", "canaryID", canaryID, "trafficPercent", trafficPercent)
 
-
-
 	if trafficPercent < 0 || trafficPercent > 100 {
 
 		return nil, fmt.Errorf("invalid traffic percentage: %d (must be 0-100)", trafficPercent)
 
 	}
 
-
-
 	result := &CanaryUpdate{
 
-		CanaryID:        canaryID,
+		CanaryID: canaryID,
 
 		PreviousPercent: 0, // Would be retrieved from current state
 
-		NewPercent:      trafficPercent,
+		NewPercent: trafficPercent,
 
-		UpdatedAt:       time.Now(),
+		UpdatedAt: time.Now(),
 
-		Success:         true,
-
+		Success: true,
 	}
-
-
 
 	// In a real implementation, this would update traffic routing.
 
@@ -1839,15 +1527,11 @@ func (pe *promotionEngine) UpdateCanaryTraffic(ctx context.Context, canaryID str
 
 	}
 
-
-
 	pe.logger.Info("Canary traffic updated successfully", "canaryID", canaryID, "trafficPercent", trafficPercent)
 
 	return result, nil
 
 }
-
-
 
 // PromoteCanaryToFull promotes canary to full deployment.
 
@@ -1855,23 +1539,18 @@ func (pe *promotionEngine) PromoteCanaryToFull(ctx context.Context, canaryID str
 
 	pe.logger.Info("Promoting canary to full deployment", "canaryID", canaryID)
 
-
-
 	result := &PromotionResult{
 
-		ID:        fmt.Sprintf("canary-promotion-%s-%d", canaryID, time.Now().UnixNano()),
+		ID: fmt.Sprintf("canary-promotion-%s-%d", canaryID, time.Now().UnixNano()),
 
-		Status:    PromotionResultStatusRunning,
+		Status: PromotionResultStatusRunning,
 
 		StartTime: time.Now(),
 
-		Metadata:  make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}
 
 	result.Metadata["canaryID"] = canaryID
-
-
 
 	// In a real implementation, this would:.
 
@@ -1883,8 +1562,6 @@ func (pe *promotionEngine) PromoteCanaryToFull(ctx context.Context, canaryID str
 
 	// 4. Run final health checks.
 
-
-
 	result.Status = PromotionResultStatusSucceeded
 
 	endTime := time.Now()
@@ -1892,8 +1569,6 @@ func (pe *promotionEngine) PromoteCanaryToFull(ctx context.Context, canaryID str
 	result.EndTime = &endTime
 
 	result.Duration = endTime.Sub(result.StartTime)
-
-
 
 	// Update metrics.
 
@@ -1903,15 +1578,11 @@ func (pe *promotionEngine) PromoteCanaryToFull(ctx context.Context, canaryID str
 
 	}
 
-
-
 	pe.logger.Info("Canary promoted to full deployment successfully", "canaryID", canaryID)
 
 	return result, nil
 
 }
-
-
 
 // GetCanaryMetrics returns canary deployment metrics.
 
@@ -1919,33 +1590,28 @@ func (pe *promotionEngine) GetCanaryMetrics(ctx context.Context, canaryID string
 
 	pe.logger.V(1).Info("Getting canary metrics", "canaryID", canaryID)
 
-
-
 	// In a real implementation, this would collect metrics from monitoring systems.
 
 	metrics := &CanaryMetrics{
 
-		CanaryID:       canaryID,
+		CanaryID: canaryID,
 
 		TrafficPercent: 0,
 
-		RequestCount:   0,
+		RequestCount: 0,
 
-		ErrorRate:      0.0,
+		ErrorRate: 0.0,
 
-		LatencyP95:     0,
+		LatencyP95: 0,
 
-		SuccessRate:    100.0,
+		SuccessRate: 100.0,
 
-		ResourceUsage:  make(map[string]interface{}),
+		ResourceUsage: make(map[string]interface{}),
 
-		HealthScore:    1.0,
+		HealthScore: 1.0,
 
-		LastUpdated:    time.Now(),
-
+		LastUpdated: time.Now(),
 	}
-
-
 
 	pe.logger.V(1).Info("Retrieved canary metrics", "canaryID", canaryID, "healthScore", metrics.HealthScore)
 
@@ -1953,37 +1619,30 @@ func (pe *promotionEngine) GetCanaryMetrics(ctx context.Context, canaryID string
 
 }
 
-
-
 // RunHealthChecks executes health checks for a package in an environment.
 
 func (pe *promotionEngine) RunHealthChecks(ctx context.Context, ref *PackageReference, env string, checks []HealthCheck) (*HealthCheckResult, error) {
 
 	pe.logger.V(1).Info("Running health checks", "package", ref.GetPackageKey(), "environment", env, "checks", len(checks))
 
-
-
 	result := &HealthCheckResult{
 
-		CheckID:   fmt.Sprintf("healthcheck-%d", time.Now().UnixNano()),
+		CheckID: fmt.Sprintf("healthcheck-%d", time.Now().UnixNano()),
 
 		CheckName: "Environment Health Check",
 
-		Status:    HealthCheckStatusRunning,
+		Status: HealthCheckStatusRunning,
 
 		StartTime: time.Now(),
 
-		Result:    make(map[string]interface{}),
+		Result: make(map[string]interface{}),
 
-		Metrics:   make(map[string]float64),
+		Metrics: make(map[string]float64),
 
-		Errors:    []string{},
+		Errors: []string{},
 
-		Warnings:  []string{},
-
+		Warnings: []string{},
 	}
-
-
 
 	allPassed := true
 
@@ -2001,15 +1660,11 @@ func (pe *promotionEngine) RunHealthChecks(ctx context.Context, ref *PackageRefe
 
 		}
 
-
-
 		if checkResult.Status != HealthCheckStatusPassed {
 
 			allPassed = false
 
 		}
-
-
 
 		// Aggregate results.
 
@@ -2023,13 +1678,9 @@ func (pe *promotionEngine) RunHealthChecks(ctx context.Context, ref *PackageRefe
 
 	}
 
-
-
 	result.EndTime = time.Now()
 
 	result.Duration = result.EndTime.Sub(result.StartTime)
-
-
 
 	if allPassed {
 
@@ -2041,13 +1692,9 @@ func (pe *promotionEngine) RunHealthChecks(ctx context.Context, ref *PackageRefe
 
 	}
 
-
-
 	// Store AllPassed in Result map for access by calling code.
 
 	result.Result["AllPassed"] = allPassed
-
-
 
 	pe.logger.V(1).Info("Health checks completed",
 
@@ -2061,13 +1708,9 @@ func (pe *promotionEngine) RunHealthChecks(ctx context.Context, ref *PackageRefe
 
 		"allPassed", allPassed)
 
-
-
 	return result, nil
 
 }
-
-
 
 // ValidatePromotion validates a promotion before execution.
 
@@ -2076,8 +1719,6 @@ func (pe *promotionEngine) ValidatePromotion(ctx context.Context, ref *PackageRe
 	return pe.validator.ValidatePromotion(ctx, ref, targetEnv)
 
 }
-
-
 
 // RegisterEnvironment registers a new environment.
 
@@ -2089,8 +1730,6 @@ func (pe *promotionEngine) RegisterEnvironment(ctx context.Context, env *Environ
 
 }
 
-
-
 // The remaining PromotionEngine interface methods.
 
 func (pe *promotionEngine) PromoteThroughPipeline(ctx context.Context, ref *PackageReference, pipeline *PromotionPipeline) (*PipelinePromotionResult, error) {
@@ -2098,8 +1737,6 @@ func (pe *promotionEngine) PromoteThroughPipeline(ctx context.Context, ref *Pack
 	return &PipelinePromotionResult{ID: "pipeline-1", Status: "completed", Results: []*PromotionResult{}}, nil
 
 }
-
-
 
 // GetPromotionStatus performs getpromotionstatus operation.
 
@@ -2109,8 +1746,6 @@ func (pe *promotionEngine) GetPromotionStatus(ctx context.Context, promotionID s
 
 }
 
-
-
 // ListPromotions performs listpromotions operation.
 
 func (pe *promotionEngine) ListPromotions(ctx context.Context, opts *PromotionListOptions) (*PromotionList, error) {
@@ -2118,8 +1753,6 @@ func (pe *promotionEngine) ListPromotions(ctx context.Context, opts *PromotionLi
 	return &PromotionList{Items: []*PromotionResult{}}, nil
 
 }
-
-
 
 // SwitchTrafficToGreen performs switchtraffictogreen operation.
 
@@ -2129,8 +1762,6 @@ func (pe *promotionEngine) SwitchTrafficToGreen(ctx context.Context, promotionID
 
 }
 
-
-
 // RollbackToBlue performs rollbacktoblue operation.
 
 func (pe *promotionEngine) RollbackToBlue(ctx context.Context, promotionID, reason string) (*BlueGreenRollback, error) {
@@ -2138,8 +1769,6 @@ func (pe *promotionEngine) RollbackToBlue(ctx context.Context, promotionID, reas
 	return &BlueGreenRollback{}, nil
 
 }
-
-
 
 // CleanupBlueEnvironment performs cleanupblueenvironment operation.
 
@@ -2149,8 +1778,6 @@ func (pe *promotionEngine) CleanupBlueEnvironment(ctx context.Context, promotion
 
 }
 
-
-
 // RollbackPromotion performs rollbackpromotion operation.
 
 func (pe *promotionEngine) RollbackPromotion(ctx context.Context, promotionID string, opts *RollbackOptions) (*RollbackResult, error) {
@@ -2159,29 +1786,24 @@ func (pe *promotionEngine) RollbackPromotion(ctx context.Context, promotionID st
 
 }
 
-
-
 // CreatePromotionCheckpoint performs createpromotioncheckpoint operation.
 
 func (pe *promotionEngine) CreatePromotionCheckpoint(ctx context.Context, ref *PackageReference, env, description string) (*PromotionCheckpoint, error) {
 
 	return &PromotionCheckpoint{
 
-		ID:          fmt.Sprintf("checkpoint-%d", time.Now().UnixNano()),
+		ID: fmt.Sprintf("checkpoint-%d", time.Now().UnixNano()),
 
-		PackageRef:  ref,
+		PackageRef: ref,
 
 		Environment: env,
 
 		Description: description,
 
-		CreatedAt:   time.Now(),
-
+		CreatedAt: time.Now(),
 	}, nil
 
 }
-
-
 
 // RollbackToCheckpoint performs rollbacktocheckpoint operation.
 
@@ -2189,21 +1811,18 @@ func (pe *promotionEngine) RollbackToCheckpoint(ctx context.Context, checkpointI
 
 	return &CheckpointRollbackResult{
 
-		Success:      true,
+		Success: true,
 
 		CheckpointID: checkpointID,
 
 		RollbackTime: time.Second,
 
-		Changes:      []string{},
+		Changes: []string{},
 
-		Errors:       []string{},
-
+		Errors: []string{},
 	}, nil
 
 }
-
-
 
 // ListRollbackOptions performs listrollbackoptions operation.
 
@@ -2213,27 +1832,22 @@ func (pe *promotionEngine) ListRollbackOptions(ctx context.Context, ref *Package
 
 }
 
-
-
 // WaitForHealthy performs waitforhealthy operation.
 
 func (pe *promotionEngine) WaitForHealthy(ctx context.Context, ref *PackageReference, env string, timeout time.Duration) (*HealthWaitResult, error) {
 
 	return &HealthWaitResult{
 
-		Healthy:     true,
+		Healthy: true,
 
-		WaitTime:    time.Second,
+		WaitTime: time.Second,
 
 		HealthCheck: "basic",
 
-		Details:     make(map[string]interface{}),
-
+		Details: make(map[string]interface{}),
 	}, nil
 
 }
-
-
 
 // ConfigureHealthChecks performs configurehealthchecks operation.
 
@@ -2245,8 +1859,6 @@ func (pe *promotionEngine) ConfigureHealthChecks(ctx context.Context, env string
 
 }
 
-
-
 // RequireApprovalForPromotion performs requireapprovalforpromotion operation.
 
 func (pe *promotionEngine) RequireApprovalForPromotion(ctx context.Context, ref *PackageReference, targetEnv string, approvers []string) (*PromotionApprovalRequirement, error) {
@@ -2255,23 +1867,20 @@ func (pe *promotionEngine) RequireApprovalForPromotion(ctx context.Context, ref 
 
 	return &PromotionApprovalRequirement{
 
-		ID:                fmt.Sprintf("approval-%d", time.Now().UnixNano()),
+		ID: fmt.Sprintf("approval-%d", time.Now().UnixNano()),
 
-		PackageRef:        ref,
+		PackageRef: ref,
 
 		TargetEnvironment: targetEnv,
 
 		RequiredApprovers: approvers,
 
-		CreatedAt:         time.Now(),
+		CreatedAt: time.Now(),
 
-		Status:            "pending",
-
+		Status: "pending",
 	}, nil
 
 }
-
-
 
 // CheckPromotionApprovals performs checkpromotionapprovals operation.
 
@@ -2281,17 +1890,14 @@ func (pe *promotionEngine) CheckPromotionApprovals(ctx context.Context, promotio
 
 		PromotionID: promotionID,
 
-		Status:      PromotionApprovalStatusApproved,
+		Status: PromotionApprovalStatusApproved,
 
-		Approvals:   []ApprovalRecord{},
+		Approvals: []ApprovalRecord{},
 
-		CreatedAt:   time.Now(),
-
+		CreatedAt: time.Now(),
 	}, nil
 
 }
-
-
 
 // BypassPromotionApproval performs bypasspromotionapproval operation.
 
@@ -2303,39 +1909,34 @@ func (pe *promotionEngine) BypassPromotionApproval(ctx context.Context, promotio
 
 }
 
-
-
 // PromoteAcrossClusters performs promoteacrossclusters operation.
 
 func (pe *promotionEngine) PromoteAcrossClusters(ctx context.Context, ref *PackageReference, targetClusters []*ClusterTarget, opts *CrossClusterOptions) (*CrossClusterPromotionResult, error) {
 
 	return &CrossClusterPromotionResult{
 
-		ID:                 fmt.Sprintf("crosscluster-%d", time.Now().UnixNano()),
+		ID: fmt.Sprintf("crosscluster-%d", time.Now().UnixNano()),
 
-		PackageRef:         ref,
+		PackageRef: ref,
 
-		TargetClusters:     targetClusters,
+		TargetClusters: targetClusters,
 
-		Status:             CrossClusterStatusSucceeded,
+		Status: CrossClusterStatusSucceeded,
 
-		StartTime:          time.Now(),
+		StartTime: time.Now(),
 
-		ClusterResults:     make(map[string]*ClusterPromotionResult),
+		ClusterResults: make(map[string]*ClusterPromotionResult),
 
-		OverallSuccess:     true,
+		OverallSuccess: true,
 
 		SuccessfulClusters: []string{},
 
-		FailedClusters:     []string{},
+		FailedClusters: []string{},
 
-		Errors:             []CrossClusterError{},
-
+		Errors: []CrossClusterError{},
 	}, nil
 
 }
-
-
 
 // GetClusterPromotionStatus performs getclusterpromotionstatus operation.
 
@@ -2347,15 +1948,12 @@ func (pe *promotionEngine) GetClusterPromotionStatus(ctx context.Context, promot
 
 		ClusterName: clusterName,
 
-		Status:      "succeeded",
+		Status: "succeeded",
 
-		StartTime:   time.Now(),
-
+		StartTime: time.Now(),
 	}, nil
 
 }
-
-
 
 // SynchronizeAcrossClusters performs synchronizeacrossclusters operation.
 
@@ -2364,8 +1962,6 @@ func (pe *promotionEngine) SynchronizeAcrossClusters(ctx context.Context, ref *P
 	return &SyncResult{Success: true, SyncTime: time.Now()}, nil
 
 }
-
-
 
 // UnregisterEnvironment performs unregisterenvironment operation.
 
@@ -2377,8 +1973,6 @@ func (pe *promotionEngine) UnregisterEnvironment(ctx context.Context, envName st
 
 }
 
-
-
 // GetEnvironment performs getenvironment operation.
 
 func (pe *promotionEngine) GetEnvironment(ctx context.Context, envName string) (*Environment, error) {
@@ -2386,8 +1980,6 @@ func (pe *promotionEngine) GetEnvironment(ctx context.Context, envName string) (
 	return pe.environmentRegistry.GetEnvironment(ctx, envName)
 
 }
-
-
 
 // ListEnvironments performs listenvironments operation.
 
@@ -2397,29 +1989,24 @@ func (pe *promotionEngine) ListEnvironments(ctx context.Context) ([]*Environment
 
 }
 
-
-
 // ValidateEnvironmentChain performs validateenvironmentchain operation.
 
 func (pe *promotionEngine) ValidateEnvironmentChain(ctx context.Context, chain []string) (*ChainValidationResult, error) {
 
 	return &ChainValidationResult{
 
-		Valid:        true,
+		Valid: true,
 
-		Chain:        chain,
+		Chain: chain,
 
-		Errors:       []string{},
+		Errors: []string{},
 
-		Warnings:     []string{},
+		Warnings: []string{},
 
 		Dependencies: make(map[string][]string),
-
 	}, nil
 
 }
-
-
 
 // CreatePromotionPipeline performs createpromotionpipeline operation.
 
@@ -2431,8 +2018,6 @@ func (pe *promotionEngine) CreatePromotionPipeline(ctx context.Context, pipeline
 
 }
 
-
-
 // UpdatePromotionPipeline performs updatepromotionpipeline operation.
 
 func (pe *promotionEngine) UpdatePromotionPipeline(ctx context.Context, pipeline *PromotionPipeline) error {
@@ -2442,8 +2027,6 @@ func (pe *promotionEngine) UpdatePromotionPipeline(ctx context.Context, pipeline
 	return nil
 
 }
-
-
 
 // DeletePromotionPipeline performs deletepromotionpipeline operation.
 
@@ -2455,29 +2038,24 @@ func (pe *promotionEngine) DeletePromotionPipeline(ctx context.Context, pipeline
 
 }
 
-
-
 // GetPromotionPipeline performs getpromotionpipeline operation.
 
 func (pe *promotionEngine) GetPromotionPipeline(ctx context.Context, pipelineID string) (*PromotionPipeline, error) {
 
 	return &PromotionPipeline{
 
-		ID:          pipelineID,
+		ID: pipelineID,
 
-		Name:        "Default Pipeline",
+		Name: "Default Pipeline",
 
 		Description: "Default promotion pipeline",
 
-		Stages:      []*PipelineStage{},
+		Stages: []*PipelineStage{},
 
-		CreatedAt:   time.Now(),
-
+		CreatedAt: time.Now(),
 	}, nil
 
 }
-
-
 
 // ExecutePipeline performs executepipeline operation.
 
@@ -2485,25 +2063,22 @@ func (pe *promotionEngine) ExecutePipeline(ctx context.Context, pipelineID strin
 
 	return &PipelineExecutionResult{
 
-		PipelineID:   pipelineID,
+		PipelineID: pipelineID,
 
-		Success:      true,
+		Success: true,
 
-		Duration:     time.Minute,
+		Duration: time.Minute,
 
-		StagesRun:    3,
+		StagesRun: 3,
 
 		StagesFailed: 0,
 
-		Results:      make(map[string]interface{}),
+		Results: make(map[string]interface{}),
 
-		Logs:         []string{},
-
+		Logs: []string{},
 	}, nil
 
 }
-
-
 
 // GetPromotionMetrics performs getpromotionmetrics operation.
 
@@ -2511,31 +2086,28 @@ func (pe *promotionEngine) GetPromotionMetrics(ctx context.Context, env string) 
 
 	return &PromotionMetrics{
 
-		Environment:          env,
+		Environment: env,
 
-		TotalPromotions:      0,
+		TotalPromotions: 0,
 
 		SuccessfulPromotions: 0,
 
-		FailedPromotions:     0,
+		FailedPromotions: 0,
 
 		AveragePromotionTime: 0,
 
-		CanaryPromotions:     0,
+		CanaryPromotions: 0,
 
-		BlueGreenPromotions:  0,
+		BlueGreenPromotions: 0,
 
-		RollbackCount:        0,
+		RollbackCount: 0,
 
-		HealthCheckMetrics:   &HealthCheckMetrics{},
+		HealthCheckMetrics: &HealthCheckMetrics{},
 
-		LastPromotionTime:    time.Now(),
-
+		LastPromotionTime: time.Now(),
 	}, nil
 
 }
-
-
 
 // GetEnvironmentMetrics performs getenvironmentmetrics operation.
 
@@ -2545,23 +2117,20 @@ func (pe *promotionEngine) GetEnvironmentMetrics(ctx context.Context) (*Environm
 
 		TotalEnvironments: 3,
 
-		ActivePromotions:  0,
+		ActivePromotions: 0,
 
-		QueuedPromotions:  0,
+		QueuedPromotions: 0,
 
 		PromotionsPerHour: 0.0,
 
 		EnvironmentHealth: make(map[string]float64),
 
-		PromotionLatency:  make(map[string]time.Duration),
+		PromotionLatency: make(map[string]time.Duration),
 
-		ErrorRates:        make(map[string]float64),
-
+		ErrorRates: make(map[string]float64),
 	}, nil
 
 }
-
-
 
 // GeneratePromotionReport performs generatepromotionreport operation.
 
@@ -2571,19 +2140,16 @@ func (pe *promotionEngine) GeneratePromotionReport(ctx context.Context, opts *Pr
 
 		PromotionID: "report-1",
 
-		Timeline:    []PromotionEvent{},
+		Timeline: []PromotionEvent{},
 
 		Performance: &PromotionMetrics{},
 
-		Issues:      []PromotionIssue{},
+		Issues: []PromotionIssue{},
 
 		GeneratedAt: time.Now(),
-
 	}, nil
 
 }
-
-
 
 // GetEngineHealth performs getenginehealth operation.
 
@@ -2591,23 +2157,20 @@ func (pe *promotionEngine) GetEngineHealth(ctx context.Context) (*PromotionEngin
 
 	return &PromotionEngineHealth{
 
-		Status:           "healthy",
+		Status: "healthy",
 
-		LastCheck:        time.Now(),
+		LastCheck: time.Now(),
 
 		ActivePromotions: 0,
 
-		QueueSize:        0,
+		QueueSize: 0,
 
-		ErrorRate:        0.0,
+		ErrorRate: 0.0,
 
-		AverageTime:      time.Minute,
-
+		AverageTime: time.Minute,
 	}, nil
 
 }
-
-
 
 // CleanupCompletedPromotions performs cleanupcompletedpromotions operation.
 
@@ -2617,19 +2180,14 @@ func (pe *promotionEngine) CleanupCompletedPromotions(ctx context.Context, older
 
 		ItemsRemoved: 0,
 
-		Duration:     time.Second,
+		Duration: time.Second,
 
-		Errors:       []string{},
-
+		Errors: []string{},
 	}, nil
 
 }
 
-
-
 // Background workers.
-
-
 
 // healthMonitorWorker monitors promotion health.
 
@@ -2640,8 +2198,6 @@ func (pe *promotionEngine) healthMonitorWorker() {
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2661,8 +2217,6 @@ func (pe *promotionEngine) healthMonitorWorker() {
 
 }
 
-
-
 // metricsCollectionWorker collects promotion metrics.
 
 func (pe *promotionEngine) metricsCollectionWorker() {
@@ -2672,8 +2226,6 @@ func (pe *promotionEngine) metricsCollectionWorker() {
 	ticker := time.NewTicker(1 * time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2693,8 +2245,6 @@ func (pe *promotionEngine) metricsCollectionWorker() {
 
 }
 
-
-
 // promotionCleanupWorker cleans up completed promotions.
 
 func (pe *promotionEngine) promotionCleanupWorker() {
@@ -2704,8 +2254,6 @@ func (pe *promotionEngine) promotionCleanupWorker() {
 	ticker := time.NewTicker(1 * time.Hour)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2725,21 +2273,15 @@ func (pe *promotionEngine) promotionCleanupWorker() {
 
 }
 
-
-
 // Close gracefully shuts down the promotion engine.
 
 func (pe *promotionEngine) Close() error {
 
 	pe.logger.Info("Shutting down promotion engine")
 
-
-
 	close(pe.shutdown)
 
 	pe.wg.Wait()
-
-
 
 	// Close components.
 
@@ -2767,19 +2309,13 @@ func (pe *promotionEngine) Close() error {
 
 	}
 
-
-
 	pe.logger.Info("Promotion engine shutdown complete")
 
 	return nil
 
 }
 
-
-
 // Helper methods and supporting functionality.
-
-
 
 // getPromotionLock gets or creates a promotion lock.
 
@@ -2789,15 +2325,11 @@ func (pe *promotionEngine) getPromotionLock(promotionID string) *sync.Mutex {
 
 	defer pe.lockMutex.Unlock()
 
-
-
 	if lock, exists := pe.promotionLocks[promotionID]; exists {
 
 		return lock
 
 	}
-
-
 
 	lock := &sync.Mutex{}
 
@@ -2806,8 +2338,6 @@ func (pe *promotionEngine) getPromotionLock(promotionID string) *sync.Mutex {
 	return lock
 
 }
-
-
 
 // determineSourceEnvironment determines source environment from package.
 
@@ -2821,8 +2351,6 @@ func (pe *promotionEngine) determineSourceEnvironment(pkg *PackageRevision) stri
 
 }
 
-
-
 // executePromotionHooks executes promotion hooks.
 
 func (pe *promotionEngine) executePromotionHooks(ctx context.Context, hooks []PromotionHook, result *PromotionResult) error {
@@ -2832,8 +2360,6 @@ func (pe *promotionEngine) executePromotionHooks(ctx context.Context, hooks []Pr
 	return nil
 
 }
-
-
 
 // executeDirectPromotion executes a direct promotion strategy.
 
@@ -2847,8 +2373,6 @@ func (pe *promotionEngine) executeDirectPromotion(ctx context.Context, result *P
 
 }
 
-
-
 // executeCanaryPromotionInitiation initiates canary promotion.
 
 func (pe *promotionEngine) executeCanaryPromotionInitiation(ctx context.Context, result *PromotionResult, env *Environment, opts *PromotionOptions) error {
@@ -2860,8 +2384,6 @@ func (pe *promotionEngine) executeCanaryPromotionInitiation(ctx context.Context,
 	return nil
 
 }
-
-
 
 // executeBlueGreenPromotionInitiation initiates blue-green promotion.
 
@@ -2875,8 +2397,6 @@ func (pe *promotionEngine) executeBlueGreenPromotionInitiation(ctx context.Conte
 
 }
 
-
-
 // checkPromotionApprovals checks for required approvals.
 
 func (pe *promotionEngine) checkPromotionApprovals(ctx context.Context, result *PromotionResult, approvers []string) (*PromotionApprovalStatus, error) {
@@ -2887,17 +2407,14 @@ func (pe *promotionEngine) checkPromotionApprovals(ctx context.Context, result *
 
 		PromotionID: result.ID,
 
-		Status:      PromotionApprovalStatusApproved,
+		Status: PromotionApprovalStatusApproved,
 
-		Approvals:   []ApprovalRecord{},
+		Approvals: []ApprovalRecord{},
 
-		CreatedAt:   time.Now(),
-
+		CreatedAt: time.Now(),
 	}, nil
 
 }
-
-
 
 // rollbackPromotion performs promotion rollback.
 
@@ -2911,19 +2428,13 @@ func (pe *promotionEngine) rollbackPromotion(ctx context.Context, result *Promot
 
 }
 
-
-
 // Background worker implementations.
-
-
 
 func (pe *promotionEngine) monitorActivePromotions() {
 
 	// Implementation would monitor active promotions.
 
 }
-
-
 
 func (pe *promotionEngine) collectMetrics() {
 
@@ -2937,15 +2448,11 @@ func (pe *promotionEngine) collectMetrics() {
 
 }
 
-
-
 func (pe *promotionEngine) cleanupCompletedPromotions() {
 
 	// Implementation would cleanup old promotions.
 
 }
-
-
 
 func (pe *promotionEngine) registerDefaultEnvironments() {
 
@@ -2955,37 +2462,31 @@ func (pe *promotionEngine) registerDefaultEnvironments() {
 
 		{
 
-			ID:   "dev",
+			ID: "dev",
 
 			Name: "development",
 
 			Type: EnvironmentTypeDevelopment,
-
 		},
 
 		{
 
-			ID:   "staging",
+			ID: "staging",
 
 			Name: "staging",
 
 			Type: EnvironmentTypeStaging,
-
 		},
 
 		{
 
-			ID:   "prod",
+			ID: "prod",
 
 			Name: "production",
 
 			Type: EnvironmentTypeProduction,
-
 		},
-
 	}
-
-
 
 	for _, env := range environments {
 
@@ -2995,31 +2496,24 @@ func (pe *promotionEngine) registerDefaultEnvironments() {
 
 }
 
-
-
 // Configuration and metrics.
-
-
 
 func getDefaultPromotionEngineConfig() *PromotionEngineConfig {
 
 	return &PromotionEngineConfig{
 
-		MaxConcurrentPromotions:   50,
+		MaxConcurrentPromotions: 50,
 
 		DefaultHealthCheckTimeout: 5 * time.Minute,
 
-		DefaultPromotionTimeout:   30 * time.Minute,
+		DefaultPromotionTimeout: 30 * time.Minute,
 
-		EnableMetrics:             true,
+		EnableMetrics: true,
 
-		EnableHealthMonitoring:    true,
-
+		EnableHealthMonitoring: true,
 	}
 
 }
-
-
 
 func initPromotionEngineMetrics() *PromotionEngineMetrics {
 
@@ -3032,27 +2526,23 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 				Name: "porch_promotions_total",
 
 				Help: "Total number of package promotions",
-
 			},
 
 			[]string{"environment", "status", "strategy"},
-
 		),
 
 		promotionDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "porch_promotion_duration_seconds",
+				Name: "porch_promotion_duration_seconds",
 
-				Help:    "Duration of package promotions",
+				Help: "Duration of package promotions",
 
 				Buckets: []float64{30, 60, 120, 300, 600, 1200, 1800},
-
 			},
 
 			[]string{"environment", "strategy"},
-
 		),
 
 		canaryPromotionsTotal: prometheus.NewCounter(
@@ -3062,9 +2552,7 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 				Name: "porch_canary_promotions_total",
 
 				Help: "Total number of canary promotions",
-
 			},
-
 		),
 
 		activeCanaryPromotions: prometheus.NewGauge(
@@ -3074,9 +2562,7 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 				Name: "porch_active_canary_promotions",
 
 				Help: "Number of active canary promotions",
-
 			},
-
 		),
 
 		blueGreenPromotionsTotal: prometheus.NewCounter(
@@ -3086,9 +2572,7 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 				Name: "porch_bluegreen_promotions_total",
 
 				Help: "Total number of blue-green promotions",
-
 			},
-
 		),
 
 		activeBlueGreenPromotions: prometheus.NewGauge(
@@ -3098,25 +2582,21 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 				Name: "porch_active_bluegreen_promotions",
 
 				Help: "Number of active blue-green promotions",
-
 			},
-
 		),
 
 		healthCheckDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "porch_health_check_duration_seconds",
+				Name: "porch_health_check_duration_seconds",
 
-				Help:    "Duration of health checks",
+				Help: "Duration of health checks",
 
 				Buckets: prometheus.DefBuckets,
-
 			},
 
 			[]string{"environment", "check_type"},
-
 		),
 
 		environmentHealth: prometheus.NewGaugeVec(
@@ -3126,450 +2606,349 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 				Name: "porch_environment_health",
 
 				Help: "Health score of environments (0-1)",
-
 			},
 
 			[]string{"environment"},
-
 		),
-
 	}
 
 }
 
-
-
 // Supporting types and configurations.
-
-
 
 // PromotionEngineConfig represents a promotionengineconfig.
 
 type PromotionEngineConfig struct {
-
-	MaxConcurrentPromotions   int
+	MaxConcurrentPromotions int
 
 	DefaultHealthCheckTimeout time.Duration
 
-	DefaultPromotionTimeout   time.Duration
+	DefaultPromotionTimeout time.Duration
 
-	EnableMetrics             bool
+	EnableMetrics bool
 
-	EnableHealthMonitoring    bool
+	EnableHealthMonitoring bool
 
 	EnvironmentRegistryConfig *EnvironmentRegistryConfig
 
-	ClusterManagerConfig      *ClusterManagerConfig
+	ClusterManagerConfig *ClusterManagerConfig
 
-	CanaryManagerConfig       *CanaryManagerConfig
+	CanaryManagerConfig *CanaryManagerConfig
 
-	BlueGreenManagerConfig    *BlueGreenManagerConfig
+	BlueGreenManagerConfig *BlueGreenManagerConfig
 
-	RolloutStrategyConfig     *RolloutStrategyManagerConfig
+	RolloutStrategyConfig *RolloutStrategyManagerConfig
 
-	HealthCheckerConfig       *PromotionHealthCheckerConfig
+	HealthCheckerConfig *PromotionHealthCheckerConfig
 
-	ValidatorConfig           *PromotionValidatorConfig
+	ValidatorConfig *PromotionValidatorConfig
 
-	PipelineRegistryConfig    *PipelineRegistryConfig
+	PipelineRegistryConfig *PipelineRegistryConfig
 
-	ExecutionEngineConfig     *PipelineExecutionEngineConfig
+	ExecutionEngineConfig *PipelineExecutionEngineConfig
 
-	ApprovalIntegratorConfig  *ApprovalIntegratorConfig
+	ApprovalIntegratorConfig *ApprovalIntegratorConfig
 
 	CrossClusterManagerConfig *CrossClusterManagerConfig
 
-	PromotionTrackerConfig    *PromotionTrackerConfig
+	PromotionTrackerConfig *PromotionTrackerConfig
 
-	CheckpointManagerConfig   *CheckpointManagerConfig
+	CheckpointManagerConfig *CheckpointManagerConfig
 
-	HealthMonitorConfig       *PromotionHealthMonitorConfig
+	HealthMonitorConfig *PromotionHealthMonitorConfig
 
-	MetricsCollectorConfig    *PromotionMetricsCollectorConfig
-
+	MetricsCollectorConfig *PromotionMetricsCollectorConfig
 }
-
-
 
 // PromotionEngineMetrics represents a promotionenginemetrics.
 
 type PromotionEngineMetrics struct {
+	promotionsTotal *prometheus.CounterVec
 
-	promotionsTotal           *prometheus.CounterVec
+	promotionDuration *prometheus.HistogramVec
 
-	promotionDuration         *prometheus.HistogramVec
+	canaryPromotionsTotal prometheus.Counter
 
-	canaryPromotionsTotal     prometheus.Counter
+	activeCanaryPromotions prometheus.Gauge
 
-	activeCanaryPromotions    prometheus.Gauge
-
-	blueGreenPromotionsTotal  prometheus.Counter
+	blueGreenPromotionsTotal prometheus.Counter
 
 	activeBlueGreenPromotions prometheus.Gauge
 
-	healthCheckDuration       *prometheus.HistogramVec
+	healthCheckDuration *prometheus.HistogramVec
 
-	environmentHealth         *prometheus.GaugeVec
-
+	environmentHealth *prometheus.GaugeVec
 }
-
-
 
 // Additional types and placeholder implementations.
 
 type PromotionError struct {
+	Code string
 
-	Code      string
-
-	Message   string
+	Message string
 
 	Timestamp time.Time
-
 }
-
-
 
 // RollbackOption represents an option for rolling back a promotion.
 
 type RollbackOption struct {
-
-	ID          string
+	ID string
 
 	Description string
 
 	TargetState string
 
-	Timestamp   time.Time
+	Timestamp time.Time
 
-	Risk        RiskLevel
+	Risk RiskLevel
 
-	Impact      string
-
+	Impact string
 }
-
-
 
 // PromotionCheckpoint represents a checkpoint for rollback purposes.
 
 type PromotionCheckpoint struct {
+	ID string
 
-	ID          string
-
-	PackageRef  *PackageReference
+	PackageRef *PackageReference
 
 	Environment string
 
-	State       map[string]interface{}
+	State map[string]interface{}
 
-	CreatedAt   time.Time
+	CreatedAt time.Time
 
 	Description string
 
-	Size        int64
-
+	Size int64
 }
-
-
 
 // RollbackOptions configures rollback behavior.
 
 type RollbackOptions struct {
-
 	CheckpointID string
 
-	Force        bool
+	Force bool
 
-	DryRun       bool
+	DryRun bool
 
-	StopOnError  bool
+	StopOnError bool
 
-	Timeout      time.Duration
-
+	Timeout time.Duration
 }
-
-
 
 // CheckpointRollbackResult contains the result of rolling back to a checkpoint.
 
 type CheckpointRollbackResult struct {
-
-	Success      bool
+	Success bool
 
 	CheckpointID string
 
 	RollbackTime time.Duration
 
-	Changes      []string
+	Changes []string
 
-	Errors       []string
-
+	Errors []string
 }
-
-
 
 // HealthWaitResult contains the result of waiting for health checks.
 
 type HealthWaitResult struct {
+	Healthy bool
 
-	Healthy     bool
-
-	WaitTime    time.Duration
+	WaitTime time.Duration
 
 	HealthCheck string
 
-	Details     map[string]interface{}
-
+	Details map[string]interface{}
 }
-
-
 
 // ChainValidationResult contains the result of validating a promotion chain.
 
 type ChainValidationResult struct {
+	Valid bool
 
-	Valid        bool
+	Chain []string
 
-	Chain        []string
+	Errors []string
 
-	Errors       []string
-
-	Warnings     []string
+	Warnings []string
 
 	Dependencies map[string][]string
-
 }
-
-
 
 // PipelineExecutionResult contains the result of pipeline execution.
 
 type PipelineExecutionResult struct {
+	PipelineID string
 
-	PipelineID   string
+	Success bool
 
-	Success      bool
+	Duration time.Duration
 
-	Duration     time.Duration
-
-	StagesRun    int
+	StagesRun int
 
 	StagesFailed int
 
-	Results      map[string]interface{}
+	Results map[string]interface{}
 
-	Logs         []string
-
+	Logs []string
 }
-
-
 
 // PromotionReportOptions configures promotion report generation.
 
 type PromotionReportOptions struct {
-
-	Format      string
+	Format string
 
 	IncludeLogs bool
 
 	DetailLevel string
 
-	TimeRange   *TimeRange
-
+	TimeRange *TimeRange
 }
-
-
 
 // PromotionReport contains comprehensive promotion information.
 
 type PromotionReport struct {
-
 	PromotionID string
 
-	PackageRef  *PackageReference
+	PackageRef *PackageReference
 
-	Timeline    []PromotionEvent
+	Timeline []PromotionEvent
 
 	Performance *PromotionMetrics
 
-	Issues      []PromotionIssue
+	Issues []PromotionIssue
 
 	GeneratedAt time.Time
-
 }
-
-
 
 // PromotionEvent represents an event in the promotion timeline.
 
 type PromotionEvent struct {
+	Timestamp time.Time
 
-	Timestamp   time.Time
-
-	Event       string
+	Event string
 
 	Description string
 
-	Actor       string
+	Actor string
 
-	Details     map[string]interface{}
-
+	Details map[string]interface{}
 }
-
-
 
 // PromotionIssue represents an issue during promotion.
 
 type PromotionIssue struct {
+	Type string
 
-	Type       string
+	Severity string
 
-	Severity   string
+	Message string
 
-	Message    string
+	Component string
 
-	Component  string
-
-	Timestamp  time.Time
+	Timestamp time.Time
 
 	Resolution string
-
 }
-
-
 
 // PromotionEngineHealth represents the health of the promotion engine.
 
 type PromotionEngineHealth struct {
+	Status string
 
-	Status           string
-
-	LastCheck        time.Time
+	LastCheck time.Time
 
 	ActivePromotions int
 
-	QueueSize        int
+	QueueSize int
 
-	ErrorRate        float64
+	ErrorRate float64
 
-	AverageTime      time.Duration
-
+	AverageTime time.Duration
 }
-
-
 
 // PipelineRollbackPolicy defines rollback policies for pipelines.
 
 type PipelineRollbackPolicy struct {
-
-	AutoRollback    bool
+	AutoRollback bool
 
 	RollbackOnError bool
 
-	MaxRetries      int
+	MaxRetries int
 
 	BackoffInterval time.Duration
-
 }
-
-
 
 // RollbackInfo represents a rollbackinfo.
 
 type RollbackInfo struct {
+	Available bool
 
-	Available  bool
-
-	Options    []*RollbackOption
+	Options []*RollbackOption
 
 	LastBackup *PromotionCheckpoint
-
 }
-
-
 
 // PromotionHook represents a promotionhook.
 
 type PromotionHook struct {
+	ID string
 
-	ID     string
-
-	Type   string
+	Type string
 
 	Config map[string]interface{}
-
 }
-
-
 
 // PromotionValidationResult represents a promotionvalidationresult.
 
 type PromotionValidationResult struct {
+	Valid bool
 
-	Valid    bool
-
-	Errors   []string
+	Errors []string
 
 	Warnings []string
-
 }
-
-
 
 // PipelinePromotionResult represents a pipelinepromotionresult.
 
 type PipelinePromotionResult struct {
+	ID string
 
-	ID      string
-
-	Status  string
+	Status string
 
 	Results []*PromotionResult
-
 }
-
-
 
 // PromotionStatus represents a promotionstatus.
 
 type PromotionStatus struct {
-
-	ID     string
+	ID string
 
 	Status PromotionResultStatus
-
 }
-
-
 
 // PromotionList represents a promotionlist.
 
 type PromotionList struct {
-
 	Items []*PromotionResult
-
 }
-
-
 
 // PromotionListOptions represents a promotionlistoptions.
 
 type PromotionListOptions struct {
-
 	Environment string
 
-	Status      []PromotionResultStatus
+	Status []PromotionResultStatus
 
-	PageSize    int
-
+	PageSize int
 }
-
-
 
 // Placeholder component implementations.
 
 type EnvironmentRegistry struct{}
-
-
 
 // NewEnvironmentRegistry performs newenvironmentregistry operation.
 
@@ -3579,8 +2958,6 @@ func NewEnvironmentRegistry(config *EnvironmentRegistryConfig) *EnvironmentRegis
 
 }
 
-
-
 // RegisterEnvironment performs registerenvironment operation.
 
 func (er *EnvironmentRegistry) RegisterEnvironment(ctx context.Context, env *Environment) error {
@@ -3588,8 +2965,6 @@ func (er *EnvironmentRegistry) RegisterEnvironment(ctx context.Context, env *Env
 	return nil
 
 }
-
-
 
 // GetEnvironment performs getenvironment operation.
 
@@ -3599,37 +2974,25 @@ func (er *EnvironmentRegistry) GetEnvironment(ctx context.Context, name string) 
 
 }
 
-
-
 // Close performs close operation.
 
 func (er *EnvironmentRegistry) Close() error { return nil }
-
-
 
 // ClusterManager represents a clustermanager.
 
 type ClusterManager struct{}
 
-
-
 // NewClusterManager performs newclustermanager operation.
 
 func NewClusterManager(config *ClusterManagerConfig) *ClusterManager { return &ClusterManager{} }
-
-
 
 // CanaryManager represents a canarymanager.
 
 type CanaryManager struct{}
 
-
-
 // NewCanaryManager performs newcanarymanager operation.
 
 func NewCanaryManager(config *CanaryManagerConfig) *CanaryManager { return &CanaryManager{} }
-
-
 
 // RegisterCanary performs registercanary operation.
 
@@ -3639,8 +3002,6 @@ func (cm *CanaryManager) RegisterCanary(ctx context.Context, canary *CanaryPromo
 
 }
 
-
-
 // InitializeCanary performs initializecanary operation.
 
 func (cm *CanaryManager) InitializeCanary(ctx context.Context, canary *CanaryPromotion) error {
@@ -3648,8 +3009,6 @@ func (cm *CanaryManager) InitializeCanary(ctx context.Context, canary *CanaryPro
 	return nil
 
 }
-
-
 
 // SetTrafficPercent performs settrafficpercent operation.
 
@@ -3659,19 +3018,13 @@ func (cm *CanaryManager) SetTrafficPercent(ctx context.Context, canaryID string,
 
 }
 
-
-
 // Close performs close operation.
 
 func (cm *CanaryManager) Close() error { return nil }
 
-
-
 // BlueGreenManager represents a bluegreenmanager.
 
 type BlueGreenManager struct{}
-
-
 
 // NewBlueGreenManager performs newbluegreenmanager operation.
 
@@ -3681,8 +3034,6 @@ func NewBlueGreenManager(config *BlueGreenManagerConfig) *BlueGreenManager {
 
 }
 
-
-
 // RegisterPromotion performs registerpromotion operation.
 
 func (bgm *BlueGreenManager) RegisterPromotion(ctx context.Context, promotion *BlueGreenPromotion) error {
@@ -3690,8 +3041,6 @@ func (bgm *BlueGreenManager) RegisterPromotion(ctx context.Context, promotion *B
 	return nil
 
 }
-
-
 
 // DeployToGreen performs deploytogreen operation.
 
@@ -3701,8 +3050,6 @@ func (bgm *BlueGreenManager) DeployToGreen(ctx context.Context, promotion *BlueG
 
 }
 
-
-
 // RunValidationChecks performs runvalidationchecks operation.
 
 func (bgm *BlueGreenManager) RunValidationChecks(ctx context.Context, promotion *BlueGreenPromotion) ([]*ValidationResult, error) {
@@ -3711,19 +3058,13 @@ func (bgm *BlueGreenManager) RunValidationChecks(ctx context.Context, promotion 
 
 }
 
-
-
 // Close performs close operation.
 
 func (bgm *BlueGreenManager) Close() error { return nil }
 
-
-
 // RolloutStrategyManager represents a rolloutstrategymanager.
 
 type RolloutStrategyManager struct{}
-
-
 
 // NewRolloutStrategyManager performs newrolloutstrategymanager operation.
 
@@ -3733,13 +3074,9 @@ func NewRolloutStrategyManager(config *RolloutStrategyManagerConfig) *RolloutStr
 
 }
 
-
-
 // PromotionHealthChecker represents a promotionhealthchecker.
 
 type PromotionHealthChecker struct{}
-
-
 
 // NewPromotionHealthChecker performs newpromotionhealthchecker operation.
 
@@ -3749,8 +3086,6 @@ func NewPromotionHealthChecker(config *PromotionHealthCheckerConfig) *PromotionH
 
 }
 
-
-
 // ExecuteHealthCheck performs executehealthcheck operation.
 
 func (phc *PromotionHealthChecker) ExecuteHealthCheck(ctx context.Context, ref *PackageReference, env string, check *HealthCheck) (*HealthCheckResult, error) {
@@ -3759,19 +3094,13 @@ func (phc *PromotionHealthChecker) ExecuteHealthCheck(ctx context.Context, ref *
 
 }
 
-
-
 // Close performs close operation.
 
 func (phc *PromotionHealthChecker) Close() error { return nil }
 
-
-
 // PromotionValidator represents a promotionvalidator.
 
 type PromotionValidator struct{}
-
-
 
 // NewPromotionValidator performs newpromotionvalidator operation.
 
@@ -3781,8 +3110,6 @@ func NewPromotionValidator(config *PromotionValidatorConfig) *PromotionValidator
 
 }
 
-
-
 // ValidatePromotion performs validatepromotion operation.
 
 func (pv *PromotionValidator) ValidatePromotion(ctx context.Context, ref *PackageReference, targetEnv string) (*PromotionValidationResult, error) {
@@ -3791,13 +3118,9 @@ func (pv *PromotionValidator) ValidatePromotion(ctx context.Context, ref *Packag
 
 }
 
-
-
 // PipelineRegistry represents a pipelineregistry.
 
 type PipelineRegistry struct{}
-
-
 
 // NewPipelineRegistry performs newpipelineregistry operation.
 
@@ -3807,13 +3130,9 @@ func NewPipelineRegistry(config *PipelineRegistryConfig) *PipelineRegistry {
 
 }
 
-
-
 // PipelineExecutionEngine represents a pipelineexecutionengine.
 
 type PipelineExecutionEngine struct{}
-
-
 
 // NewPipelineExecutionEngine performs newpipelineexecutionengine operation.
 
@@ -3823,13 +3142,9 @@ func NewPipelineExecutionEngine(config *PipelineExecutionEngineConfig) *Pipeline
 
 }
 
-
-
 // ApprovalIntegrator represents a approvalintegrator.
 
 type ApprovalIntegrator struct{}
-
-
 
 // NewApprovalIntegrator performs newapprovalintegrator operation.
 
@@ -3839,13 +3154,9 @@ func NewApprovalIntegrator(config *ApprovalIntegratorConfig) *ApprovalIntegrator
 
 }
 
-
-
 // CrossClusterManager represents a crossclustermanager.
 
 type CrossClusterManager struct{}
-
-
 
 // NewCrossClusterManager performs newcrossclustermanager operation.
 
@@ -3855,13 +3166,9 @@ func NewCrossClusterManager(config *CrossClusterManagerConfig) *CrossClusterMana
 
 }
 
-
-
 // PromotionTracker represents a promotiontracker.
 
 type PromotionTracker struct{}
-
-
 
 // NewPromotionTracker performs newpromotiontracker operation.
 
@@ -3871,8 +3178,6 @@ func NewPromotionTracker(config *PromotionTrackerConfig) *PromotionTracker {
 
 }
 
-
-
 // RegisterPromotion performs registerpromotion operation.
 
 func (pt *PromotionTracker) RegisterPromotion(ctx context.Context, result *PromotionResult) error {
@@ -3880,8 +3185,6 @@ func (pt *PromotionTracker) RegisterPromotion(ctx context.Context, result *Promo
 	return nil
 
 }
-
-
 
 // UpdatePromotion performs updatepromotion operation.
 
@@ -3891,13 +3194,9 @@ func (pt *PromotionTracker) UpdatePromotion(ctx context.Context, result *Promoti
 
 }
 
-
-
 // CheckpointManager represents a checkpointmanager.
 
 type CheckpointManager struct{}
-
-
 
 // NewCheckpointManager performs newcheckpointmanager operation.
 
@@ -3907,13 +3206,9 @@ func NewCheckpointManager(config *CheckpointManagerConfig) *CheckpointManager {
 
 }
 
-
-
 // PromotionHealthMonitor represents a promotionhealthmonitor.
 
 type PromotionHealthMonitor struct{}
-
-
 
 // NewPromotionHealthMonitor performs newpromotionhealthmonitor operation.
 
@@ -3923,13 +3218,9 @@ func NewPromotionHealthMonitor(config *PromotionHealthMonitorConfig) *PromotionH
 
 }
 
-
-
 // PromotionMetricsCollector represents a promotionmetricscollector.
 
 type PromotionMetricsCollector struct{}
-
-
 
 // NewPromotionMetricsCollector performs newpromotionmetricscollector operation.
 
@@ -3939,12 +3230,9 @@ func NewPromotionMetricsCollector(config *PromotionMetricsCollectorConfig) *Prom
 
 }
 
-
-
 // Configuration placeholder types.
 
 type (
-
 	EnvironmentRegistryConfig struct{}
 
 	// ClusterManagerConfig represents a clustermanagerconfig.
@@ -4002,15 +3290,11 @@ type (
 	// PromotionMetricsCollectorConfig represents a promotionmetricscollectorconfig.
 
 	PromotionMetricsCollectorConfig struct{}
-
 )
-
-
 
 // Additional complex types would be fully implemented in production.
 
 type (
-
 	SuccessMetrics struct{}
 
 	// FailureMetrics represents a failuremetrics.
@@ -4028,73 +3312,59 @@ type (
 	// CanaryMetrics represents a canarymetrics.
 
 	CanaryMetrics struct {
-
-		CanaryID       string
+		CanaryID string
 
 		TrafficPercent int
 
-		RequestCount   int64
+		RequestCount int64
 
-		ErrorRate      float64
+		ErrorRate float64
 
-		LatencyP95     time.Duration
+		LatencyP95 time.Duration
 
-		SuccessRate    float64
+		SuccessRate float64
 
-		ResourceUsage  map[string]interface{}
+		ResourceUsage map[string]interface{}
 
-		HealthScore    float64
+		HealthScore float64
 
-		LastUpdated    time.Time
-
+		LastUpdated time.Time
 	}
-
 )
-
-
 
 // CanaryUpdate represents a canaryupdate.
 
 type CanaryUpdate struct {
-
-	CanaryID        string
+	CanaryID string
 
 	PreviousPercent int
 
-	NewPercent      int
+	NewPercent int
 
-	UpdatedAt       time.Time
+	UpdatedAt time.Time
 
-	Success         bool
+	Success bool
 
-	Error           string
-
+	Error string
 }
-
-
 
 // CanaryAbortResult represents a canaryabortresult.
 
 type CanaryAbortResult struct {
+	CanaryID string
 
-	CanaryID    string
-
-	Success     bool
+	Success bool
 
 	AbortReason string
 
-	AbortedAt   time.Time
+	AbortedAt time.Time
 
-	Error       string
-
+	Error string
 }
-
-
 
 // TrafficSwitchMode represents a trafficswitchmode.
 
 type (
-
 	TrafficSwitchMode string
 
 	// ValidationCheck represents a validationcheck.
@@ -4188,86 +3458,63 @@ type (
 	// ExtendedHealthCheckResult represents a extendedhealthcheckresult.
 
 	ExtendedHealthCheckResult struct {
-
 		HealthCheckResult
 
 		AllPassed bool
-
 	}
-
 )
-
-
 
 // PromotionApprovalStatus defines the approval status for a promotion (scoped to promotion engine).
 
 type PromotionApprovalStatus struct {
-
 	PromotionID string
 
-	Status      ApprovalStatusType
+	Status ApprovalStatusType
 
-	Approvals   []ApprovalRecord
+	Approvals []ApprovalRecord
 
-	CreatedAt   time.Time
-
+	CreatedAt time.Time
 }
 
-
-
 // Remove type alias to avoid conflicts.
-
-
 
 // Specific ApprovalRequirement for promotion engine that differs from workflow engine.
 
 type PromotionApprovalRequirement struct {
+	ID string
 
-	ID                string
-
-	PackageRef        *PackageReference
+	PackageRef *PackageReference
 
 	TargetEnvironment string
 
 	RequiredApprovers []string
 
-	CreatedAt         time.Time
+	CreatedAt time.Time
 
-	Status            string
-
+	Status string
 }
-
-
 
 // Specific TrafficSwitchResult with proper fields.
 
 type PromotionTrafficSwitchResult struct {
-
-	Success    bool
+	Success bool
 
 	SwitchedAt time.Time
 
-	Error      string
-
+	Error string
 }
-
-
 
 // ClusterPromotionStatus represents a clusterpromotionstatus.
 
 type ClusterPromotionStatus struct {
-
 	PromotionID string
 
 	ClusterName string
 
-	Status      string
+	Status string
 
-	StartTime   time.Time
-
+	StartTime time.Time
 }
-
-
 
 const (
 
@@ -4283,8 +3530,6 @@ const (
 
 	PromotionApprovalStatusRejected ApprovalStatusType = "rejected"
 
-
-
 	// CrossClusterStatusSucceeded holds crossclusterstatussucceeded value.
 
 	CrossClusterStatusSucceeded CrossClusterStatusType = "succeeded"
@@ -4293,8 +3538,6 @@ const (
 
 	CrossClusterStatusFailed CrossClusterStatusType = "failed"
 
-
-
 	// BlueGreenEnvironmentBlue holds bluegreenenvironmentblue value.
 
 	BlueGreenEnvironmentBlue BlueGreenEnvironment = "blue"
@@ -4302,6 +3545,4 @@ const (
 	// BlueGreenEnvironmentGreen holds bluegreenenvironmentgreen value.
 
 	BlueGreenEnvironmentGreen BlueGreenEnvironment = "green"
-
 )
-

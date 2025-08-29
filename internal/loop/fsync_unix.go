@@ -1,55 +1,33 @@
 //go:build !windows
-
 // +build !windows
-
-
-
 
 package loop
 
-
-
 import (
-
 	"fmt"
-
 	"io"
-
 	"log"
-
 	"os"
-
 	"path/filepath"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/pathutil"
-
 )
 
-
-
 // Unix-specific file sync operations (simpler than Windows).
-
-
 
 const (
 
 	// Retry parameters for Unix file operations (less aggressive than Windows).
 
-	maxFileRetries  = 3
+	maxFileRetries = 3
 
-	baseRetryDelay  = 10 * time.Millisecond
+	baseRetryDelay = 10 * time.Millisecond
 
-	maxRetryDelay   = 100 * time.Millisecond
+	maxRetryDelay = 100 * time.Millisecond
 
 	fileSyncTimeout = 1 * time.Second
-
 )
-
-
 
 // atomicWriteFile writes data to a file atomically on Unix with proper syncing.
 
@@ -61,8 +39,6 @@ func atomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 
 	}
 
-
-
 	// On Unix, use normal path cleaning (NormalizeWindowsPath handles non-Windows gracefully).
 
 	normalizedPath, err := pathutil.NormalizeWindowsPath(filename)
@@ -73,8 +49,6 @@ func atomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 
 	}
 
-
-
 	// Ensure parent directory exists.
 
 	if err := pathutil.EnsureParentDirectory(normalizedPath); err != nil {
@@ -83,13 +57,9 @@ func atomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 
 	}
 
-
-
 	// Write to temporary file first.
 
 	tempFile := normalizedPath + ".tmp"
-
-
 
 	// Write with sync.
 
@@ -98,8 +68,6 @@ func atomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 		return fmt.Errorf("failed to write temp file: %w", err)
 
 	}
-
-
 
 	// Atomic rename (truly atomic on Unix).
 
@@ -111,13 +79,9 @@ func atomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // writeFileWithSync writes data to a file and ensures it's synced to disk.
 
@@ -133,15 +97,11 @@ func writeFileWithSync(filename string, data []byte, perm os.FileMode) error {
 
 	defer f.Close()
 
-
-
 	if _, err := f.Write(data); err != nil {
 
 		return err
 
 	}
-
-
 
 	// Sync file contents to disk.
 
@@ -150,8 +110,6 @@ func writeFileWithSync(filename string, data []byte, perm os.FileMode) error {
 		return fmt.Errorf("failed to sync file: %w", err)
 
 	}
-
-
 
 	// Also sync the directory to ensure the file entry is persisted.
 
@@ -169,13 +127,9 @@ func writeFileWithSync(filename string, data []byte, perm os.FileMode) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // renameFileWithRetry attempts to rename a file with limited retry on Unix.
 
@@ -191,8 +145,6 @@ func renameFileWithRetry(oldpath, newpath string) error {
 
 	}
 
-
-
 	// Only retry for transient errors.
 
 	if !os.IsNotExist(err) && !os.IsPermission(err) {
@@ -207,13 +159,9 @@ func renameFileWithRetry(oldpath, newpath string) error {
 
 	}
 
-
-
 	return err
 
 }
-
-
 
 // readFileWithRetry reads a file with minimal retry logic for Unix.
 
@@ -226,8 +174,6 @@ func readFileWithRetry(filename string) ([]byte, error) {
 		return data, nil
 
 	}
-
-
 
 	// On Unix, file operations are more reliable, so minimal retry.
 
@@ -245,21 +191,15 @@ func readFileWithRetry(filename string) ([]byte, error) {
 
 	}
 
-
-
 	if os.IsNotExist(err) {
 
 		return nil, ErrFileGone
 
 	}
 
-
-
 	return nil, err
 
 }
-
-
 
 // openFileWithRetry opens a file with minimal retry logic for Unix.
 
@@ -272,8 +212,6 @@ func openFileWithRetry(filename string) (*os.File, error) {
 		return file, nil
 
 	}
-
-
 
 	// Minimal retry on Unix.
 
@@ -291,21 +229,15 @@ func openFileWithRetry(filename string) (*os.File, error) {
 
 	}
 
-
-
 	if os.IsNotExist(err) {
 
 		return nil, ErrFileGone
 
 	}
 
-
-
 	return nil, err
 
 }
-
-
 
 // copyFileWithSync copies a file with proper syncing on Unix.
 
@@ -321,8 +253,6 @@ func copyFileWithSync(src, dst string) error {
 
 	defer srcFile.Close()
 
-
-
 	dstFile, err := os.Create(dst)
 
 	if err != nil {
@@ -333,15 +263,11 @@ func copyFileWithSync(src, dst string) error {
 
 	defer dstFile.Close()
 
-
-
 	if _, err := io.Copy(dstFile, srcFile); err != nil {
 
 		return fmt.Errorf("failed to copy: %w", err)
 
 	}
-
-
 
 	// Sync destination to disk.
 
@@ -351,13 +277,9 @@ func copyFileWithSync(src, dst string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // moveFileAtomic performs an atomic file move on Unix.
 
@@ -372,8 +294,6 @@ func moveFileAtomic(src, dst string) error {
 		return fmt.Errorf("failed to create destination directory: %w", err)
 
 	}
-
-
 
 	// Rename is atomic on Unix within same filesystem.
 
@@ -391,13 +311,9 @@ func moveFileAtomic(src, dst string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // removeFileWithRetry removes a file with minimal retry logic.
 
@@ -411,8 +327,6 @@ func removeFileWithRetry(filename string) error {
 
 	}
 
-
-
 	// Single retry on Unix.
 
 	time.Sleep(baseRetryDelay)
@@ -425,13 +339,9 @@ func removeFileWithRetry(filename string) error {
 
 	}
 
-
-
 	return err
 
 }
-
-
 
 // isRetryableError checks if an error is retryable on Unix.
 
@@ -445,8 +355,6 @@ func isRetryableError(err error) bool {
 
 }
 
-
-
 // isUnsupportedError checks if an error is due to unsupported operation.
 
 func isUnsupportedError(err error) bool {
@@ -457,8 +365,6 @@ func isUnsupportedError(err error) bool {
 
 }
 
-
-
 // waitForFileStable waits for a file to become stable (not being written).
 
 func waitForFileStable(filename string, timeout time.Duration) error {
@@ -468,8 +374,6 @@ func waitForFileStable(filename string, timeout time.Duration) error {
 	var lastSize int64
 
 	var lastMod time.Time
-
-
 
 	for time.Now().Before(deadline) {
 
@@ -489,13 +393,9 @@ func waitForFileStable(filename string, timeout time.Duration) error {
 
 		}
 
-
-
 		size := stat.Size()
 
 		mod := stat.ModTime()
-
-
 
 		// Check if file is stable.
 
@@ -505,8 +405,6 @@ func waitForFileStable(filename string, timeout time.Duration) error {
 
 		}
 
-
-
 		lastSize = size
 
 		lastMod = mod
@@ -515,9 +413,6 @@ func waitForFileStable(filename string, timeout time.Duration) error {
 
 	}
 
-
-
 	return fmt.Errorf("timeout waiting for file to become stable")
 
 }
-

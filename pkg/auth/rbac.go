@@ -1,181 +1,134 @@
-
 package auth
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"log/slog"
-
 	"sort"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
-
 )
-
-
 
 // RBACManager manages role-based access control.
 
 type RBACManager struct {
-
-	roles       map[string]*Role
+	roles map[string]*Role
 
 	permissions map[string]*Permission
 
-	policies    map[string]*Policy
+	policies map[string]*Policy
 
-	userRoles   map[string][]string // userID -> roles
-
-
+	userRoles map[string][]string // userID -> roles
 
 	// Caching.
 
-	cache    *RBACCache
+	cache *RBACCache
 
 	cacheTTL time.Duration
 
-
-
 	logger *slog.Logger
 
-	mutex  sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // Role represents a role with associated permissions.
 
 type Role struct {
+	ID string `json:"id"`
 
-	ID          string            `json:"id"`
+	Name string `json:"name"`
 
-	Name        string            `json:"name"`
+	Description string `json:"description"`
 
-	Description string            `json:"description"`
+	Permissions []string `json:"permissions"`
 
-	Permissions []string          `json:"permissions"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 
-	Metadata    map[string]string `json:"metadata,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt   time.Time         `json:"created_at"`
-
-	UpdatedAt   time.Time         `json:"updated_at"`
-
-
+	UpdatedAt time.Time `json:"updated_at"`
 
 	// Hierarchical roles.
 
 	ParentRoles []string `json:"parent_roles,omitempty"`
 
-	ChildRoles  []string `json:"child_roles,omitempty"`
-
+	ChildRoles []string `json:"child_roles,omitempty"`
 }
-
-
 
 // Permission represents a specific permission.
 
 type Permission struct {
+	ID string `json:"id"`
 
-	ID          string            `json:"id"`
+	Name string `json:"name"`
 
-	Name        string            `json:"name"`
+	Description string `json:"description"`
 
-	Description string            `json:"description"`
+	Resource string `json:"resource"`
 
-	Resource    string            `json:"resource"`
+	Action string `json:"action"`
 
-	Action      string            `json:"action"`
+	Scope string `json:"scope,omitempty"`
 
-	Scope       string            `json:"scope,omitempty"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 
-	Metadata    map[string]string `json:"metadata,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt   time.Time         `json:"created_at"`
-
-	UpdatedAt   time.Time         `json:"updated_at"`
-
+	UpdatedAt time.Time `json:"updated_at"`
 }
-
-
 
 // Policy represents an access control policy.
 
 type Policy struct {
+	ID string `json:"id"`
 
-	ID          string            `json:"id"`
+	Name string `json:"name"`
 
-	Name        string            `json:"name"`
+	Description string `json:"description"`
 
-	Description string            `json:"description"`
+	Rules []PolicyRule `json:"rules"`
 
-	Rules       []PolicyRule      `json:"rules"`
+	Effect PolicyEffect `json:"effect"`
 
-	Effect      PolicyEffect      `json:"effect"`
+	Conditions []PolicyCondition `json:"conditions,omitempty"`
 
-	Conditions  []PolicyCondition `json:"conditions,omitempty"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 
-	Metadata    map[string]string `json:"metadata,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 
-	UpdatedAt   time.Time         `json:"updated_at"`
-
-	Priority    int               `json:"priority"`
-
+	Priority int `json:"priority"`
 }
-
-
 
 // PolicyRule represents a rule within a policy.
 
 type PolicyRule struct {
+	Resources []string `json:"resources"`
 
-	Resources   []string `json:"resources"`
-
-	Actions     []string `json:"actions"`
+	Actions []string `json:"actions"`
 
 	Permissions []string `json:"permissions,omitempty"`
-
 }
-
-
 
 // PolicyCondition represents conditions for policy evaluation.
 
 type PolicyCondition struct {
+	Type ConditionType `json:"type"`
 
-	Type      ConditionType `json:"type"`
+	Attribute string `json:"attribute"`
 
-	Attribute string        `json:"attribute"`
+	Operator string `json:"operator"`
 
-	Operator  string        `json:"operator"`
-
-	Values    []string      `json:"values"`
-
+	Values []string `json:"values"`
 }
-
-
 
 // PolicyEffect determines allow or deny.
 
 type PolicyEffect string
-
-
 
 const (
 
@@ -186,16 +139,11 @@ const (
 	// PolicyEffectDeny holds policyeffectdeny value.
 
 	PolicyEffectDeny PolicyEffect = "deny"
-
 )
-
-
 
 // ConditionType represents types of policy conditions.
 
 type ConditionType string
-
-
 
 const (
 
@@ -214,96 +162,77 @@ const (
 	// ConditionTypeGroup holds conditiontypegroup value.
 
 	ConditionTypeGroup ConditionType = "group"
-
 )
-
-
 
 // AccessRequest represents an access control request.
 
 type AccessRequest struct {
+	UserID string `json:"user_id"`
 
-	UserID     string                 `json:"user_id"`
+	Resource string `json:"resource"`
 
-	Resource   string                 `json:"resource"`
+	Action string `json:"action"`
 
-	Action     string                 `json:"action"`
-
-	Context    map[string]interface{} `json:"context,omitempty"`
+	Context map[string]interface{} `json:"context,omitempty"`
 
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
 
-	IPAddress  string                 `json:"ip_address,omitempty"`
+	IPAddress string `json:"ip_address,omitempty"`
 
-	UserAgent  string                 `json:"user_agent,omitempty"`
+	UserAgent string `json:"user_agent,omitempty"`
 
-	Timestamp  time.Time              `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp"`
 
-	RequestID  string                 `json:"request_id,omitempty"`
-
+	RequestID string `json:"request_id,omitempty"`
 }
-
-
 
 // AccessDecision represents the result of an access control evaluation.
 
 type AccessDecision struct {
+	Allowed bool `json:"allowed"`
 
-	Allowed            bool                   `json:"allowed"`
+	Reason string `json:"reason"`
 
-	Reason             string                 `json:"reason"`
+	AppliedPolicies []string `json:"applied_policies"`
 
-	AppliedPolicies    []string               `json:"applied_policies"`
+	RequiredRoles []string `json:"required_roles,omitempty"`
 
-	RequiredRoles      []string               `json:"required_roles,omitempty"`
+	MissingPermissions []string `json:"missing_permissions,omitempty"`
 
-	MissingPermissions []string               `json:"missing_permissions,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 
-	Metadata           map[string]interface{} `json:"metadata,omitempty"`
+	EvaluatedAt time.Time `json:"evaluated_at"`
 
-	EvaluatedAt        time.Time              `json:"evaluated_at"`
-
-	TTL                time.Duration          `json:"ttl,omitempty"`
-
+	TTL time.Duration `json:"ttl,omitempty"`
 }
-
-
 
 // RBACCache represents cached RBAC data.
 
 type RBACCache struct {
-
 	userPermissions map[string][]string
 
-	roleHierarchy   map[string][]string
+	roleHierarchy map[string][]string
 
-	lastUpdated     time.Time
+	lastUpdated time.Time
 
-	mutex           sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // RBACManagerConfig represents RBAC manager configuration.
 
 type RBACManagerConfig struct {
+	CacheTTL time.Duration `json:"cache_ttl"`
 
-	CacheTTL           time.Duration `json:"cache_ttl"`
+	EnableHierarchy bool `json:"enable_hierarchy"`
 
-	EnableHierarchy    bool          `json:"enable_hierarchy"`
+	DefaultDenyAll bool `json:"default_deny_all"`
 
-	DefaultDenyAll     bool          `json:"default_deny_all"`
+	PolicyEvaluation string `json:"policy_evaluation"` // "first-applicable", "deny-overrides", "permit-overrides"
 
-	PolicyEvaluation   string        `json:"policy_evaluation"` // "first-applicable", "deny-overrides", "permit-overrides"
+	MaxPolicyDepth int `json:"max_policy_depth"`
 
-	MaxPolicyDepth     int           `json:"max_policy_depth"`
-
-	EnableAuditLogging bool          `json:"enable_audit_logging"`
-
+	EnableAuditLogging bool `json:"enable_audit_logging"`
 }
-
-
 
 // Predefined roles and permissions for Nephoran.
 
@@ -313,9 +242,9 @@ var (
 
 	SystemAdminRole = &Role{
 
-		ID:          "system-admin",
+		ID: "system-admin",
 
-		Name:        "System Administrator",
+		Name: "System Administrator",
 
 		Description: "Full system access with all privileges",
 
@@ -336,24 +265,20 @@ var (
 			"user:*",
 
 			"rbac:*",
-
 		},
 
 		CreatedAt: time.Now(),
 
 		UpdatedAt: time.Now(),
-
 	}
-
-
 
 	// Intent Operator - network intent management.
 
 	IntentOperatorRole = &Role{
 
-		ID:          "intent-operator",
+		ID: "intent-operator",
 
-		Name:        "Intent Operator",
+		Name: "Intent Operator",
 
 		Description: "Manage network intents and deployments",
 
@@ -374,24 +299,20 @@ var (
 			"config:read",
 
 			"monitoring:read",
-
 		},
 
 		CreatedAt: time.Now(),
 
 		UpdatedAt: time.Now(),
-
 	}
-
-
 
 	// E2 Interface Manager - E2 interface operations.
 
 	E2ManagerRole = &Role{
 
-		ID:          "e2-manager",
+		ID: "e2-manager",
 
-		Name:        "E2 Interface Manager",
+		Name: "E2 Interface Manager",
 
 		Description: "Manage E2 interface connections and service models",
 
@@ -410,24 +331,20 @@ var (
 			"e2:control",
 
 			"monitoring:read",
-
 		},
 
 		CreatedAt: time.Now(),
 
 		UpdatedAt: time.Now(),
-
 	}
-
-
 
 	// Read-Only User - view access only.
 
 	ReadOnlyRole = &Role{
 
-		ID:          "read-only",
+		ID: "read-only",
 
-		Name:        "Read Only User",
+		Name: "Read Only User",
 
 		Description: "Read-only access to system resources",
 
@@ -440,16 +357,12 @@ var (
 			"config:read",
 
 			"monitoring:read",
-
 		},
 
 		CreatedAt: time.Now(),
 
 		UpdatedAt: time.Now(),
-
 	}
-
-
 
 	// Nephoran Permissions.
 
@@ -460,8 +373,6 @@ var (
 		{ID: "system:admin", Name: "System Administration", Resource: "system", Action: "*"},
 
 		{ID: "system:config", Name: "System Configuration", Resource: "system", Action: "config"},
-
-
 
 		// Intent management permissions.
 
@@ -474,8 +385,6 @@ var (
 		{ID: "intent:delete", Name: "Delete Intent", Resource: "intent", Action: "delete"},
 
 		{ID: "intent:deploy", Name: "Deploy Intent", Resource: "intent", Action: "deploy"},
-
-
 
 		// E2 interface permissions.
 
@@ -491,23 +400,17 @@ var (
 
 		{ID: "e2:control", Name: "Control E2 Functions", Resource: "e2", Action: "control"},
 
-
-
 		// Configuration permissions.
 
 		{ID: "config:read", Name: "Read Configuration", Resource: "config", Action: "read"},
 
 		{ID: "config:write", Name: "Write Configuration", Resource: "config", Action: "write"},
 
-
-
 		// Monitoring permissions.
 
 		{ID: "monitoring:read", Name: "Read Monitoring Data", Resource: "monitoring", Action: "read"},
 
 		{ID: "monitoring:write", Name: "Write Monitoring Config", Resource: "monitoring", Action: "write"},
-
-
 
 		// Authentication permissions.
 
@@ -517,8 +420,6 @@ var (
 
 		{ID: "auth:manage", Name: "Manage Authentication", Resource: "auth", Action: "manage"},
 
-
-
 		// User management permissions.
 
 		{ID: "user:read", Name: "Read User Data", Resource: "user", Action: "read"},
@@ -527,8 +428,6 @@ var (
 
 		{ID: "user:manage", Name: "Manage Users", Resource: "user", Action: "manage"},
 
-
-
 		// RBAC permissions.
 
 		{ID: "rbac:read", Name: "Read RBAC Configuration", Resource: "rbac", Action: "read"},
@@ -536,12 +435,8 @@ var (
 		{ID: "rbac:write", Name: "Write RBAC Configuration", Resource: "rbac", Action: "write"},
 
 		{ID: "rbac:manage", Name: "Manage RBAC", Resource: "rbac", Action: "manage"},
-
 	}
-
 )
-
-
 
 // NewRBACManager creates a new RBAC manager.
 
@@ -551,61 +446,50 @@ func NewRBACManager(config *RBACManagerConfig, logger *slog.Logger) *RBACManager
 
 		config = &RBACManagerConfig{
 
-			CacheTTL:           15 * time.Minute,
+			CacheTTL: 15 * time.Minute,
 
-			EnableHierarchy:    true,
+			EnableHierarchy: true,
 
-			DefaultDenyAll:     true,
+			DefaultDenyAll: true,
 
-			PolicyEvaluation:   "deny-overrides",
+			PolicyEvaluation: "deny-overrides",
 
-			MaxPolicyDepth:     10,
+			MaxPolicyDepth: 10,
 
 			EnableAuditLogging: true,
-
 		}
 
 	}
 
-
-
 	manager := &RBACManager{
 
-		roles:       make(map[string]*Role),
+		roles: make(map[string]*Role),
 
 		permissions: make(map[string]*Permission),
 
-		policies:    make(map[string]*Policy),
+		policies: make(map[string]*Policy),
 
-		userRoles:   make(map[string][]string),
+		userRoles: make(map[string][]string),
 
 		cache: &RBACCache{
 
 			userPermissions: make(map[string][]string),
 
-			roleHierarchy:   make(map[string][]string),
-
+			roleHierarchy: make(map[string][]string),
 		},
 
 		cacheTTL: config.CacheTTL,
 
-		logger:   logger,
-
+		logger: logger,
 	}
-
-
 
 	// Initialize with default roles and permissions.
 
 	manager.initializeDefaults()
 
-
-
 	return manager
 
 }
-
-
 
 // InitializeDefaults sets up default roles and permissions.
 
@@ -625,8 +509,6 @@ func (r *RBACManager) initializeDefaults() {
 
 	}
 
-
-
 	// Add default roles.
 
 	defaultRoles := []*Role{SystemAdminRole, IntentOperatorRole, E2ManagerRole, ReadOnlyRole}
@@ -639,8 +521,6 @@ func (r *RBACManager) initializeDefaults() {
 
 }
 
-
-
 // GrantRoleToUser assigns a role to a user.
 
 func (r *RBACManager) GrantRoleToUser(ctx context.Context, userID, roleID string) error {
@@ -649,8 +529,6 @@ func (r *RBACManager) GrantRoleToUser(ctx context.Context, userID, roleID string
 
 	defer r.mutex.Unlock()
 
-
-
 	// Verify role exists.
 
 	if _, exists := r.roles[roleID]; !exists {
@@ -658,8 +536,6 @@ func (r *RBACManager) GrantRoleToUser(ctx context.Context, userID, roleID string
 		return fmt.Errorf("role %s does not exist", roleID)
 
 	}
-
-
 
 	// Add role to user.
 
@@ -675,13 +551,9 @@ func (r *RBACManager) GrantRoleToUser(ctx context.Context, userID, roleID string
 
 	}
 
-
-
 	r.userRoles[userID] = append(userRoles, roleID)
 
 	r.invalidateUserCache(userID)
-
-
 
 	r.logger.Info("Role granted to user",
 
@@ -689,13 +561,9 @@ func (r *RBACManager) GrantRoleToUser(ctx context.Context, userID, roleID string
 
 		"role_id", roleID)
 
-
-
 	return nil
 
 }
-
-
 
 // RevokeRoleFromUser removes a role from a user.
 
@@ -704,8 +572,6 @@ func (r *RBACManager) RevokeRoleFromUser(ctx context.Context, userID, roleID str
 	r.mutex.Lock()
 
 	defer r.mutex.Unlock()
-
-
 
 	userRoles := r.userRoles[userID]
 
@@ -719,8 +585,6 @@ func (r *RBACManager) RevokeRoleFromUser(ctx context.Context, userID, roleID str
 
 			r.invalidateUserCache(userID)
 
-
-
 			r.logger.Info("Role revoked from user",
 
 				"user_id", userID,
@@ -733,13 +597,9 @@ func (r *RBACManager) RevokeRoleFromUser(ctx context.Context, userID, roleID str
 
 	}
 
-
-
 	return fmt.Errorf("user %s does not have role %s", userID, roleID)
 
 }
-
-
 
 // GetUserRoles returns all roles for a user.
 
@@ -748,8 +608,6 @@ func (r *RBACManager) GetUserRoles(ctx context.Context, userID string) []string 
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
-
-
 
 	roles := r.userRoles[userID]
 
@@ -761,8 +619,6 @@ func (r *RBACManager) GetUserRoles(ctx context.Context, userID string) []string 
 
 }
 
-
-
 // GetUserPermissions returns all permissions for a user (with role hierarchy).
 
 func (r *RBACManager) GetUserPermissions(ctx context.Context, userID string) []string {
@@ -770,8 +626,6 @@ func (r *RBACManager) GetUserPermissions(ctx context.Context, userID string) []s
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
-
-
 
 	// Check cache first.
 
@@ -789,13 +643,9 @@ func (r *RBACManager) GetUserPermissions(ctx context.Context, userID string) []s
 
 	r.cache.mutex.RUnlock()
 
-
-
 	// Calculate permissions.
 
 	permissions := r.calculateUserPermissions(userID)
-
-
 
 	// Cache result.
 
@@ -807,21 +657,15 @@ func (r *RBACManager) GetUserPermissions(ctx context.Context, userID string) []s
 
 	r.cache.mutex.Unlock()
 
-
-
 	return permissions
 
 }
-
-
 
 // CheckPermission checks if a user has a specific permission.
 
 func (r *RBACManager) CheckPermission(ctx context.Context, userID, permission string) bool {
 
 	userPermissions := r.GetUserPermissions(ctx, userID)
-
-
 
 	for _, perm := range userPermissions {
 
@@ -833,13 +677,9 @@ func (r *RBACManager) CheckPermission(ctx context.Context, userID, permission st
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // CheckAccess evaluates an access request against RBAC policies.
 
@@ -847,23 +687,16 @@ func (r *RBACManager) CheckAccess(ctx context.Context, request *AccessRequest) *
 
 	startTime := time.Now()
 
-
-
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
-
-
 
 	decision := &AccessDecision{
 
 		EvaluatedAt: startTime,
 
-		Metadata:    make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}
-
-
 
 	// Get user permissions.
 
@@ -871,15 +704,11 @@ func (r *RBACManager) CheckAccess(ctx context.Context, request *AccessRequest) *
 
 	userRoles := r.GetUserRoles(ctx, request.UserID)
 
-
-
 	// Check if user has required permission.
 
 	requiredPermission := fmt.Sprintf("%s:%s", request.Resource, request.Action)
 
 	hasPermission := false
-
-
 
 	for _, perm := range userPermissions {
 
@@ -893,8 +722,6 @@ func (r *RBACManager) CheckAccess(ctx context.Context, request *AccessRequest) *
 
 	}
 
-
-
 	if !hasPermission {
 
 		decision.Allowed = false
@@ -907,13 +734,9 @@ func (r *RBACManager) CheckAccess(ctx context.Context, request *AccessRequest) *
 
 	}
 
-
-
 	// Evaluate policies.
 
 	decision = r.evaluatePolicies(ctx, request, decision)
-
-
 
 	// Add metadata.
 
@@ -922,8 +745,6 @@ func (r *RBACManager) CheckAccess(ctx context.Context, request *AccessRequest) *
 	decision.Metadata["user_roles"] = userRoles
 
 	decision.Metadata["checked_permission"] = requiredPermission
-
-
 
 	// Audit logging.
 
@@ -953,13 +774,9 @@ func (r *RBACManager) CheckAccess(ctx context.Context, request *AccessRequest) *
 
 	}
 
-
-
 	return decision
 
 }
-
-
 
 // CreateRole creates a new role.
 
@@ -969,23 +786,17 @@ func (r *RBACManager) CreateRole(ctx context.Context, role *Role) error {
 
 	defer r.mutex.Unlock()
 
-
-
 	if role.ID == "" {
 
 		return fmt.Errorf("role ID cannot be empty")
 
 	}
 
-
-
 	if _, exists := r.roles[role.ID]; exists {
 
 		return fmt.Errorf("role %s already exists", role.ID)
 
 	}
-
-
 
 	// Validate permissions exist.
 
@@ -999,21 +810,15 @@ func (r *RBACManager) CreateRole(ctx context.Context, role *Role) error {
 
 	}
 
-
-
 	now := time.Now()
 
 	role.CreatedAt = now
 
 	role.UpdatedAt = now
 
-
-
 	r.roles[role.ID] = role
 
 	r.invalidateAllCache()
-
-
 
 	r.logger.Info("Role created",
 
@@ -1021,13 +826,9 @@ func (r *RBACManager) CreateRole(ctx context.Context, role *Role) error {
 
 		"role_name", role.Name)
 
-
-
 	return nil
 
 }
-
-
 
 // UpdateRole updates an existing role.
 
@@ -1037,15 +838,11 @@ func (r *RBACManager) UpdateRole(ctx context.Context, role *Role) error {
 
 	defer r.mutex.Unlock()
 
-
-
 	if _, exists := r.roles[role.ID]; !exists {
 
 		return fmt.Errorf("role %s does not exist", role.ID)
 
 	}
-
-
 
 	// Validate permissions exist.
 
@@ -1059,15 +856,11 @@ func (r *RBACManager) UpdateRole(ctx context.Context, role *Role) error {
 
 	}
 
-
-
 	role.UpdatedAt = time.Now()
 
 	r.roles[role.ID] = role
 
 	r.invalidateAllCache()
-
-
 
 	r.logger.Info("Role updated",
 
@@ -1075,13 +868,9 @@ func (r *RBACManager) UpdateRole(ctx context.Context, role *Role) error {
 
 		"role_name", role.Name)
 
-
-
 	return nil
 
 }
-
-
 
 // DeleteRole deletes a role.
 
@@ -1091,15 +880,11 @@ func (r *RBACManager) DeleteRole(ctx context.Context, roleID string) error {
 
 	defer r.mutex.Unlock()
 
-
-
 	if _, exists := r.roles[roleID]; !exists {
 
 		return fmt.Errorf("role %s does not exist", roleID)
 
 	}
-
-
 
 	// Remove role from all users.
 
@@ -1119,23 +904,15 @@ func (r *RBACManager) DeleteRole(ctx context.Context, roleID string) error {
 
 	}
 
-
-
 	delete(r.roles, roleID)
 
 	r.invalidateAllCache()
 
-
-
 	r.logger.Info("Role deleted", "role_id", roleID)
-
-
 
 	return nil
 
 }
-
-
 
 // ListRoles returns all roles.
 
@@ -1145,8 +922,6 @@ func (r *RBACManager) ListRoles(ctx context.Context) []*Role {
 
 	defer r.mutex.RUnlock()
 
-
-
 	roles := make([]*Role, 0, len(r.roles))
 
 	for _, role := range r.roles {
@@ -1154,8 +929,6 @@ func (r *RBACManager) ListRoles(ctx context.Context) []*Role {
 		roles = append(roles, role)
 
 	}
-
-
 
 	// Sort by name.
 
@@ -1165,13 +938,9 @@ func (r *RBACManager) ListRoles(ctx context.Context) []*Role {
 
 	})
 
-
-
 	return roles
 
 }
-
-
 
 // GetRole returns a specific role.
 
@@ -1181,8 +950,6 @@ func (r *RBACManager) GetRole(ctx context.Context, roleID string) (*Role, error)
 
 	defer r.mutex.RUnlock()
 
-
-
 	role, exists := r.roles[roleID]
 
 	if !exists {
@@ -1191,13 +958,9 @@ func (r *RBACManager) GetRole(ctx context.Context, roleID string) (*Role, error)
 
 	}
 
-
-
 	return role, nil
 
 }
-
-
 
 // CreatePermission creates a new permission.
 
@@ -1207,15 +970,11 @@ func (r *RBACManager) CreatePermission(ctx context.Context, perm *Permission) er
 
 	defer r.mutex.Unlock()
 
-
-
 	if perm.ID == "" {
 
 		return fmt.Errorf("permission ID cannot be empty")
 
 	}
-
-
 
 	if _, exists := r.permissions[perm.ID]; exists {
 
@@ -1223,21 +982,15 @@ func (r *RBACManager) CreatePermission(ctx context.Context, perm *Permission) er
 
 	}
 
-
-
 	now := time.Now()
 
 	perm.CreatedAt = now
 
 	perm.UpdatedAt = now
 
-
-
 	r.permissions[perm.ID] = perm
 
 	r.invalidateAllCache()
-
-
 
 	r.logger.Info("Permission created",
 
@@ -1245,13 +998,9 @@ func (r *RBACManager) CreatePermission(ctx context.Context, perm *Permission) er
 
 		"permission_name", perm.Name)
 
-
-
 	return nil
 
 }
-
-
 
 // ListPermissions returns all permissions.
 
@@ -1261,8 +1010,6 @@ func (r *RBACManager) ListPermissions(ctx context.Context) []*Permission {
 
 	defer r.mutex.RUnlock()
 
-
-
 	permissions := make([]*Permission, 0, len(r.permissions))
 
 	for _, perm := range r.permissions {
@@ -1270,8 +1017,6 @@ func (r *RBACManager) ListPermissions(ctx context.Context) []*Permission {
 		permissions = append(permissions, perm)
 
 	}
-
-
 
 	// Sort by resource and action.
 
@@ -1287,21 +1032,15 @@ func (r *RBACManager) ListPermissions(ctx context.Context) []*Permission {
 
 	})
 
-
-
 	return permissions
 
 }
-
-
 
 // AssignRolesFromClaims assigns roles based on JWT claims and provider groups.
 
 func (r *RBACManager) AssignRolesFromClaims(ctx context.Context, userInfo *providers.UserInfo) error {
 
 	userID := userInfo.Subject
-
-
 
 	// Clear existing roles for fresh assignment.
 
@@ -1311,13 +1050,9 @@ func (r *RBACManager) AssignRolesFromClaims(ctx context.Context, userInfo *provi
 
 	r.mutex.Unlock()
 
-
-
 	// Map provider groups/roles to Nephoran roles.
 
 	roleMappings := r.getRoleMappings(userInfo)
-
-
 
 	for _, roleID := range roleMappings {
 
@@ -1335,8 +1070,6 @@ func (r *RBACManager) AssignRolesFromClaims(ctx context.Context, userInfo *provi
 
 	}
 
-
-
 	r.logger.Info("Roles assigned from claims",
 
 		"user_id", userID,
@@ -1345,25 +1078,17 @@ func (r *RBACManager) AssignRolesFromClaims(ctx context.Context, userInfo *provi
 
 		"roles", roleMappings)
 
-
-
 	return nil
 
 }
 
-
-
 // Private helper methods.
-
-
 
 func (r *RBACManager) calculateUserPermissions(userID string) []string {
 
 	var allPermissions []string
 
 	permissionSet := make(map[string]bool)
-
-
 
 	// Get direct role permissions.
 
@@ -1389,15 +1114,11 @@ func (r *RBACManager) calculateUserPermissions(userID string) []string {
 
 	}
 
-
-
 	sort.Strings(allPermissions)
 
 	return allPermissions
 
 }
-
-
 
 func (r *RBACManager) matchesPermission(granted, required string) bool {
 
@@ -1408,8 +1129,6 @@ func (r *RBACManager) matchesPermission(granted, required string) bool {
 		return true
 
 	}
-
-
 
 	// Handle resource-level wildcards (e.g., "intent:*" matches "intent:read").
 
@@ -1427,13 +1146,9 @@ func (r *RBACManager) matchesPermission(granted, required string) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 func (r *RBACManager) evaluatePolicies(ctx context.Context, request *AccessRequest, decision *AccessDecision) *AccessDecision {
 
@@ -1449,13 +1164,9 @@ func (r *RBACManager) evaluatePolicies(ctx context.Context, request *AccessReque
 
 }
 
-
-
 func (r *RBACManager) getRoleMappings(userInfo *providers.UserInfo) []string {
 
 	var roles []string
-
-
 
 	// Provider-specific role mappings.
 
@@ -1475,8 +1186,6 @@ func (r *RBACManager) getRoleMappings(userInfo *providers.UserInfo) []string {
 
 	}
 
-
-
 	// Default to read-only if no specific mapping.
 
 	if len(roles) == 0 {
@@ -1485,19 +1194,13 @@ func (r *RBACManager) getRoleMappings(userInfo *providers.UserInfo) []string {
 
 	}
 
-
-
 	return roles
 
 }
 
-
-
 func (r *RBACManager) mapGitHubRoles(userInfo *providers.UserInfo) []string {
 
 	var roles []string
-
-
 
 	// Check if user is in admin organizations.
 
@@ -1512,8 +1215,6 @@ func (r *RBACManager) mapGitHubRoles(userInfo *providers.UserInfo) []string {
 		}
 
 	}
-
-
 
 	// Check for team-based roles.
 
@@ -1531,19 +1232,13 @@ func (r *RBACManager) mapGitHubRoles(userInfo *providers.UserInfo) []string {
 
 	}
 
-
-
 	return roles
 
 }
 
-
-
 func (r *RBACManager) mapGoogleRoles(userInfo *providers.UserInfo) []string {
 
 	var roles []string
-
-
 
 	// Check hosted domain for admin access.
 
@@ -1557,19 +1252,13 @@ func (r *RBACManager) mapGoogleRoles(userInfo *providers.UserInfo) []string {
 
 	}
 
-
-
 	return roles
 
 }
 
-
-
 func (r *RBACManager) mapAzureADRoles(userInfo *providers.UserInfo) []string {
 
 	var roles []string
-
-
 
 	// Map Azure AD roles to Nephoran roles.
 
@@ -1593,8 +1282,6 @@ func (r *RBACManager) mapAzureADRoles(userInfo *providers.UserInfo) []string {
 
 	}
 
-
-
 	// Check groups.
 
 	for _, group := range userInfo.Groups {
@@ -1611,13 +1298,9 @@ func (r *RBACManager) mapAzureADRoles(userInfo *providers.UserInfo) []string {
 
 	}
 
-
-
 	return roles
 
 }
-
-
 
 func (r *RBACManager) invalidateUserCache(userID string) {
 
@@ -1628,8 +1311,6 @@ func (r *RBACManager) invalidateUserCache(userID string) {
 	delete(r.cache.userPermissions, userID)
 
 }
-
-
 
 func (r *RBACManager) invalidateAllCache() {
 
@@ -1645,8 +1326,6 @@ func (r *RBACManager) invalidateAllCache() {
 
 }
 
-
-
 // GetRBACStatus returns current RBAC status and statistics.
 
 func (r *RBACManager) GetRBACStatus(ctx context.Context) map[string]interface{} {
@@ -1655,25 +1334,21 @@ func (r *RBACManager) GetRBACStatus(ctx context.Context) map[string]interface{} 
 
 	defer r.mutex.RUnlock()
 
-
-
 	return map[string]interface{}{
 
-		"roles_count":       len(r.roles),
+		"roles_count": len(r.roles),
 
 		"permissions_count": len(r.permissions),
 
-		"users_count":       len(r.userRoles),
+		"users_count": len(r.userRoles),
 
-		"policies_count":    len(r.policies),
+		"policies_count": len(r.policies),
 
-		"cache_ttl":         r.cacheTTL,
+		"cache_ttl": r.cacheTTL,
 
-		"cache_entries":     len(r.cache.userPermissions),
+		"cache_entries": len(r.cache.userPermissions),
 
 		"last_cache_update": r.cache.lastUpdated,
-
 	}
 
 }
-

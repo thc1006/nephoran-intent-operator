@@ -2,60 +2,36 @@
 
 // to reduce alert fatigue and ensure rapid incident response.
 
-
 package alerting
 
-
-
 import (
-
 	"context"
-
 	"crypto/md5"
-
 	"fmt"
-
 	"log/slog"
-
 	"sort"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
-	"github.com/prometheus/client_golang/prometheus"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
+	"github.com/prometheus/client_golang/prometheus"
 )
-
-
 
 // AlertRouter provides intelligent alert routing with deduplication,.
 
 // priority scoring, and context-aware notification delivery.
 
 type AlertRouter struct {
-
 	logger *logging.StructuredLogger
 
 	config *AlertRouterConfig
 
-
-
 	// Routing infrastructure.
 
-	routingRules         []*RoutingRule
+	routingRules []*RoutingRule
 
 	notificationChannels map[string]NotificationChannel
-
-
 
 	// Deduplication and correlation.
 
@@ -63,53 +39,40 @@ type AlertRouter struct {
 
 	correlationEngine *CorrelationEngine
 
-
-
 	// Priority and impact analysis.
 
 	priorityCalculator *PriorityCalculator
 
-	impactAnalyzer     *ImpactAnalyzer
-
-
+	impactAnalyzer *ImpactAnalyzer
 
 	// Geographic and timezone routing.
 
 	geographicRouter *GeographicRouter
 
-	timezoneManager  *TimezoneManager
-
-
+	timezoneManager *TimezoneManager
 
 	// Alert enrichment.
 
 	contextEnricher *ContextEnricher
 
-	runbookManager  *RunbookManager
-
-
+	runbookManager *RunbookManager
 
 	// Performance tracking.
 
-	metrics      *AlertRouterMetrics
+	metrics *AlertRouterMetrics
 
 	routingStats *RoutingStatistics
 
-
-
 	// State management.
 
-	started    bool
+	started bool
 
-	stopCh     chan struct{}
+	stopCh chan struct{}
 
 	alertQueue chan *EnrichedAlert
 
-	mu         sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // AlertRouterConfig holds configuration for the alert router.
 
@@ -117,549 +80,423 @@ type AlertRouterConfig struct {
 
 	// Core routing settings.
 
-	MaxConcurrentAlerts int           `yaml:"max_concurrent_alerts"`
+	MaxConcurrentAlerts int `yaml:"max_concurrent_alerts"`
 
 	DeduplicationWindow time.Duration `yaml:"deduplication_window"`
 
-	CorrelationWindow   time.Duration `yaml:"correlation_window"`
-
-
+	CorrelationWindow time.Duration `yaml:"correlation_window"`
 
 	// Queue management.
 
-	AlertQueueSize    int           `yaml:"alert_queue_size"`
+	AlertQueueSize int `yaml:"alert_queue_size"`
 
-	ProcessingWorkers int           `yaml:"processing_workers"`
+	ProcessingWorkers int `yaml:"processing_workers"`
 
-	MaxRetries        int           `yaml:"max_retries"`
+	MaxRetries int `yaml:"max_retries"`
 
-	RetryBackoff      time.Duration `yaml:"retry_backoff"`
-
-
+	RetryBackoff time.Duration `yaml:"retry_backoff"`
 
 	// Notification settings.
 
 	NotificationTimeout time.Duration `yaml:"notification_timeout"`
 
-	MaxNotificationRate int           `yaml:"max_notification_rate"`
+	MaxNotificationRate int `yaml:"max_notification_rate"`
 
-	BatchNotifications  bool          `yaml:"batch_notifications"`
+	BatchNotifications bool `yaml:"batch_notifications"`
 
-	BatchWindow         time.Duration `yaml:"batch_window"`
-
-
+	BatchWindow time.Duration `yaml:"batch_window"`
 
 	// Geographic routing.
 
-	EnableGeographicRouting bool   `yaml:"enable_geographic_routing"`
+	EnableGeographicRouting bool `yaml:"enable_geographic_routing"`
 
-	DefaultTimezone         string `yaml:"default_timezone"`
+	DefaultTimezone string `yaml:"default_timezone"`
 
-	BusinessHoursStart      int    `yaml:"business_hours_start"`
+	BusinessHoursStart int `yaml:"business_hours_start"`
 
-	BusinessHoursEnd        int    `yaml:"business_hours_end"`
-
-
+	BusinessHoursEnd int `yaml:"business_hours_end"`
 
 	// Performance settings.
 
-	MetricCacheSize   int           `yaml:"metric_cache_size"`
+	MetricCacheSize int `yaml:"metric_cache_size"`
 
 	EnrichmentTimeout time.Duration `yaml:"enrichment_timeout"`
-
 }
-
-
 
 // RoutingRule defines how alerts should be routed based on criteria.
 
 type RoutingRule struct {
+	Name string `yaml:"name"`
 
-	Name       string             `yaml:"name"`
+	Priority int `yaml:"priority"`
 
-	Priority   int                `yaml:"priority"`
-
-	Enabled    bool               `yaml:"enabled"`
+	Enabled bool `yaml:"enabled"`
 
 	Conditions []RoutingCondition `yaml:"conditions"`
 
-	Actions    []RoutingAction    `yaml:"actions"`
+	Actions []RoutingAction `yaml:"actions"`
 
-	Schedule   *RoutingSchedule   `yaml:"schedule,omitempty"`
+	Schedule *RoutingSchedule `yaml:"schedule,omitempty"`
 
-	RateLimit  *RateLimit         `yaml:"rate_limit,omitempty"`
-
+	RateLimit *RateLimit `yaml:"rate_limit,omitempty"`
 }
-
-
 
 // RoutingCondition defines criteria for applying a routing rule.
 
 type RoutingCondition struct {
+	Field string `yaml:"field"` // sla_type, severity, component, etc.
 
-	Field    string   `yaml:"field"`    // sla_type, severity, component, etc.
+	Operator string `yaml:"operator"` // equals, contains, matches, greater_than
 
-	Operator string   `yaml:"operator"` // equals, contains, matches, greater_than
+	Values []string `yaml:"values"`
 
-	Values   []string `yaml:"values"`
-
-	Negate   bool     `yaml:"negate"`
-
+	Negate bool `yaml:"negate"`
 }
-
-
 
 // RoutingAction defines what to do when a rule matches.
 
 type RoutingAction struct {
+	Type string `yaml:"type"` // notify, escalate, suppress, transform
 
-	Type       string            `yaml:"type"`   // notify, escalate, suppress, transform
-
-	Target     string            `yaml:"target"` // channel name, escalation policy
+	Target string `yaml:"target"` // channel name, escalation policy
 
 	Parameters map[string]string `yaml:"parameters"`
 
-	Delay      time.Duration     `yaml:"delay,omitempty"`
-
+	Delay time.Duration `yaml:"delay,omitempty"`
 }
-
-
 
 // RoutingSchedule defines time-based routing constraints.
 
 type RoutingSchedule struct {
+	Timezone string `yaml:"timezone"`
 
-	Timezone        string   `yaml:"timezone"`
+	BusinessHours bool `yaml:"business_hours"`
 
-	BusinessHours   bool     `yaml:"business_hours"`
+	Weekdays []string `yaml:"weekdays"`
 
-	Weekdays        []string `yaml:"weekdays"`
+	ExcludedDates []string `yaml:"excluded_dates"`
 
-	ExcludedDates   []string `yaml:"excluded_dates"`
-
-	MaintenanceMode bool     `yaml:"maintenance_mode"`
-
+	MaintenanceMode bool `yaml:"maintenance_mode"`
 }
-
-
 
 // RateLimit defines rate limiting for notifications.
 
 type RateLimit struct {
+	MaxAlerts int `yaml:"max_alerts"`
 
-	MaxAlerts    int           `yaml:"max_alerts"`
+	Window time.Duration `yaml:"window"`
 
-	Window       time.Duration `yaml:"window"`
-
-	BurstAllowed int           `yaml:"burst_allowed"`
-
+	BurstAllowed int `yaml:"burst_allowed"`
 }
-
-
 
 // EnrichedAlert extends SLAAlert with routing context.
 
 type EnrichedAlert struct {
-
 	*SLAAlert
-
-
 
 	// Routing metadata.
 
-	RoutingDecision *RoutingDecision    `json:"routing_decision"`
+	RoutingDecision *RoutingDecision `json:"routing_decision"`
 
-	Priority        int                 `json:"priority"`
+	Priority int `json:"priority"`
 
-	BusinessImpact  BusinessImpactScore `json:"business_impact"`
-
-
+	BusinessImpact BusinessImpactScore `json:"business_impact"`
 
 	// Enrichment data.
 
-	RelatedIncidents []string        `json:"related_incidents"`
+	RelatedIncidents []string `json:"related_incidents"`
 
-	SimilarAlerts    []string        `json:"similar_alerts"`
+	SimilarAlerts []string `json:"similar_alerts"`
 
-	RunbookActions   []RunbookAction `json:"runbook_actions"`
-
-
+	RunbookActions []RunbookAction `json:"runbook_actions"`
 
 	// Geographic context.
 
-	AffectedRegions []string     `json:"affected_regions"`
+	AffectedRegions []string `json:"affected_regions"`
 
-	TimezoneInfo    TimezoneInfo `json:"timezone_info"`
-
-
+	TimezoneInfo TimezoneInfo `json:"timezone_info"`
 
 	// Processing metadata.
 
-	ProcessedAt       time.Time     `json:"processed_at"`
+	ProcessedAt time.Time `json:"processed_at"`
 
 	EnrichmentLatency time.Duration `json:"enrichment_latency"`
 
-	RoutingLatency    time.Duration `json:"routing_latency"`
-
+	RoutingLatency time.Duration `json:"routing_latency"`
 }
-
-
 
 // RoutingDecision contains the routing decision for an alert.
 
 type RoutingDecision struct {
+	MatchedRules []string `json:"matched_rules"`
 
-	MatchedRules      []string   `json:"matched_rules"`
+	SelectedChannels []string `json:"selected_channels"`
 
-	SelectedChannels  []string   `json:"selected_channels"`
+	EscalationPolicy string `json:"escalation_policy,omitempty"`
 
-	EscalationPolicy  string     `json:"escalation_policy,omitempty"`
+	Suppressed bool `json:"suppressed"`
 
-	Suppressed        bool       `json:"suppressed"`
+	SuppressionReason string `json:"suppression_reason,omitempty"`
 
-	SuppressionReason string     `json:"suppression_reason,omitempty"`
-
-	DelayUntil        *time.Time `json:"delay_until,omitempty"`
-
+	DelayUntil *time.Time `json:"delay_until,omitempty"`
 }
-
-
 
 // BusinessImpactScore quantifies business impact of an alert.
 
 type BusinessImpactScore struct {
+	OverallScore float64 `json:"overall_score"`
 
-	OverallScore     float64 `json:"overall_score"`
+	UserImpact float64 `json:"user_impact"`
 
-	UserImpact       float64 `json:"user_impact"`
-
-	RevenueImpact    float64 `json:"revenue_impact"`
+	RevenueImpact float64 `json:"revenue_impact"`
 
 	ReputationImpact float64 `json:"reputation_impact"`
 
-	ServiceTier      string  `json:"service_tier"`
-
+	ServiceTier string `json:"service_tier"`
 }
-
-
 
 // AlertGroup represents a group of related alerts for deduplication.
 
 type AlertGroup struct {
+	ID string `json:"id"`
 
-	ID               string      `json:"id"`
+	Fingerprint string `json:"fingerprint"`
 
-	Fingerprint      string      `json:"fingerprint"`
+	Representative *SLAAlert `json:"representative"`
 
-	Representative   *SLAAlert   `json:"representative"`
+	Members []*SLAAlert `json:"members"`
 
-	Members          []*SLAAlert `json:"members"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt        time.Time   `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 
-	UpdatedAt        time.Time   `json:"updated_at"`
-
-	NotificationSent bool        `json:"notification_sent"`
-
+	NotificationSent bool `json:"notification_sent"`
 }
-
-
 
 // CorrelationEngine identifies related alerts.
 
 type CorrelationEngine struct {
-
-	logger       *logging.StructuredLogger
-
-	config       *AlertRouterConfig
-
-	correlations map[string]*AlertCorrelation
-
-	mu           sync.RWMutex
-
-}
-
-
-
-// AlertCorrelation represents correlated alerts.
-
-type AlertCorrelation struct {
-
-	ID              string    `json:"id"`
-
-	Alerts          []string  `json:"alerts"`
-
-	CorrelationType string    `json:"correlation_type"`
-
-	Confidence      float64   `json:"confidence"`
-
-	CreatedAt       time.Time `json:"created_at"`
-
-}
-
-
-
-// PriorityCalculator calculates alert priorities.
-
-type PriorityCalculator struct {
-
 	logger *logging.StructuredLogger
 
 	config *AlertRouterConfig
 
+	correlations map[string]*AlertCorrelation
+
+	mu sync.RWMutex
 }
 
+// AlertCorrelation represents correlated alerts.
 
+type AlertCorrelation struct {
+	ID string `json:"id"`
+
+	Alerts []string `json:"alerts"`
+
+	CorrelationType string `json:"correlation_type"`
+
+	Confidence float64 `json:"confidence"`
+
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// PriorityCalculator calculates alert priorities.
+
+type PriorityCalculator struct {
+	logger *logging.StructuredLogger
+
+	config *AlertRouterConfig
+}
 
 // ImpactAnalyzer analyzes business impact of alerts.
 
 type ImpactAnalyzer struct {
-
-	logger         *logging.StructuredLogger
+	logger *logging.StructuredLogger
 
 	impactDatabase map[string]ImpactProfile
 
-	mu             sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // ImpactProfile defines impact characteristics for components/services.
 
 type ImpactProfile struct {
+	Component string `json:"component"`
 
-	Component           string   `json:"component"`
+	ServiceTier string `json:"service_tier"`
 
-	ServiceTier         string   `json:"service_tier"`
+	UserImpactFactor float64 `json:"user_impact_factor"`
 
-	UserImpactFactor    float64  `json:"user_impact_factor"`
+	RevenueImpactFactor float64 `json:"revenue_impact_factor"`
 
-	RevenueImpactFactor float64  `json:"revenue_impact_factor"`
-
-	DependentServices   []string `json:"dependent_services"`
-
+	DependentServices []string `json:"dependent_services"`
 }
-
-
 
 // GeographicRouter handles geographic and timezone-based routing.
 
 type GeographicRouter struct {
+	logger *logging.StructuredLogger
 
-	logger    *logging.StructuredLogger
-
-	regions   map[string]RegionInfo
+	regions map[string]RegionInfo
 
 	fallbacks []string
-
 }
-
-
 
 // RegionInfo contains information about a geographic region.
 
 type RegionInfo struct {
+	Name string `json:"name"`
 
-	Name          string       `json:"name"`
+	Timezone string `json:"timezone"`
 
-	Timezone      string       `json:"timezone"`
-
-	OnCallTeams   []string     `json:"oncall_teams"`
+	OnCallTeams []string `json:"oncall_teams"`
 
 	BusinessHours ScheduleInfo `json:"business_hours"`
-
 }
-
-
 
 // ScheduleInfo defines schedule information.
 
 type ScheduleInfo struct {
+	Start int `json:"start"` // Hour of day (0-23)
 
-	Start    int   `json:"start"`    // Hour of day (0-23)
-
-	End      int   `json:"end"`      // Hour of day (0-23)
+	End int `json:"end"` // Hour of day (0-23)
 
 	Weekdays []int `json:"weekdays"` // Days of week (0=Sunday)
 
 }
 
-
-
 // TimezoneManager manages timezone-aware operations.
 
 type TimezoneManager struct {
-
-	logger    *logging.StructuredLogger
+	logger *logging.StructuredLogger
 
 	timezones map[string]*time.Location
-
 }
-
-
 
 // TimezoneInfo provides timezone context.
 
 type TimezoneInfo struct {
+	Timezone string `json:"timezone"`
 
-	Timezone      string    `json:"timezone"`
+	LocalTime time.Time `json:"local_time"`
 
-	LocalTime     time.Time `json:"local_time"`
+	BusinessHours bool `json:"business_hours"`
 
-	BusinessHours bool      `json:"business_hours"`
-
-	OnCallTeam    string    `json:"oncall_team,omitempty"`
-
+	OnCallTeam string `json:"oncall_team,omitempty"`
 }
-
-
 
 // ContextEnricher enriches alerts with additional context.
 
 type ContextEnricher struct {
-
 	logger *logging.StructuredLogger
 
 	config *AlertRouterConfig
-
 }
-
-
 
 // RunbookManager manages runbook actions and recommendations.
 
 type RunbookManager struct {
-
-	logger   *logging.StructuredLogger
+	logger *logging.StructuredLogger
 
 	runbooks map[string]Runbook
-
 }
-
-
 
 // Runbook defines automated and manual actions for alerts.
 
 type Runbook struct {
+	ID string `json:"id"`
 
-	ID            string          `json:"id"`
+	Name string `json:"name"`
 
-	Name          string          `json:"name"`
+	Description string `json:"description"`
 
-	Description   string          `json:"description"`
+	Actions []RunbookAction `json:"actions"`
 
-	Actions       []RunbookAction `json:"actions"`
-
-	Prerequisites []string        `json:"prerequisites"`
-
+	Prerequisites []string `json:"prerequisites"`
 }
-
-
 
 // RunbookAction defines a specific action in a runbook.
 
 type RunbookAction struct {
+	ID string `json:"id"`
 
-	ID          string            `json:"id"`
+	Type string `json:"type"` // manual, automated, diagnostic
 
-	Type        string            `json:"type"` // manual, automated, diagnostic
+	Name string `json:"name"`
 
-	Name        string            `json:"name"`
+	Description string `json:"description"`
 
-	Description string            `json:"description"`
+	Command string `json:"command,omitempty"`
 
-	Command     string            `json:"command,omitempty"`
+	Parameters map[string]string `json:"parameters,omitempty"`
 
-	Parameters  map[string]string `json:"parameters,omitempty"`
-
-	Timeout     time.Duration     `json:"timeout,omitempty"`
-
+	Timeout time.Duration `json:"timeout,omitempty"`
 }
-
-
 
 // NotificationChannel represents a notification destination.
 
 type NotificationChannel struct {
+	ID string `json:"id"`
 
-	ID        string            `json:"id"`
+	Name string `json:"name"`
 
-	Name      string            `json:"name"`
+	Type string `json:"type"` // slack, email, webhook, pagerduty, teams
 
-	Type      string            `json:"type"` // slack, email, webhook, pagerduty, teams
+	Config map[string]string `json:"config"`
 
-	Config    map[string]string `json:"config"`
+	Enabled bool `json:"enabled"`
 
-	Enabled   bool              `json:"enabled"`
+	RateLimit *RateLimit `json:"rate_limit,omitempty"`
 
-	RateLimit *RateLimit        `json:"rate_limit,omitempty"`
-
-	Filters   []AlertFilter     `json:"filters,omitempty"`
-
+	Filters []AlertFilter `json:"filters,omitempty"`
 }
-
-
 
 // AlertFilter filters alerts for notification channels.
 
 type AlertFilter struct {
-
-	Field    string `json:"field"`    // severity, component, sla_type
+	Field string `json:"field"` // severity, component, sla_type
 
 	Operator string `json:"operator"` // equals, contains, matches, greater_than
 
-	Value    string `json:"value"`
+	Value string `json:"value"`
 
-	Negate   bool   `json:"negate"`
-
+	Negate bool `json:"negate"`
 }
-
-
 
 // RoutingStatistics tracks routing performance metrics.
 
 type RoutingStatistics struct {
+	TotalAlertsRouted int64 `json:"total_alerts_routed"`
 
-	TotalAlertsRouted     int64            `json:"total_alerts_routed"`
+	AlertsDeduped int64 `json:"alerts_deduped"`
 
-	AlertsDeduped         int64            `json:"alerts_deduped"`
+	AlertsCorrelated int64 `json:"alerts_correlated"`
 
-	AlertsCorrelated      int64            `json:"alerts_correlated"`
+	NotificationsSent int64 `json:"notifications_sent"`
 
-	NotificationsSent     int64            `json:"notifications_sent"`
+	NotificationsFailed int64 `json:"notifications_failed"`
 
-	NotificationsFailed   int64            `json:"notifications_failed"`
+	AverageRoutingLatency time.Duration `json:"average_routing_latency"`
 
-	AverageRoutingLatency time.Duration    `json:"average_routing_latency"`
-
-	RuleMatchCounts       map[string]int64 `json:"rule_match_counts"`
-
+	RuleMatchCounts map[string]int64 `json:"rule_match_counts"`
 }
-
-
 
 // AlertRouterMetrics contains Prometheus metrics for the alert router.
 
 type AlertRouterMetrics struct {
+	AlertsRouted *prometheus.CounterVec
 
-	AlertsRouted        *prometheus.CounterVec
+	AlertsDeduped *prometheus.CounterVec
 
-	AlertsDeduped       *prometheus.CounterVec
-
-	NotificationsSent   *prometheus.CounterVec
+	NotificationsSent *prometheus.CounterVec
 
 	NotificationsFailed *prometheus.CounterVec
 
-	RoutingLatency      *prometheus.HistogramVec
+	RoutingLatency *prometheus.HistogramVec
 
-	RuleMatches         *prometheus.CounterVec
+	RuleMatches *prometheus.CounterVec
 
-	QueueDepth          prometheus.Gauge
-
+	QueueDepth prometheus.Gauge
 }
-
-
 
 // DefaultAlertRouterConfig returns production-ready alert router configuration.
 
@@ -673,21 +510,17 @@ func DefaultAlertRouterConfig() *AlertRouterConfig {
 
 		DeduplicationWindow: 5 * time.Minute,
 
-		CorrelationWindow:   10 * time.Minute,
-
-
+		CorrelationWindow: 10 * time.Minute,
 
 		// Queue management.
 
-		AlertQueueSize:    1000,
+		AlertQueueSize: 1000,
 
 		ProcessingWorkers: 5,
 
-		MaxRetries:        3,
+		MaxRetries: 3,
 
-		RetryBackoff:      30 * time.Second,
-
-
+		RetryBackoff: 30 * time.Second,
 
 		// Notification settings.
 
@@ -695,35 +528,28 @@ func DefaultAlertRouterConfig() *AlertRouterConfig {
 
 		MaxNotificationRate: 50, // per minute
 
-		BatchNotifications:  true,
+		BatchNotifications: true,
 
-		BatchWindow:         2 * time.Minute,
-
-
+		BatchWindow: 2 * time.Minute,
 
 		// Geographic routing.
 
 		EnableGeographicRouting: true,
 
-		DefaultTimezone:         "UTC",
+		DefaultTimezone: "UTC",
 
-		BusinessHoursStart:      9,  // 9 AM
+		BusinessHoursStart: 9, // 9 AM
 
-		BusinessHoursEnd:        17, // 5 PM
-
-
+		BusinessHoursEnd: 17, // 5 PM
 
 		// Performance settings.
 
-		MetricCacheSize:   500,
+		MetricCacheSize: 500,
 
 		EnrichmentTimeout: 10 * time.Second,
-
 	}
 
 }
-
-
 
 // NewAlertRouter creates a new intelligent alert router.
 
@@ -735,15 +561,11 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 
 	}
 
-
-
 	if logger == nil {
 
 		return nil, fmt.Errorf("logger is required")
 
 	}
-
-
 
 	// Initialize metrics.
 
@@ -754,74 +576,52 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 			Name: "alert_router_alerts_routed_total",
 
 			Help: "Total number of alerts routed",
-
 		}, []string{"rule", "channel", "result"}),
-
-
 
 		AlertsDeduped: prometheus.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "alert_router_alerts_deduped_total",
 
 			Help: "Total number of alerts deduplicated",
-
 		}, []string{"fingerprint_type"}),
-
-
 
 		NotificationsSent: prometheus.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "alert_router_notifications_sent_total",
 
 			Help: "Total number of notifications sent",
-
 		}, []string{"channel", "type"}),
-
-
 
 		NotificationsFailed: prometheus.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "alert_router_notifications_failed_total",
 
 			Help: "Total number of notifications failed",
-
 		}, []string{"channel", "reason"}),
-
-
 
 		RoutingLatency: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 
-			Name:    "alert_router_routing_latency_seconds",
+			Name: "alert_router_routing_latency_seconds",
 
-			Help:    "Alert routing latency in seconds",
+			Help: "Alert routing latency in seconds",
 
 			Buckets: prometheus.ExponentialBuckets(0.001, 2, 10),
-
 		}, []string{"stage"}),
-
-
 
 		RuleMatches: prometheus.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "alert_router_rule_matches_total",
 
 			Help: "Total number of rule matches",
-
 		}, []string{"rule_name"}),
-
-
 
 		QueueDepth: prometheus.NewGauge(prometheus.GaugeOpts{
 
 			Name: "alert_router_queue_depth",
 
 			Help: "Number of alerts in the routing queue",
-
 		}),
-
 	}
-
-
 
 	// Register metrics with duplicate handling.
 
@@ -840,10 +640,7 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 		metrics.RuleMatches,
 
 		metrics.QueueDepth,
-
 	}
-
-
 
 	// Register each metric, ignoring duplicate registration errors.
 
@@ -863,111 +660,84 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 
 	}
 
-
-
 	ar := &AlertRouter{
 
-		logger:               logger.WithComponent("alert-router"),
+		logger: logger.WithComponent("alert-router"),
 
-		config:               config,
+		config: config,
 
-		routingRules:         make([]*RoutingRule, 0),
+		routingRules: make([]*RoutingRule, 0),
 
 		notificationChannels: make(map[string]NotificationChannel),
 
-		alertFingerprints:    make(map[string]*AlertGroup),
+		alertFingerprints: make(map[string]*AlertGroup),
 
-		metrics:              metrics,
+		metrics: metrics,
 
 		routingStats: &RoutingStatistics{
 
 			RuleMatchCounts: make(map[string]int64),
-
 		},
 
-		stopCh:     make(chan struct{}),
+		stopCh: make(chan struct{}),
 
 		alertQueue: make(chan *EnrichedAlert, config.AlertQueueSize),
-
 	}
-
-
 
 	// Initialize sub-components.
 
 	ar.correlationEngine = &CorrelationEngine{
 
-		logger:       logger.WithComponent("correlation-engine"),
+		logger: logger.WithComponent("correlation-engine"),
 
-		config:       config,
+		config: config,
 
 		correlations: make(map[string]*AlertCorrelation),
-
 	}
-
-
 
 	ar.priorityCalculator = &PriorityCalculator{
 
 		logger: logger.WithComponent("priority-calculator"),
 
 		config: config,
-
 	}
-
-
 
 	ar.impactAnalyzer = &ImpactAnalyzer{
 
-		logger:         logger.WithComponent("impact-analyzer"),
+		logger: logger.WithComponent("impact-analyzer"),
 
 		impactDatabase: make(map[string]ImpactProfile),
-
 	}
-
-
 
 	ar.geographicRouter = &GeographicRouter{
 
-		logger:    logger.WithComponent("geographic-router"),
+		logger: logger.WithComponent("geographic-router"),
 
-		regions:   make(map[string]RegionInfo),
+		regions: make(map[string]RegionInfo),
 
 		fallbacks: []string{"default"},
-
 	}
-
-
 
 	ar.timezoneManager = &TimezoneManager{
 
-		logger:    logger.WithComponent("timezone-manager"),
+		logger: logger.WithComponent("timezone-manager"),
 
 		timezones: make(map[string]*time.Location),
-
 	}
-
-
 
 	ar.contextEnricher = &ContextEnricher{
 
 		logger: logger.WithComponent("context-enricher"),
 
 		config: config,
-
 	}
-
-
 
 	ar.runbookManager = &RunbookManager{
 
-		logger:   logger.WithComponent("runbook-manager"),
+		logger: logger.WithComponent("runbook-manager"),
 
 		runbooks: make(map[string]Runbook),
-
 	}
-
-
 
 	// Load default routing rules and channels.
 
@@ -989,13 +759,9 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 
 	}
 
-
-
 	return ar, nil
 
 }
-
-
 
 // Start initializes the alert router.
 
@@ -1005,15 +771,11 @@ func (ar *AlertRouter) Start(ctx context.Context) error {
 
 	defer ar.mu.Unlock()
 
-
-
 	if ar.started {
 
 		return fmt.Errorf("alert router already started")
 
 	}
-
-
 
 	ar.logger.InfoWithContext("Starting alert router",
 
@@ -1022,10 +784,7 @@ func (ar *AlertRouter) Start(ctx context.Context) error {
 		"notification_channels", len(ar.notificationChannels),
 
 		"processing_workers", ar.config.ProcessingWorkers,
-
 	)
-
-
 
 	// Start processing workers.
 
@@ -1035,27 +794,19 @@ func (ar *AlertRouter) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start background processes.
 
 	go ar.deduplicationCleanupLoop(ctx)
 
 	go ar.metricsUpdateLoop(ctx)
 
-
-
 	ar.started = true
 
 	ar.logger.InfoWithContext("Alert router started successfully")
 
-
-
 	return nil
 
 }
-
-
 
 // Stop shuts down the alert router.
 
@@ -1065,15 +816,11 @@ func (ar *AlertRouter) Stop(ctx context.Context) error {
 
 	defer ar.mu.Unlock()
 
-
-
 	if !ar.started {
 
 		return nil
 
 	}
-
-
 
 	ar.logger.InfoWithContext("Stopping alert router")
 
@@ -1081,27 +828,19 @@ func (ar *AlertRouter) Stop(ctx context.Context) error {
 
 	close(ar.alertQueue)
 
-
-
 	ar.started = false
 
 	ar.logger.InfoWithContext("Alert router stopped")
 
-
-
 	return nil
 
 }
-
-
 
 // Route processes and routes an SLA alert.
 
 func (ar *AlertRouter) Route(ctx context.Context, alert *SLAAlert) error {
 
 	startTime := time.Now()
-
-
 
 	// Enrich the alert with additional context.
 
@@ -1112,24 +851,20 @@ func (ar *AlertRouter) Route(ctx context.Context, alert *SLAAlert) error {
 		ar.logger.ErrorWithContext("Failed to enrich alert", err,
 
 			slog.String("alert_id", alert.ID),
-
 		)
 
 		// Continue with non-enriched alert.
 
 		enrichedAlert = &EnrichedAlert{
 
-			SLAAlert:          alert,
+			SLAAlert: alert,
 
-			ProcessedAt:       time.Now(),
+			ProcessedAt: time.Now(),
 
 			EnrichmentLatency: time.Since(startTime),
-
 		}
 
 	}
-
-
 
 	// Add to processing queue.
 
@@ -1153,8 +888,6 @@ func (ar *AlertRouter) Route(ctx context.Context, alert *SLAAlert) error {
 
 }
 
-
-
 // processingWorker processes alerts from the queue.
 
 func (ar *AlertRouter) processingWorker(ctx context.Context, workerID int) {
@@ -1162,10 +895,7 @@ func (ar *AlertRouter) processingWorker(ctx context.Context, workerID int) {
 	ar.logger.DebugWithContext("Starting alert processing worker",
 
 		slog.Int("worker_id", workerID),
-
 	)
-
-
 
 	for {
 
@@ -1187,8 +917,6 @@ func (ar *AlertRouter) processingWorker(ctx context.Context, workerID int) {
 
 			}
 
-
-
 			ar.processAlert(ctx, enrichedAlert, workerID)
 
 			ar.metrics.QueueDepth.Set(float64(len(ar.alertQueue)))
@@ -1198,8 +926,6 @@ func (ar *AlertRouter) processingWorker(ctx context.Context, workerID int) {
 	}
 
 }
-
-
 
 // processAlert processes a single enriched alert.
 
@@ -1217,17 +943,12 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 
 	}()
 
-
-
 	ar.logger.DebugWithContext("Processing alert",
 
 		slog.String("alert_id", enrichedAlert.ID),
 
 		slog.Int("worker_id", workerID),
-
 	)
-
-
 
 	// Step 1: Deduplication.
 
@@ -1238,14 +959,11 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 		ar.logger.DebugWithContext("Alert deduplicated",
 
 			slog.String("alert_id", enrichedAlert.ID),
-
 		)
 
 		return
 
 	}
-
-
 
 	// Step 2: Correlation with existing alerts.
 
@@ -1254,8 +972,6 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 		ar.logger.ErrorWithContext("Failed to correlate alert", err, "alert_id", enrichedAlert.ID)
 
 	}
-
-
 
 	// Step 3: Priority calculation.
 
@@ -1271,8 +987,6 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 
 	enrichedAlert.Priority = ar.convertPriorityToInt(priority)
 
-
-
 	// Step 4: Business impact analysis.
 
 	impact, err := ar.impactAnalyzer.AnalyzeImpact(enrichedAlert.SLAAlert)
@@ -1287,21 +1001,18 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 
 	businessImpact := BusinessImpactScore{
 
-		OverallScore:     50.0,
+		OverallScore: 50.0,
 
-		UserImpact:       40.0,
+		UserImpact: 40.0,
 
-		RevenueImpact:    30.0,
+		RevenueImpact: 30.0,
 
 		ReputationImpact: 20.0,
 
-		ServiceTier:      impact.Severity,
-
+		ServiceTier: impact.Severity,
 	}
 
 	enrichedAlert.BusinessImpact = businessImpact
-
-
 
 	// Step 5: Apply routing rules.
 
@@ -1312,26 +1023,22 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 		ar.logger.ErrorWithContext("Failed to apply routing rules", err,
 
 			slog.String("alert_id", enrichedAlert.ID),
-
 		)
 
 		// Use fallback routing.
 
 		routingDecision = &RoutingDecision{
 
-			MatchedRules:     []string{"fallback"},
+			MatchedRules: []string{"fallback"},
 
 			SelectedChannels: []string{"default"},
 
-			Suppressed:       false,
-
+			Suppressed: false,
 		}
 
 	}
 
 	enrichedAlert.RoutingDecision = routingDecision
-
-
 
 	// Step 6: Check for suppression.
 
@@ -1342,26 +1049,19 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 			slog.String("alert_id", enrichedAlert.ID),
 
 			slog.String("reason", routingDecision.SuppressionReason),
-
 		)
 
 		return
 
 	}
 
-
-
 	// Step 7: Send notifications.
 
 	ar.sendNotifications(ctx, enrichedAlert)
 
-
-
 	ar.routingStats.TotalAlertsRouted++
 
 }
-
-
 
 // enrichAlert enriches the alert with additional context.
 
@@ -1371,17 +1071,12 @@ func (ar *AlertRouter) enrichAlert(ctx context.Context, alert *SLAAlert) (*Enric
 
 	defer cancel()
 
-
-
 	enriched := &EnrichedAlert{
 
-		SLAAlert:    alert,
+		SLAAlert: alert,
 
 		ProcessedAt: time.Now(),
-
 	}
-
-
 
 	// Add related incidents.
 
@@ -1394,7 +1089,6 @@ func (ar *AlertRouter) enrichAlert(ctx context.Context, alert *SLAAlert) (*Enric
 			slog.String("alert_id", alert.ID),
 
 			slog.String("error", err.Error()),
-
 		)
 
 	} else {
@@ -1413,8 +1107,6 @@ func (ar *AlertRouter) enrichAlert(ctx context.Context, alert *SLAAlert) (*Enric
 
 	}
 
-
-
 	// Add geographic context.
 
 	if ar.config.EnableGeographicRouting && ar.geographicRouter != nil {
@@ -1425,17 +1117,14 @@ func (ar *AlertRouter) enrichAlert(ctx context.Context, alert *SLAAlert) (*Enric
 
 		enriched.TimezoneInfo = TimezoneInfo{
 
-			Timezone:      "UTC",
+			Timezone: "UTC",
 
-			LocalTime:     time.Now(),
+			LocalTime: time.Now(),
 
 			BusinessHours: true,
-
 		}
 
 	}
-
-
 
 	// Add runbook actions.
 
@@ -1447,13 +1136,9 @@ func (ar *AlertRouter) enrichAlert(ctx context.Context, alert *SLAAlert) (*Enric
 
 	}
 
-
-
 	return enriched, nil
 
 }
-
-
 
 // deduplicateAlert checks if the alert is a duplicate and handles deduplication.
 
@@ -1463,11 +1148,7 @@ func (ar *AlertRouter) deduplicateAlert(alert *EnrichedAlert) bool {
 
 	defer ar.mu.Unlock()
 
-
-
 	fingerprint := ar.generateDeduplicationFingerprint(alert.SLAAlert)
-
-
 
 	existingGroup, exists := ar.alertFingerprints[fingerprint]
 
@@ -1477,25 +1158,22 @@ func (ar *AlertRouter) deduplicateAlert(alert *EnrichedAlert) bool {
 
 		ar.alertFingerprints[fingerprint] = &AlertGroup{
 
-			ID:             fmt.Sprintf("group-%x", md5.Sum([]byte(fingerprint))),
+			ID: fmt.Sprintf("group-%x", md5.Sum([]byte(fingerprint))),
 
-			Fingerprint:    fingerprint,
+			Fingerprint: fingerprint,
 
 			Representative: alert.SLAAlert,
 
-			Members:        []*SLAAlert{alert.SLAAlert},
+			Members: []*SLAAlert{alert.SLAAlert},
 
-			CreatedAt:      time.Now(),
+			CreatedAt: time.Now(),
 
-			UpdatedAt:      time.Now(),
-
+			UpdatedAt: time.Now(),
 		}
 
 		return false
 
 	}
-
-
 
 	// Check if within deduplication window.
 
@@ -1507,8 +1185,6 @@ func (ar *AlertRouter) deduplicateAlert(alert *EnrichedAlert) bool {
 
 		existingGroup.UpdatedAt = time.Now()
 
-
-
 		// Update representative if new alert is more severe.
 
 		if ar.isMoreSevere(string(alert.Severity), string(existingGroup.Representative.Severity)) {
@@ -1517,39 +1193,30 @@ func (ar *AlertRouter) deduplicateAlert(alert *EnrichedAlert) bool {
 
 		}
 
-
-
 		return true // Deduplicated
 
 	}
-
-
 
 	// Outside window, create new group.
 
 	ar.alertFingerprints[fingerprint] = &AlertGroup{
 
-		ID:             fmt.Sprintf("group-%x", md5.Sum([]byte(fmt.Sprintf("%s-%d", fingerprint, time.Now().Unix())))),
+		ID: fmt.Sprintf("group-%x", md5.Sum([]byte(fmt.Sprintf("%s-%d", fingerprint, time.Now().Unix())))),
 
-		Fingerprint:    fingerprint,
+		Fingerprint: fingerprint,
 
 		Representative: alert.SLAAlert,
 
-		Members:        []*SLAAlert{alert.SLAAlert},
+		Members: []*SLAAlert{alert.SLAAlert},
 
-		CreatedAt:      time.Now(),
+		CreatedAt: time.Now(),
 
-		UpdatedAt:      time.Now(),
-
+		UpdatedAt: time.Now(),
 	}
-
-
 
 	return false
 
 }
-
-
 
 // generateDeduplicationFingerprint creates a fingerprint for deduplication.
 
@@ -1566,10 +1233,7 @@ func (ar *AlertRouter) generateDeduplicationFingerprint(alert *SLAAlert) string 
 		alert.Context.Service,
 
 		string(alert.Severity),
-
 	}
-
-
 
 	// Add relevant labels.
 
@@ -1585,8 +1249,6 @@ func (ar *AlertRouter) generateDeduplicationFingerprint(alert *SLAAlert) string 
 
 	}
 
-
-
 	sort.Strings(components)
 
 	data := strings.Join(components, "|")
@@ -1595,21 +1257,16 @@ func (ar *AlertRouter) generateDeduplicationFingerprint(alert *SLAAlert) string 
 
 }
 
-
-
 // applyRoutingRules applies routing rules to determine alert routing.
 
 func (ar *AlertRouter) applyRoutingRules(alert *EnrichedAlert) (*RoutingDecision, error) {
 
 	decision := &RoutingDecision{
 
-		MatchedRules:     make([]string, 0),
+		MatchedRules: make([]string, 0),
 
 		SelectedChannels: make([]string, 0),
-
 	}
-
-
 
 	// Sort rules by priority (higher priority first).
 
@@ -1623,8 +1280,6 @@ func (ar *AlertRouter) applyRoutingRules(alert *EnrichedAlert) (*RoutingDecision
 
 	})
 
-
-
 	// Evaluate rules in priority order.
 
 	for _, rule := range sortedRules {
@@ -1635,8 +1290,6 @@ func (ar *AlertRouter) applyRoutingRules(alert *EnrichedAlert) (*RoutingDecision
 
 		}
 
-
-
 		// Check if rule matches.
 
 		if ar.evaluateRuleConditions(alert.SLAAlert, rule.Conditions) {
@@ -1646,8 +1299,6 @@ func (ar *AlertRouter) applyRoutingRules(alert *EnrichedAlert) (*RoutingDecision
 			ar.routingStats.RuleMatchCounts[rule.Name]++
 
 			ar.metrics.RuleMatches.WithLabelValues(rule.Name).Inc()
-
-
 
 			// Process rule actions.
 
@@ -1691,8 +1342,6 @@ func (ar *AlertRouter) applyRoutingRules(alert *EnrichedAlert) (*RoutingDecision
 
 			}
 
-
-
 			// If rule has stop processing flag, break.
 
 			if stopProcessing, exists := rule.Actions[0].Parameters["stop_processing"]; exists && stopProcessing == "true" {
@@ -1705,8 +1354,6 @@ func (ar *AlertRouter) applyRoutingRules(alert *EnrichedAlert) (*RoutingDecision
 
 	}
 
-
-
 	// If no channels selected, use default.
 
 	if len(decision.SelectedChannels) == 0 && !decision.Suppressed {
@@ -1715,13 +1362,9 @@ func (ar *AlertRouter) applyRoutingRules(alert *EnrichedAlert) (*RoutingDecision
 
 	}
 
-
-
 	return decision, nil
 
 }
-
-
 
 // sendNotifications sends notifications to selected channels.
 
@@ -1738,14 +1381,11 @@ func (ar *AlertRouter) sendNotifications(ctx context.Context, alert *EnrichedAle
 				slog.String("channel", channelName),
 
 				slog.String("alert_id", alert.ID),
-
 			)
 
 			continue
 
 		}
-
-
 
 		// Send notification asynchronously.
 
@@ -1755,8 +1395,6 @@ func (ar *AlertRouter) sendNotifications(ctx context.Context, alert *EnrichedAle
 
 }
 
-
-
 // sendNotificationToChannel sends notification to a specific channel.
 
 func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) {
@@ -1764,8 +1402,6 @@ func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *Enr
 	notificationCtx, cancel := context.WithTimeout(ctx, ar.config.NotificationTimeout)
 
 	defer cancel()
-
-
 
 	// Apply channel-specific filters.
 
@@ -1776,14 +1412,11 @@ func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *Enr
 			slog.String("alert_id", alert.ID),
 
 			slog.String("channel", channel.Name),
-
 		)
 
 		return
 
 	}
-
-
 
 	// Check rate limits.
 
@@ -1794,7 +1427,6 @@ func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *Enr
 			slog.String("channel", channel.Name),
 
 			slog.String("alert_id", alert.ID),
-
 		)
 
 		ar.metrics.NotificationsFailed.WithLabelValues(channel.Name, "rate_limit").Inc()
@@ -1802,8 +1434,6 @@ func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *Enr
 		return
 
 	}
-
-
 
 	// Send notification based on channel type.
 
@@ -1837,8 +1467,6 @@ func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *Enr
 
 	}
 
-
-
 	if err != nil {
 
 		ar.logger.ErrorWithContext("Failed to send notification", err,
@@ -1848,7 +1476,6 @@ func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *Enr
 			slog.String("channel_type", channel.Type),
 
 			slog.String("alert_id", alert.ID),
-
 		)
 
 		ar.metrics.NotificationsFailed.WithLabelValues(channel.Name, "send_error").Inc()
@@ -1864,7 +1491,6 @@ func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *Enr
 			slog.String("channel_type", channel.Type),
 
 			slog.String("alert_id", alert.ID),
-
 		)
 
 		ar.metrics.NotificationsSent.WithLabelValues(channel.Name, channel.Type).Inc()
@@ -1875,11 +1501,7 @@ func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *Enr
 
 }
 
-
-
 // Missing AlertRouter method implementations.
-
-
 
 func (ar *AlertRouter) loadDefaultRoutingRules() error {
 
@@ -1891,8 +1513,6 @@ func (ar *AlertRouter) loadDefaultRoutingRules() error {
 
 }
 
-
-
 func (ar *AlertRouter) loadDefaultNotificationChannels() error {
 
 	ar.logger.InfoWithContext("Loading default notification channels")
@@ -1903,8 +1523,6 @@ func (ar *AlertRouter) loadDefaultNotificationChannels() error {
 
 }
 
-
-
 func (ar *AlertRouter) loadDefaultImpactProfiles() error {
 
 	ar.logger.InfoWithContext("Loading default impact profiles")
@@ -1914,8 +1532,6 @@ func (ar *AlertRouter) loadDefaultImpactProfiles() error {
 	return nil
 
 }
-
-
 
 func (ar *AlertRouter) deduplicationCleanupLoop(ctx context.Context) {
 
@@ -1941,8 +1557,6 @@ func (ar *AlertRouter) deduplicationCleanupLoop(ctx context.Context) {
 
 }
 
-
-
 func (ar *AlertRouter) metricsUpdateLoop(ctx context.Context) {
 
 	ticker := time.NewTicker(30 * time.Second)
@@ -1967,8 +1581,6 @@ func (ar *AlertRouter) metricsUpdateLoop(ctx context.Context) {
 
 }
 
-
-
 func (ar *AlertRouter) correlateAlert(alert *SLAAlert) error {
 
 	ar.logger.DebugWithContext("Correlating alert", "alertID", alert.ID)
@@ -1979,19 +1591,13 @@ func (ar *AlertRouter) correlateAlert(alert *SLAAlert) error {
 
 }
 
-
-
 func (ar *AlertRouter) getFallbackRouting() *RoutingRule {
 
 	return &RoutingRule{Name: "fallback", Priority: 50}
 
 }
 
-
-
 // Helper methods for routing evaluation.
-
-
 
 func (ar *AlertRouter) evaluateRuleConditions(alert *SLAAlert, conditions []RoutingCondition) bool {
 
@@ -2009,13 +1615,9 @@ func (ar *AlertRouter) evaluateRuleConditions(alert *SLAAlert, conditions []Rout
 
 }
 
-
-
 func (ar *AlertRouter) evaluateCondition(alert *SLAAlert, condition RoutingCondition) bool {
 
 	var value string
-
-
 
 	switch condition.Field {
 
@@ -2050,8 +1652,6 @@ func (ar *AlertRouter) evaluateCondition(alert *SLAAlert, condition RoutingCondi
 		}
 
 	}
-
-
 
 	matches := false
 
@@ -2095,8 +1695,6 @@ func (ar *AlertRouter) evaluateCondition(alert *SLAAlert, condition RoutingCondi
 
 	}
 
-
-
 	if condition.Negate {
 
 		return !matches
@@ -2106,8 +1704,6 @@ func (ar *AlertRouter) evaluateCondition(alert *SLAAlert, condition RoutingCondi
 	return matches
 
 }
-
-
 
 func (ar *AlertRouter) isChannelAvailable(channelName string, alert *SLAAlert) bool {
 
@@ -2119,15 +1715,11 @@ func (ar *AlertRouter) isChannelAvailable(channelName string, alert *SLAAlert) b
 
 	}
 
-
-
 	// Apply channel filters.
 
 	return ar.passesChannelFilters(&EnrichedAlert{SLAAlert: alert}, channel.Filters)
 
 }
-
-
 
 func (ar *AlertRouter) passesChannelFilters(alert *EnrichedAlert, filters []AlertFilter) bool {
 
@@ -2145,13 +1737,9 @@ func (ar *AlertRouter) passesChannelFilters(alert *EnrichedAlert, filters []Aler
 
 }
 
-
-
 func (ar *AlertRouter) evaluateFilter(alert *EnrichedAlert, filter AlertFilter) bool {
 
 	var value string
-
-
 
 	switch filter.Field {
 
@@ -2181,8 +1769,6 @@ func (ar *AlertRouter) evaluateFilter(alert *EnrichedAlert, filter AlertFilter) 
 
 	}
 
-
-
 	matches := false
 
 	switch filter.Operator {
@@ -2201,8 +1787,6 @@ func (ar *AlertRouter) evaluateFilter(alert *EnrichedAlert, filter AlertFilter) 
 
 	}
 
-
-
 	if filter.Negate {
 
 		return !matches
@@ -2213,8 +1797,6 @@ func (ar *AlertRouter) evaluateFilter(alert *EnrichedAlert, filter AlertFilter) 
 
 }
 
-
-
 func (ar *AlertRouter) checkRateLimit(channelName string, limit RateLimit) bool {
 
 	// Simplified rate limiting - in production would use more sophisticated algorithm.
@@ -2223,31 +1805,24 @@ func (ar *AlertRouter) checkRateLimit(channelName string, limit RateLimit) bool 
 
 }
 
-
-
 func (ar *AlertRouter) isMoreSevere(a, b string) bool {
 
 	severityOrder := map[string]int{
 
-		"info":     1,
+		"info": 1,
 
-		"warning":  2,
+		"warning": 2,
 
-		"major":    3,
+		"major": 3,
 
 		"critical": 4,
 
-		"urgent":   5,
-
+		"urgent": 5,
 	}
-
-
 
 	return severityOrder[a] > severityOrder[b]
 
 }
-
-
 
 func (ar *AlertRouter) convertPriorityToInt(priority string) int {
 
@@ -2277,11 +1852,7 @@ func (ar *AlertRouter) convertPriorityToInt(priority string) int {
 
 }
 
-
-
 // Notification sending methods (simplified implementations).
-
-
 
 func (ar *AlertRouter) sendSlackNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
 
@@ -2290,14 +1861,11 @@ func (ar *AlertRouter) sendSlackNotification(ctx context.Context, alert *Enriche
 		slog.String("alert_id", alert.ID),
 
 		slog.String("channel", channel.Name),
-
 	)
 
 	return nil
 
 }
-
-
 
 func (ar *AlertRouter) sendEmailNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
 
@@ -2306,14 +1874,11 @@ func (ar *AlertRouter) sendEmailNotification(ctx context.Context, alert *Enriche
 		slog.String("alert_id", alert.ID),
 
 		slog.String("channel", channel.Name),
-
 	)
 
 	return nil
 
 }
-
-
 
 func (ar *AlertRouter) sendWebhookNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
 
@@ -2322,14 +1887,11 @@ func (ar *AlertRouter) sendWebhookNotification(ctx context.Context, alert *Enric
 		slog.String("alert_id", alert.ID),
 
 		slog.String("channel", channel.Name),
-
 	)
 
 	return nil
 
 }
-
-
 
 func (ar *AlertRouter) sendPagerDutyNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
 
@@ -2338,14 +1900,11 @@ func (ar *AlertRouter) sendPagerDutyNotification(ctx context.Context, alert *Enr
 		slog.String("alert_id", alert.ID),
 
 		slog.String("channel", channel.Name),
-
 	)
 
 	return nil
 
 }
-
-
 
 func (ar *AlertRouter) sendTeamsNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
 
@@ -2354,18 +1913,13 @@ func (ar *AlertRouter) sendTeamsNotification(ctx context.Context, alert *Enriche
 		slog.String("alert_id", alert.ID),
 
 		slog.String("channel", channel.Name),
-
 	)
 
 	return nil
 
 }
 
-
-
 // Missing helper type method implementations.
-
-
 
 // CalculatePriority performs calculatepriority operation.
 
@@ -2381,8 +1935,6 @@ func (pc *PriorityCalculator) CalculatePriority(alert *SLAAlert) (string, error)
 
 }
 
-
-
 // AnalyzeImpact performs analyzeimpact operation.
 
 func (ia *ImpactAnalyzer) AnalyzeImpact(alert *SLAAlert) (*ImpactAnalysis, error) {
@@ -2390,8 +1942,6 @@ func (ia *ImpactAnalyzer) AnalyzeImpact(alert *SLAAlert) (*ImpactAnalysis, error
 	return &ImpactAnalysis{Severity: string(alert.Severity), AffectedServices: []string{}}, nil
 
 }
-
-
 
 // FindRelatedIncidents performs findrelatedincidents operation.
 
@@ -2401,31 +1951,20 @@ func (ce *ContextEnricher) FindRelatedIncidents(ctx context.Context, alert *SLAA
 
 }
 
-
-
 // Helper types for the stubs above.
-
-
 
 // ImpactAnalysis represents a impactanalysis.
 
 type ImpactAnalysis struct {
-
-	Severity         string   `json:"severity"`
+	Severity string `json:"severity"`
 
 	AffectedServices []string `json:"affected_services"`
-
 }
-
-
 
 // Incident represents a incident.
 
 type Incident struct {
-
-	ID     string `json:"id"`
+	ID string `json:"id"`
 
 	Status string `json:"status"`
-
 }
-

@@ -1,23 +1,12 @@
-
 package ingest
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"regexp"
-
 	"strconv"
-
 	"strings"
-
 )
-
-
 
 // IntentProvider defines the interface for intent parsing providers.
 
@@ -30,20 +19,13 @@ type IntentProvider interface {
 	// Name returns the provider name.
 
 	Name() string
-
 }
-
-
 
 // RulesProvider implements deterministic parsing using regex patterns.
 
 type RulesProvider struct {
-
 	patterns map[string]*regexp.Regexp
-
 }
-
-
 
 // NewRulesProvider creates a new rules-based provider.
 
@@ -65,15 +47,11 @@ func NewRulesProvider() *RulesProvider {
 
 			"scale_out": regexp.MustCompile(`(?i)scale\s+out\s+([a-z0-9\-]+)\s+by\s+(\d+)(?:\s+in\s+ns\s+([a-z0-9\-]+))?`),
 
-			"scale_in":  regexp.MustCompile(`(?i)scale\s+in\s+([a-z0-9\-]+)\s+by\s+(\d+)(?:\s+in\s+ns\s+([a-z0-9\-]+))?`),
-
+			"scale_in": regexp.MustCompile(`(?i)scale\s+in\s+([a-z0-9\-]+)\s+by\s+(\d+)(?:\s+in\s+ns\s+([a-z0-9\-]+))?`),
 		},
-
 	}
 
 }
-
-
 
 // Name returns the provider name.
 
@@ -83,15 +61,11 @@ func (p *RulesProvider) Name() string {
 
 }
 
-
-
 // ParseIntent converts natural language to structured intent using rules.
 
 func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[string]interface{}, error) {
 
 	text = strings.TrimSpace(text)
-
-
 
 	// Try full scale pattern.
 
@@ -109,19 +83,16 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 
 			"intent_type": "scaling",
 
-			"target":      m[1],
+			"target": m[1],
 
-			"replicas":    replicas,
+			"replicas": replicas,
 
-			"namespace":   m[3],
+			"namespace": m[3],
 
-			"source":      "user",
-
+			"source": "user",
 		}, nil
 
 	}
-
-
 
 	// Try simple scale pattern (default namespace).
 
@@ -139,19 +110,16 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 
 			"intent_type": "scaling",
 
-			"target":      m[1],
+			"target": m[1],
 
-			"replicas":    replicas,
+			"replicas": replicas,
 
-			"namespace":   "default",
+			"namespace": "default",
 
-			"source":      "user",
-
+			"source": "user",
 		}, nil
 
 	}
-
-
 
 	// Try scale out pattern.
 
@@ -181,21 +149,18 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 
 			"intent_type": "scaling",
 
-			"target":      m[1],
+			"target": m[1],
 
-			"replicas":    delta, // In production, this would be current + delta
+			"replicas": delta, // In production, this would be current + delta
 
-			"namespace":   ns,
+			"namespace": ns,
 
-			"source":      "user",
+			"source": "user",
 
-			"reason":      fmt.Sprintf("scale out by %d", delta),
-
+			"reason": fmt.Sprintf("scale out by %d", delta),
 		}, nil
 
 	}
-
-
 
 	// Try scale in pattern.
 
@@ -225,37 +190,28 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 
 			"intent_type": "scaling",
 
-			"target":      m[1],
+			"target": m[1],
 
-			"replicas":    1, // In production, this would be max(1, current - delta)
+			"replicas": 1, // In production, this would be max(1, current - delta)
 
-			"namespace":   ns,
+			"namespace": ns,
 
-			"source":      "user",
+			"source": "user",
 
-			"reason":      fmt.Sprintf("scale in by %d", delta),
-
+			"reason": fmt.Sprintf("scale in by %d", delta),
 		}, nil
 
 	}
-
-
 
 	return nil, fmt.Errorf("unable to parse intent from text: %s", text)
 
 }
 
-
-
 // MockLLMProvider simulates an LLM provider but returns the same results as rules.
 
 type MockLLMProvider struct {
-
 	rulesProvider *RulesProvider
-
 }
-
-
 
 // NewMockLLMProvider creates a new mock LLM provider.
 
@@ -264,12 +220,9 @@ func NewMockLLMProvider() *MockLLMProvider {
 	return &MockLLMProvider{
 
 		rulesProvider: NewRulesProvider(),
-
 	}
 
 }
-
-
 
 // Name returns the provider name.
 
@@ -278,8 +231,6 @@ func (p *MockLLMProvider) Name() string {
 	return "mock"
 
 }
-
-
 
 // ParseIntent simulates LLM processing but uses rules internally.
 
@@ -293,8 +244,6 @@ func (p *MockLLMProvider) ParseIntent(ctx context.Context, text string) (map[str
 
 }
 
-
-
 // ProviderFactory creates providers based on mode.
 
 func NewProvider(mode, provider string) (IntentProvider, error) {
@@ -306,8 +255,6 @@ func NewProvider(mode, provider string) (IntentProvider, error) {
 		mode = "rules"
 
 	}
-
-
 
 	switch mode {
 
@@ -344,4 +291,3 @@ func NewProvider(mode, provider string) (IntentProvider, error) {
 	}
 
 }
-

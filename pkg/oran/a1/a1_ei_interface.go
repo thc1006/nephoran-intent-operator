@@ -1,31 +1,17 @@
-
 package a1
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"time"
-
 )
-
-
 
 // A1-EI (Enrichment Information) Interface Implementation.
 
 // This implements the O-RAN A1-EI specification for enrichment information service.
-
-
 
 // A1EIInterface defines the A1-EI interface operations.
 
@@ -41,8 +27,6 @@ type A1EIInterface interface {
 
 	DeleteEIType(ctx context.Context, eiTypeID string) error
 
-
-
 	// EI Job Management.
 
 	CreateEIJob(ctx context.Context, eiTypeID string, eiJob *EnrichmentInfoJob) error
@@ -53,63 +37,46 @@ type A1EIInterface interface {
 
 	DeleteEIJob(ctx context.Context, eiTypeID, eiJobID string) error
 
-
-
 	// EI Job Status.
 
 	GetEIJobStatus(ctx context.Context, eiTypeID, eiJobID string) (*EIJobStatus, error)
-
 }
-
-
 
 // EIJobStatus represents the status of an enrichment information job.
 
 type EIJobStatus struct {
+	OperationalState string `json:"operational_state"` // ENABLED, DISABLED
 
-	OperationalState  string    `json:"operational_state"`   // ENABLED, DISABLED
+	DataDeliveryState string `json:"data_delivery_state"` // OK, SUSPENDED
 
-	DataDeliveryState string    `json:"data_delivery_state"` // OK, SUSPENDED
+	LastUpdated time.Time `json:"last_updated"`
 
-	LastUpdated       time.Time `json:"last_updated"`
-
-	AdditionalInfo    string    `json:"additional_info,omitempty"`
-
+	AdditionalInfo string `json:"additional_info,omitempty"`
 }
-
-
 
 // EIProducerInfo represents information about an EI data producer.
 
 type EIProducerInfo struct {
+	ProducerID string `json:"producer_id"`
 
-	ProducerID             string   `json:"producer_id"`
+	ProducerName string `json:"producer_name"`
 
-	ProducerName           string   `json:"producer_name"`
+	SupportedEITypes []string `json:"supported_ei_types"`
 
-	SupportedEITypes       []string `json:"supported_ei_types"`
+	ProducerCallbackURL string `json:"producer_callback_url"`
 
-	ProducerCallbackURL    string   `json:"producer_callback_url"`
-
-	ProducerSupervisionURL string   `json:"producer_supervision_url"`
-
+	ProducerSupervisionURL string `json:"producer_supervision_url"`
 }
-
-
 
 // A1EIAdaptor implements the A1-EI interface.
 
 type A1EIAdaptor struct {
-
 	httpClient *http.Client
 
-	ricURL     string
+	ricURL string
 
 	apiVersion string
-
 }
-
-
 
 // NewA1EIAdaptor creates a new A1-EI adaptor.
 
@@ -119,23 +86,18 @@ func NewA1EIAdaptor(ricURL, apiVersion string) *A1EIAdaptor {
 
 		httpClient: &http.Client{Timeout: 30 * time.Second},
 
-		ricURL:     ricURL,
+		ricURL: ricURL,
 
 		apiVersion: apiVersion,
-
 	}
 
 }
-
-
 
 // CreateEIType creates a new enrichment information type.
 
 func (ei *A1EIAdaptor) CreateEIType(ctx context.Context, eiType *EnrichmentInfoType) error {
 
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s", ei.ricURL, eiType.EiTypeID)
-
-
 
 	body, err := json.Marshal(eiType)
 
@@ -145,8 +107,6 @@ func (ei *A1EIAdaptor) CreateEIType(ctx context.Context, eiType *EnrichmentInfoT
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
 
 	if err != nil {
@@ -155,13 +115,9 @@ func (ei *A1EIAdaptor) CreateEIType(ctx context.Context, eiType *EnrichmentInfoT
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
-
-
 
 	resp, err := ei.httpClient.Do(req)
 
@@ -172,8 +128,6 @@ func (ei *A1EIAdaptor) CreateEIType(ctx context.Context, eiType *EnrichmentInfoT
 	}
 
 	defer resp.Body.Close()
-
-
 
 	switch resp.StatusCode {
 
@@ -201,15 +155,11 @@ func (ei *A1EIAdaptor) CreateEIType(ctx context.Context, eiType *EnrichmentInfoT
 
 }
 
-
-
 // GetEIType retrieves an enrichment information type.
 
 func (ei *A1EIAdaptor) GetEIType(ctx context.Context, eiTypeID string) (*EnrichmentInfoType, error) {
 
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s", ei.ricURL, eiTypeID)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
@@ -219,11 +169,7 @@ func (ei *A1EIAdaptor) GetEIType(ctx context.Context, eiTypeID string) (*Enrichm
 
 	}
 
-
-
 	req.Header.Set("Accept", "application/json, application/problem+json")
-
-
 
 	resp, err := ei.httpClient.Do(req)
 
@@ -234,8 +180,6 @@ func (ei *A1EIAdaptor) GetEIType(ctx context.Context, eiTypeID string) (*Enrichm
 	}
 
 	defer resp.Body.Close()
-
-
 
 	switch resp.StatusCode {
 
@@ -263,15 +207,11 @@ func (ei *A1EIAdaptor) GetEIType(ctx context.Context, eiTypeID string) (*Enrichm
 
 }
 
-
-
 // ListEITypes lists all enrichment information types.
 
 func (ei *A1EIAdaptor) ListEITypes(ctx context.Context) ([]*EnrichmentInfoType, error) {
 
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes", ei.ricURL)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
@@ -281,11 +221,7 @@ func (ei *A1EIAdaptor) ListEITypes(ctx context.Context) ([]*EnrichmentInfoType, 
 
 	}
 
-
-
 	req.Header.Set("Accept", "application/json, application/problem+json")
-
-
 
 	resp, err := ei.httpClient.Do(req)
 
@@ -297,15 +233,11 @@ func (ei *A1EIAdaptor) ListEITypes(ctx context.Context) ([]*EnrichmentInfoType, 
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("failed to list EI types: status=%d", resp.StatusCode)
 
 	}
-
-
 
 	var eiTypeIDs []string
 
@@ -314,8 +246,6 @@ func (ei *A1EIAdaptor) ListEITypes(ctx context.Context) ([]*EnrichmentInfoType, 
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 
 	}
-
-
 
 	// Fetch details for each EI type.
 
@@ -335,21 +265,15 @@ func (ei *A1EIAdaptor) ListEITypes(ctx context.Context) ([]*EnrichmentInfoType, 
 
 	}
 
-
-
 	return eiTypes, nil
 
 }
-
-
 
 // DeleteEIType deletes an enrichment information type.
 
 func (ei *A1EIAdaptor) DeleteEIType(ctx context.Context, eiTypeID string) error {
 
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s", ei.ricURL, eiTypeID)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, http.NoBody)
 
@@ -359,11 +283,7 @@ func (ei *A1EIAdaptor) DeleteEIType(ctx context.Context, eiTypeID string) error 
 
 	}
 
-
-
 	req.Header.Set("Accept", "application/json, application/problem+json")
-
-
 
 	resp, err := ei.httpClient.Do(req)
 
@@ -374,8 +294,6 @@ func (ei *A1EIAdaptor) DeleteEIType(ctx context.Context, eiTypeID string) error 
 	}
 
 	defer resp.Body.Close()
-
-
 
 	switch resp.StatusCode {
 
@@ -399,15 +317,11 @@ func (ei *A1EIAdaptor) DeleteEIType(ctx context.Context, eiTypeID string) error 
 
 }
 
-
-
 // CreateEIJob creates a new enrichment information job.
 
 func (ei *A1EIAdaptor) CreateEIJob(ctx context.Context, eiTypeID string, eiJob *EnrichmentInfoJob) error {
 
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s/eijobs/%s", ei.ricURL, eiTypeID, eiJob.EiJobID)
-
-
 
 	body, err := json.Marshal(eiJob)
 
@@ -417,8 +331,6 @@ func (ei *A1EIAdaptor) CreateEIJob(ctx context.Context, eiTypeID string, eiJob *
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
 
 	if err != nil {
@@ -427,13 +339,9 @@ func (ei *A1EIAdaptor) CreateEIJob(ctx context.Context, eiTypeID string, eiJob *
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
-
-
 
 	resp, err := ei.httpClient.Do(req)
 
@@ -444,8 +352,6 @@ func (ei *A1EIAdaptor) CreateEIJob(ctx context.Context, eiTypeID string, eiJob *
 	}
 
 	defer resp.Body.Close()
-
-
 
 	switch resp.StatusCode {
 
@@ -477,15 +383,11 @@ func (ei *A1EIAdaptor) CreateEIJob(ctx context.Context, eiTypeID string, eiJob *
 
 }
 
-
-
 // GetEIJob retrieves an enrichment information job.
 
 func (ei *A1EIAdaptor) GetEIJob(ctx context.Context, eiTypeID, eiJobID string) (*EnrichmentInfoJob, error) {
 
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s/eijobs/%s", ei.ricURL, eiTypeID, eiJobID)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
@@ -495,11 +397,7 @@ func (ei *A1EIAdaptor) GetEIJob(ctx context.Context, eiTypeID, eiJobID string) (
 
 	}
 
-
-
 	req.Header.Set("Accept", "application/json, application/problem+json")
-
-
 
 	resp, err := ei.httpClient.Do(req)
 
@@ -510,8 +408,6 @@ func (ei *A1EIAdaptor) GetEIJob(ctx context.Context, eiTypeID, eiJobID string) (
 	}
 
 	defer resp.Body.Close()
-
-
 
 	switch resp.StatusCode {
 
@@ -539,15 +435,11 @@ func (ei *A1EIAdaptor) GetEIJob(ctx context.Context, eiTypeID, eiJobID string) (
 
 }
 
-
-
 // ListEIJobs lists all enrichment information jobs for a given type.
 
 func (ei *A1EIAdaptor) ListEIJobs(ctx context.Context, eiTypeID string) ([]*EnrichmentInfoJob, error) {
 
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s/eijobs", ei.ricURL, eiTypeID)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
@@ -557,11 +449,7 @@ func (ei *A1EIAdaptor) ListEIJobs(ctx context.Context, eiTypeID string) ([]*Enri
 
 	}
 
-
-
 	req.Header.Set("Accept", "application/json, application/problem+json")
-
-
 
 	resp, err := ei.httpClient.Do(req)
 
@@ -573,15 +461,11 @@ func (ei *A1EIAdaptor) ListEIJobs(ctx context.Context, eiTypeID string) ([]*Enri
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("failed to list EI jobs: status=%d", resp.StatusCode)
 
 	}
-
-
 
 	var eiJobIDs []string
 
@@ -590,8 +474,6 @@ func (ei *A1EIAdaptor) ListEIJobs(ctx context.Context, eiTypeID string) ([]*Enri
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 
 	}
-
-
 
 	// Fetch details for each EI job.
 
@@ -611,21 +493,15 @@ func (ei *A1EIAdaptor) ListEIJobs(ctx context.Context, eiTypeID string) ([]*Enri
 
 	}
 
-
-
 	return eiJobs, nil
 
 }
-
-
 
 // DeleteEIJob deletes an enrichment information job.
 
 func (ei *A1EIAdaptor) DeleteEIJob(ctx context.Context, eiTypeID, eiJobID string) error {
 
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s/eijobs/%s", ei.ricURL, eiTypeID, eiJobID)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, http.NoBody)
 
@@ -635,11 +511,7 @@ func (ei *A1EIAdaptor) DeleteEIJob(ctx context.Context, eiTypeID, eiJobID string
 
 	}
 
-
-
 	req.Header.Set("Accept", "application/json, application/problem+json")
-
-
 
 	resp, err := ei.httpClient.Do(req)
 
@@ -650,8 +522,6 @@ func (ei *A1EIAdaptor) DeleteEIJob(ctx context.Context, eiTypeID, eiJobID string
 	}
 
 	defer resp.Body.Close()
-
-
 
 	switch resp.StatusCode {
 
@@ -671,15 +541,11 @@ func (ei *A1EIAdaptor) DeleteEIJob(ctx context.Context, eiTypeID, eiJobID string
 
 }
 
-
-
 // GetEIJobStatus retrieves the status of an enrichment information job.
 
 func (ei *A1EIAdaptor) GetEIJobStatus(ctx context.Context, eiTypeID, eiJobID string) (*EIJobStatus, error) {
 
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s/eijobs/%s/status", ei.ricURL, eiTypeID, eiJobID)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
@@ -689,11 +555,7 @@ func (ei *A1EIAdaptor) GetEIJobStatus(ctx context.Context, eiTypeID, eiJobID str
 
 	}
 
-
-
 	req.Header.Set("Accept", "application/json, application/problem+json")
-
-
 
 	resp, err := ei.httpClient.Do(req)
 
@@ -704,8 +566,6 @@ func (ei *A1EIAdaptor) GetEIJobStatus(ctx context.Context, eiTypeID, eiJobID str
 	}
 
 	defer resp.Body.Close()
-
-
 
 	switch resp.StatusCode {
 
@@ -733,15 +593,11 @@ func (ei *A1EIAdaptor) GetEIJobStatus(ctx context.Context, eiTypeID, eiJobID str
 
 }
 
-
-
 // RegisterEIProducer registers an enrichment information data producer.
 
 func (ei *A1EIAdaptor) RegisterEIProducer(ctx context.Context, producer *EIProducerInfo) error {
 
 	url := fmt.Sprintf("%s/A1-EI/v1/eiproducers/%s", ei.ricURL, producer.ProducerID)
-
-
 
 	body, err := json.Marshal(producer)
 
@@ -751,8 +607,6 @@ func (ei *A1EIAdaptor) RegisterEIProducer(ctx context.Context, producer *EIProdu
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
 
 	if err != nil {
@@ -761,13 +615,9 @@ func (ei *A1EIAdaptor) RegisterEIProducer(ctx context.Context, producer *EIProdu
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
-
-
 
 	resp, err := ei.httpClient.Do(req)
 
@@ -778,8 +628,6 @@ func (ei *A1EIAdaptor) RegisterEIProducer(ctx context.Context, producer *EIProdu
 	}
 
 	defer resp.Body.Close()
-
-
 
 	switch resp.StatusCode {
 
@@ -802,4 +650,3 @@ func (ei *A1EIAdaptor) RegisterEIProducer(ctx context.Context, producer *EIProdu
 	}
 
 }
-

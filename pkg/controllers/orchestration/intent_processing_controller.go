@@ -28,74 +28,41 @@ limitations under the License.
 
 */
 
-
-
-
 package orchestration
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
 
-
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/client-go/tools/record"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // IntentProcessingController reconciles IntentProcessing objects.
 
 type IntentProcessingController struct {
-
 	client.Client
 
-	Scheme   *runtime.Scheme
+	Scheme *runtime.Scheme
 
 	Recorder record.EventRecorder
 
-	Logger   logr.Logger
-
-
+	Logger logr.Logger
 
 	// Services.
 
@@ -103,77 +70,56 @@ type IntentProcessingController struct {
 
 	RAGService *RAGService
 
-
-
 	// Configuration.
 
 	Config *IntentProcessingConfig
-
-
 
 	// Event bus for coordination.
 
 	EventBus *EventBus
 
-
-
 	// Metrics.
 
 	MetricsCollector *MetricsCollector
-
 }
-
-
 
 // IntentProcessingConfig contains configuration for the controller.
 
 type IntentProcessingConfig struct {
+	MaxConcurrentProcessing int `json:"maxConcurrentProcessing"`
 
-	MaxConcurrentProcessing int           `json:"maxConcurrentProcessing"`
+	DefaultTimeout time.Duration `json:"defaultTimeout"`
 
-	DefaultTimeout          time.Duration `json:"defaultTimeout"`
+	MaxRetries int `json:"maxRetries"`
 
-	MaxRetries              int           `json:"maxRetries"`
+	RetryBackoff time.Duration `json:"retryBackoff"`
 
-	RetryBackoff            time.Duration `json:"retryBackoff"`
+	QualityThreshold float64 `json:"qualityThreshold"`
 
-	QualityThreshold        float64       `json:"qualityThreshold"`
-
-	ValidationEnabled       bool          `json:"validationEnabled"`
-
-
+	ValidationEnabled bool `json:"validationEnabled"`
 
 	// LLM Configuration.
 
 	LLMEndpoint string `json:"llmEndpoint"`
 
-
-
 	// Circuit Breaker Configuration.
 
-	CircuitBreakerEnabled bool          `json:"circuitBreakerEnabled"`
+	CircuitBreakerEnabled bool `json:"circuitBreakerEnabled"`
 
-	FailureThreshold      int           `json:"failureThreshold"`
+	FailureThreshold int `json:"failureThreshold"`
 
-	RecoveryTimeout       time.Duration `json:"recoveryTimeout"`
-
-
+	RecoveryTimeout time.Duration `json:"recoveryTimeout"`
 
 	// Cache Configuration.
 
-	CacheEnabled bool          `json:"cacheEnabled"`
+	CacheEnabled bool `json:"cacheEnabled"`
 
-	CacheTTL     time.Duration `json:"cacheTTL"`
-
-
+	CacheTTL time.Duration `json:"cacheTTL"`
 
 	// Streaming Configuration.
 
 	StreamingEnabled bool `json:"streamingEnabled"`
-
 }
-
-
 
 // NewIntentProcessingController creates a new IntentProcessingController.
 
@@ -185,47 +131,37 @@ type RAGService struct {
 
 }
 
-
-
 // RAGRequest represents a request to the RAG service.
 
 type RAGRequest struct {
+	Query string
 
-	Query                string
+	MaxResults int
 
-	MaxResults           int
+	MinConfidence float64
 
-	MinConfidence        float64
+	UseHybridSearch bool
 
-	UseHybridSearch      bool
-
-	RetrievalThreshold   float64
+	RetrievalThreshold float64
 
 	EnableContextBuilder bool
-
 }
-
-
 
 // RAGResponse represents a response from the RAG service.
 
 type RAGResponse struct {
+	Context map[string]interface{}
 
-	Context         map[string]interface{}
-
-	Metrics         *nephoranv1.RAGMetrics
+	Metrics *nephoranv1.RAGMetrics
 
 	SourceDocuments []interface{}
 
-	Metadata        map[string]interface{}
+	Metadata map[string]interface{}
 
-	RetrievalTime   int64
+	RetrievalTime int64
 
-	Confidence      float32
-
+	Confidence float32
 }
-
-
 
 // ProcessQuery processes a query using the RAG service (stub implementation).
 
@@ -239,25 +175,21 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 
 			"retrieved_documents": []string{},
 
-			"context_summary":     "Mock context for intent: " + request.Query,
-
+			"context_summary": "Mock context for intent: " + request.Query,
 		},
 
-		Metrics:         &nephoranv1.RAGMetrics{},
+		Metrics: &nephoranv1.RAGMetrics{},
 
 		SourceDocuments: []interface{}{},
 
-		Metadata:        map[string]interface{}{},
+		Metadata: map[string]interface{}{},
 
-		RetrievalTime:   100,
+		RetrievalTime: 100,
 
-		Confidence:      0.8,
-
+		Confidence: 0.8,
 	}, nil
 
 }
-
-
 
 // NewIntentProcessingController performs newintentprocessingcontroller operation.
 
@@ -281,37 +213,32 @@ func NewIntentProcessingController(
 
 	return &IntentProcessingController{
 
-		Client:           client,
+		Client: client,
 
-		Scheme:           scheme,
+		Scheme: scheme,
 
-		Recorder:         recorder,
+		Recorder: recorder,
 
-		Logger:           log.Log.WithName("intent-processing-controller"),
+		Logger: log.Log.WithName("intent-processing-controller"),
 
-		LLMService:       llmService,
+		LLMService: llmService,
 
-		RAGService:       ragService,
+		RAGService: ragService,
 
-		EventBus:         eventBus,
+		EventBus: eventBus,
 
-		Config:           config,
+		Config: config,
 
 		MetricsCollector: NewMetricsCollector(),
-
 	}
 
 }
-
-
 
 // Reconcile handles IntentProcessing resources.
 
 func (r *IntentProcessingController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	log := r.Logger.WithValues("intentprocessing", req.NamespacedName)
-
-
 
 	// Fetch the IntentProcessing instance.
 
@@ -333,8 +260,6 @@ func (r *IntentProcessingController) Reconcile(ctx context.Context, req ctrl.Req
 
 	}
 
-
-
 	// Handle deletion.
 
 	if intentProcessing.DeletionTimestamp != nil {
@@ -342,8 +267,6 @@ func (r *IntentProcessingController) Reconcile(ctx context.Context, req ctrl.Req
 		return r.handleDeletion(ctx, intentProcessing)
 
 	}
-
-
 
 	// Add finalizer if not present.
 
@@ -355,23 +278,17 @@ func (r *IntentProcessingController) Reconcile(ctx context.Context, req ctrl.Req
 
 	}
 
-
-
 	// Process the intent.
 
 	return r.processIntent(ctx, intentProcessing)
 
 }
 
-
-
 // processIntent processes the natural language intent.
 
 func (r *IntentProcessingController) processIntent(ctx context.Context, intentProcessing *nephoranv1.IntentProcessing) (ctrl.Result, error) {
 
 	log := r.Logger.WithValues("intentprocessing", intentProcessing.Name, "namespace", intentProcessing.Namespace)
-
-
 
 	// Check if processing is already complete.
 
@@ -383,8 +300,6 @@ func (r *IntentProcessingController) processIntent(ctx context.Context, intentPr
 
 	}
 
-
-
 	// Check if processing failed and can retry.
 
 	if intentProcessing.IsProcessingFailed() && !intentProcessing.CanRetry() {
@@ -394,8 +309,6 @@ func (r *IntentProcessingController) processIntent(ctx context.Context, intentPr
 		return ctrl.Result{}, nil
 
 	}
-
-
 
 	// Record processing start.
 
@@ -417,33 +330,26 @@ func (r *IntentProcessingController) processIntent(ctx context.Context, intentPr
 
 	}
 
-
-
 	// Publish processing start event.
 
 	if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseLLMProcessing, EventLLMProcessingStarted,
 
 		string(intentProcessing.UID), false, map[string]interface{}{
 
-			"intent":   intentProcessing.Spec.OriginalIntent,
+			"intent": intentProcessing.Spec.OriginalIntent,
 
 			"priority": intentProcessing.Spec.Priority,
-
 		}); err != nil {
 
 		log.Error(err, "Failed to publish processing start event")
 
 	}
 
-
-
 	// Create processing context with timeout.
 
 	processingCtx, cancel := context.WithTimeout(ctx, intentProcessing.GetProcessingTimeout())
 
 	defer cancel()
-
-
 
 	// Execute LLM processing.
 
@@ -455,15 +361,11 @@ func (r *IntentProcessingController) processIntent(ctx context.Context, intentPr
 
 	}
 
-
-
 	// Update status with results.
 
 	return r.handleProcessingSuccess(ctx, intentProcessing, result)
 
 }
-
-
 
 // executeLLMProcessing performs the actual LLM processing.
 
@@ -471,17 +373,12 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 
 	log := r.Logger.WithValues("intentprocessing", intentProcessing.Name)
 
-
-
 	// Prepare LLM request.
 
 	request := &llm.ProcessingRequest{
 
 		Intent: intentProcessing.Spec.OriginalIntent,
-
 	}
-
-
 
 	// Configure LLM parameters.
 
@@ -517,8 +414,6 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 
 	}
 
-
-
 	// Enhance with RAG if enabled.
 
 	if intentProcessing.ShouldEnableRAG() && r.RAGService != nil {
@@ -551,8 +446,6 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 
 	}
 
-
-
 	// Serialize context map to JSON string for ProcessingRequest.Context field.
 
 	if len(contextMap) > 0 {
@@ -571,8 +464,6 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 
 	}
 
-
-
 	// Execute LLM processing.
 
 	log.Info("Executing LLM processing", "model", request.Model)
@@ -585,13 +476,11 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 
 	}
 
-
-
 	// Convert string response to ProcessingResponse for validation.
 
 	processingResp := &llm.ProcessingResponse{
 
-		Response:   response,
+		Response: response,
 
 		Confidence: 0.9, // Default confidence for now
 
@@ -607,25 +496,20 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 
 	}
 
-
-
 	// Create processing result.
 
 	result := &LLMProcessingResult{
 
-		Response:         processingResp,
+		Response: processingResp,
 
-		QualityScore:     qualityScore,
+		QualityScore: qualityScore,
 
 		ValidationErrors: validationErrors,
 
-		TokenUsage:       nil, // No token usage info from string response
+		TokenUsage: nil, // No token usage info from string response
 
-		RAGMetrics:       r.extractRAGMetricsFromContextString(request.Context),
-
+		RAGMetrics: r.extractRAGMetricsFromContextString(request.Context),
 	}
-
-
 
 	// Extract structured parameters.
 
@@ -643,8 +527,6 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 
 	}
 
-
-
 	// Extract telecommunications entities.
 
 	entities, err := r.extractTelecomEntities(processingResp)
@@ -659,13 +541,9 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // enhanceWithRAG enhances the intent with RAG context.
 
@@ -676,10 +554,7 @@ func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent 
 	request := &RAGRequest{
 
 		Query: intent,
-
 	}
-
-
 
 	// Configure RAG parameters.
 
@@ -701,8 +576,6 @@ func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent 
 
 	}
 
-
-
 	// Execute RAG retrieval.
 
 	response, err := r.RAGService.ProcessQuery(ctx, request)
@@ -713,45 +586,36 @@ func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent 
 
 	}
 
-
-
 	// Create enhanced context.
 
 	enhancedContext := map[string]interface{}{
 
-		"original_intent":     intent,
+		"original_intent": intent,
 
 		"retrieved_documents": response.SourceDocuments,
 
-		"retrieval_metadata":  response.Metadata,
-
+		"retrieval_metadata": response.Metadata,
 	}
-
-
 
 	// Create RAG metrics.
 
 	ragMetrics := &nephoranv1.RAGMetrics{
 
-		DocumentsRetrieved:    int32(len(response.SourceDocuments)),
+		DocumentsRetrieved: int32(len(response.SourceDocuments)),
 
-		RetrievalDuration:     metav1.Duration{Duration: time.Duration(response.RetrievalTime) * time.Millisecond},
+		RetrievalDuration: metav1.Duration{Duration: time.Duration(response.RetrievalTime) * time.Millisecond},
 
 		AverageRelevanceScore: float64(response.Confidence),
 
-		TopRelevanceScore:     float64(response.Confidence),
+		TopRelevanceScore: float64(response.Confidence),
 
-		QueryEnhancement:      false, // Default to false
+		QueryEnhancement: false, // Default to false
 
 	}
-
-
 
 	return enhancedContext, ragMetrics, nil
 
 }
-
-
 
 // validateResponse validates the LLM response quality.
 
@@ -761,15 +625,11 @@ func (r *IntentProcessingController) validateResponse(response *llm.ProcessingRe
 
 	qualityScore := 1.0
 
-
-
 	if !r.Config.ValidationEnabled {
 
 		return qualityScore, validationErrors
 
 	}
-
-
 
 	// Parse structured parameters from JSON.
 
@@ -793,8 +653,6 @@ func (r *IntentProcessingController) validateResponse(response *llm.ProcessingRe
 
 	}
 
-
-
 	// Check if response contains structured parameters (indicates network function information).
 
 	if len(structuredParams) == 0 {
@@ -804,8 +662,6 @@ func (r *IntentProcessingController) validateResponse(response *llm.ProcessingRe
 		qualityScore -= 0.2
 
 	}
-
-
 
 	// Check response length.
 
@@ -817,8 +673,6 @@ func (r *IntentProcessingController) validateResponse(response *llm.ProcessingRe
 
 	}
 
-
-
 	// Check for telecommunications keywords.
 
 	if !r.containsTelecomKeywords(response.Response) {
@@ -828,8 +682,6 @@ func (r *IntentProcessingController) validateResponse(response *llm.ProcessingRe
 		qualityScore -= 0.2
 
 	}
-
-
 
 	// Ensure quality score is within bounds.
 
@@ -845,13 +697,9 @@ func (r *IntentProcessingController) validateResponse(response *llm.ProcessingRe
 
 	}
 
-
-
 	return qualityScore, validationErrors
 
 }
-
-
 
 // containsTelecomKeywords checks for telecommunications keywords.
 
@@ -866,10 +714,7 @@ func (r *IntentProcessingController) containsTelecomKeywords(text string) bool {
 		"network", "slice", "function", "deployment", "scaling", "o-ran",
 
 		"oran", "du", "cu", "ric", "smo", "kubernetes", "helm", "container",
-
 	}
-
-
 
 	for _, keyword := range telecomKeywords {
 
@@ -885,8 +730,6 @@ func (r *IntentProcessingController) containsTelecomKeywords(text string) bool {
 
 }
 
-
-
 // extractProcessedParameters extracts structured parameters from the response.
 
 func (r *IntentProcessingController) extractProcessedParameters(response *llm.ProcessingResponse) (*nephoranv1.ProcessedParameters, error) {
@@ -896,8 +739,6 @@ func (r *IntentProcessingController) extractProcessedParameters(response *llm.Pr
 		return nil, fmt.Errorf("no processed parameters in response")
 
 	}
-
-
 
 	// Parse JSON structured parameters.
 
@@ -909,11 +750,7 @@ func (r *IntentProcessingController) extractProcessedParameters(response *llm.Pr
 
 	}
 
-
-
 	params := &nephoranv1.ProcessedParameters{}
-
-
 
 	// Extract network function.
 
@@ -923,8 +760,6 @@ func (r *IntentProcessingController) extractProcessedParameters(response *llm.Pr
 
 	}
 
-
-
 	// Extract region.
 
 	if region, ok := structuredParams["region"].(string); ok {
@@ -932,8 +767,6 @@ func (r *IntentProcessingController) extractProcessedParameters(response *llm.Pr
 		params.Region = region
 
 	}
-
-
 
 	// Extract scale parameters.
 
@@ -965,21 +798,15 @@ func (r *IntentProcessingController) extractProcessedParameters(response *llm.Pr
 
 	}
 
-
-
 	return params, nil
 
 }
-
-
 
 // extractTelecomEntities extracts telecommunications entities from the response.
 
 func (r *IntentProcessingController) extractTelecomEntities(response *llm.ProcessingResponse) (map[string]string, error) {
 
 	entities := make(map[string]string)
-
-
 
 	// Since ProcessingResponse doesn't have ExtractedEntities field,.
 
@@ -1015,8 +842,6 @@ func (r *IntentProcessingController) extractTelecomEntities(response *llm.Proces
 
 	}
 
-
-
 	// Extract additional entities from response text using simple keyword detection.
 
 	responseText := response.Response
@@ -1033,21 +858,15 @@ func (r *IntentProcessingController) extractTelecomEntities(response *llm.Proces
 
 	}
 
-
-
 	return entities, nil
 
 }
-
-
 
 // handleProcessingSuccess handles successful processing.
 
 func (r *IntentProcessingController) handleProcessingSuccess(ctx context.Context, intentProcessing *nephoranv1.IntentProcessing, result *LLMProcessingResult) (ctrl.Result, error) {
 
 	log := r.Logger.WithValues("intentprocessing", intentProcessing.Name)
-
-
 
 	// Update status with results.
 
@@ -1057,8 +876,6 @@ func (r *IntentProcessingController) handleProcessingSuccess(ctx context.Context
 
 	intentProcessing.Status.Phase = nephoranv1.IntentProcessingPhaseCompleted
 
-
-
 	// Set LLM response.
 
 	if responseBytes, err := json.Marshal(result.Response); err == nil {
@@ -1067,43 +884,29 @@ func (r *IntentProcessingController) handleProcessingSuccess(ctx context.Context
 
 	}
 
-
-
 	// Set processed parameters.
 
 	intentProcessing.Status.ProcessedParameters = result.ProcessedParameters
-
-
 
 	// Set extracted entities.
 
 	intentProcessing.Status.ExtractedEntities = result.ExtractedEntities
 
-
-
 	// Set quality score.
 
 	intentProcessing.Status.QualityScore = &result.QualityScore
-
-
 
 	// Set validation errors.
 
 	intentProcessing.Status.ValidationErrors = result.ValidationErrors
 
-
-
 	// Set token usage.
 
 	intentProcessing.Status.TokenUsage = result.TokenUsage
 
-
-
 	// Set RAG metrics.
 
 	intentProcessing.Status.RAGMetrics = result.RAGMetrics
-
-
 
 	// Set telecom context (if available in metadata).
 
@@ -1117,8 +920,6 @@ func (r *IntentProcessingController) handleProcessingSuccess(ctx context.Context
 
 	}
 
-
-
 	// Calculate processing duration.
 
 	if intentProcessing.Status.ProcessingStartTime != nil {
@@ -1129,8 +930,6 @@ func (r *IntentProcessingController) handleProcessingSuccess(ctx context.Context
 
 	}
 
-
-
 	// Update status.
 
 	if err := r.updateStatus(ctx, intentProcessing); err != nil {
@@ -1139,13 +938,9 @@ func (r *IntentProcessingController) handleProcessingSuccess(ctx context.Context
 
 	}
 
-
-
 	// Record success event.
 
 	r.Recorder.Event(intentProcessing, "Normal", "ProcessingCompleted", "Intent processing completed successfully")
-
-
 
 	// Publish completion event.
 
@@ -1153,25 +948,20 @@ func (r *IntentProcessingController) handleProcessingSuccess(ctx context.Context
 
 		string(intentProcessing.UID), true, map[string]interface{}{
 
-			"quality_score":       result.QualityScore,
+			"quality_score": result.QualityScore,
 
-			"token_usage":         result.TokenUsage,
+			"token_usage": result.TokenUsage,
 
 			"processing_duration": intentProcessing.Status.ProcessingDuration.Duration.String(),
-
 		}); err != nil {
 
 		log.Error(err, "Failed to publish completion event")
 
 	}
 
-
-
 	// Record metrics.
 
 	r.MetricsCollector.RecordPhaseCompletion(interfaces.PhaseLLMProcessing, string(intentProcessing.UID), true)
-
-
 
 	log.Info("Intent processing completed successfully", "qualityScore", result.QualityScore)
 
@@ -1179,19 +969,13 @@ func (r *IntentProcessingController) handleProcessingSuccess(ctx context.Context
 
 }
 
-
-
 // handleProcessingError handles processing errors with retry logic.
 
 func (r *IntentProcessingController) handleProcessingError(ctx context.Context, intentProcessing *nephoranv1.IntentProcessing, err error) (ctrl.Result, error) {
 
 	log := r.Logger.WithValues("intentprocessing", intentProcessing.Name)
 
-
-
 	log.Error(err, "Intent processing failed")
-
-
 
 	// Increment retry count.
 
@@ -1201,29 +985,21 @@ func (r *IntentProcessingController) handleProcessingError(ctx context.Context, 
 
 	intentProcessing.Status.LastRetryTime = &now
 
-
-
 	// Check if we should retry.
 
 	if intentProcessing.CanRetry() {
 
 		intentProcessing.Status.Phase = nephoranv1.IntentProcessingPhaseRetrying
 
-
-
 		// Calculate backoff duration.
 
 		backoffDuration := r.calculateBackoff(intentProcessing.Status.RetryCount)
-
-
 
 		if err := r.updateStatus(ctx, intentProcessing); err != nil {
 
 			return ctrl.Result{}, err
 
 		}
-
-
 
 		// Record retry event.
 
@@ -1233,27 +1009,22 @@ func (r *IntentProcessingController) handleProcessingError(ctx context.Context, 
 
 				intentProcessing.Status.RetryCount, *intentProcessing.Spec.MaxRetries, err))
 
-
-
 		// Publish retry event.
 
 		if pubErr := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseLLMProcessing, EventRetryRequired,
 
 			string(intentProcessing.UID), false, map[string]interface{}{
 
-				"retry_count":      intentProcessing.Status.RetryCount,
+				"retry_count": intentProcessing.Status.RetryCount,
 
-				"error":            err.Error(),
+				"error": err.Error(),
 
 				"backoff_duration": backoffDuration.String(),
-
 			}); pubErr != nil {
 
 			log.Error(pubErr, "Failed to publish retry event")
 
 		}
-
-
 
 		log.Info("Scheduling retry", "attempt", intentProcessing.Status.RetryCount, "backoff", backoffDuration)
 
@@ -1261,43 +1032,34 @@ func (r *IntentProcessingController) handleProcessingError(ctx context.Context, 
 
 	}
 
-
-
 	// Max retries exceeded - mark as permanently failed.
 
 	intentProcessing.Status.Phase = nephoranv1.IntentProcessingPhaseFailed
-
-
 
 	// Add failure condition.
 
 	condition := metav1.Condition{
 
-		Type:               "ProcessingFailed",
+		Type: "ProcessingFailed",
 
-		Status:             metav1.ConditionTrue,
+		Status: metav1.ConditionTrue,
 
 		ObservedGeneration: intentProcessing.Generation,
 
-		Reason:             "MaxRetriesExceeded",
+		Reason: "MaxRetriesExceeded",
 
-		Message:            fmt.Sprintf("Processing failed after %d attempts: %v", intentProcessing.Status.RetryCount, err),
+		Message: fmt.Sprintf("Processing failed after %d attempts: %v", intentProcessing.Status.RetryCount, err),
 
 		LastTransitionTime: now,
-
 	}
 
 	intentProcessing.Status.Conditions = append(intentProcessing.Status.Conditions, condition)
-
-
 
 	if updateErr := r.updateStatus(ctx, intentProcessing); updateErr != nil {
 
 		return ctrl.Result{}, updateErr
 
 	}
-
-
 
 	// Record failure event.
 
@@ -1306,8 +1068,6 @@ func (r *IntentProcessingController) handleProcessingError(ctx context.Context, 
 		fmt.Sprintf("Intent processing failed permanently after %d attempts: %v",
 
 			intentProcessing.Status.RetryCount, err))
-
-
 
 	// Publish failure event.
 
@@ -1318,26 +1078,19 @@ func (r *IntentProcessingController) handleProcessingError(ctx context.Context, 
 			"retry_count": intentProcessing.Status.RetryCount,
 
 			"final_error": err.Error(),
-
 		}); pubErr != nil {
 
 		log.Error(pubErr, "Failed to publish failure event")
 
 	}
 
-
-
 	// Record metrics.
 
 	r.MetricsCollector.RecordPhaseCompletion(interfaces.PhaseLLMProcessing, string(intentProcessing.UID), false)
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // calculateBackoff calculates the backoff duration for retries.
 
@@ -1363,25 +1116,17 @@ func (r *IntentProcessingController) calculateBackoff(retryCount int32) time.Dur
 
 }
 
-
-
 // handleDeletion handles resource deletion.
 
 func (r *IntentProcessingController) handleDeletion(ctx context.Context, intentProcessing *nephoranv1.IntentProcessing) (ctrl.Result, error) {
 
 	log := r.Logger.WithValues("intentprocessing", intentProcessing.Name)
 
-
-
 	log.Info("Handling IntentProcessing deletion")
-
-
 
 	// Cleanup any resources if needed.
 
 	// (In this case, there are no external resources to clean up).
-
-
 
 	// Remove finalizer.
 
@@ -1390,8 +1135,6 @@ func (r *IntentProcessingController) handleDeletion(ctx context.Context, intentP
 	return ctrl.Result{}, r.Update(ctx, intentProcessing)
 
 }
-
-
 
 // updateStatus updates the status of the IntentProcessing resource.
 
@@ -1403,45 +1146,34 @@ func (r *IntentProcessingController) updateStatus(ctx context.Context, intentPro
 
 }
 
-
-
 // SetupWithManager sets up the controller with the Manager.
 
 func (r *IntentProcessingController) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
-
 		For(&nephoranv1.IntentProcessing{}).
-
 		Named("intentprocessing").
-
 		Complete(r)
 
 }
 
-
-
 // LLMProcessingResult contains the result of LLM processing.
 
 type LLMProcessingResult struct {
-
-	Response            *llm.ProcessingResponse
+	Response *llm.ProcessingResponse
 
 	ProcessedParameters *nephoranv1.ProcessedParameters
 
-	ExtractedEntities   map[string]string
+	ExtractedEntities map[string]string
 
-	QualityScore        float64
+	QualityScore float64
 
-	ValidationErrors    []string
+	ValidationErrors []string
 
-	TokenUsage          *nephoranv1.TokenUsageInfo
+	TokenUsage *nephoranv1.TokenUsageInfo
 
-	RAGMetrics          *nephoranv1.RAGMetrics
-
+	RAGMetrics *nephoranv1.RAGMetrics
 }
-
-
 
 // extractRAGMetricsFromContextString extracts RAG metrics from JSON context string.
 
@@ -1453,8 +1185,6 @@ func (r *IntentProcessingController) extractRAGMetricsFromContextString(contextS
 
 	}
 
-
-
 	var context map[string]interface{}
 
 	if err := json.Unmarshal([]byte(contextStr), &context); err != nil {
@@ -1463,13 +1193,9 @@ func (r *IntentProcessingController) extractRAGMetricsFromContextString(contextS
 
 	}
 
-
-
 	return extractRAGMetricsFromContext(context)
 
 }
-
-
 
 // extractRAGMetricsFromContext extracts RAG metrics from request context.
 
@@ -1480,8 +1206,6 @@ func extractRAGMetricsFromContext(context map[string]interface{}) *nephoranv1.RA
 		return nil
 
 	}
-
-
 
 	if ragMetricsVal, ok := context["ragMetrics"]; ok {
 
@@ -1497,8 +1221,6 @@ func extractRAGMetricsFromContext(context map[string]interface{}) *nephoranv1.RA
 
 }
 
-
-
 // Default configuration values.
 
 func DefaultIntentProcessingConfig() *IntentProcessingConfig {
@@ -1507,17 +1229,15 @@ func DefaultIntentProcessingConfig() *IntentProcessingConfig {
 
 		MaxConcurrentProcessing: 10,
 
-		DefaultTimeout:          120 * time.Second,
+		DefaultTimeout: 120 * time.Second,
 
-		MaxRetries:              3,
+		MaxRetries: 3,
 
-		RetryBackoff:            30 * time.Second,
+		RetryBackoff: 30 * time.Second,
 
-		QualityThreshold:        0.7,
+		QualityThreshold: 0.7,
 
-		ValidationEnabled:       true,
-
+		ValidationEnabled: true,
 	}
 
 }
-

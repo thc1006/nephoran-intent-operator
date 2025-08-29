@@ -2,26 +2,15 @@
 
 // This file demonstrates the comprehensive security fix for the path traversal vulnerability.
 
-
-
 // Package main provides security fix validation for the Nephoran Intent Operator.
-
 
 package main
 
-
-
 import (
-
 	"fmt"
-
 	"path/filepath"
-
 	"strings"
-
 )
-
-
 
 // validateConfigFilePath validates configuration file paths with stricter security rules.
 
@@ -37,13 +26,9 @@ func validateConfigFilePath(filePath string) error {
 
 	}
 
-
-
 	// SECURITY: Clean the path first to normalize it.
 
 	cleanedPath := filepath.Clean(filePath)
-
-
 
 	// SECURITY: Detect obvious path traversal attempts before resolution.
 
@@ -53,8 +38,6 @@ func validateConfigFilePath(filePath string) error {
 
 	}
 
-
-
 	// SECURITY: Reject paths with null bytes (potential injection).
 
 	if strings.Contains(filePath, "\x00") {
@@ -62,8 +45,6 @@ func validateConfigFilePath(filePath string) error {
 		return fmt.Errorf("path contains null byte")
 
 	}
-
-
 
 	// Convert to absolute path for validation.
 
@@ -75,8 +56,6 @@ func validateConfigFilePath(filePath string) error {
 
 	}
 
-
-
 	// SECURITY: Additional check after absolute path conversion.
 
 	if strings.Contains(absPath, "..") {
@@ -85,8 +64,6 @@ func validateConfigFilePath(filePath string) error {
 
 	}
 
-
-
 	// SECURITY: Check for Windows UNC paths or special devices.
 
 	if strings.HasPrefix(absPath, "\\\\") || strings.HasPrefix(absPath, "//") {
@@ -94,8 +71,6 @@ func validateConfigFilePath(filePath string) error {
 		return fmt.Errorf("UNC paths not allowed")
 
 	}
-
-
 
 	// SECURITY: Restrict to specific directories for config files.
 
@@ -106,10 +81,7 @@ func validateConfigFilePath(filePath string) error {
 		"/config",
 
 		"/var/lib/nephoran",
-
 	}
-
-
 
 	// Check if path starts with any allowed prefix.
 
@@ -129,15 +101,11 @@ func validateConfigFilePath(filePath string) error {
 
 	}
 
-
-
 	if !pathAllowed {
 
 		return fmt.Errorf("config file path not in allowed directory")
 
 	}
-
-
 
 	// SECURITY: Reject special file names.
 
@@ -153,24 +121,18 @@ func validateConfigFilePath(filePath string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func main() {
 
 	// Test various attack vectors.
 
 	testPaths := []struct {
-
-		path   string
+		path string
 
 		attack string
-
 	}{
 
 		{"../../etc/passwd", "Path Traversal"},
@@ -190,14 +152,9 @@ func main() {
 		{"/etc/nephoran/config.json", "VALID: Allowed Config Path"},
 
 		{"/config/auth.json", "VALID: Kubernetes Mount Path"},
-
 	}
 
-
-
 	fmt.Println("=== Security Fix Validation Results ===")
-
-
 
 	for _, test := range testPaths {
 
@@ -231,8 +188,6 @@ func main() {
 
 	}
 
-
-
 	fmt.Println("=== Key Security Features Implemented ===")
 
 	fmt.Println("1. Path traversal detection (.. patterns)")
@@ -256,4 +211,3 @@ func main() {
 	fmt.Println("10. Comprehensive audit logging")
 
 }
-

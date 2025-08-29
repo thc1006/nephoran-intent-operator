@@ -1,39 +1,22 @@
 // Package o2 implements HTTP utility methods for the O2 IMS API server.
 
-
 package o2
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/go-playground/validator/v10"
-
 )
-
-
 
 // Global validator instance.
 
 var validate = validator.New()
 
-
-
 // ProblemDetail is defined in api_handlers.go to avoid duplication.
-
-
 
 // writeJSONResponse writes a JSON response with proper headers.
 
@@ -42,8 +25,6 @@ func (s *O2APIServer) writeJSONResponse(w http.ResponseWriter, r *http.Request, 
 	w.Header().Set("Content-Type", ContentTypeJSON)
 
 	w.WriteHeader(statusCode)
-
-
 
 	if data != nil {
 
@@ -54,7 +35,6 @@ func (s *O2APIServer) writeJSONResponse(w http.ResponseWriter, r *http.Request, 
 				"error", err,
 
 				"request_id", r.Context().Value("request_id"),
-
 			)
 
 		}
@@ -62,8 +42,6 @@ func (s *O2APIServer) writeJSONResponse(w http.ResponseWriter, r *http.Request, 
 	}
 
 }
-
-
 
 // writeErrorResponse writes an error response following RFC 7807 Problem Details.
 
@@ -77,21 +55,16 @@ func (s *O2APIServer) writeErrorResponse(w http.ResponseWriter, r *http.Request,
 
 	}
 
-
-
 	problem := ProblemDetail{
 
-		Type:     "about:blank",
+		Type: "about:blank",
 
-		Title:    title,
+		Title: title,
 
-		Status:   statusCode,
+		Status: statusCode,
 
 		Instance: r.URL.Path,
-
 	}
-
-
 
 	if err != nil {
 
@@ -110,7 +83,6 @@ func (s *O2APIServer) writeErrorResponse(w http.ResponseWriter, r *http.Request,
 			"method", r.Method,
 
 			"path", r.URL.Path,
-
 		)
 
 	} else {
@@ -126,18 +98,13 @@ func (s *O2APIServer) writeErrorResponse(w http.ResponseWriter, r *http.Request,
 			"method", r.Method,
 
 			"path", r.URL.Path,
-
 		)
 
 	}
 
-
-
 	w.Header().Set("Content-Type", ContentTypeProblemJSON)
 
 	w.WriteHeader(statusCode)
-
-
 
 	if encodeErr := json.NewEncoder(w).Encode(problem); encodeErr != nil {
 
@@ -146,14 +113,11 @@ func (s *O2APIServer) writeErrorResponse(w http.ResponseWriter, r *http.Request,
 			"error", encodeErr,
 
 			"request_id", requestID,
-
 		)
 
 	}
 
 }
-
-
 
 // decodeJSONRequest decodes and validates a JSON request body.
 
@@ -165,8 +129,6 @@ func (s *O2APIServer) decodeJSONRequest(r *http.Request, target interface{}) err
 
 	}
 
-
-
 	// Check content type.
 
 	contentType := r.Header.Get("Content-Type")
@@ -176,8 +138,6 @@ func (s *O2APIServer) decodeJSONRequest(r *http.Request, target interface{}) err
 		return fmt.Errorf("invalid content type: expected %s, got %s", ContentTypeJSON, contentType)
 
 	}
-
-
 
 	// Decode JSON.
 
@@ -191,15 +151,11 @@ func (s *O2APIServer) decodeJSONRequest(r *http.Request, target interface{}) err
 
 	}
 
-
-
 	if err := decoder.Decode(target); err != nil {
 
 		return fmt.Errorf("invalid JSON: %w", err)
 
 	}
-
-
 
 	// Validate struct if validation is enabled.
 
@@ -215,13 +171,9 @@ func (s *O2APIServer) decodeJSONRequest(r *http.Request, target interface{}) err
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateContentLength checks if the request body size is within limits.
 
@@ -243,8 +195,6 @@ func (s *O2APIServer) validateContentLength(r *http.Request) error {
 
 }
 
-
-
 // extractRequestContext creates a RequestContext from the HTTP request.
 
 func (s *O2APIServer) extractRequestContext(r *http.Request) *RequestContext {
@@ -257,31 +207,26 @@ func (s *O2APIServer) extractRequestContext(r *http.Request) *RequestContext {
 
 	}
 
-
-
 	return &RequestContext{
 
-		RequestID:   requestID,
+		RequestID: requestID,
 
-		Method:      r.Method,
+		Method: r.Method,
 
-		Path:        r.URL.Path,
+		Path: r.URL.Path,
 
-		RemoteAddr:  r.RemoteAddr,
+		RemoteAddr: r.RemoteAddr,
 
-		UserAgent:   r.Header.Get("User-Agent"),
+		UserAgent: r.Header.Get("User-Agent"),
 
-		Headers:     r.Header,
+		Headers: r.Header,
 
 		QueryParams: r.URL.Query(),
 
-		StartTime:   r.Context().Value("start_time").(time.Time),
-
+		StartTime: r.Context().Value("start_time").(time.Time),
 	}
 
 }
-
-
 
 // setSecurityHeaders sets security-related HTTP headers.
 
@@ -297,13 +242,9 @@ func (s *O2APIServer) setSecurityHeaders(w http.ResponseWriter) {
 
 	w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
-
-
 	// Content Security Policy.
 
 	w.Header().Set("Content-Security-Policy", "default-src 'self'")
-
-
 
 	// Cache control for sensitive data.
 
@@ -318,8 +259,6 @@ func (s *O2APIServer) setSecurityHeaders(w http.ResponseWriter) {
 	}
 
 }
-
-
 
 // sanitizeInput sanitizes input strings to prevent injection attacks.
 
@@ -349,8 +288,6 @@ func (s *O2APIServer) sanitizeInput(input string) string {
 
 }
 
-
-
 // handlePreflight handles CORS preflight requests.
 
 func (s *O2APIServer) handlePreflight(w http.ResponseWriter, r *http.Request) {
@@ -365,8 +302,6 @@ func (s *O2APIServer) handlePreflight(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	// Basic preflight response if no CORS middleware.
 
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
@@ -376,8 +311,6 @@ func (s *O2APIServer) handlePreflight(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 }
-
-
 
 // parseTimeParam parses a time parameter from query string.
 
@@ -391,8 +324,6 @@ func (s *O2APIServer) parseTimeParam(r *http.Request, param string) (*time.Time,
 
 	}
 
-
-
 	t, err := time.Parse(time.RFC3339, value)
 
 	if err != nil {
@@ -401,13 +332,9 @@ func (s *O2APIServer) parseTimeParam(r *http.Request, param string) (*time.Time,
 
 	}
 
-
-
 	return &t, nil
 
 }
-
-
 
 // buildPaginationResponse builds a paginated response with metadata.
 
@@ -419,17 +346,13 @@ func (s *O2APIServer) buildPaginationResponse(data interface{}, total, limit, of
 
 		"pagination": map[string]interface{}{
 
-			"total":  total,
+			"total": total,
 
-			"limit":  limit,
+			"limit": limit,
 
 			"offset": offset,
-
 		},
-
 	}
-
-
 
 	// Add navigation links if applicable.
 
@@ -439,21 +362,15 @@ func (s *O2APIServer) buildPaginationResponse(data interface{}, total, limit, of
 
 	}
 
-
-
 	if offset+limit < total {
 
 		response["pagination"].(map[string]interface{})["hasNext"] = true
 
 	}
 
-
-
 	return response
 
 }
-
-
 
 // validateResourceID validates that a resource ID is properly formatted.
 
@@ -465,8 +382,6 @@ func (s *O2APIServer) validateResourceID(resourceID string) error {
 
 	}
 
-
-
 	// Basic validation - could be enhanced with more specific rules.
 
 	if len(resourceID) < 3 || len(resourceID) > 128 {
@@ -474,8 +389,6 @@ func (s *O2APIServer) validateResourceID(resourceID string) error {
 		return fmt.Errorf("resource ID must be between 3 and 128 characters")
 
 	}
-
-
 
 	// Check for invalid characters.
 
@@ -495,13 +408,9 @@ func (s *O2APIServer) validateResourceID(resourceID string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // extractUserContext extracts user information from request context.
 
@@ -511,15 +420,12 @@ func (s *O2APIServer) extractUserContext(r *http.Request) (*UserContext, error) 
 
 	userCtx := &UserContext{
 
-		UserID:   r.Header.Get("X-User-ID"),
+		UserID: r.Header.Get("X-User-ID"),
 
 		TenantID: r.Header.Get("X-Tenant-ID"),
 
-		Roles:    strings.Split(r.Header.Get("X-User-Roles"), ","),
-
+		Roles: strings.Split(r.Header.Get("X-User-Roles"), ","),
 	}
-
-
 
 	// If authentication is enabled, validate user context.
 
@@ -533,13 +439,9 @@ func (s *O2APIServer) extractUserContext(r *http.Request) (*UserContext, error) 
 
 	}
 
-
-
 	return userCtx, nil
 
 }
-
-
 
 // checkPermissions checks if the user has permission for the requested operation.
 
@@ -553,8 +455,6 @@ func (s *O2APIServer) checkPermissions(userCtx *UserContext, operation, resource
 
 	}
 
-
-
 	// Check if user has required role for the operation.
 
 	requiredRoles := s.getRequiredRoles(operation, resource)
@@ -564,8 +464,6 @@ func (s *O2APIServer) checkPermissions(userCtx *UserContext, operation, resource
 		return nil // No special permissions required
 
 	}
-
-
 
 	for _, userRole := range userCtx.Roles {
 
@@ -581,13 +479,9 @@ func (s *O2APIServer) checkPermissions(userCtx *UserContext, operation, resource
 
 	}
 
-
-
 	return fmt.Errorf("insufficient permissions for operation %s on resource %s", operation, resource)
 
 }
-
-
 
 // getRequiredRoles returns the roles required for a specific operation and resource.
 
@@ -599,57 +493,48 @@ func (s *O2APIServer) getRequiredRoles(operation, resource string) []string {
 
 		"create": {
 
-			"resource_pool":       {"admin", "operator"},
+			"resource_pool": {"admin", "operator"},
 
-			"resource":            {"admin", "operator"},
+			"resource": {"admin", "operator"},
 
-			"deployment":          {"admin", "operator"},
+			"deployment": {"admin", "operator"},
 
 			"deployment_template": {"admin"},
-
 		},
 
 		"update": {
 
-			"resource_pool":       {"admin", "operator"},
+			"resource_pool": {"admin", "operator"},
 
-			"resource":            {"admin", "operator"},
+			"resource": {"admin", "operator"},
 
-			"deployment":          {"admin", "operator"},
+			"deployment": {"admin", "operator"},
 
 			"deployment_template": {"admin"},
-
 		},
 
 		"delete": {
 
-			"resource_pool":       {"admin"},
+			"resource_pool": {"admin"},
 
-			"resource":            {"admin", "operator"},
+			"resource": {"admin", "operator"},
 
-			"deployment":          {"admin", "operator"},
+			"deployment": {"admin", "operator"},
 
 			"deployment_template": {"admin"},
-
 		},
 
 		"read": {
 
 			"*": {"admin", "operator", "viewer"},
-
 		},
-
 	}
-
-
 
 	if resourceRoles, exists := roleMap[operation][resource]; exists {
 
 		return resourceRoles
 
 	}
-
-
 
 	// Check for wildcard permissions.
 
@@ -659,27 +544,18 @@ func (s *O2APIServer) getRequiredRoles(operation, resource string) []string {
 
 	}
 
-
-
 	return []string{} // No special permissions required
 
 }
 
-
-
 // UserContext represents user context information.
 
 type UserContext struct {
+	UserID string `json:"user_id"`
 
-	UserID   string   `json:"user_id"`
+	TenantID string `json:"tenant_id"`
 
-	TenantID string   `json:"tenant_id"`
-
-	Roles    []string `json:"roles"`
-
+	Roles []string `json:"roles"`
 }
 
-
-
 // Supporting types for API utilities.
-

@@ -1,53 +1,30 @@
 // Package abstraction provides service mesh factory.
 
-
 package abstraction
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
-
 
 	"github.com/go-logr/logr"
 
-
-
 	"k8s.io/client-go/kubernetes"
-
 	"k8s.io/client-go/rest"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // ProviderFactory is a function that creates a service mesh implementation.
 
 type ProviderFactory func(kubernetes.Interface, client.Client, *rest.Config, *ServiceMeshConfig) (ServiceMeshInterface, error)
 
-
-
 var (
-
 	providerRegistry = make(map[ServiceMeshProvider]ProviderFactory)
 
-	registryMutex    sync.RWMutex
-
+	registryMutex sync.RWMutex
 )
-
-
 
 // RegisterProvider registers a service mesh provider factory.
 
@@ -61,25 +38,19 @@ func RegisterProvider(provider ServiceMeshProvider, factory ProviderFactory) {
 
 }
 
-
-
 // ServiceMeshFactory creates service mesh implementations.
 
 type ServiceMeshFactory struct {
-
-	kubeClient    kubernetes.Interface
+	kubeClient kubernetes.Interface
 
 	dynamicClient client.Client
 
-	config        *rest.Config
+	config *rest.Config
 
-	detector      *ServiceMeshDetector
+	detector *ServiceMeshDetector
 
-	logger        logr.Logger
-
+	logger logr.Logger
 }
-
-
 
 // NewServiceMeshFactory creates a new service mesh factory.
 
@@ -95,29 +66,24 @@ func NewServiceMeshFactory(
 
 	return &ServiceMeshFactory{
 
-		kubeClient:    kubeClient,
+		kubeClient: kubeClient,
 
 		dynamicClient: dynamicClient,
 
-		config:        config,
+		config: config,
 
-		detector:      NewServiceMeshDetector(kubeClient, config),
+		detector: NewServiceMeshDetector(kubeClient, config),
 
-		logger:        log.Log.WithName("service-mesh-factory"),
-
+		logger: log.Log.WithName("service-mesh-factory"),
 	}
 
 }
-
-
 
 // CreateServiceMesh creates a service mesh implementation based on configuration.
 
 func (f *ServiceMeshFactory) CreateServiceMesh(ctx context.Context, config *ServiceMeshConfig) (ServiceMeshInterface, error) {
 
 	provider := config.Provider
-
-
 
 	// Auto-detect if provider not specified.
 
@@ -137,8 +103,6 @@ func (f *ServiceMeshFactory) CreateServiceMesh(ctx context.Context, config *Serv
 
 	}
 
-
-
 	// Create provider-specific implementation using registry.
 
 	registryMutex.RLock()
@@ -146,8 +110,6 @@ func (f *ServiceMeshFactory) CreateServiceMesh(ctx context.Context, config *Serv
 	factory, exists := providerRegistry[ServiceMeshProvider(provider)]
 
 	registryMutex.RUnlock()
-
-
 
 	if !exists {
 
@@ -161,8 +123,6 @@ func (f *ServiceMeshFactory) CreateServiceMesh(ctx context.Context, config *Serv
 
 	}
 
-
-
 	mesh, err := factory(f.kubeClient, f.dynamicClient, f.config, config)
 
 	if err != nil {
@@ -170,8 +130,6 @@ func (f *ServiceMeshFactory) CreateServiceMesh(ctx context.Context, config *Serv
 		return nil, fmt.Errorf("failed to create service mesh %s: %w", provider, err)
 
 	}
-
-
 
 	// Initialize the mesh.
 
@@ -181,13 +139,9 @@ func (f *ServiceMeshFactory) CreateServiceMesh(ctx context.Context, config *Serv
 
 	}
 
-
-
 	return mesh, nil
 
 }
-
-
 
 // createNoOpMesh creates a no-op service mesh implementation for environments without service mesh.
 
@@ -199,15 +153,11 @@ func (f *ServiceMeshFactory) createNoOpMesh(ctx context.Context, config *Service
 
 }
 
-
-
 // GetAvailableProviders returns the list of available service mesh providers.
 
 func (f *ServiceMeshFactory) GetAvailableProviders(ctx context.Context) ([]ProviderInfo, error) {
 
 	providers := []ProviderInfo{}
-
-
 
 	// Check each provider.
 
@@ -215,13 +165,10 @@ func (f *ServiceMeshFactory) GetAvailableProviders(ctx context.Context) ([]Provi
 
 		info := ProviderInfo{
 
-			Provider:  provider,
+			Provider: provider,
 
 			Available: false,
-
 		}
-
-
 
 		// Check if provider is installed.
 
@@ -233,27 +180,19 @@ func (f *ServiceMeshFactory) GetAvailableProviders(ctx context.Context) ([]Provi
 
 			info.Version, _ = f.detector.GetServiceMeshVersion(ctx, provider)
 
-
-
 			// Get capabilities.
 
 			info.Capabilities = f.getProviderCapabilities(provider)
 
 		}
 
-
-
 		providers = append(providers, info)
 
 	}
 
-
-
 	return providers, nil
 
 }
-
-
 
 // getProviderCapabilities returns the capabilities of a service mesh provider.
 
@@ -276,7 +215,6 @@ func (f *ServiceMeshFactory) getProviderCapabilities(provider ServiceMeshProvide
 			CapabilitySPIFFE,
 
 			CapabilityWASM,
-
 		}
 
 	case ProviderLinkerd:
@@ -290,7 +228,6 @@ func (f *ServiceMeshFactory) getProviderCapabilities(provider ServiceMeshProvide
 			CapabilityObservability,
 
 			CapabilitySPIFFE,
-
 		}
 
 	case ProviderConsul:
@@ -304,7 +241,6 @@ func (f *ServiceMeshFactory) getProviderCapabilities(provider ServiceMeshProvide
 			CapabilityObservability,
 
 			CapabilityMultiCluster,
-
 		}
 
 	default:
@@ -315,23 +251,17 @@ func (f *ServiceMeshFactory) getProviderCapabilities(provider ServiceMeshProvide
 
 }
 
-
-
 // ProviderInfo contains information about a service mesh provider.
 
 type ProviderInfo struct {
+	Provider ServiceMeshProvider `json:"provider"`
 
-	Provider     ServiceMeshProvider `json:"provider"`
+	Available bool `json:"available"`
 
-	Available    bool                `json:"available"`
+	Version string `json:"version,omitempty"`
 
-	Version      string              `json:"version,omitempty"`
-
-	Capabilities []Capability        `json:"capabilities,omitempty"`
-
+	Capabilities []Capability `json:"capabilities,omitempty"`
 }
-
-
 
 // ValidateConfiguration validates service mesh configuration.
 
@@ -342,8 +272,6 @@ func (f *ServiceMeshFactory) ValidateConfiguration(config *ServiceMeshConfig) er
 		return fmt.Errorf("configuration is nil")
 
 	}
-
-
 
 	// Validate provider.
 
@@ -358,8 +286,6 @@ func (f *ServiceMeshFactory) ValidateConfiguration(config *ServiceMeshConfig) er
 		return fmt.Errorf("invalid provider: %s", config.Provider)
 
 	}
-
-
 
 	// Validate certificate configuration.
 
@@ -385,8 +311,6 @@ func (f *ServiceMeshFactory) ValidateConfiguration(config *ServiceMeshConfig) er
 
 	}
 
-
-
 	// Validate policy defaults.
 
 	if config.PolicyDefaults != nil {
@@ -405,8 +329,6 @@ func (f *ServiceMeshFactory) ValidateConfiguration(config *ServiceMeshConfig) er
 
 	}
 
-
-
 	// Validate observability configuration.
 
 	if config.ObservabilityConfig != nil {
@@ -424,8 +346,6 @@ func (f *ServiceMeshFactory) ValidateConfiguration(config *ServiceMeshConfig) er
 		}
 
 	}
-
-
 
 	// Validate multi-cluster configuration.
 
@@ -449,9 +369,6 @@ func (f *ServiceMeshFactory) ValidateConfiguration(config *ServiceMeshConfig) er
 
 	}
 
-
-
 	return nil
 
 }
-

@@ -1,51 +1,28 @@
 // Package validation provides system-level validation components.
 
-
 package validation
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
 
-
-
-	"github.com/onsi/ginkgo/v2"
-
-	"github.com/onsi/gomega"
-
-
-
 	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
-
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // SystemValidator provides comprehensive system validation capabilities.
 
 type SystemValidator struct {
-
-	config    *ValidationConfig
+	config *ValidationConfig
 
 	k8sClient client.Client
-
 }
-
-
 
 // NewSystemValidator creates a new system validator.
 
@@ -54,12 +31,9 @@ func NewSystemValidator(config *ValidationConfig) *SystemValidator {
 	return &SystemValidator{
 
 		config: config,
-
 	}
 
 }
-
-
 
 // SetK8sClient sets the Kubernetes client for validation.
 
@@ -69,15 +43,11 @@ func (sv *SystemValidator) SetK8sClient(client client.Client) {
 
 }
 
-
-
 // ValidateIntentProcessingPipeline validates the complete intent processing workflow.
 
 func (sv *SystemValidator) ValidateIntentProcessingPipeline(ctx context.Context) bool {
 
 	ginkgo.By("Validating Intent Processing Pipeline")
-
-
 
 	// Test 1: Create NetworkIntent and verify processing phases.
 
@@ -85,21 +55,16 @@ func (sv *SystemValidator) ValidateIntentProcessingPipeline(ctx context.Context)
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "test-pipeline-validation",
+			Name: "test-pipeline-validation",
 
 			Namespace: "default",
-
 		},
 
 		Spec: nephranv1.NetworkIntentSpec{
 
 			Intent: "Deploy a high-availability AMF instance for production with auto-scaling",
-
 		},
-
 	}
-
-
 
 	// Create the intent.
 
@@ -113,8 +78,6 @@ func (sv *SystemValidator) ValidateIntentProcessingPipeline(ctx context.Context)
 
 	}
 
-
-
 	defer func() {
 
 		if deleteErr := sv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
@@ -124,8 +87,6 @@ func (sv *SystemValidator) ValidateIntentProcessingPipeline(ctx context.Context)
 		}
 
 	}()
-
-
 
 	// Wait for processing to start.
 
@@ -139,8 +100,6 @@ func (sv *SystemValidator) ValidateIntentProcessingPipeline(ctx context.Context)
 
 	}, 30*time.Second, 1*time.Second).Should(gomega.BeTrue())
 
-
-
 	// Verify all processing phases occur.
 
 	expectedPhases := []string{
@@ -152,14 +111,9 @@ func (sv *SystemValidator) ValidateIntentProcessingPipeline(ctx context.Context)
 		"ResourcePlanning",
 
 		"ManifestGeneration",
-
 	}
 
-
-
 	phasesObserved := make(map[string]bool)
-
-
 
 	// Monitor phase transitions.
 
@@ -175,11 +129,7 @@ func (sv *SystemValidator) ValidateIntentProcessingPipeline(ctx context.Context)
 
 		}
 
-
-
 		phasesObserved[string(testIntent.Status.Phase)] = true
-
-
 
 		// Check if we've seen all expected phases or reached a terminal state.
 
@@ -197,15 +147,11 @@ func (sv *SystemValidator) ValidateIntentProcessingPipeline(ctx context.Context)
 
 		}
 
-
-
 		return string(testIntent.Status.Phase) == "Deployed" ||
 
 			len(phasesObserved) >= len(expectedPhases)-1
 
 	}, 5*time.Minute, 5*time.Second).Should(gomega.BeTrue())
-
-
 
 	// Verify final state is not failed.
 
@@ -219,15 +165,11 @@ func (sv *SystemValidator) ValidateIntentProcessingPipeline(ctx context.Context)
 
 	}
 
-
-
 	ginkgo.By("Intent processing pipeline validation completed successfully")
 
 	return true
 
 }
-
-
 
 // ValidateLLMRAGIntegration validates LLM and RAG system integration.
 
@@ -235,75 +177,56 @@ func (sv *SystemValidator) ValidateLLMRAGIntegration(ctx context.Context) bool {
 
 	ginkgo.By("Validating LLM/RAG Integration")
 
-
-
 	// Test with various intent types to verify LLM understanding.
 
 	testIntents := []struct {
-
-		intent   string
+		intent string
 
 		expected string
-
 	}{
 
 		{
 
-			intent:   "Deploy AMF with high availability",
+			intent: "Deploy AMF with high availability",
 
 			expected: "amf",
-
 		},
 
 		{
 
-			intent:   "Create SMF instance for slice management",
+			intent: "Create SMF instance for slice management",
 
 			expected: "smf",
-
 		},
 
 		{
 
-			intent:   "Set up UPF with edge deployment",
+			intent: "Set up UPF with edge deployment",
 
 			expected: "upf",
-
 		},
-
 	}
 
-
-
 	successCount := 0
-
-
 
 	for i, test := range testIntents {
 
 		ginkgo.By(fmt.Sprintf("Testing LLM understanding for intent %d", i+1))
 
-
-
 		testIntent := &nephranv1.NetworkIntent{
 
 			ObjectMeta: metav1.ObjectMeta{
 
-				Name:      fmt.Sprintf("test-llm-validation-%d", i),
+				Name: fmt.Sprintf("test-llm-validation-%d", i),
 
 				Namespace: "default",
-
 			},
 
 			Spec: nephranv1.NetworkIntentSpec{
 
 				Intent: test.intent,
-
 			},
-
 		}
-
-
 
 		err := sv.k8sClient.Create(ctx, testIntent)
 
@@ -314,8 +237,6 @@ func (sv *SystemValidator) ValidateLLMRAGIntegration(ctx context.Context) bool {
 			continue
 
 		}
-
-
 
 		// Wait for processing to complete or provide results.
 
@@ -333,8 +254,6 @@ func (sv *SystemValidator) ValidateLLMRAGIntegration(ctx context.Context) bool {
 
 		}, 2*time.Minute, 2*time.Second).Should(gomega.BeTrue())
 
-
-
 		// Verify the LLM correctly identified the network function type.
 
 		err = sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
@@ -351,8 +270,6 @@ func (sv *SystemValidator) ValidateLLMRAGIntegration(ctx context.Context) bool {
 
 			}
 
-
-
 			if resultsContainExpected {
 
 				successCount++
@@ -362,8 +279,6 @@ func (sv *SystemValidator) ValidateLLMRAGIntegration(ctx context.Context) bool {
 			}
 
 		}
-
-
 
 		// Cleanup.
 
@@ -375,21 +290,15 @@ func (sv *SystemValidator) ValidateLLMRAGIntegration(ctx context.Context) bool {
 
 	}
 
-
-
 	// Require at least 80% accuracy (2 out of 3).
 
 	accuracy := float64(successCount) / float64(len(testIntents)) * 100
 
 	ginkgo.By(fmt.Sprintf("LLM/RAG accuracy: %.1f%% (%d/%d)", accuracy, successCount, len(testIntents)))
 
-
-
 	return accuracy >= 80.0
 
 }
-
-
 
 // ValidatePorchIntegration validates Porch package management integration.
 
@@ -397,29 +306,22 @@ func (sv *SystemValidator) ValidatePorchIntegration(ctx context.Context) bool {
 
 	ginkgo.By("Validating Porch Package Management Integration")
 
-
-
 	// Create a test intent that should generate packages.
 
 	testIntent := &nephranv1.NetworkIntent{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "test-porch-integration",
+			Name: "test-porch-integration",
 
 			Namespace: "default",
-
 		},
 
 		Spec: nephranv1.NetworkIntentSpec{
 
 			Intent: "Deploy AMF with basic configuration",
-
 		},
-
 	}
-
-
 
 	err := sv.k8sClient.Create(ctx, testIntent)
 
@@ -431,8 +333,6 @@ func (sv *SystemValidator) ValidatePorchIntegration(ctx context.Context) bool {
 
 	}
 
-
-
 	defer func() {
 
 		if deleteErr := sv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
@@ -442,8 +342,6 @@ func (sv *SystemValidator) ValidatePorchIntegration(ctx context.Context) bool {
 		}
 
 	}()
-
-
 
 	// Wait for package generation phase.
 
@@ -461,8 +359,6 @@ func (sv *SystemValidator) ValidatePorchIntegration(ctx context.Context) bool {
 
 	}, 3*time.Minute, 5*time.Second).Should(gomega.BeTrue())
 
-
-
 	// Verify package-related status information.
 
 	err = sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
@@ -475,8 +371,6 @@ func (sv *SystemValidator) ValidatePorchIntegration(ctx context.Context) bool {
 
 	}
 
-
-
 	// Check for package generation indicators in status.
 
 	if testIntent.Status.ProcessingResults == nil {
@@ -487,15 +381,11 @@ func (sv *SystemValidator) ValidatePorchIntegration(ctx context.Context) bool {
 
 	}
 
-
-
 	// Verify packages were created (check status or annotations).
 
 	packageCreated := string(testIntent.Status.Phase) == "ManifestGeneration" ||
 
 		string(testIntent.Status.Phase) == "Deployed"
-
-
 
 	if packageCreated {
 
@@ -505,15 +395,11 @@ func (sv *SystemValidator) ValidatePorchIntegration(ctx context.Context) bool {
 
 	}
 
-
-
 	ginkgo.By("✗ Porch package integration failed")
 
 	return false
 
 }
-
-
 
 // ValidateMultiClusterDeployment validates multi-cluster deployment capabilities.
 
@@ -521,33 +407,24 @@ func (sv *SystemValidator) ValidateMultiClusterDeployment(ctx context.Context) b
 
 	ginkgo.By("Validating Multi-cluster Deployment")
 
-
-
 	// For now, we'll test the deployment pipeline reaches the deployment phase.
 
 	// In a full implementation, this would test actual multi-cluster propagation.
-
-
 
 	testIntent := &nephranv1.NetworkIntent{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "test-multicluster-deployment",
+			Name: "test-multicluster-deployment",
 
 			Namespace: "default",
-
 		},
 
 		Spec: nephranv1.NetworkIntentSpec{
 
 			Intent: "Deploy AMF across multiple clusters with redundancy",
-
 		},
-
 	}
-
-
 
 	err := sv.k8sClient.Create(ctx, testIntent)
 
@@ -559,8 +436,6 @@ func (sv *SystemValidator) ValidateMultiClusterDeployment(ctx context.Context) b
 
 	}
 
-
-
 	defer func() {
 
 		if deleteErr := sv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
@@ -570,8 +445,6 @@ func (sv *SystemValidator) ValidateMultiClusterDeployment(ctx context.Context) b
 		}
 
 	}()
-
-
 
 	// Wait for deployment phase.
 
@@ -585,8 +458,6 @@ func (sv *SystemValidator) ValidateMultiClusterDeployment(ctx context.Context) b
 
 	}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue())
 
-
-
 	// Verify deployment succeeded.
 
 	err = sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
@@ -596,8 +467,6 @@ func (sv *SystemValidator) ValidateMultiClusterDeployment(ctx context.Context) b
 		return false
 
 	}
-
-
 
 	deployed := string(testIntent.Status.Phase) == "Deployed"
 
@@ -611,13 +480,9 @@ func (sv *SystemValidator) ValidateMultiClusterDeployment(ctx context.Context) b
 
 	}
 
-
-
 	return deployed
 
 }
-
-
 
 // ValidateORANInterfaces validates O-RAN interface compliance (returns score 0-7).
 
@@ -625,13 +490,9 @@ func (sv *SystemValidator) ValidateORANInterfaces(ctx context.Context) int {
 
 	ginkgo.By("Validating O-RAN Interface Compliance")
 
-
-
 	score := 0
 
 	maxScore := 7
-
-
 
 	// Test 1: E2 Interface (2 points).
 
@@ -647,8 +508,6 @@ func (sv *SystemValidator) ValidateORANInterfaces(ctx context.Context) int {
 
 	}
 
-
-
 	// Test 2: A1 Interface (2 points).
 
 	if sv.validateA1Interface(ctx) {
@@ -662,8 +521,6 @@ func (sv *SystemValidator) ValidateORANInterfaces(ctx context.Context) int {
 		ginkgo.By("✗ A1 Interface: 0/2 points")
 
 	}
-
-
 
 	// Test 3: O1 Interface (2 points).
 
@@ -679,8 +536,6 @@ func (sv *SystemValidator) ValidateORANInterfaces(ctx context.Context) int {
 
 	}
 
-
-
 	// Test 4: O2 Interface (1 point).
 
 	if sv.validateO2Interface(ctx) {
@@ -695,15 +550,11 @@ func (sv *SystemValidator) ValidateORANInterfaces(ctx context.Context) int {
 
 	}
 
-
-
 	ginkgo.By(fmt.Sprintf("O-RAN Interface Compliance: %d/%d points", score, maxScore))
 
 	return score
 
 }
-
-
 
 // validateE2Interface validates E2 interface functionality.
 
@@ -715,21 +566,16 @@ func (sv *SystemValidator) validateE2Interface(ctx context.Context) bool {
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "test-e2-validation",
+			Name: "test-e2-validation",
 
 			Namespace: "default",
-
 		},
 
 		Spec: nephranv1.E2NodeSetSpec{
 
 			Replicas: 3,
-
 		},
-
 	}
-
-
 
 	err := sv.k8sClient.Create(ctx, testE2NodeSet)
 
@@ -741,8 +587,6 @@ func (sv *SystemValidator) validateE2Interface(ctx context.Context) bool {
 
 	}
 
-
-
 	defer func() {
 
 		if deleteErr := sv.k8sClient.Delete(ctx, testE2NodeSet); deleteErr != nil {
@@ -752,8 +596,6 @@ func (sv *SystemValidator) validateE2Interface(ctx context.Context) bool {
 		}
 
 	}()
-
-
 
 	// Wait for E2NodeSet to become ready.
 
@@ -765,13 +607,9 @@ func (sv *SystemValidator) validateE2Interface(ctx context.Context) bool {
 
 	}, 2*time.Minute, 5*time.Second).Should(gomega.BeTrue())
 
-
-
 	return true
 
 }
-
-
 
 // validateA1Interface validates A1 interface functionality.
 
@@ -783,27 +621,20 @@ func (sv *SystemValidator) validateA1Interface(ctx context.Context) bool {
 
 	// For now, we'll simulate by checking if the system can handle policy-related intents.
 
-
-
 	testIntent := &nephranv1.NetworkIntent{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "test-a1-policy",
+			Name: "test-a1-policy",
 
 			Namespace: "default",
-
 		},
 
 		Spec: nephranv1.NetworkIntentSpec{
 
 			Intent: "Create traffic steering policy for load balancing",
-
 		},
-
 	}
-
-
 
 	err := sv.k8sClient.Create(ctx, testIntent)
 
@@ -812,8 +643,6 @@ func (sv *SystemValidator) validateA1Interface(ctx context.Context) bool {
 		return false
 
 	}
-
-
 
 	defer func() {
 
@@ -824,8 +653,6 @@ func (sv *SystemValidator) validateA1Interface(ctx context.Context) bool {
 		}
 
 	}()
-
-
 
 	// Wait for processing.
 
@@ -837,13 +664,9 @@ func (sv *SystemValidator) validateA1Interface(ctx context.Context) bool {
 
 	}, 1*time.Minute, 5*time.Second).Should(gomega.BeTrue())
 
-
-
 	return true
 
 }
-
-
 
 // validateO1Interface validates O1 FCAPS interface.
 
@@ -855,27 +678,20 @@ func (sv *SystemValidator) validateO1Interface(ctx context.Context) bool {
 
 	// For now, we'll check if monitoring-related intents are processed.
 
-
-
 	testIntent := &nephranv1.NetworkIntent{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "test-o1-fcaps",
+			Name: "test-o1-fcaps",
 
 			Namespace: "default",
-
 		},
 
 		Spec: nephranv1.NetworkIntentSpec{
 
 			Intent: "Configure performance monitoring for AMF with KPI collection",
-
 		},
-
 	}
-
-
 
 	err := sv.k8sClient.Create(ctx, testIntent)
 
@@ -884,8 +700,6 @@ func (sv *SystemValidator) validateO1Interface(ctx context.Context) bool {
 		return false
 
 	}
-
-
 
 	defer func() {
 
@@ -897,8 +711,6 @@ func (sv *SystemValidator) validateO1Interface(ctx context.Context) bool {
 
 	}()
 
-
-
 	gomega.Eventually(func() bool {
 
 		err := sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
@@ -907,13 +719,9 @@ func (sv *SystemValidator) validateO1Interface(ctx context.Context) bool {
 
 	}, 1*time.Minute, 5*time.Second).Should(gomega.BeTrue())
 
-
-
 	return true
 
 }
-
-
 
 // validateO2Interface validates O2 cloud interface.
 
@@ -923,27 +731,20 @@ func (sv *SystemValidator) validateO2Interface(ctx context.Context) bool {
 
 	// This would involve testing cloud resource provisioning.
 
-
-
 	testIntent := &nephranv1.NetworkIntent{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "test-o2-cloud",
+			Name: "test-o2-cloud",
 
 			Namespace: "default",
-
 		},
 
 		Spec: nephranv1.NetworkIntentSpec{
 
 			Intent: "Provision cloud infrastructure for UPF deployment",
-
 		},
-
 	}
-
-
 
 	err := sv.k8sClient.Create(ctx, testIntent)
 
@@ -952,8 +753,6 @@ func (sv *SystemValidator) validateO2Interface(ctx context.Context) bool {
 		return false
 
 	}
-
-
 
 	defer func() {
 
@@ -965,8 +764,6 @@ func (sv *SystemValidator) validateO2Interface(ctx context.Context) bool {
 
 	}()
 
-
-
 	gomega.Eventually(func() bool {
 
 		err := sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
@@ -975,13 +772,9 @@ func (sv *SystemValidator) validateO2Interface(ctx context.Context) bool {
 
 	}, 1*time.Minute, 5*time.Second).Should(gomega.BeTrue())
 
-
-
 	return true
 
 }
-
-
 
 // ExecuteFunctionalTests executes functional tests and returns score.
 
@@ -989,11 +782,7 @@ func (sv *SystemValidator) ExecuteFunctionalTests(ctx context.Context) (int, err
 
 	ginkgo.By("Executing Functional Completeness Tests")
 
-
-
 	score := 0
-
-
 
 	// Test 1: Intent Processing Pipeline (15 points).
 
@@ -1011,8 +800,6 @@ func (sv *SystemValidator) ExecuteFunctionalTests(ctx context.Context) (int, err
 
 	}
 
-
-
 	// Test 2: LLM/RAG Integration (10 points).
 
 	ginkgo.By("Testing LLM/RAG Integration")
@@ -1028,8 +815,6 @@ func (sv *SystemValidator) ExecuteFunctionalTests(ctx context.Context) (int, err
 		ginkgo.By("✗ LLM/RAG Integration: 0/10 points")
 
 	}
-
-
 
 	// Test 3: Porch Package Management (10 points).
 
@@ -1047,8 +832,6 @@ func (sv *SystemValidator) ExecuteFunctionalTests(ctx context.Context) (int, err
 
 	}
 
-
-
 	// Test 4: Multi-cluster Deployment (8 points).
 
 	ginkgo.By("Testing Multi-cluster Deployment")
@@ -1065,8 +848,6 @@ func (sv *SystemValidator) ExecuteFunctionalTests(ctx context.Context) (int, err
 
 	}
 
-
-
 	// Test 5: O-RAN Interface Compliance (7 points).
 
 	ginkgo.By("Testing O-RAN Interface Compliance")
@@ -1077,9 +858,6 @@ func (sv *SystemValidator) ExecuteFunctionalTests(ctx context.Context) (int, err
 
 	ginkgo.By(fmt.Sprintf("O-RAN Interfaces: %d/7 points", oranScore))
 
-
-
 	return score, nil
 
 }
-

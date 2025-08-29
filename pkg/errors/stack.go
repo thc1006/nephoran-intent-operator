@@ -1,37 +1,21 @@
-
 package errors
 
-
-
 import (
-
 	"bufio"
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 	"runtime"
-
 	"strconv"
-
 	"strings"
-
 	"sync"
-
 )
-
-
 
 var (
 
 	// sourceCodeCache caches source code lines to avoid repeated file reads.
 
 	sourceCodeCache = &sync.Map{}
-
-
 
 	// stackTracePool reuses byte slices for stack traces to reduce allocations.
 
@@ -42,12 +26,8 @@ var (
 			return make([]byte, 4096)
 
 		},
-
 	}
-
 )
-
-
 
 // StackTraceOptions configures stack trace capture behavior.
 
@@ -57,51 +37,34 @@ type StackTraceOptions struct {
 
 	MaxDepth int
 
-
-
 	// IncludeSource includes source code context in stack frames.
 
 	IncludeSource bool
-
-
 
 	// SourceContext specifies how many lines of context to include around the error line.
 
 	SourceContext int
 
-
-
 	// SkipFrames specifies how many stack frames to skip at the top.
 
 	SkipFrames int
-
-
 
 	// FilterPackages only includes frames from packages matching these prefixes.
 
 	FilterPackages []string
 
-
-
 	// ExcludePackages excludes frames from packages matching these prefixes.
 
 	ExcludePackages []string
-
-
 
 	// IncludeRuntime includes Go runtime frames in the stack trace.
 
 	IncludeRuntime bool
 
-
-
 	// SimplifyPaths simplifies file paths by removing GOPATH/GOROOT prefixes.
 
 	SimplifyPaths bool
-
 }
-
-
 
 // DefaultStackTraceOptions returns sensible defaults for stack trace capture.
 
@@ -109,31 +72,27 @@ func DefaultStackTraceOptions() *StackTraceOptions {
 
 	return &StackTraceOptions{
 
-		MaxDepth:      15,
+		MaxDepth: 15,
 
 		IncludeSource: true,
 
 		SourceContext: 2,
 
-		SkipFrames:    2, // Skip CaptureStackTrace and the error creation function
+		SkipFrames: 2, // Skip CaptureStackTrace and the error creation function
 
 		ExcludePackages: []string{
 
 			"runtime",
 
 			"testing",
-
 		},
 
 		IncludeRuntime: false,
 
-		SimplifyPaths:  true,
-
+		SimplifyPaths: true,
 	}
 
 }
-
-
 
 // CaptureStackTrace captures an enhanced stack trace with optional source code context.
 
@@ -145,15 +104,11 @@ func CaptureStackTrace(opts *StackTraceOptions) []StackFrame {
 
 	}
 
-
-
 	// Use pooled buffer for stack capture.
 
 	buf := stackTracePool.Get().([]byte)
 
 	defer stackTracePool.Put(buf)
-
-
 
 	// Capture the full stack trace.
 
@@ -161,13 +116,9 @@ func CaptureStackTrace(opts *StackTraceOptions) []StackFrame {
 
 	stackData := buf[:n]
 
-
-
 	return parseStackTrace(stackData, opts)
 
 }
-
-
 
 // CaptureStackTraceForError captures a stack trace specifically for error creation.
 
@@ -181,8 +132,6 @@ func CaptureStackTraceForError(skip int) []StackFrame {
 
 }
 
-
-
 // parseStackTrace parses raw stack trace data into structured frames.
 
 func parseStackTrace(stackData []byte, opts *StackTraceOptions) []StackFrame {
@@ -190,8 +139,6 @@ func parseStackTrace(stackData []byte, opts *StackTraceOptions) []StackFrame {
 	lines := strings.Split(string(stackData), "\n")
 
 	frames := make([]StackFrame, 0, opts.MaxDepth)
-
-
 
 	// Skip the first line which is "goroutine X [running]:".
 
@@ -201,8 +148,6 @@ func parseStackTrace(stackData []byte, opts *StackTraceOptions) []StackFrame {
 
 	skipped := 0
 
-
-
 	for lineIndex < len(lines)-1 && frameCount < opts.MaxDepth {
 
 		if lineIndex >= len(lines) {
@@ -210,8 +155,6 @@ func parseStackTrace(stackData []byte, opts *StackTraceOptions) []StackFrame {
 			break
 
 		}
-
-
 
 		// Function line (e.g., "main.main()").
 
@@ -225,8 +168,6 @@ func parseStackTrace(stackData []byte, opts *StackTraceOptions) []StackFrame {
 
 		}
 
-
-
 		lineIndex++
 
 		if lineIndex >= len(lines) {
@@ -234,8 +175,6 @@ func parseStackTrace(stackData []byte, opts *StackTraceOptions) []StackFrame {
 			break
 
 		}
-
-
 
 		// File:line line (e.g., "\t/path/to/file.go:42 +0x123").
 
@@ -249,8 +188,6 @@ func parseStackTrace(stackData []byte, opts *StackTraceOptions) []StackFrame {
 
 		}
 
-
-
 		// Parse file path and line number.
 
 		parts := strings.Split(fileLine, " ")
@@ -263,8 +200,6 @@ func parseStackTrace(stackData []byte, opts *StackTraceOptions) []StackFrame {
 
 		}
 
-
-
 		fileAndLine := parts[0]
 
 		lastColon := strings.LastIndex(fileAndLine, ":")
@@ -276,8 +211,6 @@ func parseStackTrace(stackData []byte, opts *StackTraceOptions) []StackFrame {
 			continue
 
 		}
-
-
 
 		file := fileAndLine[:lastColon]
 
@@ -293,23 +226,18 @@ func parseStackTrace(stackData []byte, opts *StackTraceOptions) []StackFrame {
 
 		}
 
-
-
 		// Create frame.
 
 		frame := StackFrame{
 
-			File:     file,
+			File: file,
 
-			Line:     lineNum,
+			Line: lineNum,
 
 			Function: funcLine,
 
-			Package:  extractPackageName(funcLine),
-
+			Package: extractPackageName(funcLine),
 		}
-
-
 
 		// Apply filtering.
 
@@ -327,8 +255,6 @@ func parseStackTrace(stackData []byte, opts *StackTraceOptions) []StackFrame {
 
 		}
 
-
-
 		// Skip if we haven't reached the skip threshold yet.
 
 		if skipped < opts.SkipFrames {
@@ -341,8 +267,6 @@ func parseStackTrace(stackData []byte, opts *StackTraceOptions) []StackFrame {
 
 		}
 
-
-
 		// Simplify paths if requested.
 
 		if opts.SimplifyPaths {
@@ -350,8 +274,6 @@ func parseStackTrace(stackData []byte, opts *StackTraceOptions) []StackFrame {
 			frame.File = simplifyPath(frame.File)
 
 		}
-
-
 
 		// Add source code context if requested.
 
@@ -361,8 +283,6 @@ func parseStackTrace(stackData []byte, opts *StackTraceOptions) []StackFrame {
 
 		}
 
-
-
 		frames = append(frames, frame)
 
 		frameCount++
@@ -371,13 +291,9 @@ func parseStackTrace(stackData []byte, opts *StackTraceOptions) []StackFrame {
 
 	}
 
-
-
 	return frames
 
 }
-
-
 
 // shouldSkipFrame determines if a frame should be skipped based on filtering options.
 
@@ -390,8 +306,6 @@ func shouldSkipFrame(frame *StackFrame, opts *StackTraceOptions) bool {
 		return true
 
 	}
-
-
 
 	// Check exclude packages.
 
@@ -406,8 +320,6 @@ func shouldSkipFrame(frame *StackFrame, opts *StackTraceOptions) bool {
 		}
 
 	}
-
-
 
 	// Check filter packages (if specified, only include matching packages).
 
@@ -437,13 +349,9 @@ func shouldSkipFrame(frame *StackFrame, opts *StackTraceOptions) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // extractPackageName extracts the package name from a function signature.
 
@@ -454,8 +362,6 @@ func extractPackageName(funcName string) string {
 	if idx := strings.LastIndex(funcName, "."); idx != -1 {
 
 		packagePart := funcName[:idx]
-
-
 
 		// Handle method calls with receivers.
 
@@ -469,8 +375,6 @@ func extractPackageName(funcName string) string {
 
 		}
 
-
-
 		// Handle nested packages.
 
 		if lastSlash := strings.LastIndex(packagePart, "/"); lastSlash != -1 {
@@ -479,19 +383,13 @@ func extractPackageName(funcName string) string {
 
 		}
 
-
-
 		return packagePart
 
 	}
 
-
-
 	return "main"
 
 }
-
-
 
 // simplifyPath removes GOPATH/GOROOT prefixes from file paths.
 
@@ -509,8 +407,6 @@ func simplifyPath(path string) string {
 
 	}
 
-
-
 	// Try to remove GOPATH.
 
 	if gopath := os.Getenv("GOPATH"); gopath != "" {
@@ -527,8 +423,6 @@ func simplifyPath(path string) string {
 
 	}
 
-
-
 	// Try to remove module path for Go modules.
 
 	if rel := getRelativeToModule(path); rel != "" {
@@ -537,13 +431,9 @@ func simplifyPath(path string) string {
 
 	}
 
-
-
 	return path
 
 }
-
-
 
 // getRelativeToModule attempts to get the path relative to the Go module root.
 
@@ -565,8 +455,6 @@ func getRelativeToModule(path string) string {
 
 		}
 
-
-
 		parent := filepath.Dir(dir)
 
 		if parent == dir {
@@ -579,13 +467,9 @@ func getRelativeToModule(path string) string {
 
 	}
 
-
-
 	return ""
 
 }
-
-
 
 // getSourceContext reads source code context around the specified line.
 
@@ -597,8 +481,6 @@ func getSourceContext(file string, line, context int) string {
 
 	}
 
-
-
 	// Check cache first.
 
 	cacheKey := fmt.Sprintf("%s:%d:%d", file, line, context)
@@ -609,23 +491,15 @@ func getSourceContext(file string, line, context int) string {
 
 	}
 
-
-
 	source := readSourceContext(file, line, context)
-
-
 
 	// Cache the result.
 
 	sourceCodeCache.Store(cacheKey, source)
 
-
-
 	return source
 
 }
-
-
 
 // readSourceContext reads the actual source code context.
 
@@ -641,8 +515,6 @@ func readSourceContext(file string, line, context int) string {
 
 	defer f.Close()
 
-
-
 	scanner := bufio.NewScanner(f)
 
 	currentLine := 1
@@ -651,15 +523,11 @@ func readSourceContext(file string, line, context int) string {
 
 	endLine := line + context
 
-
-
 	if startLine < 1 {
 
 		startLine = 1
 
 	}
-
-
 
 	var lines []string
 
@@ -679,21 +547,15 @@ func readSourceContext(file string, line, context int) string {
 
 		}
 
-
-
 		if currentLine > endLine {
 
 			break
 
 		}
 
-
-
 		currentLine++
 
 	}
-
-
 
 	if err := scanner.Err(); err != nil {
 
@@ -701,13 +563,9 @@ func readSourceContext(file string, line, context int) string {
 
 	}
 
-
-
 	return strings.Join(lines, "\n")
 
 }
-
-
 
 // FormatStackTrace formats a stack trace for human-readable output.
 
@@ -715,15 +573,11 @@ func FormatStackTrace(frames []StackFrame, includeSource bool) string {
 
 	var builder strings.Builder
 
-
-
 	for i, frame := range frames {
 
 		builder.WriteString(fmt.Sprintf("#%d %s\n", i, frame.Function))
 
 		builder.WriteString(fmt.Sprintf("    at %s:%d\n", frame.File, frame.Line))
-
-
 
 		if includeSource && frame.Source != "" {
 
@@ -743,8 +597,6 @@ func FormatStackTrace(frames []StackFrame, includeSource bool) string {
 
 		}
 
-
-
 		if i < len(frames)-1 {
 
 			builder.WriteString("\n")
@@ -753,13 +605,9 @@ func FormatStackTrace(frames []StackFrame, includeSource bool) string {
 
 	}
 
-
-
 	return builder.String()
 
 }
-
-
 
 // FilterStackTrace applies post-capture filtering to a stack trace.
 
@@ -781,8 +629,6 @@ func FilterStackTrace(frames []StackFrame, predicate func(StackFrame) bool) []St
 
 }
 
-
-
 // getSafeFunctionName safely extracts function name with proper error handling.
 
 func getSafeFunctionName(fn *runtime.Func) string {
@@ -792,8 +638,6 @@ func getSafeFunctionName(fn *runtime.Func) string {
 		return ""
 
 	}
-
-
 
 	// Use defer/recover to catch any potential panics from fn.Name().
 
@@ -809,8 +653,6 @@ func getSafeFunctionName(fn *runtime.Func) string {
 
 	}()
 
-
-
 	// Even though fn is not nil, fn.Name() can still panic in edge cases.
 
 	// where the PC doesn't correspond to a valid function entry point.
@@ -823,13 +665,9 @@ func getSafeFunctionName(fn *runtime.Func) string {
 
 	}
 
-
-
 	return name
 
 }
-
-
 
 // GetCallerInfo returns information about the caller at the specified skip level.
 
@@ -843,8 +681,6 @@ func GetCallerInfo(skip int) (file string, line int, function string, ok bool) {
 
 	}
 
-
-
 	fn := runtime.FuncForPC(pc)
 
 	function = getSafeFunctionName(fn)
@@ -855,13 +691,9 @@ func GetCallerInfo(skip int) (file string, line int, function string, ok bool) {
 
 	}
 
-
-
 	return file, line, function, true
 
 }
-
-
 
 // GetCurrentStackDepth returns the current stack depth.
 
@@ -887,8 +719,6 @@ func GetCurrentStackDepth() int {
 
 }
 
-
-
 // IsInPackage checks if the current call stack includes frames from the specified package.
 
 func IsInPackage(packageName string, maxDepth int) bool {
@@ -903,8 +733,6 @@ func IsInPackage(packageName string, maxDepth int) bool {
 
 		}
 
-
-
 		fn := runtime.FuncForPC(pc)
 
 		funcName := getSafeFunctionName(fn)
@@ -917,19 +745,13 @@ func IsInPackage(packageName string, maxDepth int) bool {
 
 	}
 
-
-
 	return false
 
 }
 
-
-
 // StackFrameFilter is a predicate function for filtering stack frames.
 
 type StackFrameFilter func(StackFrame) bool
-
-
 
 // Common stack frame filters.
 
@@ -943,8 +765,6 @@ var (
 
 	}
 
-
-
 	// SkipTestingFrames filters out testing framework frames.
 
 	SkipTestingFrames StackFrameFilter = func(frame StackFrame) bool {
@@ -956,8 +776,6 @@ var (
 			!strings.Contains(frame.Function, "gomega")
 
 	}
-
-
 
 	// OnlyApplicationFrames keeps only application frames (non-stdlib).
 
@@ -978,10 +796,7 @@ var (
 			!strings.HasPrefix(frame.Package, "log")
 
 	}
-
 )
-
-
 
 // CombineFilters combines multiple filters with AND logic.
 
@@ -1005,21 +820,15 @@ func CombineFilters(filters ...StackFrameFilter) StackFrameFilter {
 
 }
 
-
-
 // StackTraceAnalyzer provides analysis capabilities for stack traces.
 
 type StackTraceAnalyzer struct {
-
-	packageStats  map[string]int
+	packageStats map[string]int
 
 	functionStats map[string]int
 
-	fileStats     map[string]int
-
+	fileStats map[string]int
 }
-
-
 
 // NewStackTraceAnalyzer creates a new stack trace analyzer.
 
@@ -1027,17 +836,14 @@ func NewStackTraceAnalyzer() *StackTraceAnalyzer {
 
 	return &StackTraceAnalyzer{
 
-		packageStats:  make(map[string]int),
+		packageStats: make(map[string]int),
 
 		functionStats: make(map[string]int),
 
-		fileStats:     make(map[string]int),
-
+		fileStats: make(map[string]int),
 	}
 
 }
-
-
 
 // Analyze analyzes a stack trace and collects statistics.
 
@@ -1055,8 +861,6 @@ func (sta *StackTraceAnalyzer) Analyze(frames []StackFrame) {
 
 }
 
-
-
 // GetPackageStats returns statistics about package usage in stack traces.
 
 func (sta *StackTraceAnalyzer) GetPackageStats() map[string]int {
@@ -1064,8 +868,6 @@ func (sta *StackTraceAnalyzer) GetPackageStats() map[string]int {
 	return sta.packageStats
 
 }
-
-
 
 // GetFunctionStats returns statistics about function usage in stack traces.
 
@@ -1075,8 +877,6 @@ func (sta *StackTraceAnalyzer) GetFunctionStats() map[string]int {
 
 }
 
-
-
 // GetFileStats returns statistics about file usage in stack traces.
 
 func (sta *StackTraceAnalyzer) GetFileStats() map[string]int {
@@ -1084,8 +884,6 @@ func (sta *StackTraceAnalyzer) GetFileStats() map[string]int {
 	return sta.fileStats
 
 }
-
-
 
 // Reset clears all collected statistics.
 
@@ -1098,4 +896,3 @@ func (sta *StackTraceAnalyzer) Reset() {
 	sta.fileStats = make(map[string]int)
 
 }
-

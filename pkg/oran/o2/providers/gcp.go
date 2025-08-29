@@ -1,83 +1,54 @@
-
 package providers
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	compute "cloud.google.com/go/compute/apiv1"
-
 	"cloud.google.com/go/compute/apiv1/computepb"
-
 	container "cloud.google.com/go/container/apiv1"
-
 	monitoring "cloud.google.com/go/monitoring/apiv3/v2"
-
 	"cloud.google.com/go/storage"
-
 	"google.golang.org/api/option"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
 
-
-
 // ProviderTypeGCP is defined in interface.go.
-
-
 
 // GCPProvider implements CloudProvider for Google Cloud Platform.
 
 type GCPProvider struct {
+	name string
 
-	name      string
-
-	config    *ProviderConfiguration
+	config *ProviderConfiguration
 
 	projectID string
 
-	region    string
+	region string
 
-	zone      string
-
-
+	zone string
 
 	// GCP service clients.
 
-	computeClient    *compute.InstancesClient
+	computeClient *compute.InstancesClient
 
-	gkeClient        *container.ClusterManagerClient
+	gkeClient *container.ClusterManagerClient
 
-	storageClient    *storage.Client
+	storageClient *storage.Client
 
 	monitoringClient *monitoring.MetricClient
 
-
-
-	connected     bool
+	connected bool
 
 	eventCallback EventCallback
 
-	stopChannel   chan struct{}
+	stopChannel chan struct{}
 
-	mutex         sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewGCPProvider creates a new GCP provider instance.
 
@@ -89,39 +60,30 @@ func NewGCPProvider(config *ProviderConfiguration) (CloudProvider, error) {
 
 	}
 
-
-
 	if config.Type != ProviderTypeGCP {
 
 		return nil, fmt.Errorf("invalid provider type: expected %s, got %s", ProviderTypeGCP, config.Type)
 
 	}
 
-
-
 	provider := &GCPProvider{
 
-		name:        config.Name,
+		name: config.Name,
 
-		config:      config,
+		config: config,
 
 		stopChannel: make(chan struct{}),
 
-		projectID:   config.Credentials["project_id"],
+		projectID: config.Credentials["project_id"],
 
-		region:      config.Region,
+		region: config.Region,
 
-		zone:        config.Zone,
-
+		zone: config.Zone,
 	}
-
-
 
 	return provider, nil
 
 }
-
-
 
 // GetProviderInfo returns information about this GCP provider.
 
@@ -131,43 +93,37 @@ func (g *GCPProvider) GetProviderInfo() *ProviderInfo {
 
 	defer g.mutex.RUnlock()
 
-
-
 	return &ProviderInfo{
 
-		Name:        g.name,
+		Name: g.name,
 
-		Type:        ProviderTypeGCP,
+		Type: ProviderTypeGCP,
 
-		Version:     "1.0.0",
+		Version: "1.0.0",
 
 		Description: "Google Cloud Platform provider",
 
-		Vendor:      "Google",
+		Vendor: "Google",
 
-		Region:      g.region,
+		Region: g.region,
 
-		Zone:        g.zone,
+		Zone: g.zone,
 
-		Endpoint:    "https://compute.googleapis.com",
+		Endpoint: "https://compute.googleapis.com",
 
 		Tags: map[string]string{
 
 			"project_id": g.projectID,
 
-			"region":     g.region,
+			"region": g.region,
 
-			"zone":       g.zone,
-
+			"zone": g.zone,
 		},
 
 		LastUpdated: time.Now(),
-
 	}
 
 }
-
-
 
 // GetSupportedResourceTypes returns the resource types supported by GCP.
 
@@ -202,12 +158,9 @@ func (g *GCPProvider) GetSupportedResourceTypes() []string {
 		"pubsub_topic",
 
 		"app_engine_app",
-
 	}
 
 }
-
-
 
 // GetCapabilities returns the capabilities of this GCP provider.
 
@@ -215,81 +168,67 @@ func (g *GCPProvider) GetCapabilities() *ProviderCapabilities {
 
 	return &ProviderCapabilities{
 
-		ComputeTypes:     []string{"compute_instance", "cloud_function", "cloud_run", "gke_node"},
+		ComputeTypes: []string{"compute_instance", "cloud_function", "cloud_run", "gke_node"},
 
-		StorageTypes:     []string{"storage_bucket", "persistent_disk", "filestore"},
+		StorageTypes: []string{"storage_bucket", "persistent_disk", "filestore"},
 
-		NetworkTypes:     []string{"vpc_network", "subnet", "firewall_rule", "load_balancer"},
+		NetworkTypes: []string{"vpc_network", "subnet", "firewall_rule", "load_balancer"},
 
 		AcceleratorTypes: []string{"gpu", "tpu"},
 
+		AutoScaling: true,
 
+		LoadBalancing: true,
 
-		AutoScaling:    true,
+		Monitoring: true,
 
-		LoadBalancing:  true,
+		Logging: true,
 
-		Monitoring:     true,
-
-		Logging:        true,
-
-		Networking:     true,
+		Networking: true,
 
 		StorageClasses: true,
 
-
-
 		HorizontalPodAutoscaling: true, // GKE
 
-		VerticalPodAutoscaling:   true, // GKE
+		VerticalPodAutoscaling: true, // GKE
 
-		ClusterAutoscaling:       true, // GKE
+		ClusterAutoscaling: true, // GKE
 
+		Namespaces: true, // GKE
 
-
-		Namespaces:      true, // GKE
-
-		ResourceQuotas:  true, // Quotas
+		ResourceQuotas: true, // Quotas
 
 		NetworkPolicies: true, // Firewall rules
 
-		RBAC:            true, // IAM
+		RBAC: true, // IAM
 
+		MultiZone: true, // Zones
 
+		MultiRegion: true, // Global services
 
-		MultiZone:        true, // Zones
-
-		MultiRegion:      true, // Global services
-
-		BackupRestore:    true, // Snapshots
+		BackupRestore: true, // Snapshots
 
 		DisasterRecovery: true, // Multi-region
 
-
-
-		Encryption:       true, // Cloud KMS
+		Encryption: true, // Cloud KMS
 
 		SecretManagement: true, // Secret Manager
 
-		ImageScanning:    true, // Container Analysis
+		ImageScanning: true, // Container Analysis
 
-		PolicyEngine:     true, // Organization policies
+		PolicyEngine: true, // Organization policies
 
+		MaxNodes: 15000, // GKE limit
 
-
-		MaxNodes:    15000,  // GKE limit
-
-		MaxPods:     450000, // GKE with multiple node pools
+		MaxPods: 450000, // GKE with multiple node pools
 
 		MaxServices: 100000, // Practical limit
 
-		MaxVolumes:  500000, // Persistent disks
+		MaxVolumes: 500000, // Persistent disks
 
 	}
 
 }
-
-
 
 // Connect establishes connection to GCP.
 
@@ -299,17 +238,11 @@ func (g *GCPProvider) Connect(ctx context.Context) error {
 
 	logger.Info("connecting to GCP", "project", g.projectID, "region", g.region)
 
-
-
 	// Create clients with appropriate authentication.
 
 	opts := g.getClientOptions()
 
-
-
 	var err error
-
-
 
 	// Initialize Compute client.
 
@@ -321,8 +254,6 @@ func (g *GCPProvider) Connect(ctx context.Context) error {
 
 	}
 
-
-
 	// Initialize GKE client.
 
 	g.gkeClient, err = container.NewClusterManagerClient(ctx, opts...)
@@ -332,8 +263,6 @@ func (g *GCPProvider) Connect(ctx context.Context) error {
 		return fmt.Errorf("failed to create GKE client: %w", err)
 
 	}
-
-
 
 	// Initialize Storage client.
 
@@ -345,8 +274,6 @@ func (g *GCPProvider) Connect(ctx context.Context) error {
 
 	}
 
-
-
 	// Initialize Monitoring client.
 
 	g.monitoringClient, err = monitoring.NewMetricClient(ctx, opts...)
@@ -357,21 +284,16 @@ func (g *GCPProvider) Connect(ctx context.Context) error {
 
 	}
 
-
-
 	// Verify connection by listing instances (with limit).
 
 	req := &computepb.ListInstancesRequest{
 
-		Project:    g.projectID,
+		Project: g.projectID,
 
-		Zone:       g.zone,
+		Zone: g.zone,
 
 		MaxResults: func(v uint32) *uint32 { return &v }(1),
-
 	}
-
-
 
 	it := g.computeClient.List(ctx, req)
 
@@ -383,15 +305,11 @@ func (g *GCPProvider) Connect(ctx context.Context) error {
 
 	}
 
-
-
 	g.mutex.Lock()
 
 	g.connected = true
 
 	g.mutex.Unlock()
-
-
 
 	logger.Info("successfully connected to GCP")
 
@@ -399,15 +317,11 @@ func (g *GCPProvider) Connect(ctx context.Context) error {
 
 }
 
-
-
 // getClientOptions returns client options based on configuration.
 
 func (g *GCPProvider) getClientOptions() []option.ClientOption {
 
 	var opts []option.ClientOption
-
-
 
 	// Use service account key if provided.
 
@@ -423,13 +337,9 @@ func (g *GCPProvider) getClientOptions() []option.ClientOption {
 
 	// Otherwise, use Application Default Credentials.
 
-
-
 	return opts
 
 }
-
-
 
 // Disconnect closes the connection to GCP.
 
@@ -439,13 +349,9 @@ func (g *GCPProvider) Disconnect(ctx context.Context) error {
 
 	logger.Info("disconnecting from GCP")
 
-
-
 	g.mutex.Lock()
 
 	defer g.mutex.Unlock()
-
-
 
 	// Close clients.
 
@@ -473,11 +379,7 @@ func (g *GCPProvider) Disconnect(ctx context.Context) error {
 
 	}
 
-
-
 	g.connected = false
-
-
 
 	// Stop event watching if running.
 
@@ -489,15 +391,11 @@ func (g *GCPProvider) Disconnect(ctx context.Context) error {
 
 	}
 
-
-
 	logger.Info("disconnected from GCP")
 
 	return nil
 
 }
-
-
 
 // HealthCheck performs a health check on GCP services.
 
@@ -507,15 +405,12 @@ func (g *GCPProvider) HealthCheck(ctx context.Context) error {
 
 	req := &computepb.ListInstancesRequest{
 
-		Project:    g.projectID,
+		Project: g.projectID,
 
-		Zone:       g.zone,
+		Zone: g.zone,
 
 		MaxResults: func(v uint32) *uint32 { return &v }(1),
-
 	}
-
-
 
 	it := g.computeClient.List(ctx, req)
 
@@ -526,8 +421,6 @@ func (g *GCPProvider) HealthCheck(ctx context.Context) error {
 		return fmt.Errorf("health check failed: unable to access compute service: %w", err)
 
 	}
-
-
 
 	// Check storage access.
 
@@ -545,13 +438,9 @@ func (g *GCPProvider) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Close closes any resources held by the provider.
 
@@ -560,8 +449,6 @@ func (g *GCPProvider) Close() error {
 	g.mutex.Lock()
 
 	defer g.mutex.Unlock()
-
-
 
 	// Stop event watching.
 
@@ -573,21 +460,15 @@ func (g *GCPProvider) Close() error {
 
 	}
 
-
-
 	g.connected = false
 
 	return nil
 
 }
 
-
-
 // Placeholder implementations for remaining methods.
 
 // These follow the same pattern as other cloud providers.
-
-
 
 // CreateResource performs createresource operation.
 
@@ -597,8 +478,6 @@ func (g *GCPProvider) CreateResource(ctx context.Context, req *CreateResourceReq
 
 }
 
-
-
 // GetResource performs getresource operation.
 
 func (g *GCPProvider) GetResource(ctx context.Context, resourceID string) (*ResourceResponse, error) {
@@ -606,8 +485,6 @@ func (g *GCPProvider) GetResource(ctx context.Context, resourceID string) (*Reso
 	return nil, fmt.Errorf("GCP resource retrieval not yet implemented")
 
 }
-
-
 
 // UpdateResource performs updateresource operation.
 
@@ -617,8 +494,6 @@ func (g *GCPProvider) UpdateResource(ctx context.Context, resourceID string, req
 
 }
 
-
-
 // DeleteResource performs deleteresource operation.
 
 func (g *GCPProvider) DeleteResource(ctx context.Context, resourceID string) error {
@@ -626,8 +501,6 @@ func (g *GCPProvider) DeleteResource(ctx context.Context, resourceID string) err
 	return fmt.Errorf("GCP resource deletion not yet implemented")
 
 }
-
-
 
 // ListResources performs listresources operation.
 
@@ -637,8 +510,6 @@ func (g *GCPProvider) ListResources(ctx context.Context, filter *ResourceFilter)
 
 }
 
-
-
 // Deploy performs deploy operation.
 
 func (g *GCPProvider) Deploy(ctx context.Context, req *DeploymentRequest) (*DeploymentResponse, error) {
@@ -646,8 +517,6 @@ func (g *GCPProvider) Deploy(ctx context.Context, req *DeploymentRequest) (*Depl
 	return nil, fmt.Errorf("GCP deployment not yet implemented")
 
 }
-
-
 
 // GetDeployment performs getdeployment operation.
 
@@ -657,8 +526,6 @@ func (g *GCPProvider) GetDeployment(ctx context.Context, deploymentID string) (*
 
 }
 
-
-
 // UpdateDeployment performs updatedeployment operation.
 
 func (g *GCPProvider) UpdateDeployment(ctx context.Context, deploymentID string, req *UpdateDeploymentRequest) (*DeploymentResponse, error) {
@@ -666,8 +533,6 @@ func (g *GCPProvider) UpdateDeployment(ctx context.Context, deploymentID string,
 	return nil, fmt.Errorf("GCP deployment update not yet implemented")
 
 }
-
-
 
 // DeleteDeployment performs deletedeployment operation.
 
@@ -677,8 +542,6 @@ func (g *GCPProvider) DeleteDeployment(ctx context.Context, deploymentID string)
 
 }
 
-
-
 // ListDeployments performs listdeployments operation.
 
 func (g *GCPProvider) ListDeployments(ctx context.Context, filter *DeploymentFilter) ([]*DeploymentResponse, error) {
@@ -686,8 +549,6 @@ func (g *GCPProvider) ListDeployments(ctx context.Context, filter *DeploymentFil
 	return nil, fmt.Errorf("GCP deployment listing not yet implemented")
 
 }
-
-
 
 // ScaleResource performs scaleresource operation.
 
@@ -697,8 +558,6 @@ func (g *GCPProvider) ScaleResource(ctx context.Context, resourceID string, req 
 
 }
 
-
-
 // GetScalingCapabilities performs getscalingcapabilities operation.
 
 func (g *GCPProvider) GetScalingCapabilities(ctx context.Context, resourceID string) (*ScalingCapabilities, error) {
@@ -706,8 +565,6 @@ func (g *GCPProvider) GetScalingCapabilities(ctx context.Context, resourceID str
 	return nil, fmt.Errorf("GCP scaling capabilities not yet implemented")
 
 }
-
-
 
 // GetMetrics performs getmetrics operation.
 
@@ -717,8 +574,6 @@ func (g *GCPProvider) GetMetrics(ctx context.Context) (map[string]interface{}, e
 
 }
 
-
-
 // GetResourceMetrics performs getresourcemetrics operation.
 
 func (g *GCPProvider) GetResourceMetrics(ctx context.Context, resourceID string) (map[string]interface{}, error) {
@@ -726,8 +581,6 @@ func (g *GCPProvider) GetResourceMetrics(ctx context.Context, resourceID string)
 	return nil, fmt.Errorf("GCP resource metrics not yet implemented")
 
 }
-
-
 
 // GetResourceHealth performs getresourcehealth operation.
 
@@ -737,8 +590,6 @@ func (g *GCPProvider) GetResourceHealth(ctx context.Context, resourceID string) 
 
 }
 
-
-
 // CreateNetworkService performs createnetworkservice operation.
 
 func (g *GCPProvider) CreateNetworkService(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
@@ -746,8 +597,6 @@ func (g *GCPProvider) CreateNetworkService(ctx context.Context, req *NetworkServ
 	return nil, fmt.Errorf("GCP network service creation not yet implemented")
 
 }
-
-
 
 // GetNetworkService performs getnetworkservice operation.
 
@@ -757,8 +606,6 @@ func (g *GCPProvider) GetNetworkService(ctx context.Context, serviceID string) (
 
 }
 
-
-
 // DeleteNetworkService performs deletenetworkservice operation.
 
 func (g *GCPProvider) DeleteNetworkService(ctx context.Context, serviceID string) error {
@@ -766,8 +613,6 @@ func (g *GCPProvider) DeleteNetworkService(ctx context.Context, serviceID string
 	return fmt.Errorf("GCP network service deletion not yet implemented")
 
 }
-
-
 
 // ListNetworkServices performs listnetworkservices operation.
 
@@ -777,8 +622,6 @@ func (g *GCPProvider) ListNetworkServices(ctx context.Context, filter *NetworkSe
 
 }
 
-
-
 // CreateStorageResource performs createstorageresource operation.
 
 func (g *GCPProvider) CreateStorageResource(ctx context.Context, req *StorageResourceRequest) (*StorageResourceResponse, error) {
@@ -786,8 +629,6 @@ func (g *GCPProvider) CreateStorageResource(ctx context.Context, req *StorageRes
 	return nil, fmt.Errorf("GCP storage resource creation not yet implemented")
 
 }
-
-
 
 // GetStorageResource performs getstorageresource operation.
 
@@ -797,8 +638,6 @@ func (g *GCPProvider) GetStorageResource(ctx context.Context, resourceID string)
 
 }
 
-
-
 // DeleteStorageResource performs deletestorageresource operation.
 
 func (g *GCPProvider) DeleteStorageResource(ctx context.Context, resourceID string) error {
@@ -806,8 +645,6 @@ func (g *GCPProvider) DeleteStorageResource(ctx context.Context, resourceID stri
 	return fmt.Errorf("GCP storage resource deletion not yet implemented")
 
 }
-
-
 
 // ListStorageResources performs liststorageresources operation.
 
@@ -817,8 +654,6 @@ func (g *GCPProvider) ListStorageResources(ctx context.Context, filter *StorageR
 
 }
 
-
-
 // SubscribeToEvents performs subscribetoevents operation.
 
 func (g *GCPProvider) SubscribeToEvents(ctx context.Context, callback EventCallback) error {
@@ -826,8 +661,6 @@ func (g *GCPProvider) SubscribeToEvents(ctx context.Context, callback EventCallb
 	return fmt.Errorf("GCP event subscription not yet implemented")
 
 }
-
-
 
 // UnsubscribeFromEvents performs unsubscribefromevents operation.
 
@@ -837,8 +670,6 @@ func (g *GCPProvider) UnsubscribeFromEvents(ctx context.Context) error {
 
 }
 
-
-
 // ApplyConfiguration performs applyconfiguration operation.
 
 func (g *GCPProvider) ApplyConfiguration(ctx context.Context, config *ProviderConfiguration) error {
@@ -847,8 +678,6 @@ func (g *GCPProvider) ApplyConfiguration(ctx context.Context, config *ProviderCo
 
 	defer g.mutex.Unlock()
 
-
-
 	g.config = config
 
 	g.projectID = config.Credentials["project_id"]
@@ -856,8 +685,6 @@ func (g *GCPProvider) ApplyConfiguration(ctx context.Context, config *ProviderCo
 	g.region = config.Region
 
 	g.zone = config.Zone
-
-
 
 	// Reconnect if configuration changed.
 
@@ -871,13 +698,9 @@ func (g *GCPProvider) ApplyConfiguration(ctx context.Context, config *ProviderCo
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetConfiguration performs getconfiguration operation.
 
@@ -887,13 +710,9 @@ func (g *GCPProvider) GetConfiguration(ctx context.Context) (*ProviderConfigurat
 
 	defer g.mutex.RUnlock()
 
-
-
 	return g.config, nil
 
 }
-
-
 
 // ValidateConfiguration performs validateconfiguration operation.
 
@@ -905,8 +724,6 @@ func (g *GCPProvider) ValidateConfiguration(ctx context.Context, config *Provide
 
 	}
 
-
-
 	// Check required project ID.
 
 	if _, exists := config.Credentials["project_id"]; !exists {
@@ -915,15 +732,11 @@ func (g *GCPProvider) ValidateConfiguration(ctx context.Context, config *Provide
 
 	}
 
-
-
 	// Check for authentication method.
 
 	hasKeyFile := false
 
 	hasKeyJSON := false
-
-
 
 	if _, exists := config.Credentials["key_file"]; exists {
 
@@ -931,15 +744,11 @@ func (g *GCPProvider) ValidateConfiguration(ctx context.Context, config *Provide
 
 	}
 
-
-
 	if _, exists := config.Credentials["key_json"]; exists {
 
 		hasKeyJSON = true
 
 	}
-
-
 
 	// At least one authentication method should be present.
 
@@ -953,15 +762,11 @@ func (g *GCPProvider) ValidateConfiguration(ctx context.Context, config *Provide
 
 	}
 
-
-
 	if config.Region == "" {
 
 		return fmt.Errorf("region is required")
 
 	}
-
-
 
 	if config.Zone == "" {
 
@@ -973,9 +778,6 @@ func (g *GCPProvider) ValidateConfiguration(ctx context.Context, config *Provide
 
 	}
 
-
-
 	return nil
 
 }
-

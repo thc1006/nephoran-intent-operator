@@ -28,170 +28,126 @@ limitations under the License.
 
 */
 
-
-
-
 package webui
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"time"
 
-
-
 	"github.com/gorilla/mux"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/packagerevision"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 )
-
-
 
 // PackageRequest represents a request to create or modify a package.
 
 type PackageRequest struct {
+	PackageName string `json:"package_name"`
 
-	PackageName string            `json:"package_name"`
+	Repository string `json:"repository,omitempty"`
 
-	Repository  string            `json:"repository,omitempty"`
+	Revision string `json:"revision,omitempty"`
 
-	Revision    string            `json:"revision,omitempty"`
+	Description string `json:"description,omitempty"`
 
-	Description string            `json:"description,omitempty"`
-
-	Labels      map[string]string `json:"labels,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
 
 	Annotations map[string]string `json:"annotations,omitempty"`
-
 }
-
-
 
 // PackageResponse represents a comprehensive package response.
 
 type PackageResponse struct {
-
 	*porch.PackageRevision
 
-	LifecycleStatus   *packagerevision.LifecycleStatus    `json:"lifecycle_status,omitempty"`
+	LifecycleStatus *packagerevision.LifecycleStatus `json:"lifecycle_status,omitempty"`
 
 	ValidationResults []*packagerevision.ValidationResult `json:"validation_results,omitempty"`
 
-	ApprovalStatus    *packagerevision.ApprovalResult     `json:"approval_status,omitempty"`
+	ApprovalStatus *packagerevision.ApprovalResult `json:"approval_status,omitempty"`
 
-	Metrics           *packagerevision.PackageMetrics     `json:"metrics,omitempty"`
+	Metrics *packagerevision.PackageMetrics `json:"metrics,omitempty"`
 
-	DeploymentTargets []DeploymentTargetInfo              `json:"deployment_targets,omitempty"`
-
+	DeploymentTargets []DeploymentTargetInfo `json:"deployment_targets,omitempty"`
 }
-
-
 
 // DeploymentTargetInfo represents deployment target information.
 
 type DeploymentTargetInfo struct {
+	ClusterName string `json:"cluster_name"`
 
-	ClusterName  string       `json:"cluster_name"`
-
-	Status       string       `json:"status"`
+	Status string `json:"status"`
 
 	LastDeployed *metav1.Time `json:"last_deployed,omitempty"`
 
-	Health       string       `json:"health,omitempty"`
+	Health string `json:"health,omitempty"`
 
-	Version      string       `json:"version,omitempty"`
+	Version string `json:"version,omitempty"`
 
-	ErrorMessage string       `json:"error_message,omitempty"`
-
+	ErrorMessage string `json:"error_message,omitempty"`
 }
-
-
 
 // TransitionRequest represents a lifecycle transition request.
 
 type TransitionRequest struct {
+	TargetStage string `json:"target_stage"`
 
-	TargetStage         string                            `json:"target_stage"`
+	SkipValidation bool `json:"skip_validation,omitempty"`
 
-	SkipValidation      bool                              `json:"skip_validation,omitempty"`
+	SkipApproval bool `json:"skip_approval,omitempty"`
 
-	SkipApproval        bool                              `json:"skip_approval,omitempty"`
+	CreateRollbackPoint bool `json:"create_rollback_point,omitempty"`
 
-	CreateRollbackPoint bool                              `json:"create_rollback_point,omitempty"`
+	RollbackDescription string `json:"rollback_description,omitempty"`
 
-	RollbackDescription string                            `json:"rollback_description,omitempty"`
+	ForceTransition bool `json:"force_transition,omitempty"`
 
-	ForceTransition     bool                              `json:"force_transition,omitempty"`
+	ValidationPolicy *packagerevision.ValidationPolicy `json:"validation_policy,omitempty"`
 
-	ValidationPolicy    *packagerevision.ValidationPolicy `json:"validation_policy,omitempty"`
+	ApprovalPolicy *packagerevision.ApprovalPolicy `json:"approval_policy,omitempty"`
 
-	ApprovalPolicy      *packagerevision.ApprovalPolicy   `json:"approval_policy,omitempty"`
+	NotificationTargets []string `json:"notification_targets,omitempty"`
 
-	NotificationTargets []string                          `json:"notification_targets,omitempty"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 
-	Metadata            map[string]string                 `json:"metadata,omitempty"`
-
-	DryRun              bool                              `json:"dry_run,omitempty"`
-
+	DryRun bool `json:"dry_run,omitempty"`
 }
-
-
 
 // PackageStatusUpdate represents a package status update for streaming.
 
 type PackageStatusUpdate struct {
+	PackageName string `json:"package_name"`
 
-	PackageName   string                         `json:"package_name"`
+	Repository string `json:"repository"`
 
-	Repository    string                         `json:"repository"`
+	Revision string `json:"revision"`
 
-	Revision      string                         `json:"revision"`
-
-	CurrentStage  porch.PackageRevisionLifecycle `json:"current_stage"`
+	CurrentStage porch.PackageRevisionLifecycle `json:"current_stage"`
 
 	PreviousStage porch.PackageRevisionLifecycle `json:"previous_stage,omitempty"`
 
-	Progress      int                            `json:"progress"` // 0-100
+	Progress int `json:"progress"` // 0-100
 
-	Message       string                         `json:"message,omitempty"`
+	Message string `json:"message,omitempty"`
 
-	Timestamp     time.Time                      `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp"`
 
-	EventType     string                         `json:"event_type"` // created, transition, validation, approval, error
+	EventType string `json:"event_type"` // created, transition, validation, approval, error
 
-	Conditions    []metav1.Condition             `json:"conditions,omitempty"`
-
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
-
-
 
 // setupPackageRoutes sets up package management API routes.
 
 func (s *NephoranAPIServer) setupPackageRoutes(router *mux.Router) {
 
 	packages := router.PathPrefix("/packages").Subrouter()
-
-
 
 	// Apply package-specific middleware.
 
@@ -202,8 +158,6 @@ func (s *NephoranAPIServer) setupPackageRoutes(router *mux.Router) {
 		packages.Use(s.authMiddleware.RequirePermissionMiddleware(auth.PermissionReadIntent))
 
 	}
-
-
 
 	// Package CRUD operations.
 
@@ -217,15 +171,11 @@ func (s *NephoranAPIServer) setupPackageRoutes(router *mux.Router) {
 
 	packages.HandleFunc("/{name}", s.deletePackage).Methods("DELETE")
 
-
-
 	// Package revisions.
 
 	packages.HandleFunc("/{name}/revisions", s.listPackageRevisions).Methods("GET")
 
 	packages.HandleFunc("/{name}/revisions/{revision}", s.getPackageRevision).Methods("GET")
-
-
 
 	// Package lifecycle operations.
 
@@ -239,8 +189,6 @@ func (s *NephoranAPIServer) setupPackageRoutes(router *mux.Router) {
 
 	packages.HandleFunc("/{name}/rollback", s.rollbackPackage).Methods("POST")
 
-
-
 	// Package validation and testing.
 
 	packages.HandleFunc("/{name}/validate", s.validatePackage).Methods("POST")
@@ -248,8 +196,6 @@ func (s *NephoranAPIServer) setupPackageRoutes(router *mux.Router) {
 	packages.HandleFunc("/{name}/test", s.testPackage).Methods("POST")
 
 	packages.HandleFunc("/{name}/lint", s.lintPackage).Methods("POST")
-
-
 
 	// Package resources and content.
 
@@ -261,8 +207,6 @@ func (s *NephoranAPIServer) setupPackageRoutes(router *mux.Router) {
 
 	packages.HandleFunc("/{name}/history", s.getPackageHistory).Methods("GET")
 
-
-
 	// Package deployment and propagation.
 
 	packages.HandleFunc("/{name}/deploy", s.deployPackage).Methods("POST")
@@ -270,8 +214,6 @@ func (s *NephoranAPIServer) setupPackageRoutes(router *mux.Router) {
 	packages.HandleFunc("/{name}/deployment-status", s.getPackageDeploymentStatus).Methods("GET")
 
 	packages.HandleFunc("/{name}/target-clusters", s.getPackageTargetClusters).Methods("GET")
-
-
 
 	// Package templates and blueprints.
 
@@ -283,8 +225,6 @@ func (s *NephoranAPIServer) setupPackageRoutes(router *mux.Router) {
 
 	packages.HandleFunc("/blueprints/{blueprint}", s.getBlueprint).Methods("GET")
 
-
-
 	// Bulk operations.
 
 	packages.HandleFunc("/bulk/transition", s.bulkTransitionPackages).Methods("POST")
@@ -294,8 +234,6 @@ func (s *NephoranAPIServer) setupPackageRoutes(router *mux.Router) {
 	packages.HandleFunc("/bulk/deploy", s.bulkDeployPackages).Methods("POST")
 
 }
-
-
 
 // listPackages handles GET /api/v1/packages.
 
@@ -307,8 +245,6 @@ func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request)
 
 	filters := s.parseFilterParams(r)
 
-
-
 	repository := r.URL.Query().Get("repository")
 
 	if repository == "" {
@@ -316,8 +252,6 @@ func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request)
 		repository = "default"
 
 	}
-
-
 
 	// Check cache first.
 
@@ -339,8 +273,6 @@ func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request)
 
 	}
 
-
-
 	// Get packages through package manager if available.
 
 	if s.packageManager == nil {
@@ -353,13 +285,9 @@ func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request)
 
 	}
 
-
-
 	// For now, return mock data structure until packageManager interface is fully implemented.
 
 	packages := make([]PackageResponse, 0)
-
-
 
 	// Apply filtering and pagination.
 
@@ -381,27 +309,20 @@ func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request)
 
 	}
 
-
-
 	paginatedItems := packages[startIndex:endIndex]
-
-
 
 	// Build response with metadata.
 
 	meta := &Meta{
 
-		Page:       pagination.Page,
+		Page: pagination.Page,
 
-		PageSize:   pagination.PageSize,
+		PageSize: pagination.PageSize,
 
 		TotalPages: (totalItems + pagination.PageSize - 1) / pagination.PageSize,
 
 		TotalItems: totalItems,
-
 	}
-
-
 
 	// Build HATEOAS links.
 
@@ -410,7 +331,6 @@ func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request)
 	links := &Links{
 
 		Self: fmt.Sprintf("%s&page=%d", baseURL, pagination.Page),
-
 	}
 
 	if pagination.Page > 1 {
@@ -429,19 +349,14 @@ func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request)
 
 	}
 
-
-
 	result := map[string]interface{}{
 
 		"items": paginatedItems,
 
-		"meta":  meta,
+		"meta": meta,
 
 		"links": links,
-
 	}
-
-
 
 	// Cache the result.
 
@@ -451,13 +366,9 @@ func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request)
 
 	}
 
-
-
 	s.writeJSONResponse(w, http.StatusOK, result)
 
 }
-
-
 
 // getPackage handles GET /api/v1/packages/{name}.
 
@@ -485,8 +396,6 @@ func (s *NephoranAPIServer) getPackage(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	// Check cache first.
 
 	cacheKey := fmt.Sprintf("package:%s:%s:%s", repository, name, revision)
@@ -507,8 +416,6 @@ func (s *NephoranAPIServer) getPackage(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	if s.packageManager == nil {
 
 		s.writeErrorResponse(w, http.StatusServiceUnavailable, "package_manager_unavailable",
@@ -519,21 +426,16 @@ func (s *NephoranAPIServer) getPackage(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	// Create package reference.
 
 	packageRef := &porch.PackageReference{
 
-		Repository:  repository,
+		Repository: repository,
 
 		PackageName: name,
 
-		Revision:    revision,
-
+		Revision: revision,
 	}
-
-
 
 	// Get lifecycle status.
 
@@ -551,8 +453,6 @@ func (s *NephoranAPIServer) getPackage(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	// Get package metrics.
 
 	metrics, err := s.packageManager.GetPackageMetrics(ctx, packageRef)
@@ -567,23 +467,18 @@ func (s *NephoranAPIServer) getPackage(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	// Build comprehensive response.
 
 	response := PackageResponse{
 
 		LifecycleStatus: lifecycleStatus,
 
-		Metrics:         metrics,
+		Metrics: metrics,
 
 		// PackageRevision will be populated from actual porch data.
 
 		DeploymentTargets: s.getDeploymentTargetInfo(ctx, packageRef),
-
 	}
-
-
 
 	// Cache the result.
 
@@ -593,21 +488,15 @@ func (s *NephoranAPIServer) getPackage(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	s.writeJSONResponse(w, http.StatusOK, response)
 
 }
-
-
 
 // proposePackage handles POST /api/v1/packages/{name}/propose.
 
 func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
-
-
 
 	// Check permissions for package transitions.
 
@@ -620,8 +509,6 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 		return
 
 	}
-
-
 
 	vars := mux.Vars(r)
 
@@ -643,8 +530,6 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	var req TransitionRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -654,12 +539,9 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 		req = TransitionRequest{
 
 			TargetStage: string(porch.PackageRevisionLifecycleProposed),
-
 		}
 
 	}
-
-
 
 	if s.packageManager == nil {
 
@@ -671,55 +553,45 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	// Create package reference.
 
 	packageRef := &porch.PackageReference{
 
-		Repository:  repository,
+		Repository: repository,
 
 		PackageName: name,
 
-		Revision:    revision,
-
+		Revision: revision,
 	}
-
-
 
 	// Create transition options.
 
 	opts := &packagerevision.TransitionOptions{
 
-		SkipValidation:      req.SkipValidation,
+		SkipValidation: req.SkipValidation,
 
-		SkipApproval:        req.SkipApproval,
+		SkipApproval: req.SkipApproval,
 
 		CreateRollbackPoint: req.CreateRollbackPoint,
 
 		RollbackDescription: req.RollbackDescription,
 
-		ForceTransition:     req.ForceTransition,
+		ForceTransition: req.ForceTransition,
 
-		ValidationPolicy:    req.ValidationPolicy,
+		ValidationPolicy: req.ValidationPolicy,
 
-		ApprovalPolicy:      req.ApprovalPolicy,
+		ApprovalPolicy: req.ApprovalPolicy,
 
 		NotificationTargets: req.NotificationTargets,
 
-		DryRun:              req.DryRun,
-
+		DryRun: req.DryRun,
 	}
-
-
 
 	if req.Metadata != nil {
 
 		opts.Metadata = req.Metadata
 
 	}
-
-
 
 	// Perform the transition.
 
@@ -737,8 +609,6 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	// Invalidate cache.
 
 	if s.cache != nil {
@@ -749,47 +619,38 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	// Broadcast package status update.
 
 	s.broadcastPackageUpdate(&PackageStatusUpdate{
 
-		PackageName:   name,
+		PackageName: name,
 
-		Repository:    repository,
+		Repository: repository,
 
-		Revision:      revision,
+		Revision: revision,
 
-		CurrentStage:  result.NewStage,
+		CurrentStage: result.NewStage,
 
 		PreviousStage: result.PreviousStage,
 
-		Progress:      100,
+		Progress: 100,
 
-		Message:       "Package proposed successfully",
+		Message: "Package proposed successfully",
 
-		Timestamp:     result.TransitionTime,
+		Timestamp: result.TransitionTime,
 
-		EventType:     "transition",
-
+		EventType: "transition",
 	})
-
-
 
 	s.writeJSONResponse(w, http.StatusOK, result)
 
 }
-
-
 
 // approvePackage handles POST /api/v1/packages/{name}/approve.
 
 func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
-
-
 
 	// Check admin permissions for package approval.
 
@@ -802,8 +663,6 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 		return
 
 	}
-
-
 
 	vars := mux.Vars(r)
 
@@ -825,8 +684,6 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	var req TransitionRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -836,12 +693,9 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 		req = TransitionRequest{
 
 			TargetStage: string(porch.PackageRevisionLifecyclePublished),
-
 		}
 
 	}
-
-
 
 	if s.packageManager == nil {
 
@@ -853,55 +707,45 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	// Create package reference.
 
 	packageRef := &porch.PackageReference{
 
-		Repository:  repository,
+		Repository: repository,
 
 		PackageName: name,
 
-		Revision:    revision,
-
+		Revision: revision,
 	}
-
-
 
 	// Create transition options.
 
 	opts := &packagerevision.TransitionOptions{
 
-		SkipValidation:      req.SkipValidation,
+		SkipValidation: req.SkipValidation,
 
-		SkipApproval:        req.SkipApproval,
+		SkipApproval: req.SkipApproval,
 
 		CreateRollbackPoint: req.CreateRollbackPoint,
 
 		RollbackDescription: req.RollbackDescription,
 
-		ForceTransition:     req.ForceTransition,
+		ForceTransition: req.ForceTransition,
 
-		ValidationPolicy:    req.ValidationPolicy,
+		ValidationPolicy: req.ValidationPolicy,
 
-		ApprovalPolicy:      req.ApprovalPolicy,
+		ApprovalPolicy: req.ApprovalPolicy,
 
 		NotificationTargets: req.NotificationTargets,
 
-		DryRun:              req.DryRun,
-
+		DryRun: req.DryRun,
 	}
-
-
 
 	if req.Metadata != nil {
 
 		opts.Metadata = req.Metadata
 
 	}
-
-
 
 	// Perform the transition to published.
 
@@ -919,8 +763,6 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	// Invalidate cache.
 
 	if s.cache != nil {
@@ -931,39 +773,32 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	// Broadcast package status update.
 
 	s.broadcastPackageUpdate(&PackageStatusUpdate{
 
-		PackageName:   name,
+		PackageName: name,
 
-		Repository:    repository,
+		Repository: repository,
 
-		Revision:      revision,
+		Revision: revision,
 
-		CurrentStage:  result.NewStage,
+		CurrentStage: result.NewStage,
 
 		PreviousStage: result.PreviousStage,
 
-		Progress:      100,
+		Progress: 100,
 
-		Message:       "Package approved and published successfully",
+		Message: "Package approved and published successfully",
 
-		Timestamp:     result.TransitionTime,
+		Timestamp: result.TransitionTime,
 
-		EventType:     "transition",
-
+		EventType: "transition",
 	})
-
-
 
 	s.writeJSONResponse(w, http.StatusOK, result)
 
 }
-
-
 
 // validatePackage handles POST /api/v1/packages/{name}/validate.
 
@@ -991,8 +826,6 @@ func (s *NephoranAPIServer) validatePackage(w http.ResponseWriter, r *http.Reque
 
 	}
 
-
-
 	if s.packageManager == nil {
 
 		s.writeErrorResponse(w, http.StatusServiceUnavailable, "package_manager_unavailable",
@@ -1003,21 +836,16 @@ func (s *NephoranAPIServer) validatePackage(w http.ResponseWriter, r *http.Reque
 
 	}
 
-
-
 	// Create package reference.
 
 	packageRef := &porch.PackageReference{
 
-		Repository:  repository,
+		Repository: repository,
 
 		PackageName: name,
 
-		Revision:    revision,
-
+		Revision: revision,
 	}
-
-
 
 	// Perform validation.
 
@@ -1035,8 +863,6 @@ func (s *NephoranAPIServer) validatePackage(w http.ResponseWriter, r *http.Reque
 
 	}
 
-
-
 	// Broadcast validation update.
 
 	eventType := "validation"
@@ -1051,31 +877,24 @@ func (s *NephoranAPIServer) validatePackage(w http.ResponseWriter, r *http.Reque
 
 	}
 
-
-
 	s.broadcastPackageUpdate(&PackageStatusUpdate{
 
 		PackageName: name,
 
-		Repository:  repository,
+		Repository: repository,
 
-		Revision:    revision,
+		Revision: revision,
 
-		Message:     message,
+		Message: message,
 
-		Timestamp:   time.Now(),
+		Timestamp: time.Now(),
 
-		EventType:   eventType,
-
+		EventType: eventType,
 	})
-
-
 
 	s.writeJSONResponse(w, http.StatusOK, result)
 
 }
-
-
 
 // getPackageDeploymentStatus handles GET /api/v1/packages/{name}/deployment-status.
 
@@ -1094,8 +913,6 @@ func (s *NephoranAPIServer) getPackageDeploymentStatus(w http.ResponseWriter, r 
 		repository = "default"
 
 	}
-
-
 
 	// Check cache first.
 
@@ -1117,8 +934,6 @@ func (s *NephoranAPIServer) getPackageDeploymentStatus(w http.ResponseWriter, r 
 
 	}
 
-
-
 	if s.clusterManager == nil {
 
 		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable",
@@ -1128,8 +943,6 @@ func (s *NephoranAPIServer) getPackageDeploymentStatus(w http.ResponseWriter, r 
 		return
 
 	}
-
-
 
 	// Get multi-cluster status.
 
@@ -1147,23 +960,18 @@ func (s *NephoranAPIServer) getPackageDeploymentStatus(w http.ResponseWriter, r 
 
 	}
 
-
-
 	// Convert to API response format.
 
 	deploymentStatus := map[string]interface{}{
 
-		"package_name":   status.PackageName,
+		"package_name": status.PackageName,
 
 		"overall_status": status.OverallStatus,
 
-		"last_updated":   status.LastUpdated,
+		"last_updated": status.LastUpdated,
 
 		"cluster_status": status.ClusterStatuses,
-
 	}
-
-
 
 	// Cache the result.
 
@@ -1173,17 +981,11 @@ func (s *NephoranAPIServer) getPackageDeploymentStatus(w http.ResponseWriter, r 
 
 	}
 
-
-
 	s.writeJSONResponse(w, http.StatusOK, deploymentStatus)
 
 }
 
-
-
 // Helper functions.
-
-
 
 func (s *NephoranAPIServer) getDeploymentTargetInfo(ctx context.Context, packageRef *porch.PackageReference) []DeploymentTargetInfo {
 
@@ -1192,8 +994,6 @@ func (s *NephoranAPIServer) getDeploymentTargetInfo(ctx context.Context, package
 		return []DeploymentTargetInfo{}
 
 	}
-
-
 
 	// Get multi-cluster status.
 
@@ -1207,37 +1007,30 @@ func (s *NephoranAPIServer) getDeploymentTargetInfo(ctx context.Context, package
 
 	}
 
-
-
 	targets := make([]DeploymentTargetInfo, 0, len(status.ClusterStatuses))
 
 	for clusterName, clusterStatus := range status.ClusterStatuses {
 
 		targets = append(targets, DeploymentTargetInfo{
 
-			ClusterName:  clusterName,
+			ClusterName: clusterName,
 
-			Status:       clusterStatus.Status,
+			Status: clusterStatus.Status,
 
 			LastDeployed: &clusterStatus.LastUpdated,
 
-			Health:       "unknown", // Would be populated from actual health checks
+			Health: "unknown", // Would be populated from actual health checks
 
-			Version:      "v1",      // Would be populated from actual version info
+			Version: "v1", // Would be populated from actual version info
 
 			ErrorMessage: clusterStatus.ErrorMessage,
-
 		})
 
 	}
 
-
-
 	return targets
 
 }
-
-
 
 func (s *NephoranAPIServer) broadcastPackageUpdate(update *PackageStatusUpdate) {
 
@@ -1261,8 +1054,6 @@ func (s *NephoranAPIServer) broadcastPackageUpdate(update *PackageStatusUpdate) 
 
 	s.connectionsMutex.RUnlock()
 
-
-
 	// Broadcast to SSE connections.
 
 	s.connectionsMutex.RLock()
@@ -1283,8 +1074,6 @@ func (s *NephoranAPIServer) broadcastPackageUpdate(update *PackageStatusUpdate) 
 
 }
 
-
-
 // mustMarshal marshals an object to JSON bytes, panicking on error.
 
 func (s *NephoranAPIServer) mustMarshal(v interface{}) []byte {
@@ -1302,8 +1091,6 @@ func (s *NephoranAPIServer) mustMarshal(v interface{}) []byte {
 	return data
 
 }
-
-
 
 // mustMarshalString marshals an object to JSON string, returning empty object on error.
 
@@ -1323,11 +1110,7 @@ func (s *NephoranAPIServer) mustMarshalString(v interface{}) string {
 
 }
 
-
-
 // Additional package operation handlers - stub implementations for compilation.
-
-
 
 // createPackage handles POST /api/v1/packages.
 
@@ -1343,15 +1126,11 @@ func (s *NephoranAPIServer) createPackage(w http.ResponseWriter, r *http.Request
 
 	}
 
-
-
 	// TODO: Implement actual package creation.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package creation not yet implemented")
 
 }
-
-
 
 // updatePackage handles PUT /api/v1/packages/{name}.
 
@@ -1363,8 +1142,6 @@ func (s *NephoranAPIServer) updatePackage(w http.ResponseWriter, r *http.Request
 
 }
 
-
-
 // deletePackage handles DELETE /api/v1/packages/{name}.
 
 func (s *NephoranAPIServer) deletePackage(w http.ResponseWriter, r *http.Request) {
@@ -1374,8 +1151,6 @@ func (s *NephoranAPIServer) deletePackage(w http.ResponseWriter, r *http.Request
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package deletion not yet implemented")
 
 }
-
-
 
 // listPackageRevisions handles GET /api/v1/packages/{name}/revisions.
 
@@ -1387,8 +1162,6 @@ func (s *NephoranAPIServer) listPackageRevisions(w http.ResponseWriter, r *http.
 
 }
 
-
-
 // getPackageRevision handles GET /api/v1/packages/{name}/revisions/{revision}.
 
 func (s *NephoranAPIServer) getPackageRevision(w http.ResponseWriter, r *http.Request) {
@@ -1399,8 +1172,6 @@ func (s *NephoranAPIServer) getPackageRevision(w http.ResponseWriter, r *http.Re
 
 }
 
-
-
 // publishPackage handles POST /api/v1/packages/{name}/publish.
 
 func (s *NephoranAPIServer) publishPackage(w http.ResponseWriter, r *http.Request) {
@@ -1410,8 +1181,6 @@ func (s *NephoranAPIServer) publishPackage(w http.ResponseWriter, r *http.Reques
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package publishing not yet implemented")
 
 }
-
-
 
 // rejectPackage handles POST /api/v1/packages/{name}/reject.
 
@@ -1427,15 +1196,11 @@ func (s *NephoranAPIServer) rejectPackage(w http.ResponseWriter, r *http.Request
 
 	_ = name // Use name to avoid unused warning
 
-
-
 	// TODO: Implement actual package rejection.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package rejection not yet implemented")
 
 }
-
-
 
 // rollbackPackage handles POST /api/v1/packages/{name}/rollback.
 
@@ -1447,8 +1212,6 @@ func (s *NephoranAPIServer) rollbackPackage(w http.ResponseWriter, r *http.Reque
 
 }
 
-
-
 // testPackage handles POST /api/v1/packages/{name}/test.
 
 func (s *NephoranAPIServer) testPackage(w http.ResponseWriter, r *http.Request) {
@@ -1458,8 +1221,6 @@ func (s *NephoranAPIServer) testPackage(w http.ResponseWriter, r *http.Request) 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package testing not yet implemented")
 
 }
-
-
 
 // lintPackage handles POST /api/v1/packages/{name}/lint.
 
@@ -1471,8 +1232,6 @@ func (s *NephoranAPIServer) lintPackage(w http.ResponseWriter, r *http.Request) 
 
 }
 
-
-
 // getPackageResources handles GET /api/v1/packages/{name}/resources.
 
 func (s *NephoranAPIServer) getPackageResources(w http.ResponseWriter, r *http.Request) {
@@ -1482,8 +1241,6 @@ func (s *NephoranAPIServer) getPackageResources(w http.ResponseWriter, r *http.R
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"resources": []interface{}{}})
 
 }
-
-
 
 // updatePackageResources handles PUT /api/v1/packages/{name}/resources.
 
@@ -1499,15 +1256,11 @@ func (s *NephoranAPIServer) updatePackageResources(w http.ResponseWriter, r *htt
 
 	_ = name // Use name to avoid unused warning
 
-
-
 	// TODO: Implement actual package resource update.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package resource update not yet implemented")
 
 }
-
-
 
 // getPackageDiff handles GET /api/v1/packages/{name}/diff.
 
@@ -1523,15 +1276,11 @@ func (s *NephoranAPIServer) getPackageDiff(w http.ResponseWriter, r *http.Reques
 
 	_ = name // Use name to avoid unused warning
 
-
-
 	// TODO: Implement actual package diff.
 
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"diff": ""})
 
 }
-
-
 
 // getPackageHistory handles GET /api/v1/packages/{name}/history.
 
@@ -1547,15 +1296,11 @@ func (s *NephoranAPIServer) getPackageHistory(w http.ResponseWriter, r *http.Req
 
 	_ = name // Use name to avoid unused warning
 
-
-
 	// TODO: Implement actual package history.
 
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"history": []interface{}{}})
 
 }
-
-
 
 // deployPackage handles POST /api/v1/packages/{name}/deploy.
 
@@ -1571,15 +1316,11 @@ func (s *NephoranAPIServer) deployPackage(w http.ResponseWriter, r *http.Request
 
 	_ = name // Use name to avoid unused warning
 
-
-
 	// TODO: Implement actual package deployment.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package deployment not yet implemented")
 
 }
-
-
 
 // getPackageTargetClusters handles GET /api/v1/packages/{name}/target-clusters.
 
@@ -1595,15 +1336,11 @@ func (s *NephoranAPIServer) getPackageTargetClusters(w http.ResponseWriter, r *h
 
 	_ = name // Use name to avoid unused warning
 
-
-
 	// TODO: Implement actual target cluster retrieval.
 
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"clusters": []interface{}{}})
 
 }
-
-
 
 // listPackageTemplates handles GET /api/v1/packages/templates.
 
@@ -1613,15 +1350,11 @@ func (s *NephoranAPIServer) listPackageTemplates(w http.ResponseWriter, r *http.
 
 	_ = ctx // Use ctx to avoid unused warning
 
-
-
 	// TODO: Implement actual template listing.
 
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"templates": []interface{}{}})
 
 }
-
-
 
 // getPackageTemplate handles GET /api/v1/packages/templates/{template}.
 
@@ -1637,15 +1370,11 @@ func (s *NephoranAPIServer) getPackageTemplate(w http.ResponseWriter, r *http.Re
 
 	_ = template // Use template to avoid unused warning
 
-
-
 	// TODO: Implement actual template retrieval.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package template retrieval not yet implemented")
 
 }
-
-
 
 // listBlueprints handles GET /api/v1/packages/blueprints.
 
@@ -1655,15 +1384,11 @@ func (s *NephoranAPIServer) listBlueprints(w http.ResponseWriter, r *http.Reques
 
 	_ = ctx // Use ctx to avoid unused warning
 
-
-
 	// TODO: Implement actual blueprint listing.
 
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"blueprints": []interface{}{}})
 
 }
-
-
 
 // getBlueprint handles GET /api/v1/packages/blueprints/{blueprint}.
 
@@ -1679,15 +1404,11 @@ func (s *NephoranAPIServer) getBlueprint(w http.ResponseWriter, r *http.Request)
 
 	_ = blueprint // Use blueprint to avoid unused warning
 
-
-
 	// TODO: Implement actual blueprint retrieval.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Blueprint retrieval not yet implemented")
 
 }
-
-
 
 // bulkTransitionPackages handles POST /api/v1/packages/bulk/transition.
 
@@ -1697,15 +1418,11 @@ func (s *NephoranAPIServer) bulkTransitionPackages(w http.ResponseWriter, r *htt
 
 	_ = ctx // Use ctx to avoid unused warning
 
-
-
 	// TODO: Implement actual bulk transition.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Bulk package transition not yet implemented")
 
 }
-
-
 
 // bulkValidatePackages handles POST /api/v1/packages/bulk/validate.
 
@@ -1715,15 +1432,11 @@ func (s *NephoranAPIServer) bulkValidatePackages(w http.ResponseWriter, r *http.
 
 	_ = ctx // Use ctx to avoid unused warning
 
-
-
 	// TODO: Implement actual bulk validation.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Bulk package validation not yet implemented")
 
 }
-
-
 
 // bulkDeployPackages handles POST /api/v1/packages/bulk/deploy.
 
@@ -1733,11 +1446,8 @@ func (s *NephoranAPIServer) bulkDeployPackages(w http.ResponseWriter, r *http.Re
 
 	_ = ctx // Use ctx to avoid unused warning
 
-
-
 	// TODO: Implement actual bulk deployment.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Bulk package deployment not yet implemented")
 
 }
-

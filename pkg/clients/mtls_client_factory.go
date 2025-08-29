@@ -1,39 +1,21 @@
-
 package clients
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"net/http"
-
 	"sync"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/security/ca"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/security/mtls"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-
 )
-
-
 
 // ServiceType represents the type of service client.
 
 type ServiceType string
-
-
 
 const (
 
@@ -64,58 +46,43 @@ const (
 	// ServiceTypeMonitoring holds servicetypemonitoring value.
 
 	ServiceTypeMonitoring ServiceType = "monitoring"
-
 )
-
-
 
 // MTLSClientFactory creates and manages mTLS-enabled service clients.
 
 type MTLSClientFactory struct {
+	config *config.Config
 
-	config          *config.Config
+	logger *logging.StructuredLogger
 
-	logger          *logging.StructuredLogger
-
-	caManager       *ca.CAManager
+	caManager *ca.CAManager
 
 	identityManager *mtls.IdentityManager
-
-
 
 	// Client cache.
 
 	clients map[ServiceType]interface{}
 
-	mu      sync.RWMutex
-
-
+	mu sync.RWMutex
 
 	// Lifecycle management.
 
-	ctx    context.Context
+	ctx context.Context
 
 	cancel context.CancelFunc
-
 }
-
-
 
 // ClientFactoryConfig holds configuration for the client factory.
 
 type ClientFactoryConfig struct {
+	Config *config.Config
 
-	Config          *config.Config
+	Logger *logging.StructuredLogger
 
-	Logger          *logging.StructuredLogger
-
-	CAManager       *ca.CAManager
+	CAManager *ca.CAManager
 
 	IdentityManager *mtls.IdentityManager
-
 }
-
-
 
 // NewMTLSClientFactory creates a new mTLS client factory.
 
@@ -127,15 +94,11 @@ func NewMTLSClientFactory(config *ClientFactoryConfig) (*MTLSClientFactory, erro
 
 	}
 
-
-
 	if config.Config == nil {
 
 		return nil, fmt.Errorf("application config is required")
 
 	}
-
-
 
 	if config.Logger == nil {
 
@@ -143,31 +106,24 @@ func NewMTLSClientFactory(config *ClientFactoryConfig) (*MTLSClientFactory, erro
 
 	}
 
-
-
 	ctx, cancel := context.WithCancel(context.Background())
-
-
 
 	factory := &MTLSClientFactory{
 
-		config:          config.Config,
+		config: config.Config,
 
-		logger:          config.Logger,
+		logger: config.Logger,
 
-		caManager:       config.CAManager,
+		caManager: config.CAManager,
 
 		identityManager: config.IdentityManager,
 
-		clients:         make(map[ServiceType]interface{}),
+		clients: make(map[ServiceType]interface{}),
 
-		ctx:             ctx,
+		ctx: ctx,
 
-		cancel:          cancel,
-
+		cancel: cancel,
 	}
-
-
 
 	config.Logger.Info("mTLS client factory initialized",
 
@@ -177,13 +133,9 @@ func NewMTLSClientFactory(config *ClientFactoryConfig) (*MTLSClientFactory, erro
 
 		"ca_manager_available", config.CAManager != nil)
 
-
-
 	return factory, nil
 
 }
-
-
 
 // GetLLMClient returns an mTLS-enabled LLM processor client.
 
@@ -201,13 +153,9 @@ func (f *MTLSClientFactory) GetLLMClient() (shared.ClientInterface, error) {
 
 	f.mu.RUnlock()
 
-
-
 	f.mu.Lock()
 
 	defer f.mu.Unlock()
-
-
 
 	// Double-check after acquiring write lock.
 
@@ -216,8 +164,6 @@ func (f *MTLSClientFactory) GetLLMClient() (shared.ClientInterface, error) {
 		return client.(shared.ClientInterface), nil
 
 	}
-
-
 
 	// Create mTLS-enabled HTTP client.
 
@@ -229,25 +175,18 @@ func (f *MTLSClientFactory) GetLLMClient() (shared.ClientInterface, error) {
 
 	}
 
-
-
 	// Create LLM client with mTLS HTTP client.
 
 	llmClient := &MTLSLLMClient{
 
-		baseURL:    f.getServiceURL(ServiceTypeLLM),
+		baseURL: f.getServiceURL(ServiceTypeLLM),
 
 		httpClient: httpClient,
 
-		logger:     f.logger,
-
+		logger: f.logger,
 	}
 
-
-
 	f.clients[ServiceTypeLLM] = llmClient
-
-
 
 	f.logger.Info("created mTLS LLM client",
 
@@ -255,13 +194,9 @@ func (f *MTLSClientFactory) GetLLMClient() (shared.ClientInterface, error) {
 
 		"mtls_enabled", f.isMTLSEnabled(ServiceTypeLLM))
 
-
-
 	return llmClient, nil
 
 }
-
-
 
 // GetRAGClient returns an mTLS-enabled RAG service client.
 
@@ -279,13 +214,9 @@ func (f *MTLSClientFactory) GetRAGClient() (*MTLSRAGClient, error) {
 
 	f.mu.RUnlock()
 
-
-
 	f.mu.Lock()
 
 	defer f.mu.Unlock()
-
-
 
 	// Double-check after acquiring write lock.
 
@@ -294,8 +225,6 @@ func (f *MTLSClientFactory) GetRAGClient() (*MTLSRAGClient, error) {
 		return client.(*MTLSRAGClient), nil
 
 	}
-
-
 
 	// Create mTLS-enabled HTTP client.
 
@@ -307,25 +236,18 @@ func (f *MTLSClientFactory) GetRAGClient() (*MTLSRAGClient, error) {
 
 	}
 
-
-
 	// Create RAG client with mTLS HTTP client.
 
 	ragClient := &MTLSRAGClient{
 
-		baseURL:    f.getServiceURL(ServiceTypeRAG),
+		baseURL: f.getServiceURL(ServiceTypeRAG),
 
 		httpClient: httpClient,
 
-		logger:     f.logger,
-
+		logger: f.logger,
 	}
 
-
-
 	f.clients[ServiceTypeRAG] = ragClient
-
-
 
 	f.logger.Info("created mTLS RAG client",
 
@@ -333,13 +255,9 @@ func (f *MTLSClientFactory) GetRAGClient() (*MTLSRAGClient, error) {
 
 		"mtls_enabled", f.isMTLSEnabled(ServiceTypeRAG))
 
-
-
 	return ragClient, nil
 
 }
-
-
 
 // GetGitClient returns an mTLS-enabled Git client.
 
@@ -357,13 +275,9 @@ func (f *MTLSClientFactory) GetGitClient() (*MTLSGitClient, error) {
 
 	f.mu.RUnlock()
 
-
-
 	f.mu.Lock()
 
 	defer f.mu.Unlock()
-
-
 
 	// Double-check after acquiring write lock.
 
@@ -372,8 +286,6 @@ func (f *MTLSClientFactory) GetGitClient() (*MTLSGitClient, error) {
 		return client.(*MTLSGitClient), nil
 
 	}
-
-
 
 	// Create mTLS-enabled HTTP client.
 
@@ -385,37 +297,26 @@ func (f *MTLSClientFactory) GetGitClient() (*MTLSGitClient, error) {
 
 	}
 
-
-
 	// Create Git client with mTLS HTTP client.
 
 	gitClient := &MTLSGitClient{
 
 		httpClient: httpClient,
 
-		logger:     f.logger,
+		logger: f.logger,
 
-		config:     f.config,
-
+		config: f.config,
 	}
 
-
-
 	f.clients[ServiceTypeGit] = gitClient
-
-
 
 	f.logger.Info("created mTLS Git client",
 
 		"mtls_enabled", f.isMTLSEnabled(ServiceTypeGit))
 
-
-
 	return gitClient, nil
 
 }
-
-
 
 // GetMonitoringClient returns an mTLS-enabled monitoring client.
 
@@ -433,13 +334,9 @@ func (f *MTLSClientFactory) GetMonitoringClient() (*MTLSMonitoringClient, error)
 
 	f.mu.RUnlock()
 
-
-
 	f.mu.Lock()
 
 	defer f.mu.Unlock()
-
-
 
 	// Double-check after acquiring write lock.
 
@@ -448,8 +345,6 @@ func (f *MTLSClientFactory) GetMonitoringClient() (*MTLSMonitoringClient, error)
 		return client.(*MTLSMonitoringClient), nil
 
 	}
-
-
 
 	// Create mTLS-enabled HTTP client.
 
@@ -461,35 +356,24 @@ func (f *MTLSClientFactory) GetMonitoringClient() (*MTLSMonitoringClient, error)
 
 	}
 
-
-
 	// Create monitoring client with mTLS HTTP client.
 
 	monitoringClient := &MTLSMonitoringClient{
 
 		httpClient: httpClient,
 
-		logger:     f.logger,
-
+		logger: f.logger,
 	}
 
-
-
 	f.clients[ServiceTypeMonitoring] = monitoringClient
-
-
 
 	f.logger.Info("created mTLS monitoring client",
 
 		"mtls_enabled", f.isMTLSEnabled(ServiceTypeMonitoring))
 
-
-
 	return monitoringClient, nil
 
 }
-
-
 
 // createMTLSHTTPClient creates an mTLS-enabled HTTP client for a service type.
 
@@ -505,8 +389,6 @@ func (f *MTLSClientFactory) createMTLSHTTPClient(serviceType ServiceType) (*http
 
 	}
 
-
-
 	serviceCfg := f.getServiceMTLSConfig(serviceType)
 
 	if serviceCfg == nil {
@@ -514,8 +396,6 @@ func (f *MTLSClientFactory) createMTLSHTTPClient(serviceType ServiceType) (*http
 		return nil, fmt.Errorf("mTLS configuration not found for service type: %s", serviceType)
 
 	}
-
-
 
 	// Provision service identity if needed.
 
@@ -525,53 +405,48 @@ func (f *MTLSClientFactory) createMTLSHTTPClient(serviceType ServiceType) (*http
 
 	}
 
-
-
 	// Create mTLS client configuration.
 
 	clientConfig := &mtls.ClientConfig{
 
-		ServiceName:          serviceCfg.ServiceName,
+		ServiceName: serviceCfg.ServiceName,
 
-		TenantID:             f.config.MTLSConfig.TenantID,
+		TenantID: f.config.MTLSConfig.TenantID,
 
-		ClientCertPath:       serviceCfg.ClientCertPath,
+		ClientCertPath: serviceCfg.ClientCertPath,
 
-		ClientKeyPath:        serviceCfg.ClientKeyPath,
+		ClientKeyPath: serviceCfg.ClientKeyPath,
 
-		CACertPath:           serviceCfg.CACertPath,
+		CACertPath: serviceCfg.CACertPath,
 
-		ServerName:           serviceCfg.ServerName,
+		ServerName: serviceCfg.ServerName,
 
-		InsecureSkipVerify:   serviceCfg.InsecureSkipVerify,
+		InsecureSkipVerify: serviceCfg.InsecureSkipVerify,
 
-		DialTimeout:          serviceCfg.DialTimeout,
+		DialTimeout: serviceCfg.DialTimeout,
 
-		KeepAliveTimeout:     serviceCfg.KeepAliveTimeout,
+		KeepAliveTimeout: serviceCfg.KeepAliveTimeout,
 
-		MaxIdleConns:         serviceCfg.MaxIdleConns,
+		MaxIdleConns: serviceCfg.MaxIdleConns,
 
-		MaxConnsPerHost:      serviceCfg.MaxConnsPerHost,
+		MaxConnsPerHost: serviceCfg.MaxConnsPerHost,
 
-		IdleConnTimeout:      serviceCfg.IdleConnTimeout,
+		IdleConnTimeout: serviceCfg.IdleConnTimeout,
 
 		CertValidityDuration: f.config.MTLSConfig.ValidityDuration,
 
-		RotationEnabled:      f.config.MTLSConfig.RotationEnabled,
+		RotationEnabled: f.config.MTLSConfig.RotationEnabled,
 
-		RotationInterval:     f.config.MTLSConfig.RotationInterval,
+		RotationInterval: f.config.MTLSConfig.RotationInterval,
 
-		RenewalThreshold:     f.config.MTLSConfig.RenewalThreshold,
+		RenewalThreshold: f.config.MTLSConfig.RenewalThreshold,
 
-		CAManager:            f.caManager,
+		CAManager: f.caManager,
 
-		AutoProvision:        f.config.MTLSConfig.AutoProvision,
+		AutoProvision: f.config.MTLSConfig.AutoProvision,
 
-		PolicyTemplate:       f.config.MTLSConfig.PolicyTemplate,
-
+		PolicyTemplate: f.config.MTLSConfig.PolicyTemplate,
 	}
-
-
 
 	// Create mTLS client.
 
@@ -583,13 +458,9 @@ func (f *MTLSClientFactory) createMTLSHTTPClient(serviceType ServiceType) (*http
 
 	}
 
-
-
 	return mtlsClient.GetHTTPClient(), nil
 
 }
-
-
 
 // ensureServiceIdentity ensures that a service identity exists.
 
@@ -601,8 +472,6 @@ func (f *MTLSClientFactory) ensureServiceIdentity(serviceType ServiceType) error
 
 	}
 
-
-
 	serviceCfg := f.getServiceMTLSConfig(serviceType)
 
 	if serviceCfg == nil {
@@ -611,13 +480,9 @@ func (f *MTLSClientFactory) ensureServiceIdentity(serviceType ServiceType) error
 
 	}
 
-
-
 	// Get service role based on service type.
 
 	role := f.getServiceRole(serviceType)
-
-
 
 	// Check if identity already exists.
 
@@ -629,8 +494,6 @@ func (f *MTLSClientFactory) ensureServiceIdentity(serviceType ServiceType) error
 
 	}
 
-
-
 	// Create service identity.
 
 	_, err = f.identityManager.CreateServiceIdentity(serviceCfg.ServiceName, role, f.config.MTLSConfig.TenantID)
@@ -641,13 +504,9 @@ func (f *MTLSClientFactory) ensureServiceIdentity(serviceType ServiceType) error
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // isMTLSEnabled checks if mTLS is enabled for a service type.
 
@@ -659,15 +518,11 @@ func (f *MTLSClientFactory) isMTLSEnabled(serviceType ServiceType) bool {
 
 	}
 
-
-
 	serviceCfg := f.getServiceMTLSConfig(serviceType)
 
 	return serviceCfg != nil && serviceCfg.Enabled
 
 }
-
-
 
 // getServiceMTLSConfig returns mTLS configuration for a service type.
 
@@ -678,8 +533,6 @@ func (f *MTLSClientFactory) getServiceMTLSConfig(serviceType ServiceType) *confi
 		return nil
 
 	}
-
-
 
 	switch serviceType {
 
@@ -718,8 +571,6 @@ func (f *MTLSClientFactory) getServiceMTLSConfig(serviceType ServiceType) *confi
 	}
 
 }
-
-
 
 // getServiceRole returns the service role for a service type.
 
@@ -763,8 +614,6 @@ func (f *MTLSClientFactory) getServiceRole(serviceType ServiceType) mtls.Service
 
 }
 
-
-
 // getServiceURL returns the service URL for a service type.
 
 func (f *MTLSClientFactory) getServiceURL(serviceType ServiceType) string {
@@ -787,8 +636,6 @@ func (f *MTLSClientFactory) getServiceURL(serviceType ServiceType) string {
 
 		return f.config.LLMProcessorURL
 
-
-
 	case ServiceTypeRAG:
 
 		if f.isMTLSEnabled(serviceType) {
@@ -805,8 +652,6 @@ func (f *MTLSClientFactory) getServiceURL(serviceType ServiceType) string {
 
 		return f.config.GetRAGAPIURL(true)
 
-
-
 	default:
 
 		return ""
@@ -815,25 +660,17 @@ func (f *MTLSClientFactory) getServiceURL(serviceType ServiceType) string {
 
 }
 
-
-
 // Close gracefully shuts down the client factory.
 
 func (f *MTLSClientFactory) Close() error {
 
 	f.logger.Info("shutting down mTLS client factory")
 
-
-
 	f.cancel()
-
-
 
 	f.mu.Lock()
 
 	defer f.mu.Unlock()
-
-
 
 	// Close all clients that implement closer interface.
 
@@ -855,17 +692,11 @@ func (f *MTLSClientFactory) Close() error {
 
 	}
 
-
-
 	f.clients = make(map[ServiceType]interface{})
-
-
 
 	return nil
 
 }
-
-
 
 // GetClientStats returns statistics about managed clients.
 
@@ -875,21 +706,16 @@ func (f *MTLSClientFactory) GetClientStats() *ClientStats {
 
 	defer f.mu.RUnlock()
 
-
-
 	stats := &ClientStats{
 
-		TotalClients:  len(f.clients),
+		TotalClients: len(f.clients),
 
-		ClientTypes:   make(map[ServiceType]bool),
+		ClientTypes: make(map[ServiceType]bool),
 
-		MTLSEnabled:   f.config.MTLSConfig != nil && f.config.MTLSConfig.Enabled,
+		MTLSEnabled: f.config.MTLSConfig != nil && f.config.MTLSConfig.Enabled,
 
 		AutoProvision: f.config.MTLSConfig != nil && f.config.MTLSConfig.AutoProvision,
-
 	}
-
-
 
 	for serviceType := range f.clients {
 
@@ -897,25 +723,18 @@ func (f *MTLSClientFactory) GetClientStats() *ClientStats {
 
 	}
 
-
-
 	return stats
 
 }
 
-
-
 // ClientStats holds statistics about managed clients.
 
 type ClientStats struct {
+	TotalClients int `json:"total_clients"`
 
-	TotalClients  int                  `json:"total_clients"`
+	ClientTypes map[ServiceType]bool `json:"client_types"`
 
-	ClientTypes   map[ServiceType]bool `json:"client_types"`
+	MTLSEnabled bool `json:"mtls_enabled"`
 
-	MTLSEnabled   bool                 `json:"mtls_enabled"`
-
-	AutoProvision bool                 `json:"auto_provision"`
-
+	AutoProvision bool `json:"auto_provision"`
 }
-

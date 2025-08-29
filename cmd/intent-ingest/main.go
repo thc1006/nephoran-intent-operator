@@ -1,55 +1,36 @@
 // Package main provides an HTTP server for ingesting network intents and converting them to structured NetworkIntent CRDs.
 
-
 package main
 
-
-
 import (
-
 	"flag"
-
 	"fmt"
-
 	"log"
-
 	"net/http"
-
 	"os"
-
 	"path/filepath"
-
 	"time"
 
-
-
 	ingest "github.com/nephio-project/nephoran-intent-operator/internal/ingest"
-
 )
-
-
 
 func main() {
 
 	// Command-line flags.
 
 	var (
-
-		addr       = flag.String("addr", ":8080", "HTTP server address")
+		addr = flag.String("addr", ":8080", "HTTP server address")
 
 		handoffDir = flag.String("handoff", filepath.Join(".", "handoff"), "Directory for handoff files")
 
 		schemaFile = flag.String("schema", "", "Path to intent schema file (default: docs/contracts/intent.schema.json)")
 
-		mode       = flag.String("mode", "", "Intent parsing mode: rules|llm (overrides MODE env var)")
+		mode = flag.String("mode", "", "Intent parsing mode: rules|llm (overrides MODE env var)")
 
-		provider   = flag.String("provider", "", "LLM provider: mock (overrides PROVIDER env var)")
-
+		provider = flag.String("provider", "", "LLM provider: mock (overrides PROVIDER env var)")
 	)
 
 	flag.Parse()
-
-
 
 	// Check environment variables (command-line flags take precedence).
 
@@ -65,8 +46,6 @@ func main() {
 
 	}
 
-
-
 	if *provider == "" {
 
 		*provider = os.Getenv("PROVIDER")
@@ -78,8 +57,6 @@ func main() {
 		}
 
 	}
-
-
 
 	// Determine schema path.
 
@@ -103,8 +80,6 @@ func main() {
 
 	}
 
-
-
 	// Initialize validator.
 
 	v, err := ingest.NewValidator(schemaPath)
@@ -114,8 +89,6 @@ func main() {
 		log.Fatalf("Failed to load schema: %v", err)
 
 	}
-
-
 
 	// Create provider based on mode.
 
@@ -127,13 +100,9 @@ func main() {
 
 	}
 
-
-
 	// Create handler with provider.
 
 	h := ingest.NewHandler(v, *handoffDir, intentProvider)
-
-
 
 	// Setup HTTP routes.
 
@@ -155,8 +124,6 @@ func main() {
 
 	mux.HandleFunc("/intent", h.HandleIntent)
 
-
-
 	// Start server.
 
 	log.Printf("intent-ingest starting...")
@@ -175,27 +142,23 @@ func main() {
 
 	log.Printf("  Schema: %s", schemaPath)
 
-
-
 	fmt.Printf("\nReady to accept intents at http://localhost%s/intent\n", *addr)
 
 	// Use http.Server with timeouts to fix G114 security warning.
 
 	server := &http.Server{
 
-		Addr:         *addr,
+		Addr: *addr,
 
-		Handler:      mux,
+		Handler: mux,
 
-		ReadTimeout:  15 * time.Second,
+		ReadTimeout: 15 * time.Second,
 
 		WriteTimeout: 15 * time.Second,
 
-		IdleTimeout:  60 * time.Second,
-
+		IdleTimeout: 60 * time.Second,
 	}
 
 	log.Fatal(server.ListenAndServe())
 
 }
-

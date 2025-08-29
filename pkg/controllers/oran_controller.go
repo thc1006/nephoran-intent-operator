@@ -1,48 +1,25 @@
-
 package controllers
 
-
-
 import (
-
 	"context"
-
 	"fmt"
 
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/a1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o1"
 
-
-
 	appsv1 "k8s.io/api/apps/v1"
-
 	"k8s.io/apimachinery/pkg/api/meta"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/apimachinery/pkg/types"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
 
-
-
 const (
-
 	typeReadyManagedElement = "Ready"
 
 	// O1ConfiguredCondition holds o1configuredcondition value.
@@ -52,26 +29,19 @@ const (
 	// A1PolicyAppliedCondition holds a1policyappliedcondition value.
 
 	A1PolicyAppliedCondition = "A1PolicyApplied"
-
 )
-
-
 
 // OranAdaptorReconciler reconciles a ManagedElement object.
 
 type OranAdaptorReconciler struct {
-
 	client.Client
 
-	Scheme    *runtime.Scheme
+	Scheme *runtime.Scheme
 
 	O1Adaptor *o1.O1Adaptor
 
 	A1Adaptor *a1.A1Adaptor
-
 }
-
-
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=managedelements,verbs=get;list;watch;create;update;patch;delete
 
@@ -79,15 +49,11 @@ type OranAdaptorReconciler struct {
 
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch
 
-
-
 // Reconcile performs reconcile operation.
 
 func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	logger := log.FromContext(ctx)
-
-
 
 	me := &nephoranv1.ManagedElement{}
 
@@ -97,11 +63,7 @@ func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	}
 
-
-
 	logger.Info("Reconciling ManagedElement", "name", me.Name)
-
-
 
 	// O2 Logic: Check the status of the associated Deployment.
 
@@ -119,8 +81,6 @@ func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	}
 
-
-
 	isReady := deployment.Status.AvailableReplicas == *deployment.Spec.Replicas
 
 	if !isReady {
@@ -132,8 +92,6 @@ func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{Type: typeReadyManagedElement, Status: metav1.ConditionTrue, Reason: "Ready", Message: "Deployment is fully available."})
-
-
 
 	// O1 Logic: If ready, apply intent-driven O1 configuration.
 
@@ -155,8 +113,6 @@ func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	}
 
-
-
 	// A1 Logic: If ready, apply intent-driven A1 policy.
 
 	if me.Spec.A1Policy.Raw != nil {
@@ -177,13 +133,9 @@ func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	}
 
-
-
 	return r.updateStatus(ctx, me)
 
 }
-
-
 
 func (r *OranAdaptorReconciler) updateStatus(ctx context.Context, me *nephoranv1.ManagedElement) (ctrl.Result, error) {
 
@@ -198,8 +150,6 @@ func (r *OranAdaptorReconciler) updateStatus(ctx context.Context, me *nephoranv1
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // SetupWithManager performs setupwithmanager operation.
 
@@ -218,12 +168,8 @@ func (r *OranAdaptorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-
 		For(&nephoranv1.ManagedElement{}).
-
 		Owns(&appsv1.Deployment{}).
-
 		Complete(r)
 
 }
-

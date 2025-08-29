@@ -1,61 +1,34 @@
-
 package controllers
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"time"
 
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/resilience"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // GitOpsHandler handles GitOps operations and deployment verification phases.
 
 type GitOpsHandler struct {
-
 	*NetworkIntentReconciler
-
 }
-
-
 
 // Ensure GitOpsHandler implements the required interfaces.
 
 var (
-
 	_ GitOpsHandlerInterface = (*GitOpsHandler)(nil)
 
-	_ PhaseProcessor         = (*GitOpsHandler)(nil)
-
+	_ PhaseProcessor = (*GitOpsHandler)(nil)
 )
-
-
 
 // NewGitOpsHandler creates a new GitOps handler.
 
@@ -64,12 +37,9 @@ func NewGitOpsHandler(r *NetworkIntentReconciler) *GitOpsHandler {
 	return &GitOpsHandler{
 
 		NetworkIntentReconciler: r,
-
 	}
 
 }
-
-
 
 // CommitToGitOps implements Phase 4: GitOps commit and validation.
 
@@ -79,19 +49,13 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 
 	startTime := time.Now()
 
-
-
 	processingCtx.CurrentPhase = PhaseGitOpsCommit
-
-
 
 	if len(processingCtx.Manifests) == 0 {
 
 		return ctrl.Result{}, fmt.Errorf("no manifests available for GitOps commit")
 
 	}
-
-
 
 	// Get Git client.
 
@@ -103,8 +67,6 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 
 	}
 
-
-
 	// Get retry count.
 
 	retryCount := getNetworkIntentRetryCount(networkIntent, "git-deployment")
@@ -113,21 +75,18 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 
 		condition := metav1.Condition{
 
-			Type:               "GitOpsCommitted",
+			Type: "GitOpsCommitted",
 
-			Status:             metav1.ConditionFalse,
+			Status: metav1.ConditionFalse,
 
-			Reason:             "GitCommitFailedMaxRetries",
+			Reason: "GitCommitFailedMaxRetries",
 
-			Message:            fmt.Sprintf("Failed to commit to GitOps after %d retries", g.config.MaxRetries),
+			Message: fmt.Sprintf("Failed to commit to GitOps after %d retries", g.config.MaxRetries),
 
 			LastTransitionTime: metav1.Now(),
-
 		}
 
 		updateCondition(&networkIntent.Status.Conditions, condition)
-
-
 
 		// Set Ready condition to indicate Git operation failure.
 
@@ -136,8 +95,6 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 		return ctrl.Result{}, fmt.Errorf("max retries exceeded for GitOps commit")
 
 	}
-
-
 
 	// Initialize Git repository with timeout.
 
@@ -155,31 +112,24 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 
 		setNetworkIntentRetryCount(networkIntent, "git-deployment", retryCount+1)
 
-
-
 		condition := metav1.Condition{
 
-			Type:               "GitOpsCommitted",
+			Type: "GitOpsCommitted",
 
-			Status:             metav1.ConditionFalse,
+			Status: metav1.ConditionFalse,
 
-			Reason:             "GitRepoInitializationFailed",
+			Reason: "GitRepoInitializationFailed",
 
-			Message:            fmt.Sprintf("Failed to initialize git repository: %v", err),
+			Message: fmt.Sprintf("Failed to initialize git repository: %v", err),
 
 			LastTransitionTime: metav1.Now(),
-
 		}
 
 		updateCondition(&networkIntent.Status.Conditions, condition)
 
-
-
 		// Set Ready condition to False during Git initialization failures.
 
 		g.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "GitRepoInitializationFailed", fmt.Sprintf("Git repository initialization failed: %v", err))
-
-
 
 		// Use exponential backoff for Git operations.
 
@@ -193,21 +143,15 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 
 			"max_retries", g.config.MaxRetries)
 
-
-
 		return ctrl.Result{RequeueAfter: backoffDelay}, nil
 
 	}
-
-
 
 	// Organize manifests by deployment path.
 
 	deploymentFiles := make(map[string]string)
 
 	basePath := fmt.Sprintf("%s/%s-%s", g.config.GitDeployPath, networkIntent.Namespace, networkIntent.Name)
-
-
 
 	for filename, content := range processingCtx.Manifests {
 
@@ -216,8 +160,6 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 		deploymentFiles[filePath] = content
 
 	}
-
-
 
 	// Create comprehensive commit message.
 
@@ -236,10 +178,7 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 		len(processingCtx.Manifests),
 
 		processingCtx.ResourcePlan.EstimatedCost,
-
 	)
-
-
 
 	// Commit and push to Git with timeout.
 
@@ -252,8 +191,6 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 			return gitClient.CommitAndPush(deploymentFiles, commitMessage)
 
 		})
-
-
 
 	var commitHash string
 
@@ -269,31 +206,24 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 
 		setNetworkIntentRetryCount(networkIntent, "git-deployment", retryCount+1)
 
-
-
 		condition := metav1.Condition{
 
-			Type:               "GitOpsCommitted",
+			Type: "GitOpsCommitted",
 
-			Status:             metav1.ConditionFalse,
+			Status: metav1.ConditionFalse,
 
-			Reason:             "GitCommitPushFailed",
+			Reason: "GitCommitPushFailed",
 
-			Message:            fmt.Sprintf("Failed to commit and push: %v", err),
+			Message: fmt.Sprintf("Failed to commit and push: %v", err),
 
 			LastTransitionTime: metav1.Now(),
-
 		}
 
 		updateCondition(&networkIntent.Status.Conditions, condition)
 
-
-
 		// Set Ready condition to False during Git commit/push failures.
 
 		g.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "GitCommitPushFailed", fmt.Sprintf("Git commit and push failed: %v", err))
-
-
 
 		// Use exponential backoff for Git commit/push operations.
 
@@ -307,19 +237,13 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 
 			"max_retries", g.config.MaxRetries)
 
-
-
 		return ctrl.Result{RequeueAfter: backoffDelay}, nil
 
 	}
 
-
-
 	// Store commit hash.
 
 	processingCtx.GitCommitHash = commitHash
-
-
 
 	// Clear retry count and update success condition.
 
@@ -343,37 +267,28 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 
 	networkIntent.Status.Extensions["gitCommitHash"] = runtime.RawExtension{Raw: commitHashData}
 
-
-
 	condition := metav1.Condition{
 
-		Type:               "GitOpsCommitted",
+		Type: "GitOpsCommitted",
 
-		Status:             metav1.ConditionTrue,
+		Status: metav1.ConditionTrue,
 
-		Reason:             "GitCommitSucceeded",
+		Reason: "GitCommitSucceeded",
 
-		Message:            fmt.Sprintf("Successfully committed %d manifests to GitOps repository (commit: %s)", len(deploymentFiles), commitHash[:8]),
+		Message: fmt.Sprintf("Successfully committed %d manifests to GitOps repository (commit: %s)", len(deploymentFiles), commitHash[:8]),
 
 		LastTransitionTime: now,
-
 	}
 
 	updateCondition(&networkIntent.Status.Conditions, condition)
 
-
-
 	// Note: Don't set Ready=True here yet, wait for full pipeline completion.
-
-
 
 	if err := g.safeStatusUpdate(ctx, networkIntent); err != nil {
 
 		return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update status: %w", err)
 
 	}
-
-
 
 	// Record metrics.
 
@@ -387,13 +302,9 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 
 	}
 
-
-
 	commitDuration := time.Since(startTime)
 
 	processingCtx.Metrics["gitops_commit_duration"] = commitDuration.Seconds()
-
-
 
 	g.recordEvent(networkIntent, "Normal", "GitOpsCommitSucceeded",
 
@@ -407,13 +318,9 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 
 		"files_committed", len(deploymentFiles))
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // VerifyDeployment implements Phase 5: Deployment verification.
 
@@ -423,17 +330,11 @@ func (g *GitOpsHandler) VerifyDeployment(ctx context.Context, networkIntent *nep
 
 	startTime := time.Now()
 
-
-
 	processingCtx.CurrentPhase = PhaseDeploymentVerification
-
-
 
 	// For now, we'll implement a simple verification that checks if the GitOps commit was successful.
 
 	// In a real implementation, this would check if the manifests were actually deployed and are running.
-
-
 
 	if processingCtx.GitCommitHash == "" {
 
@@ -441,41 +342,32 @@ func (g *GitOpsHandler) VerifyDeployment(ctx context.Context, networkIntent *nep
 
 	}
 
-
-
 	// Simulate deployment verification delay (in production, this would poll actual resources).
 
 	time.Sleep(2 * time.Second)
-
-
 
 	// Update deployment status.
 
 	deploymentStatus := map[string]interface{}{
 
-		"git_commit_hash":      processingCtx.GitCommitHash,
+		"git_commit_hash": processingCtx.GitCommitHash,
 
 		"deployment_timestamp": time.Now(),
 
-		"verification_status":  "verified",
+		"verification_status": "verified",
 
-		"network_functions":    len(processingCtx.ResourcePlan.NetworkFunctions),
+		"network_functions": len(processingCtx.ResourcePlan.NetworkFunctions),
 
-		"manifests_deployed":   len(processingCtx.Manifests),
-
+		"manifests_deployed": len(processingCtx.Manifests),
 	}
 
-
-
 	processingCtx.DeploymentStatus = deploymentStatus
-
-
 
 	// Create successful verification condition.
 
 	condition := metav1.Condition{
 
-		Type:   "DeploymentVerified",
+		Type: "DeploymentVerified",
 
 		Status: metav1.ConditionTrue,
 
@@ -486,12 +378,9 @@ func (g *GitOpsHandler) VerifyDeployment(ctx context.Context, networkIntent *nep
 			len(processingCtx.ResourcePlan.NetworkFunctions), processingCtx.GitCommitHash[:8]),
 
 		LastTransitionTime: metav1.Now(),
-
 	}
 
 	updateCondition(&networkIntent.Status.Conditions, condition)
-
-
 
 	if err := g.safeStatusUpdate(ctx, networkIntent); err != nil {
 
@@ -499,13 +388,9 @@ func (g *GitOpsHandler) VerifyDeployment(ctx context.Context, networkIntent *nep
 
 	}
 
-
-
 	verificationDuration := time.Since(startTime)
 
 	processingCtx.Metrics["deployment_verification_duration"] = verificationDuration.Seconds()
-
-
 
 	g.recordEvent(networkIntent, "Normal", "DeploymentVerificationSucceeded",
 
@@ -517,13 +402,9 @@ func (g *GitOpsHandler) VerifyDeployment(ctx context.Context, networkIntent *nep
 
 		"network_functions_verified", len(processingCtx.ResourcePlan.NetworkFunctions))
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // VerifyDeploymentAdvanced provides more comprehensive deployment verification.
 
@@ -534,8 +415,6 @@ func (g *GitOpsHandler) VerifyDeploymentAdvanced(ctx context.Context, networkInt
 	logger := log.FromContext(ctx).WithValues("phase", "deployment-verification-advanced")
 
 	_ = logger // Suppress unused warning
-
-
 
 	// TODO: Implement actual resource verification.
 
@@ -551,15 +430,11 @@ func (g *GitOpsHandler) VerifyDeploymentAdvanced(ctx context.Context, networkInt
 
 	// 5. Validate inter-service communication.
 
-
-
 	// For now, return the simple verification.
 
 	return g.VerifyDeployment(ctx, networkIntent, processingCtx)
 
 }
-
-
 
 // CleanupGitOpsResources removes GitOps resources for a NetworkIntent.
 
@@ -569,8 +444,6 @@ func (g *GitOpsHandler) CleanupGitOpsResources(ctx context.Context, networkInten
 
 	_ = logger // Use the logger variable to suppress unused warning
 
-
-
 	gitClient := g.deps.GetGitClient()
 
 	if gitClient == nil {
@@ -578,8 +451,6 @@ func (g *GitOpsHandler) CleanupGitOpsResources(ctx context.Context, networkInten
 		return fmt.Errorf("Git client is not configured")
 
 	}
-
-
 
 	// Initialize repository.
 
@@ -589,13 +460,9 @@ func (g *GitOpsHandler) CleanupGitOpsResources(ctx context.Context, networkInten
 
 	}
 
-
-
 	// Remove deployment files.
 
 	basePath := fmt.Sprintf("%s/%s-%s", g.config.GitDeployPath, networkIntent.Namespace, networkIntent.Name)
-
-
 
 	// Create commit message for cleanup.
 
@@ -604,8 +471,6 @@ func (g *GitOpsHandler) CleanupGitOpsResources(ctx context.Context, networkInten
 		networkIntent.Namespace,
 
 		networkIntent.Name)
-
-
 
 	// Remove the directory and commit.
 
@@ -627,8 +492,6 @@ func (g *GitOpsHandler) CleanupGitOpsResources(ctx context.Context, networkInten
 
 	}
 
-
-
 	// Record metrics.
 
 	if metricsCollector := g.deps.GetMetricsCollector(); metricsCollector != nil {
@@ -637,15 +500,11 @@ func (g *GitOpsHandler) CleanupGitOpsResources(ctx context.Context, networkInten
 
 	}
 
-
-
 	logger.Info("Successfully cleaned up GitOps resources", "path", basePath)
 
 	return nil
 
 }
-
-
 
 // Helper method to get network functions list.
 
@@ -656,8 +515,6 @@ func (g *GitOpsHandler) getNetworkFunctionsList(plan *ResourcePlan) string {
 		return "none"
 
 	}
-
-
 
 	// Pre-allocate slice with known capacity for better performance
 	names := make([]string, 0, len(plan.NetworkFunctions))
@@ -672,11 +529,7 @@ func (g *GitOpsHandler) getNetworkFunctionsList(plan *ResourcePlan) string {
 
 }
 
-
-
 // Interface implementation methods.
-
-
 
 // ProcessPhase implements PhaseProcessor interface.
 
@@ -700,8 +553,6 @@ func (g *GitOpsHandler) ProcessPhase(ctx context.Context, networkIntent *nephora
 
 }
 
-
-
 // GetPhaseName implements PhaseProcessor interface.
 
 func (g *GitOpsHandler) GetPhaseName() ProcessingPhase {
@@ -709,8 +560,6 @@ func (g *GitOpsHandler) GetPhaseName() ProcessingPhase {
 	return PhaseGitOpsCommit
 
 }
-
-
 
 // IsPhaseComplete implements PhaseProcessor interface.
 
@@ -721,4 +570,3 @@ func (g *GitOpsHandler) IsPhaseComplete(networkIntent *nephoranv1.NetworkIntent)
 		isConditionTrue(networkIntent.Status.Conditions, "DeploymentVerified")
 
 }
-

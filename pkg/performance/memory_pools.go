@@ -1,207 +1,161 @@
 //go:build go1.24
 
-
-
-
 package performance
 
-
-
 import (
-
 	"runtime"
-
 	"runtime/debug"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
-
 	"unsafe"
 
-
-
 	"k8s.io/klog/v2"
-
 )
-
-
 
 // MemoryPoolManager provides advanced memory management with Go 1.24+ optimizations.
 
 type MemoryPoolManager struct {
-
 	objectPools map[string]*ObjectPool[interface{}]
 
 	ringBuffers map[string]*RingBuffer
 
-	memStats    *MemoryStats
+	memStats *MemoryStats
 
 	gcOptimizer *GCOptimizer
 
 	mmapManager *MemoryMapManager
 
-	mu          sync.RWMutex
+	mu sync.RWMutex
 
-	config      *MemoryConfig
-
+	config *MemoryConfig
 }
-
-
 
 // MemoryConfig contains memory optimization configuration.
 
 type MemoryConfig struct {
+	EnableObjectPooling bool
 
-	EnableObjectPooling  bool
-
-	EnableRingBuffers    bool
+	EnableRingBuffers bool
 
 	EnableGCOptimization bool
 
-	EnableMemoryMapping  bool
+	EnableMemoryMapping bool
 
-	MaxObjectPoolSize    int
+	MaxObjectPoolSize int
 
-	RingBufferSize       int
+	RingBufferSize int
 
-	GCTargetPercent      int
+	GCTargetPercent int
 
-	MemoryMapThreshold   int64 // Minimum file size for memory mapping
+	MemoryMapThreshold int64 // Minimum file size for memory mapping
 
-	PoolCleanupInterval  time.Duration
+	PoolCleanupInterval time.Duration
 
-	MetricsInterval      time.Duration
-
+	MetricsInterval time.Duration
 }
-
-
 
 // ObjectPool provides type-safe object pooling with generics.
 
 type ObjectPool[T any] struct {
-
-	pool       sync.Pool
+	pool sync.Pool
 
 	createFunc func() T
 
-	resetFunc  func(T)
+	resetFunc func(T)
 
-	getCount   int64
+	getCount int64
 
-	putCount   int64
+	putCount int64
 
-	hitCount   int64
+	hitCount int64
 
-	missCount  int64
+	missCount int64
 
-	name       string
-
+	name string
 }
-
-
 
 // RingBuffer provides lock-free ring buffer implementation.
 
 type RingBuffer struct {
+	buffer []unsafe.Pointer
 
-	buffer     []unsafe.Pointer
+	head int64
 
-	head       int64
+	tail int64
 
-	tail       int64
+	mask int64
 
-	mask       int64
+	size int64
 
-	size       int64
+	reads int64
 
-	reads      int64
-
-	writes     int64
+	writes int64
 
 	contention int64
-
 }
-
-
 
 // MemoryStats tracks memory usage and performance metrics.
 
 type MemoryStats struct {
+	Allocations int64
 
-	Allocations           int64
+	Deallocations int64
 
-	Deallocations         int64
+	TotalAllocated int64
 
-	TotalAllocated        int64
+	TotalFreed int64
 
-	TotalFreed            int64
+	HeapSize int64
 
-	HeapSize              int64
+	GCCount int64
 
-	GCCount               int64
+	GCPauseTime int64 // in nanoseconds
 
-	GCPauseTime           int64 // in nanoseconds
-
-	PoolHitRate           float64
+	PoolHitRate float64
 
 	RingBufferUtilization float64
 
-	MemoryMapUsage        int64
+	MemoryMapUsage int64
 
-	lastGCStats           runtime.MemStats
+	lastGCStats runtime.MemStats
 
-	mu                    sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // GCOptimizer manages garbage collection optimization.
 
 type GCOptimizer struct {
-
-	baseGCPercent     int
+	baseGCPercent int
 
 	dynamicAdjustment bool
 
-	lastGCTime        time.Time
+	lastGCTime time.Time
 
-	gcMetrics         []GCMetrics
+	gcMetrics []GCMetrics
 
-	optimizationMode  OptimizationMode
+	optimizationMode OptimizationMode
 
-	mu                sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // GCMetrics contains garbage collection performance data.
 
 type GCMetrics struct {
+	Timestamp time.Time
 
-	Timestamp     time.Time
+	PauseTime time.Duration
 
-	PauseTime     time.Duration
+	HeapSize uint64
 
-	HeapSize      uint64
-
-	GCPercent     int
+	GCPercent int
 
 	NumGoroutines int
-
 }
-
-
 
 // OptimizationMode defines GC optimization strategy.
 
 type OptimizationMode int
-
-
 
 const (
 
@@ -220,44 +174,33 @@ const (
 	// OptimizationMemory holds optimizationmemory value.
 
 	OptimizationMemory
-
 )
-
-
 
 // MemoryMapManager handles memory-mapped files for large datasets.
 
 type MemoryMapManager struct {
-
 	mappedFiles map[string]*MemoryMapping
 
 	totalMapped int64
 
-	mu          sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // MemoryMapping represents a memory-mapped file.
 
 type MemoryMapping struct {
+	data []byte
 
-	data       []byte
+	size int64
 
-	size       int64
+	filePath string
 
-	filePath   string
-
-	refCount   int32
+	refCount int32
 
 	lastAccess time.Time
 
-	readOnly   bool
-
+	readOnly bool
 }
-
-
 
 // NewMemoryPoolManager creates a new memory pool manager with Go 1.24+ optimizations.
 
@@ -269,31 +212,24 @@ func NewMemoryPoolManager(config *MemoryConfig) *MemoryPoolManager {
 
 	}
 
-
-
 	mpm := &MemoryPoolManager{
 
 		objectPools: make(map[string]*ObjectPool[interface{}]),
 
 		ringBuffers: make(map[string]*RingBuffer),
 
-		memStats:    &MemoryStats{},
+		memStats: &MemoryStats{},
 
 		gcOptimizer: NewGCOptimizer(config.GCTargetPercent),
 
 		mmapManager: NewMemoryMapManager(),
 
-		config:      config,
-
+		config: config,
 	}
-
-
 
 	// Start background tasks.
 
 	mpm.startBackgroundTasks()
-
-
 
 	// Apply initial GC optimizations.
 
@@ -303,13 +239,9 @@ func NewMemoryPoolManager(config *MemoryConfig) *MemoryPoolManager {
 
 	}
 
-
-
 	return mpm
 
 }
-
-
 
 // DefaultMemoryConfig returns default memory configuration.
 
@@ -317,31 +249,28 @@ func DefaultMemoryConfig() *MemoryConfig {
 
 	return &MemoryConfig{
 
-		EnableObjectPooling:  true,
+		EnableObjectPooling: true,
 
-		EnableRingBuffers:    true,
+		EnableRingBuffers: true,
 
 		EnableGCOptimization: true,
 
-		EnableMemoryMapping:  true,
+		EnableMemoryMapping: true,
 
-		MaxObjectPoolSize:    10000,
+		MaxObjectPoolSize: 10000,
 
-		RingBufferSize:       1024,
+		RingBufferSize: 1024,
 
-		GCTargetPercent:      100,
+		GCTargetPercent: 100,
 
-		MemoryMapThreshold:   1024 * 1024, // 1MB
+		MemoryMapThreshold: 1024 * 1024, // 1MB
 
-		PoolCleanupInterval:  5 * time.Minute,
+		PoolCleanupInterval: 5 * time.Minute,
 
-		MetricsInterval:      30 * time.Second,
-
+		MetricsInterval: 30 * time.Second,
 	}
 
 }
-
-
 
 // NewObjectPool creates a new type-safe object pool using Go 1.24+ generics.
 
@@ -351,13 +280,10 @@ func NewObjectPool[T any](name string, createFunc func() T, resetFunc func(T)) *
 
 		createFunc: createFunc,
 
-		resetFunc:  resetFunc,
+		resetFunc: resetFunc,
 
-		name:       name,
-
+		name: name,
 	}
-
-
 
 	pool.pool = sync.Pool{
 
@@ -368,16 +294,11 @@ func NewObjectPool[T any](name string, createFunc func() T, resetFunc func(T)) *
 			return createFunc()
 
 		},
-
 	}
-
-
 
 	return pool
 
 }
-
-
 
 // Get retrieves an object from the pool.
 
@@ -392,8 +313,6 @@ func (p *ObjectPool[T]) Get() T {
 	return obj
 
 }
-
-
 
 // Put returns an object to the pool after resetting it.
 
@@ -411,8 +330,6 @@ func (p *ObjectPool[T]) Put(obj T) {
 
 }
 
-
-
 // GetStats returns pool statistics.
 
 func (p *ObjectPool[T]) GetStats() PoolStats {
@@ -425,8 +342,6 @@ func (p *ObjectPool[T]) GetStats() PoolStats {
 
 	missCount := atomic.LoadInt64(&p.missCount)
 
-
-
 	hitRate := float64(0)
 
 	if getCount > 0 {
@@ -435,47 +350,38 @@ func (p *ObjectPool[T]) GetStats() PoolStats {
 
 	}
 
-
-
 	return PoolStats{
 
-		Name:    p.name,
+		Name: p.name,
 
-		Gets:    getCount,
+		Gets: getCount,
 
-		Puts:    putCount,
+		Puts: putCount,
 
-		Hits:    hitCount,
+		Hits: hitCount,
 
-		Misses:  missCount,
+		Misses: missCount,
 
 		HitRate: hitRate,
-
 	}
 
 }
 
-
-
 // PoolStats contains object pool statistics.
 
 type PoolStats struct {
+	Name string
 
-	Name    string
+	Gets int64
 
-	Gets    int64
+	Puts int64
 
-	Puts    int64
+	Hits int64
 
-	Hits    int64
-
-	Misses  int64
+	Misses int64
 
 	HitRate float64
-
 }
-
-
 
 // NewRingBuffer creates a new lock-free ring buffer.
 
@@ -491,21 +397,16 @@ func NewRingBuffer(size int) *RingBuffer {
 
 	}
 
-
-
 	return &RingBuffer{
 
 		buffer: make([]unsafe.Pointer, powerOf2Size),
 
-		mask:   int64(powerOf2Size - 1),
+		mask: int64(powerOf2Size - 1),
 
-		size:   int64(powerOf2Size),
-
+		size: int64(powerOf2Size),
 	}
 
 }
-
-
 
 // Push adds an element to the ring buffer (lock-free).
 
@@ -519,8 +420,6 @@ func (rb *RingBuffer) Push(data unsafe.Pointer) bool {
 
 		head := atomic.LoadInt64(&rb.head)
 
-
-
 		// Check if buffer is full.
 
 		if nextTail == head {
@@ -528,8 +427,6 @@ func (rb *RingBuffer) Push(data unsafe.Pointer) bool {
 			return false // Buffer is full
 
 		}
-
-
 
 		// Try to claim this slot.
 
@@ -543,8 +440,6 @@ func (rb *RingBuffer) Push(data unsafe.Pointer) bool {
 
 		}
 
-
-
 		// Contention detected, increment counter.
 
 		atomic.AddInt64(&rb.contention, 1)
@@ -554,8 +449,6 @@ func (rb *RingBuffer) Push(data unsafe.Pointer) bool {
 	}
 
 }
-
-
 
 // Pop removes an element from the ring buffer (lock-free).
 
@@ -567,8 +460,6 @@ func (rb *RingBuffer) Pop() (unsafe.Pointer, bool) {
 
 		tail := atomic.LoadInt64(&rb.tail)
 
-
-
 		// Check if buffer is empty.
 
 		if head == tail {
@@ -576,8 +467,6 @@ func (rb *RingBuffer) Pop() (unsafe.Pointer, bool) {
 			return nil, false
 
 		}
-
-
 
 		// Try to claim this slot.
 
@@ -595,8 +484,6 @@ func (rb *RingBuffer) Pop() (unsafe.Pointer, bool) {
 
 		}
 
-
-
 		// Contention detected.
 
 		atomic.AddInt64(&rb.contention, 1)
@@ -606,8 +493,6 @@ func (rb *RingBuffer) Pop() (unsafe.Pointer, bool) {
 	}
 
 }
-
-
 
 // GetUtilization returns the current buffer utilization percentage.
 
@@ -623,47 +508,38 @@ func (rb *RingBuffer) GetUtilization() float64 {
 
 }
 
-
-
 // GetStats returns ring buffer statistics.
 
 func (rb *RingBuffer) GetStats() RingBufferStats {
 
 	return RingBufferStats{
 
-		Size:        rb.size,
+		Size: rb.size,
 
-		Reads:       atomic.LoadInt64(&rb.reads),
+		Reads: atomic.LoadInt64(&rb.reads),
 
-		Writes:      atomic.LoadInt64(&rb.writes),
+		Writes: atomic.LoadInt64(&rb.writes),
 
-		Contention:  atomic.LoadInt64(&rb.contention),
+		Contention: atomic.LoadInt64(&rb.contention),
 
 		Utilization: rb.GetUtilization(),
-
 	}
 
 }
 
-
-
 // RingBufferStats contains ring buffer performance statistics.
 
 type RingBufferStats struct {
+	Size int64
 
-	Size        int64
+	Reads int64
 
-	Reads       int64
+	Writes int64
 
-	Writes      int64
-
-	Contention  int64
+	Contention int64
 
 	Utilization float64
-
 }
-
-
 
 // NewGCOptimizer creates a new GC optimizer.
 
@@ -671,21 +547,18 @@ func NewGCOptimizer(initialGCPercent int) *GCOptimizer {
 
 	return &GCOptimizer{
 
-		baseGCPercent:     initialGCPercent,
+		baseGCPercent: initialGCPercent,
 
 		dynamicAdjustment: true,
 
-		lastGCTime:        time.Now(),
+		lastGCTime: time.Now(),
 
-		gcMetrics:         make([]GCMetrics, 0, 100),
+		gcMetrics: make([]GCMetrics, 0, 100),
 
-		optimizationMode:  OptimizationBalanced,
-
+		optimizationMode: OptimizationBalanced,
 	}
 
 }
-
-
 
 // ApplyOptimizations applies GC optimizations based on current mode.
 
@@ -694,8 +567,6 @@ func (gco *GCOptimizer) ApplyOptimizations() {
 	gco.mu.Lock()
 
 	defer gco.mu.Unlock()
-
-
 
 	switch gco.optimizationMode {
 
@@ -725,8 +596,6 @@ func (gco *GCOptimizer) ApplyOptimizations() {
 
 }
 
-
-
 // SetOptimizationMode changes the GC optimization strategy.
 
 func (gco *GCOptimizer) SetOptimizationMode(mode OptimizationMode) {
@@ -741,8 +610,6 @@ func (gco *GCOptimizer) SetOptimizationMode(mode OptimizationMode) {
 
 }
 
-
-
 // CollectMetrics collects current GC metrics.
 
 func (gco *GCOptimizer) CollectMetrics() {
@@ -751,33 +618,24 @@ func (gco *GCOptimizer) CollectMetrics() {
 
 	runtime.ReadMemStats(&m)
 
-
-
 	gco.mu.Lock()
 
 	defer gco.mu.Unlock()
 
-
-
 	metric := GCMetrics{
 
-		Timestamp:     time.Now(),
+		Timestamp: time.Now(),
 
-		PauseTime:     time.Duration(m.PauseTotalNs / uint64(m.NumGC)),
+		PauseTime: time.Duration(m.PauseTotalNs / uint64(m.NumGC)),
 
-		HeapSize:      m.HeapInuse,
+		HeapSize: m.HeapInuse,
 
-		GCPercent:     gco.baseGCPercent, // Use stored value instead of runtime.GOGC
+		GCPercent: gco.baseGCPercent, // Use stored value instead of runtime.GOGC
 
 		NumGoroutines: runtime.NumGoroutine(),
-
 	}
 
-
-
 	gco.gcMetrics = append(gco.gcMetrics, metric)
-
-
 
 	// Keep only last 100 metrics.
 
@@ -789,8 +647,6 @@ func (gco *GCOptimizer) CollectMetrics() {
 
 }
 
-
-
 // GetAverageGCPauseTime returns the average GC pause time.
 
 func (gco *GCOptimizer) GetAverageGCPauseTime() time.Duration {
@@ -799,15 +655,11 @@ func (gco *GCOptimizer) GetAverageGCPauseTime() time.Duration {
 
 	defer gco.mu.RUnlock()
 
-
-
 	if len(gco.gcMetrics) == 0 {
 
 		return 0
 
 	}
-
-
 
 	var total time.Duration
 
@@ -817,13 +669,9 @@ func (gco *GCOptimizer) GetAverageGCPauseTime() time.Duration {
 
 	}
 
-
-
 	return total / time.Duration(len(gco.gcMetrics))
 
 }
-
-
 
 // NewMemoryMapManager creates a new memory map manager.
 
@@ -832,12 +680,9 @@ func NewMemoryMapManager() *MemoryMapManager {
 	return &MemoryMapManager{
 
 		mappedFiles: make(map[string]*MemoryMapping),
-
 	}
 
 }
-
-
 
 // MapFile creates a memory mapping for a file.
 
@@ -846,8 +691,6 @@ func (mmm *MemoryMapManager) MapFile(filePath string, size int64, readOnly bool)
 	mmm.mu.Lock()
 
 	defer mmm.mu.Unlock()
-
-
 
 	// Check if already mapped.
 
@@ -861,39 +704,30 @@ func (mmm *MemoryMapManager) MapFile(filePath string, size int64, readOnly bool)
 
 	}
 
-
-
 	// Create new mapping (simplified - in real implementation, use syscalls).
 
 	mapping := &MemoryMapping{
 
-		data:       make([]byte, size), // Placeholder for actual memory mapping
+		data: make([]byte, size), // Placeholder for actual memory mapping
 
-		size:       size,
+		size: size,
 
-		filePath:   filePath,
+		filePath: filePath,
 
-		refCount:   1,
+		refCount: 1,
 
 		lastAccess: time.Now(),
 
-		readOnly:   readOnly,
-
+		readOnly: readOnly,
 	}
-
-
 
 	mmm.mappedFiles[filePath] = mapping
 
 	atomic.AddInt64(&mmm.totalMapped, size)
 
-
-
 	return mapping, nil
 
 }
-
-
 
 // UnmapFile removes a memory mapping.
 
@@ -903,8 +737,6 @@ func (mmm *MemoryMapManager) UnmapFile(filePath string) error {
 
 	defer mmm.mu.Unlock()
 
-
-
 	mapping, exists := mmm.mappedFiles[filePath]
 
 	if !exists {
@@ -912,8 +744,6 @@ func (mmm *MemoryMapManager) UnmapFile(filePath string) error {
 		return nil
 
 	}
-
-
 
 	if atomic.AddInt32(&mapping.refCount, -1) <= 0 {
 
@@ -925,13 +755,9 @@ func (mmm *MemoryMapManager) UnmapFile(filePath string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetData returns the mapped data.
 
@@ -942,8 +768,6 @@ func (mm *MemoryMapping) GetData() []byte {
 	return mm.data
 
 }
-
-
 
 // RegisterObjectPool registers a new object pool with the manager.
 
@@ -959,8 +783,6 @@ func (mpm *MemoryPoolManager) RegisterObjectPool(name string, pool interface{}) 
 
 }
 
-
-
 // RegisterRingBuffer registers a new ring buffer with the manager.
 
 func (mpm *MemoryPoolManager) RegisterRingBuffer(name string, buffer *RingBuffer) {
@@ -972,8 +794,6 @@ func (mpm *MemoryPoolManager) RegisterRingBuffer(name string, buffer *RingBuffer
 	mpm.ringBuffers[name] = buffer
 
 }
-
-
 
 // GetRingBuffer returns a registered ring buffer.
 
@@ -987,8 +807,6 @@ func (mpm *MemoryPoolManager) GetRingBuffer(name string) *RingBuffer {
 
 }
 
-
-
 // startBackgroundTasks starts background maintenance tasks.
 
 func (mpm *MemoryPoolManager) startBackgroundTasks() {
@@ -1001,8 +819,6 @@ func (mpm *MemoryPoolManager) startBackgroundTasks() {
 
 		defer ticker.Stop()
 
-
-
 		for range ticker.C {
 
 			mpm.collectMemoryStats()
@@ -1013,8 +829,6 @@ func (mpm *MemoryPoolManager) startBackgroundTasks() {
 
 	}()
 
-
-
 	// Pool cleanup.
 
 	go func() {
@@ -1022,8 +836,6 @@ func (mpm *MemoryPoolManager) startBackgroundTasks() {
 		ticker := time.NewTicker(mpm.config.PoolCleanupInterval)
 
 		defer ticker.Stop()
-
-
 
 		for range ticker.C {
 
@@ -1035,8 +847,6 @@ func (mpm *MemoryPoolManager) startBackgroundTasks() {
 
 }
 
-
-
 // collectMemoryStats collects current memory statistics.
 
 func (mpm *MemoryPoolManager) collectMemoryStats() {
@@ -1045,13 +855,9 @@ func (mpm *MemoryPoolManager) collectMemoryStats() {
 
 	runtime.ReadMemStats(&m)
 
-
-
 	mpm.memStats.mu.Lock()
 
 	defer mpm.memStats.mu.Unlock()
-
-
 
 	// Update metrics.
 
@@ -1061,27 +867,19 @@ func (mpm *MemoryPoolManager) collectMemoryStats() {
 
 	atomic.StoreInt64(&mpm.memStats.GCPauseTime, int64(m.PauseTotalNs))
 
-
-
 	// Calculate allocations since last check.
 
 	allocs := int64(m.Mallocs - mpm.memStats.lastGCStats.Mallocs)
 
 	frees := int64(m.Frees - mpm.memStats.lastGCStats.Frees)
 
-
-
 	atomic.AddInt64(&mpm.memStats.Allocations, allocs)
 
 	atomic.AddInt64(&mpm.memStats.Deallocations, frees)
 
-
-
 	mpm.memStats.lastGCStats = m
 
 }
-
-
 
 // cleanupPools performs periodic cleanup of object pools.
 
@@ -1091,15 +889,11 @@ func (mpm *MemoryPoolManager) cleanupPools() {
 
 	runtime.GC()
 
-
-
 	// Clean up unused memory mappings.
 
 	mpm.mmapManager.cleanupUnusedMappings(5 * time.Minute)
 
 }
-
-
 
 // cleanupUnusedMappings removes unused memory mappings.
 
@@ -1108,8 +902,6 @@ func (mmm *MemoryMapManager) cleanupUnusedMappings(maxAge time.Duration) {
 	mmm.mu.Lock()
 
 	defer mmm.mu.Unlock()
-
-
 
 	now := time.Now()
 
@@ -1129,8 +921,6 @@ func (mmm *MemoryMapManager) cleanupUnusedMappings(maxAge time.Duration) {
 
 }
 
-
-
 // GetMemoryStats returns current memory statistics.
 
 func (mpm *MemoryPoolManager) GetMemoryStats() MemoryStats {
@@ -1139,35 +929,30 @@ func (mpm *MemoryPoolManager) GetMemoryStats() MemoryStats {
 
 	defer mpm.memStats.mu.RUnlock()
 
-
-
 	return MemoryStats{
 
-		Allocations:           atomic.LoadInt64(&mpm.memStats.Allocations),
+		Allocations: atomic.LoadInt64(&mpm.memStats.Allocations),
 
-		Deallocations:         atomic.LoadInt64(&mpm.memStats.Deallocations),
+		Deallocations: atomic.LoadInt64(&mpm.memStats.Deallocations),
 
-		TotalAllocated:        atomic.LoadInt64(&mpm.memStats.TotalAllocated),
+		TotalAllocated: atomic.LoadInt64(&mpm.memStats.TotalAllocated),
 
-		TotalFreed:            atomic.LoadInt64(&mpm.memStats.TotalFreed),
+		TotalFreed: atomic.LoadInt64(&mpm.memStats.TotalFreed),
 
-		HeapSize:              atomic.LoadInt64(&mpm.memStats.HeapSize),
+		HeapSize: atomic.LoadInt64(&mpm.memStats.HeapSize),
 
-		GCCount:               atomic.LoadInt64(&mpm.memStats.GCCount),
+		GCCount: atomic.LoadInt64(&mpm.memStats.GCCount),
 
-		GCPauseTime:           atomic.LoadInt64(&mpm.memStats.GCPauseTime),
+		GCPauseTime: atomic.LoadInt64(&mpm.memStats.GCPauseTime),
 
-		PoolHitRate:           mpm.memStats.PoolHitRate,
+		PoolHitRate: mpm.memStats.PoolHitRate,
 
 		RingBufferUtilization: mpm.memStats.RingBufferUtilization,
 
-		MemoryMapUsage:        atomic.LoadInt64(&mpm.mmapManager.totalMapped),
-
+		MemoryMapUsage: atomic.LoadInt64(&mpm.mmapManager.totalMapped),
 	}
 
 }
-
-
 
 // GetGCMetrics returns current GC optimization metrics.
 
@@ -1176,8 +961,6 @@ func (mpm *MemoryPoolManager) GetGCMetrics() []GCMetrics {
 	mpm.gcOptimizer.mu.RLock()
 
 	defer mpm.gcOptimizer.mu.RUnlock()
-
-
 
 	// Return a copy of the metrics.
 
@@ -1189,8 +972,6 @@ func (mpm *MemoryPoolManager) GetGCMetrics() []GCMetrics {
 
 }
 
-
-
 // ForceGC forces a garbage collection cycle.
 
 func (mpm *MemoryPoolManager) ForceGC() {
@@ -1200,8 +981,6 @@ func (mpm *MemoryPoolManager) ForceGC() {
 	mpm.gcOptimizer.CollectMetrics()
 
 }
-
-
 
 // OptimizeForWorkload adjusts memory settings for specific workload patterns.
 
@@ -1229,8 +1008,6 @@ func (mpm *MemoryPoolManager) OptimizeForWorkload(workloadType string) {
 
 }
 
-
-
 // Shutdown gracefully shuts down the memory pool manager.
 
 func (mpm *MemoryPoolManager) Shutdown() error {
@@ -1247,17 +1024,12 @@ func (mpm *MemoryPoolManager) Shutdown() error {
 
 	mpm.mmapManager.mu.Unlock()
 
-
-
 	// Final GC to clean up.
 
 	runtime.GC()
-
-
 
 	klog.Info("Memory pool manager shutdown complete")
 
 	return nil
 
 }
-

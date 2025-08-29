@@ -1,31 +1,16 @@
 //go:build !disable_rag
-
 // +build !disable_rag
-
-
-
 
 package llm
 
-
-
 import (
-
 	"crypto/md5"
-
 	"encoding/hex"
-
 	"log/slog"
-
 	"strings"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // ResponseCache provides unified multi-level caching with intelligent features.
 
@@ -37,9 +22,7 @@ type ResponseCache struct {
 
 	l1MaxSize int
 
-	l1Mutex   sync.RWMutex
-
-
+	l1Mutex sync.RWMutex
 
 	// L2 Cache (persistent, larger).
 
@@ -47,159 +30,129 @@ type ResponseCache struct {
 
 	l2MaxSize int
 
-	l2Mutex   sync.RWMutex
-
-
+	l2Mutex sync.RWMutex
 
 	// Configuration.
 
-	ttl     time.Duration
+	ttl time.Duration
 
 	maxSize int
-
-
 
 	// Semantic similarity caching.
 
 	similarityThreshold float64
 
-	semanticIndex       map[string][]string // keyword -> cache keys
+	semanticIndex map[string][]string // keyword -> cache keys
 
-	semanticMutex       sync.RWMutex
-
-
+	semanticMutex sync.RWMutex
 
 	// Adaptive TTL.
 
-	adaptiveTTL     bool
+	adaptiveTTL bool
 
 	accessFrequency map[string]*AccessStats
 
-	accessMutex     sync.RWMutex
-
-
+	accessMutex sync.RWMutex
 
 	// Cache warming.
 
-	prewarmEnabled  bool
+	prewarmEnabled bool
 
 	prewarmPatterns []string
 
-
-
 	// Cleanup and lifecycle.
 
-	stopCh   chan struct{}
+	stopCh chan struct{}
 
 	stopOnce sync.Once
 
-	stopped  bool
+	stopped bool
 
-	logger   *slog.Logger
-
-
+	logger *slog.Logger
 
 	// Metrics.
 
 	metrics *CacheMetrics
-
 }
-
-
 
 // CacheEntry represents a cached response with metadata.
 
 type CacheEntry struct {
+	Response string `json:"response"`
 
-	Response        string        `json:"response"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp       time.Time     `json:"timestamp"`
+	HitCount int64 `json:"hit_count"`
 
-	HitCount        int64         `json:"hit_count"`
+	LastAccess time.Time `json:"last_access"`
 
-	LastAccess      time.Time     `json:"last_access"`
+	TTL time.Duration `json:"ttl"`
 
-	TTL             time.Duration `json:"ttl"`
+	Size int `json:"size"`
 
-	Size            int           `json:"size"`
+	Keywords []string `json:"keywords"`
 
-	Keywords        []string      `json:"keywords"`
+	SimilarityScore float64 `json:"similarity_score"`
 
-	SimilarityScore float64       `json:"similarity_score"`
-
-	Level           int           `json:"level"` // 1 for L1, 2 for L2
+	Level int `json:"level"` // 1 for L1, 2 for L2
 
 }
-
-
 
 // AccessStats tracks access patterns for adaptive TTL.
 
 type AccessStats struct {
+	AccessCount int64 `json:"access_count"`
 
-	AccessCount     int64         `json:"access_count"`
+	LastAccess time.Time `json:"last_access"`
 
-	LastAccess      time.Time     `json:"last_access"`
-
-	AccessPattern   []time.Time   `json:"access_pattern"`
+	AccessPattern []time.Time `json:"access_pattern"`
 
 	AverageInterval time.Duration `json:"average_interval"`
-
 }
-
-
 
 // CacheMetrics tracks cache performance.
 
 type CacheMetrics struct {
+	L1Hits int64 `json:"l1_hits"`
 
-	L1Hits                 int64   `json:"l1_hits"`
+	L2Hits int64 `json:"l2_hits"`
 
-	L2Hits                 int64   `json:"l2_hits"`
+	Misses int64 `json:"misses"`
 
-	Misses                 int64   `json:"misses"`
+	Evictions int64 `json:"evictions"`
 
-	Evictions              int64   `json:"evictions"`
+	HitRate float64 `json:"hit_rate"`
 
-	HitRate                float64 `json:"hit_rate"`
+	L1HitRate float64 `json:"l1_hit_rate"`
 
-	L1HitRate              float64 `json:"l1_hit_rate"`
+	L2HitRate float64 `json:"l2_hit_rate"`
 
-	L2HitRate              float64 `json:"l2_hit_rate"`
+	SemanticHits int64 `json:"semantic_hits"`
 
-	SemanticHits           int64   `json:"semantic_hits"`
+	AdaptiveTTLAdjustments int64 `json:"adaptive_ttl_adjustments"`
 
-	AdaptiveTTLAdjustments int64   `json:"adaptive_ttl_adjustments"`
-
-	mutex                  sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // CacheConfig holds configuration for the cache system.
 
 type CacheConfig struct {
+	TTL time.Duration `json:"ttl"`
 
-	TTL                 time.Duration `json:"ttl"`
+	MaxSize int `json:"max_size"`
 
-	MaxSize             int           `json:"max_size"`
+	L1MaxSize int `json:"l1_max_size"`
 
-	L1MaxSize           int           `json:"l1_max_size"`
+	L2MaxSize int `json:"l2_max_size"`
 
-	L2MaxSize           int           `json:"l2_max_size"`
+	SimilarityThreshold float64 `json:"similarity_threshold"`
 
-	SimilarityThreshold float64       `json:"similarity_threshold"`
+	AdaptiveTTL bool `json:"adaptive_ttl"`
 
-	AdaptiveTTL         bool          `json:"adaptive_ttl"`
+	PrewarmEnabled bool `json:"prewarm_enabled"`
 
-	PrewarmEnabled      bool          `json:"prewarm_enabled"`
-
-	PrewarmPatterns     []string      `json:"prewarm_patterns"`
-
+	PrewarmPatterns []string `json:"prewarm_patterns"`
 }
-
-
 
 // NewResponseCache creates a new unified response cache.
 
@@ -207,29 +160,24 @@ func NewResponseCache(ttl time.Duration, maxSize int) *ResponseCache {
 
 	config := &CacheConfig{
 
-		TTL:                 ttl,
+		TTL: ttl,
 
-		MaxSize:             maxSize,
+		MaxSize: maxSize,
 
-		L1MaxSize:           maxSize / 4, // 25% for L1
+		L1MaxSize: maxSize / 4, // 25% for L1
 
-		L2MaxSize:           maxSize,     // Remaining for L2
+		L2MaxSize: maxSize, // Remaining for L2
 
 		SimilarityThreshold: 0.85,
 
-		AdaptiveTTL:         true,
+		AdaptiveTTL: true,
 
-		PrewarmEnabled:      false,
-
+		PrewarmEnabled: false,
 	}
-
-
 
 	return NewResponseCacheWithConfig(config)
 
 }
-
-
 
 // NewResponseCacheWithConfig creates a cache with specific configuration.
 
@@ -237,47 +185,42 @@ func NewResponseCacheWithConfig(config *CacheConfig) *ResponseCache {
 
 	cache := &ResponseCache{
 
-		l1Entries:           make(map[string]*CacheEntry),
+		l1Entries: make(map[string]*CacheEntry),
 
-		l2Entries:           make(map[string]*CacheEntry),
+		l2Entries: make(map[string]*CacheEntry),
 
-		l1MaxSize:           config.L1MaxSize,
+		l1MaxSize: config.L1MaxSize,
 
-		l2MaxSize:           config.L2MaxSize,
+		l2MaxSize: config.L2MaxSize,
 
-		ttl:                 config.TTL,
+		ttl: config.TTL,
 
-		maxSize:             config.MaxSize,
+		maxSize: config.MaxSize,
 
 		similarityThreshold: config.SimilarityThreshold,
 
-		semanticIndex:       make(map[string][]string),
+		semanticIndex: make(map[string][]string),
 
-		adaptiveTTL:         config.AdaptiveTTL,
+		adaptiveTTL: config.AdaptiveTTL,
 
-		accessFrequency:     make(map[string]*AccessStats),
+		accessFrequency: make(map[string]*AccessStats),
 
-		prewarmEnabled:      config.PrewarmEnabled,
+		prewarmEnabled: config.PrewarmEnabled,
 
-		prewarmPatterns:     config.PrewarmPatterns,
+		prewarmPatterns: config.PrewarmPatterns,
 
-		stopCh:              make(chan struct{}),
+		stopCh: make(chan struct{}),
 
-		stopped:             false,
+		stopped: false,
 
-		logger:              slog.Default().With("component", "response-cache"),
+		logger: slog.Default().With("component", "response-cache"),
 
-		metrics:             &CacheMetrics{},
-
+		metrics: &CacheMetrics{},
 	}
-
-
 
 	// Start cleanup routine.
 
 	go cache.cleanup()
-
-
 
 	// Start cache warming if enabled.
 
@@ -287,13 +230,9 @@ func NewResponseCacheWithConfig(config *CacheConfig) *ResponseCache {
 
 	}
 
-
-
 	return cache
 
 }
-
-
 
 // Get retrieves a response from cache with semantic similarity fallback.
 
@@ -304,8 +243,6 @@ func (c *ResponseCache) Get(key string) (string, bool) {
 		return "", false
 
 	}
-
-
 
 	// Try L1 cache first.
 
@@ -322,8 +259,6 @@ func (c *ResponseCache) Get(key string) (string, bool) {
 		return response, true
 
 	}
-
-
 
 	// Try L2 cache.
 
@@ -345,8 +280,6 @@ func (c *ResponseCache) Get(key string) (string, bool) {
 
 	}
 
-
-
 	// Try semantic similarity search.
 
 	if response, found := c.getSemanticSimilar(key); found {
@@ -361,8 +294,6 @@ func (c *ResponseCache) Get(key string) (string, bool) {
 
 	}
 
-
-
 	// Cache miss.
 
 	c.updateMetrics(func(m *CacheMetrics) {
@@ -375,8 +306,6 @@ func (c *ResponseCache) Get(key string) (string, bool) {
 
 }
 
-
-
 // Set stores a response in the appropriate cache level.
 
 func (c *ResponseCache) Set(key, response string) {
@@ -387,13 +316,9 @@ func (c *ResponseCache) Set(key, response string) {
 
 	}
 
-
-
 	// Extract keywords for semantic indexing.
 
 	keywords := c.extractKeywords(key)
-
-
 
 	// Calculate adaptive TTL if enabled.
 
@@ -405,43 +330,34 @@ func (c *ResponseCache) Set(key, response string) {
 
 	}
 
-
-
 	entry := &CacheEntry{
 
-		Response:   response,
+		Response: response,
 
-		Timestamp:  time.Now(),
+		Timestamp: time.Now(),
 
 		LastAccess: time.Now(),
 
-		HitCount:   0,
+		HitCount: 0,
 
-		TTL:        ttl,
+		TTL: ttl,
 
-		Size:       len(response),
+		Size: len(response),
 
-		Keywords:   keywords,
+		Keywords: keywords,
 
-		Level:      1,
-
+		Level: 1,
 	}
-
-
 
 	// Store in L1 first.
 
 	c.setInL1(key, entry)
-
-
 
 	// Update semantic index.
 
 	c.updateSemanticIndex(key, keywords)
 
 }
-
-
 
 // getFromL1 retrieves from L1 cache.
 
@@ -451,8 +367,6 @@ func (c *ResponseCache) getFromL1(key string) (string, bool) {
 
 	defer c.l1Mutex.RUnlock()
 
-
-
 	entry, exists := c.l1Entries[key]
 
 	if !exists {
@@ -460,8 +374,6 @@ func (c *ResponseCache) getFromL1(key string) (string, bool) {
 		return "", false
 
 	}
-
-
 
 	// Check TTL.
 
@@ -473,8 +385,6 @@ func (c *ResponseCache) getFromL1(key string) (string, bool) {
 
 	}
 
-
-
 	entry.HitCount++
 
 	entry.LastAccess = time.Now()
@@ -482,8 +392,6 @@ func (c *ResponseCache) getFromL1(key string) (string, bool) {
 	return entry.Response, true
 
 }
-
-
 
 // getFromL2 retrieves from L2 cache.
 
@@ -493,8 +401,6 @@ func (c *ResponseCache) getFromL2(key string) (string, bool) {
 
 	defer c.l2Mutex.RUnlock()
 
-
-
 	entry, exists := c.l2Entries[key]
 
 	if !exists {
@@ -502,8 +408,6 @@ func (c *ResponseCache) getFromL2(key string) (string, bool) {
 		return "", false
 
 	}
-
-
 
 	// Check TTL.
 
@@ -513,8 +417,6 @@ func (c *ResponseCache) getFromL2(key string) (string, bool) {
 
 	}
 
-
-
 	entry.HitCount++
 
 	entry.LastAccess = time.Now()
@@ -522,8 +424,6 @@ func (c *ResponseCache) getFromL2(key string) (string, bool) {
 	return entry.Response, true
 
 }
-
-
 
 // setInL1 stores entry in L1 cache.
 
@@ -533,8 +433,6 @@ func (c *ResponseCache) setInL1(key string, entry *CacheEntry) {
 
 	defer c.l1Mutex.Unlock()
 
-
-
 	// Check if L1 is full.
 
 	if len(c.l1Entries) >= c.l1MaxSize {
@@ -543,15 +441,11 @@ func (c *ResponseCache) setInL1(key string, entry *CacheEntry) {
 
 	}
 
-
-
 	entry.Level = 1
 
 	c.l1Entries[key] = entry
 
 }
-
-
 
 // setInL2 stores entry in L2 cache.
 
@@ -561,8 +455,6 @@ func (c *ResponseCache) setInL2(key string, entry *CacheEntry) {
 
 	defer c.l2Mutex.Unlock()
 
-
-
 	// Check if L2 is full.
 
 	if len(c.l2Entries) >= c.l2MaxSize {
@@ -571,15 +463,11 @@ func (c *ResponseCache) setInL2(key string, entry *CacheEntry) {
 
 	}
 
-
-
 	entry.Level = 2
 
 	c.l2Entries[key] = entry
 
 }
-
-
 
 // promoteToL1 promotes a frequently accessed L2 entry to L1.
 
@@ -591,15 +479,11 @@ func (c *ResponseCache) promoteToL1(key, response string) {
 
 	c.l2Mutex.RUnlock()
 
-
-
 	if !exists {
 
 		return
 
 	}
-
-
 
 	// Check if entry is accessed frequently enough.
 
@@ -613,8 +497,6 @@ func (c *ResponseCache) promoteToL1(key, response string) {
 
 		c.l2Mutex.Unlock()
 
-
-
 		// Add to L1.
 
 		c.setInL1(key, entry)
@@ -622,8 +504,6 @@ func (c *ResponseCache) promoteToL1(key, response string) {
 	}
 
 }
-
-
 
 // evictFromL1 removes least recently used entries from L1.
 
@@ -635,15 +515,11 @@ func (c *ResponseCache) evictFromL1() {
 
 	}
 
-
-
 	// Find LRU entry.
 
 	var oldestKey string
 
 	oldestTime := time.Now()
-
-
 
 	for key, entry := range c.l1Entries {
 
@@ -657,8 +533,6 @@ func (c *ResponseCache) evictFromL1() {
 
 	}
 
-
-
 	if oldestKey != "" {
 
 		// Move to L2 before evicting from L1.
@@ -668,8 +542,6 @@ func (c *ResponseCache) evictFromL1() {
 			c.setInL2(oldestKey, entry)
 
 		}
-
-
 
 		delete(c.l1Entries, oldestKey)
 
@@ -683,8 +555,6 @@ func (c *ResponseCache) evictFromL1() {
 
 }
 
-
-
 // evictFromL2 removes least recently used entries from L2.
 
 func (c *ResponseCache) evictFromL2() {
@@ -695,15 +565,11 @@ func (c *ResponseCache) evictFromL2() {
 
 	}
 
-
-
 	// Find LRU entry.
 
 	var oldestKey string
 
 	oldestTime := time.Now()
-
-
 
 	for key, entry := range c.l2Entries {
 
@@ -716,8 +582,6 @@ func (c *ResponseCache) evictFromL2() {
 		}
 
 	}
-
-
 
 	if oldestKey != "" {
 
@@ -733,8 +597,6 @@ func (c *ResponseCache) evictFromL2() {
 
 }
 
-
-
 // getSemanticSimilar finds semantically similar cached entries.
 
 func (c *ResponseCache) getSemanticSimilar(key string) (string, bool) {
@@ -747,19 +609,13 @@ func (c *ResponseCache) getSemanticSimilar(key string) (string, bool) {
 
 	}
 
-
-
 	c.semanticMutex.RLock()
 
 	defer c.semanticMutex.RUnlock()
 
-
-
 	// Find candidate keys based on keyword overlap.
 
 	candidates := make(map[string]float64)
-
-
 
 	for _, keyword := range keywords {
 
@@ -775,23 +631,17 @@ func (c *ResponseCache) getSemanticSimilar(key string) (string, bool) {
 
 	}
 
-
-
 	// Calculate similarity scores and find best match.
 
 	bestKey := ""
 
 	bestScore := 0.0
 
-
-
 	for candidateKey, score := range candidates {
 
 		// Normalize score by total keywords.
 
 		normalizedScore := score / float64(len(keywords))
-
-
 
 		if normalizedScore > bestScore && normalizedScore >= c.similarityThreshold {
 
@@ -802,8 +652,6 @@ func (c *ResponseCache) getSemanticSimilar(key string) (string, bool) {
 		}
 
 	}
-
-
 
 	if bestKey != "" {
 
@@ -823,13 +671,9 @@ func (c *ResponseCache) getSemanticSimilar(key string) (string, bool) {
 
 	}
 
-
-
 	return "", false
 
 }
-
-
 
 // extractKeywords extracts important keywords from cache key.
 
@@ -843,8 +687,6 @@ func (c *ResponseCache) extractKeywords(key string) []string {
 
 	})
 
-
-
 	// Filter out common stop words and short words.
 
 	stopWords := map[string]bool{
@@ -856,10 +698,7 @@ func (c *ResponseCache) extractKeywords(key string) []string {
 		"it": true, "of": true, "on": true, "or": true, "that": true, "the": true,
 
 		"to": true, "will": true, "with": true,
-
 	}
-
-
 
 	var keywords []string
 
@@ -873,13 +712,9 @@ func (c *ResponseCache) extractKeywords(key string) []string {
 
 	}
 
-
-
 	return keywords
 
 }
-
-
 
 // updateSemanticIndex updates the semantic index with new keywords.
 
@@ -888,8 +723,6 @@ func (c *ResponseCache) updateSemanticIndex(key string, keywords []string) {
 	c.semanticMutex.Lock()
 
 	defer c.semanticMutex.Unlock()
-
-
 
 	for _, keyword := range keywords {
 
@@ -905,8 +738,6 @@ func (c *ResponseCache) updateSemanticIndex(key string, keywords []string) {
 
 }
 
-
-
 // updateAccessStats tracks access patterns for adaptive TTL.
 
 func (c *ResponseCache) updateAccessStats(key string) {
@@ -917,13 +748,9 @@ func (c *ResponseCache) updateAccessStats(key string) {
 
 	}
 
-
-
 	c.accessMutex.Lock()
 
 	defer c.accessMutex.Unlock()
-
-
 
 	stats, exists := c.accessFrequency[key]
 
@@ -932,14 +759,11 @@ func (c *ResponseCache) updateAccessStats(key string) {
 		stats = &AccessStats{
 
 			AccessPattern: make([]time.Time, 0),
-
 		}
 
 		c.accessFrequency[key] = stats
 
 	}
-
-
 
 	now := time.Now()
 
@@ -949,8 +773,6 @@ func (c *ResponseCache) updateAccessStats(key string) {
 
 	stats.AccessPattern = append(stats.AccessPattern, now)
 
-
-
 	// Keep only recent access pattern (last 10 accesses).
 
 	if len(stats.AccessPattern) > 10 {
@@ -958,8 +780,6 @@ func (c *ResponseCache) updateAccessStats(key string) {
 		stats.AccessPattern = stats.AccessPattern[len(stats.AccessPattern)-10:]
 
 	}
-
-
 
 	// Calculate average interval.
 
@@ -979,8 +799,6 @@ func (c *ResponseCache) updateAccessStats(key string) {
 
 }
 
-
-
 // calculateAdaptiveTTL calculates TTL based on access patterns.
 
 func (c *ResponseCache) calculateAdaptiveTTL(key string) time.Duration {
@@ -991,15 +809,11 @@ func (c *ResponseCache) calculateAdaptiveTTL(key string) time.Duration {
 
 	c.accessMutex.RUnlock()
 
-
-
 	if !exists {
 
 		return c.ttl // Default TTL for new entries
 
 	}
-
-
 
 	// Adjust TTL based on access frequency.
 
@@ -1015,15 +829,11 @@ func (c *ResponseCache) calculateAdaptiveTTL(key string) time.Duration {
 
 	}
 
-
-
 	// For rarely accessed items, use default TTL.
 
 	return c.ttl
 
 }
-
-
 
 // prewarmCache preloads cache with common patterns.
 
@@ -1034,8 +844,6 @@ func (c *ResponseCache) prewarmCache() {
 	// In a real implementation, this would load common queries.
 
 	c.logger.Info("Cache prewarming started")
-
-
 
 	for _, pattern := range c.prewarmPatterns {
 
@@ -1049,8 +857,6 @@ func (c *ResponseCache) prewarmCache() {
 
 }
 
-
-
 // cleanup removes expired entries.
 
 func (c *ResponseCache) cleanup() {
@@ -1058,8 +864,6 @@ func (c *ResponseCache) cleanup() {
 	ticker := time.NewTicker(time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1085,15 +889,11 @@ func (c *ResponseCache) cleanup() {
 
 }
 
-
-
 // performCleanup removes expired entries from both cache levels.
 
 func (c *ResponseCache) performCleanup() {
 
 	now := time.Now()
-
-
 
 	// Cleanup L1.
 
@@ -1111,8 +911,6 @@ func (c *ResponseCache) performCleanup() {
 
 	c.l1Mutex.Unlock()
 
-
-
 	// Cleanup L2.
 
 	c.l2Mutex.Lock()
@@ -1129,21 +927,15 @@ func (c *ResponseCache) performCleanup() {
 
 	c.l2Mutex.Unlock()
 
-
-
 	// Cleanup semantic index.
 
 	c.cleanupSemanticIndex()
-
-
 
 	// Update hit rates.
 
 	c.updateHitRates()
 
 }
-
-
 
 // cleanupSemanticIndex removes references to deleted cache entries.
 
@@ -1153,13 +945,9 @@ func (c *ResponseCache) cleanupSemanticIndex() {
 
 	defer c.semanticMutex.Unlock()
 
-
-
 	for keyword, cacheKeys := range c.semanticIndex {
 
 		validKeys := make([]string, 0)
-
-
 
 		for _, key := range cacheKeys {
 
@@ -1171,15 +959,11 @@ func (c *ResponseCache) cleanupSemanticIndex() {
 
 			c.l1Mutex.RUnlock()
 
-
-
 			c.l2Mutex.RLock()
 
 			_, existsL2 := c.l2Entries[key]
 
 			c.l2Mutex.RUnlock()
-
-
 
 			if existsL1 || existsL2 {
 
@@ -1188,8 +972,6 @@ func (c *ResponseCache) cleanupSemanticIndex() {
 			}
 
 		}
-
-
 
 		if len(validKeys) == 0 {
 
@@ -1204,8 +986,6 @@ func (c *ResponseCache) cleanupSemanticIndex() {
 	}
 
 }
-
-
 
 // updateHitRates calculates and updates cache hit rates.
 
@@ -1229,8 +1009,6 @@ func (c *ResponseCache) updateHitRates() {
 
 }
 
-
-
 // updateMetrics safely updates cache metrics.
 
 func (c *ResponseCache) updateMetrics(updater func(*CacheMetrics)) {
@@ -1243,8 +1021,6 @@ func (c *ResponseCache) updateMetrics(updater func(*CacheMetrics)) {
 
 }
 
-
-
 // GetMetrics returns current cache metrics.
 
 func (c *ResponseCache) GetMetrics() *CacheMetrics {
@@ -1253,37 +1029,32 @@ func (c *ResponseCache) GetMetrics() *CacheMetrics {
 
 	defer c.metrics.mutex.RUnlock()
 
-
-
 	// Create new metrics struct to avoid copying mutex.
 
 	metrics := &CacheMetrics{
 
-		L1Hits:                 c.metrics.L1Hits,
+		L1Hits: c.metrics.L1Hits,
 
-		L2Hits:                 c.metrics.L2Hits,
+		L2Hits: c.metrics.L2Hits,
 
-		Misses:                 c.metrics.Misses,
+		Misses: c.metrics.Misses,
 
-		Evictions:              c.metrics.Evictions,
+		Evictions: c.metrics.Evictions,
 
-		HitRate:                c.metrics.HitRate,
+		HitRate: c.metrics.HitRate,
 
-		L1HitRate:              c.metrics.L1HitRate,
+		L1HitRate: c.metrics.L1HitRate,
 
-		L2HitRate:              c.metrics.L2HitRate,
+		L2HitRate: c.metrics.L2HitRate,
 
-		SemanticHits:           c.metrics.SemanticHits,
+		SemanticHits: c.metrics.SemanticHits,
 
 		AdaptiveTTLAdjustments: c.metrics.AdaptiveTTLAdjustments,
-
 	}
 
 	return metrics
 
 }
-
-
 
 // GetStats returns detailed cache statistics.
 
@@ -1295,15 +1066,11 @@ func (c *ResponseCache) GetStats() map[string]interface{} {
 
 	c.l1Mutex.RUnlock()
 
-
-
 	c.l2Mutex.RLock()
 
 	l2Size := len(c.l2Entries)
 
 	c.l2Mutex.RUnlock()
-
-
 
 	c.semanticMutex.RLock()
 
@@ -1311,47 +1078,40 @@ func (c *ResponseCache) GetStats() map[string]interface{} {
 
 	c.semanticMutex.RUnlock()
 
-
-
 	metrics := c.GetMetrics()
-
-
 
 	return map[string]interface{}{
 
-		"l1_size":              l1Size,
+		"l1_size": l1Size,
 
-		"l2_size":              l2Size,
+		"l2_size": l2Size,
 
-		"l1_max_size":          c.l1MaxSize,
+		"l1_max_size": c.l1MaxSize,
 
-		"l2_max_size":          c.l2MaxSize,
+		"l2_max_size": c.l2MaxSize,
 
-		"semantic_index_size":  semanticIndexSize,
+		"semantic_index_size": semanticIndexSize,
 
-		"ttl":                  c.ttl.String(),
+		"ttl": c.ttl.String(),
 
 		"similarity_threshold": c.similarityThreshold,
 
-		"adaptive_ttl":         c.adaptiveTTL,
+		"adaptive_ttl": c.adaptiveTTL,
 
-		"prewarm_enabled":      c.prewarmEnabled,
+		"prewarm_enabled": c.prewarmEnabled,
 
-		"hit_rate":             metrics.HitRate,
+		"hit_rate": metrics.HitRate,
 
-		"l1_hit_rate":          metrics.L1HitRate,
+		"l1_hit_rate": metrics.L1HitRate,
 
-		"l2_hit_rate":          metrics.L2HitRate,
+		"l2_hit_rate": metrics.L2HitRate,
 
-		"semantic_hits":        metrics.SemanticHits,
+		"semantic_hits": metrics.SemanticHits,
 
-		"evictions":            metrics.Evictions,
-
+		"evictions": metrics.Evictions,
 	}
 
 }
-
-
 
 // Stop gracefully shuts down the cache.
 
@@ -1365,8 +1125,6 @@ func (c *ResponseCache) Stop() {
 
 		c.l1Mutex.Unlock()
 
-
-
 		close(c.stopCh)
 
 		c.logger.Info("Response cache stopped")
@@ -1374,8 +1132,6 @@ func (c *ResponseCache) Stop() {
 	})
 
 }
-
-
 
 // IsStopped returns whether the cache has been stopped.
 
@@ -1388,8 +1144,6 @@ func (c *ResponseCache) IsStopped() bool {
 	return c.stopped
 
 }
-
-
 
 // Clear removes all entries from the cache.
 
@@ -1411,8 +1165,6 @@ func (c *ResponseCache) Clear() {
 
 	defer c.l1Mutex.Unlock()
 
-
-
 	c.l1Entries = make(map[string]*CacheEntry)
 
 	c.l2Entries = make(map[string]*CacheEntry)
@@ -1421,13 +1173,9 @@ func (c *ResponseCache) Clear() {
 
 	c.accessFrequency = make(map[string]*AccessStats)
 
-
-
 	c.logger.Info("Cache cleared")
 
 }
-
-
 
 // GetSize returns the total number of cached entries.
 
@@ -1439,21 +1187,15 @@ func (c *ResponseCache) GetSize() int {
 
 	c.l1Mutex.RUnlock()
 
-
-
 	c.l2Mutex.RLock()
 
 	l2Size := len(c.l2Entries)
 
 	c.l2Mutex.RUnlock()
 
-
-
 	return l1Size + l2Size
 
 }
-
-
 
 // generateCacheKey creates a consistent cache key from components.
 
@@ -1466,4 +1208,3 @@ func GenerateCacheKey(components ...string) string {
 	return hex.EncodeToString(hash[:])
 
 }
-

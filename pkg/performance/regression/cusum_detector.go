@@ -1,33 +1,17 @@
 //go:build go1.24
 
-
-
-
 package regression
 
-
-
 import (
-
 	"fmt"
-
 	"math"
-
 	"sort"
-
 	"time"
-
-
 
 	"gonum.org/v1/gonum/stat"
 
-
-
 	"k8s.io/klog/v2"
-
 )
-
-
 
 // CUSUMDetector implements Cumulative Sum (CUSUM) algorithm for change point detection.
 
@@ -37,13 +21,11 @@ type CUSUMDetector struct {
 
 	// Algorithm parameters.
 
-	threshold      float64 // Decision threshold (h)
+	threshold float64 // Decision threshold (h)
 
-	driftFactor    float64 // Drift parameter (k)
+	driftFactor float64 // Drift parameter (k)
 
 	referenceValue float64 // Reference value (μ0)
-
-
 
 	// State variables for online detection.
 
@@ -51,23 +33,16 @@ type CUSUMDetector struct {
 
 	lowerCUSUM float64 // Lower CUSUM statistic (S-)
 
-
-
 	// Configuration.
 
 	config *CUSUMConfig
-
-
 
 	// Detection history.
 
 	detectedChanges []*CUSUMChangePoint
 
-	lastDetection   time.Time
-
+	lastDetection time.Time
 }
-
-
 
 // CUSUMConfig configures the CUSUM detector.
 
@@ -75,113 +50,91 @@ type CUSUMConfig struct {
 
 	// Detection sensitivity.
 
-	ThresholdMultiplier  float64       `json:"thresholdMultiplier"`  // Multiplier for automatic threshold calculation
+	ThresholdMultiplier float64 `json:"thresholdMultiplier"` // Multiplier for automatic threshold calculation
 
-	DriftSensitivity     float64       `json:"driftSensitivity"`     // Sensitivity to drift (0-1)
+	DriftSensitivity float64 `json:"driftSensitivity"` // Sensitivity to drift (0-1)
 
 	MinDetectionInterval time.Duration `json:"minDetectionInterval"` // Minimum time between detections
-
-
 
 	// Statistical parameters.
 
 	UseRobustStatistics bool `json:"useRobustStatistics"` // Use median/MAD instead of mean/std
 
-	AdaptiveThreshold   bool `json:"adaptiveThreshold"`   // Adapt threshold based on historical data
+	AdaptiveThreshold bool `json:"adaptiveThreshold"` // Adapt threshold based on historical data
 
-	SeasonalAdjustment  bool `json:"seasonalAdjustment"`  // Account for seasonal patterns
-
-
+	SeasonalAdjustment bool `json:"seasonalAdjustment"` // Account for seasonal patterns
 
 	// Performance optimization.
 
-	MaxHistorySize  int  `json:"maxHistorySize"`  // Maximum number of historical points to keep
+	MaxHistorySize int `json:"maxHistorySize"` // Maximum number of historical points to keep
 
 	BatchProcessing bool `json:"batchProcessing"` // Process data in batches vs. online
 
-
-
 	// Validation.
 
-	ValidationWindowSize   int  `json:"validationWindowSize"`   // Size of window for validating change points
+	ValidationWindowSize int `json:"validationWindowSize"` // Size of window for validating change points
 
 	FalsePositiveReduction bool `json:"falsePositiveReduction"` // Enable false positive reduction techniques
 
 }
 
-
-
 // CUSUMChangePoint represents a detected change point with CUSUM-specific information.
 
 type CUSUMChangePoint struct {
-
 	*ChangePoint // Embed base change point
-
-
 
 	// CUSUM-specific properties.
 
-	UpperCUSUM     float64 `json:"upperCUSUM"`     // Upper CUSUM value at detection
+	UpperCUSUM float64 `json:"upperCUSUM"` // Upper CUSUM value at detection
 
-	LowerCUSUM     float64 `json:"lowerCUSUM"`     // Lower CUSUM value at detection
+	LowerCUSUM float64 `json:"lowerCUSUM"` // Lower CUSUM value at detection
 
-	Direction      string  `json:"direction"`      // "increase" or "decrease"
+	Direction string `json:"direction"` // "increase" or "decrease"
 
-	Magnitude      float64 `json:"magnitude"`      // Magnitude of the change
+	Magnitude float64 `json:"magnitude"` // Magnitude of the change
 
-	DetectionDelay int     `json:"detectionDelay"` // Number of points after actual change
-
-
+	DetectionDelay int `json:"detectionDelay"` // Number of points after actual change
 
 	// Statistical significance.
 
-	PValue             float64             `json:"pValue"`             // Statistical significance
+	PValue float64 `json:"pValue"` // Statistical significance
 
 	ConfidenceInterval *ConfidenceInterval `json:"confidenceInterval"` // Confidence interval for change magnitude
 
-
-
 	// Context information.
 
-	PreChangeStatistics  *DescriptiveStatistics `json:"preChangeStatistics"`  // Statistics before change
+	PreChangeStatistics *DescriptiveStatistics `json:"preChangeStatistics"` // Statistics before change
 
 	PostChangeStatistics *DescriptiveStatistics `json:"postChangeStatistics"` // Statistics after change
 
-
-
 	// Validation results.
 
-	Validated       bool    `json:"validated"`       // Whether change point has been validated
+	Validated bool `json:"validated"` // Whether change point has been validated
 
 	ValidationScore float64 `json:"validationScore"` // Validation confidence score
 
 }
 
-
-
 // DescriptiveStatistics provides statistical summary.
 
 type DescriptiveStatistics struct {
+	Mean float64 `json:"mean"`
 
-	Mean      float64    `json:"mean"`
+	Median float64 `json:"median"`
 
-	Median    float64    `json:"median"`
+	StdDev float64 `json:"stdDev"`
 
-	StdDev    float64    `json:"stdDev"`
+	MAD float64 `json:"mad"` // Median Absolute Deviation
 
-	MAD       float64    `json:"mad"` // Median Absolute Deviation
+	Min float64 `json:"min"`
 
-	Min       float64    `json:"min"`
+	Max float64 `json:"max"`
 
-	Max       float64    `json:"max"`
-
-	Count     int        `json:"count"`
+	Count int `json:"count"`
 
 	Quartiles [3]float64 `json:"quartiles"` // Q1, Q2 (median), Q3
 
 }
-
-
 
 // NewCUSUMDetector creates a new CUSUM change point detector.
 
@@ -193,29 +146,24 @@ func NewCUSUMDetector(threshold, driftFactor, referenceValue float64, config *CU
 
 	}
 
-
-
 	return &CUSUMDetector{
 
-		threshold:       threshold,
+		threshold: threshold,
 
-		driftFactor:     driftFactor,
+		driftFactor: driftFactor,
 
-		referenceValue:  referenceValue,
+		referenceValue: referenceValue,
 
-		config:          config,
+		config: config,
 
 		detectedChanges: make([]*CUSUMChangePoint, 0),
 
-		upperCUSUM:      0.0,
+		upperCUSUM: 0.0,
 
-		lowerCUSUM:      0.0,
-
+		lowerCUSUM: 0.0,
 	}
 
 }
-
-
 
 // DetectChangePoints implements the ChangePointAlgorithm interface.
 
@@ -227,15 +175,11 @@ func (cd *CUSUMDetector) DetectChangePoints(data []float64, timestamps []time.Ti
 
 	}
 
-
-
 	if len(data) != len(timestamps) {
 
 		return nil, fmt.Errorf("data and timestamps length mismatch: %d vs %d", len(data), len(timestamps))
 
 	}
-
-
 
 	// Initialize detector if needed.
 
@@ -245,11 +189,7 @@ func (cd *CUSUMDetector) DetectChangePoints(data []float64, timestamps []time.Ti
 
 	}
 
-
-
 	var changePoints []*ChangePoint
-
-
 
 	if cd.config.BatchProcessing {
 
@@ -260,8 +200,6 @@ func (cd *CUSUMDetector) DetectChangePoints(data []float64, timestamps []time.Ti
 			return nil, err
 
 		}
-
-
 
 		// Convert CUSUM change points to generic change points.
 
@@ -281,8 +219,6 @@ func (cd *CUSUMDetector) DetectChangePoints(data []float64, timestamps []time.Ti
 
 		}
 
-
-
 		// Convert CUSUM change points to generic change points.
 
 		for _, cp := range cusumChangePoints {
@@ -293,8 +229,6 @@ func (cd *CUSUMDetector) DetectChangePoints(data []float64, timestamps []time.Ti
 
 	}
 
-
-
 	// Apply false positive reduction if enabled.
 
 	if cd.config.FalsePositiveReduction {
@@ -303,17 +237,11 @@ func (cd *CUSUMDetector) DetectChangePoints(data []float64, timestamps []time.Ti
 
 	}
 
-
-
 	klog.V(2).Infof("CUSUM detector found %d change points", len(changePoints))
-
-
 
 	return changePoints, nil
 
 }
-
-
 
 // initializeFromData automatically initializes detector parameters from data.
 
@@ -332,8 +260,6 @@ func (cd *CUSUMDetector) initializeFromData(data []float64) error {
 		}
 
 	}
-
-
 
 	if cd.threshold == 0 {
 
@@ -363,13 +289,9 @@ func (cd *CUSUMDetector) initializeFromData(data []float64) error {
 
 		}
 
-
-
 		cd.threshold = cd.config.ThresholdMultiplier * stdDev
 
 	}
-
-
 
 	if cd.driftFactor == 0 {
 
@@ -399,25 +321,17 @@ func (cd *CUSUMDetector) initializeFromData(data []float64) error {
 
 		}
 
-
-
 		cd.driftFactor = cd.config.DriftSensitivity * stdDev
 
 	}
-
-
 
 	klog.V(3).Infof("CUSUM initialized: threshold=%.4f, drift=%.4f, reference=%.4f",
 
 		cd.threshold, cd.driftFactor, cd.referenceValue)
 
-
-
 	return nil
 
 }
-
-
 
 // detectChangePointsBatch performs batch CUSUM analysis.
 
@@ -429,19 +343,13 @@ func (cd *CUSUMDetector) detectChangePointsBatch(data []float64, timestamps []ti
 
 	lowerCUSUM := make([]float64, n)
 
-
-
 	var changePoints []*CUSUMChangePoint
-
-
 
 	// Calculate CUSUM statistics for all points.
 
 	for i := range n {
 
 		deviation := data[i] - cd.referenceValue
-
-
 
 		if i == 0 {
 
@@ -457,13 +365,9 @@ func (cd *CUSUMDetector) detectChangePointsBatch(data []float64, timestamps []ti
 
 		}
 
-
-
 		// Check for change point detection.
 
 		var changePoint *CUSUMChangePoint
-
-
 
 		if upperCUSUM[i] > cd.threshold {
 
@@ -475,8 +379,6 @@ func (cd *CUSUMDetector) detectChangePointsBatch(data []float64, timestamps []ti
 
 		}
 
-
-
 		if changePoint != nil {
 
 			// Validate change point if validation is enabled.
@@ -487,11 +389,7 @@ func (cd *CUSUMDetector) detectChangePointsBatch(data []float64, timestamps []ti
 
 			}
 
-
-
 			changePoints = append(changePoints, changePoint)
-
-
 
 			// Reset CUSUM statistics after detection.
 
@@ -501,13 +399,9 @@ func (cd *CUSUMDetector) detectChangePointsBatch(data []float64, timestamps []ti
 
 	}
 
-
-
 	return changePoints, nil
 
 }
-
-
 
 // detectChangePointsOnline performs online CUSUM analysis.
 
@@ -515,13 +409,9 @@ func (cd *CUSUMDetector) detectChangePointsOnline(data []float64, timestamps []t
 
 	var changePoints []*CUSUMChangePoint
 
-
-
 	for i, value := range data {
 
 		deviation := value - cd.referenceValue
-
-
 
 		// Update CUSUM statistics.
 
@@ -529,13 +419,9 @@ func (cd *CUSUMDetector) detectChangePointsOnline(data []float64, timestamps []t
 
 		cd.lowerCUSUM = math.Min(0, cd.lowerCUSUM+deviation+cd.driftFactor)
 
-
-
 		// Check for change point detection.
 
 		var changePoint *CUSUMChangePoint
-
-
 
 		if cd.upperCUSUM > cd.threshold {
 
@@ -546,8 +432,6 @@ func (cd *CUSUMDetector) detectChangePointsOnline(data []float64, timestamps []t
 			changePoint = cd.createChangePoint(i, "decrease", cd.upperCUSUM, cd.lowerCUSUM, data, timestamps)
 
 		}
-
-
 
 		if changePoint != nil {
 
@@ -563,8 +447,6 @@ func (cd *CUSUMDetector) detectChangePointsOnline(data []float64, timestamps []t
 
 			}
 
-
-
 			// Validate change point if validation is enabled.
 
 			if cd.config.ValidationWindowSize > 0 {
@@ -573,15 +455,11 @@ func (cd *CUSUMDetector) detectChangePointsOnline(data []float64, timestamps []t
 
 			}
 
-
-
 			changePoints = append(changePoints, changePoint)
 
 			cd.detectedChanges = append(cd.detectedChanges, changePoint)
 
 			cd.lastDetection = timestamps[i]
-
-
 
 			// Reset CUSUM statistics.
 
@@ -593,13 +471,9 @@ func (cd *CUSUMDetector) detectChangePointsOnline(data []float64, timestamps []t
 
 	}
 
-
-
 	return changePoints, nil
 
 }
-
-
 
 // createChangePoint creates a CUSUM change point with detailed information.
 
@@ -619,15 +493,11 @@ func (cd *CUSUMDetector) createChangePoint(index int, direction string, upperCUS
 
 	}
 
-
-
 	// Calculate before and after values.
 
 	windowSize := 10 // Fixed window size for before/after comparison
 
 	var beforeValue, afterValue float64
-
-
 
 	if index >= windowSize {
 
@@ -641,8 +511,6 @@ func (cd *CUSUMDetector) createChangePoint(index int, direction string, upperCUS
 
 	}
 
-
-
 	if index+windowSize < len(data) {
 
 		afterData := data[index : index+windowSize]
@@ -655,33 +523,26 @@ func (cd *CUSUMDetector) createChangePoint(index int, direction string, upperCUS
 
 	}
 
-
-
 	// Calculate confidence based on CUSUM value and threshold.
 
 	confidence := math.Min(magnitude/cd.threshold, 1.0) * 0.9 // Cap at 0.9
-
-
 
 	// Create base change point.
 
 	baseChangePoint := &ChangePoint{
 
-		Timestamp:   timestamps[index],
+		Timestamp: timestamps[index],
 
-		Metric:      "cusum_detection",
+		Metric: "cusum_detection",
 
 		BeforeValue: beforeValue,
 
-		AfterValue:  afterValue,
+		AfterValue: afterValue,
 
-		ChangeType:  "step",
+		ChangeType: "step",
 
-		Confidence:  confidence,
-
+		Confidence: confidence,
 	}
-
-
 
 	// Create CUSUM-specific change point.
 
@@ -689,17 +550,14 @@ func (cd *CUSUMDetector) createChangePoint(index int, direction string, upperCUS
 
 		ChangePoint: baseChangePoint,
 
-		UpperCUSUM:  upperCUSUM,
+		UpperCUSUM: upperCUSUM,
 
-		LowerCUSUM:  lowerCUSUM,
+		LowerCUSUM: lowerCUSUM,
 
-		Direction:   direction,
+		Direction: direction,
 
-		Magnitude:   magnitude,
-
+		Magnitude: magnitude,
 	}
-
-
 
 	// Calculate pre and post-change statistics.
 
@@ -707,27 +565,19 @@ func (cd *CUSUMDetector) createChangePoint(index int, direction string, upperCUS
 
 	cusumChangePoint.PostChangeStatistics = cd.calculateStatistics(data, index, len(data))
 
-
-
 	// Calculate p-value (simplified implementation).
 
 	cusumChangePoint.PValue = cd.calculatePValue(magnitude)
 
-
-
 	return cusumChangePoint
 
 }
-
-
 
 // validateChangePoint validates a detected change point using statistical tests.
 
 func (cd *CUSUMDetector) validateChangePoint(cp *CUSUMChangePoint, data []float64, timestamps []time.Time, index int) {
 
 	windowSize := cd.config.ValidationWindowSize
-
-
 
 	// Ensure we have enough data for validation.
 
@@ -741,13 +591,9 @@ func (cd *CUSUMDetector) validateChangePoint(cp *CUSUMChangePoint, data []float6
 
 	}
 
-
-
 	beforeData := data[index-windowSize : index]
 
 	afterData := data[index : index+windowSize]
-
-
 
 	// Perform Welch's t-test.
 
@@ -759,11 +605,7 @@ func (cd *CUSUMDetector) validateChangePoint(cp *CUSUMChangePoint, data []float6
 
 	afterVar := stat.Variance(afterData, nil)
 
-
-
 	n1, n2 := float64(len(beforeData)), float64(len(afterData))
-
-
 
 	// Calculate t-statistic.
 
@@ -779,19 +621,13 @@ func (cd *CUSUMDetector) validateChangePoint(cp *CUSUMChangePoint, data []float6
 
 	}
 
-
-
 	tStat := math.Abs(afterMean-beforeMean) / pooledSE
-
-
 
 	// Degrees of freedom (Welch's formula) - calculated but not used in current implementation.
 
 	_ = math.Pow(beforeVar/n1+afterVar/n2, 2) /
 
 		(math.Pow(beforeVar/n1, 2)/(n1-1) + math.Pow(afterVar/n2, 2)/(n2-1))
-
-
 
 	// Simplified p-value calculation (would use proper t-distribution in production).
 
@@ -803,33 +639,23 @@ func (cd *CUSUMDetector) validateChangePoint(cp *CUSUMChangePoint, data []float6
 
 	pValue := 2 * (1 - normalCDF(tStat))
 
-
-
 	// Validation criteria.
 
 	significanceLevel := 0.05
 
 	effectSizeThreshold := 0.5
 
-
-
 	effectSize := math.Abs(afterMean-beforeMean) / math.Sqrt((beforeVar+afterVar)/2)
-
-
 
 	cp.Validated = pValue < significanceLevel && effectSize > effectSizeThreshold
 
 	cp.ValidationScore = (1 - pValue) * (effectSize / (effectSize + 1)) // Combined score
-
-
 
 	klog.V(3).Infof("Change point validation: validated=%t, score=%.4f, p-value=%.4f, effect-size=%.4f",
 
 		cp.Validated, cp.ValidationScore, pValue, effectSize)
 
 }
-
-
 
 // calculateStatistics computes descriptive statistics for a data slice.
 
@@ -841,8 +667,6 @@ func (cd *CUSUMDetector) calculateStatistics(data []float64, start, end int) *De
 
 	}
 
-
-
 	slice := data[start:end]
 
 	if len(slice) == 0 {
@@ -850,8 +674,6 @@ func (cd *CUSUMDetector) calculateStatistics(data []float64, start, end int) *De
 		return &DescriptiveStatistics{}
 
 	}
-
-
 
 	// Sort for percentile calculations.
 
@@ -861,25 +683,20 @@ func (cd *CUSUMDetector) calculateStatistics(data []float64, start, end int) *De
 
 	sort.Float64s(sorted)
 
-
-
 	stats := &DescriptiveStatistics{
 
-		Mean:   stat.Mean(slice, nil),
+		Mean: stat.Mean(slice, nil),
 
 		Median: stat.Quantile(0.5, stat.Empirical, sorted, nil),
 
 		StdDev: stat.StdDev(slice, nil),
 
-		Min:    sorted[0],
+		Min: sorted[0],
 
-		Max:    sorted[len(sorted)-1],
+		Max: sorted[len(sorted)-1],
 
-		Count:  len(slice),
-
+		Count: len(slice),
 	}
-
-
 
 	// Calculate quartiles.
 
@@ -901,8 +718,6 @@ func (cd *CUSUMDetector) calculateStatistics(data []float64, start, end int) *De
 
 	}
 
-
-
 	// Calculate MAD (Median Absolute Deviation).
 
 	deviations := make([]float64, len(slice))
@@ -917,13 +732,9 @@ func (cd *CUSUMDetector) calculateStatistics(data []float64, start, end int) *De
 
 	stats.MAD = stat.Quantile(0.5, stat.Empirical, deviations, nil)
 
-
-
 	return stats
 
 }
-
-
 
 // calculatePValue calculates statistical significance of a change point.
 
@@ -933,8 +744,6 @@ func (cd *CUSUMDetector) calculatePValue(magnitude float64) float64 {
 
 	// In practice, this would use proper statistical distributions.
 
-
-
 	ratio := magnitude / cd.threshold
 
 	if ratio < 1.0 {
@@ -943,8 +752,6 @@ func (cd *CUSUMDetector) calculatePValue(magnitude float64) float64 {
 
 	}
 
-
-
 	// Exponential decay from 0.05 to 0.001 as magnitude increases.
 
 	pValue := 0.05 * math.Exp(-0.5*(ratio-1))
@@ -952,8 +759,6 @@ func (cd *CUSUMDetector) calculatePValue(magnitude float64) float64 {
 	return math.Max(pValue, 0.001)
 
 }
-
-
 
 // resetCUSUMStatistics resets CUSUM statistics after change point detection (batch mode).
 
@@ -969,8 +774,6 @@ func (cd *CUSUMDetector) resetCUSUMStatistics(upperCUSUM, lowerCUSUM []float64, 
 
 }
 
-
-
 // reduceFalsePositives applies techniques to reduce false positive detections.
 
 func (cd *CUSUMDetector) reduceFalsePositives(changePoints []*ChangePoint, data []float64, timestamps []time.Time) []*ChangePoint {
@@ -981,11 +784,7 @@ func (cd *CUSUMDetector) reduceFalsePositives(changePoints []*ChangePoint, data 
 
 	}
 
-
-
 	filtered := make([]*ChangePoint, 0)
-
-
 
 	for i, cp := range changePoints {
 
@@ -1005,8 +804,6 @@ func (cd *CUSUMDetector) reduceFalsePositives(changePoints []*ChangePoint, data 
 
 		}
 
-
-
 		// Skip changes with low confidence.
 
 		if cp.Confidence < 0.5 {
@@ -1014,8 +811,6 @@ func (cd *CUSUMDetector) reduceFalsePositives(changePoints []*ChangePoint, data 
 			continue
 
 		}
-
-
 
 		// Skip changes with small magnitude relative to noise.
 
@@ -1027,23 +822,15 @@ func (cd *CUSUMDetector) reduceFalsePositives(changePoints []*ChangePoint, data 
 
 		}
 
-
-
 		filtered = append(filtered, cp)
 
 	}
 
-
-
 	klog.V(3).Infof("False positive reduction: %d -> %d change points", len(changePoints), len(filtered))
-
-
 
 	return filtered
 
 }
-
-
 
 // GetName returns the algorithm name.
 
@@ -1053,29 +840,24 @@ func (cd *CUSUMDetector) GetName() string {
 
 }
 
-
-
 // GetParameters returns current algorithm parameters.
 
 func (cd *CUSUMDetector) GetParameters() map[string]interface{} {
 
 	return map[string]interface{}{
 
-		"threshold":       cd.threshold,
+		"threshold": cd.threshold,
 
-		"drift_factor":    cd.driftFactor,
+		"drift_factor": cd.driftFactor,
 
 		"reference_value": cd.referenceValue,
 
-		"upper_cusum":     cd.upperCUSUM,
+		"upper_cusum": cd.upperCUSUM,
 
-		"lower_cusum":     cd.lowerCUSUM,
-
+		"lower_cusum": cd.lowerCUSUM,
 	}
 
 }
-
-
 
 // UpdateParameters updates algorithm parameters.
 
@@ -1087,15 +869,11 @@ func (cd *CUSUMDetector) UpdateParameters(params map[string]interface{}) error {
 
 	}
 
-
-
 	if driftFactor, ok := params["drift_factor"].(float64); ok {
 
 		cd.driftFactor = driftFactor
 
 	}
-
-
 
 	if referenceValue, ok := params["reference_value"].(float64); ok {
 
@@ -1103,13 +881,9 @@ func (cd *CUSUMDetector) UpdateParameters(params map[string]interface{}) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // AdaptThreshold adapts the detection threshold based on recent data.
 
@@ -1120,8 +894,6 @@ func (cd *CUSUMDetector) AdaptThreshold(recentData []float64) {
 		return
 
 	}
-
-
 
 	var stdDev float64
 
@@ -1149,11 +921,7 @@ func (cd *CUSUMDetector) AdaptThreshold(recentData []float64) {
 
 	}
 
-
-
 	newThreshold := cd.config.ThresholdMultiplier * stdDev
-
-
 
 	// Smooth threshold adaptation.
 
@@ -1161,13 +929,9 @@ func (cd *CUSUMDetector) AdaptThreshold(recentData []float64) {
 
 	cd.threshold = alpha*newThreshold + (1-alpha)*cd.threshold
 
-
-
 	klog.V(3).Infof("CUSUM threshold adapted: %.4f -> %.4f", cd.threshold, newThreshold)
 
 }
-
-
 
 // GetDetectionHistory returns the history of detected change points.
 
@@ -1176,8 +940,6 @@ func (cd *CUSUMDetector) GetDetectionHistory() []*CUSUMChangePoint {
 	return cd.detectedChanges
 
 }
-
-
 
 // Reset resets the detector state.
 
@@ -1193,8 +955,6 @@ func (cd *CUSUMDetector) Reset() {
 
 }
 
-
-
 // GetDetectionStatistics returns statistics about detection performance.
 
 func (cd *CUSUMDetector) GetDetectionStatistics() map[string]interface{} {
@@ -1202,8 +962,6 @@ func (cd *CUSUMDetector) GetDetectionStatistics() map[string]interface{} {
 	totalDetections := len(cd.detectedChanges)
 
 	validatedDetections := 0
-
-
 
 	for _, cp := range cd.detectedChanges {
 
@@ -1215,8 +973,6 @@ func (cd *CUSUMDetector) GetDetectionStatistics() map[string]interface{} {
 
 	}
 
-
-
 	var validationRate float64
 
 	if totalDetections > 0 {
@@ -1225,27 +981,22 @@ func (cd *CUSUMDetector) GetDetectionStatistics() map[string]interface{} {
 
 	}
 
-
-
 	return map[string]interface{}{
 
-		"total_detections":     totalDetections,
+		"total_detections": totalDetections,
 
 		"validated_detections": validatedDetections,
 
-		"validation_rate":      validationRate,
+		"validation_rate": validationRate,
 
-		"current_threshold":    cd.threshold,
+		"current_threshold": cd.threshold,
 
-		"current_upper_cusum":  cd.upperCUSUM,
+		"current_upper_cusum": cd.upperCUSUM,
 
-		"current_lower_cusum":  cd.lowerCUSUM,
-
+		"current_lower_cusum": cd.lowerCUSUM,
 	}
 
 }
-
-
 
 // normalCDF approximates the cumulative distribution function of standard normal distribution.
 
@@ -1254,7 +1005,6 @@ func normalCDF(x float64) float64 {
 	// Using approximation: https://en.wikipedia.org/wiki/Normal_distribution#Numerical_approximations.
 
 	const (
-
 		a1 = 0.254829592
 
 		a2 = -0.284496736
@@ -1265,11 +1015,8 @@ func normalCDF(x float64) float64 {
 
 		a5 = 1.061405429
 
-		p  = 0.3275911
-
+		p = 0.3275911
 	)
-
-
 
 	sign := 1.0
 
@@ -1280,8 +1027,6 @@ func normalCDF(x float64) float64 {
 	}
 
 	x = math.Abs(x) / math.Sqrt(2.0)
-
-
 
 	t := 1.0 / (1.0 + p*x)
 
@@ -1295,13 +1040,9 @@ func normalCDF(x float64) float64 {
 
 	y := 1.0 - (((((a5*t5+a4)*t4+a3)*t3+a2)*t2+a1)*t)*math.Exp(-x*x)
 
-
-
 	return 0.5 * (1.0 + sign*y)
 
 }
-
-
 
 // getDefaultCUSUMConfig returns default configuration for CUSUM detector.
 
@@ -1309,27 +1050,26 @@ func getDefaultCUSUMConfig() *CUSUMConfig {
 
 	return &CUSUMConfig{
 
-		ThresholdMultiplier:    4.0,             // 4 standard deviations
+		ThresholdMultiplier: 4.0, // 4 standard deviations
 
-		DriftSensitivity:       0.5,             // 50% of standard deviation
+		DriftSensitivity: 0.5, // 50% of standard deviation
 
-		MinDetectionInterval:   5 * time.Minute, // 5 minutes between detections
+		MinDetectionInterval: 5 * time.Minute, // 5 minutes between detections
 
-		UseRobustStatistics:    true,            // Use median and MAD
+		UseRobustStatistics: true, // Use median and MAD
 
-		AdaptiveThreshold:      true,            // Adapt threshold dynamically
+		AdaptiveThreshold: true, // Adapt threshold dynamically
 
-		SeasonalAdjustment:     false,           // No seasonal adjustment by default
+		SeasonalAdjustment: false, // No seasonal adjustment by default
 
-		MaxHistorySize:         1000,            // Keep last 1000 points
+		MaxHistorySize: 1000, // Keep last 1000 points
 
-		BatchProcessing:        false,           // Use online processing
+		BatchProcessing: false, // Use online processing
 
-		ValidationWindowSize:   20,              // 20 points for validation
+		ValidationWindowSize: 20, // 20 points for validation
 
-		FalsePositiveReduction: true,            // Enable false positive reduction
+		FalsePositiveReduction: true, // Enable false positive reduction
 
 	}
 
 }
-

@@ -1,41 +1,28 @@
-
 package porch
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"os"
-
 )
-
-
 
 // ScalingIntent represents the MVP scaling intent structure.
 
 type ScalingIntent struct {
+	IntentType string `json:"intent_type"`
 
-	IntentType    string `json:"intent_type"`
+	Target string `json:"target"`
 
-	Target        string `json:"target"`
+	Namespace string `json:"namespace"`
 
-	Namespace     string `json:"namespace"`
+	Replicas int `json:"replicas"`
 
-	Replicas      int    `json:"replicas"`
+	Reason string `json:"reason,omitempty"`
 
-	Reason        string `json:"reason,omitempty"`
-
-	Source        string `json:"source,omitempty"`
+	Source string `json:"source,omitempty"`
 
 	CorrelationID string `json:"correlation_id,omitempty"`
-
 }
-
-
 
 // ValidateIntent validates the scaling intent.
 
@@ -75,8 +62,6 @@ func ValidateIntent(intent *ScalingIntent) error {
 
 }
 
-
-
 // ParseIntentFromFile reads and parses an intent JSON file.
 
 func ParseIntentFromFile(path string) (*ScalingIntent, error) {
@@ -89,8 +74,6 @@ func ParseIntentFromFile(path string) (*ScalingIntent, error) {
 
 	}
 
-
-
 	var intent ScalingIntent
 
 	if err := json.Unmarshal(data, &intent); err != nil {
@@ -99,17 +82,12 @@ func ParseIntentFromFile(path string) (*ScalingIntent, error) {
 
 	}
 
-
-
 	if err := ValidateIntent(&intent); err != nil {
 
 		return nil, fmt.Errorf("intent validation failed: %w", err)
 
 	}
 
-
-
 	return &intent, nil
 
 }
-

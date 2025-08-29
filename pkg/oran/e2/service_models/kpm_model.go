@@ -2,42 +2,27 @@
 
 // Package service_models provides E2 service model implementations for KPM, RIC, and NI services.
 
-
 package service_models
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/e2"
-
 )
-
-
 
 // KPMServiceModel implements the E2SM-KPM v2.0 service model.
 
 type KPMServiceModel struct {
+	ServiceModelID string
 
-	ServiceModelID      string
-
-	ServiceModelName    string
+	ServiceModelName string
 
 	ServiceModelVersion string
 
-	ServiceModelOID     string
-
+	ServiceModelOID string
 }
-
-
 
 // NewKPMServiceModel creates a new KPM service model instance.
 
@@ -45,19 +30,16 @@ func NewKPMServiceModel() *KPMServiceModel {
 
 	return &KPMServiceModel{
 
-		ServiceModelID:      "1.3.6.1.4.1.53148.1.1.2.2",
+		ServiceModelID: "1.3.6.1.4.1.53148.1.1.2.2",
 
-		ServiceModelName:    "KPM",
+		ServiceModelName: "KPM",
 
 		ServiceModelVersion: "v2.0",
 
-		ServiceModelOID:     "1.3.6.1.4.1.53148.1.1.2.2",
-
+		ServiceModelOID: "1.3.6.1.4.1.53148.1.1.2.2",
 	}
 
 }
-
-
 
 // GetServiceModelID returns the service model ID.
 
@@ -67,8 +49,6 @@ func (kpm *KPMServiceModel) GetServiceModelID() string {
 
 }
 
-
-
 // GetServiceModelName returns the service model name.
 
 func (kpm *KPMServiceModel) GetServiceModelName() string {
@@ -76,8 +56,6 @@ func (kpm *KPMServiceModel) GetServiceModelName() string {
 	return kpm.ServiceModelName
 
 }
-
-
 
 // GetServiceModelVersion returns the service model version.
 
@@ -87,8 +65,6 @@ func (kpm *KPMServiceModel) GetServiceModelVersion() string {
 
 }
 
-
-
 // GetServiceModelOID returns the service model OID.
 
 func (kpm *KPMServiceModel) GetServiceModelOID() string {
@@ -97,179 +73,117 @@ func (kpm *KPMServiceModel) GetServiceModelOID() string {
 
 }
 
-
-
 // KPMTriggerConfig configures KPM event triggers.
 
 type KPMTriggerConfig struct {
-
 	ReportingPeriodMs int64 `json:"reporting_period_ms"`
-
 }
-
-
 
 // KPMActionConfig configures KPM actions.
 
 type KPMActionConfig struct {
+	Measurements []KPMMeasurement `json:"measurements"`
 
-	Measurements      []KPMMeasurement `json:"measurements"`
+	GranularityPeriod int64 `json:"granularity_period"`
 
-	GranularityPeriod int64            `json:"granularity_period"`
-
-	CellID            string           `json:"cell_id"`
-
+	CellID string `json:"cell_id"`
 }
-
-
 
 // KPMMeasurement defines a KPM measurement.
 
 type KPMMeasurement struct {
-
 	MeasName string `json:"meas_name"`
 
-	MeasID   int    `json:"meas_id"`
-
+	MeasID int `json:"meas_id"`
 }
-
-
 
 // KPMReport represents a KPM measurement report.
 
 type KPMReport struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp    time.Time          `json:"timestamp"`
+	CellID string `json:"cell_id"`
 
-	CellID       string             `json:"cell_id"`
-
-	UECount      int                `json:"ue_count"`
+	UECount int `json:"ue_count"`
 
 	Measurements map[string]float64 `json:"measurements"`
-
 }
-
-
 
 // E2SMKPMEventTriggerDefinition represents KPM event trigger.
 
 type E2SMKPMEventTriggerDefinition struct {
-
 	EventDefinitionFormats *E2SMKPMEventTriggerDefinitionFormat1 `json:"event_definition_formats"`
-
 }
-
-
 
 // E2SMKPMEventTriggerDefinitionFormat1 represents format 1.
 
 type E2SMKPMEventTriggerDefinitionFormat1 struct {
-
 	ReportingPeriod int64 `json:"reporting_period"`
-
 }
-
-
 
 // E2SMKPMActionDefinition represents KPM action definition.
 
 type E2SMKPMActionDefinition struct {
-
 	ActionDefinitionFormats *E2SMKPMActionDefinitionFormat1 `json:"action_definition_formats"`
-
 }
-
-
 
 // E2SMKPMActionDefinitionFormat1 represents format 1.
 
 type E2SMKPMActionDefinitionFormat1 struct {
+	MeasInfoList []KPMMeasurement `json:"meas_info_list"`
 
-	MeasInfoList      []KPMMeasurement `json:"meas_info_list"`
+	GranularityPeriod int64 `json:"granularity_period"`
 
-	GranularityPeriod int64            `json:"granularity_period"`
-
-	CellObjectID      string           `json:"cell_object_id"`
-
+	CellObjectID string `json:"cell_object_id"`
 }
-
-
 
 // E2SMKPMIndicationHeader represents KPM indication header.
 
 type E2SMKPMIndicationHeader struct {
-
 	IndicationHeaderFormats *E2SMKPMIndicationHeaderFormat1 `json:"indication_header_formats"`
-
 }
-
-
 
 // E2SMKPMIndicationHeaderFormat1 represents format 1.
 
 type E2SMKPMIndicationHeaderFormat1 struct {
-
 	CollectionStartTime time.Time `json:"collection_start_time"`
 
-	CellObjectID        string    `json:"cell_object_id"`
-
+	CellObjectID string `json:"cell_object_id"`
 }
-
-
 
 // E2SMKPMIndicationMessage represents KPM indication message.
 
 type E2SMKPMIndicationMessage struct {
-
 	IndicationMessageFormat *E2SMKPMIndicationMessageFormat1 `json:"indication_message_format"`
-
 }
-
-
 
 // E2SMKPMIndicationMessageFormat1 represents format 1.
 
 type E2SMKPMIndicationMessageFormat1 struct {
-
-	MeasDataList        []MeasurementData    `json:"meas_data_list"`
+	MeasDataList []MeasurementData `json:"meas_data_list"`
 
 	UEMeasurementReport *UEMeasurementReport `json:"ue_measurement_report,omitempty"`
-
 }
-
-
 
 // MeasurementData represents measurement data.
 
 type MeasurementData struct {
-
 	MeasRecordList []MeasurementRecord `json:"meas_record_list"`
-
 }
-
-
 
 // MeasurementRecord represents a measurement record.
 
 type MeasurementRecord struct {
-
-	MeasName  string  `json:"meas_name"`
+	MeasName string `json:"meas_name"`
 
 	MeasValue float64 `json:"meas_value"`
-
 }
-
-
 
 // UEMeasurementReport represents UE measurement report.
 
 type UEMeasurementReport struct {
-
 	UECount int `json:"ue_count"`
-
 }
-
-
 
 // CreateEventTrigger creates a KPM event trigger definition.
 
@@ -283,25 +197,17 @@ func (kpm *KPMServiceModel) CreateEventTrigger(config interface{}) ([]byte, erro
 
 	}
 
-
-
 	trigger := &E2SMKPMEventTriggerDefinition{
 
 		EventDefinitionFormats: &E2SMKPMEventTriggerDefinitionFormat1{
 
 			ReportingPeriod: cfg.ReportingPeriodMs,
-
 		},
-
 	}
-
-
 
 	return json.Marshal(trigger)
 
 }
-
-
 
 // CreateActionDefinition creates a KPM action definition.
 
@@ -315,29 +221,21 @@ func (kpm *KPMServiceModel) CreateActionDefinition(config interface{}) ([]byte, 
 
 	}
 
-
-
 	action := &E2SMKPMActionDefinition{
 
 		ActionDefinitionFormats: &E2SMKPMActionDefinitionFormat1{
 
-			MeasInfoList:      cfg.Measurements,
+			MeasInfoList: cfg.Measurements,
 
 			GranularityPeriod: cfg.GranularityPeriod,
 
-			CellObjectID:      cfg.CellID,
-
+			CellObjectID: cfg.CellID,
 		},
-
 	}
-
-
 
 	return json.Marshal(action)
 
 }
-
-
 
 // ParseIndication parses a KPM indication message.
 
@@ -353,8 +251,6 @@ func (kpm *KPMServiceModel) ParseIndication(header, message []byte) (interface{}
 
 	}
 
-
-
 	// Parse indication message.
 
 	indMessage := &E2SMKPMIndicationMessage{}
@@ -365,21 +261,16 @@ func (kpm *KPMServiceModel) ParseIndication(header, message []byte) (interface{}
 
 	}
 
-
-
 	// Convert to KPM report.
 
 	report := &KPMReport{
 
-		Timestamp:    time.Now(),
+		Timestamp: time.Now(),
 
-		CellID:       indHeader.IndicationHeaderFormats.CellObjectID,
+		CellID: indHeader.IndicationHeaderFormats.CellObjectID,
 
 		Measurements: make(map[string]float64),
-
 	}
-
-
 
 	if indMessage.IndicationMessageFormat != nil {
 
@@ -388,8 +279,6 @@ func (kpm *KPMServiceModel) ParseIndication(header, message []byte) (interface{}
 			report.UECount = indMessage.IndicationMessageFormat.UEMeasurementReport.UECount
 
 		}
-
-
 
 		// Extract measurements.
 
@@ -405,13 +294,9 @@ func (kpm *KPMServiceModel) ParseIndication(header, message []byte) (interface{}
 
 	}
 
-
-
 	return report, nil
 
 }
-
-
 
 // CreateControlHeader is not applicable for KPM (measurement-only model).
 
@@ -423,8 +308,6 @@ func (kpm *KPMServiceModel) CreateControlHeader(_ interface{}) ([]byte, error) {
 
 }
 
-
-
 // CreateControlMessage is not applicable for KPM.
 
 // FIXME: Renamed 'params' to avoid unused parameter warning.
@@ -435,8 +318,6 @@ func (kpm *KPMServiceModel) CreateControlMessage(_ interface{}) ([]byte, error) 
 
 }
 
-
-
 // ParseControlOutcome is not applicable for KPM.
 
 // FIXME: Renamed 'outcome' to avoid unused parameter warning.
@@ -446,8 +327,6 @@ func (kpm *KPMServiceModel) ParseControlOutcome(_ []byte) (interface{}, error) {
 	return nil, fmt.Errorf("KPM service model does not support control procedures")
 
 }
-
-
 
 // ValidateEventTrigger validates a KPM event trigger.
 
@@ -461,15 +340,11 @@ func (kpm *KPMServiceModel) ValidateEventTrigger(trigger []byte) error {
 
 	}
 
-
-
 	if eventTrigger.EventDefinitionFormats == nil {
 
 		return fmt.Errorf("event definition formats missing")
 
 	}
-
-
 
 	if eventTrigger.EventDefinitionFormats.ReportingPeriod < 10 {
 
@@ -477,13 +352,9 @@ func (kpm *KPMServiceModel) ValidateEventTrigger(trigger []byte) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateActionDefinition validates a KPM action definition.
 
@@ -497,15 +368,11 @@ func (kpm *KPMServiceModel) ValidateActionDefinition(action []byte) error {
 
 	}
 
-
-
 	if actionDef.ActionDefinitionFormats == nil {
 
 		return fmt.Errorf("action definition formats missing")
 
 	}
-
-
 
 	if len(actionDef.ActionDefinitionFormats.MeasInfoList) == 0 {
 
@@ -513,13 +380,9 @@ func (kpm *KPMServiceModel) ValidateActionDefinition(action []byte) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateControlMessage is not applicable for KPM.
 
@@ -530,8 +393,6 @@ func (kpm *KPMServiceModel) ValidateControlMessage(_ []byte) error {
 	return fmt.Errorf("KPM service model does not support control procedures")
 
 }
-
-
 
 // GetSupportedMeasurements returns supported KPM measurements.
 
@@ -549,8 +410,6 @@ func (kpm *KPMServiceModel) GetSupportedMeasurements() []KPMMeasurement {
 
 		{MeasName: "RRC.ConnMax", MeasID: 4},
 
-
-
 		// DRB measurements.
 
 		{MeasName: "DRB.PdcpSduVolumeDL", MeasID: 10},
@@ -563,8 +422,6 @@ func (kpm *KPMServiceModel) GetSupportedMeasurements() []KPMMeasurement {
 
 		{MeasName: "DRB.UEThpUl", MeasID: 14},
 
-
-
 		// PRB measurements.
 
 		{MeasName: "RRU.PrbTotDl", MeasID: 20},
@@ -575,8 +432,6 @@ func (kpm *KPMServiceModel) GetSupportedMeasurements() []KPMMeasurement {
 
 		{MeasName: "RRU.PrbUsedUl", MeasID: 23},
 
-
-
 		// QoS measurements.
 
 		{MeasName: "QosFlow.PdcpPduVolumeDL_Filter", MeasID: 30},
@@ -585,8 +440,6 @@ func (kpm *KPMServiceModel) GetSupportedMeasurements() []KPMMeasurement {
 
 		{MeasName: "QosFlow.PdcpSduDelayDL", MeasID: 32},
 
-
-
 		// Slice measurements.
 
 		{MeasName: "SNSSAI.DrbNumMean", MeasID: 40},
@@ -594,12 +447,9 @@ func (kpm *KPMServiceModel) GetSupportedMeasurements() []KPMMeasurement {
 		{MeasName: "SNSSAI.PdcpSduVolumeDL", MeasID: 41},
 
 		{MeasName: "SNSSAI.PdcpSduVolumeUL", MeasID: 42},
-
 	}
 
 }
-
-
 
 // CreateKPMSubscription creates a complete KPM subscription.
 
@@ -613,8 +463,6 @@ func (kpm *KPMServiceModel) CreateKPMSubscription(nodeID, cellID string, measure
 
 	}
 
-
-
 	eventTrigger, err := kpm.CreateEventTrigger(triggerConfig)
 
 	if err != nil {
@@ -623,15 +471,11 @@ func (kpm *KPMServiceModel) CreateKPMSubscription(nodeID, cellID string, measure
 
 	}
 
-
-
 	// Create action for measurements.
 
 	measList := make([]KPMMeasurement, 0, len(measurements))
 
 	supportedMeas := kpm.GetSupportedMeasurements()
-
-
 
 	for _, measName := range measurements {
 
@@ -649,19 +493,14 @@ func (kpm *KPMServiceModel) CreateKPMSubscription(nodeID, cellID string, measure
 
 	}
 
-
-
 	actionConfig := &KPMActionConfig{
 
-		Measurements:      measList,
+		Measurements: measList,
 
 		GranularityPeriod: 1000, // 1 second
 
-		CellID:            cellID,
-
+		CellID: cellID,
 	}
-
-
 
 	actionDef, err := kpm.CreateActionDefinition(actionConfig)
 
@@ -671,35 +510,31 @@ func (kpm *KPMServiceModel) CreateKPMSubscription(nodeID, cellID string, measure
 
 	}
 
-
-
 	// Create subscription.
 
 	subscription := &e2.E2Subscription{
 
 		SubscriptionID: fmt.Sprintf("kpm-%s-%d", nodeID, time.Now().Unix()),
 
-		RequestorID:    "kpm-xapp",
+		RequestorID: "kpm-xapp",
 
-		RanFunctionID:  1, // KPM function ID
+		RanFunctionID: 1, // KPM function ID
 
 		EventTriggers: []e2.E2EventTrigger{
 
 			{
 
-				TriggerType:     "PERIODIC",
+				TriggerType: "PERIODIC",
 
 				ReportingPeriod: time.Second,
-
 			},
-
 		},
 
 		Actions: []e2.E2Action{
 
 			{
 
-				ActionID:   1,
+				ActionID: 1,
 
 				ActionType: "REPORT",
 
@@ -707,12 +542,9 @@ func (kpm *KPMServiceModel) CreateKPMSubscription(nodeID, cellID string, measure
 
 					"event_trigger": json.RawMessage(eventTrigger),
 
-					"action_def":    json.RawMessage(actionDef),
-
+					"action_def": json.RawMessage(actionDef),
 				},
-
 			},
-
 		},
 
 		ReportingPeriod: time.Second,
@@ -720,18 +552,13 @@ func (kpm *KPMServiceModel) CreateKPMSubscription(nodeID, cellID string, measure
 		Status: e2.E2SubscriptionStatus{
 
 			State: "PENDING",
-
 		},
 
 		CreatedAt: time.Now(),
 
 		UpdatedAt: time.Now(),
-
 	}
-
-
 
 	return subscription, nil
 
 }
-

@@ -1,75 +1,50 @@
 // Package testutils provides mock implementations and test utilities for the Nephoran operator.
 
-
 package testutils
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"net/http"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
 
-
-
 	"k8s.io/client-go/tools/record"
-
 )
-
-
 
 // MockDependencies implements the Dependencies interface for testing.
 
 type MockDependencies struct {
+	gitClient *MockGitClient
 
-	gitClient            *MockGitClient
+	llmClient *MockLLMClient
 
-	llmClient            *MockLLMClient
+	packageGenerator *MockPackageGenerator
 
-	packageGenerator     *MockPackageGenerator
+	httpClient *http.Client
 
-	httpClient           *http.Client
-
-	eventRecorder        *record.FakeRecorder
+	eventRecorder *record.FakeRecorder
 
 	telecomKnowledgeBase *telecom.TelecomKnowledgeBase
 
-	metricsCollector     *MockMetricsCollector
-
-
+	metricsCollector *MockMetricsCollector
 
 	// Control behavior.
 
-	simulateErrors  map[string]error
+	simulateErrors map[string]error
 
 	operationDelays map[string]time.Duration
 
-	callCounts      map[string]int
+	callCounts map[string]int
 
-	mu              sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewMockDependencies creates a new mock dependencies instance.
 
@@ -77,29 +52,26 @@ func NewMockDependencies() *MockDependencies {
 
 	return &MockDependencies{
 
-		gitClient:        NewMockGitClient(),
+		gitClient: NewMockGitClient(),
 
-		llmClient:        NewMockLLMClient(),
+		llmClient: NewMockLLMClient(),
 
 		packageGenerator: NewMockPackageGenerator(),
 
-		httpClient:       &http.Client{Timeout: 30 * time.Second},
+		httpClient: &http.Client{Timeout: 30 * time.Second},
 
-		eventRecorder:    record.NewFakeRecorder(100),
+		eventRecorder: record.NewFakeRecorder(100),
 
 		metricsCollector: NewMockMetricsCollector(),
 
-		simulateErrors:   make(map[string]error),
+		simulateErrors: make(map[string]error),
 
-		operationDelays:  make(map[string]time.Duration),
+		operationDelays: make(map[string]time.Duration),
 
-		callCounts:       make(map[string]int),
-
+		callCounts: make(map[string]int),
 	}
 
 }
-
-
 
 // GetGitClient returns the mock Git client interface.
 
@@ -111,8 +83,6 @@ func (m *MockDependencies) GetGitClient() git.ClientInterface {
 
 }
 
-
-
 // GetLLMClient returns the mock LLM client interface.
 
 func (m *MockDependencies) GetLLMClient() shared.ClientInterface {
@@ -122,8 +92,6 @@ func (m *MockDependencies) GetLLMClient() shared.ClientInterface {
 	return m.llmClient
 
 }
-
-
 
 // GetPackageGenerator returns a mock Nephio package generator.
 
@@ -135,8 +103,6 @@ func (m *MockDependencies) GetPackageGenerator() *nephio.PackageGenerator {
 
 }
 
-
-
 // GetHTTPClient performs gethttpclient operation.
 
 func (m *MockDependencies) GetHTTPClient() *http.Client {
@@ -147,8 +113,6 @@ func (m *MockDependencies) GetHTTPClient() *http.Client {
 
 }
 
-
-
 // GetEventRecorder performs geteventrecorder operation.
 
 func (m *MockDependencies) GetEventRecorder() record.EventRecorder {
@@ -158,8 +122,6 @@ func (m *MockDependencies) GetEventRecorder() record.EventRecorder {
 	return m.eventRecorder
 
 }
-
-
 
 // GetTelecomKnowledgeBase performs gettelecomknowledgebase operation.
 
@@ -177,8 +139,6 @@ func (m *MockDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBa
 
 }
 
-
-
 // GetMetricsCollector performs getmetricscollector operation.
 
 func (m *MockDependencies) GetMetricsCollector() *monitoring.MetricsCollector {
@@ -188,8 +148,6 @@ func (m *MockDependencies) GetMetricsCollector() *monitoring.MetricsCollector {
 	return &monitoring.MetricsCollector{} // Return a real instance for simplicity
 
 }
-
-
 
 // Control methods.
 
@@ -203,8 +161,6 @@ func (m *MockDependencies) SetError(operation string, err error) {
 
 }
 
-
-
 // SetDelay performs setdelay operation.
 
 func (m *MockDependencies) SetDelay(operation string, delay time.Duration) {
@@ -216,8 +172,6 @@ func (m *MockDependencies) SetDelay(operation string, delay time.Duration) {
 	m.operationDelays[operation] = delay
 
 }
-
-
 
 // GetCallCount performs getcallcount operation.
 
@@ -231,8 +185,6 @@ func (m *MockDependencies) GetCallCount(operation string) int {
 
 }
 
-
-
 func (m *MockDependencies) incrementCallCount(operation string) {
 
 	m.mu.Lock()
@@ -243,8 +195,6 @@ func (m *MockDependencies) incrementCallCount(operation string) {
 
 }
 
-
-
 func (m *MockDependencies) simulateDelay(operation string) {
 
 	m.mu.RLock()
@@ -253,8 +203,6 @@ func (m *MockDependencies) simulateDelay(operation string) {
 
 	m.mu.RUnlock()
 
-
-
 	if exists && delay > 0 {
 
 		time.Sleep(delay)
@@ -262,8 +210,6 @@ func (m *MockDependencies) simulateDelay(operation string) {
 	}
 
 }
-
-
 
 func (m *MockDependencies) checkError(operation string) error {
 
@@ -275,25 +221,19 @@ func (m *MockDependencies) checkError(operation string) error {
 
 }
 
-
-
 // MockGitClient implements git.ClientInterface for testing.
 
 type MockGitClient struct {
-
-	commits     []string
+	commits []string
 
 	pushResults map[string]error
 
 	pullResults map[string]error
 
-	files       map[string]string
+	files map[string]string
 
-	mu          sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewMockGitClient performs newmockgitclient operation.
 
@@ -301,19 +241,16 @@ func NewMockGitClient() *MockGitClient {
 
 	return &MockGitClient{
 
-		commits:     make([]string, 0),
+		commits: make([]string, 0),
 
 		pushResults: make(map[string]error),
 
 		pullResults: make(map[string]error),
 
-		files:       make(map[string]string),
-
+		files: make(map[string]string),
 	}
 
 }
-
-
 
 // Clone performs clone operation.
 
@@ -327,8 +264,6 @@ func (m *MockGitClient) Clone(ctx context.Context, url, branch, path string) err
 
 }
 
-
-
 // CommitAndPush performs commitandpush operation.
 
 func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (string, error) {
@@ -337,21 +272,15 @@ func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (
 
 	defer m.mu.Unlock()
 
-
-
 	commitHash := fmt.Sprintf("commit-%d", len(m.commits))
 
 	m.commits = append(m.commits, commitHash)
-
-
 
 	for path, content := range files {
 
 		m.files[path] = content
 
 	}
-
-
 
 	if err := m.pushResults["CommitAndPush"]; err != nil {
 
@@ -362,8 +291,6 @@ func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (
 	return commitHash, nil
 
 }
-
-
 
 // Pull performs pull operation.
 
@@ -377,8 +304,6 @@ func (m *MockGitClient) Pull(ctx context.Context, repoPath string) error {
 
 }
 
-
-
 // CommitAndPushChanges performs commitandpushchanges operation.
 
 func (m *MockGitClient) CommitAndPushChanges(message string) error {
@@ -387,13 +312,9 @@ func (m *MockGitClient) CommitAndPushChanges(message string) error {
 
 	defer m.mu.Unlock()
 
-
-
 	commitHash := fmt.Sprintf("commit-%d", len(m.commits))
 
 	m.commits = append(m.commits, commitHash)
-
-
 
 	if err := m.pushResults["CommitAndPushChanges"]; err != nil {
 
@@ -404,8 +325,6 @@ func (m *MockGitClient) CommitAndPushChanges(message string) error {
 	return nil
 
 }
-
-
 
 // InitRepo performs initrepo operation.
 
@@ -419,8 +338,6 @@ func (m *MockGitClient) InitRepo() error {
 
 }
 
-
-
 // RemoveDirectory performs removedirectory operation.
 
 func (m *MockGitClient) RemoveDirectory(path, commitMessage string) error {
@@ -433,8 +350,6 @@ func (m *MockGitClient) RemoveDirectory(path, commitMessage string) error {
 
 }
 
-
-
 // CommitFiles performs commitfiles operation.
 
 func (m *MockGitClient) CommitFiles(files []string, msg string) error {
@@ -443,13 +358,9 @@ func (m *MockGitClient) CommitFiles(files []string, msg string) error {
 
 	defer m.mu.Unlock()
 
-
-
 	commitHash := fmt.Sprintf("commit-%d", len(m.commits))
 
 	m.commits = append(m.commits, commitHash)
-
-
 
 	if err := m.pushResults["CommitFiles"]; err != nil {
 
@@ -460,8 +371,6 @@ func (m *MockGitClient) CommitFiles(files []string, msg string) error {
 	return nil
 
 }
-
-
 
 // CreateBranch performs createbranch operation.
 
@@ -475,8 +384,6 @@ func (m *MockGitClient) CreateBranch(name string) error {
 
 }
 
-
-
 // SwitchBranch performs switchbranch operation.
 
 func (m *MockGitClient) SwitchBranch(name string) error {
@@ -488,8 +395,6 @@ func (m *MockGitClient) SwitchBranch(name string) error {
 	return m.pushResults["SwitchBranch"]
 
 }
-
-
 
 // GetCurrentBranch performs getcurrentbranch operation.
 
@@ -509,8 +414,6 @@ func (m *MockGitClient) GetCurrentBranch() (string, error) {
 
 }
 
-
-
 // ListBranches performs listbranches operation.
 
 func (m *MockGitClient) ListBranches() ([]string, error) {
@@ -528,8 +431,6 @@ func (m *MockGitClient) ListBranches() ([]string, error) {
 	return []string{"main", "dev"}, nil
 
 }
-
-
 
 // GetFileContent performs getfilecontent operation.
 
@@ -555,43 +456,33 @@ func (m *MockGitClient) GetFileContent(path string) ([]byte, error) {
 
 }
 
-
-
 // LLMResponse represents a response from the LLM processor.
 
 type LLMResponse struct {
+	IntentType string `json:"intent_type"`
 
-	IntentType     string                 `json:"intent_type"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence     float64                `json:"confidence"`
+	Parameters map[string]interface{} `json:"parameters"`
 
-	Parameters     map[string]interface{} `json:"parameters"`
+	Manifests map[string]interface{} `json:"manifests"`
 
-	Manifests      map[string]interface{} `json:"manifests"`
+	ProcessingTime int64 `json:"processing_time"`
 
-	ProcessingTime int64                  `json:"processing_time"`
+	TokensUsed int `json:"tokens_used"`
 
-	TokensUsed     int                    `json:"tokens_used"`
-
-	Model          string                 `json:"model"`
-
+	Model string `json:"model"`
 }
-
-
 
 // MockLLMClient implements shared.ClientInterface for testing.
 
 type MockLLMClient struct {
-
 	responses map[string]*LLMResponse
 
-	errors    map[string]error
+	errors map[string]error
 
-	mu        sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewMockLLMClient performs newmockllmclient operation.
 
@@ -601,13 +492,10 @@ func NewMockLLMClient() *MockLLMClient {
 
 		responses: make(map[string]*LLMResponse),
 
-		errors:    make(map[string]error),
-
+		errors: make(map[string]error),
 	}
 
 }
-
-
 
 // ProcessIntent performs processintent operation.
 
@@ -617,15 +505,11 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 
 	defer m.mu.RUnlock()
 
-
-
 	if err := m.errors["ProcessIntent"]; err != nil {
 
 		return "", err
 
 	}
-
-
 
 	if response := m.responses["ProcessIntent"]; response != nil {
 
@@ -633,15 +517,11 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 
 	}
 
-
-
 	// Default response for successful processing.
 
 	return "Intent processed successfully: 5G-Core-AMF with 95% confidence", nil
 
 }
-
-
 
 // ProcessIntentStream performs processintentstream operation.
 
@@ -651,15 +531,11 @@ func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 
 	defer m.mu.RUnlock()
 
-
-
 	if err := m.errors["ProcessIntentStream"]; err != nil {
 
 		return err
 
 	}
-
-
 
 	// Send mock streaming chunks.
 
@@ -673,13 +549,9 @@ func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 
 	}()
 
-
-
 	return nil
 
 }
-
-
 
 // GetSupportedModels performs getsupportedmodels operation.
 
@@ -689,31 +561,26 @@ func (m *MockLLMClient) GetSupportedModels() []string {
 
 }
 
-
-
 // GetModelCapabilities performs getmodelcapabilities operation.
 
 func (m *MockLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
 
 	return &shared.ModelCapabilities{
 
-		MaxTokens:         4096,
+		MaxTokens: 4096,
 
-		SupportsChat:      true,
+		SupportsChat: true,
 
-		SupportsFunction:  true,
+		SupportsFunction: true,
 
 		SupportsStreaming: true,
 
-		CostPerToken:      0.0001,
+		CostPerToken: 0.0001,
 
-		Features:          make(map[string]interface{}),
-
+		Features: make(map[string]interface{}),
 	}, nil
 
 }
-
-
 
 // ValidateModel performs validatemodel operation.
 
@@ -735,8 +602,6 @@ func (m *MockLLMClient) ValidateModel(modelName string) error {
 
 }
 
-
-
 // EstimateTokens performs estimatetokens operation.
 
 func (m *MockLLMClient) EstimateTokens(text string) int {
@@ -746,8 +611,6 @@ func (m *MockLLMClient) EstimateTokens(text string) int {
 	return len(text) / 4
 
 }
-
-
 
 // GetMaxTokens performs getmaxtokens operation.
 
@@ -775,8 +638,6 @@ func (m *MockLLMClient) GetMaxTokens(modelName string) int {
 
 }
 
-
-
 // Close performs close operation.
 
 func (m *MockLLMClient) Close() error {
@@ -795,8 +656,6 @@ func (m *MockLLMClient) Close() error {
 
 }
 
-
-
 // SetResponse performs setresponse operation.
 
 func (m *MockLLMClient) SetResponse(operation string, response *LLMResponse) {
@@ -808,8 +667,6 @@ func (m *MockLLMClient) SetResponse(operation string, response *LLMResponse) {
 	m.responses[operation] = response
 
 }
-
-
 
 // SetError performs seterror operation.
 
@@ -823,21 +680,15 @@ func (m *MockLLMClient) SetError(operation string, err error) {
 
 }
 
-
-
 // MockPackageGenerator implements basic package generation for testing.
 
 type MockPackageGenerator struct {
-
 	packages map[string]string
 
-	errors   map[string]error
+	errors map[string]error
 
-	mu       sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewMockPackageGenerator performs newmockpackagegenerator operation.
 
@@ -847,13 +698,10 @@ func NewMockPackageGenerator() *MockPackageGenerator {
 
 		packages: make(map[string]string),
 
-		errors:   make(map[string]error),
-
+		errors: make(map[string]error),
 	}
 
 }
-
-
 
 // GeneratePackage performs generatepackage operation.
 
@@ -863,15 +711,11 @@ func (m *MockPackageGenerator) GeneratePackage(intentType string, parameters map
 
 	defer m.mu.RUnlock()
 
-
-
 	if err := m.errors["GeneratePackage"]; err != nil {
 
 		return nil, err
 
 	}
-
-
 
 	// Generate mock package files.
 
@@ -924,16 +768,11 @@ spec:
       - name: ` + intentType + `
 
         image: ` + intentType + `:latest`,
-
 	}
-
-
 
 	return files, nil
 
 }
-
-
 
 // SetError performs seterror operation.
 
@@ -947,21 +786,15 @@ func (m *MockPackageGenerator) SetError(operation string, err error) {
 
 }
 
-
-
 // MockMetricsCollector implements metrics collection for testing.
 
 type MockMetricsCollector struct {
-
 	metrics map[string]float64
 
-	labels  map[string]map[string]string
+	labels map[string]map[string]string
 
-	mu      sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewMockMetricsCollector performs newmockmetricscollector operation.
 
@@ -971,13 +804,10 @@ func NewMockMetricsCollector() *MockMetricsCollector {
 
 		metrics: make(map[string]float64),
 
-		labels:  make(map[string]map[string]string),
-
+		labels: make(map[string]map[string]string),
 	}
 
 }
-
-
 
 // RecordMetric performs recordmetric operation.
 
@@ -993,8 +823,6 @@ func (m *MockMetricsCollector) RecordMetric(name string, value float64, labels m
 
 }
 
-
-
 // GetMetric performs getmetric operation.
 
 func (m *MockMetricsCollector) GetMetric(name string) float64 {
@@ -1006,8 +834,6 @@ func (m *MockMetricsCollector) GetMetric(name string) float64 {
 	return m.metrics[name]
 
 }
-
-
 
 // GetLabels performs getlabels operation.
 
@@ -1021,21 +847,15 @@ func (m *MockMetricsCollector) GetLabels(name string) map[string]string {
 
 }
 
-
-
 // MockHTTPClient provides HTTP client mocking utilities.
 
 type MockHTTPClient struct {
-
 	responses map[string]*http.Response
 
-	errors    map[string]error
+	errors map[string]error
 
-	mu        sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewMockHTTPClient performs newmockhttpclient operation.
 
@@ -1045,13 +865,10 @@ func NewMockHTTPClient() *MockHTTPClient {
 
 		responses: make(map[string]*http.Response),
 
-		errors:    make(map[string]error),
-
+		errors: make(map[string]error),
 	}
 
 }
-
-
 
 // Helper functions for creating mock responses.
 
@@ -1065,14 +882,13 @@ func CreateMockLLMResponse(intentType string, confidence float64) *LLMResponse {
 
 		Parameters: map[string]interface{}{
 
-			"replicas":       3,
+			"replicas": 3,
 
-			"scaling":        true,
+			"scaling": true,
 
-			"cpu_request":    "500m",
+			"cpu_request": "500m",
 
 			"memory_request": "1Gi",
-
 		},
 
 		Manifests: map[string]interface{}{
@@ -1081,43 +897,33 @@ func CreateMockLLMResponse(intentType string, confidence float64) *LLMResponse {
 
 				"apiVersion": "apps/v1",
 
-				"kind":       "Deployment",
+				"kind": "Deployment",
 
 				"metadata": map[string]interface{}{
 
 					"name": intentType + "-deployment",
-
 				},
-
 			},
-
 		},
 
 		ProcessingTime: 1500,
 
-		TokensUsed:     250,
+		TokensUsed: 250,
 
-		Model:          "gpt-4o-mini",
-
+		Model: "gpt-4o-mini",
 	}
 
 }
 
-
-
 // Performance testing utilities.
 
 type PerformanceTracker struct {
-
 	startTimes map[string]time.Time
 
-	durations  map[string]time.Duration
+	durations map[string]time.Duration
 
-	mu         sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewPerformanceTracker performs newperformancetracker operation.
 
@@ -1127,13 +933,10 @@ func NewPerformanceTracker() *PerformanceTracker {
 
 		startTimes: make(map[string]time.Time),
 
-		durations:  make(map[string]time.Duration),
-
+		durations: make(map[string]time.Duration),
 	}
 
 }
-
-
 
 // Start performs start operation.
 
@@ -1147,8 +950,6 @@ func (p *PerformanceTracker) Start(operation string) {
 
 }
 
-
-
 // Stop performs stop operation.
 
 func (p *PerformanceTracker) Stop(operation string) time.Duration {
@@ -1156,8 +957,6 @@ func (p *PerformanceTracker) Stop(operation string) time.Duration {
 	p.mu.Lock()
 
 	defer p.mu.Unlock()
-
-
 
 	if start, exists := p.startTimes[operation]; exists {
 
@@ -1175,8 +974,6 @@ func (p *PerformanceTracker) Stop(operation string) time.Duration {
 
 }
 
-
-
 // GetDuration performs getduration operation.
 
 func (p *PerformanceTracker) GetDuration(operation string) time.Duration {
@@ -1189,8 +986,6 @@ func (p *PerformanceTracker) GetDuration(operation string) time.Duration {
 
 }
 
-
-
 // GetAllDurations performs getalldurations operation.
 
 func (p *PerformanceTracker) GetAllDurations() map[string]time.Duration {
@@ -1198,8 +993,6 @@ func (p *PerformanceTracker) GetAllDurations() map[string]time.Duration {
 	p.mu.RLock()
 
 	defer p.mu.RUnlock()
-
-
 
 	result := make(map[string]time.Duration)
 
@@ -1213,25 +1006,19 @@ func (p *PerformanceTracker) GetAllDurations() map[string]time.Duration {
 
 }
 
-
-
 // Concurrent testing utilities.
 
 type ConcurrentTestRunner struct {
-
-	workers    int
+	workers int
 
 	operations []func() error
 
-	results    []error
+	results []error
 
-	mu         sync.Mutex
+	mu sync.Mutex
 
-	wg         sync.WaitGroup
-
+	wg sync.WaitGroup
 }
-
-
 
 // NewConcurrentTestRunner performs newconcurrenttestrunner operation.
 
@@ -1239,17 +1026,14 @@ func NewConcurrentTestRunner(workers int) *ConcurrentTestRunner {
 
 	return &ConcurrentTestRunner{
 
-		workers:    workers,
+		workers: workers,
 
 		operations: make([]func() error, 0),
 
-		results:    make([]error, 0),
-
+		results: make([]error, 0),
 	}
 
 }
-
-
 
 // AddOperation performs addoperation operation.
 
@@ -1259,15 +1043,11 @@ func (c *ConcurrentTestRunner) AddOperation(op func() error) {
 
 }
 
-
-
 // Run performs run operation.
 
 func (c *ConcurrentTestRunner) Run() []error {
 
 	jobs := make(chan func() error, len(c.operations))
-
-
 
 	// Start workers.
 
@@ -1279,8 +1059,6 @@ func (c *ConcurrentTestRunner) Run() []error {
 
 	}
 
-
-
 	// Send jobs.
 
 	for _, op := range c.operations {
@@ -1291,25 +1069,17 @@ func (c *ConcurrentTestRunner) Run() []error {
 
 	close(jobs)
 
-
-
 	// Wait for completion.
 
 	c.wg.Wait()
-
-
 
 	return c.results
 
 }
 
-
-
 func (c *ConcurrentTestRunner) worker(jobs <-chan func() error) {
 
 	defer c.wg.Done()
-
-
 
 	for op := range jobs {
 
@@ -1325,21 +1095,15 @@ func (c *ConcurrentTestRunner) worker(jobs <-chan func() error) {
 
 }
 
-
-
 // Memory testing utilities.
 
 type MemoryTracker struct {
-
 	initialMem uint64
 
-	peakMem    uint64
+	peakMem uint64
 
-	mu         sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewMemoryTracker performs newmemorytracker operation.
 
@@ -1348,8 +1112,6 @@ func NewMemoryTracker() *MemoryTracker {
 	return &MemoryTracker{}
 
 }
-
-
 
 // Start performs start operation.
 
@@ -1360,8 +1122,6 @@ func (m *MemoryTracker) Start() {
 	// This is a simplified version for the test framework.
 
 }
-
-
 
 // Stop performs stop operation.
 
@@ -1376,4 +1136,3 @@ func (m *MemoryTracker) Stop() uint64 {
 	return m.peakMem
 
 }
-

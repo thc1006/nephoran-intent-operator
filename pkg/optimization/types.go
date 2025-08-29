@@ -28,24 +28,13 @@ limitations under the License.
 
 */
 
-
-
-
 package optimization
 
-
-
 import (
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-
 )
-
-
 
 // ComponentType is an alias for shared.ComponentType for backward compatibility.
 
@@ -53,13 +42,9 @@ import (
 
 type ComponentType = shared.ComponentType
 
-
-
 // OptimizationCategory represents different categories of optimizations.
 
 type OptimizationCategory string
-
-
 
 const (
 
@@ -94,16 +79,11 @@ const (
 	// CategoryTelecommunications holds categorytelecommunications value.
 
 	CategoryTelecommunications OptimizationCategory = "telecommunications"
-
 )
-
-
 
 // OptimizationPriority represents priority levels for optimizations.
 
 type OptimizationPriority string
-
-
 
 const (
 
@@ -122,16 +102,11 @@ const (
 	// PriorityLow holds prioritylow value.
 
 	PriorityLow OptimizationPriority = "low"
-
 )
-
-
 
 // SeverityLevel represents severity levels.
 
 type SeverityLevel string
-
-
 
 const (
 
@@ -154,16 +129,11 @@ const (
 	// SeverityInfo holds severityinfo value.
 
 	SeverityInfo SeverityLevel = "info"
-
 )
-
-
 
 // AutomationLevel defines levels of automation for implementation steps.
 
 type AutomationLevel string
-
-
 
 const (
 
@@ -182,108 +152,85 @@ const (
 	// AutomationAssisted holds automationassisted value.
 
 	AutomationAssisted AutomationLevel = "assisted"
-
 )
-
-
 
 // ExpectedBenefits represents expected benefits from optimization.
 
 type ExpectedBenefits struct {
+	LatencyReduction float64 `json:"latencyReduction"`
 
-	LatencyReduction       float64 `json:"latencyReduction"`
+	ThroughputIncrease float64 `json:"throughputIncrease"`
 
-	ThroughputIncrease     float64 `json:"throughputIncrease"`
+	ResourceSavings float64 `json:"resourceSavings"`
 
-	ResourceSavings        float64 `json:"resourceSavings"`
+	CostSavings float64 `json:"costSavings"`
 
-	CostSavings            float64 `json:"costSavings"`
+	EfficiencyGain float64 `json:"efficiencyGain,omitempty"`
 
-	EfficiencyGain         float64 `json:"efficiencyGain,omitempty"`
-
-	ErrorRateReduction     float64 `json:"errorRateReduction,omitempty"`
+	ErrorRateReduction float64 `json:"errorRateReduction,omitempty"`
 
 	ReliabilityImprovement float64 `json:"reliabilityImprovement"`
 
-	EnergyEfficiencyGain   float64 `json:"energyEfficiencyGain"`
-
-
+	EnergyEfficiencyGain float64 `json:"energyEfficiencyGain"`
 
 	// Telecom-specific benefits.
 
 	SignalingEfficiencyGain float64 `json:"signalingEfficiencyGain"`
 
-	SpectrumEfficiencyGain  float64 `json:"spectrumEfficiencyGain"`
+	SpectrumEfficiencyGain float64 `json:"spectrumEfficiencyGain"`
 
-	InteropImprovements     float64 `json:"interopImprovements"`
-
+	InteropImprovements float64 `json:"interopImprovements"`
 }
-
-
 
 // ImplementationStep represents a single implementation step.
 
 type ImplementationStep struct {
+	Order int `json:"order"`
 
-	Order           int             `json:"order"`
+	Name string `json:"name"`
 
-	Name            string          `json:"name"`
+	Description string `json:"description"`
 
-	Description     string          `json:"description"`
-
-	EstimatedTime   time.Duration   `json:"estimatedTime"`
+	EstimatedTime time.Duration `json:"estimatedTime"`
 
 	AutomationLevel AutomationLevel `json:"automationLevel"`
 
-	RequiredSkills  []string        `json:"requiredSkills,omitempty"`
+	RequiredSkills []string `json:"requiredSkills,omitempty"`
 
-	ValidationPoint bool            `json:"validationPoint,omitempty"`
+	ValidationPoint bool `json:"validationPoint,omitempty"`
 
-	RollbackAction  string          `json:"rollbackAction,omitempty"`
-
+	RollbackAction string `json:"rollbackAction,omitempty"`
 }
-
-
 
 // ConfidenceInterval represents a confidence interval for statistical data.
 
 type ConfidenceInterval struct {
+	Timestamp time.Time `json:"timestamp,omitempty"`
 
-	Timestamp       time.Time `json:"timestamp,omitempty"`
+	LowerBound float64 `json:"lowerBound"`
 
-	LowerBound      float64   `json:"lowerBound"`
+	UpperBound float64 `json:"upperBound"`
 
-	UpperBound      float64   `json:"upperBound"`
-
-	ConfidenceLevel float64   `json:"confidenceLevel"`
-
+	ConfidenceLevel float64 `json:"confidenceLevel"`
 }
-
-
 
 // ExpectedImpact represents the expected impact of optimization changes.
 
 type ExpectedImpact struct {
-
-	LatencyReduction   float64 `json:"latencyReduction"`
+	LatencyReduction float64 `json:"latencyReduction"`
 
 	ThroughputIncrease float64 `json:"throughputIncrease"`
 
-	ResourceSavings    float64 `json:"resourceSavings"`
+	ResourceSavings float64 `json:"resourceSavings"`
 
-	CostSavings        float64 `json:"costSavings"`
+	CostSavings float64 `json:"costSavings"`
 
-	EfficiencyGain     float64 `json:"efficiencyGain"`
-
+	EfficiencyGain float64 `json:"efficiencyGain"`
 }
-
-
 
 // ResourceType represents different types of resources.
 
 type ResourceType string
-
-
 
 const (
 
@@ -306,16 +253,11 @@ const (
 	// ResourceTypeCompute holds resourcetypecompute value.
 
 	ResourceTypeCompute ResourceType = "compute"
-
 )
-
-
 
 // RiskLevel represents different risk levels.
 
 type RiskLevel string
-
-
 
 const (
 
@@ -342,62 +284,49 @@ const (
 	// RiskLevelCritical holds risklevelcritical value.
 
 	RiskLevelCritical RiskLevel = "critical"
-
 )
-
-
 
 // OptimizationRecommendation represents a specific optimization recommendation.
 
 type OptimizationRecommendation struct {
+	ID string `json:"id"`
 
-	ID                  string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name                string                 `json:"name"`
+	Title string `json:"title"`
 
-	Title               string                 `json:"title"`
+	Description string `json:"description"`
 
-	Description         string                 `json:"description"`
+	Category OptimizationCategory `json:"category"`
 
-	Category            OptimizationCategory   `json:"category"`
+	Priority OptimizationPriority `json:"priority"`
 
-	Priority            OptimizationPriority   `json:"priority"`
+	Impact ExpectedBenefits `json:"impact"`
 
-	Impact              ExpectedBenefits       `json:"impact"`
+	RiskLevel RiskLevel `json:"riskLevel"`
 
-	RiskLevel           RiskLevel              `json:"riskLevel"`
+	RiskScore float64 `json:"riskScore"`
 
-	RiskScore           float64                `json:"riskScore"`
+	Steps []ImplementationStep `json:"steps"`
 
-	Steps               []ImplementationStep   `json:"steps"`
+	ImplementationSteps []ImplementationStep `json:"implementationSteps"`
 
-	ImplementationSteps []ImplementationStep   `json:"implementationSteps"`
+	Automation AutomationLevel `json:"automationLevel"`
 
-	Automation          AutomationLevel        `json:"automationLevel"`
-
-	Metadata            map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // OptimizationRecommendationEngine represents the engine that generates recommendations.
 
 type OptimizationRecommendationEngine interface {
-
 	GenerateRecommendations(ctx, data interface{}) ([]*OptimizationRecommendation, error)
 
 	UpdateRecommendations(recommendations []*OptimizationRecommendation) error
-
 }
-
-
 
 // RecommendationStrategyType represents different types of recommendation strategies.
 
 type RecommendationStrategyType string
-
-
 
 const (
 
@@ -412,58 +341,45 @@ const (
 	// RecommendationStrategyBalanced holds recommendationstrategybalanced value.
 
 	RecommendationStrategyBalanced RecommendationStrategyType = "balanced"
-
 )
-
-
 
 // ScenarioCondition represents a condition for scenario matching.
 
 type ScenarioCondition struct {
+	MetricName string `json:"metricName"`
 
-	MetricName    string             `json:"metricName"`
+	Operator ComparisonOperator `json:"operator"`
 
-	Operator      ComparisonOperator `json:"operator"`
+	Threshold interface{} `json:"threshold"`
 
-	Threshold     interface{}        `json:"threshold"`
-
-	ComponentType ComponentType      `json:"componentType"`
-
+	ComponentType ComponentType `json:"componentType"`
 }
-
-
 
 // RecommendationStrategy represents a comprehensive optimization strategy.
 
 type RecommendationStrategy struct {
+	Name string `json:"name"`
 
-	Name                string               `json:"name"`
+	Category OptimizationCategory `json:"category"`
 
-	Category            OptimizationCategory `json:"category"`
+	TargetComponent ComponentType `json:"targetComponent"`
 
-	TargetComponent     ComponentType        `json:"targetComponent"`
+	ApplicableScenarios []ScenarioCondition `json:"applicableScenarios"`
 
-	ApplicableScenarios []ScenarioCondition  `json:"applicableScenarios"`
-
-	ExpectedBenefits    *ExpectedBenefits    `json:"expectedBenefits"`
+	ExpectedBenefits *ExpectedBenefits `json:"expectedBenefits"`
 
 	ImplementationSteps []ImplementationStep `json:"implementationSteps"`
 
-	RiskLevel           RiskLevel            `json:"riskLevel"`
+	RiskLevel RiskLevel `json:"riskLevel"`
 
-	Confidence          float64              `json:"confidence"`
+	Confidence float64 `json:"confidence"`
 
-	EstimatedDuration   time.Duration        `json:"estimatedDuration"`
-
+	EstimatedDuration time.Duration `json:"estimatedDuration"`
 }
-
-
 
 // ComparisonOperator defines comparison operators for conditions.
 
 type ComparisonOperator string
-
-
 
 const (
 
@@ -490,10 +406,7 @@ const (
 	// OperatorBetween holds operatorbetween value.
 
 	OperatorBetween ComparisonOperator = "between"
-
 )
-
-
 
 // OptimizationKnowledgeBase contains optimization knowledge and best practices.
 
@@ -503,347 +416,286 @@ type OptimizationKnowledgeBase struct {
 
 	BestPractices map[shared.ComponentType][]*OptimizationBestPractice `json:"bestPractices"`
 
-
-
 	// Historical optimization results.
 
 	OptimizationHistory []*OptimizationHistoryEntry `json:"optimizationHistory"`
-
-
 
 	// Common bottlenecks and their solutions.
 
 	KnownBottlenecks map[string]*BottleneckSolution `json:"knownBottlenecks"`
 
-
-
 	// Telecom-specific optimization rules.
 
 	TelecomRules []*TelecomOptimizationRule `json:"telecomRules"`
-
-
 
 	// ML model metadata.
 
 	ModelMetadata map[string]*MLModelMetadata `json:"modelMetadata"`
 
-
-
 	// Compliance requirements.
 
 	ComplianceRequirements []*ComplianceRequirement `json:"complianceRequirements"`
 
-
-
 	// Last updated timestamp.
 
 	LastUpdated time.Time `json:"lastUpdated"`
-
 }
-
-
 
 // OptimizationBestPractice represents an optimization best practice.
 
 type OptimizationBestPractice struct {
+	ID string `json:"id"`
 
-	ID              string               `json:"id"`
+	Name string `json:"name"`
 
-	Name            string               `json:"name"`
+	Description string `json:"description"`
 
-	Description     string               `json:"description"`
+	ComponentType shared.ComponentType `json:"componentType"`
 
-	ComponentType   shared.ComponentType `json:"componentType"`
+	Category OptimizationCategory `json:"category"`
 
-	Category        OptimizationCategory `json:"category"`
+	Priority int `json:"priority"`
 
-	Priority        int                  `json:"priority"`
+	ApplicableWhen []string `json:"applicableWhen"`
 
-	ApplicableWhen  []string             `json:"applicableWhen"`
+	Implementation string `json:"implementation"`
 
-	Implementation  string               `json:"implementation"`
+	ExpectedBenefit float64 `json:"expectedBenefit"`
 
-	ExpectedBenefit float64              `json:"expectedBenefit"`
+	RiskLevel string `json:"riskLevel"`
 
-	RiskLevel       string               `json:"riskLevel"`
-
-	ValidationSteps []string             `json:"validationSteps"`
-
+	ValidationSteps []string `json:"validationSteps"`
 }
-
-
 
 // OptimizationHistoryEntry tracks past optimization results.
 
 type OptimizationHistoryEntry struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp        time.Time            `json:"timestamp"`
+	ComponentType shared.ComponentType `json:"componentType"`
 
-	ComponentType    shared.ComponentType `json:"componentType"`
+	OptimizationType string `json:"optimizationType"`
 
-	OptimizationType string               `json:"optimizationType"`
+	BeforeMetrics map[string]float64 `json:"beforeMetrics"`
 
-	BeforeMetrics    map[string]float64   `json:"beforeMetrics"`
+	AfterMetrics map[string]float64 `json:"afterMetrics"`
 
-	AfterMetrics     map[string]float64   `json:"afterMetrics"`
+	ImprovementPct float64 `json:"improvementPct"`
 
-	ImprovementPct   float64              `json:"improvementPct"`
+	Success bool `json:"success"`
 
-	Success          bool                 `json:"success"`
+	FailureReason string `json:"failureReason,omitempty"`
 
-	FailureReason    string               `json:"failureReason,omitempty"`
-
-	Duration         time.Duration        `json:"duration"`
-
+	Duration time.Duration `json:"duration"`
 }
-
-
 
 // BottleneckSolution contains solutions for known bottlenecks.
 
 type BottleneckSolution struct {
+	BottleneckType string `json:"bottleneckType"`
 
-	BottleneckType     string                  `json:"bottleneckType"`
+	Description string `json:"description"`
 
-	Description        string                  `json:"description"`
+	ComponentTypes []shared.ComponentType `json:"componentTypes"`
 
-	ComponentTypes     []shared.ComponentType  `json:"componentTypes"`
+	Solutions []*OptimizationSolution `json:"solutions"`
 
-	Solutions          []*OptimizationSolution `json:"solutions"`
+	PreventiveMeasures []string `json:"preventiveMeasures"`
 
-	PreventiveMeasures []string                `json:"preventiveMeasures"`
-
-	DetectionMethod    string                  `json:"detectionMethod"`
-
+	DetectionMethod string `json:"detectionMethod"`
 }
-
-
 
 // OptimizationSolution represents a specific solution to a bottleneck.
 
 type OptimizationSolution struct {
+	Name string `json:"name"`
 
-	Name          string        `json:"name"`
+	Description string `json:"description"`
 
-	Description   string        `json:"description"`
-
-	Steps         []string      `json:"steps"`
+	Steps []string `json:"steps"`
 
 	EstimatedTime time.Duration `json:"estimatedTime"`
 
-	Complexity    string        `json:"complexity"` // "low", "medium", "high"
+	Complexity string `json:"complexity"` // "low", "medium", "high"
 
-	SuccessRate   float64       `json:"successRate"`
+	SuccessRate float64 `json:"successRate"`
 
-	Prerequisites []string      `json:"prerequisites"`
+	Prerequisites []string `json:"prerequisites"`
 
-	RollbackSteps []string      `json:"rollbackSteps"`
-
+	RollbackSteps []string `json:"rollbackSteps"`
 }
-
-
 
 // TelecomOptimizationRule represents telecom-specific optimization rules.
 
 type TelecomOptimizationRule struct {
+	ID string `json:"id"`
 
-	ID              string                      `json:"id"`
+	Name string `json:"name"`
 
-	Name            string                      `json:"name"`
+	Description string `json:"description"`
 
-	Description     string                      `json:"description"`
+	ComponentTypes []shared.ComponentType `json:"componentTypes"`
 
-	ComponentTypes  []shared.ComponentType      `json:"componentTypes"`
+	Conditions []OptimizationRuleCondition `json:"conditions"`
 
-	Conditions      []OptimizationRuleCondition `json:"conditions"`
+	Actions []OptimizationRuleAction `json:"actions"`
 
-	Actions         []OptimizationRuleAction    `json:"actions"`
+	Priority int `json:"priority"`
 
-	Priority        int                         `json:"priority"`
+	SLAImpact string `json:"slaImpact"`
 
-	SLAImpact       string                      `json:"slaImpact"`
+	ComplianceLevel string `json:"complianceLevel"`
 
-	ComplianceLevel string                      `json:"complianceLevel"`
-
-	Enabled         bool                        `json:"enabled"`
-
+	Enabled bool `json:"enabled"`
 }
-
-
 
 // OptimizationRuleCondition defines a condition in optimization rules.
 
 type OptimizationRuleCondition struct {
+	MetricName string `json:"metricName"`
 
-	MetricName     string        `json:"metricName"`
+	Operator string `json:"operator"`
 
-	Operator       string        `json:"operator"`
+	ThresholdValue float64 `json:"thresholdValue"`
 
-	ThresholdValue float64       `json:"thresholdValue"`
+	TimeWindow time.Duration `json:"timeWindow"`
 
-	TimeWindow     time.Duration `json:"timeWindow"`
-
-	Severity       string        `json:"severity"`
-
+	Severity string `json:"severity"`
 }
-
-
 
 // OptimizationRuleAction defines an action to take when rule conditions are met.
 
 type OptimizationRuleAction struct {
+	ActionType string `json:"actionType"`
 
-	ActionType        string            `json:"actionType"`
+	Parameters map[string]string `json:"parameters"`
 
-	Parameters        map[string]string `json:"parameters"`
+	AutoExecute bool `json:"autoExecute"`
 
-	AutoExecute       bool              `json:"autoExecute"`
+	RequireApproval bool `json:"requireApproval"`
 
-	RequireApproval   bool              `json:"requireApproval"`
-
-	NotificationLevel string            `json:"notificationLevel"`
-
+	NotificationLevel string `json:"notificationLevel"`
 }
-
-
 
 // MLModelMetadata contains metadata about ML models used in optimization.
 
 type MLModelMetadata struct {
+	ModelID string `json:"modelId"`
 
-	ModelID        string                 `json:"modelId"`
+	Name string `json:"name"`
 
-	Name           string                 `json:"name"`
+	Type string `json:"type"`
 
-	Type           string                 `json:"type"`
-
-	Version        string                 `json:"version"`
+	Version string `json:"version"`
 
 	ComponentTypes []shared.ComponentType `json:"componentTypes"`
 
-	Accuracy       float64                `json:"accuracy"`
+	Accuracy float64 `json:"accuracy"`
 
-	TrainedOn      time.Time              `json:"trainedOn"`
+	TrainedOn time.Time `json:"trainedOn"`
 
-	LastValidated  time.Time              `json:"lastValidated"`
+	LastValidated time.Time `json:"lastValidated"`
 
-	Parameters     map[string]interface{} `json:"parameters"`
+	Parameters map[string]interface{} `json:"parameters"`
 
-	InputFeatures  []string               `json:"inputFeatures"`
+	InputFeatures []string `json:"inputFeatures"`
 
-	OutputFormat   string                 `json:"outputFormat"`
-
+	OutputFormat string `json:"outputFormat"`
 }
-
-
 
 // ComplianceRequirement represents compliance requirements for optimizations.
 
 type ComplianceRequirement struct {
+	ID string `json:"id"`
 
-	ID              string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name            string                 `json:"name"`
+	Description string `json:"description"`
 
-	Description     string                 `json:"description"`
+	Standard string `json:"standard"` // e.g., "O-RAN", "3GPP", "ITU"
 
-	Standard        string                 `json:"standard"` // e.g., "O-RAN", "3GPP", "ITU"
+	ComponentTypes []shared.ComponentType `json:"componentTypes"`
 
-	ComponentTypes  []shared.ComponentType `json:"componentTypes"`
+	Requirements []string `json:"requirements"`
 
-	Requirements    []string               `json:"requirements"`
+	ValidationRules []string `json:"validationRules"`
 
-	ValidationRules []string               `json:"validationRules"`
+	Mandatory bool `json:"mandatory"`
 
-	Mandatory       bool                   `json:"mandatory"`
-
-	Deadline        time.Time              `json:"deadline,omitempty"`
-
+	Deadline time.Time `json:"deadline,omitempty"`
 }
-
-
 
 // PerformanceBottleneck represents a detected performance bottleneck.
 
 type PerformanceBottleneck struct {
+	ID string `json:"id"`
 
-	ID                 string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name               string                 `json:"name"`
+	Description string `json:"description"`
 
-	Description        string                 `json:"description"`
+	ComponentType shared.ComponentType `json:"componentType"`
 
-	ComponentType      shared.ComponentType   `json:"componentType"`
+	Severity SeverityLevel `json:"severity"` // Using existing SeverityLevel type
 
-	Severity           SeverityLevel          `json:"severity"` // Using existing SeverityLevel type
+	AffectedMetrics []string `json:"affectedMetrics"`
 
-	AffectedMetrics    []string               `json:"affectedMetrics"`
+	RootCause string `json:"rootCause"`
 
-	RootCause          string                 `json:"rootCause"`
+	ImpactScore float64 `json:"impactScore"`
 
-	ImpactScore        float64                `json:"impactScore"`
+	DetectedAt time.Time `json:"detectedAt"`
 
-	DetectedAt         time.Time              `json:"detectedAt"`
-
-	Duration           time.Duration          `json:"duration"`
+	Duration time.Duration `json:"duration"`
 
 	AffectedComponents []shared.ComponentType `json:"affectedComponents"`
 
-	RecommendedActions []string               `json:"recommendedActions"`
+	RecommendedActions []string `json:"recommendedActions"`
 
-	PredictedGrowth    float64                `json:"predictedGrowth"`
+	PredictedGrowth float64 `json:"predictedGrowth"`
 
-	BusinessImpact     string                 `json:"businessImpact"`
-
+	BusinessImpact string `json:"businessImpact"`
 }
-
-
 
 // PerformanceIssue represents a detected performance issue.
 
 type PerformanceIssue struct {
+	ID string `json:"id"`
 
-	ID                string               `json:"id"`
+	Name string `json:"name"`
 
-	Name              string               `json:"name"`
+	Description string `json:"description"`
 
-	Description       string               `json:"description"`
+	ComponentType shared.ComponentType `json:"componentType"`
 
-	ComponentType     shared.ComponentType `json:"componentType"`
+	Category IssueCategory `json:"category"`
 
-	Category          IssueCategory        `json:"category"`
+	Severity SeverityLevel `json:"severity"` // Using existing SeverityLevel type
 
-	Severity          SeverityLevel        `json:"severity"` // Using existing SeverityLevel type
+	MetricName string `json:"metricName"`
 
-	MetricName        string               `json:"metricName"`
+	CurrentValue float64 `json:"currentValue"`
 
-	CurrentValue      float64              `json:"currentValue"`
+	ExpectedValue float64 `json:"expectedValue"`
 
-	ExpectedValue     float64              `json:"expectedValue"`
+	Deviation float64 `json:"deviation"`
 
-	Deviation         float64              `json:"deviation"`
+	FirstDetected time.Time `json:"firstDetected"`
 
-	FirstDetected     time.Time            `json:"firstDetected"`
+	LastSeen time.Time `json:"lastSeen"`
 
-	LastSeen          time.Time            `json:"lastSeen"`
+	Frequency int `json:"frequency"`
 
-	Frequency         int                  `json:"frequency"`
+	TrendDirection string `json:"trendDirection"`
 
-	TrendDirection    string               `json:"trendDirection"`
+	RootCauseAnalysis *RootCauseAnalysis `json:"rootCauseAnalysis,omitempty"`
 
-	RootCauseAnalysis *RootCauseAnalysis   `json:"rootCauseAnalysis,omitempty"`
-
-	Resolution        *IssueResolution     `json:"resolution,omitempty"`
-
+	Resolution *IssueResolution `json:"resolution,omitempty"`
 }
-
-
 
 // IssueCategory represents the category of a performance issue.
 
 type IssueCategory string
-
-
 
 const (
 
@@ -874,60 +726,47 @@ const (
 	// IssueCategoryAvailability holds issuecategoryavailability value.
 
 	IssueCategoryAvailability IssueCategory = "availability"
-
 )
-
-
 
 // RootCauseAnalysis contains root cause analysis information.
 
 type RootCauseAnalysis struct {
+	PossibleCauses []string `json:"possibleCauses"`
 
-	PossibleCauses     []string  `json:"possibleCauses"`
+	MostLikelyCause string `json:"mostLikelyCause"`
 
-	MostLikelyCause    string    `json:"mostLikelyCause"`
+	ConfidenceScore float64 `json:"confidenceScore"`
 
-	ConfidenceScore    float64   `json:"confidenceScore"`
+	AnalysisMethod string `json:"analysisMethod"`
 
-	AnalysisMethod     string    `json:"analysisMethod"`
+	SupportingEvidence []string `json:"supportingEvidence"`
 
-	SupportingEvidence []string  `json:"supportingEvidence"`
+	CorrelatedMetrics []string `json:"correlatedMetrics"`
 
-	CorrelatedMetrics  []string  `json:"correlatedMetrics"`
-
-	AnalysisTimestamp  time.Time `json:"analysisTimestamp"`
-
+	AnalysisTimestamp time.Time `json:"analysisTimestamp"`
 }
-
-
 
 // IssueResolution contains information about issue resolution.
 
 type IssueResolution struct {
+	ResolutionID string `json:"resolutionId"`
 
-	ResolutionID       string           `json:"resolutionId"`
+	Status ResolutionStatus `json:"status"`
 
-	Status             ResolutionStatus `json:"status"`
+	Actions []string `json:"actions"`
 
-	Actions            []string         `json:"actions"`
+	ResolvedAt time.Time `json:"resolvedAt,omitempty"`
 
-	ResolvedAt         time.Time        `json:"resolvedAt,omitempty"`
+	ResolvedBy string `json:"resolvedBy"`
 
-	ResolvedBy         string           `json:"resolvedBy"`
+	VerificationSteps []string `json:"verificationSteps"`
 
-	VerificationSteps  []string         `json:"verificationSteps"`
-
-	PreventionMeasures []string         `json:"preventionMeasures"`
-
+	PreventionMeasures []string `json:"preventionMeasures"`
 }
-
-
 
 // ResolutionStatus represents the status of issue resolution.
 
 type ResolutionStatus string
-
-
 
 const (
 
@@ -946,48 +785,41 @@ const (
 	// ResolutionStatusFailed holds resolutionstatusfailed value.
 
 	ResolutionStatusFailed ResolutionStatus = "failed"
-
 )
-
-
 
 // ResourceConstraint represents a resource constraint affecting performance.
 
 type ResourceConstraint struct {
+	ID string `json:"id"`
 
-	ID               string               `json:"id"`
+	Name string `json:"name"`
 
-	Name             string               `json:"name"`
+	ComponentType shared.ComponentType `json:"componentType"`
 
-	ComponentType    shared.ComponentType `json:"componentType"`
+	ResourceType ResourceType `json:"resourceType"` // Using existing ResourceType
 
-	ResourceType     ResourceType         `json:"resourceType"`   // Using existing ResourceType
+	ConstraintType string `json:"constraintType"` // Using string to avoid conflicts
 
-	ConstraintType   string               `json:"constraintType"` // Using string to avoid conflicts
+	CurrentUsage float64 `json:"currentUsage"`
 
-	CurrentUsage     float64              `json:"currentUsage"`
+	MaxCapacity float64 `json:"maxCapacity"`
 
-	MaxCapacity      float64              `json:"maxCapacity"`
+	UtilizationPct float64 `json:"utilizationPct"`
 
-	UtilizationPct   float64              `json:"utilizationPct"`
+	Threshold float64 `json:"threshold"`
 
-	Threshold        float64              `json:"threshold"`
+	ProjectedGrowth float64 `json:"projectedGrowth"`
 
-	ProjectedGrowth  float64              `json:"projectedGrowth"`
+	TimeToExhaustion time.Duration `json:"timeToExhaustion,omitempty"`
 
-	TimeToExhaustion time.Duration        `json:"timeToExhaustion,omitempty"`
+	Impact ConstraintImpact `json:"impact"`
 
-	Impact           ConstraintImpact     `json:"impact"`
+	Recommendations []string `json:"recommendations"`
 
-	Recommendations  []string             `json:"recommendations"`
+	DetectedAt time.Time `json:"detectedAt"`
 
-	DetectedAt       time.Time            `json:"detectedAt"`
-
-	BusinessContext  string               `json:"businessContext"`
-
+	BusinessContext string `json:"businessContext"`
 }
-
-
 
 // Additional constraint type constants for ResourceConstraint.
 
@@ -1012,70 +844,57 @@ const (
 	// ConstraintTypeSLA holds constrainttypesla value.
 
 	ConstraintTypeSLA = "sla"
-
 )
-
-
 
 // ConstraintImpact represents the impact of a resource constraint.
 
 type ConstraintImpact struct {
+	PerformanceDegradation float64 `json:"performanceDegradation"`
 
-	PerformanceDegradation float64  `json:"performanceDegradation"`
+	AffectedServices []string `json:"affectedServices"`
 
-	AffectedServices       []string `json:"affectedServices"`
+	BusinessImpact string `json:"businessImpact"`
 
-	BusinessImpact         string   `json:"businessImpact"`
+	SLAViolationRisk float64 `json:"slaViolationRisk"`
 
-	SLAViolationRisk       float64  `json:"slaViolationRisk"`
-
-	CostImplication        float64  `json:"costImplication"`
-
+	CostImplication float64 `json:"costImplication"`
 }
-
-
 
 // OptimizationOpportunity represents an identified optimization opportunity.
 
 type OptimizationOpportunity struct {
+	ID string `json:"id"`
 
-	ID                   string                     `json:"id"`
+	Name string `json:"name"`
 
-	Name                 string                     `json:"name"`
+	Description string `json:"description"`
 
-	Description          string                     `json:"description"`
+	ComponentType shared.ComponentType `json:"componentType"`
 
-	ComponentType        shared.ComponentType       `json:"componentType"`
+	Category OptimizationCategory `json:"category"`
 
-	Category             OptimizationCategory       `json:"category"`
+	Priority OpportunityPriority `json:"priority"`
 
-	Priority             OpportunityPriority        `json:"priority"`
+	EstimatedImprovement *EstimatedImprovement `json:"estimatedImprovement"`
 
-	EstimatedImprovement *EstimatedImprovement      `json:"estimatedImprovement"`
+	RiskAssessment *OpportunityRiskAssessment `json:"riskAssessment"`
 
-	RiskAssessment       *OpportunityRiskAssessment `json:"riskAssessment"`
+	ROIAnalysis *ROIAnalysis `json:"roiAnalysis"`
 
-	ROIAnalysis          *ROIAnalysis               `json:"roiAnalysis"`
+	Dependencies []string `json:"dependencies"`
 
-	Dependencies         []string                   `json:"dependencies"`
+	Prerequisites []string `json:"prerequisites"`
 
-	Prerequisites        []string                   `json:"prerequisites"`
+	ValidationCriteria []string `json:"validationCriteria"`
 
-	ValidationCriteria   []string                   `json:"validationCriteria"`
+	DetectedAt time.Time `json:"detectedAt"`
 
-	DetectedAt           time.Time                  `json:"detectedAt"`
-
-	EstimatedCompletion  time.Duration              `json:"estimatedCompletion"`
-
+	EstimatedCompletion time.Duration `json:"estimatedCompletion"`
 }
-
-
 
 // OpportunityPriority represents the priority of an optimization opportunity.
 
 type OpportunityPriority string
-
-
 
 const (
 
@@ -1094,578 +913,473 @@ const (
 	// OpportunityPriorityCritical holds opportunityprioritycritical value.
 
 	OpportunityPriorityCritical OpportunityPriority = "critical"
-
 )
-
-
 
 // EstimatedImprovement represents expected improvements from an optimization.
 
 type EstimatedImprovement struct {
+	PerformanceGain float64 `json:"performanceGain"`
 
-	PerformanceGain    float64            `json:"performanceGain"`
+	CostSaving float64 `json:"costSaving"`
 
-	CostSaving         float64            `json:"costSaving"`
+	ResourceReduction float64 `json:"resourceReduction"`
 
-	ResourceReduction  float64            `json:"resourceReduction"`
+	LatencyImprovement time.Duration `json:"latencyImprovement"`
 
-	LatencyImprovement time.Duration      `json:"latencyImprovement"`
+	ThroughputIncrease float64 `json:"throughputIncrease"`
 
-	ThroughputIncrease float64            `json:"throughputIncrease"`
+	EfficiencyGain float64 `json:"efficiencyGain"`
 
-	EfficiencyGain     float64            `json:"efficiencyGain"`
+	MetricImpacts map[string]float64 `json:"metricImpacts"`
 
-	MetricImpacts      map[string]float64 `json:"metricImpacts"`
-
-	SLACompliance      float64            `json:"slaCompliance"`
-
+	SLACompliance float64 `json:"slaCompliance"`
 }
-
-
 
 // OpportunityRiskAssessment represents risk assessment for an optimization opportunity.
 
 type OpportunityRiskAssessment struct {
+	OverallRisk RiskLevel `json:"overallRisk"` // Using existing RiskLevel type
 
-	OverallRisk          RiskLevel               `json:"overallRisk"` // Using existing RiskLevel type
+	RiskFactors []OpportunityRiskFactor `json:"riskFactors"`
 
-	RiskFactors          []OpportunityRiskFactor `json:"riskFactors"`
+	MitigationStrategies []string `json:"mitigationStrategies"`
 
-	MitigationStrategies []string                `json:"mitigationStrategies"`
+	ImpactAnalysis *RiskImpactAnalysis `json:"impactAnalysis"`
 
-	ImpactAnalysis       *RiskImpactAnalysis     `json:"impactAnalysis"`
+	ApprovalRequired bool `json:"approvalRequired"`
 
-	ApprovalRequired     bool                    `json:"approvalRequired"`
-
-	BackupPlan           string                  `json:"backupPlan"`
-
+	BackupPlan string `json:"backupPlan"`
 }
-
-
 
 // OpportunityRiskFactor represents a specific risk factor for optimization opportunities.
 
 type OpportunityRiskFactor struct {
+	Name string `json:"name"`
 
-	Name        string  `json:"name"`
-
-	Description string  `json:"description"`
+	Description string `json:"description"`
 
 	Probability float64 `json:"probability"`
 
-	Impact      float64 `json:"impact"`
+	Impact float64 `json:"impact"`
 
-	Category    string  `json:"category"`
+	Category string `json:"category"`
 
-	Mitigation  string  `json:"mitigation"`
+	Mitigation string `json:"mitigation"`
 
-	Contingency string  `json:"contingency"`
-
+	Contingency string `json:"contingency"`
 }
-
-
 
 // RiskImpactAnalysis contains analysis of potential risks.
 
 type RiskImpactAnalysis struct {
+	PerformanceRisk float64 `json:"performanceRisk"`
 
-	PerformanceRisk  float64       `json:"performanceRisk"`
+	AvailabilityRisk float64 `json:"availabilityRisk"`
 
-	AvailabilityRisk float64       `json:"availabilityRisk"`
+	SecurityRisk float64 `json:"securityRisk"`
 
-	SecurityRisk     float64       `json:"securityRisk"`
+	ComplianceRisk float64 `json:"complianceRisk"`
 
-	ComplianceRisk   float64       `json:"complianceRisk"`
+	BusinessImpact string `json:"businessImpact"`
 
-	BusinessImpact   string        `json:"businessImpact"`
+	RecoveryTime time.Duration `json:"recoveryTime"`
 
-	RecoveryTime     time.Duration `json:"recoveryTime"`
-
-	AffectedSystems  []string      `json:"affectedSystems"`
-
+	AffectedSystems []string `json:"affectedSystems"`
 }
-
-
 
 // ROIAnalysis contains return on investment analysis.
 
 type ROIAnalysis struct {
+	InitialInvestment float64 `json:"initialInvestment"`
 
-	InitialInvestment   float64            `json:"initialInvestment"`
+	ExpectedSavings float64 `json:"expectedSavings"`
 
-	ExpectedSavings     float64            `json:"expectedSavings"`
+	ROIPercentage float64 `json:"roiPercentage"`
 
-	ROIPercentage       float64            `json:"roiPercentage"`
+	PaybackPeriod time.Duration `json:"paybackPeriod"`
 
-	PaybackPeriod       time.Duration      `json:"paybackPeriod"`
+	NetPresentValue float64 `json:"netPresentValue"`
 
-	NetPresentValue     float64            `json:"netPresentValue"`
+	SavingsBreakdown map[string]float64 `json:"savingsBreakdown"`
 
-	SavingsBreakdown    map[string]float64 `json:"savingsBreakdown"`
+	CostBreakdown map[string]float64 `json:"costBreakdown"`
 
-	CostBreakdown       map[string]float64 `json:"costBreakdown"`
-
-	AssumptionsUsed     []string           `json:"assumptionsUsed"`
+	AssumptionsUsed []string `json:"assumptionsUsed"`
 
 	SensitivityAnalysis map[string]float64 `json:"sensitivityAnalysis"`
-
 }
-
-
 
 // ResourceUtilization represents resource utilization metrics.
 
 type ResourceUtilization struct {
+	ComponentType shared.ComponentType `json:"componentType"`
 
-	ComponentType         shared.ComponentType       `json:"componentType"`
+	TimePeriod TimePeriod `json:"timePeriod"`
 
-	TimePeriod            TimePeriod                 `json:"timePeriod"`
+	CPUUtilization *ResourceMetric `json:"cpuUtilization"`
 
-	CPUUtilization        *ResourceMetric            `json:"cpuUtilization"`
+	MemoryUtilization *ResourceMetric `json:"memoryUtilization"`
 
-	MemoryUtilization     *ResourceMetric            `json:"memoryUtilization"`
+	StorageUtilization *ResourceMetric `json:"storageUtilization"`
 
-	StorageUtilization    *ResourceMetric            `json:"storageUtilization"`
+	NetworkUtilization *ResourceMetric `json:"networkUtilization"`
 
-	NetworkUtilization    *ResourceMetric            `json:"networkUtilization"`
+	CustomMetrics map[string]*ResourceMetric `json:"customMetrics"`
 
-	CustomMetrics         map[string]*ResourceMetric `json:"customMetrics"`
+	EfficiencyScore float64 `json:"efficiencyScore"`
 
-	EfficiencyScore       float64                    `json:"efficiencyScore"`
+	WasteFactors []*WasteFactor `json:"wasteFactors"`
 
-	WasteFactors          []*WasteFactor             `json:"wasteFactors"`
+	OptimizationPotential float64 `json:"optimizationPotential"`
 
-	OptimizationPotential float64                    `json:"optimizationPotential"`
+	BenchmarkComparison *BenchmarkComparison `json:"benchmarkComparison"`
 
-	BenchmarkComparison   *BenchmarkComparison       `json:"benchmarkComparison"`
-
-	TrendAnalysis         *UtilizationTrend          `json:"trendAnalysis"`
-
+	TrendAnalysis *UtilizationTrend `json:"trendAnalysis"`
 }
-
-
 
 // TimePeriod represents a time period for metrics.
 
 type TimePeriod struct {
+	Start time.Time `json:"start"`
 
-	Start       time.Time     `json:"start"`
+	End time.Time `json:"end"`
 
-	End         time.Time     `json:"end"`
+	Duration time.Duration `json:"duration"`
 
-	Duration    time.Duration `json:"duration"`
-
-	Granularity string        `json:"granularity"`
-
+	Granularity string `json:"granularity"`
 }
-
-
 
 // ResourceMetric represents metrics for a specific resource type.
 
 type ResourceMetric struct {
+	Current float64 `json:"current"`
 
-	Current     float64               `json:"current"`
+	Average float64 `json:"average"`
 
-	Average     float64               `json:"average"`
+	Peak float64 `json:"peak"`
 
-	Peak        float64               `json:"peak"`
+	Minimum float64 `json:"minimum"`
 
-	Minimum     float64               `json:"minimum"`
+	Percentiles map[string]float64 `json:"percentiles"`
 
-	Percentiles map[string]float64    `json:"percentiles"`
+	Unit string `json:"unit"`
 
-	Unit        string                `json:"unit"`
+	Threshold *ResourceThreshold `json:"threshold"`
 
-	Threshold   *ResourceThreshold    `json:"threshold"`
-
-	Anomalies   []*UtilizationAnomaly `json:"anomalies"`
-
+	Anomalies []*UtilizationAnomaly `json:"anomalies"`
 }
-
-
 
 // ResourceThreshold represents thresholds for resource metrics.
 
 type ResourceThreshold struct {
-
-	Warning  float64 `json:"warning"`
+	Warning float64 `json:"warning"`
 
 	Critical float64 `json:"critical"`
 
-	Target   float64 `json:"target"`
+	Target float64 `json:"target"`
 
-	Optimal  float64 `json:"optimal"`
-
+	Optimal float64 `json:"optimal"`
 }
-
-
 
 // WasteFactor represents factors contributing to resource waste.
 
 type WasteFactor struct {
+	Factor string `json:"factor"`
 
-	Factor      string  `json:"factor"`
+	Impact float64 `json:"impact"`
 
-	Impact      float64 `json:"impact"`
+	Description string `json:"description"`
 
-	Description string  `json:"description"`
-
-	Remedy      string  `json:"remedy"`
-
+	Remedy string `json:"remedy"`
 }
-
-
 
 // BenchmarkComparison compares utilization against benchmarks.
 
 type BenchmarkComparison struct {
+	Industry float64 `json:"industry"`
 
-	Industry     float64 `json:"industry"`
-
-	Internal     float64 `json:"internal"`
+	Internal float64 `json:"internal"`
 
 	BestPractice float64 `json:"bestPractice"`
 
-	Deviation    float64 `json:"deviation"`
+	Deviation float64 `json:"deviation"`
 
-	Ranking      string  `json:"ranking"`
-
+	Ranking string `json:"ranking"`
 }
-
-
 
 // UtilizationTrend represents trends in resource utilization.
 
 type UtilizationTrend struct {
+	Direction string `json:"direction"`
 
-	Direction       string        `json:"direction"`
+	Rate float64 `json:"rate"`
 
-	Rate            float64       `json:"rate"`
+	Seasonality bool `json:"seasonality"`
 
-	Seasonality     bool          `json:"seasonality"`
+	GrowthPattern string `json:"growthPattern"`
 
-	GrowthPattern   string        `json:"growthPattern"`
+	ForecastPeriod time.Duration `json:"forecastPeriod"`
 
-	ForecastPeriod  time.Duration `json:"forecastPeriod"`
-
-	PredictedValues []float64     `json:"predictedValues"`
-
+	PredictedValues []float64 `json:"predictedValues"`
 }
-
-
 
 // UtilizationAnomaly represents an anomaly in resource utilization.
 
 type UtilizationAnomaly struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp   time.Time `json:"timestamp"`
+	Type string `json:"type"`
 
-	Type        string    `json:"type"`
+	Severity string `json:"severity"`
 
-	Severity    string    `json:"severity"`
+	Value float64 `json:"value"`
 
-	Value       float64   `json:"value"`
+	Expected float64 `json:"expected"`
 
-	Expected    float64   `json:"expected"`
+	Deviation float64 `json:"deviation"`
 
-	Deviation   float64   `json:"deviation"`
-
-	Description string    `json:"description"`
-
+	Description string `json:"description"`
 }
-
-
 
 // ComponentPerformanceMetrics represents performance metrics for a component.
 
 type ComponentPerformanceMetrics struct {
+	ComponentType shared.ComponentType `json:"componentType"`
 
-	ComponentType     shared.ComponentType          `json:"componentType"`
+	MeasurementPeriod TimePeriod `json:"measurementPeriod"`
 
-	MeasurementPeriod TimePeriod                    `json:"measurementPeriod"`
+	ResponseTime *PerformanceMetric `json:"responseTime"`
 
-	ResponseTime      *PerformanceMetric            `json:"responseTime"`
+	Throughput *PerformanceMetric `json:"throughput"`
 
-	Throughput        *PerformanceMetric            `json:"throughput"`
+	ErrorRate *PerformanceMetric `json:"errorRate"`
 
-	ErrorRate         *PerformanceMetric            `json:"errorRate"`
+	Availability *AvailabilityMetric `json:"availability"`
 
-	Availability      *AvailabilityMetric           `json:"availability"`
+	Reliability *ReliabilityMetric `json:"reliability"`
 
-	Reliability       *ReliabilityMetric            `json:"reliability"`
+	Scalability *ScalabilityMetric `json:"scalability"`
 
-	Scalability       *ScalabilityMetric            `json:"scalability"`
+	Efficiency *EfficiencyMetric `json:"efficiency"`
 
-	Efficiency        *EfficiencyMetric             `json:"efficiency"`
+	CustomMetrics map[string]*PerformanceMetric `json:"customMetrics"`
 
-	CustomMetrics     map[string]*PerformanceMetric `json:"customMetrics"`
+	SLACompliance *SLAComplianceMetric `json:"slaCompliance"`
 
-	SLACompliance     *SLAComplianceMetric          `json:"slaCompliance"`
+	QualityScore float64 `json:"qualityScore"`
 
-	QualityScore      float64                       `json:"qualityScore"`
+	PerformanceTrends []*MetricTrend `json:"performanceTrends"`
 
-	PerformanceTrends []*MetricTrend                `json:"performanceTrends"`
-
-	BenchmarkResults  *PerformanceBenchmark         `json:"benchmarkResults"`
-
+	BenchmarkResults *PerformanceBenchmark `json:"benchmarkResults"`
 }
-
-
 
 // PerformanceMetric represents a general performance metric.
 
 type PerformanceMetric struct {
+	Value float64 `json:"value"`
 
-	Value         float64           `json:"value"`
+	Unit string `json:"unit"`
 
-	Unit          string            `json:"unit"`
+	Target float64 `json:"target"`
 
-	Target        float64           `json:"target"`
+	Baseline float64 `json:"baseline"`
 
-	Baseline      float64           `json:"baseline"`
+	Improvement float64 `json:"improvement"`
 
-	Improvement   float64           `json:"improvement"`
+	Trend string `json:"trend"`
 
-	Trend         string            `json:"trend"`
+	Statistics *MetricStatistics `json:"statistics"` // Using existing type
 
-	Statistics    *MetricStatistics `json:"statistics"` // Using existing type
+	SLABoundaries *SLABoundaries `json:"slaBoundaries"`
 
-	SLABoundaries *SLABoundaries    `json:"slaBoundaries"`
-
-	QualityGates  []*QualityGate    `json:"qualityGates"`
-
+	QualityGates []*QualityGate `json:"qualityGates"`
 }
-
-
 
 // AvailabilityMetric represents availability metrics.
 
 type AvailabilityMetric struct {
-
 	*PerformanceMetric
 
-	Uptime        time.Duration `json:"uptime"`
+	Uptime time.Duration `json:"uptime"`
 
-	Downtime      time.Duration `json:"downtime"`
+	Downtime time.Duration `json:"downtime"`
 
-	MTBF          time.Duration `json:"mtbf"` // Mean Time Between Failures
+	MTBF time.Duration `json:"mtbf"` // Mean Time Between Failures
 
-	MTTR          time.Duration `json:"mttr"` // Mean Time To Recovery
+	MTTR time.Duration `json:"mttr"` // Mean Time To Recovery
 
-	IncidentCount int           `json:"incidentCount"`
-
+	IncidentCount int `json:"incidentCount"`
 }
-
-
 
 // ReliabilityMetric represents reliability metrics.
 
 type ReliabilityMetric struct {
-
 	*PerformanceMetric
 
-	SuccessRate      float64       `json:"successRate"`
+	SuccessRate float64 `json:"successRate"`
 
-	FailureRate      float64       `json:"failureRate"`
+	FailureRate float64 `json:"failureRate"`
 
-	RetryRate        float64       `json:"retryRate"`
+	RetryRate float64 `json:"retryRate"`
 
-	RecoveryTime     time.Duration `json:"recoveryTime"`
+	RecoveryTime time.Duration `json:"recoveryTime"`
 
-	DataIntegrity    float64       `json:"dataIntegrity"`
+	DataIntegrity float64 `json:"dataIntegrity"`
 
-	ConsistencyScore float64       `json:"consistencyScore"`
-
+	ConsistencyScore float64 `json:"consistencyScore"`
 }
-
-
 
 // ScalabilityMetric represents scalability metrics.
 
 type ScalabilityMetric struct {
-
 	*PerformanceMetric
 
-	MaxCapacity        float64       `json:"maxCapacity"`
+	MaxCapacity float64 `json:"maxCapacity"`
 
-	CurrentLoad        float64       `json:"currentLoad"`
+	CurrentLoad float64 `json:"currentLoad"`
 
-	LoadFactor         float64       `json:"loadFactor"`
+	LoadFactor float64 `json:"loadFactor"`
 
-	ElasticityScore    float64       `json:"elasticityScore"`
+	ElasticityScore float64 `json:"elasticityScore"`
 
-	ScalingLatency     time.Duration `json:"scalingLatency"`
+	ScalingLatency time.Duration `json:"scalingLatency"`
 
-	ResourceEfficiency float64       `json:"resourceEfficiency"`
-
+	ResourceEfficiency float64 `json:"resourceEfficiency"`
 }
-
-
 
 // EfficiencyMetric represents efficiency metrics.
 
 type EfficiencyMetric struct {
-
 	*PerformanceMetric
 
 	ResourceEfficiency float64 `json:"resourceEfficiency"`
 
-	CostEfficiency     float64 `json:"costEfficiency"`
+	CostEfficiency float64 `json:"costEfficiency"`
 
-	EnergyEfficiency   float64 `json:"energyEfficiency"`
+	EnergyEfficiency float64 `json:"energyEfficiency"`
 
-	TimeEfficiency     float64 `json:"timeEfficiency"`
+	TimeEfficiency float64 `json:"timeEfficiency"`
 
-	WasteReduction     float64 `json:"wasteReduction"`
+	WasteReduction float64 `json:"wasteReduction"`
 
-	OptimizationGain   float64 `json:"optimizationGain"`
-
+	OptimizationGain float64 `json:"optimizationGain"`
 }
-
-
 
 // SLAComplianceMetric represents SLA compliance metrics.
 
 type SLAComplianceMetric struct {
+	OverallCompliance float64 `json:"overallCompliance"`
 
-	OverallCompliance  float64                   `json:"overallCompliance"`
+	SLAViolations int `json:"slaViolations"`
 
-	SLAViolations      int                       `json:"slaViolations"`
+	ComplianceByMetric map[string]float64 `json:"complianceByMetric"`
 
-	ComplianceByMetric map[string]float64        `json:"complianceByMetric"`
+	PenaltyCost float64 `json:"penaltyCost"`
 
-	PenaltyCost        float64                   `json:"penaltyCost"`
+	RiskScore float64 `json:"riskScore"`
 
-	RiskScore          float64                   `json:"riskScore"`
-
-	ComplianceHistory  []*ComplianceHistoryEntry `json:"complianceHistory"`
-
+	ComplianceHistory []*ComplianceHistoryEntry `json:"complianceHistory"`
 }
-
-
 
 // SLABoundaries represents SLA boundaries for a metric.
 
 type SLABoundaries struct {
-
-	Target    float64 `json:"target"`
+	Target float64 `json:"target"`
 
 	Threshold float64 `json:"threshold"`
 
-	Critical  float64 `json:"critical"`
+	Critical float64 `json:"critical"`
 
-	Optimal   float64 `json:"optimal"`
-
+	Optimal float64 `json:"optimal"`
 }
-
-
 
 // QualityGate represents a quality gate for performance metrics.
 
 type QualityGate struct {
+	Name string `json:"name"`
 
-	Name        string  `json:"name"`
+	Threshold float64 `json:"threshold"`
 
-	Threshold   float64 `json:"threshold"`
+	Operator string `json:"operator"`
 
-	Operator    string  `json:"operator"`
-
-	Passed      bool    `json:"passed"`
+	Passed bool `json:"passed"`
 
 	ActualValue float64 `json:"actualValue"`
 
-	Impact      string  `json:"impact"`
-
+	Impact string `json:"impact"`
 }
-
-
 
 // MetricTrend represents trends in performance metrics.
 
 type MetricTrend struct {
+	MetricName string `json:"metricName"`
 
-	MetricName       string        `json:"metricName"`
+	TrendType string `json:"trendType"`
 
-	TrendType        string        `json:"trendType"`
+	Direction string `json:"direction"`
 
-	Direction        string        `json:"direction"`
+	ChangeRate float64 `json:"changeRate"`
 
-	ChangeRate       float64       `json:"changeRate"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence       float64       `json:"confidence"`
+	TimeHorizon time.Duration `json:"timeHorizon"`
 
-	TimeHorizon      time.Duration `json:"timeHorizon"`
+	Forecast []float64 `json:"forecast"`
 
-	Forecast         []float64     `json:"forecast"`
-
-	InflectionPoints []time.Time   `json:"inflectionPoints"`
-
+	InflectionPoints []time.Time `json:"inflectionPoints"`
 }
-
-
 
 // ComplianceHistoryEntry represents historical compliance data.
 
 type ComplianceHistoryEntry struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp   time.Time `json:"timestamp"`
+	Compliance float64 `json:"compliance"`
 
-	Compliance  float64   `json:"compliance"`
+	Violations int `json:"violations"`
 
-	Violations  int       `json:"violations"`
+	MetricName string `json:"metricName"`
 
-	MetricName  string    `json:"metricName"`
-
-	ActionTaken string    `json:"actionTaken"`
-
+	ActionTaken string `json:"actionTaken"`
 }
-
-
 
 // PerformanceTrend represents trends in system performance.
 
 type PerformanceTrend struct {
+	ComponentType shared.ComponentType `json:"componentType"`
 
-	ComponentType       shared.ComponentType `json:"componentType"`
+	MetricName string `json:"metricName"`
 
-	MetricName          string               `json:"metricName"`
+	TrendType TrendType `json:"trendType"`
 
-	TrendType           TrendType            `json:"trendType"`
+	Direction TrendDirection `json:"direction"`
 
-	Direction           TrendDirection       `json:"direction"`
+	Slope float64 `json:"slope"`
 
-	Slope               float64              `json:"slope"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence          float64              `json:"confidence"`
+	StartTime time.Time `json:"startTime"`
 
-	StartTime           time.Time            `json:"startTime"`
+	EndTime time.Time `json:"endTime"`
 
-	EndTime             time.Time            `json:"endTime"`
+	DataPoints int `json:"dataPoints"`
 
-	DataPoints          int                  `json:"dataPoints"`
+	AverageValue float64 `json:"averageValue"`
 
-	AverageValue        float64              `json:"averageValue"`
+	VarianceValue float64 `json:"varianceValue"`
 
-	VarianceValue       float64              `json:"varianceValue"`
+	SeasonalityDetected bool `json:"seasonalityDetected"`
 
-	SeasonalityDetected bool                 `json:"seasonalityDetected"`
+	SeasonalPeriod time.Duration `json:"seasonalPeriod,omitempty"`
 
-	SeasonalPeriod      time.Duration        `json:"seasonalPeriod,omitempty"`
+	ChangePoints []time.Time `json:"changePoints"`
 
-	ChangePoints        []time.Time          `json:"changePoints"`
-
-	Forecast            *ForecastData        `json:"forecast,omitempty"`
-
+	Forecast *ForecastData `json:"forecast,omitempty"`
 }
-
-
 
 // TrendType represents the type of trend analysis.
 
 type TrendType string
-
-
 
 const (
 
@@ -1688,78 +1402,60 @@ const (
 	// TrendTypeNoTrend holds trendtypenotrend value.
 
 	TrendTypeNoTrend TrendType = "no_trend"
-
 )
 
-
-
 // Note: TrendDirection is already defined in performance_analysis_engine.go.
-
-
 
 // ForecastData represents forecast information for performance trends.
 
 type ForecastData struct {
-
-	PredictedValues     []float64            `json:"predictedValues"`
+	PredictedValues []float64 `json:"predictedValues"`
 
 	ConfidenceIntervals []ConfidenceInterval `json:"confidenceIntervals"` // Using existing type
 
-	ForecastHorizon     time.Duration        `json:"forecastHorizon"`
+	ForecastHorizon time.Duration `json:"forecastHorizon"`
 
-	ModelAccuracy       float64              `json:"modelAccuracy"`
+	ModelAccuracy float64 `json:"modelAccuracy"`
 
-	ModelType           string               `json:"modelType"`
-
+	ModelType string `json:"modelType"`
 }
 
-
-
 // Note: ConfidenceInterval is already defined in performance_analysis_engine.go.
-
-
 
 // PerformanceBenchmark represents benchmark results.
 
 type PerformanceBenchmark struct {
+	BenchmarkSuite string `json:"benchmarkSuite"`
 
-	BenchmarkSuite     string                `json:"benchmarkSuite"`
+	Version string `json:"version"`
 
-	Version            string                `json:"version"`
+	ExecutionTime time.Time `json:"executionTime"`
 
-	ExecutionTime      time.Time             `json:"executionTime"`
+	Duration time.Duration `json:"duration"`
 
-	Duration           time.Duration         `json:"duration"`
+	Results map[string]float64 `json:"results"`
 
-	Results            map[string]float64    `json:"results"`
+	Percentile float64 `json:"percentile"`
 
-	Percentile         float64               `json:"percentile"`
+	Ranking int `json:"ranking"`
 
-	Ranking            int                   `json:"ranking"`
+	BaselineComparison map[string]float64 `json:"baselineComparison"`
 
-	BaselineComparison map[string]float64    `json:"baselineComparison"`
-
-	Environment        *BenchmarkEnvironment `json:"environment"`
-
+	Environment *BenchmarkEnvironment `json:"environment"`
 }
-
-
 
 // BenchmarkEnvironment represents the environment where benchmarks were run.
 
 type BenchmarkEnvironment struct {
+	Platform string `json:"platform"`
 
-	Platform       string            `json:"platform"`
+	Version string `json:"version"`
 
-	Version        string            `json:"version"`
-
-	Configuration  map[string]string `json:"configuration"`
+	Configuration map[string]string `json:"configuration"`
 
 	ResourceLimits map[string]string `json:"resourceLimits"`
 
-	Load           string            `json:"load"`
+	Load string `json:"load"`
 
-	Concurrency    int               `json:"concurrency"`
-
+	Concurrency int `json:"concurrency"`
 }
-

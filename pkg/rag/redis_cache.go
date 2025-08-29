@@ -1,65 +1,39 @@
 //go:build !disable_rag && !test
 
-
-
-
 package rag
 
-
-
 import (
-
 	"bytes"
-
 	"compress/gzip"
-
 	"context"
-
 	"crypto/md5"
-
 	"encoding/binary"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"log/slog"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/redis/go-redis/v9"
-
 )
-
-
 
 // RedisCache provides Redis-based caching for RAG components.
 
 type RedisCache struct {
+	client *redis.Client
 
-	client    *redis.Client
+	config *RedisCacheConfig
 
-	config    *RedisCacheConfig
+	logger *slog.Logger
 
-	logger    *slog.Logger
-
-	metrics   *RedisCacheMetrics
+	metrics *RedisCacheMetrics
 
 	keyPrefix string
 
-	mutex     sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // RedisCacheConfig holds Redis cache configuration.
 
@@ -67,77 +41,64 @@ type RedisCacheConfig struct {
 
 	// Redis connection.
 
-	Address      string `json:"address"`
+	Address string `json:"address"`
 
-	Password     string `json:"password"`
+	Password string `json:"password"`
 
-	Database     int    `json:"database"`
+	Database int `json:"database"`
 
-	PoolSize     int    `json:"pool_size"`
+	PoolSize int `json:"pool_size"`
 
-	MinIdleConns int    `json:"min_idle_conns"`
+	MinIdleConns int `json:"min_idle_conns"`
 
-	MaxRetries   int    `json:"max_retries"`
-
-
+	MaxRetries int `json:"max_retries"`
 
 	// Connection timeouts.
 
-	DialTimeout  time.Duration `json:"dial_timeout"`
+	DialTimeout time.Duration `json:"dial_timeout"`
 
-	ReadTimeout  time.Duration `json:"read_timeout"`
+	ReadTimeout time.Duration `json:"read_timeout"`
 
 	WriteTimeout time.Duration `json:"write_timeout"`
 
-	IdleTimeout  time.Duration `json:"idle_timeout"`
-
-
+	IdleTimeout time.Duration `json:"idle_timeout"`
 
 	// Cache behavior.
 
-	DefaultTTL    time.Duration `json:"default_ttl"`
+	DefaultTTL time.Duration `json:"default_ttl"`
 
-	MaxKeyLength  int           `json:"max_key_length"`
+	MaxKeyLength int `json:"max_key_length"`
 
-	EnableMetrics bool          `json:"enable_metrics"`
+	EnableMetrics bool `json:"enable_metrics"`
 
-	KeyPrefix     string        `json:"key_prefix"`
-
-
+	KeyPrefix string `json:"key_prefix"`
 
 	// Cache categories with different TTLs.
 
-	EmbeddingTTL   time.Duration `json:"embedding_ttl"`
+	EmbeddingTTL time.Duration `json:"embedding_ttl"`
 
-	DocumentTTL    time.Duration `json:"document_ttl"`
+	DocumentTTL time.Duration `json:"document_ttl"`
 
 	QueryResultTTL time.Duration `json:"query_result_ttl"`
 
-	ContextTTL     time.Duration `json:"context_ttl"`
-
-
+	ContextTTL time.Duration `json:"context_ttl"`
 
 	// Performance settings.
 
 	EnableCompression bool `json:"enable_compression"`
 
-	CompressionLevel  int  `json:"compression_level"`
+	CompressionLevel int `json:"compression_level"`
 
-	MaxValueSize      int  `json:"max_value_size"`
-
-
+	MaxValueSize int `json:"max_value_size"`
 
 	// Cleanup and maintenance.
 
-	EnableCleanup      bool          `json:"enable_cleanup"`
+	EnableCleanup bool `json:"enable_cleanup"`
 
-	CleanupInterval    time.Duration `json:"cleanup_interval"`
+	CleanupInterval time.Duration `json:"cleanup_interval"`
 
-	MaxMemoryThreshold float64       `json:"max_memory_threshold"`
-
+	MaxMemoryThreshold float64 `json:"max_memory_threshold"`
 }
-
-
 
 // RedisCacheMetrics tracks Redis cache performance.
 
@@ -147,17 +108,15 @@ type RedisCacheMetrics struct {
 
 	TotalRequests int64 `json:"total_requests"`
 
-	Hits          int64 `json:"hits"`
+	Hits int64 `json:"hits"`
 
-	Misses        int64 `json:"misses"`
+	Misses int64 `json:"misses"`
 
-	Sets          int64 `json:"sets"`
+	Sets int64 `json:"sets"`
 
-	Deletes       int64 `json:"deletes"`
+	Deletes int64 `json:"deletes"`
 
-	Errors        int64 `json:"errors"`
-
-
+	Errors int64 `json:"errors"`
 
 	// Performance metrics.
 
@@ -165,147 +124,115 @@ type RedisCacheMetrics struct {
 
 	AverageSetTime time.Duration `json:"average_set_time"`
 
-	HitRate        float64       `json:"hit_rate"`
-
-
+	HitRate float64 `json:"hit_rate"`
 
 	// Category-specific metrics.
 
-	EmbeddingHits     int64 `json:"embedding_hits"`
+	EmbeddingHits int64 `json:"embedding_hits"`
 
-	EmbeddingMisses   int64 `json:"embedding_misses"`
+	EmbeddingMisses int64 `json:"embedding_misses"`
 
-	DocumentHits      int64 `json:"document_hits"`
+	DocumentHits int64 `json:"document_hits"`
 
-	DocumentMisses    int64 `json:"document_misses"`
+	DocumentMisses int64 `json:"document_misses"`
 
-	QueryResultHits   int64 `json:"query_result_hits"`
+	QueryResultHits int64 `json:"query_result_hits"`
 
 	QueryResultMisses int64 `json:"query_result_misses"`
 
-	ContextHits       int64 `json:"context_hits"`
+	ContextHits int64 `json:"context_hits"`
 
-	ContextMisses     int64 `json:"context_misses"`
-
-
+	ContextMisses int64 `json:"context_misses"`
 
 	// Resource metrics.
 
-	MemoryUsage int64     `json:"memory_usage"`
+	MemoryUsage int64 `json:"memory_usage"`
 
-	KeyCount    int64     `json:"key_count"`
+	KeyCount int64 `json:"key_count"`
 
 	LastCleanup time.Time `json:"last_cleanup"`
 
-
-
 	LastUpdated time.Time `json:"last_updated"`
 
-	mutex       sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // CacheKey represents a cache key with category information.
 
 type CacheKey struct {
+	Category string `json:"category"` // embedding, document, query_result, context
 
-	Category   string                 `json:"category"`   // embedding, document, query_result, context
+	Identifier string `json:"identifier"` // unique identifier for the cached item
 
-	Identifier string                 `json:"identifier"` // unique identifier for the cached item
+	Version string `json:"version"` // version for cache invalidation
 
-	Version    string                 `json:"version"`    // version for cache invalidation
-
-	Metadata   map[string]interface{} `json:"metadata"`   // additional metadata
+	Metadata map[string]interface{} `json:"metadata"` // additional metadata
 
 }
-
-
 
 // CachedItem represents an item stored in cache.
 
 type CachedItem struct {
+	Key CacheKey `json:"key"`
 
-	Key         CacheKey               `json:"key"`
+	Data interface{} `json:"data"`
 
-	Data        interface{}            `json:"data"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt   time.Time              `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 
-	ExpiresAt   time.Time              `json:"expires_at"`
+	AccessCount int64 `json:"access_count"`
 
-	AccessCount int64                  `json:"access_count"`
+	LastAccess time.Time `json:"last_access"`
 
-	LastAccess  time.Time              `json:"last_access"`
-
-	Metadata    map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // EmbeddingCacheEntry represents a cached embedding.
 
 type EmbeddingCacheEntry struct {
-
-	Text      string    `json:"text"`
+	Text string `json:"text"`
 
 	Embedding []float32 `json:"embedding"`
 
-	ModelName string    `json:"model_name"`
+	ModelName string `json:"model_name"`
 
 	CreatedAt time.Time `json:"created_at"`
-
 }
-
-
 
 // DocumentCacheEntry represents a cached document.
 
 type DocumentCacheEntry struct {
+	Document *LoadedDocument `json:"document"`
 
-	Document    *LoadedDocument `json:"document"`
+	ProcessedAt time.Time `json:"processed_at"`
 
-	ProcessedAt time.Time       `json:"processed_at"`
-
-	Hash        string          `json:"hash"`
-
+	Hash string `json:"hash"`
 }
-
-
 
 // QueryResultCacheEntry represents cached query results.
 
 type QueryResultCacheEntry struct {
+	Query string `json:"query"`
 
-	Query       string                  `json:"query"`
+	Results []*EnhancedSearchResult `json:"results"`
 
-	Results     []*EnhancedSearchResult `json:"results"`
+	Metadata map[string]interface{} `json:"metadata"`
 
-	Metadata    map[string]interface{}  `json:"metadata"`
-
-	ProcessedAt time.Time               `json:"processed_at"`
-
+	ProcessedAt time.Time `json:"processed_at"`
 }
-
-
 
 // ContextCacheEntry represents cached assembled context.
 
 type ContextCacheEntry struct {
+	Query string `json:"query"`
 
-	Query     string           `json:"query"`
+	Context string `json:"context"`
 
-	Context   string           `json:"context"`
+	Metadata *ContextMetadata `json:"metadata"`
 
-	Metadata  *ContextMetadata `json:"metadata"`
-
-	CreatedAt time.Time        `json:"created_at"`
-
+	CreatedAt time.Time `json:"created_at"`
 }
-
-
 
 // NewRedisCache creates a new Redis cache instance.
 
@@ -317,55 +244,46 @@ func NewRedisCache(config *RedisCacheConfig) (*RedisCache, error) {
 
 	}
 
-
-
 	// Create Redis client.
 
 	rdb := redis.NewClient(&redis.Options{
 
-		Addr:            config.Address,
+		Addr: config.Address,
 
-		Password:        config.Password,
+		Password: config.Password,
 
-		DB:              config.Database,
+		DB: config.Database,
 
-		PoolSize:        config.PoolSize,
+		PoolSize: config.PoolSize,
 
-		MinIdleConns:    config.MinIdleConns,
+		MinIdleConns: config.MinIdleConns,
 
-		MaxRetries:      config.MaxRetries,
+		MaxRetries: config.MaxRetries,
 
-		DialTimeout:     config.DialTimeout,
+		DialTimeout: config.DialTimeout,
 
-		ReadTimeout:     config.ReadTimeout,
+		ReadTimeout: config.ReadTimeout,
 
-		WriteTimeout:    config.WriteTimeout,
+		WriteTimeout: config.WriteTimeout,
 
 		ConnMaxIdleTime: config.IdleTimeout,
-
 	})
-
-
 
 	cache := &RedisCache{
 
-		client:    rdb,
+		client: rdb,
 
-		config:    config,
+		config: config,
 
-		logger:    slog.Default().With("component", "redis-cache"),
+		logger: slog.Default().With("component", "redis-cache"),
 
 		keyPrefix: config.KeyPrefix,
 
 		metrics: &RedisCacheMetrics{
 
 			LastUpdated: time.Now(),
-
 		},
-
 	}
-
-
 
 	// Test connection.
 
@@ -373,15 +291,11 @@ func NewRedisCache(config *RedisCacheConfig) (*RedisCache, error) {
 
 	defer cancel()
 
-
-
 	if err := rdb.Ping(ctx).Err(); err != nil {
 
 		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
 
 	}
-
-
 
 	cache.logger.Info("Redis cache initialized",
 
@@ -390,10 +304,7 @@ func NewRedisCache(config *RedisCacheConfig) (*RedisCache, error) {
 		"database", config.Database,
 
 		"pool_size", config.PoolSize,
-
 	)
-
-
 
 	// Start background tasks.
 
@@ -403,33 +314,23 @@ func NewRedisCache(config *RedisCacheConfig) (*RedisCache, error) {
 
 	}
 
-
-
 	if config.EnableMetrics {
 
 		go cache.startMetricsCollection()
 
 	}
 
-
-
 	return cache, nil
 
 }
 
-
-
 // Embedding cache methods.
-
-
 
 // GetEmbedding retrieves a cached embedding.
 
 func (rc *RedisCache) GetEmbedding(ctx context.Context, text, modelName string) ([]float32, bool) {
 
 	key := rc.buildEmbeddingKey(text, modelName)
-
-
 
 	startTime := time.Now()
 
@@ -455,8 +356,6 @@ func (rc *RedisCache) GetEmbedding(ctx context.Context, text, modelName string) 
 
 	}()
 
-
-
 	data, err := rc.client.Get(ctx, key).Result()
 
 	if err != nil {
@@ -475,8 +374,6 @@ func (rc *RedisCache) GetEmbedding(ctx context.Context, text, modelName string) 
 
 		}
 
-
-
 		rc.logger.Error("Failed to get embedding from cache", "error", err, "key", key)
 
 		rc.updateMetrics(func(m *RedisCacheMetrics) {
@@ -488,8 +385,6 @@ func (rc *RedisCache) GetEmbedding(ctx context.Context, text, modelName string) 
 		return nil, false
 
 	}
-
-
 
 	var entry EmbeddingCacheEntry
 
@@ -507,8 +402,6 @@ func (rc *RedisCache) GetEmbedding(ctx context.Context, text, modelName string) 
 
 	}
 
-
-
 	rc.updateMetrics(func(m *RedisCacheMetrics) {
 
 		m.Hits++
@@ -519,21 +412,15 @@ func (rc *RedisCache) GetEmbedding(ctx context.Context, text, modelName string) 
 
 	})
 
-
-
 	return entry.Embedding, true
 
 }
-
-
 
 // SetEmbedding stores an embedding in cache.
 
 func (rc *RedisCache) SetEmbedding(ctx context.Context, text, modelName string, embedding []float32) error {
 
 	key := rc.buildEmbeddingKey(text, modelName)
-
-
 
 	startTime := time.Now()
 
@@ -559,21 +446,16 @@ func (rc *RedisCache) SetEmbedding(ctx context.Context, text, modelName string, 
 
 	}()
 
-
-
 	entry := EmbeddingCacheEntry{
 
-		Text:      text,
+		Text: text,
 
 		Embedding: embedding,
 
 		ModelName: modelName,
 
 		CreatedAt: time.Now(),
-
 	}
-
-
 
 	data, err := json.Marshal(entry)
 
@@ -585,8 +467,6 @@ func (rc *RedisCache) SetEmbedding(ctx context.Context, text, modelName string, 
 
 	}
 
-
-
 	if len(data) > rc.config.MaxValueSize {
 
 		rc.logger.Warn("Embedding cache entry too large", "size", len(data), "max_size", rc.config.MaxValueSize)
@@ -594,8 +474,6 @@ func (rc *RedisCache) SetEmbedding(ctx context.Context, text, modelName string, 
 		return fmt.Errorf("cache entry too large: %d bytes", len(data))
 
 	}
-
-
 
 	err = rc.client.Set(ctx, key, data, rc.config.EmbeddingTTL).Err()
 
@@ -607,13 +485,9 @@ func (rc *RedisCache) SetEmbedding(ctx context.Context, text, modelName string, 
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // buildEmbeddingKey builds a cache key for embeddings.
 
@@ -627,19 +501,13 @@ func (rc *RedisCache) buildEmbeddingKey(text, modelName string) string {
 
 }
 
-
-
 // Document cache methods.
-
-
 
 // GetDocument retrieves a cached document.
 
 func (rc *RedisCache) GetDocument(ctx context.Context, docID string) (*LoadedDocument, bool) {
 
 	key := rc.buildKey("document", docID)
-
-
 
 	data, err := rc.client.Get(ctx, key).Result()
 
@@ -659,8 +527,6 @@ func (rc *RedisCache) GetDocument(ctx context.Context, docID string) (*LoadedDoc
 
 		}
 
-
-
 		rc.logger.Error("Failed to get document from cache", "error", err, "key", key)
 
 		rc.updateMetrics(func(m *RedisCacheMetrics) { m.Errors++ })
@@ -668,8 +534,6 @@ func (rc *RedisCache) GetDocument(ctx context.Context, docID string) (*LoadedDoc
 		return nil, false
 
 	}
-
-
 
 	var entry DocumentCacheEntry
 
@@ -683,8 +547,6 @@ func (rc *RedisCache) GetDocument(ctx context.Context, docID string) (*LoadedDoc
 
 	}
 
-
-
 	rc.updateMetrics(func(m *RedisCacheMetrics) {
 
 		m.Hits++
@@ -695,13 +557,9 @@ func (rc *RedisCache) GetDocument(ctx context.Context, docID string) (*LoadedDoc
 
 	})
 
-
-
 	return entry.Document, true
 
 }
-
-
 
 // SetDocument stores a document in cache.
 
@@ -713,23 +571,16 @@ func (rc *RedisCache) SetDocument(ctx context.Context, doc *LoadedDocument) erro
 
 	}
 
-
-
 	key := rc.buildKey("document", doc.ID)
-
-
 
 	entry := DocumentCacheEntry{
 
-		Document:    doc,
+		Document: doc,
 
 		ProcessedAt: time.Now(),
 
-		Hash:        doc.Hash,
-
+		Hash: doc.Hash,
 	}
-
-
 
 	data, err := json.Marshal(entry)
 
@@ -741,8 +592,6 @@ func (rc *RedisCache) SetDocument(ctx context.Context, doc *LoadedDocument) erro
 
 	}
 
-
-
 	if len(data) > rc.config.MaxValueSize {
 
 		rc.logger.Warn("Document cache entry too large", "doc_id", doc.ID, "size", len(data))
@@ -750,8 +599,6 @@ func (rc *RedisCache) SetDocument(ctx context.Context, doc *LoadedDocument) erro
 		return fmt.Errorf("document cache entry too large: %d bytes", len(data))
 
 	}
-
-
 
 	err = rc.client.Set(ctx, key, data, rc.config.DocumentTTL).Err()
 
@@ -763,27 +610,19 @@ func (rc *RedisCache) SetDocument(ctx context.Context, doc *LoadedDocument) erro
 
 	}
 
-
-
 	rc.updateMetrics(func(m *RedisCacheMetrics) { m.Sets++ })
 
 	return nil
 
 }
 
-
-
 // Query result cache methods.
-
-
 
 // GetQueryResults retrieves cached query results.
 
 func (rc *RedisCache) GetQueryResults(ctx context.Context, query string, filters map[string]interface{}) ([]*EnhancedSearchResult, bool) {
 
 	key := rc.buildQueryResultKey(query, filters)
-
-
 
 	data, err := rc.client.Get(ctx, key).Result()
 
@@ -803,8 +642,6 @@ func (rc *RedisCache) GetQueryResults(ctx context.Context, query string, filters
 
 		}
 
-
-
 		rc.logger.Error("Failed to get query results from cache", "error", err, "key", key)
 
 		rc.updateMetrics(func(m *RedisCacheMetrics) { m.Errors++ })
@@ -812,8 +649,6 @@ func (rc *RedisCache) GetQueryResults(ctx context.Context, query string, filters
 		return nil, false
 
 	}
-
-
 
 	var entry QueryResultCacheEntry
 
@@ -827,8 +662,6 @@ func (rc *RedisCache) GetQueryResults(ctx context.Context, query string, filters
 
 	}
 
-
-
 	rc.updateMetrics(func(m *RedisCacheMetrics) {
 
 		m.Hits++
@@ -839,13 +672,9 @@ func (rc *RedisCache) GetQueryResults(ctx context.Context, query string, filters
 
 	})
 
-
-
 	return entry.Results, true
 
 }
-
-
 
 // SetQueryResults stores query results in cache.
 
@@ -853,21 +682,16 @@ func (rc *RedisCache) SetQueryResults(ctx context.Context, query string, filters
 
 	key := rc.buildQueryResultKey(query, filters)
 
-
-
 	entry := QueryResultCacheEntry{
 
-		Query:       query,
+		Query: query,
 
-		Results:     results,
+		Results: results,
 
-		Metadata:    filters,
+		Metadata: filters,
 
 		ProcessedAt: time.Now(),
-
 	}
-
-
 
 	data, err := json.Marshal(entry)
 
@@ -879,8 +703,6 @@ func (rc *RedisCache) SetQueryResults(ctx context.Context, query string, filters
 
 	}
 
-
-
 	if len(data) > rc.config.MaxValueSize {
 
 		rc.logger.Warn("Query result cache entry too large", "query", query, "size", len(data))
@@ -888,8 +710,6 @@ func (rc *RedisCache) SetQueryResults(ctx context.Context, query string, filters
 		return fmt.Errorf("query result cache entry too large: %d bytes", len(data))
 
 	}
-
-
 
 	err = rc.client.Set(ctx, key, data, rc.config.QueryResultTTL).Err()
 
@@ -901,15 +721,11 @@ func (rc *RedisCache) SetQueryResults(ctx context.Context, query string, filters
 
 	}
 
-
-
 	rc.updateMetrics(func(m *RedisCacheMetrics) { m.Sets++ })
 
 	return nil
 
 }
-
-
 
 // buildQueryResultKey builds a cache key for query results.
 
@@ -921,8 +737,6 @@ func (rc *RedisCache) buildQueryResultKey(query string, filters map[string]inter
 
 	keyParts = append(keyParts, query)
 
-
-
 	// Sort filter keys for deterministic key generation.
 
 	filterKeys := make([]string, 0, len(filters))
@@ -932,8 +746,6 @@ func (rc *RedisCache) buildQueryResultKey(query string, filters map[string]inter
 		filterKeys = append(filterKeys, k)
 
 	}
-
-
 
 	for _, k := range filterKeys {
 
@@ -945,8 +757,6 @@ func (rc *RedisCache) buildQueryResultKey(query string, filters map[string]inter
 
 	}
 
-
-
 	combinedKey := strings.Join(keyParts, "|")
 
 	keyHash := fmt.Sprintf("%x", hash(combinedKey))
@@ -955,19 +765,13 @@ func (rc *RedisCache) buildQueryResultKey(query string, filters map[string]inter
 
 }
 
-
-
 // Context cache methods.
-
-
 
 // GetContext retrieves cached context.
 
 func (rc *RedisCache) GetContext(ctx context.Context, query string, contextKey string) (string, *ContextMetadata, bool) {
 
 	key := rc.buildKey("context", fmt.Sprintf("%s:%s", contextKey, fmt.Sprintf("%x", hash(query))))
-
-
 
 	data, err := rc.client.Get(ctx, key).Result()
 
@@ -987,8 +791,6 @@ func (rc *RedisCache) GetContext(ctx context.Context, query string, contextKey s
 
 		}
 
-
-
 		rc.logger.Error("Failed to get context from cache", "error", err, "key", key)
 
 		rc.updateMetrics(func(m *RedisCacheMetrics) { m.Errors++ })
@@ -996,8 +798,6 @@ func (rc *RedisCache) GetContext(ctx context.Context, query string, contextKey s
 		return "", nil, false
 
 	}
-
-
 
 	var entry ContextCacheEntry
 
@@ -1011,8 +811,6 @@ func (rc *RedisCache) GetContext(ctx context.Context, query string, contextKey s
 
 	}
 
-
-
 	rc.updateMetrics(func(m *RedisCacheMetrics) {
 
 		m.Hits++
@@ -1023,13 +821,9 @@ func (rc *RedisCache) GetContext(ctx context.Context, query string, contextKey s
 
 	})
 
-
-
 	return entry.Context, entry.Metadata, true
 
 }
-
-
 
 // SetContext stores context in cache.
 
@@ -1037,21 +831,16 @@ func (rc *RedisCache) SetContext(ctx context.Context, query, contextKey, context
 
 	key := rc.buildKey("context", fmt.Sprintf("%s:%s", contextKey, fmt.Sprintf("%x", hash(query))))
 
-
-
 	entry := ContextCacheEntry{
 
-		Query:     query,
+		Query: query,
 
-		Context:   contextContent,
+		Context: contextContent,
 
-		Metadata:  metadata,
+		Metadata: metadata,
 
 		CreatedAt: time.Now(),
-
 	}
-
-
 
 	data, err := json.Marshal(entry)
 
@@ -1063,8 +852,6 @@ func (rc *RedisCache) SetContext(ctx context.Context, query, contextKey, context
 
 	}
 
-
-
 	if len(data) > rc.config.MaxValueSize {
 
 		rc.logger.Warn("Context cache entry too large", "query", query, "size", len(data))
@@ -1072,8 +859,6 @@ func (rc *RedisCache) SetContext(ctx context.Context, query, contextKey, context
 		return fmt.Errorf("context cache entry too large: %d bytes", len(data))
 
 	}
-
-
 
 	err = rc.client.Set(ctx, key, data, rc.config.ContextTTL).Err()
 
@@ -1085,27 +870,19 @@ func (rc *RedisCache) SetContext(ctx context.Context, query, contextKey, context
 
 	}
 
-
-
 	rc.updateMetrics(func(m *RedisCacheMetrics) { m.Sets++ })
 
 	return nil
 
 }
 
-
-
 // General cache methods.
-
-
 
 // buildKey builds a cache key with prefix and category.
 
 func (rc *RedisCache) buildKey(category, identifier string) string {
 
 	key := fmt.Sprintf("%s%s:%s", rc.keyPrefix, category, identifier)
-
-
 
 	// Ensure key doesn't exceed maximum length.
 
@@ -1119,21 +896,15 @@ func (rc *RedisCache) buildKey(category, identifier string) string {
 
 	}
 
-
-
 	return key
 
 }
-
-
 
 // Delete removes an item from cache.
 
 func (rc *RedisCache) Delete(ctx context.Context, category, identifier string) error {
 
 	key := rc.buildKey(category, identifier)
-
-
 
 	err := rc.client.Del(ctx, key).Err()
 
@@ -1145,15 +916,11 @@ func (rc *RedisCache) Delete(ctx context.Context, category, identifier string) e
 
 	}
 
-
-
 	rc.updateMetrics(func(m *RedisCacheMetrics) { m.Deletes++ })
 
 	return nil
 
 }
-
-
 
 // Clear removes all items with the specified category prefix.
 
@@ -1161,15 +928,11 @@ func (rc *RedisCache) Clear(ctx context.Context, category string) error {
 
 	pattern := rc.buildKey(category, "*")
 
-
-
 	// Use SCAN to find keys (more efficient than KEYS for large datasets).
 
 	var cursor uint64
 
 	var deletedCount int64
-
-
 
 	for {
 
@@ -1182,8 +945,6 @@ func (rc *RedisCache) Clear(ctx context.Context, category string) error {
 			return fmt.Errorf("failed to scan cache keys: %w", err)
 
 		}
-
-
 
 		if len(keys) > 0 {
 
@@ -1201,8 +962,6 @@ func (rc *RedisCache) Clear(ctx context.Context, category string) error {
 
 		}
 
-
-
 		cursor = newCursor
 
 		if cursor == 0 {
@@ -1213,15 +972,11 @@ func (rc *RedisCache) Clear(ctx context.Context, category string) error {
 
 	}
 
-
-
 	rc.updateMetrics(func(m *RedisCacheMetrics) {
 
 		m.Deletes += deletedCount
 
 	})
-
-
 
 	rc.logger.Info("Cache category cleared", "category", category, "deleted_count", deletedCount)
 
@@ -1229,11 +984,7 @@ func (rc *RedisCache) Clear(ctx context.Context, category string) error {
 
 }
 
-
-
 // Background tasks.
-
-
 
 // startCleanupTask starts the background cleanup task.
 
@@ -1242,8 +993,6 @@ func (rc *RedisCache) startCleanupTask() {
 	ticker := time.NewTicker(rc.config.CleanupInterval)
 
 	defer ticker.Stop()
-
-
 
 	for range ticker.C {
 
@@ -1257,15 +1006,11 @@ func (rc *RedisCache) startCleanupTask() {
 
 }
 
-
-
 // performCleanup performs cache cleanup and maintenance.
 
 func (rc *RedisCache) performCleanup(ctx context.Context) error {
 
 	rc.logger.Debug("Starting cache cleanup")
-
-
 
 	// Get memory usage.
 
@@ -1277,13 +1022,9 @@ func (rc *RedisCache) performCleanup(ctx context.Context) error {
 
 	}
 
-
-
 	// Parse memory usage (simplified).
 
 	memoryUsed := int64(0) // In a real implementation, parse the INFO output
-
-
 
 	// Check if memory usage is above threshold.
 
@@ -1301,8 +1042,6 @@ func (rc *RedisCache) performCleanup(ctx context.Context) error {
 
 	}
 
-
-
 	// Update cleanup metrics.
 
 	rc.updateMetrics(func(m *RedisCacheMetrics) {
@@ -1313,15 +1052,11 @@ func (rc *RedisCache) performCleanup(ctx context.Context) error {
 
 	})
 
-
-
 	rc.logger.Debug("Cache cleanup completed")
 
 	return nil
 
 }
-
-
 
 // startMetricsCollection starts background metrics collection.
 
@@ -1331,8 +1066,6 @@ func (rc *RedisCache) startMetricsCollection() {
 
 	defer ticker.Stop()
 
-
-
 	for range ticker.C {
 
 		rc.collectMetrics(context.Background())
@@ -1340,8 +1073,6 @@ func (rc *RedisCache) startMetricsCollection() {
 	}
 
 }
-
-
 
 // collectMetrics collects and updates cache metrics.
 
@@ -1365,8 +1096,6 @@ func (rc *RedisCache) collectMetrics(ctx context.Context) {
 
 	}
 
-
-
 	// Log metrics periodically.
 
 	metrics := rc.GetMetrics()
@@ -1380,16 +1109,11 @@ func (rc *RedisCache) collectMetrics(ctx context.Context) {
 		"key_count", metrics.KeyCount,
 
 		"memory_usage", metrics.MemoryUsage,
-
 	)
 
 }
 
-
-
 // Metrics methods.
-
-
 
 // updateMetrics safely updates cache metrics.
 
@@ -1405,8 +1129,6 @@ func (rc *RedisCache) updateMetrics(updater func(*RedisCacheMetrics)) {
 
 }
 
-
-
 // GetMetrics returns current cache metrics.
 
 func (rc *RedisCache) GetMetrics() *RedisCacheMetrics {
@@ -1415,61 +1137,56 @@ func (rc *RedisCache) GetMetrics() *RedisCacheMetrics {
 
 	defer rc.metrics.mutex.RUnlock()
 
-
-
 	// Field-by-field copying to avoid mutex copying.
 
 	metrics := &RedisCacheMetrics{
 
-		TotalRequests:     rc.metrics.TotalRequests,
+		TotalRequests: rc.metrics.TotalRequests,
 
-		Hits:              rc.metrics.Hits,
+		Hits: rc.metrics.Hits,
 
-		Misses:            rc.metrics.Misses,
+		Misses: rc.metrics.Misses,
 
-		Sets:              rc.metrics.Sets,
+		Sets: rc.metrics.Sets,
 
-		Deletes:           rc.metrics.Deletes,
+		Deletes: rc.metrics.Deletes,
 
-		Errors:            rc.metrics.Errors,
+		Errors: rc.metrics.Errors,
 
-		AverageGetTime:    rc.metrics.AverageGetTime,
+		AverageGetTime: rc.metrics.AverageGetTime,
 
-		AverageSetTime:    rc.metrics.AverageSetTime,
+		AverageSetTime: rc.metrics.AverageSetTime,
 
-		HitRate:           rc.metrics.HitRate,
+		HitRate: rc.metrics.HitRate,
 
-		EmbeddingHits:     rc.metrics.EmbeddingHits,
+		EmbeddingHits: rc.metrics.EmbeddingHits,
 
-		EmbeddingMisses:   rc.metrics.EmbeddingMisses,
+		EmbeddingMisses: rc.metrics.EmbeddingMisses,
 
-		DocumentHits:      rc.metrics.DocumentHits,
+		DocumentHits: rc.metrics.DocumentHits,
 
-		DocumentMisses:    rc.metrics.DocumentMisses,
+		DocumentMisses: rc.metrics.DocumentMisses,
 
-		QueryResultHits:   rc.metrics.QueryResultHits,
+		QueryResultHits: rc.metrics.QueryResultHits,
 
 		QueryResultMisses: rc.metrics.QueryResultMisses,
 
-		ContextHits:       rc.metrics.ContextHits,
+		ContextHits: rc.metrics.ContextHits,
 
-		ContextMisses:     rc.metrics.ContextMisses,
+		ContextMisses: rc.metrics.ContextMisses,
 
-		MemoryUsage:       rc.metrics.MemoryUsage,
+		MemoryUsage: rc.metrics.MemoryUsage,
 
-		KeyCount:          rc.metrics.KeyCount,
+		KeyCount: rc.metrics.KeyCount,
 
-		LastCleanup:       rc.metrics.LastCleanup,
+		LastCleanup: rc.metrics.LastCleanup,
 
-		LastUpdated:       rc.metrics.LastUpdated,
-
+		LastUpdated: rc.metrics.LastUpdated,
 	}
 
 	return metrics
 
 }
-
-
 
 // GetHealthStatus returns cache health status.
 
@@ -1483,8 +1200,6 @@ func (rc *RedisCache) GetHealthStatus(ctx context.Context) map[string]interface{
 
 	pingTime := time.Since(pingStart)
 
-
-
 	healthy := err == nil
 
 	status := "healthy"
@@ -1495,17 +1210,13 @@ func (rc *RedisCache) GetHealthStatus(ctx context.Context) map[string]interface{
 
 	}
 
-
-
 	metrics := rc.GetMetrics()
-
-
 
 	return map[string]interface{}{
 
-		"status":    status,
+		"status": status,
 
-		"healthy":   healthy,
+		"healthy": healthy,
 
 		"ping_time": pingTime,
 
@@ -1523,25 +1234,21 @@ func (rc *RedisCache) GetHealthStatus(ctx context.Context) map[string]interface{
 
 		"metrics": map[string]interface{}{
 
-			"hit_rate":       metrics.HitRate,
+			"hit_rate": metrics.HitRate,
 
 			"total_requests": metrics.TotalRequests,
 
-			"errors":         metrics.Errors,
+			"errors": metrics.Errors,
 
-			"key_count":      metrics.KeyCount,
+			"key_count": metrics.KeyCount,
 
-			"memory_usage":   metrics.MemoryUsage,
-
+			"memory_usage": metrics.MemoryUsage,
 		},
 
 		"last_updated": metrics.LastUpdated,
-
 	}
 
 }
-
-
 
 // Close closes the Redis connection.
 
@@ -1553,11 +1260,7 @@ func (rc *RedisCache) Close() error {
 
 }
 
-
-
 // Helper functions.
-
-
 
 // hash creates a hash of the input string.
 
@@ -1571,19 +1274,13 @@ func hash(input string) []byte {
 
 }
 
-
-
 // Enhanced embedding cache methods with binary encoding.
-
-
 
 // SetEmbeddingBinary stores an embedding using efficient binary encoding.
 
 func (rc *RedisCache) SetEmbeddingBinary(ctx context.Context, text, modelName string, embedding []float32) error {
 
 	key := rc.buildEmbeddingKey(text, modelName)
-
-
 
 	startTime := time.Now()
 
@@ -1609,8 +1306,6 @@ func (rc *RedisCache) SetEmbeddingBinary(ctx context.Context, text, modelName st
 
 	}()
 
-
-
 	// Convert embedding to binary format for more efficient storage.
 
 	binaryData, err := rc.encodeEmbeddingBinary(embedding, text, modelName)
@@ -1622,8 +1317,6 @@ func (rc *RedisCache) SetEmbeddingBinary(ctx context.Context, text, modelName st
 		return fmt.Errorf("failed to encode embedding: %w", err)
 
 	}
-
-
 
 	// Apply compression if enabled.
 
@@ -1641,8 +1334,6 @@ func (rc *RedisCache) SetEmbeddingBinary(ctx context.Context, text, modelName st
 
 	}
 
-
-
 	if len(binaryData) > rc.config.MaxValueSize {
 
 		rc.logger.Warn("Compressed embedding cache entry too large", "size", len(binaryData), "max_size", rc.config.MaxValueSize)
@@ -1650,8 +1341,6 @@ func (rc *RedisCache) SetEmbeddingBinary(ctx context.Context, text, modelName st
 		return fmt.Errorf("compressed cache entry too large: %d bytes", len(binaryData))
 
 	}
-
-
 
 	err = rc.client.Set(ctx, key, binaryData, rc.config.EmbeddingTTL).Err()
 
@@ -1663,21 +1352,15 @@ func (rc *RedisCache) SetEmbeddingBinary(ctx context.Context, text, modelName st
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetEmbeddingBinary retrieves an embedding using binary decoding.
 
 func (rc *RedisCache) GetEmbeddingBinary(ctx context.Context, text, modelName string) ([]float32, bool) {
 
 	key := rc.buildEmbeddingKey(text, modelName)
-
-
 
 	startTime := time.Now()
 
@@ -1703,8 +1386,6 @@ func (rc *RedisCache) GetEmbeddingBinary(ctx context.Context, text, modelName st
 
 	}()
 
-
-
 	data, err := rc.client.Get(ctx, key).Bytes()
 
 	if err != nil {
@@ -1723,8 +1404,6 @@ func (rc *RedisCache) GetEmbeddingBinary(ctx context.Context, text, modelName st
 
 		}
 
-
-
 		rc.logger.Error("Failed to get binary embedding from cache", "error", err, "key", key)
 
 		rc.updateMetrics(func(m *RedisCacheMetrics) { m.Errors++ })
@@ -1732,8 +1411,6 @@ func (rc *RedisCache) GetEmbeddingBinary(ctx context.Context, text, modelName st
 		return nil, false
 
 	}
-
-
 
 	// Decompress if compression was used.
 
@@ -1753,8 +1430,6 @@ func (rc *RedisCache) GetEmbeddingBinary(ctx context.Context, text, modelName st
 
 	}
 
-
-
 	// Decode binary data.
 
 	embedding, err := rc.decodeEmbeddingBinary(data)
@@ -1769,8 +1444,6 @@ func (rc *RedisCache) GetEmbeddingBinary(ctx context.Context, text, modelName st
 
 	}
 
-
-
 	rc.updateMetrics(func(m *RedisCacheMetrics) {
 
 		m.Hits++
@@ -1781,21 +1454,15 @@ func (rc *RedisCache) GetEmbeddingBinary(ctx context.Context, text, modelName st
 
 	})
 
-
-
 	return embedding, true
 
 }
-
-
 
 // encodeEmbeddingBinary encodes an embedding to binary format.
 
 func (rc *RedisCache) encodeEmbeddingBinary(embedding []float32, text, modelName string) ([]byte, error) {
 
 	var buf bytes.Buffer
-
-
 
 	// Write header.
 
@@ -1804,8 +1471,6 @@ func (rc *RedisCache) encodeEmbeddingBinary(embedding []float32, text, modelName
 		return nil, fmt.Errorf("failed to write embedding length: %w", err)
 
 	}
-
-
 
 	// Write model name length and data.
 
@@ -1823,8 +1488,6 @@ func (rc *RedisCache) encodeEmbeddingBinary(embedding []float32, text, modelName
 
 	}
 
-
-
 	// Write timestamp.
 
 	if err := binary.Write(&buf, binary.LittleEndian, time.Now().Unix()); err != nil {
@@ -1832,8 +1495,6 @@ func (rc *RedisCache) encodeEmbeddingBinary(embedding []float32, text, modelName
 		return nil, fmt.Errorf("failed to write timestamp: %w", err)
 
 	}
-
-
 
 	// Write embedding data.
 
@@ -1847,21 +1508,15 @@ func (rc *RedisCache) encodeEmbeddingBinary(embedding []float32, text, modelName
 
 	}
 
-
-
 	return buf.Bytes(), nil
 
 }
-
-
 
 // decodeEmbeddingBinary decodes binary embedding data.
 
 func (rc *RedisCache) decodeEmbeddingBinary(data []byte) ([]float32, error) {
 
 	buf := bytes.NewReader(data)
-
-
 
 	// Read embedding length.
 
@@ -1873,8 +1528,6 @@ func (rc *RedisCache) decodeEmbeddingBinary(data []byte) ([]float32, error) {
 
 	}
 
-
-
 	// Read model name length.
 
 	var modelNameLen uint32
@@ -1885,8 +1538,6 @@ func (rc *RedisCache) decodeEmbeddingBinary(data []byte) ([]float32, error) {
 
 	}
 
-
-
 	// Skip model name.
 
 	if _, err := buf.Seek(int64(modelNameLen), io.SeekCurrent); err != nil {
@@ -1895,8 +1546,6 @@ func (rc *RedisCache) decodeEmbeddingBinary(data []byte) ([]float32, error) {
 
 	}
 
-
-
 	// Skip timestamp.
 
 	if _, err := buf.Seek(8, io.SeekCurrent); err != nil {
@@ -1904,8 +1553,6 @@ func (rc *RedisCache) decodeEmbeddingBinary(data []byte) ([]float32, error) {
 		return nil, fmt.Errorf("failed to skip timestamp: %w", err)
 
 	}
-
-
 
 	// Read embedding data.
 
@@ -1921,13 +1568,9 @@ func (rc *RedisCache) decodeEmbeddingBinary(data []byte) ([]float32, error) {
 
 	}
 
-
-
 	return embedding, nil
 
 }
-
-
 
 // compress compresses data using gzip.
 
@@ -1943,15 +1586,11 @@ func (rc *RedisCache) compress(data []byte) ([]byte, error) {
 
 	}
 
-
-
 	if _, err := writer.Write(data); err != nil {
 
 		return nil, fmt.Errorf("failed to write compressed data: %w", err)
 
 	}
-
-
 
 	if err := writer.Close(); err != nil {
 
@@ -1959,13 +1598,9 @@ func (rc *RedisCache) compress(data []byte) ([]byte, error) {
 
 	}
 
-
-
 	return buf.Bytes(), nil
 
 }
-
-
 
 // decompress decompresses gzip data.
 
@@ -1981,8 +1616,6 @@ func (rc *RedisCache) decompress(data []byte) ([]byte, error) {
 
 	defer reader.Close()
 
-
-
 	decompressed, err := io.ReadAll(reader)
 
 	if err != nil {
@@ -1991,17 +1624,11 @@ func (rc *RedisCache) decompress(data []byte) ([]byte, error) {
 
 	}
 
-
-
 	return decompressed, nil
 
 }
 
-
-
 // Batch operations for better performance.
-
-
 
 // SetEmbeddingsBatch stores multiple embeddings in a single Redis pipeline.
 
@@ -2013,23 +1640,15 @@ func (rc *RedisCache) SetEmbeddingsBatch(ctx context.Context, embeddings map[str
 
 	}
 
-
-
 	pipe := rc.client.Pipeline()
-
-
 
 	for textHash, item := range embeddings {
 
 		key := rc.buildEmbeddingKey(item.Text, item.ModelName)
 
-
-
 		var data []byte
 
 		var err error
-
-
 
 		if rc.config.EnableCompression {
 
@@ -2044,8 +1663,6 @@ func (rc *RedisCache) SetEmbeddingsBatch(ctx context.Context, embeddings map[str
 				continue
 
 			}
-
-
 
 			data, err = rc.compress(binaryData)
 
@@ -2063,17 +1680,14 @@ func (rc *RedisCache) SetEmbeddingsBatch(ctx context.Context, embeddings map[str
 
 			entry := EmbeddingCacheEntry{
 
-				Text:      item.Text,
+				Text: item.Text,
 
 				Embedding: item.Embedding,
 
 				ModelName: item.ModelName,
 
 				CreatedAt: time.Now(),
-
 			}
-
-
 
 			data, err = json.Marshal(entry)
 
@@ -2087,8 +1701,6 @@ func (rc *RedisCache) SetEmbeddingsBatch(ctx context.Context, embeddings map[str
 
 		}
 
-
-
 		if len(data) <= rc.config.MaxValueSize {
 
 			pipe.Set(ctx, key, data, rc.config.EmbeddingTTL)
@@ -2100,8 +1712,6 @@ func (rc *RedisCache) SetEmbeddingsBatch(ctx context.Context, embeddings map[str
 		}
 
 	}
-
-
 
 	// Execute batch.
 
@@ -2115,15 +1725,11 @@ func (rc *RedisCache) SetEmbeddingsBatch(ctx context.Context, embeddings map[str
 
 	}
 
-
-
 	rc.updateMetrics(func(m *RedisCacheMetrics) {
 
 		m.Sets += int64(len(embeddings))
 
 	})
-
-
 
 	rc.logger.Debug("Batch embedding storage completed", "count", len(embeddings))
 
@@ -2131,33 +1737,23 @@ func (rc *RedisCache) SetEmbeddingsBatch(ctx context.Context, embeddings map[str
 
 }
 
-
-
 // EmbeddingBatchItem represents an item in a batch embedding operation.
 
 type EmbeddingBatchItem struct {
-
-	Text      string    `json:"text"`
+	Text string `json:"text"`
 
 	Embedding []float32 `json:"embedding"`
 
-	ModelName string    `json:"model_name"`
-
+	ModelName string `json:"model_name"`
 }
 
-
-
 // Cache warming functions.
-
-
 
 // WarmCache pre-loads frequently accessed items into cache.
 
 func (rc *RedisCache) WarmCache(ctx context.Context, warmupConfig *CacheWarmupConfig) error {
 
 	rc.logger.Info("Starting cache warming", "config", warmupConfig)
-
-
 
 	// Warm up embeddings if configured.
 
@@ -2171,8 +1767,6 @@ func (rc *RedisCache) WarmCache(ctx context.Context, warmupConfig *CacheWarmupCo
 
 	}
 
-
-
 	// Warm up query results if configured.
 
 	if warmupConfig.QueryWarmup != nil {
@@ -2185,53 +1779,37 @@ func (rc *RedisCache) WarmCache(ctx context.Context, warmupConfig *CacheWarmupCo
 
 	}
 
-
-
 	rc.logger.Info("Cache warming completed")
 
 	return nil
 
 }
 
-
-
 // CacheWarmupConfig configures cache warming.
 
 type CacheWarmupConfig struct {
-
 	EmbeddingWarmup *EmbeddingWarmupConfig `json:"embedding_warmup"`
 
-	QueryWarmup     *QueryWarmupConfig     `json:"query_warmup"`
-
+	QueryWarmup *QueryWarmupConfig `json:"query_warmup"`
 }
-
-
 
 // EmbeddingWarmupConfig configures embedding cache warming.
 
 type EmbeddingWarmupConfig struct {
+	CommonTexts []string `json:"common_texts"`
 
-	CommonTexts   []string `json:"common_texts"`
+	ModelNames []string `json:"model_names"`
 
-	ModelNames    []string `json:"model_names"`
-
-	MaxWarmupSize int      `json:"max_warmup_size"`
-
+	MaxWarmupSize int `json:"max_warmup_size"`
 }
-
-
 
 // QueryWarmupConfig configures query cache warming.
 
 type QueryWarmupConfig struct {
-
 	CommonQueries []string `json:"common_queries"`
 
-	MaxWarmupSize int      `json:"max_warmup_size"`
-
+	MaxWarmupSize int `json:"max_warmup_size"`
 }
-
-
 
 // warmEmbeddingCache warms up the embedding cache.
 
@@ -2245,25 +1823,18 @@ func (rc *RedisCache) warmEmbeddingCache(ctx context.Context, config *EmbeddingW
 
 	// 3. Store them in cache.
 
-
-
 	rc.logger.Debug("Warming embedding cache",
 
 		"common_texts", len(config.CommonTexts),
 
 		"models", len(config.ModelNames),
-
 	)
-
-
 
 	// This is a placeholder - actual implementation would generate and cache embeddings.
 
 	return nil
 
 }
-
-
 
 // warmQueryCache warms up the query cache.
 
@@ -2277,11 +1848,7 @@ func (rc *RedisCache) warmQueryCache(ctx context.Context, config *QueryWarmupCon
 
 	// 3. Store results in cache.
 
-
-
 	rc.logger.Debug("Warming query cache", "common_queries", len(config.CommonQueries))
-
-
 
 	// This is a placeholder - actual implementation would execute and cache queries.
 
@@ -2289,11 +1856,7 @@ func (rc *RedisCache) warmQueryCache(ctx context.Context, config *QueryWarmupCon
 
 }
 
-
-
 // Cache statistics and analysis.
-
-
 
 // GetCacheStatistics returns detailed cache statistics.
 
@@ -2302,10 +1865,7 @@ func (rc *RedisCache) GetCacheStatistics(ctx context.Context) (*CacheStatistics,
 	stats := &CacheStatistics{
 
 		GeneratedAt: time.Now(),
-
 	}
-
-
 
 	// Get Redis info.
 
@@ -2317,21 +1877,15 @@ func (rc *RedisCache) GetCacheStatistics(ctx context.Context) (*CacheStatistics,
 
 	}
 
-
-
 	// Parse Redis info (simplified).
 
 	stats.RedisInfo = info
-
-
 
 	// Get key distribution by category.
 
 	stats.KeyDistribution = make(map[string]int64)
 
 	categories := []string{"embedding", "document", "query_result", "context"}
-
-
 
 	for _, category := range categories {
 
@@ -2351,37 +1905,27 @@ func (rc *RedisCache) GetCacheStatistics(ctx context.Context) (*CacheStatistics,
 
 	}
 
-
-
 	// Get current metrics.
 
 	metrics := rc.GetMetrics()
 
 	stats.Metrics = metrics
 
-
-
 	return stats, nil
 
 }
 
-
-
 // CacheStatistics holds detailed cache statistics.
 
 type CacheStatistics struct {
+	GeneratedAt time.Time `json:"generated_at"`
 
-	GeneratedAt     time.Time          `json:"generated_at"`
+	RedisInfo string `json:"redis_info"`
 
-	RedisInfo       string             `json:"redis_info"`
+	KeyDistribution map[string]int64 `json:"key_distribution"`
 
-	KeyDistribution map[string]int64   `json:"key_distribution"`
-
-	Metrics         *RedisCacheMetrics `json:"metrics"`
-
+	Metrics *RedisCacheMetrics `json:"metrics"`
 }
-
-
 
 // countKeysWithPattern counts keys matching a pattern.
 
@@ -2390,8 +1934,6 @@ func (rc *RedisCache) countKeysWithPattern(ctx context.Context, pattern string) 
 	var cursor uint64
 
 	var count int64
-
-
 
 	for {
 
@@ -2402,8 +1944,6 @@ func (rc *RedisCache) countKeysWithPattern(ctx context.Context, pattern string) 
 			return 0, err
 
 		}
-
-
 
 		count += int64(len(keys))
 
@@ -2417,19 +1957,13 @@ func (rc *RedisCache) countKeysWithPattern(ctx context.Context, pattern string) 
 
 	}
 
-
-
 	return count, nil
 
 }
 
-
-
 // NoOpRedisCache provides a no-operation Redis cache implementation.
 
 type NoOpRedisCache struct{}
-
-
 
 // NewNoOpRedisCache creates a new no-op Redis cache.
 
@@ -2439,8 +1973,6 @@ func NewNoOpRedisCache() *NoOpRedisCache {
 
 }
 
-
-
 // Get implements RedisEmbeddingCache interface.
 
 func (c *NoOpRedisCache) Get(key string) ([]float32, bool, error) {
@@ -2448,8 +1980,6 @@ func (c *NoOpRedisCache) Get(key string) ([]float32, bool, error) {
 	return nil, false, nil
 
 }
-
-
 
 // Set implements RedisEmbeddingCache interface.
 
@@ -2459,8 +1989,6 @@ func (c *NoOpRedisCache) Set(key string, embedding []float32, ttl time.Duration)
 
 }
 
-
-
 // Delete implements RedisEmbeddingCache interface.
 
 func (c *NoOpRedisCache) Delete(key string) error {
@@ -2468,8 +1996,6 @@ func (c *NoOpRedisCache) Delete(key string) error {
 	return nil
 
 }
-
-
 
 // Clear implements RedisEmbeddingCache interface.
 
@@ -2479,8 +2005,6 @@ func (c *NoOpRedisCache) Clear() error {
 
 }
 
-
-
 // Stats implements RedisEmbeddingCache interface.
 
 func (c *NoOpRedisCache) Stats() CacheStats {
@@ -2488,8 +2012,6 @@ func (c *NoOpRedisCache) Stats() CacheStats {
 	return CacheStats{}
 
 }
-
-
 
 // Close implements RedisEmbeddingCache interface.
 
@@ -2499,47 +2021,43 @@ func (c *NoOpRedisCache) Close() error {
 
 }
 
-
-
 // NewRedisEmbeddingCache creates a new Redis embedding cache.
 
 func NewRedisEmbeddingCache(addr, password string, db int) RedisEmbeddingCache {
 
 	config := &RedisCacheConfig{
 
-		Address:           addr,
+		Address: addr,
 
-		Password:          password,
+		Password: password,
 
-		Database:          db,
+		Database: db,
 
-		PoolSize:          10,
+		PoolSize: 10,
 
-		MinIdleConns:      2,
+		MinIdleConns: 2,
 
-		MaxRetries:        3,
+		MaxRetries: 3,
 
-		DialTimeout:       5 * time.Second,
+		DialTimeout: 5 * time.Second,
 
-		ReadTimeout:       3 * time.Second,
+		ReadTimeout: 3 * time.Second,
 
-		WriteTimeout:      3 * time.Second,
+		WriteTimeout: 3 * time.Second,
 
-		IdleTimeout:       5 * time.Minute,
+		IdleTimeout: 5 * time.Minute,
 
-		DefaultTTL:        24 * time.Hour,
+		DefaultTTL: 24 * time.Hour,
 
-		EmbeddingTTL:      24 * time.Hour,
+		EmbeddingTTL: 24 * time.Hour,
 
-		KeyPrefix:         "nephoran:rag:",
+		KeyPrefix: "nephoran:rag:",
 
 		EnableCompression: true,
 
-		MaxValueSize:      10 * 1024 * 1024, // 10MB
+		MaxValueSize: 10 * 1024 * 1024, // 10MB
 
 	}
-
-
 
 	cache, err := NewRedisCache(config)
 
@@ -2551,23 +2069,15 @@ func NewRedisEmbeddingCache(addr, password string, db int) RedisEmbeddingCache {
 
 	}
 
-
-
 	return &RedisEmbeddingCacheAdapter{cache: cache}
 
 }
 
-
-
 // RedisEmbeddingCacheAdapter adapts RedisCache to RedisEmbeddingCache interface.
 
 type RedisEmbeddingCacheAdapter struct {
-
 	cache *RedisCache
-
 }
-
-
 
 // Get implements RedisEmbeddingCache interface.
 
@@ -2585,8 +2095,6 @@ func (a *RedisEmbeddingCacheAdapter) Get(key string) ([]float32, bool, error) {
 
 }
 
-
-
 // Set implements RedisEmbeddingCache interface.
 
 func (a *RedisEmbeddingCacheAdapter) Set(key string, embedding []float32, ttl time.Duration) error {
@@ -2594,8 +2102,6 @@ func (a *RedisEmbeddingCacheAdapter) Set(key string, embedding []float32, ttl ti
 	return a.cache.SetEmbedding(context.Background(), key, "default", embedding)
 
 }
-
-
 
 // Delete implements RedisEmbeddingCache interface.
 
@@ -2605,8 +2111,6 @@ func (a *RedisEmbeddingCacheAdapter) Delete(key string) error {
 
 }
 
-
-
 // Clear implements RedisEmbeddingCache interface.
 
 func (a *RedisEmbeddingCacheAdapter) Clear() error {
@@ -2614,8 +2118,6 @@ func (a *RedisEmbeddingCacheAdapter) Clear() error {
 	return a.cache.Clear(context.Background(), "embedding")
 
 }
-
-
 
 // Stats implements RedisEmbeddingCache interface.
 
@@ -2625,19 +2127,16 @@ func (a *RedisEmbeddingCacheAdapter) Stats() CacheStats {
 
 	return CacheStats{
 
-		Size:    metrics.KeyCount,
+		Size: metrics.KeyCount,
 
-		Hits:    metrics.EmbeddingHits,
+		Hits: metrics.EmbeddingHits,
 
-		Misses:  metrics.EmbeddingMisses,
+		Misses: metrics.EmbeddingMisses,
 
 		HitRate: metrics.HitRate,
-
 	}
 
 }
-
-
 
 // Close implements RedisEmbeddingCache interface.
 
@@ -2646,4 +2145,3 @@ func (a *RedisEmbeddingCacheAdapter) Close() error {
 	return a.cache.Close()
 
 }
-

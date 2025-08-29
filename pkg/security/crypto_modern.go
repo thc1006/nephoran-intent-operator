@@ -1,53 +1,28 @@
 // Package security provides modern cryptographic operations with Go 1.24+ features.
 
-
 package security
 
-
-
 import (
-
 	"crypto/aes"
-
 	"crypto/cipher"
-
 	"crypto/ed25519"
-
 	"crypto/rand"
-
 	"crypto/sha256"
-
 	"crypto/sha512"
-
 	"crypto/subtle"
-
 	"encoding/base64"
-
 	"errors"
-
 	"fmt"
-
 	"io"
-
 	"sync"
-
 	"time"
 
-
-
 	"golang.org/x/crypto/argon2"
-
 	"golang.org/x/crypto/chacha20poly1305"
-
 	"golang.org/x/crypto/hkdf"
-
 	"golang.org/x/crypto/pbkdf2"
-
 	"golang.org/x/crypto/scrypt"
-
 )
-
-
 
 // CryptoModern provides advanced cryptographic operations.
 
@@ -57,49 +32,34 @@ type CryptoModern struct {
 
 	entropyPool *EntropyPool
 
-
-
 	// Key derivation parameters.
 
 	kdfParams *KDFParams
-
-
 
 	// Encryption contexts.
 
 	contexts map[string]*EncryptionContext
 
-
-
 	// Post-quantum preparation.
 
 	pqReady bool
 
-
-
 	mu sync.RWMutex
-
 }
-
-
 
 // EntropyPool manages entropy for secure random generation.
 
 type EntropyPool struct {
-
-	pool     []byte
+	pool []byte
 
 	poolSize int
 
 	lastSeed time.Time
 
-	mu       sync.Mutex
+	mu sync.Mutex
 
-	rng      io.Reader
-
+	rng io.Reader
 }
-
-
 
 // KDFParams contains key derivation function parameters.
 
@@ -107,21 +67,17 @@ type KDFParams struct {
 
 	// Argon2 parameters.
 
-	Argon2Time    uint32
+	Argon2Time uint32
 
-	Argon2Memory  uint32
+	Argon2Memory uint32
 
 	Argon2Threads uint8
 
-	Argon2KeyLen  uint32
-
-
+	Argon2KeyLen uint32
 
 	// PBKDF2 parameters.
 
 	PBKDF2Iterations int
-
-
 
 	// Scrypt parameters.
 
@@ -131,73 +87,56 @@ type KDFParams struct {
 
 	ScryptP int
 
-
-
 	// HKDF info.
 
 	HKDFInfo []byte
-
 }
-
-
 
 // EncryptionContext maintains encryption state.
 
 type EncryptionContext struct {
-
 	Algorithm string
 
-	Key       []byte
+	Key []byte
 
-	Nonce     []byte
+	Nonce []byte
 
-	AAD       []byte // Additional Authenticated Data
+	AAD []byte // Additional Authenticated Data
 
-	Created   time.Time
-
+	Created time.Time
 }
-
-
 
 // EncryptedData represents encrypted data with metadata.
 
 type EncryptedData struct {
+	Algorithm string `json:"algorithm"`
 
-	Algorithm  string    `json:"algorithm"`
+	Ciphertext []byte `json:"ciphertext"`
 
-	Ciphertext []byte    `json:"ciphertext"`
+	Nonce []byte `json:"nonce"`
 
-	Nonce      []byte    `json:"nonce"`
+	AAD []byte `json:"aad,omitempty"`
 
-	AAD        []byte    `json:"aad,omitempty"`
+	Salt []byte `json:"salt,omitempty"`
 
-	Salt       []byte    `json:"salt,omitempty"`
+	Tag []byte `json:"tag,omitempty"`
 
-	Tag        []byte    `json:"tag,omitempty"`
+	Created time.Time `json:"created"`
 
-	Created    time.Time `json:"created"`
-
-	Version    int       `json:"version"`
-
+	Version int `json:"version"`
 }
-
-
 
 // Ed25519KeyPair represents an Ed25519 key pair.
 
 type Ed25519KeyPair struct {
-
-	PublicKey  ed25519.PublicKey
+	PublicKey ed25519.PublicKey
 
 	PrivateKey ed25519.PrivateKey
 
-	Created    time.Time
+	Created time.Time
 
-	ID         string
-
+	ID string
 }
-
-
 
 // NewCryptoModern creates a new modern crypto instance.
 
@@ -211,13 +150,13 @@ func NewCryptoModern() *CryptoModern {
 
 			// Argon2id parameters (recommended for password hashing).
 
-			Argon2Time:    3,
+			Argon2Time: 3,
 
-			Argon2Memory:  64 * 1024, // 64 MB
+			Argon2Memory: 64 * 1024, // 64 MB
 
 			Argon2Threads: 4,
 
-			Argon2KeyLen:  32,
+			Argon2KeyLen: 32,
 
 			// PBKDF2 parameters.
 
@@ -234,18 +173,14 @@ func NewCryptoModern() *CryptoModern {
 			// HKDF.
 
 			HKDFInfo: []byte("nephoran-intent-operator"),
-
 		},
 
 		contexts: make(map[string]*EncryptionContext),
 
-		pqReady:  false,
-
+		pqReady: false,
 	}
 
 }
-
-
 
 // NewEntropyPool creates a new entropy pool.
 
@@ -255,10 +190,9 @@ func NewEntropyPool(size int) *EntropyPool {
 
 		poolSize: size,
 
-		pool:     make([]byte, size),
+		pool: make([]byte, size),
 
-		rng:      rand.Reader,
-
+		rng: rand.Reader,
 	}
 
 	pool.reseed()
@@ -266,8 +200,6 @@ func NewEntropyPool(size int) *EntropyPool {
 	return pool
 
 }
-
-
 
 // reseed refreshes the entropy pool.
 
@@ -277,23 +209,17 @@ func (p *EntropyPool) reseed() error {
 
 	defer p.mu.Unlock()
 
-
-
 	if _, err := io.ReadFull(p.rng, p.pool); err != nil {
 
 		return fmt.Errorf("failed to reseed entropy pool: %w", err)
 
 	}
 
-
-
 	p.lastSeed = time.Now()
 
 	return nil
 
 }
-
-
 
 // Read implements io.Reader for entropy pool.
 
@@ -302,8 +228,6 @@ func (p *EntropyPool) Read(b []byte) (int, error) {
 	p.mu.Lock()
 
 	defer p.mu.Unlock()
-
-
 
 	// Reseed if pool is older than 5 minutes.
 
@@ -317,8 +241,6 @@ func (p *EntropyPool) Read(b []byte) (int, error) {
 
 	}
 
-
-
 	// Mix pool entropy with system randomness.
 
 	systemRandom := make([]byte, len(b))
@@ -329,15 +251,11 @@ func (p *EntropyPool) Read(b []byte) (int, error) {
 
 	}
 
-
-
 	for i := range b {
 
 		b[i] = p.pool[i%p.poolSize] ^ systemRandom[i]
 
 	}
-
-
 
 	// Stir the pool.
 
@@ -347,13 +265,9 @@ func (p *EntropyPool) Read(b []byte) (int, error) {
 
 	}
 
-
-
 	return len(b), nil
 
 }
-
-
 
 // EncryptAESGCM performs AES-GCM encryption with additional authenticated data.
 
@@ -367,8 +281,6 @@ func (c *CryptoModern) EncryptAESGCM(plaintext, key, aad []byte) (*EncryptedData
 
 	}
 
-
-
 	block, err := aes.NewCipher(key)
 
 	if err != nil {
@@ -377,8 +289,6 @@ func (c *CryptoModern) EncryptAESGCM(plaintext, key, aad []byte) (*EncryptedData
 
 	}
 
-
-
 	gcm, err := cipher.NewGCM(block)
 
 	if err != nil {
@@ -386,8 +296,6 @@ func (c *CryptoModern) EncryptAESGCM(plaintext, key, aad []byte) (*EncryptedData
 		return nil, fmt.Errorf("failed to create GCM: %w", err)
 
 	}
-
-
 
 	// Generate nonce.
 
@@ -399,33 +307,26 @@ func (c *CryptoModern) EncryptAESGCM(plaintext, key, aad []byte) (*EncryptedData
 
 	}
 
-
-
 	// Encrypt with AAD.
 
 	ciphertext := gcm.Seal(nil, nonce, plaintext, aad)
 
-
-
 	return &EncryptedData{
 
-		Algorithm:  "AES-GCM",
+		Algorithm: "AES-GCM",
 
 		Ciphertext: ciphertext,
 
-		Nonce:      nonce,
+		Nonce: nonce,
 
-		AAD:        aad,
+		AAD: aad,
 
-		Created:    time.Now(),
+		Created: time.Now(),
 
-		Version:    1,
-
+		Version: 1,
 	}, nil
 
 }
-
-
 
 // DecryptAESGCM performs AES-GCM decryption with additional authenticated data.
 
@@ -437,8 +338,6 @@ func (c *CryptoModern) DecryptAESGCM(data *EncryptedData, key []byte) ([]byte, e
 
 	}
 
-
-
 	block, err := aes.NewCipher(key)
 
 	if err != nil {
@@ -446,8 +345,6 @@ func (c *CryptoModern) DecryptAESGCM(data *EncryptedData, key []byte) ([]byte, e
 		return nil, fmt.Errorf("failed to create cipher: %w", err)
 
 	}
-
-
 
 	gcm, err := cipher.NewGCM(block)
 
@@ -457,8 +354,6 @@ func (c *CryptoModern) DecryptAESGCM(data *EncryptedData, key []byte) ([]byte, e
 
 	}
 
-
-
 	plaintext, err := gcm.Open(nil, data.Nonce, data.Ciphertext, data.AAD)
 
 	if err != nil {
@@ -467,13 +362,9 @@ func (c *CryptoModern) DecryptAESGCM(data *EncryptedData, key []byte) ([]byte, e
 
 	}
 
-
-
 	return plaintext, nil
 
 }
-
-
 
 // EncryptChaCha20Poly1305 performs ChaCha20-Poly1305 encryption.
 
@@ -485,8 +376,6 @@ func (c *CryptoModern) EncryptChaCha20Poly1305(plaintext, key, aad []byte) (*Enc
 
 	}
 
-
-
 	aead, err := chacha20poly1305.New(key)
 
 	if err != nil {
@@ -494,8 +383,6 @@ func (c *CryptoModern) EncryptChaCha20Poly1305(plaintext, key, aad []byte) (*Enc
 		return nil, fmt.Errorf("failed to create cipher: %w", err)
 
 	}
-
-
 
 	// Generate nonce.
 
@@ -507,33 +394,26 @@ func (c *CryptoModern) EncryptChaCha20Poly1305(plaintext, key, aad []byte) (*Enc
 
 	}
 
-
-
 	// Encrypt with AAD.
 
 	ciphertext := aead.Seal(nil, nonce, plaintext, aad)
 
-
-
 	return &EncryptedData{
 
-		Algorithm:  "ChaCha20-Poly1305",
+		Algorithm: "ChaCha20-Poly1305",
 
 		Ciphertext: ciphertext,
 
-		Nonce:      nonce,
+		Nonce: nonce,
 
-		AAD:        aad,
+		AAD: aad,
 
-		Created:    time.Now(),
+		Created: time.Now(),
 
-		Version:    1,
-
+		Version: 1,
 	}, nil
 
 }
-
-
 
 // DecryptChaCha20Poly1305 performs ChaCha20-Poly1305 decryption.
 
@@ -545,8 +425,6 @@ func (c *CryptoModern) DecryptChaCha20Poly1305(data *EncryptedData, key []byte) 
 
 	}
 
-
-
 	aead, err := chacha20poly1305.New(key)
 
 	if err != nil {
@@ -554,8 +432,6 @@ func (c *CryptoModern) DecryptChaCha20Poly1305(data *EncryptedData, key []byte) 
 		return nil, fmt.Errorf("failed to create cipher: %w", err)
 
 	}
-
-
 
 	plaintext, err := aead.Open(nil, data.Nonce, data.Ciphertext, data.AAD)
 
@@ -565,13 +441,9 @@ func (c *CryptoModern) DecryptChaCha20Poly1305(data *EncryptedData, key []byte) 
 
 	}
 
-
-
 	return plaintext, nil
 
 }
-
-
 
 // GenerateEd25519KeyPair generates a new Ed25519 key pair.
 
@@ -585,31 +457,24 @@ func (c *CryptoModern) GenerateEd25519KeyPair() (*Ed25519KeyPair, error) {
 
 	}
 
-
-
 	// Generate key ID.
 
 	h := sha256.Sum256(pub)
 
 	keyID := base64.URLEncoding.EncodeToString(h[:8])
 
-
-
 	return &Ed25519KeyPair{
 
-		PublicKey:  pub,
+		PublicKey: pub,
 
 		PrivateKey: priv,
 
-		Created:    time.Now(),
+		Created: time.Now(),
 
-		ID:         keyID,
-
+		ID: keyID,
 	}, nil
 
 }
-
-
 
 // SignEd25519 creates an Ed25519 signature.
 
@@ -621,15 +486,11 @@ func (c *CryptoModern) SignEd25519(message []byte, privateKey ed25519.PrivateKey
 
 	}
 
-
-
 	signature := ed25519.Sign(privateKey, message)
 
 	return signature, nil
 
 }
-
-
 
 // VerifyEd25519 verifies an Ed25519 signature.
 
@@ -641,13 +502,9 @@ func (c *CryptoModern) VerifyEd25519(message, signature []byte, publicKey ed2551
 
 	}
 
-
-
 	return ed25519.Verify(publicKey, message, signature)
 
 }
-
-
 
 // DeriveKeyHKDF derives a key using HKDF.
 
@@ -659,8 +516,6 @@ func (c *CryptoModern) DeriveKeyHKDF(secret, salt []byte, length int) ([]byte, e
 
 	}
 
-
-
 	// If no salt provided, use a zero salt.
 
 	if salt == nil {
@@ -669,13 +524,9 @@ func (c *CryptoModern) DeriveKeyHKDF(secret, salt []byte, length int) ([]byte, e
 
 	}
 
-
-
 	// Create HKDF reader.
 
 	hkdfReader := hkdf.New(sha256.New, secret, salt, c.kdfParams.HKDFInfo)
-
-
 
 	// Derive key.
 
@@ -687,13 +538,9 @@ func (c *CryptoModern) DeriveKeyHKDF(secret, salt []byte, length int) ([]byte, e
 
 	}
 
-
-
 	return key, nil
 
 }
-
-
 
 // DeriveKeyPBKDF2 derives a key using PBKDF2.
 
@@ -702,8 +549,6 @@ func (c *CryptoModern) DeriveKeyPBKDF2(password, salt []byte, keyLen int) []byte
 	return pbkdf2.Key(password, salt, c.kdfParams.PBKDF2Iterations, keyLen, sha256.New)
 
 }
-
-
 
 // DeriveKeyArgon2 derives a key using Argon2id.
 
@@ -722,12 +567,9 @@ func (c *CryptoModern) DeriveKeyArgon2(password, salt []byte) []byte {
 		c.kdfParams.Argon2Threads,
 
 		c.kdfParams.Argon2KeyLen,
-
 	)
 
 }
-
-
 
 // DeriveKeyScrypt derives a key using scrypt.
 
@@ -746,12 +588,9 @@ func (c *CryptoModern) DeriveKeyScrypt(password, salt []byte, keyLen int) ([]byt
 		c.kdfParams.ScryptP,
 
 		keyLen,
-
 	)
 
 }
-
-
 
 // GenerateSecureRandom generates cryptographically secure random bytes.
 
@@ -769,8 +608,6 @@ func (c *CryptoModern) GenerateSecureRandom(length int) ([]byte, error) {
 
 }
 
-
-
 // SecureCompare performs constant-time comparison.
 
 func (c *CryptoModern) SecureCompare(a, b []byte) bool {
@@ -778,8 +615,6 @@ func (c *CryptoModern) SecureCompare(a, b []byte) bool {
 	return subtle.ConstantTimeCompare(a, b) == 1
 
 }
-
-
 
 // SecureClear overwrites sensitive data in memory.
 
@@ -792,8 +627,6 @@ func SecureClear(data []byte) {
 	}
 
 }
-
-
 
 // HashPassword creates a secure password hash using Argon2id.
 
@@ -809,13 +642,9 @@ func (c *CryptoModern) HashPassword(password string) (string, error) {
 
 	}
 
-
-
 	// Derive key using Argon2id.
 
 	hash := c.DeriveKeyArgon2([]byte(password), salt)
-
-
 
 	// Encode as base64 with parameters.
 
@@ -832,16 +661,11 @@ func (c *CryptoModern) HashPassword(password string) (string, error) {
 		base64.RawStdEncoding.EncodeToString(salt),
 
 		base64.RawStdEncoding.EncodeToString(hash),
-
 	)
-
-
 
 	return encoded, nil
 
 }
-
-
 
 // VerifyPassword verifies a password against a hash.
 
@@ -857,8 +681,6 @@ func (c *CryptoModern) VerifyPassword(password, encoded string) (bool, error) {
 
 	var salt, hash string
 
-
-
 	_, err := fmt.Sscanf(encoded, "$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
 
 		&version, &memory, &time, &threads, &salt, &hash)
@@ -868,8 +690,6 @@ func (c *CryptoModern) VerifyPassword(password, encoded string) (bool, error) {
 		return false, fmt.Errorf("failed to parse encoded hash: %w", err)
 
 	}
-
-
 
 	// Decode salt and hash.
 
@@ -881,8 +701,6 @@ func (c *CryptoModern) VerifyPassword(password, encoded string) (bool, error) {
 
 	}
 
-
-
 	hashBytes, err := base64.RawStdEncoding.DecodeString(hash)
 
 	if err != nil {
@@ -891,21 +709,15 @@ func (c *CryptoModern) VerifyPassword(password, encoded string) (bool, error) {
 
 	}
 
-
-
 	// Compute hash of provided password.
 
 	computedHash := argon2.IDKey([]byte(password), saltBytes, time, memory, threads, uint32(len(hashBytes)))
-
-
 
 	// Constant-time comparison.
 
 	return c.SecureCompare(hashBytes, computedHash), nil
 
 }
-
-
 
 // CreateEncryptionContext creates a new encryption context.
 
@@ -914,8 +726,6 @@ func (c *CryptoModern) CreateEncryptionContext(id, algorithm string, keySize int
 	c.mu.Lock()
 
 	defer c.mu.Unlock()
-
-
 
 	// Generate key.
 
@@ -927,27 +737,20 @@ func (c *CryptoModern) CreateEncryptionContext(id, algorithm string, keySize int
 
 	}
 
-
-
 	ctx := &EncryptionContext{
 
 		Algorithm: algorithm,
 
-		Key:       key,
+		Key: key,
 
-		Created:   time.Now(),
-
+		Created: time.Now(),
 	}
-
-
 
 	c.contexts[id] = ctx
 
 	return ctx, nil
 
 }
-
-
 
 // GetEncryptionContext retrieves an encryption context.
 
@@ -957,15 +760,11 @@ func (c *CryptoModern) GetEncryptionContext(id string) (*EncryptionContext, bool
 
 	defer c.mu.RUnlock()
 
-
-
 	ctx, ok := c.contexts[id]
 
 	return ctx, ok
 
 }
-
-
 
 // DeleteEncryptionContext securely deletes an encryption context.
 
@@ -974,8 +773,6 @@ func (c *CryptoModern) DeleteEncryptionContext(id string) {
 	c.mu.Lock()
 
 	defer c.mu.Unlock()
-
-
 
 	if ctx, ok := c.contexts[id]; ok {
 
@@ -988,8 +785,6 @@ func (c *CryptoModern) DeleteEncryptionContext(id string) {
 	}
 
 }
-
-
 
 // GenerateMAC generates a message authentication code.
 
@@ -1005,8 +800,6 @@ func (c *CryptoModern) GenerateMAC(message, key []byte) []byte {
 
 }
 
-
-
 // VerifyMAC verifies a message authentication code.
 
 func (c *CryptoModern) VerifyMAC(message, mac, key []byte) bool {
@@ -1016,4 +809,3 @@ func (c *CryptoModern) VerifyMAC(message, mac, key []byte) bool {
 	return c.SecureCompare(mac, expectedMAC)
 
 }
-

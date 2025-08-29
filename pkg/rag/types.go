@@ -1,8 +1,5 @@
 //go:build !disable_rag
-
 // +build !disable_rag
-
-
 
 // Package rag provides Retrieval-Augmented Generation interfaces.
 
@@ -10,38 +7,25 @@
 
 // with or without Weaviate dependencies.
 
-
 package rag
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
-
 )
-
-
 
 // Doc represents a document retrieved from the RAG system.
 
 type Doc struct {
+	ID string
 
-	ID         string
-
-	Content    string
+	Content string
 
 	Confidence float64
 
-	Metadata   map[string]interface{}
-
+	Metadata map[string]interface{}
 }
-
-
 
 // RAGClient is the main interface for RAG operations.
 
@@ -53,37 +37,24 @@ type RAGClient interface {
 
 	Retrieve(ctx context.Context, query string) ([]Doc, error)
 
-
-
 	// ProcessIntent processes an intent and returns a response.
 
 	ProcessIntent(ctx context.Context, intent string) (string, error)
-
-
 
 	// IsHealthy returns the health status of the RAG client.
 
 	IsHealthy() bool
 
-
-
 	// Initialize initializes the RAG client and its dependencies.
 
 	Initialize(ctx context.Context) error
 
-
-
 	// Shutdown gracefully shuts down the RAG client and releases resources.
 
 	Shutdown(ctx context.Context) error
-
 }
 
-
-
 // Note: SearchResult is defined in enhanced_rag_integration.go.
-
-
 
 // RAGClientConfig holds configuration for RAG clients.
 
@@ -91,39 +62,30 @@ type RAGClientConfig struct {
 
 	// Common configuration.
 
-	Enabled          bool
+	Enabled bool
 
 	MaxSearchResults int
 
-	MinConfidence    float64
-
-
+	MinConfidence float64
 
 	// Weaviate-specific (used only when rag build tag is enabled).
 
-	WeaviateURL    string
+	WeaviateURL string
 
 	WeaviateAPIKey string
-
-
 
 	// LLM configuration.
 
 	LLMEndpoint string
 
-	LLMAPIKey   string
+	LLMAPIKey string
 
-	MaxTokens   int
+	MaxTokens int
 
 	Temperature float32
-
 }
 
-
-
 // Note: TokenUsage is defined in embedding_service.go.
-
-
 
 // NewRAGClient creates a new RAG client based on build tags.
 
@@ -143,147 +105,116 @@ func NewRAGClient(config *RAGClientConfig) RAGClient {
 
 }
 
-
-
 // QueryRequest represents a request for RAG system query processing.
 
 type QueryRequest struct {
+	Query string `json:"query"` // The user's query text
 
-	Query      string                 `json:"query"`                // The user's query text
+	IntentType string `json:"intentType,omitempty"` // Type of intent (e.g., "knowledge_request", "deployment_request")
 
-	IntentType string                 `json:"intentType,omitempty"` // Type of intent (e.g., "knowledge_request", "deployment_request")
+	Context map[string]interface{} `json:"context,omitempty"` // Additional context for the query
 
-	Context    map[string]interface{} `json:"context,omitempty"`    // Additional context for the query
+	UserID string `json:"userID,omitempty"` // User identifier for personalization
 
-	UserID     string                 `json:"userID,omitempty"`     // User identifier for personalization
+	SessionID string `json:"sessionID,omitempty"` // Session identifier for conversation context
 
-	SessionID  string                 `json:"sessionID,omitempty"`  // Session identifier for conversation context
+	MaxResults int `json:"maxResults,omitempty"` // Maximum number of results to return
 
-	MaxResults int                    `json:"maxResults,omitempty"` // Maximum number of results to return
+	MinScore float64 `json:"minScore,omitempty"` // Minimum relevance score for results
 
-	MinScore   float64                `json:"minScore,omitempty"`   // Minimum relevance score for results
-
-	Filters    map[string]interface{} `json:"filters,omitempty"`    // Additional filters for retrieval
+	Filters map[string]interface{} `json:"filters,omitempty"` // Additional filters for retrieval
 
 }
-
-
 
 // Service is an alias for RAGService for backward compatibility.
 
 type Service = RAGService
 
-
-
 // AsyncWorkerConfig defines configuration for async worker pools.
 
 type AsyncWorkerConfig struct {
+	DocumentWorkers int `json:"document_workers"`
 
-	DocumentWorkers   int `json:"document_workers"`
-
-	QueryWorkers      int `json:"query_workers"`
+	QueryWorkers int `json:"query_workers"`
 
 	DocumentQueueSize int `json:"document_queue_size"`
 
-	QueryQueueSize    int `json:"query_queue_size"`
-
+	QueryQueueSize int `json:"query_queue_size"`
 }
-
-
 
 // AsyncWorkerPoolForTests represents a test-compatible async worker pool.
 
 // This is separate from the main AsyncWorkerPool in pipeline.go.
 
 type AsyncWorkerPoolForTests struct {
-
 	documentWorkers int
 
-	queryWorkers    int
+	queryWorkers int
 
-	documentQueue   chan TestDocumentJob
+	documentQueue chan TestDocumentJob
 
-	queryQueue      chan TestQueryJob
+	queryQueue chan TestQueryJob
 
-	metrics         *AsyncWorkerMetrics
+	metrics *AsyncWorkerMetrics
 
-	started         bool
-
+	started bool
 }
-
-
 
 // AsyncWorkerMetrics tracks async worker pool metrics.
 
 type AsyncWorkerMetrics struct {
-
 	DocumentJobsSubmitted int64
 
-	QueryJobsSubmitted    int64
+	QueryJobsSubmitted int64
 
 	DocumentJobsCompleted int64
 
-	QueryJobsCompleted    int64
+	QueryJobsCompleted int64
 
-	DocumentJobsFailed    int64
+	DocumentJobsFailed int64
 
-	QueryJobsFailed       int64
-
+	QueryJobsFailed int64
 }
-
-
 
 // RetrievedContext represents retrieved context from a query (for test compatibility).
 
 type RetrievedContext struct {
+	ID string `json:"id"`
 
-	ID         string                 `json:"id"`
+	Content string `json:"content"`
 
-	Content    string                 `json:"content"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence float64                `json:"confidence"`
-
-	Metadata   map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // TestDocumentJob represents a test document job (different from pipeline DocumentJob).
 
 type TestDocumentJob struct {
+	ID string `json:"id"`
 
-	ID       string                               `json:"id"`
+	FilePath string `json:"file_path,omitempty"`
 
-	FilePath string                               `json:"file_path,omitempty"`
+	Content string `json:"content"`
 
-	Content  string                               `json:"content"`
-
-	Metadata map[string]interface{}               `json:"metadata,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 
 	Callback func(string, []DocumentChunk, error) `json:"-"`
-
 }
-
-
 
 // TestQueryJob represents a test query job (different from pipeline QueryJob).
 
 type TestQueryJob struct {
+	ID string `json:"id"`
 
-	ID       string                                  `json:"id"`
+	Query string `json:"query"`
 
-	Query    string                                  `json:"query"`
+	Filters map[string]interface{} `json:"filters,omitempty"`
 
-	Filters  map[string]interface{}                  `json:"filters,omitempty"`
-
-	Limit    int                                     `json:"limit,omitempty"`
+	Limit int `json:"limit,omitempty"`
 
 	Callback func(string, []RetrievedContext, error) `json:"-"`
-
 }
-
-
 
 // NewAsyncWorkerPool creates a new async worker pool for tests.
 
@@ -293,35 +224,31 @@ func NewAsyncWorkerPool(config *AsyncWorkerConfig) *AsyncWorkerPoolForTests {
 
 		documentWorkers: config.DocumentWorkers,
 
-		queryWorkers:    config.QueryWorkers,
+		queryWorkers: config.QueryWorkers,
 
-		documentQueue:   make(chan TestDocumentJob, config.DocumentQueueSize),
+		documentQueue: make(chan TestDocumentJob, config.DocumentQueueSize),
 
-		queryQueue:      make(chan TestQueryJob, config.QueryQueueSize),
+		queryQueue: make(chan TestQueryJob, config.QueryQueueSize),
 
 		metrics: &AsyncWorkerMetrics{
 
 			DocumentJobsSubmitted: 0,
 
-			QueryJobsSubmitted:    0,
+			QueryJobsSubmitted: 0,
 
 			DocumentJobsCompleted: 0,
 
-			QueryJobsCompleted:    0,
+			QueryJobsCompleted: 0,
 
-			DocumentJobsFailed:    0,
+			DocumentJobsFailed: 0,
 
-			QueryJobsFailed:       0,
-
+			QueryJobsFailed: 0,
 		},
 
 		started: false,
-
 	}
 
 }
-
-
 
 // Start starts the async worker pool.
 
@@ -339,8 +266,6 @@ func (p *AsyncWorkerPoolForTests) Start() error {
 
 }
 
-
-
 // Stop stops the async worker pool.
 
 func (p *AsyncWorkerPoolForTests) Stop(timeout time.Duration) error {
@@ -352,8 +277,6 @@ func (p *AsyncWorkerPoolForTests) Stop(timeout time.Duration) error {
 	}
 
 	p.started = false
-
-
 
 	// For graceful shutdown, wait a bit for pending jobs to complete.
 
@@ -369,8 +292,6 @@ func (p *AsyncWorkerPoolForTests) Stop(timeout time.Duration) error {
 
 }
 
-
-
 // SubmitDocumentJob submits a document job for processing.
 
 func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
@@ -380,8 +301,6 @@ func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
 		return fmt.Errorf("async worker pool not started")
 
 	}
-
-
 
 	// Check queue fullness by trying to send to channel with select.
 
@@ -399,11 +318,7 @@ func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
 
 	}
 
-
-
 	p.metrics.DocumentJobsSubmitted++
-
-
 
 	// For testing, simulate processing by calling the callback directly.
 
@@ -411,13 +326,9 @@ func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
 
 		time.Sleep(100 * time.Millisecond) // Simulate processing time
 
-
-
 		var chunks []DocumentChunk
 
 		var err error
-
-
 
 		// Check for failure conditions.
 
@@ -435,49 +346,42 @@ func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
 
 				{
 
-					ID:           job.ID + "_chunk_1",
+					ID: job.ID + "_chunk_1",
 
-					DocumentID:   job.ID,
+					DocumentID: job.ID,
 
-					Content:      job.Content[:len(job.Content)/2],
+					Content: job.Content[:len(job.Content)/2],
 
 					CleanContent: job.Content[:len(job.Content)/2],
 
-					ChunkIndex:   0,
+					ChunkIndex: 0,
 
-					StartOffset:  0,
+					StartOffset: 0,
 
-					EndOffset:    len(job.Content) / 2,
-
+					EndOffset: len(job.Content) / 2,
 				},
 
 				{
 
-					ID:           job.ID + "_chunk_2",
+					ID: job.ID + "_chunk_2",
 
-					DocumentID:   job.ID,
+					DocumentID: job.ID,
 
-					Content:      job.Content[len(job.Content)/2:],
+					Content: job.Content[len(job.Content)/2:],
 
 					CleanContent: job.Content[len(job.Content)/2:],
 
-					ChunkIndex:   1,
+					ChunkIndex: 1,
 
-					StartOffset:  len(job.Content) / 2,
+					StartOffset: len(job.Content) / 2,
 
-					EndOffset:    len(job.Content),
-
+					EndOffset: len(job.Content),
 				},
-
 			}
 
 		}
 
-
-
 		p.metrics.DocumentJobsCompleted++
-
-
 
 		if job.Callback != nil {
 
@@ -485,21 +389,15 @@ func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
 
 		}
 
-
-
 		// Remove job from queue.
 
 		<-p.documentQueue
 
 	}()
 
-
-
 	return nil
 
 }
-
-
 
 // SubmitQueryJob submits a query job for processing.
 
@@ -510,8 +408,6 @@ func (p *AsyncWorkerPoolForTests) SubmitQueryJob(job TestQueryJob) error {
 		return fmt.Errorf("async worker pool not started")
 
 	}
-
-
 
 	// Check queue fullness by trying to send to channel with select.
 
@@ -529,11 +425,7 @@ func (p *AsyncWorkerPoolForTests) SubmitQueryJob(job TestQueryJob) error {
 
 	}
 
-
-
 	p.metrics.QueryJobsSubmitted++
-
-
 
 	// For testing, simulate processing by calling the callback directly.
 
@@ -541,13 +433,9 @@ func (p *AsyncWorkerPoolForTests) SubmitQueryJob(job TestQueryJob) error {
 
 		time.Sleep(50 * time.Millisecond) // Simulate processing time
 
-
-
 		var results []RetrievedContext
 
 		var err error
-
-
 
 		// Check for failure conditions.
 
@@ -565,37 +453,30 @@ func (p *AsyncWorkerPoolForTests) SubmitQueryJob(job TestQueryJob) error {
 
 				{
 
-					ID:         "result_1",
+					ID: "result_1",
 
-					Content:    "Mock search result 1 for query: " + job.Query,
+					Content: "Mock search result 1 for query: " + job.Query,
 
 					Confidence: 0.85,
 
-					Metadata:   map[string]interface{}{"source": "test"},
-
+					Metadata: map[string]interface{}{"source": "test"},
 				},
 
 				{
 
-					ID:         "result_2",
+					ID: "result_2",
 
-					Content:    "Mock search result 2 for query: " + job.Query,
+					Content: "Mock search result 2 for query: " + job.Query,
 
 					Confidence: 0.75,
 
-					Metadata:   map[string]interface{}{"source": "test"},
-
+					Metadata: map[string]interface{}{"source": "test"},
 				},
-
 			}
 
 		}
 
-
-
 		p.metrics.QueryJobsCompleted++
-
-
 
 		if job.Callback != nil {
 
@@ -603,21 +484,15 @@ func (p *AsyncWorkerPoolForTests) SubmitQueryJob(job TestQueryJob) error {
 
 		}
 
-
-
 		// Remove job from queue.
 
 		<-p.queryQueue
 
 	}()
 
-
-
 	return nil
 
 }
-
-
 
 // GetMetrics returns current metrics.
 
@@ -627,47 +502,38 @@ func (p *AsyncWorkerPoolForTests) GetMetrics() *AsyncWorkerMetrics {
 
 }
 
-
-
 // RetrievalRequest represents a request for document retrieval.
 
 type RetrievalRequest struct {
+	Query string `json:"query"` // The search query
 
-	Query      string                 `json:"query"`                // The search query
+	MaxResults int `json:"maxResults,omitempty"` // Maximum number of results to return
 
-	MaxResults int                    `json:"maxResults,omitempty"` // Maximum number of results to return
+	MinScore float64 `json:"minScore,omitempty"` // Minimum relevance score for results
 
-	MinScore   float64                `json:"minScore,omitempty"`   // Minimum relevance score for results
+	Filters map[string]interface{} `json:"filters,omitempty"` // Additional filters for retrieval
 
-	Filters    map[string]interface{} `json:"filters,omitempty"`    // Additional filters for retrieval
-
-	Context    map[string]interface{} `json:"context,omitempty"`    // Additional context for the query
+	Context map[string]interface{} `json:"context,omitempty"` // Additional context for the query
 
 }
-
-
 
 // RetrievalResponse represents a response from document retrieval.
 
 type RetrievalResponse struct {
+	Documents []map[string]interface{} `json:"documents"` // Retrieved documents with metadata
 
-	Documents             []map[string]interface{} `json:"documents"`             // Retrieved documents with metadata
+	Duration time.Duration `json:"duration"` // Time taken for retrieval
 
-	Duration              time.Duration            `json:"duration"`              // Time taken for retrieval
+	AverageRelevanceScore float64 `json:"averageRelevanceScore"` // Average relevance score of results
 
-	AverageRelevanceScore float64                  `json:"averageRelevanceScore"` // Average relevance score of results
+	TopRelevanceScore float64 `json:"topRelevanceScore"` // Highest relevance score in results
 
-	TopRelevanceScore     float64                  `json:"topRelevanceScore"`     // Highest relevance score in results
+	QueryWasEnhanced bool `json:"queryWasEnhanced"` // Whether the query was enhanced/expanded
 
-	QueryWasEnhanced      bool                     `json:"queryWasEnhanced"`      // Whether the query was enhanced/expanded
+	Metadata map[string]interface{} `json:"metadata,omitempty"` // Additional metadata about the retrieval
 
-	Metadata              map[string]interface{}   `json:"metadata,omitempty"`    // Additional metadata about the retrieval
-
-	Error                 string                   `json:"error,omitempty"`       // Error message if retrieval failed
+	Error string `json:"error,omitempty"` // Error message if retrieval failed
 
 }
 
-
-
 // Note: QueryResponse and RAGService are defined in other RAG files.
-

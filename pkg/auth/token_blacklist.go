@@ -1,135 +1,101 @@
-
 package auth
 
-
-
 import (
-
 	"context"
-
 	"crypto/sha256"
-
 	"encoding/hex"
-
 	"errors"
-
 	"fmt"
-
 	"log/slog"
-
 	"strconv"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/redis/go-redis/v9"
-
 )
-
-
 
 // TokenBlacklistManager manages revoked tokens and prevents their reuse.
 
 type TokenBlacklistManager struct {
+	redisClient *redis.Client
 
-	redisClient   *redis.Client
+	localCache map[string]time.Time
 
-	localCache    map[string]time.Time
+	cacheMutex sync.RWMutex
 
-	cacheMutex    sync.RWMutex
+	config *BlacklistConfig
 
-	config        *BlacklistConfig
+	logger *slog.Logger
 
-	logger        *slog.Logger
-
-	metrics       *BlacklistMetrics
+	metrics *BlacklistMetrics
 
 	cleanupTicker *time.Ticker
 
-	stopChan      chan struct{}
-
+	stopChan chan struct{}
 }
-
-
 
 // BlacklistConfig holds token blacklist configuration.
 
 type BlacklistConfig struct {
+	RedisAddr string `json:"redis_addr"`
 
-	RedisAddr         string        `json:"redis_addr"`
+	RedisPassword string `json:"redis_password"`
 
-	RedisPassword     string        `json:"redis_password"`
+	RedisDB int `json:"redis_db"`
 
-	RedisDB           int           `json:"redis_db"`
+	RedisKeyPrefix string `json:"redis_key_prefix"`
 
-	RedisKeyPrefix    string        `json:"redis_key_prefix"`
+	LocalCacheSize int `json:"local_cache_size"`
 
-	LocalCacheSize    int           `json:"local_cache_size"`
+	LocalCacheTTL time.Duration `json:"local_cache_ttl"`
 
-	LocalCacheTTL     time.Duration `json:"local_cache_ttl"`
+	CleanupInterval time.Duration `json:"cleanup_interval"`
 
-	CleanupInterval   time.Duration `json:"cleanup_interval"`
+	MaxTokenAge time.Duration `json:"max_token_age"`
 
-	MaxTokenAge       time.Duration `json:"max_token_age"`
-
-	EnableCompression bool          `json:"enable_compression"`
-
+	EnableCompression bool `json:"enable_compression"`
 }
-
-
 
 // BlacklistMetrics tracks blacklist performance.
 
 type BlacklistMetrics struct {
+	TotalBlacklisted int64 `json:"total_blacklisted"`
 
-	TotalBlacklisted     int64         `json:"total_blacklisted"`
+	TotalChecks int64 `json:"total_checks"`
 
-	TotalChecks          int64         `json:"total_checks"`
+	CacheHits int64 `json:"cache_hits"`
 
-	CacheHits            int64         `json:"cache_hits"`
+	CacheMisses int64 `json:"cache_misses"`
 
-	CacheMisses          int64         `json:"cache_misses"`
+	RedisErrors int64 `json:"redis_errors"`
 
-	RedisErrors          int64         `json:"redis_errors"`
+	AverageCheckTime time.Duration `json:"average_check_time"`
 
-	AverageCheckTime     time.Duration `json:"average_check_time"`
+	LastCleanup time.Time `json:"last_cleanup"`
 
-	LastCleanup          time.Time     `json:"last_cleanup"`
+	RemovedExpiredTokens int64 `json:"removed_expired_tokens"`
 
-	RemovedExpiredTokens int64         `json:"removed_expired_tokens"`
-
-	mutex                sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // BlacklistEntry represents a blacklisted token entry.
 
 type BlacklistEntry struct {
+	TokenHash string `json:"token_hash"`
 
-	TokenHash     string    `json:"token_hash"`
+	UserID string `json:"user_id"`
 
-	UserID        string    `json:"user_id"`
-
-	Reason        string    `json:"reason"`
+	Reason string `json:"reason"`
 
 	BlacklistedAt time.Time `json:"blacklisted_at"`
 
-	ExpiresAt     time.Time `json:"expires_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 
-	IPAddress     string    `json:"ip_address"`
+	IPAddress string `json:"ip_address"`
 
-	UserAgent     string    `json:"user_agent"`
-
+	UserAgent string `json:"user_agent"`
 }
-
-
 
 // NewTokenBlacklistManager creates a new token blacklist instance.
 
@@ -141,21 +107,16 @@ func NewTokenBlacklistManager(config *BlacklistConfig) (*TokenBlacklistManager, 
 
 	}
 
-
-
 	// Initialize Redis client.
 
 	rdb := redis.NewClient(&redis.Options{
 
-		Addr:     config.RedisAddr,
+		Addr: config.RedisAddr,
 
 		Password: config.RedisPassword,
 
-		DB:       config.RedisDB,
-
+		DB: config.RedisDB,
 	})
-
-
 
 	// Test Redis connection.
 
@@ -163,45 +124,34 @@ func NewTokenBlacklistManager(config *BlacklistConfig) (*TokenBlacklistManager, 
 
 	defer cancel()
 
-
-
 	if err := rdb.Ping(ctx).Err(); err != nil {
 
 		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
 
 	}
 
-
-
 	blacklist := &TokenBlacklistManager{
 
 		redisClient: rdb,
 
-		localCache:  make(map[string]time.Time),
+		localCache: make(map[string]time.Time),
 
-		config:      config,
+		config: config,
 
-		logger:      slog.Default().With("component", "token-blacklist"),
+		logger: slog.Default().With("component", "token-blacklist"),
 
-		metrics:     &BlacklistMetrics{LastCleanup: time.Now()},
+		metrics: &BlacklistMetrics{LastCleanup: time.Now()},
 
-		stopChan:    make(chan struct{}),
-
+		stopChan: make(chan struct{}),
 	}
-
-
 
 	// Start cleanup routine.
 
 	blacklist.startCleanupRoutine()
 
-
-
 	return blacklist, nil
 
 }
-
-
 
 // getDefaultBlacklistConfig returns default blacklist configuration.
 
@@ -209,29 +159,26 @@ func getDefaultBlacklistConfig() *BlacklistConfig {
 
 	return &BlacklistConfig{
 
-		RedisAddr:         "localhost:6379",
+		RedisAddr: "localhost:6379",
 
-		RedisPassword:     "",
+		RedisPassword: "",
 
-		RedisDB:           0,
+		RedisDB: 0,
 
-		RedisKeyPrefix:    "nephoran:blacklist:",
+		RedisKeyPrefix: "nephoran:blacklist:",
 
-		LocalCacheSize:    10000,
+		LocalCacheSize: 10000,
 
-		LocalCacheTTL:     5 * time.Minute,
+		LocalCacheTTL: 5 * time.Minute,
 
-		CleanupInterval:   time.Hour,
+		CleanupInterval: time.Hour,
 
-		MaxTokenAge:       7 * 24 * time.Hour, // 7 days
+		MaxTokenAge: 7 * 24 * time.Hour, // 7 days
 
 		EnableCompression: true,
-
 	}
 
 }
-
-
 
 // IsBlacklisted checks if a token is blacklisted.
 
@@ -253,11 +200,7 @@ func (tb *TokenBlacklistManager) IsBlacklisted(ctx context.Context, token string
 
 	}()
 
-
-
 	tokenHash := tb.hashToken(token)
-
-
 
 	// Check local cache first.
 
@@ -267,15 +210,11 @@ func (tb *TokenBlacklistManager) IsBlacklisted(ctx context.Context, token string
 
 		tb.cacheMutex.RUnlock()
 
-
-
 		tb.updateMetrics(func(m *BlacklistMetrics) {
 
 			m.CacheHits++
 
 		})
-
-
 
 		// Check if token is still valid (not expired).
 
@@ -285,8 +224,6 @@ func (tb *TokenBlacklistManager) IsBlacklisted(ctx context.Context, token string
 
 		}
 
-
-
 		// Remove expired token from cache.
 
 		tb.cacheMutex.Lock()
@@ -295,23 +232,17 @@ func (tb *TokenBlacklistManager) IsBlacklisted(ctx context.Context, token string
 
 		tb.cacheMutex.Unlock()
 
-
-
 		return false, nil
 
 	}
 
 	tb.cacheMutex.RUnlock()
 
-
-
 	tb.updateMetrics(func(m *BlacklistMetrics) {
 
 		m.CacheMisses++
 
 	})
-
-
 
 	// Check Redis.
 
@@ -327,23 +258,17 @@ func (tb *TokenBlacklistManager) IsBlacklisted(ctx context.Context, token string
 
 		}
 
-
-
 		tb.updateMetrics(func(m *BlacklistMetrics) {
 
 			m.RedisErrors++
 
 		})
 
-
-
 		tb.logger.Error("Redis error checking blacklist", "error", err, "token_hash", tokenHash)
 
 		return false, fmt.Errorf("failed to check blacklist: %w", err)
 
 	}
-
-
 
 	// Parse blacklist entry.
 
@@ -357,8 +282,6 @@ func (tb *TokenBlacklistManager) IsBlacklisted(ctx context.Context, token string
 
 	}
 
-
-
 	// Check if token is still valid (not expired).
 
 	if time.Now().After(entry.ExpiresAt) {
@@ -371,15 +294,11 @@ func (tb *TokenBlacklistManager) IsBlacklisted(ctx context.Context, token string
 
 	}
 
-
-
 	// Add to local cache.
 
 	tb.cacheMutex.Lock()
 
 	tb.localCache[tokenHash] = entry.ExpiresAt
-
-
 
 	// Enforce cache size limit.
 
@@ -391,13 +310,9 @@ func (tb *TokenBlacklistManager) IsBlacklisted(ctx context.Context, token string
 
 	tb.cacheMutex.Unlock()
 
-
-
 	return true, nil
 
 }
-
-
 
 // BlacklistToken adds a token to the blacklist.
 
@@ -405,27 +320,22 @@ func (tb *TokenBlacklistManager) BlacklistToken(ctx context.Context, token, user
 
 	tokenHash := tb.hashToken(token)
 
-
-
 	entry := BlacklistEntry{
 
-		TokenHash:     tokenHash,
+		TokenHash: tokenHash,
 
-		UserID:        userID,
+		UserID: userID,
 
-		Reason:        reason,
+		Reason: reason,
 
 		BlacklistedAt: time.Now(),
 
-		ExpiresAt:     expiresAt,
+		ExpiresAt: expiresAt,
 
-		IPAddress:     ipAddress,
+		IPAddress: ipAddress,
 
-		UserAgent:     userAgent,
-
+		UserAgent: userAgent,
 	}
-
-
 
 	// Store in Redis.
 
@@ -437,13 +347,9 @@ func (tb *TokenBlacklistManager) BlacklistToken(ctx context.Context, token, user
 
 	}
 
-
-
 	key := tb.config.RedisKeyPrefix + tokenHash
 
 	expiration := time.Until(expiresAt)
-
-
 
 	if err := tb.redisClient.Set(ctx, key, data, expiration).Err(); err != nil {
 
@@ -457,8 +363,6 @@ func (tb *TokenBlacklistManager) BlacklistToken(ctx context.Context, token, user
 
 	}
 
-
-
 	// Add to local cache.
 
 	tb.cacheMutex.Lock()
@@ -467,15 +371,11 @@ func (tb *TokenBlacklistManager) BlacklistToken(ctx context.Context, token, user
 
 	tb.cacheMutex.Unlock()
 
-
-
 	tb.updateMetrics(func(m *BlacklistMetrics) {
 
 		m.TotalBlacklisted++
 
 	})
-
-
 
 	tb.logger.Info("Token blacklisted",
 
@@ -487,13 +387,9 @@ func (tb *TokenBlacklistManager) BlacklistToken(ctx context.Context, token, user
 
 		"ip_address", ipAddress)
 
-
-
 	return nil
 
 }
-
-
 
 // BlacklistAllUserTokens blacklists all tokens for a specific user.
 
@@ -502,8 +398,6 @@ func (tb *TokenBlacklistManager) BlacklistAllUserTokens(ctx context.Context, use
 	// In a production system, you'd maintain a user -> tokens mapping.
 
 	// For now, we'll use a pattern-based approach with user ID in the key.
-
-
 
 	pattern := tb.config.RedisKeyPrefix + "user:" + userID + ":*"
 
@@ -515,8 +409,6 @@ func (tb *TokenBlacklistManager) BlacklistAllUserTokens(ctx context.Context, use
 
 	}
 
-
-
 	for _, key := range keys {
 
 		if err := tb.redisClient.Del(ctx, key).Err(); err != nil {
@@ -527,25 +419,20 @@ func (tb *TokenBlacklistManager) BlacklistAllUserTokens(ctx context.Context, use
 
 	}
 
-
-
 	// Create a general user blacklist entry.
 
 	entry := BlacklistEntry{
 
-		TokenHash:     "user:" + userID + ":all",
+		TokenHash: "user:" + userID + ":all",
 
-		UserID:        userID,
+		UserID: userID,
 
-		Reason:        reason,
+		Reason: reason,
 
 		BlacklistedAt: time.Now(),
 
-		ExpiresAt:     time.Now().Add(tb.config.MaxTokenAge),
-
+		ExpiresAt: time.Now().Add(tb.config.MaxTokenAge),
 	}
-
-
 
 	data, err := tb.marshalEntry(&entry)
 
@@ -555,8 +442,6 @@ func (tb *TokenBlacklistManager) BlacklistAllUserTokens(ctx context.Context, use
 
 	}
 
-
-
 	userKey := tb.config.RedisKeyPrefix + "user:" + userID + ":all"
 
 	if err := tb.redisClient.Set(ctx, userKey, data, tb.config.MaxTokenAge).Err(); err != nil {
@@ -565,15 +450,11 @@ func (tb *TokenBlacklistManager) BlacklistAllUserTokens(ctx context.Context, use
 
 	}
 
-
-
 	tb.logger.Info("All user tokens blacklisted", "user_id", userID, "reason", reason)
 
 	return nil
 
 }
-
-
 
 // GetBlacklistEntry retrieves a blacklist entry for a token.
 
@@ -582,8 +463,6 @@ func (tb *TokenBlacklistManager) GetBlacklistEntry(ctx context.Context, token st
 	tokenHash := tb.hashToken(token)
 
 	key := tb.config.RedisKeyPrefix + tokenHash
-
-
 
 	result, err := tb.redisClient.Get(ctx, key).Result()
 
@@ -599,8 +478,6 @@ func (tb *TokenBlacklistManager) GetBlacklistEntry(ctx context.Context, token st
 
 	}
 
-
-
 	var entry BlacklistEntry
 
 	if err := tb.unmarshalEntry(result, &entry); err != nil {
@@ -609,13 +486,9 @@ func (tb *TokenBlacklistManager) GetBlacklistEntry(ctx context.Context, token st
 
 	}
 
-
-
 	return &entry, nil
 
 }
-
-
 
 // GetBlacklistStats returns current blacklist statistics.
 
@@ -625,31 +498,26 @@ func (tb *TokenBlacklistManager) GetBlacklistStats(ctx context.Context) (*Blackl
 
 	defer tb.metrics.mutex.RUnlock()
 
-
-
 	// Create new metrics struct to avoid copying mutex.
 
 	stats := &BlacklistMetrics{
 
-		TotalBlacklisted:     tb.metrics.TotalBlacklisted,
+		TotalBlacklisted: tb.metrics.TotalBlacklisted,
 
-		TotalChecks:          tb.metrics.TotalChecks,
+		TotalChecks: tb.metrics.TotalChecks,
 
-		CacheHits:            tb.metrics.CacheHits,
+		CacheHits: tb.metrics.CacheHits,
 
-		CacheMisses:          tb.metrics.CacheMisses,
+		CacheMisses: tb.metrics.CacheMisses,
 
-		RedisErrors:          tb.metrics.RedisErrors,
+		RedisErrors: tb.metrics.RedisErrors,
 
-		AverageCheckTime:     tb.metrics.AverageCheckTime,
+		AverageCheckTime: tb.metrics.AverageCheckTime,
 
-		LastCleanup:          tb.metrics.LastCleanup,
+		LastCleanup: tb.metrics.LastCleanup,
 
 		RemovedExpiredTokens: tb.metrics.RemovedExpiredTokens,
-
 	}
-
-
 
 	// Get Redis stats.
 
@@ -665,13 +533,9 @@ func (tb *TokenBlacklistManager) GetBlacklistStats(ctx context.Context) (*Blackl
 
 	}
 
-
-
 	return stats, nil
 
 }
-
-
 
 // CleanupExpiredTokens removes expired tokens from the blacklist.
 
@@ -680,8 +544,6 @@ func (tb *TokenBlacklistManager) CleanupExpiredTokens(ctx context.Context) error
 	tb.logger.Info("Starting blacklist cleanup")
 
 	startTime := time.Now()
-
-
 
 	// Get all blacklist keys.
 
@@ -694,8 +556,6 @@ func (tb *TokenBlacklistManager) CleanupExpiredTokens(ctx context.Context) error
 		return fmt.Errorf("failed to get blacklist keys: %w", err)
 
 	}
-
-
 
 	removedCount := int64(0)
 
@@ -713,8 +573,6 @@ func (tb *TokenBlacklistManager) CleanupExpiredTokens(ctx context.Context) error
 
 		}
 
-
-
 		if exists == 0 {
 
 			removedCount++
@@ -722,8 +580,6 @@ func (tb *TokenBlacklistManager) CleanupExpiredTokens(ctx context.Context) error
 		}
 
 	}
-
-
 
 	// Clean local cache.
 
@@ -745,8 +601,6 @@ func (tb *TokenBlacklistManager) CleanupExpiredTokens(ctx context.Context) error
 
 	tb.cacheMutex.Unlock()
 
-
-
 	tb.updateMetrics(func(m *BlacklistMetrics) {
 
 		m.LastCleanup = now
@@ -755,21 +609,15 @@ func (tb *TokenBlacklistManager) CleanupExpiredTokens(ctx context.Context) error
 
 	})
 
-
-
 	tb.logger.Info("Blacklist cleanup completed",
 
 		"duration", time.Since(startTime),
 
 		"removed_tokens", removedCount)
 
-
-
 	return nil
 
 }
-
-
 
 // Close shuts down the token blacklist.
 
@@ -777,25 +625,17 @@ func (tb *TokenBlacklistManager) Close() error {
 
 	close(tb.stopChan)
 
-
-
 	if tb.cleanupTicker != nil {
 
 		tb.cleanupTicker.Stop()
 
 	}
 
-
-
 	return tb.redisClient.Close()
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (tb *TokenBlacklistManager) hashToken(token string) string {
 
@@ -804,8 +644,6 @@ func (tb *TokenBlacklistManager) hashToken(token string) string {
 	return hex.EncodeToString(hash[:])
 
 }
-
-
 
 func (tb *TokenBlacklistManager) marshalEntry(entry *BlacklistEntry) (string, error) {
 
@@ -818,8 +656,6 @@ func (tb *TokenBlacklistManager) marshalEntry(entry *BlacklistEntry) (string, er
 		// TODO: Implement compression when needed.
 
 	}
-
-
 
 	data := fmt.Sprintf("%s|%s|%s|%d|%d|%s|%s",
 
@@ -837,13 +673,9 @@ func (tb *TokenBlacklistManager) marshalEntry(entry *BlacklistEntry) (string, er
 
 		entry.UserAgent)
 
-
-
 	return data, nil
 
 }
-
-
 
 func (tb *TokenBlacklistManager) unmarshalEntry(data string, entry *BlacklistEntry) error {
 
@@ -859,15 +691,11 @@ func (tb *TokenBlacklistManager) unmarshalEntry(data string, entry *BlacklistEnt
 
 	}
 
-
-
 	entry.TokenHash = parts[0]
 
 	entry.UserID = parts[1]
 
 	entry.Reason = parts[2]
-
-
 
 	// Parse timestamps.
 
@@ -877,35 +705,25 @@ func (tb *TokenBlacklistManager) unmarshalEntry(data string, entry *BlacklistEnt
 
 	}
 
-
-
 	if expiresAt, err := strconv.ParseInt(parts[4], 10, 64); err == nil {
 
 		entry.ExpiresAt = time.Unix(expiresAt, 0)
 
 	}
 
-
-
 	entry.IPAddress = parts[5]
 
 	entry.UserAgent = parts[6]
 
-
-
 	return nil
 
 }
-
-
 
 func (tb *TokenBlacklistManager) evictOldestCacheEntry() {
 
 	var oldestHash string
 
 	var oldestTime time.Time
-
-
 
 	for hash, expiresAt := range tb.localCache {
 
@@ -919,8 +737,6 @@ func (tb *TokenBlacklistManager) evictOldestCacheEntry() {
 
 	}
 
-
-
 	if oldestHash != "" {
 
 		delete(tb.localCache, oldestHash)
@@ -929,15 +745,11 @@ func (tb *TokenBlacklistManager) evictOldestCacheEntry() {
 
 }
 
-
-
 func (tb *TokenBlacklistManager) removeExpiredToken(ctx context.Context, tokenHash string) {
 
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 
 	defer cancel()
-
-
 
 	key := tb.config.RedisKeyPrefix + tokenHash
 
@@ -949,13 +761,9 @@ func (tb *TokenBlacklistManager) removeExpiredToken(ctx context.Context, tokenHa
 
 }
 
-
-
 func (tb *TokenBlacklistManager) startCleanupRoutine() {
 
 	tb.cleanupTicker = time.NewTicker(tb.config.CleanupInterval)
-
-
 
 	go func() {
 
@@ -987,8 +795,6 @@ func (tb *TokenBlacklistManager) startCleanupRoutine() {
 
 }
 
-
-
 func (tb *TokenBlacklistManager) updateMetrics(updater func(*BlacklistMetrics)) {
 
 	tb.metrics.mutex.Lock()
@@ -998,4 +804,3 @@ func (tb *TokenBlacklistManager) updateMetrics(updater func(*BlacklistMetrics)) 
 	updater(tb.metrics)
 
 }
-

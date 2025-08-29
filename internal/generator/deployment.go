@@ -1,41 +1,22 @@
-
 package generator
 
-
-
 import (
-
 	"fmt"
-
-
 
 	"github.com/nephio-project/nephoran-intent-operator/internal/intent"
 
-
-
 	appsv1 "k8s.io/api/apps/v1"
-
 	corev1 "k8s.io/api/core/v1"
-
 	"k8s.io/apimachinery/pkg/api/resource"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-
-
 	"sigs.k8s.io/yaml"
-
 )
-
-
 
 // DeploymentGenerator generates Kubernetes Deployment resources.
 
 type DeploymentGenerator struct{}
-
-
 
 // NewDeploymentGenerator creates a new deployment generator.
 
@@ -44,8 +25,6 @@ func NewDeploymentGenerator() *DeploymentGenerator {
 	return &DeploymentGenerator{}
 
 }
-
-
 
 // Generate creates a Kubernetes Deployment from a scaling intent.
 
@@ -57,38 +36,34 @@ func (g *DeploymentGenerator) Generate(intent *intent.ScalingIntent) ([]byte, er
 
 			APIVersion: "apps/v1",
 
-			Kind:       "Deployment",
-
+			Kind: "Deployment",
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      intent.Target,
+			Name: intent.Target,
 
 			Namespace: intent.Namespace,
 
 			Labels: map[string]string{
 
-				"app":                          intent.Target,
+				"app": intent.Target,
 
-				"app.kubernetes.io/name":       intent.Target,
+				"app.kubernetes.io/name": intent.Target,
 
-				"app.kubernetes.io/component":  "nf-simulator",
+				"app.kubernetes.io/component": "nf-simulator",
 
-				"app.kubernetes.io/part-of":    "nephoran-intent-operator",
+				"app.kubernetes.io/part-of": "nephoran-intent-operator",
 
 				"app.kubernetes.io/managed-by": "porch-direct",
-
 			},
 
 			Annotations: map[string]string{
 
 				"nephoran.com/intent-type": intent.IntentType,
 
-				"nephoran.com/source":      intent.Source,
-
+				"nephoran.com/source": intent.Source,
 			},
-
 		},
 
 		Spec: appsv1.DeploymentSpec{
@@ -100,9 +75,7 @@ func (g *DeploymentGenerator) Generate(intent *intent.ScalingIntent) ([]byte, er
 				MatchLabels: map[string]string{
 
 					"app": intent.Target,
-
 				},
-
 			},
 
 			Template: corev1.PodTemplateSpec{
@@ -111,18 +84,16 @@ func (g *DeploymentGenerator) Generate(intent *intent.ScalingIntent) ([]byte, er
 
 					Labels: map[string]string{
 
-						"app":                          intent.Target,
+						"app": intent.Target,
 
-						"app.kubernetes.io/name":       intent.Target,
+						"app.kubernetes.io/name": intent.Target,
 
-						"app.kubernetes.io/component":  "nf-simulator",
+						"app.kubernetes.io/component": "nf-simulator",
 
-						"app.kubernetes.io/part-of":    "nephoran-intent-operator",
+						"app.kubernetes.io/part-of": "nephoran-intent-operator",
 
 						"app.kubernetes.io/managed-by": "porch-direct",
-
 					},
-
 				},
 
 				Spec: corev1.PodSpec{
@@ -131,7 +102,7 @@ func (g *DeploymentGenerator) Generate(intent *intent.ScalingIntent) ([]byte, er
 
 						{
 
-							Name:  intent.Target,
+							Name: intent.Target,
 
 							Image: "nephoran/nf-sim:latest",
 
@@ -139,42 +110,37 @@ func (g *DeploymentGenerator) Generate(intent *intent.ScalingIntent) ([]byte, er
 
 								{
 
-									Name:          "http",
+									Name: "http",
 
 									ContainerPort: 8080,
 
-									Protocol:      corev1.ProtocolTCP,
-
+									Protocol: corev1.ProtocolTCP,
 								},
 
 								{
 
-									Name:          "metrics",
+									Name: "metrics",
 
 									ContainerPort: 9090,
 
-									Protocol:      corev1.ProtocolTCP,
-
+									Protocol: corev1.ProtocolTCP,
 								},
-
 							},
 
 							Env: []corev1.EnvVar{
 
 								{
 
-									Name:  "NF_TYPE",
+									Name: "NF_TYPE",
 
 									Value: "simulation",
-
 								},
 
 								{
 
-									Name:  "NF_NAME",
+									Name: "NF_NAME",
 
 									Value: intent.Target,
-
 								},
 
 								{
@@ -186,11 +152,8 @@ func (g *DeploymentGenerator) Generate(intent *intent.ScalingIntent) ([]byte, er
 										FieldRef: &corev1.ObjectFieldSelector{
 
 											FieldPath: "metadata.name",
-
 										},
-
 									},
-
 								},
 
 								{
@@ -202,33 +165,26 @@ func (g *DeploymentGenerator) Generate(intent *intent.ScalingIntent) ([]byte, er
 										FieldRef: &corev1.ObjectFieldSelector{
 
 											FieldPath: "metadata.namespace",
-
 										},
-
 									},
-
 								},
-
 							},
 
 							Resources: corev1.ResourceRequirements{
 
 								Limits: corev1.ResourceList{
 
-									corev1.ResourceCPU:    mustParseQuantity("100m"),
+									corev1.ResourceCPU: mustParseQuantity("100m"),
 
 									corev1.ResourceMemory: mustParseQuantity("128Mi"),
-
 								},
 
 								Requests: corev1.ResourceList{
 
-									corev1.ResourceCPU:    mustParseQuantity("50m"),
+									corev1.ResourceCPU: mustParseQuantity("50m"),
 
 									corev1.ResourceMemory: mustParseQuantity("64Mi"),
-
 								},
-
 							},
 
 							LivenessProbe: &corev1.Probe{
@@ -240,15 +196,12 @@ func (g *DeploymentGenerator) Generate(intent *intent.ScalingIntent) ([]byte, er
 										Path: "/health",
 
 										Port: intstr.FromInt(8080),
-
 									},
-
 								},
 
 								InitialDelaySeconds: 30,
 
-								PeriodSeconds:       10,
-
+								PeriodSeconds: 10,
 							},
 
 							ReadinessProbe: &corev1.Probe{
@@ -260,32 +213,21 @@ func (g *DeploymentGenerator) Generate(intent *intent.ScalingIntent) ([]byte, er
 										Path: "/ready",
 
 										Port: intstr.FromInt(8080),
-
 									},
-
 								},
 
 								InitialDelaySeconds: 5,
 
-								PeriodSeconds:       5,
-
+								PeriodSeconds: 5,
 							},
-
 						},
-
 					},
 
 					RestartPolicy: corev1.RestartPolicyAlways,
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	// Add correlation ID if provided.
 
@@ -295,8 +237,6 @@ func (g *DeploymentGenerator) Generate(intent *intent.ScalingIntent) ([]byte, er
 
 	}
 
-
-
 	// Add reason if provided.
 
 	if intent.Reason != "" {
@@ -304,8 +244,6 @@ func (g *DeploymentGenerator) Generate(intent *intent.ScalingIntent) ([]byte, er
 		deployment.ObjectMeta.Annotations["nephoran.com/reason"] = intent.Reason
 
 	}
-
-
 
 	// Convert to YAML.
 
@@ -317,13 +255,9 @@ func (g *DeploymentGenerator) Generate(intent *intent.ScalingIntent) ([]byte, er
 
 	}
 
-
-
 	return yamlData, nil
 
 }
-
-
 
 // GenerateService creates a companion Service for the deployment.
 
@@ -335,30 +269,27 @@ func (g *DeploymentGenerator) GenerateService(intent *intent.ScalingIntent) ([]b
 
 			APIVersion: "v1",
 
-			Kind:       "Service",
-
+			Kind: "Service",
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      intent.Target,
+			Name: intent.Target,
 
 			Namespace: intent.Namespace,
 
 			Labels: map[string]string{
 
-				"app":                          intent.Target,
+				"app": intent.Target,
 
-				"app.kubernetes.io/name":       intent.Target,
+				"app.kubernetes.io/name": intent.Target,
 
-				"app.kubernetes.io/component":  "nf-simulator",
+				"app.kubernetes.io/component": "nf-simulator",
 
-				"app.kubernetes.io/part-of":    "nephoran-intent-operator",
+				"app.kubernetes.io/part-of": "nephoran-intent-operator",
 
 				"app.kubernetes.io/managed-by": "porch-direct",
-
 			},
-
 		},
 
 		Spec: corev1.ServiceSpec{
@@ -366,44 +297,36 @@ func (g *DeploymentGenerator) GenerateService(intent *intent.ScalingIntent) ([]b
 			Selector: map[string]string{
 
 				"app": intent.Target,
-
 			},
 
 			Ports: []corev1.ServicePort{
 
 				{
 
-					Name:       "http",
+					Name: "http",
 
-					Port:       80,
+					Port: 80,
 
 					TargetPort: intstr.FromInt(8080),
 
-					Protocol:   corev1.ProtocolTCP,
-
+					Protocol: corev1.ProtocolTCP,
 				},
 
 				{
 
-					Name:       "metrics",
+					Name: "metrics",
 
-					Port:       9090,
+					Port: 9090,
 
 					TargetPort: intstr.FromInt(9090),
 
-					Protocol:   corev1.ProtocolTCP,
-
+					Protocol: corev1.ProtocolTCP,
 				},
-
 			},
 
 			Type: corev1.ServiceTypeClusterIP,
-
 		},
-
 	}
-
-
 
 	yamlData, err := yaml.Marshal(service)
 
@@ -413,25 +336,17 @@ func (g *DeploymentGenerator) GenerateService(intent *intent.ScalingIntent) ([]b
 
 	}
 
-
-
 	return yamlData, nil
 
 }
 
-
-
 // Helper functions.
-
-
 
 func int32Ptr(i int32) *int32 {
 
 	return &i
 
 }
-
-
 
 // safeIntToInt32 safely converts an int to int32 with bounds checking.
 
@@ -457,8 +372,6 @@ func safeIntToInt32(i int) int32 {
 
 }
 
-
-
 // mustParseQuantity parses a resource quantity and panics if it fails.
 
 // This is safe for compile-time constants.
@@ -476,4 +389,3 @@ func mustParseQuantity(s string) resource.Quantity {
 	return q
 
 }
-

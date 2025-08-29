@@ -1,29 +1,18 @@
 // Package patchgen provides Kubernetes resource patch generation for Nephio package operations.
 
-
 package patchgen
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // PackageOptions defines the configuration for package generation.
 
 type PackageOptions struct {
-
-	Name      string
+	Name string
 
 	Namespace string
 
@@ -31,31 +20,22 @@ type PackageOptions struct {
 
 }
 
-
-
 // ResourceLimits defines resource constraints for package generation.
 
 type ResourceLimits struct {
+	MaxCPU int // CPU cores
 
-	MaxCPU    int           // CPU cores
+	MaxMemory int // Memory in MB
 
-	MaxMemory int           // Memory in MB
-
-	Timeout   time.Duration // Operation timeout
+	Timeout time.Duration // Operation timeout
 
 }
 
-
-
 var (
-
 	packageGenMutex sync.Mutex
 
-	generatedPkgs   = make(map[string]bool)
-
+	generatedPkgs = make(map[string]bool)
 )
-
-
 
 // GenerateUniqueName creates a cryptographically secure unique package name.
 
@@ -69,8 +49,6 @@ func GenerateUniqueName(baseName string) string {
 
 }
 
-
-
 // GeneratePackage creates a unique package with built-in collision prevention.
 
 func GeneratePackage(ctx context.Context, opts *PackageOptions) (*Package, error) {
@@ -79,13 +57,9 @@ func GeneratePackage(ctx context.Context, opts *PackageOptions) (*Package, error
 
 	defer packageGenMutex.Unlock()
 
-
-
 	// Generate a cryptographically secure unique package name.
 
 	pkgName := GenerateUniqueName(opts.Name)
-
-
 
 	// Check for name collision.
 
@@ -94,8 +68,6 @@ func GeneratePackage(ctx context.Context, opts *PackageOptions) (*Package, error
 		return nil, fmt.Errorf("package name collision: %s", pkgName)
 
 	}
-
-
 
 	// Create package.
 
@@ -107,19 +79,13 @@ func GeneratePackage(ctx context.Context, opts *PackageOptions) (*Package, error
 
 	}
 
-
-
 	// Mark as generated.
 
 	generatedPkgs[pkgName] = true
 
-
-
 	return pkg, nil
 
 }
-
-
 
 // GeneratePackageWithConstraints generates a package with resource and timeout constraints.
 
@@ -139,49 +105,36 @@ func GeneratePackageWithConstraints(
 
 	}
 
-
-
 	// Set context timeout.
 
 	ctx, cancel := context.WithTimeout(ctx, resourceLimits.Timeout)
 
 	defer cancel()
 
-
-
 	// Generate package with given constraints.
 
 	opts := &PackageOptions{
 
-		Name:      "constrained-pkg",
+		Name: "constrained-pkg",
 
 		Namespace: "default",
-
 	}
-
-
 
 	return GeneratePackage(ctx, opts)
 
 }
-
-
 
 // validateResourceConstraints checks if resource allocation is within acceptable limits.
 
 func validateResourceConstraints(limits ResourceLimits) error {
 
 	const (
+		maxAllowedCPU = 8 // cores
 
-		maxAllowedCPU     = 8  // cores
-
-		maxAllowedMemory  = 32 // GB
+		maxAllowedMemory = 32 // GB
 
 		maxAllowedTimeout = 30 * time.Minute
-
 	)
-
-
 
 	if limits.MaxCPU > maxAllowedCPU {
 
@@ -189,15 +142,11 @@ func validateResourceConstraints(limits ResourceLimits) error {
 
 	}
 
-
-
 	if limits.MaxMemory > maxAllowedMemory*1024 {
 
 		return fmt.Errorf("memory allocation exceeds limit: %d MB", limits.MaxMemory)
 
 	}
-
-
 
 	if limits.Timeout > maxAllowedTimeout {
 
@@ -205,13 +154,9 @@ func validateResourceConstraints(limits ResourceLimits) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // createPackage is an internal method to create the actual package.
 
@@ -231,29 +176,22 @@ func createPackage(
 
 	pkg := &Package{
 
-		Name:      pkgName,
+		Name: pkgName,
 
 		Namespace: opts.Namespace,
-
 	}
-
-
 
 	return pkg, nil
 
 }
 
-
-
 // Package represents a generated package with security features.
 
 type Package struct {
-
-	Name      string
+	Name string
 
 	Namespace string
 
 	// Add other package metadata.
 
 }
-

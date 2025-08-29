@@ -28,70 +28,43 @@ limitations under the License.
 
 */
 
-
-
-
 package shared
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"math"
-
 	"os"
-
 	"path/filepath"
-
 	"sort"
-
 	"sync"
-
 	"time"
-
-
 
 	"github.com/go-logr/logr"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 )
-
-
 
 // RetryPolicy defines retry behavior for failed operations.
 
 type RetryPolicy struct {
+	MaxRetries int `json:"maxRetries"`
 
-	MaxRetries      int           `json:"maxRetries"`
+	BackoffBase time.Duration `json:"backoffBase"`
 
-	BackoffBase     time.Duration `json:"backoffBase"`
+	BackoffMax time.Duration `json:"backoffMax"`
 
-	BackoffMax      time.Duration `json:"backoffMax"`
+	BackoffJitter bool `json:"backoffJitter"`
 
-	BackoffJitter   bool          `json:"backoffJitter"`
-
-	RetryableErrors []string      `json:"retryableErrors,omitempty"`
-
+	RetryableErrors []string `json:"retryableErrors,omitempty"`
 }
-
-
 
 // Execute executes a function with retry logic.
 
 func (rp *RetryPolicy) Execute(fn func() error) error {
 
 	var lastErr error
-
-
 
 	for attempt := 0; attempt <= rp.MaxRetries; attempt++ {
 
@@ -103,13 +76,9 @@ func (rp *RetryPolicy) Execute(fn func() error) error {
 
 		}
 
-
-
 		if err := fn(); err != nil {
 
 			lastErr = err
-
-
 
 			// Check if error is retryable.
 
@@ -119,39 +88,27 @@ func (rp *RetryPolicy) Execute(fn func() error) error {
 
 			}
 
-
-
 			continue
 
 		}
-
-
 
 		return nil // Success
 
 	}
 
-
-
 	return fmt.Errorf("operation failed after %d attempts: %w", rp.MaxRetries+1, lastErr)
 
 }
 
-
-
 func (rp *RetryPolicy) calculateBackoff(attempt int) time.Duration {
 
 	backoff := time.Duration(math.Pow(2, float64(attempt))) * rp.BackoffBase
-
-
 
 	if backoff > rp.BackoffMax {
 
 		backoff = rp.BackoffMax
 
 	}
-
-
 
 	// Add jitter if enabled.
 
@@ -163,13 +120,9 @@ func (rp *RetryPolicy) calculateBackoff(attempt int) time.Duration {
 
 	}
 
-
-
 	return backoff
 
 }
-
-
 
 func (rp *RetryPolicy) isRetryableError(err error) bool {
 
@@ -178,8 +131,6 @@ func (rp *RetryPolicy) isRetryableError(err error) bool {
 		return true // Retry all errors by default
 
 	}
-
-
 
 	errStr := err.Error()
 
@@ -193,49 +144,37 @@ func (rp *RetryPolicy) isRetryableError(err error) bool {
 
 	}
 
-
-
 	return false
 
 }
 
-
-
 // DeadLetterQueue handles failed events.
 
 type DeadLetterQueue struct {
-
 	enabled bool
 
-	events  []DeadLetterEvent
+	events []DeadLetterEvent
 
 	maxSize int
 
-	mutex   sync.RWMutex
+	mutex sync.RWMutex
 
-	logger  logr.Logger
-
+	logger logr.Logger
 }
-
-
 
 // DeadLetterEvent represents a failed event.
 
 type DeadLetterEvent struct {
+	Event ProcessingEvent `json:"event"`
 
-	Event        ProcessingEvent `json:"event"`
+	Error string `json:"error"`
 
-	Error        string          `json:"error"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp    time.Time       `json:"timestamp"`
+	AttemptCount int `json:"attemptCount"`
 
-	AttemptCount int             `json:"attemptCount"`
-
-	LastAttempt  time.Time       `json:"lastAttempt"`
-
+	LastAttempt time.Time `json:"lastAttempt"`
 }
-
-
 
 // NewDeadLetterQueue creates a new dead letter queue.
 
@@ -245,17 +184,14 @@ func NewDeadLetterQueue(enabled bool) *DeadLetterQueue {
 
 		enabled: enabled,
 
-		events:  make([]DeadLetterEvent, 0),
+		events: make([]DeadLetterEvent, 0),
 
 		maxSize: 1000,
 
-		logger:  ctrl.Log.WithName("dead-letter-queue"),
-
+		logger: ctrl.Log.WithName("dead-letter-queue"),
 	}
 
 }
-
-
 
 // Add adds a failed event to the dead letter queue.
 
@@ -267,33 +203,24 @@ func (dlq *DeadLetterQueue) Add(event ProcessingEvent, err error) {
 
 	}
 
-
-
 	dlq.mutex.Lock()
 
 	defer dlq.mutex.Unlock()
 
-
-
 	deadEvent := DeadLetterEvent{
 
-		Event:        event,
+		Event: event,
 
-		Error:        err.Error(),
+		Error: err.Error(),
 
-		Timestamp:    time.Now(),
+		Timestamp: time.Now(),
 
 		AttemptCount: 1,
 
-		LastAttempt:  time.Now(),
-
+		LastAttempt: time.Now(),
 	}
 
-
-
 	dlq.events = append(dlq.events, deadEvent)
-
-
 
 	// Cleanup old events if necessary.
 
@@ -303,15 +230,11 @@ func (dlq *DeadLetterQueue) Add(event ProcessingEvent, err error) {
 
 	}
 
-
-
 	dlq.logger.Error(err, "Event added to dead letter queue",
 
 		"eventType", event.Type, "intentID", event.IntentID)
 
 }
-
-
 
 // GetEvents returns all dead letter events.
 
@@ -321,19 +244,13 @@ func (dlq *DeadLetterQueue) GetEvents() []DeadLetterEvent {
 
 	defer dlq.mutex.RUnlock()
 
-
-
 	result := make([]DeadLetterEvent, len(dlq.events))
 
 	copy(result, dlq.events)
 
-
-
 	return result
 
 }
-
-
 
 // Clear clears all dead letter events.
 
@@ -343,35 +260,27 @@ func (dlq *DeadLetterQueue) Clear() {
 
 	defer dlq.mutex.Unlock()
 
-
-
 	dlq.events = dlq.events[:0]
 
 }
 
-
-
 // EventLog provides persistent event logging.
 
 type EventLog struct {
+	dir string
 
-	dir           string
-
-	rotationSize  int64
+	rotationSize int64
 
 	retentionDays int
 
-	currentFile   *os.File
+	currentFile *os.File
 
-	currentSize   int64
+	currentSize int64
 
-	mutex         sync.Mutex
+	mutex sync.Mutex
 
-	logger        logr.Logger
-
+	logger logr.Logger
 }
-
-
 
 // NewEventLog creates a new event log.
 
@@ -379,19 +288,16 @@ func NewEventLog(dir string, rotationSize int64, retentionDays int) *EventLog {
 
 	return &EventLog{
 
-		dir:           dir,
+		dir: dir,
 
-		rotationSize:  rotationSize,
+		rotationSize: rotationSize,
 
 		retentionDays: retentionDays,
 
-		logger:        ctrl.Log.WithName("event-log"),
-
+		logger: ctrl.Log.WithName("event-log"),
 	}
 
 }
-
-
 
 // WriteEvent writes an event to the log.
 
@@ -400,8 +306,6 @@ func (el *EventLog) WriteEvent(event ProcessingEvent) error {
 	el.mutex.Lock()
 
 	defer el.mutex.Unlock()
-
-
 
 	// Open current log file if needed.
 
@@ -415,8 +319,6 @@ func (el *EventLog) WriteEvent(event ProcessingEvent) error {
 
 	}
 
-
-
 	// Serialize event.
 
 	eventData, err := json.Marshal(event)
@@ -427,13 +329,9 @@ func (el *EventLog) WriteEvent(event ProcessingEvent) error {
 
 	}
 
-
-
 	// Add newline.
 
 	eventData = append(eventData, '\n')
-
-
 
 	// Write to file.
 
@@ -445,11 +343,7 @@ func (el *EventLog) WriteEvent(event ProcessingEvent) error {
 
 	}
 
-
-
 	el.currentSize += int64(n)
-
-
 
 	// Check if rotation is needed.
 
@@ -463,13 +357,9 @@ func (el *EventLog) WriteEvent(event ProcessingEvent) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetEventsByIntentID retrieves events for a specific intent.
 
@@ -479,11 +369,7 @@ func (el *EventLog) GetEventsByIntentID(intentID string) ([]ProcessingEvent, err
 
 	defer el.mutex.Unlock()
 
-
-
 	var events []ProcessingEvent
-
-
 
 	// Read from all log files.
 
@@ -494,8 +380,6 @@ func (el *EventLog) GetEventsByIntentID(intentID string) ([]ProcessingEvent, err
 		return nil, err
 
 	}
-
-
 
 	for _, filename := range files {
 
@@ -513,19 +397,13 @@ func (el *EventLog) GetEventsByIntentID(intentID string) ([]ProcessingEvent, err
 
 		}
 
-
-
 		events = append(events, fileEvents...)
 
 	}
 
-
-
 	return events, nil
 
 }
-
-
 
 // GetEventsByType retrieves events by type.
 
@@ -535,11 +413,7 @@ func (el *EventLog) GetEventsByType(eventType string, limit int) ([]ProcessingEv
 
 	defer el.mutex.Unlock()
 
-
-
 	var events []ProcessingEvent
-
-
 
 	files, err := el.getLogFiles()
 
@@ -548,8 +422,6 @@ func (el *EventLog) GetEventsByType(eventType string, limit int) ([]ProcessingEv
 		return nil, err
 
 	}
-
-
 
 	// Read files in reverse order (newest first).
 
@@ -569,11 +441,7 @@ func (el *EventLog) GetEventsByType(eventType string, limit int) ([]ProcessingEv
 
 		}
 
-
-
 		events = append(events, fileEvents...)
-
-
 
 		if len(events) > limit {
 
@@ -583,13 +451,9 @@ func (el *EventLog) GetEventsByType(eventType string, limit int) ([]ProcessingEv
 
 	}
 
-
-
 	return events, nil
 
 }
-
-
 
 // Close closes the event log.
 
@@ -599,31 +463,21 @@ func (el *EventLog) Close() error {
 
 	defer el.mutex.Unlock()
 
-
-
 	if el.currentFile != nil {
 
 		return el.currentFile.Close()
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Internal methods for EventLog.
-
-
 
 func (el *EventLog) openCurrentFile() error {
 
 	filename := filepath.Join(el.dir, fmt.Sprintf("events-%d.log", time.Now().Unix()))
-
-
 
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 
@@ -632,8 +486,6 @@ func (el *EventLog) openCurrentFile() error {
 		return err
 
 	}
-
-
 
 	// Get current file size.
 
@@ -647,19 +499,13 @@ func (el *EventLog) openCurrentFile() error {
 
 	}
 
-
-
 	el.currentFile = file
 
 	el.currentSize = stat.Size()
 
-
-
 	return nil
 
 }
-
-
 
 func (el *EventLog) rotate() error {
 
@@ -673,21 +519,15 @@ func (el *EventLog) rotate() error {
 
 	}
 
-
-
 	// Clean up old files.
 
 	el.cleanupOldFiles()
-
-
 
 	// Open new file.
 
 	return el.openCurrentFile()
 
 }
-
-
 
 func (el *EventLog) getLogFiles() ([]string, error) {
 
@@ -698,8 +538,6 @@ func (el *EventLog) getLogFiles() ([]string, error) {
 		return nil, err
 
 	}
-
-
 
 	var logFiles []string
 
@@ -713,15 +551,11 @@ func (el *EventLog) getLogFiles() ([]string, error) {
 
 	}
 
-
-
 	sort.Strings(logFiles)
 
 	return logFiles, nil
 
 }
-
-
 
 func (el *EventLog) readEventsFromFile(filename string, filter func(ProcessingEvent) bool) ([]ProcessingEvent, error) {
 
@@ -733,13 +567,9 @@ func (el *EventLog) readEventsFromFile(filename string, filter func(ProcessingEv
 
 	}
 
-
-
 	var events []ProcessingEvent
 
 	lines := splitLines(data)
-
-
 
 	for _, line := range lines {
 
@@ -748,8 +578,6 @@ func (el *EventLog) readEventsFromFile(filename string, filter func(ProcessingEv
 			continue
 
 		}
-
-
 
 		var event ProcessingEvent
 
@@ -761,8 +589,6 @@ func (el *EventLog) readEventsFromFile(filename string, filter func(ProcessingEv
 
 		}
 
-
-
 		if filter == nil || filter(event) {
 
 			events = append(events, event)
@@ -771,13 +597,9 @@ func (el *EventLog) readEventsFromFile(filename string, filter func(ProcessingEv
 
 	}
 
-
-
 	return events, nil
 
 }
-
-
 
 func (el *EventLog) cleanupOldFiles() {
 
@@ -789,11 +611,7 @@ func (el *EventLog) cleanupOldFiles() {
 
 	}
 
-
-
 	cutoff := time.Now().AddDate(0, 0, -el.retentionDays)
-
-
 
 	for _, filename := range files {
 
@@ -804,8 +622,6 @@ func (el *EventLog) cleanupOldFiles() {
 			continue
 
 		}
-
-
 
 		if stat.ModTime().Before(cutoff) {
 
@@ -825,15 +641,11 @@ func (el *EventLog) cleanupOldFiles() {
 
 }
 
-
-
 func splitLines(data []byte) [][]byte {
 
 	var lines [][]byte
 
 	start := 0
-
-
 
 	for i, b := range data {
 
@@ -851,8 +663,6 @@ func splitLines(data []byte) [][]byte {
 
 	}
 
-
-
 	// Handle last line without newline.
 
 	if start < len(data) {
@@ -861,25 +671,17 @@ func splitLines(data []byte) [][]byte {
 
 	}
 
-
-
 	return lines
 
 }
 
-
-
 // EventOrdering manages event ordering strategies.
 
 type EventOrdering struct {
-
-	mode     string
+	mode string
 
 	strategy string
-
 }
-
-
 
 // NewEventOrdering creates a new event ordering manager.
 
@@ -887,33 +689,26 @@ func NewEventOrdering(mode, strategy string) EventOrdering {
 
 	return EventOrdering{
 
-		mode:     mode,
+		mode: mode,
 
 		strategy: strategy,
-
 	}
 
 }
 
-
-
 // EventPartition manages events for a specific partition.
 
 type EventPartition struct {
+	id string
 
-	id      string
-
-	events  []ProcessingEvent
+	events []ProcessingEvent
 
 	maxSize int
 
-	mutex   sync.RWMutex
+	mutex sync.RWMutex
 
 	lastSeq int64
-
 }
-
-
 
 // NewEventPartition creates a new event partition.
 
@@ -921,17 +716,14 @@ func NewEventPartition(id string, maxSize int) *EventPartition {
 
 	return &EventPartition{
 
-		id:      id,
+		id: id,
 
-		events:  make([]ProcessingEvent, 0),
+		events: make([]ProcessingEvent, 0),
 
 		maxSize: maxSize,
-
 	}
 
 }
-
-
 
 // AddEvent adds an event to the partition.
 
@@ -941,13 +733,9 @@ func (ep *EventPartition) AddEvent(event ProcessingEvent) {
 
 	defer ep.mutex.Unlock()
 
-
-
 	ep.events = append(ep.events, event)
 
 	ep.lastSeq++
-
-
 
 	// Cleanup old events if necessary.
 
@@ -959,8 +747,6 @@ func (ep *EventPartition) AddEvent(event ProcessingEvent) {
 
 }
 
-
-
 // GetEvents returns all events in the partition.
 
 func (ep *EventPartition) GetEvents() []ProcessingEvent {
@@ -969,53 +755,39 @@ func (ep *EventPartition) GetEvents() []ProcessingEvent {
 
 	defer ep.mutex.RUnlock()
 
-
-
 	result := make([]ProcessingEvent, len(ep.events))
 
 	copy(result, ep.events)
-
-
 
 	return result
 
 }
 
-
-
 // EventHealthChecker monitors event bus health.
 
 type EventHealthChecker struct {
+	interval time.Duration
 
-	interval  time.Duration
-
-	logger    logr.Logger
+	logger logr.Logger
 
 	lastCheck time.Time
 
-	healthy   bool
+	healthy bool
 
-	checks    map[string]HealthCheck
-
+	checks map[string]HealthCheck
 }
-
-
 
 // HealthCheck represents a health check function.
 
 type HealthCheck struct {
+	Name string
 
-	Name      string
+	Check func() error
 
-	Check     func() error
-
-	LastRun   time.Time
+	LastRun time.Time
 
 	LastError error
-
 }
-
-
 
 // NewEventHealthChecker creates a new health checker.
 
@@ -1025,17 +797,14 @@ func NewEventHealthChecker(interval time.Duration) *EventHealthChecker {
 
 		interval: interval,
 
-		logger:   ctrl.Log.WithName("event-health-checker"),
+		logger: ctrl.Log.WithName("event-health-checker"),
 
-		healthy:  true,
+		healthy: true,
 
-		checks:   make(map[string]HealthCheck),
-
+		checks: make(map[string]HealthCheck),
 	}
 
 }
-
-
 
 // Start starts the health checker.
 
@@ -1043,13 +812,9 @@ func (ehc *EventHealthChecker) Start(ctx context.Context, wg *sync.WaitGroup) {
 
 	defer wg.Done()
 
-
-
 	ticker := time.NewTicker(ehc.interval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1058,8 +823,6 @@ func (ehc *EventHealthChecker) Start(ctx context.Context, wg *sync.WaitGroup) {
 		case <-ticker.C:
 
 			ehc.runHealthChecks()
-
-
 
 		case <-ctx.Done():
 
@@ -1071,23 +834,18 @@ func (ehc *EventHealthChecker) Start(ctx context.Context, wg *sync.WaitGroup) {
 
 }
 
-
-
 // AddHealthCheck adds a health check.
 
 func (ehc *EventHealthChecker) AddHealthCheck(name string, check func() error) {
 
 	ehc.checks[name] = HealthCheck{
 
-		Name:  name,
+		Name: name,
 
 		Check: check,
-
 	}
 
 }
-
-
 
 // runHealthChecks runs all registered health checks.
 
@@ -1097,8 +855,6 @@ func (ehc *EventHealthChecker) runHealthChecks() {
 
 	allHealthy := true
 
-
-
 	for name, check := range ehc.checks {
 
 		err := check.Check()
@@ -1106,8 +862,6 @@ func (ehc *EventHealthChecker) runHealthChecks() {
 		check.LastRun = time.Now()
 
 		check.LastError = err
-
-
 
 		if err != nil {
 
@@ -1117,17 +871,11 @@ func (ehc *EventHealthChecker) runHealthChecks() {
 
 		}
 
-
-
 		ehc.checks[name] = check
 
 	}
 
-
-
 	ehc.healthy = allHealthy
-
-
 
 	if !ehc.healthy {
 
@@ -1137,8 +885,6 @@ func (ehc *EventHealthChecker) runHealthChecks() {
 
 }
 
-
-
 // IsHealthy returns the current health status.
 
 func (ehc *EventHealthChecker) IsHealthy() bool {
@@ -1147,31 +893,25 @@ func (ehc *EventHealthChecker) IsHealthy() bool {
 
 }
 
-
-
 // EventBusMetricsImpl implements the EventBusMetrics interface.
 
 type EventBusMetricsImpl struct {
-
-	mutex                sync.RWMutex
+	mutex sync.RWMutex
 
 	totalEventsPublished int64
 
 	totalEventsProcessed int64
 
-	failedHandlers       int64
+	failedHandlers int64
 
-	processingTimes      []time.Duration
+	processingTimes []time.Duration
 
-	bufferUtilization    float64
+	bufferUtilization float64
 
-	partitionCount       int
+	partitionCount int
 
-	lastMetricsUpdate    time.Time
-
+	lastMetricsUpdate time.Time
 }
-
-
 
 // NewEventBusMetricsImpl creates a new metrics implementation.
 
@@ -1180,12 +920,9 @@ func NewEventBusMetricsImpl() *EventBusMetricsImpl {
 	return &EventBusMetricsImpl{
 
 		processingTimes: make([]time.Duration, 0, 1000),
-
 	}
 
 }
-
-
 
 // RecordEventPublished performs recordeventpublished operation.
 
@@ -1195,13 +932,9 @@ func (m *EventBusMetricsImpl) RecordEventPublished(eventType string) {
 
 	defer m.mutex.Unlock()
 
-
-
 	m.totalEventsPublished++
 
 }
-
-
 
 // RecordEventProcessed performs recordeventprocessed operation.
 
@@ -1211,13 +944,9 @@ func (m *EventBusMetricsImpl) RecordEventProcessed(processingTime time.Duration)
 
 	defer m.mutex.Unlock()
 
-
-
 	m.totalEventsProcessed++
 
 	m.processingTimes = append(m.processingTimes, processingTime)
-
-
 
 	// Keep only recent times.
 
@@ -1229,8 +958,6 @@ func (m *EventBusMetricsImpl) RecordEventProcessed(processingTime time.Duration)
 
 }
 
-
-
 // RecordHandlerFailure performs recordhandlerfailure operation.
 
 func (m *EventBusMetricsImpl) RecordHandlerFailure() {
@@ -1239,13 +966,9 @@ func (m *EventBusMetricsImpl) RecordHandlerFailure() {
 
 	defer m.mutex.Unlock()
 
-
-
 	m.failedHandlers++
 
 }
-
-
 
 // SetBufferUtilization performs setbufferutilization operation.
 
@@ -1255,13 +978,9 @@ func (m *EventBusMetricsImpl) SetBufferUtilization(utilization float64) {
 
 	defer m.mutex.Unlock()
 
-
-
 	m.bufferUtilization = utilization
 
 }
-
-
 
 // SetPartitionCount performs setpartitioncount operation.
 
@@ -1271,13 +990,9 @@ func (m *EventBusMetricsImpl) SetPartitionCount(count int) {
 
 	defer m.mutex.Unlock()
 
-
-
 	m.partitionCount = count
 
 }
-
-
 
 // GetTotalEventsPublished performs gettotaleventspublished operation.
 
@@ -1287,13 +1002,9 @@ func (m *EventBusMetricsImpl) GetTotalEventsPublished() int64 {
 
 	defer m.mutex.RUnlock()
 
-
-
 	return m.totalEventsPublished
 
 }
-
-
 
 // GetTotalEventsProcessed performs gettotaleventsprocessed operation.
 
@@ -1303,13 +1014,9 @@ func (m *EventBusMetricsImpl) GetTotalEventsProcessed() int64 {
 
 	defer m.mutex.RUnlock()
 
-
-
 	return m.totalEventsProcessed
 
 }
-
-
 
 // GetFailedHandlers performs getfailedhandlers operation.
 
@@ -1319,13 +1026,9 @@ func (m *EventBusMetricsImpl) GetFailedHandlers() int64 {
 
 	defer m.mutex.RUnlock()
 
-
-
 	return m.failedHandlers
 
 }
-
-
 
 // GetAverageProcessingTime performs getaverageprocessingtime operation.
 
@@ -1335,15 +1038,11 @@ func (m *EventBusMetricsImpl) GetAverageProcessingTime() int64 {
 
 	defer m.mutex.RUnlock()
 
-
-
 	if len(m.processingTimes) == 0 {
 
 		return 0
 
 	}
-
-
 
 	var total time.Duration
 
@@ -1353,15 +1052,11 @@ func (m *EventBusMetricsImpl) GetAverageProcessingTime() int64 {
 
 	}
 
-
-
 	avg := total / time.Duration(len(m.processingTimes))
 
 	return avg.Nanoseconds() / 1000000 // Convert to milliseconds
 
 }
-
-
 
 // GetBufferUtilization performs getbufferutilization operation.
 
@@ -1371,9 +1066,6 @@ func (m *EventBusMetricsImpl) GetBufferUtilization() float64 {
 
 	defer m.mutex.RUnlock()
 
-
-
 	return m.bufferUtilization
 
 }
-

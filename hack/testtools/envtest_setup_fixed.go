@@ -1,45 +1,26 @@
 // Package testtools provides enhanced envtest setup with automatic binary installation.
 
-
 package testtools
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 	"time"
-
-
 
 	. "github.com/onsi/ginkgo/v2"
 
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/client-go/discovery"
-
 	"k8s.io/client-go/kubernetes"
-
 	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
 )
-
-
 
 // SetupTestEnvironmentWithBinaryCheck creates and starts a test environment with automatic binary installation.
 
@@ -54,12 +35,9 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 		zap.UseDevMode(options.DevelopmentMode),
 
 		zap.Level(getLogLevel(options.VerboseLogging)),
-
 	)
 
 	logf.SetLogger(logger)
-
-
 
 	// Set environment variables.
 
@@ -69,29 +47,19 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 
 	}
 
-
-
 	ctx, cancel := context.WithCancel(context.TODO())
 
-
-
 	By("setting up envtest binary manager")
-
-
 
 	// Create binary manager and ensure binaries are installed.
 
 	binaryManager := NewEnvtestBinaryManager()
-
-
 
 	// Set up binary installation with timeout.
 
 	installCtx, installCancel := context.WithTimeout(ctx, 5*time.Minute)
 
 	defer installCancel()
-
-
 
 	if err := binaryManager.EnsureBinariesInstalled(installCtx); err != nil {
 
@@ -109,8 +77,6 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 
 		binaryManager.SetupEnvironment()
 
-
-
 		// Validate installation.
 
 		if err := binaryManager.ValidateInstallation(installCtx); err != nil {
@@ -125,11 +91,7 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 
 	}
 
-
-
 	By("bootstrapping test environment")
-
-
 
 	// Create runtime scheme.
 
@@ -143,31 +105,26 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 
 	}
 
-
-
 	// Configure envtest environment with enhanced binary resolution.
 
 	testEnv := &envtest.Environment{
 
-		CRDDirectoryPaths:        resolveCRDPathsEnhanced(options.CRDDirectoryPaths),
+		CRDDirectoryPaths: resolveCRDPathsEnhanced(options.CRDDirectoryPaths),
 
-		ErrorIfCRDPathMissing:    !options.CIMode, // Be more lenient in CI
+		ErrorIfCRDPathMissing: !options.CIMode, // Be more lenient in CI
 
-		BinaryAssetsDirectory:    resolveBinaryAssetsDirectoryEnhanced(options.BinaryAssetsDirectory, binaryManager),
+		BinaryAssetsDirectory: resolveBinaryAssetsDirectoryEnhanced(options.BinaryAssetsDirectory, binaryManager),
 
-		UseExistingCluster:       options.UseExistingCluster,
+		UseExistingCluster: options.UseExistingCluster,
 
 		AttachControlPlaneOutput: options.AttachControlPlaneOutput,
 
 		ControlPlaneStartTimeout: options.ControlPlaneStartTimeout,
 
-		ControlPlaneStopTimeout:  options.ControlPlaneStopTimeout,
+		ControlPlaneStopTimeout: options.ControlPlaneStopTimeout,
 
-		Scheme:                   testScheme,
-
+		Scheme: testScheme,
 	}
-
-
 
 	// Configure webhooks if enabled.
 
@@ -177,23 +134,17 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 
 	}
 
-
-
 	// Start the test environment with retry logic.
 
 	var cfg *rest.Config
 
 	var err error
 
-
-
 	maxRetries := 3
 
 	for i := 0; i < maxRetries; i++ {
 
 		By(fmt.Sprintf("attempting to start test environment (attempt %d/%d)", i+1, maxRetries))
-
-
 
 		cfg, err = testEnv.Start()
 
@@ -203,17 +154,11 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 
 		}
 
-
-
 		fmt.Printf("Test environment start attempt %d failed: %v\n", i+1, err)
-
-
 
 		if i < maxRetries-1 {
 
 			fmt.Println("Retrying with fallback configuration...")
-
-
 
 			// Try with existing cluster on retry.
 
@@ -225,15 +170,11 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 
 			}
 
-
-
 			time.Sleep(time.Second * time.Duration(i+1)) // Progressive backoff
 
 		}
 
 	}
-
-
 
 	if err != nil {
 
@@ -242,8 +183,6 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 		return nil, fmt.Errorf("failed to start test environment after %d attempts: %w", maxRetries, err)
 
 	}
-
-
 
 	if cfg == nil {
 
@@ -254,8 +193,6 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 		return nil, fmt.Errorf("test environment config is nil")
 
 	}
-
-
 
 	// Create Kubernetes clients.
 
@@ -271,8 +208,6 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 
 	}
 
-
-
 	k8sClientSet, err := kubernetes.NewForConfig(cfg)
 
 	if err != nil {
@@ -284,8 +219,6 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 		return nil, fmt.Errorf("failed to create k8s clientset: %w", err)
 
 	}
-
-
 
 	// Create discovery client.
 
@@ -301,8 +234,6 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 
 	}
 
-
-
 	// Wait for API server to be ready with enhanced timeout.
 
 	if err := waitForAPIServerReadyEnhanced(cfg, options.APIServerReadyTimeout); err != nil {
@@ -315,35 +246,30 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 
 	}
 
-
-
 	testEnvironment := &TestEnvironment{
 
-		Cfg:             cfg,
+		Cfg: cfg,
 
-		K8sClient:       k8sClient,
+		K8sClient: k8sClient,
 
-		K8sClientSet:    k8sClientSet,
+		K8sClientSet: k8sClientSet,
 
-		TestEnv:         testEnv,
+		TestEnv: testEnv,
 
-		Scheme:          testScheme,
+		Scheme: testScheme,
 
-		ctx:             ctx,
+		ctx: ctx,
 
-		cancel:          cancel,
+		cancel: cancel,
 
-		options:         options,
+		options: options,
 
-		started:         true,
+		started: true,
 
-		cleanupFuncs:    make([]func() error, 0),
+		cleanupFuncs: make([]func() error, 0),
 
 		discoveryClient: discoveryClient,
-
 	}
-
-
 
 	// Create default namespace if requested.
 
@@ -356,8 +282,6 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 		}
 
 	}
-
-
 
 	// Verify CRDs are installed and ready.
 
@@ -379,15 +303,11 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 
 	}
 
-
-
 	By("test environment setup completed successfully")
 
 	return testEnvironment, nil
 
 }
-
-
 
 // resolveBinaryAssetsDirectoryEnhanced resolves binary assets directory with binary manager.
 
@@ -398,8 +318,6 @@ func resolveBinaryAssetsDirectoryEnhanced(customPath string, binaryManager *Envt
 		return customPath
 
 	}
-
-
 
 	// Use binary manager's directory if available.
 
@@ -415,23 +333,17 @@ func resolveBinaryAssetsDirectoryEnhanced(customPath string, binaryManager *Envt
 
 	}
 
-
-
 	// Fallback to original resolution logic.
 
 	return resolveBinaryAssetsDirectory(customPath)
 
 }
 
-
-
 // resolveCRDPathsEnhanced resolves CRD directory paths with enhanced fallback.
 
 func resolveCRDPathsEnhanced(paths []string) []string {
 
 	var validPaths []string
-
-
 
 	// Add common CRD paths.
 
@@ -448,16 +360,11 @@ func resolveCRDPathsEnhanced(paths []string) []string {
 		filepath.Join("..", "..", "deployments", "crds"),
 
 		"crds",
-
 	}
-
-
 
 	// Merge provided paths with common paths.
 
 	allPaths := append(paths, commonCRDPaths...)
-
-
 
 	for _, path := range allPaths {
 
@@ -475,8 +382,6 @@ func resolveCRDPathsEnhanced(paths []string) []string {
 
 	}
 
-
-
 	// If no valid paths found, return the first path (let envtest handle the error).
 
 	if len(validPaths) == 0 && len(allPaths) > 0 {
@@ -493,13 +398,9 @@ func resolveCRDPathsEnhanced(paths []string) []string {
 
 	}
 
-
-
 	return validPaths
 
 }
-
-
 
 // waitForAPIServerReadyEnhanced waits for the API server with enhanced error handling.
 
@@ -513,13 +414,9 @@ func waitForAPIServerReadyEnhanced(cfg *rest.Config, timeout time.Duration) erro
 
 	}
 
-
-
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 
 	defer cancel()
-
-
 
 	maxRetries := int(timeout.Seconds() / 2) // Retry every 2 seconds
 
@@ -528,8 +425,6 @@ func waitForAPIServerReadyEnhanced(cfg *rest.Config, timeout time.Duration) erro
 		maxRetries = 1
 
 	}
-
-
 
 	for i := 0; i < maxRetries; i++ {
 
@@ -549,8 +444,6 @@ func waitForAPIServerReadyEnhanced(cfg *rest.Config, timeout time.Duration) erro
 
 			}
 
-
-
 			// Log periodic status.
 
 			if i%5 == 0 {
@@ -559,29 +452,21 @@ func waitForAPIServerReadyEnhanced(cfg *rest.Config, timeout time.Duration) erro
 
 			}
 
-
-
 			time.Sleep(2 * time.Second)
 
 		}
 
 	}
 
-
-
 	return fmt.Errorf("API server not ready after %v", timeout)
 
 }
-
-
 
 // createTestScheme creates a test runtime scheme.
 
 func createTestScheme(schemeBuilders []func(*runtime.Scheme) error) *runtime.Scheme {
 
 	scheme := runtime.NewScheme()
-
-
 
 	// Apply all scheme builders.
 
@@ -597,13 +482,9 @@ func createTestScheme(schemeBuilders []func(*runtime.Scheme) error) *runtime.Sch
 
 	}
 
-
-
 	return scheme
 
 }
-
-
 
 // EnhancedTestEnvironmentOptions returns options optimized for environments with potential binary issues.
 
@@ -619,13 +500,11 @@ func EnhancedTestEnvironmentOptions() TestEnvironmentOptions {
 
 	opts.AttachControlPlaneOutput = false // Reduce noise
 
-	opts.CIMode = true                    // More lenient error handling
+	opts.CIMode = true // More lenient error handling
 
 	return opts
 
 }
-
-
 
 // DisasterRecoveryTestEnvironmentOptions returns options specifically for disaster recovery tests.
 
@@ -643,8 +522,6 @@ func DisasterRecoveryTestEnvironmentOptions() TestEnvironmentOptions {
 
 	opts.VerboseLogging = true // More logging for troubleshooting
 
-
-
 	// Add disaster recovery specific environment variables.
 
 	if opts.EnvironmentVariables == nil {
@@ -657,9 +534,6 @@ func DisasterRecoveryTestEnvironmentOptions() TestEnvironmentOptions {
 
 	opts.EnvironmentVariables["LOG_LEVEL"] = "debug"
 
-
-
 	return opts
 
 }
-

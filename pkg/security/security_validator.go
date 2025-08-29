@@ -1,57 +1,31 @@
-
 package security
 
-
-
 import (
-
 	"context"
-
 	"crypto/rsa"
-
 	"crypto/x509"
-
 	"encoding/pem"
-
 	"fmt"
-
 	"strings"
-
 	"time"
 
-
-
 	appsv1 "k8s.io/api/apps/v1"
-
 	corev1 "k8s.io/api/core/v1"
-
 	networkingv1 "k8s.io/api/networking/v1"
-
 	rbacv1 "k8s.io/api/rbac/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // Validator performs comprehensive security validation.
 
 type Validator struct {
-
-	client    client.Client
+	client client.Client
 
 	namespace string
-
 }
-
-
 
 // NewValidator creates a new security validator.
 
@@ -59,57 +33,47 @@ func NewValidator(client client.Client, namespace string) *Validator {
 
 	return &Validator{
 
-		client:    client,
+		client: client,
 
 		namespace: namespace,
-
 	}
 
 }
 
-
-
 // ValidationReport contains comprehensive security validation results.
 
 type ValidationReport struct {
+	Timestamp metav1.Time
 
-	Timestamp              metav1.Time
+	Namespace string
 
-	Namespace              string
+	Compliant bool
 
-	Compliant              bool
+	ContainerIssues []Issue
 
-	ContainerIssues        []Issue
+	RBACIssues []Issue
 
-	RBACIssues             []Issue
-
-	NetworkPolicyIssues    []Issue
+	NetworkPolicyIssues []Issue
 
 	SecretManagementIssues []Issue
 
 	TLSConfigurationIssues []Issue
 
-	Score                  int // Security score 0-100
+	Score int // Security score 0-100
 
 }
-
-
 
 // Issue represents a security issue found during validation.
 
 type Issue struct {
+	Severity string // Critical, High, Medium, Low
 
-	Severity    string // Critical, High, Medium, Low
-
-	Component   string
+	Component string
 
 	Description string
 
 	Remediation string
-
 }
-
-
 
 // ValidateAll performs comprehensive security validation.
 
@@ -117,27 +81,22 @@ func (v *Validator) ValidateAll(ctx context.Context) (*ValidationReport, error) 
 
 	logger := log.FromContext(ctx)
 
-
-
 	report := &ValidationReport{
 
-		Timestamp:              metav1.Now(),
+		Timestamp: metav1.Now(),
 
-		Namespace:              v.namespace,
+		Namespace: v.namespace,
 
-		ContainerIssues:        []Issue{},
+		ContainerIssues: []Issue{},
 
-		RBACIssues:             []Issue{},
+		RBACIssues: []Issue{},
 
-		NetworkPolicyIssues:    []Issue{},
+		NetworkPolicyIssues: []Issue{},
 
 		SecretManagementIssues: []Issue{},
 
 		TLSConfigurationIssues: []Issue{},
-
 	}
-
-
 
 	// Validate container security.
 
@@ -151,8 +110,6 @@ func (v *Validator) ValidateAll(ctx context.Context) (*ValidationReport, error) 
 
 	report.ContainerIssues = append(report.ContainerIssues, containerIssues...)
 
-
-
 	// Validate RBAC permissions.
 
 	rbacIssues, err := v.ValidateRBACPermissions(ctx)
@@ -164,8 +121,6 @@ func (v *Validator) ValidateAll(ctx context.Context) (*ValidationReport, error) 
 	}
 
 	report.RBACIssues = append(report.RBACIssues, rbacIssues...)
-
-
 
 	// Validate network policies.
 
@@ -179,8 +134,6 @@ func (v *Validator) ValidateAll(ctx context.Context) (*ValidationReport, error) 
 
 	report.NetworkPolicyIssues = append(report.NetworkPolicyIssues, networkIssues...)
 
-
-
 	// Validate secret management.
 
 	secretIssues, err := v.ValidateSecretManagement(ctx)
@@ -192,8 +145,6 @@ func (v *Validator) ValidateAll(ctx context.Context) (*ValidationReport, error) 
 	}
 
 	report.SecretManagementIssues = append(report.SecretManagementIssues, secretIssues...)
-
-
 
 	// Validate TLS configuration.
 
@@ -207,15 +158,11 @@ func (v *Validator) ValidateAll(ctx context.Context) (*ValidationReport, error) 
 
 	report.TLSConfigurationIssues = append(report.TLSConfigurationIssues, tlsIssues...)
 
-
-
 	// Calculate security score.
 
 	report.Score = v.calculateSecurityScore(report)
 
 	report.Compliant = report.Score >= 80 // 80% threshold for compliance
-
-
 
 	logger.Info("Security validation completed",
 
@@ -225,21 +172,15 @@ func (v *Validator) ValidateAll(ctx context.Context) (*ValidationReport, error) 
 
 		"totalIssues", v.getTotalIssueCount(report))
 
-
-
 	return report, nil
 
 }
-
-
 
 // ValidateContainerSecurity validates container security contexts.
 
 func (v *Validator) ValidateContainerSecurity(ctx context.Context) ([]Issue, error) {
 
 	issues := []Issue{}
-
-
 
 	// Check deployments.
 
@@ -251,28 +192,23 @@ func (v *Validator) ValidateContainerSecurity(ctx context.Context) ([]Issue, err
 
 	}
 
-
-
 	for _, deployment := range deployments.Items {
 
 		// Check pod security context.
 
 		podSpec := deployment.Spec.Template.Spec
 
-
-
 		if podSpec.SecurityContext == nil {
 
 			issues = append(issues, Issue{
 
-				Severity:    "High",
+				Severity: "High",
 
-				Component:   fmt.Sprintf("Deployment/%s", deployment.Name),
+				Component: fmt.Sprintf("Deployment/%s", deployment.Name),
 
 				Description: "Missing pod security context",
 
 				Remediation: "Add pod security context with runAsNonRoot and fsGroup settings",
-
 			})
 
 		} else {
@@ -283,19 +219,16 @@ func (v *Validator) ValidateContainerSecurity(ctx context.Context) ([]Issue, err
 
 				issues = append(issues, Issue{
 
-					Severity:    "High",
+					Severity: "High",
 
-					Component:   fmt.Sprintf("Deployment/%s", deployment.Name),
+					Component: fmt.Sprintf("Deployment/%s", deployment.Name),
 
 					Description: "Pod not configured to run as non-root",
 
 					Remediation: "Set securityContext.runAsNonRoot to true",
-
 				})
 
 			}
-
-
 
 			// Check fsGroup.
 
@@ -303,21 +236,18 @@ func (v *Validator) ValidateContainerSecurity(ctx context.Context) ([]Issue, err
 
 				issues = append(issues, Issue{
 
-					Severity:    "Medium",
+					Severity: "Medium",
 
-					Component:   fmt.Sprintf("Deployment/%s", deployment.Name),
+					Component: fmt.Sprintf("Deployment/%s", deployment.Name),
 
 					Description: "Missing fsGroup in pod security context",
 
 					Remediation: "Set securityContext.fsGroup to a non-zero value",
-
 				})
 
 			}
 
 		}
-
-
 
 		// Check container security contexts.
 
@@ -327,21 +257,18 @@ func (v *Validator) ValidateContainerSecurity(ctx context.Context) ([]Issue, err
 
 				issues = append(issues, Issue{
 
-					Severity:    "High",
+					Severity: "High",
 
-					Component:   fmt.Sprintf("Deployment/%s/Container/%s", deployment.Name, container.Name),
+					Component: fmt.Sprintf("Deployment/%s/Container/%s", deployment.Name, container.Name),
 
 					Description: "Missing container security context",
 
 					Remediation: "Add container security context with proper restrictions",
-
 				})
 
 				continue
 
 			}
-
-
 
 			// Check readOnlyRootFilesystem.
 
@@ -349,19 +276,16 @@ func (v *Validator) ValidateContainerSecurity(ctx context.Context) ([]Issue, err
 
 				issues = append(issues, Issue{
 
-					Severity:    "Medium",
+					Severity: "Medium",
 
-					Component:   fmt.Sprintf("Deployment/%s/Container/%s", deployment.Name, container.Name),
+					Component: fmt.Sprintf("Deployment/%s/Container/%s", deployment.Name, container.Name),
 
 					Description: "Container root filesystem is not read-only",
 
 					Remediation: "Set securityContext.readOnlyRootFilesystem to true",
-
 				})
 
 			}
-
-
 
 			// Check allowPrivilegeEscalation.
 
@@ -369,19 +293,16 @@ func (v *Validator) ValidateContainerSecurity(ctx context.Context) ([]Issue, err
 
 				issues = append(issues, Issue{
 
-					Severity:    "Critical",
+					Severity: "Critical",
 
-					Component:   fmt.Sprintf("Deployment/%s/Container/%s", deployment.Name, container.Name),
+					Component: fmt.Sprintf("Deployment/%s/Container/%s", deployment.Name, container.Name),
 
 					Description: "Container allows privilege escalation",
 
 					Remediation: "Set securityContext.allowPrivilegeEscalation to false",
-
 				})
 
 			}
-
-
 
 			// Check privileged.
 
@@ -389,19 +310,16 @@ func (v *Validator) ValidateContainerSecurity(ctx context.Context) ([]Issue, err
 
 				issues = append(issues, Issue{
 
-					Severity:    "Critical",
+					Severity: "Critical",
 
-					Component:   fmt.Sprintf("Deployment/%s/Container/%s", deployment.Name, container.Name),
+					Component: fmt.Sprintf("Deployment/%s/Container/%s", deployment.Name, container.Name),
 
 					Description: "Container running in privileged mode",
 
 					Remediation: "Remove privileged mode or use specific capabilities",
-
 				})
 
 			}
-
-
 
 			// Check capabilities.
 
@@ -415,14 +333,13 @@ func (v *Validator) ValidateContainerSecurity(ctx context.Context) ([]Issue, err
 
 							issues = append(issues, Issue{
 
-								Severity:    "High",
+								Severity: "High",
 
-								Component:   fmt.Sprintf("Deployment/%s/Container/%s", deployment.Name, container.Name),
+								Component: fmt.Sprintf("Deployment/%s/Container/%s", deployment.Name, container.Name),
 
 								Description: fmt.Sprintf("Container has dangerous capability: %s", cap),
 
 								Remediation: "Remove or restrict dangerous capabilities",
-
 							})
 
 						}
@@ -431,27 +348,22 @@ func (v *Validator) ValidateContainerSecurity(ctx context.Context) ([]Issue, err
 
 				}
 
-
-
 				if container.SecurityContext.Capabilities.Drop == nil || len(container.SecurityContext.Capabilities.Drop) == 0 {
 
 					issues = append(issues, Issue{
 
-						Severity:    "Medium",
+						Severity: "Medium",
 
-						Component:   fmt.Sprintf("Deployment/%s/Container/%s", deployment.Name, container.Name),
+						Component: fmt.Sprintf("Deployment/%s/Container/%s", deployment.Name, container.Name),
 
 						Description: "Container not dropping any capabilities",
 
 						Remediation: "Drop ALL capabilities and add only required ones",
-
 					})
 
 				}
 
 			}
-
-
 
 			// Check for latest image tag.
 
@@ -459,21 +371,18 @@ func (v *Validator) ValidateContainerSecurity(ctx context.Context) ([]Issue, err
 
 				issues = append(issues, Issue{
 
-					Severity:    "Medium",
+					Severity: "Medium",
 
-					Component:   fmt.Sprintf("Deployment/%s/Container/%s", deployment.Name, container.Name),
+					Component: fmt.Sprintf("Deployment/%s/Container/%s", deployment.Name, container.Name),
 
 					Description: "Container using latest or untagged image",
 
 					Remediation: "Use specific image tags for reproducibility and security",
-
 				})
 
 			}
 
 		}
-
-
 
 		// Check service account.
 
@@ -481,19 +390,16 @@ func (v *Validator) ValidateContainerSecurity(ctx context.Context) ([]Issue, err
 
 			issues = append(issues, Issue{
 
-				Severity:    "Medium",
+				Severity: "Medium",
 
-				Component:   fmt.Sprintf("Deployment/%s", deployment.Name),
+				Component: fmt.Sprintf("Deployment/%s", deployment.Name),
 
 				Description: "Using default service account",
 
 				Remediation: "Create and use a dedicated service account with minimal permissions",
-
 			})
 
 		}
-
-
 
 		// Check automountServiceAccountToken.
 
@@ -501,35 +407,28 @@ func (v *Validator) ValidateContainerSecurity(ctx context.Context) ([]Issue, err
 
 			issues = append(issues, Issue{
 
-				Severity:    "Low",
+				Severity: "Low",
 
-				Component:   fmt.Sprintf("Deployment/%s", deployment.Name),
+				Component: fmt.Sprintf("Deployment/%s", deployment.Name),
 
 				Description: "Service account token automatically mounted",
 
 				Remediation: "Set automountServiceAccountToken to false if not needed",
-
 			})
 
 		}
 
 	}
 
-
-
 	return issues, nil
 
 }
-
-
 
 // ValidateRBACPermissions validates RBAC configurations.
 
 func (v *Validator) ValidateRBACPermissions(ctx context.Context) ([]Issue, error) {
 
 	issues := []Issue{}
-
-
 
 	// Check ClusterRoles.
 
@@ -541,8 +440,6 @@ func (v *Validator) ValidateRBACPermissions(ctx context.Context) ([]Issue, error
 
 	}
 
-
-
 	for _, cr := range clusterRoles.Items {
 
 		// Skip system roles.
@@ -552,8 +449,6 @@ func (v *Validator) ValidateRBACPermissions(ctx context.Context) ([]Issue, error
 			continue
 
 		}
-
-
 
 		for _, rule := range cr.Rules {
 
@@ -565,21 +460,18 @@ func (v *Validator) ValidateRBACPermissions(ctx context.Context) ([]Issue, error
 
 					issues = append(issues, Issue{
 
-						Severity:    "High",
+						Severity: "High",
 
-						Component:   fmt.Sprintf("ClusterRole/%s", cr.Name),
+						Component: fmt.Sprintf("ClusterRole/%s", cr.Name),
 
 						Description: "Wildcard API group permission",
 
 						Remediation: "Use specific API groups instead of wildcards",
-
 					})
 
 				}
 
 			}
-
-
 
 			for _, resource := range rule.Resources {
 
@@ -587,19 +479,16 @@ func (v *Validator) ValidateRBACPermissions(ctx context.Context) ([]Issue, error
 
 					issues = append(issues, Issue{
 
-						Severity:    "High",
+						Severity: "High",
 
-						Component:   fmt.Sprintf("ClusterRole/%s", cr.Name),
+						Component: fmt.Sprintf("ClusterRole/%s", cr.Name),
 
 						Description: "Wildcard resource permission",
 
 						Remediation: "Use specific resources instead of wildcards",
-
 					})
 
 				}
-
-
 
 				// Check for sensitive resources.
 
@@ -611,14 +500,13 @@ func (v *Validator) ValidateRBACPermissions(ctx context.Context) ([]Issue, error
 
 							issues = append(issues, Issue{
 
-								Severity:    "High",
+								Severity: "High",
 
-								Component:   fmt.Sprintf("ClusterRole/%s", cr.Name),
+								Component: fmt.Sprintf("ClusterRole/%s", cr.Name),
 
 								Description: fmt.Sprintf("Broad access to sensitive resource: %s", resource),
 
 								Remediation: "Restrict access to specific secrets/configmaps using resourceNames",
-
 							})
 
 						}
@@ -629,29 +517,24 @@ func (v *Validator) ValidateRBACPermissions(ctx context.Context) ([]Issue, error
 
 			}
 
-
-
 			for _, verb := range rule.Verbs {
 
 				if verb == "*" {
 
 					issues = append(issues, Issue{
 
-						Severity:    "High",
+						Severity: "High",
 
-						Component:   fmt.Sprintf("ClusterRole/%s", cr.Name),
+						Component: fmt.Sprintf("ClusterRole/%s", cr.Name),
 
 						Description: "Wildcard verb permission",
 
 						Remediation: "Use specific verbs instead of wildcards",
-
 					})
 
 				}
 
 			}
-
-
 
 			// Check for escalation permissions.
 
@@ -661,14 +544,13 @@ func (v *Validator) ValidateRBACPermissions(ctx context.Context) ([]Issue, error
 
 				issues = append(issues, Issue{
 
-					Severity:    "Critical",
+					Severity: "Critical",
 
-					Component:   fmt.Sprintf("ClusterRole/%s", cr.Name),
+					Component: fmt.Sprintf("ClusterRole/%s", cr.Name),
 
 					Description: "Potential privilege escalation permission",
 
 					Remediation: "Review and restrict role binding permissions",
-
 				})
 
 			}
@@ -676,8 +558,6 @@ func (v *Validator) ValidateRBACPermissions(ctx context.Context) ([]Issue, error
 		}
 
 	}
-
-
 
 	// Check ClusterRoleBindings.
 
@@ -688,8 +568,6 @@ func (v *Validator) ValidateRBACPermissions(ctx context.Context) ([]Issue, error
 		return issues, fmt.Errorf("failed to list ClusterRoleBindings: %w", err)
 
 	}
-
-
 
 	for _, crb := range clusterRoleBindings.Items {
 
@@ -703,14 +581,13 @@ func (v *Validator) ValidateRBACPermissions(ctx context.Context) ([]Issue, error
 
 					issues = append(issues, Issue{
 
-						Severity:    "Critical",
+						Severity: "Critical",
 
-						Component:   fmt.Sprintf("ClusterRoleBinding/%s", crb.Name),
+						Component: fmt.Sprintf("ClusterRoleBinding/%s", crb.Name),
 
 						Description: fmt.Sprintf("cluster-admin bound to %s/%s", subject.Kind, subject.Name),
 
 						Remediation: "Avoid using cluster-admin; create specific roles with minimal permissions",
-
 					})
 
 				}
@@ -718,8 +595,6 @@ func (v *Validator) ValidateRBACPermissions(ctx context.Context) ([]Issue, error
 			}
 
 		}
-
-
 
 		// Check for system:masters group binding.
 
@@ -729,14 +604,13 @@ func (v *Validator) ValidateRBACPermissions(ctx context.Context) ([]Issue, error
 
 				issues = append(issues, Issue{
 
-					Severity:    "Critical",
+					Severity: "Critical",
 
-					Component:   fmt.Sprintf("ClusterRoleBinding/%s", crb.Name),
+					Component: fmt.Sprintf("ClusterRoleBinding/%s", crb.Name),
 
 					Description: "Binding to system:masters group",
 
 					Remediation: "Remove system:masters group binding; use specific roles",
-
 				})
 
 			}
@@ -745,21 +619,15 @@ func (v *Validator) ValidateRBACPermissions(ctx context.Context) ([]Issue, error
 
 	}
 
-
-
 	return issues, nil
 
 }
-
-
 
 // ValidateNetworkPolicies validates network policy effectiveness.
 
 func (v *Validator) ValidateNetworkPolicies(ctx context.Context) ([]Issue, error) {
 
 	issues := []Issue{}
-
-
 
 	// List network policies.
 
@@ -770,8 +638,6 @@ func (v *Validator) ValidateNetworkPolicies(ctx context.Context) ([]Issue, error
 		return issues, fmt.Errorf("failed to list network policies: %w", err)
 
 	}
-
-
 
 	// Check for default deny-all policy.
 
@@ -793,25 +659,20 @@ func (v *Validator) ValidateNetworkPolicies(ctx context.Context) ([]Issue, error
 
 	}
 
-
-
 	if !hasDenyAll {
 
 		issues = append(issues, Issue{
 
-			Severity:    "Critical",
+			Severity: "Critical",
 
-			Component:   "NetworkPolicy",
+			Component: "NetworkPolicy",
 
 			Description: "No default deny-all network policy found",
 
 			Remediation: "Create a default deny-all policy as zero-trust baseline",
-
 		})
 
 	}
-
-
 
 	// Check for overly permissive policies.
 
@@ -825,39 +686,33 @@ func (v *Validator) ValidateNetworkPolicies(ctx context.Context) ([]Issue, error
 
 				issues = append(issues, Issue{
 
-					Severity:    "High",
+					Severity: "High",
 
-					Component:   fmt.Sprintf("NetworkPolicy/%s/Ingress[%d]", policy.Name, i),
+					Component: fmt.Sprintf("NetworkPolicy/%s/Ingress[%d]", policy.Name, i),
 
 					Description: "Ingress rule allows traffic from all sources",
 
 					Remediation: "Specify allowed sources using podSelector or namespaceSelector",
-
 				})
 
 			}
-
-
 
 			if len(ingress.Ports) == 0 {
 
 				issues = append(issues, Issue{
 
-					Severity:    "Medium",
+					Severity: "Medium",
 
-					Component:   fmt.Sprintf("NetworkPolicy/%s/Ingress[%d]", policy.Name, i),
+					Component: fmt.Sprintf("NetworkPolicy/%s/Ingress[%d]", policy.Name, i),
 
 					Description: "Ingress rule allows all ports",
 
 					Remediation: "Specify allowed ports explicitly",
-
 				})
 
 			}
 
 		}
-
-
 
 		// Check egress rules.
 
@@ -879,38 +734,32 @@ func (v *Validator) ValidateNetworkPolicies(ctx context.Context) ([]Issue, error
 
 			}
 
-
-
 			if hasUnrestrictedInternet {
 
 				issues = append(issues, Issue{
 
-					Severity:    "High",
+					Severity: "High",
 
-					Component:   fmt.Sprintf("NetworkPolicy/%s/Egress[%d]", policy.Name, i),
+					Component: fmt.Sprintf("NetworkPolicy/%s/Egress[%d]", policy.Name, i),
 
 					Description: "Egress rule allows unrestricted internet access",
 
 					Remediation: "Restrict egress to specific IP ranges or use except blocks",
-
 				})
 
 			}
-
-
 
 			if len(egress.Ports) == 0 {
 
 				issues = append(issues, Issue{
 
-					Severity:    "Medium",
+					Severity: "Medium",
 
-					Component:   fmt.Sprintf("NetworkPolicy/%s/Egress[%d]", policy.Name, i),
+					Component: fmt.Sprintf("NetworkPolicy/%s/Egress[%d]", policy.Name, i),
 
 					Description: "Egress rule allows all ports",
 
 					Remediation: "Specify allowed ports explicitly",
-
 				})
 
 			}
@@ -918,8 +767,6 @@ func (v *Validator) ValidateNetworkPolicies(ctx context.Context) ([]Issue, error
 		}
 
 	}
-
-
 
 	// Check pod coverage.
 
@@ -930,8 +777,6 @@ func (v *Validator) ValidateNetworkPolicies(ctx context.Context) ([]Issue, error
 		return issues, fmt.Errorf("failed to list pods: %w", err)
 
 	}
-
-
 
 	uncoveredPods := []string{}
 
@@ -959,39 +804,30 @@ func (v *Validator) ValidateNetworkPolicies(ctx context.Context) ([]Issue, error
 
 	}
 
-
-
 	if len(uncoveredPods) > 0 {
 
 		issues = append(issues, Issue{
 
-			Severity:    "High",
+			Severity: "High",
 
-			Component:   "NetworkPolicy",
+			Component: "NetworkPolicy",
 
 			Description: fmt.Sprintf("%d pods not covered by network policies", len(uncoveredPods)),
 
 			Remediation: "Create network policies for all pods",
-
 		})
 
 	}
 
-
-
 	return issues, nil
 
 }
-
-
 
 // ValidateSecretManagement validates secret management practices.
 
 func (v *Validator) ValidateSecretManagement(ctx context.Context) ([]Issue, error) {
 
 	issues := []Issue{}
-
-
 
 	// List secrets.
 
@@ -1003,8 +839,6 @@ func (v *Validator) ValidateSecretManagement(ctx context.Context) ([]Issue, erro
 
 	}
 
-
-
 	for _, secret := range secrets.Items {
 
 		// Skip service account tokens.
@@ -1014,8 +848,6 @@ func (v *Validator) ValidateSecretManagement(ctx context.Context) ([]Issue, erro
 			continue
 
 		}
-
-
 
 		// Check for plain text passwords in data.
 
@@ -1035,21 +867,18 @@ func (v *Validator) ValidateSecretManagement(ctx context.Context) ([]Issue, erro
 
 					issues = append(issues, Issue{
 
-						Severity:    "Critical",
+						Severity: "Critical",
 
-						Component:   fmt.Sprintf("Secret/%s", secret.Name),
+						Component: fmt.Sprintf("Secret/%s", secret.Name),
 
 						Description: fmt.Sprintf("Potential plain text password in key: %s", key),
 
 						Remediation: "Use proper encryption or hashing for passwords",
-
 					})
 
 				}
 
 			}
-
-
 
 			// Check for API keys and tokens.
 
@@ -1063,14 +892,13 @@ func (v *Validator) ValidateSecretManagement(ctx context.Context) ([]Issue, erro
 
 					issues = append(issues, Issue{
 
-						Severity:    "High",
+						Severity: "High",
 
-						Component:   fmt.Sprintf("Secret/%s", secret.Name),
+						Component: fmt.Sprintf("Secret/%s", secret.Name),
 
 						Description: fmt.Sprintf("Weak API key/token in key: %s", key),
 
 						Remediation: "Use strong, randomly generated API keys (min 16 characters)",
-
 					})
 
 				}
@@ -1079,27 +907,22 @@ func (v *Validator) ValidateSecretManagement(ctx context.Context) ([]Issue, erro
 
 		}
 
-
-
 		// Check secret annotations.
 
 		if secret.Annotations == nil || secret.Annotations["security.nephoran.io/encrypted"] != "true" {
 
 			issues = append(issues, Issue{
 
-				Severity:    "Medium",
+				Severity: "Medium",
 
-				Component:   fmt.Sprintf("Secret/%s", secret.Name),
+				Component: fmt.Sprintf("Secret/%s", secret.Name),
 
 				Description: "Secret not marked as encrypted",
 
 				Remediation: "Ensure secrets are encrypted at rest",
-
 			})
 
 		}
-
-
 
 		// Check for rotation policy.
 
@@ -1107,21 +930,18 @@ func (v *Validator) ValidateSecretManagement(ctx context.Context) ([]Issue, erro
 
 			issues = append(issues, Issue{
 
-				Severity:    "Low",
+				Severity: "Low",
 
-				Component:   fmt.Sprintf("Secret/%s", secret.Name),
+				Component: fmt.Sprintf("Secret/%s", secret.Name),
 
 				Description: "No rotation policy defined for secret",
 
 				Remediation: "Define and implement secret rotation policy",
-
 			})
 
 		}
 
 	}
-
-
 
 	// Check ConfigMaps for sensitive data.
 
@@ -1132,8 +952,6 @@ func (v *Validator) ValidateSecretManagement(ctx context.Context) ([]Issue, erro
 		return issues, fmt.Errorf("failed to list configmaps: %w", err)
 
 	}
-
-
 
 	for _, cm := range configMaps.Items {
 
@@ -1153,14 +971,13 @@ func (v *Validator) ValidateSecretManagement(ctx context.Context) ([]Issue, erro
 
 				issues = append(issues, Issue{
 
-					Severity:    "High",
+					Severity: "High",
 
-					Component:   fmt.Sprintf("ConfigMap/%s", cm.Name),
+					Component: fmt.Sprintf("ConfigMap/%s", cm.Name),
 
 					Description: fmt.Sprintf("Potential sensitive data in ConfigMap key: %s", key),
 
 					Remediation: "Move sensitive data to Secrets, not ConfigMaps",
-
 				})
 
 			}
@@ -1169,21 +986,15 @@ func (v *Validator) ValidateSecretManagement(ctx context.Context) ([]Issue, erro
 
 	}
 
-
-
 	return issues, nil
 
 }
-
-
 
 // ValidateTLSConfiguration validates TLS/mTLS configuration.
 
 func (v *Validator) ValidateTLSConfiguration(ctx context.Context) ([]Issue, error) {
 
 	issues := []Issue{}
-
-
 
 	// Check TLS secrets.
 
@@ -1195,8 +1006,6 @@ func (v *Validator) ValidateTLSConfiguration(ctx context.Context) ([]Issue, erro
 
 	}
 
-
-
 	for _, secret := range secrets.Items {
 
 		if secret.Type != corev1.SecretTypeTLS {
@@ -1204,8 +1013,6 @@ func (v *Validator) ValidateTLSConfiguration(ctx context.Context) ([]Issue, erro
 			continue
 
 		}
-
-
 
 		// Validate certificate.
 
@@ -1216,8 +1023,6 @@ func (v *Validator) ValidateTLSConfiguration(ctx context.Context) ([]Issue, erro
 			issues = append(issues, certIssues...)
 
 		}
-
-
 
 		// Validate private key.
 
@@ -1231,8 +1036,6 @@ func (v *Validator) ValidateTLSConfiguration(ctx context.Context) ([]Issue, erro
 
 	}
 
-
-
 	// Check Ingress TLS configuration.
 
 	ingresses := &networkingv1.IngressList{}
@@ -1243,29 +1046,24 @@ func (v *Validator) ValidateTLSConfiguration(ctx context.Context) ([]Issue, erro
 
 	}
 
-
-
 	for _, ingress := range ingresses.Items {
 
 		if len(ingress.Spec.TLS) == 0 {
 
 			issues = append(issues, Issue{
 
-				Severity:    "High",
+				Severity: "High",
 
-				Component:   fmt.Sprintf("Ingress/%s", ingress.Name),
+				Component: fmt.Sprintf("Ingress/%s", ingress.Name),
 
 				Description: "Ingress does not have TLS configured",
 
 				Remediation: "Configure TLS for all ingress resources",
-
 			})
 
 			continue
 
 		}
-
-
 
 		for _, tls := range ingress.Spec.TLS {
 
@@ -1273,21 +1071,18 @@ func (v *Validator) ValidateTLSConfiguration(ctx context.Context) ([]Issue, erro
 
 				issues = append(issues, Issue{
 
-					Severity:    "High",
+					Severity: "High",
 
-					Component:   fmt.Sprintf("Ingress/%s", ingress.Name),
+					Component: fmt.Sprintf("Ingress/%s", ingress.Name),
 
 					Description: "TLS configuration missing secret reference",
 
 					Remediation: "Specify TLS secret for ingress",
-
 				})
 
 			}
 
 		}
-
-
 
 		// Check for HTTP to HTTPS redirect.
 
@@ -1297,19 +1092,16 @@ func (v *Validator) ValidateTLSConfiguration(ctx context.Context) ([]Issue, erro
 
 			issues = append(issues, Issue{
 
-				Severity:    "Medium",
+				Severity: "Medium",
 
-				Component:   fmt.Sprintf("Ingress/%s", ingress.Name),
+				Component: fmt.Sprintf("Ingress/%s", ingress.Name),
 
 				Description: "HTTP to HTTPS redirect not configured",
 
 				Remediation: "Enable SSL redirect annotation",
-
 			})
 
 		}
-
-
 
 		// Check TLS version.
 
@@ -1319,19 +1111,16 @@ func (v *Validator) ValidateTLSConfiguration(ctx context.Context) ([]Issue, erro
 
 			issues = append(issues, Issue{
 
-				Severity:    "High",
+				Severity: "High",
 
-				Component:   fmt.Sprintf("Ingress/%s", ingress.Name),
+				Component: fmt.Sprintf("Ingress/%s", ingress.Name),
 
 				Description: "Weak TLS version allowed (< TLS 1.2)",
 
 				Remediation: "Configure minimum TLS version to 1.2 or higher",
-
 			})
 
 		}
-
-
 
 		// Check cipher suites.
 
@@ -1341,27 +1130,22 @@ func (v *Validator) ValidateTLSConfiguration(ctx context.Context) ([]Issue, erro
 
 			issues = append(issues, Issue{
 
-				Severity:    "Medium",
+				Severity: "Medium",
 
-				Component:   fmt.Sprintf("Ingress/%s", ingress.Name),
+				Component: fmt.Sprintf("Ingress/%s", ingress.Name),
 
 				Description: "Weak cipher suites configured",
 
 				Remediation: "Use only strong cipher suites (AES-GCM, ChaCha20-Poly1305)",
-
 			})
 
 		}
 
 	}
 
-
-
 	return issues, nil
 
 }
-
-
 
 // validateCertificate validates a TLS certificate.
 
@@ -1369,29 +1153,24 @@ func (v *Validator) validateCertificate(certData []byte, secretName string) []Is
 
 	issues := []Issue{}
 
-
-
 	block, _ := pem.Decode(certData)
 
 	if block == nil {
 
 		issues = append(issues, Issue{
 
-			Severity:    "Critical",
+			Severity: "Critical",
 
-			Component:   fmt.Sprintf("Secret/%s", secretName),
+			Component: fmt.Sprintf("Secret/%s", secretName),
 
 			Description: "Invalid certificate format",
 
 			Remediation: "Provide valid PEM-encoded certificate",
-
 		})
 
 		return issues
 
 	}
-
-
 
 	cert, err := x509.ParseCertificate(block.Bytes)
 
@@ -1399,21 +1178,18 @@ func (v *Validator) validateCertificate(certData []byte, secretName string) []Is
 
 		issues = append(issues, Issue{
 
-			Severity:    "Critical",
+			Severity: "Critical",
 
-			Component:   fmt.Sprintf("Secret/%s", secretName),
+			Component: fmt.Sprintf("Secret/%s", secretName),
 
 			Description: "Failed to parse certificate",
 
 			Remediation: "Provide valid X.509 certificate",
-
 		})
 
 		return issues
 
 	}
-
-
 
 	// Check expiration.
 
@@ -1423,33 +1199,29 @@ func (v *Validator) validateCertificate(certData []byte, secretName string) []Is
 
 		issues = append(issues, Issue{
 
-			Severity:    "Critical",
+			Severity: "Critical",
 
-			Component:   fmt.Sprintf("Secret/%s", secretName),
+			Component: fmt.Sprintf("Secret/%s", secretName),
 
 			Description: "Certificate has expired",
 
 			Remediation: "Renew certificate immediately",
-
 		})
 
 	} else if cert.NotAfter.Sub(now) < 30*24*time.Hour {
 
 		issues = append(issues, Issue{
 
-			Severity:    "High",
+			Severity: "High",
 
-			Component:   fmt.Sprintf("Secret/%s", secretName),
+			Component: fmt.Sprintf("Secret/%s", secretName),
 
 			Description: fmt.Sprintf("Certificate expires in %d days", int(cert.NotAfter.Sub(now).Hours()/24)),
 
 			Remediation: "Renew certificate before expiration",
-
 		})
 
 	}
-
-
 
 	// Check key strength.
 
@@ -1461,14 +1233,13 @@ func (v *Validator) validateCertificate(certData []byte, secretName string) []Is
 
 				issues = append(issues, Issue{
 
-					Severity:    "High",
+					Severity: "High",
 
-					Component:   fmt.Sprintf("Secret/%s", secretName),
+					Component: fmt.Sprintf("Secret/%s", secretName),
 
 					Description: fmt.Sprintf("Weak RSA key size: %d bits", rsaKey.N.BitLen()),
 
 					Remediation: "Use RSA keys of at least 2048 bits",
-
 				})
 
 			}
@@ -1476,8 +1247,6 @@ func (v *Validator) validateCertificate(certData []byte, secretName string) []Is
 		}
 
 	}
-
-
 
 	// Check signature algorithm.
 
@@ -1490,10 +1259,7 @@ func (v *Validator) validateCertificate(certData []byte, secretName string) []Is
 		x509.DSAWithSHA1,
 
 		x509.ECDSAWithSHA1,
-
 	}
-
-
 
 	for _, weakAlgo := range weakAlgos {
 
@@ -1501,14 +1267,13 @@ func (v *Validator) validateCertificate(certData []byte, secretName string) []Is
 
 			issues = append(issues, Issue{
 
-				Severity:    "High",
+				Severity: "High",
 
-				Component:   fmt.Sprintf("Secret/%s", secretName),
+				Component: fmt.Sprintf("Secret/%s", secretName),
 
 				Description: fmt.Sprintf("Weak signature algorithm: %s", cert.SignatureAlgorithm),
 
 				Remediation: "Use SHA256 or stronger signature algorithm",
-
 			})
 
 			break
@@ -1517,13 +1282,9 @@ func (v *Validator) validateCertificate(certData []byte, secretName string) []Is
 
 	}
 
-
-
 	return issues
 
 }
-
-
 
 // validatePrivateKey validates a private key.
 
@@ -1531,29 +1292,24 @@ func (v *Validator) validatePrivateKey(keyData []byte, secretName string) []Issu
 
 	issues := []Issue{}
 
-
-
 	block, _ := pem.Decode(keyData)
 
 	if block == nil {
 
 		issues = append(issues, Issue{
 
-			Severity:    "Critical",
+			Severity: "Critical",
 
-			Component:   fmt.Sprintf("Secret/%s", secretName),
+			Component: fmt.Sprintf("Secret/%s", secretName),
 
 			Description: "Invalid private key format",
 
 			Remediation: "Provide valid PEM-encoded private key",
-
 		})
 
 		return issues
 
 	}
-
-
 
 	// Check if key is encrypted.
 
@@ -1561,29 +1317,22 @@ func (v *Validator) validatePrivateKey(keyData []byte, secretName string) []Issu
 
 		issues = append(issues, Issue{
 
-			Severity:    "High",
+			Severity: "High",
 
-			Component:   fmt.Sprintf("Secret/%s", secretName),
+			Component: fmt.Sprintf("Secret/%s", secretName),
 
 			Description: "Private key is not encrypted",
 
 			Remediation: "Encrypt private keys when storing",
-
 		})
 
 	}
-
-
 
 	return issues
 
 }
 
-
-
 // Helper functions.
-
-
 
 func (v *Validator) isPodCoveredByPolicy(pod corev1.Pod, policy networkingv1.NetworkPolicy) bool {
 
@@ -1603,8 +1352,6 @@ func (v *Validator) isPodCoveredByPolicy(pod corev1.Pod, policy networkingv1.Net
 
 }
 
-
-
 func (v *Validator) isLikelyPlainText(data []byte) bool {
 
 	// Simple heuristic: if it's all printable ASCII, it might be plain text.
@@ -1623,8 +1370,6 @@ func (v *Validator) isLikelyPlainText(data []byte) bool {
 
 }
 
-
-
 func (v *Validator) hasWeakCiphers(ciphers string) bool {
 
 	weakPatterns := []string{
@@ -1634,8 +1379,6 @@ func (v *Validator) hasWeakCiphers(ciphers string) bool {
 		"CBC", // Prefer GCM mode
 
 	}
-
-
 
 	ciphersLower := strings.ToLower(ciphers)
 
@@ -1653,15 +1396,11 @@ func (v *Validator) hasWeakCiphers(ciphers string) bool {
 
 }
 
-
-
 func (v *Validator) calculateSecurityScore(report *ValidationReport) int {
 
 	totalPossibleScore := 100
 
 	deductions := 0
-
-
 
 	// Deduct points based on issue severity.
 
@@ -1689,8 +1428,6 @@ func (v *Validator) calculateSecurityScore(report *ValidationReport) int {
 
 	}
 
-
-
 	score := totalPossibleScore - deductions
 
 	if score < 0 {
@@ -1699,13 +1436,9 @@ func (v *Validator) calculateSecurityScore(report *ValidationReport) int {
 
 	}
 
-
-
 	return score
 
 }
-
-
 
 func (v *Validator) getAllIssues(report *ValidationReport) []Issue {
 
@@ -1725,11 +1458,8 @@ func (v *Validator) getAllIssues(report *ValidationReport) []Issue {
 
 }
 
-
-
 func (v *Validator) getTotalIssueCount(report *ValidationReport) int {
 
 	return len(v.getAllIssues(report))
 
 }
-

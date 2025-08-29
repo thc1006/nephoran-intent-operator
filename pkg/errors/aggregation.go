@@ -1,141 +1,112 @@
-
 package errors
 
-
-
 import (
-
 	"crypto/sha256"
-
 	"encoding/hex"
-
 	"fmt"
-
 	"math"
-
 	"sort"
-
 	"strings"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // ErrorAggregator collects and analyzes multiple errors.
 
 type ErrorAggregator struct {
+	mu sync.RWMutex
 
-	mu                  sync.RWMutex
+	errors []*ServiceError
 
-	errors              []*ServiceError
-
-	patterns            map[string]*ErrorPattern
+	patterns map[string]*ErrorPattern
 
 	deduplicationWindow time.Duration
 
-	maxErrors           int
+	maxErrors int
 
-	analysisEnabled     bool
+	analysisEnabled bool
 
-	correlations        map[string]*ErrorCorrelation
-
+	correlations map[string]*ErrorCorrelation
 }
-
-
 
 // ErrorPattern represents a pattern of similar errors.
 
 type ErrorPattern struct {
+	ID string `json:"id"`
 
-	ID              string                 `json:"id"`
+	Hash string `json:"hash"`
 
-	Hash            string                 `json:"hash"`
+	Count int `json:"count"`
 
-	Count           int                    `json:"count"`
+	FirstSeen time.Time `json:"first_seen"`
 
-	FirstSeen       time.Time              `json:"first_seen"`
+	LastSeen time.Time `json:"last_seen"`
 
-	LastSeen        time.Time              `json:"last_seen"`
+	ErrorType ErrorType `json:"error_type"`
 
-	ErrorType       ErrorType              `json:"error_type"`
+	Service string `json:"service"`
 
-	Service         string                 `json:"service"`
+	Operation string `json:"operation"`
 
-	Operation       string                 `json:"operation"`
+	Component string `json:"component"`
 
-	Component       string                 `json:"component"`
+	Message string `json:"message"`
 
-	Message         string                 `json:"message"`
+	Frequency float64 `json:"frequency"`
 
-	Frequency       float64                `json:"frequency"`
+	TrendDirection string `json:"trend_direction"` // \"increasing\", \"decreasing\", \"stable\"
 
-	TrendDirection  string                 `json:"trend_direction"` // \"increasing\", \"decreasing\", \"stable\"
+	Impact ErrorImpact `json:"impact"`
 
-	Impact          ErrorImpact            `json:"impact"`
+	Severity ErrorSeverity `json:"severity"`
 
-	Severity        ErrorSeverity          `json:"severity"`
+	Examples []*ServiceError `json:"examples"`
 
-	Examples        []*ServiceError        `json:"examples"`
+	RelatedPatterns []string `json:"related_patterns"`
 
-	RelatedPatterns []string               `json:"related_patterns"`
-
-	Metadata        map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // ErrorCorrelation represents correlations between errors.
 
 type ErrorCorrelation struct {
+	ID string `json:"id"`
 
-	ID               string        `json:"id"`
+	ErrorA string `json:"error_a"`
 
-	ErrorA           string        `json:"error_a"`
+	ErrorB string `json:"error_b"`
 
-	ErrorB           string        `json:"error_b"`
+	CorrelationScore float64 `json:"correlation_score"`
 
-	CorrelationScore float64       `json:"correlation_score"`
+	TimeWindow time.Duration `json:"time_window"`
 
-	TimeWindow       time.Duration `json:"time_window"`
+	Count int `json:"count"`
 
-	Count            int           `json:"count"`
+	FirstSeen time.Time `json:"first_seen"`
 
-	FirstSeen        time.Time     `json:"first_seen"`
+	LastSeen time.Time `json:"last_seen"`
 
-	LastSeen         time.Time     `json:"last_seen"`
-
-	CausationType    string        `json:"causation_type"` // "cascade", "common_cause", "coincident"
+	CausationType string `json:"causation_type"` // "cascade", "common_cause", "coincident"
 
 }
-
-
 
 // ErrorAggregationConfig configures error aggregation behavior.
 
 type ErrorAggregationConfig struct {
+	MaxErrors int `json:"max_errors"`
 
-	MaxErrors            int           `json:"max_errors"`
+	DeduplicationWindow time.Duration `json:"deduplication_window"`
 
-	DeduplicationWindow  time.Duration `json:"deduplication_window"`
+	PatternAnalysis bool `json:"pattern_analysis"`
 
-	PatternAnalysis      bool          `json:"pattern_analysis"`
+	CorrelationAnalysis bool `json:"correlation_analysis"`
 
-	CorrelationAnalysis  bool          `json:"correlation_analysis"`
+	RetentionPeriod time.Duration `json:"retention_period"`
 
-	RetentionPeriod      time.Duration `json:"retention_period"`
+	MinPatternCount int `json:"min_pattern_count"`
 
-	MinPatternCount      int           `json:"min_pattern_count"`
-
-	CorrelationThreshold float64       `json:"correlation_threshold"`
-
+	CorrelationThreshold float64 `json:"correlation_threshold"`
 }
-
-
 
 // DefaultErrorAggregationConfig returns sensible defaults.
 
@@ -143,25 +114,22 @@ func DefaultErrorAggregationConfig() *ErrorAggregationConfig {
 
 	return &ErrorAggregationConfig{
 
-		MaxErrors:            1000,
+		MaxErrors: 1000,
 
-		DeduplicationWindow:  time.Minute * 5,
+		DeduplicationWindow: time.Minute * 5,
 
-		PatternAnalysis:      true,
+		PatternAnalysis: true,
 
-		CorrelationAnalysis:  true,
+		CorrelationAnalysis: true,
 
-		RetentionPeriod:      time.Hour * 24,
+		RetentionPeriod: time.Hour * 24,
 
-		MinPatternCount:      3,
+		MinPatternCount: 3,
 
 		CorrelationThreshold: 0.7,
-
 	}
 
 }
-
-
 
 // NewErrorAggregator creates a new error aggregator.
 
@@ -173,37 +141,28 @@ func NewErrorAggregator(config *ErrorAggregationConfig) *ErrorAggregator {
 
 	}
 
-
-
 	aggregator := &ErrorAggregator{
 
-		errors:              make([]*ServiceError, 0),
+		errors: make([]*ServiceError, 0),
 
-		patterns:            make(map[string]*ErrorPattern),
+		patterns: make(map[string]*ErrorPattern),
 
 		deduplicationWindow: config.DeduplicationWindow,
 
-		maxErrors:           config.MaxErrors,
+		maxErrors: config.MaxErrors,
 
-		analysisEnabled:     config.PatternAnalysis,
+		analysisEnabled: config.PatternAnalysis,
 
-		correlations:        make(map[string]*ErrorCorrelation),
-
+		correlations: make(map[string]*ErrorCorrelation),
 	}
-
-
 
 	// Start background cleanup goroutine.
 
 	go aggregator.cleanup(config.RetentionPeriod)
 
-
-
 	return aggregator
 
 }
-
-
 
 // AddError adds an error to the aggregator.
 
@@ -215,13 +174,9 @@ func (ea *ErrorAggregator) AddError(err *ServiceError) {
 
 	}
 
-
-
 	ea.mu.Lock()
 
 	defer ea.mu.Unlock()
-
-
 
 	// Add correlation ID if not present.
 
@@ -230,8 +185,6 @@ func (ea *ErrorAggregator) AddError(err *ServiceError) {
 		err.CorrelationID = ea.generateCorrelationID(err)
 
 	}
-
-
 
 	// Check for deduplication.
 
@@ -243,13 +196,9 @@ func (ea *ErrorAggregator) AddError(err *ServiceError) {
 
 	}
 
-
-
 	// Add the error.
 
 	ea.errors = append(ea.errors, err)
-
-
 
 	// Enforce max errors limit.
 
@@ -258,8 +207,6 @@ func (ea *ErrorAggregator) AddError(err *ServiceError) {
 		ea.errors = ea.errors[len(ea.errors)-ea.maxErrors:]
 
 	}
-
-
 
 	// Update patterns.
 
@@ -273,8 +220,6 @@ func (ea *ErrorAggregator) AddError(err *ServiceError) {
 
 }
 
-
-
 // AddErrors adds multiple errors at once.
 
 func (ea *ErrorAggregator) AddErrors(errors []*ServiceError) {
@@ -287,8 +232,6 @@ func (ea *ErrorAggregator) AddErrors(errors []*ServiceError) {
 
 }
 
-
-
 // GetErrors returns all collected errors.
 
 func (ea *ErrorAggregator) GetErrors() []*ServiceError {
@@ -296,8 +239,6 @@ func (ea *ErrorAggregator) GetErrors() []*ServiceError {
 	ea.mu.RLock()
 
 	defer ea.mu.RUnlock()
-
-
 
 	result := make([]*ServiceError, len(ea.errors))
 
@@ -307,8 +248,6 @@ func (ea *ErrorAggregator) GetErrors() []*ServiceError {
 
 }
 
-
-
 // GetErrorsInTimeRange returns errors within a specific time range.
 
 func (ea *ErrorAggregator) GetErrorsInTimeRange(start, end time.Time) []*ServiceError {
@@ -316,8 +255,6 @@ func (ea *ErrorAggregator) GetErrorsInTimeRange(start, end time.Time) []*Service
 	ea.mu.RLock()
 
 	defer ea.mu.RUnlock()
-
-
 
 	var result []*ServiceError
 
@@ -331,13 +268,9 @@ func (ea *ErrorAggregator) GetErrorsInTimeRange(start, end time.Time) []*Service
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // GetErrorsByType returns errors of a specific type.
 
@@ -346,8 +279,6 @@ func (ea *ErrorAggregator) GetErrorsByType(errorType ErrorType) []*ServiceError 
 	ea.mu.RLock()
 
 	defer ea.mu.RUnlock()
-
-
 
 	var result []*ServiceError
 
@@ -361,13 +292,9 @@ func (ea *ErrorAggregator) GetErrorsByType(errorType ErrorType) []*ServiceError 
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // GetErrorsByService returns errors from a specific service.
 
@@ -376,8 +303,6 @@ func (ea *ErrorAggregator) GetErrorsByService(service string) []*ServiceError {
 	ea.mu.RLock()
 
 	defer ea.mu.RUnlock()
-
-
 
 	var result []*ServiceError
 
@@ -391,13 +316,9 @@ func (ea *ErrorAggregator) GetErrorsByService(service string) []*ServiceError {
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // GetPatterns returns all identified error patterns.
 
@@ -407,8 +328,6 @@ func (ea *ErrorAggregator) GetPatterns() []*ErrorPattern {
 
 	defer ea.mu.RUnlock()
 
-
-
 	patterns := make([]*ErrorPattern, 0, len(ea.patterns))
 
 	for _, pattern := range ea.patterns {
@@ -416,8 +335,6 @@ func (ea *ErrorAggregator) GetPatterns() []*ErrorPattern {
 		patterns = append(patterns, pattern)
 
 	}
-
-
 
 	// Sort by frequency (most frequent first).
 
@@ -427,13 +344,9 @@ func (ea *ErrorAggregator) GetPatterns() []*ErrorPattern {
 
 	})
 
-
-
 	return patterns
 
 }
-
-
 
 // GetTopPatterns returns the top N error patterns by frequency.
 
@@ -451,8 +364,6 @@ func (ea *ErrorAggregator) GetTopPatterns(n int) []*ErrorPattern {
 
 }
 
-
-
 // GetCorrelations returns all error correlations.
 
 func (ea *ErrorAggregator) GetCorrelations() []*ErrorCorrelation {
@@ -460,8 +371,6 @@ func (ea *ErrorAggregator) GetCorrelations() []*ErrorCorrelation {
 	ea.mu.RLock()
 
 	defer ea.mu.RUnlock()
-
-
 
 	correlations := make([]*ErrorCorrelation, 0, len(ea.correlations))
 
@@ -471,8 +380,6 @@ func (ea *ErrorAggregator) GetCorrelations() []*ErrorCorrelation {
 
 	}
 
-
-
 	// Sort by correlation score.
 
 	sort.Slice(correlations, func(i, j int) bool {
@@ -481,13 +388,9 @@ func (ea *ErrorAggregator) GetCorrelations() []*ErrorCorrelation {
 
 	})
 
-
-
 	return correlations
 
 }
-
-
 
 // GetStatistics returns aggregated error statistics.
 
@@ -497,27 +400,22 @@ func (ea *ErrorAggregator) GetStatistics() *ErrorStatistics {
 
 	defer ea.mu.RUnlock()
 
-
-
 	stats := &ErrorStatistics{
 
-		TotalErrors:      len(ea.errors),
+		TotalErrors: len(ea.errors),
 
-		ErrorsByType:     make(map[string]int),
+		ErrorsByType: make(map[string]int),
 
-		ErrorsByService:  make(map[string]int),
+		ErrorsByService: make(map[string]int),
 
 		ErrorsBySeverity: make(map[string]int),
 
 		ErrorsByCategory: make(map[string]int),
 
-		Patterns:         len(ea.patterns),
+		Patterns: len(ea.patterns),
 
-		Correlations:     len(ea.correlations),
-
+		Correlations: len(ea.correlations),
 	}
-
-
 
 	if len(ea.errors) == 0 {
 
@@ -525,15 +423,11 @@ func (ea *ErrorAggregator) GetStatistics() *ErrorStatistics {
 
 	}
 
-
-
 	// Calculate time range.
 
 	stats.OldestError = ea.errors[0].Timestamp
 
 	stats.NewestError = ea.errors[0].Timestamp
-
-
 
 	// Aggregate statistics.
 
@@ -551,8 +445,6 @@ func (ea *ErrorAggregator) GetStatistics() *ErrorStatistics {
 
 		}
 
-
-
 		stats.ErrorsByType[string(err.Type)]++
 
 		stats.ErrorsByService[err.Service]++
@@ -562,8 +454,6 @@ func (ea *ErrorAggregator) GetStatistics() *ErrorStatistics {
 		stats.ErrorsByCategory[string(err.Category)]++
 
 	}
-
-
 
 	// Calculate error rate.
 
@@ -579,13 +469,9 @@ func (ea *ErrorAggregator) GetStatistics() *ErrorStatistics {
 
 	}
 
-
-
 	return stats
 
 }
-
-
 
 // GetTrendAnalysis analyzes error trends over time.
 
@@ -595,13 +481,9 @@ func (ea *ErrorAggregator) GetTrendAnalysis(timeWindow time.Duration) *TrendAnal
 
 	defer ea.mu.RUnlock()
 
-
-
 	now := time.Now()
 
 	cutoff := now.Add(-timeWindow)
-
-
 
 	recentErrors := 0
 
@@ -615,21 +497,15 @@ func (ea *ErrorAggregator) GetTrendAnalysis(timeWindow time.Duration) *TrendAnal
 
 	}
 
-
-
 	// Calculate trend direction.
 
 	halfWindow := timeWindow / 2
 
 	middleCutoff := now.Add(-halfWindow)
 
-
-
 	firstHalfErrors := 0
 
 	secondHalfErrors := 0
-
-
 
 	for _, err := range ea.errors {
 
@@ -645,21 +521,15 @@ func (ea *ErrorAggregator) GetTrendAnalysis(timeWindow time.Duration) *TrendAnal
 
 	}
 
-
-
 	trend := "stable"
 
 	trendValue := 0.0
-
-
 
 	if firstHalfErrors > 0 {
 
 		change := float64(secondHalfErrors-firstHalfErrors) / float64(firstHalfErrors)
 
 		trendValue = change * 100
-
-
 
 		if change > 0.1 {
 
@@ -673,29 +543,24 @@ func (ea *ErrorAggregator) GetTrendAnalysis(timeWindow time.Duration) *TrendAnal
 
 	}
 
-
-
 	return &TrendAnalysis{
 
-		TimeWindow:       timeWindow,
+		TimeWindow: timeWindow,
 
-		TotalErrors:      recentErrors,
+		TotalErrors: recentErrors,
 
-		FirstHalfErrors:  firstHalfErrors,
+		FirstHalfErrors: firstHalfErrors,
 
 		SecondHalfErrors: secondHalfErrors,
 
-		Trend:            trend,
+		Trend: trend,
 
-		TrendPercentage:  trendValue,
+		TrendPercentage: trendValue,
 
-		AnalyzedAt:       now,
-
+		AnalyzedAt: now,
 	}
 
 }
-
-
 
 // isDuplicate checks if an error is a duplicate within the deduplication window.
 
@@ -703,13 +568,9 @@ func (ea *ErrorAggregator) isDuplicate(err *ServiceError) bool {
 
 	cutoff := time.Now().Add(-ea.deduplicationWindow)
 
-
-
 	for i := len(ea.errors) - 1; i >= 0; i-- {
 
 		existingErr := ea.errors[i]
-
-
 
 		// Stop checking if we're outside the deduplication window.
 
@@ -718,8 +579,6 @@ func (ea *ErrorAggregator) isDuplicate(err *ServiceError) bool {
 			break
 
 		}
-
-
 
 		// Check if it's a duplicate.
 
@@ -731,13 +590,9 @@ func (ea *ErrorAggregator) isDuplicate(err *ServiceError) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // errorsMatch determines if two errors are considered duplicates.
 
@@ -757,8 +612,6 @@ func (ea *ErrorAggregator) errorsMatch(a, b *ServiceError) bool {
 
 }
 
-
-
 // updateExistingError updates an existing error's information.
 
 func (ea *ErrorAggregator) updateExistingError(err *ServiceError) {
@@ -767,21 +620,15 @@ func (ea *ErrorAggregator) updateExistingError(err *ServiceError) {
 
 	cutoff := time.Now().Add(-ea.deduplicationWindow)
 
-
-
 	for i := len(ea.errors) - 1; i >= 0; i-- {
 
 		existingErr := ea.errors[i]
-
-
 
 		if existingErr.Timestamp.Before(cutoff) {
 
 			break
 
 		}
-
-
 
 		if ea.errorsMatch(existingErr, err) {
 
@@ -803,8 +650,6 @@ func (ea *ErrorAggregator) updateExistingError(err *ServiceError) {
 
 }
 
-
-
 // generateCorrelationID generates a correlation ID for error grouping.
 
 func (ea *ErrorAggregator) generateCorrelationID(err *ServiceError) string {
@@ -817,23 +662,17 @@ func (ea *ErrorAggregator) generateCorrelationID(err *ServiceError) string {
 
 		err.Type, err.Code, err.Service, err.Operation, err.Component)
 
-
-
 	hash := hasher.Sum(nil)
 
 	return hex.EncodeToString(hash)[:12] // Use first 12 characters
 
 }
 
-
-
 // updatePatterns updates error patterns based on new errors.
 
 func (ea *ErrorAggregator) updatePatterns(err *ServiceError) {
 
 	patternHash := ea.calculatePatternHash(err)
-
-
 
 	if pattern, exists := ea.patterns[patternHash]; exists {
 
@@ -843,8 +682,6 @@ func (ea *ErrorAggregator) updatePatterns(err *ServiceError) {
 
 		pattern.LastSeen = err.Timestamp
 
-
-
 		// Add as example if we don't have many.
 
 		if len(pattern.Examples) < 5 {
@@ -852,8 +689,6 @@ func (ea *ErrorAggregator) updatePatterns(err *ServiceError) {
 			pattern.Examples = append(pattern.Examples, err)
 
 		}
-
-
 
 		// Update frequency.
 
@@ -865,8 +700,6 @@ func (ea *ErrorAggregator) updatePatterns(err *ServiceError) {
 
 		}
 
-
-
 		// Update trend.
 
 		pattern.TrendDirection = ea.calculateTrendDirection(pattern)
@@ -877,47 +710,44 @@ func (ea *ErrorAggregator) updatePatterns(err *ServiceError) {
 
 		ea.patterns[patternHash] = &ErrorPattern{
 
-			ID:              fmt.Sprintf("pattern-%s", patternHash[:8]),
+			ID: fmt.Sprintf("pattern-%s", patternHash[:8]),
 
-			Hash:            patternHash,
+			Hash: patternHash,
 
-			Count:           1,
+			Count: 1,
 
-			FirstSeen:       err.Timestamp,
+			FirstSeen: err.Timestamp,
 
-			LastSeen:        err.Timestamp,
+			LastSeen: err.Timestamp,
 
-			ErrorType:       err.Type,
+			ErrorType: err.Type,
 
-			Service:         err.Service,
+			Service: err.Service,
 
-			Operation:       err.Operation,
+			Operation: err.Operation,
 
-			Component:       err.Component,
+			Component: err.Component,
 
-			Message:         err.Message,
+			Message: err.Message,
 
-			Frequency:       0,
+			Frequency: 0,
 
-			TrendDirection:  "new",
+			TrendDirection: "new",
 
-			Impact:          err.Impact,
+			Impact: err.Impact,
 
-			Severity:        err.Severity,
+			Severity: err.Severity,
 
-			Examples:        []*ServiceError{err},
+			Examples: []*ServiceError{err},
 
 			RelatedPatterns: []string{},
 
-			Metadata:        make(map[string]interface{}),
-
+			Metadata: make(map[string]interface{}),
 		}
 
 	}
 
 }
-
-
 
 // calculatePatternHash calculates a hash for pattern matching.
 
@@ -925,27 +755,19 @@ func (ea *ErrorAggregator) calculatePatternHash(err *ServiceError) string {
 
 	hasher := sha256.New()
 
-
-
 	// Normalize the message by removing variable parts.
 
 	normalizedMessage := ea.normalizeMessage(err.Message)
 
-
-
 	fmt.Fprintf(hasher, "%s:%s:%s:%s:%s",
 
 		err.Type, err.Service, err.Operation, err.Component, normalizedMessage)
-
-
 
 	hash := hasher.Sum(nil)
 
 	return hex.EncodeToString(hash)
 
 }
-
-
 
 // normalizeMessage normalizes error messages by removing variable parts.
 
@@ -961,8 +783,6 @@ func (ea *ErrorAggregator) normalizeMessage(message string) string {
 
 }
 
-
-
 // calculateTrendDirection calculates the trend direction for a pattern.
 
 func (ea *ErrorAggregator) calculateTrendDirection(pattern *ErrorPattern) string {
@@ -972,8 +792,6 @@ func (ea *ErrorAggregator) calculateTrendDirection(pattern *ErrorPattern) string
 	now := time.Now()
 
 	recentWindow := now.Add(-time.Hour)
-
-
 
 	recentCount := 0
 
@@ -987,15 +805,11 @@ func (ea *ErrorAggregator) calculateTrendDirection(pattern *ErrorPattern) string
 
 	}
 
-
-
 	if pattern.Count < 5 {
 
 		return "new"
 
 	}
-
-
 
 	recentRatio := float64(recentCount) / float64(pattern.Count)
 
@@ -1009,13 +823,9 @@ func (ea *ErrorAggregator) calculateTrendDirection(pattern *ErrorPattern) string
 
 	}
 
-
-
 	return "stable"
 
 }
-
-
 
 // updateCorrelations analyzes and updates error correlations.
 
@@ -1027,8 +837,6 @@ func (ea *ErrorAggregator) updateCorrelations(err *ServiceError) {
 
 	correlationWindow := err.Timestamp.Add(-timeWindow)
 
-
-
 	for _, otherErr := range ea.errors {
 
 		if otherErr == err {
@@ -1036,8 +844,6 @@ func (ea *ErrorAggregator) updateCorrelations(err *ServiceError) {
 			continue
 
 		}
-
-
 
 		if otherErr.Timestamp.After(correlationWindow) && otherErr.Timestamp.Before(err.Timestamp.Add(timeWindow)) {
 
@@ -1049,15 +855,11 @@ func (ea *ErrorAggregator) updateCorrelations(err *ServiceError) {
 
 }
 
-
-
 // recordCorrelation records a correlation between two errors.
 
 func (ea *ErrorAggregator) recordCorrelation(errA, errB *ServiceError) {
 
 	correlationID := ea.generateCorrelationHash(errA, errB)
-
-
 
 	if correlation, exists := ea.correlations[correlationID]; exists {
 
@@ -1073,24 +875,23 @@ func (ea *ErrorAggregator) recordCorrelation(errA, errB *ServiceError) {
 
 			ea.correlations[correlationID] = &ErrorCorrelation{
 
-				ID:               correlationID,
+				ID: correlationID,
 
-				ErrorA:           ea.generateCorrelationID(errA),
+				ErrorA: ea.generateCorrelationID(errA),
 
-				ErrorB:           ea.generateCorrelationID(errB),
+				ErrorB: ea.generateCorrelationID(errB),
 
 				CorrelationScore: score,
 
-				TimeWindow:       time.Minute * 5,
+				TimeWindow: time.Minute * 5,
 
-				Count:            1,
+				Count: 1,
 
-				FirstSeen:        time.Now(),
+				FirstSeen: time.Now(),
 
-				LastSeen:         time.Now(),
+				LastSeen: time.Now(),
 
-				CausationType:    ea.determineCausationType(errA, errB),
-
+				CausationType: ea.determineCausationType(errA, errB),
 			}
 
 		}
@@ -1098,8 +899,6 @@ func (ea *ErrorAggregator) recordCorrelation(errA, errB *ServiceError) {
 	}
 
 }
-
-
 
 // generateCorrelationHash generates a hash for correlation identification.
 
@@ -1119,15 +918,11 @@ func (ea *ErrorAggregator) generateCorrelationHash(errA, errB *ServiceError) str
 
 	}
 
-
-
 	hasher := sha256.New()
 
 	fmt.Fprintf(hasher, "%s:%s:%s:%s",
 
 		first.Type, first.Service, second.Type, second.Service)
-
-
 
 	hash := hasher.Sum(nil)
 
@@ -1135,15 +930,11 @@ func (ea *ErrorAggregator) generateCorrelationHash(errA, errB *ServiceError) str
 
 }
 
-
-
 // calculateCorrelationScore calculates the correlation score between two errors.
 
 func (ea *ErrorAggregator) calculateCorrelationScore(errA, errB *ServiceError) float64 {
 
 	score := 0.0
-
-
 
 	// Same service increases correlation.
 
@@ -1153,8 +944,6 @@ func (ea *ErrorAggregator) calculateCorrelationScore(errA, errB *ServiceError) f
 
 	}
 
-
-
 	// Related operations increase correlation.
 
 	if errA.Operation == errB.Operation {
@@ -1162,8 +951,6 @@ func (ea *ErrorAggregator) calculateCorrelationScore(errA, errB *ServiceError) f
 		score += 0.2
 
 	}
-
-
 
 	// Same component increases correlation strongly.
 
@@ -1173,8 +960,6 @@ func (ea *ErrorAggregator) calculateCorrelationScore(errA, errB *ServiceError) f
 
 	}
 
-
-
 	// Same user/session increases correlation.
 
 	if errA.UserID != "" && errA.UserID == errB.UserID {
@@ -1183,15 +968,11 @@ func (ea *ErrorAggregator) calculateCorrelationScore(errA, errB *ServiceError) f
 
 	}
 
-
-
 	if errA.SessionID != "" && errA.SessionID == errB.SessionID {
 
 		score += 0.2
 
 	}
-
-
 
 	// Same request ID means very high correlation.
 
@@ -1201,13 +982,9 @@ func (ea *ErrorAggregator) calculateCorrelationScore(errA, errB *ServiceError) f
 
 	}
 
-
-
 	return math.Min(score, 1.0)
 
 }
-
-
 
 // determineCausationType determines the type of causation between errors.
 
@@ -1221,15 +998,11 @@ func (ea *ErrorAggregator) determineCausationType(errA, errB *ServiceError) stri
 
 	}
 
-
-
 	if errA.RequestID != "" && errA.RequestID == errB.RequestID {
 
 		return "cascade"
 
 	}
-
-
 
 	if math.Abs(errA.Timestamp.Sub(errB.Timestamp).Seconds()) < 1 {
 
@@ -1237,13 +1010,9 @@ func (ea *ErrorAggregator) determineCausationType(errA, errB *ServiceError) stri
 
 	}
 
-
-
 	return "cascade"
 
 }
-
-
 
 // cleanup removes old errors and patterns.
 
@@ -1253,8 +1022,6 @@ func (ea *ErrorAggregator) cleanup(retentionPeriod time.Duration) {
 
 	defer ticker.Stop()
 
-
-
 	for range ticker.C {
 
 		ea.performCleanup(retentionPeriod)
@@ -1262,8 +1029,6 @@ func (ea *ErrorAggregator) cleanup(retentionPeriod time.Duration) {
 	}
 
 }
-
-
 
 // performCleanup removes old data.
 
@@ -1273,11 +1038,7 @@ func (ea *ErrorAggregator) performCleanup(retentionPeriod time.Duration) {
 
 	defer ea.mu.Unlock()
 
-
-
 	cutoff := time.Now().Add(-retentionPeriod)
-
-
 
 	// Clean old errors.
 
@@ -1295,8 +1056,6 @@ func (ea *ErrorAggregator) performCleanup(retentionPeriod time.Duration) {
 
 	}
 
-
-
 	// Clean old patterns.
 
 	for hash, pattern := range ea.patterns {
@@ -1308,8 +1067,6 @@ func (ea *ErrorAggregator) performCleanup(retentionPeriod time.Duration) {
 		}
 
 	}
-
-
 
 	// Clean old correlations.
 
@@ -1325,73 +1082,59 @@ func (ea *ErrorAggregator) performCleanup(retentionPeriod time.Duration) {
 
 }
 
-
-
 // ErrorStatistics holds aggregated error statistics.
 
 type ErrorStatistics struct {
+	TotalErrors int `json:"total_errors"`
 
-	TotalErrors      int            `json:"total_errors"`
+	ErrorsByType map[string]int `json:"errors_by_type"`
 
-	ErrorsByType     map[string]int `json:"errors_by_type"`
-
-	ErrorsByService  map[string]int `json:"errors_by_service"`
+	ErrorsByService map[string]int `json:"errors_by_service"`
 
 	ErrorsBySeverity map[string]int `json:"errors_by_severity"`
 
 	ErrorsByCategory map[string]int `json:"errors_by_category"`
 
-	Patterns         int            `json:"patterns"`
+	Patterns int `json:"patterns"`
 
-	Correlations     int            `json:"correlations"`
+	Correlations int `json:"correlations"`
 
-	OldestError      time.Time      `json:"oldest_error"`
+	OldestError time.Time `json:"oldest_error"`
 
-	NewestError      time.Time      `json:"newest_error"`
+	NewestError time.Time `json:"newest_error"`
 
-	ErrorsPerSecond  float64        `json:"errors_per_second"`
+	ErrorsPerSecond float64 `json:"errors_per_second"`
 
-	ErrorsPerMinute  float64        `json:"errors_per_minute"`
+	ErrorsPerMinute float64 `json:"errors_per_minute"`
 
-	ErrorsPerHour    float64        `json:"errors_per_hour"`
-
+	ErrorsPerHour float64 `json:"errors_per_hour"`
 }
-
-
 
 // TrendAnalysis holds error trend analysis results.
 
 type TrendAnalysis struct {
+	TimeWindow time.Duration `json:"time_window"`
 
-	TimeWindow       time.Duration `json:"time_window"`
+	TotalErrors int `json:"total_errors"`
 
-	TotalErrors      int           `json:"total_errors"`
+	FirstHalfErrors int `json:"first_half_errors"`
 
-	FirstHalfErrors  int           `json:"first_half_errors"`
+	SecondHalfErrors int `json:"second_half_errors"`
 
-	SecondHalfErrors int           `json:"second_half_errors"`
+	Trend string `json:"trend"`
 
-	Trend            string        `json:"trend"`
+	TrendPercentage float64 `json:"trend_percentage"`
 
-	TrendPercentage  float64       `json:"trend_percentage"`
-
-	AnalyzedAt       time.Time     `json:"analyzed_at"`
-
+	AnalyzedAt time.Time `json:"analyzed_at"`
 }
-
-
 
 // MultiError represents multiple errors that occurred together.
 
 type MultiError struct {
-
 	Errors []error `json:"errors"`
 
-	mu     sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewMultiError creates a new MultiError.
 
@@ -1400,12 +1143,9 @@ func NewMultiError() *MultiError {
 	return &MultiError{
 
 		Errors: make([]error, 0),
-
 	}
 
 }
-
-
 
 // Add adds an error to the MultiError.
 
@@ -1417,8 +1157,6 @@ func (me *MultiError) Add(err error) {
 
 	}
 
-
-
 	me.mu.Lock()
 
 	defer me.mu.Unlock()
@@ -1427,8 +1165,6 @@ func (me *MultiError) Add(err error) {
 
 }
 
-
-
 // AddMultiple adds multiple errors at once.
 
 func (me *MultiError) AddMultiple(errors ...error) {
@@ -1436,8 +1172,6 @@ func (me *MultiError) AddMultiple(errors ...error) {
 	me.mu.Lock()
 
 	defer me.mu.Unlock()
-
-
 
 	for _, err := range errors {
 
@@ -1451,8 +1185,6 @@ func (me *MultiError) AddMultiple(errors ...error) {
 
 }
 
-
-
 // Error implements the error interface.
 
 func (me *MultiError) Error() string {
@@ -1461,23 +1193,17 @@ func (me *MultiError) Error() string {
 
 	defer me.mu.RUnlock()
 
-
-
 	if len(me.Errors) == 0 {
 
 		return "no errors"
 
 	}
 
-
-
 	if len(me.Errors) == 1 {
 
 		return me.Errors[0].Error()
 
 	}
-
-
 
 	var messages []string
 
@@ -1487,13 +1213,9 @@ func (me *MultiError) Error() string {
 
 	}
 
-
-
 	return fmt.Sprintf("multiple errors occurred: %s", strings.Join(messages, "; "))
 
 }
-
-
 
 // HasErrors returns true if there are any errors.
 
@@ -1507,8 +1229,6 @@ func (me *MultiError) HasErrors() bool {
 
 }
 
-
-
 // Count returns the number of errors.
 
 func (me *MultiError) Count() int {
@@ -1521,8 +1241,6 @@ func (me *MultiError) Count() int {
 
 }
 
-
-
 // GetErrors returns a copy of all errors.
 
 func (me *MultiError) GetErrors() []error {
@@ -1531,8 +1249,6 @@ func (me *MultiError) GetErrors() []error {
 
 	defer me.mu.RUnlock()
 
-
-
 	result := make([]error, len(me.Errors))
 
 	copy(result, me.Errors)
@@ -1540,8 +1256,6 @@ func (me *MultiError) GetErrors() []error {
 	return result
 
 }
-
-
 
 // Clear removes all errors.
 
@@ -1555,8 +1269,6 @@ func (me *MultiError) Clear() {
 
 }
 
-
-
 // Unwrap returns the first error for error unwrapping.
 
 func (me *MultiError) Unwrap() error {
@@ -1565,35 +1277,25 @@ func (me *MultiError) Unwrap() error {
 
 	defer me.mu.RUnlock()
 
-
-
 	if len(me.Errors) == 0 {
 
 		return nil
 
 	}
 
-
-
 	return me.Errors[0]
 
 }
 
-
-
 // ErrorCollector provides a convenient way to collect multiple errors.
 
 type ErrorCollector struct {
-
-	errors    *MultiError
+	errors *MultiError
 
 	maxErrors int
 
-	onError   func(error)
-
+	onError func(error)
 }
-
-
 
 // NewErrorCollector creates a new error collector.
 
@@ -1601,15 +1303,12 @@ func NewErrorCollector(maxErrors int) *ErrorCollector {
 
 	return &ErrorCollector{
 
-		errors:    NewMultiError(),
+		errors: NewMultiError(),
 
 		maxErrors: maxErrors,
-
 	}
 
 }
-
-
 
 // SetErrorCallback sets a callback for when errors are added.
 
@@ -1618,8 +1317,6 @@ func (ec *ErrorCollector) SetErrorCallback(callback func(error)) {
 	ec.onError = callback
 
 }
-
-
 
 // Collect adds an error to the collection.
 
@@ -1631,19 +1328,13 @@ func (ec *ErrorCollector) Collect(err error) {
 
 	}
 
-
-
 	if ec.maxErrors > 0 && ec.errors.Count() >= ec.maxErrors {
 
 		return // Skip if at limit
 
 	}
 
-
-
 	ec.errors.Add(err)
-
-
 
 	if ec.onError != nil {
 
@@ -1652,8 +1343,6 @@ func (ec *ErrorCollector) Collect(err error) {
 	}
 
 }
-
-
 
 // CollectMultiple collects multiple errors.
 
@@ -1667,8 +1356,6 @@ func (ec *ErrorCollector) CollectMultiple(errors ...error) {
 
 }
 
-
-
 // Result returns the collected errors as a single error.
 
 func (ec *ErrorCollector) Result() error {
@@ -1679,13 +1366,9 @@ func (ec *ErrorCollector) Result() error {
 
 	}
 
-
-
 	return ec.errors
 
 }
-
-
 
 // HasErrors returns true if any errors were collected.
 
@@ -1695,8 +1378,6 @@ func (ec *ErrorCollector) HasErrors() bool {
 
 }
 
-
-
 // Count returns the number of collected errors.
 
 func (ec *ErrorCollector) Count() int {
@@ -1704,8 +1385,6 @@ func (ec *ErrorCollector) Count() int {
 	return ec.errors.Count()
 
 }
-
-
 
 // Clear clears all collected errors.
 
@@ -1715,8 +1394,6 @@ func (ec *ErrorCollector) Clear() {
 
 }
 
-
-
 // GetErrors returns all collected errors.
 
 func (ec *ErrorCollector) GetErrors() []error {
@@ -1724,4 +1401,3 @@ func (ec *ErrorCollector) GetErrors() []error {
 	return ec.errors.GetErrors()
 
 }
-

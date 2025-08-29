@@ -28,74 +28,40 @@ limitations under the License.
 
 */
 
-
-
-
 package conductor
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"os"
-
 	"os/exec"
-
 	"path/filepath"
-
 	"regexp"
-
 	"strconv"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
-
 
 	"k8s.io/apimachinery/pkg/runtime"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // PorchExecutor defines the interface for executing porch CLI commands.
 
 // This allows for dependency injection during testing.
 
 type PorchExecutor interface {
-
 	ExecutePorch(ctx context.Context, porchPath string, args []string, outputDir, intentFile, mode string) error
-
 }
-
-
 
 // defaultPorchExecutor provides the real porch CLI execution.
 
 type defaultPorchExecutor struct{}
-
-
 
 // ExecutePorch performs executeporch operation.
 
@@ -105,8 +71,6 @@ func (dpe *defaultPorchExecutor) ExecutePorch(ctx context.Context, porchPath str
 
 	cmd.Dir = outputDir
 
-
-
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -115,71 +79,56 @@ func (dpe *defaultPorchExecutor) ExecutePorch(ctx context.Context, porchPath str
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // NetworkIntentReconciler reconciles a NetworkIntent object.
 
 type NetworkIntentReconciler struct {
-
 	client.Client
 
-	Scheme        *runtime.Scheme
+	Scheme *runtime.Scheme
 
-	Log           logr.Logger
+	Log logr.Logger
 
-	PorchPath     string
+	PorchPath string
 
-	Mode          string
+	Mode string
 
-	OutputDir     string
+	OutputDir string
 
 	porchExecutor PorchExecutor // Injected for testing
 
 }
 
-
-
 // IntentJSON represents the intent JSON structure matching docs/contracts/intent.schema.json.
 
 type IntentJSON struct {
+	IntentType string `json:"intent_type"`
 
-	IntentType    string `json:"intent_type"`
+	Target string `json:"target"`
 
-	Target        string `json:"target"`
+	Namespace string `json:"namespace"`
 
-	Namespace     string `json:"namespace"`
+	Replicas int `json:"replicas"`
 
-	Replicas      int    `json:"replicas"`
+	Reason string `json:"reason,omitempty"`
 
-	Reason        string `json:"reason,omitempty"`
-
-	Source        string `json:"source,omitempty"`
+	Source string `json:"source,omitempty"`
 
 	CorrelationID string `json:"correlation_id,omitempty"`
-
 }
-
-
 
 // SetupWithManager sets up the controller with the Manager.
 
 func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
-
 		For(&nephoranv1.NetworkIntent{}).
-
 		Complete(r)
 
 }
-
-
 
 // Reconcile handles NetworkIntent resource changes.
 
@@ -188,8 +137,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	logger := r.Log.WithValues("networkintent", req.NamespacedName)
 
 	logger.Info("Reconciling NetworkIntent")
-
-
 
 	// Fetch the NetworkIntent instance.
 
@@ -211,8 +158,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	}
 
-
-
 	// Parse the intent string to extract scaling information.
 
 	intentData, err := r.parseIntentString(networkIntent.Spec.Intent, networkIntent.Namespace)
@@ -224,8 +169,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{RequeueAfter: time.Minute * 5}, nil // Retry later
 
 	}
-
-
 
 	// Add metadata.
 
@@ -243,8 +186,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 		networkIntent.Namespace, networkIntent.Name)
 
-
-
 	// Create intent JSON file.
 
 	intentFile, err := r.createIntentFile(intentData, networkIntent.Name)
@@ -257,11 +198,7 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	}
 
-
-
 	logger.Info("Created intent file", "file", intentFile, "target", intentData.Target, "replicas", intentData.Replicas)
-
-
 
 	// Call porch CLI to generate KRM files.
 
@@ -273,15 +210,11 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	}
 
-
-
 	logger.Info("Successfully processed NetworkIntent")
 
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // parseIntentString parses the natural language intent string to extract scaling parameters.
 
@@ -293,17 +226,12 @@ func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*
 
 		IntentType: "scaling",
 
-		Namespace:  namespace,
-
+		Namespace: namespace,
 	}
-
-
 
 	// Normalize the intent string.
 
 	intent = strings.ToLower(strings.TrimSpace(intent))
-
-
 
 	// Pattern to match deployment/target names.
 
@@ -311,19 +239,15 @@ func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*
 
 	var matches []string
 
-
-
 	// Try different patterns to capture the target name.
 
 	patterns := []*regexp.Regexp{
 
 		regexp.MustCompile(`scale\s+(?:deployment|app|service)\s+([a-z0-9\-]+)`), // "scale deployment web-server"
 
-		regexp.MustCompile(`(?:deployment|app|service)\s+([a-z0-9\-]+)`),         // "deployment web-server"
+		regexp.MustCompile(`(?:deployment|app|service)\s+([a-z0-9\-]+)`), // "deployment web-server"
 
 	}
-
-
 
 	// First try patterns with explicit keywords.
 
@@ -349,8 +273,6 @@ func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*
 
 	}
 
-
-
 	// If no match yet, try simpler pattern but exclude common keywords.
 
 	if intentData.Target == "" {
@@ -373,8 +295,6 @@ func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*
 
 	}
 
-
-
 	// Pattern to match replica counts.
 
 	// Look for patterns like "to 5 replicas", "5 instances", "replicas: 3".
@@ -393,8 +313,6 @@ func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*
 
 	}
 
-
-
 	for _, pattern := range replicaPatterns {
 
 		matches := pattern.FindStringSubmatch(intent)
@@ -412,8 +330,6 @@ func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*
 		}
 
 	}
-
-
 
 	// Validation.
 
@@ -437,13 +353,9 @@ func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*
 
 	}
 
-
-
 	return intentData, nil
 
 }
-
-
 
 // createIntentFile creates an intent JSON file in the output directory.
 
@@ -457,15 +369,11 @@ func (r *NetworkIntentReconciler) createIntentFile(intentData *IntentJSON, name 
 
 	}
 
-
-
 	// Generate filename with timestamp.
 
 	filename := fmt.Sprintf("intent-%s-%d.json", name, time.Now().Unix())
 
 	filepath := filepath.Join(r.OutputDir, filename)
-
-
 
 	// Marshal intent to JSON.
 
@@ -477,8 +385,6 @@ func (r *NetworkIntentReconciler) createIntentFile(intentData *IntentJSON, name 
 
 	}
 
-
-
 	// Write to file.
 
 	if err := os.WriteFile(filepath, jsonData, 0o640); err != nil {
@@ -487,13 +393,9 @@ func (r *NetworkIntentReconciler) createIntentFile(intentData *IntentJSON, name 
 
 	}
 
-
-
 	return filepath, nil
 
 }
-
-
 
 // callPorchCLI executes the porch CLI command to generate KRM files.
 
@@ -506,10 +408,7 @@ func (r *NetworkIntentReconciler) callPorchCLI(ctx context.Context, intentFile s
 		"--input", intentFile,
 
 		"--output", r.OutputDir,
-
 	}
-
-
 
 	// Add mode-specific arguments.
 
@@ -519,11 +418,7 @@ func (r *NetworkIntentReconciler) callPorchCLI(ctx context.Context, intentFile s
 
 	}
 
-
-
 	logger.Info("Executing porch CLI", "command", r.PorchPath, "args", args)
-
-
 
 	// Use injected executor for testing, otherwise use default.
 
@@ -535,8 +430,6 @@ func (r *NetworkIntentReconciler) callPorchCLI(ctx context.Context, intentFile s
 
 	}
 
-
-
 	err := executor.ExecutePorch(ctx, r.PorchPath, args, r.OutputDir, intentFile, r.Mode)
 
 	if err != nil {
@@ -547,11 +440,8 @@ func (r *NetworkIntentReconciler) callPorchCLI(ctx context.Context, intentFile s
 
 	}
 
-
-
 	logger.Info("Porch CLI executed successfully")
 
 	return nil
 
 }
-

@@ -1,21 +1,11 @@
-
 package oran
 
-
-
 import (
-
 	"crypto/tls"
-
 	"crypto/x509"
-
 	"fmt"
-
 	"os"
-
 )
-
-
 
 // BuildTLSConfig builds a *tls.Config from the provided TLSConfig.
 
@@ -29,11 +19,9 @@ func BuildTLSConfig(config *TLSConfig) (*tls.Config, error) {
 
 	}
 
-
-
 	tlsConfig := &tls.Config{
 
-		MinVersion:               tls.VersionTLS12,
+		MinVersion: tls.VersionTLS12,
 
 		PreferServerCipherSuites: true,
 
@@ -50,14 +38,10 @@ func BuildTLSConfig(config *TLSConfig) (*tls.Config, error) {
 			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 
 			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-
 		},
 
 		InsecureSkipVerify: config.SkipVerify,
-
 	}
-
-
 
 	// Load client certificate and key for mutual TLS.
 
@@ -75,8 +59,6 @@ func BuildTLSConfig(config *TLSConfig) (*tls.Config, error) {
 
 	}
 
-
-
 	// Load CA certificate for server verification.
 
 	if config.CAFile != "" {
@@ -88,8 +70,6 @@ func BuildTLSConfig(config *TLSConfig) (*tls.Config, error) {
 			return nil, fmt.Errorf("failed to read CA certificate file: %w", err)
 
 		}
-
-
 
 		caCertPool := x509.NewCertPool()
 
@@ -103,8 +83,6 @@ func BuildTLSConfig(config *TLSConfig) (*tls.Config, error) {
 
 	}
 
-
-
 	// Enable client certificate authentication for mutual TLS.
 
 	if len(tlsConfig.Certificates) > 0 {
@@ -113,13 +91,9 @@ func BuildTLSConfig(config *TLSConfig) (*tls.Config, error) {
 
 	}
 
-
-
 	return tlsConfig, nil
 
 }
-
-
 
 // ValidateTLSConfig validates the TLS configuration parameters.
 
@@ -130,8 +104,6 @@ func ValidateTLSConfig(config *TLSConfig) error {
 		return fmt.Errorf("TLS configuration cannot be nil")
 
 	}
-
-
 
 	// Check if certificate and key files exist when specified.
 
@@ -145,8 +117,6 @@ func ValidateTLSConfig(config *TLSConfig) error {
 
 	}
 
-
-
 	if config.KeyFile != "" {
 
 		if _, err := os.Stat(config.KeyFile); os.IsNotExist(err) {
@@ -156,8 +126,6 @@ func ValidateTLSConfig(config *TLSConfig) error {
 		}
 
 	}
-
-
 
 	if config.CAFile != "" {
 
@@ -169,8 +137,6 @@ func ValidateTLSConfig(config *TLSConfig) error {
 
 	}
 
-
-
 	// Ensure both cert and key are provided together.
 
 	if (config.CertFile != "" && config.KeyFile == "") || (config.CertFile == "" && config.KeyFile != "") {
@@ -179,13 +145,9 @@ func ValidateTLSConfig(config *TLSConfig) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetRecommendedTLSConfig returns a TLS configuration with O-RAN recommended security settings.
 
@@ -193,15 +155,14 @@ func GetRecommendedTLSConfig(certFile, keyFile, caFile string) *TLSConfig {
 
 	return &TLSConfig{
 
-		CertFile:   certFile,
+		CertFile: certFile,
 
-		KeyFile:    keyFile,
+		KeyFile: keyFile,
 
-		CAFile:     caFile,
+		CAFile: caFile,
 
 		SkipVerify: false, // Always verify certificates in production
 
 	}
 
 }
-

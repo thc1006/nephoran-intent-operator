@@ -1,41 +1,25 @@
-
 package throughput
 
-
-
 import (
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 )
-
-
 
 // ErrorClassifier provides comprehensive error tracking and classification.
 
 type ErrorClassifier struct {
-
 	mu sync.RWMutex
-
-
 
 	// Error tracking.
 
-	errorCounts    map[ErrorCategory]int
+	errorCounts map[ErrorCategory]int
 
-	errorHistory   []ErrorEvent
+	errorHistory []ErrorEvent
 
 	categoryCounts map[ErrorCategory]map[ErrorType]int
-
-
 
 	// Prometheus metrics.
 
@@ -44,16 +28,11 @@ type ErrorClassifier struct {
 	errorTypeMetric *prometheus.CounterVec
 
 	slaImpactMetric *prometheus.GaugeVec
-
 }
-
-
 
 // ErrorCategory represents broad error categories.
 
 type ErrorCategory string
-
-
 
 const (
 
@@ -72,16 +51,11 @@ const (
 	// CategoryTransient holds categorytransient value.
 
 	CategoryTransient ErrorCategory = "transient"
-
 )
-
-
 
 // ErrorType represents specific error types within categories.
 
 type ErrorType string
-
-
 
 const (
 
@@ -97,8 +71,6 @@ const (
 
 	ErrorTypeConfigurationError ErrorType = "configuration_error"
 
-
-
 	// User Errors.
 
 	ErrorTypeInvalidIntent ErrorType = "invalid_intent"
@@ -110,8 +82,6 @@ const (
 	// ErrorTypeValidationError holds errortypevalidationerror value.
 
 	ErrorTypeValidationError ErrorType = "validation_error"
-
-
 
 	// External Errors.
 
@@ -125,8 +95,6 @@ const (
 
 	ErrorTypeExternalAPIError ErrorType = "external_api_error"
 
-
-
 	// Transient Errors.
 
 	ErrorTypeTimeout ErrorType = "timeout"
@@ -138,28 +106,21 @@ const (
 	// ErrorTypeTemporaryFailure holds errortypetemporaryfailure value.
 
 	ErrorTypeTemporaryFailure ErrorType = "temporary_failure"
-
 )
-
-
 
 // ErrorEvent represents a detailed error occurrence.
 
 type ErrorEvent struct {
+	Timestamp time.Time
 
-	Timestamp      time.Time
+	Category ErrorCategory
 
-	Category       ErrorCategory
+	Type ErrorType
 
-	Type           ErrorType
-
-	Message        string
+	Message string
 
 	BusinessImpact float64
-
 }
-
-
 
 // NewErrorClassifier creates a new error classifier.
 
@@ -167,9 +128,9 @@ func NewErrorClassifier() *ErrorClassifier {
 
 	return &ErrorClassifier{
 
-		errorCounts:    make(map[ErrorCategory]int),
+		errorCounts: make(map[ErrorCategory]int),
 
-		errorHistory:   make([]ErrorEvent, 0, 1000),
+		errorHistory: make([]ErrorEvent, 0, 1000),
 
 		categoryCounts: make(map[ErrorCategory]map[ErrorType]int),
 
@@ -178,7 +139,6 @@ func NewErrorClassifier() *ErrorClassifier {
 			Name: "nephoran_error_rate",
 
 			Help: "Total number of errors by category",
-
 		}, []string{"category", "type"}),
 
 		errorTypeMetric: promauto.NewCounterVec(prometheus.CounterOpts{
@@ -186,7 +146,6 @@ func NewErrorClassifier() *ErrorClassifier {
 			Name: "nephoran_error_type_count",
 
 			Help: "Detailed error type counts",
-
 		}, []string{"category", "type"}),
 
 		slaImpactMetric: promauto.NewGaugeVec(prometheus.GaugeOpts{
@@ -194,14 +153,10 @@ func NewErrorClassifier() *ErrorClassifier {
 			Name: "nephoran_sla_impact",
 
 			Help: "Business impact of errors",
-
 		}, []string{"category", "type"}),
-
 	}
 
 }
-
-
 
 // RecordError logs and classifies an error.
 
@@ -219,37 +174,28 @@ func (ec *ErrorClassifier) RecordError(
 
 	defer ec.mu.Unlock()
 
-
-
 	// Calculate business impact.
 
 	businessImpact := ec.calculateBusinessImpact(category, errorType)
-
-
 
 	// Create error event.
 
 	errorEvent := ErrorEvent{
 
-		Timestamp:      time.Now(),
+		Timestamp: time.Now(),
 
-		Category:       category,
+		Category: category,
 
-		Type:           errorType,
+		Type: errorType,
 
-		Message:        message,
+		Message: message,
 
 		BusinessImpact: businessImpact,
-
 	}
-
-
 
 	// Update counts.
 
 	ec.errorCounts[category]++
-
-
 
 	if ec.categoryCounts[category] == nil {
 
@@ -258,8 +204,6 @@ func (ec *ErrorClassifier) RecordError(
 	}
 
 	ec.categoryCounts[category][errorType]++
-
-
 
 	// Add to error history.
 
@@ -271,8 +215,6 @@ func (ec *ErrorClassifier) RecordError(
 
 	}
 
-
-
 	// Update Prometheus metrics.
 
 	ec.errorRateMetric.WithLabelValues(string(category), string(errorType)).Inc()
@@ -281,13 +223,9 @@ func (ec *ErrorClassifier) RecordError(
 
 	ec.slaImpactMetric.WithLabelValues(string(category), string(errorType)).Set(businessImpact)
 
-
-
 	return errorEvent
 
 }
-
-
 
 // calculateBusinessImpact determines the severity of an error.
 
@@ -307,45 +245,38 @@ func (ec *ErrorClassifier) calculateBusinessImpact(
 
 			ErrorTypeInternalServerError: 0.9,
 
-			ErrorTypeResourceExhaustion:  0.8,
+			ErrorTypeResourceExhaustion: 0.8,
 
-			ErrorTypeConfigurationError:  0.7,
-
+			ErrorTypeConfigurationError: 0.7,
 		},
 
 		CategoryUser: {
 
-			ErrorTypeInvalidIntent:       0.3,
+			ErrorTypeInvalidIntent: 0.3,
 
 			ErrorTypeAuthorizationFailed: 0.6,
 
-			ErrorTypeValidationError:     0.4,
-
+			ErrorTypeValidationError: 0.4,
 		},
 
 		CategoryExternal: {
 
-			ErrorTypeLLMServiceFailure:   0.7,
+			ErrorTypeLLMServiceFailure: 0.7,
 
 			ErrorTypeNetworkConnectivity: 0.8,
 
-			ErrorTypeExternalAPIError:    0.6,
-
+			ErrorTypeExternalAPIError: 0.6,
 		},
 
 		CategoryTransient: {
 
-			ErrorTypeTimeout:           0.5,
+			ErrorTypeTimeout: 0.5,
 
 			ErrorTypeRateLimitExceeded: 0.4,
 
-			ErrorTypeTemporaryFailure:  0.3,
-
+			ErrorTypeTemporaryFailure: 0.3,
 		},
-
 	}
-
-
 
 	// Default to low impact if not found.
 
@@ -359,13 +290,9 @@ func (ec *ErrorClassifier) calculateBusinessImpact(
 
 	}
 
-
-
 	return 0.1 // Minimal default impact
 
 }
-
-
 
 // GetErrorSummary provides an overview of error occurrences.
 
@@ -375,13 +302,9 @@ func (ec *ErrorClassifier) GetErrorSummary() map[ErrorCategory]int {
 
 	defer ec.mu.RUnlock()
 
-
-
 	return ec.errorCounts
 
 }
-
-
 
 // GetDetailedErrorBreakdown provides granular error type distribution.
 
@@ -390,8 +313,6 @@ func (ec *ErrorClassifier) GetDetailedErrorBreakdown() map[ErrorCategory]map[Err
 	ec.mu.RLock()
 
 	defer ec.mu.RUnlock()
-
-
 
 	// Create a deep copy to prevent modification.
 
@@ -409,13 +330,9 @@ func (ec *ErrorClassifier) GetDetailedErrorBreakdown() map[ErrorCategory]map[Err
 
 	}
 
-
-
 	return breakdown
 
 }
-
-
 
 // AnalyzeErrorTrends identifies emerging error patterns.
 
@@ -425,11 +342,7 @@ func (ec *ErrorClassifier) AnalyzeErrorTrends() map[string]interface{} {
 
 	defer ec.mu.RUnlock()
 
-
-
 	trends := make(map[string]interface{})
-
-
 
 	// Calculate total error rate.
 
@@ -440,8 +353,6 @@ func (ec *ErrorClassifier) AnalyzeErrorTrends() map[string]interface{} {
 		totalErrors += count
 
 	}
-
-
 
 	// Identify dominant error categories.
 
@@ -457,8 +368,6 @@ func (ec *ErrorClassifier) AnalyzeErrorTrends() map[string]interface{} {
 
 	}
 
-
-
 	// Analyze business impact.
 
 	totalBusinessImpact := 0.0
@@ -469,8 +378,6 @@ func (ec *ErrorClassifier) AnalyzeErrorTrends() map[string]interface{} {
 
 	}
 
-
-
 	trends["total_errors"] = totalErrors
 
 	trends["dominant_categories"] = dominantCategories
@@ -479,37 +386,25 @@ func (ec *ErrorClassifier) AnalyzeErrorTrends() map[string]interface{} {
 
 	trends["avg_business_impact"] = totalBusinessImpact / float64(len(ec.errorHistory))
 
-
-
 	return trends
 
 }
 
-
-
 // RetryStrategy provides intelligent retry recommendations.
 
 type RetryStrategy struct {
-
 	mu sync.Mutex
-
-
 
 	// Retry tracking.
 
-	retryAttempts     map[ErrorType]int
+	retryAttempts map[ErrorType]int
 
 	successfulRetries map[ErrorType]int
-
-
 
 	// Retry metrics.
 
 	retryMetric *prometheus.CounterVec
-
 }
-
-
 
 // NewRetryStrategy creates a new retry strategy.
 
@@ -517,7 +412,7 @@ func NewRetryStrategy() *RetryStrategy {
 
 	return &RetryStrategy{
 
-		retryAttempts:     make(map[ErrorType]int),
+		retryAttempts: make(map[ErrorType]int),
 
 		successfulRetries: make(map[ErrorType]int),
 
@@ -526,14 +421,10 @@ func NewRetryStrategy() *RetryStrategy {
 			Name: "nephoran_retry_attempts",
 
 			Help: "Number of retry attempts by error type",
-
 		}, []string{"error_type", "status"}),
-
 	}
 
 }
-
-
 
 // ShouldRetry determines if an error should be retried.
 
@@ -549,25 +440,20 @@ func (rs *RetryStrategy) ShouldRetry(
 
 	defer rs.mu.Unlock()
 
-
-
 	// Retry configuration based on error type.
 
 	retryConfig := map[ErrorType]int{
 
-		ErrorTypeTimeout:             3,
+		ErrorTypeTimeout: 3,
 
-		ErrorTypeRateLimitExceeded:   2,
+		ErrorTypeRateLimitExceeded: 2,
 
-		ErrorTypeTemporaryFailure:    2,
+		ErrorTypeTemporaryFailure: 2,
 
 		ErrorTypeNetworkConnectivity: 3,
 
-		ErrorTypeLLMServiceFailure:   2,
-
+		ErrorTypeLLMServiceFailure: 2,
 	}
-
-
 
 	// Check if retry is configured for this error type.
 
@@ -579,21 +465,15 @@ func (rs *RetryStrategy) ShouldRetry(
 
 	}
 
-
-
 	// Track retry attempts.
 
 	rs.retryAttempts[errorType]++
 
 	rs.retryMetric.WithLabelValues(string(errorType), "attempt").Inc()
 
-
-
 	return currentAttempt < maxRetries
 
 }
-
-
 
 // RecordRetryOutcome logs the result of a retry attempt.
 
@@ -609,8 +489,6 @@ func (rs *RetryStrategy) RecordRetryOutcome(
 
 	defer rs.mu.Unlock()
 
-
-
 	if successful {
 
 		rs.successfulRetries[errorType]++
@@ -625,8 +503,6 @@ func (rs *RetryStrategy) RecordRetryOutcome(
 
 }
 
-
-
 // GetRetryEffectiveness calculates retry success rates.
 
 func (rs *RetryStrategy) GetRetryEffectiveness() map[ErrorType]float64 {
@@ -634,8 +510,6 @@ func (rs *RetryStrategy) GetRetryEffectiveness() map[ErrorType]float64 {
 	rs.mu.Lock()
 
 	defer rs.mu.Unlock()
-
-
 
 	effectiveness := make(map[ErrorType]float64)
 
@@ -647,9 +521,6 @@ func (rs *RetryStrategy) GetRetryEffectiveness() map[ErrorType]float64 {
 
 	}
 
-
-
 	return effectiveness
 
 }
-

@@ -1,87 +1,53 @@
 // Package o2 implements comprehensive Cloud-Native Network Function (CNF) management.
 
-
 package o2
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
 
-
-
 	appsv1 "k8s.io/api/apps/v1"
-
 	corev1 "k8s.io/api/core/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/apimachinery/pkg/types"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // Manager type definitions.
 
 type OperatorManager struct {
-
-	config    *OperatorConfig
+	config *OperatorConfig
 
 	k8sClient client.Client
 
-	logger    *logging.StructuredLogger
-
+	logger *logging.StructuredLogger
 }
-
-
 
 // ServiceMeshManager represents a servicemeshmanager.
 
 type ServiceMeshManager struct {
-
-	config    *ServiceMeshConfig
+	config *ServiceMeshConfig
 
 	k8sClient client.Client
 
-	logger    *logging.StructuredLogger
-
+	logger *logging.StructuredLogger
 }
-
-
 
 // ContainerRegistryManager represents a containerregistrymanager.
 
 type ContainerRegistryManager struct {
-
 	config *RegistryConfig
 
 	logger *logging.StructuredLogger
-
 }
-
-
 
 // Manager method implementations.
 
@@ -91,8 +57,6 @@ func (om *OperatorManager) Initialize() error {
 
 }
 
-
-
 // Deploy performs deploy operation.
 
 func (om *OperatorManager) Deploy(ctx context.Context, req *OperatorDeployRequest) ([]interface{}, error) {
@@ -100,8 +64,6 @@ func (om *OperatorManager) Deploy(ctx context.Context, req *OperatorDeployReques
 	return nil, nil
 
 }
-
-
 
 // Update performs update operation.
 
@@ -111,8 +73,6 @@ func (om *OperatorManager) Update(ctx context.Context, req *OperatorUpdateReques
 
 }
 
-
-
 // Uninstall performs uninstall operation.
 
 func (om *OperatorManager) Uninstall(ctx context.Context, name, namespace string) error {
@@ -120,8 +80,6 @@ func (om *OperatorManager) Uninstall(ctx context.Context, name, namespace string
 	return nil
 
 }
-
-
 
 // Initialize performs initialize operation.
 
@@ -131,8 +89,6 @@ func (sm *ServiceMeshManager) Initialize() error {
 
 }
 
-
-
 // Initialize performs initialize operation.
 
 func (crm *ContainerRegistryManager) Initialize() error {
@@ -141,25 +97,20 @@ func (crm *ContainerRegistryManager) Initialize() error {
 
 }
 
-
-
 // NewOperatorManager creates a new operator manager.
 
 func NewOperatorManager(config *OperatorConfig, k8sClient client.Client, logger *logging.StructuredLogger) *OperatorManager {
 
 	return &OperatorManager{
 
-		config:    config,
+		config: config,
 
 		k8sClient: k8sClient,
 
-		logger:    logger,
-
+		logger: logger,
 	}
 
 }
-
-
 
 // NewServiceMeshManager creates a new service mesh manager.
 
@@ -167,17 +118,14 @@ func NewServiceMeshManager(config *ServiceMeshConfig, k8sClient client.Client, l
 
 	return &ServiceMeshManager{
 
-		config:    config,
+		config: config,
 
 		k8sClient: k8sClient,
 
-		logger:    logger,
-
+		logger: logger,
 	}
 
 }
-
-
 
 // NewContainerRegistryManager creates a new container registry manager.
 
@@ -188,68 +136,51 @@ func NewContainerRegistryManager(config *RegistryConfig, logger *logging.Structu
 		config: config,
 
 		logger: logger,
-
 	}
 
 }
 
-
-
 // CNFManagementService provides comprehensive CNF lifecycle management.
 
 type CNFManagementService struct {
-
 	config *CNFConfig
 
 	logger *logging.StructuredLogger
-
-
 
 	// Kubernetes clients.
 
 	k8sClient client.Client
 
-
-
 	// CNF management components.
 
-	lifecycleManager   *CNFLifecycleManagerImpl
+	lifecycleManager *CNFLifecycleManagerImpl
 
-	helmManager        *HelmManagerImpl
+	helmManager *HelmManagerImpl
 
-	operatorManager    *OperatorManager
+	operatorManager *OperatorManager
 
 	serviceMeshManager *ServiceMeshManager
 
-	registryManager    *ContainerRegistryManager
-
-
+	registryManager *ContainerRegistryManager
 
 	// CNF tracking.
 
 	cnfInstances map[string]*CNFInstance
 
-	deployments  map[string]*CNFDeployment
-
-
+	deployments map[string]*CNFDeployment
 
 	// Synchronization.
 
 	mu sync.RWMutex
 
-
-
 	// Lifecycle management.
 
-	ctx    context.Context
+	ctx context.Context
 
 	cancel context.CancelFunc
 
-	wg     sync.WaitGroup
-
+	wg sync.WaitGroup
 }
-
-
 
 // CNFConfig configuration for CNF management.
 
@@ -259,105 +190,79 @@ type CNFConfig struct {
 
 	KubernetesConfig *KubernetesConfig `json:"kubernetesConfig,omitempty"`
 
-
-
 	// Helm settings.
 
 	HelmConfig *HelmConfig `json:"helmConfig,omitempty"`
-
-
 
 	// Operator settings.
 
 	OperatorConfig *OperatorConfig `json:"operatorConfig,omitempty"`
 
-
-
 	// Service mesh settings.
 
 	ServiceMeshConfig *ServiceMeshConfig `json:"serviceMeshConfig,omitempty"`
-
-
 
 	// Container registry settings.
 
 	RegistryConfig *RegistryConfig `json:"registryConfig,omitempty"`
 
-
-
 	// CNF lifecycle settings.
 
 	LifecycleConfig *CNFLifecycleConfig `json:"lifecycleConfig,omitempty"`
-
-
 
 	// Monitoring and observability.
 
 	MonitoringEnabled bool `json:"monitoringEnabled,omitempty"`
 
-	TracingEnabled    bool `json:"tracingEnabled,omitempty"`
+	TracingEnabled bool `json:"tracingEnabled,omitempty"`
 
-	LoggingEnabled    bool `json:"loggingEnabled,omitempty"`
-
-
+	LoggingEnabled bool `json:"loggingEnabled,omitempty"`
 
 	// Security settings.
 
 	SecurityPolicies *SecurityPolicies `json:"securityPolicies,omitempty"`
 
-	NetworkPolicies  *NetworkPolicies  `json:"networkPolicies,omitempty"`
-
+	NetworkPolicies *NetworkPolicies `json:"networkPolicies,omitempty"`
 }
-
-
 
 // KubernetesConfig configuration for Kubernetes integration.
 
 type KubernetesConfig struct {
+	Kubeconfig string `json:"kubeconfig,omitempty"`
 
-	Kubeconfig     string              `json:"kubeconfig,omitempty"`
+	Context string `json:"context,omitempty"`
 
-	Context        string              `json:"context,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
 
-	Namespace      string              `json:"namespace,omitempty"`
+	ResourceQuotas map[string]string `json:"resourceQuotas,omitempty"`
 
-	ResourceQuotas map[string]string   `json:"resourceQuotas,omitempty"`
+	NodeSelectors map[string]string `json:"nodeSelectors,omitempty"`
 
-	NodeSelectors  map[string]string   `json:"nodeSelectors,omitempty"`
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 
-	Tolerations    []corev1.Toleration `json:"tolerations,omitempty"`
-
-	Affinity       *corev1.Affinity    `json:"affinity,omitempty"`
-
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 }
-
-
 
 // HelmConfig configuration for Helm chart management.
 
 type HelmConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
 
-	Enabled          bool             `json:"enabled,omitempty"`
+	Repositories []HelmRepository `json:"repositories,omitempty"`
 
-	Repositories     []HelmRepository `json:"repositories,omitempty"`
+	DefaultTimeout time.Duration `json:"defaultTimeout,omitempty"`
 
-	DefaultTimeout   time.Duration    `json:"defaultTimeout,omitempty"`
+	MaxHistory int `json:"maxHistory,omitempty"`
 
-	MaxHistory       int              `json:"maxHistory,omitempty"`
-
-	ValuesValidation bool             `json:"valuesValidation,omitempty"`
-
+	ValuesValidation bool `json:"valuesValidation,omitempty"`
 }
-
-
 
 // HelmRepository represents a Helm repository.
 
 type HelmRepository struct {
+	Name string `json:"name"`
 
-	Name     string `json:"name"`
-
-	URL      string `json:"url"`
+	URL string `json:"url"`
 
 	Username string `json:"username,omitempty"`
 
@@ -365,475 +270,372 @@ type HelmRepository struct {
 
 	CertFile string `json:"certFile,omitempty"`
 
-	KeyFile  string `json:"keyFile,omitempty"`
+	KeyFile string `json:"keyFile,omitempty"`
 
-	CAFile   string `json:"caFile,omitempty"`
-
+	CAFile string `json:"caFile,omitempty"`
 }
-
-
 
 // OperatorConfig configuration for Kubernetes operators.
 
 type OperatorConfig struct {
-
-	Enabled         bool             `json:"enabled,omitempty"`
+	Enabled bool `json:"enabled,omitempty"`
 
 	OperatorCatalog []OperatorSource `json:"operatorCatalog,omitempty"`
 
-	AutoUpgrade     bool             `json:"autoUpgrade,omitempty"`
+	AutoUpgrade bool `json:"autoUpgrade,omitempty"`
 
-	UpgradeChannel  string           `json:"upgradeChannel,omitempty"`
-
+	UpgradeChannel string `json:"upgradeChannel,omitempty"`
 }
-
-
 
 // OperatorSource represents an operator source.
 
 type OperatorSource struct {
+	Name string `json:"name"`
 
-	Name    string `json:"name"`
+	Type string `json:"type"` // olm, helm, custom
 
-	Type    string `json:"type"` // olm, helm, custom
-
-	Source  string `json:"source"`
+	Source string `json:"source"`
 
 	Version string `json:"version,omitempty"`
-
 }
-
-
 
 // ServiceMeshConfig configuration for service mesh integration.
 
 type ServiceMeshConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
 
-	Enabled          bool            `json:"enabled,omitempty"`
+	MeshType string `json:"meshType"` // istio, linkerd, consul-connect
 
-	MeshType         string          `json:"meshType"` // istio, linkerd, consul-connect
+	InjectionEnabled bool `json:"injectionEnabled,omitempty"`
 
-	InjectionEnabled bool            `json:"injectionEnabled,omitempty"`
+	TLSMode string `json:"tlsMode,omitempty"`
 
-	TLSMode          string          `json:"tlsMode,omitempty"`
-
-	TrafficPolicies  []TrafficPolicy `json:"trafficPolicies,omitempty"`
-
+	TrafficPolicies []TrafficPolicy `json:"trafficPolicies,omitempty"`
 }
-
-
 
 // TrafficPolicy represents a service mesh traffic policy.
 
 type TrafficPolicy struct {
+	Name string `json:"name"`
 
-	Name  string                 `json:"name"`
-
-	Type  string                 `json:"type"`
+	Type string `json:"type"`
 
 	Rules map[string]interface{} `json:"rules"`
-
 }
-
-
 
 // RegistryConfig configuration for container registry.
 
 type RegistryConfig struct {
+	DefaultRegistry string `json:"defaultRegistry,omitempty"`
 
-	DefaultRegistry string             `json:"defaultRegistry,omitempty"`
+	Registries []RegistryEndpoint `json:"registries,omitempty"`
 
-	Registries      []RegistryEndpoint `json:"registries,omitempty"`
+	PullSecrets []string `json:"pullSecrets,omitempty"`
 
-	PullSecrets     []string           `json:"pullSecrets,omitempty"`
+	ScanEnabled bool `json:"scanEnabled,omitempty"`
 
-	ScanEnabled     bool               `json:"scanEnabled,omitempty"`
-
-	ScanPolicies    []ScanPolicy       `json:"scanPolicies,omitempty"`
-
+	ScanPolicies []ScanPolicy `json:"scanPolicies,omitempty"`
 }
-
-
 
 // RegistryEndpoint represents a container registry endpoint.
 
 type RegistryEndpoint struct {
+	Name string `json:"name"`
 
-	Name     string `json:"name"`
-
-	URL      string `json:"url"`
+	URL string `json:"url"`
 
 	Username string `json:"username,omitempty"`
 
 	Password string `json:"password,omitempty"`
 
-	Insecure bool   `json:"insecure,omitempty"`
-
+	Insecure bool `json:"insecure,omitempty"`
 }
-
-
 
 // ScanPolicy represents a container image scan policy.
 
 type ScanPolicy struct {
-
-	Name     string   `json:"name"`
+	Name string `json:"name"`
 
 	Severity []string `json:"severity"`
 
-	Action   string   `json:"action"`
-
+	Action string `json:"action"`
 }
-
-
 
 // CNFLifecycleConfig configuration for CNF lifecycle management.
 
 type CNFLifecycleConfig struct {
+	AutoScaling *AutoScalingConfig `json:"autoScaling,omitempty"`
 
-	AutoScaling    *AutoScalingConfig        `json:"autoScaling,omitempty"`
+	HealthChecks *models.HealthCheckConfig `json:"healthChecks,omitempty"`
 
-	HealthChecks   *models.HealthCheckConfig `json:"healthChecks,omitempty"`
+	UpdateStrategy *UpdateStrategyConfig `json:"updateStrategy,omitempty"`
 
-	UpdateStrategy *UpdateStrategyConfig     `json:"updateStrategy,omitempty"`
-
-	BackupStrategy *BackupStrategyConfig     `json:"backupStrategy,omitempty"`
-
+	BackupStrategy *BackupStrategyConfig `json:"backupStrategy,omitempty"`
 }
-
-
 
 // AutoScalingConfig configuration for CNF auto-scaling.
 
 type AutoScalingConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
 
-	Enabled         bool           `json:"enabled,omitempty"`
+	MinReplicas int32 `json:"minReplicas,omitempty"`
 
-	MinReplicas     int32          `json:"minReplicas,omitempty"`
+	MaxReplicas int32 `json:"maxReplicas,omitempty"`
 
-	MaxReplicas     int32          `json:"maxReplicas,omitempty"`
+	CPUThreshold int32 `json:"cpuThreshold,omitempty"`
 
-	CPUThreshold    int32          `json:"cpuThreshold,omitempty"`
+	MemoryThreshold int32 `json:"memoryThreshold,omitempty"`
 
-	MemoryThreshold int32          `json:"memoryThreshold,omitempty"`
-
-	CustomMetrics   []CustomMetric `json:"customMetrics,omitempty"`
-
+	CustomMetrics []CustomMetric `json:"customMetrics,omitempty"`
 }
-
-
 
 // CustomMetric represents a custom scaling metric.
 
 type CustomMetric struct {
+	Name string `json:"name"`
 
-	Name   string      `json:"name"`
-
-	Type   string      `json:"type"`
+	Type string `json:"type"`
 
 	Target interface{} `json:"target"`
-
 }
-
-
 
 // UpdateStrategyConfig configuration for CNF updates.
 
 type UpdateStrategyConfig struct {
+	Type string `json:"type"` // RollingUpdate, Recreate, BlueGreen, Canary
 
-	Type           string       `json:"type"` // RollingUpdate, Recreate, BlueGreen, Canary
+	MaxUnavailable string `json:"maxUnavailable,omitempty"`
 
-	MaxUnavailable string       `json:"maxUnavailable,omitempty"`
+	MaxSurge string `json:"maxSurge,omitempty"`
 
-	MaxSurge       string       `json:"maxSurge,omitempty"`
-
-	CanarySteps    []CanaryStep `json:"canarySteps,omitempty"`
-
+	CanarySteps []CanaryStep `json:"canarySteps,omitempty"`
 }
-
-
 
 // CanaryStep represents a canary deployment step.
 
 type CanaryStep struct {
+	Weight int32 `json:"weight"`
 
-	Weight   int32           `json:"weight"`
-
-	Duration time.Duration   `json:"duration"`
+	Duration time.Duration `json:"duration"`
 
 	Analysis *AnalysisConfig `json:"analysis,omitempty"`
-
 }
-
-
 
 // AnalysisConfig configuration for deployment analysis.
 
 type AnalysisConfig struct {
+	Metrics []string `json:"metrics"`
 
-	Metrics      []string           `json:"metrics"`
+	Thresholds map[string]float64 `json:"thresholds"`
 
-	Thresholds   map[string]float64 `json:"thresholds"`
-
-	FailureLimit int32              `json:"failureLimit"`
-
+	FailureLimit int32 `json:"failureLimit"`
 }
-
-
 
 // BackupStrategyConfig configuration for CNF backup.
 
 type BackupStrategyConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
 
-	Enabled         bool   `json:"enabled,omitempty"`
+	Schedule string `json:"schedule,omitempty"`
 
-	Schedule        string `json:"schedule,omitempty"`
-
-	Retention       int32  `json:"retention,omitempty"`
+	Retention int32 `json:"retention,omitempty"`
 
 	StorageLocation string `json:"storageLocation,omitempty"`
-
 }
-
-
 
 // SecurityPolicies configuration for CNF security.
 
 type SecurityPolicies struct {
+	PodSecurityStandard string `json:"podSecurityStandard,omitempty"`
 
-	PodSecurityStandard      string                 `json:"podSecurityStandard,omitempty"`
+	RunAsNonRoot bool `json:"runAsNonRoot,omitempty"`
 
-	RunAsNonRoot             bool                   `json:"runAsNonRoot,omitempty"`
+	ReadOnlyRootFilesystem bool `json:"readOnlyRootFilesystem,omitempty"`
 
-	ReadOnlyRootFilesystem   bool                   `json:"readOnlyRootFilesystem,omitempty"`
+	AllowPrivilegeEscalation bool `json:"allowPrivilegeEscalation,omitempty"`
 
-	AllowPrivilegeEscalation bool                   `json:"allowPrivilegeEscalation,omitempty"`
+	SeccompProfile string `json:"seccompProfile,omitempty"`
 
-	SeccompProfile           string                 `json:"seccompProfile,omitempty"`
-
-	SelinuxOptions           *corev1.SELinuxOptions `json:"selinuxOptions,omitempty"`
-
+	SelinuxOptions *corev1.SELinuxOptions `json:"selinuxOptions,omitempty"`
 }
-
-
 
 // NetworkPolicies configuration for CNF network policies.
 
 type NetworkPolicies struct {
-
-	DefaultDeny  bool                       `json:"defaultDeny,omitempty"`
+	DefaultDeny bool `json:"defaultDeny,omitempty"`
 
 	IngressRules []models.NetworkPolicyRule `json:"ingressRules,omitempty"`
 
-	EgressRules  []models.NetworkPolicyRule `json:"egressRules,omitempty"`
-
+	EgressRules []models.NetworkPolicyRule `json:"egressRules,omitempty"`
 }
-
-
 
 // CNFInstance represents a CNF instance.
 
 type CNFInstance struct {
+	ID string `json:"id"`
 
-	ID         string         `json:"id"`
+	Name string `json:"name"`
 
-	Name       string         `json:"name"`
+	Type string `json:"type"` // 5G Core, O-RAN, Edge
 
-	Type       string         `json:"type"` // 5G Core, O-RAN, Edge
+	Version string `json:"version"`
 
-	Version    string         `json:"version"`
+	Namespace string `json:"namespace"`
 
-	Namespace  string         `json:"namespace"`
+	Status *CNFStatus `json:"status"`
 
-	Status     *CNFStatus     `json:"status"`
-
-	Spec       *CNFSpec       `json:"spec"`
+	Spec *CNFSpec `json:"spec"`
 
 	Deployment *CNFDeployment `json:"deployment,omitempty"`
 
-	CreatedAt  time.Time      `json:"createdAt"`
+	CreatedAt time.Time `json:"createdAt"`
 
-	UpdatedAt  time.Time      `json:"updatedAt"`
-
+	UpdatedAt time.Time `json:"updatedAt"`
 }
-
-
 
 // CNFStatus represents the status of a CNF instance.
 
 type CNFStatus struct {
+	Phase string `json:"phase"` // Pending, Running, Failed, Succeeded
 
-	Phase             string         `json:"phase"` // Pending, Running, Failed, Succeeded
+	Replicas int32 `json:"replicas"`
 
-	Replicas          int32          `json:"replicas"`
+	ReadyReplicas int32 `json:"readyReplicas"`
 
-	ReadyReplicas     int32          `json:"readyReplicas"`
+	AvailableReplicas int32 `json:"availableReplicas"`
 
-	AvailableReplicas int32          `json:"availableReplicas"`
+	Conditions []CNFCondition `json:"conditions,omitempty"`
 
-	Conditions        []CNFCondition `json:"conditions,omitempty"`
+	Health string `json:"health"` // Healthy, Degraded, Unhealthy
 
-	Health            string         `json:"health"` // Healthy, Degraded, Unhealthy
-
-	LastHealthCheck   time.Time      `json:"lastHealthCheck"`
-
+	LastHealthCheck time.Time `json:"lastHealthCheck"`
 }
-
-
 
 // CNFCondition represents a condition of a CNF.
 
 type CNFCondition struct {
+	Type string `json:"type"`
 
-	Type               string    `json:"type"`
+	Status string `json:"status"`
 
-	Status             string    `json:"status"`
+	Reason string `json:"reason,omitempty"`
 
-	Reason             string    `json:"reason,omitempty"`
-
-	Message            string    `json:"message,omitempty"`
+	Message string `json:"message,omitempty"`
 
 	LastTransitionTime time.Time `json:"lastTransitionTime"`
-
 }
-
-
 
 // CNFSpec represents the specification of a CNF.
 
 type CNFSpec struct {
+	Image string `json:"image"`
 
-	Image           string                       `json:"image"`
+	Tag string `json:"tag"`
 
-	Tag             string                       `json:"tag"`
+	Replicas int32 `json:"replicas"`
 
-	Replicas        int32                        `json:"replicas"`
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 
-	Resources       *corev1.ResourceRequirements `json:"resources,omitempty"`
+	Environment []corev1.EnvVar `json:"environment,omitempty"`
 
-	Environment     []corev1.EnvVar              `json:"environment,omitempty"`
+	Volumes []corev1.Volume `json:"volumes,omitempty"`
 
-	Volumes         []corev1.Volume              `json:"volumes,omitempty"`
+	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
 
-	VolumeMounts    []corev1.VolumeMount         `json:"volumeMounts,omitempty"`
+	Ports []corev1.ContainerPort `json:"ports,omitempty"`
 
-	Ports           []corev1.ContainerPort       `json:"ports,omitempty"`
+	LivenessProbe *corev1.Probe `json:"livenessProbe,omitempty"`
 
-	LivenessProbe   *corev1.Probe                `json:"livenessProbe,omitempty"`
+	ReadinessProbe *corev1.Probe `json:"readinessProbe,omitempty"`
 
-	ReadinessProbe  *corev1.Probe                `json:"readinessProbe,omitempty"`
+	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
 
-	SecurityContext *corev1.SecurityContext      `json:"securityContext,omitempty"`
+	ServiceAccount string `json:"serviceAccount,omitempty"`
 
-	ServiceAccount  string                       `json:"serviceAccount,omitempty"`
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
-	NodeSelector    map[string]string            `json:"nodeSelector,omitempty"`
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 
-	Tolerations     []corev1.Toleration          `json:"tolerations,omitempty"`
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 
-	Affinity        *corev1.Affinity             `json:"affinity,omitempty"`
+	HelmChart *HelmChartSpec `json:"helmChart,omitempty"`
 
-	HelmChart       *HelmChartSpec               `json:"helmChart,omitempty"`
+	Operator *OperatorSpec `json:"operator,omitempty"`
 
-	Operator        *OperatorSpec                `json:"operator,omitempty"`
-
-	ServiceMesh     *ServiceMeshSpec             `json:"serviceMesh,omitempty"`
-
+	ServiceMesh *ServiceMeshSpec `json:"serviceMesh,omitempty"`
 }
-
-
 
 // HelmChartSpec represents a Helm chart specification.
 
 type HelmChartSpec struct {
+	Repository string `json:"repository"`
 
-	Repository  string                 `json:"repository"`
+	Chart string `json:"chart"`
 
-	Chart       string                 `json:"chart"`
+	Version string `json:"version"`
 
-	Version     string                 `json:"version"`
+	Values map[string]interface{} `json:"values,omitempty"`
 
-	Values      map[string]interface{} `json:"values,omitempty"`
-
-	ValuesFiles []string               `json:"valuesFiles,omitempty"`
-
+	ValuesFiles []string `json:"valuesFiles,omitempty"`
 }
-
-
 
 // OperatorSpec represents an operator specification.
 
 type OperatorSpec struct {
+	Name string `json:"name"`
 
-	Name            string                 `json:"name"`
+	Version string `json:"version"`
 
-	Version         string                 `json:"version"`
+	Channel string `json:"channel"`
 
-	Channel         string                 `json:"channel"`
-
-	Source          string                 `json:"source"`
+	Source string `json:"source"`
 
 	CustomResources []runtime.RawExtension `json:"customResources,omitempty"`
-
 }
-
-
 
 // ServiceMeshSpec represents service mesh configuration.
 
 type ServiceMeshSpec struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled          bool     `json:"enabled"`
+	InjectionEnabled bool `json:"injectionEnabled"`
 
-	InjectionEnabled bool     `json:"injectionEnabled"`
+	TLSMode string `json:"tlsMode,omitempty"`
 
-	TLSMode          string   `json:"tlsMode,omitempty"`
-
-	TrafficPolicies  []string `json:"trafficPolicies,omitempty"`
-
+	TrafficPolicies []string `json:"trafficPolicies,omitempty"`
 }
-
-
 
 // CNFDeployment represents a CNF deployment.
 
 type CNFDeployment struct {
+	ID string `json:"id"`
 
-	ID        string        `json:"id"`
+	CNFID string `json:"cnfId"`
 
-	CNFID     string        `json:"cnfId"`
+	Type string `json:"type"` // helm, operator, manifest
 
-	Type      string        `json:"type"` // helm, operator, manifest
-
-	Status    string        `json:"status"`
+	Status string `json:"status"`
 
 	Resources []ResourceRef `json:"resources"`
 
-	CreatedAt time.Time     `json:"createdAt"`
+	CreatedAt time.Time `json:"createdAt"`
 
-	UpdatedAt time.Time     `json:"updatedAt"`
-
+	UpdatedAt time.Time `json:"updatedAt"`
 }
-
-
 
 // ResourceRef represents a reference to a Kubernetes resource.
 
 type ResourceRef struct {
+	APIVersion string `json:"apiVersion"`
 
-	APIVersion string    `json:"apiVersion"`
+	Kind string `json:"kind"`
 
-	Kind       string    `json:"kind"`
+	Name string `json:"name"`
 
-	Name       string    `json:"name"`
+	Namespace string `json:"namespace"`
 
-	Namespace  string    `json:"namespace"`
-
-	UID        types.UID `json:"uid"`
-
+	UID types.UID `json:"uid"`
 }
-
-
 
 // NewCNFManagementService creates a new CNF management service.
 
@@ -853,19 +655,13 @@ func NewCNFManagementService(
 
 	}
 
-
-
 	if logger == nil {
 
 		logger = logging.NewStructuredLogger(logging.DefaultConfig("cnf-management", "1.0.0", "production"))
 
 	}
 
-
-
 	ctx, cancel := context.WithCancel(context.Background())
-
-
 
 	// Initialize managers.
 
@@ -879,43 +675,36 @@ func NewCNFManagementService(
 
 	registryManager := NewContainerRegistryManager(config.RegistryConfig, logger)
 
-
-
 	service := &CNFManagementService{
 
-		config:             config,
+		config: config,
 
-		logger:             logger,
+		logger: logger,
 
-		k8sClient:          k8sClient,
+		k8sClient: k8sClient,
 
-		lifecycleManager:   lifecycleManager,
+		lifecycleManager: lifecycleManager,
 
-		helmManager:        helmManager,
+		helmManager: helmManager,
 
-		operatorManager:    operatorManager,
+		operatorManager: operatorManager,
 
 		serviceMeshManager: serviceMeshManager,
 
-		registryManager:    registryManager,
+		registryManager: registryManager,
 
-		cnfInstances:       make(map[string]*CNFInstance),
+		cnfInstances: make(map[string]*CNFInstance),
 
-		deployments:        make(map[string]*CNFDeployment),
+		deployments: make(map[string]*CNFDeployment),
 
-		ctx:                ctx,
+		ctx: ctx,
 
-		cancel:             cancel,
-
+		cancel: cancel,
 	}
-
-
 
 	return service, nil
 
 }
-
-
 
 // DefaultCNFConfig returns default CNF configuration.
 
@@ -926,132 +715,116 @@ func DefaultCNFConfig() *CNFConfig {
 		KubernetesConfig: &KubernetesConfig{
 
 			Namespace: "default",
-
 		},
 
 		HelmConfig: &HelmConfig{
 
-			Enabled:        true,
+			Enabled: true,
 
 			DefaultTimeout: 10 * time.Minute,
 
-			MaxHistory:     5,
-
+			MaxHistory: 5,
 		},
 
 		OperatorConfig: &OperatorConfig{
 
-			Enabled:        true,
+			Enabled: true,
 
-			AutoUpgrade:    false,
+			AutoUpgrade: false,
 
 			UpgradeChannel: "stable",
-
 		},
 
 		ServiceMeshConfig: &ServiceMeshConfig{
 
-			Enabled:          false,
+			Enabled: false,
 
-			MeshType:         "istio",
+			MeshType: "istio",
 
 			InjectionEnabled: true,
 
-			TLSMode:          "PERMISSIVE",
-
+			TLSMode: "PERMISSIVE",
 		},
 
 		RegistryConfig: &RegistryConfig{
 
 			DefaultRegistry: "docker.io",
 
-			ScanEnabled:     true,
-
+			ScanEnabled: true,
 		},
 
 		LifecycleConfig: &CNFLifecycleConfig{
 
 			AutoScaling: &AutoScalingConfig{
 
-				Enabled:     false,
+				Enabled: false,
 
 				MinReplicas: 1,
 
 				MaxReplicas: 10,
-
 			},
 
 			HealthChecks: &models.HealthCheckConfig{
 
-				Name:                "default-health-check",
+				Name: "default-health-check",
 
-				Type:                "HTTP",
+				Type: "HTTP",
 
-				Path:                "/health",
+				Path: "/health",
 
-				Port:                8080,
+				Port: 8080,
 
 				InitialDelaySeconds: 30,
 
-				PeriodSeconds:       30,
+				PeriodSeconds: 30,
 
-				TimeoutSeconds:      5,
+				TimeoutSeconds: 5,
 
-				SuccessThreshold:    1,
+				SuccessThreshold: 1,
 
-				FailureThreshold:    3,
-
+				FailureThreshold: 3,
 			},
 
 			UpdateStrategy: &UpdateStrategyConfig{
 
-				Type:           "RollingUpdate",
+				Type: "RollingUpdate",
 
 				MaxUnavailable: "25%",
 
-				MaxSurge:       "25%",
-
+				MaxSurge: "25%",
 			},
-
 		},
 
 		MonitoringEnabled: true,
 
-		TracingEnabled:    true,
+		TracingEnabled: true,
 
-		LoggingEnabled:    true,
+		LoggingEnabled: true,
 
 		SecurityPolicies: &SecurityPolicies{
 
-			PodSecurityStandard:      "restricted",
+			PodSecurityStandard: "restricted",
 
-			RunAsNonRoot:             true,
+			RunAsNonRoot: true,
 
-			ReadOnlyRootFilesystem:   true,
+			ReadOnlyRootFilesystem: true,
 
 			AllowPrivilegeEscalation: false,
-
 		},
 
 		NetworkPolicies: &NetworkPolicies{
 
 			DefaultDeny: true,
-
 		},
-
 	}
 
 }
-
-
 
 // Start starts the CNF management service.
 
 func (s *CNFManagementService) Start(ctx context.Context) error {
 
 	s.logger.Info("starting CNF management service")
-
-
 
 	// Initialize managers.
 
@@ -1061,25 +834,17 @@ func (s *CNFManagementService) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start background processes.
 
 	s.wg.Add(2)
-
-
 
 	go s.cnfMonitoringLoop()
 
 	go s.cnfReconcileLoop()
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the CNF management service.
 
@@ -1087,13 +852,9 @@ func (s *CNFManagementService) Stop() error {
 
 	s.logger.Info("stopping CNF management service")
 
-
-
 	s.cancel()
 
 	s.wg.Wait()
-
-
 
 	s.logger.Info("CNF management service stopped")
 
@@ -1101,15 +862,11 @@ func (s *CNFManagementService) Stop() error {
 
 }
 
-
-
 // initializeManagers initializes all managers.
 
 func (s *CNFManagementService) initializeManagers() error {
 
 	s.logger.Info("initializing CNF managers")
-
-
 
 	// Initialize Helm manager.
 
@@ -1123,8 +880,6 @@ func (s *CNFManagementService) initializeManagers() error {
 
 	}
 
-
-
 	// Initialize operator manager.
 
 	if s.config.OperatorConfig.Enabled {
@@ -1136,8 +891,6 @@ func (s *CNFManagementService) initializeManagers() error {
 		}
 
 	}
-
-
 
 	// Initialize service mesh manager.
 
@@ -1151,13 +904,9 @@ func (s *CNFManagementService) initializeManagers() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // cnfMonitoringLoop monitors CNF instances.
 
@@ -1165,13 +914,9 @@ func (s *CNFManagementService) cnfMonitoringLoop() {
 
 	defer s.wg.Done()
 
-
-
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1191,21 +936,15 @@ func (s *CNFManagementService) cnfMonitoringLoop() {
 
 }
 
-
-
 // cnfReconcileLoop reconciles CNF instances.
 
 func (s *CNFManagementService) cnfReconcileLoop() {
 
 	defer s.wg.Done()
 
-
-
 	ticker := time.NewTicker(60 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1225,8 +964,6 @@ func (s *CNFManagementService) cnfReconcileLoop() {
 
 }
 
-
-
 // monitorCNFInstances monitors all CNF instances.
 
 func (s *CNFManagementService) monitorCNFInstances() {
@@ -1243,8 +980,6 @@ func (s *CNFManagementService) monitorCNFInstances() {
 
 	s.mu.RUnlock()
 
-
-
 	for id, instance := range cnfInstances {
 
 		go s.monitorCNFInstance(id, instance)
@@ -1252,8 +987,6 @@ func (s *CNFManagementService) monitorCNFInstances() {
 	}
 
 }
-
-
 
 // monitorCNFInstance monitors a single CNF instance.
 
@@ -1265,10 +998,9 @@ func (s *CNFManagementService) monitorCNFInstance(id string, instance *CNFInstan
 
 	err := s.k8sClient.Get(s.ctx, client.ObjectKey{
 
-		Name:      instance.Name,
+		Name: instance.Name,
 
 		Namespace: instance.Namespace,
-
 	}, deployment)
 
 	if err != nil {
@@ -1285,15 +1017,11 @@ func (s *CNFManagementService) monitorCNFInstance(id string, instance *CNFInstan
 
 	}
 
-
-
 	// Update CNF status.
 
 	s.updateCNFStatus(instance, deployment)
 
 }
-
-
 
 // updateCNFStatus updates CNF status based on deployment.
 
@@ -1303,15 +1031,11 @@ func (s *CNFManagementService) updateCNFStatus(instance *CNFInstance, deployment
 
 	defer s.mu.Unlock()
 
-
-
 	if instance.Status == nil {
 
 		instance.Status = &CNFStatus{}
 
 	}
-
-
 
 	// Update replica counts.
 
@@ -1320,8 +1044,6 @@ func (s *CNFManagementService) updateCNFStatus(instance *CNFInstance, deployment
 	instance.Status.ReadyReplicas = deployment.Status.ReadyReplicas
 
 	instance.Status.AvailableReplicas = deployment.Status.AvailableReplicas
-
-
 
 	// Determine phase.
 
@@ -1351,15 +1073,11 @@ func (s *CNFManagementService) updateCNFStatus(instance *CNFInstance, deployment
 
 	}
 
-
-
 	instance.Status.LastHealthCheck = time.Now()
 
 	instance.UpdatedAt = time.Now()
 
 }
-
-
 
 // reconcileCNFInstances reconciles all CNF instances.
 
@@ -1377,8 +1095,6 @@ func (s *CNFManagementService) reconcileCNFInstances() {
 
 	s.mu.RUnlock()
 
-
-
 	for id, instance := range cnfInstances {
 
 		go s.reconcileCNFInstance(id, instance)
@@ -1386,8 +1102,6 @@ func (s *CNFManagementService) reconcileCNFInstances() {
 	}
 
 }
-
-
 
 // reconcileCNFInstance reconciles a single CNF instance.
 
@@ -1409,8 +1123,6 @@ func (s *CNFManagementService) reconcileCNFInstance(id string, instance *CNFInst
 
 	}
 
-
-
 	// Check if CNF needs updates.
 
 	if s.shouldUpdateCNF(instance) {
@@ -1429,31 +1141,27 @@ func (s *CNFManagementService) reconcileCNFInstance(id string, instance *CNFInst
 
 }
 
-
-
 // DeployCNF deploys a new CNF instance.
 
 func (s *CNFManagementService) DeployCNF(ctx context.Context, spec *CNFSpec) (*CNFInstance, error) {
 
 	s.logger.Info("deploying CNF", "name", spec.Image)
 
-
-
 	// Generate CNF instance.
 
 	instance := &CNFInstance{
 
-		ID:        fmt.Sprintf("cnf-%d", time.Now().Unix()),
+		ID: fmt.Sprintf("cnf-%d", time.Now().Unix()),
 
-		Name:      s.generateCNFName(spec.Image),
+		Name: s.generateCNFName(spec.Image),
 
-		Type:      s.determineCNFType(spec.Image),
+		Type: s.determineCNFType(spec.Image),
 
-		Version:   spec.Tag,
+		Version: spec.Tag,
 
 		Namespace: s.config.KubernetesConfig.Namespace,
 
-		Spec:      spec,
+		Spec: spec,
 
 		CreatedAt: time.Now(),
 
@@ -1461,23 +1169,17 @@ func (s *CNFManagementService) DeployCNF(ctx context.Context, spec *CNFSpec) (*C
 
 		Status: &CNFStatus{
 
-			Phase:  "Pending",
+			Phase: "Pending",
 
 			Health: "Unknown",
-
 		},
-
 	}
-
-
 
 	// Deploy based on type.
 
 	var deployment *CNFDeployment
 
 	var err error
-
-
 
 	if spec.HelmChart != nil {
 
@@ -1493,19 +1195,13 @@ func (s *CNFManagementService) DeployCNF(ctx context.Context, spec *CNFSpec) (*C
 
 	}
 
-
-
 	if err != nil {
 
 		return nil, fmt.Errorf("failed to deploy CNF: %w", err)
 
 	}
 
-
-
 	instance.Deployment = deployment
-
-
 
 	// Store CNF instance.
 
@@ -1517,8 +1213,6 @@ func (s *CNFManagementService) DeployCNF(ctx context.Context, spec *CNFSpec) (*C
 
 	s.mu.Unlock()
 
-
-
 	s.logger.Info("CNF deployed successfully",
 
 		"cnf_id", instance.ID,
@@ -1527,13 +1221,9 @@ func (s *CNFManagementService) DeployCNF(ctx context.Context, spec *CNFSpec) (*C
 
 		"deployment_id", deployment.ID)
 
-
-
 	return instance, nil
 
 }
-
-
 
 // deployWithHelm deploys CNF using Helm.
 
@@ -1545,26 +1235,23 @@ func (s *CNFManagementService) deployWithHelm(ctx context.Context, instance *CNF
 
 		"chart", helmChart.Chart)
 
-
-
 	// Deploy using Helm manager.
 
 	release, err := s.helmManager.Deploy(ctx, &HelmDeployRequest{
 
 		ReleaseName: instance.Name,
 
-		Namespace:   instance.Namespace,
+		Namespace: instance.Namespace,
 
-		Repository:  helmChart.Repository,
+		Repository: helmChart.Repository,
 
-		Chart:       helmChart.Chart,
+		Chart: helmChart.Chart,
 
-		Version:     helmChart.Version,
+		Version: helmChart.Version,
 
-		Values:      helmChart.Values,
+		Values: helmChart.Values,
 
 		ValuesFiles: helmChart.ValuesFiles,
-
 	})
 
 	if err != nil {
@@ -1573,33 +1260,26 @@ func (s *CNFManagementService) deployWithHelm(ctx context.Context, instance *CNF
 
 	}
 
-
-
 	deployment := &CNFDeployment{
 
-		ID:        fmt.Sprintf("helm-%d", time.Now().Unix()),
+		ID: fmt.Sprintf("helm-%d", time.Now().Unix()),
 
-		CNFID:     instance.ID,
+		CNFID: instance.ID,
 
-		Type:      "helm",
+		Type: "helm",
 
-		Status:    "deployed",
+		Status: "deployed",
 
 		Resources: s.extractResourceRefsFromInterfaces(release.Resources),
 
 		CreatedAt: time.Now(),
 
 		UpdatedAt: time.Now(),
-
 	}
-
-
 
 	return deployment, nil
 
 }
-
-
 
 // deployWithOperator deploys CNF using Kubernetes operator.
 
@@ -1611,8 +1291,6 @@ func (s *CNFManagementService) deployWithOperator(ctx context.Context, instance 
 
 		"operator", operatorSpec.Name)
 
-
-
 	// Convert CustomResources to []interface{}.
 
 	customResources := make([]interface{}, len(operatorSpec.CustomResources))
@@ -1623,26 +1301,23 @@ func (s *CNFManagementService) deployWithOperator(ctx context.Context, instance 
 
 	}
 
-
-
 	// Deploy using operator manager.
 
 	resources, err := s.operatorManager.Deploy(ctx, &OperatorDeployRequest{
 
-		Name:            instance.Name,
+		Name: instance.Name,
 
-		Namespace:       instance.Namespace,
+		Namespace: instance.Namespace,
 
-		OperatorName:    operatorSpec.Name,
+		OperatorName: operatorSpec.Name,
 
-		Version:         operatorSpec.Version,
+		Version: operatorSpec.Version,
 
-		Channel:         operatorSpec.Channel,
+		Channel: operatorSpec.Channel,
 
-		Source:          operatorSpec.Source,
+		Source: operatorSpec.Source,
 
 		CustomResources: customResources,
-
 	})
 
 	if err != nil {
@@ -1651,33 +1326,26 @@ func (s *CNFManagementService) deployWithOperator(ctx context.Context, instance 
 
 	}
 
-
-
 	deployment := &CNFDeployment{
 
-		ID:        fmt.Sprintf("operator-%d", time.Now().Unix()),
+		ID: fmt.Sprintf("operator-%d", time.Now().Unix()),
 
-		CNFID:     instance.ID,
+		CNFID: instance.ID,
 
-		Type:      "operator",
+		Type: "operator",
 
-		Status:    "deployed",
+		Status: "deployed",
 
 		Resources: s.extractResourceRefsFromInterfaces(resources),
 
 		CreatedAt: time.Now(),
 
 		UpdatedAt: time.Now(),
-
 	}
-
-
 
 	return deployment, nil
 
 }
-
-
 
 // deployWithManifests deploys CNF using Kubernetes manifests.
 
@@ -1685,28 +1353,24 @@ func (s *CNFManagementService) deployWithManifests(ctx context.Context, instance
 
 	s.logger.Info("deploying CNF with manifests", "cnf_id", instance.ID)
 
-
-
 	// Create deployment manifest.
 
 	deployment := &appsv1.Deployment{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      instance.Name,
+			Name: instance.Name,
 
 			Namespace: instance.Namespace,
 
 			Labels: map[string]string{
 
-				"app":        instance.Name,
+				"app": instance.Name,
 
-				"cnf-id":     instance.ID,
+				"cnf-id": instance.ID,
 
 				"managed-by": "nephoran",
-
 			},
-
 		},
 
 		Spec: appsv1.DeploymentSpec{
@@ -1718,9 +1382,7 @@ func (s *CNFManagementService) deployWithManifests(ctx context.Context, instance
 				MatchLabels: map[string]string{
 
 					"app": instance.Name,
-
 				},
-
 			},
 
 			Template: corev1.PodTemplateSpec{
@@ -1730,9 +1392,7 @@ func (s *CNFManagementService) deployWithManifests(ctx context.Context, instance
 					Labels: map[string]string{
 
 						"app": instance.Name,
-
 					},
-
 				},
 
 				Spec: corev1.PodSpec{
@@ -1741,53 +1401,43 @@ func (s *CNFManagementService) deployWithManifests(ctx context.Context, instance
 
 						{
 
-							Name:            instance.Name,
+							Name: instance.Name,
 
-							Image:           fmt.Sprintf("%s:%s", instance.Spec.Image, instance.Spec.Tag),
+							Image: fmt.Sprintf("%s:%s", instance.Spec.Image, instance.Spec.Tag),
 
-							Ports:           instance.Spec.Ports,
+							Ports: instance.Spec.Ports,
 
-							Env:             instance.Spec.Environment,
+							Env: instance.Spec.Environment,
 
-							Resources:       *instance.Spec.Resources,
+							Resources: *instance.Spec.Resources,
 
-							VolumeMounts:    instance.Spec.VolumeMounts,
+							VolumeMounts: instance.Spec.VolumeMounts,
 
-							LivenessProbe:   instance.Spec.LivenessProbe,
+							LivenessProbe: instance.Spec.LivenessProbe,
 
-							ReadinessProbe:  instance.Spec.ReadinessProbe,
+							ReadinessProbe: instance.Spec.ReadinessProbe,
 
 							SecurityContext: instance.Spec.SecurityContext,
-
 						},
-
 					},
 
-					Volumes:            instance.Spec.Volumes,
+					Volumes: instance.Spec.Volumes,
 
 					ServiceAccountName: instance.Spec.ServiceAccount,
 
-					NodeSelector:       instance.Spec.NodeSelector,
+					NodeSelector: instance.Spec.NodeSelector,
 
-					Tolerations:        instance.Spec.Tolerations,
+					Tolerations: instance.Spec.Tolerations,
 
-					Affinity:           instance.Spec.Affinity,
-
+					Affinity: instance.Spec.Affinity,
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	// Apply security policies.
 
 	s.applySecurityPolicies(deployment)
-
-
 
 	// Create deployment.
 
@@ -1797,15 +1447,13 @@ func (s *CNFManagementService) deployWithManifests(ctx context.Context, instance
 
 	}
 
-
-
 	cnfDeployment := &CNFDeployment{
 
-		ID:     fmt.Sprintf("manifest-%d", time.Now().Unix()),
+		ID: fmt.Sprintf("manifest-%d", time.Now().Unix()),
 
-		CNFID:  instance.ID,
+		CNFID: instance.ID,
 
-		Type:   "manifest",
+		Type: "manifest",
 
 		Status: "deployed",
 
@@ -1815,35 +1463,26 @@ func (s *CNFManagementService) deployWithManifests(ctx context.Context, instance
 
 				APIVersion: deployment.APIVersion,
 
-				Kind:       deployment.Kind,
+				Kind: deployment.Kind,
 
-				Name:       deployment.Name,
+				Name: deployment.Name,
 
-				Namespace:  deployment.Namespace,
+				Namespace: deployment.Namespace,
 
-				UID:        deployment.UID,
-
+				UID: deployment.UID,
 			},
-
 		},
 
 		CreatedAt: time.Now(),
 
 		UpdatedAt: time.Now(),
-
 	}
-
-
 
 	return cnfDeployment, nil
 
 }
 
-
-
 // Helper functions.
-
-
 
 // generateCNFName generates a CNF name from image.
 
@@ -1857,15 +1496,11 @@ func (s *CNFManagementService) generateCNFName(image string) string {
 
 }
 
-
-
 // determineCNFType determines CNF type from image.
 
 func (s *CNFManagementService) determineCNFType(image string) string {
 
 	image = strings.ToLower(image)
-
-
 
 	if strings.Contains(image, "amf") || strings.Contains(image, "smf") ||
 
@@ -1883,13 +1518,9 @@ func (s *CNFManagementService) determineCNFType(image string) string {
 
 	}
 
-
-
 	return "Generic"
 
 }
-
-
 
 // applySecurityPolicies applies security policies to deployment.
 
@@ -1901,19 +1532,13 @@ func (s *CNFManagementService) applySecurityPolicies(deployment *appsv1.Deployme
 
 	}
 
-
-
 	container := &deployment.Spec.Template.Spec.Containers[0]
-
-
 
 	if container.SecurityContext == nil {
 
 		container.SecurityContext = &corev1.SecurityContext{}
 
 	}
-
-
 
 	if s.config.SecurityPolicies.RunAsNonRoot {
 
@@ -1923,8 +1548,6 @@ func (s *CNFManagementService) applySecurityPolicies(deployment *appsv1.Deployme
 
 	}
 
-
-
 	if s.config.SecurityPolicies.ReadOnlyRootFilesystem {
 
 		readOnlyRootFilesystem := true
@@ -1933,23 +1556,17 @@ func (s *CNFManagementService) applySecurityPolicies(deployment *appsv1.Deployme
 
 	}
 
-
-
 	allowPrivilegeEscalation := s.config.SecurityPolicies.AllowPrivilegeEscalation
 
 	container.SecurityContext.AllowPrivilegeEscalation = &allowPrivilegeEscalation
 
 }
 
-
-
 // extractResourceRefs extracts resource references from deployed resources.
 
 func (s *CNFManagementService) extractResourceRefs(resources []runtime.Object) []ResourceRef {
 
 	var refs []ResourceRef
-
-
 
 	for _, resource := range resources {
 
@@ -1959,35 +1576,28 @@ func (s *CNFManagementService) extractResourceRefs(resources []runtime.Object) [
 
 				APIVersion: resource.GetObjectKind().GroupVersionKind().GroupVersion().String(),
 
-				Kind:       resource.GetObjectKind().GroupVersionKind().Kind,
+				Kind: resource.GetObjectKind().GroupVersionKind().Kind,
 
-				Name:       obj.GetName(),
+				Name: obj.GetName(),
 
-				Namespace:  obj.GetNamespace(),
+				Namespace: obj.GetNamespace(),
 
-				UID:        obj.GetUID(),
-
+				UID: obj.GetUID(),
 			})
 
 		}
 
 	}
 
-
-
 	return refs
 
 }
-
-
 
 // extractResourceRefsFromInterfaces extracts resource references from interface{} resources.
 
 func (s *CNFManagementService) extractResourceRefsFromInterfaces(resources []interface{}) []ResourceRef {
 
 	var refs []ResourceRef
-
-
 
 	for _, resource := range resources {
 
@@ -1999,14 +1609,13 @@ func (s *CNFManagementService) extractResourceRefsFromInterfaces(resources []int
 
 					APIVersion: runtimeObj.GetObjectKind().GroupVersionKind().GroupVersion().String(),
 
-					Kind:       runtimeObj.GetObjectKind().GroupVersionKind().Kind,
+					Kind: runtimeObj.GetObjectKind().GroupVersionKind().Kind,
 
-					Name:       obj.GetName(),
+					Name: obj.GetName(),
 
-					Namespace:  obj.GetNamespace(),
+					Namespace: obj.GetNamespace(),
 
-					UID:        obj.GetUID(),
-
+					UID: obj.GetUID(),
 				})
 
 			}
@@ -2015,13 +1624,9 @@ func (s *CNFManagementService) extractResourceRefsFromInterfaces(resources []int
 
 	}
 
-
-
 	return refs
 
 }
-
-
 
 // shouldScaleCNF determines if CNF should be scaled.
 
@@ -2033,8 +1638,6 @@ func (s *CNFManagementService) shouldScaleCNF(instance *CNFInstance) bool {
 
 	}
 
-
-
 	// This would typically check metrics and determine if scaling is needed.
 
 	// For now, it's a placeholder.
@@ -2043,15 +1646,11 @@ func (s *CNFManagementService) shouldScaleCNF(instance *CNFInstance) bool {
 
 }
 
-
-
 // scaleCNF scales a CNF instance.
 
 func (s *CNFManagementService) scaleCNF(instance *CNFInstance) error {
 
 	s.logger.Info("scaling CNF", "cnf_id", instance.ID)
-
-
 
 	// Implementation would scale the CNF based on metrics.
 
@@ -2060,8 +1659,6 @@ func (s *CNFManagementService) scaleCNF(instance *CNFInstance) error {
 	return nil
 
 }
-
-
 
 // shouldUpdateCNF determines if CNF needs updates.
 
@@ -2075,15 +1672,11 @@ func (s *CNFManagementService) shouldUpdateCNF(instance *CNFInstance) bool {
 
 }
 
-
-
 // updateCNF updates a CNF instance.
 
 func (s *CNFManagementService) updateCNF(instance *CNFInstance) error {
 
 	s.logger.Info("updating CNF", "cnf_id", instance.ID)
-
-
 
 	// Implementation would update the CNF.
 
@@ -2093,8 +1686,6 @@ func (s *CNFManagementService) updateCNF(instance *CNFInstance) error {
 
 }
 
-
-
 // GetCNF retrieves a CNF instance by ID.
 
 func (s *CNFManagementService) GetCNF(ctx context.Context, id string) (*CNFInstance, error) {
@@ -2102,8 +1693,6 @@ func (s *CNFManagementService) GetCNF(ctx context.Context, id string) (*CNFInsta
 	s.mu.RLock()
 
 	defer s.mu.RUnlock()
-
-
 
 	instance, exists := s.cnfInstances[id]
 
@@ -2113,13 +1702,9 @@ func (s *CNFManagementService) GetCNF(ctx context.Context, id string) (*CNFInsta
 
 	}
 
-
-
 	return instance, nil
 
 }
-
-
 
 // ListCNFs lists all CNF instances.
 
@@ -2129,8 +1714,6 @@ func (s *CNFManagementService) ListCNFs(ctx context.Context) ([]*CNFInstance, er
 
 	defer s.mu.RUnlock()
 
-
-
 	instances := make([]*CNFInstance, 0, len(s.cnfInstances))
 
 	for _, instance := range s.cnfInstances {
@@ -2139,13 +1722,9 @@ func (s *CNFManagementService) ListCNFs(ctx context.Context) ([]*CNFInstance, er
 
 	}
 
-
-
 	return instances, nil
 
 }
-
-
 
 // UpdateCNF updates a CNF instance.
 
@@ -2155,8 +1734,6 @@ func (s *CNFManagementService) UpdateCNF(ctx context.Context, id string, spec *C
 
 	defer s.mu.Unlock()
 
-
-
 	instance, exists := s.cnfInstances[id]
 
 	if !exists {
@@ -2165,13 +1742,9 @@ func (s *CNFManagementService) UpdateCNF(ctx context.Context, id string, spec *C
 
 	}
 
-
-
 	instance.Spec = spec
 
 	instance.UpdatedAt = time.Now()
-
-
 
 	// Apply updates based on deployment type.
 
@@ -2199,8 +1772,6 @@ func (s *CNFManagementService) UpdateCNF(ctx context.Context, id string, spec *C
 
 }
 
-
-
 // DeleteCNF deletes a CNF instance.
 
 func (s *CNFManagementService) DeleteCNF(ctx context.Context, id string) error {
@@ -2208,8 +1779,6 @@ func (s *CNFManagementService) DeleteCNF(ctx context.Context, id string) error {
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
-
-
 
 	instance, exists := s.cnfInstances[id]
 
@@ -2219,11 +1788,7 @@ func (s *CNFManagementService) DeleteCNF(ctx context.Context, id string) error {
 
 	}
 
-
-
 	deployment := s.deployments[instance.Deployment.ID]
-
-
 
 	// Delete based on deployment type.
 
@@ -2255,12 +1820,10 @@ func (s *CNFManagementService) DeleteCNF(ctx context.Context, id string) error {
 
 				ObjectMeta: metav1.ObjectMeta{
 
-					Name:      resource.Name,
+					Name: resource.Name,
 
 					Namespace: resource.Namespace,
-
 				},
-
 			}
 
 			if err := s.k8sClient.Delete(ctx, obj); err != nil {
@@ -2277,23 +1840,17 @@ func (s *CNFManagementService) DeleteCNF(ctx context.Context, id string) error {
 
 	}
 
-
-
 	// Remove from tracking.
 
 	delete(s.cnfInstances, id)
 
 	delete(s.deployments, instance.Deployment.ID)
 
-
-
 	s.logger.Info("CNF deleted", "cnf_id", id)
 
 	return nil
 
 }
-
-
 
 // updateHelmDeployment updates a Helm deployment.
 
@@ -2305,33 +1862,26 @@ func (s *CNFManagementService) updateHelmDeployment(ctx context.Context, instanc
 
 	}
 
-
-
 	_, err := s.helmManager.Upgrade(ctx, &HelmUpgradeRequest{
 
 		ReleaseName: instance.Name,
 
-		Namespace:   instance.Namespace,
+		Namespace: instance.Namespace,
 
-		Repository:  instance.Spec.HelmChart.Repository,
+		Repository: instance.Spec.HelmChart.Repository,
 
-		Chart:       instance.Spec.HelmChart.Chart,
+		Chart: instance.Spec.HelmChart.Chart,
 
-		Version:     instance.Spec.HelmChart.Version,
+		Version: instance.Spec.HelmChart.Version,
 
-		Values:      instance.Spec.HelmChart.Values,
+		Values: instance.Spec.HelmChart.Values,
 
 		ValuesFiles: instance.Spec.HelmChart.ValuesFiles,
-
 	})
-
-
 
 	return err
 
 }
-
-
 
 // updateOperatorDeployment updates an operator deployment.
 
@@ -2343,8 +1893,6 @@ func (s *CNFManagementService) updateOperatorDeployment(ctx context.Context, ins
 
 	}
 
-
-
 	// Convert CustomResources to []interface{}.
 
 	customResources := make([]interface{}, len(instance.Spec.Operator.CustomResources))
@@ -2355,21 +1903,16 @@ func (s *CNFManagementService) updateOperatorDeployment(ctx context.Context, ins
 
 	}
 
-
-
 	return s.operatorManager.Update(ctx, &OperatorUpdateRequest{
 
-		Name:            instance.Name,
+		Name: instance.Name,
 
-		Namespace:       instance.Namespace,
+		Namespace: instance.Namespace,
 
 		CustomResources: customResources,
-
 	})
 
 }
-
-
 
 // updateManifestDeployment updates a manifest deployment.
 
@@ -2381,10 +1924,9 @@ func (s *CNFManagementService) updateManifestDeployment(ctx context.Context, ins
 
 	err := s.k8sClient.Get(ctx, client.ObjectKey{
 
-		Name:      instance.Name,
+		Name: instance.Name,
 
 		Namespace: instance.Namespace,
-
 	}, existingDeployment)
 
 	if err != nil {
@@ -2392,8 +1934,6 @@ func (s *CNFManagementService) updateManifestDeployment(ctx context.Context, ins
 		return fmt.Errorf("failed to get existing deployment: %w", err)
 
 	}
-
-
 
 	// Update deployment spec.
 
@@ -2405,11 +1945,8 @@ func (s *CNFManagementService) updateManifestDeployment(ctx context.Context, ins
 
 	existingDeployment.Spec.Template.Spec.Containers[0].Resources = *instance.Spec.Resources
 
-
-
 	// Update deployment.
 
 	return s.k8sClient.Update(ctx, existingDeployment)
 
 }
-

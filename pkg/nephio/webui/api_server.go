@@ -1,103 +1,72 @@
-
 package webui
 
-
-
 import (
-
 	"context"
-
 	"crypto/tls"
-
 	"fmt"
-
 	"net"
-
 	"net/http"
-
 	"os"
-
 	"os/signal"
-
 	"sync"
-
 	"syscall"
-
 	"time"
 
-
-
 	"github.com/gorilla/mux"
-
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-
 	"go.uber.org/zap"
-
 	"golang.org/x/sync/errgroup"
 
-
-
 	"k8s.io/client-go/kubernetes"
-
 )
-
-
 
 // APIServer represents the Nephio Web UI API server.
 
 type APIServer struct {
+	logger *zap.Logger
 
-	logger       *zap.Logger
+	router *mux.Router
 
-	router       *mux.Router
+	httpServer *http.Server
 
-	httpServer   *http.Server
+	httpsServer *http.Server
 
-	httpsServer  *http.Server
+	kubeClient kubernetes.Interface
 
-	kubeClient   kubernetes.Interface
+	wsServer *WebSocketServer
 
-	wsServer     *WebSocketServer
+	tlsCertPath string
 
-	tlsCertPath  string
+	tlsKeyPath string
 
-	tlsKeyPath   string
+	httpPort int
 
-	httpPort     int
+	httpsPort int
 
-	httpsPort    int
+	stopChan chan struct{}
 
-	stopChan     chan struct{}
-
-	readyChan    chan struct{}
+	readyChan chan struct{}
 
 	shutdownWait time.Duration
-
 }
-
-
 
 // APIServerConfig provides configuration options for the API server.
 
 type APIServerConfig struct {
+	Logger *zap.Logger
 
-	Logger       *zap.Logger
+	KubeClient kubernetes.Interface
 
-	KubeClient   kubernetes.Interface
+	TLSCertPath string
 
-	TLSCertPath  string
+	TLSKeyPath string
 
-	TLSKeyPath   string
+	HTTPPort int
 
-	HTTPPort     int
-
-	HTTPSPort    int
+	HTTPSPort int
 
 	ShutdownWait time.Duration
-
 }
-
-
 
 // NewAPIServer creates a new Nephio Web UI API server.
 
@@ -107,43 +76,36 @@ func NewAPIServer(config APIServerConfig) *APIServer {
 
 	wsServer := NewWebSocketServer(config.Logger, config.KubeClient)
 
-
-
 	server := &APIServer{
 
-		logger:       config.Logger,
+		logger: config.Logger,
 
-		router:       router,
+		router: router,
 
-		kubeClient:   config.KubeClient,
+		kubeClient: config.KubeClient,
 
-		wsServer:     wsServer,
+		wsServer: wsServer,
 
-		tlsCertPath:  config.TLSCertPath,
+		tlsCertPath: config.TLSCertPath,
 
-		tlsKeyPath:   config.TLSKeyPath,
+		tlsKeyPath: config.TLSKeyPath,
 
-		httpPort:     config.HTTPPort,
+		httpPort: config.HTTPPort,
 
-		httpsPort:    config.HTTPSPort,
+		httpsPort: config.HTTPSPort,
 
-		stopChan:     make(chan struct{}),
+		stopChan: make(chan struct{}),
 
-		readyChan:    make(chan struct{}),
+		readyChan: make(chan struct{}),
 
 		shutdownWait: config.ShutdownWait,
-
 	}
-
-
 
 	server.setupRoutes()
 
 	return server
 
 }
-
-
 
 // setupRoutes configures API routes and middleware.
 
@@ -159,8 +121,6 @@ func (s *APIServer) setupRoutes() {
 
 	systemHandlers := NewSystemHandlers(s.logger, s.kubeClient)
 
-
-
 	// Base router with common middleware.
 
 	baseRouter := s.router.PathPrefix("/api/v1").Subrouter()
@@ -172,28 +132,19 @@ func (s *APIServer) setupRoutes() {
 		RateLimitMiddleware(10, 20),
 
 		SecurityHeadersMiddleware,
-
 	)
-
-
 
 	// CORS configuration.
 
 	baseRouter.Use(CORSMiddleware([]string{"*"}))
 
-
-
 	// WebSocket endpoint.
 
 	s.router.HandleFunc("/api/v1/events", s.wsServer.HandleWebSocket)
 
-
-
 	// Metrics endpoint.
 
 	s.router.Handle("/metrics", promhttp.Handler())
-
-
 
 	// Package routes.
 
@@ -207,13 +158,9 @@ func (s *APIServer) setupRoutes() {
 
 	baseRouter.HandleFunc("/packages/{id}", packageHandlers.DeletePackage).Methods("DELETE")
 
-
-
 	// Cluster routes.
 
 	baseRouter.HandleFunc("/clusters", clusterHandlers.ListClusters).Methods("GET")
-
-
 
 	// Network Intent routes.
 
@@ -221,15 +168,11 @@ func (s *APIServer) setupRoutes() {
 
 	baseRouter.HandleFunc("/intents", intentHandlers.SubmitIntent).Methods("POST")
 
-
-
 	// System routes.
 
 	baseRouter.HandleFunc("/health", systemHandlers.GetHealthStatus).Methods("GET")
 
 }
-
-
 
 // Start launches the API server.
 
@@ -245,21 +188,16 @@ func (s *APIServer) Start(ctx context.Context) error {
 
 	}
 
-
-
 	s.httpServer = &http.Server{
 
-		Addr:              httpListener.Addr().String(),
+		Addr: httpListener.Addr().String(),
 
-		Handler:           s.router,
+		Handler: s.router,
 
 		ReadHeaderTimeout: 5 * time.Second,
 
-		IdleTimeout:       120 * time.Second,
-
+		IdleTimeout: 120 * time.Second,
 	}
-
-
 
 	// Create HTTPS server if TLS config is provided.
 
@@ -269,7 +207,7 @@ func (s *APIServer) Start(ctx context.Context) error {
 
 		tlsConfig := &tls.Config{
 
-			MinVersion:               tls.VersionTLS12,
+			MinVersion: tls.VersionTLS12,
 
 			PreferServerCipherSuites: true,
 
@@ -278,12 +216,8 @@ func (s *APIServer) Start(ctx context.Context) error {
 				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 
 				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-
 			},
-
 		}
-
-
 
 		httpsListener, err = tls.Listen("tcp", fmt.Sprintf(":%d", s.httpsPort), tlsConfig)
 
@@ -293,25 +227,20 @@ func (s *APIServer) Start(ctx context.Context) error {
 
 		}
 
-
-
 		s.httpsServer = &http.Server{
 
-			Addr:              httpsListener.Addr().String(),
+			Addr: httpsListener.Addr().String(),
 
-			Handler:           s.router,
+			Handler: s.router,
 
 			ReadHeaderTimeout: 5 * time.Second,
 
-			IdleTimeout:       120 * time.Second,
+			IdleTimeout: 120 * time.Second,
 
-			TLSConfig:         tlsConfig,
-
+			TLSConfig: tlsConfig,
 		}
 
 	}
-
-
 
 	// Start WebSocket server.
 
@@ -321,13 +250,9 @@ func (s *APIServer) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Use errgroup for managing server goroutines.
 
 	eg, serverCtx := errgroup.WithContext(ctx)
-
-
 
 	// HTTP server goroutine.
 
@@ -344,8 +269,6 @@ func (s *APIServer) Start(ctx context.Context) error {
 		return nil
 
 	})
-
-
 
 	// HTTPS server goroutine (if configured).
 
@@ -367,8 +290,6 @@ func (s *APIServer) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Signal handling and graceful shutdown.
 
 	eg.Go(func() error {
@@ -376,8 +297,6 @@ func (s *APIServer) Start(ctx context.Context) error {
 		sigChan := make(chan os.Signal, 1)
 
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
-
 
 		select {
 
@@ -395,19 +314,13 @@ func (s *APIServer) Start(ctx context.Context) error {
 
 	})
 
-
-
 	// Signal server is ready.
 
 	close(s.readyChan)
 
-
-
 	return eg.Wait()
 
 }
-
-
 
 // Shutdown gracefully stops the API server.
 
@@ -419,13 +332,9 @@ func (s *APIServer) Shutdown() error {
 
 	defer cancel()
 
-
-
 	var wg sync.WaitGroup
 
 	wg.Add(2)
-
-
 
 	go func() {
 
@@ -443,8 +352,6 @@ func (s *APIServer) Shutdown() error {
 
 	}()
 
-
-
 	go func() {
 
 		defer wg.Done()
@@ -461,27 +368,19 @@ func (s *APIServer) Shutdown() error {
 
 	}()
 
-
-
 	// Stop WebSocket server.
 
 	s.wsServer.Stop()
 
-
-
 	wg.Wait()
 
 	close(s.stopChan)
-
-
 
 	s.logger.Info("Server shutdown complete")
 
 	return nil
 
 }
-
-
 
 // Ready provides a channel that is closed when the server is ready.
 
@@ -491,8 +390,6 @@ func (s *APIServer) Ready() <-chan struct{} {
 
 }
 
-
-
 // Stop provides a channel that is closed when the server is stopped.
 
 func (s *APIServer) Stop() <-chan struct{} {
@@ -500,4 +397,3 @@ func (s *APIServer) Stop() <-chan struct{} {
 	return s.stopChan
 
 }
-

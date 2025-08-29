@@ -4,240 +4,178 @@
 
 // service model management, node configuration, and control operations.
 
-
 package e2
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"math"
-
 	"math/rand"
-
 	"net/http"
-
 	"sync"
-
 	"time"
 
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // E2NodeFunction represents RAN function exposed by an E2 Node.
 
 type E2NodeFunction struct {
+	FunctionID int `json:"function_id"`
 
-	FunctionID          int                  `json:"function_id"`
+	FunctionDefinition string `json:"function_definition"`
 
-	FunctionDefinition  string               `json:"function_definition"`
+	FunctionRevision int `json:"function_revision"`
 
-	FunctionRevision    int                  `json:"function_revision"`
+	FunctionOID string `json:"function_oid"`
 
-	FunctionOID         string               `json:"function_oid"`
+	FunctionDescription string `json:"function_description"`
 
-	FunctionDescription string               `json:"function_description"`
+	ServiceModel E2ServiceModel `json:"service_model"`
 
-	ServiceModel        E2ServiceModel       `json:"service_model"`
-
-	Status              E2NodeFunctionStatus `json:"status"`
-
+	Status E2NodeFunctionStatus `json:"status"`
 }
-
-
 
 // E2ServiceModel represents E2 Service Model information.
 
 type E2ServiceModel struct {
+	ServiceModelID string `json:"service_model_id"`
 
-	ServiceModelID      string                 `json:"service_model_id"`
+	ServiceModelName string `json:"service_model_name"`
 
-	ServiceModelName    string                 `json:"service_model_name"`
+	ServiceModelVersion string `json:"service_model_version"`
 
-	ServiceModelVersion string                 `json:"service_model_version"`
+	ServiceModelOID string `json:"service_model_oid"`
 
-	ServiceModelOID     string                 `json:"service_model_oid"`
+	SupportedProcedures []string `json:"supported_procedures"`
 
-	SupportedProcedures []string               `json:"supported_procedures"`
-
-	Configuration       map[string]interface{} `json:"configuration,omitempty"`
-
+	Configuration map[string]interface{} `json:"configuration,omitempty"`
 }
-
-
 
 // E2NodeFunctionStatus represents the status of an E2 Node Function.
 
 type E2NodeFunctionStatus struct {
+	State string `json:"state"` // IDLE, ACTIVE, BUSY, UNAVAILABLE
 
-	State             string    `json:"state"` // IDLE, ACTIVE, BUSY, UNAVAILABLE
+	LastHeartbeat time.Time `json:"last_heartbeat"`
 
-	LastHeartbeat     time.Time `json:"last_heartbeat"`
+	SubscriptionCount int `json:"subscription_count"`
 
-	SubscriptionCount int       `json:"subscription_count"`
+	ErrorCount int `json:"error_count"`
 
-	ErrorCount        int       `json:"error_count"`
-
-	LastError         string    `json:"last_error,omitempty"`
-
+	LastError string `json:"last_error,omitempty"`
 }
-
-
 
 // E2Subscription represents an E2 subscription for monitoring/control.
 
 type E2Subscription struct {
+	SubscriptionID string `json:"subscription_id"`
 
-	SubscriptionID  string               `json:"subscription_id"`
+	RequestorID string `json:"requestor_id"`
 
-	RequestorID     string               `json:"requestor_id"`
+	RanFunctionID int `json:"ran_function_id"`
 
-	RanFunctionID   int                  `json:"ran_function_id"`
+	EventTriggers []E2EventTrigger `json:"event_triggers"`
 
-	EventTriggers   []E2EventTrigger     `json:"event_triggers"`
+	Actions []E2Action `json:"actions"`
 
-	Actions         []E2Action           `json:"actions"`
+	ReportingPeriod time.Duration `json:"reporting_period"`
 
-	ReportingPeriod time.Duration        `json:"reporting_period"`
+	Status E2SubscriptionStatus `json:"status"`
 
-	Status          E2SubscriptionStatus `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt       time.Time            `json:"created_at"`
-
-	UpdatedAt       time.Time            `json:"updated_at"`
-
+	UpdatedAt time.Time `json:"updated_at"`
 }
-
-
 
 // E2EventTrigger represents event triggers for E2 subscriptions.
 
 type E2EventTrigger struct {
+	TriggerType string `json:"trigger_type"` // PERIODIC, UPON_CHANGE, UPON_RCV_MEAS_REPORT
 
-	TriggerType     string                 `json:"trigger_type"` // PERIODIC, UPON_CHANGE, UPON_RCV_MEAS_REPORT
+	ReportingPeriod time.Duration `json:"reporting_period,omitempty"`
 
-	ReportingPeriod time.Duration          `json:"reporting_period,omitempty"`
-
-	Conditions      map[string]interface{} `json:"conditions,omitempty"`
-
+	Conditions map[string]interface{} `json:"conditions,omitempty"`
 }
-
-
 
 // E2Action represents actions to be performed on subscription events.
 
 type E2Action struct {
+	ActionID int `json:"action_id"`
 
-	ActionID         int                    `json:"action_id"`
-
-	ActionType       string                 `json:"action_type"` // REPORT, INSERT, POLICY, CONTROL
+	ActionType string `json:"action_type"` // REPORT, INSERT, POLICY, CONTROL
 
 	ActionDefinition map[string]interface{} `json:"action_definition"`
 
-	SubsequentAction string                 `json:"subsequent_action,omitempty"`
-
+	SubsequentAction string `json:"subsequent_action,omitempty"`
 }
-
-
 
 // E2SubscriptionStatus represents the status of an E2 subscription.
 
 type E2SubscriptionStatus struct {
+	State string `json:"state"` // ACTIVE, INACTIVE, FAILED
 
-	State            string    `json:"state"` // ACTIVE, INACTIVE, FAILED
+	ResponseCode int `json:"response_code"`
 
-	ResponseCode     int       `json:"response_code"`
+	CauseCode string `json:"cause_code,omitempty"`
 
-	CauseCode        string    `json:"cause_code,omitempty"`
+	LastUpdate time.Time `json:"last_update"`
 
-	LastUpdate       time.Time `json:"last_update"`
+	MessagesReceived int64 `json:"messages_received"`
 
-	MessagesReceived int64     `json:"messages_received"`
-
-	LastMessageTime  time.Time `json:"last_message_time"`
-
+	LastMessageTime time.Time `json:"last_message_time"`
 }
-
-
 
 // E2ControlRequest represents a control request sent to an E2 Node.
 
 type E2ControlRequest struct {
+	RequestID string `json:"request_id"`
 
-	RequestID         string                 `json:"request_id"`
+	RanFunctionID int `json:"ran_function_id"`
 
-	RanFunctionID     int                    `json:"ran_function_id"`
+	CallProcessID string `json:"call_process_id,omitempty"`
 
-	CallProcessID     string                 `json:"call_process_id,omitempty"`
+	ControlHeader map[string]interface{} `json:"control_header"`
 
-	ControlHeader     map[string]interface{} `json:"control_header"`
+	ControlMessage map[string]interface{} `json:"control_message"`
 
-	ControlMessage    map[string]interface{} `json:"control_message"`
-
-	ControlAckRequest bool                   `json:"control_ack_request"`
-
+	ControlAckRequest bool `json:"control_ack_request"`
 }
-
-
 
 // E2ControlResponse represents the response to an E2 control request.
 
 type E2ControlResponse struct {
+	ResponseID string `json:"response_id"`
 
-	ResponseID     string                 `json:"response_id"`
+	RequestID string `json:"request_id"`
 
-	RequestID      string                 `json:"request_id"`
+	RanFunctionID int `json:"ran_function_id"`
 
-	RanFunctionID  int                    `json:"ran_function_id"`
-
-	CallProcessID  string                 `json:"call_process_id,omitempty"`
+	CallProcessID string `json:"call_process_id,omitempty"`
 
 	ControlOutcome map[string]interface{} `json:"control_outcome,omitempty"`
 
-	Status         E2ControlStatus        `json:"status"`
+	Status E2ControlStatus `json:"status"`
 
-	Timestamp      time.Time              `json:"timestamp"`
-
+	Timestamp time.Time `json:"timestamp"`
 }
-
-
 
 // E2ControlStatus represents the status of control operation.
 
 type E2ControlStatus struct {
+	Result string `json:"result"` // SUCCESS, FAILURE
 
-	Result           string `json:"result"` // SUCCESS, FAILURE
-
-	CauseCode        string `json:"cause_code,omitempty"`
+	CauseCode string `json:"cause_code,omitempty"`
 
 	CauseDescription string `json:"cause_description,omitempty"`
-
 }
-
-
 
 // E2AdaptorInterface defines the interface for E2 operations following O-RAN specifications.
 
@@ -255,8 +193,6 @@ type E2AdaptorInterface interface {
 
 	UpdateE2Node(ctx context.Context, nodeID string, functions []*E2NodeFunction) error
 
-
-
 	// E2 Service Model Management (based on O-RAN.WG3.E2SM specifications).
 
 	GetServiceModel(ctx context.Context, serviceModelID string) (*E2ServiceModel, error)
@@ -264,8 +200,6 @@ type E2AdaptorInterface interface {
 	ListServiceModels(ctx context.Context) ([]*E2ServiceModel, error)
 
 	ValidateServiceModel(ctx context.Context, serviceModel *E2ServiceModel) error
-
-
 
 	// E2 Subscription Management (based on O-RAN.WG3.E2AP specifications).
 
@@ -279,35 +213,24 @@ type E2AdaptorInterface interface {
 
 	DeleteSubscription(ctx context.Context, nodeID, subscriptionID string) error
 
-
-
 	// E2 Control Operations (based on O-RAN.WG3.E2AP specifications).
 
 	SendControlRequest(ctx context.Context, nodeID string, request *E2ControlRequest) (*E2ControlResponse, error)
 
-
-
 	// E2 Indication and Report Handling.
 
 	GetIndicationData(ctx context.Context, nodeID, subscriptionID string) ([]*E2Indication, error)
-
-
 
 	// High-level ManagedElement integration.
 
 	ConfigureE2Interface(ctx context.Context, me *nephoranv1.ManagedElement) error
 
 	RemoveE2Interface(ctx context.Context, me *nephoranv1.ManagedElement) error
-
 }
-
-
 
 // E2ConnectionState represents simple connection states.
 
 type E2ConnectionState string
-
-
 
 const (
 
@@ -326,156 +249,127 @@ const (
 	// E2ConnectionStateFailed holds e2connectionstatefailed value.
 
 	E2ConnectionStateFailed E2ConnectionState = "FAILED"
-
 )
-
-
 
 // E2NodeInfo represents information about an E2 Node (now uses GlobalE2NodeID from e2ap_messages.go).
 
 type E2NodeInfo struct {
+	NodeID string `json:"node_id"`
 
-	NodeID            string                 `json:"node_id"`
+	GlobalE2NodeID GlobalE2NodeID `json:"global_e2_node_id"`
 
-	GlobalE2NodeID    GlobalE2NodeID         `json:"global_e2_node_id"`
+	RANFunctions []*E2NodeFunction `json:"ran_functions"`
 
-	RANFunctions      []*E2NodeFunction      `json:"ran_functions"`
+	ConnectionStatus E2ConnectionStatus `json:"connection_status"`
 
-	ConnectionStatus  E2ConnectionStatus     `json:"connection_status"`
+	SubscriptionCount int `json:"subscription_count"`
 
-	SubscriptionCount int                    `json:"subscription_count"`
+	LastSeen time.Time `json:"last_seen"`
 
-	LastSeen          time.Time              `json:"last_seen"`
-
-	Configuration     map[string]interface{} `json:"configuration,omitempty"`
-
+	Configuration map[string]interface{} `json:"configuration,omitempty"`
 }
-
-
 
 // E2ConnectionStatus represents the connection status of an E2 Node.
 
 type E2ConnectionStatus struct {
+	State string `json:"state"` // CONNECTED, DISCONNECTED, CONNECTING
 
-	State              string    `json:"state"` // CONNECTED, DISCONNECTED, CONNECTING
+	EstablishedAt time.Time `json:"established_at"`
 
-	EstablishedAt      time.Time `json:"established_at"`
+	LastHeartbeat time.Time `json:"last_heartbeat"`
 
-	LastHeartbeat      time.Time `json:"last_heartbeat"`
+	ConnectionFailures int `json:"connection_failures"`
 
-	ConnectionFailures int       `json:"connection_failures"`
-
-	LastFailureReason  string    `json:"last_failure_reason,omitempty"`
-
+	LastFailureReason string `json:"last_failure_reason,omitempty"`
 }
-
-
 
 // E2Indication represents indication messages from E2 Nodes.
 
 type E2Indication struct {
+	IndicationID string `json:"indication_id"`
 
-	IndicationID      string                 `json:"indication_id"`
+	SubscriptionID string `json:"subscription_id"`
 
-	SubscriptionID    string                 `json:"subscription_id"`
+	RanFunctionID int `json:"ran_function_id"`
 
-	RanFunctionID     int                    `json:"ran_function_id"`
-
-	IndicationHeader  map[string]interface{} `json:"indication_header"`
+	IndicationHeader map[string]interface{} `json:"indication_header"`
 
 	IndicationMessage map[string]interface{} `json:"indication_message"`
 
-	CallProcessID     string                 `json:"call_process_id,omitempty"`
+	CallProcessID string `json:"call_process_id,omitempty"`
 
-	Timestamp         time.Time              `json:"timestamp"`
-
+	Timestamp time.Time `json:"timestamp"`
 }
-
-
 
 // E2Adaptor implements the E2 interface for Near-RT RIC communication.
 
 // following O-RAN.WG3.E2GAP and O-RAN.WG3.E2AP specifications.
 
 type E2Adaptor struct {
+	httpClient *http.Client
 
-	httpClient        *http.Client
+	ricURL string
 
-	ricURL            string
+	apiVersion string
 
-	apiVersion        string
+	timeout time.Duration
 
-	timeout           time.Duration
+	nodeRegistry map[string]*E2NodeInfo
 
-	nodeRegistry      map[string]*E2NodeInfo
+	subscriptions map[string]map[string]*E2Subscription // nodeID -> subscriptionID -> subscription
 
-	subscriptions     map[string]map[string]*E2Subscription // nodeID -> subscriptionID -> subscription
-
-	mutex             sync.RWMutex
+	mutex sync.RWMutex
 
 	heartbeatInterval time.Duration
 
-	maxRetries        int
-
-
+	maxRetries int
 
 	// Circuit breaker and resilience.
 
 	circuitBreaker *llm.CircuitBreaker
 
-	retryConfig    *RetryConfig
+	retryConfig *RetryConfig
 
-	encoder        *E2APEncoder
-
+	encoder *E2APEncoder
 }
-
-
 
 // E2AdaptorConfig holds configuration for the E2 adaptor.
 
 // RetryConfig holds retry configuration.
 
 type RetryConfig struct {
+	MaxRetries int `json:"max_retries"`
 
-	MaxRetries      int           `json:"max_retries"`
+	InitialDelay time.Duration `json:"initial_delay"`
 
-	InitialDelay    time.Duration `json:"initial_delay"`
+	MaxDelay time.Duration `json:"max_delay"`
 
-	MaxDelay        time.Duration `json:"max_delay"`
+	BackoffFactor float64 `json:"backoff_factor"`
 
-	BackoffFactor   float64       `json:"backoff_factor"`
+	Jitter bool `json:"jitter"`
 
-	Jitter          bool          `json:"jitter"`
-
-	RetryableErrors []string      `json:"retryable_errors"`
-
+	RetryableErrors []string `json:"retryable_errors"`
 }
-
-
 
 // E2AdaptorConfig represents a e2adaptorconfig.
 
 type E2AdaptorConfig struct {
+	RICURL string
 
-	RICURL               string
+	APIVersion string
 
-	APIVersion           string
+	Timeout time.Duration
 
-	Timeout              time.Duration
+	HeartbeatInterval time.Duration
 
-	HeartbeatInterval    time.Duration
+	MaxRetries int
 
-	MaxRetries           int
-
-	TLSConfig            *oran.TLSConfig
+	TLSConfig *oran.TLSConfig
 
 	CircuitBreakerConfig *llm.CircuitBreakerConfig
 
-	RetryConfig          *RetryConfig
-
+	RetryConfig *RetryConfig
 }
-
-
 
 // NewE2Adaptor creates a new E2 adaptor following O-RAN specifications.
 
@@ -485,21 +379,18 @@ func NewE2Adaptor(config *E2AdaptorConfig) (*E2Adaptor, error) {
 
 		config = &E2AdaptorConfig{
 
-			RICURL:            "http://near-rt-ric:38080",
+			RICURL: "http://near-rt-ric:38080",
 
-			APIVersion:        "v1",
+			APIVersion: "v1",
 
-			Timeout:           30 * time.Second,
+			Timeout: 30 * time.Second,
 
 			HeartbeatInterval: 30 * time.Second,
 
-			MaxRetries:        3,
-
+			MaxRetries: 3,
 		}
 
 	}
-
-
 
 	// Set default retry configuration.
 
@@ -507,15 +398,15 @@ func NewE2Adaptor(config *E2AdaptorConfig) (*E2Adaptor, error) {
 
 		config.RetryConfig = &RetryConfig{
 
-			MaxRetries:    3,
+			MaxRetries: 3,
 
-			InitialDelay:  1 * time.Second,
+			InitialDelay: 1 * time.Second,
 
-			MaxDelay:      30 * time.Second,
+			MaxDelay: 30 * time.Second,
 
 			BackoffFactor: 2.0,
 
-			Jitter:        true,
+			Jitter: true,
 
 			RetryableErrors: []string{
 
@@ -526,14 +417,10 @@ func NewE2Adaptor(config *E2AdaptorConfig) (*E2Adaptor, error) {
 				"temporary failure",
 
 				"service unavailable",
-
 			},
-
 		}
 
 	}
-
-
 
 	// Set default circuit breaker configuration.
 
@@ -541,43 +428,37 @@ func NewE2Adaptor(config *E2AdaptorConfig) (*E2Adaptor, error) {
 
 		config.CircuitBreakerConfig = &llm.CircuitBreakerConfig{
 
-			FailureThreshold:    5,
+			FailureThreshold: 5,
 
-			FailureRate:         0.5,
+			FailureRate: 0.5,
 
 			MinimumRequestCount: 10,
 
-			Timeout:             config.Timeout,
+			Timeout: config.Timeout,
 
-			HalfOpenTimeout:     60 * time.Second,
+			HalfOpenTimeout: 60 * time.Second,
 
-			SuccessThreshold:    3,
+			SuccessThreshold: 3,
 
 			HalfOpenMaxRequests: 5,
 
-			ResetTimeout:        60 * time.Second,
+			ResetTimeout: 60 * time.Second,
 
-			SlidingWindowSize:   100,
+			SlidingWindowSize: 100,
 
-			EnableHealthCheck:   true,
+			EnableHealthCheck: true,
 
 			HealthCheckInterval: 30 * time.Second,
 
-			HealthCheckTimeout:  10 * time.Second,
-
+			HealthCheckTimeout: 10 * time.Second,
 		}
 
 	}
 
-
-
 	httpClient := &http.Client{
 
 		Timeout: config.Timeout,
-
 	}
-
-
 
 	// Configure TLS if provided.
 
@@ -591,8 +472,6 @@ func NewE2Adaptor(config *E2AdaptorConfig) (*E2Adaptor, error) {
 
 		}
 
-
-
 		// Build TLS configuration.
 
 		tlsConfig, err := oran.BuildTLSConfig(config.TLSConfig)
@@ -603,73 +482,57 @@ func NewE2Adaptor(config *E2AdaptorConfig) (*E2Adaptor, error) {
 
 		}
 
-
-
 		// Create HTTP transport with TLS configuration.
 
 		transport := &http.Transport{
 
 			TLSClientConfig: tlsConfig,
-
 		}
 
 		httpClient.Transport = transport
 
 	}
 
-
-
 	// Create circuit breaker.
 
 	circuitBreaker := llm.NewCircuitBreaker("e2-adaptor", config.CircuitBreakerConfig)
-
-
 
 	// Create E2AP encoder.
 
 	encoder := NewE2APEncoder()
 
-
-
 	adaptor := &E2Adaptor{
 
-		httpClient:        httpClient,
+		httpClient: httpClient,
 
-		ricURL:            config.RICURL,
+		ricURL: config.RICURL,
 
-		apiVersion:        config.APIVersion,
+		apiVersion: config.APIVersion,
 
-		timeout:           config.Timeout,
+		timeout: config.Timeout,
 
-		nodeRegistry:      make(map[string]*E2NodeInfo),
+		nodeRegistry: make(map[string]*E2NodeInfo),
 
-		subscriptions:     make(map[string]map[string]*E2Subscription),
+		subscriptions: make(map[string]map[string]*E2Subscription),
 
 		heartbeatInterval: config.HeartbeatInterval,
 
-		maxRetries:        config.MaxRetries,
+		maxRetries: config.MaxRetries,
 
-		circuitBreaker:    circuitBreaker,
+		circuitBreaker: circuitBreaker,
 
-		retryConfig:       config.RetryConfig,
+		retryConfig: config.RetryConfig,
 
-		encoder:           encoder,
-
+		encoder: encoder,
 	}
-
-
 
 	// Start background heartbeat monitoring.
 
 	go adaptor.startHeartbeatMonitor()
 
-
-
 	return adaptor, nil
 
 }
-
-
 
 // RegisterE2Node registers an E2 Node with the Near-RT RIC.
 
@@ -677,23 +540,16 @@ func (e *E2Adaptor) RegisterE2Node(ctx context.Context, nodeID string, functions
 
 	logger := log.FromContext(ctx)
 
-
-
 	url := fmt.Sprintf("%s/e2ap/%s/nodes/%s/register", e.ricURL, e.apiVersion, nodeID)
-
-
 
 	payload := map[string]interface{}{
 
-		"node_id":       nodeID,
+		"node_id": nodeID,
 
 		"ran_functions": functions,
 
-		"timestamp":     time.Now(),
-
+		"timestamp": time.Now(),
 	}
-
-
 
 	body, err := json.Marshal(payload)
 
@@ -703,8 +559,6 @@ func (e *E2Adaptor) RegisterE2Node(ctx context.Context, nodeID string, functions
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 
 	if err != nil {
@@ -713,13 +567,9 @@ func (e *E2Adaptor) RegisterE2Node(ctx context.Context, nodeID string, functions
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
 
 	req.Header.Set("Accept", "application/json")
-
-
 
 	resp, err := e.httpClient.Do(req)
 
@@ -731,8 +581,6 @@ func (e *E2Adaptor) RegisterE2Node(ctx context.Context, nodeID string, functions
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -741,15 +589,11 @@ func (e *E2Adaptor) RegisterE2Node(ctx context.Context, nodeID string, functions
 
 	}
 
-
-
 	// Update local registry.
 
 	e.mutex.Lock()
 
 	defer e.mutex.Unlock()
-
-
 
 	nodeInfo := &E2NodeInfo{
 
@@ -761,7 +605,7 @@ func (e *E2Adaptor) RegisterE2Node(ctx context.Context, nodeID string, functions
 
 				MCC: "001", // Default, should be configurable
 
-				MNC: "01",  // Default, should be configurable
+				MNC: "01", // Default, should be configurable
 
 			},
 
@@ -772,38 +616,28 @@ func (e *E2Adaptor) RegisterE2Node(ctx context.Context, nodeID string, functions
 					GNBIDChoice: GNBIDChoice{
 
 						GNBID32: &nodeID,
-
 					},
-
 				},
-
 			},
-
 		},
 
 		RANFunctions: functions,
 
 		ConnectionStatus: E2ConnectionStatus{
 
-			State:         "CONNECTED",
+			State: "CONNECTED",
 
 			EstablishedAt: time.Now(),
 
 			LastHeartbeat: time.Now(),
-
 		},
 
 		LastSeen: time.Now(),
-
 	}
-
-
 
 	e.nodeRegistry[nodeID] = nodeInfo
 
 	e.subscriptions[nodeID] = make(map[string]*E2Subscription)
-
-
 
 	logger.Info("successfully registered E2 node", "nodeID", nodeID, "functions", len(functions))
 
@@ -811,19 +645,13 @@ func (e *E2Adaptor) RegisterE2Node(ctx context.Context, nodeID string, functions
 
 }
 
-
-
 // DeregisterE2Node deregisters an E2 Node from the Near-RT RIC.
 
 func (e *E2Adaptor) DeregisterE2Node(ctx context.Context, nodeID string) error {
 
 	logger := log.FromContext(ctx)
 
-
-
 	url := fmt.Sprintf("%s/e2ap/%s/nodes/%s/deregister", e.ricURL, e.apiVersion, nodeID)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, http.NoBody)
 
@@ -832,8 +660,6 @@ func (e *E2Adaptor) DeregisterE2Node(ctx context.Context, nodeID string) error {
 		return fmt.Errorf("failed to create request: %w", err)
 
 	}
-
-
 
 	resp, err := e.httpClient.Do(req)
 
@@ -845,15 +671,11 @@ func (e *E2Adaptor) DeregisterE2Node(ctx context.Context, nodeID string) error {
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
 
 		return fmt.Errorf("failed to deregister E2 node: status=%d", resp.StatusCode)
 
 	}
-
-
 
 	// Remove from local registry.
 
@@ -861,21 +683,15 @@ func (e *E2Adaptor) DeregisterE2Node(ctx context.Context, nodeID string) error {
 
 	defer e.mutex.Unlock()
 
-
-
 	delete(e.nodeRegistry, nodeID)
 
 	delete(e.subscriptions, nodeID)
-
-
 
 	logger.Info("successfully deregistered E2 node", "nodeID", nodeID)
 
 	return nil
 
 }
-
-
 
 // GetE2Node retrieves information about an E2 Node.
 
@@ -885,8 +701,6 @@ func (e *E2Adaptor) GetE2Node(ctx context.Context, nodeID string) (*E2NodeInfo, 
 
 	defer e.mutex.RUnlock()
 
-
-
 	nodeInfo, exists := e.nodeRegistry[nodeID]
 
 	if !exists {
@@ -894,8 +708,6 @@ func (e *E2Adaptor) GetE2Node(ctx context.Context, nodeID string) (*E2NodeInfo, 
 		return nil, fmt.Errorf("E2 node not found: %s", nodeID)
 
 	}
-
-
 
 	// Create a copy to avoid race conditions.
 
@@ -905,8 +717,6 @@ func (e *E2Adaptor) GetE2Node(ctx context.Context, nodeID string) (*E2NodeInfo, 
 
 }
 
-
-
 // ListE2Nodes lists all registered E2 Nodes.
 
 func (e *E2Adaptor) ListE2Nodes(ctx context.Context) ([]*E2NodeInfo, error) {
@@ -914,8 +724,6 @@ func (e *E2Adaptor) ListE2Nodes(ctx context.Context) ([]*E2NodeInfo, error) {
 	e.mutex.RLock()
 
 	defer e.mutex.RUnlock()
-
-
 
 	nodes := make([]*E2NodeInfo, 0, len(e.nodeRegistry))
 
@@ -929,13 +737,9 @@ func (e *E2Adaptor) ListE2Nodes(ctx context.Context) ([]*E2NodeInfo, error) {
 
 	}
 
-
-
 	return nodes, nil
 
 }
-
-
 
 // UpdateE2Node updates an E2 Node's functions.
 
@@ -943,21 +747,14 @@ func (e *E2Adaptor) UpdateE2Node(ctx context.Context, nodeID string, functions [
 
 	logger := log.FromContext(ctx)
 
-
-
 	url := fmt.Sprintf("%s/e2ap/%s/nodes/%s/update", e.ricURL, e.apiVersion, nodeID)
-
-
 
 	payload := map[string]interface{}{
 
 		"ran_functions": functions,
 
-		"timestamp":     time.Now(),
-
+		"timestamp": time.Now(),
 	}
-
-
 
 	body, err := json.Marshal(payload)
 
@@ -967,8 +764,6 @@ func (e *E2Adaptor) UpdateE2Node(ctx context.Context, nodeID string, functions [
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
 
 	if err != nil {
@@ -977,11 +772,7 @@ func (e *E2Adaptor) UpdateE2Node(ctx context.Context, nodeID string, functions [
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
-
-
 
 	resp, err := e.httpClient.Do(req)
 
@@ -993,8 +784,6 @@ func (e *E2Adaptor) UpdateE2Node(ctx context.Context, nodeID string, functions [
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -1003,15 +792,11 @@ func (e *E2Adaptor) UpdateE2Node(ctx context.Context, nodeID string, functions [
 
 	}
 
-
-
 	// Update local registry.
 
 	e.mutex.Lock()
 
 	defer e.mutex.Unlock()
-
-
 
 	if nodeInfo, exists := e.nodeRegistry[nodeID]; exists {
 
@@ -1021,23 +806,17 @@ func (e *E2Adaptor) UpdateE2Node(ctx context.Context, nodeID string, functions [
 
 	}
 
-
-
 	logger.Info("successfully updated E2 node", "nodeID", nodeID, "functions", len(functions))
 
 	return nil
 
 }
 
-
-
 // GetServiceModel retrieves information about a service model.
 
 func (e *E2Adaptor) GetServiceModel(ctx context.Context, serviceModelID string) (*E2ServiceModel, error) {
 
 	url := fmt.Sprintf("%s/e2ap/%s/service-models/%s", e.ricURL, e.apiVersion, serviceModelID)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
@@ -1046,8 +825,6 @@ func (e *E2Adaptor) GetServiceModel(ctx context.Context, serviceModelID string) 
 		return nil, fmt.Errorf("failed to create request: %w", err)
 
 	}
-
-
 
 	resp, err := e.httpClient.Do(req)
 
@@ -1059,15 +836,11 @@ func (e *E2Adaptor) GetServiceModel(ctx context.Context, serviceModelID string) 
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("failed to get service model: status=%d", resp.StatusCode)
 
 	}
-
-
 
 	var serviceModel E2ServiceModel
 
@@ -1077,21 +850,15 @@ func (e *E2Adaptor) GetServiceModel(ctx context.Context, serviceModelID string) 
 
 	}
 
-
-
 	return &serviceModel, nil
 
 }
-
-
 
 // ListServiceModels lists all available service models.
 
 func (e *E2Adaptor) ListServiceModels(ctx context.Context) ([]*E2ServiceModel, error) {
 
 	url := fmt.Sprintf("%s/e2ap/%s/service-models", e.ricURL, e.apiVersion)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
@@ -1100,8 +867,6 @@ func (e *E2Adaptor) ListServiceModels(ctx context.Context) ([]*E2ServiceModel, e
 		return nil, fmt.Errorf("failed to create request: %w", err)
 
 	}
-
-
 
 	resp, err := e.httpClient.Do(req)
 
@@ -1113,15 +878,11 @@ func (e *E2Adaptor) ListServiceModels(ctx context.Context) ([]*E2ServiceModel, e
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("failed to list service models: status=%d", resp.StatusCode)
 
 	}
-
-
 
 	var serviceModels []*E2ServiceModel
 
@@ -1131,21 +892,15 @@ func (e *E2Adaptor) ListServiceModels(ctx context.Context) ([]*E2ServiceModel, e
 
 	}
 
-
-
 	return serviceModels, nil
 
 }
-
-
 
 // ValidateServiceModel validates a service model configuration.
 
 func (e *E2Adaptor) ValidateServiceModel(ctx context.Context, serviceModel *E2ServiceModel) error {
 
 	url := fmt.Sprintf("%s/e2ap/%s/service-models/validate", e.ricURL, e.apiVersion)
-
-
 
 	body, err := json.Marshal(serviceModel)
 
@@ -1155,8 +910,6 @@ func (e *E2Adaptor) ValidateServiceModel(ctx context.Context, serviceModel *E2Se
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 
 	if err != nil {
@@ -1165,11 +918,7 @@ func (e *E2Adaptor) ValidateServiceModel(ctx context.Context, serviceModel *E2Se
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
-
-
 
 	resp, err := e.httpClient.Do(req)
 
@@ -1181,8 +930,6 @@ func (e *E2Adaptor) ValidateServiceModel(ctx context.Context, serviceModel *E2Se
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -1191,13 +938,9 @@ func (e *E2Adaptor) ValidateServiceModel(ctx context.Context, serviceModel *E2Se
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // CreateSubscription creates a new E2 subscription.
 
@@ -1205,11 +948,7 @@ func (e *E2Adaptor) CreateSubscription(ctx context.Context, nodeID string, subsc
 
 	logger := log.FromContext(ctx)
 
-
-
 	url := fmt.Sprintf("%s/e2ap/%s/nodes/%s/subscriptions", e.ricURL, e.apiVersion, nodeID)
-
-
 
 	body, err := json.Marshal(subscription)
 
@@ -1219,8 +958,6 @@ func (e *E2Adaptor) CreateSubscription(ctx context.Context, nodeID string, subsc
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 
 	if err != nil {
@@ -1229,11 +966,7 @@ func (e *E2Adaptor) CreateSubscription(ctx context.Context, nodeID string, subsc
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
-
-
 
 	resp, err := e.httpClient.Do(req)
 
@@ -1245,8 +978,6 @@ func (e *E2Adaptor) CreateSubscription(ctx context.Context, nodeID string, subsc
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -1255,15 +986,11 @@ func (e *E2Adaptor) CreateSubscription(ctx context.Context, nodeID string, subsc
 
 	}
 
-
-
 	// Update local registry.
 
 	e.mutex.Lock()
 
 	defer e.mutex.Unlock()
-
-
 
 	if _, exists := e.subscriptions[nodeID]; !exists {
 
@@ -1271,25 +998,18 @@ func (e *E2Adaptor) CreateSubscription(ctx context.Context, nodeID string, subsc
 
 	}
 
-
-
 	subscription.Status = E2SubscriptionStatus{
 
-		State:      "ACTIVE",
+		State: "ACTIVE",
 
 		LastUpdate: time.Now(),
-
 	}
 
 	subscription.CreatedAt = time.Now()
 
 	subscription.UpdatedAt = time.Now()
 
-
-
 	e.subscriptions[nodeID][subscription.SubscriptionID] = subscription
-
-
 
 	logger.Info("successfully created E2 subscription",
 
@@ -1299,13 +1019,9 @@ func (e *E2Adaptor) CreateSubscription(ctx context.Context, nodeID string, subsc
 
 		"ranFunctionID", subscription.RanFunctionID)
 
-
-
 	return nil
 
 }
-
-
 
 // GetSubscription retrieves a specific E2 subscription.
 
@@ -1315,8 +1031,6 @@ func (e *E2Adaptor) GetSubscription(ctx context.Context, nodeID, subscriptionID 
 
 	defer e.mutex.RUnlock()
 
-
-
 	nodeSubscriptions, exists := e.subscriptions[nodeID]
 
 	if !exists {
@@ -1324,8 +1038,6 @@ func (e *E2Adaptor) GetSubscription(ctx context.Context, nodeID, subscriptionID 
 		return nil, fmt.Errorf("node not found: %s", nodeID)
 
 	}
-
-
 
 	subscription, exists := nodeSubscriptions[subscriptionID]
 
@@ -1335,8 +1047,6 @@ func (e *E2Adaptor) GetSubscription(ctx context.Context, nodeID, subscriptionID 
 
 	}
 
-
-
 	// Create copy to avoid race conditions.
 
 	subscriptionCopy := *subscription
@@ -1344,8 +1054,6 @@ func (e *E2Adaptor) GetSubscription(ctx context.Context, nodeID, subscriptionID 
 	return &subscriptionCopy, nil
 
 }
-
-
 
 // ListSubscriptions lists all subscriptions for a node.
 
@@ -1355,8 +1063,6 @@ func (e *E2Adaptor) ListSubscriptions(ctx context.Context, nodeID string) ([]*E2
 
 	defer e.mutex.RUnlock()
 
-
-
 	nodeSubscriptions, exists := e.subscriptions[nodeID]
 
 	if !exists {
@@ -1364,8 +1070,6 @@ func (e *E2Adaptor) ListSubscriptions(ctx context.Context, nodeID string) ([]*E2
 		return []*E2Subscription{}, nil
 
 	}
-
-
 
 	subscriptions := make([]*E2Subscription, 0, len(nodeSubscriptions))
 
@@ -1379,13 +1083,9 @@ func (e *E2Adaptor) ListSubscriptions(ctx context.Context, nodeID string) ([]*E2
 
 	}
 
-
-
 	return subscriptions, nil
 
 }
-
-
 
 // UpdateSubscription updates an existing E2 subscription.
 
@@ -1393,11 +1093,7 @@ func (e *E2Adaptor) UpdateSubscription(ctx context.Context, nodeID, subscription
 
 	logger := log.FromContext(ctx)
 
-
-
 	url := fmt.Sprintf("%s/e2ap/%s/nodes/%s/subscriptions/%s", e.ricURL, e.apiVersion, nodeID, subscriptionID)
-
-
 
 	body, err := json.Marshal(subscription)
 
@@ -1407,8 +1103,6 @@ func (e *E2Adaptor) UpdateSubscription(ctx context.Context, nodeID, subscription
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
 
 	if err != nil {
@@ -1417,11 +1111,7 @@ func (e *E2Adaptor) UpdateSubscription(ctx context.Context, nodeID, subscription
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
-
-
 
 	resp, err := e.httpClient.Do(req)
 
@@ -1433,8 +1123,6 @@ func (e *E2Adaptor) UpdateSubscription(ctx context.Context, nodeID, subscription
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -1443,15 +1131,11 @@ func (e *E2Adaptor) UpdateSubscription(ctx context.Context, nodeID, subscription
 
 	}
 
-
-
 	// Update local registry.
 
 	e.mutex.Lock()
 
 	defer e.mutex.Unlock()
-
-
 
 	if nodeSubscriptions, exists := e.subscriptions[nodeID]; exists {
 
@@ -1461,15 +1145,11 @@ func (e *E2Adaptor) UpdateSubscription(ctx context.Context, nodeID, subscription
 
 	}
 
-
-
 	logger.Info("successfully updated E2 subscription", "nodeID", nodeID, "subscriptionID", subscriptionID)
 
 	return nil
 
 }
-
-
 
 // DeleteSubscription deletes an E2 subscription.
 
@@ -1477,11 +1157,7 @@ func (e *E2Adaptor) DeleteSubscription(ctx context.Context, nodeID, subscription
 
 	logger := log.FromContext(ctx)
 
-
-
 	url := fmt.Sprintf("%s/e2ap/%s/nodes/%s/subscriptions/%s", e.ricURL, e.apiVersion, nodeID, subscriptionID)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, http.NoBody)
 
@@ -1490,8 +1166,6 @@ func (e *E2Adaptor) DeleteSubscription(ctx context.Context, nodeID, subscription
 		return fmt.Errorf("failed to create request: %w", err)
 
 	}
-
-
 
 	resp, err := e.httpClient.Do(req)
 
@@ -1503,15 +1177,11 @@ func (e *E2Adaptor) DeleteSubscription(ctx context.Context, nodeID, subscription
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
 
 		return fmt.Errorf("failed to delete subscription: status=%d", resp.StatusCode)
 
 	}
-
-
 
 	// Remove from local registry.
 
@@ -1519,15 +1189,11 @@ func (e *E2Adaptor) DeleteSubscription(ctx context.Context, nodeID, subscription
 
 	defer e.mutex.Unlock()
 
-
-
 	if nodeSubscriptions, exists := e.subscriptions[nodeID]; exists {
 
 		delete(nodeSubscriptions, subscriptionID)
 
 	}
-
-
 
 	logger.Info("successfully deleted E2 subscription", "nodeID", nodeID, "subscriptionID", subscriptionID)
 
@@ -1535,19 +1201,13 @@ func (e *E2Adaptor) DeleteSubscription(ctx context.Context, nodeID, subscription
 
 }
 
-
-
 // SendControlRequest sends a control request to an E2 Node.
 
 func (e *E2Adaptor) SendControlRequest(ctx context.Context, nodeID string, request *E2ControlRequest) (*E2ControlResponse, error) {
 
 	logger := log.FromContext(ctx)
 
-
-
 	url := fmt.Sprintf("%s/e2ap/%s/nodes/%s/control", e.ricURL, e.apiVersion, nodeID)
-
-
 
 	body, err := json.Marshal(request)
 
@@ -1557,8 +1217,6 @@ func (e *E2Adaptor) SendControlRequest(ctx context.Context, nodeID string, reque
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 
 	if err != nil {
@@ -1567,13 +1225,9 @@ func (e *E2Adaptor) SendControlRequest(ctx context.Context, nodeID string, reque
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
 
 	req.Header.Set("Accept", "application/json")
-
-
 
 	resp, err := e.httpClient.Do(req)
 
@@ -1585,8 +1239,6 @@ func (e *E2Adaptor) SendControlRequest(ctx context.Context, nodeID string, reque
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -1594,8 +1246,6 @@ func (e *E2Adaptor) SendControlRequest(ctx context.Context, nodeID string, reque
 		return nil, fmt.Errorf("control request failed: status=%d, body=%s", resp.StatusCode, string(bodyBytes))
 
 	}
-
-
 
 	var controlResponse E2ControlResponse
 
@@ -1605,8 +1255,6 @@ func (e *E2Adaptor) SendControlRequest(ctx context.Context, nodeID string, reque
 
 	}
 
-
-
 	logger.Info("successfully sent E2 control request",
 
 		"nodeID", nodeID,
@@ -1615,13 +1263,9 @@ func (e *E2Adaptor) SendControlRequest(ctx context.Context, nodeID string, reque
 
 		"ranFunctionID", request.RanFunctionID)
 
-
-
 	return &controlResponse, nil
 
 }
-
-
 
 // GetIndicationData retrieves indication data for a subscription.
 
@@ -1631,8 +1275,6 @@ func (e *E2Adaptor) GetIndicationData(ctx context.Context, nodeID, subscriptionI
 
 		e.ricURL, e.apiVersion, nodeID, subscriptionID)
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
 	if err != nil {
@@ -1640,8 +1282,6 @@ func (e *E2Adaptor) GetIndicationData(ctx context.Context, nodeID, subscriptionI
 		return nil, fmt.Errorf("failed to create request: %w", err)
 
 	}
-
-
 
 	resp, err := e.httpClient.Do(req)
 
@@ -1653,15 +1293,11 @@ func (e *E2Adaptor) GetIndicationData(ctx context.Context, nodeID, subscriptionI
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("failed to get indication data: status=%d", resp.StatusCode)
 
 	}
-
-
 
 	var indications []*E2Indication
 
@@ -1671,13 +1307,9 @@ func (e *E2Adaptor) GetIndicationData(ctx context.Context, nodeID, subscriptionI
 
 	}
 
-
-
 	return indications, nil
 
 }
-
-
 
 // ConfigureE2Interface configures the E2 interface for a ManagedElement.
 
@@ -1687,8 +1319,6 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 
 	logger.Info("configuring E2 interface", "managedElement", me.ObjectMeta.Name)
 
-
-
 	if me.Spec.E2Configuration.Raw == nil {
 
 		logger.Info("no E2 configuration to apply", "managedElement", me.ObjectMeta.Name)
@@ -1696,8 +1326,6 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 		return nil
 
 	}
-
-
 
 	// Parse E2 configuration.
 
@@ -1709,8 +1337,6 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 
 	}
 
-
-
 	// Extract node ID.
 
 	nodeID, ok := e2Config["node_id"].(string)
@@ -1721,8 +1347,6 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 
 	}
 
-
-
 	// Extract RAN functions.
 
 	ranFunctionsData, ok := e2Config["ran_functions"].([]interface{})
@@ -1732,8 +1356,6 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 		return fmt.Errorf("ran_functions not found in E2 configuration")
 
 	}
-
-
 
 	var ranFunctions []*E2NodeFunction
 
@@ -1747,31 +1369,25 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 
 		}
 
-
-
 		function := &E2NodeFunction{
 
-			FunctionID:          int(funcMap["function_id"].(float64)),
+			FunctionID: int(funcMap["function_id"].(float64)),
 
-			FunctionDefinition:  funcMap["function_definition"].(string),
+			FunctionDefinition: funcMap["function_definition"].(string),
 
-			FunctionRevision:    int(funcMap["function_revision"].(float64)),
+			FunctionRevision: int(funcMap["function_revision"].(float64)),
 
-			FunctionOID:         funcMap["function_oid"].(string),
+			FunctionOID: funcMap["function_oid"].(string),
 
 			FunctionDescription: funcMap["function_description"].(string),
 
 			Status: E2NodeFunctionStatus{
 
-				State:         "ACTIVE",
+				State: "ACTIVE",
 
 				LastHeartbeat: time.Now(),
-
 			},
-
 		}
-
-
 
 		// Parse service model if present.
 
@@ -1781,17 +1397,14 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 
 			function.ServiceModel = E2ServiceModel{
 
-				ServiceModelID:      smMap["service_model_id"].(string),
+				ServiceModelID: smMap["service_model_id"].(string),
 
-				ServiceModelName:    smMap["service_model_name"].(string),
+				ServiceModelName: smMap["service_model_name"].(string),
 
 				ServiceModelVersion: smMap["service_model_version"].(string),
 
-				ServiceModelOID:     smMap["service_model_oid"].(string),
-
+				ServiceModelOID: smMap["service_model_oid"].(string),
 			}
-
-
 
 			if procedures, exists := smMap["supported_procedures"]; exists {
 
@@ -1811,13 +1424,9 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 
 		}
 
-
-
 		ranFunctions = append(ranFunctions, function)
 
 	}
-
-
 
 	// Register the E2 node.
 
@@ -1826,8 +1435,6 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 		return fmt.Errorf("failed to register E2 node: %w", err)
 
 	}
-
-
 
 	// Create default subscriptions if specified.
 
@@ -1839,21 +1446,16 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 
 			subMap := subData.(map[string]interface{})
 
-
-
 			subscription := &E2Subscription{
 
-				SubscriptionID:  subMap["subscription_id"].(string),
+				SubscriptionID: subMap["subscription_id"].(string),
 
-				RequestorID:     subMap["requestor_id"].(string),
+				RequestorID: subMap["requestor_id"].(string),
 
-				RanFunctionID:   int(subMap["ran_function_id"].(float64)),
+				RanFunctionID: int(subMap["ran_function_id"].(float64)),
 
 				ReportingPeriod: time.Duration(int(subMap["reporting_period_ms"].(float64))) * time.Millisecond,
-
 			}
-
-
 
 			// Parse event triggers.
 
@@ -1868,7 +1470,6 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 					trigger := E2EventTrigger{
 
 						TriggerType: triggerMap["trigger_type"].(string),
-
 					}
 
 					if period, exists := triggerMap["reporting_period_ms"]; exists {
@@ -1883,8 +1484,6 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 
 			}
 
-
-
 			// Parse actions.
 
 			if actionsData, exists := subMap["actions"]; exists {
@@ -1897,12 +1496,11 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 
 					action := E2Action{
 
-						ActionID:         int(actionMap["action_id"].(float64)),
+						ActionID: int(actionMap["action_id"].(float64)),
 
-						ActionType:       actionMap["action_type"].(string),
+						ActionType: actionMap["action_type"].(string),
 
 						ActionDefinition: actionMap["action_definition"].(map[string]interface{}),
-
 					}
 
 					subscription.Actions = append(subscription.Actions, action)
@@ -1910,8 +1508,6 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 				}
 
 			}
-
-
 
 			if err := e.CreateSubscription(ctx, nodeID, subscription); err != nil {
 
@@ -1927,8 +1523,6 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 
 	}
 
-
-
 	logger.Info("successfully configured E2 interface",
 
 		"managedElement", me.ObjectMeta.Name,
@@ -1937,13 +1531,9 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 
 		"functions", len(ranFunctions))
 
-
-
 	return nil
 
 }
-
-
 
 // RemoveE2Interface removes the E2 interface configuration for a ManagedElement.
 
@@ -1953,8 +1543,6 @@ func (e *E2Adaptor) RemoveE2Interface(ctx context.Context, me *nephoranv1.Manage
 
 	logger.Info("removing E2 interface", "managedElement", me.ObjectMeta.Name)
 
-
-
 	if me.Spec.E2Configuration.Raw == nil {
 
 		logger.Info("no E2 configuration to remove", "managedElement", me.ObjectMeta.Name)
@@ -1962,8 +1550,6 @@ func (e *E2Adaptor) RemoveE2Interface(ctx context.Context, me *nephoranv1.Manage
 		return nil
 
 	}
-
-
 
 	// Parse E2 configuration to get node ID.
 
@@ -1975,8 +1561,6 @@ func (e *E2Adaptor) RemoveE2Interface(ctx context.Context, me *nephoranv1.Manage
 
 	}
 
-
-
 	nodeID, ok := e2Config["node_id"].(string)
 
 	if !ok {
@@ -1984,8 +1568,6 @@ func (e *E2Adaptor) RemoveE2Interface(ctx context.Context, me *nephoranv1.Manage
 		nodeID = me.ObjectMeta.Name
 
 	}
-
-
 
 	// Delete all subscriptions for this node.
 
@@ -2013,8 +1595,6 @@ func (e *E2Adaptor) RemoveE2Interface(ctx context.Context, me *nephoranv1.Manage
 
 	}
 
-
-
 	// Deregister the E2 node.
 
 	if err := e.DeregisterE2Node(ctx, nodeID); err != nil {
@@ -2023,21 +1603,15 @@ func (e *E2Adaptor) RemoveE2Interface(ctx context.Context, me *nephoranv1.Manage
 
 	}
 
-
-
 	logger.Info("successfully removed E2 interface",
 
 		"managedElement", me.ObjectMeta.Name,
 
 		"nodeID", nodeID)
 
-
-
 	return nil
 
 }
-
-
 
 // startHeartbeatMonitor starts the background heartbeat monitoring.
 
@@ -2046,8 +1620,6 @@ func (e *E2Adaptor) startHeartbeatMonitor() {
 	ticker := time.NewTicker(e.heartbeatInterval)
 
 	defer ticker.Stop()
-
-
 
 	for range ticker.C {
 
@@ -2064,8 +1636,6 @@ func (e *E2Adaptor) startHeartbeatMonitor() {
 				nodeInfo.ConnectionStatus.State = "DISCONNECTED"
 
 				nodeInfo.ConnectionStatus.ConnectionFailures++
-
-
 
 				// Mark all node functions as unavailable.
 
@@ -2085,11 +1655,7 @@ func (e *E2Adaptor) startHeartbeatMonitor() {
 
 }
 
-
-
 // Helper functions for creating common E2 service models.
-
-
 
 // CreateKPMServiceModel creates a Key Performance Measurement service model.
 
@@ -2097,13 +1663,13 @@ func CreateKPMServiceModel() *E2ServiceModel {
 
 	return &E2ServiceModel{
 
-		ServiceModelID:      "1.3.6.1.4.1.53148.1.1.2.2",
+		ServiceModelID: "1.3.6.1.4.1.53148.1.1.2.2",
 
-		ServiceModelName:    "KPM",
+		ServiceModelName: "KPM",
 
 		ServiceModelVersion: "1.0",
 
-		ServiceModelOID:     "1.3.6.1.4.1.53148.1.1.2.2",
+		ServiceModelOID: "1.3.6.1.4.1.53148.1.1.2.2",
 
 		SupportedProcedures: []string{
 
@@ -2112,7 +1678,6 @@ func CreateKPMServiceModel() *E2ServiceModel {
 			"RIC_SUBSCRIPTION_DELETE",
 
 			"RIC_INDICATION",
-
 		},
 
 		Configuration: map[string]interface{}{
@@ -2128,20 +1693,15 @@ func CreateKPMServiceModel() *E2ServiceModel {
 				"RRU.PrbTotDl",
 
 				"RRU.PrbUsedDl",
-
 			},
 
-			"granularity_period":    "1000ms",
+			"granularity_period": "1000ms",
 
 			"collection_start_time": "2025-07-29T10:00:00Z",
-
 		},
-
 	}
 
 }
-
-
 
 // CreateRCServiceModel creates a RAN Control service model.
 
@@ -2149,13 +1709,13 @@ func CreateRCServiceModel() *E2ServiceModel {
 
 	return &E2ServiceModel{
 
-		ServiceModelID:      "1.3.6.1.4.1.53148.1.1.2.3",
+		ServiceModelID: "1.3.6.1.4.1.53148.1.1.2.3",
 
-		ServiceModelName:    "RC",
+		ServiceModelName: "RC",
 
 		ServiceModelVersion: "1.0",
 
-		ServiceModelOID:     "1.3.6.1.4.1.53148.1.1.2.3",
+		ServiceModelOID: "1.3.6.1.4.1.53148.1.1.2.3",
 
 		SupportedProcedures: []string{
 
@@ -2164,7 +1724,6 @@ func CreateRCServiceModel() *E2ServiceModel {
 			"RIC_CONTROL_ACKNOWLEDGE",
 
 			"RIC_CONTROL_FAILURE",
-
 		},
 
 		Configuration: map[string]interface{}{
@@ -2176,7 +1735,6 @@ func CreateRCServiceModel() *E2ServiceModel {
 				"Traffic_steering",
 
 				"Dual_connectivity",
-
 			},
 
 			"control_outcomes": []string{
@@ -2186,16 +1744,11 @@ func CreateRCServiceModel() *E2ServiceModel {
 				"rejected",
 
 				"failed",
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // CreateDefaultE2NodeFunction creates a default E2 Node function for gNB.
 
@@ -2203,35 +1756,29 @@ func CreateDefaultE2NodeFunction() *E2NodeFunction {
 
 	return &E2NodeFunction{
 
-		FunctionID:          1,
+		FunctionID: 1,
 
-		FunctionDefinition:  "gNB-DU",
+		FunctionDefinition: "gNB-DU",
 
-		FunctionRevision:    1,
+		FunctionRevision: 1,
 
-		FunctionOID:         "1.3.6.1.4.1.53148.1.1.1.1",
+		FunctionOID: "1.3.6.1.4.1.53148.1.1.1.1",
 
 		FunctionDescription: "gNB Distributed Unit",
 
-		ServiceModel:        *CreateKPMServiceModel(),
+		ServiceModel: *CreateKPMServiceModel(),
 
 		Status: E2NodeFunctionStatus{
 
-			State:         "ACTIVE",
+			State: "ACTIVE",
 
 			LastHeartbeat: time.Now(),
-
 		},
-
 	}
 
 }
 
-
-
 // Retry and Circuit Breaker Helper Methods.
-
-
 
 // executeWithRetry executes an operation with exponential backoff retry.
 
@@ -2240,8 +1787,6 @@ func (e *E2Adaptor) executeWithRetry(ctx context.Context, operation func() error
 	_, err := e.circuitBreaker.Execute(ctx, func(ctx context.Context) (interface{}, error) {
 
 		var lastErr error
-
-
 
 		for attempt := 0; attempt <= e.retryConfig.MaxRetries; attempt++ {
 
@@ -2261,8 +1806,6 @@ func (e *E2Adaptor) executeWithRetry(ctx context.Context, operation func() error
 
 			}
 
-
-
 			if err := operation(); err != nil {
 
 				lastErr = err
@@ -2277,13 +1820,9 @@ func (e *E2Adaptor) executeWithRetry(ctx context.Context, operation func() error
 
 			}
 
-
-
 			return nil, nil
 
 		}
-
-
 
 		return nil, fmt.Errorf("operation failed after %d attempts: %w", e.retryConfig.MaxRetries+1, lastErr)
 
@@ -2293,23 +1832,17 @@ func (e *E2Adaptor) executeWithRetry(ctx context.Context, operation func() error
 
 }
 
-
-
 // calculateBackoffDelay calculates the delay for exponential backoff with jitter.
 
 func (e *E2Adaptor) calculateBackoffDelay(attempt int) time.Duration {
 
 	delay := time.Duration(float64(e.retryConfig.InitialDelay) * math.Pow(e.retryConfig.BackoffFactor, float64(attempt-1)))
 
-
-
 	if delay > e.retryConfig.MaxDelay {
 
 		delay = e.retryConfig.MaxDelay
 
 	}
-
-
 
 	if e.retryConfig.Jitter {
 
@@ -2319,13 +1852,9 @@ func (e *E2Adaptor) calculateBackoffDelay(attempt int) time.Duration {
 
 	}
 
-
-
 	return delay
 
 }
-
-
 
 // isRetryableError checks if an error is retryable based on configuration.
 
@@ -2336,8 +1865,6 @@ func (e *E2Adaptor) isRetryableError(err error) bool {
 		return false
 
 	}
-
-
 
 	errMsg := err.Error()
 
@@ -2351,13 +1878,9 @@ func (e *E2Adaptor) isRetryableError(err error) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // contains checks if a string contains a substring (case-insensitive).
 
@@ -2377,8 +1900,6 @@ func contains(s, substr string) bool {
 
 }
 
-
-
 // indexOf returns the index of substr in s, or -1 if not found.
 
 func indexOf(s, substr string) int {
@@ -2397,15 +1918,11 @@ func indexOf(s, substr string) int {
 
 }
 
-
-
 // sendE2APMessage sends an E2AP message with circuit breaker and retry protection.
 
 func (e *E2Adaptor) sendE2APMessage(ctx context.Context, nodeID string, message *E2APMessage) (*E2APMessage, error) {
 
 	logger := log.FromContext(ctx)
-
-
 
 	var response *E2APMessage
 
@@ -2421,8 +1938,6 @@ func (e *E2Adaptor) sendE2APMessage(ctx context.Context, nodeID string, message 
 
 		}
 
-
-
 		// Create HTTP request.
 
 		url := fmt.Sprintf("%s/api/%s/nodes/%s/messages", e.ricURL, e.apiVersion, nodeID)
@@ -2435,13 +1950,9 @@ func (e *E2Adaptor) sendE2APMessage(ctx context.Context, nodeID string, message 
 
 		}
 
-
-
 		req.Header.Set("Content-Type", "application/json")
 
 		req.Header.Set("Accept", "application/json")
-
-
 
 		// Send request.
 
@@ -2455,15 +1966,11 @@ func (e *E2Adaptor) sendE2APMessage(ctx context.Context, nodeID string, message 
 
 		defer resp.Body.Close()
 
-
-
 		if resp.StatusCode >= 400 {
 
 			return fmt.Errorf("HTTP request failed with status %d", resp.StatusCode)
 
 		}
-
-
 
 		// Read response.
 
@@ -2474,8 +1981,6 @@ func (e *E2Adaptor) sendE2APMessage(ctx context.Context, nodeID string, message 
 			return fmt.Errorf("failed to read response body: %w", err)
 
 		}
-
-
 
 		// Decode response.
 
@@ -2491,8 +1996,6 @@ func (e *E2Adaptor) sendE2APMessage(ctx context.Context, nodeID string, message 
 
 		}
 
-
-
 		logger.Info("E2AP message sent successfully",
 
 			"nodeID", nodeID,
@@ -2500,8 +2003,6 @@ func (e *E2Adaptor) sendE2APMessage(ctx context.Context, nodeID string, message 
 			"messageType", message.MessageType,
 
 			"transactionID", message.TransactionID)
-
-
 
 		return nil
 
@@ -2519,13 +2020,9 @@ func (e *E2Adaptor) sendE2APMessage(ctx context.Context, nodeID string, message 
 
 	}
 
-
-
 	return response, nil
 
 }
-
-
 
 // GetCircuitBreakerStats returns circuit breaker statistics.
 
@@ -2535,8 +2032,6 @@ func (e *E2Adaptor) GetCircuitBreakerStats() map[string]interface{} {
 
 }
 
-
-
 // ResetCircuitBreaker manually resets the circuit breaker.
 
 func (e *E2Adaptor) ResetCircuitBreaker() {
@@ -2544,4 +2039,3 @@ func (e *E2Adaptor) ResetCircuitBreaker() {
 	e.circuitBreaker.Reset()
 
 }
-

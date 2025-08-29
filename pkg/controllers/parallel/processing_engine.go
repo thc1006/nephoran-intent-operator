@@ -28,42 +28,21 @@ limitations under the License.
 
 */
 
-
-
-
 package parallel
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"runtime"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/errors"
-
 )
-
-
 
 // ParallelProcessingEngine manages concurrent intent processing with worker pools.
 
@@ -75,67 +54,54 @@ type ParallelProcessingEngine struct {
 
 	logger logr.Logger
 
-
-
 	// Worker pools.
 
-	intentPool     *WorkerPool
+	intentPool *WorkerPool
 
-	llmPool        *WorkerPool
+	llmPool *WorkerPool
 
-	ragPool        *WorkerPool
+	ragPool *WorkerPool
 
-	resourcePool   *WorkerPool
+	resourcePool *WorkerPool
 
-	manifestPool   *WorkerPool
+	manifestPool *WorkerPool
 
-	gitopsPool     *WorkerPool
+	gitopsPool *WorkerPool
 
 	deploymentPool *WorkerPool
 
-
-
 	// Task queues and scheduling.
 
-	intentQueue     *PriorityQueue
+	intentQueue *PriorityQueue
 
-	taskScheduler   *TaskScheduler
+	taskScheduler *TaskScheduler
 
 	dependencyGraph *DependencyGraph
 
-	loadBalancer    *LoadBalancer
-
-
+	loadBalancer *LoadBalancer
 
 	// State management.
 
 	processingStates sync.Map // map[string]*ProcessingState
 
-	metrics          *ProcessingMetrics
-
-
+	metrics *ProcessingMetrics
 
 	// Resource management.
 
-	resourceLimiter     *ResourceLimiter
+	resourceLimiter *ResourceLimiter
 
 	backpressureManager *BackpressureManager
 
-
-
 	// Lifecycle.
 
-	mutex        sync.RWMutex
+	mutex sync.RWMutex
 
-	started      bool
+	started bool
 
-	stopChan     chan struct{}
+	stopChan chan struct{}
 
 	healthTicker *time.Ticker
-
 }
-
-
 
 // ProcessingEngineConfig holds configuration for the parallel processing engine.
 
@@ -143,247 +109,194 @@ type ProcessingEngineConfig struct {
 
 	// Worker pool configurations.
 
-	IntentWorkers     int `json:"intentWorkers"`
+	IntentWorkers int `json:"intentWorkers"`
 
-	LLMWorkers        int `json:"llmWorkers"`
+	LLMWorkers int `json:"llmWorkers"`
 
-	RAGWorkers        int `json:"ragWorkers"`
+	RAGWorkers int `json:"ragWorkers"`
 
-	ResourceWorkers   int `json:"resourceWorkers"`
+	ResourceWorkers int `json:"resourceWorkers"`
 
-	ManifestWorkers   int `json:"manifestWorkers"`
+	ManifestWorkers int `json:"manifestWorkers"`
 
-	GitOpsWorkers     int `json:"gitopsWorkers"`
+	GitOpsWorkers int `json:"gitopsWorkers"`
 
 	DeploymentWorkers int `json:"deploymentWorkers"`
 
-
-
 	// Queue configurations.
 
-	MaxQueueSize int           `json:"maxQueueSize"`
+	MaxQueueSize int `json:"maxQueueSize"`
 
 	QueueTimeout time.Duration `json:"queueTimeout"`
 
-
-
 	// Performance tuning.
 
-	MaxConcurrentIntents int           `json:"maxConcurrentIntents"`
+	MaxConcurrentIntents int `json:"maxConcurrentIntents"`
 
-	ProcessingTimeout    time.Duration `json:"processingTimeout"`
+	ProcessingTimeout time.Duration `json:"processingTimeout"`
 
-	HealthCheckInterval  time.Duration `json:"healthCheckInterval"`
-
-
+	HealthCheckInterval time.Duration `json:"healthCheckInterval"`
 
 	// Resource limits.
 
-	MaxMemoryPerWorker int64   `json:"maxMemoryPerWorker"`
+	MaxMemoryPerWorker int64 `json:"maxMemoryPerWorker"`
 
-	MaxCPUPerWorker    float64 `json:"maxCpuPerWorker"`
-
-
+	MaxCPUPerWorker float64 `json:"maxCpuPerWorker"`
 
 	// Backpressure settings.
 
-	BackpressureEnabled   bool    `json:"backpressureEnabled"`
+	BackpressureEnabled bool `json:"backpressureEnabled"`
 
 	BackpressureThreshold float64 `json:"backpressureThreshold"`
-
-
 
 	// Load balancing.
 
 	LoadBalancingStrategy string `json:"loadBalancingStrategy"`
 
-
-
 	// Retry and circuit breaker.
 
-	MaxRetries            int  `json:"maxRetries"`
+	MaxRetries int `json:"maxRetries"`
 
 	CircuitBreakerEnabled bool `json:"circuitBreakerEnabled"`
 
-
-
 	// Monitoring.
 
-	MetricsEnabled  bool `json:"metricsEnabled"`
+	MetricsEnabled bool `json:"metricsEnabled"`
 
 	DetailedLogging bool `json:"detailedLogging"`
-
 }
-
-
 
 // WorkerPool manages a pool of workers for specific processing tasks.
 
 type WorkerPool struct {
+	name string
 
-	name        string
+	workers []*Worker
 
-	workers     []*Worker
-
-	taskQueue   chan *Task
+	taskQueue chan *Task
 
 	resultQueue chan *TaskResult
 
 	workerCount int
 
-
-
 	// State tracking.
 
-	activeWorkers  int32
+	activeWorkers int32
 
 	processedTasks int64
 
-	failedTasks    int64
+	failedTasks int64
 
 	averageLatency time.Duration
-
-
 
 	// Resource management.
 
 	memoryUsage int64
 
-	cpuUsage    float64
+	cpuUsage float64
 
+	mutex sync.RWMutex
 
-
-	mutex    sync.RWMutex
-
-	logger   logr.Logger
+	logger logr.Logger
 
 	stopChan chan struct{}
-
 }
-
-
 
 // Worker represents an individual worker in a pool.
 
 type Worker struct {
+	id int
 
-	id          int
+	poolName string
 
-	poolName    string
-
-	taskQueue   chan *Task
+	taskQueue chan *Task
 
 	resultQueue chan *TaskResult
 
-	processor   TaskProcessor
-
-
+	processor TaskProcessor
 
 	// State.
 
-	currentTask    *Task
+	currentTask *Task
 
-	lastActivity   time.Time
+	lastActivity time.Time
 
 	totalProcessed int64
 
-	totalErrors    int64
+	totalErrors int64
 
 	averageLatency time.Duration
-
-
 
 	// Resource tracking.
 
 	memoryUsage int64
 
-	cpuUsage    float64
+	cpuUsage float64
 
+	mutex sync.RWMutex
 
-
-	mutex    sync.RWMutex
-
-	logger   logr.Logger
+	logger logr.Logger
 
 	stopChan chan struct{}
-
 }
-
-
 
 // Task represents a processing task.
 
 type Task struct {
+	ID string `json:"id"`
 
-	ID       string                     `json:"id"`
+	Type TaskType `json:"type"`
 
-	Type     TaskType                   `json:"type"`
+	Priority int `json:"priority"`
 
-	Priority int                        `json:"priority"`
+	IntentID string `json:"intentId"`
 
-	IntentID string                     `json:"intentId"`
-
-	Phase    interfaces.ProcessingPhase `json:"phase"`
-
-
+	Phase interfaces.ProcessingPhase `json:"phase"`
 
 	// Task data.
 
-	Intent    *nephoranv1.NetworkIntent `json:"-"`
+	Intent *nephoranv1.NetworkIntent `json:"-"`
 
-	InputData map[string]interface{}    `json:"inputData,omitempty"`
+	InputData map[string]interface{} `json:"inputData,omitempty"`
 
-	Context   context.Context           `json:"-"`
-
-
+	Context context.Context `json:"-"`
 
 	// Dependencies.
 
 	Dependencies []string `json:"dependencies,omitempty"`
 
-	Dependents   []string `json:"dependents,omitempty"`
-
-
+	Dependents []string `json:"dependents,omitempty"`
 
 	// Execution control.
 
-	Timeout    time.Duration `json:"timeout"`
+	Timeout time.Duration `json:"timeout"`
 
-	MaxRetries int           `json:"maxRetries"`
+	MaxRetries int `json:"maxRetries"`
 
-	RetryCount int           `json:"retryCount"`
-
-
+	RetryCount int `json:"retryCount"`
 
 	// Timing.
 
-	CreatedAt   time.Time  `json:"createdAt"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	ScheduledAt *time.Time `json:"scheduledAt,omitempty"`
 
-	StartedAt   *time.Time `json:"startedAt,omitempty"`
+	StartedAt *time.Time `json:"startedAt,omitempty"`
 
 	CompletedAt *time.Time `json:"completedAt,omitempty"`
 
-
-
 	// Callbacks.
 
-	OnSuccess  func(*TaskResult)   `json:"-"`
+	OnSuccess func(*TaskResult) `json:"-"`
 
-	OnFailure  func(*TaskResult)   `json:"-"`
+	OnFailure func(*TaskResult) `json:"-"`
 
 	OnProgress func(*TaskProgress) `json:"-"`
-
 }
-
-
 
 // TaskType defines the type of processing task.
 
 type TaskType string
-
-
 
 const (
 
@@ -418,95 +331,73 @@ const (
 	// TaskTypeDeploymentVerify holds tasktypedeploymentverify value.
 
 	TaskTypeDeploymentVerify TaskType = "deployment_verify"
-
 )
-
-
 
 // TaskResult represents the result of a task execution.
 
 type TaskResult struct {
+	TaskID string `json:"taskId"`
 
-	TaskID   string        `json:"taskId"`
-
-	Success  bool          `json:"success"`
+	Success bool `json:"success"`
 
 	Duration time.Duration `json:"duration"`
 
-	WorkerID int           `json:"workerId"`
+	WorkerID int `json:"workerId"`
 
-	PoolName string        `json:"poolName"`
-
-
+	PoolName string `json:"poolName"`
 
 	// Result data.
 
-	OutputData       map[string]interface{}       `json:"outputData,omitempty"`
+	OutputData map[string]interface{} `json:"outputData,omitempty"`
 
 	ProcessingResult *interfaces.ProcessingResult `json:"processingResult,omitempty"`
 
-
-
 	// Error information.
 
-	Error        error  `json:"-"`
+	Error error `json:"-"`
 
 	ErrorMessage string `json:"errorMessage,omitempty"`
 
-	ErrorCode    string `json:"errorCode,omitempty"`
-
-
+	ErrorCode string `json:"errorCode,omitempty"`
 
 	// Performance metrics.
 
-	MemoryUsed int64   `json:"memoryUsed"`
+	MemoryUsed int64 `json:"memoryUsed"`
 
-	CPUUsed    float64 `json:"cpuUsed"`
-
-
+	CPUUsed float64 `json:"cpuUsed"`
 
 	// Timing details.
 
-	QueueTime      time.Duration `json:"queueTime"`
+	QueueTime time.Duration `json:"queueTime"`
 
 	ProcessingTime time.Duration `json:"processingTime"`
 
-
-
 	CompletedAt time.Time `json:"completedAt"`
-
 }
-
-
 
 // TaskProgress represents progress information for long-running tasks.
 
 type TaskProgress struct {
+	TaskID string `json:"taskId"`
 
-	TaskID         string     `json:"taskId"`
+	Phase string `json:"phase"`
 
-	Phase          string     `json:"phase"`
+	Progress float64 `json:"progress"` // 0.0 to 1.0
 
-	Progress       float64    `json:"progress"` // 0.0 to 1.0
+	Message string `json:"message"`
 
-	Message        string     `json:"message"`
+	EstimatedETA *time.Time `json:"estimatedEta,omitempty"`
 
-	EstimatedETA   *time.Time `json:"estimatedEta,omitempty"`
+	CurrentStep string `json:"currentStep"`
 
-	CurrentStep    string     `json:"currentStep"`
+	TotalSteps int `json:"totalSteps"`
 
-	TotalSteps     int        `json:"totalSteps"`
-
-	CompletedSteps int        `json:"completedSteps"`
-
+	CompletedSteps int `json:"completedSteps"`
 }
-
-
 
 // TaskProcessor defines the interface for task processing.
 
 type TaskProcessor interface {
-
 	ProcessTask(ctx context.Context, task *Task) (*TaskResult, error)
 
 	GetProcessorType() TaskType
@@ -514,324 +405,239 @@ type TaskProcessor interface {
 	HealthCheck(ctx context.Context) error
 
 	GetMetrics() map[string]interface{}
-
 }
-
-
 
 // PriorityQueue manages task prioritization.
 
 type PriorityQueue struct {
+	tasks []*Task
 
-	tasks       []*Task
+	mutex sync.RWMutex
 
-	mutex       sync.RWMutex
+	notEmpty *sync.Cond
 
-	notEmpty    *sync.Cond
-
-	maxSize     int
+	maxSize int
 
 	currentSize int
-
 }
-
-
 
 // TaskScheduler manages task scheduling and dependencies.
 
 type TaskScheduler struct {
-
-	engine          *ParallelProcessingEngine
+	engine *ParallelProcessingEngine
 
 	schedulingQueue chan *Task
-
-
 
 	// Dependency management.
 
 	dependencyGraph *DependencyGraph
 
-	readyTasks      chan *Task
-
-
+	readyTasks chan *Task
 
 	// Scheduling strategies.
 
-	strategies      map[string]SchedulingStrategy
+	strategies map[string]SchedulingStrategy
 
 	currentStrategy string
 
-
-
-	logger   logr.Logger
+	logger logr.Logger
 
 	stopChan chan struct{}
-
 }
-
-
 
 // SchedulingStrategy defines task scheduling strategies.
 
 type SchedulingStrategy interface {
-
 	ScheduleTask(task *Task, availableWorkers map[string]int) (string, error) // Returns pool name
 
 	GetStrategyName() string
 
 	GetMetrics() map[string]float64
-
 }
-
-
 
 // DependencyGraph manages task dependencies.
 
 type DependencyGraph struct {
-
 	nodes map[string]*DependencyNode
 
 	mutex sync.RWMutex
-
 }
-
-
 
 // DependencyNode represents a node in the dependency graph.
 
 type DependencyNode struct {
-
-	TaskID       string
+	TaskID string
 
 	Dependencies []*DependencyNode
 
-	Dependents   []*DependencyNode
+	Dependents []*DependencyNode
 
-	Completed    bool
+	Completed bool
 
-	Failed       bool
+	Failed bool
 
-	mutex        sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // LoadBalancer distributes tasks across worker pools.
 
 type LoadBalancer struct {
-
 	strategies map[string]LoadBalancingStrategy
 
-	current    string
-
-
+	current string
 
 	// Pool monitoring.
 
 	poolMetrics map[string]*PoolMetrics
 
-
-
-	mutex  sync.RWMutex
+	mutex sync.RWMutex
 
 	logger logr.Logger
-
 }
-
-
 
 // LoadBalancingStrategy defines load balancing strategies.
 
 type LoadBalancingStrategy interface {
-
 	SelectPool(pools map[string]*WorkerPool, task *Task) (string, error)
 
 	GetStrategyName() string
 
 	UpdateMetrics(poolName string, metrics *PoolMetrics)
-
 }
-
-
 
 // PoolMetrics tracks metrics for each worker pool.
 
 type PoolMetrics struct {
+	ActiveWorkers int32 `json:"activeWorkers"`
 
-	ActiveWorkers  int32         `json:"activeWorkers"`
-
-	QueueLength    int           `json:"queueLength"`
+	QueueLength int `json:"queueLength"`
 
 	AverageLatency time.Duration `json:"averageLatency"`
 
-	SuccessRate    float64       `json:"successRate"`
+	SuccessRate float64 `json:"successRate"`
 
-	MemoryUsage    int64         `json:"memoryUsage"`
+	MemoryUsage int64 `json:"memoryUsage"`
 
-	CPUUsage       float64       `json:"cpuUsage"`
+	CPUUsage float64 `json:"cpuUsage"`
 
-	ThroughputRate float64       `json:"throughputRate"`
+	ThroughputRate float64 `json:"throughputRate"`
 
-	LastUpdated    time.Time     `json:"lastUpdated"`
-
+	LastUpdated time.Time `json:"lastUpdated"`
 }
-
-
 
 // ResourceLimiter manages resource constraints.
 
 type ResourceLimiter struct {
+	maxMemory int64
 
-	maxMemory     int64
-
-	maxCPU        float64
+	maxCPU float64
 
 	currentMemory int64
 
-	currentCPU    float64
-
-
+	currentCPU float64
 
 	memoryWaiters []chan struct{}
 
-	cpuWaiters    []chan struct{}
+	cpuWaiters []chan struct{}
 
-
-
-	mutex  sync.RWMutex
+	mutex sync.RWMutex
 
 	logger logr.Logger
-
 }
-
-
 
 // BackpressureManager handles system backpressure.
 
 type BackpressureManager struct {
-
-	config      *BackpressureConfig
+	config *BackpressureConfig
 
 	currentLoad float64
 
-	thresholds  map[string]float64
+	thresholds map[string]float64
 
-	actions     map[string]BackpressureAction
-
-
+	actions map[string]BackpressureAction
 
 	metrics *BackpressureMetrics
 
-
-
-	mutex  sync.RWMutex
+	mutex sync.RWMutex
 
 	logger logr.Logger
-
 }
-
-
 
 // BackpressureConfig configures backpressure management.
 
 type BackpressureConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled          bool                          `json:"enabled"`
+	LoadThreshold float64 `json:"loadThreshold"`
 
-	LoadThreshold    float64                       `json:"loadThreshold"`
+	Actions map[string]BackpressureAction `json:"actions"`
 
-	Actions          map[string]BackpressureAction `json:"actions"`
-
-	EvaluationWindow time.Duration                 `json:"evaluationWindow"`
-
+	EvaluationWindow time.Duration `json:"evaluationWindow"`
 }
-
-
 
 // BackpressureAction defines actions to take under backpressure.
 
 type BackpressureAction struct {
+	Name string `json:"name"`
 
-	Name       string                 `json:"name"`
+	Threshold float64 `json:"threshold"`
 
-	Threshold  float64                `json:"threshold"`
-
-	Action     string                 `json:"action"` // throttle, reject, shed_load, degrade
+	Action string `json:"action"` // throttle, reject, shed_load, degrade
 
 	Parameters map[string]interface{} `json:"parameters"`
-
 }
-
-
 
 // BackpressureMetrics tracks backpressure metrics.
 
 type BackpressureMetrics struct {
+	CurrentLoad float64 `json:"currentLoad"`
 
-	CurrentLoad       float64   `json:"currentLoad"`
+	ThrottledRequests int64 `json:"throttledRequests"`
 
-	ThrottledRequests int64     `json:"throttledRequests"`
+	RejectedRequests int64 `json:"rejectedRequests"`
 
-	RejectedRequests  int64     `json:"rejectedRequests"`
+	ShedRequests int64 `json:"shedRequests"`
 
-	ShedRequests      int64     `json:"shedRequests"`
+	DegradedRequests int64 `json:"degradedRequests"`
 
-	DegradedRequests  int64     `json:"degradedRequests"`
+	LastAction string `json:"lastAction"`
 
-	LastAction        string    `json:"lastAction"`
-
-	LastActionTime    time.Time `json:"lastActionTime"`
-
+	LastActionTime time.Time `json:"lastActionTime"`
 }
-
-
 
 // ProcessingState tracks the state of intent processing.
 
 type ProcessingState struct {
-
-	IntentID     string                     `json:"intentId"`
+	IntentID string `json:"intentId"`
 
 	CurrentPhase interfaces.ProcessingPhase `json:"currentPhase"`
 
-	Progress     float64                    `json:"progress"`
-
-
+	Progress float64 `json:"progress"`
 
 	// Task tracking.
 
-	ActiveTasks    map[string]*Task       `json:"activeTasks"`
+	ActiveTasks map[string]*Task `json:"activeTasks"`
 
 	CompletedTasks map[string]*TaskResult `json:"completedTasks"`
 
-	FailedTasks    map[string]*TaskResult `json:"failedTasks"`
-
-
+	FailedTasks map[string]*TaskResult `json:"failedTasks"`
 
 	// Timing.
 
-	StartedAt           time.Time  `json:"startedAt"`
+	StartedAt time.Time `json:"startedAt"`
 
-	LastUpdated         time.Time  `json:"lastUpdated"`
+	LastUpdated time.Time `json:"lastUpdated"`
 
 	EstimatedCompletion *time.Time `json:"estimatedCompletion,omitempty"`
-
-
 
 	// Dependencies.
 
 	BlockedTasks []string `json:"blockedTasks"`
 
-	ReadyTasks   []string `json:"readyTasks"`
-
-
+	ReadyTasks []string `json:"readyTasks"`
 
 	mutex sync.RWMutex
-
 }
-
-
 
 // ProcessingMetrics tracks overall processing metrics.
 
@@ -839,93 +645,70 @@ type ProcessingMetrics struct {
 
 	// Throughput metrics.
 
-	TotalIntentsProcessed int64   `json:"totalIntentsProcessed"`
+	TotalIntentsProcessed int64 `json:"totalIntentsProcessed"`
 
-	SuccessfulIntents     int64   `json:"successfulIntents"`
+	SuccessfulIntents int64 `json:"successfulIntents"`
 
-	FailedIntents         int64   `json:"failedIntents"`
+	FailedIntents int64 `json:"failedIntents"`
 
-	IntentsPerSecond      float64 `json:"intentsPerSecond"`
-
-
+	IntentsPerSecond float64 `json:"intentsPerSecond"`
 
 	// Latency metrics.
 
 	AverageProcessingTime time.Duration `json:"averageProcessingTime"`
 
-	P95ProcessingTime     time.Duration `json:"p95ProcessingTime"`
+	P95ProcessingTime time.Duration `json:"p95ProcessingTime"`
 
-	P99ProcessingTime     time.Duration `json:"p99ProcessingTime"`
-
-
+	P99ProcessingTime time.Duration `json:"p99ProcessingTime"`
 
 	// Resource metrics.
 
-	TotalMemoryUsage int64   `json:"totalMemoryUsage"`
+	TotalMemoryUsage int64 `json:"totalMemoryUsage"`
 
-	TotalCPUUsage    float64 `json:"totalCpuUsage"`
-
-
+	TotalCPUUsage float64 `json:"totalCpuUsage"`
 
 	// Pool metrics.
 
 	PoolMetrics map[string]*PoolMetrics `json:"poolMetrics"`
 
-
-
 	// Task metrics.
 
 	TaskMetrics map[TaskType]*TaskTypeMetrics `json:"taskMetrics"`
 
-
-
 	// Queue metrics.
 
-	QueueDepth       int           `json:"queueDepth"`
+	QueueDepth int `json:"queueDepth"`
 
 	AverageQueueTime time.Duration `json:"averageQueueTime"`
 
-
-
 	// Error metrics.
 
-	ErrorRate    float64          `json:"errorRate"`
+	ErrorRate float64 `json:"errorRate"`
 
 	ErrorsByType map[string]int64 `json:"errorsByType"`
-
-
 
 	// Last updated.
 
 	LastUpdated time.Time `json:"lastUpdated"`
 
-
-
 	mutex sync.RWMutex
-
 }
-
-
 
 // TaskTypeMetrics tracks metrics for each task type.
 
 type TaskTypeMetrics struct {
+	TotalTasks int64 `json:"totalTasks"`
 
-	TotalTasks      int64         `json:"totalTasks"`
+	SuccessfulTasks int64 `json:"successfulTasks"`
 
-	SuccessfulTasks int64         `json:"successfulTasks"`
+	FailedTasks int64 `json:"failedTasks"`
 
-	FailedTasks     int64         `json:"failedTasks"`
+	AverageLatency time.Duration `json:"averageLatency"`
 
-	AverageLatency  time.Duration `json:"averageLatency"`
+	TasksPerSecond float64 `json:"tasksPerSecond"`
 
-	TasksPerSecond  float64       `json:"tasksPerSecond"`
-
-	LastUpdated     time.Time     `json:"lastUpdated"`
-
+	LastUpdated time.Time `json:"lastUpdated"`
 }
-
-
 
 // NewParallelProcessingEngine creates a new parallel processing engine.
 
@@ -937,33 +720,26 @@ func NewParallelProcessingEngine(config *ProcessingEngineConfig, logger logr.Log
 
 	}
 
-
-
 	engine := &ParallelProcessingEngine{
 
-		config:          config,
+		config: config,
 
-		logger:          logger,
+		logger: logger,
 
-		intentQueue:     NewPriorityQueue(config.MaxQueueSize),
+		intentQueue: NewPriorityQueue(config.MaxQueueSize),
 
 		dependencyGraph: NewDependencyGraph(),
 
-		metrics:         NewProcessingMetrics(),
+		metrics: NewProcessingMetrics(),
 
-		stopChan:        make(chan struct{}),
+		stopChan: make(chan struct{}),
 
-		healthTicker:    time.NewTicker(config.HealthCheckInterval),
-
+		healthTicker: time.NewTicker(config.HealthCheckInterval),
 	}
-
-
 
 	// Initialize worker pools.
 
 	engine.initializeWorkerPools()
-
-
 
 	// Initialize management components.
 
@@ -973,29 +749,22 @@ func NewParallelProcessingEngine(config *ProcessingEngineConfig, logger logr.Log
 
 	engine.resourceLimiter = NewResourceLimiter(config.MaxMemoryPerWorker, int64(config.MaxCPUPerWorker), logger)
 
-
-
 	if config.BackpressureEnabled {
 
 		engine.backpressureManager = NewBackpressureManager(&BackpressureConfig{
 
-			Enabled:          true,
+			Enabled: true,
 
-			LoadThreshold:    config.BackpressureThreshold,
+			LoadThreshold: config.BackpressureThreshold,
 
 			EvaluationWindow: 30 * time.Second,
-
 		}, logger)
 
 	}
 
-
-
 	return engine
 
 }
-
-
 
 // initializeWorkerPools initializes all worker pools.
 
@@ -1007,15 +776,11 @@ func (pe *ParallelProcessingEngine) initializeWorkerPools() {
 
 		NewIntentProcessor(pe.logger), pe.logger)
 
-
-
 	// LLM processing pool.
 
 	pe.llmPool = NewWorkerPool("llm", pe.config.LLMWorkers,
 
 		NewLLMProcessor(pe.logger), pe.logger)
-
-
 
 	// RAG processing pool.
 
@@ -1023,15 +788,11 @@ func (pe *ParallelProcessingEngine) initializeWorkerPools() {
 
 		NewRAGProcessor(pe.logger), pe.logger)
 
-
-
 	// Resource planning pool.
 
 	pe.resourcePool = NewWorkerPool("resource", pe.config.ResourceWorkers,
 
 		NewResourceProcessor(pe.logger), pe.logger)
-
-
 
 	// Manifest generation pool.
 
@@ -1039,15 +800,11 @@ func (pe *ParallelProcessingEngine) initializeWorkerPools() {
 
 		NewManifestProcessor(pe.logger), pe.logger)
 
-
-
 	// GitOps pool.
 
 	pe.gitopsPool = NewWorkerPool("gitops", pe.config.GitOpsWorkers,
 
 		NewGitOpsProcessor(pe.logger), pe.logger)
-
-
 
 	// Deployment verification pool.
 
@@ -1057,8 +814,6 @@ func (pe *ParallelProcessingEngine) initializeWorkerPools() {
 
 }
 
-
-
 // Start starts the parallel processing engine.
 
 func (pe *ParallelProcessingEngine) Start(ctx context.Context) error {
@@ -1067,19 +822,13 @@ func (pe *ParallelProcessingEngine) Start(ctx context.Context) error {
 
 	defer pe.mutex.Unlock()
 
-
-
 	if pe.started {
 
 		return fmt.Errorf("parallel processing engine already started")
 
 	}
 
-
-
 	pe.logger.Info("Starting parallel processing engine")
-
-
 
 	// Start worker pools.
 
@@ -1090,10 +839,7 @@ func (pe *ParallelProcessingEngine) Start(ctx context.Context) error {
 		pe.resourcePool, pe.manifestPool,
 
 		pe.gitopsPool, pe.deploymentPool,
-
 	}
-
-
 
 	for _, pool := range pools {
 
@@ -1105,19 +851,13 @@ func (pe *ParallelProcessingEngine) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start task scheduler.
 
 	go pe.taskScheduler.Start(ctx)
 
-
-
 	// Start health monitoring.
 
 	go pe.healthMonitor(ctx)
-
-
 
 	// Start metrics collector.
 
@@ -1127,8 +867,6 @@ func (pe *ParallelProcessingEngine) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start backpressure manager if enabled.
 
 	if pe.backpressureManager != nil {
@@ -1137,19 +875,13 @@ func (pe *ParallelProcessingEngine) Start(ctx context.Context) error {
 
 	}
 
-
-
 	pe.started = true
 
 	pe.logger.Info("Parallel processing engine started successfully")
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the parallel processing engine.
 
@@ -1159,27 +891,19 @@ func (pe *ParallelProcessingEngine) Stop() error {
 
 	defer pe.mutex.Unlock()
 
-
-
 	if !pe.started {
 
 		return nil
 
 	}
 
-
-
 	pe.logger.Info("Stopping parallel processing engine")
-
-
 
 	// Signal stop to all components.
 
 	close(pe.stopChan)
 
 	pe.healthTicker.Stop()
-
-
 
 	// Stop worker pools.
 
@@ -1190,10 +914,7 @@ func (pe *ParallelProcessingEngine) Stop() error {
 		pe.resourcePool, pe.manifestPool,
 
 		pe.gitopsPool, pe.deploymentPool,
-
 	}
-
-
 
 	for _, pool := range pools {
 
@@ -1201,13 +922,9 @@ func (pe *ParallelProcessingEngine) Stop() error {
 
 	}
 
-
-
 	// Stop task scheduler.
 
 	pe.taskScheduler.Stop()
-
-
 
 	// Stop backpressure manager.
 
@@ -1217,19 +934,13 @@ func (pe *ParallelProcessingEngine) Stop() error {
 
 	}
 
-
-
 	pe.started = false
 
 	pe.logger.Info("Parallel processing engine stopped")
 
-
-
 	return nil
 
 }
-
-
 
 // ProcessIntent processes an intent using parallel processing.
 
@@ -1241,8 +952,6 @@ func (pe *ParallelProcessingEngine) ProcessIntent(ctx context.Context, intent *n
 
 	}
 
-
-
 	// Check backpressure.
 
 	if pe.backpressureManager != nil && pe.backpressureManager.ShouldReject(TaskTypeDefault) {
@@ -1251,45 +960,36 @@ func (pe *ParallelProcessingEngine) ProcessIntent(ctx context.Context, intent *n
 
 	}
 
-
-
 	// Create processing state.
 
 	state := &ProcessingState{
 
-		IntentID:       intent.Name,
+		IntentID: intent.Name,
 
-		CurrentPhase:   interfaces.PhaseIntentReceived,
+		CurrentPhase: interfaces.PhaseIntentReceived,
 
-		Progress:       0.0,
+		Progress: 0.0,
 
-		ActiveTasks:    make(map[string]*Task),
+		ActiveTasks: make(map[string]*Task),
 
 		CompletedTasks: make(map[string]*TaskResult),
 
-		FailedTasks:    make(map[string]*TaskResult),
+		FailedTasks: make(map[string]*TaskResult),
 
-		StartedAt:      time.Now(),
+		StartedAt: time.Now(),
 
-		LastUpdated:    time.Now(),
+		LastUpdated: time.Now(),
 
-		BlockedTasks:   make([]string, 0),
+		BlockedTasks: make([]string, 0),
 
-		ReadyTasks:     make([]string, 0),
-
+		ReadyTasks: make([]string, 0),
 	}
 
-
-
 	pe.processingStates.Store(intent.Name, state)
-
-
 
 	// Create processing pipeline tasks.
 
 	tasks := pe.createProcessingPipeline(ctx, intent)
-
-
 
 	// Submit tasks for scheduling.
 
@@ -1307,21 +1007,15 @@ func (pe *ParallelProcessingEngine) ProcessIntent(ctx context.Context, intent *n
 
 	}
 
-
-
 	pe.logger.Info("Intent processing started",
 
 		"intentId", intent.Name,
 
 		"totalTasks", len(tasks))
 
-
-
 	return nil
 
 }
-
-
 
 // SubmitTask submits a task for processing.
 
@@ -1334,8 +1028,6 @@ func (pe *ParallelProcessingEngine) SubmitTask(task *Task) error {
 		return fmt.Errorf("failed to enqueue task: %w", err)
 
 	}
-
-
 
 	// Update processing state.
 
@@ -1353,8 +1045,6 @@ func (pe *ParallelProcessingEngine) SubmitTask(task *Task) error {
 
 	}
 
-
-
 	// Signal task scheduler.
 
 	select {
@@ -1369,13 +1059,9 @@ func (pe *ParallelProcessingEngine) SubmitTask(task *Task) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // createProcessingPipeline creates the processing pipeline for an intent.
 
@@ -1383,207 +1069,187 @@ func (pe *ParallelProcessingEngine) createProcessingPipeline(ctx context.Context
 
 	tasks := make([]*Task, 0)
 
-
-
 	// Task 1: LLM Processing.
 
 	llmTask := &Task{
 
-		ID:         fmt.Sprintf("%s-llm", intent.Name),
+		ID: fmt.Sprintf("%s-llm", intent.Name),
 
-		Type:       TaskTypeLLMProcessing,
+		Type: TaskTypeLLMProcessing,
 
-		Priority:   1,
+		Priority: 1,
 
-		IntentID:   intent.Name,
+		IntentID: intent.Name,
 
-		Phase:      interfaces.PhaseLLMProcessing,
+		Phase: interfaces.PhaseLLMProcessing,
 
-		Intent:     intent,
+		Intent: intent,
 
-		InputData:  map[string]interface{}{"intent": intent.Spec.Intent},
+		InputData: map[string]interface{}{"intent": intent.Spec.Intent},
 
-		Context:    ctx,
+		Context: ctx,
 
-		Timeout:    pe.config.ProcessingTimeout,
+		Timeout: pe.config.ProcessingTimeout,
 
 		MaxRetries: pe.config.MaxRetries,
 
-		CreatedAt:  time.Now(),
-
+		CreatedAt: time.Now(),
 	}
 
 	tasks = append(tasks, llmTask)
-
-
 
 	// Task 2: RAG Retrieval (parallel with LLM).
 
 	ragTask := &Task{
 
-		ID:         fmt.Sprintf("%s-rag", intent.Name),
+		ID: fmt.Sprintf("%s-rag", intent.Name),
 
-		Type:       TaskTypeRAGRetrieval,
+		Type: TaskTypeRAGRetrieval,
 
-		Priority:   1,
+		Priority: 1,
 
-		IntentID:   intent.Name,
+		IntentID: intent.Name,
 
-		Phase:      interfaces.PhaseLLMProcessing,
+		Phase: interfaces.PhaseLLMProcessing,
 
-		Intent:     intent,
+		Intent: intent,
 
-		InputData:  map[string]interface{}{"query": intent.Spec.Intent},
+		InputData: map[string]interface{}{"query": intent.Spec.Intent},
 
-		Context:    ctx,
+		Context: ctx,
 
-		Timeout:    pe.config.ProcessingTimeout,
+		Timeout: pe.config.ProcessingTimeout,
 
 		MaxRetries: pe.config.MaxRetries,
 
-		CreatedAt:  time.Now(),
-
+		CreatedAt: time.Now(),
 	}
 
 	tasks = append(tasks, ragTask)
-
-
 
 	// Task 3: Resource Planning (depends on LLM and RAG).
 
 	resourceTask := &Task{
 
-		ID:           fmt.Sprintf("%s-resource", intent.Name),
+		ID: fmt.Sprintf("%s-resource", intent.Name),
 
-		Type:         TaskTypeResourcePlanning,
+		Type: TaskTypeResourcePlanning,
 
-		Priority:     2,
+		Priority: 2,
 
-		IntentID:     intent.Name,
+		IntentID: intent.Name,
 
-		Phase:        interfaces.PhaseResourcePlanning,
+		Phase: interfaces.PhaseResourcePlanning,
 
-		Intent:       intent,
+		Intent: intent,
 
-		InputData:    map[string]interface{}{},
+		InputData: map[string]interface{}{},
 
-		Context:      ctx,
+		Context: ctx,
 
 		Dependencies: []string{llmTask.ID, ragTask.ID},
 
-		Timeout:      pe.config.ProcessingTimeout,
+		Timeout: pe.config.ProcessingTimeout,
 
-		MaxRetries:   pe.config.MaxRetries,
+		MaxRetries: pe.config.MaxRetries,
 
-		CreatedAt:    time.Now(),
-
+		CreatedAt: time.Now(),
 	}
 
 	tasks = append(tasks, resourceTask)
-
-
 
 	// Task 4: Manifest Generation (depends on resource planning).
 
 	manifestTask := &Task{
 
-		ID:           fmt.Sprintf("%s-manifest", intent.Name),
+		ID: fmt.Sprintf("%s-manifest", intent.Name),
 
-		Type:         TaskTypeManifestGeneration,
+		Type: TaskTypeManifestGeneration,
 
-		Priority:     3,
+		Priority: 3,
 
-		IntentID:     intent.Name,
+		IntentID: intent.Name,
 
-		Phase:        interfaces.PhaseManifestGeneration,
+		Phase: interfaces.PhaseManifestGeneration,
 
-		Intent:       intent,
+		Intent: intent,
 
-		InputData:    map[string]interface{}{},
+		InputData: map[string]interface{}{},
 
-		Context:      ctx,
+		Context: ctx,
 
 		Dependencies: []string{resourceTask.ID},
 
-		Timeout:      pe.config.ProcessingTimeout,
+		Timeout: pe.config.ProcessingTimeout,
 
-		MaxRetries:   pe.config.MaxRetries,
+		MaxRetries: pe.config.MaxRetries,
 
-		CreatedAt:    time.Now(),
-
+		CreatedAt: time.Now(),
 	}
 
 	tasks = append(tasks, manifestTask)
-
-
 
 	// Task 5: GitOps Commit (depends on manifest generation).
 
 	gitopsTask := &Task{
 
-		ID:           fmt.Sprintf("%s-gitops", intent.Name),
+		ID: fmt.Sprintf("%s-gitops", intent.Name),
 
-		Type:         TaskTypeGitOpsCommit,
+		Type: TaskTypeGitOpsCommit,
 
-		Priority:     4,
+		Priority: 4,
 
-		IntentID:     intent.Name,
+		IntentID: intent.Name,
 
-		Phase:        interfaces.PhaseGitOpsCommit,
+		Phase: interfaces.PhaseGitOpsCommit,
 
-		Intent:       intent,
+		Intent: intent,
 
-		InputData:    map[string]interface{}{},
+		InputData: map[string]interface{}{},
 
-		Context:      ctx,
+		Context: ctx,
 
 		Dependencies: []string{manifestTask.ID},
 
-		Timeout:      pe.config.ProcessingTimeout,
+		Timeout: pe.config.ProcessingTimeout,
 
-		MaxRetries:   pe.config.MaxRetries,
+		MaxRetries: pe.config.MaxRetries,
 
-		CreatedAt:    time.Now(),
-
+		CreatedAt: time.Now(),
 	}
 
 	tasks = append(tasks, gitopsTask)
-
-
 
 	// Task 6: Deployment Verification (depends on GitOps).
 
 	deploymentTask := &Task{
 
-		ID:           fmt.Sprintf("%s-deployment", intent.Name),
+		ID: fmt.Sprintf("%s-deployment", intent.Name),
 
-		Type:         TaskTypeDeploymentVerify,
+		Type: TaskTypeDeploymentVerify,
 
-		Priority:     5,
+		Priority: 5,
 
-		IntentID:     intent.Name,
+		IntentID: intent.Name,
 
-		Phase:        interfaces.PhaseDeploymentVerification,
+		Phase: interfaces.PhaseDeploymentVerification,
 
-		Intent:       intent,
+		Intent: intent,
 
-		InputData:    map[string]interface{}{},
+		InputData: map[string]interface{}{},
 
-		Context:      ctx,
+		Context: ctx,
 
 		Dependencies: []string{gitopsTask.ID},
 
-		Timeout:      pe.config.ProcessingTimeout,
+		Timeout: pe.config.ProcessingTimeout,
 
-		MaxRetries:   pe.config.MaxRetries,
+		MaxRetries: pe.config.MaxRetries,
 
-		CreatedAt:    time.Now(),
-
+		CreatedAt: time.Now(),
 	}
 
 	tasks = append(tasks, deploymentTask)
-
-
 
 	// Build dependency graph.
 
@@ -1599,13 +1265,9 @@ func (pe *ParallelProcessingEngine) createProcessingPipeline(ctx context.Context
 
 	pe.dependencyGraph.AddTask(deploymentTask.ID, []string{gitopsTask.ID}, []string{})
 
-
-
 	return tasks
 
 }
-
-
 
 // GetProcessingStatus returns the current processing status.
 
@@ -1621,8 +1283,6 @@ func (pe *ParallelProcessingEngine) GetProcessingStatus(intentID string) (*Proce
 
 }
 
-
-
 // GetMetrics returns processing metrics.
 
 func (pe *ParallelProcessingEngine) GetMetrics() *ProcessingMetrics {
@@ -1630,8 +1290,6 @@ func (pe *ParallelProcessingEngine) GetMetrics() *ProcessingMetrics {
 	pe.metrics.mutex.RLock()
 
 	defer pe.metrics.mutex.RUnlock()
-
-
 
 	// Create a deep copy to avoid concurrent access issues.
 
@@ -1641,39 +1299,36 @@ func (pe *ParallelProcessingEngine) GetMetrics() *ProcessingMetrics {
 
 		TotalIntentsProcessed: pe.metrics.TotalIntentsProcessed,
 
-		SuccessfulIntents:     pe.metrics.SuccessfulIntents,
+		SuccessfulIntents: pe.metrics.SuccessfulIntents,
 
-		FailedIntents:         pe.metrics.FailedIntents,
+		FailedIntents: pe.metrics.FailedIntents,
 
-		IntentsPerSecond:      pe.metrics.IntentsPerSecond,
+		IntentsPerSecond: pe.metrics.IntentsPerSecond,
 
 		AverageProcessingTime: pe.metrics.AverageProcessingTime,
 
-		P95ProcessingTime:     pe.metrics.P95ProcessingTime,
+		P95ProcessingTime: pe.metrics.P95ProcessingTime,
 
-		P99ProcessingTime:     pe.metrics.P99ProcessingTime,
+		P99ProcessingTime: pe.metrics.P99ProcessingTime,
 
-		TotalMemoryUsage:      pe.metrics.TotalMemoryUsage,
+		TotalMemoryUsage: pe.metrics.TotalMemoryUsage,
 
-		TotalCPUUsage:         pe.metrics.TotalCPUUsage,
+		TotalCPUUsage: pe.metrics.TotalCPUUsage,
 
-		QueueDepth:            pe.metrics.QueueDepth,
+		QueueDepth: pe.metrics.QueueDepth,
 
-		AverageQueueTime:      pe.metrics.AverageQueueTime,
+		AverageQueueTime: pe.metrics.AverageQueueTime,
 
-		ErrorRate:             pe.metrics.ErrorRate,
+		ErrorRate: pe.metrics.ErrorRate,
 
-		LastUpdated:           pe.metrics.LastUpdated,
+		LastUpdated: pe.metrics.LastUpdated,
 
-		PoolMetrics:           make(map[string]*PoolMetrics),
+		PoolMetrics: make(map[string]*PoolMetrics),
 
-		TaskMetrics:           make(map[TaskType]*TaskTypeMetrics),
+		TaskMetrics: make(map[TaskType]*TaskTypeMetrics),
 
-		ErrorsByType:          make(map[string]int64),
-
+		ErrorsByType: make(map[string]int64),
 	}
-
-
 
 	for k, v := range pe.metrics.PoolMetrics {
 
@@ -1681,15 +1336,11 @@ func (pe *ParallelProcessingEngine) GetMetrics() *ProcessingMetrics {
 
 	}
 
-
-
 	for k, v := range pe.metrics.TaskMetrics {
 
 		metricsCopy.TaskMetrics[k] = v
 
 	}
-
-
 
 	for k, v := range pe.metrics.ErrorsByType {
 
@@ -1697,13 +1348,9 @@ func (pe *ParallelProcessingEngine) GetMetrics() *ProcessingMetrics {
 
 	}
 
-
-
 	return &metricsCopy
 
 }
-
-
 
 // healthMonitor performs periodic health monitoring.
 
@@ -1717,13 +1364,9 @@ func (pe *ParallelProcessingEngine) healthMonitor(ctx context.Context) {
 
 			pe.performHealthCheck()
 
-
-
 		case <-pe.stopChan:
 
 			return
-
-
 
 		case <-ctx.Done():
 
@@ -1735,37 +1378,30 @@ func (pe *ParallelProcessingEngine) healthMonitor(ctx context.Context) {
 
 }
 
-
-
 // performHealthCheck performs comprehensive health checking.
 
 func (pe *ParallelProcessingEngine) performHealthCheck() {
 
 	pe.logger.Info("Performing health check")
 
-
-
 	// Check worker pools.
 
 	pools := map[string]*WorkerPool{
 
-		"intent":     pe.intentPool,
+		"intent": pe.intentPool,
 
-		"llm":        pe.llmPool,
+		"llm": pe.llmPool,
 
-		"rag":        pe.ragPool,
+		"rag": pe.ragPool,
 
-		"resource":   pe.resourcePool,
+		"resource": pe.resourcePool,
 
-		"manifest":   pe.manifestPool,
+		"manifest": pe.manifestPool,
 
-		"gitops":     pe.gitopsPool,
+		"gitops": pe.gitopsPool,
 
 		"deployment": pe.deploymentPool,
-
 	}
-
-
 
 	for name, pool := range pools {
 
@@ -1779,15 +1415,11 @@ func (pe *ParallelProcessingEngine) performHealthCheck() {
 
 	}
 
-
-
 	// Check resource usage.
 
 	memUsage := pe.getCurrentMemoryUsage()
 
 	cpuUsage := pe.getCurrentCPUUsage()
-
-
 
 	pe.metrics.mutex.Lock()
 
@@ -1799,15 +1431,11 @@ func (pe *ParallelProcessingEngine) performHealthCheck() {
 
 	pe.metrics.mutex.Unlock()
 
-
-
 	if memUsage > pe.config.MaxMemoryPerWorker*int64(len(pools)) {
 
 		pe.logger.Info("High memory usage detected", "usage", memUsage)
 
 	}
-
-
 
 	if cpuUsage > pe.config.MaxCPUPerWorker*float64(len(pools)) {
 
@@ -1817,8 +1445,6 @@ func (pe *ParallelProcessingEngine) performHealthCheck() {
 
 }
 
-
-
 // metricsCollector collects and updates metrics.
 
 func (pe *ParallelProcessingEngine) metricsCollector(ctx context.Context) {
@@ -1826,8 +1452,6 @@ func (pe *ParallelProcessingEngine) metricsCollector(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1837,13 +1461,9 @@ func (pe *ParallelProcessingEngine) metricsCollector(ctx context.Context) {
 
 			pe.collectMetrics()
 
-
-
 		case <-pe.stopChan:
 
 			return
-
-
 
 		case <-ctx.Done():
 
@@ -1855,8 +1475,6 @@ func (pe *ParallelProcessingEngine) metricsCollector(ctx context.Context) {
 
 }
 
-
-
 // collectMetrics collects comprehensive metrics.
 
 func (pe *ParallelProcessingEngine) collectMetrics() {
@@ -1865,29 +1483,24 @@ func (pe *ParallelProcessingEngine) collectMetrics() {
 
 	defer pe.metrics.mutex.Unlock()
 
-
-
 	// Collect pool metrics.
 
 	pools := map[string]*WorkerPool{
 
-		"intent":     pe.intentPool,
+		"intent": pe.intentPool,
 
-		"llm":        pe.llmPool,
+		"llm": pe.llmPool,
 
-		"rag":        pe.ragPool,
+		"rag": pe.ragPool,
 
-		"resource":   pe.resourcePool,
+		"resource": pe.resourcePool,
 
-		"manifest":   pe.manifestPool,
+		"manifest": pe.manifestPool,
 
-		"gitops":     pe.gitopsPool,
+		"gitops": pe.gitopsPool,
 
 		"deployment": pe.deploymentPool,
-
 	}
-
-
 
 	for name, pool := range pools {
 
@@ -1895,37 +1508,30 @@ func (pe *ParallelProcessingEngine) collectMetrics() {
 
 		pe.metrics.PoolMetrics[name] = &PoolMetrics{
 
-			ActiveWorkers:  atomic.LoadInt32(&pool.activeWorkers),
+			ActiveWorkers: atomic.LoadInt32(&pool.activeWorkers),
 
-			QueueLength:    len(pool.taskQueue),
+			QueueLength: len(pool.taskQueue),
 
 			AverageLatency: pool.averageLatency,
 
-			SuccessRate:    calculateSuccessRate(pool.processedTasks, pool.failedTasks),
+			SuccessRate: calculateSuccessRate(pool.processedTasks, pool.failedTasks),
 
-			MemoryUsage:    atomic.LoadInt64(&pool.memoryUsage),
+			MemoryUsage: atomic.LoadInt64(&pool.memoryUsage),
 
-			CPUUsage:       pool.cpuUsage,
+			CPUUsage: pool.cpuUsage,
 
-			LastUpdated:    time.Now(),
-
+			LastUpdated: time.Now(),
 		}
 
 	}
-
-
 
 	// Calculate overall throughput.
 
 	pe.calculateThroughputMetrics()
 
-
-
 	pe.metrics.LastUpdated = time.Now()
 
 }
-
-
 
 // calculateThroughputMetrics calculates throughput and latency metrics.
 
@@ -1941,8 +1547,6 @@ func (pe *ParallelProcessingEngine) calculateThroughputMetrics() {
 
 	failed := atomic.LoadInt64(&pe.metrics.FailedIntents)
 
-
-
 	if totalProcessed > 0 {
 
 		pe.metrics.IntentsPerSecond = float64(successful+failed) / time.Since(pe.metrics.LastUpdated).Seconds()
@@ -1950,8 +1554,6 @@ func (pe *ParallelProcessingEngine) calculateThroughputMetrics() {
 	}
 
 }
-
-
 
 // getCurrentMemoryUsage returns current memory usage.
 
@@ -1965,8 +1567,6 @@ func (pe *ParallelProcessingEngine) getCurrentMemoryUsage() int64 {
 
 }
 
-
-
 // getCurrentCPUUsage returns current CPU usage (simplified).
 
 func (pe *ParallelProcessingEngine) getCurrentCPUUsage() float64 {
@@ -1978,8 +1578,6 @@ func (pe *ParallelProcessingEngine) getCurrentCPUUsage() float64 {
 	return 0.15 // 15%
 
 }
-
-
 
 // calculateSuccessRate calculates success rate from processed and failed tasks.
 
@@ -1995,11 +1593,7 @@ func calculateSuccessRate(processed, failed int64) float64 {
 
 }
 
-
-
 // Helper functions and supporting implementations.
-
-
 
 // getDefaultProcessingEngineConfig returns default configuration.
 
@@ -2007,53 +1601,50 @@ func getDefaultProcessingEngineConfig() *ProcessingEngineConfig {
 
 	return &ProcessingEngineConfig{
 
-		IntentWorkers:         5,
+		IntentWorkers: 5,
 
-		LLMWorkers:            3,
+		LLMWorkers: 3,
 
-		RAGWorkers:            3,
+		RAGWorkers: 3,
 
-		ResourceWorkers:       4,
+		ResourceWorkers: 4,
 
-		ManifestWorkers:       4,
+		ManifestWorkers: 4,
 
-		GitOpsWorkers:         2,
+		GitOpsWorkers: 2,
 
-		DeploymentWorkers:     3,
+		DeploymentWorkers: 3,
 
-		MaxQueueSize:          1000,
+		MaxQueueSize: 1000,
 
-		QueueTimeout:          5 * time.Minute,
+		QueueTimeout: 5 * time.Minute,
 
-		MaxConcurrentIntents:  100,
+		MaxConcurrentIntents: 100,
 
-		ProcessingTimeout:     10 * time.Minute,
+		ProcessingTimeout: 10 * time.Minute,
 
-		HealthCheckInterval:   30 * time.Second,
+		HealthCheckInterval: 30 * time.Second,
 
-		MaxMemoryPerWorker:    512 * 1024 * 1024, // 512MB
+		MaxMemoryPerWorker: 512 * 1024 * 1024, // 512MB
 
-		MaxCPUPerWorker:       0.5,               // 50%
+		MaxCPUPerWorker: 0.5, // 50%
 
-		BackpressureEnabled:   true,
+		BackpressureEnabled: true,
 
 		BackpressureThreshold: 0.8, // 80%
 
 		LoadBalancingStrategy: "round_robin",
 
-		MaxRetries:            3,
+		MaxRetries: 3,
 
 		CircuitBreakerEnabled: true,
 
-		MetricsEnabled:        true,
+		MetricsEnabled: true,
 
-		DetailedLogging:       false,
-
+		DetailedLogging: false,
 	}
 
 }
-
-
 
 // NewProcessingMetrics creates new processing metrics.
 
@@ -2061,19 +1652,16 @@ func NewProcessingMetrics() *ProcessingMetrics {
 
 	return &ProcessingMetrics{
 
-		PoolMetrics:  make(map[string]*PoolMetrics),
+		PoolMetrics: make(map[string]*PoolMetrics),
 
-		TaskMetrics:  make(map[TaskType]*TaskTypeMetrics),
+		TaskMetrics: make(map[TaskType]*TaskTypeMetrics),
 
 		ErrorsByType: make(map[string]int64),
 
-		LastUpdated:  time.Now(),
-
+		LastUpdated: time.Now(),
 	}
 
 }
-
-
 
 // GetStats returns statistics for BackpressureManager (interface-compatible method).
 
@@ -2083,27 +1671,20 @@ func (bm *BackpressureManager) GetStats() (map[string]interface{}, error) {
 
 	defer bm.mutex.RUnlock()
 
-
-
 	stats := map[string]interface{}{
 
-		"current_load":  bm.currentLoad,
+		"current_load": bm.currentLoad,
 
-		"thresholds":    bm.thresholds,
+		"thresholds": bm.thresholds,
 
-		"metrics":       bm.metrics,
+		"metrics": bm.metrics,
 
 		"actions_count": len(bm.actions),
-
 	}
-
-
 
 	return stats, nil
 
 }
-
-
 
 // NewResourceLimiter creates a new ResourceLimiter.
 
@@ -2113,15 +1694,12 @@ func NewResourceLimiter(maxMemory, maxCPU int64, logger logr.Logger) *ResourceLi
 
 		maxMemory: maxMemory,
 
-		maxCPU:    float64(maxCPU),
+		maxCPU: float64(maxCPU),
 
-		logger:    logger,
-
+		logger: logger,
 	}
 
 }
-
-
 
 // NewBackpressureManager creates a new BackpressureManager.
 
@@ -2129,31 +1707,27 @@ func NewBackpressureManager(config *BackpressureConfig, logger logr.Logger) *Bac
 
 	return &BackpressureManager{
 
-		config:      config,
+		config: config,
 
 		currentLoad: 0.0,
 
 		thresholds: map[string]float64{
 
-			"low":    0.6,
+			"low": 0.6,
 
 			"medium": 0.8,
 
-			"high":   0.9,
-
+			"high": 0.9,
 		},
 
 		actions: make(map[string]BackpressureAction),
 
 		metrics: &BackpressureMetrics{},
 
-		logger:  logger,
-
+		logger: logger,
 	}
 
 }
-
-
 
 // BackpressureManager methods.
 
@@ -2163,8 +1737,6 @@ func (bm *BackpressureManager) Start(ctx context.Context) {
 
 }
 
-
-
 // Stop performs stop operation.
 
 func (bm *BackpressureManager) Stop() {
@@ -2172,8 +1744,6 @@ func (bm *BackpressureManager) Stop() {
 	// Implementation for stopping backpressure monitoring.
 
 }
-
-
 
 // ShouldReject performs shouldreject operation.
 
@@ -2183,23 +1753,16 @@ func (bm *BackpressureManager) ShouldReject(taskType TaskType) bool {
 
 	defer bm.mutex.RUnlock()
 
-
-
 	return bm.currentLoad > bm.thresholds["high"]
 
 }
 
-
-
 // BackpressureThresholds defines load thresholds for backpressure.
 
 type BackpressureThresholds struct {
-
-	Low    float64 `json:"low"`
+	Low float64 `json:"low"`
 
 	Medium float64 `json:"medium"`
 
-	High   float64 `json:"high"`
-
+	High float64 `json:"high"`
 }
-

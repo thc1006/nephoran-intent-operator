@@ -6,275 +6,203 @@
 
 // you may not use this file except in compliance with the License.
 
-
-
-
 package reporting
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"crypto/sha256"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"net/http"
-
 	"os"
-
 	"path/filepath"
-
 	"strings"
-
 	"sync"
-
 	"text/template"
-
 	"time"
 
-
-
 	"github.com/sirupsen/logrus"
-
 )
-
-
 
 // DashboardConfig represents the configuration for dashboard management.
 
 type DashboardConfig struct {
+	GrafanaURL string `yaml:"grafana_url"`
 
-	GrafanaURL    string           `yaml:"grafana_url"`
+	APIKey string `yaml:"api_key"`
 
-	APIKey        string           `yaml:"api_key"`
+	OrgID int `yaml:"org_id"`
 
-	OrgID         int              `yaml:"org_id"`
+	DashboardPath string `yaml:"dashboard_path"`
 
-	DashboardPath string           `yaml:"dashboard_path"`
+	Templates TemplateConfig `yaml:"templates"`
 
-	Templates     TemplateConfig   `yaml:"templates"`
+	RBAC RBACConfig `yaml:"rbac"`
 
-	RBAC          RBACConfig       `yaml:"rbac"`
+	Monitoring MonitoringConfig `yaml:"monitoring"`
 
-	Monitoring    MonitoringConfig `yaml:"monitoring"`
-
-	ABTesting     ABTestingConfig  `yaml:"ab_testing"`
-
+	ABTesting ABTestingConfig `yaml:"ab_testing"`
 }
-
-
 
 // TemplateConfig contains template configuration.
 
 type TemplateConfig struct {
-
-	Path      string            `yaml:"path"`
+	Path string `yaml:"path"`
 
 	Variables map[string]string `yaml:"variables"`
-
 }
-
-
 
 // RBACConfig contains role-based access control configuration.
 
 type RBACConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled bool                  `yaml:"enabled"`
-
-	Roles   map[string]RoleConfig `yaml:"roles"`
-
+	Roles map[string]RoleConfig `yaml:"roles"`
 }
-
-
 
 // RoleConfig defines permissions for a role.
 
 type RoleConfig struct {
-
 	Dashboards []string `yaml:"dashboards"`
 
-	Edit       bool     `yaml:"edit"`
+	Edit bool `yaml:"edit"`
 
-	Admin      bool     `yaml:"admin"`
-
+	Admin bool `yaml:"admin"`
 }
-
-
 
 // MonitoringConfig contains monitoring configuration for dashboards.
 
 type MonitoringConfig struct {
-
 	HealthCheckInterval time.Duration `yaml:"health_check_interval"`
 
-	DataFlowTimeout     time.Duration `yaml:"data_flow_timeout"`
+	DataFlowTimeout time.Duration `yaml:"data_flow_timeout"`
 
-	AlertsEnabled       bool          `yaml:"alerts_enabled"`
-
+	AlertsEnabled bool `yaml:"alerts_enabled"`
 }
-
-
 
 // ABTestingConfig contains A/B testing configuration.
 
 type ABTestingConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled         bool    `yaml:"enabled"`
+	TrafficSplit float64 `yaml:"traffic_split"`
 
-	TrafficSplit    float64 `yaml:"traffic_split"`
+	TestDuration string `yaml:"test_duration"`
 
-	TestDuration    string  `yaml:"test_duration"`
-
-	MetricsEndpoint string  `yaml:"metrics_endpoint"`
-
+	MetricsEndpoint string `yaml:"metrics_endpoint"`
 }
-
-
 
 // Dashboard represents a Grafana dashboard.
 
 type Dashboard struct {
+	ID int `json:"id,omitempty"`
 
-	ID            int                    `json:"id,omitempty"`
+	UID string `json:"uid,omitempty"`
 
-	UID           string                 `json:"uid,omitempty"`
+	Title string `json:"title"`
 
-	Title         string                 `json:"title"`
+	Tags []string `json:"tags,omitempty"`
 
-	Tags          []string               `json:"tags,omitempty"`
+	Templating DashboardTemplating `json:"templating"`
 
-	Templating    DashboardTemplating    `json:"templating"`
+	Panels []DashboardPanel `json:"panels"`
 
-	Panels        []DashboardPanel       `json:"panels"`
+	Time DashboardTimeRange `json:"time"`
 
-	Time          DashboardTimeRange     `json:"time"`
+	Refresh string `json:"refresh"`
 
-	Refresh       string                 `json:"refresh"`
+	SchemaVersion int `json:"schemaVersion"`
 
-	SchemaVersion int                    `json:"schemaVersion"`
+	Version int `json:"version"`
 
-	Version       int                    `json:"version"`
-
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // DashboardTemplating contains dashboard template variables.
 
 type DashboardTemplating struct {
-
 	List []TemplateVariable `json:"list"`
-
 }
-
-
 
 // TemplateVariable represents a dashboard template variable.
 
 type TemplateVariable struct {
+	Name string `json:"name"`
 
-	Name       string                 `json:"name"`
+	Type string `json:"type"`
 
-	Type       string                 `json:"type"`
+	DataSource string `json:"datasource,omitempty"`
 
-	DataSource string                 `json:"datasource,omitempty"`
+	Query string `json:"query,omitempty"`
 
-	Query      string                 `json:"query,omitempty"`
+	Options []TemplateOption `json:"options,omitempty"`
 
-	Options    []TemplateOption       `json:"options,omitempty"`
+	Current TemplateOption `json:"current"`
 
-	Current    TemplateOption         `json:"current"`
+	Hide int `json:"hide,omitempty"`
 
-	Hide       int                    `json:"hide,omitempty"`
+	Refresh int `json:"refresh,omitempty"`
 
-	Refresh    int                    `json:"refresh,omitempty"`
+	Multi bool `json:"multi,omitempty"`
 
-	Multi      bool                   `json:"multi,omitempty"`
-
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // TemplateOption represents an option for a template variable.
 
 type TemplateOption struct {
+	Text string `json:"text"`
 
-	Text     string `json:"text"`
+	Value string `json:"value"`
 
-	Value    string `json:"value"`
-
-	Selected bool   `json:"selected"`
-
+	Selected bool `json:"selected"`
 }
-
-
 
 // DashboardPanel represents a dashboard panel.
 
 type DashboardPanel struct {
+	ID int `json:"id"`
 
-	ID          int                    `json:"id"`
+	Title string `json:"title"`
 
-	Title       string                 `json:"title"`
+	Type string `json:"type"`
 
-	Type        string                 `json:"type"`
+	DataSource string `json:"datasource,omitempty"`
 
-	DataSource  string                 `json:"datasource,omitempty"`
+	Targets []PanelTarget `json:"targets,omitempty"`
 
-	Targets     []PanelTarget          `json:"targets,omitempty"`
+	GridPos PanelGridPos `json:"gridPos"`
 
-	GridPos     PanelGridPos           `json:"gridPos"`
+	Options map[string]interface{} `json:"options,omitempty"`
 
-	Options     map[string]interface{} `json:"options,omitempty"`
+	FieldConfig PanelFieldConfig `json:"fieldConfig,omitempty"`
 
-	FieldConfig PanelFieldConfig       `json:"fieldConfig,omitempty"`
+	Alert *PanelAlert `json:"alert,omitempty"`
 
-	Alert       *PanelAlert            `json:"alert,omitempty"`
-
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // PanelTarget represents a panel query target.
 
 type PanelTarget struct {
+	Expr string `json:"expr,omitempty"`
 
-	Expr           string                 `json:"expr,omitempty"`
+	RefID string `json:"refId"`
 
-	RefID          string                 `json:"refId"`
+	LegendFormat string `json:"legendFormat,omitempty"`
 
-	LegendFormat   string                 `json:"legendFormat,omitempty"`
+	IntervalFactor int `json:"intervalFactor,omitempty"`
 
-	IntervalFactor int                    `json:"intervalFactor,omitempty"`
+	Format string `json:"format,omitempty"`
 
-	Format         string                 `json:"format,omitempty"`
-
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // PanelGridPos represents panel grid position.
 
 type PanelGridPos struct {
-
 	H int `json:"h"`
 
 	W int `json:"w"`
@@ -282,296 +210,225 @@ type PanelGridPos struct {
 	X int `json:"x"`
 
 	Y int `json:"y"`
-
 }
-
-
 
 // PanelFieldConfig represents panel field configuration.
 
 type PanelFieldConfig struct {
+	Defaults FieldDefaults `json:"defaults"`
 
-	Defaults  FieldDefaults          `json:"defaults"`
+	Overrides []FieldOverride `json:"overrides,omitempty"`
 
-	Overrides []FieldOverride        `json:"overrides,omitempty"`
-
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // FieldDefaults represents default field settings.
 
 type FieldDefaults struct {
+	Unit string `json:"unit,omitempty"`
 
-	Unit       string                 `json:"unit,omitempty"`
+	Min *float64 `json:"min,omitempty"`
 
-	Min        *float64               `json:"min,omitempty"`
+	Max *float64 `json:"max,omitempty"`
 
-	Max        *float64               `json:"max,omitempty"`
+	Decimals *int `json:"decimals,omitempty"`
 
-	Decimals   *int                   `json:"decimals,omitempty"`
+	Thresholds *FieldThresholds `json:"thresholds,omitempty"`
 
-	Thresholds *FieldThresholds       `json:"thresholds,omitempty"`
+	Mappings []FieldMapping `json:"mappings,omitempty"`
 
-	Mappings   []FieldMapping         `json:"mappings,omitempty"`
-
-	Custom     map[string]interface{} `json:"custom,omitempty"`
-
+	Custom map[string]interface{} `json:"custom,omitempty"`
 }
-
-
 
 // FieldThresholds represents field thresholds.
 
 type FieldThresholds struct {
-
-	Mode  string          `json:"mode"`
+	Mode string `json:"mode"`
 
 	Steps []ThresholdStep `json:"steps"`
-
 }
-
-
 
 // ThresholdStep represents a threshold step.
 
 type ThresholdStep struct {
-
-	Color string   `json:"color"`
+	Color string `json:"color"`
 
 	Value *float64 `json:"value"`
-
 }
-
-
 
 // FieldMapping represents field value mapping.
 
 type FieldMapping struct {
+	Type string `json:"type"`
 
-	Type    string                 `json:"type"`
+	Value string `json:"value"`
 
-	Value   string                 `json:"value"`
-
-	Text    string                 `json:"text"`
+	Text string `json:"text"`
 
 	Options map[string]interface{} `json:"options,omitempty"`
-
 }
-
-
 
 // FieldOverride represents field override.
 
 type FieldOverride struct {
-
-	Matcher    FieldMatcher    `json:"matcher"`
+	Matcher FieldMatcher `json:"matcher"`
 
 	Properties []FieldProperty `json:"properties"`
-
 }
-
-
 
 // FieldMatcher represents field matcher.
 
 type FieldMatcher struct {
-
-	ID      string `json:"id"`
+	ID string `json:"id"`
 
 	Options string `json:"options"`
-
 }
-
-
 
 // FieldProperty represents field property.
 
 type FieldProperty struct {
-
-	ID    string      `json:"id"`
+	ID string `json:"id"`
 
 	Value interface{} `json:"value"`
-
 }
-
-
 
 // PanelAlert represents panel alert configuration.
 
 type PanelAlert struct {
+	ID int `json:"id,omitempty"`
 
-	ID                  int              `json:"id,omitempty"`
+	Name string `json:"name"`
 
-	Name                string           `json:"name"`
+	Message string `json:"message"`
 
-	Message             string           `json:"message"`
+	Frequency string `json:"frequency"`
 
-	Frequency           string           `json:"frequency"`
+	Conditions []AlertCondition `json:"conditions"`
 
-	Conditions          []AlertCondition `json:"conditions"`
+	ExecutionErrorState string `json:"executionErrorState"`
 
-	ExecutionErrorState string           `json:"executionErrorState"`
+	NoDataState string `json:"noDataState"`
 
-	NoDataState         string           `json:"noDataState"`
-
-	For                 string           `json:"for"`
-
+	For string `json:"for"`
 }
-
-
 
 // AlertCondition represents alert condition.
 
 type AlertCondition struct {
+	Query AlertQuery `json:"query"`
 
-	Query     AlertQuery     `json:"query"`
-
-	Reducer   AlertReducer   `json:"reducer"`
+	Reducer AlertReducer `json:"reducer"`
 
 	Evaluator AlertEvaluator `json:"evaluator"`
-
 }
-
-
 
 // AlertQuery represents alert query.
 
 type AlertQuery struct {
+	QueryType string `json:"queryType"`
 
-	QueryType string                 `json:"queryType"`
+	RefID string `json:"refId"`
 
-	RefID     string                 `json:"refId"`
-
-	Model     map[string]interface{} `json:"model"`
-
+	Model map[string]interface{} `json:"model"`
 }
-
-
 
 // AlertReducer represents alert reducer.
 
 type AlertReducer struct {
-
-	Type   string        `json:"type"`
+	Type string `json:"type"`
 
 	Params []interface{} `json:"params"`
-
 }
-
-
 
 // AlertEvaluator represents alert evaluator.
 
 type AlertEvaluator struct {
-
 	Params []float64 `json:"params"`
 
-	Type   string    `json:"type"`
-
+	Type string `json:"type"`
 }
-
-
 
 // DashboardTimeRange represents dashboard time range.
 
 type DashboardTimeRange struct {
-
 	From string `json:"from"`
 
-	To   string `json:"to"`
-
+	To string `json:"to"`
 }
-
-
 
 // DashboardStatus represents the status of a dashboard.
 
 type DashboardStatus struct {
+	UID string `json:"uid"`
 
-	UID            string                 `json:"uid"`
+	Title string `json:"title"`
 
-	Title          string                 `json:"title"`
+	Version int `json:"version"`
 
-	Version        int                    `json:"version"`
+	LastUpdated time.Time `json:"last_updated"`
 
-	LastUpdated    time.Time              `json:"last_updated"`
+	Health string `json:"health"` // healthy, degraded, unhealthy
 
-	Health         string                 `json:"health"` // healthy, degraded, unhealthy
+	DataFlowStatus string `json:"data_flow_status"`
 
-	DataFlowStatus string                 `json:"data_flow_status"`
+	PanelCount int `json:"panel_count"`
 
-	PanelCount     int                    `json:"panel_count"`
+	QueryCount int `json:"query_count"`
 
-	QueryCount     int                    `json:"query_count"`
+	ErrorCount int `json:"error_count"`
 
-	ErrorCount     int                    `json:"error_count"`
+	ResponseTimes []float64 `json:"response_times"`
 
-	ResponseTimes  []float64              `json:"response_times"`
-
-	Metadata       map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // ABTestResult represents A/B test results.
 
 type ABTestResult struct {
+	DashboardA string `json:"dashboard_a"`
 
-	DashboardA    string                 `json:"dashboard_a"`
+	DashboardB string `json:"dashboard_b"`
 
-	DashboardB    string                 `json:"dashboard_b"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime     time.Time              `json:"start_time"`
+	EndTime time.Time `json:"end_time"`
 
-	EndTime       time.Time              `json:"end_time"`
+	TrafficSplitA float64 `json:"traffic_split_a"`
 
-	TrafficSplitA float64                `json:"traffic_split_a"`
+	TrafficSplitB float64 `json:"traffic_split_b"`
 
-	TrafficSplitB float64                `json:"traffic_split_b"`
+	MetricsA map[string]float64 `json:"metrics_a"`
 
-	MetricsA      map[string]float64     `json:"metrics_a"`
+	MetricsB map[string]float64 `json:"metrics_b"`
 
-	MetricsB      map[string]float64     `json:"metrics_b"`
+	Winner string `json:"winner"`
 
-	Winner        string                 `json:"winner"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence    float64                `json:"confidence"`
-
-	Metadata      map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // DashboardManager manages Grafana dashboards.
 
 type DashboardManager struct {
+	config DashboardConfig
 
-	config     DashboardConfig
+	client *http.Client
 
-	client     *http.Client
-
-	templates  map[string]*template.Template
+	templates map[string]*template.Template
 
 	dashboards map[string]*Dashboard
 
-	statuses   map[string]*DashboardStatus
+	statuses map[string]*DashboardStatus
 
-	abTests    map[string]*ABTestResult
+	abTests map[string]*ABTestResult
 
-	logger     *logrus.Logger
+	logger *logrus.Logger
 
-	mu         sync.RWMutex
+	mu sync.RWMutex
 
-	stopCh     chan struct{}
-
+	stopCh chan struct{}
 }
-
-
 
 // NewDashboardManager creates a new dashboard manager.
 
@@ -579,25 +436,22 @@ func NewDashboardManager(config DashboardConfig, logger *logrus.Logger) (*Dashbo
 
 	dm := &DashboardManager{
 
-		config:     config,
+		config: config,
 
-		client:     &http.Client{Timeout: 30 * time.Second},
+		client: &http.Client{Timeout: 30 * time.Second},
 
-		templates:  make(map[string]*template.Template),
+		templates: make(map[string]*template.Template),
 
 		dashboards: make(map[string]*Dashboard),
 
-		statuses:   make(map[string]*DashboardStatus),
+		statuses: make(map[string]*DashboardStatus),
 
-		abTests:    make(map[string]*ABTestResult),
+		abTests: make(map[string]*ABTestResult),
 
-		logger:     logger,
+		logger: logger,
 
-		stopCh:     make(chan struct{}),
-
+		stopCh: make(chan struct{}),
 	}
-
-
 
 	// Load dashboard templates.
 
@@ -607,21 +461,15 @@ func NewDashboardManager(config DashboardConfig, logger *logrus.Logger) (*Dashbo
 
 	}
 
-
-
 	return dm, nil
 
 }
-
-
 
 // Start starts the dashboard manager.
 
 func (dm *DashboardManager) Start(ctx context.Context) error {
 
 	dm.logger.Info("Starting Dashboard Manager")
-
-
 
 	// Start health monitoring.
 
@@ -631,8 +479,6 @@ func (dm *DashboardManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Provision existing dashboards.
 
 	if err := dm.provisionDashboards(ctx); err != nil {
@@ -641,13 +487,9 @@ func (dm *DashboardManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the dashboard manager.
 
@@ -659,8 +501,6 @@ func (dm *DashboardManager) Stop() {
 
 }
 
-
-
 // CreateDashboard creates a new dashboard from template.
 
 func (dm *DashboardManager) CreateDashboard(ctx context.Context, templateName string, variables map[string]interface{}) (*Dashboard, error) {
@@ -669,8 +509,6 @@ func (dm *DashboardManager) CreateDashboard(ctx context.Context, templateName st
 
 	defer dm.mu.Unlock()
 
-
-
 	template, exists := dm.templates[templateName]
 
 	if !exists {
@@ -678,8 +516,6 @@ func (dm *DashboardManager) CreateDashboard(ctx context.Context, templateName st
 		return nil, fmt.Errorf("template %s not found", templateName)
 
 	}
-
-
 
 	// Render template with variables.
 
@@ -691,8 +527,6 @@ func (dm *DashboardManager) CreateDashboard(ctx context.Context, templateName st
 
 	}
 
-
-
 	// Parse rendered JSON.
 
 	var dashboard Dashboard
@@ -702,8 +536,6 @@ func (dm *DashboardManager) CreateDashboard(ctx context.Context, templateName st
 		return nil, fmt.Errorf("failed to parse dashboard JSON: %w", err)
 
 	}
-
-
 
 	// Generate UID if not provided.
 
@@ -715,13 +547,9 @@ func (dm *DashboardManager) CreateDashboard(ctx context.Context, templateName st
 
 	}
 
-
-
 	// Store dashboard.
 
 	dm.dashboards[dashboard.UID] = &dashboard
-
-
 
 	// Create dashboard in Grafana.
 
@@ -731,25 +559,18 @@ func (dm *DashboardManager) CreateDashboard(ctx context.Context, templateName st
 
 	}
 
-
-
 	dm.logger.WithFields(logrus.Fields{
 
-		"uid":      dashboard.UID,
+		"uid": dashboard.UID,
 
-		"title":    dashboard.Title,
+		"title": dashboard.Title,
 
 		"template": templateName,
-
 	}).Info("Created dashboard")
-
-
 
 	return &dashboard, nil
 
 }
-
-
 
 // UpdateDashboard updates an existing dashboard.
 
@@ -759,8 +580,6 @@ func (dm *DashboardManager) UpdateDashboard(ctx context.Context, uid string, das
 
 	defer dm.mu.Unlock()
 
-
-
 	existing, exists := dm.dashboards[uid]
 
 	if !exists {
@@ -769,21 +588,15 @@ func (dm *DashboardManager) UpdateDashboard(ctx context.Context, uid string, das
 
 	}
 
-
-
 	// Update version.
 
 	dashboard.Version = existing.Version + 1
 
 	dashboard.UID = uid
 
-
-
 	// Store updated dashboard.
 
 	dm.dashboards[uid] = dashboard
-
-
 
 	// Update dashboard in Grafana.
 
@@ -793,25 +606,18 @@ func (dm *DashboardManager) UpdateDashboard(ctx context.Context, uid string, das
 
 	}
 
-
-
 	dm.logger.WithFields(logrus.Fields{
 
-		"uid":     dashboard.UID,
+		"uid": dashboard.UID,
 
-		"title":   dashboard.Title,
+		"title": dashboard.Title,
 
 		"version": dashboard.Version,
-
 	}).Info("Updated dashboard")
-
-
 
 	return nil
 
 }
-
-
 
 // DeleteDashboard deletes a dashboard.
 
@@ -821,8 +627,6 @@ func (dm *DashboardManager) DeleteDashboard(ctx context.Context, uid string) err
 
 	defer dm.mu.Unlock()
 
-
-
 	dashboard, exists := dm.dashboards[uid]
 
 	if !exists {
@@ -830,8 +634,6 @@ func (dm *DashboardManager) DeleteDashboard(ctx context.Context, uid string) err
 		return fmt.Errorf("dashboard %s not found", uid)
 
 	}
-
-
 
 	// Delete from Grafana.
 
@@ -841,31 +643,22 @@ func (dm *DashboardManager) DeleteDashboard(ctx context.Context, uid string) err
 
 	}
 
-
-
 	// Remove from local storage.
 
 	delete(dm.dashboards, uid)
 
 	delete(dm.statuses, uid)
 
-
-
 	dm.logger.WithFields(logrus.Fields{
 
-		"uid":   uid,
+		"uid": uid,
 
 		"title": dashboard.Title,
-
 	}).Info("Deleted dashboard")
-
-
 
 	return nil
 
 }
-
-
 
 // GetDashboard retrieves a dashboard.
 
@@ -875,8 +668,6 @@ func (dm *DashboardManager) GetDashboard(uid string) (*Dashboard, error) {
 
 	defer dm.mu.RUnlock()
 
-
-
 	dashboard, exists := dm.dashboards[uid]
 
 	if !exists {
@@ -885,13 +676,9 @@ func (dm *DashboardManager) GetDashboard(uid string) (*Dashboard, error) {
 
 	}
 
-
-
 	return dashboard, nil
 
 }
-
-
 
 // ListDashboards lists all managed dashboards.
 
@@ -901,8 +688,6 @@ func (dm *DashboardManager) ListDashboards() []*Dashboard {
 
 	defer dm.mu.RUnlock()
 
-
-
 	dashboards := make([]*Dashboard, 0, len(dm.dashboards))
 
 	for _, dashboard := range dm.dashboards {
@@ -911,13 +696,9 @@ func (dm *DashboardManager) ListDashboards() []*Dashboard {
 
 	}
 
-
-
 	return dashboards
 
 }
-
-
 
 // GetDashboardStatus returns the status of a dashboard.
 
@@ -927,8 +708,6 @@ func (dm *DashboardManager) GetDashboardStatus(uid string) (*DashboardStatus, er
 
 	defer dm.mu.RUnlock()
 
-
-
 	status, exists := dm.statuses[uid]
 
 	if !exists {
@@ -937,13 +716,9 @@ func (dm *DashboardManager) GetDashboardStatus(uid string) (*DashboardStatus, er
 
 	}
 
-
-
 	return status, nil
 
 }
-
-
 
 // StartABTest starts an A/B test between two dashboard versions.
 
@@ -955,45 +730,34 @@ func (dm *DashboardManager) StartABTest(ctx context.Context, dashboardA, dashboa
 
 	}
 
-
-
 	dm.mu.Lock()
 
 	defer dm.mu.Unlock()
 
-
-
 	testID := fmt.Sprintf("%s-vs-%s-%d", dashboardA, dashboardB, time.Now().Unix())
-
-
 
 	result := &ABTestResult{
 
-		DashboardA:    dashboardA,
+		DashboardA: dashboardA,
 
-		DashboardB:    dashboardB,
+		DashboardB: dashboardB,
 
-		StartTime:     time.Now(),
+		StartTime: time.Now(),
 
-		EndTime:       time.Now().Add(duration),
+		EndTime: time.Now().Add(duration),
 
 		TrafficSplitA: dm.config.ABTesting.TrafficSplit,
 
 		TrafficSplitB: 1.0 - dm.config.ABTesting.TrafficSplit,
 
-		MetricsA:      make(map[string]float64),
+		MetricsA: make(map[string]float64),
 
-		MetricsB:      make(map[string]float64),
+		MetricsB: make(map[string]float64),
 
-		Metadata:      make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}
 
-
-
 	dm.abTests[testID] = result
-
-
 
 	// Schedule test completion.
 
@@ -1002,8 +766,6 @@ func (dm *DashboardManager) StartABTest(ctx context.Context, dashboardA, dashboa
 		timer := time.NewTimer(duration)
 
 		defer timer.Stop()
-
-
 
 		select {
 
@@ -1019,27 +781,20 @@ func (dm *DashboardManager) StartABTest(ctx context.Context, dashboardA, dashboa
 
 	}()
 
-
-
 	dm.logger.WithFields(logrus.Fields{
 
-		"test_id":     testID,
+		"test_id": testID,
 
 		"dashboard_a": dashboardA,
 
 		"dashboard_b": dashboardB,
 
-		"duration":    duration,
-
+		"duration": duration,
 	}).Info("Started A/B test")
-
-
 
 	return result, nil
 
 }
-
-
 
 // loadTemplates loads dashboard templates.
 
@@ -1050,8 +805,6 @@ func (dm *DashboardManager) loadTemplates() error {
 		return nil
 
 	}
-
-
 
 	// Load template files.
 
@@ -1065,8 +818,6 @@ func (dm *DashboardManager) loadTemplates() error {
 
 	}
 
-
-
 	for _, file := range files {
 
 		content, err := os.ReadFile(file)
@@ -1078,8 +829,6 @@ func (dm *DashboardManager) loadTemplates() error {
 			continue
 
 		}
-
-
 
 		name := strings.TrimSuffix(filepath.Base(file), ".json")
 
@@ -1093,21 +842,15 @@ func (dm *DashboardManager) loadTemplates() error {
 
 		}
 
-
-
 		dm.templates[name] = tmpl
 
 		dm.logger.WithField("template", name).Debug("Loaded template")
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // provisionDashboards provisions existing dashboards.
 
@@ -1121,8 +864,6 @@ func (dm *DashboardManager) provisionDashboards(ctx context.Context) error {
 
 	}
 
-
-
 	pattern := filepath.Join(dm.config.DashboardPath, "*.json")
 
 	files, err := filepath.Glob(pattern)
@@ -1132,8 +873,6 @@ func (dm *DashboardManager) provisionDashboards(ctx context.Context) error {
 		return fmt.Errorf("failed to glob dashboard files: %w", err)
 
 	}
-
-
 
 	for _, file := range files {
 
@@ -1147,8 +886,6 @@ func (dm *DashboardManager) provisionDashboards(ctx context.Context) error {
 
 		}
 
-
-
 		var dashboard Dashboard
 
 		if err := json.Unmarshal(content, &dashboard); err != nil {
@@ -1158,8 +895,6 @@ func (dm *DashboardManager) provisionDashboards(ctx context.Context) error {
 			continue
 
 		}
-
-
 
 		// Generate UID if not provided.
 
@@ -1171,11 +906,7 @@ func (dm *DashboardManager) provisionDashboards(ctx context.Context) error {
 
 		}
 
-
-
 		dm.dashboards[dashboard.UID] = &dashboard
-
-
 
 		// Create/update dashboard in Grafana.
 
@@ -1187,25 +918,18 @@ func (dm *DashboardManager) provisionDashboards(ctx context.Context) error {
 
 		}
 
-
-
 		dm.logger.WithFields(logrus.Fields{
 
-			"uid":   dashboard.UID,
+			"uid": dashboard.UID,
 
 			"title": dashboard.Title,
-
 		}).Info("Provisioned dashboard")
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // healthMonitoringLoop continuously monitors dashboard health.
 
@@ -1214,8 +938,6 @@ func (dm *DashboardManager) healthMonitoringLoop(ctx context.Context) {
 	ticker := time.NewTicker(dm.config.Monitoring.HealthCheckInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1239,8 +961,6 @@ func (dm *DashboardManager) healthMonitoringLoop(ctx context.Context) {
 
 }
 
-
-
 // checkDashboardHealth checks the health of all dashboards.
 
 func (dm *DashboardManager) checkDashboardHealth(ctx context.Context) {
@@ -1248,8 +968,6 @@ func (dm *DashboardManager) checkDashboardHealth(ctx context.Context) {
 	dm.mu.Lock()
 
 	defer dm.mu.Unlock()
-
-
 
 	for uid, dashboard := range dm.dashboards {
 
@@ -1259,29 +977,26 @@ func (dm *DashboardManager) checkDashboardHealth(ctx context.Context) {
 
 			status = &DashboardStatus{
 
-				UID:            uid,
+				UID: uid,
 
-				Title:          dashboard.Title,
+				Title: dashboard.Title,
 
-				Version:        dashboard.Version,
+				Version: dashboard.Version,
 
-				LastUpdated:    time.Now(),
+				LastUpdated: time.Now(),
 
-				Health:         "unknown",
+				Health: "unknown",
 
 				DataFlowStatus: "unknown",
 
-				PanelCount:     len(dashboard.Panels),
+				PanelCount: len(dashboard.Panels),
 
-				Metadata:       make(map[string]interface{}),
-
+				Metadata: make(map[string]interface{}),
 			}
 
 			dm.statuses[uid] = status
 
 		}
-
-
 
 		// Check dashboard accessibility.
 
@@ -1294,8 +1009,6 @@ func (dm *DashboardManager) checkDashboardHealth(ctx context.Context) {
 			continue
 
 		}
-
-
 
 		// Check data flow.
 
@@ -1315,15 +1028,11 @@ func (dm *DashboardManager) checkDashboardHealth(ctx context.Context) {
 
 		}
 
-
-
 		status.LastUpdated = time.Now()
 
 	}
 
 }
-
-
 
 // checkDashboardAccessibility checks if a dashboard is accessible.
 
@@ -1339,13 +1048,9 @@ func (dm *DashboardManager) checkDashboardAccessibility(ctx context.Context, uid
 
 	}
 
-
-
 	req.Header.Set("Authorization", "Bearer "+dm.config.APIKey)
 
 	req.Header.Set("Content-Type", "application/json")
-
-
 
 	resp, err := dm.client.Do(req)
 
@@ -1357,13 +1062,9 @@ func (dm *DashboardManager) checkDashboardAccessibility(ctx context.Context, uid
 
 	defer resp.Body.Close()
 
-
-
 	return resp.StatusCode == http.StatusOK
 
 }
-
-
 
 // checkDataFlow checks if data is flowing to dashboard panels.
 
@@ -1379,8 +1080,6 @@ func (dm *DashboardManager) checkDataFlow(ctx context.Context, dashboard *Dashbo
 
 }
 
-
-
 // createGrafanaDashboard creates a dashboard in Grafana.
 
 func (dm *DashboardManager) createGrafanaDashboard(ctx context.Context, dashboard *Dashboard) error {
@@ -1390,16 +1089,11 @@ func (dm *DashboardManager) createGrafanaDashboard(ctx context.Context, dashboar
 		"dashboard": dashboard,
 
 		"overwrite": false,
-
 	}
-
-
 
 	return dm.sendGrafanaRequest(ctx, "POST", "/api/dashboards/db", payload)
 
 }
-
-
 
 // updateGrafanaDashboard updates a dashboard in Grafana.
 
@@ -1410,16 +1104,11 @@ func (dm *DashboardManager) updateGrafanaDashboard(ctx context.Context, dashboar
 		"dashboard": dashboard,
 
 		"overwrite": true,
-
 	}
-
-
 
 	return dm.sendGrafanaRequest(ctx, "POST", "/api/dashboards/db", payload)
 
 }
-
-
 
 // createOrUpdateGrafanaDashboard creates or updates a dashboard in Grafana.
 
@@ -1430,16 +1119,11 @@ func (dm *DashboardManager) createOrUpdateGrafanaDashboard(ctx context.Context, 
 		"dashboard": dashboard,
 
 		"overwrite": true,
-
 	}
-
-
 
 	return dm.sendGrafanaRequest(ctx, "POST", "/api/dashboards/db", payload)
 
 }
-
-
 
 // deleteGrafanaDashboard deletes a dashboard from Grafana.
 
@@ -1449,15 +1133,11 @@ func (dm *DashboardManager) deleteGrafanaDashboard(ctx context.Context, uid stri
 
 }
 
-
-
 // sendGrafanaRequest sends a request to Grafana API.
 
 func (dm *DashboardManager) sendGrafanaRequest(ctx context.Context, method, path string, payload interface{}) error {
 
 	url := dm.config.GrafanaURL + path
-
-
 
 	var body []byte
 
@@ -1475,8 +1155,6 @@ func (dm *DashboardManager) sendGrafanaRequest(ctx context.Context, method, path
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(body))
 
 	if err != nil {
@@ -1484,8 +1162,6 @@ func (dm *DashboardManager) sendGrafanaRequest(ctx context.Context, method, path
 		return fmt.Errorf("failed to create request: %w", err)
 
 	}
-
-
 
 	req.Header.Set("Authorization", "Bearer "+dm.config.APIKey)
 
@@ -1497,8 +1173,6 @@ func (dm *DashboardManager) sendGrafanaRequest(ctx context.Context, method, path
 
 	}
 
-
-
 	resp, err := dm.client.Do(req)
 
 	if err != nil {
@@ -1509,8 +1183,6 @@ func (dm *DashboardManager) sendGrafanaRequest(ctx context.Context, method, path
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 
 		body, _ := io.ReadAll(resp.Body)
@@ -1519,13 +1191,9 @@ func (dm *DashboardManager) sendGrafanaRequest(ctx context.Context, method, path
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // completeABTest completes an A/B test and determines the winner.
 
@@ -1535,8 +1203,6 @@ func (dm *DashboardManager) completeABTest(ctx context.Context, testID string) {
 
 	defer dm.mu.Unlock()
 
-
-
 	result, exists := dm.abTests[testID]
 
 	if !exists {
@@ -1544,8 +1210,6 @@ func (dm *DashboardManager) completeABTest(ctx context.Context, testID string) {
 		return
 
 	}
-
-
 
 	// Collect metrics for both dashboards.
 
@@ -1559,15 +1223,11 @@ func (dm *DashboardManager) completeABTest(ctx context.Context, testID string) {
 
 	result.MetricsB["session_duration"] = 135.2
 
-
-
 	// Determine winner (simplified logic).
 
 	scoreA := result.MetricsA["user_engagement"] * result.MetricsA["session_duration"]
 
 	scoreB := result.MetricsB["user_engagement"] * result.MetricsB["session_duration"]
-
-
 
 	if scoreB > scoreA {
 
@@ -1583,17 +1243,13 @@ func (dm *DashboardManager) completeABTest(ctx context.Context, testID string) {
 
 	}
 
-
-
 	dm.logger.WithFields(logrus.Fields{
 
-		"test_id":    testID,
+		"test_id": testID,
 
-		"winner":     result.Winner,
+		"winner": result.Winner,
 
 		"confidence": result.Confidence,
-
 	}).Info("Completed A/B test")
 
 }
-

@@ -1,105 +1,72 @@
-
 package porch
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"net/http"
-
 	"os"
-
 	"path/filepath"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/intent"
-
 )
-
-
 
 // Client represents a Porch API client.
 
 type Client struct {
-
-	baseURL    string
+	baseURL string
 
 	httpClient *http.Client
 
-	dryRun     bool
-
+	dryRun bool
 }
-
-
 
 // PackageRequest represents a request to create/update a package.
 
 type PackageRequest struct {
+	Repository string `json:"repository"`
 
-	Repository string                 `json:"repository"`
+	Package string `json:"package"`
 
-	Package    string                 `json:"package"`
+	Workspace string `json:"workspace"`
 
-	Workspace  string                 `json:"workspace"`
+	Namespace string `json:"namespace"`
 
-	Namespace  string                 `json:"namespace"`
+	Intent *intent.NetworkIntent `json:"intent"`
 
-	Intent     *intent.NetworkIntent  `json:"intent"`
-
-	Files      map[string]interface{} `json:"files,omitempty"`
-
+	Files map[string]interface{} `json:"files,omitempty"`
 }
-
-
 
 // PorchPackageRevision represents a package revision in Porch.
 
 type PorchPackageRevision struct {
+	Name string `json:"name"`
 
-	Name      string            `json:"name"`
+	Namespace string `json:"namespace"`
 
-	Namespace string            `json:"namespace"`
+	Revision string `json:"revision"`
 
-	Revision  string            `json:"revision"`
+	Status string `json:"status"`
 
-	Status    string            `json:"status"`
-
-	Labels    map[string]string `json:"labels,omitempty"`
-
+	Labels map[string]string `json:"labels,omitempty"`
 }
-
-
 
 // Proposal represents a package proposal in Porch.
 
 type Proposal struct {
+	ID string `json:"id"`
 
-	ID        string    `json:"id"`
+	Package string `json:"package"`
 
-	Package   string    `json:"package"`
+	Revision string `json:"revision"`
 
-	Revision  string    `json:"revision"`
-
-	Status    string    `json:"status"`
+	Status string `json:"status"`
 
 	CreatedAt time.Time `json:"createdAt"`
-
 }
-
-
 
 // NewClient creates a new Porch API client.
 
@@ -112,16 +79,12 @@ func NewClient(baseURL string, dryRun bool) *Client {
 		httpClient: &http.Client{
 
 			Timeout: 30 * time.Second,
-
 		},
 
 		dryRun: dryRun,
-
 	}
 
 }
-
-
 
 // CreateOrUpdatePackage creates or updates a package in Porch.
 
@@ -133,8 +96,6 @@ func (c *Client) CreateOrUpdatePackage(req *PackageRequest) (*PorchPackageRevisi
 
 	}
 
-
-
 	// Check if package exists.
 
 	existing, err := c.getPackage(req.Repository, req.Package)
@@ -144,8 +105,6 @@ func (c *Client) CreateOrUpdatePackage(req *PackageRequest) (*PorchPackageRevisi
 		return nil, fmt.Errorf("failed to check existing package: %w", err)
 
 	}
-
-
 
 	var revision *PorchPackageRevision
 
@@ -163,15 +122,11 @@ func (c *Client) CreateOrUpdatePackage(req *PackageRequest) (*PorchPackageRevisi
 
 	}
 
-
-
 	if err != nil {
 
 		return nil, err
 
 	}
-
-
 
 	// Apply KRM overlays.
 
@@ -181,13 +136,9 @@ func (c *Client) CreateOrUpdatePackage(req *PackageRequest) (*PorchPackageRevisi
 
 	}
 
-
-
 	return revision, nil
 
 }
-
-
 
 // SubmitProposal submits a package proposal for review.
 
@@ -197,21 +148,18 @@ func (c *Client) SubmitProposal(revision *PorchPackageRevision) (*Proposal, erro
 
 		return &Proposal{
 
-			ID:        "dry-run-proposal",
+			ID: "dry-run-proposal",
 
-			Package:   revision.Name,
+			Package: revision.Name,
 
-			Revision:  revision.Revision,
+			Revision: revision.Revision,
 
-			Status:    "pending",
+			Status: "pending",
 
 			CreatedAt: time.Now(),
-
 		}, nil
 
 	}
-
-
 
 	url := fmt.Sprintf("%s/api/v1/proposals", c.baseURL)
 
@@ -219,11 +167,8 @@ func (c *Client) SubmitProposal(revision *PorchPackageRevision) (*Proposal, erro
 
 		"packageRevision": revision.Name,
 
-		"namespace":       revision.Namespace,
-
+		"namespace": revision.Namespace,
 	}
-
-
 
 	data, err := json.Marshal(body)
 
@@ -232,8 +177,6 @@ func (c *Client) SubmitProposal(revision *PorchPackageRevision) (*Proposal, erro
 		return nil, err
 
 	}
-
-
 
 	resp, err := c.httpClient.Post(url, "application/json", bytes.NewReader(data))
 
@@ -245,8 +188,6 @@ func (c *Client) SubmitProposal(revision *PorchPackageRevision) (*Proposal, erro
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusCreated {
 
 		body, _ := io.ReadAll(resp.Body)
@@ -254,8 +195,6 @@ func (c *Client) SubmitProposal(revision *PorchPackageRevision) (*Proposal, erro
 		return nil, fmt.Errorf("failed to submit proposal: %s", body)
 
 	}
-
-
 
 	var proposal Proposal
 
@@ -265,13 +204,9 @@ func (c *Client) SubmitProposal(revision *PorchPackageRevision) (*Proposal, erro
 
 	}
 
-
-
 	return &proposal, nil
 
 }
-
-
 
 // ApprovePackage approves a package revision.
 
@@ -283,17 +218,11 @@ func (c *Client) ApprovePackage(revision *PorchPackageRevision) error {
 
 	}
 
-
-
 	url := fmt.Sprintf("%s/api/v1/packagerevisions/%s/approve", c.baseURL, revision.Name)
-
-
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
 	defer cancel()
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, http.NoBody)
 
@@ -302,8 +231,6 @@ func (c *Client) ApprovePackage(revision *PorchPackageRevision) error {
 		return err
 
 	}
-
-
 
 	resp, err := c.httpClient.Do(req)
 
@@ -315,8 +242,6 @@ func (c *Client) ApprovePackage(revision *PorchPackageRevision) error {
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 
 		body, _ := io.ReadAll(resp.Body)
@@ -325,17 +250,11 @@ func (c *Client) ApprovePackage(revision *PorchPackageRevision) error {
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Private helper methods.
-
-
 
 func (c *Client) getPackage(repo, pkg string) (*PorchPackageRevision, error) {
 
@@ -351,15 +270,11 @@ func (c *Client) getPackage(repo, pkg string) (*PorchPackageRevision, error) {
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode == http.StatusNotFound {
 
 		return nil, fmt.Errorf("package not found")
 
 	}
-
-
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -369,8 +284,6 @@ func (c *Client) getPackage(repo, pkg string) (*PorchPackageRevision, error) {
 
 	}
 
-
-
 	var revision PorchPackageRevision
 
 	if err := json.NewDecoder(resp.Body).Decode(&revision); err != nil {
@@ -379,41 +292,30 @@ func (c *Client) getPackage(repo, pkg string) (*PorchPackageRevision, error) {
 
 	}
 
-
-
 	return &revision, nil
 
 }
-
-
 
 func (c *Client) createPackage(req *PackageRequest) (*PorchPackageRevision, error) {
 
 	url := fmt.Sprintf("%s/api/v1/repositories/%s/packages", c.baseURL, req.Repository)
 
-
-
 	body := map[string]interface{}{
 
 		"metadata": map[string]interface{}{
 
-			"name":      req.Package,
+			"name": req.Package,
 
 			"namespace": req.Namespace,
-
 		},
 
 		"spec": map[string]interface{}{
 
 			"workspace": req.Workspace,
 
-			"intent":    req.Intent,
-
+			"intent": req.Intent,
 		},
-
 	}
-
-
 
 	data, err := json.Marshal(body)
 
@@ -422,8 +324,6 @@ func (c *Client) createPackage(req *PackageRequest) (*PorchPackageRevision, erro
 		return nil, err
 
 	}
-
-
 
 	resp, err := c.httpClient.Post(url, "application/json", bytes.NewReader(data))
 
@@ -435,8 +335,6 @@ func (c *Client) createPackage(req *PackageRequest) (*PorchPackageRevision, erro
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusCreated {
 
 		body, _ := io.ReadAll(resp.Body)
@@ -444,8 +342,6 @@ func (c *Client) createPackage(req *PackageRequest) (*PorchPackageRevision, erro
 		return nil, fmt.Errorf("failed to create package: %s", body)
 
 	}
-
-
 
 	var revision PorchPackageRevision
 
@@ -455,19 +351,13 @@ func (c *Client) createPackage(req *PackageRequest) (*PorchPackageRevision, erro
 
 	}
 
-
-
 	return &revision, nil
 
 }
 
-
-
 func (c *Client) updatePackage(req *PackageRequest, existing *PorchPackageRevision) (*PorchPackageRevision, error) {
 
 	url := fmt.Sprintf("%s/api/v1/packagerevisions/%s", c.baseURL, existing.Name)
-
-
 
 	body := map[string]interface{}{
 
@@ -475,13 +365,9 @@ func (c *Client) updatePackage(req *PackageRequest, existing *PorchPackageRevisi
 
 			"workspace": req.Workspace,
 
-			"intent":    req.Intent,
-
+			"intent": req.Intent,
 		},
-
 	}
-
-
 
 	data, err := json.Marshal(body)
 
@@ -491,13 +377,9 @@ func (c *Client) updatePackage(req *PackageRequest, existing *PorchPackageRevisi
 
 	}
 
-
-
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
 	defer cancel()
-
-
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodPatch, url, bytes.NewReader(data))
 
@@ -509,8 +391,6 @@ func (c *Client) updatePackage(req *PackageRequest, existing *PorchPackageRevisi
 
 	request.Header.Set("Content-Type", "application/merge-patch+json")
 
-
-
 	resp, err := c.httpClient.Do(request)
 
 	if err != nil {
@@ -521,8 +401,6 @@ func (c *Client) updatePackage(req *PackageRequest, existing *PorchPackageRevisi
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		body, _ := io.ReadAll(resp.Body)
@@ -530,8 +408,6 @@ func (c *Client) updatePackage(req *PackageRequest, existing *PorchPackageRevisi
 		return nil, fmt.Errorf("failed to update package: %s", body)
 
 	}
-
-
 
 	var revision PorchPackageRevision
 
@@ -541,13 +417,9 @@ func (c *Client) updatePackage(req *PackageRequest, existing *PorchPackageRevisi
 
 	}
 
-
-
 	return &revision, nil
 
 }
-
-
 
 func (c *Client) applyOverlays(revision *PorchPackageRevision, req *PackageRequest) error {
 
@@ -555,25 +427,18 @@ func (c *Client) applyOverlays(revision *PorchPackageRevision, req *PackageReque
 
 	overlays := c.generateOverlays(req.Intent)
 
-
-
 	// Apply overlays to the package revision.
 
 	url := fmt.Sprintf("%s/api/v1/packagerevisions/%s/resources", c.baseURL, revision.Name)
-
-
 
 	for path, content := range overlays {
 
 		body := map[string]interface{}{
 
-			"path":    path,
+			"path": path,
 
 			"content": content,
-
 		}
-
-
 
 		data, err := json.Marshal(body)
 
@@ -582,8 +447,6 @@ func (c *Client) applyOverlays(revision *PorchPackageRevision, req *PackageReque
 			return err
 
 		}
-
-
 
 		resp, err := c.httpClient.Post(url, "application/json", bytes.NewReader(data))
 
@@ -595,8 +458,6 @@ func (c *Client) applyOverlays(revision *PorchPackageRevision, req *PackageReque
 
 		resp.Body.Close()
 
-
-
 		if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 
 			return fmt.Errorf("failed to apply overlay %s: status %d", path, resp.StatusCode)
@@ -605,19 +466,13 @@ func (c *Client) applyOverlays(revision *PorchPackageRevision, req *PackageReque
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 func (c *Client) generateOverlays(intent *intent.NetworkIntent) map[string]string {
 
 	overlays := make(map[string]string)
-
-
 
 	// Generate deployment overlay.
 
@@ -637,11 +492,7 @@ spec:
 
 `, intent.Target, intent.Replicas)
 
-
-
 	overlays["overlays/deployment.yaml"] = deploymentOverlay
-
-
 
 	// Generate ConfigMap with intent.
 
@@ -665,17 +516,11 @@ data:
 
 `, intent.Target, string(intentJSON))
 
-
-
 	overlays["overlays/configmap.yaml"] = configMapOverlay
-
-
 
 	return overlays
 
 }
-
-
 
 func (c *Client) dryRunPackage(req *PackageRequest) (*PorchPackageRevision, error) {
 
@@ -689,8 +534,6 @@ func (c *Client) dryRunPackage(req *PackageRequest) (*PorchPackageRevision, erro
 
 	}
 
-
-
 	// Write package request.
 
 	reqFile := filepath.Join(outDir, "porch-package-request.json")
@@ -703,15 +546,11 @@ func (c *Client) dryRunPackage(req *PackageRequest) (*PorchPackageRevision, erro
 
 	}
 
-
-
 	if err := os.WriteFile(reqFile, reqData, 0o640); err != nil {
 
 		return nil, fmt.Errorf("failed to write request file: %w", err)
 
 	}
-
-
 
 	// Write overlays.
 
@@ -723,15 +562,11 @@ func (c *Client) dryRunPackage(req *PackageRequest) (*PorchPackageRevision, erro
 
 		overlayDir := filepath.Dir(overlayFile)
 
-
-
 		if err := os.MkdirAll(overlayDir, 0o755); err != nil {
 
 			return nil, fmt.Errorf("failed to create overlay directory: %w", err)
 
 		}
-
-
 
 		if err := os.WriteFile(overlayFile, []byte(content), 0o640); err != nil {
 
@@ -741,31 +576,23 @@ func (c *Client) dryRunPackage(req *PackageRequest) (*PorchPackageRevision, erro
 
 	}
 
-
-
 	fmt.Printf("[porch-client] Dry-run: Files written to %s/\n", outDir)
-
-
 
 	return &PorchPackageRevision{
 
-		Name:      fmt.Sprintf("%s-%s", req.Repository, req.Package),
+		Name: fmt.Sprintf("%s-%s", req.Repository, req.Package),
 
 		Namespace: req.Namespace,
 
-		Revision:  "dry-run-v1",
+		Revision: "dry-run-v1",
 
-		Status:    "draft",
-
+		Status: "draft",
 	}, nil
 
 }
-
-
 
 func isNotFound(err error) bool {
 
 	return err != nil && err.Error() == "package not found"
 
 }
-

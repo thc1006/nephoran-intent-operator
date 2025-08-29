@@ -1,77 +1,48 @@
-
 package disaster_recovery
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 	"testing"
-
 	"time"
 
-
-
+	nephoran "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	"github.com/nephio-project/nephoran-intent-operator/hack/testtools"
 	"github.com/stretchr/testify/assert"
-
 	"github.com/stretchr/testify/require"
-
 	"github.com/stretchr/testify/suite"
 
 	appsv1 "k8s.io/api/apps/v1"
-
 	corev1 "k8s.io/api/core/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/types"
-
-
-
-	nephoran "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
-	"github.com/nephio-project/nephoran-intent-operator/hack/testtools"
-
 )
-
-
 
 // EnhancedDisasterRecoveryTestSuite provides comprehensive disaster recovery testing with enhanced envtest setup.
 
 type EnhancedDisasterRecoveryTestSuite struct {
-
 	suite.Suite
 
-	testEnv   *testtools.TestEnvironment
+	testEnv *testtools.TestEnvironment
 
-	ctx       context.Context
+	ctx context.Context
 
-	cancel    context.CancelFunc
+	cancel context.CancelFunc
 
 	backupDir string
 
-	testData  *TestDataSet
+	testData *TestDataSet
 
 	scenarios []*DisasterScenario
-
 }
-
-
 
 // SetupSuite performs setupsuite operation.
 
 func (suite *EnhancedDisasterRecoveryTestSuite) SetupSuite() {
 
 	suite.ctx, suite.cancel = context.WithCancel(context.TODO())
-
-
 
 	// Create temporary backup directory.
 
@@ -81,19 +52,13 @@ func (suite *EnhancedDisasterRecoveryTestSuite) SetupSuite() {
 
 	suite.backupDir = tempDir
 
-
-
 	// Setup enhanced test environment with automatic binary installation.
 
 	suite.T().Log("Setting up enhanced test environment with envtest binary management...")
 
-
-
 	// Get disaster recovery specific options.
 
 	options := testtools.DisasterRecoveryTestEnvironmentOptions()
-
-
 
 	// Override CRD paths for this test.
 
@@ -106,16 +71,11 @@ func (suite *EnhancedDisasterRecoveryTestSuite) SetupSuite() {
 		filepath.Join("config", "crd", "bases"),
 
 		filepath.Join("deployments", "crds"),
-
 	}
-
-
 
 	// Add Nephoran scheme.
 
 	options.SchemeBuilders = append(options.SchemeBuilders, nephoran.AddToScheme)
-
-
 
 	// Create test environment with binary management.
 
@@ -133,13 +93,9 @@ func (suite *EnhancedDisasterRecoveryTestSuite) SetupSuite() {
 
 	}
 
-
-
 	if err != nil {
 
 		suite.T().Logf("Enhanced envtest setup failed: %v", err)
-
-
 
 		// Try with existing cluster as final fallback.
 
@@ -148,8 +104,6 @@ func (suite *EnhancedDisasterRecoveryTestSuite) SetupSuite() {
 		useExisting := true
 
 		options.UseExistingCluster = &useExisting
-
-
 
 		testEnv, err = suite.setupFallbackEnvironment(options)
 
@@ -163,15 +117,11 @@ func (suite *EnhancedDisasterRecoveryTestSuite) SetupSuite() {
 
 	}
 
-
-
 	suite.testEnv = testEnv
 
 	require.NotNil(suite.T(), suite.testEnv)
 
 	require.NotNil(suite.T(), suite.testEnv.K8sClient)
-
-
 
 	// Initialize test data and scenarios.
 
@@ -179,21 +129,15 @@ func (suite *EnhancedDisasterRecoveryTestSuite) SetupSuite() {
 
 	suite.setupDisasterScenarios()
 
-
-
 	suite.T().Log("✅ Enhanced disaster recovery test environment setup completed")
 
 }
-
-
 
 // TearDownSuite performs teardownsuite operation.
 
 func (suite *EnhancedDisasterRecoveryTestSuite) TearDownSuite() {
 
 	suite.cancel()
-
-
 
 	// Cleanup backup directory.
 
@@ -202,8 +146,6 @@ func (suite *EnhancedDisasterRecoveryTestSuite) TearDownSuite() {
 		os.RemoveAll(suite.backupDir)
 
 	}
-
-
 
 	// Stop test environment.
 
@@ -215,8 +157,6 @@ func (suite *EnhancedDisasterRecoveryTestSuite) TearDownSuite() {
 
 }
 
-
-
 // setupFallbackEnvironment provides a fallback environment setup.
 
 func (suite *EnhancedDisasterRecoveryTestSuite) setupFallbackEnvironment(options testtools.TestEnvironmentOptions) (*testtools.TestEnvironment, error) {
@@ -225,15 +165,11 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupFallbackEnvironment(options
 
 	suite.T().Log("Using fallback test environment setup...")
 
-
-
 	// For now, return nil to indicate we should skip if enhanced setup fails.
 
 	return nil, fmt.Errorf("fallback not implemented - enhanced setup required")
 
 }
-
-
 
 // hasEnhancedTesttools checks if enhanced testtools functions are available.
 
@@ -247,8 +183,6 @@ func hasEnhancedTesttools() bool {
 
 }
 
-
-
 func (suite *EnhancedDisasterRecoveryTestSuite) setupTestData() {
 
 	suite.testData = &TestDataSet{
@@ -259,38 +193,31 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupTestData() {
 
 				ObjectMeta: metav1.ObjectMeta{
 
-					Name:      "test-intent-1",
+					Name: "test-intent-1",
 
 					Namespace: "default",
-
 				},
 
 				Spec: nephoran.NetworkIntentSpec{
 
 					Intent: "Deploy high-performance 5G network slice for disaster recovery testing",
-
 				},
-
 			},
 
 			{
 
 				ObjectMeta: metav1.ObjectMeta{
 
-					Name:      "test-intent-2",
+					Name: "test-intent-2",
 
 					Namespace: "default",
-
 				},
 
 				Spec: nephoran.NetworkIntentSpec{
 
 					Intent: "Configure edge computing resources with backup capabilities",
-
 				},
-
 			},
-
 		},
 
 		E2NodeSets: []nephoran.E2NodeSet{
@@ -299,10 +226,9 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupTestData() {
 
 				ObjectMeta: metav1.ObjectMeta{
 
-					Name:      "test-nodeset-1",
+					Name: "test-nodeset-1",
 
 					Namespace: "default",
-
 				},
 
 				Spec: nephoran.E2NodeSetSpec{
@@ -313,7 +239,7 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupTestData() {
 
 						Spec: nephoran.E2NodeSpec{
 
-							NodeID:             "node-001",
+							NodeID: "node-001",
 
 							E2InterfaceVersion: "v2.0",
 
@@ -321,26 +247,19 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupTestData() {
 
 								{
 
-									FunctionID:  1,
+									FunctionID: 1,
 
-									Revision:    1,
+									Revision: 1,
 
 									Description: "KPM Service Model",
 
-									OID:         "1.3.6.1.4.1.53148.1.1.2.2",
-
+									OID: "1.3.6.1.4.1.53148.1.1.2.2",
 								},
-
 							},
-
 						},
-
 					},
-
 				},
-
 			},
-
 		},
 
 		Deployments: []appsv1.Deployment{
@@ -349,10 +268,9 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupTestData() {
 
 				ObjectMeta: metav1.ObjectMeta{
 
-					Name:      "nephoran-controller",
+					Name: "nephoran-controller",
 
 					Namespace: "nephoran-system",
-
 				},
 
 				Spec: appsv1.DeploymentSpec{
@@ -362,7 +280,6 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupTestData() {
 					Selector: &metav1.LabelSelector{
 
 						MatchLabels: map[string]string{"app": "nephoran-controller"},
-
 					},
 
 					Template: corev1.PodTemplateSpec{
@@ -370,7 +287,6 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupTestData() {
 						ObjectMeta: metav1.ObjectMeta{
 
 							Labels: map[string]string{"app": "nephoran-controller"},
-
 						},
 
 						Spec: corev1.PodSpec{
@@ -379,29 +295,19 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupTestData() {
 
 								{
 
-									Name:  "controller",
+									Name: "controller",
 
 									Image: "nephoran/controller:latest",
-
 								},
-
 							},
-
 						},
-
 					},
-
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 func (suite *EnhancedDisasterRecoveryTestSuite) setupDisasterScenarios() {
 
@@ -409,73 +315,66 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupDisasterScenarios() {
 
 		{
 
-			Name:                "Enhanced Data Corruption Recovery",
+			Name: "Enhanced Data Corruption Recovery",
 
-			Description:         "Simulate etcd data corruption with enhanced recovery mechanisms",
+			Description: "Simulate etcd data corruption with enhanced recovery mechanisms",
 
-			DisasterType:        DisasterTypeDataCorruption,
+			DisasterType: DisasterTypeDataCorruption,
 
-			AffectedComponents:  []string{"etcd", "custom-resources", "controller-state"},
+			AffectedComponents: []string{"etcd", "custom-resources", "controller-state"},
 
-			RecoveryStrategy:    RecoveryStrategyBackupRestore,
+			RecoveryStrategy: RecoveryStrategyBackupRestore,
 
-			ExpectedRTO:         3 * time.Minute, // Reduced due to enhanced tooling
+			ExpectedRTO: 3 * time.Minute, // Reduced due to enhanced tooling
 
-			ExpectedRPO:         30 * time.Second,
+			ExpectedRPO: 30 * time.Second,
 
-			PreConditions:       suite.setupEnhancedDataCorruptionPreConditions,
+			PreConditions: suite.setupEnhancedDataCorruptionPreConditions,
 
-			InjectDisaster:      suite.injectDataCorruption,
+			InjectDisaster: suite.injectDataCorruption,
 
-			ValidateFailure:     suite.validateDataCorruptionFailure,
+			ValidateFailure: suite.validateDataCorruptionFailure,
 
-			ExecuteRecovery:     suite.executeEnhancedBackupRestore,
+			ExecuteRecovery: suite.executeEnhancedBackupRestore,
 
-			ValidateRecovery:    suite.validateDataCorruptionRecovery,
+			ValidateRecovery: suite.validateDataCorruptionRecovery,
 
 			PostRecoveryCleanup: suite.cleanupDataCorruption,
-
 		},
 
 		{
 
-			Name:                "Controller Resilience Test",
+			Name: "Controller Resilience Test",
 
-			Description:         "Test controller recovery with enhanced monitoring",
+			Description: "Test controller recovery with enhanced monitoring",
 
-			DisasterType:        DisasterTypeControllerFailure,
+			DisasterType: DisasterTypeControllerFailure,
 
-			AffectedComponents:  []string{"nephoran-controller", "webhooks", "metrics"},
+			AffectedComponents: []string{"nephoran-controller", "webhooks", "metrics"},
 
-			RecoveryStrategy:    RecoveryStrategyFailover,
+			RecoveryStrategy: RecoveryStrategyFailover,
 
-			ExpectedRTO:         1 * time.Minute,
+			ExpectedRTO: 1 * time.Minute,
 
-			ExpectedRPO:         0 * time.Second,
+			ExpectedRPO: 0 * time.Second,
 
-			PreConditions:       suite.setupControllerFailurePreConditions,
+			PreConditions: suite.setupControllerFailurePreConditions,
 
-			InjectDisaster:      suite.injectControllerFailure,
+			InjectDisaster: suite.injectControllerFailure,
 
-			ValidateFailure:     suite.validateControllerFailure,
+			ValidateFailure: suite.validateControllerFailure,
 
-			ExecuteRecovery:     suite.executeEnhancedControllerFailover,
+			ExecuteRecovery: suite.executeEnhancedControllerFailover,
 
-			ValidateRecovery:    suite.validateControllerRecovery,
+			ValidateRecovery: suite.validateControllerRecovery,
 
 			PostRecoveryCleanup: suite.cleanupControllerFailure,
-
 		},
-
 	}
 
 }
 
-
-
 // Enhanced disaster recovery test functions.
-
-
 
 // TestEnhancedDataCorruptionRecovery performs testenhanceddatacorruptionrecovery operation.
 
@@ -491,8 +390,6 @@ func (suite *EnhancedDisasterRecoveryTestSuite) TestEnhancedDataCorruptionRecove
 
 }
 
-
-
 // TestEnhancedControllerRecovery performs testenhancedcontrollerrecovery operation.
 
 func (suite *EnhancedDisasterRecoveryTestSuite) TestEnhancedControllerRecovery() {
@@ -507,30 +404,21 @@ func (suite *EnhancedDisasterRecoveryTestSuite) TestEnhancedControllerRecovery()
 
 }
 
-
-
 func (suite *EnhancedDisasterRecoveryTestSuite) runDisasterScenario(scenario *DisasterScenario) {
 
 	suite.T().Logf("🚀 Starting enhanced disaster recovery scenario: %s", scenario.Name)
 
-
-
 	metrics := &RecoveryMetrics{
 
 		StartTime: time.Now(),
-
 	}
-
-
 
 	// Enhanced scenario execution with better error handling.
 
 	steps := []struct {
-
 		name string
 
-		fn   func(*EnhancedDisasterRecoveryTestSuite) error
-
+		fn func(*EnhancedDisasterRecoveryTestSuite) error
 	}{
 
 		{"pre-conditions", scenario.PreConditions.(func(*EnhancedDisasterRecoveryTestSuite) error)},
@@ -544,24 +432,17 @@ func (suite *EnhancedDisasterRecoveryTestSuite) runDisasterScenario(scenario *Di
 		{"validate-recovery", scenario.ValidateRecovery.(func(*EnhancedDisasterRecoveryTestSuite) error)},
 
 		{"post-cleanup", scenario.PostRecoveryCleanup.(func(*EnhancedDisasterRecoveryTestSuite) error)},
-
 	}
-
-
 
 	for _, step := range steps {
 
 		suite.T().Logf("📋 Executing step: %s", step.name)
-
-
 
 		stepStart := time.Now()
 
 		err := step.fn(suite)
 
 		stepDuration := time.Since(stepStart)
-
-
 
 		if err != nil {
 
@@ -570,8 +451,6 @@ func (suite *EnhancedDisasterRecoveryTestSuite) runDisasterScenario(scenario *Di
 				fmt.Sprintf("Step %s failed: %v", step.name, err))
 
 			suite.T().Errorf("❌ Step %s failed after %v: %v", step.name, stepDuration, err)
-
-
 
 			// Continue with cleanup even if earlier steps failed.
 
@@ -593,13 +472,9 @@ func (suite *EnhancedDisasterRecoveryTestSuite) runDisasterScenario(scenario *Di
 
 		}
 
-
-
 		suite.T().Logf("✅ Step %s completed in %v", step.name, stepDuration)
 
 	}
-
-
 
 	metrics.EndTime = time.Now()
 
@@ -607,13 +482,9 @@ func (suite *EnhancedDisasterRecoveryTestSuite) runDisasterScenario(scenario *Di
 
 	metrics.RecoverySuccess = len(metrics.ErrorMessages) == 0
 
-
-
 	// Enhanced validation of recovery objectives.
 
 	suite.validateEnhancedRecoveryObjectives(scenario, metrics)
-
-
 
 	suite.T().Logf("🎉 Enhanced disaster recovery scenario completed: %s", scenario.Name)
 
@@ -623,17 +494,11 @@ func (suite *EnhancedDisasterRecoveryTestSuite) runDisasterScenario(scenario *Di
 
 }
 
-
-
 // Enhanced implementation functions.
-
-
 
 func (suite *EnhancedDisasterRecoveryTestSuite) setupEnhancedDataCorruptionPreConditions(s *EnhancedDisasterRecoveryTestSuite) error {
 
 	suite.T().Log("Setting up enhanced pre-conditions for data corruption test...")
-
-
 
 	// Create test resources with enhanced metadata.
 
@@ -641,23 +506,19 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupEnhancedDataCorruptionPreCo
 
 		intent.Labels = map[string]string{
 
-			"test":            "disaster-recovery",
+			"test": "disaster-recovery",
 
 			"backup-required": "true",
 
-			"test-scenario":   "data-corruption",
-
+			"test-scenario": "data-corruption",
 		}
 
 		intent.Annotations = map[string]string{
 
 			"disaster-recovery.nephoran.com/backup-timestamp": time.Now().Format(time.RFC3339),
 
-			"disaster-recovery.nephoran.com/test-id":          fmt.Sprintf("data-corruption-%d", i),
-
+			"disaster-recovery.nephoran.com/test-id": fmt.Sprintf("data-corruption-%d", i),
 		}
-
-
 
 		if err := suite.testEnv.K8sClient.Create(suite.ctx, &intent); err != nil {
 
@@ -667,8 +528,6 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupEnhancedDataCorruptionPreCo
 
 	}
 
-
-
 	// Create enhanced backup with metadata.
 
 	return suite.createEnhancedBackup("enhanced-pre-corruption-backup",
@@ -677,13 +536,9 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupEnhancedDataCorruptionPreCo
 
 }
 
-
-
 func (suite *EnhancedDisasterRecoveryTestSuite) executeEnhancedBackupRestore(s *EnhancedDisasterRecoveryTestSuite) error {
 
 	suite.T().Log("🔄 Executing enhanced backup restore...")
-
-
 
 	// Simulate enhanced restoration with validation.
 
@@ -695,8 +550,6 @@ func (suite *EnhancedDisasterRecoveryTestSuite) executeEnhancedBackupRestore(s *
 
 		intent.Annotations["disaster-recovery.nephoran.com/restore-method"] = "enhanced-backup-restore"
 
-
-
 		if err := suite.testEnv.K8sClient.Create(suite.ctx, &intent); err != nil {
 
 			return fmt.Errorf("failed to restore intent %d from enhanced backup: %w", i, err)
@@ -705,21 +558,15 @@ func (suite *EnhancedDisasterRecoveryTestSuite) executeEnhancedBackupRestore(s *
 
 	}
 
-
-
 	suite.T().Log("✅ Enhanced backup restore completed")
 
 	return nil
 
 }
 
-
-
 func (suite *EnhancedDisasterRecoveryTestSuite) executeEnhancedControllerFailover(s *EnhancedDisasterRecoveryTestSuite) error {
 
 	suite.T().Log("🔄 Executing enhanced controller failover...")
-
-
 
 	// Enhanced failover with health checks.
 
@@ -727,21 +574,16 @@ func (suite *EnhancedDisasterRecoveryTestSuite) executeEnhancedControllerFailove
 
 	key := types.NamespacedName{
 
-		Name:      suite.testData.Deployments[0].Name,
+		Name: suite.testData.Deployments[0].Name,
 
 		Namespace: suite.testData.Deployments[0].Namespace,
-
 	}
-
-
 
 	if err := suite.testEnv.K8sClient.Get(suite.ctx, key, deployment); err != nil {
 
 		return fmt.Errorf("failed to get deployment for enhanced failover: %w", err)
 
 	}
-
-
 
 	// Scale up with enhanced monitoring.
 
@@ -751,11 +593,8 @@ func (suite *EnhancedDisasterRecoveryTestSuite) executeEnhancedControllerFailove
 
 		"disaster-recovery.nephoran.com/failover-at": time.Now().Format(time.RFC3339),
 
-		"disaster-recovery.nephoran.com/enhanced":    "true",
-
+		"disaster-recovery.nephoran.com/enhanced": "true",
 	}
-
-
 
 	if err := suite.testEnv.K8sClient.Update(suite.ctx, deployment); err != nil {
 
@@ -763,19 +602,13 @@ func (suite *EnhancedDisasterRecoveryTestSuite) executeEnhancedControllerFailove
 
 	}
 
-
-
 	suite.T().Log("✅ Enhanced controller failover executed")
 
 	return nil
 
 }
 
-
-
 // Enhanced helper functions.
-
-
 
 func (suite *EnhancedDisasterRecoveryTestSuite) createEnhancedBackup(backupID string, components []string) error {
 
@@ -787,27 +620,22 @@ func (suite *EnhancedDisasterRecoveryTestSuite) createEnhancedBackup(backupID st
 
 	}
 
-
-
 	metadata := &BackupMetadata{
 
-		Timestamp:        time.Now(),
+		Timestamp: time.Now(),
 
-		BackupID:         backupID,
+		BackupID: backupID,
 
-		Components:       components,
+		Components: components,
 
-		DataIntegrity:    "sha256sum+verification",
+		DataIntegrity: "sha256sum+verification",
 
 		CompressionRatio: 0.80, // Better compression for enhanced backup
 
-		BackupSize:       2048,
+		BackupSize: 2048,
 
-		BackupPath:       backupPath,
-
+		BackupPath: backupPath,
 	}
-
-
 
 	suite.T().Logf("📦 Created enhanced backup: %s at %s", backupID, backupPath)
 
@@ -817,15 +645,11 @@ func (suite *EnhancedDisasterRecoveryTestSuite) createEnhancedBackup(backupID st
 
 }
 
-
-
 func (suite *EnhancedDisasterRecoveryTestSuite) validateEnhancedRecoveryObjectives(scenario *DisasterScenario, metrics *RecoveryMetrics) {
 
 	// Enhanced validation with more detailed checks.
 
 	rtoTolerance := scenario.ExpectedRTO * 2 // 2x tolerance for enhanced tests
-
-
 
 	assert.True(suite.T(), metrics.ActualRTO <= rtoTolerance,
 
@@ -833,23 +657,17 @@ func (suite *EnhancedDisasterRecoveryTestSuite) validateEnhancedRecoveryObjectiv
 
 		metrics.ActualRTO, rtoTolerance)
 
-
-
 	// Enhanced RPO validation.
 
 	assert.False(suite.T(), metrics.DataLossOccurred && scenario.ExpectedRPO == 0,
 
 		"Unexpected data loss occurred in enhanced test when RPO was 0")
 
-
-
 	// Overall success validation.
 
 	assert.True(suite.T(), metrics.RecoverySuccess,
 
 		"Enhanced recovery failed with errors: %v", metrics.ErrorMessages)
-
-
 
 	// Additional enhanced checks.
 
@@ -861,15 +679,11 @@ func (suite *EnhancedDisasterRecoveryTestSuite) validateEnhancedRecoveryObjectiv
 
 }
 
-
-
 // Reuse existing implementation functions from the original test.
 
 func (suite *EnhancedDisasterRecoveryTestSuite) injectDataCorruption(s *EnhancedDisasterRecoveryTestSuite) error {
 
 	suite.T().Log("💥 Injecting data corruption...")
-
-
 
 	for _, intent := range suite.testData.NetworkIntents {
 
@@ -881,15 +695,11 @@ func (suite *EnhancedDisasterRecoveryTestSuite) injectDataCorruption(s *Enhanced
 
 	}
 
-
-
 	suite.T().Log("✅ Data corruption injected: all NetworkIntents deleted")
 
 	return nil
 
 }
-
-
 
 func (suite *EnhancedDisasterRecoveryTestSuite) validateDataCorruptionFailure(s *EnhancedDisasterRecoveryTestSuite) error {
 
@@ -901,23 +711,17 @@ func (suite *EnhancedDisasterRecoveryTestSuite) validateDataCorruptionFailure(s 
 
 	}
 
-
-
 	if len(intentList.Items) != 0 {
 
 		return fmt.Errorf("expected no network intents after corruption, found %d", len(intentList.Items))
 
 	}
 
-
-
 	suite.T().Log("✅ Data corruption validated: resources are missing")
 
 	return nil
 
 }
-
-
 
 func (suite *EnhancedDisasterRecoveryTestSuite) validateDataCorruptionRecovery(s *EnhancedDisasterRecoveryTestSuite) error {
 
@@ -929,8 +733,6 @@ func (suite *EnhancedDisasterRecoveryTestSuite) validateDataCorruptionRecovery(s
 
 	}
 
-
-
 	if len(intentList.Items) != len(suite.testData.NetworkIntents) {
 
 		return fmt.Errorf("expected %d network intents after recovery, found %d",
@@ -939,21 +741,15 @@ func (suite *EnhancedDisasterRecoveryTestSuite) validateDataCorruptionRecovery(s
 
 	}
 
-
-
 	suite.T().Log("✅ Data corruption recovery validated: all resources restored")
 
 	return nil
 
 }
 
-
-
 func (suite *EnhancedDisasterRecoveryTestSuite) cleanupDataCorruption(s *EnhancedDisasterRecoveryTestSuite) error {
 
 	suite.T().Log("🧹 Cleaning up data corruption test resources...")
-
-
 
 	for _, intent := range suite.testData.NetworkIntents {
 
@@ -964,8 +760,6 @@ func (suite *EnhancedDisasterRecoveryTestSuite) cleanupDataCorruption(s *Enhance
 	return nil
 
 }
-
-
 
 // Controller failure functions (reusing existing logic).
 
@@ -979,13 +773,9 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupControllerFailurePreConditi
 
 	}
 
-
-
 	return suite.waitForDeploymentReady(deployment.Name, deployment.Namespace, 30*time.Second)
 
 }
-
-
 
 func (suite *EnhancedDisasterRecoveryTestSuite) injectControllerFailure(s *EnhancedDisasterRecoveryTestSuite) error {
 
@@ -993,21 +783,16 @@ func (suite *EnhancedDisasterRecoveryTestSuite) injectControllerFailure(s *Enhan
 
 	key := types.NamespacedName{
 
-		Name:      suite.testData.Deployments[0].Name,
+		Name: suite.testData.Deployments[0].Name,
 
 		Namespace: suite.testData.Deployments[0].Namespace,
-
 	}
-
-
 
 	if err := suite.testEnv.K8sClient.Get(suite.ctx, key, deployment); err != nil {
 
 		return fmt.Errorf("failed to get deployment: %w", err)
 
 	}
-
-
 
 	deployment.Spec.Replicas = int32Ptr(0)
 
@@ -1017,15 +802,11 @@ func (suite *EnhancedDisasterRecoveryTestSuite) injectControllerFailure(s *Enhan
 
 	}
 
-
-
 	suite.T().Log("✅ Controller failure injected: deployment scaled to 0")
 
 	return nil
 
 }
-
-
 
 func (suite *EnhancedDisasterRecoveryTestSuite) validateControllerFailure(s *EnhancedDisasterRecoveryTestSuite) error {
 
@@ -1033,13 +814,10 @@ func (suite *EnhancedDisasterRecoveryTestSuite) validateControllerFailure(s *Enh
 
 	key := types.NamespacedName{
 
-		Name:      suite.testData.Deployments[0].Name,
+		Name: suite.testData.Deployments[0].Name,
 
 		Namespace: suite.testData.Deployments[0].Namespace,
-
 	}
-
-
 
 	if err := suite.testEnv.K8sClient.Get(suite.ctx, key, deployment); err != nil {
 
@@ -1047,23 +825,17 @@ func (suite *EnhancedDisasterRecoveryTestSuite) validateControllerFailure(s *Enh
 
 	}
 
-
-
 	if deployment.Status.ReadyReplicas != 0 {
 
 		return fmt.Errorf("expected 0 ready replicas, found %d", deployment.Status.ReadyReplicas)
 
 	}
 
-
-
 	suite.T().Log("✅ Controller failure validated: no replicas running")
 
 	return nil
 
 }
-
-
 
 func (suite *EnhancedDisasterRecoveryTestSuite) validateControllerRecovery(s *EnhancedDisasterRecoveryTestSuite) error {
 
@@ -1074,12 +846,9 @@ func (suite *EnhancedDisasterRecoveryTestSuite) validateControllerRecovery(s *En
 		suite.testData.Deployments[0].Namespace,
 
 		60*time.Second,
-
 	)
 
 }
-
-
 
 func (suite *EnhancedDisasterRecoveryTestSuite) cleanupControllerFailure(s *EnhancedDisasterRecoveryTestSuite) error {
 
@@ -1089,15 +858,11 @@ func (suite *EnhancedDisasterRecoveryTestSuite) cleanupControllerFailure(s *Enha
 
 }
 
-
-
 func (suite *EnhancedDisasterRecoveryTestSuite) waitForDeploymentReady(name, namespace string, timeout time.Duration) error {
 
 	ctx, cancel := context.WithTimeout(suite.ctx, timeout)
 
 	defer cancel()
-
-
 
 	for {
 
@@ -1113,8 +878,6 @@ func (suite *EnhancedDisasterRecoveryTestSuite) waitForDeploymentReady(name, nam
 
 			key := types.NamespacedName{Name: name, Namespace: namespace}
 
-
-
 			if err := suite.testEnv.K8sClient.Get(suite.ctx, key, deployment); err != nil {
 
 				time.Sleep(1 * time.Second)
@@ -1122,8 +885,6 @@ func (suite *EnhancedDisasterRecoveryTestSuite) waitForDeploymentReady(name, nam
 				continue
 
 			}
-
-
 
 			if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas &&
 
@@ -1137,8 +898,6 @@ func (suite *EnhancedDisasterRecoveryTestSuite) waitForDeploymentReady(name, nam
 
 			}
 
-
-
 			time.Sleep(1 * time.Second)
 
 		}
@@ -1147,15 +906,11 @@ func (suite *EnhancedDisasterRecoveryTestSuite) waitForDeploymentReady(name, nam
 
 }
 
-
-
 func int32Ptr(i int32) *int32 {
 
 	return &i
 
 }
-
-
 
 // TestEnhancedDisasterRecoveryTestSuite performs testenhanceddisasterrecoverytestsuite operation.
 
@@ -1164,4 +919,3 @@ func TestEnhancedDisasterRecoveryTestSuite(t *testing.T) {
 	suite.Run(t, new(EnhancedDisasterRecoveryTestSuite))
 
 }
-

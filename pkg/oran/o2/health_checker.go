@@ -1,23 +1,12 @@
-
 package o2
 
-
-
 import (
-
 	"context"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 )
-
-
 
 // newHealthChecker creates a new health checker instance.
 
@@ -27,47 +16,40 @@ func newHealthChecker(config *APIHealthCheckerConfig, logger *logging.Structured
 
 		config = &APIHealthCheckerConfig{
 
-			Enabled:          true,
+			Enabled: true,
 
-			CheckInterval:    30 * time.Second,
+			CheckInterval: 30 * time.Second,
 
-			Timeout:          10 * time.Second,
+			Timeout: 10 * time.Second,
 
 			FailureThreshold: 3,
 
 			SuccessThreshold: 1,
 
-			DeepHealthCheck:  true,
-
+			DeepHealthCheck: true,
 		}
 
 	}
 
-
-
 	return &HealthChecker{
 
-		config:       config,
+		config: config,
 
 		healthChecks: make(map[string]ComponentHealthCheck),
 
 		lastHealthData: &HealthCheck{
 
-			Status:     "UP",
+			Status: "UP",
 
-			Timestamp:  time.Now(),
+			Timestamp: time.Now(),
 
 			Components: make(map[string]interface{}),
-
 		},
 
 		stopCh: make(chan struct{}),
-
 	}, nil
 
 }
-
-
 
 // RegisterHealthCheck registers a health check for a component.
 
@@ -76,8 +58,6 @@ func (h *HealthChecker) RegisterHealthCheck(name string, check ComponentHealthCh
 	h.healthChecks[name] = check
 
 }
-
-
 
 // Start starts the health checker background process.
 
@@ -89,19 +69,13 @@ func (h *HealthChecker) Start(ctx context.Context) {
 
 	}
 
-
-
 	h.ticker = time.NewTicker(h.config.CheckInterval)
 
 	defer h.ticker.Stop()
 
-
-
 	// Perform initial health check.
 
 	h.performHealthCheck(ctx)
-
-
 
 	for {
 
@@ -125,8 +99,6 @@ func (h *HealthChecker) Start(ctx context.Context) {
 
 }
 
-
-
 // Stop stops the health checker.
 
 func (h *HealthChecker) Stop() {
@@ -134,8 +106,6 @@ func (h *HealthChecker) Stop() {
 	close(h.stopCh)
 
 }
-
-
 
 // GetHealthStatus returns the current health status.
 
@@ -149,8 +119,6 @@ func (h *HealthChecker) GetHealthStatus() *HealthCheck {
 
 }
 
-
-
 // performHealthCheck executes all registered health checks.
 
 func (h *HealthChecker) performHealthCheck(ctx context.Context) {
@@ -159,15 +127,11 @@ func (h *HealthChecker) performHealthCheck(ctx context.Context) {
 
 	defer cancel()
 
-
-
 	var checks []ComponentCheck
 
 	var wg sync.WaitGroup
 
 	checksChan := make(chan ComponentCheck, len(h.healthChecks))
-
-
 
 	// Execute all health checks concurrently.
 
@@ -179,8 +143,6 @@ func (h *HealthChecker) performHealthCheck(ctx context.Context) {
 
 			defer wg.Done()
 
-
-
 			componentCheck := check(checkCtx)
 
 			componentCheck.Name = name
@@ -190,8 +152,6 @@ func (h *HealthChecker) performHealthCheck(ctx context.Context) {
 		}(name, check)
 
 	}
-
-
 
 	// Wait for all checks to complete.
 
@@ -203,8 +163,6 @@ func (h *HealthChecker) performHealthCheck(ctx context.Context) {
 
 	}()
 
-
-
 	// Collect results.
 
 	for check := range checksChan {
@@ -213,39 +171,32 @@ func (h *HealthChecker) performHealthCheck(ctx context.Context) {
 
 	}
 
-
-
 	// Calculate overall health status.
 
 	overallStatus := h.calculateOverallStatus(checks)
-
-
 
 	// Update health data.
 
 	h.lastHealthData = &HealthCheck{
 
-		Status:     overallStatus,
+		Status: overallStatus,
 
-		Timestamp:  time.Now(),
+		Timestamp: time.Now(),
 
-		Version:    "1.0.0",                // Could be injected from build
+		Version: "1.0.0", // Could be injected from build
 
-		Uptime:     time.Since(time.Now()), // This should track actual uptime
+		Uptime: time.Since(time.Now()), // This should track actual uptime
 
 		Components: h.buildComponentsMap(checks),
 
-		Checks:     checks,
+		Checks: checks,
 
-		Services:   h.getServiceStatuses(),
+		Services: h.getServiceStatuses(),
 
-		Resources:  h.getResourceHealthSummary(),
-
+		Resources: h.getResourceHealthSummary(),
 	}
 
 }
-
-
 
 // calculateOverallStatus determines the overall health status based on component checks.
 
@@ -257,13 +208,9 @@ func (h *HealthChecker) calculateOverallStatus(checks []ComponentCheck) string {
 
 	}
 
-
-
 	hasUnhealthy := false
 
 	hasDegraded := false
-
-
 
 	for _, check := range checks {
 
@@ -281,8 +228,6 @@ func (h *HealthChecker) calculateOverallStatus(checks []ComponentCheck) string {
 
 	}
 
-
-
 	if hasUnhealthy {
 
 		return "DOWN"
@@ -299,43 +244,34 @@ func (h *HealthChecker) calculateOverallStatus(checks []ComponentCheck) string {
 
 }
 
-
-
 // buildComponentsMap builds a map of component health information.
 
 func (h *HealthChecker) buildComponentsMap(checks []ComponentCheck) map[string]interface{} {
 
 	components := make(map[string]interface{})
 
-
-
 	for _, check := range checks {
 
 		components[check.Name] = map[string]interface{}{
 
-			"status":     check.Status,
+			"status": check.Status,
 
-			"message":    check.Message,
+			"message": check.Message,
 
-			"timestamp":  check.Timestamp,
+			"timestamp": check.Timestamp,
 
-			"duration":   check.Duration,
+			"duration": check.Duration,
 
-			"details":    check.Details,
+			"details": check.Details,
 
 			"check_type": check.CheckType,
-
 		}
 
 	}
 
-
-
 	return components
 
 }
-
-
 
 // getServiceStatuses returns the status of external service dependencies.
 
@@ -345,31 +281,24 @@ func (h *HealthChecker) getServiceStatuses() []HealthServiceStatus {
 
 	var services []HealthServiceStatus
 
-
-
 	// Example service status check.
 
 	services = append(services, HealthServiceStatus{
 
 		ServiceName: "database",
 
-		Status:      "UP",
+		Status: "UP",
 
-		Endpoint:    "postgresql://localhost:5432",
+		Endpoint: "postgresql://localhost:5432",
 
-		LastCheck:   time.Now(),
+		LastCheck: time.Now(),
 
-		Latency:     5 * time.Millisecond,
-
+		Latency: 5 * time.Millisecond,
 	})
-
-
 
 	return services
 
 }
-
-
 
 // getResourceHealthSummary returns a summary of resource health.
 
@@ -379,39 +308,34 @@ func (h *HealthChecker) getResourceHealthSummary() *ResourceHealthSummary {
 
 	return &ResourceHealthSummary{
 
-		TotalResources:     100,
+		TotalResources: 100,
 
-		HealthyResources:   95,
+		HealthyResources: 95,
 
-		DegradedResources:  3,
+		DegradedResources: 3,
 
 		UnhealthyResources: 2,
 
-		UnknownResources:   0,
-
+		UnknownResources: 0,
 	}
 
 }
 
-
-
 // ComponentCheck represents the result of a component health check.
 
 type ComponentCheck struct {
+	Name string `json:"name" validate:"required"`
 
-	Name      string                 `json:"name" validate:"required"`
+	Status string `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`
 
-	Status    string                 `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`
+	Message string `json:"message,omitempty"`
 
-	Message   string                 `json:"message,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time              `json:"timestamp"`
+	Duration time.Duration `json:"duration,omitempty"`
 
-	Duration  time.Duration          `json:"duration,omitempty"`
+	Details map[string]interface{} `json:"details,omitempty"`
 
-	Details   map[string]interface{} `json:"details,omitempty"`
-
-	CheckType string                 `json:"check_type,omitempty"` // connectivity, resource, dependency
+	CheckType string `json:"check_type,omitempty"` // connectivity, resource, dependency
 
 }
-

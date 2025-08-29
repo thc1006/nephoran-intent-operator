@@ -1,23 +1,13 @@
-
 package mtls
 
-
-
 import (
-
 	"fmt"
-
 	"time"
-
 )
-
-
 
 // ConnectionMetricCollector collects metrics related to mTLS connections.
 
 type ConnectionMetricCollector struct{}
-
-
 
 // GetName returns the name of the collector.
 
@@ -27,8 +17,6 @@ func (c *ConnectionMetricCollector) GetName() string {
 
 }
 
-
-
 // CollectMetrics collects connection-related metrics.
 
 func (c *ConnectionMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Metric, error) {
@@ -37,109 +25,98 @@ func (c *ConnectionMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Met
 
 	timestamp := time.Now()
 
-
-
 	metrics := []*Metric{
 
 		{
 
-			Name:      "mtls_connections_total",
+			Name: "mtls_connections_total",
 
-			Value:     float64(stats.TotalConnections),
+			Value: float64(stats.TotalConnections),
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Total number of active mTLS connections",
+			Help: "Total number of active mTLS connections",
 
 			Timestamp: timestamp,
 
-			Labels:    map[string]string{"component": "mtls"},
-
+			Labels: map[string]string{"component": "mtls"},
 		},
 
 		{
 
-			Name:      "mtls_requests_total",
+			Name: "mtls_requests_total",
 
-			Value:     float64(stats.TotalRequests),
+			Value: float64(stats.TotalRequests),
 
-			Type:      "counter",
+			Type: "counter",
 
-			Help:      "Total number of mTLS requests processed",
+			Help: "Total number of mTLS requests processed",
 
 			Timestamp: timestamp,
 
-			Labels:    map[string]string{"component": "mtls"},
-
+			Labels: map[string]string{"component": "mtls"},
 		},
 
 		{
 
-			Name:      "mtls_errors_total",
+			Name: "mtls_errors_total",
 
-			Value:     float64(stats.TotalErrors),
+			Value: float64(stats.TotalErrors),
 
-			Type:      "counter",
+			Type: "counter",
 
-			Help:      "Total number of mTLS connection errors",
+			Help: "Total number of mTLS connection errors",
 
 			Timestamp: timestamp,
 
-			Labels:    map[string]string{"component": "mtls"},
-
+			Labels: map[string]string{"component": "mtls"},
 		},
 
 		{
 
-			Name:      "mtls_error_rate",
+			Name: "mtls_error_rate",
 
-			Value:     stats.ErrorRate,
+			Value: stats.ErrorRate,
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Error rate for mTLS connections (0.0-1.0)",
+			Help: "Error rate for mTLS connections (0.0-1.0)",
 
 			Timestamp: timestamp,
 
-			Labels:    map[string]string{"component": "mtls"},
-
+			Labels: map[string]string{"component": "mtls"},
 		},
 
 		{
 
-			Name:      "mtls_bytes_sent_total",
+			Name: "mtls_bytes_sent_total",
 
-			Value:     float64(stats.TotalBytesSent),
+			Value: float64(stats.TotalBytesSent),
 
-			Type:      "counter",
+			Type: "counter",
 
-			Help:      "Total bytes sent over mTLS connections",
+			Help: "Total bytes sent over mTLS connections",
 
 			Timestamp: timestamp,
 
-			Labels:    map[string]string{"component": "mtls"},
-
+			Labels: map[string]string{"component": "mtls"},
 		},
 
 		{
 
-			Name:      "mtls_bytes_received_total",
+			Name: "mtls_bytes_received_total",
 
-			Value:     float64(stats.TotalBytesReceived),
+			Value: float64(stats.TotalBytesReceived),
 
-			Type:      "counter",
+			Type: "counter",
 
-			Help:      "Total bytes received over mTLS connections",
+			Help: "Total bytes received over mTLS connections",
 
 			Timestamp: timestamp,
 
-			Labels:    map[string]string{"component": "mtls"},
-
+			Labels: map[string]string{"component": "mtls"},
 		},
-
 	}
-
-
 
 	// Add per-service connection metrics.
 
@@ -147,13 +124,13 @@ func (c *ConnectionMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Met
 
 		metrics = append(metrics, &Metric{
 
-			Name:      "mtls_connections_by_service",
+			Name: "mtls_connections_by_service",
 
-			Value:     float64(count),
+			Value: float64(count),
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Number of mTLS connections by service",
+			Help: "Number of mTLS connections by service",
 
 			Timestamp: timestamp,
 
@@ -161,15 +138,11 @@ func (c *ConnectionMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Met
 
 				"component": "mtls",
 
-				"service":   serviceName,
-
+				"service": serviceName,
 			},
-
 		})
 
 	}
-
-
 
 	// Add TLS version metrics.
 
@@ -179,35 +152,29 @@ func (c *ConnectionMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Met
 
 		tlsVersionName := getTLSVersionName(version)
 
-
-
 		metrics = append(metrics, &Metric{
 
-			Name:      "mtls_connections_by_tls_version",
+			Name: "mtls_connections_by_tls_version",
 
-			Value:     float64(count),
+			Value: float64(count),
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Number of mTLS connections by TLS version",
+			Help: "Number of mTLS connections by TLS version",
 
 			Timestamp: timestamp,
 
 			Labels: map[string]string{
 
-				"component":    "mtls",
+				"component": "mtls",
 
-				"tls_version":  versionStr,
+				"tls_version": versionStr,
 
 				"version_name": tlsVersionName,
-
 			},
-
 		})
 
 	}
-
-
 
 	// Add cipher suite metrics.
 
@@ -217,47 +184,37 @@ func (c *ConnectionMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Met
 
 		cipherName := getCipherSuiteName(cipher)
 
-
-
 		metrics = append(metrics, &Metric{
 
-			Name:      "mtls_connections_by_cipher_suite",
+			Name: "mtls_connections_by_cipher_suite",
 
-			Value:     float64(count),
+			Value: float64(count),
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Number of mTLS connections by cipher suite",
+			Help: "Number of mTLS connections by cipher suite",
 
 			Timestamp: timestamp,
 
 			Labels: map[string]string{
 
-				"component":    "mtls",
+				"component": "mtls",
 
 				"cipher_suite": cipherStr,
 
-				"cipher_name":  cipherName,
-
+				"cipher_name": cipherName,
 			},
-
 		})
 
 	}
-
-
 
 	return metrics, nil
 
 }
 
-
-
 // CertificateMetricCollector collects metrics related to certificates.
 
 type CertificateMetricCollector struct{}
-
-
 
 // GetName returns the name of the collector.
 
@@ -267,8 +224,6 @@ func (c *CertificateMetricCollector) GetName() string {
 
 }
 
-
-
 // CollectMetrics collects certificate-related metrics.
 
 func (c *CertificateMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Metric, error) {
@@ -277,61 +232,53 @@ func (c *CertificateMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 	timestamp := time.Now()
 
-
-
 	metrics := []*Metric{
 
 		{
 
-			Name:      "mtls_certificates_total",
+			Name: "mtls_certificates_total",
 
-			Value:     float64(stats.TotalCertificates),
+			Value: float64(stats.TotalCertificates),
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Total number of tracked certificates",
+			Help: "Total number of tracked certificates",
 
 			Timestamp: timestamp,
 
-			Labels:    map[string]string{"component": "mtls"},
-
+			Labels: map[string]string{"component": "mtls"},
 		},
 
 		{
 
-			Name:      "mtls_certificates_expired",
+			Name: "mtls_certificates_expired",
 
-			Value:     float64(stats.ExpiredCount),
+			Value: float64(stats.ExpiredCount),
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Number of expired certificates",
+			Help: "Number of expired certificates",
 
 			Timestamp: timestamp,
 
-			Labels:    map[string]string{"component": "mtls"},
-
+			Labels: map[string]string{"component": "mtls"},
 		},
 
 		{
 
-			Name:      "mtls_certificates_expiring",
+			Name: "mtls_certificates_expiring",
 
-			Value:     float64(stats.ExpiringCount),
+			Value: float64(stats.ExpiringCount),
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Number of certificates expiring within 7 days",
+			Help: "Number of certificates expiring within 7 days",
 
 			Timestamp: timestamp,
 
-			Labels:    map[string]string{"component": "mtls"},
-
+			Labels: map[string]string{"component": "mtls"},
 		},
-
 	}
-
-
 
 	// Add health status metrics.
 
@@ -339,13 +286,13 @@ func (c *CertificateMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 		metrics = append(metrics, &Metric{
 
-			Name:      "mtls_certificates_by_health",
+			Name: "mtls_certificates_by_health",
 
-			Value:     float64(count),
+			Value: float64(count),
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Number of certificates by health status",
+			Help: "Number of certificates by health status",
 
 			Timestamp: timestamp,
 
@@ -353,15 +300,11 @@ func (c *CertificateMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 				"component": "mtls",
 
-				"health":    string(health),
-
+				"health": string(health),
 			},
-
 		})
 
 	}
-
-
 
 	// Add per-service certificate metrics.
 
@@ -369,13 +312,13 @@ func (c *CertificateMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 		metrics = append(metrics, &Metric{
 
-			Name:      "mtls_certificates_by_service",
+			Name: "mtls_certificates_by_service",
 
-			Value:     float64(count),
+			Value: float64(count),
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Number of certificates by service",
+			Help: "Number of certificates by service",
 
 			Timestamp: timestamp,
 
@@ -383,15 +326,11 @@ func (c *CertificateMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 				"component": "mtls",
 
-				"service":   serviceName,
-
+				"service": serviceName,
 			},
-
 		})
 
 	}
-
-
 
 	// Add per-role certificate metrics.
 
@@ -399,13 +338,13 @@ func (c *CertificateMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 		metrics = append(metrics, &Metric{
 
-			Name:      "mtls_certificates_by_role",
+			Name: "mtls_certificates_by_role",
 
-			Value:     float64(count),
+			Value: float64(count),
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Number of certificates by service role",
+			Help: "Number of certificates by service role",
 
 			Timestamp: timestamp,
 
@@ -413,15 +352,11 @@ func (c *CertificateMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 				"component": "mtls",
 
-				"role":      string(role),
-
+				"role": string(role),
 			},
-
 		})
 
 	}
-
-
 
 	// Add individual certificate expiry metrics.
 
@@ -431,63 +366,52 @@ func (c *CertificateMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 		expiresInSeconds := time.Until(cert.NotAfter).Seconds()
 
-
-
 		metrics = append(metrics, &Metric{
 
-			Name:      "mtls_certificate_expiry_time",
+			Name: "mtls_certificate_expiry_time",
 
-			Value:     expiresInSeconds,
+			Value: expiresInSeconds,
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Time until certificate expiry in seconds",
+			Help: "Time until certificate expiry in seconds",
 
 			Timestamp: timestamp,
 
 			Labels: map[string]string{
 
-				"component":     "mtls",
+				"component": "mtls",
 
-				"service":       cert.ServiceName,
+				"service": cert.ServiceName,
 
-				"role":          string(cert.Role),
+				"role": string(cert.Role),
 
 				"serial_number": cert.SerialNumber,
 
 				"health_status": string(cert.HealthStatus),
-
 			},
 
 			Metadata: map[string]interface{}{
 
 				"certificate_path": cert.CertificatePath,
 
-				"expires_at":       cert.NotAfter,
+				"expires_at": cert.NotAfter,
 
-				"rotation_count":   cert.RotationCount,
-
+				"rotation_count": cert.RotationCount,
 			},
-
 		})
 
 	}
 
 	monitor.certMu.RUnlock()
 
-
-
 	return metrics, nil
 
 }
 
-
-
 // SecurityMetricCollector collects security-related metrics.
 
 type SecurityMetricCollector struct{}
-
-
 
 // GetName returns the name of the collector.
 
@@ -497,19 +421,13 @@ func (c *SecurityMetricCollector) GetName() string {
 
 }
 
-
-
 // CollectMetrics collects security-related metrics.
 
 func (c *SecurityMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Metric, error) {
 
 	timestamp := time.Now()
 
-
-
 	metrics := []*Metric{}
-
-
 
 	// Collect certificate rotation metrics.
 
@@ -521,19 +439,17 @@ func (c *SecurityMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Metri
 
 		totalRotations += cert.RotationCount
 
-
-
 		// Individual rotation count.
 
 		metrics = append(metrics, &Metric{
 
-			Name:      "mtls_certificate_rotations_total",
+			Name: "mtls_certificate_rotations_total",
 
-			Value:     float64(cert.RotationCount),
+			Value: float64(cert.RotationCount),
 
-			Type:      "counter",
+			Type: "counter",
 
-			Help:      "Total number of certificate rotations",
+			Help: "Total number of certificate rotations",
 
 			Timestamp: timestamp,
 
@@ -541,39 +457,32 @@ func (c *SecurityMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Metri
 
 				"component": "mtls",
 
-				"service":   cert.ServiceName,
+				"service": cert.ServiceName,
 
-				"role":      string(cert.Role),
-
+				"role": string(cert.Role),
 			},
-
 		})
 
 	}
 
 	monitor.certMu.RUnlock()
 
-
-
 	// Total rotations across all certificates.
 
 	metrics = append(metrics, &Metric{
 
-		Name:      "mtls_certificate_rotations_global_total",
+		Name: "mtls_certificate_rotations_global_total",
 
-		Value:     float64(totalRotations),
+		Value: float64(totalRotations),
 
-		Type:      "counter",
+		Type: "counter",
 
-		Help:      "Total number of certificate rotations across all services",
+		Help: "Total number of certificate rotations across all services",
 
 		Timestamp: timestamp,
 
-		Labels:    map[string]string{"component": "mtls"},
-
+		Labels: map[string]string{"component": "mtls"},
 	})
-
-
 
 	// Connection security metrics.
 
@@ -585,13 +494,9 @@ func (c *SecurityMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Metri
 
 	oldTLSVersions := 0
 
-
-
 	for _, conn := range monitor.connections {
 
 		secureConnections++
-
-
 
 		// Check for weak cipher suites (simplified check).
 
@@ -600,8 +505,6 @@ func (c *SecurityMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Metri
 			weakCiphers++
 
 		}
-
-
 
 		// Check for old TLS versions.
 
@@ -615,71 +518,59 @@ func (c *SecurityMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Metri
 
 	monitor.connMu.RUnlock()
 
-
-
 	metrics = append(metrics, []*Metric{
 
 		{
 
-			Name:      "mtls_secure_connections_total",
+			Name: "mtls_secure_connections_total",
 
-			Value:     float64(secureConnections),
+			Value: float64(secureConnections),
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Total number of secure mTLS connections",
+			Help: "Total number of secure mTLS connections",
 
 			Timestamp: timestamp,
 
-			Labels:    map[string]string{"component": "mtls"},
-
+			Labels: map[string]string{"component": "mtls"},
 		},
 
 		{
 
-			Name:      "mtls_weak_cipher_connections",
+			Name: "mtls_weak_cipher_connections",
 
-			Value:     float64(weakCiphers),
+			Value: float64(weakCiphers),
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Number of connections using weak cipher suites",
+			Help: "Number of connections using weak cipher suites",
 
 			Timestamp: timestamp,
 
-			Labels:    map[string]string{"component": "mtls"},
-
+			Labels: map[string]string{"component": "mtls"},
 		},
 
 		{
 
-			Name:      "mtls_old_tls_version_connections",
+			Name: "mtls_old_tls_version_connections",
 
-			Value:     float64(oldTLSVersions),
+			Value: float64(oldTLSVersions),
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Number of connections using old TLS versions",
+			Help: "Number of connections using old TLS versions",
 
 			Timestamp: timestamp,
 
-			Labels:    map[string]string{"component": "mtls"},
-
+			Labels: map[string]string{"component": "mtls"},
 		},
-
 	}...)
-
-
 
 	return metrics, nil
 
 }
 
-
-
 // Helper functions.
-
-
 
 // getTLSVersionName returns a human-readable TLS version name.
 
@@ -714,8 +605,6 @@ func getTLSVersionName(version uint16) string {
 	}
 
 }
-
-
 
 // getCipherSuiteName returns a human-readable cipher suite name.
 
@@ -757,8 +646,6 @@ func getCipherSuiteName(cipher uint16) string {
 
 }
 
-
-
 // isWeakCipherSuite checks if a cipher suite is considered weak.
 
 func isWeakCipherSuite(cipher uint16) bool {
@@ -781,8 +668,6 @@ func isWeakCipherSuite(cipher uint16) bool {
 
 	}
 
-
-
 	for _, weak := range weakCiphers {
 
 		if cipher == weak {
@@ -793,19 +678,13 @@ func isWeakCipherSuite(cipher uint16) bool {
 
 	}
 
-
-
 	return false
 
 }
 
-
-
 // PerformanceMetricCollector collects performance-related metrics.
 
 type PerformanceMetricCollector struct{}
-
-
 
 // GetName returns the name of the collector.
 
@@ -815,8 +694,6 @@ func (c *PerformanceMetricCollector) GetName() string {
 
 }
 
-
-
 // CollectMetrics collects performance-related metrics.
 
 func (c *PerformanceMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Metric, error) {
@@ -825,11 +702,7 @@ func (c *PerformanceMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 	metrics := []*Metric{}
 
-
-
 	monitor.connMu.RLock()
-
-
 
 	// Calculate connection duration metrics.
 
@@ -838,8 +711,6 @@ func (c *PerformanceMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 	var connectionDurations []float64
 
 	activeConnections := 0
-
-
 
 	for _, conn := range monitor.connections {
 
@@ -851,19 +722,17 @@ func (c *PerformanceMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 		activeConnections++
 
-
-
 		// Individual connection metrics.
 
 		metrics = append(metrics, &Metric{
 
-			Name:      "mtls_connection_duration_seconds",
+			Name: "mtls_connection_duration_seconds",
 
-			Value:     duration,
+			Value: duration,
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Duration of individual mTLS connections in seconds",
+			Help: "Duration of individual mTLS connections in seconds",
 
 			Timestamp: timestamp,
 
@@ -871,15 +740,11 @@ func (c *PerformanceMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 				"component": "mtls",
 
-				"service":   conn.ServiceName,
+				"service": conn.ServiceName,
 
-				"conn_id":   conn.ID,
-
+				"conn_id": conn.ID,
 			},
-
 		})
-
-
 
 		// Request rate per connection.
 
@@ -889,13 +754,13 @@ func (c *PerformanceMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 			metrics = append(metrics, &Metric{
 
-				Name:      "mtls_connection_request_rate",
+				Name: "mtls_connection_request_rate",
 
-				Value:     requestRate,
+				Value: requestRate,
 
-				Type:      "gauge",
+				Type: "gauge",
 
-				Help:      "Request rate per connection (requests per second)",
+				Help: "Request rate per connection (requests per second)",
 
 				Timestamp: timestamp,
 
@@ -903,23 +768,17 @@ func (c *PerformanceMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 					"component": "mtls",
 
-					"service":   conn.ServiceName,
+					"service": conn.ServiceName,
 
-					"conn_id":   conn.ID,
-
+					"conn_id": conn.ID,
 				},
-
 			})
 
 		}
 
 	}
 
-
-
 	monitor.connMu.RUnlock()
-
-
 
 	// Average connection duration.
 
@@ -929,23 +788,20 @@ func (c *PerformanceMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 		metrics = append(metrics, &Metric{
 
-			Name:      "mtls_connection_duration_average_seconds",
+			Name: "mtls_connection_duration_average_seconds",
 
-			Value:     avgDuration,
+			Value: avgDuration,
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Average duration of mTLS connections in seconds",
+			Help: "Average duration of mTLS connections in seconds",
 
 			Timestamp: timestamp,
 
-			Labels:    map[string]string{"component": "mtls"},
-
+			Labels: map[string]string{"component": "mtls"},
 		})
 
 	}
-
-
 
 	// Certificate check performance.
 
@@ -955,17 +811,15 @@ func (c *PerformanceMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 		timeSinceLastCheck := time.Since(cert.LastChecked).Seconds()
 
-
-
 		metrics = append(metrics, &Metric{
 
-			Name:      "mtls_certificate_check_age_seconds",
+			Name: "mtls_certificate_check_age_seconds",
 
-			Value:     timeSinceLastCheck,
+			Value: timeSinceLastCheck,
 
-			Type:      "gauge",
+			Type: "gauge",
 
-			Help:      "Time since last certificate health check in seconds",
+			Help: "Time since last certificate health check in seconds",
 
 			Timestamp: timestamp,
 
@@ -973,21 +827,16 @@ func (c *PerformanceMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 				"component": "mtls",
 
-				"service":   cert.ServiceName,
+				"service": cert.ServiceName,
 
-				"role":      string(cert.Role),
-
+				"role": string(cert.Role),
 			},
-
 		})
 
 	}
 
 	monitor.certMu.RUnlock()
 
-
-
 	return metrics, nil
 
 }
-

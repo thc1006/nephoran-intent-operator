@@ -1,57 +1,34 @@
 // Package policies provides policy management for service mesh integration.
 
-
 package policies
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-	"gopkg.in/yaml.v3"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
-
-
+	"gopkg.in/yaml.v3"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // PolicyManager manages service mesh policies.
 
 type PolicyManager struct {
-
-	mesh        abstraction.ServiceMeshInterface
+	mesh abstraction.ServiceMeshInterface
 
 	policyStore *PolicyStore
 
-	validator   *PolicyValidator
+	validator *PolicyValidator
 
-	enforcer    *PolicyEnforcer
+	enforcer *PolicyEnforcer
 
-	logger      logr.Logger
-
+	logger logr.Logger
 }
-
-
 
 // NewPolicyManager creates a new policy manager.
 
@@ -59,29 +36,24 @@ func NewPolicyManager(mesh abstraction.ServiceMeshInterface) *PolicyManager {
 
 	return &PolicyManager{
 
-		mesh:        mesh,
+		mesh: mesh,
 
 		policyStore: NewPolicyStore(),
 
-		validator:   NewPolicyValidator(mesh),
+		validator: NewPolicyValidator(mesh),
 
-		enforcer:    NewPolicyEnforcer(mesh),
+		enforcer: NewPolicyEnforcer(mesh),
 
-		logger:      log.Log.WithName("policy-manager"),
-
+		logger: log.Log.WithName("policy-manager"),
 	}
 
 }
-
-
 
 // ApplyPolicySet applies a set of policies.
 
 func (m *PolicyManager) ApplyPolicySet(ctx context.Context, policySet *PolicySet) error {
 
 	m.logger.Info("Applying policy set", "name", policySet.Name, "policies", len(policySet.Policies))
-
-
 
 	// Validate all policies first.
 
@@ -95,8 +67,6 @@ func (m *PolicyManager) ApplyPolicySet(ctx context.Context, policySet *PolicySet
 
 	}
 
-
-
 	// Check for conflicts.
 
 	conflicts := m.validator.CheckConflicts(policySet.Policies)
@@ -106,8 +76,6 @@ func (m *PolicyManager) ApplyPolicySet(ctx context.Context, policySet *PolicySet
 		return fmt.Errorf("policy conflicts detected: %v", conflicts)
 
 	}
-
-
 
 	// Apply policies in order.
 
@@ -129,21 +97,15 @@ func (m *PolicyManager) ApplyPolicySet(ctx context.Context, policySet *PolicySet
 
 	}
 
-
-
 	// Store policy set.
 
 	m.policyStore.StorePolicySet(policySet)
-
-
 
 	m.logger.Info("Policy set applied successfully", "name", policySet.Name)
 
 	return nil
 
 }
-
-
 
 // applyPolicy applies a single policy.
 
@@ -175,8 +137,6 @@ func (m *PolicyManager) applyPolicy(ctx context.Context, policy Policy) error {
 
 }
 
-
-
 // applyMTLSPolicy applies an mTLS policy.
 
 func (m *PolicyManager) applyMTLSPolicy(ctx context.Context, policy Policy) error {
@@ -185,25 +145,20 @@ func (m *PolicyManager) applyMTLSPolicy(ctx context.Context, policy Policy) erro
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      policy.Name,
+			Name: policy.Name,
 
 			Namespace: policy.Namespace,
 
-			Labels:    policy.Labels,
-
+			Labels: policy.Labels,
 		},
 
 		Spec: abstraction.MTLSPolicySpec{
 
 			Selector: policy.Selector,
 
-			Mode:     policy.Spec.MTLSMode,
-
+			Mode: policy.Spec.MTLSMode,
 		},
-
 	}
-
-
 
 	// Add port-level mTLS if specified.
 
@@ -227,13 +182,9 @@ func (m *PolicyManager) applyMTLSPolicy(ctx context.Context, policy Policy) erro
 
 	}
 
-
-
 	return m.mesh.ApplyMTLSPolicy(ctx, mtlsPolicy)
 
 }
-
-
 
 // applyAuthorizationPolicy applies an authorization policy.
 
@@ -243,25 +194,20 @@ func (m *PolicyManager) applyAuthorizationPolicy(ctx context.Context, policy Pol
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      policy.Name,
+			Name: policy.Name,
 
 			Namespace: policy.Namespace,
 
-			Labels:    policy.Labels,
-
+			Labels: policy.Labels,
 		},
 
 		Spec: abstraction.AuthorizationPolicySpec{
 
 			Selector: policy.Selector,
 
-			Action:   policy.Spec.Action,
-
+			Action: policy.Spec.Action,
 		},
-
 	}
-
-
 
 	// Convert rules.
 
@@ -281,13 +227,9 @@ func (m *PolicyManager) applyAuthorizationPolicy(ctx context.Context, policy Pol
 
 	}
 
-
-
 	return m.mesh.ApplyAuthorizationPolicy(ctx, authPolicy)
 
 }
-
-
 
 // applyTrafficPolicy applies a traffic management policy.
 
@@ -297,23 +239,18 @@ func (m *PolicyManager) applyTrafficPolicy(ctx context.Context, policy Policy) e
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      policy.Name,
+			Name: policy.Name,
 
 			Namespace: policy.Namespace,
 
-			Labels:    policy.Labels,
-
+			Labels: policy.Labels,
 		},
 
 		Spec: abstraction.TrafficPolicySpec{
 
 			Selector: policy.Selector,
-
 		},
-
 	}
-
-
 
 	// Add traffic management features.
 
@@ -321,39 +258,31 @@ func (m *PolicyManager) applyTrafficPolicy(ctx context.Context, policy Policy) e
 
 		trafficPolicy.Spec.CircuitBreaker = &abstraction.CircuitBreaker{
 
-			ConsecutiveErrors:  int(cb["consecutiveErrors"].(float64)),
+			ConsecutiveErrors: int(cb["consecutiveErrors"].(float64)),
 
-			Interval:           cb["interval"].(string),
+			Interval: cb["interval"].(string),
 
-			BaseEjectionTime:   cb["baseEjectionTime"].(string),
+			BaseEjectionTime: cb["baseEjectionTime"].(string),
 
 			MaxEjectionPercent: int(cb["maxEjectionPercent"].(float64)),
-
 		}
 
 	}
-
-
 
 	if retry, ok := policy.Spec.Retry.(map[string]interface{}); ok {
 
 		trafficPolicy.Spec.Retry = &abstraction.RetryPolicy{
 
-			Attempts:      int(retry["attempts"].(float64)),
+			Attempts: int(retry["attempts"].(float64)),
 
 			PerTryTimeout: retry["perTryTimeout"].(string),
-
 		}
 
 	}
 
-
-
 	return m.mesh.ApplyTrafficPolicy(ctx, trafficPolicy)
 
 }
-
-
 
 // applyNetworkSegmentationPolicy applies network segmentation.
 
@@ -363,39 +292,30 @@ func (m *PolicyManager) applyNetworkSegmentationPolicy(ctx context.Context, poli
 
 	// Create deny-all by default and then allow specific traffic.
 
-
-
 	// Create deny-all policy.
 
 	denyAll := &abstraction.AuthorizationPolicy{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      fmt.Sprintf("%s-deny-all", policy.Name),
+			Name: fmt.Sprintf("%s-deny-all", policy.Name),
 
 			Namespace: policy.Namespace,
-
 		},
 
 		Spec: abstraction.AuthorizationPolicySpec{
 
 			Selector: policy.Selector,
 
-			Action:   "DENY",
-
+			Action: "DENY",
 		},
-
 	}
-
-
 
 	if err := m.mesh.ApplyAuthorizationPolicy(ctx, denyAll); err != nil {
 
 		return fmt.Errorf("failed to apply deny-all policy: %w", err)
 
 	}
-
-
 
 	// Create allow policies for specific segments.
 
@@ -409,25 +329,20 @@ func (m *PolicyManager) applyNetworkSegmentationPolicy(ctx context.Context, poli
 
 					ObjectMeta: metav1.ObjectMeta{
 
-						Name:      fmt.Sprintf("%s-allow-%s", policy.Name, segMap["name"].(string)),
+						Name: fmt.Sprintf("%s-allow-%s", policy.Name, segMap["name"].(string)),
 
 						Namespace: policy.Namespace,
-
 					},
 
 					Spec: abstraction.AuthorizationPolicySpec{
 
 						Selector: policy.Selector,
 
-						Action:   "ALLOW",
+						Action: "ALLOW",
 
-						Rules:    m.createSegmentRules(segMap),
-
+						Rules: m.createSegmentRules(segMap),
 					},
-
 				}
-
-
 
 				if err := m.mesh.ApplyAuthorizationPolicy(ctx, allowPolicy); err != nil {
 
@@ -441,13 +356,9 @@ func (m *PolicyManager) applyNetworkSegmentationPolicy(ctx context.Context, poli
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // rollbackPolicies rolls back applied policies.
 
@@ -465,15 +376,11 @@ func (m *PolicyManager) rollbackPolicies(ctx context.Context, policies []Policy)
 
 }
 
-
-
 // convertAuthorizationRule converts a map to an authorization rule.
 
 func (m *PolicyManager) convertAuthorizationRule(ruleMap map[string]interface{}) abstraction.AuthorizationRule {
 
 	rule := abstraction.AuthorizationRule{}
-
-
 
 	// Convert From.
 
@@ -513,8 +420,6 @@ func (m *PolicyManager) convertAuthorizationRule(ruleMap map[string]interface{})
 
 	}
 
-
-
 	// Convert To.
 
 	if to, ok := ruleMap["to"].([]interface{}); ok {
@@ -553,21 +458,15 @@ func (m *PolicyManager) convertAuthorizationRule(ruleMap map[string]interface{})
 
 	}
 
-
-
 	return rule
 
 }
-
-
 
 // createSegmentRules creates rules for network segmentation.
 
 func (m *PolicyManager) createSegmentRules(segment map[string]interface{}) []abstraction.AuthorizationRule {
 
 	rules := []abstraction.AuthorizationRule{}
-
-
 
 	if sources, ok := segment["sources"].([]interface{}); ok {
 
@@ -609,13 +508,9 @@ func (m *PolicyManager) createSegmentRules(segment map[string]interface{}) []abs
 
 	}
 
-
-
 	return rules
 
 }
-
-
 
 // EnforceZeroTrust enforces zero-trust principles across the mesh.
 
@@ -623,65 +518,52 @@ func (m *PolicyManager) EnforceZeroTrust(ctx context.Context, config *ZeroTrustC
 
 	m.logger.Info("Enforcing zero-trust configuration")
 
-
-
 	// Create policy set for zero-trust.
 
 	policySet := &PolicySet{
 
-		Name:        "zero-trust",
+		Name: "zero-trust",
 
 		Description: "Zero-trust security policies",
 
-		Policies:    []Policy{},
-
+		Policies: []Policy{},
 	}
-
-
 
 	// 1. Enforce strict mTLS everywhere.
 
 	mtlsPolicy := Policy{
 
-		Name:      "zero-trust-mtls",
+		Name: "zero-trust-mtls",
 
-		Type:      PolicyTypeMTLS,
+		Type: PolicyTypeMTLS,
 
 		Namespace: config.Namespace,
 
 		Spec: PolicySpec{
 
 			MTLSMode: "STRICT",
-
 		},
-
 	}
 
 	policySet.Policies = append(policySet.Policies, mtlsPolicy)
-
-
 
 	// 2. Default deny-all authorization.
 
 	denyPolicy := Policy{
 
-		Name:      "zero-trust-deny-all",
+		Name: "zero-trust-deny-all",
 
-		Type:      PolicyTypeAuthorization,
+		Type: PolicyTypeAuthorization,
 
 		Namespace: config.Namespace,
 
 		Spec: PolicySpec{
 
 			Action: "DENY",
-
 		},
-
 	}
 
 	policySet.Policies = append(policySet.Policies, denyPolicy)
-
-
 
 	// 3. Allow only explicitly defined communications.
 
@@ -689,9 +571,9 @@ func (m *PolicyManager) EnforceZeroTrust(ctx context.Context, config *ZeroTrustC
 
 		allowPolicy := Policy{
 
-			Name:      fmt.Sprintf("zero-trust-allow-%s-to-%s", allowedComm.Source, allowedComm.Destination),
+			Name: fmt.Sprintf("zero-trust-allow-%s-to-%s", allowedComm.Source, allowedComm.Destination),
 
-			Type:      PolicyTypeAuthorization,
+			Type: PolicyTypeAuthorization,
 
 			Namespace: config.Namespace,
 
@@ -700,9 +582,7 @@ func (m *PolicyManager) EnforceZeroTrust(ctx context.Context, config *ZeroTrustC
 				MatchLabels: map[string]string{
 
 					"app": allowedComm.Destination,
-
 				},
-
 			},
 
 			Spec: PolicySpec{
@@ -722,26 +602,17 @@ func (m *PolicyManager) EnforceZeroTrust(ctx context.Context, config *ZeroTrustC
 									fmt.Sprintf("cluster.local/ns/%s/sa/%s",
 
 										config.Namespace, allowedComm.Source),
-
 								},
-
 							},
-
 						},
-
 					},
-
 				},
-
 			},
-
 		}
 
 		policySet.Policies = append(policySet.Policies, allowPolicy)
 
 	}
-
-
 
 	// Apply the policy set.
 
@@ -749,29 +620,22 @@ func (m *PolicyManager) EnforceZeroTrust(ctx context.Context, config *ZeroTrustC
 
 }
 
-
-
 // ValidateCompliance validates compliance with security policies.
 
 func (m *PolicyManager) ValidateCompliance(ctx context.Context, standard ComplianceStandard) (*ComplianceReport, error) {
 
 	m.logger.Info("Validating compliance", "standard", standard)
 
-
-
 	report := &ComplianceReport{
 
-		Standard:  standard,
+		Standard: standard,
 
 		Timestamp: time.Now(),
 
 		Compliant: true,
 
-		Checks:    []ComplianceCheck{},
-
+		Checks: []ComplianceCheck{},
 	}
-
-
 
 	// Check mTLS compliance.
 
@@ -785,8 +649,6 @@ func (m *PolicyManager) ValidateCompliance(ctx context.Context, standard Complia
 
 	}
 
-
-
 	// Check authorization compliance.
 
 	authCheck := m.checkAuthorizationCompliance(ctx)
@@ -798,8 +660,6 @@ func (m *PolicyManager) ValidateCompliance(ctx context.Context, standard Complia
 		report.Compliant = false
 
 	}
-
-
 
 	// Check network segmentation.
 
@@ -813,8 +673,6 @@ func (m *PolicyManager) ValidateCompliance(ctx context.Context, standard Complia
 
 	}
 
-
-
 	// Check certificate compliance.
 
 	certCheck := m.checkCertificateCompliance(ctx)
@@ -826,8 +684,6 @@ func (m *PolicyManager) ValidateCompliance(ctx context.Context, standard Complia
 		report.Compliant = false
 
 	}
-
-
 
 	// Calculate compliance score.
 
@@ -845,13 +701,9 @@ func (m *PolicyManager) ValidateCompliance(ctx context.Context, standard Complia
 
 	report.Score = float64(passedChecks) / float64(len(report.Checks)) * 100
 
-
-
 	return report, nil
 
 }
-
-
 
 // checkMTLSCompliance checks mTLS compliance.
 
@@ -859,15 +711,12 @@ func (m *PolicyManager) checkMTLSCompliance(ctx context.Context) ComplianceCheck
 
 	check := ComplianceCheck{
 
-		Name:        "mTLS Enforcement",
+		Name: "mTLS Enforcement",
 
 		Description: "All services must use strict mTLS",
 
-		Passed:      true,
-
+		Passed: true,
 	}
-
-
 
 	// Get mTLS status.
 
@@ -883,8 +732,6 @@ func (m *PolicyManager) checkMTLSCompliance(ctx context.Context) ComplianceCheck
 
 	}
 
-
-
 	if report.Coverage < 100 {
 
 		check.Passed = false
@@ -895,13 +742,9 @@ func (m *PolicyManager) checkMTLSCompliance(ctx context.Context) ComplianceCheck
 
 	}
 
-
-
 	return check
 
 }
-
-
 
 // checkAuthorizationCompliance checks authorization compliance.
 
@@ -909,15 +752,12 @@ func (m *PolicyManager) checkAuthorizationCompliance(ctx context.Context) Compli
 
 	check := ComplianceCheck{
 
-		Name:        "Authorization Policies",
+		Name: "Authorization Policies",
 
 		Description: "All services must have explicit authorization policies",
 
-		Passed:      true,
-
+		Passed: true,
 	}
-
-
 
 	// Validate policies.
 
@@ -933,8 +773,6 @@ func (m *PolicyManager) checkAuthorizationCompliance(ctx context.Context) Compli
 
 	}
 
-
-
 	if !result.Valid {
 
 		check.Passed = false
@@ -947,8 +785,6 @@ func (m *PolicyManager) checkAuthorizationCompliance(ctx context.Context) Compli
 
 	}
 
-
-
 	if !result.Compliance.ZeroTrustCompliant {
 
 		check.Passed = false
@@ -957,13 +793,9 @@ func (m *PolicyManager) checkAuthorizationCompliance(ctx context.Context) Compli
 
 	}
 
-
-
 	return check
 
 }
-
-
 
 // checkSegmentationCompliance checks network segmentation compliance.
 
@@ -971,15 +803,12 @@ func (m *PolicyManager) checkSegmentationCompliance(ctx context.Context) Complia
 
 	check := ComplianceCheck{
 
-		Name:        "Network Segmentation",
+		Name: "Network Segmentation",
 
 		Description: "Network must be properly segmented",
 
-		Passed:      true,
-
+		Passed: true,
 	}
-
-
 
 	// Check if network segmentation is enforced.
 
@@ -995,8 +824,6 @@ func (m *PolicyManager) checkSegmentationCompliance(ctx context.Context) Complia
 
 	}
 
-
-
 	if !result.Compliance.NetworkSegmented {
 
 		check.Passed = false
@@ -1005,13 +832,9 @@ func (m *PolicyManager) checkSegmentationCompliance(ctx context.Context) Complia
 
 	}
 
-
-
 	return check
 
 }
-
-
 
 // checkCertificateCompliance checks certificate compliance.
 
@@ -1019,15 +842,12 @@ func (m *PolicyManager) checkCertificateCompliance(ctx context.Context) Complian
 
 	check := ComplianceCheck{
 
-		Name:        "Certificate Management",
+		Name: "Certificate Management",
 
 		Description: "All certificates must be valid and not expiring",
 
-		Passed:      true,
-
+		Passed: true,
 	}
-
-
 
 	// Validate certificate chain.
 
@@ -1039,21 +859,15 @@ func (m *PolicyManager) checkCertificateCompliance(ctx context.Context) Complian
 
 	}
 
-
-
 	return check
 
 }
-
-
 
 // ExportPolicies exports policies to YAML format.
 
 func (m *PolicyManager) ExportPolicies(ctx context.Context) (string, error) {
 
 	policies := m.policyStore.GetAllPolicies()
-
-
 
 	data, err := yaml.Marshal(policies)
 
@@ -1063,13 +877,9 @@ func (m *PolicyManager) ExportPolicies(ctx context.Context) (string, error) {
 
 	}
 
-
-
 	return string(data), nil
 
 }
-
-
 
 // ImportPolicies imports policies from YAML format.
 
@@ -1083,9 +893,6 @@ func (m *PolicyManager) ImportPolicies(ctx context.Context, yamlData string) err
 
 	}
 
-
-
 	return m.ApplyPolicySet(ctx, &policySet)
 
 }
-

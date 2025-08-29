@@ -1,73 +1,46 @@
 // Package validation provides reliability and production readiness validation.
 
-
 package validation
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
 
-
-
+	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 	"github.com/onsi/ginkgo/v2"
 
-
-
-	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
-
-
 	appsv1 "k8s.io/api/apps/v1"
-
 	corev1 "k8s.io/api/core/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/client-go/kubernetes"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // ReliabilityValidator provides comprehensive reliability and availability testing.
 
 // Integrates with specialized production deployment validators.
 
 type ReliabilityValidator struct {
-
-	config    *ValidationConfig
+	config *ValidationConfig
 
 	k8sClient client.Client
 
 	clientset *kubernetes.Clientset
 
-
-
 	// Specialized validators.
 
 	productionDeploymentValidator *ProductionDeploymentValidator
 
-	chaosEngineeringValidator     *ChaosEngineeringValidator
+	chaosEngineeringValidator *ChaosEngineeringValidator
 
-	monitoringValidator           *MonitoringObservabilityValidator
+	monitoringValidator *MonitoringObservabilityValidator
 
-	disasterRecoveryValidator     *DisasterRecoveryValidator
+	disasterRecoveryValidator *DisasterRecoveryValidator
 
-	deploymentScenariosValidator  *DeploymentScenariosValidator
-
+	deploymentScenariosValidator *DeploymentScenariosValidator
 }
-
-
 
 // NewReliabilityValidator creates a new reliability validator with integrated production validators.
 
@@ -76,12 +49,9 @@ func NewReliabilityValidator(config *ValidationConfig) *ReliabilityValidator {
 	return &ReliabilityValidator{
 
 		config: config,
-
 	}
 
 }
-
-
 
 // SetK8sClient sets the Kubernetes client for reliability validation.
 
@@ -91,15 +61,11 @@ func (rv *ReliabilityValidator) SetK8sClient(client client.Client) {
 
 }
 
-
-
 // SetClientset sets the Kubernetes clientset.
 
 func (rv *ReliabilityValidator) SetClientset(clientset *kubernetes.Clientset) {
 
 	rv.clientset = clientset
-
-
 
 	// Initialize specialized validators.
 
@@ -119,25 +85,19 @@ func (rv *ReliabilityValidator) SetClientset(clientset *kubernetes.Clientset) {
 
 }
 
-
-
 // ValidateHighAvailability validates high availability characteristics using comprehensive production validators.
 
 func (rv *ReliabilityValidator) ValidateHighAvailability(ctx context.Context) *ReliabilityMetrics {
 
 	ginkgo.By("Validating High Availability with Production Deployment Validators")
 
-
-
 	metrics := &ReliabilityMetrics{
 
 		Availability: 0.0,
 
-		ErrorRate:    100.0, // Start with worst case
+		ErrorRate: 100.0, // Start with worst case
 
 	}
-
-
 
 	// Use specialized production deployment validator if available.
 
@@ -159,8 +119,6 @@ func (rv *ReliabilityValidator) ValidateHighAvailability(ctx context.Context) *R
 
 			metrics.ErrorRate = 100.0 - availability
 
-
-
 			ginkgo.By(fmt.Sprintf("Production HA Score: %d/3 (%.2f%% availability)", haScore, availability))
 
 			return metrics
@@ -169,13 +127,9 @@ func (rv *ReliabilityValidator) ValidateHighAvailability(ctx context.Context) *R
 
 	}
 
-
-
 	// Fallback to original implementation.
 
 	ginkgo.By("Using fallback HA validation")
-
-
 
 	// Test 1: Controller availability.
 
@@ -183,15 +137,11 @@ func (rv *ReliabilityValidator) ValidateHighAvailability(ctx context.Context) *R
 
 	ginkgo.By(fmt.Sprintf("Controller availability: %.2f%%", controllerUptime))
 
-
-
 	// Test 2: Service response availability.
 
 	serviceUptime := rv.measureServiceAvailability(ctx)
 
 	ginkgo.By(fmt.Sprintf("Service availability: %.2f%%", serviceUptime))
-
-
 
 	// Test 3: Intent processing availability.
 
@@ -199,39 +149,27 @@ func (rv *ReliabilityValidator) ValidateHighAvailability(ctx context.Context) *R
 
 	ginkgo.By(fmt.Sprintf("Processing availability: %.2f%%", processingUptime))
 
-
-
 	// Calculate overall availability (weighted average).
 
 	overallAvailability := (controllerUptime*0.4 + serviceUptime*0.3 + processingUptime*0.3)
 
 	metrics.Availability = overallAvailability
 
-
-
 	// Calculate error rate (inverse of availability for errors).
 
 	metrics.ErrorRate = 100.0 - overallAvailability
 
-
-
 	ginkgo.By(fmt.Sprintf("Overall availability: %.2f%%", overallAvailability))
-
-
 
 	return metrics
 
 }
-
-
 
 // ValidateFaultTolerance validates fault tolerance mechanisms using chaos engineering.
 
 func (rv *ReliabilityValidator) ValidateFaultTolerance(ctx context.Context) bool {
 
 	ginkgo.By("Validating Fault Tolerance with Chaos Engineering")
-
-
 
 	// Use specialized chaos engineering validator if available.
 
@@ -257,22 +195,16 @@ func (rv *ReliabilityValidator) ValidateFaultTolerance(ctx context.Context) bool
 
 	}
 
-
-
 	// Fallback to original implementation.
 
 	ginkgo.By("Using fallback fault tolerance validation")
 
-
-
 	faultTests := []struct {
-
-		name   string
+		name string
 
 		testFn func(context.Context) bool
 
 		weight float64
-
 	}{
 
 		{"Controller restart tolerance", rv.testControllerRestartTolerance, 0.3},
@@ -282,16 +214,11 @@ func (rv *ReliabilityValidator) ValidateFaultTolerance(ctx context.Context) bool
 		{"Resource constraint tolerance", rv.testResourceConstraintTolerance, 0.2},
 
 		{"Dependency failure tolerance", rv.testDependencyFailureTolerance, 0.3},
-
 	}
-
-
 
 	totalScore := 0.0
 
 	totalWeight := 0.0
-
-
 
 	for _, test := range faultTests {
 
@@ -315,27 +242,19 @@ func (rv *ReliabilityValidator) ValidateFaultTolerance(ctx context.Context) bool
 
 	}
 
-
-
 	faultToleranceScore := totalScore / totalWeight
 
 	ginkgo.By(fmt.Sprintf("Fault tolerance score: %.1f%%", faultToleranceScore*100))
 
-
-
 	return faultToleranceScore >= 0.75 // Require 75% of fault tolerance tests to pass
 
 }
-
-
 
 // ValidateMonitoringObservability validates monitoring and observability using comprehensive validators.
 
 func (rv *ReliabilityValidator) ValidateMonitoringObservability(ctx context.Context) int {
 
 	ginkgo.By("Validating Monitoring & Observability with Specialized Validators")
-
-
 
 	// Use specialized monitoring validator if available.
 
@@ -357,19 +276,13 @@ func (rv *ReliabilityValidator) ValidateMonitoringObservability(ctx context.Cont
 
 	}
 
-
-
 	// Fallback to original implementation.
 
 	ginkgo.By("Using fallback monitoring validation")
 
-
-
 	score := 0
 
 	maxScore := 2
-
-
 
 	// Test 1: Metrics availability (1 point).
 
@@ -385,8 +298,6 @@ func (rv *ReliabilityValidator) ValidateMonitoringObservability(ctx context.Cont
 
 	}
 
-
-
 	// Test 2: Logging and tracing (1 point).
 
 	if rv.validateLoggingTracing(ctx) {
@@ -401,23 +312,17 @@ func (rv *ReliabilityValidator) ValidateMonitoringObservability(ctx context.Cont
 
 	}
 
-
-
 	ginkgo.By(fmt.Sprintf("Monitoring & Observability: %d/%d points", score, maxScore))
 
 	return score
 
 }
 
-
-
 // ValidateDisasterRecovery validates disaster recovery capabilities using comprehensive validators.
 
 func (rv *ReliabilityValidator) ValidateDisasterRecovery(ctx context.Context) bool {
 
 	ginkgo.By("Validating Disaster Recovery with Specialized Validators")
-
-
 
 	// Use specialized disaster recovery validator if available.
 
@@ -443,22 +348,16 @@ func (rv *ReliabilityValidator) ValidateDisasterRecovery(ctx context.Context) bo
 
 	}
 
-
-
 	// Fallback to original implementation.
 
 	ginkgo.By("Using fallback disaster recovery validation")
 
-
-
 	// Test disaster recovery scenarios.
 
 	recoveryTests := []struct {
-
-		name   string
+		name string
 
 		testFn func(context.Context) bool
-
 	}{
 
 		{"Data backup and restore", rv.testDataBackupRestore},
@@ -466,16 +365,11 @@ func (rv *ReliabilityValidator) ValidateDisasterRecovery(ctx context.Context) bo
 		{"Configuration recovery", rv.testConfigurationRecovery},
 
 		{"State reconstruction", rv.testStateReconstruction},
-
 	}
-
-
 
 	passedTests := 0
 
 	totalTests := len(recoveryTests)
-
-
 
 	for _, test := range recoveryTests {
 
@@ -495,29 +389,21 @@ func (rv *ReliabilityValidator) ValidateDisasterRecovery(ctx context.Context) bo
 
 	}
 
-
-
 	successRate := float64(passedTests) / float64(totalTests)
 
 	ginkgo.By(fmt.Sprintf("Disaster recovery success rate: %.1f%% (%d/%d)",
 
 		successRate*100, passedTests, totalTests))
 
-
-
 	return successRate >= 0.67 // Require 2 out of 3 recovery tests to pass
 
 }
-
-
 
 // ValidateDeploymentScenarios validates deployment scenarios if available.
 
 func (rv *ReliabilityValidator) ValidateDeploymentScenarios(ctx context.Context) (int, error) {
 
 	ginkgo.By("Validating Deployment Scenarios")
-
-
 
 	// Use specialized deployment scenarios validator if available.
 
@@ -527,23 +413,17 @@ func (rv *ReliabilityValidator) ValidateDeploymentScenarios(ctx context.Context)
 
 	}
 
-
-
 	ginkgo.By("Deployment scenarios validator not available")
 
 	return 0, fmt.Errorf("deployment scenarios validator not initialized")
 
 }
 
-
-
 // ValidateInfrastructureAsCode validates infrastructure as code if available.
 
 func (rv *ReliabilityValidator) ValidateInfrastructureAsCode(ctx context.Context) (int, error) {
 
 	ginkgo.By("Validating Infrastructure as Code")
-
-
 
 	// Use production deployment validator for IaC validation.
 
@@ -553,15 +433,11 @@ func (rv *ReliabilityValidator) ValidateInfrastructureAsCode(ctx context.Context
 
 	}
 
-
-
 	ginkgo.By("Infrastructure as Code validator not available")
 
 	return 0, fmt.Errorf("infrastructure validator not initialized")
 
 }
-
-
 
 // GetProductionMetrics returns production deployment metrics if available.
 
@@ -577,8 +453,6 @@ func (rv *ReliabilityValidator) GetProductionMetrics() interface{} {
 
 }
 
-
-
 // GetChaosMetrics returns chaos engineering metrics if available.
 
 func (rv *ReliabilityValidator) GetChaosMetrics() interface{} {
@@ -592,8 +466,6 @@ func (rv *ReliabilityValidator) GetChaosMetrics() interface{} {
 	return nil
 
 }
-
-
 
 // GetObservabilityMetrics returns observability metrics if available.
 
@@ -609,8 +481,6 @@ func (rv *ReliabilityValidator) GetObservabilityMetrics() interface{} {
 
 }
 
-
-
 // GetDisasterRecoveryMetrics returns disaster recovery metrics if available.
 
 func (rv *ReliabilityValidator) GetDisasterRecoveryMetrics() interface{} {
@@ -625,8 +495,6 @@ func (rv *ReliabilityValidator) GetDisasterRecoveryMetrics() interface{} {
 
 }
 
-
-
 // GetDeploymentScenariosMetrics returns deployment scenarios metrics if available.
 
 func (rv *ReliabilityValidator) GetDeploymentScenariosMetrics() interface{} {
@@ -640,8 +508,6 @@ func (rv *ReliabilityValidator) GetDeploymentScenariosMetrics() interface{} {
 	return nil
 
 }
-
-
 
 // measureControllerUptime measures the availability of the operator controller.
 
@@ -658,7 +524,6 @@ func (rv *ReliabilityValidator) measureControllerUptime(ctx context.Context) flo
 		client.MatchingLabels{
 
 			"app.kubernetes.io/name": "nephoran-intent-operator",
-
 		})
 
 	if err != nil {
@@ -668,8 +533,6 @@ func (rv *ReliabilityValidator) measureControllerUptime(ctx context.Context) flo
 		return 0.0
 
 	}
-
-
 
 	if len(deployments.Items) == 0 {
 
@@ -687,13 +550,9 @@ func (rv *ReliabilityValidator) measureControllerUptime(ctx context.Context) flo
 
 	}
 
-
-
 	// Check deployment health.
 
 	deployment := deployments.Items[0]
-
-
 
 	if deployment.Status.Replicas == 0 {
 
@@ -701,17 +560,11 @@ func (rv *ReliabilityValidator) measureControllerUptime(ctx context.Context) flo
 
 	}
 
-
-
 	readyReplicas := deployment.Status.ReadyReplicas
 
 	totalReplicas := deployment.Status.Replicas
 
-
-
 	availability := float64(readyReplicas) / float64(totalReplicas) * 100
-
-
 
 	// Check for recent restarts (indicates instability).
 
@@ -722,8 +575,6 @@ func (rv *ReliabilityValidator) measureControllerUptime(ctx context.Context) flo
 		client.InNamespace(deployment.Namespace),
 
 		client.MatchingLabels(deployment.Spec.Selector.MatchLabels))
-
-
 
 	if err == nil {
 
@@ -747,8 +598,6 @@ func (rv *ReliabilityValidator) measureControllerUptime(ctx context.Context) flo
 
 		}
 
-
-
 		// Penalize availability for recent restarts.
 
 		if recentRestarts > 0 {
@@ -759,13 +608,9 @@ func (rv *ReliabilityValidator) measureControllerUptime(ctx context.Context) flo
 
 	}
 
-
-
 	return availability
 
 }
-
-
 
 // measureServiceAvailability measures the availability of external services.
 
@@ -782,7 +627,6 @@ func (rv *ReliabilityValidator) measureServiceAvailability(ctx context.Context) 
 		client.MatchingLabels{
 
 			"app.kubernetes.io/name": "nephoran-intent-operator",
-
 		})
 
 	if err != nil {
@@ -793,8 +637,6 @@ func (rv *ReliabilityValidator) measureServiceAvailability(ctx context.Context) 
 
 	}
 
-
-
 	if len(services.Items) == 0 {
 
 		ginkgo.By("No services found - assuming internal-only operation")
@@ -803,13 +645,9 @@ func (rv *ReliabilityValidator) measureServiceAvailability(ctx context.Context) 
 
 	}
 
-
-
 	availableServices := 0
 
 	totalServices := len(services.Items)
-
-
 
 	for _, service := range services.Items {
 
@@ -819,13 +657,10 @@ func (rv *ReliabilityValidator) measureServiceAvailability(ctx context.Context) 
 
 		err := rv.k8sClient.Get(ctx, client.ObjectKey{
 
-			Name:      service.Name,
+			Name: service.Name,
 
 			Namespace: service.Namespace,
-
 		}, endpoints)
-
-
 
 		if err == nil && len(endpoints.Subsets) > 0 {
 
@@ -853,21 +688,15 @@ func (rv *ReliabilityValidator) measureServiceAvailability(ctx context.Context) 
 
 	}
 
-
-
 	if totalServices == 0 {
 
 		return 95.0 // No external services to fail
 
 	}
 
-
-
 	return float64(availableServices) / float64(totalServices) * 100
 
 }
-
-
 
 // measureProcessingAvailability measures the availability of intent processing.
 
@@ -879,25 +708,18 @@ func (rv *ReliabilityValidator) measureProcessingAvailability(ctx context.Contex
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "availability-test-intent",
+			Name: "availability-test-intent",
 
 			Namespace: "default",
-
 		},
 
 		Spec: nephranv1.NetworkIntentSpec{
 
 			Intent: "Test intent for availability measurement",
-
 		},
-
 	}
 
-
-
 	startTime := time.Now()
-
-
 
 	err := rv.k8sClient.Create(ctx, testIntent)
 
@@ -909,8 +731,6 @@ func (rv *ReliabilityValidator) measureProcessingAvailability(ctx context.Contex
 
 	}
 
-
-
 	defer func() {
 
 		if deleteErr := rv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
@@ -921,8 +741,6 @@ func (rv *ReliabilityValidator) measureProcessingAvailability(ctx context.Contex
 
 	}()
 
-
-
 	// Wait for processing to start (indicates system is responsive).
 
 	timeout := time.After(30 * time.Second)
@@ -930,8 +748,6 @@ func (rv *ReliabilityValidator) measureProcessingAvailability(ctx context.Contex
 	ticker := time.NewTicker(2 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -953,15 +769,11 @@ func (rv *ReliabilityValidator) measureProcessingAvailability(ctx context.Contex
 
 			}
 
-
-
 			if testIntent.Status.Phase != "" && testIntent.Status.Phase != "Pending" {
 
 				// Processing started - calculate response time score.
 
 				responseTime := time.Since(startTime)
-
-
 
 				// Score based on response time (under 5s = 100%, under 10s = 90%, etc.).
 
@@ -985,8 +797,6 @@ func (rv *ReliabilityValidator) measureProcessingAvailability(ctx context.Contex
 
 			}
 
-
-
 			if testIntent.Status.Phase == "Failed" {
 
 				return 0.0
@@ -999,15 +809,11 @@ func (rv *ReliabilityValidator) measureProcessingAvailability(ctx context.Contex
 
 }
 
-
-
 // testControllerRestartTolerance tests tolerance to controller restarts.
 
 func (rv *ReliabilityValidator) testControllerRestartTolerance(ctx context.Context) bool {
 
 	ginkgo.By("Testing controller restart tolerance")
-
-
 
 	// Create an intent before restart simulation.
 
@@ -1015,21 +821,16 @@ func (rv *ReliabilityValidator) testControllerRestartTolerance(ctx context.Conte
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "restart-tolerance-test",
+			Name: "restart-tolerance-test",
 
 			Namespace: "default",
-
 		},
 
 		Spec: nephranv1.NetworkIntentSpec{
 
 			Intent: "Test intent for restart tolerance",
-
 		},
-
 	}
-
-
 
 	err := rv.k8sClient.Create(ctx, testIntent)
 
@@ -1041,8 +842,6 @@ func (rv *ReliabilityValidator) testControllerRestartTolerance(ctx context.Conte
 
 	}
 
-
-
 	defer func() {
 
 		if deleteErr := rv.k8sClient.Delete(ctx, testIntent); deleteErr != nil {
@@ -1053,19 +852,13 @@ func (rv *ReliabilityValidator) testControllerRestartTolerance(ctx context.Conte
 
 	}()
 
-
-
 	// Wait for initial processing.
 
 	time.Sleep(5 * time.Second)
 
-
-
 	// In a real test, we would restart the controller here.
 
 	// For this simulation, we'll just wait and verify the intent can still be processed.
-
-
 
 	// Verify intent processing continues/resumes.
 
@@ -1074,8 +867,6 @@ func (rv *ReliabilityValidator) testControllerRestartTolerance(ctx context.Conte
 	ticker := time.NewTicker(2 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1094,8 +885,6 @@ func (rv *ReliabilityValidator) testControllerRestartTolerance(ctx context.Conte
 				continue
 
 			}
-
-
 
 			// If processing progresses, restart tolerance is good.
 
@@ -1117,41 +906,30 @@ func (rv *ReliabilityValidator) testControllerRestartTolerance(ctx context.Conte
 
 }
 
-
-
 // testNetworkFaultTolerance tests tolerance to network faults.
 
 func (rv *ReliabilityValidator) testNetworkFaultTolerance(ctx context.Context) bool {
 
 	ginkgo.By("Testing network fault tolerance")
 
-
-
 	// This would typically involve simulating network partitions.
 
 	// For this test, we'll verify the system has appropriate timeouts and retries.
-
-
 
 	testIntent := &nephranv1.NetworkIntent{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "network-fault-test",
+			Name: "network-fault-test",
 
 			Namespace: "default",
-
 		},
 
 		Spec: nephranv1.NetworkIntentSpec{
 
 			Intent: "Test intent for network fault tolerance",
-
 		},
-
 	}
-
-
 
 	err := rv.k8sClient.Create(ctx, testIntent)
 
@@ -1160,8 +938,6 @@ func (rv *ReliabilityValidator) testNetworkFaultTolerance(ctx context.Context) b
 		return false
 
 	}
-
-
 
 	defer func() {
 
@@ -1173,13 +949,9 @@ func (rv *ReliabilityValidator) testNetworkFaultTolerance(ctx context.Context) b
 
 	}()
 
-
-
 	// Verify that even under potential network issues, the system handles requests.
 
 	time.Sleep(10 * time.Second)
-
-
 
 	err = rv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
 
@@ -1189,15 +961,11 @@ func (rv *ReliabilityValidator) testNetworkFaultTolerance(ctx context.Context) b
 
 	}
 
-
-
 	// If the intent is being processed or has progressed, network tolerance is adequate.
 
 	return testIntent.Status.Phase != "" && testIntent.Status.Phase != "Failed"
 
 }
-
-
 
 // testResourceConstraintTolerance tests tolerance to resource constraints.
 
@@ -1205,15 +973,11 @@ func (rv *ReliabilityValidator) testResourceConstraintTolerance(ctx context.Cont
 
 	ginkgo.By("Testing resource constraint tolerance")
 
-
-
 	// Create multiple intents to test resource pressure.
 
 	const numIntents = 10
 
 	var testIntents []*nephranv1.NetworkIntent
-
-
 
 	for i := range numIntents {
 
@@ -1221,21 +985,16 @@ func (rv *ReliabilityValidator) testResourceConstraintTolerance(ctx context.Cont
 
 			ObjectMeta: metav1.ObjectMeta{
 
-				Name:      fmt.Sprintf("resource-test-%d", i),
+				Name: fmt.Sprintf("resource-test-%d", i),
 
 				Namespace: "default",
-
 			},
 
 			Spec: nephranv1.NetworkIntentSpec{
 
 				Intent: fmt.Sprintf("Resource constraint test intent %d", i),
-
 			},
-
 		}
-
-
 
 		err := rv.k8sClient.Create(ctx, intent)
 
@@ -1259,13 +1018,9 @@ func (rv *ReliabilityValidator) testResourceConstraintTolerance(ctx context.Cont
 
 		}
 
-
-
 		testIntents = append(testIntents, intent)
 
 	}
-
-
 
 	// Cleanup.
 
@@ -1283,13 +1038,9 @@ func (rv *ReliabilityValidator) testResourceConstraintTolerance(ctx context.Cont
 
 	}()
 
-
-
 	// Wait for processing under resource pressure.
 
 	time.Sleep(15 * time.Second)
-
-
 
 	// Check how many intents are being processed.
 
@@ -1307,8 +1058,6 @@ func (rv *ReliabilityValidator) testResourceConstraintTolerance(ctx context.Cont
 
 	}
 
-
-
 	// Require at least 60% of intents to be processed under resource pressure.
 
 	successRate := float64(processedCount) / float64(numIntents)
@@ -1317,13 +1066,9 @@ func (rv *ReliabilityValidator) testResourceConstraintTolerance(ctx context.Cont
 
 		successRate*100, processedCount, numIntents))
 
-
-
 	return successRate >= 0.6
 
 }
-
-
 
 // testDependencyFailureTolerance tests tolerance to dependency failures.
 
@@ -1331,29 +1076,22 @@ func (rv *ReliabilityValidator) testDependencyFailureTolerance(ctx context.Conte
 
 	ginkgo.By("Testing dependency failure tolerance")
 
-
-
 	// Create an intent that would require external dependencies.
 
 	testIntent := &nephranv1.NetworkIntent{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "dependency-fault-test",
+			Name: "dependency-fault-test",
 
 			Namespace: "default",
-
 		},
 
 		Spec: nephranv1.NetworkIntentSpec{
 
 			Intent: "Test intent requiring external dependencies",
-
 		},
-
 	}
-
-
 
 	err := rv.k8sClient.Create(ctx, testIntent)
 
@@ -1362,8 +1100,6 @@ func (rv *ReliabilityValidator) testDependencyFailureTolerance(ctx context.Conte
 		return false
 
 	}
-
-
 
 	defer func() {
 
@@ -1375,17 +1111,11 @@ func (rv *ReliabilityValidator) testDependencyFailureTolerance(ctx context.Conte
 
 	}()
 
-
-
 	// In a real test, we would simulate dependency failures here.
 
 	// For this test, we'll verify the system doesn't crash and provides appropriate status.
 
-
-
 	time.Sleep(10 * time.Second)
-
-
 
 	err = rv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
 
@@ -1395,8 +1125,6 @@ func (rv *ReliabilityValidator) testDependencyFailureTolerance(ctx context.Conte
 
 	}
 
-
-
 	// System should handle dependency issues gracefully.
 
 	// Either by processing successfully or by providing clear error status.
@@ -1405,15 +1133,11 @@ func (rv *ReliabilityValidator) testDependencyFailureTolerance(ctx context.Conte
 
 }
 
-
-
 // validateMetricsAvailability checks if monitoring metrics are available.
 
 func (rv *ReliabilityValidator) validateMetricsAvailability(ctx context.Context) bool {
 
 	ginkgo.By("Checking metrics availability")
-
-
 
 	// Check for metrics-related services or endpoints.
 
@@ -1426,8 +1150,6 @@ func (rv *ReliabilityValidator) validateMetricsAvailability(ctx context.Context)
 		return false
 
 	}
-
-
 
 	hasMetricsService := false
 
@@ -1457,8 +1179,6 @@ func (rv *ReliabilityValidator) validateMetricsAvailability(ctx context.Context)
 
 	}
 
-
-
 	if !hasMetricsService {
 
 		ginkgo.By("No explicit metrics service found - assuming metrics are exposed via main service")
@@ -1467,21 +1187,15 @@ func (rv *ReliabilityValidator) validateMetricsAvailability(ctx context.Context)
 
 	}
 
-
-
 	return hasMetricsService
 
 }
-
-
 
 // validateLoggingTracing checks logging and tracing configuration.
 
 func (rv *ReliabilityValidator) validateLoggingTracing(ctx context.Context) bool {
 
 	ginkgo.By("Checking logging and tracing")
-
-
 
 	// Check for logging configuration in pods.
 
@@ -1494,7 +1208,6 @@ func (rv *ReliabilityValidator) validateLoggingTracing(ctx context.Context) bool
 		client.MatchingLabels{
 
 			"app.kubernetes.io/name": "nephoran-intent-operator",
-
 		})
 
 	if err != nil {
@@ -1502,8 +1215,6 @@ func (rv *ReliabilityValidator) validateLoggingTracing(ctx context.Context) bool
 		return false
 
 	}
-
-
 
 	if len(pods.Items) == 0 {
 
@@ -1520,8 +1231,6 @@ func (rv *ReliabilityValidator) validateLoggingTracing(ctx context.Context) bool
 		}
 
 	}
-
-
 
 	// Check if pods have proper logging configuration.
 
@@ -1563,8 +1272,6 @@ func (rv *ReliabilityValidator) validateLoggingTracing(ctx context.Context) bool
 
 	}
 
-
-
 	if !hasLoggingConfig {
 
 		ginkgo.By("No explicit logging configuration found - assuming default logging")
@@ -1573,21 +1280,15 @@ func (rv *ReliabilityValidator) validateLoggingTracing(ctx context.Context) bool
 
 	}
 
-
-
 	return hasLoggingConfig
 
 }
-
-
 
 // testDataBackupRestore tests data backup and restore capabilities.
 
 func (rv *ReliabilityValidator) testDataBackupRestore(ctx context.Context) bool {
 
 	ginkgo.By("Testing data backup and restore")
-
-
 
 	// In a real implementation, this would:.
 
@@ -1601,8 +1302,6 @@ func (rv *ReliabilityValidator) testDataBackupRestore(ctx context.Context) bool 
 
 	// 5. Verify data integrity.
 
-
-
 	// For this test, we'll simulate by checking for backup-related configurations.
 
 	configMaps := &corev1.ConfigMapList{}
@@ -1614,8 +1313,6 @@ func (rv *ReliabilityValidator) testDataBackupRestore(ctx context.Context) bool 
 		return false
 
 	}
-
-
 
 	hasBackupConfig := false
 
@@ -1631,8 +1328,6 @@ func (rv *ReliabilityValidator) testDataBackupRestore(ctx context.Context) bool 
 
 	}
 
-
-
 	if !hasBackupConfig {
 
 		ginkgo.By("No backup configuration found - assuming external backup solution")
@@ -1641,13 +1336,9 @@ func (rv *ReliabilityValidator) testDataBackupRestore(ctx context.Context) bool 
 
 	}
 
-
-
 	return hasBackupConfig
 
 }
-
-
 
 // testConfigurationRecovery tests configuration recovery.
 
@@ -1655,13 +1346,9 @@ func (rv *ReliabilityValidator) testConfigurationRecovery(ctx context.Context) b
 
 	ginkgo.By("Testing configuration recovery")
 
-
-
 	// Test that the system can recover its configuration.
 
 	// This is typically handled by Kubernetes itself for ConfigMaps and Secrets.
-
-
 
 	// Check if configuration is stored in version control or persistent storage.
 
@@ -1675,15 +1362,11 @@ func (rv *ReliabilityValidator) testConfigurationRecovery(ctx context.Context) b
 
 	}
 
-
-
 	// If configuration exists, it's recoverable.
 
 	return len(configMaps.Items) > 0
 
 }
-
-
 
 // testStateReconstruction tests state reconstruction capabilities.
 
@@ -1691,13 +1374,9 @@ func (rv *ReliabilityValidator) testStateReconstruction(ctx context.Context) boo
 
 	ginkgo.By("Testing state reconstruction")
 
-
-
 	// Test the system's ability to reconstruct state from Kubernetes resources.
 
 	// This is a key benefit of the operator pattern.
-
-
 
 	// Check if the system maintains state only in Kubernetes resources.
 
@@ -1711,8 +1390,6 @@ func (rv *ReliabilityValidator) testStateReconstruction(ctx context.Context) boo
 
 	}
 
-
-
 	// If we can list intents, the system can reconstruct state from them.
 
 	ginkgo.By("State reconstruction capability verified through CRD access")
@@ -1721,19 +1398,13 @@ func (rv *ReliabilityValidator) testStateReconstruction(ctx context.Context) boo
 
 }
 
-
-
 // ExecuteProductionTests executes production readiness tests and returns score.
 
 func (rv *ReliabilityValidator) ExecuteProductionTests(ctx context.Context) (int, error) {
 
 	ginkgo.By("Executing Production Readiness Tests")
 
-
-
 	score := 0
-
-
 
 	// Test 1: High Availability (3 points).
 
@@ -1755,8 +1426,6 @@ func (rv *ReliabilityValidator) ExecuteProductionTests(ctx context.Context) (int
 
 	}
 
-
-
 	// Test 2: Fault Tolerance (3 points).
 
 	ginkgo.By("Testing Fault Tolerance")
@@ -1773,8 +1442,6 @@ func (rv *ReliabilityValidator) ExecuteProductionTests(ctx context.Context) (int
 
 	}
 
-
-
 	// Test 3: Monitoring & Observability (2 points).
 
 	ginkgo.By("Testing Monitoring & Observability")
@@ -1784,8 +1451,6 @@ func (rv *ReliabilityValidator) ExecuteProductionTests(ctx context.Context) (int
 	score += monitoringScore
 
 	ginkgo.By(fmt.Sprintf("Monitoring & Observability: %d/2 points", monitoringScore))
-
-
 
 	// Test 4: Disaster Recovery (2 points).
 
@@ -1803,9 +1468,6 @@ func (rv *ReliabilityValidator) ExecuteProductionTests(ctx context.Context) (int
 
 	}
 
-
-
 	return score, nil
 
 }
-

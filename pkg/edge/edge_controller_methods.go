@@ -1,313 +1,234 @@
-
 package edge
 
-
-
 import (
-
 	"fmt"
-
 	"sort"
-
 	"time"
 
-
-
 	nephoran "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 )
-
-
 
 // Missing struct definitions for tests.
 
 type EdgeOptimizationPlan struct {
+	OptimizationType string `json:"optimization_type"`
 
-	OptimizationType string   `json:"optimization_type"`
+	TargetNodes []string `json:"target_nodes"`
 
-	TargetNodes      []string `json:"target_nodes"`
+	Actions []string `json:"actions"`
 
-	Actions          []string `json:"actions"`
-
-	EstimatedBenefit float64  `json:"estimated_benefit"`
-
+	EstimatedBenefit float64 `json:"estimated_benefit"`
 }
-
-
 
 // NodeHealth represents a nodehealth.
 
 type NodeHealth struct {
+	NodeID string `json:"node_id"`
 
-	NodeID    string         `json:"node_id"`
+	Status EdgeNodeStatus `json:"status"`
 
-	Status    EdgeNodeStatus `json:"status"`
+	IsHealthy bool `json:"is_healthy"`
 
-	IsHealthy bool           `json:"is_healthy"`
-
-	Issues    []string       `json:"issues"`
-
+	Issues []string `json:"issues"`
 }
-
-
 
 // ResourceRequest represents a resourcerequest.
 
 type ResourceRequest struct {
+	CPUCores int `json:"cpu_cores"`
 
-	CPUCores  int     `json:"cpu_cores"`
-
-	MemoryGB  float64 `json:"memory_gb"`
+	MemoryGB float64 `json:"memory_gb"`
 
 	StorageGB float64 `json:"storage_gb"`
 
-	GPUCores  int     `json:"gpu_cores"`
-
+	GPUCores int `json:"gpu_cores"`
 }
-
-
 
 // ResourceAllocation represents a resourceallocation.
 
 type ResourceAllocation struct {
+	AllocationID string `json:"allocation_id"`
 
-	AllocationID string          `json:"allocation_id"`
+	NodeID string `json:"node_id"`
 
-	NodeID       string          `json:"node_id"`
+	Request ResourceRequest `json:"request"`
 
-	Request      ResourceRequest `json:"request"`
-
-	AllocatedAt  time.Time       `json:"allocated_at"`
-
+	AllocatedAt time.Time `json:"allocated_at"`
 }
-
-
 
 // FailoverPlan represents a failoverplan.
 
 type FailoverPlan struct {
+	ID string `json:"id"`
 
-	ID                string        `json:"id"`
+	SourceNode string `json:"source_node"`
 
-	SourceNode        string        `json:"source_node"`
-
-	TargetNode        string        `json:"target_node"`
+	TargetNode string `json:"target_node"`
 
 	ServicesToMigrate []EdgeService `json:"services_to_migrate"`
 
-	Status            string        `json:"status"`
+	Status string `json:"status"`
 
-	CreatedAt         time.Time     `json:"created_at"`
-
+	CreatedAt time.Time `json:"created_at"`
 }
-
-
 
 // MLModel represents a mlmodel.
 
 type MLModel struct {
+	ID string `json:"id"`
 
-	ID          string  `json:"id"`
+	Name string `json:"name"`
 
-	Name        string  `json:"name"`
+	Framework string `json:"framework"`
 
-	Framework   string  `json:"framework"`
+	Version string `json:"version"`
 
-	Version     string  `json:"version"`
+	SizeGB float64 `json:"size_gb"`
 
-	SizeGB      float64 `json:"size_gb"`
-
-	RequiresGPU bool    `json:"requires_gpu"`
-
+	RequiresGPU bool `json:"requires_gpu"`
 }
-
-
 
 // MLDeployment represents a mldeployment.
 
 type MLDeployment struct {
+	ID string `json:"id"`
 
-	ID         string    `json:"id"`
+	ModelID string `json:"model_id"`
 
-	ModelID    string    `json:"model_id"`
+	NodeID string `json:"node_id"`
 
-	NodeID     string    `json:"node_id"`
+	Status string `json:"status"`
 
-	Status     string    `json:"status"`
-
-	Endpoint   string    `json:"endpoint"`
+	Endpoint string `json:"endpoint"`
 
 	DeployedAt time.Time `json:"deployed_at"`
-
 }
-
-
 
 // InferenceRequest represents a inferencerequest.
 
 type InferenceRequest struct {
+	ModelID string `json:"model_id"`
 
-	ModelID string            `json:"model_id"`
-
-	Input   []byte            `json:"input"`
+	Input []byte `json:"input"`
 
 	Options map[string]string `json:"options"`
-
 }
-
-
 
 // InferenceResult represents a inferenceresult.
 
 type InferenceResult struct {
+	RequestID string `json:"request_id"`
 
-	RequestID       string  `json:"request_id"`
+	Output []byte `json:"output"`
 
-	Output          []byte  `json:"output"`
+	InferenceTimeMs int `json:"inference_time_ms"`
 
-	InferenceTimeMs int     `json:"inference_time_ms"`
-
-	Confidence      float64 `json:"confidence"`
-
+	Confidence float64 `json:"confidence"`
 }
-
-
 
 // MLOptimization represents a mloptimization.
 
 type MLOptimization struct {
+	ModelID string `json:"model_id"`
 
-	ModelID          string   `json:"model_id"`
+	Recommendations []string `json:"recommendations"`
 
-	Recommendations  []string `json:"recommendations"`
-
-	EstimatedSpeedup float64  `json:"estimated_speedup"`
-
+	EstimatedSpeedup float64 `json:"estimated_speedup"`
 }
-
-
 
 // CacheConfig represents a cacheconfig.
 
 type CacheConfig struct {
+	MaxSizeGB float64 `json:"max_size_gb"`
 
-	MaxSizeGB      float64  `json:"max_size_gb"`
+	EvictionPolicy string `json:"eviction_policy"`
 
-	EvictionPolicy string   `json:"eviction_policy"`
+	TTL int `json:"ttl"`
 
-	TTL            int      `json:"ttl"`
-
-	ContentTypes   []string `json:"content_types"`
-
+	ContentTypes []string `json:"content_types"`
 }
-
-
 
 // CacheContent represents a cachecontent.
 
 type CacheContent struct {
+	ID string `json:"id"`
 
-	ID         string    `json:"id"`
+	Type string `json:"type"`
 
-	Type       string    `json:"type"`
+	SizeMB float64 `json:"size_mb"`
 
-	SizeMB     float64   `json:"size_mb"`
-
-	Popularity float64   `json:"popularity"`
+	Popularity float64 `json:"popularity"`
 
 	LastAccess time.Time `json:"last_access"`
-
 }
-
-
 
 // CacheStats represents a cachestats.
 
 type CacheStats struct {
+	HitRate float64 `json:"hit_rate"`
 
-	HitRate      float64 `json:"hit_rate"`
+	MissRate float64 `json:"miss_rate"`
 
-	MissRate     float64 `json:"miss_rate"`
+	UsedGB float64 `json:"used_gb"`
 
-	UsedGB       float64 `json:"used_gb"`
-
-	AvailableGB  float64 `json:"available_gb"`
+	AvailableGB float64 `json:"available_gb"`
 
 	EvictionRate float64 `json:"eviction_rate"`
-
 }
-
-
 
 // ZoneReport represents a zonereport.
 
 type ZoneReport struct {
+	ZoneID string `json:"zone_id"`
 
-	ZoneID         string        `json:"zone_id"`
+	TotalNodes int `json:"total_nodes"`
 
-	TotalNodes     int           `json:"total_nodes"`
+	ActiveNodes int `json:"active_nodes"`
 
-	ActiveNodes    int           `json:"active_nodes"`
+	AverageLatency float64 `json:"average_latency"`
 
-	AverageLatency float64       `json:"average_latency"`
+	TotalCapacity EdgeResources `json:"total_capacity"`
 
-	TotalCapacity  EdgeResources `json:"total_capacity"`
+	UsedCapacity EdgeResources `json:"used_capacity"`
 
-	UsedCapacity   EdgeResources `json:"used_capacity"`
-
-	HealthScore    float64       `json:"health_score"`
-
+	HealthScore float64 `json:"health_score"`
 }
-
-
 
 // ResourcePrediction represents a resourceprediction.
 
 type ResourcePrediction struct {
+	ZoneID string `json:"zone_id"`
 
-	ZoneID           string        `json:"zone_id"`
+	TimeHorizon time.Duration `json:"time_horizon"`
 
-	TimeHorizon      time.Duration `json:"time_horizon"`
+	PredictedCPU float64 `json:"predicted_cpu"`
 
-	PredictedCPU     float64       `json:"predicted_cpu"`
+	PredictedMemory float64 `json:"predicted_memory"`
 
-	PredictedMemory  float64       `json:"predicted_memory"`
+	PredictedStorage float64 `json:"predicted_storage"`
 
-	PredictedStorage float64       `json:"predicted_storage"`
-
-	Confidence       float64       `json:"confidence"`
-
+	Confidence float64 `json:"confidence"`
 }
-
-
 
 // PlacementOptimization represents a placementoptimization.
 
 type PlacementOptimization struct {
+	Recommendations []PlacementRecommendation `json:"recommendations"`
 
-	Recommendations  []PlacementRecommendation `json:"recommendations"`
-
-	EstimatedSavings float64                   `json:"estimated_savings"`
-
+	EstimatedSavings float64 `json:"estimated_savings"`
 }
-
-
 
 // PlacementRecommendation represents a placementrecommendation.
 
 type PlacementRecommendation struct {
+	NodeID string `json:"node_id"`
 
-	NodeID   string `json:"node_id"`
+	Action string `json:"action"`
 
-	Action   string `json:"action"`
+	Reason string `json:"reason"`
 
-	Reason   string `json:"reason"`
-
-	Priority int    `json:"priority"`
-
+	Priority int `json:"priority"`
 }
-
-
 
 // Node Management Methods.
 
@@ -317,15 +238,11 @@ func (r *EdgeController) RegisterNode(node *EdgeNode) error {
 
 	defer r.mutex.Unlock()
 
-
-
 	if node.ID == "" {
 
 		return fmt.Errorf("node ID cannot be empty")
 
 	}
-
-
 
 	r.edgeNodes[node.ID] = node
 
@@ -335,8 +252,6 @@ func (r *EdgeController) RegisterNode(node *EdgeNode) error {
 
 }
 
-
-
 // UpdateNodeStatus performs updatenodestatus operation.
 
 func (r *EdgeController) UpdateNodeStatus(nodeID string, status EdgeNodeStatus) error {
@@ -345,8 +260,6 @@ func (r *EdgeController) UpdateNodeStatus(nodeID string, status EdgeNodeStatus) 
 
 	defer r.mutex.Unlock()
 
-
-
 	node, exists := r.edgeNodes[nodeID]
 
 	if !exists {
@@ -354,8 +267,6 @@ func (r *EdgeController) UpdateNodeStatus(nodeID string, status EdgeNodeStatus) 
 		return fmt.Errorf("node %s not found", nodeID)
 
 	}
-
-
 
 	node.Status = status
 
@@ -367,8 +278,6 @@ func (r *EdgeController) UpdateNodeStatus(nodeID string, status EdgeNodeStatus) 
 
 }
 
-
-
 // GetNode performs getnode operation.
 
 func (r *EdgeController) GetNode(nodeID string) (*EdgeNode, error) {
@@ -376,8 +285,6 @@ func (r *EdgeController) GetNode(nodeID string) (*EdgeNode, error) {
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
-
-
 
 	node, exists := r.edgeNodes[nodeID]
 
@@ -387,13 +294,9 @@ func (r *EdgeController) GetNode(nodeID string) (*EdgeNode, error) {
 
 	}
 
-
-
 	return node, nil
 
 }
-
-
 
 // RemoveNode performs removenode operation.
 
@@ -403,8 +306,6 @@ func (r *EdgeController) RemoveNode(nodeID string) error {
 
 	defer r.mutex.Unlock()
 
-
-
 	delete(r.edgeNodes, nodeID)
 
 	r.Log.Info("Removed edge node", "nodeID", nodeID)
@@ -412,8 +313,6 @@ func (r *EdgeController) RemoveNode(nodeID string) error {
 	return nil
 
 }
-
-
 
 // Zone Management Methods.
 
@@ -423,15 +322,11 @@ func (r *EdgeController) CreateZone(zone *EdgeZone) error {
 
 	defer r.mutex.Unlock()
 
-
-
 	if zone.ID == "" {
 
 		return fmt.Errorf("zone ID cannot be empty")
 
 	}
-
-
 
 	r.edgeZones[zone.ID] = zone
 
@@ -441,8 +336,6 @@ func (r *EdgeController) CreateZone(zone *EdgeZone) error {
 
 }
 
-
-
 // UpdateZone performs updatezone operation.
 
 func (r *EdgeController) UpdateZone(zone *EdgeZone) error {
@@ -451,15 +344,11 @@ func (r *EdgeController) UpdateZone(zone *EdgeZone) error {
 
 	defer r.mutex.Unlock()
 
-
-
 	if _, exists := r.edgeZones[zone.ID]; !exists {
 
 		return fmt.Errorf("zone %s not found", zone.ID)
 
 	}
-
-
 
 	r.edgeZones[zone.ID] = zone
 
@@ -469,8 +358,6 @@ func (r *EdgeController) UpdateZone(zone *EdgeZone) error {
 
 }
 
-
-
 // GetZone performs getzone operation.
 
 func (r *EdgeController) GetZone(zoneID string) (*EdgeZone, error) {
@@ -478,8 +365,6 @@ func (r *EdgeController) GetZone(zoneID string) (*EdgeZone, error) {
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
-
-
 
 	zone, exists := r.edgeZones[zoneID]
 
@@ -489,13 +374,9 @@ func (r *EdgeController) GetZone(zoneID string) (*EdgeZone, error) {
 
 	}
 
-
-
 	return zone, nil
 
 }
-
-
 
 // DeleteZone performs deletezone operation.
 
@@ -505,8 +386,6 @@ func (r *EdgeController) DeleteZone(zoneID string) error {
 
 	defer r.mutex.Unlock()
 
-
-
 	delete(r.edgeZones, zoneID)
 
 	r.Log.Info("Deleted edge zone", "zoneID", zoneID)
@@ -514,8 +393,6 @@ func (r *EdgeController) DeleteZone(zoneID string) error {
 	return nil
 
 }
-
-
 
 // Network Intent Processing.
 
@@ -525,19 +402,14 @@ func (r *EdgeController) ProcessNetworkIntent(intent *nephoran.NetworkIntent) (*
 
 		OptimizationType: "",
 
-		TargetNodes:      []string{},
+		TargetNodes: []string{},
 
-		Actions:          []string{},
-
+		Actions: []string{},
 	}
-
-
 
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
-
-
 
 	switch intent.Spec.IntentType {
 
@@ -559,8 +431,6 @@ func (r *EdgeController) ProcessNetworkIntent(intent *nephoran.NetworkIntent) (*
 
 		plan.Actions = append(plan.Actions, "enable-edge-processing", "optimize-routing")
 
-
-
 	case "high-throughput":
 
 		plan.OptimizationType = "throughput-optimization"
@@ -578,8 +448,6 @@ func (r *EdgeController) ProcessNetworkIntent(intent *nephoran.NetworkIntent) (*
 		}
 
 		plan.Actions = append(plan.Actions, "enable-load-balancing", "optimize-bandwidth")
-
-
 
 	case "ml-inference":
 
@@ -599,23 +467,17 @@ func (r *EdgeController) ProcessNetworkIntent(intent *nephoran.NetworkIntent) (*
 
 		plan.Actions = append(plan.Actions, "deploy-ml-model", "enable-gpu-acceleration")
 
-
-
 	default:
 
 		plan.OptimizationType = "general-optimization"
 
 	}
 
-
-
 	plan.EstimatedBenefit = 0.8 // Placeholder
 
 	return plan, nil
 
 }
-
-
 
 // Health Monitoring Methods.
 
@@ -625,8 +487,6 @@ func (r *EdgeController) CheckNodeHealth(nodeID string) (*NodeHealth, error) {
 
 	defer r.mutex.RUnlock()
 
-
-
 	node, exists := r.edgeNodes[nodeID]
 
 	if !exists {
@@ -635,21 +495,16 @@ func (r *EdgeController) CheckNodeHealth(nodeID string) (*NodeHealth, error) {
 
 	}
 
-
-
 	health := &NodeHealth{
 
-		NodeID:    nodeID,
+		NodeID: nodeID,
 
-		Status:    node.Status,
+		Status: node.Status,
 
 		IsHealthy: true,
 
-		Issues:    []string{},
-
+		Issues: []string{},
 	}
-
-
 
 	// Check various health metrics.
 
@@ -663,8 +518,6 @@ func (r *EdgeController) CheckNodeHealth(nodeID string) (*NodeHealth, error) {
 
 	}
 
-
-
 	if node.HealthMetrics.PacketLoss > 0.05 {
 
 		health.IsHealthy = false
@@ -674,8 +527,6 @@ func (r *EdgeController) CheckNodeHealth(nodeID string) (*NodeHealth, error) {
 		health.Status = EdgeNodeDegraded
 
 	}
-
-
 
 	if time.Since(node.LastSeen) > time.Minute {
 
@@ -687,13 +538,9 @@ func (r *EdgeController) CheckNodeHealth(nodeID string) (*NodeHealth, error) {
 
 	}
 
-
-
 	return health, nil
 
 }
-
-
 
 // UpdateHealthMetrics performs updatehealthmetrics operation.
 
@@ -703,8 +550,6 @@ func (r *EdgeController) UpdateHealthMetrics(nodeID string, metrics EdgeHealthMe
 
 	defer r.mutex.Unlock()
 
-
-
 	node, exists := r.edgeNodes[nodeID]
 
 	if !exists {
@@ -713,13 +558,9 @@ func (r *EdgeController) UpdateHealthMetrics(nodeID string, metrics EdgeHealthMe
 
 	}
 
-
-
 	node.HealthMetrics = metrics
 
 	node.LastSeen = time.Now()
-
-
 
 	// Update status based on metrics.
 
@@ -733,13 +574,9 @@ func (r *EdgeController) UpdateHealthMetrics(nodeID string, metrics EdgeHealthMe
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // DetectUnhealthyNodes performs detectunhealthynodes operation.
 
@@ -748,8 +585,6 @@ func (r *EdgeController) DetectUnhealthyNodes() []string {
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
-
-
 
 	unhealthyNodes := []string{}
 
@@ -763,13 +598,9 @@ func (r *EdgeController) DetectUnhealthyNodes() []string {
 
 	}
 
-
-
 	return unhealthyNodes
 
 }
-
-
 
 // Resource Allocation Methods.
 
@@ -779,15 +610,11 @@ func (r *EdgeController) AllocateResources(request ResourceRequest) (*ResourceAl
 
 	defer r.mutex.Unlock()
 
-
-
 	// Find node with sufficient resources.
 
 	var selectedNode *EdgeNode
 
 	var selectedNodeID string
-
-
 
 	for id, node := range r.edgeNodes {
 
@@ -797,8 +624,6 @@ func (r *EdgeController) AllocateResources(request ResourceRequest) (*ResourceAl
 
 		}
 
-
-
 		// Check if node has enough resources.
 
 		availableCPU := float64(node.Capabilities.ComputeCores) * (1 - node.Resources.CPUUtilization)
@@ -806,8 +631,6 @@ func (r *EdgeController) AllocateResources(request ResourceRequest) (*ResourceAl
 		availableMemory := node.Capabilities.MemoryGB * (1 - node.Resources.MemoryUtilization)
 
 		availableStorage := node.Capabilities.StorageGB * (1 - node.Resources.StorageUtilization)
-
-
 
 		if availableCPU >= float64(request.CPUCores) &&
 
@@ -827,15 +650,11 @@ func (r *EdgeController) AllocateResources(request ResourceRequest) (*ResourceAl
 
 	}
 
-
-
 	if selectedNode == nil {
 
 		return nil, fmt.Errorf("insufficient resources available")
 
 	}
-
-
 
 	// Update node utilization.
 
@@ -845,35 +664,26 @@ func (r *EdgeController) AllocateResources(request ResourceRequest) (*ResourceAl
 
 	storageIncrease := request.StorageGB / selectedNode.Capabilities.StorageGB
 
-
-
 	selectedNode.Resources.CPUUtilization += cpuIncrease
 
 	selectedNode.Resources.MemoryUtilization += memoryIncrease
 
 	selectedNode.Resources.StorageUtilization += storageIncrease
 
-
-
 	allocation := &ResourceAllocation{
 
 		AllocationID: fmt.Sprintf("alloc-%d", time.Now().Unix()),
 
-		NodeID:       selectedNodeID,
+		NodeID: selectedNodeID,
 
-		Request:      request,
+		Request: request,
 
-		AllocatedAt:  time.Now(),
-
+		AllocatedAt: time.Now(),
 	}
-
-
 
 	return allocation, nil
 
 }
-
-
 
 // ReleaseResources performs releaseresources operation.
 
@@ -883,8 +693,6 @@ func (r *EdgeController) ReleaseResources(nodeID string, request ResourceRequest
 
 	defer r.mutex.Unlock()
 
-
-
 	node, exists := r.edgeNodes[nodeID]
 
 	if !exists {
@@ -892,8 +700,6 @@ func (r *EdgeController) ReleaseResources(nodeID string, request ResourceRequest
 		return fmt.Errorf("node %s not found", nodeID)
 
 	}
-
-
 
 	// Update node utilization.
 
@@ -903,15 +709,11 @@ func (r *EdgeController) ReleaseResources(nodeID string, request ResourceRequest
 
 	storageDecrease := request.StorageGB / node.Capabilities.StorageGB
 
-
-
 	node.Resources.CPUUtilization -= cpuDecrease
 
 	node.Resources.MemoryUtilization -= memoryDecrease
 
 	node.Resources.StorageUtilization -= storageDecrease
-
-
 
 	// Ensure utilization doesn't go negative.
 
@@ -933,13 +735,9 @@ func (r *EdgeController) ReleaseResources(nodeID string, request ResourceRequest
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Failover Methods.
 
@@ -949,8 +747,6 @@ func (r *EdgeController) InitiateFailover(sourceNodeID string) (*FailoverPlan, e
 
 	defer r.mutex.Unlock()
 
-
-
 	sourceNode, exists := r.edgeNodes[sourceNodeID]
 
 	if !exists {
@@ -959,15 +755,11 @@ func (r *EdgeController) InitiateFailover(sourceNodeID string) (*FailoverPlan, e
 
 	}
 
-
-
 	// Find suitable target node.
 
 	var targetNodeID string
 
 	minUtilization := 1.0
-
-
 
 	for id, node := range r.edgeNodes {
 
@@ -976,8 +768,6 @@ func (r *EdgeController) InitiateFailover(sourceNodeID string) (*FailoverPlan, e
 			continue
 
 		}
-
-
 
 		// Check if in same zone.
 
@@ -988,8 +778,6 @@ func (r *EdgeController) InitiateFailover(sourceNodeID string) (*FailoverPlan, e
 				node.Resources.MemoryUtilization +
 
 				node.Resources.StorageUtilization) / 3
-
-
 
 			if avgUtilization < minUtilization {
 
@@ -1003,39 +791,30 @@ func (r *EdgeController) InitiateFailover(sourceNodeID string) (*FailoverPlan, e
 
 	}
 
-
-
 	if targetNodeID == "" {
 
 		return nil, fmt.Errorf("no suitable target node found for failover")
 
 	}
 
-
-
 	plan := &FailoverPlan{
 
-		ID:                fmt.Sprintf("failover-%d", time.Now().Unix()),
+		ID: fmt.Sprintf("failover-%d", time.Now().Unix()),
 
-		SourceNode:        sourceNodeID,
+		SourceNode: sourceNodeID,
 
-		TargetNode:        targetNodeID,
+		TargetNode: targetNodeID,
 
 		ServicesToMigrate: sourceNode.LocalServices,
 
-		Status:            "planned",
+		Status: "planned",
 
-		CreatedAt:         time.Now(),
-
+		CreatedAt: time.Now(),
 	}
-
-
 
 	return plan, nil
 
 }
-
-
 
 // ExecuteFailover performs executefailover operation.
 
@@ -1045,8 +824,6 @@ func (r *EdgeController) ExecuteFailover(plan *FailoverPlan) error {
 
 	defer r.mutex.Unlock()
 
-
-
 	targetNode, exists := r.edgeNodes[plan.TargetNode]
 
 	if !exists {
@@ -1054,8 +831,6 @@ func (r *EdgeController) ExecuteFailover(plan *FailoverPlan) error {
 		return fmt.Errorf("target node %s not found", plan.TargetNode)
 
 	}
-
-
 
 	sourceNode, exists := r.edgeNodes[plan.SourceNode]
 
@@ -1067,25 +842,17 @@ func (r *EdgeController) ExecuteFailover(plan *FailoverPlan) error {
 
 	}
 
-
-
 	// Migrate services to target node.
 
 	targetNode.LocalServices = append(targetNode.LocalServices, plan.ServicesToMigrate...)
-
-
 
 	r.Log.Info("Executed failover", "source", plan.SourceNode, "target", plan.TargetNode,
 
 		"services", len(plan.ServicesToMigrate))
 
-
-
 	return nil
 
 }
-
-
 
 // InitiateFailback performs initiatefailback operation.
 
@@ -1095,8 +862,6 @@ func (r *EdgeController) InitiateFailback(primaryNodeID, backupNodeID string) er
 
 	defer r.mutex.Unlock()
 
-
-
 	primaryNode, exists := r.edgeNodes[primaryNodeID]
 
 	if !exists {
@@ -1104,8 +869,6 @@ func (r *EdgeController) InitiateFailback(primaryNodeID, backupNodeID string) er
 		return fmt.Errorf("primary node %s not found", primaryNodeID)
 
 	}
-
-
 
 	backupNode, exists := r.edgeNodes[backupNodeID]
 
@@ -1115,25 +878,17 @@ func (r *EdgeController) InitiateFailback(primaryNodeID, backupNodeID string) er
 
 	}
 
-
-
 	// Move services back to primary.
 
 	primaryNode.LocalServices = append(primaryNode.LocalServices, backupNode.LocalServices...)
 
 	backupNode.LocalServices = []EdgeService{}
 
-
-
 	r.Log.Info("Initiated failback", "primary", primaryNodeID, "backup", backupNodeID)
-
-
 
 	return nil
 
 }
-
-
 
 // ML Capabilities Methods.
 
@@ -1143,8 +898,6 @@ func (r *EdgeController) DeployMLModel(model *MLModel, nodeID string) (*MLDeploy
 
 	defer r.mutex.Unlock()
 
-
-
 	node, exists := r.edgeNodes[nodeID]
 
 	if !exists {
@@ -1153,57 +906,45 @@ func (r *EdgeController) DeployMLModel(model *MLModel, nodeID string) (*MLDeploy
 
 	}
 
-
-
 	if model.RequiresGPU && !node.Capabilities.GPUEnabled {
 
 		return nil, fmt.Errorf("node %s does not have GPU support", nodeID)
 
 	}
 
-
-
 	deployment := &MLDeployment{
 
-		ID:         fmt.Sprintf("ml-deploy-%d", time.Now().Unix()),
+		ID: fmt.Sprintf("ml-deploy-%d", time.Now().Unix()),
 
-		ModelID:    model.ID,
+		ModelID: model.ID,
 
-		NodeID:     nodeID,
+		NodeID: nodeID,
 
-		Status:     "deployed",
+		Status: "deployed",
 
-		Endpoint:   fmt.Sprintf("http://%s:8080/inference/%s", node.Name, model.ID),
+		Endpoint: fmt.Sprintf("http://%s:8080/inference/%s", node.Name, model.ID),
 
 		DeployedAt: time.Now(),
-
 	}
-
-
 
 	// Add to node's services.
 
 	service := EdgeService{
 
-		Name:     model.Name,
+		Name: model.Name,
 
-		Type:     "ml-inference",
+		Type: "ml-inference",
 
-		Status:   "running",
+		Status: "running",
 
 		Endpoint: deployment.Endpoint,
-
 	}
 
 	node.LocalServices = append(node.LocalServices, service)
 
-
-
 	return deployment, nil
 
 }
-
-
 
 // RunInference performs runinference operation.
 
@@ -1213,8 +954,6 @@ func (r *EdgeController) RunInference(nodeID string, request *InferenceRequest) 
 
 	defer r.mutex.RUnlock()
 
-
-
 	_, exists := r.edgeNodes[nodeID]
 
 	if !exists {
@@ -1223,29 +962,22 @@ func (r *EdgeController) RunInference(nodeID string, request *InferenceRequest) 
 
 	}
 
-
-
 	// Simulate inference.
 
 	result := &InferenceResult{
 
-		RequestID:       fmt.Sprintf("inf-%d", time.Now().Unix()),
+		RequestID: fmt.Sprintf("inf-%d", time.Now().Unix()),
 
-		Output:          []byte("inference-result"),
+		Output: []byte("inference-result"),
 
 		InferenceTimeMs: 50, // Simulated
 
-		Confidence:      0.95,
-
+		Confidence: 0.95,
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // OptimizeMLDeployment performs optimizemldeployment operation.
 
@@ -1264,20 +996,14 @@ func (r *EdgeController) OptimizeMLDeployment(modelID string) (*MLOptimization, 
 			"model-pruning",
 
 			"edge-specific-optimization",
-
 		},
 
 		EstimatedSpeedup: 2.5,
-
 	}
-
-
 
 	return optimization, nil
 
 }
-
-
 
 // Caching Methods.
 
@@ -1287,8 +1013,6 @@ func (r *EdgeController) ConfigureCache(nodeID string, config *CacheConfig) erro
 
 	defer r.mutex.Unlock()
 
-
-
 	node, exists := r.edgeNodes[nodeID]
 
 	if !exists {
@@ -1297,27 +1021,19 @@ func (r *EdgeController) ConfigureCache(nodeID string, config *CacheConfig) erro
 
 	}
 
-
-
 	if !node.Capabilities.CacheEnabled {
 
 		return fmt.Errorf("node %s does not support caching", nodeID)
 
 	}
 
-
-
 	// Store cache configuration (in real implementation, this would configure the actual cache).
 
 	r.Log.Info("Configured cache", "nodeID", nodeID, "maxSize", config.MaxSizeGB)
 
-
-
 	return nil
 
 }
-
-
 
 // CacheContent performs cachecontent operation.
 
@@ -1327,8 +1043,6 @@ func (r *EdgeController) CacheContent(nodeID string, content *CacheContent) erro
 
 	defer r.mutex.Unlock()
 
-
-
 	node, exists := r.edgeNodes[nodeID]
 
 	if !exists {
@@ -1337,27 +1051,19 @@ func (r *EdgeController) CacheContent(nodeID string, content *CacheContent) erro
 
 	}
 
-
-
 	if !node.Capabilities.CacheEnabled {
 
 		return fmt.Errorf("node %s does not support caching", nodeID)
 
 	}
 
-
-
 	// Cache the content (simulated).
 
 	r.Log.Info("Cached content", "nodeID", nodeID, "contentID", content.ID, "size", content.SizeMB)
 
-
-
 	return nil
 
 }
-
-
 
 // GetCacheStats performs getcachestats operation.
 
@@ -1367,8 +1073,6 @@ func (r *EdgeController) GetCacheStats(nodeID string) (*CacheStats, error) {
 
 	defer r.mutex.RUnlock()
 
-
-
 	node, exists := r.edgeNodes[nodeID]
 
 	if !exists {
@@ -1377,39 +1081,30 @@ func (r *EdgeController) GetCacheStats(nodeID string) (*CacheStats, error) {
 
 	}
 
-
-
 	if !node.Capabilities.CacheEnabled {
 
 		return nil, fmt.Errorf("node %s does not support caching", nodeID)
 
 	}
 
-
-
 	// Return simulated stats.
 
 	stats := &CacheStats{
 
-		HitRate:      0.85,
+		HitRate: 0.85,
 
-		MissRate:     0.15,
+		MissRate: 0.15,
 
-		UsedGB:       25.5,
+		UsedGB: 25.5,
 
-		AvailableGB:  74.5,
+		AvailableGB: 74.5,
 
 		EvictionRate: 0.05,
-
 	}
-
-
 
 	return stats, nil
 
 }
-
-
 
 // Analytics Methods.
 
@@ -1419,8 +1114,6 @@ func (r *EdgeController) GenerateZoneReport(zoneID string) (*ZoneReport, error) 
 
 	defer r.mutex.RUnlock()
 
-
-
 	zone, exists := r.edgeZones[zoneID]
 
 	if !exists {
@@ -1429,27 +1122,22 @@ func (r *EdgeController) GenerateZoneReport(zoneID string) (*ZoneReport, error) 
 
 	}
 
-
-
 	report := &ZoneReport{
 
-		ZoneID:         zoneID,
+		ZoneID: zoneID,
 
-		TotalNodes:     0,
+		TotalNodes: 0,
 
-		ActiveNodes:    0,
+		ActiveNodes: 0,
 
 		AverageLatency: 0,
 
-		TotalCapacity:  zone.TotalCapacity,
+		TotalCapacity: zone.TotalCapacity,
 
-		UsedCapacity:   zone.UtilizedCapacity,
+		UsedCapacity: zone.UtilizedCapacity,
 
-		HealthScore:    0,
-
+		HealthScore: 0,
 	}
-
-
 
 	totalLatency := 0.0
 
@@ -1471,8 +1159,6 @@ func (r *EdgeController) GenerateZoneReport(zoneID string) (*ZoneReport, error) 
 
 	}
 
-
-
 	if report.TotalNodes > 0 {
 
 		report.AverageLatency = totalLatency / float64(report.TotalNodes)
@@ -1481,13 +1167,9 @@ func (r *EdgeController) GenerateZoneReport(zoneID string) (*ZoneReport, error) 
 
 	}
 
-
-
 	return report, nil
 
 }
-
-
 
 // PredictResourceDemand performs predictresourcedemand operation.
 
@@ -1497,8 +1179,6 @@ func (r *EdgeController) PredictResourceDemand(zoneID string, horizon time.Durat
 
 	defer r.mutex.RUnlock()
 
-
-
 	_, exists := r.edgeZones[zoneID]
 
 	if !exists {
@@ -1507,33 +1187,26 @@ func (r *EdgeController) PredictResourceDemand(zoneID string, horizon time.Durat
 
 	}
 
-
-
 	// Simple prediction (in real implementation, would use ML models).
 
 	prediction := &ResourcePrediction{
 
-		ZoneID:           zoneID,
+		ZoneID: zoneID,
 
-		TimeHorizon:      horizon,
+		TimeHorizon: horizon,
 
-		PredictedCPU:     0.75,
+		PredictedCPU: 0.75,
 
-		PredictedMemory:  0.80,
+		PredictedMemory: 0.80,
 
 		PredictedStorage: 0.60,
 
-		Confidence:       0.85,
-
+		Confidence: 0.85,
 	}
-
-
 
 	return prediction, nil
 
 }
-
-
 
 // OptimizeNodePlacement performs optimizenodeplacement operation.
 
@@ -1543,17 +1216,12 @@ func (r *EdgeController) OptimizeNodePlacement() (*PlacementOptimization, error)
 
 	defer r.mutex.RUnlock()
 
-
-
 	optimization := &PlacementOptimization{
 
-		Recommendations:  []PlacementRecommendation{},
+		Recommendations: []PlacementRecommendation{},
 
 		EstimatedSavings: 0,
-
 	}
-
-
 
 	// Analyze node utilization and make recommendations.
 
@@ -1565,20 +1233,17 @@ func (r *EdgeController) OptimizeNodePlacement() (*PlacementOptimization, error)
 
 			node.Resources.StorageUtilization) / 3
 
-
-
 		if avgUtilization < 0.2 {
 
 			optimization.Recommendations = append(optimization.Recommendations, PlacementRecommendation{
 
-				NodeID:   id,
+				NodeID: id,
 
-				Action:   "consolidate",
+				Action: "consolidate",
 
-				Reason:   "low utilization",
+				Reason: "low utilization",
 
 				Priority: 2,
-
 			})
 
 			optimization.EstimatedSavings += 1000 // Placeholder savings
@@ -1587,21 +1252,18 @@ func (r *EdgeController) OptimizeNodePlacement() (*PlacementOptimization, error)
 
 			optimization.Recommendations = append(optimization.Recommendations, PlacementRecommendation{
 
-				NodeID:   id,
+				NodeID: id,
 
-				Action:   "scale-out",
+				Action: "scale-out",
 
-				Reason:   "high utilization",
+				Reason: "high utilization",
 
 				Priority: 1,
-
 			})
 
 		}
 
 	}
-
-
 
 	// Sort by priority.
 
@@ -1611,9 +1273,6 @@ func (r *EdgeController) OptimizeNodePlacement() (*PlacementOptimization, error)
 
 	})
 
-
-
 	return optimization, nil
 
 }
-

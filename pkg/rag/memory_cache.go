@@ -1,53 +1,35 @@
 //go:build !disable_rag && !test
 
-
-
-
 package rag
 
-
-
 import (
-
 	"container/heap"
-
 	"fmt"
-
 	"log/slog"
-
 	"sync"
-
 	"time"
-
 	"unsafe"
-
 )
-
-
 
 // MemoryCache provides a high-performance in-memory cache with LRU eviction.
 
 type MemoryCache struct {
+	config *MemoryCacheConfig
 
-	config    *MemoryCacheConfig
+	logger *slog.Logger
 
-	logger    *slog.Logger
+	metrics *MemoryCacheMetrics
 
-	metrics   *MemoryCacheMetrics
+	cache map[string]*CacheItem
 
-	cache     map[string]*CacheItem
+	lruList *LRUList
 
-	lruList   *LRUList
+	mutex sync.RWMutex
 
-	mutex     sync.RWMutex
-
-	stopChan  chan struct{}
+	stopChan chan struct{}
 
 	startTime time.Time
-
 }
-
-
 
 // MemoryCacheConfig holds configuration for the in-memory cache.
 
@@ -55,67 +37,53 @@ type MemoryCacheConfig struct {
 
 	// Size limits.
 
-	MaxItems         int   `json:"max_items"`           // Maximum number of items
+	MaxItems int `json:"max_items"` // Maximum number of items
 
-	MaxSizeBytes     int64 `json:"max_size_bytes"`      // Maximum total size in bytes
+	MaxSizeBytes int64 `json:"max_size_bytes"` // Maximum total size in bytes
 
 	MaxItemSizeBytes int64 `json:"max_item_size_bytes"` // Maximum individual item size
 
-
-
 	// TTL settings.
 
-	DefaultTTL      time.Duration `json:"default_ttl"`      // Default time-to-live
+	DefaultTTL time.Duration `json:"default_ttl"` // Default time-to-live
 
-	MaxTTL          time.Duration `json:"max_ttl"`          // Maximum allowed TTL
+	MaxTTL time.Duration `json:"max_ttl"` // Maximum allowed TTL
 
 	CleanupInterval time.Duration `json:"cleanup_interval"` // How often to clean expired items
 
-
-
 	// Performance settings.
 
-	EnableMetrics        bool `json:"enable_metrics"`        // Enable detailed metrics collection
+	EnableMetrics bool `json:"enable_metrics"` // Enable detailed metrics collection
 
-	EnableCompression    bool `json:"enable_compression"`    // Enable compression for large items
+	EnableCompression bool `json:"enable_compression"` // Enable compression for large items
 
-	CompressionThreshold int  `json:"compression_threshold"` // Size threshold for compression
-
-
+	CompressionThreshold int `json:"compression_threshold"` // Size threshold for compression
 
 	// Eviction policy.
 
-	EvictionPolicy         string  `json:"eviction_policy"`           // "lru", "lfu", "ttl"
+	EvictionPolicy string `json:"eviction_policy"` // "lru", "lfu", "ttl"
 
-	EvictionRatio          float64 `json:"eviction_ratio"`            // Ratio of items to evict when full
+	EvictionRatio float64 `json:"eviction_ratio"` // Ratio of items to evict when full
 
-	PreventHotSpotEviction bool    `json:"prevent_hot_spot_eviction"` // Don't evict frequently accessed items
-
-
+	PreventHotSpotEviction bool `json:"prevent_hot_spot_eviction"` // Don't evict frequently accessed items
 
 	// Categories with different settings.
 
 	CategoryConfigs map[string]*CategoryConfig `json:"category_configs"`
-
 }
-
-
 
 // CategoryConfig holds category-specific cache settings.
 
 type CategoryConfig struct {
+	MaxItems int `json:"max_items"`
 
-	MaxItems     int           `json:"max_items"`
+	MaxSizeBytes int64 `json:"max_size_bytes"`
 
-	MaxSizeBytes int64         `json:"max_size_bytes"`
+	DefaultTTL time.Duration `json:"default_ttl"`
 
-	DefaultTTL   time.Duration `json:"default_ttl"`
-
-	Priority     int           `json:"priority"` // Higher priority = less likely to be evicted
+	Priority int `json:"priority"` // Higher priority = less likely to be evicted
 
 }
-
-
 
 // MemoryCacheMetrics tracks cache performance.
 
@@ -125,161 +93,128 @@ type MemoryCacheMetrics struct {
 
 	TotalRequests int64 `json:"total_requests"`
 
-	Hits          int64 `json:"hits"`
+	Hits int64 `json:"hits"`
 
-	Misses        int64 `json:"misses"`
+	Misses int64 `json:"misses"`
 
-	Sets          int64 `json:"sets"`
+	Sets int64 `json:"sets"`
 
-	Deletes       int64 `json:"deletes"`
+	Deletes int64 `json:"deletes"`
 
-	Evictions     int64 `json:"evictions"`
-
-
+	Evictions int64 `json:"evictions"`
 
 	// Performance metrics.
 
-	HitRate        float64       `json:"hit_rate"`
+	HitRate float64 `json:"hit_rate"`
 
 	AverageGetTime time.Duration `json:"average_get_time"`
 
 	AverageSetTime time.Duration `json:"average_set_time"`
 
-
-
 	// Size metrics.
 
-	CurrentItems     int64 `json:"current_items"`
+	CurrentItems int64 `json:"current_items"`
 
 	CurrentSizeBytes int64 `json:"current_size_bytes"`
 
-	MaxItems         int64 `json:"max_items"`
+	MaxItems int64 `json:"max_items"`
 
-	MaxSizeBytes     int64 `json:"max_size_bytes"`
-
-
+	MaxSizeBytes int64 `json:"max_size_bytes"`
 
 	// Category metrics.
 
 	CategoryStats map[string]*CategoryStats `json:"category_stats"`
 
-
-
 	// Eviction metrics.
 
-	LRUEvictions  int64 `json:"lru_evictions"`
+	LRUEvictions int64 `json:"lru_evictions"`
 
-	TTLEvictions  int64 `json:"ttl_evictions"`
+	TTLEvictions int64 `json:"ttl_evictions"`
 
 	SizeEvictions int64 `json:"size_evictions"`
 
-
-
 	// Timing metrics.
 
-	LastCleanup  time.Time `json:"last_cleanup"`
+	LastCleanup time.Time `json:"last_cleanup"`
 
 	LastEviction time.Time `json:"last_eviction"`
 
-	LastUpdated  time.Time `json:"last_updated"`
-
-
+	LastUpdated time.Time `json:"last_updated"`
 
 	mutex sync.RWMutex
-
 }
-
-
 
 // CategoryStats holds statistics for a specific category.
 
 type CategoryStats struct {
+	Items int64 `json:"items"`
 
-	Items     int64   `json:"items"`
+	SizeBytes int64 `json:"size_bytes"`
 
-	SizeBytes int64   `json:"size_bytes"`
+	Hits int64 `json:"hits"`
 
-	Hits      int64   `json:"hits"`
+	Misses int64 `json:"misses"`
 
-	Misses    int64   `json:"misses"`
+	Sets int64 `json:"sets"`
 
-	Sets      int64   `json:"sets"`
+	Evictions int64 `json:"evictions"`
 
-	Evictions int64   `json:"evictions"`
-
-	HitRate   float64 `json:"hit_rate"`
-
+	HitRate float64 `json:"hit_rate"`
 }
-
-
 
 // CacheItem represents an item stored in the cache.
 
 type CacheItem struct {
+	Key string `json:"key"`
 
-	Key          string                 `json:"key"`
+	Value interface{} `json:"value"`
 
-	Value        interface{}            `json:"value"`
+	Category string `json:"category"`
 
-	Category     string                 `json:"category"`
+	SizeBytes int64 `json:"size_bytes"`
 
-	SizeBytes    int64                  `json:"size_bytes"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt    time.Time              `json:"created_at"`
+	LastAccessed time.Time `json:"last_accessed"`
 
-	LastAccessed time.Time              `json:"last_accessed"`
+	ExpiresAt time.Time `json:"expires_at"`
 
-	ExpiresAt    time.Time              `json:"expires_at"`
+	AccessCount int64 `json:"access_count"`
 
-	AccessCount  int64                  `json:"access_count"`
+	Priority int `json:"priority"`
 
-	Priority     int                    `json:"priority"`
-
-	Metadata     map[string]interface{} `json:"metadata"`
-
-
+	Metadata map[string]interface{} `json:"metadata"`
 
 	// LRU list pointers.
 
 	prev *CacheItem
 
 	next *CacheItem
-
 }
-
-
 
 // LRUList implements a doubly-linked list for LRU tracking.
 
 type LRUList struct {
-
 	head *CacheItem
 
 	tail *CacheItem
 
 	size int
-
 }
-
-
 
 // CacheEntry represents a cache entry for external APIs.
 
 type CacheEntry struct {
+	Key string `json:"key"`
 
-	Key      string                 `json:"key"`
+	Value interface{} `json:"value"`
 
-	Value    interface{}            `json:"value"`
+	Category string `json:"category"`
 
-	Category string                 `json:"category"`
-
-	TTL      time.Duration          `json:"ttl"`
+	TTL time.Duration `json:"ttl"`
 
 	Metadata map[string]interface{} `json:"metadata"`
-
 }
-
-
 
 // NewMemoryCache creates a new in-memory cache.
 
@@ -291,19 +226,17 @@ func NewMemoryCache(config *MemoryCacheConfig) *MemoryCache {
 
 	}
 
-
-
 	mc := &MemoryCache{
 
-		config:    config,
+		config: config,
 
-		logger:    slog.Default().With("component", "memory-cache"),
+		logger: slog.Default().With("component", "memory-cache"),
 
-		cache:     make(map[string]*CacheItem),
+		cache: make(map[string]*CacheItem),
 
-		lruList:   newLRUList(),
+		lruList: newLRUList(),
 
-		stopChan:  make(chan struct{}),
+		stopChan: make(chan struct{}),
 
 		startTime: time.Now(),
 
@@ -311,13 +244,9 @@ func NewMemoryCache(config *MemoryCacheConfig) *MemoryCache {
 
 			CategoryStats: make(map[string]*CategoryStats),
 
-			LastUpdated:   time.Now(),
-
+			LastUpdated: time.Now(),
 		},
-
 	}
-
-
 
 	// Initialize category stats.
 
@@ -327,13 +256,9 @@ func NewMemoryCache(config *MemoryCacheConfig) *MemoryCache {
 
 	}
 
-
-
 	// Start background cleanup.
 
 	go mc.startCleanupRoutine()
-
-
 
 	mc.logger.Info("Memory cache initialized",
 
@@ -342,16 +267,11 @@ func NewMemoryCache(config *MemoryCacheConfig) *MemoryCache {
 		"max_size_bytes", config.MaxSizeBytes,
 
 		"eviction_policy", config.EvictionPolicy,
-
 	)
-
-
 
 	return mc
 
 }
-
-
 
 // Get retrieves an item from cache.
 
@@ -381,15 +301,11 @@ func (mc *MemoryCache) Get(key string) (interface{}, bool) {
 
 	}()
 
-
-
 	mc.mutex.RLock()
 
 	item, exists := mc.cache[key]
 
 	mc.mutex.RUnlock()
-
-
 
 	if !exists {
 
@@ -405,8 +321,6 @@ func (mc *MemoryCache) Get(key string) (interface{}, bool) {
 
 	}
 
-
-
 	// Check if item has expired.
 
 	if mc.isExpired(item) {
@@ -416,8 +330,6 @@ func (mc *MemoryCache) Get(key string) (interface{}, bool) {
 		mc.removeItem(key, "ttl")
 
 		mc.mutex.Unlock()
-
-
 
 		mc.updateMetrics(func(m *MemoryCacheMetrics) {
 
@@ -433,8 +345,6 @@ func (mc *MemoryCache) Get(key string) (interface{}, bool) {
 
 	}
 
-
-
 	// Update access information.
 
 	mc.mutex.Lock()
@@ -446,8 +356,6 @@ func (mc *MemoryCache) Get(key string) (interface{}, bool) {
 	mc.lruList.moveToFront(item)
 
 	mc.mutex.Unlock()
-
-
 
 	// Update metrics.
 
@@ -467,13 +375,9 @@ func (mc *MemoryCache) Get(key string) (interface{}, bool) {
 
 	})
 
-
-
 	return item.Value, true
 
 }
-
-
 
 // GetWithCategory retrieves an item from cache with category information.
 
@@ -487,8 +391,6 @@ func (mc *MemoryCache) GetWithCategory(key string) (interface{}, string, bool) {
 
 	}
 
-
-
 	mc.mutex.RLock()
 
 	item := mc.cache[key]
@@ -497,13 +399,9 @@ func (mc *MemoryCache) GetWithCategory(key string) (interface{}, string, bool) {
 
 	mc.mutex.RUnlock()
 
-
-
 	return value, category, true
 
 }
-
-
 
 // Set stores an item in cache.
 
@@ -512,8 +410,6 @@ func (mc *MemoryCache) Set(key string, value interface{}, ttl time.Duration) err
 	return mc.SetWithCategory(key, value, "default", ttl, nil)
 
 }
-
-
 
 // SetWithCategory stores an item in cache with category and metadata.
 
@@ -543,13 +439,9 @@ func (mc *MemoryCache) SetWithCategory(key string, value interface{}, category s
 
 	}()
 
-
-
 	// Calculate item size.
 
 	sizeBytes := mc.calculateSize(value)
-
-
 
 	// Check item size limits.
 
@@ -558,8 +450,6 @@ func (mc *MemoryCache) SetWithCategory(key string, value interface{}, category s
 		return fmt.Errorf("item size %d bytes exceeds maximum %d bytes", sizeBytes, mc.config.MaxItemSizeBytes)
 
 	}
-
-
 
 	// Apply category-specific limits.
 
@@ -570,8 +460,6 @@ func (mc *MemoryCache) SetWithCategory(key string, value interface{}, category s
 		return fmt.Errorf("item size %d bytes exceeds category limit %d bytes", sizeBytes, categoryConfig.MaxSizeBytes)
 
 	}
-
-
 
 	// Set TTL.
 
@@ -595,13 +483,9 @@ func (mc *MemoryCache) SetWithCategory(key string, value interface{}, category s
 
 	}
 
-
-
 	mc.mutex.Lock()
 
 	defer mc.mutex.Unlock()
-
-
 
 	// Check if we need to make space.
 
@@ -615,8 +499,6 @@ func (mc *MemoryCache) SetWithCategory(key string, value interface{}, category s
 
 	}
 
-
-
 	// Remove existing item if present.
 
 	if existingItem, exists := mc.cache[key]; exists {
@@ -627,43 +509,36 @@ func (mc *MemoryCache) SetWithCategory(key string, value interface{}, category s
 
 	}
 
-
-
 	// Create new item.
 
 	item := &CacheItem{
 
-		Key:          key,
+		Key: key,
 
-		Value:        value,
+		Value: value,
 
-		Category:     category,
+		Category: category,
 
-		SizeBytes:    sizeBytes,
+		SizeBytes: sizeBytes,
 
-		CreatedAt:    time.Now(),
+		CreatedAt: time.Now(),
 
 		LastAccessed: time.Now(),
 
-		ExpiresAt:    time.Now().Add(ttl),
+		ExpiresAt: time.Now().Add(ttl),
 
-		AccessCount:  1,
+		AccessCount: 1,
 
-		Priority:     mc.getPriority(category),
+		Priority: mc.getPriority(category),
 
-		Metadata:     metadata,
-
+		Metadata: metadata,
 	}
-
-
 
 	// Add to cache and LRU list.
 
 	mc.cache[key] = item
 
 	mc.lruList.addToFront(item)
-
-
 
 	// Update metrics.
 
@@ -672,8 +547,6 @@ func (mc *MemoryCache) SetWithCategory(key string, value interface{}, category s
 		m.CurrentItems = int64(len(mc.cache))
 
 		m.CurrentSizeBytes += sizeBytes
-
-
 
 		if stats, exists := m.CategoryStats[category]; exists {
 
@@ -687,25 +560,20 @@ func (mc *MemoryCache) SetWithCategory(key string, value interface{}, category s
 
 			m.CategoryStats[category] = &CategoryStats{
 
-				Items:     1,
+				Items: 1,
 
 				SizeBytes: sizeBytes,
 
-				Sets:      1,
-
+				Sets: 1,
 			}
 
 		}
 
 	})
 
-
-
 	return nil
 
 }
-
-
 
 // Delete removes an item from cache.
 
@@ -714,8 +582,6 @@ func (mc *MemoryCache) Delete(key string) bool {
 	mc.mutex.Lock()
 
 	defer mc.mutex.Unlock()
-
-
 
 	if item, exists := mc.cache[key]; exists {
 
@@ -743,8 +609,6 @@ func (mc *MemoryCache) Delete(key string) bool {
 
 }
 
-
-
 // Clear removes all items from cache.
 
 func (mc *MemoryCache) Clear() {
@@ -753,13 +617,9 @@ func (mc *MemoryCache) Clear() {
 
 	defer mc.mutex.Unlock()
 
-
-
 	mc.cache = make(map[string]*CacheItem)
 
 	mc.lruList = newLRUList()
-
-
 
 	mc.updateMetricsUnsafe(func(m *MemoryCacheMetrics) {
 
@@ -777,13 +637,9 @@ func (mc *MemoryCache) Clear() {
 
 	})
 
-
-
 	mc.logger.Info("Cache cleared")
 
 }
-
-
 
 // ClearCategory removes all items in a specific category.
 
@@ -792,8 +648,6 @@ func (mc *MemoryCache) ClearCategory(category string) int {
 	mc.mutex.Lock()
 
 	defer mc.mutex.Unlock()
-
-
 
 	keysToDelete := make([]string, 0)
 
@@ -807,15 +661,11 @@ func (mc *MemoryCache) ClearCategory(category string) int {
 
 	}
 
-
-
 	for _, key := range keysToDelete {
 
 		mc.removeItemUnsafe(key, "category_clear")
 
 	}
-
-
 
 	mc.updateMetricsUnsafe(func(m *MemoryCacheMetrics) {
 
@@ -829,15 +679,11 @@ func (mc *MemoryCache) ClearCategory(category string) int {
 
 	})
 
-
-
 	mc.logger.Info("Category cleared", "category", category, "items_removed", len(keysToDelete))
 
 	return len(keysToDelete)
 
 }
-
-
 
 // GetStats returns current cache statistics.
 
@@ -847,55 +693,50 @@ func (mc *MemoryCache) GetStats() *MemoryCacheMetrics {
 
 	defer mc.metrics.mutex.RUnlock()
 
-
-
 	// Create a deep copy.
 
 	stats := &MemoryCacheMetrics{
 
-		TotalRequests:    mc.metrics.TotalRequests,
+		TotalRequests: mc.metrics.TotalRequests,
 
-		Hits:             mc.metrics.Hits,
+		Hits: mc.metrics.Hits,
 
-		Misses:           mc.metrics.Misses,
+		Misses: mc.metrics.Misses,
 
-		Sets:             mc.metrics.Sets,
+		Sets: mc.metrics.Sets,
 
-		Deletes:          mc.metrics.Deletes,
+		Deletes: mc.metrics.Deletes,
 
-		Evictions:        mc.metrics.Evictions,
+		Evictions: mc.metrics.Evictions,
 
-		HitRate:          mc.metrics.HitRate,
+		HitRate: mc.metrics.HitRate,
 
-		AverageGetTime:   mc.metrics.AverageGetTime,
+		AverageGetTime: mc.metrics.AverageGetTime,
 
-		AverageSetTime:   mc.metrics.AverageSetTime,
+		AverageSetTime: mc.metrics.AverageSetTime,
 
-		CurrentItems:     mc.metrics.CurrentItems,
+		CurrentItems: mc.metrics.CurrentItems,
 
 		CurrentSizeBytes: mc.metrics.CurrentSizeBytes,
 
-		MaxItems:         int64(mc.config.MaxItems),
+		MaxItems: int64(mc.config.MaxItems),
 
-		MaxSizeBytes:     mc.config.MaxSizeBytes,
+		MaxSizeBytes: mc.config.MaxSizeBytes,
 
-		LRUEvictions:     mc.metrics.LRUEvictions,
+		LRUEvictions: mc.metrics.LRUEvictions,
 
-		TTLEvictions:     mc.metrics.TTLEvictions,
+		TTLEvictions: mc.metrics.TTLEvictions,
 
-		SizeEvictions:    mc.metrics.SizeEvictions,
+		SizeEvictions: mc.metrics.SizeEvictions,
 
-		LastCleanup:      mc.metrics.LastCleanup,
+		LastCleanup: mc.metrics.LastCleanup,
 
-		LastEviction:     mc.metrics.LastEviction,
+		LastEviction: mc.metrics.LastEviction,
 
-		LastUpdated:      mc.metrics.LastUpdated,
+		LastUpdated: mc.metrics.LastUpdated,
 
-		CategoryStats:    make(map[string]*CategoryStats),
-
+		CategoryStats: make(map[string]*CategoryStats),
 	}
-
-
 
 	// Deep copy category stats.
 
@@ -903,31 +744,26 @@ func (mc *MemoryCache) GetStats() *MemoryCacheMetrics {
 
 		stats.CategoryStats[category] = &CategoryStats{
 
-			Items:     categoryStats.Items,
+			Items: categoryStats.Items,
 
 			SizeBytes: categoryStats.SizeBytes,
 
-			Hits:      categoryStats.Hits,
+			Hits: categoryStats.Hits,
 
-			Misses:    categoryStats.Misses,
+			Misses: categoryStats.Misses,
 
-			Sets:      categoryStats.Sets,
+			Sets: categoryStats.Sets,
 
 			Evictions: categoryStats.Evictions,
 
-			HitRate:   categoryStats.HitRate,
-
+			HitRate: categoryStats.HitRate,
 		}
 
 	}
 
-
-
 	return stats
 
 }
-
-
 
 // GetInfo returns detailed cache information.
 
@@ -935,31 +771,28 @@ func (mc *MemoryCache) GetInfo() map[string]interface{} {
 
 	stats := mc.GetStats()
 
-
-
 	return map[string]interface{}{
 
-		"status":         "healthy",
+		"status": "healthy",
 
 		"uptime_seconds": int64(time.Since(mc.startTime).Seconds()),
 
 		"config": map[string]interface{}{
 
-			"max_items":       mc.config.MaxItems,
+			"max_items": mc.config.MaxItems,
 
-			"max_size_bytes":  mc.config.MaxSizeBytes,
+			"max_size_bytes": mc.config.MaxSizeBytes,
 
 			"eviction_policy": mc.config.EvictionPolicy,
 
-			"default_ttl":     mc.config.DefaultTTL.String(),
-
+			"default_ttl": mc.config.DefaultTTL.String(),
 		},
 
 		"stats": stats,
 
 		"memory_efficiency": map[string]interface{}{
 
-			"utilization_percent":      float64(stats.CurrentItems) / float64(stats.MaxItems) * 100,
+			"utilization_percent": float64(stats.CurrentItems) / float64(stats.MaxItems) * 100,
 
 			"size_utilization_percent": float64(stats.CurrentSizeBytes) / float64(stats.MaxSizeBytes) * 100,
 
@@ -974,14 +807,10 @@ func (mc *MemoryCache) GetInfo() map[string]interface{} {
 				return 0
 
 			}(),
-
 		},
-
 	}
 
 }
-
-
 
 // Cleanup removes expired items.
 
@@ -991,13 +820,9 @@ func (mc *MemoryCache) Cleanup() int {
 
 	defer mc.mutex.Unlock()
 
-
-
 	now := time.Now()
 
 	expiredKeys := make([]string, 0)
-
-
 
 	for key, item := range mc.cache {
 
@@ -1009,15 +834,11 @@ func (mc *MemoryCache) Cleanup() int {
 
 	}
 
-
-
 	for _, key := range expiredKeys {
 
 		mc.removeItemUnsafe(key, "cleanup")
 
 	}
-
-
 
 	mc.updateMetricsUnsafe(func(m *MemoryCacheMetrics) {
 
@@ -1027,21 +848,15 @@ func (mc *MemoryCache) Cleanup() int {
 
 	})
 
-
-
 	if len(expiredKeys) > 0 {
 
 		mc.logger.Debug("Cleanup completed", "expired_items", len(expiredKeys))
 
 	}
 
-
-
 	return len(expiredKeys)
 
 }
-
-
 
 // Close closes the cache and stops background routines.
 
@@ -1057,11 +872,7 @@ func (mc *MemoryCache) Close() error {
 
 }
 
-
-
 // Private methods.
-
-
 
 func (mc *MemoryCache) startCleanupRoutine() {
 
@@ -1071,13 +882,9 @@ func (mc *MemoryCache) startCleanupRoutine() {
 
 	}
 
-
-
 	ticker := time.NewTicker(mc.config.CleanupInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1097,15 +904,11 @@ func (mc *MemoryCache) startCleanupRoutine() {
 
 }
 
-
-
 func (mc *MemoryCache) isExpired(item *CacheItem) bool {
 
 	return time.Now().After(item.ExpiresAt)
 
 }
-
-
 
 func (mc *MemoryCache) needsEviction(newItemSize int64, category string) bool {
 
@@ -1117,8 +920,6 @@ func (mc *MemoryCache) needsEviction(newItemSize int64, category string) bool {
 
 	}
 
-
-
 	totalSizeAfterAdd := mc.metrics.CurrentSizeBytes + newItemSize
 
 	if totalSizeAfterAdd > mc.config.MaxSizeBytes {
@@ -1126,8 +927,6 @@ func (mc *MemoryCache) needsEviction(newItemSize int64, category string) bool {
 		return true
 
 	}
-
-
 
 	// Check category limits.
 
@@ -1153,13 +952,9 @@ func (mc *MemoryCache) needsEviction(newItemSize int64, category string) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 func (mc *MemoryCache) performEviction(newItemSize int64, category string) error {
 
@@ -1185,8 +980,6 @@ func (mc *MemoryCache) performEviction(newItemSize int64, category string) error
 
 }
 
-
-
 func (mc *MemoryCache) evictLRU(newItemSize int64, category string) error {
 
 	evictionTarget := int(float64(len(mc.cache)) * mc.config.EvictionRatio)
@@ -1197,19 +990,13 @@ func (mc *MemoryCache) evictLRU(newItemSize int64, category string) error {
 
 	}
 
-
-
 	evicted := 0
 
 	current := mc.lruList.tail
 
-
-
 	for current != nil && evicted < evictionTarget {
 
 		prev := current.prev
-
-
 
 		// Skip high-priority items if configured.
 
@@ -1221,8 +1008,6 @@ func (mc *MemoryCache) evictLRU(newItemSize int64, category string) error {
 
 		}
 
-
-
 		// Skip items from same high-priority category if space allows.
 
 		if current.Priority > mc.getPriority(category) && mc.hasSpaceAfterEviction(newItemSize, evicted+1) {
@@ -1233,21 +1018,15 @@ func (mc *MemoryCache) evictLRU(newItemSize int64, category string) error {
 
 		}
 
-
-
 		key := current.Key
 
 		mc.removeItemUnsafe(key, "lru_eviction")
 
 		evicted++
 
-
-
 		current = prev
 
 	}
-
-
 
 	mc.updateMetricsUnsafe(func(m *MemoryCacheMetrics) {
 
@@ -1259,21 +1038,15 @@ func (mc *MemoryCache) evictLRU(newItemSize int64, category string) error {
 
 	})
 
-
-
 	if evicted > 0 {
 
 		mc.logger.Debug("LRU eviction completed", "evicted_items", evicted)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (mc *MemoryCache) evictLFU(newItemSize int64, category string) error {
 
@@ -1287,15 +1060,11 @@ func (mc *MemoryCache) evictLFU(newItemSize int64, category string) error {
 
 	}
 
-
-
 	// Sort by access count and last accessed time.
 
 	lfuHeap := &LFUHeap{items: items}
 
 	heap.Init(lfuHeap)
-
-
 
 	evictionTarget := int(float64(len(mc.cache)) * mc.config.EvictionRatio)
 
@@ -1305,15 +1074,11 @@ func (mc *MemoryCache) evictLFU(newItemSize int64, category string) error {
 
 	}
 
-
-
 	evicted := 0
 
 	for evicted < evictionTarget && lfuHeap.Len() > 0 {
 
 		item := heap.Pop(lfuHeap).(*CacheItem)
-
-
 
 		// Skip high-priority items if configured.
 
@@ -1323,15 +1088,11 @@ func (mc *MemoryCache) evictLFU(newItemSize int64, category string) error {
 
 		}
 
-
-
 		mc.removeItemUnsafe(item.Key, "lfu_eviction")
 
 		evicted++
 
 	}
-
-
 
 	mc.updateMetricsUnsafe(func(m *MemoryCacheMetrics) {
 
@@ -1341,15 +1102,11 @@ func (mc *MemoryCache) evictLFU(newItemSize int64, category string) error {
 
 	})
 
-
-
 	mc.logger.Debug("LFU eviction completed", "evicted_items", evicted)
 
 	return nil
 
 }
-
-
 
 func (mc *MemoryCache) evictByTTL(newItemSize int64, category string) error {
 
@@ -1358,8 +1115,6 @@ func (mc *MemoryCache) evictByTTL(newItemSize int64, category string) error {
 	expiredCount := 0
 
 	now := time.Now()
-
-
 
 	expiredKeys := make([]string, 0)
 
@@ -1373,8 +1128,6 @@ func (mc *MemoryCache) evictByTTL(newItemSize int64, category string) error {
 
 	}
 
-
-
 	for _, key := range expiredKeys {
 
 		mc.removeItemUnsafe(key, "ttl_eviction")
@@ -1383,8 +1136,6 @@ func (mc *MemoryCache) evictByTTL(newItemSize int64, category string) error {
 
 	}
 
-
-
 	// If we still need space, evict items closest to expiration.
 
 	if mc.needsEviction(newItemSize, category) {
@@ -1392,8 +1143,6 @@ func (mc *MemoryCache) evictByTTL(newItemSize int64, category string) error {
 		return mc.evictLRU(newItemSize, category) // Fall back to LRU
 
 	}
-
-
 
 	mc.updateMetricsUnsafe(func(m *MemoryCacheMetrics) {
 
@@ -1405,13 +1154,9 @@ func (mc *MemoryCache) evictByTTL(newItemSize int64, category string) error {
 
 	})
 
-
-
 	return nil
 
 }
-
-
 
 func (mc *MemoryCache) hasSpaceAfterEviction(newItemSize int64, evictionCount int) bool {
 
@@ -1419,13 +1164,9 @@ func (mc *MemoryCache) hasSpaceAfterEviction(newItemSize int64, evictionCount in
 
 	projectedSize := mc.metrics.CurrentSizeBytes + newItemSize
 
-
-
 	return projectedItems <= mc.config.MaxItems && projectedSize <= mc.config.MaxSizeBytes
 
 }
-
-
 
 func (mc *MemoryCache) removeItem(key, reason string) {
 
@@ -1437,8 +1178,6 @@ func (mc *MemoryCache) removeItem(key, reason string) {
 
 }
 
-
-
 func (mc *MemoryCache) removeItemUnsafe(key, reason string) {
 
 	if item, exists := mc.cache[key]; exists {
@@ -1446,8 +1185,6 @@ func (mc *MemoryCache) removeItemUnsafe(key, reason string) {
 		delete(mc.cache, key)
 
 		mc.lruList.remove(item)
-
-
 
 		mc.updateMetricsUnsafe(func(m *MemoryCacheMetrics) {
 
@@ -1460,8 +1197,6 @@ func (mc *MemoryCache) removeItemUnsafe(key, reason string) {
 	}
 
 }
-
-
 
 func (mc *MemoryCache) calculateSize(value interface{}) int64 {
 
@@ -1497,8 +1232,6 @@ func (mc *MemoryCache) calculateSize(value interface{}) int64 {
 
 }
 
-
-
 func (mc *MemoryCache) getCategoryConfig(category string) *CategoryConfig {
 
 	if config, exists := mc.config.CategoryConfigs[category]; exists {
@@ -1510,8 +1243,6 @@ func (mc *MemoryCache) getCategoryConfig(category string) *CategoryConfig {
 	return nil
 
 }
-
-
 
 func (mc *MemoryCache) getPriority(category string) int {
 
@@ -1525,8 +1256,6 @@ func (mc *MemoryCache) getPriority(category string) int {
 
 }
 
-
-
 func (mc *MemoryCache) updateMetrics(updater func(*MemoryCacheMetrics)) {
 
 	mc.metrics.mutex.Lock()
@@ -1539,8 +1268,6 @@ func (mc *MemoryCache) updateMetrics(updater func(*MemoryCacheMetrics)) {
 
 }
 
-
-
 func (mc *MemoryCache) updateMetricsUnsafe(updater func(*MemoryCacheMetrics)) {
 
 	updater(mc.metrics)
@@ -1549,19 +1276,13 @@ func (mc *MemoryCache) updateMetricsUnsafe(updater func(*MemoryCacheMetrics)) {
 
 }
 
-
-
 // LRU List implementation.
-
-
 
 func newLRUList() *LRUList {
 
 	return &LRUList{}
 
 }
-
-
 
 func (l *LRUList) addToFront(item *CacheItem) {
 
@@ -1591,8 +1312,6 @@ func (l *LRUList) addToFront(item *CacheItem) {
 
 }
 
-
-
 func (l *LRUList) remove(item *CacheItem) {
 
 	if item.prev != nil {
@@ -1605,8 +1324,6 @@ func (l *LRUList) remove(item *CacheItem) {
 
 	}
 
-
-
 	if item.next != nil {
 
 		item.next.prev = item.prev
@@ -1617,8 +1334,6 @@ func (l *LRUList) remove(item *CacheItem) {
 
 	}
 
-
-
 	item.prev = nil
 
 	item.next = nil
@@ -1626,8 +1341,6 @@ func (l *LRUList) remove(item *CacheItem) {
 	l.size--
 
 }
-
-
 
 func (l *LRUList) moveToFront(item *CacheItem) {
 
@@ -1637,27 +1350,17 @@ func (l *LRUList) moveToFront(item *CacheItem) {
 
 }
 
-
-
 // LFU Heap for eviction.
-
-
 
 // LFUHeap represents a lfuheap.
 
 type LFUHeap struct {
-
 	items []*CacheItem
-
 }
-
-
 
 // Len performs len operation.
 
 func (h LFUHeap) Len() int { return len(h.items) }
-
-
 
 // Less performs less operation.
 
@@ -1677,8 +1380,6 @@ func (h LFUHeap) Less(i, j int) bool {
 
 }
 
-
-
 // Swap performs swap operation.
 
 func (h LFUHeap) Swap(i, j int) {
@@ -1687,8 +1388,6 @@ func (h LFUHeap) Swap(i, j int) {
 
 }
 
-
-
 // Push performs push operation.
 
 func (h *LFUHeap) Push(x interface{}) {
@@ -1696,8 +1395,6 @@ func (h *LFUHeap) Push(x interface{}) {
 	h.items = append(h.items, x.(*CacheItem))
 
 }
-
-
 
 // Pop performs pop operation.
 
@@ -1715,37 +1412,33 @@ func (h *LFUHeap) Pop() interface{} {
 
 }
 
-
-
 // Configuration defaults.
-
-
 
 func getDefaultMemoryCacheConfig() *MemoryCacheConfig {
 
 	return &MemoryCacheConfig{
 
-		MaxItems:               10000,
+		MaxItems: 10000,
 
-		MaxSizeBytes:           100 * 1024 * 1024, // 100MB
+		MaxSizeBytes: 100 * 1024 * 1024, // 100MB
 
-		MaxItemSizeBytes:       10 * 1024 * 1024,  // 10MB
+		MaxItemSizeBytes: 10 * 1024 * 1024, // 10MB
 
-		DefaultTTL:             1 * time.Hour,
+		DefaultTTL: 1 * time.Hour,
 
-		MaxTTL:                 24 * time.Hour,
+		MaxTTL: 24 * time.Hour,
 
-		CleanupInterval:        5 * time.Minute,
+		CleanupInterval: 5 * time.Minute,
 
-		EnableMetrics:          true,
+		EnableMetrics: true,
 
-		EnableCompression:      false,
+		EnableCompression: false,
 
-		CompressionThreshold:   1024, // 1KB
+		CompressionThreshold: 1024, // 1KB
 
-		EvictionPolicy:         "lru",
+		EvictionPolicy: "lru",
 
-		EvictionRatio:          0.1, // Evict 10% when full
+		EvictionRatio: 0.1, // Evict 10% when full
 
 		PreventHotSpotEviction: true,
 
@@ -1753,73 +1446,59 @@ func getDefaultMemoryCacheConfig() *MemoryCacheConfig {
 
 			"embedding": {
 
-				MaxItems:     5000,
+				MaxItems: 5000,
 
 				MaxSizeBytes: 50 * 1024 * 1024, // 50MB
 
-				DefaultTTL:   2 * time.Hour,
+				DefaultTTL: 2 * time.Hour,
 
-				Priority:     2,
-
+				Priority: 2,
 			},
 
 			"document": {
 
-				MaxItems:     1000,
+				MaxItems: 1000,
 
 				MaxSizeBytes: 30 * 1024 * 1024, // 30MB
 
-				DefaultTTL:   4 * time.Hour,
+				DefaultTTL: 4 * time.Hour,
 
-				Priority:     1,
-
+				Priority: 1,
 			},
 
 			"query_result": {
 
-				MaxItems:     2000,
+				MaxItems: 2000,
 
 				MaxSizeBytes: 15 * 1024 * 1024, // 15MB
 
-				DefaultTTL:   30 * time.Minute,
+				DefaultTTL: 30 * time.Minute,
 
-				Priority:     3,
-
+				Priority: 3,
 			},
 
 			"context": {
 
-				MaxItems:     1000,
+				MaxItems: 1000,
 
 				MaxSizeBytes: 5 * 1024 * 1024, // 5MB
 
-				DefaultTTL:   15 * time.Minute,
+				DefaultTTL: 15 * time.Minute,
 
-				Priority:     2,
-
+				Priority: 2,
 			},
-
 		},
-
 	}
 
 }
 
-
-
 // Multi-level cache interface compatibility.
-
-
 
 // MemoryCacheAdapter adapts MemoryCache to work with the multi-level cache system.
 
 type MemoryCacheAdapter struct {
-
 	cache *MemoryCache
-
 }
-
-
 
 // NewMemoryCacheAdapter creates a new adapter.
 
@@ -1828,12 +1507,9 @@ func NewMemoryCacheAdapter(config *MemoryCacheConfig) *MemoryCacheAdapter {
 	return &MemoryCacheAdapter{
 
 		cache: NewMemoryCache(config),
-
 	}
 
 }
-
-
 
 // Get retrieves an embedding from memory cache.
 
@@ -1847,21 +1523,15 @@ func (a *MemoryCacheAdapter) Get(key string) ([]float32, bool, error) {
 
 	}
 
-
-
 	if embedding, ok := value.([]float32); ok {
 
 		return embedding, true, nil
 
 	}
 
-
-
 	return nil, false, fmt.Errorf("cached value is not []float32")
 
 }
-
-
 
 // Set stores an embedding in memory cache.
 
@@ -1870,8 +1540,6 @@ func (a *MemoryCacheAdapter) Set(key string, embedding []float32, ttl time.Durat
 	return a.cache.SetWithCategory(key, embedding, "embedding", ttl, nil)
 
 }
-
-
 
 // Delete removes an embedding from memory cache.
 
@@ -1883,8 +1551,6 @@ func (a *MemoryCacheAdapter) Delete(key string) error {
 
 }
 
-
-
 // Clear clears the embedding category.
 
 func (a *MemoryCacheAdapter) Clear() error {
@@ -1895,8 +1561,6 @@ func (a *MemoryCacheAdapter) Clear() error {
 
 }
 
-
-
 // Stats returns cache statistics.
 
 func (a *MemoryCacheAdapter) Stats() CacheStats {
@@ -1905,31 +1569,24 @@ func (a *MemoryCacheAdapter) Stats() CacheStats {
 
 	embeddingStats := stats.CategoryStats["embedding"]
 
-
-
 	if embeddingStats == nil {
 
 		return CacheStats{}
 
 	}
 
-
-
 	return CacheStats{
 
-		Size:    embeddingStats.Items,
+		Size: embeddingStats.Items,
 
-		Hits:    embeddingStats.Hits,
+		Hits: embeddingStats.Hits,
 
-		Misses:  embeddingStats.Misses,
+		Misses: embeddingStats.Misses,
 
 		HitRate: embeddingStats.HitRate,
-
 	}
 
 }
-
-
 
 // Close closes the cache.
 
@@ -1938,4 +1595,3 @@ func (a *MemoryCacheAdapter) Close() error {
 	return a.cache.Close()
 
 }
-

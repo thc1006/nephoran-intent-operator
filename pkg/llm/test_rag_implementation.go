@@ -1,37 +1,21 @@
 //go:build ignore
-
 // +build ignore
-
-
-
 
 package main
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
-
 )
-
-
 
 func main() {
 
 	// Create a RAG-enhanced processor with default config.
 
 	processor := llm.NewRAGEnhancedProcessor()
-
-
 
 	// Test intent that should use RAG.
 
@@ -47,19 +31,13 @@ func main() {
 
 	}
 
-
-
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
 	defer cancel()
 
-
-
 	for _, intent := range testIntents {
 
 		fmt.Printf("\n=== Testing intent: %s ===\n", intent)
-
-
 
 		result, err := processor.ProcessIntent(ctx, intent)
 
@@ -86,4 +64,3 @@ func main() {
 	}
 
 }
-

@@ -1,33 +1,17 @@
-
 package auth
 
-
-
 import (
-
 	"log/slog"
-
 	"net/http"
-
 	"time"
 
-
-
 	"github.com/gorilla/mux"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-
 )
-
-
 
 // This file demonstrates how to integrate the EnhancedOAuth2Manager.
 
 // into the existing main.go setupHTTPServer function.
-
-
 
 // EnhancedSetupHTTPServer shows the improved server setup using the enhanced OAuth2Manager.
 
@@ -35,15 +19,11 @@ func EnhancedSetupHTTPServer(cfg *config.LLMProcessorConfig, handler interface{}
 
 	router := mux.NewRouter()
 
-
-
 	// Apply middlewares in the correct order (same as before):.
 
 	// 1. Redact Logger, 2. Security Headers, 3. CORS, 4. Rate Limiter.
 
 	// ... (middleware setup code remains the same).
-
-
 
 	// Create enhanced OAuth2Manager configuration from LLMProcessorConfig.
 
@@ -51,35 +31,31 @@ func EnhancedSetupHTTPServer(cfg *config.LLMProcessorConfig, handler interface{}
 
 		// OAuth2 configuration.
 
-		Enabled:          cfg.AuthEnabled,
+		Enabled: cfg.AuthEnabled,
 
-		AuthConfigFile:   cfg.AuthConfigFile,
+		AuthConfigFile: cfg.AuthConfigFile,
 
-		JWTSecretKey:     cfg.JWTSecretKey,
+		JWTSecretKey: cfg.JWTSecretKey,
 
-		RequireAuth:      cfg.RequireAuth,
+		RequireAuth: cfg.RequireAuth,
 
-		AdminUsers:       cfg.AdminUsers,
+		AdminUsers: cfg.AdminUsers,
 
-		OperatorUsers:    cfg.OperatorUsers,
+		OperatorUsers: cfg.OperatorUsers,
 
 		StreamingEnabled: cfg.StreamingEnabled,
 
-		MaxRequestSize:   cfg.MaxRequestSize,
-
-
+		MaxRequestSize: cfg.MaxRequestSize,
 
 		// Public endpoint configuration.
 
-		ExposeMetricsPublicly:  cfg.ExposeMetricsPublicly,
+		ExposeMetricsPublicly: cfg.ExposeMetricsPublicly,
 
-		MetricsAllowedCIDRs:    cfg.MetricsAllowedCIDRs,
+		MetricsAllowedCIDRs: cfg.MetricsAllowedCIDRs,
 
 		HealthEndpointsEnabled: true, // Usually always enabled for K8s orchestration
 
 	}
-
-
 
 	// Validate configuration.
 
@@ -92,8 +68,6 @@ func EnhancedSetupHTTPServer(cfg *config.LLMProcessorConfig, handler interface{}
 		return nil
 
 	}
-
-
 
 	// Create enhanced OAuth2Manager.
 
@@ -109,13 +83,9 @@ func EnhancedSetupHTTPServer(cfg *config.LLMProcessorConfig, handler interface{}
 
 	}
 
-
-
 	// Prepare handlers - extract health checker from service components.
 
 	// _, _, _, _, _, _, _, healthChecker := service.GetComponents().
-
-
 
 	// Create public route handlers.
 
@@ -128,8 +98,6 @@ func EnhancedSetupHTTPServer(cfg *config.LLMProcessorConfig, handler interface{}
 		// Metrics: handler.MetricsHandler,        // You'll need to get this from your handler.
 
 	}
-
-
 
 	// Create protected route handlers.
 
@@ -145,8 +113,6 @@ func EnhancedSetupHTTPServer(cfg *config.LLMProcessorConfig, handler interface{}
 
 	}
 
-
-
 	// Configure all routes in one centralized call.
 
 	if err := enhancedOAuth2Manager.ConfigureAllRoutes(router, publicHandlers, protectedHandlers); err != nil {
@@ -157,25 +123,20 @@ func EnhancedSetupHTTPServer(cfg *config.LLMProcessorConfig, handler interface{}
 
 	}
 
-
-
 	return &http.Server{
 
-		Addr:         ":" + cfg.Port,
+		Addr: ":" + cfg.Port,
 
-		Handler:      router,
+		Handler: router,
 
-		ReadTimeout:  cfg.RequestTimeout,
+		ReadTimeout: cfg.RequestTimeout,
 
 		WriteTimeout: cfg.RequestTimeout,
 
-		IdleTimeout:  2 * time.Minute,
-
+		IdleTimeout: 2 * time.Minute,
 	}
 
 }
-
-
 
 // Migration example showing how to transition from the current implementation.
 
@@ -219,8 +180,6 @@ func MigrationExample() {
 
 	// oauth2Manager.ConfigureProtectedRoutes(router, handlers).
 
-
-
 	// AFTER (enhanced approach):.
 
 	//
@@ -245,19 +204,13 @@ func MigrationExample() {
 
 }
 
-
-
 // Benefits of the enhanced approach:.
-
-
 
 // 1. CENTRALIZED CONFIGURATION.
 
 //    All route setup logic is now in one place (ConfigureAllRoutes method).
 
 //    instead of scattered across main.go.
-
-
 
 // 2. BETTER SEPARATION OF CONCERNS.
 
@@ -269,8 +222,6 @@ func MigrationExample() {
 
 //    - IP allowlisting logic is encapsulated.
 
-
-
 // 3. IMPROVED MAINTAINABILITY.
 
 //    - Adding new public routes requires only updating PublicRouteHandlers.
@@ -278,8 +229,6 @@ func MigrationExample() {
 //    - Adding new protected routes requires only updating ProtectedRouteHandlers.
 
 //    - Route security policies are centralized in the manager.
-
-
 
 // 4. ENHANCED CONFIGURABILITY.
 
@@ -289,8 +238,6 @@ func MigrationExample() {
 
 //    - Streaming endpoints are conditionally registered.
 
-
-
 // 5. BETTER TESTING.
 
 //    - Each route type can be tested independently.
@@ -299,8 +246,6 @@ func MigrationExample() {
 
 //    - Handler creation can be mocked easily.
 
-
-
 // 6. BACKWARD COMPATIBILITY.
 
 //    - Legacy methods (IsEnabled, RequiresAuth) are preserved.
@@ -308,4 +253,3 @@ func MigrationExample() {
 //    - Existing handler interfaces are maintained.
 
 //    - Migration can be done incrementally.
-

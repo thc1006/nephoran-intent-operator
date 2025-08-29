@@ -1,47 +1,29 @@
-
 package testutils
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 	"runtime"
-
 	"sync"
-
 	"testing"
-
 	"time"
-
 )
-
-
 
 // WindowsTestOptimizer provides Windows-specific test optimizations.
 
 type WindowsTestOptimizer struct {
+	tempDirCache sync.Map
 
-	tempDirCache   sync.Map
+	filePoolCache sync.Map
 
-	filePoolCache  sync.Map
+	cleanupQueue []func()
 
-	cleanupQueue   []func()
-
-	cleanupMutex   sync.Mutex
+	cleanupMutex sync.Mutex
 
 	concurrencyLim chan struct{}
-
 }
-
-
 
 // NewWindowsTestOptimizer creates a new Windows test optimizer.
 
@@ -57,17 +39,12 @@ func NewWindowsTestOptimizer() *WindowsTestOptimizer {
 
 	}
 
-
-
 	return &WindowsTestOptimizer{
 
 		concurrencyLim: make(chan struct{}, maxConcurrency),
-
 	}
 
 }
-
-
 
 // OptimizedTempDir creates temporary directories with Windows-specific optimizations.
 
@@ -82,8 +59,6 @@ func (w *WindowsTestOptimizer) OptimizedTempDir(t testing.TB, prefix string) str
 		return cached.(string)
 
 	}
-
-
 
 	// Create optimized temp directory.
 
@@ -111,8 +86,6 @@ func (w *WindowsTestOptimizer) OptimizedTempDir(t testing.TB, prefix string) str
 
 	}
 
-
-
 	// Create directory with appropriate permissions.
 
 	if err := os.MkdirAll(tempDir, 0o755); err != nil {
@@ -121,13 +94,9 @@ func (w *WindowsTestOptimizer) OptimizedTempDir(t testing.TB, prefix string) str
 
 	}
 
-
-
 	// Cache for reuse within the same test.
 
 	w.tempDirCache.Store(testName, tempDir)
-
-
 
 	// Schedule cleanup.
 
@@ -139,13 +108,9 @@ func (w *WindowsTestOptimizer) OptimizedTempDir(t testing.TB, prefix string) str
 
 	})
 
-
-
 	return tempDir
 
 }
-
-
 
 // OptimizedFileWrite performs Windows-optimized file writes.
 
@@ -157,8 +122,6 @@ func (w *WindowsTestOptimizer) OptimizedFileWrite(filePath string, content []byt
 
 	defer func() { <-w.concurrencyLim }()
 
-
-
 	// Ensure directory exists.
 
 	dir := filepath.Dir(filePath)
@@ -168,8 +131,6 @@ func (w *WindowsTestOptimizer) OptimizedFileWrite(filePath string, content []byt
 		return fmt.Errorf("failed to create directory %s: %w", dir, err)
 
 	}
-
-
 
 	// Write with optimizations for Windows.
 
@@ -205,13 +166,9 @@ func (w *WindowsTestOptimizer) OptimizedFileWrite(filePath string, content []byt
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // OptimizedFileRead performs Windows-optimized file reads with caching.
 
@@ -225,15 +182,11 @@ func (w *WindowsTestOptimizer) OptimizedFileRead(filePath string) ([]byte, error
 
 	}
 
-
-
 	// Acquire concurrency limit.
 
 	w.concurrencyLim <- struct{}{}
 
 	defer func() { <-w.concurrencyLim }()
-
-
 
 	content, err := os.ReadFile(filePath)
 
@@ -243,19 +196,13 @@ func (w *WindowsTestOptimizer) OptimizedFileRead(filePath string) ([]byte, error
 
 	}
 
-
-
 	// Cache for subsequent reads.
 
 	w.filePoolCache.Store(filePath, content)
 
-
-
 	return content, nil
 
 }
-
-
 
 // BulkFileCreation creates multiple files efficiently.
 
@@ -269,15 +216,11 @@ func (w *WindowsTestOptimizer) BulkFileCreation(baseDir string, files map[string
 
 	}
 
-
-
 	// Create files with optimized concurrency.
 
 	errChan := make(chan error, len(files))
 
 	var wg sync.WaitGroup
-
-
 
 	for filename, content := range files {
 
@@ -299,13 +242,9 @@ func (w *WindowsTestOptimizer) BulkFileCreation(baseDir string, files map[string
 
 	}
 
-
-
 	wg.Wait()
 
 	close(errChan)
-
-
 
 	// Check for errors.
 
@@ -319,13 +258,9 @@ func (w *WindowsTestOptimizer) BulkFileCreation(baseDir string, files map[string
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // OptimizedTestTimeout returns platform-optimized test timeouts.
 
@@ -343,8 +278,6 @@ func (w *WindowsTestOptimizer) OptimizedTestTimeout(baseTimeout time.Duration) t
 
 }
 
-
-
 // OptimizedContextTimeout creates contexts with platform-optimized timeouts.
 
 func (w *WindowsTestOptimizer) OptimizedContextTimeout(ctx context.Context, baseTimeout time.Duration) (context.Context, context.CancelFunc) {
@@ -354,8 +287,6 @@ func (w *WindowsTestOptimizer) OptimizedContextTimeout(ctx context.Context, base
 	return context.WithTimeout(ctx, optimizedTimeout)
 
 }
-
-
 
 // scheduleCleanup adds a cleanup function to be executed later.
 
@@ -369,8 +300,6 @@ func (w *WindowsTestOptimizer) scheduleCleanup(fn func()) {
 
 }
 
-
-
 // Cleanup performs all scheduled cleanup operations.
 
 func (w *WindowsTestOptimizer) Cleanup() {
@@ -378,8 +307,6 @@ func (w *WindowsTestOptimizer) Cleanup() {
 	w.cleanupMutex.Lock()
 
 	defer w.cleanupMutex.Unlock()
-
-
 
 	// Execute cleanup functions in reverse order (LIFO).
 
@@ -395,8 +322,6 @@ func (w *WindowsTestOptimizer) Cleanup() {
 
 	w.cleanupQueue = nil
 
-
-
 	// Clear caches.
 
 	w.tempDirCache = sync.Map{}
@@ -405,19 +330,13 @@ func (w *WindowsTestOptimizer) Cleanup() {
 
 }
 
-
-
 // WindowsFileSystemOptimizer provides Windows-specific file system optimizations.
 
 type WindowsFileSystemOptimizer struct {
-
 	pathNormalizer *WindowsPathNormalizer
 
-	ioLimiter      chan struct{}
-
+	ioLimiter chan struct{}
 }
-
-
 
 // NewWindowsFileSystemOptimizer creates a new file system optimizer.
 
@@ -433,29 +352,20 @@ func NewWindowsFileSystemOptimizer() *WindowsFileSystemOptimizer {
 
 	}
 
-
-
 	return &WindowsFileSystemOptimizer{
 
 		pathNormalizer: NewWindowsPathNormalizer(),
 
-		ioLimiter:      make(chan struct{}, ioLimit),
-
+		ioLimiter: make(chan struct{}, ioLimit),
 	}
 
 }
 
-
-
 // WindowsPathNormalizer handles Windows path normalization.
 
 type WindowsPathNormalizer struct {
-
 	driveLetterCache sync.Map
-
 }
-
-
 
 // NewWindowsPathNormalizer creates a new path normalizer.
 
@@ -464,8 +374,6 @@ func NewWindowsPathNormalizer() *WindowsPathNormalizer {
 	return &WindowsPathNormalizer{}
 
 }
-
-
 
 // NormalizePath normalizes paths for Windows compatibility.
 
@@ -477,19 +385,13 @@ func (w *WindowsPathNormalizer) NormalizePath(path string) string {
 
 	}
 
-
-
 	// Handle Windows-specific path issues.
 
 	normalized := filepath.Clean(path)
 
-
-
 	// Convert forward slashes to backslashes.
 
 	normalized = filepath.FromSlash(normalized)
-
-
 
 	// Handle long path prefix if needed.
 
@@ -503,13 +405,9 @@ func (w *WindowsPathNormalizer) NormalizePath(path string) string {
 
 	}
 
-
-
 	return normalized
 
 }
-
-
 
 // GetShortPath returns a Windows 8.3 short path if possible.
 
@@ -521,15 +419,11 @@ func (w *WindowsPathNormalizer) GetShortPath(path string) string {
 
 	}
 
-
-
 	// Try to get short path to avoid MAX_PATH issues.
 
 	// This is a simplified version - in production, you might use Windows APIs.
 
 	normalized := w.NormalizePath(path)
-
-
 
 	// If path is too long, try to use temp directory with shorter name.
 
@@ -549,25 +443,17 @@ func (w *WindowsPathNormalizer) GetShortPath(path string) string {
 
 	}
 
-
-
 	return normalized
 
 }
 
-
-
 // WindowsConcurrencyManager manages test concurrency for Windows.
 
 type WindowsConcurrencyManager struct {
-
 	semaphore chan struct{}
 
-	active    sync.Map
-
+	active sync.Map
 }
-
-
 
 // NewWindowsConcurrencyManager creates a new concurrency manager.
 
@@ -583,17 +469,12 @@ func NewWindowsConcurrencyManager() *WindowsConcurrencyManager {
 
 	}
 
-
-
 	return &WindowsConcurrencyManager{
 
 		semaphore: make(chan struct{}, maxConcurrency),
-
 	}
 
 }
-
-
 
 // AcquireSlot acquires a concurrency slot for the given test.
 
@@ -602,8 +483,6 @@ func (w *WindowsConcurrencyManager) AcquireSlot(testName string) func() {
 	w.semaphore <- struct{}{}
 
 	w.active.Store(testName, time.Now())
-
-
 
 	return func() {
 
@@ -614,8 +493,6 @@ func (w *WindowsConcurrencyManager) AcquireSlot(testName string) func() {
 	}
 
 }
-
-
 
 // GetActiveTests returns the number of currently active tests.
 
@@ -635,25 +512,17 @@ func (w *WindowsConcurrencyManager) GetActiveTests() int {
 
 }
 
-
-
 // Global instances for easy access.
 
 var (
-
-	globalTestOptimizer       = NewWindowsTestOptimizer()
+	globalTestOptimizer = NewWindowsTestOptimizer()
 
 	globalFileSystemOptimizer = NewWindowsFileSystemOptimizer()
 
-	globalConcurrencyManager  = NewWindowsConcurrencyManager()
-
+	globalConcurrencyManager = NewWindowsConcurrencyManager()
 )
 
-
-
 // Convenience functions for global access.
-
-
 
 // GetOptimizedTempDir creates an optimized temporary directory.
 
@@ -663,8 +532,6 @@ func GetOptimizedTempDir(t testing.TB, prefix string) string {
 
 }
 
-
-
 // WriteFileOptimized writes a file with Windows optimizations.
 
 func WriteFileOptimized(filePath string, content []byte) error {
@@ -672,8 +539,6 @@ func WriteFileOptimized(filePath string, content []byte) error {
 	return globalTestOptimizer.OptimizedFileWrite(filePath, content)
 
 }
-
-
 
 // ReadFileOptimized reads a file with Windows optimizations and caching.
 
@@ -683,8 +548,6 @@ func ReadFileOptimized(filePath string) ([]byte, error) {
 
 }
 
-
-
 // GetOptimizedTimeout returns a platform-optimized timeout.
 
 func GetOptimizedTimeout(baseTimeout time.Duration) time.Duration {
@@ -692,8 +555,6 @@ func GetOptimizedTimeout(baseTimeout time.Duration) time.Duration {
 	return globalTestOptimizer.OptimizedTestTimeout(baseTimeout)
 
 }
-
-
 
 // GetOptimizedContext creates a context with platform-optimized timeout.
 
@@ -703,8 +564,6 @@ func GetOptimizedContext(ctx context.Context, baseTimeout time.Duration) (contex
 
 }
 
-
-
 // NormalizePath normalizes a path for the current platform.
 
 func NormalizePath(path string) string {
@@ -712,8 +571,6 @@ func NormalizePath(path string) string {
 	return globalFileSystemOptimizer.pathNormalizer.NormalizePath(path)
 
 }
-
-
 
 // AcquireConcurrencySlot acquires a concurrency slot for better resource management.
 
@@ -723,8 +580,6 @@ func AcquireConcurrencySlot(testName string) func() {
 
 }
 
-
-
 // CleanupGlobalOptimizers cleans up all global optimizers.
 
 func CleanupGlobalOptimizers() {
@@ -732,8 +587,6 @@ func CleanupGlobalOptimizers() {
 	globalTestOptimizer.Cleanup()
 
 }
-
-
 
 // max returns the maximum of two integers.
 
@@ -748,4 +601,3 @@ func max(a, b int) int {
 	return b
 
 }
-

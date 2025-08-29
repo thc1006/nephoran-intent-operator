@@ -1,31 +1,16 @@
-
 package e2
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // Enhanced Service Model Support with Plugin Architecture.
 
-
-
 // ServiceModelRegistry methods for E2ServiceModelRegistry.
-
-
 
 // registerServiceModel registers a service model with optional plugin.
 
@@ -35,8 +20,6 @@ func (r *E2ServiceModelRegistry) registerServiceModel(serviceModel *E2ServiceMod
 
 	defer r.mutex.Unlock()
 
-
-
 	// Validate service model.
 
 	if err := r.validateServiceModelInternal(serviceModel); err != nil {
@@ -45,31 +28,24 @@ func (r *E2ServiceModelRegistry) registerServiceModel(serviceModel *E2ServiceMod
 
 	}
 
-
-
 	// Create registered service model.
 
 	registered := &RegisteredServiceModel{
 
-		E2ServiceModel:   *serviceModel,
+		E2ServiceModel: *serviceModel,
 
 		RegistrationTime: time.Now(),
 
-		Version:          serviceModel.ServiceModelVersion,
+		Version: serviceModel.ServiceModelVersion,
 
-		Plugin:           plugin,
+		Plugin: plugin,
 
-		ValidationRules:  r.getValidationRules(serviceModel.ServiceModelName),
+		ValidationRules: r.getValidationRules(serviceModel.ServiceModelName),
 
-		Compatibility:    r.getCompatibilityList(serviceModel.ServiceModelName),
-
+		Compatibility: r.getCompatibilityList(serviceModel.ServiceModelName),
 	}
 
-
-
 	r.serviceModels[serviceModel.ServiceModelID] = registered
-
-
 
 	// Register plugin if provided.
 
@@ -79,13 +55,9 @@ func (r *E2ServiceModelRegistry) registerServiceModel(serviceModel *E2ServiceMod
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateServiceModel validates a service model configuration.
 
@@ -98,8 +70,6 @@ func (r *E2ServiceModelRegistry) validateServiceModel(serviceModel *E2ServiceMod
 	return r.validateServiceModelInternal(serviceModel)
 
 }
-
-
 
 // validateServiceModelInternal performs internal validation (assumes lock held).
 
@@ -135,29 +105,24 @@ func (r *E2ServiceModelRegistry) validateServiceModelInternal(serviceModel *E2Se
 
 	}
 
-
-
 	// Validate procedures.
 
 	validProcedures := map[string]bool{
 
-		"RIC_SUBSCRIPTION":        true,
+		"RIC_SUBSCRIPTION": true,
 
 		"RIC_SUBSCRIPTION_DELETE": true,
 
-		"RIC_INDICATION":          true,
+		"RIC_INDICATION": true,
 
-		"RIC_CONTROL_REQUEST":     true,
+		"RIC_CONTROL_REQUEST": true,
 
 		"RIC_CONTROL_ACKNOWLEDGE": true,
 
-		"RIC_CONTROL_FAILURE":     true,
+		"RIC_CONTROL_FAILURE": true,
 
-		"RIC_SERVICE_UPDATE":      true,
-
+		"RIC_SERVICE_UPDATE": true,
 	}
-
-
 
 	for _, procedure := range serviceModel.SupportedProcedures {
 
@@ -169,13 +134,9 @@ func (r *E2ServiceModelRegistry) validateServiceModelInternal(serviceModel *E2Se
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // getValidationRules returns validation rules for a service model.
 
@@ -189,24 +150,21 @@ func (r *E2ServiceModelRegistry) getValidationRules(modelName string) []Validati
 
 			{
 
-				Name:        "measurement_types_validation",
+				Name: "measurement_types_validation",
 
 				Description: "Validate KPM measurement types",
 
-				Validate:    r.validateKPMMeasurementTypes,
-
+				Validate: r.validateKPMMeasurementTypes,
 			},
 
 			{
 
-				Name:        "granularity_period_validation",
+				Name: "granularity_period_validation",
 
 				Description: "Validate KPM granularity period",
 
-				Validate:    r.validateKPMGranularityPeriod,
-
+				Validate: r.validateKPMGranularityPeriod,
 			},
-
 		}
 
 	case "RC":
@@ -215,24 +173,21 @@ func (r *E2ServiceModelRegistry) getValidationRules(modelName string) []Validati
 
 			{
 
-				Name:        "control_actions_validation",
+				Name: "control_actions_validation",
 
 				Description: "Validate RC control actions",
 
-				Validate:    r.validateRCControlActions,
-
+				Validate: r.validateRCControlActions,
 			},
 
 			{
 
-				Name:        "control_outcomes_validation",
+				Name: "control_outcomes_validation",
 
 				Description: "Validate RC control outcomes",
 
-				Validate:    r.validateRCControlOutcomes,
-
+				Validate: r.validateRCControlOutcomes,
 			},
-
 		}
 
 	default:
@@ -242,8 +197,6 @@ func (r *E2ServiceModelRegistry) getValidationRules(modelName string) []Validati
 	}
 
 }
-
-
 
 // getCompatibilityList returns compatibility information for a service model.
 
@@ -267,11 +220,7 @@ func (r *E2ServiceModelRegistry) getCompatibilityList(modelName string) []string
 
 }
 
-
-
 // Service model validation functions.
-
-
 
 func (r *E2ServiceModelRegistry) validateKPMMeasurementTypes(serviceModel *E2ServiceModel) error {
 
@@ -283,8 +232,6 @@ func (r *E2ServiceModelRegistry) validateKPMMeasurementTypes(serviceModel *E2Ser
 
 	}
 
-
-
 	measurementTypes, exists := config["measurement_types"]
 
 	if !exists {
@@ -292,8 +239,6 @@ func (r *E2ServiceModelRegistry) validateKPMMeasurementTypes(serviceModel *E2Ser
 		return fmt.Errorf("KPM service model requires measurement_types")
 
 	}
-
-
 
 	types, ok := measurementTypes.([]string)
 
@@ -327,51 +272,46 @@ func (r *E2ServiceModelRegistry) validateKPMMeasurementTypes(serviceModel *E2Ser
 
 	}
 
-
-
 	// Validate known measurement types.
 
 	validTypes := map[string]bool{
 
-		"DRB.RlcSduDelayDl":      true,
+		"DRB.RlcSduDelayDl": true,
 
-		"DRB.RlcSduDelayUl":      true,
+		"DRB.RlcSduDelayUl": true,
 
-		"DRB.RlcSduVolumeDl":     true,
+		"DRB.RlcSduVolumeDl": true,
 
-		"DRB.RlcSduVolumeUl":     true,
+		"DRB.RlcSduVolumeUl": true,
 
-		"DRB.UEThpDl":            true,
+		"DRB.UEThpDl": true,
 
-		"DRB.UEThpUl":            true,
+		"DRB.UEThpUl": true,
 
-		"RRU.PrbTotDl":           true,
+		"RRU.PrbTotDl": true,
 
-		"RRU.PrbTotUl":           true,
+		"RRU.PrbTotUl": true,
 
-		"RRU.PrbUsedDl":          true,
+		"RRU.PrbUsedDl": true,
 
-		"RRU.PrbUsedUl":          true,
+		"RRU.PrbUsedUl": true,
 
-		"TB.TotNbrDl":            true,
+		"TB.TotNbrDl": true,
 
-		"TB.TotNbrUl":            true,
+		"TB.TotNbrUl": true,
 
-		"TB.ErrTotNbrDl":         true,
+		"TB.ErrTotNbrDl": true,
 
-		"TB.ErrTotNbrUl":         true,
+		"TB.ErrTotNbrUl": true,
 
 		"MAC.UESchedDlInitialTx": true,
 
 		"MAC.UESchedUlInitialTx": true,
 
-		"CARR.PDSCHMCSDist":      true,
+		"CARR.PDSCHMCSDist": true,
 
-		"CARR.PUSCHMCSDist":      true,
-
+		"CARR.PUSCHMCSDist": true,
 	}
-
-
 
 	for _, measurementType := range types {
 
@@ -383,13 +323,9 @@ func (r *E2ServiceModelRegistry) validateKPMMeasurementTypes(serviceModel *E2Ser
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (r *E2ServiceModelRegistry) validateKPMGranularityPeriod(serviceModel *E2ServiceModel) error {
 
@@ -401,8 +337,6 @@ func (r *E2ServiceModelRegistry) validateKPMGranularityPeriod(serviceModel *E2Se
 
 	}
 
-
-
 	granularityPeriod, exists := config["granularity_period"]
 
 	if !exists {
@@ -411,8 +345,6 @@ func (r *E2ServiceModelRegistry) validateKPMGranularityPeriod(serviceModel *E2Se
 
 	}
 
-
-
 	periodStr, ok := granularityPeriod.(string)
 
 	if !ok {
@@ -420,8 +352,6 @@ func (r *E2ServiceModelRegistry) validateKPMGranularityPeriod(serviceModel *E2Se
 		return fmt.Errorf("granularity_period must be a string")
 
 	}
-
-
 
 	// Validate period format (e.g., "1000ms", "1s", "5s").
 
@@ -437,13 +367,9 @@ func (r *E2ServiceModelRegistry) validateKPMGranularityPeriod(serviceModel *E2Se
 
 	}
 
-
-
 	return fmt.Errorf("invalid granularity_period: %s", periodStr)
 
 }
-
-
 
 func (r *E2ServiceModelRegistry) validateRCControlActions(serviceModel *E2ServiceModel) error {
 
@@ -455,8 +381,6 @@ func (r *E2ServiceModelRegistry) validateRCControlActions(serviceModel *E2Servic
 
 	}
 
-
-
 	controlActions, exists := config["control_actions"]
 
 	if !exists {
@@ -464,8 +388,6 @@ func (r *E2ServiceModelRegistry) validateRCControlActions(serviceModel *E2Servic
 		return fmt.Errorf("RC service model requires control_actions")
 
 	}
-
-
 
 	actions, ok := controlActions.([]string)
 
@@ -499,29 +421,24 @@ func (r *E2ServiceModelRegistry) validateRCControlActions(serviceModel *E2Servic
 
 	}
 
-
-
 	// Validate known control actions.
 
 	validActions := map[string]bool{
 
-		"QoS_flow_mapping":    true,
+		"QoS_flow_mapping": true,
 
-		"Traffic_steering":    true,
+		"Traffic_steering": true,
 
-		"Dual_connectivity":   true,
+		"Dual_connectivity": true,
 
-		"Mobility_control":    true,
+		"Mobility_control": true,
 
 		"Carrier_aggregation": true,
 
-		"RRM_optimization":    true,
+		"RRM_optimization": true,
 
 		"Beamforming_control": true,
-
 	}
-
-
 
 	for _, action := range actions {
 
@@ -533,13 +450,9 @@ func (r *E2ServiceModelRegistry) validateRCControlActions(serviceModel *E2Servic
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (r *E2ServiceModelRegistry) validateRCControlOutcomes(serviceModel *E2ServiceModel) error {
 
@@ -551,8 +464,6 @@ func (r *E2ServiceModelRegistry) validateRCControlOutcomes(serviceModel *E2Servi
 
 	}
 
-
-
 	controlOutcomes, exists := config["control_outcomes"]
 
 	if !exists {
@@ -560,8 +471,6 @@ func (r *E2ServiceModelRegistry) validateRCControlOutcomes(serviceModel *E2Servi
 		return nil // Optional field
 
 	}
-
-
 
 	outcomes, ok := controlOutcomes.([]string)
 
@@ -595,25 +504,20 @@ func (r *E2ServiceModelRegistry) validateRCControlOutcomes(serviceModel *E2Servi
 
 	}
 
-
-
 	// Validate known control outcomes.
 
 	validOutcomes := map[string]bool{
 
 		"successful": true,
 
-		"rejected":   true,
+		"rejected": true,
 
-		"failed":     true,
+		"failed": true,
 
-		"partial":    true,
+		"partial": true,
 
-		"timeout":    true,
-
+		"timeout": true,
 	}
-
-
 
 	for _, outcome := range outcomes {
 
@@ -625,17 +529,11 @@ func (r *E2ServiceModelRegistry) validateRCControlOutcomes(serviceModel *E2Servi
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Enhanced service model creation functions.
-
-
 
 // CreateEnhancedKPMServiceModel creates an enhanced KPM service model with full configuration.
 
@@ -643,13 +541,13 @@ func CreateEnhancedKPMServiceModel() *E2ServiceModel {
 
 	return &E2ServiceModel{
 
-		ServiceModelID:      "1.3.6.1.4.1.53148.1.1.2.2",
+		ServiceModelID: "1.3.6.1.4.1.53148.1.1.2.2",
 
-		ServiceModelName:    "KPM",
+		ServiceModelName: "KPM",
 
 		ServiceModelVersion: "2.0",
 
-		ServiceModelOID:     "1.3.6.1.4.1.53148.1.1.2.2",
+		ServiceModelOID: "1.3.6.1.4.1.53148.1.1.2.2",
 
 		SupportedProcedures: []string{
 
@@ -658,7 +556,6 @@ func CreateEnhancedKPMServiceModel() *E2ServiceModel {
 			"RIC_SUBSCRIPTION_DELETE",
 
 			"RIC_INDICATION",
-
 		},
 
 		Configuration: map[string]interface{}{
@@ -710,40 +607,34 @@ func CreateEnhancedKPMServiceModel() *E2ServiceModel {
 				"CARR.PDSCHMCSDist",
 
 				"CARR.PUSCHMCSDist",
-
 			},
 
-			"granularity_period":           "1000ms",
+			"granularity_period": "1000ms",
 
-			"collection_start_time":        "2025-07-29T10:00:00Z",
+			"collection_start_time": "2025-07-29T10:00:00Z",
 
-			"collection_duration":          "continuous",
+			"collection_duration": "continuous",
 
-			"reporting_format":             "CHOICE",
+			"reporting_format": "CHOICE",
 
-			"supported_cell_types":         []string{"NR", "LTE"},
+			"supported_cell_types": []string{"NR", "LTE"},
 
 			"supported_aggregation_levels": []string{"cell", "ue", "slice"},
 
-			"max_concurrent_measurements":  100,
+			"max_concurrent_measurements": 100,
 
 			"measurement_filtering": map[string]interface{}{
 
 				"threshold_based": true,
 
-				"time_based":      true,
+				"time_based": true,
 
 				"condition_based": true,
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // CreateEnhancedRCServiceModel creates an enhanced RC service model with full configuration.
 
@@ -751,13 +642,13 @@ func CreateEnhancedRCServiceModel() *E2ServiceModel {
 
 	return &E2ServiceModel{
 
-		ServiceModelID:      "1.3.6.1.4.1.53148.1.1.2.3",
+		ServiceModelID: "1.3.6.1.4.1.53148.1.1.2.3",
 
-		ServiceModelName:    "RC",
+		ServiceModelName: "RC",
 
 		ServiceModelVersion: "1.1",
 
-		ServiceModelOID:     "1.3.6.1.4.1.53148.1.1.2.3",
+		ServiceModelOID: "1.3.6.1.4.1.53148.1.1.2.3",
 
 		SupportedProcedures: []string{
 
@@ -766,7 +657,6 @@ func CreateEnhancedRCServiceModel() *E2ServiceModel {
 			"RIC_CONTROL_ACKNOWLEDGE",
 
 			"RIC_CONTROL_FAILURE",
-
 		},
 
 		Configuration: map[string]interface{}{
@@ -786,7 +676,6 @@ func CreateEnhancedRCServiceModel() *E2ServiceModel {
 				"RRM_optimization",
 
 				"Beamforming_control",
-
 			},
 
 			"control_outcomes": []string{
@@ -800,32 +689,27 @@ func CreateEnhancedRCServiceModel() *E2ServiceModel {
 				"partial",
 
 				"timeout",
-
 			},
 
-			"control_granularity":     []string{"cell", "ue", "slice", "beam"},
+			"control_granularity": []string{"cell", "ue", "slice", "beam"},
 
-			"control_frequency":       "on_demand",
+			"control_frequency": "on_demand",
 
-			"supported_ran_types":     []string{"gNB", "ng-eNB", "en-gNB"},
+			"supported_ran_types": []string{"gNB", "ng-eNB", "en-gNB"},
 
 			"max_concurrent_controls": 50,
 
-			"control_timeout":         "5s",
+			"control_timeout": "5s",
 
 			"acknowledgment_required": true,
 
-			"rollback_supported":      true,
+			"rollback_supported": true,
 
 			"batch_control_supported": false,
-
 		},
-
 	}
 
 }
-
-
 
 // CreateReportServiceModel creates a generic Report service model for custom data structures.
 
@@ -833,13 +717,13 @@ func CreateReportServiceModel() *E2ServiceModel {
 
 	return &E2ServiceModel{
 
-		ServiceModelID:      "1.3.6.1.4.1.53148.1.1.2.4",
+		ServiceModelID: "1.3.6.1.4.1.53148.1.1.2.4",
 
-		ServiceModelName:    "REPORT",
+		ServiceModelName: "REPORT",
 
 		ServiceModelVersion: "1.0",
 
-		ServiceModelOID:     "1.3.6.1.4.1.53148.1.1.2.4",
+		ServiceModelOID: "1.3.6.1.4.1.53148.1.1.2.4",
 
 		SupportedProcedures: []string{
 
@@ -848,7 +732,6 @@ func CreateReportServiceModel() *E2ServiceModel {
 			"RIC_SUBSCRIPTION_DELETE",
 
 			"RIC_INDICATION",
-
 		},
 
 		Configuration: map[string]interface{}{
@@ -866,52 +749,41 @@ func CreateReportServiceModel() *E2ServiceModel {
 				"security_management",
 
 				"custom_analytics",
-
 			},
 
-			"data_formats":           []string{"JSON", "XML", "BINARY", "ASN1_PER"},
+			"data_formats": []string{"JSON", "XML", "BINARY", "ASN1_PER"},
 
-			"reporting_frequency":    []string{"on_demand", "periodic", "event_driven"},
+			"reporting_frequency": []string{"on_demand", "periodic", "event_driven"},
 
-			"aggregation_supported":  true,
+			"aggregation_supported": true,
 
-			"filtering_supported":    true,
+			"filtering_supported": true,
 
-			"compression_supported":  true,
+			"compression_supported": true,
 
-			"encryption_supported":   false,
+			"encryption_supported": false,
 
-			"max_report_size":        "1MB",
+			"max_report_size": "1MB",
 
 			"max_concurrent_reports": 200,
-
 		},
-
 	}
 
 }
 
-
-
 // Service model plugin interface implementations.
-
-
 
 // KMPServiceModelPlugin implements KMP-specific processing.
 
 type KMPServiceModelPlugin struct {
+	name string
 
-	name       string
-
-	version    string
+	version string
 
 	processors map[string]func(context.Context, interface{}) (interface{}, error)
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewKMPServiceModelPlugin creates a new KMP service model plugin.
 
@@ -919,15 +791,12 @@ func NewKMPServiceModelPlugin() *KMPServiceModelPlugin {
 
 	plugin := &KMPServiceModelPlugin{
 
-		name:       "KMP",
+		name: "KMP",
 
-		version:    "2.0",
+		version: "2.0",
 
 		processors: make(map[string]func(context.Context, interface{}) (interface{}, error)),
-
 	}
-
-
 
 	// Register processors.
 
@@ -935,13 +804,9 @@ func NewKMPServiceModelPlugin() *KMPServiceModelPlugin {
 
 	plugin.processors["RIC_INDICATION"] = plugin.processIndication
 
-
-
 	return plugin
 
 }
-
-
 
 // GetName performs getname operation.
 
@@ -951,8 +816,6 @@ func (p *KMPServiceModelPlugin) GetName() string {
 
 }
 
-
-
 // GetVersion performs getversion operation.
 
 func (p *KMPServiceModelPlugin) GetVersion() string {
@@ -960,8 +823,6 @@ func (p *KMPServiceModelPlugin) GetVersion() string {
 	return p.version
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -979,8 +840,6 @@ func (p *KMPServiceModelPlugin) Validate(serviceModel *E2ServiceModel) error {
 
 }
 
-
-
 // Process performs process operation.
 
 func (p *KMPServiceModelPlugin) Process(ctx context.Context, request interface{}) (interface{}, error) {
@@ -988,8 +847,6 @@ func (p *KMPServiceModelPlugin) Process(ctx context.Context, request interface{}
 	p.mutex.RLock()
 
 	defer p.mutex.RUnlock()
-
-
 
 	// Determine request type and route to appropriate processor.
 
@@ -1017,13 +874,9 @@ func (p *KMPServiceModelPlugin) Process(ctx context.Context, request interface{}
 
 	}
 
-
-
 	return nil, fmt.Errorf("no processor found for request")
 
 }
-
-
 
 // GetSupportedProcedures performs getsupportedprocedures operation.
 
@@ -1032,8 +885,6 @@ func (p *KMPServiceModelPlugin) GetSupportedProcedures() []string {
 	return []string{"RIC_SUBSCRIPTION", "RIC_SUBSCRIPTION_DELETE", "RIC_INDICATION"}
 
 }
-
-
 
 func (p *KMPServiceModelPlugin) processSubscription(ctx context.Context, request interface{}) (interface{}, error) {
 
@@ -1044,8 +895,6 @@ func (p *KMPServiceModelPlugin) processSubscription(ctx context.Context, request
 		return nil, fmt.Errorf("invalid request type for subscription processor")
 
 	}
-
-
 
 	// KMP-specific subscription processing.
 
@@ -1059,8 +908,6 @@ func (p *KMPServiceModelPlugin) processSubscription(ctx context.Context, request
 
 	}
 
-
-
 	// Validate KMP measurement configuration.
 
 	measurementTypes, ok := eventTrigger["measurement_types"].([]interface{})
@@ -1070,8 +917,6 @@ func (p *KMPServiceModelPlugin) processSubscription(ctx context.Context, request
 		return nil, fmt.Errorf("invalid measurement_types in event trigger")
 
 	}
-
-
 
 	// Process measurement types.
 
@@ -1087,23 +932,19 @@ func (p *KMPServiceModelPlugin) processSubscription(ctx context.Context, request
 
 	}
 
-
-
 	// Return processed subscription response.
 
 	return &RICSubscriptionResponse{
 
-		RICRequestID:          req.RICRequestID,
+		RICRequestID: req.RICRequestID,
 
-		RANFunctionID:         req.RANFunctionID,
+		RANFunctionID: req.RANFunctionID,
 
 		RICActionAdmittedList: []RICActionID{1}, // Assume action 1 is admitted
 
 	}, nil
 
 }
-
-
 
 func (p *KMPServiceModelPlugin) processIndication(ctx context.Context, request interface{}) (interface{}, error) {
 
@@ -1114,8 +955,6 @@ func (p *KMPServiceModelPlugin) processIndication(ctx context.Context, request i
 		return nil, fmt.Errorf("invalid request type for indication processor")
 
 	}
-
-
 
 	// KMP-specific indication processing.
 
@@ -1129,43 +968,32 @@ func (p *KMPServiceModelPlugin) processIndication(ctx context.Context, request i
 
 	}
 
-
-
 	// Process measurement data.
 
 	processedData := map[string]interface{}{
 
-		"timestamp":    time.Now(),
+		"timestamp": time.Now(),
 
 		"measurements": indicationData,
 
 		"processed_by": "KMP Plugin v" + p.version,
-
 	}
-
-
 
 	return processedData, nil
 
 }
 
-
-
 // RCServiceModelPlugin implements RC-specific processing.
 
 type RCServiceModelPlugin struct {
+	name string
 
-	name       string
-
-	version    string
+	version string
 
 	processors map[string]func(context.Context, interface{}) (interface{}, error)
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewRCServiceModelPlugin creates a new RC service model plugin.
 
@@ -1173,27 +1001,20 @@ func NewRCServiceModelPlugin() *RCServiceModelPlugin {
 
 	plugin := &RCServiceModelPlugin{
 
-		name:       "RC",
+		name: "RC",
 
-		version:    "1.1",
+		version: "1.1",
 
 		processors: make(map[string]func(context.Context, interface{}) (interface{}, error)),
-
 	}
-
-
 
 	// Register processors.
 
 	plugin.processors["RIC_CONTROL_REQUEST"] = plugin.processControlRequest
 
-
-
 	return plugin
 
 }
-
-
 
 // GetName performs getname operation.
 
@@ -1203,8 +1024,6 @@ func (p *RCServiceModelPlugin) GetName() string {
 
 }
 
-
-
 // GetVersion performs getversion operation.
 
 func (p *RCServiceModelPlugin) GetVersion() string {
@@ -1212,8 +1031,6 @@ func (p *RCServiceModelPlugin) GetVersion() string {
 	return p.version
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -1229,8 +1046,6 @@ func (p *RCServiceModelPlugin) Validate(serviceModel *E2ServiceModel) error {
 
 }
 
-
-
 // Process performs process operation.
 
 func (p *RCServiceModelPlugin) Process(ctx context.Context, request interface{}) (interface{}, error) {
@@ -1238,8 +1053,6 @@ func (p *RCServiceModelPlugin) Process(ctx context.Context, request interface{})
 	p.mutex.RLock()
 
 	defer p.mutex.RUnlock()
-
-
 
 	switch req := request.(type) {
 
@@ -1257,13 +1070,9 @@ func (p *RCServiceModelPlugin) Process(ctx context.Context, request interface{})
 
 	}
 
-
-
 	return nil, fmt.Errorf("no processor found for request")
 
 }
-
-
 
 // GetSupportedProcedures performs getsupportedprocedures operation.
 
@@ -1272,8 +1081,6 @@ func (p *RCServiceModelPlugin) GetSupportedProcedures() []string {
 	return []string{"RIC_CONTROL_REQUEST", "RIC_CONTROL_ACKNOWLEDGE", "RIC_CONTROL_FAILURE"}
 
 }
-
-
 
 func (p *RCServiceModelPlugin) processControlRequest(ctx context.Context, request interface{}) (interface{}, error) {
 
@@ -1284,8 +1091,6 @@ func (p *RCServiceModelPlugin) processControlRequest(ctx context.Context, reques
 		return nil, fmt.Errorf("invalid request type for control processor")
 
 	}
-
-
 
 	// RC-specific control processing.
 
@@ -1299,8 +1104,6 @@ func (p *RCServiceModelPlugin) processControlRequest(ctx context.Context, reques
 
 	}
 
-
-
 	var controlMessage map[string]interface{}
 
 	if err := json.Unmarshal(req.RICControlMessage, &controlMessage); err != nil {
@@ -1308,8 +1111,6 @@ func (p *RCServiceModelPlugin) processControlRequest(ctx context.Context, reques
 		return nil, fmt.Errorf("failed to parse control message: %w", err)
 
 	}
-
-
 
 	// Process control action.
 
@@ -1320,8 +1121,6 @@ func (p *RCServiceModelPlugin) processControlRequest(ctx context.Context, reques
 		return nil, fmt.Errorf("missing or invalid control action")
 
 	}
-
-
 
 	// Simulate control execution.
 
@@ -1343,33 +1142,26 @@ func (p *RCServiceModelPlugin) processControlRequest(ctx context.Context, reques
 
 	}
 
-
-
 	// Return control acknowledge.
 
 	outcomeData, _ := json.Marshal(map[string]interface{}{
 
-		"outcome":      outcome,
+		"outcome": outcome,
 
 		"processed_by": "RC Plugin v" + p.version,
 
-		"timestamp":    time.Now(),
-
+		"timestamp": time.Now(),
 	})
-
-
 
 	return &RICControlAcknowledge{
 
-		RICRequestID:      req.RICRequestID,
+		RICRequestID: req.RICRequestID,
 
-		RANFunctionID:     req.RANFunctionID,
+		RANFunctionID: req.RANFunctionID,
 
-		RICCallProcessID:  req.RICCallProcessID,
+		RICCallProcessID: req.RICCallProcessID,
 
 		RICControlOutcome: outcomeData,
-
 	}, nil
 
 }
-

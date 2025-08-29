@@ -1,71 +1,47 @@
 //go:build ignore
-
 // +build ignore
-
-
 
 // This is a standalone test file to verify ResponseCache Stop() functionality.
 
 // Run with: go run cache_test_minimal.go llm.go prompt_engine.go.
 
-
-
-
 package main
 
-
-
 import (
-
 	"fmt"
-
 	"runtime"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
-
 )
-
-
 
 // Copy of the essential types from llm.go for testing.
 
 type CacheEntry struct {
-
-	Response  string
+	Response string
 
 	Timestamp time.Time
 
-	HitCount  int64
-
+	HitCount int64
 }
-
-
 
 // ResponseCache represents a responsecache.
 
 type ResponseCache struct {
+	entries map[string]*CacheEntry
 
-	entries  map[string]*CacheEntry
+	mutex sync.RWMutex
 
-	mutex    sync.RWMutex
+	ttl time.Duration
 
-	ttl      time.Duration
+	maxSize int
 
-	maxSize  int
-
-	stopCh   chan struct{}
+	stopCh chan struct{}
 
 	stopOnce sync.Once
 
-	stopped  bool
-
+	stopped bool
 }
-
-
 
 // NewResponseCacheTest performs newresponsecachetest operation.
 
@@ -75,37 +51,28 @@ func NewResponseCacheTest(ttl time.Duration, maxSize int) *ResponseCache {
 
 		entries: make(map[string]*CacheEntry),
 
-		ttl:     ttl,
+		ttl: ttl,
 
 		maxSize: maxSize,
 
-		stopCh:  make(chan struct{}),
+		stopCh: make(chan struct{}),
 
 		stopped: false,
-
 	}
-
-
 
 	// Start cleanup routine.
 
 	go cache.cleanup()
 
-
-
 	return cache
 
 }
-
-
 
 func (c *ResponseCache) cleanup() {
 
 	ticker := time.NewTicker(time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -139,8 +106,6 @@ func (c *ResponseCache) cleanup() {
 
 }
 
-
-
 // Stop performs stop operation.
 
 func (c *ResponseCache) Stop() {
@@ -153,15 +118,11 @@ func (c *ResponseCache) Stop() {
 
 		c.mutex.Unlock()
 
-
-
 		close(c.stopCh)
 
 	})
 
 }
-
-
 
 // Get performs get operation.
 
@@ -171,15 +132,11 @@ func (c *ResponseCache) Get(key string) (string, bool) {
 
 	defer c.mutex.RUnlock()
 
-
-
 	if c.stopped {
 
 		return "", false
 
 	}
-
-
 
 	entry, exists := c.entries[key]
 
@@ -189,23 +146,17 @@ func (c *ResponseCache) Get(key string) (string, bool) {
 
 	}
 
-
-
 	if time.Since(entry.Timestamp) > c.ttl {
 
 		return "", false
 
 	}
 
-
-
 	entry.HitCount++
 
 	return entry.Response, true
 
 }
-
-
 
 // Set performs set operation.
 
@@ -215,15 +166,11 @@ func (c *ResponseCache) Set(key, response string) {
 
 	defer c.mutex.Unlock()
 
-
-
 	if c.stopped {
 
 		return
 
 	}
-
-
 
 	if len(c.entries) >= c.maxSize {
 
@@ -251,21 +198,16 @@ func (c *ResponseCache) Set(key, response string) {
 
 	}
 
-
-
 	c.entries[key] = &CacheEntry{
 
-		Response:  response,
+		Response: response,
 
 		Timestamp: time.Now(),
 
-		HitCount:  0,
-
+		HitCount: 0,
 	}
 
 }
-
-
 
 // Test functions.
 
@@ -273,17 +215,11 @@ func testBasicStopFunctionality() {
 
 	fmt.Println("Test 1: Basic Stop functionality")
 
-
-
 	cache := NewResponseCacheTest(5*time.Minute, 10)
-
-
 
 	// Test initial state.
 
 	stopped := cache.IsStopped()
-
-
 
 	if stopped {
 
@@ -293,13 +229,9 @@ func testBasicStopFunctionality() {
 
 	}
 
-
-
 	// Stop the cache.
 
 	cache.Stop()
-
-
 
 	// Check stopped state.
 
@@ -309,8 +241,6 @@ func testBasicStopFunctionality() {
 
 	cache.mutex.RUnlock()
 
-
-
 	if !stopped {
 
 		fmt.Println("FAIL: Cache should be stopped after calling Stop()")
@@ -318,8 +248,6 @@ func testBasicStopFunctionality() {
 		return
 
 	}
-
-
 
 	// Check channel is closed.
 
@@ -337,23 +265,15 @@ func testBasicStopFunctionality() {
 
 	}
 
-
-
 	fmt.Println("PASS: Basic Stop functionality works")
 
 }
-
-
 
 func testMultipleStopCalls() {
 
 	fmt.Println("Test 2: Multiple Stop calls safety")
 
-
-
 	cache := NewResponseCacheTest(5*time.Minute, 10)
-
-
 
 	// Multiple sequential calls should not panic.
 
@@ -362,8 +282,6 @@ func testMultipleStopCalls() {
 	cache.Stop()
 
 	cache.Stop()
-
-
 
 	// Concurrent calls should not panic.
 
@@ -383,15 +301,9 @@ func testMultipleStopCalls() {
 
 	}
 
-
-
 	wg.Wait()
 
-
-
 	stopped := cache.IsStopped()
-
-
 
 	if !stopped {
 
@@ -401,43 +313,29 @@ func testMultipleStopCalls() {
 
 	}
 
-
-
 	fmt.Println("PASS: Multiple Stop calls handled safely")
 
 }
-
-
 
 func testCacheFunctionalityBeforeStop() {
 
 	fmt.Println("Test 3: Cache functionality before Stop")
 
-
-
 	cache := NewResponseCacheTest(5*time.Minute, 10)
 
 	defer cache.Stop()
-
-
 
 	key := "test-key"
 
 	value := "test-value"
 
-
-
 	// Store value.
 
 	cache.Set(key, value)
 
-
-
 	// Retrieve value.
 
 	retrieved, found := cache.Get(key)
-
-
 
 	if !found {
 
@@ -447,8 +345,6 @@ func testCacheFunctionalityBeforeStop() {
 
 	}
 
-
-
 	if retrieved != value {
 
 		fmt.Printf("FAIL: Expected value %s, got %s\n", value, retrieved)
@@ -457,35 +353,23 @@ func testCacheFunctionalityBeforeStop() {
 
 	}
 
-
-
 	fmt.Println("PASS: Cache functionality works before Stop")
 
 }
-
-
 
 func testCacheFunctionalityAfterStop() {
 
 	fmt.Println("Test 4: Cache functionality after Stop")
 
-
-
 	cache := NewResponseCacheTest(5*time.Minute, 10)
-
-
 
 	key := "test-key"
 
 	value := "test-value"
 
-
-
 	// Store value before stop.
 
 	cache.Set(key, value)
-
-
 
 	// Verify it's retrievable.
 
@@ -499,13 +383,9 @@ func testCacheFunctionalityAfterStop() {
 
 	}
 
-
-
 	// Stop the cache.
 
 	cache.Stop()
-
-
 
 	// Should not be retrievable after stop.
 
@@ -519,8 +399,6 @@ func testCacheFunctionalityAfterStop() {
 
 	}
 
-
-
 	if retrieved != "" {
 
 		fmt.Println("FAIL: Retrieved value should be empty after Stop()")
@@ -529,35 +407,23 @@ func testCacheFunctionalityAfterStop() {
 
 	}
 
-
-
 	fmt.Println("PASS: Cache functionality correctly blocked after Stop")
 
 }
-
-
 
 func testGoroutineTermination() {
 
 	fmt.Println("Test 5: Goroutine termination")
 
-
-
 	initialGoroutines := runtime.NumGoroutine()
 
-
-
 	cache := NewResponseCacheTest(100*time.Millisecond, 10)
-
-
 
 	// Wait for goroutine to start.
 
 	time.Sleep(50 * time.Millisecond)
 
 	afterCreateGoroutines := runtime.NumGoroutine()
-
-
 
 	if afterCreateGoroutines <= initialGoroutines {
 
@@ -567,13 +433,9 @@ func testGoroutineTermination() {
 
 	}
 
-
-
 	// Stop the cache.
 
 	cache.Stop()
-
-
 
 	// Wait for goroutine to terminate.
 
@@ -593,39 +455,27 @@ func testGoroutineTermination() {
 
 	}
 
-
-
 	finalGoroutines := runtime.NumGoroutine()
 
 	fmt.Printf("INFO: Goroutine counts - Initial: %d, After create: %d, Final: %d\n",
 
 		initialGoroutines, afterCreateGoroutines, finalGoroutines)
 
-
-
 	fmt.Println("PASS: Goroutine termination test completed")
 
 }
-
-
 
 func testConcurrentAccess() {
 
 	fmt.Println("Test 6: Concurrent access scenarios")
 
-
-
 	cache := NewResponseCacheTest(5*time.Minute, 100)
-
-
 
 	var wg sync.WaitGroup
 
 	numWorkers := 10
 
 	numOperations := 20
-
-
 
 	// Start concurrent workers.
 
@@ -637,15 +487,11 @@ func testConcurrentAccess() {
 
 			defer wg.Done()
 
-
-
 			for j := 0; j < numOperations; j++ {
 
 				key := fmt.Sprintf("worker-%d-key-%d", workerID, j)
 
 				value := fmt.Sprintf("worker-%d-value-%d", workerID, j)
-
-
 
 				cache.Set(key, value)
 
@@ -656,8 +502,6 @@ func testConcurrentAccess() {
 		}(i)
 
 	}
-
-
 
 	// Stop during concurrent operations.
 
@@ -675,11 +519,7 @@ func testConcurrentAccess() {
 
 	}()
 
-
-
 	wg.Wait()
-
-
 
 	// Ensure stop was called.
 
@@ -689,11 +529,7 @@ func testConcurrentAccess() {
 
 	}
 
-
-
 	stopped := cache.IsStopped()
-
-
 
 	if !stopped {
 
@@ -703,37 +539,25 @@ func testConcurrentAccess() {
 
 	}
 
-
-
 	fmt.Println("PASS: Concurrent access handled safely")
 
 }
-
-
 
 func testTTLFunctionality() {
 
 	fmt.Println("Test 7: TTL functionality")
 
-
-
 	cache := NewResponseCacheTest(50*time.Millisecond, 10)
 
 	defer cache.Stop()
-
-
 
 	key := "ttl-test"
 
 	value := "ttl-value"
 
-
-
 	// Store value.
 
 	cache.Set(key, value)
-
-
 
 	// Should be retrievable immediately.
 
@@ -747,13 +571,9 @@ func testTTLFunctionality() {
 
 	}
 
-
-
 	// Wait for TTL to expire.
 
 	time.Sleep(100 * time.Millisecond)
-
-
 
 	// Should no longer be retrievable.
 
@@ -767,25 +587,17 @@ func testTTLFunctionality() {
 
 	}
 
-
-
 	fmt.Println("PASS: TTL functionality works correctly")
 
 }
-
-
 
 func testMaxSizeEnforcement() {
 
 	fmt.Println("Test 8: Max size enforcement")
 
-
-
 	cache := NewResponseCacheTest(5*time.Minute, 2)
 
 	defer cache.Stop()
-
-
 
 	// Add entries up to limit.
 
@@ -795,15 +607,11 @@ func testMaxSizeEnforcement() {
 
 	cache.Set("key2", "value2")
 
-
-
 	// Both should be present.
 
 	_, found1 := cache.Get("key1")
 
 	_, found2 := cache.Get("key2")
-
-
 
 	if !found1 || !found2 {
 
@@ -813,19 +621,13 @@ func testMaxSizeEnforcement() {
 
 	}
 
-
-
 	// Small delay to ensure timestamp difference.
 
 	time.Sleep(1 * time.Millisecond)
 
-
-
 	// Add third entry - should evict oldest (key1).
 
 	cache.Set("key3", "value3")
-
-
 
 	// key3 should be present.
 
@@ -839,23 +641,17 @@ func testMaxSizeEnforcement() {
 
 	}
 
-
-
 	// Check what's in the cache.
 
 	_, found1After := cache.Get("key1")
 
 	_, found2After := cache.Get("key2")
 
-
-
 	cache.mutex.RLock()
 
 	cacheSize := len(cache.entries)
 
 	cache.mutex.RUnlock()
-
-
 
 	if cacheSize > 2 {
 
@@ -865,8 +661,6 @@ func testMaxSizeEnforcement() {
 
 	}
 
-
-
 	if found1After && found2After {
 
 		fmt.Println("FAIL: At least one original entry should have been evicted")
@@ -875,21 +669,15 @@ func testMaxSizeEnforcement() {
 
 	}
 
-
-
 	fmt.Println("PASS: Max size enforcement works correctly")
 
 }
-
-
 
 func main() {
 
 	fmt.Println("Running ResponseCache Stop() method comprehensive tests")
 
 	fmt.Println("============================================================")
-
-
 
 	testBasicStopFunctionality()
 
@@ -907,15 +695,11 @@ func main() {
 
 	testMaxSizeEnforcement()
 
-
-
 	fmt.Println("============================================================")
 
 	fmt.Println("All tests completed successfully!")
 
 }
-
-
 
 // IsStopped returns whether the cache is stopped.
 
@@ -928,4 +712,3 @@ func (c *ResponseCache) IsStopped() bool {
 	return c.stopped
 
 }
-

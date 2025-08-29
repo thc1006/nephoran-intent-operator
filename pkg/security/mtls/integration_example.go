@@ -1,47 +1,29 @@
-
 package mtls
 
-
-
 import (
-
 	"context"
-
 	"crypto/x509"
-
 	"encoding/pem"
-
 	"fmt"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/security/ca"
-
 )
-
-
 
 // IntegrationManager provides a comprehensive mTLS integration example.
 
 type IntegrationManager struct {
+	config *config.Config
 
-	config          *config.Config
+	logger *logging.StructuredLogger
 
-	logger          *logging.StructuredLogger
-
-	caManager       *ca.CAManager
+	caManager *ca.CAManager
 
 	identityManager *IdentityManager
 
-	monitor         *MTLSMonitor
-
-
+	monitor *MTLSMonitor
 
 	// Service clients and servers.
 
@@ -53,29 +35,20 @@ type IntegrationManager struct {
 
 	ragServer *Server
 
-
-
-	ctx    context.Context
+	ctx context.Context
 
 	cancel context.CancelFunc
-
 }
-
-
 
 // IntegrationConfig holds configuration for the integration manager.
 
 type IntegrationConfig struct {
+	Config *config.Config
 
-	Config    *config.Config
-
-	Logger    *logging.StructuredLogger
+	Logger *logging.StructuredLogger
 
 	CAManager *ca.CAManager
-
 }
-
-
 
 // NewIntegrationManager creates a comprehensive mTLS integration manager.
 
@@ -87,27 +60,20 @@ func NewIntegrationManager(config *IntegrationConfig) (*IntegrationManager, erro
 
 	}
 
-
-
 	ctx, cancel := context.WithCancel(context.Background())
-
-
 
 	manager := &IntegrationManager{
 
-		config:    config.Config,
+		config: config.Config,
 
-		logger:    config.Logger,
+		logger: config.Logger,
 
 		caManager: config.CAManager,
 
-		ctx:       ctx,
+		ctx: ctx,
 
-		cancel:    cancel,
-
+		cancel: cancel,
 	}
-
-
 
 	// Initialize components.
 
@@ -119,17 +85,11 @@ func NewIntegrationManager(config *IntegrationConfig) (*IntegrationManager, erro
 
 	}
 
-
-
 	config.Logger.Info("mTLS integration manager initialized successfully")
-
-
 
 	return manager, nil
 
 }
-
-
 
 // initializeComponents initializes all mTLS components.
 
@@ -143,8 +103,6 @@ func (m *IntegrationManager) initializeComponents() error {
 
 	}
 
-
-
 	// Initialize Monitor.
 
 	if err := m.initializeMonitor(); err != nil {
@@ -152,8 +110,6 @@ func (m *IntegrationManager) initializeComponents() error {
 		return fmt.Errorf("failed to initialize monitor: %w", err)
 
 	}
-
-
 
 	// Initialize Service Clients and Servers.
 
@@ -163,13 +119,9 @@ func (m *IntegrationManager) initializeComponents() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // initializeIdentityManager initializes the identity manager.
 
@@ -183,33 +135,28 @@ func (m *IntegrationManager) initializeIdentityManager() error {
 
 	}
 
-
-
 	identityConfig := &IdentityManagerConfig{
 
-		CAManager:               m.caManager,
+		CAManager: m.caManager,
 
-		BaseDir:                 m.config.MTLSConfig.CertificateBaseDir,
+		BaseDir: m.config.MTLSConfig.CertificateBaseDir,
 
-		DefaultTenantID:         m.config.MTLSConfig.TenantID,
+		DefaultTenantID: m.config.MTLSConfig.TenantID,
 
-		DefaultPolicyTemplate:   m.config.MTLSConfig.PolicyTemplate,
+		DefaultPolicyTemplate: m.config.MTLSConfig.PolicyTemplate,
 
 		DefaultValidityDuration: m.config.MTLSConfig.ValidityDuration,
 
-		RenewalThreshold:        m.config.MTLSConfig.RenewalThreshold,
+		RenewalThreshold: m.config.MTLSConfig.RenewalThreshold,
 
-		RotationInterval:        m.config.MTLSConfig.RotationInterval,
+		RotationInterval: m.config.MTLSConfig.RotationInterval,
 
-		CleanupInterval:         1 * time.Hour,
+		CleanupInterval: 1 * time.Hour,
 
-		MaxIdentities:           1000,
+		MaxIdentities: 1000,
 
-		BackupEnabled:           true,
-
+		BackupEnabled: true,
 	}
-
-
 
 	var err error
 
@@ -221,8 +168,6 @@ func (m *IntegrationManager) initializeIdentityManager() error {
 
 	}
 
-
-
 	// Create service identities.
 
 	if err := m.createServiceIdentities(); err != nil {
@@ -231,21 +176,15 @@ func (m *IntegrationManager) initializeIdentityManager() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // initializeMonitor initializes the mTLS monitor.
 
 func (m *IntegrationManager) initializeMonitor() error {
 
 	m.monitor = NewMTLSMonitor(m.logger)
-
-
 
 	// Track certificates if identity manager is available.
 
@@ -282,7 +221,6 @@ func (m *IntegrationManager) initializeMonitor() error {
 					identity.CertPath,
 
 					cert,
-
 				)
 
 			}
@@ -291,13 +229,9 @@ func (m *IntegrationManager) initializeMonitor() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // initializeServices initializes mTLS-enabled services.
 
@@ -311,8 +245,6 @@ func (m *IntegrationManager) initializeServices() error {
 
 	}
 
-
-
 	// Initialize LLM service client and server.
 
 	if err := m.initializeLLMService(); err != nil {
@@ -320,8 +252,6 @@ func (m *IntegrationManager) initializeServices() error {
 		return fmt.Errorf("failed to initialize LLM service: %w", err)
 
 	}
-
-
 
 	// Initialize RAG service client and server.
 
@@ -331,13 +261,9 @@ func (m *IntegrationManager) initializeServices() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // initializeLLMService initializes the LLM service with mTLS.
 
@@ -351,51 +277,46 @@ func (m *IntegrationManager) initializeLLMService() error {
 
 	}
 
-
-
 	// Create LLM client.
 
 	clientConfig := &ClientConfig{
 
-		ServiceName:          llmConfig.ServiceName,
+		ServiceName: llmConfig.ServiceName,
 
-		TenantID:             m.config.MTLSConfig.TenantID,
+		TenantID: m.config.MTLSConfig.TenantID,
 
-		ClientCertPath:       llmConfig.ClientCertPath,
+		ClientCertPath: llmConfig.ClientCertPath,
 
-		ClientKeyPath:        llmConfig.ClientKeyPath,
+		ClientKeyPath: llmConfig.ClientKeyPath,
 
-		CACertPath:           llmConfig.CACertPath,
+		CACertPath: llmConfig.CACertPath,
 
-		ServerName:           llmConfig.ServerName,
+		ServerName: llmConfig.ServerName,
 
-		InsecureSkipVerify:   llmConfig.InsecureSkipVerify,
+		InsecureSkipVerify: llmConfig.InsecureSkipVerify,
 
-		DialTimeout:          llmConfig.DialTimeout,
+		DialTimeout: llmConfig.DialTimeout,
 
-		MaxIdleConns:         llmConfig.MaxIdleConns,
+		MaxIdleConns: llmConfig.MaxIdleConns,
 
-		MaxConnsPerHost:      llmConfig.MaxConnsPerHost,
+		MaxConnsPerHost: llmConfig.MaxConnsPerHost,
 
-		IdleConnTimeout:      llmConfig.IdleConnTimeout,
+		IdleConnTimeout: llmConfig.IdleConnTimeout,
 
 		CertValidityDuration: m.config.MTLSConfig.ValidityDuration,
 
-		RotationEnabled:      m.config.MTLSConfig.RotationEnabled,
+		RotationEnabled: m.config.MTLSConfig.RotationEnabled,
 
-		RotationInterval:     m.config.MTLSConfig.RotationInterval,
+		RotationInterval: m.config.MTLSConfig.RotationInterval,
 
-		RenewalThreshold:     m.config.MTLSConfig.RenewalThreshold,
+		RenewalThreshold: m.config.MTLSConfig.RenewalThreshold,
 
-		CAManager:            m.caManager,
+		CAManager: m.caManager,
 
-		AutoProvision:        m.config.MTLSConfig.AutoProvision,
+		AutoProvision: m.config.MTLSConfig.AutoProvision,
 
-		PolicyTemplate:       m.config.MTLSConfig.PolicyTemplate,
-
+		PolicyTemplate: m.config.MTLSConfig.PolicyTemplate,
 	}
-
-
 
 	var err error
 
@@ -407,63 +328,58 @@ func (m *IntegrationManager) initializeLLMService() error {
 
 	}
 
-
-
 	// Create LLM server.
 
 	serverConfig := &ServerConfig{
 
-		ServiceName:          llmConfig.ServiceName,
+		ServiceName: llmConfig.ServiceName,
 
-		TenantID:             m.config.MTLSConfig.TenantID,
+		TenantID: m.config.MTLSConfig.TenantID,
 
-		Address:              "0.0.0.0",
+		Address: "0.0.0.0",
 
-		Port:                 llmConfig.Port,
+		Port: llmConfig.Port,
 
-		ServerCertPath:       llmConfig.ServerCertPath,
+		ServerCertPath: llmConfig.ServerCertPath,
 
-		ServerKeyPath:        llmConfig.ServerKeyPath,
+		ServerKeyPath: llmConfig.ServerKeyPath,
 
-		CACertPath:           llmConfig.CACertPath,
+		CACertPath: llmConfig.CACertPath,
 
-		ClientCACertPath:     llmConfig.CACertPath,
+		ClientCACertPath: llmConfig.CACertPath,
 
 		CertValidityDuration: m.config.MTLSConfig.ValidityDuration,
 
-		ReadTimeout:          30 * time.Second,
+		ReadTimeout: 30 * time.Second,
 
-		WriteTimeout:         30 * time.Second,
+		WriteTimeout: 30 * time.Second,
 
-		IdleTimeout:          120 * time.Second,
+		IdleTimeout: 120 * time.Second,
 
 		ClientCertValidation: ClientCertRequiredVerify,
 
-		RotationEnabled:      m.config.MTLSConfig.RotationEnabled,
+		RotationEnabled: m.config.MTLSConfig.RotationEnabled,
 
-		RotationInterval:     m.config.MTLSConfig.RotationInterval,
+		RotationInterval: m.config.MTLSConfig.RotationInterval,
 
-		RenewalThreshold:     m.config.MTLSConfig.RenewalThreshold,
+		RenewalThreshold: m.config.MTLSConfig.RenewalThreshold,
 
-		CAManager:            m.caManager,
+		CAManager: m.caManager,
 
-		AutoProvision:        m.config.MTLSConfig.AutoProvision,
+		AutoProvision: m.config.MTLSConfig.AutoProvision,
 
-		PolicyTemplate:       m.config.MTLSConfig.PolicyTemplate,
+		PolicyTemplate: m.config.MTLSConfig.PolicyTemplate,
 
-		EnableHSTS:           m.config.MTLSConfig.EnableHSTS,
+		EnableHSTS: m.config.MTLSConfig.EnableHSTS,
 
-		HSTSMaxAge:           m.config.MTLSConfig.HSTSMaxAge,
+		HSTSMaxAge: m.config.MTLSConfig.HSTSMaxAge,
 
-		AllowedClientCNs:     llmConfig.AllowedClientCNs,
+		AllowedClientCNs: llmConfig.AllowedClientCNs,
 
-		AllowedClientOrgs:    llmConfig.AllowedClientOrgs,
+		AllowedClientOrgs: llmConfig.AllowedClientOrgs,
 
-		ClientCertRequired:   llmConfig.RequireClientCert,
-
+		ClientCertRequired: llmConfig.RequireClientCert,
 	}
-
-
 
 	m.llmServer, err = NewServer(serverConfig, m.logger)
 
@@ -472,8 +388,6 @@ func (m *IntegrationManager) initializeLLMService() error {
 		return fmt.Errorf("failed to create LLM server: %w", err)
 
 	}
-
-
 
 	// Start server in background.
 
@@ -487,17 +401,11 @@ func (m *IntegrationManager) initializeLLMService() error {
 
 	}()
 
-
-
 	m.logger.Info("LLM service initialized with mTLS")
-
-
 
 	return nil
 
 }
-
-
 
 // initializeRAGService initializes the RAG service with mTLS.
 
@@ -511,51 +419,46 @@ func (m *IntegrationManager) initializeRAGService() error {
 
 	}
 
-
-
 	// Create RAG client.
 
 	clientConfig := &ClientConfig{
 
-		ServiceName:          ragConfig.ServiceName,
+		ServiceName: ragConfig.ServiceName,
 
-		TenantID:             m.config.MTLSConfig.TenantID,
+		TenantID: m.config.MTLSConfig.TenantID,
 
-		ClientCertPath:       ragConfig.ClientCertPath,
+		ClientCertPath: ragConfig.ClientCertPath,
 
-		ClientKeyPath:        ragConfig.ClientKeyPath,
+		ClientKeyPath: ragConfig.ClientKeyPath,
 
-		CACertPath:           ragConfig.CACertPath,
+		CACertPath: ragConfig.CACertPath,
 
-		ServerName:           ragConfig.ServerName,
+		ServerName: ragConfig.ServerName,
 
-		InsecureSkipVerify:   ragConfig.InsecureSkipVerify,
+		InsecureSkipVerify: ragConfig.InsecureSkipVerify,
 
-		DialTimeout:          ragConfig.DialTimeout,
+		DialTimeout: ragConfig.DialTimeout,
 
-		MaxIdleConns:         ragConfig.MaxIdleConns,
+		MaxIdleConns: ragConfig.MaxIdleConns,
 
-		MaxConnsPerHost:      ragConfig.MaxConnsPerHost,
+		MaxConnsPerHost: ragConfig.MaxConnsPerHost,
 
-		IdleConnTimeout:      ragConfig.IdleConnTimeout,
+		IdleConnTimeout: ragConfig.IdleConnTimeout,
 
 		CertValidityDuration: m.config.MTLSConfig.ValidityDuration,
 
-		RotationEnabled:      m.config.MTLSConfig.RotationEnabled,
+		RotationEnabled: m.config.MTLSConfig.RotationEnabled,
 
-		RotationInterval:     m.config.MTLSConfig.RotationInterval,
+		RotationInterval: m.config.MTLSConfig.RotationInterval,
 
-		RenewalThreshold:     m.config.MTLSConfig.RenewalThreshold,
+		RenewalThreshold: m.config.MTLSConfig.RenewalThreshold,
 
-		CAManager:            m.caManager,
+		CAManager: m.caManager,
 
-		AutoProvision:        m.config.MTLSConfig.AutoProvision,
+		AutoProvision: m.config.MTLSConfig.AutoProvision,
 
-		PolicyTemplate:       m.config.MTLSConfig.PolicyTemplate,
-
+		PolicyTemplate: m.config.MTLSConfig.PolicyTemplate,
 	}
-
-
 
 	var err error
 
@@ -567,63 +470,58 @@ func (m *IntegrationManager) initializeRAGService() error {
 
 	}
 
-
-
 	// Create RAG server.
 
 	serverConfig := &ServerConfig{
 
-		ServiceName:          ragConfig.ServiceName,
+		ServiceName: ragConfig.ServiceName,
 
-		TenantID:             m.config.MTLSConfig.TenantID,
+		TenantID: m.config.MTLSConfig.TenantID,
 
-		Address:              "0.0.0.0",
+		Address: "0.0.0.0",
 
-		Port:                 ragConfig.Port,
+		Port: ragConfig.Port,
 
-		ServerCertPath:       ragConfig.ServerCertPath,
+		ServerCertPath: ragConfig.ServerCertPath,
 
-		ServerKeyPath:        ragConfig.ServerKeyPath,
+		ServerKeyPath: ragConfig.ServerKeyPath,
 
-		CACertPath:           ragConfig.CACertPath,
+		CACertPath: ragConfig.CACertPath,
 
-		ClientCACertPath:     ragConfig.CACertPath,
+		ClientCACertPath: ragConfig.CACertPath,
 
 		CertValidityDuration: m.config.MTLSConfig.ValidityDuration,
 
-		ReadTimeout:          30 * time.Second,
+		ReadTimeout: 30 * time.Second,
 
-		WriteTimeout:         30 * time.Second,
+		WriteTimeout: 30 * time.Second,
 
-		IdleTimeout:          120 * time.Second,
+		IdleTimeout: 120 * time.Second,
 
 		ClientCertValidation: ClientCertRequiredVerify,
 
-		RotationEnabled:      m.config.MTLSConfig.RotationEnabled,
+		RotationEnabled: m.config.MTLSConfig.RotationEnabled,
 
-		RotationInterval:     m.config.MTLSConfig.RotationInterval,
+		RotationInterval: m.config.MTLSConfig.RotationInterval,
 
-		RenewalThreshold:     m.config.MTLSConfig.RenewalThreshold,
+		RenewalThreshold: m.config.MTLSConfig.RenewalThreshold,
 
-		CAManager:            m.caManager,
+		CAManager: m.caManager,
 
-		AutoProvision:        m.config.MTLSConfig.AutoProvision,
+		AutoProvision: m.config.MTLSConfig.AutoProvision,
 
-		PolicyTemplate:       m.config.MTLSConfig.PolicyTemplate,
+		PolicyTemplate: m.config.MTLSConfig.PolicyTemplate,
 
-		EnableHSTS:           m.config.MTLSConfig.EnableHSTS,
+		EnableHSTS: m.config.MTLSConfig.EnableHSTS,
 
-		HSTSMaxAge:           m.config.MTLSConfig.HSTSMaxAge,
+		HSTSMaxAge: m.config.MTLSConfig.HSTSMaxAge,
 
-		AllowedClientCNs:     ragConfig.AllowedClientCNs,
+		AllowedClientCNs: ragConfig.AllowedClientCNs,
 
-		AllowedClientOrgs:    ragConfig.AllowedClientOrgs,
+		AllowedClientOrgs: ragConfig.AllowedClientOrgs,
 
-		ClientCertRequired:   ragConfig.RequireClientCert,
-
+		ClientCertRequired: ragConfig.RequireClientCert,
 	}
-
-
 
 	m.ragServer, err = NewServer(serverConfig, m.logger)
 
@@ -632,8 +530,6 @@ func (m *IntegrationManager) initializeRAGService() error {
 		return fmt.Errorf("failed to create RAG server: %w", err)
 
 	}
-
-
 
 	// Start server in background.
 
@@ -647,17 +543,11 @@ func (m *IntegrationManager) initializeRAGService() error {
 
 	}()
 
-
-
 	m.logger.Info("RAG service initialized with mTLS")
-
-
 
 	return nil
 
 }
-
-
 
 // createServiceIdentities creates service identities for all enabled services.
 
@@ -669,16 +559,12 @@ func (m *IntegrationManager) createServiceIdentities() error {
 
 	}
 
-
-
 	// Create identities for all enabled services.
 
 	services := []struct {
-
 		config *config.ServiceMTLSConfig
 
-		role   ServiceRole
-
+		role ServiceRole
 	}{
 
 		{m.config.MTLSConfig.Controller, RoleController},
@@ -696,10 +582,7 @@ func (m *IntegrationManager) createServiceIdentities() error {
 		{m.config.MTLSConfig.ORANAdaptor, RoleORANAdaptor},
 
 		{m.config.MTLSConfig.Monitoring, RoleMonitoring},
-
 	}
-
-
 
 	for _, service := range services {
 
@@ -712,7 +595,6 @@ func (m *IntegrationManager) createServiceIdentities() error {
 				service.role,
 
 				m.config.MTLSConfig.TenantID,
-
 			)
 
 			if err != nil {
@@ -739,13 +621,9 @@ func (m *IntegrationManager) createServiceIdentities() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetLLMClient returns the mTLS-enabled LLM client.
 
@@ -755,8 +633,6 @@ func (m *IntegrationManager) GetLLMClient() *Client {
 
 }
 
-
-
 // GetRAGClient returns the mTLS-enabled RAG client.
 
 func (m *IntegrationManager) GetRAGClient() *Client {
@@ -764,8 +640,6 @@ func (m *IntegrationManager) GetRAGClient() *Client {
 	return m.ragClient
 
 }
-
-
 
 // GetIdentityManager returns the identity manager.
 
@@ -775,8 +649,6 @@ func (m *IntegrationManager) GetIdentityManager() *IdentityManager {
 
 }
 
-
-
 // GetMonitor returns the mTLS monitor.
 
 func (m *IntegrationManager) GetMonitor() *MTLSMonitor {
@@ -784,8 +656,6 @@ func (m *IntegrationManager) GetMonitor() *MTLSMonitor {
 	return m.monitor
 
 }
-
-
 
 // GetMetrics returns comprehensive mTLS metrics.
 
@@ -797,13 +667,9 @@ func (m *IntegrationManager) GetMetrics() ([]*Metric, error) {
 
 	}
 
-
-
 	return m.monitor.GetMetrics()
 
 }
-
-
 
 // GetConnectionStats returns connection statistics.
 
@@ -815,13 +681,9 @@ func (m *IntegrationManager) GetConnectionStats() *ConnectionStats {
 
 	}
 
-
-
 	return m.monitor.GetConnectionStats()
 
 }
-
-
 
 // GetCertificateStats returns certificate statistics.
 
@@ -833,13 +695,9 @@ func (m *IntegrationManager) GetCertificateStats() *CertificateStats {
 
 	}
 
-
-
 	return m.monitor.GetCertificateStats()
 
 }
-
-
 
 // GetIdentityStats returns identity statistics.
 
@@ -851,13 +709,9 @@ func (m *IntegrationManager) GetIdentityStats() *IdentityStats {
 
 	}
 
-
-
 	return m.identityManager.GetStats()
 
 }
-
-
 
 // RotateAllCertificates rotates certificates for all services.
 
@@ -869,11 +723,7 @@ func (m *IntegrationManager) RotateAllCertificates(ctx context.Context) error {
 
 	}
 
-
-
 	identities := m.identityManager.ListServiceIdentities()
-
-
 
 	for _, identity := range identities {
 
@@ -884,7 +734,6 @@ func (m *IntegrationManager) RotateAllCertificates(ctx context.Context) error {
 			identity.Role,
 
 			identity.TenantID,
-
 		)
 
 		if err != nil {
@@ -909,13 +758,9 @@ func (m *IntegrationManager) RotateAllCertificates(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Close gracefully shuts down the integration manager.
 
@@ -923,13 +768,9 @@ func (m *IntegrationManager) Close() error {
 
 	m.logger.Info("shutting down mTLS integration manager")
 
-
-
 	// Stop services.
 
 	m.cancel()
-
-
 
 	// Close clients.
 
@@ -945,8 +786,6 @@ func (m *IntegrationManager) Close() error {
 
 	}
 
-
-
 	// Close servers.
 
 	if m.llmServer != nil {
@@ -960,8 +799,6 @@ func (m *IntegrationManager) Close() error {
 		m.ragServer.Shutdown(context.Background())
 
 	}
-
-
 
 	// Close managers.
 
@@ -977,13 +814,9 @@ func (m *IntegrationManager) Close() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateConfiguration validates the mTLS configuration.
 
@@ -995,8 +828,6 @@ func (m *IntegrationManager) ValidateConfiguration() error {
 
 	}
 
-
-
 	if m.config.MTLSConfig.Enabled {
 
 		// Validate required fields when mTLS is enabled.
@@ -1007,15 +838,11 @@ func (m *IntegrationManager) ValidateConfiguration() error {
 
 		}
 
-
-
 		if m.config.MTLSConfig.CertificateBaseDir == "" {
 
 			return fmt.Errorf("certificate base directory is required when mTLS is enabled")
 
 		}
-
-
 
 		if m.config.MTLSConfig.AutoProvision && m.caManager == nil {
 
@@ -1025,13 +852,9 @@ func (m *IntegrationManager) ValidateConfiguration() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // loadCertificateFromPath loads an X.509 certificate from a PEM file.
 
@@ -1043,8 +866,6 @@ func loadCertificateFromPath(certPath string) (*x509.Certificate, error) {
 
 	}
 
-
-
 	// Load certificate data from file.
 
 	certData, err := loadCertificateFile(certPath)
@@ -1054,8 +875,6 @@ func loadCertificateFromPath(certPath string) (*x509.Certificate, error) {
 		return nil, fmt.Errorf("failed to load certificate file: %w", err)
 
 	}
-
-
 
 	// Decode PEM block.
 
@@ -1067,8 +886,6 @@ func loadCertificateFromPath(certPath string) (*x509.Certificate, error) {
 
 	}
 
-
-
 	// Parse X.509 certificate.
 
 	cert, err := x509.ParseCertificate(block.Bytes)
@@ -1079,21 +896,15 @@ func loadCertificateFromPath(certPath string) (*x509.Certificate, error) {
 
 	}
 
-
-
 	return cert, nil
 
 }
-
-
 
 // ExampleUsage demonstrates how to use the integration manager.
 
 func ExampleUsage() {
 
 	// This is an example of how to integrate mTLS into your application.
-
-
 
 	// 1. Load configuration.
 
@@ -1105,13 +916,9 @@ func ExampleUsage() {
 
 	}
 
-
-
 	// 2. Create logger.
 
 	logger := logging.NewStructuredLogger(logging.DefaultConfig("mtls-example", "1.0.0", "development"))
-
-
 
 	// 3. Initialize CA manager (assuming you have one).
 
@@ -1119,21 +926,16 @@ func ExampleUsage() {
 
 	// caManager = initializeCAManager() // Your CA manager initialization.
 
-
-
 	// 4. Create integration manager.
 
 	integrationConfig := &IntegrationConfig{
 
-		Config:    appConfig,
+		Config: appConfig,
 
-		Logger:    logger,
+		Logger: logger,
 
 		CAManager: caManager,
-
 	}
-
-
 
 	manager, err := NewIntegrationManager(integrationConfig)
 
@@ -1144,8 +946,6 @@ func ExampleUsage() {
 	}
 
 	defer manager.Close()
-
-
 
 	// 5. Use the manager to get mTLS-enabled clients.
 
@@ -1159,8 +959,6 @@ func ExampleUsage() {
 
 	}
 
-
-
 	ragClient := manager.GetRAGClient()
 
 	if ragClient != nil {
@@ -1171,8 +969,6 @@ func ExampleUsage() {
 
 	}
 
-
-
 	// 6. Monitor mTLS health.
 
 	go func() {
@@ -1180,8 +976,6 @@ func ExampleUsage() {
 		ticker := time.NewTicker(1 * time.Minute)
 
 		defer ticker.Stop()
-
-
 
 		for {
 
@@ -1201,8 +995,6 @@ func ExampleUsage() {
 
 				}
 
-
-
 				logger.Info("mTLS metrics collected",
 
 					"metric_count", len(metrics),
@@ -1217,13 +1009,8 @@ func ExampleUsage() {
 
 	}()
 
-
-
 	// Your application logic here...
-
-
 
 	logger.Info("Application running with comprehensive mTLS security")
 
 }
-

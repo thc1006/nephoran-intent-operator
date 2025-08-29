@@ -1,77 +1,52 @@
-
 package multicluster
 
-
-
 import (
-
 	"context"
-
 	"sync"
-
 	"time"
-
-
 
 	"github.com/go-logr/logr"
 
-
-
 	"k8s.io/apimachinery/pkg/types"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // HealthMonitor manages multi-cluster health monitoring.
 
 type HealthMonitor struct {
+	client client.Client
 
-	client         client.Client
+	logger logr.Logger
 
-	logger         logr.Logger
+	clusters map[types.NamespacedName]*ClusterHealthState
 
-	clusters       map[types.NamespacedName]*ClusterHealthState
-
-	clusterLock    sync.RWMutex
+	clusterLock sync.RWMutex
 
 	healthChannels map[types.NamespacedName]chan HealthUpdate
 
-	alertHandlers  []AlertHandler
-
+	alertHandlers []AlertHandler
 }
-
-
 
 // ClusterHealthState represents the comprehensive health state of a cluster.
 
 type ClusterHealthState struct {
+	Name types.NamespacedName
 
-	Name                types.NamespacedName
+	LastHealthCheck time.Time
 
-	LastHealthCheck     time.Time
+	OverallStatus HealthStatus
 
-	OverallStatus       HealthStatus
-
-	ComponentStatuses   map[string]ComponentHealth
+	ComponentStatuses map[string]ComponentHealth
 
 	ResourceUtilization ResourceUtilization
 
-	Alerts              []Alert
-
+	Alerts []Alert
 }
-
-
 
 // HealthStatus represents the overall health of a cluster.
 
 type HealthStatus string
-
-
 
 const (
 
@@ -90,66 +65,49 @@ const (
 	// HealthStatusUnreachable holds healthstatusunreachable value.
 
 	HealthStatusUnreachable HealthStatus = "Unreachable"
-
 )
-
-
 
 // ComponentHealth represents the health of a specific cluster component.
 
 type ComponentHealth struct {
+	Name string
 
-	Name       string
+	Status HealthStatus
 
-	Status     HealthStatus
-
-	LastCheck  time.Time
+	LastCheck time.Time
 
 	Conditions []string
-
 }
-
-
 
 // HealthUpdate provides real-time health information.
 
 type HealthUpdate struct {
-
 	ClusterName types.NamespacedName
 
-	Status      HealthStatus
+	Status HealthStatus
 
-	Timestamp   time.Time
+	Timestamp time.Time
 
-	Alerts      []Alert
-
+	Alerts []Alert
 }
-
-
 
 // Alert represents a health issue or potential problem.
 
 type Alert struct {
+	Severity AlertSeverity
 
-	Severity     AlertSeverity
+	Type AlertType
 
-	Type         AlertType
-
-	Message      string
+	Message string
 
 	ResourceName string
 
-	Timestamp    time.Time
-
+	Timestamp time.Time
 }
-
-
 
 // AlertSeverity defines the criticality of an alert.
 
 type AlertSeverity string
-
-
 
 const (
 
@@ -168,16 +126,11 @@ const (
 	// SeverityCritical holds severitycritical value.
 
 	SeverityCritical AlertSeverity = "Critical"
-
 )
-
-
 
 // AlertType categorizes different types of alerts.
 
 type AlertType string
-
-
 
 const (
 
@@ -200,20 +153,13 @@ const (
 	// AlertTypePerformanceDegred holds alerttypeperformancedegred value.
 
 	AlertTypePerformanceDegred AlertType = "PerformanceDegraded"
-
 )
-
-
 
 // AlertHandler processes health alerts.
 
 type AlertHandler interface {
-
 	HandleAlert(alert Alert)
-
 }
-
-
 
 // StartHealthMonitoring begins continuous health monitoring.
 
@@ -249,8 +195,6 @@ func (hm *HealthMonitor) StartHealthMonitoring(
 
 }
 
-
-
 // performClusterHealthCheck checks health of all registered clusters.
 
 func (hm *HealthMonitor) performClusterHealthCheck(ctx context.Context) {
@@ -258,8 +202,6 @@ func (hm *HealthMonitor) performClusterHealthCheck(ctx context.Context) {
 	hm.clusterLock.Lock()
 
 	defer hm.clusterLock.Unlock()
-
-
 
 	var wg sync.WaitGroup
 
@@ -271,13 +213,9 @@ func (hm *HealthMonitor) performClusterHealthCheck(ctx context.Context) {
 
 			defer wg.Done()
 
-
-
 			// Perform comprehensive health check.
 
 			newHealthState := hm.checkClusterHealth(ctx, name)
-
-
 
 			// Update cluster health state.
 
@@ -289,13 +227,9 @@ func (hm *HealthMonitor) performClusterHealthCheck(ctx context.Context) {
 
 			cluster.ResourceUtilization = newHealthState.ResourceUtilization
 
-
-
 			// Process alerts.
 
 			hm.processAlerts(newHealthState.Alerts)
-
-
 
 			// Notify health channels.
 
@@ -303,12 +237,11 @@ func (hm *HealthMonitor) performClusterHealthCheck(ctx context.Context) {
 
 				ClusterName: name,
 
-				Status:      newHealthState.OverallStatus,
+				Status: newHealthState.OverallStatus,
 
-				Timestamp:   time.Now(),
+				Timestamp: time.Now(),
 
-				Alerts:      newHealthState.Alerts,
-
+				Alerts: newHealthState.Alerts,
 			})
 
 		}(name, cluster)
@@ -318,8 +251,6 @@ func (hm *HealthMonitor) performClusterHealthCheck(ctx context.Context) {
 	wg.Wait()
 
 }
-
-
 
 // checkClusterHealth performs a comprehensive health evaluation.
 
@@ -335,25 +266,17 @@ func (hm *HealthMonitor) checkClusterHealth(
 
 	controlPlaneHealth := hm.checkControlPlaneComponents(ctx, clusterName)
 
-
-
 	// 2. Check node health.
 
 	nodeHealth := hm.checkNodeHealth(ctx, clusterName)
-
-
 
 	// 3. Check resource utilization.
 
 	resourceUtilization := hm.checkResourceUtilization(ctx, clusterName)
 
-
-
 	// 4. Check system pods.
 
 	systemPodsHealth := hm.checkSystemPods(ctx, clusterName)
-
-
 
 	// 5. Determine overall cluster health.
 
@@ -366,10 +289,7 @@ func (hm *HealthMonitor) checkClusterHealth(
 		systemPodsHealth,
 
 		resourceUtilization,
-
 	)
-
-
 
 	// 6. Generate alerts.
 
@@ -382,38 +302,31 @@ func (hm *HealthMonitor) checkClusterHealth(
 		systemPodsHealth,
 
 		resourceUtilization,
-
 	)
-
-
 
 	return &ClusterHealthState{
 
-		Name:            clusterName,
+		Name: clusterName,
 
 		LastHealthCheck: time.Now(),
 
-		OverallStatus:   overallStatus,
+		OverallStatus: overallStatus,
 
 		ComponentStatuses: map[string]ComponentHealth{
 
 			"ControlPlane": controlPlaneHealth,
 
-			"Nodes":        nodeHealth,
+			"Nodes": nodeHealth,
 
-			"SystemPods":   systemPodsHealth,
-
+			"SystemPods": systemPodsHealth,
 		},
 
 		ResourceUtilization: resourceUtilization,
 
-		Alerts:              alerts,
-
+		Alerts: alerts,
 	}
 
 }
-
-
 
 // Detailed health check methods.
 
@@ -431,8 +344,6 @@ func (hm *HealthMonitor) checkControlPlaneComponents(
 
 }
 
-
-
 func (hm *HealthMonitor) checkNodeHealth(
 
 	ctx context.Context,
@@ -446,8 +357,6 @@ func (hm *HealthMonitor) checkNodeHealth(
 	return ComponentHealth{}
 
 }
-
-
 
 func (hm *HealthMonitor) checkResourceUtilization(
 
@@ -463,8 +372,6 @@ func (hm *HealthMonitor) checkResourceUtilization(
 
 }
 
-
-
 func (hm *HealthMonitor) checkSystemPods(
 
 	ctx context.Context,
@@ -478,8 +385,6 @@ func (hm *HealthMonitor) checkSystemPods(
 	return ComponentHealth{}
 
 }
-
-
 
 // Determine overall cluster health based on individual component healths.
 
@@ -501,8 +406,6 @@ func (hm *HealthMonitor) determineOverallHealth(
 
 }
 
-
-
 // Generate alerts based on health check results.
 
 func (hm *HealthMonitor) generateHealthAlerts(
@@ -519,33 +422,26 @@ func (hm *HealthMonitor) generateHealthAlerts(
 
 	alerts := make([]Alert, 0)
 
-
-
 	// Add example alert generation logic.
 
 	if resources.CPUUsed/resources.CPUTotal > 0.9 {
 
 		alerts = append(alerts, Alert{
 
-			Severity:  SeverityWarning,
+			Severity: SeverityWarning,
 
-			Type:      AlertTypeResourcePressure,
+			Type: AlertTypeResourcePressure,
 
-			Message:   "High CPU utilization detected",
+			Message: "High CPU utilization detected",
 
 			Timestamp: time.Now(),
-
 		})
 
 	}
 
-
-
 	return alerts
 
 }
-
-
 
 // Process alerts using registered alert handlers.
 
@@ -563,8 +459,6 @@ func (hm *HealthMonitor) processAlerts(alerts []Alert) {
 
 }
 
-
-
 // Notify registered health channels about updates.
 
 func (hm *HealthMonitor) notifyHealthChannels(update HealthUpdate) {
@@ -572,8 +466,6 @@ func (hm *HealthMonitor) notifyHealthChannels(update HealthUpdate) {
 	hm.clusterLock.RLock()
 
 	defer hm.clusterLock.RUnlock()
-
-
 
 	// Notify all registered channels for this cluster.
 
@@ -597,8 +489,6 @@ func (hm *HealthMonitor) notifyHealthChannels(update HealthUpdate) {
 
 }
 
-
-
 // RegisterHealthChannel allows subscribing to health updates for a specific cluster.
 
 func (hm *HealthMonitor) RegisterHealthChannel(
@@ -611,8 +501,6 @@ func (hm *HealthMonitor) RegisterHealthChannel(
 
 	defer hm.clusterLock.Unlock()
 
-
-
 	ch := make(chan HealthUpdate, 100)
 
 	hm.healthChannels[clusterName] = ch
@@ -620,8 +508,6 @@ func (hm *HealthMonitor) RegisterHealthChannel(
 	return ch
 
 }
-
-
 
 // UnregisterHealthChannel removes a health update channel.
 
@@ -635,8 +521,6 @@ func (hm *HealthMonitor) UnregisterHealthChannel(
 
 	defer hm.clusterLock.Unlock()
 
-
-
 	if ch, exists := hm.healthChannels[clusterName]; exists {
 
 		close(ch)
@@ -647,8 +531,6 @@ func (hm *HealthMonitor) UnregisterHealthChannel(
 
 }
 
-
-
 // RegisterAlertHandler adds a new alert handler.
 
 func (hm *HealthMonitor) RegisterAlertHandler(handler AlertHandler) {
@@ -657,13 +539,9 @@ func (hm *HealthMonitor) RegisterAlertHandler(handler AlertHandler) {
 
 	defer hm.clusterLock.Unlock()
 
-
-
 	hm.alertHandlers = append(hm.alertHandlers, handler)
 
 }
-
-
 
 // NewHealthMonitor creates a new health monitor.
 
@@ -677,21 +555,18 @@ func NewHealthMonitor(
 
 	return &HealthMonitor{
 
-		client:         client,
+		client: client,
 
-		logger:         logger,
+		logger: logger,
 
-		clusters:       make(map[types.NamespacedName]*ClusterHealthState),
+		clusters: make(map[types.NamespacedName]*ClusterHealthState),
 
 		healthChannels: make(map[types.NamespacedName]chan HealthUpdate),
 
-		alertHandlers:  make([]AlertHandler, 0),
-
+		alertHandlers: make([]AlertHandler, 0),
 	}
 
 }
-
-
 
 // GetClusterHealthStates returns the cluster health states for testing purposes.
 
@@ -700,8 +575,6 @@ func (hm *HealthMonitor) GetClusterHealthStates() map[types.NamespacedName]*Clus
 	hm.clusterLock.RLock()
 
 	defer hm.clusterLock.RUnlock()
-
-
 
 	// Return a copy to avoid concurrent access issues.
 
@@ -717,8 +590,6 @@ func (hm *HealthMonitor) GetClusterHealthStates() map[types.NamespacedName]*Clus
 
 }
 
-
-
 // SetClusterHealthState sets a cluster health state for testing purposes.
 
 func (hm *HealthMonitor) SetClusterHealthState(name types.NamespacedName, state *ClusterHealthState) {
@@ -730,4 +601,3 @@ func (hm *HealthMonitor) SetClusterHealthState(name types.NamespacedName, state 
 	hm.clusters[name] = state
 
 }
-

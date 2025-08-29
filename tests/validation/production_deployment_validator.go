@@ -2,78 +2,49 @@
 
 // This validator targets 8/10 points for the production readiness category of the validation suite.
 
-
 package validation
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
-
-
 
 	"github.com/onsi/ginkgo/v2"
 
-
-
 	appsv1 "k8s.io/api/apps/v1"
-
 	corev1 "k8s.io/api/core/v1"
-
 	networkingv1 "k8s.io/api/networking/v1"
-
 	policyv1 "k8s.io/api/policy/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	"k8s.io/apimachinery/pkg/types"
-
 	"k8s.io/client-go/kubernetes"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // ProductionDeploymentValidator implements comprehensive production deployment validation.
 
 // Targets 8/10 points across high availability, fault tolerance, monitoring, and disaster recovery.
 
 type ProductionDeploymentValidator struct {
-
-	client    client.Client
+	client client.Client
 
 	clientset *kubernetes.Clientset
 
-	config    *ValidationConfig
+	config *ValidationConfig
 
 	// chaosEngine for resilience testing - placeholder for future chaos engineering integration.
 
 	chaosEngineEnabled bool
 
-
-
 	// Test metrics.
 
 	metrics *ProductionMetrics
 
-	mu      sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // ProductionMetrics tracks production deployment validation metrics.
 
@@ -81,93 +52,78 @@ type ProductionMetrics struct {
 
 	// High Availability Metrics (3 points).
 
-	AvailabilityPercentage   float64
+	AvailabilityPercentage float64
 
-	FailoverTime             time.Duration
+	FailoverTime time.Duration
 
 	CircuitBreakerFunctional bool
 
-	HealthChecksPassing      int
+	HealthChecksPassing int
 
-	LoadBalancerConfigured   bool
-
-
+	LoadBalancerConfigured bool
 
 	// Fault Tolerance Metrics (3 points).
 
-	ChaosTestsPassed        int
+	ChaosTestsPassed int
 
 	NetworkPartitionHandled bool
 
-	NodeFailureRecovery     bool
+	NodeFailureRecovery bool
 
 	DatabaseFailureHandling bool
 
-	ServiceMeshResilience   bool
-
-
+	ServiceMeshResilience bool
 
 	// Monitoring & Observability Metrics (2 points).
 
-	PrometheusMetrics      bool
+	PrometheusMetrics bool
 
-	LogAggregation         bool
+	LogAggregation bool
 
-	DistributedTracing     bool
+	DistributedTracing bool
 
 	AlertManagerConfigured bool
 
-	DashboardAccessible    bool
-
-
+	DashboardAccessible bool
 
 	// Deployment Scenarios.
 
-	BlueGreenDeployment  bool
+	BlueGreenDeployment bool
 
-	CanaryDeployment     bool
+	CanaryDeployment bool
 
 	RollingUpdateSuccess bool
 
 	ZeroDowntimeAchieved bool
 
-
-
 	// Infrastructure Validation.
 
-	RBACConfigured         bool
+	RBACConfigured bool
 
-	NetworkPoliciesActive  bool
+	NetworkPoliciesActive bool
 
 	ResourceQuotasEnforced bool
 
-	PodSecurityStandards   bool
+	PodSecurityStandards bool
 
-	StorageProvisioned     bool
-
+	StorageProvisioned bool
 }
-
-
 
 // DeploymentScenario represents different deployment scenarios to validate.
 
 type DeploymentScenario struct {
+	Name string
 
-	Name               string
+	Type string
 
-	Type               string
-
-	ExpectedDowntime   time.Duration
+	ExpectedDowntime time.Duration
 
 	HealthCheckTimeout time.Duration
 
-	RollbackSupported  bool
+	RollbackSupported bool
 
 	AutoScalingEnabled bool
-
 }
-
-
 
 // NewProductionDeploymentValidator creates a new production deployment validator.
 
@@ -175,21 +131,18 @@ func NewProductionDeploymentValidator(client client.Client, clientset *kubernete
 
 	return &ProductionDeploymentValidator{
 
-		client:             client,
+		client: client,
 
-		clientset:          clientset,
+		clientset: clientset,
 
-		config:             config,
+		config: config,
 
 		chaosEngineEnabled: false, // Placeholder for future chaos engineering integration
 
-		metrics:            &ProductionMetrics{},
-
+		metrics: &ProductionMetrics{},
 	}
 
 }
-
-
 
 // ValidateProductionReadiness executes comprehensive production deployment validation.
 
@@ -199,13 +152,9 @@ func (pdv *ProductionDeploymentValidator) ValidateProductionReadiness(ctx contex
 
 	ginkgo.By("Starting Production Deployment Validation Suite")
 
-
-
 	totalScore := 0
 
 	maxScore := 10
-
-
 
 	// Phase 1: High Availability Validation (3 points).
 
@@ -221,8 +170,6 @@ func (pdv *ProductionDeploymentValidator) ValidateProductionReadiness(ctx contex
 
 	ginkgo.By(fmt.Sprintf("High Availability Score: %d/3 points", haScore))
 
-
-
 	// Phase 2: Fault Tolerance Validation (3 points).
 
 	ftScore, err := pdv.validateFaultTolerance(ctx)
@@ -236,8 +183,6 @@ func (pdv *ProductionDeploymentValidator) ValidateProductionReadiness(ctx contex
 	totalScore += ftScore
 
 	ginkgo.By(fmt.Sprintf("Fault Tolerance Score: %d/3 points", ftScore))
-
-
 
 	// Phase 3: Monitoring & Observability Validation (2 points).
 
@@ -253,8 +198,6 @@ func (pdv *ProductionDeploymentValidator) ValidateProductionReadiness(ctx contex
 
 	ginkgo.By(fmt.Sprintf("Monitoring & Observability Score: %d/2 points", monScore))
 
-
-
 	// Phase 4: Disaster Recovery Validation (2 points).
 
 	drScore, err := pdv.validateDisasterRecovery(ctx)
@@ -269,17 +212,11 @@ func (pdv *ProductionDeploymentValidator) ValidateProductionReadiness(ctx contex
 
 	ginkgo.By(fmt.Sprintf("Disaster Recovery Score: %d/2 points", drScore))
 
-
-
 	ginkgo.By(fmt.Sprintf("Production Readiness Total Score: %d/%d points (Target: 8/10)", totalScore, maxScore))
-
-
 
 	return totalScore, nil
 
 }
-
-
 
 // validateHighAvailability tests high availability configurations and capabilities.
 
@@ -287,13 +224,9 @@ func (pdv *ProductionDeploymentValidator) validateHighAvailability(ctx context.C
 
 	ginkgo.By("Validating High Availability Configuration")
 
-
-
 	score := 0
 
 	maxScore := 3
-
-
 
 	// Test 1: Multi-zone deployment validation.
 
@@ -307,8 +240,6 @@ func (pdv *ProductionDeploymentValidator) validateHighAvailability(ctx context.C
 
 	}
 
-
-
 	// Test 2: Automatic failover testing.
 
 	failoverScore := pdv.validateAutomaticFailover(ctx)
@@ -320,8 +251,6 @@ func (pdv *ProductionDeploymentValidator) validateHighAvailability(ctx context.C
 		ginkgo.By("✓ Automatic failover validated")
 
 	}
-
-
 
 	// Test 3: Load balancer and health checks.
 
@@ -335,29 +264,21 @@ func (pdv *ProductionDeploymentValidator) validateHighAvailability(ctx context.C
 
 	}
 
-
-
 	pdv.mu.Lock()
 
 	pdv.metrics.AvailabilityPercentage = float64(score) / float64(maxScore) * 100
 
 	pdv.mu.Unlock()
 
-
-
 	return score, nil
 
 }
-
-
 
 // validateMultiZoneDeployment verifies deployments are spread across availability zones.
 
 func (pdv *ProductionDeploymentValidator) validateMultiZoneDeployment(ctx context.Context) int {
 
 	ginkgo.By("Validating multi-zone deployment configuration")
-
-
 
 	// Check for topology spread constraints in deployments.
 
@@ -370,8 +291,6 @@ func (pdv *ProductionDeploymentValidator) validateMultiZoneDeployment(ctx contex
 		return 0
 
 	}
-
-
 
 	zonesValidated := 0
 
@@ -391,8 +310,6 @@ func (pdv *ProductionDeploymentValidator) validateMultiZoneDeployment(ctx contex
 
 		}
 
-
-
 		// Check for pod disruption budgets.
 
 		if pdv.validatePodDisruptionBudget(ctx, deployment.Name, deployment.Namespace) {
@@ -402,8 +319,6 @@ func (pdv *ProductionDeploymentValidator) validateMultiZoneDeployment(ctx contex
 		}
 
 	}
-
-
 
 	if zonesValidated >= 2 {
 
@@ -415,8 +330,6 @@ func (pdv *ProductionDeploymentValidator) validateMultiZoneDeployment(ctx contex
 
 }
 
-
-
 // validatePodDisruptionBudget checks if PDB exists for the deployment.
 
 func (pdv *ProductionDeploymentValidator) validatePodDisruptionBudget(ctx context.Context, name, namespace string) bool {
@@ -424,8 +337,6 @@ func (pdv *ProductionDeploymentValidator) validatePodDisruptionBudget(ctx contex
 	pdb := &policyv1.PodDisruptionBudget{}
 
 	key := types.NamespacedName{Name: name + "-pdb", Namespace: namespace}
-
-
 
 	if err := pdv.client.Get(ctx, key, pdb); err != nil {
 
@@ -441,13 +352,9 @@ func (pdv *ProductionDeploymentValidator) validatePodDisruptionBudget(ctx contex
 
 	}
 
-
-
 	return pdb.Spec.MinAvailable != nil || pdb.Spec.MaxUnavailable != nil
 
 }
-
-
 
 // validateAutomaticFailover tests automatic failover mechanisms.
 
@@ -455,11 +362,7 @@ func (pdv *ProductionDeploymentValidator) validateAutomaticFailover(ctx context.
 
 	ginkgo.By("Testing automatic failover mechanisms")
 
-
-
 	score := 0
-
-
 
 	// Test circuit breaker functionality.
 
@@ -475,8 +378,6 @@ func (pdv *ProductionDeploymentValidator) validateAutomaticFailover(ctx context.
 
 	}
 
-
-
 	// Test readiness probe configuration.
 
 	if pdv.validateReadinessProbes(ctx) {
@@ -484,8 +385,6 @@ func (pdv *ProductionDeploymentValidator) validateAutomaticFailover(ctx context.
 		score++
 
 	}
-
-
 
 	// Measure failover time (simulated).
 
@@ -509,13 +408,9 @@ func (pdv *ProductionDeploymentValidator) validateAutomaticFailover(ctx context.
 
 	}
 
-
-
 	return score
 
 }
-
-
 
 // validateCircuitBreaker tests circuit breaker implementation.
 
@@ -530,8 +425,6 @@ func (pdv *ProductionDeploymentValidator) validateCircuitBreaker(ctx context.Con
 		return false
 
 	}
-
-
 
 	for _, deployment := range deployments.Items {
 
@@ -551,8 +444,6 @@ func (pdv *ProductionDeploymentValidator) validateCircuitBreaker(ctx context.Con
 
 		}
 
-
-
 		// Check for service mesh annotations (Istio circuit breaker).
 
 		if deployment.Spec.Template.Annotations != nil {
@@ -567,13 +458,9 @@ func (pdv *ProductionDeploymentValidator) validateCircuitBreaker(ctx context.Con
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // validateReadinessProbes ensures all containers have proper readiness probes.
 
@@ -587,13 +474,9 @@ func (pdv *ProductionDeploymentValidator) validateReadinessProbes(ctx context.Co
 
 	}
 
-
-
 	probesConfigured := 0
 
 	totalContainers := 0
-
-
 
 	for _, deployment := range deployments.Items {
 
@@ -611,23 +494,17 @@ func (pdv *ProductionDeploymentValidator) validateReadinessProbes(ctx context.Co
 
 	}
 
-
-
 	// Require at least 80% of containers to have readiness probes.
 
 	return float64(probesConfigured)/float64(totalContainers) >= 0.8
 
 }
 
-
-
 // simulateFailoverScenario simulates a failover scenario for testing.
 
 func (pdv *ProductionDeploymentValidator) simulateFailoverScenario(ctx context.Context) bool {
 
 	ginkgo.By("Simulating failover scenario")
-
-
 
 	// This would integrate with chaos engineering to simulate node failures.
 
@@ -636,8 +513,6 @@ func (pdv *ProductionDeploymentValidator) simulateFailoverScenario(ctx context.C
 	return pdv.validateFailoverPrerequisites(ctx)
 
 }
-
-
 
 // validateFailoverPrerequisites checks if failover prerequisites are configured.
 
@@ -653,8 +528,6 @@ func (pdv *ProductionDeploymentValidator) validateFailoverPrerequisites(ctx cont
 
 	}
 
-
-
 	// Verify multiple nodes are available.
 
 	if len(nodes.Items) < 2 {
@@ -662,8 +535,6 @@ func (pdv *ProductionDeploymentValidator) validateFailoverPrerequisites(ctx cont
 		return false
 
 	}
-
-
 
 	// Check for proper node scheduling constraints.
 
@@ -693,13 +564,9 @@ func (pdv *ProductionDeploymentValidator) validateFailoverPrerequisites(ctx cont
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // validateHealthChecksAndLoadBalancer validates health check and load balancer configuration.
 
@@ -707,11 +574,7 @@ func (pdv *ProductionDeploymentValidator) validateHealthChecksAndLoadBalancer(ct
 
 	ginkgo.By("Validating health checks and load balancer configuration")
 
-
-
 	score := 0
-
-
 
 	// Validate service configurations.
 
@@ -721,8 +584,6 @@ func (pdv *ProductionDeploymentValidator) validateHealthChecksAndLoadBalancer(ct
 
 	}
 
-
-
 	// Validate ingress configuration.
 
 	if pdv.validateIngressConfiguration(ctx) {
@@ -731,13 +592,9 @@ func (pdv *ProductionDeploymentValidator) validateHealthChecksAndLoadBalancer(ct
 
 	}
 
-
-
 	return score
 
 }
-
-
 
 // validateServiceConfiguration checks service and load balancer setup.
 
@@ -751,8 +608,6 @@ func (pdv *ProductionDeploymentValidator) validateServiceConfiguration(ctx conte
 
 	}
 
-
-
 	loadBalancerFound := false
 
 	for _, service := range services.Items {
@@ -760,8 +615,6 @@ func (pdv *ProductionDeploymentValidator) validateServiceConfiguration(ctx conte
 		if service.Spec.Type == corev1.ServiceTypeLoadBalancer {
 
 			loadBalancerFound = true
-
-
 
 			// Check if load balancer has been provisioned.
 
@@ -781,13 +634,9 @@ func (pdv *ProductionDeploymentValidator) validateServiceConfiguration(ctx conte
 
 	}
 
-
-
 	return loadBalancerFound
 
 }
-
-
 
 // validateIngressConfiguration validates ingress controller setup.
 
@@ -800,8 +649,6 @@ func (pdv *ProductionDeploymentValidator) validateIngressConfiguration(ctx conte
 		return false
 
 	}
-
-
 
 	for _, ingress := range ingresses.Items {
 
@@ -825,13 +672,9 @@ func (pdv *ProductionDeploymentValidator) validateIngressConfiguration(ctx conte
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // validateFaultTolerance tests fault tolerance using chaos engineering.
 
@@ -839,11 +682,7 @@ func (pdv *ProductionDeploymentValidator) validateFaultTolerance(ctx context.Con
 
 	ginkgo.By("Validating Fault Tolerance with Chaos Engineering")
 
-
-
 	score := 0
-
-
 
 	// Test 1: Network partition handling.
 
@@ -861,8 +700,6 @@ func (pdv *ProductionDeploymentValidator) validateFaultTolerance(ctx context.Con
 
 	}
 
-
-
 	// Test 2: Node failure recovery.
 
 	if pdv.testNodeFailureRecovery(ctx) {
@@ -878,8 +715,6 @@ func (pdv *ProductionDeploymentValidator) validateFaultTolerance(ctx context.Con
 		pdv.mu.Unlock()
 
 	}
-
-
 
 	// Test 3: Database connection failure resilience.
 
@@ -897,29 +732,21 @@ func (pdv *ProductionDeploymentValidator) validateFaultTolerance(ctx context.Con
 
 	}
 
-
-
 	pdv.mu.Lock()
 
 	pdv.metrics.ChaosTestsPassed = score
 
 	pdv.mu.Unlock()
 
-
-
 	return score, nil
 
 }
-
-
 
 // testNetworkPartitionHandling tests system behavior during network partitions.
 
 func (pdv *ProductionDeploymentValidator) testNetworkPartitionHandling(ctx context.Context) bool {
 
 	ginkgo.By("Testing network partition handling")
-
-
 
 	// Check for network policies that would prevent complete isolation.
 
@@ -930,8 +757,6 @@ func (pdv *ProductionDeploymentValidator) testNetworkPartitionHandling(ctx conte
 		return false
 
 	}
-
-
 
 	// Validate that egress rules allow for external dependencies.
 
@@ -963,21 +788,15 @@ func (pdv *ProductionDeploymentValidator) testNetworkPartitionHandling(ctx conte
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // testNodeFailureRecovery tests system recovery from node failures.
 
 func (pdv *ProductionDeploymentValidator) testNodeFailureRecovery(ctx context.Context) bool {
 
 	ginkgo.By("Testing node failure recovery mechanisms")
-
-
 
 	// Verify pod anti-affinity rules to ensure distribution.
 
@@ -989,8 +808,6 @@ func (pdv *ProductionDeploymentValidator) testNodeFailureRecovery(ctx context.Co
 
 	}
 
-
-
 	for _, deployment := range deployments.Items {
 
 		if deployment.Spec.Template.Spec.Affinity != nil &&
@@ -1000,8 +817,6 @@ func (pdv *ProductionDeploymentValidator) testNodeFailureRecovery(ctx context.Co
 			return true
 
 		}
-
-
 
 		// Check for replica count > 1.
 
@@ -1013,21 +828,15 @@ func (pdv *ProductionDeploymentValidator) testNodeFailureRecovery(ctx context.Co
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // testDatabaseFailureResilience tests database connection failure handling.
 
 func (pdv *ProductionDeploymentValidator) testDatabaseFailureResilience(ctx context.Context) bool {
 
 	ginkgo.By("Testing database connection failure resilience")
-
-
 
 	// Check for database connection pooling and retry configurations.
 
@@ -1038,8 +847,6 @@ func (pdv *ProductionDeploymentValidator) testDatabaseFailureResilience(ctx cont
 		return false
 
 	}
-
-
 
 	for _, deployment := range deployments.Items {
 
@@ -1065,13 +872,9 @@ func (pdv *ProductionDeploymentValidator) testDatabaseFailureResilience(ctx cont
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // validateMonitoringObservability validates monitoring and observability setup.
 
@@ -1079,11 +882,7 @@ func (pdv *ProductionDeploymentValidator) validateMonitoringObservability(ctx co
 
 	ginkgo.By("Validating Monitoring and Observability")
 
-
-
 	score := 0
-
-
 
 	// Test 1: Prometheus metrics collection.
 
@@ -1101,8 +900,6 @@ func (pdv *ProductionDeploymentValidator) validateMonitoringObservability(ctx co
 
 	}
 
-
-
 	// Test 2: Comprehensive observability stack.
 
 	if pdv.validateObservabilityStack(ctx) {
@@ -1113,13 +910,9 @@ func (pdv *ProductionDeploymentValidator) validateMonitoringObservability(ctx co
 
 	}
 
-
-
 	return score, nil
 
 }
-
-
 
 // validatePrometheusMetrics checks for Prometheus metrics configuration.
 
@@ -1131,15 +924,12 @@ func (pdv *ProductionDeploymentValidator) validatePrometheusMetrics(ctx context.
 
 	serviceMonitors.SetGroupVersionKind(schema.GroupVersionKind{
 
-		Group:   "monitoring.coreos.com",
+		Group: "monitoring.coreos.com",
 
 		Version: "v1",
 
-		Kind:    "ServiceMonitorList",
-
+		Kind: "ServiceMonitorList",
 	})
-
-
 
 	if err := pdv.client.List(ctx, serviceMonitors, client.InNamespace("nephoran-system")); err == nil {
 
@@ -1151,8 +941,6 @@ func (pdv *ProductionDeploymentValidator) validatePrometheusMetrics(ctx context.
 
 	}
 
-
-
 	// Check for metrics endpoints in services.
 
 	services := &corev1.ServiceList{}
@@ -1162,8 +950,6 @@ func (pdv *ProductionDeploymentValidator) validatePrometheusMetrics(ctx context.
 		return false
 
 	}
-
-
 
 	for _, service := range services.Items {
 
@@ -1179,21 +965,15 @@ func (pdv *ProductionDeploymentValidator) validatePrometheusMetrics(ctx context.
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // validateObservabilityStack validates the complete observability stack.
 
 func (pdv *ProductionDeploymentValidator) validateObservabilityStack(ctx context.Context) bool {
 
 	score := 0
-
-
 
 	// Check for log aggregation (ELK/EFK stack).
 
@@ -1209,8 +989,6 @@ func (pdv *ProductionDeploymentValidator) validateObservabilityStack(ctx context
 
 	}
 
-
-
 	// Check for distributed tracing (Jaeger).
 
 	if pdv.checkDistributedTracing(ctx) {
@@ -1224,8 +1002,6 @@ func (pdv *ProductionDeploymentValidator) validateObservabilityStack(ctx context
 		pdv.mu.Unlock()
 
 	}
-
-
 
 	// Check for alert manager.
 
@@ -1241,15 +1017,11 @@ func (pdv *ProductionDeploymentValidator) validateObservabilityStack(ctx context
 
 	}
 
-
-
 	// Require at least 2 of 3 observability components.
 
 	return score >= 2
 
 }
-
-
 
 // checkLogAggregation verifies log aggregation setup.
 
@@ -1264,8 +1036,6 @@ func (pdv *ProductionDeploymentValidator) checkLogAggregation(ctx context.Contex
 		return false
 
 	}
-
-
 
 	logComponents := []string{"elasticsearch", "fluentd", "kibana", "logstash", "filebeat"}
 
@@ -1287,13 +1057,9 @@ func (pdv *ProductionDeploymentValidator) checkLogAggregation(ctx context.Contex
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // checkDistributedTracing verifies distributed tracing setup.
 
@@ -1308,8 +1074,6 @@ func (pdv *ProductionDeploymentValidator) checkDistributedTracing(ctx context.Co
 		return false
 
 	}
-
-
 
 	tracingComponents := []string{"jaeger", "zipkin", "tempo"}
 
@@ -1331,13 +1095,9 @@ func (pdv *ProductionDeploymentValidator) checkDistributedTracing(ctx context.Co
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // checkAlertManager verifies alert manager setup.
 
@@ -1353,8 +1113,6 @@ func (pdv *ProductionDeploymentValidator) checkAlertManager(ctx context.Context)
 
 	}
 
-
-
 	for _, deployment := range deployments.Items {
 
 		if deployment.Name == "alertmanager" ||
@@ -1369,13 +1127,9 @@ func (pdv *ProductionDeploymentValidator) checkAlertManager(ctx context.Context)
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // validateDisasterRecovery validates disaster recovery capabilities.
 
@@ -1383,11 +1137,7 @@ func (pdv *ProductionDeploymentValidator) validateDisasterRecovery(ctx context.C
 
 	ginkgo.By("Validating Disaster Recovery Capabilities")
 
-
-
 	score := 0
-
-
 
 	// Test 1: Backup and restore capabilities.
 
@@ -1399,8 +1149,6 @@ func (pdv *ProductionDeploymentValidator) validateDisasterRecovery(ctx context.C
 
 	}
 
-
-
 	// Test 2: Multi-region failover capability.
 
 	if pdv.validateMultiRegionFailover(ctx) {
@@ -1411,13 +1159,9 @@ func (pdv *ProductionDeploymentValidator) validateDisasterRecovery(ctx context.C
 
 	}
 
-
-
 	return score, nil
 
 }
-
-
 
 // validateBackupRestore checks for backup and restore mechanisms.
 
@@ -1432,8 +1176,6 @@ func (pdv *ProductionDeploymentValidator) validateBackupRestore(ctx context.Cont
 		return false
 
 	}
-
-
 
 	backupSolutions := []string{"velero", "ark", "backup"}
 
@@ -1455,23 +1197,18 @@ func (pdv *ProductionDeploymentValidator) validateBackupRestore(ctx context.Cont
 
 	}
 
-
-
 	// Check for backup CronJobs.
 
 	cronJobs := &metav1.PartialObjectMetadataList{}
 
 	cronJobs.SetGroupVersionKind(schema.GroupVersionKind{
 
-		Group:   "batch",
+		Group: "batch",
 
 		Version: "v1",
 
-		Kind:    "CronJobList",
-
+		Kind: "CronJobList",
 	})
-
-
 
 	if err := pdv.client.List(ctx, cronJobs); err == nil {
 
@@ -1489,13 +1226,9 @@ func (pdv *ProductionDeploymentValidator) validateBackupRestore(ctx context.Cont
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // validateMultiRegionFailover checks for multi-region deployment capability.
 
@@ -1511,8 +1244,6 @@ func (pdv *ProductionDeploymentValidator) validateMultiRegionFailover(ctx contex
 
 	}
 
-
-
 	regions := make(map[string]bool)
 
 	for _, node := range nodes.Items {
@@ -1525,15 +1256,11 @@ func (pdv *ProductionDeploymentValidator) validateMultiRegionFailover(ctx contex
 
 	}
 
-
-
 	// Multi-region setup requires at least 2 regions.
 
 	return len(regions) >= 2
 
 }
-
-
 
 // GetProductionMetrics returns the current production metrics.
 
@@ -1547,73 +1274,61 @@ func (pdv *ProductionDeploymentValidator) GetProductionMetrics() *ProductionMetr
 
 }
 
-
-
 // ValidateDeploymentScenarios tests various deployment scenarios.
 
 func (pdv *ProductionDeploymentValidator) ValidateDeploymentScenarios(ctx context.Context) (int, error) {
 
 	ginkgo.By("Validating Deployment Scenarios")
 
-
-
 	score := 0
-
-
 
 	scenarios := []DeploymentScenario{
 
 		{
 
-			Name:               "Blue-Green Deployment",
+			Name: "Blue-Green Deployment",
 
-			Type:               "blue-green",
+			Type: "blue-green",
 
-			ExpectedDowntime:   0 * time.Second,
+			ExpectedDowntime: 0 * time.Second,
 
 			HealthCheckTimeout: 30 * time.Second,
 
-			RollbackSupported:  true,
+			RollbackSupported: true,
 
 			AutoScalingEnabled: false,
-
 		},
 
 		{
 
-			Name:               "Canary Deployment",
+			Name: "Canary Deployment",
 
-			Type:               "canary",
+			Type: "canary",
 
-			ExpectedDowntime:   0 * time.Second,
+			ExpectedDowntime: 0 * time.Second,
 
 			HealthCheckTimeout: 60 * time.Second,
 
-			RollbackSupported:  true,
+			RollbackSupported: true,
 
 			AutoScalingEnabled: true,
-
 		},
 
 		{
 
-			Name:               "Rolling Update",
+			Name: "Rolling Update",
 
-			Type:               "rolling",
+			Type: "rolling",
 
-			ExpectedDowntime:   10 * time.Second,
+			ExpectedDowntime: 10 * time.Second,
 
 			HealthCheckTimeout: 30 * time.Second,
 
-			RollbackSupported:  true,
+			RollbackSupported: true,
 
 			AutoScalingEnabled: true,
-
 		},
-
 	}
-
-
 
 	for _, scenario := range scenarios {
 
@@ -1627,21 +1342,15 @@ func (pdv *ProductionDeploymentValidator) ValidateDeploymentScenarios(ctx contex
 
 	}
 
-
-
 	return score, nil
 
 }
-
-
 
 // testDeploymentScenario tests a specific deployment scenario.
 
 func (pdv *ProductionDeploymentValidator) testDeploymentScenario(ctx context.Context, scenario DeploymentScenario) bool {
 
 	ginkgo.By(fmt.Sprintf("Testing %s deployment scenario", scenario.Name))
-
-
 
 	// For Blue-Green deployment, check for dual deployment setup.
 
@@ -1651,8 +1360,6 @@ func (pdv *ProductionDeploymentValidator) testDeploymentScenario(ctx context.Con
 
 	}
 
-
-
 	// For Canary deployment, check for traffic splitting capability.
 
 	if scenario.Type == "canary" {
@@ -1660,8 +1367,6 @@ func (pdv *ProductionDeploymentValidator) testDeploymentScenario(ctx context.Con
 		return pdv.validateCanarySetup(ctx)
 
 	}
-
-
 
 	// For Rolling update, check deployment strategy.
 
@@ -1671,13 +1376,9 @@ func (pdv *ProductionDeploymentValidator) testDeploymentScenario(ctx context.Con
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // validateBlueGreenSetup checks for blue-green deployment capability.
 
@@ -1690,8 +1391,6 @@ func (pdv *ProductionDeploymentValidator) validateBlueGreenSetup(ctx context.Con
 		return false
 
 	}
-
-
 
 	// Look for deployments with blue/green labels or annotations.
 
@@ -1717,13 +1416,9 @@ func (pdv *ProductionDeploymentValidator) validateBlueGreenSetup(ctx context.Con
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // validateCanarySetup checks for canary deployment capability.
 
@@ -1735,15 +1430,12 @@ func (pdv *ProductionDeploymentValidator) validateCanarySetup(ctx context.Contex
 
 	virtualServices.SetGroupVersionKind(schema.GroupVersionKind{
 
-		Group:   "networking.istio.io",
+		Group: "networking.istio.io",
 
 		Version: "v1beta1",
 
-		Kind:    "VirtualServiceList",
-
+		Kind: "VirtualServiceList",
 	})
-
-
 
 	if err := pdv.client.List(ctx, virtualServices, client.InNamespace("nephoran-system")); err == nil {
 
@@ -1761,8 +1453,6 @@ func (pdv *ProductionDeploymentValidator) validateCanarySetup(ctx context.Contex
 
 	}
 
-
-
 	// Check for Flagger or Argo Rollouts.
 
 	deployments := &appsv1.DeploymentList{}
@@ -1772,8 +1462,6 @@ func (pdv *ProductionDeploymentValidator) validateCanarySetup(ctx context.Contex
 		return false
 
 	}
-
-
 
 	canaryTools := []string{"flagger", "argo-rollouts"}
 
@@ -1793,13 +1481,9 @@ func (pdv *ProductionDeploymentValidator) validateCanarySetup(ctx context.Contex
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // validateRollingUpdateSetup checks for rolling update configuration.
 
@@ -1812,8 +1496,6 @@ func (pdv *ProductionDeploymentValidator) validateRollingUpdateSetup(ctx context
 		return false
 
 	}
-
-
 
 	for _, deployment := range deployments.Items {
 
@@ -1835,13 +1517,9 @@ func (pdv *ProductionDeploymentValidator) validateRollingUpdateSetup(ctx context
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // ValidateInfrastructureAsCode validates IaC configurations.
 
@@ -1849,11 +1527,7 @@ func (pdv *ProductionDeploymentValidator) ValidateInfrastructureAsCode(ctx conte
 
 	ginkgo.By("Validating Infrastructure as Code")
 
-
-
 	score := 0
-
-
 
 	// Test RBAC configuration.
 
@@ -1871,8 +1545,6 @@ func (pdv *ProductionDeploymentValidator) ValidateInfrastructureAsCode(ctx conte
 
 	}
 
-
-
 	// Test Network Policies.
 
 	if pdv.validateNetworkPolicies(ctx) {
@@ -1888,8 +1560,6 @@ func (pdv *ProductionDeploymentValidator) ValidateInfrastructureAsCode(ctx conte
 		pdv.mu.Unlock()
 
 	}
-
-
 
 	// Test Resource Quotas.
 
@@ -1907,8 +1577,6 @@ func (pdv *ProductionDeploymentValidator) ValidateInfrastructureAsCode(ctx conte
 
 	}
 
-
-
 	// Test Pod Security Standards.
 
 	if pdv.validatePodSecurityStandards(ctx) {
@@ -1925,13 +1593,9 @@ func (pdv *ProductionDeploymentValidator) ValidateInfrastructureAsCode(ctx conte
 
 	}
 
-
-
 	return score, nil
 
 }
-
-
 
 // validateRBACConfiguration checks RBAC setup.
 
@@ -1947,15 +1611,11 @@ func (pdv *ProductionDeploymentValidator) validateRBACConfiguration(ctx context.
 
 	}
 
-
-
 	if len(serviceAccounts.Items) == 0 {
 
 		return false
 
 	}
-
-
 
 	// Check for Roles and RoleBindings.
 
@@ -1963,15 +1623,12 @@ func (pdv *ProductionDeploymentValidator) validateRBACConfiguration(ctx context.
 
 	roles.SetGroupVersionKind(schema.GroupVersionKind{
 
-		Group:   "rbac.authorization.k8s.io",
+		Group: "rbac.authorization.k8s.io",
 
 		Version: "v1",
 
-		Kind:    "RoleList",
-
+		Kind: "RoleList",
 	})
-
-
 
 	if err := pdv.client.List(ctx, roles, client.InNamespace("nephoran-system")); err != nil {
 
@@ -1979,13 +1636,9 @@ func (pdv *ProductionDeploymentValidator) validateRBACConfiguration(ctx context.
 
 	}
 
-
-
 	return len(roles.Items) > 0
 
 }
-
-
 
 // validateNetworkPolicies checks network policy configuration.
 
@@ -1999,13 +1652,9 @@ func (pdv *ProductionDeploymentValidator) validateNetworkPolicies(ctx context.Co
 
 	}
 
-
-
 	return len(networkPolicies.Items) > 0
 
 }
-
-
 
 // validateResourceQuotas checks resource quota configuration.
 
@@ -2019,13 +1668,9 @@ func (pdv *ProductionDeploymentValidator) validateResourceQuotas(ctx context.Con
 
 	}
 
-
-
 	return len(resourceQuotas.Items) > 0
 
 }
-
-
 
 // validatePodSecurityStandards checks pod security standard implementation.
 
@@ -2038,8 +1683,6 @@ func (pdv *ProductionDeploymentValidator) validatePodSecurityStandards(ctx conte
 		return false
 
 	}
-
-
 
 	for _, namespace := range namespaces.Items {
 
@@ -2061,9 +1704,6 @@ func (pdv *ProductionDeploymentValidator) validatePodSecurityStandards(ctx conte
 
 	}
 
-
-
 	return false
 
 }
-

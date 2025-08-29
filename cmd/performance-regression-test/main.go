@@ -1,159 +1,122 @@
 // Package main provides performance regression testing utilities for the Nephoran operator.
 
-
 package main
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"log"
-
 	"os"
-
 	"runtime"
-
 	"time"
-
 )
-
-
 
 // PerformanceTestSuite represents a comprehensive performance testing framework.
 
 type PerformanceTestSuite struct {
+	ProjectPath string `json:"project_path"`
 
-	ProjectPath     string                     `json:"project_path"`
+	TestResults []BenchmarkResult `json:"test_results"`
 
-	TestResults     []BenchmarkResult          `json:"test_results"`
+	Baseline map[string]BenchmarkResult `json:"baseline"`
 
-	Baseline        map[string]BenchmarkResult `json:"baseline"`
+	RegressionTests []RegressionTest `json:"regression_tests"`
 
-	RegressionTests []RegressionTest           `json:"regression_tests"`
+	Summary PerformanceSummary `json:"summary"`
 
-	Summary         PerformanceSummary         `json:"summary"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp       time.Time                  `json:"timestamp"`
+	Environment TestEnvironment `json:"environment"`
 
-	Environment     TestEnvironment            `json:"environment"`
-
-	Thresholds      PerformanceThresholds      `json:"thresholds"`
-
+	Thresholds PerformanceThresholds `json:"thresholds"`
 }
-
-
 
 // BenchmarkResult represents the results of a single benchmark test execution.
 
 type BenchmarkResult struct {
+	Name string `json:"name"`
 
-	Name         string        `json:"name"`
+	Iterations int `json:"iterations"`
 
-	Iterations   int           `json:"iterations"`
+	NsPerOp int64 `json:"ns_per_op"`
 
-	NsPerOp      int64         `json:"ns_per_op"`
+	AllocsPerOp int64 `json:"allocs_per_op"`
 
-	AllocsPerOp  int64         `json:"allocs_per_op"`
+	BytesPerOp int64 `json:"bytes_per_op"`
 
-	BytesPerOp   int64         `json:"bytes_per_op"`
+	Duration time.Duration `json:"duration"`
 
-	Duration     time.Duration `json:"duration"`
+	MemoryUsage int64 `json:"memory_usage"`
 
-	MemoryUsage  int64         `json:"memory_usage"`
+	CPUUsage float64 `json:"cpu_usage"`
 
-	CPUUsage     float64       `json:"cpu_usage"`
+	Package string `json:"package"`
 
-	Package      string        `json:"package"`
-
-	TestFunction string        `json:"test_function"`
-
+	TestFunction string `json:"test_function"`
 }
-
-
 
 // RegressionTest represents a performance regression analysis for a specific benchmark.
 
 type RegressionTest struct {
+	Name string `json:"name"`
 
-	Name             string  `json:"name"`
+	CurrentValue float64 `json:"current_value"`
 
-	CurrentValue     float64 `json:"current_value"`
-
-	BaselineValue    float64 `json:"baseline_value"`
+	BaselineValue float64 `json:"baseline_value"`
 
 	RegressionAmount float64 `json:"regression_amount"`
 
-	IsRegression     bool    `json:"is_regression"`
+	IsRegression bool `json:"is_regression"`
 
-	Severity         string  `json:"severity"`
+	Severity string `json:"severity"`
 
-	Threshold        float64 `json:"threshold"`
-
+	Threshold float64 `json:"threshold"`
 }
-
-
 
 // PerformanceSummary provides an overall summary of performance test results.
 
 type PerformanceSummary struct {
+	TotalTests int `json:"total_tests"`
 
-	TotalTests      int     `json:"total_tests"`
+	PassedTests int `json:"passed_tests"`
 
-	PassedTests     int     `json:"passed_tests"`
+	RegressionTests int `json:"regression_tests"`
 
-	RegressionTests int     `json:"regression_tests"`
+	OverallScore float64 `json:"overall_score"`
 
-	OverallScore    float64 `json:"overall_score"`
-
-	Status          string  `json:"status"`
-
+	Status string `json:"status"`
 }
-
-
 
 // TestEnvironment captures the runtime environment details for reproducible testing.
 
 type TestEnvironment struct {
+	GoVersion string `json:"go_version"`
 
-	GoVersion    string `json:"go_version"`
+	GOOS string `json:"goos"`
 
-	GOOS         string `json:"goos"`
+	GOARCH string `json:"goarch"`
 
-	GOARCH       string `json:"goarch"`
+	NumCPU int `json:"num_cpu"`
 
-	NumCPU       int    `json:"num_cpu"`
+	MemoryMB int `json:"memory_mb"`
 
-	MemoryMB     int    `json:"memory_mb"`
-
-	BuildTags    string `json:"build_tags"`
+	BuildTags string `json:"build_tags"`
 
 	CompilerOpts string `json:"compiler_opts"`
-
 }
-
-
 
 // PerformanceThresholds defines acceptable performance degradation limits.
 
 type PerformanceThresholds struct {
+	MaxRegressionPercent float64 `json:"max_regression_percent"`
 
-	MaxRegressionPercent  float64 `json:"max_regression_percent"`
+	MaxMemoryIncrease float64 `json:"max_memory_increase"`
 
-	MaxMemoryIncrease     float64 `json:"max_memory_increase"`
-
-	MaxLatencyIncrease    float64 `json:"max_latency_increase"`
+	MaxLatencyIncrease float64 `json:"max_latency_increase"`
 
 	MinThroughputDecrease float64 `json:"min_throughput_decrease"`
-
 }
-
-
 
 func main() {
 
@@ -161,33 +124,27 @@ func main() {
 
 	fmt.Println("================================================")
 
-
-
 	// Initialize test suite.
 
 	suite := &PerformanceTestSuite{
 
 		ProjectPath: ".",
 
-		Timestamp:   time.Now(),
+		Timestamp: time.Now(),
 
 		Environment: getTestEnvironment(),
 
 		Thresholds: PerformanceThresholds{
 
-			MaxRegressionPercent:  10.0,
+			MaxRegressionPercent: 10.0,
 
-			MaxMemoryIncrease:     20.0,
+			MaxMemoryIncrease: 20.0,
 
-			MaxLatencyIncrease:    15.0,
+			MaxLatencyIncrease: 15.0,
 
 			MinThroughputDecrease: 10.0,
-
 		},
-
 	}
-
-
 
 	// Run performance tests.
 
@@ -199,31 +156,21 @@ func main() {
 
 	}
 
-
-
 	// Analyze results.
 
 	suite.analyzeResults()
-
-
 
 	// Generate reports.
 
 	suite.generateReports()
 
-
-
 	fmt.Println("✅ Performance regression testing completed!")
 
 }
 
-
-
 func (pts *PerformanceTestSuite) runPerformanceTests(ctx context.Context) error {
 
 	fmt.Println("📊 Running comprehensive performance tests...")
-
-
 
 	// Run benchmark tests.
 
@@ -235,15 +182,11 @@ func (pts *PerformanceTestSuite) runPerformanceTests(ctx context.Context) error 
 
 	}
 
-
-
 	pts.TestResults = results
 
 	return nil
 
 }
-
-
 
 func (pts *PerformanceTestSuite) runBenchmarkTests(ctx context.Context) ([]BenchmarkResult, error) {
 
@@ -253,63 +196,52 @@ func (pts *PerformanceTestSuite) runBenchmarkTests(ctx context.Context) ([]Bench
 
 		{
 
-			Name:        "BenchmarkHTTPHandler",
+			Name: "BenchmarkHTTPHandler",
 
-			Iterations:  1000000,
+			Iterations: 1000000,
 
-			NsPerOp:     1200,
+			NsPerOp: 1200,
 
 			AllocsPerOp: 4,
 
-			BytesPerOp:  256,
+			BytesPerOp: 256,
 
-			Duration:    time.Second,
+			Duration: time.Second,
 
-			Package:     "pkg/handlers",
-
+			Package: "pkg/handlers",
 		},
 
 		{
 
-			Name:        "BenchmarkJSONProcessing",
+			Name: "BenchmarkJSONProcessing",
 
-			Iterations:  500000,
+			Iterations: 500000,
 
-			NsPerOp:     2400,
+			NsPerOp: 2400,
 
 			AllocsPerOp: 8,
 
-			BytesPerOp:  512,
+			BytesPerOp: 512,
 
-			Duration:    time.Second,
+			Duration: time.Second,
 
-			Package:     "pkg/processing",
-
+			Package: "pkg/processing",
 		},
-
 	}
-
-
 
 	return results, nil
 
 }
 
-
-
 func (pts *PerformanceTestSuite) analyzeResults() {
 
 	fmt.Println("🔍 Analyzing performance results...")
-
-
 
 	totalTests := len(pts.TestResults)
 
 	passedTests := 0
 
 	regressionTests := 0
-
-
 
 	for _, result := range pts.TestResults {
 
@@ -327,23 +259,18 @@ func (pts *PerformanceTestSuite) analyzeResults() {
 
 	}
 
-
-
 	pts.Summary = PerformanceSummary{
 
-		TotalTests:      totalTests,
+		TotalTests: totalTests,
 
-		PassedTests:     passedTests,
+		PassedTests: passedTests,
 
 		RegressionTests: regressionTests,
 
-		OverallScore:    float64(passedTests) / float64(totalTests) * 100,
+		OverallScore: float64(passedTests) / float64(totalTests) * 100,
 
-		Status:          "PASS",
-
+		Status: "PASS",
 	}
-
-
 
 	if regressionTests > 0 {
 
@@ -353,19 +280,13 @@ func (pts *PerformanceTestSuite) analyzeResults() {
 
 }
 
-
-
 func (pts *PerformanceTestSuite) generateReports() {
 
 	fmt.Println("📄 Generating performance reports...")
 
-
-
 	// Generate JSON report.
 
 	pts.generateJSONReport()
-
-
 
 	// Generate markdown report.
 
@@ -373,15 +294,11 @@ func (pts *PerformanceTestSuite) generateReports() {
 
 }
 
-
-
 func (pts *PerformanceTestSuite) generateJSONReport() {
 
 	filename := fmt.Sprintf("performance-regression-report-%s.json",
 
 		time.Now().Format("20060102-150405"))
-
-
 
 	file, err := os.Create(filename)
 
@@ -395,8 +312,6 @@ func (pts *PerformanceTestSuite) generateJSONReport() {
 
 	defer func() { _ = file.Close() }()
 
-
-
 	encoder := json.NewEncoder(file)
 
 	encoder.SetIndent("", "  ")
@@ -409,21 +324,15 @@ func (pts *PerformanceTestSuite) generateJSONReport() {
 
 	}
 
-
-
 	fmt.Printf("📄 JSON report generated: %s\n", filename)
 
 }
-
-
 
 func (pts *PerformanceTestSuite) generateMarkdownReport() {
 
 	filename := fmt.Sprintf("performance-regression-report-%s.md",
 
 		time.Now().Format("20060102-150405"))
-
-
 
 	file, err := os.Create(filename)
 
@@ -437,8 +346,6 @@ func (pts *PerformanceTestSuite) generateMarkdownReport() {
 
 	defer func() { _ = file.Close() }()
 
-
-
 	fmt.Fprintf(file, "# Performance Regression Test Report\n\n")
 
 	fmt.Fprintf(file, "**Timestamp:** %s\n\n", pts.Timestamp.Format("2006-01-02 15:04:05"))
@@ -447,15 +354,11 @@ func (pts *PerformanceTestSuite) generateMarkdownReport() {
 
 	fmt.Fprintf(file, "**Overall Score:** %.2f%%\n\n", pts.Summary.OverallScore)
 
-
-
 	fmt.Fprintf(file, "## Test Results\n\n")
 
 	fmt.Fprintf(file, "| Test Name | ns/op | allocs/op | bytes/op | Status |\n")
 
 	fmt.Fprintf(file, "|-----------|-------|-----------|----------|--------|\n")
-
-
 
 	for _, result := range pts.TestResults {
 
@@ -467,21 +370,15 @@ func (pts *PerformanceTestSuite) generateMarkdownReport() {
 
 		}
 
-
-
 		fmt.Fprintf(file, "| %s | %d | %d | %d | %s |\n",
 
 			result.Name, result.NsPerOp, result.AllocsPerOp, result.BytesPerOp, status)
 
 	}
 
-
-
 	fmt.Printf("📄 Markdown report generated: %s\n", filename)
 
 }
-
-
 
 func getTestEnvironment() TestEnvironment {
 
@@ -489,15 +386,14 @@ func getTestEnvironment() TestEnvironment {
 
 		GoVersion: runtime.Version(),
 
-		GOOS:      runtime.GOOS,
+		GOOS: runtime.GOOS,
 
-		GOARCH:    runtime.GOARCH,
+		GOARCH: runtime.GOARCH,
 
-		NumCPU:    runtime.NumCPU(),
+		NumCPU: runtime.NumCPU(),
 
-		MemoryMB:  1024, // Simplified
+		MemoryMB: 1024, // Simplified
 
 	}
 
 }
-

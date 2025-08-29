@@ -1,295 +1,225 @@
-
 package telecom
 
-
-
 import (
-
 	"fmt"
-
 	"regexp"
-
 	"sort"
-
 	"strconv"
-
 	"strings"
-
 	"time"
-
 )
-
-
 
 // ContextMatcher provides intelligent context matching for telecom intents.
 
 type ContextMatcher struct {
-
 	knowledgeBase *TelecomKnowledgeBase
 
-	patterns      map[string]*regexp.Regexp
+	patterns map[string]*regexp.Regexp
 
-	synonyms      map[string][]string
+	synonyms map[string][]string
 
 	abbreviations map[string]string
 
-	contextCache  map[string]*MatchResult
+	contextCache map[string]*MatchResult
 
-	initialized   bool
-
+	initialized bool
 }
-
-
 
 // MatchResult contains the results of intent matching.
 
 type MatchResult struct {
+	Intent string `json:"intent"`
 
-	Intent             string                  `json:"intent"`
+	NetworkFunctions []*NetworkFunctionMatch `json:"network_functions"`
 
-	NetworkFunctions   []*NetworkFunctionMatch `json:"network_functions"`
+	Interfaces []*InterfaceMatch `json:"interfaces"`
 
-	Interfaces         []*InterfaceMatch       `json:"interfaces"`
+	SliceTypes []*SliceTypeMatch `json:"slice_types"`
 
-	SliceTypes         []*SliceTypeMatch       `json:"slice_types"`
+	QosProfiles []*QosMatch `json:"qos_profiles"`
 
-	QosProfiles        []*QosMatch             `json:"qos_profiles"`
+	DeploymentPatterns []*DeploymentMatch `json:"deployment_patterns"`
 
-	DeploymentPatterns []*DeploymentMatch      `json:"deployment_patterns"`
+	KPIs []*KPIMatch `json:"kpis"`
 
-	KPIs               []*KPIMatch             `json:"kpis"`
+	Requirements *RequirementExtraction `json:"requirements"`
 
-	Requirements       *RequirementExtraction  `json:"requirements"`
+	Context3GPP *Context3GPP `json:"context_3gpp"`
 
-	Context3GPP        *Context3GPP            `json:"context_3gpp"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence         float64                 `json:"confidence"`
-
-	Timestamp          time.Time               `json:"timestamp"`
-
+	Timestamp time.Time `json:"timestamp"`
 }
-
-
 
 // NetworkFunctionMatch represents a matched network function.
 
 type NetworkFunctionMatch struct {
+	Function *NetworkFunctionSpec `json:"function"`
 
-	Function   *NetworkFunctionSpec `json:"function"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence float64              `json:"confidence"`
+	Reason string `json:"reason"`
 
-	Reason     string               `json:"reason"`
-
-	Context    []string             `json:"context"`
-
+	Context []string `json:"context"`
 }
-
-
 
 // InterfaceMatch represents a matched interface.
 
 type InterfaceMatch struct {
+	Interface *InterfaceSpec `json:"interface"`
 
-	Interface  *InterfaceSpec `json:"interface"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence float64        `json:"confidence"`
+	Reason string `json:"reason"`
 
-	Reason     string         `json:"reason"`
-
-	Context    []string       `json:"context"`
-
+	Context []string `json:"context"`
 }
-
-
 
 // SliceTypeMatch represents a matched slice type.
 
 type SliceTypeMatch struct {
+	SliceType *SliceTypeSpec `json:"slice_type"`
 
-	SliceType  *SliceTypeSpec `json:"slice_type"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence float64        `json:"confidence"`
+	Reason string `json:"reason"`
 
-	Reason     string         `json:"reason"`
-
-	Context    []string       `json:"context"`
-
+	Context []string `json:"context"`
 }
-
-
 
 // QosMatch represents a matched QoS profile.
 
 type QosMatch struct {
+	Profile *QosProfile `json:"profile"`
 
-	Profile    *QosProfile `json:"profile"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence float64     `json:"confidence"`
+	Reason string `json:"reason"`
 
-	Reason     string      `json:"reason"`
-
-	Context    []string    `json:"context"`
-
+	Context []string `json:"context"`
 }
-
-
 
 // DeploymentMatch represents a matched deployment pattern.
 
 type DeploymentMatch struct {
+	Pattern *DeploymentPattern `json:"pattern"`
 
-	Pattern    *DeploymentPattern `json:"pattern"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence float64            `json:"confidence"`
+	Reason string `json:"reason"`
 
-	Reason     string             `json:"reason"`
-
-	Context    []string           `json:"context"`
-
+	Context []string `json:"context"`
 }
-
-
 
 // KPIMatch represents a matched KPI.
 
 type KPIMatch struct {
+	KPI *KPISpec `json:"kpi"`
 
-	KPI        *KPISpec `json:"kpi"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence float64  `json:"confidence"`
+	Reason string `json:"reason"`
 
-	Reason     string   `json:"reason"`
-
-	Context    []string `json:"context"`
-
+	Context []string `json:"context"`
 }
-
-
 
 // RequirementExtraction contains extracted requirements from the intent.
 
 type RequirementExtraction struct {
+	Latency *LatencyRequirement `json:"latency,omitempty"`
 
-	Latency      *LatencyRequirement      `json:"latency,omitempty"`
+	Throughput *ThroughputRequirement `json:"throughput,omitempty"`
 
-	Throughput   *ThroughputRequirement   `json:"throughput,omitempty"`
+	Reliability *ReliabilityRequirement `json:"reliability,omitempty"`
 
-	Reliability  *ReliabilityRequirement  `json:"reliability,omitempty"`
+	Scalability *ScalabilityRequirement `json:"scalability,omitempty"`
 
-	Scalability  *ScalabilityRequirement  `json:"scalability,omitempty"`
-
-	Security     *SecurityRequirement     `json:"security,omitempty"`
+	Security *SecurityRequirement `json:"security,omitempty"`
 
 	Availability *AvailabilityRequirement `json:"availability,omitempty"`
-
 }
-
-
 
 // Context3GPP contains 3GPP specification context.
 
 type Context3GPP struct {
+	Specifications []string `json:"specifications"`
 
-	Specifications []string          `json:"specifications"`
+	Procedures []string `json:"procedures"`
 
-	Procedures     []string          `json:"procedures"`
+	Interfaces []string `json:"interfaces"`
 
-	Interfaces     []string          `json:"interfaces"`
+	Parameters map[string]string `json:"parameters"`
 
-	Parameters     map[string]string `json:"parameters"`
-
-	Compliance     []string          `json:"compliance"`
-
+	Compliance []string `json:"compliance"`
 }
-
-
 
 // Requirement types.
 
 type LatencyRequirement struct {
-
 	Value float64 `json:"value"`
 
-	Unit  string  `json:"unit"`
+	Unit string `json:"unit"`
 
-	Type  string  `json:"type"` // user-plane, control-plane, end-to-end
+	Type string `json:"type"` // user-plane, control-plane, end-to-end
 
 }
-
-
 
 // ThroughputRequirement represents a throughputrequirement.
 
 type ThroughputRequirement struct {
-
 	Value float64 `json:"value"`
 
-	Unit  string  `json:"unit"`
+	Unit string `json:"unit"`
 
-	Type  string  `json:"type"` // uplink, downlink, aggregate
+	Type string `json:"type"` // uplink, downlink, aggregate
 
 }
-
-
 
 // ReliabilityRequirement represents a reliabilityrequirement.
 
 type ReliabilityRequirement struct {
-
 	Value float64 `json:"value"`
 
-	Unit  string  `json:"unit"`
+	Unit string `json:"unit"`
 
-	Type  string  `json:"type"` // availability, packet-loss, error-rate
+	Type string `json:"type"` // availability, packet-loss, error-rate
 
 }
-
-
 
 // ScalabilityRequirement represents a scalabilityrequirement.
 
 type ScalabilityRequirement struct {
+	MinReplicas int `json:"min_replicas"`
 
-	MinReplicas int    `json:"min_replicas"`
+	MaxReplicas int `json:"max_replicas"`
 
-	MaxReplicas int    `json:"max_replicas"`
-
-	Type        string `json:"type"` // horizontal, vertical, auto
+	Type string `json:"type"` // horizontal, vertical, auto
 
 }
-
-
 
 // SecurityRequirement represents a securityrequirement.
 
 type SecurityRequirement struct {
+	Level string `json:"level"` // basic, enhanced, high
 
-	Level        string   `json:"level"`        // basic, enhanced, high
+	Features []string `json:"features"` // encryption, authentication, etc.
 
-	Features     []string `json:"features"`     // encryption, authentication, etc.
-
-	Compliance   []string `json:"compliance"`   // GDPR, HIPAA, etc.
+	Compliance []string `json:"compliance"` // GDPR, HIPAA, etc.
 
 	Certificates []string `json:"certificates"` // TLS, mTLS, etc.
 
 }
 
-
-
 // AvailabilityRequirement represents a availabilityrequirement.
 
 type AvailabilityRequirement struct {
-
 	Value float64 `json:"value"`
 
-	Unit  string  `json:"unit"`
+	Unit string `json:"unit"`
 
-	Type  string  `json:"type"` // service, system, network
+	Type string `json:"type"` // service, system, network
 
 }
-
-
 
 // NewContextMatcher creates a new context matcher with initialized patterns.
 
@@ -299,17 +229,14 @@ func NewContextMatcher(kb *TelecomKnowledgeBase) *ContextMatcher {
 
 		knowledgeBase: kb,
 
-		patterns:      make(map[string]*regexp.Regexp),
+		patterns: make(map[string]*regexp.Regexp),
 
-		synonyms:      make(map[string][]string),
+		synonyms: make(map[string][]string),
 
 		abbreviations: make(map[string]string),
 
-		contextCache:  make(map[string]*MatchResult),
-
+		contextCache: make(map[string]*MatchResult),
 	}
-
-
 
 	cm.initializePatterns()
 
@@ -319,13 +246,9 @@ func NewContextMatcher(kb *TelecomKnowledgeBase) *ContextMatcher {
 
 	cm.initialized = true
 
-
-
 	return cm
 
 }
-
-
 
 // GetRelevantContext analyzes intent and returns relevant telecom context.
 
@@ -336,8 +259,6 @@ func (cm *ContextMatcher) GetRelevantContext(intent string) (*MatchResult, error
 		return nil, fmt.Errorf("context matcher not initialized")
 
 	}
-
-
 
 	// Check cache first.
 
@@ -353,89 +274,60 @@ func (cm *ContextMatcher) GetRelevantContext(intent string) (*MatchResult, error
 
 	}
 
-
-
 	result := &MatchResult{
 
-		Intent:    intent,
+		Intent: intent,
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	// Normalize intent.
 
 	normalizedIntent := cm.normalizeIntent(intent)
 
-
-
 	// Extract requirements.
 
 	result.Requirements = cm.extractRequirements(normalizedIntent)
-
-
 
 	// Match network functions.
 
 	result.NetworkFunctions = cm.matchNetworkFunctions(normalizedIntent)
 
-
-
 	// Match interfaces.
 
 	result.Interfaces = cm.matchInterfaces(normalizedIntent)
-
-
 
 	// Match slice types.
 
 	result.SliceTypes = cm.matchSliceTypes(normalizedIntent)
 
-
-
 	// Match QoS profiles.
 
 	result.QosProfiles = cm.matchQosProfiles(normalizedIntent)
-
-
 
 	// Match deployment patterns.
 
 	result.DeploymentPatterns = cm.matchDeploymentPatterns(normalizedIntent)
 
-
-
 	// Match KPIs.
 
 	result.KPIs = cm.matchKPIs(normalizedIntent)
-
-
 
 	// Build 3GPP context.
 
 	result.Context3GPP = cm.build3GPPContext(result)
 
-
-
 	// Calculate overall confidence.
 
 	result.Confidence = cm.calculateConfidence(result)
-
-
 
 	// Cache the result.
 
 	cm.contextCache[cacheKey] = result
 
-
-
 	return result, nil
 
 }
-
-
 
 // normalizeIntent cleans and normalizes the input intent.
 
@@ -445,8 +337,6 @@ func (cm *ContextMatcher) normalizeIntent(intent string) string {
 
 	normalized := strings.ToLower(intent)
 
-
-
 	// Expand abbreviations.
 
 	for abbr, expansion := range cm.abbreviations {
@@ -455,29 +345,21 @@ func (cm *ContextMatcher) normalizeIntent(intent string) string {
 
 	}
 
-
-
 	// Remove extra whitespace.
 
 	normalized = regexp.MustCompile(`\s+`).ReplaceAllString(normalized, " ")
 
 	normalized = strings.TrimSpace(normalized)
 
-
-
 	return normalized
 
 }
-
-
 
 // matchNetworkFunctions finds relevant network functions based on intent.
 
 func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctionMatch {
 
 	var matches []*NetworkFunctionMatch
-
-
 
 	for name, nf := range cm.knowledgeBase.NetworkFunctions {
 
@@ -486,8 +368,6 @@ func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctio
 		var reasons []string
 
 		var context []string
-
-
 
 		// Direct name match.
 
@@ -501,8 +381,6 @@ func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctio
 
 		}
 
-
-
 		// Type match.
 
 		if cm.containsWord(intent, nf.Type) {
@@ -512,8 +390,6 @@ func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctio
 			reasons = append(reasons, "type_match")
 
 		}
-
-
 
 		// Description keywords.
 
@@ -531,8 +407,6 @@ func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctio
 
 		}
 
-
-
 		// Interface mentions.
 
 		for _, iface := range nf.Interfaces {
@@ -549,13 +423,9 @@ func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctio
 
 		}
 
-
-
 		// Use case patterns.
 
 		confidence += cm.matchUseCasePatterns(intent, nf)
-
-
 
 		// Synonym matching.
 
@@ -577,27 +447,22 @@ func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctio
 
 		}
 
-
-
 		if confidence > 0.1 {
 
 			matches = append(matches, &NetworkFunctionMatch{
 
-				Function:   nf,
+				Function: nf,
 
 				Confidence: confidence,
 
-				Reason:     strings.Join(reasons, ","),
+				Reason: strings.Join(reasons, ","),
 
-				Context:    context,
-
+				Context: context,
 			})
 
 		}
 
 	}
-
-
 
 	// Sort by confidence.
 
@@ -607,8 +472,6 @@ func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctio
 
 	})
 
-
-
 	// Limit to top 5 matches.
 
 	if len(matches) > 5 {
@@ -617,21 +480,15 @@ func (cm *ContextMatcher) matchNetworkFunctions(intent string) []*NetworkFunctio
 
 	}
 
-
-
 	return matches
 
 }
-
-
 
 // matchInterfaces finds relevant interfaces based on intent.
 
 func (cm *ContextMatcher) matchInterfaces(intent string) []*InterfaceMatch {
 
 	var matches []*InterfaceMatch
-
-
 
 	for name, iface := range cm.knowledgeBase.Interfaces {
 
@@ -640,8 +497,6 @@ func (cm *ContextMatcher) matchInterfaces(intent string) []*InterfaceMatch {
 		var reasons []string
 
 		var context []string
-
-
 
 		// Direct interface name match.
 
@@ -654,8 +509,6 @@ func (cm *ContextMatcher) matchInterfaces(intent string) []*InterfaceMatch {
 			context = append(context, fmt.Sprintf("Interface %s mentioned", iface.Name))
 
 		}
-
-
 
 		// Protocol match.
 
@@ -673,8 +526,6 @@ func (cm *ContextMatcher) matchInterfaces(intent string) []*InterfaceMatch {
 
 		}
 
-
-
 		// Description keywords.
 
 		if cm.matchDescription(intent, iface.Description) {
@@ -685,27 +536,22 @@ func (cm *ContextMatcher) matchInterfaces(intent string) []*InterfaceMatch {
 
 		}
 
-
-
 		if confidence > 0.1 {
 
 			matches = append(matches, &InterfaceMatch{
 
-				Interface:  iface,
+				Interface: iface,
 
 				Confidence: confidence,
 
-				Reason:     strings.Join(reasons, ","),
+				Reason: strings.Join(reasons, ","),
 
-				Context:    context,
-
+				Context: context,
 			})
 
 		}
 
 	}
-
-
 
 	// Sort by confidence.
 
@@ -715,21 +561,15 @@ func (cm *ContextMatcher) matchInterfaces(intent string) []*InterfaceMatch {
 
 	})
 
-
-
 	return matches
 
 }
-
-
 
 // matchSliceTypes finds relevant slice types based on intent.
 
 func (cm *ContextMatcher) matchSliceTypes(intent string) []*SliceTypeMatch {
 
 	var matches []*SliceTypeMatch
-
-
 
 	for name, slice := range cm.knowledgeBase.SliceTypes {
 
@@ -738,8 +578,6 @@ func (cm *ContextMatcher) matchSliceTypes(intent string) []*SliceTypeMatch {
 		var reasons []string
 
 		var context []string
-
-
 
 		// Direct slice type match.
 
@@ -750,8 +588,6 @@ func (cm *ContextMatcher) matchSliceTypes(intent string) []*SliceTypeMatch {
 			reasons = append(reasons, "slice_type_match")
 
 		}
-
-
 
 		// Use case match.
 
@@ -765,8 +601,6 @@ func (cm *ContextMatcher) matchSliceTypes(intent string) []*SliceTypeMatch {
 
 		}
 
-
-
 		// SST match.
 
 		sstStr := fmt.Sprintf("sst %d", slice.SST)
@@ -779,33 +613,26 @@ func (cm *ContextMatcher) matchSliceTypes(intent string) []*SliceTypeMatch {
 
 		}
 
-
-
 		// Requirement-based matching.
 
 		confidence += cm.matchSliceRequirements(intent, slice)
-
-
 
 		if confidence > 0.1 {
 
 			matches = append(matches, &SliceTypeMatch{
 
-				SliceType:  slice,
+				SliceType: slice,
 
 				Confidence: confidence,
 
-				Reason:     strings.Join(reasons, ","),
+				Reason: strings.Join(reasons, ","),
 
-				Context:    context,
-
+				Context: context,
 			})
 
 		}
 
 	}
-
-
 
 	// Sort by confidence.
 
@@ -815,21 +642,15 @@ func (cm *ContextMatcher) matchSliceTypes(intent string) []*SliceTypeMatch {
 
 	})
 
-
-
 	return matches
 
 }
-
-
 
 // matchQosProfiles finds relevant QoS profiles based on intent.
 
 func (cm *ContextMatcher) matchQosProfiles(intent string) []*QosMatch {
 
 	var matches []*QosMatch
-
-
 
 	for _, qos := range cm.knowledgeBase.QosProfiles {
 
@@ -838,8 +659,6 @@ func (cm *ContextMatcher) matchQosProfiles(intent string) []*QosMatch {
 		var reasons []string
 
 		var context []string
-
-
 
 		// QCI/5QI match.
 
@@ -855,8 +674,6 @@ func (cm *ContextMatcher) matchQosProfiles(intent string) []*QosMatch {
 
 		}
 
-
-
 		// Resource type match.
 
 		if cm.containsWord(intent, strings.ToLower(qos.Resource)) {
@@ -866,8 +683,6 @@ func (cm *ContextMatcher) matchQosProfiles(intent string) []*QosMatch {
 			reasons = append(reasons, "resource_type_match")
 
 		}
-
-
 
 		// Priority-based matching.
 
@@ -879,8 +694,6 @@ func (cm *ContextMatcher) matchQosProfiles(intent string) []*QosMatch {
 
 		}
 
-
-
 		// Delay budget matching.
 
 		if cm.matchLatencyRequirements(intent, float64(qos.DelayBudget)) {
@@ -891,27 +704,22 @@ func (cm *ContextMatcher) matchQosProfiles(intent string) []*QosMatch {
 
 		}
 
-
-
 		if confidence > 0.1 {
 
 			matches = append(matches, &QosMatch{
 
-				Profile:    qos,
+				Profile: qos,
 
 				Confidence: confidence,
 
-				Reason:     strings.Join(reasons, ","),
+				Reason: strings.Join(reasons, ","),
 
-				Context:    context,
-
+				Context: context,
 			})
 
 		}
 
 	}
-
-
 
 	// Sort by confidence.
 
@@ -921,21 +729,15 @@ func (cm *ContextMatcher) matchQosProfiles(intent string) []*QosMatch {
 
 	})
 
-
-
 	return matches
 
 }
-
-
 
 // matchDeploymentPatterns finds relevant deployment patterns.
 
 func (cm *ContextMatcher) matchDeploymentPatterns(intent string) []*DeploymentMatch {
 
 	var matches []*DeploymentMatch
-
-
 
 	for name, pattern := range cm.knowledgeBase.DeploymentTypes {
 
@@ -944,8 +746,6 @@ func (cm *ContextMatcher) matchDeploymentPatterns(intent string) []*DeploymentMa
 		var reasons []string
 
 		var context []string
-
-
 
 		// Direct pattern name match.
 
@@ -956,8 +756,6 @@ func (cm *ContextMatcher) matchDeploymentPatterns(intent string) []*DeploymentMa
 			reasons = append(reasons, "pattern_name_match")
 
 		}
-
-
 
 		// Use case match.
 
@@ -975,8 +773,6 @@ func (cm *ContextMatcher) matchDeploymentPatterns(intent string) []*DeploymentMa
 
 		}
 
-
-
 		// Architecture keywords.
 
 		if cm.matchArchitectureKeywords(intent, &pattern.Architecture) {
@@ -987,27 +783,22 @@ func (cm *ContextMatcher) matchDeploymentPatterns(intent string) []*DeploymentMa
 
 		}
 
-
-
 		if confidence > 0.1 {
 
 			matches = append(matches, &DeploymentMatch{
 
-				Pattern:    pattern,
+				Pattern: pattern,
 
 				Confidence: confidence,
 
-				Reason:     strings.Join(reasons, ","),
+				Reason: strings.Join(reasons, ","),
 
-				Context:    context,
-
+				Context: context,
 			})
 
 		}
 
 	}
-
-
 
 	// Sort by confidence.
 
@@ -1017,21 +808,15 @@ func (cm *ContextMatcher) matchDeploymentPatterns(intent string) []*DeploymentMa
 
 	})
 
-
-
 	return matches
 
 }
-
-
 
 // matchKPIs finds relevant KPIs based on intent.
 
 func (cm *ContextMatcher) matchKPIs(intent string) []*KPIMatch {
 
 	var matches []*KPIMatch
-
-
 
 	for _, kpi := range cm.knowledgeBase.PerformanceKPIs {
 
@@ -1040,8 +825,6 @@ func (cm *ContextMatcher) matchKPIs(intent string) []*KPIMatch {
 		var reasons []string
 
 		var context []string
-
-
 
 		// Direct KPI name match.
 
@@ -1067,8 +850,6 @@ func (cm *ContextMatcher) matchKPIs(intent string) []*KPIMatch {
 
 		}
 
-
-
 		// Category match.
 
 		if cm.containsWord(intent, kpi.Category) {
@@ -1078,8 +859,6 @@ func (cm *ContextMatcher) matchKPIs(intent string) []*KPIMatch {
 			reasons = append(reasons, "category_match")
 
 		}
-
-
 
 		// Type match.
 
@@ -1091,27 +870,22 @@ func (cm *ContextMatcher) matchKPIs(intent string) []*KPIMatch {
 
 		}
 
-
-
 		if confidence > 0.1 {
 
 			matches = append(matches, &KPIMatch{
 
-				KPI:        kpi,
+				KPI: kpi,
 
 				Confidence: confidence,
 
-				Reason:     strings.Join(reasons, ","),
+				Reason: strings.Join(reasons, ","),
 
-				Context:    context,
-
+				Context: context,
 			})
 
 		}
 
 	}
-
-
 
 	// Sort by confidence.
 
@@ -1121,21 +895,15 @@ func (cm *ContextMatcher) matchKPIs(intent string) []*KPIMatch {
 
 	})
 
-
-
 	return matches
 
 }
-
-
 
 // extractRequirements extracts quantified requirements from intent.
 
 func (cm *ContextMatcher) extractRequirements(intent string) *RequirementExtraction {
 
 	req := &RequirementExtraction{}
-
-
 
 	// Extract latency requirements.
 
@@ -1145,8 +913,6 @@ func (cm *ContextMatcher) extractRequirements(intent string) *RequirementExtract
 
 	}
 
-
-
 	// Extract throughput requirements.
 
 	if throughput := cm.extractThroughputRequirement(intent); throughput != nil {
@@ -1154,8 +920,6 @@ func (cm *ContextMatcher) extractRequirements(intent string) *RequirementExtract
 		req.Throughput = throughput
 
 	}
-
-
 
 	// Extract reliability requirements.
 
@@ -1165,8 +929,6 @@ func (cm *ContextMatcher) extractRequirements(intent string) *RequirementExtract
 
 	}
 
-
-
 	// Extract scalability requirements.
 
 	if scalability := cm.extractScalabilityRequirement(intent); scalability != nil {
@@ -1174,8 +936,6 @@ func (cm *ContextMatcher) extractRequirements(intent string) *RequirementExtract
 		req.Scalability = scalability
 
 	}
-
-
 
 	// Extract security requirements.
 
@@ -1185,8 +945,6 @@ func (cm *ContextMatcher) extractRequirements(intent string) *RequirementExtract
 
 	}
 
-
-
 	// Extract availability requirements.
 
 	if availability := cm.extractAvailabilityRequirement(intent); availability != nil {
@@ -1195,13 +953,9 @@ func (cm *ContextMatcher) extractRequirements(intent string) *RequirementExtract
 
 	}
 
-
-
 	return req
 
 }
-
-
 
 // build3GPPContext builds relevant 3GPP specification context.
 
@@ -1211,21 +965,16 @@ func (cm *ContextMatcher) build3GPPContext(result *MatchResult) *Context3GPP {
 
 		Specifications: make([]string, 0, 10),
 
-		Procedures:     make([]string, 0, 5),
+		Procedures: make([]string, 0, 5),
 
-		Interfaces:     make([]string, 0, 8),
+		Interfaces: make([]string, 0, 8),
 
-		Parameters:     make(map[string]string),
+		Parameters: make(map[string]string),
 
-		Compliance:     make([]string, 0, 5),
-
+		Compliance: make([]string, 0, 5),
 	}
 
-
-
 	specSet := make(map[string]bool)
-
-
 
 	// Collect specifications from matched network functions.
 
@@ -1245,8 +994,6 @@ func (cm *ContextMatcher) build3GPPContext(result *MatchResult) *Context3GPP {
 
 	}
 
-
-
 	// Collect interface specifications.
 
 	for _, ifaceMatch := range result.Interfaces {
@@ -1261,35 +1008,23 @@ func (cm *ContextMatcher) build3GPPContext(result *MatchResult) *Context3GPP {
 
 	}
 
-
-
 	// Add relevant procedures based on context.
 
 	context.Procedures = cm.getRelevantProcedures(result)
-
-
 
 	// Add compliance standards.
 
 	context.Compliance = []string{"3GPP Release 17", "O-RAN Alliance", "ETSI NFV"}
 
-
-
 	// Sort specifications.
 
 	sort.Strings(context.Specifications)
-
-
 
 	return context
 
 }
 
-
-
 // Helper methods for pattern matching.
-
-
 
 func (cm *ContextMatcher) containsWord(text, word string) bool {
 
@@ -1307,8 +1042,6 @@ func (cm *ContextMatcher) containsWord(text, word string) bool {
 
 }
 
-
-
 func (cm *ContextMatcher) containsAny(text string, words []string) bool {
 
 	for _, word := range words {
@@ -1324,8 +1057,6 @@ func (cm *ContextMatcher) containsAny(text string, words []string) bool {
 	return false
 
 }
-
-
 
 func (cm *ContextMatcher) matchDescription(intent, description string) bool {
 
@@ -1347,13 +1078,9 @@ func (cm *ContextMatcher) matchDescription(intent, description string) bool {
 
 }
 
-
-
 func (cm *ContextMatcher) matchUseCasePatterns(intent string, nf *NetworkFunctionSpec) float64 {
 
 	confidence := 0.0
-
-
 
 	// AMF specific patterns.
 
@@ -1373,8 +1100,6 @@ func (cm *ContextMatcher) matchUseCasePatterns(intent string, nf *NetworkFunctio
 
 	}
 
-
-
 	// SMF specific patterns.
 
 	if nf.Name == "SMF" {
@@ -1392,8 +1117,6 @@ func (cm *ContextMatcher) matchUseCasePatterns(intent string, nf *NetworkFunctio
 		}
 
 	}
-
-
 
 	// UPF specific patterns.
 
@@ -1413,19 +1136,13 @@ func (cm *ContextMatcher) matchUseCasePatterns(intent string, nf *NetworkFunctio
 
 	}
 
-
-
 	return confidence
 
 }
 
-
-
 func (cm *ContextMatcher) matchSliceRequirements(intent string, slice *SliceTypeSpec) float64 {
 
 	confidence := 0.0
-
-
 
 	// Check latency requirements.
 
@@ -1434,8 +1151,6 @@ func (cm *ContextMatcher) matchSliceRequirements(intent string, slice *SliceType
 		confidence += 0.3
 
 	}
-
-
 
 	// Check throughput requirements.
 
@@ -1449,8 +1164,6 @@ func (cm *ContextMatcher) matchSliceRequirements(intent string, slice *SliceType
 
 	}
 
-
-
 	// Check reliability requirements.
 
 	if cm.matchReliabilityRequirements(intent, slice.Requirements.Reliability.Availability) {
@@ -1459,13 +1172,9 @@ func (cm *ContextMatcher) matchSliceRequirements(intent string, slice *SliceType
 
 	}
 
-
-
 	return confidence
 
 }
-
-
 
 func (cm *ContextMatcher) matchArchitectureKeywords(intent string, arch *DeploymentArchitecture) bool {
 
@@ -1485,8 +1194,6 @@ func (cm *ContextMatcher) matchArchitectureKeywords(intent string, arch *Deploym
 
 }
 
-
-
 func (cm *ContextMatcher) matchLatencyRequirements(intent string, latency float64) bool {
 
 	// Look for latency-related keywords and values.
@@ -1500,10 +1207,7 @@ func (cm *ContextMatcher) matchLatencyRequirements(intent string, latency float6
 		`delay.*?(\d+(?:\.\d+)?)`,
 
 		`response.*?time.*?(\d+(?:\.\d+)?)`,
-
 	}
-
-
 
 	for _, pattern := range patterns {
 
@@ -1527,8 +1231,6 @@ func (cm *ContextMatcher) matchLatencyRequirements(intent string, latency float6
 
 }
 
-
-
 func (cm *ContextMatcher) matchThroughputRequirements(intent string, throughput float64) bool {
 
 	patterns := []string{
@@ -1540,10 +1242,7 @@ func (cm *ContextMatcher) matchThroughputRequirements(intent string, throughput 
 		`bandwidth.*?(\d+(?:\.\d+)?)`,
 
 		`speed.*?(\d+(?:\.\d+)?)`,
-
 	}
-
-
 
 	for _, pattern := range patterns {
 
@@ -1567,8 +1266,6 @@ func (cm *ContextMatcher) matchThroughputRequirements(intent string, throughput 
 
 }
 
-
-
 func (cm *ContextMatcher) matchReliabilityRequirements(intent string, reliability float64) bool {
 
 	patterns := []string{
@@ -1578,10 +1275,7 @@ func (cm *ContextMatcher) matchReliabilityRequirements(intent string, reliabilit
 		`(?:availability|uptime|reliability).*?(\d+(?:\.\d+)?)\s*%`,
 
 		`nine.*?(\d+)`,
-
 	}
-
-
 
 	for _, pattern := range patterns {
 
@@ -1605,8 +1299,6 @@ func (cm *ContextMatcher) matchReliabilityRequirements(intent string, reliabilit
 
 }
 
-
-
 func (cm *ContextMatcher) matchPriorityRequirements(intent string, priority int) bool {
 
 	patterns := []string{
@@ -1620,10 +1312,7 @@ func (cm *ContextMatcher) matchPriorityRequirements(intent string, priority int)
 		`critical`,
 
 		`urgent`,
-
 	}
-
-
 
 	for _, pattern := range patterns {
 
@@ -1665,11 +1354,7 @@ func (cm *ContextMatcher) matchPriorityRequirements(intent string, priority int)
 
 }
 
-
-
 // Requirement extraction methods.
-
-
 
 func (cm *ContextMatcher) extractLatencyRequirement(intent string) *LatencyRequirement {
 
@@ -1678,10 +1363,7 @@ func (cm *ContextMatcher) extractLatencyRequirement(intent string) *LatencyRequi
 		`(?:latency|delay|response.*?time).*?(\d+(?:\.\d+)?)\s*(ms|millisecond|msec|μs|microsecond|s|second)`,
 
 		`(\d+(?:\.\d+)?)\s*(ms|millisecond|msec|μs|microsecond|s|second).*?(?:latency|delay)`,
-
 	}
-
-
 
 	for _, pattern := range patterns {
 
@@ -1707,16 +1389,13 @@ func (cm *ContextMatcher) extractLatencyRequirement(intent string) *LatencyRequi
 
 				}
 
-
-
 				return &LatencyRequirement{
 
 					Value: value,
 
-					Unit:  unit,
+					Unit: unit,
 
-					Type:  reqType,
-
+					Type: reqType,
 				}
 
 			}
@@ -1729,8 +1408,6 @@ func (cm *ContextMatcher) extractLatencyRequirement(intent string) *LatencyRequi
 
 }
 
-
-
 func (cm *ContextMatcher) extractThroughputRequirement(intent string) *ThroughputRequirement {
 
 	patterns := []string{
@@ -1738,10 +1415,7 @@ func (cm *ContextMatcher) extractThroughputRequirement(intent string) *Throughpu
 		`(?i)(?:throughput|bandwidth|speed).*?(\d+(?:\.\d+)?)\s*(mbps|gbps|kbps|mb/s|gb/s|kb/s)`,
 
 		`(?i)(\d+(?:\.\d+)?)\s*(mbps|gbps|kbps|mb/s|gb/s|kb/s).*?(?:throughput|bandwidth)`,
-
 	}
-
-
 
 	for _, pattern := range patterns {
 
@@ -1769,16 +1443,13 @@ func (cm *ContextMatcher) extractThroughputRequirement(intent string) *Throughpu
 
 				}
 
-
-
 				return &ThroughputRequirement{
 
 					Value: value,
 
-					Unit:  unit,
+					Unit: unit,
 
-					Type:  reqType,
-
+					Type: reqType,
 				}
 
 			}
@@ -1791,8 +1462,6 @@ func (cm *ContextMatcher) extractThroughputRequirement(intent string) *Throughpu
 
 }
 
-
-
 func (cm *ContextMatcher) extractReliabilityRequirement(intent string) *ReliabilityRequirement {
 
 	patterns := []string{
@@ -1804,10 +1473,7 @@ func (cm *ContextMatcher) extractReliabilityRequirement(intent string) *Reliabil
 		`(?:packet.*?loss).*?(\d+(?:\.\d+)?)\s*%`,
 
 		`(\d+(?:\.\d+)?)\s*%.*?(?:packet.*?loss)`,
-
 	}
-
-
 
 	for _, pattern := range patterns {
 
@@ -1827,16 +1493,13 @@ func (cm *ContextMatcher) extractReliabilityRequirement(intent string) *Reliabil
 
 				}
 
-
-
 				return &ReliabilityRequirement{
 
 					Value: value,
 
-					Unit:  "percentage",
+					Unit: "percentage",
 
-					Type:  reqType,
-
+					Type: reqType,
 				}
 
 			}
@@ -1849,17 +1512,12 @@ func (cm *ContextMatcher) extractReliabilityRequirement(intent string) *Reliabil
 
 }
 
-
-
 func (cm *ContextMatcher) extractScalabilityRequirement(intent string) *ScalabilityRequirement {
 
 	req := &ScalabilityRequirement{
 
 		Type: "horizontal",
-
 	}
-
-
 
 	// Extract replica counts.
 
@@ -1872,10 +1530,7 @@ func (cm *ContextMatcher) extractScalabilityRequirement(intent string) *Scalabil
 		`(?:replica).*?(\d+)`,
 
 		`(?:instance).*?(\d+)`,
-
 	}
-
-
 
 	for _, pattern := range patterns {
 
@@ -1907,8 +1562,6 @@ func (cm *ContextMatcher) extractScalabilityRequirement(intent string) *Scalabil
 
 	}
 
-
-
 	// Determine scaling type.
 
 	if strings.Contains(intent, "vertical") {
@@ -1920,8 +1573,6 @@ func (cm *ContextMatcher) extractScalabilityRequirement(intent string) *Scalabil
 		req.Type = "auto"
 
 	}
-
-
 
 	// Only return if we found some scaling information.
 
@@ -1935,21 +1586,16 @@ func (cm *ContextMatcher) extractScalabilityRequirement(intent string) *Scalabil
 
 }
 
-
-
 func (cm *ContextMatcher) extractSecurityRequirement(intent string) *SecurityRequirement {
 
 	req := &SecurityRequirement{
 
-		Features:     make([]string, 0, 8),
+		Features: make([]string, 0, 8),
 
-		Compliance:   make([]string, 0, 5),
+		Compliance: make([]string, 0, 5),
 
 		Certificates: make([]string, 0, 3),
-
 	}
-
-
 
 	// Determine security level.
 
@@ -1971,8 +1617,6 @@ func (cm *ContextMatcher) extractSecurityRequirement(intent string) *SecurityReq
 
 	}
 
-
-
 	// Extract security features.
 
 	securityKeywords := []string{"encryption", "authentication", "authorization", "tls", "mtls", "oauth", "rbac"}
@@ -1993,8 +1637,6 @@ func (cm *ContextMatcher) extractSecurityRequirement(intent string) *SecurityReq
 
 	}
 
-
-
 	// Extract compliance requirements.
 
 	complianceKeywords := []string{"gdpr", "hipaa", "pci", "sox", "iso27001"}
@@ -2009,13 +1651,9 @@ func (cm *ContextMatcher) extractSecurityRequirement(intent string) *SecurityReq
 
 	}
 
-
-
 	return req
 
 }
-
-
 
 func (cm *ContextMatcher) extractAvailabilityRequirement(intent string) *AvailabilityRequirement {
 
@@ -2028,8 +1666,6 @@ func (cm *ContextMatcher) extractAvailabilityRequirement(intent string) *Availab
 		`(?:nine|9).*?(\d+)`, // "five nines" = 99.999%
 
 	}
-
-
 
 	for _, pattern := range patterns {
 
@@ -2051,8 +1687,6 @@ func (cm *ContextMatcher) extractAvailabilityRequirement(intent string) *Availab
 
 				}
 
-
-
 				reqType := "service"
 
 				if strings.Contains(intent, "system") {
@@ -2065,16 +1699,13 @@ func (cm *ContextMatcher) extractAvailabilityRequirement(intent string) *Availab
 
 				}
 
-
-
 				return &AvailabilityRequirement{
 
 					Value: value,
 
-					Unit:  "percentage",
+					Unit: "percentage",
 
-					Type:  reqType,
-
+					Type: reqType,
 				}
 
 			}
@@ -2087,13 +1718,9 @@ func (cm *ContextMatcher) extractAvailabilityRequirement(intent string) *Availab
 
 }
 
-
-
 func (cm *ContextMatcher) getRelevantProcedures(result *MatchResult) []string {
 
 	procedures := make([]string, 0, 10)
-
-
 
 	// Add procedures based on matched network functions.
 
@@ -2121,21 +1748,15 @@ func (cm *ContextMatcher) getRelevantProcedures(result *MatchResult) []string {
 
 	}
 
-
-
 	return procedures
 
 }
-
-
 
 func (cm *ContextMatcher) calculateConfidence(result *MatchResult) float64 {
 
 	totalConfidence := 0.0
 
 	matchCount := 0
-
-
 
 	// Weight network function matches highly.
 
@@ -2147,8 +1768,6 @@ func (cm *ContextMatcher) calculateConfidence(result *MatchResult) float64 {
 
 	}
 
-
-
 	// Weight interface matches.
 
 	for _, match := range result.Interfaces {
@@ -2158,8 +1777,6 @@ func (cm *ContextMatcher) calculateConfidence(result *MatchResult) float64 {
 		matchCount++
 
 	}
-
-
 
 	// Weight slice type matches.
 
@@ -2171,8 +1788,6 @@ func (cm *ContextMatcher) calculateConfidence(result *MatchResult) float64 {
 
 	}
 
-
-
 	// Add other matches with lower weights.
 
 	for _, match := range result.QosProfiles {
@@ -2183,21 +1798,15 @@ func (cm *ContextMatcher) calculateConfidence(result *MatchResult) float64 {
 
 	}
 
-
-
 	if matchCount == 0 {
 
 		return 0.0
 
 	}
 
-
-
 	return totalConfidence / float64(matchCount)
 
 }
-
-
 
 // Helper function for power of 10.
 
@@ -2215,11 +1824,7 @@ func pow10(n int) float64 {
 
 }
 
-
-
 // Initialize patterns, synonyms, and abbreviations.
-
-
 
 func (cm *ContextMatcher) initializePatterns() {
 
@@ -2234,8 +1839,6 @@ func (cm *ContextMatcher) initializePatterns() {
 	cm.patterns["replicas"] = regexp.MustCompile(`(?:replica|instance).*?(\d+)`)
 
 }
-
-
 
 func (cm *ContextMatcher) initializeSynonyms() {
 
@@ -2257,8 +1860,6 @@ func (cm *ContextMatcher) initializeSynonyms() {
 
 	cm.synonyms["gnb"] = []string{"gnb", "gnodeb", "5g base station", "base station"}
 
-
-
 	// Slice types.
 
 	cm.synonyms["embb"] = []string{"embb", "enhanced mobile broadband", "broadband"}
@@ -2266,8 +1867,6 @@ func (cm *ContextMatcher) initializeSynonyms() {
 	cm.synonyms["urllc"] = []string{"urllc", "ultra reliable low latency", "low latency", "ultra reliable"}
 
 	cm.synonyms["mmtc"] = []string{"mmtc", "massive machine type communications", "iot", "machine type"}
-
-
 
 	// Interfaces.
 
@@ -2280,8 +1879,6 @@ func (cm *ContextMatcher) initializeSynonyms() {
 	cm.synonyms["n4"] = []string{"n4", "smf upf interface", "pfcp"}
 
 }
-
-
 
 func (cm *ContextMatcher) initializeAbbreviations() {
 
@@ -2347,8 +1944,6 @@ func (cm *ContextMatcher) initializeAbbreviations() {
 
 }
 
-
-
 // IsInitialized returns whether the context matcher is initialized.
 
 func (cm *ContextMatcher) IsInitialized() bool {
@@ -2356,8 +1951,6 @@ func (cm *ContextMatcher) IsInitialized() bool {
 	return cm.initialized
 
 }
-
-
 
 // ClearCache clears the context matching cache.
 
@@ -2367,8 +1960,6 @@ func (cm *ContextMatcher) ClearCache() {
 
 }
 
-
-
 // GetCacheSize returns the number of cached results.
 
 func (cm *ContextMatcher) GetCacheSize() int {
@@ -2376,4 +1967,3 @@ func (cm *ContextMatcher) GetCacheSize() int {
 	return len(cm.contextCache)
 
 }
-

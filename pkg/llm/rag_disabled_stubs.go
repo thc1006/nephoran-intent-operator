@@ -1,31 +1,17 @@
 //go:build stub
 
-
-
-
 package llm
 
-
-
 import (
-
 	"context"
-
 	"time"
-
 )
 
-
-
 // Stub types for when RAG is disabled.
-
-
 
 // MetricsIntegrator stub.
 
 type MetricsIntegrator struct{}
-
-
 
 // NewMetricsIntegrator performs newmetricsintegrator operation.
 
@@ -35,13 +21,9 @@ func NewMetricsIntegrator(collector interface{}) *MetricsIntegrator {
 
 }
 
-
-
 // MetricsCollector stub.
 
 type MetricsCollector struct{}
-
-
 
 // NewMetricsCollector performs newmetricscollector operation.
 
@@ -51,13 +33,9 @@ func NewMetricsCollector() *MetricsCollector {
 
 }
 
-
-
 // Priority stub for batch processing.
 
 type Priority int
-
-
 
 const (
 
@@ -76,70 +54,51 @@ const (
 	// PriorityCritical holds prioritycritical value.
 
 	PriorityCritical
-
 )
-
-
 
 // BatchResult stub.
 
 type BatchResult struct {
+	Index int `json:"index"`
 
-	Index   int           `json:"index"`
+	Result interface{} `json:"result"`
 
-	Result  interface{}   `json:"result"`
-
-	Error   error         `json:"error"`
+	Error error `json:"error"`
 
 	Latency time.Duration `json:"latency"`
-
 }
-
-
 
 // BatchProcessorStats stub.
 
 type BatchProcessorStats struct {
+	TotalProcessed int64 `json:"total_processed"`
 
-	TotalProcessed  int64         `json:"total_processed"`
+	SuccessfulBatch int64 `json:"successful_batch"`
 
-	SuccessfulBatch int64         `json:"successful_batch"`
+	FailedBatch int64 `json:"failed_batch"`
 
-	FailedBatch     int64         `json:"failed_batch"`
+	AverageLatency time.Duration `json:"average_latency"`
 
-	AverageLatency  time.Duration `json:"average_latency"`
+	QueueSize int `json:"queue_size"`
 
-	QueueSize       int           `json:"queue_size"`
+	ActiveWorkers int `json:"active_workers"`
 
-	ActiveWorkers   int           `json:"active_workers"`
-
-	LastProcessedAt time.Time     `json:"last_processed_at"`
-
+	LastProcessedAt time.Time `json:"last_processed_at"`
 }
-
-
 
 // WeaviateConnectionPool stub.
 
 type WeaviateConnectionPool struct{}
 
-
-
 // EmbeddingServiceInterface stub.
 
 type EmbeddingServiceInterface interface {
-
 	GenerateEmbedding(ctx context.Context, text string) ([]float32, error)
-
 }
-
-
 
 // EmbeddingService stub.
 
 type EmbeddingService struct{}
-
-
 
 // GenerateEmbedding performs generateembedding operation.
 
@@ -149,143 +108,111 @@ func (e *EmbeddingService) GenerateEmbedding(ctx context.Context, text string) (
 
 }
 
-
-
 // WeaviateClient stub.
 
 type WeaviateClient struct{}
 
-
-
 // TelecomDocument stub.
 
 type TelecomDocument struct {
+	ID string `json:"id"`
 
-	ID         string                 `json:"id"`
+	Title string `json:"title"`
 
-	Title      string                 `json:"title"`
+	Content string `json:"content"`
 
-	Content    string                 `json:"content"`
+	Source string `json:"source"`
 
-	Source     string                 `json:"source"`
+	Technology []string `json:"technology"`
 
-	Technology []string               `json:"technology"`
+	Version string `json:"version,omitempty"`
 
-	Version    string                 `json:"version,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Embedding []float32 `json:"embedding,omitempty"`
 
-	Embedding  []float32              `json:"embedding,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt  time.Time              `json:"created_at"`
-
-	UpdatedAt  time.Time              `json:"updated_at"`
-
+	UpdatedAt time.Time `json:"updated_at"`
 }
-
-
 
 // SearchResponse stub.
 
 type SearchResponse struct {
+	Results []*SearchResult `json:"results"`
 
-	Results     []*SearchResult `json:"results"`
+	Total int `json:"total"`
 
-	Total       int             `json:"total"`
+	Query string `json:"query"`
 
-	Query       string          `json:"query"`
-
-	ProcessedAt time.Time       `json:"processed_at"`
-
+	ProcessedAt time.Time `json:"processed_at"`
 }
-
-
 
 // SearchResult stub.
 
 type SearchResult struct {
-
 	Document *TelecomDocument `json:"document"`
 
-	Score    float32          `json:"score"`
+	Score float32 `json:"score"`
 
-	Snippet  string           `json:"snippet,omitempty"`
-
+	Snippet string `json:"snippet,omitempty"`
 }
-
-
 
 // RAGService stub.
 
 type RAGService struct{}
 
-
-
 // RAGRequest stub.
 
 type RAGRequest struct {
+	Query string `json:"query"`
 
-	Query             string                 `json:"query"`
+	IntentType string `json:"intent_type,omitempty"`
 
-	IntentType        string                 `json:"intent_type,omitempty"`
+	MaxResults int `json:"max_results"`
 
-	MaxResults        int                    `json:"max_results"`
+	MinConfidence float32 `json:"min_confidence"`
 
-	MinConfidence     float32                `json:"min_confidence"`
+	UseHybridSearch bool `json:"use_hybrid_search"`
 
-	UseHybridSearch   bool                   `json:"use_hybrid_search"`
+	EnableReranking bool `json:"enable_reranking"`
 
-	EnableReranking   bool                   `json:"enable_reranking"`
+	IncludeSourceRefs bool `json:"include_source_refs"`
 
-	IncludeSourceRefs bool                   `json:"include_source_refs"`
-
-	SearchFilters     map[string]interface{} `json:"search_filters,omitempty"`
-
+	SearchFilters map[string]interface{} `json:"search_filters,omitempty"`
 }
-
-
 
 // RAGResponse stub.
 
 type RAGResponse struct {
+	Answer string `json:"answer"`
 
-	Answer          string          `json:"answer"`
-
-	Confidence      float32         `json:"confidence"`
+	Confidence float32 `json:"confidence"`
 
 	SourceDocuments []*SearchResult `json:"source_documents"`
 
-	RetrievalTime   time.Duration   `json:"retrieval_time"`
+	RetrievalTime time.Duration `json:"retrieval_time"`
 
-	GenerationTime  time.Duration   `json:"generation_time"`
+	GenerationTime time.Duration `json:"generation_time"`
 
-	UsedCache       bool            `json:"used_cache"`
-
+	UsedCache bool `json:"used_cache"`
 }
-
-
 
 // SearchQuery stub.
 
 type SearchQuery struct {
+	Query string `json:"query"`
 
-	Query      string                 `json:"query"`
+	MaxResults int `json:"max_results"`
 
-	MaxResults int                    `json:"max_results"`
+	MinScore float32 `json:"min_score"`
 
-	MinScore   float32                `json:"min_score"`
-
-	Filters    map[string]interface{} `json:"filters,omitempty"`
-
+	Filters map[string]interface{} `json:"filters,omitempty"`
 }
-
-
 
 // SimpleTokenTracker stub.
 
 type SimpleTokenTracker struct{}
-
-
 
 // NewSimpleTokenTracker performs newsimpletokentracker operation.
 
@@ -295,13 +222,9 @@ func NewSimpleTokenTracker() *SimpleTokenTracker {
 
 }
 
-
-
 // CircuitBreaker stub.
 
 type CircuitBreaker struct{}
-
-
 
 // Execute performs execute operation.
 
@@ -311,19 +234,13 @@ func (cb *CircuitBreaker) Execute(fn func() error) error {
 
 }
 
-
-
 // CircuitBreakerConfig stub.
 
 type CircuitBreakerConfig struct {
+	FailureThreshold int64 `json:"failure_threshold"`
 
-	FailureThreshold int64         `json:"failure_threshold"`
-
-	Timeout          time.Duration `json:"timeout"`
-
+	Timeout time.Duration `json:"timeout"`
 }
-
-
 
 // NewCircuitBreaker performs newcircuitbreaker operation.
 
@@ -333,13 +250,9 @@ func NewCircuitBreaker(name string, config *CircuitBreakerConfig) *CircuitBreake
 
 }
 
-
-
 // ResponseCache stub.
 
 type ResponseCache struct{}
-
-
 
 // NewResponseCache performs newresponsecache operation.
 
@@ -349,8 +262,6 @@ func NewResponseCache(ttl time.Duration, maxSize int) *ResponseCache {
 
 }
 
-
-
 // Get performs get operation.
 
 func (rc *ResponseCache) Get(key string) (string, bool) {
@@ -359,25 +270,17 @@ func (rc *ResponseCache) Get(key string) (string, bool) {
 
 }
 
-
-
 // Set performs set operation.
 
 func (rc *ResponseCache) Set(key, value string) {}
-
-
 
 // Stop performs stop operation.
 
 func (rc *ResponseCache) Stop() {}
 
-
-
 // CircuitState stub.
 
 type CircuitState int
-
-
 
 const (
 
@@ -392,22 +295,15 @@ const (
 	// CircuitStateHalfOpen holds circuitstatehalfopen value.
 
 	CircuitStateHalfOpen
-
 )
-
-
 
 // CircuitBreakerError stub.
 
 type CircuitBreakerError struct {
-
 	State CircuitState
 
-	Err   error
-
+	Err error
 }
-
-
 
 // Error performs error operation.
 
@@ -423,29 +319,21 @@ func (e *CircuitBreakerError) Error() string {
 
 }
 
-
-
 // Additional stub types for handlers compatibility.
 
 type StreamingRequest struct {
-
-	Query     string `json:"query"`
+	Query string `json:"query"`
 
 	ModelName string `json:"model_name"`
 
-	MaxTokens int    `json:"max_tokens"`
+	MaxTokens int `json:"max_tokens"`
 
-	EnableRAG bool   `json:"enable_rag"`
-
+	EnableRAG bool `json:"enable_rag"`
 }
-
-
 
 // CircuitBreakerManager represents a circuitbreakermanager.
 
 type CircuitBreakerManager struct{}
-
-
 
 // GetAllStats performs getallstats operation.
 
@@ -455,8 +343,6 @@ func (cbm *CircuitBreakerManager) GetAllStats() map[string]interface{} {
 
 }
 
-
-
 // Get performs get operation.
 
 func (cbm *CircuitBreakerManager) Get(name string) *CircuitBreaker {
@@ -465,13 +351,9 @@ func (cbm *CircuitBreakerManager) Get(name string) *CircuitBreaker {
 
 }
 
-
-
 // TokenManager represents a tokenmanager.
 
 type TokenManager struct{}
-
-
 
 // GetSupportedModels performs getsupportedmodels operation.
 
@@ -481,13 +363,9 @@ func (tm *TokenManager) GetSupportedModels() []string {
 
 }
 
-
-
 // ContextBuilder represents a contextbuilder.
 
 type ContextBuilder struct{}
-
-
 
 // GetMetrics performs getmetrics operation.
 
@@ -497,13 +375,9 @@ func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 
 }
 
-
-
 // RelevanceScorer represents a relevancescorer.
 
 type RelevanceScorer struct{}
-
-
 
 // GetMetrics performs getmetrics operation.
 
@@ -513,13 +387,9 @@ func (rs *RelevanceScorer) GetMetrics() map[string]interface{} {
 
 }
 
-
-
 // RAGAwarePromptBuilder represents a ragawarepromptbuilder.
 
 type RAGAwarePromptBuilder struct{}
-
-
 
 // GetMetrics performs getmetrics operation.
 
@@ -529,13 +399,9 @@ func (pb *RAGAwarePromptBuilder) GetMetrics() map[string]interface{} {
 
 }
 
-
-
 // RAGEnhancedProcessor represents a ragenhancedprocessor.
 
 type RAGEnhancedProcessor struct{}
-
-
 
 // ProcessIntent performs processintent operation.
 
@@ -545,8 +411,6 @@ func (rep *RAGEnhancedProcessor) ProcessIntent(ctx context.Context, intent strin
 
 }
 
-
-
 // Stub constructors.
 
 func NewCircuitBreakerManager() *CircuitBreakerManager {
@@ -554,8 +418,6 @@ func NewCircuitBreakerManager() *CircuitBreakerManager {
 	return &CircuitBreakerManager{}
 
 }
-
-
 
 // NewTokenManager performs newtokenmanager operation.
 
@@ -565,8 +427,6 @@ func NewTokenManager() *TokenManager {
 
 }
 
-
-
 // NewContextBuilder performs newcontextbuilder operation.
 
 func NewContextBuilder() *ContextBuilder {
@@ -574,8 +434,6 @@ func NewContextBuilder() *ContextBuilder {
 	return &ContextBuilder{}
 
 }
-
-
 
 // NewRelevanceScorer performs newrelevancescorer operation.
 
@@ -585,8 +443,6 @@ func NewRelevanceScorer() *RelevanceScorer {
 
 }
 
-
-
 // NewRAGAwarePromptBuilder performs newragawarepromptbuilder operation.
 
 func NewRAGAwarePromptBuilder(tokenManager *TokenManager, config interface{}) *RAGAwarePromptBuilder {
@@ -595,8 +451,6 @@ func NewRAGAwarePromptBuilder(tokenManager *TokenManager, config interface{}) *R
 
 }
 
-
-
 // NewRAGEnhancedProcessor performs newragenhancedprocessor operation.
 
 func NewRAGEnhancedProcessor(client *Client, weaviateClient interface{}, ragService interface{}, config interface{}) *RAGEnhancedProcessor {
@@ -604,4 +458,3 @@ func NewRAGEnhancedProcessor(client *Client, weaviateClient interface{}, ragServ
 	return &RAGEnhancedProcessor{}
 
 }
-

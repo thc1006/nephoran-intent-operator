@@ -1,21 +1,11 @@
 //go:build ml && !test
 
-
-
-
 package ml
 
-
-
 import (
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 )
-
-
 
 // MLOptimizationMetrics provides Prometheus metrics for the ML optimization engine.
 
@@ -30,32 +20,25 @@ var (
 			Name: "ml_optimization_requests_total",
 
 			Help: "Total number of optimization requests processed",
-
 		},
 
 		[]string{"intent_type", "status"},
-
 	)
-
-
 
 	optimizationDuration = promauto.NewHistogramVec(
 
 		prometheus.HistogramOpts{
 
-			Name:    "ml_optimization_duration_seconds",
+			Name: "ml_optimization_duration_seconds",
 
-			Help:    "Duration of optimization requests in seconds",
+			Help: "Duration of optimization requests in seconds",
 
 			Buckets: prometheus.ExponentialBuckets(0.1, 2, 10), // 0.1s to ~100s
 
 		},
 
 		[]string{"intent_type", "phase"},
-
 	)
-
-
 
 	// Data gathering metrics.
 
@@ -63,19 +46,16 @@ var (
 
 		prometheus.HistogramOpts{
 
-			Name:    "ml_data_gathering_duration_seconds",
+			Name: "ml_data_gathering_duration_seconds",
 
-			Help:    "Duration of historical data gathering in seconds",
+			Help: "Duration of historical data gathering in seconds",
 
 			Buckets: prometheus.ExponentialBuckets(0.01, 2, 10), // 10ms to ~10s
 
 		},
 
 		[]string{"query_type"},
-
 	)
-
-
 
 	prometheusQueryErrors = promauto.NewCounterVec(
 
@@ -84,14 +64,10 @@ var (
 			Name: "ml_prometheus_query_errors_total",
 
 			Help: "Total number of Prometheus query errors",
-
 		},
 
 		[]string{"query_type", "error_type"},
-
 	)
-
-
 
 	// Memory metrics.
 
@@ -102,12 +78,8 @@ var (
 			Name: "ml_data_points_in_memory",
 
 			Help: "Current number of data points stored in memory",
-
 		},
-
 	)
-
-
 
 	memoryUsageBytes = promauto.NewGaugeVec(
 
@@ -116,14 +88,10 @@ var (
 			Name: "ml_memory_usage_bytes",
 
 			Help: "Memory usage by component in bytes",
-
 		},
 
 		[]string{"component"},
-
 	)
-
-
 
 	// Model metrics.
 
@@ -134,50 +102,40 @@ var (
 			Name: "ml_model_accuracy",
 
 			Help: "Current accuracy of ML models",
-
 		},
 
 		[]string{"model_type"},
-
 	)
-
-
 
 	modelPredictionDuration = promauto.NewHistogramVec(
 
 		prometheus.HistogramOpts{
 
-			Name:    "ml_model_prediction_duration_seconds",
+			Name: "ml_model_prediction_duration_seconds",
 
-			Help:    "Duration of model predictions in seconds",
+			Help: "Duration of model predictions in seconds",
 
 			Buckets: prometheus.ExponentialBuckets(0.001, 2, 10), // 1ms to ~1s
 
 		},
 
 		[]string{"model_type"},
-
 	)
-
-
 
 	modelTrainingDuration = promauto.NewHistogramVec(
 
 		prometheus.HistogramOpts{
 
-			Name:    "ml_model_training_duration_seconds",
+			Name: "ml_model_training_duration_seconds",
 
-			Help:    "Duration of model training in seconds",
+			Help: "Duration of model training in seconds",
 
 			Buckets: prometheus.ExponentialBuckets(1, 2, 10), // 1s to ~1000s
 
 		},
 
 		[]string{"model_type"},
-
 	)
-
-
 
 	// Cache metrics.
 
@@ -188,14 +146,10 @@ var (
 			Name: "ml_cache_hits_total",
 
 			Help: "Total number of cache hits",
-
 		},
 
 		[]string{"cache_type"},
-
 	)
-
-
 
 	cacheMisses = promauto.NewCounterVec(
 
@@ -204,14 +158,10 @@ var (
 			Name: "ml_cache_misses_total",
 
 			Help: "Total number of cache misses",
-
 		},
 
 		[]string{"cache_type"},
-
 	)
-
-
 
 	cacheSize = promauto.NewGaugeVec(
 
@@ -220,14 +170,10 @@ var (
 			Name: "ml_cache_size_entries",
 
 			Help: "Current number of entries in cache",
-
 		},
 
 		[]string{"cache_type"},
-
 	)
-
-
 
 	// Recommendation quality metrics.
 
@@ -235,33 +181,27 @@ var (
 
 		prometheus.HistogramOpts{
 
-			Name:    "ml_recommendation_confidence_score",
+			Name: "ml_recommendation_confidence_score",
 
-			Help:    "Confidence scores of generated recommendations",
+			Help: "Confidence scores of generated recommendations",
 
 			Buckets: prometheus.LinearBuckets(0, 0.1, 11), // 0.0 to 1.0
 
 		},
-
 	)
-
-
 
 	optimizationPotential = promauto.NewHistogram(
 
 		prometheus.HistogramOpts{
 
-			Name:    "ml_optimization_potential_score",
+			Name: "ml_optimization_potential_score",
 
-			Help:    "Optimization potential scores",
+			Help: "Optimization potential scores",
 
 			Buckets: prometheus.LinearBuckets(0, 0.1, 11), // 0.0 to 1.0
 
 		},
-
 	)
-
-
 
 	// Resource utilization metrics.
 
@@ -272,14 +212,10 @@ var (
 			Name: "ml_resource_cpu_utilization_percent",
 
 			Help: "CPU utilization percentage by component",
-
 		},
 
 		[]string{"component"},
-
 	)
-
-
 
 	goroutineCount = promauto.NewGauge(
 
@@ -288,12 +224,8 @@ var (
 			Name: "ml_goroutine_count",
 
 			Help: "Current number of goroutines",
-
 		},
-
 	)
-
-
 
 	// Circuit breaker metrics.
 
@@ -304,14 +236,10 @@ var (
 			Name: "ml_circuit_breaker_state",
 
 			Help: "Circuit breaker state (0=closed, 1=open, 2=half-open)",
-
 		},
 
 		[]string{"breaker_name"},
-
 	)
-
-
 
 	circuitBreakerTrips = promauto.NewCounterVec(
 
@@ -320,16 +248,11 @@ var (
 			Name: "ml_circuit_breaker_trips_total",
 
 			Help: "Total number of circuit breaker trips",
-
 		},
 
 		[]string{"breaker_name"},
-
 	)
-
 )
-
-
 
 // RecordOptimizationRequest records metrics for an optimization request.
 
@@ -341,8 +264,6 @@ func RecordOptimizationRequest(intentType, status string, duration float64) {
 
 }
 
-
-
 // RecordDataGathering records metrics for data gathering operations.
 
 func RecordDataGathering(queryType string, duration float64) {
@@ -350,8 +271,6 @@ func RecordDataGathering(queryType string, duration float64) {
 	dataGatheringDuration.WithLabelValues(queryType).Observe(duration)
 
 }
-
-
 
 // RecordPrometheusError records Prometheus query errors.
 
@@ -361,8 +280,6 @@ func RecordPrometheusError(queryType, errorType string) {
 
 }
 
-
-
 // UpdateMemoryMetrics updates memory usage metrics.
 
 func UpdateMemoryMetrics(component string, bytes float64) {
@@ -370,8 +287,6 @@ func UpdateMemoryMetrics(component string, bytes float64) {
 	memoryUsageBytes.WithLabelValues(component).Set(bytes)
 
 }
-
-
 
 // UpdateModelMetrics updates model performance metrics.
 
@@ -381,8 +296,6 @@ func UpdateModelMetrics(modelType string, accuracy float64) {
 
 }
 
-
-
 // RecordModelPrediction records model prediction metrics.
 
 func RecordModelPrediction(modelType string, duration float64) {
@@ -390,8 +303,6 @@ func RecordModelPrediction(modelType string, duration float64) {
 	modelPredictionDuration.WithLabelValues(modelType).Observe(duration)
 
 }
-
-
 
 // RecordCacheMetrics records cache performance metrics.
 
@@ -409,8 +320,6 @@ func RecordCacheMetrics(cacheType string, hit bool) {
 
 }
 
-
-
 // UpdateCacheSize updates cache size metrics.
 
 func UpdateCacheSize(cacheType string, size float64) {
@@ -418,8 +327,6 @@ func UpdateCacheSize(cacheType string, size float64) {
 	cacheSize.WithLabelValues(cacheType).Set(size)
 
 }
-
-
 
 // RecordRecommendationQuality records recommendation quality metrics.
 
@@ -431,8 +338,6 @@ func RecordRecommendationQuality(confidence, potential float64) {
 
 }
 
-
-
 // UpdateResourceMetrics updates resource utilization metrics.
 
 func UpdateResourceMetrics(component string, cpuPercent float64, goroutines int) {
@@ -442,8 +347,6 @@ func UpdateResourceMetrics(component string, cpuPercent float64, goroutines int)
 	goroutineCount.Set(float64(goroutines))
 
 }
-
-
 
 // UpdateCircuitBreakerMetrics updates circuit breaker metrics.
 
@@ -458,8 +361,6 @@ func UpdateCircuitBreakerMetrics(breakerName string, state int, trips int64) {
 	}
 
 }
-
-
 
 // GrafanaDashboardJSON provides a Grafana dashboard configuration for ML optimization metrics.
 
@@ -593,8 +494,6 @@ const GrafanaDashboardJSON = `{
 
 }`
 
-
-
 // PrometheusRecordingRules provides recording rules for common queries.
 
 const PrometheusRecordingRules = `
@@ -666,8 +565,6 @@ groups:
           ml_data_points_in_memory
 
 `
-
-
 
 // AlertingRules provides Prometheus alerting rules.
 
@@ -768,4 +665,3 @@ groups:
           description: "Circuit breaker {{ $labels.breaker_name }} is in state {{ $value }}"
 
 `
-

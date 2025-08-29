@@ -1,49 +1,29 @@
-
 package clients
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"net/http"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 )
-
-
 
 // MTLSGitClient provides mTLS-enabled Git client functionality.
 
 type MTLSGitClient struct {
-
 	httpClient *http.Client
 
-	logger     *logging.StructuredLogger
+	logger *logging.StructuredLogger
 
-	config     *config.Config
-
-
+	config *config.Config
 
 	// Cached git.ClientInterface implementation.
 
 	gitClient git.ClientInterface
-
 }
-
-
 
 // CommitFiles commits files to the Git repository using mTLS.
 
@@ -55,23 +35,17 @@ func (c *MTLSGitClient) CommitFiles(ctx context.Context, files map[string]string
 
 	}
 
-
-
 	if message == "" {
 
 		message = "Automated commit via Nephoran Intent Operator"
 
 	}
 
-
-
 	c.logger.Debug("committing files via mTLS Git client",
 
 		"file_count", len(files),
 
 		"message", message)
-
-
 
 	// Ensure we have a Git client instance.
 
@@ -80,8 +54,6 @@ func (c *MTLSGitClient) CommitFiles(ctx context.Context, files map[string]string
 		return "", fmt.Errorf("failed to initialize Git client: %w", err)
 
 	}
-
-
 
 	// Note: the underlying CommitFiles method doesn't handle file content,
 
@@ -95,21 +67,15 @@ func (c *MTLSGitClient) CommitFiles(ctx context.Context, files map[string]string
 
 	}
 
-
-
 	c.logger.Info("files committed successfully",
 
 		"commit_hash", commitHash,
 
 		"file_count", len(files))
 
-
-
 	return commitHash, nil
 
 }
-
-
 
 // CreateBranch creates a new branch in the Git repository.
 
@@ -121,15 +87,11 @@ func (c *MTLSGitClient) CreateBranch(ctx context.Context, branchName, baseBranch
 
 	}
 
-
-
 	c.logger.Debug("creating branch via mTLS Git client",
 
 		"branch_name", branchName,
 
 		"base_branch", baseBranch)
-
-
 
 	// Ensure we have a Git client instance.
 
@@ -138,8 +100,6 @@ func (c *MTLSGitClient) CreateBranch(ctx context.Context, branchName, baseBranch
 		return fmt.Errorf("failed to initialize Git client: %w", err)
 
 	}
-
-
 
 	// Note: baseBranch parameter is ignored by the underlying implementation.
 
@@ -151,17 +111,11 @@ func (c *MTLSGitClient) CreateBranch(ctx context.Context, branchName, baseBranch
 
 	}
 
-
-
 	c.logger.Info("branch created successfully", "branch_name", branchName)
-
-
 
 	return nil
 
 }
-
-
 
 // SwitchBranch switches to a different branch.
 
@@ -173,13 +127,9 @@ func (c *MTLSGitClient) SwitchBranch(ctx context.Context, branchName string) err
 
 	}
 
-
-
 	c.logger.Debug("switching branch via mTLS Git client",
 
 		"branch_name", branchName)
-
-
 
 	// Ensure we have a Git client instance.
 
@@ -189,25 +139,17 @@ func (c *MTLSGitClient) SwitchBranch(ctx context.Context, branchName string) err
 
 	}
 
-
-
 	if err := c.gitClient.SwitchBranch(branchName); err != nil {
 
 		return fmt.Errorf("failed to switch branch: %w", err)
 
 	}
 
-
-
 	c.logger.Info("switched to branch successfully", "branch_name", branchName)
-
-
 
 	return nil
 
 }
-
-
 
 // GetCurrentBranch returns the current branch name.
 
@@ -221,8 +163,6 @@ func (c *MTLSGitClient) GetCurrentBranch(ctx context.Context) (string, error) {
 
 	}
 
-
-
 	branch, err := c.gitClient.GetCurrentBranch()
 
 	if err != nil {
@@ -231,13 +171,9 @@ func (c *MTLSGitClient) GetCurrentBranch(ctx context.Context) (string, error) {
 
 	}
 
-
-
 	return branch, nil
 
 }
-
-
 
 // ListBranches returns a list of branches.
 
@@ -251,8 +187,6 @@ func (c *MTLSGitClient) ListBranches(ctx context.Context) ([]string, error) {
 
 	}
 
-
-
 	branches, err := c.gitClient.ListBranches()
 
 	if err != nil {
@@ -261,13 +195,9 @@ func (c *MTLSGitClient) ListBranches(ctx context.Context) ([]string, error) {
 
 	}
 
-
-
 	return branches, nil
 
 }
-
-
 
 // GetFileContent retrieves the content of a file from the repository.
 
@@ -279,13 +209,9 @@ func (c *MTLSGitClient) GetFileContent(ctx context.Context, filePath string) (st
 
 	}
 
-
-
 	c.logger.Debug("retrieving file content via mTLS Git client",
 
 		"file_path", filePath)
-
-
 
 	// Ensure we have a Git client instance.
 
@@ -295,8 +221,6 @@ func (c *MTLSGitClient) GetFileContent(ctx context.Context, filePath string) (st
 
 	}
 
-
-
 	content, err := c.gitClient.GetFileContent(filePath)
 
 	if err != nil {
@@ -305,13 +229,9 @@ func (c *MTLSGitClient) GetFileContent(ctx context.Context, filePath string) (st
 
 	}
 
-
-
 	return string(content), nil
 
 }
-
-
 
 // DeleteFile deletes a file from the repository.
 
@@ -325,23 +245,17 @@ func (c *MTLSGitClient) DeleteFile(ctx context.Context, filePath, message string
 
 	}
 
-
-
 	if message == "" {
 
 		message = fmt.Sprintf("Delete %s via Nephoran Intent Operator", filePath)
 
 	}
 
-
-
 	c.logger.Debug("deleting file via mTLS Git client",
 
 		"file_path", filePath,
 
 		"message", message)
-
-
 
 	// Ensure we have a Git client instance.
 
@@ -350,8 +264,6 @@ func (c *MTLSGitClient) DeleteFile(ctx context.Context, filePath, message string
 		return "", fmt.Errorf("failed to initialize Git client: %w", err)
 
 	}
-
-
 
 	// Use RemoveDirectory for file deletion (works for files too).
 
@@ -363,21 +275,15 @@ func (c *MTLSGitClient) DeleteFile(ctx context.Context, filePath, message string
 
 	}
 
-
-
 	c.logger.Info("file deleted successfully",
 
 		"file_path", filePath)
-
-
 
 	// Return a placeholder commit hash since RemoveDirectory doesn't return one.
 
 	return "file-deleted", nil
 
 }
-
-
 
 // GetCommitHistory returns commit history for the repository.
 
@@ -389,8 +295,6 @@ func (c *MTLSGitClient) GetCommitHistory(ctx context.Context, limit int) ([]git.
 
 }
 
-
-
 // Push pushes changes to the remote repository.
 
 // Note: Push functionality is handled by CommitAndPush and CommitAndPushChanges methods.
@@ -400,8 +304,6 @@ func (c *MTLSGitClient) Push(ctx context.Context, branch string) error {
 	return fmt.Errorf("Push is not supported directly; use CommitAndPush or CommitAndPushChanges instead")
 
 }
-
-
 
 // Pull pulls changes from the remote repository.
 
@@ -413,8 +315,6 @@ func (c *MTLSGitClient) Pull(ctx context.Context, branch string) error {
 
 }
 
-
-
 // GetStatus returns the status of the working directory.
 
 // Note: This method is not supported by the underlying git client interface.
@@ -424,8 +324,6 @@ func (c *MTLSGitClient) GetStatus(ctx context.Context) (*git.StatusInfo, error) 
 	return nil, fmt.Errorf("GetStatus is not supported by the underlying git client interface")
 
 }
-
-
 
 // CreatePullRequest creates a pull request (if supported by the Git provider).
 
@@ -437,8 +335,6 @@ func (c *MTLSGitClient) CreatePullRequest(ctx context.Context, options *git.Pull
 
 }
 
-
-
 // ensureGitClient creates a Git client instance if one doesn't exist.
 
 func (c *MTLSGitClient) ensureGitClient() error {
@@ -448,8 +344,6 @@ func (c *MTLSGitClient) ensureGitClient() error {
 		return nil
 
 	}
-
-
 
 	// Create Git client using the existing constructor.
 
@@ -462,10 +356,7 @@ func (c *MTLSGitClient) ensureGitClient() error {
 		c.config.GitBranch,
 
 		c.config.GitToken,
-
 	)
-
-
 
 	c.logger.Info("Git client initialized",
 
@@ -475,21 +366,15 @@ func (c *MTLSGitClient) ensureGitClient() error {
 
 		"mtls_note", "mTLS is configured at HTTP client level but not directly integrated")
 
-
-
 	return nil
 
 }
-
-
 
 // Close closes the Git client and cleans up resources.
 
 func (c *MTLSGitClient) Close() error {
 
 	c.logger.Debug("closing mTLS Git client")
-
-
 
 	// Close the underlying Git client if it has a Close method.
 
@@ -509,8 +394,6 @@ func (c *MTLSGitClient) Close() error {
 
 	}
 
-
-
 	// Close idle connections in HTTP client.
 
 	if transport, ok := c.httpClient.Transport.(*http.Transport); ok {
@@ -519,13 +402,9 @@ func (c *MTLSGitClient) Close() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetHealth returns the health status of the Git service.
 
@@ -537,25 +416,20 @@ func (c *MTLSGitClient) GetHealth() (*HealthStatus, error) {
 
 	_ = ctx // ctx not used with current interface but kept for future compatibility
 
-
-
 	// Try to get current branch as a health check.
 
 	if err := c.ensureGitClient(); err != nil {
 
 		return &HealthStatus{
 
-			Status:    "unhealthy",
+			Status: "unhealthy",
 
-			Message:   fmt.Sprintf("failed to initialize Git client: %v", err),
+			Message: fmt.Sprintf("failed to initialize Git client: %v", err),
 
 			Timestamp: time.Now(),
-
 		}, nil
 
 	}
-
-
 
 	_, err := c.gitClient.GetCurrentBranch()
 
@@ -563,37 +437,31 @@ func (c *MTLSGitClient) GetHealth() (*HealthStatus, error) {
 
 		return &HealthStatus{
 
-			Status:    "unhealthy",
+			Status: "unhealthy",
 
-			Message:   fmt.Sprintf("failed to access Git repository: %v", err),
+			Message: fmt.Sprintf("failed to access Git repository: %v", err),
 
 			Timestamp: time.Now(),
-
 		}, nil
 
 	}
 
-
-
 	return &HealthStatus{
 
-		Status:    "healthy",
+		Status: "healthy",
 
-		Message:   "Git client operational",
+		Message: "Git client operational",
 
 		Timestamp: time.Now(),
 
 		Details: map[string]interface{}{
 
-			"repo_url":     c.config.GitRepoURL,
+			"repo_url": c.config.GitRepoURL,
 
-			"branch":       c.config.GitBranch,
+			"branch": c.config.GitBranch,
 
 			"mtls_enabled": true,
-
 		},
-
 	}, nil
 
 }
-

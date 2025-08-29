@@ -28,74 +28,45 @@ limitations under the License.
 
 */
 
-
-
-
 package krm
 
-
-
 import (
-
 	"context"
-
 	"crypto/sha256"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 	"go.opentelemetry.io/otel"
-
 	"go.opentelemetry.io/otel/attribute"
-
 	"go.opentelemetry.io/otel/codes"
-
 	"go.opentelemetry.io/otel/trace"
 
-
-
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
-
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // Validator provides comprehensive validation and compliance checking for KRM functions.
 
 type Validator struct {
+	config *ValidatorConfig
 
-	config            *ValidatorConfig
-
-	securityScanner   *SecurityScanner
+	securityScanner *SecurityScanner
 
 	complianceChecker *ComplianceChecker
 
 	performanceTester *PerformanceTester
 
-	metrics           *ValidatorMetrics
+	metrics *ValidatorMetrics
 
-	tracer            trace.Tracer
+	tracer trace.Tracer
 
-	cache             *ValidationCache
+	cache *ValidationCache
 
-	mu                sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // ValidatorConfig defines configuration for KRM function validation.
 
@@ -103,189 +74,148 @@ type ValidatorConfig struct {
 
 	// Security scanning.
 
-	EnableSecurityScan    bool          `json:"enableSecurityScan" yaml:"enableSecurityScan"`
+	EnableSecurityScan bool `json:"enableSecurityScan" yaml:"enableSecurityScan"`
 
-	VulnerabilityDatabase string        `json:"vulnerabilityDatabase" yaml:"vulnerabilityDatabase"`
+	VulnerabilityDatabase string `json:"vulnerabilityDatabase" yaml:"vulnerabilityDatabase"`
 
-	SecurityTimeout       time.Duration `json:"securityTimeout" yaml:"securityTimeout"`
+	SecurityTimeout time.Duration `json:"securityTimeout" yaml:"securityTimeout"`
 
-	MaxSeverityAllowed    string        `json:"maxSeverityAllowed" yaml:"maxSeverityAllowed"`
-
-
+	MaxSeverityAllowed string `json:"maxSeverityAllowed" yaml:"maxSeverityAllowed"`
 
 	// Compliance checking.
 
-	EnableCompliance    bool     `json:"enableCompliance" yaml:"enableCompliance"`
+	EnableCompliance bool `json:"enableCompliance" yaml:"enableCompliance"`
 
 	ComplianceStandards []string `json:"complianceStandards" yaml:"complianceStandards"`
 
-	ComplianceProfiles  []string `json:"complianceProfiles" yaml:"complianceProfiles"`
-
-
+	ComplianceProfiles []string `json:"complianceProfiles" yaml:"complianceProfiles"`
 
 	// Performance testing.
 
-	EnablePerformanceTest bool          `json:"enablePerformanceTest" yaml:"enablePerformanceTest"`
+	EnablePerformanceTest bool `json:"enablePerformanceTest" yaml:"enablePerformanceTest"`
 
-	PerformanceTimeout    time.Duration `json:"performanceTimeout" yaml:"performanceTimeout"`
+	PerformanceTimeout time.Duration `json:"performanceTimeout" yaml:"performanceTimeout"`
 
-	MaxExecutionTime      time.Duration `json:"maxExecutionTime" yaml:"maxExecutionTime"`
+	MaxExecutionTime time.Duration `json:"maxExecutionTime" yaml:"maxExecutionTime"`
 
-	MaxMemoryUsage        int64         `json:"maxMemoryUsage" yaml:"maxMemoryUsage"`
+	MaxMemoryUsage int64 `json:"maxMemoryUsage" yaml:"maxMemoryUsage"`
 
-	MaxCPUUsage           float64       `json:"maxCpuUsage" yaml:"maxCpuUsage"`
-
-
+	MaxCPUUsage float64 `json:"maxCpuUsage" yaml:"maxCpuUsage"`
 
 	// Integration testing.
 
-	EnableIntegrationTest bool          `json:"enableIntegrationTest" yaml:"enableIntegrationTest"`
+	EnableIntegrationTest bool `json:"enableIntegrationTest" yaml:"enableIntegrationTest"`
 
-	TestResourceSets      []string      `json:"testResourceSets" yaml:"testResourceSets"`
+	TestResourceSets []string `json:"testResourceSets" yaml:"testResourceSets"`
 
-	TestTimeout           time.Duration `json:"testTimeout" yaml:"testTimeout"`
-
-
+	TestTimeout time.Duration `json:"testTimeout" yaml:"testTimeout"`
 
 	// Quality gates.
 
-	MinTestCoverage       float64 `json:"minTestCoverage" yaml:"minTestCoverage"`
+	MinTestCoverage float64 `json:"minTestCoverage" yaml:"minTestCoverage"`
 
-	MinCodeQuality        float64 `json:"minCodeQuality" yaml:"minCodeQuality"`
+	MinCodeQuality float64 `json:"minCodeQuality" yaml:"minCodeQuality"`
 
 	MinDocumentationScore float64 `json:"minDocumentationScore" yaml:"minDocumentationScore"`
 
-
-
 	// Certification.
 
-	EnableCertification bool     `json:"enableCertification" yaml:"enableCertification"`
+	EnableCertification bool `json:"enableCertification" yaml:"enableCertification"`
 
 	CertificationLevels []string `json:"certificationLevels" yaml:"certificationLevels"`
 
-
-
 	// Caching.
 
-	CacheValidationResults bool          `json:"cacheValidationResults" yaml:"cacheValidationResults"`
+	CacheValidationResults bool `json:"cacheValidationResults" yaml:"cacheValidationResults"`
 
-	CacheTTL               time.Duration `json:"cacheTtl" yaml:"cacheTtl"`
-
-
+	CacheTTL time.Duration `json:"cacheTtl" yaml:"cacheTtl"`
 
 	// Reporting.
 
-	DetailedReports bool   `json:"detailedReports" yaml:"detailedReports"`
+	DetailedReports bool `json:"detailedReports" yaml:"detailedReports"`
 
-	ReportFormat    string `json:"reportFormat" yaml:"reportFormat"`
-
-
+	ReportFormat string `json:"reportFormat" yaml:"reportFormat"`
 
 	// O-RAN specific validation.
 
 	ORANCompliance *ORANValidationConfig `json:"oranCompliance,omitempty" yaml:"oranCompliance,omitempty"`
 
-
-
 	// 5G specific validation.
 
 	FiveGCompliance *FiveGValidationConfig `json:"5gCompliance,omitempty" yaml:"5gCompliance,omitempty"`
-
 }
-
-
 
 // ORANValidationConfig defines O-RAN specific validation settings.
 
 type ORANValidationConfig struct {
+	ValidateInterfaces bool `json:"validateInterfaces" yaml:"validateInterfaces"`
 
-	ValidateInterfaces    bool     `json:"validateInterfaces" yaml:"validateInterfaces"`
+	RequiredInterfaces []string `json:"requiredInterfaces" yaml:"requiredInterfaces"`
 
-	RequiredInterfaces    []string `json:"requiredInterfaces" yaml:"requiredInterfaces"`
+	ValidateServiceModels bool `json:"validateServiceModels" yaml:"validateServiceModels"`
 
-	ValidateServiceModels bool     `json:"validateServiceModels" yaml:"validateServiceModels"`
+	ValidateCompliance bool `json:"validateCompliance" yaml:"validateCompliance"`
 
-	ValidateCompliance    bool     `json:"validateCompliance" yaml:"validateCompliance"`
-
-	ComplianceVersion     string   `json:"complianceVersion" yaml:"complianceVersion"`
-
+	ComplianceVersion string `json:"complianceVersion" yaml:"complianceVersion"`
 }
-
-
 
 // FiveGValidationConfig defines 5G specific validation settings.
 
 type FiveGValidationConfig struct {
+	ValidateNFs bool `json:"validateNfs" yaml:"validateNfs"`
 
-	ValidateNFs         bool     `json:"validateNfs" yaml:"validateNfs"`
+	RequiredNFs []string `json:"requiredNfs" yaml:"requiredNfs"`
 
-	RequiredNFs         []string `json:"requiredNfs" yaml:"requiredNfs"`
+	ValidateSlicing bool `json:"validateSlicing" yaml:"validateSlicing"`
 
-	ValidateSlicing     bool     `json:"validateSlicing" yaml:"validateSlicing"`
-
-	ValidateQoS         bool     `json:"validateQos" yaml:"validateQos"`
+	ValidateQoS bool `json:"validateQos" yaml:"validateQos"`
 
 	StandardsCompliance []string `json:"standardsCompliance" yaml:"standardsCompliance"`
-
 }
-
-
 
 // ValidationRequest represents a request to validate a KRM function.
 
 type ValidationRequest struct {
+	Function *FunctionMetadata `json:"function"`
 
-	Function      *FunctionMetadata      `json:"function"`
+	Image string `json:"image"`
 
-	Image         string                 `json:"image"`
+	Config map[string]interface{} `json:"config,omitempty"`
 
-	Config        map[string]interface{} `json:"config,omitempty"`
+	TestResources []porch.KRMResource `json:"testResources,omitempty"`
 
-	TestResources []porch.KRMResource    `json:"testResources,omitempty"`
+	Context *ValidationContext `json:"context,omitempty"`
 
-	Context       *ValidationContext     `json:"context,omitempty"`
-
-	Options       *ValidationOptions     `json:"options,omitempty"`
-
+	Options *ValidationOptions `json:"options,omitempty"`
 }
-
-
 
 // ValidationContext provides context for validation.
 
 type ValidationContext struct {
+	Pipeline string `json:"pipeline,omitempty"`
 
-	Pipeline        string            `json:"pipeline,omitempty"`
+	Stage string `json:"stage,omitempty"`
 
-	Stage           string            `json:"stage,omitempty"`
+	Environment string `json:"environment,omitempty"`
 
-	Environment     string            `json:"environment,omitempty"`
+	RequiredOutputs []string `json:"requiredOutputs,omitempty"`
 
-	RequiredOutputs []string          `json:"requiredOutputs,omitempty"`
-
-	Constraints     map[string]string `json:"constraints,omitempty"`
-
+	Constraints map[string]string `json:"constraints,omitempty"`
 }
-
-
 
 // ValidationOptions defines validation options.
 
 type ValidationOptions struct {
+	SkipSecurity bool `json:"skipSecurity,omitempty"`
 
-	SkipSecurity     bool     `json:"skipSecurity,omitempty"`
+	SkipPerformance bool `json:"skipPerformance,omitempty"`
 
-	SkipPerformance  bool     `json:"skipPerformance,omitempty"`
-
-	SkipCompliance   bool     `json:"skipCompliance,omitempty"`
+	SkipCompliance bool `json:"skipCompliance,omitempty"`
 
 	CustomValidators []string `json:"customValidators,omitempty"`
 
-	FailFast         bool     `json:"failFast,omitempty"`
-
+	FailFast bool `json:"failFast,omitempty"`
 }
-
-
 
 // ValidationResult represents the result of function validation.
 
@@ -293,697 +223,561 @@ type ValidationResult struct {
 
 	// Overall result.
 
-	Valid     bool    `json:"valid"`
+	Valid bool `json:"valid"`
 
-	Score     float64 `json:"score"`
+	Score float64 `json:"score"`
 
-	Grade     string  `json:"grade"` // A, B, C, D, F
+	Grade string `json:"grade"` // A, B, C, D, F
 
-	Certified bool    `json:"certified"`
-
-
+	Certified bool `json:"certified"`
 
 	// Detailed results.
 
-	SecurityResult    *SecurityValidationResult    `json:"securityResult,omitempty"`
+	SecurityResult *SecurityValidationResult `json:"securityResult,omitempty"`
 
-	ComplianceResult  *ComplianceValidationResult  `json:"complianceResult,omitempty"`
+	ComplianceResult *ComplianceValidationResult `json:"complianceResult,omitempty"`
 
 	PerformanceResult *PerformanceValidationResult `json:"performanceResult,omitempty"`
 
 	IntegrationResult *IntegrationValidationResult `json:"integrationResult,omitempty"`
 
-
-
 	// Quality metrics.
 
 	QualityMetrics *QualityValidationResult `json:"qualityMetrics,omitempty"`
 
-
-
 	// Issues and recommendations.
 
-	Issues          []ValidationIssue          `json:"issues,omitempty"`
+	Issues []ValidationIssue `json:"issues,omitempty"`
 
-	Warnings        []ValidationWarning        `json:"warnings,omitempty"`
+	Warnings []ValidationWarning `json:"warnings,omitempty"`
 
 	Recommendations []ValidationRecommendation `json:"recommendations,omitempty"`
 
-
-
 	// Metadata.
 
-	ValidatedAt      time.Time     `json:"validatedAt"`
+	ValidatedAt time.Time `json:"validatedAt"`
 
-	ValidatedBy      string        `json:"validatedBy"`
+	ValidatedBy string `json:"validatedBy"`
 
-	ValidatorVersion string        `json:"validatorVersion"`
+	ValidatorVersion string `json:"validatorVersion"`
 
-	Duration         time.Duration `json:"duration"`
-
-
+	Duration time.Duration `json:"duration"`
 
 	// Certification.
 
 	Certifications []FunctionCertification `json:"certifications,omitempty"`
-
 }
-
-
 
 // SecurityValidationResult contains security validation results.
 
 type SecurityValidationResult struct {
+	Secure bool `json:"secure"`
 
-	Secure          bool                    `json:"secure"`
-
-	Score           float64                 `json:"score"`
+	Score float64 `json:"score"`
 
 	Vulnerabilities []SecurityVulnerability `json:"vulnerabilities,omitempty"`
 
-	Risks           []SecurityRisk          `json:"risks,omitempty"`
+	Risks []SecurityRisk `json:"risks,omitempty"`
 
-	Compliance      map[string]bool         `json:"compliance,omitempty"`
+	Compliance map[string]bool `json:"compliance,omitempty"`
 
-	Recommendations []string                `json:"recommendations,omitempty"`
+	Recommendations []string `json:"recommendations,omitempty"`
 
-	LastScanTime    time.Time               `json:"lastScanTime"`
-
+	LastScanTime time.Time `json:"lastScanTime"`
 }
-
-
 
 // SecurityRisk represents a security risk.
 
 type SecurityRisk struct {
+	ID string `json:"id"`
 
-	ID          string    `json:"id"`
+	Type string `json:"type"`
 
-	Type        string    `json:"type"`
+	Severity string `json:"severity"`
 
-	Severity    string    `json:"severity"`
+	Title string `json:"title"`
 
-	Title       string    `json:"title"`
+	Description string `json:"description"`
 
-	Description string    `json:"description"`
+	Impact string `json:"impact"`
 
-	Impact      string    `json:"impact"`
+	Mitigation string `json:"mitigation,omitempty"`
 
-	Mitigation  string    `json:"mitigation,omitempty"`
+	CWE string `json:"cwe,omitempty"`
 
-	CWE         string    `json:"cwe,omitempty"`
+	CVSS float64 `json:"cvss,omitempty"`
 
-	CVSS        float64   `json:"cvss,omitempty"`
-
-	DetectedAt  time.Time `json:"detectedAt"`
-
+	DetectedAt time.Time `json:"detectedAt"`
 }
-
-
 
 // ComplianceValidationResult contains compliance validation results.
 
 type ComplianceValidationResult struct {
+	Compliant bool `json:"compliant"`
 
-	Compliant    bool                    `json:"compliant"`
+	Score float64 `json:"score"`
 
-	Score        float64                 `json:"score"`
+	Standards map[string]bool `json:"standards,omitempty"`
 
-	Standards    map[string]bool         `json:"standards,omitempty"`
+	Profiles map[string]bool `json:"profiles,omitempty"`
 
-	Profiles     map[string]bool         `json:"profiles,omitempty"`
-
-	Violations   []ComplianceViolation   `json:"violations,omitempty"`
+	Violations []ComplianceViolation `json:"violations,omitempty"`
 
 	Requirements []ComplianceRequirement `json:"requirements,omitempty"`
-
 }
-
-
 
 // ComplianceViolation represents a compliance violation.
 
 type ComplianceViolation struct {
+	Standard string `json:"standard"`
 
-	Standard    string    `json:"standard"`
+	Rule string `json:"rule"`
 
-	Rule        string    `json:"rule"`
+	Severity string `json:"severity"`
 
-	Severity    string    `json:"severity"`
+	Description string `json:"description"`
 
-	Description string    `json:"description"`
+	Remediation string `json:"remediation,omitempty"`
 
-	Remediation string    `json:"remediation,omitempty"`
+	Reference string `json:"reference,omitempty"`
 
-	Reference   string    `json:"reference,omitempty"`
-
-	DetectedAt  time.Time `json:"detectedAt"`
-
+	DetectedAt time.Time `json:"detectedAt"`
 }
-
-
 
 // ComplianceRequirement represents a compliance requirement.
 
 type ComplianceRequirement struct {
-
-	Standard    string `json:"standard"`
+	Standard string `json:"standard"`
 
 	Requirement string `json:"requirement"`
 
-	Status      string `json:"status"` // met, not-met, partial, n/a
+	Status string `json:"status"` // met, not-met, partial, n/a
 
-	Evidence    string `json:"evidence,omitempty"`
+	Evidence string `json:"evidence,omitempty"`
 
-	Notes       string `json:"notes,omitempty"`
-
+	Notes string `json:"notes,omitempty"`
 }
-
-
 
 // PerformanceValidationResult contains performance validation results.
 
 type PerformanceValidationResult struct {
+	PerformanceAcceptable bool `json:"performanceAcceptable"`
 
-	PerformanceAcceptable bool                    `json:"performanceAcceptable"`
+	Score float64 `json:"score"`
 
-	Score                 float64                 `json:"score"`
+	ExecutionTime time.Duration `json:"executionTime"`
 
-	ExecutionTime         time.Duration           `json:"executionTime"`
+	MemoryUsage int64 `json:"memoryUsage"`
 
-	MemoryUsage           int64                   `json:"memoryUsage"`
+	CPUUsage float64 `json:"cpuUsage"`
 
-	CPUUsage              float64                 `json:"cpuUsage"`
+	ResourceEfficiency float64 `json:"resourceEfficiency"`
 
-	ResourceEfficiency    float64                 `json:"resourceEfficiency"`
+	Scalability *ScalabilityMetrics `json:"scalability,omitempty"`
 
-	Scalability           *ScalabilityMetrics     `json:"scalability,omitempty"`
+	Benchmarks []PerformanceBenchmark `json:"benchmarks,omitempty"`
 
-	Benchmarks            []PerformanceBenchmark  `json:"benchmarks,omitempty"`
-
-	Bottlenecks           []PerformanceBottleneck `json:"bottlenecks,omitempty"`
-
+	Bottlenecks []PerformanceBottleneck `json:"bottlenecks,omitempty"`
 }
-
-
 
 // ScalabilityMetrics provides scalability assessment.
 
 type ScalabilityMetrics struct {
+	LinearScaling bool `json:"linearScaling"`
 
-	LinearScaling   bool    `json:"linearScaling"`
-
-	MaxConcurrency  int     `json:"maxConcurrency"`
+	MaxConcurrency int `json:"maxConcurrency"`
 
 	ThroughputLimit float64 `json:"throughputLimit"`
 
 	LatencyIncrease float64 `json:"latencyIncrease"`
 
-	ResourceGrowth  float64 `json:"resourceGrowth"`
-
+	ResourceGrowth float64 `json:"resourceGrowth"`
 }
-
-
 
 // PerformanceBenchmark represents a performance benchmark.
 
 type PerformanceBenchmark struct {
+	Name string `json:"name"`
 
-	Name          string               `json:"name"`
+	Description string `json:"description"`
 
-	Description   string               `json:"description"`
+	ResourceCount int `json:"resourceCount"`
 
-	ResourceCount int                  `json:"resourceCount"`
+	ExecutionTime time.Duration `json:"executionTime"`
 
-	ExecutionTime time.Duration        `json:"executionTime"`
+	MemoryUsage int64 `json:"memoryUsage"`
 
-	MemoryUsage   int64                `json:"memoryUsage"`
+	CPUUsage float64 `json:"cpuUsage"`
 
-	CPUUsage      float64              `json:"cpuUsage"`
+	Passed bool `json:"passed"`
 
-	Passed        bool                 `json:"passed"`
-
-	Baseline      *PerformanceBaseline `json:"baseline,omitempty"`
-
+	Baseline *PerformanceBaseline `json:"baseline,omitempty"`
 }
-
-
 
 // PerformanceBaseline defines performance baseline.
 
 type PerformanceBaseline struct {
-
 	ExecutionTime time.Duration `json:"executionTime"`
 
-	MemoryUsage   int64         `json:"memoryUsage"`
+	MemoryUsage int64 `json:"memoryUsage"`
 
-	CPUUsage      float64       `json:"cpuUsage"`
+	CPUUsage float64 `json:"cpuUsage"`
 
-	Threshold     float64       `json:"threshold"`
-
+	Threshold float64 `json:"threshold"`
 }
-
-
 
 // PerformanceBottleneck represents a performance bottleneck.
 
 type PerformanceBottleneck struct {
-
-	Type        string `json:"type"`
+	Type string `json:"type"`
 
 	Description string `json:"description"`
 
-	Impact      string `json:"impact"`
+	Impact string `json:"impact"`
 
-	Severity    string `json:"severity"`
+	Severity string `json:"severity"`
 
-	Suggestion  string `json:"suggestion,omitempty"`
-
+	Suggestion string `json:"suggestion,omitempty"`
 }
-
-
 
 // IntegrationValidationResult contains integration test results.
 
 type IntegrationValidationResult struct {
+	Integrated bool `json:"integrated"`
 
-	Integrated    bool                 `json:"integrated"`
+	Score float64 `json:"score"`
 
-	Score         float64              `json:"score"`
-
-	TestResults   []IntegrationTest    `json:"testResults,omitempty"`
+	TestResults []IntegrationTest `json:"testResults,omitempty"`
 
 	Compatibility []CompatibilityCheck `json:"compatibility,omitempty"`
-
 }
-
-
 
 // IntegrationTest represents an integration test.
 
 type IntegrationTest struct {
+	Name string `json:"name"`
 
-	Name        string              `json:"name"`
+	Description string `json:"description"`
 
-	Description string              `json:"description"`
+	Status string `json:"status"` // passed, failed, skipped
 
-	Status      string              `json:"status"` // passed, failed, skipped
+	Duration time.Duration `json:"duration"`
 
-	Duration    time.Duration       `json:"duration"`
+	Input []porch.KRMResource `json:"input,omitempty"`
 
-	Input       []porch.KRMResource `json:"input,omitempty"`
+	Output []porch.KRMResource `json:"output,omitempty"`
 
-	Output      []porch.KRMResource `json:"output,omitempty"`
+	Error string `json:"error,omitempty"`
 
-	Error       string              `json:"error,omitempty"`
-
-	Logs        []string            `json:"logs,omitempty"`
-
+	Logs []string `json:"logs,omitempty"`
 }
-
-
 
 // CompatibilityCheck represents a compatibility check.
 
 type CompatibilityCheck struct {
+	Type string `json:"type"`
 
-	Type       string   `json:"type"`
+	Target string `json:"target"`
 
-	Target     string   `json:"target"`
+	Compatible bool `json:"compatible"`
 
-	Compatible bool     `json:"compatible"`
+	Version string `json:"version,omitempty"`
 
-	Version    string   `json:"version,omitempty"`
-
-	Issues     []string `json:"issues,omitempty"`
-
+	Issues []string `json:"issues,omitempty"`
 }
-
-
 
 // QualityValidationResult contains quality assessment results.
 
 type QualityValidationResult struct {
+	Score float64 `json:"score"`
 
-	Score           float64 `json:"score"`
+	TestCoverage float64 `json:"testCoverage"`
 
-	TestCoverage    float64 `json:"testCoverage"`
+	CodeQuality float64 `json:"codeQuality"`
 
-	CodeQuality     float64 `json:"codeQuality"`
-
-	Documentation   float64 `json:"documentation"`
+	Documentation float64 `json:"documentation"`
 
 	Maintainability float64 `json:"maintainability"`
 
-	Reliability     float64 `json:"reliability"`
-
+	Reliability float64 `json:"reliability"`
 }
-
-
 
 // ValidationIssue represents a validation issue.
 
 type ValidationIssue struct {
+	Type string `json:"type"`
 
-	Type        string    `json:"type"`
+	Severity string `json:"severity"`
 
-	Severity    string    `json:"severity"`
+	Title string `json:"title"`
 
-	Title       string    `json:"title"`
+	Description string `json:"description"`
 
-	Description string    `json:"description"`
+	Location string `json:"location,omitempty"`
 
-	Location    string    `json:"location,omitempty"`
+	Remediation string `json:"remediation,omitempty"`
 
-	Remediation string    `json:"remediation,omitempty"`
+	Reference string `json:"reference,omitempty"`
 
-	Reference   string    `json:"reference,omitempty"`
-
-	DetectedAt  time.Time `json:"detectedAt"`
-
+	DetectedAt time.Time `json:"detectedAt"`
 }
-
-
 
 // ValidationWarning represents a validation warning.
 
 type ValidationWarning struct {
+	Type string `json:"type"`
 
-	Type        string    `json:"type"`
+	Title string `json:"title"`
 
-	Title       string    `json:"title"`
+	Description string `json:"description"`
 
-	Description string    `json:"description"`
+	Suggestion string `json:"suggestion,omitempty"`
 
-	Suggestion  string    `json:"suggestion,omitempty"`
-
-	DetectedAt  time.Time `json:"detectedAt"`
-
+	DetectedAt time.Time `json:"detectedAt"`
 }
-
-
 
 // ValidationRecommendation represents a validation recommendation.
 
 type ValidationRecommendation struct {
+	Type string `json:"type"`
 
-	Type        string `json:"type"`
+	Priority string `json:"priority"`
 
-	Priority    string `json:"priority"`
-
-	Title       string `json:"title"`
+	Title string `json:"title"`
 
 	Description string `json:"description"`
 
-	Action      string `json:"action"`
+	Action string `json:"action"`
 
-	Benefit     string `json:"benefit,omitempty"`
-
+	Benefit string `json:"benefit,omitempty"`
 }
-
-
 
 // FunctionCertification represents a function certification.
 
 type FunctionCertification struct {
+	Level string `json:"level"`
 
-	Level       string    `json:"level"`
+	Authority string `json:"authority"`
 
-	Authority   string    `json:"authority"`
+	Standard string `json:"standard"`
 
-	Standard    string    `json:"standard"`
+	Version string `json:"version"`
 
-	Version     string    `json:"version"`
+	IssuedAt time.Time `json:"issuedAt"`
 
-	IssuedAt    time.Time `json:"issuedAt"`
+	ExpiresAt time.Time `json:"expiresAt"`
 
-	ExpiresAt   time.Time `json:"expiresAt"`
-
-	Certificate string    `json:"certificate,omitempty"`
-
+	Certificate string `json:"certificate,omitempty"`
 }
-
-
 
 // SecurityScanner provides security scanning capabilities.
 
 type SecurityScanner struct {
-
-	config   *ValidatorConfig
+	config *ValidatorConfig
 
 	database *VulnerabilityDatabase
 
 	scanners []SecurityScannerEngine
 
-	mu       sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // SecurityScannerEngine interface for security scanning engines.
 
 type SecurityScannerEngine interface {
-
 	Name() string
 
 	Scan(ctx context.Context, image string) (*SecurityScanResult, error)
-
 }
-
-
 
 // SecurityScanResult represents security scan result.
 
 type SecurityScanResult struct {
-
 	Vulnerabilities []SecurityVulnerability `json:"vulnerabilities"`
 
-	Risks           []SecurityRisk          `json:"risks"`
+	Risks []SecurityRisk `json:"risks"`
 
-	Score           float64                 `json:"score"`
+	Score float64 `json:"score"`
 
-	Metadata        map[string]string       `json:"metadata"`
-
+	Metadata map[string]string `json:"metadata"`
 }
-
-
 
 // VulnerabilityDatabase manages vulnerability data.
 
 type VulnerabilityDatabase struct {
-
-	url        string
+	url string
 
 	lastUpdate time.Time
 
-	cache      map[string][]SecurityVulnerability
+	cache map[string][]SecurityVulnerability
 
-	mu         sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // ComplianceChecker provides compliance checking capabilities.
 
 type ComplianceChecker struct {
-
-	config    *ValidatorConfig
+	config *ValidatorConfig
 
 	standards map[string]*ComplianceStandard
 
-	profiles  map[string]*ComplianceProfile
+	profiles map[string]*ComplianceProfile
 
-	rules     []ComplianceRule
+	rules []ComplianceRule
 
-	mu        sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // ComplianceStandard represents a compliance standard.
 
 type ComplianceStandard struct {
+	Name string `json:"name"`
 
-	Name        string            `json:"name"`
+	Version string `json:"version"`
 
-	Version     string            `json:"version"`
+	Description string `json:"description"`
 
-	Description string            `json:"description"`
+	Rules []ComplianceRule `json:"rules"`
 
-	Rules       []ComplianceRule  `json:"rules"`
-
-	Metadata    map[string]string `json:"metadata"`
-
+	Metadata map[string]string `json:"metadata"`
 }
-
-
 
 // ComplianceProfile represents a compliance profile.
 
 type ComplianceProfile struct {
+	Name string `json:"name"`
 
-	Name         string                  `json:"name"`
-
-	Standards    []string                `json:"standards"`
+	Standards []string `json:"standards"`
 
 	Requirements []ComplianceRequirement `json:"requirements"`
 
-	Metadata     map[string]string       `json:"metadata"`
-
+	Metadata map[string]string `json:"metadata"`
 }
-
-
 
 // ComplianceRule represents a compliance rule.
 
 type ComplianceRule struct {
+	ID string `json:"id"`
 
-	ID          string `json:"id"`
+	Standard string `json:"standard"`
 
-	Standard    string `json:"standard"`
+	Category string `json:"category"`
 
-	Category    string `json:"category"`
-
-	Title       string `json:"title"`
+	Title string `json:"title"`
 
 	Description string `json:"description"`
 
-	Severity    string `json:"severity"`
+	Severity string `json:"severity"`
 
-	Rule        string `json:"rule"`
+	Rule string `json:"rule"`
 
 	Remediation string `json:"remediation,omitempty"`
 
-	Reference   string `json:"reference,omitempty"`
-
+	Reference string `json:"reference,omitempty"`
 }
-
-
 
 // PerformanceTester provides performance testing capabilities.
 
 type PerformanceTester struct {
-
-	config     *ValidatorConfig
+	config *ValidatorConfig
 
 	benchmarks []PerformanceBenchmark
 
-	baselines  map[string]*PerformanceBaseline
+	baselines map[string]*PerformanceBaseline
 
-	mu         sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // ValidationCache caches validation results.
 
 type ValidationCache struct {
-
 	cache map[string]*CachedValidationResult
 
-	ttl   time.Duration
+	ttl time.Duration
 
-	mu    sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // CachedValidationResult represents a cached validation result.
 
 type CachedValidationResult struct {
+	Result *ValidationResult `json:"result"`
 
-	Result    *ValidationResult `json:"result"`
+	ExpiresAt time.Time `json:"expiresAt"`
 
-	ExpiresAt time.Time         `json:"expiresAt"`
-
-	Hash      string            `json:"hash"`
-
+	Hash string `json:"hash"`
 }
-
-
 
 // ValidatorMetrics provides comprehensive metrics.
 
 type ValidatorMetrics struct {
+	ValidationsTotal *prometheus.CounterVec
 
-	ValidationsTotal     *prometheus.CounterVec
+	ValidationDuration *prometheus.HistogramVec
 
-	ValidationDuration   *prometheus.HistogramVec
+	SecurityScansTotal *prometheus.CounterVec
 
-	SecurityScansTotal   *prometheus.CounterVec
+	ComplianceChecks *prometheus.CounterVec
 
-	ComplianceChecks     *prometheus.CounterVec
+	PerformanceTests *prometheus.CounterVec
 
-	PerformanceTests     *prometheus.CounterVec
+	CacheHits prometheus.Counter
 
-	CacheHits            prometheus.Counter
-
-	CacheMisses          prometheus.Counter
+	CacheMisses prometheus.Counter
 
 	CertificationsIssued *prometheus.CounterVec
-
 }
-
-
 
 // Default validator configuration.
 
 var DefaultValidatorConfig = &ValidatorConfig{
 
-	EnableSecurityScan:     true,
+	EnableSecurityScan: true,
 
-	VulnerabilityDatabase:  "https://cve.mitre.org/data/downloads/allitems.xml",
+	VulnerabilityDatabase: "https://cve.mitre.org/data/downloads/allitems.xml",
 
-	SecurityTimeout:        10 * time.Minute,
+	SecurityTimeout: 10 * time.Minute,
 
-	MaxSeverityAllowed:     "medium",
+	MaxSeverityAllowed: "medium",
 
-	EnableCompliance:       true,
+	EnableCompliance: true,
 
-	ComplianceStandards:    []string{"pci-dss", "nist-csf", "iso-27001"},
+	ComplianceStandards: []string{"pci-dss", "nist-csf", "iso-27001"},
 
-	ComplianceProfiles:     []string{"basic", "enhanced"},
+	ComplianceProfiles: []string{"basic", "enhanced"},
 
-	EnablePerformanceTest:  true,
+	EnablePerformanceTest: true,
 
-	PerformanceTimeout:     15 * time.Minute,
+	PerformanceTimeout: 15 * time.Minute,
 
-	MaxExecutionTime:       5 * time.Minute,
+	MaxExecutionTime: 5 * time.Minute,
 
-	MaxMemoryUsage:         1024 * 1024 * 1024, // 1GB
+	MaxMemoryUsage: 1024 * 1024 * 1024, // 1GB
 
-	MaxCPUUsage:            2.0,
+	MaxCPUUsage: 2.0,
 
-	EnableIntegrationTest:  true,
+	EnableIntegrationTest: true,
 
-	TestTimeout:            10 * time.Minute,
+	TestTimeout: 10 * time.Minute,
 
-	MinTestCoverage:        0.8,
+	MinTestCoverage: 0.8,
 
-	MinCodeQuality:         0.7,
+	MinCodeQuality: 0.7,
 
-	MinDocumentationScore:  0.6,
+	MinDocumentationScore: 0.6,
 
-	EnableCertification:    true,
+	EnableCertification: true,
 
-	CertificationLevels:    []string{"basic", "standard", "premium"},
+	CertificationLevels: []string{"basic", "standard", "premium"},
 
 	CacheValidationResults: true,
 
-	CacheTTL:               24 * time.Hour,
+	CacheTTL: 24 * time.Hour,
 
-	DetailedReports:        true,
+	DetailedReports: true,
 
-	ReportFormat:           "json",
-
+	ReportFormat: "json",
 }
-
-
 
 // NewValidator creates a new KRM function validator.
 
@@ -995,8 +789,6 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 
 	}
 
-
-
 	// Validate configuration.
 
 	if err := validateValidatorConfig(config); err != nil {
@@ -1004,8 +796,6 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 		return nil, fmt.Errorf("invalid validator configuration: %w", err)
 
 	}
-
-
 
 	// Initialize metrics.
 
@@ -1018,27 +808,23 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 				Name: "krm_validator_validations_total",
 
 				Help: "Total number of validations performed",
-
 			},
 
 			[]string{"type", "result"},
-
 		),
 
 		ValidationDuration: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "krm_validator_validation_duration_seconds",
+				Name: "krm_validator_validation_duration_seconds",
 
-				Help:    "Duration of validations",
+				Help: "Duration of validations",
 
 				Buckets: prometheus.ExponentialBuckets(1, 2, 10),
-
 			},
 
 			[]string{"type"},
-
 		),
 
 		SecurityScansTotal: promauto.NewCounterVec(
@@ -1048,11 +834,9 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 				Name: "krm_validator_security_scans_total",
 
 				Help: "Total number of security scans performed",
-
 			},
 
 			[]string{"scanner", "result"},
-
 		),
 
 		ComplianceChecks: promauto.NewCounterVec(
@@ -1062,11 +846,9 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 				Name: "krm_validator_compliance_checks_total",
 
 				Help: "Total number of compliance checks performed",
-
 			},
 
 			[]string{"standard", "result"},
-
 		),
 
 		PerformanceTests: promauto.NewCounterVec(
@@ -1076,11 +858,9 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 				Name: "krm_validator_performance_tests_total",
 
 				Help: "Total number of performance tests performed",
-
 			},
 
 			[]string{"test", "result"},
-
 		),
 
 		CacheHits: promauto.NewCounter(
@@ -1090,9 +870,7 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 				Name: "krm_validator_cache_hits_total",
 
 				Help: "Total number of validation cache hits",
-
 			},
-
 		),
 
 		CacheMisses: promauto.NewCounter(
@@ -1102,9 +880,7 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 				Name: "krm_validator_cache_misses_total",
 
 				Help: "Total number of validation cache misses",
-
 			},
-
 		),
 
 		CertificationsIssued: promauto.NewCounterVec(
@@ -1114,60 +890,46 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 				Name: "krm_validator_certifications_issued_total",
 
 				Help: "Total number of certifications issued",
-
 			},
 
 			[]string{"level", "authority"},
-
 		),
-
 	}
-
-
 
 	// Initialize security scanner.
 
 	securityScanner := &SecurityScanner{
 
-		config:   config,
+		config: config,
 
 		database: NewVulnerabilityDatabase(config.VulnerabilityDatabase),
 
 		scanners: []SecurityScannerEngine{},
-
 	}
-
-
 
 	// Initialize compliance checker.
 
 	complianceChecker := &ComplianceChecker{
 
-		config:    config,
+		config: config,
 
 		standards: make(map[string]*ComplianceStandard),
 
-		profiles:  make(map[string]*ComplianceProfile),
+		profiles: make(map[string]*ComplianceProfile),
 
-		rules:     []ComplianceRule{},
-
+		rules: []ComplianceRule{},
 	}
-
-
 
 	// Initialize performance tester.
 
 	performanceTester := &PerformanceTester{
 
-		config:     config,
+		config: config,
 
 		benchmarks: []PerformanceBenchmark{},
 
-		baselines:  make(map[string]*PerformanceBaseline),
-
+		baselines: make(map[string]*PerformanceBaseline),
 	}
-
-
 
 	// Initialize validation cache.
 
@@ -1175,31 +937,25 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 
 		cache: make(map[string]*CachedValidationResult),
 
-		ttl:   config.CacheTTL,
-
+		ttl: config.CacheTTL,
 	}
-
-
 
 	validator := &Validator{
 
-		config:            config,
+		config: config,
 
-		securityScanner:   securityScanner,
+		securityScanner: securityScanner,
 
 		complianceChecker: complianceChecker,
 
 		performanceTester: performanceTester,
 
-		metrics:           metrics,
+		metrics: metrics,
 
-		tracer:            otel.Tracer("krm-validator"),
+		tracer: otel.Tracer("krm-validator"),
 
-		cache:             cache,
-
+		cache: cache,
 	}
-
-
 
 	// Initialize standards and profiles.
 
@@ -1209,13 +965,9 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 
 	}
 
-
-
 	return validator, nil
 
 }
-
-
 
 // ValidateFunction validates a KRM function comprehensively.
 
@@ -1225,19 +977,13 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 
 	defer span.End()
 
-
-
 	logger := log.FromContext(ctx).WithName("krm-validator")
 
 	startTime := time.Now()
 
-
-
 	// Create function hash for caching.
 
 	functionHash := v.createFunctionHash(req)
-
-
 
 	span.SetAttributes(
 
@@ -1246,10 +992,7 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 		attribute.String("function.image", req.Image),
 
 		attribute.String("function.hash", functionHash),
-
 	)
-
-
 
 	// Check cache if enabled.
 
@@ -1273,37 +1016,30 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 
 	}
 
-
-
 	// Create validation result.
 
 	result := &ValidationResult{
 
-		Valid:            true,
+		Valid: true,
 
-		Score:            0.0,
+		Score: 0.0,
 
-		ValidatedAt:      startTime,
+		ValidatedAt: startTime,
 
-		ValidatedBy:      "nephoran-krm-validator",
+		ValidatedBy: "nephoran-krm-validator",
 
 		ValidatorVersion: "v1.0.0",
 
-		Issues:           []ValidationIssue{},
+		Issues: []ValidationIssue{},
 
-		Warnings:         []ValidationWarning{},
+		Warnings: []ValidationWarning{},
 
-		Recommendations:  []ValidationRecommendation{},
+		Recommendations: []ValidationRecommendation{},
 
-		Certifications:   []FunctionCertification{},
-
+		Certifications: []FunctionCertification{},
 	}
 
-
-
 	var validationErr error
-
-
 
 	// Perform security validation.
 
@@ -1339,8 +1075,6 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 
 	}
 
-
-
 	// Perform compliance validation.
 
 	if v.config.EnableCompliance && (req.Options == nil || !req.Options.SkipCompliance) {
@@ -1374,8 +1108,6 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 		}
 
 	}
-
-
 
 	// Perform performance validation.
 
@@ -1411,8 +1143,6 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 
 	}
 
-
-
 	// Perform integration validation.
 
 	if v.config.EnableIntegrationTest {
@@ -1447,15 +1177,11 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 
 	}
 
-
-
 	// Calculate overall score and grade.
 
 	result.Score = v.calculateOverallScore(result)
 
 	result.Grade = v.calculateGrade(result.Score)
-
-
 
 	// Issue certifications if applicable.
 
@@ -1469,13 +1195,9 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 
 	}
 
-
-
 	// Finalize result.
 
 	result.Duration = time.Since(startTime)
-
-
 
 	// Cache result if enabled.
 
@@ -1484,8 +1206,6 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 		v.cache.set(functionHash, result)
 
 	}
-
-
 
 	// Record metrics.
 
@@ -1501,8 +1221,6 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 
 	v.metrics.ValidationDuration.WithLabelValues("comprehensive").Observe(result.Duration.Seconds())
 
-
-
 	if validationErr != nil {
 
 		span.RecordError(validationErr)
@@ -1514,8 +1232,6 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 		return result, validationErr
 
 	}
-
-
 
 	span.SetStatus(codes.Ok, "validation completed successfully")
 
@@ -1530,16 +1246,11 @@ func (v *Validator) ValidateFunction(ctx context.Context, req *ValidationRequest
 		"grade", result.Grade,
 
 		"duration", result.Duration,
-
 	)
-
-
 
 	return result, nil
 
 }
-
-
 
 // ValidateImage validates a container image for security vulnerabilities.
 
@@ -1549,17 +1260,11 @@ func (v *Validator) ValidateImage(ctx context.Context, image string) (*SecurityV
 
 	defer span.End()
 
-
-
 	span.SetAttributes(attribute.String("image", image))
-
-
 
 	return v.securityScanner.scanImage(ctx, image)
 
 }
-
-
 
 // ValidateCompliance validates function compliance against standards.
 
@@ -1569,21 +1274,13 @@ func (v *Validator) ValidateCompliance(ctx context.Context, function *FunctionMe
 
 	defer span.End()
 
-
-
 	span.SetAttributes(attribute.String("function.name", function.Name))
-
-
 
 	return v.complianceChecker.checkCompliance(ctx, function)
 
 }
 
-
-
 // Private validation methods.
-
-
 
 func (v *Validator) validateSecurity(ctx context.Context, req *ValidationRequest) (*SecurityValidationResult, error) {
 
@@ -1591,15 +1288,11 @@ func (v *Validator) validateSecurity(ctx context.Context, req *ValidationRequest
 
 }
 
-
-
 func (v *Validator) validateCompliance(ctx context.Context, req *ValidationRequest) (*ComplianceValidationResult, error) {
 
 	return v.complianceChecker.checkCompliance(ctx, req.Function)
 
 }
-
-
 
 func (v *Validator) validatePerformance(ctx context.Context, req *ValidationRequest) (*PerformanceValidationResult, error) {
 
@@ -1607,53 +1300,41 @@ func (v *Validator) validatePerformance(ctx context.Context, req *ValidationRequ
 
 }
 
-
-
 func (v *Validator) validateIntegration(ctx context.Context, req *ValidationRequest) (*IntegrationValidationResult, error) {
 
 	// Run integration tests.
 
 	result := &IntegrationValidationResult{
 
-		Integrated:    true,
+		Integrated: true,
 
-		Score:         1.0,
+		Score: 1.0,
 
-		TestResults:   []IntegrationTest{},
+		TestResults: []IntegrationTest{},
 
 		Compatibility: []CompatibilityCheck{},
-
 	}
-
-
 
 	// Mock integration test for now.
 
 	test := IntegrationTest{
 
-		Name:        "basic-integration",
+		Name: "basic-integration",
 
 		Description: "Basic integration test",
 
-		Status:      "passed",
+		Status: "passed",
 
-		Duration:    time.Second,
-
+		Duration: time.Second,
 	}
 
 	result.TestResults = append(result.TestResults, test)
-
-
 
 	return result, nil
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (v *Validator) createFunctionHash(req *ValidationRequest) string {
 
@@ -1665,15 +1346,11 @@ func (v *Validator) createFunctionHash(req *ValidationRequest) string {
 
 }
 
-
-
 func (v *Validator) calculateOverallScore(result *ValidationResult) float64 {
 
 	scores := []float64{}
 
 	weights := []float64{}
-
-
 
 	if result.SecurityResult != nil {
 
@@ -1707,15 +1384,11 @@ func (v *Validator) calculateOverallScore(result *ValidationResult) float64 {
 
 	}
 
-
-
 	if len(scores) == 0 {
 
 		return 0.0
 
 	}
-
-
 
 	totalWeight := 0.0
 
@@ -1729,13 +1402,9 @@ func (v *Validator) calculateOverallScore(result *ValidationResult) float64 {
 
 	}
 
-
-
 	return weightedSum / totalWeight
 
 }
-
-
 
 func (v *Validator) calculateGrade(score float64) string {
 
@@ -1763,13 +1432,9 @@ func (v *Validator) calculateGrade(score float64) string {
 
 }
 
-
-
 func (v *Validator) issueCertifications(ctx context.Context, req *ValidationRequest, result *ValidationResult) []FunctionCertification {
 
 	var certifications []FunctionCertification
-
-
 
 	// Issue basic certification if function is valid.
 
@@ -1777,18 +1442,17 @@ func (v *Validator) issueCertifications(ctx context.Context, req *ValidationRequ
 
 		cert := FunctionCertification{
 
-			Level:     "basic",
+			Level: "basic",
 
 			Authority: "nephoran",
 
-			Standard:  "krm-function-v1",
+			Standard: "krm-function-v1",
 
-			Version:   "1.0",
+			Version: "1.0",
 
-			IssuedAt:  time.Now(),
+			IssuedAt: time.Now(),
 
 			ExpiresAt: time.Now().AddDate(1, 0, 0),
-
 		}
 
 		certifications = append(certifications, cert)
@@ -1797,26 +1461,23 @@ func (v *Validator) issueCertifications(ctx context.Context, req *ValidationRequ
 
 	}
 
-
-
 	// Issue enhanced certification for high scores.
 
 	if result.Valid && result.Score >= 0.85 {
 
 		cert := FunctionCertification{
 
-			Level:     "enhanced",
+			Level: "enhanced",
 
 			Authority: "nephoran",
 
-			Standard:  "krm-function-enhanced-v1",
+			Standard: "krm-function-enhanced-v1",
 
-			Version:   "1.0",
+			Version: "1.0",
 
-			IssuedAt:  time.Now(),
+			IssuedAt: time.Now(),
 
 			ExpiresAt: time.Now().AddDate(1, 0, 0),
-
 		}
 
 		certifications = append(certifications, cert)
@@ -1825,13 +1486,9 @@ func (v *Validator) issueCertifications(ctx context.Context, req *ValidationRequ
 
 	}
 
-
-
 	return certifications
 
 }
-
-
 
 func (v *Validator) initializeStandardsAndProfiles() error {
 
@@ -1839,45 +1496,35 @@ func (v *Validator) initializeStandardsAndProfiles() error {
 
 	pciDSSStandard := &ComplianceStandard{
 
-		Name:        "PCI-DSS",
+		Name: "PCI-DSS",
 
-		Version:     "3.2.1",
+		Version: "3.2.1",
 
 		Description: "Payment Card Industry Data Security Standard",
 
-		Rules:       []ComplianceRule{},
-
+		Rules: []ComplianceRule{},
 	}
 
 	v.complianceChecker.standards["pci-dss"] = pciDSSStandard
 
-
-
 	nistCSFStandard := &ComplianceStandard{
 
-		Name:        "NIST-CSF",
+		Name: "NIST-CSF",
 
-		Version:     "1.1",
+		Version: "1.1",
 
 		Description: "NIST Cybersecurity Framework",
 
-		Rules:       []ComplianceRule{},
-
+		Rules: []ComplianceRule{},
 	}
 
 	v.complianceChecker.standards["nist-csf"] = nistCSFStandard
-
-
 
 	return nil
 
 }
 
-
-
 // Security Scanner implementation.
-
-
 
 // NewVulnerabilityDatabase performs newvulnerabilitydatabase operation.
 
@@ -1885,15 +1532,12 @@ func NewVulnerabilityDatabase(url string) *VulnerabilityDatabase {
 
 	return &VulnerabilityDatabase{
 
-		url:   url,
+		url: url,
 
 		cache: make(map[string][]SecurityVulnerability),
-
 	}
 
 }
-
-
 
 func (ss *SecurityScanner) scanImage(ctx context.Context, image string) (*SecurityValidationResult, error) {
 
@@ -1901,31 +1545,24 @@ func (ss *SecurityScanner) scanImage(ctx context.Context, image string) (*Securi
 
 	result := &SecurityValidationResult{
 
-		Secure:          true,
+		Secure: true,
 
-		Score:           0.9,
+		Score: 0.9,
 
 		Vulnerabilities: []SecurityVulnerability{},
 
-		Risks:           []SecurityRisk{},
+		Risks: []SecurityRisk{},
 
-		Compliance:      make(map[string]bool),
+		Compliance: make(map[string]bool),
 
-		LastScanTime:    time.Now(),
-
+		LastScanTime: time.Now(),
 	}
-
-
 
 	return result, nil
 
 }
 
-
-
 // Compliance Checker implementation.
-
-
 
 func (cc *ComplianceChecker) checkCompliance(ctx context.Context, function *FunctionMetadata) (*ComplianceValidationResult, error) {
 
@@ -1933,31 +1570,24 @@ func (cc *ComplianceChecker) checkCompliance(ctx context.Context, function *Func
 
 	result := &ComplianceValidationResult{
 
-		Compliant:    true,
+		Compliant: true,
 
-		Score:        0.85,
+		Score: 0.85,
 
-		Standards:    make(map[string]bool),
+		Standards: make(map[string]bool),
 
-		Profiles:     make(map[string]bool),
+		Profiles: make(map[string]bool),
 
-		Violations:   []ComplianceViolation{},
+		Violations: []ComplianceViolation{},
 
 		Requirements: []ComplianceRequirement{},
-
 	}
-
-
 
 	return result, nil
 
 }
 
-
-
 // Performance Tester implementation.
-
-
 
 func (pt *PerformanceTester) runPerformanceTests(ctx context.Context, req *ValidationRequest) (*PerformanceValidationResult, error) {
 
@@ -1967,41 +1597,32 @@ func (pt *PerformanceTester) runPerformanceTests(ctx context.Context, req *Valid
 
 		PerformanceAcceptable: true,
 
-		Score:                 0.8,
+		Score: 0.8,
 
-		ExecutionTime:         time.Second * 2,
+		ExecutionTime: time.Second * 2,
 
-		MemoryUsage:           100 * 1024 * 1024, // 100MB
+		MemoryUsage: 100 * 1024 * 1024, // 100MB
 
-		CPUUsage:              0.5,
+		CPUUsage: 0.5,
 
-		ResourceEfficiency:    0.85,
+		ResourceEfficiency: 0.85,
 
-		Benchmarks:            []PerformanceBenchmark{},
+		Benchmarks: []PerformanceBenchmark{},
 
-		Bottlenecks:           []PerformanceBottleneck{},
-
+		Bottlenecks: []PerformanceBottleneck{},
 	}
-
-
 
 	return result, nil
 
 }
 
-
-
 // Cache implementation.
-
-
 
 func (vc *ValidationCache) get(key string) *CachedValidationResult {
 
 	vc.mu.RLock()
 
 	defer vc.mu.RUnlock()
-
-
 
 	cached, exists := vc.cache[key]
 
@@ -2011,8 +1632,6 @@ func (vc *ValidationCache) get(key string) *CachedValidationResult {
 
 	}
 
-
-
 	if time.Now().After(cached.ExpiresAt) {
 
 		delete(vc.cache, key)
@@ -2021,13 +1640,9 @@ func (vc *ValidationCache) get(key string) *CachedValidationResult {
 
 	}
 
-
-
 	return cached
 
 }
-
-
 
 func (vc *ValidationCache) set(key string, result *ValidationResult) {
 
@@ -2035,25 +1650,18 @@ func (vc *ValidationCache) set(key string, result *ValidationResult) {
 
 	defer vc.mu.Unlock()
 
-
-
 	cached := &CachedValidationResult{
 
-		Result:    result,
+		Result: result,
 
 		ExpiresAt: time.Now().Add(vc.ttl),
 
-		Hash:      key,
-
+		Hash: key,
 	}
-
-
 
 	vc.cache[key] = cached
 
 }
-
-
 
 // Shutdown gracefully shuts down the validator.
 
@@ -2063,8 +1671,6 @@ func (v *Validator) Shutdown(ctx context.Context) error {
 
 	logger.Info("Shutting down KRM validator")
 
-
-
 	// Clear cache.
 
 	v.cache.mu.Lock()
@@ -2073,19 +1679,13 @@ func (v *Validator) Shutdown(ctx context.Context) error {
 
 	v.cache.mu.Unlock()
 
-
-
 	logger.Info("KRM validator shutdown complete")
 
 	return nil
 
 }
 
-
-
 // Helper functions.
-
-
 
 func validateValidatorConfig(config *ValidatorConfig) error {
 
@@ -2110,4 +1710,3 @@ func validateValidatorConfig(config *ValidatorConfig) error {
 	return nil
 
 }
-

@@ -1,133 +1,100 @@
-
 package providers
 
-
-
 import (
-
 	"context"
-
 	"crypto/tls"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"net/url"
-
 	"strings"
-
 	"time"
 
-
-
 	"golang.org/x/oauth2"
-
 	"golang.org/x/oauth2/github"
-
 )
-
-
 
 // GitHubProvider implements OAuth2 authentication for GitHub.
 
 type GitHubProvider struct {
-
-	config     *ProviderConfig
+	config *ProviderConfig
 
 	httpClient *http.Client
 
-	oauth2Cfg  *oauth2.Config
-
+	oauth2Cfg *oauth2.Config
 }
-
-
 
 // GitHubUserInfo represents GitHub user information.
 
 type GitHubUserInfo struct {
+	ID int64 `json:"id"`
 
-	ID              int64  `json:"id"`
+	Login string `json:"login"`
 
-	Login           string `json:"login"`
+	Name string `json:"name"`
 
-	Name            string `json:"name"`
+	Email string `json:"email"`
 
-	Email           string `json:"email"`
+	AvatarURL string `json:"avatar_url"`
 
-	AvatarURL       string `json:"avatar_url"`
+	HTMLURL string `json:"html_url"`
 
-	HTMLURL         string `json:"html_url"`
+	Company string `json:"company"`
 
-	Company         string `json:"company"`
+	Location string `json:"location"`
 
-	Location        string `json:"location"`
-
-	Bio             string `json:"bio"`
+	Bio string `json:"bio"`
 
 	TwitterUsername string `json:"twitter_username"`
 
-	PublicRepos     int    `json:"public_repos"`
+	PublicRepos int `json:"public_repos"`
 
-	PublicGists     int    `json:"public_gists"`
+	PublicGists int `json:"public_gists"`
 
-	Followers       int    `json:"followers"`
+	Followers int `json:"followers"`
 
-	Following       int    `json:"following"`
+	Following int `json:"following"`
 
-	CreatedAt       string `json:"created_at"`
+	CreatedAt string `json:"created_at"`
 
-	UpdatedAt       string `json:"updated_at"`
-
+	UpdatedAt string `json:"updated_at"`
 }
-
-
 
 // GitHubOrganization represents a GitHub organization.
 
 type GitHubOrganization struct {
+	ID int64 `json:"id"`
 
-	ID          int64  `json:"id"`
+	Login string `json:"login"`
 
-	Login       string `json:"login"`
-
-	URL         string `json:"url"`
+	URL string `json:"url"`
 
 	Description string `json:"description"`
 
-	Name        string `json:"name"`
+	Name string `json:"name"`
 
-	Company     string `json:"company"`
+	Company string `json:"company"`
 
-	Location    string `json:"location"`
-
+	Location string `json:"location"`
 }
-
-
 
 // GitHubTeam represents a GitHub team.
 
 type GitHubTeam struct {
+	ID int64 `json:"id"`
 
-	ID           int64              `json:"id"`
+	Name string `json:"name"`
 
-	Name         string             `json:"name"`
+	Slug string `json:"slug"`
 
-	Slug         string             `json:"slug"`
+	Description string `json:"description"`
 
-	Description  string             `json:"description"`
+	Privacy string `json:"privacy"`
 
-	Privacy      string             `json:"privacy"`
-
-	Permission   string             `json:"permission"`
+	Permission string `json:"permission"`
 
 	Organization GitHubOrganization `json:"organization"`
-
 }
-
-
 
 // NewGitHubProvider creates a new GitHub OAuth2 provider.
 
@@ -135,26 +102,25 @@ func NewGitHubProvider(clientID, clientSecret, redirectURL string) *GitHubProvid
 
 	config := &ProviderConfig{
 
-		Name:         "github",
+		Name: "github",
 
-		Type:         "github",
+		Type: "github",
 
-		ClientID:     clientID,
+		ClientID: clientID,
 
 		ClientSecret: clientSecret,
 
-		RedirectURL:  redirectURL,
+		RedirectURL: redirectURL,
 
-		Scopes:       []string{"user:email", "read:org", "read:user"},
+		Scopes: []string{"user:email", "read:org", "read:user"},
 
 		Endpoints: ProviderEndpoints{
 
-			AuthURL:     github.Endpoint.AuthURL,
+			AuthURL: github.Endpoint.AuthURL,
 
-			TokenURL:    github.Endpoint.TokenURL,
+			TokenURL: github.Endpoint.TokenURL,
 
 			UserInfoURL: "https://api.github.com/user",
-
 		},
 
 		Features: []ProviderFeature{
@@ -168,32 +134,25 @@ func NewGitHubProvider(clientID, clientSecret, redirectURL string) *GitHubProvid
 			FeatureGroups,
 
 			FeatureOrganizations,
-
 		},
-
 	}
-
-
 
 	oauth2Cfg := &oauth2.Config{
 
-		ClientID:     clientID,
+		ClientID: clientID,
 
 		ClientSecret: clientSecret,
 
-		RedirectURL:  redirectURL,
+		RedirectURL: redirectURL,
 
-		Scopes:       config.Scopes,
+		Scopes: config.Scopes,
 
-		Endpoint:     github.Endpoint,
-
+		Endpoint: github.Endpoint,
 	}
-
-
 
 	return &GitHubProvider{
 
-		config:    config,
+		config: config,
 
 		oauth2Cfg: oauth2Cfg,
 
@@ -206,18 +165,12 @@ func NewGitHubProvider(clientID, clientSecret, redirectURL string) *GitHubProvid
 				TLSClientConfig: &tls.Config{
 
 					MinVersion: tls.VersionTLS12,
-
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // GetProviderName returns the provider name.
 
@@ -227,15 +180,11 @@ func (p *GitHubProvider) GetProviderName() string {
 
 }
 
-
-
 // GetAuthorizationURL generates OAuth2 authorization URL with PKCE support.
 
 func (p *GitHubProvider) GetAuthorizationURL(state, redirectURI string, options ...AuthOption) (string, *PKCEChallenge, error) {
 
 	opts := ApplyOptions(options...)
-
-
 
 	// Update redirect URI if provided.
 
@@ -247,17 +196,11 @@ func (p *GitHubProvider) GetAuthorizationURL(state, redirectURI string, options 
 
 	}
 
-
-
 	authURL := config.AuthCodeURL(state, oauth2.AccessTypeOffline)
-
-
 
 	var challenge *PKCEChallenge
 
 	var err error
-
-
 
 	if opts.UsePKCE {
 
@@ -269,8 +212,6 @@ func (p *GitHubProvider) GetAuthorizationURL(state, redirectURI string, options 
 
 		}
 
-
-
 		// Add PKCE parameters to URL.
 
 		parsedURL, err := url.Parse(authURL)
@@ -280,8 +221,6 @@ func (p *GitHubProvider) GetAuthorizationURL(state, redirectURI string, options 
 			return "", nil, fmt.Errorf("failed to parse auth URL: %w", err)
 
 		}
-
-
 
 		query := parsedURL.Query()
 
@@ -294,8 +233,6 @@ func (p *GitHubProvider) GetAuthorizationURL(state, redirectURI string, options 
 		authURL = parsedURL.String()
 
 	}
-
-
 
 	// Add custom parameters.
 
@@ -319,8 +256,6 @@ func (p *GitHubProvider) GetAuthorizationURL(state, redirectURI string, options 
 
 	}
 
-
-
 	for key, value := range opts.CustomParams {
 
 		parsedURL, err := url.Parse(authURL)
@@ -341,13 +276,9 @@ func (p *GitHubProvider) GetAuthorizationURL(state, redirectURI string, options 
 
 	}
 
-
-
 	return authURL, challenge, nil
 
 }
-
-
 
 // ExchangeCodeForToken exchanges authorization code for access token.
 
@@ -361,8 +292,6 @@ func (p *GitHubProvider) ExchangeCodeForToken(ctx context.Context, code, redirec
 
 	}
 
-
-
 	var opts []oauth2.AuthCodeOption
 
 	if challenge != nil {
@@ -370,8 +299,6 @@ func (p *GitHubProvider) ExchangeCodeForToken(ctx context.Context, code, redirec
 		opts = append(opts, oauth2.SetAuthURLParam("code_verifier", challenge.CodeVerifier))
 
 	}
-
-
 
 	token, err := config.Exchange(ctx, code, opts...)
 
@@ -383,25 +310,20 @@ func (p *GitHubProvider) ExchangeCodeForToken(ctx context.Context, code, redirec
 
 	}
 
-
-
 	return &TokenResponse{
 
-		AccessToken:  token.AccessToken,
+		AccessToken: token.AccessToken,
 
 		RefreshToken: token.RefreshToken,
 
-		TokenType:    token.TokenType,
+		TokenType: token.TokenType,
 
-		ExpiresIn:    int64(time.Until(token.Expiry).Seconds()),
+		ExpiresIn: int64(time.Until(token.Expiry).Seconds()),
 
-		IssuedAt:     time.Now(),
-
+		IssuedAt: time.Now(),
 	}, nil
 
 }
-
-
 
 // RefreshToken refreshes an access token using refresh token.
 
@@ -410,10 +332,7 @@ func (p *GitHubProvider) RefreshToken(ctx context.Context, refreshToken string) 
 	token := &oauth2.Token{
 
 		RefreshToken: refreshToken,
-
 	}
-
-
 
 	tokenSource := p.oauth2Cfg.TokenSource(ctx, token)
 
@@ -427,25 +346,20 @@ func (p *GitHubProvider) RefreshToken(ctx context.Context, refreshToken string) 
 
 	}
 
-
-
 	return &TokenResponse{
 
-		AccessToken:  newToken.AccessToken,
+		AccessToken: newToken.AccessToken,
 
 		RefreshToken: newToken.RefreshToken,
 
-		TokenType:    newToken.TokenType,
+		TokenType: newToken.TokenType,
 
-		ExpiresIn:    int64(time.Until(newToken.Expiry).Seconds()),
+		ExpiresIn: int64(time.Until(newToken.Expiry).Seconds()),
 
-		IssuedAt:     time.Now(),
-
+		IssuedAt: time.Now(),
 	}, nil
 
 }
-
-
 
 // GetUserInfo retrieves user information using access token.
 
@@ -461,15 +375,11 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 
 	}
 
-
-
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -481,8 +391,6 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, NewProviderError(p.GetProviderName(), "userinfo_failed",
@@ -491,8 +399,6 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 
 	}
 
-
-
 	var githubUser GitHubUserInfo
 
 	if err := json.NewDecoder(resp.Body).Decode(&githubUser); err != nil {
@@ -500,8 +406,6 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 		return nil, fmt.Errorf("failed to decode user info: %w", err)
 
 	}
-
-
 
 	// Get user emails if email is null.
 
@@ -525,8 +429,6 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 
 	}
 
-
-
 	// Get organizations.
 
 	organizations, err := p.GetOrganizations(ctx, accessToken)
@@ -538,8 +440,6 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 		organizations = []Organization{}
 
 	}
-
-
 
 	// Get teams (groups).
 
@@ -553,67 +453,59 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 
 	}
 
-
-
 	userInfo := &UserInfo{
 
-		Subject:       fmt.Sprintf("github-%d", githubUser.ID),
+		Subject: fmt.Sprintf("github-%d", githubUser.ID),
 
-		Email:         githubUser.Email,
+		Email: githubUser.Email,
 
 		EmailVerified: githubUser.Email != "",
 
-		Name:          githubUser.Name,
+		Name: githubUser.Name,
 
 		PreferredName: githubUser.Login,
 
-		Username:      githubUser.Login,
+		Username: githubUser.Login,
 
-		Picture:       githubUser.AvatarURL,
+		Picture: githubUser.AvatarURL,
 
-		Website:       githubUser.HTMLURL,
+		Website: githubUser.HTMLURL,
 
-		Groups:        teams,
+		Groups: teams,
 
 		Organizations: organizations,
 
-		Provider:      p.GetProviderName(),
+		Provider: p.GetProviderName(),
 
-		ProviderID:    fmt.Sprintf("%d", githubUser.ID),
+		ProviderID: fmt.Sprintf("%d", githubUser.ID),
 
 		Attributes: map[string]interface{}{
 
-			"github_id":        githubUser.ID,
+			"github_id": githubUser.ID,
 
-			"github_login":     githubUser.Login,
+			"github_login": githubUser.Login,
 
-			"company":          githubUser.Company,
+			"company": githubUser.Company,
 
-			"location":         githubUser.Location,
+			"location": githubUser.Location,
 
-			"bio":              githubUser.Bio,
+			"bio": githubUser.Bio,
 
 			"twitter_username": githubUser.TwitterUsername,
 
-			"public_repos":     githubUser.PublicRepos,
+			"public_repos": githubUser.PublicRepos,
 
-			"followers":        githubUser.Followers,
+			"followers": githubUser.Followers,
 
-			"following":        githubUser.Following,
+			"following": githubUser.Following,
 
-			"created_at":       githubUser.CreatedAt,
-
+			"created_at": githubUser.CreatedAt,
 		},
-
 	}
-
-
 
 	return userInfo, nil
 
 }
-
-
 
 // ValidateToken validates an access token.
 
@@ -627,15 +519,11 @@ func (p *GitHubProvider) ValidateToken(ctx context.Context, accessToken string) 
 
 	}
 
-
-
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -646,14 +534,11 @@ func (p *GitHubProvider) ValidateToken(ctx context.Context, accessToken string) 
 			Valid: false,
 
 			Error: err.Error(),
-
 		}, nil
 
 	}
 
 	defer resp.Body.Close()
-
-
 
 	if resp.StatusCode == http.StatusUnauthorized {
 
@@ -662,12 +547,9 @@ func (p *GitHubProvider) ValidateToken(ctx context.Context, accessToken string) 
 			Valid: false,
 
 			Error: "Token is invalid or expired",
-
 		}, nil
 
 	}
-
-
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -676,12 +558,9 @@ func (p *GitHubProvider) ValidateToken(ctx context.Context, accessToken string) 
 			Valid: false,
 
 			Error: fmt.Sprintf("Unexpected status code: %d", resp.StatusCode),
-
 		}, nil
 
 	}
-
-
 
 	var githubUser GitHubUserInfo
 
@@ -692,16 +571,13 @@ func (p *GitHubProvider) ValidateToken(ctx context.Context, accessToken string) 
 			Valid: false,
 
 			Error: "Failed to decode user info",
-
 		}, nil
 
 	}
 
-
-
 	return &TokenValidation{
 
-		Valid:    true,
+		Valid: true,
 
 		Username: githubUser.Login,
 
@@ -712,8 +588,6 @@ func (p *GitHubProvider) ValidateToken(ctx context.Context, accessToken string) 
 	}, nil
 
 }
-
-
 
 // RevokeToken revokes an access token.
 
@@ -730,8 +604,6 @@ func (p *GitHubProvider) RevokeToken(ctx context.Context, token string) error {
 		"GitHub does not support programmatic token revocation", nil)
 
 }
-
-
 
 // SupportsFeature checks if provider supports specific features.
 
@@ -751,8 +623,6 @@ func (p *GitHubProvider) SupportsFeature(feature ProviderFeature) bool {
 
 }
 
-
-
 // GetConfiguration returns provider configuration.
 
 func (p *GitHubProvider) GetConfiguration() *ProviderConfig {
@@ -760,8 +630,6 @@ func (p *GitHubProvider) GetConfiguration() *ProviderConfig {
 	return p.config
 
 }
-
-
 
 // GetOrganizations retrieves user's organizations.
 
@@ -775,15 +643,11 @@ func (p *GitHubProvider) GetOrganizations(ctx context.Context, accessToken strin
 
 	}
 
-
-
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -795,15 +659,11 @@ func (p *GitHubProvider) GetOrganizations(ctx context.Context, accessToken strin
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("GitHub API returned status %d for organizations", resp.StatusCode)
 
 	}
-
-
 
 	var githubOrgs []GitHubOrganization
 
@@ -813,31 +673,24 @@ func (p *GitHubProvider) GetOrganizations(ctx context.Context, accessToken strin
 
 	}
 
-
-
 	organizations := make([]Organization, len(githubOrgs))
 
 	for i, org := range githubOrgs {
 
 		organizations[i] = Organization{
 
-			ID:          fmt.Sprintf("%d", org.ID),
+			ID: fmt.Sprintf("%d", org.ID),
 
-			Name:        org.Login,
+			Name: org.Login,
 
 			DisplayName: org.Name,
-
 		}
 
 	}
 
-
-
 	return organizations, nil
 
 }
-
-
 
 // getUserEmails retrieves user's email addresses.
 
@@ -851,15 +704,11 @@ func (p *GitHubProvider) getUserEmails(ctx context.Context, accessToken string) 
 
 	}
 
-
-
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -871,15 +720,11 @@ func (p *GitHubProvider) getUserEmails(ctx context.Context, accessToken string) 
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("GitHub API returned status %d for emails", resp.StatusCode)
 
 	}
-
-
 
 	var emails []GitHubEmail
 
@@ -889,13 +734,9 @@ func (p *GitHubProvider) getUserEmails(ctx context.Context, accessToken string) 
 
 	}
 
-
-
 	return emails, nil
 
 }
-
-
 
 // getUserTeams retrieves user's team memberships (as groups).
 
@@ -909,15 +750,11 @@ func (p *GitHubProvider) getUserTeams(ctx context.Context, accessToken string) (
 
 	}
 
-
-
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -929,15 +766,11 @@ func (p *GitHubProvider) getUserTeams(ctx context.Context, accessToken string) (
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return []string{}, nil // Teams endpoint might not be accessible
 
 	}
-
-
 
 	var teams []GitHubTeam
 
@@ -947,8 +780,6 @@ func (p *GitHubProvider) getUserTeams(ctx context.Context, accessToken string) (
 
 	}
 
-
-
 	teamNames := make([]string, len(teams))
 
 	for i, team := range teams {
@@ -957,31 +788,21 @@ func (p *GitHubProvider) getUserTeams(ctx context.Context, accessToken string) (
 
 	}
 
-
-
 	return teamNames, nil
 
 }
 
-
-
 // GitHubEmail represents a GitHub email address.
 
 type GitHubEmail struct {
+	Email string `json:"email"`
 
-	Email    string `json:"email"`
+	Primary bool `json:"primary"`
 
-	Primary  bool   `json:"primary"`
-
-	Verified bool   `json:"verified"`
-
+	Verified bool `json:"verified"`
 }
 
-
-
 // Additional methods to satisfy EnterpriseProvider interface.
-
-
 
 // GetGroups retrieves user groups (teams) from GitHub.
 
@@ -990,8 +811,6 @@ func (p *GitHubProvider) GetGroups(ctx context.Context, accessToken string) ([]s
 	return p.getUserTeams(ctx, accessToken)
 
 }
-
-
 
 // GetRoles retrieves user roles from GitHub (organization roles).
 
@@ -1004,8 +823,6 @@ func (p *GitHubProvider) GetRoles(ctx context.Context, accessToken string) ([]st
 		return nil, err
 
 	}
-
-
 
 	roles := make([]string, 0, len(organizations))
 
@@ -1023,13 +840,9 @@ func (p *GitHubProvider) GetRoles(ctx context.Context, accessToken string) ([]st
 
 	}
 
-
-
 	return roles, nil
 
 }
-
-
 
 // CheckGroupMembership checks if user belongs to specific groups (organizations/teams).
 
@@ -1043,8 +856,6 @@ func (p *GitHubProvider) CheckGroupMembership(ctx context.Context, accessToken s
 
 	}
 
-
-
 	userOrgs, err := p.GetOrganizations(ctx, accessToken)
 
 	if err != nil {
@@ -1052,8 +863,6 @@ func (p *GitHubProvider) CheckGroupMembership(ctx context.Context, accessToken s
 		return nil, err
 
 	}
-
-
 
 	// Create a map of user's groups and organizations.
 
@@ -1073,8 +882,6 @@ func (p *GitHubProvider) CheckGroupMembership(ctx context.Context, accessToken s
 
 	}
 
-
-
 	var memberGroups []string
 
 	for _, group := range groups {
@@ -1087,13 +894,9 @@ func (p *GitHubProvider) CheckGroupMembership(ctx context.Context, accessToken s
 
 	}
 
-
-
 	return memberGroups, nil
 
 }
-
-
 
 // ValidateUserAccess validates if user has required access level.
 
@@ -1111,8 +914,6 @@ func (p *GitHubProvider) ValidateUserAccess(ctx context.Context, accessToken str
 
 	}
 
-
-
 	// Basic validation - ensure user has organizations or is verified.
 
 	if requiredLevel >= AccessLevelWrite {
@@ -1125,9 +926,6 @@ func (p *GitHubProvider) ValidateUserAccess(ctx context.Context, accessToken str
 
 	}
 
-
-
 	return nil
 
 }
-

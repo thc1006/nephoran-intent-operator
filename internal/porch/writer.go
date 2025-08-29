@@ -1,21 +1,11 @@
-
 package porch
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 )
-
-
 
 // WriteIntent writes the intent to the output directory in the specified format.
 
@@ -33,18 +23,14 @@ func WriteIntent(intent interface{}, outDir, format string) error {
 
 	}
 
-
-
 	var fields struct {
-
 		IntentType string `json:"intent_type"`
 
-		Target     string `json:"target"`
+		Target string `json:"target"`
 
-		Namespace  string `json:"namespace"`
+		Namespace string `json:"namespace"`
 
-		Replicas   int    `json:"replicas"`
-
+		Replicas int `json:"replicas"`
 	}
 
 	if err := json.Unmarshal(data, &fields); err != nil {
@@ -52,8 +38,6 @@ func WriteIntent(intent interface{}, outDir, format string) error {
 		return fmt.Errorf("failed to unmarshal intent: %w", err)
 
 	}
-
-
 
 	// Validate.
 
@@ -63,8 +47,6 @@ func WriteIntent(intent interface{}, outDir, format string) error {
 
 	}
 
-
-
 	// Create output directory.
 
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
@@ -73,13 +55,9 @@ func WriteIntent(intent interface{}, outDir, format string) error {
 
 	}
 
-
-
 	var content []byte
 
 	var filename string
-
-
 
 	if format == "smp" {
 
@@ -89,22 +67,19 @@ func WriteIntent(intent interface{}, outDir, format string) error {
 
 			"apiVersion": "apps/v1",
 
-			"kind":       "Deployment",
+			"kind": "Deployment",
 
 			"metadata": map[string]string{
 
-				"name":      fields.Target,
+				"name": fields.Target,
 
 				"namespace": fields.Namespace,
-
 			},
 
 			"spec": map[string]int{
 
 				"replicas": fields.Replicas,
-
 			},
-
 		}
 
 		content, err = json.MarshalIndent(smp, "", "  ")
@@ -143,8 +118,6 @@ spec:
 
 	}
 
-
-
 	// Write file.
 
 	dst := filepath.Join(outDir, filename)
@@ -155,15 +128,10 @@ spec:
 
 	}
 
-
-
 	fmt.Println("wrote:", dst)
 
 	fmt.Println("next: (optional) kpt live init/apply under", outDir)
 
-
-
 	return nil
 
 }
-

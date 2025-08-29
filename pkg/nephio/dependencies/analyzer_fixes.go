@@ -30,28 +30,15 @@ limitations under the License.
 
 */
 
-
-
-
 package dependencies
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
 
-
-
 	"github.com/prometheus/client_golang/prometheus"
-
 )
-
-
 
 // DefaultAnalyzerConfig returns a default AnalyzerConfig configuration.
 
@@ -59,39 +46,36 @@ func DefaultAnalyzerConfig() *AnalyzerConfig {
 
 	return &AnalyzerConfig{
 
-		EnableMLAnalysis:     false,
+		EnableMLAnalysis: false,
 
 		EnableMLOptimization: false,
 
-		EnableCaching:        true,
+		EnableCaching: true,
 
-		EnableConcurrency:    true,
+		EnableConcurrency: true,
 
 		// EnableBenchmarking:     false, // Field does not exist.
 
 		// EnableResourceAnalysis: false, // Field does not exist.
 
-		EnableTrendAnalysis:       true,
+		EnableTrendAnalysis: true,
 
-		WorkerCount:               4,
+		WorkerCount: 4,
 
-		QueueSize:                 100,
+		QueueSize: 100,
 
-		UsageAnalyzerConfig:       &UsageAnalyzerConfig{},
+		UsageAnalyzerConfig: &UsageAnalyzerConfig{},
 
-		CostAnalyzerConfig:        &CostAnalyzerConfig{},
+		CostAnalyzerConfig: &CostAnalyzerConfig{},
 
-		HealthAnalyzerConfig:      &HealthAnalyzerConfig{},
+		HealthAnalyzerConfig: &HealthAnalyzerConfig{},
 
-		RiskAnalyzerConfig:        &RiskAnalyzerConfig{},
+		RiskAnalyzerConfig: &RiskAnalyzerConfig{},
 
 		PerformanceAnalyzerConfig: &PerformanceAnalyzerConfig{},
-
 	}
 
 }
-
-
 
 // AnalyzerMetrics with missing fields.
 
@@ -99,43 +83,34 @@ type AnalyzerMetrics struct {
 
 	// Cache metrics.
 
-	AnalysisCacheHits   prometheus.Counter
+	AnalysisCacheHits prometheus.Counter
 
 	AnalysisCacheMisses prometheus.Counter
-
-
 
 	// System metrics.
 
 	Uptime prometheus.Gauge
 
-
-
 	// Analysis metrics.
 
-	UsageAnalysisTotal  prometheus.Counter
+	UsageAnalysisTotal prometheus.Counter
 
-	UsageAnalysisTime   prometheus.Histogram
+	UsageAnalysisTime prometheus.Histogram
 
-	CostAnalysisTotal   prometheus.Counter
+	CostAnalysisTotal prometheus.Counter
 
-	CostAnalysisTime    prometheus.Histogram
+	CostAnalysisTime prometheus.Histogram
 
 	HealthAnalysisTotal prometheus.Counter
 
-	HealthAnalysisTime  prometheus.Histogram
-
-
+	HealthAnalysisTime prometheus.Histogram
 
 	// Optimization metrics.
 
 	OptimizationRecommendationsGenerated prometheus.Counter
 
-	OptimizationRecommendationTime       prometheus.Histogram
-
+	OptimizationRecommendationTime prometheus.Histogram
 }
-
-
 
 // NewAnalyzerMetrics creates new analyzer metrics.
 
@@ -148,7 +123,6 @@ func NewAnalyzerMetrics() *AnalyzerMetrics {
 			Name: "analyzer_cache_hits_total",
 
 			Help: "Total number of analysis cache hits",
-
 		}),
 
 		AnalysisCacheMisses: prometheus.NewCounter(prometheus.CounterOpts{
@@ -156,7 +130,6 @@ func NewAnalyzerMetrics() *AnalyzerMetrics {
 			Name: "analyzer_cache_misses_total",
 
 			Help: "Total number of analysis cache misses",
-
 		}),
 
 		UsageAnalysisTotal: prometheus.NewCounter(prometheus.CounterOpts{
@@ -164,7 +137,6 @@ func NewAnalyzerMetrics() *AnalyzerMetrics {
 			Name: "analyzer_usage_analysis_total",
 
 			Help: "Total number of usage analyses performed",
-
 		}),
 
 		UsageAnalysisTime: prometheus.NewHistogram(prometheus.HistogramOpts{
@@ -172,7 +144,6 @@ func NewAnalyzerMetrics() *AnalyzerMetrics {
 			Name: "analyzer_usage_analysis_duration_seconds",
 
 			Help: "Time taken for usage analysis",
-
 		}),
 
 		CostAnalysisTotal: prometheus.NewCounter(prometheus.CounterOpts{
@@ -180,7 +151,6 @@ func NewAnalyzerMetrics() *AnalyzerMetrics {
 			Name: "analyzer_cost_analysis_total",
 
 			Help: "Total number of cost analyses performed",
-
 		}),
 
 		CostAnalysisTime: prometheus.NewHistogram(prometheus.HistogramOpts{
@@ -188,7 +158,6 @@ func NewAnalyzerMetrics() *AnalyzerMetrics {
 			Name: "analyzer_cost_analysis_duration_seconds",
 
 			Help: "Time taken for cost analysis",
-
 		}),
 
 		HealthAnalysisTotal: prometheus.NewCounter(prometheus.CounterOpts{
@@ -196,7 +165,6 @@ func NewAnalyzerMetrics() *AnalyzerMetrics {
 			Name: "analyzer_health_analysis_total",
 
 			Help: "Total number of health analyses performed",
-
 		}),
 
 		HealthAnalysisTime: prometheus.NewHistogram(prometheus.HistogramOpts{
@@ -204,7 +172,6 @@ func NewAnalyzerMetrics() *AnalyzerMetrics {
 			Name: "analyzer_health_analysis_duration_seconds",
 
 			Help: "Time taken for health analysis",
-
 		}),
 
 		OptimizationRecommendationsGenerated: prometheus.NewCounter(prometheus.CounterOpts{
@@ -212,7 +179,6 @@ func NewAnalyzerMetrics() *AnalyzerMetrics {
 			Name: "analyzer_optimization_recommendations_total",
 
 			Help: "Total number of optimization recommendations generated",
-
 		}),
 
 		OptimizationRecommendationTime: prometheus.NewHistogram(prometheus.HistogramOpts{
@@ -220,18 +186,12 @@ func NewAnalyzerMetrics() *AnalyzerMetrics {
 			Name: "analyzer_optimization_recommendation_duration_seconds",
 
 			Help: "Time taken to generate optimization recommendations",
-
 		}),
-
 	}
 
 }
 
-
-
 // Add missing methods to dependencyAnalyzer struct.
-
-
 
 // Note: The following methods have been moved to analyzer.go to avoid duplicates:.
 
@@ -249,11 +209,7 @@ func NewAnalyzerMetrics() *AnalyzerMetrics {
 
 // - mlModelUpdateProcess.
 
-
-
 // Remaining helper methods for compliance analysis that are not duplicated.
-
-
 
 // analyzePackageComplianceRisks analyzes compliance risks for a single package.
 
@@ -261,37 +217,30 @@ func (a *dependencyAnalyzer) analyzePackageComplianceRisks(ctx context.Context, 
 
 	issues := make([]*ComplianceIssue, 0)
 
-
-
 	// Check for known compliance issues (stub implementation).
 
 	issue := &ComplianceIssue{
 
-		ID:             fmt.Sprintf("compliance-issue-%s-%s", pkg.Name, pkg.Version),
+		ID: fmt.Sprintf("compliance-issue-%s-%s", pkg.Name, pkg.Version),
 
-		Type:           "license",
+		Type: "license",
 
-		Severity:       "low",
+		Severity: "low",
 
-		Description:    "Package license compliance verified",
+		Description: "Package license compliance verified",
 
-		Package:        pkg,
+		Package: pkg,
 
-		Regulation:     "SOC2",
+		Regulation: "SOC2",
 
 		RequiredAction: "no action required",
-
 	}
 
 	issues = append(issues, issue)
 
-
-
 	return issues
 
 }
-
-
 
 // determineOverallComplianceRiskLevel determines overall compliance risk level.
 
@@ -302,8 +251,6 @@ func (a *dependencyAnalyzer) determineOverallComplianceRiskLevel(issues []*Compl
 		return RiskLevelLow
 
 	}
-
-
 
 	highSeverityCount := 0
 
@@ -317,8 +264,6 @@ func (a *dependencyAnalyzer) determineOverallComplianceRiskLevel(issues []*Compl
 
 	}
 
-
-
 	if highSeverityCount > 2 {
 
 		return RiskLevelHigh
@@ -329,21 +274,15 @@ func (a *dependencyAnalyzer) determineOverallComplianceRiskLevel(issues []*Compl
 
 	}
 
-
-
 	return RiskLevelLow
 
 }
-
-
 
 // generateComplianceActions generates compliance actions for issues.
 
 func (a *dependencyAnalyzer) generateComplianceActions(issues []*ComplianceIssue) []*ComplianceAction {
 
 	actions := make([]*ComplianceAction, 0)
-
-
 
 	for _, issue := range issues {
 
@@ -353,20 +292,19 @@ func (a *dependencyAnalyzer) generateComplianceActions(issues []*ComplianceIssue
 
 			action := &ComplianceAction{
 
-				ID:          fmt.Sprintf("action-%s", issue.ID),
+				ID: fmt.Sprintf("action-%s", issue.ID),
 
-				Type:        "remediation",
+				Type: "remediation",
 
 				Description: fmt.Sprintf("Address compliance issue: %s", issue.Description),
 
-				Priority:    issue.Severity,
+				Priority: issue.Severity,
 
 				// DueDate field doesn't exist in ComplianceAction.
 
 				// DueDate:     time.Now().Add(30 * 24 * time.Hour), // 30 days.
 
 				Status: "pending",
-
 			}
 
 			actions = append(actions, action)
@@ -375,13 +313,9 @@ func (a *dependencyAnalyzer) generateComplianceActions(issues []*ComplianceIssue
 
 	}
 
-
-
 	return actions
 
 }
-
-
 
 // generateComplianceRiskAnalysisID generates unique ID for compliance risk analysis.
 
@@ -391,7 +325,4 @@ func generateComplianceRiskAnalysisID() string {
 
 }
 
-
-
 // End of analyzer_fixes.go - all other methods have been moved to analyzer.go to avoid duplicates.
-

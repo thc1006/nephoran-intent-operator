@@ -28,66 +28,33 @@ limitations under the License.
 
 */
 
-
-
-
 package webui
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
 	"github.com/gorilla/mux"
-
 	"github.com/gorilla/websocket"
-
-	"github.com/prometheus/client_golang/prometheus"
-
-	"github.com/rs/cors"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/multicluster"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/packagerevision"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/services"
-
-
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/cors"
 
 	"k8s.io/client-go/kubernetes"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // NephoranAPIServer provides comprehensive Web UI integration for the Nephoran Intent Operator.
 
@@ -97,15 +64,13 @@ type NephoranAPIServer struct {
 
 	intentReconciler *controllers.NetworkIntentReconciler
 
-	packageManager   packagerevision.PackageRevisionManager
+	packageManager packagerevision.PackageRevisionManager
 
-	clusterManager   multicluster.ClusterPropagationManager
+	clusterManager multicluster.ClusterPropagationManager
 
-	llmProcessor     *services.LLMProcessorService
+	llmProcessor *services.LLMProcessorService
 
-	kubeClient       kubernetes.Interface
-
-
+	kubeClient kubernetes.Interface
 
 	// Authentication and authorization.
 
@@ -113,57 +78,44 @@ type NephoranAPIServer struct {
 
 	sessionManager *auth.SessionManager
 
-	rbacManager    *auth.RBACManager
-
-
+	rbacManager *auth.RBACManager
 
 	// Configuration and metrics.
 
-	config  *ServerConfig
+	config *ServerConfig
 
 	metrics *ServerMetrics
 
-	logger  logr.Logger
-
-
+	logger logr.Logger
 
 	// HTTP server and routing.
 
-	server   *http.Server
+	server *http.Server
 
-	router   *mux.Router
+	router *mux.Router
 
 	upgrader websocket.Upgrader
 
-
-
 	// WebSocket and SSE connection management.
 
-	wsConnections    map[string]*WebSocketConnection
+	wsConnections map[string]*WebSocketConnection
 
-	sseConnections   map[string]*SSEConnection
+	sseConnections map[string]*SSEConnection
 
 	connectionsMutex sync.RWMutex
 
-
-
 	// Caching and performance.
 
-	cache       *Cache
+	cache *Cache
 
 	rateLimiter *RateLimiter
-
-
 
 	// Background workers.
 
 	shutdown chan struct{}
 
-	wg       sync.WaitGroup
-
+	wg sync.WaitGroup
 }
-
-
 
 // ServerConfig holds API server configuration.
 
@@ -171,275 +123,220 @@ type ServerConfig struct {
 
 	// Server settings.
 
-	Address         string        `json:"address"`
+	Address string `json:"address"`
 
-	Port            int           `json:"port"`
+	Port int `json:"port"`
 
-	ReadTimeout     time.Duration `json:"read_timeout"`
+	ReadTimeout time.Duration `json:"read_timeout"`
 
-	WriteTimeout    time.Duration `json:"write_timeout"`
+	WriteTimeout time.Duration `json:"write_timeout"`
 
-	IdleTimeout     time.Duration `json:"idle_timeout"`
+	IdleTimeout time.Duration `json:"idle_timeout"`
 
 	ShutdownTimeout time.Duration `json:"shutdown_timeout"`
 
-
-
 	// TLS settings.
 
-	TLSEnabled  bool   `json:"tls_enabled"`
+	TLSEnabled bool `json:"tls_enabled"`
 
 	TLSCertFile string `json:"tls_cert_file"`
 
-	TLSKeyFile  string `json:"tls_key_file"`
-
-
+	TLSKeyFile string `json:"tls_key_file"`
 
 	// CORS settings.
 
-	EnableCORS       bool     `json:"enable_cors"`
+	EnableCORS bool `json:"enable_cors"`
 
-	AllowedOrigins   []string `json:"allowed_origins"`
+	AllowedOrigins []string `json:"allowed_origins"`
 
-	AllowedMethods   []string `json:"allowed_methods"`
+	AllowedMethods []string `json:"allowed_methods"`
 
-	AllowedHeaders   []string `json:"allowed_headers"`
+	AllowedHeaders []string `json:"allowed_headers"`
 
-	AllowCredentials bool     `json:"allow_credentials"`
-
-
+	AllowCredentials bool `json:"allow_credentials"`
 
 	// Rate limiting.
 
-	EnableRateLimit bool          `json:"enable_rate_limit"`
+	EnableRateLimit bool `json:"enable_rate_limit"`
 
-	RequestsPerMin  int           `json:"requests_per_min"`
+	RequestsPerMin int `json:"requests_per_min"`
 
-	BurstSize       int           `json:"burst_size"`
+	BurstSize int `json:"burst_size"`
 
 	RateLimitWindow time.Duration `json:"rate_limit_window"`
 
-
-
 	// Caching.
 
-	EnableCaching bool          `json:"enable_caching"`
+	EnableCaching bool `json:"enable_caching"`
 
-	CacheSize     int           `json:"cache_size"`
+	CacheSize int `json:"cache_size"`
 
-	CacheTTL      time.Duration `json:"cache_ttl"`
-
-
+	CacheTTL time.Duration `json:"cache_ttl"`
 
 	// WebSocket and SSE.
 
-	MaxWSConnections int           `json:"max_ws_connections"`
+	MaxWSConnections int `json:"max_ws_connections"`
 
-	WSTimeout        time.Duration `json:"ws_timeout"`
+	WSTimeout time.Duration `json:"ws_timeout"`
 
-	SSETimeout       time.Duration `json:"sse_timeout"`
+	SSETimeout time.Duration `json:"sse_timeout"`
 
-	PingInterval     time.Duration `json:"ping_interval"`
-
-
+	PingInterval time.Duration `json:"ping_interval"`
 
 	// Pagination.
 
 	DefaultPageSize int `json:"default_page_size"`
 
-	MaxPageSize     int `json:"max_page_size"`
-
-
+	MaxPageSize int `json:"max_page_size"`
 
 	// Feature flags.
 
-	EnableMetrics     bool `json:"enable_metrics"`
+	EnableMetrics bool `json:"enable_metrics"`
 
-	EnableProfiling   bool `json:"enable_profiling"`
+	EnableProfiling bool `json:"enable_profiling"`
 
 	EnableHealthCheck bool `json:"enable_health_check"`
-
-
 
 	// Authentication configuration.
 
 	AuthConfigFile string `json:"auth_config_file"`
-
 }
-
-
 
 // ServerMetrics contains Prometheus metrics for the API server.
 
 type ServerMetrics struct {
+	RequestsTotal *prometheus.CounterVec
 
-	RequestsTotal        *prometheus.CounterVec
+	RequestDuration *prometheus.HistogramVec
 
-	RequestDuration      *prometheus.HistogramVec
-
-	WSConnectionsActive  prometheus.Gauge
+	WSConnectionsActive prometheus.Gauge
 
 	SSEConnectionsActive prometheus.Gauge
 
-	CacheHits            prometheus.Counter
+	CacheHits prometheus.Counter
 
-	CacheMisses          prometheus.Counter
+	CacheMisses prometheus.Counter
 
-	RateLimitExceeded    prometheus.Counter
-
+	RateLimitExceeded prometheus.Counter
 }
-
-
 
 // WebSocketConnection represents an active WebSocket connection.
 
 type WebSocketConnection struct {
+	ID string
 
-	ID         string
-
-	UserID     string
+	UserID string
 
 	Connection *websocket.Conn
 
-	Send       chan []byte
+	Send chan []byte
 
-	Filters    map[string]interface{}
+	Filters map[string]interface{}
 
-	LastSeen   time.Time
-
+	LastSeen time.Time
 }
-
-
 
 // SSEConnection represents an active Server-Sent Events connection.
 
 type SSEConnection struct {
+	ID string
 
-	ID       string
+	UserID string
 
-	UserID   string
+	Writer http.ResponseWriter
 
-	Writer   http.ResponseWriter
+	Flusher http.Flusher
 
-	Flusher  http.Flusher
-
-	Filters  map[string]interface{}
+	Filters map[string]interface{}
 
 	LastSeen time.Time
-
 }
-
-
 
 // APIResponse represents a standard API response format.
 
 type APIResponse struct {
+	Success bool `json:"success"`
 
-	Success   bool        `json:"success"`
+	Data interface{} `json:"data,omitempty"`
 
-	Data      interface{} `json:"data,omitempty"`
+	Error *APIError `json:"error,omitempty"`
 
-	Error     *APIError   `json:"error,omitempty"`
+	Meta *Meta `json:"meta,omitempty"`
 
-	Meta      *Meta       `json:"meta,omitempty"`
+	Links *Links `json:"links,omitempty"`
 
-	Links     *Links      `json:"links,omitempty"`
-
-	Timestamp time.Time   `json:"timestamp"`
-
+	Timestamp time.Time `json:"timestamp"`
 }
-
-
 
 // APIError represents an API error response.
 
 type APIError struct {
+	Code string `json:"code"`
 
-	Code      string      `json:"code"`
+	Message string `json:"message"`
 
-	Message   string      `json:"message"`
+	Details interface{} `json:"details,omitempty"`
 
-	Details   interface{} `json:"details,omitempty"`
-
-	RequestID string      `json:"request_id,omitempty"`
-
+	RequestID string `json:"request_id,omitempty"`
 }
-
-
 
 // Meta contains response metadata for pagination and filtering.
 
 type Meta struct {
+	Page int `json:"page"`
 
-	Page       int `json:"page"`
-
-	PageSize   int `json:"page_size"`
+	PageSize int `json:"page_size"`
 
 	TotalPages int `json:"total_pages"`
 
 	TotalItems int `json:"total_items"`
-
 }
-
-
 
 // Links contains HATEOAS navigation links.
 
 type Links struct {
+	Self string `json:"self"`
 
-	Self     string `json:"self"`
+	First string `json:"first,omitempty"`
 
-	First    string `json:"first,omitempty"`
-
-	Last     string `json:"last,omitempty"`
+	Last string `json:"last,omitempty"`
 
 	Previous string `json:"previous,omitempty"`
 
-	Next     string `json:"next,omitempty"`
-
+	Next string `json:"next,omitempty"`
 }
-
-
 
 // PaginationParams represents pagination parameters.
 
 type PaginationParams struct {
+	Page int `json:"page"`
 
-	Page     int    `json:"page"`
+	PageSize int `json:"page_size"`
 
-	PageSize int    `json:"page_size"`
+	Sort string `json:"sort"`
 
-	Sort     string `json:"sort"`
-
-	Order    string `json:"order"`
-
+	Order string `json:"order"`
 }
-
-
 
 // FilterParams represents filtering parameters.
 
 type FilterParams struct {
+	Status string `json:"status,omitempty"`
 
-	Status    string            `json:"status,omitempty"`
+	Type string `json:"type,omitempty"`
 
-	Type      string            `json:"type,omitempty"`
+	Priority string `json:"priority,omitempty"`
 
-	Priority  string            `json:"priority,omitempty"`
+	Component string `json:"component,omitempty"`
 
-	Component string            `json:"component,omitempty"`
+	Cluster string `json:"cluster,omitempty"`
 
-	Cluster   string            `json:"cluster,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
 
-	Labels    map[string]string `json:"labels,omitempty"`
+	Since *time.Time `json:"since,omitempty"`
 
-	Since     *time.Time        `json:"since,omitempty"`
-
-	Until     *time.Time        `json:"until,omitempty"`
-
+	Until *time.Time `json:"until,omitempty"`
 }
-
-
 
 // NewNephoranAPIServer creates a new API server instance.
 
@@ -465,11 +362,7 @@ func NewNephoranAPIServer(
 
 	}
 
-
-
 	logger := log.Log.WithName("nephoran-api-server")
-
-
 
 	// Initialize metrics.
 
@@ -490,10 +383,7 @@ func NewNephoranAPIServer(
 		metrics.CacheMisses,
 
 		metrics.RateLimitExceeded,
-
 	)
-
-
 
 	// Initialize cache if enabled.
 
@@ -505,8 +395,6 @@ func NewNephoranAPIServer(
 
 	}
 
-
-
 	// Initialize rate limiter if enabled.
 
 	var rateLimiter *RateLimiter
@@ -517,35 +405,33 @@ func NewNephoranAPIServer(
 
 	}
 
-
-
 	server := &NephoranAPIServer{
 
 		intentReconciler: intentReconciler,
 
-		packageManager:   packageManager,
+		packageManager: packageManager,
 
-		clusterManager:   clusterManager,
+		clusterManager: clusterManager,
 
-		llmProcessor:     llmProcessor,
+		llmProcessor: llmProcessor,
 
-		kubeClient:       kubeClient,
+		kubeClient: kubeClient,
 
-		config:           config,
+		config: config,
 
-		metrics:          metrics,
+		metrics: metrics,
 
-		logger:           logger,
+		logger: logger,
 
-		wsConnections:    make(map[string]*WebSocketConnection),
+		wsConnections: make(map[string]*WebSocketConnection),
 
-		sseConnections:   make(map[string]*SSEConnection),
+		sseConnections: make(map[string]*SSEConnection),
 
-		cache:            cache,
+		cache: cache,
 
-		rateLimiter:      rateLimiter,
+		rateLimiter: rateLimiter,
 
-		shutdown:         make(chan struct{}),
+		shutdown: make(chan struct{}),
 
 		upgrader: websocket.Upgrader{
 
@@ -555,15 +441,11 @@ func NewNephoranAPIServer(
 
 			},
 
-			ReadBufferSize:  1024,
+			ReadBufferSize: 1024,
 
 			WriteBufferSize: 1024,
-
 		},
-
 	}
-
-
 
 	// Initialize authentication middleware.
 
@@ -573,37 +455,28 @@ func NewNephoranAPIServer(
 
 	}
 
-
-
 	// Setup router and routes.
 
 	server.setupRouter()
-
-
 
 	// Create HTTP server.
 
 	server.server = &http.Server{
 
-		Addr:         fmt.Sprintf("%s:%d", config.Address, config.Port),
+		Addr: fmt.Sprintf("%s:%d", config.Address, config.Port),
 
-		Handler:      server.router,
+		Handler: server.router,
 
-		ReadTimeout:  config.ReadTimeout,
+		ReadTimeout: config.ReadTimeout,
 
 		WriteTimeout: config.WriteTimeout,
 
-		IdleTimeout:  config.IdleTimeout,
-
+		IdleTimeout: config.IdleTimeout,
 	}
-
-
 
 	// Start background workers.
 
 	server.startBackgroundWorkers()
-
-
 
 	logger.Info("Nephoran API Server initialized",
 
@@ -619,13 +492,9 @@ func NewNephoranAPIServer(
 
 		"caching_enabled", config.EnableCaching)
 
-
-
 	return server, nil
 
 }
-
-
 
 // initializeAuth sets up authentication and authorization middleware.
 
@@ -639,8 +508,6 @@ func (s *NephoranAPIServer) initializeAuth() error {
 
 	}
 
-
-
 	if !authConfig.Enabled {
 
 		s.logger.Info("Authentication disabled")
@@ -649,15 +516,11 @@ func (s *NephoranAPIServer) initializeAuth() error {
 
 	}
 
-
-
 	// Initialize session manager.
 
 	// Note: NewSessionManager requires config, jwtManager, rbacManager, logger - will be set after managers are created.
 
 	// s.sessionManager = auth.NewSessionManager(authConfig, s.logger.WithName("session-manager")).
-
-
 
 	// Initialize RBAC manager.
 
@@ -665,23 +528,20 @@ func (s *NephoranAPIServer) initializeAuth() error {
 
 	rbacManagerConfig := &auth.RBACManagerConfig{
 
-		CacheTTL:           15 * time.Minute,
+		CacheTTL: 15 * time.Minute,
 
-		EnableHierarchy:    true,
+		EnableHierarchy: true,
 
-		DefaultDenyAll:     true,
+		DefaultDenyAll: true,
 
-		PolicyEvaluation:   "deny-overrides",
+		PolicyEvaluation: "deny-overrides",
 
-		MaxPolicyDepth:     10,
+		MaxPolicyDepth: 10,
 
 		EnableAuditLogging: true,
-
 	}
 
 	s.rbacManager = auth.NewRBACManager(rbacManagerConfig, nil)
-
-
 
 	// Initialize JWT manager.
 
@@ -689,12 +549,11 @@ func (s *NephoranAPIServer) initializeAuth() error {
 
 	jwtManager, err := auth.NewJWTManager(&auth.JWTConfig{
 
-		Issuer:     "nephoran",
+		Issuer: "nephoran",
 
 		DefaultTTL: 24 * time.Hour,
 
 		RefreshTTL: 7 * 24 * time.Hour,
-
 	}, nil, nil, nil)
 
 	if err != nil {
@@ -702,8 +561,6 @@ func (s *NephoranAPIServer) initializeAuth() error {
 		return fmt.Errorf("failed to create JWT manager: %w", err)
 
 	}
-
-
 
 	// Initialize auth middleware.
 
@@ -714,26 +571,20 @@ func (s *NephoranAPIServer) initializeAuth() error {
 			"/health", "/metrics", "/openapi", "/docs",
 
 			"/auth/login", "/auth/callback", "/auth/providers",
-
 		},
 
-		EnableCORS:       s.config.EnableCORS,
+		EnableCORS: s.config.EnableCORS,
 
-		AllowedOrigins:   s.config.AllowedOrigins,
+		AllowedOrigins: s.config.AllowedOrigins,
 
-		AllowedMethods:   s.config.AllowedMethods,
+		AllowedMethods: s.config.AllowedMethods,
 
-		AllowedHeaders:   s.config.AllowedHeaders,
+		AllowedHeaders: s.config.AllowedHeaders,
 
 		AllowCredentials: s.config.AllowCredentials,
-
 	}
 
-
-
 	s.authMiddleware = auth.NewAuthMiddleware(s.sessionManager, jwtManager, s.rbacManager, middlewareConfig)
-
-
 
 	s.logger.Info("Authentication initialized successfully")
 
@@ -741,15 +592,11 @@ func (s *NephoranAPIServer) initializeAuth() error {
 
 }
 
-
-
 // setupRouter configures the HTTP router with all endpoints.
 
 func (s *NephoranAPIServer) setupRouter() {
 
 	s.router = mux.NewRouter().StrictSlash(true)
-
-
 
 	// Apply middleware.
 
@@ -757,15 +604,11 @@ func (s *NephoranAPIServer) setupRouter() {
 
 	s.router.Use(s.metricsMiddleware)
 
-
-
 	if s.rateLimiter != nil {
 
 		s.router.Use(s.rateLimitMiddleware)
 
 	}
-
-
 
 	if s.authMiddleware != nil {
 
@@ -775,49 +618,33 @@ func (s *NephoranAPIServer) setupRouter() {
 
 	}
 
-
-
 	// Setup API versioned routes.
 
 	v1 := s.router.PathPrefix("/api/v1").Subrouter()
-
-
 
 	// Intent Management APIs.
 
 	s.setupIntentRoutes(v1)
 
-
-
 	// Package Management APIs.
 
 	s.setupPackageRoutes(v1)
-
-
 
 	// Multi-Cluster APIs.
 
 	s.setupClusterRoutes(v1)
 
-
-
 	// Real-time APIs.
 
 	s.setupRealtimeRoutes(v1)
-
-
 
 	// Dashboard APIs.
 
 	s.setupDashboardRoutes(v1)
 
-
-
 	// System APIs.
 
 	s.setupSystemRoutes(s.router)
-
-
 
 	// Setup CORS if enabled.
 
@@ -825,14 +652,13 @@ func (s *NephoranAPIServer) setupRouter() {
 
 		c := cors.New(cors.Options{
 
-			AllowedOrigins:   s.config.AllowedOrigins,
+			AllowedOrigins: s.config.AllowedOrigins,
 
-			AllowedMethods:   s.config.AllowedMethods,
+			AllowedMethods: s.config.AllowedMethods,
 
-			AllowedHeaders:   s.config.AllowedHeaders,
+			AllowedHeaders: s.config.AllowedHeaders,
 
 			AllowCredentials: s.config.AllowCredentials,
-
 		})
 
 		s.router = c.Handler(s.router).(*mux.Router)
@@ -841,15 +667,11 @@ func (s *NephoranAPIServer) setupRouter() {
 
 }
 
-
-
 // Start starts the API server.
 
 func (s *NephoranAPIServer) Start(ctx context.Context) error {
 
 	s.logger.Info("Starting Nephoran API Server", "address", s.server.Addr)
-
-
 
 	// Start server.
 
@@ -867,8 +689,6 @@ func (s *NephoranAPIServer) Start(ctx context.Context) error {
 
 		}
 
-
-
 		if err != nil && err != http.ErrServerClosed {
 
 			s.logger.Error(err, "API server failed to start")
@@ -876,8 +696,6 @@ func (s *NephoranAPIServer) Start(ctx context.Context) error {
 		}
 
 	}()
-
-
 
 	// Wait for shutdown signal.
 
@@ -887,27 +705,19 @@ func (s *NephoranAPIServer) Start(ctx context.Context) error {
 
 }
 
-
-
 // Shutdown gracefully shuts down the API server.
 
 func (s *NephoranAPIServer) Shutdown() error {
 
 	s.logger.Info("Shutting down Nephoran API Server")
 
-
-
 	// Signal background workers to stop.
 
 	close(s.shutdown)
 
-
-
 	// Wait for background workers to finish.
 
 	s.wg.Wait()
-
-
 
 	// Close WebSocket connections.
 
@@ -929,15 +739,11 @@ func (s *NephoranAPIServer) Shutdown() error {
 
 	s.connectionsMutex.Unlock()
 
-
-
 	// Shutdown HTTP server.
 
 	ctx, cancel := context.WithTimeout(context.Background(), s.config.ShutdownTimeout)
 
 	defer cancel()
-
-
 
 	if err := s.server.Shutdown(ctx); err != nil {
 
@@ -947,19 +753,13 @@ func (s *NephoranAPIServer) Shutdown() error {
 
 	}
 
-
-
 	s.logger.Info("Nephoran API Server shutdown complete")
 
 	return nil
 
 }
 
-
-
 // Middleware functions.
-
-
 
 func (s *NephoranAPIServer) loggingMiddleware(next http.Handler) http.Handler {
 
@@ -985,29 +785,19 @@ func (s *NephoranAPIServer) loggingMiddleware(next http.Handler) http.Handler {
 
 }
 
-
-
 func (s *NephoranAPIServer) metricsMiddleware(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		start := time.Now()
 
-
-
 		// Wrap response writer to capture status code.
 
 		wrapper := &responseWrapper{ResponseWriter: w, statusCode: http.StatusOK}
 
-
-
 		next.ServeHTTP(wrapper, r)
 
-
-
 		duration := time.Since(start)
-
-
 
 		s.metrics.RequestsTotal.WithLabelValues(
 
@@ -1016,28 +806,20 @@ func (s *NephoranAPIServer) metricsMiddleware(next http.Handler) http.Handler {
 			r.URL.Path,
 
 			fmt.Sprintf("%d", wrapper.statusCode),
-
 		).Inc()
-
-
 
 		s.metrics.RequestDuration.WithLabelValues(
 
 			r.Method,
 
 			r.URL.Path,
-
 		).Observe(duration.Seconds())
 
 	})
 
 }
 
-
-
 // Background workers.
-
-
 
 func (s *NephoranAPIServer) startBackgroundWorkers() {
 
@@ -1047,8 +829,6 @@ func (s *NephoranAPIServer) startBackgroundWorkers() {
 
 	go s.connectionCleanupWorker()
 
-
-
 	// Metrics collection worker.
 
 	s.wg.Add(1)
@@ -1057,8 +837,6 @@ func (s *NephoranAPIServer) startBackgroundWorkers() {
 
 }
 
-
-
 func (s *NephoranAPIServer) connectionCleanupWorker() {
 
 	defer s.wg.Done()
@@ -1066,8 +844,6 @@ func (s *NephoranAPIServer) connectionCleanupWorker() {
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1087,8 +863,6 @@ func (s *NephoranAPIServer) connectionCleanupWorker() {
 
 }
 
-
-
 func (s *NephoranAPIServer) metricsWorker() {
 
 	defer s.wg.Done()
@@ -1096,8 +870,6 @@ func (s *NephoranAPIServer) metricsWorker() {
 	ticker := time.NewTicker(10 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1117,19 +889,13 @@ func (s *NephoranAPIServer) metricsWorker() {
 
 }
 
-
-
 func (s *NephoranAPIServer) cleanupStaleConnections() {
 
 	threshold := time.Now().Add(-s.config.WSTimeout)
 
-
-
 	s.connectionsMutex.Lock()
 
 	defer s.connectionsMutex.Unlock()
-
-
 
 	// Cleanup WebSocket connections.
 
@@ -1145,8 +911,6 @@ func (s *NephoranAPIServer) cleanupStaleConnections() {
 
 	}
 
-
-
 	// Cleanup SSE connections.
 
 	for id, conn := range s.sseConnections {
@@ -1161,8 +925,6 @@ func (s *NephoranAPIServer) cleanupStaleConnections() {
 
 }
 
-
-
 func (s *NephoranAPIServer) updateConnectionMetrics() {
 
 	s.connectionsMutex.RLock()
@@ -1173,33 +935,24 @@ func (s *NephoranAPIServer) updateConnectionMetrics() {
 
 	s.connectionsMutex.RUnlock()
 
-
-
 	s.metrics.WSConnectionsActive.Set(float64(wsCount))
 
 	s.metrics.SSEConnectionsActive.Set(float64(sseCount))
 
 }
 
-
-
 // Utility functions.
-
-
 
 func (s *NephoranAPIServer) writeJSONResponse(w http.ResponseWriter, status int, data interface{}) {
 
 	response := &APIResponse{
 
-		Success:   status >= 200 && status < 300,
+		Success: status >= 200 && status < 300,
 
-		Data:      data,
+		Data: data,
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -1208,8 +961,6 @@ func (s *NephoranAPIServer) writeJSONResponse(w http.ResponseWriter, status int,
 	json.NewEncoder(w).Encode(response)
 
 }
-
-
 
 func (s *NephoranAPIServer) writeErrorResponse(w http.ResponseWriter, status int, code, message string) {
 
@@ -1219,17 +970,13 @@ func (s *NephoranAPIServer) writeErrorResponse(w http.ResponseWriter, status int
 
 		Error: &APIError{
 
-			Code:    code,
+			Code: code,
 
 			Message: message,
-
 		},
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -1239,31 +986,24 @@ func (s *NephoranAPIServer) writeErrorResponse(w http.ResponseWriter, status int
 
 }
 
-
-
 func (s *NephoranAPIServer) parsePaginationParams(r *http.Request) PaginationParams {
 
 	params := PaginationParams{
 
-		Page:     1,
+		Page: 1,
 
 		PageSize: s.config.DefaultPageSize,
 
-		Sort:     "created_at",
+		Sort: "created_at",
 
-		Order:    "desc",
-
+		Order: "desc",
 	}
-
-
 
 	if page := r.URL.Query().Get("page"); page != "" {
 
 		fmt.Sscanf(page, "%d", &params.Page)
 
 	}
-
-
 
 	if pageSize := r.URL.Query().Get("page_size"); pageSize != "" {
 
@@ -1277,15 +1017,11 @@ func (s *NephoranAPIServer) parsePaginationParams(r *http.Request) PaginationPar
 
 	}
 
-
-
 	if sort := r.URL.Query().Get("sort"); sort != "" {
 
 		params.Sort = sort
 
 	}
-
-
 
 	if order := r.URL.Query().Get("order"); order != "" {
 
@@ -1293,23 +1029,16 @@ func (s *NephoranAPIServer) parsePaginationParams(r *http.Request) PaginationPar
 
 	}
 
-
-
 	return params
 
 }
-
-
 
 func (s *NephoranAPIServer) parseFilterParams(r *http.Request) FilterParams {
 
 	params := FilterParams{
 
 		Labels: make(map[string]string),
-
 	}
-
-
 
 	if status := r.URL.Query().Get("status"); status != "" {
 
@@ -1317,15 +1046,11 @@ func (s *NephoranAPIServer) parseFilterParams(r *http.Request) FilterParams {
 
 	}
 
-
-
 	if intentType := r.URL.Query().Get("type"); intentType != "" {
 
 		params.Type = intentType
 
 	}
-
-
 
 	if priority := r.URL.Query().Get("priority"); priority != "" {
 
@@ -1333,23 +1058,17 @@ func (s *NephoranAPIServer) parseFilterParams(r *http.Request) FilterParams {
 
 	}
 
-
-
 	if component := r.URL.Query().Get("component"); component != "" {
 
 		params.Component = component
 
 	}
 
-
-
 	if cluster := r.URL.Query().Get("cluster"); cluster != "" {
 
 		params.Cluster = cluster
 
 	}
-
-
 
 	// Parse label filters (format: label.key=value).
 
@@ -1369,85 +1088,76 @@ func (s *NephoranAPIServer) parseFilterParams(r *http.Request) FilterParams {
 
 	}
 
-
-
 	return params
 
 }
 
-
-
 // Default configuration.
-
-
 
 func getDefaultServerConfig() *ServerConfig {
 
 	return &ServerConfig{
 
-		Address:           "0.0.0.0",
+		Address: "0.0.0.0",
 
-		Port:              8080,
+		Port: 8080,
 
-		ReadTimeout:       30 * time.Second,
+		ReadTimeout: 30 * time.Second,
 
-		WriteTimeout:      30 * time.Second,
+		WriteTimeout: 30 * time.Second,
 
-		IdleTimeout:       120 * time.Second,
+		IdleTimeout: 120 * time.Second,
 
-		ShutdownTimeout:   30 * time.Second,
+		ShutdownTimeout: 30 * time.Second,
 
-		TLSEnabled:        false,
+		TLSEnabled: false,
 
-		EnableCORS:        true,
+		EnableCORS: true,
 
-		AllowedOrigins:    []string{"*"},
+		AllowedOrigins: []string{"*"},
 
-		AllowedMethods:    []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 
-		AllowedHeaders:    []string{"Authorization", "Content-Type", "X-Requested-With", "X-Session-ID"},
+		AllowedHeaders: []string{"Authorization", "Content-Type", "X-Requested-With", "X-Session-ID"},
 
-		AllowCredentials:  true,
+		AllowCredentials: true,
 
-		EnableRateLimit:   true,
+		EnableRateLimit: true,
 
-		RequestsPerMin:    1000,
+		RequestsPerMin: 1000,
 
-		BurstSize:         100,
+		BurstSize: 100,
 
-		RateLimitWindow:   time.Minute,
+		RateLimitWindow: time.Minute,
 
-		EnableCaching:     true,
+		EnableCaching: true,
 
-		CacheSize:         1000,
+		CacheSize: 1000,
 
-		CacheTTL:          5 * time.Minute,
+		CacheTTL: 5 * time.Minute,
 
-		MaxWSConnections:  100,
+		MaxWSConnections: 100,
 
-		WSTimeout:         5 * time.Minute,
+		WSTimeout: 5 * time.Minute,
 
-		SSETimeout:        5 * time.Minute,
+		SSETimeout: 5 * time.Minute,
 
-		PingInterval:      30 * time.Second,
+		PingInterval: 30 * time.Second,
 
-		DefaultPageSize:   20,
+		DefaultPageSize: 20,
 
-		MaxPageSize:       100,
+		MaxPageSize: 100,
 
-		EnableMetrics:     true,
+		EnableMetrics: true,
 
-		EnableProfiling:   false,
+		EnableProfiling: false,
 
 		EnableHealthCheck: true,
 
-		AuthConfigFile:    config.GetEnvOrDefault("AUTH_CONFIG_FILE", ""),
-
+		AuthConfigFile: config.GetEnvOrDefault("AUTH_CONFIG_FILE", ""),
 	}
 
 }
-
-
 
 // Initialize server metrics.
 
@@ -1462,11 +1172,9 @@ func initServerMetrics() *ServerMetrics {
 				Name: "nephoran_api_requests_total",
 
 				Help: "Total number of API requests",
-
 			},
 
 			[]string{"method", "path", "status"},
-
 		),
 
 		RequestDuration: prometheus.NewHistogramVec(
@@ -1476,11 +1184,9 @@ func initServerMetrics() *ServerMetrics {
 				Name: "nephoran_api_request_duration_seconds",
 
 				Help: "Duration of API requests",
-
 			},
 
 			[]string{"method", "path"},
-
 		),
 
 		WSConnectionsActive: prometheus.NewGauge(
@@ -1490,9 +1196,7 @@ func initServerMetrics() *ServerMetrics {
 				Name: "nephoran_api_websocket_connections_active",
 
 				Help: "Number of active WebSocket connections",
-
 			},
-
 		),
 
 		SSEConnectionsActive: prometheus.NewGauge(
@@ -1502,9 +1206,7 @@ func initServerMetrics() *ServerMetrics {
 				Name: "nephoran_api_sse_connections_active",
 
 				Help: "Number of active SSE connections",
-
 			},
-
 		),
 
 		CacheHits: prometheus.NewCounter(
@@ -1514,9 +1216,7 @@ func initServerMetrics() *ServerMetrics {
 				Name: "nephoran_api_cache_hits_total",
 
 				Help: "Total number of cache hits",
-
 			},
-
 		),
 
 		CacheMisses: prometheus.NewCounter(
@@ -1526,9 +1226,7 @@ func initServerMetrics() *ServerMetrics {
 				Name: "nephoran_api_cache_misses_total",
 
 				Help: "Total number of cache misses",
-
 			},
-
 		),
 
 		RateLimitExceeded: prometheus.NewCounter(
@@ -1538,28 +1236,19 @@ func initServerMetrics() *ServerMetrics {
 				Name: "nephoran_api_rate_limit_exceeded_total",
 
 				Help: "Total number of rate limit exceeded errors",
-
 			},
-
 		),
-
 	}
 
 }
 
-
-
 // responseWrapper captures response status code for metrics.
 
 type responseWrapper struct {
-
 	http.ResponseWriter
 
 	statusCode int
-
 }
-
-
 
 // WriteHeader performs writeheader operation.
 
@@ -1570,8 +1259,6 @@ func (rw *responseWrapper) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 
 }
-
-
 
 // getClientIP extracts client IP from request.
 
@@ -1587,8 +1274,6 @@ func getClientIP(r *http.Request) string {
 
 	}
 
-
-
 	xri := r.Header.Get("X-Real-IP")
 
 	if xri != "" {
@@ -1597,9 +1282,6 @@ func getClientIP(r *http.Request) string {
 
 	}
 
-
-
 	return r.RemoteAddr
 
 }
-

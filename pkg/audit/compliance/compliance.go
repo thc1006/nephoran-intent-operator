@@ -1,321 +1,247 @@
-
 package compliance
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
+	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/types"
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-
-
-	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/types"
-
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
 
-
-
 var (
-
 	complianceReportsGenerated = promauto.NewCounterVec(prometheus.CounterOpts{
 
 		Name: "compliance_reports_generated_total",
 
 		Help: "Total number of compliance reports generated",
-
 	}, []string{"standard", "type"})
-
-
 
 	complianceViolationsDetected = promauto.NewCounterVec(prometheus.CounterOpts{
 
 		Name: "compliance_violations_detected_total",
 
 		Help: "Total number of compliance violations detected",
-
 	}, []string{"standard", "severity"})
-
-
 
 	complianceReportDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
 
 		Name: "compliance_report_generation_duration_seconds",
 
 		Help: "Duration of compliance report generation",
-
 	}, []string{"standard"})
-
 )
-
-
 
 // ComplianceLogger handles compliance-specific audit logging and reporting.
 
 type ComplianceLogger struct {
+	mutex sync.RWMutex
 
-	mutex     sync.RWMutex
-
-	logger    logr.Logger
+	logger logr.Logger
 
 	standards []types.ComplianceStandard
 
-
-
 	// Compliance tracking.
 
-	soc2Tracker     *SOC2Tracker
+	soc2Tracker *SOC2Tracker
 
 	iso27001Tracker *ISO27001Tracker
 
-	pciDSSTracker   *PCIDSSTracker
-
-
+	pciDSSTracker *PCIDSSTracker
 
 	// Configuration.
 
 	config *ComplianceConfig
-
 }
-
-
 
 // ComplianceConfig holds configuration for compliance logging.
 
 type ComplianceConfig struct {
+	Standards []types.ComplianceStandard `json:"standards" yaml:"standards"`
 
-	Standards             []types.ComplianceStandard `json:"standards" yaml:"standards"`
+	ReportingInterval time.Duration `json:"reporting_interval" yaml:"reporting_interval"`
 
-	ReportingInterval     time.Duration              `json:"reporting_interval" yaml:"reporting_interval"`
+	RetentionPeriods map[string]time.Duration `json:"retention_periods" yaml:"retention_periods"`
 
-	RetentionPeriods      map[string]time.Duration   `json:"retention_periods" yaml:"retention_periods"`
+	ViolationThresholds map[string]int `json:"violation_thresholds" yaml:"violation_thresholds"`
 
-	ViolationThresholds   map[string]int             `json:"violation_thresholds" yaml:"violation_thresholds"`
+	AutoRemediation bool `json:"auto_remediation" yaml:"auto_remediation"`
 
-	AutoRemediation       bool                       `json:"auto_remediation" yaml:"auto_remediation"`
+	NotificationEndpoints []string `json:"notification_endpoints" yaml:"notification_endpoints"`
 
-	NotificationEndpoints []string                   `json:"notification_endpoints" yaml:"notification_endpoints"`
-
-	ReportOutputFormats   []string                   `json:"report_output_formats" yaml:"report_output_formats"`
-
+	ReportOutputFormats []string `json:"report_output_formats" yaml:"report_output_formats"`
 }
-
-
 
 // ComplianceReport represents a comprehensive compliance report.
 
 type ComplianceReport struct {
+	ReportID string `json:"report_id"`
 
-	ReportID        string                     `json:"report_id"`
+	Standard types.ComplianceStandard `json:"standard"`
 
-	Standard        types.ComplianceStandard   `json:"standard"`
+	ReportType string `json:"report_type"`
 
-	ReportType      string                     `json:"report_type"`
+	GenerationTime time.Time `json:"generation_time"`
 
-	GenerationTime  time.Time                  `json:"generation_time"`
+	ReportPeriod ReportPeriod `json:"report_period"`
 
-	ReportPeriod    ReportPeriod               `json:"report_period"`
+	Summary ComplianceSummary `json:"summary"`
 
-	Summary         ComplianceSummary          `json:"summary"`
+	Controls []ControlAssessment `json:"controls"`
 
-	Controls        []ControlAssessment        `json:"controls"`
-
-	Violations      []ComplianceViolation      `json:"violations"`
+	Violations []ComplianceViolation `json:"violations"`
 
 	Recommendations []ComplianceRecommendation `json:"recommendations"`
 
-	Evidence        []ComplianceEvidence       `json:"evidence"`
+	Evidence []ComplianceEvidence `json:"evidence"`
 
-	Attestation     *ComplianceAttestation     `json:"attestation,omitempty"`
-
+	Attestation *ComplianceAttestation `json:"attestation,omitempty"`
 }
-
-
 
 // ReportPeriod defines the time period covered by a compliance report.
 
 type ReportPeriod struct {
-
 	StartTime time.Time `json:"start_time"`
 
-	EndTime   time.Time `json:"end_time"`
+	EndTime time.Time `json:"end_time"`
 
-	Duration  string    `json:"duration"`
-
+	Duration string `json:"duration"`
 }
-
-
 
 // ComplianceSummary provides high-level compliance metrics.
 
 type ComplianceSummary struct {
+	TotalControls int `json:"total_controls"`
 
-	TotalControls        int     `json:"total_controls"`
+	ControlsCompliant int `json:"controls_compliant"`
 
-	ControlsCompliant    int     `json:"controls_compliant"`
+	ControlsNonCompliant int `json:"controls_non_compliant"`
 
-	ControlsNonCompliant int     `json:"controls_non_compliant"`
+	ComplianceScore float64 `json:"compliance_score"`
 
-	ComplianceScore      float64 `json:"compliance_score"`
+	RiskLevel string `json:"risk_level"`
 
-	RiskLevel            string  `json:"risk_level"`
+	TotalEvents int64 `json:"total_events"`
 
-	TotalEvents          int64   `json:"total_events"`
-
-	ViolationCount       int     `json:"violation_count"`
-
+	ViolationCount int `json:"violation_count"`
 }
-
-
 
 // ControlAssessment represents the assessment of a specific control.
 
 type ControlAssessment struct {
+	ControlID string `json:"control_id"`
 
-	ControlID       string                 `json:"control_id"`
+	ControlName string `json:"control_name"`
 
-	ControlName     string                 `json:"control_name"`
+	Description string `json:"description"`
 
-	Description     string                 `json:"description"`
+	Category string `json:"category"`
 
-	Category        string                 `json:"category"`
+	Status string `json:"status"`
 
-	Status          string                 `json:"status"`
+	ComplianceLevel string `json:"compliance_level"`
 
-	ComplianceLevel string                 `json:"compliance_level"`
+	LastAssessment time.Time `json:"last_assessment"`
 
-	LastAssessment  time.Time              `json:"last_assessment"`
+	EvidenceCount int `json:"evidence_count"`
 
-	EvidenceCount   int                    `json:"evidence_count"`
+	Findings []string `json:"findings"`
 
-	Findings        []string               `json:"findings"`
-
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // ComplianceViolation represents a specific compliance violation.
 
 type ComplianceViolation struct {
+	ViolationID string `json:"violation_id"`
 
-	ViolationID       string                 `json:"violation_id"`
+	ControlID string `json:"control_id"`
 
-	ControlID         string                 `json:"control_id"`
+	Severity string `json:"severity"`
 
-	Severity          string                 `json:"severity"`
+	Title string `json:"title"`
 
-	Title             string                 `json:"title"`
+	Description string `json:"description"`
 
-	Description       string                 `json:"description"`
+	DetectedAt time.Time `json:"detected_at"`
 
-	DetectedAt        time.Time              `json:"detected_at"`
+	EventID string `json:"event_id"`
 
-	EventID           string                 `json:"event_id"`
+	UserID string `json:"user_id"`
 
-	UserID            string                 `json:"user_id"`
+	RemediationStatus string `json:"remediation_status"`
 
-	RemediationStatus string                 `json:"remediation_status"`
+	DueDate *time.Time `json:"due_date,omitempty"`
 
-	DueDate           *time.Time             `json:"due_date,omitempty"`
+	Evidence []string `json:"evidence"`
 
-	Evidence          []string               `json:"evidence"`
-
-	Metadata          map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // ComplianceRecommendation provides actionable recommendations.
 
 type ComplianceRecommendation struct {
+	RecommendationID string `json:"recommendation_id"`
 
-	RecommendationID string                 `json:"recommendation_id"`
+	Priority string `json:"priority"`
 
-	Priority         string                 `json:"priority"`
+	Title string `json:"title"`
 
-	Title            string                 `json:"title"`
+	Description string `json:"description"`
 
-	Description      string                 `json:"description"`
+	ControlIDs []string `json:"control_ids"`
 
-	ControlIDs       []string               `json:"control_ids"`
+	Actions []string `json:"actions"`
 
-	Actions          []string               `json:"actions"`
+	Timeline string `json:"timeline"`
 
-	Timeline         string                 `json:"timeline"`
+	Effort string `json:"effort"`
 
-	Effort           string                 `json:"effort"`
-
-	Metadata         map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // ComplianceEvidence represents evidence for compliance controls.
 
 type ComplianceEvidence struct {
+	EvidenceID string `json:"evidence_id"`
 
-	EvidenceID   string    `json:"evidence_id"`
+	ControlID string `json:"control_id"`
 
-	ControlID    string    `json:"control_id"`
+	EventID string `json:"event_id"`
 
-	EventID      string    `json:"event_id"`
+	EvidenceType string `json:"evidence_type"`
 
-	EvidenceType string    `json:"evidence_type"`
+	Description string `json:"description"`
 
-	Description  string    `json:"description"`
+	CollectedAt time.Time `json:"collected_at"`
 
-	CollectedAt  time.Time `json:"collected_at"`
+	ValidUntil time.Time `json:"valid_until"`
 
-	ValidUntil   time.Time `json:"valid_until"`
+	Authenticity string `json:"authenticity"`
 
-	Authenticity string    `json:"authenticity"`
+	Location string `json:"location"`
 
-	Location     string    `json:"location"`
-
-	Hash         string    `json:"hash"`
-
+	Hash string `json:"hash"`
 }
-
-
 
 // ComplianceAttestation provides formal attestation.
 
 type ComplianceAttestation struct {
+	AttestorName string `json:"attestor_name"`
 
-	AttestorName     string    `json:"attestor_name"`
+	AttestorRole string `json:"attestor_role"`
 
-	AttestorRole     string    `json:"attestor_role"`
+	AttestationDate time.Time `json:"attestation_date"`
 
-	AttestationDate  time.Time `json:"attestation_date"`
+	Statement string `json:"statement"`
 
-	Statement        string    `json:"statement"`
-
-	DigitalSignature string    `json:"digital_signature"`
-
+	DigitalSignature string `json:"digital_signature"`
 }
-
-
 
 // NewComplianceLogger creates a new compliance logger.
 
@@ -325,19 +251,14 @@ func NewComplianceLogger(standards []types.ComplianceStandard) *ComplianceLogger
 
 	config.Standards = standards
 
-
-
 	cl := &ComplianceLogger{
 
-		logger:    log.Log.WithName("compliance-logger"),
+		logger: log.Log.WithName("compliance-logger"),
 
 		standards: standards,
 
-		config:    config,
-
+		config: config,
 	}
-
-
 
 	// Initialize trackers for each standard.
 
@@ -361,13 +282,9 @@ func NewComplianceLogger(standards []types.ComplianceStandard) *ComplianceLogger
 
 	}
 
-
-
 	return cl
 
 }
-
-
 
 // ProcessEvent processes an audit event for compliance tracking.
 
@@ -376,8 +293,6 @@ func (cl *ComplianceLogger) ProcessEvent(event *types.AuditEvent) {
 	cl.mutex.Lock()
 
 	defer cl.mutex.Unlock()
-
-
 
 	// Process event with each enabled compliance tracker.
 
@@ -413,15 +328,11 @@ func (cl *ComplianceLogger) ProcessEvent(event *types.AuditEvent) {
 
 	}
 
-
-
 	// Check for violations.
 
 	cl.checkComplianceViolations(event)
 
 }
-
-
 
 // GenerateReport generates a compliance report for a specific standard.
 
@@ -437,21 +348,17 @@ func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard types.C
 
 	}()
 
-
-
 	cl.mutex.RLock()
 
 	defer cl.mutex.RUnlock()
 
-
-
 	report := &ComplianceReport{
 
-		ReportID:       fmt.Sprintf("%s-%s-%d", standard, reportType, time.Now().Unix()),
+		ReportID: fmt.Sprintf("%s-%s-%d", standard, reportType, time.Now().Unix()),
 
-		Standard:       standard,
+		Standard: standard,
 
-		ReportType:     reportType,
+		ReportType: reportType,
 
 		GenerationTime: time.Now().UTC(),
 
@@ -459,15 +366,11 @@ func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard types.C
 
 			StartTime: startTime,
 
-			EndTime:   endTime,
+			EndTime: endTime,
 
-			Duration:  endTime.Sub(startTime).String(),
-
+			Duration: endTime.Sub(startTime).String(),
 		},
-
 	}
-
-
 
 	// Generate report based on standard.
 
@@ -499,15 +402,11 @@ func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard types.C
 
 	}
 
-
-
 	complianceReportsGenerated.WithLabelValues(string(standard), reportType).Inc()
 
 	return report, nil
 
 }
-
-
 
 // GetComplianceStatus returns current compliance status.
 
@@ -517,11 +416,7 @@ func (cl *ComplianceLogger) GetComplianceStatus() map[string]interface{} {
 
 	defer cl.mutex.RUnlock()
 
-
-
 	status := make(map[string]interface{})
-
-
 
 	for _, standard := range cl.standards {
 
@@ -555,13 +450,9 @@ func (cl *ComplianceLogger) GetComplianceStatus() map[string]interface{} {
 
 	}
 
-
-
 	return status
 
 }
-
-
 
 // checkComplianceViolations checks for compliance violations in an audit event.
 
@@ -571,8 +462,6 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 
 	violations := make([]ComplianceViolation, 0)
 
-
-
 	// Check authentication failures.
 
 	if event.EventType == types.EventTypeAuthenticationFailed {
@@ -581,33 +470,28 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 
 			violation := ComplianceViolation{
 
-				ViolationID:       fmt.Sprintf("%s-auth-fail-%d", standard, time.Now().Unix()),
+				ViolationID: fmt.Sprintf("%s-auth-fail-%d", standard, time.Now().Unix()),
 
-				ControlID:         cl.getAuthenticationControlID(standard),
+				ControlID: cl.getAuthenticationControlID(standard),
 
-				Severity:          "medium",
+				Severity: "medium",
 
-				Title:             "Authentication Failure",
+				Title: "Authentication Failure",
 
-				Description:       "Failed authentication attempt detected",
+				Description: "Failed authentication attempt detected",
 
-				DetectedAt:        event.Timestamp,
+				DetectedAt: event.Timestamp,
 
-				EventID:           event.ID,
+				EventID: event.ID,
 
 				RemediationStatus: "open",
-
 			}
-
-
 
 			if event.UserContext != nil {
 
 				violation.UserID = event.UserContext.UserID
 
 			}
-
-
 
 			violations = append(violations, violation)
 
@@ -617,8 +501,6 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 
 	}
 
-
-
 	// Check unauthorized access.
 
 	if event.EventType == types.EventTypeAuthorizationFailed {
@@ -627,33 +509,28 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 
 			violation := ComplianceViolation{
 
-				ViolationID:       fmt.Sprintf("%s-authz-fail-%d", standard, time.Now().Unix()),
+				ViolationID: fmt.Sprintf("%s-authz-fail-%d", standard, time.Now().Unix()),
 
-				ControlID:         cl.getAuthorizationControlID(standard),
+				ControlID: cl.getAuthorizationControlID(standard),
 
-				Severity:          "high",
+				Severity: "high",
 
-				Title:             "Authorization Failure",
+				Title: "Authorization Failure",
 
-				Description:       "Unauthorized access attempt detected",
+				Description: "Unauthorized access attempt detected",
 
-				DetectedAt:        event.Timestamp,
+				DetectedAt: event.Timestamp,
 
-				EventID:           event.ID,
+				EventID: event.ID,
 
 				RemediationStatus: "open",
-
 			}
-
-
 
 			if event.UserContext != nil {
 
 				violation.UserID = event.UserContext.UserID
 
 			}
-
-
 
 			violations = append(violations, violation)
 
@@ -662,8 +539,6 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 		}
 
 	}
-
-
 
 	// Check data access without proper authorization.
 
@@ -673,25 +548,22 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 
 			violation := ComplianceViolation{
 
-				ViolationID:       fmt.Sprintf("%s-data-access-%d", standard, time.Now().Unix()),
+				ViolationID: fmt.Sprintf("%s-data-access-%d", standard, time.Now().Unix()),
 
-				ControlID:         cl.getDataAccessControlID(standard),
+				ControlID: cl.getDataAccessControlID(standard),
 
-				Severity:          "high",
+				Severity: "high",
 
-				Title:             "Unauthorized Data Access",
+				Title: "Unauthorized Data Access",
 
-				Description:       "Attempted access to data without proper authorization",
+				Description: "Attempted access to data without proper authorization",
 
-				DetectedAt:        event.Timestamp,
+				DetectedAt: event.Timestamp,
 
-				EventID:           event.ID,
+				EventID: event.ID,
 
 				RemediationStatus: "open",
-
 			}
-
-
 
 			violations = append(violations, violation)
 
@@ -700,8 +572,6 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 		}
 
 	}
-
-
 
 	// Store violations for reporting.
 
@@ -713,11 +583,7 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 
 }
 
-
-
 // Helper methods for generating specific compliance reports.
-
-
 
 func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, reportType string, startTime, endTime time.Time) (*ComplianceReport, error) {
 
@@ -727,61 +593,55 @@ func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, reportT
 
 		{
 
-			ControlID:       "CC6.1",
+			ControlID: "CC6.1",
 
-			ControlName:     "Logical Access Controls",
+			ControlName: "Logical Access Controls",
 
-			Description:     "System access is restricted to authorized users",
+			Description: "System access is restricted to authorized users",
 
-			Category:        "Security",
+			Category: "Security",
 
-			Status:          "compliant",
+			Status: "compliant",
 
 			ComplianceLevel: "effective",
 
-			LastAssessment:  time.Now().UTC(),
-
+			LastAssessment: time.Now().UTC(),
 		},
 
 		{
 
-			ControlID:       "CC6.2",
+			ControlID: "CC6.2",
 
-			ControlName:     "Access Authorization",
+			ControlName: "Access Authorization",
 
-			Description:     "Access rights are authorized before granting access",
+			Description: "Access rights are authorized before granting access",
 
-			Category:        "Security",
+			Category: "Security",
 
-			Status:          "compliant",
+			Status: "compliant",
 
 			ComplianceLevel: "effective",
 
-			LastAssessment:  time.Now().UTC(),
-
+			LastAssessment: time.Now().UTC(),
 		},
 
 		{
 
-			ControlID:       "CC6.7",
+			ControlID: "CC6.7",
 
-			ControlName:     "Data Transmission",
+			ControlName: "Data Transmission",
 
-			Description:     "Data transmission is protected during transmission",
+			Description: "Data transmission is protected during transmission",
 
-			Category:        "Security",
+			Category: "Security",
 
-			Status:          "compliant",
+			Status: "compliant",
 
 			ComplianceLevel: "effective",
 
-			LastAssessment:  time.Now().UTC(),
-
+			LastAssessment: time.Now().UTC(),
 		},
-
 	}
-
-
 
 	// Calculate compliance score.
 
@@ -797,35 +657,26 @@ func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, reportT
 
 	}
 
-
-
 	complianceScore := float64(compliantControls) / float64(len(controls)) * 100
-
-
 
 	report.Controls = controls
 
 	report.Summary = ComplianceSummary{
 
-		TotalControls:        len(controls),
+		TotalControls: len(controls),
 
-		ControlsCompliant:    compliantControls,
+		ControlsCompliant: compliantControls,
 
 		ControlsNonCompliant: len(controls) - compliantControls,
 
-		ComplianceScore:      complianceScore,
+		ComplianceScore: complianceScore,
 
-		RiskLevel:            cl.calculateRiskLevel(complianceScore),
-
+		RiskLevel: cl.calculateRiskLevel(complianceScore),
 	}
-
-
 
 	return report, nil
 
 }
-
-
 
 func (cl *ComplianceLogger) generateISO27001Report(report *ComplianceReport, reportType string, startTime, endTime time.Time) (*ComplianceReport, error) {
 
@@ -835,69 +686,61 @@ func (cl *ComplianceLogger) generateISO27001Report(report *ComplianceReport, rep
 
 		{
 
-			ControlID:       "A.9.2.1",
+			ControlID: "A.9.2.1",
 
-			ControlName:     "User Registration and De-registration",
+			ControlName: "User Registration and De-registration",
 
-			Description:     "Formal user registration and de-registration process",
+			Description: "Formal user registration and de-registration process",
 
-			Category:        "Access Control",
+			Category: "Access Control",
 
-			Status:          "compliant",
+			Status: "compliant",
 
 			ComplianceLevel: "implemented",
 
-			LastAssessment:  time.Now().UTC(),
-
+			LastAssessment: time.Now().UTC(),
 		},
 
 		{
 
-			ControlID:       "A.9.2.2",
+			ControlID: "A.9.2.2",
 
-			ControlName:     "User Access Provisioning",
+			ControlName: "User Access Provisioning",
 
-			Description:     "User access provisioning process",
+			Description: "User access provisioning process",
 
-			Category:        "Access Control",
+			Category: "Access Control",
 
-			Status:          "compliant",
+			Status: "compliant",
 
 			ComplianceLevel: "implemented",
 
-			LastAssessment:  time.Now().UTC(),
-
+			LastAssessment: time.Now().UTC(),
 		},
 
 		{
 
-			ControlID:       "A.12.4.1",
+			ControlID: "A.12.4.1",
 
-			ControlName:     "Event Logging",
+			ControlName: "Event Logging",
 
-			Description:     "Event logs recording user activities and exceptions",
+			Description: "Event logs recording user activities and exceptions",
 
-			Category:        "Operations Security",
+			Category: "Operations Security",
 
-			Status:          "compliant",
+			Status: "compliant",
 
 			ComplianceLevel: "implemented",
 
-			LastAssessment:  time.Now().UTC(),
-
+			LastAssessment: time.Now().UTC(),
 		},
-
 	}
-
-
 
 	report.Controls = controls
 
 	return report, nil
 
 }
-
-
 
 func (cl *ComplianceLogger) generatePCIDSSReport(report *ComplianceReport, reportType string, startTime, endTime time.Time) (*ComplianceReport, error) {
 
@@ -907,61 +750,55 @@ func (cl *ComplianceLogger) generatePCIDSSReport(report *ComplianceReport, repor
 
 		{
 
-			ControlID:       "8.1.1",
+			ControlID: "8.1.1",
 
-			ControlName:     "Unique User IDs",
+			ControlName: "Unique User IDs",
 
-			Description:     "Assign unique identification to each person with computer access",
+			Description: "Assign unique identification to each person with computer access",
 
-			Category:        "Strong Access Control Measures",
+			Category: "Strong Access Control Measures",
 
-			Status:          "compliant",
+			Status: "compliant",
 
 			ComplianceLevel: "compliant",
 
-			LastAssessment:  time.Now().UTC(),
-
+			LastAssessment: time.Now().UTC(),
 		},
 
 		{
 
-			ControlID:       "7.1.1",
+			ControlID: "7.1.1",
 
-			ControlName:     "Access Control Systems",
+			ControlName: "Access Control Systems",
 
-			Description:     "Limit access to computing resources based on business need-to-know",
+			Description: "Limit access to computing resources based on business need-to-know",
 
-			Category:        "Restrict Access to Cardholder Data",
+			Category: "Restrict Access to Cardholder Data",
 
-			Status:          "compliant",
+			Status: "compliant",
 
 			ComplianceLevel: "compliant",
 
-			LastAssessment:  time.Now().UTC(),
-
+			LastAssessment: time.Now().UTC(),
 		},
 
 		{
 
-			ControlID:       "10.2.1",
+			ControlID: "10.2.1",
 
-			ControlName:     "Audit Trail Implementation",
+			ControlName: "Audit Trail Implementation",
 
-			Description:     "Implement automated audit trails for all system components",
+			Description: "Implement automated audit trails for all system components",
 
-			Category:        "Regularly Monitor and Test Networks",
+			Category: "Regularly Monitor and Test Networks",
 
-			Status:          "compliant",
+			Status: "compliant",
 
 			ComplianceLevel: "compliant",
 
-			LastAssessment:  time.Now().UTC(),
-
+			LastAssessment: time.Now().UTC(),
 		},
-
 	}
-
-
 
 	report.Controls = controls
 
@@ -969,11 +806,7 @@ func (cl *ComplianceLogger) generatePCIDSSReport(report *ComplianceReport, repor
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (cl *ComplianceLogger) getAuthenticationControlID(standard types.ComplianceStandard) string {
 
@@ -999,8 +832,6 @@ func (cl *ComplianceLogger) getAuthenticationControlID(standard types.Compliance
 
 }
 
-
-
 func (cl *ComplianceLogger) getAuthorizationControlID(standard types.ComplianceStandard) string {
 
 	switch standard {
@@ -1024,8 +855,6 @@ func (cl *ComplianceLogger) getAuthorizationControlID(standard types.ComplianceS
 	}
 
 }
-
-
 
 func (cl *ComplianceLogger) getDataAccessControlID(standard types.ComplianceStandard) string {
 
@@ -1051,8 +880,6 @@ func (cl *ComplianceLogger) getDataAccessControlID(standard types.ComplianceStan
 
 }
 
-
-
 func (cl *ComplianceLogger) calculateRiskLevel(complianceScore float64) string {
 
 	if complianceScore >= 95 {
@@ -1072,8 +899,6 @@ func (cl *ComplianceLogger) calculateRiskLevel(complianceScore float64) string {
 	return "critical"
 
 }
-
-
 
 func (cl *ComplianceLogger) storeViolations(violations []ComplianceViolation) {
 
@@ -1099,25 +924,23 @@ func (cl *ComplianceLogger) storeViolations(violations []ComplianceViolation) {
 
 }
 
-
-
 // DefaultComplianceConfig returns a default compliance configuration.
 
 func DefaultComplianceConfig() *ComplianceConfig {
 
 	return &ComplianceConfig{
 
-		Standards:         []types.ComplianceStandard{},
+		Standards: []types.ComplianceStandard{},
 
 		ReportingInterval: 24 * time.Hour,
 
 		RetentionPeriods: map[string]time.Duration{
 
-			"soc2":     7 * 365 * 24 * time.Hour, // 7 years
+			"soc2": 7 * 365 * 24 * time.Hour, // 7 years
 
 			"iso27001": 3 * 365 * 24 * time.Hour, // 3 years
 
-			"pci_dss":  1 * 365 * 24 * time.Hour, // 1 year
+			"pci_dss": 1 * 365 * 24 * time.Hour, // 1 year
 
 		},
 
@@ -1125,17 +948,14 @@ func DefaultComplianceConfig() *ComplianceConfig {
 
 			"authentication_failures": 5,
 
-			"authorization_failures":  3,
+			"authorization_failures": 3,
 
-			"data_access_violations":  1,
-
+			"data_access_violations": 1,
 		},
 
-		AutoRemediation:     false,
+		AutoRemediation: false,
 
 		ReportOutputFormats: []string{"json", "pdf", "csv"},
-
 	}
 
 }
-

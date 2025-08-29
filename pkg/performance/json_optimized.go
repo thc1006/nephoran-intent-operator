@@ -1,271 +1,206 @@
 //go:build go1.24
 
-
-
-
 package performance
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"reflect"
-
 	"runtime"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
 
-
-
 	"github.com/bytedance/sonic"
-
 	"github.com/valyala/fastjson"
 
-
-
 	"k8s.io/klog/v2"
-
 )
-
-
 
 // OptimizedJSONProcessor provides high-performance JSON operations with Go 1.24+ optimizations.
 
 type OptimizedJSONProcessor struct {
-
 	schemaCache *JSONSchemaCache
 
 	encoderPool *EncoderPool
 
 	decoderPool *DecoderPool
 
-	streamPool  *StreamPool
+	streamPool *StreamPool
 
-	bufferPool  *BufferPool
+	bufferPool *BufferPool
 
-	parserPool  *fastjson.ParserPool
+	parserPool *fastjson.ParserPool
 
-	metrics     *JSONMetrics
+	metrics *JSONMetrics
 
-	config      *JSONConfig
+	config *JSONConfig
 
-	workerPool  *JSONWorkerPool
+	workerPool *JSONWorkerPool
 
-	mu          sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // JSONConfig contains JSON processing configuration.
 
 type JSONConfig struct {
-
 	EnableSchemaOptimization bool
 
-	EnableStreaming          bool
+	EnableStreaming bool
 
-	EnableConcurrency        bool
+	EnableConcurrency bool
 
-	EnableSIMD               bool
+	EnableSIMD bool
 
-	MaxConcurrentOperations  int
+	MaxConcurrentOperations int
 
-	StreamingBufferSize      int
+	StreamingBufferSize int
 
-	SchemaValidation         bool
+	SchemaValidation bool
 
-	CompressionEnabled       bool
+	CompressionEnabled bool
 
-	PoolSize                 int
+	PoolSize int
 
-	MaxObjectSize            int64
+	MaxObjectSize int64
 
-	MetricsInterval          time.Duration
-
+	MetricsInterval time.Duration
 }
-
-
 
 // JSONSchemaCache caches JSON schemas for optimization.
 
 type JSONSchemaCache struct {
+	schemas map[string]*CachedSchema
 
-	schemas        map[string]*CachedSchema
+	mu sync.RWMutex
 
-	mu             sync.RWMutex
+	hitCount int64
 
-	hitCount       int64
-
-	missCount      int64
+	missCount int64
 
 	validationTime int64
-
 }
-
-
 
 // CachedSchema represents a cached JSON schema with optimization metadata.
 
 type CachedSchema struct {
+	Schema interface{}
 
-	Schema         interface{}
+	FieldMap map[string]FieldInfo
 
-	FieldMap       map[string]FieldInfo
+	OptimizedPath []string
 
-	OptimizedPath  []string
-
-	LastUsed       time.Time
+	LastUsed time.Time
 
 	ValidationFunc func([]byte) error
 
 	SerializerFunc func(interface{}) ([]byte, error)
-
 }
-
-
 
 // FieldInfo contains metadata about JSON fields for optimization.
 
 type FieldInfo struct {
+	Name string
 
-	Name       string
+	Type reflect.Type
 
-	Type       reflect.Type
+	Offset uintptr
 
-	Offset     uintptr
+	Size uintptr
 
-	Size       uintptr
-
-	IsPointer  bool
+	IsPointer bool
 
 	IsRequired bool
 
 	Validation func(interface{}) bool
 
 	Serializer func(interface{}) []byte
-
 }
-
-
 
 // EncoderPool manages a pool of JSON encoders.
 
 type EncoderPool struct {
+	pool sync.Pool
 
-	pool       sync.Pool
+	created int64
 
-	created    int64
-
-	reused     int64
+	reused int64
 
 	encodeTime int64
-
 }
-
-
 
 // DecoderPool manages a pool of JSON decoders.
 
 type DecoderPool struct {
+	pool sync.Pool
 
-	pool       sync.Pool
+	created int64
 
-	created    int64
-
-	reused     int64
+	reused int64
 
 	decodeTime int64
-
 }
-
-
 
 // StreamPool manages streaming JSON processors.
 
 type StreamPool struct {
-
 	encoders chan *json.Encoder
 
 	decoders chan *json.Decoder
 
-	buffers  chan *bytes.Buffer
+	buffers chan *bytes.Buffer
 
-	maxSize  int
+	maxSize int
 
-	created  int64
+	created int64
 
-	reused   int64
-
+	reused int64
 }
-
-
 
 // JSONWorkerPool manages concurrent JSON processing.
 
 type JSONWorkerPool struct {
+	workers chan chan *JSONTask
 
-	workers        chan chan *JSONTask
+	workQueue chan *JSONTask
 
-	workQueue      chan *JSONTask
+	maxWorkers int
 
-	maxWorkers     int
-
-	activeTasks    int64
+	activeTasks int64
 
 	completedTasks int64
 
-	failedTasks    int64
+	failedTasks int64
 
-	shutdown       chan bool
+	shutdown chan bool
 
-	wg             sync.WaitGroup
-
+	wg sync.WaitGroup
 }
-
-
 
 // JSONTask represents a JSON processing task.
 
 type JSONTask struct {
-
 	Operation JSONOperation
 
-	Data      []byte
+	Data []byte
 
-	Target    interface{}
+	Target interface{}
 
-	Result    chan *JSONResult
+	Result chan *JSONResult
 
-	Context   context.Context
+	Context context.Context
 
 	StartTime time.Time
 
-	Schema    *CachedSchema
-
+	Schema *CachedSchema
 }
-
-
 
 // JSONOperation defines the type of JSON operation.
 
 type JSONOperation int
-
-
 
 const (
 
@@ -284,58 +219,47 @@ const (
 	// JSONOperationStream holds jsonoperationstream value.
 
 	JSONOperationStream
-
 )
-
-
 
 // JSONResult contains the result of a JSON operation.
 
 type JSONResult struct {
+	Data []byte
 
-	Data           []byte
+	Error error
 
-	Error          error
-
-	Duration       time.Duration
+	Duration time.Duration
 
 	BytesProcessed int64
-
 }
-
-
 
 // JSONMetrics tracks JSON processing performance.
 
 type JSONMetrics struct {
+	MarshalCount int64
 
-	MarshalCount     int64
+	UnmarshalCount int64
 
-	UnmarshalCount   int64
+	ValidationCount int64
 
-	ValidationCount  int64
-
-	StreamingCount   int64
+	StreamingCount int64
 
 	TotalProcessTime int64 // nanoseconds
 
-	ErrorCount       int64
+	ErrorCount int64
 
-	BytesProcessed   int64
+	BytesProcessed int64
 
-	SchemaHitRate    float64
+	SchemaHitRate float64
 
-	PoolHitRate      float64
+	PoolHitRate float64
 
 	ConcurrencyLevel int64
 
-	SIMDOperations   int64
+	SIMDOperations int64
 
 	CompressionRatio float64
-
 }
-
-
 
 // NewOptimizedJSONProcessor creates a new optimized JSON processor.
 
@@ -347,8 +271,6 @@ func NewOptimizedJSONProcessor(config *JSONConfig) *OptimizedJSONProcessor {
 
 	}
 
-
-
 	processor := &OptimizedJSONProcessor{
 
 		schemaCache: NewJSONSchemaCache(),
@@ -357,19 +279,16 @@ func NewOptimizedJSONProcessor(config *JSONConfig) *OptimizedJSONProcessor {
 
 		decoderPool: NewDecoderPool(),
 
-		streamPool:  NewStreamPool(config.PoolSize),
+		streamPool: NewStreamPool(config.PoolSize),
 
-		bufferPool:  NewBufferPool(),
+		bufferPool: NewBufferPool(),
 
-		parserPool:  &fastjson.ParserPool{},
+		parserPool: &fastjson.ParserPool{},
 
-		metrics:     &JSONMetrics{},
+		metrics: &JSONMetrics{},
 
-		config:      config,
-
+		config: config,
 	}
-
-
 
 	if config.EnableConcurrency {
 
@@ -377,19 +296,13 @@ func NewOptimizedJSONProcessor(config *JSONConfig) *OptimizedJSONProcessor {
 
 	}
 
-
-
 	// Start metrics collection.
 
 	processor.startMetricsCollection()
 
-
-
 	return processor
 
 }
-
-
 
 // DefaultJSONConfig returns default JSON processing configuration.
 
@@ -399,31 +312,28 @@ func DefaultJSONConfig() *JSONConfig {
 
 		EnableSchemaOptimization: true,
 
-		EnableStreaming:          true,
+		EnableStreaming: true,
 
-		EnableConcurrency:        true,
+		EnableConcurrency: true,
 
-		EnableSIMD:               true,
+		EnableSIMD: true,
 
-		MaxConcurrentOperations:  runtime.NumCPU() * 2,
+		MaxConcurrentOperations: runtime.NumCPU() * 2,
 
-		StreamingBufferSize:      64 * 1024, // 64KB
+		StreamingBufferSize: 64 * 1024, // 64KB
 
-		SchemaValidation:         true,
+		SchemaValidation: true,
 
-		CompressionEnabled:       false,
+		CompressionEnabled: false,
 
-		PoolSize:                 100,
+		PoolSize: 100,
 
-		MaxObjectSize:            10 * 1024 * 1024, // 10MB
+		MaxObjectSize: 10 * 1024 * 1024, // 10MB
 
-		MetricsInterval:          30 * time.Second,
-
+		MetricsInterval: 30 * time.Second,
 	}
 
 }
-
-
 
 // NewJSONSchemaCache creates a new schema cache.
 
@@ -432,12 +342,9 @@ func NewJSONSchemaCache() *JSONSchemaCache {
 	return &JSONSchemaCache{
 
 		schemas: make(map[string]*CachedSchema),
-
 	}
 
 }
-
-
 
 // NewEncoderPool creates a new encoder pool.
 
@@ -452,14 +359,10 @@ func NewEncoderPool() *EncoderPool {
 				return json.NewEncoder(nil)
 
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // NewDecoderPool creates a new decoder pool.
 
@@ -474,14 +377,10 @@ func NewDecoderPool() *DecoderPool {
 				return json.NewDecoder(nil)
 
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // NewStreamPool creates a new streaming pool.
 
@@ -493,15 +392,12 @@ func NewStreamPool(size int) *StreamPool {
 
 		decoders: make(chan *json.Decoder, size),
 
-		buffers:  make(chan *bytes.Buffer, size),
+		buffers: make(chan *bytes.Buffer, size),
 
-		maxSize:  size,
-
+		maxSize: size,
 	}
 
 }
-
-
 
 // NewJSONWorkerPool creates a new worker pool for concurrent JSON processing.
 
@@ -509,17 +405,14 @@ func NewJSONWorkerPool(maxWorkers int) *JSONWorkerPool {
 
 	pool := &JSONWorkerPool{
 
-		workers:    make(chan chan *JSONTask, maxWorkers),
+		workers: make(chan chan *JSONTask, maxWorkers),
 
-		workQueue:  make(chan *JSONTask, maxWorkers*2),
+		workQueue: make(chan *JSONTask, maxWorkers*2),
 
 		maxWorkers: maxWorkers,
 
-		shutdown:   make(chan bool),
-
+		shutdown: make(chan bool),
 	}
-
-
 
 	// Start workers.
 
@@ -531,19 +424,13 @@ func NewJSONWorkerPool(maxWorkers int) *JSONWorkerPool {
 
 	}
 
-
-
 	// Start dispatcher.
 
 	go pool.dispatcher()
 
-
-
 	return pool
 
 }
-
-
 
 // worker processes JSON tasks.
 
@@ -551,13 +438,9 @@ func (jwp *JSONWorkerPool) worker() {
 
 	defer jwp.wg.Done()
 
-
-
 	// Create worker channel.
 
 	workChan := make(chan *JSONTask)
-
-
 
 	for {
 
@@ -589,8 +472,6 @@ func (jwp *JSONWorkerPool) worker() {
 
 }
 
-
-
 // dispatcher assigns tasks to available workers.
 
 func (jwp *JSONWorkerPool) dispatcher() {
@@ -618,7 +499,6 @@ func (jwp *JSONWorkerPool) dispatcher() {
 				task.Result <- &JSONResult{
 
 					Error: fmt.Errorf("worker pool timeout"),
-
 				}
 
 				atomic.AddInt64(&jwp.failedTasks, 1)
@@ -635,8 +515,6 @@ func (jwp *JSONWorkerPool) dispatcher() {
 
 }
 
-
-
 // processTask processes a single JSON task.
 
 func (jwp *JSONWorkerPool) processTask(task *JSONTask) {
@@ -652,7 +530,6 @@ func (jwp *JSONWorkerPool) processTask(task *JSONTask) {
 			task.Result <- &JSONResult{
 
 				Error: fmt.Errorf("JSON processing panic: %v", r),
-
 			}
 
 			atomic.AddInt64(&jwp.failedTasks, 1)
@@ -661,13 +538,9 @@ func (jwp *JSONWorkerPool) processTask(task *JSONTask) {
 
 	}()
 
-
-
 	start := time.Now()
 
 	var result *JSONResult
-
-
 
 	switch task.Operation {
 
@@ -692,20 +565,15 @@ func (jwp *JSONWorkerPool) processTask(task *JSONTask) {
 		result = &JSONResult{
 
 			Error: fmt.Errorf("unknown JSON operation: %v", task.Operation),
-
 		}
 
 	}
-
-
 
 	result.Duration = time.Since(start)
 
 	task.Result <- result
 
 }
-
-
 
 // performMarshal performs JSON marshaling.
 
@@ -725,15 +593,12 @@ func (jwp *JSONWorkerPool) performMarshal(task *JSONTask) *JSONResult {
 
 		return &JSONResult{
 
-			Data:           data,
+			Data: data,
 
 			BytesProcessed: int64(len(data)),
-
 		}
 
 	}
-
-
 
 	// Fallback to standard JSON.
 
@@ -745,19 +610,14 @@ func (jwp *JSONWorkerPool) performMarshal(task *JSONTask) *JSONResult {
 
 	}
 
-
-
 	return &JSONResult{
 
-		Data:           data,
+		Data: data,
 
 		BytesProcessed: int64(len(data)),
-
 	}
 
 }
-
-
 
 // performUnmarshal performs JSON unmarshaling.
 
@@ -778,12 +638,9 @@ func (jwp *JSONWorkerPool) performUnmarshal(task *JSONTask) *JSONResult {
 		return &JSONResult{
 
 			BytesProcessed: int64(len(task.Data)),
-
 		}
 
 	}
-
-
 
 	// Fallback to standard JSON.
 
@@ -795,17 +652,12 @@ func (jwp *JSONWorkerPool) performUnmarshal(task *JSONTask) *JSONResult {
 
 	}
 
-
-
 	return &JSONResult{
 
 		BytesProcessed: int64(len(task.Data)),
-
 	}
 
 }
-
-
 
 // performValidation performs JSON validation.
 
@@ -817,15 +669,12 @@ func (jwp *JSONWorkerPool) performValidation(task *JSONTask) *JSONResult {
 
 		return &JSONResult{
 
-			Error:          err,
+			Error: err,
 
 			BytesProcessed: int64(len(task.Data)),
-
 		}
 
 	}
-
-
 
 	// Basic JSON validation.
 
@@ -834,22 +683,16 @@ func (jwp *JSONWorkerPool) performValidation(task *JSONTask) *JSONResult {
 		return &JSONResult{
 
 			Error: fmt.Errorf("invalid JSON"),
-
 		}
 
 	}
 
-
-
 	return &JSONResult{
 
 		BytesProcessed: int64(len(task.Data)),
-
 	}
 
 }
-
-
 
 // performStreaming performs streaming JSON processing.
 
@@ -862,12 +705,9 @@ func (jwp *JSONWorkerPool) performStreaming(task *JSONTask) *JSONResult {
 	return &JSONResult{
 
 		BytesProcessed: int64(len(task.Data)),
-
 	}
 
 }
-
-
 
 // MarshalOptimized performs optimized JSON marshaling.
 
@@ -885,21 +725,15 @@ func (processor *OptimizedJSONProcessor) MarshalOptimized(ctx context.Context, o
 
 	}()
 
-
-
 	if processor.config.EnableConcurrency && processor.workerPool != nil {
 
 		return processor.marshalConcurrent(ctx, obj)
 
 	}
 
-
-
 	return processor.marshalSequential(obj)
 
 }
-
-
 
 // marshalSequential performs sequential marshaling.
 
@@ -919,8 +753,6 @@ func (processor *OptimizedJSONProcessor) marshalSequential(obj interface{}) ([]b
 
 	}
 
-
-
 	// Use sonic for better performance when available.
 
 	if processor.config.EnableSIMD && (runtime.GOOS == "linux" || runtime.GOOS == "darwin") {
@@ -939,29 +771,21 @@ func (processor *OptimizedJSONProcessor) marshalSequential(obj interface{}) ([]b
 
 	}
 
-
-
 	// Fallback to standard JSON with pooled encoder.
 
 	encoder := processor.encoderPool.Get()
 
 	defer processor.encoderPool.Put(encoder)
 
-
-
 	buffer := processor.bufferPool.GetBuffer(1024)
 
 	defer processor.bufferPool.PutBuffer(buffer)
-
-
 
 	buf := bytes.NewBuffer(buffer[:0])
 
 	// Go's json.Encoder doesn't have Reset method, create new encoder.
 
 	encoder = json.NewEncoder(buf)
-
-
 
 	err := encoder.(*json.Encoder).Encode(obj)
 
@@ -973,21 +797,15 @@ func (processor *OptimizedJSONProcessor) marshalSequential(obj interface{}) ([]b
 
 	}
 
-
-
 	result := make([]byte, buf.Len())
 
 	copy(result, buf.Bytes())
 
 	atomic.AddInt64(&processor.metrics.BytesProcessed, int64(len(result)))
 
-
-
 	return result, nil
 
 }
-
-
 
 // marshalConcurrent performs concurrent marshaling.
 
@@ -997,25 +815,20 @@ func (processor *OptimizedJSONProcessor) marshalConcurrent(ctx context.Context, 
 
 		Operation: JSONOperationMarshal,
 
-		Target:    obj,
+		Target: obj,
 
-		Result:    make(chan *JSONResult, 1),
+		Result: make(chan *JSONResult, 1),
 
-		Context:   ctx,
+		Context: ctx,
 
 		StartTime: time.Now(),
-
 	}
-
-
 
 	// Add schema information if available.
 
 	schemaKey := processor.getSchemaKey(obj)
 
 	task.Schema = processor.schemaCache.Get(schemaKey)
-
-
 
 	select {
 
@@ -1032,8 +845,6 @@ func (processor *OptimizedJSONProcessor) marshalConcurrent(ctx context.Context, 
 		return nil, ctx.Err()
 
 	}
-
-
 
 	// Wait for result.
 
@@ -1061,8 +872,6 @@ func (processor *OptimizedJSONProcessor) marshalConcurrent(ctx context.Context, 
 
 }
 
-
-
 // UnmarshalOptimized performs optimized JSON unmarshaling.
 
 func (processor *OptimizedJSONProcessor) UnmarshalOptimized(ctx context.Context, data []byte, target interface{}) error {
@@ -1079,15 +888,11 @@ func (processor *OptimizedJSONProcessor) UnmarshalOptimized(ctx context.Context,
 
 	}()
 
-
-
 	if int64(len(data)) > processor.config.MaxObjectSize {
 
 		return fmt.Errorf("JSON object too large: %d bytes", len(data))
 
 	}
-
-
 
 	if processor.config.EnableConcurrency && processor.workerPool != nil {
 
@@ -1095,13 +900,9 @@ func (processor *OptimizedJSONProcessor) UnmarshalOptimized(ctx context.Context,
 
 	}
 
-
-
 	return processor.unmarshalSequential(data, target)
 
 }
-
-
 
 // unmarshalSequential performs sequential unmarshaling.
 
@@ -1125,23 +926,17 @@ func (processor *OptimizedJSONProcessor) unmarshalSequential(data []byte, target
 
 	}
 
-
-
 	// Fallback to standard JSON with pooled decoder.
 
 	decoder := processor.decoderPool.Get()
 
 	defer processor.decoderPool.Put(decoder)
 
-
-
 	buf := bytes.NewReader(data)
 
 	// Go's json.Decoder doesn't have Reset method, create new decoder.
 
 	decoder = json.NewDecoder(buf)
-
-
 
 	err := decoder.(*json.Decoder).Decode(target)
 
@@ -1153,15 +948,11 @@ func (processor *OptimizedJSONProcessor) unmarshalSequential(data []byte, target
 
 	}
 
-
-
 	atomic.AddInt64(&processor.metrics.BytesProcessed, int64(len(data)))
 
 	return nil
 
 }
-
-
 
 // unmarshalConcurrent performs concurrent unmarshaling.
 
@@ -1171,19 +962,16 @@ func (processor *OptimizedJSONProcessor) unmarshalConcurrent(ctx context.Context
 
 		Operation: JSONOperationUnmarshal,
 
-		Data:      data,
+		Data: data,
 
-		Target:    target,
+		Target: target,
 
-		Result:    make(chan *JSONResult, 1),
+		Result: make(chan *JSONResult, 1),
 
-		Context:   ctx,
+		Context: ctx,
 
 		StartTime: time.Now(),
-
 	}
-
-
 
 	select {
 
@@ -1200,8 +988,6 @@ func (processor *OptimizedJSONProcessor) unmarshalConcurrent(ctx context.Context
 		return ctx.Err()
 
 	}
-
-
 
 	// Wait for result.
 
@@ -1229,8 +1015,6 @@ func (processor *OptimizedJSONProcessor) unmarshalConcurrent(ctx context.Context
 
 }
 
-
-
 // StreamingUnmarshal performs streaming JSON unmarshaling.
 
 func (processor *OptimizedJSONProcessor) StreamingUnmarshal(ctx context.Context, reader io.Reader, callback func(interface{}) error) error {
@@ -1247,11 +1031,7 @@ func (processor *OptimizedJSONProcessor) StreamingUnmarshal(ctx context.Context,
 
 	}()
 
-
-
 	decoder := json.NewDecoder(reader)
-
-
 
 	for {
 
@@ -1264,8 +1044,6 @@ func (processor *OptimizedJSONProcessor) StreamingUnmarshal(ctx context.Context,
 		default:
 
 		}
-
-
 
 		var obj interface{}
 
@@ -1285,8 +1063,6 @@ func (processor *OptimizedJSONProcessor) StreamingUnmarshal(ctx context.Context,
 
 		}
 
-
-
 		if err := callback(obj); err != nil {
 
 			return err
@@ -1296,8 +1072,6 @@ func (processor *OptimizedJSONProcessor) StreamingUnmarshal(ctx context.Context,
 	}
 
 }
-
-
 
 // Get retrieves an encoder from the pool.
 
@@ -1309,8 +1083,6 @@ func (ep *EncoderPool) Get() interface{} {
 
 }
 
-
-
 // Put returns an encoder to the pool.
 
 func (ep *EncoderPool) Put(encoder interface{}) {
@@ -1318,8 +1090,6 @@ func (ep *EncoderPool) Put(encoder interface{}) {
 	ep.pool.Put(encoder)
 
 }
-
-
 
 // Get retrieves a decoder from the pool.
 
@@ -1331,8 +1101,6 @@ func (dp *DecoderPool) Get() interface{} {
 
 }
 
-
-
 // Put returns a decoder to the pool.
 
 func (dp *DecoderPool) Put(decoder interface{}) {
@@ -1341,8 +1109,6 @@ func (dp *DecoderPool) Put(decoder interface{}) {
 
 }
 
-
-
 // Get retrieves a schema from the cache.
 
 func (jsc *JSONSchemaCache) Get(key string) *CachedSchema {
@@ -1350,8 +1116,6 @@ func (jsc *JSONSchemaCache) Get(key string) *CachedSchema {
 	jsc.mu.RLock()
 
 	defer jsc.mu.RUnlock()
-
-
 
 	if schema, exists := jsc.schemas[key]; exists {
 
@@ -1363,15 +1127,11 @@ func (jsc *JSONSchemaCache) Get(key string) *CachedSchema {
 
 	}
 
-
-
 	atomic.AddInt64(&jsc.missCount, 1)
 
 	return nil
 
 }
-
-
 
 // Set stores a schema in the cache.
 
@@ -1385,8 +1145,6 @@ func (jsc *JSONSchemaCache) Set(key string, schema *CachedSchema) {
 
 }
 
-
-
 // getSchemaKey generates a cache key for the given object type.
 
 func (processor *OptimizedJSONProcessor) getSchemaKey(obj interface{}) string {
@@ -1397,8 +1155,6 @@ func (processor *OptimizedJSONProcessor) getSchemaKey(obj interface{}) string {
 
 	}
 
-
-
 	t := reflect.TypeOf(obj)
 
 	if t.Kind() == reflect.Ptr {
@@ -1407,13 +1163,9 @@ func (processor *OptimizedJSONProcessor) getSchemaKey(obj interface{}) string {
 
 	}
 
-
-
 	return t.String()
 
 }
-
-
 
 // startMetricsCollection starts background metrics collection.
 
@@ -1425,8 +1177,6 @@ func (processor *OptimizedJSONProcessor) startMetricsCollection() {
 
 		defer ticker.Stop()
 
-
-
 		for range ticker.C {
 
 			processor.updateMetrics()
@@ -1436,8 +1186,6 @@ func (processor *OptimizedJSONProcessor) startMetricsCollection() {
 	}()
 
 }
-
-
 
 // updateMetrics updates derived metrics.
 
@@ -1456,8 +1204,6 @@ func (processor *OptimizedJSONProcessor) updateMetrics() {
 		processor.metrics.SchemaHitRate = float64(hits) / float64(total)
 
 	}
-
-
 
 	// Update pool hit rate (simplified calculation).
 
@@ -1479,8 +1225,6 @@ func (processor *OptimizedJSONProcessor) updateMetrics() {
 
 	}
 
-
-
 	// Update concurrency level.
 
 	if processor.workerPool != nil {
@@ -1491,43 +1235,38 @@ func (processor *OptimizedJSONProcessor) updateMetrics() {
 
 }
 
-
-
 // GetMetrics returns current JSON processing metrics.
 
 func (processor *OptimizedJSONProcessor) GetMetrics() JSONMetrics {
 
 	return JSONMetrics{
 
-		MarshalCount:     atomic.LoadInt64(&processor.metrics.MarshalCount),
+		MarshalCount: atomic.LoadInt64(&processor.metrics.MarshalCount),
 
-		UnmarshalCount:   atomic.LoadInt64(&processor.metrics.UnmarshalCount),
+		UnmarshalCount: atomic.LoadInt64(&processor.metrics.UnmarshalCount),
 
-		ValidationCount:  atomic.LoadInt64(&processor.metrics.ValidationCount),
+		ValidationCount: atomic.LoadInt64(&processor.metrics.ValidationCount),
 
-		StreamingCount:   atomic.LoadInt64(&processor.metrics.StreamingCount),
+		StreamingCount: atomic.LoadInt64(&processor.metrics.StreamingCount),
 
 		TotalProcessTime: atomic.LoadInt64(&processor.metrics.TotalProcessTime),
 
-		ErrorCount:       atomic.LoadInt64(&processor.metrics.ErrorCount),
+		ErrorCount: atomic.LoadInt64(&processor.metrics.ErrorCount),
 
-		BytesProcessed:   atomic.LoadInt64(&processor.metrics.BytesProcessed),
+		BytesProcessed: atomic.LoadInt64(&processor.metrics.BytesProcessed),
 
-		SchemaHitRate:    processor.metrics.SchemaHitRate,
+		SchemaHitRate: processor.metrics.SchemaHitRate,
 
-		PoolHitRate:      processor.metrics.PoolHitRate,
+		PoolHitRate: processor.metrics.PoolHitRate,
 
 		ConcurrencyLevel: atomic.LoadInt64(&processor.metrics.ConcurrencyLevel),
 
-		SIMDOperations:   atomic.LoadInt64(&processor.metrics.SIMDOperations),
+		SIMDOperations: atomic.LoadInt64(&processor.metrics.SIMDOperations),
 
 		CompressionRatio: processor.metrics.CompressionRatio,
-
 	}
 
 }
-
-
 
 // GetAverageProcessingTime returns the average processing time in microseconds.
 
@@ -1541,23 +1280,17 @@ func (processor *OptimizedJSONProcessor) GetAverageProcessingTime() float64 {
 
 		atomic.LoadInt64(&processor.metrics.StreamingCount)
 
-
-
 	if totalOps == 0 {
 
 		return 0
 
 	}
 
-
-
 	totalTime := atomic.LoadInt64(&processor.metrics.TotalProcessTime)
 
 	return float64(totalTime) / float64(totalOps) / 1000 // Convert to microseconds
 
 }
-
-
 
 // Shutdown gracefully shuts down the JSON processor.
 
@@ -1573,8 +1306,6 @@ func (processor *OptimizedJSONProcessor) Shutdown(ctx context.Context) error {
 
 	}
 
-
-
 	// Log final metrics.
 
 	metrics := processor.GetMetrics()
@@ -1586,16 +1317,11 @@ func (processor *OptimizedJSONProcessor) Shutdown(ctx context.Context) error {
 		processor.GetAverageProcessingTime(),
 
 		float64(metrics.ErrorCount)/float64(metrics.MarshalCount+metrics.UnmarshalCount)*100,
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // ResetMetrics resets all performance metrics.
 
@@ -1625,15 +1351,11 @@ func (processor *OptimizedJSONProcessor) ResetMetrics() {
 
 	processor.metrics.CompressionRatio = 0
 
-
-
 	// Reset cache metrics.
 
 	atomic.StoreInt64(&processor.schemaCache.hitCount, 0)
 
 	atomic.StoreInt64(&processor.schemaCache.missCount, 0)
-
-
 
 	// Reset pool metrics.
 
@@ -1642,4 +1364,3 @@ func (processor *OptimizedJSONProcessor) ResetMetrics() {
 	atomic.StoreInt64(&processor.decoderPool.reused, 0)
 
 }
-

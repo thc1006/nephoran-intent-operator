@@ -1,47 +1,27 @@
 //go:build rag
 
-
-
-
 package rag
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"log/slog"
-
 	"net/http"
-
 	"strings"
-
 	"time"
-
 )
-
-
 
 // weaviateRAGClient is a Weaviate-based implementation of RAGClient.
 
 type weaviateRAGClient struct {
-
-	config     *RAGClientConfig
+	config *RAGClientConfig
 
 	httpClient *http.Client
 
-	logger     *slog.Logger
-
+	logger *slog.Logger
 }
-
-
 
 // newRAGClientImpl creates a Weaviate-based RAG client.
 
@@ -53,17 +33,14 @@ func newRAGClientImpl(config *RAGClientConfig) RAGClient {
 
 		config = &RAGClientConfig{
 
-			Enabled:          false,
+			Enabled: false,
 
 			MaxSearchResults: 5,
 
-			MinConfidence:    0.7,
-
+			MinConfidence: 0.7,
 		}
 
 	}
-
-
 
 	return &weaviateRAGClient{
 
@@ -72,16 +49,12 @@ func newRAGClientImpl(config *RAGClientConfig) RAGClient {
 		httpClient: &http.Client{
 
 			Timeout: 30 * time.Second,
-
 		},
 
 		logger: slog.Default().With("component", "weaviate-rag-client"),
-
 	}
 
 }
-
-
 
 // Retrieve performs a semantic search using Weaviate and returns documents.
 
@@ -93,8 +66,6 @@ func (c *weaviateRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, 
 
 	}
 
-
-
 	// Use configured max results or default to 5.
 
 	limit := c.config.MaxSearchResults
@@ -104,8 +75,6 @@ func (c *weaviateRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, 
 		limit = 5
 
 	}
-
-
 
 	// Build GraphQL query for Weaviate.
 
@@ -141,8 +110,6 @@ func (c *weaviateRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, 
 
 	}`, query, limit)
 
-
-
 	// Make request to Weaviate.
 
 	reqBody := map[string]string{"query": graphqlQuery}
@@ -154,8 +121,6 @@ func (c *weaviateRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, 
 		return nil, fmt.Errorf("failed to marshal query: %w", err)
 
 	}
-
-
 
 	req, err := http.NewRequestWithContext(ctx, "POST",
 
@@ -169,8 +134,6 @@ func (c *weaviateRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, 
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
 
 	if c.config.WeaviateAPIKey != "" {
@@ -178,8 +141,6 @@ func (c *weaviateRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, 
 		req.Header.Set("Authorization", "Bearer "+c.config.WeaviateAPIKey)
 
 	}
-
-
 
 	resp, err := c.httpClient.Do(req)
 
@@ -191,8 +152,6 @@ func (c *weaviateRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, 
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		body, _ := io.ReadAll(resp.Body)
@@ -201,43 +160,27 @@ func (c *weaviateRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, 
 
 	}
 
-
-
 	// Parse response.
 
 	var graphqlResp struct {
-
 		Data struct {
-
 			Get struct {
-
 				Document []struct {
-
-					Content    string `json:"content"`
+					Content string `json:"content"`
 
 					Additional struct {
-
-						ID        string  `json:"id"`
+						ID string `json:"id"`
 
 						Certainty float64 `json:"certainty"`
-
 					} `json:"_additional"`
-
 				} `json:"Document"`
-
 			} `json:"Get"`
-
 		} `json:"data"`
 
 		Errors []struct {
-
 			Message string `json:"message"`
-
 		} `json:"errors"`
-
 	}
-
-
 
 	body, err := io.ReadAll(resp.Body)
 
@@ -247,23 +190,17 @@ func (c *weaviateRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, 
 
 	}
 
-
-
 	if err := json.Unmarshal(body, &graphqlResp); err != nil {
 
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 
 	}
 
-
-
 	if len(graphqlResp.Errors) > 0 {
 
 		return nil, fmt.Errorf("GraphQL errors: %s", graphqlResp.Errors[0].Message)
 
 	}
-
-
 
 	// Convert to Doc structs and apply confidence filter.
 
@@ -277,29 +214,24 @@ func (c *weaviateRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, 
 
 	}
 
-
-
 	for _, doc := range graphqlResp.Data.Get.Document {
 
 		if doc.Additional.Certainty >= minConfidence {
 
 			results = append(results, Doc{
 
-				ID:         doc.Additional.ID,
+				ID: doc.Additional.ID,
 
-				Content:    doc.Content,
+				Content: doc.Content,
 
 				Confidence: doc.Additional.Certainty,
 
-				Metadata:   map[string]interface{}{},
-
+				Metadata: map[string]interface{}{},
 			})
 
 		}
 
 	}
-
-
 
 	c.logger.Debug("Retrieved documents from Weaviate",
 
@@ -309,13 +241,9 @@ func (c *weaviateRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, 
 
 		slog.Float64("min_confidence", minConfidence))
 
-
-
 	return results, nil
 
 }
-
-
 
 // Initialize initializes the Weaviate RAG client and validates connectivity.
 
@@ -326,8 +254,6 @@ func (c *weaviateRAGClient) Initialize(ctx context.Context) error {
 		return fmt.Errorf("Weaviate URL not configured")
 
 	}
-
-
 
 	// Test connectivity by making a simple health check request.
 
@@ -341,15 +267,11 @@ func (c *weaviateRAGClient) Initialize(ctx context.Context) error {
 
 	}
 
-
-
 	if c.config.WeaviateAPIKey != "" {
 
 		req.Header.Set("Authorization", "Bearer "+c.config.WeaviateAPIKey)
 
 	}
-
-
 
 	resp, err := c.httpClient.Do(req)
 
@@ -367,8 +289,6 @@ func (c *weaviateRAGClient) Initialize(ctx context.Context) error {
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		c.logger.Warn("Weaviate health check returned non-200 status",
@@ -381,19 +301,13 @@ func (c *weaviateRAGClient) Initialize(ctx context.Context) error {
 
 	}
 
-
-
 	c.logger.Info("Weaviate RAG client initialized successfully",
 
 		slog.String("url", c.config.WeaviateURL))
 
-
-
 	return nil
 
 }
-
-
 
 // Shutdown gracefully shuts down the Weaviate RAG client.
 
@@ -407,11 +321,8 @@ func (c *weaviateRAGClient) Shutdown(ctx context.Context) error {
 
 	}
 
-
-
 	c.logger.Info("Weaviate RAG client shut down gracefully")
 
 	return nil
 
 }
-

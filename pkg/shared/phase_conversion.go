@@ -28,22 +28,12 @@ limitations under the License.
 
 */
 
-
-
-
 package shared
 
-
-
 import (
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
-
 )
-
-
 
 // ProcessingPhaseToNetworkIntentPhase converts a ProcessingPhase to NetworkIntentPhase.
 
@@ -87,8 +77,6 @@ func ProcessingPhaseToNetworkIntentPhase(phase interfaces.ProcessingPhase) nepho
 
 }
 
-
-
 // NetworkIntentPhaseToProcessingPhase converts a NetworkIntentPhase to ProcessingPhase.
 
 func NetworkIntentPhaseToProcessingPhase(phase nephoranv1.NetworkIntentPhase) interfaces.ProcessingPhase {
@@ -126,8 +114,6 @@ func NetworkIntentPhaseToProcessingPhase(phase nephoranv1.NetworkIntentPhase) in
 	}
 
 }
-
-
 
 // StringToNetworkIntentPhase converts a string to NetworkIntentPhase with validation.
 
@@ -171,8 +157,6 @@ func StringToNetworkIntentPhase(phase string) nephoranv1.NetworkIntentPhase {
 
 }
 
-
-
 // NetworkIntentPhaseToString converts a NetworkIntentPhase to string.
 
 func NetworkIntentPhaseToString(phase nephoranv1.NetworkIntentPhase) string {
@@ -180,4 +164,3 @@ func NetworkIntentPhaseToString(phase nephoranv1.NetworkIntentPhase) string {
 	return string(phase)
 
 }
-

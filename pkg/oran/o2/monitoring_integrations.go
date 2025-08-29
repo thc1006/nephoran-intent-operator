@@ -1,57 +1,35 @@
 // Package o2 implements monitoring integrations for O2 IMS infrastructure monitoring.
 
-
 package o2
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
-	"github.com/prometheus/client_golang/api"
-
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-
-	"github.com/prometheus/common/model"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
+	"github.com/prometheus/client_golang/api"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 )
-
-
 
 // MonitoringIntegrations manages integrations with monitoring systems.
 
 type MonitoringIntegrations struct {
-
 	config *MonitoringIntegrationConfig
 
 	logger *logging.StructuredLogger
 
-
-
 	// Integration clients.
 
-	prometheusClient   v1.API
+	prometheusClient v1.API
 
-	grafanaClient      *GrafanaClient
+	grafanaClient *GrafanaClient
 
 	alertmanagerClient *AlertmanagerClient
 
-	jaegerClient       *JaegerClient
-
-
+	jaegerClient *JaegerClient
 
 	// Event processors.
 
@@ -59,333 +37,265 @@ type MonitoringIntegrations struct {
 
 	alertProcessor *AlertProcessor
 
-
-
 	// Dashboard management.
 
 	dashboardManager *DashboardManager
-
-
 
 	// Synchronization.
 
 	mu sync.RWMutex
 
-
-
 	// Lifecycle management.
 
-	ctx    context.Context
+	ctx context.Context
 
 	cancel context.CancelFunc
-
 }
-
-
 
 // MonitoringIntegrationConfig configuration for monitoring integrations.
 
 type MonitoringIntegrationConfig struct {
+	PrometheusConfig *PrometheusConfig `json:"prometheusConfig,omitempty"`
 
-	PrometheusConfig      *PrometheusConfig      `json:"prometheusConfig,omitempty"`
+	GrafanaConfig *GrafanaConfig `json:"grafanaConfig,omitempty"`
 
-	GrafanaConfig         *GrafanaConfig         `json:"grafanaConfig,omitempty"`
+	AlertmanagerConfig *AlertmanagerConfig `json:"alertmanagerConfig,omitempty"`
 
-	AlertmanagerConfig    *AlertmanagerConfig    `json:"alertmanagerConfig,omitempty"`
-
-	JaegerConfig          *JaegerConfig          `json:"jaegerConfig,omitempty"`
+	JaegerConfig *JaegerConfig `json:"jaegerConfig,omitempty"`
 
 	EventProcessingConfig *EventProcessingConfig `json:"eventProcessingConfig,omitempty"`
 
-	DashboardConfig       *DashboardConfig       `json:"dashboardConfig,omitempty"`
-
+	DashboardConfig *DashboardConfig `json:"dashboardConfig,omitempty"`
 }
-
-
 
 // PrometheusConfig configuration for Prometheus integration.
 
 type PrometheusConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
 
-	Enabled          bool          `json:"enabled,omitempty"`
+	Endpoint string `json:"endpoint"`
 
-	Endpoint         string        `json:"endpoint"`
+	Username string `json:"username,omitempty"`
 
-	Username         string        `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 
-	Password         string        `json:"password,omitempty"`
+	BearerToken string `json:"bearerToken,omitempty"`
 
-	BearerToken      string        `json:"bearerToken,omitempty"`
+	TLSConfig *TLSConfig `json:"tlsConfig,omitempty"`
 
-	TLSConfig        *TLSConfig    `json:"tlsConfig,omitempty"`
+	Timeout time.Duration `json:"timeout,omitempty"`
 
-	Timeout          time.Duration `json:"timeout,omitempty"`
-
-	QueryConcurrency int           `json:"queryConcurrency,omitempty"`
-
+	QueryConcurrency int `json:"queryConcurrency,omitempty"`
 }
-
-
 
 // GrafanaConfig configuration for Grafana integration.
 
 type GrafanaConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
 
-	Enabled         bool       `json:"enabled,omitempty"`
+	Endpoint string `json:"endpoint"`
 
-	Endpoint        string     `json:"endpoint"`
+	APIKey string `json:"apiKey"`
 
-	APIKey          string     `json:"apiKey"`
+	Username string `json:"username,omitempty"`
 
-	Username        string     `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 
-	Password        string     `json:"password,omitempty"`
+	Organization string `json:"organization,omitempty"`
 
-	Organization    string     `json:"organization,omitempty"`
+	DashboardFolder string `json:"dashboardFolder,omitempty"`
 
-	DashboardFolder string     `json:"dashboardFolder,omitempty"`
-
-	TLSConfig       *TLSConfig `json:"tlsConfig,omitempty"`
-
+	TLSConfig *TLSConfig `json:"tlsConfig,omitempty"`
 }
-
-
 
 // AlertmanagerConfig configuration for Alertmanager integration.
 
 type AlertmanagerConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
 
-	Enabled     bool          `json:"enabled,omitempty"`
+	Endpoints []string `json:"endpoints"`
 
-	Endpoints   []string      `json:"endpoints"`
+	Username string `json:"username,omitempty"`
 
-	Username    string        `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 
-	Password    string        `json:"password,omitempty"`
+	BearerToken string `json:"bearerToken,omitempty"`
 
-	BearerToken string        `json:"bearerToken,omitempty"`
+	TLSConfig *TLSConfig `json:"tlsConfig,omitempty"`
 
-	TLSConfig   *TLSConfig    `json:"tlsConfig,omitempty"`
-
-	Timeout     time.Duration `json:"timeout,omitempty"`
-
+	Timeout time.Duration `json:"timeout,omitempty"`
 }
-
-
 
 // JaegerConfig configuration for Jaeger integration.
 
 type JaegerConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
 
-	Enabled     bool       `json:"enabled,omitempty"`
+	Endpoint string `json:"endpoint"`
 
-	Endpoint    string     `json:"endpoint"`
+	Username string `json:"username,omitempty"`
 
-	Username    string     `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 
-	Password    string     `json:"password,omitempty"`
+	BearerToken string `json:"bearerToken,omitempty"`
 
-	BearerToken string     `json:"bearerToken,omitempty"`
-
-	TLSConfig   *TLSConfig `json:"tlsConfig,omitempty"`
-
+	TLSConfig *TLSConfig `json:"tlsConfig,omitempty"`
 }
-
-
 
 // EventProcessingConfig configuration for event processing.
 
 type EventProcessingConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
 
-	Enabled       bool          `json:"enabled,omitempty"`
-
-	BatchSize     int           `json:"batchSize,omitempty"`
+	BatchSize int `json:"batchSize,omitempty"`
 
 	FlushInterval time.Duration `json:"flushInterval,omitempty"`
 
-	RetryAttempts int           `json:"retryAttempts,omitempty"`
+	RetryAttempts int `json:"retryAttempts,omitempty"`
 
-	RetryBackoff  time.Duration `json:"retryBackoff,omitempty"`
-
+	RetryBackoff time.Duration `json:"retryBackoff,omitempty"`
 }
-
-
 
 // DashboardConfig configuration for dashboard management.
 
 type DashboardConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
 
-	Enabled          bool            `json:"enabled,omitempty"`
+	AutoDeploy bool `json:"autoDeploy,omitempty"`
 
-	AutoDeploy       bool            `json:"autoDeploy,omitempty"`
-
-	UpdateInterval   time.Duration   `json:"updateInterval,omitempty"`
+	UpdateInterval time.Duration `json:"updateInterval,omitempty"`
 
 	CustomDashboards []DashboardSpec `json:"customDashboards,omitempty"`
-
 }
-
-
 
 // TLSConfig TLS configuration.
 
 type TLSConfig struct {
+	Insecure bool `json:"insecure,omitempty"`
 
-	Insecure   bool   `json:"insecure,omitempty"`
+	CertFile string `json:"certFile,omitempty"`
 
-	CertFile   string `json:"certFile,omitempty"`
+	KeyFile string `json:"keyFile,omitempty"`
 
-	KeyFile    string `json:"keyFile,omitempty"`
-
-	CAFile     string `json:"caFile,omitempty"`
+	CAFile string `json:"caFile,omitempty"`
 
 	ServerName string `json:"serverName,omitempty"`
-
 }
-
-
 
 // DashboardSpec specification for a dashboard.
 
 type DashboardSpec struct {
+	Name string `json:"name"`
 
-	Name            string         `json:"name"`
+	Title string `json:"title"`
 
-	Title           string         `json:"title"`
+	Type string `json:"type"` // infrastructure, telco, cnf, compliance
 
-	Type            string         `json:"type"` // infrastructure, telco, cnf, compliance
+	Tags []string `json:"tags"`
 
-	Tags            []string       `json:"tags"`
+	Panels []PanelSpec `json:"panels"`
 
-	Panels          []PanelSpec    `json:"panels"`
+	Variables []VariableSpec `json:"variables,omitempty"`
 
-	Variables       []VariableSpec `json:"variables,omitempty"`
-
-	RefreshInterval string         `json:"refreshInterval,omitempty"`
-
+	RefreshInterval string `json:"refreshInterval,omitempty"`
 }
-
-
 
 // PanelSpec specification for a dashboard panel.
 
 type PanelSpec struct {
+	Title string `json:"title"`
 
-	Title      string          `json:"title"`
+	Type string `json:"type"` // graph, stat, table, heatmap
 
-	Type       string          `json:"type"` // graph, stat, table, heatmap
+	Query string `json:"query"`
 
-	Query      string          `json:"query"`
-
-	Unit       string          `json:"unit,omitempty"`
+	Unit string `json:"unit,omitempty"`
 
 	Thresholds []ThresholdSpec `json:"thresholds,omitempty"`
 
-	GridPos    GridPosition    `json:"gridPos"`
-
+	GridPos GridPosition `json:"gridPos"`
 }
-
-
 
 // VariableSpec specification for a dashboard variable.
 
 type VariableSpec struct {
+	Name string `json:"name"`
 
-	Name    string   `json:"name"`
+	Type string `json:"type"`
 
-	Type    string   `json:"type"`
-
-	Query   string   `json:"query,omitempty"`
+	Query string `json:"query,omitempty"`
 
 	Options []string `json:"options,omitempty"`
 
-	Multi   bool     `json:"multi,omitempty"`
-
+	Multi bool `json:"multi,omitempty"`
 }
-
-
 
 // ThresholdSpec specification for a panel threshold.
 
 type ThresholdSpec struct {
+	Value float64 `json:"value"`
 
-	Value     float64 `json:"value"`
+	Color string `json:"color"`
 
-	Color     string  `json:"color"`
-
-	Operation string  `json:"operation"` // gt, lt, eq
+	Operation string `json:"operation"` // gt, lt, eq
 
 }
-
-
 
 // GridPosition position and size of a panel in the dashboard grid.
 
 type GridPosition struct {
+	X int `json:"x"`
 
-	X      int `json:"x"`
+	Y int `json:"y"`
 
-	Y      int `json:"y"`
-
-	Width  int `json:"w"`
+	Width int `json:"w"`
 
 	Height int `json:"h"`
-
 }
-
-
 
 // Event represents a monitoring event.
 
 type Event struct {
+	ID string `json:"id"`
 
-	ID          string            `json:"id"`
+	Type string `json:"type"`
 
-	Type        string            `json:"type"`
+	Source string `json:"source"`
 
-	Source      string            `json:"source"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp   time.Time         `json:"timestamp"`
+	Severity string `json:"severity"`
 
-	Severity    string            `json:"severity"`
+	Title string `json:"title"`
 
-	Title       string            `json:"title"`
+	Description string `json:"description"`
 
-	Description string            `json:"description"`
-
-	Labels      map[string]string `json:"labels,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	Resource    string            `json:"resource,omitempty"`
+	Resource string `json:"resource,omitempty"`
 
-	Provider    string            `json:"provider,omitempty"`
+	Provider string `json:"provider,omitempty"`
 
-	Region      string            `json:"region,omitempty"`
+	Region string `json:"region,omitempty"`
 
-	Zone        string            `json:"zone,omitempty"`
+	Zone string `json:"zone,omitempty"`
 
-	Metric      *MetricData       `json:"metric,omitempty"`
-
+	Metric *MetricData `json:"metric,omitempty"`
 }
-
-
 
 // MetricData represents metric data associated with an event.
 
 type MetricData struct {
+	Name string `json:"name"`
 
-	Name   string            `json:"name"`
+	Value float64 `json:"value"`
 
-	Value  float64           `json:"value"`
-
-	Unit   string            `json:"unit,omitempty"`
+	Unit string `json:"unit,omitempty"`
 
 	Labels map[string]string `json:"labels,omitempty"`
-
 }
-
-
 
 // NewMonitoringIntegrations creates a new monitoring integrations service.
 
@@ -403,19 +313,13 @@ func NewMonitoringIntegrations(
 
 	}
 
-
-
 	if logger == nil {
 
 		logger = logging.NewStructuredLogger(logging.DefaultConfig("monitoring-integrations", "1.0.0", "production"))
 
 	}
 
-
-
 	ctx, cancel := context.WithCancel(context.Background())
-
-
 
 	integrations := &MonitoringIntegrations{
 
@@ -423,13 +327,10 @@ func NewMonitoringIntegrations(
 
 		logger: logger,
 
-		ctx:    ctx,
+		ctx: ctx,
 
 		cancel: cancel,
-
 	}
-
-
 
 	// Initialize clients.
 
@@ -441,8 +342,6 @@ func NewMonitoringIntegrations(
 
 	}
 
-
-
 	// Initialize processors.
 
 	if err := integrations.initializeProcessors(); err != nil {
@@ -453,13 +352,9 @@ func NewMonitoringIntegrations(
 
 	}
 
-
-
 	return integrations, nil
 
 }
-
-
 
 // DefaultMonitoringIntegrationConfig returns default configuration.
 
@@ -469,75 +364,66 @@ func DefaultMonitoringIntegrationConfig() *MonitoringIntegrationConfig {
 
 		PrometheusConfig: &PrometheusConfig{
 
-			Enabled:          true,
+			Enabled: true,
 
-			Endpoint:         "http://prometheus:9090",
+			Endpoint: "http://prometheus:9090",
 
-			Timeout:          30 * time.Second,
+			Timeout: 30 * time.Second,
 
 			QueryConcurrency: 10,
-
 		},
 
 		GrafanaConfig: &GrafanaConfig{
 
-			Enabled:         true,
+			Enabled: true,
 
-			Endpoint:        "http://grafana:3000",
+			Endpoint: "http://grafana:3000",
 
-			Organization:    "Main Org.",
+			Organization: "Main Org.",
 
 			DashboardFolder: "Nephoran",
-
 		},
 
 		AlertmanagerConfig: &AlertmanagerConfig{
 
-			Enabled:   true,
+			Enabled: true,
 
 			Endpoints: []string{"http://alertmanager:9093"},
 
-			Timeout:   30 * time.Second,
-
+			Timeout: 30 * time.Second,
 		},
 
 		JaegerConfig: &JaegerConfig{
 
-			Enabled:  true,
+			Enabled: true,
 
 			Endpoint: "http://jaeger:14268",
-
 		},
 
 		EventProcessingConfig: &EventProcessingConfig{
 
-			Enabled:       true,
+			Enabled: true,
 
-			BatchSize:     100,
+			BatchSize: 100,
 
 			FlushInterval: 5 * time.Second,
 
 			RetryAttempts: 3,
 
-			RetryBackoff:  time.Second,
-
+			RetryBackoff: time.Second,
 		},
 
 		DashboardConfig: &DashboardConfig{
 
-			Enabled:        true,
+			Enabled: true,
 
-			AutoDeploy:     true,
+			AutoDeploy: true,
 
 			UpdateInterval: 5 * time.Minute,
-
 		},
-
 	}
 
 }
-
-
 
 // initializeClients initializes monitoring system clients.
 
@@ -550,7 +436,6 @@ func (m *MonitoringIntegrations) initializeClients() error {
 		client, err := api.NewClient(api.Config{
 
 			Address: m.config.PrometheusConfig.Endpoint,
-
 		})
 
 		if err != nil {
@@ -559,8 +444,6 @@ func (m *MonitoringIntegrations) initializeClients() error {
 
 		}
 
-
-
 		m.prometheusClient = v1.NewAPI(client)
 
 		m.logger.Info("initialized Prometheus client",
@@ -568,8 +451,6 @@ func (m *MonitoringIntegrations) initializeClients() error {
 			"endpoint", m.config.PrometheusConfig.Endpoint)
 
 	}
-
-
 
 	// Initialize Grafana client.
 
@@ -585,8 +466,6 @@ func (m *MonitoringIntegrations) initializeClients() error {
 
 	}
 
-
-
 	// Initialize Alertmanager client.
 
 	if m.config.AlertmanagerConfig.Enabled {
@@ -600,8 +479,6 @@ func (m *MonitoringIntegrations) initializeClients() error {
 			"endpoints", m.config.AlertmanagerConfig.Endpoints)
 
 	}
-
-
 
 	// Initialize Jaeger client.
 
@@ -617,13 +494,9 @@ func (m *MonitoringIntegrations) initializeClients() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // initializeProcessors initializes event and alert processors.
 
@@ -639,15 +512,11 @@ func (m *MonitoringIntegrations) initializeProcessors() error {
 
 	}
 
-
-
 	// Initialize alert processor.
 
 	processor := NewAlertProcessor(m.config, m.logger)
 
 	m.alertProcessor = processor
-
-
 
 	// Initialize dashboard manager.
 
@@ -659,21 +528,15 @@ func (m *MonitoringIntegrations) initializeProcessors() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Start starts the monitoring integrations service.
 
 func (m *MonitoringIntegrations) Start(ctx context.Context) error {
 
 	m.logger.Info("starting monitoring integrations service")
-
-
 
 	// Deploy default dashboards.
 
@@ -687,13 +550,9 @@ func (m *MonitoringIntegrations) Start(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the monitoring integrations service.
 
@@ -707,8 +566,6 @@ func (m *MonitoringIntegrations) Stop() error {
 
 }
 
-
-
 // QueryMetrics queries metrics from Prometheus.
 
 func (m *MonitoringIntegrations) QueryMetrics(ctx context.Context, query string, timestamp time.Time) (model.Value, error) {
@@ -719,8 +576,6 @@ func (m *MonitoringIntegrations) QueryMetrics(ctx context.Context, query string,
 
 	}
 
-
-
 	result, warnings, err := m.prometheusClient.Query(ctx, query, timestamp)
 
 	if err != nil {
@@ -729,21 +584,15 @@ func (m *MonitoringIntegrations) QueryMetrics(ctx context.Context, query string,
 
 	}
 
-
-
 	if len(warnings) > 0 {
 
 		m.logger.Warn("Prometheus query warnings", "warnings", warnings)
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // QueryRangeMetrics queries range metrics from Prometheus.
 
@@ -755,19 +604,14 @@ func (m *MonitoringIntegrations) QueryRangeMetrics(ctx context.Context, query st
 
 	}
 
-
-
 	r := v1.Range{
 
 		Start: start,
 
-		End:   end,
+		End: end,
 
-		Step:  step,
-
+		Step: step,
 	}
-
-
 
 	result, warnings, err := m.prometheusClient.QueryRange(ctx, query, r)
 
@@ -777,21 +621,15 @@ func (m *MonitoringIntegrations) QueryRangeMetrics(ctx context.Context, query st
 
 	}
 
-
-
 	if len(warnings) > 0 {
 
 		m.logger.Warn("Prometheus query range warnings", "warnings", warnings)
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // CreateDashboard creates a new Grafana dashboard.
 
@@ -803,13 +641,9 @@ func (m *MonitoringIntegrations) CreateDashboard(ctx context.Context, spec *Dash
 
 	}
 
-
-
 	return m.grafanaClient.CreateDashboard(ctx, spec)
 
 }
-
-
 
 // UpdateDashboard updates an existing Grafana dashboard.
 
@@ -821,13 +655,9 @@ func (m *MonitoringIntegrations) UpdateDashboard(ctx context.Context, spec *Dash
 
 	}
 
-
-
 	return m.grafanaClient.UpdateDashboard(ctx, spec)
 
 }
-
-
 
 // DeleteDashboard deletes a Grafana dashboard.
 
@@ -839,13 +669,9 @@ func (m *MonitoringIntegrations) DeleteDashboard(ctx context.Context, name strin
 
 	}
 
-
-
 	return m.grafanaClient.DeleteDashboard(ctx, name)
 
 }
-
-
 
 // CreateAlertRule creates a new alert rule.
 
@@ -857,13 +683,9 @@ func (m *MonitoringIntegrations) CreateAlertRule(ctx context.Context, rule *Aler
 
 	}
 
-
-
 	return m.alertmanagerClient.CreateAlertRule(ctx, rule)
 
 }
-
-
 
 // ProcessEvent processes a monitoring event.
 
@@ -875,13 +697,9 @@ func (m *MonitoringIntegrations) ProcessEvent(ctx context.Context, event *Event)
 
 	}
 
-
-
 	return m.eventProcessor.ProcessEvent(ctx, event)
 
 }
-
-
 
 // GetInfrastructureHealth gets overall infrastructure health.
 
@@ -889,33 +707,27 @@ func (m *MonitoringIntegrations) GetInfrastructureHealth(ctx context.Context) (*
 
 	summary := &InfrastructureHealthSummary{
 
-		OverallStatus:   "healthy",
+		OverallStatus: "healthy",
 
-		Timestamp:       time.Now(),
+		Timestamp: time.Now(),
 
 		ComponentHealth: make(map[string]ComponentHealthStatus),
 
-		Metrics:         make(map[string]float64),
-
+		Metrics: make(map[string]float64),
 	}
-
-
 
 	// Query key health metrics.
 
 	healthQueries := map[string]string{
 
-		"node_health":        "up{job=\"node-exporter\"}",
+		"node_health": "up{job=\"node-exporter\"}",
 
-		"cpu_utilization":    "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+		"cpu_utilization": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
 
 		"memory_utilization": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
 
-		"disk_utilization":   "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\"} * 100) / node_filesystem_size_bytes{mountpoint=\"/\"})",
-
+		"disk_utilization": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\"} * 100) / node_filesystem_size_bytes{mountpoint=\"/\"})",
 	}
-
-
 
 	for metricName, query := range healthQueries {
 
@@ -935,8 +747,6 @@ func (m *MonitoringIntegrations) GetInfrastructureHealth(ctx context.Context) (*
 
 		}
 
-
-
 		// Process results and update summary.
 
 		// This is simplified - in practice you'd process the actual results.
@@ -949,19 +759,13 @@ func (m *MonitoringIntegrations) GetInfrastructureHealth(ctx context.Context) (*
 
 	}
 
-
-
 	// Determine overall health based on metrics.
 
 	summary.OverallStatus = m.calculateOverallHealth(summary.Metrics)
 
-
-
 	return summary, nil
 
 }
-
-
 
 // calculateOverallHealth calculates overall health status from metrics.
 
@@ -975,8 +779,6 @@ func (m *MonitoringIntegrations) calculateOverallHealth(metrics map[string]float
 
 	diskUtil := metrics["disk_utilization"]
 
-
-
 	if cpuUtil > 90 || memUtil > 90 || diskUtil > 95 {
 
 		return "critical"
@@ -987,13 +789,9 @@ func (m *MonitoringIntegrations) calculateOverallHealth(metrics map[string]float
 
 	}
 
-
-
 	return "healthy"
 
 }
-
-
 
 // deployDefaultDashboards deploys the default set of dashboards.
 
@@ -1001,11 +799,7 @@ func (m *MonitoringIntegrations) deployDefaultDashboards() error {
 
 	m.logger.Info("deploying default dashboards")
 
-
-
 	dashboards := m.getDefaultDashboards()
-
-
 
 	for _, dashboard := range dashboards {
 
@@ -1029,13 +823,9 @@ func (m *MonitoringIntegrations) deployDefaultDashboards() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // getDefaultDashboards returns the default set of dashboards.
 
@@ -1047,103 +837,95 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 
 		{
 
-			Name:  "infrastructure-overview",
+			Name: "infrastructure-overview",
 
 			Title: "Infrastructure Overview",
 
-			Type:  "infrastructure",
+			Type: "infrastructure",
 
-			Tags:  []string{"infrastructure", "overview"},
+			Tags: []string{"infrastructure", "overview"},
 
 			Panels: []PanelSpec{
 
 				{
 
-					Title:   "Node Health",
+					Title: "Node Health",
 
-					Type:    "stat",
+					Type: "stat",
 
-					Query:   "up{job=\"node-exporter\"}",
+					Query: "up{job=\"node-exporter\"}",
 
-					Unit:    "short",
+					Unit: "short",
 
 					GridPos: GridPosition{X: 0, Y: 0, Width: 6, Height: 3},
-
 				},
 
 				{
 
-					Title:   "CPU Utilization",
+					Title: "CPU Utilization",
 
-					Type:    "graph",
+					Type: "graph",
 
-					Query:   "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+					Query: "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
 
-					Unit:    "percent",
+					Unit: "percent",
 
 					GridPos: GridPosition{X: 6, Y: 0, Width: 6, Height: 3},
-
 				},
 
 				{
 
-					Title:   "Memory Utilization",
+					Title: "Memory Utilization",
 
-					Type:    "graph",
+					Type: "graph",
 
-					Query:   "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+					Query: "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
 
-					Unit:    "percent",
+					Unit: "percent",
 
 					GridPos: GridPosition{X: 12, Y: 0, Width: 6, Height: 3},
-
 				},
 
 				{
 
-					Title:   "Disk Utilization",
+					Title: "Disk Utilization",
 
-					Type:    "graph",
+					Type: "graph",
 
-					Query:   "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\"} * 100) / node_filesystem_size_bytes{mountpoint=\"/\"})",
+					Query: "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\"} * 100) / node_filesystem_size_bytes{mountpoint=\"/\"})",
 
-					Unit:    "percent",
+					Unit: "percent",
 
 					GridPos: GridPosition{X: 18, Y: 0, Width: 6, Height: 3},
-
 				},
-
 			},
 
 			RefreshInterval: "30s",
-
 		},
-
-
 
 		// Telecommunications KPIs Dashboard.
 
 		{
 
-			Name:  "telco-kpis",
+			Name: "telco-kpis",
 
 			Title: "Telecommunications KPIs",
 
-			Type:  "telco",
+			Type: "telco",
 
-			Tags:  []string{"telecommunications", "kpi", "5g", "oran"},
+			Tags: []string{"telecommunications", "kpi", "5g", "oran"},
 
 			Panels: []PanelSpec{
 
 				{
 
-					Title:   "PRB Utilization",
+					Title: "PRB Utilization",
 
-					Type:    "graph",
+					Type: "graph",
 
-					Query:   "nephoran_telco_prb_utilization_percent",
+					Query: "nephoran_telco_prb_utilization_percent",
 
-					Unit:    "percent",
+					Unit: "percent",
 
 					GridPos: GridPosition{X: 0, Y: 0, Width: 6, Height: 4},
 
@@ -1152,20 +934,18 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 						{Value: 80, Color: "yellow", Operation: "gt"},
 
 						{Value: 90, Color: "red", Operation: "gt"},
-
 					},
-
 				},
 
 				{
 
-					Title:   "Handover Success Rate",
+					Title: "Handover Success Rate",
 
-					Type:    "stat",
+					Type: "stat",
 
-					Query:   "nephoran_telco_handover_success_rate_percent",
+					Query: "nephoran_telco_handover_success_rate_percent",
 
-					Unit:    "percent",
+					Unit: "percent",
 
 					GridPos: GridPosition{X: 6, Y: 0, Width: 6, Height: 4},
 
@@ -1174,34 +954,31 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 						{Value: 95, Color: "red", Operation: "lt"},
 
 						{Value: 98, Color: "yellow", Operation: "lt"},
-
 					},
-
 				},
 
 				{
 
-					Title:   "Session Setup Time",
+					Title: "Session Setup Time",
 
-					Type:    "graph",
+					Type: "graph",
 
-					Query:   "histogram_quantile(0.95, nephoran_telco_session_setup_time_seconds)",
+					Query: "histogram_quantile(0.95, nephoran_telco_session_setup_time_seconds)",
 
-					Unit:    "s",
+					Unit: "s",
 
 					GridPos: GridPosition{X: 12, Y: 0, Width: 6, Height: 4},
-
 				},
 
 				{
 
-					Title:   "Packet Loss Rate",
+					Title: "Packet Loss Rate",
 
-					Type:    "graph",
+					Type: "graph",
 
-					Query:   "nephoran_telco_packet_loss_rate_percent",
+					Query: "nephoran_telco_packet_loss_rate_percent",
 
-					Unit:    "percent",
+					Unit: "percent",
 
 					GridPos: GridPosition{X: 18, Y: 0, Width: 6, Height: 4},
 
@@ -1210,136 +987,113 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 						{Value: 0.1, Color: "yellow", Operation: "gt"},
 
 						{Value: 1.0, Color: "red", Operation: "gt"},
-
 					},
-
 				},
-
 			},
 
 			RefreshInterval: "10s",
-
 		},
-
-
 
 		// CNF Management Dashboard.
 
 		{
 
-			Name:  "cnf-management",
+			Name: "cnf-management",
 
 			Title: "Cloud-Native Network Functions",
 
-			Type:  "cnf",
+			Type: "cnf",
 
-			Tags:  []string{"cnf", "kubernetes", "containers"},
+			Tags: []string{"cnf", "kubernetes", "containers"},
 
 			Panels: []PanelSpec{
 
 				{
 
-					Title:   "CNF Instances",
+					Title: "CNF Instances",
 
-					Type:    "stat",
+					Type: "stat",
 
-					Query:   "count(up{job=\"cnf\"})",
+					Query: "count(up{job=\"cnf\"})",
 
-					Unit:    "short",
+					Unit: "short",
 
 					GridPos: GridPosition{X: 0, Y: 0, Width: 6, Height: 3},
-
 				},
 
 				{
 
-					Title:   "CNF CPU Usage",
+					Title: "CNF CPU Usage",
 
-					Type:    "graph",
+					Type: "graph",
 
-					Query:   "rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m]) * 100",
+					Query: "rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m]) * 100",
 
-					Unit:    "percent",
+					Unit: "percent",
 
 					GridPos: GridPosition{X: 6, Y: 0, Width: 6, Height: 3},
-
 				},
 
 				{
 
-					Title:   "CNF Memory Usage",
+					Title: "CNF Memory Usage",
 
-					Type:    "graph",
+					Type: "graph",
 
-					Query:   "container_memory_usage_bytes{container!=\"POD\",container!=\"\"} / container_spec_memory_limit_bytes * 100",
+					Query: "container_memory_usage_bytes{container!=\"POD\",container!=\"\"} / container_spec_memory_limit_bytes * 100",
 
-					Unit:    "percent",
+					Unit: "percent",
 
 					GridPos: GridPosition{X: 12, Y: 0, Width: 6, Height: 3},
-
 				},
 
 				{
 
-					Title:   "Pod Restart Count",
+					Title: "Pod Restart Count",
 
-					Type:    "graph",
+					Type: "graph",
 
-					Query:   "increase(kube_pod_container_status_restarts_total[1h])",
+					Query: "increase(kube_pod_container_status_restarts_total[1h])",
 
-					Unit:    "short",
+					Unit: "short",
 
 					GridPos: GridPosition{X: 18, Y: 0, Width: 6, Height: 3},
-
 				},
-
 			},
 
 			RefreshInterval: "15s",
-
 		},
-
 	}
 
 }
 
-
-
 // InfrastructureHealthSummary represents overall infrastructure health.
 
 type InfrastructureHealthSummary struct {
+	OverallStatus string `json:"overallStatus"`
 
-	OverallStatus   string                           `json:"overallStatus"`
-
-	Timestamp       time.Time                        `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp"`
 
 	ComponentHealth map[string]ComponentHealthStatus `json:"componentHealth"`
 
-	Metrics         map[string]float64               `json:"metrics"`
+	Metrics map[string]float64 `json:"metrics"`
 
-	ActiveAlerts    int                              `json:"activeAlerts"`
+	ActiveAlerts int `json:"activeAlerts"`
 
-	ResolvedAlerts  int                              `json:"resolvedAlerts"`
-
+	ResolvedAlerts int `json:"resolvedAlerts"`
 }
-
-
 
 // ComponentHealthStatus represents the health status of a component.
 
 type ComponentHealthStatus struct {
+	Status string `json:"status"`
 
-	Status    string             `json:"status"`
+	Message string `json:"message,omitempty"`
 
-	Message   string             `json:"message,omitempty"`
+	LastCheck time.Time `json:"lastCheck"`
 
-	LastCheck time.Time          `json:"lastCheck"`
-
-	Metrics   map[string]float64 `json:"metrics,omitempty"`
-
+	Metrics map[string]float64 `json:"metrics,omitempty"`
 }
-
-
 
 // Stub constructor functions.
 
@@ -1349,8 +1103,6 @@ func NewGrafanaClient(config *GrafanaConfig, logger *logging.StructuredLogger) *
 
 }
 
-
-
 // NewAlertmanagerClient performs newalertmanagerclient operation.
 
 func NewAlertmanagerClient(config *AlertmanagerConfig, logger *logging.StructuredLogger) *AlertmanagerClient {
@@ -1358,8 +1110,6 @@ func NewAlertmanagerClient(config *AlertmanagerConfig, logger *logging.Structure
 	return &AlertmanagerClient{}
 
 }
-
-
 
 // NewJaegerClient performs newjaegerclient operation.
 
@@ -1369,8 +1119,6 @@ func NewJaegerClient(config *JaegerConfig, logger *logging.StructuredLogger) *Ja
 
 }
 
-
-
 // NewEventProcessor performs neweventprocessor operation.
 
 func NewEventProcessor(config *EventProcessingConfig, logger *logging.StructuredLogger) *EventProcessor {
@@ -1378,8 +1126,6 @@ func NewEventProcessor(config *EventProcessingConfig, logger *logging.Structured
 	return &EventProcessor{}
 
 }
-
-
 
 // NewAlertProcessor performs newalertprocessor operation.
 
@@ -1389,8 +1135,6 @@ func NewAlertProcessor(config *MonitoringIntegrationConfig, logger *logging.Stru
 
 }
 
-
-
 // NewDashboardManager performs newdashboardmanager operation.
 
 func NewDashboardManager(config *DashboardConfig, grafanaClient *GrafanaClient, logger *logging.StructuredLogger) *DashboardManager {
@@ -1398,8 +1142,6 @@ func NewDashboardManager(config *DashboardConfig, grafanaClient *GrafanaClient, 
 	return &DashboardManager{}
 
 }
-
-
 
 // Stub methods for the client types.
 
@@ -1409,8 +1151,6 @@ func (g *GrafanaClient) CreateDashboard(ctx context.Context, spec *DashboardSpec
 
 }
 
-
-
 // UpdateDashboard performs updatedashboard operation.
 
 func (g *GrafanaClient) UpdateDashboard(ctx context.Context, spec *DashboardSpec) error {
@@ -1418,8 +1158,6 @@ func (g *GrafanaClient) UpdateDashboard(ctx context.Context, spec *DashboardSpec
 	return nil
 
 }
-
-
 
 // DeleteDashboard performs deletedashboard operation.
 
@@ -1429,8 +1167,6 @@ func (g *GrafanaClient) DeleteDashboard(ctx context.Context, name string) error 
 
 }
 
-
-
 // CreateAlertRule performs createalertrule operation.
 
 func (a *AlertmanagerClient) CreateAlertRule(ctx context.Context, rule *AlertRule) error {
@@ -1439,8 +1175,6 @@ func (a *AlertmanagerClient) CreateAlertRule(ctx context.Context, rule *AlertRul
 
 }
 
-
-
 // ProcessEvent performs processevent operation.
 
 func (e *EventProcessor) ProcessEvent(ctx context.Context, event *Event) error {
@@ -1448,4 +1182,3 @@ func (e *EventProcessor) ProcessEvent(ctx context.Context, event *Event) error {
 	return nil
 
 }
-

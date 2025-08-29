@@ -28,84 +28,54 @@ limitations under the License.
 
 */
 
-
-
-
 package krm
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"net/url"
-
 	"os"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 	"go.opentelemetry.io/otel"
-
 	"go.opentelemetry.io/otel/attribute"
-
 	"go.opentelemetry.io/otel/codes"
-
 	"go.opentelemetry.io/otel/trace"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // Registry manages KRM function discovery, caching, and metadata.
 
 type Registry struct {
+	config *RegistryConfig
 
-	config        *RegistryConfig
+	repositories map[string]*Repository
 
-	repositories  map[string]*Repository
+	functions map[string]*FunctionMetadata
 
-	functions     map[string]*FunctionMetadata
-
-	cache         *FunctionCache
+	cache *FunctionCache
 
 	healthMonitor *HealthMonitor
 
-	metrics       *RegistryMetrics
+	metrics *RegistryMetrics
 
-	tracer        trace.Tracer
+	tracer trace.Tracer
 
-	mu            sync.RWMutex
+	mu sync.RWMutex
 
-	updateChan    chan *FunctionUpdate
+	updateChan chan *FunctionUpdate
 
-	shutdownChan  chan struct{}
+	shutdownChan chan struct{}
 
-	httpClient    *http.Client
-
+	httpClient *http.Client
 }
-
-
 
 // RegistryConfig defines configuration for the function registry.
 
@@ -115,133 +85,108 @@ type RegistryConfig struct {
 
 	DefaultRepositories []RepositoryConfig `json:"defaultRepositories" yaml:"defaultRepositories"`
 
-	RepositoryTimeout   time.Duration      `json:"repositoryTimeout" yaml:"repositoryTimeout"`
-
-
+	RepositoryTimeout time.Duration `json:"repositoryTimeout" yaml:"repositoryTimeout"`
 
 	// Caching settings.
 
-	CacheDir          string        `json:"cacheDir" yaml:"cacheDir"`
+	CacheDir string `json:"cacheDir" yaml:"cacheDir"`
 
-	CacheTTL          time.Duration `json:"cacheTtl" yaml:"cacheTtl"`
+	CacheTTL time.Duration `json:"cacheTtl" yaml:"cacheTtl"`
 
-	MaxCacheSize      int64         `json:"maxCacheSize" yaml:"maxCacheSize"`
+	MaxCacheSize int64 `json:"maxCacheSize" yaml:"maxCacheSize"`
 
-	EnableCompression bool          `json:"enableCompression" yaml:"enableCompression"`
-
-
+	EnableCompression bool `json:"enableCompression" yaml:"enableCompression"`
 
 	// Health monitoring.
 
 	HealthCheckInterval time.Duration `json:"healthCheckInterval" yaml:"healthCheckInterval"`
 
-	UnhealthyThreshold  int           `json:"unhealthyThreshold" yaml:"unhealthyThreshold"`
+	UnhealthyThreshold int `json:"unhealthyThreshold" yaml:"unhealthyThreshold"`
 
-	HealthyThreshold    int           `json:"healthyThreshold" yaml:"healthyThreshold"`
-
-
+	HealthyThreshold int `json:"healthyThreshold" yaml:"healthyThreshold"`
 
 	// Discovery settings.
 
-	DiscoveryInterval   time.Duration `json:"discoveryInterval" yaml:"discoveryInterval"`
+	DiscoveryInterval time.Duration `json:"discoveryInterval" yaml:"discoveryInterval"`
 
-	ConcurrentDiscovery int           `json:"concurrentDiscovery" yaml:"concurrentDiscovery"`
-
-
+	ConcurrentDiscovery int `json:"concurrentDiscovery" yaml:"concurrentDiscovery"`
 
 	// Security settings.
 
-	AllowInsecure         bool     `json:"allowInsecure" yaml:"allowInsecure"`
+	AllowInsecure bool `json:"allowInsecure" yaml:"allowInsecure"`
 
-	TrustedRegistries     []string `json:"trustedRegistries" yaml:"trustedRegistries"`
+	TrustedRegistries []string `json:"trustedRegistries" yaml:"trustedRegistries"`
 
-	SignatureVerification bool     `json:"signatureVerification" yaml:"signatureVerification"`
-
-
+	SignatureVerification bool `json:"signatureVerification" yaml:"signatureVerification"`
 
 	// Performance settings.
 
-	MaxConcurrentDownloads int           `json:"maxConcurrentDownloads" yaml:"maxConcurrentDownloads"`
+	MaxConcurrentDownloads int `json:"maxConcurrentDownloads" yaml:"maxConcurrentDownloads"`
 
-	DownloadTimeout        time.Duration `json:"downloadTimeout" yaml:"downloadTimeout"`
+	DownloadTimeout time.Duration `json:"downloadTimeout" yaml:"downloadTimeout"`
 
-	RetryAttempts          int           `json:"retryAttempts" yaml:"retryAttempts"`
-
+	RetryAttempts int `json:"retryAttempts" yaml:"retryAttempts"`
 }
-
-
 
 // Repository represents a function repository.
 
 type Repository struct {
+	Config RepositoryConfig `json:"config"`
 
-	Config       RepositoryConfig    `json:"config"`
+	Health RepositoryHealth `json:"health"`
 
-	Health       RepositoryHealth    `json:"health"`
+	Functions []*FunctionMetadata `json:"functions"`
 
-	Functions    []*FunctionMetadata `json:"functions"`
+	LastSyncTime time.Time `json:"lastSyncTime"`
 
-	LastSyncTime time.Time           `json:"lastSyncTime"`
+	LastError string `json:"lastError,omitempty"`
 
-	LastError    string              `json:"lastError,omitempty"`
+	Version string `json:"version,omitempty"`
 
-	Version      string              `json:"version,omitempty"`
-
-	mu           sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // RepositoryConfig defines repository configuration.
 
 type RepositoryConfig struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name        string            `json:"name" yaml:"name"`
+	URL string `json:"url" yaml:"url"`
 
-	URL         string            `json:"url" yaml:"url"`
+	Type string `json:"type" yaml:"type"` // git, oci, http
 
-	Type        string            `json:"type" yaml:"type"` // git, oci, http
+	Branch string `json:"branch,omitempty" yaml:"branch,omitempty"`
 
-	Branch      string            `json:"branch,omitempty" yaml:"branch,omitempty"`
+	Path string `json:"path,omitempty" yaml:"path,omitempty"`
 
-	Path        string            `json:"path,omitempty" yaml:"path,omitempty"`
+	Auth *AuthConfig `json:"auth,omitempty" yaml:"auth,omitempty"`
 
-	Auth        *AuthConfig       `json:"auth,omitempty" yaml:"auth,omitempty"`
+	Headers map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
 
-	Headers     map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
+	Insecure bool `json:"insecure,omitempty" yaml:"insecure,omitempty"`
 
-	Insecure    bool              `json:"insecure,omitempty" yaml:"insecure,omitempty"`
+	Priority int `json:"priority,omitempty" yaml:"priority,omitempty"`
 
-	Priority    int               `json:"priority,omitempty" yaml:"priority,omitempty"`
+	Enabled bool `json:"enabled" yaml:"enabled"`
 
-	Enabled     bool              `json:"enabled" yaml:"enabled"`
+	Tags []string `json:"tags,omitempty" yaml:"tags,omitempty"`
 
-	Tags        []string          `json:"tags,omitempty" yaml:"tags,omitempty"`
-
-	Description string            `json:"description,omitempty" yaml:"description,omitempty"`
-
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 }
-
-
 
 // AuthConfig defines authentication for repositories.
 
 type AuthConfig struct {
+	Type string `json:"type" yaml:"type"` // basic, bearer, api-key
 
-	Type      string `json:"type" yaml:"type"` // basic, bearer, api-key
+	Username string `json:"username,omitempty" yaml:"username,omitempty"`
 
-	Username  string `json:"username,omitempty" yaml:"username,omitempty"`
+	Password string `json:"password,omitempty" yaml:"password,omitempty"`
 
-	Password  string `json:"password,omitempty" yaml:"password,omitempty"`
-
-	Token     string `json:"token,omitempty" yaml:"token,omitempty"`
+	Token string `json:"token,omitempty" yaml:"token,omitempty"`
 
 	SecretRef string `json:"secretRef,omitempty" yaml:"secretRef,omitempty"`
-
 }
-
-
 
 // FunctionMetadata contains comprehensive metadata about a KRM function.
 
@@ -249,367 +194,291 @@ type FunctionMetadata struct {
 
 	// Basic information.
 
-	Name        string `json:"name" yaml:"name"`
+	Name string `json:"name" yaml:"name"`
 
-	Image       string `json:"image" yaml:"image"`
+	Image string `json:"image" yaml:"image"`
 
-	Version     string `json:"version" yaml:"version"`
+	Version string `json:"version" yaml:"version"`
 
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 
-
-
 	// Classification.
 
-	Type       string   `json:"type" yaml:"type"` // mutator, validator, generator
+	Type string `json:"type" yaml:"type"` // mutator, validator, generator
 
 	Categories []string `json:"categories,omitempty" yaml:"categories,omitempty"`
 
-	Keywords   []string `json:"keywords,omitempty" yaml:"keywords,omitempty"`
+	Keywords []string `json:"keywords,omitempty" yaml:"keywords,omitempty"`
 
-	Tags       []string `json:"tags,omitempty" yaml:"tags,omitempty"`
-
-
+	Tags []string `json:"tags,omitempty" yaml:"tags,omitempty"`
 
 	// Capabilities.
 
 	ResourceTypes []ResourceTypeSupport `json:"resourceTypes,omitempty" yaml:"resourceTypes,omitempty"`
 
-	ApiVersions   []string              `json:"apiVersions,omitempty" yaml:"apiVersions,omitempty"`
-
-
+	ApiVersions []string `json:"apiVersions,omitempty" yaml:"apiVersions,omitempty"`
 
 	// Compatibility.
 
-	MinKubernetesVersion string   `json:"minKubernetesVersion,omitempty" yaml:"minKubernetesVersion,omitempty"`
+	MinKubernetesVersion string `json:"minKubernetesVersion,omitempty" yaml:"minKubernetesVersion,omitempty"`
 
-	SupportedPlatforms   []string `json:"supportedPlatforms,omitempty" yaml:"supportedPlatforms,omitempty"`
-
-
+	SupportedPlatforms []string `json:"supportedPlatforms,omitempty" yaml:"supportedPlatforms,omitempty"`
 
 	// Configuration.
 
-	ConfigSchema  *FunctionConfigSchema  `json:"configSchema,omitempty" yaml:"configSchema,omitempty"`
+	ConfigSchema *FunctionConfigSchema `json:"configSchema,omitempty" yaml:"configSchema,omitempty"`
 
-	Examples      []*FunctionExample     `json:"examples,omitempty" yaml:"examples,omitempty"`
+	Examples []*FunctionExample `json:"examples,omitempty" yaml:"examples,omitempty"`
 
 	Documentation *FunctionDocumentation `json:"documentation,omitempty" yaml:"documentation,omitempty"`
 
-
-
 	// Quality metrics.
 
-	Quality         *QualityMetrics  `json:"quality,omitempty" yaml:"quality,omitempty"`
+	Quality *QualityMetrics `json:"quality,omitempty" yaml:"quality,omitempty"`
 
-	Performance     *PerformanceInfo `json:"performance,omitempty" yaml:"performance,omitempty"`
+	Performance *PerformanceInfo `json:"performance,omitempty" yaml:"performance,omitempty"`
 
 	SecurityProfile *SecurityProfile `json:"securityProfile,omitempty" yaml:"securityProfile,omitempty"`
 
-
-
 	// Lifecycle.
 
-	Author          string    `json:"author,omitempty" yaml:"author,omitempty"`
+	Author string `json:"author,omitempty" yaml:"author,omitempty"`
 
-	License         string    `json:"license,omitempty" yaml:"license,omitempty"`
+	License string `json:"license,omitempty" yaml:"license,omitempty"`
 
-	CreatedAt       time.Time `json:"createdAt,omitempty" yaml:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt,omitempty" yaml:"createdAt,omitempty"`
 
-	UpdatedAt       time.Time `json:"updatedAt,omitempty" yaml:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt,omitempty" yaml:"updatedAt,omitempty"`
 
-	Deprecated      bool      `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
+	Deprecated bool `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
 
-	DeprecationNote string    `json:"deprecationNote,omitempty" yaml:"deprecationNote,omitempty"`
-
-
+	DeprecationNote string `json:"deprecationNote,omitempty" yaml:"deprecationNote,omitempty"`
 
 	// Registry metadata.
 
-	Repository   string    `json:"repository" yaml:"repository"`
+	Repository string `json:"repository" yaml:"repository"`
 
-	Source       string    `json:"source" yaml:"source"`
+	Source string `json:"source" yaml:"source"`
 
-	Checksum     string    `json:"checksum,omitempty" yaml:"checksum,omitempty"`
+	Checksum string `json:"checksum,omitempty" yaml:"checksum,omitempty"`
 
 	LastVerified time.Time `json:"lastVerified,omitempty" yaml:"lastVerified,omitempty"`
-
 }
-
-
 
 // ResourceTypeSupport defines support for Kubernetes resource types.
 
 type ResourceTypeSupport struct {
+	APIVersion string `json:"apiVersion" yaml:"apiVersion"`
 
-	APIVersion string   `json:"apiVersion" yaml:"apiVersion"`
-
-	Kind       string   `json:"kind" yaml:"kind"`
+	Kind string `json:"kind" yaml:"kind"`
 
 	Operations []string `json:"operations" yaml:"operations"` // create, update, delete, patch
 
 }
 
-
-
 // FunctionConfigSchema defines the configuration schema for a function.
 
 type FunctionConfigSchema struct {
+	Type string `json:"type" yaml:"type"`
 
-	Type        string                           `json:"type" yaml:"type"`
+	Properties map[string]*SchemaProperty `json:"properties,omitempty" yaml:"properties,omitempty"`
 
-	Properties  map[string]*SchemaProperty       `json:"properties,omitempty" yaml:"properties,omitempty"`
-
-	Required    []string                         `json:"required,omitempty" yaml:"required,omitempty"`
+	Required []string `json:"required,omitempty" yaml:"required,omitempty"`
 
 	Definitions map[string]*FunctionConfigSchema `json:"definitions,omitempty" yaml:"definitions,omitempty"`
-
 }
-
-
 
 // SchemaProperty defines a configuration property.
 
 type SchemaProperty struct {
+	Type string `json:"type" yaml:"type"`
 
-	Type        string        `json:"type" yaml:"type"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 
-	Description string        `json:"description,omitempty" yaml:"description,omitempty"`
+	Default interface{} `json:"default,omitempty" yaml:"default,omitempty"`
 
-	Default     interface{}   `json:"default,omitempty" yaml:"default,omitempty"`
+	Examples []interface{} `json:"examples,omitempty" yaml:"examples,omitempty"`
 
-	Examples    []interface{} `json:"examples,omitempty" yaml:"examples,omitempty"`
+	Enum []interface{} `json:"enum,omitempty" yaml:"enum,omitempty"`
 
-	Enum        []interface{} `json:"enum,omitempty" yaml:"enum,omitempty"`
+	Pattern string `json:"pattern,omitempty" yaml:"pattern,omitempty"`
 
-	Pattern     string        `json:"pattern,omitempty" yaml:"pattern,omitempty"`
+	Minimum *float64 `json:"minimum,omitempty" yaml:"minimum,omitempty"`
 
-	Minimum     *float64      `json:"minimum,omitempty" yaml:"minimum,omitempty"`
-
-	Maximum     *float64      `json:"maximum,omitempty" yaml:"maximum,omitempty"`
-
+	Maximum *float64 `json:"maximum,omitempty" yaml:"maximum,omitempty"`
 }
-
-
 
 // FunctionExample provides usage examples for a function.
 
 type FunctionExample struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name        string                 `json:"name" yaml:"name"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 
-	Description string                 `json:"description,omitempty" yaml:"description,omitempty"`
+	Config map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
 
-	Config      map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
+	Input []interface{} `json:"input,omitempty" yaml:"input,omitempty"`
 
-	Input       []interface{}          `json:"input,omitempty" yaml:"input,omitempty"`
-
-	Output      []interface{}          `json:"output,omitempty" yaml:"output,omitempty"`
-
+	Output []interface{} `json:"output,omitempty" yaml:"output,omitempty"`
 }
-
-
 
 // FunctionDocumentation contains documentation links and content.
 
 type FunctionDocumentation struct {
+	README string `json:"readme,omitempty" yaml:"readme,omitempty"`
 
-	README     string            `json:"readme,omitempty" yaml:"readme,omitempty"`
+	UsageGuide string `json:"usageGuide,omitempty" yaml:"usageGuide,omitempty"`
 
-	UsageGuide string            `json:"usageGuide,omitempty" yaml:"usageGuide,omitempty"`
+	APIRef string `json:"apiRef,omitempty" yaml:"apiRef,omitempty"`
 
-	APIRef     string            `json:"apiRef,omitempty" yaml:"apiRef,omitempty"`
-
-	Links      map[string]string `json:"links,omitempty" yaml:"links,omitempty"`
-
+	Links map[string]string `json:"links,omitempty" yaml:"links,omitempty"`
 }
-
-
 
 // QualityMetrics provides quality assessment of the function.
 
 type QualityMetrics struct {
+	TestCoverage float64 `json:"testCoverage,omitempty" yaml:"testCoverage,omitempty"`
 
-	TestCoverage   float64 `json:"testCoverage,omitempty" yaml:"testCoverage,omitempty"`
+	CodeQuality float64 `json:"codeQuality,omitempty" yaml:"codeQuality,omitempty"`
 
-	CodeQuality    float64 `json:"codeQuality,omitempty" yaml:"codeQuality,omitempty"`
-
-	Documentation  float64 `json:"documentation,omitempty" yaml:"documentation,omitempty"`
+	Documentation float64 `json:"documentation,omitempty" yaml:"documentation,omitempty"`
 
 	CommunityScore float64 `json:"communityScore,omitempty" yaml:"communityScore,omitempty"`
 
-	SecurityScore  float64 `json:"securityScore,omitempty" yaml:"securityScore,omitempty"`
+	SecurityScore float64 `json:"securityScore,omitempty" yaml:"securityScore,omitempty"`
 
-	OverallScore   float64 `json:"overallScore,omitempty" yaml:"overallScore,omitempty"`
-
+	OverallScore float64 `json:"overallScore,omitempty" yaml:"overallScore,omitempty"`
 }
-
-
 
 // PerformanceInfo provides performance characteristics.
 
 type PerformanceInfo struct {
+	TypicalExecutionTime time.Duration `json:"typicalExecutionTime,omitempty" yaml:"typicalExecutionTime,omitempty"`
 
-	TypicalExecutionTime       time.Duration `json:"typicalExecutionTime,omitempty" yaml:"typicalExecutionTime,omitempty"`
+	MaxExecutionTime time.Duration `json:"maxExecutionTime,omitempty" yaml:"maxExecutionTime,omitempty"`
 
-	MaxExecutionTime           time.Duration `json:"maxExecutionTime,omitempty" yaml:"maxExecutionTime,omitempty"`
+	TypicalMemoryUsage int64 `json:"typicalMemoryUsage,omitempty" yaml:"typicalMemoryUsage,omitempty"`
 
-	TypicalMemoryUsage         int64         `json:"typicalMemoryUsage,omitempty" yaml:"typicalMemoryUsage,omitempty"`
+	MaxMemoryUsage int64 `json:"maxMemoryUsage,omitempty" yaml:"maxMemoryUsage,omitempty"`
 
-	MaxMemoryUsage             int64         `json:"maxMemoryUsage,omitempty" yaml:"maxMemoryUsage,omitempty"`
+	CPUIntensive bool `json:"cpuIntensive,omitempty" yaml:"cpuIntensive,omitempty"`
 
-	CPUIntensive               bool          `json:"cpuIntensive,omitempty" yaml:"cpuIntensive,omitempty"`
+	NetworkIO bool `json:"networkIo,omitempty" yaml:"networkIo,omitempty"`
 
-	NetworkIO                  bool          `json:"networkIo,omitempty" yaml:"networkIo,omitempty"`
+	DiskIO bool `json:"diskIo,omitempty" yaml:"diskIo,omitempty"`
 
-	DiskIO                     bool          `json:"diskIo,omitempty" yaml:"diskIo,omitempty"`
-
-	ScalabilityCharacteristics string        `json:"scalabilityCharacteristics,omitempty" yaml:"scalabilityCharacteristics,omitempty"`
-
+	ScalabilityCharacteristics string `json:"scalabilityCharacteristics,omitempty" yaml:"scalabilityCharacteristics,omitempty"`
 }
-
-
 
 // SecurityProfile defines security characteristics.
 
 type SecurityProfile struct {
+	RequiredCapabilities []string `json:"requiredCapabilities,omitempty" yaml:"requiredCapabilities,omitempty"`
 
-	RequiredCapabilities []string                `json:"requiredCapabilities,omitempty" yaml:"requiredCapabilities,omitempty"`
+	RequiredPrivileges []string `json:"requiredPrivileges,omitempty" yaml:"requiredPrivileges,omitempty"`
 
-	RequiredPrivileges   []string                `json:"requiredPrivileges,omitempty" yaml:"requiredPrivileges,omitempty"`
+	NetworkAccess bool `json:"networkAccess,omitempty" yaml:"networkAccess,omitempty"`
 
-	NetworkAccess        bool                    `json:"networkAccess,omitempty" yaml:"networkAccess,omitempty"`
+	FileSystemAccess []string `json:"fileSystemAccess,omitempty" yaml:"fileSystemAccess,omitempty"`
 
-	FileSystemAccess     []string                `json:"fileSystemAccess,omitempty" yaml:"fileSystemAccess,omitempty"`
+	SecurityRisks []string `json:"securityRisks,omitempty" yaml:"securityRisks,omitempty"`
 
-	SecurityRisks        []string                `json:"securityRisks,omitempty" yaml:"securityRisks,omitempty"`
+	LastSecurityScan time.Time `json:"lastSecurityScan,omitempty" yaml:"lastSecurityScan,omitempty"`
 
-	LastSecurityScan     time.Time               `json:"lastSecurityScan,omitempty" yaml:"lastSecurityScan,omitempty"`
-
-	Vulnerabilities      []SecurityVulnerability `json:"vulnerabilities,omitempty" yaml:"vulnerabilities,omitempty"`
-
+	Vulnerabilities []SecurityVulnerability `json:"vulnerabilities,omitempty" yaml:"vulnerabilities,omitempty"`
 }
-
-
 
 // SecurityVulnerability represents a security vulnerability.
 
 type SecurityVulnerability struct {
+	ID string `json:"id" yaml:"id"`
 
-	ID           string    `json:"id" yaml:"id"`
+	Severity string `json:"severity" yaml:"severity"`
 
-	Severity     string    `json:"severity" yaml:"severity"`
+	Description string `json:"description" yaml:"description"`
 
-	Description  string    `json:"description" yaml:"description"`
+	FixVersion string `json:"fixVersion,omitempty" yaml:"fixVersion,omitempty"`
 
-	FixVersion   string    `json:"fixVersion,omitempty" yaml:"fixVersion,omitempty"`
-
-	URL          string    `json:"url,omitempty" yaml:"url,omitempty"`
+	URL string `json:"url,omitempty" yaml:"url,omitempty"`
 
 	DiscoveredAt time.Time `json:"discoveredAt" yaml:"discoveredAt"`
-
 }
 
-
-
 // FunctionCache is defined in function_manager.go.
-
-
 
 // CacheItem represents a cached function.
 
 type CacheItem struct {
+	Key string `json:"key"`
 
-	Key         string            `json:"key"`
+	Metadata *FunctionMetadata `json:"metadata"`
 
-	Metadata    *FunctionMetadata `json:"metadata"`
+	Data []byte `json:"data,omitempty"`
 
-	Data        []byte            `json:"data,omitempty"`
+	Size int64 `json:"size"`
 
-	Size        int64             `json:"size"`
+	ExpiresAt time.Time `json:"expiresAt"`
 
-	ExpiresAt   time.Time         `json:"expiresAt"`
+	AccessCount int64 `json:"accessCount"`
 
-	AccessCount int64             `json:"accessCount"`
-
-	LastAccess  time.Time         `json:"lastAccess"`
-
+	LastAccess time.Time `json:"lastAccess"`
 }
-
-
 
 // HealthMonitor monitors repository and function health.
 
 type HealthMonitor struct {
+	registry *Registry
 
-	registry           *Registry
-
-	checkInterval      time.Duration
+	checkInterval time.Duration
 
 	unhealthyThreshold int
 
-	healthyThreshold   int
+	healthyThreshold int
 
-	checks             map[string]*HealthCheck
+	checks map[string]*HealthCheck
 
-	mu                 sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // HealthCheck tracks health of a component.
 
 type HealthCheck struct {
+	Name string `json:"name"`
 
-	Name             string    `json:"name"`
+	Status string `json:"status"` // healthy, unhealthy, unknown
 
-	Status           string    `json:"status"` // healthy, unhealthy, unknown
+	LastCheck time.Time `json:"lastCheck"`
 
-	LastCheck        time.Time `json:"lastCheck"`
+	ConsecutiveFails int `json:"consecutiveFails"`
 
-	ConsecutiveFails int       `json:"consecutiveFails"`
-
-	Error            string    `json:"error,omitempty"`
-
+	Error string `json:"error,omitempty"`
 }
-
-
 
 // FunctionUpdate represents a function update notification.
 
 type FunctionUpdate struct {
-
-	Type     string            `json:"type"` // added, updated, removed
+	Type string `json:"type"` // added, updated, removed
 
 	Function *FunctionMetadata `json:"function"`
-
 }
-
-
 
 // Registry metrics.
 
 type RegistryMetrics struct {
+	RepositoryCount prometheus.Gauge
 
-	RepositoryCount     prometheus.Gauge
+	FunctionCount *prometheus.GaugeVec
 
-	FunctionCount       *prometheus.GaugeVec
+	DiscoveryDuration *prometheus.HistogramVec
 
-	DiscoveryDuration   *prometheus.HistogramVec
+	CacheHitRate prometheus.Counter
 
-	CacheHitRate        prometheus.Counter
-
-	CacheMissRate       prometheus.Counter
+	CacheMissRate prometheus.Counter
 
 	HealthCheckFailures *prometheus.CounterVec
-
 }
 
-
-
 // CacheMetrics is defined in function_manager.go.
-
-
 
 // Default registry configuration.
 
@@ -619,71 +488,65 @@ var DefaultRegistryConfig = &RegistryConfig{
 
 		{
 
-			Name:     "nephoran-functions",
+			Name: "nephoran-functions",
 
-			URL:      "https://github.com/nephoran/krm-functions",
+			URL: "https://github.com/nephoran/krm-functions",
 
-			Type:     "git",
+			Type: "git",
 
-			Branch:   "main",
+			Branch: "main",
 
-			Enabled:  true,
+			Enabled: true,
 
 			Priority: 100,
-
 		},
 
 		{
 
-			Name:     "kpt-functions",
+			Name: "kpt-functions",
 
-			URL:      "https://catalog.kpt.dev/functions",
+			URL: "https://catalog.kpt.dev/functions",
 
-			Type:     "http",
+			Type: "http",
 
-			Enabled:  true,
+			Enabled: true,
 
 			Priority: 50,
-
 		},
-
 	},
 
-	RepositoryTimeout:      30 * time.Second,
+	RepositoryTimeout: 30 * time.Second,
 
-	CacheDir:               "/tmp/krm-registry",
+	CacheDir: "/tmp/krm-registry",
 
-	CacheTTL:               24 * time.Hour,
+	CacheTTL: 24 * time.Hour,
 
-	MaxCacheSize:           1 * 1024 * 1024 * 1024, // 1GB
+	MaxCacheSize: 1 * 1024 * 1024 * 1024, // 1GB
 
-	EnableCompression:      true,
+	EnableCompression: true,
 
-	HealthCheckInterval:    5 * time.Minute,
+	HealthCheckInterval: 5 * time.Minute,
 
-	UnhealthyThreshold:     3,
+	UnhealthyThreshold: 3,
 
-	HealthyThreshold:       2,
+	HealthyThreshold: 2,
 
-	DiscoveryInterval:      1 * time.Hour,
+	DiscoveryInterval: 1 * time.Hour,
 
-	ConcurrentDiscovery:    5,
+	ConcurrentDiscovery: 5,
 
-	AllowInsecure:          false,
+	AllowInsecure: false,
 
-	TrustedRegistries:      []string{},
+	TrustedRegistries: []string{},
 
-	SignatureVerification:  true,
+	SignatureVerification: true,
 
 	MaxConcurrentDownloads: 10,
 
-	DownloadTimeout:        5 * time.Minute,
+	DownloadTimeout: 5 * time.Minute,
 
-	RetryAttempts:          3,
-
+	RetryAttempts: 3,
 }
-
-
 
 // NewRegistry creates a new function registry with comprehensive capabilities.
 
@@ -695,8 +558,6 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 
 	}
 
-
-
 	// Validate configuration.
 
 	if err := validateRegistryConfig(config); err != nil {
@@ -704,8 +565,6 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 		return nil, fmt.Errorf("invalid registry configuration: %w", err)
 
 	}
-
-
 
 	// Initialize metrics.
 
@@ -716,7 +575,6 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 			Name: "krm_registry_repositories_total",
 
 			Help: "Total number of configured repositories",
-
 		}),
 
 		FunctionCount: promauto.NewGaugeVec(prometheus.GaugeOpts{
@@ -724,7 +582,6 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 			Name: "krm_registry_functions_total",
 
 			Help: "Total number of functions by repository",
-
 		}, []string{"repository"}),
 
 		DiscoveryDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
@@ -732,7 +589,6 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 			Name: "krm_registry_discovery_duration_seconds",
 
 			Help: "Duration of function discovery operations",
-
 		}, []string{"repository"}),
 
 		CacheHitRate: promauto.NewCounter(prometheus.CounterOpts{
@@ -740,7 +596,6 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 			Name: "krm_registry_cache_hits_total",
 
 			Help: "Total number of cache hits",
-
 		}),
 
 		CacheMissRate: promauto.NewCounter(prometheus.CounterOpts{
@@ -748,7 +603,6 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 			Name: "krm_registry_cache_misses_total",
 
 			Help: "Total number of cache misses",
-
 		}),
 
 		HealthCheckFailures: promauto.NewCounterVec(prometheus.CounterOpts{
@@ -756,12 +610,8 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 			Name: "krm_registry_health_check_failures_total",
 
 			Help: "Total number of health check failures",
-
 		}, []string{"repository", "reason"}),
-
 	}
-
-
 
 	// Initialize cache.
 
@@ -772,7 +622,6 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 			Name: "krm_registry_cache_operations_total",
 
 			Help: "Total number of cache operations",
-
 		}),
 
 		Misses: promauto.NewCounter(prometheus.CounterOpts{
@@ -780,7 +629,6 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 			Name: "krm_registry_cache_misses_total",
 
 			Help: "Total number of cache misses",
-
 		}),
 
 		Evictions: promauto.NewCounter(prometheus.CounterOpts{
@@ -788,7 +636,6 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 			Name: "krm_registry_cache_evictions_total",
 
 			Help: "Total number of cache evictions",
-
 		}),
 
 		Size: promauto.NewGauge(prometheus.GaugeOpts{
@@ -796,7 +643,6 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 			Name: "krm_registry_cache_size_bytes",
 
 			Help: "Current cache size in bytes",
-
 		}),
 
 		ItemCount: promauto.NewGauge(prometheus.GaugeOpts{
@@ -804,86 +650,68 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 			Name: "krm_registry_cache_items_total",
 
 			Help: "Current number of cached items",
-
 		}),
-
 	}
-
-
 
 	cache := &FunctionCache{
 
 		cacheDir: config.CacheDir,
 
-		ttl:      config.CacheTTL,
+		ttl: config.CacheTTL,
 
-		maxSize:  config.MaxCacheSize,
+		maxSize: config.MaxCacheSize,
 
-		items:    make(map[string]*CacheItem),
+		items: make(map[string]*CacheItem),
 
-		metrics:  cacheMetrics,
-
+		metrics: cacheMetrics,
 	}
-
-
 
 	// Initialize health monitor.
 
 	healthMonitor := &HealthMonitor{
 
-		checkInterval:      config.HealthCheckInterval,
+		checkInterval: config.HealthCheckInterval,
 
 		unhealthyThreshold: config.UnhealthyThreshold,
 
-		healthyThreshold:   config.HealthyThreshold,
+		healthyThreshold: config.HealthyThreshold,
 
-		checks:             make(map[string]*HealthCheck),
-
+		checks: make(map[string]*HealthCheck),
 	}
-
-
 
 	// Create HTTP client with timeout.
 
 	httpClient := &http.Client{
 
 		Timeout: config.RepositoryTimeout,
-
 	}
-
-
 
 	// Create registry.
 
 	registry := &Registry{
 
-		config:        config,
+		config: config,
 
-		repositories:  make(map[string]*Repository),
+		repositories: make(map[string]*Repository),
 
-		functions:     make(map[string]*FunctionMetadata),
+		functions: make(map[string]*FunctionMetadata),
 
-		cache:         cache,
+		cache: cache,
 
 		healthMonitor: healthMonitor,
 
-		metrics:       registryMetrics,
+		metrics: registryMetrics,
 
-		tracer:        otel.Tracer("krm-registry"),
+		tracer: otel.Tracer("krm-registry"),
 
-		updateChan:    make(chan *FunctionUpdate, 100),
+		updateChan: make(chan *FunctionUpdate, 100),
 
-		shutdownChan:  make(chan struct{}),
+		shutdownChan: make(chan struct{}),
 
-		httpClient:    httpClient,
-
+		httpClient: httpClient,
 	}
 
-
-
 	healthMonitor.registry = registry
-
-
 
 	// Initialize cache directory.
 
@@ -892,8 +720,6 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 		return nil, fmt.Errorf("failed to create cache directory: %w", err)
 
 	}
-
-
 
 	// Initialize default repositories.
 
@@ -907,16 +733,14 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 
 				Health: RepositoryHealth{
 
-					Status:      "unknown",
+					Status: "unknown",
 
-					LastCheck:   time.Time{},
+					LastCheck: time.Time{},
 
 					IsReachable: false,
-
 				},
 
 				Functions: []*FunctionMetadata{},
-
 			}
 
 			registry.repositories[repoConfig.Name] = repo
@@ -924,8 +748,6 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 		}
 
 	}
-
-
 
 	// Start background processes.
 
@@ -935,13 +757,9 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 
 	go registry.cacheCleanupWorker()
 
-
-
 	return registry, nil
 
 }
-
-
 
 // DiscoverFunctions discovers functions from all configured repositories.
 
@@ -951,11 +769,7 @@ func (r *Registry) DiscoverFunctions(ctx context.Context) error {
 
 	defer span.End()
 
-
-
 	logger := log.FromContext(ctx).WithName("krm-registry")
-
-
 
 	r.mu.RLock()
 
@@ -973,13 +787,9 @@ func (r *Registry) DiscoverFunctions(ctx context.Context) error {
 
 	r.mu.RUnlock()
 
-
-
 	span.SetAttributes(attribute.Int("repositories.count", len(repositories)))
 
 	logger.Info("Starting function discovery", "repositories", len(repositories))
-
-
 
 	// Create semaphore for concurrent discovery.
 
@@ -991,8 +801,6 @@ func (r *Registry) DiscoverFunctions(ctx context.Context) error {
 
 	var errMu sync.Mutex
 
-
-
 	for _, repo := range repositories {
 
 		wg.Add(1)
@@ -1001,15 +809,11 @@ func (r *Registry) DiscoverFunctions(ctx context.Context) error {
 
 			defer wg.Done()
 
-
-
 			// Acquire semaphore.
 
 			sem <- struct{}{}
 
 			defer func() { <-sem }()
-
-
 
 			if err := r.discoverRepository(ctx, repository); err != nil {
 
@@ -1031,17 +835,11 @@ func (r *Registry) DiscoverFunctions(ctx context.Context) error {
 
 	}
 
-
-
 	wg.Wait()
-
-
 
 	// Update function index.
 
 	r.updateFunctionIndex()
-
-
 
 	if discoverErr != nil {
 
@@ -1055,8 +853,6 @@ func (r *Registry) DiscoverFunctions(ctx context.Context) error {
 
 	}
 
-
-
 	span.SetStatus(codes.Ok, "discovery completed")
 
 	logger.Info("Function discovery completed successfully")
@@ -1064,8 +860,6 @@ func (r *Registry) DiscoverFunctions(ctx context.Context) error {
 	return nil
 
 }
-
-
 
 // GetFunction retrieves function metadata by name.
 
@@ -1075,19 +869,13 @@ func (r *Registry) GetFunction(ctx context.Context, name string) (*FunctionMetad
 
 	defer span.End()
 
-
-
 	span.SetAttributes(attribute.String("function.name", name))
-
-
 
 	r.mu.RLock()
 
 	function, exists := r.functions[name]
 
 	r.mu.RUnlock()
-
-
 
 	if !exists {
 
@@ -1097,15 +885,11 @@ func (r *Registry) GetFunction(ctx context.Context, name string) (*FunctionMetad
 
 	}
 
-
-
 	span.SetStatus(codes.Ok, "function found")
 
 	return function.deepCopy(), nil
 
 }
-
-
 
 // ListFunctions returns all available functions with optional filtering.
 
@@ -1114,8 +898,6 @@ func (r *Registry) ListFunctions(ctx context.Context, filter *FunctionFilter) ([
 	ctx, span := r.tracer.Start(ctx, "krm-registry-list-functions")
 
 	defer span.End()
-
-
 
 	r.mu.RLock()
 
@@ -1129,31 +911,22 @@ func (r *Registry) ListFunctions(ctx context.Context, filter *FunctionFilter) ([
 
 	r.mu.RUnlock()
 
-
-
 	// Apply filters.
 
 	filteredFunctions := r.applyFilter(allFunctions, filter)
-
-
 
 	span.SetAttributes(
 
 		attribute.Int("functions.total", len(allFunctions)),
 
 		attribute.Int("functions.filtered", len(filteredFunctions)),
-
 	)
 
 	span.SetStatus(codes.Ok, "functions listed")
 
-
-
 	return filteredFunctions, nil
 
 }
-
-
 
 // SearchFunctions searches for functions using various criteria.
 
@@ -1163,11 +936,7 @@ func (r *Registry) SearchFunctions(ctx context.Context, query *SearchQuery) (*Se
 
 	defer span.End()
 
-
-
 	span.SetAttributes(attribute.String("search.query", query.Terms))
-
-
 
 	functions, err := r.ListFunctions(ctx, nil)
 
@@ -1181,47 +950,35 @@ func (r *Registry) SearchFunctions(ctx context.Context, query *SearchQuery) (*Se
 
 	}
 
-
-
 	// Perform search.
 
 	matches := r.performSearch(functions, query)
 
-
-
 	result := &SearchResult{
 
-		Query:      query,
+		Query: query,
 
-		Matches:    matches,
+		Matches: matches,
 
 		TotalCount: len(functions),
 
 		MatchCount: len(matches),
 
 		SearchTime: time.Now(),
-
 	}
-
-
 
 	span.SetAttributes(
 
 		attribute.Int("search.total", result.TotalCount),
 
 		attribute.Int("search.matches", result.MatchCount),
-
 	)
 
 	span.SetStatus(codes.Ok, "search completed")
 
-
-
 	return result, nil
 
 }
-
-
 
 // AddRepository adds a new repository to the registry.
 
@@ -1231,11 +988,7 @@ func (r *Registry) AddRepository(ctx context.Context, config RepositoryConfig) e
 
 	defer span.End()
 
-
-
 	span.SetAttributes(attribute.String("repository.name", config.Name))
-
-
 
 	if err := r.validateRepositoryConfig(&config); err != nil {
 
@@ -1247,13 +1000,9 @@ func (r *Registry) AddRepository(ctx context.Context, config RepositoryConfig) e
 
 	}
 
-
-
 	r.mu.Lock()
 
 	defer r.mu.Unlock()
-
-
 
 	if _, exists := r.repositories[config.Name]; exists {
 
@@ -1267,41 +1016,31 @@ func (r *Registry) AddRepository(ctx context.Context, config RepositoryConfig) e
 
 	}
 
-
-
 	repo := &Repository{
 
 		Config: config,
 
 		Health: RepositoryHealth{
 
-			Status:      "unknown",
+			Status: "unknown",
 
-			LastCheck:   time.Time{},
+			LastCheck: time.Time{},
 
 			IsReachable: false,
-
 		},
 
 		Functions: []*FunctionMetadata{},
-
 	}
-
-
 
 	r.repositories[config.Name] = repo
 
 	r.metrics.RepositoryCount.Inc()
-
-
 
 	span.SetStatus(codes.Ok, "repository added")
 
 	return nil
 
 }
-
-
 
 // RemoveRepository removes a repository from the registry.
 
@@ -1311,17 +1050,11 @@ func (r *Registry) RemoveRepository(ctx context.Context, name string) error {
 
 	defer span.End()
 
-
-
 	span.SetAttributes(attribute.String("repository.name", name))
-
-
 
 	r.mu.Lock()
 
 	defer r.mu.Unlock()
-
-
 
 	repo, exists := r.repositories[name]
 
@@ -1337,8 +1070,6 @@ func (r *Registry) RemoveRepository(ctx context.Context, name string) error {
 
 	}
 
-
-
 	// Remove functions from this repository.
 
 	for _, function := range repo.Functions {
@@ -1349,21 +1080,15 @@ func (r *Registry) RemoveRepository(ctx context.Context, name string) error {
 
 	}
 
-
-
 	delete(r.repositories, name)
 
 	r.metrics.RepositoryCount.Dec()
-
-
 
 	span.SetStatus(codes.Ok, "repository removed")
 
 	return nil
 
 }
-
-
 
 // GetRepositoryHealth returns health status of a repository.
 
@@ -1375,15 +1100,11 @@ func (r *Registry) GetRepositoryHealth(ctx context.Context, name string) (*Repos
 
 	r.mu.RUnlock()
 
-
-
 	if !exists {
 
 		return nil, fmt.Errorf("repository %s not found", name)
 
 	}
-
-
 
 	repo.mu.RLock()
 
@@ -1391,13 +1112,9 @@ func (r *Registry) GetRepositoryHealth(ctx context.Context, name string) (*Repos
 
 	repo.mu.RUnlock()
 
-
-
 	return &health, nil
 
 }
-
-
 
 // GetHealth returns overall registry health.
 
@@ -1407,23 +1124,18 @@ func (r *Registry) GetHealth() *RegistryHealth {
 
 	defer r.mu.RUnlock()
 
-
-
 	health := &RegistryHealth{
 
-		Status:        "healthy",
+		Status: "healthy",
 
-		Repositories:  len(r.repositories),
+		Repositories: len(r.repositories),
 
-		Functions:     len(r.functions),
+		Functions: len(r.functions),
 
 		LastDiscovery: time.Time{},
 
-		CacheStatus:   r.cache.getStatus(),
-
+		CacheStatus: r.cache.getStatus(),
 	}
-
-
 
 	// Check repository health.
 
@@ -1449,8 +1161,6 @@ func (r *Registry) GetHealth() *RegistryHealth {
 
 	}
 
-
-
 	if unhealthyRepos > 0 {
 
 		health.Status = "degraded"
@@ -1463,13 +1173,9 @@ func (r *Registry) GetHealth() *RegistryHealth {
 
 	}
 
-
-
 	return health
 
 }
-
-
 
 // Shutdown gracefully shuts down the registry.
 
@@ -1479,13 +1185,9 @@ func (r *Registry) Shutdown(ctx context.Context) error {
 
 	logger.Info("Shutting down KRM registry")
 
-
-
 	// Signal shutdown.
 
 	close(r.shutdownChan)
-
-
 
 	// Save cache.
 
@@ -1495,19 +1197,13 @@ func (r *Registry) Shutdown(ctx context.Context) error {
 
 	}
 
-
-
 	logger.Info("KRM registry shutdown complete")
 
 	return nil
 
 }
 
-
-
 // Private helper methods.
-
-
 
 func (r *Registry) discoverRepository(ctx context.Context, repo *Repository) error {
 
@@ -1521,11 +1217,7 @@ func (r *Registry) discoverRepository(ctx context.Context, repo *Repository) err
 
 	}()
 
-
-
 	logger := log.FromContext(ctx).WithName("krm-registry").WithValues("repository", repo.Config.Name)
-
-
 
 	switch repo.Config.Type {
 
@@ -1553,8 +1245,6 @@ func (r *Registry) discoverRepository(ctx context.Context, repo *Repository) err
 
 }
 
-
-
 func (r *Registry) discoverHTTPRepository(ctx context.Context, repo *Repository) error {
 
 	req, err := http.NewRequestWithContext(ctx, "GET", repo.Config.URL, http.NoBody)
@@ -1565,8 +1255,6 @@ func (r *Registry) discoverHTTPRepository(ctx context.Context, repo *Repository)
 
 	}
 
-
-
 	// Add authentication if configured.
 
 	if repo.Config.Auth != nil {
@@ -1575,8 +1263,6 @@ func (r *Registry) discoverHTTPRepository(ctx context.Context, repo *Repository)
 
 	}
 
-
-
 	// Add custom headers.
 
 	for key, value := range repo.Config.Headers {
@@ -1584,8 +1270,6 @@ func (r *Registry) discoverHTTPRepository(ctx context.Context, repo *Repository)
 		req.Header.Set(key, value)
 
 	}
-
-
 
 	resp, err := r.httpClient.Do(req)
 
@@ -1597,15 +1281,11 @@ func (r *Registry) discoverHTTPRepository(ctx context.Context, repo *Repository)
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
 
 	}
-
-
 
 	var catalog FunctionCatalog
 
@@ -1614,8 +1294,6 @@ func (r *Registry) discoverHTTPRepository(ctx context.Context, repo *Repository)
 		return err
 
 	}
-
-
 
 	// Update repository with discovered functions.
 
@@ -1631,13 +1309,9 @@ func (r *Registry) discoverHTTPRepository(ctx context.Context, repo *Repository)
 
 	repo.mu.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 func (r *Registry) discoverGitRepository(ctx context.Context, repo *Repository) error {
 
@@ -1649,8 +1323,6 @@ func (r *Registry) discoverGitRepository(ctx context.Context, repo *Repository) 
 
 }
 
-
-
 func (r *Registry) discoverOCIRepository(ctx context.Context, repo *Repository) error {
 
 	// OCI repository discovery would be implemented here.
@@ -1660,8 +1332,6 @@ func (r *Registry) discoverOCIRepository(ctx context.Context, repo *Repository) 
 	return fmt.Errorf("OCI repository discovery not yet implemented")
 
 }
-
-
 
 func (r *Registry) addAuthentication(req *http.Request, auth *AuthConfig) {
 
@@ -1683,21 +1353,15 @@ func (r *Registry) addAuthentication(req *http.Request, auth *AuthConfig) {
 
 }
 
-
-
 func (r *Registry) updateFunctionIndex() {
 
 	r.mu.Lock()
 
 	defer r.mu.Unlock()
 
-
-
 	// Clear existing index.
 
 	r.functions = make(map[string]*FunctionMetadata)
-
-
 
 	// Rebuild index from all repositories.
 
@@ -1721,15 +1385,11 @@ func (r *Registry) updateFunctionIndex() {
 
 }
 
-
-
 func (r *Registry) discoveryWorker() {
 
 	ticker := time.NewTicker(r.config.DiscoveryInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1755,15 +1415,11 @@ func (r *Registry) discoveryWorker() {
 
 }
 
-
-
 func (r *Registry) healthMonitorWorker() {
 
 	ticker := time.NewTicker(r.healthMonitor.checkInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1783,15 +1439,11 @@ func (r *Registry) healthMonitorWorker() {
 
 }
 
-
-
 func (r *Registry) cacheCleanupWorker() {
 
 	ticker := time.NewTicker(1 * time.Hour)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1811,131 +1463,97 @@ func (r *Registry) cacheCleanupWorker() {
 
 }
 
-
-
 // Supporting types and helper functions.
-
-
 
 // RepositoryHealth represents a repositoryhealth.
 
 type RepositoryHealth struct {
+	Status string `json:"status"`
 
-	Status      string    `json:"status"`
+	LastCheck time.Time `json:"lastCheck"`
 
-	LastCheck   time.Time `json:"lastCheck"`
+	IsReachable bool `json:"isReachable"`
 
-	IsReachable bool      `json:"isReachable"`
-
-	Error       string    `json:"error,omitempty"`
-
+	Error string `json:"error,omitempty"`
 }
-
-
 
 // FunctionFilter represents a functionfilter.
 
 type FunctionFilter struct {
-
-	Type       string   `json:"type,omitempty"`
+	Type string `json:"type,omitempty"`
 
 	Categories []string `json:"categories,omitempty"`
 
-	Keywords   []string `json:"keywords,omitempty"`
+	Keywords []string `json:"keywords,omitempty"`
 
-	Repository string   `json:"repository,omitempty"`
+	Repository string `json:"repository,omitempty"`
 
-	MinVersion string   `json:"minVersion,omitempty"`
+	MinVersion string `json:"minVersion,omitempty"`
 
-	Deprecated *bool    `json:"deprecated,omitempty"`
-
+	Deprecated *bool `json:"deprecated,omitempty"`
 }
-
-
 
 // SearchQuery represents a searchquery.
 
 type SearchQuery struct {
-
-	Terms      string   `json:"terms"`
+	Terms string `json:"terms"`
 
 	Categories []string `json:"categories,omitempty"`
 
-	Limit      int      `json:"limit,omitempty"`
+	Limit int `json:"limit,omitempty"`
 
-	Offset     int      `json:"offset,omitempty"`
-
+	Offset int `json:"offset,omitempty"`
 }
-
-
 
 // SearchResult represents a searchresult.
 
 type SearchResult struct {
+	Query *SearchQuery `json:"query"`
 
-	Query      *SearchQuery        `json:"query"`
+	Matches []*FunctionMetadata `json:"matches"`
 
-	Matches    []*FunctionMetadata `json:"matches"`
+	TotalCount int `json:"totalCount"`
 
-	TotalCount int                 `json:"totalCount"`
+	MatchCount int `json:"matchCount"`
 
-	MatchCount int                 `json:"matchCount"`
-
-	SearchTime time.Time           `json:"searchTime"`
-
+	SearchTime time.Time `json:"searchTime"`
 }
-
-
 
 // FunctionCatalog represents a functioncatalog.
 
 type FunctionCatalog struct {
-
-	Version   string              `json:"version"`
+	Version string `json:"version"`
 
 	Functions []*FunctionMetadata `json:"functions"`
-
 }
-
-
 
 // RegistryHealth represents a registryhealth.
 
 type RegistryHealth struct {
+	Status string `json:"status"`
 
-	Status        string       `json:"status"`
+	Repositories int `json:"repositories"`
 
-	Repositories  int          `json:"repositories"`
+	Functions int `json:"functions"`
 
-	Functions     int          `json:"functions"`
+	LastDiscovery time.Time `json:"lastDiscovery"`
 
-	LastDiscovery time.Time    `json:"lastDiscovery"`
-
-	CacheStatus   *CacheStatus `json:"cacheStatus"`
-
+	CacheStatus *CacheStatus `json:"cacheStatus"`
 }
-
-
 
 // CacheStatus represents a cachestatus.
 
 type CacheStatus struct {
+	Size int64 `json:"size"`
 
-	Size      int64     `json:"size"`
+	Items int `json:"items"`
 
-	Items     int       `json:"items"`
-
-	HitRate   float64   `json:"hitRate"`
+	HitRate float64 `json:"hitRate"`
 
 	LastClean time.Time `json:"lastClean"`
-
 }
 
-
-
 // Helper methods.
-
-
 
 func (f *FunctionMetadata) deepCopy() *FunctionMetadata {
 
@@ -1949,8 +1567,6 @@ func (f *FunctionMetadata) deepCopy() *FunctionMetadata {
 
 }
 
-
-
 func (r *Registry) applyFilter(functions []*FunctionMetadata, filter *FunctionFilter) []*FunctionMetadata {
 
 	if filter == nil {
@@ -1958,8 +1574,6 @@ func (r *Registry) applyFilter(functions []*FunctionMetadata, filter *FunctionFi
 		return functions
 
 	}
-
-
 
 	var filtered []*FunctionMetadata
 
@@ -1976,8 +1590,6 @@ func (r *Registry) applyFilter(functions []*FunctionMetadata, filter *FunctionFi
 	return filtered
 
 }
-
-
 
 func (r *Registry) matchesFilter(function *FunctionMetadata, filter *FunctionFilter) bool {
 
@@ -2005,8 +1617,6 @@ func (r *Registry) matchesFilter(function *FunctionMetadata, filter *FunctionFil
 
 }
 
-
-
 func (r *Registry) performSearch(functions []*FunctionMetadata, query *SearchQuery) []*FunctionMetadata {
 
 	if query.Terms == "" {
@@ -2015,13 +1625,9 @@ func (r *Registry) performSearch(functions []*FunctionMetadata, query *SearchQue
 
 	}
 
-
-
 	terms := strings.ToLower(query.Terms)
 
 	var matches []*FunctionMetadata
-
-
 
 	for _, function := range functions {
 
@@ -2034,8 +1640,6 @@ func (r *Registry) performSearch(functions []*FunctionMetadata, query *SearchQue
 		}
 
 	}
-
-
 
 	// Apply limit and offset.
 
@@ -2061,19 +1665,13 @@ func (r *Registry) performSearch(functions []*FunctionMetadata, query *SearchQue
 
 	}
 
-
-
 	return matches
 
 }
 
-
-
 func (r *Registry) calculateSearchScore(function *FunctionMetadata, terms string) float64 {
 
 	score := 0.0
-
-
 
 	// Check name (highest weight).
 
@@ -2083,8 +1681,6 @@ func (r *Registry) calculateSearchScore(function *FunctionMetadata, terms string
 
 	}
 
-
-
 	// Check description.
 
 	if strings.Contains(strings.ToLower(function.Description), terms) {
@@ -2092,8 +1688,6 @@ func (r *Registry) calculateSearchScore(function *FunctionMetadata, terms string
 		score += 5.0
 
 	}
-
-
 
 	// Check keywords.
 
@@ -2107,8 +1701,6 @@ func (r *Registry) calculateSearchScore(function *FunctionMetadata, terms string
 
 	}
 
-
-
 	// Check categories.
 
 	for _, category := range function.Categories {
@@ -2121,21 +1713,15 @@ func (r *Registry) calculateSearchScore(function *FunctionMetadata, terms string
 
 	}
 
-
-
 	return score
 
 }
-
-
 
 func (c *FunctionCache) getStatus() *CacheStatus {
 
 	c.mu.RLock()
 
 	defer c.mu.RUnlock()
-
-
 
 	totalSize := int64(0)
 
@@ -2145,31 +1731,24 @@ func (c *FunctionCache) getStatus() *CacheStatus {
 
 	}
 
-
-
 	return &CacheStatus{
 
-		Size:      totalSize,
+		Size: totalSize,
 
-		Items:     len(c.items),
+		Items: len(c.items),
 
-		HitRate:   0.0, // Would calculate from metrics
+		HitRate: 0.0, // Would calculate from metrics
 
 		LastClean: time.Now(),
-
 	}
 
 }
-
-
 
 func (c *FunctionCache) cleanup() {
 
 	c.mu.Lock()
 
 	defer c.mu.Unlock()
-
-
 
 	now := time.Now()
 
@@ -2187,8 +1766,6 @@ func (c *FunctionCache) cleanup() {
 
 }
 
-
-
 func (c *FunctionCache) save() error {
 
 	// Implementation to save cache to disk.
@@ -2197,15 +1774,11 @@ func (c *FunctionCache) save() error {
 
 }
 
-
-
 func (hm *HealthMonitor) checkHealth() {
 
 	hm.mu.Lock()
 
 	defer hm.mu.Unlock()
-
-
 
 	for name, repo := range hm.registry.repositories {
 
@@ -2215,23 +1788,18 @@ func (hm *HealthMonitor) checkHealth() {
 
 			check = &HealthCheck{
 
-				Name:   name,
+				Name: name,
 
 				Status: "unknown",
-
 			}
 
 			hm.checks[name] = check
 
 		}
 
-
-
 		// Perform health check.
 
 		healthy := hm.checkRepositoryHealth(repo)
-
-
 
 		check.LastCheck = time.Now()
 
@@ -2261,8 +1829,6 @@ func (hm *HealthMonitor) checkHealth() {
 
 }
 
-
-
 func (hm *HealthMonitor) checkRepositoryHealth(repo *Repository) bool {
 
 	// Simple health check - could be more sophisticated.
@@ -2275,15 +1841,11 @@ func (hm *HealthMonitor) checkRepositoryHealth(repo *Repository) bool {
 
 	repo.mu.RUnlock()
 
-
-
 	// Consider healthy if synced recently and no errors.
 
 	return time.Since(lastSync) < 2*hm.checkInterval && lastError == ""
 
 }
-
-
 
 func validateRegistryConfig(config *RegistryConfig) error {
 
@@ -2309,8 +1871,6 @@ func validateRegistryConfig(config *RegistryConfig) error {
 
 }
 
-
-
 func (r *Registry) validateRepositoryConfig(config *RepositoryConfig) error {
 
 	if config.Name == "" {
@@ -2331,8 +1891,6 @@ func (r *Registry) validateRepositoryConfig(config *RepositoryConfig) error {
 
 	}
 
-
-
 	// Validate URL.
 
 	if _, err := url.Parse(config.URL); err != nil {
@@ -2341,9 +1899,6 @@ func (r *Registry) validateRepositoryConfig(config *RepositoryConfig) error {
 
 	}
 
-
-
 	return nil
 
 }
-

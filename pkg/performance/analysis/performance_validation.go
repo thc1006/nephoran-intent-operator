@@ -1,53 +1,38 @@
-
 package analysis
 
-
-
 import (
-
 	"fmt"
-
 	"time"
-
 )
-
-
 
 // PerformanceValidationConfig defines the performance expectations.
 
 type PerformanceValidationConfig struct {
+	MaxLatency time.Duration // Sub-2-second P95 latency
 
-	MaxLatency           time.Duration // Sub-2-second P95 latency
+	MaxConcurrentIntents int // 200+ concurrent intents
 
-	MaxConcurrentIntents int           // 200+ concurrent intents
+	MinThroughputPerMin int // 45 intents per minute
 
-	MinThroughputPerMin  int           // 45 intents per minute
+	MinAvailabilityRate float64 // 99.95% availability
 
-	MinAvailabilityRate  float64       // 99.95% availability
+	MaxRetrievalLatency time.Duration // Sub-200ms retrieval
 
-	MaxRetrievalLatency  time.Duration // Sub-200ms retrieval
-
-	MinCacheHitRate      float64       // 87% cache hit rate
+	MinCacheHitRate float64 // 87% cache hit rate
 
 }
-
-
 
 // PerformanceValidator provides methods to validate performance claims.
 
 type PerformanceValidator struct {
+	config PerformanceValidationConfig
 
-	config           PerformanceValidationConfig
-
-	latencyData      []time.Duration
+	latencyData []time.Duration
 
 	availabilityData []float64
 
-	cacheData        []float64
-
+	cacheData []float64
 }
-
-
 
 // NewPerformanceValidator creates a new validator instance.
 
@@ -56,12 +41,9 @@ func NewPerformanceValidator(config PerformanceValidationConfig) *PerformanceVal
 	return &PerformanceValidator{
 
 		config: config,
-
 	}
 
 }
-
-
 
 // AddLatencyMeasurement records a new latency measurement.
 
@@ -71,8 +53,6 @@ func (pv *PerformanceValidator) AddLatencyMeasurement(duration time.Duration) {
 
 }
 
-
-
 // AddAvailabilityMeasurement records availability percentage.
 
 func (pv *PerformanceValidator) AddAvailabilityMeasurement(availability float64) {
@@ -81,8 +61,6 @@ func (pv *PerformanceValidator) AddAvailabilityMeasurement(availability float64)
 
 }
 
-
-
 // AddCacheMeasurement records cache hit rate.
 
 func (pv *PerformanceValidator) AddCacheMeasurement(hitRate float64) {
@@ -90,8 +68,6 @@ func (pv *PerformanceValidator) AddCacheMeasurement(hitRate float64) {
 	pv.cacheData = append(pv.cacheData, hitRate)
 
 }
-
-
 
 // ValidateLatency checks if latency meets performance requirements.
 
@@ -103,8 +79,6 @@ func (pv *PerformanceValidator) ValidateLatency() (bool, string) {
 
 	}
 
-
-
 	// Sort latencies to find P95.
 
 	sorted := make([]time.Duration, len(pv.latencyData))
@@ -113,13 +87,9 @@ func (pv *PerformanceValidator) ValidateLatency() (bool, string) {
 
 	// TODO: Implement sorting of durations.
 
-
-
 	p95Index := int(float64(len(sorted)) * 0.95)
 
 	p95Latency := sorted[p95Index]
-
-
 
 	if p95Latency > pv.config.MaxLatency {
 
@@ -130,8 +100,6 @@ func (pv *PerformanceValidator) ValidateLatency() (bool, string) {
 	return true, "Latency requirements met"
 
 }
-
-
 
 // ValidateThroughput checks concurrent intent and throughput capabilities.
 
@@ -145,8 +113,6 @@ func (pv *PerformanceValidator) ValidateThroughput(concurrentIntents, intentsPer
 
 	}
 
-
-
 	if intentsPerMinute < pv.config.MinThroughputPerMin {
 
 		return false, fmt.Sprintf("Throughput below minimum: %d < %d",
@@ -159,8 +125,6 @@ func (pv *PerformanceValidator) ValidateThroughput(concurrentIntents, intentsPer
 
 }
 
-
-
 // ValidateAvailability checks system availability.
 
 func (pv *PerformanceValidator) ValidateAvailability() (bool, string) {
@@ -171,8 +135,6 @@ func (pv *PerformanceValidator) ValidateAvailability() (bool, string) {
 
 	}
 
-
-
 	avgAvailability := 0.0
 
 	for _, availability := range pv.availabilityData {
@@ -182,8 +144,6 @@ func (pv *PerformanceValidator) ValidateAvailability() (bool, string) {
 	}
 
 	avgAvailability /= float64(len(pv.availabilityData))
-
-
 
 	if avgAvailability < pv.config.MinAvailabilityRate {
 
@@ -197,8 +157,6 @@ func (pv *PerformanceValidator) ValidateAvailability() (bool, string) {
 
 }
 
-
-
 // ValidateCachePerformance checks cache hit rate.
 
 func (pv *PerformanceValidator) ValidateCachePerformance() (bool, string) {
@@ -209,8 +167,6 @@ func (pv *PerformanceValidator) ValidateCachePerformance() (bool, string) {
 
 	}
 
-
-
 	avgCacheHitRate := 0.0
 
 	for _, hitRate := range pv.cacheData {
@@ -220,8 +176,6 @@ func (pv *PerformanceValidator) ValidateCachePerformance() (bool, string) {
 	}
 
 	avgCacheHitRate /= float64(len(pv.cacheData))
-
-
 
 	if avgCacheHitRate < pv.config.MinCacheHitRate {
 
@@ -235,8 +189,6 @@ func (pv *PerformanceValidator) ValidateCachePerformance() (bool, string) {
 
 }
 
-
-
 // GeneratePerformanceReport creates a comprehensive validation report.
 
 func (pv *PerformanceValidator) GeneratePerformanceReport() PerformanceReport {
@@ -244,10 +196,7 @@ func (pv *PerformanceValidator) GeneratePerformanceReport() PerformanceReport {
 	report := PerformanceReport{
 
 		ValidationTimestamp: time.Now(),
-
 	}
-
-
 
 	// Validate each performance metric.
 
@@ -255,18 +204,15 @@ func (pv *PerformanceValidator) GeneratePerformanceReport() PerformanceReport {
 
 	var failureReasons []string
 
-
-
 	// Latency Validation.
 
 	latencyPass, latencyMsg := pv.ValidateLatency()
 
 	report.LatencyValidation = ValidationResult{
 
-		Passed:  latencyPass,
+		Passed: latencyPass,
 
 		Message: latencyMsg,
-
 	}
 
 	if !latencyPass {
@@ -277,18 +223,15 @@ func (pv *PerformanceValidator) GeneratePerformanceReport() PerformanceReport {
 
 	}
 
-
-
 	// Availability Validation.
 
 	availPass, availMsg := pv.ValidateAvailability()
 
 	report.AvailabilityValidation = ValidationResult{
 
-		Passed:  availPass,
+		Passed: availPass,
 
 		Message: availMsg,
-
 	}
 
 	if !availPass {
@@ -299,18 +242,15 @@ func (pv *PerformanceValidator) GeneratePerformanceReport() PerformanceReport {
 
 	}
 
-
-
 	// Cache Performance Validation.
 
 	cachePass, cacheMsg := pv.ValidateCachePerformance()
 
 	report.CacheValidation = ValidationResult{
 
-		Passed:  cachePass,
+		Passed: cachePass,
 
 		Message: cacheMsg,
-
 	}
 
 	if !cachePass {
@@ -321,53 +261,39 @@ func (pv *PerformanceValidator) GeneratePerformanceReport() PerformanceReport {
 
 	}
 
-
-
 	report.OverallValidation = ValidationResult{
 
-		Passed:  overallPass,
+		Passed: overallPass,
 
 		Message: fmt.Sprintf("Performance validation %v", map[bool]string{true: "PASSED", false: "FAILED"}[overallPass]),
-
 	}
 
 	report.FailureReasons = failureReasons
-
-
 
 	return report
 
 }
 
-
-
 // Structs for reporting.
 
 type ValidationResult struct {
-
-	Passed  bool
+	Passed bool
 
 	Message string
-
 }
-
-
 
 // PerformanceReport represents a performancereport.
 
 type PerformanceReport struct {
+	ValidationTimestamp time.Time
 
-	ValidationTimestamp    time.Time
-
-	LatencyValidation      ValidationResult
+	LatencyValidation ValidationResult
 
 	AvailabilityValidation ValidationResult
 
-	CacheValidation        ValidationResult
+	CacheValidation ValidationResult
 
-	OverallValidation      ValidationResult
+	OverallValidation ValidationResult
 
-	FailureReasons         []string
-
+	FailureReasons []string
 }
-

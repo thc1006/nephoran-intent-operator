@@ -2,32 +2,19 @@
 
 // This module provides structured error responses that comply with Problem Details for HTTP APIs.
 
-
 package a1
 
-
-
 import (
-
 	"encoding/json"
-
 	"errors"
-
 	"fmt"
-
 	"net/http"
-
 	"time"
-
 )
-
-
 
 // A1ErrorType represents the type URI for different A1 error categories.
 
 type A1ErrorType string
-
-
 
 const (
 
@@ -59,8 +46,6 @@ const (
 
 	ErrorTypePolicyEnforcementFailed A1ErrorType = "urn:problem-type:a1:policy-enforcement-failed"
 
-
-
 	// A1-C Consumer Interface Error Types.
 
 	ErrorTypeConsumerNotFound A1ErrorType = "urn:problem-type:a1:consumer-not-found"
@@ -76,8 +61,6 @@ const (
 	// ErrorTypeConsumerNotificationFailed holds errortypeconsumernotificationfailed value.
 
 	ErrorTypeConsumerNotificationFailed A1ErrorType = "urn:problem-type:a1:consumer-notification-failed"
-
-
 
 	// A1-EI Enrichment Interface Error Types.
 
@@ -102,8 +85,6 @@ const (
 	// ErrorTypeEIJobExecutionFailed holds errortypeeijobexecutionfailed value.
 
 	ErrorTypeEIJobExecutionFailed A1ErrorType = "urn:problem-type:a1:ei-job-execution-failed"
-
-
 
 	// Generic Error Types.
 
@@ -144,62 +125,51 @@ const (
 	// ErrorTypeTimeout holds errortypetimeout value.
 
 	ErrorTypeTimeout A1ErrorType = "urn:problem-type:a1:timeout"
-
 )
-
-
 
 // A1ProblemDetail represents RFC 7807 compliant problem details for A1 interfaces.
 
 type A1ProblemDetail struct {
+	Type string `json:"type" validate:"required,uri"`
 
-	Type       string                 `json:"type" validate:"required,uri"`
+	Title string `json:"title" validate:"required"`
 
-	Title      string                 `json:"title" validate:"required"`
+	Status int `json:"status" validate:"required,min=100,max=599"`
 
-	Status     int                    `json:"status" validate:"required,min=100,max=599"`
+	Detail string `json:"detail,omitempty"`
 
-	Detail     string                 `json:"detail,omitempty"`
+	Instance string `json:"instance,omitempty"`
 
-	Instance   string                 `json:"instance,omitempty"`
+	Timestamp time.Time `json:"timestamp,omitempty"`
 
-	Timestamp  time.Time              `json:"timestamp,omitempty"`
-
-	RequestID  string                 `json:"request_id,omitempty"`
+	RequestID string `json:"request_id,omitempty"`
 
 	Extensions map[string]interface{} `json:"-"`
-
 }
-
-
 
 // A1Error represents an A1-specific error with context information.
 
 type A1Error struct {
+	Type A1ErrorType `json:"type"`
 
-	Type          A1ErrorType            `json:"type"`
+	Title string `json:"title"`
 
-	Title         string                 `json:"title"`
+	Status int `json:"status"`
 
-	Status        int                    `json:"status"`
+	Detail string `json:"detail,omitempty"`
 
-	Detail        string                 `json:"detail,omitempty"`
+	Instance string `json:"instance,omitempty"`
 
-	Instance      string                 `json:"instance,omitempty"`
+	Cause error `json:"-"`
 
-	Cause         error                  `json:"-"`
+	Context map[string]interface{} `json:"context,omitempty"`
 
-	Context       map[string]interface{} `json:"context,omitempty"`
+	Retryable bool `json:"retryable,omitempty"`
 
-	Retryable     bool                   `json:"retryable,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp     time.Time              `json:"timestamp"`
-
-	CorrelationID string                 `json:"correlation_id,omitempty"`
-
+	CorrelationID string `json:"correlation_id,omitempty"`
 }
-
-
 
 // Error implements the error interface.
 
@@ -215,8 +185,6 @@ func (e *A1Error) Error() string {
 
 }
 
-
-
 // Unwrap returns the underlying cause error.
 
 func (e *A1Error) Unwrap() error {
@@ -224,8 +192,6 @@ func (e *A1Error) Unwrap() error {
 	return e.Cause
 
 }
-
-
 
 // IsRetryable returns true if the error indicates a retryable condition.
 
@@ -235,33 +201,28 @@ func (e *A1Error) IsRetryable() bool {
 
 }
 
-
-
 // ToProblemDetail converts A1Error to RFC 7807 compliant ProblemDetail.
 
 func (e *A1Error) ToProblemDetail() *A1ProblemDetail {
 
 	pd := &A1ProblemDetail{
 
-		Type:       string(e.Type),
+		Type: string(e.Type),
 
-		Title:      e.Title,
+		Title: e.Title,
 
-		Status:     e.Status,
+		Status: e.Status,
 
-		Detail:     e.Detail,
+		Detail: e.Detail,
 
-		Instance:   e.Instance,
+		Instance: e.Instance,
 
-		Timestamp:  e.Timestamp,
+		Timestamp: e.Timestamp,
 
-		RequestID:  e.CorrelationID,
+		RequestID: e.CorrelationID,
 
 		Extensions: make(map[string]interface{}),
-
 	}
-
-
 
 	// Add context as extensions.
 
@@ -271,21 +232,15 @@ func (e *A1Error) ToProblemDetail() *A1ProblemDetail {
 
 	}
 
-
-
 	if e.Retryable {
 
 		pd.Extensions["retryable"] = true
 
 	}
 
-
-
 	return pd
 
 }
-
-
 
 // MarshalJSON implements custom JSON marshaling to include extensions.
 
@@ -295,15 +250,11 @@ func (pd *A1ProblemDetail) MarshalJSON() ([]byte, error) {
 
 	result := make(map[string]interface{})
 
-
-
 	result["type"] = pd.Type
 
 	result["title"] = pd.Title
 
 	result["status"] = pd.Status
-
-
 
 	if pd.Detail != "" {
 
@@ -311,15 +262,11 @@ func (pd *A1ProblemDetail) MarshalJSON() ([]byte, error) {
 
 	}
 
-
-
 	if pd.Instance != "" {
 
 		result["instance"] = pd.Instance
 
 	}
-
-
 
 	if !pd.Timestamp.IsZero() {
 
@@ -327,15 +274,11 @@ func (pd *A1ProblemDetail) MarshalJSON() ([]byte, error) {
 
 	}
 
-
-
 	if pd.RequestID != "" {
 
 		result["request_id"] = pd.RequestID
 
 	}
-
-
 
 	// Add extensions.
 
@@ -345,13 +288,9 @@ func (pd *A1ProblemDetail) MarshalJSON() ([]byte, error) {
 
 	}
 
-
-
 	return json.Marshal(result)
 
 }
-
-
 
 // NewA1Error creates a new A1Error with the specified type and details.
 
@@ -359,23 +298,20 @@ func NewA1Error(errorType A1ErrorType, title string, status int, detail string) 
 
 	return &A1Error{
 
-		Type:      errorType,
+		Type: errorType,
 
-		Title:     title,
+		Title: title,
 
-		Status:    status,
+		Status: status,
 
-		Detail:    detail,
+		Detail: detail,
 
 		Timestamp: time.Now(),
 
-		Context:   make(map[string]interface{}),
-
+		Context: make(map[string]interface{}),
 	}
 
 }
-
-
 
 // NewA1ErrorWithCause creates a new A1Error with an underlying cause.
 
@@ -388,8 +324,6 @@ func NewA1ErrorWithCause(errorType A1ErrorType, title string, status int, detail
 	return err
 
 }
-
-
 
 // WithContext adds context information to the error.
 
@@ -407,8 +341,6 @@ func (e *A1Error) WithContext(key string, value interface{}) *A1Error {
 
 }
 
-
-
 // WithInstance sets the instance URI for the error.
 
 func (e *A1Error) WithInstance(instance string) *A1Error {
@@ -418,8 +350,6 @@ func (e *A1Error) WithInstance(instance string) *A1Error {
 	return e
 
 }
-
-
 
 // WithCorrelationID sets the correlation ID for the error.
 
@@ -431,8 +361,6 @@ func (e *A1Error) WithCorrelationID(correlationID string) *A1Error {
 
 }
 
-
-
 // AsRetryable marks the error as retryable.
 
 func (e *A1Error) AsRetryable() *A1Error {
@@ -443,11 +371,7 @@ func (e *A1Error) AsRetryable() *A1Error {
 
 }
 
-
-
 // Predefined A1 Errors for common scenarios.
-
-
 
 // Policy Type Errors.
 
@@ -462,12 +386,9 @@ func NewPolicyTypeNotFoundError(policyTypeID int) *A1Error {
 		http.StatusNotFound,
 
 		fmt.Sprintf("Policy type with ID %d does not exist", policyTypeID),
-
 	).WithContext("policy_type_id", policyTypeID)
 
 }
-
-
 
 // NewPolicyTypeAlreadyExistsError performs newpolicytypealreadyexistserror operation.
 
@@ -482,12 +403,9 @@ func NewPolicyTypeAlreadyExistsError(policyTypeID int) *A1Error {
 		http.StatusConflict,
 
 		fmt.Sprintf("Policy type with ID %d already exists", policyTypeID),
-
 	).WithContext("policy_type_id", policyTypeID)
 
 }
-
-
 
 // NewPolicyTypeInvalidSchemaError performs newpolicytypeinvalidschemaerror operation.
 
@@ -504,12 +422,9 @@ func NewPolicyTypeInvalidSchemaError(policyTypeID int, validationError error) *A
 		fmt.Sprintf("Policy type %d has invalid schema: %v", policyTypeID, validationError),
 
 		validationError,
-
 	).WithContext("policy_type_id", policyTypeID)
 
 }
-
-
 
 // Policy Instance Errors.
 
@@ -524,12 +439,9 @@ func NewPolicyInstanceNotFoundError(policyTypeID int, policyID string) *A1Error 
 		http.StatusNotFound,
 
 		fmt.Sprintf("Policy instance %s for type %d does not exist", policyID, policyTypeID),
-
 	).WithContext("policy_type_id", policyTypeID).WithContext("policy_id", policyID)
 
 }
-
-
 
 // NewPolicyInstanceConflictError performs newpolicyinstanceconflicterror operation.
 
@@ -544,12 +456,9 @@ func NewPolicyInstanceConflictError(policyTypeID int, policyID string) *A1Error 
 		http.StatusConflict,
 
 		fmt.Sprintf("Policy instance %s for type %d conflicts with existing instance", policyID, policyTypeID),
-
 	).WithContext("policy_type_id", policyTypeID).WithContext("policy_id", policyID)
 
 }
-
-
 
 // NewPolicyValidationFailedError performs newpolicyvalidationfailederror operation.
 
@@ -566,12 +475,9 @@ func NewPolicyValidationFailedError(policyTypeID int, policyID string, validatio
 		fmt.Sprintf("Policy instance %s validation failed: %v", policyID, validationError),
 
 		validationError,
-
 	).WithContext("policy_type_id", policyTypeID).WithContext("policy_id", policyID)
 
 }
-
-
 
 // NewPolicyEnforcementFailedError performs newpolicyenforcementfailederror operation.
 
@@ -588,12 +494,9 @@ func NewPolicyEnforcementFailedError(policyTypeID int, policyID string, enforcem
 		fmt.Sprintf("Failed to enforce policy instance %s: %v", policyID, enforcementError),
 
 		enforcementError,
-
 	).WithContext("policy_type_id", policyTypeID).WithContext("policy_id", policyID).AsRetryable()
 
 }
-
-
 
 // Consumer Errors.
 
@@ -608,12 +511,9 @@ func NewConsumerNotFoundError(consumerID string) *A1Error {
 		http.StatusNotFound,
 
 		fmt.Sprintf("Consumer with ID %s does not exist", consumerID),
-
 	).WithContext("consumer_id", consumerID)
 
 }
-
-
 
 // NewConsumerAlreadyExistsError performs newconsumeralreadyexistserror operation.
 
@@ -628,12 +528,9 @@ func NewConsumerAlreadyExistsError(consumerID string) *A1Error {
 		http.StatusConflict,
 
 		fmt.Sprintf("Consumer with ID %s already exists", consumerID),
-
 	).WithContext("consumer_id", consumerID)
 
 }
-
-
 
 // NewConsumerInvalidCallbackError performs newconsumerinvalidcallbackerror operation.
 
@@ -650,12 +547,9 @@ func NewConsumerInvalidCallbackError(consumerID, callbackURL string, validationE
 		fmt.Sprintf("Consumer %s has invalid callback URL %s: %v", consumerID, callbackURL, validationError),
 
 		validationError,
-
 	).WithContext("consumer_id", consumerID).WithContext("callback_url", callbackURL)
 
 }
-
-
 
 // NewConsumerNotificationFailedError performs newconsumernotificationfailederror operation.
 
@@ -672,12 +566,9 @@ func NewConsumerNotificationFailedError(consumerID string, notificationError err
 		fmt.Sprintf("Failed to notify consumer %s: %v", consumerID, notificationError),
 
 		notificationError,
-
 	).WithContext("consumer_id", consumerID).AsRetryable()
 
 }
-
-
 
 // Enrichment Information Errors.
 
@@ -692,12 +583,9 @@ func NewEITypeNotFoundError(eiTypeID string) *A1Error {
 		http.StatusNotFound,
 
 		fmt.Sprintf("Enrichment Information type %s does not exist", eiTypeID),
-
 	).WithContext("ei_type_id", eiTypeID)
 
 }
-
-
 
 // NewEITypeAlreadyExistsError performs neweitypealreadyexistserror operation.
 
@@ -712,12 +600,9 @@ func NewEITypeAlreadyExistsError(eiTypeID string) *A1Error {
 		http.StatusConflict,
 
 		fmt.Sprintf("Enrichment Information type %s already exists", eiTypeID),
-
 	).WithContext("ei_type_id", eiTypeID)
 
 }
-
-
 
 // NewEIJobNotFoundError performs neweijobnotfounderror operation.
 
@@ -732,12 +617,9 @@ func NewEIJobNotFoundError(eiJobID string) *A1Error {
 		http.StatusNotFound,
 
 		fmt.Sprintf("Enrichment Information job %s does not exist", eiJobID),
-
 	).WithContext("ei_job_id", eiJobID)
 
 }
-
-
 
 // NewEIJobAlreadyExistsError performs neweijobalreadyexistserror operation.
 
@@ -752,12 +634,9 @@ func NewEIJobAlreadyExistsError(eiJobID string) *A1Error {
 		http.StatusConflict,
 
 		fmt.Sprintf("Enrichment Information job %s already exists", eiJobID),
-
 	).WithContext("ei_job_id", eiJobID)
 
 }
-
-
 
 // NewEIJobInvalidConfigError performs neweijobinvalidconfigerror operation.
 
@@ -774,12 +653,9 @@ func NewEIJobInvalidConfigError(eiJobID string, configError error) *A1Error {
 		fmt.Sprintf("Enrichment Information job %s has invalid configuration: %v", eiJobID, configError),
 
 		configError,
-
 	).WithContext("ei_job_id", eiJobID)
 
 }
-
-
 
 // NewEIJobExecutionFailedError performs neweijobexecutionfailederror operation.
 
@@ -796,12 +672,9 @@ func NewEIJobExecutionFailedError(eiJobID string, executionError error) *A1Error
 		fmt.Sprintf("Enrichment Information job %s execution failed: %v", eiJobID, executionError),
 
 		executionError,
-
 	).WithContext("ei_job_id", eiJobID).AsRetryable()
 
 }
-
-
 
 // Generic Errors.
 
@@ -816,12 +689,9 @@ func NewInvalidRequestError(detail string) *A1Error {
 		http.StatusBadRequest,
 
 		detail,
-
 	)
 
 }
-
-
 
 // NewInternalServerError performs newinternalservererror operation.
 
@@ -838,12 +708,9 @@ func NewInternalServerError(detail string, cause error) *A1Error {
 		detail,
 
 		cause,
-
 	).AsRetryable()
 
 }
-
-
 
 // NewServiceUnavailableError performs newserviceunavailableerror operation.
 
@@ -858,12 +725,9 @@ func NewServiceUnavailableError(detail string) *A1Error {
 		http.StatusServiceUnavailable,
 
 		detail,
-
 	).AsRetryable()
 
 }
-
-
 
 // NewMethodNotAllowedError performs newmethodnotallowederror operation.
 
@@ -878,12 +742,9 @@ func NewMethodNotAllowedError(method string, allowedMethods []string) *A1Error {
 		http.StatusMethodNotAllowed,
 
 		fmt.Sprintf("Method %s is not allowed", method),
-
 	).WithContext("method", method).WithContext("allowed_methods", allowedMethods)
 
 }
-
-
 
 // NewUnsupportedMediaTypeError performs newunsupportedmediatypeerror operation.
 
@@ -898,12 +759,9 @@ func NewUnsupportedMediaTypeError(contentType string, supportedTypes []string) *
 		http.StatusUnsupportedMediaType,
 
 		fmt.Sprintf("Content type %s is not supported", contentType),
-
 	).WithContext("content_type", contentType).WithContext("supported_types", supportedTypes)
 
 }
-
-
 
 // NewRateLimitExceededError performs newratelimitexceedederror operation.
 
@@ -918,12 +776,9 @@ func NewRateLimitExceededError(limit int, windowSize time.Duration) *A1Error {
 		http.StatusTooManyRequests,
 
 		fmt.Sprintf("Rate limit of %d requests per %v exceeded", limit, windowSize),
-
 	).WithContext("rate_limit", limit).WithContext("window_size", windowSize.String()).AsRetryable()
 
 }
-
-
 
 // NewAuthenticationRequiredError performs newauthenticationrequirederror operation.
 
@@ -938,12 +793,9 @@ func NewAuthenticationRequiredError() *A1Error {
 		http.StatusUnauthorized,
 
 		"Authentication credentials are required to access this resource",
-
 	)
 
 }
-
-
 
 // NewAuthorizationDeniedError performs newauthorizationdeniederror operation.
 
@@ -958,12 +810,9 @@ func NewAuthorizationDeniedError(resource string) *A1Error {
 		http.StatusForbidden,
 
 		fmt.Sprintf("Access to resource %s is denied", resource),
-
 	).WithContext("resource", resource)
 
 }
-
-
 
 // NewCircuitBreakerOpenError performs newcircuitbreakeropenerror operation.
 
@@ -978,12 +827,9 @@ func NewCircuitBreakerOpenError(circuitName string) *A1Error {
 		http.StatusServiceUnavailable,
 
 		fmt.Sprintf("Circuit breaker %s is open, requests are being rejected", circuitName),
-
 	).WithContext("circuit_name", circuitName).AsRetryable()
 
 }
-
-
 
 // NewTimeoutError performs newtimeouterror operation.
 
@@ -998,12 +844,9 @@ func NewTimeoutError(operation string, timeout time.Duration) *A1Error {
 		http.StatusRequestTimeout,
 
 		fmt.Sprintf("Operation %s timed out after %v", operation, timeout),
-
 	).WithContext("operation", operation).WithContext("timeout", timeout.String()).AsRetryable()
 
 }
-
-
 
 // WriteA1Error writes an A1Error as an RFC 7807 compliant response.
 
@@ -1012,8 +855,6 @@ func WriteA1Error(w http.ResponseWriter, err *A1Error) {
 	w.Header().Set("Content-Type", ContentTypeProblemJSON)
 
 	w.WriteHeader(err.Status)
-
-
 
 	problemDetail := err.ToProblemDetail()
 
@@ -1031,8 +872,6 @@ func WriteA1Error(w http.ResponseWriter, err *A1Error) {
 
 }
 
-
-
 // ExtractA1ErrorFromHTTPResponse extracts A1Error from an HTTP response.
 
 func ExtractA1ErrorFromHTTPResponse(resp *http.Response) (*A1Error, error) {
@@ -1043,8 +882,6 @@ func ExtractA1ErrorFromHTTPResponse(resp *http.Response) (*A1Error, error) {
 
 	}
 
-
-
 	var problemDetail A1ProblemDetail
 
 	if err := json.NewDecoder(resp.Body).Decode(&problemDetail); err != nil {
@@ -1053,41 +890,35 @@ func ExtractA1ErrorFromHTTPResponse(resp *http.Response) (*A1Error, error) {
 
 		return &A1Error{
 
-			Type:      ErrorTypeInternalServerError,
+			Type: ErrorTypeInternalServerError,
 
-			Title:     http.StatusText(resp.StatusCode),
+			Title: http.StatusText(resp.StatusCode),
 
-			Status:    resp.StatusCode,
+			Status: resp.StatusCode,
 
 			Timestamp: time.Now(),
-
 		}, nil
 
 	}
 
-
-
 	a1Error := &A1Error{
 
-		Type:          A1ErrorType(problemDetail.Type),
+		Type: A1ErrorType(problemDetail.Type),
 
-		Title:         problemDetail.Title,
+		Title: problemDetail.Title,
 
-		Status:        problemDetail.Status,
+		Status: problemDetail.Status,
 
-		Detail:        problemDetail.Detail,
+		Detail: problemDetail.Detail,
 
-		Instance:      problemDetail.Instance,
+		Instance: problemDetail.Instance,
 
-		Timestamp:     problemDetail.Timestamp,
+		Timestamp: problemDetail.Timestamp,
 
 		CorrelationID: problemDetail.RequestID,
 
-		Context:       problemDetail.Extensions,
-
+		Context: problemDetail.Extensions,
 	}
-
-
 
 	// Check if error is marked as retryable.
 
@@ -1097,13 +928,9 @@ func ExtractA1ErrorFromHTTPResponse(resp *http.Response) (*A1Error, error) {
 
 	}
 
-
-
 	return a1Error, nil
 
 }
-
-
 
 // IsA1Error checks if an error is an A1Error.
 
@@ -1114,8 +941,6 @@ func IsA1Error(err error) bool {
 	return errors.As(err, &a1Err)
 
 }
-
-
 
 // GetA1Error extracts A1Error from an error, returning nil if not an A1Error.
 
@@ -1133,8 +958,6 @@ func GetA1Error(err error) *A1Error {
 
 }
 
-
-
 // WrapError wraps a generic error as an A1 internal server error.
 
 func WrapError(err error, detail string) *A1Error {
@@ -1143,13 +966,9 @@ func WrapError(err error, detail string) *A1Error {
 
 }
 
-
-
 // ErrorHandler is a middleware function type for handling A1 errors.
 
 type ErrorHandler func(http.ResponseWriter, *http.Request, *A1Error)
-
-
 
 // DefaultErrorHandler provides default error handling for A1 errors.
 
@@ -1163,8 +982,6 @@ func DefaultErrorHandler(w http.ResponseWriter, r *http.Request, err *A1Error) {
 
 	}
 
-
-
 	// Add instance URI based on request.
 
 	if err.Instance == "" {
@@ -1173,13 +990,9 @@ func DefaultErrorHandler(w http.ResponseWriter, r *http.Request, err *A1Error) {
 
 	}
 
-
-
 	WriteA1Error(w, err)
 
 }
-
-
 
 // ErrorMiddleware provides middleware for consistent error handling.
 
@@ -1190,8 +1003,6 @@ func ErrorMiddleware(errorHandler ErrorHandler) func(http.Handler) http.Handler 
 		errorHandler = DefaultErrorHandler
 
 	}
-
-
 
 	return func(next http.Handler) http.Handler {
 
@@ -1223,8 +1034,6 @@ func ErrorMiddleware(errorHandler ErrorHandler) func(http.Handler) http.Handler 
 
 			}()
 
-
-
 			next.ServeHTTP(w, r)
 
 		})
@@ -1232,4 +1041,3 @@ func ErrorMiddleware(errorHandler ErrorHandler) func(http.Handler) http.Handler 
 	}
 
 }
-

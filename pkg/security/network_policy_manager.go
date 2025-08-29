@@ -1,45 +1,25 @@
-
 package security
 
-
-
 import (
-
 	"context"
-
 	"fmt"
 
-
-
 	corev1 "k8s.io/api/core/v1"
-
 	networkingv1 "k8s.io/api/networking/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // NetworkPolicyManager implements zero-trust networking for O-RAN components.
 
 type NetworkPolicyManager struct {
-
-	client    client.Client
+	client client.Client
 
 	namespace string
-
 }
-
-
 
 // NewNetworkPolicyManager creates a new network policy manager.
 
@@ -47,21 +27,16 @@ func NewNetworkPolicyManager(client client.Client, namespace string) *NetworkPol
 
 	return &NetworkPolicyManager{
 
-		client:    client,
+		client: client,
 
 		namespace: namespace,
-
 	}
 
 }
 
-
-
 // PolicyType defines the type of network policy.
 
 type PolicyType string
-
-
 
 const (
 
@@ -84,10 +59,7 @@ const (
 	// PolicyTypeORANInterface holds policytypeoraninterface value.
 
 	PolicyTypeORANInterface PolicyType = "oran-interface"
-
 )
-
-
 
 // CreateDefaultDenyAllPolicy creates a default deny-all network policy (zero-trust baseline).
 
@@ -95,28 +67,24 @@ func (m *NetworkPolicyManager) CreateDefaultDenyAllPolicy(ctx context.Context) e
 
 	logger := log.FromContext(ctx)
 
-
-
 	policy := &networkingv1.NetworkPolicy{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "default-deny-all",
+			Name: "default-deny-all",
 
 			Namespace: m.namespace,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":      "nephoran-intent-operator",
+				"app.kubernetes.io/name": "nephoran-intent-operator",
 
 				"app.kubernetes.io/component": "network-policy",
 
-				"security.nephoran.io/type":   string(PolicyTypeDenyAll),
+				"security.nephoran.io/type": string(PolicyTypeDenyAll),
 
-				"security.nephoran.io/ztna":   "enabled",
-
+				"security.nephoran.io/ztna": "enabled",
 			},
-
 		},
 
 		Spec: networkingv1.NetworkPolicySpec{
@@ -128,20 +96,15 @@ func (m *NetworkPolicyManager) CreateDefaultDenyAllPolicy(ctx context.Context) e
 				networkingv1.PolicyTypeIngress,
 
 				networkingv1.PolicyTypeEgress,
-
 			},
 
 			// Empty ingress and egress rules mean deny all.
 
 			Ingress: []networkingv1.NetworkPolicyIngressRule{},
 
-			Egress:  []networkingv1.NetworkPolicyEgressRule{},
-
+			Egress: []networkingv1.NetworkPolicyEgressRule{},
 		},
-
 	}
-
-
 
 	if err := m.client.Create(ctx, policy); err != nil {
 
@@ -151,15 +114,11 @@ func (m *NetworkPolicyManager) CreateDefaultDenyAllPolicy(ctx context.Context) e
 
 	}
 
-
-
 	logger.Info("Created default deny-all network policy")
 
 	return nil
 
 }
-
-
 
 // CreateControllerNetworkPolicy creates network policy for the operator controller.
 
@@ -167,26 +126,22 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 
 	logger := log.FromContext(ctx)
 
-
-
 	policy := &networkingv1.NetworkPolicy{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "nephoran-controller-policy",
+			Name: "nephoran-controller-policy",
 
 			Namespace: m.namespace,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":      "nephoran-intent-operator",
+				"app.kubernetes.io/name": "nephoran-intent-operator",
 
 				"app.kubernetes.io/component": "controller",
 
-				"security.nephoran.io/type":   string(PolicyTypeComponentSpecific),
-
+				"security.nephoran.io/type": string(PolicyTypeComponentSpecific),
 			},
-
 		},
 
 		Spec: networkingv1.NetworkPolicySpec{
@@ -195,12 +150,10 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 
 				MatchLabels: map[string]string{
 
-					"app.kubernetes.io/name":      "nephoran-intent-operator",
+					"app.kubernetes.io/name": "nephoran-intent-operator",
 
 					"app.kubernetes.io/component": "controller",
-
 				},
-
 			},
 
 			PolicyTypes: []networkingv1.PolicyType{
@@ -208,7 +161,6 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 				networkingv1.PolicyTypeIngress,
 
 				networkingv1.PolicyTypeEgress,
-
 			},
 
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
@@ -226,13 +178,9 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 								MatchLabels: map[string]string{
 
 									"name": "kube-system",
-
 								},
-
 							},
-
 						},
-
 					},
 
 					Ports: []networkingv1.NetworkPolicyPort{
@@ -241,12 +189,9 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolTCP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 9443},
-
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 9443},
 						},
-
 					},
-
 				},
 
 				{
@@ -262,13 +207,9 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 								MatchLabels: map[string]string{
 
 									"app.kubernetes.io/name": "prometheus",
-
 								},
-
 							},
-
 						},
-
 					},
 
 					Ports: []networkingv1.NetworkPolicyPort{
@@ -277,14 +218,10 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolTCP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 8080},
-
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 8080},
 						},
-
 					},
-
 				},
-
 			},
 
 			Egress: []networkingv1.NetworkPolicyEgressRule{
@@ -302,9 +239,7 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 								MatchLabels: map[string]string{
 
 									"name": "kube-system",
-
 								},
-
 							},
 
 							PodSelector: &metav1.LabelSelector{
@@ -312,13 +247,9 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 								MatchLabels: map[string]string{
 
 									"k8s-app": "kube-dns",
-
 								},
-
 							},
-
 						},
-
 					},
 
 					Ports: []networkingv1.NetworkPolicyPort{
@@ -327,12 +258,9 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolUDP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 53},
-
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 53},
 						},
-
 					},
-
 				},
 
 				{
@@ -348,9 +276,7 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 								CIDR: "10.0.0.0/8", // Adjust for your cluster
 
 							},
-
 						},
-
 					},
 
 					Ports: []networkingv1.NetworkPolicyPort{
@@ -359,20 +285,16 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolTCP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 443},
-
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 443},
 						},
 
 						{
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolTCP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 6443},
-
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 6443},
 						},
-
 					},
-
 				},
 
 				{
@@ -387,16 +309,12 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 
 								MatchLabels: map[string]string{
 
-									"app.kubernetes.io/name":      "nephoran-intent-operator",
+									"app.kubernetes.io/name": "nephoran-intent-operator",
 
 									"app.kubernetes.io/component": "llm-processor",
-
 								},
-
 							},
-
 						},
-
 					},
 
 					Ports: []networkingv1.NetworkPolicyPort{
@@ -405,21 +323,13 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolTCP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 8081},
-
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 8081},
 						},
-
 					},
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	if err := m.client.Create(ctx, policy); err != nil {
 
@@ -429,15 +339,11 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 
 	}
 
-
-
 	logger.Info("Created controller network policy")
 
 	return nil
 
 }
-
-
 
 // CreateLLMServiceNetworkPolicy creates network policy for LLM service.
 
@@ -445,26 +351,22 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 
 	logger := log.FromContext(ctx)
 
-
-
 	policy := &networkingv1.NetworkPolicy{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "nephoran-llm-policy",
+			Name: "nephoran-llm-policy",
 
 			Namespace: m.namespace,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":      "nephoran-intent-operator",
+				"app.kubernetes.io/name": "nephoran-intent-operator",
 
 				"app.kubernetes.io/component": "llm-processor",
 
-				"security.nephoran.io/type":   string(PolicyTypeComponentSpecific),
-
+				"security.nephoran.io/type": string(PolicyTypeComponentSpecific),
 			},
-
 		},
 
 		Spec: networkingv1.NetworkPolicySpec{
@@ -473,12 +375,10 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 
 				MatchLabels: map[string]string{
 
-					"app.kubernetes.io/name":      "nephoran-intent-operator",
+					"app.kubernetes.io/name": "nephoran-intent-operator",
 
 					"app.kubernetes.io/component": "llm-processor",
-
 				},
-
 			},
 
 			PolicyTypes: []networkingv1.PolicyType{
@@ -486,7 +386,6 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 				networkingv1.PolicyTypeIngress,
 
 				networkingv1.PolicyTypeEgress,
-
 			},
 
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
@@ -503,16 +402,12 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 
 								MatchLabels: map[string]string{
 
-									"app.kubernetes.io/name":      "nephoran-intent-operator",
+									"app.kubernetes.io/name": "nephoran-intent-operator",
 
 									"app.kubernetes.io/component": "controller",
-
 								},
-
 							},
-
 						},
-
 					},
 
 					Ports: []networkingv1.NetworkPolicyPort{
@@ -521,14 +416,10 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolTCP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 8081},
-
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 8081},
 						},
-
 					},
-
 				},
-
 			},
 
 			Egress: []networkingv1.NetworkPolicyEgressRule{
@@ -546,9 +437,7 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 								MatchLabels: map[string]string{
 
 									"name": "kube-system",
-
 								},
-
 							},
 
 							PodSelector: &metav1.LabelSelector{
@@ -556,13 +445,9 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 								MatchLabels: map[string]string{
 
 									"k8s-app": "kube-dns",
-
 								},
-
 							},
-
 						},
-
 					},
 
 					Ports: []networkingv1.NetworkPolicyPort{
@@ -571,12 +456,9 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolUDP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 53},
-
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 53},
 						},
-
 					},
-
 				},
 
 				{
@@ -598,13 +480,9 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 									"172.16.0.0/12",
 
 									"192.168.0.0/16",
-
 								},
-
 							},
-
 						},
-
 					},
 
 					Ports: []networkingv1.NetworkPolicyPort{
@@ -613,12 +491,9 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolTCP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 443},
-
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 443},
 						},
-
 					},
-
 				},
 
 				{
@@ -634,13 +509,9 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 								MatchLabels: map[string]string{
 
 									"app.kubernetes.io/name": "weaviate",
-
 								},
-
 							},
-
 						},
-
 					},
 
 					Ports: []networkingv1.NetworkPolicyPort{
@@ -649,21 +520,13 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolTCP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 8080},
-
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 8080},
 						},
-
 					},
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	if err := m.client.Create(ctx, policy); err != nil {
 
@@ -673,15 +536,11 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 
 	}
 
-
-
 	logger.Info("Created LLM service network policy")
 
 	return nil
 
 }
-
-
 
 // CreateORANInterfacePolicy creates network policies for O-RAN interfaces.
 
@@ -689,11 +548,7 @@ func (m *NetworkPolicyManager) CreateORANInterfacePolicy(ctx context.Context, in
 
 	logger := log.FromContext(ctx)
 
-
-
 	var policy *networkingv1.NetworkPolicy
-
-
 
 	switch interfaceType {
 
@@ -719,8 +574,6 @@ func (m *NetworkPolicyManager) CreateORANInterfacePolicy(ctx context.Context, in
 
 	}
 
-
-
 	if err := m.client.Create(ctx, policy); err != nil {
 
 		logger.Error(err, "Failed to create O-RAN interface policy", "interface", interfaceType)
@@ -729,15 +582,11 @@ func (m *NetworkPolicyManager) CreateORANInterfacePolicy(ctx context.Context, in
 
 	}
 
-
-
 	logger.Info("Created O-RAN interface network policy", "interface", interfaceType)
 
 	return nil
 
 }
-
-
 
 // createA1InterfacePolicy creates network policy for A1 interface (Non-RT RIC to Near-RT RIC).
 
@@ -747,22 +596,20 @@ func (m *NetworkPolicyManager) createA1InterfacePolicy() *networkingv1.NetworkPo
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "oran-a1-interface-policy",
+			Name: "oran-a1-interface-policy",
 
 			Namespace: m.namespace,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":      "nephoran-intent-operator",
+				"app.kubernetes.io/name": "nephoran-intent-operator",
 
 				"app.kubernetes.io/component": "oran-a1",
 
-				"security.nephoran.io/type":   string(PolicyTypeORANInterface),
+				"security.nephoran.io/type": string(PolicyTypeORANInterface),
 
-				"oran.alliance/interface":     "A1",
-
+				"oran.alliance/interface": "A1",
 			},
-
 		},
 
 		Spec: networkingv1.NetworkPolicySpec{
@@ -772,15 +619,12 @@ func (m *NetworkPolicyManager) createA1InterfacePolicy() *networkingv1.NetworkPo
 				MatchLabels: map[string]string{
 
 					"oran.alliance/component": "near-rt-ric",
-
 				},
-
 			},
 
 			PolicyTypes: []networkingv1.PolicyType{
 
 				networkingv1.PolicyTypeIngress,
-
 			},
 
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
@@ -796,13 +640,9 @@ func (m *NetworkPolicyManager) createA1InterfacePolicy() *networkingv1.NetworkPo
 								MatchLabels: map[string]string{
 
 									"oran.alliance/component": "non-rt-ric",
-
 								},
-
 							},
-
 						},
-
 					},
 
 					Ports: []networkingv1.NetworkPolicyPort{
@@ -811,23 +651,16 @@ func (m *NetworkPolicyManager) createA1InterfacePolicy() *networkingv1.NetworkPo
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolTCP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 8443}, // A1 interface port
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 8443}, // A1 interface port
 
 						},
-
 					},
-
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // createO1InterfacePolicy creates network policy for O1 interface (FCAPS management).
 
@@ -837,22 +670,20 @@ func (m *NetworkPolicyManager) createO1InterfacePolicy() *networkingv1.NetworkPo
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "oran-o1-interface-policy",
+			Name: "oran-o1-interface-policy",
 
 			Namespace: m.namespace,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":      "nephoran-intent-operator",
+				"app.kubernetes.io/name": "nephoran-intent-operator",
 
 				"app.kubernetes.io/component": "oran-o1",
 
-				"security.nephoran.io/type":   string(PolicyTypeORANInterface),
+				"security.nephoran.io/type": string(PolicyTypeORANInterface),
 
-				"oran.alliance/interface":     "O1",
-
+				"oran.alliance/interface": "O1",
 			},
-
 		},
 
 		Spec: networkingv1.NetworkPolicySpec{
@@ -862,15 +693,12 @@ func (m *NetworkPolicyManager) createO1InterfacePolicy() *networkingv1.NetworkPo
 				MatchLabels: map[string]string{
 
 					"oran.alliance/managed": "true",
-
 				},
-
 			},
 
 			PolicyTypes: []networkingv1.PolicyType{
 
 				networkingv1.PolicyTypeIngress,
-
 			},
 
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
@@ -886,13 +714,9 @@ func (m *NetworkPolicyManager) createO1InterfacePolicy() *networkingv1.NetworkPo
 								MatchLabels: map[string]string{
 
 									"oran.alliance/component": "smo",
-
 								},
-
 							},
-
 						},
-
 					},
 
 					Ports: []networkingv1.NetworkPolicyPort{
@@ -901,7 +725,7 @@ func (m *NetworkPolicyManager) createO1InterfacePolicy() *networkingv1.NetworkPo
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolTCP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 830}, // NETCONF
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 830}, // NETCONF
 
 						},
 
@@ -909,23 +733,16 @@ func (m *NetworkPolicyManager) createO1InterfacePolicy() *networkingv1.NetworkPo
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolTCP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 6513}, // NETCONF over TLS
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 6513}, // NETCONF over TLS
 
 						},
-
 					},
-
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // createO2InterfacePolicy creates network policy for O2 interface (Cloud infrastructure).
 
@@ -935,22 +752,20 @@ func (m *NetworkPolicyManager) createO2InterfacePolicy() *networkingv1.NetworkPo
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "oran-o2-interface-policy",
+			Name: "oran-o2-interface-policy",
 
 			Namespace: m.namespace,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":      "nephoran-intent-operator",
+				"app.kubernetes.io/name": "nephoran-intent-operator",
 
 				"app.kubernetes.io/component": "oran-o2",
 
-				"security.nephoran.io/type":   string(PolicyTypeORANInterface),
+				"security.nephoran.io/type": string(PolicyTypeORANInterface),
 
-				"oran.alliance/interface":     "O2",
-
+				"oran.alliance/interface": "O2",
 			},
-
 		},
 
 		Spec: networkingv1.NetworkPolicySpec{
@@ -960,15 +775,12 @@ func (m *NetworkPolicyManager) createO2InterfacePolicy() *networkingv1.NetworkPo
 				MatchLabels: map[string]string{
 
 					"oran.alliance/component": "o-cloud",
-
 				},
-
 			},
 
 			PolicyTypes: []networkingv1.PolicyType{
 
 				networkingv1.PolicyTypeIngress,
-
 			},
 
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
@@ -984,13 +796,9 @@ func (m *NetworkPolicyManager) createO2InterfacePolicy() *networkingv1.NetworkPo
 								MatchLabels: map[string]string{
 
 									"oran.alliance/component": "smo",
-
 								},
-
 							},
-
 						},
-
 					},
 
 					Ports: []networkingv1.NetworkPolicyPort{
@@ -999,23 +807,16 @@ func (m *NetworkPolicyManager) createO2InterfacePolicy() *networkingv1.NetworkPo
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolTCP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 443}, // O2 REST API
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 443}, // O2 REST API
 
 						},
-
 					},
-
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // createE2InterfacePolicy creates network policy for E2 interface (Near-RT RIC to E2 nodes).
 
@@ -1025,22 +826,20 @@ func (m *NetworkPolicyManager) createE2InterfacePolicy() *networkingv1.NetworkPo
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      "oran-e2-interface-policy",
+			Name: "oran-e2-interface-policy",
 
 			Namespace: m.namespace,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":      "nephoran-intent-operator",
+				"app.kubernetes.io/name": "nephoran-intent-operator",
 
 				"app.kubernetes.io/component": "oran-e2",
 
-				"security.nephoran.io/type":   string(PolicyTypeORANInterface),
+				"security.nephoran.io/type": string(PolicyTypeORANInterface),
 
-				"oran.alliance/interface":     "E2",
-
+				"oran.alliance/interface": "E2",
 			},
-
 		},
 
 		Spec: networkingv1.NetworkPolicySpec{
@@ -1050,9 +849,7 @@ func (m *NetworkPolicyManager) createE2InterfacePolicy() *networkingv1.NetworkPo
 				MatchLabels: map[string]string{
 
 					"oran.alliance/e2-node": "true",
-
 				},
-
 			},
 
 			PolicyTypes: []networkingv1.PolicyType{
@@ -1060,7 +857,6 @@ func (m *NetworkPolicyManager) createE2InterfacePolicy() *networkingv1.NetworkPo
 				networkingv1.PolicyTypeIngress,
 
 				networkingv1.PolicyTypeEgress,
-
 			},
 
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
@@ -1076,13 +872,9 @@ func (m *NetworkPolicyManager) createE2InterfacePolicy() *networkingv1.NetworkPo
 								MatchLabels: map[string]string{
 
 									"oran.alliance/component": "near-rt-ric",
-
 								},
-
 							},
-
 						},
-
 					},
 
 					Ports: []networkingv1.NetworkPolicyPort{
@@ -1091,14 +883,11 @@ func (m *NetworkPolicyManager) createE2InterfacePolicy() *networkingv1.NetworkPo
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolSCTP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 36421}, // E2AP SCTP
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 36421}, // E2AP SCTP
 
 						},
-
 					},
-
 				},
-
 			},
 
 			Egress: []networkingv1.NetworkPolicyEgressRule{
@@ -1114,13 +903,9 @@ func (m *NetworkPolicyManager) createE2InterfacePolicy() *networkingv1.NetworkPo
 								MatchLabels: map[string]string{
 
 									"oran.alliance/component": "near-rt-ric",
-
 								},
-
 							},
-
 						},
-
 					},
 
 					Ports: []networkingv1.NetworkPolicyPort{
@@ -1129,31 +914,21 @@ func (m *NetworkPolicyManager) createE2InterfacePolicy() *networkingv1.NetworkPo
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolSCTP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 36421},
-
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 36421},
 						},
-
 					},
-
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // CreateExternalAccessPolicy creates policy for external service access.
 
 func (m *NetworkPolicyManager) CreateExternalAccessPolicy(ctx context.Context, serviceName string, allowedCIDRs []string) error {
 
 	logger := log.FromContext(ctx)
-
-
 
 	// Build IPBlock peers.
 
@@ -1166,33 +941,27 @@ func (m *NetworkPolicyManager) CreateExternalAccessPolicy(ctx context.Context, s
 			IPBlock: &networkingv1.IPBlock{
 
 				CIDR: cidr,
-
 			},
-
 		})
 
 	}
-
-
 
 	policy := &networkingv1.NetworkPolicy{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      fmt.Sprintf("%s-external-access", serviceName),
+			Name: fmt.Sprintf("%s-external-access", serviceName),
 
 			Namespace: m.namespace,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":      "nephoran-intent-operator",
+				"app.kubernetes.io/name": "nephoran-intent-operator",
 
 				"app.kubernetes.io/component": serviceName,
 
-				"security.nephoran.io/type":   "external-access",
-
+				"security.nephoran.io/type": "external-access",
 			},
-
 		},
 
 		Spec: networkingv1.NetworkPolicySpec{
@@ -1202,15 +971,12 @@ func (m *NetworkPolicyManager) CreateExternalAccessPolicy(ctx context.Context, s
 				MatchLabels: map[string]string{
 
 					"app.kubernetes.io/name": serviceName,
-
 				},
-
 			},
 
 			PolicyTypes: []networkingv1.PolicyType{
 
 				networkingv1.PolicyTypeIngress,
-
 			},
 
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
@@ -1225,21 +991,13 @@ func (m *NetworkPolicyManager) CreateExternalAccessPolicy(ctx context.Context, s
 
 							Protocol: &[]corev1.Protocol{corev1.ProtocolTCP}[0],
 
-							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 443},
-
+							Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 443},
 						},
-
 					},
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	if err := m.client.Create(ctx, policy); err != nil {
 
@@ -1249,15 +1007,11 @@ func (m *NetworkPolicyManager) CreateExternalAccessPolicy(ctx context.Context, s
 
 	}
 
-
-
 	logger.Info("Created external access policy", "service", serviceName)
 
 	return nil
 
 }
-
-
 
 // ValidateNetworkPolicies validates that network policies are effective.
 
@@ -1265,21 +1019,16 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 
 	logger := log.FromContext(ctx)
 
-
-
 	report := &NetworkPolicyValidationReport{
 
 		Timestamp: metav1.Now(),
 
 		Namespace: m.namespace,
 
-		Issues:    []string{},
+		Issues: []string{},
 
-		Warnings:  []string{},
-
+		Warnings: []string{},
 	}
-
-
 
 	// List all network policies.
 
@@ -1291,11 +1040,7 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 
 	}
 
-
-
 	report.PolicyCount = len(policies.Items)
-
-
 
 	// Check for default deny-all policy.
 
@@ -1313,15 +1058,11 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 
 	}
 
-
-
 	if !hasDenyAll {
 
 		report.Issues = append(report.Issues, "Missing default deny-all policy (zero-trust baseline)")
 
 	}
-
-
 
 	// List all pods.
 
@@ -1332,8 +1073,6 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 		return nil, fmt.Errorf("failed to list pods: %w", err)
 
 	}
-
-
 
 	// Check pod coverage.
 
@@ -1353,13 +1092,9 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 
 	}
 
-
-
 	report.CoveredPods = len(coveredPods)
 
 	report.TotalPods = len(pods.Items)
-
-
 
 	if report.CoveredPods < report.TotalPods {
 
@@ -1368,8 +1103,6 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 		report.Warnings = append(report.Warnings, fmt.Sprintf("%d pods not covered by network policies", uncoveredCount))
 
 	}
-
-
 
 	// Validate individual policies.
 
@@ -1387,8 +1120,6 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 
 		}
 
-
-
 		for _, egress := range policy.Spec.Egress {
 
 			if len(egress.To) == 0 {
@@ -1396,8 +1127,6 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 				report.Warnings = append(report.Warnings, fmt.Sprintf("Policy %s has egress rule with no destination restrictions", policy.Name))
 
 			}
-
-
 
 			// Check for overly broad CIDR blocks.
 
@@ -1421,8 +1150,6 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 
 	}
 
-
-
 	report.Compliant = len(report.Issues) == 0
 
 	logger.Info("Network policy validation completed",
@@ -1433,37 +1160,29 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 
 		"coverage", fmt.Sprintf("%d/%d", report.CoveredPods, report.TotalPods))
 
-
-
 	return report, nil
 
 }
 
-
-
 // NetworkPolicyValidationReport contains network policy validation results.
 
 type NetworkPolicyValidationReport struct {
+	Timestamp metav1.Time
 
-	Timestamp   metav1.Time
+	Namespace string
 
-	Namespace   string
-
-	Compliant   bool
+	Compliant bool
 
 	PolicyCount int
 
 	CoveredPods int
 
-	TotalPods   int
+	TotalPods int
 
-	Issues      []string
+	Issues []string
 
-	Warnings    []string
-
+	Warnings []string
 }
-
-
 
 // isPodSelected checks if a pod matches a label selector.
 
@@ -1477,8 +1196,6 @@ func (m *NetworkPolicyManager) isPodSelected(pod corev1.Pod, selector metav1.Lab
 
 	}
 
-
-
 	// Check MatchLabels.
 
 	for key, value := range selector.MatchLabels {
@@ -1491,15 +1208,11 @@ func (m *NetworkPolicyManager) isPodSelected(pod corev1.Pod, selector metav1.Lab
 
 	}
 
-
-
 	// Check MatchExpressions (simplified).
 
 	for _, expr := range selector.MatchExpressions {
 
 		podValue, exists := pod.Labels[expr.Key]
-
-
 
 		switch expr.Operator {
 
@@ -1539,21 +1252,15 @@ func (m *NetworkPolicyManager) isPodSelected(pod corev1.Pod, selector metav1.Lab
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // EnforceZeroTrustNetworking applies comprehensive zero-trust networking.
 
 func (m *NetworkPolicyManager) EnforceZeroTrustNetworking(ctx context.Context) error {
 
 	logger := log.FromContext(ctx)
-
-
 
 	// Create default deny-all policy.
 
@@ -1563,8 +1270,6 @@ func (m *NetworkPolicyManager) EnforceZeroTrustNetworking(ctx context.Context) e
 
 	}
 
-
-
 	// Create component-specific policies.
 
 	if err := m.CreateControllerNetworkPolicy(ctx); err != nil {
@@ -1573,15 +1278,11 @@ func (m *NetworkPolicyManager) EnforceZeroTrustNetworking(ctx context.Context) e
 
 	}
 
-
-
 	if err := m.CreateLLMServiceNetworkPolicy(ctx); err != nil {
 
 		return fmt.Errorf("failed to create LLM service policy: %w", err)
 
 	}
-
-
 
 	// Create O-RAN interface policies.
 
@@ -1599,11 +1300,8 @@ func (m *NetworkPolicyManager) EnforceZeroTrustNetworking(ctx context.Context) e
 
 	}
 
-
-
 	logger.Info("Zero-trust networking enforced")
 
 	return nil
 
 }
-

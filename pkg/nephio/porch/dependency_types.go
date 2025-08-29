@@ -28,194 +28,141 @@ limitations under the License.
 
 */
 
-
-
-
 package porch
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
 	"github.com/prometheus/client_golang/prometheus"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
 
-
-
 // Supporting types for dependency management.
-
-
 
 // DependencyResolverConfig configures the dependency resolver.
 
 type DependencyResolverConfig struct {
+	WorkerCount int
 
-	WorkerCount            int
+	QueueSize int
 
-	QueueSize              int
+	EnableCaching bool
 
-	EnableCaching          bool
+	CacheTimeout time.Duration
 
-	CacheTimeout           time.Duration
+	MaxGraphDepth int
 
-	MaxGraphDepth          int
+	MaxResolutionTime time.Duration
 
-	MaxResolutionTime      time.Duration
-
-	VersionSolverConfig    *VersionSolverConfig
+	VersionSolverConfig *VersionSolverConfig
 
 	ConflictResolverConfig *ConflictResolverConfig
 
-	GraphBuilderConfig     *GraphBuilderConfig
+	GraphBuilderConfig *GraphBuilderConfig
 
-	HealthCheckerConfig    *HealthCheckerConfig
+	HealthCheckerConfig *HealthCheckerConfig
 
-	CacheConfig            *CacheConfig
-
+	CacheConfig *CacheConfig
 }
-
-
 
 // VersionSolverConfig configures the version solver.
 
 type VersionSolverConfig struct {
-
 	SATSolverConfig *SATSolverConfig
 
-	MaxIterations   int
+	MaxIterations int
 
-	Timeout         time.Duration
-
+	Timeout time.Duration
 }
-
-
 
 // ConflictResolverConfig configures the conflict resolver.
 
 type ConflictResolverConfig struct {
-
-	MaxRetries      int
+	MaxRetries int
 
 	BackoffStrategy string
 
-	Timeout         time.Duration
-
+	Timeout time.Duration
 }
-
-
 
 // GraphBuilderConfig configures the graph builder.
 
 type GraphBuilderConfig struct {
-
-	MaxDepth           int
+	MaxDepth int
 
 	ParallelProcessing bool
 
-	BatchSize          int
-
+	BatchSize int
 }
-
-
 
 // HealthCheckerConfig configures the health checker.
 
 type HealthCheckerConfig struct {
-
-	CheckInterval    time.Duration
+	CheckInterval time.Duration
 
 	MetricsRetention time.Duration
-
 }
-
-
 
 // CacheConfig configures caching.
 
 type CacheConfig struct {
+	MaxSize int
 
-	MaxSize        int
-
-	TTL            time.Duration
+	TTL time.Duration
 
 	EvictionPolicy string
-
 }
-
-
 
 // DependencyResolverMetrics tracks resolver metrics.
 
 type DependencyResolverMetrics struct {
+	resolutionsTotal *prometheus.CounterVec
 
-	resolutionsTotal        *prometheus.CounterVec
+	resolutionTime prometheus.Histogram
 
-	resolutionTime          prometheus.Histogram
+	resolutionCacheHits prometheus.Counter
 
-	resolutionCacheHits     prometheus.Counter
+	resolutionCacheMisses prometheus.Counter
 
-	resolutionCacheMisses   prometheus.Counter
+	graphsBuilt prometheus.Counter
 
-	graphsBuilt             prometheus.Counter
+	graphBuildTime prometheus.Histogram
 
-	graphBuildTime          prometheus.Histogram
+	graphNodeCount prometheus.Histogram
 
-	graphNodeCount          prometheus.Histogram
+	graphEdgeCount prometheus.Histogram
 
-	graphEdgeCount          prometheus.Histogram
+	graphCacheHits prometheus.Counter
 
-	graphCacheHits          prometheus.Counter
+	graphCacheMisses prometheus.Counter
 
-	graphCacheMisses        prometheus.Counter
+	versionSolveTime prometheus.Histogram
 
-	versionSolveTime        prometheus.Histogram
-
-	versionSolvesTotal      prometheus.CounterVec
+	versionSolvesTotal prometheus.CounterVec
 
 	updatePropagationsTotal prometheus.Counter
 
-	updatePropagationTime   prometheus.Histogram
+	updatePropagationTime prometheus.Histogram
 
-	propagatedUpdates       prometheus.Counter
-
+	propagatedUpdates prometheus.Counter
 }
 
-
-
 // Version Solver supporting types.
-
-
 
 // VersionSolver represents a versionsolver.
 
 type VersionSolver struct {
-
 	satSolver *SATSolver
 
-	config    *VersionSolverConfig
+	config *VersionSolverConfig
 
-	logger    logr.Logger
-
+	logger logr.Logger
 }
-
-
 
 // NewVersionSolver performs newversionsolver operation.
 
@@ -225,15 +172,12 @@ func NewVersionSolver(config *VersionSolverConfig) *VersionSolver {
 
 		satSolver: NewSATSolver(config.SATSolverConfig),
 
-		config:    config,
+		config: config,
 
-		logger:    log.Log.WithName("version-solver"),
-
+		logger: log.Log.WithName("version-solver"),
 	}
 
 }
-
-
 
 // Solve performs solve operation.
 
@@ -243,8 +187,6 @@ func (vs *VersionSolver) Solve(ctx context.Context, requirements []*VersionRequi
 
 }
 
-
-
 // Close performs close operation.
 
 func (vs *VersionSolver) Close() {
@@ -253,23 +195,15 @@ func (vs *VersionSolver) Close() {
 
 }
 
-
-
 // Conflict Resolver supporting types.
-
-
 
 // DependencyConflictResolver represents a dependencyconflictresolver.
 
 type DependencyConflictResolver struct {
-
 	config *ConflictResolverConfig
 
 	logger logr.Logger
-
 }
-
-
 
 // NewDependencyConflictResolver performs newdependencyconflictresolver operation.
 
@@ -280,12 +214,9 @@ func NewDependencyConflictResolver(config *ConflictResolverConfig) *DependencyCo
 		config: config,
 
 		logger: log.Log.WithName("conflict-resolver"),
-
 	}
 
 }
-
-
 
 // Close performs close operation.
 
@@ -295,23 +226,15 @@ func (dcr *DependencyConflictResolver) Close() {
 
 }
 
-
-
 // Graph Builder supporting types.
-
-
 
 // DependencyGraphBuilder represents a dependencygraphbuilder.
 
 type DependencyGraphBuilder struct {
-
 	config *GraphBuilderConfig
 
 	logger logr.Logger
-
 }
-
-
 
 // NewDependencyGraphBuilder performs newdependencygraphbuilder operation.
 
@@ -322,12 +245,9 @@ func NewDependencyGraphBuilder(config *GraphBuilderConfig) *DependencyGraphBuild
 		config: config,
 
 		logger: log.Log.WithName("graph-builder"),
-
 	}
 
 }
-
-
 
 // BuildGraph performs buildgraph operation.
 
@@ -339,23 +259,15 @@ func (dgb *DependencyGraphBuilder) BuildGraph(ctx context.Context, graph *Depend
 
 }
 
-
-
 // Health Checker supporting types.
-
-
 
 // DependencyHealthChecker represents a dependencyhealthchecker.
 
 type DependencyHealthChecker struct {
-
 	config *HealthCheckerConfig
 
 	logger logr.Logger
-
 }
-
-
 
 // NewDependencyHealthChecker performs newdependencyhealthchecker operation.
 
@@ -366,58 +278,41 @@ func NewDependencyHealthChecker(config *HealthCheckerConfig) *DependencyHealthCh
 		config: config,
 
 		logger: log.Log.WithName("health-checker"),
-
 	}
 
 }
 
-
-
 // Cache supporting types.
-
-
 
 // ResolutionCache represents a resolutioncache.
 
 type ResolutionCache interface {
-
 	Get(ctx context.Context, key string) (*ResolutionResult, error)
 
 	Set(ctx context.Context, key string, result *ResolutionResult) error
 
 	Close()
-
 }
-
-
 
 // GraphCache represents a graphcache.
 
 type GraphCache interface {
-
 	Get(ctx context.Context, key string) (*DependencyGraph, error)
 
 	Set(ctx context.Context, key string, graph *DependencyGraph) error
 
 	Close()
-
 }
-
-
 
 // VersionCache represents a versioncache.
 
 type VersionCache interface {
-
 	Get(ctx context.Context, key string) ([]string, error)
 
 	Set(ctx context.Context, key string, versions []string) error
 
 	Close()
-
 }
-
-
 
 // NewResolutionCache performs newresolutioncache operation.
 
@@ -429,8 +324,6 @@ func NewResolutionCache(config *CacheConfig) ResolutionCache {
 
 }
 
-
-
 // NewGraphCache performs newgraphcache operation.
 
 func NewGraphCache(config *CacheConfig) GraphCache {
@@ -440,8 +333,6 @@ func NewGraphCache(config *CacheConfig) GraphCache {
 	return &graphCacheImpl{config: config}
 
 }
-
-
 
 // NewVersionCache performs newversioncache operation.
 
@@ -453,19 +344,13 @@ func NewVersionCache(config *CacheConfig) VersionCache {
 
 }
 
-
-
 type resolutionCacheImpl struct {
-
 	config *CacheConfig
 
-	cache  map[string]*ResolutionResult
+	cache map[string]*ResolutionResult
 
-	mu     sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // Get performs get operation.
 
@@ -484,8 +369,6 @@ func (rc *resolutionCacheImpl) Get(ctx context.Context, key string) (*Resolution
 	return nil, fmt.Errorf("cache miss")
 
 }
-
-
 
 // Set performs set operation.
 
@@ -507,8 +390,6 @@ func (rc *resolutionCacheImpl) Set(ctx context.Context, key string, result *Reso
 
 }
 
-
-
 // Close performs close operation.
 
 func (rc *resolutionCacheImpl) Close() {
@@ -521,19 +402,13 @@ func (rc *resolutionCacheImpl) Close() {
 
 }
 
-
-
 type graphCacheImpl struct {
-
 	config *CacheConfig
 
-	cache  map[string]*DependencyGraph
+	cache map[string]*DependencyGraph
 
-	mu     sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // Get performs get operation.
 
@@ -552,8 +427,6 @@ func (gc *graphCacheImpl) Get(ctx context.Context, key string) (*DependencyGraph
 	return nil, fmt.Errorf("cache miss")
 
 }
-
-
 
 // Set performs set operation.
 
@@ -575,8 +448,6 @@ func (gc *graphCacheImpl) Set(ctx context.Context, key string, graph *Dependency
 
 }
 
-
-
 // Close performs close operation.
 
 func (gc *graphCacheImpl) Close() {
@@ -589,19 +460,13 @@ func (gc *graphCacheImpl) Close() {
 
 }
 
-
-
 type versionCacheImpl struct {
-
 	config *CacheConfig
 
-	cache  map[string][]string
+	cache map[string][]string
 
-	mu     sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // Get performs get operation.
 
@@ -620,8 +485,6 @@ func (vc *versionCacheImpl) Get(ctx context.Context, key string) ([]string, erro
 	return nil, fmt.Errorf("cache miss")
 
 }
-
-
 
 // Set performs set operation.
 
@@ -643,8 +506,6 @@ func (vc *versionCacheImpl) Set(ctx context.Context, key string, versions []stri
 
 }
 
-
-
 // Close performs close operation.
 
 func (vc *versionCacheImpl) Close() {
@@ -657,45 +518,33 @@ func (vc *versionCacheImpl) Close() {
 
 }
 
-
-
 // Resolver Pool supporting types.
-
-
 
 // ResolverPool represents a resolverpool.
 
 type ResolverPool struct {
-
-	workers   int
+	workers int
 
 	queueSize int
 
-	queue     chan *resolutionTask
+	queue chan *resolutionTask
 
-	wg        sync.WaitGroup
+	wg sync.WaitGroup
 
-	shutdown  chan struct{}
-
+	shutdown chan struct{}
 }
 
-
-
 type resolutionTask struct {
+	ctx context.Context
 
-	ctx         context.Context
-
-	ref         *PackageReference
+	ref *PackageReference
 
 	constraints *DependencyConstraints
 
-	result      chan *ResolutionResult
+	result chan *ResolutionResult
 
-	error       chan error
-
+	error chan error
 }
-
-
 
 // NewResolverPool performs newresolverpool operation.
 
@@ -703,17 +552,14 @@ func NewResolverPool(workers, queueSize int) *ResolverPool {
 
 	pool := &ResolverPool{
 
-		workers:   workers,
+		workers: workers,
 
 		queueSize: queueSize,
 
-		queue:     make(chan *resolutionTask, queueSize),
+		queue: make(chan *resolutionTask, queueSize),
 
-		shutdown:  make(chan struct{}),
-
+		shutdown: make(chan struct{}),
 	}
-
-
 
 	// Start workers.
 
@@ -725,13 +571,9 @@ func NewResolverPool(workers, queueSize int) *ResolverPool {
 
 	}
 
-
-
 	return pool
 
 }
-
-
 
 func (rp *ResolverPool) worker() {
 
@@ -757,8 +599,6 @@ func (rp *ResolverPool) worker() {
 
 }
 
-
-
 // Close performs close operation.
 
 func (rp *ResolverPool) Close() {
@@ -771,536 +611,397 @@ func (rp *ResolverPool) Close() {
 
 }
 
-
-
 // Dependency Provider interface.
-
-
 
 // DependencyProvider represents a dependencyprovider.
 
 type DependencyProvider interface {
-
 	GetDependencies(ctx context.Context, ref *PackageReference) ([]*PackageReference, error)
 
 	GetVersions(ctx context.Context, ref *PackageReference) ([]string, error)
 
 	GetPackageInfo(ctx context.Context, ref *PackageReference, version string) (*PackageInfo, error)
-
 }
 
-
-
 // Resolution Strategy interface.
-
-
 
 // ResolutionStrategy represents a resolutionstrategy.
 
 type ResolutionStrategy interface {
-
 	Resolve(ctx context.Context, graph *DependencyGraph, constraints *DependencyConstraints) (*ResolutionResult, error)
 
 	GetName() string
 
 	GetPriority() int
-
 }
 
-
-
 // Additional supporting types.
-
-
 
 // GraphStatistics represents a graphstatistics.
 
 type GraphStatistics struct {
+	NodeCount int
 
-	NodeCount            int
+	EdgeCount int
 
-	EdgeCount            int
+	MaxDepth int
 
-	MaxDepth             int
+	AverageOutDegree float64
 
-	AverageOutDegree     float64
+	AverageInDegree float64
 
-	AverageInDegree      float64
-
-	ConnectedComponents  int
+	ConnectedComponents int
 
 	LargestComponentSize int
-
 }
-
-
 
 // CircularBreakingSuggestion represents a circularbreakingsuggestion.
 
 type CircularBreakingSuggestion struct {
+	Cycle *DependencyCycle
 
-	Cycle       *DependencyCycle
-
-	BreakPoint  *DependencyEdge
+	BreakPoint *DependencyEdge
 
 	Alternative *PackageReference
 
-	Impact      string
+	Impact string
 
-	Effort      EffortLevel
-
+	Effort EffortLevel
 }
-
-
 
 // CircularImpactAnalysis represents a circularimpactanalysis.
 
 type CircularImpactAnalysis struct {
+	AffectedPackages int
 
-	AffectedPackages  int
+	DeploymentImpact string
 
-	DeploymentImpact  string
-
-	RiskLevel         RiskLevel
+	RiskLevel RiskLevel
 
 	MitigationOptions []string
-
 }
-
-
 
 // CycleBreakingOption represents a cyclebreakingoption.
 
 type CycleBreakingOption struct {
-
 	EdgeToRemove *DependencyEdge
 
-	Impact       string
+	Impact string
 
-	Feasibility  float64
-
+	Feasibility float64
 }
-
-
 
 // CycleImpact represents a cycleimpact.
 
 type CycleImpact struct {
+	BlockedPackages int
 
-	BlockedPackages  int
-
-	DeploymentDelay  time.Duration
+	DeploymentDelay time.Duration
 
 	RollbackRequired bool
-
 }
-
-
 
 // PropagationPlan represents a propagationplan.
 
 type PropagationPlan struct {
+	Steps []*PropagationStep
 
-	Steps            []*PropagationStep
-
-	EstimatedTime    time.Duration
+	EstimatedTime time.Duration
 
 	AffectedPackages int
 
-	RiskAssessment   *RiskAssessment
-
+	RiskAssessment *RiskAssessment
 }
-
-
 
 // PropagationStep represents a propagationstep.
 
 type PropagationStep struct {
+	Package *PackageReference
 
-	Package    *PackageReference
-
-	Action     string
+	Action string
 
 	Dependents []*PackageReference
 
-	Priority   int
-
+	Priority int
 }
-
-
 
 // PropagationImpact represents a propagationimpact.
 
 type PropagationImpact struct {
+	DirectImpact int
 
-	DirectImpact    int
-
-	IndirectImpact  int
+	IndirectImpact int
 
 	BreakingChanges []*BreakingChange
 
-	RiskLevel       RiskLevel
-
+	RiskLevel RiskLevel
 }
-
-
 
 // BreakingChange represents a breakingchange.
 
 type BreakingChange struct {
+	Package *PackageReference
 
-	Package     *PackageReference
-
-	ChangeType  string
+	ChangeType string
 
 	Description string
 
-	Mitigation  string
-
+	Mitigation string
 }
-
-
 
 // UpdateImpact represents a updateimpact.
 
 type UpdateImpact struct {
+	Compatibility bool
 
-	Compatibility     bool
-
-	BreakingChanges   []*BreakingChange
+	BreakingChanges []*BreakingChange
 
 	PerformanceImpact string
 
-	SecurityImpact    string
-
+	SecurityImpact string
 }
-
-
 
 // UpdatePrerequisite represents a updateprerequisite.
 
 type UpdatePrerequisite struct {
+	Package *PackageReference
 
-	Package   *PackageReference
+	Version string
 
-	Version   string
-
-	Reason    string
+	Reason string
 
 	Mandatory bool
-
 }
-
-
 
 // UpdateRollback represents a updaterollback.
 
 type UpdateRollback struct {
+	Steps []*RollbackStep
 
-	Steps        []*RollbackStep
-
-	DataBackup   bool
+	DataBackup bool
 
 	TimeEstimate time.Duration
-
 }
-
-
 
 // RollbackStep represents a rollbackstep.
 
 type RollbackStep struct {
+	Action string
 
-	Action      string
+	Package *PackageReference
 
-	Package     *PackageReference
-
-	OldVersion  string
+	OldVersion string
 
 	Description string
-
 }
-
-
 
 // ConflictResolutionOption represents a conflictresolutionoption.
 
 type ConflictResolutionOption struct {
-
-	Strategy    string
+	Strategy string
 
 	Description string
 
-	Steps       []string
+	Steps []string
 
-	RiskLevel   RiskLevel
+	RiskLevel RiskLevel
 
-	Success     float64
-
+	Success float64
 }
-
-
 
 // ConflictImpact represents a conflictimpact.
 
 type ConflictImpact struct {
+	BlockedPackages int
 
-	BlockedPackages  int
-
-	DelayedPackages  int
+	DelayedPackages int
 
 	DeploymentImpact string
 
-	RiskLevel        RiskLevel
-
+	RiskLevel RiskLevel
 }
-
-
 
 // ExcludedDependency represents a excludeddependency.
 
 type ExcludedDependency struct {
+	PackageRef *PackageReference
 
-	PackageRef  *PackageReference
+	Reason string
 
-	Reason      string
-
-	Impact      string
+	Impact string
 
 	Alternative *PackageReference
-
 }
-
-
 
 // SubstitutionCondition represents a substitutioncondition.
 
 type SubstitutionCondition struct {
+	Type string
 
-	Type        string
-
-	Expression  string
+	Expression string
 
 	Description string
-
 }
-
-
 
 // OutdatedDependency represents a outdateddependency.
 
 type OutdatedDependency struct {
-
-	PackageRef     *PackageReference
+	PackageRef *PackageReference
 
 	CurrentVersion string
 
-	LatestVersion  string
+	LatestVersion string
 
 	VersionsBehind int
 
 	SecurityIssues []string
-
 }
-
-
 
 // VulnerableDependency represents a vulnerabledependency.
 
 type VulnerableDependency struct {
+	PackageRef *PackageReference
 
-	PackageRef      *PackageReference
-
-	Version         string
+	Version string
 
 	Vulnerabilities []Vulnerability
 
-	RiskScore       float64
-
+	RiskScore float64
 }
-
-
 
 // Vulnerability represents a vulnerability.
 
 type Vulnerability struct {
+	CVE string
 
-	CVE         string
-
-	Severity    string
+	Severity string
 
 	Description string
 
-	FixVersion  string
-
+	FixVersion string
 }
-
-
 
 // ConflictingDependency represents a conflictingdependency.
 
 type ConflictingDependency struct {
-
 	PackageRef *PackageReference
 
-	Conflicts  []*DependencyConflict
+	Conflicts []*DependencyConflict
 
-	Impact     string
-
+	Impact string
 }
-
-
 
 // UnusedDependency represents a unuseddependency.
 
 type UnusedDependency struct {
+	PackageRef *PackageReference
 
-	PackageRef   *PackageReference
+	LastUsed time.Time
 
-	LastUsed     time.Time
-
-	Reason       string
+	Reason string
 
 	CanBeRemoved bool
-
 }
-
-
 
 // HealthRecommendation represents a healthrecommendation.
 
 type HealthRecommendation struct {
+	Type string
 
-	Type        string
-
-	Priority    int
+	Priority int
 
 	Description string
 
-	Action      string
+	Action string
 
-	Benefit     string
-
+	Benefit string
 }
-
-
 
 // ConflictedPackage represents a conflictedpackage.
 
 type ConflictedPackage struct {
-
-	PackageRef    *PackageReference
+	PackageRef *PackageReference
 
 	ConflictCount int
 
 	ConflictTypes []ConflictType
-
 }
-
-
 
 // DependencyTree represents a dependencytree.
 
 type DependencyTree struct {
+	Root *TreeNode
 
-	Root      *TreeNode
-
-	Depth     int
+	Depth int
 
 	NodeCount int
-
 }
-
-
 
 // TreeNode represents a treenode.
 
 type TreeNode struct {
-
 	PackageRef *PackageReference
 
-	Version    string
+	Version string
 
-	Children   []*TreeNode
+	Children []*TreeNode
 
-	Level      int
+	Level int
 
-	Optional   bool
-
+	Optional bool
 }
-
-
 
 // Dependent represents a dependent.
 
 type Dependent struct {
-
-	PackageRef     *PackageReference
+	PackageRef *PackageReference
 
 	DependencyType DependencyType
 
-	Direct         bool
+	Direct bool
 
-	Distance       int
-
+	Distance int
 }
-
-
 
 // DependencyPath represents a dependencypath.
 
 type DependencyPath struct {
+	From *PackageReference
 
-	From     *PackageReference
+	To *PackageReference
 
-	To       *PackageReference
-
-	Path     []*PackageReference
+	Path []*PackageReference
 
 	Distance int
 
-	Weight   int
-
+	Weight int
 }
-
-
 
 // CompatibilityResult represents a compatibilityresult.
 
 type CompatibilityResult struct {
+	Compatible bool
 
-	Compatible  bool
+	Reason string
 
-	Reason      string
-
-	Conflicts   []string
+	Conflicts []string
 
 	Suggestions []string
-
 }
-
-
 
 // VersionHistory represents a versionhistory.
 
 type VersionHistory struct {
-
 	PackageRef *PackageReference
 
-	Versions   []*VersionInfo
-
+	Versions []*VersionInfo
 }
 
-
-
 // VersionInfo is defined in types.go.
-
-
 
 // VersionDistance represents a versiondistance.
 
 type VersionDistance struct {
-
 	Major int
 
 	Minor int
@@ -1308,274 +1009,207 @@ type VersionDistance struct {
 	Patch int
 
 	Total int
-
 }
-
-
 
 // TimeRange represents a timerange.
 
 type TimeRange struct {
-
 	Start time.Time
 
-	End   time.Time
-
+	End time.Time
 }
-
-
 
 // ResolutionStatistics represents a resolutionstatistics.
 
 type ResolutionStatistics struct {
-
 	TotalResolutions int
 
-	SuccessRate      float64
+	SuccessRate float64
 
-	AverageTime      time.Duration
+	AverageTime time.Duration
 
-	ConflictRate     float64
-
+	ConflictRate float64
 }
-
-
 
 // ResolverHealth represents a resolverhealth.
 
 type ResolverHealth struct {
-
-	Status      string
+	Status string
 
 	ActiveTasks int
 
 	QueuedTasks int
 
-	CacheSize   int
+	CacheSize int
 
-	ErrorRate   float64
+	ErrorRate float64
 
-	LastError   string
+	LastError string
 
-	Uptime      time.Duration
-
+	Uptime time.Duration
 }
-
-
 
 // CacheCleanupResult represents a cachecleanupresult.
 
 type CacheCleanupResult struct {
-
 	EntriesRemoved int
 
-	SpaceFreed     int64
+	SpaceFreed int64
 
-	Duration       time.Duration
-
+	Duration time.Duration
 }
-
-
 
 // SolutionStatistics represents a solutionstatistics.
 
 type SolutionStatistics struct {
+	Variables int
 
-	Variables      int
+	Clauses int
 
-	Clauses        int
+	Decisions int
 
-	Decisions      int
+	Conflicts int
 
-	Conflicts      int
+	Propagations int
 
-	Propagations   int
-
-	Backtracks     int
+	Backtracks int
 
 	LearnedClauses int
 
-	SolveTime      time.Duration
-
+	SolveTime time.Duration
 }
-
-
 
 // PackageInfo represents a packageinfo.
 
 type PackageInfo struct {
+	Name string
 
-	Name         string
-
-	Version      string
+	Version string
 
 	Dependencies []*PackageReference
 
-	Description  string
+	Description string
 
-	Author       string
+	Author string
 
-	License      string
+	License string
 
-	Repository   string
-
+	Repository string
 }
-
-
 
 // RiskAssessment represents a riskassessment.
 
 type RiskAssessment struct {
+	OverallRisk RiskLevel
 
-	OverallRisk    RiskLevel
+	RiskFactors []string
 
-	RiskFactors    []string
-
-	Mitigations    []string
+	Mitigations []string
 
 	Recommendation string
-
 }
-
-
 
 // MaintenanceWindow represents a maintenancewindow.
 
 type MaintenanceWindow struct {
+	Start time.Time
 
-	Start     time.Time
-
-	End       time.Time
+	End time.Time
 
 	Recurring bool
 
-	Timezone  string
-
+	Timezone string
 }
-
-
 
 // DeploymentContext represents a deploymentcontext.
 
 type DeploymentContext struct {
-
 	TargetClusters []*WorkloadCluster
 
-	Environment    string
+	Environment string
 
-	TelcoProfile   *TelcoProfile
+	TelcoProfile *TelcoProfile
 
 	ResourceLimits *ResourceLimits
 
-	Policies       []string
-
+	Policies []string
 }
-
-
 
 // ResourceLimits represents a resourcelimits.
 
 type ResourceLimits struct {
+	MaxCPU int64
 
-	MaxCPU     int64
-
-	MaxMemory  int64
+	MaxMemory int64
 
 	MaxStorage int64
 
-	MaxNodes   int
-
+	MaxNodes int
 }
-
-
 
 // WorkloadCluster represents a workloadcluster.
 
 type WorkloadCluster struct {
+	Name string
 
-	Name       string
+	Region string
 
-	Region     string
-
-	Type       ClusterType
+	Type ClusterType
 
 	Capacities *ClusterCapabilities
-
 }
-
-
 
 // ContextSelectionOptions represents a contextselectionoptions.
 
 type ContextSelectionOptions struct {
-
 	OptimizeForLatency bool
 
-	OptimizeForCost    bool
+	OptimizeForCost bool
 
-	PreferEdge         bool
+	PreferEdge bool
 
-	RequireHA          bool
-
+	RequireHA bool
 }
-
-
 
 // AffinityRules represents a affinityrules.
 
 type AffinityRules struct {
-
 	NodeAffinity string
 
-	PodAffinity  string
+	PodAffinity string
 
 	AntiAffinity string
-
 }
-
-
 
 // DependencyPolicyEngine represents a dependencypolicyengine.
 
 type DependencyPolicyEngine struct {
-
 	policies []DependencyPolicy
 
-	logger   logr.Logger
-
+	logger logr.Logger
 }
-
-
 
 // DependencyPolicy represents a dependencypolicy.
 
 type DependencyPolicy struct {
-
-	Name        string
+	Name string
 
 	Description string
 
-	Rules       []PolicyRule
+	Rules []PolicyRule
 
-	Priority    int
-
+	Priority int
 }
-
-
 
 // PolicyRule represents a policyrule.
 
 type PolicyRule struct {
+	Condition string
 
-	Condition  string
-
-	Action     string
+	Action string
 
 	Parameters map[string]interface{}
-
 }
-
-
 
 // NewDependencyPolicyEngine performs newdependencypolicyengine operation.
 
@@ -1585,25 +1219,18 @@ func NewDependencyPolicyEngine() *DependencyPolicyEngine {
 
 		policies: []DependencyPolicy{},
 
-		logger:   log.Log.WithName("policy-engine"),
-
+		logger: log.Log.WithName("policy-engine"),
 	}
 
 }
 
-
-
 // ContextMetricsCollector represents a contextmetricscollector.
 
 type ContextMetricsCollector struct {
-
 	metrics map[string]interface{}
 
-	mu      sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewContextMetricsCollector performs newcontextmetricscollector operation.
 
@@ -1612,22 +1239,15 @@ func NewContextMetricsCollector() *ContextMetricsCollector {
 	return &ContextMetricsCollector{
 
 		metrics: make(map[string]interface{}),
-
 	}
 
 }
 
-
-
 // GraphVisualizer represents a graphvisualizer.
 
 type GraphVisualizer struct {
-
 	logger logr.Logger
-
 }
-
-
 
 // NewGraphVisualizer performs newgraphvisualizer operation.
 
@@ -1636,24 +1256,17 @@ func NewGraphVisualizer() *GraphVisualizer {
 	return &GraphVisualizer{
 
 		logger: log.Log.WithName("graph-visualizer"),
-
 	}
 
 }
 
-
-
 // GraphMetricsCollector represents a graphmetricscollector.
 
 type GraphMetricsCollector struct {
-
 	metrics map[string]interface{}
 
-	mu      sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewGraphMetricsCollector performs newgraphmetricscollector operation.
 
@@ -1662,24 +1275,17 @@ func NewGraphMetricsCollector() *GraphMetricsCollector {
 	return &GraphMetricsCollector{
 
 		metrics: make(map[string]interface{}),
-
 	}
 
 }
 
-
-
 // GraphAnalysisCache represents a graphanalysiscache.
 
 type GraphAnalysisCache struct {
-
 	cache map[string]*GraphAnalysisResult
 
-	mu    sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewGraphAnalysisCache performs newgraphanalysiscache operation.
 
@@ -1688,12 +1294,9 @@ func NewGraphAnalysisCache() *GraphAnalysisCache {
 	return &GraphAnalysisCache{
 
 		cache: make(map[string]*GraphAnalysisResult),
-
 	}
 
 }
-
-
 
 // Get performs get operation.
 
@@ -1707,8 +1310,6 @@ func (gac *GraphAnalysisCache) Get(graphID string) *GraphAnalysisResult {
 
 }
 
-
-
 // Set performs set operation.
 
 func (gac *GraphAnalysisCache) Set(graphID string, result *GraphAnalysisResult) {
@@ -1721,17 +1322,11 @@ func (gac *GraphAnalysisCache) Set(graphID string, result *GraphAnalysisResult) 
 
 }
 
-
-
 // Enums.
-
-
 
 // ClusterType represents a clustertype.
 
 type ClusterType string
-
-
 
 const (
 
@@ -1746,16 +1341,11 @@ const (
 	// ClusterTypeCore holds clustertypecore value.
 
 	ClusterTypeCore ClusterType = "core"
-
 )
-
-
 
 // ComplianceLevel represents a compliancelevel.
 
 type ComplianceLevel string
-
-
 
 const (
 
@@ -1774,16 +1364,11 @@ const (
 	// ComplianceLevelStrict holds compliancelevelstrict value.
 
 	ComplianceLevelStrict ComplianceLevel = "strict"
-
 )
-
-
 
 // LatencyClass represents a latencyclass.
 
 type LatencyClass string
-
-
 
 const (
 
@@ -1802,16 +1387,11 @@ const (
 	// LatencyClassHigh holds latencyclasshigh value.
 
 	LatencyClassHigh LatencyClass = "high"
-
 )
-
-
 
 // BandwidthClass represents a bandwidthclass.
 
 type BandwidthClass string
-
-
 
 const (
 
@@ -1830,16 +1410,11 @@ const (
 	// BandwidthClassLow holds bandwidthclasslow value.
 
 	BandwidthClassLow BandwidthClass = "low"
-
 )
-
-
 
 // TelcoDeploymentType represents a telcodeploymenttype.
 
 type TelcoDeploymentType string
-
-
 
 const (
 
@@ -1858,16 +1433,11 @@ const (
 	// TelcoDeploymentTypeSlice holds telcodeploymenttypeslice value.
 
 	TelcoDeploymentTypeSlice TelcoDeploymentType = "slice"
-
 )
-
-
 
 // RANType represents a rantype.
 
 type RANType string
-
-
 
 const (
 
@@ -1882,16 +1452,11 @@ const (
 	// RANTypeTraditional holds rantypetraditional value.
 
 	RANTypeTraditional RANType = "traditional"
-
 )
-
-
 
 // CoreType represents a coretype.
 
 type CoreType string
-
-
 
 const (
 
@@ -1906,16 +1471,11 @@ const (
 	// CoreTypeEPC holds coretypeepc value.
 
 	CoreTypeEPC CoreType = "epc"
-
 )
-
-
 
 // SliceType represents a slicetype.
 
 type SliceType string
-
-
 
 const (
 
@@ -1930,30 +1490,21 @@ const (
 	// SliceTypeMMTC holds slicetypemmtc value.
 
 	SliceTypeMMTC SliceType = "mmtc"
-
 )
-
-
 
 // RegulatoryRequirements represents a regulatoryrequirements.
 
 type RegulatoryRequirements struct {
+	DataLocality bool
 
-	DataLocality        bool
-
-	Encryption          string
+	Encryption string
 
 	ComplianceStandards []string
-
 }
-
-
 
 // RiskLevel represents a risklevel.
 
 type RiskLevel string
-
-
 
 const (
 
@@ -1972,16 +1523,11 @@ const (
 	// RiskLevelCritical holds risklevelcritical value.
 
 	RiskLevelCritical RiskLevel = "critical"
-
 )
-
-
 
 // UpdateType represents a updatetype.
 
 type UpdateType string
-
-
 
 const (
 
@@ -1996,16 +1542,11 @@ const (
 	// UpdateTypePatch holds updatetypepatch value.
 
 	UpdateTypePatch UpdateType = "patch"
-
 )
-
-
 
 // UpdateReason represents a updatereason.
 
 type UpdateReason string
-
-
 
 const (
 
@@ -2024,16 +1565,11 @@ const (
 	// UpdateReasonFeature holds updatereasonfeature value.
 
 	UpdateReasonFeature UpdateReason = "feature"
-
 )
-
-
 
 // SelectionReason represents a selectionreason.
 
 type SelectionReason string
-
-
 
 const (
 
@@ -2052,16 +1588,11 @@ const (
 	// SelectionReasonDefault holds selectionreasondefault value.
 
 	SelectionReasonDefault SelectionReason = "default"
-
 )
-
-
 
 // RequirementPriority represents a requirementpriority.
 
 type RequirementPriority string
-
-
 
 const (
 
@@ -2080,16 +1611,11 @@ const (
 	// RequirementPriorityLow holds requirementprioritylow value.
 
 	RequirementPriorityLow RequirementPriority = "low"
-
 )
-
-
 
 // RequirementScope represents a requirementscope.
 
 type RequirementScope string
-
-
 
 const (
 
@@ -2104,16 +1630,11 @@ const (
 	// RequirementScopeLocal holds requirementscopelocal value.
 
 	RequirementScopeLocal RequirementScope = "local"
-
 )
-
-
 
 // VersionSelectionStrategy represents a versionselectionstrategy.
 
 type VersionSelectionStrategy string
-
-
 
 const (
 
@@ -2132,16 +1653,11 @@ const (
 	// VersionSelectionStrategyNone holds versionselectionstrategynone value.
 
 	VersionSelectionStrategyNone VersionSelectionStrategy = "none"
-
 )
-
-
 
 // CircularResolutionStrategy represents a circularresolutionstrategy.
 
 type CircularResolutionStrategy string
-
-
 
 const (
 
@@ -2156,16 +1672,11 @@ const (
 	// CircularResolutionStrategyIgnore holds circularresolutionstrategyignore value.
 
 	CircularResolutionStrategyIgnore CircularResolutionStrategy = "ignore"
-
 )
-
-
 
 // PropagationStrategy represents a propagationstrategy.
 
 type PropagationStrategy string
-
-
 
 const (
 
@@ -2180,16 +1691,11 @@ const (
 	// PropagationStrategySelective holds propagationstrategyselective value.
 
 	PropagationStrategySelective PropagationStrategy = "selective"
-
 )
-
-
 
 // StepType represents a steptype.
 
 type StepType string
-
-
 
 const (
 
@@ -2208,16 +1714,11 @@ const (
 	// StepTypeValidate holds steptypevalidate value.
 
 	StepTypeValidate StepType = "validate"
-
 )
-
-
 
 // StepAction represents a stepaction.
 
 type StepAction string
-
-
 
 const (
 
@@ -2236,164 +1737,119 @@ const (
 	// StepActionRemove holds stepactionremove value.
 
 	StepActionRemove StepAction = "remove"
-
 )
-
-
 
 // ResolutionWarning represents a resolutionwarning.
 
 type ResolutionWarning struct {
+	Code string
 
-	Code       string
+	Message string
 
-	Message    string
-
-	Severity   string
+	Severity string
 
 	PackageRef *PackageReference
 
 	Suggestion string
-
 }
-
-
 
 // Prerequisite represents a prerequisite.
 
 type Prerequisite struct {
-
-	Condition   string
+	Condition string
 
 	Description string
 
-	Mandatory   bool
-
+	Mandatory bool
 }
-
-
 
 // ValidationRule represents a validationrule.
 
 type ValidationRule struct {
-
-	Name       string
+	Name string
 
 	Expression string
 
-	Message    string
+	Message string
 
-	Severity   string
-
+	Severity string
 }
-
-
 
 // RollbackPlan represents a rollbackplan.
 
 type RollbackPlan struct {
+	Steps []*RollbackStep
 
-	Steps        []*RollbackStep
-
-	Checkpoints  []string
+	Checkpoints []string
 
 	TimeEstimate time.Duration
-
 }
-
-
 
 // ScopeConstraint represents a scopeconstraint.
 
 type ScopeConstraint struct {
-
-	Scope   DependencyScope
+	Scope DependencyScope
 
 	Allowed bool
 
-	Reason  string
-
+	Reason string
 }
-
-
 
 // SecurityConstraint represents a securityconstraint.
 
 type SecurityConstraint struct {
-
 	MinSecurityLevel string
 
-	CVEExclusions    []string
+	CVEExclusions []string
 
-	LicenseTypes     []string
-
+	LicenseTypes []string
 }
-
-
 
 // PolicyConstraint represents a policyconstraint.
 
 type PolicyConstraint struct {
-
-	PolicyName  string
+	PolicyName string
 
 	Enforcement string
 
-	Parameters  map[string]interface{}
-
+	Parameters map[string]interface{}
 }
-
-
 
 // ExclusionRule represents a exclusionrule.
 
 type ExclusionRule struct {
+	Pattern string
 
-	Pattern    string
-
-	Reason     string
+	Reason string
 
 	Exceptions []string
-
 }
-
-
 
 // InclusionRule represents a inclusionrule.
 
 type InclusionRule struct {
+	Pattern string
 
-	Pattern   string
-
-	Reason    string
+	Reason string
 
 	Mandatory bool
-
 }
-
-
 
 // VersionConflict represents a versionconflict.
 
 type VersionConflict struct {
-
-	PackageRef        *PackageReference
+	PackageRef *PackageReference
 
 	RequestedVersions []string
 
-	ConflictReason    string
+	ConflictReason string
 
-	Resolution        string
-
+	Resolution string
 }
-
-
 
 // TreeSortOption represents a treesortoption.
 
 type TreeSortOption string
-
-
 
 const (
 
@@ -2408,90 +1864,69 @@ const (
 	// TreeSortOptionPriority holds treesortoptionpriority value.
 
 	TreeSortOptionPriority TreeSortOption = "priority"
-
 )
-
-
 
 // CompatibilityMatrix represents a compatibilitymatrix.
 
 type CompatibilityMatrix struct {
-
-	Packages      []*PackageReference
+	Packages []*PackageReference
 
 	Compatibility map[string]map[string]bool
 
-	Conflicts     map[string]map[string]string
-
+	Conflicts map[string]map[string]string
 }
-
-
 
 // ResourceProfile represents a resourceprofile.
 
 type ResourceProfile struct {
+	CPURequests int64
 
-	CPURequests     int64
+	MemoryRequests int64
 
-	MemoryRequests  int64
+	CPULimits int64
 
-	CPULimits       int64
-
-	MemoryLimits    int64
+	MemoryLimits int64
 
 	StorageRequests int64
-
 }
-
-
 
 // SecurityProfile represents a securityprofile.
 
 type SecurityProfile struct {
+	Encryption bool
 
-	Encryption      bool
-
-	MTLS            bool
+	MTLS bool
 
 	NetworkPolicies bool
 
-	PodSecurity     string
+	PodSecurity string
 
-	SELinux         bool
-
+	SELinux bool
 }
-
-
 
 // NodeResolution contains information about how a dependency node was resolved.
 
 type NodeResolution struct {
-
-	Method          ResolutionMethod
+	Method ResolutionMethod
 
 	ResolvedVersion string
 
-	Source          string
+	Source string
 
-	Strategy        string
+	Strategy string
 
-	Timestamp       time.Time
+	Timestamp time.Time
 
-	Confidence      float64
+	Confidence float64
 
-	Alternatives    []string
+	Alternatives []string
 
-	Reason          string
-
+	Reason string
 }
-
-
 
 // ResolutionMethod defines how a dependency was resolved.
 
 type ResolutionMethod string
-
-
 
 const (
 
@@ -2514,38 +1949,29 @@ const (
 	// ResolutionMethodManual holds resolutionmethodmanual value.
 
 	ResolutionMethodManual ResolutionMethod = "manual"
-
 )
-
-
 
 // GraphModification represents modifications made to a dependency graph.
 
 type GraphModification struct {
-
 	ModificationType ModificationType
 
-	NodesAdded       []*DependencyNode
+	NodesAdded []*DependencyNode
 
-	NodesRemoved     []*DependencyNode
+	NodesRemoved []*DependencyNode
 
-	EdgesAdded       []*DependencyEdge
+	EdgesAdded []*DependencyEdge
 
-	EdgesRemoved     []*DependencyEdge
+	EdgesRemoved []*DependencyEdge
 
-	Reason           string
+	Reason string
 
-	Impact           string
-
+	Impact string
 }
-
-
 
 // ModificationType defines types of graph modifications.
 
 type ModificationType string
-
-
 
 const (
 
@@ -2564,114 +1990,85 @@ const (
 	// ModificationTypeResolve holds modificationtyperesolve value.
 
 	ModificationTypeResolve ModificationType = "resolve"
-
 )
-
-
 
 // OptimizedGraph represents a graph after optimization.
 
 type OptimizedGraph struct {
-
-	OriginalGraph  *DependencyGraph
+	OriginalGraph *DependencyGraph
 
 	OptimizedGraph *DependencyGraph
 
-	Optimizations  []Optimization
+	Optimizations []Optimization
 
-	Performance    *PerformanceMetrics
-
+	Performance *PerformanceMetrics
 }
-
-
 
 // Optimization represents a single optimization applied.
 
 type Optimization struct {
-
-	Type        OptimizationType
+	Type OptimizationType
 
 	Description string
 
-	Impact      string
+	Impact string
 
-	Confidence  float64
-
+	Confidence float64
 }
-
-
 
 // PerformanceMetrics tracks performance improvements.
 
 type PerformanceMetrics struct {
-
-	OriginalComplexity  int
+	OriginalComplexity int
 
 	OptimizedComplexity int
 
-	ImprovementRatio    float64
+	ImprovementRatio float64
 
-	ExecutionTime       time.Duration
-
+	ExecutionTime time.Duration
 }
-
-
 
 // UpdatePlanOptions configures update plan generation.
 
 type UpdatePlanOptions struct {
-
 	AllowBreaking bool
 
-	MaxRetries    int
+	MaxRetries int
 
-	DryRun        bool
+	DryRun bool
 
-	Rollback      bool
-
+	Rollback bool
 }
-
-
 
 // UpdatePlan represents a plan for updating dependencies.
 
 type UpdatePlan struct {
-
-	Steps         []UpdateStep
+	Steps []UpdateStep
 
 	EstimatedTime time.Duration
 
-	RiskLevel     RiskLevel
+	RiskLevel RiskLevel
 
 	Prerequisites []string
-
 }
-
-
 
 // UpdateStep represents a single step in an update plan.
 
 type UpdateStep struct {
+	Action UpdateAction
 
-	Action       UpdateAction
+	Target string
 
-	Target       string
+	FromVersion string
 
-	FromVersion  string
-
-	ToVersion    string
+	ToVersion string
 
 	Dependencies []string
-
 }
-
-
 
 // UpdateAction defines types of update actions.
 
 type UpdateAction string
-
-
 
 const (
 
@@ -2690,90 +2087,69 @@ const (
 	// UpdateActionRemove holds updateactionremove value.
 
 	UpdateActionRemove UpdateAction = "remove"
-
 )
-
-
 
 // ConflictSuggestion provides suggestions for resolving conflicts.
 
 type ConflictSuggestion struct {
-
-	Type        SuggestionType
+	Type SuggestionType
 
 	Description string
 
-	Action      string
+	Action string
 
-	Confidence  float64
+	Confidence float64
 
-	Risks       []string
-
+	Risks []string
 }
-
-
 
 // UpdateConflict represents a conflict during updates.
 
 type UpdateConflict struct {
+	Type ConflictType
 
-	Type        ConflictType
+	Source string
 
-	Source      string
-
-	Target      string
+	Target string
 
 	Description string
 
-	Severity    ConflictSeverity
+	Severity ConflictSeverity
 
 	Suggestions []ConflictSuggestion
-
 }
-
-
 
 // PropagationStatistics tracks dependency change propagation.
 
 type PropagationStatistics struct {
+	NodesAffected int
 
-	NodesAffected   int
+	EdgesAffected int
 
-	EdgesAffected   int
-
-	LevelsAffected  int
+	LevelsAffected int
 
 	PropagationTime time.Duration
 
-	ChangeImpact    float64
-
+	ChangeImpact float64
 }
-
-
 
 // RecommendedAction suggests actions to take.
 
 type RecommendedAction struct {
+	Action ActionType
 
-	Action      ActionType
-
-	Priority    Priority
+	Priority Priority
 
 	Description string
 
-	Rationale   string
+	Rationale string
 
-	Impact      string
-
+	Impact string
 }
-
-
 
 // ActionType defines types of recommended actions.
 
 type ActionType string
-
-
 
 const (
 
@@ -2792,16 +2168,11 @@ const (
 	// ActionTypeEscalate holds actiontypeescalate value.
 
 	ActionTypeEscalate ActionType = "escalate"
-
 )
-
-
 
 // Priority defines priority levels.
 
 type Priority string
-
-
 
 const (
 
@@ -2820,6 +2191,4 @@ const (
 	// PriorityCritical holds prioritycritical value.
 
 	PriorityCritical Priority = "critical"
-
 )
-

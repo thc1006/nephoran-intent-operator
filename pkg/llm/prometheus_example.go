@@ -1,8 +1,5 @@
 //go:build !disable_rag
-
 // +build !disable_rag
-
-
 
 // Example usage of the Prometheus metrics implementation for the LLM client.
 
@@ -12,28 +9,15 @@
 
 // integration based on the METRICS_ENABLED environment variable.
 
-
-
-
 package llm
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"log"
-
 	"os"
-
 	"time"
-
 )
-
-
 
 // ExamplePrometheusMetricsUsage demonstrates the Prometheus metrics integration.
 
@@ -45,19 +29,13 @@ func ExamplePrometheusMetricsUsage() {
 
 	defer os.Unsetenv("METRICS_ENABLED")
 
-
-
 	// Create LLM client with default configuration.
 
 	client := NewClient("https://api.openai.com/v1/chat/completions")
 
-
-
 	// Process some intents to generate metrics.
 
 	ctx := context.Background()
-
-
 
 	// Successful request.
 
@@ -75,8 +53,6 @@ func ExamplePrometheusMetricsUsage() {
 
 	}
 
-
-
 	// Cache hit (if processing same intent again).
 
 	response2, err2 := client.ProcessIntent(ctx, intent1)
@@ -91,8 +67,6 @@ func ExamplePrometheusMetricsUsage() {
 
 	}
 
-
-
 	// Get comprehensive metrics that include both traditional and Prometheus metrics.
 
 	if client.metricsIntegrator != nil {
@@ -105,19 +79,13 @@ func ExamplePrometheusMetricsUsage() {
 
 	}
 
-
-
 	// Cleanup.
 
 	client.Shutdown()
 
-
-
 	fmt.Println("Example completed successfully")
 
 }
-
-
 
 // ExamplePrometheusMetricsWithoutEnvironment shows behavior when METRICS_ENABLED is false.
 
@@ -129,21 +97,15 @@ func ExamplePrometheusMetricsWithoutEnvironment() {
 
 	defer os.Unsetenv("METRICS_ENABLED")
 
-
-
 	// Create client.
 
 	client := NewClient("https://api.openai.com/v1/chat/completions")
-
-
 
 	// Process intent - metrics should not be recorded to Prometheus.
 
 	ctx := context.Background()
 
 	intent := "Configure O-RAN DU with load balancing"
-
-
 
 	_, err := client.ProcessIntent(ctx, intent)
 
@@ -152,8 +114,6 @@ func ExamplePrometheusMetricsWithoutEnvironment() {
 		log.Printf("Request failed: %v", err)
 
 	}
-
-
 
 	// Check metrics status.
 
@@ -167,17 +127,11 @@ func ExamplePrometheusMetricsWithoutEnvironment() {
 
 	}
 
-
-
 	client.Shutdown()
-
-
 
 	fmt.Println("Example without metrics completed successfully")
 
 }
-
-
 
 // ExamplePrometheusMetricsTypes demonstrates different metric types being recorded.
 
@@ -187,37 +141,26 @@ func ExamplePrometheusMetricsTypes() {
 
 	defer os.Unsetenv("METRICS_ENABLED")
 
-
-
 	// Create client.
 
 	config := ClientConfig{
 
-		APIKey:      os.Getenv("OPENAI_API_KEY"),
+		APIKey: os.Getenv("OPENAI_API_KEY"),
 
-		ModelName:   "gpt-4o-mini",
+		ModelName: "gpt-4o-mini",
 
-		MaxTokens:   1000,
+		MaxTokens: 1000,
 
 		BackendType: "openai",
 
-		Timeout:     30 * time.Second,
-
+		Timeout: 30 * time.Second,
 	}
-
-
 
 	client := NewClientWithConfig("https://api.openai.com/v1/chat/completions", config)
 
-
-
 	ctx := context.Background()
 
-
-
 	// Generate different types of metrics:.
-
-
 
 	// 1. Successful request (records: requests_total, processing_duration_seconds).
 
@@ -225,15 +168,11 @@ func ExamplePrometheusMetricsTypes() {
 
 	_, _ = client.ProcessIntent(ctx, "Deploy AMF in production")
 
-
-
 	// 2. Cache operations (records: cache_hits_total, cache_misses_total).
 
 	fmt.Println("Recording cache metrics...")
 
 	_, _ = client.ProcessIntent(ctx, "Deploy AMF in production") // Should be cache hit
-
-
 
 	// 3. Simulate errors for error metrics (records: errors_total with error_type label).
 
@@ -249,8 +188,6 @@ func ExamplePrometheusMetricsTypes() {
 
 	}
 
-
-
 	// 4. Retry attempts (records: retry_attempts_total).
 
 	fmt.Println("Recording retry metrics...")
@@ -260,8 +197,6 @@ func ExamplePrometheusMetricsTypes() {
 		client.metricsIntegrator.RecordRetryAttempt("gpt-4o-mini")
 
 	}
-
-
 
 	// 5. Fallback attempts (records: fallback_attempts_total).
 
@@ -273,15 +208,11 @@ func ExamplePrometheusMetricsTypes() {
 
 	}
 
-
-
 	fmt.Println("All metric types recorded successfully")
 
 	client.Shutdown()
 
 }
-
-
 
 // ExampleMetricNamingConventions shows the Prometheus metric naming conventions used.
 
@@ -328,4 +259,3 @@ func ExampleMetricNamingConventions() {
 	fmt.Println("  - METRICS_ENABLED: Set to 'true' to enable Prometheus metrics")
 
 }
-

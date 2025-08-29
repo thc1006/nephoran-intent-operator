@@ -1,79 +1,45 @@
-
 package testutils
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 	"strings"
-
 	"testing"
-
 	"time"
-
-
 
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
-
-
 	appsv1 "k8s.io/api/apps/v1"
-
 	corev1 "k8s.io/api/core/v1"
-
 	"k8s.io/apimachinery/pkg/api/errors"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/apimachinery/pkg/types"
-
 	"k8s.io/apimachinery/pkg/util/wait"
-
 	"k8s.io/client-go/kubernetes"
-
 	"k8s.io/client-go/rest"
 
-
-
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
 )
 
-
-
 var (
+	k8sClient ctrlclient.Client
 
-	k8sClient  ctrlclient.Client
-
-	clientset  *kubernetes.Clientset
+	clientset *kubernetes.Clientset
 
 	restConfig *rest.Config
 
-	testEnv    *envtest.Environment
+	testEnv *envtest.Environment
 
-	ctx        context.Context
+	ctx context.Context
 
-	cancel     context.CancelFunc
-
+	cancel context.CancelFunc
 )
-
-
 
 // GetK8sClient returns the Kubernetes client for testing.
 
@@ -89,8 +55,6 @@ func GetK8sClient() ctrlclient.Client {
 
 }
 
-
-
 // GetClientset returns the Kubernetes clientset for testing.
 
 func GetClientset() *kubernetes.Clientset {
@@ -105,8 +69,6 @@ func GetClientset() *kubernetes.Clientset {
 
 }
 
-
-
 // GetRestConfig returns the REST config for testing.
 
 func GetRestConfig() *rest.Config {
@@ -120,8 +82,6 @@ func GetRestConfig() *rest.Config {
 	return restConfig
 
 }
-
-
 
 // GetTestNamespace returns the namespace used for testing.
 
@@ -139,8 +99,6 @@ func GetTestNamespace() string {
 
 }
 
-
-
 // GetTestContext returns the test context.
 
 func GetTestContext() context.Context {
@@ -155,41 +113,29 @@ func GetTestContext() context.Context {
 
 }
 
-
-
 // SetupTestEnvironment initializes the test environment.
 
 func SetupTestEnvironment() error {
 
 	logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
-
-
 	ctx, cancel = context.WithCancel(context.Background())
-
-
 
 	// Use existing cluster if available, otherwise use envtest.
 
 	useExistingCluster := os.Getenv("USE_EXISTING_CLUSTER") == "true"
-
-
 
 	testEnv = &envtest.Environment{
 
 		CRDDirectoryPaths: []string{
 
 			filepath.Join("..", "..", "deployments", "crds"),
-
 		},
 
 		ErrorIfCRDPathMissing: false,
 
-		UseExistingCluster:    &useExistingCluster,
-
+		UseExistingCluster: &useExistingCluster,
 	}
-
-
 
 	var err error
 
@@ -200,8 +146,6 @@ func SetupTestEnvironment() error {
 		return fmt.Errorf("failed to start test environment: %w", err)
 
 	}
-
-
 
 	// Add scheme.
 
@@ -215,8 +159,6 @@ func SetupTestEnvironment() error {
 
 	}
 
-
-
 	// Create client.
 
 	k8sClient, err = ctrlclient.New(restConfig, ctrlclient.Options{Scheme: scheme})
@@ -226,8 +168,6 @@ func SetupTestEnvironment() error {
 		return fmt.Errorf("failed to create client: %w", err)
 
 	}
-
-
 
 	// Create clientset.
 
@@ -239,13 +179,9 @@ func SetupTestEnvironment() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // TeardownTestEnvironment cleans up the test environment.
 
@@ -256,8 +192,6 @@ func TeardownTestEnvironment() error {
 		cancel()
 
 	}
-
-
 
 	if testEnv != nil {
 
@@ -271,13 +205,9 @@ func TeardownTestEnvironment() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetAllDeployments returns all deployments in the given namespace.
 
@@ -297,8 +227,6 @@ func GetAllDeployments(ctx context.Context, client ctrlclient.Client, namespace 
 
 }
 
-
-
 // GetAllPods returns all pods in the given namespace.
 
 func GetAllPods(ctx context.Context, client ctrlclient.Client, namespace string) ([]corev1.Pod, error) {
@@ -316,8 +244,6 @@ func GetAllPods(ctx context.Context, client ctrlclient.Client, namespace string)
 	return pods.Items, nil
 
 }
-
-
 
 // GetAllSecrets returns all secrets in the given namespace.
 
@@ -337,8 +263,6 @@ func GetAllSecrets(ctx context.Context, client ctrlclient.Client, namespace stri
 
 }
 
-
-
 // GetAllServices returns all services in the given namespace.
 
 func GetAllServices(ctx context.Context, client ctrlclient.Client, namespace string) ([]corev1.Service, error) {
@@ -356,8 +280,6 @@ func GetAllServices(ctx context.Context, client ctrlclient.Client, namespace str
 	return services.Items, nil
 
 }
-
-
 
 // GetAllConfigMaps returns all config maps in the given namespace.
 
@@ -377,8 +299,6 @@ func GetAllConfigMaps(ctx context.Context, client ctrlclient.Client, namespace s
 
 }
 
-
-
 // CreateTestNamespace creates a namespace for testing.
 
 func CreateTestNamespace(ctx context.Context, client ctrlclient.Client, namespace string) error {
@@ -391,21 +311,16 @@ func CreateTestNamespace(ctx context.Context, client ctrlclient.Client, namespac
 
 			Labels: map[string]string{
 
-				"security.nephoran.io/test":          "true",
+				"security.nephoran.io/test": "true",
 
 				"pod-security.kubernetes.io/enforce": "restricted",
 
-				"pod-security.kubernetes.io/audit":   "restricted",
+				"pod-security.kubernetes.io/audit": "restricted",
 
-				"pod-security.kubernetes.io/warn":    "restricted",
-
+				"pod-security.kubernetes.io/warn": "restricted",
 			},
-
 		},
-
 	}
-
-
 
 	err := client.Create(ctx, ns)
 
@@ -415,13 +330,9 @@ func CreateTestNamespace(ctx context.Context, client ctrlclient.Client, namespac
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // DeleteTestNamespace deletes a test namespace.
 
@@ -432,12 +343,8 @@ func DeleteTestNamespace(ctx context.Context, client ctrlclient.Client, namespac
 		ObjectMeta: metav1.ObjectMeta{
 
 			Name: namespace,
-
 		},
-
 	}
-
-
 
 	err := client.Delete(ctx, ns)
 
@@ -447,13 +354,9 @@ func DeleteTestNamespace(ctx context.Context, client ctrlclient.Client, namespac
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // WaitForDeploymentReady waits for a deployment to be ready.
 
@@ -463,18 +366,15 @@ func WaitForDeploymentReady(ctx context.Context, client ctrlclient.Client, names
 
 	defer cancel()
 
-
-
 	return wait.PollImmediateUntil(time.Second, func() (bool, error) {
 
 		var deployment appsv1.Deployment
 
 		err := client.Get(ctx, types.NamespacedName{
 
-			Name:      name,
+			Name: name,
 
 			Namespace: namespace,
-
 		}, &deployment)
 
 		if err != nil {
@@ -483,29 +383,21 @@ func WaitForDeploymentReady(ctx context.Context, client ctrlclient.Client, names
 
 		}
 
-
-
 		return deployment.Status.ReadyReplicas == deployment.Status.Replicas, nil
 
 	}, ctx.Done())
 
 }
 
-
-
 // SecurityTestHelper provides common security testing utilities.
 
 type SecurityTestHelper struct {
-
-	client    ctrlclient.Client
+	client ctrlclient.Client
 
 	clientset *kubernetes.Clientset
 
 	namespace string
-
 }
-
-
 
 // NewSecurityTestHelper creates a new security test helper.
 
@@ -513,25 +405,20 @@ func NewSecurityTestHelper(client ctrlclient.Client, clientset *kubernetes.Clien
 
 	return &SecurityTestHelper{
 
-		client:    client,
+		client: client,
 
 		clientset: clientset,
 
 		namespace: namespace,
-
 	}
 
 }
-
-
 
 // ValidatePodSecurityContext validates a pod's security context.
 
 func (h *SecurityTestHelper) ValidatePodSecurityContext(pod *corev1.Pod) []string {
 
 	var violations []string
-
-
 
 	// Check pod security context.
 
@@ -543,15 +430,11 @@ func (h *SecurityTestHelper) ValidatePodSecurityContext(pod *corev1.Pod) []strin
 
 		secCtx := pod.Spec.SecurityContext
 
-
-
 		if secCtx.RunAsNonRoot == nil || !*secCtx.RunAsNonRoot {
 
 			violations = append(violations, "Pod not configured to run as non-root")
 
 		}
-
-
 
 		if secCtx.RunAsUser != nil && *secCtx.RunAsUser == 0 {
 
@@ -560,8 +443,6 @@ func (h *SecurityTestHelper) ValidatePodSecurityContext(pod *corev1.Pod) []strin
 		}
 
 	}
-
-
 
 	// Check container security contexts.
 
@@ -577,21 +458,15 @@ func (h *SecurityTestHelper) ValidatePodSecurityContext(pod *corev1.Pod) []strin
 
 	}
 
-
-
 	return violations
 
 }
-
-
 
 // ValidateContainerSecurityContext validates a container's security context.
 
 func (h *SecurityTestHelper) ValidateContainerSecurityContext(container *corev1.Container) []string {
 
 	var violations []string
-
-
 
 	if container.SecurityContext == nil {
 
@@ -601,11 +476,7 @@ func (h *SecurityTestHelper) ValidateContainerSecurityContext(container *corev1.
 
 	}
 
-
-
 	secCtx := container.SecurityContext
-
-
 
 	// Check non-root user.
 
@@ -615,8 +486,6 @@ func (h *SecurityTestHelper) ValidateContainerSecurityContext(container *corev1.
 
 	}
 
-
-
 	// Check read-only root filesystem.
 
 	if secCtx.ReadOnlyRootFilesystem == nil || !*secCtx.ReadOnlyRootFilesystem {
@@ -624,8 +493,6 @@ func (h *SecurityTestHelper) ValidateContainerSecurityContext(container *corev1.
 		violations = append(violations, "not using read-only root filesystem")
 
 	}
-
-
 
 	// Check privilege escalation.
 
@@ -635,8 +502,6 @@ func (h *SecurityTestHelper) ValidateContainerSecurityContext(container *corev1.
 
 	}
 
-
-
 	// Check privileged.
 
 	if secCtx.Privileged != nil && *secCtx.Privileged {
@@ -644,8 +509,6 @@ func (h *SecurityTestHelper) ValidateContainerSecurityContext(container *corev1.
 		violations = append(violations, "running in privileged mode")
 
 	}
-
-
 
 	// Check capabilities.
 
@@ -677,21 +540,15 @@ func (h *SecurityTestHelper) ValidateContainerSecurityContext(container *corev1.
 
 	}
 
-
-
 	return violations
 
 }
-
-
 
 // ValidateResourceLimits validates that containers have resource limits.
 
 func (h *SecurityTestHelper) ValidateResourceLimits(container *corev1.Container) []string {
 
 	var violations []string
-
-
 
 	if container.Resources.Limits == nil {
 
@@ -701,8 +558,6 @@ func (h *SecurityTestHelper) ValidateResourceLimits(container *corev1.Container)
 
 	}
 
-
-
 	// Check memory limit.
 
 	if container.Resources.Limits.Memory().IsZero() {
@@ -711,8 +566,6 @@ func (h *SecurityTestHelper) ValidateResourceLimits(container *corev1.Container)
 
 	}
 
-
-
 	// Check CPU limit.
 
 	if container.Resources.Limits.Cpu().IsZero() {
@@ -720,8 +573,6 @@ func (h *SecurityTestHelper) ValidateResourceLimits(container *corev1.Container)
 		violations = append(violations, "missing CPU limit")
 
 	}
-
-
 
 	// Check requests.
 
@@ -737,8 +588,6 @@ func (h *SecurityTestHelper) ValidateResourceLimits(container *corev1.Container)
 
 		}
 
-
-
 		if container.Resources.Requests.Cpu().IsZero() {
 
 			violations = append(violations, "missing CPU request")
@@ -747,13 +596,9 @@ func (h *SecurityTestHelper) ValidateResourceLimits(container *corev1.Container)
 
 	}
 
-
-
 	return violations
 
 }
-
-
 
 // CheckImageSecurity validates container images.
 
@@ -761,11 +606,7 @@ func (h *SecurityTestHelper) CheckImageSecurity(container *corev1.Container) []s
 
 	var violations []string
 
-
-
 	image := container.Image
-
-
 
 	// Check for latest tag.
 
@@ -775,8 +616,6 @@ func (h *SecurityTestHelper) CheckImageSecurity(container *corev1.Container) []s
 
 	}
 
-
-
 	// Check for missing tag.
 
 	if !strings.Contains(image, ":") && !strings.Contains(image, "@") {
@@ -784,8 +623,6 @@ func (h *SecurityTestHelper) CheckImageSecurity(container *corev1.Container) []s
 		violations = append(violations, "missing image tag")
 
 	}
-
-
 
 	// Check pull policy.
 
@@ -799,21 +636,15 @@ func (h *SecurityTestHelper) CheckImageSecurity(container *corev1.Container) []s
 
 	}
 
-
-
 	return violations
 
 }
-
-
 
 // GetSecurityViolations performs a comprehensive security check.
 
 func (h *SecurityTestHelper) GetSecurityViolations(ctx context.Context) (map[string][]string, error) {
 
 	violations := make(map[string][]string)
-
-
 
 	// Check deployments.
 
@@ -825,31 +656,22 @@ func (h *SecurityTestHelper) GetSecurityViolations(ctx context.Context) (map[str
 
 	}
 
-
-
 	for _, deployment := range deployments {
 
 		deploymentViolations := []string{}
 
-
-
 		// Check pod template.
 
 		podTemplate := &deployment.Spec.Template
-
-
 
 		// Validate security contexts.
 
 		podViolations := h.ValidatePodSecurityContext(&corev1.Pod{
 
 			Spec: podTemplate.Spec,
-
 		})
 
 		deploymentViolations = append(deploymentViolations, podViolations...)
-
-
 
 		// Validate resource limits.
 
@@ -863,8 +685,6 @@ func (h *SecurityTestHelper) GetSecurityViolations(ctx context.Context) (map[str
 
 			}
 
-
-
 			imageViolations := h.CheckImageSecurity(&container)
 
 			for _, violation := range imageViolations {
@@ -875,8 +695,6 @@ func (h *SecurityTestHelper) GetSecurityViolations(ctx context.Context) (map[str
 
 		}
 
-
-
 		if len(deploymentViolations) > 0 {
 
 			violations[fmt.Sprintf("Deployment/%s", deployment.Name)] = deploymentViolations
@@ -885,41 +703,29 @@ func (h *SecurityTestHelper) GetSecurityViolations(ctx context.Context) (map[str
 
 	}
 
-
-
 	return violations, nil
 
 }
 
-
-
 // TestSuite represents a security test suite.
 
 type TestSuite struct {
-
-	Name        string
+	Name string
 
 	Description string
 
-	Tests       []TestCase
-
+	Tests []TestCase
 }
-
-
 
 // TestCase represents a single test case.
 
 type TestCase struct {
-
-	Name        string
+	Name string
 
 	Description string
 
-	TestFunc    func(*testing.T, *SecurityTestHelper) error
-
+	TestFunc func(*testing.T, *SecurityTestHelper) error
 }
-
-
 
 // RunSecurityTestSuite runs a complete security test suite.
 
@@ -947,23 +753,17 @@ func RunSecurityTestSuite(t *testing.T, suite TestSuite, helper *SecurityTestHel
 
 }
 
-
-
 // BenchmarkResult represents the results of a security benchmark test.
 
 type BenchmarkResult struct {
-
-	Name     string
+	Name string
 
 	Duration time.Duration
 
-	Success  bool
+	Success bool
 
-	Error    error
-
+	Error error
 }
-
-
 
 // RunBenchmark runs a benchmark test.
 
@@ -975,19 +775,15 @@ func RunBenchmark(name string, testFunc func() error) BenchmarkResult {
 
 	duration := time.Since(start)
 
-
-
 	return BenchmarkResult{
 
-		Name:     name,
+		Name: name,
 
 		Duration: duration,
 
-		Success:  err == nil,
+		Success: err == nil,
 
-		Error:    err,
-
+		Error: err,
 	}
 
 }
-

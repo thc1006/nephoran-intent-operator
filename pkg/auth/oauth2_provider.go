@@ -1,135 +1,97 @@
-
 package auth
 
-
-
 import (
-
 	"context"
-
 	"crypto/tls"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"net/url"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/golang-jwt/jwt/v5"
-
 	"golang.org/x/oauth2"
-
 	"golang.org/x/oauth2/clientcredentials"
-
 )
-
-
 
 // OAuth2Provider represents an enterprise OAuth2 identity provider.
 
 type OAuth2Provider struct {
+	Name string
 
-	Name         string
-
-	ClientID     string
+	ClientID string
 
 	ClientSecret string
 
-	AuthURL      string
+	AuthURL string
 
-	TokenURL     string
+	TokenURL string
 
-	UserInfoURL  string
+	UserInfoURL string
 
-	Scopes       []string
+	Scopes []string
 
-	TLSConfig    *tls.Config
+	TLSConfig *tls.Config
 
-	httpClient   *http.Client
-
+	httpClient *http.Client
 }
-
-
 
 // OAuth2Config holds OAuth2 configuration for multiple providers.
 
 type OAuth2Config struct {
+	Providers map[string]*OAuth2Provider `json:"providers"`
 
-	Providers     map[string]*OAuth2Provider `json:"providers"`
+	DefaultScopes []string `json:"default_scopes"`
 
-	DefaultScopes []string                   `json:"default_scopes"`
+	TokenTTL time.Duration `json:"token_ttl"`
 
-	TokenTTL      time.Duration              `json:"token_ttl"`
-
-	RefreshTTL    time.Duration              `json:"refresh_ttl"`
-
+	RefreshTTL time.Duration `json:"refresh_ttl"`
 }
-
-
 
 // TokenResponse represents an OAuth2 token response.
 
 type TokenResponse struct {
+	AccessToken string `json:"access_token"`
 
-	AccessToken  string    `json:"access_token"`
+	RefreshToken string `json:"refresh_token,omitempty"`
 
-	RefreshToken string    `json:"refresh_token,omitempty"`
+	TokenType string `json:"token_type"`
 
-	TokenType    string    `json:"token_type"`
+	ExpiresIn int64 `json:"expires_in"`
 
-	ExpiresIn    int64     `json:"expires_in"`
+	Scope string `json:"scope,omitempty"`
 
-	Scope        string    `json:"scope,omitempty"`
-
-	IssuedAt     time.Time `json:"issued_at"`
-
+	IssuedAt time.Time `json:"issued_at"`
 }
-
-
 
 // UserInfo represents user information from the identity provider.
 
 type UserInfo struct {
+	Subject string `json:"sub"`
 
-	Subject       string   `json:"sub"`
+	Email string `json:"email"`
 
-	Email         string   `json:"email"`
+	EmailVerified bool `json:"email_verified"`
 
-	EmailVerified bool     `json:"email_verified"`
+	Name string `json:"name"`
 
-	Name          string   `json:"name"`
+	PreferredName string `json:"preferred_username"`
 
-	PreferredName string   `json:"preferred_username"`
+	Groups []string `json:"groups"`
 
-	Groups        []string `json:"groups"`
-
-	Roles         []string `json:"roles"`
-
+	Roles []string `json:"roles"`
 }
-
-
 
 // AuthenticationResult contains the result of OAuth2 authentication.
 
 type AuthenticationResult struct {
+	Token *TokenResponse `json:"token"`
 
-	Token    *TokenResponse `json:"token"`
+	UserInfo *UserInfo `json:"user_info"`
 
-	UserInfo *UserInfo      `json:"user_info"`
-
-	Provider string         `json:"provider"`
-
+	Provider string `json:"provider"`
 }
-
-
 
 // NewOAuth2Provider creates a new OAuth2 provider instance.
 
@@ -137,24 +99,23 @@ func NewOAuth2Provider(name, clientID, clientSecret, authURL, tokenURL, userInfo
 
 	return &OAuth2Provider{
 
-		Name:         name,
+		Name: name,
 
-		ClientID:     clientID,
+		ClientID: clientID,
 
 		ClientSecret: clientSecret,
 
-		AuthURL:      authURL,
+		AuthURL: authURL,
 
-		TokenURL:     tokenURL,
+		TokenURL: tokenURL,
 
-		UserInfoURL:  userInfoURL,
+		UserInfoURL: userInfoURL,
 
-		Scopes:       scopes,
+		Scopes: scopes,
 
 		TLSConfig: &tls.Config{
 
 			MinVersion: tls.VersionTLS13,
-
 		},
 
 		httpClient: &http.Client{
@@ -166,18 +127,12 @@ func NewOAuth2Provider(name, clientID, clientSecret, authURL, tokenURL, userInfo
 				TLSClientConfig: &tls.Config{
 
 					MinVersion: tls.VersionTLS13,
-
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // GetAuthorizationURL generates the OAuth2 authorization URL.
 
@@ -189,15 +144,11 @@ func (p *OAuth2Provider) GetAuthorizationURL(state, redirectURI string) string {
 
 }
 
-
-
 // ExchangeCodeForToken exchanges authorization code for access token.
 
 func (p *OAuth2Provider) ExchangeCodeForToken(ctx context.Context, code, redirectURI string) (*TokenResponse, error) {
 
 	config := p.getOAuth2Config(redirectURI)
-
-
 
 	token, err := config.Exchange(ctx, code)
 
@@ -207,25 +158,20 @@ func (p *OAuth2Provider) ExchangeCodeForToken(ctx context.Context, code, redirec
 
 	}
 
-
-
 	return &TokenResponse{
 
-		AccessToken:  token.AccessToken,
+		AccessToken: token.AccessToken,
 
 		RefreshToken: token.RefreshToken,
 
-		TokenType:    token.TokenType,
+		TokenType: token.TokenType,
 
-		ExpiresIn:    int64(time.Until(token.Expiry).Seconds()),
+		ExpiresIn: int64(time.Until(token.Expiry).Seconds()),
 
-		IssuedAt:     time.Now(),
-
+		IssuedAt: time.Now(),
 	}, nil
 
 }
-
-
 
 // ValidateToken validates an OAuth2 access token.
 
@@ -239,13 +185,9 @@ func (p *OAuth2Provider) ValidateToken(ctx context.Context, accessToken string) 
 
 	}
 
-
-
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	req.Header.Set("Accept", "application/json")
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -257,15 +199,11 @@ func (p *OAuth2Provider) ValidateToken(ctx context.Context, accessToken string) 
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("user info request failed with status: %d", resp.StatusCode)
 
 	}
-
-
 
 	var userInfo UserInfo
 
@@ -275,13 +213,9 @@ func (p *OAuth2Provider) ValidateToken(ctx context.Context, accessToken string) 
 
 	}
 
-
-
 	return &userInfo, nil
 
 }
-
-
 
 // RefreshToken refreshes an OAuth2 access token using refresh token.
 
@@ -297,8 +231,6 @@ func (p *OAuth2Provider) RefreshToken(ctx context.Context, refreshToken string) 
 
 	data.Set("client_secret", p.ClientSecret)
 
-
-
 	req, err := http.NewRequestWithContext(ctx, "POST", p.TokenURL, strings.NewReader(data.Encode()))
 
 	if err != nil {
@@ -307,13 +239,9 @@ func (p *OAuth2Provider) RefreshToken(ctx context.Context, refreshToken string) 
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	req.Header.Set("Accept", "application/json")
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -325,15 +253,11 @@ func (p *OAuth2Provider) RefreshToken(ctx context.Context, refreshToken string) 
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("token refresh failed with status: %d", resp.StatusCode)
 
 	}
-
-
 
 	var tokenResp TokenResponse
 
@@ -343,15 +267,11 @@ func (p *OAuth2Provider) RefreshToken(ctx context.Context, refreshToken string) 
 
 	}
 
-
-
 	tokenResp.IssuedAt = time.Now()
 
 	return &tokenResp, nil
 
 }
-
-
 
 // GetClientCredentialsToken gets a token using client credentials flow.
 
@@ -359,17 +279,14 @@ func (p *OAuth2Provider) GetClientCredentialsToken(ctx context.Context) (*TokenR
 
 	config := clientcredentials.Config{
 
-		ClientID:     p.ClientID,
+		ClientID: p.ClientID,
 
 		ClientSecret: p.ClientSecret,
 
-		TokenURL:     p.TokenURL,
+		TokenURL: p.TokenURL,
 
-		Scopes:       p.Scopes,
-
+		Scopes: p.Scopes,
 	}
-
-
 
 	token, err := config.Token(ctx)
 
@@ -379,23 +296,18 @@ func (p *OAuth2Provider) GetClientCredentialsToken(ctx context.Context) (*TokenR
 
 	}
 
-
-
 	return &TokenResponse{
 
 		AccessToken: token.AccessToken,
 
-		TokenType:   token.TokenType,
+		TokenType: token.TokenType,
 
-		ExpiresIn:   int64(time.Until(token.Expiry).Seconds()),
+		ExpiresIn: int64(time.Until(token.Expiry).Seconds()),
 
-		IssuedAt:    time.Now(),
-
+		IssuedAt: time.Now(),
 	}, nil
 
 }
-
-
 
 // getOAuth2Config creates OAuth2 config for this provider.
 
@@ -403,31 +315,25 @@ func (p *OAuth2Provider) getOAuth2Config(redirectURI string) *oauth2.Config {
 
 	return &oauth2.Config{
 
-		ClientID:     p.ClientID,
+		ClientID: p.ClientID,
 
 		ClientSecret: p.ClientSecret,
 
-		RedirectURL:  redirectURI,
+		RedirectURL: redirectURI,
 
-		Scopes:       p.Scopes,
+		Scopes: p.Scopes,
 
 		Endpoint: oauth2.Endpoint{
 
-			AuthURL:  p.AuthURL,
+			AuthURL: p.AuthURL,
 
 			TokenURL: p.TokenURL,
-
 		},
-
 	}
 
 }
 
-
-
 // Enterprise Identity Provider Configurations.
-
-
 
 // NewAzureADProvider creates an Azure AD OAuth2 provider.
 
@@ -448,12 +354,9 @@ func NewAzureADProvider(tenantID, clientID, clientSecret string) *OAuth2Provider
 		"https://graph.microsoft.com/v1.0/me",
 
 		[]string{"openid", "profile", "email", "User.Read"},
-
 	)
 
 }
-
-
 
 // NewOktaProvider creates an Okta OAuth2 provider.
 
@@ -474,12 +377,9 @@ func NewOktaProvider(domain, clientID, clientSecret string) *OAuth2Provider {
 		fmt.Sprintf("https://%s/oauth2/default/v1/userinfo", domain),
 
 		[]string{"openid", "profile", "email", "groups"},
-
 	)
 
 }
-
-
 
 // NewKeycloakProvider creates a Keycloak OAuth2 provider.
 
@@ -500,12 +400,9 @@ func NewKeycloakProvider(baseURL, realm, clientID, clientSecret string) *OAuth2P
 		fmt.Sprintf("%s/auth/realms/%s/protocol/openid-connect/userinfo", baseURL, realm),
 
 		[]string{"openid", "profile", "email", "roles"},
-
 	)
 
 }
-
-
 
 // NewGoogleProvider creates a Google OAuth2 provider.
 
@@ -526,36 +423,27 @@ func NewGoogleProvider(clientID, clientSecret string) *OAuth2Provider {
 		"https://www.googleapis.com/oauth2/v2/userinfo",
 
 		[]string{"openid", "profile", "email"},
-
 	)
 
 }
 
-
-
 // JWT Token Management.
-
-
 
 // JWTClaims represents custom JWT claims.
 
 type JWTClaims struct {
-
 	jwt.RegisteredClaims
 
-	Email    string   `json:"email"`
+	Email string `json:"email"`
 
-	Name     string   `json:"name"`
+	Name string `json:"name"`
 
-	Groups   []string `json:"groups"`
+	Groups []string `json:"groups"`
 
-	Roles    []string `json:"roles"`
+	Roles []string `json:"roles"`
 
-	Provider string   `json:"provider"`
-
+	Provider string `json:"provider"`
 }
-
-
 
 // GenerateJWT generates a JWT token for authenticated user.
 
@@ -567,39 +455,33 @@ func GenerateJWT(userInfo *UserInfo, provider string, secretKey []byte, ttl time
 
 		RegisteredClaims: jwt.RegisteredClaims{
 
-			Subject:   userInfo.Subject,
+			Subject: userInfo.Subject,
 
 			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
 
-			IssuedAt:  jwt.NewNumericDate(now),
+			IssuedAt: jwt.NewNumericDate(now),
 
 			NotBefore: jwt.NewNumericDate(now),
 
-			Issuer:    "nephoran-intent-operator",
-
+			Issuer: "nephoran-intent-operator",
 		},
 
-		Email:    userInfo.Email,
+		Email: userInfo.Email,
 
-		Name:     userInfo.Name,
+		Name: userInfo.Name,
 
-		Groups:   userInfo.Groups,
+		Groups: userInfo.Groups,
 
-		Roles:    userInfo.Roles,
+		Roles: userInfo.Roles,
 
 		Provider: provider,
-
 	}
-
-
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	return token.SignedString(secretKey)
 
 }
-
-
 
 // ValidateJWT validates and parses a JWT token.
 
@@ -623,17 +505,12 @@ func ValidateJWT(tokenString string, secretKey []byte) (*JWTClaims, error) {
 
 	}
 
-
-
 	if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
 
 		return claims, nil
 
 	}
 
-
-
 	return nil, fmt.Errorf("invalid JWT token")
 
 }
-

@@ -1,57 +1,35 @@
-
 package multicluster
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
-
-
 
 	"github.com/go-logr/logr"
 
-
-
 	"k8s.io/apimachinery/pkg/types"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // PackagePropagator manages multi-cluster package deployment.
 
 type PackagePropagator struct {
+	client client.Client
 
-	client     client.Client
-
-	logger     logr.Logger
+	logger logr.Logger
 
 	clusterMgr ClusterManagerInterface
 
 	syncEngine SyncEngineInterface
 
 	customizer *Customizer
-
 }
-
-
 
 // PropagationStrategy defines different deployment strategies.
 
 type PropagationStrategy string
-
-
 
 const (
 
@@ -66,26 +44,19 @@ const (
 	// StrategyCanaried holds strategycanaried value.
 
 	StrategyCanaried PropagationStrategy = "canary"
-
 )
-
-
 
 // DeploymentOptions configures package deployment across clusters.
 
 type DeploymentOptions struct {
-
-	Strategy          PropagationStrategy
+	Strategy PropagationStrategy
 
 	MaxConcurrentDepl int
 
-	Timeout           time.Duration
+	Timeout time.Duration
 
 	RollbackOnFailure bool
-
 }
-
-
 
 // DeployPackage propagates a package across multiple clusters.
 
@@ -109,8 +80,6 @@ func (p *PackagePropagator) DeployPackage(
 
 	}
 
-
-
 	// 2. Select target clusters based on requirements.
 
 	selectedClusters, err := p.clusterMgr.SelectTargetClusters(ctx, targetClusters, packageRevision)
@@ -120,8 +89,6 @@ func (p *PackagePropagator) DeployPackage(
 		return nil, fmt.Errorf("cluster selection failed: %w", err)
 
 	}
-
-
 
 	// 3. Apply different propagation strategies.
 
@@ -147,8 +114,6 @@ func (p *PackagePropagator) DeployPackage(
 
 }
 
-
-
 // deploySequential deploys packages to clusters sequentially.
 
 func (p *PackagePropagator) deploySequential(
@@ -166,10 +131,7 @@ func (p *PackagePropagator) deploySequential(
 	deploymentStatus := &MultiClusterDeploymentStatus{
 
 		Clusters: make(map[string]ClusterDeploymentStatus),
-
 	}
-
-
 
 	for _, cluster := range clusters {
 
@@ -182,8 +144,6 @@ func (p *PackagePropagator) deploySequential(
 			return nil, fmt.Errorf("package customization failed for cluster %v: %w", cluster, err)
 
 		}
-
-
 
 		// Deploy to single cluster.
 
@@ -203,19 +163,13 @@ func (p *PackagePropagator) deploySequential(
 
 		}
 
-
-
 		deploymentStatus.Clusters[cluster.String()] = *clusterStatus
 
 	}
 
-
-
 	return deploymentStatus, nil
 
 }
-
-
 
 // deployParallel deploys packages to multiple clusters concurrently.
 
@@ -234,20 +188,15 @@ func (p *PackagePropagator) deployParallel(
 	deploymentStatus := &MultiClusterDeploymentStatus{
 
 		Clusters: make(map[string]ClusterDeploymentStatus),
-
 	}
 
 	var mu sync.Mutex
 
 	var wg sync.WaitGroup
 
-
-
 	// Use semaphore to limit concurrent deployments.
 
 	sem := make(chan struct{}, opts.MaxConcurrentDepl)
-
-
 
 	for _, cluster := range clusters {
 
@@ -255,15 +204,11 @@ func (p *PackagePropagator) deployParallel(
 
 		sem <- struct{}{}
 
-
-
 		go func(cluster types.NamespacedName) {
 
 			defer wg.Done()
 
 			defer func() { <-sem }()
-
-
 
 			// Create cluster-specific package variant.
 
@@ -277,8 +222,6 @@ func (p *PackagePropagator) deployParallel(
 
 			}
 
-
-
 			// Deploy to cluster.
 
 			clusterStatus, err := p.syncEngine.SyncPackageToCluster(ctx, customizedPkg, cluster)
@@ -290,8 +233,6 @@ func (p *PackagePropagator) deployParallel(
 				return
 
 			}
-
-
 
 			// Thread-safe status update.
 
@@ -305,21 +246,15 @@ func (p *PackagePropagator) deployParallel(
 
 	}
 
-
-
 	// Wait for all deployments to complete.
 
 	wg.Wait()
 
 	close(sem)
 
-
-
 	return deploymentStatus, nil
 
 }
-
-
 
 // deployCanary implements a canary deployment strategy.
 
@@ -347,8 +282,6 @@ func (p *PackagePropagator) deployCanary(
 
 }
 
-
-
 // rollbackDeployment handles rollback of a multi-cluster deployment.
 
 func (p *PackagePropagator) rollbackDeployment(
@@ -364,8 +297,6 @@ func (p *PackagePropagator) rollbackDeployment(
 	return nil
 
 }
-
-
 
 // validateDeploymentOptions ensures deployment options are valid.
 
@@ -391,13 +322,9 @@ func (p *PackagePropagator) validateDeploymentOptions(opts *DeploymentOptions) e
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // NewPackagePropagator creates a new package propagator.
 
@@ -417,21 +344,18 @@ func NewPackagePropagator(
 
 	return &PackagePropagator{
 
-		client:     client,
+		client: client,
 
-		logger:     logger,
+		logger: logger,
 
 		clusterMgr: clusterMgr,
 
 		syncEngine: syncEngine,
 
 		customizer: customizer,
-
 	}
 
 }
-
-
 
 // SetSyncEngine sets the sync engine for testing purposes.
 
@@ -441,8 +365,6 @@ func (p *PackagePropagator) SetSyncEngine(syncEngine SyncEngineInterface) {
 
 }
 
-
-
 // GetSyncEngine returns the sync engine for testing purposes.
 
 func (p *PackagePropagator) GetSyncEngine() SyncEngineInterface {
@@ -450,8 +372,6 @@ func (p *PackagePropagator) GetSyncEngine() SyncEngineInterface {
 	return p.syncEngine
 
 }
-
-
 
 // SetClusterManager sets the cluster manager for testing purposes.
 
@@ -461,8 +381,6 @@ func (p *PackagePropagator) SetClusterManager(clusterMgr ClusterManagerInterface
 
 }
 
-
-
 // GetClusterManager returns the cluster manager for testing purposes.
 
 func (p *PackagePropagator) GetClusterManager() ClusterManagerInterface {
@@ -470,4 +388,3 @@ func (p *PackagePropagator) GetClusterManager() ClusterManagerInterface {
 	return p.clusterMgr
 
 }
-

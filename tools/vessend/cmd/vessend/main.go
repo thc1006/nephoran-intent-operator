@@ -1,215 +1,152 @@
-
 package main
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	cryptorand "crypto/rand"
-
 	"crypto/tls"
-
 	"encoding/base64"
-
 	"encoding/json"
-
 	"flag"
-
 	"fmt"
-
 	"log"
-
 	"math/big"
-
 	"math/rand"
-
 	"net/http"
-
 	"net/url"
-
 	"os"
-
 	"os/signal"
-
 	"regexp"
-
 	"strings"
-
 	"syscall"
-
 	"time"
-
 )
-
-
 
 // VES Event Structure based on docs/contracts/fcaps.ves.examples.json.
 
 type VESEvent struct {
-
 	Event EventPayload `json:"event"`
-
 }
-
-
 
 // EventPayload represents a eventpayload.
 
 type EventPayload struct {
+	CommonEventHeader CommonEventHeader `json:"commonEventHeader"`
 
-	CommonEventHeader CommonEventHeader  `json:"commonEventHeader"`
-
-	FaultFields       *FaultFields       `json:"faultFields,omitempty"`
+	FaultFields *FaultFields `json:"faultFields,omitempty"`
 
 	MeasurementFields *MeasurementFields `json:"measurementsForVfScalingFields,omitempty"`
 
-	HeartbeatFields   *HeartbeatFields   `json:"heartbeatFields,omitempty"`
-
+	HeartbeatFields *HeartbeatFields `json:"heartbeatFields,omitempty"`
 }
-
-
 
 // CommonEventHeader represents a commoneventheader.
 
 type CommonEventHeader struct {
+	Version string `json:"version"`
 
-	Version             string `json:"version"`
+	Domain string `json:"domain"`
 
-	Domain              string `json:"domain"`
+	EventName string `json:"eventName"`
 
-	EventName           string `json:"eventName"`
+	EventID string `json:"eventId"`
 
-	EventID             string `json:"eventId"`
+	Sequence int `json:"sequence"`
 
-	Sequence            int    `json:"sequence"`
-
-	Priority            string `json:"priority"`
+	Priority string `json:"priority"`
 
 	ReportingEntityName string `json:"reportingEntityName"`
 
-	SourceName          string `json:"sourceName"`
+	SourceName string `json:"sourceName"`
 
-	NFVendorName        string `json:"nfVendorName"`
+	NFVendorName string `json:"nfVendorName"`
 
-	StartEpochMicrosec  int64  `json:"startEpochMicrosec"`
+	StartEpochMicrosec int64 `json:"startEpochMicrosec"`
 
-	LastEpochMicrosec   int64  `json:"lastEpochMicrosec"`
+	LastEpochMicrosec int64 `json:"lastEpochMicrosec"`
 
-	TimeZoneOffset      string `json:"timeZoneOffset"`
-
+	TimeZoneOffset string `json:"timeZoneOffset"`
 }
-
-
 
 // FaultFields represents a faultfields.
 
 type FaultFields struct {
-
 	FaultFieldsVersion string `json:"faultFieldsVersion"`
 
-	AlarmCondition     string `json:"alarmCondition"`
+	AlarmCondition string `json:"alarmCondition"`
 
-	EventSeverity      string `json:"eventSeverity"`
+	EventSeverity string `json:"eventSeverity"`
 
-	SpecificProblem    string `json:"specificProblem"`
+	SpecificProblem string `json:"specificProblem"`
 
-	EventSourceType    string `json:"eventSourceType"`
+	EventSourceType string `json:"eventSourceType"`
 
-	VFStatus           string `json:"vfStatus"`
+	VFStatus string `json:"vfStatus"`
 
-	AlarmInterfaceA    string `json:"alarmInterfaceA"`
-
+	AlarmInterfaceA string `json:"alarmInterfaceA"`
 }
-
-
 
 // MeasurementFields represents a measurementfields.
 
 type MeasurementFields struct {
+	MeasurementsVersion string `json:"measurementsForVfScalingVersion"`
 
-	MeasurementsVersion string                 `json:"measurementsForVfScalingVersion"`
+	VNicUsageArray []VNicUsage `json:"vNicUsageArray"`
 
-	VNicUsageArray      []VNicUsage            `json:"vNicUsageArray"`
-
-	AdditionalFields    map[string]interface{} `json:"additionalFields"`
-
+	AdditionalFields map[string]interface{} `json:"additionalFields"`
 }
-
-
 
 // VNicUsage represents a vnicusage.
 
 type VNicUsage struct {
+	VNFNetworkInterface string `json:"vnfNetworkInterface"`
 
-	VNFNetworkInterface    string `json:"vnfNetworkInterface"`
+	ReceivedOctetsDelta int64 `json:"receivedOctetsDelta"`
 
-	ReceivedOctetsDelta    int64  `json:"receivedOctetsDelta"`
-
-	TransmittedOctetsDelta int64  `json:"transmittedOctetsDelta"`
-
+	TransmittedOctetsDelta int64 `json:"transmittedOctetsDelta"`
 }
-
-
 
 // HeartbeatFields represents a heartbeatfields.
 
 type HeartbeatFields struct {
-
 	HeartbeatFieldsVersion string `json:"heartbeatFieldsVersion"`
 
-	HeartbeatInterval      int    `json:"heartbeatInterval"`
-
+	HeartbeatInterval int `json:"heartbeatInterval"`
 }
-
-
 
 // Config holds command-line configuration.
 
 type Config struct {
-
 	CollectorURL string
 
-	EventType    string
+	EventType string
 
-	Interval     time.Duration
+	Interval time.Duration
 
-	Count        int
+	Count int
 
-	Source       string
+	Source string
 
-	Username     string
+	Username string
 
-	Password     string
+	Password string
 
-	InsecureTLS  bool
-
+	InsecureTLS bool
 }
-
-
 
 // EventSender handles VES event transmission.
 
 type EventSender struct {
-
-	config     Config
+	config Config
 
 	httpClient *http.Client
 
-	sequence   int
-
+	sequence int
 }
-
-
 
 func main() {
 
 	config := parseFlags()
-
-
 
 	// Security warnings.
 
@@ -221,15 +158,11 @@ func main() {
 
 	}
 
-
-
 	if config.Username != "" && config.Password != "" {
 
 		validateCredentialStrength(config.Username, config.Password)
 
 	}
-
-
 
 	// Setup HTTP client with retry and TLS configuration.
 
@@ -243,27 +176,20 @@ func main() {
 
 				InsecureSkipVerify: config.InsecureTLS,
 
-				MinVersion:         tls.VersionTLS12, // Enforce minimum TLS 1.2
+				MinVersion: tls.VersionTLS12, // Enforce minimum TLS 1.2
 
 			},
-
 		},
-
 	}
-
-
 
 	sender := &EventSender{
 
-		config:     config,
+		config: config,
 
 		httpClient: httpClient,
 
-		sequence:   0,
-
+		sequence: 0,
 	}
-
-
 
 	// Setup graceful shutdown.
 
@@ -272,8 +198,6 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
-
 
 	go func() {
 
@@ -285,8 +209,6 @@ func main() {
 
 	}()
 
-
-
 	// Start sending events.
 
 	if err := sender.Run(ctx); err != nil {
@@ -295,19 +217,13 @@ func main() {
 
 	}
 
-
-
 	log.Println("Event sender stopped")
 
 }
 
-
-
 func parseFlags() Config {
 
 	var config Config
-
-
 
 	flag.StringVar(&config.CollectorURL, "collector", "http://localhost:9990/eventListener/v7", "VES collector URL")
 
@@ -325,11 +241,7 @@ func parseFlags() Config {
 
 	flag.BoolVar(&config.InsecureTLS, "insecure-tls", false, "Skip TLS certificate verification (INSECURE - development only)")
 
-
-
 	flag.Parse()
-
-
 
 	// Comprehensive input validation.
 
@@ -339,13 +251,9 @@ func parseFlags() Config {
 
 	}
 
-
-
 	return config
 
 }
-
-
 
 // validateConfig performs comprehensive input validation and sanitization.
 
@@ -369,29 +277,22 @@ func validateConfig(config *Config) error {
 
 	config.CollectorURL = parsedURL.String() // Use normalized URL
 
-
-
 	// Validate event type.
 
 	validTypes := map[string]bool{
 
-		"fault":       true,
+		"fault": true,
 
 		"measurement": true,
 
-		"heartbeat":   true,
-
+		"heartbeat": true,
 	}
-
-
 
 	if !validTypes[config.EventType] {
 
 		return fmt.Errorf("invalid event type '%s'. Must be one of: fault, measurement, heartbeat", config.EventType)
 
 	}
-
-
 
 	// Validate interval bounds.
 
@@ -407,8 +308,6 @@ func validateConfig(config *Config) error {
 
 	}
 
-
-
 	// Validate count bounds.
 
 	if config.Count < 0 {
@@ -423,13 +322,9 @@ func validateConfig(config *Config) error {
 
 	}
 
-
-
 	// Sanitize source name (prevent injection attacks).
 
 	config.Source = sanitizeString(config.Source, 50)
-
-
 
 	// Sanitize username (but not password - it might have special chars).
 
@@ -439,13 +334,9 @@ func validateConfig(config *Config) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // sanitizeString removes potentially dangerous characters and limits length.
 
@@ -457,8 +348,6 @@ func sanitizeString(input string, maxLen int) string {
 
 	input = reg.ReplaceAllString(input, "")
 
-
-
 	// Remove potential injection characters.
 
 	input = strings.ReplaceAll(input, "\n", "")
@@ -466,8 +355,6 @@ func sanitizeString(input string, maxLen int) string {
 	input = strings.ReplaceAll(input, "\r", "")
 
 	input = strings.ReplaceAll(input, "\t", "")
-
-
 
 	// Limit length.
 
@@ -477,21 +364,15 @@ func sanitizeString(input string, maxLen int) string {
 
 	}
 
-
-
 	return strings.TrimSpace(input)
 
 }
-
-
 
 // validateCredentialStrength checks for weak credentials and warns the user.
 
 func validateCredentialStrength(username, password string) {
 
 	weakPasswords := []string{"password", "admin", "123456", "12345678", "test", "demo"}
-
-
 
 	for _, weak := range weakPasswords {
 
@@ -505,15 +386,11 @@ func validateCredentialStrength(username, password string) {
 
 	}
 
-
-
 	if username == password {
 
 		log.Println("⚠️  WARNING: Username and password are identical. This is extremely insecure.")
 
 	}
-
-
 
 	if len(password) < 8 {
 
@@ -522,8 +399,6 @@ func validateCredentialStrength(username, password string) {
 	}
 
 }
-
-
 
 // Run performs run operation.
 
@@ -543,17 +418,11 @@ func (s *EventSender) Run(ctx context.Context) error {
 
 	// Note: Never log credentials, even in debug mode.
 
-
-
 	ticker := time.NewTicker(s.config.Interval)
 
 	defer ticker.Stop()
 
-
-
 	eventsSent := 0
-
-
 
 	for {
 
@@ -575,8 +444,6 @@ func (s *EventSender) Run(ctx context.Context) error {
 
 			}
 
-
-
 			event := s.createEvent()
 
 			if err := s.sendEvent(event); err != nil {
@@ -593,8 +460,6 @@ func (s *EventSender) Run(ctx context.Context) error {
 
 			}
 
-
-
 			s.sequence++
 
 		}
@@ -603,49 +468,39 @@ func (s *EventSender) Run(ctx context.Context) error {
 
 }
 
-
-
 func (s *EventSender) createEvent() VESEvent {
 
 	now := time.Now()
 
 	nowMicros := now.UnixMicro()
 
-
-
 	header := CommonEventHeader{
 
-		Version:             "4.1",
+		Version: "4.1",
 
-		Domain:              s.config.EventType,
+		Domain: s.config.EventType,
 
-		EventID:             s.generateEventID(),
+		EventID: s.generateEventID(),
 
-		Sequence:            s.sequence,
+		Sequence: s.sequence,
 
 		ReportingEntityName: s.config.Source,
 
-		SourceName:          s.config.Source,
+		SourceName: s.config.Source,
 
-		NFVendorName:        "nephoran",
+		NFVendorName: "nephoran",
 
-		StartEpochMicrosec:  nowMicros,
+		StartEpochMicrosec: nowMicros,
 
-		LastEpochMicrosec:   nowMicros,
+		LastEpochMicrosec: nowMicros,
 
-		TimeZoneOffset:      "+00:00",
-
+		TimeZoneOffset: "+00:00",
 	}
-
-
 
 	payload := EventPayload{
 
 		CommonEventHeader: header,
-
 	}
-
-
 
 	switch s.config.EventType {
 
@@ -659,21 +514,18 @@ func (s *EventSender) createEvent() VESEvent {
 
 			FaultFieldsVersion: "4.0",
 
-			AlarmCondition:     "LINK_DOWN",
+			AlarmCondition: "LINK_DOWN",
 
-			EventSeverity:      "CRITICAL",
+			EventSeverity: "CRITICAL",
 
-			SpecificProblem:    "eth0 loss of signal",
+			SpecificProblem: "eth0 loss of signal",
 
-			EventSourceType:    "other",
+			EventSourceType: "other",
 
-			VFStatus:           "Active",
+			VFStatus: "Active",
 
-			AlarmInterfaceA:    "eth0",
-
+			AlarmInterfaceA: "eth0",
 		}
-
-
 
 	case "measurement":
 
@@ -689,29 +541,23 @@ func (s *EventSender) createEvent() VESEvent {
 
 				{
 
-					VNFNetworkInterface:    "eth0",
+					VNFNetworkInterface: "eth0",
 
-					ReceivedOctetsDelta:    1000000 + cryptoRandInt64(2000000),
+					ReceivedOctetsDelta: 1000000 + cryptoRandInt64(2000000),
 
 					TransmittedOctetsDelta: 1500000 + cryptoRandInt64(2000000),
-
 				},
-
 			},
 
 			AdditionalFields: map[string]interface{}{
 
-				"kpm.p95_latency_ms":  85.3 + float64(cryptoRandInt64(20000))/1000.0,
+				"kpm.p95_latency_ms": 85.3 + float64(cryptoRandInt64(20000))/1000.0,
 
 				"kpm.prb_utilization": 0.3 + float64(cryptoRandInt64(600))/1000.0,
 
-				"kpm.ue_count":        30 + int(cryptoRandInt64(40)),
-
+				"kpm.ue_count": 30 + int(cryptoRandInt64(40)),
 			},
-
 		}
-
-
 
 	case "heartbeat":
 
@@ -723,23 +569,16 @@ func (s *EventSender) createEvent() VESEvent {
 
 			HeartbeatFieldsVersion: "3.0",
 
-			HeartbeatInterval:      int(s.config.Interval.Seconds()),
-
+			HeartbeatInterval: int(s.config.Interval.Seconds()),
 		}
 
 	}
 
-
-
 	payload.CommonEventHeader = header
-
-
 
 	return VESEvent{Event: payload}
 
 }
-
-
 
 func (s *EventSender) generateEventID() string {
 
@@ -755,8 +594,6 @@ func (s *EventSender) generateEventID() string {
 
 }
 
-
-
 func (s *EventSender) sendEvent(event VESEvent) error {
 
 	jsonData, err := json.Marshal(event)
@@ -767,8 +604,6 @@ func (s *EventSender) sendEvent(event VESEvent) error {
 
 	}
 
-
-
 	// Retry logic with exponential backoff and maximum delay cap.
 
 	maxRetries := 3
@@ -776,8 +611,6 @@ func (s *EventSender) sendEvent(event VESEvent) error {
 	baseDelay := 1 * time.Second
 
 	maxDelay := 30 * time.Second // Cap maximum delay to prevent excessive waiting
-
-
 
 	for attempt := range maxRetries {
 
@@ -788,8 +621,6 @@ func (s *EventSender) sendEvent(event VESEvent) error {
 			return nil
 
 		}
-
-
 
 		if attempt < maxRetries-1 {
 
@@ -815,8 +646,6 @@ func (s *EventSender) sendEvent(event VESEvent) error {
 
 			delay := time.Duration(1<<shiftAmount) * baseDelay
 
-
-
 			// Apply maximum delay cap.
 
 			if delay > maxDelay {
@@ -825,15 +654,11 @@ func (s *EventSender) sendEvent(event VESEvent) error {
 
 			}
 
-
-
 			// Add jitter to prevent thundering herd.
 
 			jitter := time.Duration(cryptoRandInt64(int64(delay / 4)))
 
 			delay += jitter
-
-
 
 			log.Printf("Attempt %d failed: %v. Retrying in %s...", attempt+1, err, delay)
 
@@ -843,13 +668,9 @@ func (s *EventSender) sendEvent(event VESEvent) error {
 
 	}
 
-
-
 	return fmt.Errorf("failed after %d attempts: %w", maxRetries, err)
 
 }
-
-
 
 // cryptoRandInt64 generates a cryptographically secure random int64 in [0, max).
 
@@ -869,15 +690,11 @@ func cryptoRandInt64(max int64) int64 {
 
 }
 
-
-
 func (s *EventSender) sendEventAttempt(jsonData []byte) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
 	defer cancel()
-
-
 
 	req, err := http.NewRequestWithContext(ctx, "POST", s.config.CollectorURL, bytes.NewBuffer(jsonData))
 
@@ -887,13 +704,9 @@ func (s *EventSender) sendEventAttempt(jsonData []byte) error {
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
 
 	req.Header.Set("User-Agent", "vessend-tool/1.0")
-
-
 
 	// Add basic auth if provided (credentials are never logged).
 
@@ -913,8 +726,6 @@ func (s *EventSender) sendEventAttempt(jsonData []byte) error {
 
 	}
 
-
-
 	resp, err := s.httpClient.Do(req)
 
 	if err != nil {
@@ -925,8 +736,6 @@ func (s *EventSender) sendEventAttempt(jsonData []byte) error {
 
 	defer resp.Body.Close()
 
-
-
 	// Check response status.
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -935,11 +744,8 @@ func (s *EventSender) sendEventAttempt(jsonData []byte) error {
 
 	}
 
-
-
 	log.Printf("Event sent successfully (status: %d)", resp.StatusCode)
 
 	return nil
 
 }
-

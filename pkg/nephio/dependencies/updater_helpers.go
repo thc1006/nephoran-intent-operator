@@ -30,150 +30,111 @@ limitations under the License.
 
 */
 
-
-
-
 package dependencies
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
-
 )
-
-
 
 // Helper methods for updater.go to resolve compilation issues.
 
 // Only adding types that are truly missing and not duplicated elsewhere.
 
-
-
 // UpdateStep represents a updatestep.
 
 type UpdateStep struct {
+	ID string `json:"id"`
 
-	ID           string            `json:"id"`
+	Type string `json:"type"`
 
-	Type         string            `json:"type"`
+	Package *PackageReference `json:"package"`
 
-	Package      *PackageReference `json:"package"`
+	Action string `json:"action"`
 
-	Action       string            `json:"action"`
+	Order int `json:"order"`
 
-	Order        int               `json:"order"`
+	Dependencies []string `json:"dependencies,omitempty"`
 
-	Dependencies []string          `json:"dependencies,omitempty"`
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout      time.Duration     `json:"timeout"`
+	RetryPolicy *RetryPolicy `json:"retryPolicy,omitempty"`
 
-	RetryPolicy  *RetryPolicy      `json:"retryPolicy,omitempty"`
-
-	Validation   *StepValidation   `json:"validation,omitempty"`
-
+	Validation *StepValidation `json:"validation,omitempty"`
 }
-
-
 
 // StepValidation represents a stepvalidation.
 
 type StepValidation struct {
-
-	PreConditions  []string `json:"preConditions,omitempty"`
+	PreConditions []string `json:"preConditions,omitempty"`
 
 	PostConditions []string `json:"postConditions,omitempty"`
 
-	HealthChecks   []string `json:"healthChecks,omitempty"`
-
+	HealthChecks []string `json:"healthChecks,omitempty"`
 }
-
-
 
 // RetryPolicy represents a retrypolicy.
 
 type RetryPolicy struct {
+	MaxAttempts int `json:"maxAttempts"`
 
-	MaxAttempts   int           `json:"maxAttempts"`
+	InitialDelay time.Duration `json:"initialDelay"`
 
-	InitialDelay  time.Duration `json:"initialDelay"`
+	MaxDelay time.Duration `json:"maxDelay"`
 
-	MaxDelay      time.Duration `json:"maxDelay"`
-
-	BackoffFactor float64       `json:"backoffFactor"`
-
+	BackoffFactor float64 `json:"backoffFactor"`
 }
-
-
 
 // UpdateStepResult represents a updatestepresult.
 
 type UpdateStepResult struct {
+	StepID string `json:"stepId"`
 
-	StepID    string        `json:"stepId"`
+	Status string `json:"status"`
 
-	Status    string        `json:"status"`
+	StartTime time.Time `json:"startTime"`
 
-	StartTime time.Time     `json:"startTime"`
+	EndTime time.Time `json:"endTime"`
 
-	EndTime   time.Time     `json:"endTime"`
+	Duration time.Duration `json:"duration"`
 
-	Duration  time.Duration `json:"duration"`
+	Error error `json:"error,omitempty"`
 
-	Error     error         `json:"error,omitempty"`
+	Retry int `json:"retry"`
 
-	Retry     int           `json:"retry"`
-
-	Output    interface{}   `json:"output,omitempty"`
-
+	Output interface{} `json:"output,omitempty"`
 }
-
-
 
 // ApprovalResult represents a approvalresult.
 
 type ApprovalResult struct {
-
 	Requests []*ApprovalRequest `json:"requests"`
 
-	Status   ApprovalStatus     `json:"status"`
-
+	Status ApprovalStatus `json:"status"`
 }
-
-
 
 // RollbackStep represents a rollbackstep.
 
 type RollbackStep struct {
+	ID string `json:"id"`
 
-	ID          string            `json:"id"`
+	Type string `json:"type"`
 
-	Type        string            `json:"type"`
+	Package *PackageReference `json:"package"`
 
-	Package     *PackageReference `json:"package"`
+	FromVersion string `json:"fromVersion"`
 
-	FromVersion string            `json:"fromVersion"`
+	ToVersion string `json:"toVersion"`
 
-	ToVersion   string            `json:"toVersion"`
+	Order int `json:"order"`
 
-	Order       int               `json:"order"`
-
-	Timeout     time.Duration     `json:"timeout"`
-
+	Timeout time.Duration `json:"timeout"`
 }
-
-
 
 // RollbackStrategy represents a rollbackstrategy.
 
 type RollbackStrategy string
-
-
 
 const (
 
@@ -188,34 +149,25 @@ const (
 	// RollbackStrategyStaged holds rollbackstrategystaged value.
 
 	RollbackStrategyStaged RollbackStrategy = "staged"
-
 )
-
-
 
 // RollbackStepResult represents a rollbackstepresult.
 
 type RollbackStepResult struct {
+	StepID string `json:"stepId"`
 
-	StepID    string        `json:"stepId"`
+	Status string `json:"status"`
 
-	Status    string        `json:"status"`
+	StartTime time.Time `json:"startTime"`
 
-	StartTime time.Time     `json:"startTime"`
+	EndTime time.Time `json:"endTime"`
 
-	EndTime   time.Time     `json:"endTime"`
+	Duration time.Duration `json:"duration"`
 
-	Duration  time.Duration `json:"duration"`
-
-	Error     error         `json:"error,omitempty"`
-
+	Error error `json:"error,omitempty"`
 }
 
-
-
 // Helper methods for the dependencyUpdater.
-
-
 
 func (u *dependencyUpdater) validatePropagationSpec(spec *PropagationSpec) error {
 
@@ -235,8 +187,6 @@ func (u *dependencyUpdater) validatePropagationSpec(spec *PropagationSpec) error
 
 }
 
-
-
 func (u *dependencyUpdater) handleApprovalWorkflow(ctx context.Context, updateCtx *UpdateContext, plan *UpdatePlan) (*ApprovalResult, error) {
 
 	// Placeholder implementation.
@@ -244,38 +194,32 @@ func (u *dependencyUpdater) handleApprovalWorkflow(ctx context.Context, updateCt
 	return &ApprovalResult{
 
 		Status: ApprovalStatusApproved,
-
 	}, nil
 
 }
-
-
 
 func (u *dependencyUpdater) createUpdateRecord(updateCtx *UpdateContext) *UpdateRecord {
 
 	return &UpdateRecord{
 
-		ID:          updateCtx.UpdateID,
+		ID: updateCtx.UpdateID,
 
-		Type:        "dependency_update",
+		Type: "dependency_update",
 
-		Packages:    updateCtx.Spec.Packages,
+		Packages: updateCtx.Spec.Packages,
 
-		Status:      "completed",
+		Status: "completed",
 
-		Requester:   updateCtx.Spec.InitiatedBy,
+		Requester: updateCtx.Spec.InitiatedBy,
 
-		StartedAt:   updateCtx.StartTime,
+		StartedAt: updateCtx.StartTime,
 
 		CompletedAt: &[]time.Time{time.Now()}[0],
 
-		Duration:    time.Since(updateCtx.StartTime),
-
+		Duration: time.Since(updateCtx.StartTime),
 	}
 
 }
-
-
 
 func (u *dependencyUpdater) sendUpdateNotifications(ctx context.Context, updateCtx *UpdateContext) {
 
@@ -283,23 +227,20 @@ func (u *dependencyUpdater) sendUpdateNotifications(ctx context.Context, updateC
 
 	notification := &UpdateNotification{
 
-		ID:        generateNotificationID(),
+		ID: generateNotificationID(),
 
-		Type:      "update_completed",
+		Type: "update_completed",
 
-		Priority:  "medium",
+		Priority: "medium",
 
-		Title:     fmt.Sprintf("Update completed for %d packages", len(updateCtx.Spec.Packages)),
+		Title: fmt.Sprintf("Update completed for %d packages", len(updateCtx.Spec.Packages)),
 
-		Message:   "Dependency update process has been completed successfully",
+		Message: "Dependency update process has been completed successfully",
 
 		CreatedAt: time.Now(),
 
-		Status:    "pending",
-
+		Status: "pending",
 	}
-
-
 
 	if u.notificationManager != nil {
 
@@ -311,8 +252,6 @@ func (u *dependencyUpdater) sendUpdateNotifications(ctx context.Context, updateC
 
 }
 
-
-
 func (u *dependencyUpdater) updateMetrics(result *UpdateResult) {
 
 	if u.metrics == nil {
@@ -321,13 +260,9 @@ func (u *dependencyUpdater) updateMetrics(result *UpdateResult) {
 
 	}
 
-
-
 	u.metrics.UpdatesTotal.Inc()
 
 	u.metrics.UpdateDuration.Observe(result.ExecutionTime.Seconds())
-
-
 
 	for _, failed := range result.FailedUpdates {
 
@@ -343,8 +278,6 @@ func (u *dependencyUpdater) updateMetrics(result *UpdateResult) {
 
 }
 
-
-
 func (u *dependencyUpdater) updatePropagationMetrics(result *PropagationResult) {
 
 	if u.metrics == nil {
@@ -353,15 +286,11 @@ func (u *dependencyUpdater) updatePropagationMetrics(result *PropagationResult) 
 
 	}
 
-
-
 	u.metrics.PropagationsTotal.Inc()
 
 	u.metrics.PropagationDuration.Observe(result.PropagationTime.Seconds())
 
 }
-
-
 
 func (u *dependencyUpdater) executeUpdatesSequentially(ctx context.Context, updateCtx *UpdateContext, steps []*UpdateStep) error {
 
@@ -375,35 +304,24 @@ func (u *dependencyUpdater) executeUpdatesSequentially(ctx context.Context, upda
 
 		}
 
-
-
 		u.processStepResult(updateCtx, stepResult)
 
 	}
-
-
 
 	return nil
 
 }
 
-
-
 func (u *dependencyUpdater) executeUpdateStep(ctx context.Context, step *UpdateStep) (*UpdateStepResult, error) {
 
 	startTime := time.Now()
 
-
-
 	result := &UpdateStepResult{
 
-		StepID:    step.ID,
+		StepID: step.ID,
 
 		StartTime: startTime,
-
 	}
-
-
 
 	// Placeholder implementation - would contain actual update logic.
 
@@ -433,19 +351,13 @@ func (u *dependencyUpdater) executeUpdateStep(ctx context.Context, step *UpdateS
 
 	}
 
-
-
 	result.EndTime = time.Now()
 
 	result.Duration = result.EndTime.Sub(result.StartTime)
 
-
-
 	return result, result.Error
 
 }
-
-
 
 func (u *dependencyUpdater) processStepResult(updateCtx *UpdateContext, stepResult *UpdateStepResult) {
 
@@ -455,16 +367,15 @@ func (u *dependencyUpdater) processStepResult(updateCtx *UpdateContext, stepResu
 
 		updatedPkg := &UpdatedPackage{
 
-			Package:         stepResult.getPackageReference(),
+			Package: stepResult.getPackageReference(),
 
 			PreviousVersion: "1.0.0", // This would be determined from actual step data
 
-			NewVersion:      "1.1.0", // This would be determined from actual step data
+			NewVersion: "1.1.0", // This would be determined from actual step data
 
-			UpdateTime:      stepResult.EndTime,
+			UpdateTime: stepResult.EndTime,
 
-			UpdateDuration:  stepResult.Duration,
-
+			UpdateDuration: stepResult.Duration,
 		}
 
 		updateCtx.Result.UpdatedPackages = append(updateCtx.Result.UpdatedPackages, updatedPkg)
@@ -477,10 +388,9 @@ func (u *dependencyUpdater) processStepResult(updateCtx *UpdateContext, stepResu
 
 			Package: stepResult.getPackageReference(),
 
-			Error:   stepResult.Error.Error(),
+			Error: stepResult.Error.Error(),
 
 			Retries: stepResult.Retry,
-
 		}
 
 		updateCtx.Result.FailedUpdates = append(updateCtx.Result.FailedUpdates, failedUpdate)
@@ -488,8 +398,6 @@ func (u *dependencyUpdater) processStepResult(updateCtx *UpdateContext, stepResu
 	}
 
 }
-
-
 
 func (stepResult *UpdateStepResult) getPackageReference() *PackageReference {
 
@@ -499,15 +407,12 @@ func (stepResult *UpdateStepResult) getPackageReference() *PackageReference {
 
 		Repository: "example-repo",
 
-		Name:       "example-package",
+		Name: "example-package",
 
-		Version:    "1.1.0",
-
+		Version: "1.1.0",
 	}
 
 }
-
-
 
 func (u *dependencyUpdater) determineTargetVersion(pkg *PackageReference, spec *UpdateSpec) string {
 
@@ -523,8 +428,6 @@ func (u *dependencyUpdater) determineTargetVersion(pkg *PackageReference, spec *
 
 }
 
-
-
 func (u *dependencyUpdater) determineUpdateType(pkg *PackageReference, spec *UpdateSpec) UpdateType {
 
 	// Logic to determine if this is a major, minor, patch, or security update.
@@ -532,8 +435,6 @@ func (u *dependencyUpdater) determineUpdateType(pkg *PackageReference, spec *Upd
 	return UpdateTypePatch
 
 }
-
-
 
 func (u *dependencyUpdater) determineUpdateReason(pkg *PackageReference, spec *UpdateSpec) UpdateReason {
 
@@ -543,8 +444,6 @@ func (u *dependencyUpdater) determineUpdateReason(pkg *PackageReference, spec *U
 
 }
 
-
-
 func (u *dependencyUpdater) determineUpdatePriority(pkg *PackageReference, spec *UpdateSpec) UpdatePriority {
 
 	// Logic to determine update priority.
@@ -553,11 +452,7 @@ func (u *dependencyUpdater) determineUpdatePriority(pkg *PackageReference, spec 
 
 }
 
-
-
 // Propagation helper methods.
-
-
 
 func (u *dependencyUpdater) executeImmediatePropagation(ctx context.Context, propagationCtx *PropagationContext) error {
 
@@ -569,8 +464,6 @@ func (u *dependencyUpdater) executeImmediatePropagation(ctx context.Context, pro
 
 }
 
-
-
 func (u *dependencyUpdater) executeStaggeredPropagation(ctx context.Context, propagationCtx *PropagationContext) error {
 
 	u.logger.Info("Executing staggered propagation", "propagationId", propagationCtx.PropagationID)
@@ -580,8 +473,6 @@ func (u *dependencyUpdater) executeStaggeredPropagation(ctx context.Context, pro
 	return nil
 
 }
-
-
 
 func (u *dependencyUpdater) executeCanaryPropagation(ctx context.Context, propagationCtx *PropagationContext) error {
 
@@ -593,8 +484,6 @@ func (u *dependencyUpdater) executeCanaryPropagation(ctx context.Context, propag
 
 }
 
-
-
 func (u *dependencyUpdater) executeBlueGreenPropagation(ctx context.Context, propagationCtx *PropagationContext) error {
 
 	u.logger.Info("Executing blue-green propagation", "propagationId", propagationCtx.PropagationID)
@@ -604,8 +493,6 @@ func (u *dependencyUpdater) executeBlueGreenPropagation(ctx context.Context, pro
 	return nil
 
 }
-
-
 
 func (u *dependencyUpdater) executeRollingPropagation(ctx context.Context, propagationCtx *PropagationContext) error {
 
@@ -617,11 +504,7 @@ func (u *dependencyUpdater) executeRollingPropagation(ctx context.Context, propa
 
 }
 
-
-
 // Impact analysis helper methods.
-
-
 
 func (u *dependencyUpdater) mergeUpdateImpact(analysis, updateImpact *ImpactAnalysis) {
 
@@ -642,14 +525,11 @@ func (u *dependencyUpdater) mergeUpdateImpact(analysis, updateImpact *ImpactAnal
 				analysis.SecurityImpact.Vulnerabilities,
 
 				updateImpact.SecurityImpact.Vulnerabilities...,
-
 			)
 
 		}
 
 	}
-
-
 
 	// Merge other impact types similarly.
 
@@ -660,8 +540,6 @@ func (u *dependencyUpdater) mergeUpdateImpact(analysis, updateImpact *ImpactAnal
 	analysis.RiskFactors = append(analysis.RiskFactors, updateImpact.RiskFactors...)
 
 }
-
-
 
 func (u *dependencyUpdater) mergeCrossImpact(analysis, crossImpact *ImpactAnalysis) {
 
@@ -674,8 +552,6 @@ func (u *dependencyUpdater) mergeCrossImpact(analysis, crossImpact *ImpactAnalys
 	}
 
 }
-
-
 
 func (u *dependencyUpdater) calculateOverallRisk(analysis *ImpactAnalysis) RiskLevel {
 
@@ -697,71 +573,57 @@ func (u *dependencyUpdater) calculateOverallRisk(analysis *ImpactAnalysis) RiskL
 
 }
 
-
-
 func (u *dependencyUpdater) generateImpactRecommendations(analysis *ImpactAnalysis) []*ImpactRecommendation {
 
 	var recommendations []*ImpactRecommendation
-
-
 
 	if analysis.OverallRisk == RiskLevelHigh {
 
 		recommendations = append(recommendations, &ImpactRecommendation{
 
-			Type:        "testing",
+			Type: "testing",
 
-			Priority:    RiskLevelHigh,
+			Priority: RiskLevelHigh,
 
 			Description: "Comprehensive testing recommended due to high risk level",
 
-			Action:      "Run full test suite including integration and regression tests",
-
+			Action: "Run full test suite including integration and regression tests",
 		})
 
 	}
-
-
 
 	if len(analysis.BreakingChanges) > 0 {
 
 		recommendations = append(recommendations, &ImpactRecommendation{
 
-			Type:        "migration",
+			Type: "migration",
 
-			Priority:    RiskLevelHigh,
+			Priority: RiskLevelHigh,
 
 			Description: "Breaking changes detected - migration plan required",
 
-			Action:      "Review breaking changes and create migration strategy",
-
+			Action: "Review breaking changes and create migration strategy",
 		})
 
 	}
-
-
 
 	return recommendations
 
 }
 
-
-
 func (u *dependencyUpdater) generateMitigationStrategies(analysis *ImpactAnalysis) []*MitigationStrategy {
 
 	var strategies []*MitigationStrategy
-
-
 
 	if analysis.OverallRisk == RiskLevelHigh {
 
 		strategies = append(strategies, &MitigationStrategy{
 
-			Name:        "Staged Rollout",
+			Name: "Staged Rollout",
 
-			Type:        "deployment",
+			Type: "deployment",
 
-			Priority:    RiskLevelHigh,
+			Priority: RiskLevelHigh,
 
 			Description: "Deploy updates in stages to minimize blast radius",
 
@@ -776,24 +638,16 @@ func (u *dependencyUpdater) generateMitigationStrategies(analysis *ImpactAnalysi
 				"Monitor for 24 hours",
 
 				"Deploy to production in batches",
-
 			},
-
 		})
 
 	}
-
-
 
 	return strategies
 
 }
 
-
-
 // Background process methods.
-
-
 
 func (u *dependencyUpdater) autoUpdateProcess() {
 
@@ -803,8 +657,6 @@ func (u *dependencyUpdater) autoUpdateProcess() {
 
 }
 
-
-
 func (u *dependencyUpdater) updateQueueProcess() {
 
 	defer u.wg.Done()
@@ -812,8 +664,6 @@ func (u *dependencyUpdater) updateQueueProcess() {
 	// Update queue processing implementation.
 
 }
-
-
 
 func (u *dependencyUpdater) metricsCollectionProcess() {
 
@@ -823,8 +673,6 @@ func (u *dependencyUpdater) metricsCollectionProcess() {
 
 }
 
-
-
 func (u *dependencyUpdater) changeTrackingProcess() {
 
 	defer u.wg.Done()
@@ -833,15 +681,10 @@ func (u *dependencyUpdater) changeTrackingProcess() {
 
 }
 
-
-
 // Utility functions.
-
-
 
 func generateNotificationID() string {
 
 	return fmt.Sprintf("notif-%d", time.Now().UnixNano())
 
 }
-

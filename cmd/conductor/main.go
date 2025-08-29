@@ -1,55 +1,29 @@
-
 package main
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"flag"
-
 	"os"
-
 	"os/exec"
-
 	"os/signal"
-
 	"path/filepath"
-
 	"strings"
-
 	"syscall"
-
 	"time"
 
-
-
 	"github.com/fsnotify/fsnotify"
-
 	"github.com/go-logr/logr"
-
 	"github.com/go-logr/zapr"
-
 	"go.uber.org/zap"
-
 	"go.uber.org/zap/zapcore"
-
 )
-
-
 
 // Intent represents the intent JSON structure for extracting correlation_id.
 
 type Intent struct {
-
 	CorrelationID string `json:"correlation_id,omitempty"`
-
 }
-
-
 
 // initLogger initializes structured logging with proper configuration.
 
@@ -57,43 +31,39 @@ func initLogger() logr.Logger {
 
 	config := zap.Config{
 
-		Level:    zap.NewAtomicLevelAt(zap.InfoLevel),
+		Level: zap.NewAtomicLevelAt(zap.InfoLevel),
 
 		Encoding: "json",
 
 		EncoderConfig: zapcore.EncoderConfig{
 
-			TimeKey:        "timestamp",
+			TimeKey: "timestamp",
 
-			LevelKey:       "level",
+			LevelKey: "level",
 
-			NameKey:        "logger",
+			NameKey: "logger",
 
-			CallerKey:      "caller",
+			CallerKey: "caller",
 
-			MessageKey:     "message",
+			MessageKey: "message",
 
-			StacktraceKey:  "stacktrace",
+			StacktraceKey: "stacktrace",
 
-			LineEnding:     zapcore.DefaultLineEnding,
+			LineEnding: zapcore.DefaultLineEnding,
 
-			EncodeLevel:    zapcore.LowercaseLevelEncoder,
+			EncodeLevel: zapcore.LowercaseLevelEncoder,
 
-			EncodeTime:     zapcore.ISO8601TimeEncoder,
+			EncodeTime: zapcore.ISO8601TimeEncoder,
 
 			EncodeDuration: zapcore.StringDurationEncoder,
 
-			EncodeCaller:   zapcore.ShortCallerEncoder,
-
+			EncodeCaller: zapcore.ShortCallerEncoder,
 		},
 
-		OutputPaths:      []string{"stdout"},
+		OutputPaths: []string{"stdout"},
 
 		ErrorOutputPaths: []string{"stderr"},
-
 	}
-
-
 
 	// Use console encoding for development if not in production.
 
@@ -104,8 +74,6 @@ func initLogger() logr.Logger {
 		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 
 	}
-
-
 
 	zapLogger, err := config.Build()
 
@@ -127,25 +95,17 @@ func initLogger() logr.Logger {
 
 	}
 
-
-
 	return zapr.NewLogger(zapLogger).WithName("conductor")
 
 }
 
-
-
 func main() {
 
 	var (
-
 		handoffDir string
 
-		outDir     string
-
+		outDir string
 	)
-
-
 
 	flag.StringVar(&handoffDir, "watch", "handoff", "Directory to watch for intent-*.json files")
 
@@ -153,13 +113,9 @@ func main() {
 
 	flag.Parse()
 
-
-
 	// Initialize structured logger.
 
 	logger := initLogger()
-
-
 
 	// Set default output directory if not specified.
 
@@ -175,11 +131,7 @@ func main() {
 
 	}
 
-
-
 	logger.Info("Starting conductor file watcher", "watchDir", handoffDir, "outDir", outDir)
-
-
 
 	// Create context for graceful shutdown.
 
@@ -187,15 +139,11 @@ func main() {
 
 	defer cancel()
 
-
-
 	// Setup signal handling for graceful shutdown.
 
 	sigChan := make(chan os.Signal, 1)
 
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
-
 
 	// Create file watcher.
 
@@ -218,8 +166,6 @@ func main() {
 
 	}()
 
-
-
 	// Add handoff directory to watcher.
 
 	if err := watcher.Add(handoffDir); err != nil {
@@ -231,8 +177,6 @@ func main() {
 		return
 
 	}
-
-
 
 	// Start event processing.
 
@@ -292,11 +236,7 @@ func main() {
 
 	}()
 
-
-
 	logger.Info("Conductor is running. Press Ctrl+C to stop.")
-
-
 
 	// Wait for shutdown signal.
 
@@ -306,8 +246,6 @@ func main() {
 
 	cancel()
 
-
-
 	// Give goroutines time to finish.
 
 	time.Sleep(500 * time.Millisecond)
@@ -315,8 +253,6 @@ func main() {
 	logger.Info("Conductor stopped successfully")
 
 }
-
-
 
 // isIntentFile checks if the file matches the pattern intent-*.json.
 
@@ -328,8 +264,6 @@ func isIntentFile(path string) bool {
 
 }
 
-
-
 // processIntentFile triggers porch-publisher for the given intent file.
 
 func processIntentFile(logger logr.Logger, intentPath, outDir string) {
@@ -339,8 +273,6 @@ func processIntentFile(logger logr.Logger, intentPath, outDir string) {
 	correlationID := extractCorrelationID(logger, intentPath)
 
 	contextLogger := logger.WithValues("intentFile", intentPath, "correlationID", correlationID)
-
-
 
 	if correlationID != "" {
 
@@ -352,13 +284,9 @@ func processIntentFile(logger logr.Logger, intentPath, outDir string) {
 
 	}
 
-
-
 	// Build the command to run porch-publisher.
 
 	cmd := exec.Command("go", "run", "./cmd/porch-publisher", "-intent", intentPath, "-out", outDir)
-
-
 
 	// Capture output.
 
@@ -372,13 +300,9 @@ func processIntentFile(logger logr.Logger, intentPath, outDir string) {
 
 	}
 
-
-
 	contextLogger.Info("Successfully processed intent file", "output", strings.TrimSpace(string(output)))
 
 }
-
-
 
 // extractCorrelationID reads the intent file and extracts correlation_id if present.
 
@@ -394,8 +318,6 @@ func extractCorrelationID(logger logr.Logger, path string) string {
 
 	}
 
-
-
 	var intent Intent
 
 	if err := json.Unmarshal(data, &intent); err != nil {
@@ -406,9 +328,6 @@ func extractCorrelationID(logger logr.Logger, path string) string {
 
 	}
 
-
-
 	return intent.CorrelationID
 
 }
-

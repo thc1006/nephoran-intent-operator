@@ -1,43 +1,23 @@
 // Package middleware provides HTTP middleware components for the Nephoran Intent Operator.
 
-
 package middleware
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"log/slog"
-
 	"net/http"
-
 	"net/url"
-
 	"regexp"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/google/uuid"
-
 )
-
-
 
 // RedactLoggerConfig defines configuration for the redacting logger middleware.
 
@@ -47,99 +27,66 @@ type RedactLoggerConfig struct {
 
 	Enabled bool
 
-
-
 	// LogLevel sets the minimum log level (debug, info, warn, error).
 
 	LogLevel slog.Level
-
-
 
 	// SkipPaths lists paths to skip logging (e.g., health checks).
 
 	SkipPaths []string
 
-
-
 	// PathLogLevels maps specific paths to their log levels.
 
 	PathLogLevels map[string]slog.Level
-
-
 
 	// SensitiveHeaders lists headers to redact (case-insensitive).
 
 	SensitiveHeaders []string
 
-
-
 	// SensitiveQueryParams lists query parameters to redact.
 
 	SensitiveQueryParams []string
-
-
 
 	// SensitiveJSONFields lists JSON field names to redact in bodies.
 
 	SensitiveJSONFields []string
 
-
-
 	// LogRequestBody controls whether to log request bodies.
 
 	LogRequestBody bool
-
-
 
 	// LogResponseBody controls whether to log response bodies.
 
 	LogResponseBody bool
 
-
-
 	// MaxBodySize limits the size of logged bodies (bytes).
 
 	MaxBodySize int64
-
-
 
 	// SlowRequestThreshold defines what constitutes a slow request.
 
 	SlowRequestThreshold time.Duration
 
-
-
 	// IncludeClientIP controls whether to log client IP addresses.
 
 	IncludeClientIP bool
-
-
 
 	// IncludeUserAgent controls whether to log user agent.
 
 	IncludeUserAgent bool
 
-
-
 	// RedactedValue is the replacement for sensitive data.
 
 	RedactedValue string
-
-
 
 	// CorrelationIDHeader specifies the header name for correlation ID.
 
 	CorrelationIDHeader string
 
-
-
 	// GenerateCorrelationID controls whether to generate IDs if missing.
 
 	GenerateCorrelationID bool
-
 }
-
-
 
 // DefaultRedactLoggerConfig returns secure default configuration.
 
@@ -147,16 +94,15 @@ func DefaultRedactLoggerConfig() *RedactLoggerConfig {
 
 	return &RedactLoggerConfig{
 
-		Enabled:   true,
+		Enabled: true,
 
-		LogLevel:  slog.LevelInfo,
+		LogLevel: slog.LevelInfo,
 
 		SkipPaths: []string{"/health", "/healthz", "/ready", "/readyz", "/metrics"},
 
 		PathLogLevels: map[string]slog.Level{
 
 			"/debug": slog.LevelDebug,
-
 		},
 
 		SensitiveHeaders: []string{
@@ -178,7 +124,6 @@ func DefaultRedactLoggerConfig() *RedactLoggerConfig {
 			"Proxy-Authorization",
 
 			"X-Amz-Security-Token",
-
 		},
 
 		SensitiveQueryParams: []string{
@@ -202,7 +147,6 @@ func DefaultRedactLoggerConfig() *RedactLoggerConfig {
 			"refresh_token",
 
 			"client_secret",
-
 		},
 
 		SensitiveJSONFields: []string{
@@ -232,70 +176,54 @@ func DefaultRedactLoggerConfig() *RedactLoggerConfig {
 			"refresh_token",
 
 			"refreshToken",
-
 		},
 
-		LogRequestBody:        false,
+		LogRequestBody: false,
 
-		LogResponseBody:       false,
+		LogResponseBody: false,
 
-		MaxBodySize:           4096, // 4KB default
+		MaxBodySize: 4096, // 4KB default
 
-		SlowRequestThreshold:  5 * time.Second,
+		SlowRequestThreshold: 5 * time.Second,
 
-		IncludeClientIP:       true,
+		IncludeClientIP: true,
 
-		IncludeUserAgent:      true,
+		IncludeUserAgent: true,
 
-		RedactedValue:         "[REDACTED]",
+		RedactedValue: "[REDACTED]",
 
-		CorrelationIDHeader:   "X-Request-ID",
+		CorrelationIDHeader: "X-Request-ID",
 
 		GenerateCorrelationID: true,
-
 	}
 
 }
 
-
-
 // RedactLogger implements redacting logger middleware.
 
 type RedactLogger struct {
-
 	config *RedactLoggerConfig
 
 	logger *slog.Logger
-
-
 
 	// Compiled patterns for efficiency.
 
 	skipPathsMutex sync.RWMutex
 
-	skipPatterns   []*regexp.Regexp
-
-
+	skipPatterns []*regexp.Regexp
 
 	// Case-insensitive header lookup map.
 
 	sensitiveHeadersMap map[string]bool
 
-
-
 	// Case-insensitive query param lookup map.
 
 	sensitiveParamsMap map[string]bool
 
-
-
 	// JSON field patterns for redaction.
 
 	jsonFieldPatterns []*regexp.Regexp
-
 }
-
-
 
 // NewRedactLogger creates a new redacting logger middleware instance.
 
@@ -307,21 +235,16 @@ func NewRedactLogger(config *RedactLoggerConfig, logger *slog.Logger) (*RedactLo
 
 	}
 
-
-
 	rl := &RedactLogger{
 
-		config:              config,
+		config: config,
 
-		logger:              logger.With(slog.String("component", "redact-logger")),
+		logger: logger.With(slog.String("component", "redact-logger")),
 
 		sensitiveHeadersMap: make(map[string]bool),
 
-		sensitiveParamsMap:  make(map[string]bool),
-
+		sensitiveParamsMap: make(map[string]bool),
 	}
-
-
 
 	// Compile skip path patterns.
 
@@ -345,8 +268,6 @@ func NewRedactLogger(config *RedactLoggerConfig, logger *slog.Logger) (*RedactLo
 
 	}
 
-
-
 	// Build case-insensitive header map.
 
 	for _, header := range config.SensitiveHeaders {
@@ -354,8 +275,6 @@ func NewRedactLogger(config *RedactLoggerConfig, logger *slog.Logger) (*RedactLo
 		rl.sensitiveHeadersMap[strings.ToLower(header)] = true
 
 	}
-
-
 
 	// Build case-insensitive query param map.
 
@@ -365,8 +284,6 @@ func NewRedactLogger(config *RedactLoggerConfig, logger *slog.Logger) (*RedactLo
 
 	}
 
-
-
 	// Compile JSON field patterns for body redaction.
 
 	for _, field := range config.SensitiveJSONFields {
@@ -375,11 +292,11 @@ func NewRedactLogger(config *RedactLoggerConfig, logger *slog.Logger) (*RedactLo
 
 		patterns := []string{
 
-			fmt.Sprintf(`"%s"\s*:\s*"[^"]*"`, field),    // "field": "value"
+			fmt.Sprintf(`"%s"\s*:\s*"[^"]*"`, field), // "field": "value"
 
-			fmt.Sprintf(`"%s"\s*:\s*'[^']*'`, field),    // "field": 'value'
+			fmt.Sprintf(`"%s"\s*:\s*'[^']*'`, field), // "field": 'value'
 
-			fmt.Sprintf(`"%s"\s*:\s*[0-9]+`, field),     // "field": 123
+			fmt.Sprintf(`"%s"\s*:\s*[0-9]+`, field), // "field": 123
 
 			fmt.Sprintf(`"%s"\s*:\s*\[[^\]]*\]`, field), // "field": [...]
 
@@ -403,33 +320,25 @@ func NewRedactLogger(config *RedactLoggerConfig, logger *slog.Logger) (*RedactLo
 
 	}
 
-
-
 	return rl, nil
 
 }
 
-
-
 // responseWriter wraps http.ResponseWriter to capture status code and body.
 
 type responseWriter struct {
-
 	http.ResponseWriter
 
 	statusCode int
 
-	body       *bytes.Buffer
+	body *bytes.Buffer
 
-	written    bool
+	written bool
 
-	logBody    bool
+	logBody bool
 
-	maxSize    int64
-
+	maxSize int64
 }
-
-
 
 func newResponseWriter(w http.ResponseWriter, logBody bool, maxSize int64) *responseWriter {
 
@@ -437,19 +346,16 @@ func newResponseWriter(w http.ResponseWriter, logBody bool, maxSize int64) *resp
 
 		ResponseWriter: w,
 
-		statusCode:     http.StatusOK,
+		statusCode: http.StatusOK,
 
-		body:           &bytes.Buffer{},
+		body: &bytes.Buffer{},
 
-		logBody:        logBody,
+		logBody: logBody,
 
-		maxSize:        maxSize,
-
+		maxSize: maxSize,
 	}
 
 }
-
-
 
 // WriteHeader performs writeheader operation.
 
@@ -467,8 +373,6 @@ func (rw *responseWriter) WriteHeader(code int) {
 
 }
 
-
-
 // Write performs write operation.
 
 func (rw *responseWriter) Write(b []byte) (int, error) {
@@ -478,8 +382,6 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 		rw.WriteHeader(http.StatusOK)
 
 	}
-
-
 
 	// Capture body for logging if enabled.
 
@@ -499,13 +401,9 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 
 	}
 
-
-
 	return rw.ResponseWriter.Write(b)
 
 }
-
-
 
 // Middleware returns the logging middleware handler.
 
@@ -521,8 +419,6 @@ func (rl *RedactLogger) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// Check if path should be skipped.
 
 		if rl.shouldSkipPath(r.URL.Path) {
@@ -533,13 +429,9 @@ func (rl *RedactLogger) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// Get or generate correlation ID.
 
 		correlationID := rl.getOrGenerateCorrelationID(r)
-
-
 
 		// Add correlation ID to context.
 
@@ -547,25 +439,17 @@ func (rl *RedactLogger) Middleware(next http.Handler) http.Handler {
 
 		r = r.WithContext(ctx)
 
-
-
 		// Set correlation ID in response header.
 
 		w.Header().Set(rl.config.CorrelationIDHeader, correlationID)
-
-
 
 		// Determine log level for this path.
 
 		logLevel := rl.getLogLevelForPath(r.URL.Path)
 
-
-
 		// Start timing.
 
 		start := time.Now()
-
-
 
 		// Capture request body if needed.
 
@@ -581,13 +465,9 @@ func (rl *RedactLogger) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// Wrap response writer.
 
 		wrapped := newResponseWriter(w, rl.config.LogResponseBody, rl.config.MaxBodySize)
-
-
 
 		// Log request start.
 
@@ -597,19 +477,13 @@ func (rl *RedactLogger) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// Process request.
 
 		next.ServeHTTP(wrapped, r)
 
-
-
 		// Calculate duration.
 
 		duration := time.Since(start)
-
-
 
 		// Log request completion.
 
@@ -619,8 +493,6 @@ func (rl *RedactLogger) Middleware(next http.Handler) http.Handler {
 
 }
 
-
-
 // shouldSkipPath checks if the path should be skipped from logging.
 
 func (rl *RedactLogger) shouldSkipPath(path string) bool {
@@ -628,8 +500,6 @@ func (rl *RedactLogger) shouldSkipPath(path string) bool {
 	rl.skipPathsMutex.RLock()
 
 	defer rl.skipPathsMutex.RUnlock()
-
-
 
 	for _, pattern := range rl.skipPatterns {
 
@@ -645,8 +515,6 @@ func (rl *RedactLogger) shouldSkipPath(path string) bool {
 
 }
 
-
-
 // getOrGenerateCorrelationID gets the correlation ID from request or generates one.
 
 func (rl *RedactLogger) getOrGenerateCorrelationID(r *http.Request) string {
@@ -660,8 +528,6 @@ func (rl *RedactLogger) getOrGenerateCorrelationID(r *http.Request) string {
 		return correlationID
 
 	}
-
-
 
 	// Check alternate headers.
 
@@ -677,8 +543,6 @@ func (rl *RedactLogger) getOrGenerateCorrelationID(r *http.Request) string {
 
 	}
 
-
-
 	// Generate new ID if configured.
 
 	if rl.config.GenerateCorrelationID {
@@ -687,13 +551,9 @@ func (rl *RedactLogger) getOrGenerateCorrelationID(r *http.Request) string {
 
 	}
 
-
-
 	return ""
 
 }
-
-
 
 // getLogLevelForPath returns the appropriate log level for a path.
 
@@ -708,8 +568,6 @@ func (rl *RedactLogger) getLogLevelForPath(path string) slog.Level {
 	return rl.config.LogLevel
 
 }
-
-
 
 // logRequestStart logs the beginning of a request.
 
@@ -726,10 +584,7 @@ func (rl *RedactLogger) logRequestStart(r *http.Request, correlationID string, b
 		slog.String("query", rl.redactQueryParams(r.URL.Query())),
 
 		slog.String("proto", r.Proto),
-
 	}
-
-
 
 	if rl.config.IncludeClientIP {
 
@@ -737,23 +592,17 @@ func (rl *RedactLogger) logRequestStart(r *http.Request, correlationID string, b
 
 	}
 
-
-
 	if rl.config.IncludeUserAgent {
 
 		attrs = append(attrs, slog.String("user_agent", r.Header.Get("User-Agent")))
 
 	}
 
-
-
 	// Add redacted headers.
 
 	headers := rl.redactHeaders(r.Header)
 
 	attrs = append(attrs, slog.Any("headers", headers))
-
-
 
 	// Add redacted body if available.
 
@@ -765,13 +614,9 @@ func (rl *RedactLogger) logRequestStart(r *http.Request, correlationID string, b
 
 	}
 
-
-
 	rl.logger.LogAttrs(r.Context(), slog.LevelDebug, "Request started", attrs...)
 
 }
-
-
 
 // logRequestComplete logs the completion of a request.
 
@@ -780,8 +625,6 @@ func (rl *RedactLogger) logRequestComplete(r *http.Request, w *responseWriter, c
 	// Determine if this was a slow request.
 
 	isSlow := duration > rl.config.SlowRequestThreshold
-
-
 
 	// Base attributes.
 
@@ -798,10 +641,7 @@ func (rl *RedactLogger) logRequestComplete(r *http.Request, w *responseWriter, c
 		slog.Duration("duration", duration),
 
 		slog.Float64("duration_ms", float64(duration.Nanoseconds())/1e6),
-
 	}
-
-
 
 	// Add client info if configured.
 
@@ -811,15 +651,11 @@ func (rl *RedactLogger) logRequestComplete(r *http.Request, w *responseWriter, c
 
 	}
 
-
-
 	if rl.config.IncludeUserAgent {
 
 		attrs = append(attrs, slog.String("user_agent", r.Header.Get("User-Agent")))
 
 	}
-
-
 
 	// Add query parameters (redacted).
 
@@ -828,8 +664,6 @@ func (rl *RedactLogger) logRequestComplete(r *http.Request, w *responseWriter, c
 		attrs = append(attrs, slog.String("query", rl.redactQueryParams(r.URL.Query())))
 
 	}
-
-
 
 	// Add request body if configured and at debug level.
 
@@ -841,8 +675,6 @@ func (rl *RedactLogger) logRequestComplete(r *http.Request, w *responseWriter, c
 
 	}
 
-
-
 	// Add response body if configured.
 
 	if rl.config.LogResponseBody && w.body.Len() > 0 && logLevel <= slog.LevelDebug {
@@ -853,15 +685,11 @@ func (rl *RedactLogger) logRequestComplete(r *http.Request, w *responseWriter, c
 
 	}
 
-
-
 	// Determine log level based on status code and speed.
 
 	msgLogLevel := logLevel
 
 	message := "Request completed"
-
-
 
 	if w.statusCode >= 500 {
 
@@ -885,21 +713,15 @@ func (rl *RedactLogger) logRequestComplete(r *http.Request, w *responseWriter, c
 
 	}
 
-
-
 	rl.logger.LogAttrs(r.Context(), msgLogLevel, message, attrs...)
 
 }
-
-
 
 // redactHeaders redacts sensitive headers.
 
 func (rl *RedactLogger) redactHeaders(headers http.Header) map[string][]string {
 
 	redacted := make(map[string][]string)
-
-
 
 	for name, values := range headers {
 
@@ -927,21 +749,15 @@ func (rl *RedactLogger) redactHeaders(headers http.Header) map[string][]string {
 
 	}
 
-
-
 	return redacted
 
 }
-
-
 
 // redactQueryParams redacts sensitive query parameters.
 
 func (rl *RedactLogger) redactQueryParams(params url.Values) string {
 
 	redacted := make(url.Values)
-
-
 
 	for key, values := range params {
 
@@ -969,13 +785,9 @@ func (rl *RedactLogger) redactQueryParams(params url.Values) string {
 
 	}
 
-
-
 	return redacted.Encode()
 
 }
-
-
 
 // redactBody redacts sensitive fields in request/response bodies.
 
@@ -986,8 +798,6 @@ func (rl *RedactLogger) redactBody(body []byte) string {
 		return ""
 
 	}
-
-
 
 	// Try to parse as JSON for structured redaction.
 
@@ -1006,8 +816,6 @@ func (rl *RedactLogger) redactBody(body []byte) string {
 		}
 
 	}
-
-
 
 	// Fall back to regex-based redaction for non-JSON or failed JSON.
 
@@ -1033,13 +841,9 @@ func (rl *RedactLogger) redactBody(body []byte) string {
 
 	}
 
-
-
 	return bodyStr
 
 }
-
-
 
 // redactJSONFields recursively redacts sensitive fields in JSON data.
 
@@ -1057,8 +861,6 @@ func (rl *RedactLogger) redactJSONFields(data interface{}) interface{} {
 
 			shouldRedact := false
 
-
-
 			// Check if this key should be redacted.
 
 			for _, sensitiveField := range rl.config.SensitiveJSONFields {
@@ -1072,8 +874,6 @@ func (rl *RedactLogger) redactJSONFields(data interface{}) interface{} {
 				}
 
 			}
-
-
 
 			if shouldRedact {
 
@@ -1091,8 +891,6 @@ func (rl *RedactLogger) redactJSONFields(data interface{}) interface{} {
 
 		return result
 
-
-
 	case []interface{}:
 
 		result := make([]interface{}, len(v))
@@ -1105,8 +903,6 @@ func (rl *RedactLogger) redactJSONFields(data interface{}) interface{} {
 
 		return result
 
-
-
 	default:
 
 		return data
@@ -1114,8 +910,6 @@ func (rl *RedactLogger) redactJSONFields(data interface{}) interface{} {
 	}
 
 }
-
-
 
 // getClientIP extracts the client IP address from the request.
 
@@ -1137,8 +931,6 @@ func (rl *RedactLogger) getClientIP(r *http.Request) string {
 
 	}
 
-
-
 	// Check X-Real-IP header.
 
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
@@ -1146,8 +938,6 @@ func (rl *RedactLogger) getClientIP(r *http.Request) string {
 		return xri
 
 	}
-
-
 
 	// Fall back to RemoteAddr.
 
@@ -1157,13 +947,9 @@ func (rl *RedactLogger) getClientIP(r *http.Request) string {
 
 	}
 
-
-
 	return r.RemoteAddr
 
 }
-
-
 
 // UpdateConfig updates the configuration dynamically.
 
@@ -1175,8 +961,6 @@ func (rl *RedactLogger) UpdateConfig(config *RedactLoggerConfig) error {
 
 	}
 
-
-
 	// Rebuild sensitive maps.
 
 	sensitiveHeadersMap := make(map[string]bool)
@@ -1187,8 +971,6 @@ func (rl *RedactLogger) UpdateConfig(config *RedactLoggerConfig) error {
 
 	}
 
-
-
 	sensitiveParamsMap := make(map[string]bool)
 
 	for _, param := range config.SensitiveQueryParams {
@@ -1196,8 +978,6 @@ func (rl *RedactLogger) UpdateConfig(config *RedactLoggerConfig) error {
 		sensitiveParamsMap[strings.ToLower(param)] = true
 
 	}
-
-
 
 	// Compile new skip patterns.
 
@@ -1221,8 +1001,6 @@ func (rl *RedactLogger) UpdateConfig(config *RedactLoggerConfig) error {
 
 	}
 
-
-
 	// Update with lock.
 
 	rl.skipPathsMutex.Lock()
@@ -1237,13 +1015,9 @@ func (rl *RedactLogger) UpdateConfig(config *RedactLoggerConfig) error {
 
 	rl.skipPathsMutex.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 // GetStats returns statistics about the logger (can be extended).
 
@@ -1251,23 +1025,21 @@ func (rl *RedactLogger) GetStats() map[string]interface{} {
 
 	return map[string]interface{}{
 
-		"enabled":               rl.config.Enabled,
+		"enabled": rl.config.Enabled,
 
-		"log_level":             rl.config.LogLevel.String(),
+		"log_level": rl.config.LogLevel.String(),
 
-		"skip_paths_count":      len(rl.config.SkipPaths),
+		"skip_paths_count": len(rl.config.SkipPaths),
 
-		"sensitive_headers":     len(rl.config.SensitiveHeaders),
+		"sensitive_headers": len(rl.config.SensitiveHeaders),
 
-		"sensitive_params":      len(rl.config.SensitiveQueryParams),
+		"sensitive_params": len(rl.config.SensitiveQueryParams),
 
 		"sensitive_json_fields": len(rl.config.SensitiveJSONFields),
 
-		"log_request_body":      rl.config.LogRequestBody,
+		"log_request_body": rl.config.LogRequestBody,
 
-		"log_response_body":     rl.config.LogResponseBody,
-
+		"log_response_body": rl.config.LogResponseBody,
 	}
 
 }
-

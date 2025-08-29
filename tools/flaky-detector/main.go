@@ -1,133 +1,102 @@
-
 package main
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"log"
-
 	"os"
-
 	"sort"
-
 	"strings"
-
 )
-
-
 
 // TestEvent represents a single test event from go test -json output.
 
 type TestEvent struct {
+	Time string `json:"Time"`
 
-	Time    string  `json:"Time"`
+	Action string `json:"Action"`
 
-	Action  string  `json:"Action"`
+	Package string `json:"Package"`
 
-	Package string  `json:"Package"`
-
-	Test    string  `json:"Test"`
+	Test string `json:"Test"`
 
 	Elapsed float64 `json:"Elapsed,omitempty"`
 
-	Output  string  `json:"Output,omitempty"`
-
+	Output string `json:"Output,omitempty"`
 }
-
-
 
 // TestResult represents the outcome of a single test run.
 
 type TestResult struct {
-
 	Package string
 
-	Test    string
+	Test string
 
-	Pass    bool
+	Pass bool
 
-	Skip    bool
+	Skip bool
 
 	Elapsed float64
 
-	Output  []string
-
+	Output []string
 }
-
-
 
 // FlakeStats contains flakiness statistics for a test.
 
 type FlakeStats struct {
+	TestName string `json:"test_name"`
 
-	TestName        string   `json:"test_name"`
+	Package string `json:"package"`
 
-	Package         string   `json:"package"`
+	TotalRuns int `json:"total_runs"`
 
-	TotalRuns       int      `json:"total_runs"`
+	PassCount int `json:"pass_count"`
 
-	PassCount       int      `json:"pass_count"`
+	FailCount int `json:"fail_count"`
 
-	FailCount       int      `json:"fail_count"`
+	SkipCount int `json:"skip_count"`
 
-	SkipCount       int      `json:"skip_count"`
+	FlakeRate float64 `json:"flake_rate"`
 
-	FlakeRate       float64  `json:"flake_rate"`
+	IsFlaky bool `json:"is_flaky"`
 
-	IsFlaky         bool     `json:"is_flaky"`
+	AvgElapsed float64 `json:"avg_elapsed_seconds"`
 
-	AvgElapsed      float64  `json:"avg_elapsed_seconds"`
+	MinElapsed float64 `json:"min_elapsed_seconds"`
 
-	MinElapsed      float64  `json:"min_elapsed_seconds"`
-
-	MaxElapsed      float64  `json:"max_elapsed_seconds"`
+	MaxElapsed float64 `json:"max_elapsed_seconds"`
 
 	FailurePatterns []string `json:"failure_patterns,omitempty"`
-
 }
-
-
 
 // FlakeReport contains the complete flakiness analysis.
 
 type FlakeReport struct {
+	TotalTests int `json:"total_tests"`
 
-	TotalTests  int                   `json:"total_tests"`
+	FlakyTests int `json:"flaky_tests"`
 
-	FlakyTests  int                   `json:"flaky_tests"`
-
-	FlakeRate   float64               `json:"overall_flake_rate"`
+	FlakeRate float64 `json:"overall_flake_rate"`
 
 	TestResults map[string]FlakeStats `json:"test_results"`
 
-	Summary     Summary               `json:"summary"`
-
+	Summary Summary `json:"summary"`
 }
-
-
 
 // Summary provides high-level statistics.
 
 type Summary struct {
+	HighFlakeTests []string `json:"high_flake_tests"` // > 50% flake rate
 
-	HighFlakeTests      []string `json:"high_flake_tests"`     // > 50% flake rate
+	MediumFlakeTests []string `json:"medium_flake_tests"` // 10-50% flake rate
 
-	MediumFlakeTests    []string `json:"medium_flake_tests"`   // 10-50% flake rate
-
-	LowFlakeTests       []string `json:"low_flake_tests"`      // < 10% flake rate
+	LowFlakeTests []string `json:"low_flake_tests"` // < 10% flake rate
 
 	ConsistentlyFailing []string `json:"consistently_failing"` // Always fail
 
 	ConsistentlyPassing []string `json:"consistently_passing"` // Always pass
 
 }
-
-
 
 func main() {
 
@@ -143,11 +112,7 @@ func main() {
 
 	}
 
-
-
 	allResults := make(map[string][]TestResult)
-
-
 
 	// Parse all result files.
 
@@ -161,8 +126,6 @@ func main() {
 
 		}
 
-
-
 		// Group results by test name.
 
 		for _, result := range results {
@@ -175,13 +138,9 @@ func main() {
 
 	}
 
-
-
 	// Generate flake report.
 
 	report := analyzeFlakiness(allResults)
-
-
 
 	// Output report as JSON.
 
@@ -193,11 +152,7 @@ func main() {
 
 	}
 
-
-
 	fmt.Println(string(reportJSON))
-
-
 
 	// Exit with error code if flaky tests found.
 
@@ -211,13 +166,9 @@ func main() {
 
 	}
 
-
-
 	fmt.Fprintf(os.Stderr, "\n✅ No flaky tests detected across %d tests\n", report.TotalTests)
 
 }
-
-
 
 // parseTestResults parses go test -json output from a file.
 
@@ -233,13 +184,9 @@ func parseTestResults(filename string) ([]TestResult, error) {
 
 	defer file.Close()
 
-
-
 	decoder := json.NewDecoder(file)
 
 	results := make(map[string]*TestResult)
-
-
 
 	for decoder.More() {
 
@@ -251,8 +198,6 @@ func parseTestResults(filename string) ([]TestResult, error) {
 
 		}
 
-
-
 		// Skip non-test events.
 
 		if event.Test == "" || event.Package == "" {
@@ -261,11 +206,7 @@ func parseTestResults(filename string) ([]TestResult, error) {
 
 		}
 
-
-
 		testKey := event.Package + "." + event.Test
-
-
 
 		if results[testKey] == nil {
 
@@ -273,19 +214,14 @@ func parseTestResults(filename string) ([]TestResult, error) {
 
 				Package: event.Package,
 
-				Test:    event.Test,
+				Test: event.Test,
 
-				Output:  make([]string, 0, 100),
-
+				Output: make([]string, 0, 100),
 			}
 
 		}
 
-
-
 		result := results[testKey]
-
-
 
 		switch event.Action {
 
@@ -319,8 +255,6 @@ func parseTestResults(filename string) ([]TestResult, error) {
 
 	}
 
-
-
 	// Convert map to slice.
 
 	var testResults []TestResult
@@ -331,13 +265,9 @@ func parseTestResults(filename string) ([]TestResult, error) {
 
 	}
 
-
-
 	return testResults, nil
 
 }
-
-
 
 // analyzeFlakiness analyzes test results to identify flaky tests.
 
@@ -349,25 +279,19 @@ func analyzeFlakiness(allResults map[string][]TestResult) FlakeReport {
 
 		Summary: Summary{
 
-			HighFlakeTests:      make([]string, 0, 20),
+			HighFlakeTests: make([]string, 0, 20),
 
-			MediumFlakeTests:    make([]string, 0, 50),
+			MediumFlakeTests: make([]string, 0, 50),
 
-			LowFlakeTests:       make([]string, 0, 100),
+			LowFlakeTests: make([]string, 0, 100),
 
 			ConsistentlyFailing: make([]string, 0, 30),
 
 			ConsistentlyPassing: make([]string, 0, 200),
-
 		},
-
 	}
 
-
-
 	totalFlakyTests := 0
-
-
 
 	for testName, results := range allResults {
 
@@ -377,19 +301,13 @@ func analyzeFlakiness(allResults map[string][]TestResult) FlakeReport {
 
 		}
 
-
-
 		stats := calculateTestStats(testName, results)
 
 		report.TestResults[testName] = stats
 
-
-
 		if stats.IsFlaky {
 
 			totalFlakyTests++
-
-
 
 			// Categorize by flake rate.
 
@@ -427,8 +345,6 @@ func analyzeFlakiness(allResults map[string][]TestResult) FlakeReport {
 
 	}
 
-
-
 	report.TotalTests = len(allResults)
 
 	report.FlakyTests = totalFlakyTests
@@ -438,8 +354,6 @@ func analyzeFlakiness(allResults map[string][]TestResult) FlakeReport {
 		report.FlakeRate = float64(totalFlakyTests) / float64(report.TotalTests)
 
 	}
-
-
 
 	// Sort summary lists for consistent output.
 
@@ -453,13 +367,9 @@ func analyzeFlakiness(allResults map[string][]TestResult) FlakeReport {
 
 	sort.Strings(report.Summary.ConsistentlyPassing)
 
-
-
 	return report
 
 }
-
-
 
 // calculateTestStats calculates flakiness statistics for a single test.
 
@@ -467,23 +377,18 @@ func calculateTestStats(testName string, results []TestResult) FlakeStats {
 
 	stats := FlakeStats{
 
-		TestName:        testName,
+		TestName: testName,
 
-		TotalRuns:       len(results),
+		TotalRuns: len(results),
 
 		FailurePatterns: make([]string, 0, 10),
-
 	}
-
-
 
 	if len(results) > 0 {
 
 		stats.Package = results[0].Package
 
 	}
-
-
 
 	var totalElapsed float64
 
@@ -492,8 +397,6 @@ func calculateTestStats(testName string, results []TestResult) FlakeStats {
 	maxElapsed := float64(0)
 
 	failureOutputs := make(map[string]int)
-
-
 
 	for _, result := range results {
 
@@ -508,8 +411,6 @@ func calculateTestStats(testName string, results []TestResult) FlakeStats {
 		} else {
 
 			stats.FailCount++
-
-
 
 			// Collect failure patterns.
 
@@ -529,8 +430,6 @@ func calculateTestStats(testName string, results []TestResult) FlakeStats {
 
 		}
 
-
-
 		totalElapsed += result.Elapsed
 
 		if result.Elapsed < minElapsed {
@@ -547,8 +446,6 @@ func calculateTestStats(testName string, results []TestResult) FlakeStats {
 
 	}
 
-
-
 	// Calculate timing statistics.
 
 	if stats.TotalRuns > 0 {
@@ -564,8 +461,6 @@ func calculateTestStats(testName string, results []TestResult) FlakeStats {
 	}
 
 	stats.MaxElapsed = maxElapsed
-
-
 
 	// Calculate flake rate (non-deterministic outcomes).
 
@@ -585,8 +480,6 @@ func calculateTestStats(testName string, results []TestResult) FlakeStats {
 
 	}
 
-
-
 	// Extract common failure patterns.
 
 	for pattern, count := range failureOutputs {
@@ -599,8 +492,6 @@ func calculateTestStats(testName string, results []TestResult) FlakeStats {
 
 	}
 
-
-
 	// Sort failure patterns by frequency (most common first).
 
 	sort.Slice(stats.FailurePatterns, func(i, j int) bool {
@@ -608,8 +499,6 @@ func calculateTestStats(testName string, results []TestResult) FlakeStats {
 		return failureOutputs[stats.FailurePatterns[i]] > failureOutputs[stats.FailurePatterns[j]]
 
 	})
-
-
 
 	// Limit to top 5 patterns.
 
@@ -619,13 +508,9 @@ func calculateTestStats(testName string, results []TestResult) FlakeStats {
 
 	}
 
-
-
 	return stats
 
 }
-
-
 
 // Helper function for min (Go < 1.21 compatibility).
 
@@ -640,4 +525,3 @@ func min(a, b int) int {
 	return b
 
 }
-

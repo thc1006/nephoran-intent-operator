@@ -28,30 +28,17 @@ limitations under the License.
 
 */
 
-
-
-
 package v1
 
-
-
 import (
-
 	"k8s.io/apimachinery/pkg/api/resource"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 )
-
-
 
 // ResourcePlanPhase represents the phase of resource planning.
 
 type ResourcePlanPhase string
-
-
 
 const (
 
@@ -82,16 +69,11 @@ const (
 	// ResourcePlanPhaseFailed indicates planning has failed.
 
 	ResourcePlanPhaseFailed ResourcePlanPhase = "Failed"
-
 )
-
-
 
 // DeploymentPattern represents the pattern for deployment.
 
 type DeploymentPattern string
-
-
 
 const (
 
@@ -114,10 +96,7 @@ const (
 	// DeploymentPatternHybrid represents hybrid cloud deployment.
 
 	DeploymentPatternHybrid DeploymentPattern = "Hybrid"
-
 )
-
-
 
 // ResourcePlanSpec defines the desired state of ResourcePlan.
 
@@ -129,15 +108,11 @@ type ResourcePlanSpec struct {
 
 	ParentIntentRef ObjectReference `json:"parentIntentRef"`
 
-
-
 	// IntentProcessingRef references the IntentProcessing resource.
 
 	// +optional
 
 	IntentProcessingRef *ObjectReference `json:"intentProcessingRef,omitempty"`
-
-
 
 	// RequirementsInput contains the input requirements for planning.
 
@@ -147,15 +122,11 @@ type ResourcePlanSpec struct {
 
 	RequirementsInput runtime.RawExtension `json:"requirementsInput"`
 
-
-
 	// TargetComponents specifies which components to plan for.
 
 	// +optional
 
 	TargetComponents []TargetComponent `json:"targetComponents,omitempty"`
-
-
 
 	// DeploymentPattern specifies the deployment pattern to use.
 
@@ -165,15 +136,11 @@ type ResourcePlanSpec struct {
 
 	DeploymentPattern DeploymentPattern `json:"deploymentPattern,omitempty"`
 
-
-
 	// ResourceConstraints defines constraints for resource allocation.
 
 	// +optional
 
 	ResourceConstraints *ResourceConstraints `json:"resourceConstraints,omitempty"`
-
-
 
 	// OptimizationGoals defines optimization objectives.
 
@@ -181,23 +148,17 @@ type ResourcePlanSpec struct {
 
 	OptimizationGoals []OptimizationGoal `json:"optimizationGoals,omitempty"`
 
-
-
 	// TargetClusters specifies clusters for deployment.
 
 	// +optional
 
 	TargetClusters []ClusterReference `json:"targetClusters,omitempty"`
 
-
-
 	// NetworkSlice specifies network slice requirements.
 
 	// +optional
 
 	NetworkSlice *NetworkSliceSpec `json:"networkSlice,omitempty"`
-
-
 
 	// Priority defines planning priority.
 
@@ -207,8 +168,6 @@ type ResourcePlanSpec struct {
 
 	Priority Priority `json:"priority,omitempty"`
 
-
-
 	// EnableCostOptimization enables cost optimization.
 
 	// +optional
@@ -216,8 +175,6 @@ type ResourcePlanSpec struct {
 	// +kubebuilder:default=true
 
 	EnableCostOptimization *bool `json:"enableCostOptimization,omitempty"`
-
-
 
 	// EnablePerformanceOptimization enables performance optimization.
 
@@ -227,17 +184,12 @@ type ResourcePlanSpec struct {
 
 	EnablePerformanceOptimization *bool `json:"enablePerformanceOptimization,omitempty"`
 
-
-
 	// ComplianceRequirements specifies compliance requirements.
 
 	// +optional
 
 	ComplianceRequirements []ComplianceRequirement `json:"complianceRequirements,omitempty"`
-
 }
-
-
 
 // OptimizationGoal represents an optimization objective.
 
@@ -251,8 +203,6 @@ type OptimizationGoal struct {
 
 	Type string `json:"type"`
 
-
-
 	// Priority specifies the goal priority.
 
 	// +kubebuilder:validation:Minimum=1
@@ -261,15 +211,11 @@ type OptimizationGoal struct {
 
 	Priority int `json:"priority"`
 
-
-
 	// Weight specifies the relative weight.
 
 	// +optional
 
 	Weight *float64 `json:"weight,omitempty"`
-
-
 
 	// Target specifies the target value.
 
@@ -277,17 +223,12 @@ type OptimizationGoal struct {
 
 	Target *resource.Quantity `json:"target,omitempty"`
 
-
-
 	// Constraints specifies additional constraints.
 
 	// +optional
 
 	Constraints map[string]string `json:"constraints,omitempty"`
-
 }
-
-
 
 // ClusterReference represents a reference to a cluster.
 
@@ -299,23 +240,17 @@ type ClusterReference struct {
 
 	Name string `json:"name"`
 
-
-
 	// Region where the cluster is located.
 
 	// +optional
 
 	Region string `json:"region,omitempty"`
 
-
-
 	// Zone where the cluster is located.
 
 	// +optional
 
 	Zone string `json:"zone,omitempty"`
-
-
 
 	// CloudProvider of the cluster.
 
@@ -325,15 +260,11 @@ type ClusterReference struct {
 
 	CloudProvider string `json:"cloudProvider,omitempty"`
 
-
-
 	// Capabilities of the cluster.
 
 	// +optional
 
 	Capabilities []string `json:"capabilities,omitempty"`
-
-
 
 	// ResourceLimits for the cluster.
 
@@ -341,15 +272,11 @@ type ClusterReference struct {
 
 	ResourceLimits *ResourceConstraints `json:"resourceLimits,omitempty"`
 
-
-
 	// Labels for the cluster.
 
 	// +optional
 
 	Labels map[string]string `json:"labels,omitempty"`
-
-
 
 	// Priority for cluster selection.
 
@@ -360,10 +287,7 @@ type ClusterReference struct {
 	// +kubebuilder:validation:Maximum=10
 
 	Priority *int `json:"priority,omitempty"`
-
 }
-
-
 
 // NetworkSliceSpec defines network slice specifications.
 
@@ -377,8 +301,6 @@ type NetworkSliceSpec struct {
 
 	SliceID string `json:"sliceId"`
 
-
-
 	// SliceType defines the type of network slice.
 
 	// +kubebuilder:validation:Required
@@ -387,23 +309,17 @@ type NetworkSliceSpec struct {
 
 	SliceType string `json:"sliceType"`
 
-
-
 	// ServiceLevelAgreement defines SLA requirements.
 
 	// +optional
 
 	ServiceLevelAgreement *SLARequirements `json:"serviceLevelAgreement,omitempty"`
 
-
-
 	// QualityOfService defines QoS parameters.
 
 	// +optional
 
 	QualityOfService *QoSRequirements `json:"qualityOfService,omitempty"`
-
-
 
 	// IsolationLevel defines isolation requirements.
 
@@ -415,8 +331,6 @@ type NetworkSliceSpec struct {
 
 	IsolationLevel string `json:"isolationLevel,omitempty"`
 
-
-
 	// ResourceAllocation defines resource allocation strategy.
 
 	// +optional
@@ -426,10 +340,7 @@ type NetworkSliceSpec struct {
 	// +kubebuilder:default="shared"
 
 	ResourceAllocation string `json:"resourceAllocation,omitempty"`
-
 }
-
-
 
 // SLARequirements defines Service Level Agreement requirements.
 
@@ -441,8 +352,6 @@ type SLARequirements struct {
 
 	AvailabilityTarget *float64 `json:"availabilityTarget,omitempty"`
 
-
-
 	// MaxLatency in milliseconds.
 
 	// +optional
@@ -450,8 +359,6 @@ type SLARequirements struct {
 	// +kubebuilder:validation:Minimum=1
 
 	MaxLatency *int32 `json:"maxLatency,omitempty"`
-
-
 
 	// MinThroughput in Mbps.
 
@@ -461,15 +368,11 @@ type SLARequirements struct {
 
 	MinThroughput *int32 `json:"minThroughput,omitempty"`
 
-
-
 	// MaxPacketLoss as percentage.
 
 	// +optional
 
 	MaxPacketLoss *float64 `json:"maxPacketLoss,omitempty"`
-
-
 
 	// RecoveryTimeObjective in seconds.
 
@@ -479,8 +382,6 @@ type SLARequirements struct {
 
 	RecoveryTimeObjective *int32 `json:"recoveryTimeObjective,omitempty"`
 
-
-
 	// RecoveryPointObjective in seconds.
 
 	// +optional
@@ -488,10 +389,7 @@ type SLARequirements struct {
 	// +kubebuilder:validation:Minimum=0
 
 	RecoveryPointObjective *int32 `json:"recoveryPointObjective,omitempty"`
-
 }
-
-
 
 // QoSRequirements defines Quality of Service requirements.
 
@@ -507,8 +405,6 @@ type QoSRequirements struct {
 
 	QCI *int32 `json:"qci,omitempty"`
 
-
-
 	// FiveQI (5G QoS Identifier).
 
 	// +optional
@@ -518,8 +414,6 @@ type QoSRequirements struct {
 	// +kubebuilder:validation:Maximum=255
 
 	FiveQI *int32 `json:"fiveQI,omitempty"`
-
-
 
 	// Priority level.
 
@@ -531,23 +425,17 @@ type QoSRequirements struct {
 
 	PriorityLevel *int32 `json:"priorityLevel,omitempty"`
 
-
-
 	// GuaranteedBitRate in Mbps.
 
 	// +optional
 
 	GuaranteedBitRate *resource.Quantity `json:"guaranteedBitRate,omitempty"`
 
-
-
 	// MaxBitRate in Mbps.
 
 	// +optional
 
 	MaxBitRate *resource.Quantity `json:"maxBitRate,omitempty"`
-
-
 
 	// AllocationRetentionPriority.
 
@@ -558,10 +446,7 @@ type QoSRequirements struct {
 	// +kubebuilder:validation:Maximum=15
 
 	AllocationRetentionPriority *int32 `json:"allocationRetentionPriority,omitempty"`
-
 }
-
-
 
 // ComplianceRequirement defines a compliance requirement.
 
@@ -575,23 +460,17 @@ type ComplianceRequirement struct {
 
 	Standard string `json:"standard"`
 
-
-
 	// Version of the standard.
 
 	// +optional
 
 	Version string `json:"version,omitempty"`
 
-
-
 	// Requirements specifies specific requirements.
 
 	// +optional
 
 	Requirements []string `json:"requirements,omitempty"`
-
-
 
 	// Mandatory indicates if compliance is mandatory.
 
@@ -600,10 +479,7 @@ type ComplianceRequirement struct {
 	// +kubebuilder:default=true
 
 	Mandatory *bool `json:"mandatory,omitempty"`
-
 }
-
-
 
 // ResourcePlanStatus defines the observed state of ResourcePlan.
 
@@ -615,8 +491,6 @@ type ResourcePlanStatus struct {
 
 	Phase ResourcePlanPhase `json:"phase,omitempty"`
 
-
-
 	// Conditions represent the latest available observations.
 
 	// +optional
@@ -624,15 +498,11 @@ type ResourcePlanStatus struct {
 	// +listType=atomic
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-
-
 	// PlanningStartTime indicates when planning started.
 
 	// +optional
 
 	PlanningStartTime *metav1.Time `json:"planningStartTime,omitempty"`
-
-
 
 	// PlanningCompletionTime indicates when planning completed.
 
@@ -640,15 +510,11 @@ type ResourcePlanStatus struct {
 
 	PlanningCompletionTime *metav1.Time `json:"planningCompletionTime,omitempty"`
 
-
-
 	// PlannedResources contains the planned resource allocation.
 
 	// +optional
 
 	PlannedResources []PlannedResource `json:"plannedResources,omitempty"`
-
-
 
 	// ResourceAllocation contains the detailed resource allocation.
 
@@ -658,15 +524,11 @@ type ResourcePlanStatus struct {
 
 	ResourceAllocation runtime.RawExtension `json:"resourceAllocation,omitempty"`
 
-
-
 	// CostEstimate contains the estimated costs.
 
 	// +optional
 
 	CostEstimate *CostEstimate `json:"costEstimate,omitempty"`
-
-
 
 	// PerformanceEstimate contains performance projections.
 
@@ -674,15 +536,11 @@ type ResourcePlanStatus struct {
 
 	PerformanceEstimate *PerformanceEstimate `json:"performanceEstimate,omitempty"`
 
-
-
 	// ComplianceStatus tracks compliance validation results.
 
 	// +optional
 
 	ComplianceStatus []ResourceComplianceStatus `json:"complianceStatus,omitempty"`
-
-
 
 	// OptimizationResults contains optimization outcomes.
 
@@ -690,15 +548,11 @@ type ResourcePlanStatus struct {
 
 	OptimizationResults []OptimizationResult `json:"optimizationResults,omitempty"`
 
-
-
 	// ValidationResults contains validation outcomes.
 
 	// +optional
 
 	ValidationResults []ValidationResult `json:"validationResults,omitempty"`
-
-
 
 	// PlanningDuration represents total planning time.
 
@@ -706,15 +560,11 @@ type ResourcePlanStatus struct {
 
 	PlanningDuration *metav1.Duration `json:"planningDuration,omitempty"`
 
-
-
 	// RetryCount tracks retry attempts.
 
 	// +optional
 
 	RetryCount int32 `json:"retryCount,omitempty"`
-
-
 
 	// QualityScore represents the quality of the plan.
 
@@ -722,17 +572,12 @@ type ResourcePlanStatus struct {
 
 	QualityScore *float64 `json:"qualityScore,omitempty"`
 
-
-
 	// ObservedGeneration reflects the generation observed.
 
 	// +optional
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-
 }
-
-
 
 // PlannedResource represents a planned resource.
 
@@ -742,13 +587,9 @@ type PlannedResource struct {
 
 	Name string `json:"name"`
 
-
-
 	// Type of the resource (NetworkFunction, Service, etc.).
 
 	Type string `json:"type"`
-
-
 
 	// Component this resource belongs to.
 
@@ -756,15 +597,11 @@ type PlannedResource struct {
 
 	Component TargetComponent `json:"component,omitempty"`
 
-
-
 	// Cluster where the resource will be deployed.
 
 	// +optional
 
 	Cluster string `json:"cluster,omitempty"`
-
-
 
 	// Namespace where the resource will be deployed.
 
@@ -772,13 +609,9 @@ type PlannedResource struct {
 
 	Namespace string `json:"namespace,omitempty"`
 
-
-
 	// ResourceRequirements for the resource.
 
 	ResourceRequirements ResourceSpec `json:"resourceRequirements"`
-
-
 
 	// Replicas specifies the number of replicas.
 
@@ -790,8 +623,6 @@ type PlannedResource struct {
 
 	Replicas *int32 `json:"replicas,omitempty"`
 
-
-
 	// Configuration contains resource-specific configuration.
 
 	// +optional
@@ -800,15 +631,11 @@ type PlannedResource struct {
 
 	Configuration runtime.RawExtension `json:"configuration,omitempty"`
 
-
-
 	// Dependencies lists resource dependencies.
 
 	// +optional
 
 	Dependencies []string `json:"dependencies,omitempty"`
-
-
 
 	// Labels for the resource.
 
@@ -816,25 +643,18 @@ type PlannedResource struct {
 
 	Labels map[string]string `json:"labels,omitempty"`
 
-
-
 	// Annotations for the resource.
 
 	// +optional
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-
-
 	// EstimatedCost for the resource.
 
 	// +optional
 
 	EstimatedCost *float64 `json:"estimatedCost,omitempty"`
-
 }
-
-
 
 // ResourceSpec defines resource specifications.
 
@@ -844,17 +664,12 @@ type ResourceSpec struct {
 
 	Requests ResourceList `json:"requests"`
 
-
-
 	// Limits defines resource limits.
 
 	// +optional
 
 	Limits ResourceList `json:"limits,omitempty"`
-
 }
-
-
 
 // ResourceList defines a list of compute resources.
 
@@ -866,15 +681,11 @@ type ResourceList struct {
 
 	CPU *resource.Quantity `json:"cpu,omitempty"`
 
-
-
 	// Memory resource.
 
 	// +optional
 
 	Memory *resource.Quantity `json:"memory,omitempty"`
-
-
 
 	// Storage resource.
 
@@ -882,25 +693,18 @@ type ResourceList struct {
 
 	Storage *resource.Quantity `json:"storage,omitempty"`
 
-
-
 	// EphemeralStorage resource.
 
 	// +optional
 
 	EphemeralStorage *resource.Quantity `json:"ephemeralStorage,omitempty"`
 
-
-
 	// Extended resources (GPUs, FPGAs, etc.).
 
 	// +optional
 
 	Extended map[string]resource.Quantity `json:"extended,omitempty"`
-
 }
-
-
 
 // CostEstimate represents cost estimation.
 
@@ -910,15 +714,11 @@ type CostEstimate struct {
 
 	TotalCost float64 `json:"totalCost"`
 
-
-
 	// Currency for the cost.
 
 	// +kubebuilder:default="USD"
 
 	Currency string `json:"currency"`
-
-
 
 	// BillingPeriod (hourly, daily, monthly).
 
@@ -926,31 +726,22 @@ type CostEstimate struct {
 
 	BillingPeriod string `json:"billingPeriod"`
 
-
-
 	// CostBreakdown by component.
 
 	// +optional
 
 	CostBreakdown map[string]float64 `json:"costBreakdown,omitempty"`
 
-
-
 	// EstimatedAt timestamp.
 
 	EstimatedAt metav1.Time `json:"estimatedAt"`
-
-
 
 	// Confidence level of the estimate (0.0-1.0).
 
 	// +optional
 
 	Confidence *float64 `json:"confidence,omitempty"`
-
 }
-
-
 
 // PerformanceEstimate represents performance estimation.
 
@@ -962,15 +753,11 @@ type PerformanceEstimate struct {
 
 	ExpectedThroughput *float64 `json:"expectedThroughput,omitempty"`
 
-
-
 	// ExpectedLatency in milliseconds.
 
 	// +optional
 
 	ExpectedLatency *float64 `json:"expectedLatency,omitempty"`
-
-
 
 	// ExpectedAvailability as percentage.
 
@@ -978,15 +765,11 @@ type PerformanceEstimate struct {
 
 	ExpectedAvailability *float64 `json:"expectedAvailability,omitempty"`
 
-
-
 	// ResourceUtilization estimates.
 
 	// +optional
 
 	ResourceUtilization map[string]float64 `json:"resourceUtilization,omitempty"`
-
-
 
 	// BottleneckAnalysis identifies potential bottlenecks.
 
@@ -994,17 +777,12 @@ type PerformanceEstimate struct {
 
 	BottleneckAnalysis []string `json:"bottleneckAnalysis,omitempty"`
 
-
-
 	// ScalingRecommendations for horizontal scaling.
 
 	// +optional
 
 	ScalingRecommendations []ScalingRecommendation `json:"scalingRecommendations,omitempty"`
-
 }
-
-
 
 // ScalingRecommendation represents a scaling recommendation.
 
@@ -1014,19 +792,13 @@ type ScalingRecommendation struct {
 
 	Resource string `json:"resource"`
 
-
-
 	// RecommendedReplicas.
 
 	RecommendedReplicas int32 `json:"recommendedReplicas"`
 
-
-
 	// Reason for the recommendation.
 
 	Reason string `json:"reason"`
-
-
 
 	// Impact of the scaling.
 
@@ -1034,17 +806,12 @@ type ScalingRecommendation struct {
 
 	Impact string `json:"impact,omitempty"`
 
-
-
 	// Confidence in the recommendation (0.0-1.0).
 
 	// +optional
 
 	Confidence *float64 `json:"confidence,omitempty"`
-
 }
-
-
 
 // ResourceComplianceStatus represents compliance validation status.
 
@@ -1054,21 +821,15 @@ type ResourceComplianceStatus struct {
 
 	Standard string `json:"standard"`
 
-
-
 	// Version of the standard.
 
 	// +optional
 
 	Version string `json:"version,omitempty"`
 
-
-
 	// Status of compliance (Compliant, NonCompliant, Unknown).
 
 	Status string `json:"status"`
-
-
 
 	// ValidationResults for specific requirements.
 
@@ -1076,23 +837,16 @@ type ResourceComplianceStatus struct {
 
 	ValidationResults []string `json:"validationResults,omitempty"`
 
-
-
 	// Violations if any.
 
 	// +optional
 
 	Violations []ComplianceViolation `json:"violations,omitempty"`
 
-
-
 	// ValidatedAt timestamp.
 
 	ValidatedAt metav1.Time `json:"validatedAt"`
-
 }
-
-
 
 // ComplianceViolation represents a compliance violation.
 
@@ -1102,19 +856,13 @@ type ComplianceViolation struct {
 
 	Type string `json:"type"`
 
-
-
 	// Severity of violation (Critical, Major, Minor).
 
 	Severity string `json:"severity"`
 
-
-
 	// Description of the violation.
 
 	Description string `json:"description"`
-
-
 
 	// Resource affected.
 
@@ -1122,17 +870,12 @@ type ComplianceViolation struct {
 
 	Resource string `json:"resource,omitempty"`
 
-
-
 	// Remediation suggestion.
 
 	// +optional
 
 	Remediation string `json:"remediation,omitempty"`
-
 }
-
-
 
 // OptimizationResult represents the result of an optimization.
 
@@ -1142,13 +885,9 @@ type OptimizationResult struct {
 
 	Type string `json:"type"`
 
-
-
 	// Status of optimization (Success, Failed, Skipped).
 
 	Status string `json:"status"`
-
-
 
 	// ImprovementPercent achieved.
 
@@ -1156,15 +895,11 @@ type OptimizationResult struct {
 
 	ImprovementPercent *float64 `json:"improvementPercent,omitempty"`
 
-
-
 	// Description of the optimization.
 
 	// +optional
 
 	Description string `json:"description,omitempty"`
-
-
 
 	// AppliedChanges during optimization.
 
@@ -1172,15 +907,10 @@ type OptimizationResult struct {
 
 	AppliedChanges []string `json:"appliedChanges,omitempty"`
 
-
-
 	// OptimizedAt timestamp.
 
 	OptimizedAt metav1.Time `json:"optimizedAt"`
-
 }
-
-
 
 // ValidationResult represents the result of a validation.
 
@@ -1190,19 +920,13 @@ type ValidationResult struct {
 
 	Type string `json:"type"`
 
-
-
 	// Status of validation (Passed, Failed, Warning).
 
 	Status string `json:"status"`
 
-
-
 	// Message describing the result.
 
 	Message string `json:"message"`
-
-
 
 	// Details with additional information.
 
@@ -1210,15 +934,10 @@ type ValidationResult struct {
 
 	Details map[string]string `json:"details,omitempty"`
 
-
-
 	// ValidatedAt timestamp.
 
 	ValidatedAt metav1.Time `json:"validatedAt"`
-
 }
-
-
 
 //+kubebuilder:object:root=true
 
@@ -1242,43 +961,29 @@ type ValidationResult struct {
 
 //+kubebuilder:storageversion
 
-
-
 // ResourcePlan is the Schema for the resourceplans API.
 
 type ResourcePlan struct {
-
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-
-
-	Spec   ResourcePlanSpec   `json:"spec,omitempty"`
+	Spec ResourcePlanSpec `json:"spec,omitempty"`
 
 	Status ResourcePlanStatus `json:"status,omitempty"`
-
 }
 
-
-
 //+kubebuilder:object:root=true
-
-
 
 // ResourcePlanList contains a list of ResourcePlan.
 
 type ResourcePlanList struct {
-
 	metav1.TypeMeta `json:",inline"`
 
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-	Items           []ResourcePlan `json:"items"`
-
+	Items []ResourcePlan `json:"items"`
 }
-
-
 
 // GetParentIntentName returns the name of the parent NetworkIntent.
 
@@ -1288,8 +993,6 @@ func (rp *ResourcePlan) GetParentIntentName() string {
 
 }
 
-
-
 // GetNamespace returns the namespace of the resource.
 
 func (rp *ResourcePlan) GetNamespace() string {
@@ -1297,8 +1000,6 @@ func (rp *ResourcePlan) GetNamespace() string {
 	return rp.ObjectMeta.Namespace
 
 }
-
-
 
 // GetParentIntentNamespace returns the namespace of the parent NetworkIntent.
 
@@ -1314,8 +1015,6 @@ func (rp *ResourcePlan) GetParentIntentNamespace() string {
 
 }
 
-
-
 // IsPlanningComplete returns true if planning is complete.
 
 func (rp *ResourcePlan) IsPlanningComplete() bool {
@@ -1324,8 +1023,6 @@ func (rp *ResourcePlan) IsPlanningComplete() bool {
 
 }
 
-
-
 // IsPlanningFailed returns true if planning has failed.
 
 func (rp *ResourcePlan) IsPlanningFailed() bool {
@@ -1333,8 +1030,6 @@ func (rp *ResourcePlan) IsPlanningFailed() bool {
 	return rp.Status.Phase == ResourcePlanPhaseFailed
 
 }
-
-
 
 // GetTotalEstimatedCost returns the total estimated cost.
 
@@ -1349,8 +1044,6 @@ func (rp *ResourcePlan) GetTotalEstimatedCost() float64 {
 	return 0.0
 
 }
-
-
 
 // HasCompliantResources returns true if all compliance requirements are met.
 
@@ -1370,8 +1063,6 @@ func (rp *ResourcePlan) HasCompliantResources() bool {
 
 }
 
-
-
 // GetPlannedResourceCount returns the number of planned resources.
 
 func (rp *ResourcePlan) GetPlannedResourceCount() int {
@@ -1379,8 +1070,6 @@ func (rp *ResourcePlan) GetPlannedResourceCount() int {
 	return len(rp.Status.PlannedResources)
 
 }
-
-
 
 // ShouldOptimizeCost returns true if cost optimization is enabled.
 
@@ -1396,8 +1085,6 @@ func (rp *ResourcePlan) ShouldOptimizeCost() bool {
 
 }
 
-
-
 // ShouldOptimizePerformance returns true if performance optimization is enabled.
 
 func (rp *ResourcePlan) ShouldOptimizePerformance() bool {
@@ -1412,11 +1099,8 @@ func (rp *ResourcePlan) ShouldOptimizePerformance() bool {
 
 }
 
-
-
 func init() {
 
 	SchemeBuilder.Register(&ResourcePlan{}, &ResourcePlanList{})
 
 }
-

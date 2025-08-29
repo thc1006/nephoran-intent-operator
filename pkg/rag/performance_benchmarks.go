@@ -1,65 +1,41 @@
 //go:build !disable_rag && !test
 
-
-
-
 package rag
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"log/slog"
-
 	"math"
-
 	"sort"
-
 	"strings"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-
 )
-
-
 
 // PerformanceBenchmarker provides comprehensive performance benchmarking.
 
 type PerformanceBenchmarker struct {
+	config *BenchmarkConfig
 
-	config            *BenchmarkConfig
+	logger *slog.Logger
 
-	logger            *slog.Logger
+	results *BenchmarkResults
 
-	results           *BenchmarkResults
+	testData *TestDataset
 
-	testData          *TestDataset
-
-	originalClient    *WeaviateClient
+	originalClient *WeaviateClient
 
 	optimizedPipeline *OptimizedRAGPipeline
 
-	batchClient       *OptimizedBatchSearchClient
+	batchClient *OptimizedBatchSearchClient
 
-	grpcClient        *GRPCWeaviateClient
-
+	grpcClient *GRPCWeaviateClient
 }
-
-
 
 // BenchmarkConfig holds benchmark configuration.
 
@@ -67,57 +43,48 @@ type BenchmarkConfig struct {
 
 	// Test parameters.
 
-	WarmupQueries     int           `json:"warmup_queries"`
+	WarmupQueries int `json:"warmup_queries"`
 
-	BenchmarkQueries  int           `json:"benchmark_queries"`
+	BenchmarkQueries int `json:"benchmark_queries"`
 
-	ConcurrencyLevels []int         `json:"concurrency_levels"`
+	ConcurrencyLevels []int `json:"concurrency_levels"`
 
-	BatchSizes        []int         `json:"batch_sizes"`
+	BatchSizes []int `json:"batch_sizes"`
 
-	TestDuration      time.Duration `json:"test_duration"`
-
-
+	TestDuration time.Duration `json:"test_duration"`
 
 	// Performance targets.
 
-	LatencyTarget     time.Duration `json:"latency_target"`
+	LatencyTarget time.Duration `json:"latency_target"`
 
-	ThroughputTarget  float64       `json:"throughput_target"`
+	ThroughputTarget float64 `json:"throughput_target"`
 
-	AccuracyTarget    float32       `json:"accuracy_target"`
+	AccuracyTarget float32 `json:"accuracy_target"`
 
-	MemoryUsageTarget int64         `json:"memory_usage_target"`
-
-
+	MemoryUsageTarget int64 `json:"memory_usage_target"`
 
 	// Test scenarios.
 
-	EnableLatencyTest    bool `json:"enable_latency_test"`
+	EnableLatencyTest bool `json:"enable_latency_test"`
 
 	EnableThroughputTest bool `json:"enable_throughput_test"`
 
-	EnableStressTest     bool `json:"enable_stress_test"`
+	EnableStressTest bool `json:"enable_stress_test"`
 
-	EnableAccuracyTest   bool `json:"enable_accuracy_test"`
+	EnableAccuracyTest bool `json:"enable_accuracy_test"`
 
-	EnableMemoryTest     bool `json:"enable_memory_test"`
+	EnableMemoryTest bool `json:"enable_memory_test"`
 
 	EnableComparisonTest bool `json:"enable_comparison_test"`
 
-
-
 	// Output configuration.
 
-	EnableDetailedLogs bool   `json:"enable_detailed_logs"`
+	EnableDetailedLogs bool `json:"enable_detailed_logs"`
 
-	GenerateReport     bool   `json:"generate_report"`
+	GenerateReport bool `json:"generate_report"`
 
-	ReportFormat       string `json:"report_format"`
-
+	ReportFormat string `json:"report_format"`
 }
-
-
 
 // BenchmarkResults holds comprehensive benchmark results.
 
@@ -125,399 +92,322 @@ type BenchmarkResults struct {
 
 	// Overall results.
 
-	TestSuite         *TestSuiteResults           `json:"test_suite"`
+	TestSuite *TestSuiteResults `json:"test_suite"`
 
-	LatencyResults    *LatencyBenchmarkResults    `json:"latency_results"`
+	LatencyResults *LatencyBenchmarkResults `json:"latency_results"`
 
 	ThroughputResults *ThroughputBenchmarkResults `json:"throughput_results"`
 
-	StressTestResults *StressTestResults          `json:"stress_test_results"`
+	StressTestResults *StressTestResults `json:"stress_test_results"`
 
-	AccuracyResults   *AccuracyBenchmarkResults   `json:"accuracy_results"`
+	AccuracyResults *AccuracyBenchmarkResults `json:"accuracy_results"`
 
-	MemoryResults     *MemoryBenchmarkResults     `json:"memory_results"`
+	MemoryResults *MemoryBenchmarkResults `json:"memory_results"`
 
 	ComparisonResults *ComparisonBenchmarkResults `json:"comparison_results"`
-
-
 
 	// Improvement metrics.
 
 	ImprovementSummary *ImprovementSummary `json:"improvement_summary"`
 
-
-
 	// Test metadata.
 
-	TestTimestamp     time.Time        `json:"test_timestamp"`
+	TestTimestamp time.Time `json:"test_timestamp"`
 
-	TestDuration      time.Duration    `json:"test_duration"`
+	TestDuration time.Duration `json:"test_duration"`
 
 	TestConfiguration *BenchmarkConfig `json:"test_configuration"`
 
-	SystemInfo        *SystemInfo      `json:"system_info"`
-
+	SystemInfo *SystemInfo `json:"system_info"`
 }
-
-
 
 // TestSuiteResults provides overall test suite results.
 
 type TestSuiteResults struct {
+	TotalTests int `json:"total_tests"`
 
-	TotalTests   int                    `json:"total_tests"`
+	PassedTests int `json:"passed_tests"`
 
-	PassedTests  int                    `json:"passed_tests"`
+	FailedTests int `json:"failed_tests"`
 
-	FailedTests  int                    `json:"failed_tests"`
+	TestCoverage float64 `json:"test_coverage"`
 
-	TestCoverage float64                `json:"test_coverage"`
+	OverallScore float64 `json:"overall_score"`
 
-	OverallScore float64                `json:"overall_score"`
-
-	TestResults  map[string]*TestResult `json:"test_results"`
-
+	TestResults map[string]*TestResult `json:"test_results"`
 }
 
-
-
 // Note: TestResult is defined in integration_validator.go.
-
-
 
 // LatencyBenchmarkResults holds latency benchmark results.
 
 type LatencyBenchmarkResults struct {
+	SingleQueryLatency *LatencyMetrics `json:"single_query_latency"`
 
-	SingleQueryLatency *LatencyMetrics         `json:"single_query_latency"`
+	BatchQueryLatency *LatencyMetrics `json:"batch_query_latency"`
 
-	BatchQueryLatency  *LatencyMetrics         `json:"batch_query_latency"`
+	CachedQueryLatency *LatencyMetrics `json:"cached_query_latency"`
 
-	CachedQueryLatency *LatencyMetrics         `json:"cached_query_latency"`
+	ConcurrentLatency map[int]*LatencyMetrics `json:"concurrent_latency"`
 
-	ConcurrentLatency  map[int]*LatencyMetrics `json:"concurrent_latency"`
+	OptimizedLatency *LatencyMetrics `json:"optimized_latency"`
 
-	OptimizedLatency   *LatencyMetrics         `json:"optimized_latency"`
-
-	BaselineLatency    *LatencyMetrics         `json:"baseline_latency"`
-
+	BaselineLatency *LatencyMetrics `json:"baseline_latency"`
 }
-
-
 
 // LatencyMetrics provides detailed latency statistics.
 
 type LatencyMetrics struct {
+	Mean time.Duration `json:"mean"`
 
-	Mean        time.Duration            `json:"mean"`
+	Median time.Duration `json:"median"`
 
-	Median      time.Duration            `json:"median"`
+	P95 time.Duration `json:"p95"`
 
-	P95         time.Duration            `json:"p95"`
+	P99 time.Duration `json:"p99"`
 
-	P99         time.Duration            `json:"p99"`
+	Min time.Duration `json:"min"`
 
-	Min         time.Duration            `json:"min"`
+	Max time.Duration `json:"max"`
 
-	Max         time.Duration            `json:"max"`
+	StdDev time.Duration `json:"std_dev"`
 
-	StdDev      time.Duration            `json:"std_dev"`
-
-	SampleSize  int                      `json:"sample_size"`
+	SampleSize int `json:"sample_size"`
 
 	Percentiles map[string]time.Duration `json:"percentiles"`
-
 }
-
-
 
 // ThroughputBenchmarkResults holds throughput benchmark results.
 
 type ThroughputBenchmarkResults struct {
+	QueriesPerSecond float64 `json:"queries_per_second"`
 
-	QueriesPerSecond     float64            `json:"queries_per_second"`
+	MaxThroughput float64 `json:"max_throughput"`
 
-	MaxThroughput        float64            `json:"max_throughput"`
+	SustainedThroughput float64 `json:"sustained_throughput"`
 
-	SustainedThroughput  float64            `json:"sustained_throughput"`
+	BatchThroughput map[int]float64 `json:"batch_throughput"`
 
-	BatchThroughput      map[int]float64    `json:"batch_throughput"`
+	ConcurrentThroughput map[int]float64 `json:"concurrent_throughput"`
 
-	ConcurrentThroughput map[int]float64    `json:"concurrent_throughput"`
+	OptimizedThroughput float64 `json:"optimized_throughput"`
 
-	OptimizedThroughput  float64            `json:"optimized_throughput"`
+	BaselineThroughput float64 `json:"baseline_throughput"`
 
-	BaselineThroughput   float64            `json:"baseline_throughput"`
-
-	ThroughputOverTime   []ThroughputSample `json:"throughput_over_time"`
-
+	ThroughputOverTime []ThroughputSample `json:"throughput_over_time"`
 }
-
-
 
 // ThroughputSample represents a throughput measurement at a specific time.
 
 type ThroughputSample struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp   time.Time `json:"timestamp"`
+	QPS float64 `json:"qps"`
 
-	QPS         float64   `json:"qps"`
-
-	ActiveConns int       `json:"active_connections"`
-
+	ActiveConns int `json:"active_connections"`
 }
-
-
 
 // StressTestResults holds stress test results.
 
 type StressTestResults struct {
+	MaxConcurrentQueries int `json:"max_concurrent_queries"`
 
-	MaxConcurrentQueries   int                  `json:"max_concurrent_queries"`
+	BreakingPoint int `json:"breaking_point"`
 
-	BreakingPoint          int                  `json:"breaking_point"`
+	RecoveryTime time.Duration `json:"recovery_time"`
 
-	RecoveryTime           time.Duration        `json:"recovery_time"`
+	ErrorRateUnderStress float64 `json:"error_rate_under_stress"`
 
-	ErrorRateUnderStress   float64              `json:"error_rate_under_stress"`
+	MemoryUsageUnderStress int64 `json:"memory_usage_under_stress"`
 
-	MemoryUsageUnderStress int64                `json:"memory_usage_under_stress"`
+	CPUUsageUnderStress float64 `json:"cpu_usage_under_stress"`
 
-	CPUUsageUnderStress    float64              `json:"cpu_usage_under_stress"`
-
-	StressTestPhases       []*StressPhaseResult `json:"stress_test_phases"`
-
+	StressTestPhases []*StressPhaseResult `json:"stress_test_phases"`
 }
-
-
 
 // StressPhaseResult represents results from a stress test phase.
 
 type StressPhaseResult struct {
+	Phase string `json:"phase"`
 
-	Phase            string        `json:"phase"`
+	ConcurrencyLevel int `json:"concurrency_level"`
 
-	ConcurrencyLevel int           `json:"concurrency_level"`
+	Duration time.Duration `json:"duration"`
 
-	Duration         time.Duration `json:"duration"`
+	SuccessfulOps int64 `json:"successful_ops"`
 
-	SuccessfulOps    int64         `json:"successful_ops"`
+	FailedOps int64 `json:"failed_ops"`
 
-	FailedOps        int64         `json:"failed_ops"`
+	ErrorRate float64 `json:"error_rate"`
 
-	ErrorRate        float64       `json:"error_rate"`
+	AverageLatency time.Duration `json:"average_latency"`
 
-	AverageLatency   time.Duration `json:"average_latency"`
-
-	ThroughputQPS    float64       `json:"throughput_qps"`
-
+	ThroughputQPS float64 `json:"throughput_qps"`
 }
-
-
 
 // AccuracyBenchmarkResults holds accuracy benchmark results.
 
 type AccuracyBenchmarkResults struct {
+	OverallAccuracy float32 `json:"overall_accuracy"`
 
-	OverallAccuracy      float32            `json:"overall_accuracy"`
+	RecallScore float32 `json:"recall_score"`
 
-	RecallScore          float32            `json:"recall_score"`
+	PrecisionScore float32 `json:"precision_score"`
 
-	PrecisionScore       float32            `json:"precision_score"`
+	F1Score float32 `json:"f1_score"`
 
-	F1Score              float32            `json:"f1_score"`
+	SemanticAccuracy float32 `json:"semantic_accuracy"`
 
-	SemanticAccuracy     float32            `json:"semantic_accuracy"`
+	QueryTypeAccuracy map[string]float32 `json:"query_type_accuracy"`
 
-	QueryTypeAccuracy    map[string]float32 `json:"query_type_accuracy"`
+	OptimizedAccuracy float32 `json:"optimized_accuracy"`
 
-	OptimizedAccuracy    float32            `json:"optimized_accuracy"`
-
-	BaselineAccuracy     float32            `json:"baseline_accuracy"`
+	BaselineAccuracy float32 `json:"baseline_accuracy"`
 
 	AccuracyByComplexity map[string]float32 `json:"accuracy_by_complexity"`
-
 }
-
-
 
 // MemoryBenchmarkResults holds memory benchmark results.
 
 type MemoryBenchmarkResults struct {
+	BaselineMemoryUsage int64 `json:"baseline_memory_usage"`
 
-	BaselineMemoryUsage int64             `json:"baseline_memory_usage"`
+	PeakMemoryUsage int64 `json:"peak_memory_usage"`
 
-	PeakMemoryUsage     int64             `json:"peak_memory_usage"`
+	AverageMemoryUsage int64 `json:"average_memory_usage"`
 
-	AverageMemoryUsage  int64             `json:"average_memory_usage"`
+	MemoryUsageByLoad map[int]int64 `json:"memory_usage_by_load"`
 
-	MemoryUsageByLoad   map[int]int64     `json:"memory_usage_by_load"`
+	CacheMemoryUsage int64 `json:"cache_memory_usage"`
 
-	CacheMemoryUsage    int64             `json:"cache_memory_usage"`
+	ConnectionPoolUsage int64 `json:"connection_pool_usage"`
 
-	ConnectionPoolUsage int64             `json:"connection_pool_usage"`
-
-	GCPressure          float64           `json:"gc_pressure"`
+	GCPressure float64 `json:"gc_pressure"`
 
 	MemoryLeakDetection *MemoryLeakResult `json:"memory_leak_detection"`
-
 }
-
-
 
 // MemoryLeakResult represents memory leak detection results.
 
 type MemoryLeakResult struct {
+	LeakDetected bool `json:"leak_detected"`
 
-	LeakDetected   bool    `json:"leak_detected"`
-
-	LeakRate       float64 `json:"leak_rate"` // bytes per operation
+	LeakRate float64 `json:"leak_rate"` // bytes per operation
 
 	LeakConfidence float32 `json:"leak_confidence"`
 
-	LeakLocation   string  `json:"leak_location"`
-
+	LeakLocation string `json:"leak_location"`
 }
-
-
 
 // ComparisonBenchmarkResults compares different implementations.
 
 type ComparisonBenchmarkResults struct {
+	BaselineVsOptimized *PerformanceComparison `json:"baseline_vs_optimized"`
 
-	BaselineVsOptimized    *PerformanceComparison `json:"baseline_vs_optimized"`
+	HTTPvsGRPC *PerformanceComparison `json:"http_vs_grpc"`
 
-	HTTPvsGRPC             *PerformanceComparison `json:"http_vs_grpc"`
+	SingleVsBatch *PerformanceComparison `json:"single_vs_batch"`
 
-	SingleVsBatch          *PerformanceComparison `json:"single_vs_batch"`
-
-	CachedVsUncached       *PerformanceComparison `json:"cached_vs_uncached"`
+	CachedVsUncached *PerformanceComparison `json:"cached_vs_uncached"`
 
 	DefaultVsOptimizedHNSW *PerformanceComparison `json:"default_vs_optimized_hnsw"`
-
 }
-
-
 
 // PerformanceComparison represents a performance comparison between two approaches.
 
 type PerformanceComparison struct {
+	ApproachA string `json:"approach_a"`
 
-	ApproachA             string        `json:"approach_a"`
+	ApproachB string `json:"approach_b"`
 
-	ApproachB             string        `json:"approach_b"`
+	LatencyImprovement time.Duration `json:"latency_improvement"`
 
-	LatencyImprovement    time.Duration `json:"latency_improvement"`
+	ThroughputImprovement float64 `json:"throughput_improvement"`
 
-	ThroughputImprovement float64       `json:"throughput_improvement"`
+	AccuracyDifference float32 `json:"accuracy_difference"`
 
-	AccuracyDifference    float32       `json:"accuracy_difference"`
+	MemoryDifference int64 `json:"memory_difference"`
 
-	MemoryDifference      int64         `json:"memory_difference"`
+	OverallImprovement float64 `json:"overall_improvement"`
 
-	OverallImprovement    float64       `json:"overall_improvement"`
-
-	RecommendedApproach   string        `json:"recommended_approach"`
-
+	RecommendedApproach string `json:"recommended_approach"`
 }
-
-
 
 // ImprovementSummary provides an overall summary of improvements.
 
 type ImprovementSummary struct {
+	LatencyImprovement float64 `json:"latency_improvement"` // Percentage improvement
 
-	LatencyImprovement    float64  `json:"latency_improvement"`    // Percentage improvement
+	ThroughputImprovement float64 `json:"throughput_improvement"` // Percentage improvement
 
-	ThroughputImprovement float64  `json:"throughput_improvement"` // Percentage improvement
+	AccuracyImprovement float64 `json:"accuracy_improvement"` // Percentage improvement
 
-	AccuracyImprovement   float64  `json:"accuracy_improvement"`   // Percentage improvement
+	MemoryEfficiency float64 `json:"memory_efficiency"` // Percentage improvement
 
-	MemoryEfficiency      float64  `json:"memory_efficiency"`      // Percentage improvement
+	OverallScore float64 `json:"overall_score"` // 0-100 score
 
-	OverallScore          float64  `json:"overall_score"`          // 0-100 score
+	AchievedTargets []string `json:"achieved_targets"`
 
-	AchievedTargets       []string `json:"achieved_targets"`
+	MissedTargets []string `json:"missed_targets"`
 
-	MissedTargets         []string `json:"missed_targets"`
-
-	Recommendations       []string `json:"recommendations"`
-
+	Recommendations []string `json:"recommendations"`
 }
-
-
 
 // SystemInfo holds system information for benchmarking context.
 
 type SystemInfo struct {
+	CPUCores int `json:"cpu_cores"`
 
-	CPUCores        int    `json:"cpu_cores"`
+	TotalMemory int64 `json:"total_memory"`
 
-	TotalMemory     int64  `json:"total_memory"`
+	AvailableMemory int64 `json:"available_memory"`
 
-	AvailableMemory int64  `json:"available_memory"`
+	GoVersion string `json:"go_version"`
 
-	GoVersion       string `json:"go_version"`
+	OSInfo string `json:"os_info"`
 
-	OSInfo          string `json:"os_info"`
-
-	BuildInfo       string `json:"build_info"`
-
+	BuildInfo string `json:"build_info"`
 }
-
-
 
 // TestDataset holds test data for benchmarking.
 
 type TestDataset struct {
+	Queries []*TestQuery `json:"queries"`
 
-	Queries         []*TestQuery                      `json:"queries"`
+	ExpectedResults map[string]*ExpectedResult `json:"expected_results"`
 
-	ExpectedResults map[string]*ExpectedResult        `json:"expected_results"`
+	GroundTruth map[string][]*shared.SearchResult `json:"ground_truth"`
 
-	GroundTruth     map[string][]*shared.SearchResult `json:"ground_truth"`
-
-	QueryComplexity map[string]string                 `json:"query_complexity"`
-
+	QueryComplexity map[string]string `json:"query_complexity"`
 }
-
-
 
 // TestQuery represents a test query with metadata.
 
 type TestQuery struct {
+	ID string `json:"id"`
 
-	ID         string                 `json:"id"`
+	Query string `json:"query"`
 
-	Query      string                 `json:"query"`
+	Category string `json:"category"`
 
-	Category   string                 `json:"category"`
+	Complexity string `json:"complexity"`
 
-	Complexity string                 `json:"complexity"`
+	Metadata map[string]interface{} `json:"metadata"`
 
-	Metadata   map[string]interface{} `json:"metadata"`
-
-	Expected   *ExpectedResult        `json:"expected"`
-
+	Expected *ExpectedResult `json:"expected"`
 }
-
-
 
 // ExpectedResult represents expected benchmark result.
 
 type ExpectedResult struct {
+	MinResults int `json:"min_results"`
 
-	MinResults    int           `json:"min_results"`
+	MaxLatency time.Duration `json:"max_latency"`
 
-	MaxLatency    time.Duration `json:"max_latency"`
+	MinAccuracy float32 `json:"min_accuracy"`
 
-	MinAccuracy   float32       `json:"min_accuracy"`
-
-	ExpectedTerms []string      `json:"expected_terms"`
-
+	ExpectedTerms []string `json:"expected_terms"`
 }
-
-
 
 // NewPerformanceBenchmarker creates a new performance benchmarker.
 
@@ -541,39 +431,30 @@ func NewPerformanceBenchmarker(
 
 	}
 
-
-
 	logger := slog.Default().With("component", "performance-benchmarker")
-
-
 
 	benchmarker := &PerformanceBenchmarker{
 
-		config:            config,
+		config: config,
 
-		logger:            logger,
+		logger: logger,
 
-		results:           &BenchmarkResults{},
+		results: &BenchmarkResults{},
 
-		testData:          generateTestDataset(),
+		testData: generateTestDataset(),
 
-		originalClient:    originalClient,
+		originalClient: originalClient,
 
 		optimizedPipeline: optimizedPipeline,
 
-		batchClient:       batchClient,
+		batchClient: batchClient,
 
-		grpcClient:        grpcClient,
-
+		grpcClient: grpcClient,
 	}
-
-
 
 	return benchmarker
 
 }
-
-
 
 // getDefaultBenchmarkConfig returns default benchmark configuration.
 
@@ -581,53 +462,44 @@ func getDefaultBenchmarkConfig() *BenchmarkConfig {
 
 	return &BenchmarkConfig{
 
-		WarmupQueries:     100,
+		WarmupQueries: 100,
 
-		BenchmarkQueries:  1000,
+		BenchmarkQueries: 1000,
 
 		ConcurrencyLevels: []int{1, 5, 10, 20, 50, 100},
 
-		BatchSizes:        []int{1, 5, 10, 20, 50},
+		BatchSizes: []int{1, 5, 10, 20, 50},
 
-		TestDuration:      5 * time.Minute,
+		TestDuration: 5 * time.Minute,
 
+		LatencyTarget: 200 * time.Millisecond,
 
+		ThroughputTarget: 100.0, // QPS
 
-		LatencyTarget:     200 * time.Millisecond,
-
-		ThroughputTarget:  100.0, // QPS
-
-		AccuracyTarget:    0.95,
+		AccuracyTarget: 0.95,
 
 		MemoryUsageTarget: 500 * 1024 * 1024, // 500MB
 
-
-
-		EnableLatencyTest:    true,
+		EnableLatencyTest: true,
 
 		EnableThroughputTest: true,
 
-		EnableStressTest:     true,
+		EnableStressTest: true,
 
-		EnableAccuracyTest:   true,
+		EnableAccuracyTest: true,
 
-		EnableMemoryTest:     true,
+		EnableMemoryTest: true,
 
 		EnableComparisonTest: true,
 
-
-
 		EnableDetailedLogs: true,
 
-		GenerateReport:     true,
+		GenerateReport: true,
 
-		ReportFormat:       "json",
-
+		ReportFormat: "json",
 	}
 
 }
-
-
 
 // RunComprehensiveBenchmark runs all benchmark tests.
 
@@ -637,23 +509,18 @@ func (pb *PerformanceBenchmarker) RunComprehensiveBenchmark(ctx context.Context)
 
 	startTime := time.Now()
 
-
-
 	// Initialize results.
 
 	pb.results = &BenchmarkResults{
 
-		TestSuite:         &TestSuiteResults{TestResults: make(map[string]*TestResult)},
+		TestSuite: &TestSuiteResults{TestResults: make(map[string]*TestResult)},
 
-		TestTimestamp:     startTime,
+		TestTimestamp: startTime,
 
 		TestConfiguration: pb.config,
 
-		SystemInfo:        pb.getSystemInfo(),
-
+		SystemInfo: pb.getSystemInfo(),
 	}
-
-
 
 	// Warmup phase.
 
@@ -665,18 +532,14 @@ func (pb *PerformanceBenchmarker) RunComprehensiveBenchmark(ctx context.Context)
 
 	}
 
-
-
 	// Run individual benchmark tests.
 
 	tests := []struct {
-
-		name    string
+		name string
 
 		enabled bool
 
-		runner  func(context.Context) error
-
+		runner func(context.Context) error
 	}{
 
 		{"latency_benchmark", pb.config.EnableLatencyTest, pb.runLatencyBenchmark},
@@ -690,10 +553,7 @@ func (pb *PerformanceBenchmarker) RunComprehensiveBenchmark(ctx context.Context)
 		{"memory_benchmark", pb.config.EnableMemoryTest, pb.runMemoryBenchmark},
 
 		{"comparison_benchmark", pb.config.EnableComparisonTest, pb.runComparisonBenchmark},
-
 	}
-
-
 
 	for _, test := range tests {
 
@@ -705,31 +565,23 @@ func (pb *PerformanceBenchmarker) RunComprehensiveBenchmark(ctx context.Context)
 
 		}
 
-
-
 		pb.logger.Info("Running benchmark test", "test", test.name)
 
 		testStart := time.Now()
 
-
-
 		err := test.runner(ctx)
-
-
 
 		result := &TestResult{
 
 			TestName: test.name,
 
-			Passed:   err == nil,
+			Passed: err == nil,
 
 			Duration: time.Since(testStart),
 
-			Score:    0.0, // Will be calculated later
+			Score: 0.0, // Will be calculated later
 
 		}
-
-
 
 		if err != nil {
 
@@ -743,13 +595,9 @@ func (pb *PerformanceBenchmarker) RunComprehensiveBenchmark(ctx context.Context)
 
 		}
 
-
-
 		pb.results.TestSuite.TestResults[test.name] = result
 
 		pb.results.TestSuite.TotalTests++
-
-
 
 		if result.Passed {
 
@@ -763,15 +611,11 @@ func (pb *PerformanceBenchmarker) RunComprehensiveBenchmark(ctx context.Context)
 
 	}
 
-
-
 	// Calculate final metrics and improvement summary.
 
 	pb.calculateFinalMetrics()
 
 	pb.results.TestDuration = time.Since(startTime)
-
-
 
 	pb.logger.Info("Comprehensive benchmark completed",
 
@@ -780,16 +624,11 @@ func (pb *PerformanceBenchmarker) RunComprehensiveBenchmark(ctx context.Context)
 		"passed_tests", pb.results.TestSuite.PassedTests,
 
 		"failed_tests", pb.results.TestSuite.FailedTests,
-
 	)
-
-
 
 	return pb.results, nil
 
 }
-
-
 
 // runWarmup performs warmup queries to stabilize performance.
 
@@ -797,13 +636,9 @@ func (pb *PerformanceBenchmarker) runWarmup(ctx context.Context) error {
 
 	pb.logger.Info("Starting warmup phase", "queries", pb.config.WarmupQueries)
 
-
-
 	for i := range pb.config.WarmupQueries {
 
 		query := pb.testData.Queries[i%len(pb.testData.Queries)]
-
-
 
 		// Warmup original client.
 
@@ -812,7 +647,6 @@ func (pb *PerformanceBenchmarker) runWarmup(ctx context.Context) error {
 			Query: query.Query,
 
 			Limit: 10,
-
 		}
 
 		_, err := pb.originalClient.Search(ctx, searchQuery)
@@ -823,23 +657,17 @@ func (pb *PerformanceBenchmarker) runWarmup(ctx context.Context) error {
 
 		}
 
-
-
 		// Brief pause to avoid overwhelming the system.
 
 		time.Sleep(10 * time.Millisecond)
 
 	}
 
-
-
 	pb.logger.Info("Warmup phase completed")
 
 	return nil
 
 }
-
-
 
 // runLatencyBenchmark runs latency benchmark tests.
 
@@ -848,28 +676,19 @@ func (pb *PerformanceBenchmarker) runLatencyBenchmark(ctx context.Context) error
 	pb.results.LatencyResults = &LatencyBenchmarkResults{
 
 		ConcurrentLatency: make(map[int]*LatencyMetrics),
-
 	}
-
-
 
 	// Single query latency.
 
 	pb.results.LatencyResults.SingleQueryLatency = pb.measureSingleQueryLatency(ctx)
 
-
-
 	// Batch query latency.
 
 	pb.results.LatencyResults.BatchQueryLatency = pb.measureBatchQueryLatency(ctx)
 
-
-
 	// Cached vs uncached latency.
 
 	pb.results.LatencyResults.CachedQueryLatency = pb.measureCachedQueryLatency(ctx)
-
-
 
 	// Concurrent latency at different levels.
 
@@ -879,21 +698,15 @@ func (pb *PerformanceBenchmarker) runLatencyBenchmark(ctx context.Context) error
 
 	}
 
-
-
 	// Compare optimized vs baseline.
 
 	pb.results.LatencyResults.BaselineLatency = pb.measureBaselineLatency(ctx)
 
 	pb.results.LatencyResults.OptimizedLatency = pb.measureOptimizedLatency(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // measureSingleQueryLatency measures latency for individual queries.
 
@@ -901,13 +714,9 @@ func (pb *PerformanceBenchmarker) measureSingleQueryLatency(ctx context.Context)
 
 	var latencies []time.Duration
 
-
-
 	for i := range pb.config.BenchmarkQueries {
 
 		query := pb.testData.Queries[i%len(pb.testData.Queries)]
-
-
 
 		start := time.Now()
 
@@ -916,14 +725,11 @@ func (pb *PerformanceBenchmarker) measureSingleQueryLatency(ctx context.Context)
 			Query: query.Query,
 
 			Limit: 10,
-
 		}
 
 		_, err := pb.originalClient.Search(ctx, searchQuery)
 
 		latency := time.Since(start)
-
-
 
 		if err == nil {
 
@@ -933,21 +739,15 @@ func (pb *PerformanceBenchmarker) measureSingleQueryLatency(ctx context.Context)
 
 	}
 
-
-
 	return pb.calculateLatencyMetrics(latencies)
 
 }
-
-
 
 // measureBatchQueryLatency measures latency for batch queries.
 
 func (pb *PerformanceBenchmarker) measureBatchQueryLatency(ctx context.Context) *LatencyMetrics {
 
 	var latencies []time.Duration
-
-
 
 	// Test different batch sizes.
 
@@ -958,8 +758,6 @@ func (pb *PerformanceBenchmarker) measureBatchQueryLatency(ctx context.Context) 
 			continue // Skip single queries for batch test
 
 		}
-
-
 
 		// Create batch of queries.
 
@@ -974,28 +772,22 @@ func (pb *PerformanceBenchmarker) measureBatchQueryLatency(ctx context.Context) 
 				Query: testQuery.Query,
 
 				Limit: 10,
-
 			}
 
 		}
-
-
 
 		start := time.Now()
 
 		batchRequest := &BatchSearchRequest{
 
-			Queries:        queries,
+			Queries: queries,
 
 			MaxConcurrency: 5,
-
 		}
 
 		_, err := pb.batchClient.BatchSearch(ctx, batchRequest)
 
 		latency := time.Since(start)
-
-
 
 		if err == nil {
 
@@ -1009,13 +801,9 @@ func (pb *PerformanceBenchmarker) measureBatchQueryLatency(ctx context.Context) 
 
 	}
 
-
-
 	return pb.calculateLatencyMetrics(latencies)
 
 }
-
-
 
 // measureCachedQueryLatency measures latency for cached queries.
 
@@ -1023,13 +811,9 @@ func (pb *PerformanceBenchmarker) measureCachedQueryLatency(ctx context.Context)
 
 	var latencies []time.Duration
 
-
-
 	// Use a small set of queries that will be repeated (cached).
 
 	testQueries := pb.testData.Queries[:10] // Use first 10 queries
-
-
 
 	// First, populate the cache.
 
@@ -1037,17 +821,14 @@ func (pb *PerformanceBenchmarker) measureCachedQueryLatency(ctx context.Context)
 
 		ragRequest := &RAGRequest{
 
-			Query:      query.Query,
+			Query: query.Query,
 
 			MaxResults: 10,
-
 		}
 
 		pb.optimizedPipeline.ProcessQuery(ctx, ragRequest)
 
 	}
-
-
 
 	// Now measure cached query latency.
 
@@ -1055,23 +836,18 @@ func (pb *PerformanceBenchmarker) measureCachedQueryLatency(ctx context.Context)
 
 		query := testQueries[i%len(testQueries)]
 
-
-
 		start := time.Now()
 
 		ragRequest := &RAGRequest{
 
-			Query:      query.Query,
+			Query: query.Query,
 
 			MaxResults: 10,
-
 		}
 
 		_, err := pb.optimizedPipeline.ProcessQuery(ctx, ragRequest)
 
 		latency := time.Since(start)
-
-
 
 		if err == nil {
 
@@ -1081,13 +857,9 @@ func (pb *PerformanceBenchmarker) measureCachedQueryLatency(ctx context.Context)
 
 	}
 
-
-
 	return pb.calculateLatencyMetrics(latencies)
 
 }
-
-
 
 // measureConcurrentLatency measures latency under concurrent load.
 
@@ -1097,13 +869,9 @@ func (pb *PerformanceBenchmarker) measureConcurrentLatency(ctx context.Context, 
 
 	var mutex sync.Mutex
 
-
-
 	// Use buffered channel to control concurrency.
 
 	semaphore := make(chan struct{}, concurrency)
-
-
 
 	var wg sync.WaitGroup
 
@@ -1115,19 +883,13 @@ func (pb *PerformanceBenchmarker) measureConcurrentLatency(ctx context.Context, 
 
 			defer wg.Done()
 
-
-
 			// Acquire semaphore.
 
 			semaphore <- struct{}{}
 
 			defer func() { <-semaphore }()
 
-
-
 			query := pb.testData.Queries[queryIndex%len(pb.testData.Queries)]
-
-
 
 			start := time.Now()
 
@@ -1136,14 +898,11 @@ func (pb *PerformanceBenchmarker) measureConcurrentLatency(ctx context.Context, 
 				Query: query.Query,
 
 				Limit: 10,
-
 			}
 
 			_, err := pb.originalClient.Search(ctx, searchQuery)
 
 			latency := time.Since(start)
-
-
 
 			if err == nil {
 
@@ -1159,15 +918,11 @@ func (pb *PerformanceBenchmarker) measureConcurrentLatency(ctx context.Context, 
 
 	}
 
-
-
 	wg.Wait()
 
 	return pb.calculateLatencyMetrics(latencies)
 
 }
-
-
 
 // measureBaselineLatency measures baseline (non-optimized) latency.
 
@@ -1179,37 +934,28 @@ func (pb *PerformanceBenchmarker) measureBaselineLatency(ctx context.Context) *L
 
 }
 
-
-
 // measureOptimizedLatency measures optimized pipeline latency.
 
 func (pb *PerformanceBenchmarker) measureOptimizedLatency(ctx context.Context) *LatencyMetrics {
 
 	var latencies []time.Duration
 
-
-
 	for i := range pb.config.BenchmarkQueries {
 
 		query := pb.testData.Queries[i%len(pb.testData.Queries)]
-
-
 
 		start := time.Now()
 
 		ragRequest := &RAGRequest{
 
-			Query:      query.Query,
+			Query: query.Query,
 
 			MaxResults: 10,
-
 		}
 
 		_, err := pb.optimizedPipeline.ProcessQuery(ctx, ragRequest)
 
 		latency := time.Since(start)
-
-
 
 		if err == nil {
 
@@ -1219,13 +965,9 @@ func (pb *PerformanceBenchmarker) measureOptimizedLatency(ctx context.Context) *
 
 	}
 
-
-
 	return pb.calculateLatencyMetrics(latencies)
 
 }
-
-
 
 // runThroughputBenchmark runs throughput benchmark tests.
 
@@ -1233,27 +975,20 @@ func (pb *PerformanceBenchmarker) runThroughputBenchmark(ctx context.Context) er
 
 	pb.results.ThroughputResults = &ThroughputBenchmarkResults{
 
-		BatchThroughput:      make(map[int]float64),
+		BatchThroughput: make(map[int]float64),
 
 		ConcurrentThroughput: make(map[int]float64),
 
-		ThroughputOverTime:   make([]ThroughputSample, 0),
-
+		ThroughputOverTime: make([]ThroughputSample, 0),
 	}
-
-
 
 	// Measure baseline throughput.
 
 	pb.results.ThroughputResults.BaselineThroughput = pb.measureBaseThroughput(ctx)
 
-
-
 	// Measure optimized throughput.
 
 	pb.results.ThroughputResults.OptimizedThroughput = pb.measureOptimizedThroughput(ctx)
-
-
 
 	// Measure batch throughput for different batch sizes.
 
@@ -1263,8 +998,6 @@ func (pb *PerformanceBenchmarker) runThroughputBenchmark(ctx context.Context) er
 
 	}
 
-
-
 	// Measure concurrent throughput for different concurrency levels.
 
 	for _, concurrency := range pb.config.ConcurrencyLevels {
@@ -1273,21 +1006,15 @@ func (pb *PerformanceBenchmarker) runThroughputBenchmark(ctx context.Context) er
 
 	}
 
-
-
 	// Find maximum sustained throughput.
 
 	pb.results.ThroughputResults.MaxThroughput = pb.findMaxThroughput(ctx)
 
 	pb.results.ThroughputResults.SustainedThroughput = pb.measureSustainedThroughput(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // measureBaseThroughput measures baseline throughput.
 
@@ -1297,25 +1024,18 @@ func (pb *PerformanceBenchmarker) measureBaseThroughput(ctx context.Context) flo
 
 	successfulQueries := 0
 
-
-
 	for i := range pb.config.BenchmarkQueries {
 
 		query := pb.testData.Queries[i%len(pb.testData.Queries)]
-
-
 
 		searchQuery := &SearchQuery{
 
 			Query: query.Query,
 
 			Limit: 10,
-
 		}
 
 		_, err := pb.originalClient.Search(ctx, searchQuery)
-
-
 
 		if err == nil {
 
@@ -1325,15 +1045,11 @@ func (pb *PerformanceBenchmarker) measureBaseThroughput(ctx context.Context) flo
 
 	}
 
-
-
 	duration := time.Since(start)
 
 	return float64(successfulQueries) / duration.Seconds()
 
 }
-
-
 
 // measureOptimizedThroughput measures optimized pipeline throughput.
 
@@ -1343,25 +1059,18 @@ func (pb *PerformanceBenchmarker) measureOptimizedThroughput(ctx context.Context
 
 	successfulQueries := 0
 
-
-
 	for i := range pb.config.BenchmarkQueries {
 
 		query := pb.testData.Queries[i%len(pb.testData.Queries)]
 
-
-
 		ragRequest := &RAGRequest{
 
-			Query:      query.Query,
+			Query: query.Query,
 
 			MaxResults: 10,
-
 		}
 
 		_, err := pb.optimizedPipeline.ProcessQuery(ctx, ragRequest)
-
-
 
 		if err == nil {
 
@@ -1371,15 +1080,11 @@ func (pb *PerformanceBenchmarker) measureOptimizedThroughput(ctx context.Context
 
 	}
 
-
-
 	duration := time.Since(start)
 
 	return float64(successfulQueries) / duration.Seconds()
 
 }
-
-
 
 // measureBatchThroughput measures throughput for batch processing.
 
@@ -1391,13 +1096,9 @@ func (pb *PerformanceBenchmarker) measureBatchThroughput(ctx context.Context, ba
 
 	}
 
-
-
 	start := time.Now()
 
 	totalQueries := 0
-
-
 
 	// Process queries in batches.
 
@@ -1410,8 +1111,6 @@ func (pb *PerformanceBenchmarker) measureBatchThroughput(ctx context.Context, ba
 			endIndex = pb.config.BenchmarkQueries
 
 		}
-
-
 
 		// Create batch.
 
@@ -1426,24 +1125,18 @@ func (pb *PerformanceBenchmarker) measureBatchThroughput(ctx context.Context, ba
 				Query: testQuery.Query,
 
 				Limit: 10,
-
 			}
 
 		}
 
-
-
 		batchRequest := &BatchSearchRequest{
 
-			Queries:        queries,
+			Queries: queries,
 
 			MaxConcurrency: 5,
-
 		}
 
 		_, err := pb.batchClient.BatchSearch(ctx, batchRequest)
-
-
 
 		if err == nil {
 
@@ -1453,15 +1146,11 @@ func (pb *PerformanceBenchmarker) measureBatchThroughput(ctx context.Context, ba
 
 	}
 
-
-
 	duration := time.Since(start)
 
 	return float64(totalQueries) / duration.Seconds()
 
 }
-
-
 
 // measureConcurrentThroughput measures throughput under concurrent load.
 
@@ -1471,11 +1160,7 @@ func (pb *PerformanceBenchmarker) measureConcurrentThroughput(ctx context.Contex
 
 	var successfulQueries int64
 
-
-
 	semaphore := make(chan struct{}, concurrency)
-
-
 
 	var wg sync.WaitGroup
 
@@ -1487,31 +1172,22 @@ func (pb *PerformanceBenchmarker) measureConcurrentThroughput(ctx context.Contex
 
 			defer wg.Done()
 
-
-
 			// Acquire semaphore.
 
 			semaphore <- struct{}{}
 
 			defer func() { <-semaphore }()
 
-
-
 			query := pb.testData.Queries[queryIndex%len(pb.testData.Queries)]
-
-
 
 			searchQuery := &SearchQuery{
 
 				Query: query.Query,
 
 				Limit: 10,
-
 			}
 
 			_, err := pb.originalClient.Search(ctx, searchQuery)
-
-
 
 			if err == nil {
 
@@ -1523,8 +1199,6 @@ func (pb *PerformanceBenchmarker) measureConcurrentThroughput(ctx context.Contex
 
 	}
 
-
-
 	wg.Wait()
 
 	duration := time.Since(start)
@@ -1533,15 +1207,11 @@ func (pb *PerformanceBenchmarker) measureConcurrentThroughput(ctx context.Contex
 
 }
 
-
-
 // findMaxThroughput finds the maximum sustainable throughput.
 
 func (pb *PerformanceBenchmarker) findMaxThroughput(ctx context.Context) float64 {
 
 	maxThroughput := 0.0
-
-
 
 	for _, concurrency := range pb.config.ConcurrencyLevels {
 
@@ -1555,13 +1225,9 @@ func (pb *PerformanceBenchmarker) findMaxThroughput(ctx context.Context) float64
 
 	}
 
-
-
 	return maxThroughput
 
 }
-
-
 
 // measureSustainedThroughput measures sustained throughput over time.
 
@@ -1573,13 +1239,9 @@ func (pb *PerformanceBenchmarker) measureSustainedThroughput(ctx context.Context
 
 	defer cancel()
 
-
-
 	start := time.Now()
 
 	var totalQueries int64
-
-
 
 	// Run queries continuously for the test duration.
 
@@ -1592,8 +1254,6 @@ func (pb *PerformanceBenchmarker) measureSustainedThroughput(ctx context.Context
 		go func(workerID int) {
 
 			defer wg.Done()
-
-
 
 			queryIndex := 0
 
@@ -1609,27 +1269,20 @@ func (pb *PerformanceBenchmarker) measureSustainedThroughput(ctx context.Context
 
 					query := pb.testData.Queries[queryIndex%len(pb.testData.Queries)]
 
-
-
 					searchQuery := &SearchQuery{
 
 						Query: query.Query,
 
 						Limit: 10,
-
 					}
 
 					_, err := pb.originalClient.Search(testCtx, searchQuery)
-
-
 
 					if err == nil {
 
 						atomic.AddInt64(&totalQueries, 1)
 
 					}
-
-
 
 					queryIndex++
 
@@ -1641,8 +1294,6 @@ func (pb *PerformanceBenchmarker) measureSustainedThroughput(ctx context.Context
 
 	}
 
-
-
 	wg.Wait()
 
 	duration := time.Since(start)
@@ -1651,8 +1302,6 @@ func (pb *PerformanceBenchmarker) measureSustainedThroughput(ctx context.Context
 
 }
 
-
-
 // runStressTest runs stress tests to find breaking points.
 
 func (pb *PerformanceBenchmarker) runStressTest(ctx context.Context) error {
@@ -1660,28 +1309,19 @@ func (pb *PerformanceBenchmarker) runStressTest(ctx context.Context) error {
 	pb.results.StressTestResults = &StressTestResults{
 
 		StressTestPhases: make([]*StressPhaseResult, 0),
-
 	}
-
-
 
 	// Gradually increase load to find breaking point.
 
 	concurrencyLevels := []int{10, 25, 50, 100, 200, 500, 1000}
 
-
-
 	for _, concurrency := range concurrencyLevels {
 
 		pb.logger.Info("Running stress test phase", "concurrency", concurrency)
 
-
-
 		phaseResult := pb.runStressPhase(ctx, concurrency)
 
 		pb.results.StressTestResults.StressTestPhases = append(pb.results.StressTestResults.StressTestPhases, phaseResult)
-
-
 
 		// Check if we've hit the breaking point (high error rate or timeouts).
 
@@ -1697,19 +1337,13 @@ func (pb *PerformanceBenchmarker) runStressTest(ctx context.Context) error {
 
 	}
 
-
-
 	// Find maximum concurrent queries that still maintain acceptable performance.
 
 	pb.results.StressTestResults.MaxConcurrentQueries = pb.findMaxConcurrentQueries(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // runStressPhase runs a single stress test phase.
 
@@ -1723,25 +1357,17 @@ func (pb *PerformanceBenchmarker) runStressPhase(ctx context.Context, concurrenc
 
 	defer cancel()
 
-
-
 	var successfulOps, failedOps int64
 
 	var totalLatency time.Duration
 
 	var latencyCount int64
 
-
-
 	semaphore := make(chan struct{}, concurrency)
-
-
 
 	var wg sync.WaitGroup
 
 	queryIndex := 0
-
-
 
 	// Start workers.
 
@@ -1752,8 +1378,6 @@ func (pb *PerformanceBenchmarker) runStressPhase(ctx context.Context, concurrenc
 		go func(workerID int) {
 
 			defer wg.Done()
-
-
 
 			for {
 
@@ -1769,13 +1393,9 @@ func (pb *PerformanceBenchmarker) runStressPhase(ctx context.Context, concurrenc
 
 					semaphore <- struct{}{}
 
-
-
 					query := pb.testData.Queries[queryIndex%len(pb.testData.Queries)]
 
 					queryIndex++
-
-
 
 					start := time.Now()
 
@@ -1784,14 +1404,11 @@ func (pb *PerformanceBenchmarker) runStressPhase(ctx context.Context, concurrenc
 						Query: query.Query,
 
 						Limit: 10,
-
 					}
 
 					_, err := pb.originalClient.Search(phaseCtx, searchQuery)
 
 					latency := time.Since(start)
-
-
 
 					if err == nil {
 
@@ -1807,8 +1424,6 @@ func (pb *PerformanceBenchmarker) runStressPhase(ctx context.Context, concurrenc
 
 					}
 
-
-
 					// Release semaphore.
 
 					<-semaphore
@@ -1821,11 +1436,7 @@ func (pb *PerformanceBenchmarker) runStressPhase(ctx context.Context, concurrenc
 
 	}
 
-
-
 	wg.Wait()
-
-
 
 	totalOps := successfulOps + failedOps
 
@@ -1837,8 +1448,6 @@ func (pb *PerformanceBenchmarker) runStressPhase(ctx context.Context, concurrenc
 
 	}
 
-
-
 	averageLatency := time.Duration(0)
 
 	if latencyCount > 0 {
@@ -1847,45 +1456,36 @@ func (pb *PerformanceBenchmarker) runStressPhase(ctx context.Context, concurrenc
 
 	}
 
-
-
 	actualDuration := time.Since(start)
 
 	throughputQPS := float64(successfulOps) / actualDuration.Seconds()
 
-
-
 	return &StressPhaseResult{
 
-		Phase:            fmt.Sprintf("stress_test_%d", concurrency),
+		Phase: fmt.Sprintf("stress_test_%d", concurrency),
 
 		ConcurrencyLevel: concurrency,
 
-		Duration:         actualDuration,
+		Duration: actualDuration,
 
-		SuccessfulOps:    successfulOps,
+		SuccessfulOps: successfulOps,
 
-		FailedOps:        failedOps,
+		FailedOps: failedOps,
 
-		ErrorRate:        errorRate,
+		ErrorRate: errorRate,
 
-		AverageLatency:   averageLatency,
+		AverageLatency: averageLatency,
 
-		ThroughputQPS:    throughputQPS,
-
+		ThroughputQPS: throughputQPS,
 	}
 
 }
-
-
 
 // findMaxConcurrentQueries finds the maximum concurrent queries the system can handle.
 
 func (pb *PerformanceBenchmarker) findMaxConcurrentQueries(ctx context.Context) int {
 
 	maxConcurrent := 0
-
-
 
 	for _, phase := range pb.results.StressTestResults.StressTestPhases {
 
@@ -1901,13 +1501,9 @@ func (pb *PerformanceBenchmarker) findMaxConcurrentQueries(ctx context.Context) 
 
 	}
 
-
-
 	return maxConcurrent
 
 }
-
-
 
 // runAccuracyBenchmark runs accuracy benchmark tests.
 
@@ -1915,19 +1511,14 @@ func (pb *PerformanceBenchmarker) runAccuracyBenchmark(ctx context.Context) erro
 
 	pb.results.AccuracyResults = &AccuracyBenchmarkResults{
 
-		QueryTypeAccuracy:    make(map[string]float32),
+		QueryTypeAccuracy: make(map[string]float32),
 
 		AccuracyByComplexity: make(map[string]float32),
-
 	}
-
-
 
 	// Measure overall accuracy.
 
 	pb.results.AccuracyResults.OverallAccuracy = pb.measureOverallAccuracy(ctx)
-
-
 
 	// Measure baseline vs optimized accuracy.
 
@@ -1935,19 +1526,13 @@ func (pb *PerformanceBenchmarker) runAccuracyBenchmark(ctx context.Context) erro
 
 	pb.results.AccuracyResults.OptimizedAccuracy = pb.measureOptimizedAccuracy(ctx)
 
-
-
 	// Calculate precision, recall, and F1 score.
 
 	pb.calculateAccuracyMetrics(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // measureOverallAccuracy measures overall search accuracy.
 
@@ -1957,8 +1542,6 @@ func (pb *PerformanceBenchmarker) measureOverallAccuracy(ctx context.Context) fl
 
 	accurateResults := 0
 
-
-
 	for _, testQuery := range pb.testData.Queries {
 
 		if testQuery.Expected == nil {
@@ -1967,17 +1550,12 @@ func (pb *PerformanceBenchmarker) measureOverallAccuracy(ctx context.Context) fl
 
 		}
 
-
-
 		searchQuery := &SearchQuery{
 
 			Query: testQuery.Query,
 
 			Limit: testQuery.Expected.MinResults,
-
 		}
-
-
 
 		result, err := pb.originalClient.Search(ctx, searchQuery)
 
@@ -1987,11 +1565,7 @@ func (pb *PerformanceBenchmarker) measureOverallAccuracy(ctx context.Context) fl
 
 		}
 
-
-
 		totalQueries++
-
-
 
 		// Check if results meet expectations.
 
@@ -2011,21 +1585,15 @@ func (pb *PerformanceBenchmarker) measureOverallAccuracy(ctx context.Context) fl
 
 	}
 
-
-
 	if totalQueries == 0 {
 
 		return 0.0
 
 	}
 
-
-
 	return float32(accurateResults) / float32(totalQueries)
 
 }
-
-
 
 // measureBaselineAccuracy measures baseline accuracy.
 
@@ -2037,8 +1605,6 @@ func (pb *PerformanceBenchmarker) measureBaselineAccuracy(ctx context.Context) f
 
 }
 
-
-
 // measureOptimizedAccuracy measures optimized pipeline accuracy.
 
 func (pb *PerformanceBenchmarker) measureOptimizedAccuracy(ctx context.Context) float32 {
@@ -2046,8 +1612,6 @@ func (pb *PerformanceBenchmarker) measureOptimizedAccuracy(ctx context.Context) 
 	totalQueries := 0
 
 	accurateResults := 0
-
-
 
 	for _, testQuery := range pb.testData.Queries {
 
@@ -2057,17 +1621,12 @@ func (pb *PerformanceBenchmarker) measureOptimizedAccuracy(ctx context.Context) 
 
 		}
 
-
-
 		ragRequest := &RAGRequest{
 
-			Query:      testQuery.Query,
+			Query: testQuery.Query,
 
 			MaxResults: testQuery.Expected.MinResults,
-
 		}
-
-
 
 		result, err := pb.optimizedPipeline.ProcessQuery(ctx, ragRequest)
 
@@ -2077,11 +1636,7 @@ func (pb *PerformanceBenchmarker) measureOptimizedAccuracy(ctx context.Context) 
 
 		}
 
-
-
 		totalQueries++
-
-
 
 		// Check if results meet expectations.
 
@@ -2097,13 +1652,10 @@ func (pb *PerformanceBenchmarker) measureOptimizedAccuracy(ctx context.Context) 
 
 					Document: doc.Document,
 
-					Score:    doc.Score,
-
+					Score: doc.Score,
 				}
 
 			}
-
-
 
 			hasExpectedTerms := pb.checkExpectedTerms(searchResults, testQuery.Expected.ExpectedTerms)
 
@@ -2117,21 +1669,15 @@ func (pb *PerformanceBenchmarker) measureOptimizedAccuracy(ctx context.Context) 
 
 	}
 
-
-
 	if totalQueries == 0 {
 
 		return 0.0
 
 	}
 
-
-
 	return float32(accurateResults) / float32(totalQueries)
 
 }
-
-
 
 // checkExpectedTerms checks if expected terms are present in search results.
 
@@ -2142,8 +1688,6 @@ func (pb *PerformanceBenchmarker) checkExpectedTerms(results []*SearchResult, ex
 		return true // No specific terms expected
 
 	}
-
-
 
 	// Combine all result content.
 
@@ -2159,11 +1703,7 @@ func (pb *PerformanceBenchmarker) checkExpectedTerms(results []*SearchResult, ex
 
 	}
 
-
-
 	allContent = strings.ToLower(allContent)
-
-
 
 	// Check if at least one expected term is present.
 
@@ -2177,13 +1717,9 @@ func (pb *PerformanceBenchmarker) checkExpectedTerms(results []*SearchResult, ex
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // calculateAccuracyMetrics calculates precision, recall, and F1 score.
 
@@ -2195,17 +1731,13 @@ func (pb *PerformanceBenchmarker) calculateAccuracyMetrics(ctx context.Context) 
 
 	pb.results.AccuracyResults.PrecisionScore = 0.85 // Placeholder
 
-	pb.results.AccuracyResults.RecallScore = 0.82    // Placeholder
-
-
+	pb.results.AccuracyResults.RecallScore = 0.82 // Placeholder
 
 	// Calculate F1 score.
 
 	precision := pb.results.AccuracyResults.PrecisionScore
 
 	recall := pb.results.AccuracyResults.RecallScore
-
-
 
 	if precision+recall > 0 {
 
@@ -2215,8 +1747,6 @@ func (pb *PerformanceBenchmarker) calculateAccuracyMetrics(ctx context.Context) 
 
 }
 
-
-
 // runMemoryBenchmark runs memory usage benchmark tests.
 
 func (pb *PerformanceBenchmarker) runMemoryBenchmark(ctx context.Context) error {
@@ -2224,16 +1754,11 @@ func (pb *PerformanceBenchmarker) runMemoryBenchmark(ctx context.Context) error 
 	pb.results.MemoryResults = &MemoryBenchmarkResults{
 
 		MemoryUsageByLoad: make(map[int]int64),
-
 	}
-
-
 
 	// Measure baseline memory usage.
 
 	pb.results.MemoryResults.BaselineMemoryUsage = pb.getCurrentMemoryUsage()
-
-
 
 	// Measure memory usage under different loads.
 
@@ -2243,8 +1768,6 @@ func (pb *PerformanceBenchmarker) runMemoryBenchmark(ctx context.Context) error 
 
 		pb.results.MemoryResults.MemoryUsageByLoad[concurrency] = memUsage
 
-
-
 		if memUsage > pb.results.MemoryResults.PeakMemoryUsage {
 
 			pb.results.MemoryResults.PeakMemoryUsage = memUsage
@@ -2253,19 +1776,13 @@ func (pb *PerformanceBenchmarker) runMemoryBenchmark(ctx context.Context) error 
 
 	}
 
-
-
 	// Check for memory leaks.
 
 	pb.results.MemoryResults.MemoryLeakDetection = pb.detectMemoryLeaks(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // getCurrentMemoryUsage gets current memory usage.
 
@@ -2279,8 +1796,6 @@ func (pb *PerformanceBenchmarker) getCurrentMemoryUsage() int64 {
 
 }
 
-
-
 // measureMemoryUnderLoad measures memory usage under specific load.
 
 func (pb *PerformanceBenchmarker) measureMemoryUnderLoad(ctx context.Context, concurrency int) int64 {
@@ -2291,13 +1806,9 @@ func (pb *PerformanceBenchmarker) measureMemoryUnderLoad(ctx context.Context, co
 
 	defer cancel()
 
-
-
 	// Monitor memory usage during load.
 
 	maxMemory := pb.getCurrentMemoryUsage()
-
-
 
 	// Start concurrent queries.
 
@@ -2310,8 +1821,6 @@ func (pb *PerformanceBenchmarker) measureMemoryUnderLoad(ctx context.Context, co
 		go func(workerID int) {
 
 			defer wg.Done()
-
-
 
 			for {
 
@@ -2330,12 +1839,9 @@ func (pb *PerformanceBenchmarker) measureMemoryUnderLoad(ctx context.Context, co
 						Query: query.Query,
 
 						Limit: 10,
-
 					}
 
 					pb.originalClient.Search(loadCtx, searchQuery)
-
-
 
 					// Sample memory usage.
 
@@ -2347,8 +1853,6 @@ func (pb *PerformanceBenchmarker) measureMemoryUnderLoad(ctx context.Context, co
 
 					}
 
-
-
 					time.Sleep(10 * time.Millisecond)
 
 				}
@@ -2359,15 +1863,11 @@ func (pb *PerformanceBenchmarker) measureMemoryUnderLoad(ctx context.Context, co
 
 	}
 
-
-
 	wg.Wait()
 
 	return maxMemory
 
 }
-
-
 
 // detectMemoryLeaks detects potential memory leaks.
 
@@ -2376,8 +1876,6 @@ func (pb *PerformanceBenchmarker) detectMemoryLeaks(ctx context.Context) *Memory
 	// Run operations and monitor memory growth.
 
 	initialMemory := pb.getCurrentMemoryUsage()
-
-
 
 	// Run a series of operations.
 
@@ -2390,44 +1888,35 @@ func (pb *PerformanceBenchmarker) detectMemoryLeaks(ctx context.Context) *Memory
 			Query: query.Query,
 
 			Limit: 10,
-
 		}
 
 		pb.originalClient.Search(ctx, searchQuery)
 
 	}
 
-
-
 	finalMemory := pb.getCurrentMemoryUsage()
 
 	memoryGrowth := finalMemory - initialMemory
-
-
 
 	// Simple leak detection heuristic.
 
 	leakRate := float64(memoryGrowth) / 1000.0 // bytes per operation
 
-	leakDetected := leakRate > 1024            // More than 1KB growth per operation
-
-
+	leakDetected := leakRate > 1024 // More than 1KB growth per operation
 
 	return &MemoryLeakResult{
 
-		LeakDetected:   leakDetected,
+		LeakDetected: leakDetected,
 
-		LeakRate:       leakRate,
+		LeakRate: leakRate,
 
-		LeakConfidence: 0.7,       // Placeholder confidence
+		LeakConfidence: 0.7, // Placeholder confidence
 
-		LeakLocation:   "unknown", // Would need more sophisticated detection
+		LeakLocation: "unknown", // Would need more sophisticated detection
 
 	}
 
 }
-
-
 
 // runComparisonBenchmark runs comparison tests between different implementations.
 
@@ -2435,13 +1924,9 @@ func (pb *PerformanceBenchmarker) runComparisonBenchmark(ctx context.Context) er
 
 	pb.results.ComparisonResults = &ComparisonBenchmarkResults{}
 
-
-
 	// Compare baseline vs optimized.
 
 	pb.results.ComparisonResults.BaselineVsOptimized = pb.compareBaselineVsOptimized(ctx)
-
-
 
 	// Compare HTTP vs gRPC (if gRPC client available).
 
@@ -2451,25 +1936,17 @@ func (pb *PerformanceBenchmarker) runComparisonBenchmark(ctx context.Context) er
 
 	}
 
-
-
 	// Compare single vs batch processing.
 
 	pb.results.ComparisonResults.SingleVsBatch = pb.compareSingleVsBatch(ctx)
-
-
 
 	// Compare cached vs uncached performance.
 
 	pb.results.ComparisonResults.CachedVsUncached = pb.compareCachedVsUncached(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // compareBaselineVsOptimized compares baseline vs optimized performance.
 
@@ -2483,8 +1960,6 @@ func (pb *PerformanceBenchmarker) compareBaselineVsOptimized(ctx context.Context
 
 	baselineAccuracy := pb.results.AccuracyResults.BaselineAccuracy
 
-
-
 	// Measure optimized performance.
 
 	optimizedLatency := pb.results.LatencyResults.OptimizedLatency.Mean
@@ -2492,8 +1967,6 @@ func (pb *PerformanceBenchmarker) compareBaselineVsOptimized(ctx context.Context
 	optimizedThroughput := pb.results.ThroughputResults.OptimizedThroughput
 
 	optimizedAccuracy := pb.results.AccuracyResults.OptimizedAccuracy
-
-
 
 	// Calculate improvements.
 
@@ -2503,8 +1976,6 @@ func (pb *PerformanceBenchmarker) compareBaselineVsOptimized(ctx context.Context
 
 	accuracyDifference := optimizedAccuracy - baselineAccuracy
 
-
-
 	// Calculate overall improvement score.
 
 	latencyImprovementPct := float64(latencyImprovement) / float64(baselineLatency) * 100
@@ -2513,29 +1984,24 @@ func (pb *PerformanceBenchmarker) compareBaselineVsOptimized(ctx context.Context
 
 	overallImprovement := (latencyImprovementPct + throughputImprovementPct) / 2
 
-
-
 	return &PerformanceComparison{
 
-		ApproachA:             "baseline",
+		ApproachA: "baseline",
 
-		ApproachB:             "optimized",
+		ApproachB: "optimized",
 
-		LatencyImprovement:    latencyImprovement,
+		LatencyImprovement: latencyImprovement,
 
 		ThroughputImprovement: throughputImprovement,
 
-		AccuracyDifference:    accuracyDifference,
+		AccuracyDifference: accuracyDifference,
 
-		OverallImprovement:    overallImprovement,
+		OverallImprovement: overallImprovement,
 
-		RecommendedApproach:   "optimized",
-
+		RecommendedApproach: "optimized",
 	}
 
 }
-
-
 
 // compareHTTPvsGRPC compares HTTP vs gRPC client performance.
 
@@ -2547,47 +2013,36 @@ func (pb *PerformanceBenchmarker) compareHTTPvsGRPC(ctx context.Context) *Perfor
 
 	httpThroughput := pb.measureHTTPClientThroughput(ctx)
 
-
-
 	// Measure gRPC client performance.
 
 	grpcLatencies := pb.measureGRPCClientLatency(ctx)
 
 	grpcThroughput := pb.measureGRPCClientThroughput(ctx)
 
-
-
 	latencyImprovement := httpLatencies.Mean - grpcLatencies.Mean
 
 	throughputImprovement := grpcThroughput - httpThroughput
-
-
 
 	overallImprovement := (float64(latencyImprovement)/float64(httpLatencies.Mean) +
 
 		throughputImprovement/httpThroughput) / 2 * 100
 
-
-
 	return &PerformanceComparison{
 
-		ApproachA:             "http",
+		ApproachA: "http",
 
-		ApproachB:             "grpc",
+		ApproachB: "grpc",
 
-		LatencyImprovement:    latencyImprovement,
+		LatencyImprovement: latencyImprovement,
 
 		ThroughputImprovement: throughputImprovement,
 
-		OverallImprovement:    overallImprovement,
+		OverallImprovement: overallImprovement,
 
-		RecommendedApproach:   "grpc",
-
+		RecommendedApproach: "grpc",
 	}
 
 }
-
-
 
 // compareSingleVsBatch compares single vs batch processing.
 
@@ -2597,29 +2052,22 @@ func (pb *PerformanceBenchmarker) compareSingleVsBatch(ctx context.Context) *Per
 
 	batchLatency := pb.results.LatencyResults.BatchQueryLatency.Mean
 
-
-
 	latencyImprovement := singleLatency - batchLatency
-
-
 
 	return &PerformanceComparison{
 
-		ApproachA:           "single",
+		ApproachA: "single",
 
-		ApproachB:           "batch",
+		ApproachB: "batch",
 
-		LatencyImprovement:  latencyImprovement,
+		LatencyImprovement: latencyImprovement,
 
-		OverallImprovement:  float64(latencyImprovement) / float64(singleLatency) * 100,
+		OverallImprovement: float64(latencyImprovement) / float64(singleLatency) * 100,
 
 		RecommendedApproach: "batch",
-
 	}
 
 }
-
-
 
 // compareCachedVsUncached compares cached vs uncached performance.
 
@@ -2629,33 +2077,24 @@ func (pb *PerformanceBenchmarker) compareCachedVsUncached(ctx context.Context) *
 
 	cachedLatency := pb.results.LatencyResults.CachedQueryLatency.Mean
 
-
-
 	latencyImprovement := uncachedLatency - cachedLatency
-
-
 
 	return &PerformanceComparison{
 
-		ApproachA:           "uncached",
+		ApproachA: "uncached",
 
-		ApproachB:           "cached",
+		ApproachB: "cached",
 
-		LatencyImprovement:  latencyImprovement,
+		LatencyImprovement: latencyImprovement,
 
-		OverallImprovement:  float64(latencyImprovement) / float64(uncachedLatency) * 100,
+		OverallImprovement: float64(latencyImprovement) / float64(uncachedLatency) * 100,
 
 		RecommendedApproach: "cached",
-
 	}
 
 }
 
-
-
 // Helper methods for HTTP vs gRPC comparison.
-
-
 
 func (pb *PerformanceBenchmarker) measureHTTPClientLatency(ctx context.Context) *LatencyMetrics {
 
@@ -2665,8 +2104,6 @@ func (pb *PerformanceBenchmarker) measureHTTPClientLatency(ctx context.Context) 
 
 }
 
-
-
 func (pb *PerformanceBenchmarker) measureHTTPClientThroughput(ctx context.Context) float64 {
 
 	// Measure HTTP client throughput.
@@ -2674,8 +2111,6 @@ func (pb *PerformanceBenchmarker) measureHTTPClientThroughput(ctx context.Contex
 	return pb.results.ThroughputResults.BaselineThroughput
 
 }
-
-
 
 func (pb *PerformanceBenchmarker) measureGRPCClientLatency(ctx context.Context) *LatencyMetrics {
 
@@ -2685,17 +2120,11 @@ func (pb *PerformanceBenchmarker) measureGRPCClientLatency(ctx context.Context) 
 
 	}
 
-
-
 	var latencies []time.Duration
-
-
 
 	for i := range 100 {
 
 		query := pb.testData.Queries[i%len(pb.testData.Queries)]
-
-
 
 		start := time.Now()
 
@@ -2704,14 +2133,11 @@ func (pb *PerformanceBenchmarker) measureGRPCClientLatency(ctx context.Context) 
 			Query: query.Query,
 
 			Limit: 10,
-
 		}
 
 		_, err := pb.grpcClient.Search(ctx, searchQuery)
 
 		latency := time.Since(start)
-
-
 
 		if err == nil {
 
@@ -2721,13 +2147,9 @@ func (pb *PerformanceBenchmarker) measureGRPCClientLatency(ctx context.Context) 
 
 	}
 
-
-
 	return pb.calculateLatencyMetrics(latencies)
 
 }
-
-
 
 func (pb *PerformanceBenchmarker) measureGRPCClientThroughput(ctx context.Context) float64 {
 
@@ -2737,31 +2159,22 @@ func (pb *PerformanceBenchmarker) measureGRPCClientThroughput(ctx context.Contex
 
 	}
 
-
-
 	start := time.Now()
 
 	successfulQueries := 0
 
-
-
 	for i := range 100 {
 
 		query := pb.testData.Queries[i%len(pb.testData.Queries)]
-
-
 
 		searchQuery := &SearchQuery{
 
 			Query: query.Query,
 
 			Limit: 10,
-
 		}
 
 		_, err := pb.grpcClient.Search(ctx, searchQuery)
-
-
 
 		if err == nil {
 
@@ -2771,15 +2184,11 @@ func (pb *PerformanceBenchmarker) measureGRPCClientThroughput(ctx context.Contex
 
 	}
 
-
-
 	duration := time.Since(start)
 
 	return float64(successfulQueries) / duration.Seconds()
 
 }
-
-
 
 // calculateLatencyMetrics calculates comprehensive latency statistics.
 
@@ -2791,8 +2200,6 @@ func (pb *PerformanceBenchmarker) calculateLatencyMetrics(latencies []time.Durat
 
 	}
 
-
-
 	// Sort latencies for percentile calculations.
 
 	sort.Slice(latencies, func(i, j int) bool {
@@ -2800,8 +2207,6 @@ func (pb *PerformanceBenchmarker) calculateLatencyMetrics(latencies []time.Durat
 		return latencies[i] < latencies[j]
 
 	})
-
-
 
 	// Calculate basic statistics.
 
@@ -2815,13 +2220,9 @@ func (pb *PerformanceBenchmarker) calculateLatencyMetrics(latencies []time.Durat
 
 	mean := sum / time.Duration(len(latencies))
 
-
-
 	// Calculate median.
 
 	median := latencies[len(latencies)/2]
-
-
 
 	// Calculate percentiles.
 
@@ -2835,8 +2236,6 @@ func (pb *PerformanceBenchmarker) calculateLatencyMetrics(latencies []time.Durat
 
 	p95 := latencies[p95Index]
 
-
-
 	p99Index := int(0.99 * float64(len(latencies)))
 
 	if p99Index >= len(latencies) {
@@ -2846,8 +2245,6 @@ func (pb *PerformanceBenchmarker) calculateLatencyMetrics(latencies []time.Durat
 	}
 
 	p99 := latencies[p99Index]
-
-
 
 	// Calculate standard deviation.
 
@@ -2865,23 +2262,21 @@ func (pb *PerformanceBenchmarker) calculateLatencyMetrics(latencies []time.Durat
 
 	stdDev := time.Duration(math.Sqrt(variance))
 
-
-
 	return &LatencyMetrics{
 
-		Mean:       mean,
+		Mean: mean,
 
-		Median:     median,
+		Median: median,
 
-		P95:        p95,
+		P95: p95,
 
-		P99:        p99,
+		P99: p99,
 
-		Min:        latencies[0],
+		Min: latencies[0],
 
-		Max:        latencies[len(latencies)-1],
+		Max: latencies[len(latencies)-1],
 
-		StdDev:     stdDev,
+		StdDev: stdDev,
 
 		SampleSize: len(latencies),
 
@@ -2894,14 +2289,10 @@ func (pb *PerformanceBenchmarker) calculateLatencyMetrics(latencies []time.Durat
 			"p95": p95,
 
 			"p99": p99,
-
 		},
-
 	}
 
 }
-
-
 
 // calculateFinalMetrics calculates final metrics and improvement summary.
 
@@ -2913,21 +2304,16 @@ func (pb *PerformanceBenchmarker) calculateFinalMetrics() {
 
 		AchievedTargets: make([]string, 0),
 
-		MissedTargets:   make([]string, 0),
+		MissedTargets: make([]string, 0),
 
 		Recommendations: make([]string, 0),
-
 	}
-
-
 
 	// Calculate overall improvements.
 
 	if pb.results.ComparisonResults != nil && pb.results.ComparisonResults.BaselineVsOptimized != nil {
 
 		comparison := pb.results.ComparisonResults.BaselineVsOptimized
-
-
 
 		pb.results.ImprovementSummary.LatencyImprovement = comparison.OverallImprovement
 
@@ -2936,8 +2322,6 @@ func (pb *PerformanceBenchmarker) calculateFinalMetrics() {
 		pb.results.ImprovementSummary.AccuracyImprovement = float64(comparison.AccuracyDifference) / float64(pb.results.AccuracyResults.BaselineAccuracy) * 100
 
 	}
-
-
 
 	// Check if targets were achieved.
 
@@ -2955,8 +2339,6 @@ func (pb *PerformanceBenchmarker) calculateFinalMetrics() {
 
 	}
 
-
-
 	if pb.results.ThroughputResults != nil {
 
 		if pb.results.ThroughputResults.OptimizedThroughput >= pb.config.ThroughputTarget {
@@ -2970,8 +2352,6 @@ func (pb *PerformanceBenchmarker) calculateFinalMetrics() {
 		}
 
 	}
-
-
 
 	if pb.results.AccuracyResults != nil {
 
@@ -2987,8 +2367,6 @@ func (pb *PerformanceBenchmarker) calculateFinalMetrics() {
 
 	}
 
-
-
 	// Calculate overall score (0-100).
 
 	achievedCount := len(pb.results.ImprovementSummary.AchievedTargets)
@@ -3001,13 +2379,9 @@ func (pb *PerformanceBenchmarker) calculateFinalMetrics() {
 
 	}
 
-
-
 	// Generate recommendations.
 
 	pb.generateRecommendations()
-
-
 
 	// Calculate test suite metrics.
 
@@ -3017,15 +2391,11 @@ func (pb *PerformanceBenchmarker) calculateFinalMetrics() {
 
 }
 
-
-
 // generateRecommendations generates performance recommendations.
 
 func (pb *PerformanceBenchmarker) generateRecommendations() {
 
 	recommendations := make([]string, 0)
-
-
 
 	// Latency recommendations.
 
@@ -3041,8 +2411,6 @@ func (pb *PerformanceBenchmarker) generateRecommendations() {
 
 	}
 
-
-
 	// Throughput recommendations.
 
 	if pb.results.ThroughputResults != nil {
@@ -3057,8 +2425,6 @@ func (pb *PerformanceBenchmarker) generateRecommendations() {
 
 	}
 
-
-
 	// Memory recommendations.
 
 	if pb.results.MemoryResults != nil {
@@ -3071,8 +2437,6 @@ func (pb *PerformanceBenchmarker) generateRecommendations() {
 
 		}
 
-
-
 		if pb.results.MemoryResults.MemoryLeakDetection != nil && pb.results.MemoryResults.MemoryLeakDetection.LeakDetected {
 
 			recommendations = append(recommendations, "Investigate and fix detected memory leaks")
@@ -3080,8 +2444,6 @@ func (pb *PerformanceBenchmarker) generateRecommendations() {
 		}
 
 	}
-
-
 
 	// Accuracy recommendations.
 
@@ -3097,13 +2459,9 @@ func (pb *PerformanceBenchmarker) generateRecommendations() {
 
 	}
 
-
-
 	pb.results.ImprovementSummary.Recommendations = recommendations
 
 }
-
-
 
 // getSystemInfo collects system information.
 
@@ -3111,23 +2469,21 @@ func (pb *PerformanceBenchmarker) getSystemInfo() *SystemInfo {
 
 	return &SystemInfo{
 
-		CPUCores:        8,                       // Placeholder - would use runtime.NumCPU()
+		CPUCores: 8, // Placeholder - would use runtime.NumCPU()
 
-		TotalMemory:     16 * 1024 * 1024 * 1024, // 16GB placeholder
+		TotalMemory: 16 * 1024 * 1024 * 1024, // 16GB placeholder
 
-		AvailableMemory: 8 * 1024 * 1024 * 1024,  // 8GB placeholder
+		AvailableMemory: 8 * 1024 * 1024 * 1024, // 8GB placeholder
 
-		GoVersion:       "go1.21.0",              // Placeholder - would use runtime.Version()
+		GoVersion: "go1.21.0", // Placeholder - would use runtime.Version()
 
-		OSInfo:          "linux",                 // Placeholder - would use runtime.GOOS
+		OSInfo: "linux", // Placeholder - would use runtime.GOOS
 
-		BuildInfo:       "dev",                   // Placeholder - would use build info
+		BuildInfo: "dev", // Placeholder - would use build info
 
 	}
 
 }
-
-
 
 // generateTestDataset generates test data for benchmarking.
 
@@ -3137,79 +2493,70 @@ func generateTestDataset() *TestDataset {
 
 		{
 
-			ID:         "q1",
+			ID: "q1",
 
-			Query:      "5G AMF configuration parameters",
+			Query: "5G AMF configuration parameters",
 
-			Category:   "configuration",
+			Category: "configuration",
 
 			Complexity: "simple",
 
 			Expected: &ExpectedResult{
 
-				MinResults:    5,
+				MinResults: 5,
 
-				MaxLatency:    200 * time.Millisecond,
+				MaxLatency: 200 * time.Millisecond,
 
-				MinAccuracy:   0.8,
+				MinAccuracy: 0.8,
 
 				ExpectedTerms: []string{"AMF", "5G", "configuration"},
-
 			},
-
 		},
 
 		{
 
-			ID:         "q2",
+			ID: "q2",
 
-			Query:      "network slicing optimization techniques for URLLC",
+			Query: "network slicing optimization techniques for URLLC",
 
-			Category:   "optimization",
+			Category: "optimization",
 
 			Complexity: "complex",
 
 			Expected: &ExpectedResult{
 
-				MinResults:    3,
+				MinResults: 3,
 
-				MaxLatency:    300 * time.Millisecond,
+				MaxLatency: 300 * time.Millisecond,
 
-				MinAccuracy:   0.75,
+				MinAccuracy: 0.75,
 
 				ExpectedTerms: []string{"network slicing", "URLLC", "optimization"},
-
 			},
-
 		},
 
 		{
 
-			ID:         "q3",
+			ID: "q3",
 
-			Query:      "O-RAN interface specifications and protocols",
+			Query: "O-RAN interface specifications and protocols",
 
-			Category:   "specification",
+			Category: "specification",
 
 			Complexity: "medium",
 
 			Expected: &ExpectedResult{
 
-				MinResults:    8,
+				MinResults: 8,
 
-				MaxLatency:    250 * time.Millisecond,
+				MaxLatency: 250 * time.Millisecond,
 
-				MinAccuracy:   0.85,
+				MinAccuracy: 0.85,
 
 				ExpectedTerms: []string{"O-RAN", "interface", "protocol"},
-
 			},
-
 		},
-
 	}
-
-
 
 	// Expand the dataset with more diverse queries.
 
@@ -3219,39 +2566,33 @@ func generateTestDataset() *TestDataset {
 
 		newQuery := &TestQuery{
 
-			ID:         fmt.Sprintf("q%d", i+4),
+			ID: fmt.Sprintf("q%d", i+4),
 
-			Query:      fmt.Sprintf("%s variant %d", baseQuery.Query, i),
+			Query: fmt.Sprintf("%s variant %d", baseQuery.Query, i),
 
-			Category:   baseQuery.Category,
+			Category: baseQuery.Category,
 
 			Complexity: baseQuery.Complexity,
 
-			Expected:   baseQuery.Expected,
-
+			Expected: baseQuery.Expected,
 		}
 
 		queries = append(queries, newQuery)
 
 	}
 
-
-
 	return &TestDataset{
 
-		Queries:         queries,
+		Queries: queries,
 
 		ExpectedResults: make(map[string]*ExpectedResult),
 
-		GroundTruth:     make(map[string][]*shared.SearchResult),
+		GroundTruth: make(map[string][]*shared.SearchResult),
 
 		QueryComplexity: make(map[string]string),
-
 	}
 
 }
-
-
 
 // GetBenchmarkResults returns the current benchmark results.
 
@@ -3260,8 +2601,6 @@ func (pb *PerformanceBenchmarker) GetBenchmarkResults() *BenchmarkResults {
 	return pb.results
 
 }
-
-
 
 // GenerateReport generates a performance benchmark report.
 
@@ -3273,33 +2612,28 @@ func (pb *PerformanceBenchmarker) GenerateReport() (string, error) {
 
 	}
 
-
-
 	// Generate JSON report.
 
 	report := map[string]interface{}{
 
-		"benchmark_summary":  pb.results.ImprovementSummary,
+		"benchmark_summary": pb.results.ImprovementSummary,
 
-		"latency_results":    pb.results.LatencyResults,
+		"latency_results": pb.results.LatencyResults,
 
 		"throughput_results": pb.results.ThroughputResults,
 
-		"accuracy_results":   pb.results.AccuracyResults,
+		"accuracy_results": pb.results.AccuracyResults,
 
-		"memory_results":     pb.results.MemoryResults,
+		"memory_results": pb.results.MemoryResults,
 
-		"test_suite":         pb.results.TestSuite,
+		"test_suite": pb.results.TestSuite,
 
-		"system_info":        pb.results.SystemInfo,
+		"system_info": pb.results.SystemInfo,
 
-		"timestamp":          pb.results.TestTimestamp,
+		"timestamp": pb.results.TestTimestamp,
 
-		"duration":           pb.results.TestDuration,
-
+		"duration": pb.results.TestDuration,
 	}
-
-
 
 	// Convert to JSON string.
 
@@ -3311,9 +2645,6 @@ func (pb *PerformanceBenchmarker) GenerateReport() (string, error) {
 
 	}
 
-
-
 	return string(reportJSON), nil
 
 }
-

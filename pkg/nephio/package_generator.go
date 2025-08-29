@@ -1,39 +1,22 @@
 // Package nephio provides Nephio/Porch integration and package generation for the Nephoran Intent Operator.
 
-
 package nephio
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"path/filepath"
-
 	"strings"
-
 	"text/template"
-
 	"time"
 
-
-
 	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 
 	"sigs.k8s.io/yaml"
-
 )
-
-
 
 // PackageGenerator generates Nephio KRM packages from NetworkIntent resources.
 
@@ -48,14 +31,11 @@ import (
 // If no intent type is specified, it defaults to "deployment".
 
 type PackageGenerator struct {
-
-	templates   map[string]*template.Template
+	templates map[string]*template.Template
 
 	porchClient porch.PorchClient // Optional Porch client for direct API calls
 
 }
-
-
 
 // NewPackageGenerator creates a new package generator.
 
@@ -64,10 +44,7 @@ func NewPackageGenerator() (*PackageGenerator, error) {
 	pg := &PackageGenerator{
 
 		templates: make(map[string]*template.Template),
-
 	}
-
-
 
 	// Initialize templates.
 
@@ -77,13 +54,9 @@ func NewPackageGenerator() (*PackageGenerator, error) {
 
 	}
 
-
-
 	return pg, nil
 
 }
-
-
 
 // GeneratePackage generates a complete Nephio package from a NetworkIntent.
 
@@ -91,15 +64,11 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 
 	files := make(map[string]string)
 
-
-
 	// Generate package structure.
 
 	packageName := fmt.Sprintf("%s-package", intent.Name)
 
 	packagePath := filepath.Join("packages", intent.Namespace, packageName)
-
-
 
 	// Generate Kptfile.
 
@@ -113,8 +82,6 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 
 	files[filepath.Join(packagePath, "Kptfile")] = kptfile
 
-
-
 	// Generate package resources based on intent type.
 
 	// Use the IntentType from the spec, defaulting to "deployment" if empty.
@@ -126,8 +93,6 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 		intentType = "deployment"
 
 	}
-
-
 
 	switch intentType {
 
@@ -185,8 +150,6 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 
 	}
 
-
-
 	// Generate README.
 
 	readme, err := pg.generateReadme(intent)
@@ -198,8 +161,6 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 	}
 
 	files[filepath.Join(packagePath, "README.md")] = readme
-
-
 
 	// Generate function configuration.
 
@@ -213,13 +174,9 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 
 	files[filepath.Join(packagePath, "fn-config.yaml")] = fnConfig
 
-
-
 	return files, nil
 
 }
-
-
 
 // initTemplates initializes all package templates.
 
@@ -273,8 +230,6 @@ pipeline:
 
 `
 
-
-
 	tmpl, err := template.New("kptfile").Parse(kptfileTmpl)
 
 	if err != nil {
@@ -284,8 +239,6 @@ pipeline:
 	}
 
 	pg.templates["kptfile"] = tmpl
-
-
 
 	// Deployment template.
 
@@ -375,8 +328,6 @@ spec:
 
 `
 
-
-
 	tmpl, err = template.New("deployment").Parse(deploymentTmpl)
 
 	if err != nil {
@@ -386,8 +337,6 @@ spec:
 	}
 
 	pg.templates["deployment"] = tmpl
-
-
 
 	// Service template.
 
@@ -433,8 +382,6 @@ spec:
 
 `
 
-
-
 	tmpl, err = template.New("service").Parse(serviceTmpl)
 
 	if err != nil {
@@ -444,8 +391,6 @@ spec:
 	}
 
 	pg.templates["service"] = tmpl
-
-
 
 	// ConfigMap template for O-RAN configuration.
 
@@ -479,8 +424,6 @@ data:
 
 `
 
-
-
 	tmpl, err = template.New("configmap").Parse(configMapTmpl)
 
 	if err != nil {
@@ -490,8 +433,6 @@ data:
 	}
 
 	pg.templates["configmap"] = tmpl
-
-
 
 	// README template.
 
@@ -551,8 +492,6 @@ data:
 
 `
 
-
-
 	tmpl, err = template.New("readme").Funcs(template.FuncMap{
 
 		"indent": func(n int, s string) string {
@@ -562,7 +501,6 @@ data:
 			return pad + strings.ReplaceAll(s, "\n", "\n"+pad)
 
 		},
-
 	}).Parse(readmeTmpl)
 
 	if err != nil {
@@ -573,13 +511,9 @@ data:
 
 	pg.templates["readme"] = tmpl
 
-
-
 	return nil
 
 }
-
-
 
 // generateKptfile generates the Kptfile for the package.
 
@@ -587,17 +521,14 @@ func (pg *PackageGenerator) generateKptfile(intent *v1.NetworkIntent) (string, e
 
 	data := map[string]interface{}{
 
-		"Name":        intent.Name,
+		"Name": intent.Name,
 
-		"Namespace":   intent.Namespace,
+		"Namespace": intent.Namespace,
 
 		"Description": fmt.Sprintf("Network function package for %s", intent.Name),
 
-		"Intent":      intent.Spec.Intent,
-
+		"Intent": intent.Spec.Intent,
 	}
-
-
 
 	var buf bytes.Buffer
 
@@ -607,21 +538,15 @@ func (pg *PackageGenerator) generateKptfile(intent *v1.NetworkIntent) (string, e
 
 	}
 
-
-
 	return strings.TrimSpace(buf.String()), nil
 
 }
-
-
 
 // generateDeploymentResources generates resources for deployment intents.
 
 func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent) (map[string]string, error) {
 
 	resources := make(map[string]string)
-
-
 
 	// Parse structured parameters from ProcessedParameters.
 
@@ -653,13 +578,9 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 
 	}
 
-
-
 	// Extract deployment details from parameters.
 
 	deploymentData := extractDeploymentData(params)
-
-
 
 	// Generate deployment YAML.
 
@@ -672,8 +593,6 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 	}
 
 	resources["deployment.yaml"] = strings.TrimSpace(buf.String())
-
-
 
 	// Generate service YAML.
 
@@ -688,8 +607,6 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 	}
 
 	resources["service.yaml"] = strings.TrimSpace(buf.String())
-
-
 
 	// Generate ConfigMap for O-RAN configuration if present.
 
@@ -707,21 +624,15 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 
 	}
 
-
-
 	// Generate setters configuration.
 
 	setters := generateSetters(params)
 
 	resources["setters.yaml"] = setters
 
-
-
 	return resources, nil
 
 }
-
-
 
 // generateScalingResources generates resources for scaling intents.
 
@@ -729,8 +640,6 @@ func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (
 
 	resources := make(map[string]string)
 
-
-
 	// Parse structured parameters from ProcessedParameters.
 
 	var params map[string]interface{}
@@ -760,8 +669,6 @@ func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (
 		return nil, fmt.Errorf("no parameters found in intent")
 
 	}
-
-
 
 	// Generate scaling patch.
 
@@ -769,29 +676,21 @@ func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (
 
 	resources["scaling-patch.yaml"] = patch
 
-
-
 	// Generate setters for scaling parameters.
 
 	setters := generateScalingSetters(params)
 
 	resources["setters.yaml"] = setters
 
-
-
 	return resources, nil
 
 }
-
-
 
 // generatePolicyResources generates resources for policy intents.
 
 func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (map[string]string, error) {
 
 	resources := make(map[string]string)
-
-
 
 	// Parse structured parameters from ProcessedParameters.
 
@@ -823,15 +722,11 @@ func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (m
 
 	}
 
-
-
 	// Generate NetworkPolicy or other policy resources.
 
 	policy := generatePolicyResource(params)
 
 	resources["policy.yaml"] = policy
-
-
 
 	// Generate A1 policy configuration if applicable.
 
@@ -849,13 +744,9 @@ func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (m
 
 	}
 
-
-
 	return resources, nil
 
 }
-
-
 
 // generateReadme generates the README for the package.
 
@@ -863,23 +754,20 @@ func (pg *PackageGenerator) generateReadme(intent *v1.NetworkIntent) (string, er
 
 	data := map[string]interface{}{
 
-		"Name":                intent.Name,
+		"Name": intent.Name,
 
-		"Intent":              intent.Spec.Intent,
+		"Intent": intent.Spec.Intent,
 
-		"GeneratedAt":         time.Now().Format("2006-01-02 15:04:05 UTC"),
+		"GeneratedAt": time.Now().Format("2006-01-02 15:04:05 UTC"),
 
-		"Description":         fmt.Sprintf("This package was automatically generated from the NetworkIntent '%s'", intent.Name),
+		"Description": fmt.Sprintf("This package was automatically generated from the NetworkIntent '%s'", intent.Name),
 
-		"Contents":            "- Kubernetes manifests\n- O-RAN configuration\n- Network slice parameters\n- Setters for customization",
+		"Contents": "- Kubernetes manifests\n- O-RAN configuration\n- Network slice parameters\n- Setters for customization",
 
-		"ORANDetails":         pg.extractORANDetailsFromProcessed(intent.Spec.ProcessedParameters),
+		"ORANDetails": pg.extractORANDetailsFromProcessed(intent.Spec.ProcessedParameters),
 
 		"NetworkSliceDetails": pg.extractNetworkSliceDetailsFromProcessed(intent.Spec.ProcessedParameters),
-
 	}
-
-
 
 	var buf bytes.Buffer
 
@@ -889,13 +777,9 @@ func (pg *PackageGenerator) generateReadme(intent *v1.NetworkIntent) (string, er
 
 	}
 
-
-
 	return strings.TrimSpace(buf.String()), nil
 
 }
-
-
 
 // extractORANDetailsFromProcessed extracts O-RAN details from ProcessedParameters.
 
@@ -923,8 +807,6 @@ func (pg *PackageGenerator) extractORANDetailsFromProcessed(processedParams *v1.
 
 }
 
-
-
 // extractNetworkSliceDetailsFromProcessed extracts network slice details from ProcessedParameters.
 
 func (pg *PackageGenerator) extractNetworkSliceDetailsFromProcessed(processedParams *v1.ProcessedParameters) string {
@@ -951,8 +833,6 @@ func (pg *PackageGenerator) extractNetworkSliceDetailsFromProcessed(processedPar
 
 }
 
-
-
 // generateFunctionConfig generates the function configuration.
 
 func (pg *PackageGenerator) generateFunctionConfig(intent *v1.NetworkIntent) (string, error) {
@@ -961,7 +841,7 @@ func (pg *PackageGenerator) generateFunctionConfig(intent *v1.NetworkIntent) (st
 
 		"apiVersion": "fn.kpt.dev/v1alpha1",
 
-		"kind":       "SetNamespace",
+		"kind": "SetNamespace",
 
 		"metadata": map[string]interface{}{
 
@@ -970,20 +850,14 @@ func (pg *PackageGenerator) generateFunctionConfig(intent *v1.NetworkIntent) (st
 			"annotations": map[string]string{
 
 				"config.kubernetes.io/local-config": "true",
-
 			},
-
 		},
 
 		"spec": map[string]interface{}{
 
 			"namespace": intent.Namespace,
-
 		},
-
 	}
-
-
 
 	yamlData, err := yaml.Marshal(fnConfig)
 
@@ -993,17 +867,11 @@ func (pg *PackageGenerator) generateFunctionConfig(intent *v1.NetworkIntent) (st
 
 	}
 
-
-
 	return string(yamlData), nil
 
 }
 
-
-
 // Helper functions to extract data from parameters.
-
-
 
 func extractDeploymentData(params map[string]interface{}) map[string]interface{} {
 
@@ -1013,31 +881,28 @@ func extractDeploymentData(params map[string]interface{}) map[string]interface{}
 
 	data := map[string]interface{}{
 
-		"Name":      params["name"],
+		"Name": params["name"],
 
 		"Namespace": params["namespace"],
 
 		"Component": params["component"],
 
-		"IntentID":  params["intent_id"],
+		"IntentID": params["intent_id"],
 
-		"Replicas":  params["replicas"],
+		"Replicas": params["replicas"],
 
-		"Image":     params["image"],
+		"Image": params["image"],
 
-		"Ports":     params["ports"],
+		"Ports": params["ports"],
 
-		"Env":       params["env"],
+		"Env": params["env"],
 
 		"Resources": params["resources"],
-
 	}
 
 	return data
 
 }
-
-
 
 func extractServiceData(params map[string]interface{}) map[string]interface{} {
 
@@ -1045,21 +910,18 @@ func extractServiceData(params map[string]interface{}) map[string]interface{} {
 
 	return map[string]interface{}{
 
-		"Name":      params["name"],
+		"Name": params["name"],
 
 		"Namespace": params["namespace"],
 
 		"Component": params["component"],
 
-		"Type":      "ClusterIP",
+		"Type": "ClusterIP",
 
-		"Ports":     params["ports"],
-
+		"Ports": params["ports"],
 	}
 
 }
-
-
 
 func extractORANConfig(params map[string]interface{}) map[string]interface{} {
 
@@ -1069,7 +931,7 @@ func extractORANConfig(params map[string]interface{}) map[string]interface{} {
 
 		return map[string]interface{}{
 
-			"Name":      params["name"],
+			"Name": params["name"],
 
 			"Namespace": params["namespace"],
 
@@ -1078,9 +940,7 @@ func extractORANConfig(params map[string]interface{}) map[string]interface{} {
 			"Data": map[string]string{
 
 				"o1-config.yaml": fmt.Sprintf("%v", o1Config),
-
 			},
-
 		}
 
 	}
@@ -1088,8 +948,6 @@ func extractORANConfig(params map[string]interface{}) map[string]interface{} {
 	return nil
 
 }
-
-
 
 func generateSetters(params map[string]interface{}) string {
 
@@ -1099,7 +957,7 @@ func generateSetters(params map[string]interface{}) string {
 
 		"apiVersion": "v1",
 
-		"kind":       "ConfigMap",
+		"kind": "ConfigMap",
 
 		"metadata": map[string]interface{}{
 
@@ -1108,32 +966,24 @@ func generateSetters(params map[string]interface{}) string {
 			"annotations": map[string]string{
 
 				"config.kubernetes.io/local-config": "true",
-
 			},
-
 		},
 
 		"data": map[string]interface{}{
 
 			"namespace": params["namespace"],
 
-			"replicas":  fmt.Sprintf("%v", params["replicas"]),
+			"replicas": fmt.Sprintf("%v", params["replicas"]),
 
-			"image":     params["image"],
-
+			"image": params["image"],
 		},
-
 	}
-
-
 
 	yamlData, _ := yaml.Marshal(setters)
 
 	return string(yamlData)
 
 }
-
-
 
 func generateScalingPatch(params map[string]interface{}) string {
 
@@ -1143,7 +993,7 @@ func generateScalingPatch(params map[string]interface{}) string {
 
 		"apiVersion": "apps/v1",
 
-		"kind":       "Deployment",
+		"kind": "Deployment",
 
 		"metadata": map[string]interface{}{
 
@@ -1151,25 +1001,19 @@ func generateScalingPatch(params map[string]interface{}) string {
 
 			"annotations": map[string]interface{}{
 
-				"porch.kpt.dev/managed":  "true",
+				"porch.kpt.dev/managed": "true",
 
-				"nephoran.com/intent":    "scaling",
+				"nephoran.com/intent": "scaling",
 
 				"nephoran.com/timestamp": time.Now().Format(time.RFC3339),
-
 			},
-
 		},
 
 		"spec": map[string]interface{}{
 
 			"replicas": params["replicas"],
-
 		},
-
 	}
-
-
 
 	// Add resource requests/limits if provided.
 
@@ -1185,23 +1029,17 @@ func generateScalingPatch(params map[string]interface{}) string {
 
 						{
 
-							"name":      "main",
+							"name": "main",
 
 							"resources": resources,
-
 						},
-
 					},
-
 				},
-
 			}
 
 		}
 
 	}
-
-
 
 	// Add HPA configuration if autoscaling is enabled.
 
@@ -1215,15 +1053,11 @@ func generateScalingPatch(params map[string]interface{}) string {
 
 	}
 
-
-
 	yamlData, _ := yaml.Marshal(patch)
 
 	return string(yamlData)
 
 }
-
-
 
 func generateScalingSetters(params map[string]interface{}) string {
 
@@ -1231,7 +1065,7 @@ func generateScalingSetters(params map[string]interface{}) string {
 
 		"apiVersion": "v1",
 
-		"kind":       "ConfigMap",
+		"kind": "ConfigMap",
 
 		"metadata": map[string]interface{}{
 
@@ -1240,30 +1074,22 @@ func generateScalingSetters(params map[string]interface{}) string {
 			"annotations": map[string]string{
 
 				"config.kubernetes.io/local-config": "true",
-
 			},
-
 		},
 
 		"data": map[string]interface{}{
 
-			"target":   params["target"],
+			"target": params["target"],
 
 			"replicas": fmt.Sprintf("%v", params["replicas"]),
-
 		},
-
 	}
-
-
 
 	yamlData, _ := yaml.Marshal(setters)
 
 	return string(yamlData)
 
 }
-
-
 
 func generatePolicyResource(params map[string]interface{}) string {
 
@@ -1273,29 +1099,23 @@ func generatePolicyResource(params map[string]interface{}) string {
 
 		"apiVersion": "networking.k8s.io/v1",
 
-		"kind":       "NetworkPolicy",
+		"kind": "NetworkPolicy",
 
 		"metadata": map[string]interface{}{
 
-			"name":      params["name"],
+			"name": params["name"],
 
 			"namespace": params["namespace"],
-
 		},
 
 		"spec": params["policy_spec"],
-
 	}
-
-
 
 	yamlData, _ := yaml.Marshal(policy)
 
 	return string(yamlData)
 
 }
-
-
 
 func extractA1Policy(params map[string]interface{}) map[string]interface{} {
 
@@ -1309,13 +1129,9 @@ func extractA1Policy(params map[string]interface{}) map[string]interface{} {
 
 }
 
-
-
 func extractORANDetails(params map[string]interface{}) string {
 
 	details := []string{}
-
-
 
 	if _, ok := params["o1_config"]; ok {
 
@@ -1335,21 +1151,15 @@ func extractORANDetails(params map[string]interface{}) string {
 
 	}
 
-
-
 	if len(details) == 0 {
 
 		return "No O-RAN specific configuration in this package"
 
 	}
 
-
-
 	return strings.Join(details, "\n")
 
 }
-
-
 
 func extractNetworkSliceDetails(params map[string]interface{}) string {
 
@@ -1375,8 +1185,6 @@ func extractNetworkSliceDetails(params map[string]interface{}) string {
 
 }
 
-
-
 // GeneratePatchAndPublishToPorch generates a scaling patch from intent and publishes it to Porch.
 
 func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, intent *v1.NetworkIntent) error {
@@ -1386,8 +1194,6 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 		return fmt.Errorf("porch client not configured")
 
 	}
-
-
 
 	// Parse structured parameters from ProcessedParameters.
 
@@ -1419,19 +1225,13 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 
 	}
 
-
-
 	// Generate the scaling patch.
 
 	patchContent := generateScalingPatch(params)
 
-
-
 	// Generate setters for the patch.
 
 	settersContent := generateScalingSetters(params)
-
-
 
 	// Prepare package contents for Porch.
 
@@ -1439,13 +1239,10 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 
 		"scaling-patch.yaml": []byte(patchContent),
 
-		"setters.yaml":       []byte(settersContent),
+		"setters.yaml": []byte(settersContent),
 
-		"README.md":          []byte(fmt.Sprintf("# Scaling Patch for %s\n\nGenerated from intent: %s\n", params["target"], intent.Name)),
-
+		"README.md": []byte(fmt.Sprintf("# Scaling Patch for %s\n\nGenerated from intent: %s\n", params["target"], intent.Name)),
 	}
-
-
 
 	// Create Kptfile for the package.
 
@@ -1453,7 +1250,7 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 
 		"apiVersion": "kpt.dev/v1",
 
-		"kind":       "Kptfile",
+		"kind": "Kptfile",
 
 		"metadata": map[string]interface{}{
 
@@ -1461,29 +1258,23 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 
 			"annotations": map[string]interface{}{
 
-				"nephoran.com/intent-id":   string(intent.UID),
+				"nephoran.com/intent-id": string(intent.UID),
 
 				"nephoran.com/intent-type": "scaling",
 
-				"nephoran.com/generated":   time.Now().Format(time.RFC3339),
-
+				"nephoran.com/generated": time.Now().Format(time.RFC3339),
 			},
-
 		},
 
 		"info": map[string]interface{}{
 
 			"description": fmt.Sprintf("Scaling patch for %s", params["target"]),
-
 		},
-
 	}
 
 	kptfileYAML, _ := yaml.Marshal(kptfile)
 
 	packageContents["Kptfile"] = kptfileYAML
-
-
 
 	// Determine repository and package name.
 
@@ -1499,27 +1290,21 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 
 	revision := "v1"
 
-
-
 	// Create package revision in Porch.
 
 	packageRevision := &porch.PackageRevision{
 
 		Spec: porch.PackageRevisionSpec{
 
-			Repository:  repository,
+			Repository: repository,
 
 			PackageName: packageName,
 
-			Revision:    revision,
+			Revision: revision,
 
-			Lifecycle:   porch.PackageRevisionLifecycleDraft,
-
+			Lifecycle: porch.PackageRevisionLifecycleDraft,
 		},
-
 	}
-
-
 
 	// Create the package revision.
 
@@ -1531,8 +1316,6 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 
 	}
 
-
-
 	// Update package contents.
 
 	if err := pg.porchClient.UpdatePackageContents(ctx, packageName, revision, packageContents); err != nil {
@@ -1541,8 +1324,6 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 
 	}
 
-
-
 	// Propose the package revision for review.
 
 	if err := pg.porchClient.ProposePackageRevision(ctx, packageName, revision); err != nil {
@@ -1550,8 +1331,6 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 		return fmt.Errorf("failed to propose package revision: %w", err)
 
 	}
-
-
 
 	// If auto-approve is enabled in parameters, approve the package.
 
@@ -1565,19 +1344,13 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 
 	}
 
-
-
 	fmt.Printf("Successfully created and published scaling patch to Porch: %s/%s:%s\n",
 
 		repository, packageName, createdRevision.Spec.Revision)
 
-
-
 	return nil
 
 }
-
-
 
 // SetPorchClient sets the Porch client for API operations.
 
@@ -1586,8 +1359,6 @@ func (pg *PackageGenerator) SetPorchClient(client porch.PorchClient) {
 	pg.porchClient = client
 
 }
-
-
 
 // GenerateCNFPackage generates a CNF package from a CNFDeployment and configuration.
 
@@ -1604,4 +1375,3 @@ func (pg *PackageGenerator) GenerateCNFPackage(cnf *v1.CNFDeployment, config map
 	return []byte(packageContent), nil
 
 }
-

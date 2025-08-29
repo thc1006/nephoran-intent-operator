@@ -1,85 +1,51 @@
 // Package servicemesh provides the service mesh controller for Kubernetes integration.
 
-
 package servicemesh
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
-
 	_ "github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/consul"  // Register consul provider
-
 	_ "github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/istio"   // Register istio provider
-
 	_ "github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/linkerd" // Register linkerd provider
 
-
-
 	corev1 "k8s.io/api/core/v1"
-
 	"k8s.io/apimachinery/pkg/api/errors"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/client-go/kubernetes"
-
 	"k8s.io/client-go/rest"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-
 )
-
-
 
 // ServiceMeshController manages service mesh integration.
 
 type ServiceMeshController struct {
-
 	client.Client
 
-	Scheme      *runtime.Scheme
+	Scheme *runtime.Scheme
 
-	kubeClient  kubernetes.Interface
+	kubeClient kubernetes.Interface
 
-	restConfig  *rest.Config
+	restConfig *rest.Config
 
 	meshFactory *abstraction.ServiceMeshFactory
 
-	mesh        abstraction.ServiceMeshInterface
+	mesh abstraction.ServiceMeshInterface
 
-	meshConfig  *abstraction.ServiceMeshConfig
+	meshConfig *abstraction.ServiceMeshConfig
 
-	logger      logr.Logger
-
+	logger logr.Logger
 }
-
-
 
 // NewServiceMeshController creates a new service mesh controller.
 
@@ -95,25 +61,22 @@ func NewServiceMeshController(
 
 	return &ServiceMeshController{
 
-		Client:      mgr.GetClient(),
+		Client: mgr.GetClient(),
 
-		Scheme:      mgr.GetScheme(),
+		Scheme: mgr.GetScheme(),
 
-		kubeClient:  kubeClient,
+		kubeClient: kubeClient,
 
-		restConfig:  mgr.GetConfig(),
+		restConfig: mgr.GetConfig(),
 
 		meshFactory: abstraction.NewServiceMeshFactory(kubeClient, mgr.GetClient(), mgr.GetConfig()),
 
-		meshConfig:  meshConfig,
+		meshConfig: meshConfig,
 
-		logger:      log.Log.WithName("service-mesh-controller"),
-
+		logger: log.Log.WithName("service-mesh-controller"),
 	}, nil
 
 }
-
-
 
 // SetupWithManager sets up the controller with the Manager.
 
@@ -133,33 +96,23 @@ func (r *ServiceMeshController) SetupWithManager(mgr ctrl.Manager) error {
 
 	r.mesh = mesh
 
-
-
 	// Set up the controller.
 
 	return ctrl.NewControllerManagedBy(mgr).
-
 		For(&corev1.Service{}).
-
 		WithOptions(controller.Options{
 
 			MaxConcurrentReconciles: 3,
-
 		}).
-
 		Complete(r)
 
 }
-
-
 
 // Reconcile handles service reconciliation for service mesh integration.
 
 func (r *ServiceMeshController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	log := r.logger.WithValues("service", req.NamespacedName)
-
-
 
 	// Get the service.
 
@@ -185,8 +138,6 @@ func (r *ServiceMeshController) Reconcile(ctx context.Context, req ctrl.Request)
 
 	}
 
-
-
 	// Check if service should be managed by service mesh.
 
 	if !r.shouldManageService(&service) {
@@ -195,27 +146,22 @@ func (r *ServiceMeshController) Reconcile(ctx context.Context, req ctrl.Request)
 
 	}
 
-
-
 	// Register service with mesh.
 
 	registration := &abstraction.ServiceRegistration{
 
-		Name:        service.Name,
+		Name: service.Name,
 
-		Namespace:   service.Namespace,
+		Namespace: service.Namespace,
 
-		Labels:      service.Labels,
+		Labels: service.Labels,
 
 		Annotations: service.Annotations,
 
-		Ports:       r.convertServicePorts(service.Spec.Ports),
+		Ports: r.convertServicePorts(service.Spec.Ports),
 
-		MTLSMode:    r.getMTLSMode(&service),
-
+		MTLSMode: r.getMTLSMode(&service),
 	}
-
-
 
 	if err := r.mesh.RegisterService(ctx, registration); err != nil {
 
@@ -224,8 +170,6 @@ func (r *ServiceMeshController) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, err
 
 	}
-
-
 
 	// Apply default policies if configured.
 
@@ -237,8 +181,6 @@ func (r *ServiceMeshController) Reconcile(ctx context.Context, req ctrl.Request)
 
 	}
 
-
-
 	// Update service annotations with mesh status.
 
 	if err := r.updateServiceAnnotations(ctx, &service); err != nil {
@@ -248,8 +190,6 @@ func (r *ServiceMeshController) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, err
 
 	}
-
-
 
 	// Check certificate status.
 
@@ -261,13 +201,9 @@ func (r *ServiceMeshController) Reconcile(ctx context.Context, req ctrl.Request)
 
 	}
 
-
-
 	return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil
 
 }
-
-
 
 // shouldManageService determines if a service should be managed by the service mesh.
 
@@ -281,8 +217,6 @@ func (r *ServiceMeshController) shouldManageService(service *corev1.Service) boo
 
 	}
 
-
-
 	// Check for opt-out annotation.
 
 	if val, ok := service.Annotations["mesh.nephoran.io/enabled"]; ok && val == "false" {
@@ -290,8 +224,6 @@ func (r *ServiceMeshController) shouldManageService(service *corev1.Service) boo
 		return false
 
 	}
-
-
 
 	// Check for service mesh provider annotation.
 
@@ -301,15 +233,11 @@ func (r *ServiceMeshController) shouldManageService(service *corev1.Service) boo
 
 	}
 
-
-
 	// Default to managing all services in mesh-enabled namespaces.
 
 	return r.isNamespaceMeshEnabled(service.Namespace)
 
 }
-
-
 
 // isNamespaceMeshEnabled checks if a namespace is mesh-enabled.
 
@@ -324,8 +252,6 @@ func (r *ServiceMeshController) isNamespaceMeshEnabled(namespace string) bool {
 		return false
 
 	}
-
-
 
 	// Check for mesh injection label based on provider.
 
@@ -351,8 +277,6 @@ func (r *ServiceMeshController) isNamespaceMeshEnabled(namespace string) bool {
 
 }
 
-
-
 // getMTLSMode gets the mTLS mode for a service.
 
 func (r *ServiceMeshController) getMTLSMode(service *corev1.Service) string {
@@ -365,8 +289,6 @@ func (r *ServiceMeshController) getMTLSMode(service *corev1.Service) string {
 
 	}
 
-
-
 	// Use default from mesh config.
 
 	if r.meshConfig.PolicyDefaults != nil {
@@ -375,13 +297,9 @@ func (r *ServiceMeshController) getMTLSMode(service *corev1.Service) string {
 
 	}
 
-
-
 	return "STRICT"
 
 }
-
-
 
 // convertServicePorts converts Kubernetes service ports to abstraction format.
 
@@ -393,14 +311,13 @@ func (r *ServiceMeshController) convertServicePorts(ports []corev1.ServicePort) 
 
 		result = append(result, abstraction.ServicePort{
 
-			Name:       port.Name,
+			Name: port.Name,
 
-			Port:       port.Port,
+			Port: port.Port,
 
 			TargetPort: port.TargetPort.IntVal,
 
-			Protocol:   string(port.Protocol),
-
+			Protocol: string(port.Protocol),
 		})
 
 	}
@@ -408,8 +325,6 @@ func (r *ServiceMeshController) convertServicePorts(ports []corev1.ServicePort) 
 	return result
 
 }
-
-
 
 // applyDefaultPolicies applies default policies to a service.
 
@@ -421,10 +336,9 @@ func (r *ServiceMeshController) applyDefaultPolicies(ctx context.Context, servic
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      fmt.Sprintf("%s-mtls", service.Name),
+			Name: fmt.Sprintf("%s-mtls", service.Name),
 
 			Namespace: service.Namespace,
-
 		},
 
 		Spec: abstraction.MTLSPolicySpec{
@@ -434,26 +348,18 @@ func (r *ServiceMeshController) applyDefaultPolicies(ctx context.Context, servic
 				MatchLabels: map[string]string{
 
 					"app": service.Name,
-
 				},
-
 			},
 
 			Mode: r.getMTLSMode(service),
-
 		},
-
 	}
-
-
 
 	if err := r.mesh.ApplyMTLSPolicy(ctx, mtlsPolicy); err != nil {
 
 		return fmt.Errorf("failed to apply mTLS policy: %w", err)
 
 	}
-
-
 
 	// Apply authorization policy if deny-all is configured.
 
@@ -463,10 +369,9 @@ func (r *ServiceMeshController) applyDefaultPolicies(ctx context.Context, servic
 
 			ObjectMeta: metav1.ObjectMeta{
 
-				Name:      fmt.Sprintf("%s-authz", service.Name),
+				Name: fmt.Sprintf("%s-authz", service.Name),
 
 				Namespace: service.Namespace,
-
 			},
 
 			Spec: abstraction.AuthorizationPolicySpec{
@@ -476,18 +381,12 @@ func (r *ServiceMeshController) applyDefaultPolicies(ctx context.Context, servic
 					MatchLabels: map[string]string{
 
 						"app": service.Name,
-
 					},
-
 				},
 
 				Action: "DENY",
-
 			},
-
 		}
-
-
 
 		if err := r.mesh.ApplyAuthorizationPolicy(ctx, authPolicy); err != nil {
 
@@ -497,13 +396,9 @@ func (r *ServiceMeshController) applyDefaultPolicies(ctx context.Context, servic
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // updateServiceAnnotations updates service annotations with mesh status.
 
@@ -519,8 +414,6 @@ func (r *ServiceMeshController) updateServiceAnnotations(ctx context.Context, se
 
 	}
 
-
-
 	// Update annotations.
 
 	if service.Annotations == nil {
@@ -528,8 +421,6 @@ func (r *ServiceMeshController) updateServiceAnnotations(ctx context.Context, se
 		service.Annotations = make(map[string]string)
 
 	}
-
-
 
 	service.Annotations["mesh.nephoran.io/status"] = "registered"
 
@@ -539,8 +430,6 @@ func (r *ServiceMeshController) updateServiceAnnotations(ctx context.Context, se
 
 	service.Annotations["mesh.nephoran.io/last-sync"] = time.Now().Format(time.RFC3339)
 
-
-
 	// Update the service.
 
 	if err := r.Update(ctx, service); err != nil {
@@ -549,21 +438,15 @@ func (r *ServiceMeshController) updateServiceAnnotations(ctx context.Context, se
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // checkCertificateStatus checks certificate status for a service.
 
 func (r *ServiceMeshController) checkCertificateStatus(ctx context.Context, service *corev1.Service) error {
 
 	certProvider := r.mesh.GetCertificateProvider()
-
-
 
 	// Check if certificate is expiring soon.
 
@@ -575,8 +458,6 @@ func (r *ServiceMeshController) checkCertificateStatus(ctx context.Context, serv
 
 	}
 
-
-
 	// Check expiry.
 
 	daysUntilExpiry := time.Until(cert.NotAfter).Hours() / 24
@@ -584,8 +465,6 @@ func (r *ServiceMeshController) checkCertificateStatus(ctx context.Context, serv
 	if daysUntilExpiry < 30 {
 
 		r.logger.Info("Certificate expiring soon", "service", service.Name, "daysUntilExpiry", daysUntilExpiry)
-
-
 
 		// Trigger rotation if less than 7 days.
 
@@ -601,21 +480,15 @@ func (r *ServiceMeshController) checkCertificateStatus(ctx context.Context, serv
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // EnforceMTLSEverywhere ensures mTLS is enabled for all services.
 
 func (r *ServiceMeshController) EnforceMTLSEverywhere(ctx context.Context) error {
 
 	r.logger.Info("Enforcing mTLS everywhere")
-
-
 
 	// List all namespaces.
 
@@ -627,8 +500,6 @@ func (r *ServiceMeshController) EnforceMTLSEverywhere(ctx context.Context) error
 
 	}
 
-
-
 	for _, ns := range namespaces.Items {
 
 		// Skip system namespaces.
@@ -639,29 +510,22 @@ func (r *ServiceMeshController) EnforceMTLSEverywhere(ctx context.Context) error
 
 		}
 
-
-
 		// Apply strict mTLS policy for the namespace.
 
 		policy := &abstraction.MTLSPolicy{
 
 			ObjectMeta: metav1.ObjectMeta{
 
-				Name:      "default-mtls",
+				Name: "default-mtls",
 
 				Namespace: ns.Name,
-
 			},
 
 			Spec: abstraction.MTLSPolicySpec{
 
 				Mode: "STRICT",
-
 			},
-
 		}
-
-
 
 		if err := r.mesh.ApplyMTLSPolicy(ctx, policy); err != nil {
 
@@ -671,19 +535,13 @@ func (r *ServiceMeshController) EnforceMTLSEverywhere(ctx context.Context) error
 
 		}
 
-
-
 		r.logger.Info("Applied strict mTLS policy", "namespace", ns.Name)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateServiceMeshHealth validates the health of the service mesh.
 
@@ -697,8 +555,6 @@ func (r *ServiceMeshController) ValidateServiceMeshHealth(ctx context.Context) e
 
 	}
 
-
-
 	// Check mesh readiness.
 
 	if err := r.mesh.IsReady(ctx); err != nil {
@@ -706,8 +562,6 @@ func (r *ServiceMeshController) ValidateServiceMeshHealth(ctx context.Context) e
 		return fmt.Errorf("mesh is not ready: %w", err)
 
 	}
-
-
 
 	// Validate policies across all namespaces.
 
@@ -719,8 +573,6 @@ func (r *ServiceMeshController) ValidateServiceMeshHealth(ctx context.Context) e
 
 	}
 
-
-
 	totalIssues := 0
 
 	for _, ns := range namespaces.Items {
@@ -731,8 +583,6 @@ func (r *ServiceMeshController) ValidateServiceMeshHealth(ctx context.Context) e
 
 		}
 
-
-
 		result, err := r.mesh.ValidatePolicies(ctx, ns.Name)
 
 		if err != nil {
@@ -742,8 +592,6 @@ func (r *ServiceMeshController) ValidateServiceMeshHealth(ctx context.Context) e
 			continue
 
 		}
-
-
 
 		if !result.Valid {
 
@@ -763,15 +611,11 @@ func (r *ServiceMeshController) ValidateServiceMeshHealth(ctx context.Context) e
 
 	}
 
-
-
 	if totalIssues > 0 {
 
 		return fmt.Errorf("found %d namespaces with policy issues", totalIssues)
 
 	}
-
-
 
 	r.logger.Info("Service mesh health check completed successfully")
 
@@ -779,25 +623,20 @@ func (r *ServiceMeshController) ValidateServiceMeshHealth(ctx context.Context) e
 
 }
 
-
-
 // GetServiceMeshStatus returns the overall status of the service mesh.
 
 func (r *ServiceMeshController) GetServiceMeshStatus(ctx context.Context) (*ServiceMeshStatus, error) {
 
 	status := &ServiceMeshStatus{
 
-		Provider:     r.mesh.GetProvider(),
+		Provider: r.mesh.GetProvider(),
 
-		Version:      r.mesh.GetVersion(),
+		Version: r.mesh.GetVersion(),
 
 		Capabilities: r.mesh.GetCapabilities(),
 
-		Healthy:      true,
-
+		Healthy: true,
 	}
-
-
 
 	// Check health.
 
@@ -809,15 +648,11 @@ func (r *ServiceMeshController) GetServiceMeshStatus(ctx context.Context) (*Serv
 
 	}
 
-
-
 	// Get mTLS coverage across all namespaces.
 
 	totalServices := 0
 
 	mtlsEnabledServices := 0
-
-
 
 	namespaces, err := r.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 
@@ -827,8 +662,6 @@ func (r *ServiceMeshController) GetServiceMeshStatus(ctx context.Context) (*Serv
 
 	}
 
-
-
 	for _, ns := range namespaces.Items {
 
 		if ns.Name == "kube-system" || ns.Name == "kube-public" {
@@ -836,8 +669,6 @@ func (r *ServiceMeshController) GetServiceMeshStatus(ctx context.Context) (*Serv
 			continue
 
 		}
-
-
 
 		report, err := r.mesh.GetMTLSStatus(ctx, ns.Name)
 
@@ -847,15 +678,11 @@ func (r *ServiceMeshController) GetServiceMeshStatus(ctx context.Context) (*Serv
 
 		}
 
-
-
 		totalServices += report.TotalServices
 
 		mtlsEnabledServices += report.MTLSEnabledCount
 
 	}
-
-
 
 	if totalServices > 0 {
 
@@ -863,39 +690,30 @@ func (r *ServiceMeshController) GetServiceMeshStatus(ctx context.Context) (*Serv
 
 	}
 
-
-
 	status.TotalServices = totalServices
 
 	status.MTLSEnabledServices = mtlsEnabledServices
-
-
 
 	return status, nil
 
 }
 
-
-
 // ServiceMeshStatus represents the overall status of the service mesh.
 
 type ServiceMeshStatus struct {
+	Provider abstraction.ServiceMeshProvider `json:"provider"`
 
-	Provider            abstraction.ServiceMeshProvider `json:"provider"`
+	Version string `json:"version"`
 
-	Version             string                          `json:"version"`
+	Capabilities []abstraction.Capability `json:"capabilities"`
 
-	Capabilities        []abstraction.Capability        `json:"capabilities"`
+	Healthy bool `json:"healthy"`
 
-	Healthy             bool                            `json:"healthy"`
+	TotalServices int `json:"totalServices"`
 
-	TotalServices       int                             `json:"totalServices"`
+	MTLSEnabledServices int `json:"mtlsEnabledServices"`
 
-	MTLSEnabledServices int                             `json:"mtlsEnabledServices"`
+	MTLSCoverage float64 `json:"mtlsCoverage"`
 
-	MTLSCoverage        float64                         `json:"mtlsCoverage"`
-
-	Issues              []string                        `json:"issues,omitempty"`
-
+	Issues []string `json:"issues,omitempty"`
 }
-

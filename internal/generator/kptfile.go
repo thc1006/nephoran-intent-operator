@@ -1,31 +1,17 @@
-
 package generator
 
-
-
 import (
-
 	"fmt"
-
 	"time"
-
-
 
 	"github.com/nephio-project/nephoran-intent-operator/internal/intent"
 
-
-
 	"sigs.k8s.io/yaml"
-
 )
-
-
 
 // KptfileGenerator generates Kptfile for KRM packages.
 
 type KptfileGenerator struct{}
-
-
 
 // NewKptfileGenerator creates a new Kptfile generator.
 
@@ -35,83 +21,61 @@ func NewKptfileGenerator() *KptfileGenerator {
 
 }
 
-
-
 // Kptfile represents the structure of a Kptfile.
 
 type Kptfile struct {
+	APIVersion string `yaml:"apiVersion"`
 
-	APIVersion string           `yaml:"apiVersion"`
+	Kind string `yaml:"kind"`
 
-	Kind       string           `yaml:"kind"`
+	Metadata KptfileMetadata `yaml:"metadata"`
 
-	Metadata   KptfileMetadata  `yaml:"metadata"`
+	Info KptfileInfo `yaml:"info"`
 
-	Info       KptfileInfo      `yaml:"info"`
-
-	Pipeline   *KptfilePipeline `yaml:"pipeline,omitempty"`
-
+	Pipeline *KptfilePipeline `yaml:"pipeline,omitempty"`
 }
-
-
 
 // KptfileMetadata contains metadata for the Kptfile.
 
 type KptfileMetadata struct {
+	Name string `yaml:"name"`
 
-	Name        string            `yaml:"name"`
+	Namespace string `yaml:"namespace,omitempty"`
 
-	Namespace   string            `yaml:"namespace,omitempty"`
-
-	Labels      map[string]string `yaml:"labels,omitempty"`
+	Labels map[string]string `yaml:"labels,omitempty"`
 
 	Annotations map[string]string `yaml:"annotations,omitempty"`
-
 }
-
-
 
 // KptfileInfo contains package information.
 
 type KptfileInfo struct {
+	Description string `yaml:"description"`
 
-	Description string   `yaml:"description"`
+	Site string `yaml:"site,omitempty"`
 
-	Site        string   `yaml:"site,omitempty"`
+	License string `yaml:"license,omitempty"`
 
-	License     string   `yaml:"license,omitempty"`
-
-	Keywords    []string `yaml:"keywords,omitempty"`
-
+	Keywords []string `yaml:"keywords,omitempty"`
 }
-
-
 
 // KptfilePipeline defines the mutation pipeline.
 
 type KptfilePipeline struct {
-
 	Mutators []KptfileMutator `yaml:"mutators,omitempty"`
-
 }
-
-
 
 // KptfileMutator defines a pipeline mutator.
 
 type KptfileMutator struct {
+	Image string `yaml:"image"`
 
-	Image      string                 `yaml:"image"`
+	ConfigMap map[string]interface{} `yaml:"configMap,omitempty"`
 
-	ConfigMap  map[string]interface{} `yaml:"configMap,omitempty"`
+	ConfigPath string `yaml:"configPath,omitempty"`
 
-	ConfigPath string                 `yaml:"configPath,omitempty"`
-
-	Name       string                 `yaml:"name,omitempty"`
-
+	Name string `yaml:"name,omitempty"`
 }
-
-
 
 // Generate creates a Kptfile from a scaling intent.
 
@@ -121,55 +85,52 @@ func (g *KptfileGenerator) Generate(intent *intent.ScalingIntent) ([]byte, error
 
 		APIVersion: "kpt.dev/v1",
 
-		Kind:       "Kptfile",
+		Kind: "Kptfile",
 
 		Metadata: KptfileMetadata{
 
-			Name:      fmt.Sprintf("%s-package", intent.Target),
+			Name: fmt.Sprintf("%s-package", intent.Target),
 
 			Namespace: intent.Namespace,
 
 			Labels: map[string]string{
 
-				"app":                          intent.Target,
+				"app": intent.Target,
 
-				"app.kubernetes.io/name":       intent.Target,
+				"app.kubernetes.io/name": intent.Target,
 
-				"app.kubernetes.io/component":  "nf-simulator",
+				"app.kubernetes.io/component": "nf-simulator",
 
-				"app.kubernetes.io/part-of":    "nephoran-intent-operator",
+				"app.kubernetes.io/part-of": "nephoran-intent-operator",
 
 				"app.kubernetes.io/managed-by": "porch-direct",
-
 			},
 
 			Annotations: map[string]string{
 
 				"config.kubernetes.io/local-config": "true",
 
-				"nephoran.com/intent-type":          intent.IntentType,
+				"nephoran.com/intent-type": intent.IntentType,
 
-				"nephoran.com/source":               intent.Source,
+				"nephoran.com/source": intent.Source,
 
-				"nephoran.com/generated-at":         time.Now().Format(time.RFC3339),
+				"nephoran.com/generated-at": time.Now().Format(time.RFC3339),
 
-				"nephoran.com/target":               intent.Target,
+				"nephoran.com/target": intent.Target,
 
-				"nephoran.com/namespace":            intent.Namespace,
+				"nephoran.com/namespace": intent.Namespace,
 
-				"nephoran.com/replicas":             fmt.Sprintf("%d", intent.Replicas),
-
+				"nephoran.com/replicas": fmt.Sprintf("%d", intent.Replicas),
 			},
-
 		},
 
 		Info: KptfileInfo{
 
 			Description: fmt.Sprintf("KRM package for %s CNF scaling to %d replicas", intent.Target, intent.Replicas),
 
-			Site:        "https://github.com/nephio-project/nephoran-intent-operator",
+			Site: "https://github.com/nephio-project/nephoran-intent-operator",
 
-			License:     "Apache-2.0",
+			License: "Apache-2.0",
 
 			Keywords: []string{
 
@@ -182,9 +143,7 @@ func (g *KptfileGenerator) Generate(intent *intent.ScalingIntent) ([]byte, error
 				"cnf",
 
 				"oran",
-
 			},
-
 		},
 
 		Pipeline: &KptfilePipeline{
@@ -197,18 +156,16 @@ func (g *KptfileGenerator) Generate(intent *intent.ScalingIntent) ([]byte, error
 
 					ConfigMap: map[string]interface{}{
 
-						"app":                          intent.Target,
+						"app": intent.Target,
 
-						"app.kubernetes.io/name":       intent.Target,
+						"app.kubernetes.io/name": intent.Target,
 
-						"app.kubernetes.io/component":  "nf-simulator",
+						"app.kubernetes.io/component": "nf-simulator",
 
-						"app.kubernetes.io/part-of":    "nephoran-intent-operator",
+						"app.kubernetes.io/part-of": "nephoran-intent-operator",
 
 						"app.kubernetes.io/managed-by": "porch-direct",
-
 					},
-
 				},
 
 				{
@@ -219,19 +176,12 @@ func (g *KptfileGenerator) Generate(intent *intent.ScalingIntent) ([]byte, error
 
 						"nephoran.com/intent-type": intent.IntentType,
 
-						"nephoran.com/source":      intent.Source,
-
+						"nephoran.com/source": intent.Source,
 					},
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	// Add correlation ID if provided.
 
@@ -245,8 +195,6 @@ func (g *KptfileGenerator) Generate(intent *intent.ScalingIntent) ([]byte, error
 
 	}
 
-
-
 	// Add reason if provided.
 
 	if intent.Reason != "" {
@@ -256,8 +204,6 @@ func (g *KptfileGenerator) Generate(intent *intent.ScalingIntent) ([]byte, error
 		kptfile.Pipeline.Mutators[1].ConfigMap["nephoran.com/reason"] = intent.Reason
 
 	}
-
-
 
 	// Convert to YAML.
 
@@ -269,13 +215,9 @@ func (g *KptfileGenerator) Generate(intent *intent.ScalingIntent) ([]byte, error
 
 	}
 
-
-
 	return yamlData, nil
 
 }
-
-
 
 // GenerateMinimal creates a minimal Kptfile without pipeline for simple packages.
 
@@ -285,7 +227,7 @@ func (g *KptfileGenerator) GenerateMinimal(intent *intent.ScalingIntent) ([]byte
 
 		APIVersion: "kpt.dev/v1",
 
-		Kind:       "Kptfile",
+		Kind: "Kptfile",
 
 		Metadata: KptfileMetadata{
 
@@ -293,33 +235,26 @@ func (g *KptfileGenerator) GenerateMinimal(intent *intent.ScalingIntent) ([]byte
 
 			Labels: map[string]string{
 
-				"app":                          intent.Target,
+				"app": intent.Target,
 
 				"app.kubernetes.io/managed-by": "porch-direct",
-
 			},
 
 			Annotations: map[string]string{
 
 				"config.kubernetes.io/local-config": "true",
 
-				"nephoran.com/intent-type":          intent.IntentType,
+				"nephoran.com/intent-type": intent.IntentType,
 
-				"nephoran.com/generated-at":         time.Now().Format(time.RFC3339),
-
+				"nephoran.com/generated-at": time.Now().Format(time.RFC3339),
 			},
-
 		},
 
 		Info: KptfileInfo{
 
 			Description: fmt.Sprintf("Minimal KRM package for %s scaling", intent.Target),
-
 		},
-
 	}
-
-
 
 	yamlData, err := yaml.Marshal(kptfile)
 
@@ -329,9 +264,6 @@ func (g *KptfileGenerator) GenerateMinimal(intent *intent.ScalingIntent) ([]byte
 
 	}
 
-
-
 	return yamlData, nil
 
 }
-

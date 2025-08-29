@@ -28,92 +28,67 @@ limitations under the License.
 
 */
 
-
-
-
 package shared
 
-
-
 import (
-
 	"container/list"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // CacheEntry represents an entry in the state cache.
 
 type CacheEntry struct {
+	Key string
 
-	Key         string
+	Value interface{}
 
-	Value       interface{}
-
-	ExpiresAt   time.Time
+	ExpiresAt time.Time
 
 	AccessCount int64
 
-	LastAccess  time.Time
+	LastAccess time.Time
 
-	CreatedAt   time.Time
+	CreatedAt time.Time
 
-	Size        int64
+	Size int64
 
-	element     *list.Element
-
+	element *list.Element
 }
-
-
 
 // StateCache provides thread-safe caching for intent states.
 
 type StateCache struct {
+	mutex sync.RWMutex
 
-	mutex        sync.RWMutex
-
-	entries      map[string]*CacheEntry
+	entries map[string]*CacheEntry
 
 	evictionList *list.List
 
-
-
 	// Configuration.
 
-	maxSize    int
+	maxSize int
 
 	defaultTTL time.Duration
 
-
-
 	// Statistics.
 
-	hits        int64
+	hits int64
 
-	misses      int64
+	misses int64
 
-	evictions   int64
+	evictions int64
 
 	currentSize int64
-
-
 
 	// Cleanup.
 
 	cleanupInterval time.Duration
 
-	stopCleanup     chan bool
+	stopCleanup chan bool
 
-	cleanupRunning  bool
-
+	cleanupRunning bool
 }
-
-
 
 // NewStateCache creates a new state cache.
 
@@ -121,33 +96,26 @@ func NewStateCache(maxSize int, defaultTTL time.Duration) *StateCache {
 
 	cache := &StateCache{
 
-		entries:         make(map[string]*CacheEntry),
+		entries: make(map[string]*CacheEntry),
 
-		evictionList:    list.New(),
+		evictionList: list.New(),
 
-		maxSize:         maxSize,
+		maxSize: maxSize,
 
-		defaultTTL:      defaultTTL,
+		defaultTTL: defaultTTL,
 
 		cleanupInterval: 5 * time.Minute,
 
-		stopCleanup:     make(chan bool),
-
+		stopCleanup: make(chan bool),
 	}
-
-
 
 	// Start background cleanup.
 
 	go cache.runCleanup()
 
-
-
 	return cache
 
 }
-
-
 
 // Get retrieves a value from the cache.
 
@@ -158,8 +126,6 @@ func (c *StateCache) Get(key string) interface{} {
 	entry, exists := c.entries[key]
 
 	c.mutex.RUnlock()
-
-
 
 	if !exists {
 
@@ -172,8 +138,6 @@ func (c *StateCache) Get(key string) interface{} {
 		return nil
 
 	}
-
-
 
 	// Check if expired.
 
@@ -191,8 +155,6 @@ func (c *StateCache) Get(key string) interface{} {
 
 	}
 
-
-
 	// Update access information.
 
 	c.mutex.Lock()
@@ -207,13 +169,9 @@ func (c *StateCache) Get(key string) interface{} {
 
 	c.mutex.Unlock()
 
-
-
 	return entry.Value
 
 }
-
-
 
 // Set stores a value in the cache.
 
@@ -225,19 +183,13 @@ func (c *StateCache) Set(key string, value interface{}, ttl time.Duration) {
 
 	}
 
-
-
 	c.mutex.Lock()
 
 	defer c.mutex.Unlock()
 
-
-
 	now := time.Now()
 
 	expiresAt := now.Add(ttl)
-
-
 
 	// Check if key already exists.
 
@@ -259,29 +211,24 @@ func (c *StateCache) Set(key string, value interface{}, ttl time.Duration) {
 
 	}
 
-
-
 	// Create new entry.
 
 	entry := &CacheEntry{
 
-		Key:         key,
+		Key: key,
 
-		Value:       value,
+		Value: value,
 
-		ExpiresAt:   expiresAt,
+		ExpiresAt: expiresAt,
 
 		AccessCount: 1,
 
-		LastAccess:  now,
+		LastAccess: now,
 
-		CreatedAt:   now,
+		CreatedAt: now,
 
-		Size:        c.calculateSize(value),
-
+		Size: c.calculateSize(value),
 	}
-
-
 
 	// Add to front of eviction list.
 
@@ -291,15 +238,11 @@ func (c *StateCache) Set(key string, value interface{}, ttl time.Duration) {
 
 	c.currentSize++
 
-
-
 	// Check if we need to evict entries.
 
 	c.evictIfNecessary()
 
 }
-
-
 
 // Delete removes a key from the cache.
 
@@ -308,8 +251,6 @@ func (c *StateCache) Delete(key string) bool {
 	c.mutex.Lock()
 
 	defer c.mutex.Unlock()
-
-
 
 	if entry, exists := c.entries[key]; exists {
 
@@ -321,13 +262,9 @@ func (c *StateCache) Delete(key string) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // Clear removes all entries from the cache.
 
@@ -337,8 +274,6 @@ func (c *StateCache) Clear() {
 
 	defer c.mutex.Unlock()
 
-
-
 	c.entries = make(map[string]*CacheEntry)
 
 	c.evictionList = list.New()
@@ -346,8 +281,6 @@ func (c *StateCache) Clear() {
 	c.currentSize = 0
 
 }
-
-
 
 // Size returns the current number of entries in the cache.
 
@@ -357,13 +290,9 @@ func (c *StateCache) Size() int {
 
 	defer c.mutex.RUnlock()
 
-
-
 	return len(c.entries)
 
 }
-
-
 
 // Stats returns cache statistics.
 
@@ -372,8 +301,6 @@ func (c *StateCache) Stats() *CacheStats {
 	c.mutex.RLock()
 
 	defer c.mutex.RUnlock()
-
-
 
 	total := c.hits + c.misses
 
@@ -385,29 +312,24 @@ func (c *StateCache) Stats() *CacheStats {
 
 	}
 
-
-
 	return &CacheStats{
 
-		Hits:        c.hits,
+		Hits: c.hits,
 
-		Misses:      c.misses,
+		Misses: c.misses,
 
-		HitRate:     hitRate,
+		HitRate: hitRate,
 
-		Evictions:   c.evictions,
+		Evictions: c.evictions,
 
 		CurrentSize: c.currentSize,
 
-		MaxSize:     int64(c.maxSize),
+		MaxSize: int64(c.maxSize),
 
-		EntryCount:  int64(len(c.entries)),
-
+		EntryCount: int64(len(c.entries)),
 	}
 
 }
-
-
 
 // Cleanup removes expired entries.
 
@@ -417,13 +339,9 @@ func (c *StateCache) Cleanup() int {
 
 	defer c.mutex.Unlock()
 
-
-
 	now := time.Now()
 
 	expired := make([]string, 0)
-
-
 
 	for key, entry := range c.entries {
 
@@ -435,21 +353,15 @@ func (c *StateCache) Cleanup() int {
 
 	}
 
-
-
 	for _, key := range expired {
 
 		c.removeEntry(key)
 
 	}
 
-
-
 	return len(expired)
 
 }
-
-
 
 // Keys returns all keys in the cache.
 
@@ -459,8 +371,6 @@ func (c *StateCache) Keys() []string {
 
 	defer c.mutex.RUnlock()
 
-
-
 	keys := make([]string, 0, len(c.entries))
 
 	for key := range c.entries {
@@ -469,13 +379,9 @@ func (c *StateCache) Keys() []string {
 
 	}
 
-
-
 	return keys
 
 }
-
-
 
 // Contains checks if a key exists in the cache (without updating access time).
 
@@ -485,8 +391,6 @@ func (c *StateCache) Contains(key string) bool {
 
 	defer c.mutex.RUnlock()
 
-
-
 	entry, exists := c.entries[key]
 
 	if !exists {
@@ -495,23 +399,17 @@ func (c *StateCache) Contains(key string) bool {
 
 	}
 
-
-
 	// Check if expired.
 
 	return time.Now().Before(entry.ExpiresAt)
 
 }
 
-
-
 // GetMultiple retrieves multiple values at once.
 
 func (c *StateCache) GetMultiple(keys []string) map[string]interface{} {
 
 	result := make(map[string]interface{})
-
-
 
 	for _, key := range keys {
 
@@ -523,13 +421,9 @@ func (c *StateCache) GetMultiple(keys []string) map[string]interface{} {
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // SetMultiple stores multiple values at once.
 
@@ -543,8 +437,6 @@ func (c *StateCache) SetMultiple(entries map[string]interface{}, ttl time.Durati
 
 }
 
-
-
 // GetOldest returns the oldest entry in the cache.
 
 func (c *StateCache) GetOldest() (string, interface{}, bool) {
@@ -553,15 +445,11 @@ func (c *StateCache) GetOldest() (string, interface{}, bool) {
 
 	defer c.mutex.RUnlock()
 
-
-
 	if c.evictionList.Len() == 0 {
 
 		return "", nil, false
 
 	}
-
-
 
 	back := c.evictionList.Back()
 
@@ -571,15 +459,11 @@ func (c *StateCache) GetOldest() (string, interface{}, bool) {
 
 	}
 
-
-
 	entry := back.Value.(*CacheEntry)
 
 	return entry.Key, entry.Value, true
 
 }
-
-
 
 // GetMostRecent returns the most recently accessed entry.
 
@@ -589,15 +473,11 @@ func (c *StateCache) GetMostRecent() (string, interface{}, bool) {
 
 	defer c.mutex.RUnlock()
 
-
-
 	if c.evictionList.Len() == 0 {
 
 		return "", nil, false
 
 	}
-
-
 
 	front := c.evictionList.Front()
 
@@ -607,15 +487,11 @@ func (c *StateCache) GetMostRecent() (string, interface{}, bool) {
 
 	}
 
-
-
 	entry := front.Value.(*CacheEntry)
 
 	return entry.Key, entry.Value, true
 
 }
-
-
 
 // Stop stops the cache cleanup process.
 
@@ -631,11 +507,7 @@ func (c *StateCache) Stop() {
 
 }
 
-
-
 // Internal methods.
-
-
 
 func (c *StateCache) removeEntry(key string) {
 
@@ -655,8 +527,6 @@ func (c *StateCache) removeEntry(key string) {
 
 }
 
-
-
 func (c *StateCache) moveToFront(entry *CacheEntry) {
 
 	if entry.element != nil {
@@ -666,8 +536,6 @@ func (c *StateCache) moveToFront(entry *CacheEntry) {
 	}
 
 }
-
-
 
 func (c *StateCache) evictIfNecessary() {
 
@@ -679,8 +547,6 @@ func (c *StateCache) evictIfNecessary() {
 
 }
 
-
-
 func (c *StateCache) evictOldest() {
 
 	back := c.evictionList.Back()
@@ -691,8 +557,6 @@ func (c *StateCache) evictOldest() {
 
 	}
 
-
-
 	entry := back.Value.(*CacheEntry)
 
 	c.removeEntry(entry.Key)
@@ -700,8 +564,6 @@ func (c *StateCache) evictOldest() {
 	c.evictions++
 
 }
-
-
 
 func (c *StateCache) calculateSize(value interface{}) int64 {
 
@@ -713,8 +575,6 @@ func (c *StateCache) calculateSize(value interface{}) int64 {
 
 }
 
-
-
 func (c *StateCache) runCleanup() {
 
 	c.cleanupRunning = true
@@ -722,8 +582,6 @@ func (c *StateCache) runCleanup() {
 	ticker := time.NewTicker(c.cleanupInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -743,51 +601,41 @@ func (c *StateCache) runCleanup() {
 
 }
 
-
-
 // CacheStats represents cache statistics.
 
 type CacheStats struct {
+	Hits int64 `json:"hits"`
 
-	Hits        int64   `json:"hits"`
+	Misses int64 `json:"misses"`
 
-	Misses      int64   `json:"misses"`
+	HitRate float64 `json:"hitRate"`
 
-	HitRate     float64 `json:"hitRate"`
+	Evictions int64 `json:"evictions"`
 
-	Evictions   int64   `json:"evictions"`
+	CurrentSize int64 `json:"currentSize"`
 
-	CurrentSize int64   `json:"currentSize"`
+	MaxSize int64 `json:"maxSize"`
 
-	MaxSize     int64   `json:"maxSize"`
-
-	EntryCount  int64   `json:"entryCount"`
-
+	EntryCount int64 `json:"entryCount"`
 }
-
-
 
 // CacheConfig provides configuration for the cache.
 
 type CacheConfig struct {
+	MaxSize int `json:"maxSize"`
 
-	MaxSize          int           `json:"maxSize"`
+	DefaultTTL time.Duration `json:"defaultTTL"`
 
-	DefaultTTL       time.Duration `json:"defaultTTL"`
+	CleanupInterval time.Duration `json:"cleanupInterval"`
 
-	CleanupInterval  time.Duration `json:"cleanupInterval"`
+	EvictionPolicy string `json:"evictionPolicy"` // "lru", "lfu", "ttl"
 
-	EvictionPolicy   string        `json:"evictionPolicy"` // "lru", "lfu", "ttl"
+	MaxMemoryMB int64 `json:"maxMemoryMB"`
 
-	MaxMemoryMB      int64         `json:"maxMemoryMB"`
+	EnableStatistics bool `json:"enableStatistics"`
 
-	EnableStatistics bool          `json:"enableStatistics"`
-
-	EnableMetrics    bool          `json:"enableMetrics"`
-
+	EnableMetrics bool `json:"enableMetrics"`
 }
-
-
 
 // DefaultCacheConfig returns default cache configuration.
 
@@ -795,29 +643,24 @@ func DefaultCacheConfig() *CacheConfig {
 
 	return &CacheConfig{
 
-		MaxSize:          10000,
+		MaxSize: 10000,
 
-		DefaultTTL:       30 * time.Minute,
+		DefaultTTL: 30 * time.Minute,
 
-		CleanupInterval:  5 * time.Minute,
+		CleanupInterval: 5 * time.Minute,
 
-		EvictionPolicy:   "lru",
+		EvictionPolicy: "lru",
 
-		MaxMemoryMB:      100,
+		MaxMemoryMB: 100,
 
 		EnableStatistics: true,
 
-		EnableMetrics:    true,
-
+		EnableMetrics: true,
 	}
 
 }
 
-
-
 // Advanced cache operations.
-
-
 
 // GetWithStats retrieves a value and returns access statistics.
 
@@ -828,8 +671,6 @@ func (c *StateCache) GetWithStats(key string) (interface{}, *CacheEntryStats) {
 	entry, exists := c.entries[key]
 
 	c.mutex.RUnlock()
-
-
 
 	if !exists || time.Now().After(entry.ExpiresAt) {
 
@@ -849,8 +690,6 @@ func (c *StateCache) GetWithStats(key string) (interface{}, *CacheEntryStats) {
 
 	}
 
-
-
 	// Update access information.
 
 	c.mutex.Lock()
@@ -863,39 +702,30 @@ func (c *StateCache) GetWithStats(key string) (interface{}, *CacheEntryStats) {
 
 	c.hits++
 
-
-
 	stats := &CacheEntryStats{
 
-		AccessCount:  entry.AccessCount,
+		AccessCount: entry.AccessCount,
 
-		LastAccess:   entry.LastAccess,
+		LastAccess: entry.LastAccess,
 
-		CreatedAt:    entry.CreatedAt,
+		CreatedAt: entry.CreatedAt,
 
-		Size:         entry.Size,
+		Size: entry.Size,
 
 		TimeToExpiry: time.Until(entry.ExpiresAt),
-
 	}
 
 	c.mutex.Unlock()
 
-
-
 	return entry.Value, stats
 
 }
-
-
 
 // SetWithCallback stores a value with an expiration callback.
 
 func (c *StateCache) SetWithCallback(key string, value interface{}, ttl time.Duration, callback func(string, interface{})) {
 
 	c.Set(key, value, ttl)
-
-
 
 	// Schedule callback for expiration.
 
@@ -913,21 +743,16 @@ func (c *StateCache) SetWithCallback(key string, value interface{}, ttl time.Dur
 
 }
 
-
-
 // CacheEntryStats provides statistics for a cache entry.
 
 type CacheEntryStats struct {
+	AccessCount int64 `json:"accessCount"`
 
-	AccessCount  int64         `json:"accessCount"`
+	LastAccess time.Time `json:"lastAccess"`
 
-	LastAccess   time.Time     `json:"lastAccess"`
+	CreatedAt time.Time `json:"createdAt"`
 
-	CreatedAt    time.Time     `json:"createdAt"`
-
-	Size         int64         `json:"size"`
+	Size int64 `json:"size"`
 
 	TimeToExpiry time.Duration `json:"timeToExpiry"`
-
 }
-

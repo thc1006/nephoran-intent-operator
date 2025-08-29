@@ -1,65 +1,43 @@
-
 package performance
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"math"
-
 	"math/rand"
-
 	"strings"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
 
-
-
 	"k8s.io/klog/v2"
-
 )
-
-
 
 // LoadTestScenario represents a load testing scenario.
 
 type LoadTestScenario struct {
+	Name string
 
-	Name            string
+	Description string
 
-	Description     string
+	Duration time.Duration
 
-	Duration        time.Duration
+	RampUpTime time.Duration
 
-	RampUpTime      time.Duration
+	MaxConcurrency int
 
-	MaxConcurrency  int
-
-	TargetRPS       int
+	TargetRPS int
 
 	WorkloadPattern WorkloadPattern
 
-	Workload        func(ctx context.Context) error
+	Workload func(ctx context.Context) error
 
-	Metrics         *LoadTestMetrics
-
+	Metrics *LoadTestMetrics
 }
-
-
 
 // WorkloadPattern defines the pattern of load generation.
 
 type WorkloadPattern string
-
-
 
 const (
 
@@ -86,146 +64,119 @@ const (
 	// PatternRealistic holds patternrealistic value.
 
 	PatternRealistic WorkloadPattern = "realistic"
-
 )
-
-
 
 // LoadTestMetrics tracks load test metrics.
 
 type LoadTestMetrics struct {
-
-	TotalRequests      int64
+	TotalRequests int64
 
 	SuccessfulRequests int64
 
-	FailedRequests     int64
+	FailedRequests int64
 
-	TotalLatency       int64 // in nanoseconds
+	TotalLatency int64 // in nanoseconds
 
-	MinLatency         int64
+	MinLatency int64
 
-	MaxLatency         int64
+	MaxLatency int64
 
-	Latencies          []time.Duration
+	Latencies []time.Duration
 
-	ErrorTypes         map[string]int64
+	ErrorTypes map[string]int64
 
-	StartTime          time.Time
+	StartTime time.Time
 
-	EndTime            time.Time
+	EndTime time.Time
 
-	mu                 sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // LoadTestRunner executes load test scenarios.
 
 type LoadTestRunner struct {
+	scenarios []LoadTestScenario
 
-	scenarios       []LoadTestScenario
+	profiler *Profiler
 
-	profiler        *Profiler
-
-	flameGraphGen   *FlameGraphGenerator
+	flameGraphGen *FlameGraphGenerator
 
 	metricsReporter *MetricsReporter
 
-	results         map[string]*LoadTestResult
+	results map[string]*LoadTestResult
 
-	mu              sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // LoadTestResult contains the results of a load test.
 
 type LoadTestResult struct {
+	Scenario LoadTestScenario
 
-	Scenario       LoadTestScenario
+	Metrics *LoadTestMetrics
 
-	Metrics        *LoadTestMetrics
+	ProfileData map[string]*ProfileData
 
-	ProfileData    map[string]*ProfileData
+	FlameGraphs map[string]string
 
-	FlameGraphs    map[string]string
+	Analysis *PerformanceAnalysis
 
-	Analysis       *PerformanceAnalysis
-
-	Passed         bool
+	Passed bool
 
 	FailureReasons []string
-
 }
-
-
 
 // PerformanceAnalysis contains analysis of performance data.
 
 type PerformanceAnalysis struct {
+	AverageLatency time.Duration
 
-	AverageLatency  time.Duration
+	P50Latency time.Duration
 
-	P50Latency      time.Duration
+	P95Latency time.Duration
 
-	P95Latency      time.Duration
+	P99Latency time.Duration
 
-	P99Latency      time.Duration
+	Throughput float64
 
-	Throughput      float64
+	ErrorRate float64
 
-	ErrorRate       float64
+	CPUUtilization float64
 
-	CPUUtilization  float64
+	MemoryUsage float64
 
-	MemoryUsage     float64
+	GoroutineCount int
 
-	GoroutineCount  int
-
-	Bottlenecks     []Bottleneck
+	Bottlenecks []Bottleneck
 
 	Recommendations []string
-
 }
-
-
 
 // Bottleneck represents a performance bottleneck.
 
 type Bottleneck struct {
+	Component string
 
-	Component   string
+	Type string // "CPU", "Memory", "I/O", "Lock Contention"
 
-	Type        string // "CPU", "Memory", "I/O", "Lock Contention"
+	Severity string // "Critical", "High", "Medium", "Low"
 
-	Severity    string // "Critical", "High", "Medium", "Low"
-
-	Impact      float64
+	Impact float64
 
 	Description string
 
-	Solution    string
-
+	Solution string
 }
-
-
 
 // MetricsReporter reports metrics during load tests.
 
 type MetricsReporter struct {
-
 	interval time.Duration
 
-	stopCh   chan struct{}
+	stopCh chan struct{}
 
-	wg       sync.WaitGroup
-
+	wg sync.WaitGroup
 }
-
-
 
 // NewLoadTestRunner creates a new load test runner.
 
@@ -233,21 +184,18 @@ func NewLoadTestRunner() *LoadTestRunner {
 
 	return &LoadTestRunner{
 
-		scenarios:       make([]LoadTestScenario, 0),
+		scenarios: make([]LoadTestScenario, 0),
 
-		profiler:        NewProfiler(),
+		profiler: NewProfiler(),
 
-		flameGraphGen:   NewFlameGraphGenerator("/tmp/profiles", "/tmp/flamegraphs"),
+		flameGraphGen: NewFlameGraphGenerator("/tmp/profiles", "/tmp/flamegraphs"),
 
 		metricsReporter: NewMetricsReporter(5 * time.Second),
 
-		results:         make(map[string]*LoadTestResult),
-
+		results: make(map[string]*LoadTestResult),
 	}
 
 }
-
-
 
 // NewMetricsReporter creates a new metrics reporter.
 
@@ -257,13 +205,10 @@ func NewMetricsReporter(interval time.Duration) *MetricsReporter {
 
 		interval: interval,
 
-		stopCh:   make(chan struct{}),
-
+		stopCh: make(chan struct{}),
 	}
 
 }
-
-
 
 // AddScenario adds a load test scenario.
 
@@ -273,29 +218,22 @@ func (r *LoadTestRunner) AddScenario(scenario LoadTestScenario) {
 
 }
 
-
-
 // RunScenario executes a specific load test scenario.
 
 func (r *LoadTestRunner) RunScenario(ctx context.Context, scenario LoadTestScenario) (*LoadTestResult, error) {
 
 	klog.Infof("Starting load test scenario: %s", scenario.Name)
 
-
-
 	result := &LoadTestResult{
 
-		Scenario:    scenario,
+		Scenario: scenario,
 
-		Metrics:     NewLoadTestMetrics(),
+		Metrics: NewLoadTestMetrics(),
 
 		ProfileData: make(map[string]*ProfileData),
 
 		FlameGraphs: make(map[string]string),
-
 	}
-
-
 
 	// Start profiling.
 
@@ -307,21 +245,15 @@ func (r *LoadTestRunner) RunScenario(ctx context.Context, scenario LoadTestScena
 
 	defer r.profiler.StopCPUProfile()
 
-
-
 	// Start metrics reporting.
 
 	r.metricsReporter.Start(result.Metrics)
 
 	defer r.metricsReporter.Stop()
 
-
-
 	// Execute the load test.
 
 	result.Metrics.StartTime = time.Now()
-
-
 
 	switch scenario.WorkloadPattern {
 
@@ -355,11 +287,7 @@ func (r *LoadTestRunner) RunScenario(ctx context.Context, scenario LoadTestScena
 
 	}
 
-
-
 	result.Metrics.EndTime = time.Now()
-
-
 
 	// Capture final profiles.
 
@@ -369,15 +297,11 @@ func (r *LoadTestRunner) RunScenario(ctx context.Context, scenario LoadTestScena
 
 	goroutineProfile, _ := r.profiler.CaptureGoroutineProfile()
 
-
-
 	result.ProfileData["cpu"] = &ProfileData{ProfilePath: cpuProfile}
 
 	result.ProfileData["memory"] = &ProfileData{ProfilePath: memProfile}
 
 	result.ProfileData["goroutine"] = &ProfileData{ProfilePath: goroutineProfile}
-
-
 
 	// Generate flame graphs.
 
@@ -391,19 +315,13 @@ func (r *LoadTestRunner) RunScenario(ctx context.Context, scenario LoadTestScena
 
 	}
 
-
-
 	// Analyze results.
 
 	result.Analysis = r.analyzeResults(result.Metrics)
 
-
-
 	// Determine pass/fail.
 
 	result.Passed, result.FailureReasons = r.evaluateResults(scenario, result.Analysis)
-
-
 
 	// Store result.
 
@@ -413,17 +331,11 @@ func (r *LoadTestRunner) RunScenario(ctx context.Context, scenario LoadTestScena
 
 	r.mu.Unlock()
 
-
-
 	klog.Infof("Load test scenario %s completed. Passed: %v", scenario.Name, result.Passed)
-
-
 
 	return result, nil
 
 }
-
-
 
 // runConstantLoad runs a constant load pattern.
 
@@ -433,13 +345,9 @@ func (r *LoadTestRunner) runConstantLoad(ctx context.Context, scenario LoadTestS
 
 	stopCh := make(chan struct{})
 
-
-
 	// Calculate delay between requests to achieve target RPS.
 
 	delay := time.Second / time.Duration(scenario.TargetRPS)
-
-
 
 	// Start workers.
 
@@ -454,8 +362,6 @@ func (r *LoadTestRunner) runConstantLoad(ctx context.Context, scenario LoadTestS
 			ticker := time.NewTicker(delay * time.Duration(scenario.MaxConcurrency))
 
 			defer ticker.Stop()
-
-
 
 			for {
 
@@ -481,8 +387,6 @@ func (r *LoadTestRunner) runConstantLoad(ctx context.Context, scenario LoadTestS
 
 	}
 
-
-
 	// Run for specified duration.
 
 	time.Sleep(scenario.Duration)
@@ -493,8 +397,6 @@ func (r *LoadTestRunner) runConstantLoad(ctx context.Context, scenario LoadTestS
 
 }
 
-
-
 // runLinearRampLoad runs a linear ramp-up load pattern.
 
 func (r *LoadTestRunner) runLinearRampLoad(ctx context.Context, scenario LoadTestScenario, metrics *LoadTestMetrics) {
@@ -502,8 +404,6 @@ func (r *LoadTestRunner) runLinearRampLoad(ctx context.Context, scenario LoadTes
 	var wg sync.WaitGroup
 
 	stopCh := make(chan struct{})
-
-
 
 	// Calculate ramp-up rate.
 
@@ -513,11 +413,7 @@ func (r *LoadTestRunner) runLinearRampLoad(ctx context.Context, scenario LoadTes
 
 	workersPerStep := scenario.MaxConcurrency / rampUpSteps
 
-
-
 	currentWorkers := 0
-
-
 
 	for range rampUpSteps {
 
@@ -538,8 +434,6 @@ func (r *LoadTestRunner) runLinearRampLoad(ctx context.Context, scenario LoadTes
 				ticker := time.NewTicker(delay)
 
 				defer ticker.Stop()
-
-
 
 				for {
 
@@ -565,13 +459,9 @@ func (r *LoadTestRunner) runLinearRampLoad(ctx context.Context, scenario LoadTes
 
 		}
 
-
-
 		time.Sleep(stepDuration)
 
 	}
-
-
 
 	// Run at full load for remaining duration.
 
@@ -583,8 +473,6 @@ func (r *LoadTestRunner) runLinearRampLoad(ctx context.Context, scenario LoadTes
 
 }
 
-
-
 // runStepRampLoad runs a step ramp-up load pattern.
 
 func (r *LoadTestRunner) runStepRampLoad(ctx context.Context, scenario LoadTestScenario, metrics *LoadTestMetrics) {
@@ -593,21 +481,15 @@ func (r *LoadTestRunner) runStepRampLoad(ctx context.Context, scenario LoadTestS
 
 	stepDuration := scenario.Duration / time.Duration(len(steps))
 
-
-
 	for _, percentage := range steps {
 
 		workers := (scenario.MaxConcurrency * percentage) / 100
 
 		targetRPS := (scenario.TargetRPS * percentage) / 100
 
-
-
 		var wg sync.WaitGroup
 
 		stopCh := make(chan struct{})
-
-
 
 		for range workers {
 
@@ -623,8 +505,6 @@ func (r *LoadTestRunner) runStepRampLoad(ctx context.Context, scenario LoadTestS
 
 				defer ticker.Stop()
 
-
-
 				for {
 
 					select {
@@ -649,8 +529,6 @@ func (r *LoadTestRunner) runStepRampLoad(ctx context.Context, scenario LoadTestS
 
 		}
 
-
-
 		time.Sleep(stepDuration)
 
 		close(stopCh)
@@ -661,8 +539,6 @@ func (r *LoadTestRunner) runStepRampLoad(ctx context.Context, scenario LoadTestS
 
 }
 
-
-
 // runSpikeLoad runs a spike load pattern.
 
 func (r *LoadTestRunner) runSpikeLoad(ctx context.Context, scenario LoadTestScenario, metrics *LoadTestMetrics) {
@@ -671,35 +547,27 @@ func (r *LoadTestRunner) runSpikeLoad(ctx context.Context, scenario LoadTestScen
 
 	spikeLoad := scenario.MaxConcurrency
 
-
-
 	phases := []struct {
-
-		workers  int
+		workers int
 
 		duration time.Duration
-
 	}{
 
 		{normalLoad, scenario.Duration / 4}, // Normal
 
-		{spikeLoad, scenario.Duration / 4},  // Spike
+		{spikeLoad, scenario.Duration / 4}, // Spike
 
 		{normalLoad, scenario.Duration / 4}, // Recovery
 
-		{spikeLoad, scenario.Duration / 4},  // Second spike
+		{spikeLoad, scenario.Duration / 4}, // Second spike
 
 	}
-
-
 
 	for _, phase := range phases {
 
 		var wg sync.WaitGroup
 
 		stopCh := make(chan struct{})
-
-
 
 		for range phase.workers {
 
@@ -715,8 +583,6 @@ func (r *LoadTestRunner) runSpikeLoad(ctx context.Context, scenario LoadTestScen
 
 				defer ticker.Stop()
 
-
-
 				for {
 
 					select {
@@ -741,8 +607,6 @@ func (r *LoadTestRunner) runSpikeLoad(ctx context.Context, scenario LoadTestScen
 
 		}
 
-
-
 		time.Sleep(phase.duration)
 
 		close(stopCh)
@@ -753,8 +617,6 @@ func (r *LoadTestRunner) runSpikeLoad(ctx context.Context, scenario LoadTestScen
 
 }
 
-
-
 // runWaveLoad runs a wave (sinusoidal) load pattern.
 
 func (r *LoadTestRunner) runWaveLoad(ctx context.Context, scenario LoadTestScenario, metrics *LoadTestMetrics) {
@@ -763,23 +625,17 @@ func (r *LoadTestRunner) runWaveLoad(ctx context.Context, scenario LoadTestScena
 
 	stopCh := make(chan struct{})
 
-
-
 	wg.Add(1)
 
 	go func() {
 
 		defer wg.Done()
 
-
-
 		startTime := time.Now()
 
 		ticker := time.NewTicker(100 * time.Millisecond)
 
 		defer ticker.Stop()
-
-
 
 		for {
 
@@ -805,8 +661,6 @@ func (r *LoadTestRunner) runWaveLoad(ctx context.Context, scenario LoadTestScena
 
 				currentWorkers := int(float64(scenario.MaxConcurrency) * loadFactor)
 
-
-
 				// Adjust worker pool size.
 
 				for range currentWorkers {
@@ -825,8 +679,6 @@ func (r *LoadTestRunner) runWaveLoad(ctx context.Context, scenario LoadTestScena
 
 	}()
 
-
-
 	time.Sleep(scenario.Duration)
 
 	close(stopCh)
@@ -834,8 +686,6 @@ func (r *LoadTestRunner) runWaveLoad(ctx context.Context, scenario LoadTestScena
 	wg.Wait()
 
 }
-
-
 
 // runRealisticLoad runs a realistic telecom workload pattern.
 
@@ -853,49 +703,39 @@ func (r *LoadTestRunner) runRealisticLoad(ctx context.Context, scenario LoadTest
 
 	// - Night time low load.
 
-
-
 	hourlyPatterns := []struct {
+		hour int
 
-		hour     int
-
-		loadPct  int
+		loadPct int
 
 		duration time.Duration
-
 	}{
 
-		{6, 20, scenario.Duration / 8},   // Early morning
+		{6, 20, scenario.Duration / 8}, // Early morning
 
-		{8, 60, scenario.Duration / 8},   // Morning ramp
+		{8, 60, scenario.Duration / 8}, // Morning ramp
 
-		{12, 80, scenario.Duration / 8},  // Lunch spike
+		{12, 80, scenario.Duration / 8}, // Lunch spike
 
-		{14, 70, scenario.Duration / 8},  // Afternoon
+		{14, 70, scenario.Duration / 8}, // Afternoon
 
 		{18, 100, scenario.Duration / 8}, // Evening peak
 
-		{20, 90, scenario.Duration / 8},  // Early evening
+		{20, 90, scenario.Duration / 8}, // Early evening
 
-		{22, 50, scenario.Duration / 8},  // Late evening
+		{22, 50, scenario.Duration / 8}, // Late evening
 
-		{0, 30, scenario.Duration / 8},   // Night
+		{0, 30, scenario.Duration / 8}, // Night
 
 	}
-
-
 
 	for _, pattern := range hourlyPatterns {
 
 		workers := (scenario.MaxConcurrency * pattern.loadPct) / 100
 
-
-
 		var wg sync.WaitGroup
 
 		stopCh := make(chan struct{})
-
-
 
 		for range workers {
 
@@ -904,8 +744,6 @@ func (r *LoadTestRunner) runRealisticLoad(ctx context.Context, scenario LoadTest
 			go func() {
 
 				defer wg.Done()
-
-
 
 				// Add some randomness to simulate real traffic.
 
@@ -916,8 +754,6 @@ func (r *LoadTestRunner) runRealisticLoad(ctx context.Context, scenario LoadTest
 				ticker := time.NewTicker(delay)
 
 				defer ticker.Stop()
-
-
 
 				for {
 
@@ -943,8 +779,6 @@ func (r *LoadTestRunner) runRealisticLoad(ctx context.Context, scenario LoadTest
 
 		}
 
-
-
 		time.Sleep(pattern.duration)
 
 		close(stopCh)
@@ -955,35 +789,23 @@ func (r *LoadTestRunner) runRealisticLoad(ctx context.Context, scenario LoadTest
 
 }
 
-
-
 // executeRequest executes a single request and records metrics.
 
 func (r *LoadTestRunner) executeRequest(ctx context.Context, scenario LoadTestScenario, metrics *LoadTestMetrics) {
 
 	start := time.Now()
 
-
-
 	err := scenario.Workload(ctx)
 
-
-
 	latency := time.Since(start)
-
-
 
 	// Update metrics.
 
 	atomic.AddInt64(&metrics.TotalRequests, 1)
 
-
-
 	if err != nil {
 
 		atomic.AddInt64(&metrics.FailedRequests, 1)
-
-
 
 		metrics.mu.Lock()
 
@@ -1005,15 +827,11 @@ func (r *LoadTestRunner) executeRequest(ctx context.Context, scenario LoadTestSc
 
 	}
 
-
-
 	// Update latency metrics.
 
 	latencyNs := latency.Nanoseconds()
 
 	atomic.AddInt64(&metrics.TotalLatency, latencyNs)
-
-
 
 	// Update min/max latency.
 
@@ -1037,8 +855,6 @@ func (r *LoadTestRunner) executeRequest(ctx context.Context, scenario LoadTestSc
 
 	}
 
-
-
 	for {
 
 		oldMax := atomic.LoadInt64(&metrics.MaxLatency)
@@ -1059,8 +875,6 @@ func (r *LoadTestRunner) executeRequest(ctx context.Context, scenario LoadTestSc
 
 	}
 
-
-
 	// Store latency for percentile calculation.
 
 	metrics.mu.Lock()
@@ -1071,21 +885,16 @@ func (r *LoadTestRunner) executeRequest(ctx context.Context, scenario LoadTestSc
 
 }
 
-
-
 // analyzeResults analyzes the load test results.
 
 func (r *LoadTestRunner) analyzeResults(metrics *LoadTestMetrics) *PerformanceAnalysis {
 
 	analysis := &PerformanceAnalysis{
 
-		Bottlenecks:     make([]Bottleneck, 0),
+		Bottlenecks: make([]Bottleneck, 0),
 
 		Recommendations: make([]string, 0),
-
 	}
-
-
 
 	// Calculate basic metrics.
 
@@ -1095,8 +904,6 @@ func (r *LoadTestRunner) analyzeResults(metrics *LoadTestMetrics) *PerformanceAn
 
 	failedRequests := atomic.LoadInt64(&metrics.FailedRequests)
 
-
-
 	if totalRequests > 0 {
 
 		analysis.ErrorRate = float64(failedRequests) / float64(totalRequests) * 100
@@ -1104,8 +911,6 @@ func (r *LoadTestRunner) analyzeResults(metrics *LoadTestMetrics) *PerformanceAn
 		analysis.AverageLatency = time.Duration(atomic.LoadInt64(&metrics.TotalLatency) / totalRequests)
 
 	}
-
-
 
 	// Calculate percentiles.
 
@@ -1118,8 +923,6 @@ func (r *LoadTestRunner) analyzeResults(metrics *LoadTestMetrics) *PerformanceAn
 		copy(latencies, metrics.Latencies)
 
 		metrics.mu.RUnlock()
-
-
 
 		analyzer := NewMetricsAnalyzer()
 
@@ -1135,8 +938,6 @@ func (r *LoadTestRunner) analyzeResults(metrics *LoadTestMetrics) *PerformanceAn
 
 	}
 
-
-
 	// Calculate throughput.
 
 	duration := metrics.EndTime.Sub(metrics.StartTime).Seconds()
@@ -1147,53 +948,45 @@ func (r *LoadTestRunner) analyzeResults(metrics *LoadTestMetrics) *PerformanceAn
 
 	}
 
-
-
 	// Identify bottlenecks.
 
 	if analysis.P99Latency > 30*time.Second {
 
 		analysis.Bottlenecks = append(analysis.Bottlenecks, Bottleneck{
 
-			Component:   "Intent Processing",
+			Component: "Intent Processing",
 
-			Type:        "Latency",
+			Type: "Latency",
 
-			Severity:    "Critical",
+			Severity: "Critical",
 
-			Impact:      float64(analysis.P99Latency.Seconds()),
+			Impact: float64(analysis.P99Latency.Seconds()),
 
 			Description: fmt.Sprintf("P99 latency exceeds 30s threshold: %.2fs", analysis.P99Latency.Seconds()),
 
-			Solution:    "Enable response caching, optimize LLM queries, implement request batching",
-
+			Solution: "Enable response caching, optimize LLM queries, implement request batching",
 		})
 
 	}
-
-
 
 	if analysis.ErrorRate > 5 {
 
 		analysis.Bottlenecks = append(analysis.Bottlenecks, Bottleneck{
 
-			Component:   "System Reliability",
+			Component: "System Reliability",
 
-			Type:        "Errors",
+			Type: "Errors",
 
-			Severity:    "High",
+			Severity: "High",
 
-			Impact:      analysis.ErrorRate,
+			Impact: analysis.ErrorRate,
 
 			Description: fmt.Sprintf("Error rate exceeds 5%% threshold: %.2f%%", analysis.ErrorRate),
 
-			Solution:    "Implement circuit breakers, add retry logic with exponential backoff",
-
+			Solution: "Implement circuit breakers, add retry logic with exponential backoff",
 		})
 
 	}
-
-
 
 	// Generate recommendations.
 
@@ -1205,8 +998,6 @@ func (r *LoadTestRunner) analyzeResults(metrics *LoadTestMetrics) *PerformanceAn
 
 	}
 
-
-
 	if analysis.Throughput < 10 {
 
 		analysis.Recommendations = append(analysis.Recommendations,
@@ -1214,8 +1005,6 @@ func (r *LoadTestRunner) analyzeResults(metrics *LoadTestMetrics) *PerformanceAn
 			"Increase worker pool size and optimize request batching")
 
 	}
-
-
 
 	if len(metrics.ErrorTypes) > 3 {
 
@@ -1225,13 +1014,9 @@ func (r *LoadTestRunner) analyzeResults(metrics *LoadTestMetrics) *PerformanceAn
 
 	}
 
-
-
 	return analysis
 
 }
-
-
 
 // evaluateResults evaluates if the test passed based on criteria.
 
@@ -1240,8 +1025,6 @@ func (r *LoadTestRunner) evaluateResults(scenario LoadTestScenario, analysis *Pe
 	passed := true
 
 	reasons := make([]string, 0)
-
-
 
 	// Check latency requirements.
 
@@ -1253,8 +1036,6 @@ func (r *LoadTestRunner) evaluateResults(scenario LoadTestScenario, analysis *Pe
 
 	}
 
-
-
 	// Check error rate.
 
 	if analysis.ErrorRate > 5 {
@@ -1264,8 +1045,6 @@ func (r *LoadTestRunner) evaluateResults(scenario LoadTestScenario, analysis *Pe
 		reasons = append(reasons, fmt.Sprintf("Error rate (%.2f%%) exceeds 5%% threshold", analysis.ErrorRate))
 
 	}
-
-
 
 	// Check throughput.
 
@@ -1278,8 +1057,6 @@ func (r *LoadTestRunner) evaluateResults(scenario LoadTestScenario, analysis *Pe
 		reasons = append(reasons, fmt.Sprintf("Throughput (%.2f rps) below expected %.2f rps", analysis.Throughput, expectedThroughput))
 
 	}
-
-
 
 	// Check for critical bottlenecks.
 
@@ -1295,13 +1072,9 @@ func (r *LoadTestRunner) evaluateResults(scenario LoadTestScenario, analysis *Pe
 
 	}
 
-
-
 	return passed, reasons
 
 }
-
-
 
 // NewLoadTestMetrics creates new load test metrics.
 
@@ -1309,15 +1082,12 @@ func NewLoadTestMetrics() *LoadTestMetrics {
 
 	return &LoadTestMetrics{
 
-		Latencies:  make([]time.Duration, 0),
+		Latencies: make([]time.Duration, 0),
 
 		ErrorTypes: make(map[string]int64),
-
 	}
 
 }
-
-
 
 // Start starts the metrics reporter.
 
@@ -1332,8 +1102,6 @@ func (mr *MetricsReporter) Start(metrics *LoadTestMetrics) {
 		ticker := time.NewTicker(mr.interval)
 
 		defer ticker.Stop()
-
-
 
 		for {
 
@@ -1355,8 +1123,6 @@ func (mr *MetricsReporter) Start(metrics *LoadTestMetrics) {
 
 }
 
-
-
 // Stop stops the metrics reporter.
 
 func (mr *MetricsReporter) Stop() {
@@ -1366,8 +1132,6 @@ func (mr *MetricsReporter) Stop() {
 	mr.wg.Wait()
 
 }
-
-
 
 // reportMetrics reports current metrics.
 
@@ -1379,8 +1143,6 @@ func (mr *MetricsReporter) reportMetrics(metrics *LoadTestMetrics) {
 
 	failedRequests := atomic.LoadInt64(&metrics.FailedRequests)
 
-
-
 	var avgLatency time.Duration
 
 	if totalRequests > 0 {
@@ -1389,15 +1151,11 @@ func (mr *MetricsReporter) reportMetrics(metrics *LoadTestMetrics) {
 
 	}
 
-
-
 	klog.Infof("Load Test Progress - Total: %d, Success: %d, Failed: %d, Avg Latency: %v",
 
 		totalRequests, successfulRequests, failedRequests, avgLatency)
 
 }
-
-
 
 // GenerateReport generates a comprehensive load test report.
 
@@ -1407,17 +1165,11 @@ func (r *LoadTestRunner) GenerateReport() string {
 
 	defer r.mu.RUnlock()
 
-
-
 	var report strings.Builder
-
-
 
 	report.WriteString("=== NEPHORAN INTENT OPERATOR LOAD TEST REPORT ===\n\n")
 
 	report.WriteString(fmt.Sprintf("Generated: %s\n\n", time.Now().Format(time.RFC3339)))
-
-
 
 	for name, result := range r.results {
 
@@ -1430,8 +1182,6 @@ func (r *LoadTestRunner) GenerateReport() string {
 		report.WriteString(fmt.Sprintf("Pattern: %s\n", result.Scenario.WorkloadPattern))
 
 		report.WriteString("\n")
-
-
 
 		// Metrics summary.
 
@@ -1455,8 +1205,6 @@ func (r *LoadTestRunner) GenerateReport() string {
 
 		report.WriteString("\n")
 
-
-
 		// Latency metrics.
 
 		report.WriteString("Latency Analysis:\n")
@@ -1474,8 +1222,6 @@ func (r *LoadTestRunner) GenerateReport() string {
 		report.WriteString(fmt.Sprintf("  Max: %v\n", time.Duration(result.Metrics.MaxLatency)))
 
 		report.WriteString("\n")
-
-
 
 		// Bottlenecks.
 
@@ -1497,8 +1243,6 @@ func (r *LoadTestRunner) GenerateReport() string {
 
 		}
 
-
-
 		// Recommendations.
 
 		if len(result.Analysis.Recommendations) > 0 {
@@ -1514,8 +1258,6 @@ func (r *LoadTestRunner) GenerateReport() string {
 			report.WriteString("\n")
 
 		}
-
-
 
 		// Failure reasons.
 
@@ -1533,8 +1275,6 @@ func (r *LoadTestRunner) GenerateReport() string {
 
 		}
 
-
-
 		// Flame graphs.
 
 		if len(result.FlameGraphs) > 0 {
@@ -1551,19 +1291,13 @@ func (r *LoadTestRunner) GenerateReport() string {
 
 		}
 
-
-
 		report.WriteString(strings.Repeat("-", 60) + "\n\n")
 
 	}
 
-
-
 	// Overall summary.
 
 	report.WriteString("=== OVERALL SUMMARY ===\n\n")
-
-
 
 	passedCount := 0
 
@@ -1577,8 +1311,6 @@ func (r *LoadTestRunner) GenerateReport() string {
 
 	}
 
-
-
 	report.WriteString(fmt.Sprintf("Total Scenarios: %d\n", len(r.results)))
 
 	report.WriteString(fmt.Sprintf("Passed: %d\n", passedCount))
@@ -1587,13 +1319,9 @@ func (r *LoadTestRunner) GenerateReport() string {
 
 	report.WriteString(fmt.Sprintf("Success Rate: %.2f%%\n", float64(passedCount)/float64(len(r.results))*100))
 
-
-
 	return report.String()
 
 }
-
-
 
 func getPassFailStatus(passed bool) string {
 
@@ -1606,4 +1334,3 @@ func getPassFailStatus(passed bool) string {
 	return "✗ FAILED"
 
 }
-

@@ -1,73 +1,45 @@
-
 package providers
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	appsv1 "k8s.io/api/apps/v1"
-
 	corev1 "k8s.io/api/core/v1"
-
 	networkingv1 "k8s.io/api/networking/v1"
-
 	"k8s.io/apimachinery/pkg/api/errors"
-
 	"k8s.io/apimachinery/pkg/api/resource"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/labels"
-
 	"k8s.io/apimachinery/pkg/util/intstr"
-
 	"k8s.io/client-go/kubernetes"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // KubernetesProvider implements the CloudProvider interface for Kubernetes clusters.
 
 type KubernetesProvider struct {
+	name string
 
-	name          string
+	kubeClient client.Client
 
-	kubeClient    client.Client
+	clientset kubernetes.Interface
 
-	clientset     kubernetes.Interface
+	config map[string]string
 
-	config        map[string]string
-
-	connected     bool
+	connected bool
 
 	eventCallback EventCallback
 
-	stopChannel   chan struct{}
+	stopChannel chan struct{}
 
-	mutex         sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewKubernetesProvider creates a new Kubernetes provider instance.
 
@@ -79,29 +51,22 @@ func NewKubernetesProvider(kubeClient client.Client, clientset kubernetes.Interf
 
 	}
 
-
-
 	provider := &KubernetesProvider{
 
-		name:        "kubernetes",
+		name: "kubernetes",
 
-		kubeClient:  kubeClient,
+		kubeClient: kubeClient,
 
-		clientset:   clientset,
+		clientset: clientset,
 
-		config:      config,
+		config: config,
 
 		stopChannel: make(chan struct{}),
-
 	}
-
-
 
 	return provider, nil
 
 }
-
-
 
 // GetProviderInfo returns information about this Kubernetes provider.
 
@@ -111,37 +76,31 @@ func (k *KubernetesProvider) GetProviderInfo() *ProviderInfo {
 
 	defer k.mutex.RUnlock()
 
-
-
 	return &ProviderInfo{
 
-		Name:        k.name,
+		Name: k.name,
 
-		Type:        ProviderTypeKubernetes,
+		Type: ProviderTypeKubernetes,
 
-		Version:     "1.0.0",
+		Version: "1.0.0",
 
 		Description: "Kubernetes cloud provider for O2 IMS",
 
-		Vendor:      "Nephoran",
+		Vendor: "Nephoran",
 
-		Endpoint:    k.config["endpoint"],
+		Endpoint: k.config["endpoint"],
 
 		Tags: map[string]string{
 
 			"in_cluster": k.config["in_cluster"],
 
 			"kubeconfig": k.config["kubeconfig"],
-
 		},
 
 		LastUpdated: time.Now(),
-
 	}
 
 }
-
-
 
 // GetSupportedResourceTypes returns the resource types supported by Kubernetes.
 
@@ -178,12 +137,9 @@ func (k *KubernetesProvider) GetSupportedResourceTypes() []string {
 		"job",
 
 		"cronjob",
-
 	}
 
 }
-
-
 
 // GetCapabilities returns the capabilities of this Kubernetes provider.
 
@@ -191,81 +147,66 @@ func (k *KubernetesProvider) GetCapabilities() *ProviderCapabilities {
 
 	return &ProviderCapabilities{
 
-		ComputeTypes:     []string{"deployment", "statefulset", "daemonset", "pod", "job", "cronjob"},
+		ComputeTypes: []string{"deployment", "statefulset", "daemonset", "pod", "job", "cronjob"},
 
-		StorageTypes:     []string{"persistentvolume", "persistentvolumeclaim", "storageclass"},
+		StorageTypes: []string{"persistentvolume", "persistentvolumeclaim", "storageclass"},
 
-		NetworkTypes:     []string{"service", "ingress", "networkpolicy"},
+		NetworkTypes: []string{"service", "ingress", "networkpolicy"},
 
 		AcceleratorTypes: []string{"gpu", "fpga"},
 
+		AutoScaling: true,
 
+		LoadBalancing: true,
 
-		AutoScaling:    true,
+		Monitoring: true,
 
-		LoadBalancing:  true,
+		Logging: true,
 
-		Monitoring:     true,
-
-		Logging:        true,
-
-		Networking:     true,
+		Networking: true,
 
 		StorageClasses: true,
 
-
-
 		HorizontalPodAutoscaling: true,
 
-		VerticalPodAutoscaling:   true,
+		VerticalPodAutoscaling: true,
 
-		ClusterAutoscaling:       true,
+		ClusterAutoscaling: true,
 
+		Namespaces: true,
 
-
-		Namespaces:      true,
-
-		ResourceQuotas:  true,
+		ResourceQuotas: true,
 
 		NetworkPolicies: true,
 
-		RBAC:            true,
+		RBAC: true,
 
+		MultiZone: true,
 
+		MultiRegion: false,
 
-		MultiZone:        true,
-
-		MultiRegion:      false,
-
-		BackupRestore:    true,
+		BackupRestore: true,
 
 		DisasterRecovery: false,
 
-
-
-		Encryption:       true,
+		Encryption: true,
 
 		SecretManagement: true,
 
-		ImageScanning:    false,
+		ImageScanning: false,
 
-		PolicyEngine:     true,
+		PolicyEngine: true,
 
+		MaxNodes: 1000,
 
-
-		MaxNodes:    1000,
-
-		MaxPods:     30000,
+		MaxPods: 30000,
 
 		MaxServices: 5000,
 
-		MaxVolumes:  5000,
-
+		MaxVolumes: 5000,
 	}
 
 }
-
-
 
 // Connect establishes connection to the Kubernetes cluster.
 
@@ -274,8 +215,6 @@ func (k *KubernetesProvider) Connect(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	logger.Info("connecting to Kubernetes cluster")
-
-
 
 	// Test connection by listing nodes.
 
@@ -287,23 +226,17 @@ func (k *KubernetesProvider) Connect(ctx context.Context) error {
 
 	}
 
-
-
 	k.mutex.Lock()
 
 	k.connected = true
 
 	k.mutex.Unlock()
 
-
-
 	logger.Info("successfully connected to Kubernetes cluster")
 
 	return nil
 
 }
-
-
 
 // Disconnect closes the connection to the Kubernetes cluster.
 
@@ -313,15 +246,11 @@ func (k *KubernetesProvider) Disconnect(ctx context.Context) error {
 
 	logger.Info("disconnecting from Kubernetes cluster")
 
-
-
 	k.mutex.Lock()
 
 	k.connected = false
 
 	k.mutex.Unlock()
-
-
 
 	// Stop event watching if running.
 
@@ -333,15 +262,11 @@ func (k *KubernetesProvider) Disconnect(ctx context.Context) error {
 
 	}
 
-
-
 	logger.Info("disconnected from Kubernetes cluster")
 
 	return nil
 
 }
-
-
 
 // HealthCheck performs a health check on the Kubernetes cluster.
 
@@ -356,8 +281,6 @@ func (k *KubernetesProvider) HealthCheck(ctx context.Context) error {
 		return fmt.Errorf("health check failed: unable to list nodes: %w", err)
 
 	}
-
-
 
 	// Check if at least one node is ready.
 
@@ -379,15 +302,11 @@ func (k *KubernetesProvider) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	if readyNodes == 0 {
 
 		return fmt.Errorf("health check failed: no ready nodes found")
 
 	}
-
-
 
 	// Check if we can create a test namespace (and delete it).
 
@@ -396,12 +315,8 @@ func (k *KubernetesProvider) HealthCheck(ctx context.Context) error {
 		ObjectMeta: metav1.ObjectMeta{
 
 			Name: fmt.Sprintf("health-check-%d", time.Now().Unix()),
-
 		},
-
 	}
-
-
 
 	createdNs, err := k.clientset.CoreV1().Namespaces().Create(ctx, testNamespace, metav1.CreateOptions{})
 
@@ -410,8 +325,6 @@ func (k *KubernetesProvider) HealthCheck(ctx context.Context) error {
 		return fmt.Errorf("health check failed: unable to create test namespace: %w", err)
 
 	}
-
-
 
 	// Clean up test namespace.
 
@@ -427,13 +340,9 @@ func (k *KubernetesProvider) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Close closes any resources held by the provider.
 
@@ -442,8 +351,6 @@ func (k *KubernetesProvider) Close() error {
 	k.mutex.Lock()
 
 	defer k.mutex.Unlock()
-
-
 
 	// Stop event watching.
 
@@ -455,15 +362,11 @@ func (k *KubernetesProvider) Close() error {
 
 	}
 
-
-
 	k.connected = false
 
 	return nil
 
 }
-
-
 
 // CreateResource creates a new Kubernetes resource.
 
@@ -472,8 +375,6 @@ func (k *KubernetesProvider) CreateResource(ctx context.Context, req *CreateReso
 	logger := log.FromContext(ctx)
 
 	logger.Info("creating Kubernetes resource", "type", req.Type, "name", req.Name, "namespace", req.Namespace)
-
-
 
 	switch strings.ToLower(req.Type) {
 
@@ -509,8 +410,6 @@ func (k *KubernetesProvider) CreateResource(ctx context.Context, req *CreateReso
 
 }
 
-
-
 // GetResource retrieves a Kubernetes resource.
 
 func (k *KubernetesProvider) GetResource(ctx context.Context, resourceID string) (*ResourceResponse, error) {
@@ -518,8 +417,6 @@ func (k *KubernetesProvider) GetResource(ctx context.Context, resourceID string)
 	logger := log.FromContext(ctx)
 
 	logger.V(1).Info("getting Kubernetes resource", "resourceID", resourceID)
-
-
 
 	// Parse resourceID format: namespace/type/name.
 
@@ -530,8 +427,6 @@ func (k *KubernetesProvider) GetResource(ctx context.Context, resourceID string)
 		return nil, fmt.Errorf("invalid resourceID format, expected namespace/type/name or type/name: %s", resourceID)
 
 	}
-
-
 
 	var namespace, resourceType, name string
 
@@ -546,8 +441,6 @@ func (k *KubernetesProvider) GetResource(ctx context.Context, resourceID string)
 		namespace, resourceType, name = parts[0], parts[1], parts[2]
 
 	}
-
-
 
 	switch strings.ToLower(resourceType) {
 
@@ -579,8 +472,6 @@ func (k *KubernetesProvider) GetResource(ctx context.Context, resourceID string)
 
 }
 
-
-
 // UpdateResource updates a Kubernetes resource.
 
 func (k *KubernetesProvider) UpdateResource(ctx context.Context, resourceID string, req *UpdateResourceRequest) (*ResourceResponse, error) {
@@ -588,8 +479,6 @@ func (k *KubernetesProvider) UpdateResource(ctx context.Context, resourceID stri
 	logger := log.FromContext(ctx)
 
 	logger.Info("updating Kubernetes resource", "resourceID", resourceID)
-
-
 
 	// Parse resourceID.
 
@@ -600,8 +489,6 @@ func (k *KubernetesProvider) UpdateResource(ctx context.Context, resourceID stri
 		return nil, fmt.Errorf("invalid resourceID format: %s", resourceID)
 
 	}
-
-
 
 	var namespace, resourceType, name string
 
@@ -616,8 +503,6 @@ func (k *KubernetesProvider) UpdateResource(ctx context.Context, resourceID stri
 		namespace, resourceType, name = parts[0], parts[1], parts[2]
 
 	}
-
-
 
 	switch strings.ToLower(resourceType) {
 
@@ -645,8 +530,6 @@ func (k *KubernetesProvider) UpdateResource(ctx context.Context, resourceID stri
 
 }
 
-
-
 // DeleteResource deletes a Kubernetes resource.
 
 func (k *KubernetesProvider) DeleteResource(ctx context.Context, resourceID string) error {
@@ -654,8 +537,6 @@ func (k *KubernetesProvider) DeleteResource(ctx context.Context, resourceID stri
 	logger := log.FromContext(ctx)
 
 	logger.Info("deleting Kubernetes resource", "resourceID", resourceID)
-
-
 
 	// Parse resourceID.
 
@@ -666,8 +547,6 @@ func (k *KubernetesProvider) DeleteResource(ctx context.Context, resourceID stri
 		return fmt.Errorf("invalid resourceID format: %s", resourceID)
 
 	}
-
-
 
 	var namespace, resourceType, name string
 
@@ -682,8 +561,6 @@ func (k *KubernetesProvider) DeleteResource(ctx context.Context, resourceID stri
 		namespace, resourceType, name = parts[0], parts[1], parts[2]
 
 	}
-
-
 
 	switch strings.ToLower(resourceType) {
 
@@ -715,8 +592,6 @@ func (k *KubernetesProvider) DeleteResource(ctx context.Context, resourceID stri
 
 }
 
-
-
 // ListResources lists Kubernetes resources with optional filtering.
 
 func (k *KubernetesProvider) ListResources(ctx context.Context, filter *ResourceFilter) ([]*ResourceResponse, error) {
@@ -725,11 +600,7 @@ func (k *KubernetesProvider) ListResources(ctx context.Context, filter *Resource
 
 	logger.V(1).Info("listing Kubernetes resources", "filter", filter)
 
-
-
 	var resources []*ResourceResponse
-
-
 
 	// If specific types are requested, only query those.
 
@@ -742,8 +613,6 @@ func (k *KubernetesProvider) ListResources(ctx context.Context, filter *Resource
 		resourceTypes = []string{"deployment", "service", "configmap", "secret"}
 
 	}
-
-
 
 	for _, resourceType := range resourceTypes {
 
@@ -761,19 +630,13 @@ func (k *KubernetesProvider) ListResources(ctx context.Context, filter *Resource
 
 	}
 
-
-
 	// Apply additional filtering and limits.
 
 	resources = k.applyResourceFilters(resources, filter)
 
-
-
 	return resources, nil
 
 }
-
-
 
 // Deploy creates a deployment using various template types.
 
@@ -782,8 +645,6 @@ func (k *KubernetesProvider) Deploy(ctx context.Context, req *DeploymentRequest)
 	logger := log.FromContext(ctx)
 
 	logger.Info("deploying template", "name", req.Name, "type", req.TemplateType)
-
-
 
 	switch strings.ToLower(req.TemplateType) {
 
@@ -802,8 +663,6 @@ func (k *KubernetesProvider) Deploy(ctx context.Context, req *DeploymentRequest)
 	}
 
 }
-
-
 
 // GetDeployment retrieves a deployment.
 
@@ -827,8 +686,6 @@ func (k *KubernetesProvider) GetDeployment(ctx context.Context, deploymentID str
 
 	}
 
-
-
 	deployment, err := k.clientset.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
 
 	if err != nil {
@@ -837,13 +694,9 @@ func (k *KubernetesProvider) GetDeployment(ctx context.Context, deploymentID str
 
 	}
 
-
-
 	return k.convertDeploymentToResponse(deployment), nil
 
 }
-
-
 
 // UpdateDeployment updates a deployment.
 
@@ -852,8 +705,6 @@ func (k *KubernetesProvider) UpdateDeployment(ctx context.Context, deploymentID 
 	logger := log.FromContext(ctx)
 
 	logger.Info("updating deployment", "deploymentID", deploymentID)
-
-
 
 	// Get current deployment.
 
@@ -864,8 +715,6 @@ func (k *KubernetesProvider) UpdateDeployment(ctx context.Context, deploymentID 
 		return nil, fmt.Errorf("failed to get current deployment: %w", err)
 
 	}
-
-
 
 	// Apply updates based on template type.
 
@@ -887,8 +736,6 @@ func (k *KubernetesProvider) UpdateDeployment(ctx context.Context, deploymentID 
 
 }
 
-
-
 // DeleteDeployment deletes a deployment.
 
 func (k *KubernetesProvider) DeleteDeployment(ctx context.Context, deploymentID string) error {
@@ -896,8 +743,6 @@ func (k *KubernetesProvider) DeleteDeployment(ctx context.Context, deploymentID 
 	logger := log.FromContext(ctx)
 
 	logger.Info("deleting deployment", "deploymentID", deploymentID)
-
-
 
 	// Parse deploymentID.
 
@@ -917,8 +762,6 @@ func (k *KubernetesProvider) DeleteDeployment(ctx context.Context, deploymentID 
 
 	}
 
-
-
 	// Delete the deployment.
 
 	err := k.clientset.AppsV1().Deployments(namespace).Delete(ctx, name, metav1.DeleteOptions{})
@@ -929,14 +772,11 @@ func (k *KubernetesProvider) DeleteDeployment(ctx context.Context, deploymentID 
 
 	}
 
-
-
 	// Also delete associated services.
 
 	services, err := k.clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{
 
 		LabelSelector: fmt.Sprintf("app=%s", name),
-
 	})
 
 	if err == nil {
@@ -949,13 +789,9 @@ func (k *KubernetesProvider) DeleteDeployment(ctx context.Context, deploymentID 
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ListDeployments lists deployments with optional filtering.
 
@@ -964,8 +800,6 @@ func (k *KubernetesProvider) ListDeployments(ctx context.Context, filter *Deploy
 	logger := log.FromContext(ctx)
 
 	logger.V(1).Info("listing deployments", "filter", filter)
-
-
 
 	var listOptions metav1.ListOptions
 
@@ -985,15 +819,11 @@ func (k *KubernetesProvider) ListDeployments(ctx context.Context, filter *Deploy
 
 	}
 
-
-
 	if filter.Labels != nil {
 
 		listOptions.LabelSelector = labels.FormatLabels(filter.Labels)
 
 	}
-
-
 
 	if filter.Limit > 0 {
 
@@ -1001,11 +831,7 @@ func (k *KubernetesProvider) ListDeployments(ctx context.Context, filter *Deploy
 
 	}
 
-
-
 	var deployments []*DeploymentResponse
-
-
 
 	// If specific namespaces are requested, query them.
 
@@ -1016,8 +842,6 @@ func (k *KubernetesProvider) ListDeployments(ctx context.Context, filter *Deploy
 		namespaces = []string{"default"}
 
 	}
-
-
 
 	for _, namespace := range namespaces {
 
@@ -1031,13 +855,9 @@ func (k *KubernetesProvider) ListDeployments(ctx context.Context, filter *Deploy
 
 		}
 
-
-
 		for _, deployment := range deploymentList.Items {
 
 			resp := k.convertDeploymentToResponse(&deployment)
-
-
 
 			// Apply status filter if specified.
 
@@ -1065,21 +885,15 @@ func (k *KubernetesProvider) ListDeployments(ctx context.Context, filter *Deploy
 
 			}
 
-
-
 			deployments = append(deployments, resp)
 
 		}
 
 	}
 
-
-
 	return deployments, nil
 
 }
-
-
 
 // ScaleResource scales a Kubernetes resource.
 
@@ -1088,8 +902,6 @@ func (k *KubernetesProvider) ScaleResource(ctx context.Context, resourceID strin
 	logger := log.FromContext(ctx)
 
 	logger.Info("scaling resource", "resourceID", resourceID, "type", req.Type, "direction", req.Direction)
-
-
 
 	// Parse resourceID.
 
@@ -1100,8 +912,6 @@ func (k *KubernetesProvider) ScaleResource(ctx context.Context, resourceID strin
 		return fmt.Errorf("invalid resourceID format: %s", resourceID)
 
 	}
-
-
 
 	var namespace, resourceType, name string
 
@@ -1116,8 +926,6 @@ func (k *KubernetesProvider) ScaleResource(ctx context.Context, resourceID strin
 		namespace, resourceType, name = parts[0], parts[1], parts[2]
 
 	}
-
-
 
 	switch strings.ToLower(resourceType) {
 
@@ -1137,8 +945,6 @@ func (k *KubernetesProvider) ScaleResource(ctx context.Context, resourceID strin
 
 }
 
-
-
 // GetScalingCapabilities returns the scaling capabilities of a resource.
 
 func (k *KubernetesProvider) GetScalingCapabilities(ctx context.Context, resourceID string) (*ScalingCapabilities, error) {
@@ -1153,11 +959,7 @@ func (k *KubernetesProvider) GetScalingCapabilities(ctx context.Context, resourc
 
 	}
 
-
-
 	resourceType := parts[len(parts)-2] // Second to last part is the type
-
-
 
 	switch strings.ToLower(resourceType) {
 
@@ -1167,18 +969,17 @@ func (k *KubernetesProvider) GetScalingCapabilities(ctx context.Context, resourc
 
 			HorizontalScaling: true,
 
-			VerticalScaling:   false, // Requires VPA operator
+			VerticalScaling: false, // Requires VPA operator
 
-			MinReplicas:       0,
+			MinReplicas: 0,
 
-			MaxReplicas:       1000,
+			MaxReplicas: 1000,
 
-			SupportedMetrics:  []string{"cpu", "memory"},
+			SupportedMetrics: []string{"cpu", "memory"},
 
-			ScaleUpCooldown:   30 * time.Second,
+			ScaleUpCooldown: 30 * time.Second,
 
 			ScaleDownCooldown: 30 * time.Second,
-
 		}, nil
 
 	default:
@@ -1187,27 +988,22 @@ func (k *KubernetesProvider) GetScalingCapabilities(ctx context.Context, resourc
 
 			HorizontalScaling: false,
 
-			VerticalScaling:   false,
+			VerticalScaling: false,
 
-			MinReplicas:       1,
+			MinReplicas: 1,
 
-			MaxReplicas:       1,
-
+			MaxReplicas: 1,
 		}, nil
 
 	}
 
 }
 
-
-
 // GetMetrics returns cluster-level metrics.
 
 func (k *KubernetesProvider) GetMetrics(ctx context.Context) (map[string]interface{}, error) {
 
 	metrics := make(map[string]interface{})
-
-
 
 	// Get node count and status.
 
@@ -1241,8 +1037,6 @@ func (k *KubernetesProvider) GetMetrics(ctx context.Context) (map[string]interfa
 
 	}
 
-
-
 	// Get pod count across all namespaces.
 
 	pods, err := k.clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
@@ -1269,8 +1063,6 @@ func (k *KubernetesProvider) GetMetrics(ctx context.Context) (map[string]interfa
 
 	}
 
-
-
 	// Get namespace count.
 
 	namespaces, err := k.clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
@@ -1280,8 +1072,6 @@ func (k *KubernetesProvider) GetMetrics(ctx context.Context) (map[string]interfa
 		metrics["namespaces_total"] = len(namespaces.Items)
 
 	}
-
-
 
 	// Get service count.
 
@@ -1293,15 +1083,11 @@ func (k *KubernetesProvider) GetMetrics(ctx context.Context) (map[string]interfa
 
 	}
 
-
-
 	metrics["timestamp"] = time.Now().Unix()
 
 	return metrics, nil
 
 }
-
-
 
 // GetResourceMetrics returns metrics for a specific resource.
 
@@ -1317,8 +1103,6 @@ func (k *KubernetesProvider) GetResourceMetrics(ctx context.Context, resourceID 
 
 	}
 
-
-
 	var namespace, resourceType, name string
 
 	if len(parts) == 2 {
@@ -1333,11 +1117,7 @@ func (k *KubernetesProvider) GetResourceMetrics(ctx context.Context, resourceID 
 
 	}
 
-
-
 	metrics := make(map[string]interface{})
-
-
 
 	switch strings.ToLower(resourceType) {
 
@@ -1351,8 +1131,6 @@ func (k *KubernetesProvider) GetResourceMetrics(ctx context.Context, resourceID 
 
 		}
 
-
-
 		metrics["desired_replicas"] = *deployment.Spec.Replicas
 
 		metrics["ready_replicas"] = deployment.Status.ReadyReplicas
@@ -1360,8 +1138,6 @@ func (k *KubernetesProvider) GetResourceMetrics(ctx context.Context, resourceID 
 		metrics["available_replicas"] = deployment.Status.AvailableReplicas
 
 		metrics["updated_replicas"] = deployment.Status.UpdatedReplicas
-
-
 
 	case "service":
 
@@ -1373,15 +1149,11 @@ func (k *KubernetesProvider) GetResourceMetrics(ctx context.Context, resourceID 
 
 		}
 
-
-
 		metrics["type"] = string(service.Spec.Type)
 
 		metrics["port_count"] = len(service.Spec.Ports)
 
 		metrics["cluster_ip"] = service.Spec.ClusterIP
-
-
 
 		// Get endpoint count.
 
@@ -1403,15 +1175,11 @@ func (k *KubernetesProvider) GetResourceMetrics(ctx context.Context, resourceID 
 
 	}
 
-
-
 	metrics["timestamp"] = time.Now().Unix()
 
 	return metrics, nil
 
 }
-
-
 
 // GetResourceHealth returns the health status of a resource.
 
@@ -1427,8 +1195,6 @@ func (k *KubernetesProvider) GetResourceHealth(ctx context.Context, resourceID s
 
 	}
 
-
-
 	var namespace, resourceType, name string
 
 	if len(parts) == 2 {
@@ -1442,8 +1208,6 @@ func (k *KubernetesProvider) GetResourceHealth(ctx context.Context, resourceID s
 		namespace, resourceType, name = parts[0], parts[1], parts[2]
 
 	}
-
-
 
 	switch strings.ToLower(resourceType) {
 
@@ -1463,19 +1227,16 @@ func (k *KubernetesProvider) GetResourceHealth(ctx context.Context, resourceID s
 
 		return &HealthStatus{
 
-			Status:      HealthStatusUnknown,
+			Status: HealthStatusUnknown,
 
-			Message:     fmt.Sprintf("Health check not implemented for resource type: %s", resourceType),
+			Message: fmt.Sprintf("Health check not implemented for resource type: %s", resourceType),
 
 			LastUpdated: time.Now(),
-
 		}, nil
 
 	}
 
 }
-
-
 
 // CreateNetworkService creates a network service (Service, Ingress, or NetworkPolicy).
 
@@ -1484,8 +1245,6 @@ func (k *KubernetesProvider) CreateNetworkService(ctx context.Context, req *Netw
 	logger := log.FromContext(ctx)
 
 	logger.Info("creating network service", "type", req.Type, "name", req.Name)
-
-
 
 	switch strings.ToLower(req.Type) {
 
@@ -1509,8 +1268,6 @@ func (k *KubernetesProvider) CreateNetworkService(ctx context.Context, req *Netw
 
 }
 
-
-
 // GetNetworkService retrieves a network service.
 
 func (k *KubernetesProvider) GetNetworkService(ctx context.Context, serviceID string) (*NetworkServiceResponse, error) {
@@ -1525,11 +1282,7 @@ func (k *KubernetesProvider) GetNetworkService(ctx context.Context, serviceID st
 
 	}
 
-
-
 	namespace, serviceType, name := parts[0], parts[1], parts[2]
-
-
 
 	switch strings.ToLower(serviceType) {
 
@@ -1553,8 +1306,6 @@ func (k *KubernetesProvider) GetNetworkService(ctx context.Context, serviceID st
 
 }
 
-
-
 // DeleteNetworkService deletes a network service.
 
 func (k *KubernetesProvider) DeleteNetworkService(ctx context.Context, serviceID string) error {
@@ -1569,11 +1320,7 @@ func (k *KubernetesProvider) DeleteNetworkService(ctx context.Context, serviceID
 
 	}
 
-
-
 	namespace, serviceType, name := parts[0], parts[1], parts[2]
-
-
 
 	switch strings.ToLower(serviceType) {
 
@@ -1597,15 +1344,11 @@ func (k *KubernetesProvider) DeleteNetworkService(ctx context.Context, serviceID
 
 }
 
-
-
 // ListNetworkServices lists network services with filtering.
 
 func (k *KubernetesProvider) ListNetworkServices(ctx context.Context, filter *NetworkServiceFilter) ([]*NetworkServiceResponse, error) {
 
 	var services []*NetworkServiceResponse
-
-
 
 	serviceTypes := filter.Types
 
@@ -1615,8 +1358,6 @@ func (k *KubernetesProvider) ListNetworkServices(ctx context.Context, filter *Ne
 
 	}
 
-
-
 	namespaces := filter.Namespaces
 
 	if len(namespaces) == 0 {
@@ -1624,8 +1365,6 @@ func (k *KubernetesProvider) ListNetworkServices(ctx context.Context, filter *Ne
 		namespaces = []string{"default"}
 
 	}
-
-
 
 	for _, serviceType := range serviceTypes {
 
@@ -1645,13 +1384,9 @@ func (k *KubernetesProvider) ListNetworkServices(ctx context.Context, filter *Ne
 
 	}
 
-
-
 	return services, nil
 
 }
-
-
 
 // CreateStorageResource creates a storage resource.
 
@@ -1660,8 +1395,6 @@ func (k *KubernetesProvider) CreateStorageResource(ctx context.Context, req *Sto
 	logger := log.FromContext(ctx)
 
 	logger.Info("creating storage resource", "type", req.Type, "name", req.Name)
-
-
 
 	switch strings.ToLower(req.Type) {
 
@@ -1681,8 +1414,6 @@ func (k *KubernetesProvider) CreateStorageResource(ctx context.Context, req *Sto
 
 }
 
-
-
 // GetStorageResource retrieves a storage resource.
 
 func (k *KubernetesProvider) GetStorageResource(ctx context.Context, resourceID string) (*StorageResourceResponse, error) {
@@ -1697,8 +1428,6 @@ func (k *KubernetesProvider) GetStorageResource(ctx context.Context, resourceID 
 
 	}
 
-
-
 	var namespace, resourceType, name string
 
 	if len(parts) == 2 {
@@ -1712,8 +1441,6 @@ func (k *KubernetesProvider) GetStorageResource(ctx context.Context, resourceID 
 		namespace, resourceType, name = parts[0], parts[1], parts[2]
 
 	}
-
-
 
 	switch strings.ToLower(resourceType) {
 
@@ -1733,8 +1460,6 @@ func (k *KubernetesProvider) GetStorageResource(ctx context.Context, resourceID 
 
 }
 
-
-
 // DeleteStorageResource deletes a storage resource.
 
 func (k *KubernetesProvider) DeleteStorageResource(ctx context.Context, resourceID string) error {
@@ -1749,8 +1474,6 @@ func (k *KubernetesProvider) DeleteStorageResource(ctx context.Context, resource
 
 	}
 
-
-
 	var namespace, resourceType, name string
 
 	if len(parts) == 2 {
@@ -1764,8 +1487,6 @@ func (k *KubernetesProvider) DeleteStorageResource(ctx context.Context, resource
 		namespace, resourceType, name = parts[0], parts[1], parts[2]
 
 	}
-
-
 
 	switch strings.ToLower(resourceType) {
 
@@ -1785,15 +1506,11 @@ func (k *KubernetesProvider) DeleteStorageResource(ctx context.Context, resource
 
 }
 
-
-
 // ListStorageResources lists storage resources.
 
 func (k *KubernetesProvider) ListStorageResources(ctx context.Context, filter *StorageResourceFilter) ([]*StorageResourceResponse, error) {
 
 	var resources []*StorageResourceResponse
-
-
 
 	resourceTypes := filter.Types
 
@@ -1802,8 +1519,6 @@ func (k *KubernetesProvider) ListStorageResources(ctx context.Context, filter *S
 		resourceTypes = []string{"persistentvolumeclaim", "storageclass"}
 
 	}
-
-
 
 	for _, resourceType := range resourceTypes {
 
@@ -1819,13 +1534,9 @@ func (k *KubernetesProvider) ListStorageResources(ctx context.Context, filter *S
 
 	}
 
-
-
 	return resources, nil
 
 }
-
-
 
 // SubscribeToEvents subscribes to Kubernetes events.
 
@@ -1835,27 +1546,19 @@ func (k *KubernetesProvider) SubscribeToEvents(ctx context.Context, callback Eve
 
 	logger.Info("subscribing to Kubernetes events")
 
-
-
 	k.mutex.Lock()
 
 	k.eventCallback = callback
 
 	k.mutex.Unlock()
 
-
-
 	// Start watching events in a separate goroutine.
 
 	go k.watchEvents(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // UnsubscribeFromEvents unsubscribes from Kubernetes events.
 
@@ -1865,15 +1568,11 @@ func (k *KubernetesProvider) UnsubscribeFromEvents(ctx context.Context) error {
 
 	logger.Info("unsubscribing from Kubernetes events")
 
-
-
 	k.mutex.Lock()
 
 	k.eventCallback = nil
 
 	k.mutex.Unlock()
-
-
 
 	// Stop event watching.
 
@@ -1885,13 +1584,9 @@ func (k *KubernetesProvider) UnsubscribeFromEvents(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ApplyConfiguration applies provider configuration.
 
@@ -1901,13 +1596,9 @@ func (k *KubernetesProvider) ApplyConfiguration(ctx context.Context, config *Pro
 
 	logger.Info("applying provider configuration", "name", config.Name)
 
-
-
 	k.mutex.Lock()
 
 	defer k.mutex.Unlock()
-
-
 
 	// Update internal configuration.
 
@@ -1921,13 +1612,9 @@ func (k *KubernetesProvider) ApplyConfiguration(ctx context.Context, config *Pro
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetConfiguration retrieves current provider configuration.
 
@@ -1937,23 +1624,18 @@ func (k *KubernetesProvider) GetConfiguration(ctx context.Context) (*ProviderCon
 
 	defer k.mutex.RUnlock()
 
-
-
 	config := &ProviderConfiguration{
 
-		Name:       k.name,
+		Name: k.name,
 
-		Type:       ProviderTypeKubernetes,
+		Type: ProviderTypeKubernetes,
 
-		Version:    "1.0.0",
+		Version: "1.0.0",
 
-		Enabled:    k.connected,
+		Enabled: k.connected,
 
 		Parameters: make(map[string]interface{}),
-
 	}
-
-
 
 	for key, value := range k.config {
 
@@ -1961,13 +1643,9 @@ func (k *KubernetesProvider) GetConfiguration(ctx context.Context) (*ProviderCon
 
 	}
 
-
-
 	return config, nil
 
 }
-
-
 
 // ValidateConfiguration validates provider configuration.
 
@@ -1981,23 +1659,15 @@ func (k *KubernetesProvider) ValidateConfiguration(ctx context.Context, config *
 
 	}
 
-
-
 	// Validate parameters if any specific validation is needed.
 
 	// For now, basic validation is sufficient.
-
-
 
 	return nil
 
 }
 
-
-
 // Resource creation methods (thin wrappers for client-go).
-
-
 
 // CreateDeployment creates a Kubernetes deployment.
 
@@ -2013,8 +1683,6 @@ func (k *KubernetesProvider) CreateDeployment(ctx context.Context, req *CreateRe
 
 	}
 
-
-
 	// Extract replica count from specification.
 
 	replicas := int32(1)
@@ -2025,22 +1693,19 @@ func (k *KubernetesProvider) CreateDeployment(ctx context.Context, req *CreateRe
 
 	}
 
-
-
 	// Create Kubernetes Deployment object.
 
 	deployment := &appsv1.Deployment{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:        req.Name,
+			Name: req.Name,
 
-			Namespace:   req.Namespace,
+			Namespace: req.Namespace,
 
-			Labels:      req.Labels,
+			Labels: req.Labels,
 
 			Annotations: req.Annotations,
-
 		},
 
 		Spec: appsv1.DeploymentSpec{
@@ -2052,9 +1717,7 @@ func (k *KubernetesProvider) CreateDeployment(ctx context.Context, req *CreateRe
 				MatchLabels: map[string]string{
 
 					"app": req.Name,
-
 				},
-
 			},
 
 			Template: corev1.PodTemplateSpec{
@@ -2064,9 +1727,7 @@ func (k *KubernetesProvider) CreateDeployment(ctx context.Context, req *CreateRe
 					Labels: map[string]string{
 
 						"app": req.Name,
-
 					},
-
 				},
 
 				Spec: corev1.PodSpec{
@@ -2075,23 +1736,16 @@ func (k *KubernetesProvider) CreateDeployment(ctx context.Context, req *CreateRe
 
 						{
 
-							Name:  req.Name,
+							Name: req.Name,
 
 							Image: "nginx:latest", // Default image, should come from spec
 
 						},
-
 					},
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	// Create the deployment.
 
@@ -2103,15 +1757,11 @@ func (k *KubernetesProvider) CreateDeployment(ctx context.Context, req *CreateRe
 
 	}
 
-
-
 	// Convert to response format.
 
 	return k.convertDeploymentToResourceResponse(createdDeployment), nil
 
 }
-
-
 
 // CreateService creates a Kubernetes service.
 
@@ -2125,20 +1775,17 @@ func (k *KubernetesProvider) CreateService(ctx context.Context, req *CreateResou
 
 	}
 
-
-
 	service := &corev1.Service{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:        req.Name,
+			Name: req.Name,
 
-			Namespace:   req.Namespace,
+			Namespace: req.Namespace,
 
-			Labels:      req.Labels,
+			Labels: req.Labels,
 
 			Annotations: req.Annotations,
-
 		},
 
 		Spec: corev1.ServiceSpec{
@@ -2146,7 +1793,6 @@ func (k *KubernetesProvider) CreateService(ctx context.Context, req *CreateResou
 			Selector: map[string]string{
 
 				"app": req.Name,
-
 			},
 
 			Type: corev1.ServiceTypeClusterIP,
@@ -2155,21 +1801,15 @@ func (k *KubernetesProvider) CreateService(ctx context.Context, req *CreateResou
 
 				{
 
-					Port:       80,
+					Port: 80,
 
 					TargetPort: intstr.FromInt(80),
 
-					Protocol:   corev1.ProtocolTCP,
-
+					Protocol: corev1.ProtocolTCP,
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	// Extract service type if specified.
 
@@ -2179,8 +1819,6 @@ func (k *KubernetesProvider) CreateService(ctx context.Context, req *CreateResou
 
 	}
 
-
-
 	createdService, err := k.clientset.CoreV1().Services(req.Namespace).Create(ctx, service, metav1.CreateOptions{})
 
 	if err != nil {
@@ -2189,13 +1827,9 @@ func (k *KubernetesProvider) CreateService(ctx context.Context, req *CreateResou
 
 	}
 
-
-
 	return k.convertServiceToResourceResponse(createdService), nil
 
 }
-
-
 
 // CreateConfigMap creates a Kubernetes ConfigMap.
 
@@ -2208,8 +1842,6 @@ func (k *KubernetesProvider) CreateConfigMap(ctx context.Context, req *CreateRes
 		return nil, fmt.Errorf("invalid configmap specification")
 
 	}
-
-
 
 	data := make(map[string]string)
 
@@ -2227,27 +1859,21 @@ func (k *KubernetesProvider) CreateConfigMap(ctx context.Context, req *CreateRes
 
 	}
 
-
-
 	configMap := &corev1.ConfigMap{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:        req.Name,
+			Name: req.Name,
 
-			Namespace:   req.Namespace,
+			Namespace: req.Namespace,
 
-			Labels:      req.Labels,
+			Labels: req.Labels,
 
 			Annotations: req.Annotations,
-
 		},
 
 		Data: data,
-
 	}
-
-
 
 	createdConfigMap, err := k.clientset.CoreV1().ConfigMaps(req.Namespace).Create(ctx, configMap, metav1.CreateOptions{})
 
@@ -2257,13 +1883,9 @@ func (k *KubernetesProvider) CreateConfigMap(ctx context.Context, req *CreateRes
 
 	}
 
-
-
 	return k.convertConfigMapToResourceResponse(createdConfigMap), nil
 
 }
-
-
 
 // CreateSecret creates a Kubernetes Secret.
 
@@ -2276,8 +1898,6 @@ func (k *KubernetesProvider) CreateSecret(ctx context.Context, req *CreateResour
 		return nil, fmt.Errorf("invalid secret specification")
 
 	}
-
-
 
 	data := make(map[string][]byte)
 
@@ -2295,29 +1915,23 @@ func (k *KubernetesProvider) CreateSecret(ctx context.Context, req *CreateResour
 
 	}
 
-
-
 	secret := &corev1.Secret{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:        req.Name,
+			Name: req.Name,
 
-			Namespace:   req.Namespace,
+			Namespace: req.Namespace,
 
-			Labels:      req.Labels,
+			Labels: req.Labels,
 
 			Annotations: req.Annotations,
-
 		},
 
 		Type: corev1.SecretTypeOpaque,
 
 		Data: data,
-
 	}
-
-
 
 	createdSecret, err := k.clientset.CoreV1().Secrets(req.Namespace).Create(ctx, secret, metav1.CreateOptions{})
 
@@ -2327,13 +1941,9 @@ func (k *KubernetesProvider) CreateSecret(ctx context.Context, req *CreateResour
 
 	}
 
-
-
 	return k.convertSecretToResourceResponse(createdSecret), nil
 
 }
-
-
 
 // CreatePersistentVolumeClaim creates a Kubernetes PVC.
 
@@ -2347,8 +1957,6 @@ func (k *KubernetesProvider) CreatePersistentVolumeClaim(ctx context.Context, re
 
 	}
 
-
-
 	// Extract size.
 
 	size := "1Gi"
@@ -2359,20 +1967,17 @@ func (k *KubernetesProvider) CreatePersistentVolumeClaim(ctx context.Context, re
 
 	}
 
-
-
 	pvc := &corev1.PersistentVolumeClaim{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:        req.Name,
+			Name: req.Name,
 
-			Namespace:   req.Namespace,
+			Namespace: req.Namespace,
 
-			Labels:      req.Labels,
+			Labels: req.Labels,
 
 			Annotations: req.Annotations,
-
 		},
 
 		Spec: corev1.PersistentVolumeClaimSpec{
@@ -2380,7 +1985,6 @@ func (k *KubernetesProvider) CreatePersistentVolumeClaim(ctx context.Context, re
 			AccessModes: []corev1.PersistentVolumeAccessMode{
 
 				corev1.ReadWriteOnce,
-
 			},
 
 			Resources: corev1.VolumeResourceRequirements{
@@ -2388,16 +1992,10 @@ func (k *KubernetesProvider) CreatePersistentVolumeClaim(ctx context.Context, re
 				Requests: corev1.ResourceList{
 
 					corev1.ResourceStorage: resource.MustParse(size),
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	createdPVC, err := k.clientset.CoreV1().PersistentVolumeClaims(req.Namespace).Create(ctx, pvc, metav1.CreateOptions{})
 
@@ -2407,13 +2005,9 @@ func (k *KubernetesProvider) CreatePersistentVolumeClaim(ctx context.Context, re
 
 	}
 
-
-
 	return k.convertPVCToResourceResponse(createdPVC), nil
 
 }
-
-
 
 // CreateIngress creates a Kubernetes Ingress.
 
@@ -2427,27 +2021,21 @@ func (k *KubernetesProvider) CreateIngress(ctx context.Context, req *CreateResou
 
 	}
 
-
-
 	ingress := &networkingv1.Ingress{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:        req.Name,
+			Name: req.Name,
 
-			Namespace:   req.Namespace,
+			Namespace: req.Namespace,
 
-			Labels:      req.Labels,
+			Labels: req.Labels,
 
 			Annotations: req.Annotations,
-
 		},
 
 		Spec: networkingv1.IngressSpec{},
-
 	}
-
-
 
 	// Extract host and path rules if specified.
 
@@ -2462,7 +2050,6 @@ func (k *KubernetesProvider) CreateIngress(ctx context.Context, req *CreateResou
 					ingressRule := networkingv1.IngressRule{
 
 						Host: host,
-
 					}
 
 					ingress.Spec.Rules = append(ingress.Spec.Rules, ingressRule)
@@ -2475,8 +2062,6 @@ func (k *KubernetesProvider) CreateIngress(ctx context.Context, req *CreateResou
 
 	}
 
-
-
 	createdIngress, err := k.clientset.NetworkingV1().Ingresses(req.Namespace).Create(ctx, ingress, metav1.CreateOptions{})
 
 	if err != nil {
@@ -2485,17 +2070,11 @@ func (k *KubernetesProvider) CreateIngress(ctx context.Context, req *CreateResou
 
 	}
 
-
-
 	return k.convertIngressToResourceResponse(createdIngress), nil
 
 }
 
-
-
 // Get resource methods.
-
-
 
 // GetDeploymentResource gets a deployment as a ResourceResponse.
 
@@ -2509,13 +2088,9 @@ func (k *KubernetesProvider) GetDeploymentResource(ctx context.Context, namespac
 
 	}
 
-
-
 	return k.convertDeploymentToResourceResponse(deployment), nil
 
 }
-
-
 
 // GetService gets a service as a ResourceResponse.
 
@@ -2529,13 +2104,9 @@ func (k *KubernetesProvider) GetService(ctx context.Context, namespace, name str
 
 	}
 
-
-
 	return k.convertServiceToResourceResponse(service), nil
 
 }
-
-
 
 // GetConfigMap gets a configmap as a ResourceResponse.
 
@@ -2549,13 +2120,9 @@ func (k *KubernetesProvider) GetConfigMap(ctx context.Context, namespace, name s
 
 	}
 
-
-
 	return k.convertConfigMapToResourceResponse(configMap), nil
 
 }
-
-
 
 // GetSecret gets a secret as a ResourceResponse.
 
@@ -2569,13 +2136,9 @@ func (k *KubernetesProvider) GetSecret(ctx context.Context, namespace, name stri
 
 	}
 
-
-
 	return k.convertSecretToResourceResponse(secret), nil
 
 }
-
-
 
 // GetPersistentVolumeClaim gets a PVC as a ResourceResponse.
 
@@ -2589,17 +2152,11 @@ func (k *KubernetesProvider) GetPersistentVolumeClaim(ctx context.Context, names
 
 	}
 
-
-
 	return k.convertPVCToResourceResponse(pvc), nil
 
 }
 
-
-
 // Update resource methods.
-
-
 
 // UpdateDeploymentResource updates a deployment resource.
 
@@ -2612,8 +2169,6 @@ func (k *KubernetesProvider) UpdateDeploymentResource(ctx context.Context, names
 		return nil, fmt.Errorf("failed to get deployment for update: %w", err)
 
 	}
-
-
 
 	// Update labels and annotations.
 
@@ -2633,8 +2188,6 @@ func (k *KubernetesProvider) UpdateDeploymentResource(ctx context.Context, names
 
 	}
 
-
-
 	if req.Annotations != nil {
 
 		if deployment.Annotations == nil {
@@ -2651,8 +2204,6 @@ func (k *KubernetesProvider) UpdateDeploymentResource(ctx context.Context, names
 
 	}
 
-
-
 	updatedDeployment, err := k.clientset.AppsV1().Deployments(namespace).Update(ctx, deployment, metav1.UpdateOptions{})
 
 	if err != nil {
@@ -2661,13 +2212,9 @@ func (k *KubernetesProvider) UpdateDeploymentResource(ctx context.Context, names
 
 	}
 
-
-
 	return k.convertDeploymentToResourceResponse(updatedDeployment), nil
 
 }
-
-
 
 // UpdateService updates a service resource.
 
@@ -2680,8 +2227,6 @@ func (k *KubernetesProvider) UpdateService(ctx context.Context, namespace, name 
 		return nil, fmt.Errorf("failed to get service for update: %w", err)
 
 	}
-
-
 
 	// Update labels and annotations.
 
@@ -2701,8 +2246,6 @@ func (k *KubernetesProvider) UpdateService(ctx context.Context, namespace, name 
 
 	}
 
-
-
 	if req.Annotations != nil {
 
 		if service.Annotations == nil {
@@ -2719,8 +2262,6 @@ func (k *KubernetesProvider) UpdateService(ctx context.Context, namespace, name 
 
 	}
 
-
-
 	updatedService, err := k.clientset.CoreV1().Services(namespace).Update(ctx, service, metav1.UpdateOptions{})
 
 	if err != nil {
@@ -2729,13 +2270,9 @@ func (k *KubernetesProvider) UpdateService(ctx context.Context, namespace, name 
 
 	}
 
-
-
 	return k.convertServiceToResourceResponse(updatedService), nil
 
 }
-
-
 
 // UpdateConfigMap updates a configmap resource.
 
@@ -2748,8 +2285,6 @@ func (k *KubernetesProvider) UpdateConfigMap(ctx context.Context, namespace, nam
 		return nil, fmt.Errorf("failed to get configmap for update: %w", err)
 
 	}
-
-
 
 	// Update labels and annotations.
 
@@ -2769,8 +2304,6 @@ func (k *KubernetesProvider) UpdateConfigMap(ctx context.Context, namespace, nam
 
 	}
 
-
-
 	if req.Annotations != nil {
 
 		if configMap.Annotations == nil {
@@ -2787,8 +2320,6 @@ func (k *KubernetesProvider) UpdateConfigMap(ctx context.Context, namespace, nam
 
 	}
 
-
-
 	updatedConfigMap, err := k.clientset.CoreV1().ConfigMaps(namespace).Update(ctx, configMap, metav1.UpdateOptions{})
 
 	if err != nil {
@@ -2797,13 +2328,9 @@ func (k *KubernetesProvider) UpdateConfigMap(ctx context.Context, namespace, nam
 
 	}
 
-
-
 	return k.convertConfigMapToResourceResponse(updatedConfigMap), nil
 
 }
-
-
 
 // UpdateSecret updates a secret resource.
 
@@ -2816,8 +2343,6 @@ func (k *KubernetesProvider) UpdateSecret(ctx context.Context, namespace, name s
 		return nil, fmt.Errorf("failed to get secret for update: %w", err)
 
 	}
-
-
 
 	// Update labels and annotations.
 
@@ -2837,8 +2362,6 @@ func (k *KubernetesProvider) UpdateSecret(ctx context.Context, namespace, name s
 
 	}
 
-
-
 	if req.Annotations != nil {
 
 		if secret.Annotations == nil {
@@ -2855,8 +2378,6 @@ func (k *KubernetesProvider) UpdateSecret(ctx context.Context, namespace, name s
 
 	}
 
-
-
 	updatedSecret, err := k.clientset.CoreV1().Secrets(namespace).Update(ctx, secret, metav1.UpdateOptions{})
 
 	if err != nil {
@@ -2865,25 +2386,17 @@ func (k *KubernetesProvider) UpdateSecret(ctx context.Context, namespace, name s
 
 	}
 
-
-
 	return k.convertSecretToResourceResponse(updatedSecret), nil
 
 }
 
-
-
 // Conversion helper methods.
-
-
 
 func (k *KubernetesProvider) convertDeploymentToResourceResponse(deployment *appsv1.Deployment) *ResourceResponse {
 
 	status := "unknown"
 
 	health := HealthStatusUnknown
-
-
 
 	if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
 
@@ -2905,35 +2418,30 @@ func (k *KubernetesProvider) convertDeploymentToResourceResponse(deployment *app
 
 	}
 
-
-
 	return &ResourceResponse{
 
-		ID:          fmt.Sprintf("%s/deployment/%s", deployment.Namespace, deployment.Name),
+		ID: fmt.Sprintf("%s/deployment/%s", deployment.Namespace, deployment.Name),
 
-		Name:        deployment.Name,
+		Name: deployment.Name,
 
-		Type:        "deployment",
+		Type: "deployment",
 
-		Namespace:   deployment.Namespace,
+		Namespace: deployment.Namespace,
 
-		Status:      status,
+		Status: status,
 
-		Health:      health,
+		Health: health,
 
-		Labels:      deployment.Labels,
+		Labels: deployment.Labels,
 
 		Annotations: deployment.Annotations,
 
-		CreatedAt:   deployment.CreationTimestamp.Time,
+		CreatedAt: deployment.CreationTimestamp.Time,
 
-		UpdatedAt:   time.Now(),
-
+		UpdatedAt: time.Now(),
 	}
 
 }
-
-
 
 func (k *KubernetesProvider) convertServiceToResourceResponse(service *corev1.Service) *ResourceResponse {
 
@@ -2941,111 +2449,96 @@ func (k *KubernetesProvider) convertServiceToResourceResponse(service *corev1.Se
 
 	health := HealthStatusHealthy
 
-
-
 	if service.Spec.ClusterIP == "" || service.Spec.ClusterIP == "None" {
 
 		health = HealthStatusUnknown
 
 	}
 
-
-
 	return &ResourceResponse{
 
-		ID:          fmt.Sprintf("%s/service/%s", service.Namespace, service.Name),
+		ID: fmt.Sprintf("%s/service/%s", service.Namespace, service.Name),
 
-		Name:        service.Name,
+		Name: service.Name,
 
-		Type:        "service",
+		Type: "service",
 
-		Namespace:   service.Namespace,
+		Namespace: service.Namespace,
 
-		Status:      status,
+		Status: status,
 
-		Health:      health,
+		Health: health,
 
-		Labels:      service.Labels,
+		Labels: service.Labels,
 
 		Annotations: service.Annotations,
 
-		CreatedAt:   service.CreationTimestamp.Time,
+		CreatedAt: service.CreationTimestamp.Time,
 
-		UpdatedAt:   time.Now(),
-
+		UpdatedAt: time.Now(),
 	}
 
 }
-
-
 
 func (k *KubernetesProvider) convertConfigMapToResourceResponse(configMap *corev1.ConfigMap) *ResourceResponse {
 
 	return &ResourceResponse{
 
-		ID:          fmt.Sprintf("%s/configmap/%s", configMap.Namespace, configMap.Name),
+		ID: fmt.Sprintf("%s/configmap/%s", configMap.Namespace, configMap.Name),
 
-		Name:        configMap.Name,
+		Name: configMap.Name,
 
-		Type:        "configmap",
+		Type: "configmap",
 
-		Namespace:   configMap.Namespace,
+		Namespace: configMap.Namespace,
 
-		Status:      "active",
+		Status: "active",
 
-		Health:      HealthStatusHealthy,
+		Health: HealthStatusHealthy,
 
-		Labels:      configMap.Labels,
+		Labels: configMap.Labels,
 
 		Annotations: configMap.Annotations,
 
-		CreatedAt:   configMap.CreationTimestamp.Time,
+		CreatedAt: configMap.CreationTimestamp.Time,
 
-		UpdatedAt:   time.Now(),
-
+		UpdatedAt: time.Now(),
 	}
 
 }
-
-
 
 func (k *KubernetesProvider) convertSecretToResourceResponse(secret *corev1.Secret) *ResourceResponse {
 
 	return &ResourceResponse{
 
-		ID:          fmt.Sprintf("%s/secret/%s", secret.Namespace, secret.Name),
+		ID: fmt.Sprintf("%s/secret/%s", secret.Namespace, secret.Name),
 
-		Name:        secret.Name,
+		Name: secret.Name,
 
-		Type:        "secret",
+		Type: "secret",
 
-		Namespace:   secret.Namespace,
+		Namespace: secret.Namespace,
 
-		Status:      "active",
+		Status: "active",
 
-		Health:      HealthStatusHealthy,
+		Health: HealthStatusHealthy,
 
-		Labels:      secret.Labels,
+		Labels: secret.Labels,
 
 		Annotations: secret.Annotations,
 
-		CreatedAt:   secret.CreationTimestamp.Time,
+		CreatedAt: secret.CreationTimestamp.Time,
 
-		UpdatedAt:   time.Now(),
-
+		UpdatedAt: time.Now(),
 	}
 
 }
-
-
 
 func (k *KubernetesProvider) convertPVCToResourceResponse(pvc *corev1.PersistentVolumeClaim) *ResourceResponse {
 
 	status := strings.ToLower(string(pvc.Status.Phase))
 
 	health := HealthStatusUnknown
-
-
 
 	switch pvc.Status.Phase {
 
@@ -3063,43 +2556,36 @@ func (k *KubernetesProvider) convertPVCToResourceResponse(pvc *corev1.Persistent
 
 	}
 
-
-
 	return &ResourceResponse{
 
-		ID:          fmt.Sprintf("%s/persistentvolumeclaim/%s", pvc.Namespace, pvc.Name),
+		ID: fmt.Sprintf("%s/persistentvolumeclaim/%s", pvc.Namespace, pvc.Name),
 
-		Name:        pvc.Name,
+		Name: pvc.Name,
 
-		Type:        "persistentvolumeclaim",
+		Type: "persistentvolumeclaim",
 
-		Namespace:   pvc.Namespace,
+		Namespace: pvc.Namespace,
 
-		Status:      status,
+		Status: status,
 
-		Health:      health,
+		Health: health,
 
-		Labels:      pvc.Labels,
+		Labels: pvc.Labels,
 
 		Annotations: pvc.Annotations,
 
-		CreatedAt:   pvc.CreationTimestamp.Time,
+		CreatedAt: pvc.CreationTimestamp.Time,
 
-		UpdatedAt:   time.Now(),
-
+		UpdatedAt: time.Now(),
 	}
 
 }
-
-
 
 func (k *KubernetesProvider) convertIngressToResourceResponse(ingress *networkingv1.Ingress) *ResourceResponse {
 
 	status := "active"
 
 	health := HealthStatusHealthy
-
-
 
 	// Check if ingress has load balancer status.
 
@@ -3109,43 +2595,36 @@ func (k *KubernetesProvider) convertIngressToResourceResponse(ingress *networkin
 
 	}
 
-
-
 	return &ResourceResponse{
 
-		ID:          fmt.Sprintf("%s/ingress/%s", ingress.Namespace, ingress.Name),
+		ID: fmt.Sprintf("%s/ingress/%s", ingress.Namespace, ingress.Name),
 
-		Name:        ingress.Name,
+		Name: ingress.Name,
 
-		Type:        "ingress",
+		Type: "ingress",
 
-		Namespace:   ingress.Namespace,
+		Namespace: ingress.Namespace,
 
-		Status:      status,
+		Status: status,
 
-		Health:      health,
+		Health: health,
 
-		Labels:      ingress.Labels,
+		Labels: ingress.Labels,
 
 		Annotations: ingress.Annotations,
 
-		CreatedAt:   ingress.CreationTimestamp.Time,
+		CreatedAt: ingress.CreationTimestamp.Time,
 
-		UpdatedAt:   time.Now(),
-
+		UpdatedAt: time.Now(),
 	}
 
 }
-
-
 
 func (k *KubernetesProvider) convertDeploymentToResponse(deployment *appsv1.Deployment) *DeploymentResponse {
 
 	status := "unknown"
 
 	phase := "unknown"
-
-
 
 	if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
 
@@ -3167,39 +2646,32 @@ func (k *KubernetesProvider) convertDeploymentToResponse(deployment *appsv1.Depl
 
 	}
 
-
-
 	return &DeploymentResponse{
 
-		ID:           fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name),
+		ID: fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name),
 
-		Name:         deployment.Name,
+		Name: deployment.Name,
 
-		Status:       status,
+		Status: status,
 
-		Phase:        phase,
+		Phase: phase,
 
 		TemplateType: "kubernetes",
 
-		Namespace:    deployment.Namespace,
+		Namespace: deployment.Namespace,
 
-		Labels:       deployment.Labels,
+		Labels: deployment.Labels,
 
-		Annotations:  deployment.Annotations,
+		Annotations: deployment.Annotations,
 
-		CreatedAt:    deployment.CreationTimestamp.Time,
+		CreatedAt: deployment.CreationTimestamp.Time,
 
-		UpdatedAt:    time.Now(),
-
+		UpdatedAt: time.Now(),
 	}
 
 }
 
-
-
 // Placeholder implementations for remaining methods that are called but not yet implemented.
-
-
 
 func (k *KubernetesProvider) listResourcesByType(ctx context.Context, resourceType string, filter *ResourceFilter) ([]*ResourceResponse, error) {
 
@@ -3209,8 +2681,6 @@ func (k *KubernetesProvider) listResourcesByType(ctx context.Context, resourceTy
 
 }
 
-
-
 func (k *KubernetesProvider) applyResourceFilters(resources []*ResourceResponse, filter *ResourceFilter) []*ResourceResponse {
 
 	// Implementation would apply filters.
@@ -3218,8 +2688,6 @@ func (k *KubernetesProvider) applyResourceFilters(resources []*ResourceResponse,
 	return resources
 
 }
-
-
 
 func (k *KubernetesProvider) deployKubernetesTemplate(ctx context.Context, req *DeploymentRequest) (*DeploymentResponse, error) {
 
@@ -3229,8 +2697,6 @@ func (k *KubernetesProvider) deployKubernetesTemplate(ctx context.Context, req *
 
 }
 
-
-
 func (k *KubernetesProvider) deployHelmTemplate(ctx context.Context, req *DeploymentRequest) (*DeploymentResponse, error) {
 
 	// Deploy using Helm.
@@ -3239,23 +2705,17 @@ func (k *KubernetesProvider) deployHelmTemplate(ctx context.Context, req *Deploy
 
 }
 
-
-
 func (k *KubernetesProvider) updateKubernetesDeployment(ctx context.Context, deploymentID string, req *UpdateDeploymentRequest) (*DeploymentResponse, error) {
 
 	return nil, fmt.Errorf("kubernetes deployment update not yet implemented")
 
 }
 
-
-
 func (k *KubernetesProvider) updateHelmDeployment(ctx context.Context, deploymentID string, req *UpdateDeploymentRequest) (*DeploymentResponse, error) {
 
 	return nil, fmt.Errorf("helm deployment update not yet implemented")
 
 }
-
-
 
 func (k *KubernetesProvider) scaleDeployment(ctx context.Context, namespace, name string, req *ScaleRequest) error {
 
@@ -3265,8 +2725,6 @@ func (k *KubernetesProvider) scaleDeployment(ctx context.Context, namespace, nam
 
 }
 
-
-
 func (k *KubernetesProvider) scaleStatefulSet(ctx context.Context, namespace, name string, req *ScaleRequest) error {
 
 	// Implementation would scale the statefulset.
@@ -3274,8 +2732,6 @@ func (k *KubernetesProvider) scaleStatefulSet(ctx context.Context, namespace, na
 	return fmt.Errorf("statefulset scaling not yet implemented")
 
 }
-
-
 
 func (k *KubernetesProvider) getDeploymentHealth(ctx context.Context, namespace, name string) (*HealthStatus, error) {
 
@@ -3285,23 +2741,18 @@ func (k *KubernetesProvider) getDeploymentHealth(ctx context.Context, namespace,
 
 		return &HealthStatus{
 
-			Status:      HealthStatusUnhealthy,
+			Status: HealthStatusUnhealthy,
 
-			Message:     fmt.Sprintf("Failed to get deployment: %v", err),
+			Message: fmt.Sprintf("Failed to get deployment: %v", err),
 
 			LastUpdated: time.Now(),
-
 		}, nil
 
 	}
 
-
-
 	status := HealthStatusHealthy
 
 	message := "All replicas are ready"
-
-
 
 	if deployment.Status.ReadyReplicas != *deployment.Spec.Replicas {
 
@@ -3311,21 +2762,16 @@ func (k *KubernetesProvider) getDeploymentHealth(ctx context.Context, namespace,
 
 	}
 
-
-
 	return &HealthStatus{
 
-		Status:      status,
+		Status: status,
 
-		Message:     message,
+		Message: message,
 
 		LastUpdated: time.Now(),
-
 	}, nil
 
 }
-
-
 
 func (k *KubernetesProvider) getServiceHealth(ctx context.Context, namespace, name string) (*HealthStatus, error) {
 
@@ -3335,23 +2781,18 @@ func (k *KubernetesProvider) getServiceHealth(ctx context.Context, namespace, na
 
 		return &HealthStatus{
 
-			Status:      HealthStatusUnhealthy,
+			Status: HealthStatusUnhealthy,
 
-			Message:     fmt.Sprintf("Failed to get service: %v", err),
+			Message: fmt.Sprintf("Failed to get service: %v", err),
 
 			LastUpdated: time.Now(),
-
 		}, nil
 
 	}
 
-
-
 	status := HealthStatusHealthy
 
 	message := "Service is active"
-
-
 
 	if service.Spec.ClusterIP == "" || service.Spec.ClusterIP == "None" {
 
@@ -3361,21 +2802,16 @@ func (k *KubernetesProvider) getServiceHealth(ctx context.Context, namespace, na
 
 	}
 
-
-
 	return &HealthStatus{
 
-		Status:      status,
+		Status: status,
 
-		Message:     message,
+		Message: message,
 
 		LastUpdated: time.Now(),
-
 	}, nil
 
 }
-
-
 
 func (k *KubernetesProvider) getPodHealth(ctx context.Context, namespace, name string) (*HealthStatus, error) {
 
@@ -3385,23 +2821,18 @@ func (k *KubernetesProvider) getPodHealth(ctx context.Context, namespace, name s
 
 		return &HealthStatus{
 
-			Status:      HealthStatusUnhealthy,
+			Status: HealthStatusUnhealthy,
 
-			Message:     fmt.Sprintf("Failed to get pod: %v", err),
+			Message: fmt.Sprintf("Failed to get pod: %v", err),
 
 			LastUpdated: time.Now(),
-
 		}, nil
 
 	}
 
-
-
 	status := HealthStatusUnknown
 
 	message := string(pod.Status.Phase)
-
-
 
 	switch pod.Status.Phase {
 
@@ -3431,21 +2862,16 @@ func (k *KubernetesProvider) getPodHealth(ctx context.Context, namespace, name s
 
 	}
 
-
-
 	return &HealthStatus{
 
-		Status:      status,
+		Status: status,
 
-		Message:     message,
+		Message: message,
 
 		LastUpdated: time.Now(),
-
 	}, nil
 
 }
-
-
 
 func (k *KubernetesProvider) watchEvents(ctx context.Context) {
 
@@ -3455,8 +2881,6 @@ func (k *KubernetesProvider) watchEvents(ctx context.Context) {
 
 }
 
-
-
 // Network service implementations.
 
 func (k *KubernetesProvider) createKubernetesService(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
@@ -3465,15 +2889,11 @@ func (k *KubernetesProvider) createKubernetesService(ctx context.Context, req *N
 
 }
 
-
-
 func (k *KubernetesProvider) createKubernetesIngress(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
 
 	return nil, fmt.Errorf("kubernetes ingress creation not yet implemented")
 
 }
-
-
 
 func (k *KubernetesProvider) createNetworkPolicy(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
 
@@ -3481,15 +2901,11 @@ func (k *KubernetesProvider) createNetworkPolicy(ctx context.Context, req *Netwo
 
 }
 
-
-
 func (k *KubernetesProvider) getKubernetesService(ctx context.Context, namespace, name string) (*NetworkServiceResponse, error) {
 
 	return nil, fmt.Errorf("kubernetes service get not yet implemented")
 
 }
-
-
 
 func (k *KubernetesProvider) getKubernetesIngress(ctx context.Context, namespace, name string) (*NetworkServiceResponse, error) {
 
@@ -3497,23 +2913,17 @@ func (k *KubernetesProvider) getKubernetesIngress(ctx context.Context, namespace
 
 }
 
-
-
 func (k *KubernetesProvider) getKubernetesNetworkPolicy(ctx context.Context, namespace, name string) (*NetworkServiceResponse, error) {
 
 	return nil, fmt.Errorf("network policy get not yet implemented")
 
 }
 
-
-
 func (k *KubernetesProvider) listNetworkServicesByType(ctx context.Context, serviceType, namespace string, filter *NetworkServiceFilter) ([]*NetworkServiceResponse, error) {
 
 	return []*NetworkServiceResponse{}, nil
 
 }
-
-
 
 // Storage resource implementations.
 
@@ -3523,15 +2933,11 @@ func (k *KubernetesProvider) createPVC(ctx context.Context, req *StorageResource
 
 }
 
-
-
 func (k *KubernetesProvider) createStorageClass(ctx context.Context, req *StorageResourceRequest) (*StorageResourceResponse, error) {
 
 	return nil, fmt.Errorf("storage class creation not yet implemented")
 
 }
-
-
 
 func (k *KubernetesProvider) getPVC(ctx context.Context, namespace, name string) (*StorageResourceResponse, error) {
 
@@ -3539,19 +2945,14 @@ func (k *KubernetesProvider) getPVC(ctx context.Context, namespace, name string)
 
 }
 
-
-
 func (k *KubernetesProvider) getStorageClass(ctx context.Context, name string) (*StorageResourceResponse, error) {
 
 	return nil, fmt.Errorf("storage class get not yet implemented")
 
 }
 
-
-
 func (k *KubernetesProvider) listStorageResourcesByType(ctx context.Context, resourceType string, filter *StorageResourceFilter) ([]*StorageResourceResponse, error) {
 
 	return []*StorageResourceResponse{}, nil
 
 }
-

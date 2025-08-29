@@ -1,47 +1,25 @@
-
 package injection
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"net/http"
-
 	"os"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/security"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
-
 )
-
-
 
 // Error types for dependency injection.
 
 type ErrMissingGitConfig struct {
-
 	Field string
-
 }
-
-
 
 // Error performs error operation.
 
@@ -51,17 +29,11 @@ func (e ErrMissingGitConfig) Error() string {
 
 }
 
-
-
 // ErrMissingLLMConfig represents a errmissingllmconfig.
 
 type ErrMissingLLMConfig struct {
-
 	Field string
-
 }
-
-
 
 // Error performs error operation.
 
@@ -71,19 +43,13 @@ func (e ErrMissingLLMConfig) Error() string {
 
 }
 
-
-
 // SimpleHTTPClient implements the shared.ClientInterface for basic HTTP clients.
 
 type SimpleHTTPClient struct {
-
 	BaseURL string
 
-	Client  *http.Client
-
+	Client *http.Client
 }
-
-
 
 // ProcessIntent performs processintent operation.
 
@@ -95,8 +61,6 @@ func (c *SimpleHTTPClient) ProcessIntent(ctx context.Context, prompt string) (st
 
 }
 
-
-
 // ProcessIntentStream performs processintentstream operation.
 
 func (c *SimpleHTTPClient) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
@@ -105,12 +69,11 @@ func (c *SimpleHTTPClient) ProcessIntentStream(ctx context.Context, prompt strin
 
 	chunk := &shared.StreamingChunk{
 
-		Content:   "Streamed response for: " + prompt,
+		Content: "Streamed response for: " + prompt,
 
-		IsLast:    true,
+		IsLast: true,
 
 		Timestamp: time.Now(),
-
 	}
 
 	chunks <- chunk
@@ -121,8 +84,6 @@ func (c *SimpleHTTPClient) ProcessIntentStream(ctx context.Context, prompt strin
 
 }
 
-
-
 // GetSupportedModels performs getsupportedmodels operation.
 
 func (c *SimpleHTTPClient) GetSupportedModels() []string {
@@ -131,29 +92,24 @@ func (c *SimpleHTTPClient) GetSupportedModels() []string {
 
 }
 
-
-
 // GetModelCapabilities performs getmodelcapabilities operation.
 
 func (c *SimpleHTTPClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
 
 	return &shared.ModelCapabilities{
 
-		MaxTokens:         4096,
+		MaxTokens: 4096,
 
-		SupportsChat:      true,
+		SupportsChat: true,
 
-		SupportsFunction:  false,
+		SupportsFunction: false,
 
 		SupportsStreaming: true,
 
-		CostPerToken:      0.0001,
-
+		CostPerToken: 0.0001,
 	}, nil
 
 }
-
-
 
 // ValidateModel performs validatemodel operation.
 
@@ -163,8 +119,6 @@ func (c *SimpleHTTPClient) ValidateModel(modelName string) error {
 
 }
 
-
-
 // EstimateTokens performs estimatetokens operation.
 
 func (c *SimpleHTTPClient) EstimateTokens(text string) int {
@@ -172,8 +126,6 @@ func (c *SimpleHTTPClient) EstimateTokens(text string) int {
 	return len(text) / 4 // Rough estimate
 
 }
-
-
 
 // GetMaxTokens performs getmaxtokens operation.
 
@@ -183,8 +135,6 @@ func (c *SimpleHTTPClient) GetMaxTokens(modelName string) int {
 
 }
 
-
-
 // Close performs close operation.
 
 func (c *SimpleHTTPClient) Close() error {
@@ -193,15 +143,11 @@ func (c *SimpleHTTPClient) Close() error {
 
 }
 
-
-
 // HTTPClientProvider creates an HTTP client instance.
 
 func HTTPClientProvider(c *Container) (interface{}, error) {
 
 	config := c.GetConfig()
-
-
 
 	client := &http.Client{
 
@@ -209,23 +155,17 @@ func HTTPClientProvider(c *Container) (interface{}, error) {
 
 		Transport: &http.Transport{
 
-			MaxIdleConns:        100,
+			MaxIdleConns: 100,
 
 			MaxIdleConnsPerHost: 10,
 
-			IdleConnTimeout:     90 * time.Second,
-
+			IdleConnTimeout: 90 * time.Second,
 		},
-
 	}
-
-
 
 	return client, nil
 
 }
-
-
 
 // GitClientProvider creates a Git client instance.
 
@@ -233,21 +173,18 @@ func GitClientProvider(c *Container) (interface{}, error) {
 
 	gitConfig := &git.ClientConfig{
 
-		RepoURL:             os.Getenv("GIT_REPO_URL"),
+		RepoURL: os.Getenv("GIT_REPO_URL"),
 
-		Branch:              os.Getenv("GIT_BRANCH"),
+		Branch: os.Getenv("GIT_BRANCH"),
 
-		Token:               os.Getenv("GIT_TOKEN"),
+		Token: os.Getenv("GIT_TOKEN"),
 
-		TokenPath:           os.Getenv("GIT_TOKEN_PATH"),
+		TokenPath: os.Getenv("GIT_TOKEN_PATH"),
 
-		RepoPath:            os.Getenv("GIT_REPO_PATH"),
+		RepoPath: os.Getenv("GIT_REPO_PATH"),
 
 		ConcurrentPushLimit: 4,
-
 	}
-
-
 
 	// Validate configuration.
 
@@ -269,15 +206,11 @@ func GitClientProvider(c *Container) (interface{}, error) {
 
 	}
 
-
-
 	client := git.NewClientFromConfig(gitConfig)
 
 	return client, nil
 
 }
-
-
 
 // LLMClientProvider creates an LLM client instance.
 
@@ -293,13 +226,9 @@ func LLMClientProvider(c *Container) (interface{}, error) {
 
 	}
 
-
-
 	// Get HTTP client dependency.
 
 	httpClient := c.GetHTTPClient()
-
-
 
 	// Create a simple HTTP client that implements the shared.ClientInterface.
 
@@ -307,17 +236,12 @@ func LLMClientProvider(c *Container) (interface{}, error) {
 
 		BaseURL: llmURL,
 
-		Client:  httpClient,
-
+		Client: httpClient,
 	}
-
-
 
 	return client, nil
 
 }
-
-
 
 // PackageGeneratorProvider creates a Nephio package generator instance.
 
@@ -333,13 +257,9 @@ func PackageGeneratorProvider(c *Container) (interface{}, error) {
 
 	}
 
-
-
 	return generator, nil
 
 }
-
-
 
 // TelecomKnowledgeBaseProvider creates a telecom knowledge base instance.
 
@@ -351,8 +271,6 @@ func TelecomKnowledgeBaseProvider(c *Container) (interface{}, error) {
 
 }
 
-
-
 // MetricsCollectorProvider creates a metrics collector instance.
 
 func MetricsCollectorProvider(c *Container) (interface{}, error) {
@@ -363,33 +281,26 @@ func MetricsCollectorProvider(c *Container) (interface{}, error) {
 
 }
 
-
-
 // LLMSanitizerProvider creates an LLM sanitizer instance.
 
 func LLMSanitizerProvider(c *Container) (interface{}, error) {
 
 	config := c.GetConfig()
 
-
-
 	sanitizerConfig := &security.SanitizerConfig{
 
-		MaxInputLength:  config.MaxInputLength,
+		MaxInputLength: config.MaxInputLength,
 
 		MaxOutputLength: config.MaxOutputLength,
 
-		AllowedDomains:  config.AllowedDomains,
+		AllowedDomains: config.AllowedDomains,
 
 		BlockedKeywords: config.BlockedKeywords,
 
 		ContextBoundary: config.ContextBoundary,
 
-		SystemPrompt:    config.SystemPrompt,
-
+		SystemPrompt: config.SystemPrompt,
 	}
-
-
 
 	sanitizer := security.NewLLMSanitizer(sanitizerConfig)
 
@@ -397,11 +308,7 @@ func LLMSanitizerProvider(c *Container) (interface{}, error) {
 
 }
 
-
-
 // Additional helper providers for complex configurations.
-
-
 
 // SecureHTTPClientProvider creates an HTTP client with enhanced security settings.
 
@@ -409,47 +316,35 @@ func SecureHTTPClientProvider(c *Container) (interface{}, error) {
 
 	config := c.GetConfig()
 
-
-
 	transport := &http.Transport{
 
-		MaxIdleConns:        50,
+		MaxIdleConns: 50,
 
 		MaxIdleConnsPerHost: 5,
 
-		IdleConnTimeout:     60 * time.Second,
+		IdleConnTimeout: 60 * time.Second,
 
-		DisableCompression:  false,
+		DisableCompression: false,
 
-		DisableKeepAlives:   false,
-
+		DisableKeepAlives: false,
 	}
-
-
 
 	client := &http.Client{
 
-		Timeout:   config.DefaultTimeout,
+		Timeout: config.DefaultTimeout,
 
 		Transport: transport,
-
 	}
-
-
 
 	return client, nil
 
 }
-
-
 
 // CircuitBreakerHTTPClientProvider creates an HTTP client with circuit breaker.
 
 func CircuitBreakerHTTPClientProvider(c *Container) (interface{}, error) {
 
 	config := c.GetConfig()
-
-
 
 	// Create base HTTP client.
 
@@ -459,29 +354,21 @@ func CircuitBreakerHTTPClientProvider(c *Container) (interface{}, error) {
 
 		Transport: &http.Transport{
 
-			MaxIdleConns:        100,
+			MaxIdleConns: 100,
 
 			MaxIdleConnsPerHost: 10,
 
-			IdleConnTimeout:     90 * time.Second,
-
+			IdleConnTimeout: 90 * time.Second,
 		},
-
 	}
-
-
 
 	// TODO: Wrap with circuit breaker when implemented.
 
 	// This would integrate with the resilience package.
 
-
-
 	return baseClient, nil
 
 }
-
-
 
 // ConfiguredGitClientProvider creates a Git client with full configuration.
 
@@ -489,21 +376,18 @@ func ConfiguredGitClientProvider(c *Container) (interface{}, error) {
 
 	gitConfig := &git.ClientConfig{
 
-		RepoURL:             getEnvWithDefault("GIT_REPO_URL", ""),
+		RepoURL: getEnvWithDefault("GIT_REPO_URL", ""),
 
-		Branch:              getEnvWithDefault("GIT_BRANCH", "main"),
+		Branch: getEnvWithDefault("GIT_BRANCH", "main"),
 
-		Token:               os.Getenv("GIT_TOKEN"), // Keep sensitive tokens from env only
+		Token: os.Getenv("GIT_TOKEN"), // Keep sensitive tokens from env only
 
-		TokenPath:           os.Getenv("GIT_TOKEN_PATH"),
+		TokenPath: os.Getenv("GIT_TOKEN_PATH"),
 
-		RepoPath:            getEnvWithDefault("GIT_REPO_PATH", "/tmp/nephoran-git"),
+		RepoPath: getEnvWithDefault("GIT_REPO_PATH", "/tmp/nephoran-git"),
 
 		ConcurrentPushLimit: 4,
-
 	}
-
-
 
 	// Validation with better error messages.
 
@@ -513,15 +397,11 @@ func ConfiguredGitClientProvider(c *Container) (interface{}, error) {
 
 	}
 
-
-
 	client := git.NewClientFromConfig(gitConfig)
 
 	return client, nil
 
 }
-
-
 
 // ProductionLLMClientProvider creates an LLM client with production settings.
 
@@ -535,8 +415,6 @@ func ProductionLLMClientProvider(c *Container) (interface{}, error) {
 
 	}
 
-
-
 	// Get HTTP client with circuit breaker.
 
 	httpClient, err := c.Get("circuit_breaker_http_client")
@@ -549,8 +427,6 @@ func ProductionLLMClientProvider(c *Container) (interface{}, error) {
 
 	}
 
-
-
 	// Create a simple HTTP client with production configuration.
 
 	// This should be replaced with actual production LLM client.
@@ -559,17 +435,12 @@ func ProductionLLMClientProvider(c *Container) (interface{}, error) {
 
 		BaseURL: llmURL,
 
-		Client:  httpClient.(*http.Client),
-
+		Client: httpClient.(*http.Client),
 	}
-
-
 
 	return client, nil
 
 }
-
-
 
 // getEnvWithDefault returns environment variable value or default.
 
@@ -584,4 +455,3 @@ func getEnvWithDefault(key, defaultValue string) string {
 	return defaultValue
 
 }
-

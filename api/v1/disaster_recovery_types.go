@@ -28,9 +28,6 @@ limitations under the License.
 
 */
 
-
-
-
 // Package v1 provides API types for disaster recovery management in the Nephoran Intent Operator.
 // This package defines custom resources and strategies for implementing fault tolerance,
 // backup, and recovery mechanisms for telecommunications network functions in
@@ -40,19 +37,15 @@ package v1
 
 import (
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/runtime"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
-
-
 
 // Priority defines the priority level for disaster recovery operations.
 
 // +kubebuilder:validation:Enum=low;medium;high;critical
 
 type Priority string
-
-
 
 const (
 
@@ -71,10 +64,7 @@ const (
 	// PriorityCritical indicates critical priority operations.
 
 	PriorityCritical Priority = "critical"
-
 )
-
-
 
 // TargetComponent defines a component targeted for disaster recovery.
 
@@ -86,8 +76,6 @@ type TargetComponent struct {
 
 	Name string `json:"name"`
 
-
-
 	// Type of component (deployment, statefulset, etc.).
 
 	// +kubebuilder:validation:Required
@@ -96,15 +84,11 @@ type TargetComponent struct {
 
 	Type string `json:"type"`
 
-
-
 	// Namespace of the component.
 
 	// +optional.
 
 	Namespace string `json:"namespace,omitempty"`
-
-
 
 	// Label selector for the component.
 
@@ -112,17 +96,12 @@ type TargetComponent struct {
 
 	LabelSelector map[string]string `json:"labelSelector,omitempty"`
 
-
-
 	// Dependencies on other components.
 
 	// +optional.
 
 	Dependencies []string `json:"dependencies,omitempty"`
-
 }
-
-
 
 // ResourceConstraints defines resource constraints for operations.
 
@@ -134,15 +113,11 @@ type ResourceConstraints struct {
 
 	CPU *resource.Quantity `json:"cpu,omitempty"`
 
-
-
 	// Memory limits.
 
 	// +optional.
 
 	Memory *resource.Quantity `json:"memory,omitempty"`
-
-
 
 	// MaxCPU limits.
 
@@ -150,15 +125,11 @@ type ResourceConstraints struct {
 
 	MaxCPU *resource.Quantity `json:"maxCpu,omitempty"`
 
-
-
 	// MaxMemory limits.
 
 	// +optional.
 
 	MaxMemory *resource.Quantity `json:"maxMemory,omitempty"`
-
-
 
 	// Storage limits.
 
@@ -166,15 +137,11 @@ type ResourceConstraints struct {
 
 	Storage *resource.Quantity `json:"storage,omitempty"`
 
-
-
 	// Network bandwidth limits.
 
 	// +optional.
 
 	NetworkBandwidth *resource.Quantity `json:"networkBandwidth,omitempty"`
-
-
 
 	// Maximum concurrent operations.
 
@@ -185,10 +152,7 @@ type ResourceConstraints struct {
 	// +kubebuilder:default=10
 
 	MaxConcurrency *int32 `json:"maxConcurrency,omitempty"`
-
 }
-
-
 
 // DisasterRecoveryPlan defines a comprehensive disaster recovery plan.
 
@@ -211,38 +175,26 @@ type ResourceConstraints struct {
 // +kubebuilder:resource:shortName=drp;drplan
 
 type DisasterRecoveryPlan struct {
-
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-
-
-	Spec   DisasterRecoveryPlanSpec   `json:"spec,omitempty"`
+	Spec DisasterRecoveryPlanSpec `json:"spec,omitempty"`
 
 	Status DisasterRecoveryPlanStatus `json:"status,omitempty"`
-
 }
 
-
-
 //+kubebuilder:object:root=true
-
-
 
 // DisasterRecoveryPlanList contains a list of DisasterRecoveryPlan.
 
 type DisasterRecoveryPlanList struct {
-
 	metav1.TypeMeta `json:",inline"`
 
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-	Items           []DisasterRecoveryPlan `json:"items"`
-
+	Items []DisasterRecoveryPlan `json:"items"`
 }
-
-
 
 // DisasterRecoveryPlanSpec defines the desired state of DisasterRecoveryPlan.
 
@@ -258,15 +210,11 @@ type DisasterRecoveryPlanSpec struct {
 
 	PlanType string `json:"planType"`
 
-
-
 	// Description of the disaster recovery plan.
 
 	// +optional.
 
 	Description string `json:"description,omitempty"`
-
-
 
 	// Recovery Time Objective - maximum acceptable downtime.
 
@@ -278,8 +226,6 @@ type DisasterRecoveryPlanSpec struct {
 
 	RTOTarget string `json:"rtoTarget"`
 
-
-
 	// Recovery Point Objective - maximum acceptable data loss.
 
 	// +kubebuilder:validation:Required
@@ -289,8 +235,6 @@ type DisasterRecoveryPlanSpec struct {
 	// +kubebuilder:default="15m"
 
 	RPOTarget string `json:"rpoTarget"`
-
-
 
 	// Priority level for disaster recovery execution.
 
@@ -302,8 +246,6 @@ type DisasterRecoveryPlanSpec struct {
 
 	Priority Priority `json:"priority,omitempty"`
 
-
-
 	// Target components for disaster recovery.
 
 	// +optional.
@@ -312,15 +254,11 @@ type DisasterRecoveryPlanSpec struct {
 
 	TargetComponents []TargetComponent `json:"targetComponents,omitempty"`
 
-
-
 	// Backup configuration.
 
 	// +optional.
 
 	BackupConfig *BackupPolicySpec `json:"backupConfig,omitempty"`
-
-
 
 	// Failover configuration.
 
@@ -328,15 +266,11 @@ type DisasterRecoveryPlanSpec struct {
 
 	FailoverConfig *FailoverPolicySpec `json:"failoverConfig,omitempty"`
 
-
-
 	// Automation settings.
 
 	// +optional.
 
 	AutomationConfig *DRAutomationConfig `json:"automationConfig,omitempty"`
-
-
 
 	// Validation and testing configuration.
 
@@ -344,15 +278,11 @@ type DisasterRecoveryPlanSpec struct {
 
 	TestingConfig *DRTestingConfig `json:"testingConfig,omitempty"`
 
-
-
 	// Notification configuration.
 
 	// +optional.
 
 	NotificationConfig *DRNotificationConfig `json:"notificationConfig,omitempty"`
-
-
 
 	// Resource constraints for DR operations.
 
@@ -360,25 +290,18 @@ type DisasterRecoveryPlanSpec struct {
 
 	ResourceConstraints *ResourceConstraints `json:"resourceConstraints,omitempty"`
 
-
-
 	// Dependencies on other disaster recovery plans.
 
 	// +optional.
 
 	Dependencies []string `json:"dependencies,omitempty"`
 
-
-
 	// Regions where this plan applies.
 
 	// +optional.
 
 	Regions []string `json:"regions,omitempty"`
-
 }
-
-
 
 // DRAutomationConfig defines automation settings for disaster recovery.
 
@@ -390,23 +313,17 @@ type DRAutomationConfig struct {
 
 	AutomaticRecovery bool `json:"automaticRecovery,omitempty"`
 
-
-
 	// Conditions that trigger automatic recovery.
 
 	// +optional.
 
 	TriggerConditions []DRTriggerCondition `json:"triggerConditions,omitempty"`
 
-
-
 	// Approval requirements for automatic recovery.
 
 	// +optional.
 
 	ApprovalConfig *DRApprovalConfig `json:"approvalConfig,omitempty"`
-
-
 
 	// Maximum number of automatic recovery attempts.
 
@@ -420,8 +337,6 @@ type DRAutomationConfig struct {
 
 	MaxRetries *int32 `json:"maxRetries,omitempty"`
 
-
-
 	// Cooldown period between recovery attempts.
 
 	// +optional.
@@ -431,10 +346,7 @@ type DRAutomationConfig struct {
 	// +kubebuilder:default="10m"
 
 	CooldownPeriod string `json:"cooldownPeriod,omitempty"`
-
 }
-
-
 
 // DRTriggerCondition defines conditions that trigger disaster recovery.
 
@@ -448,23 +360,17 @@ type DRTriggerCondition struct {
 
 	Type string `json:"type"`
 
-
-
 	// Component name (for component-failure type).
 
 	// +optional.
 
 	Component string `json:"component,omitempty"`
 
-
-
 	// Threshold configuration (for resource-threshold type).
 
 	// +optional.
 
 	Threshold *DRThreshold `json:"threshold,omitempty"`
-
-
 
 	// Schedule configuration (for scheduled type).
 
@@ -473,10 +379,7 @@ type DRTriggerCondition struct {
 	// +kubebuilder:validation:Pattern=`^[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+\s+[0-9*\-/,]+$`
 
 	Schedule string `json:"schedule,omitempty"`
-
 }
-
-
 
 // DRThreshold defines threshold-based trigger conditions.
 
@@ -488,8 +391,6 @@ type DRThreshold struct {
 
 	Metric string `json:"metric"`
 
-
-
 	// Operator for comparison.
 
 	// +kubebuilder:validation:Required
@@ -498,15 +399,11 @@ type DRThreshold struct {
 
 	Operator string `json:"operator"`
 
-
-
 	// Threshold value.
 
 	// +kubebuilder:validation:Required
 
 	Value string `json:"value"`
-
-
 
 	// Duration the condition must persist.
 
@@ -517,10 +414,7 @@ type DRThreshold struct {
 	// +kubebuilder:default="5m"
 
 	Duration string `json:"duration,omitempty"`
-
 }
-
-
 
 // DRApprovalConfig defines approval requirements.
 
@@ -532,15 +426,11 @@ type DRApprovalConfig struct {
 
 	RequireApproval bool `json:"requireApproval,omitempty"`
 
-
-
 	// List of approvers (users or groups).
 
 	// +optional.
 
 	Approvers []string `json:"approvers,omitempty"`
-
-
 
 	// Number of approvals required.
 
@@ -552,8 +442,6 @@ type DRApprovalConfig struct {
 
 	RequiredApprovals *int32 `json:"requiredApprovals,omitempty"`
 
-
-
 	// Approval timeout.
 
 	// +optional.
@@ -563,10 +451,7 @@ type DRApprovalConfig struct {
 	// +kubebuilder:default="30m"
 
 	ApprovalTimeout string `json:"approvalTimeout,omitempty"`
-
 }
-
-
 
 // DRTestingConfig defines testing and validation settings.
 
@@ -578,8 +463,6 @@ type DRTestingConfig struct {
 
 	EnableTesting bool `json:"enableTesting,omitempty"`
 
-
-
 	// Schedule for regular DR tests.
 
 	// +optional.
@@ -588,15 +471,11 @@ type DRTestingConfig struct {
 
 	TestSchedule string `json:"testSchedule,omitempty"`
 
-
-
 	// Types of tests to perform.
 
 	// +optional.
 
 	TestTypes []string `json:"testTypes,omitempty"`
-
-
 
 	// Test environment configuration.
 
@@ -604,17 +483,12 @@ type DRTestingConfig struct {
 
 	TestEnvironment *DRTestEnvironment `json:"testEnvironment,omitempty"`
 
-
-
 	// Validation criteria for DR tests.
 
 	// +optional.
 
 	ValidationCriteria []DRValidationCriterion `json:"validationCriteria,omitempty"`
-
 }
-
-
 
 // DRTestEnvironment defines test environment settings.
 
@@ -628,23 +502,17 @@ type DRTestEnvironment struct {
 
 	Namespace string `json:"namespace"`
 
-
-
 	// Use isolated environment for testing.
 
 	// +kubebuilder:default=true
 
 	Isolated bool `json:"isolated,omitempty"`
 
-
-
 	// Resource limits for test environment.
 
 	// +optional.
 
 	ResourceLimits *ResourceConstraints `json:"resourceLimits,omitempty"`
-
-
 
 	// Cleanup policy after testing.
 
@@ -655,10 +523,7 @@ type DRTestEnvironment struct {
 	// +kubebuilder:default="on-success"
 
 	CleanupPolicy string `json:"cleanupPolicy,omitempty"`
-
 }
-
-
 
 // DRValidationCriterion defines validation criteria for DR operations.
 
@@ -670,8 +535,6 @@ type DRValidationCriterion struct {
 
 	Name string `json:"name"`
 
-
-
 	// Type of validation.
 
 	// +kubebuilder:validation:Required
@@ -680,15 +543,11 @@ type DRValidationCriterion struct {
 
 	Type string `json:"type"`
 
-
-
 	// Target for validation (component, service, etc.).
 
 	// +optional.
 
 	Target string `json:"target,omitempty"`
-
-
 
 	// Validation parameters.
 
@@ -697,8 +556,6 @@ type DRValidationCriterion struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 
 	Parameters runtime.RawExtension `json:"parameters,omitempty"`
-
-
 
 	// Timeout for validation.
 
@@ -709,10 +566,7 @@ type DRValidationCriterion struct {
 	// +kubebuilder:default="5m"
 
 	Timeout string `json:"timeout,omitempty"`
-
 }
-
-
 
 // DRNotificationConfig defines notification settings.
 
@@ -724,15 +578,11 @@ type DRNotificationConfig struct {
 
 	Enabled bool `json:"enabled,omitempty"`
 
-
-
 	// Notification channels.
 
 	// +optional.
 
 	Channels []DRNotificationChannel `json:"channels,omitempty"`
-
-
 
 	// Events that trigger notifications.
 
@@ -740,17 +590,12 @@ type DRNotificationConfig struct {
 
 	Events []string `json:"events,omitempty"`
 
-
-
 	// Notification template.
 
 	// +optional.
 
 	Template string `json:"template,omitempty"`
-
 }
-
-
 
 // DRNotificationChannel defines a notification channel.
 
@@ -762,8 +607,6 @@ type DRNotificationChannel struct {
 
 	Name string `json:"name"`
 
-
-
 	// Type of notification channel.
 
 	// +kubebuilder:validation:Required
@@ -772,25 +615,18 @@ type DRNotificationChannel struct {
 
 	Type string `json:"type"`
 
-
-
 	// Configuration for the notification channel.
 
 	// +kubebuilder:pruning:PreserveUnknownFields
 
 	Config runtime.RawExtension `json:"config"`
 
-
-
 	// Severity levels that trigger notifications.
 
 	// +optional.
 
 	Severities []string `json:"severities,omitempty"`
-
 }
-
-
 
 // DisasterRecoveryPlanStatus defines the observed state of DisasterRecoveryPlan.
 
@@ -804,8 +640,6 @@ type DisasterRecoveryPlanStatus struct {
 
 	Phase string `json:"phase,omitempty"`
 
-
-
 	// Conditions represent the latest available observations.
 
 	// +optional.
@@ -813,15 +647,11 @@ type DisasterRecoveryPlanStatus struct {
 	// +listType=atomic
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-
-
 	// Last execution details.
 
 	// +optional.
 
 	LastExecution *DRExecutionStatus `json:"lastExecution,omitempty"`
-
-
 
 	// Test results from the most recent DR test.
 
@@ -829,15 +659,11 @@ type DisasterRecoveryPlanStatus struct {
 
 	LastTestResults *DRTestResults `json:"lastTestResults,omitempty"`
 
-
-
 	// Current RTO and RPO metrics.
 
 	// +optional.
 
 	Metrics *DRMetrics `json:"metrics,omitempty"`
-
-
 
 	// Next scheduled execution.
 
@@ -845,15 +671,11 @@ type DisasterRecoveryPlanStatus struct {
 
 	NextScheduledExecution *metav1.Time `json:"nextScheduledExecution,omitempty"`
 
-
-
 	// Number of successful executions.
 
 	// +optional.
 
 	SuccessfulExecutions int32 `json:"successfulExecutions,omitempty"`
-
-
 
 	// Number of failed executions.
 
@@ -861,17 +683,12 @@ type DisasterRecoveryPlanStatus struct {
 
 	FailedExecutions int32 `json:"failedExecutions,omitempty"`
 
-
-
 	// Observed generation.
 
 	// +optional.
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-
 }
-
-
 
 // DRExecutionStatus defines the status of a DR plan execution.
 
@@ -881,21 +698,15 @@ type DRExecutionStatus struct {
 
 	ID string `json:"id"`
 
-
-
 	// Execution status.
 
 	// +kubebuilder:validation:Enum=Running;Completed;Failed;Cancelled
 
 	Status string `json:"status"`
 
-
-
 	// Start time.
 
 	StartTime metav1.Time `json:"startTime"`
-
-
 
 	// End time.
 
@@ -903,15 +714,11 @@ type DRExecutionStatus struct {
 
 	EndTime *metav1.Time `json:"endTime,omitempty"`
 
-
-
 	// Duration of execution.
 
 	// +optional.
 
 	Duration *metav1.Duration `json:"duration,omitempty"`
-
-
 
 	// RTO achieved (actual recovery time).
 
@@ -919,15 +726,11 @@ type DRExecutionStatus struct {
 
 	RTOAchieved *metav1.Duration `json:"rtoAchieved,omitempty"`
 
-
-
 	// Components involved in execution.
 
 	// +optional.
 
 	Components []string `json:"components,omitempty"`
-
-
 
 	// Error message if failed.
 
@@ -935,17 +738,12 @@ type DRExecutionStatus struct {
 
 	Error string `json:"error,omitempty"`
 
-
-
 	// Detailed execution steps.
 
 	// +optional.
 
 	Steps []DRExecutionStep `json:"steps,omitempty"`
-
 }
-
-
 
 // DRExecutionStep defines a step in DR plan execution.
 
@@ -955,21 +753,15 @@ type DRExecutionStep struct {
 
 	Name string `json:"name"`
 
-
-
 	// Step status.
 
 	// +kubebuilder:validation:Enum=Pending;Running;Completed;Failed;Skipped
 
 	Status string `json:"status"`
 
-
-
 	// Start time.
 
 	StartTime metav1.Time `json:"startTime"`
-
-
 
 	// End time.
 
@@ -977,25 +769,18 @@ type DRExecutionStep struct {
 
 	EndTime *metav1.Time `json:"endTime,omitempty"`
 
-
-
 	// Duration.
 
 	// +optional.
 
 	Duration *metav1.Duration `json:"duration,omitempty"`
 
-
-
 	// Error message if failed.
 
 	// +optional.
 
 	Error string `json:"error,omitempty"`
-
 }
-
-
 
 // DRTestResults defines results from DR testing.
 
@@ -1005,13 +790,9 @@ type DRTestResults struct {
 
 	TestID string `json:"testId"`
 
-
-
 	// Test timestamp.
 
 	Timestamp metav1.Time `json:"timestamp"`
-
-
 
 	// Overall test status.
 
@@ -1019,15 +800,11 @@ type DRTestResults struct {
 
 	Status string `json:"status"`
 
-
-
 	// Individual test results.
 
 	// +optional.
 
 	TestCases []DRTestCase `json:"testCases,omitempty"`
-
-
 
 	// RTO achieved during test.
 
@@ -1035,17 +812,12 @@ type DRTestResults struct {
 
 	RTOAchieved *metav1.Duration `json:"rtoAchieved,omitempty"`
 
-
-
 	// Issues found during testing.
 
 	// +optional.
 
 	Issues []string `json:"issues,omitempty"`
-
 }
-
-
 
 // DRTestCase defines a single test case result.
 
@@ -1055,15 +827,11 @@ type DRTestCase struct {
 
 	Name string `json:"name"`
 
-
-
 	// Test case status.
 
 	// +kubebuilder:validation:Enum=Passed;Failed;Skipped
 
 	Status string `json:"status"`
-
-
 
 	// Duration.
 
@@ -1071,17 +839,12 @@ type DRTestCase struct {
 
 	Duration *metav1.Duration `json:"duration,omitempty"`
 
-
-
 	// Error message if failed.
 
 	// +optional.
 
 	Error string `json:"error,omitempty"`
-
 }
-
-
 
 // DRMetrics defines disaster recovery metrics.
 
@@ -1093,15 +856,11 @@ type DRMetrics struct {
 
 	CurrentRTO *metav1.Duration `json:"currentRTO,omitempty"`
 
-
-
 	// Average RTO over last executions.
 
 	// +optional.
 
 	AverageRTO *metav1.Duration `json:"averageRTO,omitempty"`
-
-
 
 	// Current RPO (time since last backup).
 
@@ -1109,15 +868,11 @@ type DRMetrics struct {
 
 	CurrentRPO *metav1.Duration `json:"currentRPO,omitempty"`
 
-
-
 	// Success rate percentage.
 
 	// +optional.
 
 	SuccessRate *int32 `json:"successRate,omitempty"`
-
-
 
 	// Availability percentage.
 
@@ -1125,17 +880,12 @@ type DRMetrics struct {
 
 	Availability *int32 `json:"availability,omitempty"`
 
-
-
 	// Last updated timestamp.
 
 	// +optional.
 
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
-
 }
-
-
 
 // BackupPolicy defines automated backup policies.
 
@@ -1158,38 +908,26 @@ type DRMetrics struct {
 // +kubebuilder:resource:shortName=bp;backuppol
 
 type BackupPolicy struct {
-
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-
-
-	Spec   BackupPolicySpec   `json:"spec,omitempty"`
+	Spec BackupPolicySpec `json:"spec,omitempty"`
 
 	Status BackupPolicyStatus `json:"status,omitempty"`
-
 }
 
-
-
 //+kubebuilder:object:root=true
-
-
 
 // BackupPolicyList contains a list of BackupPolicy.
 
 type BackupPolicyList struct {
-
 	metav1.TypeMeta `json:",inline"`
 
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-	Items           []BackupPolicy `json:"items"`
-
+	Items []BackupPolicy `json:"items"`
 }
-
-
 
 // BackupPolicySpec defines the desired state of BackupPolicy.
 
@@ -1205,8 +943,6 @@ type BackupPolicySpec struct {
 
 	Schedule string `json:"schedule"`
 
-
-
 	// Types of backups to perform.
 
 	// +optional.
@@ -1215,15 +951,11 @@ type BackupPolicySpec struct {
 
 	BackupTypes []string `json:"backupTypes,omitempty"`
 
-
-
 	// Components to include in backup.
 
 	// +optional.
 
 	Components []TargetComponent `json:"components,omitempty"`
-
-
 
 	// Namespaces to backup.
 
@@ -1231,15 +963,11 @@ type BackupPolicySpec struct {
 
 	Namespaces []string `json:"namespaces,omitempty"`
 
-
-
 	// Storage configuration.
 
 	// +kubebuilder:validation:Required
 
 	StorageConfig BackupStorageConfig `json:"storageConfig"`
-
-
 
 	// Retention policy.
 
@@ -1247,15 +975,11 @@ type BackupPolicySpec struct {
 
 	Retention BackupRetentionPolicy `json:"retention"`
 
-
-
 	// Encryption configuration.
 
 	// +optional.
 
 	Encryption *BackupEncryptionConfig `json:"encryption,omitempty"`
-
-
 
 	// Compression settings.
 
@@ -1263,23 +987,17 @@ type BackupPolicySpec struct {
 
 	Compression *BackupCompressionConfig `json:"compression,omitempty"`
 
-
-
 	// Validation settings.
 
 	// +optional.
 
 	Validation *BackupValidationConfig `json:"validation,omitempty"`
 
-
-
 	// Resource limits for backup operations.
 
 	// +optional.
 
 	ResourceLimits *ResourceConstraints `json:"resourceLimits,omitempty"`
-
-
 
 	// Pause backup operations.
 
@@ -1288,10 +1006,7 @@ type BackupPolicySpec struct {
 	// +kubebuilder:default=false
 
 	Paused bool `json:"paused,omitempty"`
-
 }
-
-
 
 // BackupStorageConfig defines storage configuration for backups.
 
@@ -1305,15 +1020,11 @@ type BackupStorageConfig struct {
 
 	Provider string `json:"provider"`
 
-
-
 	// Storage bucket or path.
 
 	// +kubebuilder:validation:Required
 
 	Location string `json:"location"`
-
-
 
 	// Region for cloud storage.
 
@@ -1321,23 +1032,17 @@ type BackupStorageConfig struct {
 
 	Region string `json:"region,omitempty"`
 
-
-
 	// Storage class.
 
 	// +optional.
 
 	StorageClass string `json:"storageClass,omitempty"`
 
-
-
 	// Credentials secret name.
 
 	// +optional.
 
 	CredentialsSecret string `json:"credentialsSecret,omitempty"`
-
-
 
 	// Additional configuration.
 
@@ -1346,10 +1051,7 @@ type BackupStorageConfig struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 
 	Config runtime.RawExtension `json:"config,omitempty"`
-
 }
-
-
 
 // BackupRetentionPolicy defines how long backups are kept.
 
@@ -1363,8 +1065,6 @@ type BackupRetentionPolicy struct {
 
 	DailyBackups int32 `json:"dailyBackups"`
 
-
-
 	// Number of weekly backups to keep.
 
 	// +optional.
@@ -1374,8 +1074,6 @@ type BackupRetentionPolicy struct {
 	// +kubebuilder:default=4
 
 	WeeklyBackups *int32 `json:"weeklyBackups,omitempty"`
-
-
 
 	// Number of monthly backups to keep.
 
@@ -1387,8 +1085,6 @@ type BackupRetentionPolicy struct {
 
 	MonthlyBackups *int32 `json:"monthlyBackups,omitempty"`
 
-
-
 	// Number of yearly backups to keep.
 
 	// +optional.
@@ -1396,10 +1092,7 @@ type BackupRetentionPolicy struct {
 	// +kubebuilder:validation:Minimum=0
 
 	YearlyBackups *int32 `json:"yearlyBackups,omitempty"`
-
 }
-
-
 
 // BackupEncryptionConfig defines encryption settings for backups.
 
@@ -1411,8 +1104,6 @@ type BackupEncryptionConfig struct {
 
 	Enabled bool `json:"enabled,omitempty"`
 
-
-
 	// Encryption algorithm.
 
 	// +optional.
@@ -1423,25 +1114,18 @@ type BackupEncryptionConfig struct {
 
 	Algorithm string `json:"algorithm,omitempty"`
 
-
-
 	// Secret containing encryption key.
 
 	// +optional.
 
 	KeySecret string `json:"keySecret,omitempty"`
 
-
-
 	// Key rotation policy.
 
 	// +optional.
 
 	KeyRotationPolicy *KeyRotationPolicy `json:"keyRotationPolicy,omitempty"`
-
 }
-
-
 
 // KeyRotationPolicy defines key rotation settings.
 
@@ -1453,8 +1137,6 @@ type KeyRotationPolicy struct {
 
 	Enabled bool `json:"enabled,omitempty"`
 
-
-
 	// Rotation interval.
 
 	// +optional.
@@ -1465,8 +1147,6 @@ type KeyRotationPolicy struct {
 
 	RotationInterval string `json:"rotationInterval,omitempty"`
 
-
-
 	// Number of old keys to keep.
 
 	// +optional.
@@ -1476,10 +1156,7 @@ type KeyRotationPolicy struct {
 	// +kubebuilder:default=3
 
 	KeepOldKeys *int32 `json:"keepOldKeys,omitempty"`
-
 }
-
-
 
 // BackupCompressionConfig defines compression settings.
 
@@ -1491,8 +1168,6 @@ type BackupCompressionConfig struct {
 
 	Enabled bool `json:"enabled,omitempty"`
 
-
-
 	// Compression algorithm.
 
 	// +optional.
@@ -1502,8 +1177,6 @@ type BackupCompressionConfig struct {
 	// +kubebuilder:default="gzip"
 
 	Algorithm string `json:"algorithm,omitempty"`
-
-
 
 	// Compression level (1-9 for gzip).
 
@@ -1516,10 +1189,7 @@ type BackupCompressionConfig struct {
 	// +kubebuilder:default=6
 
 	Level *int32 `json:"level,omitempty"`
-
 }
-
-
 
 // BackupValidationConfig defines validation settings for backups.
 
@@ -1531,15 +1201,11 @@ type BackupValidationConfig struct {
 
 	Enabled bool `json:"enabled,omitempty"`
 
-
-
 	// Validation types to perform.
 
 	// +optional.
 
 	ValidationTypes []string `json:"validationTypes,omitempty"`
-
-
 
 	// Checksum validation.
 
@@ -1549,8 +1215,6 @@ type BackupValidationConfig struct {
 
 	ChecksumValidation *bool `json:"checksumValidation,omitempty"`
 
-
-
 	// Restore validation (test restore).
 
 	// +optional.
@@ -1559,17 +1223,12 @@ type BackupValidationConfig struct {
 
 	RestoreValidation *bool `json:"restoreValidation,omitempty"`
 
-
-
 	// Validation schedule (separate from backup schedule).
 
 	// +optional.
 
 	ValidationSchedule string `json:"validationSchedule,omitempty"`
-
 }
-
-
 
 // BackupPolicyStatus defines the observed state of BackupPolicy.
 
@@ -1583,8 +1242,6 @@ type BackupPolicyStatus struct {
 
 	Phase string `json:"phase,omitempty"`
 
-
-
 	// Conditions.
 
 	// +optional.
@@ -1592,15 +1249,11 @@ type BackupPolicyStatus struct {
 	// +listType=atomic
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-
-
 	// Last backup time.
 
 	// +optional.
 
 	LastBackupTime *metav1.Time `json:"lastBackupTime,omitempty"`
-
-
 
 	// Next scheduled backup time.
 
@@ -1608,15 +1261,11 @@ type BackupPolicyStatus struct {
 
 	NextBackupTime *metav1.Time `json:"nextBackupTime,omitempty"`
 
-
-
 	// Last backup status.
 
 	// +optional.
 
 	LastBackupStatus *BackupExecutionStatus `json:"lastBackupStatus,omitempty"`
-
-
 
 	// Number of successful backups.
 
@@ -1624,15 +1273,11 @@ type BackupPolicyStatus struct {
 
 	SuccessfulBackups int32 `json:"successfulBackups,omitempty"`
 
-
-
 	// Number of failed backups.
 
 	// +optional.
 
 	FailedBackups int32 `json:"failedBackups,omitempty"`
-
-
 
 	// Current backup size.
 
@@ -1640,25 +1285,18 @@ type BackupPolicyStatus struct {
 
 	CurrentBackupSize *resource.Quantity `json:"currentBackupSize,omitempty"`
 
-
-
 	// Total storage used.
 
 	// +optional.
 
 	TotalStorageUsed *resource.Quantity `json:"totalStorageUsed,omitempty"`
 
-
-
 	// Observed generation.
 
 	// +optional.
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-
 }
-
-
 
 // BackupExecutionStatus defines the status of a backup execution.
 
@@ -1668,21 +1306,15 @@ type BackupExecutionStatus struct {
 
 	BackupID string `json:"backupId"`
 
-
-
 	// Status.
 
 	// +kubebuilder:validation:Enum=Running;Completed;Failed;Cancelled
 
 	Status string `json:"status"`
 
-
-
 	// Start time.
 
 	StartTime metav1.Time `json:"startTime"`
-
-
 
 	// End time.
 
@@ -1690,15 +1322,11 @@ type BackupExecutionStatus struct {
 
 	EndTime *metav1.Time `json:"endTime,omitempty"`
 
-
-
 	// Duration.
 
 	// +optional.
 
 	Duration *metav1.Duration `json:"duration,omitempty"`
-
-
 
 	// Backup size.
 
@@ -1706,25 +1334,18 @@ type BackupExecutionStatus struct {
 
 	Size *resource.Quantity `json:"size,omitempty"`
 
-
-
 	// Components included.
 
 	// +optional.
 
 	Components []string `json:"components,omitempty"`
 
-
-
 	// Error message if failed.
 
 	// +optional.
 
 	Error string `json:"error,omitempty"`
-
 }
-
-
 
 // FailoverPolicy defines automated failover policies.
 
@@ -1747,38 +1368,26 @@ type BackupExecutionStatus struct {
 // +kubebuilder:resource:shortName=fp;failoverpol
 
 type FailoverPolicy struct {
-
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-
-
-	Spec   FailoverPolicySpec   `json:"spec,omitempty"`
+	Spec FailoverPolicySpec `json:"spec,omitempty"`
 
 	Status FailoverPolicyStatus `json:"status,omitempty"`
-
 }
 
-
-
 //+kubebuilder:object:root=true
-
-
 
 // FailoverPolicyList contains a list of FailoverPolicy.
 
 type FailoverPolicyList struct {
-
 	metav1.TypeMeta `json:",inline"`
 
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-	Items           []FailoverPolicy `json:"items"`
-
+	Items []FailoverPolicy `json:"items"`
 }
-
-
 
 // FailoverPolicySpec defines the desired state of FailoverPolicy.
 
@@ -1790,8 +1399,6 @@ type FailoverPolicySpec struct {
 
 	PrimaryRegion string `json:"primaryRegion"`
 
-
-
 	// Failover regions in order of preference.
 
 	// +kubebuilder:validation:Required
@@ -1799,8 +1406,6 @@ type FailoverPolicySpec struct {
 	// +kubebuilder:validation:MinItems=1
 
 	FailoverRegions []string `json:"failoverRegions"`
-
-
 
 	// Enable automatic failover.
 
@@ -1810,15 +1415,11 @@ type FailoverPolicySpec struct {
 
 	AutoFailover bool `json:"autoFailover,omitempty"`
 
-
-
 	// Failover trigger conditions.
 
 	// +optional.
 
 	TriggerConditions []FailoverTriggerCondition `json:"triggerConditions,omitempty"`
-
-
 
 	// Health check configuration.
 
@@ -1826,15 +1427,11 @@ type FailoverPolicySpec struct {
 
 	HealthCheck *FailoverHealthCheck `json:"healthCheck,omitempty"`
 
-
-
 	// DNS failover configuration.
 
 	// +optional.
 
 	DNSConfig *FailoverDNSConfig `json:"dnsConfig,omitempty"`
-
-
 
 	// Traffic splitting configuration.
 
@@ -1842,15 +1439,11 @@ type FailoverPolicySpec struct {
 
 	TrafficConfig *FailoverTrafficConfig `json:"trafficConfig,omitempty"`
 
-
-
 	// Data synchronization requirements.
 
 	// +optional.
 
 	DataSyncConfig *FailoverDataSyncConfig `json:"dataSyncConfig,omitempty"`
-
-
 
 	// Rollback configuration.
 
@@ -1858,15 +1451,11 @@ type FailoverPolicySpec struct {
 
 	RollbackConfig *FailoverRollbackConfig `json:"rollbackConfig,omitempty"`
 
-
-
 	// Components to include in failover.
 
 	// +optional.
 
 	Components []TargetComponent `json:"components,omitempty"`
-
-
 
 	// RTO target for failover.
 
@@ -1878,17 +1467,12 @@ type FailoverPolicySpec struct {
 
 	RTOTarget string `json:"rtoTarget,omitempty"`
 
-
-
 	// Resource constraints for failover operations.
 
 	// +optional.
 
 	ResourceConstraints *ResourceConstraints `json:"resourceConstraints,omitempty"`
-
 }
-
-
 
 // FailoverTriggerCondition defines conditions that trigger failover.
 
@@ -1900,8 +1484,6 @@ type FailoverTriggerCondition struct {
 
 	Name string `json:"name"`
 
-
-
 	// Condition type.
 
 	// +kubebuilder:validation:Required
@@ -1910,15 +1492,11 @@ type FailoverTriggerCondition struct {
 
 	Type string `json:"type"`
 
-
-
 	// Health check configuration (for health-check type).
 
 	// +optional.
 
 	HealthCheckConfig *FailoverHealthCheck `json:"healthCheckConfig,omitempty"`
-
-
 
 	// Metric threshold configuration (for metric-threshold type).
 
@@ -1926,15 +1504,11 @@ type FailoverTriggerCondition struct {
 
 	MetricThreshold *FailoverMetricThreshold `json:"metricThreshold,omitempty"`
 
-
-
 	// External webhook configuration (for external type).
 
 	// +optional.
 
 	WebhookConfig *FailoverWebhookConfig `json:"webhookConfig,omitempty"`
-
-
 
 	// Severity level.
 
@@ -1946,8 +1520,6 @@ type FailoverTriggerCondition struct {
 
 	Severity string `json:"severity,omitempty"`
 
-
-
 	// Cooldown period after triggering.
 
 	// +optional.
@@ -1957,10 +1529,7 @@ type FailoverTriggerCondition struct {
 	// +kubebuilder:default="10m"
 
 	Cooldown string `json:"cooldown,omitempty"`
-
 }
-
-
 
 // FailoverHealthCheck defines health check configuration.
 
@@ -1974,8 +1543,6 @@ type FailoverHealthCheck struct {
 
 	Endpoints []string `json:"endpoints"`
 
-
-
 	// Check interval.
 
 	// +optional.
@@ -1985,8 +1552,6 @@ type FailoverHealthCheck struct {
 	// +kubebuilder:default="30s"
 
 	Interval string `json:"interval,omitempty"`
-
-
 
 	// Timeout for each check.
 
@@ -1998,8 +1563,6 @@ type FailoverHealthCheck struct {
 
 	Timeout string `json:"timeout,omitempty"`
 
-
-
 	// Number of failed checks before triggering.
 
 	// +optional.
@@ -2010,8 +1573,6 @@ type FailoverHealthCheck struct {
 
 	FailureThreshold *int32 `json:"failureThreshold,omitempty"`
 
-
-
 	// Number of successful checks to recover.
 
 	// +optional.
@@ -2021,10 +1582,7 @@ type FailoverHealthCheck struct {
 	// +kubebuilder:default=3
 
 	SuccessThreshold *int32 `json:"successThreshold,omitempty"`
-
 }
-
-
 
 // FailoverMetricThreshold defines metric-based trigger conditions.
 
@@ -2036,23 +1594,17 @@ type FailoverMetricThreshold struct {
 
 	MetricName string `json:"metricName"`
 
-
-
 	// Metric query.
 
 	// +kubebuilder:validation:Required
 
 	Query string `json:"query"`
 
-
-
 	// Threshold value.
 
 	// +kubebuilder:validation:Required
 
 	Threshold string `json:"threshold"`
-
-
 
 	// Comparison operator.
 
@@ -2061,8 +1613,6 @@ type FailoverMetricThreshold struct {
 	// +kubebuilder:validation:Enum=gt;gte;lt;lte;eq;ne
 
 	Operator string `json:"operator"`
-
-
 
 	// Duration the condition must persist.
 
@@ -2073,10 +1623,7 @@ type FailoverMetricThreshold struct {
 	// +kubebuilder:default="5m"
 
 	Duration string `json:"duration,omitempty"`
-
 }
-
-
 
 // FailoverWebhookConfig defines webhook-based trigger conditions.
 
@@ -2088,8 +1635,6 @@ type FailoverWebhookConfig struct {
 
 	URL string `json:"url"`
 
-
-
 	// HTTP method.
 
 	// +optional.
@@ -2100,15 +1645,11 @@ type FailoverWebhookConfig struct {
 
 	Method string `json:"method,omitempty"`
 
-
-
 	// Request headers.
 
 	// +optional.
 
 	Headers map[string]string `json:"headers,omitempty"`
-
-
 
 	// Request body template.
 
@@ -2116,15 +1657,11 @@ type FailoverWebhookConfig struct {
 
 	Body string `json:"body,omitempty"`
 
-
-
 	// Expected response codes for success.
 
 	// +optional.
 
 	ExpectedCodes []int32 `json:"expectedCodes,omitempty"`
-
-
 
 	// Timeout for webhook call.
 
@@ -2135,10 +1672,7 @@ type FailoverWebhookConfig struct {
 	// +kubebuilder:default="30s"
 
 	Timeout string `json:"timeout,omitempty"`
-
 }
-
-
 
 // FailoverDNSConfig defines DNS failover configuration.
 
@@ -2152,15 +1686,11 @@ type FailoverDNSConfig struct {
 
 	Provider string `json:"provider"`
 
-
-
 	// Zone ID or domain name.
 
 	// +kubebuilder:validation:Required
 
 	Zone string `json:"zone"`
-
-
 
 	// DNS records to manage.
 
@@ -2169,8 +1699,6 @@ type FailoverDNSConfig struct {
 	// +kubebuilder:validation:MinItems=1
 
 	Records []FailoverDNSRecord `json:"records"`
-
-
 
 	// TTL for DNS records.
 
@@ -2182,17 +1710,12 @@ type FailoverDNSConfig struct {
 
 	TTL *int32 `json:"ttl,omitempty"`
 
-
-
 	// Credentials secret.
 
 	// +optional.
 
 	CredentialsSecret string `json:"credentialsSecret,omitempty"`
-
 }
-
-
 
 // FailoverDNSRecord defines a DNS record for failover.
 
@@ -2204,8 +1727,6 @@ type FailoverDNSRecord struct {
 
 	Name string `json:"name"`
 
-
-
 	// Record type.
 
 	// +kubebuilder:validation:Required
@@ -2214,25 +1735,18 @@ type FailoverDNSRecord struct {
 
 	Type string `json:"type"`
 
-
-
 	// Regional values (region -> value mapping).
 
 	// +kubebuilder:validation:Required
 
 	RegionalValues map[string]string `json:"regionalValues"`
 
-
-
 	// Health check configuration for this record.
 
 	// +optional.
 
 	HealthCheck *FailoverDNSHealthCheck `json:"healthCheck,omitempty"`
-
 }
-
-
 
 // FailoverDNSHealthCheck defines DNS-level health checking.
 
@@ -2244,15 +1758,11 @@ type FailoverDNSHealthCheck struct {
 
 	Enabled bool `json:"enabled,omitempty"`
 
-
-
 	// Health check endpoint.
 
 	// +kubebuilder:validation:Required
 
 	Endpoint string `json:"endpoint"`
-
-
 
 	// Port for health check.
 
@@ -2266,8 +1776,6 @@ type FailoverDNSHealthCheck struct {
 
 	Port *int32 `json:"port,omitempty"`
 
-
-
 	// Protocol for health check.
 
 	// +optional.
@@ -2278,8 +1786,6 @@ type FailoverDNSHealthCheck struct {
 
 	Protocol string `json:"protocol,omitempty"`
 
-
-
 	// Path for HTTP(S) health checks.
 
 	// +optional.
@@ -2287,10 +1793,7 @@ type FailoverDNSHealthCheck struct {
 	// +kubebuilder:default="/healthz"
 
 	Path string `json:"path,omitempty"`
-
 }
-
-
 
 // FailoverTrafficConfig defines traffic management during failover.
 
@@ -2306,15 +1809,11 @@ type FailoverTrafficConfig struct {
 
 	Mode string `json:"mode,omitempty"`
 
-
-
 	// Gradual failover configuration.
 
 	// +optional.
 
 	GradualConfig *FailoverGradualConfig `json:"gradualConfig,omitempty"`
-
-
 
 	// Canary failover configuration.
 
@@ -2322,17 +1821,12 @@ type FailoverTrafficConfig struct {
 
 	CanaryConfig *FailoverCanaryConfig `json:"canaryConfig,omitempty"`
 
-
-
 	// Load balancer configuration.
 
 	// +optional.
 
 	LoadBalancerConfig *FailoverLoadBalancerConfig `json:"loadBalancerConfig,omitempty"`
-
 }
-
-
 
 // FailoverGradualConfig defines gradual traffic shift configuration.
 
@@ -2346,8 +1840,6 @@ type FailoverGradualConfig struct {
 
 	Steps []int32 `json:"steps"`
 
-
-
 	// Duration between steps.
 
 	// +kubebuilder:validation:Required
@@ -2356,17 +1848,12 @@ type FailoverGradualConfig struct {
 
 	StepDuration string `json:"stepDuration"`
 
-
-
 	// Success criteria to proceed to next step.
 
 	// +optional.
 
 	SuccessCriteria []FailoverSuccessCriterion `json:"successCriteria,omitempty"`
-
 }
-
-
 
 // FailoverCanaryConfig defines canary failover configuration.
 
@@ -2382,8 +1869,6 @@ type FailoverCanaryConfig struct {
 
 	CanaryPercentage int32 `json:"canaryPercentage"`
 
-
-
 	// Duration of canary phase.
 
 	// +kubebuilder:validation:Required
@@ -2392,15 +1877,11 @@ type FailoverCanaryConfig struct {
 
 	Duration string `json:"duration"`
 
-
-
 	// Success criteria for promoting canary.
 
 	// +optional.
 
 	SuccessCriteria []FailoverSuccessCriterion `json:"successCriteria,omitempty"`
-
-
 
 	// Automatic promotion if criteria are met.
 
@@ -2409,10 +1890,7 @@ type FailoverCanaryConfig struct {
 	// +kubebuilder:default=false
 
 	AutoPromote bool `json:"autoPromote,omitempty"`
-
 }
-
-
 
 // FailoverSuccessCriterion defines success criteria for failover phases.
 
@@ -2424,23 +1902,17 @@ type FailoverSuccessCriterion struct {
 
 	Name string `json:"name"`
 
-
-
 	// Metric to evaluate.
 
 	// +kubebuilder:validation:Required
 
 	Metric string `json:"metric"`
 
-
-
 	// Threshold for success.
 
 	// +kubebuilder:validation:Required
 
 	Threshold string `json:"threshold"`
-
-
 
 	// Comparison operator.
 
@@ -2449,10 +1921,7 @@ type FailoverSuccessCriterion struct {
 	// +kubebuilder:validation:Enum=gt;gte;lt;lte;eq;ne
 
 	Operator string `json:"operator"`
-
 }
-
-
 
 // FailoverLoadBalancerConfig defines load balancer configuration.
 
@@ -2466,25 +1935,18 @@ type FailoverLoadBalancerConfig struct {
 
 	Type string `json:"type"`
 
-
-
 	// Configuration template.
 
 	// +optional.
 
 	ConfigTemplate string `json:"configTemplate,omitempty"`
 
-
-
 	// Health check configuration.
 
 	// +optional.
 
 	HealthCheck *FailoverHealthCheck `json:"healthCheck,omitempty"`
-
 }
-
-
 
 // FailoverDataSyncConfig defines data synchronization requirements.
 
@@ -2496,15 +1958,11 @@ type FailoverDataSyncConfig struct {
 
 	Enabled bool `json:"enabled,omitempty"`
 
-
-
 	// Data sources to synchronize.
 
 	// +optional.
 
 	DataSources []FailoverDataSource `json:"dataSources,omitempty"`
-
-
 
 	// Synchronization timeout.
 
@@ -2516,8 +1974,6 @@ type FailoverDataSyncConfig struct {
 
 	SyncTimeout string `json:"syncTimeout,omitempty"`
 
-
-
 	// Consistency level required.
 
 	// +optional.
@@ -2527,10 +1983,7 @@ type FailoverDataSyncConfig struct {
 	// +kubebuilder:default="eventual"
 
 	ConsistencyLevel string `json:"consistencyLevel,omitempty"`
-
 }
-
-
 
 // FailoverDataSource defines a data source for synchronization.
 
@@ -2542,8 +1995,6 @@ type FailoverDataSource struct {
 
 	Name string `json:"name"`
 
-
-
 	// Data source type.
 
 	// +kubebuilder:validation:Required
@@ -2552,15 +2003,11 @@ type FailoverDataSource struct {
 
 	Type string `json:"type"`
 
-
-
 	// Regional endpoints for the data source.
 
 	// +kubebuilder:validation:Required
 
 	RegionalEndpoints map[string]string `json:"regionalEndpoints"`
-
-
 
 	// Synchronization method.
 
@@ -2572,8 +2019,6 @@ type FailoverDataSource struct {
 
 	SyncMethod string `json:"syncMethod,omitempty"`
 
-
-
 	// Custom synchronization configuration.
 
 	// +optional.
@@ -2581,10 +2026,7 @@ type FailoverDataSource struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 
 	SyncConfig runtime.RawExtension `json:"syncConfig,omitempty"`
-
 }
-
-
 
 // FailoverRollbackConfig defines rollback configuration.
 
@@ -2596,15 +2038,11 @@ type FailoverRollbackConfig struct {
 
 	AutoRollback bool `json:"autoRollback,omitempty"`
 
-
-
 	// Rollback trigger conditions.
 
 	// +optional.
 
 	TriggerConditions []FailoverTriggerCondition `json:"triggerConditions,omitempty"`
-
-
 
 	// Rollback timeout.
 
@@ -2616,17 +2054,12 @@ type FailoverRollbackConfig struct {
 
 	RollbackTimeout string `json:"rollbackTimeout,omitempty"`
 
-
-
 	// Data recovery requirements.
 
 	// +optional.
 
 	DataRecovery *FailoverDataRecovery `json:"dataRecovery,omitempty"`
-
 }
-
-
 
 // FailoverDataRecovery defines data recovery during rollback.
 
@@ -2638,8 +2071,6 @@ type FailoverDataRecovery struct {
 
 	Enabled bool `json:"enabled,omitempty"`
 
-
-
 	// Point-in-time recovery target.
 
 	// +optional.
@@ -2648,17 +2079,12 @@ type FailoverDataRecovery struct {
 
 	RecoveryTarget string `json:"recoveryTarget,omitempty"`
 
-
-
 	// Recovery validation.
 
 	// +optional.
 
 	Validation *FailoverRecoveryValidation `json:"validation,omitempty"`
-
 }
-
-
 
 // FailoverRecoveryValidation defines validation for data recovery.
 
@@ -2670,15 +2096,11 @@ type FailoverRecoveryValidation struct {
 
 	Enabled bool `json:"enabled,omitempty"`
 
-
-
 	// Validation checks.
 
 	// +optional.
 
 	Checks []string `json:"checks,omitempty"`
-
-
 
 	// Validation timeout.
 
@@ -2689,10 +2111,7 @@ type FailoverRecoveryValidation struct {
 	// +kubebuilder:default="5m"
 
 	Timeout string `json:"timeout,omitempty"`
-
 }
-
-
 
 // FailoverPolicyStatus defines the observed state of FailoverPolicy.
 
@@ -2706,15 +2125,11 @@ type FailoverPolicyStatus struct {
 
 	Phase string `json:"phase,omitempty"`
 
-
-
 	// Current active region.
 
 	// +optional.
 
 	CurrentActiveRegion string `json:"currentActiveRegion,omitempty"`
-
-
 
 	// Conditions.
 
@@ -2723,15 +2138,11 @@ type FailoverPolicyStatus struct {
 	// +listType=atomic
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-
-
 	// Last failover details.
 
 	// +optional.
 
 	LastFailover *FailoverExecutionStatus `json:"lastFailover,omitempty"`
-
-
 
 	// Regional health status.
 
@@ -2739,15 +2150,11 @@ type FailoverPolicyStatus struct {
 
 	RegionHealth map[string]RegionHealthInfo `json:"regionHealth,omitempty"`
 
-
-
 	// Failover history (last 10 executions).
 
 	// +optional.
 
 	FailoverHistory []FailoverExecutionStatus `json:"failoverHistory,omitempty"`
-
-
 
 	// Current RTO metrics.
 
@@ -2755,17 +2162,12 @@ type FailoverPolicyStatus struct {
 
 	RTOMetrics *FailoverRTOMetrics `json:"rtoMetrics,omitempty"`
 
-
-
 	// Observed generation.
 
 	// +optional.
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-
 }
-
-
 
 // FailoverExecutionStatus defines the status of a failover execution.
 
@@ -2775,25 +2177,17 @@ type FailoverExecutionStatus struct {
 
 	ID string `json:"id"`
 
-
-
 	// Trigger reason.
 
 	TriggerReason string `json:"triggerReason"`
-
-
 
 	// Source region.
 
 	SourceRegion string `json:"sourceRegion"`
 
-
-
 	// Target region.
 
 	TargetRegion string `json:"targetRegion"`
-
-
 
 	// Status.
 
@@ -2801,13 +2195,9 @@ type FailoverExecutionStatus struct {
 
 	Status string `json:"status"`
 
-
-
 	// Start time.
 
 	StartTime metav1.Time `json:"startTime"`
-
-
 
 	// End time.
 
@@ -2815,15 +2205,11 @@ type FailoverExecutionStatus struct {
 
 	EndTime *metav1.Time `json:"endTime,omitempty"`
 
-
-
 	// RTO achieved.
 
 	// +optional.
 
 	RTOAchieved *metav1.Duration `json:"rtoAchieved,omitempty"`
-
-
 
 	// Failover steps.
 
@@ -2831,17 +2217,12 @@ type FailoverExecutionStatus struct {
 
 	Steps []FailoverExecutionStep `json:"steps,omitempty"`
 
-
-
 	// Error message if failed.
 
 	// +optional.
 
 	Error string `json:"error,omitempty"`
-
 }
-
-
 
 // FailoverExecutionStep defines a step in failover execution.
 
@@ -2851,15 +2232,11 @@ type FailoverExecutionStep struct {
 
 	Name string `json:"name"`
 
-
-
 	// Step type.
 
 	// +kubebuilder:validation:Enum=dns;traffic;data-sync;validation;cleanup
 
 	Type string `json:"type"`
-
-
 
 	// Status.
 
@@ -2867,13 +2244,9 @@ type FailoverExecutionStep struct {
 
 	Status string `json:"status"`
 
-
-
 	// Start time.
 
 	StartTime metav1.Time `json:"startTime"`
-
-
 
 	// End time.
 
@@ -2881,25 +2254,18 @@ type FailoverExecutionStep struct {
 
 	EndTime *metav1.Time `json:"endTime,omitempty"`
 
-
-
 	// Duration.
 
 	// +optional.
 
 	Duration *metav1.Duration `json:"duration,omitempty"`
 
-
-
 	// Error message if failed.
 
 	// +optional.
 
 	Error string `json:"error,omitempty"`
-
 }
-
-
 
 // RegionHealthInfo defines health information for a region.
 
@@ -2911,15 +2277,11 @@ type RegionHealthInfo struct {
 
 	Status string `json:"status"`
 
-
-
 	// Last check time.
 
 	// +optional.
 
 	LastCheckTime *metav1.Time `json:"lastCheckTime,omitempty"`
-
-
 
 	// Response time.
 
@@ -2927,25 +2289,18 @@ type RegionHealthInfo struct {
 
 	ResponseTime *metav1.Duration `json:"responseTime,omitempty"`
 
-
-
 	// Error count.
 
 	// +optional.
 
 	ErrorCount int32 `json:"errorCount,omitempty"`
 
-
-
 	// Health check details.
 
 	// +optional.
 
 	HealthCheckDetails map[string]string `json:"healthCheckDetails,omitempty"`
-
 }
-
-
 
 // FailoverRTOMetrics defines RTO metrics for failover.
 
@@ -2957,15 +2312,11 @@ type FailoverRTOMetrics struct {
 
 	TargetRTO *metav1.Duration `json:"targetRTO,omitempty"`
 
-
-
 	// Last achieved RTO.
 
 	// +optional.
 
 	LastRTO *metav1.Duration `json:"lastRTO,omitempty"`
-
-
 
 	// Average RTO over last 10 failovers.
 
@@ -2973,15 +2324,11 @@ type FailoverRTOMetrics struct {
 
 	AverageRTO *metav1.Duration `json:"averageRTO,omitempty"`
 
-
-
 	// Best RTO achieved.
 
 	// +optional.
 
 	BestRTO *metav1.Duration `json:"bestRTO,omitempty"`
-
-
 
 	// Worst RTO achieved.
 
@@ -2989,17 +2336,12 @@ type FailoverRTOMetrics struct {
 
 	WorstRTO *metav1.Duration `json:"worstRTO,omitempty"`
 
-
-
 	// Success rate percentage.
 
 	// +optional.
 
 	SuccessRate *int32 `json:"successRate,omitempty"`
-
 }
-
-
 
 func init() {
 
@@ -3010,4 +2352,3 @@ func init() {
 	SchemeBuilder.Register(&FailoverPolicy{}, &FailoverPolicyList{})
 
 }
-

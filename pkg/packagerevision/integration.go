@@ -28,94 +28,57 @@ limitations under the License.
 
 */
 
-
-
-
 package packagerevision
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/templates"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/validation/yang"
 
-
-
 	"k8s.io/apimachinery/pkg/api/errors"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/apimachinery/pkg/types"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 )
-
-
 
 // NetworkIntentPackageReconciler integrates NetworkIntent processing with PackageRevision lifecycle management.
 
 // Extends the existing NetworkIntent controller to leverage Porch for package orchestration.
 
 type NetworkIntentPackageReconciler struct {
-
 	client.Client
 
 	Scheme *runtime.Scheme
 
 	Logger logr.Logger
 
-
-
 	// Core components.
 
-	PackageManager   PackageRevisionManager
+	PackageManager PackageRevisionManager
 
-	TemplateEngine   templates.TemplateEngine
+	TemplateEngine templates.TemplateEngine
 
-	YANGValidator    yang.YANGValidator
+	YANGValidator yang.YANGValidator
 
-	PorchClient      porch.PorchClient
+	PorchClient porch.PorchClient
 
 	LifecycleManager porch.LifecycleManager
-
-
 
 	// Configuration.
 
 	Config *IntegrationConfig
-
 }
-
-
 
 // IntegrationConfig contains configuration for NetworkIntent-PackageRevision integration.
 
@@ -123,53 +86,42 @@ type IntegrationConfig struct {
 
 	// PackageRevision lifecycle settings.
 
-	AutoPromoteToProposed    bool          `yaml:"autoPromoteToProposed"`
+	AutoPromoteToProposed bool `yaml:"autoPromoteToProposed"`
 
-	AutoPromoteToPublished   bool          `yaml:"autoPromoteToPublished"`
+	AutoPromoteToPublished bool `yaml:"autoPromoteToPublished"`
 
-	AutoCreateRollbackPoints bool          `yaml:"autoCreateRollbackPoints"`
+	AutoCreateRollbackPoints bool `yaml:"autoCreateRollbackPoints"`
 
 	DefaultTransitionTimeout time.Duration `yaml:"defaultTransitionTimeout"`
 
-
-
 	// Validation settings.
 
-	RequireYANGValidation bool     `yaml:"requireYangValidation"`
+	RequireYANGValidation bool `yaml:"requireYangValidation"`
 
-	RequiredApprovals     int      `yaml:"requiredApprovals"`
+	RequiredApprovals int `yaml:"requiredApprovals"`
 
-	ValidationModels      []string `yaml:"validationModels"`
-
-
+	ValidationModels []string `yaml:"validationModels"`
 
 	// Template settings.
 
-	PreferredTemplateVendors  []string `yaml:"preferredTemplateVendors"`
+	PreferredTemplateVendors []string `yaml:"preferredTemplateVendors"`
 
-	EnableTemplateInheritance bool     `yaml:"enableTemplateInheritance"`
-
-
+	EnableTemplateInheritance bool `yaml:"enableTemplateInheritance"`
 
 	// Error handling.
 
-	FailureRetryCount         int           `yaml:"failureRetryCount"`
+	FailureRetryCount int `yaml:"failureRetryCount"`
 
-	FailureRetryInterval      time.Duration `yaml:"failureRetryInterval"`
+	FailureRetryInterval time.Duration `yaml:"failureRetryInterval"`
 
-	ContinueOnValidationError bool          `yaml:"continueOnValidationError"`
-
-
+	ContinueOnValidationError bool `yaml:"continueOnValidationError"`
 
 	// Status reporting.
 
 	UpdateStatusFrequency time.Duration `yaml:"updateStatusFrequency"`
 
-	EnableDetailedStatus  bool          `yaml:"enableDetailedStatus"`
-
+	EnableDetailedStatus bool `yaml:"enableDetailedStatus"`
 }
-
-
 
 // NetworkIntentPackageStatus represents the extended status for NetworkIntent with PackageRevision integration.
 
@@ -177,51 +129,41 @@ type NetworkIntentPackageStatus struct {
 
 	// PackageRevision information.
 
-	PackageReference   *porch.PackageReference        `json:"packageReference,omitempty"`
+	PackageReference *porch.PackageReference `json:"packageReference,omitempty"`
 
-	PackageLifecycle   porch.PackageRevisionLifecycle `json:"packageLifecycle,omitempty"`
+	PackageLifecycle porch.PackageRevisionLifecycle `json:"packageLifecycle,omitempty"`
 
-	PackageCreatedAt   *metav1.Time                   `json:"packageCreatedAt,omitempty"`
+	PackageCreatedAt *metav1.Time `json:"packageCreatedAt,omitempty"`
 
-	PackageLastUpdated *metav1.Time                   `json:"packageLastUpdated,omitempty"`
-
-
+	PackageLastUpdated *metav1.Time `json:"packageLastUpdated,omitempty"`
 
 	// Template information.
 
-	UsedTemplate       string `json:"usedTemplate,omitempty"`
+	UsedTemplate string `json:"usedTemplate,omitempty"`
 
-	TemplateVersion    string `json:"templateVersion,omitempty"`
+	TemplateVersion string `json:"templateVersion,omitempty"`
 
-	GeneratedResources int    `json:"generatedResources,omitempty"`
-
-
+	GeneratedResources int `json:"generatedResources,omitempty"`
 
 	// Validation results.
 
-	YANGValidationResult *ValidationSummary     `json:"yangValidationResult,omitempty"`
+	YANGValidationResult *ValidationSummary `json:"yangValidationResult,omitempty"`
 
-	ApprovalStatus       *ApprovalStatusSummary `json:"approvalStatus,omitempty"`
-
-
+	ApprovalStatus *ApprovalStatusSummary `json:"approvalStatus,omitempty"`
 
 	// Lifecycle tracking.
 
-	TransitionHistory  []*TransitionHistoryEntry `json:"transitionHistory,omitempty"`
+	TransitionHistory []*TransitionHistoryEntry `json:"transitionHistory,omitempty"`
 
-	PendingTransitions []*PendingTransition      `json:"pendingTransitions,omitempty"`
-
-
+	PendingTransitions []*PendingTransition `json:"pendingTransitions,omitempty"`
 
 	// Error tracking.
 
-	LastError     string       `json:"lastError,omitempty"`
+	LastError string `json:"lastError,omitempty"`
 
-	ErrorCount    int          `json:"errorCount,omitempty"`
+	ErrorCount int `json:"errorCount,omitempty"`
 
 	LastErrorTime *metav1.Time `json:"lastErrorTime,omitempty"`
-
-
 
 	// Performance metrics.
 
@@ -230,96 +172,73 @@ type NetworkIntentPackageStatus struct {
 	ValidationDuration *metav1.Duration `json:"validationDuration,omitempty"`
 
 	DeploymentDuration *metav1.Duration `json:"deploymentDuration,omitempty"`
-
 }
-
-
 
 // ValidationSummary provides a summary of YANG validation results.
 
 type ValidationSummary struct {
+	Valid bool `json:"valid"`
 
-	Valid        bool        `json:"valid"`
+	ModelCount int `json:"modelCount"`
 
-	ModelCount   int         `json:"modelCount"`
+	ErrorCount int `json:"errorCount"`
 
-	ErrorCount   int         `json:"errorCount"`
+	WarningCount int `json:"warningCount"`
 
-	WarningCount int         `json:"warningCount"`
-
-	ValidatedAt  metav1.Time `json:"validatedAt"`
-
+	ValidatedAt metav1.Time `json:"validatedAt"`
 }
-
-
 
 // ApprovalStatusSummary provides a summary of approval workflow status.
 
 type ApprovalStatusSummary struct {
+	Required int `json:"required"`
 
-	Required         int          `json:"required"`
+	Received int `json:"received"`
 
-	Received         int          `json:"received"`
-
-	Status           string       `json:"status"` // pending, approved, rejected
+	Status string `json:"status"` // pending, approved, rejected
 
 	LastApprovalTime *metav1.Time `json:"lastApprovalTime,omitempty"`
-
 }
-
-
 
 // TransitionHistoryEntry tracks lifecycle transitions.
 
 type TransitionHistoryEntry struct {
+	FromStage porch.PackageRevisionLifecycle `json:"fromStage"`
 
-	FromStage      porch.PackageRevisionLifecycle `json:"fromStage"`
+	ToStage porch.PackageRevisionLifecycle `json:"toStage"`
 
-	ToStage        porch.PackageRevisionLifecycle `json:"toStage"`
+	TransitionTime metav1.Time `json:"transitionTime"`
 
-	TransitionTime metav1.Time                    `json:"transitionTime"`
+	Duration metav1.Duration `json:"duration"`
 
-	Duration       metav1.Duration                `json:"duration"`
+	Success bool `json:"success"`
 
-	Success        bool                           `json:"success"`
+	User string `json:"user,omitempty"`
 
-	User           string                         `json:"user,omitempty"`
-
-	Reason         string                         `json:"reason,omitempty"`
-
+	Reason string `json:"reason,omitempty"`
 }
-
-
 
 // PendingTransition tracks pending lifecycle transitions.
 
 type PendingTransition struct {
+	ToStage porch.PackageRevisionLifecycle `json:"toStage"`
 
-	ToStage       porch.PackageRevisionLifecycle `json:"toStage"`
+	ScheduledAt metav1.Time `json:"scheduledAt"`
 
-	ScheduledAt   metav1.Time                    `json:"scheduledAt"`
+	Prerequisites []string `json:"prerequisites,omitempty"`
 
-	Prerequisites []string                       `json:"prerequisites,omitempty"`
-
-	Timeout       *metav1.Duration               `json:"timeout,omitempty"`
-
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
 }
-
-
 
 // SetupWithManager sets up the controller with the manager.
 
 func (r *NetworkIntentPackageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
-
 		For(&nephoranv1.NetworkIntent{}).
-
 		Complete(r)
 
 }
-
-
 
 // Reconcile handles NetworkIntent reconciliation with PackageRevision lifecycle management.
 
@@ -328,8 +247,6 @@ func (r *NetworkIntentPackageReconciler) Reconcile(ctx context.Context, req ctrl
 	logger := r.Logger.WithValues("networkintent", req.NamespacedName)
 
 	startTime := time.Now()
-
-
 
 	// Get the NetworkIntent.
 
@@ -351,8 +268,6 @@ func (r *NetworkIntentPackageReconciler) Reconcile(ctx context.Context, req ctrl
 
 	}
 
-
-
 	// Initialize extended status if not present.
 
 	if intent.Status.Extensions == nil {
@@ -361,8 +276,6 @@ func (r *NetworkIntentPackageReconciler) Reconcile(ctx context.Context, req ctrl
 
 	}
 
-
-
 	// Check for deletion.
 
 	if !intent.DeletionTimestamp.IsZero() {
@@ -370,8 +283,6 @@ func (r *NetworkIntentPackageReconciler) Reconcile(ctx context.Context, req ctrl
 		return r.handleIntentDeletion(ctx, req.NamespacedName)
 
 	}
-
-
 
 	// Add finalizer if not present.
 
@@ -387,8 +298,6 @@ func (r *NetworkIntentPackageReconciler) Reconcile(ctx context.Context, req ctrl
 
 	}
 
-
-
 	// Get or initialize extended status.
 
 	extendedStatus, err := r.getExtendedStatus(&intent)
@@ -401,8 +310,6 @@ func (r *NetworkIntentPackageReconciler) Reconcile(ctx context.Context, req ctrl
 
 	}
 
-
-
 	logger.Info("Reconciling NetworkIntent with PackageRevision lifecycle",
 
 		"intent", intent.Name,
@@ -410,8 +317,6 @@ func (r *NetworkIntentPackageReconciler) Reconcile(ctx context.Context, req ctrl
 		"currentStatus", intent.Status.Phase,
 
 		"packageLifecycle", extendedStatus.PackageLifecycle)
-
-
 
 	// Process the NetworkIntent through the PackageRevision lifecycle.
 
@@ -429,15 +334,11 @@ func (r *NetworkIntentPackageReconciler) Reconcile(ctx context.Context, req ctrl
 
 	}
 
-
-
 	// Update processing duration.
 
 	processingDuration := time.Since(startTime)
 
 	extendedStatus.ProcessingDuration = &metav1.Duration{Duration: processingDuration}
-
-
 
 	// Update extended status.
 
@@ -446,8 +347,6 @@ func (r *NetworkIntentPackageReconciler) Reconcile(ctx context.Context, req ctrl
 		logger.Error(err, "Failed to update extended status")
 
 	}
-
-
 
 	// Update standard status.
 
@@ -459,8 +358,6 @@ func (r *NetworkIntentPackageReconciler) Reconcile(ctx context.Context, req ctrl
 
 	}
 
-
-
 	logger.Info("NetworkIntent reconciliation completed",
 
 		"intent", intent.Name,
@@ -469,13 +366,9 @@ func (r *NetworkIntentPackageReconciler) Reconcile(ctx context.Context, req ctrl
 
 		"duration", processingDuration)
 
-
-
 	return result, err
 
 }
-
-
 
 // processIntentLifecycle processes the NetworkIntent through the PackageRevision lifecycle.
 
@@ -513,15 +406,11 @@ func (r *NetworkIntentPackageReconciler) processIntentLifecycle(ctx context.Cont
 
 }
 
-
-
 // initializeIntent initializes a new NetworkIntent with PackageRevision creation.
 
 func (r *NetworkIntentPackageReconciler) initializeIntent(ctx context.Context, intent *nephoranv1.NetworkIntent, status *NetworkIntentPackageStatus) (ctrl.Result, error) {
 
 	r.Logger.Info("Initializing NetworkIntent", "intent", intent.Name)
-
-
 
 	// Update status to pending.
 
@@ -529,21 +418,15 @@ func (r *NetworkIntentPackageReconciler) initializeIntent(ctx context.Context, i
 
 	intent.Status.LastMessage = "Initializing intent processing"
 
-
-
 	return ctrl.Result{RequeueAfter: time.Second}, nil
 
 }
-
-
 
 // handlePendingIntent handles NetworkIntent in pending phase.
 
 func (r *NetworkIntentPackageReconciler) handlePendingIntent(ctx context.Context, intent *nephoranv1.NetworkIntent, status *NetworkIntentPackageStatus) (ctrl.Result, error) {
 
 	r.Logger.Info("Handling pending NetworkIntent", "intent", intent.Name)
-
-
 
 	// Check if PackageRevision already exists.
 
@@ -559,8 +442,6 @@ func (r *NetworkIntentPackageReconciler) handlePendingIntent(ctx context.Context
 
 	}
 
-
-
 	// Create PackageRevision from NetworkIntent.
 
 	packageRevision, err := r.PackageManager.CreateFromIntent(ctx, intent)
@@ -575,18 +456,15 @@ func (r *NetworkIntentPackageReconciler) handlePendingIntent(ctx context.Context
 
 	}
 
-
-
 	// Update status with package information.
 
 	status.PackageReference = &porch.PackageReference{
 
-		Repository:  packageRevision.Spec.Repository,
+		Repository: packageRevision.Spec.Repository,
 
 		PackageName: packageRevision.Spec.PackageName,
 
-		Revision:    packageRevision.Spec.Revision,
-
+		Revision: packageRevision.Spec.Revision,
 	}
 
 	status.PackageLifecycle = packageRevision.Spec.Lifecycle
@@ -594,8 +472,6 @@ func (r *NetworkIntentPackageReconciler) handlePendingIntent(ctx context.Context
 	status.PackageCreatedAt = &metav1.Time{Time: time.Now()}
 
 	status.GeneratedResources = len(packageRevision.Spec.Resources)
-
-
 
 	// Extract template information if available.
 
@@ -611,15 +487,11 @@ func (r *NetworkIntentPackageReconciler) handlePendingIntent(ctx context.Context
 
 	}
 
-
-
 	// Move to processing phase.
 
 	intent.Status.Phase = nephoranv1.NetworkIntentPhaseProcessing
 
 	intent.Status.LastMessage = fmt.Sprintf("PackageRevision created: %s", status.PackageReference.GetPackageKey())
-
-
 
 	r.Logger.Info("PackageRevision created successfully",
 
@@ -629,13 +501,9 @@ func (r *NetworkIntentPackageReconciler) handlePendingIntent(ctx context.Context
 
 		"lifecycle", status.PackageLifecycle)
 
-
-
 	return ctrl.Result{RequeueAfter: time.Second}, nil
 
 }
-
-
 
 // handleProcessingIntent handles NetworkIntent in processing phase.
 
@@ -643,15 +511,11 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 
 	r.Logger.Info("Handling processing NetworkIntent", "intent", intent.Name)
 
-
-
 	if status.PackageReference == nil {
 
 		return r.handlePendingIntent(ctx, intent, status)
 
 	}
-
-
 
 	// Perform YANG validation if required.
 
@@ -679,8 +543,6 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 
 	}
 
-
-
 	// Auto-promote to Proposed if configured.
 
 	if r.Config.AutoPromoteToProposed && status.PackageLifecycle == porch.PackageRevisionLifecycleDraft {
@@ -697,13 +559,9 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 
 		}
 
-
-
 		// Update status with transition result.
 
 		r.updateStatusFromTransition(status, transitionResult)
-
-
 
 		r.Logger.Info("Package promoted to Proposed",
 
@@ -712,8 +570,6 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 			"package", status.PackageReference.GetPackageKey())
 
 	}
-
-
 
 	// Check if approval is required and handle approval workflow.
 
@@ -733,8 +589,6 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 
 		}
 
-
-
 		if status.ApprovalStatus.Status == "rejected" {
 
 			intent.Status.Phase = nephoranv1.NetworkIntentPhaseFailed
@@ -746,8 +600,6 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 		}
 
 	}
-
-
 
 	// Auto-promote to Published if configured and approved.
 
@@ -769,13 +621,9 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 
 		}
 
-
-
 		// Update status with transition result.
 
 		r.updateStatusFromTransition(status, transitionResult)
-
-
 
 		// Move to deploying phase.
 
@@ -783,21 +631,15 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 
 		intent.Status.LastMessage = "Package published, starting deployment"
 
-
-
 		r.Logger.Info("Package promoted to Published",
 
 			"intent", intent.Name,
 
 			"package", status.PackageReference.GetPackageKey())
 
-
-
 		return ctrl.Result{RequeueAfter: time.Second}, nil
 
 	}
-
-
 
 	// If package is published but we're still in processing, move to deploying.
 
@@ -811,15 +653,11 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 
 	}
 
-
-
 	// Continue processing.
 
 	return ctrl.Result{RequeueAfter: r.Config.UpdateStatusFrequency}, nil
 
 }
-
-
 
 // handleDeployingIntent handles NetworkIntent in deploying phase.
 
@@ -827,15 +665,11 @@ func (r *NetworkIntentPackageReconciler) handleDeployingIntent(ctx context.Conte
 
 	r.Logger.Info("Handling deploying NetworkIntent", "intent", intent.Name)
 
-
-
 	if status.PackageReference == nil {
 
 		return r.handlePendingIntent(ctx, intent, status)
 
 	}
-
-
 
 	// Check deployment status of the PackageRevision.
 
@@ -848,8 +682,6 @@ func (r *NetworkIntentPackageReconciler) handleDeployingIntent(ctx context.Conte
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 
 	}
-
-
 
 	switch deploymentStatus {
 
@@ -867,8 +699,6 @@ func (r *NetworkIntentPackageReconciler) handleDeployingIntent(ctx context.Conte
 
 		return ctrl.Result{RequeueAfter: r.Config.UpdateStatusFrequency}, nil
 
-
-
 	case "failed":
 
 		intent.Status.Phase = nephoranv1.NetworkIntentPhaseFailed
@@ -877,15 +707,11 @@ func (r *NetworkIntentPackageReconciler) handleDeployingIntent(ctx context.Conte
 
 		return ctrl.Result{RequeueAfter: r.Config.FailureRetryInterval}, nil
 
-
-
 	case "pending", "deploying":
 
 		intent.Status.LastMessage = "Deployment in progress"
 
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-
-
 
 	default:
 
@@ -897,15 +723,11 @@ func (r *NetworkIntentPackageReconciler) handleDeployingIntent(ctx context.Conte
 
 }
 
-
-
 // handleActiveIntent handles NetworkIntent in active phase.
 
 func (r *NetworkIntentPackageReconciler) handleActiveIntent(ctx context.Context, intent *nephoranv1.NetworkIntent, status *NetworkIntentPackageStatus) (ctrl.Result, error) {
 
 	r.Logger.V(1).Info("Handling active NetworkIntent", "intent", intent.Name)
-
-
 
 	// Perform drift detection if enabled.
 
@@ -929,8 +751,6 @@ func (r *NetworkIntentPackageReconciler) handleActiveIntent(ctx context.Context,
 
 				"drifts", len(driftResult.DriftDetails))
 
-
-
 			// Auto-correct drift if configured and safe.
 
 			if driftResult.AutoCorrectible {
@@ -953,23 +773,17 @@ func (r *NetworkIntentPackageReconciler) handleActiveIntent(ctx context.Context,
 
 	}
 
-
-
 	// Regular status update.
 
 	return ctrl.Result{RequeueAfter: r.Config.UpdateStatusFrequency}, nil
 
 }
 
-
-
 // handleFailedIntent handles NetworkIntent in failed phase.
 
 func (r *NetworkIntentPackageReconciler) handleFailedIntent(ctx context.Context, intent *nephoranv1.NetworkIntent, status *NetworkIntentPackageStatus) (ctrl.Result, error) {
 
 	r.Logger.Info("Handling failed NetworkIntent", "intent", intent.Name)
-
-
 
 	// Check if retry is appropriate.
 
@@ -983,8 +797,6 @@ func (r *NetworkIntentPackageReconciler) handleFailedIntent(ctx context.Context,
 
 			"maxRetries", r.Config.FailureRetryCount)
 
-
-
 		// Reset to pending for retry.
 
 		intent.Status.Phase = nephoranv1.NetworkIntentPhasePending
@@ -993,13 +805,9 @@ func (r *NetworkIntentPackageReconciler) handleFailedIntent(ctx context.Context,
 
 			status.ErrorCount+1, r.Config.FailureRetryCount)
 
-
-
 		return ctrl.Result{RequeueAfter: r.Config.FailureRetryInterval}, nil
 
 	}
-
-
 
 	// Max retries exceeded, keep in failed state.
 
@@ -1007,21 +815,15 @@ func (r *NetworkIntentPackageReconciler) handleFailedIntent(ctx context.Context,
 
 		r.Config.FailureRetryCount, status.LastError)
 
-
-
 	return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil
 
 }
-
-
 
 // handleIntentDeletion handles cleanup when NetworkIntent is deleted.
 
 func (r *NetworkIntentPackageReconciler) handleIntentDeletion(ctx context.Context, namespacedName types.NamespacedName) (ctrl.Result, error) {
 
 	r.Logger.Info("Handling NetworkIntent deletion", "intent", namespacedName)
-
-
 
 	// Get the NetworkIntent to access extended status.
 
@@ -1041,8 +843,6 @@ func (r *NetworkIntentPackageReconciler) handleIntentDeletion(ctx context.Contex
 
 	}
 
-
-
 	// Get extended status to find associated PackageRevision.
 
 	status, err := r.getExtendedStatus(&intent)
@@ -1055,8 +855,6 @@ func (r *NetworkIntentPackageReconciler) handleIntentDeletion(ctx context.Contex
 
 	}
 
-
-
 	// Delete associated PackageRevision if exists.
 
 	if status != nil && status.PackageReference != nil {
@@ -1066,8 +864,6 @@ func (r *NetworkIntentPackageReconciler) handleIntentDeletion(ctx context.Contex
 			"intent", namespacedName,
 
 			"package", status.PackageReference.GetPackageKey())
-
-
 
 		if err := r.PackageManager.DeletePackageRevision(ctx, status.PackageReference); err != nil {
 
@@ -1081,8 +877,6 @@ func (r *NetworkIntentPackageReconciler) handleIntentDeletion(ctx context.Contex
 
 	}
 
-
-
 	// Remove finalizer.
 
 	controllerutil.RemoveFinalizer(&intent, NetworkIntentFinalizer)
@@ -1093,19 +887,13 @@ func (r *NetworkIntentPackageReconciler) handleIntentDeletion(ctx context.Contex
 
 	}
 
-
-
 	r.Logger.Info("NetworkIntent deletion completed", "intent", namespacedName)
 
 	return ctrl.Result{}, nil
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (r *NetworkIntentPackageReconciler) getExtendedStatus(intent *nephoranv1.NetworkIntent) (*NetworkIntentPackageStatus, error) {
 
@@ -1115,8 +903,6 @@ func (r *NetworkIntentPackageReconciler) getExtendedStatus(intent *nephoranv1.Ne
 
 	}
 
-
-
 	statusRaw, exists := intent.Status.Extensions["packageRevisionStatus"]
 
 	if !exists {
@@ -1124,8 +910,6 @@ func (r *NetworkIntentPackageReconciler) getExtendedStatus(intent *nephoranv1.Ne
 		return &NetworkIntentPackageStatus{}, nil
 
 	}
-
-
 
 	var status NetworkIntentPackageStatus
 
@@ -1145,13 +929,9 @@ func (r *NetworkIntentPackageReconciler) getExtendedStatus(intent *nephoranv1.Ne
 
 	}
 
-
-
 	return &status, nil
 
 }
-
-
 
 func (r *NetworkIntentPackageReconciler) updateExtendedStatus(ctx context.Context, intent *nephoranv1.NetworkIntent, status *NetworkIntentPackageStatus) error {
 
@@ -1160,8 +940,6 @@ func (r *NetworkIntentPackageReconciler) updateExtendedStatus(ctx context.Contex
 		intent.Status.Extensions = make(map[string]runtime.RawExtension)
 
 	}
-
-
 
 	// Convert status to unstructured.
 
@@ -1172,8 +950,6 @@ func (r *NetworkIntentPackageReconciler) updateExtendedStatus(ctx context.Contex
 		return fmt.Errorf("failed to encode extended status: %w", err)
 
 	}
-
-
 
 	// Convert unstructured map to RawExtension.
 
@@ -1188,22 +964,15 @@ func (r *NetworkIntentPackageReconciler) updateExtendedStatus(ctx context.Contex
 	intent.Status.Extensions["packageRevisionStatus"] = runtime.RawExtension{
 
 		Raw: statusBytes,
-
 	}
-
-
 
 	return nil
 
 }
 
-
-
 func (r *NetworkIntentPackageReconciler) performYANGValidation(ctx context.Context, intent *nephoranv1.NetworkIntent, status *NetworkIntentPackageStatus) (*ValidationSummary, error) {
 
 	validationStart := time.Now()
-
-
 
 	// Get PackageRevision for validation.
 
@@ -1215,8 +984,6 @@ func (r *NetworkIntentPackageReconciler) performYANGValidation(ctx context.Conte
 
 	}
 
-
-
 	// Validate against YANG models.
 
 	validationResult, err := r.YANGValidator.ValidatePackageRevision(ctx, pkg)
@@ -1227,31 +994,24 @@ func (r *NetworkIntentPackageReconciler) performYANGValidation(ctx context.Conte
 
 	}
 
-
-
 	// Update validation duration.
 
 	validationDuration := time.Since(validationStart)
 
 	status.ValidationDuration = &metav1.Duration{Duration: validationDuration}
 
-
-
 	// Create validation summary.
 
 	summary := &ValidationSummary{
 
-		Valid:        validationResult.Valid,
+		Valid: validationResult.Valid,
 
-		ErrorCount:   len(validationResult.Errors),
+		ErrorCount: len(validationResult.Errors),
 
 		WarningCount: 0, // YANG validator doesn't expose warnings
 
-		ValidatedAt:  metav1.Time{Time: time.Now()},
-
+		ValidatedAt: metav1.Time{Time: time.Now()},
 	}
-
-
 
 	if validationResult.ModelName != "" {
 
@@ -1262,8 +1022,6 @@ func (r *NetworkIntentPackageReconciler) performYANGValidation(ctx context.Conte
 		summary.ModelCount = 0
 
 	}
-
-
 
 	r.Logger.Info("YANG validation completed",
 
@@ -1277,13 +1035,9 @@ func (r *NetworkIntentPackageReconciler) performYANGValidation(ctx context.Conte
 
 		"duration", validationDuration)
 
-
-
 	return summary, nil
 
 }
-
-
 
 func (r *NetworkIntentPackageReconciler) promotePackage(ctx context.Context, intent *nephoranv1.NetworkIntent, status *NetworkIntentPackageStatus, targetStage porch.PackageRevisionLifecycle) (*TransitionResult, error) {
 
@@ -1293,17 +1047,12 @@ func (r *NetworkIntentPackageReconciler) promotePackage(ctx context.Context, int
 
 		RollbackDescription: fmt.Sprintf("Auto-rollback point for %s", intent.Name),
 
-		Timeout:             r.Config.DefaultTransitionTimeout,
-
+		Timeout: r.Config.DefaultTransitionTimeout,
 	}
-
-
 
 	var result *TransitionResult
 
 	var err error
-
-
 
 	switch targetStage {
 
@@ -1321,15 +1070,11 @@ func (r *NetworkIntentPackageReconciler) promotePackage(ctx context.Context, int
 
 	}
 
-
-
 	if err != nil {
 
 		return nil, err
 
 	}
-
-
 
 	if result.Success {
 
@@ -1339,13 +1084,9 @@ func (r *NetworkIntentPackageReconciler) promotePackage(ctx context.Context, int
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 func (r *NetworkIntentPackageReconciler) updateStatusFromTransition(status *NetworkIntentPackageStatus, result *TransitionResult) {
 
@@ -1353,19 +1094,16 @@ func (r *NetworkIntentPackageReconciler) updateStatusFromTransition(status *Netw
 
 	historyEntry := &TransitionHistoryEntry{
 
-		FromStage:      result.PreviousStage,
+		FromStage: result.PreviousStage,
 
-		ToStage:        result.NewStage,
+		ToStage: result.NewStage,
 
 		TransitionTime: metav1.Time{Time: result.TransitionTime},
 
-		Duration:       metav1.Duration{Duration: result.Duration},
+		Duration: metav1.Duration{Duration: result.Duration},
 
-		Success:        result.Success,
-
+		Success: result.Success,
 	}
-
-
 
 	if status.TransitionHistory == nil {
 
@@ -1374,8 +1112,6 @@ func (r *NetworkIntentPackageReconciler) updateStatusFromTransition(status *Netw
 	}
 
 	status.TransitionHistory = append(status.TransitionHistory, historyEntry)
-
-
 
 	// Limit history size.
 
@@ -1386,8 +1122,6 @@ func (r *NetworkIntentPackageReconciler) updateStatusFromTransition(status *Netw
 	}
 
 }
-
-
 
 func (r *NetworkIntentPackageReconciler) getReceivedApprovals(status *NetworkIntentPackageStatus) int {
 
@@ -1400,8 +1134,6 @@ func (r *NetworkIntentPackageReconciler) getReceivedApprovals(status *NetworkInt
 	return status.ApprovalStatus.Received
 
 }
-
-
 
 func (r *NetworkIntentPackageReconciler) checkDeploymentStatus(ctx context.Context, ref *porch.PackageReference) (string, error) {
 
@@ -1417,8 +1149,6 @@ func (r *NetworkIntentPackageReconciler) checkDeploymentStatus(ctx context.Conte
 
 	}
 
-
-
 	// Use DeploymentReady field instead of DeploymentStatus.
 
 	if pkg.Status.DeploymentReady {
@@ -1426,8 +1156,6 @@ func (r *NetworkIntentPackageReconciler) checkDeploymentStatus(ctx context.Conte
 		return "deployed", nil
 
 	}
-
-
 
 	// If published but not deployment ready, consider it deploying.
 
@@ -1437,27 +1165,18 @@ func (r *NetworkIntentPackageReconciler) checkDeploymentStatus(ctx context.Conte
 
 	}
 
-
-
 	return "pending", nil
 
 }
 
-
-
 // Constants and helper types.
-
-
 
 const (
 
 	// NetworkIntentFinalizer holds networkintentfinalizer value.
 
 	NetworkIntentFinalizer = "networkintent.nephoran.com/package-revision"
-
 )
-
-
 
 // GetDefaultIntegrationConfig returns default integration configuration.
 
@@ -1465,39 +1184,36 @@ func GetDefaultIntegrationConfig() *IntegrationConfig {
 
 	return &IntegrationConfig{
 
-		AutoPromoteToProposed:     true,
+		AutoPromoteToProposed: true,
 
-		AutoPromoteToPublished:    true,
+		AutoPromoteToPublished: true,
 
-		AutoCreateRollbackPoints:  true,
+		AutoCreateRollbackPoints: true,
 
-		DefaultTransitionTimeout:  30 * time.Minute,
+		DefaultTransitionTimeout: 30 * time.Minute,
 
-		RequireYANGValidation:     true,
+		RequireYANGValidation: true,
 
-		RequiredApprovals:         0,
+		RequiredApprovals: 0,
 
-		ValidationModels:          []string{"oran-interfaces", "3gpp-5gc"},
+		ValidationModels: []string{"oran-interfaces", "3gpp-5gc"},
 
-		PreferredTemplateVendors:  []string{"open-source", "nephoran"},
+		PreferredTemplateVendors: []string{"open-source", "nephoran"},
 
 		EnableTemplateInheritance: true,
 
-		FailureRetryCount:         3,
+		FailureRetryCount: 3,
 
-		FailureRetryInterval:      5 * time.Minute,
+		FailureRetryInterval: 5 * time.Minute,
 
 		ContinueOnValidationError: false,
 
-		UpdateStatusFrequency:     60 * time.Second,
+		UpdateStatusFrequency: 60 * time.Second,
 
-		EnableDetailedStatus:      true,
-
+		EnableDetailedStatus: true,
 	}
 
 }
-
-
 
 // NewNetworkIntentPackageReconciler creates a new NetworkIntent package reconciler.
 
@@ -1527,29 +1243,25 @@ func NewNetworkIntentPackageReconciler(
 
 	}
 
-
-
 	return &NetworkIntentPackageReconciler{
 
-		Client:           client,
+		Client: client,
 
-		Scheme:           scheme,
+		Scheme: scheme,
 
-		Logger:           ctrl.Log.WithName("networkintent-package-reconciler"),
+		Logger: ctrl.Log.WithName("networkintent-package-reconciler"),
 
-		PackageManager:   packageManager,
+		PackageManager: packageManager,
 
-		TemplateEngine:   templateEngine,
+		TemplateEngine: templateEngine,
 
-		YANGValidator:    yangValidator,
+		YANGValidator: yangValidator,
 
-		PorchClient:      porchClient,
+		PorchClient: porchClient,
 
 		LifecycleManager: lifecycleManager,
 
-		Config:           config,
-
+		Config: config,
 	}
 
 }
-

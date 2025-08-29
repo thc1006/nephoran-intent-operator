@@ -28,280 +28,208 @@ limitations under the License.
 
 */
 
-
-
-
 package orchestration
 
-
-
 import (
-
 	"context"
-
 	"errors"
-
 	"fmt"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 
-
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/apimachinery/pkg/types"
-
 	"k8s.io/client-go/tools/record"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // CoordinationController coordinates the overall intent processing pipeline.
 
 type CoordinationController struct {
-
 	client.Client
 
-	Scheme   *runtime.Scheme
+	Scheme *runtime.Scheme
 
 	Recorder record.EventRecorder
 
-	Logger   logr.Logger
-
-
+	Logger logr.Logger
 
 	// Orchestration components.
 
 	IntentOrchestrator *IntentOrchestrator
 
-	EventBus           *EventBus
+	EventBus *EventBus
 
-	WorkQueueManager   *WorkQueueManager
+	WorkQueueManager *WorkQueueManager
 
-	StateMachine       *StateMachine
+	StateMachine *StateMachine
 
-	LockManager        *IntentLockManager
-
-
+	LockManager *IntentLockManager
 
 	// Phase controllers.
 
-	IntentProcessingController   *IntentProcessingController
+	IntentProcessingController *IntentProcessingController
 
-	ResourcePlanningController   *ResourcePlanningController
+	ResourcePlanningController *ResourcePlanningController
 
 	ManifestGenerationController *ManifestGenerationController
 
-	GitOpsDeploymentController   *GitOpsDeploymentController
-
-
+	GitOpsDeploymentController *GitOpsDeploymentController
 
 	// Coordination state.
 
-	activeIntents    sync.Map // map[string]*CoordinationContext
+	activeIntents sync.Map // map[string]*CoordinationContext
 
-	phaseTracker     *PhaseTracker
+	phaseTracker *PhaseTracker
 
 	conflictResolver *ConflictResolver
 
-	recoveryManager  *RecoveryManager
-
-
+	recoveryManager *RecoveryManager
 
 	// Configuration.
 
 	Config *CoordinationConfig
 
-
-
 	// Metrics.
 
 	MetricsCollector *MetricsCollector
-
 }
-
-
 
 // CoordinationConfig contains configuration for coordination.
 
 type CoordinationConfig struct {
+	MaxConcurrentIntents int `json:"maxConcurrentIntents"`
 
-	MaxConcurrentIntents     int           `json:"maxConcurrentIntents"`
+	PhaseTimeout time.Duration `json:"phaseTimeout"`
 
-	PhaseTimeout             time.Duration `json:"phaseTimeout"`
+	MaxRetries int `json:"maxRetries"`
 
-	MaxRetries               int           `json:"maxRetries"`
+	RetryBackoff time.Duration `json:"retryBackoff"`
 
-	RetryBackoff             time.Duration `json:"retryBackoff"`
+	EnableParallelProcessing bool `json:"enableParallelProcessing"`
 
-	EnableParallelProcessing bool          `json:"enableParallelProcessing"`
+	EnableConflictResolution bool `json:"enableConflictResolution"`
 
-	EnableConflictResolution bool          `json:"enableConflictResolution"`
+	EnableAutoRecovery bool `json:"enableAutoRecovery"`
 
-	EnableAutoRecovery       bool          `json:"enableAutoRecovery"`
+	HealthCheckInterval time.Duration `json:"healthCheckInterval"`
 
-	HealthCheckInterval      time.Duration `json:"healthCheckInterval"`
-
-	RecoveryTimeout          time.Duration `json:"recoveryTimeout"`
-
+	RecoveryTimeout time.Duration `json:"recoveryTimeout"`
 }
-
-
 
 // CoordinationContext tracks the context for an intent's coordination.
 
 type CoordinationContext struct {
-
-	IntentID      string
+	IntentID string
 
 	CorrelationID string
 
-	StartTime     time.Time
+	StartTime time.Time
 
-	CurrentPhase  interfaces.ProcessingPhase
+	CurrentPhase interfaces.ProcessingPhase
 
-	PhaseHistory  []PhaseExecution
+	PhaseHistory []PhaseExecution
 
-	Locks         []string // Changed to []string for compatibility with event_driven_coordinator
+	Locks []string // Changed to []string for compatibility with event_driven_coordinator
 
-	Conflicts     []Conflict
+	Conflicts []Conflict
 
-	RetryCount    int
+	RetryCount int
 
-	LastActivity  time.Time
+	LastActivity time.Time
 
-	mutex         sync.RWMutex
-
-
+	mutex sync.RWMutex
 
 	// Additional fields for event-driven coordinator compatibility.
 
-	LastUpdateTime  time.Time                    `json:"lastUpdateTime"`
+	LastUpdateTime time.Time `json:"lastUpdateTime"`
 
-	Metadata        map[string]interface{}       `json:"metadata"`
+	Metadata map[string]interface{} `json:"metadata"`
 
 	CompletedPhases []interfaces.ProcessingPhase `json:"completedPhases"`
 
-	ErrorHistory    []string                     `json:"errorHistory"`
-
+	ErrorHistory []string `json:"errorHistory"`
 }
-
-
 
 // PhaseExecution tracks the execution of a phase.
 
 type PhaseExecution struct {
+	Phase interfaces.ProcessingPhase
 
-	Phase          interfaces.ProcessingPhase
-
-	StartTime      time.Time
+	StartTime time.Time
 
 	CompletionTime *time.Time
 
-	Status         string // Pending, InProgress, Completed, Failed
+	Status string // Pending, InProgress, Completed, Failed
 
-	Error          error
+	Error error
 
-	RetryCount     int
+	RetryCount int
 
-	ResourceRefs   []ResourceReference
-
+	ResourceRefs []ResourceReference
 }
-
-
 
 // ResourceLock represents a lock on a resource.
 
 type ResourceLock struct {
-
-	ResourceID   string
+	ResourceID string
 
 	ResourceType string
 
-	LockType     string // Shared, Exclusive
+	LockType string // Shared, Exclusive
 
-	AcquiredAt   time.Time
+	AcquiredAt time.Time
 
-	Owner        string
-
+	Owner string
 }
-
-
 
 // Conflict represents a resource conflict.
 
 type Conflict struct {
+	ID string
 
-	ID              string
+	Type string // ResourceConflict, DependencyConflict, etc.
 
-	Type            string // ResourceConflict, DependencyConflict, etc.
-
-	Description     string
+	Description string
 
 	InvolvedIntents []string
 
-	Severity        string // Low, Medium, High, Critical
+	Severity string // Low, Medium, High, Critical
 
-	DetectedAt      time.Time
+	DetectedAt time.Time
 
-	ResolvedAt      *time.Time
+	ResolvedAt *time.Time
 
-	Resolution      string
-
+	Resolution string
 }
-
-
 
 // ResourceReference represents a reference to a created resource.
 
 type ResourceReference struct {
-
 	APIVersion string
 
-	Kind       string
+	Kind string
 
-	Name       string
+	Name string
 
-	Namespace  string
+	Namespace string
 
-	UID        string
+	UID string
 
-	Phase      interfaces.ProcessingPhase
-
+	Phase interfaces.ProcessingPhase
 }
-
-
 
 // NewCoordinationController creates a new coordination controller.
 
@@ -321,51 +249,44 @@ func NewCoordinationController(
 
 	logger := log.Log.WithName("coordination-controller")
 
-
-
 	return &CoordinationController{
 
-		Client:             client,
+		Client: client,
 
-		Scheme:             scheme,
+		Scheme: scheme,
 
-		Recorder:           recorder,
+		Recorder: recorder,
 
-		Logger:             logger,
+		Logger: logger,
 
 		IntentOrchestrator: orchestrator,
 
-		EventBus:           orchestrator.EventBus,
+		EventBus: orchestrator.EventBus,
 
-		WorkQueueManager:   orchestrator.WorkQueueManager,
+		WorkQueueManager: orchestrator.WorkQueueManager,
 
-		StateMachine:       orchestrator.StateMachine,
+		StateMachine: orchestrator.StateMachine,
 
-		LockManager:        orchestrator.LockManager,
+		LockManager: orchestrator.LockManager,
 
-		Config:             config,
+		Config: config,
 
-		phaseTracker:       NewPhaseTracker(),
+		phaseTracker: NewPhaseTracker(),
 
-		conflictResolver:   NewConflictResolver(client, logger),
+		conflictResolver: NewConflictResolver(client, logger),
 
-		recoveryManager:    NewRecoveryManager(client, logger),
+		recoveryManager: NewRecoveryManager(client, logger),
 
-		MetricsCollector:   NewMetricsCollector(),
-
+		MetricsCollector: NewMetricsCollector(),
 	}
 
 }
-
-
 
 // Reconcile coordinates the overall intent processing.
 
 func (r *CoordinationController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	log := r.Logger.WithValues("networkintent", req.NamespacedName)
-
-
 
 	// Fetch the NetworkIntent instance.
 
@@ -387,8 +308,6 @@ func (r *CoordinationController) Reconcile(ctx context.Context, req ctrl.Request
 
 	}
 
-
-
 	// Handle deletion.
 
 	if networkIntent.DeletionTimestamp != nil {
@@ -396,8 +315,6 @@ func (r *CoordinationController) Reconcile(ctx context.Context, req ctrl.Request
 		return r.handleIntentDeletion(ctx, req.NamespacedName)
 
 	}
-
-
 
 	// Add finalizer if not present.
 
@@ -409,15 +326,11 @@ func (r *CoordinationController) Reconcile(ctx context.Context, req ctrl.Request
 
 	}
 
-
-
 	// Coordinate the intent processing.
 
 	return r.coordinateIntent(ctx, networkIntent)
 
 }
-
-
 
 // coordinateIntent coordinates the processing of a NetworkIntent.
 
@@ -425,13 +338,9 @@ func (r *CoordinationController) coordinateIntent(ctx context.Context, networkIn
 
 	log := r.Logger.WithValues("intent", networkIntent.Name, "namespace", networkIntent.Namespace)
 
-
-
 	// Get or create coordination context.
 
 	coordCtx := r.getOrCreateCoordinationContext(networkIntent)
-
-
 
 	// Update activity timestamp.
 
@@ -440,8 +349,6 @@ func (r *CoordinationController) coordinateIntent(ctx context.Context, networkIn
 	coordCtx.LastActivity = time.Now()
 
 	coordCtx.mutex.Unlock()
-
-
 
 	// Acquire intent lock to prevent concurrent processing.
 
@@ -457,8 +364,6 @@ func (r *CoordinationController) coordinateIntent(ctx context.Context, networkIn
 
 	defer intentLock.Release()
 
-
-
 	// Check for conflicts.
 
 	if r.Config.EnableConflictResolution {
@@ -473,8 +378,6 @@ func (r *CoordinationController) coordinateIntent(ctx context.Context, networkIn
 
 		}
 
-
-
 		if len(conflicts) > 0 {
 
 			return r.handleConflicts(ctx, networkIntent, coordCtx, conflicts)
@@ -483,15 +386,11 @@ func (r *CoordinationController) coordinateIntent(ctx context.Context, networkIn
 
 	}
 
-
-
 	// Determine current phase and coordinate next steps.
 
 	currentPhase := r.StateMachine.GetCurrentPhase(networkIntent)
 
 	log.Info("Coordinating intent processing", "currentPhase", currentPhase)
-
-
 
 	// Update coordination context.
 
@@ -500,8 +399,6 @@ func (r *CoordinationController) coordinateIntent(ctx context.Context, networkIn
 	coordCtx.CurrentPhase = currentPhase
 
 	coordCtx.mutex.Unlock()
-
-
 
 	// Execute phase coordination.
 
@@ -513,21 +410,15 @@ func (r *CoordinationController) coordinateIntent(ctx context.Context, networkIn
 
 	}
 
-
-
 	// Update phase tracking.
 
 	r.phaseTracker.UpdatePhaseStatus(coordCtx.IntentID, currentPhase, "Completed")
-
-
 
 	// Handle phase completion.
 
 	return r.handlePhaseCompletion(ctx, networkIntent, currentPhase, result, coordCtx)
 
 }
-
-
 
 // coordinatePhase coordinates the execution of a specific phase.
 
@@ -537,17 +428,14 @@ func (r *CoordinationController) coordinatePhase(ctx context.Context, networkInt
 
 	phaseExec := PhaseExecution{
 
-		Phase:      phase,
+		Phase: phase,
 
-		StartTime:  time.Now(),
+		StartTime: time.Now(),
 
-		Status:     "InProgress",
+		Status: "InProgress",
 
 		RetryCount: 0,
-
 	}
-
-
 
 	coordCtx.mutex.Lock()
 
@@ -557,15 +445,11 @@ func (r *CoordinationController) coordinatePhase(ctx context.Context, networkInt
 
 	coordCtx.mutex.Unlock()
 
-
-
 	// Create or manage phase-specific resources.
 
 	var result interfaces.ProcessingResult
 
 	var err error
-
-
 
 	switch phase {
 
@@ -595,8 +479,6 @@ func (r *CoordinationController) coordinatePhase(ctx context.Context, networkInt
 
 	}
 
-
-
 	// Update phase execution status.
 
 	coordCtx.mutex.Lock()
@@ -623,13 +505,9 @@ func (r *CoordinationController) coordinatePhase(ctx context.Context, networkInt
 
 	coordCtx.mutex.Unlock()
 
-
-
 	return result, err
 
 }
-
-
 
 // coordinateLLMProcessing coordinates LLM processing phase.
 
@@ -643,11 +521,8 @@ func (r *CoordinationController) coordinateLLMProcessing(ctx context.Context, ne
 
 		Namespace: networkIntent.Namespace,
 
-		Name:      fmt.Sprintf("%s-processing", networkIntent.Name),
-
+		Name: fmt.Sprintf("%s-processing", networkIntent.Name),
 	}
-
-
 
 	err := r.Get(ctx, intentProcessingKey, intentProcessing)
 
@@ -657,8 +532,6 @@ func (r *CoordinationController) coordinateLLMProcessing(ctx context.Context, ne
 
 	}
 
-
-
 	// Create IntentProcessing resource if it doesn't exist.
 
 	if apierrors.IsNotFound(err) {
@@ -667,7 +540,7 @@ func (r *CoordinationController) coordinateLLMProcessing(ctx context.Context, ne
 
 			ObjectMeta: metav1.ObjectMeta{
 
-				Name:      intentProcessingKey.Name,
+				Name: intentProcessingKey.Name,
 
 				Namespace: intentProcessingKey.Namespace,
 
@@ -675,29 +548,26 @@ func (r *CoordinationController) coordinateLLMProcessing(ctx context.Context, ne
 
 					"nephoran.com/intent-name": networkIntent.Name,
 
-					"nephoran.com/phase":       string(interfaces.PhaseLLMProcessing),
-
+					"nephoran.com/phase": string(interfaces.PhaseLLMProcessing),
 				},
-
 			},
 
 			Spec: nephoranv1.IntentProcessingSpec{
 
 				ParentIntentRef: nephoranv1.ObjectReference{
 
-					Kind:      "NetworkIntent",
+					Kind: "NetworkIntent",
 
-					Name:      networkIntent.Name,
+					Name: networkIntent.Name,
 
 					Namespace: networkIntent.Namespace,
 
-					UID:       string(networkIntent.UID),
-
+					UID: string(networkIntent.UID),
 				},
 
 				OriginalIntent: networkIntent.Spec.Intent,
 
-				Priority:       networkIntent.Spec.Priority,
+				Priority: networkIntent.Spec.Priority,
 
 				// Use default values for timeout and retries as these are not part of NetworkIntent spec.
 
@@ -706,10 +576,7 @@ func (r *CoordinationController) coordinateLLMProcessing(ctx context.Context, ne
 				// MaxRetries: defaults to 3 per IntentProcessing defaults.
 
 			},
-
 		}
-
-
 
 		if err := r.Create(ctx, intentProcessing); err != nil {
 
@@ -717,13 +584,9 @@ func (r *CoordinationController) coordinateLLMProcessing(ctx context.Context, ne
 
 		}
 
-
-
 		r.Logger.Info("Created IntentProcessing resource", "name", intentProcessing.Name)
 
 	}
-
-
 
 	// Wait for processing completion.
 
@@ -737,17 +600,14 @@ func (r *CoordinationController) coordinateLLMProcessing(ctx context.Context, ne
 
 		result.Data = map[string]interface{}{
 
-			"llm_response":         intentProcessing.Status.LLMResponse,
+			"llm_response": intentProcessing.Status.LLMResponse,
 
 			"processed_parameters": intentProcessing.Status.ProcessedParameters,
 
-			"extracted_entities":   intentProcessing.Status.ExtractedEntities,
+			"extracted_entities": intentProcessing.Status.ExtractedEntities,
 
-			"quality_score":        intentProcessing.Status.QualityScore,
-
+			"quality_score": intentProcessing.Status.QualityScore,
 		}
-
-
 
 		// Add resource reference.
 
@@ -761,16 +621,15 @@ func (r *CoordinationController) coordinateLLMProcessing(ctx context.Context, ne
 
 					APIVersion: "nephoran.com/v1",
 
-					Kind:       "IntentProcessing",
+					Kind: "IntentProcessing",
 
-					Name:       intentProcessing.Name,
+					Name: intentProcessing.Name,
 
-					Namespace:  intentProcessing.Namespace,
+					Namespace: intentProcessing.Namespace,
 
-					UID:        string(intentProcessing.UID),
+					UID: string(intentProcessing.UID),
 
-					Phase:      interfaces.PhaseLLMProcessing,
-
+					Phase: interfaces.PhaseLLMProcessing,
 				})
 
 				break
@@ -795,21 +654,16 @@ func (r *CoordinationController) coordinateLLMProcessing(ctx context.Context, ne
 
 		return interfaces.ProcessingResult{
 
-			Success:    false,
+			Success: false,
 
 			RetryAfter: func() *time.Duration { d := 10 * time.Second; return &d }(),
-
 		}, nil
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // coordinateResourcePlanning coordinates resource planning phase.
 
@@ -823,19 +677,14 @@ func (r *CoordinationController) coordinateResourcePlanning(ctx context.Context,
 
 		Namespace: networkIntent.Namespace,
 
-		Name:      fmt.Sprintf("%s-processing", networkIntent.Name),
-
+		Name: fmt.Sprintf("%s-processing", networkIntent.Name),
 	}
-
-
 
 	if err := r.Get(ctx, intentProcessingKey, intentProcessing); err != nil {
 
 		return interfaces.ProcessingResult{}, fmt.Errorf("failed to get IntentProcessing: %w", err)
 
 	}
-
-
 
 	// Check if ResourcePlan resource already exists.
 
@@ -845,11 +694,8 @@ func (r *CoordinationController) coordinateResourcePlanning(ctx context.Context,
 
 		Namespace: networkIntent.Namespace,
 
-		Name:      fmt.Sprintf("%s-plan", networkIntent.Name),
-
+		Name: fmt.Sprintf("%s-plan", networkIntent.Name),
 	}
-
-
 
 	err := r.Get(ctx, resourcePlanKey, resourcePlan)
 
@@ -859,8 +705,6 @@ func (r *CoordinationController) coordinateResourcePlanning(ctx context.Context,
 
 	}
 
-
-
 	// Create ResourcePlan resource if it doesn't exist.
 
 	if apierrors.IsNotFound(err) {
@@ -869,7 +713,7 @@ func (r *CoordinationController) coordinateResourcePlanning(ctx context.Context,
 
 			ObjectMeta: metav1.ObjectMeta{
 
-				Name:      resourcePlanKey.Name,
+				Name: resourcePlanKey.Name,
 
 				Namespace: resourcePlanKey.Namespace,
 
@@ -877,51 +721,43 @@ func (r *CoordinationController) coordinateResourcePlanning(ctx context.Context,
 
 					"nephoran.com/intent-name": networkIntent.Name,
 
-					"nephoran.com/phase":       string(interfaces.PhaseResourcePlanning),
-
+					"nephoran.com/phase": string(interfaces.PhaseResourcePlanning),
 				},
-
 			},
 
 			Spec: nephoranv1.ResourcePlanSpec{
 
 				ParentIntentRef: nephoranv1.ObjectReference{
 
-					Kind:      "NetworkIntent",
+					Kind: "NetworkIntent",
 
-					Name:      networkIntent.Name,
+					Name: networkIntent.Name,
 
 					Namespace: networkIntent.Namespace,
 
-					UID:       string(networkIntent.UID),
-
+					UID: string(networkIntent.UID),
 				},
 
 				IntentProcessingRef: &nephoranv1.ObjectReference{
 
-					Kind:      "IntentProcessing",
+					Kind: "IntentProcessing",
 
-					Name:      intentProcessing.Name,
+					Name: intentProcessing.Name,
 
 					Namespace: intentProcessing.Namespace,
 
-					UID:       string(intentProcessing.UID),
-
+					UID: string(intentProcessing.UID),
 				},
 
-				RequirementsInput:   intentProcessing.Status.LLMResponse,
+				RequirementsInput: intentProcessing.Status.LLMResponse,
 
-				TargetComponents:    r.convertORANComponentsToTargetComponents(networkIntent.Spec.TargetComponents),
+				TargetComponents: r.convertORANComponentsToTargetComponents(networkIntent.Spec.TargetComponents),
 
 				ResourceConstraints: networkIntent.Spec.ResourceConstraints,
 
-				Priority:            networkIntent.Spec.Priority,
-
+				Priority: networkIntent.Spec.Priority,
 			},
-
 		}
-
-
 
 		if err := r.Create(ctx, resourcePlan); err != nil {
 
@@ -929,13 +765,9 @@ func (r *CoordinationController) coordinateResourcePlanning(ctx context.Context,
 
 		}
 
-
-
 		r.Logger.Info("Created ResourcePlan resource", "name", resourcePlan.Name)
 
 	}
-
-
 
 	// Wait for planning completion.
 
@@ -949,14 +781,13 @@ func (r *CoordinationController) coordinateResourcePlanning(ctx context.Context,
 
 		result.Data = map[string]interface{}{
 
-			"resource_plan":     resourcePlan.Status.ResourceAllocation,
+			"resource_plan": resourcePlan.Status.ResourceAllocation,
 
 			"planned_resources": resourcePlan.Status.PlannedResources,
 
-			"cost_estimate":     resourcePlan.Status.CostEstimate,
+			"cost_estimate": resourcePlan.Status.CostEstimate,
 
-			"quality_score":     resourcePlan.Status.QualityScore,
-
+			"quality_score": resourcePlan.Status.QualityScore,
 		}
 
 	} else if resourcePlan.IsPlanningFailed() {
@@ -973,21 +804,16 @@ func (r *CoordinationController) coordinateResourcePlanning(ctx context.Context,
 
 		return interfaces.ProcessingResult{
 
-			Success:    false,
+			Success: false,
 
 			RetryAfter: func() *time.Duration { d := 15 * time.Second; return &d }(),
-
 		}, nil
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // coordinateManifestGeneration coordinates manifest generation phase.
 
@@ -999,7 +825,7 @@ func (r *CoordinationController) coordinateManifestGeneration(ctx context.Contex
 
 	result := interfaces.ProcessingResult{
 
-		Success:   true,
+		Success: true,
 
 		NextPhase: interfaces.PhaseGitOpsCommit,
 
@@ -1009,21 +835,14 @@ func (r *CoordinationController) coordinateManifestGeneration(ctx context.Contex
 
 				"deployment.yaml": "# Generated deployment manifest",
 
-				"service.yaml":    "# Generated service manifest",
-
+				"service.yaml": "# Generated service manifest",
 			},
-
 		},
-
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // coordinateGitOpsDeployment coordinates GitOps deployment phase.
 
@@ -1035,27 +854,21 @@ func (r *CoordinationController) coordinateGitOpsDeployment(ctx context.Context,
 
 	result := interfaces.ProcessingResult{
 
-		Success:   true,
+		Success: true,
 
 		NextPhase: interfaces.PhaseDeploymentVerification,
 
 		Data: map[string]interface{}{
 
-			"commit_hash":       "abc123def456",
+			"commit_hash": "abc123def456",
 
 			"deployment_status": "committed",
-
 		},
-
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // coordinateDeploymentVerification coordinates deployment verification phase.
 
@@ -1067,7 +880,7 @@ func (r *CoordinationController) coordinateDeploymentVerification(ctx context.Co
 
 	result := interfaces.ProcessingResult{
 
-		Success:   true,
+		Success: true,
 
 		NextPhase: interfaces.PhaseCompleted,
 
@@ -1075,27 +888,19 @@ func (r *CoordinationController) coordinateDeploymentVerification(ctx context.Co
 
 			"verification_status": "verified",
 
-			"deployed_resources":  []string{"deployment/example", "service/example"},
-
+			"deployed_resources": []string{"deployment/example", "service/example"},
 		},
-
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // detectConflicts detects conflicts with other intents.
 
 func (r *CoordinationController) detectConflicts(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, coordCtx *CoordinationContext) ([]Conflict, error) {
 
 	var conflicts []Conflict
-
-
 
 	// Check for resource conflicts with other active intents.
 
@@ -1105,15 +910,11 @@ func (r *CoordinationController) detectConflicts(ctx context.Context, networkInt
 
 		_ = value.(*CoordinationContext) // otherCoordCtx not used in this stub
 
-
-
 		if otherIntentID == coordCtx.IntentID {
 
 			return true // Skip self
 
 		}
-
-
 
 		// Check for namespace conflicts.
 
@@ -1121,37 +922,30 @@ func (r *CoordinationController) detectConflicts(ctx context.Context, networkInt
 
 			conflict := Conflict{
 
-				ID:              fmt.Sprintf("namespace-conflict-%s-%s", coordCtx.IntentID, otherIntentID),
+				ID: fmt.Sprintf("namespace-conflict-%s-%s", coordCtx.IntentID, otherIntentID),
 
-				Type:            "NamespaceConflict",
+				Type: "NamespaceConflict",
 
-				Description:     fmt.Sprintf("Namespace conflict detected between intents %s and %s", coordCtx.IntentID, otherIntentID),
+				Description: fmt.Sprintf("Namespace conflict detected between intents %s and %s", coordCtx.IntentID, otherIntentID),
 
 				InvolvedIntents: []string{coordCtx.IntentID, otherIntentID},
 
-				Severity:        "Medium",
+				Severity: "Medium",
 
-				DetectedAt:      time.Now(),
-
+				DetectedAt: time.Now(),
 			}
 
 			conflicts = append(conflicts, conflict)
 
 		}
 
-
-
 		return true
 
 	})
 
-
-
 	return conflicts, nil
 
 }
-
-
 
 // hasNamespaceConflict checks for namespace conflicts.
 
@@ -1167,15 +961,11 @@ func (r *CoordinationController) hasNamespaceConflict(ctx context.Context, netwo
 
 }
 
-
-
 // handleConflicts handles detected conflicts.
 
 func (r *CoordinationController) handleConflicts(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, coordCtx *CoordinationContext, conflicts []Conflict) (ctrl.Result, error) {
 
 	log := r.Logger.WithValues("intent", networkIntent.Name, "conflicts", len(conflicts))
-
-
 
 	// Update coordination context with conflicts.
 
@@ -1184,8 +974,6 @@ func (r *CoordinationController) handleConflicts(ctx context.Context, networkInt
 	coordCtx.Conflicts = append(coordCtx.Conflicts, conflicts...)
 
 	coordCtx.mutex.Unlock()
-
-
 
 	// Publish conflict detection event.
 
@@ -1196,14 +984,11 @@ func (r *CoordinationController) handleConflicts(ctx context.Context, networkInt
 			"conflict_count": len(conflicts),
 
 			"conflict_types": r.extractConflictTypes(conflicts),
-
 		}); err != nil {
 
 		log.Error(err, "Failed to publish conflict detection event")
 
 	}
-
-
 
 	// Attempt to resolve conflicts.
 
@@ -1219,8 +1004,6 @@ func (r *CoordinationController) handleConflicts(ctx context.Context, networkInt
 
 		}
 
-
-
 		if resolved {
 
 			log.Info("Conflict resolved", "conflictId", conflict.ID)
@@ -1233,8 +1016,6 @@ func (r *CoordinationController) handleConflicts(ctx context.Context, networkInt
 
 			conflict.Resolution = "Automatically resolved"
 
-
-
 			// Publish resolution event.
 
 			if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseIntentReceived, EventConflictResolved,
@@ -1243,8 +1024,7 @@ func (r *CoordinationController) handleConflicts(ctx context.Context, networkInt
 
 					"conflict_id": conflict.ID,
 
-					"resolution":  conflict.Resolution,
-
+					"resolution": conflict.Resolution,
 				}); err != nil {
 
 				log.Error(err, "Failed to publish conflict resolution event")
@@ -1265,8 +1045,6 @@ func (r *CoordinationController) handleConflicts(ctx context.Context, networkInt
 
 	}
 
-
-
 	// Check if all conflicts are resolved.
 
 	unresolvedConflicts := 0
@@ -1281,8 +1059,6 @@ func (r *CoordinationController) handleConflicts(ctx context.Context, networkInt
 
 	}
 
-
-
 	if unresolvedConflicts > 0 {
 
 		// Requeue to check again later.
@@ -1291,8 +1067,6 @@ func (r *CoordinationController) handleConflicts(ctx context.Context, networkInt
 
 	}
 
-
-
 	// All conflicts resolved, continue processing.
 
 	log.Info("All conflicts resolved, continuing processing")
@@ -1300,8 +1074,6 @@ func (r *CoordinationController) handleConflicts(ctx context.Context, networkInt
 	return ctrl.Result{Requeue: true}, nil
 
 }
-
-
 
 // extractConflictTypes extracts conflict types from conflicts.
 
@@ -1319,15 +1091,11 @@ func (r *CoordinationController) extractConflictTypes(conflicts []Conflict) []st
 
 }
 
-
-
 // handlePhaseCompletion handles the completion of a phase.
 
 func (r *CoordinationController) handlePhaseCompletion(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, result interfaces.ProcessingResult, coordCtx *CoordinationContext) (ctrl.Result, error) {
 
 	log := r.Logger.WithValues("intent", networkIntent.Name, "phase", phase, "success", result.Success)
-
-
 
 	if result.Success {
 
@@ -1341,8 +1109,6 @@ func (r *CoordinationController) handlePhaseCompletion(ctx context.Context, netw
 
 		}
 
-
-
 		// Check if processing is complete.
 
 		if result.NextPhase == interfaces.PhaseCompleted {
@@ -1350,8 +1116,6 @@ func (r *CoordinationController) handlePhaseCompletion(ctx context.Context, netw
 			return r.handleIntentCompletion(ctx, networkIntent, coordCtx)
 
 		}
-
-
 
 		// Determine retry behavior.
 
@@ -1361,15 +1125,11 @@ func (r *CoordinationController) handlePhaseCompletion(ctx context.Context, netw
 
 		}
 
-
-
 		// Continue to next phase.
 
 		return ctrl.Result{Requeue: true}, nil
 
 	}
-
-
 
 	// Handle phase failure.
 
@@ -1377,19 +1137,13 @@ func (r *CoordinationController) handlePhaseCompletion(ctx context.Context, netw
 
 }
 
-
-
 // handleIntentCompletion handles successful intent completion.
 
 func (r *CoordinationController) handleIntentCompletion(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, coordCtx *CoordinationContext) (ctrl.Result, error) {
 
 	log := r.Logger.WithValues("intent", networkIntent.Name)
 
-
-
 	log.Info("Intent processing completed successfully")
-
-
 
 	// Update NetworkIntent to completed status.
 
@@ -1399,21 +1153,15 @@ func (r *CoordinationController) handleIntentCompletion(ctx context.Context, net
 
 	networkIntent.Status.LastMessage = "Intent processing completed successfully"
 
-
-
 	if err := r.Status().Update(ctx, networkIntent); err != nil {
 
 		return ctrl.Result{}, fmt.Errorf("failed to update NetworkIntent status: %w", err)
 
 	}
 
-
-
 	// Record completion event.
 
 	r.Recorder.Event(networkIntent, "Normal", "IntentCompleted", "Network intent processing completed successfully")
-
-
 
 	// Publish completion event.
 
@@ -1423,33 +1171,24 @@ func (r *CoordinationController) handleIntentCompletion(ctx context.Context, net
 
 			"processing_duration": time.Since(coordCtx.StartTime).String(),
 
-			"completed_phases":    len(coordCtx.PhaseHistory),
-
+			"completed_phases": len(coordCtx.PhaseHistory),
 		}); err != nil {
 
 		log.Error(err, "Failed to publish completion event")
 
 	}
 
-
-
 	// Clean up coordination context.
 
 	r.activeIntents.Delete(coordCtx.IntentID)
-
-
 
 	// Record metrics.
 
 	r.MetricsCollector.RecordIntentCompletion(coordCtx.IntentID, true, time.Since(coordCtx.StartTime))
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // handlePhaseFailure handles phase failures.
 
@@ -1457,11 +1196,7 @@ func (r *CoordinationController) handlePhaseFailure(ctx context.Context, network
 
 	log := r.Logger.WithValues("intent", networkIntent.Name, "phase", phase)
 
-
-
 	log.Error(errors.New(result.ErrorMessage), "Phase failed", "errorCode", result.ErrorCode)
-
-
 
 	// Increment retry count.
 
@@ -1473,8 +1208,6 @@ func (r *CoordinationController) handlePhaseFailure(ctx context.Context, network
 
 	coordCtx.mutex.Unlock()
 
-
-
 	// Check if auto-recovery is enabled and should be attempted.
 
 	if r.Config.EnableAutoRecovery && r.shouldAttemptRecovery(phase, retryCount) {
@@ -1483,15 +1216,11 @@ func (r *CoordinationController) handlePhaseFailure(ctx context.Context, network
 
 	}
 
-
-
 	// Check if we should retry.
 
 	if retryCount < r.Config.MaxRetries {
 
 		backoffDuration := r.calculateBackoff(retryCount)
-
-
 
 		log.Info("Scheduling retry", "attempt", retryCount+1, "backoff", backoffDuration)
 
@@ -1499,21 +1228,15 @@ func (r *CoordinationController) handlePhaseFailure(ctx context.Context, network
 
 			fmt.Sprintf("Retrying phase %s (attempt %d/%d): %s", phase, retryCount, r.Config.MaxRetries, result.ErrorMessage))
 
-
-
 		return ctrl.Result{RequeueAfter: backoffDuration}, nil
 
 	}
-
-
 
 	// Max retries exceeded - mark as permanently failed.
 
 	return r.handleIntentFailure(ctx, networkIntent, phase, result, coordCtx)
 
 }
-
-
 
 // shouldAttemptRecovery determines if recovery should be attempted.
 
@@ -1523,25 +1246,20 @@ func (r *CoordinationController) shouldAttemptRecovery(phase interfaces.Processi
 
 	recoverablePhases := map[interfaces.ProcessingPhase]bool{
 
-		interfaces.PhaseLLMProcessing:          true,
+		interfaces.PhaseLLMProcessing: true,
 
-		interfaces.PhaseResourcePlanning:       true,
+		interfaces.PhaseResourcePlanning: true,
 
-		interfaces.PhaseManifestGeneration:     true,
+		interfaces.PhaseManifestGeneration: true,
 
-		interfaces.PhaseGitOpsCommit:           false, // Git operations are not easily recoverable
+		interfaces.PhaseGitOpsCommit: false, // Git operations are not easily recoverable
 
 		interfaces.PhaseDeploymentVerification: true,
-
 	}
-
-
 
 	return recoverablePhases[phase] && retryCount < r.Config.MaxRetries/2
 
 }
-
-
 
 // attemptRecovery attempts to recover from a phase failure.
 
@@ -1549,11 +1267,7 @@ func (r *CoordinationController) attemptRecovery(ctx context.Context, networkInt
 
 	log := r.Logger.WithValues("intent", networkIntent.Name, "phase", phase)
 
-
-
 	log.Info("Attempting automatic recovery")
-
-
 
 	// Publish recovery initiation event.
 
@@ -1561,19 +1275,16 @@ func (r *CoordinationController) attemptRecovery(ctx context.Context, networkInt
 
 		coordCtx.IntentID, false, map[string]interface{}{
 
-			"failed_phase":  phase,
+			"failed_phase": phase,
 
 			"error_message": result.ErrorMessage,
 
-			"retry_count":   coordCtx.RetryCount,
-
+			"retry_count": coordCtx.RetryCount,
 		}); err != nil {
 
 		log.Error(err, "Failed to publish recovery initiation event")
 
 	}
-
-
 
 	// Attempt recovery using the recovery manager.
 
@@ -1587,8 +1298,6 @@ func (r *CoordinationController) attemptRecovery(ctx context.Context, networkInt
 
 	}
 
-
-
 	if recovered {
 
 		log.Info("Recovery successful", "actions", recoveryActions)
@@ -1597,25 +1306,20 @@ func (r *CoordinationController) attemptRecovery(ctx context.Context, networkInt
 
 			fmt.Sprintf("Successfully recovered from %s failure: %s", phase, strings.Join(recoveryActions, ", ")))
 
-
-
 		// Publish recovery completion event.
 
 		if err := r.EventBus.PublishPhaseEvent(ctx, phase, EventRecoveryCompleted,
 
 			coordCtx.IntentID, true, map[string]interface{}{
 
-				"recovered_phase":  phase,
+				"recovered_phase": phase,
 
 				"recovery_actions": recoveryActions,
-
 			}); err != nil {
 
 			log.Error(err, "Failed to publish recovery completion event")
 
 		}
-
-
 
 		// Retry the phase immediately.
 
@@ -1623,15 +1327,11 @@ func (r *CoordinationController) attemptRecovery(ctx context.Context, networkInt
 
 	}
 
-
-
 	// Recovery was not successful.
 
 	return r.handleRecoveryFailure(ctx, networkIntent, phase, result, coordCtx)
 
 }
-
-
 
 // handleRecoveryFailure handles recovery failure.
 
@@ -1639,15 +1339,11 @@ func (r *CoordinationController) handleRecoveryFailure(ctx context.Context, netw
 
 	log := r.Logger.WithValues("intent", networkIntent.Name, "phase", phase)
 
-
-
 	log.V(1).Info("Recovery failed, falling back to normal retry logic")
 
 	r.Recorder.Event(networkIntent, "Warning", "RecoveryFailed",
 
 		fmt.Sprintf("Failed to recover from %s failure, falling back to retry", phase))
-
-
 
 	// Calculate backoff and retry.
 
@@ -1657,19 +1353,13 @@ func (r *CoordinationController) handleRecoveryFailure(ctx context.Context, netw
 
 }
 
-
-
 // handleIntentFailure handles permanent intent failure.
 
 func (r *CoordinationController) handleIntentFailure(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, result interfaces.ProcessingResult, coordCtx *CoordinationContext) (ctrl.Result, error) {
 
 	log := r.Logger.WithValues("intent", networkIntent.Name, "phase", phase)
 
-
-
 	log.Error(errors.New(result.ErrorMessage), "Intent processing failed permanently")
-
-
 
 	// Update NetworkIntent to failed status.
 
@@ -1679,15 +1369,11 @@ func (r *CoordinationController) handleIntentFailure(ctx context.Context, networ
 
 	networkIntent.Status.LastMessage = fmt.Sprintf("Processing failed at phase %s after %d attempts: %s", phase, coordCtx.RetryCount, result.ErrorMessage)
 
-
-
 	if err := r.Status().Update(ctx, networkIntent); err != nil {
 
 		return ctrl.Result{}, fmt.Errorf("failed to update NetworkIntent status: %w", err)
 
 	}
-
-
 
 	// Record failure event.
 
@@ -1695,45 +1381,34 @@ func (r *CoordinationController) handleIntentFailure(ctx context.Context, networ
 
 		fmt.Sprintf("Network intent processing failed at phase %s: %s", phase, result.ErrorMessage))
 
-
-
 	// Publish failure event.
 
 	if err := r.EventBus.PublishPhaseEvent(ctx, phase, EventIntentFailed,
 
 		coordCtx.IntentID, false, map[string]interface{}{
 
-			"failed_phase":  phase,
+			"failed_phase": phase,
 
 			"error_message": result.ErrorMessage,
 
-			"retry_count":   coordCtx.RetryCount,
-
+			"retry_count": coordCtx.RetryCount,
 		}); err != nil {
 
 		log.Error(err, "Failed to publish failure event")
 
 	}
 
-
-
 	// Clean up coordination context.
 
 	r.activeIntents.Delete(coordCtx.IntentID)
-
-
 
 	// Record metrics.
 
 	r.MetricsCollector.RecordIntentCompletion(coordCtx.IntentID, false, time.Since(coordCtx.StartTime))
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // handleCoordinationError handles coordination errors.
 
@@ -1741,31 +1416,22 @@ func (r *CoordinationController) handleCoordinationError(ctx context.Context, ne
 
 	log := r.Logger.WithValues("intent", networkIntent.Name, "phase", phase)
 
-
-
 	log.Error(err, "Coordination error occurred")
-
-
 
 	// Create error result.
 
 	result := interfaces.ProcessingResult{
 
-		Success:      false,
+		Success: false,
 
 		ErrorMessage: err.Error(),
 
-		ErrorCode:    "COORDINATION_ERROR",
-
+		ErrorCode: "COORDINATION_ERROR",
 	}
-
-
 
 	return r.handlePhaseFailure(ctx, networkIntent, phase, result, coordCtx)
 
 }
-
-
 
 // handleIntentDeletion handles intent deletion.
 
@@ -1773,11 +1439,7 @@ func (r *CoordinationController) handleIntentDeletion(ctx context.Context, names
 
 	log := r.Logger.WithValues("intent", namespacedName)
 
-
-
 	log.Info("Handling intent deletion")
-
-
 
 	// Clean up coordination contexts.
 
@@ -1786,8 +1448,6 @@ func (r *CoordinationController) handleIntentDeletion(ctx context.Context, names
 		intentID := key.(string)
 
 		_ = value.(*CoordinationContext)
-
-
 
 		// This is a simplified matching - in practice you'd match by namespace/name.
 
@@ -1799,13 +1459,9 @@ func (r *CoordinationController) handleIntentDeletion(ctx context.Context, names
 
 	})
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // updateNetworkIntentStatus updates the NetworkIntent status.
 
@@ -1819,13 +1475,9 @@ func (r *CoordinationController) updateNetworkIntentStatus(ctx context.Context, 
 
 	networkIntent.Status.LastMessage = fmt.Sprintf("Phase %s completed successfully", phase)
 
-
-
 	return r.Status().Update(ctx, networkIntent)
 
 }
-
-
 
 // getOrCreateCoordinationContext gets or creates a coordination context.
 
@@ -1833,55 +1485,46 @@ func (r *CoordinationController) getOrCreateCoordinationContext(networkIntent *n
 
 	intentID := string(networkIntent.UID)
 
-
-
 	if ctx, exists := r.activeIntents.Load(intentID); exists {
 
 		return ctx.(*CoordinationContext)
 
 	}
 
-
-
 	coordCtx := &CoordinationContext{
 
-		IntentID:        intentID,
+		IntentID: intentID,
 
-		CorrelationID:   fmt.Sprintf("coord-%s-%d", networkIntent.Name, time.Now().Unix()),
+		CorrelationID: fmt.Sprintf("coord-%s-%d", networkIntent.Name, time.Now().Unix()),
 
-		StartTime:       time.Now(),
+		StartTime: time.Now(),
 
-		CurrentPhase:    interfaces.PhaseIntentReceived,
+		CurrentPhase: interfaces.PhaseIntentReceived,
 
-		PhaseHistory:    make([]PhaseExecution, 0),
+		PhaseHistory: make([]PhaseExecution, 0),
 
-		Locks:           make([]string, 0),
+		Locks: make([]string, 0),
 
-		Conflicts:       make([]Conflict, 0),
+		Conflicts: make([]Conflict, 0),
 
-		RetryCount:      0,
+		RetryCount: 0,
 
-		LastActivity:    time.Now(),
+		LastActivity: time.Now(),
 
-		LastUpdateTime:  time.Now(),
+		LastUpdateTime: time.Now(),
 
-		Metadata:        make(map[string]interface{}),
+		Metadata: make(map[string]interface{}),
 
 		CompletedPhases: make([]interfaces.ProcessingPhase, 0),
 
-		ErrorHistory:    make([]string, 0),
-
+		ErrorHistory: make([]string, 0),
 	}
-
-
 
 	r.activeIntents.Store(intentID, coordCtx)
 
 	return coordCtx
 
 }
-
-
 
 // calculateBackoff calculates backoff duration for retries.
 
@@ -1907,23 +1550,16 @@ func (r *CoordinationController) calculateBackoff(retryCount int) time.Duration 
 
 }
 
-
-
 // SetupWithManager sets up the controller with the Manager.
 
 func (r *CoordinationController) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
-
 		For(&nephoranv1.NetworkIntent{}).
-
 		Named("coordination").
-
 		Complete(r)
 
 }
-
-
 
 // Start starts the coordination controller and all its components.
 
@@ -1931,27 +1567,19 @@ func (r *CoordinationController) Start(ctx context.Context) error {
 
 	r.Logger.Info("Starting Coordination Controller")
 
-
-
 	// Start health check routine.
 
 	go r.healthCheckRoutine(ctx)
 
-
-
 	// Start coordination context cleanup routine.
 
 	go r.cleanupRoutine(ctx)
-
-
 
 	r.Logger.Info("Coordination Controller started successfully")
 
 	return nil
 
 }
-
-
 
 // healthCheckRoutine performs periodic health checks.
 
@@ -1960,8 +1588,6 @@ func (r *CoordinationController) healthCheckRoutine(ctx context.Context) {
 	ticker := time.NewTicker(r.Config.HealthCheckInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1981,8 +1607,6 @@ func (r *CoordinationController) healthCheckRoutine(ctx context.Context) {
 
 }
 
-
-
 // performHealthChecks performs health checks on active intents.
 
 func (r *CoordinationController) performHealthChecks(ctx context.Context) {
@@ -1993,8 +1617,6 @@ func (r *CoordinationController) performHealthChecks(ctx context.Context) {
 
 		coordCtx := value.(*CoordinationContext)
 
-
-
 		coordCtx.mutex.RLock()
 
 		lastActivity := coordCtx.LastActivity
@@ -2002,8 +1624,6 @@ func (r *CoordinationController) performHealthChecks(ctx context.Context) {
 		currentPhase := coordCtx.CurrentPhase
 
 		coordCtx.mutex.RUnlock()
-
-
 
 		// Check for stale intents (no activity for too long).
 
@@ -2015,15 +1635,11 @@ func (r *CoordinationController) performHealthChecks(ctx context.Context) {
 
 		}
 
-
-
 		return true
 
 	})
 
 }
-
-
 
 // cleanupRoutine performs periodic cleanup of completed coordination contexts.
 
@@ -2032,8 +1648,6 @@ func (r *CoordinationController) cleanupRoutine(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Minute) // Cleanup every 5 minutes
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2053,23 +1667,17 @@ func (r *CoordinationController) cleanupRoutine(ctx context.Context) {
 
 }
 
-
-
 // performCleanup cleans up old coordination contexts.
 
 func (r *CoordinationController) performCleanup(ctx context.Context) {
 
 	cutoff := time.Now().Add(-1 * time.Hour) // Clean up contexts older than 1 hour
 
-
-
 	r.activeIntents.Range(func(key, value interface{}) bool {
 
 		intentID := key.(string)
 
 		coordCtx := value.(*CoordinationContext)
-
-
 
 		if coordCtx.StartTime.Before(cutoff) {
 
@@ -2079,15 +1687,11 @@ func (r *CoordinationController) performCleanup(ctx context.Context) {
 
 		}
 
-
-
 		return true
 
 	})
 
 }
-
-
 
 // Default configuration.
 
@@ -2095,29 +1699,26 @@ func DefaultCoordinationConfig() *CoordinationConfig {
 
 	return &CoordinationConfig{
 
-		MaxConcurrentIntents:     10,
+		MaxConcurrentIntents: 10,
 
-		PhaseTimeout:             300 * time.Second,
+		PhaseTimeout: 300 * time.Second,
 
-		MaxRetries:               3,
+		MaxRetries: 3,
 
-		RetryBackoff:             30 * time.Second,
+		RetryBackoff: 30 * time.Second,
 
 		EnableParallelProcessing: true,
 
 		EnableConflictResolution: true,
 
-		EnableAutoRecovery:       true,
+		EnableAutoRecovery: true,
 
-		HealthCheckInterval:      60 * time.Second,
+		HealthCheckInterval: 60 * time.Second,
 
-		RecoveryTimeout:          120 * time.Second,
-
+		RecoveryTimeout: 120 * time.Second,
 	}
 
 }
-
-
 
 // convertORANComponentsToTargetComponents converts ORANComponent slice to TargetComponent slice.
 
@@ -2141,27 +1742,18 @@ func (r *CoordinationController) convertORANComponentsToTargetComponents(oranCom
 
 }
 
-
-
 // ManifestGenerationController handles manifest generation (stub type for compilation).
 
 type ManifestGenerationController struct {
-
 	client.Client
 
 	Logger logr.Logger
-
 }
-
-
 
 // GitOpsDeploymentController handles GitOps deployments (stub type for compilation).
 
 type GitOpsDeploymentController struct {
-
 	client.Client
 
 	Logger logr.Logger
-
 }
-

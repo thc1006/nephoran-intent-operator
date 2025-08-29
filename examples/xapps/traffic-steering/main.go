@@ -1,123 +1,88 @@
-
 package main
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"log"
-
 	"math"
-
 	"net/http"
-
 	"os"
-
 	"os/signal"
-
 	"sort"
-
 	"syscall"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/e2"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/e2/service_models"
-
 )
-
-
 
 // TrafficSteeringXApp demonstrates intelligent traffic steering using RC service model.
 
 type TrafficSteeringXApp struct {
+	sdk *e2.XAppSDK
 
-	sdk           *e2.XAppSDK
+	rcModel *service_models.RCServiceModel
 
-	rcModel       *service_models.RCServiceModel
+	kmpModel *service_models.KPMServiceModel
 
-	kmpModel      *service_models.KPMServiceModel
-
-	cellLoadInfo  map[string]*CellLoadInfo
+	cellLoadInfo map[string]*CellLoadInfo
 
 	steeringRules *SteeringRules
 
-	httpServer    *http.Server
-
+	httpServer *http.Server
 }
-
-
 
 // CellLoadInfo stores load information for traffic steering decisions.
 
 type CellLoadInfo struct {
+	CellID string `json:"cell_id"`
 
-	CellID            string             `json:"cell_id"`
+	LastUpdate time.Time `json:"last_update"`
 
-	LastUpdate        time.Time          `json:"last_update"`
+	PRBUtilizationDL float64 `json:"prb_utilization_dl"`
 
-	PRBUtilizationDL  float64            `json:"prb_utilization_dl"`
+	PRBUtilizationUL float64 `json:"prb_utilization_ul"`
 
-	PRBUtilizationUL  float64            `json:"prb_utilization_ul"`
+	ActiveUEs int `json:"active_ues"`
 
-	ActiveUEs         int                `json:"active_ues"`
+	ThroughputDL float64 `json:"throughput_dl_mbps"`
 
-	ThroughputDL      float64            `json:"throughput_dl_mbps"`
+	ThroughputUL float64 `json:"throughput_ul_mbps"`
 
-	ThroughputUL      float64            `json:"throughput_ul_mbps"`
+	ConnectionSuccess float64 `json:"connection_success_rate"`
 
-	ConnectionSuccess float64            `json:"connection_success_rate"`
+	LoadLevel LoadLevel `json:"load_level"`
 
-	LoadLevel         LoadLevel          `json:"load_level"`
+	NeighborCells []string `json:"neighbor_cells"`
 
-	NeighborCells     []string           `json:"neighbor_cells"`
-
-	ConnectedUEs      map[string]*UEInfo `json:"connected_ues"`
-
+	ConnectedUEs map[string]*UEInfo `json:"connected_ues"`
 }
-
-
 
 // UEInfo stores information about connected UEs.
 
 type UEInfo struct {
+	UEID string `json:"ue_id"`
 
-	UEID         string    `json:"ue_id"`
+	RSRP float64 `json:"rsrp_dbm"`
 
-	RSRP         float64   `json:"rsrp_dbm"`
+	RSRQ float64 `json:"rsrq_db"`
 
-	RSRQ         float64   `json:"rsrq_db"`
+	CQI int `json:"cqi"`
 
-	CQI          int       `json:"cqi"`
+	ThroughputDL float64 `json:"throughput_dl_kbps"`
 
-	ThroughputDL float64   `json:"throughput_dl_kbps"`
+	ThroughputUL float64 `json:"throughput_ul_kbps"`
 
-	ThroughputUL float64   `json:"throughput_ul_kbps"`
+	Priority int `json:"priority"`
 
-	Priority     int       `json:"priority"`
-
-	LastUpdate   time.Time `json:"last_update"`
-
+	LastUpdate time.Time `json:"last_update"`
 }
-
-
 
 // LoadLevel represents the load level of a cell.
 
 type LoadLevel string
-
-
 
 const (
 
@@ -139,51 +104,42 @@ const (
 
 )
 
-
-
 // SteeringRules defines traffic steering thresholds and policies.
 
 type SteeringRules struct {
+	HighLoadThreshold float64 `json:"high_load_threshold"` // 75%
 
-	HighLoadThreshold     float64       `json:"high_load_threshold"`     // 75%
+	CriticalLoadThreshold float64 `json:"critical_load_threshold"` // 85%
 
-	CriticalLoadThreshold float64       `json:"critical_load_threshold"` // 85%
+	LowLoadThreshold float64 `json:"low_load_threshold"` // 30%
 
-	LowLoadThreshold      float64       `json:"low_load_threshold"`      // 30%
+	MinRSRPThreshold float64 `json:"min_rsrp_threshold"` // -110 dBm
 
-	MinRSRPThreshold      float64       `json:"min_rsrp_threshold"`      // -110 dBm
+	MaxSteerUEs int `json:"max_steer_ues"` // 5 UEs per cycle
 
-	MaxSteerUEs           int           `json:"max_steer_ues"`           // 5 UEs per cycle
+	SteeringInterval time.Duration `json:"steering_interval"` // 30 seconds
 
-	SteeringInterval      time.Duration `json:"steering_interval"`       // 30 seconds
-
-	HysteresisMargin      float64       `json:"hysteresis_margin"`       // 5%
+	HysteresisMargin float64 `json:"hysteresis_margin"` // 5%
 
 }
-
-
 
 // SteeringDecision represents a traffic steering decision.
 
 type SteeringDecision struct {
+	UEID string `json:"ue_id"`
 
-	UEID           string    `json:"ue_id"`
+	SourceCellID string `json:"source_cell_id"`
 
-	SourceCellID   string    `json:"source_cell_id"`
+	TargetCellID string `json:"target_cell_id"`
 
-	TargetCellID   string    `json:"target_cell_id"`
+	Reason string `json:"reason"`
 
-	Reason         string    `json:"reason"`
+	LoadDifference float64 `json:"load_difference"`
 
-	LoadDifference float64   `json:"load_difference"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp      time.Time `json:"timestamp"`
-
-	Status         string    `json:"status"`
-
+	Status string `json:"status"`
 }
-
-
 
 func main() {
 
@@ -191,45 +147,40 @@ func main() {
 
 	xappConfig := &e2.XAppConfig{
 
-		XAppName:        config.GetEnvOrDefault("XAPP_NAME", "traffic-steering-xapp"),
+		XAppName: config.GetEnvOrDefault("XAPP_NAME", "traffic-steering-xapp"),
 
-		XAppVersion:     config.GetEnvOrDefault("XAPP_VERSION", "1.0.0"),
+		XAppVersion: config.GetEnvOrDefault("XAPP_VERSION", "1.0.0"),
 
 		XAppDescription: "Intelligent Traffic Steering xApp",
 
-		E2NodeID:        config.GetEnvOrDefault("E2_NODE_ID", "gnb-001"),
+		E2NodeID: config.GetEnvOrDefault("E2_NODE_ID", "gnb-001"),
 
-		NearRTRICURL:    config.GetEnvOrDefault("NEAR_RT_RIC_URL", "http://near-rt-ric:8080"),
+		NearRTRICURL: config.GetEnvOrDefault("NEAR_RT_RIC_URL", "http://near-rt-ric:8080"),
 
-		ServiceModels:   []string{"KPM", "RC"},
+		ServiceModels: []string{"KPM", "RC"},
 
 		ResourceLimits: &e2.XAppResourceLimits{
 
-			MaxMemoryMB:      2048,
+			MaxMemoryMB: 2048,
 
-			MaxCPUCores:      2.0,
+			MaxCPUCores: 2.0,
 
 			MaxSubscriptions: 20,
 
-			RequestTimeout:   30 * time.Second,
-
+			RequestTimeout: 30 * time.Second,
 		},
 
 		HealthCheck: &e2.XAppHealthConfig{
 
-			Enabled:          true,
+			Enabled: true,
 
-			CheckInterval:    30 * time.Second,
+			CheckInterval: 30 * time.Second,
 
 			FailureThreshold: 3,
 
-			HealthEndpoint:   "/health",
-
+			HealthEndpoint: "/health",
 		},
-
 	}
-
-
 
 	// Create xApp instance.
 
@@ -241,21 +192,15 @@ func main() {
 
 	}
 
-
-
 	// Setup signal handling for graceful shutdown.
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	defer cancel()
 
-
-
 	sigChan := make(chan os.Signal, 1)
 
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
-
 
 	// Start xApp.
 
@@ -265,19 +210,13 @@ func main() {
 
 	}
 
-
-
 	log.Printf("Traffic Steering xApp started successfully")
-
-
 
 	// Wait for shutdown signal.
 
 	<-sigChan
 
 	log.Println("Shutdown signal received, stopping xApp...")
-
-
 
 	// Graceful shutdown.
 
@@ -289,8 +228,6 @@ func main() {
 
 }
 
-
-
 // NewTrafficSteeringXApp creates a new traffic steering xApp instance.
 
 func NewTrafficSteeringXApp(config *e2.XAppConfig) (*TrafficSteeringXApp, error) {
@@ -299,20 +236,19 @@ func NewTrafficSteeringXApp(config *e2.XAppConfig) (*TrafficSteeringXApp, error)
 
 	e2Manager, err := e2.NewE2Manager(&e2.E2ManagerConfig{
 
-		DefaultRICURL:     config.NearRTRICURL,
+		DefaultRICURL: config.NearRTRICURL,
 
 		DefaultAPIVersion: "v1",
 
-		DefaultTimeout:    30 * time.Second,
+		DefaultTimeout: 30 * time.Second,
 
 		HeartbeatInterval: 30 * time.Second,
 
-		MaxRetries:        3,
+		MaxRetries: 3,
 
-		SimulationMode:    false,
+		SimulationMode: false,
 
-		SimulateRICCalls:  false,
-
+		SimulateRICCalls: false,
 	})
 
 	if err != nil {
@@ -320,8 +256,6 @@ func NewTrafficSteeringXApp(config *e2.XAppConfig) (*TrafficSteeringXApp, error)
 		return nil, fmt.Errorf("failed to create E2Manager: %w", err)
 
 	}
-
-
 
 	// Create xApp SDK.
 
@@ -333,57 +267,45 @@ func NewTrafficSteeringXApp(config *e2.XAppConfig) (*TrafficSteeringXApp, error)
 
 	}
 
-
-
 	xapp := &TrafficSteeringXApp{
 
-		sdk:          sdk,
+		sdk: sdk,
 
-		rcModel:      service_models.NewRCServiceModel(),
+		rcModel: service_models.NewRCServiceModel(),
 
-		kmpModel:     service_models.NewKPMServiceModel(),
+		kmpModel: service_models.NewKPMServiceModel(),
 
 		cellLoadInfo: make(map[string]*CellLoadInfo),
 
 		steeringRules: &SteeringRules{
 
-			HighLoadThreshold:     75.0,
+			HighLoadThreshold: 75.0,
 
 			CriticalLoadThreshold: 85.0,
 
-			LowLoadThreshold:      30.0,
+			LowLoadThreshold: 30.0,
 
-			MinRSRPThreshold:      -110.0,
+			MinRSRPThreshold: -110.0,
 
-			MaxSteerUEs:           5,
+			MaxSteerUEs: 5,
 
-			SteeringInterval:      30 * time.Second,
+			SteeringInterval: 30 * time.Second,
 
-			HysteresisMargin:      5.0,
-
+			HysteresisMargin: 5.0,
 		},
-
 	}
-
-
 
 	// Register indication handler.
 
 	sdk.RegisterIndicationHandler("default", xapp.handleLoadIndication)
 
-
-
 	// Setup HTTP server.
 
 	xapp.setupHTTPServer()
 
-
-
 	return xapp, nil
 
 }
-
-
 
 // Start initializes and starts the xApp.
 
@@ -396,8 +318,6 @@ func (x *TrafficSteeringXApp) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start SDK: %w", err)
 
 	}
-
-
 
 	// Start HTTP server.
 
@@ -413,8 +333,6 @@ func (x *TrafficSteeringXApp) Start(ctx context.Context) error {
 
 	}()
 
-
-
 	// Initialize cell topology and create subscriptions.
 
 	if err := x.initializeCellTopology(ctx); err != nil {
@@ -423,19 +341,13 @@ func (x *TrafficSteeringXApp) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start traffic steering loop.
 
 	go x.trafficSteeringLoop(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // Stop gracefully shuts down the xApp.
 
@@ -457,15 +369,11 @@ func (x *TrafficSteeringXApp) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	// Stop xApp SDK.
 
 	return x.sdk.Stop(ctx)
 
 }
-
-
 
 // initializeCellTopology sets up cell information and neighbor relationships.
 
@@ -482,10 +390,7 @@ func (x *TrafficSteeringXApp) initializeCellTopology(ctx context.Context) error 
 		"cell-003": {"cell-001", "cell-002", "cell-004"},
 
 		"cell-004": {"cell-002", "cell-003"},
-
 	}
-
-
 
 	// Initialize cell load info.
 
@@ -493,21 +398,18 @@ func (x *TrafficSteeringXApp) initializeCellTopology(ctx context.Context) error 
 
 		x.cellLoadInfo[cellID] = &CellLoadInfo{
 
-			CellID:        cellID,
+			CellID: cellID,
 
-			LastUpdate:    time.Now(),
+			LastUpdate: time.Now(),
 
-			LoadLevel:     LoadLevelModerate,
+			LoadLevel: LoadLevelModerate,
 
 			NeighborCells: neighbors,
 
-			ConnectedUEs:  make(map[string]*UEInfo),
-
+			ConnectedUEs: make(map[string]*UEInfo),
 		}
 
 	}
-
-
 
 	// Create KMP subscriptions for load monitoring.
 
@@ -530,10 +432,7 @@ func (x *TrafficSteeringXApp) initializeCellTopology(ctx context.Context) error 
 			"DRB.PdcpSduVolumeDL",
 
 			"DRB.PdcpSduVolumeUL",
-
 		}
-
-
 
 		subscription, err := x.kmpModel.CreateKPMSubscription(x.sdk.GetConfig().E2NodeID, cellID, measurements)
 
@@ -543,24 +442,21 @@ func (x *TrafficSteeringXApp) initializeCellTopology(ctx context.Context) error 
 
 		}
 
-
-
 		_, err = x.sdk.Subscribe(ctx, &e2.E2SubscriptionRequest{
 
-			SubscriptionID:  subscription.SubscriptionID,
+			SubscriptionID: subscription.SubscriptionID,
 
-			RequestorID:     x.sdk.GetConfig().XAppName,
+			RequestorID: x.sdk.GetConfig().XAppName,
 
-			NodeID:          x.sdk.GetConfig().E2NodeID,
+			NodeID: x.sdk.GetConfig().E2NodeID,
 
-			RanFunctionID:   subscription.RanFunctionID,
+			RanFunctionID: subscription.RanFunctionID,
 
-			EventTriggers:   subscription.EventTriggers,
+			EventTriggers: subscription.EventTriggers,
 
-			Actions:         subscription.Actions,
+			Actions: subscription.Actions,
 
 			ReportingPeriod: subscription.ReportingPeriod,
-
 		})
 
 		if err != nil {
@@ -569,19 +465,13 @@ func (x *TrafficSteeringXApp) initializeCellTopology(ctx context.Context) error 
 
 		}
 
-
-
 		log.Printf("Created load monitoring subscription for cell %s", cellID)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // handleLoadIndication processes incoming load indication messages.
 
@@ -594,7 +484,6 @@ func (x *TrafficSteeringXApp) handleLoadIndication(ctx context.Context, indicati
 		indication.RICIndicationHeader,
 
 		indication.RICIndicationMessage,
-
 	)
 
 	if err != nil {
@@ -602,8 +491,6 @@ func (x *TrafficSteeringXApp) handleLoadIndication(ctx context.Context, indicati
 		return fmt.Errorf("failed to parse KMP indication: %w", err)
 
 	}
-
-
 
 	kmpReport, ok := report.(*service_models.KPMReport)
 
@@ -613,19 +500,13 @@ func (x *TrafficSteeringXApp) handleLoadIndication(ctx context.Context, indicati
 
 	}
 
-
-
 	// Update cell load information.
 
 	x.updateCellLoadInfo(kmpReport)
 
-
-
 	return nil
 
 }
-
-
 
 // updateCellLoadInfo updates the load information for a cell.
 
@@ -641,13 +522,9 @@ func (x *TrafficSteeringXApp) updateCellLoadInfo(report *service_models.KPMRepor
 
 	}
 
-
-
 	cellInfo.LastUpdate = report.Timestamp
 
 	cellInfo.ActiveUEs = report.UECount
-
-
 
 	// Calculate PRB utilization.
 
@@ -661,8 +538,6 @@ func (x *TrafficSteeringXApp) updateCellLoadInfo(report *service_models.KPMRepor
 
 	}
 
-
-
 	if prbUsedUl, ok := report.Measurements["RRU.PrbUsedUl"]; ok {
 
 		if prbTotUl, ok := report.Measurements["RRU.PrbTotUl"]; ok && prbTotUl > 0 {
@@ -673,8 +548,6 @@ func (x *TrafficSteeringXApp) updateCellLoadInfo(report *service_models.KPMRepor
 
 	}
 
-
-
 	// Calculate throughput.
 
 	if volDl, ok := report.Measurements["DRB.PdcpSduVolumeDL"]; ok {
@@ -683,15 +556,11 @@ func (x *TrafficSteeringXApp) updateCellLoadInfo(report *service_models.KPMRepor
 
 	}
 
-
-
 	if volUl, ok := report.Measurements["DRB.PdcpSduVolumeUL"]; ok {
 
 		cellInfo.ThroughputUL = (volUl * 8) / (1024 * 1024) // Convert to Mbps
 
 	}
-
-
 
 	// Calculate connection success rate.
 
@@ -704,8 +573,6 @@ func (x *TrafficSteeringXApp) updateCellLoadInfo(report *service_models.KPMRepor
 		}
 
 	}
-
-
 
 	// Determine load level based on PRB utilization.
 
@@ -729,15 +596,11 @@ func (x *TrafficSteeringXApp) updateCellLoadInfo(report *service_models.KPMRepor
 
 	}
 
-
-
 	log.Printf("Updated load info for cell %s: PRB DL=%.1f%%, UL=%.1f%%, Level=%s",
 
 		report.CellID, cellInfo.PRBUtilizationDL, cellInfo.PRBUtilizationUL, cellInfo.LoadLevel)
 
 }
-
-
 
 // trafficSteeringLoop runs the main traffic steering algorithm.
 
@@ -746,8 +609,6 @@ func (x *TrafficSteeringXApp) trafficSteeringLoop(ctx context.Context) {
 	ticker := time.NewTicker(x.steeringRules.SteeringInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -767,8 +628,6 @@ func (x *TrafficSteeringXApp) trafficSteeringLoop(ctx context.Context) {
 
 }
 
-
-
 // evaluateAndSteer evaluates current network state and performs traffic steering if needed.
 
 func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
@@ -779,8 +638,6 @@ func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
 
 	underloadedCells := x.findCellsByLoadLevel(LoadLevelLow, LoadLevelModerate)
 
-
-
 	if len(overloadedCells) == 0 {
 
 		log.Printf("No overloaded cells found, no steering needed")
@@ -788,8 +645,6 @@ func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
 		return
 
 	}
-
-
 
 	if len(underloadedCells) == 0 {
 
@@ -799,13 +654,9 @@ func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
 
 	}
 
-
-
 	log.Printf("Found %d overloaded cells and %d underloaded cells",
 
 		len(overloadedCells), len(underloadedCells))
-
-
 
 	// Sort cells by load for optimal steering decisions.
 
@@ -817,8 +668,6 @@ func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
 
 	})
 
-
-
 	sort.Slice(underloadedCells, func(i, j int) bool {
 
 		return (underloadedCells[i].PRBUtilizationDL + underloadedCells[i].PRBUtilizationUL) <
@@ -827,13 +676,9 @@ func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
 
 	})
 
-
-
 	// Perform traffic steering.
 
 	steeringDecisions := make([]*SteeringDecision, 0)
-
-
 
 	for _, overloadedCell := range overloadedCells {
 
@@ -847,13 +692,9 @@ func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
 
 		}
 
-
-
 		// Select UEs to steer.
 
 		candidateUEs := x.selectUEsForSteering(overloadedCell, targetCell)
-
-
 
 		// Limit number of UEs to steer per cycle.
 
@@ -865,15 +706,13 @@ func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
 
 		}
 
-
-
 		// Create steering decisions and execute.
 
 		for _, ueInfo := range candidateUEs {
 
 			decision := &SteeringDecision{
 
-				UEID:         ueInfo.UEID,
+				UEID: ueInfo.UEID,
 
 				SourceCellID: overloadedCell.CellID,
 
@@ -891,11 +730,8 @@ func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
 
 				Timestamp: time.Now(),
 
-				Status:    "PENDING",
-
+				Status: "PENDING",
 			}
-
-
 
 			// Execute traffic steering.
 
@@ -915,15 +751,11 @@ func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
 
 			}
 
-
-
 			steeringDecisions = append(steeringDecisions, decision)
 
 		}
 
 	}
-
-
 
 	if len(steeringDecisions) > 0 {
 
@@ -933,15 +765,11 @@ func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
 
 }
 
-
-
 // findCellsByLoadLevel returns cells matching the specified load levels.
 
 func (x *TrafficSteeringXApp) findCellsByLoadLevel(levels ...LoadLevel) []*CellLoadInfo {
 
 	var cells []*CellLoadInfo
-
-
 
 	for _, cellInfo := range x.cellLoadInfo {
 
@@ -959,13 +787,9 @@ func (x *TrafficSteeringXApp) findCellsByLoadLevel(levels ...LoadLevel) []*CellL
 
 	}
 
-
-
 	return cells
 
 }
-
-
 
 // findBestTargetCell finds the best target cell for steering from a source cell.
 
@@ -975,11 +799,7 @@ func (x *TrafficSteeringXApp) findBestTargetCell(sourceCell *CellLoadInfo, candi
 
 	bestScore := -1.0
 
-
-
 	sourceLoad := (sourceCell.PRBUtilizationDL + sourceCell.PRBUtilizationUL) / 2
-
-
 
 	for _, candidate := range candidateCells {
 
@@ -999,25 +819,17 @@ func (x *TrafficSteeringXApp) findBestTargetCell(sourceCell *CellLoadInfo, candi
 
 		}
 
-
-
 		if !isNeighbor {
 
 			continue // Only consider neighbor cells
 
 		}
 
-
-
 		candidateLoad := (candidate.PRBUtilizationDL + candidate.PRBUtilizationUL) / 2
-
-
 
 		// Calculate load difference (higher is better for steering).
 
 		loadDifference := sourceLoad - candidateLoad
-
-
 
 		// Require minimum load difference to avoid ping-pong effects.
 
@@ -1027,13 +839,9 @@ func (x *TrafficSteeringXApp) findBestTargetCell(sourceCell *CellLoadInfo, candi
 
 		}
 
-
-
 		// Score based on load difference and connection success rate.
 
 		score := loadDifference * (candidate.ConnectionSuccess / 100.0)
-
-
 
 		if score > bestScore {
 
@@ -1045,21 +853,15 @@ func (x *TrafficSteeringXApp) findBestTargetCell(sourceCell *CellLoadInfo, candi
 
 	}
 
-
-
 	return bestTarget
 
 }
-
-
 
 // selectUEsForSteering selects UEs that are good candidates for traffic steering.
 
 func (x *TrafficSteeringXApp) selectUEsForSteering(sourceCell, targetCell *CellLoadInfo) []*UEInfo {
 
 	var candidates []*UEInfo
-
-
 
 	// In a real implementation, this would query actual UE information.
 
@@ -1069,25 +871,22 @@ func (x *TrafficSteeringXApp) selectUEsForSteering(sourceCell, targetCell *CellL
 
 		ue := &UEInfo{
 
-			UEID:         fmt.Sprintf("ue-%s-%d", sourceCell.CellID, i+1),
+			UEID: fmt.Sprintf("ue-%s-%d", sourceCell.CellID, i+1),
 
-			RSRP:         -80.0 + float64(i)*2, // Simulate varying signal quality
+			RSRP: -80.0 + float64(i)*2, // Simulate varying signal quality
 
-			RSRQ:         -10.0 + float64(i)*0.5,
+			RSRQ: -10.0 + float64(i)*0.5,
 
-			CQI:          10 + i%5,
+			CQI: 10 + i%5,
 
 			ThroughputDL: 1000.0 + float64(i)*100,
 
 			ThroughputUL: 500.0 + float64(i)*50,
 
-			Priority:     1, // Normal priority
+			Priority: 1, // Normal priority
 
-			LastUpdate:   time.Now(),
-
+			LastUpdate: time.Now(),
 		}
-
-
 
 		// Select UEs with good signal quality (can be steered without quality degradation).
 
@@ -1098,8 +897,6 @@ func (x *TrafficSteeringXApp) selectUEsForSteering(sourceCell, targetCell *CellL
 		}
 
 	}
-
-
 
 	// Sort by priority and signal quality (steer lower priority UEs first).
 
@@ -1115,13 +912,9 @@ func (x *TrafficSteeringXApp) selectUEsForSteering(sourceCell, targetCell *CellL
 
 	})
 
-
-
 	return candidates
 
 }
-
-
 
 // executeTrafficSteering sends RC control message to steer traffic.
 
@@ -1137,8 +930,6 @@ func (x *TrafficSteeringXApp) executeTrafficSteering(ctx context.Context, decisi
 
 	}
 
-
-
 	// Convert E2ControlRequest to RICControlRequest for SDK.
 
 	ricControlReq, err := x.convertE2ToRICControlRequest(e2ControlReq)
@@ -1148,8 +939,6 @@ func (x *TrafficSteeringXApp) executeTrafficSteering(ctx context.Context, decisi
 		return fmt.Errorf("failed to convert control request: %w", err)
 
 	}
-
-
 
 	// Send control message through SDK to the configured E2 node.
 
@@ -1161,19 +950,13 @@ func (x *TrafficSteeringXApp) executeTrafficSteering(ctx context.Context, decisi
 
 	}
 
-
-
 	log.Printf("Traffic steering control sent for UE %s, received ack: %+v",
 
 		decision.UEID, ack)
 
-
-
 	return nil
 
 }
-
-
 
 // setupHTTPServer configures the HTTP server for monitoring and control.
 
@@ -1181,13 +964,9 @@ func (x *TrafficSteeringXApp) setupHTTPServer() {
 
 	mux := http.NewServeMux()
 
-
-
 	// Health check endpoint.
 
 	mux.HandleFunc("/health", x.handleHealth)
-
-
 
 	// Cell load information endpoints.
 
@@ -1195,31 +974,22 @@ func (x *TrafficSteeringXApp) setupHTTPServer() {
 
 	mux.HandleFunc("/cells/", x.handleCell)
 
-
-
 	// Steering rules endpoints.
 
 	mux.HandleFunc("/rules", x.handleRules)
-
-
 
 	// xApp info endpoint.
 
 	mux.HandleFunc("/info", x.handleInfo)
 
-
-
 	x.httpServer = &http.Server{
 
-		Addr:    ":8080",
+		Addr: ":8080",
 
 		Handler: mux,
-
 	}
 
 }
-
-
 
 // handleHealth provides health check information.
 
@@ -1229,31 +999,25 @@ func (x *TrafficSteeringXApp) handleHealth(w http.ResponseWriter, r *http.Reques
 
 	metrics := x.sdk.GetMetrics()
 
-
-
 	health := map[string]interface{}{
 
-		"status":    string(state),
+		"status": string(state),
 
 		"timestamp": time.Now().UTC(),
 
-		"cells":     len(x.cellLoadInfo),
+		"cells": len(x.cellLoadInfo),
 
 		"sdk_metrics": map[string]interface{}{
 
-			"subscriptions_active":  metrics.SubscriptionsActive,
+			"subscriptions_active": metrics.SubscriptionsActive,
 
-			"indications_received":  metrics.IndicationsReceived,
+			"indications_received": metrics.IndicationsReceived,
 
 			"control_requests_sent": metrics.ControlRequestsSent,
 
-			"error_count":           metrics.ErrorCount,
-
+			"error_count": metrics.ErrorCount,
 		},
-
 	}
-
-
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -1263,13 +1027,9 @@ func (x *TrafficSteeringXApp) handleHealth(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	json.NewEncoder(w).Encode(health)
 
 }
-
-
 
 // handleCells returns load information for all cells.
 
@@ -1280,8 +1040,6 @@ func (x *TrafficSteeringXApp) handleCells(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(x.cellLoadInfo)
 
 }
-
-
 
 // handleCell returns load information for a specific cell.
 
@@ -1297,8 +1055,6 @@ func (x *TrafficSteeringXApp) handleCell(w http.ResponseWriter, r *http.Request)
 
 	}
 
-
-
 	cellInfo, exists := x.cellLoadInfo[cellID]
 
 	if !exists {
@@ -1309,15 +1065,11 @@ func (x *TrafficSteeringXApp) handleCell(w http.ResponseWriter, r *http.Request)
 
 	}
 
-
-
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(cellInfo)
 
 }
-
-
 
 // handleRules returns current steering rules.
 
@@ -1329,8 +1081,6 @@ func (x *TrafficSteeringXApp) handleRules(w http.ResponseWriter, r *http.Request
 
 }
 
-
-
 // handleInfo returns xApp information.
 
 func (x *TrafficSteeringXApp) handleInfo(w http.ResponseWriter, r *http.Request) {
@@ -1339,33 +1089,28 @@ func (x *TrafficSteeringXApp) handleInfo(w http.ResponseWriter, r *http.Request)
 
 	info := map[string]interface{}{
 
-		"name":           config.XAppName,
+		"name": config.XAppName,
 
-		"version":        config.XAppVersion,
+		"version": config.XAppVersion,
 
-		"description":    config.XAppDescription,
+		"description": config.XAppDescription,
 
-		"e2_node_id":     config.E2NodeID,
+		"e2_node_id": config.E2NodeID,
 
-		"ric_url":        config.NearRTRICURL,
+		"ric_url": config.NearRTRICURL,
 
 		"service_models": config.ServiceModels,
 
-		"state":          string(x.sdk.GetState()),
+		"state": string(x.sdk.GetState()),
 
-		"cells":          len(x.cellLoadInfo),
-
+		"cells": len(x.cellLoadInfo),
 	}
-
-
 
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(info)
 
 }
-
-
 
 // convertE2ToRICControlRequest converts E2ControlRequest to RICControlRequest.
 
@@ -1389,8 +1134,6 @@ func (x *TrafficSteeringXApp) convertE2ToRICControlRequest(e2Req *e2.E2ControlRe
 
 	}
 
-
-
 	// Extract message bytes.
 
 	var messageBytes []byte
@@ -1409,15 +1152,11 @@ func (x *TrafficSteeringXApp) convertE2ToRICControlRequest(e2Req *e2.E2ControlRe
 
 	}
 
-
-
 	// Parse request ID to get requestor and instance IDs.
 
 	requestorID := uint32(1000) // Default for xApp
 
-	instanceID := uint32(1)     // Default instance
-
-
+	instanceID := uint32(1) // Default instance
 
 	// Convert call process ID.
 
@@ -1431,8 +1170,6 @@ func (x *TrafficSteeringXApp) convertE2ToRICControlRequest(e2Req *e2.E2ControlRe
 
 	}
 
-
-
 	// Convert ACK request.
 
 	var ackRequest *e2.RICControlAckRequest
@@ -1445,37 +1182,28 @@ func (x *TrafficSteeringXApp) convertE2ToRICControlRequest(e2Req *e2.E2ControlRe
 
 	}
 
-
-
 	ricReq := &e2.RICControlRequest{
 
 		RICRequestID: e2.RICRequestID{
 
 			RICRequestorID: e2.RICRequestorID(requestorID),
 
-			RICInstanceID:  e2.RICInstanceID(instanceID),
-
+			RICInstanceID: e2.RICInstanceID(instanceID),
 		},
 
-		RANFunctionID:        e2.RANFunctionID(e2Req.RanFunctionID),
+		RANFunctionID: e2.RANFunctionID(e2Req.RanFunctionID),
 
-		RICCallProcessID:     callProcessID,
+		RICCallProcessID: callProcessID,
 
-		RICControlHeader:     headerBytes,
+		RICControlHeader: headerBytes,
 
-		RICControlMessage:    messageBytes,
+		RICControlMessage: messageBytes,
 
 		RICControlAckRequest: ackRequest,
-
 	}
-
-
 
 	return ricReq, nil
 
 }
 
-
-
 // Note: Helper functions have been moved to pkg/config/env_helpers.go.
-

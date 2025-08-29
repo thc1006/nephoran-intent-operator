@@ -2,68 +2,45 @@
 
 // for early warning and proactive incident prevention.
 
-
 package alerting
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"log/slog"
-
 	"math"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 )
-
-
 
 // PredictiveAlerting implements ML-based SLA violation prediction using.
 
 // historical data, seasonal patterns, and anomaly detection.
 
 type PredictiveAlerting struct {
-
 	logger *logging.StructuredLogger
 
 	config *PredictiveConfig
 
-
-
 	// ML models and data.
 
-	models         map[SLAType]*PredictionModel
+	models map[SLAType]*PredictionModel
 
 	historicalData map[SLAType]*HistoricalDataset
-
-
 
 	// Feature engineering.
 
 	featureExtractor *FeatureExtractor
 
-	seasonalModels   map[SLAType]*SeasonalModel
+	seasonalModels map[SLAType]*SeasonalModel
 
-	trendAnalyzer    *TrendAnalyzer
-
-
+	trendAnalyzer *TrendAnalyzer
 
 	// Anomaly detection.
 
 	anomalyDetector *AnomalyDetector
-
-
 
 	// State management.
 
@@ -71,23 +48,16 @@ type PredictiveAlerting struct {
 
 	predictionCache map[string]*PredictionResult
 
-
-
 	started bool
 
-	stopCh  chan struct{}
+	stopCh chan struct{}
 
-	mu      sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // MLBackend represents the machine learning backend type.
 
 type MLBackend string
-
-
 
 const (
 
@@ -106,52 +76,37 @@ const (
 	// MLBackendONNX holds mlbackendonnx value.
 
 	MLBackendONNX MLBackend = "onnx"
-
 )
-
-
 
 // ComponentType represents different component types for analysis.
 
 type ComponentType string
 
-
-
 // TrendClassification represents trend analysis classification.
 
 type TrendClassification string
 
-
-
 // ForecastResult represents forecasting analysis results.
 
 type ForecastResult struct {
+	PredictedValue float64 `json:"predicted_value"`
 
-	PredictedValue float64                `json:"predicted_value"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence     float64                `json:"confidence"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp      time.Time              `json:"timestamp"`
-
-	Components     map[string]interface{} `json:"components"`
-
+	Components map[string]interface{} `json:"components"`
 }
-
-
 
 // TimeSeriesData represents time series data for ML processing.
 
 type TimeSeriesData struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time              `json:"timestamp"`
+	Value float64 `json:"value"`
 
-	Value     float64                `json:"value"`
-
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // PredictiveConfig holds configuration for predictive alerting.
 
@@ -161,81 +116,66 @@ type PredictiveConfig struct {
 
 	ModelUpdateInterval time.Duration `yaml:"model_update_interval"`
 
-	TrainingDataWindow  time.Duration `yaml:"training_data_window"`
+	TrainingDataWindow time.Duration `yaml:"training_data_window"`
 
-	MinDataPoints       int           `yaml:"min_data_points"`
+	MinDataPoints int `yaml:"min_data_points"`
 
-	HistoryWindow       time.Duration `yaml:"history_window"`
-
-
+	HistoryWindow time.Duration `yaml:"history_window"`
 
 	// ML Backend configuration.
 
-	MLBackend            MLBackend     `yaml:"ml_backend"`
+	MLBackend MLBackend `yaml:"ml_backend"`
 
-	AnomalyThreshold     float64       `yaml:"anomaly_threshold"`
+	AnomalyThreshold float64 `yaml:"anomaly_threshold"`
 
-	SeasonalPeriods      []int         `yaml:"seasonal_periods"`
+	SeasonalPeriods []int `yaml:"seasonal_periods"`
 
-	TrendSmoothingFactor float64       `yaml:"trend_smoothing_factor"`
+	TrendSmoothingFactor float64 `yaml:"trend_smoothing_factor"`
 
-	ConfidenceLevel      float64       `yaml:"confidence_level"`
+	ConfidenceLevel float64 `yaml:"confidence_level"`
 
 	MaxPredictionHorizon time.Duration `yaml:"max_prediction_horizon"`
 
-	EnableAutoML         bool          `yaml:"enable_automl"`
+	EnableAutoML bool `yaml:"enable_automl"`
 
-	CacheSize            int           `yaml:"cache_size"`
+	CacheSize int `yaml:"cache_size"`
 
-	BatchSize            int           `yaml:"batch_size"`
-
-
+	BatchSize int `yaml:"batch_size"`
 
 	// Prediction settings.
 
-	PredictionWindow    time.Duration `yaml:"prediction_window"`
+	PredictionWindow time.Duration `yaml:"prediction_window"`
 
-	PredictionInterval  time.Duration `yaml:"prediction_interval"`
+	PredictionInterval time.Duration `yaml:"prediction_interval"`
 
-	ConfidenceThreshold float64       `yaml:"confidence_threshold"`
-
-
+	ConfidenceThreshold float64 `yaml:"confidence_threshold"`
 
 	// Early warning settings.
 
 	EarlyWarningLeadTime time.Duration `yaml:"early_warning_lead_time"`
 
-	AlertThreshold       float64       `yaml:"alert_threshold"`
-
-
+	AlertThreshold float64 `yaml:"alert_threshold"`
 
 	// Feature engineering.
 
 	EnableSeasonalFeatures bool `yaml:"enable_seasonal_features"`
 
-	EnableTrendFeatures    bool `yaml:"enable_trend_features"`
+	EnableTrendFeatures bool `yaml:"enable_trend_features"`
 
-	EnableAnomalyFeatures  bool `yaml:"enable_anomaly_features"`
-
-
+	EnableAnomalyFeatures bool `yaml:"enable_anomaly_features"`
 
 	// Model parameters.
 
-	MovingAverageWindow time.Duration   `yaml:"moving_average_window"`
+	MovingAverageWindow time.Duration `yaml:"moving_average_window"`
 
-	SeasonalityPeriods  []time.Duration `yaml:"seasonality_periods"`
-
-
+	SeasonalityPeriods []time.Duration `yaml:"seasonality_periods"`
 
 	// Performance settings.
 
-	MaxConcurrentPredictions int           `yaml:"max_concurrent_predictions"`
+	MaxConcurrentPredictions int `yaml:"max_concurrent_predictions"`
 
-	CacheTTL                 time.Duration `yaml:"cache_ttl"`
-
+	CacheTTL time.Duration `yaml:"cache_ttl"`
 }
-
-
 
 // DefaultPredictiveConfig returns production-ready predictive alerting configuration.
 
@@ -247,213 +187,173 @@ func DefaultPredictiveConfig() *PredictiveConfig {
 
 		ModelUpdateInterval: 24 * time.Hour,
 
-		TrainingDataWindow:  7 * 24 * time.Hour,
+		TrainingDataWindow: 7 * 24 * time.Hour,
 
-		MinDataPoints:       100,
+		MinDataPoints: 100,
 
-		HistoryWindow:       30 * 24 * time.Hour,
-
-
+		HistoryWindow: 30 * 24 * time.Hour,
 
 		// ML Backend configuration.
 
-		MLBackend:            MLBackendSimple,
+		MLBackend: MLBackendSimple,
 
-		AnomalyThreshold:     0.8,
+		AnomalyThreshold: 0.8,
 
-		SeasonalPeriods:      []int{24, 168, 720}, // hourly, daily, monthly
+		SeasonalPeriods: []int{24, 168, 720}, // hourly, daily, monthly
 
 		TrendSmoothingFactor: 0.3,
 
-		ConfidenceLevel:      0.95,
+		ConfidenceLevel: 0.95,
 
 		MaxPredictionHorizon: 4 * time.Hour,
 
-		EnableAutoML:         true,
+		EnableAutoML: true,
 
-		CacheSize:            1000,
+		CacheSize: 1000,
 
-		BatchSize:            100,
-
-
+		BatchSize: 100,
 
 		// Prediction settings.
 
-		PredictionWindow:    60 * time.Minute,
+		PredictionWindow: 60 * time.Minute,
 
-		PredictionInterval:  5 * time.Minute,
+		PredictionInterval: 5 * time.Minute,
 
 		ConfidenceThreshold: 0.75,
-
-
 
 		// Early warning settings.
 
 		EarlyWarningLeadTime: 15 * time.Minute,
 
-		AlertThreshold:       0.8,
-
-
+		AlertThreshold: 0.8,
 
 		// Feature engineering.
 
 		EnableSeasonalFeatures: true,
 
-		EnableTrendFeatures:    true,
+		EnableTrendFeatures: true,
 
-		EnableAnomalyFeatures:  true,
-
-
+		EnableAnomalyFeatures: true,
 
 		// Model parameters.
 
 		MovingAverageWindow: 10 * time.Minute,
 
-		SeasonalityPeriods:  []time.Duration{24 * time.Hour, 7 * 24 * time.Hour},
-
-
+		SeasonalityPeriods: []time.Duration{24 * time.Hour, 7 * 24 * time.Hour},
 
 		// Performance settings.
 
 		MaxConcurrentPredictions: 10,
 
-		CacheTTL:                 5 * time.Minute,
-
+		CacheTTL: 5 * time.Minute,
 	}
 
 }
 
-
-
 // PredictionModel represents a trained ML model for SLA prediction.
 
 type PredictionModel struct {
+	SLAType SLAType `json:"sla_type"`
 
-	SLAType   SLAType   `json:"sla_type"`
-
-	ModelType string    `json:"model_type"`
+	ModelType string `json:"model_type"`
 
 	TrainedAt time.Time `json:"trained_at"`
 
-	Accuracy  float64   `json:"accuracy"`
+	Accuracy float64 `json:"accuracy"`
 
-	Precision float64   `json:"precision"`
+	Precision float64 `json:"precision"`
 
-	Recall    float64   `json:"recall"`
+	Recall float64 `json:"recall"`
 
-	F1Score   float64   `json:"f1_score"`
-
-
+	F1Score float64 `json:"f1_score"`
 
 	// Model parameters.
 
-	Weights       []float64           `json:"weights"`
+	Weights []float64 `json:"weights"`
 
-	Bias          float64             `json:"bias"`
+	Bias float64 `json:"bias"`
 
-	Features      []string            `json:"features"`
+	Features []string `json:"features"`
 
 	Normalization NormalizationParams `json:"normalization"`
 
-
-
 	// Training metadata.
 
-	TrainingDataSize int                    `json:"training_data_size"`
+	TrainingDataSize int `json:"training_data_size"`
 
-	ValidationSplit  float64                `json:"validation_split"`
+	ValidationSplit float64 `json:"validation_split"`
 
-	Hyperparameters  map[string]interface{} `json:"hyperparameters"`
-
+	Hyperparameters map[string]interface{} `json:"hyperparameters"`
 }
-
-
 
 // HistoricalDataset contains historical SLA data for training.
 
 type HistoricalDataset struct {
-
-	SLAType    SLAType           `json:"sla_type"`
+	SLAType SLAType `json:"sla_type"`
 
 	DataPoints []HistoricalPoint `json:"data_points"`
 
-	StartTime  time.Time         `json:"start_time"`
+	StartTime time.Time `json:"start_time"`
 
-	EndTime    time.Time         `json:"end_time"`
+	EndTime time.Time `json:"end_time"`
 
-	Features   []string          `json:"features"`
+	Features []string `json:"features"`
 
 	Statistics DatasetStatistics `json:"statistics"`
-
 }
-
-
 
 // HistoricalPoint represents a single data point in the historical dataset.
 
 type HistoricalPoint struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time          `json:"timestamp"`
+	SLAValue float64 `json:"sla_value"`
 
-	SLAValue  float64            `json:"sla_value"`
+	Features map[string]float64 `json:"features"`
 
-	Features  map[string]float64 `json:"features"`
+	Labels map[string]string `json:"labels"`
 
-	Labels    map[string]string  `json:"labels"`
+	Violation bool `json:"violation"`
 
-	Violation bool               `json:"violation"`
-
-	Severity  AlertSeverity      `json:"severity,omitempty"`
-
+	Severity AlertSeverity `json:"severity,omitempty"`
 }
-
-
 
 // DatasetStatistics contains statistical information about the dataset.
 
 type DatasetStatistics struct {
+	Count int `json:"count"`
 
-	Count          int     `json:"count"`
+	Mean float64 `json:"mean"`
 
-	Mean           float64 `json:"mean"`
+	StdDev float64 `json:"std_dev"`
 
-	StdDev         float64 `json:"std_dev"`
+	Min float64 `json:"min"`
 
-	Min            float64 `json:"min"`
+	Max float64 `json:"max"`
 
-	Max            float64 `json:"max"`
+	ViolationRate float64 `json:"violation_rate"`
 
-	ViolationRate  float64 `json:"violation_rate"`
+	Seasonality bool `json:"seasonality"`
 
-	Seasonality    bool    `json:"seasonality"`
-
-	TrendDirection string  `json:"trend_direction"`
-
+	TrendDirection string `json:"trend_direction"`
 }
-
-
 
 // PredictionResult contains the result of SLA violation prediction.
 
 type PredictionResult struct {
+	SLAType SLAType `json:"sla_type"`
 
-	SLAType          SLAType       `json:"sla_type"`
-
-	PredictedAt      time.Time     `json:"predicted_at"`
+	PredictedAt time.Time `json:"predicted_at"`
 
 	PredictionWindow time.Duration `json:"prediction_window"`
 
-
-
 	// Prediction values.
 
-	PredictedValue       float64 `json:"predicted_value"`
+	PredictedValue float64 `json:"predicted_value"`
 
 	ViolationProbability float64 `json:"violation_probability"`
 
-	Confidence           float64 `json:"confidence"`
-
-
+	Confidence float64 `json:"confidence"`
 
 	// Prediction breakdown.
 
@@ -461,165 +361,124 @@ type PredictionResult struct {
 
 	SeasonalAdjustment float64 `json:"seasonal_adjustment"`
 
-	TrendAdjustment    float64 `json:"trend_adjustment"`
+	TrendAdjustment float64 `json:"trend_adjustment"`
 
-	AnomalyScore       float64 `json:"anomaly_score"`
-
-
+	AnomalyScore float64 `json:"anomaly_score"`
 
 	// Early warning information.
 
-	TimeToViolation    *time.Duration `json:"time_to_violation,omitempty"`
+	TimeToViolation *time.Duration `json:"time_to_violation,omitempty"`
 
-	RecommendedActions []string       `json:"recommended_actions"`
-
-
+	RecommendedActions []string `json:"recommended_actions"`
 
 	// Context and features.
 
-	Features            map[string]float64   `json:"features"`
+	Features map[string]float64 `json:"features"`
 
 	ContributingFactors []ContributingFactor `json:"contributing_factors"`
 
-
-
 	// Model metadata.
 
-	ModelVersion  string  `json:"model_version"`
+	ModelVersion string `json:"model_version"`
 
 	ModelAccuracy float64 `json:"model_accuracy"`
-
 }
-
-
 
 // ContributingFactor identifies factors contributing to the prediction.
 
 type ContributingFactor struct {
+	Feature string `json:"feature"`
 
-	Feature     string  `json:"feature"`
+	Importance float64 `json:"importance"`
 
-	Importance  float64 `json:"importance"`
+	Direction string `json:"direction"` // positive, negative
 
-	Direction   string  `json:"direction"` // positive, negative
-
-	Description string  `json:"description"`
-
+	Description string `json:"description"`
 }
-
-
 
 // FeatureExtractor extracts features from raw SLA data for ML models.
 
 type FeatureExtractor struct {
-
 	logger *logging.StructuredLogger
 
 	config *PredictiveConfig
-
 }
-
-
 
 // SeasonalModel detects and models seasonal patterns in SLA data.
 
 type SeasonalModel struct {
-
-	SLAType            SLAType                   `json:"sla_type"`
+	SLAType SLAType `json:"sla_type"`
 
 	SeasonalityPeriods map[time.Duration]float64 `json:"seasonality_periods"`
 
-	WeeklyPattern      [7]float64                `json:"weekly_pattern"`
+	WeeklyPattern [7]float64 `json:"weekly_pattern"`
 
-	DailyPattern       [24]float64               `json:"daily_pattern"`
+	DailyPattern [24]float64 `json:"daily_pattern"`
 
-	MonthlyPattern     [12]float64               `json:"monthly_pattern"`
+	MonthlyPattern [12]float64 `json:"monthly_pattern"`
 
-	LastUpdated        time.Time                 `json:"last_updated"`
-
+	LastUpdated time.Time `json:"last_updated"`
 }
-
-
 
 // TrendAnalyzer analyzes long-term trends in SLA data.
 
 type TrendAnalyzer struct {
-
-	logger     *logging.StructuredLogger
+	logger *logging.StructuredLogger
 
 	trendCache map[SLAType]*TrendInfo
 
-	mu         sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // TrendInfo contains trend analysis results.
 
 type TrendInfo struct {
+	SLAType SLAType `json:"sla_type"`
 
-	SLAType     SLAType   `json:"sla_type"`
+	Direction string `json:"direction"` // improving, degrading, stable
 
-	Direction   string    `json:"direction"` // improving, degrading, stable
+	Slope float64 `json:"slope"`
 
-	Slope       float64   `json:"slope"`
+	Correlation float64 `json:"correlation"`
 
-	Correlation float64   `json:"correlation"`
-
-	Confidence  float64   `json:"confidence"`
+	Confidence float64 `json:"confidence"`
 
 	LastUpdated time.Time `json:"last_updated"`
-
 }
-
-
 
 // AnomalyDetector detects anomalies in SLA metrics using statistical methods.
 
 type AnomalyDetector struct {
-
-	logger        *logging.StructuredLogger
+	logger *logging.StructuredLogger
 
 	anomalyModels map[SLAType]*AnomalyModel
 
-	mu            sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // AnomalyModel contains parameters for anomaly detection.
 
 type AnomalyModel struct {
+	SLAType SLAType `json:"sla_type"`
 
-	SLAType          SLAType   `json:"sla_type"`
+	Mean float64 `json:"mean"`
 
-	Mean             float64   `json:"mean"`
+	StdDev float64 `json:"std_dev"`
 
-	StdDev           float64   `json:"std_dev"`
+	ZScoreThreshold float64 `json:"z_score_threshold"`
 
-	ZScoreThreshold  float64   `json:"z_score_threshold"`
+	IQRAnomalyFactor float64 `json:"iqr_anomaly_factor"`
 
-	IQRAnomalyFactor float64   `json:"iqr_anomaly_factor"`
-
-	LastUpdated      time.Time `json:"last_updated"`
-
+	LastUpdated time.Time `json:"last_updated"`
 }
-
-
 
 // NormalizationParams contains parameters for feature normalization.
 
 type NormalizationParams struct {
-
-	Method string             `json:"method"` // min-max, z-score
+	Method string `json:"method"` // min-max, z-score
 
 	Params map[string]float64 `json:"params"`
-
 }
-
-
 
 // NewPredictiveAlerting creates a new predictive alerting system.
 
@@ -631,33 +490,26 @@ func NewPredictiveAlerting(config *PredictiveConfig, logger *logging.StructuredL
 
 	}
 
-
-
 	if logger == nil {
 
 		return nil, fmt.Errorf("logger is required")
 
 	}
 
-
-
 	pa := &PredictiveAlerting{
 
-		logger:          logger.WithComponent("predictive-alerting"),
+		logger: logger.WithComponent("predictive-alerting"),
 
-		config:          config,
+		config: config,
 
-		models:          make(map[SLAType]*PredictionModel),
+		models: make(map[SLAType]*PredictionModel),
 
-		historicalData:  make(map[SLAType]*HistoricalDataset),
+		historicalData: make(map[SLAType]*HistoricalDataset),
 
 		predictionCache: make(map[string]*PredictionResult),
 
-		stopCh:          make(chan struct{}),
-
+		stopCh: make(chan struct{}),
 	}
-
-
 
 	// Initialize sub-components.
 
@@ -666,40 +518,27 @@ func NewPredictiveAlerting(config *PredictiveConfig, logger *logging.StructuredL
 		logger: logger.WithComponent("feature-extractor"),
 
 		config: config,
-
 	}
-
-
 
 	pa.seasonalModels = make(map[SLAType]*SeasonalModel)
 
-
-
 	pa.trendAnalyzer = &TrendAnalyzer{
 
-		logger:     logger.WithComponent("trend-analyzer"),
+		logger: logger.WithComponent("trend-analyzer"),
 
 		trendCache: make(map[SLAType]*TrendInfo),
-
 	}
-
-
 
 	pa.anomalyDetector = &AnomalyDetector{
 
-		logger:        logger.WithComponent("anomaly-detector"),
+		logger: logger.WithComponent("anomaly-detector"),
 
 		anomalyModels: make(map[SLAType]*AnomalyModel),
-
 	}
-
-
 
 	return pa, nil
 
 }
-
-
 
 // Start initializes the predictive alerting system.
 
@@ -709,15 +548,11 @@ func (pa *PredictiveAlerting) Start(ctx context.Context) error {
 
 	defer pa.mu.Unlock()
 
-
-
 	if pa.started {
 
 		return fmt.Errorf("predictive alerting already started")
 
 	}
-
-
 
 	pa.logger.InfoWithContext("Starting predictive alerting system",
 
@@ -726,10 +561,7 @@ func (pa *PredictiveAlerting) Start(ctx context.Context) error {
 		"prediction_window", pa.config.PredictionWindow,
 
 		"confidence_threshold", pa.config.ConfidenceThreshold,
-
 	)
-
-
 
 	// Initialize models for all SLA types.
 
@@ -744,32 +576,23 @@ func (pa *PredictiveAlerting) Start(ctx context.Context) error {
 				slog.String("sla_type", string(slaType)),
 
 				slog.String("error", err.Error()),
-
 			)
 
 		}
 
 	}
 
-
-
 	// Start anomaly detection processing.
 
 	go pa.anomalyDetectionLoop(ctx)
-
-
 
 	// Start model update processing.
 
 	go pa.modelUpdateProcessingLoop(ctx)
 
-
-
 	// Start forecasting loop.
 
 	go pa.forecastingLoop(ctx)
-
-
 
 	// Start background processes.
 
@@ -779,19 +602,13 @@ func (pa *PredictiveAlerting) Start(ctx context.Context) error {
 
 	go pa.cacheCleanupLoop(ctx)
 
-
-
 	pa.started = true
 
 	pa.logger.InfoWithContext("Predictive alerting system started successfully")
 
-
-
 	return nil
 
 }
-
-
 
 // Stop shuts down the predictive alerting system.
 
@@ -801,33 +618,23 @@ func (pa *PredictiveAlerting) Stop(ctx context.Context) error {
 
 	defer pa.mu.Unlock()
 
-
-
 	if !pa.started {
 
 		return nil
 
 	}
 
-
-
 	pa.logger.InfoWithContext("Stopping predictive alerting system")
 
 	close(pa.stopCh)
-
-
 
 	pa.started = false
 
 	pa.logger.InfoWithContext("Predictive alerting system stopped")
 
-
-
 	return nil
 
 }
-
-
 
 // Predict generates a prediction for SLA violation.
 
@@ -847,8 +654,6 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 
 	}
 
-
-
 	model, exists := pa.models[slaType]
 
 	if !exists {
@@ -856,8 +661,6 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 		return nil, fmt.Errorf("no model available for SLA type %s", slaType)
 
 	}
-
-
 
 	// Extract features from current metrics.
 
@@ -869,8 +672,6 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 
 	}
 
-
-
 	// Convert features slice to map for baseline prediction.
 
 	featureMap := make(map[string]float64)
@@ -881,13 +682,9 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 
 	}
 
-
-
 	// Generate baseline prediction.
 
 	baselinePrediction := pa.generateBaselinePrediction(model, featureMap)
-
-
 
 	// Apply seasonal adjustments.
 
@@ -899,8 +696,6 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 
 	}
 
-
-
 	// Apply trend adjustments.
 
 	var trendAdjustment float64
@@ -910,8 +705,6 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 		trendAdjustment = pa.applyTrendAdjustment(slaType)
 
 	}
-
-
 
 	// Calculate anomaly score.
 
@@ -923,25 +716,17 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 
 	}
 
-
-
 	// Combine predictions.
 
 	finalPrediction := baselinePrediction + seasonalAdjustment + trendAdjustment
-
-
 
 	// Calculate violation probability.
 
 	violationProbability := pa.calculateViolationProbability(baselinePrediction, seasonalAdjustment, trendAdjustment, anomalyScore)
 
-
-
 	// Calculate confidence based on model accuracy and data quality.
 
 	confidence := pa.calculateConfidence(model, features)
-
-
 
 	// Estimate time to violation if probability is high.
 
@@ -955,13 +740,9 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 
 	}
 
-
-
 	// Generate recommended actions.
 
 	recommendedActions := pa.generateRecommendedActions(violationProbability, confidence, anomalyScore)
-
-
 
 	// Identify contributing factors (simplified for now).
 
@@ -970,54 +751,46 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 		{Feature: "baseline_trend", Importance: 0.4, Direction: "positive", Description: "Baseline trend component"},
 
 		{Feature: "seasonal_pattern", Importance: 0.3, Direction: "positive", Description: "Seasonal adjustment component"},
-
 	}
-
-
 
 	result := &PredictionResult{
 
-		SLAType:              slaType,
+		SLAType: slaType,
 
-		PredictedAt:          time.Now(),
+		PredictedAt: time.Now(),
 
-		PredictionWindow:     pa.config.PredictionWindow,
+		PredictionWindow: pa.config.PredictionWindow,
 
-		PredictedValue:       finalPrediction,
+		PredictedValue: finalPrediction,
 
 		ViolationProbability: violationProbability,
 
-		Confidence:           confidence,
+		Confidence: confidence,
 
-		BaselinePrediction:   baselinePrediction,
+		BaselinePrediction: baselinePrediction,
 
-		SeasonalAdjustment:   seasonalAdjustment,
+		SeasonalAdjustment: seasonalAdjustment,
 
-		TrendAdjustment:      trendAdjustment,
+		TrendAdjustment: trendAdjustment,
 
-		AnomalyScore:         anomalyScore,
+		AnomalyScore: anomalyScore,
 
-		TimeToViolation:      timeToViolation,
+		TimeToViolation: timeToViolation,
 
-		RecommendedActions:   recommendedActions,
+		RecommendedActions: recommendedActions,
 
-		Features:             featureMap,
+		Features: featureMap,
 
-		ContributingFactors:  contributingFactors,
+		ContributingFactors: contributingFactors,
 
-		ModelVersion:         fmt.Sprintf("%s-v%d", model.ModelType, model.TrainedAt.Unix()),
+		ModelVersion: fmt.Sprintf("%s-v%d", model.ModelType, model.TrainedAt.Unix()),
 
-		ModelAccuracy:        model.Accuracy,
-
+		ModelAccuracy: model.Accuracy,
 	}
-
-
 
 	// Cache the result.
 
 	pa.cachePrediction(cacheKey, result)
-
-
 
 	pa.logger.DebugWithContext("Generated SLA prediction",
 
@@ -1028,16 +801,11 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 		slog.Float64("violation_probability", violationProbability),
 
 		slog.Float64("confidence", confidence),
-
 	)
-
-
 
 	return result, nil
 
 }
-
-
 
 // initializeModel initializes a prediction model for the given SLA type.
 
@@ -1053,8 +821,6 @@ func (pa *PredictiveAlerting) initializeModel(ctx context.Context, slaType SLATy
 
 	}
 
-
-
 	// Check if we have enough data.
 
 	if len(dataset.DataPoints) < pa.config.MinDataPoints {
@@ -1066,7 +832,6 @@ func (pa *PredictiveAlerting) initializeModel(ctx context.Context, slaType SLATy
 			slog.Int("data_points", len(dataset.DataPoints)),
 
 			slog.Int("min_required", pa.config.MinDataPoints),
-
 		)
 
 		// Initialize with a simple baseline model.
@@ -1074,8 +839,6 @@ func (pa *PredictiveAlerting) initializeModel(ctx context.Context, slaType SLATy
 		return pa.initializeBaselineModel(slaType)
 
 	}
-
-
 
 	// Train the model.
 
@@ -1087,13 +850,9 @@ func (pa *PredictiveAlerting) initializeModel(ctx context.Context, slaType SLATy
 
 	}
 
-
-
 	pa.models[slaType] = model
 
 	pa.historicalData[slaType] = dataset
-
-
 
 	// Initialize seasonal model.
 
@@ -1105,8 +864,6 @@ func (pa *PredictiveAlerting) initializeModel(ctx context.Context, slaType SLATy
 
 	}
 
-
-
 	pa.logger.InfoWithContext("Initialized prediction model",
 
 		slog.String("sla_type", string(slaType)),
@@ -1114,16 +871,11 @@ func (pa *PredictiveAlerting) initializeModel(ctx context.Context, slaType SLATy
 		slog.Float64("accuracy", model.Accuracy),
 
 		slog.Int("training_data_size", model.TrainingDataSize),
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // trainModel trains a machine learning model using historical data.
 
@@ -1143,13 +895,9 @@ func (pa *PredictiveAlerting) trainModel(ctx context.Context, slaType SLAType,
 
 	}
 
-
-
 	// Normalize features.
 
 	normParams, normalizedFeatures := pa.normalizeFeatures(features)
-
-
 
 	// Split data into training and validation sets.
 
@@ -1157,15 +905,11 @@ func (pa *PredictiveAlerting) trainModel(ctx context.Context, slaType SLAType,
 
 		normalizedFeatures, labels)
 
-
-
 	// Train using simple linear regression for now.
 
 	// In production, this could use more sophisticated algorithms.
 
 	weights, bias := pa.trainLinearRegression(trainFeatures, trainLabels)
-
-
 
 	// Validate the model.
 
@@ -1173,53 +917,45 @@ func (pa *PredictiveAlerting) trainModel(ctx context.Context, slaType SLAType,
 
 		weights, bias, valFeatures, valLabels)
 
-
-
 	model := &PredictionModel{
 
-		SLAType:          slaType,
+		SLAType: slaType,
 
-		ModelType:        "linear_regression",
+		ModelType: "linear_regression",
 
-		TrainedAt:        time.Now(),
+		TrainedAt: time.Now(),
 
-		Accuracy:         accuracy,
+		Accuracy: accuracy,
 
-		Precision:        precision,
+		Precision: precision,
 
-		Recall:           recall,
+		Recall: recall,
 
-		F1Score:          f1Score,
+		F1Score: f1Score,
 
-		Weights:          weights,
+		Weights: weights,
 
-		Bias:             bias,
+		Bias: bias,
 
-		Features:         dataset.Features,
+		Features: dataset.Features,
 
-		Normalization:    *normParams,
+		Normalization: *normParams,
 
 		TrainingDataSize: len(features),
 
-		ValidationSplit:  0.2,
+		ValidationSplit: 0.2,
 
 		Hyperparameters: map[string]interface{}{
 
-			"learning_rate":  0.01,
+			"learning_rate": 0.01,
 
 			"regularization": 0.001,
-
 		},
-
 	}
-
-
 
 	return model, nil
 
 }
-
-
 
 // generateBaselinePrediction generates a baseline prediction using the trained model.
 
@@ -1230,8 +966,6 @@ func (pa *PredictiveAlerting) generateBaselinePrediction(model *PredictionModel,
 ) float64 {
 
 	prediction := model.Bias
-
-
 
 	for i, featureName := range model.Features {
 
@@ -1251,25 +985,17 @@ func (pa *PredictiveAlerting) generateBaselinePrediction(model *PredictionModel,
 
 	}
 
-
-
 	return prediction
 
 }
 
-
-
 // Background loops for model management and predictions.
-
-
 
 func (pa *PredictiveAlerting) modelUpdateLoop(ctx context.Context) {
 
 	ticker := time.NewTicker(pa.config.ModelUpdateInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1293,15 +1019,11 @@ func (pa *PredictiveAlerting) modelUpdateLoop(ctx context.Context) {
 
 }
 
-
-
 func (pa *PredictiveAlerting) predictionLoop(ctx context.Context) {
 
 	ticker := time.NewTicker(pa.config.PredictionInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1327,15 +1049,11 @@ func (pa *PredictiveAlerting) predictionLoop(ctx context.Context) {
 
 }
 
-
-
 func (pa *PredictiveAlerting) cacheCleanupLoop(ctx context.Context) {
 
 	ticker := time.NewTicker(pa.config.CacheTTL)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1359,8 +1077,6 @@ func (pa *PredictiveAlerting) cacheCleanupLoop(ctx context.Context) {
 
 }
 
-
-
 // Additional helper methods would include:.
 
 // - Feature extraction and engineering methods.
@@ -1377,11 +1093,7 @@ func (pa *PredictiveAlerting) cacheCleanupLoop(ctx context.Context) {
 
 // - Action recommendation logic.
 
-
-
 // Simplified implementations for key methods:.
-
-
 
 func (pa *PredictiveAlerting) loadHistoricalData(ctx context.Context, slaType SLAType) (*HistoricalDataset, error) {
 
@@ -1399,20 +1111,18 @@ func (pa *PredictiveAlerting) loadHistoricalData(ctx context.Context, slaType SL
 
 				Timestamp: time.Now().Add(-24 * time.Hour),
 
-				SLAValue:  99.95,
+				SLAValue: 99.95,
 
 				Features: map[string]float64{
 
-					"cpu_usage":    45.0,
+					"cpu_usage": 45.0,
 
 					"memory_usage": 67.0,
 
 					"request_rate": 1200.0,
-
 				},
 
 				Violation: false,
-
 			},
 
 			// More historical points would be loaded here.
@@ -1421,15 +1131,12 @@ func (pa *PredictiveAlerting) loadHistoricalData(ctx context.Context, slaType SL
 
 		StartTime: time.Now().Add(-pa.config.TrainingDataWindow),
 
-		EndTime:   time.Now(),
+		EndTime: time.Now(),
 
-		Features:  []string{"cpu_usage", "memory_usage", "request_rate"},
-
+		Features: []string{"cpu_usage", "memory_usage", "request_rate"},
 	}, nil
 
 }
-
-
 
 func (pa *PredictiveAlerting) initializeBaselineModel(slaType SLAType) error {
 
@@ -1437,31 +1144,26 @@ func (pa *PredictiveAlerting) initializeBaselineModel(slaType SLAType) error {
 
 	model := &PredictionModel{
 
-		SLAType:   slaType,
+		SLAType: slaType,
 
 		ModelType: "baseline",
 
 		TrainedAt: time.Now(),
 
-		Accuracy:  0.5, // Conservative accuracy for baseline
+		Accuracy: 0.5, // Conservative accuracy for baseline
 
-		Weights:   []float64{1.0},
+		Weights: []float64{1.0},
 
-		Bias:      0.0,
+		Bias: 0.0,
 
-		Features:  []string{"current_value"},
-
+		Features: []string{"current_value"},
 	}
-
-
 
 	pa.models[slaType] = model
 
 	return nil
 
 }
-
-
 
 // Cache management methods.
 
@@ -1471,13 +1173,9 @@ func (pa *PredictiveAlerting) getCachedPrediction(key string) *PredictionResult 
 
 	defer pa.mu.RUnlock()
 
-
-
 	return pa.predictionCache[key]
 
 }
-
-
 
 func (pa *PredictiveAlerting) cachePrediction(key string, result *PredictionResult) {
 
@@ -1485,21 +1183,15 @@ func (pa *PredictiveAlerting) cachePrediction(key string, result *PredictionResu
 
 	defer pa.mu.Unlock()
 
-
-
 	pa.predictionCache[key] = result
 
 }
-
-
 
 func (pa *PredictiveAlerting) cleanupExpiredPredictions() {
 
 	pa.mu.Lock()
 
 	defer pa.mu.Unlock()
-
-
 
 	cutoff := time.Now().Add(-pa.config.CacheTTL)
 
@@ -1514,8 +1206,6 @@ func (pa *PredictiveAlerting) cleanupExpiredPredictions() {
 	}
 
 }
-
-
 
 // Placeholder implementations for complex ML operations.
 
@@ -1535,8 +1225,6 @@ func (pa *PredictiveAlerting) trainLinearRegression(features [][]float64, labels
 
 }
 
-
-
 func (pa *PredictiveAlerting) validateModel(weights []float64, bias float64,
 
 	features [][]float64, labels []float64,
@@ -1549,15 +1237,11 @@ func (pa *PredictiveAlerting) validateModel(weights []float64, bias float64,
 
 }
 
-
-
 // ExtractFeatures extracts features from current metrics for ML prediction.
 
 func (fe *FeatureExtractor) ExtractFeatures(ctx context.Context, slaType SLAType, currentMetrics map[string]float64) ([]float64, error) {
 
 	var features []float64
-
-
 
 	// Basic metric features.
 
@@ -1567,25 +1251,21 @@ func (fe *FeatureExtractor) ExtractFeatures(ctx context.Context, slaType SLAType
 
 	}
 
-
-
 	// Time-based features.
 
 	now := time.Now()
 
 	features = append(features,
 
-		float64(now.Hour()),    // Hour of day
+		float64(now.Hour()), // Hour of day
 
 		float64(now.Weekday()), // Day of week
 
-		float64(now.Day()),     // Day of month
+		float64(now.Day()), // Day of month
 
-		float64(now.Month()),   // Month
+		float64(now.Month()), // Month
 
 	)
-
-
 
 	// Statistical features (would be computed from historical data).
 
@@ -1599,13 +1279,9 @@ func (fe *FeatureExtractor) ExtractFeatures(ctx context.Context, slaType SLAType
 
 	)
 
-
-
 	return features, nil
 
 }
-
-
 
 // applySeasonalAdjustment applies seasonal adjustments to predictions.
 
@@ -1616,8 +1292,6 @@ func (pa *PredictiveAlerting) applySeasonalAdjustment(slaType SLAType, timestamp
 	hour := timestamp.Hour()
 
 	weekday := timestamp.Weekday()
-
-
 
 	// Basic time-based adjustments.
 
@@ -1633,21 +1307,15 @@ func (pa *PredictiveAlerting) applySeasonalAdjustment(slaType SLAType, timestamp
 
 	}
 
-
-
 	if weekday == time.Saturday || weekday == time.Sunday { // Weekends
 
 		adjustment *= 0.7
 
 	}
 
-
-
 	return adjustment
 
 }
-
-
 
 // applyTrendAdjustment applies trend adjustments to predictions.
 
@@ -1661,8 +1329,6 @@ func (pa *PredictiveAlerting) applyTrendAdjustment(slaType SLAType) float64 {
 
 }
 
-
-
 // calculateAnomalyScore calculates anomaly score for current metrics.
 
 func (pa *PredictiveAlerting) calculateAnomalyScore(slaType SLAType, currentMetrics map[string]float64) float64 {
@@ -1672,8 +1338,6 @@ func (pa *PredictiveAlerting) calculateAnomalyScore(slaType SLAType, currentMetr
 	var totalDeviation float64
 
 	count := 0
-
-
 
 	for _, value := range currentMetrics {
 
@@ -1687,15 +1351,11 @@ func (pa *PredictiveAlerting) calculateAnomalyScore(slaType SLAType, currentMetr
 
 	}
 
-
-
 	if count == 0 {
 
 		return 0.0
 
 	}
-
-
 
 	avgDeviation := totalDeviation / float64(count)
 
@@ -1703,13 +1363,9 @@ func (pa *PredictiveAlerting) calculateAnomalyScore(slaType SLAType, currentMetr
 
 	anomalyScore := math.Min(avgDeviation/3.0, 1.0) // Cap at 1.0
 
-
-
 	return anomalyScore
 
 }
-
-
 
 // calculateViolationProbability calculates the probability of SLA violation.
 
@@ -1719,13 +1375,9 @@ func (pa *PredictiveAlerting) calculateViolationProbability(baselinePrediction, 
 
 	finalPrediction := baselinePrediction + seasonal + trend + anomaly
 
-
-
 	// Convert to probability using sigmoid-like function.
 
 	probability := 1.0 / (1.0 + math.Exp(-finalPrediction))
-
-
 
 	// Ensure probability is within bounds.
 
@@ -1741,13 +1393,9 @@ func (pa *PredictiveAlerting) calculateViolationProbability(baselinePrediction, 
 
 	}
 
-
-
 	return probability
 
 }
-
-
 
 // calculateConfidence calculates confidence in the prediction.
 
@@ -1759,21 +1407,15 @@ func (pa *PredictiveAlerting) calculateConfidence(model *PredictionModel, featur
 
 	baseConfidence := 0.8 // Assume 80% base confidence
 
-
-
 	// Adjust based on feature count.
 
 	featureAdjustment := math.Min(float64(len(features))/10.0, 1.0)
-
-
 
 	confidence := baseConfidence * featureAdjustment
 
 	return math.Min(confidence, 1.0)
 
 }
-
-
 
 // estimateTimeToViolation estimates when violation might occur.
 
@@ -1786,8 +1428,6 @@ func (pa *PredictiveAlerting) estimateTimeToViolation(violationProbability, tren
 		return 0 // No violation expected
 
 	}
-
-
 
 	// Estimate based on trend and current probability.
 
@@ -1803,23 +1443,17 @@ func (pa *PredictiveAlerting) estimateTimeToViolation(violationProbability, tren
 
 	}
 
-
-
 	// Default to lead time if no trend.
 
 	return pa.config.EarlyWarningLeadTime
 
 }
 
-
-
 // generateRecommendedActions generates recommended actions based on prediction.
 
 func (pa *PredictiveAlerting) generateRecommendedActions(violationProbability, confidence, anomalyScore float64) []string {
 
 	var actions []string
-
-
 
 	if violationProbability > pa.config.AlertThreshold {
 
@@ -1835,15 +1469,11 @@ func (pa *PredictiveAlerting) generateRecommendedActions(violationProbability, c
 
 	}
 
-
-
 	if anomalyScore > 0.7 {
 
 		actions = append(actions, "Investigate potential anomalies")
 
 	}
-
-
 
 	if violationProbability > 0.9 {
 
@@ -1851,21 +1481,15 @@ func (pa *PredictiveAlerting) generateRecommendedActions(violationProbability, c
 
 	}
 
-
-
 	if len(actions) == 0 {
 
 		actions = append(actions, "Continue monitoring")
 
 	}
 
-
-
 	return actions
 
 }
-
-
 
 // buildSeasonalModel builds a seasonal model from historical data.
 
@@ -1873,15 +1497,12 @@ func (pa *PredictiveAlerting) buildSeasonalModel(slaType SLAType, dataset *Histo
 
 	model := &SeasonalModel{
 
-		SLAType:            slaType,
+		SLAType: slaType,
 
 		SeasonalityPeriods: make(map[time.Duration]float64),
 
-		LastUpdated:        time.Now(),
-
+		LastUpdated: time.Now(),
 	}
-
-
 
 	// Initialize patterns with defaults.
 
@@ -1903,8 +1524,6 @@ func (pa *PredictiveAlerting) buildSeasonalModel(slaType SLAType, dataset *Histo
 
 	}
 
-
-
 	// Add seasonality periods from config.
 
 	for _, period := range pa.config.SeasonalityPeriods {
@@ -1913,13 +1532,9 @@ func (pa *PredictiveAlerting) buildSeasonalModel(slaType SLAType, dataset *Histo
 
 	}
 
-
-
 	return model
 
 }
-
-
 
 // prepareTrainingData prepares features and labels from historical data.
 
@@ -1931,13 +1546,9 @@ func (pa *PredictiveAlerting) prepareTrainingData(dataset *HistoricalDataset) ([
 
 	}
 
-
-
 	var features [][]float64
 
 	var labels []float64
-
-
 
 	// Simple feature extraction from data points.
 
@@ -1950,7 +1561,6 @@ func (pa *PredictiveAlerting) prepareTrainingData(dataset *HistoricalDataset) ([
 			float64(point.Timestamp.Hour()),
 
 			float64(point.Timestamp.Weekday()),
-
 		}
 
 		features = append(features, feature)
@@ -1961,13 +1571,9 @@ func (pa *PredictiveAlerting) prepareTrainingData(dataset *HistoricalDataset) ([
 
 	}
 
-
-
 	return features, labels, nil
 
 }
-
-
 
 // normalizeFeatures normalizes feature values for better ML performance.
 
@@ -1979,17 +1585,12 @@ func (pa *PredictiveAlerting) normalizeFeatures(features [][]float64) (*Normaliz
 
 	}
 
-
-
 	params := &NormalizationParams{
 
 		Method: "min-max",
 
 		Params: make(map[string]float64),
-
 	}
-
-
 
 	normalized := make([][]float64, len(features))
 
@@ -2000,8 +1601,6 @@ func (pa *PredictiveAlerting) normalizeFeatures(features [][]float64) (*Normaliz
 		copy(normalized[i], features[i])
 
 	}
-
-
 
 	// Simple min-max normalization.
 
@@ -2027,13 +1626,9 @@ func (pa *PredictiveAlerting) normalizeFeatures(features [][]float64) (*Normaliz
 
 			}
 
-
-
 			params.Params[fmt.Sprintf("min_%d", j)] = minVal
 
 			params.Params[fmt.Sprintf("max_%d", j)] = maxVal
-
-
 
 			// Normalize if range is non-zero.
 
@@ -2051,13 +1646,9 @@ func (pa *PredictiveAlerting) normalizeFeatures(features [][]float64) (*Normaliz
 
 	}
 
-
-
 	return params, normalized
 
 }
-
-
 
 // splitTrainingData splits data into training and validation sets.
 
@@ -2069,13 +1660,9 @@ func (pa *PredictiveAlerting) splitTrainingData(features [][]float64, labels []f
 
 	}
 
-
-
 	// Simple 80/20 split.
 
 	splitIndex := int(0.8 * float64(len(features)))
-
-
 
 	trainFeatures := features[:splitIndex]
 
@@ -2085,13 +1672,9 @@ func (pa *PredictiveAlerting) splitTrainingData(features [][]float64, labels []f
 
 	validLabels := labels[splitIndex:]
 
-
-
 	return trainFeatures, validFeatures, trainLabels, validLabels
 
 }
-
-
 
 // normalizeFeatureValue normalizes a single feature value.
 
@@ -2103,8 +1686,6 @@ func (pa *PredictiveAlerting) normalizeFeatureValue(value float64, featureName s
 
 }
 
-
-
 // updateAllModels updates all prediction models.
 
 func (pa *PredictiveAlerting) updateAllModels(ctx context.Context) {
@@ -2115,8 +1696,6 @@ func (pa *PredictiveAlerting) updateAllModels(ctx context.Context) {
 
 }
 
-
-
 // generatePeriodicPredictions generates predictions for all monitored SLAs.
 
 func (pa *PredictiveAlerting) generatePeriodicPredictions(ctx context.Context) {
@@ -2126,8 +1705,6 @@ func (pa *PredictiveAlerting) generatePeriodicPredictions(ctx context.Context) {
 	pa.logger.InfoWithContext("Generating periodic predictions")
 
 }
-
-
 
 // performAnomalyDetection performs anomaly detection on current metrics.
 
@@ -2141,15 +1718,11 @@ func (pa *PredictiveAlerting) performAnomalyDetection(ctx context.Context, slaTy
 
 	}
 
-
-
 	// Calculate anomaly score using statistical methods.
 
 	var totalDeviation float64
 
 	count := 0
-
-
 
 	for _, value := range currentMetrics {
 
@@ -2167,23 +1740,17 @@ func (pa *PredictiveAlerting) performAnomalyDetection(ctx context.Context, slaTy
 
 	}
 
-
-
 	if count == 0 {
 
 		return 0.0, nil // No anomalies detected
 
 	}
 
-
-
 	// Return average deviation as anomaly score.
 
 	return totalDeviation / float64(count), nil
 
 }
-
-
 
 // updateModel updates the prediction model with new data.
 
@@ -2193,8 +1760,6 @@ func (pa *PredictiveAlerting) updateModel(ctx context.Context, slaType SLAType, 
 
 	defer pa.mu.Unlock()
 
-
-
 	model, exists := pa.models[slaType]
 
 	if !exists {
@@ -2203,17 +1768,12 @@ func (pa *PredictiveAlerting) updateModel(ctx context.Context, slaType SLAType, 
 
 	}
 
-
-
 	pa.logger.InfoWithContext("Updating prediction model",
 
 		slog.String("sla_type", string(slaType)),
 
 		slog.Int("data_points", len(newData)),
-
 	)
-
-
 
 	// Update model statistics.
 
@@ -2225,21 +1785,15 @@ func (pa *PredictiveAlerting) updateModel(ctx context.Context, slaType SLAType, 
 
 		model.TrainedAt = time.Now()
 
-
-
 		// Update normalization parameters if needed.
 
 		pa.updateNormalizationParams(model, newData)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // updateNormalizationParams updates normalization parameters with new data.
 
@@ -2251,8 +1805,6 @@ func (pa *PredictiveAlerting) updateNormalizationParams(model *PredictionModel, 
 
 	}
 
-
-
 	// Simple min-max update.
 
 	for i := range model.Features {
@@ -2261,21 +1813,15 @@ func (pa *PredictiveAlerting) updateNormalizationParams(model *PredictionModel, 
 
 		maxKey := fmt.Sprintf("max_%d", i)
 
-
-
 		if len(newData) > i {
 
 			value := newData[0].Value // Simplified: use first data point
-
-
 
 			if currentMin, exists := model.Normalization.Params[minKey]; exists {
 
 				model.Normalization.Params[minKey] = math.Min(currentMin, value)
 
 			}
-
-
 
 			if currentMax, exists := model.Normalization.Params[maxKey]; exists {
 
@@ -2289,8 +1835,6 @@ func (pa *PredictiveAlerting) updateNormalizationParams(model *PredictionModel, 
 
 }
 
-
-
 // forecastFuture generates future forecasts for the specified horizon.
 
 func (pa *PredictiveAlerting) forecastFuture(ctx context.Context, slaType SLAType, horizon time.Duration) (*ForecastResult, error) {
@@ -2303,8 +1847,6 @@ func (pa *PredictiveAlerting) forecastFuture(ctx context.Context, slaType SLATyp
 
 	}
 
-
-
 	// Simple forecasting based on current model.
 
 	baseValue := 0.0
@@ -2315,41 +1857,31 @@ func (pa *PredictiveAlerting) forecastFuture(ctx context.Context, slaType SLATyp
 
 	}
 
-
-
 	// Apply trend and seasonal adjustments.
 
 	trendAdjustment := pa.applyTrendAdjustment(slaType)
 
 	seasonalAdjustment := pa.applySeasonalAdjustment(slaType, time.Now().Add(horizon))
 
-
-
 	predictedValue := baseValue + trendAdjustment + seasonalAdjustment
-
-
 
 	forecast := &ForecastResult{
 
 		PredictedValue: predictedValue,
 
-		Confidence:     model.Accuracy,
+		Confidence: model.Accuracy,
 
-		Timestamp:      time.Now().Add(horizon),
+		Timestamp: time.Now().Add(horizon),
 
 		Components: map[string]interface{}{
 
-			"base_value":          baseValue,
+			"base_value": baseValue,
 
-			"trend_adjustment":    trendAdjustment,
+			"trend_adjustment": trendAdjustment,
 
 			"seasonal_adjustment": seasonalAdjustment,
-
 		},
-
 	}
-
-
 
 	pa.logger.DebugWithContext("Generated forecast",
 
@@ -2360,16 +1892,11 @@ func (pa *PredictiveAlerting) forecastFuture(ctx context.Context, slaType SLATyp
 		slog.Float64("predicted_value", predictedValue),
 
 		slog.Float64("confidence", model.Accuracy),
-
 	)
-
-
 
 	return forecast, nil
 
 }
-
-
 
 // anomalyDetectionLoop runs anomaly detection processing.
 
@@ -2378,8 +1905,6 @@ func (pa *PredictiveAlerting) anomalyDetectionLoop(ctx context.Context) {
 	ticker := time.NewTicker(2 * time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2403,8 +1928,6 @@ func (pa *PredictiveAlerting) anomalyDetectionLoop(ctx context.Context) {
 
 }
 
-
-
 // modelUpdateProcessingLoop runs model update processing.
 
 func (pa *PredictiveAlerting) modelUpdateProcessingLoop(ctx context.Context) {
@@ -2412,8 +1935,6 @@ func (pa *PredictiveAlerting) modelUpdateProcessingLoop(ctx context.Context) {
 	ticker := time.NewTicker(pa.config.ModelUpdateInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2437,8 +1958,6 @@ func (pa *PredictiveAlerting) modelUpdateProcessingLoop(ctx context.Context) {
 
 }
 
-
-
 // forecastingLoop runs forecasting processing.
 
 func (pa *PredictiveAlerting) forecastingLoop(ctx context.Context) {
@@ -2446,8 +1965,6 @@ func (pa *PredictiveAlerting) forecastingLoop(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2471,15 +1988,11 @@ func (pa *PredictiveAlerting) forecastingLoop(ctx context.Context) {
 
 }
 
-
-
 // runAnomalyDetection performs anomaly detection for all SLA types.
 
 func (pa *PredictiveAlerting) runAnomalyDetection(ctx context.Context) {
 
 	slaTypes := []SLAType{SLATypeAvailability, SLATypeLatency, SLAThroughput, SLAErrorRate}
-
-
 
 	for _, slaType := range slaTypes {
 
@@ -2487,15 +2000,12 @@ func (pa *PredictiveAlerting) runAnomalyDetection(ctx context.Context) {
 
 		currentMetrics := map[string]float64{
 
-			"cpu_usage":    45.0 + float64(time.Now().Unix()%20), // Add some variation
+			"cpu_usage": 45.0 + float64(time.Now().Unix()%20), // Add some variation
 
 			"memory_usage": 67.0 + float64(time.Now().Unix()%15),
 
 			"request_rate": 1200.0 + float64(time.Now().Unix()%100),
-
 		}
-
-
 
 		_, err := pa.performAnomalyDetection(ctx, slaType, currentMetrics)
 
@@ -2506,7 +2016,6 @@ func (pa *PredictiveAlerting) runAnomalyDetection(ctx context.Context) {
 				slog.String("sla_type", string(slaType)),
 
 				slog.String("error", err.Error()),
-
 			)
 
 		}
@@ -2515,15 +2024,11 @@ func (pa *PredictiveAlerting) runAnomalyDetection(ctx context.Context) {
 
 }
 
-
-
 // processModelUpdates processes model updates.
 
 func (pa *PredictiveAlerting) processModelUpdates(ctx context.Context) {
 
 	pa.logger.InfoWithContext("Processing model updates")
-
-
 
 	for slaType := range pa.models {
 
@@ -2535,15 +2040,11 @@ func (pa *PredictiveAlerting) processModelUpdates(ctx context.Context) {
 
 				Timestamp: time.Now(),
 
-				Value:     99.95 + float64(time.Now().Unix()%100)/10000,
+				Value: 99.95 + float64(time.Now().Unix()%100)/10000,
 
-				Metadata:  map[string]interface{}{"source": "mock"},
-
+				Metadata: map[string]interface{}{"source": "mock"},
 			},
-
 		}
-
-
 
 		err := pa.updateModel(ctx, slaType, mockData)
 
@@ -2552,7 +2053,6 @@ func (pa *PredictiveAlerting) processModelUpdates(ctx context.Context) {
 			pa.logger.ErrorWithContext("Failed to update model", err,
 
 				slog.String("sla_type", string(slaType)),
-
 			)
 
 		}
@@ -2560,8 +2060,6 @@ func (pa *PredictiveAlerting) processModelUpdates(ctx context.Context) {
 	}
 
 }
-
-
 
 // generateForecasts generates forecasts for all SLA types.
 
@@ -2578,7 +2076,6 @@ func (pa *PredictiveAlerting) generateForecasts(ctx context.Context) {
 				slog.String("sla_type", string(slaType)),
 
 				slog.String("error", err.Error()),
-
 			)
 
 		}
@@ -2586,4 +2083,3 @@ func (pa *PredictiveAlerting) generateForecasts(ctx context.Context) {
 	}
 
 }
-

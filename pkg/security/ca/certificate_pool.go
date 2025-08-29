@@ -1,141 +1,97 @@
-
 package ca
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"sort"
-
 	"sync"
-
 	"time"
-
-
 
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 
-
-
 	corev1 "k8s.io/api/core/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/types"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // CertificatePool manages certificate storage and retrieval.
 
 type CertificatePool struct {
+	config *CertificateStoreConfig
 
-	config       *CertificateStoreConfig
+	logger *logging.StructuredLogger
 
-	logger       *logging.StructuredLogger
-
-	client       client.Client
+	client client.Client
 
 	certificates map[string]*CertificateResponse
 
-	indices      *CertificateIndices
+	indices *CertificateIndices
 
-	mu           sync.RWMutex
+	mu sync.RWMutex
 
-	encryptor    *CertificateEncryptor
+	encryptor *CertificateEncryptor
 
-	lastBackup   time.Time
-
+	lastBackup time.Time
 }
-
-
 
 // CertificateIndices provides efficient certificate lookup.
 
 type CertificateIndices struct {
+	ByTenant map[string][]*CertificateResponse
 
-	ByTenant      map[string][]*CertificateResponse
+	ByStatus map[CertificateStatus][]*CertificateResponse
 
-	ByStatus      map[CertificateStatus][]*CertificateResponse
-
-	ByExpiryDate  *ExpiryIndex
+	ByExpiryDate *ExpiryIndex
 
 	ByFingerprint map[string]*CertificateResponse
 
-	ByRequestID   map[string]*CertificateResponse
-
+	ByRequestID map[string]*CertificateResponse
 }
-
-
 
 // ExpiryIndex provides efficient expiry-based lookups.
 
 type ExpiryIndex struct {
-
 	entries []ExpiryEntry
 
-	sorted  bool
+	sorted bool
 
-	mu      sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // ExpiryEntry represents a certificate expiry entry.
 
 type ExpiryEntry struct {
-
 	SerialNumber string
 
-	ExpiresAt    time.Time
-
+	ExpiresAt time.Time
 }
-
-
 
 // CertificateEncryptor handles certificate encryption for storage.
 
 type CertificateEncryptor struct {
+	enabled bool
 
-	enabled   bool
-
-	key       []byte
+	key []byte
 
 	algorithm string
-
 }
-
-
 
 // StoredCertificate represents a certificate stored in Kubernetes.
 
 type StoredCertificate struct {
-
 	CertificateResponse *CertificateResponse `json:"certificate_response"`
 
-	StoredAt            time.Time            `json:"stored_at"`
+	StoredAt time.Time `json:"stored_at"`
 
-	UpdatedAt           time.Time            `json:"updated_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 
-	Version             int                  `json:"version"`
+	Version int `json:"version"`
 
-	Checksum            string               `json:"checksum"`
-
+	Checksum string `json:"checksum"`
 }
-
-
 
 // NewCertificatePool creates a new certificate pool.
 
@@ -143,29 +99,25 @@ func NewCertificatePool(config *CertificateStoreConfig, logger *logging.Structur
 
 	pool := &CertificatePool{
 
-		config:       config,
+		config: config,
 
-		logger:       logger,
+		logger: logger,
 
 		certificates: make(map[string]*CertificateResponse),
 
 		indices: &CertificateIndices{
 
-			ByTenant:      make(map[string][]*CertificateResponse),
+			ByTenant: make(map[string][]*CertificateResponse),
 
-			ByStatus:      make(map[CertificateStatus][]*CertificateResponse),
+			ByStatus: make(map[CertificateStatus][]*CertificateResponse),
 
-			ByExpiryDate:  &ExpiryIndex{entries: make([]ExpiryEntry, 0)},
+			ByExpiryDate: &ExpiryIndex{entries: make([]ExpiryEntry, 0)},
 
 			ByFingerprint: make(map[string]*CertificateResponse),
 
-			ByRequestID:   make(map[string]*CertificateResponse),
-
+			ByRequestID: make(map[string]*CertificateResponse),
 		},
-
 	}
-
-
 
 	// Initialize encryptor if encryption is enabled.
 
@@ -183,19 +135,13 @@ func NewCertificatePool(config *CertificateStoreConfig, logger *logging.Structur
 
 	}
 
-
-
 	// Start background processes.
 
 	go pool.runMaintenanceTasks()
 
-
-
 	return pool, nil
 
 }
-
-
 
 // StoreCertificate stores a certificate in the pool.
 
@@ -205,27 +151,19 @@ func (p *CertificatePool) StoreCertificate(cert *CertificateResponse) error {
 
 	defer p.mu.Unlock()
 
-
-
 	p.logger.Debug("storing certificate",
 
 		"serial_number", cert.SerialNumber,
 
 		"request_id", cert.RequestID)
 
-
-
 	// Store in memory.
 
 	p.certificates[cert.SerialNumber] = cert
 
-
-
 	// Update indices.
 
 	p.updateIndices(cert, false)
-
-
 
 	// Persist to Kubernetes if configured.
 
@@ -245,21 +183,15 @@ func (p *CertificatePool) StoreCertificate(cert *CertificateResponse) error {
 
 	}
 
-
-
 	p.logger.Info("certificate stored successfully",
 
 		"serial_number", cert.SerialNumber,
 
 		"expires_at", cert.ExpiresAt)
 
-
-
 	return nil
 
 }
-
-
 
 // GetCertificate retrieves a certificate by serial number.
 
@@ -268,8 +200,6 @@ func (p *CertificatePool) GetCertificate(serialNumber string) (*CertificateRespo
 	p.mu.RLock()
 
 	defer p.mu.RUnlock()
-
-
 
 	cert, exists := p.certificates[serialNumber]
 
@@ -287,13 +217,9 @@ func (p *CertificatePool) GetCertificate(serialNumber string) (*CertificateRespo
 
 	}
 
-
-
 	return cert, nil
 
 }
-
-
 
 // ListCertificates lists certificates with optional filters.
 
@@ -303,11 +229,7 @@ func (p *CertificatePool) ListCertificates(filters map[string]string) ([]*Certif
 
 	defer p.mu.RUnlock()
 
-
-
 	var results []*CertificateResponse
-
-
 
 	// If no filters, return all certificates.
 
@@ -322,8 +244,6 @@ func (p *CertificatePool) ListCertificates(filters map[string]string) ([]*Certif
 		return results, nil
 
 	}
-
-
 
 	// Apply filters using indices for efficiency.
 
@@ -359,13 +279,9 @@ func (p *CertificatePool) ListCertificates(filters map[string]string) ([]*Certif
 
 	}
 
-
-
 	return results, nil
 
 }
-
-
 
 // GetExpiringCertificates returns certificates expiring before the given threshold.
 
@@ -375,19 +291,13 @@ func (p *CertificatePool) GetExpiringCertificates(threshold time.Time) ([]*Certi
 
 	defer p.mu.RUnlock()
 
-
-
 	var expiring []*CertificateResponse
-
-
 
 	// Use expiry index for efficient lookup.
 
 	p.indices.ByExpiryDate.mu.RLock()
 
 	defer p.indices.ByExpiryDate.mu.RUnlock()
-
-
 
 	for _, entry := range p.indices.ByExpiryDate.entries {
 
@@ -409,13 +319,9 @@ func (p *CertificatePool) GetExpiringCertificates(threshold time.Time) ([]*Certi
 
 	}
 
-
-
 	return expiring, nil
 
 }
-
-
 
 // UpdateCertificate updates an existing certificate.
 
@@ -425,8 +331,6 @@ func (p *CertificatePool) UpdateCertificate(cert *CertificateResponse) error {
 
 	defer p.mu.Unlock()
 
-
-
 	existing, exists := p.certificates[cert.SerialNumber]
 
 	if !exists {
@@ -435,25 +339,17 @@ func (p *CertificatePool) UpdateCertificate(cert *CertificateResponse) error {
 
 	}
 
-
-
 	// Update indices (remove old entry).
 
 	p.updateIndices(existing, true)
-
-
 
 	// Update certificate.
 
 	p.certificates[cert.SerialNumber] = cert
 
-
-
 	// Update indices (add new entry).
 
 	p.updateIndices(cert, false)
-
-
 
 	// Persist to storage.
 
@@ -467,13 +363,9 @@ func (p *CertificatePool) UpdateCertificate(cert *CertificateResponse) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // DeleteCertificate removes a certificate from the pool.
 
@@ -483,8 +375,6 @@ func (p *CertificatePool) DeleteCertificate(serialNumber string) error {
 
 	defer p.mu.Unlock()
 
-
-
 	cert, exists := p.certificates[serialNumber]
 
 	if !exists {
@@ -493,19 +383,13 @@ func (p *CertificatePool) DeleteCertificate(serialNumber string) error {
 
 	}
 
-
-
 	// Remove from indices.
 
 	p.updateIndices(cert, true)
 
-
-
 	// Remove from memory.
 
 	delete(p.certificates, serialNumber)
-
-
 
 	// Remove from persistent storage.
 
@@ -523,13 +407,9 @@ func (p *CertificatePool) DeleteCertificate(serialNumber string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetCertificateByFingerprint retrieves a certificate by fingerprint.
 
@@ -539,21 +419,15 @@ func (p *CertificatePool) GetCertificateByFingerprint(fingerprint string) (*Cert
 
 	defer p.mu.RUnlock()
 
-
-
 	if cert, exists := p.indices.ByFingerprint[fingerprint]; exists {
 
 		return cert, nil
 
 	}
 
-
-
 	return nil, fmt.Errorf("certificate with fingerprint %s not found", fingerprint)
 
 }
-
-
 
 // GetCertificateByRequestID retrieves a certificate by request ID.
 
@@ -563,21 +437,15 @@ func (p *CertificatePool) GetCertificateByRequestID(requestID string) (*Certific
 
 	defer p.mu.RUnlock()
 
-
-
 	if cert, exists := p.indices.ByRequestID[requestID]; exists {
 
 		return cert, nil
 
 	}
 
-
-
 	return nil, fmt.Errorf("certificate with request ID %s not found", requestID)
 
 }
-
-
 
 // GetStatistics returns certificate pool statistics.
 
@@ -587,21 +455,16 @@ func (p *CertificatePool) GetStatistics() map[string]interface{} {
 
 	defer p.mu.RUnlock()
 
-
-
 	stats := map[string]interface{}{
 
 		"total_certificates": len(p.certificates),
 
-		"by_status":          make(map[string]int),
+		"by_status": make(map[string]int),
 
-		"by_tenant":          make(map[string]int),
+		"by_tenant": make(map[string]int),
 
-		"expiring_soon":      0,
-
+		"expiring_soon": 0,
 	}
-
-
 
 	// Count by status.
 
@@ -611,8 +474,6 @@ func (p *CertificatePool) GetStatistics() map[string]interface{} {
 
 	}
 
-
-
 	// Count by tenant.
 
 	for tenant, certs := range p.indices.ByTenant {
@@ -620,8 +481,6 @@ func (p *CertificatePool) GetStatistics() map[string]interface{} {
 		stats["by_tenant"].(map[string]int)[tenant] = len(certs)
 
 	}
-
-
 
 	// Count expiring certificates (next 30 days).
 
@@ -637,21 +496,15 @@ func (p *CertificatePool) GetStatistics() map[string]interface{} {
 
 	}
 
-
-
 	return stats
 
 }
-
-
 
 // Close gracefully shuts down the certificate pool.
 
 func (p *CertificatePool) Close() error {
 
 	p.logger.Info("shutting down certificate pool")
-
-
 
 	// Perform final backup if enabled.
 
@@ -665,17 +518,11 @@ func (p *CertificatePool) Close() error {
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (p *CertificatePool) updateIndices(cert *CertificateResponse, remove bool) {
 
@@ -711,8 +558,6 @@ func (p *CertificatePool) updateIndices(cert *CertificateResponse, remove bool) 
 
 	}
 
-
-
 	// Update status index.
 
 	if remove {
@@ -739,8 +584,6 @@ func (p *CertificatePool) updateIndices(cert *CertificateResponse, remove bool) 
 
 	}
 
-
-
 	// Update expiry index.
 
 	p.indices.ByExpiryDate.mu.Lock()
@@ -755,8 +598,7 @@ func (p *CertificatePool) updateIndices(cert *CertificateResponse, remove bool) 
 
 			SerialNumber: cert.SerialNumber,
 
-			ExpiresAt:    cert.ExpiresAt,
-
+			ExpiresAt: cert.ExpiresAt,
 		})
 
 		p.indices.ByExpiryDate.sorted = false
@@ -764,8 +606,6 @@ func (p *CertificatePool) updateIndices(cert *CertificateResponse, remove bool) 
 	}
 
 	p.indices.ByExpiryDate.mu.Unlock()
-
-
 
 	// Update fingerprint index.
 
@@ -778,8 +618,6 @@ func (p *CertificatePool) updateIndices(cert *CertificateResponse, remove bool) 
 		p.indices.ByFingerprint[cert.Fingerprint] = cert
 
 	}
-
-
 
 	// Update request ID index.
 
@@ -794,8 +632,6 @@ func (p *CertificatePool) updateIndices(cert *CertificateResponse, remove bool) 
 	}
 
 }
-
-
 
 func (p *CertificatePool) removeFromSlice(slice *[]*CertificateResponse, cert *CertificateResponse) {
 
@@ -812,8 +648,6 @@ func (p *CertificatePool) removeFromSlice(slice *[]*CertificateResponse, cert *C
 	}
 
 }
-
-
 
 func (p *CertificatePool) removeFromExpiryIndex(serialNumber string) {
 
@@ -834,8 +668,6 @@ func (p *CertificatePool) removeFromExpiryIndex(serialNumber string) {
 	}
 
 }
-
-
 
 func (p *CertificatePool) matchesFilters(cert *CertificateResponse, filters map[string]string) bool {
 
@@ -883,27 +715,20 @@ func (p *CertificatePool) matchesFilters(cert *CertificateResponse, filters map[
 
 }
 
-
-
 func (p *CertificatePool) persistToKubernetes(cert *CertificateResponse) error {
 
 	secretName := p.generateSecretName(cert.SerialNumber)
-
-
 
 	storedCert := &StoredCertificate{
 
 		CertificateResponse: cert,
 
-		StoredAt:            time.Now(),
+		StoredAt: time.Now(),
 
-		UpdatedAt:           time.Now(),
+		UpdatedAt: time.Now(),
 
-		Version:             1,
-
+		Version: 1,
 	}
-
-
 
 	// Serialize certificate data.
 
@@ -914,8 +739,6 @@ func (p *CertificatePool) persistToKubernetes(cert *CertificateResponse) error {
 		return fmt.Errorf("failed to marshal certificate data: %w", err)
 
 	}
-
-
 
 	// Encrypt if enabled.
 
@@ -931,59 +754,50 @@ func (p *CertificatePool) persistToKubernetes(cert *CertificateResponse) error {
 
 	}
 
-
-
 	// Create or update Kubernetes secret.
 
 	secret := &corev1.Secret{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      secretName,
+			Name: secretName,
 
 			Namespace: p.config.Namespace,
 
 			Labels: map[string]string{
 
-				"app.kubernetes.io/name":       "nephoran-intent-operator",
+				"app.kubernetes.io/name": "nephoran-intent-operator",
 
-				"app.kubernetes.io/component":  "certificate-pool",
+				"app.kubernetes.io/component": "certificate-pool",
 
 				"app.kubernetes.io/managed-by": "nephoran-ca-manager",
 
-				"nephoran.io/certificate":      "true",
+				"nephoran.io/certificate": "true",
 
-				"nephoran.io/serial-number":    cert.SerialNumber,
+				"nephoran.io/serial-number": cert.SerialNumber,
 
-				"nephoran.io/tenant-id":        cert.Metadata["tenant_id"],
+				"nephoran.io/tenant-id": cert.Metadata["tenant_id"],
 
-				"nephoran.io/status":           string(cert.Status),
-
+				"nephoran.io/status": string(cert.Status),
 			},
 
 			Annotations: map[string]string{
 
-				"nephoran.io/expires-at":  cert.ExpiresAt.Format(time.RFC3339),
+				"nephoran.io/expires-at": cert.ExpiresAt.Format(time.RFC3339),
 
-				"nephoran.io/issued-by":   cert.IssuedBy,
+				"nephoran.io/issued-by": cert.IssuedBy,
 
 				"nephoran.io/fingerprint": cert.Fingerprint,
 
-				"nephoran.io/request-id":  cert.RequestID,
-
+				"nephoran.io/request-id": cert.RequestID,
 			},
-
 		},
 
 		Data: map[string][]byte{
 
 			"certificate.json": data,
-
 		},
-
 	}
-
-
 
 	// Add the certificate and key data for easy access.
 
@@ -997,8 +811,6 @@ func (p *CertificatePool) persistToKubernetes(cert *CertificateResponse) error {
 
 	}
 
-
-
 	// Create or update the secret.
 
 	err = p.client.Create(context.TODO(), secret)
@@ -1011,10 +823,9 @@ func (p *CertificatePool) persistToKubernetes(cert *CertificateResponse) error {
 
 		if getErr := p.client.Get(context.TODO(), types.NamespacedName{
 
-			Name:      secretName,
+			Name: secretName,
 
 			Namespace: p.config.Namespace,
-
 		}, existingSecret); getErr == nil {
 
 			secret.ResourceVersion = existingSecret.ResourceVersion
@@ -1025,13 +836,9 @@ func (p *CertificatePool) persistToKubernetes(cert *CertificateResponse) error {
 
 	}
 
-
-
 	return err
 
 }
-
-
 
 func (p *CertificatePool) loadFromStorage(serialNumber string) (*CertificateResponse, error) {
 
@@ -1041,20 +848,15 @@ func (p *CertificatePool) loadFromStorage(serialNumber string) (*CertificateResp
 
 	}
 
-
-
 	secretName := p.generateSecretName(serialNumber)
 
 	secret := &corev1.Secret{}
 
-
-
 	err := p.client.Get(context.TODO(), types.NamespacedName{
 
-		Name:      secretName,
+		Name: secretName,
 
 		Namespace: p.config.Namespace,
-
 	}, secret)
 
 	if err != nil {
@@ -1063,8 +865,6 @@ func (p *CertificatePool) loadFromStorage(serialNumber string) (*CertificateResp
 
 	}
 
-
-
 	data, exists := secret.Data["certificate.json"]
 
 	if !exists {
@@ -1072,8 +872,6 @@ func (p *CertificatePool) loadFromStorage(serialNumber string) (*CertificateResp
 		return nil, fmt.Errorf("certificate data not found in secret")
 
 	}
-
-
 
 	// Decrypt if needed.
 
@@ -1089,8 +887,6 @@ func (p *CertificatePool) loadFromStorage(serialNumber string) (*CertificateResp
 
 	}
 
-
-
 	var storedCert StoredCertificate
 
 	if err := json.Unmarshal(data, &storedCert); err != nil {
@@ -1098,8 +894,6 @@ func (p *CertificatePool) loadFromStorage(serialNumber string) (*CertificateResp
 		return nil, fmt.Errorf("failed to unmarshal certificate data: %w", err)
 
 	}
-
-
 
 	// Add to memory cache.
 
@@ -1111,13 +905,9 @@ func (p *CertificatePool) loadFromStorage(serialNumber string) (*CertificateResp
 
 	p.mu.Unlock()
 
-
-
 	return storedCert.CertificateResponse, nil
 
 }
-
-
 
 func (p *CertificatePool) removeFromKubernetes(serialNumber string) error {
 
@@ -1127,21 +917,15 @@ func (p *CertificatePool) removeFromKubernetes(serialNumber string) error {
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      secretName,
+			Name: secretName,
 
 			Namespace: p.config.Namespace,
-
 		},
-
 	}
-
-
 
 	return p.client.Delete(context.TODO(), secret)
 
 }
-
-
 
 func (p *CertificatePool) generateSecretName(serialNumber string) string {
 
@@ -1157,15 +941,11 @@ func (p *CertificatePool) generateSecretName(serialNumber string) string {
 
 }
 
-
-
 func (p *CertificatePool) runMaintenanceTasks() {
 
 	ticker := time.NewTicker(time.Hour)
 
 	defer ticker.Stop()
-
-
 
 	for range ticker.C {
 
@@ -1175,13 +955,9 @@ func (p *CertificatePool) runMaintenanceTasks() {
 
 }
 
-
-
 func (p *CertificatePool) performMaintenance() {
 
 	p.logger.Debug("performing certificate pool maintenance")
-
-
 
 	// Sort expiry index if needed.
 
@@ -1201,8 +977,6 @@ func (p *CertificatePool) performMaintenance() {
 
 	p.indices.ByExpiryDate.mu.Unlock()
 
-
-
 	// Clean up expired certificates if retention period is configured.
 
 	if p.config.RetentionPeriod > 0 {
@@ -1210,8 +984,6 @@ func (p *CertificatePool) performMaintenance() {
 		p.cleanupExpiredCertificates()
 
 	}
-
-
 
 	// Perform backup if enabled.
 
@@ -1229,19 +1001,13 @@ func (p *CertificatePool) performMaintenance() {
 
 }
 
-
-
 func (p *CertificatePool) cleanupExpiredCertificates() {
 
 	cutoff := time.Now().Add(-p.config.RetentionPeriod)
 
-
-
 	p.mu.Lock()
 
 	defer p.mu.Unlock()
-
-
 
 	var toDelete []string
 
@@ -1255,23 +1021,17 @@ func (p *CertificatePool) cleanupExpiredCertificates() {
 
 	}
 
-
-
 	for _, serialNumber := range toDelete {
 
 		p.logger.Info("cleaning up expired certificate",
 
 			"serial_number", serialNumber)
 
-
-
 		cert := p.certificates[serialNumber]
 
 		p.updateIndices(cert, true)
 
 		delete(p.certificates, serialNumber)
-
-
 
 		// Remove from persistent storage.
 
@@ -1289,8 +1049,6 @@ func (p *CertificatePool) cleanupExpiredCertificates() {
 
 }
 
-
-
 func (p *CertificatePool) performBackup() error {
 
 	p.logger.Info("performing certificate pool backup")
@@ -1303,25 +1061,20 @@ func (p *CertificatePool) performBackup() error {
 
 }
 
-
-
 // NewCertificateEncryptor creates a new certificate encryptor.
 
 func NewCertificateEncryptor(key string) (*CertificateEncryptor, error) {
 
 	return &CertificateEncryptor{
 
-		enabled:   true,
+		enabled: true,
 
-		key:       []byte(key),
+		key: []byte(key),
 
 		algorithm: "AES-256-GCM",
-
 	}, nil
 
 }
-
-
 
 // Encrypt encrypts certificate data.
 
@@ -1335,8 +1088,6 @@ func (e *CertificateEncryptor) Encrypt(data []byte) ([]byte, error) {
 
 }
 
-
-
 // Decrypt decrypts certificate data.
 
 func (e *CertificateEncryptor) Decrypt(data []byte) ([]byte, error) {
@@ -1348,4 +1099,3 @@ func (e *CertificateEncryptor) Decrypt(data []byte) ([]byte, error) {
 	return data, nil
 
 }
-

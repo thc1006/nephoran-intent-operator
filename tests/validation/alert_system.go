@@ -1,47 +1,27 @@
 // Package validation provides alert system for regression notifications.
 
-
 package validation
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"net/http"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/onsi/ginkgo/v2"
-
 )
-
-
 
 // AlertSystem handles notifications for regression detections.
 
 type AlertSystem struct {
-
 	config *RegressionConfig
 
 	client *http.Client
-
 }
-
-
 
 // NewAlertSystem creates a new alert system.
 
@@ -54,14 +34,10 @@ func NewAlertSystem(config *RegressionConfig) *AlertSystem {
 		client: &http.Client{
 
 			Timeout: 30 * time.Second,
-
 		},
-
 	}
 
 }
-
-
 
 // AlertMessage represents a regression alert message.
 
@@ -69,221 +45,171 @@ type AlertMessage struct {
 
 	// Alert metadata.
 
-	ID        string    `json:"id"`
+	ID string `json:"id"`
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Severity  string    `json:"severity"`
+	Severity string `json:"severity"`
 
-	Type      string    `json:"type"` // "regression", "threshold_breach", "anomaly"
-
-
+	Type string `json:"type"` // "regression", "threshold_breach", "anomaly"
 
 	// Context information.
 
-	System      string `json:"system"`
+	System string `json:"system"`
 
-	Component   string `json:"component"`
+	Component string `json:"component"`
 
 	Environment string `json:"environment"`
 
-
-
 	// Alert content.
 
-	Title       string `json:"title"`
+	Title string `json:"title"`
 
 	Description string `json:"description"`
 
-	Impact      string `json:"impact"`
-
-
+	Impact string `json:"impact"`
 
 	// Regression details.
 
-	BaselineID     string               `json:"baseline_id,omitempty"`
+	BaselineID string `json:"baseline_id,omitempty"`
 
 	RegressionData *RegressionDetection `json:"regression_data,omitempty"`
-
-
 
 	// Recommendations.
 
 	Recommendations []AlertRecommendation `json:"recommendations"`
 
-
-
 	// Routing information.
 
 	Recipients []string `json:"recipients"`
 
-	Channels   []string `json:"channels"`
+	Channels []string `json:"channels"`
 
-	Priority   string   `json:"priority"` // "low", "medium", "high", "critical"
-
-
+	Priority string `json:"priority"` // "low", "medium", "high", "critical"
 
 	// Metadata for tracking.
 
-	Tags  map[string]string `json:"tags"`
+	Tags map[string]string `json:"tags"`
 
-	Links []AlertLink       `json:"links"`
-
+	Links []AlertLink `json:"links"`
 }
-
-
 
 // AlertRecommendation provides actionable guidance.
 
 type AlertRecommendation struct {
-
-	Action      string `json:"action"`
+	Action string `json:"action"`
 
 	Description string `json:"description"`
 
-	Priority    string `json:"priority"`
+	Priority string `json:"priority"`
 
-	Owner       string `json:"owner,omitempty"`
+	Owner string `json:"owner,omitempty"`
 
-	Deadline    string `json:"deadline,omitempty"`
-
+	Deadline string `json:"deadline,omitempty"`
 }
-
-
 
 // AlertLink provides relevant URLs.
 
 type AlertLink struct {
-
 	Name string `json:"name"`
 
-	URL  string `json:"url"`
+	URL string `json:"url"`
 
 	Type string `json:"type"` // "dashboard", "runbook", "logs", "metrics"
 
 }
 
-
-
 // SlackAlert represents a Slack-formatted alert.
 
 type SlackAlert struct {
+	Channel string `json:"channel"`
 
-	Channel     string            `json:"channel"`
+	Username string `json:"username,omitempty"`
 
-	Username    string            `json:"username,omitempty"`
+	IconEmoji string `json:"icon_emoji,omitempty"`
 
-	IconEmoji   string            `json:"icon_emoji,omitempty"`
-
-	Text        string            `json:"text"`
+	Text string `json:"text"`
 
 	Attachments []SlackAttachment `json:"attachments"`
-
 }
-
-
 
 // SlackAttachment represents a Slack message attachment.
 
 type SlackAttachment struct {
+	Color string `json:"color"`
 
-	Color     string        `json:"color"`
+	Title string `json:"title"`
 
-	Title     string        `json:"title"`
+	Text string `json:"text"`
 
-	Text      string        `json:"text"`
+	Fields []SlackField `json:"fields"`
 
-	Fields    []SlackField  `json:"fields"`
+	Footer string `json:"footer"`
 
-	Footer    string        `json:"footer"`
+	Timestamp int64 `json:"ts"`
 
-	Timestamp int64         `json:"ts"`
-
-	Actions   []SlackAction `json:"actions,omitempty"`
-
+	Actions []SlackAction `json:"actions,omitempty"`
 }
-
-
 
 // SlackField represents a field in a Slack attachment.
 
 type SlackField struct {
-
 	Title string `json:"title"`
 
 	Value string `json:"value"`
 
-	Short bool   `json:"short"`
-
+	Short bool `json:"short"`
 }
-
-
 
 // SlackAction represents an interactive button in Slack.
 
 type SlackAction struct {
+	Type string `json:"type"`
 
-	Type  string `json:"type"`
+	Text string `json:"text"`
 
-	Text  string `json:"text"`
-
-	URL   string `json:"url,omitempty"`
+	URL string `json:"url,omitempty"`
 
 	Style string `json:"style,omitempty"`
-
 }
-
-
 
 // EmailAlert represents an email alert.
 
 type EmailAlert struct {
+	To []string `json:"to"`
 
-	To          []string          `json:"to"`
+	Subject string `json:"subject"`
 
-	Subject     string            `json:"subject"`
+	Body string `json:"body"`
 
-	Body        string            `json:"body"`
+	BodyHTML string `json:"body_html"`
 
-	BodyHTML    string            `json:"body_html"`
-
-	Headers     map[string]string `json:"headers"`
+	Headers map[string]string `json:"headers"`
 
 	Attachments []EmailAttachment `json:"attachments"`
-
 }
-
-
 
 // EmailAttachment represents an email attachment.
 
 type EmailAttachment struct {
-
-	Filename    string `json:"filename"`
+	Filename string `json:"filename"`
 
 	ContentType string `json:"content_type"`
 
-	Content     []byte `json:"content"`
-
+	Content []byte `json:"content"`
 }
-
-
 
 // WebhookAlert represents a generic webhook alert.
 
 type WebhookAlert struct {
+	URL string `json:"url"`
 
-	URL     string            `json:"url"`
-
-	Method  string            `json:"method"`
+	Method string `json:"method"`
 
 	Headers map[string]string `json:"headers"`
 
-	Payload interface{}       `json:"payload"`
-
+	Payload interface{} `json:"payload"`
 }
-
-
 
 // SendRegressionAlert sends comprehensive regression alerts through configured channels.
 
@@ -297,21 +223,13 @@ func (as *AlertSystem) SendRegressionAlert(detection *RegressionDetection) error
 
 	}
 
-
-
 	ginkgo.By(fmt.Sprintf("Sending regression alert: %s severity", detection.RegressionSeverity))
-
-
 
 	// Create alert message.
 
 	alert := as.createRegressionAlertMessage(detection)
 
-
-
 	var errors []string
-
-
 
 	// Send Slack alerts.
 
@@ -325,8 +243,6 @@ func (as *AlertSystem) SendRegressionAlert(detection *RegressionDetection) error
 
 	}
 
-
-
 	// Send email alerts.
 
 	if len(as.config.AlertEmailRecipients) > 0 {
@@ -338,8 +254,6 @@ func (as *AlertSystem) SendRegressionAlert(detection *RegressionDetection) error
 		}
 
 	}
-
-
 
 	// Send webhook alerts.
 
@@ -353,23 +267,17 @@ func (as *AlertSystem) SendRegressionAlert(detection *RegressionDetection) error
 
 	}
 
-
-
 	if len(errors) > 0 {
 
 		return fmt.Errorf("alert sending failed: %s", strings.Join(errors, "; "))
 
 	}
 
-
-
 	ginkgo.By("Regression alert sent successfully")
 
 	return nil
 
 }
-
-
 
 // SendThresholdAlert sends alerts for threshold breaches.
 
@@ -381,53 +289,45 @@ func (as *AlertSystem) SendThresholdAlert(metric string, current, threshold floa
 
 	}
 
-
-
 	alert := &AlertMessage{
 
-		ID:              as.generateAlertID("threshold", metric),
+		ID: as.generateAlertID("threshold", metric),
 
-		Timestamp:       time.Now(),
+		Timestamp: time.Now(),
 
-		Severity:        severity,
+		Severity: severity,
 
-		Type:            "threshold_breach",
+		Type: "threshold_breach",
 
-		System:          "Nephoran Intent Operator",
+		System: "Nephoran Intent Operator",
 
-		Component:       metric,
+		Component: metric,
 
-		Environment:     "production", // Could be configurable
+		Environment: "production", // Could be configurable
 
-		Title:           fmt.Sprintf("Threshold Breach: %s", metric),
+		Title: fmt.Sprintf("Threshold Breach: %s", metric),
 
-		Description:     fmt.Sprintf("Metric %s exceeded threshold: %.2f > %.2f", metric, current, threshold),
+		Description: fmt.Sprintf("Metric %s exceeded threshold: %.2f > %.2f", metric, current, threshold),
 
-		Impact:          as.describeThresholdImpact(metric, current, threshold),
+		Impact: as.describeThresholdImpact(metric, current, threshold),
 
-		Priority:        as.mapSeverityToPriority(severity),
+		Priority: as.mapSeverityToPriority(severity),
 
 		Recommendations: as.getThresholdRecommendations(metric, current, threshold),
 
 		Tags: map[string]string{
 
-			"metric":   metric,
+			"metric": metric,
 
-			"type":     "threshold",
+			"type": "threshold",
 
 			"severity": severity,
-
 		},
-
 	}
-
-
 
 	return as.sendAlert(alert)
 
 }
-
-
 
 // SendAnomalyAlert sends alerts for detected anomalies.
 
@@ -439,55 +339,47 @@ func (as *AlertSystem) SendAnomalyAlert(anomaly *TrendAnomaly) error {
 
 	}
 
-
-
 	alert := &AlertMessage{
 
-		ID:          as.generateAlertID("anomaly", anomaly.MetricName),
+		ID: as.generateAlertID("anomaly", anomaly.MetricName),
 
-		Timestamp:   time.Now(),
+		Timestamp: time.Now(),
 
-		Severity:    anomaly.Severity,
+		Severity: anomaly.Severity,
 
-		Type:        "anomaly",
+		Type: "anomaly",
 
-		System:      "Nephoran Intent Operator",
+		System: "Nephoran Intent Operator",
 
-		Component:   anomaly.MetricName,
+		Component: anomaly.MetricName,
 
 		Environment: "production",
 
-		Title:       fmt.Sprintf("Anomaly Detected: %s", anomaly.MetricName),
+		Title: fmt.Sprintf("Anomaly Detected: %s", anomaly.MetricName),
 
 		Description: fmt.Sprintf("Unusual value detected for %s: %.2f (expected: %.2f, deviation: %.2f)",
 
 			anomaly.MetricName, anomaly.ActualValue, anomaly.ExpectedValue, anomaly.Deviation),
 
-		Impact:          fmt.Sprintf("Potential impact: %s", anomaly.PossibleCause),
+		Impact: fmt.Sprintf("Potential impact: %s", anomaly.PossibleCause),
 
-		Priority:        as.mapSeverityToPriority(anomaly.Severity),
+		Priority: as.mapSeverityToPriority(anomaly.Severity),
 
 		Recommendations: as.getAnomalyRecommendations(anomaly),
 
 		Tags: map[string]string{
 
-			"metric":   anomaly.MetricName,
+			"metric": anomaly.MetricName,
 
-			"type":     "anomaly",
+			"type": "anomaly",
 
 			"severity": anomaly.Severity,
-
 		},
-
 	}
-
-
 
 	return as.sendAlert(alert)
 
 }
-
-
 
 // createRegressionAlertMessage creates a comprehensive alert message for regressions.
 
@@ -495,48 +387,47 @@ func (as *AlertSystem) createRegressionAlertMessage(detection *RegressionDetecti
 
 	alert := &AlertMessage{
 
-		ID:              as.generateAlertID("regression", "comprehensive"),
+		ID: as.generateAlertID("regression", "comprehensive"),
 
-		Timestamp:       time.Now(),
+		Timestamp: time.Now(),
 
-		Severity:        detection.RegressionSeverity,
+		Severity: detection.RegressionSeverity,
 
-		Type:            "regression",
+		Type: "regression",
 
-		System:          "Nephoran Intent Operator",
+		System: "Nephoran Intent Operator",
 
-		Component:       "Validation Suite",
+		Component: "Validation Suite",
 
-		Environment:     "production",
+		Environment: "production",
 
-		Title:           fmt.Sprintf("Quality Regression Detected (%s)", strings.ToUpper(detection.RegressionSeverity)),
+		Title: fmt.Sprintf("Quality Regression Detected (%s)", strings.ToUpper(detection.RegressionSeverity)),
 
-		Description:     as.createRegressionDescription(detection),
+		Description: as.createRegressionDescription(detection),
 
-		Impact:          as.assessRegressionImpact(detection),
+		Impact: as.assessRegressionImpact(detection),
 
-		BaselineID:      detection.BaselineID,
+		BaselineID: detection.BaselineID,
 
-		RegressionData:  detection,
+		RegressionData: detection,
 
-		Priority:        as.mapSeverityToPriority(detection.RegressionSeverity),
+		Priority: as.mapSeverityToPriority(detection.RegressionSeverity),
 
 		Recommendations: as.getRegressionRecommendations(detection),
 
-		Recipients:      as.config.AlertEmailRecipients,
+		Recipients: as.config.AlertEmailRecipients,
 
-		Channels:        []string{as.config.AlertSlackChannel},
+		Channels: []string{as.config.AlertSlackChannel},
 
 		Tags: map[string]string{
 
 			"baseline_id": detection.BaselineID,
 
-			"type":        "regression",
+			"type": "regression",
 
-			"severity":    detection.RegressionSeverity,
+			"severity": detection.RegressionSeverity,
 
-			"categories":  as.getCategoriesString(detection),
-
+			"categories": as.getCategoriesString(detection),
 		},
 
 		Links: []AlertLink{
@@ -545,41 +436,31 @@ func (as *AlertSystem) createRegressionAlertMessage(detection *RegressionDetecti
 
 				Name: "Regression Dashboard",
 
-				URL:  "https://dashboard.example.com/regression", // Would be configurable
+				URL: "https://dashboard.example.com/regression", // Would be configurable
 
 				Type: "dashboard",
-
 			},
 
 			{
 
 				Name: "Troubleshooting Runbook",
 
-				URL:  "https://runbook.example.com/regression", // Would be configurable
+				URL: "https://runbook.example.com/regression", // Would be configurable
 
 				Type: "runbook",
-
 			},
-
 		},
-
 	}
-
-
 
 	return alert
 
 }
-
-
 
 // sendAlert routes alert to appropriate channels.
 
 func (as *AlertSystem) sendAlert(alert *AlertMessage) error {
 
 	var errors []string
-
-
 
 	if as.config.AlertSlackChannel != "" {
 
@@ -591,8 +472,6 @@ func (as *AlertSystem) sendAlert(alert *AlertMessage) error {
 
 	}
 
-
-
 	if len(as.config.AlertEmailRecipients) > 0 {
 
 		if err := as.sendEmailAlert(alert); err != nil {
@@ -602,8 +481,6 @@ func (as *AlertSystem) sendAlert(alert *AlertMessage) error {
 		}
 
 	}
-
-
 
 	if as.config.AlertWebhookURL != "" {
 
@@ -615,29 +492,21 @@ func (as *AlertSystem) sendAlert(alert *AlertMessage) error {
 
 	}
 
-
-
 	if len(errors) > 0 {
 
 		return fmt.Errorf("alert sending failed: %s", strings.Join(errors, "; "))
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // sendSlackAlert sends alert to Slack.
 
 func (as *AlertSystem) sendSlackAlert(alert *AlertMessage) error {
 
 	slackAlert := as.formatSlackAlert(alert)
-
-
 
 	payload, err := json.Marshal(slackAlert)
 
@@ -647,15 +516,11 @@ func (as *AlertSystem) sendSlackAlert(alert *AlertMessage) error {
 
 	}
 
-
-
 	// For this implementation, we'll use a webhook URL.
 
 	// In production, this would use the Slack API.
 
 	webhookURL := "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK" // Placeholder
-
-
 
 	resp, err := as.client.Post(webhookURL, "application/json", bytes.NewBuffer(payload))
 
@@ -667,8 +532,6 @@ func (as *AlertSystem) sendSlackAlert(alert *AlertMessage) error {
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		body, _ := io.ReadAll(resp.Body)
@@ -677,23 +540,17 @@ func (as *AlertSystem) sendSlackAlert(alert *AlertMessage) error {
 
 	}
 
-
-
 	ginkgo.By("Slack alert sent successfully")
 
 	return nil
 
 }
 
-
-
 // sendEmailAlert sends alert via email.
 
 func (as *AlertSystem) sendEmailAlert(alert *AlertMessage) error {
 
 	emailAlert := as.formatEmailAlert(alert)
-
-
 
 	// In production, this would integrate with an email service like SendGrid, AWS SES, etc.
 
@@ -703,15 +560,11 @@ func (as *AlertSystem) sendEmailAlert(alert *AlertMessage) error {
 
 	ginkgo.By(fmt.Sprintf("Subject: %s", emailAlert.Subject))
 
-
-
 	// Placeholder for actual email sending.
 
 	return nil
 
 }
-
-
 
 // sendWebhookAlert sends alert to a webhook endpoint.
 
@@ -719,7 +572,7 @@ func (as *AlertSystem) sendWebhookAlert(alert *AlertMessage) error {
 
 	webhook := &WebhookAlert{
 
-		URL:    as.config.AlertWebhookURL,
+		URL: as.config.AlertWebhookURL,
 
 		Method: "POST",
 
@@ -727,15 +580,11 @@ func (as *AlertSystem) sendWebhookAlert(alert *AlertMessage) error {
 
 			"Content-Type": "application/json",
 
-			"User-Agent":   "Nephoran-Intent-Operator/1.0",
-
+			"User-Agent": "Nephoran-Intent-Operator/1.0",
 		},
 
 		Payload: alert,
-
 	}
-
-
 
 	payload, err := json.Marshal(webhook.Payload)
 
@@ -745,13 +594,9 @@ func (as *AlertSystem) sendWebhookAlert(alert *AlertMessage) error {
 
 	}
 
-
-
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
 	defer cancel()
-
-
 
 	req, err := http.NewRequestWithContext(ctx, webhook.Method, webhook.URL, bytes.NewBuffer(payload))
 
@@ -761,15 +606,11 @@ func (as *AlertSystem) sendWebhookAlert(alert *AlertMessage) error {
 
 	}
 
-
-
 	for key, value := range webhook.Headers {
 
 		req.Header.Set(key, value)
 
 	}
-
-
 
 	resp, err := as.client.Do(req)
 
@@ -781,8 +622,6 @@ func (as *AlertSystem) sendWebhookAlert(alert *AlertMessage) error {
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 
 		body, _ := io.ReadAll(resp.Body)
@@ -791,23 +630,17 @@ func (as *AlertSystem) sendWebhookAlert(alert *AlertMessage) error {
 
 	}
 
-
-
 	ginkgo.By("Webhook alert sent successfully")
 
 	return nil
 
 }
 
-
-
 // formatSlackAlert formats alert for Slack.
 
 func (as *AlertSystem) formatSlackAlert(alert *AlertMessage) *SlackAlert {
 
 	color := as.getSeverityColor(alert.Severity)
-
-
 
 	fields := []SlackField{
 
@@ -818,7 +651,6 @@ func (as *AlertSystem) formatSlackAlert(alert *AlertMessage) *SlackAlert {
 			Value: strings.ToUpper(alert.Severity),
 
 			Short: true,
-
 		},
 
 		{
@@ -828,7 +660,6 @@ func (as *AlertSystem) formatSlackAlert(alert *AlertMessage) *SlackAlert {
 			Value: alert.Component,
 
 			Short: true,
-
 		},
 
 		{
@@ -838,7 +669,6 @@ func (as *AlertSystem) formatSlackAlert(alert *AlertMessage) *SlackAlert {
 			Value: alert.Environment,
 
 			Short: true,
-
 		},
 
 		{
@@ -848,12 +678,8 @@ func (as *AlertSystem) formatSlackAlert(alert *AlertMessage) *SlackAlert {
 			Value: alert.Timestamp.Format("2006-01-02 15:04:05 MST"),
 
 			Short: true,
-
 		},
-
 	}
-
-
 
 	// Add regression-specific fields.
 
@@ -868,7 +694,6 @@ func (as *AlertSystem) formatSlackAlert(alert *AlertMessage) *SlackAlert {
 				Value: fmt.Sprintf("%d detected", len(alert.RegressionData.PerformanceRegressions)),
 
 				Short: true,
-
 			},
 
 			SlackField{
@@ -878,7 +703,6 @@ func (as *AlertSystem) formatSlackAlert(alert *AlertMessage) *SlackAlert {
 				Value: fmt.Sprintf("%d detected", len(alert.RegressionData.FunctionalRegressions)),
 
 				Short: true,
-
 			},
 
 			SlackField{
@@ -888,7 +712,6 @@ func (as *AlertSystem) formatSlackAlert(alert *AlertMessage) *SlackAlert {
 				Value: fmt.Sprintf("%d detected", len(alert.RegressionData.SecurityRegressions)),
 
 				Short: true,
-
 			},
 
 			SlackField{
@@ -898,14 +721,10 @@ func (as *AlertSystem) formatSlackAlert(alert *AlertMessage) *SlackAlert {
 				Value: fmt.Sprintf("%d detected", len(alert.RegressionData.ProductionRegressions)),
 
 				Short: true,
-
 			},
-
 		)
 
 	}
-
-
 
 	// Add recommendations.
 
@@ -930,12 +749,9 @@ func (as *AlertSystem) formatSlackAlert(alert *AlertMessage) *SlackAlert {
 			Value: recText,
 
 			Short: false,
-
 		})
 
 	}
-
-
 
 	actions := []SlackAction{}
 
@@ -943,65 +759,55 @@ func (as *AlertSystem) formatSlackAlert(alert *AlertMessage) *SlackAlert {
 
 		actions = append(actions, SlackAction{
 
-			Type:  "button",
+			Type: "button",
 
-			Text:  link.Name,
+			Text: link.Name,
 
-			URL:   link.URL,
+			URL: link.URL,
 
 			Style: "primary",
-
 		})
 
 	}
 
-
-
 	return &SlackAlert{
 
-		Channel:   as.config.AlertSlackChannel,
+		Channel: as.config.AlertSlackChannel,
 
-		Username:  "Nephoran Quality Bot",
+		Username: "Nephoran Quality Bot",
 
 		IconEmoji: ":warning:",
 
-		Text:      fmt.Sprintf("<!channel> %s", alert.Title),
+		Text: fmt.Sprintf("<!channel> %s", alert.Title),
 
 		Attachments: []SlackAttachment{
 
 			{
 
-				Color:     color,
+				Color: color,
 
-				Title:     alert.Title,
+				Title: alert.Title,
 
-				Text:      alert.Description,
+				Text: alert.Description,
 
-				Fields:    fields,
+				Fields: fields,
 
-				Footer:    "Nephoran Intent Operator",
+				Footer: "Nephoran Intent Operator",
 
 				Timestamp: alert.Timestamp.Unix(),
 
-				Actions:   actions,
-
+				Actions: actions,
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // formatEmailAlert formats alert for email.
 
 func (as *AlertSystem) formatEmailAlert(alert *AlertMessage) *EmailAlert {
 
 	subject := fmt.Sprintf("[%s] %s", strings.ToUpper(alert.Severity), alert.Title)
-
-
 
 	body := fmt.Sprintf(`
 
@@ -1041,8 +847,6 @@ Details:
 
 		alert.Component, alert.Environment, alert.Severity, alert.BaselineID)
 
-
-
 	if len(alert.Recommendations) > 0 {
 
 		body += "\nRecommended Actions:\n"
@@ -1054,8 +858,6 @@ Details:
 		}
 
 	}
-
-
 
 	if len(alert.Links) > 0 {
 
@@ -1069,35 +871,25 @@ Details:
 
 	}
 
-
-
 	body += "\n--\nGenerated by Nephoran Intent Operator\n"
-
-
 
 	return &EmailAlert{
 
-		To:      alert.Recipients,
+		To: alert.Recipients,
 
 		Subject: subject,
 
-		Body:    body,
+		Body: body,
 
 		Headers: map[string]string{
 
 			"X-Priority": as.getEmailPriority(alert.Priority),
-
 		},
-
 	}
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (as *AlertSystem) generateAlertID(alertType, component string) string {
 
@@ -1107,13 +899,9 @@ func (as *AlertSystem) generateAlertID(alertType, component string) string {
 
 }
 
-
-
 func (as *AlertSystem) createRegressionDescription(detection *RegressionDetection) string {
 
 	parts := []string{}
-
-
 
 	if len(detection.PerformanceRegressions) > 0 {
 
@@ -1135,15 +923,11 @@ func (as *AlertSystem) createRegressionDescription(detection *RegressionDetectio
 
 	}
 
-
-
 	if len(detection.FunctionalRegressions) > 0 {
 
 		parts = append(parts, fmt.Sprintf("%d functional regression(s)", len(detection.FunctionalRegressions)))
 
 	}
-
-
 
 	if len(detection.SecurityRegressions) > 0 {
 
@@ -1151,27 +935,19 @@ func (as *AlertSystem) createRegressionDescription(detection *RegressionDetectio
 
 	}
 
-
-
 	if len(detection.ProductionRegressions) > 0 {
 
 		parts = append(parts, fmt.Sprintf("%d production readiness regression(s)", len(detection.ProductionRegressions)))
 
 	}
 
-
-
 	return strings.Join(parts, ", ")
 
 }
 
-
-
 func (as *AlertSystem) assessRegressionImpact(detection *RegressionDetection) string {
 
 	impacts := []string{}
-
-
 
 	// Assess performance impact.
 
@@ -1185,8 +961,6 @@ func (as *AlertSystem) assessRegressionImpact(detection *RegressionDetection) st
 
 	}
 
-
-
 	// Assess functional impact.
 
 	for _, reg := range detection.FunctionalRegressions {
@@ -1199,8 +973,6 @@ func (as *AlertSystem) assessRegressionImpact(detection *RegressionDetection) st
 
 	}
 
-
-
 	// Security regressions are always high impact.
 
 	if len(detection.SecurityRegressions) > 0 {
@@ -1208,8 +980,6 @@ func (as *AlertSystem) assessRegressionImpact(detection *RegressionDetection) st
 		impacts = append(impacts, "Security posture compromised")
 
 	}
-
-
 
 	// Production regressions are always high impact.
 
@@ -1219,27 +989,19 @@ func (as *AlertSystem) assessRegressionImpact(detection *RegressionDetection) st
 
 	}
 
-
-
 	if len(impacts) == 0 {
 
 		return "System quality degradation detected"
 
 	}
 
-
-
 	return strings.Join(impacts, "; ")
 
 }
 
-
-
 func (as *AlertSystem) getRegressionRecommendations(detection *RegressionDetection) []AlertRecommendation {
 
 	var recommendations []AlertRecommendation
-
-
 
 	// Performance recommendations.
 
@@ -1249,23 +1011,20 @@ func (as *AlertSystem) getRegressionRecommendations(detection *RegressionDetecti
 
 			recommendations = append(recommendations, AlertRecommendation{
 
-				Action:      "investigate_performance",
+				Action: "investigate_performance",
 
 				Description: reg.Recommendation,
 
-				Priority:    reg.Severity,
+				Priority: reg.Severity,
 
-				Owner:       "Performance Team",
+				Owner: "Performance Team",
 
-				Deadline:    as.calculateDeadline(reg.Severity),
-
+				Deadline: as.calculateDeadline(reg.Severity),
 			})
 
 		}
 
 	}
-
-
 
 	// Functional recommendations.
 
@@ -1275,23 +1034,20 @@ func (as *AlertSystem) getRegressionRecommendations(detection *RegressionDetecti
 
 			recommendations = append(recommendations, AlertRecommendation{
 
-				Action:      "fix_functional_tests",
+				Action: "fix_functional_tests",
 
 				Description: reg.Recommendation,
 
-				Priority:    reg.Severity,
+				Priority: reg.Severity,
 
-				Owner:       "Development Team",
+				Owner: "Development Team",
 
-				Deadline:    as.calculateDeadline(reg.Severity),
-
+				Deadline: as.calculateDeadline(reg.Severity),
 			})
 
 		}
 
 	}
-
-
 
 	// Security recommendations.
 
@@ -1299,21 +1055,19 @@ func (as *AlertSystem) getRegressionRecommendations(detection *RegressionDetecti
 
 		recommendations = append(recommendations, AlertRecommendation{
 
-			Action:      "address_security_issue",
+			Action: "address_security_issue",
 
 			Description: reg.Recommendation,
 
-			Priority:    "high", // Security is always high priority
+			Priority: "high", // Security is always high priority
 
-			Owner:       "Security Team",
+			Owner: "Security Team",
 
-			Deadline:    "24h", // Security issues have tight deadlines
+			Deadline: "24h", // Security issues have tight deadlines
 
 		})
 
 	}
-
-
 
 	// Production recommendations.
 
@@ -1321,21 +1075,18 @@ func (as *AlertSystem) getRegressionRecommendations(detection *RegressionDetecti
 
 		recommendations = append(recommendations, AlertRecommendation{
 
-			Action:      "fix_production_issue",
+			Action: "fix_production_issue",
 
 			Description: reg.Recommendation,
 
-			Priority:    "high",
+			Priority: "high",
 
-			Owner:       "SRE Team",
+			Owner: "SRE Team",
 
-			Deadline:    as.calculateDeadline("high"),
-
+			Deadline: as.calculateDeadline("high"),
 		})
 
 	}
-
-
 
 	// General recommendation if no specific ones.
 
@@ -1343,27 +1094,22 @@ func (as *AlertSystem) getRegressionRecommendations(detection *RegressionDetecti
 
 		recommendations = append(recommendations, AlertRecommendation{
 
-			Action:      "investigate_regression",
+			Action: "investigate_regression",
 
 			Description: "Review regression report and address identified issues",
 
-			Priority:    detection.RegressionSeverity,
+			Priority: detection.RegressionSeverity,
 
-			Owner:       "Development Team",
+			Owner: "Development Team",
 
-			Deadline:    as.calculateDeadline(detection.RegressionSeverity),
-
+			Deadline: as.calculateDeadline(detection.RegressionSeverity),
 		})
 
 	}
 
-
-
 	return recommendations
 
 }
-
-
 
 func (as *AlertSystem) getThresholdRecommendations(metric string, current, threshold float64) []AlertRecommendation {
 
@@ -1371,23 +1117,19 @@ func (as *AlertSystem) getThresholdRecommendations(metric string, current, thres
 
 		{
 
-			Action:      "investigate_threshold_breach",
+			Action: "investigate_threshold_breach",
 
 			Description: fmt.Sprintf("Investigate why %s exceeded threshold and implement corrective actions", metric),
 
-			Priority:    "medium",
+			Priority: "medium",
 
-			Owner:       "Operations Team",
+			Owner: "Operations Team",
 
-			Deadline:    "4h",
-
+			Deadline: "4h",
 		},
-
 	}
 
 }
-
-
 
 func (as *AlertSystem) getAnomalyRecommendations(anomaly *TrendAnomaly) []AlertRecommendation {
 
@@ -1395,23 +1137,19 @@ func (as *AlertSystem) getAnomalyRecommendations(anomaly *TrendAnomaly) []AlertR
 
 		{
 
-			Action:      "investigate_anomaly",
+			Action: "investigate_anomaly",
 
 			Description: fmt.Sprintf("Investigate unusual behavior in %s: %s", anomaly.MetricName, anomaly.PossibleCause),
 
-			Priority:    anomaly.Severity,
+			Priority: anomaly.Severity,
 
-			Owner:       "Development Team",
+			Owner: "Development Team",
 
-			Deadline:    as.calculateDeadline(anomaly.Severity),
-
+			Deadline: as.calculateDeadline(anomaly.Severity),
 		},
-
 	}
 
 }
-
-
 
 func (as *AlertSystem) mapSeverityToPriority(severity string) string {
 
@@ -1437,8 +1175,6 @@ func (as *AlertSystem) mapSeverityToPriority(severity string) string {
 
 }
 
-
-
 func (as *AlertSystem) getSeverityColor(severity string) string {
 
 	switch strings.ToLower(severity) {
@@ -1462,8 +1198,6 @@ func (as *AlertSystem) getSeverityColor(severity string) string {
 	}
 
 }
-
-
 
 func (as *AlertSystem) getEmailPriority(priority string) string {
 
@@ -1489,8 +1223,6 @@ func (as *AlertSystem) getEmailPriority(priority string) string {
 
 }
 
-
-
 func (as *AlertSystem) calculateDeadline(severity string) string {
 
 	switch strings.ToLower(severity) {
@@ -1515,13 +1247,9 @@ func (as *AlertSystem) calculateDeadline(severity string) string {
 
 }
 
-
-
 func (as *AlertSystem) getCategoriesString(detection *RegressionDetection) string {
 
 	categories := []string{}
-
-
 
 	if len(detection.PerformanceRegressions) > 0 {
 
@@ -1547,13 +1275,9 @@ func (as *AlertSystem) getCategoriesString(detection *RegressionDetection) strin
 
 	}
 
-
-
 	return strings.Join(categories, ",")
 
 }
-
-
 
 func (as *AlertSystem) describeThresholdImpact(metric string, current, threshold float64) string {
 
@@ -1562,4 +1286,3 @@ func (as *AlertSystem) describeThresholdImpact(metric string, current, threshold
 		metric, ((current-threshold)/threshold)*100)
 
 }
-

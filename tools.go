@@ -1,8 +1,5 @@
 //go:build tools
-
 // +build tools
-
-
 
 // Package tools provides a mechanism for tracking build tool dependencies.
 
@@ -16,46 +13,22 @@
 
 // To update tools: go get -u <tool>@latest && go mod tidy.
 
-
 package tools
 
-
-
 import (
-
-	// SBOM generation tools.
-
 	_ "github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod"
-
-	// Code generation and build tools.
-
 	_ "github.com/golang/mock/mockgen"
-
-	// Testing and quality tools.
-
 	_ "github.com/onsi/ginkgo/v2/ginkgo"
-
-	// Documentation and API tools.
-
 	_ "github.com/swaggo/swag/cmd/swag"
-
-	// Security and vulnerability tools.
-
 	_ "golang.org/x/vuln/cmd/govulncheck"
 
 	_ "k8s.io/code-generator/cmd/client-gen"
-
 	_ "k8s.io/code-generator/cmd/deepcopy-gen"
-
 	_ "k8s.io/code-generator/cmd/informer-gen"
-
 	_ "k8s.io/code-generator/cmd/lister-gen"
 
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
-
 )
-
-
 
 // Tool versions - update these when upgrading tools.
 
@@ -69,8 +42,6 @@ const (
 
 	CodeGeneratorVersion = "v0.32.0"
 
-
-
 	// Security toolchain.
 
 	GovulncheckVersion = "v1.1.4"
@@ -78,8 +49,6 @@ const (
 	// GolangciLintVersion holds golangcilintversion value.
 
 	GolangciLintVersion = "v1.63.4"
-
-
 
 	// Testing toolchain.
 
@@ -93,13 +62,9 @@ const (
 
 	MockeryVersion = "v2.50.2"
 
-
-
 	// SBOM and compliance.
 
 	CycloneDXVersion = "v1.6.0"
-
-
 
 	// Build and deployment.
 
@@ -109,15 +74,10 @@ const (
 
 	KoVersion = "v0.17.2"
 
-
-
 	// Documentation.
 
 	SwagVersion = "v1.16.4"
-
 )
-
-
 
 //go:generate go install k8s.io/code-generator/cmd/client-gen
 
@@ -155,37 +115,32 @@ const (
 
 //go:generate go install github.com/git-chglog/git-chglog/cmd/git-chglog
 
-
-
 // Tool installation verification.
 
 var toolVersions = map[string]string{
 
-	"controller-gen":  ControllerToolsVersion,
+	"controller-gen": ControllerToolsVersion,
 
-	"deepcopy-gen":    CodeGeneratorVersion,
+	"deepcopy-gen": CodeGeneratorVersion,
 
-	"mockgen":         MockgenVersion,
+	"mockgen": MockgenVersion,
 
-	"govulncheck":     GovulncheckVersion,
+	"govulncheck": GovulncheckVersion,
 
-	"golangci-lint":   GolangciLintVersion,
+	"golangci-lint": GolangciLintVersion,
 
-	"ginkgo":          GinkgoVersion,
+	"ginkgo": GinkgoVersion,
 
-	"mockery":         MockeryVersion,
+	"mockery": MockeryVersion,
 
 	"cyclonedx-gomod": CycloneDXVersion,
 
-	"helm":            HelmVersion,
+	"helm": HelmVersion,
 
-	"ko":              KoVersion,
+	"ko": KoVersion,
 
-	"swag":            SwagVersion,
-
+	"swag": SwagVersion,
 }
-
-
 
 // GetToolVersion returns the expected version for a given tool.
 
@@ -194,8 +149,6 @@ func GetToolVersion(tool string) string {
 	return toolVersions[tool]
 
 }
-
-
 
 // GetAllToolVersions returns all tool versions for verification.
 
@@ -212,4 +165,3 @@ func GetAllToolVersions() map[string]string {
 	return result
 
 }
-

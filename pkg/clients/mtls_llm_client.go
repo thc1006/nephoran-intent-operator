@@ -1,111 +1,79 @@
-
 package clients
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"net/http"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-
 )
-
-
 
 // MTLSLLMClient provides mTLS-enabled LLM processor client functionality.
 
 type MTLSLLMClient struct {
-
-	baseURL    string
+	baseURL string
 
 	httpClient *http.Client
 
-	logger     *logging.StructuredLogger
-
+	logger *logging.StructuredLogger
 }
-
-
 
 // LLMRequest represents a request to the LLM processor.
 
 type LLMRequest struct {
+	Prompt string `json:"prompt"`
 
-	Prompt      string                 `json:"prompt"`
+	Model string `json:"model,omitempty"`
 
-	Model       string                 `json:"model,omitempty"`
+	MaxTokens int `json:"max_tokens,omitempty"`
 
-	MaxTokens   int                    `json:"max_tokens,omitempty"`
+	Temperature float64 `json:"temperature,omitempty"`
 
-	Temperature float64                `json:"temperature,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	UseRAG bool `json:"use_rag,omitempty"`
 
-	UseRAG      bool                   `json:"use_rag,omitempty"`
-
-	RAGContext  []string               `json:"rag_context,omitempty"`
-
+	RAGContext []string `json:"rag_context,omitempty"`
 }
-
-
 
 // LLMResponse represents a response from the LLM processor.
 
 type LLMResponse struct {
+	Content string `json:"content"`
 
-	Content        string                 `json:"content"`
+	Model string `json:"model"`
 
-	Model          string                 `json:"model"`
+	TokensUsed int `json:"tokens_used"`
 
-	TokensUsed     int                    `json:"tokens_used"`
+	FinishReason string `json:"finish_reason"`
 
-	FinishReason   string                 `json:"finish_reason"`
+	Metadata map[string]interface{} `json:"metadata"`
 
-	Metadata       map[string]interface{} `json:"metadata"`
+	ProcessingTime time.Duration `json:"processing_time"`
 
-	ProcessingTime time.Duration          `json:"processing_time"`
+	RAGUsed bool `json:"rag_used"`
 
-	RAGUsed        bool                   `json:"rag_used"`
-
-	RAGSources     []string               `json:"rag_sources,omitempty"`
-
+	RAGSources []string `json:"rag_sources,omitempty"`
 }
-
-
 
 // StreamingResponse represents a streaming response chunk.
 
 type StreamingResponse struct {
+	Content string `json:"content"`
 
-	Content   string                 `json:"content"`
+	Delta string `json:"delta"`
 
-	Delta     string                 `json:"delta"`
+	IsLast bool `json:"is_last"`
 
-	IsLast    bool                   `json:"is_last"`
+	Metadata map[string]interface{} `json:"metadata"`
 
-	Metadata  map[string]interface{} `json:"metadata"`
-
-	Timestamp time.Time              `json:"timestamp"`
-
+	Timestamp time.Time `json:"timestamp"`
 }
-
-
 
 // ProcessIntent processes an intent using the LLM processor with mTLS.
 
@@ -117,15 +85,11 @@ func (c *MTLSLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 
 	}
 
-
-
 	c.logger.Debug("processing intent via mTLS LLM client",
 
 		"prompt_length", len(prompt),
 
 		"base_url", c.baseURL)
-
-
 
 	// Create request.
 
@@ -139,13 +103,9 @@ func (c *MTLSLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 
 			"request_type": "intent_processing",
 
-			"timestamp":    time.Now(),
-
+			"timestamp": time.Now(),
 		},
-
 	}
-
-
 
 	// Make request to LLM processor.
 
@@ -157,8 +117,6 @@ func (c *MTLSLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 
 	}
 
-
-
 	c.logger.Debug("intent processed successfully",
 
 		"response_length", len(response.Content),
@@ -169,13 +127,9 @@ func (c *MTLSLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 
 		"rag_used", response.RAGUsed)
 
-
-
 	return response.Content, nil
 
 }
-
-
 
 // ProcessIntentStream processes an intent with streaming response.
 
@@ -187,19 +141,13 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 
 	}
 
-
-
 	defer close(chunks)
-
-
 
 	c.logger.Debug("processing intent stream via mTLS LLM client",
 
 		"prompt_length", len(prompt),
 
 		"base_url", c.baseURL)
-
-
 
 	// Create request.
 
@@ -213,19 +161,13 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 
 			"request_type": "streaming_intent_processing",
 
-			"timestamp":    time.Now(),
-
+			"timestamp": time.Now(),
 		},
-
 	}
-
-
 
 	// Create HTTP request.
 
 	url := fmt.Sprintf("%s/api/v1/stream", c.baseURL)
-
-
 
 	reqBody, err := json.Marshal(req)
 
@@ -235,8 +177,6 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 
 	}
 
-
-
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(reqBody))
 
 	if err != nil {
@@ -245,13 +185,9 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 
 	}
 
-
-
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	httpReq.Header.Set("Accept", "text/event-stream")
-
-
 
 	// Make request.
 
@@ -265,8 +201,6 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		body, _ := io.ReadAll(resp.Body)
@@ -275,13 +209,9 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 
 	}
 
-
-
 	// Process streaming response.
 
 	decoder := json.NewDecoder(resp.Body)
-
-
 
 	for {
 
@@ -294,8 +224,6 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 		default:
 
 		}
-
-
 
 		var streamResp StreamingResponse
 
@@ -311,23 +239,18 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 
 		}
 
-
-
 		// Convert to shared.StreamingChunk.
 
 		chunk := &shared.StreamingChunk{
 
-			Content:   streamResp.Content,
+			Content: streamResp.Content,
 
-			IsLast:    streamResp.IsLast,
+			IsLast: streamResp.IsLast,
 
-			Metadata:  streamResp.Metadata,
+			Metadata: streamResp.Metadata,
 
 			Timestamp: streamResp.Timestamp,
-
 		}
-
-
 
 		select {
 
@@ -339,8 +262,6 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 
 		}
 
-
-
 		if streamResp.IsLast {
 
 			break
@@ -349,17 +270,11 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 
 	}
 
-
-
 	c.logger.Debug("intent stream processing completed")
-
-
 
 	return nil
 
 }
-
-
 
 // GetSupportedModels returns the list of supported models.
 
@@ -369,11 +284,7 @@ func (c *MTLSLLMClient) GetSupportedModels() []string {
 
 	defer cancel()
 
-
-
 	url := fmt.Sprintf("%s/api/v1/models", c.baseURL)
-
-
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
 
@@ -384,8 +295,6 @@ func (c *MTLSLLMClient) GetSupportedModels() []string {
 		return []string{}
 
 	}
-
-
 
 	resp, err := c.httpClient.Do(httpReq)
 
@@ -399,8 +308,6 @@ func (c *MTLSLLMClient) GetSupportedModels() []string {
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		c.logger.Error("models request failed", "status", resp.StatusCode)
@@ -408,8 +315,6 @@ func (c *MTLSLLMClient) GetSupportedModels() []string {
 		return []string{}
 
 	}
-
-
 
 	var models []string
 
@@ -421,13 +326,9 @@ func (c *MTLSLLMClient) GetSupportedModels() []string {
 
 	}
 
-
-
 	return models
 
 }
-
-
 
 // GetModelCapabilities returns capabilities for a specific model.
 
@@ -437,11 +338,7 @@ func (c *MTLSLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCap
 
 	defer cancel()
 
-
-
 	url := fmt.Sprintf("%s/api/v1/models/%s/capabilities", c.baseURL, modelName)
-
-
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
 
@@ -450,8 +347,6 @@ func (c *MTLSLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCap
 		return nil, fmt.Errorf("failed to create capabilities request: %w", err)
 
 	}
-
-
 
 	resp, err := c.httpClient.Do(httpReq)
 
@@ -463,8 +358,6 @@ func (c *MTLSLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCap
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		body, _ := io.ReadAll(resp.Body)
@@ -472,8 +365,6 @@ func (c *MTLSLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCap
 		return nil, fmt.Errorf("capabilities request failed with status %d: %s", resp.StatusCode, string(body))
 
 	}
-
-
 
 	var capabilities shared.ModelCapabilities
 
@@ -483,21 +374,15 @@ func (c *MTLSLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCap
 
 	}
 
-
-
 	return &capabilities, nil
 
 }
-
-
 
 // ValidateModel validates if a model is supported.
 
 func (c *MTLSLLMClient) ValidateModel(modelName string) error {
 
 	supportedModels := c.GetSupportedModels()
-
-
 
 	for _, model := range supportedModels {
 
@@ -509,13 +394,9 @@ func (c *MTLSLLMClient) ValidateModel(modelName string) error {
 
 	}
 
-
-
 	return fmt.Errorf("model %s is not supported", modelName)
 
 }
-
-
 
 // EstimateTokens estimates the token count for given text.
 
@@ -528,8 +409,6 @@ func (c *MTLSLLMClient) EstimateTokens(text string) int {
 	return len(text) / 4
 
 }
-
-
 
 // GetMaxTokens returns the maximum tokens for a model.
 
@@ -549,21 +428,15 @@ func (c *MTLSLLMClient) GetMaxTokens(modelName string) int {
 
 	}
 
-
-
 	return capabilities.MaxTokens
 
 }
-
-
 
 // makeRequest makes an HTTP request to the LLM processor.
 
 func (c *MTLSLLMClient) makeRequest(ctx context.Context, endpoint string, request *LLMRequest) (*LLMResponse, error) {
 
 	url := fmt.Sprintf("%s%s", c.baseURL, endpoint)
-
-
 
 	reqBody, err := json.Marshal(request)
 
@@ -573,8 +446,6 @@ func (c *MTLSLLMClient) makeRequest(ctx context.Context, endpoint string, reques
 
 	}
 
-
-
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(reqBody))
 
 	if err != nil {
@@ -583,13 +454,9 @@ func (c *MTLSLLMClient) makeRequest(ctx context.Context, endpoint string, reques
 
 	}
 
-
-
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	httpReq.Header.Set("Accept", "application/json")
-
-
 
 	c.logger.Debug("making LLM request",
 
@@ -598,8 +465,6 @@ func (c *MTLSLLMClient) makeRequest(ctx context.Context, endpoint string, reques
 		"method", httpReq.Method,
 
 		"content_length", len(reqBody))
-
-
 
 	resp, err := c.httpClient.Do(httpReq)
 
@@ -611,15 +476,11 @@ func (c *MTLSLLMClient) makeRequest(ctx context.Context, endpoint string, reques
 
 	defer resp.Body.Close()
 
-
-
 	c.logger.Debug("received LLM response",
 
 		"status_code", resp.StatusCode,
 
 		"content_length", resp.ContentLength)
-
-
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -629,8 +490,6 @@ func (c *MTLSLLMClient) makeRequest(ctx context.Context, endpoint string, reques
 
 	}
 
-
-
 	var response LLMResponse
 
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
@@ -639,21 +498,15 @@ func (c *MTLSLLMClient) makeRequest(ctx context.Context, endpoint string, reques
 
 	}
 
-
-
 	return &response, nil
 
 }
-
-
 
 // Close closes the LLM client and cleans up resources.
 
 func (c *MTLSLLMClient) Close() error {
 
 	c.logger.Debug("closing mTLS LLM client")
-
-
 
 	// Close idle connections in HTTP client.
 
@@ -663,13 +516,9 @@ func (c *MTLSLLMClient) Close() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetHealth returns the health status of the LLM service.
 
@@ -679,11 +528,7 @@ func (c *MTLSLLMClient) GetHealth() (*HealthStatus, error) {
 
 	defer cancel()
 
-
-
 	url := fmt.Sprintf("%s/health", c.baseURL)
-
-
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
 
@@ -693,39 +538,31 @@ func (c *MTLSLLMClient) GetHealth() (*HealthStatus, error) {
 
 	}
 
-
-
 	resp, err := c.httpClient.Do(httpReq)
 
 	if err != nil {
 
 		return &HealthStatus{
 
-			Status:  "unhealthy",
+			Status: "unhealthy",
 
 			Message: fmt.Sprintf("failed to connect: %v", err),
-
 		}, nil
 
 	}
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return &HealthStatus{
 
-			Status:  "unhealthy",
+			Status: "unhealthy",
 
 			Message: fmt.Sprintf("health check failed with status %d", resp.StatusCode),
-
 		}, nil
 
 	}
-
-
 
 	var health HealthStatus
 
@@ -733,33 +570,25 @@ func (c *MTLSLLMClient) GetHealth() (*HealthStatus, error) {
 
 		return &HealthStatus{
 
-			Status:  "unknown",
+			Status: "unknown",
 
 			Message: fmt.Sprintf("failed to decode health response: %v", err),
-
 		}, nil
 
 	}
-
-
 
 	return &health, nil
 
 }
 
-
-
 // HealthStatus represents the health status of a service.
 
 type HealthStatus struct {
+	Status string `json:"status"`
 
-	Status    string                 `json:"status"`
+	Message string `json:"message,omitempty"`
 
-	Message   string                 `json:"message,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time              `json:"timestamp"`
-
-	Details   map[string]interface{} `json:"details,omitempty"`
-
+	Details map[string]interface{} `json:"details,omitempty"`
 }
-

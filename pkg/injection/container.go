@@ -1,63 +1,37 @@
-
 package injection
 
-
-
 import (
-
 	"fmt"
-
 	"net/http"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/security"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
 
-
-
 	"k8s.io/client-go/tools/record"
-
 )
-
-
 
 // Container manages dependency injection for the Nephoran Intent Operator.
 
 type Container struct {
-
-	mu         sync.RWMutex
+	mu sync.RWMutex
 
 	singletons map[string]interface{}
 
-	providers  map[string]Provider
+	providers map[string]Provider
 
-	config     *config.Constants
-
+	config *config.Constants
 }
-
-
 
 // Provider defines a function that creates a dependency.
 
 type Provider func(c *Container) (interface{}, error)
-
-
 
 // NewContainer creates a new dependency injection container.
 
@@ -69,19 +43,14 @@ func NewContainer(constants *config.Constants) *Container {
 
 	}
 
-
-
 	c := &Container{
 
 		singletons: make(map[string]interface{}),
 
-		providers:  make(map[string]Provider),
+		providers: make(map[string]Provider),
 
-		config:     constants,
-
+		config: constants,
 	}
-
-
 
 	// Register all providers.
 
@@ -90,8 +59,6 @@ func NewContainer(constants *config.Constants) *Container {
 	return c
 
 }
-
-
 
 // RegisterProvider registers a provider function for a dependency type.
 
@@ -105,8 +72,6 @@ func (c *Container) RegisterProvider(name string, provider Provider) {
 
 }
 
-
-
 // RegisterSingleton registers a singleton instance.
 
 func (c *Container) RegisterSingleton(name string, instance interface{}) {
@@ -118,8 +83,6 @@ func (c *Container) RegisterSingleton(name string, instance interface{}) {
 	c.singletons[name] = instance
 
 }
-
-
 
 // Get retrieves a dependency by name, creating it if necessary.
 
@@ -141,15 +104,11 @@ func (c *Container) Get(name string) (interface{}, error) {
 
 	c.mu.RUnlock()
 
-
-
 	if !exists {
 
 		return nil, fmt.Errorf("no provider registered for dependency: %s", name)
 
 	}
-
-
 
 	// Create the instance.
 
@@ -160,8 +119,6 @@ func (c *Container) Get(name string) (interface{}, error) {
 		return nil, fmt.Errorf("failed to create dependency %s: %w", name, err)
 
 	}
-
-
 
 	// Store as singleton if it doesn't already exist.
 
@@ -181,13 +138,9 @@ func (c *Container) Get(name string) (interface{}, error) {
 
 	c.mu.Unlock()
 
-
-
 	return instance, nil
 
 }
-
-
 
 // Factory methods with error handling for internal use.
 
@@ -205,8 +158,6 @@ func (c *Container) getHTTPClient() (*http.Client, error) {
 
 }
 
-
-
 func (c *Container) getGitClient() (git.ClientInterface, error) {
 
 	dep, err := c.Get("git_client")
@@ -220,8 +171,6 @@ func (c *Container) getGitClient() (git.ClientInterface, error) {
 	return dep.(git.ClientInterface), nil
 
 }
-
-
 
 func (c *Container) getLLMClient() (shared.ClientInterface, error) {
 
@@ -237,8 +186,6 @@ func (c *Container) getLLMClient() (shared.ClientInterface, error) {
 
 }
 
-
-
 func (c *Container) getPackageGenerator() (*nephio.PackageGenerator, error) {
 
 	dep, err := c.Get("package_generator")
@@ -252,8 +199,6 @@ func (c *Container) getPackageGenerator() (*nephio.PackageGenerator, error) {
 	return dep.(*nephio.PackageGenerator), nil
 
 }
-
-
 
 func (c *Container) getTelecomKnowledgeBase() (*telecom.TelecomKnowledgeBase, error) {
 
@@ -269,8 +214,6 @@ func (c *Container) getTelecomKnowledgeBase() (*telecom.TelecomKnowledgeBase, er
 
 }
 
-
-
 func (c *Container) getMetricsCollector() (*monitoring.MetricsCollector, error) {
 
 	dep, err := c.Get("metrics_collector")
@@ -284,8 +227,6 @@ func (c *Container) getMetricsCollector() (*monitoring.MetricsCollector, error) 
 	return dep.(*monitoring.MetricsCollector), nil
 
 }
-
-
 
 // GetLLMSanitizer returns the LLM sanitizer dependency.
 
@@ -303,8 +244,6 @@ func (c *Container) GetLLMSanitizer() (*security.LLMSanitizer, error) {
 
 }
 
-
-
 // Dependencies interface methods - these match the interface expected by controllers.
 
 func (c *Container) GetHTTPClient() *http.Client {
@@ -320,8 +259,6 @@ func (c *Container) GetHTTPClient() *http.Client {
 	return client
 
 }
-
-
 
 // GetGitClient performs getgitclient operation.
 
@@ -339,8 +276,6 @@ func (c *Container) GetGitClient() git.ClientInterface {
 
 }
 
-
-
 // GetLLMClient performs getllmclient operation.
 
 func (c *Container) GetLLMClient() shared.ClientInterface {
@@ -356,8 +291,6 @@ func (c *Container) GetLLMClient() shared.ClientInterface {
 	return client
 
 }
-
-
 
 // GetPackageGenerator performs getpackagegenerator operation.
 
@@ -375,8 +308,6 @@ func (c *Container) GetPackageGenerator() *nephio.PackageGenerator {
 
 }
 
-
-
 // GetTelecomKnowledgeBase performs gettelecomknowledgebase operation.
 
 func (c *Container) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
@@ -393,8 +324,6 @@ func (c *Container) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
 
 }
 
-
-
 // GetMetricsCollector performs getmetricscollector operation.
 
 func (c *Container) GetMetricsCollector() *monitoring.MetricsCollector {
@@ -410,8 +339,6 @@ func (c *Container) GetMetricsCollector() *monitoring.MetricsCollector {
 	return collector
 
 }
-
-
 
 // GetEventRecorder performs geteventrecorder operation.
 
@@ -431,8 +358,6 @@ func (c *Container) GetEventRecorder() record.EventRecorder {
 
 }
 
-
-
 // SetEventRecorder sets the event recorder instance.
 
 func (c *Container) SetEventRecorder(recorder record.EventRecorder) {
@@ -441,8 +366,6 @@ func (c *Container) SetEventRecorder(recorder record.EventRecorder) {
 
 }
 
-
-
 // GetConfig returns the configuration constants.
 
 func (c *Container) GetConfig() *config.Constants {
@@ -450,8 +373,6 @@ func (c *Container) GetConfig() *config.Constants {
 	return c.config
 
 }
-
-
 
 // registerProviders registers all the default providers.
 
@@ -474,4 +395,3 @@ func (c *Container) registerProviders() {
 	c.RegisterProvider("llm_sanitizer", LLMSanitizerProvider)
 
 }
-

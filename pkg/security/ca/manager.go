@@ -1,43 +1,23 @@
-
 package ca
 
-
-
 import (
-
 	"context"
-
 	"crypto/rand"
-
 	"crypto/x509"
-
 	"crypto/x509/pkix"
-
 	"fmt"
-
 	"net/url"
-
 	"sync"
-
 	"time"
-
-
 
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // CABackendType represents the type of CA backend.
 
 type CABackendType string
-
-
 
 const (
 
@@ -60,40 +40,33 @@ const (
 	// BackendHSM holds backendhsm value.
 
 	BackendHSM CABackendType = "hsm"
-
 )
-
-
 
 // CAManager manages Certificate Authorities and certificate lifecycle.
 
 type CAManager struct {
+	config *Config
 
-	config          *Config
+	logger *logging.StructuredLogger
 
-	logger          *logging.StructuredLogger
+	client client.Client
 
-	client          client.Client
-
-	backends        map[CABackendType]Backend
+	backends map[CABackendType]Backend
 
 	certificatePool *CertificatePool
 
-	policyEngine    *PolicyEngine
+	policyEngine *PolicyEngine
 
-	distributor     *CertificateDistributor
+	distributor *CertificateDistributor
 
-	monitor         *CAMonitor
+	monitor *CAMonitor
 
-	mu              sync.RWMutex
+	mu sync.RWMutex
 
-	ctx             context.Context
+	ctx context.Context
 
-	cancel          context.CancelFunc
-
+	cancel context.CancelFunc
 }
-
-
 
 // Config holds CA manager configuration.
 
@@ -101,375 +74,304 @@ type Config struct {
 
 	// Global settings.
 
-	DefaultBackend     CABackendType                 `yaml:"default_backend"`
+	DefaultBackend CABackendType `yaml:"default_backend"`
 
-	BackendConfigs     map[CABackendType]interface{} `yaml:"backend_configs"`
+	BackendConfigs map[CABackendType]interface{} `yaml:"backend_configs"`
 
-	CertificateStore   *CertificateStoreConfig       `yaml:"certificate_store"`
+	CertificateStore *CertificateStoreConfig `yaml:"certificate_store"`
 
-	DistributionConfig *DistributionConfig           `yaml:"distribution_config"`
+	DistributionConfig *DistributionConfig `yaml:"distribution_config"`
 
-	PolicyConfig       *PolicyConfig                 `yaml:"policy_config"`
+	PolicyConfig *PolicyConfig `yaml:"policy_config"`
 
-	MonitoringConfig   *MonitoringConfig             `yaml:"monitoring_config"`
-
-
+	MonitoringConfig *MonitoringConfig `yaml:"monitoring_config"`
 
 	// Lifecycle settings.
 
 	DefaultValidityDuration time.Duration `yaml:"default_validity_duration"`
 
-	RenewalThreshold        time.Duration `yaml:"renewal_threshold"`
+	RenewalThreshold time.Duration `yaml:"renewal_threshold"`
 
-	MaxRetryAttempts        int           `yaml:"max_retry_attempts"`
+	MaxRetryAttempts int `yaml:"max_retry_attempts"`
 
-	RetryBackoff            time.Duration `yaml:"retry_backoff"`
-
-
+	RetryBackoff time.Duration `yaml:"retry_backoff"`
 
 	// Security settings.
 
-	KeySize             int           `yaml:"key_size"`
+	KeySize int `yaml:"key_size"`
 
-	AllowedKeyTypes     []string      `yaml:"allowed_key_types"`
+	AllowedKeyTypes []string `yaml:"allowed_key_types"`
 
 	MinValidityDuration time.Duration `yaml:"min_validity_duration"`
 
 	MaxValidityDuration time.Duration `yaml:"max_validity_duration"`
 
-	RequireApproval     bool          `yaml:"require_approval"`
+	RequireApproval bool `yaml:"require_approval"`
 
-	AutoRotationEnabled bool          `yaml:"auto_rotation_enabled"`
-
-
+	AutoRotationEnabled bool `yaml:"auto_rotation_enabled"`
 
 	// Multi-tenancy.
 
-	TenantSupport bool                       `yaml:"tenant_support"`
+	TenantSupport bool `yaml:"tenant_support"`
 
 	TenantConfigs map[string]*TenantCAConfig `yaml:"tenant_configs"`
 
-	DefaultTenant string                     `yaml:"default_tenant"`
-
+	DefaultTenant string `yaml:"default_tenant"`
 }
-
-
 
 // CertificateStoreConfig configures certificate storage.
 
 type CertificateStoreConfig struct {
+	Type string `yaml:"type"` // kubernetes, vault, external
 
-	Type            string        `yaml:"type"` // kubernetes, vault, external
+	Namespace string `yaml:"namespace"`
 
-	Namespace       string        `yaml:"namespace"`
+	SecretPrefix string `yaml:"secret_prefix"`
 
-	SecretPrefix    string        `yaml:"secret_prefix"`
+	EncryptionKey string `yaml:"encryption_key"`
 
-	EncryptionKey   string        `yaml:"encryption_key"`
+	BackupEnabled bool `yaml:"backup_enabled"`
 
-	BackupEnabled   bool          `yaml:"backup_enabled"`
-
-	BackupInterval  time.Duration `yaml:"backup_interval"`
+	BackupInterval time.Duration `yaml:"backup_interval"`
 
 	RetentionPeriod time.Duration `yaml:"retention_period"`
-
 }
-
-
 
 // DistributionConfig configures certificate distribution.
 
 type DistributionConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled            bool                `yaml:"enabled"`
+	HotReloadEnabled bool `yaml:"hot_reload_enabled"`
 
-	HotReloadEnabled   bool                `yaml:"hot_reload_enabled"`
+	WatchIntervals time.Duration `yaml:"watch_intervals"`
 
-	WatchIntervals     time.Duration       `yaml:"watch_intervals"`
-
-	DistributionPaths  map[string]string   `yaml:"distribution_paths"`
+	DistributionPaths map[string]string `yaml:"distribution_paths"`
 
 	NotificationConfig *NotificationConfig `yaml:"notification_config"`
-
 }
-
-
 
 // NotificationConfig configures certificate notifications.
 
 type NotificationConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled     bool         `yaml:"enabled"`
+	Webhooks []string `yaml:"webhooks"`
 
-	Webhooks    []string     `yaml:"webhooks"`
-
-	EmailSMTP   *SMTPConfig  `yaml:"email_smtp"`
+	EmailSMTP *SMTPConfig `yaml:"email_smtp"`
 
 	SlackConfig *SlackConfig `yaml:"slack_config"`
-
 }
-
-
 
 // SMTPConfig configures SMTP notifications.
 
 type SMTPConfig struct {
+	Host string `yaml:"host"`
 
-	Host     string   `yaml:"host"`
+	Port int `yaml:"port"`
 
-	Port     int      `yaml:"port"`
+	Username string `yaml:"username"`
 
-	Username string   `yaml:"username"`
+	Password string `yaml:"password"`
 
-	Password string   `yaml:"password"`
+	From string `yaml:"from"`
 
-	From     string   `yaml:"from"`
-
-	To       []string `yaml:"to"`
-
+	To []string `yaml:"to"`
 }
-
-
 
 // SlackConfig configures Slack notifications.
 
 type SlackConfig struct {
-
 	WebhookURL string `yaml:"webhook_url"`
 
-	Channel    string `yaml:"channel"`
-
+	Channel string `yaml:"channel"`
 }
-
-
 
 // PolicyConfig configures certificate policies.
 
 type PolicyConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled          bool                       `yaml:"enabled"`
+	PolicyTemplates map[string]*PolicyTemplate `yaml:"policy_templates"`
 
-	PolicyTemplates  map[string]*PolicyTemplate `yaml:"policy_templates"`
+	ValidationRules []ValidationRule `yaml:"validation_rules"`
 
-	ValidationRules  []ValidationRule           `yaml:"validation_rules"`
+	ApprovalRequired bool `yaml:"approval_required"`
 
-	ApprovalRequired bool                       `yaml:"approval_required"`
-
-	ApprovalWorkflow *ApprovalWorkflow          `yaml:"approval_workflow"`
-
+	ApprovalWorkflow *ApprovalWorkflow `yaml:"approval_workflow"`
 }
-
-
 
 // PolicyTemplate defines certificate policy templates.
 
 type PolicyTemplate struct {
+	Name string `yaml:"name"`
 
-	Name             string            `yaml:"name"`
+	KeyUsage []string `yaml:"key_usage"`
 
-	KeyUsage         []string          `yaml:"key_usage"`
+	ExtKeyUsage []string `yaml:"ext_key_usage"`
 
-	ExtKeyUsage      []string          `yaml:"ext_key_usage"`
+	ValidityDuration time.Duration `yaml:"validity_duration"`
 
-	ValidityDuration time.Duration     `yaml:"validity_duration"`
+	KeySize int `yaml:"key_size"`
 
-	KeySize          int               `yaml:"key_size"`
+	AllowedSANTypes []string `yaml:"allowed_san_types"`
 
-	AllowedSANTypes  []string          `yaml:"allowed_san_types"`
-
-	RequiredFields   []string          `yaml:"required_fields"`
+	RequiredFields []string `yaml:"required_fields"`
 
 	CustomExtensions map[string]string `yaml:"custom_extensions"`
-
 }
-
-
 
 // ValidationRule defines certificate validation rules.
 
 type ValidationRule struct {
+	Name string `yaml:"name"`
 
-	Name         string `yaml:"name"`
+	Type string `yaml:"type"` // subject, san, key_usage, etc.
 
-	Type         string `yaml:"type"` // subject, san, key_usage, etc.
+	Pattern string `yaml:"pattern"`
 
-	Pattern      string `yaml:"pattern"`
-
-	Required     bool   `yaml:"required"`
+	Required bool `yaml:"required"`
 
 	ErrorMessage string `yaml:"error_message"`
-
 }
-
-
 
 // ApprovalWorkflow defines certificate approval workflow.
 
 type ApprovalWorkflow struct {
+	Stages []ApprovalStage `yaml:"stages"`
 
-	Stages     []ApprovalStage   `yaml:"stages"`
-
-	Timeout    time.Duration     `yaml:"timeout"`
+	Timeout time.Duration `yaml:"timeout"`
 
 	Escalation *EscalationConfig `yaml:"escalation"`
-
 }
-
-
 
 // ApprovalStage defines an approval stage.
 
 type ApprovalStage struct {
+	Name string `yaml:"name"`
 
-	Name         string        `yaml:"name"`
+	Approvers []string `yaml:"approvers"`
 
-	Approvers    []string      `yaml:"approvers"`
+	MinApprovals int `yaml:"min_approvals"`
 
-	MinApprovals int           `yaml:"min_approvals"`
-
-	Timeout      time.Duration `yaml:"timeout"`
-
+	Timeout time.Duration `yaml:"timeout"`
 }
-
-
 
 // EscalationConfig defines escalation settings.
 
 type EscalationConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled    bool          `yaml:"enabled"`
+	Escalators []string `yaml:"escalators"`
 
-	Escalators []string      `yaml:"escalators"`
-
-	Timeout    time.Duration `yaml:"timeout"`
-
+	Timeout time.Duration `yaml:"timeout"`
 }
-
-
 
 // MonitoringConfig configures CA monitoring.
 
 type MonitoringConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled               bool          `yaml:"enabled"`
+	HealthCheckInterval time.Duration `yaml:"health_check_interval"`
 
-	HealthCheckInterval   time.Duration `yaml:"health_check_interval"`
+	MetricsEnabled bool `yaml:"metrics_enabled"`
 
-	MetricsEnabled        bool          `yaml:"metrics_enabled"`
+	AlertingEnabled bool `yaml:"alerting_enabled"`
 
-	AlertingEnabled       bool          `yaml:"alerting_enabled"`
-
-	ExpirationWarningDays int           `yaml:"expiration_warning_days"`
-
+	ExpirationWarningDays int `yaml:"expiration_warning_days"`
 }
-
-
 
 // TenantCAConfig holds tenant-specific CA configuration.
 
 type TenantCAConfig struct {
+	TenantID string `yaml:"tenant_id"`
 
-	TenantID       string        `yaml:"tenant_id"`
+	Backend CABackendType `yaml:"backend"`
 
-	Backend        CABackendType `yaml:"backend"`
+	IssuerRef string `yaml:"issuer_ref"`
 
-	IssuerRef      string        `yaml:"issuer_ref"`
+	PolicyTemplate string `yaml:"policy_template"`
 
-	PolicyTemplate string        `yaml:"policy_template"`
+	Namespace string `yaml:"namespace"`
 
-	Namespace      string        `yaml:"namespace"`
-
-	CustomConfig   interface{}   `yaml:"custom_config"`
-
+	CustomConfig interface{} `yaml:"custom_config"`
 }
-
-
 
 // CertificateRequest represents a certificate request.
 
 type CertificateRequest struct {
+	ID string `json:"id"`
 
-	ID               string            `json:"id"`
+	TenantID string `json:"tenant_id"`
 
-	TenantID         string            `json:"tenant_id"`
+	CommonName string `json:"common_name"`
 
-	CommonName       string            `json:"common_name"`
+	DNSNames []string `json:"dns_names"`
 
-	DNSNames         []string          `json:"dns_names"`
+	IPAddresses []string `json:"ip_addresses"`
 
-	IPAddresses      []string          `json:"ip_addresses"`
+	EmailAddresses []string `json:"email_addresses"`
 
-	EmailAddresses   []string          `json:"email_addresses"`
+	URIs []*url.URL `json:"uris"`
 
-	URIs             []*url.URL        `json:"uris"`
+	KeySize int `json:"key_size"`
 
-	KeySize          int               `json:"key_size"`
+	ValidityDuration time.Duration `json:"validity_duration"`
 
-	ValidityDuration time.Duration     `json:"validity_duration"`
+	KeyUsage []string `json:"key_usage"`
 
-	KeyUsage         []string          `json:"key_usage"`
-
-	ExtKeyUsage      []string          `json:"ext_key_usage"`
+	ExtKeyUsage []string `json:"ext_key_usage"`
 
 	CustomExtensions map[string]string `json:"custom_extensions"`
 
-	PolicyTemplate   string            `json:"policy_template"`
+	PolicyTemplate string `json:"policy_template"`
 
-	Backend          CABackendType     `json:"backend"`
+	Backend CABackendType `json:"backend"`
 
-	AutoRenew        bool              `json:"auto_renew"`
+	AutoRenew bool `json:"auto_renew"`
 
-	NotificationList []string          `json:"notification_list"`
+	NotificationList []string `json:"notification_list"`
 
-	Metadata         map[string]string `json:"metadata"`
+	Metadata map[string]string `json:"metadata"`
 
-	CreatedAt        time.Time         `json:"created_at"`
+	CreatedAt time.Time `json:"created_at"`
 
-	UpdatedAt        time.Time         `json:"updated_at"`
-
+	UpdatedAt time.Time `json:"updated_at"`
 }
-
-
 
 // CertificateResponse represents the response to a certificate request.
 
 type CertificateResponse struct {
+	RequestID string `json:"request_id"`
 
-	RequestID        string            `json:"request_id"`
+	Certificate *x509.Certificate `json:"certificate"`
 
-	Certificate      *x509.Certificate `json:"certificate"`
+	CertificatePEM string `json:"certificate_pem"`
 
-	CertificatePEM   string            `json:"certificate_pem"`
+	PrivateKeyPEM string `json:"private_key_pem"`
 
-	PrivateKeyPEM    string            `json:"private_key_pem"`
+	CACertificatePEM string `json:"ca_certificate_pem"`
 
-	CACertificatePEM string            `json:"ca_certificate_pem"`
+	TrustChainPEM []string `json:"trust_chain_pem"`
 
-	TrustChainPEM    []string          `json:"trust_chain_pem"`
+	SerialNumber string `json:"serial_number"`
 
-	SerialNumber     string            `json:"serial_number"`
+	Fingerprint string `json:"fingerprint"`
 
-	Fingerprint      string            `json:"fingerprint"`
+	ExpiresAt time.Time `json:"expires_at"`
 
-	ExpiresAt        time.Time         `json:"expires_at"`
+	IssuedBy string `json:"issued_by"`
 
-	IssuedBy         string            `json:"issued_by"`
+	Status CertificateStatus `json:"status"`
 
-	Status           CertificateStatus `json:"status"`
+	Metadata map[string]string `json:"metadata"`
 
-	Metadata         map[string]string `json:"metadata"`
-
-	CreatedAt        time.Time         `json:"created_at"`
-
+	CreatedAt time.Time `json:"created_at"`
 }
-
-
 
 // CertificateStatus represents certificate status.
 
 type CertificateStatus string
-
-
 
 const (
 
@@ -496,10 +398,7 @@ const (
 	// CertStatusFailed holds certstatusfailed value.
 
 	CertStatusFailed CertificateStatus = "failed"
-
 )
-
-
 
 // Backend defines the interface for CA backends.
 
@@ -511,8 +410,6 @@ type Backend interface {
 
 	HealthCheck(ctx context.Context) error
 
-
-
 	// Certificate operations.
 
 	IssueCertificate(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error)
@@ -521,47 +418,36 @@ type Backend interface {
 
 	RenewCertificate(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error)
 
-
-
 	// CA operations.
 
 	GetCAChain(ctx context.Context) ([]*x509.Certificate, error)
 
 	GetCRL(ctx context.Context) (*pkix.CertificateList, error)
 
-
-
 	// Metadata.
 
 	GetBackendInfo(ctx context.Context) (*BackendInfo, error)
 
 	GetSupportedFeatures() []string
-
 }
-
-
 
 // BackendInfo contains backend metadata.
 
 type BackendInfo struct {
+	Type CABackendType `json:"type"`
 
-	Type       CABackendType          `json:"type"`
+	Version string `json:"version"`
 
-	Version    string                 `json:"version"`
+	Status string `json:"status"`
 
-	Status     string                 `json:"status"`
+	Issuer string `json:"issuer"`
 
-	Issuer     string                 `json:"issuer"`
+	ValidUntil time.Time `json:"valid_until"`
 
-	ValidUntil time.Time              `json:"valid_until"`
+	Features []string `json:"features"`
 
-	Features   []string               `json:"features"`
-
-	Metrics    map[string]interface{} `json:"metrics"`
-
+	Metrics map[string]interface{} `json:"metrics"`
 }
-
-
 
 // NewCAManager creates a new CA manager.
 
@@ -573,29 +459,22 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 
 	}
 
-
-
 	ctx, cancel := context.WithCancel(context.Background())
-
-
 
 	manager := &CAManager{
 
-		config:   config,
+		config: config,
 
-		logger:   logger,
+		logger: logger,
 
-		client:   client,
+		client: client,
 
 		backends: make(map[CABackendType]Backend),
 
-		ctx:      ctx,
+		ctx: ctx,
 
-		cancel:   cancel,
-
+		cancel: cancel,
 	}
-
-
 
 	// Initialize certificate pool.
 
@@ -611,8 +490,6 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 
 	manager.certificatePool = pool
 
-
-
 	// Initialize policy engine.
 
 	if config.PolicyConfig != nil && config.PolicyConfig.Enabled {
@@ -621,17 +498,17 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 
 		engineConfig := &PolicyEngineConfig{
 
-			Enabled:                config.PolicyConfig.Enabled,
+			Enabled: config.PolicyConfig.Enabled,
 
-			Rules:                  convertValidationRulesToPolicyRules(config.PolicyConfig.ValidationRules),
+			Rules: convertValidationRulesToPolicyRules(config.PolicyConfig.ValidationRules),
 
-			CertificatePinning:     false,                               // Default, can be configured separately
+			CertificatePinning: false, // Default, can be configured separately
 
-			AlgorithmStrengthCheck: true,                                // Default for security
+			AlgorithmStrengthCheck: true, // Default for security
 
-			MinimumRSAKeySize:      2048,                                // Default
+			MinimumRSAKeySize: 2048, // Default
 
-			AllowedECCurves:        []string{"P-256", "P-384", "P-521"}, // Default
+			AllowedECCurves: []string{"P-256", "P-384", "P-521"}, // Default
 
 		}
 
@@ -648,8 +525,6 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 		manager.policyEngine = policyEngine
 
 	}
-
-
 
 	// Initialize certificate distributor.
 
@@ -669,8 +544,6 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 
 	}
 
-
-
 	// Initialize CA monitor.
 
 	if config.MonitoringConfig != nil && config.MonitoringConfig.Enabled {
@@ -689,8 +562,6 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 
 	}
 
-
-
 	// Initialize backends.
 
 	if err := manager.initializeBackends(); err != nil {
@@ -700,8 +571,6 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 		return nil, fmt.Errorf("failed to initialize backends: %w", err)
 
 	}
-
-
 
 	// Start background processes.
 
@@ -719,13 +588,9 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 
 	}
 
-
-
 	return manager, nil
 
 }
-
-
 
 // initializeBackends initializes all configured backends.
 
@@ -736,8 +601,6 @@ func (m *CAManager) initializeBackends() error {
 		var backend Backend
 
 		var err error
-
-
 
 		switch backendType {
 
@@ -777,23 +640,17 @@ func (m *CAManager) initializeBackends() error {
 
 		}
 
-
-
 		if err != nil {
 
 			return fmt.Errorf("failed to create %s backend: %w", backendType, err)
 
 		}
 
-
-
 		if err := backend.Initialize(m.ctx, backendConfig); err != nil {
 
 			return fmt.Errorf("failed to initialize %s backend: %w", backendType, err)
 
 		}
-
-
 
 		m.backends[backendType] = backend
 
@@ -805,13 +662,9 @@ func (m *CAManager) initializeBackends() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // IssueCertificate issues a new certificate.
 
@@ -825,8 +678,6 @@ func (m *CAManager) IssueCertificate(ctx context.Context, req *CertificateReques
 
 		"common_name", req.CommonName)
 
-
-
 	// Validate request.
 
 	if err := m.validateCertificateRequest(req); err != nil {
@@ -835,13 +686,9 @@ func (m *CAManager) IssueCertificate(ctx context.Context, req *CertificateReques
 
 	}
 
-
-
 	// Apply policy validation if enabled (after certificate is issued).
 
 	// Note: PolicyEngine validates certificates, not requests.
-
-
 
 	// Select backend.
 
@@ -852,8 +699,6 @@ func (m *CAManager) IssueCertificate(ctx context.Context, req *CertificateReques
 		return nil, fmt.Errorf("backend selection failed: %w", err)
 
 	}
-
-
 
 	// Issue certificate.
 
@@ -873,8 +718,6 @@ func (m *CAManager) IssueCertificate(ctx context.Context, req *CertificateReques
 
 	}
 
-
-
 	// Store certificate.
 
 	if err := m.certificatePool.StoreCertificate(response); err != nil {
@@ -888,8 +731,6 @@ func (m *CAManager) IssueCertificate(ctx context.Context, req *CertificateReques
 			"error", err)
 
 	}
-
-
 
 	// Distribute certificate if enabled.
 
@@ -907,8 +748,6 @@ func (m *CAManager) IssueCertificate(ctx context.Context, req *CertificateReques
 
 	}
 
-
-
 	m.logger.Info("certificate issued successfully",
 
 		"request_id", req.ID,
@@ -917,13 +756,9 @@ func (m *CAManager) IssueCertificate(ctx context.Context, req *CertificateReques
 
 		"expires_at", response.ExpiresAt)
 
-
-
 	return response, nil
 
 }
-
-
 
 // RevokeCertificate revokes an existing certificate.
 
@@ -937,8 +772,6 @@ func (m *CAManager) RevokeCertificate(ctx context.Context, serialNumber string, 
 
 		"tenant_id", tenantID)
 
-
-
 	// Find certificate in pool.
 
 	cert, err := m.certificatePool.GetCertificate(serialNumber)
@@ -948,8 +781,6 @@ func (m *CAManager) RevokeCertificate(ctx context.Context, serialNumber string, 
 		return fmt.Errorf("certificate not found: %w", err)
 
 	}
-
-
 
 	// Determine backend.
 
@@ -971,8 +802,6 @@ func (m *CAManager) RevokeCertificate(ctx context.Context, serialNumber string, 
 
 	}
 
-
-
 	// Revoke certificate.
 
 	if err := backend.RevokeCertificate(ctx, serialNumber, reason); err != nil {
@@ -980,8 +809,6 @@ func (m *CAManager) RevokeCertificate(ctx context.Context, serialNumber string, 
 		return fmt.Errorf("certificate revocation failed: %w", err)
 
 	}
-
-
 
 	// Update certificate status.
 
@@ -997,19 +824,13 @@ func (m *CAManager) RevokeCertificate(ctx context.Context, serialNumber string, 
 
 	}
 
-
-
 	m.logger.Info("certificate revoked successfully",
 
 		"serial_number", serialNumber)
 
-
-
 	return nil
 
 }
-
-
 
 // RenewCertificate renews an existing certificate.
 
@@ -1018,8 +839,6 @@ func (m *CAManager) RenewCertificate(ctx context.Context, serialNumber string) (
 	m.logger.Info("renewing certificate",
 
 		"serial_number", serialNumber)
-
-
 
 	// Get existing certificate.
 
@@ -1031,27 +850,22 @@ func (m *CAManager) RenewCertificate(ctx context.Context, serialNumber string) (
 
 	}
 
-
-
 	// Create renewal request based on existing certificate.
 
 	req := &CertificateRequest{
 
-		ID:               generateManagerRequestID(),
+		ID: generateManagerRequestID(),
 
-		TenantID:         existingCert.Metadata["tenant_id"],
+		TenantID: existingCert.Metadata["tenant_id"],
 
-		CommonName:       existingCert.Certificate.Subject.CommonName,
+		CommonName: existingCert.Certificate.Subject.CommonName,
 
-		DNSNames:         existingCert.Certificate.DNSNames,
+		DNSNames: existingCert.Certificate.DNSNames,
 
 		ValidityDuration: m.config.DefaultValidityDuration,
 
-		AutoRenew:        true,
-
+		AutoRenew: true,
 	}
-
-
 
 	// Extract IP addresses and other details from existing certificate.
 
@@ -1065,8 +879,6 @@ func (m *CAManager) RenewCertificate(ctx context.Context, serialNumber string) (
 
 	req.URIs = existingCert.Certificate.URIs
 
-
-
 	// Select backend.
 
 	backend, err := m.selectBackend(req)
@@ -1076,8 +888,6 @@ func (m *CAManager) RenewCertificate(ctx context.Context, serialNumber string) (
 		return nil, fmt.Errorf("backend selection failed: %w", err)
 
 	}
-
-
 
 	// Renew certificate.
 
@@ -1089,13 +899,9 @@ func (m *CAManager) RenewCertificate(ctx context.Context, serialNumber string) (
 
 	}
 
-
-
 	// Update status.
 
 	response.Status = StatusRenewed
-
-
 
 	// Store renewed certificate.
 
@@ -1108,8 +914,6 @@ func (m *CAManager) RenewCertificate(ctx context.Context, serialNumber string) (
 			"error", err)
 
 	}
-
-
 
 	// Distribute certificate if enabled.
 
@@ -1127,8 +931,6 @@ func (m *CAManager) RenewCertificate(ctx context.Context, serialNumber string) (
 
 	}
 
-
-
 	m.logger.Info("certificate renewed successfully",
 
 		"old_serial_number", serialNumber,
@@ -1137,13 +939,9 @@ func (m *CAManager) RenewCertificate(ctx context.Context, serialNumber string) (
 
 		"expires_at", response.ExpiresAt)
 
-
-
 	return response, nil
 
 }
-
-
 
 // GetCertificate retrieves a certificate by serial number.
 
@@ -1153,8 +951,6 @@ func (m *CAManager) GetCertificate(serialNumber string) (*CertificateResponse, e
 
 }
 
-
-
 // ListCertificates lists certificates with optional filters.
 
 func (m *CAManager) ListCertificates(filters map[string]string) ([]*CertificateResponse, error) {
@@ -1162,8 +958,6 @@ func (m *CAManager) ListCertificates(filters map[string]string) ([]*CertificateR
 	return m.certificatePool.ListCertificates(filters)
 
 }
-
-
 
 // GetCAChain retrieves the CA certificate chain for a backend.
 
@@ -1177,21 +971,15 @@ func (m *CAManager) GetCAChain(ctx context.Context, backendType CABackendType) (
 
 	}
 
-
-
 	return backend.GetCAChain(ctx)
 
 }
-
-
 
 // HealthCheck performs health check on all backends.
 
 func (m *CAManager) HealthCheck(ctx context.Context) map[CABackendType]error {
 
 	results := make(map[CABackendType]error)
-
-
 
 	for backendType, backend := range m.backends {
 
@@ -1207,13 +995,9 @@ func (m *CAManager) HealthCheck(ctx context.Context) map[CABackendType]error {
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 // Close gracefully shuts down the CA manager.
 
@@ -1221,11 +1005,7 @@ func (m *CAManager) Close() error {
 
 	m.logger.Info("shutting down CA manager")
 
-
-
 	m.cancel()
-
-
 
 	// Close distributor.
 
@@ -1235,8 +1015,6 @@ func (m *CAManager) Close() error {
 
 	}
 
-
-
 	// Close certificate pool.
 
 	if m.certificatePool != nil {
@@ -1245,17 +1023,11 @@ func (m *CAManager) Close() error {
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (m *CAManager) validateCertificateRequest(req *CertificateRequest) error {
 
@@ -1265,15 +1037,11 @@ func (m *CAManager) validateCertificateRequest(req *CertificateRequest) error {
 
 	}
 
-
-
 	if req.ValidityDuration < m.config.MinValidityDuration {
 
 		return fmt.Errorf("validity duration too short: minimum %v", m.config.MinValidityDuration)
 
 	}
-
-
 
 	if req.ValidityDuration > m.config.MaxValidityDuration {
 
@@ -1281,21 +1049,15 @@ func (m *CAManager) validateCertificateRequest(req *CertificateRequest) error {
 
 	}
 
-
-
 	if req.KeySize < 2048 {
 
 		return fmt.Errorf("key size too small: minimum 2048 bits")
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (m *CAManager) selectBackend(req *CertificateRequest) (Backend, error) {
 
@@ -1313,8 +1075,6 @@ func (m *CAManager) selectBackend(req *CertificateRequest) (Backend, error) {
 
 	}
 
-
-
 	// Use tenant-specific backend if configured.
 
 	if m.config.TenantSupport && req.TenantID != "" {
@@ -1331,8 +1091,6 @@ func (m *CAManager) selectBackend(req *CertificateRequest) (Backend, error) {
 
 	}
 
-
-
 	// Use default backend.
 
 	if backend, ok := m.backends[m.config.DefaultBackend]; ok {
@@ -1341,21 +1099,15 @@ func (m *CAManager) selectBackend(req *CertificateRequest) (Backend, error) {
 
 	}
 
-
-
 	return nil, fmt.Errorf("no available backends")
 
 }
-
-
 
 func (m *CAManager) runCertificateLifecycleManager() {
 
 	ticker := time.NewTicker(time.Hour) // Check every hour
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1375,8 +1127,6 @@ func (m *CAManager) runCertificateLifecycleManager() {
 
 }
 
-
-
 func (m *CAManager) processExpiringCertificates() {
 
 	threshold := time.Now().Add(m.config.RenewalThreshold)
@@ -1390,8 +1140,6 @@ func (m *CAManager) processExpiringCertificates() {
 		return
 
 	}
-
-
 
 	for _, cert := range expiringCerts {
 
@@ -1419,8 +1167,6 @@ func (m *CAManager) processExpiringCertificates() {
 
 }
 
-
-
 // generateManagerRequestID generates a unique request ID for manager operations.
 
 func generateManagerRequestID() string {
@@ -1441,8 +1187,6 @@ func generateManagerRequestID() string {
 
 }
 
-
-
 // convertValidationRulesToPolicyRules converts manager validation rules to policy engine rules.
 
 func convertValidationRulesToPolicyRules(validationRules []ValidationRule) []PolicyRule {
@@ -1453,18 +1197,17 @@ func convertValidationRulesToPolicyRules(validationRules []ValidationRule) []Pol
 
 		policyRules[i] = PolicyRule{
 
-			Name:        rule.Name,
+			Name: rule.Name,
 
-			Type:        rule.Type,
+			Type: rule.Type,
 
-			Pattern:     rule.Pattern,
+			Pattern: rule.Pattern,
 
-			Required:    rule.Required,
+			Required: rule.Required,
 
-			Severity:    RuleSeverityError, // Default severity
+			Severity: RuleSeverityError, // Default severity
 
 			Description: rule.ErrorMessage,
-
 		}
 
 	}
@@ -1472,4 +1215,3 @@ func convertValidationRulesToPolicyRules(validationRules []ValidationRule) []Pol
 	return policyRules
 
 }
-

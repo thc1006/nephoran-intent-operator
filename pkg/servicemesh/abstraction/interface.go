@@ -1,35 +1,20 @@
 // Package abstraction provides a universal interface for service mesh integration.
 
-
 package abstraction
 
-
-
 import (
-
 	"context"
-
 	"crypto/x509"
-
 	"time"
-
-
 
 	"github.com/prometheus/client_golang/prometheus"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 )
-
-
 
 // ServiceMeshProvider defines the type of service mesh.
 
 type ServiceMeshProvider string
-
-
 
 const (
 
@@ -48,10 +33,7 @@ const (
 	// ProviderNone represents no service mesh.
 
 	ProviderNone ServiceMeshProvider = "none"
-
 )
-
-
 
 // ServiceMeshInterface defines the universal interface for service mesh operations.
 
@@ -61,8 +43,6 @@ type ServiceMeshInterface interface {
 
 	Initialize(ctx context.Context, config *ServiceMeshConfig) error
 
-
-
 	// Certificate Management.
 
 	GetCertificateProvider() CertificateProvider
@@ -70,8 +50,6 @@ type ServiceMeshInterface interface {
 	RotateCertificates(ctx context.Context, namespace string) error
 
 	ValidateCertificateChain(ctx context.Context, namespace string) error
-
-
 
 	// Policy Management.
 
@@ -83,8 +61,6 @@ type ServiceMeshInterface interface {
 
 	ValidatePolicies(ctx context.Context, namespace string) (*PolicyValidationResult, error)
 
-
-
 	// Service Management.
 
 	RegisterService(ctx context.Context, service *ServiceRegistration) error
@@ -92,8 +68,6 @@ type ServiceMeshInterface interface {
 	UnregisterService(ctx context.Context, serviceName, namespace string) error
 
 	GetServiceStatus(ctx context.Context, serviceName, namespace string) (*ServiceStatus, error)
-
-
 
 	// Observability.
 
@@ -103,15 +77,11 @@ type ServiceMeshInterface interface {
 
 	GetMTLSStatus(ctx context.Context, namespace string) (*MTLSStatusReport, error)
 
-
-
 	// Health and Readiness.
 
 	IsHealthy(ctx context.Context) error
 
 	IsReady(ctx context.Context) error
-
-
 
 	// Provider Information.
 
@@ -120,652 +90,505 @@ type ServiceMeshInterface interface {
 	GetVersion() string
 
 	GetCapabilities() []Capability
-
 }
-
-
 
 // ServiceMeshConfig contains configuration for service mesh initialization.
 
 type ServiceMeshConfig struct {
+	Provider ServiceMeshProvider `json:"provider"`
 
-	Provider            ServiceMeshProvider    `json:"provider"`
+	Namespace string `json:"namespace"`
 
-	Namespace           string                 `json:"namespace"`
+	ControlPlaneURL string `json:"controlPlaneUrl,omitempty"`
 
-	ControlPlaneURL     string                 `json:"controlPlaneUrl,omitempty"`
+	TrustDomain string `json:"trustDomain"`
 
-	TrustDomain         string                 `json:"trustDomain"`
+	CertificateConfig *CertificateConfig `json:"certificateConfig"`
 
-	CertificateConfig   *CertificateConfig     `json:"certificateConfig"`
+	PolicyDefaults *PolicyDefaults `json:"policyDefaults"`
 
-	PolicyDefaults      *PolicyDefaults        `json:"policyDefaults"`
+	ObservabilityConfig *ObservabilityConfig `json:"observabilityConfig"`
 
-	ObservabilityConfig *ObservabilityConfig   `json:"observabilityConfig"`
+	MultiCluster *MultiClusterConfig `json:"multiCluster,omitempty"`
 
-	MultiCluster        *MultiClusterConfig    `json:"multiCluster,omitempty"`
-
-	CustomConfig        map[string]interface{} `json:"customConfig,omitempty"`
-
+	CustomConfig map[string]interface{} `json:"customConfig,omitempty"`
 }
-
-
 
 // CertificateConfig defines certificate management configuration.
 
 type CertificateConfig struct {
+	RootCAFile string `json:"rootCaFile"`
 
-	RootCAFile        string        `json:"rootCaFile"`
+	CertLifetime time.Duration `json:"certLifetime"`
 
-	CertLifetime      time.Duration `json:"certLifetime"`
+	RotationThreshold float64 `json:"rotationThreshold"` // Percentage of lifetime before rotation
 
-	RotationThreshold float64       `json:"rotationThreshold"` // Percentage of lifetime before rotation
+	SPIFFEEnabled bool `json:"spiffeEnabled"`
 
-	SPIFFEEnabled     bool          `json:"spiffeEnabled"`
+	SPIREServerURL string `json:"spireServerUrl,omitempty"`
 
-	SPIREServerURL    string        `json:"spireServerUrl,omitempty"`
-
-	CertStorage       string        `json:"certStorage"` // "secret", "configmap", "external"
+	CertStorage string `json:"certStorage"` // "secret", "configmap", "external"
 
 }
-
-
 
 // PolicyDefaults defines default policy configurations.
 
 type PolicyDefaults struct {
+	MTLSMode string `json:"mtlsMode"` // "STRICT", "PERMISSIVE", "DISABLE"
 
-	MTLSMode              string `json:"mtlsMode"` // "STRICT", "PERMISSIVE", "DISABLE"
+	DefaultDenyAll bool `json:"defaultDenyAll"`
 
-	DefaultDenyAll        bool   `json:"defaultDenyAll"`
+	EnableNetworkPolicies bool `json:"enableNetworkPolicies"`
 
-	EnableNetworkPolicies bool   `json:"enableNetworkPolicies"`
+	EnableRateLimiting bool `json:"enableRateLimiting"`
 
-	EnableRateLimiting    bool   `json:"enableRateLimiting"`
+	DefaultTimeoutSeconds int `json:"defaultTimeoutSeconds"`
 
-	DefaultTimeoutSeconds int    `json:"defaultTimeoutSeconds"`
-
-	DefaultRetryAttempts  int    `json:"defaultRetryAttempts"`
-
+	DefaultRetryAttempts int `json:"defaultRetryAttempts"`
 }
-
-
 
 // ObservabilityConfig defines observability configuration.
 
 type ObservabilityConfig struct {
+	EnableTracing bool `json:"enableTracing"`
 
-	EnableTracing    bool   `json:"enableTracing"`
+	TracingBackend string `json:"tracingBackend"` // "jaeger", "zipkin", "datadog"
 
-	TracingBackend   string `json:"tracingBackend"` // "jaeger", "zipkin", "datadog"
+	EnableMetrics bool `json:"enableMetrics"`
 
-	EnableMetrics    bool   `json:"enableMetrics"`
+	MetricsPort int `json:"metricsPort"`
 
-	MetricsPort      int    `json:"metricsPort"`
+	EnableAccessLogs bool `json:"enableAccessLogs"`
 
-	EnableAccessLogs bool   `json:"enableAccessLogs"`
-
-	LogLevel         string `json:"logLevel"`
-
+	LogLevel string `json:"logLevel"`
 }
-
-
 
 // MultiClusterConfig defines multi-cluster mesh configuration.
 
 type MultiClusterConfig struct {
+	ClusterName string `json:"clusterName"`
 
-	ClusterName    string            `json:"clusterName"`
+	ClusterID string `json:"clusterId"`
 
-	ClusterID      string            `json:"clusterId"`
+	Network string `json:"network"`
 
-	Network        string            `json:"network"`
+	RemoteClusters []RemoteCluster `json:"remoteClusters"`
 
-	RemoteClusters []RemoteCluster   `json:"remoteClusters"`
-
-	Federation     *FederationConfig `json:"federation,omitempty"`
-
+	Federation *FederationConfig `json:"federation,omitempty"`
 }
-
-
 
 // RemoteCluster defines a remote cluster in the mesh.
 
 type RemoteCluster struct {
+	Name string `json:"name"`
 
-	Name        string `json:"name"`
+	Endpoint string `json:"endpoint"`
 
-	Endpoint    string `json:"endpoint"`
-
-	Network     string `json:"network"`
+	Network string `json:"network"`
 
 	TrustDomain string `json:"trustDomain"`
-
 }
-
-
 
 // FederationConfig defines federation settings.
 
 type FederationConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled          bool     `json:"enabled"`
+	TrustDomains []string `json:"trustDomains"`
 
-	TrustDomains     []string `json:"trustDomains"`
+	SharedGateway string `json:"sharedGateway"`
 
-	SharedGateway    string   `json:"sharedGateway"`
-
-	CrossClusterAuth bool     `json:"crossClusterAuth"`
-
+	CrossClusterAuth bool `json:"crossClusterAuth"`
 }
-
-
 
 // MTLSPolicy defines an mTLS policy.
 
 type MTLSPolicy struct {
-
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-
-
 	Spec MTLSPolicySpec `json:"spec"`
-
 }
-
-
 
 // MTLSPolicySpec defines the specification for an mTLS policy.
 
 type MTLSPolicySpec struct {
+	Selector *LabelSelector `json:"selector"`
 
-	Selector      *LabelSelector `json:"selector"`
+	Mode string `json:"mode"` // "STRICT", "PERMISSIVE", "DISABLE"
 
-	Mode          string         `json:"mode"` // "STRICT", "PERMISSIVE", "DISABLE"
+	PortLevelMTLS []PortMTLS `json:"portLevelMtls,omitempty"`
 
-	PortLevelMTLS []PortMTLS     `json:"portLevelMtls,omitempty"`
-
-	Exceptions    []string       `json:"exceptions,omitempty"` // Service names exempt from policy
+	Exceptions []string `json:"exceptions,omitempty"` // Service names exempt from policy
 
 }
-
-
 
 // PortMTLS defines port-specific mTLS configuration.
 
 type PortMTLS struct {
-
-	Port int    `json:"port"`
+	Port int `json:"port"`
 
 	Mode string `json:"mode"`
-
 }
-
-
 
 // AuthorizationPolicy defines service-to-service authorization.
 
 type AuthorizationPolicy struct {
-
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-
-
 	Spec AuthorizationPolicySpec `json:"spec"`
-
 }
-
-
 
 // AuthorizationPolicySpec defines the specification for authorization.
 
 type AuthorizationPolicySpec struct {
+	Selector *LabelSelector `json:"selector"`
 
-	Selector *LabelSelector      `json:"selector"`
+	Action string `json:"action"` // "ALLOW", "DENY", "AUDIT", "CUSTOM"
 
-	Action   string              `json:"action"` // "ALLOW", "DENY", "AUDIT", "CUSTOM"
+	Rules []AuthorizationRule `json:"rules,omitempty"`
 
-	Rules    []AuthorizationRule `json:"rules,omitempty"`
-
-	Provider *ExtensionProvider  `json:"provider,omitempty"`
-
+	Provider *ExtensionProvider `json:"provider,omitempty"`
 }
-
-
 
 // AuthorizationRule defines an authorization rule.
 
 type AuthorizationRule struct {
+	From []SecuritySource `json:"from,omitempty"`
 
-	From []SecuritySource    `json:"from,omitempty"`
+	To []SecurityOperation `json:"to,omitempty"`
 
-	To   []SecurityOperation `json:"to,omitempty"`
-
-	When []Condition         `json:"when,omitempty"`
-
+	When []Condition `json:"when,omitempty"`
 }
-
-
 
 // SecuritySource defines the source of a request.
 
 type SecuritySource struct {
-
-	Principals    []string `json:"principals,omitempty"`
+	Principals []string `json:"principals,omitempty"`
 
 	NotPrincipals []string `json:"notPrincipals,omitempty"`
 
-	Namespaces    []string `json:"namespaces,omitempty"`
+	Namespaces []string `json:"namespaces,omitempty"`
 
 	NotNamespaces []string `json:"notNamespaces,omitempty"`
 
-	IPBlocks      []string `json:"ipBlocks,omitempty"`
+	IPBlocks []string `json:"ipBlocks,omitempty"`
 
-	NotIPBlocks   []string `json:"notIpBlocks,omitempty"`
-
+	NotIPBlocks []string `json:"notIpBlocks,omitempty"`
 }
-
-
 
 // SecurityOperation defines the operation being accessed.
 
 type SecurityOperation struct {
+	Hosts []string `json:"hosts,omitempty"`
 
-	Hosts      []string `json:"hosts,omitempty"`
+	NotHosts []string `json:"notHosts,omitempty"`
 
-	NotHosts   []string `json:"notHosts,omitempty"`
-
-	Methods    []string `json:"methods,omitempty"`
+	Methods []string `json:"methods,omitempty"`
 
 	NotMethods []string `json:"notMethods,omitempty"`
 
-	Paths      []string `json:"paths,omitempty"`
+	Paths []string `json:"paths,omitempty"`
 
-	NotPaths   []string `json:"notPaths,omitempty"`
+	NotPaths []string `json:"notPaths,omitempty"`
 
-	Ports      []string `json:"ports,omitempty"`
+	Ports []string `json:"ports,omitempty"`
 
-	NotPorts   []string `json:"notPorts,omitempty"`
-
+	NotPorts []string `json:"notPorts,omitempty"`
 }
-
-
 
 // Condition defines when a rule applies.
 
 type Condition struct {
+	Key string `json:"key"`
 
-	Key       string   `json:"key"`
-
-	Values    []string `json:"values,omitempty"`
+	Values []string `json:"values,omitempty"`
 
 	NotValues []string `json:"notValues,omitempty"`
-
 }
-
-
 
 // TrafficPolicy defines traffic management policies.
 
 type TrafficPolicy struct {
-
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-
-
 	Spec TrafficPolicySpec `json:"spec"`
-
 }
-
-
 
 // TrafficPolicySpec defines traffic policy specification.
 
 type TrafficPolicySpec struct {
+	Selector *LabelSelector `json:"selector"`
 
-	Selector        *LabelSelector      `json:"selector"`
+	TrafficShifting *TrafficShifting `json:"trafficShifting,omitempty"`
 
-	TrafficShifting *TrafficShifting    `json:"trafficShifting,omitempty"`
+	CircuitBreaker *CircuitBreaker `json:"circuitBreaker,omitempty"`
 
-	CircuitBreaker  *CircuitBreaker     `json:"circuitBreaker,omitempty"`
+	Retry *RetryPolicy `json:"retry,omitempty"`
 
-	Retry           *RetryPolicy        `json:"retry,omitempty"`
+	Timeout *TimeoutPolicy `json:"timeout,omitempty"`
 
-	Timeout         *TimeoutPolicy      `json:"timeout,omitempty"`
-
-	LoadBalancer    *LoadBalancerPolicy `json:"loadBalancer,omitempty"`
-
+	LoadBalancer *LoadBalancerPolicy `json:"loadBalancer,omitempty"`
 }
-
-
 
 // ServiceRegistration defines a service to register with the mesh.
 
 type ServiceRegistration struct {
+	Name string `json:"name"`
 
-	Name        string            `json:"name"`
+	Namespace string `json:"namespace"`
 
-	Namespace   string            `json:"namespace"`
-
-	Labels      map[string]string `json:"labels"`
+	Labels map[string]string `json:"labels"`
 
 	Annotations map[string]string `json:"annotations"`
 
-	Ports       []ServicePort     `json:"ports"`
+	Ports []ServicePort `json:"ports"`
 
-	SPIFFEID    string            `json:"spiffeId,omitempty"`
+	SPIFFEID string `json:"spiffeId,omitempty"`
 
-	MTLSMode    string            `json:"mtlsMode"`
+	MTLSMode string `json:"mtlsMode"`
 
-	Endpoints   []string          `json:"endpoints,omitempty"`
-
+	Endpoints []string `json:"endpoints,omitempty"`
 }
-
-
 
 // ServicePort defines a service port.
 
 type ServicePort struct {
+	Name string `json:"name"`
 
-	Name       string `json:"name"`
+	Port int32 `json:"port"`
 
-	Port       int32  `json:"port"`
+	TargetPort int32 `json:"targetPort"`
 
-	TargetPort int32  `json:"targetPort"`
-
-	Protocol   string `json:"protocol"`
-
+	Protocol string `json:"protocol"`
 }
-
-
 
 // ServiceStatus represents the status of a service in the mesh.
 
 type ServiceStatus struct {
+	Name string `json:"name"`
 
-	Name              string                 `json:"name"`
+	Namespace string `json:"namespace"`
 
-	Namespace         string                 `json:"namespace"`
+	Healthy bool `json:"healthy"`
 
-	Healthy           bool                   `json:"healthy"`
+	MTLSEnabled bool `json:"mtlsEnabled"`
 
-	MTLSEnabled       bool                   `json:"mtlsEnabled"`
+	CertificateStatus *CertificateStatus `json:"certificateStatus"`
 
-	CertificateStatus *CertificateStatus     `json:"certificateStatus"`
+	Endpoints []EndpointStatus `json:"endpoints"`
 
-	Endpoints         []EndpointStatus       `json:"endpoints"`
+	Policies []string `json:"policies"`
 
-	Policies          []string               `json:"policies"`
-
-	Metrics           map[string]interface{} `json:"metrics"`
-
+	Metrics map[string]interface{} `json:"metrics"`
 }
-
-
 
 // CertificateStatus represents certificate status for a service.
 
 type CertificateStatus struct {
+	Subject string `json:"subject"`
 
-	Subject         string    `json:"subject"`
+	Issuer string `json:"issuer"`
 
-	Issuer          string    `json:"issuer"`
+	SerialNumber string `json:"serialNumber"`
 
-	SerialNumber    string    `json:"serialNumber"`
+	NotBefore time.Time `json:"notBefore"`
 
-	NotBefore       time.Time `json:"notBefore"`
+	NotAfter time.Time `json:"notAfter"`
 
-	NotAfter        time.Time `json:"notAfter"`
+	DaysUntilExpiry int `json:"daysUntilExpiry"`
 
-	DaysUntilExpiry int       `json:"daysUntilExpiry"`
-
-	NeedsRotation   bool      `json:"needsRotation"`
-
+	NeedsRotation bool `json:"needsRotation"`
 }
-
-
 
 // EndpointStatus represents the status of a service endpoint.
 
 type EndpointStatus struct {
+	Address string `json:"address"`
 
-	Address     string    `json:"address"`
+	Port int32 `json:"port"`
 
-	Port        int32     `json:"port"`
-
-	Healthy     bool      `json:"healthy"`
+	Healthy bool `json:"healthy"`
 
 	LastChecked time.Time `json:"lastChecked"`
 
-	Latency     string    `json:"latency"`
-
+	Latency string `json:"latency"`
 }
-
-
 
 // PolicyValidationResult contains policy validation results.
 
 type PolicyValidationResult struct {
+	Valid bool `json:"valid"`
 
-	Valid      bool             `json:"valid"`
+	Errors []PolicyError `json:"errors,omitempty"`
 
-	Errors     []PolicyError    `json:"errors,omitempty"`
+	Warnings []PolicyWarning `json:"warnings,omitempty"`
 
-	Warnings   []PolicyWarning  `json:"warnings,omitempty"`
+	Conflicts []PolicyConflict `json:"conflicts,omitempty"`
 
-	Conflicts  []PolicyConflict `json:"conflicts,omitempty"`
-
-	Coverage   float64          `json:"coverage"` // Percentage of services covered
+	Coverage float64 `json:"coverage"` // Percentage of services covered
 
 	Compliance PolicyCompliance `json:"compliance"`
-
 }
-
-
 
 // PolicyError represents a policy validation error.
 
 type PolicyError struct {
+	Policy string `json:"policy"`
 
-	Policy  string `json:"policy"`
-
-	Type    string `json:"type"`
+	Type string `json:"type"`
 
 	Message string `json:"message"`
 
-	Line    int    `json:"line,omitempty"`
-
+	Line int `json:"line,omitempty"`
 }
-
-
 
 // PolicyWarning represents a policy validation warning.
 
 type PolicyWarning struct {
+	Policy string `json:"policy"`
 
-	Policy  string `json:"policy"`
-
-	Type    string `json:"type"`
+	Type string `json:"type"`
 
 	Message string `json:"message"`
-
 }
-
-
 
 // PolicyConflict represents conflicting policies.
 
 type PolicyConflict struct {
-
 	Policy1 string `json:"policy1"`
 
 	Policy2 string `json:"policy2"`
 
-	Type    string `json:"type"`
+	Type string `json:"type"`
 
 	Message string `json:"message"`
-
 }
-
-
 
 // PolicyCompliance represents compliance status.
 
 type PolicyCompliance struct {
+	MTLSCompliant bool `json:"mtlsCompliant"`
 
-	MTLSCompliant      bool    `json:"mtlsCompliant"`
+	ZeroTrustCompliant bool `json:"zeroTrustCompliant"`
 
-	ZeroTrustCompliant bool    `json:"zeroTrustCompliant"`
+	NetworkSegmented bool `json:"networkSegmented"`
 
-	NetworkSegmented   bool    `json:"networkSegmented"`
-
-	ComplianceScore    float64 `json:"complianceScore"` // 0-100
+	ComplianceScore float64 `json:"complianceScore"` // 0-100
 
 }
-
-
 
 // DependencyGraph represents service dependencies.
 
 type DependencyGraph struct {
+	Nodes []ServiceNode `json:"nodes"`
 
-	Nodes  []ServiceNode `json:"nodes"`
+	Edges []ServiceEdge `json:"edges"`
 
-	Edges  []ServiceEdge `json:"edges"`
-
-	Cycles [][]string    `json:"cycles,omitempty"`
-
+	Cycles [][]string `json:"cycles,omitempty"`
 }
-
-
 
 // ServiceNode represents a service in the dependency graph.
 
 type ServiceNode struct {
+	ID string `json:"id"`
 
-	ID          string            `json:"id"`
+	Name string `json:"name"`
 
-	Name        string            `json:"name"`
+	Namespace string `json:"namespace"`
 
-	Namespace   string            `json:"namespace"`
+	Type string `json:"type"`
 
-	Type        string            `json:"type"`
+	Labels map[string]string `json:"labels"`
 
-	Labels      map[string]string `json:"labels"`
-
-	MTLSEnabled bool              `json:"mtlsEnabled"`
-
+	MTLSEnabled bool `json:"mtlsEnabled"`
 }
-
-
 
 // ServiceEdge represents a connection between services.
 
 type ServiceEdge struct {
+	Source string `json:"source"`
 
-	Source      string  `json:"source"`
+	Target string `json:"target"`
 
-	Target      string  `json:"target"`
+	Protocol string `json:"protocol"`
 
-	Protocol    string  `json:"protocol"`
+	Port int32 `json:"port"`
 
-	Port        int32   `json:"port"`
+	MTLSEnabled bool `json:"mtlsEnabled"`
 
-	MTLSEnabled bool    `json:"mtlsEnabled"`
+	Latency float64 `json:"latency"` // milliseconds
 
-	Latency     float64 `json:"latency"`   // milliseconds
-
-	ErrorRate   float64 `json:"errorRate"` // percentage
+	ErrorRate float64 `json:"errorRate"` // percentage
 
 }
-
-
 
 // MTLSStatusReport provides comprehensive mTLS status.
 
 type MTLSStatusReport struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp         time.Time             `json:"timestamp"`
+	TotalServices int `json:"totalServices"`
 
-	TotalServices     int                   `json:"totalServices"`
+	MTLSEnabledCount int `json:"mtlsEnabledCount"`
 
-	MTLSEnabledCount  int                   `json:"mtlsEnabledCount"`
+	Coverage float64 `json:"coverage"` // Percentage
 
-	Coverage          float64               `json:"coverage"` // Percentage
+	CertificateStatus []ServiceCertStatus `json:"certificateStatus"`
 
-	CertificateStatus []ServiceCertStatus   `json:"certificateStatus"`
+	PolicyStatus []ServicePolicyStatus `json:"policyStatus"`
 
-	PolicyStatus      []ServicePolicyStatus `json:"policyStatus"`
+	Issues []MTLSIssue `json:"issues,omitempty"`
 
-	Issues            []MTLSIssue           `json:"issues,omitempty"`
-
-	Recommendations   []string              `json:"recommendations,omitempty"`
-
+	Recommendations []string `json:"recommendations,omitempty"`
 }
-
-
 
 // ServiceCertStatus represents certificate status for a service.
 
 type ServiceCertStatus struct {
+	Service string `json:"service"`
 
-	Service       string    `json:"service"`
+	Namespace string `json:"namespace"`
 
-	Namespace     string    `json:"namespace"`
+	Valid bool `json:"valid"`
 
-	Valid         bool      `json:"valid"`
+	ExpiryDate time.Time `json:"expiryDate"`
 
-	ExpiryDate    time.Time `json:"expiryDate"`
-
-	NeedsRotation bool      `json:"needsRotation"`
-
+	NeedsRotation bool `json:"needsRotation"`
 }
-
-
 
 // ServicePolicyStatus represents policy status for a service.
 
 type ServicePolicyStatus struct {
+	Service string `json:"service"`
 
-	Service   string   `json:"service"`
+	Namespace string `json:"namespace"`
 
-	Namespace string   `json:"namespace"`
+	MTLSMode string `json:"mtlsMode"`
 
-	MTLSMode  string   `json:"mtlsMode"`
-
-	Policies  []string `json:"policies"`
-
+	Policies []string `json:"policies"`
 }
-
-
 
 // MTLSIssue represents an mTLS issue.
 
 type MTLSIssue struct {
+	Service string `json:"service"`
 
-	Service  string `json:"service"`
-
-	Type     string `json:"type"`
+	Type string `json:"type"`
 
 	Severity string `json:"severity"` // "critical", "warning", "info"
 
-	Message  string `json:"message"`
-
+	Message string `json:"message"`
 }
-
-
 
 // Capability represents a service mesh capability.
 
 type Capability string
-
-
 
 const (
 
@@ -792,10 +615,7 @@ const (
 	// CapabilityWASM indicates WebAssembly extension support.
 
 	CapabilityWASM Capability = "wasm"
-
 )
-
-
 
 // CertificateProvider manages certificates for the service mesh.
 
@@ -805,179 +625,125 @@ type CertificateProvider interface {
 
 	IssueCertificate(ctx context.Context, service, namespace string) (*x509.Certificate, error)
 
-
-
 	// GetRootCA returns the root CA certificate.
 
 	GetRootCA(ctx context.Context) (*x509.Certificate, error)
-
-
 
 	// GetIntermediateCA returns intermediate CA if applicable.
 
 	GetIntermediateCA(ctx context.Context) (*x509.Certificate, error)
 
-
-
 	// ValidateCertificate validates a certificate.
 
 	ValidateCertificate(ctx context.Context, cert *x509.Certificate) error
-
-
 
 	// RotateCertificate rotates a certificate for a service.
 
 	RotateCertificate(ctx context.Context, service, namespace string) (*x509.Certificate, error)
 
-
-
 	// GetCertificateChain returns the certificate chain for a service.
 
 	GetCertificateChain(ctx context.Context, service, namespace string) ([]*x509.Certificate, error)
 
-
-
 	// GetSPIFFEID returns the SPIFFE ID for a service.
 
 	GetSPIFFEID(service, namespace, trustDomain string) string
-
 }
-
-
 
 // LabelSelector defines label selection criteria.
 
 type LabelSelector struct {
-
-	MatchLabels      map[string]string          `json:"matchLabels,omitempty"`
+	MatchLabels map[string]string `json:"matchLabels,omitempty"`
 
 	MatchExpressions []LabelSelectorRequirement `json:"matchExpressions,omitempty"`
-
 }
-
-
 
 // LabelSelectorRequirement defines a label selector requirement.
 
 type LabelSelectorRequirement struct {
+	Key string `json:"key"`
 
-	Key      string   `json:"key"`
+	Operator string `json:"operator"` // "In", "NotIn", "Exists", "DoesNotExist"
 
-	Operator string   `json:"operator"` // "In", "NotIn", "Exists", "DoesNotExist"
-
-	Values   []string `json:"values,omitempty"`
-
+	Values []string `json:"values,omitempty"`
 }
-
-
 
 // TrafficShifting defines traffic shifting configuration.
 
 type TrafficShifting struct {
-
 	Destinations []WeightedDestination `json:"destinations"`
-
 }
-
-
 
 // WeightedDestination defines a weighted traffic destination.
 
 type WeightedDestination struct {
-
 	Service string `json:"service"`
 
-	Weight  int    `json:"weight"`
+	Weight int `json:"weight"`
 
 	Version string `json:"version,omitempty"`
-
 }
-
-
 
 // CircuitBreaker defines circuit breaker configuration.
 
 type CircuitBreaker struct {
+	ConsecutiveErrors int `json:"consecutiveErrors"`
 
-	ConsecutiveErrors  int    `json:"consecutiveErrors"`
+	Interval string `json:"interval"`
 
-	Interval           string `json:"interval"`
+	BaseEjectionTime string `json:"baseEjectionTime"`
 
-	BaseEjectionTime   string `json:"baseEjectionTime"`
-
-	MaxEjectionPercent int    `json:"maxEjectionPercent"`
-
+	MaxEjectionPercent int `json:"maxEjectionPercent"`
 }
-
-
 
 // RetryPolicy defines retry configuration.
 
 type RetryPolicy struct {
+	Attempts int `json:"attempts"`
 
-	Attempts      int      `json:"attempts"`
+	PerTryTimeout string `json:"perTryTimeout"`
 
-	PerTryTimeout string   `json:"perTryTimeout"`
+	RetryOn []string `json:"retryOn"`
 
-	RetryOn       []string `json:"retryOn"`
+	BackoffBase string `json:"backoffBase,omitempty"`
 
-	BackoffBase   string   `json:"backoffBase,omitempty"`
-
-	BackoffMax    string   `json:"backoffMax,omitempty"`
-
+	BackoffMax string `json:"backoffMax,omitempty"`
 }
-
-
 
 // TimeoutPolicy defines timeout configuration.
 
 type TimeoutPolicy struct {
-
 	RequestTimeout string `json:"requestTimeout"`
 
-	IdleTimeout    string `json:"idleTimeout,omitempty"`
-
+	IdleTimeout string `json:"idleTimeout,omitempty"`
 }
-
-
 
 // LoadBalancerPolicy defines load balancing configuration.
 
 type LoadBalancerPolicy struct {
-
-	Algorithm      string                `json:"algorithm"` // "round-robin", "least-conn", "random", "consistent-hash"
+	Algorithm string `json:"algorithm"` // "round-robin", "least-conn", "random", "consistent-hash"
 
 	ConsistentHash *ConsistentHashConfig `json:"consistentHash,omitempty"`
-
 }
-
-
 
 // ConsistentHashConfig defines consistent hash configuration.
 
 type ConsistentHashConfig struct {
+	HashKey string `json:"hashKey"`
 
-	HashKey         string `json:"hashKey"`
-
-	MinimumRingSize int    `json:"minimumRingSize"`
-
+	MinimumRingSize int `json:"minimumRingSize"`
 }
-
-
 
 // ExtensionProvider defines an external authorization provider.
 
 type ExtensionProvider struct {
+	Name string `json:"name"`
 
-	Name    string            `json:"name"`
+	Service string `json:"service"`
 
-	Service string            `json:"service"`
-
-	Port    int               `json:"port"`
+	Port int `json:"port"`
 
 	Headers map[string]string `json:"headers,omitempty"`
 
-	Timeout string            `json:"timeout,omitempty"`
-
+	Timeout string `json:"timeout,omitempty"`
 }
-

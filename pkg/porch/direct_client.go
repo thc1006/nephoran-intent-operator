@@ -1,61 +1,39 @@
-
 package porch
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"net/http"
-
 	"os"
-
 	"path/filepath"
-
 	"time"
 
-
-
 	"k8s.io/klog/v2"
-
 )
-
-
 
 // PackageRevision represents the result of a package operation.
 
 type PackageRevision struct {
+	Name string
 
-	Name        string
+	Revision string
 
-	Revision    string
-
-	CommitURL   string
+	CommitURL string
 
 	PackagePath string
-
 }
-
-
 
 // DirectClient provides direct access to Porch API without Kubernetes.
 
 type DirectClient struct {
-
-	endpoint  string
+	endpoint string
 
 	namespace string
 
-	client    *http.Client
+	client *http.Client
 
-	dryRun    bool
-
+	dryRun bool
 }
-
-
 
 // NewDirectClient creates a new Porch direct client.
 
@@ -63,21 +41,17 @@ func NewDirectClient(endpoint, namespace string) (*DirectClient, error) {
 
 	return &DirectClient{
 
-		endpoint:  endpoint,
+		endpoint: endpoint,
 
 		namespace: namespace,
 
 		client: &http.Client{
 
 			Timeout: 30 * time.Second,
-
 		},
-
 	}, nil
 
 }
-
-
 
 // SetDryRun enables or disables dry-run mode.
 
@@ -86,8 +60,6 @@ func (c *DirectClient) SetDryRun(dryRun bool) {
 	c.dryRun = dryRun
 
 }
-
-
 
 // ListPackages lists all packages in the namespace.
 
@@ -111,8 +83,6 @@ func (c *DirectClient) ListPackages(ctx context.Context) error {
 
 }
 
-
-
 // GetPackage retrieves a specific package.
 
 func (c *DirectClient) GetPackage(ctx context.Context, name string) error {
@@ -134,8 +104,6 @@ func (c *DirectClient) GetPackage(ctx context.Context, name string) error {
 	return nil
 
 }
-
-
 
 // CreatePackage creates a new package.
 
@@ -159,8 +127,6 @@ func (c *DirectClient) CreatePackage(ctx context.Context, name string) error {
 
 }
 
-
-
 // UpdatePackage updates an existing package.
 
 func (c *DirectClient) UpdatePackage(ctx context.Context, name string) error {
@@ -182,8 +148,6 @@ func (c *DirectClient) UpdatePackage(ctx context.Context, name string) error {
 	return nil
 
 }
-
-
 
 // DeletePackage deletes a package.
 
@@ -207,8 +171,6 @@ func (c *DirectClient) DeletePackage(ctx context.Context, name string) error {
 
 }
 
-
-
 // CreatePackageFromIntent creates or updates a package from an intent.
 
 func (c *DirectClient) CreatePackageFromIntent(ctx context.Context, intentPath, repoName, packageName, revisionMessage string) (*PackageRevision, error) {
@@ -223,8 +185,6 @@ func (c *DirectClient) CreatePackageFromIntent(ctx context.Context, intentPath, 
 
 	}
 
-
-
 	// Build the KRM package.
 
 	krmPackage, err := BuildKRMPackage(intent, packageName)
@@ -235,29 +195,22 @@ func (c *DirectClient) CreatePackageFromIntent(ctx context.Context, intentPath, 
 
 	}
 
-
-
 	// Generate package path.
 
 	revision := fmt.Sprintf("v1-%d", time.Now().Unix())
 
 	packagePath := GeneratePackagePath(repoName, packageName, revision)
 
-
-
 	result := &PackageRevision{
 
-		Name:        packageName,
+		Name: packageName,
 
-		Revision:    revision,
+		Revision: revision,
 
 		PackagePath: packagePath,
 
-		CommitURL:   fmt.Sprintf("%s/repos/%s/packages/%s/revisions/%s", c.endpoint, repoName, packageName, revision),
-
+		CommitURL: fmt.Sprintf("%s/repos/%s/packages/%s/revisions/%s", c.endpoint, repoName, packageName, revision),
 	}
-
-
 
 	if c.dryRun {
 
@@ -285,8 +238,6 @@ func (c *DirectClient) CreatePackageFromIntent(ctx context.Context, intentPath, 
 
 	}
 
-
-
 	// Create package directory.
 
 	if err := os.MkdirAll(packagePath, 0o755); err != nil {
@@ -294,8 +245,6 @@ func (c *DirectClient) CreatePackageFromIntent(ctx context.Context, intentPath, 
 		return nil, fmt.Errorf("failed to create package directory: %w", err)
 
 	}
-
-
 
 	// Write package files.
 
@@ -313,8 +262,6 @@ func (c *DirectClient) CreatePackageFromIntent(ctx context.Context, intentPath, 
 
 	}
 
-
-
 	// In a real implementation, this would call the Porch API.
 
 	// For now, we simulate the API call.
@@ -329,17 +276,12 @@ func (c *DirectClient) CreatePackageFromIntent(ctx context.Context, intentPath, 
 
 	klog.Infof("  Commit URL: %s", result.CommitURL)
 
-
-
 	if revisionMessage != "" {
 
 		klog.Infof("  Message: %s", revisionMessage)
 
 	}
 
-
-
 	return result, nil
 
 }
-

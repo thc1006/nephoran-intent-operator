@@ -1,35 +1,18 @@
 //go:build !disable_rag
-
 // +build !disable_rag
-
-
-
 
 package llm
 
-
-
 import (
-
 	"os"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
-
 )
-
-
 
 var (
 
@@ -37,15 +20,10 @@ var (
 
 	prometheusOnce sync.Once
 
-
-
 	// prometheusMetrics holds the registered Prometheus metrics.
 
 	prometheusMetrics *PrometheusMetrics
-
 )
-
-
 
 // PrometheusMetrics holds all LLM-related Prometheus metrics.
 
@@ -53,35 +31,28 @@ type PrometheusMetrics struct {
 
 	// Counter metrics.
 
-	RequestsTotal         *prometheus.CounterVec
+	RequestsTotal *prometheus.CounterVec
 
-	ErrorsTotal           *prometheus.CounterVec
+	ErrorsTotal *prometheus.CounterVec
 
-	CacheHitsTotal        *prometheus.CounterVec
+	CacheHitsTotal *prometheus.CounterVec
 
-	CacheMissesTotal      *prometheus.CounterVec
+	CacheMissesTotal *prometheus.CounterVec
 
 	FallbackAttemptsTotal *prometheus.CounterVec
 
-	RetryAttemptsTotal    *prometheus.CounterVec
-
-
+	RetryAttemptsTotal *prometheus.CounterVec
 
 	// Histogram metrics.
 
 	ProcessingDurationSeconds *prometheus.HistogramVec
 
-
-
 	// Registration flag.
 
 	registered bool
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewPrometheusMetrics creates and registers LLM Prometheus metrics if enabled.
 
@@ -101,13 +72,9 @@ func NewPrometheusMetrics() *PrometheusMetrics {
 
 	})
 
-
-
 	return prometheusMetrics
 
 }
-
-
 
 // isMetricsEnabled checks if metrics are enabled via environment variable.
 
@@ -116,8 +83,6 @@ func isMetricsEnabled() bool {
 	return os.Getenv("METRICS_ENABLED") == "true"
 
 }
-
-
 
 // createAndRegisterMetrics creates and registers all LLM Prometheus metrics.
 
@@ -132,80 +97,56 @@ func createAndRegisterMetrics() *PrometheusMetrics {
 			Name: "nephoran_llm_requests_total",
 
 			Help: "Total number of LLM requests by model and status",
-
 		}, []string{"model", "status"}),
-
-
 
 		ErrorsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "nephoran_llm_errors_total",
 
 			Help: "Total number of LLM errors by model and error type",
-
 		}, []string{"model", "error_type"}),
-
-
 
 		CacheHitsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "nephoran_llm_cache_hits_total",
 
 			Help: "Total number of LLM cache hits by model",
-
 		}, []string{"model"}),
-
-
 
 		CacheMissesTotal: promauto.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "nephoran_llm_cache_misses_total",
 
 			Help: "Total number of LLM cache misses by model",
-
 		}, []string{"model"}),
-
-
 
 		FallbackAttemptsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "nephoran_llm_fallback_attempts_total",
 
 			Help: "Total number of LLM fallback attempts by original model and fallback model",
-
 		}, []string{"original_model", "fallback_model"}),
-
-
 
 		RetryAttemptsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "nephoran_llm_retry_attempts_total",
 
 			Help: "Total number of LLM retry attempts by model",
-
 		}, []string{"model"}),
-
-
 
 		// Histogram for processing duration.
 
 		ProcessingDurationSeconds: promauto.NewHistogramVec(prometheus.HistogramOpts{
 
-			Name:    "nephoran_llm_processing_duration_seconds",
+			Name: "nephoran_llm_processing_duration_seconds",
 
-			Help:    "Duration of LLM processing requests by model and status",
+			Help: "Duration of LLM processing requests by model and status",
 
 			Buckets: []float64{0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0},
-
 		}, []string{"model", "status"}),
 
-
-
 		registered: true,
-
 	}
-
-
 
 	// Register with controller-runtime metrics registry.
 
@@ -224,16 +165,11 @@ func createAndRegisterMetrics() *PrometheusMetrics {
 		pm.RetryAttemptsTotal,
 
 		pm.ProcessingDurationSeconds,
-
 	)
-
-
 
 	return pm
 
 }
-
-
 
 // GetPrometheusMetrics returns the singleton instance.
 
@@ -249,8 +185,6 @@ func GetPrometheusMetrics() *PrometheusMetrics {
 
 }
 
-
-
 // RecordRequest records an LLM request.
 
 func (pm *PrometheusMetrics) RecordRequest(model, status string, duration time.Duration) {
@@ -261,15 +195,11 @@ func (pm *PrometheusMetrics) RecordRequest(model, status string, duration time.D
 
 	}
 
-
-
 	pm.RequestsTotal.WithLabelValues(model, status).Inc()
 
 	pm.ProcessingDurationSeconds.WithLabelValues(model, status).Observe(duration.Seconds())
 
 }
-
-
 
 // RecordError records an LLM error.
 
@@ -281,13 +211,9 @@ func (pm *PrometheusMetrics) RecordError(model, errorType string) {
 
 	}
 
-
-
 	pm.ErrorsTotal.WithLabelValues(model, errorType).Inc()
 
 }
-
-
 
 // RecordCacheHit records a cache hit.
 
@@ -299,13 +225,9 @@ func (pm *PrometheusMetrics) RecordCacheHit(model string) {
 
 	}
 
-
-
 	pm.CacheHitsTotal.WithLabelValues(model).Inc()
 
 }
-
-
 
 // RecordCacheMiss records a cache miss.
 
@@ -317,13 +239,9 @@ func (pm *PrometheusMetrics) RecordCacheMiss(model string) {
 
 	}
 
-
-
 	pm.CacheMissesTotal.WithLabelValues(model).Inc()
 
 }
-
-
 
 // RecordFallbackAttempt records a fallback attempt.
 
@@ -335,13 +253,9 @@ func (pm *PrometheusMetrics) RecordFallbackAttempt(originalModel, fallbackModel 
 
 	}
 
-
-
 	pm.FallbackAttemptsTotal.WithLabelValues(originalModel, fallbackModel).Inc()
 
 }
-
-
 
 // RecordRetryAttempt records a retry attempt.
 
@@ -353,13 +267,9 @@ func (pm *PrometheusMetrics) RecordRetryAttempt(model string) {
 
 	}
 
-
-
 	pm.RetryAttemptsTotal.WithLabelValues(model).Inc()
 
 }
-
-
 
 // isRegistered safely checks if metrics are registered.
 
@@ -371,8 +281,6 @@ func (pm *PrometheusMetrics) isRegistered() bool {
 
 	}
 
-
-
 	pm.mutex.RLock()
 
 	defer pm.mutex.RUnlock()
@@ -381,19 +289,13 @@ func (pm *PrometheusMetrics) isRegistered() bool {
 
 }
 
-
-
 // MetricsIntegrator integrates Prometheus metrics with the existing MetricsCollector.
 
 type MetricsIntegrator struct {
-
-	collector         *MetricsCollector
+	collector *MetricsCollector
 
 	prometheusMetrics *PrometheusMetrics
-
 }
-
-
 
 // NewMetricsIntegrator creates a new metrics integrator.
 
@@ -401,15 +303,12 @@ func NewMetricsIntegrator(collector *MetricsCollector) *MetricsIntegrator {
 
 	return &MetricsIntegrator{
 
-		collector:         collector,
+		collector: collector,
 
 		prometheusMetrics: GetPrometheusMetrics(),
-
 	}
 
 }
-
-
 
 // RecordLLMRequest records an LLM request to both metrics systems.
 
@@ -419,13 +318,9 @@ func (mi *MetricsIntegrator) RecordLLMRequest(model, status string, latency time
 
 	mi.collector.RecordLLMRequest(model, status, latency, tokens)
 
-
-
 	// Record to Prometheus metrics.
 
 	mi.prometheusMetrics.RecordRequest(model, status, latency)
-
-
 
 	// Record error if status indicates failure.
 
@@ -437,8 +332,6 @@ func (mi *MetricsIntegrator) RecordLLMRequest(model, status string, latency time
 
 }
 
-
-
 // RecordCacheOperation records cache operations to both metrics systems.
 
 func (mi *MetricsIntegrator) RecordCacheOperation(model, operation string, hit bool) {
@@ -446,8 +339,6 @@ func (mi *MetricsIntegrator) RecordCacheOperation(model, operation string, hit b
 	// Record to existing MetricsCollector.
 
 	mi.collector.RecordCacheOperation(operation, hit)
-
-
 
 	// Record to Prometheus metrics.
 
@@ -463,8 +354,6 @@ func (mi *MetricsIntegrator) RecordCacheOperation(model, operation string, hit b
 
 }
 
-
-
 // RecordFallbackAttempt records fallback attempts to both metrics systems.
 
 func (mi *MetricsIntegrator) RecordFallbackAttempt(originalModel, fallbackModel string) {
@@ -479,15 +368,11 @@ func (mi *MetricsIntegrator) RecordFallbackAttempt(originalModel, fallbackModel 
 
 	mi.collector.clientMetrics.mutex.Unlock()
 
-
-
 	// Record to Prometheus metrics.
 
 	mi.prometheusMetrics.RecordFallbackAttempt(originalModel, fallbackModel)
 
 }
-
-
 
 // RecordRetryAttempt records retry attempts to both metrics systems.
 
@@ -501,15 +386,11 @@ func (mi *MetricsIntegrator) RecordRetryAttempt(model string) {
 
 	mi.collector.clientMetrics.mutex.Unlock()
 
-
-
 	// Record to Prometheus metrics.
 
 	mi.prometheusMetrics.RecordRetryAttempt(model)
 
 }
-
-
 
 // RecordCircuitBreakerEvent records circuit breaker events with error categorization.
 
@@ -518,8 +399,6 @@ func (mi *MetricsIntegrator) RecordCircuitBreakerEvent(name, event, model string
 	// Record to existing MetricsCollector.
 
 	mi.collector.RecordCircuitBreakerEvent(name, event)
-
-
 
 	// Map circuit breaker events to error types for Prometheus.
 
@@ -541,8 +420,6 @@ func (mi *MetricsIntegrator) RecordCircuitBreakerEvent(name, event, model string
 
 }
 
-
-
 // ResetMetrics resets both metrics systems (useful for testing).
 
 func (mi *MetricsIntegrator) ResetMetrics() {
@@ -554,8 +431,6 @@ func (mi *MetricsIntegrator) ResetMetrics() {
 	// This is by design - use different metric names/labels for testing.
 
 }
-
-
 
 // GetComprehensiveMetrics returns metrics from both systems.
 
@@ -570,4 +445,3 @@ func (mi *MetricsIntegrator) GetComprehensiveMetrics() map[string]interface{} {
 	return result
 
 }
-

@@ -1,187 +1,148 @@
 // Package performance provides comprehensive benchmarking and performance optimization for the Nephoran Intent Operator.
 
-
 package performance
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"runtime"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
-
-
 
 	"github.com/prometheus/client_golang/prometheus"
 
-
-
 	"k8s.io/client-go/util/workqueue"
-
 )
-
-
 
 // BenchmarkSuite provides comprehensive performance testing capabilities.
 
 type BenchmarkSuite struct {
+	metrics *MetricsCollector
 
-	metrics     *MetricsCollector
+	optimizer *OptimizationEngine
 
-	optimizer   *OptimizationEngine
+	profiler *Profiler
 
-	profiler    *Profiler
+	baselines map[string]PerformanceBaseline
 
-	baselines   map[string]PerformanceBaseline
+	results []BenchmarkResult
 
-	results     []BenchmarkResult
-
-	mu          sync.RWMutex
+	mu sync.RWMutex
 
 	rateLimiter workqueue.RateLimiter
-
 }
-
-
 
 // PerformanceBaseline represents expected performance characteristics.
 
 type PerformanceBaseline struct {
+	Name string
 
-	Name                string
+	MaxLatencyP50 time.Duration
 
-	MaxLatencyP50       time.Duration
+	MaxLatencyP95 time.Duration
 
-	MaxLatencyP95       time.Duration
+	MaxLatencyP99 time.Duration
 
-	MaxLatencyP99       time.Duration
+	MinThroughput float64
 
-	MinThroughput       float64
+	MaxMemoryMB float64
 
-	MaxMemoryMB         float64
+	MaxCPUPercent float64
 
-	MaxCPUPercent       float64
-
-	MaxGoroutines       int
+	MaxGoroutines int
 
 	RegressionTolerance float64 // Percentage tolerance for regression
 
 }
 
-
-
 // BenchmarkResult captures the results of a benchmark run.
 
 type BenchmarkResult struct {
+	Name string
 
-	Name           string
+	StartTime time.Time
 
-	StartTime      time.Time
+	EndTime time.Time
 
-	EndTime        time.Time
+	Duration time.Duration
 
-	Duration       time.Duration
+	Iterations int64
 
-	Iterations     int64
+	TotalRequests int64
 
-	TotalRequests  int64
+	SuccessCount int64
 
-	SuccessCount   int64
+	ErrorCount int64
 
-	ErrorCount     int64
+	Latencies []time.Duration
 
-	Latencies      []time.Duration
+	LatencyP50 time.Duration
 
-	LatencyP50     time.Duration
+	LatencyP95 time.Duration
 
-	LatencyP95     time.Duration
+	LatencyP99 time.Duration
 
-	LatencyP99     time.Duration
+	Throughput float64
 
-	Throughput     float64
+	AvgMemoryMB float64
 
-	AvgMemoryMB    float64
+	PeakMemoryMB float64
 
-	PeakMemoryMB   float64
-
-	AvgCPUPercent  float64
+	AvgCPUPercent float64
 
 	PeakCPUPercent float64
 
-	MaxGoroutines  int
+	MaxGoroutines int
 
-	Errors         []error
+	Errors []error
 
-	ResourceUsage  ResourceMetrics
+	ResourceUsage ResourceMetrics
 
-	Passed         bool
+	Passed bool
 
 	RegressionInfo string
-
 }
-
-
 
 // ResourceMetrics tracks resource usage during benchmarks.
 
 type ResourceMetrics struct {
+	CPUSamples []float64
 
-	CPUSamples       []float64
-
-	MemorySamples    []uint64
+	MemorySamples []uint64
 
 	GoroutineSamples []int
 
-	GCStats          runtime.MemStats
+	GCStats runtime.MemStats
 
-	NetworkIO        NetworkMetrics
+	NetworkIO NetworkMetrics
 
-	DiskIO           DiskMetrics
-
+	DiskIO DiskMetrics
 }
-
-
 
 // NetworkMetrics tracks network I/O during benchmarks.
 
 type NetworkMetrics struct {
-
-	BytesSent     uint64
+	BytesSent uint64
 
 	BytesReceived uint64
 
-	RequestCount  uint64
+	RequestCount uint64
 
-	ErrorCount    uint64
-
+	ErrorCount uint64
 }
-
-
 
 // DiskMetrics tracks disk I/O during benchmarks.
 
 type DiskMetrics struct {
-
-	BytesRead    uint64
+	BytesRead uint64
 
 	BytesWritten uint64
 
-	ReadOps      uint64
+	ReadOps uint64
 
-	WriteOps     uint64
-
+	WriteOps uint64
 }
-
-
 
 // NewBenchmarkSuite creates a new benchmark suite with default baselines.
 
@@ -189,23 +150,20 @@ func NewBenchmarkSuite() *BenchmarkSuite {
 
 	return &BenchmarkSuite{
 
-		metrics:     NewMetricsCollector(),
+		metrics: NewMetricsCollector(),
 
-		optimizer:   NewOptimizationEngine(),
+		optimizer: NewOptimizationEngine(),
 
-		profiler:    NewProfiler(),
+		profiler: NewProfiler(),
 
-		baselines:   getDefaultBaselines(),
+		baselines: getDefaultBaselines(),
 
-		results:     make([]BenchmarkResult, 0),
+		results: make([]BenchmarkResult, 0),
 
 		rateLimiter: workqueue.NewItemExponentialFailureRateLimiter(time.Millisecond*100, time.Second*10),
-
 	}
 
 }
-
-
 
 // getDefaultBaselines returns the default performance baselines.
 
@@ -215,119 +173,111 @@ func getDefaultBaselines() map[string]PerformanceBaseline {
 
 		"single_intent": {
 
-			Name:                "Single Intent Processing",
+			Name: "Single Intent Processing",
 
-			MaxLatencyP50:       15 * time.Second,
+			MaxLatencyP50: 15 * time.Second,
 
-			MaxLatencyP95:       25 * time.Second,
+			MaxLatencyP95: 25 * time.Second,
 
-			MaxLatencyP99:       30 * time.Second,
+			MaxLatencyP99: 30 * time.Second,
 
-			MinThroughput:       1.0,
+			MinThroughput: 1.0,
 
-			MaxMemoryMB:         500,
+			MaxMemoryMB: 500,
 
-			MaxCPUPercent:       80,
+			MaxCPUPercent: 80,
 
-			MaxGoroutines:       100,
+			MaxGoroutines: 100,
 
 			RegressionTolerance: 10.0,
-
 		},
 
 		"concurrent_10": {
 
-			Name:                "10 Concurrent Users",
+			Name: "10 Concurrent Users",
 
-			MaxLatencyP50:       3 * time.Second,
+			MaxLatencyP50: 3 * time.Second,
 
-			MaxLatencyP95:       5 * time.Second,
+			MaxLatencyP95: 5 * time.Second,
 
-			MaxLatencyP99:       8 * time.Second,
+			MaxLatencyP99: 8 * time.Second,
 
-			MinThroughput:       8.0,
+			MinThroughput: 8.0,
 
-			MaxMemoryMB:         1000,
+			MaxMemoryMB: 1000,
 
-			MaxCPUPercent:       150,
+			MaxCPUPercent: 150,
 
-			MaxGoroutines:       200,
+			MaxGoroutines: 200,
 
 			RegressionTolerance: 15.0,
-
 		},
 
 		"e2nodeset_scaling": {
 
-			Name:                "E2NodeSet Scaling to 100 Nodes",
+			Name: "E2NodeSet Scaling to 100 Nodes",
 
-			MaxLatencyP50:       60 * time.Second,
+			MaxLatencyP50: 60 * time.Second,
 
-			MaxLatencyP95:       80 * time.Second,
+			MaxLatencyP95: 80 * time.Second,
 
-			MaxLatencyP99:       90 * time.Second,
+			MaxLatencyP99: 90 * time.Second,
 
-			MinThroughput:       1.1, // nodes per second
+			MinThroughput: 1.1, // nodes per second
 
-			MaxMemoryMB:         2000,
+			MaxMemoryMB: 2000,
 
-			MaxCPUPercent:       200,
+			MaxCPUPercent: 200,
 
-			MaxGoroutines:       500,
+			MaxGoroutines: 500,
 
 			RegressionTolerance: 20.0,
-
 		},
 
 		"memory_stability": {
 
-			Name:                "10-Minute Memory Stability",
+			Name: "10-Minute Memory Stability",
 
-			MaxLatencyP50:       5 * time.Second,
+			MaxLatencyP50: 5 * time.Second,
 
-			MaxLatencyP95:       10 * time.Second,
+			MaxLatencyP95: 10 * time.Second,
 
-			MaxLatencyP99:       15 * time.Second,
+			MaxLatencyP99: 15 * time.Second,
 
-			MinThroughput:       5.0,
+			MinThroughput: 5.0,
 
-			MaxMemoryMB:         1500,
+			MaxMemoryMB: 1500,
 
-			MaxCPUPercent:       100,
+			MaxCPUPercent: 100,
 
-			MaxGoroutines:       300,
+			MaxGoroutines: 300,
 
 			RegressionTolerance: 5.0,
-
 		},
 
 		"high_throughput": {
 
-			Name:                "High Throughput (50 intents/sec)",
+			Name: "High Throughput (50 intents/sec)",
 
-			MaxLatencyP50:       2 * time.Second,
+			MaxLatencyP50: 2 * time.Second,
 
-			MaxLatencyP95:       5 * time.Second,
+			MaxLatencyP95: 5 * time.Second,
 
-			MaxLatencyP99:       10 * time.Second,
+			MaxLatencyP99: 10 * time.Second,
 
-			MinThroughput:       50.0,
+			MinThroughput: 50.0,
 
-			MaxMemoryMB:         3000,
+			MaxMemoryMB: 3000,
 
-			MaxCPUPercent:       400,
+			MaxCPUPercent: 400,
 
-			MaxGoroutines:       1000,
+			MaxGoroutines: 1000,
 
 			RegressionTolerance: 10.0,
-
 		},
-
 	}
 
 }
-
-
 
 // RunSingleIntentBenchmark tests single intent processing performance.
 
@@ -337,21 +287,16 @@ func (bs *BenchmarkSuite) RunSingleIntentBenchmark(ctx context.Context, intentFu
 
 	result := &BenchmarkResult{
 
-		Name:      baseline.Name,
+		Name: baseline.Name,
 
 		StartTime: time.Now(),
-
 	}
-
-
 
 	// Start resource monitoring.
 
 	stopMonitor := bs.startResourceMonitoring(ctx, result)
 
 	defer stopMonitor()
-
-
 
 	// Run the benchmark.
 
@@ -360,8 +305,6 @@ func (bs *BenchmarkSuite) RunSingleIntentBenchmark(ctx context.Context, intentFu
 	err := intentFunc()
 
 	latency := time.Since(start)
-
-
 
 	result.EndTime = time.Now()
 
@@ -372,8 +315,6 @@ func (bs *BenchmarkSuite) RunSingleIntentBenchmark(ctx context.Context, intentFu
 	result.TotalRequests = 1
 
 	result.Latencies = []time.Duration{latency}
-
-
 
 	if err != nil {
 
@@ -387,19 +328,13 @@ func (bs *BenchmarkSuite) RunSingleIntentBenchmark(ctx context.Context, intentFu
 
 	}
 
-
-
 	// Calculate metrics.
 
 	bs.calculateMetrics(result)
 
-
-
 	// Check against baseline.
 
 	result.Passed = bs.checkBaseline(result, baseline)
-
-
 
 	bs.mu.Lock()
 
@@ -407,13 +342,9 @@ func (bs *BenchmarkSuite) RunSingleIntentBenchmark(ctx context.Context, intentFu
 
 	bs.mu.Unlock()
 
-
-
 	return result, nil
 
 }
-
-
 
 // RunConcurrentBenchmark tests concurrent user scenarios.
 
@@ -429,27 +360,20 @@ func (bs *BenchmarkSuite) RunConcurrentBenchmark(ctx context.Context, users int,
 
 	}
 
-
-
 	result := &BenchmarkResult{
 
-		Name:      fmt.Sprintf("Concurrent Users: %d", users),
+		Name: fmt.Sprintf("Concurrent Users: %d", users),
 
 		StartTime: time.Now(),
 
 		Latencies: make([]time.Duration, 0),
-
 	}
-
-
 
 	// Start resource monitoring.
 
 	stopMonitor := bs.startResourceMonitoring(ctx, result)
 
 	defer stopMonitor()
-
-
 
 	var wg sync.WaitGroup
 
@@ -463,8 +387,6 @@ func (bs *BenchmarkSuite) RunConcurrentBenchmark(ctx context.Context, users int,
 
 	errorChan := make(chan error, 1000)
 
-
-
 	// Create worker pool.
 
 	for i := range users {
@@ -474,8 +396,6 @@ func (bs *BenchmarkSuite) RunConcurrentBenchmark(ctx context.Context, users int,
 		go func(workerID int) {
 
 			defer wg.Done()
-
-
 
 			endTime := time.Now().Add(duration)
 
@@ -493,21 +413,15 @@ func (bs *BenchmarkSuite) RunConcurrentBenchmark(ctx context.Context, users int,
 
 					bs.rateLimiter.When("request")
 
-
-
 					start := time.Now()
 
 					err := workload()
 
 					latency := time.Since(start)
 
-
-
 					atomic.AddInt64(&totalRequests, 1)
 
 					latencyChan <- latency
-
-
 
 					if err != nil {
 
@@ -535,8 +449,6 @@ func (bs *BenchmarkSuite) RunConcurrentBenchmark(ctx context.Context, users int,
 
 	}
 
-
-
 	// Wait for all workers to complete.
 
 	go func() {
@@ -549,8 +461,6 @@ func (bs *BenchmarkSuite) RunConcurrentBenchmark(ctx context.Context, users int,
 
 	}()
 
-
-
 	// Collect latencies.
 
 	for latency := range latencyChan {
@@ -559,8 +469,6 @@ func (bs *BenchmarkSuite) RunConcurrentBenchmark(ctx context.Context, users int,
 
 	}
 
-
-
 	// Collect errors.
 
 	for err := range errorChan {
@@ -568,8 +476,6 @@ func (bs *BenchmarkSuite) RunConcurrentBenchmark(ctx context.Context, users int,
 		result.Errors = append(result.Errors, err)
 
 	}
-
-
 
 	result.EndTime = time.Now()
 
@@ -581,19 +487,13 @@ func (bs *BenchmarkSuite) RunConcurrentBenchmark(ctx context.Context, users int,
 
 	result.ErrorCount = errorCount
 
-
-
 	// Calculate metrics.
 
 	bs.calculateMetrics(result)
 
-
-
 	// Check against baseline.
 
 	result.Passed = bs.checkBaseline(result, baseline)
-
-
 
 	bs.mu.Lock()
 
@@ -601,13 +501,9 @@ func (bs *BenchmarkSuite) RunConcurrentBenchmark(ctx context.Context, users int,
 
 	bs.mu.Unlock()
 
-
-
 	return result, nil
 
 }
-
-
 
 // RunE2NodeSetScalingBenchmark tests E2NodeSet scaling performance.
 
@@ -617,21 +513,16 @@ func (bs *BenchmarkSuite) RunE2NodeSetScalingBenchmark(ctx context.Context, node
 
 	result := &BenchmarkResult{
 
-		Name:      fmt.Sprintf("E2NodeSet Scaling to %d nodes", nodeCount),
+		Name: fmt.Sprintf("E2NodeSet Scaling to %d nodes", nodeCount),
 
 		StartTime: time.Now(),
-
 	}
-
-
 
 	// Start resource monitoring.
 
 	stopMonitor := bs.startResourceMonitoring(ctx, result)
 
 	defer stopMonitor()
-
-
 
 	// Run scaling benchmark.
 
@@ -640,8 +531,6 @@ func (bs *BenchmarkSuite) RunE2NodeSetScalingBenchmark(ctx context.Context, node
 	err := scaleFunc(nodeCount)
 
 	latency := time.Since(start)
-
-
 
 	result.EndTime = time.Now()
 
@@ -652,8 +541,6 @@ func (bs *BenchmarkSuite) RunE2NodeSetScalingBenchmark(ctx context.Context, node
 	result.TotalRequests = int64(nodeCount)
 
 	result.Latencies = []time.Duration{latency}
-
-
 
 	if err != nil {
 
@@ -667,25 +554,17 @@ func (bs *BenchmarkSuite) RunE2NodeSetScalingBenchmark(ctx context.Context, node
 
 	}
 
-
-
 	// Calculate throughput as nodes per second.
 
 	result.Throughput = float64(nodeCount) / latency.Seconds()
-
-
 
 	// Calculate other metrics.
 
 	bs.calculateMetrics(result)
 
-
-
 	// Check against baseline.
 
 	result.Passed = bs.checkBaseline(result, baseline)
-
-
 
 	bs.mu.Lock()
 
@@ -693,13 +572,9 @@ func (bs *BenchmarkSuite) RunE2NodeSetScalingBenchmark(ctx context.Context, node
 
 	bs.mu.Unlock()
 
-
-
 	return result, nil
 
 }
-
-
 
 // RunMemoryStabilityBenchmark tests for memory leaks over time.
 
@@ -709,23 +584,18 @@ func (bs *BenchmarkSuite) RunMemoryStabilityBenchmark(ctx context.Context, durat
 
 	result := &BenchmarkResult{
 
-		Name:      fmt.Sprintf("Memory Stability Test (%v)", duration),
+		Name: fmt.Sprintf("Memory Stability Test (%v)", duration),
 
 		StartTime: time.Now(),
 
 		Latencies: make([]time.Duration, 0),
-
 	}
-
-
 
 	// Start resource monitoring with higher frequency.
 
 	stopMonitor := bs.startResourceMonitoring(ctx, result)
 
 	defer stopMonitor()
-
-
 
 	// Force initial GC to get baseline.
 
@@ -735,15 +605,11 @@ func (bs *BenchmarkSuite) RunMemoryStabilityBenchmark(ctx context.Context, durat
 
 	runtime.ReadMemStats(&initialMem)
 
-
-
 	var totalRequests int64
 
 	var successCount int64
 
 	var errorCount int64
-
-
 
 	endTime := time.Now().Add(duration)
 
@@ -763,13 +629,9 @@ func (bs *BenchmarkSuite) RunMemoryStabilityBenchmark(ctx context.Context, durat
 
 			latency := time.Since(start)
 
-
-
 			totalRequests++
 
 			result.Latencies = append(result.Latencies, latency)
-
-
 
 			if err != nil {
 
@@ -783,8 +645,6 @@ func (bs *BenchmarkSuite) RunMemoryStabilityBenchmark(ctx context.Context, durat
 
 			}
 
-
-
 			// Periodic GC to check for leaks.
 
 			if totalRequests%100 == 0 {
@@ -797,8 +657,6 @@ func (bs *BenchmarkSuite) RunMemoryStabilityBenchmark(ctx context.Context, durat
 
 	}
 
-
-
 	// Final GC and memory check.
 
 	runtime.GC()
@@ -806,8 +664,6 @@ func (bs *BenchmarkSuite) RunMemoryStabilityBenchmark(ctx context.Context, durat
 	var finalMem runtime.MemStats
 
 	runtime.ReadMemStats(&finalMem)
-
-
 
 	result.EndTime = time.Now()
 
@@ -819,8 +675,6 @@ func (bs *BenchmarkSuite) RunMemoryStabilityBenchmark(ctx context.Context, durat
 
 	result.ErrorCount = errorCount
 
-
-
 	// Check for memory leak.
 
 	memoryGrowth := float64(finalMem.HeapAlloc-initialMem.HeapAlloc) / (1024 * 1024)
@@ -831,19 +685,13 @@ func (bs *BenchmarkSuite) RunMemoryStabilityBenchmark(ctx context.Context, durat
 
 	}
 
-
-
 	// Calculate metrics.
 
 	bs.calculateMetrics(result)
 
-
-
 	// Check against baseline.
 
 	result.Passed = bs.checkBaseline(result, baseline)
-
-
 
 	bs.mu.Lock()
 
@@ -851,13 +699,9 @@ func (bs *BenchmarkSuite) RunMemoryStabilityBenchmark(ctx context.Context, durat
 
 	bs.mu.Unlock()
 
-
-
 	return result, nil
 
 }
-
-
 
 // RunRealisticTelecomWorkload runs a realistic telecom deployment scenario.
 
@@ -865,23 +709,18 @@ func (bs *BenchmarkSuite) RunRealisticTelecomWorkload(ctx context.Context, scena
 
 	result := &BenchmarkResult{
 
-		Name:      fmt.Sprintf("Telecom Workload: %s", scenario.Name),
+		Name: fmt.Sprintf("Telecom Workload: %s", scenario.Name),
 
 		StartTime: time.Now(),
 
 		Latencies: make([]time.Duration, 0),
-
 	}
-
-
 
 	// Start resource monitoring.
 
 	stopMonitor := bs.startResourceMonitoring(ctx, result)
 
 	defer stopMonitor()
-
-
 
 	// Execute scenario steps.
 
@@ -893,13 +732,9 @@ func (bs *BenchmarkSuite) RunRealisticTelecomWorkload(ctx context.Context, scena
 
 		latency := time.Since(start)
 
-
-
 		result.TotalRequests++
 
 		result.Latencies = append(result.Latencies, latency)
-
-
 
 		if err != nil {
 
@@ -913,8 +748,6 @@ func (bs *BenchmarkSuite) RunRealisticTelecomWorkload(ctx context.Context, scena
 
 		}
 
-
-
 		// Wait between steps if specified.
 
 		if step.Delay > 0 {
@@ -925,19 +758,13 @@ func (bs *BenchmarkSuite) RunRealisticTelecomWorkload(ctx context.Context, scena
 
 	}
 
-
-
 	result.EndTime = time.Now()
 
 	result.Duration = result.EndTime.Sub(result.StartTime)
 
-
-
 	// Calculate metrics.
 
 	bs.calculateMetrics(result)
-
-
 
 	// Use high throughput baseline for realistic scenarios.
 
@@ -945,49 +772,35 @@ func (bs *BenchmarkSuite) RunRealisticTelecomWorkload(ctx context.Context, scena
 
 	result.Passed = bs.checkBaseline(result, baseline)
 
-
-
 	bs.mu.Lock()
 
 	bs.results = append(bs.results, *result)
 
 	bs.mu.Unlock()
 
-
-
 	return result, nil
 
 }
 
-
-
 // TelecomScenario represents a realistic telecom deployment scenario.
 
 type TelecomScenario struct {
-
-	Name        string
+	Name string
 
 	Description string
 
-	Steps       []ScenarioStep
-
+	Steps []ScenarioStep
 }
-
-
 
 // ScenarioStep represents a single step in a telecom scenario.
 
 type ScenarioStep struct {
-
-	Name    string
+	Name string
 
 	Execute func() error
 
-	Delay   time.Duration
-
+	Delay time.Duration
 }
-
-
 
 // startResourceMonitoring starts monitoring resources during benchmark.
 
@@ -995,15 +808,11 @@ func (bs *BenchmarkSuite) startResourceMonitoring(ctx context.Context, result *B
 
 	stopChan := make(chan struct{})
 
-
-
 	go func() {
 
 		ticker := time.NewTicker(100 * time.Millisecond)
 
 		defer ticker.Stop()
-
-
 
 		for {
 
@@ -1025,8 +834,6 @@ func (bs *BenchmarkSuite) startResourceMonitoring(ctx context.Context, result *B
 
 				result.ResourceUsage.CPUSamples = append(result.ResourceUsage.CPUSamples, cpuPercent)
 
-
-
 				// Collect memory usage.
 
 				var memStats runtime.MemStats
@@ -1035,15 +842,11 @@ func (bs *BenchmarkSuite) startResourceMonitoring(ctx context.Context, result *B
 
 				result.ResourceUsage.MemorySamples = append(result.ResourceUsage.MemorySamples, memStats.Alloc)
 
-
-
 				// Collect goroutine count.
 
 				goroutineCount := runtime.NumGoroutine()
 
 				result.ResourceUsage.GoroutineSamples = append(result.ResourceUsage.GoroutineSamples, goroutineCount)
-
-
 
 				// Update peaks.
 
@@ -1073,8 +876,6 @@ func (bs *BenchmarkSuite) startResourceMonitoring(ctx context.Context, result *B
 
 	}()
 
-
-
 	return func() {
 
 		close(stopChan)
@@ -1082,8 +883,6 @@ func (bs *BenchmarkSuite) startResourceMonitoring(ctx context.Context, result *B
 	}
 
 }
-
-
 
 // calculateMetrics calculates performance metrics from raw data.
 
@@ -1095,8 +894,6 @@ func (bs *BenchmarkSuite) calculateMetrics(result *BenchmarkResult) {
 
 	}
 
-
-
 	// Calculate latency percentiles.
 
 	analyzer := bs.metrics.analyzer
@@ -1107,8 +904,6 @@ func (bs *BenchmarkSuite) calculateMetrics(result *BenchmarkResult) {
 
 	result.LatencyP99 = analyzer.CalculatePercentile(result.Latencies, 99)
 
-
-
 	// Calculate throughput.
 
 	if result.Duration > 0 {
@@ -1116,8 +911,6 @@ func (bs *BenchmarkSuite) calculateMetrics(result *BenchmarkResult) {
 		result.Throughput = float64(result.SuccessCount) / result.Duration.Seconds()
 
 	}
-
-
 
 	// Calculate average memory.
 
@@ -1134,8 +927,6 @@ func (bs *BenchmarkSuite) calculateMetrics(result *BenchmarkResult) {
 		result.AvgMemoryMB = float64(totalMem) / float64(len(result.ResourceUsage.MemorySamples)) / (1024 * 1024)
 
 	}
-
-
 
 	// Calculate average CPU.
 
@@ -1155,8 +946,6 @@ func (bs *BenchmarkSuite) calculateMetrics(result *BenchmarkResult) {
 
 }
 
-
-
 // checkBaseline checks if results meet baseline requirements.
 
 func (bs *BenchmarkSuite) checkBaseline(result *BenchmarkResult, baseline PerformanceBaseline) bool {
@@ -1164,8 +953,6 @@ func (bs *BenchmarkSuite) checkBaseline(result *BenchmarkResult, baseline Perfor
 	passed := true
 
 	var regressions []string
-
-
 
 	// Check latency.
 
@@ -1199,8 +986,6 @@ func (bs *BenchmarkSuite) checkBaseline(result *BenchmarkResult, baseline Perfor
 
 	}
 
-
-
 	// Check throughput.
 
 	if result.Throughput < baseline.MinThroughput {
@@ -1212,8 +997,6 @@ func (bs *BenchmarkSuite) checkBaseline(result *BenchmarkResult, baseline Perfor
 			result.Throughput, baseline.MinThroughput))
 
 	}
-
-
 
 	// Check memory.
 
@@ -1227,8 +1010,6 @@ func (bs *BenchmarkSuite) checkBaseline(result *BenchmarkResult, baseline Perfor
 
 	}
 
-
-
 	// Check CPU.
 
 	if result.PeakCPUPercent > baseline.MaxCPUPercent {
@@ -1240,8 +1021,6 @@ func (bs *BenchmarkSuite) checkBaseline(result *BenchmarkResult, baseline Perfor
 			result.PeakCPUPercent, baseline.MaxCPUPercent))
 
 	}
-
-
 
 	// Check goroutines.
 
@@ -1255,21 +1034,15 @@ func (bs *BenchmarkSuite) checkBaseline(result *BenchmarkResult, baseline Perfor
 
 	}
 
-
-
 	if len(regressions) > 0 {
 
 		result.RegressionInfo = fmt.Sprintf("Performance regressions detected: %v", regressions)
 
 	}
 
-
-
 	return passed
 
 }
-
-
 
 // GetResults returns all benchmark results.
 
@@ -1283,8 +1056,6 @@ func (bs *BenchmarkSuite) GetResults() []BenchmarkResult {
 
 }
 
-
-
 // GenerateReport generates a comprehensive performance report.
 
 func (bs *BenchmarkSuite) GenerateReport() string {
@@ -1293,11 +1064,7 @@ func (bs *BenchmarkSuite) GenerateReport() string {
 
 	defer bs.mu.RUnlock()
 
-
-
 	report := "=== Nephoran Intent Operator Performance Report ===\n\n"
-
-
 
 	for _, result := range bs.results {
 
@@ -1329,15 +1096,11 @@ func (bs *BenchmarkSuite) GenerateReport() string {
 
 		report += fmt.Sprintf("  Max Goroutines: %d\n", result.MaxGoroutines)
 
-
-
 		if result.RegressionInfo != "" {
 
 			report += fmt.Sprintf("  Regression Info: %s\n", result.RegressionInfo)
 
 		}
-
-
 
 		if len(result.Errors) > 0 {
 
@@ -1345,19 +1108,13 @@ func (bs *BenchmarkSuite) GenerateReport() string {
 
 		}
 
-
-
 		report += "\n"
 
 	}
 
-
-
 	return report
 
 }
-
-
 
 // getStatusString returns a status string based on passed flag.
 
@@ -1373,8 +1130,6 @@ func getStatusString(passed bool) string {
 
 }
 
-
-
 // ExportMetrics exports benchmark results to Prometheus.
 
 func (bs *BenchmarkSuite) ExportMetrics(registry *prometheus.Registry) {
@@ -1383,19 +1138,14 @@ func (bs *BenchmarkSuite) ExportMetrics(registry *prometheus.Registry) {
 
 	defer bs.mu.RUnlock()
 
-
-
 	for _, result := range bs.results {
 
 		labels := prometheus.Labels{
 
 			"benchmark": result.Name,
 
-			"status":    getStatusString(result.Passed),
-
+			"status": getStatusString(result.Passed),
 		}
-
-
 
 		// Export latency metrics.
 
@@ -1404,10 +1154,7 @@ func (bs *BenchmarkSuite) ExportMetrics(registry *prometheus.Registry) {
 			Name: "benchmark_latency_seconds",
 
 			Help: "Benchmark latency in seconds",
-
 		}, []string{"benchmark", "status", "percentile"})
-
-
 
 		latencyGauge.With(prometheus.Labels{"benchmark": result.Name, "status": getStatusString(result.Passed), "percentile": "p50"}).Set(result.LatencyP50.Seconds())
 
@@ -1415,11 +1162,7 @@ func (bs *BenchmarkSuite) ExportMetrics(registry *prometheus.Registry) {
 
 		latencyGauge.With(prometheus.Labels{"benchmark": result.Name, "status": getStatusString(result.Passed), "percentile": "p99"}).Set(result.LatencyP99.Seconds())
 
-
-
 		registry.MustRegister(latencyGauge)
-
-
 
 		// Export throughput.
 
@@ -1428,14 +1171,11 @@ func (bs *BenchmarkSuite) ExportMetrics(registry *prometheus.Registry) {
 			Name: "benchmark_throughput_rps",
 
 			Help: "Benchmark throughput in requests per second",
-
 		}, []string{"benchmark", "status"})
 
 		throughputGauge.With(labels).Set(result.Throughput)
 
 		registry.MustRegister(throughputGauge)
-
-
 
 		// Export resource metrics.
 
@@ -1444,7 +1184,6 @@ func (bs *BenchmarkSuite) ExportMetrics(registry *prometheus.Registry) {
 			Name: "benchmark_memory_mb",
 
 			Help: "Benchmark memory usage in MB",
-
 		}, []string{"benchmark", "status", "type"})
 
 		memoryGauge.With(prometheus.Labels{"benchmark": result.Name, "status": getStatusString(result.Passed), "type": "avg"}).Set(result.AvgMemoryMB)
@@ -1453,14 +1192,11 @@ func (bs *BenchmarkSuite) ExportMetrics(registry *prometheus.Registry) {
 
 		registry.MustRegister(memoryGauge)
 
-
-
 		cpuGauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 
 			Name: "benchmark_cpu_percent",
 
 			Help: "Benchmark CPU usage percentage",
-
 		}, []string{"benchmark", "status", "type"})
 
 		cpuGauge.With(prometheus.Labels{"benchmark": result.Name, "status": getStatusString(result.Passed), "type": "avg"}).Set(result.AvgCPUPercent)
@@ -1473,8 +1209,6 @@ func (bs *BenchmarkSuite) ExportMetrics(registry *prometheus.Registry) {
 
 }
 
-
-
 // CompareWithBaseline compares current results with historical baselines.
 
 func (bs *BenchmarkSuite) CompareWithBaseline(current, historical *BenchmarkResult) (float64, string) {
@@ -1484,8 +1218,6 @@ func (bs *BenchmarkSuite) CompareWithBaseline(current, historical *BenchmarkResu
 		return 0, "No historical data available"
 
 	}
-
-
 
 	// Calculate performance delta.
 
@@ -1497,8 +1229,6 @@ func (bs *BenchmarkSuite) CompareWithBaseline(current, historical *BenchmarkResu
 
 	cpuDelta := (current.PeakCPUPercent - historical.PeakCPUPercent) / historical.PeakCPUPercent * 100
 
-
-
 	summary := "Performance comparison:\n"
 
 	summary += fmt.Sprintf("  Latency P95: %.2f%% (%.2fs -> %.2fs)\n", latencyDelta, historical.LatencyP95.Seconds(), current.LatencyP95.Seconds())
@@ -1509,15 +1239,10 @@ func (bs *BenchmarkSuite) CompareWithBaseline(current, historical *BenchmarkResu
 
 	summary += fmt.Sprintf("  CPU: %.2f%% (%.2f%% -> %.2f%%)\n", cpuDelta, historical.PeakCPUPercent, current.PeakCPUPercent)
 
-
-
 	// Calculate overall performance score (negative is better for latency/resources, positive for throughput).
 
 	overallDelta := (-latencyDelta + throughputDelta - memoryDelta - cpuDelta) / 4
 
-
-
 	return overallDelta, summary
 
 }
-

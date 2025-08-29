@@ -1,37 +1,20 @@
-
 package monitoring
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"log"
-
 	"log/slog"
-
 	"os"
-
 	"time"
 
-
-
 	"github.com/google/uuid"
-
 	"go.opentelemetry.io/otel/trace"
-
 )
-
-
 
 // LogLevel represents logging levels.
 
 type LogLevel int
-
-
 
 const (
 
@@ -54,10 +37,7 @@ const (
 	// LogLevelFatal holds loglevelfatal value.
 
 	LogLevelFatal
-
 )
-
-
 
 // String returns string representation of log level.
 
@@ -93,45 +73,36 @@ func (l LogLevel) String() string {
 
 }
 
-
-
 // StructuredLogger provides structured logging with correlation IDs and tracing.
 
 type StructuredLogger struct {
+	logger *slog.Logger
 
-	logger       *slog.Logger
+	serviceName string
 
-	serviceName  string
+	environment string
 
-	environment  string
-
-	version      string
+	version string
 
 	defaultAttrs []slog.Attr
-
 }
-
-
 
 // LogConfig holds logging configuration.
 
 type LogConfig struct {
+	Level string `json:"level"`
 
-	Level       string `json:"level"`
-
-	Format      string `json:"format"` // "json" or "text"
+	Format string `json:"format"` // "json" or "text"
 
 	ServiceName string `json:"service_name"`
 
 	Environment string `json:"environment"`
 
-	Version     string `json:"version"`
+	Version string `json:"version"`
 
-	Output      string `json:"output"` // "stdout", "stderr", or file path
+	Output string `json:"output"` // "stdout", "stderr", or file path
 
 }
-
-
 
 // DefaultLogConfig returns default logging configuration.
 
@@ -139,23 +110,20 @@ func DefaultLogConfig() *LogConfig {
 
 	return &LogConfig{
 
-		Level:       "info",
+		Level: "info",
 
-		Format:      "json",
+		Format: "json",
 
 		ServiceName: "nephoran-intent-operator",
 
 		Environment: getEnv("NEPHORAN_ENVIRONMENT", "production"),
 
-		Version:     getEnv("NEPHORAN_VERSION", "1.0.0"),
+		Version: getEnv("NEPHORAN_VERSION", "1.0.0"),
 
-		Output:      "stdout",
-
+		Output: "stdout",
 	}
 
 }
-
-
 
 // NewStructuredLogger creates a new structured logger.
 
@@ -166,8 +134,6 @@ func NewStructuredLogger(config *LogConfig) (*StructuredLogger, error) {
 		config = DefaultLogConfig()
 
 	}
-
-
 
 	// Configure log level.
 
@@ -197,8 +163,6 @@ func NewStructuredLogger(config *LogConfig) (*StructuredLogger, error) {
 
 	}
 
-
-
 	// Configure output.
 
 	var output *os.File
@@ -227,8 +191,6 @@ func NewStructuredLogger(config *LogConfig) (*StructuredLogger, error) {
 
 	}
 
-
-
 	// Configure handler.
 
 	var handler slog.Handler
@@ -237,7 +199,7 @@ func NewStructuredLogger(config *LogConfig) (*StructuredLogger, error) {
 
 		handler = slog.NewJSONHandler(output, &slog.HandlerOptions{
 
-			Level:     level,
+			Level: level,
 
 			AddSource: true,
 
@@ -249,10 +211,9 @@ func NewStructuredLogger(config *LogConfig) (*StructuredLogger, error) {
 
 					return slog.Attr{
 
-						Key:   "timestamp",
+						Key: "timestamp",
 
 						Value: slog.StringValue(time.Now().UTC().Format(time.RFC3339Nano)),
-
 					}
 
 				}
@@ -261,10 +222,9 @@ func NewStructuredLogger(config *LogConfig) (*StructuredLogger, error) {
 
 					return slog.Attr{
 
-						Key:   "level",
+						Key: "level",
 
 						Value: slog.StringValue(a.Value.String()),
-
 					}
 
 				}
@@ -273,10 +233,9 @@ func NewStructuredLogger(config *LogConfig) (*StructuredLogger, error) {
 
 					return slog.Attr{
 
-						Key:   "message",
+						Key: "message",
 
 						Value: a.Value,
-
 					}
 
 				}
@@ -284,26 +243,20 @@ func NewStructuredLogger(config *LogConfig) (*StructuredLogger, error) {
 				return a
 
 			},
-
 		})
 
 	} else {
 
 		handler = slog.NewTextHandler(output, &slog.HandlerOptions{
 
-			Level:     level,
+			Level: level,
 
 			AddSource: true,
-
 		})
 
 	}
 
-
-
 	logger := slog.New(handler)
-
-
 
 	// Default attributes.
 
@@ -314,34 +267,26 @@ func NewStructuredLogger(config *LogConfig) (*StructuredLogger, error) {
 		slog.String("environment", config.Environment),
 
 		slog.String("version", config.Version),
-
 	}
-
-
 
 	return &StructuredLogger{
 
-		logger:       logger,
+		logger: logger,
 
-		serviceName:  config.ServiceName,
+		serviceName: config.ServiceName,
 
-		environment:  config.Environment,
+		environment: config.Environment,
 
-		version:      config.Version,
+		version: config.Version,
 
 		defaultAttrs: defaultAttrs,
-
 	}, nil
 
 }
 
-
-
 // ContextKey type for context keys.
 
 type ContextKey string
-
-
 
 const (
 
@@ -360,10 +305,7 @@ const (
 	// OperationIDKey holds operationidkey value.
 
 	OperationIDKey ContextKey = "operation_id"
-
 )
-
-
 
 // WithCorrelationID adds correlation ID to context.
 
@@ -379,8 +321,6 @@ func WithCorrelationID(ctx context.Context, correlationID string) context.Contex
 
 }
 
-
-
 // WithRequestID adds request ID to context.
 
 func WithRequestID(ctx context.Context, requestID string) context.Context {
@@ -394,8 +334,6 @@ func WithRequestID(ctx context.Context, requestID string) context.Context {
 	return context.WithValue(ctx, RequestIDKey, requestID)
 
 }
-
-
 
 // WithOperationID adds operation ID to context.
 
@@ -411,8 +349,6 @@ func WithOperationID(ctx context.Context, operationID string) context.Context {
 
 }
 
-
-
 // GetCorrelationID gets correlation ID from context.
 
 func GetCorrelationID(ctx context.Context) string {
@@ -426,8 +362,6 @@ func GetCorrelationID(ctx context.Context) string {
 	return ""
 
 }
-
-
 
 // GetRequestID gets request ID from context.
 
@@ -443,8 +377,6 @@ func GetRequestID(ctx context.Context) string {
 
 }
 
-
-
 // GetOperationID gets operation ID from context.
 
 func GetOperationID(ctx context.Context) string {
@@ -459,15 +391,11 @@ func GetOperationID(ctx context.Context) string {
 
 }
 
-
-
 // extractContextAttributes extracts logging attributes from context.
 
 func (sl *StructuredLogger) extractContextAttributes(ctx context.Context) []slog.Attr {
 
 	var attrs []slog.Attr
-
-
 
 	// Add correlation ID.
 
@@ -477,8 +405,6 @@ func (sl *StructuredLogger) extractContextAttributes(ctx context.Context) []slog
 
 	}
 
-
-
 	// Add request ID.
 
 	if requestID := GetRequestID(ctx); requestID != "" {
@@ -487,8 +413,6 @@ func (sl *StructuredLogger) extractContextAttributes(ctx context.Context) []slog
 
 	}
 
-
-
 	// Add operation ID.
 
 	if operationID := GetOperationID(ctx); operationID != "" {
@@ -496,8 +420,6 @@ func (sl *StructuredLogger) extractContextAttributes(ctx context.Context) []slog
 		attrs = append(attrs, slog.String("operation_id", operationID))
 
 	}
-
-
 
 	// Add trace information if available.
 
@@ -510,18 +432,13 @@ func (sl *StructuredLogger) extractContextAttributes(ctx context.Context) []slog
 			slog.String("trace_id", span.SpanContext().TraceID().String()),
 
 			slog.String("span_id", span.SpanContext().SpanID().String()),
-
 		)
 
 	}
 
-
-
 	return attrs
 
 }
-
-
 
 // buildLogAttributes builds complete set of log attributes.
 
@@ -529,31 +446,21 @@ func (sl *StructuredLogger) buildLogAttributes(ctx context.Context, attrs ...slo
 
 	allAttrs := make([]slog.Attr, 0, len(sl.defaultAttrs)+len(attrs)+5)
 
-
-
 	// Add default attributes.
 
 	allAttrs = append(allAttrs, sl.defaultAttrs...)
-
-
 
 	// Add context attributes.
 
 	allAttrs = append(allAttrs, sl.extractContextAttributes(ctx)...)
 
-
-
 	// Add provided attributes.
 
 	allAttrs = append(allAttrs, attrs...)
 
-
-
 	return allAttrs
 
 }
-
-
 
 // Debug logs a debug message.
 
@@ -565,8 +472,6 @@ func (sl *StructuredLogger) Debug(ctx context.Context, msg string, attrs ...slog
 
 }
 
-
-
 // Info logs an info message.
 
 func (sl *StructuredLogger) Info(ctx context.Context, msg string, attrs ...slog.Attr) {
@@ -577,8 +482,6 @@ func (sl *StructuredLogger) Info(ctx context.Context, msg string, attrs ...slog.
 
 }
 
-
-
 // Warn logs a warning message.
 
 func (sl *StructuredLogger) Warn(ctx context.Context, msg string, attrs ...slog.Attr) {
@@ -588,8 +491,6 @@ func (sl *StructuredLogger) Warn(ctx context.Context, msg string, attrs ...slog.
 	sl.logger.LogAttrs(ctx, slog.LevelWarn, msg, allAttrs...)
 
 }
-
-
 
 // Error logs an error message.
 
@@ -608,8 +509,6 @@ func (sl *StructuredLogger) Error(ctx context.Context, msg string, err error, at
 	sl.logger.LogAttrs(ctx, slog.LevelError, msg, allAttrs...)
 
 }
-
-
 
 // Fatal logs a fatal message and exits.
 
@@ -631,8 +530,6 @@ func (sl *StructuredLogger) Fatal(ctx context.Context, msg string, err error, at
 
 }
 
-
-
 // WithFields returns a logger with additional fields.
 
 func (sl *StructuredLogger) WithFields(attrs ...slog.Attr) *StructuredLogger {
@@ -643,35 +540,26 @@ func (sl *StructuredLogger) WithFields(attrs ...slog.Attr) *StructuredLogger {
 
 	newDefaultAttrs = append(newDefaultAttrs, attrs...)
 
-
-
 	return &StructuredLogger{
 
-		logger:       sl.logger,
+		logger: sl.logger,
 
-		serviceName:  sl.serviceName,
+		serviceName: sl.serviceName,
 
-		environment:  sl.environment,
+		environment: sl.environment,
 
-		version:      sl.version,
+		version: sl.version,
 
 		defaultAttrs: newDefaultAttrs,
-
 	}
 
 }
 
-
-
 // NetworkIntentLogger provides specialized logging for NetworkIntent operations.
 
 type NetworkIntentLogger struct {
-
 	*StructuredLogger
-
 }
-
-
 
 // NewNetworkIntentLogger creates a NetworkIntent-specific logger.
 
@@ -682,14 +570,10 @@ func NewNetworkIntentLogger(baseLogger *StructuredLogger) *NetworkIntentLogger {
 		StructuredLogger: baseLogger.WithFields(
 
 			slog.String("component", "networkintent-controller"),
-
 		),
-
 	}
 
 }
-
-
 
 // LogReconciliationStart logs the start of reconciliation.
 
@@ -702,12 +586,9 @@ func (nil *NetworkIntentLogger) LogReconciliationStart(ctx context.Context, name
 		slog.String("intent_namespace", namespace),
 
 		slog.String("operation", "reconciliation_start"),
-
 	)
 
 }
-
-
 
 // LogReconciliationComplete logs successful reconciliation completion.
 
@@ -724,12 +605,9 @@ func (nil *NetworkIntentLogger) LogReconciliationComplete(ctx context.Context, n
 		slog.String("operation", "reconciliation_complete"),
 
 		slog.String("status", "success"),
-
 	)
 
 }
-
-
 
 // LogReconciliationError logs reconciliation errors.
 
@@ -746,12 +624,9 @@ func (nil *NetworkIntentLogger) LogReconciliationError(ctx context.Context, name
 		slog.String("operation", "reconciliation_error"),
 
 		slog.String("status", "failed"),
-
 	)
 
 }
-
-
 
 // LogLLMProcessing logs LLM processing events.
 
@@ -772,12 +647,9 @@ func (nil *NetworkIntentLogger) LogLLMProcessing(ctx context.Context, name, name
 		slog.Duration("duration", duration),
 
 		slog.String("operation", "llm_processing"),
-
 	)
 
 }
-
-
 
 // LogStatusTransition logs status transitions.
 
@@ -794,22 +666,15 @@ func (nil *NetworkIntentLogger) LogStatusTransition(ctx context.Context, name, n
 		slog.String("to_status", toStatus),
 
 		slog.String("operation", "status_transition"),
-
 	)
 
 }
 
-
-
 // ORANInterfaceLogger provides specialized logging for O-RAN interface operations.
 
 type ORANInterfaceLogger struct {
-
 	*StructuredLogger
-
 }
-
-
 
 // NewORANInterfaceLogger creates an O-RAN interface-specific logger.
 
@@ -820,14 +685,10 @@ func NewORANInterfaceLogger(baseLogger *StructuredLogger) *ORANInterfaceLogger {
 		StructuredLogger: baseLogger.WithFields(
 
 			slog.String("component", "oran-interface"),
-
 		),
-
 	}
 
 }
-
-
 
 // LogInterfaceRequest logs O-RAN interface requests.
 
@@ -847,8 +708,6 @@ func (oil *ORANInterfaceLogger) LogInterfaceRequest(ctx context.Context, interfa
 
 	}
 
-
-
 	oil.logger.LogAttrs(ctx, level, "O-RAN interface request completed",
 
 		oil.buildLogAttributes(ctx,
@@ -864,14 +723,10 @@ func (oil *ORANInterfaceLogger) LogInterfaceRequest(ctx context.Context, interfa
 			slog.Int("status_code", statusCode),
 
 			slog.String("operation_type", "interface_request"),
-
 		)...,
-
 	)
 
 }
-
-
 
 // LogConnectionStatus logs connection status changes.
 
@@ -889,8 +744,6 @@ func (oil *ORANInterfaceLogger) LogConnectionStatus(ctx context.Context, interfa
 
 	}
 
-
-
 	oil.logger.LogAttrs(ctx, level, "O-RAN interface connection status changed",
 
 		oil.buildLogAttributes(ctx,
@@ -904,14 +757,10 @@ func (oil *ORANInterfaceLogger) LogConnectionStatus(ctx context.Context, interfa
 			slog.Bool("connected", connected),
 
 			slog.String("operation_type", "connection_status"),
-
 		)...,
-
 	)
 
 }
-
-
 
 // LogPolicyOperation logs policy operations.
 
@@ -924,8 +773,6 @@ func (oil *ORANInterfaceLogger) LogPolicyOperation(ctx context.Context, policyTy
 		level = slog.LevelError
 
 	}
-
-
 
 	oil.logger.LogAttrs(ctx, level, "O-RAN policy operation completed",
 
@@ -942,24 +789,16 @@ func (oil *ORANInterfaceLogger) LogPolicyOperation(ctx context.Context, policyTy
 			slog.Duration("duration", duration),
 
 			slog.String("operation_type", "policy_operation"),
-
 		)...,
-
 	)
 
 }
 
-
-
 // SecurityLogger provides specialized logging for security events.
 
 type SecurityLogger struct {
-
 	*StructuredLogger
-
 }
-
-
 
 // NewSecurityLogger creates a security-specific logger.
 
@@ -972,14 +811,10 @@ func NewSecurityLogger(baseLogger *StructuredLogger) *SecurityLogger {
 			slog.String("component", "security"),
 
 			slog.String("log_type", "security_event"),
-
 		),
-
 	}
 
 }
-
-
 
 // LogAuthenticationEvent logs authentication events.
 
@@ -992,8 +827,6 @@ func (sl *SecurityLogger) LogAuthenticationEvent(ctx context.Context, userID, me
 		level = slog.LevelWarn
 
 	}
-
-
 
 	sl.logger.LogAttrs(ctx, level, "Authentication event",
 
@@ -1008,14 +841,10 @@ func (sl *SecurityLogger) LogAuthenticationEvent(ctx context.Context, userID, me
 			slog.String("client_ip", clientIP),
 
 			slog.String("event_type", "authentication"),
-
 		)...,
-
 	)
 
 }
-
-
 
 // LogAuthorizationEvent logs authorization events.
 
@@ -1028,8 +857,6 @@ func (sl *SecurityLogger) LogAuthorizationEvent(ctx context.Context, userID, res
 		level = slog.LevelWarn
 
 	}
-
-
 
 	sl.logger.LogAttrs(ctx, level, "Authorization event",
 
@@ -1044,14 +871,10 @@ func (sl *SecurityLogger) LogAuthorizationEvent(ctx context.Context, userID, res
 			slog.Bool("allowed", allowed),
 
 			slog.String("event_type", "authorization"),
-
 		)...,
-
 	)
 
 }
-
-
 
 // LogSecurityIncident logs security incidents.
 
@@ -1079,8 +902,6 @@ func (sl *SecurityLogger) LogSecurityIncident(ctx context.Context, incidentType,
 
 	}
 
-
-
 	sl.logger.LogAttrs(ctx, level, "Security incident detected",
 
 		sl.buildLogAttributes(ctx,
@@ -1094,24 +915,16 @@ func (sl *SecurityLogger) LogSecurityIncident(ctx context.Context, incidentType,
 			slog.String("source_ip", sourceIP),
 
 			slog.String("event_type", "security_incident"),
-
 		)...,
-
 	)
 
 }
 
-
-
 // AuditLogger provides specialized logging for audit events.
 
 type AuditLogger struct {
-
 	*StructuredLogger
-
 }
-
-
 
 // NewAuditLogger creates an audit-specific logger.
 
@@ -1124,14 +937,10 @@ func NewAuditLogger(baseLogger *StructuredLogger) *AuditLogger {
 			slog.String("component", "audit"),
 
 			slog.String("log_type", "audit_event"),
-
 		),
-
 	}
 
 }
-
-
 
 // LogResourceOperation logs resource operations for audit.
 
@@ -1144,8 +953,6 @@ func (al *AuditLogger) LogResourceOperation(ctx context.Context, userID, operati
 		level = slog.LevelWarn
 
 	}
-
-
 
 	al.logger.LogAttrs(ctx, level, "Resource operation",
 
@@ -1164,14 +971,10 @@ func (al *AuditLogger) LogResourceOperation(ctx context.Context, userID, operati
 			slog.Bool("success", success),
 
 			slog.String("event_type", "resource_operation"),
-
 		)...,
-
 	)
 
 }
-
-
 
 // LogConfigurationChange logs configuration changes.
 
@@ -1190,18 +993,13 @@ func (al *AuditLogger) LogConfigurationChange(ctx context.Context, userID, confi
 		slog.Any("new_value", newValue),
 
 		slog.String("event_type", "configuration_change"),
-
 	)
 
 }
 
-
-
 // Global logger instance.
 
 var DefaultLogger *StructuredLogger
-
-
 
 // InitializeLogging initializes the global logger.
 
@@ -1221,8 +1019,6 @@ func InitializeLogging(config *LogConfig) error {
 
 }
 
-
-
 // GetLogger returns the global logger instance.
 
 func GetLogger() *StructuredLogger {
@@ -1230,4 +1026,3 @@ func GetLogger() *StructuredLogger {
 	return DefaultLogger
 
 }
-

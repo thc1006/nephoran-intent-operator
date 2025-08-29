@@ -28,108 +28,66 @@ limitations under the License.
 
 */
 
-
-
 // Package controllers implements the core Kubernetes controllers for the Nephoran Intent Operator.
-
 
 package controllers
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"os"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
-
-
 	"k8s.io/apimachinery/pkg/api/errors"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // NetworkIntentReconciler reconciles a NetworkIntent object.
 
 type NetworkIntentReconciler struct {
-
 	client.Client
 
-	Scheme          *runtime.Scheme
+	Scheme *runtime.Scheme
 
-	Log             logr.Logger
+	Log logr.Logger
 
 	EnableLLMIntent bool
 
 	LLMProcessorURL string
-
 }
-
-
 
 // LLMRequest represents the request to the LLM processor.
 
 type LLMRequest struct {
-
 	Intent string `json:"intent"`
-
 }
-
-
 
 // LLMResponse represents the response from the LLM processor.
 
 type LLMResponse struct {
-
-	Success bool   `json:"success"`
+	Success bool `json:"success"`
 
 	Message string `json:"message,omitempty"`
 
-	Error   string `json:"error,omitempty"`
-
+	Error string `json:"error,omitempty"`
 }
-
-
 
 //+kubebuilder:rbac:groups=nephoran.io,resources=networkintents,verbs=get;list;watch;create;update;patch;delete
 
 //+kubebuilder:rbac:groups=nephoran.io,resources=networkintents/status,verbs=get;update;patch
 
 //+kubebuilder:rbac:groups=nephoran.io,resources=networkintents/finalizers,verbs=update
-
-
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to.
 
@@ -138,8 +96,6 @@ type LLMResponse struct {
 func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	log := log.FromContext(ctx)
-
-
 
 	// Fetch the NetworkIntent instance.
 
@@ -169,8 +125,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	}
 
-
-
 	// Check if the object is being deleted.
 
 	if !networkIntent.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -181,8 +135,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	}
 
-
-
 	// Validate the intent field.
 
 	if networkIntent.Spec.Intent == "" {
@@ -190,8 +142,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return r.updateStatus(ctx, networkIntent, "Error", "Intent field cannot be empty", networkIntent.Generation)
 
 	}
-
-
 
 	// Initial validation passed.
 
@@ -201,25 +151,18 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	}
 
-
-
 	// If LLM intent processing is enabled, send to LLM processor.
 
 	if r.EnableLLMIntent {
 
 		log.Info("Processing intent with LLM", "intent", networkIntent.Spec.Intent)
 
-
-
 		// Prepare the request.
 
 		llmReq := LLMRequest{
 
 			Intent: networkIntent.Spec.Intent,
-
 		}
-
-
 
 		jsonData, err := json.Marshal(llmReq)
 
@@ -231,17 +174,12 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 		}
 
-
-
 		// Create HTTP client with timeout.
 
 		client := &http.Client{
 
 			Timeout: 15 * time.Second,
-
 		}
-
-
 
 		// Determine LLM processor URL.
 
@@ -252,8 +190,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			llmURL = "http://llm-processor:8080/process"
 
 		}
-
-
 
 		// Create the request.
 
@@ -268,8 +204,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 
 		httpReq.Header.Set("Content-Type", "application/json")
-
-
 
 		// Send the request.
 
@@ -293,8 +227,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 		}()
 
-
-
 		// Parse the response.
 
 		var llmResp LLMResponse
@@ -306,8 +238,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return r.updateStatus(ctx, networkIntent, "Error", fmt.Sprintf("Failed to parse LLM response: %v", err), networkIntent.Generation)
 
 		}
-
-
 
 		// Update status based on LLM response.
 
@@ -329,23 +259,17 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	}
 
-
-
 	log.Info("NetworkIntent reconciled successfully", "name", networkIntent.Name)
 
 	return ctrl.Result{}, nil
 
 }
 
-
-
 // updateStatus updates the status of the NetworkIntent.
 
 func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase, message string, generation int64) (ctrl.Result, error) {
 
 	log := log.FromContext(ctx)
-
-
 
 	// Update the status fields.
 
@@ -357,8 +281,6 @@ func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkInten
 
 	networkIntent.Status.LastUpdateTime = metav1.Now()
 
-
-
 	// Update the status subresource.
 
 	if err := r.Status().Update(ctx, networkIntent); err != nil {
@@ -369,13 +291,9 @@ func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkInten
 
 	}
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // SetupWithManager sets up the controller with the Manager.
 
@@ -389,8 +307,6 @@ func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	}
 
-
-
 	// Get LLM processor URL from environment if set.
 
 	if url := os.Getenv("LLM_PROCESSOR_URL"); url != "" {
@@ -399,13 +315,8 @@ func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	}
 
-
-
 	return ctrl.NewControllerManagedBy(mgr).
-
 		For(&nephoranv1.NetworkIntent{}).
-
 		Complete(r)
 
 }
-

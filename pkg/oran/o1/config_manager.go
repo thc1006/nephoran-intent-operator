@@ -1,761 +1,599 @@
-
 package o1
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"sort"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-git/go-git/v5"
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // AdvancedConfigurationManager provides comprehensive O-RAN configuration management.
 
 // following O-RAN.WG10.O1-Interface.0-v07.00 specification.
 
 type AdvancedConfigurationManager struct {
+	config *ConfigManagerConfig
 
-	config           *ConfigManagerConfig
+	versionStore *ConfigurationVersionStore
 
-	versionStore     *ConfigurationVersionStore
+	templateEngine *ConfigurationTemplateEngine
 
-	templateEngine   *ConfigurationTemplateEngine
+	profileManager *ConfigurationProfileManager
 
-	profileManager   *ConfigurationProfileManager
-
-	driftDetector    *ConfigurationDriftDetector
+	driftDetector *ConfigurationDriftDetector
 
 	validationEngine *ConfigurationValidationEngine
 
-	gitOpsManager    *GitOpsConfigManager
+	gitOpsManager *GitOpsConfigManager
 
-	rollbackManager  *ConfigurationRollbackManager
+	rollbackManager *ConfigurationRollbackManager
 
-	bulkOperations   *BulkConfigurationManager
+	bulkOperations *BulkConfigurationManager
 
-	netconfClients   map[string]*NetconfClient
+	netconfClients map[string]*NetconfClient
 
-	clientsMux       sync.RWMutex
+	clientsMux sync.RWMutex
 
-	yangRegistry     *ExtendedYANGModelRegistry
+	yangRegistry *ExtendedYANGModelRegistry
 
-	metrics          *ConfigMetrics
-
+	metrics *ConfigMetrics
 }
-
-
 
 // ConfigManagerConfig holds configuration manager settings.
 
 type ConfigManagerConfig struct {
+	MaxVersions int
 
-	MaxVersions          int
+	GitRepository string
 
-	GitRepository        string
+	GitBranch string
 
-	GitBranch            string
-
-	GitCredentials       *GitCredentials
+	GitCredentials *GitCredentials
 
 	EnableDriftDetection bool
 
-	DriftCheckInterval   time.Duration
+	DriftCheckInterval time.Duration
 
-	ValidationMode       string // STRICT, PERMISSIVE, DISABLED
+	ValidationMode string // STRICT, PERMISSIVE, DISABLED
 
-	BackupInterval       time.Duration
+	BackupInterval time.Duration
 
-	EnableBulkOps        bool
+	EnableBulkOps bool
 
-	MaxBulkSize          int
-
+	MaxBulkSize int
 }
-
-
 
 // GitCredentials holds Git authentication information.
 
 type GitCredentials struct {
+	Username string
 
-	Username   string
-
-	Password   string
+	Password string
 
 	PrivateKey []byte
 
-	TokenAuth  string
-
+	TokenAuth string
 }
-
-
 
 // ConfigurationVersionStore manages configuration versions and history.
 
 type ConfigurationVersionStore struct {
+	versions map[string]*ConfigurationVersion
 
-	versions    map[string]*ConfigurationVersion
+	snapshots map[string]*ConfigurationSnapshot
 
-	snapshots   map[string]*ConfigurationSnapshot
-
-	mutex       sync.RWMutex
+	mutex sync.RWMutex
 
 	maxVersions int
-
 }
-
-
 
 // ConfigurationVersion represents a versioned configuration.
 
 type ConfigurationVersion struct {
+	ID string `json:"id"`
 
-	ID               string                 `json:"id"`
+	ElementID string `json:"element_id"`
 
-	ElementID        string                 `json:"element_id"`
+	Version string `json:"version"`
 
-	Version          string                 `json:"version"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp        time.Time              `json:"timestamp"`
+	ConfigData map[string]interface{} `json:"config_data"`
 
-	ConfigData       map[string]interface{} `json:"config_data"`
+	Metadata map[string]string `json:"metadata"`
 
-	Metadata         map[string]string      `json:"metadata"`
+	Author string `json:"author"`
 
-	Author           string                 `json:"author"`
+	Comment string `json:"comment"`
 
-	Comment          string                 `json:"comment"`
+	ValidationStatus string `json:"validation_status"`
 
-	ValidationStatus string                 `json:"validation_status"`
+	ChecksumSHA256 string `json:"checksum_sha256"`
 
-	ChecksumSHA256   string                 `json:"checksum_sha256"`
+	PreviousVersion string `json:"previous_version,omitempty"`
 
-	PreviousVersion  string                 `json:"previous_version,omitempty"`
+	ConfigSize int64 `json:"config_size"`
 
-	ConfigSize       int64                  `json:"config_size"`
-
-	Tags             []string               `json:"tags"`
-
+	Tags []string `json:"tags"`
 }
-
-
 
 // ConfigurationSnapshot represents a point-in-time system snapshot.
 
 type ConfigurationSnapshot struct {
+	ID string `json:"id"`
 
-	ID          string                           `json:"id"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp   time.Time                        `json:"timestamp"`
+	Description string `json:"description"`
 
-	Description string                           `json:"description"`
+	Elements map[string]*ConfigurationVersion `json:"elements"`
 
-	Elements    map[string]*ConfigurationVersion `json:"elements"`
+	SystemState map[string]interface{} `json:"system_state"`
 
-	SystemState map[string]interface{}           `json:"system_state"`
-
-	Creator     string                           `json:"creator"`
-
+	Creator string `json:"creator"`
 }
-
-
 
 // ConfigurationTemplateEngine manages configuration templates and profiles.
 
 type ConfigurationTemplateEngine struct {
-
-	templates  map[string]*ConfigurationTemplate
+	templates map[string]*ConfigurationTemplate
 
 	generators map[string]TemplateGenerator
 
 	processors map[string]TemplateProcessor
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ConfigurationTemplate defines a configuration template.
 
 type ConfigurationTemplate struct {
+	ID string `json:"id"`
 
-	ID           string                    `json:"id"`
+	Name string `json:"name"`
 
-	Name         string                    `json:"name"`
+	Description string `json:"description"`
 
-	Description  string                    `json:"description"`
+	Version string `json:"version"`
 
-	Version      string                    `json:"version"`
+	Category string `json:"category"` // O-RU, O-DU, O-CU, etc.
 
-	Category     string                    `json:"category"` // O-RU, O-DU, O-CU, etc.
+	Template string `json:"template"`
 
-	Template     string                    `json:"template"`
+	Parameters map[string]*TemplateParam `json:"parameters"`
 
-	Parameters   map[string]*TemplateParam `json:"parameters"`
+	Constraints []TemplateConstraint `json:"constraints"`
 
-	Constraints  []TemplateConstraint      `json:"constraints"`
+	Dependencies []string `json:"dependencies"`
 
-	Dependencies []string                  `json:"dependencies"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt    time.Time                 `json:"created_at"`
-
-	UpdatedAt    time.Time                 `json:"updated_at"`
-
+	UpdatedAt time.Time `json:"updated_at"`
 }
-
-
 
 // TemplateParam defines a template parameter.
 
 type TemplateParam struct {
+	Name string `json:"name"`
 
-	Name         string      `json:"name"`
+	Type string `json:"type"` // string, int, float, boolean, array, object
 
-	Type         string      `json:"type"` // string, int, float, boolean, array, object
+	Description string `json:"description"`
 
-	Description  string      `json:"description"`
-
-	Required     bool        `json:"required"`
+	Required bool `json:"required"`
 
 	DefaultValue interface{} `json:"default_value,omitempty"`
 
-	Validation   string      `json:"validation,omitempty"` // regex or validation rule
+	Validation string `json:"validation,omitempty"` // regex or validation rule
 
-	Examples     []string    `json:"examples,omitempty"`
-
+	Examples []string `json:"examples,omitempty"`
 }
-
-
 
 // TemplateConstraint defines template constraints.
 
 type TemplateConstraint struct {
-
-	Type       string                 `json:"type"` // DEPENDENCY, CONFLICT, RESOURCE
+	Type string `json:"type"` // DEPENDENCY, CONFLICT, RESOURCE
 
 	Parameters map[string]interface{} `json:"parameters"`
 
-	Message    string                 `json:"message"`
-
+	Message string `json:"message"`
 }
-
-
 
 // TemplateGenerator interface for generating configurations from templates.
 
 type TemplateGenerator interface {
-
 	GenerateConfig(ctx context.Context, template *ConfigurationTemplate, params map[string]interface{}) (map[string]interface{}, error)
 
 	ValidateParams(template *ConfigurationTemplate, params map[string]interface{}) error
 
 	GetSupportedFormats() []string
-
 }
-
-
 
 // TemplateProcessor interface for processing template content.
 
 type TemplateProcessor interface {
-
 	ProcessTemplate(template string, params map[string]interface{}) (string, error)
 
 	GetProcessorType() string
-
 }
-
-
 
 // ConfigurationProfileManager manages configuration profiles.
 
 type ConfigurationProfileManager struct {
+	profiles map[string]*ConfigurationProfile
 
-	profiles        map[string]*ConfigurationProfile
-
-	profileSets     map[string]*ProfileSet
+	profileSets map[string]*ProfileSet
 
 	inheritanceTree *ProfileInheritanceTree
 
-	mutex           sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ConfigurationProfile defines a configuration profile.
 
 type ConfigurationProfile struct {
+	ID string `json:"id"`
 
-	ID            string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name          string                 `json:"name"`
+	Description string `json:"description"`
 
-	Description   string                 `json:"description"`
+	FunctionType string `json:"function_type"` // O-RU, O-DU, O-CU-CP, etc.
 
-	FunctionType  string                 `json:"function_type"` // O-RU, O-DU, O-CU-CP, etc.
+	Environment string `json:"environment"` // DEV, TEST, PROD
 
-	Environment   string                 `json:"environment"`   // DEV, TEST, PROD
-
-	BaseProfile   string                 `json:"base_profile,omitempty"`
+	BaseProfile string `json:"base_profile,omitempty"`
 
 	Configuration map[string]interface{} `json:"configuration"`
 
-	Overrides     map[string]interface{} `json:"overrides"`
+	Overrides map[string]interface{} `json:"overrides"`
 
-	Tags          []string               `json:"tags"`
+	Tags []string `json:"tags"`
 
-	CreatedAt     time.Time              `json:"created_at"`
+	CreatedAt time.Time `json:"created_at"`
 
-	UpdatedAt     time.Time              `json:"updated_at"`
-
+	UpdatedAt time.Time `json:"updated_at"`
 }
-
-
 
 // ProfileSet groups related profiles.
 
 type ProfileSet struct {
+	ID string `json:"id"`
 
-	ID          string   `json:"id"`
+	Name string `json:"name"`
 
-	Name        string   `json:"name"`
+	Description string `json:"description"`
 
-	Description string   `json:"description"`
+	Profiles []string `json:"profiles"`
 
-	Profiles    []string `json:"profiles"`
-
-	Version     string   `json:"version"`
-
+	Version string `json:"version"`
 }
-
-
 
 // ProfileInheritanceTree manages profile inheritance relationships.
 
 type ProfileInheritanceTree struct {
-
 	nodes map[string]*ProfileNode
 
 	mutex sync.RWMutex
-
 }
-
-
 
 // ProfileNode represents a node in the profile inheritance tree.
 
 type ProfileNode struct {
+	ProfileID string `json:"profile_id"`
 
-	ProfileID string         `json:"profile_id"`
+	Parent *ProfileNode `json:"parent"`
 
-	Parent    *ProfileNode   `json:"parent"`
-
-	Children  []*ProfileNode `json:"children"`
-
+	Children []*ProfileNode `json:"children"`
 }
-
-
 
 // ConfigurationDriftDetector monitors configuration changes.
 
 type ConfigurationDriftDetector struct {
+	baselines map[string]*ConfigurationBaseline
 
-	baselines      map[string]*ConfigurationBaseline
-
-	driftPolicies  map[string]*DriftPolicy
+	driftPolicies map[string]*DriftPolicy
 
 	detectionRules []*DriftDetectionRule
 
-	mutex          sync.RWMutex
+	mutex sync.RWMutex
 
-	checkInterval  time.Duration
+	checkInterval time.Duration
 
-	running        bool
+	running bool
 
-	stopChan       chan struct{}
-
+	stopChan chan struct{}
 }
-
-
 
 // ConfigurationBaseline represents expected configuration state.
 
 type ConfigurationBaseline struct {
+	ID string `json:"id"`
 
-	ID             string                 `json:"id"`
+	ElementID string `json:"element_id"`
 
-	ElementID      string                 `json:"element_id"`
+	BaselineData map[string]interface{} `json:"baseline_data"`
 
-	BaselineData   map[string]interface{} `json:"baseline_data"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt      time.Time              `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 
-	UpdatedAt      time.Time              `json:"updated_at"`
-
-	ChecksumSHA256 string                 `json:"checksum_sha256"`
-
+	ChecksumSHA256 string `json:"checksum_sha256"`
 }
-
-
 
 // DriftPolicy defines how to handle configuration drift.
 
 type DriftPolicy struct {
+	ID string `json:"id"`
 
-	ID                   string        `json:"id"`
+	Name string `json:"name"`
 
-	Name                 string        `json:"name"`
+	Action string `json:"action"` // ALERT, AUTO_CORRECT, IGNORE
 
-	Action               string        `json:"action"` // ALERT, AUTO_CORRECT, IGNORE
+	Severity string `json:"severity"`
 
-	Severity             string        `json:"severity"`
+	NotificationChannels []string `json:"notification_channels"`
 
-	NotificationChannels []string      `json:"notification_channels"`
+	AutoCorrectDelay time.Duration `json:"auto_correct_delay"`
 
-	AutoCorrectDelay     time.Duration `json:"auto_correct_delay"`
-
-	Enabled              bool          `json:"enabled"`
-
+	Enabled bool `json:"enabled"`
 }
-
-
 
 // DriftDetectionRule defines rules for detecting configuration drift.
 
 type DriftDetectionRule struct {
+	ID string `json:"id"`
 
-	ID            string      `json:"id"`
+	Name string `json:"name"`
 
-	Name          string      `json:"name"`
+	Pattern string `json:"pattern"` // XPath or JSONPath pattern
 
-	Pattern       string      `json:"pattern"`   // XPath or JSONPath pattern
-
-	Condition     string      `json:"condition"` // EQ, NE, GT, LT, REGEX
+	Condition string `json:"condition"` // EQ, NE, GT, LT, REGEX
 
 	ExpectedValue interface{} `json:"expected_value"`
 
-	Tolerance     float64     `json:"tolerance,omitempty"`
+	Tolerance float64 `json:"tolerance,omitempty"`
 
-	Enabled       bool        `json:"enabled"`
+	Enabled bool `json:"enabled"`
 
-	Tags          []string    `json:"tags"`
-
+	Tags []string `json:"tags"`
 }
-
-
 
 // ConfigurationValidationEngine validates configurations.
 
 type ConfigurationValidationEngine struct {
+	validators map[string]ConfigurationValidator
 
-	validators       map[string]ConfigurationValidator
+	validationRules []*ValidationRule
 
-	validationRules  []*ValidationRule
-
-	yangRegistry     *ExtendedYANGModelRegistry
+	yangRegistry *ExtendedYANGModelRegistry
 
 	customValidators map[string]CustomValidator
 
-	mutex            sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ConfigurationValidator interface for configuration validation.
 
 type ConfigurationValidator interface {
-
 	ValidateConfiguration(ctx context.Context, config map[string]interface{}, modelName string) *ValidationResult
 
 	GetValidatorName() string
 
 	GetSupportedModels() []string
-
 }
-
-
 
 // ValidationRule defines validation rules.
 
 type ValidationRule struct {
+	ID string `json:"id"`
 
-	ID         string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name       string                 `json:"name"`
+	Type string `json:"type"` // SYNTAX, SEMANTIC, BUSINESS
 
-	Type       string                 `json:"type"`     // SYNTAX, SEMANTIC, BUSINESS
+	Severity string `json:"severity"` // ERROR, WARNING, INFO
 
-	Severity   string                 `json:"severity"` // ERROR, WARNING, INFO
+	Pattern string `json:"pattern"`
 
-	Pattern    string                 `json:"pattern"`
+	Condition string `json:"condition"`
 
-	Condition  string                 `json:"condition"`
+	Message string `json:"message"`
 
-	Message    string                 `json:"message"`
-
-	Enabled    bool                   `json:"enabled"`
+	Enabled bool `json:"enabled"`
 
 	Parameters map[string]interface{} `json:"parameters"`
-
 }
-
-
 
 // ValidationResult represents validation results.
 
 type ValidationResult struct {
+	Valid bool `json:"valid"`
 
-	Valid     bool               `json:"valid"`
+	Errors []*ValidationError `json:"errors"`
 
-	Errors    []*ValidationError `json:"errors"`
+	Warnings []*ValidationError `json:"warnings"`
 
-	Warnings  []*ValidationError `json:"warnings"`
+	Summary string `json:"summary"`
 
-	Summary   string             `json:"summary"`
-
-	Timestamp time.Time          `json:"timestamp"`
-
+	Timestamp time.Time `json:"timestamp"`
 }
-
-
 
 // ValidationError represents a validation error.
 
 type ValidationError struct {
+	Path string `json:"path"`
 
-	Path     string `json:"path"`
-
-	Message  string `json:"message"`
+	Message string `json:"message"`
 
 	Severity string `json:"severity"`
 
-	Code     string `json:"code"`
-
+	Code string `json:"code"`
 }
-
-
 
 // CustomValidator interface for custom validation logic.
 
 type CustomValidator interface {
-
 	Validate(ctx context.Context, value interface{}, rule *ValidationRule) error
 
 	GetValidatorType() string
-
 }
-
-
 
 // GitOpsConfigManager integrates with Git for configuration management.
 
 type GitOpsConfigManager struct {
-
 	repository *git.Repository
 
-	config     *ConfigManagerConfig
+	config *ConfigManagerConfig
 
-	localPath  string
+	localPath string
 
 	remoteName string
 
-	branch     string
+	branch string
 
-	lastSync   time.Time
+	lastSync time.Time
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ConfigurationRollbackManager handles configuration rollbacks.
 
 type ConfigurationRollbackManager struct {
-
 	rollbackHistory map[string]*RollbackOperation
 
-	maxHistory      int
+	maxHistory int
 
-	mutex           sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // RollbackOperation represents a rollback operation.
 
 type RollbackOperation struct {
+	ID string `json:"id"`
 
-	ID              string                 `json:"id"`
+	ElementID string `json:"element_id"`
 
-	ElementID       string                 `json:"element_id"`
+	FromVersion string `json:"from_version"`
 
-	FromVersion     string                 `json:"from_version"`
+	ToVersion string `json:"to_version"`
 
-	ToVersion       string                 `json:"to_version"`
+	Status string `json:"status"` // PENDING, IN_PROGRESS, SUCCESS, FAILED
 
-	Status          string                 `json:"status"` // PENDING, IN_PROGRESS, SUCCESS, FAILED
+	StartTime time.Time `json:"start_time"`
 
-	StartTime       time.Time              `json:"start_time"`
+	EndTime time.Time `json:"end_time"`
 
-	EndTime         time.Time              `json:"end_time"`
+	Reason string `json:"reason"`
 
-	Reason          string                 `json:"reason"`
+	FailureDetails string `json:"failure_details,omitempty"`
 
-	FailureDetails  string                 `json:"failure_details,omitempty"`
+	AffectedObjects []string `json:"affected_objects"`
 
-	AffectedObjects []string               `json:"affected_objects"`
-
-	Metadata        map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // BulkConfigurationManager handles bulk configuration operations.
 
 type BulkConfigurationManager struct {
-
-	operations  map[string]*BulkOperation
+	operations map[string]*BulkOperation
 
 	maxBulkSize int
 
-	workerPool  *WorkerPool
+	workerPool *WorkerPool
 
-	mutex       sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // BulkOperation represents a bulk configuration operation.
 
 type BulkOperation struct {
+	ID string `json:"id"`
 
-	ID           string                      `json:"id"`
+	Type string `json:"type"` // APPLY, VALIDATE, BACKUP
 
-	Type         string                      `json:"type"` // APPLY, VALIDATE, BACKUP
+	Status string `json:"status"`
 
-	Status       string                      `json:"status"`
+	Progress float64 `json:"progress"`
 
-	Progress     float64                     `json:"progress"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime    time.Time                   `json:"start_time"`
+	EndTime time.Time `json:"end_time"`
 
-	EndTime      time.Time                   `json:"end_time"`
+	Elements []string `json:"elements"`
 
-	Elements     []string                    `json:"elements"`
+	Operations []*ConfigurationOperation `json:"operations"`
 
-	Operations   []*ConfigurationOperation   `json:"operations"`
+	Results map[string]*OperationResult `json:"results"`
 
-	Results      map[string]*OperationResult `json:"results"`
+	ErrorCount int `json:"error_count"`
 
-	ErrorCount   int                         `json:"error_count"`
-
-	SuccessCount int                         `json:"success_count"`
-
+	SuccessCount int `json:"success_count"`
 }
-
-
 
 // ConfigurationOperation represents a single configuration operation.
 
 type ConfigurationOperation struct {
+	ElementID string `json:"element_id"`
 
-	ElementID     string                 `json:"element_id"`
-
-	Type          string                 `json:"type"`
+	Type string `json:"type"`
 
 	Configuration map[string]interface{} `json:"configuration"`
 
-	Metadata      map[string]string      `json:"metadata"`
-
+	Metadata map[string]string `json:"metadata"`
 }
-
-
 
 // OperationResult represents the result of a configuration operation.
 
 type OperationResult struct {
+	Success bool `json:"success"`
 
-	Success          bool                   `json:"success"`
+	Error string `json:"error,omitempty"`
 
-	Error            string                 `json:"error,omitempty"`
+	ValidationResult *ValidationResult `json:"validation_result,omitempty"`
 
-	ValidationResult *ValidationResult      `json:"validation_result,omitempty"`
+	AppliedAt time.Time `json:"applied_at"`
 
-	AppliedAt        time.Time              `json:"applied_at"`
-
-	Metadata         map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // WorkerPool manages concurrent operation execution.
 
 type WorkerPool struct {
+	workers int
 
-	workers    int
-
-	taskChan   chan *ConfigurationOperation
+	taskChan chan *ConfigurationOperation
 
 	resultChan chan *OperationResult
 
-	quit       chan struct{}
+	quit chan struct{}
 
-	wg         sync.WaitGroup
-
+	wg sync.WaitGroup
 }
-
-
 
 // ConfigMetrics holds Prometheus metrics for configuration management.
 
 type ConfigMetrics struct {
+	ConfigChanges prometheus.Counter
 
-	ConfigChanges      prometheus.Counter
+	ConfigValidations prometheus.Counter
 
-	ConfigValidations  prometheus.Counter
+	ValidationErrors prometheus.Counter
 
-	ValidationErrors   prometheus.Counter
-
-	DriftDetections    prometheus.Counter
+	DriftDetections prometheus.Counter
 
 	RollbackOperations prometheus.Counter
 
-	BulkOperations     prometheus.Counter
-
+	BulkOperations prometheus.Counter
 }
-
-
 
 // NewAdvancedConfigurationManager creates a new advanced configuration manager.
 
@@ -765,49 +603,43 @@ func NewAdvancedConfigurationManager(config *ConfigManagerConfig, yangRegistry *
 
 		config = &ConfigManagerConfig{
 
-			MaxVersions:          100,
+			MaxVersions: 100,
 
 			EnableDriftDetection: true,
 
-			DriftCheckInterval:   5 * time.Minute,
+			DriftCheckInterval: 5 * time.Minute,
 
-			ValidationMode:       "STRICT",
+			ValidationMode: "STRICT",
 
-			BackupInterval:       24 * time.Hour,
+			BackupInterval: 24 * time.Hour,
 
-			EnableBulkOps:        true,
+			EnableBulkOps: true,
 
-			MaxBulkSize:          1000,
-
+			MaxBulkSize: 1000,
 		}
 
 	}
 
-
-
 	acm := &AdvancedConfigurationManager{
 
-		config:           config,
+		config: config,
 
-		versionStore:     NewConfigurationVersionStore(config.MaxVersions),
+		versionStore: NewConfigurationVersionStore(config.MaxVersions),
 
-		templateEngine:   NewConfigurationTemplateEngine(),
+		templateEngine: NewConfigurationTemplateEngine(),
 
-		profileManager:   NewConfigurationProfileManager(),
+		profileManager: NewConfigurationProfileManager(),
 
 		validationEngine: NewConfigurationValidationEngine(yangRegistry),
 
-		rollbackManager:  NewConfigurationRollbackManager(),
+		rollbackManager: NewConfigurationRollbackManager(),
 
-		netconfClients:   make(map[string]*NetconfClient),
+		netconfClients: make(map[string]*NetconfClient),
 
-		yangRegistry:     yangRegistry,
+		yangRegistry: yangRegistry,
 
-		metrics:          initializeConfigMetrics(),
-
+		metrics: initializeConfigMetrics(),
 	}
-
-
 
 	if config.EnableDriftDetection {
 
@@ -815,15 +647,11 @@ func NewAdvancedConfigurationManager(config *ConfigManagerConfig, yangRegistry *
 
 	}
 
-
-
 	if config.GitRepository != "" {
 
 		acm.gitOpsManager = NewGitOpsConfigManager(config)
 
 	}
-
-
 
 	if config.EnableBulkOps {
 
@@ -831,13 +659,9 @@ func NewAdvancedConfigurationManager(config *ConfigManagerConfig, yangRegistry *
 
 	}
 
-
-
 	return acm
 
 }
-
-
 
 // ApplyConfiguration applies configuration to a managed element with comprehensive validation.
 
@@ -846,8 +670,6 @@ func (acm *AdvancedConfigurationManager) ApplyConfiguration(ctx context.Context,
 	logger := log.FromContext(ctx)
 
 	logger.Info("applying configuration", "elementID", elementID)
-
-
 
 	// Validate configuration.
 
@@ -871,35 +693,30 @@ func (acm *AdvancedConfigurationManager) ApplyConfiguration(ctx context.Context,
 
 	}
 
-
-
 	// Create configuration version.
 
 	version := &ConfigurationVersion{
 
-		ID:               acm.generateVersionID(),
+		ID: acm.generateVersionID(),
 
-		ElementID:        elementID,
+		ElementID: elementID,
 
-		Version:          acm.generateVersionNumber(elementID),
+		Version: acm.generateVersionNumber(elementID),
 
-		Timestamp:        time.Now(),
+		Timestamp: time.Now(),
 
-		ConfigData:       config,
+		ConfigData: config,
 
-		Metadata:         metadata,
+		Metadata: metadata,
 
-		Author:           acm.getAuthorFromContext(ctx),
+		Author: acm.getAuthorFromContext(ctx),
 
 		ValidationStatus: "VALIDATED",
 
-		ChecksumSHA256:   acm.calculateChecksum(config),
+		ChecksumSHA256: acm.calculateChecksum(config),
 
-		ConfigSize:       int64(acm.calculateConfigSize(config)),
-
+		ConfigSize: int64(acm.calculateConfigSize(config)),
 	}
-
-
 
 	// Store version before applying.
 
@@ -908,8 +725,6 @@ func (acm *AdvancedConfigurationManager) ApplyConfiguration(ctx context.Context,
 		return nil, fmt.Errorf("failed to store configuration version: %w", err)
 
 	}
-
-
 
 	// Apply configuration to managed element.
 
@@ -923,33 +738,28 @@ func (acm *AdvancedConfigurationManager) ApplyConfiguration(ctx context.Context,
 
 	}
 
-
-
 	// Update baseline if drift detection is enabled.
 
 	if acm.driftDetector != nil {
 
 		baseline := &ConfigurationBaseline{
 
-			ID:             acm.generateBaselineID(),
+			ID: acm.generateBaselineID(),
 
-			ElementID:      elementID,
+			ElementID: elementID,
 
-			BaselineData:   config,
+			BaselineData: config,
 
-			CreatedAt:      time.Now(),
+			CreatedAt: time.Now(),
 
-			UpdatedAt:      time.Now(),
+			UpdatedAt: time.Now(),
 
 			ChecksumSHA256: version.ChecksumSHA256,
-
 		}
 
 		acm.driftDetector.UpdateBaseline(elementID, baseline)
 
 	}
-
-
 
 	// Commit to Git if GitOps is enabled.
 
@@ -959,8 +769,6 @@ func (acm *AdvancedConfigurationManager) ApplyConfiguration(ctx context.Context,
 
 	}
 
-
-
 	acm.metrics.ConfigChanges.Inc()
 
 	logger.Info("configuration applied successfully", "elementID", elementID, "versionID", version.ID)
@@ -968,8 +776,6 @@ func (acm *AdvancedConfigurationManager) ApplyConfiguration(ctx context.Context,
 	return version, nil
 
 }
-
-
 
 // GetConfiguration retrieves current configuration with version information.
 
@@ -985,8 +791,6 @@ func (acm *AdvancedConfigurationManager) GetConfiguration(ctx context.Context, e
 
 	}
 
-
-
 	configData, err := client.GetConfig("")
 
 	if err != nil {
@@ -994,8 +798,6 @@ func (acm *AdvancedConfigurationManager) GetConfiguration(ctx context.Context, e
 		return nil, fmt.Errorf("failed to retrieve configuration: %w", err)
 
 	}
-
-
 
 	// Parse configuration data.
 
@@ -1007,8 +809,6 @@ func (acm *AdvancedConfigurationManager) GetConfiguration(ctx context.Context, e
 
 	}
 
-
-
 	// Get latest version from store.
 
 	latestVersion := acm.versionStore.GetLatestVersion(elementID)
@@ -1019,20 +819,19 @@ func (acm *AdvancedConfigurationManager) GetConfiguration(ctx context.Context, e
 
 		latestVersion = &ConfigurationVersion{
 
-			ID:             acm.generateVersionID(),
+			ID: acm.generateVersionID(),
 
-			ElementID:      elementID,
+			ElementID: elementID,
 
-			Version:        "1.0",
+			Version: "1.0",
 
-			Timestamp:      time.Now(),
+			Timestamp: time.Now(),
 
-			ConfigData:     config,
+			ConfigData: config,
 
 			ChecksumSHA256: acm.calculateChecksum(config),
 
-			ConfigSize:     int64(acm.calculateConfigSize(config)),
-
+			ConfigSize: int64(acm.calculateConfigSize(config)),
 		}
 
 	} else {
@@ -1047,13 +846,9 @@ func (acm *AdvancedConfigurationManager) GetConfiguration(ctx context.Context, e
 
 	}
 
-
-
 	return latestVersion, nil
 
 }
-
-
 
 // ApplyConfigurationTemplate applies a configuration template.
 
@@ -1063,8 +858,6 @@ func (acm *AdvancedConfigurationManager) ApplyConfigurationTemplate(ctx context.
 
 	logger.Info("applying configuration template", "elementID", elementID, "templateID", templateID)
 
-
-
 	template := acm.templateEngine.GetTemplate(templateID)
 
 	if template == nil {
@@ -1072,8 +865,6 @@ func (acm *AdvancedConfigurationManager) ApplyConfigurationTemplate(ctx context.
 		return nil, fmt.Errorf("template not found: %s", templateID)
 
 	}
-
-
 
 	// Generate configuration from template.
 
@@ -1085,27 +876,20 @@ func (acm *AdvancedConfigurationManager) ApplyConfigurationTemplate(ctx context.
 
 	}
 
-
-
 	// Apply generated configuration.
 
 	metadata := map[string]string{
 
-		"template_id":      templateID,
+		"template_id": templateID,
 
 		"template_version": template.Version,
 
-		"source":           "template",
-
+		"source": "template",
 	}
-
-
 
 	return acm.ApplyConfiguration(ctx, elementID, config, metadata)
 
 }
-
-
 
 // ApplyConfigurationProfile applies a configuration profile.
 
@@ -1115,8 +899,6 @@ func (acm *AdvancedConfigurationManager) ApplyConfigurationProfile(ctx context.C
 
 	logger.Info("applying configuration profile", "elementID", elementID, "profileID", profileID)
 
-
-
 	profile := acm.profileManager.GetProfile(profileID)
 
 	if profile == nil {
@@ -1124,8 +906,6 @@ func (acm *AdvancedConfigurationManager) ApplyConfigurationProfile(ctx context.C
 		return nil, fmt.Errorf("profile not found: %s", profileID)
 
 	}
-
-
 
 	// Resolve profile inheritance.
 
@@ -1137,31 +917,24 @@ func (acm *AdvancedConfigurationManager) ApplyConfigurationProfile(ctx context.C
 
 	}
 
-
-
 	// Apply resolved configuration.
 
 	metadata := map[string]string{
 
-		"profile_id":    profileID,
+		"profile_id": profileID,
 
-		"profile_name":  profile.Name,
+		"profile_name": profile.Name,
 
 		"function_type": profile.FunctionType,
 
-		"environment":   profile.Environment,
+		"environment": profile.Environment,
 
-		"source":        "profile",
-
+		"source": "profile",
 	}
-
-
 
 	return acm.ApplyConfiguration(ctx, elementID, resolvedConfig, metadata)
 
 }
-
-
 
 // ValidateConfiguration validates a configuration without applying it.
 
@@ -1171,8 +944,6 @@ func (acm *AdvancedConfigurationManager) ValidateConfiguration(ctx context.Conte
 
 }
 
-
-
 // CreateConfigurationSnapshot creates a system-wide configuration snapshot.
 
 func (acm *AdvancedConfigurationManager) CreateConfigurationSnapshot(ctx context.Context, description string, elementIDs []string) (*ConfigurationSnapshot, error) {
@@ -1181,25 +952,20 @@ func (acm *AdvancedConfigurationManager) CreateConfigurationSnapshot(ctx context
 
 	logger.Info("creating configuration snapshot", "elements", len(elementIDs))
 
-
-
 	snapshot := &ConfigurationSnapshot{
 
-		ID:          acm.generateSnapshotID(),
+		ID: acm.generateSnapshotID(),
 
-		Timestamp:   time.Now(),
+		Timestamp: time.Now(),
 
 		Description: description,
 
-		Elements:    make(map[string]*ConfigurationVersion),
+		Elements: make(map[string]*ConfigurationVersion),
 
 		SystemState: make(map[string]interface{}),
 
-		Creator:     acm.getAuthorFromContext(ctx),
-
+		Creator: acm.getAuthorFromContext(ctx),
 	}
-
-
 
 	// Collect configuration from each element.
 
@@ -1219,15 +985,11 @@ func (acm *AdvancedConfigurationManager) CreateConfigurationSnapshot(ctx context
 
 	}
 
-
-
 	// Store snapshot.
 
 	return acm.versionStore.StoreSnapshot(snapshot)
 
 }
-
-
 
 // RollbackConfiguration rolls back to a previous configuration version.
 
@@ -1237,15 +999,11 @@ func (acm *AdvancedConfigurationManager) RollbackConfiguration(ctx context.Conte
 
 	logger.Info("initiating configuration rollback", "elementID", elementID, "targetVersion", targetVersionID)
 
-
-
 	// Get current and target versions.
 
 	currentVersion := acm.versionStore.GetLatestVersion(elementID)
 
 	targetVersion := acm.versionStore.GetVersion(targetVersionID)
-
-
 
 	if currentVersion == nil {
 
@@ -1259,31 +1017,26 @@ func (acm *AdvancedConfigurationManager) RollbackConfiguration(ctx context.Conte
 
 	}
 
-
-
 	// Create rollback operation.
 
 	rollback := &RollbackOperation{
 
-		ID:          acm.generateRollbackID(),
+		ID: acm.generateRollbackID(),
 
-		ElementID:   elementID,
+		ElementID: elementID,
 
 		FromVersion: currentVersion.ID,
 
-		ToVersion:   targetVersionID,
+		ToVersion: targetVersionID,
 
-		Status:      "PENDING",
+		Status: "PENDING",
 
-		StartTime:   time.Now(),
+		StartTime: time.Now(),
 
-		Reason:      reason,
+		Reason: reason,
 
-		Metadata:    make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}
-
-
 
 	// Start rollback process.
 
@@ -1299,8 +1052,6 @@ func (acm *AdvancedConfigurationManager) RollbackConfiguration(ctx context.Conte
 
 	}
 
-
-
 	acm.metrics.RollbackOperations.Inc()
 
 	logger.Info("configuration rollback completed", "elementID", elementID, "rollbackID", rollback.ID)
@@ -1308,8 +1059,6 @@ func (acm *AdvancedConfigurationManager) RollbackConfiguration(ctx context.Conte
 	return rollback, nil
 
 }
-
-
 
 // StartBulkOperation initiates a bulk configuration operation.
 
@@ -1321,21 +1070,15 @@ func (acm *AdvancedConfigurationManager) StartBulkOperation(ctx context.Context,
 
 	}
 
-
-
 	if len(operations) > acm.config.MaxBulkSize {
 
 		return nil, fmt.Errorf("bulk operation size exceeds limit: %d > %d", len(operations), acm.config.MaxBulkSize)
 
 	}
 
-
-
 	return acm.bulkOperations.StartBulkOperation(ctx, operationType, operations)
 
 }
-
-
 
 // GetConfigurationHistory returns configuration history for an element.
 
@@ -1344,8 +1087,6 @@ func (acm *AdvancedConfigurationManager) GetConfigurationHistory(ctx context.Con
 	return acm.versionStore.GetVersionHistory(elementID, limit, offset), nil
 
 }
-
-
 
 // DetectConfigurationDrift detects configuration drift for managed elements.
 
@@ -1356,8 +1097,6 @@ func (acm *AdvancedConfigurationManager) DetectConfigurationDrift(ctx context.Co
 		return nil, fmt.Errorf("drift detection not enabled")
 
 	}
-
-
 
 	results := make(map[string]*DriftDetectionResult)
 
@@ -1381,17 +1120,11 @@ func (acm *AdvancedConfigurationManager) DetectConfigurationDrift(ctx context.Co
 
 	}
 
-
-
 	return results, nil
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (acm *AdvancedConfigurationManager) getNetconfClient(elementID string) (*NetconfClient, error) {
 
@@ -1401,21 +1134,15 @@ func (acm *AdvancedConfigurationManager) getNetconfClient(elementID string) (*Ne
 
 	acm.clientsMux.RUnlock()
 
-
-
 	if !exists {
 
 		return nil, fmt.Errorf("NETCONF client not found for element: %s", elementID)
 
 	}
 
-
-
 	return client, nil
 
 }
-
-
 
 func (acm *AdvancedConfigurationManager) applyToElement(ctx context.Context, elementID string, config map[string]interface{}) error {
 
@@ -1427,8 +1154,6 @@ func (acm *AdvancedConfigurationManager) applyToElement(ctx context.Context, ele
 
 	}
 
-
-
 	// Convert config to XML.
 
 	xmlData, err := json.Marshal(config)
@@ -1439,33 +1164,24 @@ func (acm *AdvancedConfigurationManager) applyToElement(ctx context.Context, ele
 
 	}
 
-
-
 	configData := &ConfigData{
 
-		XMLData:   string(xmlData),
+		XMLData: string(xmlData),
 
-		Format:    "json",
+		Format: "json",
 
 		Operation: "merge",
-
 	}
-
-
 
 	return client.SetConfig(configData)
 
 }
-
-
 
 func (acm *AdvancedConfigurationManager) generateVersionID() string {
 
 	return fmt.Sprintf("ver-%d", time.Now().UnixNano())
 
 }
-
-
 
 func (acm *AdvancedConfigurationManager) generateVersionNumber(elementID string) string {
 
@@ -1483,15 +1199,11 @@ func (acm *AdvancedConfigurationManager) generateVersionNumber(elementID string)
 
 }
 
-
-
 func (acm *AdvancedConfigurationManager) generateSnapshotID() string {
 
 	return fmt.Sprintf("snap-%d", time.Now().UnixNano())
 
 }
-
-
 
 func (acm *AdvancedConfigurationManager) generateBaselineID() string {
 
@@ -1499,15 +1211,11 @@ func (acm *AdvancedConfigurationManager) generateBaselineID() string {
 
 }
 
-
-
 func (acm *AdvancedConfigurationManager) generateRollbackID() string {
 
 	return fmt.Sprintf("rollback-%d", time.Now().UnixNano())
 
 }
-
-
 
 func (acm *AdvancedConfigurationManager) calculateChecksum(config map[string]interface{}) string {
 
@@ -1519,8 +1227,6 @@ func (acm *AdvancedConfigurationManager) calculateChecksum(config map[string]int
 
 }
 
-
-
 func (acm *AdvancedConfigurationManager) calculateConfigSize(config map[string]interface{}) int {
 
 	data, _ := json.Marshal(config)
@@ -1529,8 +1235,6 @@ func (acm *AdvancedConfigurationManager) calculateConfigSize(config map[string]i
 
 }
 
-
-
 func (acm *AdvancedConfigurationManager) getAuthorFromContext(ctx context.Context) string {
 
 	// Extract author from context - in production, use proper authentication context.
@@ -1538,8 +1242,6 @@ func (acm *AdvancedConfigurationManager) getAuthorFromContext(ctx context.Contex
 	return "system"
 
 }
-
-
 
 func initializeConfigMetrics() *ConfigMetrics {
 
@@ -1550,7 +1252,6 @@ func initializeConfigMetrics() *ConfigMetrics {
 			Name: "oran_config_changes_total",
 
 			Help: "Total number of configuration changes",
-
 		}),
 
 		ConfigValidations: promauto.NewCounter(prometheus.CounterOpts{
@@ -1558,7 +1259,6 @@ func initializeConfigMetrics() *ConfigMetrics {
 			Name: "oran_config_validations_total",
 
 			Help: "Total number of configuration validations",
-
 		}),
 
 		ValidationErrors: promauto.NewCounter(prometheus.CounterOpts{
@@ -1566,7 +1266,6 @@ func initializeConfigMetrics() *ConfigMetrics {
 			Name: "oran_config_validation_errors_total",
 
 			Help: "Total number of configuration validation errors",
-
 		}),
 
 		DriftDetections: promauto.NewCounter(prometheus.CounterOpts{
@@ -1574,7 +1273,6 @@ func initializeConfigMetrics() *ConfigMetrics {
 			Name: "oran_config_drift_detections_total",
 
 			Help: "Total number of configuration drift detections",
-
 		}),
 
 		RollbackOperations: promauto.NewCounter(prometheus.CounterOpts{
@@ -1582,7 +1280,6 @@ func initializeConfigMetrics() *ConfigMetrics {
 			Name: "oran_config_rollbacks_total",
 
 			Help: "Total number of configuration rollback operations",
-
 		}),
 
 		BulkOperations: promauto.NewCounter(prometheus.CounterOpts{
@@ -1590,18 +1287,12 @@ func initializeConfigMetrics() *ConfigMetrics {
 			Name: "oran_config_bulk_operations_total",
 
 			Help: "Total number of bulk configuration operations",
-
 		}),
-
 	}
 
 }
 
-
-
 // Placeholder implementations for subsidiary components.
-
-
 
 // NewConfigurationVersionStore performs newconfigurationversionstore operation.
 
@@ -1609,17 +1300,14 @@ func NewConfigurationVersionStore(maxVersions int) *ConfigurationVersionStore {
 
 	return &ConfigurationVersionStore{
 
-		versions:    make(map[string]*ConfigurationVersion),
+		versions: make(map[string]*ConfigurationVersion),
 
-		snapshots:   make(map[string]*ConfigurationSnapshot),
+		snapshots: make(map[string]*ConfigurationSnapshot),
 
 		maxVersions: maxVersions,
-
 	}
 
 }
-
-
 
 // StoreVersion performs storeversion operation.
 
@@ -1635,8 +1323,6 @@ func (cvs *ConfigurationVersionStore) StoreVersion(version *ConfigurationVersion
 
 }
 
-
-
 // UpdateVersion performs updateversion operation.
 
 func (cvs *ConfigurationVersionStore) UpdateVersion(version *ConfigurationVersion) {
@@ -1648,8 +1334,6 @@ func (cvs *ConfigurationVersionStore) UpdateVersion(version *ConfigurationVersio
 	cvs.versions[version.ID] = version
 
 }
-
-
 
 // GetVersion performs getversion operation.
 
@@ -1663,8 +1347,6 @@ func (cvs *ConfigurationVersionStore) GetVersion(versionID string) *Configuratio
 
 }
 
-
-
 // GetLatestVersion performs getlatestversion operation.
 
 func (cvs *ConfigurationVersionStore) GetLatestVersion(elementID string) *ConfigurationVersion {
@@ -1672,8 +1354,6 @@ func (cvs *ConfigurationVersionStore) GetLatestVersion(elementID string) *Config
 	cvs.mutex.RLock()
 
 	defer cvs.mutex.RUnlock()
-
-
 
 	var latest *ConfigurationVersion
 
@@ -1695,8 +1375,6 @@ func (cvs *ConfigurationVersionStore) GetLatestVersion(elementID string) *Config
 
 }
 
-
-
 // GetVersionHistory performs getversionhistory operation.
 
 func (cvs *ConfigurationVersionStore) GetVersionHistory(elementID string, limit, offset int) []*ConfigurationVersion {
@@ -1704,8 +1382,6 @@ func (cvs *ConfigurationVersionStore) GetVersionHistory(elementID string, limit,
 	cvs.mutex.RLock()
 
 	defer cvs.mutex.RUnlock()
-
-
 
 	var versions []*ConfigurationVersion
 
@@ -1719,8 +1395,6 @@ func (cvs *ConfigurationVersionStore) GetVersionHistory(elementID string, limit,
 
 	}
 
-
-
 	// Sort by timestamp descending.
 
 	sort.Slice(versions, func(i, j int) bool {
@@ -1728,8 +1402,6 @@ func (cvs *ConfigurationVersionStore) GetVersionHistory(elementID string, limit,
 		return versions[i].Timestamp.After(versions[j].Timestamp)
 
 	})
-
-
 
 	// Apply pagination.
 
@@ -1741,8 +1413,6 @@ func (cvs *ConfigurationVersionStore) GetVersionHistory(elementID string, limit,
 
 	}
 
-
-
 	end := offset + limit
 
 	if end > len(versions) {
@@ -1751,13 +1421,9 @@ func (cvs *ConfigurationVersionStore) GetVersionHistory(elementID string, limit,
 
 	}
 
-
-
 	return versions[start:end]
 
 }
-
-
 
 // StoreSnapshot performs storesnapshot operation.
 
@@ -1773,13 +1439,9 @@ func (cvs *ConfigurationVersionStore) StoreSnapshot(snapshot *ConfigurationSnaps
 
 }
 
-
-
 // Additional placeholder implementations would continue here...
 
 // For brevity, I'll include stubs for the remaining components.
-
-
 
 // NewConfigurationTemplateEngine performs newconfigurationtemplateengine operation.
 
@@ -1787,17 +1449,14 @@ func NewConfigurationTemplateEngine() *ConfigurationTemplateEngine {
 
 	return &ConfigurationTemplateEngine{
 
-		templates:  make(map[string]*ConfigurationTemplate),
+		templates: make(map[string]*ConfigurationTemplate),
 
 		generators: make(map[string]TemplateGenerator),
 
 		processors: make(map[string]TemplateProcessor),
-
 	}
 
 }
-
-
 
 // GetTemplate performs gettemplate operation.
 
@@ -1811,8 +1470,6 @@ func (cte *ConfigurationTemplateEngine) GetTemplate(templateID string) *Configur
 
 }
 
-
-
 // GenerateConfiguration performs generateconfiguration operation.
 
 func (cte *ConfigurationTemplateEngine) GenerateConfiguration(ctx context.Context, template *ConfigurationTemplate, params map[string]interface{}) (map[string]interface{}, error) {
@@ -1823,25 +1480,20 @@ func (cte *ConfigurationTemplateEngine) GenerateConfiguration(ctx context.Contex
 
 }
 
-
-
 // NewConfigurationProfileManager performs newconfigurationprofilemanager operation.
 
 func NewConfigurationProfileManager() *ConfigurationProfileManager {
 
 	return &ConfigurationProfileManager{
 
-		profiles:        make(map[string]*ConfigurationProfile),
+		profiles: make(map[string]*ConfigurationProfile),
 
-		profileSets:     make(map[string]*ProfileSet),
+		profileSets: make(map[string]*ProfileSet),
 
 		inheritanceTree: &ProfileInheritanceTree{nodes: make(map[string]*ProfileNode)},
-
 	}
 
 }
-
-
 
 // GetProfile performs getprofile operation.
 
@@ -1855,8 +1507,6 @@ func (cpm *ConfigurationProfileManager) GetProfile(profileID string) *Configurat
 
 }
 
-
-
 // ResolveProfileConfiguration performs resolveprofileconfiguration operation.
 
 func (cpm *ConfigurationProfileManager) ResolveProfileConfiguration(profile *ConfigurationProfile) (map[string]interface{}, error) {
@@ -1867,27 +1517,22 @@ func (cpm *ConfigurationProfileManager) ResolveProfileConfiguration(profile *Con
 
 }
 
-
-
 // NewConfigurationValidationEngine performs newconfigurationvalidationengine operation.
 
 func NewConfigurationValidationEngine(yangRegistry *ExtendedYANGModelRegistry) *ConfigurationValidationEngine {
 
 	return &ConfigurationValidationEngine{
 
-		validators:       make(map[string]ConfigurationValidator),
+		validators: make(map[string]ConfigurationValidator),
 
-		validationRules:  make([]*ValidationRule, 0),
+		validationRules: make([]*ValidationRule, 0),
 
-		yangRegistry:     yangRegistry,
+		yangRegistry: yangRegistry,
 
 		customValidators: make(map[string]CustomValidator),
-
 	}
 
 }
-
-
 
 // ValidateConfiguration performs validateconfiguration operation.
 
@@ -1897,21 +1542,18 @@ func (cve *ConfigurationValidationEngine) ValidateConfiguration(ctx context.Cont
 
 	return &ValidationResult{
 
-		Valid:     true,
+		Valid: true,
 
-		Errors:    make([]*ValidationError, 0),
+		Errors: make([]*ValidationError, 0),
 
-		Warnings:  make([]*ValidationError, 0),
+		Warnings: make([]*ValidationError, 0),
 
-		Summary:   "Validation not implemented",
+		Summary: "Validation not implemented",
 
 		Timestamp: time.Now(),
-
 	}
 
 }
-
-
 
 // NewConfigurationDriftDetector performs newconfigurationdriftdetector operation.
 
@@ -1919,21 +1561,18 @@ func NewConfigurationDriftDetector(checkInterval time.Duration) *ConfigurationDr
 
 	return &ConfigurationDriftDetector{
 
-		baselines:      make(map[string]*ConfigurationBaseline),
+		baselines: make(map[string]*ConfigurationBaseline),
 
-		driftPolicies:  make(map[string]*DriftPolicy),
+		driftPolicies: make(map[string]*DriftPolicy),
 
 		detectionRules: make([]*DriftDetectionRule, 0),
 
-		checkInterval:  checkInterval,
+		checkInterval: checkInterval,
 
-		stopChan:       make(chan struct{}),
-
+		stopChan: make(chan struct{}),
 	}
 
 }
-
-
 
 // UpdateBaseline performs updatebaseline operation.
 
@@ -1947,43 +1586,33 @@ func (cdd *ConfigurationDriftDetector) UpdateBaseline(elementID string, baseline
 
 }
 
-
-
 // DriftDetectionResult represents drift detection results.
 
 type DriftDetectionResult struct {
+	ElementID string `json:"element_id"`
 
-	ElementID  string                 `json:"element_id"`
+	HasDrift bool `json:"has_drift"`
 
-	HasDrift   bool                   `json:"has_drift"`
+	DriftItems []*DriftItem `json:"drift_items"`
 
-	DriftItems []*DriftItem           `json:"drift_items"`
+	DetectedAt time.Time `json:"detected_at"`
 
-	DetectedAt time.Time              `json:"detected_at"`
-
-	Metadata   map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // DriftItem represents a specific configuration drift.
 
 type DriftItem struct {
-
-	Path          string      `json:"path"`
+	Path string `json:"path"`
 
 	ExpectedValue interface{} `json:"expected_value"`
 
-	ActualValue   interface{} `json:"actual_value"`
+	ActualValue interface{} `json:"actual_value"`
 
-	Severity      string      `json:"severity"`
+	Severity string `json:"severity"`
 
-	RuleID        string      `json:"rule_id"`
-
+	RuleID string `json:"rule_id"`
 }
-
-
 
 // DetectDrift performs detectdrift operation.
 
@@ -1993,21 +1622,18 @@ func (cdd *ConfigurationDriftDetector) DetectDrift(ctx context.Context, elementI
 
 	return &DriftDetectionResult{
 
-		ElementID:  elementID,
+		ElementID: elementID,
 
-		HasDrift:   false,
+		HasDrift: false,
 
 		DriftItems: make([]*DriftItem, 0),
 
 		DetectedAt: time.Now(),
 
-		Metadata:   make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}, nil
 
 }
-
-
 
 // NewGitOpsConfigManager performs newgitopsconfigmanager operation.
 
@@ -2015,19 +1641,16 @@ func NewGitOpsConfigManager(config *ConfigManagerConfig) *GitOpsConfigManager {
 
 	return &GitOpsConfigManager{
 
-		config:     config,
+		config: config,
 
-		localPath:  "/tmp/config-repo",
+		localPath: "/tmp/config-repo",
 
 		remoteName: "origin",
 
-		branch:     config.GitBranch,
-
+		branch: config.GitBranch,
 	}
 
 }
-
-
 
 // CommitConfiguration performs commitconfiguration operation.
 
@@ -2039,8 +1662,6 @@ func (gcm *GitOpsConfigManager) CommitConfiguration(ctx context.Context, element
 
 }
 
-
-
 // NewConfigurationRollbackManager performs newconfigurationrollbackmanager operation.
 
 func NewConfigurationRollbackManager() *ConfigurationRollbackManager {
@@ -2049,13 +1670,10 @@ func NewConfigurationRollbackManager() *ConfigurationRollbackManager {
 
 		rollbackHistory: make(map[string]*RollbackOperation),
 
-		maxHistory:      1000,
-
+		maxHistory: 1000,
 	}
 
 }
-
-
 
 // StartRollback performs startrollback operation.
 
@@ -2077,25 +1695,20 @@ func (crm *ConfigurationRollbackManager) StartRollback(ctx context.Context, roll
 
 }
 
-
-
 // NewBulkConfigurationManager performs newbulkconfigurationmanager operation.
 
 func NewBulkConfigurationManager(maxBulkSize int) *BulkConfigurationManager {
 
 	return &BulkConfigurationManager{
 
-		operations:  make(map[string]*BulkOperation),
+		operations: make(map[string]*BulkOperation),
 
 		maxBulkSize: maxBulkSize,
 
-		workerPool:  NewWorkerPool(10),
-
+		workerPool: NewWorkerPool(10),
 	}
 
 }
-
-
 
 // StartBulkOperation performs startbulkoperation operation.
 
@@ -2105,29 +1718,26 @@ func (bcm *BulkConfigurationManager) StartBulkOperation(ctx context.Context, ope
 
 	bulkOp := &BulkOperation{
 
-		ID:           fmt.Sprintf("bulk-%d", time.Now().UnixNano()),
+		ID: fmt.Sprintf("bulk-%d", time.Now().UnixNano()),
 
-		Type:         operationType,
+		Type: operationType,
 
-		Status:       "COMPLETED",
+		Status: "COMPLETED",
 
-		Progress:     100.0,
+		Progress: 100.0,
 
-		StartTime:    time.Now(),
+		StartTime: time.Now(),
 
-		EndTime:      time.Now(),
+		EndTime: time.Now(),
 
-		Elements:     make([]string, len(operations)),
+		Elements: make([]string, len(operations)),
 
-		Operations:   operations,
+		Operations: operations,
 
-		Results:      make(map[string]*OperationResult),
+		Results: make(map[string]*OperationResult),
 
 		SuccessCount: len(operations),
-
 	}
-
-
 
 	bcm.mutex.Lock()
 
@@ -2135,13 +1745,9 @@ func (bcm *BulkConfigurationManager) StartBulkOperation(ctx context.Context, ope
 
 	bcm.mutex.Unlock()
 
-
-
 	return bulkOp, nil
 
 }
-
-
 
 // NewWorkerPool performs newworkerpool operation.
 
@@ -2149,15 +1755,13 @@ func NewWorkerPool(workers int) *WorkerPool {
 
 	return &WorkerPool{
 
-		workers:    workers,
+		workers: workers,
 
-		taskChan:   make(chan *ConfigurationOperation, workers*2),
+		taskChan: make(chan *ConfigurationOperation, workers*2),
 
 		resultChan: make(chan *OperationResult, workers*2),
 
-		quit:       make(chan struct{}),
-
+		quit: make(chan struct{}),
 	}
 
 }
-

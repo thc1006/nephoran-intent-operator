@@ -28,50 +28,25 @@ limitations under the License.
 
 */
 
-
-
-
 package testutil
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"math/rand"
-
 	"time"
 
-
-
 	"github.com/google/uuid"
-
-
-
 	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/apimachinery/pkg/types"
-
 	"k8s.io/client-go/rest"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
-
 )
-
-
 
 const (
 
@@ -98,24 +73,17 @@ const (
 	// DefaultTestURL holds defaulttesturl value.
 
 	DefaultTestURL = "https://github.com/test/test-repo.git"
-
 )
-
-
 
 // TestFixture provides a complete test environment (generic version).
 
 type TestFixture struct {
+	Client client.Client
 
-	Client    client.Client
-
-	Context   context.Context
+	Context context.Context
 
 	Namespace string
-
 }
-
-
 
 // NewTestFixture creates a new test fixture with default configuration.
 
@@ -127,39 +95,26 @@ func NewTestFixture(ctx context.Context) *TestFixture {
 
 	}
 
-
-
 	scheme := runtime.NewScheme()
 
 	_ = v1.AddToScheme(scheme)
 
-
-
 	fakeClient := clientfake.NewClientBuilder().
-
 		WithScheme(scheme).
-
 		Build()
-
-
 
 	fixture := &TestFixture{
 
-		Client:    fakeClient,
+		Client: fakeClient,
 
-		Context:   ctx,
+		Context: ctx,
 
 		Namespace: DefaultTestNamespace,
-
 	}
-
-
 
 	return fixture
 
 }
-
-
 
 // CreateTestNetworkIntent creates a test NetworkIntent for testing.
 
@@ -171,63 +126,52 @@ func (f *TestFixture) CreateTestNetworkIntent(name string, opts ...NetworkIntent
 
 	}
 
-
-
 	intent := &v1.NetworkIntent{
 
 		TypeMeta: metav1.TypeMeta{
 
 			APIVersion: "nephoran.com/v1",
 
-			Kind:       "NetworkIntent",
-
+			Kind: "NetworkIntent",
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      name,
+			Name: name,
 
 			Namespace: f.Namespace,
 
-			UID:       types.UID(uuid.New().String()),
+			UID: types.UID(uuid.New().String()),
 
 			Labels: map[string]string{
 
 				"test.nephoran.com/fixture": "true",
-
 			},
-
 		},
 
 		Spec: v1.NetworkIntentSpec{
 
-			Intent:     "Deploy 3 AMF instances in us-east-1 region",
+			Intent: "Deploy 3 AMF instances in us-east-1 region",
 
 			IntentType: v1.IntentTypeDeployment,
 
-			Priority:   v1.PriorityMedium,
+			Priority: v1.PriorityMedium,
 
 			TargetComponents: []v1.ORANComponent{
 
 				v1.ORANComponentAMF,
-
 			},
-
 		},
 
 		Status: v1.NetworkIntentStatus{
 
-			Phase:          "processing",
+			Phase: "processing",
 
-			LastMessage:    "Processing deployment intent",
+			LastMessage: "Processing deployment intent",
 
 			LastUpdateTime: metav1.Now(),
-
 		},
-
 	}
-
-
 
 	// Apply options.
 
@@ -237,19 +181,13 @@ func (f *TestFixture) CreateTestNetworkIntent(name string, opts ...NetworkIntent
 
 	}
 
-
-
 	return intent
 
 }
 
-
-
 // NetworkIntentOption allows customization of test network intents.
 
 type NetworkIntentOption func(*v1.NetworkIntent)
-
-
 
 // WithIntentType sets the intent type.
 
@@ -263,8 +201,6 @@ func WithIntentType(intentType v1.IntentType) NetworkIntentOption {
 
 }
 
-
-
 // WithIntentPriority sets the intent priority.
 
 func WithIntentPriority(priority v1.Priority) NetworkIntentOption {
@@ -276,8 +212,6 @@ func WithIntentPriority(priority v1.Priority) NetworkIntentOption {
 	}
 
 }
-
-
 
 // WithTargetComponent adds a target component.
 
@@ -291,8 +225,6 @@ func WithTargetComponent(component v1.ORANComponent) NetworkIntentOption {
 
 }
 
-
-
 // WithIntent sets the intent text.
 
 func WithIntent(intentText string) NetworkIntentOption {
@@ -304,8 +236,6 @@ func WithIntent(intentText string) NetworkIntentOption {
 	}
 
 }
-
-
 
 // WithIntentPhase sets the intent phase.
 
@@ -319,11 +249,7 @@ func WithIntentPhase(phase string) NetworkIntentOption {
 
 }
 
-
-
 // Helper functions for test data generation.
-
-
 
 // GenerateRandomString generates a random string of specified length.
 
@@ -343,8 +269,6 @@ func GenerateRandomString(length int) string {
 
 }
 
-
-
 // Cleanup removes test resources and performs cleanup.
 
 func (f *TestFixture) Cleanup() {
@@ -352,8 +276,6 @@ func (f *TestFixture) Cleanup() {
 	// Clear any internal state if needed.
 
 }
-
-
 
 // AssertCondition checks if a condition exists and has expected values.
 
@@ -377,8 +299,6 @@ func AssertCondition(conditions []metav1.Condition, conditionType string, status
 
 }
 
-
-
 // WaitForCondition waits for a condition to be met within a timeout.
 
 func WaitForCondition(ctx context.Context, check func() bool, timeout time.Duration) bool {
@@ -387,13 +307,9 @@ func WaitForCondition(ctx context.Context, check func() bool, timeout time.Durat
 
 	defer cancel()
 
-
-
 	ticker := time.NewTicker(100 * time.Millisecond)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -417,8 +333,6 @@ func WaitForCondition(ctx context.Context, check func() bool, timeout time.Durat
 
 }
 
-
-
 // GetTestKubeConfig returns a test Kubernetes configuration.
 
 func GetTestKubeConfig() *rest.Config {
@@ -430,10 +344,7 @@ func GetTestKubeConfig() *rest.Config {
 		TLSClientConfig: rest.TLSClientConfig{
 
 			Insecure: true,
-
 		},
-
 	}
 
 }
-

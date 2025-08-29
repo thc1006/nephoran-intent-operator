@@ -1,71 +1,44 @@
 //go:build go1.24
 
-
-
-
 package distributed
 
-
-
 import (
-
 	"context"
-
 	crypto_rand "crypto/rand"
-
 	"fmt"
-
 	"math"
-
 	"math/big"
-
 	"math/rand"
-
 	"net/http"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
 
-
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"golang.org/x/time/rate"
 
-
-
 	"k8s.io/klog/v2"
-
 )
-
-
 
 // TelecomLoadTester provides distributed load testing specifically designed.
 
 // for validating telecommunications network management performance claims.
 
 type TelecomLoadTester struct {
+	config *TelecomLoadConfig
 
-	config           *TelecomLoadConfig
+	scenarios []TelecomScenario
 
-	scenarios        []TelecomScenario
+	workers []*LoadWorker
 
-	workers          []*LoadWorker
+	metrics *DistributedMetrics
 
-	metrics          *DistributedMetrics
-
-	coordinator      *TestCoordinator
+	coordinator *TestCoordinator
 
 	resultAggregator *ResultAggregator
 
-	httpClient       *http.Client
-
+	httpClient *http.Client
 }
-
-
 
 // TelecomLoadConfig defines comprehensive load testing configuration.
 
@@ -73,171 +46,140 @@ type TelecomLoadConfig struct {
 
 	// Target validation metrics (from Nephoran Intent Operator claims).
 
-	TargetP95LatencyMs        float64 // 2000ms (sub-2-second P95)
+	TargetP95LatencyMs float64 // 2000ms (sub-2-second P95)
 
-	TargetConcurrentUsers     int     // 200+ concurrent users
+	TargetConcurrentUsers int // 200+ concurrent users
 
-	TargetIntentsPerMinute    float64 // 45 intents/minute
+	TargetIntentsPerMinute float64 // 45 intents/minute
 
 	TargetAvailabilityPercent float64 // 99.95%
 
-	TargetRAGLatencyP95Ms     float64 // 200ms RAG retrieval
+	TargetRAGLatencyP95Ms float64 // 200ms RAG retrieval
 
-	TargetCacheHitRate        float64 // 87% cache hit rate
-
-
+	TargetCacheHitRate float64 // 87% cache hit rate
 
 	// Distributed testing parameters.
 
-	WorkerNodes      int           // Number of distributed worker nodes
+	WorkerNodes int // Number of distributed worker nodes
 
-	TestDuration     time.Duration // Total test duration
+	TestDuration time.Duration // Total test duration
 
-	RampUpDuration   time.Duration // Time to reach full load
+	RampUpDuration time.Duration // Time to reach full load
 
 	RampDownDuration time.Duration // Time to reduce load
 
-	WarmupDuration   time.Duration // System warmup time
-
-
+	WarmupDuration time.Duration // System warmup time
 
 	// Realistic telecom patterns.
 
-	BusinessHours     TimeWindow // Peak business hours
+	BusinessHours TimeWindow // Peak business hours
 
 	MaintenanceWindow TimeWindow // Low-activity maintenance window
 
-	EmergencySpikes   bool       // Simulate emergency traffic spikes
+	EmergencySpikes bool // Simulate emergency traffic spikes
 
-	SeasonalVariation bool       // Account for seasonal patterns
-
-
+	SeasonalVariation bool // Account for seasonal patterns
 
 	// Infrastructure limits.
 
-	MaxMemoryPerWorkerMB int     // Memory limit per worker
+	MaxMemoryPerWorkerMB int // Memory limit per worker
 
-	MaxCPUPerWorker      float64 // CPU limit per worker
+	MaxCPUPerWorker float64 // CPU limit per worker
 
 	NetworkBandwidthMbps float64 // Network bandwidth limit
 
-
-
 	// Quality gates.
 
-	MaxErrorRatePercent     float64 // Maximum acceptable error rate
+	MaxErrorRatePercent float64 // Maximum acceptable error rate
 
-	MaxResourceUtilization  float64 // Maximum resource utilization
+	MaxResourceUtilization float64 // Maximum resource utilization
 
 	RequiredConfidenceLevel float64 // Statistical confidence required
 
 }
 
-
-
 // TimeWindow represents a time range for testing patterns.
 
 type TimeWindow struct {
-
 	StartHour int // 24-hour format
 
-	EndHour   int
+	EndHour int
 
-	TimeZone  string
-
+	TimeZone string
 }
-
-
 
 // TelecomScenario represents realistic telecommunications workload patterns.
 
 type TelecomScenario struct {
+	Name string
 
-	Name                 string
+	Description string
 
-	Description          string
+	LoadPattern LoadPattern
 
-	LoadPattern          LoadPattern
+	IntentTypes []IntentType
 
-	IntentTypes          []IntentType
-
-	UserBehavior         UserBehaviorModel
+	UserBehavior UserBehaviorModel
 
 	ResourceRequirements ResourceRequirements
 
-	ExpectedOutcomes     ExpectedOutcomes
+	ExpectedOutcomes ExpectedOutcomes
 
-	ValidationCriteria   []ValidationCriterion
-
+	ValidationCriteria []ValidationCriterion
 }
-
-
 
 // LoadPattern defines different load generation patterns.
 
 type LoadPattern struct {
+	Type string // "constant", "ramp", "spike", "wave", "realistic"
 
-	Type        string // "constant", "ramp", "spike", "wave", "realistic"
+	Intensity float64
 
-	Intensity   float64
+	Duration time.Duration
 
-	Duration    time.Duration
+	Variability float64 // Coefficient of variation
 
-	Variability float64       // Coefficient of variation
+	BurstFactor float64 // Peak-to-average ratio
 
-	BurstFactor float64       // Peak-to-average ratio
-
-	ThinkTime   time.Duration // User think time
+	ThinkTime time.Duration // User think time
 
 	Seasonality SeasonalityModel
-
 }
-
-
 
 // SeasonalityModel represents seasonal traffic variations.
 
 type SeasonalityModel struct {
+	DailyPattern []float64 // 24 hourly multipliers
 
-	DailyPattern   []float64 // 24 hourly multipliers
-
-	WeeklyPattern  []float64 // 7 daily multipliers
+	WeeklyPattern []float64 // 7 daily multipliers
 
 	MonthlyPattern []float64 // 12 monthly multipliers
 
-	HolidayImpact  float64   // Holiday traffic multiplier
+	HolidayImpact float64 // Holiday traffic multiplier
 
 }
-
-
 
 // IntentType represents different network intent categories.
 
 type IntentType struct {
+	Name string
 
-	Name              string
+	Frequency float64 // Relative frequency (0-1)
 
-	Frequency         float64 // Relative frequency (0-1)
+	Complexity ComplexityLevel
 
-	Complexity        ComplexityLevel
+	ResourceUsage ResourceUsage
 
-	ResourceUsage     ResourceUsage
+	ExpectedLatency time.Duration
 
-	ExpectedLatency   time.Duration
-
-	DependsOnRAG      bool
+	DependsOnRAG bool
 
 	CacheableResponse bool
-
 }
-
-
 
 // ComplexityLevel defines intent processing complexity.
 
 type ComplexityLevel int
-
-
 
 const (
 
@@ -256,168 +198,134 @@ const (
 	// VeryComplex holds verycomplex value.
 
 	VeryComplex
-
 )
-
-
 
 // ResourceUsage defines expected resource consumption.
 
 type ResourceUsage struct {
+	CPUUnits float64 // CPU units required
 
-	CPUUnits   float64 // CPU units required
+	MemoryMB float64 // Memory in MB
 
-	MemoryMB   float64 // Memory in MB
+	NetworkKB float64 // Network I/O in KB
 
-	NetworkKB  float64 // Network I/O in KB
+	StorageOps int // Storage operations
 
-	StorageOps int     // Storage operations
+	LLMTokens int // LLM tokens processed
 
-	LLMTokens  int     // LLM tokens processed
-
-	RAGQueries int     // RAG database queries
+	RAGQueries int // RAG database queries
 
 }
-
-
 
 // UserBehaviorModel simulates realistic user interaction patterns.
 
 type UserBehaviorModel struct {
+	SessionDuration time.Duration // Average session length
 
-	SessionDuration    time.Duration // Average session length
+	ActionsPerSession int // Actions per user session
 
-	ActionsPerSession  int           // Actions per user session
+	ThinkTimeRange TimeRange // Min/max think time between actions
 
-	ThinkTimeRange     TimeRange     // Min/max think time between actions
+	AbandonmentRate float64 // Session abandonment probability
 
-	AbandonmentRate    float64       // Session abandonment probability
+	RetryBehavior RetryModel // How users handle failures
 
-	RetryBehavior      RetryModel    // How users handle failures
-
-	ConcurrentSessions int           // Concurrent sessions per user
+	ConcurrentSessions int // Concurrent sessions per user
 
 }
-
-
 
 // TimeRange represents a time range.
 
 type TimeRange struct {
-
 	Min time.Duration
 
 	Max time.Duration
-
 }
-
-
 
 // RetryModel defines user retry behavior.
 
 type RetryModel struct {
-
-	MaxRetries    int
+	MaxRetries int
 
 	BackoffFactor float64
 
-	GiveUpTime    time.Duration
-
+	GiveUpTime time.Duration
 }
-
-
 
 // ResourceRequirements defines infrastructure needs.
 
 type ResourceRequirements struct {
+	MinCPUCores int
 
-	MinCPUCores  int
+	MinMemoryGB int
 
-	MinMemoryGB  int
+	MinDiskGB int
 
-	MinDiskGB    int
+	NetworkMbps float64
 
-	NetworkMbps  float64
-
-	StorageIOPS  int
+	StorageIOPS int
 
 	DatabaseConn int
-
 }
-
-
 
 // ExpectedOutcomes define test success criteria.
 
 type ExpectedOutcomes struct {
+	TargetThroughput float64
 
-	TargetThroughput     float64
+	MaxLatencyP95 time.Duration
 
-	MaxLatencyP95        time.Duration
+	MaxErrorRate float64
 
-	MaxErrorRate         float64
+	MinAvailability float64
 
-	MinAvailability      float64
-
-	MaxResourceUtil      float64
+	MaxResourceUtil float64
 
 	RequiredCacheHitRate float64
-
 }
-
-
 
 // ValidationCriterion represents a specific validation rule.
 
 type ValidationCriterion struct {
+	Metric string
 
-	Metric           string
+	Operator string // "<=", ">=", "==", "~="
 
-	Operator         string // "<=", ">=", "==", "~="
+	Target float64
 
-	Target           float64
-
-	Tolerance        float64
+	Tolerance float64
 
 	CriticalityLevel string // "critical", "high", "medium", "low"
 
 }
 
-
-
 // LoadWorker represents a distributed load generation worker.
 
 type LoadWorker struct {
+	ID int
 
-	ID                int
+	NodeID string
 
-	NodeID            string
+	Status WorkerStatus
 
-	Status            WorkerStatus
-
-	CurrentLoad       float64
+	CurrentLoad float64
 
 	AssignedScenarios []string
 
-	Metrics           *WorkerMetrics
+	Metrics *WorkerMetrics
 
-	RateLimiter       *rate.Limiter
+	RateLimiter *rate.Limiter
 
-	HTTPClient        *http.Client
+	HTTPClient *http.Client
 
-	Context           context.Context
+	Context context.Context
 
-	CancelFunc        context.CancelFunc
-
+	CancelFunc context.CancelFunc
 }
-
-
 
 // WorkerStatus represents worker state.
 
 type WorkerStatus int
-
-
 
 const (
 
@@ -440,140 +348,111 @@ const (
 	// WorkerFailed holds workerfailed value.
 
 	WorkerFailed
-
 )
-
-
 
 // WorkerMetrics tracks individual worker performance.
 
 type WorkerMetrics struct {
-
-	RequestsTotal   int64
+	RequestsTotal int64
 
 	RequestsSuccess int64
 
-	RequestsError   int64
+	RequestsError int64
 
-	LatencySum      int64 // nanoseconds
+	LatencySum int64 // nanoseconds
 
-	LatencyP95      time.Duration
+	LatencyP95 time.Duration
 
-	LastUpdateTime  time.Time
+	LastUpdateTime time.Time
 
-	ResourceUsage   WorkerResourceUsage
-
+	ResourceUsage WorkerResourceUsage
 }
-
-
 
 // WorkerResourceUsage tracks worker resource consumption.
 
 type WorkerResourceUsage struct {
+	CPUPercent float64
 
-	CPUPercent       float64
+	MemoryMB float64
 
-	MemoryMB         float64
-
-	GoroutineCount   int
+	GoroutineCount int
 
 	NetworkBytesSent uint64
 
 	NetworkBytesRecv uint64
-
 }
-
-
 
 // DistributedMetrics aggregates metrics from all workers.
 
 type DistributedMetrics struct {
+	registry *prometheus.Registry
 
-	registry       *prometheus.Registry
-
-	collectors     map[string]prometheus.Collector
+	collectors map[string]prometheus.Collector
 
 	aggregateStats *AggregateStats
 
-	mutex          sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // AggregateStats contains aggregated test statistics.
 
 type AggregateStats struct {
+	TotalRequests int64
 
-	TotalRequests       int64
+	TotalErrors int64
 
-	TotalErrors         int64
-
-	TotalLatencyMs      int64
+	TotalLatencyMs int64
 
 	LatencyDistribution map[int]int64 // latency buckets
 
-	ThroughputHistory   []float64
+	ThroughputHistory []float64
 
-	ErrorRateHistory    []float64
+	ErrorRateHistory []float64
 
 	ResourceUtilHistory []ResourceUtilSnapshot
 
-	StartTime           time.Time
+	StartTime time.Time
 
-	LastUpdateTime      time.Time
-
+	LastUpdateTime time.Time
 }
-
-
 
 // ResourceUtilSnapshot captures resource utilization at a point in time.
 
 type ResourceUtilSnapshot struct {
+	Timestamp time.Time
 
-	Timestamp         time.Time
+	TotalCPUPercent float64
 
-	TotalCPUPercent   float64
+	TotalMemoryMB float64
 
-	TotalMemoryMB     float64
+	ActiveWorkers int
 
-	ActiveWorkers     int
-
-	TotalGoroutines   int
+	TotalGoroutines int
 
 	NetworkThroughput float64
-
 }
-
-
 
 // TestCoordinator manages distributed test execution.
 
 type TestCoordinator struct {
+	config *TelecomLoadConfig
 
-	config      *TelecomLoadConfig
+	workers []*LoadWorker
 
-	workers     []*LoadWorker
+	scenarios []TelecomScenario
 
-	scenarios   []TelecomScenario
+	testPhase TestPhase
 
-	testPhase   TestPhase
-
-	phaseStart  time.Time
+	phaseStart time.Time
 
 	globalStats *AggregateStats
 
-	mutex       sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // TestPhase represents current test execution phase.
 
 type TestPhase int
-
-
 
 const (
 
@@ -596,92 +475,77 @@ const (
 	// PhaseComplete holds phasecomplete value.
 
 	PhaseComplete
-
 )
-
-
 
 // ResultAggregator collects and analyzes results from distributed workers.
 
 type ResultAggregator struct {
-
-	results    []TestResult
+	results []TestResult
 
 	statistics *ComprehensiveStatistics
 
 	validation *ValidationResults
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // TestResult contains results from a single test execution.
 
 type TestResult struct {
+	ScenarioName string
 
-	ScenarioName      string
+	WorkerID int
 
-	WorkerID          int
+	StartTime time.Time
 
-	StartTime         time.Time
+	EndTime time.Time
 
-	EndTime           time.Time
+	RequestsTotal int64
 
-	RequestsTotal     int64
+	RequestsSuccess int64
 
-	RequestsSuccess   int64
+	RequestsError int64
 
-	RequestsError     int64
-
-	LatencyMetrics    LatencyMetrics
+	LatencyMetrics LatencyMetrics
 
 	ThroughputMetrics ThroughputMetrics
 
-	ResourceMetrics   ResourceMetrics
+	ResourceMetrics ResourceMetrics
 
-	Errors            []ErrorSummary
-
+	Errors []ErrorSummary
 }
-
-
 
 // LatencyMetrics contains detailed latency analysis.
 
 type LatencyMetrics struct {
+	Mean time.Duration
 
-	Mean         time.Duration
+	Median time.Duration
 
-	Median       time.Duration
+	P95 time.Duration
 
-	P95          time.Duration
+	P99 time.Duration
 
-	P99          time.Duration
+	P999 time.Duration
 
-	P999         time.Duration
+	Min time.Duration
 
-	Min          time.Duration
+	Max time.Duration
 
-	Max          time.Duration
-
-	StdDev       time.Duration
+	StdDev time.Duration
 
 	Distribution map[string]int64 // latency buckets
 
 }
 
-
-
 // ThroughputMetrics contains throughput analysis.
 
 type ThroughputMetrics struct {
+	RequestsPerSecond []float64
 
-	RequestsPerSecond   []float64
+	IntentsPerMinute []float64
 
-	IntentsPerMinute    []float64
-
-	PeakThroughput      float64
+	PeakThroughput float64
 
 	SustainedThroughput float64
 
@@ -689,119 +553,97 @@ type ThroughputMetrics struct {
 
 }
 
-
-
 // ResourceMetrics contains resource utilization metrics.
 
 type ResourceMetrics struct {
+	CPUUtilization []float64
 
-	CPUUtilization     []float64
-
-	MemoryUtilization  []float64
+	MemoryUtilization []float64
 
 	NetworkUtilization []float64
 
-	PeakCPU            float64
+	PeakCPU float64
 
-	PeakMemoryMB       float64
+	PeakMemoryMB float64
 
-	PeakGoroutines     int
-
+	PeakGoroutines int
 }
-
-
 
 // ErrorSummary categorizes and counts errors.
 
 type ErrorSummary struct {
+	Type string
 
-	Type          string
+	Count int64
 
-	Count         int64
-
-	Percentage    float64
+	Percentage float64
 
 	FirstOccurred time.Time
 
-	LastOccurred  time.Time
+	LastOccurred time.Time
 
-	Examples      []string
-
+	Examples []string
 }
-
-
 
 // ComprehensiveStatistics provides detailed statistical analysis.
 
 type ComprehensiveStatistics struct {
+	OverallSummary *TestSummary
 
-	OverallSummary        *TestSummary
+	ScenarioBreakdown map[string]*ScenarioStatistics
 
-	ScenarioBreakdown     map[string]*ScenarioStatistics
+	TimeSeriesAnalysis *TimeSeriesAnalysis
 
-	TimeSeriesAnalysis    *TimeSeriesAnalysis
+	PerformanceProfile *PerformanceProfile
 
-	PerformanceProfile    *PerformanceProfile
-
-	BottleneckAnalysis    *BottleneckAnalysis
+	BottleneckAnalysis *BottleneckAnalysis
 
 	StatisticalValidation *StatisticalValidationResults
-
 }
-
-
 
 // TestSummary provides high-level test results.
 
 type TestSummary struct {
+	TestDuration time.Duration
 
-	TestDuration        time.Duration
+	TotalRequests int64
 
-	TotalRequests       int64
+	TotalErrors int64
 
-	TotalErrors         int64
+	ErrorRate float64
 
-	ErrorRate           float64
+	OverallThroughput float64
 
-	OverallThroughput   float64
+	AverageLatency time.Duration
 
-	AverageLatency      time.Duration
+	LatencyP95 time.Duration
 
-	LatencyP95          time.Duration
-
-	LatencyP99          time.Duration
+	LatencyP99 time.Duration
 
 	AvailabilityPercent float64
 
-	MaxConcurrentUsers  int
+	MaxConcurrentUsers int
 
-	PeakThroughput      float64
-
+	PeakThroughput float64
 }
-
-
 
 // ScenarioStatistics provides per-scenario analysis.
 
 type ScenarioStatistics struct {
+	ScenarioName string
 
-	ScenarioName          string
+	ExecutionCount int64
 
-	ExecutionCount        int64
+	SuccessRate float64
 
-	SuccessRate           float64
+	AverageLatency time.Duration
 
-	AverageLatency        time.Duration
+	ThroughputPerMin float64
 
-	ThroughputPerMin      float64
-
-	ResourceEfficiency    float64
+	ResourceEfficiency float64
 
 	UserSatisfactionScore float64
-
 }
-
-
 
 // NewTelecomLoadTester creates a new distributed load tester.
 
@@ -813,29 +655,24 @@ func NewTelecomLoadTester(config *TelecomLoadConfig) *TelecomLoadTester {
 
 	}
 
-
-
 	return &TelecomLoadTester{
 
-		config:           config,
+		config: config,
 
-		scenarios:        createDefaultTelecomScenarios(),
+		scenarios: createDefaultTelecomScenarios(),
 
-		workers:          make([]*LoadWorker, 0, config.WorkerNodes),
+		workers: make([]*LoadWorker, 0, config.WorkerNodes),
 
-		metrics:          NewDistributedMetrics(),
+		metrics: NewDistributedMetrics(),
 
-		coordinator:      NewTestCoordinator(config),
+		coordinator: NewTestCoordinator(config),
 
 		resultAggregator: NewResultAggregator(),
 
-		httpClient:       createOptimizedHTTPClient(),
-
+		httpClient: createOptimizedHTTPClient(),
 	}
 
 }
-
-
 
 // getDefaultTelecomConfig returns default configuration matching Nephoran claims.
 
@@ -845,33 +682,29 @@ func getDefaultTelecomConfig() *TelecomLoadConfig {
 
 		// Nephoran Intent Operator performance claims.
 
-		TargetP95LatencyMs:        2000,  // Sub-2-second P95 latency
+		TargetP95LatencyMs: 2000, // Sub-2-second P95 latency
 
-		TargetConcurrentUsers:     200,   // 200+ concurrent users
+		TargetConcurrentUsers: 200, // 200+ concurrent users
 
-		TargetIntentsPerMinute:    45,    // 45 intents per minute
+		TargetIntentsPerMinute: 45, // 45 intents per minute
 
 		TargetAvailabilityPercent: 99.95, // 99.95% availability
 
-		TargetRAGLatencyP95Ms:     200,   // Sub-200ms RAG retrieval
+		TargetRAGLatencyP95Ms: 200, // Sub-200ms RAG retrieval
 
-		TargetCacheHitRate:        87,    // 87% cache hit rate
-
-
+		TargetCacheHitRate: 87, // 87% cache hit rate
 
 		// Test infrastructure.
 
-		WorkerNodes:      8,
+		WorkerNodes: 8,
 
-		TestDuration:     30 * time.Minute,
+		TestDuration: 30 * time.Minute,
 
-		RampUpDuration:   5 * time.Minute,
+		RampUpDuration: 5 * time.Minute,
 
 		RampDownDuration: 3 * time.Minute,
 
-		WarmupDuration:   2 * time.Minute,
-
-
+		WarmupDuration: 2 * time.Minute,
 
 		// Realistic telecom patterns.
 
@@ -879,51 +712,42 @@ func getDefaultTelecomConfig() *TelecomLoadConfig {
 
 			StartHour: 8,
 
-			EndHour:   18,
+			EndHour: 18,
 
-			TimeZone:  "UTC",
-
+			TimeZone: "UTC",
 		},
 
 		MaintenanceWindow: TimeWindow{
 
 			StartHour: 2,
 
-			EndHour:   4,
+			EndHour: 4,
 
-			TimeZone:  "UTC",
-
+			TimeZone: "UTC",
 		},
 
-		EmergencySpikes:   true,
+		EmergencySpikes: true,
 
 		SeasonalVariation: true,
-
-
 
 		// Resource limits.
 
 		MaxMemoryPerWorkerMB: 512,
 
-		MaxCPUPerWorker:      2.0,
+		MaxCPUPerWorker: 2.0,
 
 		NetworkBandwidthMbps: 1000,
 
-
-
 		// Quality gates.
 
-		MaxErrorRatePercent:     5.0,
+		MaxErrorRatePercent: 5.0,
 
-		MaxResourceUtilization:  80.0,
+		MaxResourceUtilization: 80.0,
 
 		RequiredConfidenceLevel: 95.0,
-
 	}
 
 }
-
-
 
 // createDefaultTelecomScenarios creates realistic telecommunications scenarios.
 
@@ -933,307 +757,279 @@ func createDefaultTelecomScenarios() []TelecomScenario {
 
 		{
 
-			Name:        "5G Network Slice Management",
+			Name: "5G Network Slice Management",
 
 			Description: "Managing network slices for different service types (eMBB, URLLC, mMTC)",
 
 			LoadPattern: LoadPattern{
 
-				Type:        "realistic",
+				Type: "realistic",
 
-				Intensity:   1.0,
+				Intensity: 1.0,
 
-				Duration:    20 * time.Minute,
+				Duration: 20 * time.Minute,
 
 				Variability: 0.3,
 
 				BurstFactor: 2.5,
 
-				ThinkTime:   5 * time.Second,
-
+				ThinkTime: 5 * time.Second,
 			},
 
 			IntentTypes: []IntentType{
 
 				{
 
-					Name:              "CreateNetworkSlice",
+					Name: "CreateNetworkSlice",
 
-					Frequency:         0.4,
+					Frequency: 0.4,
 
-					Complexity:        Complex,
+					Complexity: Complex,
 
-					ExpectedLatency:   1800 * time.Millisecond,
+					ExpectedLatency: 1800 * time.Millisecond,
 
-					DependsOnRAG:      true,
-
-					CacheableResponse: true,
-
-				},
-
-				{
-
-					Name:              "UpdateSlicePolicy",
-
-					Frequency:         0.3,
-
-					Complexity:        Moderate,
-
-					ExpectedLatency:   800 * time.Millisecond,
-
-					DependsOnRAG:      true,
-
-					CacheableResponse: false,
-
-				},
-
-				{
-
-					Name:              "ScaleSliceResources",
-
-					Frequency:         0.2,
-
-					Complexity:        Complex,
-
-					ExpectedLatency:   1500 * time.Millisecond,
-
-					DependsOnRAG:      false,
-
-					CacheableResponse: false,
-
-				},
-
-				{
-
-					Name:              "MonitorSliceKPIs",
-
-					Frequency:         0.1,
-
-					Complexity:        Simple,
-
-					ExpectedLatency:   200 * time.Millisecond,
-
-					DependsOnRAG:      false,
+					DependsOnRAG: true,
 
 					CacheableResponse: true,
-
 				},
 
+				{
+
+					Name: "UpdateSlicePolicy",
+
+					Frequency: 0.3,
+
+					Complexity: Moderate,
+
+					ExpectedLatency: 800 * time.Millisecond,
+
+					DependsOnRAG: true,
+
+					CacheableResponse: false,
+				},
+
+				{
+
+					Name: "ScaleSliceResources",
+
+					Frequency: 0.2,
+
+					Complexity: Complex,
+
+					ExpectedLatency: 1500 * time.Millisecond,
+
+					DependsOnRAG: false,
+
+					CacheableResponse: false,
+				},
+
+				{
+
+					Name: "MonitorSliceKPIs",
+
+					Frequency: 0.1,
+
+					Complexity: Simple,
+
+					ExpectedLatency: 200 * time.Millisecond,
+
+					DependsOnRAG: false,
+
+					CacheableResponse: true,
+				},
 			},
 
 			UserBehavior: UserBehaviorModel{
 
-				SessionDuration:    15 * time.Minute,
+				SessionDuration: 15 * time.Minute,
 
-				ActionsPerSession:  8,
+				ActionsPerSession: 8,
 
-				ThinkTimeRange:     TimeRange{Min: 2 * time.Second, Max: 10 * time.Second},
+				ThinkTimeRange: TimeRange{Min: 2 * time.Second, Max: 10 * time.Second},
 
-				AbandonmentRate:    0.05,
+				AbandonmentRate: 0.05,
 
 				ConcurrentSessions: 3,
-
 			},
-
 		},
 
 		{
 
-			Name:        "O-RAN Network Function Orchestration",
+			Name: "O-RAN Network Function Orchestration",
 
 			Description: "Managing O-RAN network functions (O-CU, O-DU, O-RU) deployment and lifecycle",
 
 			LoadPattern: LoadPattern{
 
-				Type:        "wave",
+				Type: "wave",
 
-				Intensity:   0.8,
+				Intensity: 0.8,
 
-				Duration:    25 * time.Minute,
+				Duration: 25 * time.Minute,
 
 				Variability: 0.4,
 
 				BurstFactor: 3.0,
 
-				ThinkTime:   8 * time.Second,
-
+				ThinkTime: 8 * time.Second,
 			},
 
 			IntentTypes: []IntentType{
 
 				{
 
-					Name:              "DeployORANFunction",
+					Name: "DeployORANFunction",
 
-					Frequency:         0.35,
+					Frequency: 0.35,
 
-					Complexity:        VeryComplex,
+					Complexity: VeryComplex,
 
-					ExpectedLatency:   2500 * time.Millisecond,
+					ExpectedLatency: 2500 * time.Millisecond,
 
-					DependsOnRAG:      true,
-
-					CacheableResponse: false,
-
-				},
-
-				{
-
-					Name:              "ConfigureE2Interface",
-
-					Frequency:         0.25,
-
-					Complexity:        Complex,
-
-					ExpectedLatency:   1200 * time.Millisecond,
-
-					DependsOnRAG:      true,
-
-					CacheableResponse: true,
-
-				},
-
-				{
-
-					Name:              "UpdatexAppPolicies",
-
-					Frequency:         0.25,
-
-					Complexity:        Moderate,
-
-					ExpectedLatency:   900 * time.Millisecond,
-
-					DependsOnRAG:      true,
+					DependsOnRAG: true,
 
 					CacheableResponse: false,
-
 				},
 
 				{
 
-					Name:              "MonitorRICHealth",
+					Name: "ConfigureE2Interface",
 
-					Frequency:         0.15,
+					Frequency: 0.25,
 
-					Complexity:        Simple,
+					Complexity: Complex,
 
-					ExpectedLatency:   150 * time.Millisecond,
+					ExpectedLatency: 1200 * time.Millisecond,
 
-					DependsOnRAG:      false,
+					DependsOnRAG: true,
 
 					CacheableResponse: true,
-
 				},
 
+				{
+
+					Name: "UpdatexAppPolicies",
+
+					Frequency: 0.25,
+
+					Complexity: Moderate,
+
+					ExpectedLatency: 900 * time.Millisecond,
+
+					DependsOnRAG: true,
+
+					CacheableResponse: false,
+				},
+
+				{
+
+					Name: "MonitorRICHealth",
+
+					Frequency: 0.15,
+
+					Complexity: Simple,
+
+					ExpectedLatency: 150 * time.Millisecond,
+
+					DependsOnRAG: false,
+
+					CacheableResponse: true,
+				},
 			},
-
 		},
 
 		{
 
-			Name:        "Emergency Network Response",
+			Name: "Emergency Network Response",
 
 			Description: "High-priority emergency scenarios with strict latency requirements",
 
 			LoadPattern: LoadPattern{
 
-				Type:        "spike",
+				Type: "spike",
 
-				Intensity:   2.0,
+				Intensity: 2.0,
 
-				Duration:    10 * time.Minute,
+				Duration: 10 * time.Minute,
 
 				Variability: 0.5,
 
 				BurstFactor: 5.0,
 
-				ThinkTime:   1 * time.Second,
-
+				ThinkTime: 1 * time.Second,
 			},
 
 			IntentTypes: []IntentType{
 
 				{
 
-					Name:              "EmergencySliceActivation",
+					Name: "EmergencySliceActivation",
 
-					Frequency:         0.6,
+					Frequency: 0.6,
 
-					Complexity:        VeryComplex,
+					Complexity: VeryComplex,
 
-					ExpectedLatency:   1000 * time.Millisecond, // Strict emergency latency
+					ExpectedLatency: 1000 * time.Millisecond, // Strict emergency latency
 
-					DependsOnRAG:      true,
+					DependsOnRAG: true,
 
 					CacheableResponse: false,
-
 				},
 
 				{
 
-					Name:              "DisasterRecoveryMode",
+					Name: "DisasterRecoveryMode",
 
-					Frequency:         0.4,
+					Frequency: 0.4,
 
-					Complexity:        Complex,
+					Complexity: Complex,
 
-					ExpectedLatency:   800 * time.Millisecond,
+					ExpectedLatency: 800 * time.Millisecond,
 
-					DependsOnRAG:      false,
+					DependsOnRAG: false,
 
 					CacheableResponse: false,
-
 				},
-
 			},
 
 			ValidationCriteria: []ValidationCriterion{
 
 				{
 
-					Metric:           "latency_p95_ms",
+					Metric: "latency_p95_ms",
 
-					Operator:         "<=",
+					Operator: "<=",
 
-					Target:           1500, // Stricter requirement for emergency
+					Target: 1500, // Stricter requirement for emergency
 
-					Tolerance:        0.1,
+					Tolerance: 0.1,
 
 					CriticalityLevel: "critical",
-
 				},
 
 				{
 
-					Metric:           "availability_percent",
+					Metric: "availability_percent",
 
-					Operator:         ">=",
+					Operator: ">=",
 
-					Target:           99.99, // Higher availability for emergency
+					Target: 99.99, // Higher availability for emergency
 
-					Tolerance:        0.01,
+					Tolerance: 0.01,
 
 					CriticalityLevel: "critical",
-
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // ExecuteDistributedTest runs the comprehensive distributed load test.
 
 func (tlt *TelecomLoadTester) ExecuteDistributedTest(ctx context.Context) (*ComprehensiveResults, error) {
 
 	klog.Infof("Starting distributed telecom load test with %d workers", tlt.config.WorkerNodes)
-
-
 
 	// Initialize workers.
 
@@ -1243,15 +1039,11 @@ func (tlt *TelecomLoadTester) ExecuteDistributedTest(ctx context.Context) (*Comp
 
 	}
 
-
-
 	// Start metrics collection.
 
 	tlt.metrics.StartCollection()
 
 	defer tlt.metrics.StopCollection()
-
-
 
 	// Execute test phases.
 
@@ -1259,11 +1051,8 @@ func (tlt *TelecomLoadTester) ExecuteDistributedTest(ctx context.Context) (*Comp
 
 		StartTime: time.Now(),
 
-		Config:    tlt.config,
-
+		Config: tlt.config,
 	}
-
-
 
 	// Phase 1: Warmup.
 
@@ -1275,8 +1064,6 @@ func (tlt *TelecomLoadTester) ExecuteDistributedTest(ctx context.Context) (*Comp
 
 	}
 
-
-
 	// Phase 2: Ramp up load.
 
 	klog.Info("Phase 2: Load ramp-up")
@@ -1286,8 +1073,6 @@ func (tlt *TelecomLoadTester) ExecuteDistributedTest(ctx context.Context) (*Comp
 		return nil, fmt.Errorf("ramp-up phase failed: %w", err)
 
 	}
-
-
 
 	// Phase 3: Steady state testing.
 
@@ -1299,8 +1084,6 @@ func (tlt *TelecomLoadTester) ExecuteDistributedTest(ctx context.Context) (*Comp
 
 	}
 
-
-
 	// Phase 4: Ramp down.
 
 	klog.Info("Phase 4: Load ramp-down")
@@ -1311,15 +1094,11 @@ func (tlt *TelecomLoadTester) ExecuteDistributedTest(ctx context.Context) (*Comp
 
 	}
 
-
-
 	// Collect final results.
 
 	results.EndTime = time.Now()
 
 	results.Duration = results.EndTime.Sub(results.StartTime)
-
-
 
 	// Aggregate all worker results.
 
@@ -1329,15 +1108,11 @@ func (tlt *TelecomLoadTester) ExecuteDistributedTest(ctx context.Context) (*Comp
 
 	results.StatisticalAnalysis = tlt.performStatisticalAnalysis()
 
-
-
 	klog.Infof("Distributed load test completed in %v", results.Duration)
 
 	return results, nil
 
 }
-
-
 
 // initializeWorkers creates and configures distributed load workers.
 
@@ -1347,49 +1122,38 @@ func (tlt *TelecomLoadTester) initializeWorkers(ctx context.Context) error {
 
 		worker := &LoadWorker{
 
-			ID:                i,
+			ID: i,
 
-			NodeID:            fmt.Sprintf("worker-%d", i),
+			NodeID: fmt.Sprintf("worker-%d", i),
 
-			Status:            WorkerIdle,
+			Status: WorkerIdle,
 
 			AssignedScenarios: tlt.assignScenariosToWorker(i),
 
-			Metrics:           &WorkerMetrics{},
+			Metrics: &WorkerMetrics{},
 
-			RateLimiter:       rate.NewLimiter(rate.Every(100*time.Millisecond), 10),
+			RateLimiter: rate.NewLimiter(rate.Every(100*time.Millisecond), 10),
 
-			HTTPClient:        createOptimizedHTTPClient(),
-
+			HTTPClient: createOptimizedHTTPClient(),
 		}
-
-
 
 		worker.Context, worker.CancelFunc = context.WithCancel(ctx)
 
 		tlt.workers = append(tlt.workers, worker)
 
-
-
 		klog.Infof("Initialized worker %d with scenarios: %v", i, worker.AssignedScenarios)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // assignScenariosToWorker distributes scenarios across workers.
 
 func (tlt *TelecomLoadTester) assignScenariosToWorker(workerID int) []string {
 
 	scenarios := make([]string, 0)
-
-
 
 	// Distribute scenarios evenly with some overlap for realistic load.
 
@@ -1411,13 +1175,9 @@ func (tlt *TelecomLoadTester) assignScenariosToWorker(workerID int) []string {
 
 	}
 
-
-
 	return scenarios
 
 }
-
-
 
 // executePhase runs a specific test phase with coordinated workers.
 
@@ -1427,27 +1187,19 @@ func (tlt *TelecomLoadTester) executePhase(ctx context.Context, phase TestPhase)
 
 	defer tlt.coordinator.ExitPhase(phase)
 
-
-
 	phaseDuration := tlt.getPhaseDuration(phase)
 
 	phaseCtx, cancel := context.WithTimeout(ctx, phaseDuration)
 
 	defer cancel()
 
-
-
 	// Configure workers for this phase.
 
 	targetLoad := tlt.getPhaseTargetLoad(phase)
 
-
-
 	var wg sync.WaitGroup
 
 	errors := make(chan error, len(tlt.workers))
-
-
 
 	// Start all workers for this phase.
 
@@ -1469,21 +1221,15 @@ func (tlt *TelecomLoadTester) executePhase(ctx context.Context, phase TestPhase)
 
 	}
 
-
-
 	// Monitor phase progress.
 
 	go tlt.monitorPhaseProgress(phaseCtx, phase)
-
-
 
 	// Wait for all workers to complete.
 
 	wg.Wait()
 
 	close(errors)
-
-
 
 	// Check for worker errors.
 
@@ -1497,13 +1243,9 @@ func (tlt *TelecomLoadTester) executePhase(ctx context.Context, phase TestPhase)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // runWorkerPhase executes a specific phase for a single worker.
 
@@ -1513,17 +1255,11 @@ func (tlt *TelecomLoadTester) runWorkerPhase(ctx context.Context, worker *LoadWo
 
 	defer func() { worker.Status = WorkerIdle }()
 
-
-
 	scenarios := tlt.getWorkerScenarios(worker.AssignedScenarios)
-
-
 
 	ticker := time.NewTicker(100 * time.Millisecond)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1563,27 +1299,19 @@ func (tlt *TelecomLoadTester) runWorkerPhase(ctx context.Context, worker *LoadWo
 
 }
 
-
-
 // executeScenarioStep executes a single scenario step for a worker.
 
 func (tlt *TelecomLoadTester) executeScenarioStep(ctx context.Context, worker *LoadWorker, scenario *TelecomScenario) error {
 
 	start := time.Now()
 
-
-
 	// Select intent type based on frequency distribution.
 
 	intentType := tlt.selectIntentType(scenario.IntentTypes)
 
-
-
 	// Simulate realistic processing delays.
 
 	processingTime := tlt.calculateProcessingTime(intentType)
-
-
 
 	// Apply rate limiting.
 
@@ -1593,8 +1321,6 @@ func (tlt *TelecomLoadTester) executeScenarioStep(ctx context.Context, worker *L
 
 	}
 
-
-
 	// Simulate the actual network intent processing.
 
 	if err := tlt.simulateIntentProcessing(ctx, intentType, processingTime); err != nil {
@@ -1603,27 +1329,19 @@ func (tlt *TelecomLoadTester) executeScenarioStep(ctx context.Context, worker *L
 
 	}
 
-
-
 	// Record latency.
 
 	latency := time.Since(start)
 
 	atomic.AddInt64(&worker.Metrics.LatencySum, latency.Nanoseconds())
 
-
-
 	// Update worker metrics.
 
 	tlt.updateWorkerMetrics(worker, latency)
 
-
-
 	return nil
 
 }
-
-
 
 // simulateIntentProcessing simulates realistic intent processing with all components.
 
@@ -1639,8 +1357,6 @@ func (tlt *TelecomLoadTester) simulateIntentProcessing(ctx context.Context, inte
 
 	}
 
-
-
 	// Simulate RAG retrieval if required.
 
 	if intentType.DependsOnRAG {
@@ -1655,8 +1371,6 @@ func (tlt *TelecomLoadTester) simulateIntentProcessing(ctx context.Context, inte
 
 	}
 
-
-
 	// Simulate validation and persistence.
 
 	validationTime := time.Duration(float64(processingTime) * 0.2) // 20% of processing time
@@ -1667,13 +1381,9 @@ func (tlt *TelecomLoadTester) simulateIntentProcessing(ctx context.Context, inte
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // simulateComponent simulates a processing component with realistic behavior.
 
@@ -1698,8 +1408,6 @@ func (tlt *TelecomLoadTester) simulateComponent(ctx context.Context, component s
 	randFloat := float64(n.Int64()) / 1000.0
 
 	actualDuration := time.Duration(float64(duration) * (1 + variability*(randFloat-0.5)*2))
-
-
 
 	// Simulate CPU-intensive work.
 
@@ -1733,8 +1441,6 @@ func (tlt *TelecomLoadTester) simulateComponent(ctx context.Context, component s
 
 	}
 
-
-
 	// Simulate occasional errors (1% error rate).
 
 	errNum, err := crypto_rand.Int(crypto_rand.Reader, big.NewInt(100))
@@ -1753,13 +1459,9 @@ func (tlt *TelecomLoadTester) simulateComponent(ctx context.Context, component s
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // simulateRAGComponent simulates RAG retrieval with cache behavior.
 
@@ -1768,8 +1470,6 @@ func (tlt *TelecomLoadTester) simulateRAGComponent(ctx context.Context, duration
 	// Determine cache hit/miss based on target 87% hit rate.
 
 	cacheHit := rand.Float64() < 0.87
-
-
 
 	var actualDuration time.Duration
 
@@ -1787,17 +1487,11 @@ func (tlt *TelecomLoadTester) simulateRAGComponent(ctx context.Context, duration
 
 	}
 
-
-
 	return tlt.simulateComponent(ctx, "RAG", actualDuration)
 
 }
 
-
-
 // Helper methods for realistic load generation.
-
-
 
 func (tlt *TelecomLoadTester) getPhaseDuration(phase TestPhase) time.Duration {
 
@@ -1827,8 +1521,6 @@ func (tlt *TelecomLoadTester) getPhaseDuration(phase TestPhase) time.Duration {
 
 }
 
-
-
 func (tlt *TelecomLoadTester) getPhaseTargetLoad(phase TestPhase) float64 {
 
 	switch phase {
@@ -1857,8 +1549,6 @@ func (tlt *TelecomLoadTester) getPhaseTargetLoad(phase TestPhase) float64 {
 
 }
 
-
-
 func (tlt *TelecomLoadTester) getWorkerScenarios(scenarioNames []string) []*TelecomScenario {
 
 	scenarios := make([]*TelecomScenario, 0)
@@ -1883,8 +1573,6 @@ func (tlt *TelecomLoadTester) getWorkerScenarios(scenarioNames []string) []*Tele
 
 }
 
-
-
 func (tlt *TelecomLoadTester) selectScenario(scenarios []*TelecomScenario, phase TestPhase) *TelecomScenario {
 
 	if len(scenarios) == 0 {
@@ -1893,8 +1581,6 @@ func (tlt *TelecomLoadTester) selectScenario(scenarios []*TelecomScenario, phase
 
 	}
 
-
-
 	// Weight scenarios based on phase.
 
 	weights := make([]float64, len(scenarios))
@@ -1902,8 +1588,6 @@ func (tlt *TelecomLoadTester) selectScenario(scenarios []*TelecomScenario, phase
 	for i, scenario := range scenarios {
 
 		weights[i] = 1.0
-
-
 
 		// Prioritize emergency scenarios during spike phases.
 
@@ -1915,8 +1599,6 @@ func (tlt *TelecomLoadTester) selectScenario(scenarios []*TelecomScenario, phase
 
 	}
 
-
-
 	// Select scenario based on weights.
 
 	totalWeight := 0.0
@@ -1926,8 +1608,6 @@ func (tlt *TelecomLoadTester) selectScenario(scenarios []*TelecomScenario, phase
 		totalWeight += weight
 
 	}
-
-
 
 	r := rand.Float64() * totalWeight
 
@@ -1945,13 +1625,9 @@ func (tlt *TelecomLoadTester) selectScenario(scenarios []*TelecomScenario, phase
 
 	}
 
-
-
 	return scenarios[0] // Fallback
 
 }
-
-
 
 func (tlt *TelecomLoadTester) selectIntentType(intentTypes []IntentType) IntentType {
 
@@ -1960,8 +1636,6 @@ func (tlt *TelecomLoadTester) selectIntentType(intentTypes []IntentType) IntentT
 	r := rand.Float64()
 
 	cumFreq := 0.0
-
-
 
 	for _, intentType := range intentTypes {
 
@@ -1975,35 +1649,26 @@ func (tlt *TelecomLoadTester) selectIntentType(intentTypes []IntentType) IntentT
 
 	}
 
-
-
 	return intentTypes[0] // Fallback
 
 }
-
-
 
 func (tlt *TelecomLoadTester) calculateProcessingTime(intentType IntentType) time.Duration {
 
 	baseTime := intentType.ExpectedLatency
 
-
-
 	// Add complexity factor.
 
 	complexityMultiplier := map[ComplexityLevel]float64{
 
-		Simple:      0.5,
+		Simple: 0.5,
 
-		Moderate:    0.8,
+		Moderate: 0.8,
 
-		Complex:     1.0,
+		Complex: 1.0,
 
 		VeryComplex: 1.5,
-
 	}
-
-
 
 	multiplier := complexityMultiplier[intentType.Complexity]
 
@@ -2011,13 +1676,9 @@ func (tlt *TelecomLoadTester) calculateProcessingTime(intentType IntentType) tim
 
 }
 
-
-
 func (tlt *TelecomLoadTester) updateWorkerMetrics(worker *LoadWorker, latency time.Duration) {
 
 	worker.Metrics.LastUpdateTime = time.Now()
-
-
 
 	// Update resource usage (simulated).
 
@@ -2029,15 +1690,11 @@ func (tlt *TelecomLoadTester) updateWorkerMetrics(worker *LoadWorker, latency ti
 
 }
 
-
-
 func (tlt *TelecomLoadTester) monitorPhaseProgress(ctx context.Context, phase TestPhase) {
 
 	ticker := time.NewTicker(10 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2061,103 +1718,79 @@ func (tlt *TelecomLoadTester) monitorPhaseProgress(ctx context.Context, phase Te
 
 }
 
-
-
 // Supporting types and methods.
-
-
 
 // ComprehensiveResults represents a comprehensiveresults.
 
 type ComprehensiveResults struct {
+	StartTime time.Time
 
-	StartTime           time.Time
+	EndTime time.Time
 
-	EndTime             time.Time
+	Duration time.Duration
 
-	Duration            time.Duration
+	Config *TelecomLoadConfig
 
-	Config              *TelecomLoadConfig
+	AggregatedMetrics *AggregatedMetrics
 
-	AggregatedMetrics   *AggregatedMetrics
-
-	ValidationResults   *ValidationResults
+	ValidationResults *ValidationResults
 
 	StatisticalAnalysis *StatisticalAnalysis
-
 }
-
-
 
 // AggregatedMetrics represents a aggregatedmetrics.
 
 type AggregatedMetrics struct {
+	TotalRequests int64
 
-	TotalRequests       int64
+	TotalErrors int64
 
-	TotalErrors         int64
+	ErrorRate float64
 
-	ErrorRate           float64
+	Throughput float64
 
-	Throughput          float64
+	LatencyP95 time.Duration
 
-	LatencyP95          time.Duration
+	LatencyP99 time.Duration
 
-	LatencyP99          time.Duration
-
-	MaxConcurrentUsers  int
+	MaxConcurrentUsers int
 
 	ResourceUtilization ResourceUtilizationSummary
-
 }
-
-
 
 // ValidationResults represents a validationresults.
 
 type ValidationResults struct {
-
-	TargetsMet       map[string]bool
+	TargetsMet map[string]bool
 
 	PerformanceScore float64
 
 	CriticalFailures []string
 
-	Recommendations  []string
-
+	Recommendations []string
 }
-
-
 
 // StatisticalAnalysis represents a statisticalanalysis.
 
 type StatisticalAnalysis struct {
-
 	ConfidenceIntervals map[string]ConfidenceInterval
 
 	RegressionDetection []RegressionDetection
 
-	OutlierAnalysis     OutlierAnalysis
+	OutlierAnalysis OutlierAnalysis
 
-	TrendAnalysis       TrendAnalysis
-
+	TrendAnalysis TrendAnalysis
 }
-
-
 
 // CurrentStats represents a currentstats.
 
 type CurrentStats struct {
-
 	CurrentThroughput float64
 
-	LatencyP95Ms      float64
+	LatencyP95Ms float64
 
-	ErrorRatePercent  float64
-
+	ErrorRatePercent float64
 }
-
-
 
 func (tlt *TelecomLoadTester) collectCurrentStats() *CurrentStats {
 
@@ -2169,8 +1802,6 @@ func (tlt *TelecomLoadTester) collectCurrentStats() *CurrentStats {
 
 	// latencySamples would be used for detailed latency analysis but not needed currently.
 
-
-
 	for _, worker := range tlt.workers {
 
 		totalReqs += atomic.LoadInt64(&worker.Metrics.RequestsTotal)
@@ -2181,8 +1812,6 @@ func (tlt *TelecomLoadTester) collectCurrentStats() *CurrentStats {
 
 	}
 
-
-
 	errorRate := 0.0
 
 	if totalReqs > 0 {
@@ -2191,13 +1820,9 @@ func (tlt *TelecomLoadTester) collectCurrentStats() *CurrentStats {
 
 	}
 
-
-
 	// Calculate throughput (simplified).
 
 	throughput := float64(totalReqs) / time.Since(time.Now().Add(-10*time.Second)).Seconds()
-
-
 
 	// Calculate P95 latency (simplified).
 
@@ -2211,21 +1836,16 @@ func (tlt *TelecomLoadTester) collectCurrentStats() *CurrentStats {
 
 	latencyP95Ms := float64(avgLatency.Nanoseconds()) / 1e6 * 1.2 // Approximate P95
 
-
-
 	return &CurrentStats{
 
 		CurrentThroughput: throughput,
 
-		LatencyP95Ms:      latencyP95Ms,
+		LatencyP95Ms: latencyP95Ms,
 
-		ErrorRatePercent:  errorRate,
-
+		ErrorRatePercent: errorRate,
 	}
 
 }
-
-
 
 // Remaining implementation methods would include:.
 
@@ -2237,8 +1857,6 @@ func (tlt *TelecomLoadTester) collectCurrentStats() *CurrentStats {
 
 // - Various helper methods for metrics collection and analysis.
 
-
-
 func createOptimizedHTTPClient() *http.Client {
 
 	return &http.Client{
@@ -2247,25 +1865,19 @@ func createOptimizedHTTPClient() *http.Client {
 
 		Transport: &http.Transport{
 
-			MaxIdleConns:        100,
+			MaxIdleConns: 100,
 
 			MaxIdleConnsPerHost: 10,
 
-			IdleConnTimeout:     90 * time.Second,
-
+			IdleConnTimeout: 90 * time.Second,
 		},
-
 	}
 
 }
 
-
-
 // Additional helper functions and implementations would be included here...
 
 // This provides a comprehensive foundation for distributed telecom load testing.
-
-
 
 // NewDistributedMetrics performs newdistributedmetrics operation.
 
@@ -2273,7 +1885,7 @@ func NewDistributedMetrics() *DistributedMetrics {
 
 	return &DistributedMetrics{
 
-		registry:   prometheus.NewRegistry(),
+		registry: prometheus.NewRegistry(),
 
 		collectors: make(map[string]prometheus.Collector),
 
@@ -2281,21 +1893,17 @@ func NewDistributedMetrics() *DistributedMetrics {
 
 			LatencyDistribution: make(map[int]int64),
 
-			ThroughputHistory:   make([]float64, 0),
+			ThroughputHistory: make([]float64, 0),
 
-			ErrorRateHistory:    make([]float64, 0),
+			ErrorRateHistory: make([]float64, 0),
 
 			ResourceUtilHistory: make([]ResourceUtilSnapshot, 0),
 
-			StartTime:           time.Now(),
-
+			StartTime: time.Now(),
 		},
-
 	}
 
 }
-
-
 
 // StartCollection performs startcollection operation.
 
@@ -2305,8 +1913,6 @@ func (dm *DistributedMetrics) StartCollection() {
 
 }
 
-
-
 // StopCollection performs stopcollection operation.
 
 func (dm *DistributedMetrics) StopCollection() {
@@ -2314,8 +1920,6 @@ func (dm *DistributedMetrics) StopCollection() {
 	// Implementation for stopping metrics collection.
 
 }
-
-
 
 // NewTestCoordinator performs newtestcoordinator operation.
 
@@ -2329,15 +1933,11 @@ func NewTestCoordinator(config *TelecomLoadConfig) *TestCoordinator {
 
 			LatencyDistribution: make(map[int]int64),
 
-			StartTime:           time.Now(),
-
+			StartTime: time.Now(),
 		},
-
 	}
 
 }
-
-
 
 // EnterPhase performs enterphase operation.
 
@@ -2353,8 +1953,6 @@ func (tc *TestCoordinator) EnterPhase(phase TestPhase) {
 
 }
 
-
-
 // ExitPhase performs exitphase operation.
 
 func (tc *TestCoordinator) ExitPhase(phase TestPhase) {
@@ -2367,23 +1965,18 @@ func (tc *TestCoordinator) ExitPhase(phase TestPhase) {
 
 }
 
-
-
 // NewResultAggregator performs newresultaggregator operation.
 
 func NewResultAggregator() *ResultAggregator {
 
 	return &ResultAggregator{
 
-		results:    make([]TestResult, 0),
+		results: make([]TestResult, 0),
 
 		statistics: &ComprehensiveStatistics{},
-
 	}
 
 }
-
-
 
 // Placeholder implementations for missing methods.
 
@@ -2393,15 +1986,11 @@ func (tlt *TelecomLoadTester) aggregateResults() *AggregatedMetrics {
 
 }
 
-
-
 func (tlt *TelecomLoadTester) validatePerformanceTargets() *ValidationResults {
 
 	return &ValidationResults{} // Implementation would validate against targets
 
 }
-
-
 
 func (tlt *TelecomLoadTester) performStatisticalAnalysis() *StatisticalAnalysis {
 
@@ -2409,67 +1998,45 @@ func (tlt *TelecomLoadTester) performStatisticalAnalysis() *StatisticalAnalysis 
 
 }
 
-
-
 // Additional supporting types.
 
 type ConfidenceInterval struct {
-
 	Lower, Upper float64
-
 }
-
-
 
 // RegressionDetection represents a regressiondetection.
 
 type RegressionDetection struct {
-
-	Metric     string
+	Metric string
 
 	Regression float64
-
 }
-
-
 
 // OutlierAnalysis represents a outlieranalysis.
 
 type OutlierAnalysis struct {
-
-	Count      int
+	Count int
 
 	Percentage float64
-
 }
-
-
 
 // TrendAnalysis represents a trendanalysis.
 
 type TrendAnalysis struct {
-
 	Direction string
 
 	Magnitude float64
-
 }
-
-
 
 // ResourceUtilizationSummary represents a resourceutilizationsummary.
 
 type ResourceUtilizationSummary struct {
+	CPUPercent float64
 
-	CPUPercent  float64
-
-	MemoryMB    float64
+	MemoryMB float64
 
 	NetworkMbps float64
-
 }
-
-
 
 // TimeSeriesAnalysis represents a timeseriesanalysis.
 
@@ -2479,8 +2046,6 @@ type TimeSeriesAnalysis struct {
 
 }
 
-
-
 // PerformanceProfile represents a performanceprofile.
 
 type PerformanceProfile struct {
@@ -2488,8 +2053,6 @@ type PerformanceProfile struct {
 	// Performance profiling results.
 
 }
-
-
 
 // BottleneckAnalysis represents a bottleneckanalysis.
 
@@ -2499,8 +2062,6 @@ type BottleneckAnalysis struct {
 
 }
 
-
-
 // StatisticalValidationResults represents a statisticalvalidationresults.
 
 type StatisticalValidationResults struct {
@@ -2508,4 +2069,3 @@ type StatisticalValidationResults struct {
 	// Statistical validation results.
 
 }
-

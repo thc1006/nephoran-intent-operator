@@ -1,47 +1,24 @@
-
 package o1
 
-
-
 import (
-
 	"context"
-
 	"crypto/tls"
-
 	"encoding/json"
-
 	"encoding/xml"
-
 	"fmt"
-
 	"os"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
-
-
 
 	corev1 "k8s.io/api/core/v1"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // O1AdaptorInterface defines the interface for O1 operations (FCAPS).
 
@@ -55,8 +32,6 @@ type O1AdaptorInterface interface {
 
 	ValidateConfiguration(ctx context.Context, config string) error
 
-
-
 	// Fault Management (FM).
 
 	GetAlarms(ctx context.Context, me *nephoranv1.ManagedElement) ([]*Alarm, error)
@@ -64,8 +39,6 @@ type O1AdaptorInterface interface {
 	ClearAlarm(ctx context.Context, me *nephoranv1.ManagedElement, alarmID string) error
 
 	SubscribeToAlarms(ctx context.Context, me *nephoranv1.ManagedElement, callback AlarmCallback) error
-
-
 
 	// Performance Management (PM).
 
@@ -75,21 +48,15 @@ type O1AdaptorInterface interface {
 
 	StopMetricCollection(ctx context.Context, me *nephoranv1.ManagedElement, collectionID string) error
 
-
-
 	// Accounting Management (AM).
 
 	GetUsageRecords(ctx context.Context, me *nephoranv1.ManagedElement, filter *UsageFilter) ([]*UsageRecord, error)
-
-
 
 	// Security Management (SM).
 
 	UpdateSecurityPolicy(ctx context.Context, me *nephoranv1.ManagedElement, policy *oran.SecurityPolicy) error
 
 	GetSecurityStatus(ctx context.Context, me *nephoranv1.ManagedElement) (*SecurityStatus, error)
-
-
 
 	// Connection Management.
 
@@ -98,212 +65,169 @@ type O1AdaptorInterface interface {
 	Disconnect(ctx context.Context, me *nephoranv1.ManagedElement) error
 
 	IsConnected(me *nephoranv1.ManagedElement) bool
-
 }
-
-
 
 // O1Adaptor implements the O1 interface for network element management.
 
 type O1Adaptor struct {
+	clients map[string]*NetconfClient
 
-	clients          map[string]*NetconfClient
+	clientsMux sync.RWMutex
 
-	clientsMux       sync.RWMutex
+	config *oran.O1Config
 
-	config           *oran.O1Config
+	yangRegistry *YANGModelRegistry
 
-	yangRegistry     *YANGModelRegistry
+	subscriptions map[string][]EventCallback
 
-	subscriptions    map[string][]EventCallback
-
-	subsMux          sync.RWMutex
+	subsMux sync.RWMutex
 
 	metricCollectors map[string]*MetricCollector
 
-	metricsMux       sync.RWMutex
+	metricsMux sync.RWMutex
 
-	kubeClient       client.Client
-
+	kubeClient client.Client
 }
-
-
 
 // O1AdaptorConfig holds O1 interface adaptor configuration.
 
 type O1AdaptorConfig struct {
-
-	DefaultPort    int
+	DefaultPort int
 
 	ConnectTimeout time.Duration
 
 	RequestTimeout time.Duration
 
-	MaxRetries     int
+	MaxRetries int
 
-	RetryInterval  time.Duration
+	RetryInterval time.Duration
 
-	TLSConfig      *oran.TLSConfig
-
+	TLSConfig *oran.TLSConfig
 }
-
-
 
 // MetricCollector manages performance metric collection.
 
 type MetricCollector struct {
+	ID string
 
-	ID               string
+	ManagedElement string
 
-	ManagedElement   string
-
-	MetricNames      []string
+	MetricNames []string
 
 	CollectionPeriod time.Duration
 
-	ReportingPeriod  time.Duration
+	ReportingPeriod time.Duration
 
-	Active           bool
+	Active bool
 
-	LastCollection   time.Time
+	LastCollection time.Time
 
-	cancel           context.CancelFunc
-
+	cancel context.CancelFunc
 }
-
-
 
 // Alarm represents an O-RAN alarm.
 
 type Alarm struct {
+	ID string `json:"alarm_id"`
 
-	ID               string    `json:"alarm_id"`
+	ManagedElementID string `json:"managed_element_id"`
 
-	ManagedElementID string    `json:"managed_element_id"`
+	Severity string `json:"severity"` // CRITICAL, MAJOR, MINOR, WARNING, CLEAR
 
-	Severity         string    `json:"severity"` // CRITICAL, MAJOR, MINOR, WARNING, CLEAR
+	Type string `json:"type"`
 
-	Type             string    `json:"type"`
+	ProbableCause string `json:"probable_cause"`
 
-	ProbableCause    string    `json:"probable_cause"`
+	SpecificProblem string `json:"specific_problem"`
 
-	SpecificProblem  string    `json:"specific_problem"`
+	AdditionalInfo string `json:"additional_info"`
 
-	AdditionalInfo   string    `json:"additional_info"`
+	TimeRaised time.Time `json:"time_raised"`
 
-	TimeRaised       time.Time `json:"time_raised"`
-
-	TimeCleared      time.Time `json:"time_cleared,omitempty"`
-
+	TimeCleared time.Time `json:"time_cleared,omitempty"`
 }
-
-
 
 // AlarmCallback is called when alarms are received.
 
 type AlarmCallback func(alarm *Alarm)
 
-
-
 // MetricConfig defines performance metric collection configuration.
 
 type MetricConfig struct {
-
-	MetricNames      []string      `json:"metric_names"`
+	MetricNames []string `json:"metric_names"`
 
 	CollectionPeriod time.Duration `json:"collection_period"`
 
-	ReportingPeriod  time.Duration `json:"reporting_period"`
+	ReportingPeriod time.Duration `json:"reporting_period"`
 
-	Aggregation      string        `json:"aggregation"` // MIN, MAX, AVG, SUM
+	Aggregation string `json:"aggregation"` // MIN, MAX, AVG, SUM
 
 }
-
-
 
 // UsageFilter defines filters for usage records.
 
 type UsageFilter struct {
-
 	StartTime time.Time `json:"start_time"`
 
-	EndTime   time.Time `json:"end_time"`
+	EndTime time.Time `json:"end_time"`
 
-	UserID    string    `json:"user_id,omitempty"`
+	UserID string `json:"user_id,omitempty"`
 
-	ServiceID string    `json:"service_id,omitempty"`
-
+	ServiceID string `json:"service_id,omitempty"`
 }
-
-
 
 // UsageRecord represents accounting information.
 
 type UsageRecord struct {
+	ID string `json:"id"`
 
-	ID            string                 `json:"id"`
+	UserID string `json:"user_id"`
 
-	UserID        string                 `json:"user_id"`
+	ServiceID string `json:"service_id"`
 
-	ServiceID     string                 `json:"service_id"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime     time.Time              `json:"start_time"`
-
-	EndTime       time.Time              `json:"end_time"`
+	EndTime time.Time `json:"end_time"`
 
 	ResourceUsage map[string]interface{} `json:"resource_usage"`
 
-	ChargingInfo  map[string]interface{} `json:"charging_info"`
-
+	ChargingInfo map[string]interface{} `json:"charging_info"`
 }
-
-
 
 // AdaptorSecurityPolicy represents security configuration for adaptor.
 
 type AdaptorSecurityPolicy struct {
+	PolicyID string `json:"policy_id"`
 
-	PolicyID    string         `json:"policy_id"`
+	PolicyType string `json:"policy_type"`
 
-	PolicyType  string         `json:"policy_type"`
+	Rules []SecurityRule `json:"rules"`
 
-	Rules       []SecurityRule `json:"rules"`
-
-	Enforcement string         `json:"enforcement"` // STRICT, PERMISSIVE
+	Enforcement string `json:"enforcement"` // STRICT, PERMISSIVE
 
 }
-
-
 
 // SecurityRule represents a security rule.
 
 type SecurityRule struct {
+	RuleID string `json:"rule_id"`
 
-	RuleID     string                 `json:"rule_id"`
-
-	Action     string                 `json:"action"` // ALLOW, DENY, LOG
+	Action string `json:"action"` // ALLOW, DENY, LOG
 
 	Conditions map[string]interface{} `json:"conditions"`
-
 }
-
-
 
 // SecurityStatus represents current security status.
 
 type SecurityStatus struct {
+	ComplianceLevel string `json:"compliance_level"`
 
-	ComplianceLevel string                 `json:"compliance_level"`
+	ActiveThreats []string `json:"active_threats"`
 
-	ActiveThreats   []string               `json:"active_threats"`
+	LastAudit time.Time `json:"last_audit"`
 
-	LastAudit       time.Time              `json:"last_audit"`
-
-	Metrics         map[string]interface{} `json:"metrics"`
-
+	Metrics map[string]interface{} `json:"metrics"`
 }
-
-
 
 // YANG models for O1 interface.
 
@@ -313,27 +237,22 @@ type YANGModels struct {
 
 	IETFInterfaces string
 
-	IETFSystem     string
+	IETFSystem string
 
-	IETFAlarms     string
-
-
+	IETFAlarms string
 
 	// O-RAN specific YANG models.
 
-	ORANHardware       string
+	ORANHardware string
 
-	ORANSoftware       string
+	ORANSoftware string
 
-	ORANPerformance    string
+	ORANPerformance string
 
-	ORANFaultMgmt      string
+	ORANFaultMgmt string
 
 	ORANFileManagement string
-
 }
-
-
 
 // NewO1Adaptor creates a new O1 adaptor with default configuration.
 
@@ -343,35 +262,29 @@ func NewO1Adaptor(config *oran.O1Config, kubeClient client.Client) *O1Adaptor {
 
 		config = &oran.O1Config{
 
-			Timeout:       30 * time.Second,
+			Timeout: 30 * time.Second,
 
 			RetryAttempts: 3,
-
 		}
 
 	}
 
-
-
 	return &O1Adaptor{
 
-		clients:          make(map[string]*NetconfClient),
+		clients: make(map[string]*NetconfClient),
 
-		config:           config,
+		config: config,
 
-		yangRegistry:     NewYANGModelRegistry(),
+		yangRegistry: NewYANGModelRegistry(),
 
-		subscriptions:    make(map[string][]EventCallback),
+		subscriptions: make(map[string][]EventCallback),
 
 		metricCollectors: make(map[string]*MetricCollector),
 
-		kubeClient:       kubeClient,
-
+		kubeClient: kubeClient,
 	}
 
 }
-
-
 
 // resolveSecretValue resolves a secret value from Kubernetes Secret reference.
 
@@ -383,15 +296,11 @@ func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *nephoranv
 
 	}
 
-
-
 	if a.kubeClient == nil {
 
 		return "", fmt.Errorf("no Kubernetes client available for secret resolution")
 
 	}
-
-
 
 	// Determine namespace - use the one from secretRef or fall back to default.
 
@@ -403,18 +312,15 @@ func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *nephoranv
 
 	}
 
-
-
 	// Get the secret from Kubernetes.
 
 	secret := &corev1.Secret{}
 
 	err := a.kubeClient.Get(ctx, client.ObjectKey{
 
-		Name:      secretRef.Name,
+		Name: secretRef.Name,
 
 		Namespace: namespace,
-
 	}, secret)
 
 	if err != nil {
@@ -422,8 +328,6 @@ func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *nephoranv
 		return "", fmt.Errorf("failed to get secret %s/%s: %w", namespace, secretRef.Name, err)
 
 	}
-
-
 
 	// Extract the value for the specified key.
 
@@ -433,21 +337,15 @@ func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *nephoranv
 
 	}
 
-
-
 	return "", fmt.Errorf("key %s not found in secret %s/%s", secretRef.Key, namespace, secretRef.Name)
 
 }
-
-
 
 // buildTLSConfig builds TLS configuration from certificate references in credentials.
 
 func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedElement) (*tls.Config, error) {
 
 	credentials := &me.Spec.Credentials
-
-
 
 	// If no client certificate references, return basic TLS config.
 
@@ -459,21 +357,15 @@ func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedEl
 
 			InsecureSkipVerify: false, // In production, should validate server certificates
 
-			MinVersion:         tls.VersionTLS12,
-
+			MinVersion: tls.VersionTLS12,
 		}, nil
 
 	}
 
-
-
 	tlsConfig := &tls.Config{
 
 		MinVersion: tls.VersionTLS12,
-
 	}
-
-
 
 	// Load client certificate and key if provided.
 
@@ -487,8 +379,6 @@ func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedEl
 
 		}
 
-
-
 		keyData, err := a.resolveSecretValue(ctx, credentials.ClientKeyRef, me.Namespace)
 
 		if err != nil {
@@ -496,8 +386,6 @@ func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedEl
 			return nil, fmt.Errorf("failed to resolve client key: %w", err)
 
 		}
-
-
 
 		cert, err := tls.X509KeyPair([]byte(certData), []byte(keyData))
 
@@ -507,13 +395,9 @@ func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedEl
 
 		}
 
-
-
 		tlsConfig.Certificates = []tls.Certificate{cert}
 
 	}
-
-
 
 	// Apply TLS configuration from O1Config if available.
 
@@ -539,8 +423,6 @@ func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedEl
 
 		}
 
-
-
 		// Load CA certificate if specified.
 
 		if a.config.TLSConfig.CAFile != "" {
@@ -553,13 +435,9 @@ func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedEl
 
 	}
 
-
-
 	return tlsConfig, nil
 
 }
-
-
 
 // isDevEnvironment checks if we're running in a development/testing environment.
 
@@ -573,8 +451,6 @@ func isDevEnvironment() bool {
 
 }
 
-
-
 // Connect establishes a NETCONF session to a managed element.
 
 func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) error {
@@ -582,8 +458,6 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) 
 	logger := log.FromContext(ctx)
 
 	logger.Info("establishing O1 connection", "managedElement", me.Name)
-
-
 
 	// Extract connection details from spec.
 
@@ -597,11 +471,7 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) 
 
 	}
 
-
-
 	clientID := fmt.Sprintf("%s:%d", host, port)
-
-
 
 	// Check if already connected.
 
@@ -619,8 +489,6 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) 
 
 	a.clientsMux.RUnlock()
 
-
-
 	// Build TLS configuration first.
 
 	tlsConfig, err := a.buildTLSConfig(ctx, me)
@@ -631,39 +499,30 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) 
 
 	}
 
-
-
 	// Create NETCONF client configuration.
 
 	netconfConfig := &NetconfConfig{
 
-		Host:          host,
+		Host: host,
 
-		Port:          port,
+		Port: port,
 
-		Timeout:       a.config.Timeout,
+		Timeout: a.config.Timeout,
 
 		RetryAttempts: a.config.RetryAttempts,
 
-		TLSConfig:     tlsConfig,
-
+		TLSConfig: tlsConfig,
 	}
-
-
 
 	// Create new NETCONF client.
 
 	client := NewNetconfClient(netconfConfig)
-
-
 
 	// Resolve credentials from Kubernetes secrets.
 
 	var username, password string
 
 	var privateKey []byte
-
-
 
 	// Resolve username if provided.
 
@@ -679,8 +538,6 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) 
 
 	}
 
-
-
 	// Resolve password if provided.
 
 	if me.Spec.Credentials.PasswordRef != nil {
@@ -694,8 +551,6 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) 
 		}
 
 	}
-
-
 
 	// Resolve private key if provided.
 
@@ -713,8 +568,6 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) 
 
 	}
 
-
-
 	// Validate that we have either password or private key authentication.
 
 	if password == "" && len(privateKey) == 0 {
@@ -723,23 +576,18 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) 
 
 	}
 
-
-
 	// Build authentication configuration.
 
 	authConfig := &AuthConfig{
 
-		Username:   username,
+		Username: username,
 
-		Password:   password,
+		Password: password,
 
 		PrivateKey: privateKey,
 
-		TLSConfig:  tlsConfig,
-
+		TLSConfig: tlsConfig,
 	}
-
-
 
 	// Establish connection with retry logic.
 
@@ -773,15 +621,11 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) 
 
 	}
 
-
-
 	if lastErr != nil {
 
 		return fmt.Errorf("failed to establish NETCONF connection after %d attempts: %w", a.config.RetryAttempts, lastErr)
 
 	}
-
-
 
 	// Store client.
 
@@ -791,15 +635,11 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) 
 
 	a.clientsMux.Unlock()
 
-
-
 	logger.Info("O1 connection established", "clientID", clientID, "capabilities", len(client.GetCapabilities()))
 
 	return nil
 
 }
-
-
 
 // Disconnect closes the NETCONF session.
 
@@ -807,17 +647,11 @@ func (a *O1Adaptor) Disconnect(ctx context.Context, me *nephoranv1.ManagedElemen
 
 	logger := log.FromContext(ctx)
 
-
-
 	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
-
-
 
 	a.clientsMux.Lock()
 
 	defer a.clientsMux.Unlock()
-
-
 
 	if client, exists := a.clients[clientID]; exists {
 
@@ -833,13 +667,9 @@ func (a *O1Adaptor) Disconnect(ctx context.Context, me *nephoranv1.ManagedElemen
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // IsConnected checks if there's an active connection to the managed element.
 
@@ -847,13 +677,9 @@ func (a *O1Adaptor) IsConnected(me *nephoranv1.ManagedElement) bool {
 
 	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
 
-
-
 	a.clientsMux.RLock()
 
 	defer a.clientsMux.RUnlock()
-
-
 
 	if client, exists := a.clients[clientID]; exists {
 
@@ -865,8 +691,6 @@ func (a *O1Adaptor) IsConnected(me *nephoranv1.ManagedElement) bool {
 
 }
 
-
-
 // ApplyConfiguration applies O1 configuration to the managed element.
 
 func (a *O1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1.ManagedElement) error {
@@ -874,8 +698,6 @@ func (a *O1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1.Manag
 	logger := log.FromContext(ctx)
 
 	logger.Info("applying O1 configuration", "managedElement", me.Name)
-
-
 
 	// Ensure connected.
 
@@ -889,8 +711,6 @@ func (a *O1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1.Manag
 
 	}
 
-
-
 	// Get NETCONF client.
 
 	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
@@ -901,15 +721,11 @@ func (a *O1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1.Manag
 
 	a.clientsMux.RUnlock()
 
-
-
 	if !exists {
 
 		return fmt.Errorf("no active client found for managed element")
 
 	}
-
-
 
 	// Validate configuration.
 
@@ -919,21 +735,17 @@ func (a *O1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1.Manag
 
 	}
 
-
-
 	// Prepare configuration data.
 
 	configData := &ConfigData{
 
-		XMLData:   me.Spec.O1Config,
+		XMLData: me.Spec.O1Config,
 
-		Format:    "xml",
+		Format: "xml",
 
 		Operation: "merge", // Default to merge operation
 
 	}
-
-
 
 	// Lock the configuration datastore.
 
@@ -957,8 +769,6 @@ func (a *O1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1.Manag
 
 	}
 
-
-
 	// Apply configuration.
 
 	if err := client.SetConfig(configData); err != nil {
@@ -966,8 +776,6 @@ func (a *O1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1.Manag
 		return fmt.Errorf("failed to apply configuration: %w", err)
 
 	}
-
-
 
 	// Validate the applied configuration.
 
@@ -977,23 +785,17 @@ func (a *O1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1.Manag
 
 	}
 
-
-
 	logger.Info("O1 configuration applied successfully", "managedElement", me.Name)
 
 	return nil
 
 }
 
-
-
 // GetConfiguration retrieves current configuration from the managed element.
 
 func (a *O1Adaptor) GetConfiguration(ctx context.Context, me *nephoranv1.ManagedElement) (string, error) {
 
 	logger := log.FromContext(ctx)
-
-
 
 	if !a.IsConnected(me) {
 
@@ -1005,8 +807,6 @@ func (a *O1Adaptor) GetConfiguration(ctx context.Context, me *nephoranv1.Managed
 
 	}
 
-
-
 	// Get NETCONF client.
 
 	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
@@ -1017,15 +817,11 @@ func (a *O1Adaptor) GetConfiguration(ctx context.Context, me *nephoranv1.Managed
 
 	a.clientsMux.RUnlock()
 
-
-
 	if !exists {
 
 		return "", fmt.Errorf("no active client found for managed element")
 
 	}
-
-
 
 	// Retrieve configuration using NETCONF get-config.
 
@@ -1037,15 +833,11 @@ func (a *O1Adaptor) GetConfiguration(ctx context.Context, me *nephoranv1.Managed
 
 	}
 
-
-
 	logger.Info("retrieved configuration", "managedElement", me.Name, "size", len(configData.XMLData))
 
 	return configData.XMLData, nil
 
 }
-
-
 
 // ValidateConfiguration validates O1 configuration syntax and semantics.
 
@@ -1056,8 +848,6 @@ func (a *O1Adaptor) ValidateConfiguration(ctx context.Context, config string) er
 		return fmt.Errorf("configuration cannot be empty")
 
 	}
-
-
 
 	// Try to parse as XML first.
 
@@ -1075,15 +865,11 @@ func (a *O1Adaptor) ValidateConfiguration(ctx context.Context, config string) er
 
 		}
 
-
-
 		// Validate JSON configuration against YANG models.
 
 		return a.yangRegistry.ValidateConfig(ctx, jsonDoc, "o-ran-hardware")
 
 	}
-
-
 
 	// For XML configuration, perform basic structure validation.
 
@@ -1107,23 +893,17 @@ func (a *O1Adaptor) ValidateConfiguration(ctx context.Context, config string) er
 
 	}
 
-
-
 	// If no specific model matches, perform basic validation.
 
 	return nil
 
 }
 
-
-
 // GetAlarms retrieves active alarms from the managed element.
 
 func (a *O1Adaptor) GetAlarms(ctx context.Context, me *nephoranv1.ManagedElement) ([]*Alarm, error) {
 
 	logger := log.FromContext(ctx)
-
-
 
 	if !a.IsConnected(me) {
 
@@ -1135,8 +915,6 @@ func (a *O1Adaptor) GetAlarms(ctx context.Context, me *nephoranv1.ManagedElement
 
 	}
 
-
-
 	// Get NETCONF client.
 
 	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
@@ -1147,15 +925,11 @@ func (a *O1Adaptor) GetAlarms(ctx context.Context, me *nephoranv1.ManagedElement
 
 	a.clientsMux.RUnlock()
 
-
-
 	if !exists {
 
 		return nil, fmt.Errorf("no active client found for managed element")
 
 	}
-
-
 
 	// Query alarms using NETCONF get operation with XPath filter.
 
@@ -1173,8 +947,6 @@ func (a *O1Adaptor) GetAlarms(ctx context.Context, me *nephoranv1.ManagedElement
 
 	}
 
-
-
 	// Parse alarm data from NETCONF response.
 
 	alarms, err := a.parseAlarmData(configData.XMLData, me.Name)
@@ -1187,15 +959,11 @@ func (a *O1Adaptor) GetAlarms(ctx context.Context, me *nephoranv1.ManagedElement
 
 	}
 
-
-
 	logger.Info("retrieved alarms", "managedElement", me.Name, "count", len(alarms))
 
 	return alarms, nil
 
 }
-
-
 
 // ClearAlarm clears a specific alarm.
 
@@ -1205,8 +973,6 @@ func (a *O1Adaptor) ClearAlarm(ctx context.Context, me *nephoranv1.ManagedElemen
 
 	logger.Info("clearing alarm", "managedElement", me.Name, "alarmID", alarmID)
 
-
-
 	if !a.IsConnected(me) {
 
 		if err := a.Connect(ctx, me); err != nil {
@@ -1216,8 +982,6 @@ func (a *O1Adaptor) ClearAlarm(ctx context.Context, me *nephoranv1.ManagedElemen
 		}
 
 	}
-
-
 
 	// In a real implementation, we would send alarm clear command via NETCONF.
 
@@ -1227,8 +991,6 @@ func (a *O1Adaptor) ClearAlarm(ctx context.Context, me *nephoranv1.ManagedElemen
 
 }
 
-
-
 // SubscribeToAlarms sets up alarm notifications.
 
 func (a *O1Adaptor) SubscribeToAlarms(ctx context.Context, me *nephoranv1.ManagedElement, callback AlarmCallback) error {
@@ -1236,8 +998,6 @@ func (a *O1Adaptor) SubscribeToAlarms(ctx context.Context, me *nephoranv1.Manage
 	logger := log.FromContext(ctx)
 
 	logger.Info("subscribing to alarms", "managedElement", me.Name)
-
-
 
 	if !a.IsConnected(me) {
 
@@ -1248,8 +1008,6 @@ func (a *O1Adaptor) SubscribeToAlarms(ctx context.Context, me *nephoranv1.Manage
 		}
 
 	}
-
-
 
 	// Get NETCONF client.
 
@@ -1261,15 +1019,11 @@ func (a *O1Adaptor) SubscribeToAlarms(ctx context.Context, me *nephoranv1.Manage
 
 	a.clientsMux.RUnlock()
 
-
-
 	if !exists {
 
 		return fmt.Errorf("no active client found for managed element")
 
 	}
-
-
 
 	// Create NETCONF notification subscription for alarms.
 
@@ -1287,15 +1041,11 @@ func (a *O1Adaptor) SubscribeToAlarms(ctx context.Context, me *nephoranv1.Manage
 
 	}
 
-
-
 	if err := client.Subscribe(alarmXPath, eventCallback); err != nil {
 
 		return fmt.Errorf("failed to create alarm subscription: %w", err)
 
 	}
-
-
 
 	// Store subscription for management.
 
@@ -1311,23 +1061,17 @@ func (a *O1Adaptor) SubscribeToAlarms(ctx context.Context, me *nephoranv1.Manage
 
 	a.subsMux.Unlock()
 
-
-
 	logger.Info("alarm subscription established", "managedElement", me.Name)
 
 	return nil
 
 }
 
-
-
 // GetMetrics retrieves performance metrics.
 
 func (a *O1Adaptor) GetMetrics(ctx context.Context, me *nephoranv1.ManagedElement, metricNames []string) (map[string]interface{}, error) {
 
 	logger := log.FromContext(ctx)
-
-
 
 	if !a.IsConnected(me) {
 
@@ -1338,8 +1082,6 @@ func (a *O1Adaptor) GetMetrics(ctx context.Context, me *nephoranv1.ManagedElemen
 		}
 
 	}
-
-
 
 	// Use real NETCONF client to collect metrics.
 
@@ -1353,15 +1095,11 @@ func (a *O1Adaptor) GetMetrics(ctx context.Context, me *nephoranv1.ManagedElemen
 
 	}
 
-
-
 	logger.Info("retrieved metrics", "managedElement", me.Name, "count", len(metrics))
 
 	return metrics, nil
 
 }
-
-
 
 // StartMetricCollection starts periodic metric collection.
 
@@ -1377,8 +1115,6 @@ func (a *O1Adaptor) StartMetricCollection(ctx context.Context, me *nephoranv1.Ma
 
 		"period", config.CollectionPeriod)
 
-
-
 	if !a.IsConnected(me) {
 
 		if err := a.Connect(ctx, me); err != nil {
@@ -1389,35 +1125,28 @@ func (a *O1Adaptor) StartMetricCollection(ctx context.Context, me *nephoranv1.Ma
 
 	}
 
-
-
 	// Create metric collector.
 
 	collectorID := fmt.Sprintf("%s-%d", me.Name, time.Now().Unix())
 
 	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
 
-
-
 	collector := &MetricCollector{
 
-		ID:               collectorID,
+		ID: collectorID,
 
-		ManagedElement:   clientID,
+		ManagedElement: clientID,
 
-		MetricNames:      config.MetricNames,
+		MetricNames: config.MetricNames,
 
 		CollectionPeriod: config.CollectionPeriod,
 
-		ReportingPeriod:  config.ReportingPeriod,
+		ReportingPeriod: config.ReportingPeriod,
 
-		Active:           true,
+		Active: true,
 
-		LastCollection:   time.Time{},
-
+		LastCollection: time.Time{},
 	}
-
-
 
 	// Store collector.
 
@@ -1427,21 +1156,15 @@ func (a *O1Adaptor) StartMetricCollection(ctx context.Context, me *nephoranv1.Ma
 
 	a.metricsMux.Unlock()
 
-
-
 	// Start periodic collection.
 
 	a.startPeriodicMetricCollection(ctx, collector)
-
-
 
 	logger.Info("metric collection started", "collectorID", collectorID)
 
 	return nil
 
 }
-
-
 
 // StopMetricCollection stops metric collection.
 
@@ -1455,13 +1178,9 @@ func (a *O1Adaptor) StopMetricCollection(ctx context.Context, me *nephoranv1.Man
 
 		"collectionID", collectionID)
 
-
-
 	a.metricsMux.Lock()
 
 	defer a.metricsMux.Unlock()
-
-
 
 	if collector, exists := a.metricCollectors[collectionID]; exists {
 
@@ -1483,21 +1202,15 @@ func (a *O1Adaptor) StopMetricCollection(ctx context.Context, me *nephoranv1.Man
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetUsageRecords retrieves accounting records.
 
 func (a *O1Adaptor) GetUsageRecords(ctx context.Context, me *nephoranv1.ManagedElement, filter *UsageFilter) ([]*UsageRecord, error) {
 
 	logger := log.FromContext(ctx)
-
-
 
 	if !a.IsConnected(me) {
 
@@ -1509,47 +1222,38 @@ func (a *O1Adaptor) GetUsageRecords(ctx context.Context, me *nephoranv1.ManagedE
 
 	}
 
-
-
 	// Simulate usage records.
 
 	records := []*UsageRecord{
 
 		{
 
-			ID:        "usage-001",
+			ID: "usage-001",
 
-			UserID:    "user-123",
+			UserID: "user-123",
 
 			ServiceID: "5g-data",
 
 			StartTime: filter.StartTime,
 
-			EndTime:   filter.EndTime,
+			EndTime: filter.EndTime,
 
 			ResourceUsage: map[string]interface{}{
 
 				"data_volume_mb": 1024,
 
-				"session_count":  15,
+				"session_count": 15,
 
-				"qos_class":      "premium",
-
+				"qos_class": "premium",
 			},
-
 		},
-
 	}
-
-
 
 	logger.Info("retrieved usage records", "count", len(records))
 
 	return records, nil
 
 }
-
-
 
 // UpdateSecurityPolicy updates security configuration.
 
@@ -1563,8 +1267,6 @@ func (a *O1Adaptor) UpdateSecurityPolicy(ctx context.Context, me *nephoranv1.Man
 
 		"policy", "security-policy")
 
-
-
 	if !a.IsConnected(me) {
 
 		if err := a.Connect(ctx, me); err != nil {
@@ -1574,8 +1276,6 @@ func (a *O1Adaptor) UpdateSecurityPolicy(ctx context.Context, me *nephoranv1.Man
 		}
 
 	}
-
-
 
 	// Get NETCONF client.
 
@@ -1587,15 +1287,11 @@ func (a *O1Adaptor) UpdateSecurityPolicy(ctx context.Context, me *nephoranv1.Man
 
 	a.clientsMux.RUnlock()
 
-
-
 	if !exists {
 
 		return fmt.Errorf("no active client found for managed element")
 
 	}
-
-
 
 	// Build security configuration XML.
 
@@ -1603,29 +1299,23 @@ func (a *O1Adaptor) UpdateSecurityPolicy(ctx context.Context, me *nephoranv1.Man
 
 	localPolicy := &SecurityPolicy{
 
-		PolicyType:  "security",
+		PolicyType: "security",
 
 		Enforcement: "strict",
-
 	}
 
 	securityConfigXML := a.buildSecurityConfiguration(localPolicy)
-
-
 
 	// Apply security configuration via NETCONF.
 
 	configData := &ConfigData{
 
-		XMLData:   securityConfigXML,
+		XMLData: securityConfigXML,
 
-		Format:    "xml",
+		Format: "xml",
 
 		Operation: "merge",
-
 	}
-
-
 
 	if err := client.SetConfig(configData); err != nil {
 
@@ -1633,23 +1323,17 @@ func (a *O1Adaptor) UpdateSecurityPolicy(ctx context.Context, me *nephoranv1.Man
 
 	}
 
-
-
 	logger.Info("security policy updated successfully")
 
 	return nil
 
 }
 
-
-
 // GetSecurityStatus retrieves current security status.
 
 func (a *O1Adaptor) GetSecurityStatus(ctx context.Context, me *nephoranv1.ManagedElement) (*SecurityStatus, error) {
 
 	logger := log.FromContext(ctx)
-
-
 
 	if !a.IsConnected(me) {
 
@@ -1661,37 +1345,29 @@ func (a *O1Adaptor) GetSecurityStatus(ctx context.Context, me *nephoranv1.Manage
 
 	}
 
-
-
 	status := &SecurityStatus{
 
 		ComplianceLevel: "HIGH",
 
-		ActiveThreats:   []string{},
+		ActiveThreats: []string{},
 
-		LastAudit:       time.Now().Add(-24 * time.Hour),
+		LastAudit: time.Now().Add(-24 * time.Hour),
 
 		Metrics: map[string]interface{}{
 
-			"failed_auth_attempts":  3,
+			"failed_auth_attempts": 3,
 
 			"suspicious_activities": 0,
 
-			"policy_violations":     1,
-
+			"policy_violations": 1,
 		},
-
 	}
-
-
 
 	logger.Info("retrieved security status", "managedElement", me.Name)
 
 	return status, nil
 
 }
-
-
 
 // Helper function to build NETCONF RPC messages.
 
@@ -1711,8 +1387,6 @@ func buildNetconfRPC(operation, content string) string {
 
 }
 
-
-
 // Helper function to parse NETCONF responses.
 
 func parseNetconfResponse(response string) (string, error) {
@@ -1730,4 +1404,3 @@ func parseNetconfResponse(response string) (string, error) {
 	return response, nil
 
 }
-

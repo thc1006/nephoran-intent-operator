@@ -1,19 +1,10 @@
-
 package config
 
-
-
 import (
-
 	"fmt"
-
 	"log"
-
 	"time"
-
 )
-
-
 
 // ExampleUsage demonstrates how to use the environment helpers in the Nephoran Intent Operator.
 
@@ -27,8 +18,6 @@ func ExampleUsage() {
 
 	fmt.Printf("Server will listen on port: %s\n", port)
 
-
-
 	// Boolean configuration for feature flags.
 
 	debugMode := GetBoolEnv("DEBUG", false)
@@ -36,8 +25,6 @@ func ExampleUsage() {
 	enableTLS := GetBoolEnv("TLS_ENABLED", true)
 
 	fmt.Printf("Debug mode: %v, TLS enabled: %v\n", debugMode, enableTLS)
-
-
 
 	// Duration configuration for timeouts and intervals.
 
@@ -47,8 +34,6 @@ func ExampleUsage() {
 
 	fmt.Printf("Request timeout: %v, Health check interval: %v\n", requestTimeout, healthCheckInterval)
 
-
-
 	// Integer configuration for limits and thresholds.
 
 	maxConnections := GetIntEnv("MAX_CONNECTIONS", 100)
@@ -57,8 +42,6 @@ func ExampleUsage() {
 
 	fmt.Printf("Max connections: %d, Worker count: %d\n", maxConnections, workerCount)
 
-
-
 	// String slice configuration for lists.
 
 	allowedOrigins := GetStringSliceEnv("CORS_ALLOWED_ORIGINS", []string{"http://localhost:3000"})
@@ -66,8 +49,6 @@ func ExampleUsage() {
 	adminUsers := GetStringSliceEnv("ADMIN_USERS", []string{})
 
 	fmt.Printf("Allowed origins: %v, Admin users: %v\n", allowedOrigins, adminUsers)
-
-
 
 	// Configuration with validation.
 
@@ -82,8 +63,6 @@ func ExampleUsage() {
 		fmt.Printf("Validated API port: %s\n", validatedPort)
 
 	}
-
-
 
 	// Environment-specific configuration.
 
@@ -101,8 +80,6 @@ func ExampleUsage() {
 
 	}
 
-
-
 	// Critical configuration that must be present.
 	// This would panic if API_KEY is not set.
 
@@ -111,8 +88,6 @@ func ExampleUsage() {
 	// fmt.Printf("API Key loaded: %s\n", apiKey[:8]+"...") // Only show first 8 chars.
 
 }
-
-
 
 // ExampleLLMProcessorConfig demonstrates how to refactor existing configuration loading.
 
@@ -128,8 +103,6 @@ func ExampleLLMProcessorConfig() {
 
 	port := GetEnvOrDefault("PORT", "8080")
 
-
-
 	// Replace boolean parsing patterns like:.
 
 	// if val := os.Getenv("ENABLE_STREAMING"); val != "" {.
@@ -141,8 +114,6 @@ func ExampleLLMProcessorConfig() {
 	// With:.
 
 	streamingEnabled := GetBoolEnv("ENABLE_STREAMING", false)
-
-
 
 	// Replace duration parsing patterns like:.
 
@@ -160,8 +131,6 @@ func ExampleLLMProcessorConfig() {
 
 	timeout := GetDurationEnv("TIMEOUT", 30*time.Second)
 
-
-
 	// Replace integer parsing patterns like:.
 
 	// if val := os.Getenv("MAX_TOKENS"); val != "" {.
@@ -177,8 +146,6 @@ func ExampleLLMProcessorConfig() {
 	// With:.
 
 	maxTokens := GetIntEnv("MAX_TOKENS", 2048)
-
-
 
 	// Replace string slice parsing patterns like:.
 
@@ -204,15 +171,11 @@ func ExampleLLMProcessorConfig() {
 
 	allowedOrigins := GetStringSliceEnv("ALLOWED_ORIGINS", []string{"http://localhost:3000"})
 
-
-
 	fmt.Printf("LLM Config - Port: %s, Streaming: %v, Timeout: %v, MaxTokens: %d, Origins: %v\n",
 
 		port, streamingEnabled, timeout, maxTokens, allowedOrigins)
 
 }
-
-
 
 // ExampleAuthConfig demonstrates replacing auth configuration patterns.
 
@@ -238,8 +201,6 @@ func ExampleAuthConfig() {
 
 	rbacEnabled := GetBoolEnv("RBAC_ENABLED", true)
 
-
-
 	// Replace duration patterns like:.
 
 	// func getDurationEnv(key string, defaultValue time.Duration) time.Duration {.
@@ -263,8 +224,6 @@ func ExampleAuthConfig() {
 	tokenTTL := GetDurationEnv("TOKEN_TTL", 24*time.Hour)
 
 	refreshTTL := GetDurationEnv("REFRESH_TTL", 7*24*time.Hour)
-
-
 
 	// Replace string slice patterns like:.
 
@@ -302,8 +261,6 @@ func ExampleAuthConfig() {
 
 	operatorUsers := GetStringSliceEnv("OPERATOR_USERS", []string{})
 
-
-
 	fmt.Printf("Auth Config - Enabled: %v, RBAC: %v, Token TTL: %v, Refresh TTL: %v\n",
 
 		authEnabled, rbacEnabled, tokenTTL, refreshTTL)
@@ -311,8 +268,6 @@ func ExampleAuthConfig() {
 	fmt.Printf("Admin users: %v, Operator users: %v\n", adminUsers, operatorUsers)
 
 }
-
-
 
 // ExampleValidationUsage demonstrates advanced validation patterns.
 
@@ -328,8 +283,6 @@ func ExampleValidationUsage() {
 
 	}
 
-
-
 	// Port validation.
 
 	metricsPort, err := GetEnvWithValidation("METRICS_PORT", "9090", ValidatePort)
@@ -339,8 +292,6 @@ func ExampleValidationUsage() {
 		log.Printf("Metrics port validation error: %v", err)
 
 	}
-
-
 
 	// Log level validation.
 
@@ -352,8 +303,6 @@ func ExampleValidationUsage() {
 
 	}
 
-
-
 	// Custom validation with ranges.
 
 	maxRetries, err := GetIntEnvWithValidation("MAX_RETRIES", 3, ValidateIntRange(0, 10))
@@ -363,8 +312,6 @@ func ExampleValidationUsage() {
 		log.Printf("Max retries validation error: %v", err)
 
 	}
-
-
 
 	// Duration validation with ranges.
 
@@ -378,8 +325,6 @@ func ExampleValidationUsage() {
 
 	}
 
-
-
 	// Custom validation for specific values.
 
 	backendType, err := GetEnvWithValidation("LLM_BACKEND_TYPE", "rag",
@@ -392,8 +337,6 @@ func ExampleValidationUsage() {
 
 	}
 
-
-
 	fmt.Printf("Validated config - RAG URL: %s, Metrics port: %s, Log level: %s\n",
 
 		ragURL, metricsPort, logLevel)
@@ -404,15 +347,11 @@ func ExampleValidationUsage() {
 
 }
 
-
-
 // ExampleMigrationPattern shows how to migrate existing code.
 
 func ExampleMigrationPattern() {
 
 	fmt.Println("=== Migration Examples ===")
-
-
 
 	// BEFORE: Duplicate helper functions in each file.
 
@@ -428,13 +367,9 @@ func ExampleMigrationPattern() {
 
 	// }.
 
-
-
 	// AFTER: Use centralized helper.
 
 	llmProcessorURL := GetEnvOrDefault("LLM_PROCESSOR_URL", "http://llm-processor:8080")
-
-
 
 	// BEFORE: Manual boolean parsing with inconsistent logic.
 
@@ -446,13 +381,9 @@ func ExampleMigrationPattern() {
 
 	// }.
 
-
-
 	// AFTER: Consistent boolean parsing.
 
 	featureEnabled := GetBoolEnv("FEATURE_ENABLED", false)
-
-
 
 	// BEFORE: Error-prone duration parsing.
 
@@ -468,13 +399,9 @@ func ExampleMigrationPattern() {
 
 	// }.
 
-
-
 	// AFTER: Safe duration parsing.
 
 	timeout := GetDurationEnv("TIMEOUT", 30*time.Second)
-
-
 
 	fmt.Printf("Migrated config - URL: %s, Enabled: %v, Timeout: %v\n",
 
@@ -482,15 +409,11 @@ func ExampleMigrationPattern() {
 
 }
 
-
-
 // ExampleErrorHandling demonstrates proper error handling patterns.
 
 func ExampleErrorHandling() {
 
 	fmt.Println("=== Error Handling Examples ===")
-
-
 
 	// Validation with error handling.
 
@@ -503,8 +426,6 @@ func ExampleErrorHandling() {
 		_ = port
 
 	}
-
-
 
 	// Required configuration with panic recovery.
 
@@ -522,8 +443,6 @@ func ExampleErrorHandling() {
 
 		}()
 
-
-
 		// This will panic if not set.
 
 		// secretKey := MustGetEnv("SECRET_KEY").
@@ -531,8 +450,6 @@ func ExampleErrorHandling() {
 		// Use secretKey...
 
 	}()
-
-
 
 	// Conditional validation.
 
@@ -554,55 +471,42 @@ func ExampleErrorHandling() {
 
 }
 
-
-
 // ExamplePerformancePatterns demonstrates efficient usage patterns.
 
 func ExamplePerformancePatterns() {
 
 	fmt.Println("=== Performance Examples ===")
 
-
-
 	// Load configuration once at startup.
 
 	type Config struct {
+		Port string
 
-		Port           string
-
-		DebugEnabled   bool
+		DebugEnabled bool
 
 		RequestTimeout time.Duration
 
 		MaxConnections int
 
 		AllowedOrigins []string
-
 	}
-
-
 
 	config := Config{
 
-		Port:           GetEnvOrDefault("PORT", "8080"),
+		Port: GetEnvOrDefault("PORT", "8080"),
 
-		DebugEnabled:   GetBoolEnv("DEBUG", false),
+		DebugEnabled: GetBoolEnv("DEBUG", false),
 
 		RequestTimeout: GetDurationEnv("REQUEST_TIMEOUT", 30*time.Second),
 
 		MaxConnections: GetIntEnv("MAX_CONNECTIONS", 100),
 
 		AllowedOrigins: GetStringSliceEnv("CORS_ORIGINS", []string{"*"}),
-
 	}
-
-
 
 	// Use throughout application without re-parsing.
 
 	fmt.Printf("Loaded config: %+v\n", config)
-
-
 
 	// For debugging: show all environment keys with specific prefix.
 
@@ -625,4 +529,3 @@ func ExamplePerformancePatterns() {
 	}
 
 }
-

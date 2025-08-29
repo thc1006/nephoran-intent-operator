@@ -2,72 +2,44 @@
 
 // Phase 4 Enterprise Architecture - Distributed O-RAN Edge Integration.
 
-
-
-
 package edge
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	nephoran "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
-
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/client-go/kubernetes"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
 )
-
-
 
 // EdgeController manages edge computing nodes and distributed O-RAN functions.
 
 type EdgeController struct {
-
 	client.Client
 
 	KubeClient kubernetes.Interface
 
-	Log        logr.Logger
+	Log logr.Logger
 
-	Scheme     *runtime.Scheme
+	Scheme *runtime.Scheme
 
-	config     *EdgeControllerConfig
+	config *EdgeControllerConfig
 
-	edgeNodes  map[string]*EdgeNode
+	edgeNodes map[string]*EdgeNode
 
-	edgeZones  map[string]*EdgeZone
+	edgeZones map[string]*EdgeZone
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // EdgeControllerConfig defines configuration for edge computing management.
 
@@ -75,123 +47,103 @@ type EdgeControllerConfig struct {
 
 	// Edge node discovery.
 
-	NodeDiscoveryEnabled    bool          `json:"node_discovery_enabled"`
+	NodeDiscoveryEnabled bool `json:"node_discovery_enabled"`
 
-	DiscoveryInterval       time.Duration `json:"discovery_interval"`    // 30s
+	DiscoveryInterval time.Duration `json:"discovery_interval"` // 30s
 
 	NodeHealthCheckInterval time.Duration `json:"health_check_interval"` // 10s
 
-
-
 	// Edge zone management.
 
-	AutoZoneCreation     bool `json:"auto_zone_creation"`
+	AutoZoneCreation bool `json:"auto_zone_creation"`
 
-	MaxNodesPerZone      int  `json:"max_nodes_per_zone"`     // 10
+	MaxNodesPerZone int `json:"max_nodes_per_zone"` // 10
 
-	ZoneRedundancyFactor int  `json:"zone_redundancy_factor"` // 2
-
-
+	ZoneRedundancyFactor int `json:"zone_redundancy_factor"` // 2
 
 	// O-RAN edge functions.
 
-	EnableLocalRIC         bool `json:"enable_local_ric"`
+	EnableLocalRIC bool `json:"enable_local_ric"`
 
-	EnableEdgeML           bool `json:"enable_edge_ml"`
+	EnableEdgeML bool `json:"enable_edge_ml"`
 
-	EnableCaching          bool `json:"enable_caching"`
+	EnableCaching bool `json:"enable_caching"`
 
 	LocalProcessingEnabled bool `json:"local_processing_enabled"`
 
-
-
 	// Performance thresholds.
 
-	MaxLatencyMs          int     `json:"max_latency_ms"`          // 5ms for URLLC
+	MaxLatencyMs int `json:"max_latency_ms"` // 5ms for URLLC
 
-	MinBandwidthMbps      int     `json:"min_bandwidth_mbps"`      // 100Mbps
+	MinBandwidthMbps int `json:"min_bandwidth_mbps"` // 100Mbps
 
 	EdgeResourceThreshold float64 `json:"edge_resource_threshold"` // 0.8 (80%)
 
-
-
 	// Failover and resilience.
 
-	EdgeFailoverEnabled     bool `json:"edge_failover_enabled"`
+	EdgeFailoverEnabled bool `json:"edge_failover_enabled"`
 
 	BackhaulFailoverEnabled bool `json:"backhaul_failover_enabled"`
 
-	LocalAutonomy           bool `json:"local_autonomy"` // Continue without backhaul
+	LocalAutonomy bool `json:"local_autonomy"` // Continue without backhaul
 
 }
-
-
 
 // EdgeNode represents an edge computing node.
 
 type EdgeNode struct {
+	ID string `json:"id"`
 
-	ID                string             `json:"id"`
+	Name string `json:"name"`
 
-	Name              string             `json:"name"`
+	Zone string `json:"zone"`
 
-	Zone              string             `json:"zone"`
+	Status EdgeNodeStatus `json:"status"`
 
-	Status            EdgeNodeStatus     `json:"status"`
+	Capabilities EdgeCapabilities `json:"capabilities"`
 
-	Capabilities      EdgeCapabilities   `json:"capabilities"`
-
-	Resources         EdgeResources      `json:"resources"`
+	Resources EdgeResources `json:"resources"`
 
 	NetworkInterfaces []NetworkInterface `json:"network_interfaces"`
 
-	O_RANFunctions    []O_RANFunction    `json:"oran_functions"`
+	O_RANFunctions []O_RANFunction `json:"oran_functions"`
 
-	Location          GeographicLocation `json:"location"`
+	Location GeographicLocation `json:"location"`
 
-	LastSeen          time.Time          `json:"last_seen"`
+	LastSeen time.Time `json:"last_seen"`
 
-	HealthMetrics     EdgeHealthMetrics  `json:"health_metrics"`
+	HealthMetrics EdgeHealthMetrics `json:"health_metrics"`
 
-	LocalServices     []EdgeService      `json:"local_services"`
-
+	LocalServices []EdgeService `json:"local_services"`
 }
-
-
 
 // EdgeZone represents a geographic edge computing zone.
 
 type EdgeZone struct {
+	ID string `json:"id"`
 
-	ID               string         `json:"id"`
+	Name string `json:"name"`
 
-	Name             string         `json:"name"`
+	Region string `json:"region"`
 
-	Region           string         `json:"region"`
+	Nodes []string `json:"nodes"` // Node IDs
 
-	Nodes            []string       `json:"nodes"` // Node IDs
+	Coverage GeographicArea `json:"coverage"`
 
-	Coverage         GeographicArea `json:"coverage"`
+	ServiceLevel ServiceLevel `json:"service_level"` // Premium, Standard, Basic
 
-	ServiceLevel     ServiceLevel   `json:"service_level"`    // Premium, Standard, Basic
+	RedundancyLevel int `json:"redundancy_level"` // Number of backup nodes
 
-	RedundancyLevel  int            `json:"redundancy_level"` // Number of backup nodes
+	ConnectedUsers int `json:"connected_users"`
 
-	ConnectedUsers   int            `json:"connected_users"`
+	TotalCapacity EdgeResources `json:"total_capacity"`
 
-	TotalCapacity    EdgeResources  `json:"total_capacity"`
-
-	UtilizedCapacity EdgeResources  `json:"utilized_capacity"`
-
+	UtilizedCapacity EdgeResources `json:"utilized_capacity"`
 }
-
-
 
 // EdgeNodeStatus represents the current status of an edge node.
 
 type EdgeNodeStatus string
-
-
 
 const (
 
@@ -214,310 +166,255 @@ const (
 	// EdgeNodeFailed holds edgenodefailed value.
 
 	EdgeNodeFailed EdgeNodeStatus = "Failed"
-
 )
-
-
 
 // EdgeCapabilities defines what edge functions a node can support.
 
 type EdgeCapabilities struct {
+	ComputeIntensive bool `json:"compute_intensive"` // AI/ML workloads
 
-	ComputeIntensive     bool     `json:"compute_intensive"`      // AI/ML workloads
+	LowLatencyProcessing bool `json:"low_latency_processing"` // <1ms processing
 
-	LowLatencyProcessing bool     `json:"low_latency_processing"` // <1ms processing
+	LocalRICSupport bool `json:"local_ric_support"` // Near-RT RIC functions
 
-	LocalRICSupport      bool     `json:"local_ric_support"`      // Near-RT RIC functions
+	CachingSupport bool `json:"caching_support"` // Content/data caching
 
-	CachingSupport       bool     `json:"caching_support"`        // Content/data caching
+	VideoProcessing bool `json:"video_processing"` // Video analytics
 
-	VideoProcessing      bool     `json:"video_processing"`       // Video analytics
+	IoTGateway bool `json:"iot_gateway"` // IoT device management
 
-	IoTGateway           bool     `json:"iot_gateway"`            // IoT device management
+	NetworkFunctions []string `json:"network_functions"` // Supported NFs
 
-	NetworkFunctions     []string `json:"network_functions"`      // Supported NFs
+	AcceleratorTypes []string `json:"accelerator_types"` // GPU, FPGA, etc.
 
-	AcceleratorTypes     []string `json:"accelerator_types"`      // GPU, FPGA, etc.
+	ComputeCores int `json:"compute_cores"`
 
-	ComputeCores         int      `json:"compute_cores"`
+	MemoryGB float64 `json:"memory_gb"`
 
-	MemoryGB             float64  `json:"memory_gb"`
+	StorageGB float64 `json:"storage_gb"`
 
-	StorageGB            float64  `json:"storage_gb"`
+	GPUEnabled bool `json:"gpu_enabled"`
 
-	GPUEnabled           bool     `json:"gpu_enabled"`
+	GPUMemoryGB float64 `json:"gpu_memory_gb"`
 
-	GPUMemoryGB          float64  `json:"gpu_memory_gb"`
+	MLFrameworks []string `json:"ml_frameworks"`
 
-	MLFrameworks         []string `json:"ml_frameworks"`
+	AcceleratorType string `json:"accelerator_type"`
 
-	AcceleratorType      string   `json:"accelerator_type"`
+	CacheEnabled bool `json:"cache_enabled"`
 
-	CacheEnabled         bool     `json:"cache_enabled"`
-
-	CacheSizeGB          float64  `json:"cache_size_gb"`
-
+	CacheSizeGB float64 `json:"cache_size_gb"`
 }
-
-
 
 // EdgeResources tracks resource availability.
 
 type EdgeResources struct {
+	CPU int `json:"cpu"` // CPU cores
 
-	CPU                int                 `json:"cpu"`               // CPU cores
+	Memory int64 `json:"memory"` // Memory in bytes
 
-	Memory             int64               `json:"memory"`            // Memory in bytes
+	Storage int64 `json:"storage"` // Storage in bytes
 
-	Storage            int64               `json:"storage"`           // Storage in bytes
+	GPU int `json:"gpu"` // GPU units
 
-	GPU                int                 `json:"gpu"`               // GPU units
+	NetworkBandwidth int `json:"network_bandwidth"` // Mbps
 
-	NetworkBandwidth   int                 `json:"network_bandwidth"` // Mbps
+	Accelerators int `json:"accelerators"` // FPGA/other accelerators
 
-	Accelerators       int                 `json:"accelerators"`      // FPGA/other accelerators
+	Utilization ResourceUtilization `json:"utilization"`
 
-	Utilization        ResourceUtilization `json:"utilization"`
+	CPUUtilization float64 `json:"cpu_utilization"`
 
-	CPUUtilization     float64             `json:"cpu_utilization"`
+	MemoryUtilization float64 `json:"memory_utilization"`
 
-	MemoryUtilization  float64             `json:"memory_utilization"`
-
-	StorageUtilization float64             `json:"storage_utilization"`
-
+	StorageUtilization float64 `json:"storage_utilization"`
 }
-
-
 
 // ResourceUtilization tracks current resource usage.
 
 type ResourceUtilization struct {
+	CPUPercent float64 `json:"cpu_percent"`
 
-	CPUPercent     float64 `json:"cpu_percent"`
-
-	MemoryPercent  float64 `json:"memory_percent"`
+	MemoryPercent float64 `json:"memory_percent"`
 
 	StoragePercent float64 `json:"storage_percent"`
 
 	NetworkPercent float64 `json:"network_percent"`
-
 }
-
-
 
 // NetworkInterface represents edge node network connectivity.
 
 type NetworkInterface struct {
+	Name string `json:"name"`
 
-	Name           string   `json:"name"`
+	Type string `json:"type"` // 5G, WiFi6, Ethernet
 
-	Type           string   `json:"type"`            // 5G, WiFi6, Ethernet
+	Bandwidth int `json:"bandwidth"` // Mbps
 
-	Bandwidth      int      `json:"bandwidth"`       // Mbps
+	Latency int `json:"latency"` // Milliseconds
 
-	Latency        int      `json:"latency"`         // Milliseconds
-
-	PacketLoss     float64  `json:"packet_loss"`     // Percentage
+	PacketLoss float64 `json:"packet_loss"` // Percentage
 
 	ConnectedCells []string `json:"connected_cells"` // For 5G interfaces
 
-	QoSSupport     bool     `json:"qos_support"`
-
+	QoSSupport bool `json:"qos_support"`
 }
-
-
 
 // O_RANFunction represents O-RAN functions running on edge nodes.
 
 type O_RANFunction struct {
+	Type string `json:"type"` // CU, DU, RU, Near-RT RIC
 
-	Type           string            `json:"type"` // CU, DU, RU, Near-RT RIC
+	Version string `json:"version"`
 
-	Version        string            `json:"version"`
+	Status string `json:"status"`
 
-	Status         string            `json:"status"`
+	Configuration map[string]string `json:"configuration"`
 
-	Configuration  map[string]string `json:"configuration"`
+	Metrics O_RANMetrics `json:"metrics"`
 
-	Metrics        O_RANMetrics      `json:"metrics"`
-
-	ConnectedCells []ConnectedCell   `json:"connected_cells"`
-
+	ConnectedCells []ConnectedCell `json:"connected_cells"`
 }
-
-
 
 // O_RANMetrics tracks O-RAN function performance.
 
 type O_RANMetrics struct {
-
 	ThroughputMbps float64 `json:"throughput_mbps"`
 
-	LatencyMs      float64 `json:"latency_ms"`
+	LatencyMs float64 `json:"latency_ms"`
 
-	ConnectedUEs   int     `json:"connected_ues"`
+	ConnectedUEs int `json:"connected_ues"`
 
-	ActiveSessions int     `json:"active_sessions"`
+	ActiveSessions int `json:"active_sessions"`
 
-	ErrorRate      float64 `json:"error_rate"`
+	ErrorRate float64 `json:"error_rate"`
 
-	ResourceUsage  float64 `json:"resource_usage"`
-
+	ResourceUsage float64 `json:"resource_usage"`
 }
-
-
 
 // ConnectedCell represents a cell connected to the edge node.
 
 type ConnectedCell struct {
+	CellID string `json:"cell_id"`
 
-	CellID        string  `json:"cell_id"`
+	Type string `json:"type"` // Macro, Small, Femto
 
-	Type          string  `json:"type"`      // Macro, Small, Femto
+	Frequency string `json:"frequency"` // Band information
 
-	Frequency     string  `json:"frequency"` // Band information
+	Coverage float64 `json:"coverage"` // Coverage radius in meters
 
-	Coverage      float64 `json:"coverage"`  // Coverage radius in meters
-
-	ConnectedUEs  int     `json:"connected_ues"`
+	ConnectedUEs int `json:"connected_ues"`
 
 	SignalQuality float64 `json:"signal_quality"`
-
 }
-
-
 
 // EdgeHealthMetrics tracks the health of edge nodes.
 
 type EdgeHealthMetrics struct {
+	UptimePercent float64 `json:"uptime_percent"`
 
-	UptimePercent      float64   `json:"uptime_percent"`
+	AverageLatency float64 `json:"average_latency"` // ms
 
-	AverageLatency     float64   `json:"average_latency"` // ms
+	ThroughputMbps float64 `json:"throughput_mbps"`
 
-	ThroughputMbps     float64   `json:"throughput_mbps"`
+	ErrorRate float64 `json:"error_rate"`
 
-	ErrorRate          float64   `json:"error_rate"`
+	TemperatureCelsius float64 `json:"temperature_celsius"`
 
-	TemperatureCelsius float64   `json:"temperature_celsius"`
+	PowerConsumption float64 `json:"power_consumption"` // Watts
 
-	PowerConsumption   float64   `json:"power_consumption"` // Watts
+	LastHealthCheck time.Time `json:"last_health_check"`
 
-	LastHealthCheck    time.Time `json:"last_health_check"`
+	LastCheck time.Time `json:"last_check"`
 
-	LastCheck          time.Time `json:"last_check"`
+	Latency float64 `json:"latency"`
 
-	Latency            float64   `json:"latency"`
+	PacketLoss float64 `json:"packet_loss"`
 
-	PacketLoss         float64   `json:"packet_loss"`
+	Jitter float64 `json:"jitter"`
 
-	Jitter             float64   `json:"jitter"`
+	Availability float64 `json:"availability"`
 
-	Availability       float64   `json:"availability"`
+	ConnectionCount int `json:"connection_count"`
 
-	ConnectionCount    int       `json:"connection_count"`
-
-	ActiveSessions     int       `json:"active_sessions"`
-
+	ActiveSessions int `json:"active_sessions"`
 }
-
-
 
 // EdgeService represents services running on edge nodes.
 
 type EdgeService struct {
+	ID string `json:"id"`
 
-	ID             string            `json:"id"`
+	Name string `json:"name"`
 
-	Name           string            `json:"name"`
+	Type string `json:"type"` // AI/ML, Caching, Processing
 
-	Type           string            `json:"type"` // AI/ML, Caching, Processing
+	Status string `json:"status"`
 
-	Status         string            `json:"status"`
+	Port int `json:"port"`
 
-	Port           int               `json:"port"`
+	Configuration map[string]string `json:"configuration"`
 
-	Configuration  map[string]string `json:"configuration"`
+	HealthEndpoint string `json:"health_endpoint"`
 
-	HealthEndpoint string            `json:"health_endpoint"`
+	Metrics ServiceMetrics `json:"metrics"`
 
-	Metrics        ServiceMetrics    `json:"metrics"`
-
-	Endpoint       string            `json:"endpoint"`
-
+	Endpoint string `json:"endpoint"`
 }
-
-
 
 // ServiceMetrics tracks edge service performance.
 
 type ServiceMetrics struct {
-
-	RequestsPerSecond   float64 `json:"requests_per_second"`
+	RequestsPerSecond float64 `json:"requests_per_second"`
 
 	AverageResponseTime float64 `json:"average_response_time"` // ms
 
-	ErrorRate           float64 `json:"error_rate"`
+	ErrorRate float64 `json:"error_rate"`
 
-	CacheHitRate        float64 `json:"cache_hit_rate"` // For caching services
+	CacheHitRate float64 `json:"cache_hit_rate"` // For caching services
 
 }
-
-
 
 // GeographicArea defines coverage area for edge zones.
 
 type GeographicArea struct {
+	CenterLatitude float64 `json:"center_latitude"`
 
-	CenterLatitude  float64      `json:"center_latitude"`
+	CenterLongitude float64 `json:"center_longitude"`
 
-	CenterLongitude float64      `json:"center_longitude"`
+	RadiusKm float64 `json:"radius_km"`
 
-	RadiusKm        float64      `json:"radius_km"`
-
-	Polygon         []Coordinate `json:"polygon,omitempty"` // For irregular shapes
+	Polygon []Coordinate `json:"polygon,omitempty"` // For irregular shapes
 
 }
-
-
 
 // Coordinate represents a geographic coordinate.
 
 type Coordinate struct {
-
-	Latitude  float64 `json:"latitude"`
+	Latitude float64 `json:"latitude"`
 
 	Longitude float64 `json:"longitude"`
-
 }
-
-
 
 // GeographicLocation represents a specific geographic location.
 
 type GeographicLocation struct {
-
-	Latitude  float64 `json:"latitude"`
+	Latitude float64 `json:"latitude"`
 
 	Longitude float64 `json:"longitude"`
 
-	Altitude  float64 `json:"altitude,omitempty"` // meters above sea level
+	Altitude float64 `json:"altitude,omitempty"` // meters above sea level
 
-	Country   string  `json:"country,omitempty"`
+	Country string `json:"country,omitempty"`
 
-	Region    string  `json:"region,omitempty"`
+	Region string `json:"region,omitempty"`
 
-	City      string  `json:"city,omitempty"`
-
+	City string `json:"city,omitempty"`
 }
-
-
 
 // ServiceLevel defines the service level for edge zones.
 
 type ServiceLevel string
-
-
 
 const (
 
@@ -534,8 +431,6 @@ const (
 	ServiceLevelBasic ServiceLevel = "Basic" // <20ms latency, 99% availability
 
 )
-
-
 
 // NewEdgeController creates a new edge computing controller.
 
@@ -555,47 +450,38 @@ func NewEdgeController(
 
 	return &EdgeController{
 
-		Client:     client,
+		Client: client,
 
 		KubeClient: kubeClient,
 
-		Log:        logger,
+		Log: logger,
 
-		Scheme:     scheme,
+		Scheme: scheme,
 
-		config:     config,
+		config: config,
 
-		edgeNodes:  make(map[string]*EdgeNode),
+		edgeNodes: make(map[string]*EdgeNode),
 
-		edgeZones:  make(map[string]*EdgeZone),
-
+		edgeZones: make(map[string]*EdgeZone),
 	}
 
 }
-
-
 
 // SetupWithManager sets up the controller with the Manager.
 
 func (r *EdgeController) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
-
 		For(&nephoran.NetworkIntent{}).
-
 		Complete(r)
 
 }
-
-
 
 // Reconcile handles edge computing operations.
 
 func (r *EdgeController) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 
 	log := r.Log.WithValues("networkintent", req.NamespacedName)
-
-
 
 	// Get the NetworkIntent resource.
 
@@ -607,8 +493,6 @@ func (r *EdgeController) Reconcile(ctx context.Context, req reconcile.Request) (
 
 	}
 
-
-
 	// Check if this intent requires edge processing.
 
 	if !r.requiresEdgeProcessing(&intent) {
@@ -617,11 +501,7 @@ func (r *EdgeController) Reconcile(ctx context.Context, req reconcile.Request) (
 
 	}
 
-
-
 	log.Info("Processing edge computing intent", "intent", intent.Name)
-
-
 
 	// Find suitable edge nodes.
 
@@ -635,8 +515,6 @@ func (r *EdgeController) Reconcile(ctx context.Context, req reconcile.Request) (
 
 	}
 
-
-
 	// Deploy to edge nodes.
 
 	if err := r.deployToEdgeNodes(ctx, &intent, edgeNodes); err != nil {
@@ -646,8 +524,6 @@ func (r *EdgeController) Reconcile(ctx context.Context, req reconcile.Request) (
 		return reconcile.Result{RequeueAfter: 60 * time.Second}, err
 
 	}
-
-
 
 	// Update intent status.
 
@@ -661,13 +537,9 @@ func (r *EdgeController) Reconcile(ctx context.Context, req reconcile.Request) (
 
 	}
 
-
-
 	return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
 
 }
-
-
 
 // StartEdgeDiscovery starts the edge node discovery process.
 
@@ -675,21 +547,15 @@ func (r *EdgeController) StartEdgeDiscovery(ctx context.Context) error {
 
 	r.Log.Info("Starting edge node discovery")
 
-
-
 	go r.runEdgeDiscovery(ctx)
 
 	go r.runHealthChecks(ctx)
 
 	go r.runZoneManagement(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // runEdgeDiscovery continuously discovers edge nodes.
 
@@ -698,8 +564,6 @@ func (r *EdgeController) runEdgeDiscovery(ctx context.Context) {
 	ticker := time.NewTicker(r.config.DiscoveryInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -723,8 +587,6 @@ func (r *EdgeController) runEdgeDiscovery(ctx context.Context) {
 
 }
 
-
-
 // discoverEdgeNodes discovers and registers edge nodes.
 
 func (r *EdgeController) discoverEdgeNodes(ctx context.Context) error {
@@ -733,11 +595,7 @@ func (r *EdgeController) discoverEdgeNodes(ctx context.Context) error {
 
 	// For now, simulate discovery of edge nodes.
 
-
-
 	r.Log.V(1).Info("Discovering edge nodes...")
-
-
 
 	// In a real implementation, this would:.
 
@@ -749,17 +607,11 @@ func (r *EdgeController) discoverEdgeNodes(ctx context.Context) error {
 
 	// 4. Validate edge capabilities.
 
-
-
 	discoveredNodes := r.simulateEdgeNodeDiscovery()
-
-
 
 	r.mutex.Lock()
 
 	defer r.mutex.Unlock()
-
-
 
 	for _, node := range discoveredNodes {
 
@@ -775,19 +627,13 @@ func (r *EdgeController) discoverEdgeNodes(ctx context.Context) error {
 
 	}
 
-
-
 	// Update zone information.
 
 	r.updateEdgeZones()
 
-
-
 	return nil
 
 }
-
-
 
 // simulateEdgeNodeDiscovery simulates edge node discovery.
 
@@ -799,113 +645,105 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 
 		{
 
-			ID:     "edge-node-1",
+			ID: "edge-node-1",
 
-			Name:   "Metro Edge Node 1",
+			Name: "Metro Edge Node 1",
 
-			Zone:   "metro-zone-1",
+			Zone: "metro-zone-1",
 
 			Status: EdgeNodeActive,
 
 			Capabilities: EdgeCapabilities{
 
-				ComputeIntensive:     true,
+				ComputeIntensive: true,
 
 				LowLatencyProcessing: true,
 
-				LocalRICSupport:      true,
+				LocalRICSupport: true,
 
-				CachingSupport:       true,
+				CachingSupport: true,
 
-				NetworkFunctions:     []string{"CU", "DU", "Near-RT RIC"},
+				NetworkFunctions: []string{"CU", "DU", "Near-RT RIC"},
 
-				AcceleratorTypes:     []string{"GPU", "FPGA"},
-
+				AcceleratorTypes: []string{"GPU", "FPGA"},
 			},
 
 			Resources: EdgeResources{
 
-				CPU:              16,
+				CPU: 16,
 
-				Memory:           64 * 1024 * 1024 * 1024,       // 64GB
+				Memory: 64 * 1024 * 1024 * 1024, // 64GB
 
-				Storage:          1 * 1024 * 1024 * 1024 * 1024, // 1TB
+				Storage: 1 * 1024 * 1024 * 1024 * 1024, // 1TB
 
-				GPU:              2,
+				GPU: 2,
 
 				NetworkBandwidth: 10000, // 10Gbps
 
-				Accelerators:     1,
+				Accelerators: 1,
 
 				Utilization: ResourceUtilization{
 
-					CPUPercent:     45.0,
+					CPUPercent: 45.0,
 
-					MemoryPercent:  60.0,
+					MemoryPercent: 60.0,
 
 					StoragePercent: 30.0,
 
 					NetworkPercent: 25.0,
-
 				},
-
 			},
 
 			NetworkInterfaces: []NetworkInterface{
 
 				{
 
-					Name:           "5g-interface",
+					Name: "5g-interface",
 
-					Type:           "5G",
+					Type: "5G",
 
-					Bandwidth:      1000,
+					Bandwidth: 1000,
 
-					Latency:        2,
+					Latency: 2,
 
-					PacketLoss:     0.01,
+					PacketLoss: 0.01,
 
 					ConnectedCells: []string{"cell-001", "cell-002"},
 
-					QoSSupport:     true,
-
+					QoSSupport: true,
 				},
-
 			},
 
 			O_RANFunctions: []O_RANFunction{
 
 				{
 
-					Type:    "Near-RT RIC",
+					Type: "Near-RT RIC",
 
 					Version: "1.0.0",
 
-					Status:  "Active",
+					Status: "Active",
 
 					Metrics: O_RANMetrics{
 
 						ThroughputMbps: 500.0,
 
-						LatencyMs:      1.5,
+						LatencyMs: 1.5,
 
-						ConnectedUEs:   150,
+						ConnectedUEs: 150,
 
 						ActiveSessions: 120,
 
-						ErrorRate:      0.001,
+						ErrorRate: 0.001,
 
-						ResourceUsage:  0.6,
-
+						ResourceUsage: 0.6,
 					},
-
 				},
-
 			},
 
 			Location: GeographicLocation{
 
-				Latitude:  40.7128,
+				Latitude: 40.7128,
 
 				Longitude: -74.0060, // New York
 
@@ -915,103 +753,96 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 
 			HealthMetrics: EdgeHealthMetrics{
 
-				UptimePercent:      99.95,
+				UptimePercent: 99.95,
 
-				AverageLatency:     1.8,
+				AverageLatency: 1.8,
 
-				ThroughputMbps:     750.0,
+				ThroughputMbps: 750.0,
 
-				ErrorRate:          0.001,
+				ErrorRate: 0.001,
 
 				TemperatureCelsius: 35.0,
 
-				PowerConsumption:   250.0,
+				PowerConsumption: 250.0,
 
-				LastHealthCheck:    time.Now(),
-
+				LastHealthCheck: time.Now(),
 			},
-
 		},
 
 		{
 
-			ID:     "edge-node-2",
+			ID: "edge-node-2",
 
-			Name:   "Access Edge Node 1",
+			Name: "Access Edge Node 1",
 
-			Zone:   "access-zone-1",
+			Zone: "access-zone-1",
 
 			Status: EdgeNodeActive,
 
 			Capabilities: EdgeCapabilities{
 
-				ComputeIntensive:     false,
+				ComputeIntensive: false,
 
 				LowLatencyProcessing: true,
 
-				LocalRICSupport:      false,
+				LocalRICSupport: false,
 
-				CachingSupport:       true,
+				CachingSupport: true,
 
-				IoTGateway:           true,
+				IoTGateway: true,
 
-				NetworkFunctions:     []string{"RU"},
+				NetworkFunctions: []string{"RU"},
 
-				AcceleratorTypes:     []string{},
-
+				AcceleratorTypes: []string{},
 			},
 
 			Resources: EdgeResources{
 
-				CPU:              4,
+				CPU: 4,
 
-				Memory:           16 * 1024 * 1024 * 1024,  // 16GB
+				Memory: 16 * 1024 * 1024 * 1024, // 16GB
 
-				Storage:          500 * 1024 * 1024 * 1024, // 500GB
+				Storage: 500 * 1024 * 1024 * 1024, // 500GB
 
-				GPU:              0,
+				GPU: 0,
 
 				NetworkBandwidth: 1000, // 1Gbps
 
-				Accelerators:     0,
+				Accelerators: 0,
 
 				Utilization: ResourceUtilization{
 
-					CPUPercent:     30.0,
+					CPUPercent: 30.0,
 
-					MemoryPercent:  40.0,
+					MemoryPercent: 40.0,
 
 					StoragePercent: 20.0,
 
 					NetworkPercent: 15.0,
-
 				},
-
 			},
 
 			NetworkInterfaces: []NetworkInterface{
 
 				{
 
-					Name:       "fiber-interface",
+					Name: "fiber-interface",
 
-					Type:       "Ethernet",
+					Type: "Ethernet",
 
-					Bandwidth:  1000,
+					Bandwidth: 1000,
 
-					Latency:    5,
+					Latency: 5,
 
 					PacketLoss: 0.005,
 
 					QoSSupport: true,
-
 				},
-
 			},
 
 			Location: GeographicLocation{
 
-				Latitude:  40.7589,
+				Latitude: 40.7589,
 
 				Longitude: -73.9851, // Manhattan
 
@@ -1021,41 +852,32 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 
 			HealthMetrics: EdgeHealthMetrics{
 
-				UptimePercent:      99.8,
+				UptimePercent: 99.8,
 
-				AverageLatency:     4.2,
+				AverageLatency: 4.2,
 
-				ThroughputMbps:     200.0,
+				ThroughputMbps: 200.0,
 
-				ErrorRate:          0.002,
+				ErrorRate: 0.002,
 
 				TemperatureCelsius: 28.0,
 
-				PowerConsumption:   80.0,
+				PowerConsumption: 80.0,
 
-				LastHealthCheck:    time.Now(),
-
+				LastHealthCheck: time.Now(),
 			},
-
 		},
-
 	}
-
-
 
 	return nodes
 
 }
-
-
 
 // updateEdgeZones updates edge zone information based on discovered nodes.
 
 func (r *EdgeController) updateEdgeZones() {
 
 	zones := make(map[string]*EdgeZone)
-
-
 
 	for nodeID, node := range r.edgeNodes {
 
@@ -1065,27 +887,24 @@ func (r *EdgeController) updateEdgeZones() {
 
 			zone = &EdgeZone{
 
-				ID:              node.Zone,
+				ID: node.Zone,
 
-				Name:            node.Zone,
+				Name: node.Zone,
 
-				Region:          r.getRegionFromZone(node.Zone),
+				Region: r.getRegionFromZone(node.Zone),
 
-				Nodes:           []string{},
+				Nodes: []string{},
 
-				ServiceLevel:    r.determineServiceLevel(node),
+				ServiceLevel: r.determineServiceLevel(node),
 
 				RedundancyLevel: r.config.ZoneRedundancyFactor,
 
-				TotalCapacity:   EdgeResources{},
-
+				TotalCapacity: EdgeResources{},
 			}
 
 			zones[node.Zone] = zone
 
 		}
-
-
 
 		zone.Nodes = append(zone.Nodes, nodeID)
 
@@ -1093,17 +912,11 @@ func (r *EdgeController) updateEdgeZones() {
 
 	}
 
-
-
 	r.edgeZones = zones
-
-
 
 	r.Log.Info("Updated edge zones", "zones", len(zones))
 
 }
-
-
 
 // getRegionFromZone determines the region for a zone.
 
@@ -1120,8 +933,6 @@ func (r *EdgeController) getRegionFromZone(zone string) string {
 	return "us-east-1"
 
 }
-
-
 
 // determineServiceLevel determines service level based on node capabilities.
 
@@ -1141,8 +952,6 @@ func (r *EdgeController) determineServiceLevel(node *EdgeNode) ServiceLevel {
 
 }
 
-
-
 // aggregateZoneCapacity aggregates resource capacity for a zone.
 
 func (r *EdgeController) aggregateZoneCapacity(zone *EdgeZone, node *EdgeNode) {
@@ -1161,8 +970,6 @@ func (r *EdgeController) aggregateZoneCapacity(zone *EdgeZone, node *EdgeNode) {
 
 }
 
-
-
 // runHealthChecks performs continuous health checks on edge nodes.
 
 func (r *EdgeController) runHealthChecks(ctx context.Context) {
@@ -1170,8 +977,6 @@ func (r *EdgeController) runHealthChecks(ctx context.Context) {
 	ticker := time.NewTicker(r.config.NodeHealthCheckInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1191,8 +996,6 @@ func (r *EdgeController) runHealthChecks(ctx context.Context) {
 
 }
 
-
-
 // performHealthChecks checks health of all edge nodes.
 
 func (r *EdgeController) performHealthChecks(ctx context.Context) {
@@ -1208,8 +1011,6 @@ func (r *EdgeController) performHealthChecks(ctx context.Context) {
 	}
 
 	r.mutex.RUnlock()
-
-
 
 	var wg sync.WaitGroup
 
@@ -1227,13 +1028,9 @@ func (r *EdgeController) performHealthChecks(ctx context.Context) {
 
 	}
 
-
-
 	wg.Wait()
 
 }
-
-
 
 // checkNodeHealth performs health check for a specific edge node.
 
@@ -1244,8 +1041,6 @@ func (r *EdgeController) checkNodeHealth(ctx context.Context, nodeID string, nod
 	node.LastSeen = time.Now()
 
 	node.HealthMetrics.LastHealthCheck = time.Now()
-
-
 
 	// Simulate some variability in metrics.
 
@@ -1259,8 +1054,6 @@ func (r *EdgeController) checkNodeHealth(ctx context.Context, nodeID string, nod
 
 	}
 
-
-
 	r.Log.V(2).Info("Health check completed",
 
 		"node", nodeID,
@@ -1271,8 +1064,6 @@ func (r *EdgeController) checkNodeHealth(ctx context.Context, nodeID string, nod
 
 }
 
-
-
 // runZoneManagement manages edge zones and their configurations.
 
 func (r *EdgeController) runZoneManagement(ctx context.Context) {
@@ -1280,8 +1071,6 @@ func (r *EdgeController) runZoneManagement(ctx context.Context) {
 	ticker := time.NewTicker(60 * time.Second) // Check every minute
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1301,8 +1090,6 @@ func (r *EdgeController) runZoneManagement(ctx context.Context) {
 
 }
 
-
-
 // manageEdgeZones manages edge zone configurations and load balancing.
 
 func (r *EdgeController) manageEdgeZones(ctx context.Context) {
@@ -1319,8 +1106,6 @@ func (r *EdgeController) manageEdgeZones(ctx context.Context) {
 
 	r.mutex.RUnlock()
 
-
-
 	for zoneID, zone := range zones {
 
 		r.optimizeZoneLoad(ctx, zoneID, zone)
@@ -1328,8 +1113,6 @@ func (r *EdgeController) manageEdgeZones(ctx context.Context) {
 	}
 
 }
-
-
 
 // optimizeZoneLoad optimizes load distribution within an edge zone.
 
@@ -1340,8 +1123,6 @@ func (r *EdgeController) optimizeZoneLoad(ctx context.Context, zoneID string, zo
 	totalUtilization := 0.0
 
 	nodeCount := 0
-
-
 
 	for _, nodeID := range zone.Nodes {
 
@@ -1355,19 +1136,13 @@ func (r *EdgeController) optimizeZoneLoad(ctx context.Context, zoneID string, zo
 
 	}
 
-
-
 	if nodeCount == 0 {
 
 		return
 
 	}
 
-
-
 	avgUtilization := totalUtilization / float64(nodeCount)
-
-
 
 	if avgUtilization > r.config.EdgeResourceThreshold*100 {
 
@@ -1379,8 +1154,6 @@ func (r *EdgeController) optimizeZoneLoad(ctx context.Context, zoneID string, zo
 
 			"threshold", r.config.EdgeResourceThreshold*100)
 
-
-
 		// Trigger load balancing or scaling.
 
 		r.triggerZoneScaling(ctx, zoneID, zone)
@@ -1388,8 +1161,6 @@ func (r *EdgeController) optimizeZoneLoad(ctx context.Context, zoneID string, zo
 	}
 
 }
-
-
 
 // triggerZoneScaling triggers scaling operations for overloaded zones.
 
@@ -1405,21 +1176,15 @@ func (r *EdgeController) triggerZoneScaling(ctx context.Context, zoneID string, 
 
 	// 4. Implement traffic shaping.
 
-
-
 	r.Log.Info("Scaling edge zone", "zone", zoneID, "nodes", len(zone.Nodes))
 
 }
-
-
 
 // requiresEdgeProcessing determines if an intent requires edge processing.
 
 func (r *EdgeController) requiresEdgeProcessing(intent *nephoran.NetworkIntent) bool {
 
 	description := intent.Spec.Intent
-
-
 
 	// Check for edge-related keywords.
 
@@ -1428,10 +1193,7 @@ func (r *EdgeController) requiresEdgeProcessing(intent *nephoran.NetworkIntent) 
 		"edge", "URLLC", "ultra-low latency", "real-time",
 
 		"IoT", "AR/VR", "autonomous", "industrial", "local",
-
 	}
-
-
 
 	for _, keyword := range edgeKeywords {
 
@@ -1442,8 +1204,6 @@ func (r *EdgeController) requiresEdgeProcessing(intent *nephoran.NetworkIntent) 
 		}
 
 	}
-
-
 
 	// Check for low latency requirements in the intent text.
 
@@ -1457,13 +1217,9 @@ func (r *EdgeController) requiresEdgeProcessing(intent *nephoran.NetworkIntent) 
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // findSuitableEdgeNodes finds edge nodes suitable for the intent.
 
@@ -1473,11 +1229,7 @@ func (r *EdgeController) findSuitableEdgeNodes(ctx context.Context, intent *neph
 
 	defer r.mutex.RUnlock()
 
-
-
 	var suitableNodes []*EdgeNode
-
-
 
 	for _, node := range r.edgeNodes {
 
@@ -1489,21 +1241,15 @@ func (r *EdgeController) findSuitableEdgeNodes(ctx context.Context, intent *neph
 
 	}
 
-
-
 	if len(suitableNodes) == 0 {
 
 		return nil, fmt.Errorf("no suitable edge nodes found for intent %s", intent.Name)
 
 	}
 
-
-
 	// Sort by suitability score.
 
 	r.sortNodesBySuitability(suitableNodes, intent)
-
-
 
 	// Return top nodes (limit to avoid overloading).
 
@@ -1515,13 +1261,9 @@ func (r *EdgeController) findSuitableEdgeNodes(ctx context.Context, intent *neph
 
 	}
 
-
-
 	return suitableNodes[:maxNodes], nil
 
 }
-
-
 
 // isNodeSuitable checks if a node is suitable for the intent.
 
@@ -1535,8 +1277,6 @@ func (r *EdgeController) isNodeSuitable(node *EdgeNode, intent *nephoran.Network
 
 	}
 
-
-
 	// Check resource availability.
 
 	if node.Resources.Utilization.CPUPercent > r.config.EdgeResourceThreshold*100 {
@@ -1544,8 +1284,6 @@ func (r *EdgeController) isNodeSuitable(node *EdgeNode, intent *nephoran.Network
 		return false
 
 	}
-
-
 
 	// Check latency requirements.
 
@@ -1555,13 +1293,9 @@ func (r *EdgeController) isNodeSuitable(node *EdgeNode, intent *nephoran.Network
 
 	}
 
-
-
 	// Check specific capabilities based on intent.
 
 	description := intent.Spec.Intent
-
-
 
 	if contains(description, "AI") || contains(description, "ML") {
 
@@ -1573,8 +1307,6 @@ func (r *EdgeController) isNodeSuitable(node *EdgeNode, intent *nephoran.Network
 
 	}
 
-
-
 	if contains(description, "URLLC") {
 
 		if !node.Capabilities.LowLatencyProcessing {
@@ -1584,8 +1316,6 @@ func (r *EdgeController) isNodeSuitable(node *EdgeNode, intent *nephoran.Network
 		}
 
 	}
-
-
 
 	if contains(description, "RIC") {
 
@@ -1597,13 +1327,9 @@ func (r *EdgeController) isNodeSuitable(node *EdgeNode, intent *nephoran.Network
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // sortNodesBySuitability sorts nodes by their suitability for the intent.
 
@@ -1619,8 +1345,6 @@ func (r *EdgeController) sortNodesBySuitability(nodes []*EdgeNode, intent *nepho
 
 			score2 := r.calculateNodeScore(nodes[j], intent)
 
-
-
 			if score2 > score1 {
 
 				nodes[i], nodes[j] = nodes[j], nodes[i]
@@ -1633,33 +1357,23 @@ func (r *EdgeController) sortNodesBySuitability(nodes []*EdgeNode, intent *nepho
 
 }
 
-
-
 // calculateNodeScore calculates a suitability score for a node.
 
 func (r *EdgeController) calculateNodeScore(node *EdgeNode, intent *nephoran.NetworkIntent) float64 {
 
 	score := 0.0
 
-
-
 	// Lower latency is better.
 
 	score += (10.0 - node.HealthMetrics.AverageLatency) * 10
-
-
 
 	// Lower utilization is better.
 
 	score += (100.0 - node.Resources.Utilization.CPUPercent) * 0.5
 
-
-
 	// Higher uptime is better.
 
 	score += node.HealthMetrics.UptimePercent * 0.1
-
-
 
 	// Bonus for specific capabilities.
 
@@ -1677,13 +1391,9 @@ func (r *EdgeController) calculateNodeScore(node *EdgeNode, intent *nephoran.Net
 
 	}
 
-
-
 	return score
 
 }
-
-
 
 // deployToEdgeNodes deploys the intent to selected edge nodes.
 
@@ -1695,8 +1405,6 @@ func (r *EdgeController) deployToEdgeNodes(ctx context.Context, intent *nephoran
 
 		"nodes", len(nodes))
 
-
-
 	for _, node := range nodes {
 
 		if err := r.deployToSingleNode(ctx, intent, node); err != nil {
@@ -1707,19 +1415,13 @@ func (r *EdgeController) deployToEdgeNodes(ctx context.Context, intent *nephoran
 
 		}
 
-
-
 		r.Log.Info("Successfully deployed to edge node", "node", node.ID)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // deployToSingleNode deploys the intent to a single edge node.
 
@@ -1737,8 +1439,6 @@ func (r *EdgeController) deployToSingleNode(ctx context.Context, intent *nephora
 
 	// 5. Set up monitoring.
 
-
-
 	r.Log.Info("Deploying to edge node",
 
 		"intent", intent.Name,
@@ -1747,19 +1447,13 @@ func (r *EdgeController) deployToSingleNode(ctx context.Context, intent *nephora
 
 		"zone", node.Zone)
 
-
-
 	// Simulate deployment delay.
 
 	time.Sleep(2 * time.Second)
 
-
-
 	return nil
 
 }
-
-
 
 // GetEdgeNodes returns all discovered edge nodes.
 
@@ -1768,8 +1462,6 @@ func (r *EdgeController) GetEdgeNodes() map[string]*EdgeNode {
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
-
-
 
 	result := make(map[string]*EdgeNode)
 
@@ -1783,8 +1475,6 @@ func (r *EdgeController) GetEdgeNodes() map[string]*EdgeNode {
 
 }
 
-
-
 // GetEdgeZones returns all edge zones.
 
 func (r *EdgeController) GetEdgeZones() map[string]*EdgeZone {
@@ -1792,8 +1482,6 @@ func (r *EdgeController) GetEdgeZones() map[string]*EdgeZone {
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
-
-
 
 	result := make(map[string]*EdgeZone)
 
@@ -1806,8 +1494,6 @@ func (r *EdgeController) GetEdgeZones() map[string]*EdgeZone {
 	return result
 
 }
-
-
 
 // contains checks if a string contains a substring (case-insensitive).
 
@@ -1827,8 +1513,6 @@ func contains(s, substr string) bool {
 
 }
 
-
-
 // containsMiddle checks if substr exists in the middle of s.
 
 func containsMiddle(s, substr string) bool {
@@ -1846,4 +1530,3 @@ func containsMiddle(s, substr string) bool {
 	return false
 
 }
-

@@ -1,39 +1,22 @@
 //go:build go1.24
 
-
-
-
 package performance
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"net/http"
-
 	"sync/atomic"
-
 	"time"
-
 	"unsafe"
 
-
-
 	"k8s.io/klog/v2"
-
 )
-
-
 
 // OptimizedSystem demonstrates the complete integration of Go 1.24+ optimizations.
 
 type OptimizedSystem struct {
-
-	httpClient    *OptimizedHTTPClient
+	httpClient *OptimizedHTTPClient
 
 	memoryManager *MemoryPoolManager
 
@@ -41,27 +24,22 @@ type OptimizedSystem struct {
 
 	goroutinePool *EnhancedGoroutinePool
 
-	cache         *OptimizedCache[string, interface{}]
+	cache *OptimizedCache[string, interface{}]
 
-	dbManager     *OptimizedDBManager
+	dbManager *OptimizedDBManager
 
-	analyzer      *PerformanceAnalyzer
+	analyzer *PerformanceAnalyzer
 
-	ctx           context.Context
+	ctx context.Context
 
-	cancel        context.CancelFunc
-
+	cancel context.CancelFunc
 }
-
-
 
 // NewOptimizedSystem creates a new optimized system with all Go 1.24+ features.
 
 func NewOptimizedSystem() (*OptimizedSystem, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
-
-
 
 	// Initialize all optimized components.
 
@@ -75,8 +53,6 @@ func NewOptimizedSystem() (*OptimizedSystem, error) {
 
 	cache := NewOptimizedCache[string, interface{}](DefaultCacheConfig())
 
-
-
 	dbManager, err := NewOptimizedDBManager(DefaultDBConfig())
 
 	if err != nil {
@@ -87,15 +63,11 @@ func NewOptimizedSystem() (*OptimizedSystem, error) {
 
 	}
 
-
-
 	analyzer := NewPerformanceAnalyzer()
-
-
 
 	return &OptimizedSystem{
 
-		httpClient:    httpClient,
+		httpClient: httpClient,
 
 		memoryManager: memoryManager,
 
@@ -103,29 +75,24 @@ func NewOptimizedSystem() (*OptimizedSystem, error) {
 
 		goroutinePool: goroutinePool,
 
-		cache:         cache,
+		cache: cache,
 
-		dbManager:     dbManager,
+		dbManager: dbManager,
 
-		analyzer:      analyzer,
+		analyzer: analyzer,
 
-		ctx:           ctx,
+		ctx: ctx,
 
-		cancel:        cancel,
-
+		cancel: cancel,
 	}, nil
 
 }
-
-
 
 // DemonstrateOptimizations runs a comprehensive demonstration of all optimizations.
 
 func (os *OptimizedSystem) DemonstrateOptimizations() error {
 
 	klog.Info("Starting Go 1.24+ Performance Optimization Demonstration")
-
-
 
 	// Establish baseline.
 
@@ -135,16 +102,12 @@ func (os *OptimizedSystem) DemonstrateOptimizations() error {
 
 	}
 
-
-
 	// Run demonstrations.
 
 	demos := []struct {
-
 		name string
 
-		fn   func() error
-
+		fn func() error
 	}{
 
 		{"HTTP Optimizations", os.demonstrateHTTPOptimizations},
@@ -160,10 +123,7 @@ func (os *OptimizedSystem) DemonstrateOptimizations() error {
 		{"Database Performance", os.demonstrateDatabaseOptimizations},
 
 		{"Integrated Workload", os.demonstrateIntegratedWorkload},
-
 	}
-
-
 
 	for _, demo := range demos {
 
@@ -181,15 +141,11 @@ func (os *OptimizedSystem) DemonstrateOptimizations() error {
 
 	}
 
-
-
 	// Generate performance report.
 
 	report := os.GeneratePerformanceReport()
 
 	report.PrintPerformanceReport()
-
-
 
 	// Validate targets.
 
@@ -203,21 +159,15 @@ func (os *OptimizedSystem) DemonstrateOptimizations() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // demonstrateHTTPOptimizations showcases HTTP layer optimizations.
 
 func (os *OptimizedSystem) demonstrateHTTPOptimizations() error {
 
 	klog.Info("Demonstrating HTTP optimizations...")
-
-
 
 	// Concurrent HTTP requests to demonstrate connection pooling.
 
@@ -241,8 +191,6 @@ func (os *OptimizedSystem) demonstrateHTTPOptimizations() error {
 
 				}
 
-
-
 				// Use optimized HTTP client.
 
 				resp, err := os.httpClient.DoWithOptimizations(os.ctx, req)
@@ -259,19 +207,14 @@ func (os *OptimizedSystem) demonstrateHTTPOptimizations() error {
 
 				}
 
-
-
 				return nil
 
 			},
 
 			Priority: PriorityNormal,
-
 		}
 
 	}
-
-
 
 	// Submit all tasks.
 
@@ -285,19 +228,13 @@ func (os *OptimizedSystem) demonstrateHTTPOptimizations() error {
 
 	}
 
-
-
 	// Wait for completion.
 
 	time.Sleep(5 * time.Second)
 
-
-
 	// Analyze performance.
 
 	os.analyzer.AnalyzeHTTPPerformance(os.httpClient)
-
-
 
 	metrics := os.httpClient.GetMetrics()
 
@@ -307,21 +244,15 @@ func (os *OptimizedSystem) demonstrateHTTPOptimizations() error {
 
 		os.httpClient.bufferPool.GetHitRate()*100)
 
-
-
 	return nil
 
 }
-
-
 
 // demonstrateMemoryOptimizations showcases memory management optimizations.
 
 func (os *OptimizedSystem) demonstrateMemoryOptimizations() error {
 
 	klog.Info("Demonstrating memory optimizations...")
-
-
 
 	// Object pool demonstration.
 
@@ -332,18 +263,13 @@ func (os *OptimizedSystem) demonstrateMemoryOptimizations() error {
 		func() []byte { return make([]byte, 0, 1024) },
 
 		func(b []byte) { b = b[:0] },
-
 	)
-
-
 
 	// Ring buffer demonstration.
 
 	ringBuffer := NewRingBuffer(1024)
 
 	os.memoryManager.RegisterRingBuffer("demo_ring", ringBuffer)
-
-
 
 	// Memory intensive operations.
 
@@ -356,8 +282,6 @@ func (os *OptimizedSystem) demonstrateMemoryOptimizations() error {
 		buffer = append(buffer, []byte(fmt.Sprintf("data_%d", i))...)
 
 		bufferPool.Put(buffer)
-
-
 
 		// Use ring buffer.
 
@@ -373,15 +297,11 @@ func (os *OptimizedSystem) demonstrateMemoryOptimizations() error {
 
 	}
 
-
-
 	// Force GC and analyze.
 
 	os.memoryManager.ForceGC()
 
 	os.analyzer.AnalyzeMemoryPerformance(os.memoryManager)
-
-
 
 	memStats := os.memoryManager.GetMemoryStats()
 
@@ -389,19 +309,13 @@ func (os *OptimizedSystem) demonstrateMemoryOptimizations() error {
 
 	ribStats := ringBuffer.GetStats()
 
-
-
 	klog.Infof("Memory Metrics: HeapSize=%d, GCCount=%d, PoolHitRate=%.2f%%, RingUtilization=%.2f%%",
 
 		memStats.HeapSize, memStats.GCCount, stats.HitRate*100, ribStats.Utilization)
 
-
-
 	return nil
 
 }
-
-
 
 // demonstrateJSONOptimizations showcases JSON processing optimizations.
 
@@ -409,15 +323,13 @@ func (os *OptimizedSystem) demonstrateJSONOptimizations() error {
 
 	klog.Info("Demonstrating JSON optimizations...")
 
-
-
 	// Test data structure.
 
 	testData := map[string]interface{}{
 
-		"id":        12345,
+		"id": 12345,
 
-		"name":      "Performance Test",
+		"name": "Performance Test",
 
 		"timestamp": time.Now(),
 
@@ -425,17 +337,13 @@ func (os *OptimizedSystem) demonstrateJSONOptimizations() error {
 
 			"version": "1.0",
 
-			"env":     "production",
-
+			"env": "production",
 		},
 
 		"metrics": []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
 
-		"active":  true,
-
+		"active": true,
 	}
-
-
 
 	// Concurrent JSON operations.
 
@@ -459,8 +367,6 @@ func (os *OptimizedSystem) demonstrateJSONOptimizations() error {
 
 				}
 
-
-
 				// Unmarshal with optimization.
 
 				var result map[string]interface{}
@@ -473,8 +379,6 @@ func (os *OptimizedSystem) demonstrateJSONOptimizations() error {
 
 				}
 
-
-
 				// Cache result.
 
 				cacheKey := fmt.Sprintf("json_result_%d", i)
@@ -485,19 +389,14 @@ func (os *OptimizedSystem) demonstrateJSONOptimizations() error {
 
 				}
 
-
-
 				return nil
 
 			},
 
 			Priority: PriorityHigh,
-
 		}
 
 	}
-
-
 
 	// Submit all tasks.
 
@@ -511,19 +410,13 @@ func (os *OptimizedSystem) demonstrateJSONOptimizations() error {
 
 	}
 
-
-
 	// Wait for completion.
 
 	time.Sleep(3 * time.Second)
 
-
-
 	// Analyze performance.
 
 	os.analyzer.AnalyzeJSONPerformance(os.jsonProcessor)
-
-
 
 	metrics := os.jsonProcessor.GetMetrics()
 
@@ -533,13 +426,9 @@ func (os *OptimizedSystem) demonstrateJSONOptimizations() error {
 
 		os.jsonProcessor.GetAverageProcessingTime(), metrics.SchemaHitRate*100)
 
-
-
 	return nil
 
 }
-
-
 
 // demonstrateGoroutineOptimizations showcases goroutine pool optimizations.
 
@@ -547,15 +436,11 @@ func (os *OptimizedSystem) demonstrateGoroutineOptimizations() error {
 
 	klog.Info("Demonstrating goroutine pool optimizations...")
 
-
-
 	// CPU-intensive tasks with different priorities.
 
 	tasks := make([]*Task, 500)
 
 	for i := range 500 {
-
-
 
 		priority := PriorityNormal
 
@@ -569,11 +454,9 @@ func (os *OptimizedSystem) demonstrateGoroutineOptimizations() error {
 
 		}
 
-
-
 		tasks[i] = &Task{
 
-			ID:       uint64(i),
+			ID: uint64(i),
 
 			Priority: priority,
 
@@ -593,8 +476,6 @@ func (os *OptimizedSystem) demonstrateGoroutineOptimizations() error {
 
 				}
 
-
-
 				// Memory allocation to test object pools.
 
 				buffer := make([]byte, 1024)
@@ -604,8 +485,6 @@ func (os *OptimizedSystem) demonstrateGoroutineOptimizations() error {
 					buffer[k] = byte(k % 256)
 
 				}
-
-
 
 				return nil
 
@@ -622,12 +501,9 @@ func (os *OptimizedSystem) demonstrateGoroutineOptimizations() error {
 				}
 
 			},
-
 		}
 
 	}
-
-
 
 	// Submit tasks in batches to test scaling.
 
@@ -641,8 +517,6 @@ func (os *OptimizedSystem) demonstrateGoroutineOptimizations() error {
 
 		}
 
-
-
 		// Submit batch.
 
 		for j := i; j < end; j++ {
@@ -655,27 +529,19 @@ func (os *OptimizedSystem) demonstrateGoroutineOptimizations() error {
 
 		}
 
-
-
 		// Small delay to observe scaling behavior.
 
 		time.Sleep(100 * time.Millisecond)
 
 	}
 
-
-
 	// Wait for completion.
 
 	time.Sleep(5 * time.Second)
 
-
-
 	// Analyze performance.
 
 	os.analyzer.AnalyzeGoroutinePerformance(os.goroutinePool)
-
-
 
 	metrics := os.goroutinePool.GetMetrics()
 
@@ -685,21 +551,15 @@ func (os *OptimizedSystem) demonstrateGoroutineOptimizations() error {
 
 		os.goroutinePool.GetAverageWaitTime(), metrics.StolenTasks)
 
-
-
 	return nil
 
 }
-
-
 
 // demonstrateCacheOptimizations showcases cache optimization features.
 
 func (os *OptimizedSystem) demonstrateCacheOptimizations() error {
 
 	klog.Info("Demonstrating cache optimizations...")
-
-
 
 	// Populate cache with test data.
 
@@ -709,13 +569,13 @@ func (os *OptimizedSystem) demonstrateCacheOptimizations() error {
 
 		value := map[string]interface{}{
 
-			"id":        i,
+			"id": i,
 
-			"data":      fmt.Sprintf("cached_data_%d", i),
+			"data": fmt.Sprintf("cached_data_%d", i),
 
 			"timestamp": time.Now(),
 
-			"metadata":  make([]byte, 100+i%500), // Variable size
+			"metadata": make([]byte, 100+i%500), // Variable size
 
 		}
 
@@ -726,8 +586,6 @@ func (os *OptimizedSystem) demonstrateCacheOptimizations() error {
 		}
 
 	}
-
-
 
 	// Concurrent cache access patterns.
 
@@ -751,12 +609,11 @@ func (os *OptimizedSystem) demonstrateCacheOptimizations() error {
 
 					value := map[string]interface{}{
 
-						"id":   i,
+						"id": i,
 
 						"type": "new_entry",
 
 						"data": make([]byte, 50),
-
 					}
 
 					if err := os.cache.Set(key, value); err != nil {
@@ -777,10 +634,9 @@ func (os *OptimizedSystem) demonstrateCacheOptimizations() error {
 
 						value := map[string]interface{}{
 
-							"id":   i,
+							"id": i,
 
 							"type": "generated",
-
 						}
 
 						if err := os.cache.Set(key, value); err != nil {
@@ -798,12 +654,9 @@ func (os *OptimizedSystem) demonstrateCacheOptimizations() error {
 			},
 
 			Priority: PriorityNormal,
-
 		}
 
 	}
-
-
 
 	// Submit all cache tasks.
 
@@ -817,19 +670,13 @@ func (os *OptimizedSystem) demonstrateCacheOptimizations() error {
 
 	}
 
-
-
 	// Wait for completion.
 
 	time.Sleep(3 * time.Second)
 
-
-
 	// Analyze performance.
 
 	os.analyzer.AnalyzeCachePerformance(os.cache)
-
-
 
 	metrics := os.cache.GetMetrics()
 
@@ -843,13 +690,9 @@ func (os *OptimizedSystem) demonstrateCacheOptimizations() error {
 
 		stats.MemoryEfficiency, stats.AverageEntrySize)
 
-
-
 	return nil
 
 }
-
-
 
 // demonstrateDatabaseOptimizations showcases database optimization features.
 
@@ -857,13 +700,9 @@ func (os *OptimizedSystem) demonstrateDatabaseOptimizations() error {
 
 	klog.Info("Demonstrating database optimizations...")
 
-
-
 	// Note: This is a simplified demonstration without actual database connections.
 
 	// In a real scenario, you would add database connection pools here.
-
-
 
 	// Simulate batch operations.
 
@@ -873,19 +712,16 @@ func (os *OptimizedSystem) demonstrateDatabaseOptimizations() error {
 
 		batchOps[i] = BatchOperation{
 
-			type_:  "INSERT",
+			type_: "INSERT",
 
-			query:  "INSERT INTO test_table (id, name, data) VALUES ($1, $2, $3)",
+			query: "INSERT INTO test_table (id, name, data) VALUES ($1, $2, $3)",
 
 			params: []interface{}{i, fmt.Sprintf("name_%d", i), fmt.Sprintf("data_%d", i)},
 
-			table:  "test_table",
-
+			table: "test_table",
 		}
 
 	}
-
-
 
 	// Simulate executing batch.
 
@@ -901,8 +737,6 @@ func (os *OptimizedSystem) demonstrateDatabaseOptimizations() error {
 
 	duration := time.Since(start)
 
-
-
 	// Update metrics (simulated).
 
 	atomic.AddInt64(&os.dbManager.metrics.QueryCount, 50)
@@ -911,13 +745,9 @@ func (os *OptimizedSystem) demonstrateDatabaseOptimizations() error {
 
 	os.dbManager.updateAverageQueryTime(duration / 50)
 
-
-
 	// Analyze performance.
 
 	os.analyzer.AnalyzeDatabasePerformance(os.dbManager)
-
-
 
 	metrics := os.dbManager.GetMetrics()
 
@@ -927,21 +757,15 @@ func (os *OptimizedSystem) demonstrateDatabaseOptimizations() error {
 
 		float64(metrics.ErrorCount)/float64(max(metrics.QueryCount, 1))*100)
 
-
-
 	return nil
 
 }
-
-
 
 // demonstrateIntegratedWorkload runs a realistic integrated workload.
 
 func (os *OptimizedSystem) demonstrateIntegratedWorkload() error {
 
 	klog.Info("Demonstrating integrated workload...")
-
-
 
 	// Integrated tasks that use multiple optimized components.
 
@@ -961,21 +785,17 @@ func (os *OptimizedSystem) demonstrateIntegratedWorkload() error {
 
 					"request_id": i,
 
-					"timestamp":  time.Now(),
+					"timestamp": time.Now(),
 
-					"payload":    fmt.Sprintf("integrated_payload_%d", i),
+					"payload": fmt.Sprintf("integrated_payload_%d", i),
 
 					"metadata": map[string]string{
 
 						"source": "integration_test",
 
-						"type":   "workload",
-
+						"type": "workload",
 					},
-
 				}
-
-
 
 				// Marshal with optimized JSON processor.
 
@@ -987,8 +807,6 @@ func (os *OptimizedSystem) demonstrateIntegratedWorkload() error {
 
 				}
 
-
-
 				// Step 2: Cache the JSON data.
 
 				cacheKey := fmt.Sprintf("integrated_%d", i)
@@ -999,8 +817,6 @@ func (os *OptimizedSystem) demonstrateIntegratedWorkload() error {
 
 				}
 
-
-
 				// Step 3: Memory operations using pools.
 
 				bufferPool := NewObjectPool[[]byte](
@@ -1010,10 +826,7 @@ func (os *OptimizedSystem) demonstrateIntegratedWorkload() error {
 					func() []byte { return make([]byte, 0, 2048) },
 
 					func(b []byte) { b = b[:0] },
-
 				)
-
-
 
 				buffer := bufferPool.Get()
 
@@ -1022,8 +835,6 @@ func (os *OptimizedSystem) demonstrateIntegratedWorkload() error {
 				buffer = append(buffer, []byte(fmt.Sprintf("_processed_%d", i))...)
 
 				bufferPool.Put(buffer)
-
-
 
 				// Step 4: Simulate HTTP request (without actual network call).
 
@@ -1047,8 +858,6 @@ func (os *OptimizedSystem) demonstrateIntegratedWorkload() error {
 
 				}
 
-
-
 				// Step 5: Simulate database operation.
 
 				if i%5 == 0 {
@@ -1061,29 +870,22 @@ func (os *OptimizedSystem) demonstrateIntegratedWorkload() error {
 
 					duration := time.Since(start)
 
-
-
 					atomic.AddInt64(&os.dbManager.metrics.QueryCount, 1)
 
 					os.dbManager.updateAverageQueryTime(duration)
 
 				}
 
-
-
 				return nil
 
 			},
 
-			Priority:   PriorityNormal,
+			Priority: PriorityNormal,
 
 			MaxRetries: 2,
-
 		}
 
 	}
-
-
 
 	// Submit all integrated tasks.
 
@@ -1096,8 +898,6 @@ func (os *OptimizedSystem) demonstrateIntegratedWorkload() error {
 		}
 
 	}
-
-
 
 	// Wait for completion with progress monitoring.
 
@@ -1117,15 +917,11 @@ func (os *OptimizedSystem) demonstrateIntegratedWorkload() error {
 
 	}
 
-
-
 	klog.Info("Integrated workload completed successfully")
 
 	return nil
 
 }
-
-
 
 // GeneratePerformanceReport generates a comprehensive performance report.
 
@@ -1145,13 +941,9 @@ func (os *OptimizedSystem) GeneratePerformanceReport() *PerformanceReport {
 
 	os.analyzer.AnalyzeDatabasePerformance(os.dbManager)
 
-
-
 	return os.analyzer.GeneratePerformanceReport()
 
 }
-
-
 
 // GetComponentMetrics returns metrics from all optimized components.
 
@@ -1159,23 +951,20 @@ func (os *OptimizedSystem) GetComponentMetrics() map[string]interface{} {
 
 	return map[string]interface{}{
 
-		"http":      os.httpClient.GetMetrics(),
+		"http": os.httpClient.GetMetrics(),
 
-		"memory":    os.memoryManager.GetMemoryStats(),
+		"memory": os.memoryManager.GetMemoryStats(),
 
-		"json":      os.jsonProcessor.GetMetrics(),
+		"json": os.jsonProcessor.GetMetrics(),
 
 		"goroutine": os.goroutinePool.GetMetrics(),
 
-		"cache":     os.cache.GetMetrics(),
+		"cache": os.cache.GetMetrics(),
 
-		"database":  os.dbManager.GetMetrics(),
-
+		"database": os.dbManager.GetMetrics(),
 	}
 
 }
-
-
 
 // Shutdown gracefully shuts down all optimized components.
 
@@ -1183,17 +972,11 @@ func (os *OptimizedSystem) Shutdown() error {
 
 	klog.Info("Shutting down optimized system...")
 
-
-
 	os.cancel()
-
-
 
 	// Shutdown all components.
 
 	var errors []error
-
-
 
 	if err := os.httpClient.Shutdown(os.ctx); err != nil {
 
@@ -1201,15 +984,11 @@ func (os *OptimizedSystem) Shutdown() error {
 
 	}
 
-
-
 	if err := os.memoryManager.Shutdown(); err != nil {
 
 		errors = append(errors, fmt.Errorf("memory manager shutdown: %w", err))
 
 	}
-
-
 
 	if err := os.jsonProcessor.Shutdown(os.ctx); err != nil {
 
@@ -1217,15 +996,11 @@ func (os *OptimizedSystem) Shutdown() error {
 
 	}
 
-
-
 	if err := os.goroutinePool.Shutdown(os.ctx); err != nil {
 
 		errors = append(errors, fmt.Errorf("goroutine pool shutdown: %w", err))
 
 	}
-
-
 
 	if err := os.cache.Shutdown(os.ctx); err != nil {
 
@@ -1233,15 +1008,11 @@ func (os *OptimizedSystem) Shutdown() error {
 
 	}
 
-
-
 	if err := os.dbManager.Shutdown(os.ctx); err != nil {
 
 		errors = append(errors, fmt.Errorf("database manager shutdown: %w", err))
 
 	}
-
-
 
 	if len(errors) > 0 {
 
@@ -1249,23 +1020,17 @@ func (os *OptimizedSystem) Shutdown() error {
 
 	}
 
-
-
 	klog.Info("Optimized system shutdown complete")
 
 	return nil
 
 }
 
-
-
 // RunPerformanceBenchmark runs a comprehensive performance benchmark.
 
 func RunPerformanceBenchmark() error {
 
 	klog.Info("Starting Go 1.24+ Performance Benchmark")
-
-
 
 	system, err := NewOptimizedSystem()
 
@@ -1277,8 +1042,6 @@ func RunPerformanceBenchmark() error {
 
 	defer system.Shutdown()
 
-
-
 	// Run the full demonstration.
 
 	if err := system.DemonstrateOptimizations(); err != nil {
@@ -1286,8 +1049,6 @@ func RunPerformanceBenchmark() error {
 		return fmt.Errorf("optimization demonstration failed: %w", err)
 
 	}
-
-
 
 	klog.Info("🎉 Performance benchmark completed successfully!")
 
@@ -1305,9 +1066,6 @@ func RunPerformanceBenchmark() error {
 
 	klog.Info("  • Overall System: 22-28% total improvement")
 
-
-
 	return nil
 
 }
-

@@ -1,113 +1,75 @@
 //go:build !disable_rag && !test
 
-
-
-
 package rag
 
-
-
 import (
-
 	"bufio"
-
 	"context"
-
 	"fmt"
-
 	"io"
-
 	"runtime"
-
 	"strings"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
 
-
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"go.uber.org/zap"
-
 )
-
-
 
 // StreamingDocumentLoader provides memory-efficient document processing.
 
 type StreamingDocumentLoader struct {
-
-	logger          *zap.Logger
+	logger *zap.Logger
 
 	chunkingService *ChunkingService
 
 	memoryThreshold int64 // bytes
 
-	bufferSize      int
+	bufferSize int
 
-	maxConcurrency  int
+	maxConcurrency int
 
-	processPool     *ProcessingPool
+	processPool *ProcessingPool
 
-	metrics         *streamingMetrics
-
+	metrics *streamingMetrics
 }
-
-
 
 // StreamingConfig holds configuration for streaming operations.
 
 type StreamingConfig struct {
-
 	MemoryThresholdMB int64
 
-	BufferSizeKB      int
+	BufferSizeKB int
 
-	MaxConcurrency    int
+	MaxConcurrency int
 
 	BackpressureLimit int
-
 }
 
-
-
 // ProcessingPool definition moved to document_loader.go to avoid duplicates.
-
-
 
 // streamingMetrics tracks performance metrics.
 
 type streamingMetrics struct {
+	documentsProcessed prometheus.Counter
 
-	documentsProcessed    prometheus.Counter
+	chunksProcessed prometheus.Counter
 
-	chunksProcessed       prometheus.Counter
+	bytesProcessed prometheus.Counter
 
-	bytesProcessed        prometheus.Counter
+	processingDuration prometheus.Histogram
 
-	processingDuration    prometheus.Histogram
+	memoryUsage prometheus.Gauge
 
-	memoryUsage           prometheus.Gauge
-
-	backpressureEvents    prometheus.Counter
+	backpressureEvents prometheus.Counter
 
 	streamingThresholdHit prometheus.Counter
-
 }
-
-
 
 // Document definition moved to embedding_support.go to avoid duplicates.
 
-
-
 // ProcessedChunk definition moved to pipeline.go to avoid duplicates.
-
-
 
 // NewStreamingDocumentLoader creates a new streaming document loader.
 
@@ -139,8 +101,6 @@ func NewStreamingDocumentLoader(
 
 	}
 
-
-
 	metrics := &streamingMetrics{
 
 		documentsProcessed: prometheus.NewCounter(prometheus.CounterOpts{
@@ -148,7 +108,6 @@ func NewStreamingDocumentLoader(
 			Name: "rag_streaming_documents_processed_total",
 
 			Help: "Total number of documents processed via streaming",
-
 		}),
 
 		chunksProcessed: prometheus.NewCounter(prometheus.CounterOpts{
@@ -156,7 +115,6 @@ func NewStreamingDocumentLoader(
 			Name: "rag_streaming_chunks_processed_total",
 
 			Help: "Total number of chunks processed",
-
 		}),
 
 		bytesProcessed: prometheus.NewCounter(prometheus.CounterOpts{
@@ -164,17 +122,15 @@ func NewStreamingDocumentLoader(
 			Name: "rag_streaming_bytes_processed_total",
 
 			Help: "Total bytes processed via streaming",
-
 		}),
 
 		processingDuration: prometheus.NewHistogram(prometheus.HistogramOpts{
 
-			Name:    "rag_streaming_processing_duration_seconds",
+			Name: "rag_streaming_processing_duration_seconds",
 
-			Help:    "Duration of document processing operations",
+			Help: "Duration of document processing operations",
 
 			Buckets: prometheus.DefBuckets,
-
 		}),
 
 		memoryUsage: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -182,7 +138,6 @@ func NewStreamingDocumentLoader(
 			Name: "rag_streaming_memory_usage_bytes",
 
 			Help: "Current memory usage for streaming operations",
-
 		}),
 
 		backpressureEvents: prometheus.NewCounter(prometheus.CounterOpts{
@@ -190,7 +145,6 @@ func NewStreamingDocumentLoader(
 			Name: "rag_streaming_backpressure_events_total",
 
 			Help: "Total number of backpressure events",
-
 		}),
 
 		streamingThresholdHit: prometheus.NewCounter(prometheus.CounterOpts{
@@ -198,12 +152,8 @@ func NewStreamingDocumentLoader(
 			Name: "rag_streaming_threshold_hit_total",
 
 			Help: "Number of times streaming threshold was hit",
-
 		}),
-
 	}
-
-
 
 	// Register metrics.
 
@@ -222,22 +172,16 @@ func NewStreamingDocumentLoader(
 		metrics.backpressureEvents,
 
 		metrics.streamingThresholdHit,
-
 	)
-
-
 
 	pool := &ProcessingPool{
 
-		documentWorkers:  make(chan func(), config.MaxConcurrency),
+		documentWorkers: make(chan func(), config.MaxConcurrency),
 
-		chunkWorkers:     make(chan func(), config.MaxConcurrency*2),
+		chunkWorkers: make(chan func(), config.MaxConcurrency*2),
 
 		embeddingWorkers: make(chan func(), config.MaxConcurrency),
-
 	}
-
-
 
 	// Start worker pools.
 
@@ -251,39 +195,30 @@ func NewStreamingDocumentLoader(
 
 	}
 
-
-
 	loader := &StreamingDocumentLoader{
 
-		logger:          logger,
+		logger: logger,
 
 		chunkingService: chunkingService,
 
 		memoryThreshold: config.MemoryThresholdMB * 1024 * 1024,
 
-		bufferSize:      config.BufferSizeKB * 1024,
+		bufferSize: config.BufferSizeKB * 1024,
 
-		maxConcurrency:  config.MaxConcurrency,
+		maxConcurrency: config.MaxConcurrency,
 
-		processPool:     pool,
+		processPool: pool,
 
-		metrics:         metrics,
-
+		metrics: metrics,
 	}
-
-
 
 	// Start memory monitor.
 
 	go loader.monitorMemory()
 
-
-
 	return loader
 
 }
-
-
 
 // ProcessDocument processes a single document with streaming support.
 
@@ -307,8 +242,6 @@ func (l *StreamingDocumentLoader) ProcessDocument(
 
 	}()
 
-
-
 	// Check if streaming is needed.
 
 	if doc.Size > 0 && doc.Size > l.memoryThreshold {
@@ -319,15 +252,11 @@ func (l *StreamingDocumentLoader) ProcessDocument(
 
 	}
 
-
-
 	// For smaller documents, use regular processing.
 
 	return l.processRegularDocument(ctx, doc, chunkProcessor)
 
 }
-
-
 
 // processStreamingDocument handles large documents with streaming.
 
@@ -347,8 +276,6 @@ func (l *StreamingDocumentLoader) processStreamingDocument(
 
 		zap.Int64("size_bytes", doc.Size))
 
-
-
 	reader := bufio.NewReaderSize(strings.NewReader(doc.Content), l.bufferSize)
 
 	var buffer []byte
@@ -356,8 +283,6 @@ func (l *StreamingDocumentLoader) processStreamingDocument(
 	chunkIndex := 0
 
 	bytesRead := int64(0)
-
-
 
 	for {
 
@@ -370,8 +295,6 @@ func (l *StreamingDocumentLoader) processStreamingDocument(
 		default:
 
 		}
-
-
 
 		// Read chunk with backpressure handling.
 
@@ -401,11 +324,7 @@ func (l *StreamingDocumentLoader) processStreamingDocument(
 
 		}
 
-
-
 		buffer = append(buffer, chunk...)
-
-
 
 		// Check if we have enough content for a chunk.
 
@@ -414,8 +333,6 @@ func (l *StreamingDocumentLoader) processStreamingDocument(
 			content := string(buffer[:l.chunkingService.config.ChunkSize])
 
 			buffer = buffer[l.chunkingService.config.ChunkSize:]
-
-
 
 			if err := l.processChunk(ctx, doc, content, chunkIndex, chunkProcessor); err != nil {
 
@@ -429,15 +346,11 @@ func (l *StreamingDocumentLoader) processStreamingDocument(
 
 	}
 
-
-
 	l.metrics.bytesProcessed.Add(float64(bytesRead))
 
 	return nil
 
 }
-
-
 
 // processRegularDocument handles smaller documents in memory.
 
@@ -461,27 +374,20 @@ func (l *StreamingDocumentLoader) processRegularDocument(
 
 	}
 
-
-
 	l.metrics.bytesProcessed.Add(float64(len(content)))
-
-
 
 	// Convert to LoadedDocument for chunking.
 
 	loadedDoc := &LoadedDocument{
 
-		ID:       doc.ID,
+		ID: doc.ID,
 
-		Content:  string(content),
+		Content: string(content),
 
-		Size:     int64(len(content)),
+		Size: int64(len(content)),
 
 		LoadedAt: time.Now(),
-
 	}
-
-
 
 	// Chunk the document.
 
@@ -493,8 +399,6 @@ func (l *StreamingDocumentLoader) processRegularDocument(
 
 	}
 
-
-
 	// Convert DocumentChunk objects to strings for parallel processing.
 
 	chunkStrings := make([]string, len(chunks))
@@ -505,15 +409,11 @@ func (l *StreamingDocumentLoader) processRegularDocument(
 
 	}
 
-
-
 	// Process chunks in parallel.
 
 	return l.processChunksParallel(ctx, doc, chunkStrings, chunkProcessor)
 
 }
-
-
 
 // processChunk processes a single chunk.
 
@@ -533,23 +433,18 @@ func (l *StreamingDocumentLoader) processChunk(
 
 	chunk := ProcessedChunk{
 
-		Content:    content,
+		Content: content,
 
-		Metadata:   doc.Metadata,
+		Metadata: doc.Metadata,
 
 		ChunkIndex: position,
-
 	}
-
-
 
 	l.metrics.chunksProcessed.Inc()
 
 	return processor(chunk)
 
 }
-
-
 
 // processChunksParallel processes multiple chunks concurrently.
 
@@ -569,8 +464,6 @@ func (l *StreamingDocumentLoader) processChunksParallel(
 
 	var wg sync.WaitGroup
 
-
-
 	for i, chunk := range chunks {
 
 		wg.Add(1)
@@ -578,8 +471,6 @@ func (l *StreamingDocumentLoader) processChunksParallel(
 		i := i
 
 		chunk := chunk
-
-
 
 		l.processPool.chunkWorkers <- func() {
 
@@ -595,13 +486,9 @@ func (l *StreamingDocumentLoader) processChunksParallel(
 
 	}
 
-
-
 	wg.Wait()
 
 	close(errChan)
-
-
 
 	// Check for errors.
 
@@ -615,13 +502,9 @@ func (l *StreamingDocumentLoader) processChunksParallel(
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // readChunkWithBackpressure reads data with backpressure handling.
 
@@ -639,8 +522,6 @@ func (l *StreamingDocumentLoader) readChunkWithBackpressure(
 
 	runtime.ReadMemStats(&memStats)
 
-
-
 	if memStats.Alloc > uint64(l.memoryThreshold) {
 
 		l.metrics.backpressureEvents.Inc()
@@ -652,8 +533,6 @@ func (l *StreamingDocumentLoader) readChunkWithBackpressure(
 		runtime.GC()
 
 	}
-
-
 
 	// Read chunk.
 
@@ -673,8 +552,6 @@ func (l *StreamingDocumentLoader) readChunkWithBackpressure(
 
 }
 
-
-
 // ProcessBatch processes multiple documents concurrently.
 
 func (l *StreamingDocumentLoader) ProcessBatch(
@@ -691,15 +568,11 @@ func (l *StreamingDocumentLoader) ProcessBatch(
 
 	var wg sync.WaitGroup
 
-
-
 	for _, doc := range documents {
 
 		wg.Add(1)
 
 		doc := doc
-
-
 
 		l.processPool.documentWorkers <- func() {
 
@@ -715,13 +588,9 @@ func (l *StreamingDocumentLoader) ProcessBatch(
 
 	}
 
-
-
 	wg.Wait()
 
 	close(errChan)
-
-
 
 	// Collect errors.
 
@@ -737,21 +606,15 @@ func (l *StreamingDocumentLoader) ProcessBatch(
 
 	}
 
-
-
 	if len(errs) > 0 {
 
 		return fmt.Errorf("batch processing failed with %d errors: %v", len(errs), errs)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // monitorMemory tracks memory usage.
 
@@ -760,8 +623,6 @@ func (l *StreamingDocumentLoader) monitorMemory() {
 	ticker := time.NewTicker(10 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for range ticker.C {
 
@@ -775,8 +636,6 @@ func (l *StreamingDocumentLoader) monitorMemory() {
 
 }
 
-
-
 // worker processes tasks from a channel.
 
 func (p *ProcessingPool) worker(tasks chan func()) {
@@ -788,8 +647,6 @@ func (p *ProcessingPool) worker(tasks chan func()) {
 	}
 
 }
-
-
 
 // Shutdown gracefully shuts down the processing pool.
 
@@ -804,4 +661,3 @@ func (l *StreamingDocumentLoader) Shutdown() {
 	l.processPool.activeTasks.Wait()
 
 }
-

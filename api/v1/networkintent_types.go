@@ -28,22 +28,12 @@ limitations under the License.
 
 */
 
-
-
-
 package v1
 
-
-
 import (
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 )
-
-
 
 // NetworkIntentSpec defines the desired state of NetworkIntent.
 
@@ -105,8 +95,6 @@ type NetworkIntentSpec struct {
 
 	Intent string `json:"intent"`
 
-
-
 	// Description provides a human-readable description of the network intent.
 
 	// This field is typically populated during processing to provide additional context.
@@ -115,15 +103,11 @@ type NetworkIntentSpec struct {
 
 	Description string `json:"description,omitempty"`
 
-
-
 	// IntentType specifies the type of intent.
 
 	// +optional
 
 	IntentType IntentType `json:"intentType,omitempty"`
-
-
 
 	// Priority specifies the processing priority.
 
@@ -131,15 +115,11 @@ type NetworkIntentSpec struct {
 
 	Priority Priority `json:"priority,omitempty"`
 
-
-
 	// TargetComponents specifies the target components for the intent.
 
 	// +optional
 
 	TargetComponents []ORANComponent `json:"targetComponents,omitempty"`
-
-
 
 	// TargetNamespace specifies the target namespace for deployment.
 
@@ -147,15 +127,11 @@ type NetworkIntentSpec struct {
 
 	TargetNamespace string `json:"targetNamespace,omitempty"`
 
-
-
 	// TargetCluster specifies the target cluster for deployment.
 
 	// +optional
 
 	TargetCluster string `json:"targetCluster,omitempty"`
-
-
 
 	// NetworkSlice specifies the network slice identifier.
 
@@ -163,15 +139,11 @@ type NetworkIntentSpec struct {
 
 	NetworkSlice string `json:"networkSlice,omitempty"`
 
-
-
 	// Region specifies the deployment region.
 
 	// +optional
 
 	Region string `json:"region,omitempty"`
-
-
 
 	// ResourceConstraints specifies resource constraints for the intent.
 
@@ -179,17 +151,12 @@ type NetworkIntentSpec struct {
 
 	ResourceConstraints *ResourceConstraints `json:"resourceConstraints,omitempty"`
 
-
-
 	// ProcessedParameters contains structured parameters from processing.
 
 	// +optional
 
 	ProcessedParameters *ProcessedParameters `json:"processedParameters,omitempty"`
-
 }
-
-
 
 // ProcessingResult contains the results of intent processing.
 
@@ -199,33 +166,22 @@ type ProcessingResult struct {
 
 	NetworkFunctionType string `json:"networkFunctionType,omitempty"`
 
-
-
 	// ProcessedParameters contains the structured parameters.
 
 	ProcessedParameters *ProcessedParameters `json:"processedParameters,omitempty"`
-
-
 
 	// ConfidenceScore represents the confidence in the processing results.
 
 	ConfidenceScore *float64 `json:"confidenceScore,omitempty"`
 
-
-
 	// ProcessingTimestamp when the processing completed.
 
 	ProcessingTimestamp *metav1.Time `json:"processingTimestamp,omitempty"`
-
 }
-
-
 
 // IntentType represents the type of intent.
 
 type IntentType string
-
-
 
 const (
 
@@ -244,16 +200,11 @@ const (
 	// IntentTypeMaintenance represents maintenance intents.
 
 	IntentTypeMaintenance IntentType = "maintenance"
-
 )
-
-
 
 // ORANComponent represents O-RAN target components for intents.
 
 type ORANComponent string
-
-
 
 const (
 
@@ -296,16 +247,11 @@ const (
 	// ORANComponentUPF represents UPF component.
 
 	ORANComponentUPF ORANComponent = "upf"
-
 )
-
-
 
 // NetworkIntentPhase represents the phase of NetworkIntent processing.
 
 type NetworkIntentPhase string
-
-
 
 const (
 
@@ -336,10 +282,7 @@ const (
 	// NetworkIntentPhaseFailed represents failed phase.
 
 	NetworkIntentPhaseFailed NetworkIntentPhase = "Failed"
-
 )
-
-
 
 // NetworkIntentStatus defines the observed state of NetworkIntent.
 
@@ -349,25 +292,17 @@ type NetworkIntentStatus struct {
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-
-
 	// Phase represents the current phase of the NetworkIntent processing.
 
 	Phase NetworkIntentPhase `json:"phase,omitempty"`
-
-
 
 	// LastMessage contains the last status message.
 
 	LastMessage string `json:"lastMessage,omitempty"`
 
-
-
 	// LastUpdateTime indicates when the status was last updated.
 
 	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty"`
-
-
 
 	// ProcessingResults contains the results of intent processing.
 
@@ -375,15 +310,11 @@ type NetworkIntentStatus struct {
 
 	ProcessingResults *ProcessingResult `json:"processingResults,omitempty"`
 
-
-
 	// LLMResponse contains the raw LLM response data.
 
 	// +optional
 
 	LLMResponse runtime.RawExtension `json:"llmResponse,omitempty"`
-
-
 
 	// ResourcePlan contains the resource planning data.
 
@@ -391,15 +322,11 @@ type NetworkIntentStatus struct {
 
 	ResourcePlan runtime.RawExtension `json:"resourcePlan,omitempty"`
 
-
-
 	// ProcessingPhase indicates the current processing phase.
 
 	// +optional
 
 	ProcessingPhase string `json:"processingPhase,omitempty"`
-
-
 
 	// ErrorMessage contains any error messages.
 
@@ -407,15 +334,11 @@ type NetworkIntentStatus struct {
 
 	ErrorMessage string `json:"errorMessage,omitempty"`
 
-
-
 	// LastUpdated indicates when the status was last updated.
 
 	// +optional
 
 	LastUpdated metav1.Time `json:"lastUpdated,omitempty"`
-
-
 
 	// ValidationErrors contains validation errors encountered during processing.
 
@@ -423,15 +346,11 @@ type NetworkIntentStatus struct {
 
 	ValidationErrors []string `json:"validationErrors,omitempty"`
 
-
-
 	// DeployedComponents contains the list of deployed components.
 
 	// +optional
 
 	DeployedComponents []TargetComponent `json:"deployedComponents,omitempty"`
-
-
 
 	// ProcessingDuration contains the duration of the processing.
 
@@ -439,15 +358,11 @@ type NetworkIntentStatus struct {
 
 	ProcessingDuration *metav1.Duration `json:"processingDuration,omitempty"`
 
-
-
 	// Extensions contains additional status information as raw extensions.
 
 	// +optional
 
 	Extensions map[string]runtime.RawExtension `json:"extensions,omitempty"`
-
-
 
 	// Conditions contains the conditions for the NetworkIntent.
 
@@ -455,10 +370,7 @@ type NetworkIntentStatus struct {
 
 	// +listType=atomic
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
-
 }
-
-
 
 //+kubebuilder:object:root=true
 
@@ -468,47 +380,32 @@ type NetworkIntentStatus struct {
 
 //+kubebuilder:webhook:path=/validate-nephoran-io-v1-networkintent,mutating=false,failurePolicy=fail,sideEffects=None,groups=nephoranio,resources=networkintents,verbs=create;update,versions=v1,name=vnetworkintentkb.io,admissionReviewVersions=v1
 
-
-
 // NetworkIntent is the Schema for the networkintents API.
 
 type NetworkIntent struct {
-
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-
-
-	Spec   NetworkIntentSpec   `json:"spec,omitempty"`
+	Spec NetworkIntentSpec `json:"spec,omitempty"`
 
 	Status NetworkIntentStatus `json:"status,omitempty"`
-
 }
 
-
-
 //+kubebuilder:object:root=true
-
-
 
 // NetworkIntentList contains a list of NetworkIntent.
 
 type NetworkIntentList struct {
-
 	metav1.TypeMeta `json:",inline"`
 
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-	Items           []NetworkIntent `json:"items"`
-
+	Items []NetworkIntent `json:"items"`
 }
-
-
 
 func init() {
 
 	SchemeBuilder.Register(&NetworkIntent{}, &NetworkIntentList{})
 
 }
-

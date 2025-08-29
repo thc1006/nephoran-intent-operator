@@ -1,49 +1,31 @@
-
 package llm
 
-
-
 import (
-
 	"context"
-
 	"crypto/sha256"
-
 	"encoding/hex"
-
 	"encoding/json"
-
 	"fmt"
-
 	"log/slog"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // MultiLevelCache implements a multi-tier caching system with Redis and in-memory layers.
 
 type MultiLevelCache struct {
-
 	l1Cache *InMemoryCache
 
 	l2Cache RedisCache
 
-	config  *MultiLevelCacheConfig
+	config *MultiLevelCacheConfig
 
-	logger  *slog.Logger
+	logger *slog.Logger
 
 	metrics *MultiLevelCacheMetrics
 
-	mutex   sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // MultiLevelCacheConfig holds configuration for the multi-level cache.
 
@@ -51,63 +33,52 @@ type MultiLevelCacheConfig struct {
 
 	// L1 Cache (In-Memory).
 
-	L1MaxSize        int           `json:"l1_max_size"`
+	L1MaxSize int `json:"l1_max_size"`
 
-	L1TTL            time.Duration `json:"l1_ttl"`
+	L1TTL time.Duration `json:"l1_ttl"`
 
-	L1EvictionPolicy string        `json:"l1_eviction_policy"` // LRU, LFU, FIFO
-
-
+	L1EvictionPolicy string `json:"l1_eviction_policy"` // LRU, LFU, FIFO
 
 	// L2 Cache (Redis).
 
-	RedisEnabled  bool          `json:"redis_enabled"`
+	RedisEnabled bool `json:"redis_enabled"`
 
-	RedisAddr     string        `json:"redis_addr"`
+	RedisAddr string `json:"redis_addr"`
 
-	RedisPassword string        `json:"redis_password"`
+	RedisPassword string `json:"redis_password"`
 
-	RedisDB       int           `json:"redis_db"`
+	RedisDB int `json:"redis_db"`
 
-	L2TTL         time.Duration `json:"l2_ttl"`
+	L2TTL time.Duration `json:"l2_ttl"`
 
-	RedisTimeout  time.Duration `json:"redis_timeout"`
-
-
+	RedisTimeout time.Duration `json:"redis_timeout"`
 
 	// General settings.
 
-	CompressionEnabled   bool   `json:"compression_enabled"`
+	CompressionEnabled bool `json:"compression_enabled"`
 
-	CompressionThreshold int    `json:"compression_threshold"`
+	CompressionThreshold int `json:"compression_threshold"`
 
-	SerializationFormat  string `json:"serialization_format"` // json, msgpack, protobuf
-
-
+	SerializationFormat string `json:"serialization_format"` // json, msgpack, protobuf
 
 	// Performance settings.
 
-	MaxKeySize       int   `json:"max_key_size"`
+	MaxKeySize int `json:"max_key_size"`
 
-	MaxValueSize     int64 `json:"max_value_size"`
+	MaxValueSize int64 `json:"max_value_size"`
 
-	EnableStatistics bool  `json:"enable_statistics"`
-
-
+	EnableStatistics bool `json:"enable_statistics"`
 
 	// Prefixes for different cache types.
 
-	RAGPrefix     string `json:"rag_prefix"`
+	RAGPrefix string `json:"rag_prefix"`
 
-	LLMPrefix     string `json:"llm_prefix"`
+	LLMPrefix string `json:"llm_prefix"`
 
 	ContextPrefix string `json:"context_prefix"`
 
-	PromptPrefix  string `json:"prompt_prefix"`
-
+	PromptPrefix string `json:"prompt_prefix"`
 }
-
-
 
 // MultiLevelCacheMetrics tracks cache performance across levels.
 
@@ -115,104 +86,84 @@ type MultiLevelCacheMetrics struct {
 
 	// L1 Metrics.
 
-	L1Hits      int64 `json:"l1_hits"`
+	L1Hits int64 `json:"l1_hits"`
 
-	L1Misses    int64 `json:"l1_misses"`
+	L1Misses int64 `json:"l1_misses"`
 
-	L1Sets      int64 `json:"l1_sets"`
+	L1Sets int64 `json:"l1_sets"`
 
 	L1Evictions int64 `json:"l1_evictions"`
 
-	L1Size      int64 `json:"l1_size"`
-
-
+	L1Size int64 `json:"l1_size"`
 
 	// L2 Metrics.
 
-	L2Hits   int64 `json:"l2_hits"`
+	L2Hits int64 `json:"l2_hits"`
 
 	L2Misses int64 `json:"l2_misses"`
 
-	L2Sets   int64 `json:"l2_sets"`
+	L2Sets int64 `json:"l2_sets"`
 
 	L2Errors int64 `json:"l2_errors"`
 
-
-
 	// Combined metrics.
 
-	TotalHits      int64         `json:"total_hits"`
+	TotalHits int64 `json:"total_hits"`
 
-	TotalMisses    int64         `json:"total_misses"`
+	TotalMisses int64 `json:"total_misses"`
 
-	OverallHitRate float64       `json:"overall_hit_rate"`
+	OverallHitRate float64 `json:"overall_hit_rate"`
 
 	AverageGetTime time.Duration `json:"average_get_time"`
 
 	AverageSetTime time.Duration `json:"average_set_time"`
 
-
-
 	// Size metrics.
 
-	TotalMemoryUsage int64     `json:"total_memory_usage"`
+	TotalMemoryUsage int64 `json:"total_memory_usage"`
 
-	LastUpdated      time.Time `json:"last_updated"`
-
-
+	LastUpdated time.Time `json:"last_updated"`
 
 	mutex sync.RWMutex
-
 }
-
-
 
 // MultiLevelCacheEntry represents a cached item with metadata.
 
 type MultiLevelCacheEntry struct {
+	Key string `json:"key"`
 
-	Key          string                 `json:"key"`
+	Value interface{} `json:"value"`
 
-	Value        interface{}            `json:"value"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt    time.Time              `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 
-	ExpiresAt    time.Time              `json:"expires_at"`
+	AccessCount int64 `json:"access_count"`
 
-	AccessCount  int64                  `json:"access_count"`
+	LastAccessed time.Time `json:"last_accessed"`
 
-	LastAccessed time.Time              `json:"last_accessed"`
+	Size int64 `json:"size"`
 
-	Size         int64                  `json:"size"`
+	Compressed bool `json:"compressed"`
 
-	Compressed   bool                   `json:"compressed"`
-
-	Metadata     map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // InMemoryCache implements L1 in-memory cache.
 
 type InMemoryCache struct {
+	data map[string]*MultiLevelCacheEntry
 
-	data      map[string]*MultiLevelCacheEntry
-
-	capacity  int
+	capacity int
 
 	evictList *EvictionList
 
-	mutex     sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // RedisCache interface for L2 Redis cache operations.
 
 type RedisCache interface {
-
 	Get(ctx context.Context, key string) ([]byte, error)
 
 	Set(ctx context.Context, key string, value []byte, ttl time.Duration) error
@@ -224,38 +175,27 @@ type RedisCache interface {
 	TTL(ctx context.Context, key string) (time.Duration, error)
 
 	Close() error
-
 }
-
-
 
 // EvictionList implements LRU eviction policy.
 
 type EvictionList struct {
-
 	head *EvictionNode
 
 	tail *EvictionNode
 
 	size int
-
 }
-
-
 
 // EvictionNode represents a node in the eviction list.
 
 type EvictionNode struct {
-
-	key  string
+	key string
 
 	prev *EvictionNode
 
 	next *EvictionNode
-
 }
-
-
 
 // NewMultiLevelCache creates a new multi-level cache.
 
@@ -267,25 +207,20 @@ func NewMultiLevelCache(config *MultiLevelCacheConfig, redisCache RedisCache) *M
 
 	}
 
-
-
 	return &MultiLevelCache{
 
 		l1Cache: NewInMemoryCache(config.L1MaxSize),
 
 		l2Cache: redisCache,
 
-		config:  config,
+		config: config,
 
-		logger:  slog.Default().With("component", "multi-level-cache"),
+		logger: slog.Default().With("component", "multi-level-cache"),
 
 		metrics: &MultiLevelCacheMetrics{LastUpdated: time.Now()},
-
 	}
 
 }
-
-
 
 // getDefaultMultiLevelCacheConfig returns default cache configuration.
 
@@ -293,49 +228,46 @@ func getDefaultMultiLevelCacheConfig() *MultiLevelCacheConfig {
 
 	return &MultiLevelCacheConfig{
 
-		L1MaxSize:            1000,
+		L1MaxSize: 1000,
 
-		L1TTL:                15 * time.Minute,
+		L1TTL: 15 * time.Minute,
 
-		L1EvictionPolicy:     "LRU",
+		L1EvictionPolicy: "LRU",
 
-		RedisEnabled:         false,
+		RedisEnabled: false,
 
-		RedisAddr:            "localhost:6379",
+		RedisAddr: "localhost:6379",
 
-		RedisPassword:        "",
+		RedisPassword: "",
 
-		RedisDB:              0,
+		RedisDB: 0,
 
-		L2TTL:                time.Hour,
+		L2TTL: time.Hour,
 
-		RedisTimeout:         5 * time.Second,
+		RedisTimeout: 5 * time.Second,
 
-		CompressionEnabled:   true,
+		CompressionEnabled: true,
 
 		CompressionThreshold: 1024,
 
-		SerializationFormat:  "json",
+		SerializationFormat: "json",
 
-		MaxKeySize:           256,
+		MaxKeySize: 256,
 
-		MaxValueSize:         10 * 1024 * 1024, // 10MB
+		MaxValueSize: 10 * 1024 * 1024, // 10MB
 
-		EnableStatistics:     true,
+		EnableStatistics: true,
 
-		RAGPrefix:            "rag:",
+		RAGPrefix: "rag:",
 
-		LLMPrefix:            "llm:",
+		LLMPrefix: "llm:",
 
-		ContextPrefix:        "ctx:",
+		ContextPrefix: "ctx:",
 
-		PromptPrefix:         "prompt:",
-
+		PromptPrefix: "prompt:",
 	}
 
 }
-
-
 
 // Get retrieves a value from the cache (tries L1 first, then L2).
 
@@ -353,8 +285,6 @@ func (mlc *MultiLevelCache) Get(ctx context.Context, key string) (interface{}, b
 
 	}()
 
-
-
 	// Validate key.
 
 	if err := mlc.validateKey(key); err != nil {
@@ -362,8 +292,6 @@ func (mlc *MultiLevelCache) Get(ctx context.Context, key string) (interface{}, b
 		return nil, false, err
 
 	}
-
-
 
 	// Try L1 cache first.
 
@@ -377,23 +305,17 @@ func (mlc *MultiLevelCache) Get(ctx context.Context, key string) (interface{}, b
 
 		})
 
-
-
 		mlc.logger.Debug("L1 cache hit", "key", key)
 
 		return value, true, nil
 
 	}
 
-
-
 	mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
 
 		m.L1Misses++
 
 	})
-
-
 
 	// Try L2 cache (Redis) if enabled.
 
@@ -421,8 +343,6 @@ func (mlc *MultiLevelCache) Get(ctx context.Context, key string) (interface{}, b
 
 					mlc.l1Cache.Set(key, &entry, mlc.config.L1TTL)
 
-
-
 					mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
 
 						m.L2Hits++
@@ -430,8 +350,6 @@ func (mlc *MultiLevelCache) Get(ctx context.Context, key string) (interface{}, b
 						m.TotalHits++
 
 					})
-
-
 
 					mlc.logger.Debug("L2 cache hit", "key", key)
 
@@ -453,8 +371,6 @@ func (mlc *MultiLevelCache) Get(ctx context.Context, key string) (interface{}, b
 
 		}
 
-
-
 		mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
 
 			m.L2Misses++
@@ -463,23 +379,17 @@ func (mlc *MultiLevelCache) Get(ctx context.Context, key string) (interface{}, b
 
 	}
 
-
-
 	mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
 
 		m.TotalMisses++
 
 	})
 
-
-
 	mlc.logger.Debug("Cache miss", "key", key)
 
 	return nil, false, nil
 
 }
-
-
 
 // Set stores a value in both L1 and L2 caches.
 
@@ -505,8 +415,6 @@ func (mlc *MultiLevelCache) Set(ctx context.Context, key string, value interface
 
 	}()
 
-
-
 	// Validate inputs.
 
 	if err := mlc.validateKey(key); err != nil {
@@ -521,39 +429,32 @@ func (mlc *MultiLevelCache) Set(ctx context.Context, key string, value interface
 
 	}
 
-
-
 	// Calculate size.
 
 	size := mlc.calculateSize(value)
-
-
 
 	// Create cache entry.
 
 	entry := &MultiLevelCacheEntry{
 
-		Key:          key,
+		Key: key,
 
-		Value:        value,
+		Value: value,
 
-		CreatedAt:    time.Now(),
+		CreatedAt: time.Now(),
 
-		ExpiresAt:    time.Now().Add(ttl),
+		ExpiresAt: time.Now().Add(ttl),
 
-		AccessCount:  0,
+		AccessCount: 0,
 
 		LastAccessed: time.Now(),
 
-		Size:         size,
+		Size: size,
 
-		Compressed:   false,
+		Compressed: false,
 
-		Metadata:     make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}
-
-
 
 	// Store in L1 cache.
 
@@ -564,8 +465,6 @@ func (mlc *MultiLevelCache) Set(ctx context.Context, key string, value interface
 		m.L1Sets++
 
 	})
-
-
 
 	// Store in L2 cache (Redis) if enabled.
 
@@ -591,8 +490,6 @@ func (mlc *MultiLevelCache) Set(ctx context.Context, key string, value interface
 
 			}
 
-
-
 			// Store in Redis with L2 TTL.
 
 			l2TTL := mlc.config.L2TTL
@@ -602,8 +499,6 @@ func (mlc *MultiLevelCache) Set(ctx context.Context, key string, value interface
 				l2TTL = ttl
 
 			}
-
-
 
 			if err := mlc.l2Cache.Set(ctx, key, data, l2TTL); err != nil {
 
@@ -629,15 +524,11 @@ func (mlc *MultiLevelCache) Set(ctx context.Context, key string, value interface
 
 	}
 
-
-
 	mlc.logger.Debug("Cache set", "key", key, "size", size, "ttl", ttl)
 
 	return nil
 
 }
-
-
 
 // Delete removes a key from both cache levels.
 
@@ -649,13 +540,9 @@ func (mlc *MultiLevelCache) Delete(ctx context.Context, key string) error {
 
 	}
 
-
-
 	// Delete from L1 cache.
 
 	mlc.l1Cache.Delete(key)
-
-
 
 	// Delete from L2 cache if enabled.
 
@@ -675,15 +562,11 @@ func (mlc *MultiLevelCache) Delete(ctx context.Context, key string) error {
 
 	}
 
-
-
 	mlc.logger.Debug("Cache delete", "key", key)
 
 	return nil
 
 }
-
-
 
 // GetRAG retrieves RAG-specific cached data.
 
@@ -695,8 +578,6 @@ func (mlc *MultiLevelCache) GetRAG(ctx context.Context, query string) (interface
 
 }
 
-
-
 // SetRAG stores RAG-specific data.
 
 func (mlc *MultiLevelCache) SetRAG(ctx context.Context, query string, value interface{}, ttl time.Duration) error {
@@ -706,8 +587,6 @@ func (mlc *MultiLevelCache) SetRAG(ctx context.Context, query string, value inte
 	return mlc.Set(ctx, key, value, ttl)
 
 }
-
-
 
 // GetLLMResponse retrieves cached LLM response.
 
@@ -719,8 +598,6 @@ func (mlc *MultiLevelCache) GetLLMResponse(ctx context.Context, prompt, modelNam
 
 }
 
-
-
 // SetLLMResponse stores LLM response.
 
 func (mlc *MultiLevelCache) SetLLMResponse(ctx context.Context, prompt, modelName string, response interface{}, ttl time.Duration) error {
@@ -730,8 +607,6 @@ func (mlc *MultiLevelCache) SetLLMResponse(ctx context.Context, prompt, modelNam
 	return mlc.Set(ctx, key, response, ttl)
 
 }
-
-
 
 // GetContext retrieves cached context.
 
@@ -743,8 +618,6 @@ func (mlc *MultiLevelCache) GetContext(ctx context.Context, contextID string) (i
 
 }
 
-
-
 // SetContext stores context.
 
 func (mlc *MultiLevelCache) SetContext(ctx context.Context, contextID string, context interface{}, ttl time.Duration) error {
@@ -754,8 +627,6 @@ func (mlc *MultiLevelCache) SetContext(ctx context.Context, contextID string, co
 	return mlc.Set(ctx, key, context, ttl)
 
 }
-
-
 
 // GetPrompt retrieves cached prompt.
 
@@ -767,8 +638,6 @@ func (mlc *MultiLevelCache) GetPrompt(ctx context.Context, promptHash string) (i
 
 }
 
-
-
 // SetPrompt stores prompt.
 
 func (mlc *MultiLevelCache) SetPrompt(ctx context.Context, promptHash string, prompt interface{}, ttl time.Duration) error {
@@ -778,8 +647,6 @@ func (mlc *MultiLevelCache) SetPrompt(ctx context.Context, promptHash string, pr
 	return mlc.Set(ctx, key, prompt, ttl)
 
 }
-
-
 
 // buildKey creates a cache key from components.
 
@@ -797,13 +664,9 @@ func (mlc *MultiLevelCache) buildKey(prefix string, components ...string) string
 
 	hash := hex.EncodeToString(hasher.Sum(nil))[:16] // Use first 16 chars
 
-
-
 	return fmt.Sprintf("%s%s", prefix, hash)
 
 }
-
-
 
 // validateKey validates cache key.
 
@@ -825,8 +688,6 @@ func (mlc *MultiLevelCache) validateKey(key string) error {
 
 }
 
-
-
 // validateValue validates cache value.
 
 func (mlc *MultiLevelCache) validateValue(value interface{}) error {
@@ -837,8 +698,6 @@ func (mlc *MultiLevelCache) validateValue(value interface{}) error {
 
 	}
 
-
-
 	size := mlc.calculateSize(value)
 
 	if size > mlc.config.MaxValueSize {
@@ -847,13 +706,9 @@ func (mlc *MultiLevelCache) validateValue(value interface{}) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // calculateSize estimates the size of a value.
 
@@ -873,8 +728,6 @@ func (mlc *MultiLevelCache) calculateSize(value interface{}) int64 {
 
 }
 
-
-
 // updateMetrics safely updates cache metrics.
 
 func (mlc *MultiLevelCache) updateMetrics(updater func(*MultiLevelCacheMetrics)) {
@@ -883,11 +736,7 @@ func (mlc *MultiLevelCache) updateMetrics(updater func(*MultiLevelCacheMetrics))
 
 	defer mlc.metrics.mutex.Unlock()
 
-
-
 	updater(mlc.metrics)
-
-
 
 	// Update derived metrics.
 
@@ -897,8 +746,6 @@ func (mlc *MultiLevelCache) updateMetrics(updater func(*MultiLevelCacheMetrics))
 
 }
 
-
-
 // GetMetrics returns current cache metrics.
 
 func (mlc *MultiLevelCache) GetMetrics() *MultiLevelCacheMetrics {
@@ -907,57 +754,50 @@ func (mlc *MultiLevelCache) GetMetrics() *MultiLevelCacheMetrics {
 
 	defer mlc.metrics.mutex.RUnlock()
 
-
-
 	// Update L1 size.
 
 	mlc.metrics.L1Size = int64(mlc.l1Cache.Size())
-
-
 
 	// Create a copy without the mutex.
 
 	metrics := &MultiLevelCacheMetrics{
 
-		L1Hits:           mlc.metrics.L1Hits,
+		L1Hits: mlc.metrics.L1Hits,
 
-		L1Misses:         mlc.metrics.L1Misses,
+		L1Misses: mlc.metrics.L1Misses,
 
-		L1Sets:           mlc.metrics.L1Sets,
+		L1Sets: mlc.metrics.L1Sets,
 
-		L1Evictions:      mlc.metrics.L1Evictions,
+		L1Evictions: mlc.metrics.L1Evictions,
 
-		L1Size:           mlc.metrics.L1Size,
+		L1Size: mlc.metrics.L1Size,
 
-		L2Hits:           mlc.metrics.L2Hits,
+		L2Hits: mlc.metrics.L2Hits,
 
-		L2Misses:         mlc.metrics.L2Misses,
+		L2Misses: mlc.metrics.L2Misses,
 
-		L2Sets:           mlc.metrics.L2Sets,
+		L2Sets: mlc.metrics.L2Sets,
 
-		L2Errors:         mlc.metrics.L2Errors,
+		L2Errors: mlc.metrics.L2Errors,
 
-		TotalHits:        mlc.metrics.TotalHits,
+		TotalHits: mlc.metrics.TotalHits,
 
-		TotalMisses:      mlc.metrics.TotalMisses,
+		TotalMisses: mlc.metrics.TotalMisses,
 
-		OverallHitRate:   mlc.metrics.OverallHitRate,
+		OverallHitRate: mlc.metrics.OverallHitRate,
 
-		AverageGetTime:   mlc.metrics.AverageGetTime,
+		AverageGetTime: mlc.metrics.AverageGetTime,
 
-		AverageSetTime:   mlc.metrics.AverageSetTime,
+		AverageSetTime: mlc.metrics.AverageSetTime,
 
 		TotalMemoryUsage: mlc.metrics.TotalMemoryUsage,
 
-		LastUpdated:      mlc.metrics.LastUpdated,
-
+		LastUpdated: mlc.metrics.LastUpdated,
 	}
 
 	return metrics
 
 }
-
-
 
 // GetStats returns detailed cache statistics.
 
@@ -965,35 +805,32 @@ func (mlc *MultiLevelCache) GetStats() map[string]interface{} {
 
 	metrics := mlc.GetMetrics()
 
-
-
 	return map[string]interface{}{
 
 		"l1_stats": map[string]interface{}{
 
-			"hits":      metrics.L1Hits,
+			"hits": metrics.L1Hits,
 
-			"misses":    metrics.L1Misses,
+			"misses": metrics.L1Misses,
 
-			"sets":      metrics.L1Sets,
+			"sets": metrics.L1Sets,
 
 			"evictions": metrics.L1Evictions,
 
-			"size":      metrics.L1Size,
+			"size": metrics.L1Size,
 
-			"hit_rate":  float64(metrics.L1Hits) / float64(metrics.L1Hits+metrics.L1Misses),
-
+			"hit_rate": float64(metrics.L1Hits) / float64(metrics.L1Hits+metrics.L1Misses),
 		},
 
 		"l2_stats": map[string]interface{}{
 
-			"hits":    metrics.L2Hits,
+			"hits": metrics.L2Hits,
 
-			"misses":  metrics.L2Misses,
+			"misses": metrics.L2Misses,
 
-			"sets":    metrics.L2Sets,
+			"sets": metrics.L2Sets,
 
-			"errors":  metrics.L2Errors,
+			"errors": metrics.L2Errors,
 
 			"enabled": mlc.config.RedisEnabled,
 
@@ -1008,14 +845,13 @@ func (mlc *MultiLevelCache) GetStats() map[string]interface{} {
 				return float64(metrics.L2Hits) / float64(metrics.L2Hits+metrics.L2Misses)
 
 			}(),
-
 		},
 
 		"overall_stats": map[string]interface{}{
 
-			"total_hits":       metrics.TotalHits,
+			"total_hits": metrics.TotalHits,
 
-			"total_misses":     metrics.TotalMisses,
+			"total_misses": metrics.TotalMisses,
 
 			"overall_hit_rate": metrics.OverallHitRate,
 
@@ -1023,17 +859,13 @@ func (mlc *MultiLevelCache) GetStats() map[string]interface{} {
 
 			"average_set_time": metrics.AverageSetTime.String(),
 
-			"memory_usage":     metrics.TotalMemoryUsage,
+			"memory_usage": metrics.TotalMemoryUsage,
 
-			"last_updated":     metrics.LastUpdated,
-
+			"last_updated": metrics.LastUpdated,
 		},
-
 	}
 
 }
-
-
 
 // Clear clears all cache levels.
 
@@ -1042,8 +874,6 @@ func (mlc *MultiLevelCache) Clear(ctx context.Context) error {
 	// Clear L1 cache.
 
 	mlc.l1Cache.Clear()
-
-
 
 	// Clear L2 cache (this would need to be implemented per Redis client).
 
@@ -1055,8 +885,6 @@ func (mlc *MultiLevelCache) Clear(ctx context.Context) error {
 
 	}
 
-
-
 	// Reset metrics.
 
 	mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
@@ -1065,15 +893,11 @@ func (mlc *MultiLevelCache) Clear(ctx context.Context) error {
 
 	})
 
-
-
 	mlc.logger.Info("Cache cleared")
 
 	return nil
 
 }
-
-
 
 // Close closes the cache and cleans up resources.
 
@@ -1089,15 +913,11 @@ func (mlc *MultiLevelCache) Close() error {
 
 	}
 
-
-
 	mlc.logger.Info("Multi-level cache closed")
 
 	return nil
 
 }
-
-
 
 // NewInMemoryCache creates a new in-memory cache.
 
@@ -1105,17 +925,14 @@ func NewInMemoryCache(capacity int) *InMemoryCache {
 
 	return &InMemoryCache{
 
-		data:      make(map[string]*MultiLevelCacheEntry),
+		data: make(map[string]*MultiLevelCacheEntry),
 
-		capacity:  capacity,
+		capacity: capacity,
 
 		evictList: NewEvictionList(),
-
 	}
 
 }
-
-
 
 // Get retrieves an item from in-memory cache.
 
@@ -1125,8 +942,6 @@ func (imc *InMemoryCache) Get(key string) (interface{}, bool) {
 
 	defer imc.mutex.RUnlock()
 
-
-
 	entry, exists := imc.data[key]
 
 	if !exists {
@@ -1134,8 +949,6 @@ func (imc *InMemoryCache) Get(key string) (interface{}, bool) {
 		return nil, false
 
 	}
-
-
 
 	// Check expiration.
 
@@ -1151,27 +964,19 @@ func (imc *InMemoryCache) Get(key string) (interface{}, bool) {
 
 	}
 
-
-
 	// Update access information.
 
 	entry.AccessCount++
 
 	entry.LastAccessed = time.Now()
 
-
-
 	// Move to front of eviction list (LRU).
 
 	imc.evictList.MoveToFront(key)
 
-
-
 	return entry.Value, true
 
 }
-
-
 
 // Set stores an item in in-memory cache.
 
@@ -1180,8 +985,6 @@ func (imc *InMemoryCache) Set(key string, value interface{}, ttl time.Duration) 
 	imc.mutex.Lock()
 
 	defer imc.mutex.Unlock()
-
-
 
 	// Check if we need to evict.
 
@@ -1199,37 +1002,31 @@ func (imc *InMemoryCache) Set(key string, value interface{}, ttl time.Duration) 
 
 	}
 
-
-
 	// Create new entry.
 
 	entry := &MultiLevelCacheEntry{
 
-		Key:          key,
+		Key: key,
 
-		Value:        value,
+		Value: value,
 
-		CreatedAt:    time.Now(),
+		CreatedAt: time.Now(),
 
-		ExpiresAt:    time.Now().Add(ttl),
+		ExpiresAt: time.Now().Add(ttl),
 
-		AccessCount:  0,
+		AccessCount: 0,
 
 		LastAccessed: time.Now(),
 
-		Size:         int64(len(fmt.Sprintf("%v", value))), // Simple size estimation
+		Size: int64(len(fmt.Sprintf("%v", value))), // Simple size estimation
 
 	}
-
-
 
 	imc.data[key] = entry
 
 	imc.evictList.AddToFront(key)
 
 }
-
-
 
 // Delete removes an item from in-memory cache.
 
@@ -1239,15 +1036,11 @@ func (imc *InMemoryCache) Delete(key string) {
 
 	defer imc.mutex.Unlock()
 
-
-
 	delete(imc.data, key)
 
 	imc.evictList.Remove(key)
 
 }
-
-
 
 // Size returns the current size of the cache.
 
@@ -1261,8 +1054,6 @@ func (imc *InMemoryCache) Size() int {
 
 }
 
-
-
 // Clear removes all items from the cache.
 
 func (imc *InMemoryCache) Clear() {
@@ -1271,15 +1062,11 @@ func (imc *InMemoryCache) Clear() {
 
 	defer imc.mutex.Unlock()
 
-
-
 	imc.data = make(map[string]*MultiLevelCacheEntry)
 
 	imc.evictList = NewEvictionList()
 
 }
-
-
 
 // NewEvictionList creates a new eviction list.
 
@@ -1293,8 +1080,6 @@ func NewEvictionList() *EvictionList {
 
 	tail.prev = head
 
-
-
 	return &EvictionList{
 
 		head: head,
@@ -1302,12 +1087,9 @@ func NewEvictionList() *EvictionList {
 		tail: tail,
 
 		size: 0,
-
 	}
 
 }
-
-
 
 // AddToFront adds a key to the front of the eviction list.
 
@@ -1326,8 +1108,6 @@ func (el *EvictionList) AddToFront(key string) {
 	el.size++
 
 }
-
-
 
 // Remove removes a key from the eviction list.
 
@@ -1357,8 +1137,6 @@ func (el *EvictionList) Remove(key string) {
 
 }
 
-
-
 // RemoveTail removes and returns the key at the tail (least recently used).
 
 func (el *EvictionList) RemoveTail() string {
@@ -1368,8 +1146,6 @@ func (el *EvictionList) RemoveTail() string {
 		return ""
 
 	}
-
-
 
 	node := el.tail.prev
 
@@ -1381,13 +1157,9 @@ func (el *EvictionList) RemoveTail() string {
 
 	el.size--
 
-
-
 	return key
 
 }
-
-
 
 // MoveToFront moves a key to the front of the eviction list.
 
@@ -1398,4 +1170,3 @@ func (el *EvictionList) MoveToFront(key string) {
 	el.AddToFront(key)
 
 }
-

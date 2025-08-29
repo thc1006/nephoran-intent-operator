@@ -1,95 +1,61 @@
 // Package validation provides comprehensive security testing mock services.
 
-
 package validation
 
-
-
 import (
-
 	"crypto/rand"
-
 	"crypto/rsa"
-
 	"crypto/tls"
-
 	"crypto/x509"
-
 	"crypto/x509/pkix"
-
 	"encoding/pem"
-
 	"fmt"
-
 	"math/big"
-
 	mathrand "math/rand"
-
 	"net"
-
 	"net/http"
-
 	"net/http/httptest"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/onsi/ginkgo/v2"
-
 )
-
-
 
 // OAuthMockService provides OAuth2/OIDC testing capabilities.
 
 type OAuthMockService struct {
+	server *httptest.Server
 
-	server      *httptest.Server
-
-	tokenStore  map[string]TokenInfo
+	tokenStore map[string]TokenInfo
 
 	clientStore map[string]ClientInfo
-
 }
-
-
 
 // TokenInfo represents OAuth token information.
 
 type TokenInfo struct {
-
-	AccessToken  string
+	AccessToken string
 
 	RefreshToken string
 
-	ExpiresAt    time.Time
+	ExpiresAt time.Time
 
-	TokenType    string
+	TokenType string
 
-	Scopes       []string
-
+	Scopes []string
 }
-
-
 
 // ClientInfo represents OAuth client information.
 
 type ClientInfo struct {
-
-	ClientID     string
+	ClientID string
 
 	ClientSecret string
 
 	RedirectURIs []string
 
-	Scopes       []string
-
+	Scopes []string
 }
-
-
 
 // NewOAuthMockService creates a new OAuth mock service.
 
@@ -97,29 +63,23 @@ func NewOAuthMockService() *OAuthMockService {
 
 	oauth := &OAuthMockService{
 
-		tokenStore:  make(map[string]TokenInfo),
+		tokenStore: make(map[string]TokenInfo),
 
 		clientStore: make(map[string]ClientInfo),
-
 	}
-
-
 
 	// Pre-populate with test client.
 
 	oauth.clientStore["nephoran-test-client"] = ClientInfo{
 
-		ClientID:     "nephoran-test-client",
+		ClientID: "nephoran-test-client",
 
 		ClientSecret: "test-secret-12345",
 
 		RedirectURIs: []string{"http://localhost:8080/callback"},
 
-		Scopes:       []string{"read", "write", "admin"},
-
+		Scopes: []string{"read", "write", "admin"},
 	}
-
-
 
 	oauth.setupMockServer()
 
@@ -127,23 +87,17 @@ func NewOAuthMockService() *OAuthMockService {
 
 }
 
-
-
 // setupMockServer creates the OAuth2 mock endpoints.
 
 func (o *OAuthMockService) setupMockServer() {
 
 	mux := http.NewServeMux()
 
-
-
 	// OIDC Discovery endpoint.
 
 	mux.HandleFunc("/.well-known/openid_configuration", func(w http.ResponseWriter, r *http.Request) {
 
 		ginkgo.By("Serving OIDC discovery endpoint")
-
-
 
 		baseURL := o.server.URL
 
@@ -171,8 +125,6 @@ func (o *OAuthMockService) setupMockServer() {
 
 		}`, baseURL, baseURL, baseURL, baseURL, baseURL)
 
-
-
 		w.Header().Set("Content-Type", "application/json")
 
 		w.WriteHeader(http.StatusOK)
@@ -181,15 +133,11 @@ func (o *OAuthMockService) setupMockServer() {
 
 	})
 
-
-
 	// Token endpoint.
 
 	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
 
 		ginkgo.By("Processing token request")
-
-
 
 		if r.Method != "POST" {
 
@@ -198,8 +146,6 @@ func (o *OAuthMockService) setupMockServer() {
 			return
 
 		}
-
-
 
 		err := r.ParseForm()
 
@@ -211,13 +157,9 @@ func (o *OAuthMockService) setupMockServer() {
 
 		}
 
-
-
 		grantType := r.FormValue("grant_type")
 
 		clientID := r.FormValue("client_id")
-
-
 
 		// Validate client.
 
@@ -228,8 +170,6 @@ func (o *OAuthMockService) setupMockServer() {
 			return
 
 		}
-
-
 
 		// Generate token based on grant type.
 
@@ -257,13 +197,9 @@ func (o *OAuthMockService) setupMockServer() {
 
 		}
 
-
-
 		// Store token.
 
 		o.tokenStore[token.AccessToken] = token
-
-
 
 		// Return token response.
 
@@ -281,8 +217,6 @@ func (o *OAuthMockService) setupMockServer() {
 
 		}`, token.AccessToken, token.TokenType, 3600, token.RefreshToken, strings.Join(token.Scopes, " "))
 
-
-
 		w.Header().Set("Content-Type", "application/json")
 
 		w.WriteHeader(http.StatusOK)
@@ -291,15 +225,11 @@ func (o *OAuthMockService) setupMockServer() {
 
 	})
 
-
-
 	// Token validation endpoint.
 
 	mux.HandleFunc("/tokeninfo", func(w http.ResponseWriter, r *http.Request) {
 
 		ginkgo.By("Validating token")
-
-
 
 		authHeader := r.Header.Get("Authorization")
 
@@ -310,8 +240,6 @@ func (o *OAuthMockService) setupMockServer() {
 			return
 
 		}
-
-
 
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 
@@ -325,8 +253,6 @@ func (o *OAuthMockService) setupMockServer() {
 
 		}
 
-
-
 		response := fmt.Sprintf(`{
 
 			"active": true,
@@ -339,8 +265,6 @@ func (o *OAuthMockService) setupMockServer() {
 
 		}`, tokenInfo.ExpiresAt.Unix(), strings.Join(tokenInfo.Scopes, " "))
 
-
-
 		w.Header().Set("Content-Type", "application/json")
 
 		w.WriteHeader(http.StatusOK)
@@ -349,15 +273,11 @@ func (o *OAuthMockService) setupMockServer() {
 
 	})
 
-
-
 	// JWKS endpoint.
 
 	mux.HandleFunc("/.well-known/jwks.json", func(w http.ResponseWriter, r *http.Request) {
 
 		ginkgo.By("Serving JWKS endpoint")
-
-
 
 		// Mock JWKS response.
 
@@ -383,8 +303,6 @@ func (o *OAuthMockService) setupMockServer() {
 
 		}`
 
-
-
 		w.Header().Set("Content-Type", "application/json")
 
 		w.WriteHeader(http.StatusOK)
@@ -393,13 +311,9 @@ func (o *OAuthMockService) setupMockServer() {
 
 	})
 
-
-
 	o.server = httptest.NewServer(mux)
 
 }
-
-
 
 // SimulateOAuthValidation simulates OAuth2 validation for testing.
 
@@ -407,13 +321,9 @@ func (o *OAuthMockService) SimulateOAuthValidation() bool {
 
 	ginkgo.By("🔐 Simulating OAuth2/OIDC validation")
 
-
-
 	// Test client credentials flow.
 
 	client := &http.Client{Timeout: 5 * time.Second}
-
-
 
 	// Test discovery endpoint.
 
@@ -429,8 +339,6 @@ func (o *OAuthMockService) SimulateOAuthValidation() bool {
 
 	resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		ginkgo.By(fmt.Sprintf("❌ OIDC discovery returned status: %d", resp.StatusCode))
@@ -439,15 +347,11 @@ func (o *OAuthMockService) SimulateOAuthValidation() bool {
 
 	}
 
-
-
 	ginkgo.By("✅ OAuth2/OIDC mock validation successful")
 
 	return true
 
 }
-
-
 
 // SimulateOIDCDiscovery simulates OIDC discovery for testing.
 
@@ -459,79 +363,64 @@ func (o *OAuthMockService) SimulateOIDCDiscovery() bool {
 
 }
 
-
-
 // Helper methods for OAuth mock service.
-
-
 
 func (o *OAuthMockService) generateClientCredentialsToken(clientID string) TokenInfo {
 
 	return TokenInfo{
 
-		AccessToken:  o.generateRandomToken(),
+		AccessToken: o.generateRandomToken(),
 
 		RefreshToken: o.generateRandomToken(),
 
-		ExpiresAt:    time.Now().Add(1 * time.Hour),
+		ExpiresAt: time.Now().Add(1 * time.Hour),
 
-		TokenType:    "Bearer",
+		TokenType: "Bearer",
 
-		Scopes:       []string{"read", "write"},
-
+		Scopes: []string{"read", "write"},
 	}
 
 }
-
-
 
 func (o *OAuthMockService) generateAuthorizationCodeToken(clientID, code string) TokenInfo {
 
 	return TokenInfo{
 
-		AccessToken:  o.generateRandomToken(),
+		AccessToken: o.generateRandomToken(),
 
 		RefreshToken: o.generateRandomToken(),
 
-		ExpiresAt:    time.Now().Add(1 * time.Hour),
+		ExpiresAt: time.Now().Add(1 * time.Hour),
 
-		TokenType:    "Bearer",
+		TokenType: "Bearer",
 
-		Scopes:       []string{"openid", "profile", "email"},
-
+		Scopes: []string{"openid", "profile", "email"},
 	}
 
 }
-
-
 
 func (o *OAuthMockService) refreshAccessToken(refreshToken string) TokenInfo {
 
 	return TokenInfo{
 
-		AccessToken:  o.generateRandomToken(),
+		AccessToken: o.generateRandomToken(),
 
 		RefreshToken: refreshToken, // Keep same refresh token
 
-		ExpiresAt:    time.Now().Add(1 * time.Hour),
+		ExpiresAt: time.Now().Add(1 * time.Hour),
 
-		TokenType:    "Bearer",
+		TokenType: "Bearer",
 
-		Scopes:       []string{"read", "write"},
-
+		Scopes: []string{"read", "write"},
 	}
 
 }
-
-
 
 func (o *OAuthMockService) generateRandomToken() string {
 
 	return fmt.Sprintf("tok_%d_%d", time.Now().UnixNano(), mathrand.Int63())
 
 }
-
-
 
 // Cleanup stops the OAuth mock server.
 
@@ -545,27 +434,21 @@ func (o *OAuthMockService) Cleanup() {
 
 }
 
-
-
 // TLSMockService provides TLS/mTLS testing capabilities.
 
 type TLSMockService struct {
+	server *httptest.Server
 
-	server     *httptest.Server
-
-	caCert     []byte
+	caCert []byte
 
 	serverCert []byte
 
-	serverKey  []byte
+	serverKey []byte
 
 	clientCert []byte
 
-	clientKey  []byte
-
+	clientKey []byte
 }
-
-
 
 // NewTLSMockService creates a new TLS mock service.
 
@@ -581,23 +464,17 @@ func NewTLSMockService() *TLSMockService {
 
 }
 
-
-
 // setupMockServer creates the TLS mock endpoints.
 
 func (t *TLSMockService) setupMockServer() {
 
 	mux := http.NewServeMux()
 
-
-
 	// Certificate download endpoint.
 
 	mux.HandleFunc("/certs/ca.crt", func(w http.ResponseWriter, r *http.Request) {
 
 		ginkgo.By("Serving CA certificate")
-
-
 
 		w.Header().Set("Content-Type", "application/x-pem-file")
 
@@ -607,15 +484,11 @@ func (t *TLSMockService) setupMockServer() {
 
 	})
 
-
-
 	// Certificate validation endpoint.
 
 	mux.HandleFunc("/validate-cert", func(w http.ResponseWriter, r *http.Request) {
 
 		ginkgo.By("Validating certificate")
-
-
 
 		// Check for client certificate.
 
@@ -635,8 +508,6 @@ func (t *TLSMockService) setupMockServer() {
 
 			}`, cert.Subject.String(), cert.Issuer.String(), cert.NotAfter.Format(time.RFC3339))
 
-
-
 			w.Header().Set("Content-Type", "application/json")
 
 			w.WriteHeader(http.StatusOK)
@@ -651,15 +522,11 @@ func (t *TLSMockService) setupMockServer() {
 
 	})
 
-
-
 	// TLS configuration info endpoint.
 
 	mux.HandleFunc("/tls-info", func(w http.ResponseWriter, r *http.Request) {
 
 		ginkgo.By("Providing TLS configuration information")
-
-
 
 		tlsInfo := fmt.Sprintf(`{
 
@@ -671,8 +538,6 @@ func (t *TLSMockService) setupMockServer() {
 
 		}`, "1.3", "TLS_AES_256_GCM_SHA384", r.Host)
 
-
-
 		w.Header().Set("Content-Type", "application/json")
 
 		w.WriteHeader(http.StatusOK)
@@ -681,13 +546,9 @@ func (t *TLSMockService) setupMockServer() {
 
 	})
 
-
-
 	t.server = httptest.NewServer(mux)
 
 }
-
-
 
 // generateTestCertificates creates test certificates for TLS testing.
 
@@ -695,15 +556,11 @@ func (t *TLSMockService) generateTestCertificates() {
 
 	ginkgo.By("Generating test certificates for TLS validation")
 
-
-
 	// Generate CA certificate.
 
 	caCert, caKey := t.generateCertificate("Nephoran Test CA", nil, nil, true)
 
 	t.caCert = t.encodeCertificatePEM(caCert)
-
-
 
 	// Generate server certificate.
 
@@ -712,8 +569,6 @@ func (t *TLSMockService) generateTestCertificates() {
 	t.serverCert = t.encodeCertificatePEM(serverCert)
 
 	t.serverKey = t.encodeKeyPEM(serverKey)
-
-
 
 	// Generate client certificate.
 
@@ -724,8 +579,6 @@ func (t *TLSMockService) generateTestCertificates() {
 	t.clientKey = t.encodeKeyPEM(clientKey)
 
 }
-
-
 
 // generateCertificate generates a test certificate.
 
@@ -741,8 +594,6 @@ func (t *TLSMockService) generateCertificate(commonName string, caCert *x509.Cer
 
 	}
 
-
-
 	// Create certificate template.
 
 	template := x509.Certificate{
@@ -752,24 +603,20 @@ func (t *TLSMockService) generateCertificate(commonName string, caCert *x509.Cer
 		Subject: pkix.Name{
 
 			CommonName: commonName,
-
 		},
 
-		NotBefore:   time.Now(),
+		NotBefore: time.Now(),
 
-		NotAfter:    time.Now().Add(365 * 24 * time.Hour),
+		NotAfter: time.Now().Add(365 * 24 * time.Hour),
 
-		KeyUsage:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		KeyUsage: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 
 		IPAddresses: []net.IP{net.IPv4(127, 0, 0, 1)},
 
-		DNSNames:    []string{"localhost"},
-
+		DNSNames: []string{"localhost"},
 	}
-
-
 
 	if isCA {
 
@@ -781,15 +628,11 @@ func (t *TLSMockService) generateCertificate(commonName string, caCert *x509.Cer
 
 	}
 
-
-
 	// Sign certificate.
 
 	var parent *x509.Certificate
 
 	var parentKey *rsa.PrivateKey
-
-
 
 	if caCert == nil {
 
@@ -809,8 +652,6 @@ func (t *TLSMockService) generateCertificate(commonName string, caCert *x509.Cer
 
 	}
 
-
-
 	certDER, err := x509.CreateCertificate(rand.Reader, &template, parent, &privateKey.PublicKey, parentKey)
 
 	if err != nil {
@@ -818,8 +659,6 @@ func (t *TLSMockService) generateCertificate(commonName string, caCert *x509.Cer
 		panic(err)
 
 	}
-
-
 
 	cert, err := x509.ParseCertificate(certDER)
 
@@ -829,13 +668,9 @@ func (t *TLSMockService) generateCertificate(commonName string, caCert *x509.Cer
 
 	}
 
-
-
 	return cert, privateKey
 
 }
-
-
 
 // encodeCertificatePEM encodes certificate to PEM format.
 
@@ -843,15 +678,12 @@ func (t *TLSMockService) encodeCertificatePEM(cert *x509.Certificate) []byte {
 
 	return pem.EncodeToMemory(&pem.Block{
 
-		Type:  "CERTIFICATE",
+		Type: "CERTIFICATE",
 
 		Bytes: cert.Raw,
-
 	})
 
 }
-
-
 
 // encodeKeyPEM encodes private key to PEM format.
 
@@ -859,23 +691,18 @@ func (t *TLSMockService) encodeKeyPEM(key *rsa.PrivateKey) []byte {
 
 	return pem.EncodeToMemory(&pem.Block{
 
-		Type:  "RSA PRIVATE KEY",
+		Type: "RSA PRIVATE KEY",
 
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
-
 	})
 
 }
-
-
 
 // SimulateTLSValidation simulates TLS validation for testing.
 
 func (t *TLSMockService) SimulateTLSValidation() bool {
 
 	ginkgo.By("🔒 Simulating TLS/mTLS validation")
-
-
 
 	// Test server certificate validation.
 
@@ -886,12 +713,8 @@ func (t *TLSMockService) SimulateTLSValidation() bool {
 		Transport: &http.Transport{
 
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-
 		},
-
 	}
-
-
 
 	resp, err := client.Get(t.server.URL + "/tls-info")
 
@@ -905,8 +728,6 @@ func (t *TLSMockService) SimulateTLSValidation() bool {
 
 	resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		ginkgo.By(fmt.Sprintf("❌ TLS validation returned status: %d", resp.StatusCode))
@@ -915,15 +736,11 @@ func (t *TLSMockService) SimulateTLSValidation() bool {
 
 	}
 
-
-
 	ginkgo.By("✅ TLS mock validation successful")
 
 	return true
 
 }
-
-
 
 // SimulateMutualTLS simulates mutual TLS validation.
 
@@ -931,23 +748,17 @@ func (t *TLSMockService) SimulateMutualTLS() bool {
 
 	ginkgo.By("🔒 Simulating mutual TLS validation")
 
-
-
 	// For testing purposes, we'll simulate successful mTLS.
 
 	// In a real implementation, this would involve setting up client certificates.
 
 	// and validating the full mTLS handshake.
 
-
-
 	ginkgo.By("✅ Mutual TLS mock validation successful")
 
 	return true
 
 }
-
-
 
 // GetCertificates returns test certificates.
 
@@ -956,8 +767,6 @@ func (t *TLSMockService) GetCertificates() (caCert, serverCert, serverKey, clien
 	return t.caCert, t.serverCert, t.serverKey, t.clientCert, t.clientKey
 
 }
-
-
 
 // Cleanup stops the TLS mock server.
 
@@ -971,89 +780,67 @@ func (t *TLSMockService) Cleanup() {
 
 }
 
-
-
 // VulnerabilityScanMock provides vulnerability scanning simulation.
 
 type VulnerabilityScanMock struct {
-
-	scanResults   map[string]*ScanResult
+	scanResults map[string]*ScanResult
 
 	policyResults map[string]*PolicyResult
-
 }
-
-
 
 // ScanResult represents a vulnerability scan result.
 
 type ScanResult struct {
+	ComponentName string
 
-	ComponentName   string
-
-	Version         string
+	Version string
 
 	Vulnerabilities []Vulnerability
 
-	RiskScore       int
+	RiskScore int
 
-	LastScanned     time.Time
-
+	LastScanned time.Time
 }
-
-
 
 // Vulnerability represents a security vulnerability.
 
 type Vulnerability struct {
+	CVE string
 
-	CVE          string
+	Severity string
 
-	Severity     string
-
-	Description  string
+	Description string
 
 	FixAvailable bool
 
-	CVSS         float64
-
+	CVSS float64
 }
-
-
 
 // PolicyResult represents a security policy evaluation result.
 
 type PolicyResult struct {
+	PolicyName string
 
-	PolicyName    string
+	Passed bool
 
-	Passed        bool
+	Violations []PolicyViolation
 
-	Violations    []PolicyViolation
-
-	Score         int
+	Score int
 
 	LastEvaluated time.Time
-
 }
-
-
 
 // PolicyViolation represents a policy violation.
 
 type PolicyViolation struct {
+	Rule string
 
-	Rule        string
-
-	Severity    string
+	Severity string
 
 	Description string
 
-	Resource    string
-
+	Resource string
 }
-
-
 
 // NewVulnerabilityScanMock creates a new vulnerability scan mock.
 
@@ -1061,13 +848,10 @@ func NewVulnerabilityScanMock() *VulnerabilityScanMock {
 
 	vsm := &VulnerabilityScanMock{
 
-		scanResults:   make(map[string]*ScanResult),
+		scanResults: make(map[string]*ScanResult),
 
 		policyResults: make(map[string]*PolicyResult),
-
 	}
-
-
 
 	// Pre-populate with test data.
 
@@ -1076,8 +860,6 @@ func NewVulnerabilityScanMock() *VulnerabilityScanMock {
 	return vsm
 
 }
-
-
 
 // populateTestData creates test vulnerability and policy data.
 
@@ -1089,83 +871,70 @@ func (v *VulnerabilityScanMock) populateTestData() {
 
 		ComponentName: "nephoran-operator",
 
-		Version:       "latest",
+		Version: "latest",
 
 		Vulnerabilities: []Vulnerability{
 
 			{
 
-				CVE:          "CVE-2023-0001",
+				CVE: "CVE-2023-0001",
 
-				Severity:     "LOW",
+				Severity: "LOW",
 
-				Description:  "Minor security issue in base image",
+				Description: "Minor security issue in base image",
 
 				FixAvailable: true,
 
-				CVSS:         3.1,
-
+				CVSS: 3.1,
 			},
-
 		},
 
-		RiskScore:   15,
+		RiskScore: 15,
 
 		LastScanned: time.Now().Add(-1 * time.Hour),
-
 	}
-
-
 
 	// Policy results.
 
 	v.policyResults["container-security-policy"] = &PolicyResult{
 
-		PolicyName:    "Container Security Policy",
+		PolicyName: "Container Security Policy",
 
-		Passed:        true,
+		Passed: true,
 
-		Violations:    []PolicyViolation{},
+		Violations: []PolicyViolation{},
 
-		Score:         95,
+		Score: 95,
 
 		LastEvaluated: time.Now().Add(-30 * time.Minute),
-
 	}
-
-
 
 	v.policyResults["network-security-policy"] = &PolicyResult{
 
 		PolicyName: "Network Security Policy",
 
-		Passed:     false,
+		Passed: false,
 
 		Violations: []PolicyViolation{
 
 			{
 
-				Rule:        "default-deny-ingress",
+				Rule: "default-deny-ingress",
 
-				Severity:    "MEDIUM",
+				Severity: "MEDIUM",
 
 				Description: "Default deny ingress policy not found",
 
-				Resource:    "namespace/default",
-
+				Resource: "namespace/default",
 			},
-
 		},
 
-		Score:         75,
+		Score: 75,
 
 		LastEvaluated: time.Now().Add(-15 * time.Minute),
-
 	}
 
 }
-
-
 
 // SimulateContainerScan simulates container vulnerability scanning.
 
@@ -1173,21 +942,15 @@ func (v *VulnerabilityScanMock) SimulateContainerScan() bool {
 
 	ginkgo.By("🔍 Simulating container vulnerability scan")
 
-
-
 	// Simulate scanning process.
 
 	time.Sleep(100 * time.Millisecond)
-
-
 
 	// Check scan results.
 
 	for imageName, result := range v.scanResults {
 
 		ginkgo.By(fmt.Sprintf("📊 Scan result for %s: Risk Score %d", imageName, result.RiskScore))
-
-
 
 		criticalVulns := 0
 
@@ -1201,8 +964,6 @@ func (v *VulnerabilityScanMock) SimulateContainerScan() bool {
 
 		}
 
-
-
 		if criticalVulns > 0 {
 
 			ginkgo.By(fmt.Sprintf("❌ Critical vulnerabilities found: %d", criticalVulns))
@@ -1213,15 +974,11 @@ func (v *VulnerabilityScanMock) SimulateContainerScan() bool {
 
 	}
 
-
-
 	ginkgo.By("✅ Container vulnerability scan passed")
 
 	return true
 
 }
-
-
 
 // SimulateDependencyScan simulates dependency vulnerability scanning.
 
@@ -1229,13 +986,9 @@ func (v *VulnerabilityScanMock) SimulateDependencyScan() bool {
 
 	ginkgo.By("🔍 Simulating dependency vulnerability scan")
 
-
-
 	// Simulate scanning process.
 
 	time.Sleep(100 * time.Millisecond)
-
-
 
 	// Mock dependency scan results.
 
@@ -1248,10 +1001,7 @@ func (v *VulnerabilityScanMock) SimulateDependencyScan() bool {
 		"github.com/onsi/ginkgo/v2",
 
 		"github.com/onsi/gomega",
-
 	}
-
-
 
 	vulnerableDeps := 0
 
@@ -1269,8 +1019,6 @@ func (v *VulnerabilityScanMock) SimulateDependencyScan() bool {
 
 	}
 
-
-
 	if vulnerableDeps > 2 {
 
 		ginkgo.By(fmt.Sprintf("❌ Too many vulnerable dependencies: %d", vulnerableDeps))
@@ -1279,15 +1027,11 @@ func (v *VulnerabilityScanMock) SimulateDependencyScan() bool {
 
 	}
 
-
-
 	ginkgo.By("✅ Dependency vulnerability scan passed")
 
 	return true
 
 }
-
-
 
 // SimulatePolicyEvaluation simulates security policy evaluation.
 
@@ -1295,13 +1039,9 @@ func (v *VulnerabilityScanMock) SimulatePolicyEvaluation() bool {
 
 	ginkgo.By("🔍 Simulating security policy evaluation")
 
-
-
 	passedPolicies := 0
 
 	totalPolicies := len(v.policyResults)
-
-
 
 	for policyName, result := range v.policyResults {
 
@@ -1325,19 +1065,13 @@ func (v *VulnerabilityScanMock) SimulatePolicyEvaluation() bool {
 
 	}
 
-
-
 	passRate := float64(passedPolicies) / float64(totalPolicies)
 
 	ginkgo.By(fmt.Sprintf("📊 Policy evaluation: %.1f%% pass rate", passRate*100))
 
-
-
 	return passRate >= 0.8
 
 }
-
-
 
 // GetScanResults returns current scan results.
 
@@ -1347,8 +1081,6 @@ func (v *VulnerabilityScanMock) GetScanResults() map[string]*ScanResult {
 
 }
 
-
-
 // GetPolicyResults returns current policy results.
 
 func (v *VulnerabilityScanMock) GetPolicyResults() map[string]*PolicyResult {
@@ -1357,55 +1089,41 @@ func (v *VulnerabilityScanMock) GetPolicyResults() map[string]*PolicyResult {
 
 }
 
-
-
 // SecurityPolicyMock provides security policy testing capabilities.
 
 type SecurityPolicyMock struct {
-
-	policies   map[string]*SecurityPolicy
+	policies map[string]*SecurityPolicy
 
 	violations []PolicyViolation
-
 }
-
-
 
 // SecurityPolicy represents a security policy.
 
 type SecurityPolicy struct {
+	Name string
 
-	Name        string
+	Type string
 
-	Type        string
+	Rules []SecurityRule
 
-	Rules       []SecurityRule
-
-	Enabled     bool
+	Enabled bool
 
 	LastUpdated time.Time
-
 }
-
-
 
 // SecurityRule represents a security rule.
 
 type SecurityRule struct {
-
-	RuleID      string
+	RuleID string
 
 	Description string
 
-	Severity    string
+	Severity string
 
-	Condition   string
+	Condition string
 
-	Action      string
-
+	Action string
 }
-
-
 
 // NewSecurityPolicyMock creates a new security policy mock.
 
@@ -1413,21 +1131,16 @@ func NewSecurityPolicyMock() *SecurityPolicyMock {
 
 	spm := &SecurityPolicyMock{
 
-		policies:   make(map[string]*SecurityPolicy),
+		policies: make(map[string]*SecurityPolicy),
 
 		violations: make([]PolicyViolation, 0),
-
 	}
-
-
 
 	spm.populatePolicies()
 
 	return spm
 
 }
-
-
 
 // populatePolicies creates test security policies.
 
@@ -1445,41 +1158,35 @@ func (s *SecurityPolicyMock) populatePolicies() {
 
 			{
 
-				RuleID:      "no-privileged-containers",
+				RuleID: "no-privileged-containers",
 
 				Description: "Containers must not run in privileged mode",
 
-				Severity:    "HIGH",
+				Severity: "HIGH",
 
-				Condition:   "spec.securityContext.privileged == false",
+				Condition: "spec.securityContext.privileged == false",
 
-				Action:      "deny",
-
+				Action: "deny",
 			},
 
 			{
 
-				RuleID:      "no-root-user",
+				RuleID: "no-root-user",
 
 				Description: "Containers must not run as root user",
 
-				Severity:    "MEDIUM",
+				Severity: "MEDIUM",
 
-				Condition:   "spec.securityContext.runAsUser != 0",
+				Condition: "spec.securityContext.runAsUser != 0",
 
-				Action:      "deny",
-
+				Action: "deny",
 			},
-
 		},
 
-		Enabled:     true,
+		Enabled: true,
 
 		LastUpdated: time.Now().Add(-24 * time.Hour),
-
 	}
-
-
 
 	// Network Security Policy.
 
@@ -1493,51 +1200,43 @@ func (s *SecurityPolicyMock) populatePolicies() {
 
 			{
 
-				RuleID:      "default-deny-ingress",
+				RuleID: "default-deny-ingress",
 
 				Description: "Default deny all ingress traffic",
 
-				Severity:    "HIGH",
+				Severity: "HIGH",
 
-				Condition:   "networkPolicy.spec.policyTypes contains 'Ingress'",
+				Condition: "networkPolicy.spec.policyTypes contains 'Ingress'",
 
-				Action:      "enforce",
-
+				Action: "enforce",
 			},
 
 			{
 
-				RuleID:      "default-deny-egress",
+				RuleID: "default-deny-egress",
 
 				Description: "Default deny all egress traffic",
 
-				Severity:    "MEDIUM",
+				Severity: "MEDIUM",
 
-				Condition:   "networkPolicy.spec.policyTypes contains 'Egress'",
+				Condition: "networkPolicy.spec.policyTypes contains 'Egress'",
 
-				Action:      "enforce",
-
+				Action: "enforce",
 			},
-
 		},
 
-		Enabled:     true,
+		Enabled: true,
 
 		LastUpdated: time.Now().Add(-12 * time.Hour),
-
 	}
 
 }
-
-
 
 // ValidatePolicy validates a security policy.
 
 func (s *SecurityPolicyMock) ValidatePolicy(policyName string) bool {
 
 	ginkgo.By(fmt.Sprintf("🔍 Validating security policy: %s", policyName))
-
-
 
 	policy, exists := s.policies[policyName]
 
@@ -1549,8 +1248,6 @@ func (s *SecurityPolicyMock) ValidatePolicy(policyName string) bool {
 
 	}
 
-
-
 	if !policy.Enabled {
 
 		ginkgo.By(fmt.Sprintf("⚠️ Policy disabled: %s", policyName))
@@ -1558,8 +1255,6 @@ func (s *SecurityPolicyMock) ValidatePolicy(policyName string) bool {
 		return false
 
 	}
-
-
 
 	// Simulate policy validation.
 
@@ -1575,21 +1270,18 @@ func (s *SecurityPolicyMock) ValidatePolicy(policyName string) bool {
 
 			s.violations = append(s.violations, PolicyViolation{
 
-				Rule:        rule.RuleID,
+				Rule: rule.RuleID,
 
-				Severity:    rule.Severity,
+				Severity: rule.Severity,
 
 				Description: rule.Description,
 
-				Resource:    "mock-resource",
-
+				Resource: "mock-resource",
 			})
 
 		}
 
 	}
-
-
 
 	if violations > 0 {
 
@@ -1599,15 +1291,11 @@ func (s *SecurityPolicyMock) ValidatePolicy(policyName string) bool {
 
 	}
 
-
-
 	ginkgo.By(fmt.Sprintf("✅ Policy validation passed: %s", policyName))
 
 	return true
 
 }
-
-
 
 // GetPolicies returns all security policies.
 
@@ -1617,8 +1305,6 @@ func (s *SecurityPolicyMock) GetPolicies() map[string]*SecurityPolicy {
 
 }
 
-
-
 // GetViolations returns current policy violations.
 
 func (s *SecurityPolicyMock) GetViolations() []PolicyViolation {
@@ -1627,21 +1313,15 @@ func (s *SecurityPolicyMock) GetViolations() []PolicyViolation {
 
 }
 
-
-
 // SimulatePolicyEnforcement simulates security policy enforcement.
 
 func (s *SecurityPolicyMock) SimulatePolicyEnforcement() bool {
 
 	ginkgo.By("🔍 Simulating security policy enforcement")
 
-
-
 	enforcedPolicies := 0
 
 	totalPolicies := len(s.policies)
-
-
 
 	for policyName, policy := range s.policies {
 
@@ -1659,19 +1339,13 @@ func (s *SecurityPolicyMock) SimulatePolicyEnforcement() bool {
 
 	}
 
-
-
 	enforcementRate := float64(enforcedPolicies) / float64(totalPolicies)
 
 	ginkgo.By(fmt.Sprintf("📊 Policy enforcement: %.1f%% success rate", enforcementRate*100))
 
-
-
 	return enforcementRate >= 0.9
 
 }
-
-
 
 // CleanupMockServices cleans up all security mock services.
 
@@ -1690,4 +1364,3 @@ func CleanupMockServices(oauth *OAuthMockService, tlsMock *TLSMockService) {
 	}
 
 }
-

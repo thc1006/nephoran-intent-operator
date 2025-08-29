@@ -1,33 +1,19 @@
-
 package ingest
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 )
-
-
 
 // IntentSchemaValidator validates intents against the JSON schema.
 
 type IntentSchemaValidator struct {
-
 	schemaPath string
 
-	schema     map[string]interface{}
-
+	schema map[string]interface{}
 }
-
-
 
 // NewIntentSchemaValidator creates a new schema validator.
 
@@ -41,8 +27,6 @@ func NewIntentSchemaValidator(schemaPath string) (*IntentSchemaValidator, error)
 
 	}
 
-
-
 	// Load and parse the schema.
 
 	schemaData, err := os.ReadFile(schemaPath)
@@ -53,8 +37,6 @@ func NewIntentSchemaValidator(schemaPath string) (*IntentSchemaValidator, error)
 
 	}
 
-
-
 	var schema map[string]interface{}
 
 	if err := json.Unmarshal(schemaData, &schema); err != nil {
@@ -63,19 +45,14 @@ func NewIntentSchemaValidator(schemaPath string) (*IntentSchemaValidator, error)
 
 	}
 
-
-
 	return &IntentSchemaValidator{
 
 		schemaPath: schemaPath,
 
-		schema:     schema,
-
+		schema: schema,
 	}, nil
 
 }
-
-
 
 // ValidateIntent validates an intent against the JSON schema.
 
@@ -93,8 +70,6 @@ func (v *IntentSchemaValidator) ValidateIntent(intent map[string]interface{}) er
 
 	}
 
-
-
 	// Get required fields.
 
 	requiredFields, ok := v.schema["required"].([]interface{})
@@ -104,8 +79,6 @@ func (v *IntentSchemaValidator) ValidateIntent(intent map[string]interface{}) er
 		return fmt.Errorf("invalid schema format: missing required fields")
 
 	}
-
-
 
 	// Check required fields.
 
@@ -127,8 +100,6 @@ func (v *IntentSchemaValidator) ValidateIntent(intent map[string]interface{}) er
 
 	}
 
-
-
 	// Validate each field.
 
 	for fieldName, value := range intent {
@@ -145,8 +116,6 @@ func (v *IntentSchemaValidator) ValidateIntent(intent map[string]interface{}) er
 
 		}
 
-
-
 		// Get field schema.
 
 		fieldSchema, ok := properties[fieldName].(map[string]interface{})
@@ -156,8 +125,6 @@ func (v *IntentSchemaValidator) ValidateIntent(intent map[string]interface{}) er
 			continue // Field not in schema, skip if additional properties allowed
 
 		}
-
-
 
 		// Validate field based on its schema.
 
@@ -169,13 +136,9 @@ func (v *IntentSchemaValidator) ValidateIntent(intent map[string]interface{}) er
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateField validates a single field against its schema.
 
@@ -195,8 +158,6 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 
 	}
 
-
-
 	// Check type.
 
 	if fieldType, ok := fieldSchema["type"].(string); ok {
@@ -213,8 +174,6 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 
 			}
 
-
-
 			// Check minLength.
 
 			if minLen, ok := fieldSchema["minLength"].(float64); ok {
@@ -227,8 +186,6 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 
 			}
 
-
-
 			// Check maxLength.
 
 			if maxLen, ok := fieldSchema["maxLength"].(float64); ok {
@@ -240,8 +197,6 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 				}
 
 			}
-
-
 
 			// Check enum values.
 
@@ -269,8 +224,6 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 
 			}
 
-
-
 		case "integer":
 
 			// JSON numbers come as float64, need to check if it's an integer.
@@ -293,8 +246,6 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 
 			}
 
-
-
 			// Check if it's actually an integer.
 
 			if numVal != float64(int(numVal)) {
@@ -303,11 +254,7 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 
 			}
 
-
-
 			intVal := int(numVal)
-
-
 
 			// Check minimum.
 
@@ -320,8 +267,6 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 				}
 
 			}
-
-
 
 			// Check maximum.
 
@@ -339,13 +284,9 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateIntentWithSchema validates an intent using the JSON schema.
 
@@ -363,9 +304,6 @@ func ValidateIntentWithSchema(intent map[string]interface{}, schemaPath string) 
 
 	}
 
-
-
 	return validator.ValidateIntent(intent)
 
 }
-

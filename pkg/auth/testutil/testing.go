@@ -1,229 +1,172 @@
 // Package testutil provides testing utilities and helpers for auth package.
 
-
 package testutil
 
-
-
 import (
-
 	"context"
-
 	"crypto/rand"
-
 	"crypto/rsa"
-
 	"crypto/x509"
-
 	"encoding/pem"
-
 	"fmt"
-
 	"log/slog"
-
 	"net/http"
-
 	"net/http/httptest"
-
 	"os"
-
 	"strings"
-
 	"sync"
-
 	"testing"
-
 	"time"
 
-
-
 	"github.com/golang-jwt/jwt/v5"
-
-	"github.com/stretchr/testify/assert"
-
-	"github.com/stretchr/testify/require"
-
-	"golang.org/x/text/cases"
-
-	"golang.org/x/text/language"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
-
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
-
-
 
 // Import types from main auth package to avoid circular dependencies.
 
 type NephoranJWTClaims struct {
-
 	jwt.RegisteredClaims
 
-	Email         string                 `json:"email"`
+	Email string `json:"email"`
 
-	EmailVerified bool                   `json:"email_verified"`
+	EmailVerified bool `json:"email_verified"`
 
-	Name          string                 `json:"name"`
+	Name string `json:"name"`
 
-	PreferredName string                 `json:"preferred_username"`
+	PreferredName string `json:"preferred_username"`
 
-	Picture       string                 `json:"picture"`
+	Picture string `json:"picture"`
 
-	Groups        []string               `json:"groups"`
+	Groups []string `json:"groups"`
 
-	Roles         []string               `json:"roles"`
+	Roles []string `json:"roles"`
 
-	Permissions   []string               `json:"permissions"`
+	Permissions []string `json:"permissions"`
 
-	Organizations []string               `json:"organizations"`
+	Organizations []string `json:"organizations"`
 
-	Provider      string                 `json:"provider"`
+	Provider string `json:"provider"`
 
-	ProviderID    string                 `json:"provider_id"`
+	ProviderID string `json:"provider_id"`
 
-	TenantID      string                 `json:"tenant_id,omitempty"`
+	TenantID string `json:"tenant_id,omitempty"`
 
-	SessionID     string                 `json:"session_id"`
+	SessionID string `json:"session_id"`
 
-	TokenType     string                 `json:"token_type"`
+	TokenType string `json:"token_type"`
 
-	Scope         string                 `json:"scope,omitempty"`
+	Scope string `json:"scope,omitempty"`
 
-	IPAddress     string                 `json:"ip_address,omitempty"`
+	IPAddress string `json:"ip_address,omitempty"`
 
-	UserAgent     string                 `json:"user_agent,omitempty"`
+	UserAgent string `json:"user_agent,omitempty"`
 
-	Attributes    map[string]interface{} `json:"attributes,omitempty"`
-
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
 }
-
-
 
 // TokenInfo represents stored token information.
 
 type TokenInfo struct {
+	TokenID string `json:"token_id"`
 
-	TokenID    string                 `json:"token_id"`
+	UserID string `json:"user_id"`
 
-	UserID     string                 `json:"user_id"`
+	SessionID string `json:"session_id"`
 
-	SessionID  string                 `json:"session_id"`
+	TokenType string `json:"token_type"`
 
-	TokenType  string                 `json:"token_type"`
+	IssuedAt time.Time `json:"issued_at"`
 
-	IssuedAt   time.Time              `json:"issued_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 
-	ExpiresAt  time.Time              `json:"expires_at"`
+	Provider string `json:"provider"`
 
-	Provider   string                 `json:"provider"`
+	Scope string `json:"scope,omitempty"`
 
-	Scope      string                 `json:"scope,omitempty"`
+	IPAddress string `json:"ip_address,omitempty"`
 
-	IPAddress  string                 `json:"ip_address,omitempty"`
-
-	UserAgent  string                 `json:"user_agent,omitempty"`
+	UserAgent string `json:"user_agent,omitempty"`
 
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
 
-	LastUsed   time.Time              `json:"last_used"`
+	LastUsed time.Time `json:"last_used"`
 
-	UseCount   int64                  `json:"use_count"`
-
+	UseCount int64 `json:"use_count"`
 }
-
-
 
 // Note: Role and Permission types have been moved to contracts.go as TestRole and TestPermission.
 
 // to avoid circular dependencies and type conflicts.
 
-
-
 // Role represents a role with associated permissions (alias to TestRole).
 
 type Role = TestRole
-
-
 
 // Permission represents a specific permission (alias to TestPermission).
 
 type Permission = TestPermission
 
-
-
 // AccessRequest represents an access control request (test copy).
 
 type AccessRequest struct {
+	UserID string `json:"user_id"`
 
-	UserID     string                 `json:"user_id"`
+	Resource string `json:"resource"`
 
-	Resource   string                 `json:"resource"`
+	Action string `json:"action"`
 
-	Action     string                 `json:"action"`
-
-	Context    map[string]interface{} `json:"context,omitempty"`
+	Context map[string]interface{} `json:"context,omitempty"`
 
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
 
-	IPAddress  string                 `json:"ip_address,omitempty"`
+	IPAddress string `json:"ip_address,omitempty"`
 
-	UserAgent  string                 `json:"user_agent,omitempty"`
+	UserAgent string `json:"user_agent,omitempty"`
 
-	Timestamp  time.Time              `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp"`
 
-	RequestID  string                 `json:"request_id,omitempty"`
-
+	RequestID string `json:"request_id,omitempty"`
 }
-
-
 
 // AccessDecision represents the result of an access control evaluation (test copy).
 
 type AccessDecision struct {
+	Allowed bool `json:"allowed"`
 
-	Allowed            bool                   `json:"allowed"`
+	Reason string `json:"reason"`
 
-	Reason             string                 `json:"reason"`
+	AppliedPolicies []string `json:"applied_policies"`
 
-	AppliedPolicies    []string               `json:"applied_policies"`
+	RequiredRoles []string `json:"required_roles,omitempty"`
 
-	RequiredRoles      []string               `json:"required_roles,omitempty"`
+	MissingPermissions []string `json:"missing_permissions,omitempty"`
 
-	MissingPermissions []string               `json:"missing_permissions,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 
-	Metadata           map[string]interface{} `json:"metadata,omitempty"`
+	EvaluatedAt time.Time `json:"evaluated_at"`
 
-	EvaluatedAt        time.Time              `json:"evaluated_at"`
-
-	TTL                time.Duration          `json:"ttl,omitempty"`
-
+	TTL time.Duration `json:"ttl,omitempty"`
 }
-
-
 
 // TokenOption represents token generation options.
 
 type TokenOption func(*TokenOptions)
 
-
-
 // TokenOptions contains token generation options.
 
 type TokenOptions struct {
+	TTL time.Duration
 
-	TTL       time.Duration
-
-	Scope     string
+	Scope string
 
 	IPAddress string
 
 	UserAgent string
-
 }
-
-
 
 // Helper functions for token options.
 
@@ -237,8 +180,6 @@ func WithTTL(ttl time.Duration) TokenOption {
 
 }
 
-
-
 // WithScope performs withscope operation.
 
 func WithScope(scope string) TokenOption {
@@ -250,8 +191,6 @@ func WithScope(scope string) TokenOption {
 	}
 
 }
-
-
 
 // WithIPAddress performs withipaddress operation.
 
@@ -265,8 +204,6 @@ func WithIPAddress(ip string) TokenOption {
 
 }
 
-
-
 // WithUserAgent performs withuseragent operation.
 
 func WithUserAgent(ua string) TokenOption {
@@ -279,25 +216,19 @@ func WithUserAgent(ua string) TokenOption {
 
 }
 
-
-
 // JWTManagerMock provides mock JWT functionality with interface compatibility.
 
 type JWTManagerMock struct {
+	privateKey *rsa.PrivateKey
 
-	privateKey        *rsa.PrivateKey
-
-	keyID             string
+	keyID string
 
 	blacklistedTokens map[string]bool
 
-	tokenStore        map[string]*TokenInfo
+	tokenStore map[string]*TokenInfo
 
-	mutex             sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewJWTManagerMock creates a new JWT manager mock.
 
@@ -307,13 +238,10 @@ func NewJWTManagerMock() *JWTManagerMock {
 
 		blacklistedTokens: make(map[string]bool),
 
-		tokenStore:        make(map[string]*TokenInfo),
-
+		tokenStore: make(map[string]*TokenInfo),
 	}
 
 }
-
-
 
 // GenerateAccessToken generates an access token for a user (matches real interface).
 
@@ -323,15 +251,11 @@ func (j *JWTManagerMock) GenerateAccessToken(ctx context.Context, userInfo *prov
 
 	defer j.mutex.Unlock()
 
-
-
 	if j.privateKey == nil {
 
 		return "", nil, fmt.Errorf("private key not set")
 
 	}
-
-
 
 	opts := &TokenOptions{}
 
@@ -340,8 +264,6 @@ func (j *JWTManagerMock) GenerateAccessToken(ctx context.Context, userInfo *prov
 		opt(opts)
 
 	}
-
-
 
 	now := time.Now()
 
@@ -355,63 +277,57 @@ func (j *JWTManagerMock) GenerateAccessToken(ctx context.Context, userInfo *prov
 
 	}
 
-
-
 	claims := &NephoranJWTClaims{
 
 		RegisteredClaims: jwt.RegisteredClaims{
 
-			ID:        tokenID,
+			ID: tokenID,
 
-			Subject:   userInfo.Subject,
+			Subject: userInfo.Subject,
 
-			Audience:  jwt.ClaimStrings{"test-audience"},
+			Audience: jwt.ClaimStrings{"test-audience"},
 
 			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
 
 			NotBefore: jwt.NewNumericDate(now),
 
-			IssuedAt:  jwt.NewNumericDate(now),
+			IssuedAt: jwt.NewNumericDate(now),
 
-			Issuer:    "test-issuer",
-
+			Issuer: "test-issuer",
 		},
 
-		Email:         userInfo.Email,
+		Email: userInfo.Email,
 
 		EmailVerified: userInfo.EmailVerified,
 
-		Name:          userInfo.Name,
+		Name: userInfo.Name,
 
 		PreferredName: userInfo.PreferredName,
 
-		Picture:       userInfo.Picture,
+		Picture: userInfo.Picture,
 
-		Groups:        userInfo.Groups,
+		Groups: userInfo.Groups,
 
-		Roles:         userInfo.Roles,
+		Roles: userInfo.Roles,
 
-		Permissions:   userInfo.Permissions,
+		Permissions: userInfo.Permissions,
 
-		Provider:      userInfo.Provider,
+		Provider: userInfo.Provider,
 
-		ProviderID:    userInfo.ProviderID,
+		ProviderID: userInfo.ProviderID,
 
-		SessionID:     sessionID,
+		SessionID: sessionID,
 
-		TokenType:     "access",
+		TokenType: "access",
 
-		Scope:         opts.Scope,
+		Scope: opts.Scope,
 
-		IPAddress:     opts.IPAddress,
+		IPAddress: opts.IPAddress,
 
-		UserAgent:     opts.UserAgent,
+		UserAgent: opts.UserAgent,
 
-		Attributes:    userInfo.Attributes,
-
+		Attributes: userInfo.Attributes,
 	}
-
-
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 
@@ -425,49 +341,40 @@ func (j *JWTManagerMock) GenerateAccessToken(ctx context.Context, userInfo *prov
 
 	}
 
-
-
 	tokenInfo := &TokenInfo{
 
-		TokenID:    tokenID,
+		TokenID: tokenID,
 
-		UserID:     userInfo.Subject,
+		UserID: userInfo.Subject,
 
-		SessionID:  sessionID,
+		SessionID: sessionID,
 
-		TokenType:  "access",
+		TokenType: "access",
 
-		IssuedAt:   now,
+		IssuedAt: now,
 
-		ExpiresAt:  claims.ExpiresAt.Time,
+		ExpiresAt: claims.ExpiresAt.Time,
 
-		Provider:   userInfo.Provider,
+		Provider: userInfo.Provider,
 
-		Scope:      opts.Scope,
+		Scope: opts.Scope,
 
-		IPAddress:  opts.IPAddress,
+		IPAddress: opts.IPAddress,
 
-		UserAgent:  opts.UserAgent,
+		UserAgent: opts.UserAgent,
 
 		Attributes: userInfo.Attributes,
 
-		LastUsed:   now,
+		LastUsed: now,
 
-		UseCount:   0,
-
+		UseCount: 0,
 	}
 
-
-
 	j.tokenStore[tokenID] = tokenInfo
-
-
 
 	return tokenString, tokenInfo, nil
 
 }
-
-
 
 // GenerateRefreshToken generates a refresh token.
 
@@ -477,15 +384,11 @@ func (j *JWTManagerMock) GenerateRefreshToken(ctx context.Context, userInfo *pro
 
 	defer j.mutex.Unlock()
 
-
-
 	if j.privateKey == nil {
 
 		return "", nil, fmt.Errorf("private key not set")
 
 	}
-
-
 
 	opts := &TokenOptions{}
 
@@ -494,8 +397,6 @@ func (j *JWTManagerMock) GenerateRefreshToken(ctx context.Context, userInfo *pro
 		opt(opts)
 
 	}
-
-
 
 	now := time.Now()
 
@@ -509,47 +410,41 @@ func (j *JWTManagerMock) GenerateRefreshToken(ctx context.Context, userInfo *pro
 
 	}
 
-
-
 	claims := &NephoranJWTClaims{
 
 		RegisteredClaims: jwt.RegisteredClaims{
 
-			ID:        tokenID,
+			ID: tokenID,
 
-			Subject:   userInfo.Subject,
+			Subject: userInfo.Subject,
 
-			Audience:  jwt.ClaimStrings{"test-audience"},
+			Audience: jwt.ClaimStrings{"test-audience"},
 
 			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
 
 			NotBefore: jwt.NewNumericDate(now),
 
-			IssuedAt:  jwt.NewNumericDate(now),
+			IssuedAt: jwt.NewNumericDate(now),
 
-			Issuer:    "test-issuer",
-
+			Issuer: "test-issuer",
 		},
 
-		Email:      userInfo.Email,
+		Email: userInfo.Email,
 
-		Name:       userInfo.Name,
+		Name: userInfo.Name,
 
-		Provider:   userInfo.Provider,
+		Provider: userInfo.Provider,
 
 		ProviderID: userInfo.ProviderID,
 
-		SessionID:  sessionID,
+		SessionID: sessionID,
 
-		TokenType:  "refresh",
+		TokenType: "refresh",
 
-		IPAddress:  opts.IPAddress,
+		IPAddress: opts.IPAddress,
 
-		UserAgent:  opts.UserAgent,
-
+		UserAgent: opts.UserAgent,
 	}
-
-
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 
@@ -563,45 +458,36 @@ func (j *JWTManagerMock) GenerateRefreshToken(ctx context.Context, userInfo *pro
 
 	}
 
-
-
 	tokenInfo := &TokenInfo{
 
-		TokenID:   tokenID,
+		TokenID: tokenID,
 
-		UserID:    userInfo.Subject,
+		UserID: userInfo.Subject,
 
 		SessionID: sessionID,
 
 		TokenType: "refresh",
 
-		IssuedAt:  now,
+		IssuedAt: now,
 
 		ExpiresAt: claims.ExpiresAt.Time,
 
-		Provider:  userInfo.Provider,
+		Provider: userInfo.Provider,
 
 		IPAddress: opts.IPAddress,
 
 		UserAgent: opts.UserAgent,
 
-		LastUsed:  now,
+		LastUsed: now,
 
-		UseCount:  0,
-
+		UseCount: 0,
 	}
 
-
-
 	j.tokenStore[tokenID] = tokenInfo
-
-
 
 	return tokenString, tokenInfo, nil
 
 }
-
-
 
 // ValidateToken validates a JWT token and returns claims (matches real interface).
 
@@ -611,8 +497,6 @@ func (j *JWTManagerMock) ValidateToken(ctx context.Context, tokenString string) 
 
 	defer j.mutex.RUnlock()
 
-
-
 	// Check if token is blacklisted.
 
 	if j.blacklistedTokens != nil && j.blacklistedTokens[tokenString] {
@@ -620,8 +504,6 @@ func (j *JWTManagerMock) ValidateToken(ctx context.Context, tokenString string) 
 		return nil, fmt.Errorf("token has been revoked")
 
 	}
-
-
 
 	// Parse and validate token.
 
@@ -643,15 +525,11 @@ func (j *JWTManagerMock) ValidateToken(ctx context.Context, tokenString string) 
 
 	}
 
-
-
 	if !token.Valid {
 
 		return nil, fmt.Errorf("invalid token")
 
 	}
-
-
 
 	claims, ok := token.Claims.(*NephoranJWTClaims)
 
@@ -660,8 +538,6 @@ func (j *JWTManagerMock) ValidateToken(ctx context.Context, tokenString string) 
 		return nil, fmt.Errorf("invalid token claims")
 
 	}
-
-
 
 	// Update token usage if found in store.
 
@@ -677,13 +553,9 @@ func (j *JWTManagerMock) ValidateToken(ctx context.Context, tokenString string) 
 
 	}
 
-
-
 	return claims, nil
 
 }
-
-
 
 // RefreshAccessToken generates a new access token using a refresh token.
 
@@ -699,55 +571,46 @@ func (j *JWTManagerMock) RefreshAccessToken(ctx context.Context, refreshTokenStr
 
 	}
 
-
-
 	if claims.TokenType != "refresh" {
 
 		return "", nil, fmt.Errorf("token is not a refresh token")
 
 	}
 
-
-
 	// Create user info from refresh token claims.
 
 	userInfo := &providers.UserInfo{
 
-		Subject:       claims.Subject,
+		Subject: claims.Subject,
 
-		Email:         claims.Email,
+		Email: claims.Email,
 
 		EmailVerified: claims.EmailVerified,
 
-		Name:          claims.Name,
+		Name: claims.Name,
 
 		PreferredName: claims.PreferredName,
 
-		Picture:       claims.Picture,
+		Picture: claims.Picture,
 
-		Groups:        claims.Groups,
+		Groups: claims.Groups,
 
-		Roles:         claims.Roles,
+		Roles: claims.Roles,
 
-		Permissions:   claims.Permissions,
+		Permissions: claims.Permissions,
 
-		Provider:      claims.Provider,
+		Provider: claims.Provider,
 
-		ProviderID:    claims.ProviderID,
+		ProviderID: claims.ProviderID,
 
-		Attributes:    claims.Attributes,
-
+		Attributes: claims.Attributes,
 	}
-
-
 
 	// Generate new access token.
 
 	return j.GenerateAccessToken(ctx, userInfo, claims.SessionID, options...)
 
 }
-
-
 
 // RevokeToken revokes a token by adding it to the blacklist.
 
@@ -757,8 +620,6 @@ func (j *JWTManagerMock) RevokeToken(ctx context.Context, tokenString string) er
 
 	defer j.mutex.Unlock()
 
-
-
 	// Parse token to get ID.
 
 	token, err := jwt.ParseWithClaims(tokenString, &NephoranJWTClaims{}, func(token *jwt.Token) (interface{}, error) {
@@ -767,15 +628,11 @@ func (j *JWTManagerMock) RevokeToken(ctx context.Context, tokenString string) er
 
 	})
 
-
-
 	if err != nil && !strings.Contains(err.Error(), "token is expired") {
 
 		return fmt.Errorf("failed to parse token for revocation: %w", err)
 
 	}
-
-
 
 	if claims, ok := token.Claims.(*NephoranJWTClaims); ok {
 
@@ -789,13 +646,9 @@ func (j *JWTManagerMock) RevokeToken(ctx context.Context, tokenString string) er
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // RevokeUserTokens revokes all tokens for a specific user.
 
@@ -804,8 +657,6 @@ func (j *JWTManagerMock) RevokeUserTokens(ctx context.Context, userID string) er
 	j.mutex.Lock()
 
 	defer j.mutex.Unlock()
-
-
 
 	tokensToRevoke := []string{}
 
@@ -819,21 +670,15 @@ func (j *JWTManagerMock) RevokeUserTokens(ctx context.Context, userID string) er
 
 	}
 
-
-
 	for _, tokenID := range tokensToRevoke {
 
 		delete(j.tokenStore, tokenID)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetTokenInfo retrieves token information.
 
@@ -843,8 +688,6 @@ func (j *JWTManagerMock) GetTokenInfo(ctx context.Context, tokenID string) (*Tok
 
 	defer j.mutex.RUnlock()
 
-
-
 	tokenInfo, exists := j.tokenStore[tokenID]
 
 	if !exists {
@@ -853,13 +696,9 @@ func (j *JWTManagerMock) GetTokenInfo(ctx context.Context, tokenID string) (*Tok
 
 	}
 
-
-
 	return tokenInfo, nil
 
 }
-
-
 
 // ListUserTokens lists all active tokens for a user.
 
@@ -868,8 +707,6 @@ func (j *JWTManagerMock) ListUserTokens(ctx context.Context, userID string) ([]*
 	j.mutex.RLock()
 
 	defer j.mutex.RUnlock()
-
-
 
 	var tokens []*TokenInfo
 
@@ -883,13 +720,9 @@ func (j *JWTManagerMock) ListUserTokens(ctx context.Context, userID string) ([]*
 
 	}
 
-
-
 	return tokens, nil
 
 }
-
-
 
 // SetSigningKey sets the signing key for the mock.
 
@@ -899,8 +732,6 @@ func (j *JWTManagerMock) SetSigningKey(privateKey *rsa.PrivateKey, keyID string)
 
 	defer j.mutex.Unlock()
 
-
-
 	j.privateKey = privateKey
 
 	j.keyID = keyID
@@ -908,8 +739,6 @@ func (j *JWTManagerMock) SetSigningKey(privateKey *rsa.PrivateKey, keyID string)
 	return nil
 
 }
-
-
 
 // Deprecated: GenerateToken is deprecated, use GenerateAccessToken instead.
 
@@ -923,8 +752,6 @@ func (j *JWTManagerMock) GenerateToken(user *providers.UserInfo, customClaims ma
 
 }
 
-
-
 // GenerateTokenWithTTL performs generatetokenwithttl operation.
 
 func (j *JWTManagerMock) GenerateTokenWithTTL(user *providers.UserInfo, customClaims map[string]interface{}, ttl time.Duration) (string, error) {
@@ -934,8 +761,6 @@ func (j *JWTManagerMock) GenerateTokenWithTTL(user *providers.UserInfo, customCl
 	return tokenString, err
 
 }
-
-
 
 // GenerateTokenPair performs generatetokenpair operation.
 
@@ -949,8 +774,6 @@ func (j *JWTManagerMock) GenerateTokenPair(user *providers.UserInfo, customClaim
 
 	}
 
-
-
 	refreshToken, _, err := j.GenerateRefreshToken(context.Background(), user, "test-session")
 
 	if err != nil {
@@ -959,13 +782,9 @@ func (j *JWTManagerMock) GenerateTokenPair(user *providers.UserInfo, customClaim
 
 	}
 
-
-
 	return accessToken, refreshToken, nil
 
 }
-
-
 
 // Deprecated: ValidateToken with *jwt.Token return is deprecated.
 
@@ -979,8 +798,6 @@ func (j *JWTManagerMock) ValidateTokenLegacy(tokenString string) (*jwt.Token, er
 
 	}
 
-
-
 	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 
 		return &j.privateKey.PublicKey, nil
@@ -988,8 +805,6 @@ func (j *JWTManagerMock) ValidateTokenLegacy(tokenString string) (*jwt.Token, er
 	})
 
 }
-
-
 
 // RefreshToken performs refreshtoken operation.
 
@@ -1007,8 +822,6 @@ func (j *JWTManagerMock) RefreshToken(refreshTokenString string) (string, string
 
 }
 
-
-
 // BlacklistToken performs blacklisttoken operation.
 
 func (j *JWTManagerMock) BlacklistToken(tokenString string) error {
@@ -1016,8 +829,6 @@ func (j *JWTManagerMock) BlacklistToken(tokenString string) error {
 	return j.RevokeToken(context.Background(), tokenString)
 
 }
-
-
 
 // CleanupBlacklist performs cleanupblacklist operation.
 
@@ -1029,8 +840,6 @@ func (j *JWTManagerMock) CleanupBlacklist() error {
 
 }
 
-
-
 // Close performs close operation.
 
 func (j *JWTManagerMock) Close() {
@@ -1039,25 +848,19 @@ func (j *JWTManagerMock) Close() {
 
 }
 
-
-
 // RBACManagerMock provides mock RBAC functionality with interface compatibility.
 
 type RBACManagerMock struct {
+	roles map[string][]string // userID -> roles
 
-	roles           map[string][]string        // userID -> roles
+	permissions map[string][]string // role -> permissions
 
-	permissions     map[string][]string        // role -> permissions
-
-	roleStore       map[string]*TestRole       // roleID -> role
+	roleStore map[string]*TestRole // roleID -> role
 
 	permissionStore map[string]*TestPermission // permissionID -> permission
 
-	mutex           sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewRBACManagerMock creates a new RBAC manager mock.
 
@@ -1065,19 +868,16 @@ func NewRBACManagerMock() *RBACManagerMock {
 
 	return &RBACManagerMock{
 
-		roles:           make(map[string][]string),
+		roles: make(map[string][]string),
 
-		permissions:     make(map[string][]string),
+		permissions: make(map[string][]string),
 
-		roleStore:       make(map[string]*TestRole),
+		roleStore: make(map[string]*TestRole),
 
 		permissionStore: make(map[string]*TestPermission),
-
 	}
 
 }
-
-
 
 // GrantRoleToUser assigns a role to a user (matches real interface).
 
@@ -1087,8 +887,6 @@ func (r *RBACManagerMock) GrantRoleToUser(ctx context.Context, userID, roleID st
 
 	defer r.mutex.Unlock()
 
-
-
 	// Verify role exists.
 
 	if _, exists := r.roleStore[roleID]; !exists {
@@ -1096,8 +894,6 @@ func (r *RBACManagerMock) GrantRoleToUser(ctx context.Context, userID, roleID st
 		return fmt.Errorf("role %s does not exist", roleID)
 
 	}
-
-
 
 	// Add role to user.
 
@@ -1113,15 +909,11 @@ func (r *RBACManagerMock) GrantRoleToUser(ctx context.Context, userID, roleID st
 
 	}
 
-
-
 	r.roles[userID] = append(userRoles, roleID)
 
 	return nil
 
 }
-
-
 
 // RevokeRoleFromUser removes a role from a user (matches real interface).
 
@@ -1130,8 +922,6 @@ func (r *RBACManagerMock) RevokeRoleFromUser(ctx context.Context, userID, roleID
 	r.mutex.Lock()
 
 	defer r.mutex.Unlock()
-
-
 
 	userRoles := r.roles[userID]
 
@@ -1149,13 +939,9 @@ func (r *RBACManagerMock) RevokeRoleFromUser(ctx context.Context, userID, roleID
 
 	}
 
-
-
 	return fmt.Errorf("user %s does not have role %s", userID, roleID)
 
 }
-
-
 
 // GetUserRoles returns all roles for a user (matches real interface).
 
@@ -1164,8 +950,6 @@ func (r *RBACManagerMock) GetUserRoles(ctx context.Context, userID string) []str
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
-
-
 
 	roles := r.roles[userID]
 
@@ -1177,8 +961,6 @@ func (r *RBACManagerMock) GetUserRoles(ctx context.Context, userID string) []str
 
 }
 
-
-
 // GetUserPermissions returns all permissions for a user (matches real interface).
 
 func (r *RBACManagerMock) GetUserPermissions(ctx context.Context, userID string) []string {
@@ -1187,13 +969,9 @@ func (r *RBACManagerMock) GetUserPermissions(ctx context.Context, userID string)
 
 	defer r.mutex.RUnlock()
 
-
-
 	permissionSet := make(map[string]bool)
 
 	var allPermissions []string
-
-
 
 	// Get permissions from user's roles.
 
@@ -1219,21 +997,15 @@ func (r *RBACManagerMock) GetUserPermissions(ctx context.Context, userID string)
 
 	}
 
-
-
 	return allPermissions
 
 }
-
-
 
 // CheckPermission checks if a user has a specific permission (matches real interface).
 
 func (r *RBACManagerMock) CheckPermission(ctx context.Context, userID, permission string) bool {
 
 	userPermissions := r.GetUserPermissions(ctx, userID)
-
-
 
 	for _, perm := range userPermissions {
 
@@ -1245,13 +1017,9 @@ func (r *RBACManagerMock) CheckPermission(ctx context.Context, userID, permissio
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // CheckAccess evaluates an access request against RBAC policies (matches real interface).
 
@@ -1259,23 +1027,16 @@ func (r *RBACManagerMock) CheckAccess(ctx context.Context, request *AccessReques
 
 	startTime := time.Now()
 
-
-
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
-
-
 
 	decision := &AccessDecision{
 
 		EvaluatedAt: startTime,
 
-		Metadata:    make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}
-
-
 
 	// Get user permissions.
 
@@ -1283,15 +1044,11 @@ func (r *RBACManagerMock) CheckAccess(ctx context.Context, request *AccessReques
 
 	userRoles := r.GetUserRoles(ctx, request.UserID)
 
-
-
 	// Check if user has required permission.
 
 	requiredPermission := fmt.Sprintf("%s:%s", request.Resource, request.Action)
 
 	hasPermission := false
-
-
 
 	for _, perm := range userPermissions {
 
@@ -1305,8 +1062,6 @@ func (r *RBACManagerMock) CheckAccess(ctx context.Context, request *AccessReques
 
 	}
 
-
-
 	if !hasPermission {
 
 		decision.Allowed = false
@@ -1319,8 +1074,6 @@ func (r *RBACManagerMock) CheckAccess(ctx context.Context, request *AccessReques
 
 	}
 
-
-
 	decision.Allowed = true
 
 	decision.Reason = "Permission granted by RBAC"
@@ -1329,13 +1082,9 @@ func (r *RBACManagerMock) CheckAccess(ctx context.Context, request *AccessReques
 
 	decision.Metadata["checked_permission"] = requiredPermission
 
-
-
 	return decision
 
 }
-
-
 
 // CreateRole creates a new role (matches real interface).
 
@@ -1345,23 +1094,17 @@ func (r *RBACManagerMock) CreateRole(ctx context.Context, role *TestRole) (*Test
 
 	defer r.mutex.Unlock()
 
-
-
 	if role.ID == "" {
 
 		return nil, fmt.Errorf("role ID cannot be empty")
 
 	}
 
-
-
 	if _, exists := r.roleStore[role.ID]; exists {
 
 		return nil, fmt.Errorf("role %s already exists", role.ID)
 
 	}
-
-
 
 	// Validate permissions exist.
 
@@ -1375,23 +1118,17 @@ func (r *RBACManagerMock) CreateRole(ctx context.Context, role *TestRole) (*Test
 
 	}
 
-
-
 	now := time.Now()
 
 	role.CreatedAt = now
 
 	role.UpdatedAt = now
 
-
-
 	r.roleStore[role.ID] = role
 
 	return role, nil
 
 }
-
-
 
 // UpdateRole updates an existing role (matches real interface).
 
@@ -1401,15 +1138,11 @@ func (r *RBACManagerMock) UpdateRole(ctx context.Context, role *TestRole) error 
 
 	defer r.mutex.Unlock()
 
-
-
 	if _, exists := r.roleStore[role.ID]; !exists {
 
 		return fmt.Errorf("role %s does not exist", role.ID)
 
 	}
-
-
 
 	// Validate permissions exist.
 
@@ -1423,8 +1156,6 @@ func (r *RBACManagerMock) UpdateRole(ctx context.Context, role *TestRole) error 
 
 	}
 
-
-
 	role.UpdatedAt = time.Now()
 
 	r.roleStore[role.ID] = role
@@ -1432,8 +1163,6 @@ func (r *RBACManagerMock) UpdateRole(ctx context.Context, role *TestRole) error 
 	return nil
 
 }
-
-
 
 // DeleteRole deletes a role (matches real interface).
 
@@ -1443,15 +1172,11 @@ func (r *RBACManagerMock) DeleteRole(ctx context.Context, roleID string) error {
 
 	defer r.mutex.Unlock()
 
-
-
 	if _, exists := r.roleStore[roleID]; !exists {
 
 		return fmt.Errorf("role %s does not exist", roleID)
 
 	}
-
-
 
 	// Remove role from all users.
 
@@ -1471,15 +1196,11 @@ func (r *RBACManagerMock) DeleteRole(ctx context.Context, roleID string) error {
 
 	}
 
-
-
 	delete(r.roleStore, roleID)
 
 	return nil
 
 }
-
-
 
 // ListRoles returns all roles (matches real interface).
 
@@ -1489,8 +1210,6 @@ func (r *RBACManagerMock) ListRoles(ctx context.Context) []*TestRole {
 
 	defer r.mutex.RUnlock()
 
-
-
 	roles := make([]*TestRole, 0, len(r.roleStore))
 
 	for _, role := range r.roleStore {
@@ -1499,13 +1218,9 @@ func (r *RBACManagerMock) ListRoles(ctx context.Context) []*TestRole {
 
 	}
 
-
-
 	return roles
 
 }
-
-
 
 // GetRole returns a specific role (matches real interface).
 
@@ -1515,8 +1230,6 @@ func (r *RBACManagerMock) GetRole(ctx context.Context, roleID string) (*TestRole
 
 	defer r.mutex.RUnlock()
 
-
-
 	role, exists := r.roleStore[roleID]
 
 	if !exists {
@@ -1525,13 +1238,9 @@ func (r *RBACManagerMock) GetRole(ctx context.Context, roleID string) (*TestRole
 
 	}
 
-
-
 	return role, nil
 
 }
-
-
 
 // CreatePermission creates a new permission (matches real interface).
 
@@ -1541,15 +1250,11 @@ func (r *RBACManagerMock) CreatePermission(ctx context.Context, perm *TestPermis
 
 	defer r.mutex.Unlock()
 
-
-
 	if perm.ID == "" {
 
 		return nil, fmt.Errorf("permission ID cannot be empty")
 
 	}
-
-
 
 	if _, exists := r.permissionStore[perm.ID]; exists {
 
@@ -1557,23 +1262,17 @@ func (r *RBACManagerMock) CreatePermission(ctx context.Context, perm *TestPermis
 
 	}
 
-
-
 	now := time.Now()
 
 	perm.CreatedAt = now
 
 	perm.UpdatedAt = now
 
-
-
 	r.permissionStore[perm.ID] = perm
 
 	return perm, nil
 
 }
-
-
 
 // ListPermissions returns all permissions (matches real interface).
 
@@ -1583,8 +1282,6 @@ func (r *RBACManagerMock) ListPermissions(ctx context.Context) []*TestPermission
 
 	defer r.mutex.RUnlock()
 
-
-
 	permissions := make([]*TestPermission, 0, len(r.permissionStore))
 
 	for _, perm := range r.permissionStore {
@@ -1593,21 +1290,15 @@ func (r *RBACManagerMock) ListPermissions(ctx context.Context) []*TestPermission
 
 	}
 
-
-
 	return permissions
 
 }
-
-
 
 // AssignRolesFromClaims assigns roles based on JWT claims and provider groups.
 
 func (r *RBACManagerMock) AssignRolesFromClaims(ctx context.Context, userInfo *providers.UserInfo) error {
 
 	userID := userInfo.Subject
-
-
 
 	// Clear existing roles for fresh assignment.
 
@@ -1617,13 +1308,9 @@ func (r *RBACManagerMock) AssignRolesFromClaims(ctx context.Context, userInfo *p
 
 	r.mutex.Unlock()
 
-
-
 	// Map provider groups/roles to Nephoran roles.
 
 	roleMappings := []string{"read-only"} // Default role
-
-
 
 	for _, roleID := range roleMappings {
 
@@ -1635,18 +1322,17 @@ func (r *RBACManagerMock) AssignRolesFromClaims(ctx context.Context, userInfo *p
 
 				basicRole := &TestRole{
 
-					ID:          roleID,
+					ID: roleID,
 
-					Name:        roleID,
+					Name: roleID,
 
 					Description: fmt.Sprintf("Auto-generated role: %s", roleID),
 
 					Permissions: []string{"read:basic"},
 
-					CreatedAt:   time.Now(),
+					CreatedAt: time.Now(),
 
-					UpdatedAt:   time.Now(),
-
+					UpdatedAt: time.Now(),
 				}
 
 				if _, err := r.CreateRole(ctx, basicRole); err != nil {
@@ -1663,13 +1349,9 @@ func (r *RBACManagerMock) AssignRolesFromClaims(ctx context.Context, userInfo *p
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Helper method for permission matching.
 
@@ -1682,8 +1364,6 @@ func (r *RBACManagerMock) matchesPermission(granted, required string) bool {
 		return true
 
 	}
-
-
 
 	// Handle resource-level wildcards (e.g., "intent:*" matches "intent:read").
 
@@ -1701,13 +1381,9 @@ func (r *RBACManagerMock) matchesPermission(granted, required string) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // Deprecated methods for backward compatibility.
 
@@ -1721,8 +1397,6 @@ func (r *RBACManagerMock) CheckPermissionLegacy(ctx context.Context, userID, res
 
 }
 
-
-
 // AssignRole performs assignrole operation.
 
 func (r *RBACManagerMock) AssignRole(ctx context.Context, userID, role string) error {
@@ -1731,8 +1405,6 @@ func (r *RBACManagerMock) AssignRole(ctx context.Context, userID, role string) e
 
 }
 
-
-
 // RevokeRole performs revokerole operation.
 
 func (r *RBACManagerMock) RevokeRole(ctx context.Context, userID, role string) error {
@@ -1740,8 +1412,6 @@ func (r *RBACManagerMock) RevokeRole(ctx context.Context, userID, role string) e
 	return r.RevokeRoleFromUser(ctx, userID, role)
 
 }
-
-
 
 // GetRolePermissions performs getrolepermissions operation.
 
@@ -1757,8 +1427,6 @@ func (r *RBACManagerMock) GetRolePermissions(ctx context.Context, role string) (
 
 }
 
-
-
 // AssignRoleToUser performs assignroletouser operation.
 
 func (r *RBACManagerMock) AssignRoleToUser(ctx context.Context, userID, roleID string) error {
@@ -1767,57 +1435,41 @@ func (r *RBACManagerMock) AssignRoleToUser(ctx context.Context, userID, roleID s
 
 }
 
-
-
 // Rest of the file continues with SessionManagerMock and TestContext...
 
 // (The rest remains the same as the original file).
 
-
-
 // SessionManagerMock provides mock session functionality.
 
 type SessionManagerMock struct {
-
 	sessions map[string]*MockSession
 
-	mutex    sync.RWMutex
+	mutex sync.RWMutex
 
-	config   SessionConfig
-
+	config SessionConfig
 }
-
-
 
 // SessionConfig represents a sessionconfig.
 
 type SessionConfig struct {
-
 	SessionTTL time.Duration
-
 }
-
-
 
 // MockSession represents a mocksession.
 
 type MockSession struct {
+	ID string
 
-	ID        string
+	UserID string
 
-	UserID    string
-
-	UserInfo  *providers.UserInfo
+	UserInfo *providers.UserInfo
 
 	CreatedAt time.Time
 
 	ExpiresAt time.Time
 
-	Data      map[string]interface{}
-
+	Data map[string]interface{}
 }
-
-
 
 // NewSessionManagerMock performs newsessionmanagermock operation.
 
@@ -1830,14 +1482,10 @@ func NewSessionManagerMock() *SessionManagerMock {
 		config: SessionConfig{
 
 			SessionTTL: time.Hour,
-
 		},
-
 	}
 
 }
-
-
 
 // CreateSession performs createsession operation.
 
@@ -1847,25 +1495,20 @@ func (s *SessionManagerMock) CreateSession(ctx context.Context, userInfo *provid
 
 	defer s.mutex.Unlock()
 
-
-
 	session := &MockSession{
 
-		ID:        fmt.Sprintf("test-session-%d", time.Now().UnixNano()),
+		ID: fmt.Sprintf("test-session-%d", time.Now().UnixNano()),
 
-		UserID:    userInfo.Subject,
+		UserID: userInfo.Subject,
 
-		UserInfo:  userInfo,
+		UserInfo: userInfo,
 
 		CreatedAt: time.Now(),
 
 		ExpiresAt: time.Now().Add(time.Hour),
 
-		Data:      make(map[string]interface{}),
-
+		Data: make(map[string]interface{}),
 	}
-
-
 
 	// Add metadata if provided.
 
@@ -1879,15 +1522,11 @@ func (s *SessionManagerMock) CreateSession(ctx context.Context, userInfo *provid
 
 	}
 
-
-
 	s.sessions[session.ID] = session
 
 	return session, nil
 
 }
-
-
 
 // GetSession performs getsession operation.
 
@@ -1896,8 +1535,6 @@ func (s *SessionManagerMock) GetSession(ctx context.Context, sessionID string) (
 	s.mutex.RLock()
 
 	defer s.mutex.RUnlock()
-
-
 
 	session, exists := s.sessions[sessionID]
 
@@ -1911,8 +1548,6 @@ func (s *SessionManagerMock) GetSession(ctx context.Context, sessionID string) (
 
 }
 
-
-
 // UpdateSession performs updatesession operation.
 
 func (s *SessionManagerMock) UpdateSession(ctx context.Context, sessionID string, updates map[string]interface{}) error {
@@ -1921,8 +1556,6 @@ func (s *SessionManagerMock) UpdateSession(ctx context.Context, sessionID string
 
 	defer s.mutex.Unlock()
 
-
-
 	session, exists := s.sessions[sessionID]
 
 	if !exists {
@@ -1930,8 +1563,6 @@ func (s *SessionManagerMock) UpdateSession(ctx context.Context, sessionID string
 		return fmt.Errorf("session not found")
 
 	}
-
-
 
 	for k, v := range updates {
 
@@ -1943,8 +1574,6 @@ func (s *SessionManagerMock) UpdateSession(ctx context.Context, sessionID string
 
 }
 
-
-
 // DeleteSession performs deletesession operation.
 
 func (s *SessionManagerMock) DeleteSession(ctx context.Context, sessionID string) error {
@@ -1953,15 +1582,11 @@ func (s *SessionManagerMock) DeleteSession(ctx context.Context, sessionID string
 
 	defer s.mutex.Unlock()
 
-
-
 	delete(s.sessions, sessionID)
 
 	return nil
 
 }
-
-
 
 // ListUserSessions performs listusersessions operation.
 
@@ -1970,8 +1595,6 @@ func (s *SessionManagerMock) ListUserSessions(ctx context.Context, userID string
 	s.mutex.RLock()
 
 	defer s.mutex.RUnlock()
-
-
 
 	var sessions []*MockSession
 
@@ -1989,8 +1612,6 @@ func (s *SessionManagerMock) ListUserSessions(ctx context.Context, userID string
 
 }
 
-
-
 // ValidateSession performs validatesession operation.
 
 func (s *SessionManagerMock) ValidateSession(ctx context.Context, sessionID string) (*MockSession, error) {
@@ -2003,8 +1624,6 @@ func (s *SessionManagerMock) ValidateSession(ctx context.Context, sessionID stri
 
 	}
 
-
-
 	// Check if session is expired.
 
 	if time.Now().After(session.ExpiresAt) {
@@ -2013,13 +1632,9 @@ func (s *SessionManagerMock) ValidateSession(ctx context.Context, sessionID stri
 
 	}
 
-
-
 	return session, nil
 
 }
-
-
 
 // RefreshSession performs refreshsession operation.
 
@@ -2029,8 +1644,6 @@ func (s *SessionManagerMock) RefreshSession(ctx context.Context, sessionID strin
 
 	defer s.mutex.Unlock()
 
-
-
 	session, exists := s.sessions[sessionID]
 
 	if !exists {
@@ -2038,8 +1651,6 @@ func (s *SessionManagerMock) RefreshSession(ctx context.Context, sessionID strin
 		return nil, fmt.Errorf("session not found")
 
 	}
-
-
 
 	// Extend session expiry.
 
@@ -2049,29 +1660,25 @@ func (s *SessionManagerMock) RefreshSession(ctx context.Context, sessionID strin
 
 }
 
-
-
 // SetSessionCookie performs setsessioncookie operation.
 
 func (s *SessionManagerMock) SetSessionCookie(w http.ResponseWriter, sessionID string) {
 
 	http.SetCookie(w, &http.Cookie{
 
-		Name:     "test-session",
+		Name: "test-session",
 
-		Value:    sessionID,
+		Value: sessionID,
 
-		Path:     "/",
+		Path: "/",
 
 		HttpOnly: true,
 
-		Secure:   false, // For testing
+		Secure: false, // For testing
 
 	})
 
 }
-
-
 
 // GetSessionFromRequest performs getsessionfromrequest operation.
 
@@ -2089,8 +1696,6 @@ func (s *SessionManagerMock) GetSessionFromRequest(r *http.Request) (*MockSessio
 
 }
 
-
-
 // CleanupExpiredSessions performs cleanupexpiredsessions operation.
 
 func (s *SessionManagerMock) CleanupExpiredSessions() error {
@@ -2098,8 +1703,6 @@ func (s *SessionManagerMock) CleanupExpiredSessions() error {
 	s.mutex.Lock()
 
 	defer s.mutex.Unlock()
-
-
 
 	now := time.Now()
 
@@ -2113,13 +1716,9 @@ func (s *SessionManagerMock) CleanupExpiredSessions() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Close performs close operation.
 
@@ -2129,11 +1728,7 @@ func (s *SessionManagerMock) Close() {
 
 }
 
-
-
 // Additional methods needed for comprehensive tests.
-
-
 
 // UpdateSessionMetadata performs updatesessionmetadata operation.
 
@@ -2143,8 +1738,6 @@ func (s *SessionManagerMock) UpdateSessionMetadata(ctx context.Context, sessionI
 
 	defer s.mutex.Unlock()
 
-
-
 	session, exists := s.sessions[sessionID]
 
 	if !exists {
@@ -2153,8 +1746,6 @@ func (s *SessionManagerMock) UpdateSessionMetadata(ctx context.Context, sessionI
 
 	}
 
-
-
 	// S1031: Range over maps is safe even if the map is nil, no check needed
 	for k, v := range metadata {
 
@@ -2162,13 +1753,9 @@ func (s *SessionManagerMock) UpdateSessionMetadata(ctx context.Context, sessionI
 
 	}
 
-
-
 	return session, nil
 
 }
-
-
 
 // GetUserSessions performs getusersessions operation.
 
@@ -2178,8 +1765,6 @@ func (s *SessionManagerMock) GetUserSessions(ctx context.Context, userID string)
 
 }
 
-
-
 // RevokeSession performs revokesession operation.
 
 func (s *SessionManagerMock) RevokeSession(ctx context.Context, sessionID string) error {
@@ -2188,8 +1773,6 @@ func (s *SessionManagerMock) RevokeSession(ctx context.Context, sessionID string
 
 }
 
-
-
 // RevokeAllUserSessions performs revokeallusersessions operation.
 
 func (s *SessionManagerMock) RevokeAllUserSessions(ctx context.Context, userID string) error {
@@ -2197,8 +1780,6 @@ func (s *SessionManagerMock) RevokeAllUserSessions(ctx context.Context, userID s
 	s.mutex.Lock()
 
 	defer s.mutex.Unlock()
-
-
 
 	toDelete := []string{}
 
@@ -2212,21 +1793,15 @@ func (s *SessionManagerMock) RevokeAllUserSessions(ctx context.Context, userID s
 
 	}
 
-
-
 	for _, id := range toDelete {
 
 		delete(s.sessions, id)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetSessionFromCookie performs getsessionfromcookie operation.
 
@@ -2244,83 +1819,66 @@ func (s *SessionManagerMock) GetSessionFromCookie(r *http.Request) (string, erro
 
 }
 
-
-
 // ClearSessionCookie performs clearsessioncookie operation.
 
 func (s *SessionManagerMock) ClearSessionCookie(w http.ResponseWriter) {
 
 	http.SetCookie(w, &http.Cookie{
 
-		Name:     "test-session",
+		Name: "test-session",
 
-		Value:    "",
+		Value: "",
 
-		Path:     "/",
+		Path: "/",
 
 		HttpOnly: true,
 
-		Secure:   false,
+		Secure: false,
 
-		MaxAge:   -1,
+		MaxAge: -1,
 
-		Expires:  time.Now().Add(-time.Hour),
-
+		Expires: time.Now().Add(-time.Hour),
 	})
 
 }
 
-
-
 // TestContext provides a complete testing environment for auth tests.
 
 type TestContext struct {
+	T *testing.T
 
-	T      *testing.T
-
-	Ctx    context.Context
+	Ctx context.Context
 
 	Logger *slog.Logger
-
-
 
 	// Keys for testing.
 
 	PrivateKey *rsa.PrivateKey
 
-	PublicKey  *rsa.PublicKey
+	PublicKey *rsa.PublicKey
 
-	KeyID      string
-
-
+	KeyID string
 
 	// Test servers.
 
 	OAuthServer *httptest.Server
 
-	LDAPServer  *MockLDAPServer
-
-
+	LDAPServer *MockLDAPServer
 
 	// Mock implementations for testing.
 
-	JWTManager     *JWTManagerMock
+	JWTManager *JWTManagerMock
 
-	RBACManager    *RBACManagerMock
+	RBACManager *RBACManagerMock
 
 	SessionManager *SessionManagerMock
-
-
 
 	// Cleanup functions.
 
 	cleanupFuncs []func()
 
-	mutex        sync.Mutex
-
+	mutex sync.Mutex
 }
-
-
 
 // NewTestContext creates a new test context with default configuration.
 
@@ -2331,10 +1889,7 @@ func NewTestContext(t *testing.T) *TestContext {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 
 		Level: slog.LevelDebug,
-
 	}))
-
-
 
 	// Generate test RSA key pair.
 
@@ -2342,43 +1897,34 @@ func NewTestContext(t *testing.T) *TestContext {
 
 	require.NoError(t, err)
 
-
-
 	publicKey := &privateKey.PublicKey
 
 	keyID := "test-key-id"
 
-
-
 	tc := &TestContext{
 
-		T:              t,
+		T: t,
 
-		Ctx:            ctx,
+		Ctx: ctx,
 
-		Logger:         logger,
+		Logger: logger,
 
-		PrivateKey:     privateKey,
+		PrivateKey: privateKey,
 
-		PublicKey:      publicKey,
+		PublicKey: publicKey,
 
-		KeyID:          keyID,
+		KeyID: keyID,
 
-		JWTManager:     NewJWTManagerMock(),
+		JWTManager: NewJWTManagerMock(),
 
-		RBACManager:    NewRBACManagerMock(),
+		RBACManager: NewRBACManagerMock(),
 
 		SessionManager: NewSessionManagerMock(),
-
 	}
-
-
 
 	return tc
 
 }
-
-
 
 // SetupJWTManager initializes JWT manager mock for testing.
 
@@ -2390,21 +1936,15 @@ func (tc *TestContext) SetupJWTManager() *JWTManagerMock {
 
 	require.NoError(tc.T, err)
 
-
-
 	tc.AddCleanup(func() {
 
 		tc.JWTManager.Close()
 
 	})
 
-
-
 	return tc.JWTManager
 
 }
-
-
 
 // SetupRBACManager initializes RBAC manager mock for testing.
 
@@ -2413,8 +1953,6 @@ func (tc *TestContext) SetupRBACManager() *RBACManagerMock {
 	return tc.RBACManager
 
 }
-
-
 
 // SetupSessionManager initializes session manager mock for testing.
 
@@ -2426,13 +1964,9 @@ func (tc *TestContext) SetupSessionManager() *SessionManagerMock {
 
 	})
 
-
-
 	return tc.SessionManager
 
 }
-
-
 
 // CreateTestToken creates a test JWT token.
 
@@ -2443,8 +1977,6 @@ func (tc *TestContext) CreateTestToken(claims jwt.MapClaims) string {
 		claims = jwt.MapClaims{}
 
 	}
-
-
 
 	// Set default claims if not provided.
 
@@ -2472,25 +2004,17 @@ func (tc *TestContext) CreateTestToken(claims jwt.MapClaims) string {
 
 	}
 
-
-
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 
 	token.Header["kid"] = tc.KeyID
-
-
 
 	tokenString, err := token.SignedString(tc.PrivateKey)
 
 	require.NoError(tc.T, err)
 
-
-
 	return tokenString
 
 }
-
-
 
 // CreateTestUser creates a test user info.
 
@@ -2498,41 +2022,37 @@ func (tc *TestContext) CreateTestUser(userID string) *providers.UserInfo {
 
 	return &providers.UserInfo{
 
-		Subject:       userID,
+		Subject: userID,
 
-		Email:         fmt.Sprintf("%s@example.com", userID),
+		Email: fmt.Sprintf("%s@example.com", userID),
 
 		EmailVerified: true,
 
-		Name:          fmt.Sprintf("Test %s", cases.Title(language.English).String(userID)),
+		Name: fmt.Sprintf("Test %s", cases.Title(language.English).String(userID)),
 
-		GivenName:     "Test",
+		GivenName: "Test",
 
-		FamilyName:    cases.Title(language.English).String(userID),
+		FamilyName: cases.Title(language.English).String(userID),
 
-		Username:      userID,
+		Username: userID,
 
-		Provider:      "test",
+		Provider: "test",
 
-		ProviderID:    fmt.Sprintf("test-%s", userID),
+		ProviderID: fmt.Sprintf("test-%s", userID),
 
-		Groups:        []string{"users", "testers"},
+		Groups: []string{"users", "testers"},
 
-		Roles:         []string{"viewer"},
+		Roles: []string{"viewer"},
 
 		Attributes: map[string]interface{}{
 
 			"department": "engineering",
 
-			"team":       "platform",
-
+			"team": "platform",
 		},
-
 	}
 
 }
-
-
 
 // AddCleanup adds a cleanup function to be called when the test finishes.
 
@@ -2546,8 +2066,6 @@ func (tc *TestContext) AddCleanup(cleanup func()) {
 
 }
 
-
-
 // Cleanup performs all cleanup operations.
 
 func (tc *TestContext) Cleanup() {
@@ -2555,8 +2073,6 @@ func (tc *TestContext) Cleanup() {
 	tc.mutex.Lock()
 
 	defer tc.mutex.Unlock()
-
-
 
 	// Run cleanup functions in reverse order.
 
@@ -2570,8 +2086,6 @@ func (tc *TestContext) Cleanup() {
 
 }
 
-
-
 // Assertion helpers.
 
 func AssertNoError(t *testing.T, err error) {
@@ -2579,8 +2093,6 @@ func AssertNoError(t *testing.T, err error) {
 	assert.NoError(t, err)
 
 }
-
-
 
 // AssertError performs asserterror operation.
 
@@ -2590,8 +2102,6 @@ func AssertError(t *testing.T, err error) {
 
 }
 
-
-
 // AssertEqual performs assertequal operation.
 
 func AssertEqual(t *testing.T, expected, actual interface{}) {
@@ -2599,8 +2109,6 @@ func AssertEqual(t *testing.T, expected, actual interface{}) {
 	assert.Equal(t, expected, actual)
 
 }
-
-
 
 // AssertNotEqual performs assertnotequal operation.
 
@@ -2610,8 +2118,6 @@ func AssertNotEqual(t *testing.T, expected, actual interface{}) {
 
 }
 
-
-
 // AssertContains performs assertcontains operation.
 
 func AssertContains(t *testing.T, haystack, needle interface{}) {
@@ -2619,8 +2125,6 @@ func AssertContains(t *testing.T, haystack, needle interface{}) {
 	assert.Contains(t, haystack, needle)
 
 }
-
-
 
 // AssertNotContains performs assertnotcontains operation.
 
@@ -2630,8 +2134,6 @@ func AssertNotContains(t *testing.T, haystack, needle interface{}) {
 
 }
 
-
-
 // AssertTrue performs asserttrue operation.
 
 func AssertTrue(t *testing.T, value bool) {
@@ -2639,8 +2141,6 @@ func AssertTrue(t *testing.T, value bool) {
 	assert.True(t, value)
 
 }
-
-
 
 // AssertFalse performs assertfalse operation.
 
@@ -2650,8 +2150,6 @@ func AssertFalse(t *testing.T, value bool) {
 
 }
 
-
-
 // AssertNil performs assertnil operation.
 
 func AssertNil(t *testing.T, value interface{}) {
@@ -2660,8 +2158,6 @@ func AssertNil(t *testing.T, value interface{}) {
 
 }
 
-
-
 // AssertNotNil performs assertnotnil operation.
 
 func AssertNotNil(t *testing.T, value interface{}) {
@@ -2669,8 +2165,6 @@ func AssertNotNil(t *testing.T, value interface{}) {
 	assert.NotNil(t, value)
 
 }
-
-
 
 // PEM helpers for key generation in tests.
 
@@ -2688,8 +2182,6 @@ func GenerateTestKeyPair() (*rsa.PrivateKey, *rsa.PublicKey, error) {
 
 }
 
-
-
 // PrivateKeyToPEM performs privatekeytopem operation.
 
 func PrivateKeyToPEM(key *rsa.PrivateKey) string {
@@ -2698,17 +2190,14 @@ func PrivateKeyToPEM(key *rsa.PrivateKey) string {
 
 	keyBlock := &pem.Block{
 
-		Type:  "RSA PRIVATE KEY",
+		Type: "RSA PRIVATE KEY",
 
 		Bytes: keyBytes,
-
 	}
 
 	return string(pem.EncodeToMemory(keyBlock))
 
 }
-
-
 
 // PublicKeyToPEM performs publickeytopem operation.
 
@@ -2724,22 +2213,18 @@ func PublicKeyToPEM(key *rsa.PublicKey) (string, error) {
 
 	keyBlock := &pem.Block{
 
-		Type:  "PUBLIC KEY",
+		Type: "PUBLIC KEY",
 
 		Bytes: keyBytes,
-
 	}
 
 	return string(pem.EncodeToMemory(keyBlock)), nil
 
 }
 
-
-
 // Type aliases for backward compatibility.
 
 type (
-
 	MockJWTManager = JWTManagerMock
 
 	// MockSessionManager represents a mocksessionmanager.
@@ -2749,6 +2234,4 @@ type (
 	// MockRBACManager represents a mockrbacmanager.
 
 	MockRBACManager = RBACManagerMock
-
 )
-

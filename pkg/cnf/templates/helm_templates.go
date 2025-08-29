@@ -28,164 +28,121 @@ limitations under the License.
 
 */
 
-
-
 // FIXME: Adding package comment per revive linter.
 
 // Package templates provides Helm chart templates for CNF deployment generation.
 
-
 package templates
 
-
-
 import (
-
 	"fmt"
 
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 )
-
-
 
 // HelmTemplateManager manages Helm chart templates for CNF deployments.
 
 type HelmTemplateManager struct {
-
 	Templates map[nephoranv1.CNFFunction]*HelmTemplate
-
 }
-
-
 
 // HelmTemplate defines a Helm chart template for a CNF function.
 
 type HelmTemplate struct {
+	Function nephoranv1.CNFFunction
 
-	Function     nephoranv1.CNFFunction
-
-	ChartName    string
+	ChartName string
 
 	ChartVersion string
 
-	Repository   string
+	Repository string
 
-	Values       map[string]interface{}
+	Values map[string]interface{}
 
 	Dependencies []HelmDependency
 
-	Interfaces   []InterfaceTemplate
+	Interfaces []InterfaceTemplate
 
-	ConfigMaps   []ConfigMapTemplate
+	ConfigMaps []ConfigMapTemplate
 
-	Secrets      []SecretTemplate
+	Secrets []SecretTemplate
 
-	Services     []ServiceTemplate
+	Services []ServiceTemplate
 
 	CustomValues map[string]interface{}
-
 }
-
-
 
 // HelmDependency defines a Helm chart dependency.
 
 type HelmDependency struct {
+	Name string `yaml:"name"`
 
-	Name       string `yaml:"name"`
-
-	Version    string `yaml:"version"`
+	Version string `yaml:"version"`
 
 	Repository string `yaml:"repository"`
 
-	Condition  string `yaml:"condition,omitempty"`
-
+	Condition string `yaml:"condition,omitempty"`
 }
-
-
 
 // InterfaceTemplate defines network interface templates.
 
 type InterfaceTemplate struct {
+	Name string
 
-	Name        string
+	Type string
 
-	Type        string
+	Port int32
 
-	Port        int32
-
-	Protocol    string
+	Protocol string
 
 	ServiceType string
 
 	Annotations map[string]string
-
 }
-
-
 
 // ConfigMapTemplate defines ConfigMap templates.
 
 type ConfigMapTemplate struct {
-
 	Name string
 
 	Data map[string]string
-
 }
-
-
 
 // SecretTemplate defines Secret templates.
 
 type SecretTemplate struct {
-
 	Name string
 
 	Type string
 
 	Data map[string][]byte
-
 }
-
-
 
 // ServiceTemplate defines Service templates.
 
 type ServiceTemplate struct {
+	Name string
 
-	Name        string
+	Type string
 
-	Type        string
+	Ports []ServicePortTemplate
 
-	Ports       []ServicePortTemplate
-
-	Selector    map[string]string
+	Selector map[string]string
 
 	Annotations map[string]string
-
 }
-
-
 
 // ServicePortTemplate defines service port templates.
 
 type ServicePortTemplate struct {
+	Name string
 
-	Name       string
-
-	Port       int32
+	Port int32
 
 	TargetPort int32
 
-	Protocol   string
-
+	Protocol string
 }
-
-
 
 // NewHelmTemplateManager creates a new Helm template manager.
 
@@ -194,34 +151,23 @@ func NewHelmTemplateManager() *HelmTemplateManager {
 	manager := &HelmTemplateManager{
 
 		Templates: make(map[nephoranv1.CNFFunction]*HelmTemplate),
-
 	}
-
-
 
 	// Initialize 5G Core templates.
 
 	manager.init5GCoreTemplates()
 
-
-
 	// Initialize O-RAN templates.
 
 	manager.initORANTemplates()
-
-
 
 	// Initialize edge templates.
 
 	manager.initEdgeTemplates()
 
-
-
 	return manager
 
 }
-
-
 
 // GetTemplate retrieves a Helm template for a CNF function.
 
@@ -235,13 +181,9 @@ func (m *HelmTemplateManager) GetTemplate(function nephoranv1.CNFFunction) (*Hel
 
 	}
 
-
-
 	return template, nil
 
 }
-
-
 
 // GenerateValues generates Helm values for a CNF deployment.
 
@@ -255,11 +197,7 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 
 	}
 
-
-
 	values := make(map[string]interface{})
-
-
 
 	// Start with template default values.
 
@@ -269,13 +207,9 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 
 	}
 
-
-
 	// Override with CNF-specific values.
 
 	values["replicaCount"] = cnf.Spec.Replicas
-
-
 
 	// Resource requirements.
 
@@ -283,23 +217,18 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 
 		"requests": map[string]interface{}{
 
-			"cpu":    cnf.Spec.Resources.CPU.String(),
+			"cpu": cnf.Spec.Resources.CPU.String(),
 
 			"memory": cnf.Spec.Resources.Memory.String(),
-
 		},
 
 		"limits": map[string]interface{}{
 
-			"cpu":    cnf.Spec.Resources.CPU.String(),
+			"cpu": cnf.Spec.Resources.CPU.String(),
 
 			"memory": cnf.Spec.Resources.Memory.String(),
-
 		},
-
 	}
-
-
 
 	// Override limits if specified.
 
@@ -311,8 +240,6 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 
 	}
 
-
-
 	if cnf.Spec.Resources.MaxMemory != nil {
 
 		limits := values["resources"].(map[string]interface{})["limits"].(map[string]interface{})
@@ -320,8 +247,6 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 		limits["memory"] = cnf.Spec.Resources.MaxMemory.String()
 
 	}
-
-
 
 	// Storage configuration.
 
@@ -331,13 +256,10 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 
 			"enabled": true,
 
-			"size":    cnf.Spec.Resources.Storage.String(),
-
+			"size": cnf.Spec.Resources.Storage.String(),
 		}
 
 	}
-
-
 
 	// DPDK configuration.
 
@@ -347,17 +269,14 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 
 			"enabled": true,
 
-			"cores":   cnf.Spec.Resources.DPDK.Cores,
+			"cores": cnf.Spec.Resources.DPDK.Cores,
 
-			"memory":  cnf.Spec.Resources.DPDK.Memory,
+			"memory": cnf.Spec.Resources.DPDK.Memory,
 
-			"driver":  cnf.Spec.Resources.DPDK.Driver,
-
+			"driver": cnf.Spec.Resources.DPDK.Driver,
 		}
 
 	}
-
-
 
 	// Service mesh configuration.
 
@@ -367,11 +286,8 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 
 			"enabled": true,
 
-			"type":    cnf.Spec.ServiceMesh.Type,
-
+			"type": cnf.Spec.ServiceMesh.Type,
 		}
-
-
 
 		if cnf.Spec.ServiceMesh.MTLS != nil {
 
@@ -379,15 +295,12 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 
 				"enabled": cnf.Spec.ServiceMesh.MTLS.Enabled,
 
-				"mode":    cnf.Spec.ServiceMesh.MTLS.Mode,
-
+				"mode": cnf.Spec.ServiceMesh.MTLS.Mode,
 			}
 
 		}
 
 	}
-
-
 
 	// Monitoring configuration.
 
@@ -396,30 +309,24 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 		values["monitoring"] = map[string]interface{}{
 
 			"enabled": true,
-
 		}
-
-
 
 		if cnf.Spec.Monitoring.Prometheus != nil {
 
 			values["monitoring"].(map[string]interface{})["prometheus"] = map[string]interface{}{
 
-				"enabled":  cnf.Spec.Monitoring.Prometheus.Enabled,
+				"enabled": cnf.Spec.Monitoring.Prometheus.Enabled,
 
-				"port":     cnf.Spec.Monitoring.Prometheus.Port,
+				"port": cnf.Spec.Monitoring.Prometheus.Port,
 
-				"path":     cnf.Spec.Monitoring.Prometheus.Path,
+				"path": cnf.Spec.Monitoring.Prometheus.Path,
 
 				"interval": cnf.Spec.Monitoring.Prometheus.Interval,
-
 			}
 
 		}
 
 	}
-
-
 
 	// Auto-scaling configuration.
 
@@ -427,23 +334,18 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 
 		values["autoscaling"] = map[string]interface{}{
 
-			"enabled":     true,
+			"enabled": true,
 
 			"minReplicas": cnf.Spec.AutoScaling.MinReplicas,
 
 			"maxReplicas": cnf.Spec.AutoScaling.MaxReplicas,
-
 		}
-
-
 
 		if cnf.Spec.AutoScaling.CPUUtilization != nil {
 
 			values["autoscaling"].(map[string]interface{})["targetCPUUtilizationPercentage"] = *cnf.Spec.AutoScaling.CPUUtilization
 
 		}
-
-
 
 		if cnf.Spec.AutoScaling.MemoryUtilization != nil {
 
@@ -453,8 +355,6 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 
 	}
 
-
-
 	// Security configuration.
 
 	if len(cnf.Spec.SecurityPolicies) > 0 {
@@ -462,18 +362,13 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 		values["security"] = map[string]interface{}{
 
 			"policies": cnf.Spec.SecurityPolicies,
-
 		}
 
 	}
 
-
-
 	return values, nil
 
 }
-
-
 
 // init5GCoreTemplates initializes Helm templates for 5G Core functions.
 
@@ -483,13 +378,13 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 
 	m.Templates[nephoranv1.CNFFunctionAMF] = &HelmTemplate{
 
-		Function:     nephoranv1.CNFFunctionAMF,
+		Function: nephoranv1.CNFFunctionAMF,
 
-		ChartName:    "amf",
+		ChartName: "amf",
 
 		ChartVersion: "1.0.0",
 
-		Repository:   "https://charts.5g-core.io",
+		Repository: "https://charts.5g-core.io",
 
 		Values: map[string]interface{}{
 
@@ -497,10 +392,9 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 
 				"repository": "5gc/amf",
 
-				"tag":        "latest",
+				"tag": "latest",
 
 				"pullPolicy": "IfNotPresent",
-
 			},
 
 			"service": map[string]interface{}{
@@ -509,12 +403,10 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 
 				"ports": map[string]interface{}{
 
-					"sbi":  8080,
+					"sbi": 8080,
 
 					"sctp": 38412,
-
 				},
-
 			},
 
 			"config": map[string]interface{}{
@@ -524,7 +416,6 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 					"mcc": "001",
 
 					"mnc": "01",
-
 				},
 
 				"amfId": "0x000001",
@@ -536,15 +427,13 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 						"mcc": "001",
 
 						"mnc": "01",
-
 					},
 
 					"amfRegionId": "0x01",
 
-					"amfSetId":    "0x001",
+					"amfSetId": "0x001",
 
-					"amfPointer":  "0x01",
-
+					"amfPointer": "0x01",
 				},
 
 				"tai": map[string]interface{}{
@@ -554,13 +443,10 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 						"mcc": "001",
 
 						"mnc": "01",
-
 					},
 
 					"tac": "0x000001",
-
 				},
-
 			},
 
 			"security": map[string]interface{}{
@@ -568,57 +454,50 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 				"tls": map[string]interface{}{
 
 					"enabled": true,
-
 				},
-
 			},
-
 		},
 
 		Interfaces: []InterfaceTemplate{
 
 			{
 
-				Name:        "n1",
+				Name: "n1",
 
-				Type:        "NAS",
+				Type: "NAS",
 
-				Port:        38412,
+				Port: 38412,
 
-				Protocol:    "SCTP",
+				Protocol: "SCTP",
 
 				ServiceType: "ClusterIP",
-
 			},
 
 			{
 
-				Name:        "n2",
+				Name: "n2",
 
-				Type:        "NGAP",
+				Type: "NGAP",
 
-				Port:        38412,
+				Port: 38412,
 
-				Protocol:    "SCTP",
+				Protocol: "SCTP",
 
 				ServiceType: "ClusterIP",
-
 			},
 
 			{
 
-				Name:        "sbi",
+				Name: "sbi",
 
-				Type:        "HTTP",
+				Type: "HTTP",
 
-				Port:        8080,
+				Port: 8080,
 
-				Protocol:    "TCP",
+				Protocol: "TCP",
 
 				ServiceType: "ClusterIP",
-
 			},
-
 		},
 
 		ConfigMaps: []ConfigMapTemplate{
@@ -630,28 +509,22 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 				Data: map[string]string{
 
 					"amfcfg.yaml": generateAMFConfig(),
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	// SMF Template.
 
 	m.Templates[nephoranv1.CNFFunctionSMF] = &HelmTemplate{
 
-		Function:     nephoranv1.CNFFunctionSMF,
+		Function: nephoranv1.CNFFunctionSMF,
 
-		ChartName:    "smf",
+		ChartName: "smf",
 
 		ChartVersion: "1.0.0",
 
-		Repository:   "https://charts.5g-core.io",
+		Repository: "https://charts.5g-core.io",
 
 		Values: map[string]interface{}{
 
@@ -659,10 +532,9 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 
 				"repository": "5gc/smf",
 
-				"tag":        "latest",
+				"tag": "latest",
 
 				"pullPolicy": "IfNotPresent",
-
 			},
 
 			"service": map[string]interface{}{
@@ -671,12 +543,10 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 
 				"ports": map[string]interface{}{
 
-					"sbi":  8080,
+					"sbi": 8080,
 
 					"pfcp": 8805,
-
 				},
-
 			},
 
 			"config": map[string]interface{}{
@@ -686,55 +556,48 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 					"mcc": "001",
 
 					"mnc": "01",
-
 				},
 
 				"nfInstanceId": "12345678-1234-1234-1234-123456789012",
 
-				"dnn":          "internet",
+				"dnn": "internet",
 
 				"pfcp": map[string]interface{}{
 
 					"addr": "0.0.0.0",
 
 					"port": 8805,
-
 				},
-
 			},
-
 		},
 
 		Interfaces: []InterfaceTemplate{
 
 			{
 
-				Name:        "sbi",
+				Name: "sbi",
 
-				Type:        "HTTP",
+				Type: "HTTP",
 
-				Port:        8080,
+				Port: 8080,
 
-				Protocol:    "TCP",
+				Protocol: "TCP",
 
 				ServiceType: "ClusterIP",
-
 			},
 
 			{
 
-				Name:        "n4",
+				Name: "n4",
 
-				Type:        "PFCP",
+				Type: "PFCP",
 
-				Port:        8805,
+				Port: 8805,
 
-				Protocol:    "UDP",
+				Protocol: "UDP",
 
 				ServiceType: "ClusterIP",
-
 			},
-
 		},
 
 		ConfigMaps: []ConfigMapTemplate{
@@ -746,28 +609,22 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 				Data: map[string]string{
 
 					"smfcfg.yaml": generateSMFConfig(),
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	// UPF Template.
 
 	m.Templates[nephoranv1.CNFFunctionUPF] = &HelmTemplate{
 
-		Function:     nephoranv1.CNFFunctionUPF,
+		Function: nephoranv1.CNFFunctionUPF,
 
-		ChartName:    "upf",
+		ChartName: "upf",
 
 		ChartVersion: "1.0.0",
 
-		Repository:   "https://charts.5g-core.io",
+		Repository: "https://charts.5g-core.io",
 
 		Values: map[string]interface{}{
 
@@ -775,10 +632,9 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 
 				"repository": "5gc/upf",
 
-				"tag":        "latest",
+				"tag": "latest",
 
 				"pullPolicy": "IfNotPresent",
-
 			},
 
 			"service": map[string]interface{}{
@@ -790,9 +646,7 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 					"pfcp": 8805,
 
 					"gtpu": 2152,
-
 				},
-
 			},
 
 			"config": map[string]interface{}{
@@ -804,7 +658,6 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 					"addr": "0.0.0.0",
 
 					"port": 8805,
-
 				},
 
 				"gtpu": map[string]interface{}{
@@ -812,21 +665,18 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 					"addr": "0.0.0.0",
 
 					"port": 2152,
-
 				},
-
 			},
 
 			"dpdk": map[string]interface{}{
 
 				"enabled": true,
 
-				"cores":   4,
+				"cores": 4,
 
-				"memory":  2048,
+				"memory": 2048,
 
-				"driver":  "vfio-pci",
-
+				"driver": "vfio-pci",
 			},
 
 			"resources": map[string]interface{}{
@@ -835,66 +685,58 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 
 					"memory": "4Gi",
 
-					"cpu":    "2",
-
+					"cpu": "2",
 				},
 
 				"limits": map[string]interface{}{
 
 					"memory": "8Gi",
 
-					"cpu":    "4",
-
+					"cpu": "4",
 				},
-
 			},
-
 		},
 
 		Interfaces: []InterfaceTemplate{
 
 			{
 
-				Name:        "n3",
+				Name: "n3",
 
-				Type:        "GTP-U",
+				Type: "GTP-U",
 
-				Port:        2152,
+				Port: 2152,
 
-				Protocol:    "UDP",
+				Protocol: "UDP",
 
 				ServiceType: "ClusterIP",
-
 			},
 
 			{
 
-				Name:        "n4",
+				Name: "n4",
 
-				Type:        "PFCP",
+				Type: "PFCP",
 
-				Port:        8805,
+				Port: 8805,
 
-				Protocol:    "UDP",
+				Protocol: "UDP",
 
 				ServiceType: "ClusterIP",
-
 			},
 
 			{
 
-				Name:        "n6",
+				Name: "n6",
 
-				Type:        "Data",
+				Type: "Data",
 
-				Port:        0,
+				Port: 0,
 
-				Protocol:    "IP",
+				Protocol: "IP",
 
 				ServiceType: "ClusterIP",
-
 			},
-
 		},
 
 		ConfigMaps: []ConfigMapTemplate{
@@ -906,28 +748,22 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 				Data: map[string]string{
 
 					"upfcfg.yaml": generateUPFConfig(),
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	// NRF Template.
 
 	m.Templates[nephoranv1.CNFFunctionNRF] = &HelmTemplate{
 
-		Function:     nephoranv1.CNFFunctionNRF,
+		Function: nephoranv1.CNFFunctionNRF,
 
-		ChartName:    "nrf",
+		ChartName: "nrf",
 
 		ChartVersion: "1.0.0",
 
-		Repository:   "https://charts.5g-core.io",
+		Repository: "https://charts.5g-core.io",
 
 		Values: map[string]interface{}{
 
@@ -935,10 +771,9 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 
 				"repository": "5gc/nrf",
 
-				"tag":        "latest",
+				"tag": "latest",
 
 				"pullPolicy": "IfNotPresent",
-
 			},
 
 			"service": map[string]interface{}{
@@ -948,9 +783,7 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 				"ports": map[string]interface{}{
 
 					"sbi": 8080,
-
 				},
-
 			},
 
 			"config": map[string]interface{}{
@@ -961,30 +794,25 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 
 					"type": "mongodb",
 
-					"url":  "mongodb://nrf-mongodb:27017",
-
+					"url": "mongodb://nrf-mongodb:27017",
 				},
-
 			},
-
 		},
 
 		Interfaces: []InterfaceTemplate{
 
 			{
 
-				Name:        "sbi",
+				Name: "sbi",
 
-				Type:        "HTTP",
+				Type: "HTTP",
 
-				Port:        8080,
+				Port: 8080,
 
-				Protocol:    "TCP",
+				Protocol: "TCP",
 
 				ServiceType: "ClusterIP",
-
 			},
-
 		},
 
 		ConfigMaps: []ConfigMapTemplate{
@@ -996,18 +824,12 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 				Data: map[string]string{
 
 					"nrfcfg.yaml": generateNRFConfig(),
-
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // initORANTemplates initializes Helm templates for O-RAN functions.
 
@@ -1017,13 +839,13 @@ func (m *HelmTemplateManager) initORANTemplates() {
 
 	m.Templates[nephoranv1.CNFFunctionNearRTRIC] = &HelmTemplate{
 
-		Function:     nephoranv1.CNFFunctionNearRTRIC,
+		Function: nephoranv1.CNFFunctionNearRTRIC,
 
-		ChartName:    "near-rt-ric",
+		ChartName: "near-rt-ric",
 
 		ChartVersion: "1.0.0",
 
-		Repository:   "https://charts.o-ran.io",
+		Repository: "https://charts.o-ran.io",
 
 		Values: map[string]interface{}{
 
@@ -1031,10 +853,9 @@ func (m *HelmTemplateManager) initORANTemplates() {
 
 				"repository": "oran/near-rt-ric",
 
-				"tag":        "latest",
+				"tag": "latest",
 
 				"pullPolicy": "IfNotPresent",
-
 			},
 
 			"service": map[string]interface{}{
@@ -1046,9 +867,7 @@ func (m *HelmTemplateManager) initORANTemplates() {
 					"a1": 10000,
 
 					"e2": 36421,
-
 				},
-
 			},
 
 			"config": map[string]interface{}{
@@ -1060,7 +879,6 @@ func (m *HelmTemplateManager) initORANTemplates() {
 					"mcc": "001",
 
 					"mnc": "01",
-
 				},
 
 				"a1": map[string]interface{}{
@@ -1068,7 +886,6 @@ func (m *HelmTemplateManager) initORANTemplates() {
 					"addr": "0.0.0.0",
 
 					"port": 10000,
-
 				},
 
 				"e2": map[string]interface{}{
@@ -1076,43 +893,37 @@ func (m *HelmTemplateManager) initORANTemplates() {
 					"addr": "0.0.0.0",
 
 					"port": 36421,
-
 				},
-
 			},
-
 		},
 
 		Interfaces: []InterfaceTemplate{
 
 			{
 
-				Name:        "a1",
+				Name: "a1",
 
-				Type:        "REST",
+				Type: "REST",
 
-				Port:        10000,
+				Port: 10000,
 
-				Protocol:    "TCP",
+				Protocol: "TCP",
 
 				ServiceType: "ClusterIP",
-
 			},
 
 			{
 
-				Name:        "e2",
+				Name: "e2",
 
-				Type:        "SCTP",
+				Type: "SCTP",
 
-				Port:        36421,
+				Port: 36421,
 
-				Protocol:    "SCTP",
+				Protocol: "SCTP",
 
 				ServiceType: "ClusterIP",
-
 			},
-
 		},
 
 		ConfigMaps: []ConfigMapTemplate{
@@ -1124,28 +935,22 @@ func (m *HelmTemplateManager) initORANTemplates() {
 				Data: map[string]string{
 
 					"ric.yaml": generateNearRTRICConfig(),
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	// O-DU Template.
 
 	m.Templates[nephoranv1.CNFFunctionODU] = &HelmTemplate{
 
-		Function:     nephoranv1.CNFFunctionODU,
+		Function: nephoranv1.CNFFunctionODU,
 
-		ChartName:    "o-du",
+		ChartName: "o-du",
 
 		ChartVersion: "1.0.0",
 
-		Repository:   "https://charts.o-ran.io",
+		Repository: "https://charts.o-ran.io",
 
 		Values: map[string]interface{}{
 
@@ -1153,10 +958,9 @@ func (m *HelmTemplateManager) initORANTemplates() {
 
 				"repository": "oran/o-du",
 
-				"tag":        "latest",
+				"tag": "latest",
 
 				"pullPolicy": "IfNotPresent",
-
 			},
 
 			"service": map[string]interface{}{
@@ -1169,15 +973,13 @@ func (m *HelmTemplateManager) initORANTemplates() {
 
 					"f1u": 2152,
 
-					"e2":  36421,
-
+					"e2": 36421,
 				},
-
 			},
 
 			"config": map[string]interface{}{
 
-				"duId":   "1",
+				"duId": "1",
 
 				"cellId": "1",
 
@@ -1186,7 +988,6 @@ func (m *HelmTemplateManager) initORANTemplates() {
 					"addr": "0.0.0.0",
 
 					"port": 38472,
-
 				},
 
 				"e2": map[string]interface{}{
@@ -1194,57 +995,50 @@ func (m *HelmTemplateManager) initORANTemplates() {
 					"addr": "0.0.0.0",
 
 					"port": 36421,
-
 				},
-
 			},
-
 		},
 
 		Interfaces: []InterfaceTemplate{
 
 			{
 
-				Name:        "f1c",
+				Name: "f1c",
 
-				Type:        "F1AP",
+				Type: "F1AP",
 
-				Port:        38472,
+				Port: 38472,
 
-				Protocol:    "SCTP",
+				Protocol: "SCTP",
 
 				ServiceType: "ClusterIP",
-
 			},
 
 			{
 
-				Name:        "f1u",
+				Name: "f1u",
 
-				Type:        "GTP-U",
+				Type: "GTP-U",
 
-				Port:        2152,
+				Port: 2152,
 
-				Protocol:    "UDP",
+				Protocol: "UDP",
 
 				ServiceType: "ClusterIP",
-
 			},
 
 			{
 
-				Name:        "e2",
+				Name: "e2",
 
-				Type:        "SCTP",
+				Type: "SCTP",
 
-				Port:        36421,
+				Port: 36421,
 
-				Protocol:    "SCTP",
+				Protocol: "SCTP",
 
 				ServiceType: "ClusterIP",
-
 			},
-
 		},
 
 		ConfigMaps: []ConfigMapTemplate{
@@ -1256,28 +1050,22 @@ func (m *HelmTemplateManager) initORANTemplates() {
 				Data: map[string]string{
 
 					"odu.yaml": generateODUConfig(),
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	// O-CU-CP Template.
 
 	m.Templates[nephoranv1.CNFFunctionOCUCP] = &HelmTemplate{
 
-		Function:     nephoranv1.CNFFunctionOCUCP,
+		Function: nephoranv1.CNFFunctionOCUCP,
 
-		ChartName:    "o-cu-cp",
+		ChartName: "o-cu-cp",
 
 		ChartVersion: "1.0.0",
 
-		Repository:   "https://charts.o-ran.io",
+		Repository: "https://charts.o-ran.io",
 
 		Values: map[string]interface{}{
 
@@ -1285,10 +1073,9 @@ func (m *HelmTemplateManager) initORANTemplates() {
 
 				"repository": "oran/o-cu-cp",
 
-				"tag":        "latest",
+				"tag": "latest",
 
 				"pullPolicy": "IfNotPresent",
-
 			},
 
 			"service": map[string]interface{}{
@@ -1299,19 +1086,17 @@ func (m *HelmTemplateManager) initORANTemplates() {
 
 					"f1c": 38472,
 
-					"ng":  38412,
+					"ng": 38412,
 
-					"xn":  36422,
+					"xn": 36422,
 
-					"e1":  36460,
-
+					"e1": 36460,
 				},
-
 			},
 
 			"config": map[string]interface{}{
 
-				"cuId":   "1",
+				"cuId": "1",
 
 				"cellId": "1",
 
@@ -1320,7 +1105,6 @@ func (m *HelmTemplateManager) initORANTemplates() {
 					"addr": "0.0.0.0",
 
 					"port": 38472,
-
 				},
 
 				"ng": map[string]interface{}{
@@ -1328,50 +1112,41 @@ func (m *HelmTemplateManager) initORANTemplates() {
 					"addr": "0.0.0.0",
 
 					"port": 38412,
-
 				},
-
 			},
-
 		},
 
 		Interfaces: []InterfaceTemplate{
 
 			{
 
-				Name:        "f1c",
+				Name: "f1c",
 
-				Type:        "F1AP",
+				Type: "F1AP",
 
-				Port:        38472,
+				Port: 38472,
 
-				Protocol:    "SCTP",
+				Protocol: "SCTP",
 
 				ServiceType: "ClusterIP",
-
 			},
 
 			{
 
-				Name:        "ng",
+				Name: "ng",
 
-				Type:        "NGAP",
+				Type: "NGAP",
 
-				Port:        38412,
+				Port: 38412,
 
-				Protocol:    "SCTP",
+				Protocol: "SCTP",
 
 				ServiceType: "ClusterIP",
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // initEdgeTemplates initializes Helm templates for edge functions.
 
@@ -1381,13 +1156,13 @@ func (m *HelmTemplateManager) initEdgeTemplates() {
 
 	m.Templates[nephoranv1.CNFFunctionUESimulator] = &HelmTemplate{
 
-		Function:     nephoranv1.CNFFunctionUESimulator,
+		Function: nephoranv1.CNFFunctionUESimulator,
 
-		ChartName:    "ue-simulator",
+		ChartName: "ue-simulator",
 
 		ChartVersion: "1.0.0",
 
-		Repository:   "https://charts.edge.io",
+		Repository: "https://charts.edge.io",
 
 		Values: map[string]interface{}{
 
@@ -1395,20 +1170,18 @@ func (m *HelmTemplateManager) initEdgeTemplates() {
 
 				"repository": "edge/ue-simulator",
 
-				"tag":        "latest",
+				"tag": "latest",
 
 				"pullPolicy": "IfNotPresent",
-
 			},
 
 			"config": map[string]interface{}{
 
 				"ues": map[string]interface{}{
 
-					"count":     100,
+					"count": 100,
 
 					"imsiStart": "001010000000001",
-
 				},
 
 				"amf": map[string]interface{}{
@@ -1416,7 +1189,6 @@ func (m *HelmTemplateManager) initEdgeTemplates() {
 					"addr": "amf-service",
 
 					"port": 38412,
-
 				},
 
 				"gnb": map[string]interface{}{
@@ -1424,18 +1196,12 @@ func (m *HelmTemplateManager) initEdgeTemplates() {
 					"addr": "gnb-service",
 
 					"port": 38412,
-
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // Configuration generators.
 
@@ -1607,8 +1373,6 @@ logger:
 
 }
 
-
-
 func generateSMFConfig() string {
 
 	return `
@@ -1735,8 +1499,6 @@ logger:
 
 }
 
-
-
 func generateUPFConfig() string {
 
 	return `
@@ -1797,8 +1559,6 @@ logger:
 
 }
 
-
-
 func generateNRFConfig() string {
 
 	return `
@@ -1858,8 +1618,6 @@ logger:
 `
 
 }
-
-
 
 func generateNearRTRICConfig() string {
 
@@ -1927,8 +1685,6 @@ logger:
 
 }
 
-
-
 func generateODUConfig() string {
 
 	return `
@@ -1995,8 +1751,6 @@ logger:
 
 }
 
-
-
 // GetHelmChart returns the Helm chart reference for a CNF function.
 
 func (m *HelmTemplateManager) GetHelmChart(function nephoranv1.CNFFunction) (*nephoranv1.HelmConfig, error) {
@@ -2009,21 +1763,16 @@ func (m *HelmTemplateManager) GetHelmChart(function nephoranv1.CNFFunction) (*ne
 
 	}
 
-
-
 	return &nephoranv1.HelmConfig{
 
-		Repository:   template.Repository,
+		Repository: template.Repository,
 
-		ChartName:    template.ChartName,
+		ChartName: template.ChartName,
 
 		ChartVersion: template.ChartVersion,
-
 	}, nil
 
 }
-
-
 
 // ValidateTemplate validates a Helm template configuration.
 
@@ -2035,15 +1784,11 @@ func (m *HelmTemplateManager) ValidateTemplate(template *HelmTemplate) error {
 
 	}
 
-
-
 	if template.Function == "" {
 
 		return fmt.Errorf("template function is empty")
 
 	}
-
-
 
 	if template.ChartName == "" {
 
@@ -2051,21 +1796,15 @@ func (m *HelmTemplateManager) ValidateTemplate(template *HelmTemplate) error {
 
 	}
 
-
-
 	if template.Repository == "" {
 
 		return fmt.Errorf("template repository is empty")
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetSupportedFunctions returns a list of supported CNF functions.
 
@@ -2083,8 +1822,6 @@ func (m *HelmTemplateManager) GetSupportedFunctions() []nephoranv1.CNFFunction {
 
 }
 
-
-
 // GetFunctionInfo returns information about a CNF function.
 
 func (m *HelmTemplateManager) GetFunctionInfo(function nephoranv1.CNFFunction) (map[string]interface{}, error) {
@@ -2097,31 +1834,25 @@ func (m *HelmTemplateManager) GetFunctionInfo(function nephoranv1.CNFFunction) (
 
 	}
 
-
-
 	info := map[string]interface{}{
 
-		"function":     template.Function,
+		"function": template.Function,
 
-		"chartName":    template.ChartName,
+		"chartName": template.ChartName,
 
 		"chartVersion": template.ChartVersion,
 
-		"repository":   template.Repository,
+		"repository": template.Repository,
 
-		"interfaces":   len(template.Interfaces),
+		"interfaces": len(template.Interfaces),
 
-		"configMaps":   len(template.ConfigMaps),
+		"configMaps": len(template.ConfigMaps),
 
-		"secrets":      len(template.Secrets),
+		"secrets": len(template.Secrets),
 
-		"services":     len(template.Services),
-
+		"services": len(template.Services),
 	}
-
-
 
 	return info, nil
 
 }
-

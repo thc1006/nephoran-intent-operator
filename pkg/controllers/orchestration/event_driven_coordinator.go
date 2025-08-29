@@ -28,124 +28,83 @@ limitations under the License.
 
 */
 
-
-
-
 package orchestration
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
 
-
-
 	corev1 "k8s.io/api/core/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // EventDrivenCoordinator provides enhanced coordination with event persistence and replay.
 
 type EventDrivenCoordinator struct {
+	client client.Client
 
-	client        client.Client
+	logger logr.Logger
 
-	logger        logr.Logger
+	eventBus *EventBus
 
-	eventBus      *EventBus
+	phaseTracker *PhaseTracker
 
-	phaseTracker  *PhaseTracker
-
-	eventStore    *PersistentEventStore
+	eventStore *PersistentEventStore
 
 	replayManager *EventReplayManager
-
-
 
 	// State management.
 
 	coordinationContexts map[string]*CoordinationContext
 
-	mutex                sync.RWMutex
-
-
+	mutex sync.RWMutex
 
 	// Configuration.
 
 	enablePersistence bool
 
-	enableReplay      bool
+	enableReplay bool
 
-	replayWindow      time.Duration
+	replayWindow time.Duration
 
-	maxRetries        int
-
+	maxRetries int
 }
-
-
 
 // PersistentEventStore provides Kubernetes-based event persistence.
 
 type PersistentEventStore struct {
+	client client.Client
 
-	client          client.Client
+	logger logr.Logger
 
-	logger          logr.Logger
-
-	namespace       string
+	namespace string
 
 	configMapPrefix string
-
-
 
 	// In-memory cache for performance.
 
 	eventCache map[string][]ProcessingEvent
 
 	cacheMutex sync.RWMutex
-
 }
-
-
 
 // EventReplayManager handles event replay for recovery scenarios.
 
 type EventReplayManager struct {
-
 	eventStore *PersistentEventStore
 
-	eventBus   *EventBus
+	eventBus *EventBus
 
-	logger     logr.Logger
-
-
+	logger logr.Logger
 
 	// Replay configuration.
 
@@ -153,49 +112,36 @@ type EventReplayManager struct {
 
 	replayBatchSize int
 
-	replayDelay     time.Duration
-
+	replayDelay time.Duration
 }
-
-
 
 // CoordinationEvent represents a coordination-specific event.
 
 type CoordinationEvent struct {
-
 	ProcessingEvent
-
-
 
 	// Coordination-specific fields.
 
 	Coordination CoordinationEventData `json:"coordination"`
-
 }
-
-
 
 // CoordinationEventData contains coordination-specific data.
 
 type CoordinationEventData struct {
+	PreviousPhase interfaces.ProcessingPhase `json:"previousPhase,omitempty"`
 
-	PreviousPhase   interfaces.ProcessingPhase `json:"previousPhase,omitempty"`
+	NextPhase interfaces.ProcessingPhase `json:"nextPhase,omitempty"`
 
-	NextPhase       interfaces.ProcessingPhase `json:"nextPhase,omitempty"`
+	Dependencies []string `json:"dependencies,omitempty"`
 
-	Dependencies    []string                   `json:"dependencies,omitempty"`
+	ConflictID string `json:"conflictId,omitempty"`
 
-	ConflictID      string                     `json:"conflictId,omitempty"`
+	RecoveryAction string `json:"recoveryAction,omitempty"`
 
-	RecoveryAction  string                     `json:"recoveryAction,omitempty"`
+	ResourceLocks []string `json:"resourceLocks,omitempty"`
 
-	ResourceLocks   []string                   `json:"resourceLocks,omitempty"`
-
-	ParallelContext string                     `json:"parallelContext,omitempty"`
-
+	ParallelContext string `json:"parallelContext,omitempty"`
 }
-
-
 
 // Enhanced event types for coordination.
 
@@ -248,10 +194,7 @@ const (
 	// EventReplayCompleted holds eventreplaycompleted value.
 
 	EventReplayCompleted = "coordination.replay.completed"
-
 )
-
-
 
 // NewEventDrivenCoordinator creates a new event-driven coordinator.
 
@@ -261,89 +204,72 @@ func NewEventDrivenCoordinator(client client.Client, logger logr.Logger) *EventD
 
 	phaseTracker := NewPhaseTracker()
 
-
-
 	persistentStore := &PersistentEventStore{
 
-		client:          client,
+		client: client,
 
-		logger:          logger.WithName("persistent-event-store"),
+		logger: logger.WithName("persistent-event-store"),
 
-		namespace:       "nephoran-system",
+		namespace: "nephoran-system",
 
 		configMapPrefix: "intent-events",
 
-		eventCache:      make(map[string][]ProcessingEvent),
-
+		eventCache: make(map[string][]ProcessingEvent),
 	}
-
-
 
 	replayManager := &EventReplayManager{
 
-		eventStore:      persistentStore,
+		eventStore: persistentStore,
 
-		eventBus:        eventBus,
+		eventBus: eventBus,
 
-		logger:          logger.WithName("replay-manager"),
+		logger: logger.WithName("replay-manager"),
 
 		maxReplayEvents: 1000,
 
 		replayBatchSize: 10,
 
-		replayDelay:     100 * time.Millisecond,
-
+		replayDelay: 100 * time.Millisecond,
 	}
-
-
 
 	coordinator := &EventDrivenCoordinator{
 
-		client:               client,
+		client: client,
 
-		logger:               logger.WithName("event-driven-coordinator"),
+		logger: logger.WithName("event-driven-coordinator"),
 
-		eventBus:             eventBus,
+		eventBus: eventBus,
 
-		phaseTracker:         phaseTracker,
+		phaseTracker: phaseTracker,
 
-		eventStore:           persistentStore,
+		eventStore: persistentStore,
 
-		replayManager:        replayManager,
+		replayManager: replayManager,
 
 		coordinationContexts: make(map[string]*CoordinationContext),
 
-		enablePersistence:    true,
+		enablePersistence: true,
 
-		enableReplay:         true,
+		enableReplay: true,
 
-		replayWindow:         24 * time.Hour,
+		replayWindow: 24 * time.Hour,
 
-		maxRetries:           3,
-
+		maxRetries: 3,
 	}
-
-
 
 	// Subscribe to coordination events.
 
 	coordinator.setupEventSubscriptions()
 
-
-
 	return coordinator
 
 }
-
-
 
 // Start initializes the event-driven coordinator.
 
 func (edc *EventDrivenCoordinator) Start(ctx context.Context) error {
 
 	edc.logger.Info("Starting event-driven coordinator")
-
-
 
 	// Start the event bus.
 
@@ -353,13 +279,9 @@ func (edc *EventDrivenCoordinator) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start recovery monitoring.
 
 	go edc.monitorForRecovery(ctx)
-
-
 
 	edc.logger.Info("Event-driven coordinator started")
 
@@ -367,15 +289,11 @@ func (edc *EventDrivenCoordinator) Start(ctx context.Context) error {
 
 }
 
-
-
 // Stop shuts down the event-driven coordinator.
 
 func (edc *EventDrivenCoordinator) Stop(ctx context.Context) error {
 
 	edc.logger.Info("Stopping event-driven coordinator")
-
-
 
 	// Stop the event bus.
 
@@ -385,15 +303,11 @@ func (edc *EventDrivenCoordinator) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	edc.logger.Info("Event-driven coordinator stopped")
 
 	return nil
 
 }
-
-
 
 // setupEventSubscriptions sets up event handlers for coordination.
 
@@ -403,15 +317,11 @@ func (edc *EventDrivenCoordinator) setupEventSubscriptions() {
 
 	edc.eventBus.Subscribe(EventPhaseTransition, edc.handlePhaseTransition)
 
-
-
 	// Subscribe to conflict events.
 
 	edc.eventBus.Subscribe(EventConflictDetected, edc.handleConflictDetected)
 
 	edc.eventBus.Subscribe(EventConflictResolved, edc.handleConflictResolved)
-
-
 
 	// Subscribe to resource lock events.
 
@@ -419,15 +329,11 @@ func (edc *EventDrivenCoordinator) setupEventSubscriptions() {
 
 	edc.eventBus.Subscribe(EventResourceLockReleased, edc.handleResourceLockReleased)
 
-
-
 	// Subscribe to recovery events.
 
 	edc.eventBus.Subscribe(EventRecoveryInitiated, edc.handleRecoveryInitiated)
 
 	edc.eventBus.Subscribe(EventRecoveryCompleted, edc.handleRecoveryCompleted)
-
-
 
 	// Subscribe to all events for persistence (wildcard subscription).
 
@@ -435,33 +341,26 @@ func (edc *EventDrivenCoordinator) setupEventSubscriptions() {
 
 }
 
-
-
 // CoordinateIntentWithEvents coordinates an intent using event-driven approach.
 
 func (edc *EventDrivenCoordinator) CoordinateIntentWithEvents(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
 
 	intentID := string(networkIntent.UID)
 
-
-
 	// Create coordination context.
 
 	coordCtx := &CoordinationContext{
 
-		IntentID:       intentID,
+		IntentID: intentID,
 
-		CurrentPhase:   interfaces.PhaseReceived,
+		CurrentPhase: interfaces.PhaseReceived,
 
-		StartTime:      time.Now(),
+		StartTime: time.Now(),
 
 		LastUpdateTime: time.Now(),
 
-		Metadata:       make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}
-
-
 
 	// Store coordination context.
 
@@ -471,8 +370,6 @@ func (edc *EventDrivenCoordinator) CoordinateIntentWithEvents(ctx context.Contex
 
 	edc.mutex.Unlock()
 
-
-
 	// Publish intent received event.
 
 	if err := edc.publishCoordinationEvent(ctx, EventIntentReceived, intentID, interfaces.PhaseReceived, CoordinationEventData{}); err != nil {
@@ -481,23 +378,17 @@ func (edc *EventDrivenCoordinator) CoordinateIntentWithEvents(ctx context.Contex
 
 	}
 
-
-
 	// Start phase processing.
 
 	return edc.initiatePhaseProcessing(ctx, networkIntent, coordCtx)
 
 }
 
-
-
 // initiatePhaseProcessing starts the first phase of processing.
 
 func (edc *EventDrivenCoordinator) initiatePhaseProcessing(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, coordCtx *CoordinationContext) error {
 
 	intentID := coordCtx.IntentID
-
-
 
 	// Check for existing events to replay.
 
@@ -511,15 +402,11 @@ func (edc *EventDrivenCoordinator) initiatePhaseProcessing(ctx context.Context, 
 
 	}
 
-
-
 	// Start LLM processing phase.
 
 	return edc.transitionToPhase(ctx, coordCtx, interfaces.PhaseLLMProcessing)
 
 }
-
-
 
 // transitionToPhase transitions to a new processing phase.
 
@@ -531,13 +418,9 @@ func (edc *EventDrivenCoordinator) transitionToPhase(ctx context.Context, coordC
 
 	coordCtx.LastUpdateTime = time.Now()
 
-
-
 	// Update phase tracker.
 
 	edc.phaseTracker.UpdatePhaseStatus(coordCtx.IntentID, nextPhase, "InProgress")
-
-
 
 	// Publish phase transition event.
 
@@ -545,17 +428,12 @@ func (edc *EventDrivenCoordinator) transitionToPhase(ctx context.Context, coordC
 
 		PreviousPhase: previousPhase,
 
-		NextPhase:     nextPhase,
-
+		NextPhase: nextPhase,
 	}
-
-
 
 	return edc.publishCoordinationEvent(ctx, EventPhaseTransition, coordCtx.IntentID, nextPhase, transitionData)
 
 }
-
-
 
 // publishCoordinationEvent publishes a coordination-specific event.
 
@@ -565,47 +443,37 @@ func (edc *EventDrivenCoordinator) publishCoordinationEvent(ctx context.Context,
 
 		ProcessingEvent: ProcessingEvent{
 
-			Type:          eventType,
+			Type: eventType,
 
-			Source:        "coordination-controller",
+			Source: "coordination-controller",
 
-			IntentID:      intentID,
+			IntentID: intentID,
 
-			Phase:         phase,
+			Phase: phase,
 
-			Success:       true,
+			Success: true,
 
-			Data:          make(map[string]interface{}),
+			Data: make(map[string]interface{}),
 
-			Timestamp:     time.Now(),
+			Timestamp: time.Now(),
 
 			CorrelationID: fmt.Sprintf("%s-%d", intentID, time.Now().UnixNano()),
-
 		},
 
 		Coordination: coordData,
-
 	}
-
-
 
 	return edc.eventBus.Publish(ctx, event.ProcessingEvent)
 
 }
 
-
-
 // Event handlers.
-
-
 
 // handlePhaseTransition handles phase transition events.
 
 func (edc *EventDrivenCoordinator) handlePhaseTransition(ctx context.Context, event ProcessingEvent) error {
 
 	edc.logger.Info("Handling phase transition", "intentId", event.IntentID, "phase", event.Phase)
-
-
 
 	// Update coordination context.
 
@@ -629,21 +497,15 @@ func (edc *EventDrivenCoordinator) handlePhaseTransition(ctx context.Context, ev
 
 	edc.mutex.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 // handleConflictDetected handles conflict detection events.
 
 func (edc *EventDrivenCoordinator) handleConflictDetected(ctx context.Context, event ProcessingEvent) error {
 
 	edc.logger.Info("Handling conflict detection", "intentId", event.IntentID, "conflict", event.Data)
-
-
 
 	// Extract conflict data from event.
 
@@ -655,8 +517,6 @@ func (edc *EventDrivenCoordinator) handleConflictDetected(ctx context.Context, e
 
 	}
 
-
-
 	// Update coordination context with conflict.
 
 	edc.mutex.Lock()
@@ -665,14 +525,13 @@ func (edc *EventDrivenCoordinator) handleConflictDetected(ctx context.Context, e
 
 		conflict := Conflict{
 
-			ID:              conflictID,
+			ID: conflictID,
 
-			Type:            event.Data["type"].(string),
+			Type: event.Data["type"].(string),
 
 			InvolvedIntents: []string{event.IntentID},
 
-			DetectedAt:      time.Now(),
-
+			DetectedAt: time.Now(),
 		}
 
 		coordCtx.Conflicts = append(coordCtx.Conflicts, conflict)
@@ -681,13 +540,9 @@ func (edc *EventDrivenCoordinator) handleConflictDetected(ctx context.Context, e
 
 	edc.mutex.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 // handleConflictResolved handles conflict resolution events.
 
@@ -695,11 +550,7 @@ func (edc *EventDrivenCoordinator) handleConflictResolved(ctx context.Context, e
 
 	edc.logger.Info("Handling conflict resolution", "intentId", event.IntentID)
 
-
-
 	conflictID, _ := event.Data["conflictId"].(string)
-
-
 
 	// Remove resolved conflict from coordination context.
 
@@ -723,13 +574,9 @@ func (edc *EventDrivenCoordinator) handleConflictResolved(ctx context.Context, e
 
 	edc.mutex.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 // handleResourceLockAcquired handles resource lock acquisition events.
 
@@ -737,11 +584,7 @@ func (edc *EventDrivenCoordinator) handleResourceLockAcquired(ctx context.Contex
 
 	edc.logger.Info("Handling resource lock acquired", "intentId", event.IntentID)
 
-
-
 	lockID, _ := event.Data["lockId"].(string)
-
-
 
 	// Add lock to coordination context.
 
@@ -755,13 +598,9 @@ func (edc *EventDrivenCoordinator) handleResourceLockAcquired(ctx context.Contex
 
 	edc.mutex.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 // handleResourceLockReleased handles resource lock release events.
 
@@ -769,11 +608,7 @@ func (edc *EventDrivenCoordinator) handleResourceLockReleased(ctx context.Contex
 
 	edc.logger.Info("Handling resource lock released", "intentId", event.IntentID)
 
-
-
 	lockID, _ := event.Data["lockId"].(string)
-
-
 
 	// Remove lock from coordination context.
 
@@ -797,21 +632,15 @@ func (edc *EventDrivenCoordinator) handleResourceLockReleased(ctx context.Contex
 
 	edc.mutex.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 // handleRecoveryInitiated handles recovery initiation events.
 
 func (edc *EventDrivenCoordinator) handleRecoveryInitiated(ctx context.Context, event ProcessingEvent) error {
 
 	edc.logger.Info("Handling recovery initiated", "intentId", event.IntentID)
-
-
 
 	// Record recovery in coordination context.
 
@@ -829,21 +658,15 @@ func (edc *EventDrivenCoordinator) handleRecoveryInitiated(ctx context.Context, 
 
 	edc.mutex.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 // handleRecoveryCompleted handles recovery completion events.
 
 func (edc *EventDrivenCoordinator) handleRecoveryCompleted(ctx context.Context, event ProcessingEvent) error {
 
 	edc.logger.Info("Handling recovery completed", "intentId", event.IntentID)
-
-
 
 	// Update coordination context.
 
@@ -859,13 +682,9 @@ func (edc *EventDrivenCoordinator) handleRecoveryCompleted(ctx context.Context, 
 
 	edc.mutex.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 // handleEventPersistence handles persistent storage of all events.
 
@@ -877,13 +696,9 @@ func (edc *EventDrivenCoordinator) handleEventPersistence(ctx context.Context, e
 
 	}
 
-
-
 	return edc.eventStore.PersistEvent(ctx, event)
 
 }
-
-
 
 // monitorForRecovery monitors for failed intents and initiates recovery.
 
@@ -892,8 +707,6 @@ func (edc *EventDrivenCoordinator) monitorForRecovery(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -913,8 +726,6 @@ func (edc *EventDrivenCoordinator) monitorForRecovery(ctx context.Context) {
 
 }
 
-
-
 // checkForRecoveryNeeded checks coordination contexts for recovery needs.
 
 func (edc *EventDrivenCoordinator) checkForRecoveryNeeded(ctx context.Context) {
@@ -931,8 +742,6 @@ func (edc *EventDrivenCoordinator) checkForRecoveryNeeded(ctx context.Context) {
 
 	edc.mutex.RUnlock()
 
-
-
 	for _, coordCtx := range contexts {
 
 		// Check if intent is stuck (no update in 10 minutes).
@@ -941,17 +750,12 @@ func (edc *EventDrivenCoordinator) checkForRecoveryNeeded(ctx context.Context) {
 
 			edc.logger.Info("Intent appears stuck, initiating recovery", "intentId", coordCtx.IntentID, "currentPhase", coordCtx.CurrentPhase)
 
-
-
 			// Publish recovery initiated event.
 
 			recoveryData := CoordinationEventData{
 
 				RecoveryAction: "timeout-recovery",
-
 			}
-
-
 
 			if err := edc.publishCoordinationEvent(ctx, EventRecoveryInitiated, coordCtx.IntentID, coordCtx.CurrentPhase, recoveryData); err != nil {
 
@@ -965,8 +769,6 @@ func (edc *EventDrivenCoordinator) checkForRecoveryNeeded(ctx context.Context) {
 
 }
 
-
-
 // GetCoordinationContext retrieves the coordination context for an intent.
 
 func (edc *EventDrivenCoordinator) GetCoordinationContext(intentID string) (*CoordinationContext, bool) {
@@ -974,8 +776,6 @@ func (edc *EventDrivenCoordinator) GetCoordinationContext(intentID string) (*Coo
 	edc.mutex.RLock()
 
 	defer edc.mutex.RUnlock()
-
-
 
 	coordCtx, exists := edc.coordinationContexts[intentID]
 
@@ -985,23 +785,20 @@ func (edc *EventDrivenCoordinator) GetCoordinationContext(intentID string) (*Coo
 
 		contextCopy := &CoordinationContext{
 
-			IntentID:       coordCtx.IntentID,
+			IntentID: coordCtx.IntentID,
 
-			CorrelationID:  coordCtx.CorrelationID,
+			CorrelationID: coordCtx.CorrelationID,
 
-			StartTime:      coordCtx.StartTime,
+			StartTime: coordCtx.StartTime,
 
-			CurrentPhase:   coordCtx.CurrentPhase,
+			CurrentPhase: coordCtx.CurrentPhase,
 
-			RetryCount:     coordCtx.RetryCount,
+			RetryCount: coordCtx.RetryCount,
 
-			LastActivity:   coordCtx.LastActivity,
+			LastActivity: coordCtx.LastActivity,
 
 			LastUpdateTime: coordCtx.LastUpdateTime,
-
 		}
-
-
 
 		// Deep copy slices to avoid shared references.
 
@@ -1013,8 +810,6 @@ func (edc *EventDrivenCoordinator) GetCoordinationContext(intentID string) (*Coo
 
 		}
 
-
-
 		if coordCtx.Locks != nil {
 
 			contextCopy.Locks = make([]string, len(coordCtx.Locks))
@@ -1022,8 +817,6 @@ func (edc *EventDrivenCoordinator) GetCoordinationContext(intentID string) (*Coo
 			copy(contextCopy.Locks, coordCtx.Locks)
 
 		}
-
-
 
 		if coordCtx.Conflicts != nil {
 
@@ -1033,8 +826,6 @@ func (edc *EventDrivenCoordinator) GetCoordinationContext(intentID string) (*Coo
 
 		}
 
-
-
 		if coordCtx.CompletedPhases != nil {
 
 			contextCopy.CompletedPhases = make([]interfaces.ProcessingPhase, len(coordCtx.CompletedPhases))
@@ -1043,8 +834,6 @@ func (edc *EventDrivenCoordinator) GetCoordinationContext(intentID string) (*Coo
 
 		}
 
-
-
 		if coordCtx.ErrorHistory != nil {
 
 			contextCopy.ErrorHistory = make([]string, len(coordCtx.ErrorHistory))
@@ -1052,8 +841,6 @@ func (edc *EventDrivenCoordinator) GetCoordinationContext(intentID string) (*Coo
 			copy(contextCopy.ErrorHistory, coordCtx.ErrorHistory)
 
 		}
-
-
 
 		// Deep copy map to avoid shared references.
 
@@ -1069,19 +856,13 @@ func (edc *EventDrivenCoordinator) GetCoordinationContext(intentID string) (*Coo
 
 		}
 
-
-
 		return contextCopy, true
 
 	}
 
-
-
 	return nil, false
 
 }
-
-
 
 // PersistEvent stores an event in Kubernetes ConfigMaps.
 
@@ -1091,18 +872,15 @@ func (ps *PersistentEventStore) PersistEvent(ctx context.Context, event Processi
 
 	configMapName := fmt.Sprintf("%s-%s", ps.configMapPrefix, event.IntentID)
 
-
-
 	// Get or create ConfigMap.
 
 	configMap := &corev1.ConfigMap{}
 
 	err := ps.client.Get(ctx, client.ObjectKey{
 
-		Name:      configMapName,
+		Name: configMapName,
 
 		Namespace: ps.namespace,
-
 	}, configMap)
 
 	if err != nil {
@@ -1113,27 +891,22 @@ func (ps *PersistentEventStore) PersistEvent(ctx context.Context, event Processi
 
 			ObjectMeta: metav1.ObjectMeta{
 
-				Name:      configMapName,
+				Name: configMapName,
 
 				Namespace: ps.namespace,
 
 				Labels: map[string]string{
 
-					"nephoran.com/intent-id":   event.IntentID,
+					"nephoran.com/intent-id": event.IntentID,
 
 					"nephoran.com/event-store": "true",
-
 				},
-
 			},
 
 			Data: make(map[string]string),
-
 		}
 
 	}
-
-
 
 	// Add event to ConfigMap.
 
@@ -1147,11 +920,7 @@ func (ps *PersistentEventStore) PersistEvent(ctx context.Context, event Processi
 
 	}
 
-
-
 	configMap.Data[eventKey] = string(eventData)
-
-
 
 	// Update ConfigMap.
 
@@ -1167,8 +936,6 @@ func (ps *PersistentEventStore) PersistEvent(ctx context.Context, event Processi
 
 	}
 
-
-
 	// Update cache.
 
 	ps.cacheMutex.Lock()
@@ -1177,21 +944,15 @@ func (ps *PersistentEventStore) PersistEvent(ctx context.Context, event Processi
 
 	ps.cacheMutex.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 // ReplayEventsForIntent replays events for a specific intent.
 
 func (rm *EventReplayManager) ReplayEventsForIntent(ctx context.Context, intentID string) error {
 
 	rm.logger.Info("Starting event replay", "intentId", intentID)
-
-
 
 	// Get events from persistent store.
 
@@ -1203,8 +964,6 @@ func (rm *EventReplayManager) ReplayEventsForIntent(ctx context.Context, intentI
 
 	}
 
-
-
 	if len(events) == 0 {
 
 		rm.logger.Info("No events found for replay", "intentId", intentID)
@@ -1212,8 +971,6 @@ func (rm *EventReplayManager) ReplayEventsForIntent(ctx context.Context, intentI
 		return nil
 
 	}
-
-
 
 	// Replay events in batches.
 
@@ -1226,8 +983,6 @@ func (rm *EventReplayManager) ReplayEventsForIntent(ctx context.Context, intentI
 			end = len(events)
 
 		}
-
-
 
 		batch := events[i:end]
 
@@ -1243,8 +998,6 @@ func (rm *EventReplayManager) ReplayEventsForIntent(ctx context.Context, intentI
 
 		}
 
-
-
 		// Delay between batches.
 
 		select {
@@ -1259,15 +1012,11 @@ func (rm *EventReplayManager) ReplayEventsForIntent(ctx context.Context, intentI
 
 	}
 
-
-
 	rm.logger.Info("Event replay completed", "intentId", intentID, "eventsReplayed", len(events))
 
 	return nil
 
 }
-
-
 
 // GetEventsForIntent retrieves events for an intent from persistent storage.
 
@@ -1287,22 +1036,17 @@ func (ps *PersistentEventStore) GetEventsForIntent(ctx context.Context, intentID
 
 	ps.cacheMutex.RUnlock()
 
-
-
 	// Load from ConfigMap.
 
 	configMapName := fmt.Sprintf("%s-%s", ps.configMapPrefix, intentID)
 
 	configMap := &corev1.ConfigMap{}
 
-
-
 	err := ps.client.Get(ctx, client.ObjectKey{
 
-		Name:      configMapName,
+		Name: configMapName,
 
 		Namespace: ps.namespace,
-
 	}, configMap)
 
 	if err != nil {
@@ -1310,8 +1054,6 @@ func (ps *PersistentEventStore) GetEventsForIntent(ctx context.Context, intentID
 		return nil, fmt.Errorf("failed to get events ConfigMap: %w", err)
 
 	}
-
-
 
 	// Parse events.
 
@@ -1333,8 +1075,6 @@ func (ps *PersistentEventStore) GetEventsForIntent(ctx context.Context, intentID
 
 	}
 
-
-
 	// Update cache.
 
 	ps.cacheMutex.Lock()
@@ -1343,9 +1083,6 @@ func (ps *PersistentEventStore) GetEventsForIntent(ctx context.Context, intentID
 
 	ps.cacheMutex.Unlock()
 
-
-
 	return events, nil
 
 }
-

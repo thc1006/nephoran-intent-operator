@@ -1,27 +1,14 @@
-
 package porch
 
-
-
 import (
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 	"runtime"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/platform"
-
 )
-
-
 
 // CrossPlatformMockOptions configures the behavior of the cross-platform mock script.
 
@@ -50,16 +37,12 @@ type CrossPlatformMockOptions struct {
 	// CustomScript allows providing completely custom script content (overrides other options).
 
 	CustomScript struct {
-
 		Windows string // Windows batch content
 
-		Unix    string // Unix shell content
+		Unix string // Unix shell content
 
 	}
-
 }
-
-
 
 // CreateCrossPlatformMock creates a mock porch script that works on both Windows and Unix systems.
 
@@ -71,15 +54,11 @@ func CreateCrossPlatformMock(tempDir string, opts CrossPlatformMockOptions) (str
 
 	var script string
 
-
-
 	if runtime.GOOS == "windows" {
 
 		// Create Windows batch file.
 
 		mockPath = filepath.Join(tempDir, "mock-porch.bat")
-
-
 
 		// Use custom script if provided.
 
@@ -97,8 +76,6 @@ func CreateCrossPlatformMock(tempDir string, opts CrossPlatformMockOptions) (str
 
 			}
 
-
-
 			sleepCmd := ""
 
 			if sleepSeconds > 0 {
@@ -109,8 +86,6 @@ func CreateCrossPlatformMock(tempDir string, opts CrossPlatformMockOptions) (str
 
 			}
 
-
-
 			stdoutCmd := ""
 
 			if opts.Stdout != "" {
@@ -119,8 +94,6 @@ func CreateCrossPlatformMock(tempDir string, opts CrossPlatformMockOptions) (str
 
 			}
 
-
-
 			stderrCmd := ""
 
 			if opts.Stderr != "" {
@@ -128,8 +101,6 @@ func CreateCrossPlatformMock(tempDir string, opts CrossPlatformMockOptions) (str
 				stderrCmd = fmt.Sprintf("echo %s >&2", opts.Stderr)
 
 			}
-
-
 
 			failOnPatternCmd := ""
 
@@ -146,8 +117,6 @@ if %%errorlevel%% equ 0 (
 )`, opts.FailOnPattern, opts.FailOnPattern)
 
 			}
-
-
 
 			script = fmt.Sprintf(`@echo off
 
@@ -177,8 +146,6 @@ exit /b %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 
 		mockPath = filepath.Join(tempDir, "mock-porch.sh")
 
-
-
 		// Use custom script if provided.
 
 		if opts.CustomScript.Unix != "" {
@@ -195,8 +162,6 @@ exit /b %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 
 			}
 
-
-
 			stdoutCmd := ""
 
 			if opts.Stdout != "" {
@@ -205,8 +170,6 @@ exit /b %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 
 			}
 
-
-
 			stderrCmd := ""
 
 			if opts.Stderr != "" {
@@ -214,8 +177,6 @@ exit /b %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 				stderrCmd = fmt.Sprintf("echo %q >&2", opts.Stderr)
 
 			}
-
-
 
 			failOnPatternCmd := ""
 
@@ -230,8 +191,6 @@ exit /b %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 fi`, opts.FailOnPattern, opts.FailOnPattern)
 
 			}
-
-
 
 			script = fmt.Sprintf(`#!/bin/bash
 
@@ -257,8 +216,6 @@ exit %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 
 	}
 
-
-
 	// Write the script file with restrictive permissions first.
 	// Security: Use 0600 for initial write to satisfy G306
 	if err := os.WriteFile(mockPath, []byte(script), 0o600); err != nil {
@@ -276,13 +233,9 @@ exit %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 
 	}
 
-
-
 	return mockPath, nil
 
 }
-
-
 
 // CreateSimpleMock creates a basic mock script that echoes arguments and exits with code 0.
 
@@ -292,13 +245,10 @@ func CreateSimpleMock(tempDir string) (string, error) {
 
 		ExitCode: 0,
 
-		Stdout:   "Mock porch processing completed successfully",
-
+		Stdout: "Mock porch processing completed successfully",
 	})
 
 }
-
-
 
 // CreateAdvancedMock creates a mock script using the new platform utilities.
 
@@ -308,19 +258,16 @@ func CreateAdvancedMock(tempDir string, opts CrossPlatformMockOptions) (string, 
 
 	scriptOpts := platform.ScriptOptions{
 
-		ExitCode:      opts.ExitCode,
+		ExitCode: opts.ExitCode,
 
-		Stdout:        opts.Stdout,
+		Stdout: opts.Stdout,
 
-		Stderr:        opts.Stderr,
+		Stderr: opts.Stderr,
 
-		Sleep:         opts.Sleep,
+		Sleep: opts.Sleep,
 
 		FailOnPattern: opts.FailOnPattern,
-
 	}
-
-
 
 	// Set custom commands if provided.
 
@@ -340,8 +287,6 @@ func CreateAdvancedMock(tempDir string, opts CrossPlatformMockOptions) (string, 
 
 	}
 
-
-
 	// Create the script using platform utilities.
 
 	mockPath := platform.GetScriptPath(tempDir, "mock-porch")
@@ -354,13 +299,9 @@ func CreateAdvancedMock(tempDir string, opts CrossPlatformMockOptions) (string, 
 
 	}
 
-
-
 	return mockPath, nil
 
 }
-
-
 
 // GetMockPorchPath returns the correct mock porch path for the current platform.
 
@@ -369,8 +310,6 @@ func GetMockPorchPath(tempDir string) string {
 	return platform.GetScriptPath(tempDir, "mock-porch")
 
 }
-
-
 
 // ValidateMockExecutable ensures the mock script is executable on the current platform.
 
@@ -390,8 +329,6 @@ func ValidateMockExecutable(mockPath string) error {
 
 }
 
-
-
 // CreateFailingMock creates a mock that simulates porch failures.
 
 func CreateFailingMock(tempDir string, exitCode int, errorMessage string) (string, error) {
@@ -400,13 +337,10 @@ func CreateFailingMock(tempDir string, exitCode int, errorMessage string) (strin
 
 		ExitCode: exitCode,
 
-		Stderr:   errorMessage,
-
+		Stderr: errorMessage,
 	})
 
 }
-
-
 
 // CreateSlowMock creates a mock that simulates slow porch execution.
 
@@ -416,15 +350,12 @@ func CreateSlowMock(tempDir string, delay time.Duration) (string, error) {
 
 		ExitCode: 0,
 
-		Sleep:    delay,
+		Sleep: delay,
 
-		Stdout:   "Slow mock porch processing completed",
-
+		Stdout: "Slow mock porch processing completed",
 	})
 
 }
-
-
 
 // CreatePatternFailingMock creates a mock that fails when specific patterns are found.
 
@@ -432,13 +363,11 @@ func CreatePatternFailingMock(tempDir, failPattern string) (string, error) {
 
 	return CreateCrossPlatformMock(tempDir, CrossPlatformMockOptions{
 
-		ExitCode:      1,
+		ExitCode: 1,
 
 		FailOnPattern: failPattern,
 
-		Stderr:        "Pattern-based failure triggered",
-
+		Stderr: "Pattern-based failure triggered",
 	})
 
 }
-

@@ -1,67 +1,42 @@
-
 package audit
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"log/slog"
-
 	"sort"
-
 	"time"
 
-
-
-	"github.com/prometheus/client_golang/prometheus"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/backends"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/types"
-
+	"github.com/prometheus/client_golang/prometheus"
 )
-
-
 
 // QueryEngine provides advanced audit log querying and analysis capabilities.
 
 type QueryEngine struct {
-
-	system   *AuditSystem
+	system *AuditSystem
 
 	backends map[string]backends.Backend
 
-	logger   *slog.Logger
+	logger *slog.Logger
 
-	metrics  *QueryMetrics
-
+	metrics *QueryMetrics
 }
-
-
 
 // QueryMetrics tracks query performance and usage.
 
 type QueryMetrics struct {
+	queriesTotal *prometheus.CounterVec
 
-	queriesTotal    *prometheus.CounterVec
-
-	queryDuration   *prometheus.HistogramVec
+	queryDuration *prometheus.HistogramVec
 
 	queryComplexity *prometheus.HistogramVec
 
 	resultsReturned *prometheus.HistogramVec
 
-	queryErrors     *prometheus.CounterVec
-
+	queryErrors *prometheus.CounterVec
 }
-
-
 
 // Query represents a structured audit log query.
 
@@ -71,31 +46,25 @@ type Query struct {
 
 	StartTime time.Time `json:"start_time"`
 
-	EndTime   time.Time `json:"end_time"`
-
-
+	EndTime time.Time `json:"end_time"`
 
 	// Event filtering.
 
 	EventTypes []types.EventType `json:"event_types,omitempty"`
 
-	Categories []string          `json:"categories,omitempty"`
+	Categories []string `json:"categories,omitempty"`
 
-	Severities []string          `json:"severities,omitempty"`
-
-
+	Severities []string `json:"severities,omitempty"`
 
 	// Actor filtering.
 
-	UserIDs    []string `json:"user_ids,omitempty"`
+	UserIDs []string `json:"user_ids,omitempty"`
 
-	UserTypes  []string `json:"user_types,omitempty"`
+	UserTypes []string `json:"user_types,omitempty"`
 
 	SessionIDs []string `json:"session_ids,omitempty"`
 
-	ClientIPs  []string `json:"client_ips,omitempty"`
-
-
+	ClientIPs []string `json:"client_ips,omitempty"`
 
 	// Resource filtering.
 
@@ -103,55 +72,42 @@ type Query struct {
 
 	ResourceNames []string `json:"resource_names,omitempty"`
 
-	Namespaces    []string `json:"namespaces,omitempty"`
-
-
+	Namespaces []string `json:"namespaces,omitempty"`
 
 	// System context.
 
 	Services []string `json:"services,omitempty"`
 
-	Hosts    []string `json:"hosts,omitempty"`
+	Hosts []string `json:"hosts,omitempty"`
 
 	TraceIDs []string `json:"trace_ids,omitempty"`
 
-
-
 	// Results control.
 
-	Limit     int    `json:"limit,omitempty"`
+	Limit int `json:"limit,omitempty"`
 
-	Offset    int    `json:"offset,omitempty"`
+	Offset int `json:"offset,omitempty"`
 
-	SortBy    string `json:"sort_by,omitempty"`
+	SortBy string `json:"sort_by,omitempty"`
 
 	SortOrder string `json:"sort_order,omitempty"`
 
-
-
 	// Advanced filters.
 
-	Filters    map[string]interface{} `json:"filters,omitempty"`
+	Filters map[string]interface{} `json:"filters,omitempty"`
 
-	TextSearch string                 `json:"text_search,omitempty"`
-
-
+	TextSearch string `json:"text_search,omitempty"`
 
 	// Aggregation.
 
-	GroupBy      []string                   `json:"group_by,omitempty"`
+	GroupBy []string `json:"group_by,omitempty"`
 
 	Aggregations map[string]AggregationType `json:"aggregations,omitempty"`
-
 }
-
-
 
 // AggregationType defines supported aggregation operations.
 
 type AggregationType string
-
-
 
 const (
 
@@ -182,208 +138,169 @@ const (
 	// AggHistogram holds agghistogram value.
 
 	AggHistogram AggregationType = "histogram"
-
 )
-
-
 
 // QueryResult contains the results of an audit log query.
 
 type QueryResult struct {
-
-	Events       []*types.AuditEvent    `json:"events,omitempty"`
+	Events []*types.AuditEvent `json:"events,omitempty"`
 
 	Aggregations map[string]interface{} `json:"aggregations,omitempty"`
 
-	TotalCount   int64                  `json:"total_count"`
+	TotalCount int64 `json:"total_count"`
 
-	QueryTime    time.Duration          `json:"query_time"`
+	QueryTime time.Duration `json:"query_time"`
 
-	Backend      string                 `json:"backend"`
+	Backend string `json:"backend"`
 
-	HasMore      bool                   `json:"has_more"`
-
+	HasMore bool `json:"has_more"`
 }
-
-
 
 // SecurityAnalysis provides security-focused audit analysis.
 
 type SecurityAnalysis struct {
+	SuspiciousActivities []*SecurityThreat `json:"suspicious_activities"`
 
-	SuspiciousActivities  []*SecurityThreat  `json:"suspicious_activities"`
+	FailedAuthAttempts *AuthAnalysis `json:"failed_auth_attempts"`
 
-	FailedAuthAttempts    *AuthAnalysis      `json:"failed_auth_attempts"`
+	PrivilegeEscalations []*PrivilegeEvent `json:"privilege_escalations"`
 
-	PrivilegeEscalations  []*PrivilegeEvent  `json:"privilege_escalations"`
+	UnusualAccessPatterns []*AccessAnomaly `json:"unusual_access_patterns"`
 
-	UnusualAccessPatterns []*AccessAnomaly   `json:"unusual_access_patterns"`
+	ComplianceViolations []*ComplianceIssue `json:"compliance_violations"`
 
-	ComplianceViolations  []*ComplianceIssue `json:"compliance_violations"`
+	RiskScore float64 `json:"risk_score"`
 
-	RiskScore             float64            `json:"risk_score"`
-
-	Recommendations       []*SecurityAdvice  `json:"recommendations"`
-
+	Recommendations []*SecurityAdvice `json:"recommendations"`
 }
-
-
 
 // SecurityThreat represents a detected security threat.
 
 type SecurityThreat struct {
+	Type string `json:"type"`
 
-	Type        string              `json:"type"`
+	Severity string `json:"severity"`
 
-	Severity    string              `json:"severity"`
+	Description string `json:"description"`
 
-	Description string              `json:"description"`
+	Actor *types.UserContext `json:"actor"`
 
-	Actor       *types.UserContext  `json:"actor"`
+	Timeline []time.Time `json:"timeline"`
 
-	Timeline    []time.Time         `json:"timeline"`
+	Evidence []*types.AuditEvent `json:"evidence"`
 
-	Evidence    []*types.AuditEvent `json:"evidence"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence  float64             `json:"confidence"`
-
-	MITRE       string              `json:"mitre_technique,omitempty"`
-
+	MITRE string `json:"mitre_technique,omitempty"`
 }
-
-
 
 // AuthAnalysis provides authentication failure analysis.
 
 type AuthAnalysis struct {
+	TotalFailures int64 `json:"total_failures"`
 
-	TotalFailures      int64              `json:"total_failures"`
+	UniqueUsers int `json:"unique_users"`
 
-	UniqueUsers        int                `json:"unique_users"`
+	UniqueIPs int `json:"unique_ips"`
 
-	UniqueIPs          int                `json:"unique_ips"`
+	TimeDistribution map[string]int64 `json:"time_distribution"`
 
-	TimeDistribution   map[string]int64   `json:"time_distribution"`
+	IPDistribution map[string]int64 `json:"ip_distribution"`
 
-	IPDistribution     map[string]int64   `json:"ip_distribution"`
-
-	UserDistribution   map[string]int64   `json:"user_distribution"`
+	UserDistribution map[string]int64 `json:"user_distribution"`
 
 	BruteForcePatterns []*BruteForceEvent `json:"brute_force_patterns"`
-
 }
-
-
 
 // PrivilegeEvent represents privilege escalation attempts.
 
 type PrivilegeEvent struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp      time.Time         `json:"timestamp"`
+	User string `json:"user"`
 
-	User           string            `json:"user"`
+	FromPrivileges []string `json:"from_privileges"`
 
-	FromPrivileges []string          `json:"from_privileges"`
+	ToPrivileges []string `json:"to_privileges"`
 
-	ToPrivileges   []string          `json:"to_privileges"`
+	Method string `json:"method"`
 
-	Method         string            `json:"method"`
+	Success bool `json:"success"`
 
-	Success        bool              `json:"success"`
-
-	Context        *types.AuditEvent `json:"context"`
-
+	Context *types.AuditEvent `json:"context"`
 }
-
-
 
 // AccessAnomaly represents unusual access patterns.
 
 type AccessAnomaly struct {
+	Type string `json:"type"`
 
-	Type        string      `json:"type"`
+	Description string `json:"description"`
 
-	Description string      `json:"description"`
+	User string `json:"user"`
 
-	User        string      `json:"user"`
+	Resource string `json:"resource"`
 
-	Resource    string      `json:"resource"`
+	Pattern string `json:"pattern"`
 
-	Pattern     string      `json:"pattern"`
+	Baseline interface{} `json:"baseline"`
 
-	Baseline    interface{} `json:"baseline"`
+	Deviation float64 `json:"deviation"`
 
-	Deviation   float64     `json:"deviation"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence  float64     `json:"confidence"`
-
-	Timeline    []time.Time `json:"timeline"`
-
+	Timeline []time.Time `json:"timeline"`
 }
-
-
 
 // ComplianceIssue represents compliance violations.
 
 type ComplianceIssue struct {
+	Standard string `json:"standard"`
 
-	Standard    string              `json:"standard"`
+	Control string `json:"control"`
 
-	Control     string              `json:"control"`
+	Violation string `json:"violation"`
 
-	Violation   string              `json:"violation"`
+	Severity string `json:"severity"`
 
-	Severity    string              `json:"severity"`
+	Events []*types.AuditEvent `json:"events"`
 
-	Events      []*types.AuditEvent `json:"events"`
+	Impact string `json:"impact"`
 
-	Impact      string              `json:"impact"`
-
-	Remediation string              `json:"remediation"`
-
+	Remediation string `json:"remediation"`
 }
-
-
 
 // SecurityAdvice provides security recommendations.
 
 type SecurityAdvice struct {
+	Category string `json:"category"`
 
-	Category    string `json:"category"`
+	Priority string `json:"priority"`
 
-	Priority    string `json:"priority"`
-
-	Title       string `json:"title"`
+	Title string `json:"title"`
 
 	Description string `json:"description"`
 
-	Action      string `json:"action"`
-
+	Action string `json:"action"`
 }
-
-
 
 // BruteForceEvent represents detected brute force patterns.
 
 type BruteForceEvent struct {
+	StartTime time.Time `json:"start_time"`
 
-	StartTime  time.Time `json:"start_time"`
+	EndTime time.Time `json:"end_time"`
 
-	EndTime    time.Time `json:"end_time"`
+	User string `json:"user"`
 
-	User       string    `json:"user"`
+	SourceIP string `json:"source_ip"`
 
-	SourceIP   string    `json:"source_ip"`
+	Attempts int `json:"attempts"`
 
-	Attempts   int       `json:"attempts"`
+	Services []string `json:"services"`
 
-	Services   []string  `json:"services"`
-
-	Successful bool      `json:"successful"`
-
+	Successful bool `json:"successful"`
 }
-
-
 
 // NewQueryEngine creates a new audit query engine.
 
@@ -398,59 +315,51 @@ func NewQueryEngine(system *AuditSystem, backends map[string]backends.Backend, l
 				Name: "audit_queries_total",
 
 				Help: "Total number of audit queries executed",
-
 			},
 
 			[]string{"backend", "query_type", "status"},
-
 		),
 
 		queryDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "audit_query_duration_seconds",
+				Name: "audit_query_duration_seconds",
 
-				Help:    "Time spent executing audit queries",
+				Help: "Time spent executing audit queries",
 
 				Buckets: prometheus.DefBuckets,
-
 			},
 
 			[]string{"backend", "query_type"},
-
 		),
 
 		queryComplexity: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "audit_query_complexity",
+				Name: "audit_query_complexity",
 
-				Help:    "Complexity score of audit queries",
+				Help: "Complexity score of audit queries",
 
 				Buckets: []float64{1, 2, 5, 10, 20, 50, 100},
-
 			},
 
 			[]string{"backend"},
-
 		),
 
 		resultsReturned: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "audit_query_results_returned",
+				Name: "audit_query_results_returned",
 
-				Help:    "Number of results returned by audit queries",
+				Help: "Number of results returned by audit queries",
 
 				Buckets: []float64{1, 10, 100, 1000, 10000, 100000},
-
 			},
 
 			[]string{"backend"},
-
 		),
 
 		queryErrors: prometheus.NewCounterVec(
@@ -460,16 +369,11 @@ func NewQueryEngine(system *AuditSystem, backends map[string]backends.Backend, l
 				Name: "audit_query_errors_total",
 
 				Help: "Total number of audit query errors",
-
 			},
 
 			[]string{"backend", "error_type"},
-
 		),
-
 	}
-
-
 
 	prometheus.MustRegister(
 
@@ -482,26 +386,20 @@ func NewQueryEngine(system *AuditSystem, backends map[string]backends.Backend, l
 		metrics.resultsReturned,
 
 		metrics.queryErrors,
-
 	)
-
-
 
 	return &QueryEngine{
 
-		system:   system,
+		system: system,
 
 		backends: backends,
 
-		logger:   logger,
+		logger: logger,
 
-		metrics:  metrics,
-
+		metrics: metrics,
 	}
 
 }
-
-
 
 // Execute executes an audit query against the specified backend.
 
@@ -511,11 +409,7 @@ func (qe *QueryEngine) Execute(ctx context.Context, query *Query, backend string
 
 	complexity := qe.calculateComplexity(query)
 
-
-
 	qe.metrics.queryComplexity.WithLabelValues(backend).Observe(complexity)
-
-
 
 	defer func() {
 
@@ -524,8 +418,6 @@ func (qe *QueryEngine) Execute(ctx context.Context, query *Query, backend string
 		qe.metrics.queryDuration.WithLabelValues(backend, "standard").Observe(duration.Seconds())
 
 	}()
-
-
 
 	// Validate query.
 
@@ -536,8 +428,6 @@ func (qe *QueryEngine) Execute(ctx context.Context, query *Query, backend string
 		return nil, fmt.Errorf("invalid query: %w", err)
 
 	}
-
-
 
 	// Get backend.
 
@@ -550,8 +440,6 @@ func (qe *QueryEngine) Execute(ctx context.Context, query *Query, backend string
 		return nil, fmt.Errorf("backend %s not found", backend)
 
 	}
-
-
 
 	// Execute query.
 
@@ -567,19 +455,13 @@ func (qe *QueryEngine) Execute(ctx context.Context, query *Query, backend string
 
 	}
 
-
-
 	qe.metrics.queriesTotal.WithLabelValues(backend, "standard", "success").Inc()
 
 	qe.metrics.resultsReturned.WithLabelValues(backend).Observe(float64(len(result.Events)))
 
-
-
 	return result, nil
 
 }
-
-
 
 // SearchText performs full-text search across audit logs.
 
@@ -587,27 +469,22 @@ func (qe *QueryEngine) SearchText(ctx context.Context, searchTerm string, timeRa
 
 	query := &Query{
 
-		StartTime:  time.Now().Add(-timeRange),
+		StartTime: time.Now().Add(-timeRange),
 
-		EndTime:    time.Now(),
+		EndTime: time.Now(),
 
 		TextSearch: searchTerm,
 
-		Limit:      1000,
+		Limit: 1000,
 
-		SortBy:     "timestamp",
+		SortBy: "timestamp",
 
-		SortOrder:  "desc",
-
+		SortOrder: "desc",
 	}
-
-
 
 	return qe.Execute(ctx, query, backend)
 
 }
-
-
 
 // GetUserActivity retrieves all activities for a specific user.
 
@@ -617,25 +494,20 @@ func (qe *QueryEngine) GetUserActivity(ctx context.Context, userID string, timeR
 
 		StartTime: time.Now().Add(-timeRange),
 
-		EndTime:   time.Now(),
+		EndTime: time.Now(),
 
-		UserIDs:   []string{userID},
+		UserIDs: []string{userID},
 
-		Limit:     10000,
+		Limit: 10000,
 
-		SortBy:    "timestamp",
+		SortBy: "timestamp",
 
 		SortOrder: "desc",
-
 	}
-
-
 
 	return qe.Execute(ctx, query, backend)
 
 }
-
-
 
 // GetSecurityEvents retrieves security-related events.
 
@@ -656,34 +528,26 @@ func (qe *QueryEngine) GetSecurityEvents(ctx context.Context, timeRange time.Dur
 		types.EventTypeMalwareDetection,
 
 		types.EventTypeAnomalyDetection,
-
 	}
-
-
 
 	query := &Query{
 
-		StartTime:  time.Now().Add(-timeRange),
+		StartTime: time.Now().Add(-timeRange),
 
-		EndTime:    time.Now(),
+		EndTime: time.Now(),
 
 		EventTypes: securityEventTypes,
 
-		Limit:      5000,
+		Limit: 5000,
 
-		SortBy:     "timestamp",
+		SortBy: "timestamp",
 
-		SortOrder:  "desc",
-
+		SortOrder: "desc",
 	}
-
-
 
 	return qe.Execute(ctx, query, backend)
 
 }
-
-
 
 // AnalyzeSecurity performs comprehensive security analysis.
 
@@ -697,23 +561,18 @@ func (qe *QueryEngine) AnalyzeSecurity(ctx context.Context, timeRange time.Durat
 
 	}()
 
-
-
 	analysis := &SecurityAnalysis{
 
-		SuspiciousActivities:  []*SecurityThreat{},
+		SuspiciousActivities: []*SecurityThreat{},
 
 		UnusualAccessPatterns: []*AccessAnomaly{},
 
-		ComplianceViolations:  []*ComplianceIssue{},
+		ComplianceViolations: []*ComplianceIssue{},
 
-		PrivilegeEscalations:  []*PrivilegeEvent{},
+		PrivilegeEscalations: []*PrivilegeEvent{},
 
-		Recommendations:       []*SecurityAdvice{},
-
+		Recommendations: []*SecurityAdvice{},
 	}
-
-
 
 	// Analyze authentication failures.
 
@@ -729,8 +588,6 @@ func (qe *QueryEngine) AnalyzeSecurity(ctx context.Context, timeRange time.Durat
 
 	}
 
-
-
 	// Detect suspicious activities.
 
 	threats, err := qe.detectThreats(ctx, timeRange, backend)
@@ -744,8 +601,6 @@ func (qe *QueryEngine) AnalyzeSecurity(ctx context.Context, timeRange time.Durat
 		analysis.SuspiciousActivities = threats
 
 	}
-
-
 
 	// Analyze access patterns.
 
@@ -761,8 +616,6 @@ func (qe *QueryEngine) AnalyzeSecurity(ctx context.Context, timeRange time.Durat
 
 	}
 
-
-
 	// Check compliance violations.
 
 	violations, err := qe.checkComplianceViolations(ctx, timeRange, backend)
@@ -777,29 +630,19 @@ func (qe *QueryEngine) AnalyzeSecurity(ctx context.Context, timeRange time.Durat
 
 	}
 
-
-
 	// Calculate risk score.
 
 	analysis.RiskScore = qe.calculateRiskScore(analysis)
-
-
 
 	// Generate recommendations.
 
 	analysis.Recommendations = qe.generateSecurityRecommendations(analysis)
 
-
-
 	qe.metrics.queriesTotal.WithLabelValues(backend, "security_analysis", "success").Inc()
-
-
 
 	return analysis, nil
 
 }
-
-
 
 // GetAggregatedStats returns aggregated statistics for audit events.
 
@@ -813,11 +656,7 @@ func (qe *QueryEngine) GetAggregatedStats(ctx context.Context, query *Query, bac
 
 	}
 
-
-
 	stats := make(map[string]interface{})
-
-
 
 	// Event type distribution.
 
@@ -828,8 +667,6 @@ func (qe *QueryEngine) GetAggregatedStats(ctx context.Context, query *Query, bac
 	users := make(map[string]int)
 
 	services := make(map[string]int)
-
-
 
 	for _, event := range result.Events {
 
@@ -851,8 +688,6 @@ func (qe *QueryEngine) GetAggregatedStats(ctx context.Context, query *Query, bac
 
 	}
 
-
-
 	stats["event_types"] = eventTypes
 
 	stats["severities"] = severities
@@ -863,13 +698,9 @@ func (qe *QueryEngine) GetAggregatedStats(ctx context.Context, query *Query, bac
 
 	stats["total_events"] = len(result.Events)
 
-
-
 	return stats, nil
 
 }
-
-
 
 // validateQuery validates the query parameters.
 
@@ -881,23 +712,17 @@ func (qe *QueryEngine) validateQuery(query *Query) error {
 
 	}
 
-
-
 	if query.StartTime.After(query.EndTime) {
 
 		return fmt.Errorf("start_time must be before end_time")
 
 	}
 
-
-
 	if query.EndTime.Sub(query.StartTime) > 30*24*time.Hour {
 
 		return fmt.Errorf("time range cannot exceed 30 days")
 
 	}
-
-
 
 	if query.Limit <= 0 {
 
@@ -911,8 +736,6 @@ func (qe *QueryEngine) validateQuery(query *Query) error {
 
 	}
 
-
-
 	if query.SortBy == "" {
 
 		query.SortBy = "timestamp"
@@ -925,21 +748,15 @@ func (qe *QueryEngine) validateQuery(query *Query) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // calculateComplexity calculates query complexity score.
 
 func (qe *QueryEngine) calculateComplexity(query *Query) float64 {
 
 	complexity := 1.0
-
-
 
 	// Time range complexity.
 
@@ -950,8 +767,6 @@ func (qe *QueryEngine) calculateComplexity(query *Query) float64 {
 		complexity += float64(timeRange.Hours() / 24)
 
 	}
-
-
 
 	// Filter complexity.
 
@@ -979,8 +794,6 @@ func (qe *QueryEngine) calculateComplexity(query *Query) float64 {
 
 	}
 
-
-
 	// Aggregation complexity.
 
 	if len(query.Aggregations) > 0 {
@@ -989,19 +802,13 @@ func (qe *QueryEngine) calculateComplexity(query *Query) float64 {
 
 	}
 
-
-
 	// Result size complexity.
 
 	complexity += float64(query.Limit) / 1000
 
-
-
 	return complexity
 
 }
-
-
 
 // executeQuery executes the query against the backend.
 
@@ -1011,35 +818,26 @@ func (qe *QueryEngine) executeQuery(ctx context.Context, backend backends.Backen
 
 	// In a real implementation, this would interface with specific backends.
 
-
-
 	result := &QueryResult{
 
-		Events:       []*types.AuditEvent{},
+		Events: []*types.AuditEvent{},
 
 		Aggregations: make(map[string]interface{}),
 
-		TotalCount:   0,
+		TotalCount: 0,
 
-		Backend:      backendName,
+		Backend: backendName,
 
-		HasMore:      false,
-
+		HasMore: false,
 	}
-
-
 
 	// Simulate query processing time.
 
 	time.Sleep(10 * time.Millisecond)
 
-
-
 	return result, nil
 
 }
-
-
 
 // analyzeAuthFailures analyzes authentication failure patterns.
 
@@ -1047,17 +845,14 @@ func (qe *QueryEngine) analyzeAuthFailures(ctx context.Context, timeRange time.D
 
 	query := &Query{
 
-		StartTime:  time.Now().Add(-timeRange),
+		StartTime: time.Now().Add(-timeRange),
 
-		EndTime:    time.Now(),
+		EndTime: time.Now(),
 
 		EventTypes: []types.EventType{types.EventTypeAuthenticationFailed},
 
-		Limit:      10000,
-
+		Limit: 10000,
 	}
-
-
 
 	result, err := qe.Execute(ctx, query, backend)
 
@@ -1067,29 +862,22 @@ func (qe *QueryEngine) analyzeAuthFailures(ctx context.Context, timeRange time.D
 
 	}
 
-
-
 	analysis := &AuthAnalysis{
 
-		TotalFailures:      int64(len(result.Events)),
+		TotalFailures: int64(len(result.Events)),
 
-		TimeDistribution:   make(map[string]int64),
+		TimeDistribution: make(map[string]int64),
 
-		IPDistribution:     make(map[string]int64),
+		IPDistribution: make(map[string]int64),
 
-		UserDistribution:   make(map[string]int64),
+		UserDistribution: make(map[string]int64),
 
 		BruteForcePatterns: []*BruteForceEvent{},
-
 	}
-
-
 
 	users := make(map[string]bool)
 
 	ips := make(map[string]bool)
-
-
 
 	for _, event := range result.Events {
 
@@ -1111,8 +899,6 @@ func (qe *QueryEngine) analyzeAuthFailures(ctx context.Context, timeRange time.D
 
 		}
 
-
-
 		// Time distribution by hour.
 
 		hour := event.Timestamp.Format("2006-01-02T15")
@@ -1121,25 +907,17 @@ func (qe *QueryEngine) analyzeAuthFailures(ctx context.Context, timeRange time.D
 
 	}
 
-
-
 	analysis.UniqueUsers = len(users)
 
 	analysis.UniqueIPs = len(ips)
-
-
 
 	// Detect brute force patterns.
 
 	analysis.BruteForcePatterns = qe.detectBruteForce(result.Events)
 
-
-
 	return analysis, nil
 
 }
-
-
 
 // detectThreats detects security threats from audit events.
 
@@ -1147,23 +925,18 @@ func (qe *QueryEngine) detectThreats(ctx context.Context, timeRange time.Duratio
 
 	threats := []*SecurityThreat{}
 
-
-
 	// Detect multiple failed auth attempts.
 
 	authQuery := &Query{
 
-		StartTime:  time.Now().Add(-timeRange),
+		StartTime: time.Now().Add(-timeRange),
 
-		EndTime:    time.Now(),
+		EndTime: time.Now(),
 
 		EventTypes: []types.EventType{types.EventTypeAuthenticationFailed},
 
-		Limit:      1000,
-
+		Limit: 1000,
 	}
-
-
 
 	authResult, err := qe.Execute(ctx, authQuery, backend)
 
@@ -1183,26 +956,23 @@ func (qe *QueryEngine) detectThreats(ctx context.Context, timeRange time.Duratio
 
 		}
 
-
-
 		for ip, count := range ipCounts {
 
 			if count >= 10 {
 
 				threat := &SecurityThreat{
 
-					Type:        "brute_force",
+					Type: "brute_force",
 
-					Severity:    "HIGH",
+					Severity: "HIGH",
 
 					Description: fmt.Sprintf("Multiple failed authentication attempts from IP %s", ip),
 
-					Timeline:    []time.Time{time.Now()},
+					Timeline: []time.Time{time.Now()},
 
-					Confidence:  0.8,
+					Confidence: 0.8,
 
-					MITRE:       "T1110",
-
+					MITRE: "T1110",
 				}
 
 				threats = append(threats, threat)
@@ -1213,13 +983,9 @@ func (qe *QueryEngine) detectThreats(ctx context.Context, timeRange time.Duratio
 
 	}
 
-
-
 	return threats, nil
 
 }
-
-
 
 // detectAccessAnomalies detects unusual access patterns.
 
@@ -1227,15 +993,13 @@ func (qe *QueryEngine) detectAccessAnomalies(ctx context.Context, timeRange time
 
 	anomalies := []*AccessAnomaly{}
 
-
-
 	// Detect unusual time-based access patterns.
 
 	query := &Query{
 
 		StartTime: time.Now().Add(-timeRange),
 
-		EndTime:   time.Now(),
+		EndTime: time.Now(),
 
 		EventTypes: []types.EventType{
 
@@ -1244,14 +1008,10 @@ func (qe *QueryEngine) detectAccessAnomalies(ctx context.Context, timeRange time
 			types.EventTypeDataAccess,
 
 			types.EventTypeResourceAccess,
-
 		},
 
 		Limit: 5000,
-
 	}
-
-
 
 	result, err := qe.Execute(ctx, query, backend)
 
@@ -1260,8 +1020,6 @@ func (qe *QueryEngine) detectAccessAnomalies(ctx context.Context, timeRange time
 		return anomalies, err
 
 	}
-
-
 
 	// Analyze access times.
 
@@ -1277,26 +1035,23 @@ func (qe *QueryEngine) detectAccessAnomalies(ctx context.Context, timeRange time
 
 	}
 
-
-
 	for user, times := range userAccessTimes {
 
 		if qe.isUnusualAccessTime(times) {
 
 			anomaly := &AccessAnomaly{
 
-				Type:        "unusual_time",
+				Type: "unusual_time",
 
 				Description: "User accessing system during unusual hours",
 
-				User:        user,
+				User: user,
 
-				Pattern:     "off_hours_access",
+				Pattern: "off_hours_access",
 
-				Confidence:  0.7,
+				Confidence: 0.7,
 
-				Timeline:    times,
-
+				Timeline: times,
 			}
 
 			anomalies = append(anomalies, anomaly)
@@ -1305,13 +1060,9 @@ func (qe *QueryEngine) detectAccessAnomalies(ctx context.Context, timeRange time
 
 	}
 
-
-
 	return anomalies, nil
 
 }
-
-
 
 // checkComplianceViolations checks for compliance violations.
 
@@ -1319,23 +1070,18 @@ func (qe *QueryEngine) checkComplianceViolations(ctx context.Context, timeRange 
 
 	violations := []*ComplianceIssue{}
 
-
-
 	// Check for unauthorized access violations.
 
 	query := &Query{
 
-		StartTime:  time.Now().Add(-timeRange),
+		StartTime: time.Now().Add(-timeRange),
 
-		EndTime:    time.Now(),
+		EndTime: time.Now(),
 
 		EventTypes: []types.EventType{types.EventTypeAuthorizationFailed, types.EventTypeResourceAccess},
 
-		Limit:      1000,
-
+		Limit: 1000,
 	}
-
-
 
 	result, err := qe.Execute(ctx, query, backend)
 
@@ -1345,47 +1091,38 @@ func (qe *QueryEngine) checkComplianceViolations(ctx context.Context, timeRange 
 
 	}
 
-
-
 	if len(result.Events) > 0 {
 
 		violation := &ComplianceIssue{
 
-			Standard:    "SOC2",
+			Standard: "SOC2",
 
-			Control:     "CC6.1",
+			Control: "CC6.1",
 
-			Violation:   "Unauthorized access attempts detected",
+			Violation: "Unauthorized access attempts detected",
 
-			Severity:    "MEDIUM",
+			Severity: "MEDIUM",
 
-			Events:      result.Events,
+			Events: result.Events,
 
-			Impact:      "Potential data breach risk",
+			Impact: "Potential data breach risk",
 
 			Remediation: "Review access controls and implement additional monitoring",
-
 		}
 
 		violations = append(violations, violation)
 
 	}
 
-
-
 	return violations, nil
 
 }
-
-
 
 // calculateRiskScore calculates overall security risk score.
 
 func (qe *QueryEngine) calculateRiskScore(analysis *SecurityAnalysis) float64 {
 
 	score := 0.0
-
-
 
 	// Suspicious activities impact.
 
@@ -1413,8 +1150,6 @@ func (qe *QueryEngine) calculateRiskScore(analysis *SecurityAnalysis) float64 {
 
 	}
 
-
-
 	// Authentication failures impact.
 
 	if analysis.FailedAuthAttempts != nil {
@@ -1430,8 +1165,6 @@ func (qe *QueryEngine) calculateRiskScore(analysis *SecurityAnalysis) float64 {
 		}
 
 	}
-
-
 
 	// Compliance violations impact.
 
@@ -1455,8 +1188,6 @@ func (qe *QueryEngine) calculateRiskScore(analysis *SecurityAnalysis) float64 {
 
 	}
 
-
-
 	// Cap at 100.
 
 	if score > 100 {
@@ -1465,13 +1196,9 @@ func (qe *QueryEngine) calculateRiskScore(analysis *SecurityAnalysis) float64 {
 
 	}
 
-
-
 	return score
 
 }
-
-
 
 // generateSecurityRecommendations generates security recommendations.
 
@@ -1479,81 +1206,66 @@ func (qe *QueryEngine) generateSecurityRecommendations(analysis *SecurityAnalysi
 
 	recommendations := []*SecurityAdvice{}
 
-
-
 	if analysis.RiskScore > 50 {
 
 		recommendations = append(recommendations, &SecurityAdvice{
 
-			Category:    "authentication",
+			Category: "authentication",
 
-			Priority:    "HIGH",
+			Priority: "HIGH",
 
-			Title:       "Strengthen Authentication Controls",
+			Title: "Strengthen Authentication Controls",
 
 			Description: "High risk score indicates potential authentication issues",
 
-			Action:      "Implement multi-factor authentication and review failed authentication patterns",
-
+			Action: "Implement multi-factor authentication and review failed authentication patterns",
 		})
 
 	}
-
-
 
 	if len(analysis.SuspiciousActivities) > 0 {
 
 		recommendations = append(recommendations, &SecurityAdvice{
 
-			Category:    "monitoring",
+			Category: "monitoring",
 
-			Priority:    "MEDIUM",
+			Priority: "MEDIUM",
 
-			Title:       "Enhance Security Monitoring",
+			Title: "Enhance Security Monitoring",
 
 			Description: "Suspicious activities detected requiring investigation",
 
-			Action:      "Review security monitoring rules and alert thresholds",
-
+			Action: "Review security monitoring rules and alert thresholds",
 		})
 
 	}
-
-
 
 	if len(analysis.ComplianceViolations) > 0 {
 
 		recommendations = append(recommendations, &SecurityAdvice{
 
-			Category:    "compliance",
+			Category: "compliance",
 
-			Priority:    "HIGH",
+			Priority: "HIGH",
 
-			Title:       "Address Compliance Violations",
+			Title: "Address Compliance Violations",
 
 			Description: "Compliance violations require immediate attention",
 
-			Action:      "Review and remediate identified compliance issues",
-
+			Action: "Review and remediate identified compliance issues",
 		})
 
 	}
 
-
-
 	return recommendations
 
 }
-
-
 
 // detectBruteForce detects brute force attack patterns.
 
 func (qe *QueryEngine) detectBruteForce(events []*types.AuditEvent) []*BruteForceEvent {
 
 	patterns := []*BruteForceEvent{}
-
-
 
 	// Group events by IP and time window.
 
@@ -1571,8 +1283,6 @@ func (qe *QueryEngine) detectBruteForce(events []*types.AuditEvent) []*BruteForc
 
 	}
 
-
-
 	// Analyze each IP for brute force patterns.
 
 	for ip, ipEventList := range ipEvents {
@@ -1583,8 +1293,6 @@ func (qe *QueryEngine) detectBruteForce(events []*types.AuditEvent) []*BruteForc
 		}
 
 	}
-
-
 
 	return patterns
 
@@ -1642,8 +1350,6 @@ func (qe *QueryEngine) isUnusualAccessTime(times []time.Time) bool {
 
 	weekendCount := 0
 
-
-
 	for _, t := range times {
 
 		hour := t.Hour()
@@ -1656,8 +1362,6 @@ func (qe *QueryEngine) isUnusualAccessTime(times []time.Time) bool {
 
 		}
 
-
-
 		// Consider Saturday and Sunday as weekend.
 
 		if t.Weekday() == time.Saturday || t.Weekday() == time.Sunday {
@@ -1668,8 +1372,6 @@ func (qe *QueryEngine) isUnusualAccessTime(times []time.Time) bool {
 
 	}
 
-
-
 	// If more than 50% of accesses are during night or weekend, consider unusual.
 
 	totalAccess := len(times)
@@ -1677,4 +1379,3 @@ func (qe *QueryEngine) isUnusualAccessTime(times []time.Time) bool {
 	return float64(nightCount)/float64(totalAccess) > 0.5 || float64(weekendCount)/float64(totalAccess) > 0.3
 
 }
-

@@ -1,91 +1,61 @@
-
 package testing
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 	"runtime"
-
 	"strings"
-
 	"sync"
-
 	"testing"
-
 	"time"
 
-
-
 	"github.com/stretchr/testify/assert"
-
 	"github.com/stretchr/testify/suite"
-
 )
-
-
 
 // Go124TestFramework provides enhanced testing capabilities using Go 1.24+ features.
 
 type Go124TestFramework struct {
+	t *testing.T
 
-	t             *testing.T
+	suite *TestSuiteBase
 
-	suite         *TestSuiteBase
+	benchResults map[string]*BenchmarkResult
 
-	benchResults  map[string]*BenchmarkResult
-
-	testMetrics   *TestMetrics
+	testMetrics *TestMetrics
 
 	configuration *TestConfiguration
 
-	cleanup       []func()
+	cleanup []func()
 
-	mu            sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // TestSuiteBase provides a base test suite with Go 1.24+ enhancements.
 
 type TestSuiteBase struct {
-
 	suite.Suite
 
 	Framework *Go124TestFramework
 
-
-
 	// Performance tracking.
 
-	startTime        time.Time
+	startTime time.Time
 
-	setupDuration    time.Duration
+	setupDuration time.Duration
 
 	teardownDuration time.Duration
 
-
-
 	// Resource management.
 
-	tempDirs       []string
+	tempDirs []string
 
 	testContainers []TestContainer
 
-	networkPorts   []int
-
-
+	networkPorts []int
 
 	// Test isolation.
 
@@ -93,161 +63,134 @@ type TestSuiteBase struct {
 
 	resourceLimits *ResourceLimits
 
-
-
 	// Enhanced assertions.
 
 	assertionCount int
 
 	failureReasons []string
 
-
-
 	// Context management.
 
-	rootContext  context.Context
+	rootContext context.Context
 
 	testContexts map[string]context.Context
 
-
-
 	mu sync.RWMutex
-
 }
-
-
 
 // BenchmarkResult stores comprehensive benchmark results.
 
 type BenchmarkResult struct {
+	Name string `json:"name"`
 
-	Name           string             `json:"name"`
+	Iterations int `json:"iterations"`
 
-	Iterations     int                `json:"iterations"`
+	NanosPerOp int64 `json:"nanos_per_op"`
 
-	NanosPerOp     int64              `json:"nanos_per_op"`
+	BytesPerOp int64 `json:"bytes_per_op"`
 
-	BytesPerOp     int64              `json:"bytes_per_op"`
+	AllocsPerOp int64 `json:"allocs_per_op"`
 
-	AllocsPerOp    int64              `json:"allocs_per_op"`
+	MemoryUsage int64 `json:"memory_usage"`
 
-	MemoryUsage    int64              `json:"memory_usage"`
+	CPUTime time.Duration `json:"cpu_time"`
 
-	CPUTime        time.Duration      `json:"cpu_time"`
+	WallTime time.Duration `json:"wall_time"`
 
-	WallTime       time.Duration      `json:"wall_time"`
+	GoroutineCount int `json:"goroutine_count"`
 
-	GoroutineCount int                `json:"goroutine_count"`
+	GCPauses []time.Duration `json:"gc_pauses"`
 
-	GCPauses       []time.Duration    `json:"gc_pauses"`
+	CustomMetrics map[string]float64 `json:"custom_metrics"`
 
-	CustomMetrics  map[string]float64 `json:"custom_metrics"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp      time.Time          `json:"timestamp"`
+	GoVersion string `json:"go_version"`
 
-	GoVersion      string             `json:"go_version"`
+	OS string `json:"os"`
 
-	OS             string             `json:"os"`
-
-	Architecture   string             `json:"architecture"`
-
+	Architecture string `json:"architecture"`
 }
-
-
 
 // TestMetrics tracks comprehensive test execution metrics.
 
 type TestMetrics struct {
+	TotalTests int `json:"total_tests"`
 
-	TotalTests         int                         `json:"total_tests"`
+	PassedTests int `json:"passed_tests"`
 
-	PassedTests        int                         `json:"passed_tests"`
+	FailedTests int `json:"failed_tests"`
 
-	FailedTests        int                         `json:"failed_tests"`
+	SkippedTests int `json:"skipped_tests"`
 
-	SkippedTests       int                         `json:"skipped_tests"`
+	TotalDuration time.Duration `json:"total_duration"`
 
-	TotalDuration      time.Duration               `json:"total_duration"`
+	AverageDuration time.Duration `json:"average_duration"`
 
-	AverageDuration    time.Duration               `json:"average_duration"`
+	CoveragePercentage float64 `json:"coverage_percentage"`
 
-	CoveragePercentage float64                     `json:"coverage_percentage"`
+	TestResults map[string]*TestResult `json:"test_results"`
 
-	TestResults        map[string]*TestResult      `json:"test_results"`
+	BenchmarkResults map[string]*BenchmarkResult `json:"benchmark_results"`
 
-	BenchmarkResults   map[string]*BenchmarkResult `json:"benchmark_results"`
+	MemoryProfile *MemoryProfile `json:"memory_profile"`
 
-	MemoryProfile      *MemoryProfile              `json:"memory_profile"`
+	CPUProfile *CPUProfile `json:"cpu_profile"`
 
-	CPUProfile         *CPUProfile                 `json:"cpu_profile"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime          time.Time                   `json:"start_time"`
-
-	EndTime            time.Time                   `json:"end_time"`
-
+	EndTime time.Time `json:"end_time"`
 }
-
-
 
 // TestResult represents individual test execution results.
 
 type TestResult struct {
+	Name string `json:"name"`
 
-	Name           string        `json:"name"`
+	Status TestStatus `json:"status"`
 
-	Status         TestStatus    `json:"status"`
+	Duration time.Duration `json:"duration"`
 
-	Duration       time.Duration `json:"duration"`
+	ErrorMessage string `json:"error_message,omitempty"`
 
-	ErrorMessage   string        `json:"error_message,omitempty"`
+	StackTrace string `json:"stack_trace,omitempty"`
 
-	StackTrace     string        `json:"stack_trace,omitempty"`
+	AssertionCount int `json:"assertion_count"`
 
-	AssertionCount int           `json:"assertion_count"`
+	MemoryUsed int64 `json:"memory_used"`
 
-	MemoryUsed     int64         `json:"memory_used"`
+	GoroutineCount int `json:"goroutine_count"`
 
-	GoroutineCount int           `json:"goroutine_count"`
-
-	Timestamp      time.Time     `json:"timestamp"`
-
+	Timestamp time.Time `json:"timestamp"`
 }
-
-
 
 // TestConfiguration defines test execution parameters.
 
 type TestConfiguration struct {
+	Parallel bool `json:"parallel"`
 
-	Parallel        bool              `json:"parallel"`
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout         time.Duration     `json:"timeout"`
+	RetryCount int `json:"retry_count"`
 
-	RetryCount      int               `json:"retry_count"`
+	IsolationLevel IsolationLevel `json:"isolation_level"`
 
-	IsolationLevel  IsolationLevel    `json:"isolation_level"`
+	ResourceLimits *ResourceLimits `json:"resource_limits"`
 
-	ResourceLimits  *ResourceLimits   `json:"resource_limits"`
+	EnableProfiling bool `json:"enable_profiling"`
 
-	EnableProfiling bool              `json:"enable_profiling"`
+	EnableCoverage bool `json:"enable_coverage"`
 
-	EnableCoverage  bool              `json:"enable_coverage"`
+	ReportFormat ReportFormat `json:"report_format"`
 
-	ReportFormat    ReportFormat      `json:"report_format"`
+	OutputDirectory string `json:"output_directory"`
 
-	OutputDirectory string            `json:"output_directory"`
-
-	CustomTags      map[string]string `json:"custom_tags"`
-
+	CustomTags map[string]string `json:"custom_tags"`
 }
-
-
 
 // TestStatus represents the status of a test.
 
 type TestStatus string
-
-
 
 const (
 
@@ -266,16 +209,11 @@ const (
 	// TestStatusRunning holds teststatusrunning value.
 
 	TestStatusRunning TestStatus = "running"
-
 )
-
-
 
 // IsolationLevel defines test isolation levels.
 
 type IsolationLevel string
-
-
 
 const (
 
@@ -294,16 +232,11 @@ const (
 	// IsolationNamespace holds isolationnamespace value.
 
 	IsolationNamespace IsolationLevel = "namespace"
-
 )
-
-
 
 // ReportFormat defines output report formats.
 
 type ReportFormat string
-
-
 
 const (
 
@@ -322,94 +255,75 @@ const (
 	// ReportMarkdown holds reportmarkdown value.
 
 	ReportMarkdown ReportFormat = "markdown"
-
 )
-
-
 
 // ResourceLimits defines resource constraints for tests.
 
 type ResourceLimits struct {
+	MaxMemoryMB int64 `json:"max_memory_mb"`
 
-	MaxMemoryMB    int64         `json:"max_memory_mb"`
+	MaxCPUPercent float64 `json:"max_cpu_percent"`
 
-	MaxCPUPercent  float64       `json:"max_cpu_percent"`
+	MaxDuration time.Duration `json:"max_duration"`
 
-	MaxDuration    time.Duration `json:"max_duration"`
+	MaxGoroutines int `json:"max_goroutines"`
 
-	MaxGoroutines  int           `json:"max_goroutines"`
-
-	MaxFileHandles int           `json:"max_file_handles"`
-
+	MaxFileHandles int `json:"max_file_handles"`
 }
-
-
 
 // MemoryProfile captures memory usage information.
 
 type MemoryProfile struct {
+	HeapAlloc uint64 `json:"heap_alloc"`
 
-	HeapAlloc     uint64    `json:"heap_alloc"`
+	HeapSys uint64 `json:"heap_sys"`
 
-	HeapSys       uint64    `json:"heap_sys"`
+	HeapIdle uint64 `json:"heap_idle"`
 
-	HeapIdle      uint64    `json:"heap_idle"`
+	HeapInuse uint64 `json:"heap_inuse"`
 
-	HeapInuse     uint64    `json:"heap_inuse"`
+	HeapReleased uint64 `json:"heap_released"`
 
-	HeapReleased  uint64    `json:"heap_released"`
+	StackInuse uint64 `json:"stack_inuse"`
 
-	StackInuse    uint64    `json:"stack_inuse"`
+	StackSys uint64 `json:"stack_sys"`
 
-	StackSys      uint64    `json:"stack_sys"`
+	NumGC uint32 `json:"num_gc"`
 
-	NumGC         uint32    `json:"num_gc"`
+	GCCPUFraction float64 `json:"gc_cpu_fraction"`
 
-	GCCPUFraction float64   `json:"gc_cpu_fraction"`
-
-	LastGC        time.Time `json:"last_gc"`
-
+	LastGC time.Time `json:"last_gc"`
 }
-
-
 
 // CPUProfile captures CPU usage information.
 
 type CPUProfile struct {
-
-	UserTime   time.Duration `json:"user_time"`
+	UserTime time.Duration `json:"user_time"`
 
 	SystemTime time.Duration `json:"system_time"`
 
-	IdleTime   time.Duration `json:"idle_time"`
+	IdleTime time.Duration `json:"idle_time"`
 
-	CPUPercent float64       `json:"cpu_percent"`
+	CPUPercent float64 `json:"cpu_percent"`
 
-	NumCPU     int           `json:"num_cpu"`
-
+	NumCPU int `json:"num_cpu"`
 }
-
-
 
 // TestContainer represents a test container instance.
 
 type TestContainer struct {
+	ID string `json:"id"`
 
-	ID          string            `json:"id"`
+	Image string `json:"image"`
 
-	Image       string            `json:"image"`
-
-	Ports       map[int]int       `json:"ports"`
+	Ports map[int]int `json:"ports"`
 
 	Environment map[string]string `json:"environment"`
 
-	Status      string            `json:"status"`
+	Status string `json:"status"`
 
-	StartTime   time.Time         `json:"start_time"`
-
+	StartTime time.Time `json:"start_time"`
 }
-
-
 
 // NewGo124TestFramework creates a new enhanced testing framework.
 
@@ -417,47 +331,42 @@ func NewGo124TestFramework(t *testing.T) *Go124TestFramework {
 
 	framework := &Go124TestFramework{
 
-		t:            t,
+		t: t,
 
 		benchResults: make(map[string]*BenchmarkResult),
 
 		testMetrics: &TestMetrics{
 
-			TestResults:      make(map[string]*TestResult),
+			TestResults: make(map[string]*TestResult),
 
 			BenchmarkResults: make(map[string]*BenchmarkResult),
 
-			StartTime:        time.Now(),
-
+			StartTime: time.Now(),
 		},
 
 		configuration: &TestConfiguration{
 
-			Parallel:        false,
+			Parallel: false,
 
-			Timeout:         5 * time.Minute,
+			Timeout: 5 * time.Minute,
 
-			RetryCount:      0,
+			RetryCount: 0,
 
-			IsolationLevel:  IsolationNone,
+			IsolationLevel: IsolationNone,
 
 			EnableProfiling: false,
 
-			EnableCoverage:  true,
+			EnableCoverage: true,
 
-			ReportFormat:    ReportJSON,
+			ReportFormat: ReportJSON,
 
 			OutputDirectory: "./test-results",
 
-			CustomTags:      make(map[string]string),
-
+			CustomTags: make(map[string]string),
 		},
 
 		cleanup: make([]func(), 0),
-
 	}
-
-
 
 	// Setup automatic cleanup.
 
@@ -467,13 +376,9 @@ func NewGo124TestFramework(t *testing.T) *Go124TestFramework {
 
 	})
 
-
-
 	return framework
 
 }
-
-
 
 // SetupSuite initializes the test suite with Go 1.24+ enhancements.
 
@@ -491,8 +396,6 @@ func (ts *TestSuiteBase) SetupSuite() {
 
 	ts.rootContext = context.Background()
 
-
-
 	// Initialize framework.
 
 	if ts.Framework == nil {
@@ -501,13 +404,9 @@ func (ts *TestSuiteBase) SetupSuite() {
 
 	}
 
-
-
 	// Setup resource monitoring.
 
 	ts.Framework.startResourceMonitoring()
-
-
 
 	setupStart := time.Now()
 
@@ -525,15 +424,11 @@ func (ts *TestSuiteBase) SetupSuite() {
 
 }
 
-
-
 // TearDownSuite cleans up after test suite completion.
 
 func (ts *TestSuiteBase) TearDownSuite() {
 
 	teardownStart := time.Now()
-
-
 
 	// Cleanup containers.
 
@@ -543,8 +438,6 @@ func (ts *TestSuiteBase) TearDownSuite() {
 
 	}
 
-
-
 	// Cleanup temp directories.
 
 	for _, dir := range ts.tempDirs {
@@ -553,8 +446,6 @@ func (ts *TestSuiteBase) TearDownSuite() {
 
 	}
 
-
-
 	// Release network ports.
 
 	for _, port := range ts.networkPorts {
@@ -562,8 +453,6 @@ func (ts *TestSuiteBase) TearDownSuite() {
 		ts.releasePort(port)
 
 	}
-
-
 
 	// Call the embedded suite's TearDownSuite if it exists.
 
@@ -577,8 +466,6 @@ func (ts *TestSuiteBase) TearDownSuite() {
 
 	ts.teardownDuration = time.Since(teardownStart)
 
-
-
 	// Generate test report.
 
 	if ts.Framework != nil {
@@ -589,21 +476,15 @@ func (ts *TestSuiteBase) TearDownSuite() {
 
 }
 
-
-
 // EnhancedAssert provides enhanced assertion capabilities.
 
 type EnhancedAssert struct {
-
-	t       *testing.T
+	t *testing.T
 
 	context string
 
-	tags    map[string]string
-
+	tags map[string]string
 }
-
-
 
 // NewEnhancedAssert creates an enhanced assertion helper.
 
@@ -611,17 +492,14 @@ func (fw *Go124TestFramework) NewEnhancedAssert(context string) *EnhancedAssert 
 
 	return &EnhancedAssert{
 
-		t:       fw.t,
+		t: fw.t,
 
 		context: context,
 
-		tags:    make(map[string]string),
-
+		tags: make(map[string]string),
 	}
 
 }
-
-
 
 // WithTag adds a tag to the assertion.
 
@@ -632,8 +510,6 @@ func (ea *EnhancedAssert) WithTag(key, value string) *EnhancedAssert {
 	return ea
 
 }
-
-
 
 // Equal performs enhanced equality assertion with detailed reporting.
 
@@ -657,8 +533,6 @@ func (ea *EnhancedAssert) Equal(expected, actual interface{}, msgAndArgs ...inte
 
 }
 
-
-
 // EventuallyWithContext performs assertion with timeout and context.
 
 func (ea *EnhancedAssert) EventuallyWithContext(ctx context.Context, condition func() bool, timeout, tick time.Duration, msgAndArgs ...interface{}) bool {
@@ -667,13 +541,9 @@ func (ea *EnhancedAssert) EventuallyWithContext(ctx context.Context, condition f
 
 	defer timer.Stop()
 
-
-
 	ticker := time.NewTicker(tick)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -705,8 +575,6 @@ func (ea *EnhancedAssert) EventuallyWithContext(ctx context.Context, condition f
 
 }
 
-
-
 // BenchmarkWithMetrics performs enhanced benchmarking with detailed metrics.
 
 func (fw *Go124TestFramework) BenchmarkWithMetrics(name string, benchFunc func(*testing.B)) *BenchmarkResult {
@@ -719,19 +587,13 @@ func (fw *Go124TestFramework) BenchmarkWithMetrics(name string, benchFunc func(*
 
 	runtime.ReadMemStats(&memStatsBefore)
 
-
-
 	goroutinesBefore := runtime.NumGoroutine()
 
 	startTime := time.Now()
 
-
-
 	// Run benchmark.
 
 	result := testing.Benchmark(benchFunc)
-
-
 
 	// Capture final state.
 
@@ -743,41 +605,36 @@ func (fw *Go124TestFramework) BenchmarkWithMetrics(name string, benchFunc func(*
 
 	goroutinesAfter := runtime.NumGoroutine()
 
-
-
 	// Create enhanced result.
 
 	benchResult := &BenchmarkResult{
 
-		Name:           name,
+		Name: name,
 
-		Iterations:     result.N,
+		Iterations: result.N,
 
-		NanosPerOp:     result.NsPerOp(),
+		NanosPerOp: result.NsPerOp(),
 
-		BytesPerOp:     result.AllocedBytesPerOp(),
+		BytesPerOp: result.AllocedBytesPerOp(),
 
-		AllocsPerOp:    result.AllocsPerOp(),
+		AllocsPerOp: result.AllocsPerOp(),
 
-		MemoryUsage:    int64(memStatsAfter.HeapAlloc - memStatsBefore.HeapAlloc),
+		MemoryUsage: int64(memStatsAfter.HeapAlloc - memStatsBefore.HeapAlloc),
 
-		WallTime:       endTime.Sub(startTime),
+		WallTime: endTime.Sub(startTime),
 
 		GoroutineCount: goroutinesAfter - goroutinesBefore,
 
-		CustomMetrics:  make(map[string]float64),
+		CustomMetrics: make(map[string]float64),
 
-		Timestamp:      startTime,
+		Timestamp: startTime,
 
-		GoVersion:      runtime.Version(),
+		GoVersion: runtime.Version(),
 
-		OS:             runtime.GOOS,
+		OS: runtime.GOOS,
 
-		Architecture:   runtime.GOARCH,
-
+		Architecture: runtime.GOARCH,
 	}
-
-
 
 	// Store result.
 
@@ -789,13 +646,9 @@ func (fw *Go124TestFramework) BenchmarkWithMetrics(name string, benchFunc func(*
 
 	fw.mu.Unlock()
 
-
-
 	return benchResult
 
 }
-
-
 
 // ParallelTest runs tests in parallel with enhanced coordination.
 
@@ -803,15 +656,11 @@ func (fw *Go124TestFramework) ParallelTest(testFunc func(*testing.T)) {
 
 	fw.t.Parallel()
 
-
-
 	// Setup parallel test context.
 
 	ctx := context.WithValue(context.Background(), "test_parallel", true)
 
 	ctx = context.WithValue(ctx, "test_id", fw.generateTestID())
-
-
 
 	// Track parallel execution.
 
@@ -820,8 +669,6 @@ func (fw *Go124TestFramework) ParallelTest(testFunc func(*testing.T)) {
 	fw.testMetrics.TotalTests++
 
 	fw.mu.Unlock()
-
-
 
 	start := time.Now()
 
@@ -832,8 +679,6 @@ func (fw *Go124TestFramework) ParallelTest(testFunc func(*testing.T)) {
 		fw.recordTestResult(fw.t.Name(), TestStatusPassed, duration, "")
 
 	}()
-
-
 
 	// Run test with enhanced error handling.
 
@@ -851,15 +696,11 @@ func (fw *Go124TestFramework) ParallelTest(testFunc func(*testing.T)) {
 
 		}()
 
-
-
 		testFunc(fw.t)
 
 	}()
 
 }
-
-
 
 // SubTest creates enhanced subtests with better isolation.
 
@@ -871,21 +712,15 @@ func (fw *Go124TestFramework) SubTest(name string, testFunc func(*testing.T)) bo
 
 		subFramework := NewGo124TestFramework(subT)
 
-
-
 		// Copy configuration.
 
 		subFramework.configuration = fw.configuration
-
-
 
 		// Setup subtest context.
 
 		ctx := context.WithValue(context.Background(), "parent_test", fw.t.Name())
 
 		ctx = context.WithValue(ctx, "subtest_name", name)
-
-
 
 		start := time.Now()
 
@@ -896,8 +731,6 @@ func (fw *Go124TestFramework) SubTest(name string, testFunc func(*testing.T)) bo
 			subFramework.recordTestResult(name, TestStatusPassed, duration, "")
 
 		}()
-
-
 
 		// Run subtest with enhanced error handling.
 
@@ -915,8 +748,6 @@ func (fw *Go124TestFramework) SubTest(name string, testFunc func(*testing.T)) bo
 
 			}()
 
-
-
 			testFunc(subT)
 
 		}()
@@ -924,8 +755,6 @@ func (fw *Go124TestFramework) SubTest(name string, testFunc func(*testing.T)) bo
 	})
 
 }
-
-
 
 // TableTest performs table-driven testing with enhanced reporting.
 
@@ -939,8 +768,6 @@ func (fw *Go124TestFramework) TableTest(name string, testCases []TestCase, testF
 
 			start := time.Now()
 
-
-
 			defer func() {
 
 				if r := recover(); r != nil {
@@ -953,8 +780,6 @@ func (fw *Go124TestFramework) TableTest(name string, testCases []TestCase, testF
 
 			}()
 
-
-
 			testFunc(t, tc)
 
 		})
@@ -963,35 +788,27 @@ func (fw *Go124TestFramework) TableTest(name string, testCases []TestCase, testF
 
 }
 
-
-
 // TestCase represents a table-driven test case.
 
 type TestCase struct {
+	Name string `json:"name"`
 
-	Name        string                 `json:"name"`
+	Input interface{} `json:"input"`
 
-	Input       interface{}            `json:"input"`
+	Expected interface{} `json:"expected"`
 
-	Expected    interface{}            `json:"expected"`
+	ShouldError bool `json:"should_error"`
 
-	ShouldError bool                   `json:"should_error"`
+	Tags map[string]string `json:"tags"`
 
-	Tags        map[string]string      `json:"tags"`
+	Setup func(*testing.T) `json:"-"`
 
-	Setup       func(*testing.T)       `json:"-"`
+	Teardown func(*testing.T) `json:"-"`
 
-	Teardown    func(*testing.T)       `json:"-"`
-
-	Metadata    map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
 
-
-
 // Helper methods for resource management.
-
-
 
 // CreateTempDir performs createtempdir operation.
 
@@ -1005,21 +822,15 @@ func (fw *Go124TestFramework) CreateTempDir(prefix string) (string, error) {
 
 	}
 
-
-
 	fw.mu.Lock()
 
 	fw.cleanup = append(fw.cleanup, func() { os.RemoveAll(dir) })
 
 	fw.mu.Unlock()
 
-
-
 	return dir, nil
 
 }
-
-
 
 // WriteTestFile performs writetestfile operation.
 
@@ -1031,8 +842,6 @@ func (fw *Go124TestFramework) WriteTestFile(dir, filename string, content []byte
 
 }
 
-
-
 func (fw *Go124TestFramework) startResourceMonitoring() {
 
 	go func() {
@@ -1040,8 +849,6 @@ func (fw *Go124TestFramework) startResourceMonitoring() {
 		ticker := time.NewTicker(1 * time.Second)
 
 		defer ticker.Stop()
-
-
 
 		for {
 
@@ -1071,29 +878,21 @@ func (fw *Go124TestFramework) startResourceMonitoring() {
 
 }
 
-
-
 func (fw *Go124TestFramework) collectMetrics() {
 
 	var memStats runtime.MemStats
 
 	runtime.ReadMemStats(&memStats)
 
-
-
 	fw.mu.Lock()
 
 	defer fw.mu.Unlock()
-
-
 
 	if fw.testMetrics.MemoryProfile == nil {
 
 		fw.testMetrics.MemoryProfile = &MemoryProfile{}
 
 	}
-
-
 
 	fw.testMetrics.MemoryProfile.HeapAlloc = memStats.HeapAlloc
 
@@ -1111,41 +910,32 @@ func (fw *Go124TestFramework) collectMetrics() {
 
 }
 
-
-
 func (fw *Go124TestFramework) recordTestResult(name string, status TestStatus, duration time.Duration, errorMsg string) {
 
 	fw.mu.Lock()
 
 	defer fw.mu.Unlock()
 
-
-
 	result := &TestResult{
 
-		Name:           name,
+		Name: name,
 
-		Status:         status,
+		Status: status,
 
-		Duration:       duration,
+		Duration: duration,
 
-		ErrorMessage:   errorMsg,
+		ErrorMessage: errorMsg,
 
 		AssertionCount: 0, // Could be tracked if needed
 
-		MemoryUsed:     0, // Could be calculated
+		MemoryUsed: 0, // Could be calculated
 
 		GoroutineCount: runtime.NumGoroutine(),
 
-		Timestamp:      time.Now(),
-
+		Timestamp: time.Now(),
 	}
 
-
-
 	fw.testMetrics.TestResults[name] = result
-
-
 
 	switch status {
 
@@ -1165,15 +955,11 @@ func (fw *Go124TestFramework) recordTestResult(name string, status TestStatus, d
 
 }
 
-
-
 func (fw *Go124TestFramework) generateTestID() string {
 
 	return fmt.Sprintf("test_%d_%d", time.Now().UnixNano(), runtime.NumGoroutine())
 
 }
-
-
 
 func (fw *Go124TestFramework) performCleanup() {
 
@@ -1182,8 +968,6 @@ func (fw *Go124TestFramework) performCleanup() {
 	cleanup := fw.cleanup
 
 	fw.mu.Unlock()
-
-
 
 	for _, cleanupFunc := range cleanup {
 
@@ -1207,29 +991,21 @@ func (fw *Go124TestFramework) performCleanup() {
 
 }
 
-
-
 func (fw *Go124TestFramework) generateReport() {
 
 	fw.mu.Lock()
 
 	defer fw.mu.Unlock()
 
-
-
 	fw.testMetrics.EndTime = time.Now()
 
 	fw.testMetrics.TotalDuration = fw.testMetrics.EndTime.Sub(fw.testMetrics.StartTime)
-
-
 
 	if fw.testMetrics.TotalTests > 0 {
 
 		fw.testMetrics.AverageDuration = fw.testMetrics.TotalDuration / time.Duration(fw.testMetrics.TotalTests)
 
 	}
-
-
 
 	// Create output directory.
 
@@ -1240,8 +1016,6 @@ func (fw *Go124TestFramework) generateReport() {
 		return
 
 	}
-
-
 
 	// Generate report based on format.
 
@@ -1263,13 +1037,9 @@ func (fw *Go124TestFramework) generateReport() {
 
 }
 
-
-
 func (fw *Go124TestFramework) generateJSONReport() {
 
 	reportPath := filepath.Join(fw.configuration.OutputDirectory, "test-report.json")
-
-
 
 	data, err := json.MarshalIndent(fw.testMetrics, "", "  ")
 
@@ -1281,8 +1051,6 @@ func (fw *Go124TestFramework) generateJSONReport() {
 
 	}
 
-
-
 	if err := os.WriteFile(reportPath, data, 0o640); err != nil {
 
 		fw.t.Logf("Failed to write JSON report: %v", err)
@@ -1291,13 +1059,9 @@ func (fw *Go124TestFramework) generateJSONReport() {
 
 	}
 
-
-
 	fw.t.Logf("Test report generated: %s", reportPath)
 
 }
-
-
 
 func (fw *Go124TestFramework) generateHTMLReport() {
 
@@ -1307,13 +1071,9 @@ func (fw *Go124TestFramework) generateHTMLReport() {
 
 }
 
-
-
 func (fw *Go124TestFramework) generateMarkdownReport() {
 
 	reportPath := filepath.Join(fw.configuration.OutputDirectory, "test-report.md")
-
-
 
 	var sb strings.Builder
 
@@ -1324,8 +1084,6 @@ func (fw *Go124TestFramework) generateMarkdownReport() {
 	sb.WriteString(fmt.Sprintf("**Go Version:** %s\n", runtime.Version()))
 
 	sb.WriteString(fmt.Sprintf("**OS/Arch:** %s/%s\n\n", runtime.GOOS, runtime.GOARCH))
-
-
 
 	sb.WriteString("## Summary\n\n")
 
@@ -1341,8 +1099,6 @@ func (fw *Go124TestFramework) generateMarkdownReport() {
 
 	sb.WriteString(fmt.Sprintf("- **Average Duration:** %v\n\n", fw.testMetrics.AverageDuration))
 
-
-
 	if len(fw.testMetrics.BenchmarkResults) > 0 {
 
 		sb.WriteString("## Benchmark Results\n\n")
@@ -1350,8 +1106,6 @@ func (fw *Go124TestFramework) generateMarkdownReport() {
 		sb.WriteString("| Test | Iterations | ns/op | B/op | allocs/op |\n")
 
 		sb.WriteString("|------|------------|-------|------|----------|\n")
-
-
 
 		for name, result := range fw.testMetrics.BenchmarkResults {
 
@@ -1365,8 +1119,6 @@ func (fw *Go124TestFramework) generateMarkdownReport() {
 
 	}
 
-
-
 	if err := os.WriteFile(reportPath, []byte(sb.String()), 0o640); err != nil {
 
 		fw.t.Logf("Failed to write Markdown report: %v", err)
@@ -1375,13 +1127,9 @@ func (fw *Go124TestFramework) generateMarkdownReport() {
 
 	}
 
-
-
 	fw.t.Logf("Test report generated: %s", reportPath)
 
 }
-
-
 
 // Helper methods for test suite.
 
@@ -1393,8 +1141,6 @@ func (ts *TestSuiteBase) cleanupContainer(container TestContainer) {
 
 }
 
-
-
 func (ts *TestSuiteBase) releasePort(port int) {
 
 	// Port release logic would go here.
@@ -1402,4 +1148,3 @@ func (ts *TestSuiteBase) releasePort(port int) {
 	ts.T().Logf("Releasing port: %d", port)
 
 }
-

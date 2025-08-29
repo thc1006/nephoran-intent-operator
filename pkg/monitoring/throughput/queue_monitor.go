@@ -1,75 +1,49 @@
-
 package throughput
 
-
-
 import (
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 )
-
-
 
 // QueueMonitor provides comprehensive queue monitoring.
 
 type QueueMonitor struct {
-
 	mu sync.RWMutex
-
-
 
 	// Queue tracking.
 
 	queues map[string]*QueueTracker
 
-
-
 	// Prometheus metrics.
 
 	queueDepthMetric *prometheus.GaugeVec
 
-	waitTimeMetric   *prometheus.HistogramVec
+	waitTimeMetric *prometheus.HistogramVec
 
-	drainRateMetric  *prometheus.CounterVec
-
+	drainRateMetric *prometheus.CounterVec
 }
-
-
 
 // QueueTracker monitors individual queue performance.
 
 type QueueTracker struct {
+	name string
 
-	name                 string
+	depth int
 
-	depth                int
+	maxDepth int
 
-	maxDepth             int
-
-	waitTimes            []time.Duration
+	waitTimes []time.Duration
 
 	priorityDistribution map[Priority]int
-
 }
-
-
 
 // Priority represents queue priority levels.
 
 type Priority int
-
-
 
 const (
 
@@ -88,10 +62,7 @@ const (
 	// PriorityCritical holds prioritycritical value.
 
 	PriorityCritical
-
 )
-
-
 
 // NewQueueMonitor creates a new queue monitor.
 
@@ -106,17 +77,15 @@ func NewQueueMonitor() *QueueMonitor {
 			Name: "nephoran_queue_depth",
 
 			Help: "Current depth of processing queues",
-
 		}, []string{"queue", "priority"}),
 
 		waitTimeMetric: promauto.NewHistogramVec(prometheus.HistogramOpts{
 
-			Name:    "nephoran_queue_wait_time_seconds",
+			Name: "nephoran_queue_wait_time_seconds",
 
-			Help:    "Time spent in queue before processing",
+			Help: "Time spent in queue before processing",
 
 			Buckets: prometheus.DefBuckets,
-
 		}, []string{"queue", "priority"}),
 
 		drainRateMetric: promauto.NewCounterVec(prometheus.CounterOpts{
@@ -124,14 +93,10 @@ func NewQueueMonitor() *QueueMonitor {
 			Name: "nephoran_queue_drain_rate",
 
 			Help: "Rate of items being processed from queues",
-
 		}, []string{"queue", "priority", "status"}),
-
 	}
 
 }
-
-
 
 // RegisterQueue adds a new queue to monitoring.
 
@@ -147,18 +112,15 @@ func (m *QueueMonitor) RegisterQueue(
 
 	defer m.mu.Unlock()
 
-
-
 	tracker := &QueueTracker{
 
-		name:                 name,
+		name: name,
 
-		maxDepth:             maxDepth,
+		maxDepth: maxDepth,
 
-		waitTimes:            make([]time.Duration, 0, 1000),
+		waitTimes: make([]time.Duration, 0, 1000),
 
 		priorityDistribution: make(map[Priority]int),
-
 	}
 
 	m.queues[name] = tracker
@@ -166,8 +128,6 @@ func (m *QueueMonitor) RegisterQueue(
 	return tracker
 
 }
-
-
 
 // Enqueue adds an item to the queue.
 
@@ -185,8 +145,6 @@ func (m *QueueMonitor) Enqueue(
 
 	defer m.mu.Unlock()
 
-
-
 	queue, exists := m.queues[queueName]
 
 	if !exists {
@@ -195,21 +153,15 @@ func (m *QueueMonitor) Enqueue(
 
 	}
 
-
-
 	// Increment queue depth.
 
 	queue.depth++
 
 	queue.priorityDistribution[priority]++
 
-
-
 	// Update Prometheus metrics.
 
 	m.queueDepthMetric.WithLabelValues(queueName, priority.String()).Inc()
-
-
 
 	// Check for queue overflow.
 
@@ -219,13 +171,9 @@ func (m *QueueMonitor) Enqueue(
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Dequeue removes an item from the queue.
 
@@ -245,8 +193,6 @@ func (m *QueueMonitor) Dequeue(
 
 	defer m.mu.Unlock()
 
-
-
 	queue, exists := m.queues[queueName]
 
 	if !exists {
@@ -255,23 +201,17 @@ func (m *QueueMonitor) Dequeue(
 
 	}
 
-
-
 	// Decrement queue depth.
 
 	queue.depth--
 
 	queue.priorityDistribution[priority]--
 
-
-
 	// Calculate wait time.
 
 	waitTime := time.Since(enqueuedAt)
 
 	queue.waitTimes = append(queue.waitTimes, waitTime)
-
-
 
 	// Limit wait times history.
 
@@ -281,8 +221,6 @@ func (m *QueueMonitor) Dequeue(
 
 	}
 
-
-
 	// Update Prometheus metrics.
 
 	m.queueDepthMetric.WithLabelValues(queueName, priority.String()).Dec()
@@ -291,13 +229,9 @@ func (m *QueueMonitor) Dequeue(
 
 	m.drainRateMetric.WithLabelValues(queueName, priority.String(), status).Inc()
 
-
-
 	return nil
 
 }
-
-
 
 // GetQueueStats retrieves queue performance statistics.
 
@@ -307,8 +241,6 @@ func (m *QueueMonitor) GetQueueStats(queueName string) (*QueueStats, error) {
 
 	defer m.mu.RUnlock()
 
-
-
 	queue, exists := m.queues[queueName]
 
 	if !exists {
@@ -316,8 +248,6 @@ func (m *QueueMonitor) GetQueueStats(queueName string) (*QueueStats, error) {
 		return nil, fmt.Errorf("queue %s not registered", queueName)
 
 	}
-
-
 
 	// Calculate wait time statistics.
 
@@ -331,39 +261,30 @@ func (m *QueueMonitor) GetQueueStats(queueName string) (*QueueStats, error) {
 
 	avgWaitTime := totalWait / time.Duration(len(queue.waitTimes))
 
-
-
 	return &QueueStats{
 
-		CurrentDepth:         queue.depth,
+		CurrentDepth: queue.depth,
 
-		MaxDepth:             queue.maxDepth,
+		MaxDepth: queue.maxDepth,
 
-		AverageWaitTime:      avgWaitTime,
+		AverageWaitTime: avgWaitTime,
 
 		PriorityDistribution: queue.priorityDistribution,
-
 	}, nil
 
 }
 
-
-
 // QueueStats represents detailed queue performance metrics.
 
 type QueueStats struct {
+	CurrentDepth int
 
-	CurrentDepth         int
+	MaxDepth int
 
-	MaxDepth             int
-
-	AverageWaitTime      time.Duration
+	AverageWaitTime time.Duration
 
 	PriorityDistribution map[Priority]int
-
 }
-
-
 
 // String converts priority to readable string.
 
@@ -395,31 +316,21 @@ func (p Priority) String() string {
 
 }
 
-
-
 // BackpressureController manages queue flow control.
 
 type BackpressureController struct {
-
 	mu sync.Mutex
-
-
 
 	// Thresholds for backpressure activation.
 
-	maxQueueDepth      int
+	maxQueueDepth int
 
 	backpressureActive bool
-
-
 
 	// Metrics.
 
 	backpressureMetric *prometheus.GaugeVec
-
 }
-
-
 
 // NewBackpressureController creates a new backpressure controller.
 
@@ -434,14 +345,10 @@ func NewBackpressureController(maxDepth int) *BackpressureController {
 			Name: "nephoran_backpressure_active",
 
 			Help: "Indicates if backpressure is currently active",
-
 		}, []string{"queue"}),
-
 	}
 
 }
-
-
 
 // ShouldApplyBackpressure checks if backpressure is needed.
 
@@ -457,13 +364,9 @@ func (bc *BackpressureController) ShouldApplyBackpressure(
 
 	defer bc.mu.Unlock()
 
-
-
 	// Apply backpressure if queue depth exceeds threshold.
 
 	shouldApply := currentDepth >= bc.maxQueueDepth
-
-
 
 	if shouldApply && !bc.backpressureActive {
 
@@ -479,9 +382,6 @@ func (bc *BackpressureController) ShouldApplyBackpressure(
 
 	}
 
-
-
 	return shouldApply
 
 }
-

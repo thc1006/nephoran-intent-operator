@@ -8,44 +8,24 @@
 
 // load profiles and outputs timestamped JSON files for testing and simulation purposes.
 
-
 package main
 
-
-
 import (
-
 	"context"
-
 	"crypto/rand"
-
 	"encoding/json"
-
 	"errors"
-
 	"flag"
-
 	"fmt"
-
 	"log"
-
 	"math/big"
-
 	"os"
-
 	"os/signal"
-
 	"path/filepath"
-
 	"strings"
-
 	"syscall"
-
 	"time"
-
 )
-
-
 
 // KPMWindow represents a KPM measurement window with the three key metrics.
 
@@ -57,47 +37,32 @@ type KMPWindow struct {
 
 	P95LatencyMs float64 `json:"kmp.p95_latency_ms"`
 
-
-
 	// PRBUtilization represents Physical Resource Block utilization as a ratio [0..1].
 
 	PRBUtilization float64 `json:"kmp.prb_utilization"`
-
-
 
 	// UECount represents the number of connected User Equipment.
 
 	UECount int `json:"kmp.ue_count"`
 
-
-
 	// Timestamp represents when this measurement was taken.
 
 	Timestamp time.Time `json:"timestamp"`
 
-
-
 	// WindowID is a unique identifier for this measurement window.
 
 	WindowID string `json:"window_id"`
-
 }
-
-
 
 // ProfileConfig defines the ranges for different load profiles.
 
 type ProfileConfig struct {
-
-	LatencyMin, LatencyMax         float64
+	LatencyMin, LatencyMax float64
 
 	UtilizationMin, UtilizationMax float64
 
-	UECountMin, UECountMax         int
-
+	UECountMin, UECountMax int
 }
-
-
 
 // Profile configurations matching the specification.
 
@@ -110,7 +75,6 @@ var profiles = map[string]ProfileConfig{
 		UtilizationMin: 0.80, UtilizationMax: 0.95,
 
 		UECountMin: 800, UECountMax: 1000,
-
 	},
 
 	"low": {
@@ -120,7 +84,6 @@ var profiles = map[string]ProfileConfig{
 		UtilizationMin: 0.10, UtilizationMax: 0.30,
 
 		UECountMin: 50, UECountMax: 200,
-
 	},
 
 	"random": {
@@ -130,36 +93,26 @@ var profiles = map[string]ProfileConfig{
 		UtilizationMin: 0.10, UtilizationMax: 0.95,
 
 		UECountMin: 50, UECountMax: 1000,
-
 	},
-
 }
-
-
 
 // Config holds the command-line configuration.
 
 type Config struct {
+	OutDir string
 
-	OutDir  string
+	Period time.Duration
 
-	Period  time.Duration
-
-	Burst   int
+	Burst int
 
 	Profile string
-
 }
-
-
 
 // parseFlags parses command-line flags and returns the configuration.
 
 func parseFlags() *Config {
 
 	config := &Config{}
-
-
 
 	flag.StringVar(&config.OutDir, "out", "./kmp-windows", "Output directory for JSON files")
 
@@ -169,11 +122,7 @@ func parseFlags() *Config {
 
 	flag.StringVar(&config.Profile, "profile", "random", "Load profile: high|low|random")
 
-
-
 	flag.Parse()
-
-
 
 	// Input validation and sanitization.
 
@@ -183,13 +132,9 @@ func parseFlags() *Config {
 
 	}
 
-
-
 	return config
 
 }
-
-
 
 // validateConfig performs comprehensive input validation.
 
@@ -203,8 +148,6 @@ func validateConfig(config *Config) error {
 
 	}
 
-
-
 	// Validate and sanitize output directory path.
 
 	config.OutDir = filepath.Clean(config.OutDir)
@@ -214,8 +157,6 @@ func validateConfig(config *Config) error {
 		return fmt.Errorf("output directory cannot contain relative path traversal")
 
 	}
-
-
 
 	// Validate burst count (bounds checking).
 
@@ -231,8 +172,6 @@ func validateConfig(config *Config) error {
 
 	}
 
-
-
 	// Validate period (bounds checking).
 
 	if config.Period < 100*time.Millisecond {
@@ -247,13 +186,9 @@ func validateConfig(config *Config) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // generateWindow creates a KPM window with cryptographically secure random values.
 
@@ -271,8 +206,6 @@ func generateWindow(profile ProfileConfig, windowID string) (*KMPWindow, error) 
 
 	latency := profile.LatencyMin + latencyRand*(profile.LatencyMax-profile.LatencyMin)
 
-
-
 	utilizationRand, err := cryptoRandFloat64()
 
 	if err != nil {
@@ -282,8 +215,6 @@ func generateWindow(profile ProfileConfig, windowID string) (*KMPWindow, error) 
 	}
 
 	utilization := profile.UtilizationMin + utilizationRand*(profile.UtilizationMax-profile.UtilizationMin)
-
-
 
 	ueCountRange := profile.UECountMax - profile.UECountMin + 1
 
@@ -297,25 +228,20 @@ func generateWindow(profile ProfileConfig, windowID string) (*KMPWindow, error) 
 
 	ueCount := profile.UECountMin + ueCountRand
 
-
-
 	return &KMPWindow{
 
-		P95LatencyMs:   latency,
+		P95LatencyMs: latency,
 
 		PRBUtilization: utilization,
 
-		UECount:        ueCount,
+		UECount: ueCount,
 
-		Timestamp:      time.Now().UTC(),
+		Timestamp: time.Now().UTC(),
 
-		WindowID:       sanitizeWindowID(windowID),
-
+		WindowID: sanitizeWindowID(windowID),
 	}, nil
 
 }
-
-
 
 // cryptoRandFloat64 generates a cryptographically secure random float64 in [0, 1).
 
@@ -333,8 +259,6 @@ func cryptoRandFloat64() (float64, error) {
 
 }
 
-
-
 // cryptoRandInt generates a cryptographically secure random int in [0, max).
 
 func cryptoRandInt(max int) (int, error) {
@@ -350,8 +274,6 @@ func cryptoRandInt(max int) (int, error) {
 	return int(n.Int64()), nil
 
 }
-
-
 
 // sanitizeWindowID ensures the window ID is safe for use in filenames.
 
@@ -379,8 +301,6 @@ func sanitizeWindowID(id string) string {
 
 	id = strings.ReplaceAll(id, "|", "")
 
-
-
 	// Limit length.
 
 	if len(id) > 100 {
@@ -389,13 +309,9 @@ func sanitizeWindowID(id string) string {
 
 	}
 
-
-
 	return id
 
 }
-
-
 
 // writeWindow writes a KPM window to a JSON file with the specified format.
 
@@ -409,15 +325,11 @@ func writeWindow(window *KMPWindow, outDir string) error {
 
 	}
 
-
-
 	// Generate filename: YYYYMMDDTHHMMSSZ_kmp-window.json.
 
 	filename := fmt.Sprintf("%s_kmp-window.json", window.Timestamp.Format("20060102T150405Z"))
 
 	filepath := filepath.Join(outDir, filename)
-
-
 
 	// Marshal to JSON with indentation for readability.
 
@@ -429,8 +341,6 @@ func writeWindow(window *KMPWindow, outDir string) error {
 
 	}
 
-
-
 	// Write to file.
 
 	if err := os.WriteFile(filepath, data, 0o640); err != nil {
@@ -439,15 +349,11 @@ func writeWindow(window *KMPWindow, outDir string) error {
 
 	}
 
-
-
 	log.Printf("Generated KPM window: %s", filename)
 
 	return nil
 
 }
-
-
 
 // runGenerator runs the main generation loop.
 
@@ -459,17 +365,11 @@ func runGenerator(ctx context.Context, config *Config) error {
 
 		config.Profile, config.Burst, config.Period)
 
-
-
 	ticker := time.NewTicker(config.Period)
 
 	defer ticker.Stop()
 
-
-
 	windowCount := 0
-
-
 
 	for {
 
@@ -481,8 +381,6 @@ func runGenerator(ctx context.Context, config *Config) error {
 
 			return ctx.Err()
 
-
-
 		case <-ticker.C:
 
 			if windowCount >= config.Burst {
@@ -492,8 +390,6 @@ func runGenerator(ctx context.Context, config *Config) error {
 				return nil
 
 			}
-
-
 
 			windowID := fmt.Sprintf("window-%d", windowCount+1)
 
@@ -507,8 +403,6 @@ func runGenerator(ctx context.Context, config *Config) error {
 
 			}
 
-
-
 			if err := writeWindow(window, config.OutDir); err != nil {
 
 				log.Printf("Error writing window: %v", err)
@@ -516,8 +410,6 @@ func runGenerator(ctx context.Context, config *Config) error {
 				continue
 
 			}
-
-
 
 			windowCount++
 
@@ -527,21 +419,15 @@ func runGenerator(ctx context.Context, config *Config) error {
 
 }
 
-
-
 func main() {
 
 	// Note: Using crypto/rand for secure random number generation.
 
 	// No seed initialization required for crypto/rand.
 
-
-
 	// Parse command-line flags with validation.
 
 	config := parseFlags()
-
-
 
 	// Set up signal handling for graceful shutdown.
 
@@ -550,8 +436,6 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
-
 
 	go func() {
 
@@ -563,8 +447,6 @@ func main() {
 
 	}()
 
-
-
 	// Run the generator.
 
 	if err := runGenerator(ctx, config); err != nil && !errors.Is(err, context.Canceled) {
@@ -573,9 +455,6 @@ func main() {
 
 	}
 
-
-
 	log.Println("KPM generator finished")
 
 }
-

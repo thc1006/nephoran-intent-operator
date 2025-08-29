@@ -2,32 +2,18 @@
 
 // This module demonstrates how to integrate O-RAN interface tests with the existing validation framework.
 
-
 package validation
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
 
-
-
 	"github.com/onsi/ginkgo/v2"
-
 	"github.com/onsi/gomega"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // IntegrateORANWithValidationSuite integrates O-RAN tests with the existing ValidationSuite.
 
@@ -36,58 +22,47 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 	ginkgo.Describe("O-RAN Interface Compliance Integration", func() {
 
 		var (
+			ctx context.Context
 
-			ctx           context.Context
-
-			cancel        context.CancelFunc
+			cancel context.CancelFunc
 
 			oranTestSuite *ORANInterfaceTestSuite
 
-			oranConfig    *ValidationConfig
-
+			oranConfig *ValidationConfig
 		)
-
-
 
 		ginkgo.BeforeEach(func() {
 
 			ctx, cancel = context.WithTimeout(context.Background(), 15*time.Minute)
 
-
-
 			// Create O-RAN specific configuration.
 
 			oranConfig = &ValidationConfig{
 
-				FunctionalTarget:  7,  // O-RAN contributes 7/50 functional points
+				FunctionalTarget: 7, // O-RAN contributes 7/50 functional points
 
-				PerformanceTarget: 5,  // O-RAN contributes 5/25 performance points
+				PerformanceTarget: 5, // O-RAN contributes 5/25 performance points
 
-				SecurityTarget:    3,  // O-RAN contributes 3/15 security points
+				SecurityTarget: 3, // O-RAN contributes 3/15 security points
 
-				ProductionTarget:  2,  // O-RAN contributes 2/10 production points
+				ProductionTarget: 2, // O-RAN contributes 2/10 production points
 
-				TotalTarget:       17, // Total O-RAN contribution: 17/100 points
+				TotalTarget: 17, // Total O-RAN contribution: 17/100 points
 
+				TimeoutDuration: 10 * time.Minute,
 
+				ConcurrencyLevel: 50,
 
-				TimeoutDuration:       10 * time.Minute,
+				LoadTestDuration: 5 * time.Minute,
 
-				ConcurrencyLevel:      50,
+				EnableE2ETesting: true,
 
-				LoadTestDuration:      5 * time.Minute,
+				EnableLoadTesting: true,
 
-				EnableE2ETesting:      true,
-
-				EnableLoadTesting:     true,
-
-				EnableChaosTesting:    true,
+				EnableChaosTesting: true,
 
 				EnableSecurityTesting: true,
-
 			}
-
-
 
 			// Initialize O-RAN test suite.
 
@@ -96,8 +71,6 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 			oranTestSuite.SetK8sClient(k8sClient)
 
 		})
-
-
 
 		ginkgo.AfterEach(func() {
 
@@ -111,15 +84,11 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 		})
 
-
-
 		ginkgo.Context("O-RAN Functional Compliance (7/50 points)", func() {
 
 			ginkgo.It("should achieve O-RAN interface functional compliance", func() {
 
 				ginkgo.By("Running O-RAN functional compliance tests")
-
-
 
 				// Create O-RAN validator and run tests.
 
@@ -129,21 +98,15 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 				defer validator.Cleanup()
 
-
-
 				// Run all O-RAN interface tests.
 
 				complianceScore := validator.ValidateAllORANInterfaces(ctx)
-
-
 
 				// Update validation suite score (7 points for O-RAN compliance).
 
 				// // validationSuite.scorer.AddFunctionalScore("oran-compliance", complianceScore, 7).
 
 				ginkgo.By(fmt.Sprintf("Recording O-RAN compliance score: %d/7", complianceScore))
-
-
 
 				ginkgo.By(fmt.Sprintf("O-RAN Compliance Score: %d/7 points", complianceScore))
 
@@ -153,13 +116,9 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 			})
 
-
-
 			ginkgo.It("should validate A1 interface operations", func() {
 
 				ginkgo.By("Testing A1 interface CRUD operations and RIC integration")
-
-
 
 				validator := NewORANInterfaceValidator(oranConfig)
 
@@ -167,19 +126,13 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 				defer validator.Cleanup()
 
-
-
 				// Run specific A1 tests.
 
 				a1Score := validator.validateA1InterfaceComprehensive(ctx)
 
-
-
 				// // validationSuite.scorer.AddFunctionalScore("a1-interface", a1Score, 2).
 
 				ginkgo.By(fmt.Sprintf("Recording A1 interface score: %d/2", a1Score))
-
-
 
 				gomega.Expect(a1Score).To(gomega.Equal(2),
 
@@ -187,13 +140,9 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 			})
 
-
-
 			ginkgo.It("should validate E2 interface operations", func() {
 
 				ginkgo.By("Testing E2 interface node management and service models")
-
-
 
 				validator := NewORANInterfaceValidator(oranConfig)
 
@@ -201,19 +150,13 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 				defer validator.Cleanup()
 
-
-
 				// Run specific E2 tests.
 
 				e2Score := validator.validateE2InterfaceComprehensive(ctx)
 
-
-
 				// // validationSuite.scorer.AddFunctionalScore("e2-interface", e2Score, 2).
 
 				ginkgo.By(fmt.Sprintf("Recording E2 interface score: %d/2", e2Score))
-
-
 
 				gomega.Expect(e2Score).To(gomega.Equal(2),
 
@@ -221,13 +164,9 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 			})
 
-
-
 			ginkgo.It("should validate O1 interface operations", func() {
 
 				ginkgo.By("Testing O1 interface FCAPS and NETCONF/YANG compliance")
-
-
 
 				validator := NewORANInterfaceValidator(oranConfig)
 
@@ -235,17 +174,11 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 				defer validator.Cleanup()
 
-
-
 				// Run specific O1 tests.
 
 				o1Score := validator.validateO1InterfaceComprehensive(ctx)
 
-
-
 				// validationSuite.scorer.AddFunctionalScore("o1-interface", o1Score, 2).
-
-
 
 				gomega.Expect(o1Score).To(gomega.Equal(2),
 
@@ -253,13 +186,9 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 			})
 
-
-
 			ginkgo.It("should validate O2 interface operations", func() {
 
 				ginkgo.By("Testing O2 interface cloud infrastructure management")
-
-
 
 				validator := NewORANInterfaceValidator(oranConfig)
 
@@ -267,17 +196,11 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 				defer validator.Cleanup()
 
-
-
 				// Run specific O2 tests.
 
 				o2Score := validator.validateO2InterfaceComprehensive(ctx)
 
-
-
 				// validationSuite.scorer.AddFunctionalScore("o2-interface", o2Score, 1).
-
-
 
 				gomega.Expect(o2Score).To(gomega.Equal(1),
 
@@ -287,15 +210,11 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 		})
 
-
-
 		ginkgo.Context("O-RAN Performance Testing (5/25 points)", func() {
 
 			ginkgo.It("should meet O-RAN interface performance targets", func() {
 
 				ginkgo.By("Running O-RAN performance benchmarks")
-
-
 
 				validator := NewORANInterfaceValidator(oranConfig)
 
@@ -303,27 +222,19 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 				defer validator.Cleanup()
 
-
-
 				factory := NewORANTestFactory()
 
 				benchmarker := NewORANPerformanceBenchmarker(validator, factory)
 
 				benchmarker.SetK8sClient(k8sClient)
 
-
-
 				// Run performance benchmarks.
 
 				results := benchmarker.RunComprehensivePerformanceBenchmarks(ctx)
 
-
-
 				// Validate performance targets.
 
 				performanceScore := 0
-
-
 
 				// A1 Interface Performance (1.5 points).
 
@@ -343,8 +254,6 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 				}
 
-
-
 				// E2 Interface Performance (1.5 points).
 
 				if e2Result, exists := results["E2"]; exists {
@@ -363,8 +272,6 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 				}
 
-
-
 				// O1 Interface Performance (1 point).
 
 				if o1Result, exists := results["O1"]; exists {
@@ -378,8 +285,6 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 					}
 
 				}
-
-
 
 				// O2 Interface Performance (1 point).
 
@@ -395,8 +300,6 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 				}
 
-
-
 				// Cap at 5 points maximum.
 
 				if performanceScore > 5 {
@@ -405,11 +308,7 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 				}
 
-
-
 				// validationSuite.scorer.AddPerformanceScore("oran-performance", performanceScore, 5).
-
-
 
 				ginkgo.By(fmt.Sprintf("O-RAN Performance Score: %d/5 points", performanceScore))
 
@@ -421,19 +320,13 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 		})
 
-
-
 		ginkgo.Context("O-RAN Security Validation (3/15 points)", func() {
 
 			ginkgo.It("should validate O-RAN security compliance", func() {
 
 				ginkgo.By("Testing O-RAN security features")
 
-
-
 				securityScore := 0
-
-
 
 				// Test A1 policy security (1 point).
 
@@ -443,8 +336,6 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 				}
 
-
-
 				// Test E2 authentication and authorization (1 point).
 
 				if oranTestSuite.testE2Security(ctx) {
@@ -452,8 +343,6 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 					securityScore++
 
 				}
-
-
 
 				// Test O1 NETCONF security (1 point).
 
@@ -463,11 +352,7 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 				}
 
-
-
 				// validationSuite.scorer.AddSecurityScore("oran-security", securityScore, 3).
-
-
 
 				ginkgo.By(fmt.Sprintf("O-RAN Security Score: %d/3 points", securityScore))
 
@@ -479,19 +364,13 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 		})
 
-
-
 		ginkgo.Context("O-RAN Production Readiness (2/10 points)", func() {
 
 			ginkgo.It("should validate O-RAN production readiness", func() {
 
 				ginkgo.By("Testing O-RAN production features")
 
-
-
 				productionScore := 0
-
-
 
 				// Test multi-vendor interoperability (1 point).
 
@@ -503,8 +382,6 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 				}
 
-
-
 				// Test fault tolerance and resilience (1 point).
 
 				reliabilityScore := oranTestSuite.runReliabilityTests(ctx)
@@ -515,11 +392,7 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 				}
 
-
-
 				// validationSuite.scorer.AddProductionScore("oran-production", productionScore, 2).
-
-
 
 				ginkgo.By(fmt.Sprintf("O-RAN Production Score: %d/2 points", productionScore))
 
@@ -531,27 +404,19 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 		})
 
-
-
 		ginkgo.It("should integrate O-RAN results with overall validation score", func() {
 
 			ginkgo.By("Running comprehensive O-RAN validation and integration")
 
-
-
 			// Run the complete O-RAN validation suite.
 
 			report := oranTestSuite.RunComprehensiveORANValidation(ctx)
-
-
 
 			// Integrate scores with main validation suite.
 
 			totalORANScore := 0
 
 			maxORANScore := 17
-
-
 
 			// Functional compliance contribution (7 points).
 
@@ -561,8 +426,6 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 			}
 
-
-
 			// Performance contribution (5 points).
 
 			if report.PerformancePassed {
@@ -571,13 +434,9 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 			}
 
-
-
 			// Security contribution (3 points).
 
 			totalORANScore += 3 // Assume full security compliance
-
-
 
 			// Production readiness contribution (2 points).
 
@@ -587,13 +446,9 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 			}
 
-
-
 			// Add to overall validation suite score.
 
 			// validationSuite.scorer.AddCustomScore("oran-total", totalORANScore, maxORANScore, "O-RAN Interface Compliance").
-
-
 
 			ginkgo.By(fmt.Sprintf("Total O-RAN Contribution: %d/%d points", totalORANScore, maxORANScore))
 
@@ -609,8 +464,6 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 			}()))
 
-
-
 			// Expect significant O-RAN contribution to overall score.
 
 			gomega.Expect(totalORANScore).To(gomega.BeNumerically(">=", 14),
@@ -623,11 +476,7 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 }
 
-
-
 // Additional helper methods for security testing.
-
-
 
 // testA1PolicySecurity tests A1 policy security features.
 
@@ -637,21 +486,16 @@ func (oits *ORANInterfaceTestSuite) testA1PolicySecurity(ctx context.Context) bo
 
 	policy := oits.testFactory.CreateA1Policy("security-policy")
 
-
-
 	// Add security metadata.
 
 	policy.PolicyData["security"] = map[string]interface{}{
 
 		"authentication": true,
 
-		"authorization":  "rbac",
+		"authorization": "rbac",
 
-		"encryption":     "tls",
-
+		"encryption": "tls",
 	}
-
-
 
 	err := oits.validator.ricMockService.CreatePolicy(policy)
 
@@ -660,8 +504,6 @@ func (oits *ORANInterfaceTestSuite) testA1PolicySecurity(ctx context.Context) bo
 		return false
 
 	}
-
-
 
 	// Verify security attributes.
 
@@ -672,8 +514,6 @@ func (oits *ORANInterfaceTestSuite) testA1PolicySecurity(ctx context.Context) bo
 		return false
 
 	}
-
-
 
 	if securityConfig, exists := retrievedPolicy.PolicyData["security"]; exists {
 
@@ -689,19 +529,13 @@ func (oits *ORANInterfaceTestSuite) testA1PolicySecurity(ctx context.Context) bo
 
 	}
 
-
-
 	// Cleanup.
 
 	oits.validator.ricMockService.DeletePolicy(policy.PolicyID)
 
-
-
 	return true
 
 }
-
-
 
 // testE2Security tests E2 interface security features.
 
@@ -715,11 +549,8 @@ func (oits *ORANInterfaceTestSuite) testE2Security(ctx context.Context) bool {
 
 		"authentication": "certificate",
 
-		"encryption":     "ipsec",
-
+		"encryption": "ipsec",
 	}
-
-
 
 	err := oits.validator.e2MockService.RegisterNode(node)
 
@@ -728,8 +559,6 @@ func (oits *ORANInterfaceTestSuite) testE2Security(ctx context.Context) bool {
 		return false
 
 	}
-
-
 
 	// Verify security capabilities.
 
@@ -740,8 +569,6 @@ func (oits *ORANInterfaceTestSuite) testE2Security(ctx context.Context) bool {
 		return false
 
 	}
-
-
 
 	if security, exists := retrievedNode.Capabilities["security"]; exists {
 
@@ -757,19 +584,13 @@ func (oits *ORANInterfaceTestSuite) testE2Security(ctx context.Context) bool {
 
 	}
 
-
-
 	// Cleanup.
 
 	oits.validator.e2MockService.UnregisterNode(node.NodeID)
 
-
-
 	return true
 
 }
-
-
 
 // testO1Security tests O1 interface security features.
 
@@ -787,8 +608,6 @@ func (oits *ORANInterfaceTestSuite) testO1Security(ctx context.Context) bool {
 
 	}
 
-
-
 	// Apply security configuration.
 
 	securityConfig := oits.testFactory.CreateO1Configuration("SECURITY", element.ElementID)
@@ -801,8 +620,6 @@ func (oits *ORANInterfaceTestSuite) testO1Security(ctx context.Context) bool {
 
 	}
 
-
-
 	// Verify security configuration.
 
 	retrievedConfig, err := oits.validator.smoMockService.GetConfiguration(securityConfig.ConfigID)
@@ -813,15 +630,11 @@ func (oits *ORANInterfaceTestSuite) testO1Security(ctx context.Context) bool {
 
 	}
 
-
-
 	if retrievedConfig.ConfigType != "SECURITY" {
 
 		return false
 
 	}
-
-
 
 	// Check TLS configuration.
 
@@ -839,19 +652,13 @@ func (oits *ORANInterfaceTestSuite) testO1Security(ctx context.Context) bool {
 
 	}
 
-
-
 	// Cleanup.
 
 	oits.validator.smoMockService.RemoveManagedElement(element.ElementID)
 
-
-
 	return true
 
 }
-
-
 
 // ExampleORANIntegration demonstrates how to use O-RAN tests in an existing test suite.
 
@@ -880,4 +687,3 @@ func ExampleORANIntegration() {
 	*/
 
 }
-

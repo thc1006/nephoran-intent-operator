@@ -1,23 +1,12 @@
 //go:build !disable_rag
-
 // +build !disable_rag
-
-
-
 
 package llm
 
-
-
 import (
-
 	"fmt"
-
 	"net/http"
-
 )
-
-
 
 // HandleStreamingRequest handles streaming requests - stub implementation.
 
@@ -38,4 +27,3 @@ func (sp *StreamingProcessor) HandleStreamingRequest(w http.ResponseWriter, r *h
 	return nil
 
 }
-

@@ -28,48 +28,24 @@ limitations under the License.
 
 */
 
-
-
-
 package packagerevision
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/templates"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/validation/yang"
-
-
 
 	"k8s.io/apimachinery/pkg/runtime"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-
 )
-
-
 
 // SystemFactory orchestrates the creation and initialization of all PackageRevision lifecycle components.
 
@@ -89,15 +65,11 @@ type SystemFactory interface {
 
 	CreatePackageRevisionManager(ctx context.Context, components *SystemComponents, config *ManagerConfig) (PackageRevisionManager, error)
 
-
-
 	// Integrated system creation.
 
 	CreateCompleteSystem(ctx context.Context, systemConfig *SystemConfig) (*PackageRevisionSystem, error)
 
 	CreateNetworkIntentIntegration(ctx context.Context, k8sClient client.Client, scheme *runtime.Scheme, system *PackageRevisionSystem, config *IntegrationConfig) (*NetworkIntentPackageReconciler, error)
-
-
 
 	// Health and lifecycle management.
 
@@ -106,44 +78,33 @@ type SystemFactory interface {
 	ShutdownSystem(ctx context.Context, gracePeriod time.Duration) error
 
 	Close() error
-
 }
-
-
 
 // systemFactory implements comprehensive system factory.
 
 type systemFactory struct {
-
-	logger     logr.Logger
+	logger logr.Logger
 
 	components map[string]interface{}
 
-	systems    []*PackageRevisionSystem
+	systems []*PackageRevisionSystem
 
-	shutdown   chan struct{}
-
+	shutdown chan struct{}
 }
-
-
 
 // SystemComponents holds all the core system components.
 
 type SystemComponents struct {
-
-	PorchClient      porch.PorchClient
+	PorchClient porch.PorchClient
 
 	LifecycleManager porch.LifecycleManager
 
-	TemplateEngine   templates.TemplateEngine
+	TemplateEngine templates.TemplateEngine
 
-	YANGValidator    yang.YANGValidator
+	YANGValidator yang.YANGValidator
 
-	PackageManager   PackageRevisionManager
-
+	PackageManager PackageRevisionManager
 }
-
-
 
 // SystemConfig contains configuration for the complete system.
 
@@ -151,457 +112,359 @@ type SystemConfig struct {
 
 	// Component configurations.
 
-	PorchConfig          *porch.ClientConfig           `yaml:"porch"`
+	PorchConfig *porch.ClientConfig `yaml:"porch"`
 
-	LifecycleConfig      *porch.LifecycleManagerConfig `yaml:"lifecycle"`
+	LifecycleConfig *porch.LifecycleManagerConfig `yaml:"lifecycle"`
 
-	TemplateConfig       *templates.EngineConfig       `yaml:"templates"`
+	TemplateConfig *templates.EngineConfig `yaml:"templates"`
 
-	YANGConfig           *yang.ValidatorConfig         `yaml:"yang"`
+	YANGConfig *yang.ValidatorConfig `yaml:"yang"`
 
-	PackageManagerConfig *ManagerConfig                `yaml:"packageManager"`
+	PackageManagerConfig *ManagerConfig `yaml:"packageManager"`
 
-	IntegrationConfig    *IntegrationConfig            `yaml:"integration"`
-
-
+	IntegrationConfig *IntegrationConfig `yaml:"integration"`
 
 	// System-level configuration.
 
-	SystemName              string        `yaml:"systemName"`
+	SystemName string `yaml:"systemName"`
 
-	Environment             string        `yaml:"environment"`
+	Environment string `yaml:"environment"`
 
-	LogLevel                string        `yaml:"logLevel"`
+	LogLevel string `yaml:"logLevel"`
 
-	EnableMetrics           bool          `yaml:"enableMetrics"`
+	EnableMetrics bool `yaml:"enableMetrics"`
 
-	MetricsPort             int           `yaml:"metricsPort"`
+	MetricsPort int `yaml:"metricsPort"`
 
-	HealthCheckPort         int           `yaml:"healthCheckPort"`
+	HealthCheckPort int `yaml:"healthCheckPort"`
 
 	GracefulShutdownTimeout time.Duration `yaml:"gracefulShutdownTimeout"`
-
-
 
 	// Feature flags.
 
 	Features *FeatureFlags `yaml:"features"`
 
-
-
 	// External integrations.
 
 	Integrations *ExternalIntegrations `yaml:"integrations"`
-
 }
-
-
 
 // FeatureFlags controls optional system features.
 
 type FeatureFlags struct {
+	EnableORANCompliance bool `yaml:"enableOranCompliance"`
 
-	EnableORANCompliance     bool `yaml:"enableOranCompliance"`
+	Enable3GPPValidation bool `yaml:"enable3gppValidation"`
 
-	Enable3GPPValidation     bool `yaml:"enable3gppValidation"`
+	EnableDriftDetection bool `yaml:"enableDriftDetection"`
 
-	EnableDriftDetection     bool `yaml:"enableDriftDetection"`
+	EnableAutoCorrection bool `yaml:"enableAutoCorrection"`
 
-	EnableAutoCorrection     bool `yaml:"enableAutoCorrection"`
-
-	EnableApprovalWorkflows  bool `yaml:"enableApprovalWorkflows"`
+	EnableApprovalWorkflows bool `yaml:"enableApprovalWorkflows"`
 
 	EnableAdvancedTemplating bool `yaml:"enableAdvancedTemplating"`
 
-	EnableSecurityScanning   bool `yaml:"enableSecurityScanning"`
+	EnableSecurityScanning bool `yaml:"enableSecurityScanning"`
 
-	EnableChaosEngineering   bool `yaml:"enableChaosEngineering"`
+	EnableChaosEngineering bool `yaml:"enableChaosEngineering"`
 
-	EnableMLOptimization     bool `yaml:"enableMlOptimization"`
-
+	EnableMLOptimization bool `yaml:"enableMlOptimization"`
 }
-
-
 
 // ExternalIntegrations defines external system integrations.
 
 type ExternalIntegrations struct {
+	GitOps *GitOpsIntegration `yaml:"gitops"`
 
-	GitOps                *GitOpsIntegration     `yaml:"gitops"`
+	CICD *CICDIntegration `yaml:"cicd"`
 
-	CICD                  *CICDIntegration       `yaml:"cicd"`
+	Monitoring *MonitoringIntegration `yaml:"monitoring"`
 
-	Monitoring            *MonitoringIntegration `yaml:"monitoring"`
+	SecretManagement *SecretIntegration `yaml:"secretManagement"`
 
-	SecretManagement      *SecretIntegration     `yaml:"secretManagement"`
+	CertificateManagement *CertIntegration `yaml:"certificateManagement"`
 
-	CertificateManagement *CertIntegration       `yaml:"certificateManagement"`
-
-	NetworkTelemetry      *TelemetryIntegration  `yaml:"networkTelemetry"`
-
+	NetworkTelemetry *TelemetryIntegration `yaml:"networkTelemetry"`
 }
 
-
-
 // Integration configuration types.
-
-
 
 // GitOpsIntegration represents a gitopsintegration.
 
 type GitOpsIntegration struct {
+	Provider string `yaml:"provider"` // argocd, flux, tekton
 
-	Provider    string            `yaml:"provider"` // argocd, flux, tekton
+	Endpoint string `yaml:"endpoint"`
 
-	Endpoint    string            `yaml:"endpoint"`
+	Repository string `yaml:"repository"`
 
-	Repository  string            `yaml:"repository"`
-
-	Branch      string            `yaml:"branch"`
+	Branch string `yaml:"branch"`
 
 	Credentials map[string]string `yaml:"credentials"`
 
-	AutoSync    bool              `yaml:"autoSync"`
+	AutoSync bool `yaml:"autoSync"`
 
-	SyncWave    int               `yaml:"syncWave"`
-
+	SyncWave int `yaml:"syncWave"`
 }
-
-
 
 // CICDIntegration represents a cicdintegration.
 
 type CICDIntegration struct {
+	Provider string `yaml:"provider"` // jenkins, gitlab, github-actions, tekton
 
-	Provider          string            `yaml:"provider"` // jenkins, gitlab, github-actions, tekton
+	Endpoint string `yaml:"endpoint"`
 
-	Endpoint          string            `yaml:"endpoint"`
+	Credentials map[string]string `yaml:"credentials"`
 
-	Credentials       map[string]string `yaml:"credentials"`
+	PipelineTemplates []string `yaml:"pipelineTemplates"`
 
-	PipelineTemplates []string          `yaml:"pipelineTemplates"`
-
-	TriggerOnEvents   []string          `yaml:"triggerOnEvents"`
-
+	TriggerOnEvents []string `yaml:"triggerOnEvents"`
 }
-
-
 
 // MonitoringIntegration represents a monitoringintegration.
 
 type MonitoringIntegration struct {
-
 	Prometheus *PrometheusConfig `yaml:"prometheus"`
 
-	Grafana    *GrafanaConfig    `yaml:"grafana"`
+	Grafana *GrafanaConfig `yaml:"grafana"`
 
-	Jaeger     *JaegerConfig     `yaml:"jaeger"`
+	Jaeger *JaegerConfig `yaml:"jaeger"`
 
-	Fluentd    *FluentdConfig    `yaml:"fluentd"`
-
+	Fluentd *FluentdConfig `yaml:"fluentd"`
 }
-
-
 
 // PrometheusConfig represents a prometheusconfig.
 
 type PrometheusConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled        bool   `yaml:"enabled"`
+	Endpoint string `yaml:"endpoint"`
 
-	Endpoint       string `yaml:"endpoint"`
-
-	Namespace      string `yaml:"namespace"`
+	Namespace string `yaml:"namespace"`
 
 	ScrapeInterval string `yaml:"scrapeInterval"`
-
 }
-
-
 
 // GrafanaConfig represents a grafanaconfig.
 
 type GrafanaConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled          bool   `yaml:"enabled"`
+	Endpoint string `yaml:"endpoint"`
 
-	Endpoint         string `yaml:"endpoint"`
+	DashboardRepo string `yaml:"dashboardRepo"`
 
-	DashboardRepo    string `yaml:"dashboardRepo"`
-
-	AutoProvisioning bool   `yaml:"autoProvisioning"`
-
+	AutoProvisioning bool `yaml:"autoProvisioning"`
 }
-
-
 
 // JaegerConfig represents a jaegerconfig.
 
 type JaegerConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled      bool    `yaml:"enabled"`
-
-	Endpoint     string  `yaml:"endpoint"`
+	Endpoint string `yaml:"endpoint"`
 
 	SamplingRate float64 `yaml:"samplingRate"`
-
 }
-
-
 
 // FluentdConfig represents a fluentdconfig.
 
 type FluentdConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled      bool   `yaml:"enabled"`
-
-	Endpoint     string `yaml:"endpoint"`
+	Endpoint string `yaml:"endpoint"`
 
 	IndexPattern string `yaml:"indexPattern"`
-
 }
-
-
 
 // SecretIntegration represents a secretintegration.
 
 type SecretIntegration struct {
+	Provider string `yaml:"provider"` // vault, k8s-secrets, aws-secrets-manager
 
-	Provider    string             `yaml:"provider"` // vault, k8s-secrets, aws-secrets-manager
+	Endpoint string `yaml:"endpoint"`
 
-	Endpoint    string             `yaml:"endpoint"`
+	Credentials map[string]string `yaml:"credentials"`
 
-	Credentials map[string]string  `yaml:"credentials"`
-
-	VaultPath   string             `yaml:"vaultPath,omitempty"`
+	VaultPath string `yaml:"vaultPath,omitempty"`
 
 	KeyRotation *KeyRotationConfig `yaml:"keyRotation"`
-
 }
-
-
 
 // KeyRotationConfig represents a keyrotationconfig.
 
 type KeyRotationConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled          bool          `yaml:"enabled"`
+	Interval time.Duration `yaml:"interval"`
 
-	Interval         time.Duration `yaml:"interval"`
+	PreRotationHook string `yaml:"preRotationHook"`
 
-	PreRotationHook  string        `yaml:"preRotationHook"`
-
-	PostRotationHook string        `yaml:"postRotationHook"`
-
+	PostRotationHook string `yaml:"postRotationHook"`
 }
-
-
 
 // CertIntegration represents a certintegration.
 
 type CertIntegration struct {
+	Provider string `yaml:"provider"` // cert-manager, vault, external-ca
 
-	Provider      string        `yaml:"provider"` // cert-manager, vault, external-ca
+	Issuer string `yaml:"issuer"`
 
-	Issuer        string        `yaml:"issuer"`
+	CABundle string `yaml:"caBundle"`
 
-	CABundle      string        `yaml:"caBundle"`
-
-	AutoRenewal   bool          `yaml:"autoRenewal"`
+	AutoRenewal bool `yaml:"autoRenewal"`
 
 	RenewalBefore time.Duration `yaml:"renewalBefore"`
-
 }
-
-
 
 // TelemetryIntegration represents a telemetryintegration.
 
 type TelemetryIntegration struct {
+	ONAPIntegration *ONAPConfig `yaml:"onap"`
 
-	ONAPIntegration *ONAPConfig          `yaml:"onap"`
-
-	OSMIntegration  *OSMConfig           `yaml:"osm"`
+	OSMIntegration *OSMConfig `yaml:"osm"`
 
 	CustomEndpoints []*TelemetryEndpoint `yaml:"customEndpoints"`
-
 }
-
-
 
 // ONAPConfig represents a onapconfig.
 
 type ONAPConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled        bool   `yaml:"enabled"`
-
-	DCCAEEndpoint  string `yaml:"dccaeEndpoint"`
+	DCCAEEndpoint string `yaml:"dccaeEndpoint"`
 
 	PolicyEndpoint string `yaml:"policyEndpoint"`
 
-	SDCEndpoint    string `yaml:"sdcEndpoint"`
-
+	SDCEndpoint string `yaml:"sdcEndpoint"`
 }
-
-
 
 // OSMConfig represents a osmconfig.
 
 type OSMConfig struct {
-
-	Enabled      bool   `yaml:"enabled"`
+	Enabled bool `yaml:"enabled"`
 
 	NBI_Endpoint string `yaml:"nbiEndpoint"`
 
-	KeystoneURL  string `yaml:"keystoneUrl"`
-
+	KeystoneURL string `yaml:"keystoneUrl"`
 }
-
-
 
 // TelemetryEndpoint represents a telemetryendpoint.
 
 type TelemetryEndpoint struct {
+	Name string `yaml:"name"`
 
-	Name        string            `yaml:"name"`
+	URL string `yaml:"url"`
 
-	URL         string            `yaml:"url"`
-
-	Type        string            `yaml:"type"` // metrics, logs, traces, events
+	Type string `yaml:"type"` // metrics, logs, traces, events
 
 	Credentials map[string]string `yaml:"credentials"`
 
-	Format      string            `yaml:"format"` // json, xml, protobuf
+	Format string `yaml:"format"` // json, xml, protobuf
 
 }
-
-
 
 // PackageRevisionSystem represents a complete configured system.
 
 type PackageRevisionSystem struct {
+	Config *SystemConfig
 
-	Config          *SystemConfig
+	Components *SystemComponents
 
-	Components      *SystemComponents
+	Health *SystemHealth
 
-	Health          *SystemHealth
-
-	CreatedAt       time.Time
+	CreatedAt time.Time
 
 	LastHealthCheck time.Time
 
-	SystemID        string
-
+	SystemID string
 }
-
-
 
 // SystemHealth represents the overall system health.
 
 type SystemHealth struct {
+	Status string `json:"status"` // healthy, degraded, unhealthy
 
-	Status            string                       `json:"status"` // healthy, degraded, unhealthy
+	Components map[string]ComponentHealth `json:"components"`
 
-	Components        map[string]ComponentHealth   `json:"components"`
+	LastCheck time.Time `json:"lastCheck"`
 
-	LastCheck         time.Time                    `json:"lastCheck"`
+	Uptime time.Duration `json:"uptime"`
 
-	Uptime            time.Duration                `json:"uptime"`
+	Version string `json:"version"`
 
-	Version           string                       `json:"version"`
+	BuildInfo *BuildInfo `json:"buildInfo,omitempty"`
 
-	BuildInfo         *BuildInfo                   `json:"buildInfo,omitempty"`
-
-	FeatureStatus     map[string]bool              `json:"featureStatus"`
+	FeatureStatus map[string]bool `json:"featureStatus"`
 
 	IntegrationStatus map[string]IntegrationHealth `json:"integrationStatus"`
 
-	Metrics           *SystemMetrics               `json:"metrics,omitempty"`
-
+	Metrics *SystemMetrics `json:"metrics,omitempty"`
 }
-
-
 
 // ComponentHealth represents a componenthealth.
 
 type ComponentHealth struct {
+	Status string `json:"status"`
 
-	Status    string        `json:"status"`
+	LastCheck time.Time `json:"lastCheck"`
 
-	LastCheck time.Time     `json:"lastCheck"`
+	Error string `json:"error,omitempty"`
 
-	Error     string        `json:"error,omitempty"`
+	Latency time.Duration `json:"latency,omitempty"`
 
-	Latency   time.Duration `json:"latency,omitempty"`
+	Uptime time.Duration `json:"uptime,omitempty"`
 
-	Uptime    time.Duration `json:"uptime,omitempty"`
-
-	Version   string        `json:"version,omitempty"`
-
+	Version string `json:"version,omitempty"`
 }
-
-
 
 // IntegrationHealth represents a integrationhealth.
 
 type IntegrationHealth struct {
+	Status string `json:"status"`
 
-	Status       string        `json:"status"`
+	LastCheck time.Time `json:"lastCheck"`
 
-	LastCheck    time.Time     `json:"lastCheck"`
-
-	Error        string        `json:"error,omitempty"`
+	Error string `json:"error,omitempty"`
 
 	ResponseTime time.Duration `json:"responseTime,omitempty"`
 
-	Available    bool          `json:"available"`
-
+	Available bool `json:"available"`
 }
-
-
 
 // BuildInfo represents a buildinfo.
 
 type BuildInfo struct {
+	Version string `json:"version"`
 
-	Version   string    `json:"version"`
-
-	GitCommit string    `json:"gitCommit"`
+	GitCommit string `json:"gitCommit"`
 
 	BuildDate time.Time `json:"buildDate"`
 
-	GoVersion string    `json:"goVersion"`
+	GoVersion string `json:"goVersion"`
 
-	Platform  string    `json:"platform"`
-
+	Platform string `json:"platform"`
 }
-
-
 
 // SystemMetrics represents a systemmetrics.
 
 type SystemMetrics struct {
+	TotalRequests int64 `json:"totalRequests"`
 
-	TotalRequests       int64         `json:"totalRequests"`
+	SuccessfulRequests int64 `json:"successfulRequests"`
 
-	SuccessfulRequests  int64         `json:"successfulRequests"`
-
-	FailedRequests      int64         `json:"failedRequests"`
+	FailedRequests int64 `json:"failedRequests"`
 
 	AverageResponseTime time.Duration `json:"averageResponseTime"`
 
-	ActiveConnections   int           `json:"activeConnections"`
+	ActiveConnections int `json:"activeConnections"`
 
-	MemoryUsage         int64         `json:"memoryUsage"`
+	MemoryUsage int64 `json:"memoryUsage"`
 
-	CPUUsage            float64       `json:"cpuUsage"`
+	CPUUsage float64 `json:"cpuUsage"`
 
-	DiskUsage           int64         `json:"diskUsage"`
-
+	DiskUsage int64 `json:"diskUsage"`
 }
-
-
 
 // NewSystemFactory creates a new system factory.
 
@@ -609,19 +472,16 @@ func NewSystemFactory() SystemFactory {
 
 	return &systemFactory{
 
-		logger:     log.Log.WithName("packagerevision-factory"),
+		logger: log.Log.WithName("packagerevision-factory"),
 
 		components: make(map[string]interface{}),
 
-		systems:    []*PackageRevisionSystem{},
+		systems: []*PackageRevisionSystem{},
 
-		shutdown:   make(chan struct{}),
-
+		shutdown: make(chan struct{}),
 	}
 
 }
-
-
 
 // CreateCompleteSystem creates a complete PackageRevision system with all components.
 
@@ -633,11 +493,7 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 
 		"environment", systemConfig.Environment)
 
-
-
 	startTime := time.Now()
-
-
 
 	// Validate system configuration.
 
@@ -647,13 +503,9 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 
 	}
 
-
-
 	// Apply default configurations for nil components.
 
 	systemConfig = f.applyDefaults(systemConfig)
-
-
 
 	// Create YANG validator first (required by template engine).
 
@@ -665,8 +517,6 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 
 	}
 
-
-
 	// Create template engine.
 
 	templateEngine, err := f.CreateTemplateEngine(ctx, yangValidator, systemConfig.TemplateConfig)
@@ -676,8 +526,6 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 		return nil, fmt.Errorf("failed to create template engine: %w", err)
 
 	}
-
-
 
 	// Create Porch client.
 
@@ -689,8 +537,6 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 
 	}
 
-
-
 	// Create lifecycle manager.
 
 	lifecycleManager, err := f.CreateLifecycleManager(ctx, porchClient, systemConfig.LifecycleConfig)
@@ -701,23 +547,18 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 
 	}
 
-
-
 	// Create system components.
 
 	components := &SystemComponents{
 
-		PorchClient:      porchClient,
+		PorchClient: porchClient,
 
 		LifecycleManager: lifecycleManager,
 
-		TemplateEngine:   templateEngine,
+		TemplateEngine: templateEngine,
 
-		YANGValidator:    yangValidator,
-
+		YANGValidator: yangValidator,
 	}
-
-
 
 	// Create package revision manager.
 
@@ -731,23 +572,18 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 
 	components.PackageManager = packageManager
 
-
-
 	// Create system with initial health check.
 
 	system := &PackageRevisionSystem{
 
-		Config:     systemConfig,
+		Config: systemConfig,
 
 		Components: components,
 
-		CreatedAt:  startTime,
+		CreatedAt: startTime,
 
-		SystemID:   fmt.Sprintf("%s-%d", systemConfig.SystemName, time.Now().UnixNano()),
-
+		SystemID: fmt.Sprintf("%s-%d", systemConfig.SystemName, time.Now().UnixNano()),
 	}
-
-
 
 	// Perform initial health check.
 
@@ -759,12 +595,11 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 
 		health = &SystemHealth{
 
-			Status:     "unhealthy",
+			Status: "unhealthy",
 
-			LastCheck:  time.Now(),
+			LastCheck: time.Now(),
 
 			Components: map[string]ComponentHealth{},
-
 		}
 
 	}
@@ -772,8 +607,6 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 	system.Health = health
 
 	system.LastHealthCheck = time.Now()
-
-
 
 	// Initialize external integrations if configured.
 
@@ -783,13 +616,9 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 
 	}
 
-
-
 	// Register system for management.
 
 	f.systems = append(f.systems, system)
-
-
 
 	f.logger.Info("PackageRevision system created successfully",
 
@@ -801,13 +630,9 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 
 		"duration", time.Since(startTime))
 
-
-
 	return system, nil
 
 }
-
-
 
 // CreatePorchClient creates and configures a Porch client.
 
@@ -815,14 +640,11 @@ func (f *systemFactory) CreatePorchClient(ctx context.Context, config *porch.Cli
 
 	f.logger.Info("Creating Porch client", "endpoint", config.Endpoint)
 
-
-
 	opts := porch.ClientOptions{
 
 		Config: config,
 
 		Logger: f.logger,
-
 	}
 
 	client, err := porch.NewClient(opts)
@@ -832,8 +654,6 @@ func (f *systemFactory) CreatePorchClient(ctx context.Context, config *porch.Cli
 		return nil, fmt.Errorf("failed to create Porch client: %w", err)
 
 	}
-
-
 
 	// Test connectivity.
 
@@ -845,23 +665,17 @@ func (f *systemFactory) CreatePorchClient(ctx context.Context, config *porch.Cli
 
 	}
 
-
-
 	f.components["porch-client"] = client
 
 	return client, nil
 
 }
 
-
-
 // CreateLifecycleManager creates and configures a lifecycle manager.
 
 func (f *systemFactory) CreateLifecycleManager(ctx context.Context, client porch.PorchClient, config *porch.LifecycleManagerConfig) (porch.LifecycleManager, error) {
 
 	f.logger.Info("Creating lifecycle manager")
-
-
 
 	// Type assert PorchClient to *Client for NewLifecycleManager.
 
@@ -873,8 +687,6 @@ func (f *systemFactory) CreateLifecycleManager(ctx context.Context, client porch
 
 	}
 
-
-
 	lifecycleManager, err := porch.NewLifecycleManager(clientImpl, config)
 
 	if err != nil {
@@ -883,23 +695,17 @@ func (f *systemFactory) CreateLifecycleManager(ctx context.Context, client porch
 
 	}
 
-
-
 	f.components["lifecycle-manager"] = lifecycleManager
 
 	return lifecycleManager, nil
 
 }
 
-
-
 // CreateTemplateEngine creates and configures a template engine.
 
 func (f *systemFactory) CreateTemplateEngine(ctx context.Context, yangValidator yang.YANGValidator, config *templates.EngineConfig) (templates.TemplateEngine, error) {
 
 	f.logger.Info("Creating template engine")
-
-
 
 	templateEngine, err := templates.NewTemplateEngine(yangValidator, config)
 
@@ -909,23 +715,17 @@ func (f *systemFactory) CreateTemplateEngine(ctx context.Context, yangValidator 
 
 	}
 
-
-
 	f.components["template-engine"] = templateEngine
 
 	return templateEngine, nil
 
 }
 
-
-
 // CreateYANGValidator creates and configures a YANG validator.
 
 func (f *systemFactory) CreateYANGValidator(ctx context.Context, config *yang.ValidatorConfig) (yang.YANGValidator, error) {
 
 	f.logger.Info("Creating YANG validator")
-
-
 
 	yangValidator, err := yang.NewYANGValidator(config)
 
@@ -935,23 +735,17 @@ func (f *systemFactory) CreateYANGValidator(ctx context.Context, config *yang.Va
 
 	}
 
-
-
 	f.components["yang-validator"] = yangValidator
 
 	return yangValidator, nil
 
 }
 
-
-
 // CreatePackageRevisionManager creates and configures a package revision manager.
 
 func (f *systemFactory) CreatePackageRevisionManager(ctx context.Context, components *SystemComponents, config *ManagerConfig) (PackageRevisionManager, error) {
 
 	f.logger.Info("Creating package revision manager")
-
-
 
 	packageManager, err := NewPackageRevisionManager(
 
@@ -964,7 +758,6 @@ func (f *systemFactory) CreatePackageRevisionManager(ctx context.Context, compon
 		components.YANGValidator,
 
 		config,
-
 	)
 
 	if err != nil {
@@ -973,23 +766,17 @@ func (f *systemFactory) CreatePackageRevisionManager(ctx context.Context, compon
 
 	}
 
-
-
 	f.components["package-manager"] = packageManager
 
 	return packageManager, nil
 
 }
 
-
-
 // CreateNetworkIntentIntegration creates the NetworkIntent integration reconciler.
 
 func (f *systemFactory) CreateNetworkIntentIntegration(ctx context.Context, k8sClient client.Client, scheme *runtime.Scheme, system *PackageRevisionSystem, config *IntegrationConfig) (*NetworkIntentPackageReconciler, error) {
 
 	f.logger.Info("Creating NetworkIntent integration")
-
-
 
 	reconciler := NewNetworkIntentPackageReconciler(
 
@@ -1008,24 +795,17 @@ func (f *systemFactory) CreateNetworkIntentIntegration(ctx context.Context, k8sC
 		system.Components.LifecycleManager,
 
 		config,
-
 	)
-
-
 
 	return reconciler, nil
 
 }
-
-
 
 // SetupWithManager sets up the complete system with a controller manager.
 
 func SetupWithManager(mgr manager.Manager, systemConfig *SystemConfig) error {
 
 	factory := NewSystemFactory()
-
-
 
 	// Create the complete system.
 
@@ -1036,8 +816,6 @@ func SetupWithManager(mgr manager.Manager, systemConfig *SystemConfig) error {
 		return fmt.Errorf("failed to create PackageRevision system: %w", err)
 
 	}
-
-
 
 	// Create and setup the NetworkIntent integration.
 
@@ -1052,7 +830,6 @@ func SetupWithManager(mgr manager.Manager, systemConfig *SystemConfig) error {
 		system,
 
 		systemConfig.IntegrationConfig,
-
 	)
 
 	if err != nil {
@@ -1060,8 +837,6 @@ func SetupWithManager(mgr manager.Manager, systemConfig *SystemConfig) error {
 		return fmt.Errorf("failed to create NetworkIntent integration: %w", err)
 
 	}
-
-
 
 	// Setup the reconciler with the manager.
 
@@ -1071,17 +846,11 @@ func SetupWithManager(mgr manager.Manager, systemConfig *SystemConfig) error {
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (f *systemFactory) validateSystemConfig(config *SystemConfig) error {
 
@@ -1091,15 +860,11 @@ func (f *systemFactory) validateSystemConfig(config *SystemConfig) error {
 
 	}
 
-
-
 	if config.PorchConfig == nil {
 
 		return fmt.Errorf("Porch configuration is required")
 
 	}
-
-
 
 	if config.PorchConfig.Endpoint == "" {
 
@@ -1107,13 +872,9 @@ func (f *systemFactory) validateSystemConfig(config *SystemConfig) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (f *systemFactory) applyDefaults(config *SystemConfig) *SystemConfig {
 
@@ -1123,15 +884,11 @@ func (f *systemFactory) applyDefaults(config *SystemConfig) *SystemConfig {
 
 	}
 
-
-
 	if config.LogLevel == "" {
 
 		config.LogLevel = "info"
 
 	}
-
-
 
 	if config.GracefulShutdownTimeout == 0 {
 
@@ -1139,27 +896,22 @@ func (f *systemFactory) applyDefaults(config *SystemConfig) *SystemConfig {
 
 	}
 
-
-
 	if config.LifecycleConfig == nil {
 
 		config.LifecycleConfig = &porch.LifecycleManagerConfig{
 
-			EventQueueSize:      1000,
+			EventQueueSize: 1000,
 
-			EventWorkers:        5,
+			EventWorkers: 5,
 
 			LockCleanupInterval: 5 * time.Minute,
 
-			DefaultLockTimeout:  30 * time.Minute,
+			DefaultLockTimeout: 30 * time.Minute,
 
-			EnableMetrics:       true,
-
+			EnableMetrics: true,
 		}
 
 	}
-
-
 
 	if config.YANGConfig == nil {
 
@@ -1167,53 +919,47 @@ func (f *systemFactory) applyDefaults(config *SystemConfig) *SystemConfig {
 
 			EnableConstraintValidation: true,
 
-			EnableDataTypeValidation:   true,
+			EnableDataTypeValidation: true,
 
-			EnableMandatoryCheck:       true,
+			EnableMandatoryCheck: true,
 
-			ValidationTimeout:          30 * time.Second,
+			ValidationTimeout: 30 * time.Second,
 
-			MaxValidationDepth:         100,
+			MaxValidationDepth: 100,
 
-			EnableO_RANModels:          true,
+			EnableO_RANModels: true,
 
-			Enable3GPPModels:           true,
+			Enable3GPPModels: true,
 
-			EnableMetrics:              true,
-
+			EnableMetrics: true,
 		}
 
 	}
-
-
 
 	if config.TemplateConfig == nil {
 
 		config.TemplateConfig = &templates.EngineConfig{
 
-			TemplateRepository:        "https://github.com/nephoran/templates.git",
+			TemplateRepository: "https://github.com/nephoran/templates.git",
 
-			RepositoryBranch:          "main",
+			RepositoryBranch: "main",
 
-			RefreshInterval:           60 * time.Minute,
+			RefreshInterval: 60 * time.Minute,
 
-			MaxConcurrentRenders:      10,
+			MaxConcurrentRenders: 10,
 
-			RenderTimeout:             5 * time.Minute,
+			RenderTimeout: 5 * time.Minute,
 
-			EnableCaching:             true,
+			EnableCaching: true,
 
 			EnableParameterValidation: true,
 
-			EnableYANGValidation:      true,
+			EnableYANGValidation: true,
 
-			EnableMetrics:             true,
-
+			EnableMetrics: true,
 		}
 
 	}
-
-
 
 	if config.PackageManagerConfig == nil {
 
@@ -1221,71 +967,59 @@ func (f *systemFactory) applyDefaults(config *SystemConfig) *SystemConfig {
 
 	}
 
-
-
 	if config.IntegrationConfig == nil {
 
 		config.IntegrationConfig = GetDefaultIntegrationConfig()
 
 	}
 
-
-
 	if config.Features == nil {
 
 		config.Features = &FeatureFlags{
 
-			EnableORANCompliance:     true,
+			EnableORANCompliance: true,
 
-			Enable3GPPValidation:     true,
+			Enable3GPPValidation: true,
 
-			EnableDriftDetection:     true,
+			EnableDriftDetection: true,
 
-			EnableAutoCorrection:     false,
+			EnableAutoCorrection: false,
 
-			EnableApprovalWorkflows:  true,
+			EnableApprovalWorkflows: true,
 
 			EnableAdvancedTemplating: true,
 
-			EnableSecurityScanning:   true,
+			EnableSecurityScanning: true,
 
-			EnableChaosEngineering:   false,
+			EnableChaosEngineering: false,
 
-			EnableMLOptimization:     false,
-
+			EnableMLOptimization: false,
 		}
 
 	}
-
-
 
 	return config
 
 }
 
-
-
 func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *PackageRevisionSystem) (*SystemHealth, error) {
 
 	health := &SystemHealth{
 
-		Status:            "healthy",
+		Status: "healthy",
 
-		Components:        make(map[string]ComponentHealth),
+		Components: make(map[string]ComponentHealth),
 
-		LastCheck:         time.Now(),
+		LastCheck: time.Now(),
 
-		Uptime:            time.Since(system.CreatedAt),
+		Uptime: time.Since(system.CreatedAt),
 
-		Version:           "1.0.0", // Would be from build info
+		Version: "1.0.0", // Would be from build info
 
-		FeatureStatus:     make(map[string]bool),
+		FeatureStatus: make(map[string]bool),
 
 		IntegrationStatus: make(map[string]IntegrationHealth),
-
 	}
-
-
 
 	// Check Porch client health.
 
@@ -1295,19 +1029,18 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 
 		health.Components["porch-client"] = ComponentHealth{
 
-			Status:    "unhealthy",
+			Status: "unhealthy",
 
 			LastCheck: time.Now(),
 
-			Error:     err.Error(),
-
+			Error: err.Error(),
 		}
 
 	} else {
 
 		health.Components["porch-client"] = ComponentHealth{
 
-			Status:    "healthy",
+			Status: "healthy",
 
 			LastCheck: time.Now(),
 
@@ -1317,8 +1050,6 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 
 	}
 
-
-
 	// Check lifecycle manager health.
 
 	if lifecycleHealth, err := system.Components.LifecycleManager.GetManagerHealth(ctx); err != nil {
@@ -1327,27 +1058,23 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 
 		health.Components["lifecycle-manager"] = ComponentHealth{
 
-			Status:    "unhealthy",
+			Status: "unhealthy",
 
 			LastCheck: time.Now(),
 
-			Error:     err.Error(),
-
+			Error: err.Error(),
 		}
 
 	} else {
 
 		health.Components["lifecycle-manager"] = ComponentHealth{
 
-			Status:    lifecycleHealth.Status,
+			Status: lifecycleHealth.Status,
 
 			LastCheck: time.Now(),
-
 		}
 
 	}
-
-
 
 	// Check template engine health.
 
@@ -1357,27 +1084,23 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 
 		health.Components["template-engine"] = ComponentHealth{
 
-			Status:    "unhealthy",
+			Status: "unhealthy",
 
 			LastCheck: time.Now(),
 
-			Error:     err.Error(),
-
+			Error: err.Error(),
 		}
 
 	} else {
 
 		health.Components["template-engine"] = ComponentHealth{
 
-			Status:    templateHealth.Status,
+			Status: templateHealth.Status,
 
 			LastCheck: time.Now(),
-
 		}
 
 	}
-
-
 
 	// Check YANG validator health.
 
@@ -1387,27 +1110,23 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 
 		health.Components["yang-validator"] = ComponentHealth{
 
-			Status:    "unhealthy",
+			Status: "unhealthy",
 
 			LastCheck: time.Now(),
 
-			Error:     err.Error(),
-
+			Error: err.Error(),
 		}
 
 	} else {
 
 		health.Components["yang-validator"] = ComponentHealth{
 
-			Status:    yangHealth.Status,
+			Status: yangHealth.Status,
 
 			LastCheck: time.Now(),
-
 		}
 
 	}
-
-
 
 	// Check package manager health.
 
@@ -1417,33 +1136,27 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 
 		health.Components["package-manager"] = ComponentHealth{
 
-			Status:    "unhealthy",
+			Status: "unhealthy",
 
 			LastCheck: time.Now(),
 
-			Error:     err.Error(),
-
+			Error: err.Error(),
 		}
 
 	} else {
 
 		health.Components["package-manager"] = ComponentHealth{
 
-			Status:    managerHealth.Status,
+			Status: managerHealth.Status,
 
 			LastCheck: time.Now(),
-
 		}
 
 	}
 
-
-
 	return health, nil
 
 }
-
-
 
 func (f *systemFactory) initializeIntegrations(ctx context.Context, system *PackageRevisionSystem) error {
 
@@ -1452,8 +1165,6 @@ func (f *systemFactory) initializeIntegrations(ctx context.Context, system *Pack
 		return nil
 
 	}
-
-
 
 	// Initialize GitOps integration.
 
@@ -1467,8 +1178,6 @@ func (f *systemFactory) initializeIntegrations(ctx context.Context, system *Pack
 
 	}
 
-
-
 	// Initialize monitoring integration.
 
 	if system.Config.Integrations.Monitoring != nil {
@@ -1481,17 +1190,11 @@ func (f *systemFactory) initializeIntegrations(ctx context.Context, system *Pack
 
 	}
 
-
-
 	// Initialize other integrations...
-
-
 
 	return nil
 
 }
-
-
 
 func (f *systemFactory) initializeGitOpsIntegration(ctx context.Context, config *GitOpsIntegration) error {
 
@@ -1503,8 +1206,6 @@ func (f *systemFactory) initializeGitOpsIntegration(ctx context.Context, config 
 
 }
 
-
-
 func (f *systemFactory) initializeMonitoringIntegration(ctx context.Context, config *MonitoringIntegration) error {
 
 	f.logger.Info("Initializing monitoring integration")
@@ -1514,8 +1215,6 @@ func (f *systemFactory) initializeMonitoringIntegration(ctx context.Context, con
 	return nil
 
 }
-
-
 
 // GetSystemHealth returns the current system health.
 
@@ -1527,8 +1226,6 @@ func (f *systemFactory) GetSystemHealth(ctx context.Context) (*SystemHealth, err
 
 	}
 
-
-
 	// For simplicity, return the first system's health.
 
 	// In a real implementation, this might aggregate health across all systems.
@@ -1537,23 +1234,17 @@ func (f *systemFactory) GetSystemHealth(ctx context.Context) (*SystemHealth, err
 
 }
 
-
-
 // ShutdownSystem gracefully shuts down the system.
 
 func (f *systemFactory) ShutdownSystem(ctx context.Context, gracePeriod time.Duration) error {
 
 	f.logger.Info("Shutting down PackageRevision systems", "gracePeriod", gracePeriod)
 
-
-
 	// Create a timeout context.
 
 	shutdownCtx, cancel := context.WithTimeout(ctx, gracePeriod)
 
 	defer cancel()
-
-
 
 	// Shutdown all systems.
 
@@ -1567,21 +1258,15 @@ func (f *systemFactory) ShutdownSystem(ctx context.Context, gracePeriod time.Dur
 
 	}
 
-
-
 	f.logger.Info("All systems shutdown completed")
 
 	return nil
 
 }
 
-
-
 func (f *systemFactory) shutdownSingleSystem(ctx context.Context, system *PackageRevisionSystem) error {
 
 	f.logger.Info("Shutting down system", "systemID", system.SystemID)
-
-
 
 	// Shutdown components in reverse order of creation.
 
@@ -1595,8 +1280,6 @@ func (f *systemFactory) shutdownSingleSystem(ctx context.Context, system *Packag
 
 	}
 
-
-
 	if system.Components.LifecycleManager != nil {
 
 		if err := system.Components.LifecycleManager.Close(); err != nil {
@@ -1606,8 +1289,6 @@ func (f *systemFactory) shutdownSingleSystem(ctx context.Context, system *Packag
 		}
 
 	}
-
-
 
 	if system.Components.TemplateEngine != nil {
 
@@ -1619,8 +1300,6 @@ func (f *systemFactory) shutdownSingleSystem(ctx context.Context, system *Packag
 
 	}
 
-
-
 	if system.Components.YANGValidator != nil {
 
 		if err := system.Components.YANGValidator.Close(); err != nil {
@@ -1631,13 +1310,9 @@ func (f *systemFactory) shutdownSingleSystem(ctx context.Context, system *Packag
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Close gracefully shuts down the factory.
 
@@ -1645,19 +1320,13 @@ func (f *systemFactory) Close() error {
 
 	f.logger.Info("Shutting down system factory")
 
-
-
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
 	defer cancel()
 
-
-
 	return f.ShutdownSystem(ctx, 25*time.Second)
 
 }
-
-
 
 // GetDefaultSystemConfig returns a default system configuration.
 
@@ -1665,17 +1334,17 @@ func GetDefaultSystemConfig() *SystemConfig {
 
 	return &SystemConfig{
 
-		SystemName:              "nephoran-packagerevision-system",
+		SystemName: "nephoran-packagerevision-system",
 
-		Environment:             "development",
+		Environment: "development",
 
-		LogLevel:                "info",
+		LogLevel: "info",
 
-		EnableMetrics:           true,
+		EnableMetrics: true,
 
-		MetricsPort:             8080,
+		MetricsPort: 8080,
 
-		HealthCheckPort:         8081,
+		HealthCheckPort: 8081,
 
 		GracefulShutdownTimeout: 30 * time.Second,
 
@@ -1689,27 +1358,24 @@ func GetDefaultSystemConfig() *SystemConfig {
 
 		Features: &FeatureFlags{
 
-			EnableORANCompliance:     true,
+			EnableORANCompliance: true,
 
-			Enable3GPPValidation:     true,
+			Enable3GPPValidation: true,
 
-			EnableDriftDetection:     true,
+			EnableDriftDetection: true,
 
-			EnableAutoCorrection:     false,
+			EnableAutoCorrection: false,
 
-			EnableApprovalWorkflows:  true,
+			EnableApprovalWorkflows: true,
 
 			EnableAdvancedTemplating: true,
 
-			EnableSecurityScanning:   true,
+			EnableSecurityScanning: true,
 
-			EnableChaosEngineering:   false,
+			EnableChaosEngineering: false,
 
-			EnableMLOptimization:     false,
-
+			EnableMLOptimization: false,
 		},
-
 	}
 
 }
-

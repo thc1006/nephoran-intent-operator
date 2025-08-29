@@ -28,36 +28,19 @@ limitations under the License.
 
 */
 
-
-
-
 package porch
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
-
-
 
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/multicluster"
 
-
-
 	"k8s.io/apimachinery/pkg/api/resource"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 )
-
-
 
 // PorchClient defines the interface for interacting with Porch API.
 
@@ -79,8 +62,6 @@ type PorchClient interface {
 
 	SyncRepository(ctx context.Context, name string) error
 
-
-
 	// PackageRevision Operations.
 
 	GetPackageRevision(ctx context.Context, name, revision string) (*PackageRevision, error)
@@ -99,8 +80,6 @@ type PorchClient interface {
 
 	RejectPackageRevision(ctx context.Context, name, revision, reason string) error
 
-
-
 	// Package Content Operations.
 
 	GetPackageContents(ctx context.Context, name, revision string) (map[string][]byte, error)
@@ -109,15 +88,11 @@ type PorchClient interface {
 
 	RenderPackage(ctx context.Context, name, revision string) (*RenderResult, error)
 
-
-
 	// Function Operations.
 
 	RunFunction(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error)
 
 	ValidatePackage(ctx context.Context, name, revision string) (*ValidationResult, error)
-
-
 
 	// Workflow Operations.
 
@@ -131,17 +106,12 @@ type PorchClient interface {
 
 	DeleteWorkflow(ctx context.Context, name string) error
 
-
-
 	// Health and Status.
 
 	Health(ctx context.Context) (*HealthStatus, error)
 
 	Version(ctx context.Context) (*VersionInfo, error)
-
 }
-
-
 
 // RepositoryManager provides high-level repository lifecycle management.
 
@@ -157,8 +127,6 @@ type RepositoryManager interface {
 
 	GetRepositoryHealth(ctx context.Context, name string) (*RepositoryHealth, error)
 
-
-
 	// Branch management.
 
 	CreateBranch(ctx context.Context, repoName, branchName, baseBranch string) error
@@ -167,17 +135,12 @@ type RepositoryManager interface {
 
 	ListBranches(ctx context.Context, repoName string) ([]string, error)
 
-
-
 	// Authentication and credentials.
 
 	UpdateCredentials(ctx context.Context, repoName string, creds *Credentials) error
 
 	ValidateAccess(ctx context.Context, repoName string) error
-
 }
-
-
 
 // PackageRevisionManager provides package revision lifecycle management.
 
@@ -191,8 +154,6 @@ type PackageRevisionManager interface {
 
 	DeletePackage(ctx context.Context, ref *PackageReference) error
 
-
-
 	// Revision management.
 
 	CreateRevision(ctx context.Context, ref *PackageReference) (*PackageRevision, error)
@@ -203,8 +164,6 @@ type PackageRevisionManager interface {
 
 	CompareRevisions(ctx context.Context, ref1, ref2 *PackageReference) (*ComparisonResult, error)
 
-
-
 	// State transitions.
 
 	PromoteToProposed(ctx context.Context, ref *PackageReference) error
@@ -213,8 +172,6 @@ type PackageRevisionManager interface {
 
 	RevertToRevision(ctx context.Context, ref *PackageReference, targetRevision string) error
 
-
-
 	// Package content management.
 
 	UpdateContent(ctx context.Context, ref *PackageReference, updates map[string][]byte) error
@@ -222,10 +179,7 @@ type PackageRevisionManager interface {
 	GetContent(ctx context.Context, ref *PackageReference) (*PackageContent, error)
 
 	ValidateContent(ctx context.Context, ref *PackageReference) (*ValidationResult, error)
-
 }
-
-
 
 // FunctionRunner provides KRM function execution capabilities.
 
@@ -239,8 +193,6 @@ type FunctionRunner interface {
 
 	ValidateFunction(ctx context.Context, functionName string) (*FunctionValidation, error)
 
-
-
 	// Function management.
 
 	ListFunctions(ctx context.Context) ([]*FunctionInfo, error)
@@ -248,10 +200,7 @@ type FunctionRunner interface {
 	GetFunctionSchema(ctx context.Context, functionName string) (*FunctionSchema, error)
 
 	RegisterFunction(ctx context.Context, info *FunctionInfo) error
-
 }
-
-
 
 // NetworkIntentExtensions provides Nephio-specific extensions to NetworkIntent CRD.
 
@@ -261,77 +210,50 @@ type NetworkIntentExtensions struct {
 
 	PorchMetadata *PorchMetadata `json:"porchMetadata,omitempty"`
 
-
-
 	// Package specifications.
 
 	PackageSpec *PackageSpec `json:"packageSpec,omitempty"`
-
-
 
 	// Target cluster information.
 
 	ClusterTargets []*ClusterTarget `json:"clusterTargets,omitempty"`
 
-
-
 	// Workflow definition.
 
 	Workflow *WorkflowSpec `json:"workflow,omitempty"`
-
-
 
 	// O-RAN compliance settings.
 
 	ORANCompliance *ORANComplianceSpec `json:"oranCompliance,omitempty"`
 
-
-
 	// Network slice configuration.
 
 	NetworkSlice *NetworkSliceSpec `json:"networkSlice,omitempty"`
-
 }
 
-
-
 // Core Porch Resource Types.
-
-
 
 // Repository represents a Git repository in Porch.
 
 type Repository struct {
-
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-
-
-	Spec   RepositorySpec   `json:"spec,omitempty"`
+	Spec RepositorySpec `json:"spec,omitempty"`
 
 	Status RepositoryStatus `json:"status,omitempty"`
-
 }
-
-
 
 // RepositoryList contains a list of repositories.
 
 type RepositoryList struct {
-
 	metav1.TypeMeta `json:",inline"`
 
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-
-
 	Items []Repository `json:"items"`
-
 }
-
-
 
 // RepositorySpec defines the desired state of a repository.
 
@@ -341,45 +263,30 @@ type RepositorySpec struct {
 
 	Type string `json:"type"`
 
-
-
 	// Repository URL.
 
 	URL string `json:"url"`
-
-
 
 	// Branch to track.
 
 	Branch string `json:"branch,omitempty"`
 
-
-
 	// Directory within repository.
 
 	Directory string `json:"directory,omitempty"`
-
-
 
 	// Authentication configuration.
 
 	Auth *AuthConfig `json:"auth,omitempty"`
 
-
-
 	// Synchronization settings.
 
 	Sync *SyncConfig `json:"sync,omitempty"`
 
-
-
 	// Repository capabilities.
 
 	Capabilities []string `json:"capabilities,omitempty"`
-
 }
-
-
 
 // RepositoryStatus defines the observed state of a repository.
 
@@ -389,44 +296,30 @@ type RepositoryStatus struct {
 
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-
-
 	// Last sync time.
 
 	LastSyncTime *metav1.Time `json:"lastSyncTime,omitempty"`
-
-
 
 	// Current commit hash.
 
 	CommitHash string `json:"commitHash,omitempty"`
 
-
-
 	// Sync error if any.
 
 	SyncError string `json:"syncError,omitempty"`
-
-
 
 	// Package count.
 
 	PackageCount int32 `json:"packageCount,omitempty"`
 
-
-
 	// Repository health.
 
 	Health RepositoryHealth `json:"health,omitempty"`
-
 }
-
-
 
 // Type aliases to multicluster types for consistency.
 
 type (
-
 	PackageRevision = multicluster.PackageRevision
 
 	// PackageRevisionSpec represents a packagerevisionspec.
@@ -452,64 +345,41 @@ type (
 	// GitLock represents a gitlock.
 
 	GitLock = multicluster.GitLock
-
 )
-
-
 
 // PackageRevisionList contains a list of package revisions.
 
 type PackageRevisionList struct {
-
 	metav1.TypeMeta `json:",inline"`
 
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-
-
 	Items []PackageRevision `json:"items"`
-
 }
-
-
 
 // Workflow represents a package approval workflow.
 
 type Workflow struct {
-
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-
-
-	Spec   WorkflowSpec   `json:"spec,omitempty"`
+	Spec WorkflowSpec `json:"spec,omitempty"`
 
 	Status WorkflowStatus `json:"status,omitempty"`
-
 }
-
-
 
 // WorkflowList contains a list of workflows.
 
 type WorkflowList struct {
-
 	metav1.TypeMeta `json:",inline"`
 
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-
-
 	Items []Workflow `json:"items"`
-
 }
 
-
-
 // Supporting Types and Enums.
-
-
 
 // Import lifecycle constants from multicluster.
 
@@ -533,13 +403,9 @@ const (
 
 )
 
-
-
 // RepositoryHealth represents the health status of a repository.
 
 type RepositoryHealth string
-
-
 
 const (
 
@@ -554,1214 +420,921 @@ const (
 	// RepositoryHealthUnknown holds repositoryhealthunknown value.
 
 	RepositoryHealthUnknown RepositoryHealth = "Unknown"
-
 )
 
-
-
 // Configuration Types.
-
-
 
 // RepositoryConfig defines repository configuration.
 
 type RepositoryConfig struct {
+	Name string `json:"name"`
 
-	Name         string      `json:"name"`
+	URL string `json:"url"`
 
-	URL          string      `json:"url"`
+	Type string `json:"type"`
 
-	Type         string      `json:"type"`
+	Branch string `json:"branch,omitempty"`
 
-	Branch       string      `json:"branch,omitempty"`
+	Directory string `json:"directory,omitempty"`
 
-	Directory    string      `json:"directory,omitempty"`
+	Auth *AuthConfig `json:"auth,omitempty"`
 
-	Auth         *AuthConfig `json:"auth,omitempty"`
+	Sync *SyncConfig `json:"sync,omitempty"`
 
-	Sync         *SyncConfig `json:"sync,omitempty"`
-
-	Capabilities []string    `json:"capabilities,omitempty"`
-
+	Capabilities []string `json:"capabilities,omitempty"`
 }
-
-
 
 // AuthConfig defines authentication configuration.
 
 type AuthConfig struct {
+	Type string `json:"type"` // basic, token, ssh
 
-	Type       string            `json:"type"` // basic, token, ssh
+	Username string `json:"username,omitempty"`
 
-	Username   string            `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 
-	Password   string            `json:"password,omitempty"`
+	Token string `json:"token,omitempty"`
 
-	Token      string            `json:"token,omitempty"`
+	PrivateKey string `json:"privateKey,omitempty"`
 
-	PrivateKey string            `json:"privateKey,omitempty"`
+	SecretRef *SecretReference `json:"secretRef,omitempty"`
 
-	SecretRef  *SecretReference  `json:"secretRef,omitempty"`
-
-	Headers    map[string]string `json:"headers,omitempty"`
-
+	Headers map[string]string `json:"headers,omitempty"`
 }
-
-
 
 // SyncConfig defines synchronization configuration.
 
 type SyncConfig struct {
+	Interval *metav1.Duration `json:"interval,omitempty"`
 
-	Interval       *metav1.Duration `json:"interval,omitempty"`
+	AutoSync bool `json:"autoSync,omitempty"`
 
-	AutoSync       bool             `json:"autoSync,omitempty"`
+	MaxRetries int32 `json:"maxRetries,omitempty"`
 
-	MaxRetries     int32            `json:"maxRetries,omitempty"`
+	BackoffLimit *metav1.Duration `json:"backoffLimit,omitempty"`
 
-	BackoffLimit   *metav1.Duration `json:"backoffLimit,omitempty"`
-
-	WebhookEnabled bool             `json:"webhookEnabled,omitempty"`
-
+	WebhookEnabled bool `json:"webhookEnabled,omitempty"`
 }
 
-
-
 // Package Types.
-
-
 
 // PackageSpec defines package creation specification.
 
 type PackageSpec struct {
+	Repository string `json:"repository"`
 
-	Repository  string                   `json:"repository"`
+	PackageName string `json:"packageName"`
 
-	PackageName string                   `json:"packageName"`
+	Revision string `json:"revision,omitempty"`
 
-	Revision    string                   `json:"revision,omitempty"`
+	Lifecycle PackageRevisionLifecycle `json:"lifecycle,omitempty"`
 
-	Lifecycle   PackageRevisionLifecycle `json:"lifecycle,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
 
-	Labels      map[string]string        `json:"labels,omitempty"`
-
-	Annotations map[string]string        `json:"annotations,omitempty"`
-
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
-
-
 
 // PackageReference uniquely identifies a package revision.
 
 type PackageReference struct {
-
-	Repository  string `json:"repository"`
+	Repository string `json:"repository"`
 
 	PackageName string `json:"packageName"`
 
-	Revision    string `json:"revision"`
-
+	Revision string `json:"revision"`
 }
-
-
 
 // PackageContent contains the full content of a package.
 
 type PackageContent struct {
+	Files map[string][]byte `json:"files"`
 
-	Files   map[string][]byte `json:"files"`
-
-	Kptfile *KptfileContent   `json:"kptfile,omitempty"`
-
+	Kptfile *KptfileContent `json:"kptfile,omitempty"`
 }
-
-
 
 // KptfileContent represents the Kptfile structure.
 
 type KptfileContent struct {
+	APIVersion string `json:"apiVersion"`
 
-	APIVersion string                 `json:"apiVersion"`
+	Kind string `json:"kind"`
 
-	Kind       string                 `json:"kind"`
+	Metadata map[string]interface{} `json:"metadata"`
 
-	Metadata   map[string]interface{} `json:"metadata"`
+	Info *PackageMetadata `json:"info,omitempty"`
 
-	Info       *PackageMetadata       `json:"info,omitempty"`
-
-	Pipeline   *Pipeline              `json:"pipeline,omitempty"`
-
+	Pipeline *Pipeline `json:"pipeline,omitempty"`
 }
-
-
 
 // PackageMetadata contains package metadata information.
 
 type PackageMetadata struct {
+	Description string `json:"description,omitempty"`
 
-	Description string            `json:"description,omitempty"`
+	Keywords []string `json:"keywords,omitempty"`
 
-	Keywords    []string          `json:"keywords,omitempty"`
+	Site string `json:"site,omitempty"`
 
-	Site        string            `json:"site,omitempty"`
+	Emails []string `json:"emails,omitempty"`
 
-	Emails      []string          `json:"emails,omitempty"`
+	License string `json:"license,omitempty"`
 
-	License     string            `json:"license,omitempty"`
+	Tags map[string]string `json:"tags,omitempty"`
 
-	Tags        map[string]string `json:"tags,omitempty"`
-
-	Labels      map[string]string `json:"labels,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
 
 	Annotations map[string]string `json:"annotations,omitempty"`
-
 }
-
-
 
 // Pipeline defines the KRM function pipeline.
 
 type Pipeline struct {
-
-	Mutators   []FunctionConfig `json:"mutators,omitempty"`
+	Mutators []FunctionConfig `json:"mutators,omitempty"`
 
 	Validators []FunctionConfig `json:"validators,omitempty"`
-
 }
 
-
-
 // Function Types.
-
-
 
 // FunctionConfig defines a KRM function configuration.
 
 type FunctionConfig struct {
+	Image string `json:"image"`
 
-	Image      string                 `json:"image"`
+	ConfigPath string `json:"configPath,omitempty"`
 
-	ConfigPath string                 `json:"configPath,omitempty"`
+	ConfigMap map[string]interface{} `json:"configMap,omitempty"`
 
-	ConfigMap  map[string]interface{} `json:"configMap,omitempty"`
+	Selectors []ResourceSelector `json:"selectors,omitempty"`
 
-	Selectors  []ResourceSelector     `json:"selectors,omitempty"`
-
-	Exec       *ExecConfig            `json:"exec,omitempty"`
-
+	Exec *ExecConfig `json:"exec,omitempty"`
 }
-
-
 
 // FunctionRequest represents a function execution request.
 
 type FunctionRequest struct {
+	FunctionConfig FunctionConfig `json:"functionConfig"`
 
-	FunctionConfig FunctionConfig   `json:"functionConfig"`
+	Resources []KRMResource `json:"resources"`
 
-	Resources      []KRMResource    `json:"resources"`
-
-	Context        *FunctionContext `json:"context,omitempty"`
-
+	Context *FunctionContext `json:"context,omitempty"`
 }
-
-
 
 // FunctionResponse represents a function execution response.
 
 type FunctionResponse struct {
+	Resources []KRMResource `json:"resources"`
 
-	Resources []KRMResource     `json:"resources"`
+	Results []*FunctionResult `json:"results,omitempty"`
 
-	Results   []*FunctionResult `json:"results,omitempty"`
+	Logs []string `json:"logs,omitempty"`
 
-	Logs      []string          `json:"logs,omitempty"`
-
-	Error     *FunctionError    `json:"error,omitempty"`
-
+	Error *FunctionError `json:"error,omitempty"`
 }
-
-
 
 // PipelineRequest represents a pipeline execution request.
 
 type PipelineRequest struct {
+	Pipeline Pipeline `json:"pipeline"`
 
-	Pipeline  Pipeline         `json:"pipeline"`
+	Resources []KRMResource `json:"resources"`
 
-	Resources []KRMResource    `json:"resources"`
-
-	Context   *FunctionContext `json:"context,omitempty"`
-
+	Context *FunctionContext `json:"context,omitempty"`
 }
-
-
 
 // PipelineResponse represents a pipeline execution response.
 
 type PipelineResponse struct {
+	Resources []KRMResource `json:"resources"`
 
-	Resources []KRMResource     `json:"resources"`
+	Results []*FunctionResult `json:"results,omitempty"`
 
-	Results   []*FunctionResult `json:"results,omitempty"`
-
-	Error     *FunctionError    `json:"error,omitempty"`
-
+	Error *FunctionError `json:"error,omitempty"`
 }
 
-
-
 // Transformation and Validation Types.
-
-
 
 // TransformationRequest represents a resource transformation request.
 
 type TransformationRequest struct {
+	Resources []KRMResource `json:"resources"`
 
-	Resources []KRMResource          `json:"resources"`
+	Rules []TransformationRule `json:"rules"`
 
-	Rules     []TransformationRule   `json:"rules"`
+	Context map[string]interface{} `json:"context,omitempty"`
 
-	Context   map[string]interface{} `json:"context,omitempty"`
-
-	Options   *TransformationOptions `json:"options,omitempty"`
-
+	Options *TransformationOptions `json:"options,omitempty"`
 }
-
-
 
 // TransformationResponse represents a resource transformation response.
 
 type TransformationResponse struct {
+	Resources []KRMResource `json:"resources"`
 
-	Resources []KRMResource          `json:"resources"`
+	Applied []TransformationResult `json:"applied,omitempty"`
 
-	Applied   []TransformationResult `json:"applied,omitempty"`
+	Errors []TransformationError `json:"errors,omitempty"`
 
-	Errors    []TransformationError  `json:"errors,omitempty"`
-
-	Warnings  []TransformationError  `json:"warnings,omitempty"`
-
+	Warnings []TransformationError `json:"warnings,omitempty"`
 }
-
-
 
 // TransformationRule defines a transformation rule.
 
 type TransformationRule struct {
+	Name string `json:"name"`
 
-	Name       string                 `json:"name"`
+	Type string `json:"type"`
 
-	Type       string                 `json:"type"`
+	Selector *ResourceSelector `json:"selector,omitempty"`
 
-	Selector   *ResourceSelector      `json:"selector,omitempty"`
+	Operations []TransformationOp `json:"operations"`
 
-	Operations []TransformationOp     `json:"operations"`
+	Conditions []TransformationCond `json:"conditions,omitempty"`
 
-	Conditions []TransformationCond   `json:"conditions,omitempty"`
-
-	Config     map[string]interface{} `json:"config,omitempty"`
-
+	Config map[string]interface{} `json:"config,omitempty"`
 }
-
-
 
 // TransformationOp defines a transformation operation.
 
 type TransformationOp struct {
+	Operation string `json:"operation"` // add, remove, replace, merge
 
-	Operation string      `json:"operation"` // add, remove, replace, merge
+	Path string `json:"path"`
 
-	Path      string      `json:"path"`
+	Value interface{} `json:"value,omitempty"`
 
-	Value     interface{} `json:"value,omitempty"`
-
-	From      string      `json:"from,omitempty"`
-
+	From string `json:"from,omitempty"`
 }
-
-
 
 // TransformationCond defines a transformation condition.
 
 type TransformationCond struct {
+	Path string `json:"path"`
 
-	Path     string      `json:"path"`
+	Operator string `json:"operator"` // equals, contains, matches
 
-	Operator string      `json:"operator"` // equals, contains, matches
-
-	Value    interface{} `json:"value"`
-
+	Value interface{} `json:"value"`
 }
-
-
 
 // TransformationOptions defines transformation options.
 
 type TransformationOptions struct {
-
-	DryRun       bool `json:"dryRun,omitempty"`
+	DryRun bool `json:"dryRun,omitempty"`
 
 	ValidateOnly bool `json:"validateOnly,omitempty"`
 
-	Force        bool `json:"force,omitempty"`
-
+	Force bool `json:"force,omitempty"`
 }
-
-
 
 // TransformationResult represents a transformation result.
 
 type TransformationResult struct {
+	Rule string `json:"rule"`
 
-	Rule     string `json:"rule"`
+	Applied bool `json:"applied"`
 
-	Applied  bool   `json:"applied"`
-
-	Message  string `json:"message,omitempty"`
+	Message string `json:"message,omitempty"`
 
 	Resource string `json:"resource,omitempty"`
-
 }
-
-
 
 // TransformationError represents a transformation error.
 
 type TransformationError struct {
-
-	Rule     string `json:"rule,omitempty"`
+	Rule string `json:"rule,omitempty"`
 
 	Resource string `json:"resource,omitempty"`
 
-	Path     string `json:"path,omitempty"`
+	Path string `json:"path,omitempty"`
 
-	Message  string `json:"message"`
+	Message string `json:"message"`
 
-	Code     string `json:"code,omitempty"`
-
+	Code string `json:"code,omitempty"`
 }
-
-
 
 // ORANValidationRequest represents an O-RAN compliance validation request.
 
 type ORANValidationRequest struct {
+	Resources []KRMResource `json:"resources"`
 
-	Resources  []KRMResource          `json:"resources"`
+	Interfaces []ORANInterface `json:"interfaces,omitempty"`
 
-	Interfaces []ORANInterface        `json:"interfaces,omitempty"`
+	Standards []StandardRef `json:"standards,omitempty"`
 
-	Standards  []StandardRef          `json:"standards,omitempty"`
+	Rules []ComplianceRule `json:"rules,omitempty"`
 
-	Rules      []ComplianceRule       `json:"rules,omitempty"`
+	Context map[string]interface{} `json:"context,omitempty"`
 
-	Context    map[string]interface{} `json:"context,omitempty"`
-
-	Options    *ORANValidationOptions `json:"options,omitempty"`
-
+	Options *ORANValidationOptions `json:"options,omitempty"`
 }
-
-
 
 // ORANValidationResponse represents an O-RAN compliance validation response.
 
 type ORANValidationResponse struct {
+	Valid bool `json:"valid"`
 
-	Valid    bool                   `json:"valid"`
+	Score float64 `json:"score,omitempty"`
 
-	Score    float64                `json:"score,omitempty"`
+	Results []ORANValidationResult `json:"results"`
 
-	Results  []ORANValidationResult `json:"results"`
+	Errors []ValidationError `json:"errors,omitempty"`
 
-	Errors   []ValidationError      `json:"errors,omitempty"`
+	Warnings []ValidationError `json:"warnings,omitempty"`
 
-	Warnings []ValidationError      `json:"warnings,omitempty"`
-
-	Summary  *ORANValidationSummary `json:"summary,omitempty"`
-
+	Summary *ORANValidationSummary `json:"summary,omitempty"`
 }
-
-
 
 // ORANValidationOptions defines O-RAN validation options.
 
 type ORANValidationOptions struct {
+	Strict bool `json:"strict,omitempty"`
 
-	Strict      bool     `json:"strict,omitempty"`
+	FailOnWarn bool `json:"failOnWarn,omitempty"`
 
-	FailOnWarn  bool     `json:"failOnWarn,omitempty"`
-
-	SkipRules   []string `json:"skipRules,omitempty"`
+	SkipRules []string `json:"skipRules,omitempty"`
 
 	ExtraChecks []string `json:"extraChecks,omitempty"`
-
 }
-
-
 
 // ORANValidationResult represents an O-RAN validation result.
 
 type ORANValidationResult struct {
+	Rule string `json:"rule"`
 
-	Rule      string                 `json:"rule"`
+	Interface string `json:"interface,omitempty"`
 
-	Interface string                 `json:"interface,omitempty"`
+	Standard string `json:"standard,omitempty"`
 
-	Standard  string                 `json:"standard,omitempty"`
+	Resource string `json:"resource,omitempty"`
 
-	Resource  string                 `json:"resource,omitempty"`
+	Valid bool `json:"valid"`
 
-	Valid     bool                   `json:"valid"`
+	Score float64 `json:"score,omitempty"`
 
-	Score     float64                `json:"score,omitempty"`
+	Message string `json:"message,omitempty"`
 
-	Message   string                 `json:"message,omitempty"`
+	Details map[string]interface{} `json:"details,omitempty"`
 
-	Details   map[string]interface{} `json:"details,omitempty"`
-
-	Severity  string                 `json:"severity,omitempty"`
-
+	Severity string `json:"severity,omitempty"`
 }
-
-
 
 // ORANValidationSummary provides validation summary.
 
 type ORANValidationSummary struct {
+	TotalRules int `json:"totalRules"`
 
-	TotalRules   int            `json:"totalRules"`
+	PassedRules int `json:"passedRules"`
 
-	PassedRules  int            `json:"passedRules"`
+	FailedRules int `json:"failedRules"`
 
-	FailedRules  int            `json:"failedRules"`
+	SkippedRules int `json:"skippedRules"`
 
-	SkippedRules int            `json:"skippedRules"`
+	Interfaces map[string]int `json:"interfaces,omitempty"`
 
-	Interfaces   map[string]int `json:"interfaces,omitempty"`
+	Standards map[string]int `json:"standards,omitempty"`
 
-	Standards    map[string]int `json:"standards,omitempty"`
-
-	Severities   map[string]int `json:"severities,omitempty"`
-
+	Severities map[string]int `json:"severities,omitempty"`
 }
 
-
-
 // KRM Resource Types.
-
-
 
 // KRMResource represents a Kubernetes resource manifest.
 
 type KRMResource struct {
+	APIVersion string `json:"apiVersion"`
 
-	APIVersion string                 `json:"apiVersion"`
+	Kind string `json:"kind"`
 
-	Kind       string                 `json:"kind"`
+	Metadata map[string]interface{} `json:"metadata"`
 
-	Metadata   map[string]interface{} `json:"metadata"`
+	Spec map[string]interface{} `json:"spec,omitempty"`
 
-	Spec       map[string]interface{} `json:"spec,omitempty"`
+	Status map[string]interface{} `json:"status,omitempty"`
 
-	Status     map[string]interface{} `json:"status,omitempty"`
-
-	Data       map[string]interface{} `json:"data,omitempty"`
-
+	Data map[string]interface{} `json:"data,omitempty"`
 }
-
-
 
 // ResourceSelector defines resource selection criteria.
 
 type ResourceSelector struct {
+	APIVersion string `json:"apiVersion,omitempty"`
 
-	APIVersion string            `json:"apiVersion,omitempty"`
+	Kind string `json:"kind,omitempty"`
 
-	Kind       string            `json:"kind,omitempty"`
+	Name string `json:"name,omitempty"`
 
-	Name       string            `json:"name,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
 
-	Namespace  string            `json:"namespace,omitempty"`
-
-	Labels     map[string]string `json:"labels,omitempty"`
-
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
-
-
 // Validation and Rendering Types.
-
-
 
 // ValidationResult contains validation results.
 
 type ValidationResult struct {
+	Valid bool `json:"valid"`
 
-	Valid    bool              `json:"valid"`
-
-	Errors   []ValidationError `json:"errors,omitempty"`
+	Errors []ValidationError `json:"errors,omitempty"`
 
 	Warnings []ValidationError `json:"warnings,omitempty"`
-
 }
-
-
 
 // ValidationError represents a validation error.
 
 type ValidationError struct {
+	Path string `json:"path"`
 
-	Path        string `json:"path"`
+	Message string `json:"message"`
 
-	Message     string `json:"message"`
+	Severity string `json:"severity"`
 
-	Severity    string `json:"severity"`
-
-	Code        string `json:"code,omitempty"`
+	Code string `json:"code,omitempty"`
 
 	Remediation string `json:"remediation,omitempty"`
-
 }
-
-
 
 // RenderResult contains rendering results.
 
 type RenderResult struct {
+	Resources []KRMResource `json:"resources"`
 
-	Resources []KRMResource     `json:"resources"`
+	Results []*FunctionResult `json:"results,omitempty"`
 
-	Results   []*FunctionResult `json:"results,omitempty"`
-
-	Error     *RenderError      `json:"error,omitempty"`
-
+	Error *RenderError `json:"error,omitempty"`
 }
-
-
 
 // RenderError represents a rendering error.
 
 type RenderError struct {
-
 	Message string `json:"message"`
 
-	Type    string `json:"type"`
+	Type string `json:"type"`
 
 	Details string `json:"details,omitempty"`
-
 }
 
-
-
 // Workflow Types.
-
-
 
 // WorkflowSpec defines the desired state of a workflow.
 
 type WorkflowSpec struct {
+	Name string `json:"name"`
 
-	Name        string            `json:"name"`
+	Namespace string `json:"namespace"`
 
-	Namespace   string            `json:"namespace"`
+	Stages []WorkflowStage `json:"stages"`
 
-	Stages      []WorkflowStage   `json:"stages"`
+	Triggers []WorkflowTrigger `json:"triggers,omitempty"`
 
-	Triggers    []WorkflowTrigger `json:"triggers,omitempty"`
+	Approvers []Approver `json:"approvers,omitempty"`
 
-	Approvers   []Approver        `json:"approvers,omitempty"`
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
-	Timeout     *metav1.Duration  `json:"timeout,omitempty"`
-
-	RetryPolicy *RetryPolicy      `json:"retryPolicy,omitempty"`
-
+	RetryPolicy *RetryPolicy `json:"retryPolicy,omitempty"`
 }
-
-
 
 // WorkflowStatus defines the observed state of a workflow.
 
 type WorkflowStatus struct {
+	Phase WorkflowPhase `json:"phase"`
 
-	Phase      WorkflowPhase      `json:"phase"`
-
-	Stage      string             `json:"stage,omitempty"`
+	Stage string `json:"stage,omitempty"`
 
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	StartTime  *metav1.Time       `json:"startTime,omitempty"`
+	StartTime *metav1.Time `json:"startTime,omitempty"`
 
-	EndTime    *metav1.Time       `json:"endTime,omitempty"`
+	EndTime *metav1.Time `json:"endTime,omitempty"`
 
-	Results    []WorkflowResult   `json:"results,omitempty"`
-
+	Results []WorkflowResult `json:"results,omitempty"`
 }
-
-
 
 // WorkflowStage represents a workflow stage.
 
 type WorkflowStage struct {
+	Name string `json:"name"`
 
-	Name       string              `json:"name"`
-
-	Type       WorkflowStageType   `json:"type"`
+	Type WorkflowStageType `json:"type"`
 
 	Conditions []WorkflowCondition `json:"conditions,omitempty"`
 
-	Actions    []WorkflowAction    `json:"actions"`
+	Actions []WorkflowAction `json:"actions"`
 
-	Approvers  []Approver          `json:"approvers,omitempty"`
+	Approvers []Approver `json:"approvers,omitempty"`
 
-	Timeout    *metav1.Duration    `json:"timeout,omitempty"`
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
-	OnFailure  *FailureAction      `json:"onFailure,omitempty"`
-
+	OnFailure *FailureAction `json:"onFailure,omitempty"`
 }
 
-
-
 // Nephio-Specific Types.
-
-
 
 // PorchMetadata contains Porch integration metadata.
 
 type PorchMetadata struct {
+	Repository string `json:"repository"`
 
-	Repository  string            `json:"repository"`
+	PackageName string `json:"packageName"`
 
-	PackageName string            `json:"packageName"`
+	Revision string `json:"revision"`
 
-	Revision    string            `json:"revision"`
+	GeneratedAt *metav1.Time `json:"generatedAt"`
 
-	GeneratedAt *metav1.Time      `json:"generatedAt"`
+	GeneratedBy string `json:"generatedBy,omitempty"`
 
-	GeneratedBy string            `json:"generatedBy,omitempty"`
+	IntentID string `json:"intentId"`
 
-	IntentID    string            `json:"intentId"`
-
-	Labels      map[string]string `json:"labels,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
 
 	Annotations map[string]string `json:"annotations,omitempty"`
-
 }
-
-
 
 // ClusterTarget defines a target cluster for deployment.
 
 type ClusterTarget struct {
+	Name string `json:"name"`
 
-	Name        string            `json:"name"`
+	Namespace string `json:"namespace,omitempty"`
 
-	Namespace   string            `json:"namespace,omitempty"`
-
-	Labels      map[string]string `json:"labels,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	Context     string            `json:"context,omitempty"`
+	Context string `json:"context,omitempty"`
 
-	Kubeconfig  string            `json:"kubeconfig,omitempty"`
-
+	Kubeconfig string `json:"kubeconfig,omitempty"`
 }
-
-
 
 // ORANComplianceSpec defines O-RAN compliance requirements.
 
 type ORANComplianceSpec struct {
+	Interfaces []ORANInterface `json:"interfaces,omitempty"`
 
-	Interfaces     []ORANInterface  `json:"interfaces,omitempty"`
+	Validations []ComplianceRule `json:"validations,omitempty"`
 
-	Validations    []ComplianceRule `json:"validations,omitempty"`
+	Certifications []string `json:"certifications,omitempty"`
 
-	Certifications []string         `json:"certifications,omitempty"`
-
-	Standards      []StandardRef    `json:"standards,omitempty"`
-
+	Standards []StandardRef `json:"standards,omitempty"`
 }
-
-
 
 // ORANInterface defines an O-RAN interface configuration.
 
 type ORANInterface struct {
+	Name string `json:"name"`
 
-	Name     string                 `json:"name"`
+	Type string `json:"type"` // A1, O1, O2, E2
 
-	Type     string                 `json:"type"` // A1, O1, O2, E2
+	Version string `json:"version"`
 
-	Version  string                 `json:"version"`
+	Endpoint string `json:"endpoint,omitempty"`
 
-	Endpoint string                 `json:"endpoint,omitempty"`
+	Config map[string]interface{} `json:"config,omitempty"`
 
-	Config   map[string]interface{} `json:"config,omitempty"`
-
-	Enabled  bool                   `json:"enabled"`
-
+	Enabled bool `json:"enabled"`
 }
-
-
 
 // ComplianceRule defines a compliance validation rule.
 
 type ComplianceRule struct {
+	Name string `json:"name"`
 
-	Name        string `json:"name"`
+	Type string `json:"type"`
 
-	Type        string `json:"type"`
-
-	Severity    string `json:"severity"`
+	Severity string `json:"severity"`
 
 	Description string `json:"description"`
 
-	Rule        string `json:"rule"`
+	Rule string `json:"rule"`
 
 	Remediation string `json:"remediation,omitempty"`
-
 }
-
-
 
 // StandardRef references an industry standard.
 
 type StandardRef struct {
+	Name string `json:"name"`
 
-	Name     string `json:"name"`
+	Version string `json:"version"`
 
-	Version  string `json:"version"`
+	Section string `json:"section,omitempty"`
 
-	Section  string `json:"section,omitempty"`
-
-	Required bool   `json:"required"`
-
+	Required bool `json:"required"`
 }
-
-
 
 // NetworkSliceSpec defines network slice configuration.
 
 type NetworkSliceSpec struct {
+	SliceID string `json:"sliceId"`
 
-	SliceID   string               `json:"sliceId"`
+	SliceType string `json:"sliceType"` // eMBB, URLLC, mMTC
 
-	SliceType string               `json:"sliceType"` // eMBB, URLLC, mMTC
+	SLA *SLAParameters `json:"sla"`
 
-	SLA       *SLAParameters       `json:"sla"`
+	QoS *QoSParameters `json:"qos,omitempty"`
 
-	QoS       *QoSParameters       `json:"qos,omitempty"`
-
-	Resources *SliceResources      `json:"resources,omitempty"`
+	Resources *SliceResources `json:"resources,omitempty"`
 
 	Isolation *IsolationParameters `json:"isolation,omitempty"`
 
-	Geography []GeographicArea     `json:"geography,omitempty"`
-
+	Geography []GeographicArea `json:"geography,omitempty"`
 }
-
-
 
 // SLAParameters defines service level agreement parameters.
 
 type SLAParameters struct {
+	Latency *LatencyRequirement `json:"latency,omitempty"`
 
-	Latency      *LatencyRequirement      `json:"latency,omitempty"`
-
-	Throughput   *ThroughputRequirement   `json:"throughput,omitempty"`
+	Throughput *ThroughputRequirement `json:"throughput,omitempty"`
 
 	Availability *AvailabilityRequirement `json:"availability,omitempty"`
 
-	Reliability  *ReliabilityRequirement  `json:"reliability,omitempty"`
-
+	Reliability *ReliabilityRequirement `json:"reliability,omitempty"`
 }
 
-
-
 // Supporting utility types and interfaces.
-
-
 
 // ListOptions defines options for list operations.
 
 type ListOptions struct {
-
 	LabelSelector string
 
 	FieldSelector string
 
-	Namespace     string
+	Namespace string
 
-	Limit         int64
+	Limit int64
 
-	Continue      string
-
+	Continue string
 }
-
-
 
 // SecretReference references a Kubernetes secret.
 
 type SecretReference struct {
-
-	Name      string `json:"name"`
+	Name string `json:"name"`
 
 	Namespace string `json:"namespace"`
 
-	Key       string `json:"key"`
-
+	Key string `json:"key"`
 }
-
-
 
 // Credentials contains authentication credentials.
 
 type Credentials struct {
+	Type string `json:"type"`
 
-	Type       string            `json:"type"`
+	Username string `json:"username,omitempty"`
 
-	Username   string            `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 
-	Password   string            `json:"password,omitempty"`
+	Token string `json:"token,omitempty"`
 
-	Token      string            `json:"token,omitempty"`
+	PrivateKey []byte `json:"privateKey,omitempty"`
 
-	PrivateKey []byte            `json:"privateKey,omitempty"`
-
-	Headers    map[string]string `json:"headers,omitempty"`
-
+	Headers map[string]string `json:"headers,omitempty"`
 }
-
-
 
 // SyncResult contains repository synchronization results.
 
 type SyncResult struct {
+	Success bool `json:"success"`
 
-	Success      bool      `json:"success"`
+	CommitHash string `json:"commitHash,omitempty"`
 
-	CommitHash   string    `json:"commitHash,omitempty"`
+	PackageCount int32 `json:"packageCount"`
 
-	PackageCount int32     `json:"packageCount"`
+	SyncTime time.Time `json:"syncTime"`
 
-	SyncTime     time.Time `json:"syncTime"`
-
-	Error        string    `json:"error,omitempty"`
-
+	Error string `json:"error,omitempty"`
 }
-
-
 
 // ComparisonResult contains package revision comparison results.
 
 type ComparisonResult struct {
-
-	Added    []string `json:"added,omitempty"`
+	Added []string `json:"added,omitempty"`
 
 	Modified []string `json:"modified,omitempty"`
 
-	Deleted  []string `json:"deleted,omitempty"`
+	Deleted []string `json:"deleted,omitempty"`
 
-	Diff     string   `json:"diff,omitempty"`
-
+	Diff string `json:"diff,omitempty"`
 }
-
-
 
 // WorkflowLock represents a workflow lock on a package.
 
 type WorkflowLock struct {
+	LockedBy string `json:"lockedBy"`
 
-	LockedBy   string       `json:"lockedBy"`
+	LockedAt *metav1.Time `json:"lockedAt"`
 
-	LockedAt   *metav1.Time `json:"lockedAt"`
+	Reason string `json:"reason,omitempty"`
 
-	Reason     string       `json:"reason,omitempty"`
-
-	WorkflowID string       `json:"workflowId"`
-
+	WorkflowID string `json:"workflowId"`
 }
-
-
 
 // DeploymentStatus represents package deployment status.
 
 type DeploymentStatus struct {
-
-	Phase      string             `json:"phase"`
+	Phase string `json:"phase"`
 
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	Targets    []DeploymentTarget `json:"targets,omitempty"`
+	Targets []DeploymentTarget `json:"targets,omitempty"`
 
-	StartTime  *metav1.Time       `json:"startTime,omitempty"`
+	StartTime *metav1.Time `json:"startTime,omitempty"`
 
-	EndTime    *metav1.Time       `json:"endTime,omitempty"`
-
+	EndTime *metav1.Time `json:"endTime,omitempty"`
 }
-
-
 
 // DeploymentTarget represents a deployment target.
 
 type DeploymentTarget struct {
+	Cluster string `json:"cluster"`
 
-	Cluster   string             `json:"cluster"`
+	Namespace string `json:"namespace"`
 
-	Namespace string             `json:"namespace"`
+	Status string `json:"status"`
 
-	Status    string             `json:"status"`
-
-	Error     string             `json:"error,omitempty"`
+	Error string `json:"error,omitempty"`
 
 	Resources []DeployedResource `json:"resources,omitempty"`
-
 }
-
-
 
 // DeployedResource represents a deployed resource.
 
 type DeployedResource struct {
-
 	APIVersion string `json:"apiVersion"`
 
-	Kind       string `json:"kind"`
+	Kind string `json:"kind"`
 
-	Name       string `json:"name"`
+	Name string `json:"name"`
 
-	Namespace  string `json:"namespace,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
 
-	Status     string `json:"status"`
-
+	Status string `json:"status"`
 }
 
-
-
 // Function execution and validation types.
-
-
 
 // FunctionContext provides context for function execution.
 
 type FunctionContext struct {
+	Package *PackageReference `json:"package,omitempty"`
 
-	Package     *PackageReference   `json:"package,omitempty"`
+	Invocation *FunctionInvocation `json:"invocation,omitempty"`
 
-	Invocation  *FunctionInvocation `json:"invocation,omitempty"`
-
-	Environment map[string]string   `json:"environment,omitempty"`
-
+	Environment map[string]string `json:"environment,omitempty"`
 }
-
-
 
 // FunctionInvocation contains function invocation details.
 
 type FunctionInvocation struct {
-
-	ID        string       `json:"id"`
+	ID string `json:"id"`
 
 	Timestamp *metav1.Time `json:"timestamp"`
 
-	User      string       `json:"user,omitempty"`
-
+	User string `json:"user,omitempty"`
 }
-
-
 
 // FunctionResult represents a function execution result.
 
 type FunctionResult struct {
+	Message string `json:"message"`
 
-	Message  string            `json:"message"`
+	Severity string `json:"severity"`
 
-	Severity string            `json:"severity"`
+	Field string `json:"field,omitempty"`
 
-	Field    string            `json:"field,omitempty"`
+	File string `json:"file,omitempty"`
 
-	File     string            `json:"file,omitempty"`
-
-	Tags     map[string]string `json:"tags,omitempty"`
-
+	Tags map[string]string `json:"tags,omitempty"`
 }
-
-
 
 // FunctionError represents a function execution error.
 
 type FunctionError struct {
-
 	Message string `json:"message"`
 
-	Code    string `json:"code,omitempty"`
+	Code string `json:"code,omitempty"`
 
 	Details string `json:"details,omitempty"`
-
 }
-
-
 
 // FunctionValidation contains function validation results.
 
 type FunctionValidation struct {
+	Valid bool `json:"valid"`
 
-	Valid    bool              `json:"valid"`
-
-	Errors   []ValidationError `json:"errors,omitempty"`
+	Errors []ValidationError `json:"errors,omitempty"`
 
 	Warnings []ValidationError `json:"warnings,omitempty"`
 
-	Schema   *FunctionSchema   `json:"schema,omitempty"`
-
+	Schema *FunctionSchema `json:"schema,omitempty"`
 }
-
-
 
 // FunctionInfo contains function metadata.
 
 type FunctionInfo struct {
+	Name string `json:"name"`
 
-	Name        string            `json:"name"`
+	Image string `json:"image"`
 
-	Image       string            `json:"image"`
+	Description string `json:"description,omitempty"`
 
-	Description string            `json:"description,omitempty"`
+	Keywords []string `json:"keywords,omitempty"`
 
-	Keywords    []string          `json:"keywords,omitempty"`
+	Types []string `json:"types,omitempty"` // mutator, validator
 
-	Types       []string          `json:"types,omitempty"` // mutator, validator
+	Schema *FunctionSchema `json:"schema,omitempty"`
 
-	Schema      *FunctionSchema   `json:"schema,omitempty"`
-
-	Examples    []FunctionExample `json:"examples,omitempty"`
-
+	Examples []FunctionExample `json:"examples,omitempty"`
 }
-
-
 
 // FunctionSchema defines function configuration schema.
 
 type FunctionSchema struct {
+	OpenAPIV3Schema *runtime.RawExtension `json:"openAPIV3Schema,omitempty"`
 
-	OpenAPIV3Schema *runtime.RawExtension     `json:"openAPIV3Schema,omitempty"`
+	Properties map[string]SchemaProperty `json:"properties,omitempty"`
 
-	Properties      map[string]SchemaProperty `json:"properties,omitempty"`
-
-	Required        []string                  `json:"required,omitempty"`
-
+	Required []string `json:"required,omitempty"`
 }
-
-
 
 // SchemaProperty defines a schema property.
 
 type SchemaProperty struct {
+	Type string `json:"type"`
 
-	Type        string        `json:"type"`
+	Description string `json:"description,omitempty"`
 
-	Description string        `json:"description,omitempty"`
+	Default interface{} `json:"default,omitempty"`
 
-	Default     interface{}   `json:"default,omitempty"`
-
-	Examples    []interface{} `json:"examples,omitempty"`
-
+	Examples []interface{} `json:"examples,omitempty"`
 }
-
-
 
 // FunctionExample contains function usage examples.
 
 type FunctionExample struct {
+	Name string `json:"name"`
 
-	Name        string          `json:"name"`
+	Description string `json:"description,omitempty"`
 
-	Description string          `json:"description,omitempty"`
+	Config *FunctionConfig `json:"config"`
 
-	Config      *FunctionConfig `json:"config"`
+	Input []KRMResource `json:"input"`
 
-	Input       []KRMResource   `json:"input"`
-
-	Output      []KRMResource   `json:"output"`
-
+	Output []KRMResource `json:"output"`
 }
-
-
 
 // ExecConfig defines execution configuration for container functions.
 
 type ExecConfig struct {
+	Args []string `json:"args,omitempty"`
 
-	Args    []string          `json:"args,omitempty"`
+	Env map[string]string `json:"env,omitempty"`
 
-	Env     map[string]string `json:"env,omitempty"`
-
-	WorkDir string            `json:"workDir,omitempty"`
-
+	WorkDir string `json:"workDir,omitempty"`
 }
 
-
-
 // Health and Status Types.
-
-
 
 // HealthStatus represents overall system health.
 
 type HealthStatus struct {
+	Status string `json:"status"`
 
-	Status     string            `json:"status"`
-
-	Timestamp  *metav1.Time      `json:"timestamp"`
+	Timestamp *metav1.Time `json:"timestamp"`
 
 	Components []ComponentHealth `json:"components,omitempty"`
-
 }
-
-
 
 // ComponentHealth represents component health status.
 
 type ComponentHealth struct {
-
-	Name   string `json:"name"`
+	Name string `json:"name"`
 
 	Status string `json:"status"`
 
-	Error  string `json:"error,omitempty"`
-
+	Error string `json:"error,omitempty"`
 }
-
-
 
 // VersionInfo contains build version information.
 
 type VersionInfo struct {
-
-	Version   string `json:"version"`
+	Version string `json:"version"`
 
 	GitCommit string `json:"gitCommit,omitempty"`
 
 	BuildTime string `json:"buildTime,omitempty"`
 
 	GoVersion string `json:"goVersion,omitempty"`
-
 }
 
-
-
 // Workflow execution types.
-
-
 
 // WorkflowPhase represents workflow execution phase.
 
 type WorkflowPhase string
-
-
 
 const (
 
@@ -1784,16 +1357,11 @@ const (
 	// WorkflowPhaseTimeout holds workflowphasetimeout value.
 
 	WorkflowPhaseTimeout WorkflowPhase = "Timeout"
-
 )
-
-
 
 // WorkflowStageType represents workflow stage type.
 
 type WorkflowStageType string
-
-
 
 const (
 
@@ -1812,276 +1380,201 @@ const (
 	// WorkflowStageTypeTesting holds workflowstagetypetesting value.
 
 	WorkflowStageTypeTesting WorkflowStageType = "Testing"
-
 )
-
-
 
 // WorkflowTrigger defines when workflow should be triggered.
 
 type WorkflowTrigger struct {
-
-	Type      string                 `json:"type"`
+	Type string `json:"type"`
 
 	Condition map[string]interface{} `json:"condition"`
-
 }
-
-
 
 // Approver defines who can approve workflow stages.
 
 type Approver struct {
+	Type string `json:"type"` // user, group, service
 
-	Type   string   `json:"type"` // user, group, service
+	Name string `json:"name"`
 
-	Name   string   `json:"name"`
-
-	Roles  []string `json:"roles,omitempty"`
+	Roles []string `json:"roles,omitempty"`
 
 	Stages []string `json:"stages,omitempty"`
-
 }
-
-
 
 // RetryPolicy defines retry behavior.
 
 type RetryPolicy struct {
-
-	MaxRetries   int32            `json:"maxRetries"`
+	MaxRetries int32 `json:"maxRetries"`
 
 	BackoffDelay *metav1.Duration `json:"backoffDelay,omitempty"`
 
-	BackoffType  string           `json:"backoffType,omitempty"` // fixed, exponential
+	BackoffType string `json:"backoffType,omitempty"` // fixed, exponential
 
 }
-
-
 
 // WorkflowCondition defines conditions for stage execution.
 
 type WorkflowCondition struct {
-
-	Type      string                 `json:"type"`
+	Type string `json:"type"`
 
 	Condition map[string]interface{} `json:"condition"`
-
 }
-
-
 
 // WorkflowAction defines actions to execute in a stage.
 
 type WorkflowAction struct {
-
-	Type   string                 `json:"type"`
+	Type string `json:"type"`
 
 	Config map[string]interface{} `json:"config"`
-
 }
-
-
 
 // FailureAction defines what to do on stage failure.
 
 type FailureAction struct {
-
-	Type   string                 `json:"type"`
+	Type string `json:"type"`
 
 	Config map[string]interface{} `json:"config,omitempty"`
-
 }
-
-
 
 // WorkflowResult contains workflow execution results.
 
 type WorkflowResult struct {
+	Stage string `json:"stage"`
 
-	Stage     string                 `json:"stage"`
+	Status string `json:"status"`
 
-	Status    string                 `json:"status"`
+	Message string `json:"message,omitempty"`
 
-	Message   string                 `json:"message,omitempty"`
+	Timestamp *metav1.Time `json:"timestamp"`
 
-	Timestamp *metav1.Time           `json:"timestamp"`
-
-	Data      map[string]interface{} `json:"data,omitempty"`
-
+	Data map[string]interface{} `json:"data,omitempty"`
 }
 
-
-
 // Network slice supporting types.
-
-
 
 // QoSParameters defines quality of service parameters.
 
 type QoSParameters struct {
+	FiveQI int32 `json:"5qi,omitempty"`
 
-	FiveQI             int32  `json:"5qi,omitempty"`
+	PriorityLevel int32 `json:"priorityLevel,omitempty"`
 
-	PriorityLevel      int32  `json:"priorityLevel,omitempty"`
+	PacketDelayBudget int32 `json:"packetDelayBudget,omitempty"`
 
-	PacketDelayBudget  int32  `json:"packetDelayBudget,omitempty"`
+	PacketErrorRate string `json:"packetErrorRate,omitempty"`
 
-	PacketErrorRate    string `json:"packetErrorRate,omitempty"`
-
-	MaxDataBurstVolume int64  `json:"maxDataBurstVolume,omitempty"`
-
+	MaxDataBurstVolume int64 `json:"maxDataBurstVolume,omitempty"`
 }
-
-
 
 // SliceResources defines resource requirements for a slice.
 
 type SliceResources struct {
+	CPU *resource.Quantity `json:"cpu,omitempty"`
 
-	CPU         *resource.Quantity `json:"cpu,omitempty"`
+	Memory *resource.Quantity `json:"memory,omitempty"`
 
-	Memory      *resource.Quantity `json:"memory,omitempty"`
+	Storage *resource.Quantity `json:"storage,omitempty"`
 
-	Storage     *resource.Quantity `json:"storage,omitempty"`
+	Bandwidth *resource.Quantity `json:"bandwidth,omitempty"`
 
-	Bandwidth   *resource.Quantity `json:"bandwidth,omitempty"`
-
-	Connections int32              `json:"connections,omitempty"`
-
+	Connections int32 `json:"connections,omitempty"`
 }
-
-
 
 // IsolationParameters defines isolation requirements.
 
 type IsolationParameters struct {
-
-	Level      string   `json:"level"` // physical, logical, none
+	Level string `json:"level"` // physical, logical, none
 
 	Mechanisms []string `json:"mechanisms,omitempty"`
 
-	Encryption bool     `json:"encryption,omitempty"`
-
+	Encryption bool `json:"encryption,omitempty"`
 }
-
-
 
 // GeographicArea defines a geographic area for slice coverage.
 
 type GeographicArea struct {
+	Type string `json:"type"` // country, region, city, custom
 
-	Type        string              `json:"type"` // country, region, city, custom
+	Name string `json:"name"`
 
-	Name        string              `json:"name"`
+	Coordinates []Coordinate `json:"coordinates,omitempty"`
 
-	Coordinates []Coordinate        `json:"coordinates,omitempty"`
-
-	Coverage    *CoverageParameters `json:"coverage,omitempty"`
-
+	Coverage *CoverageParameters `json:"coverage,omitempty"`
 }
-
-
 
 // Coordinate represents a geographic coordinate.
 
 type Coordinate struct {
-
-	Latitude  float64 `json:"latitude"`
+	Latitude float64 `json:"latitude"`
 
 	Longitude float64 `json:"longitude"`
 
-	Altitude  float64 `json:"altitude,omitempty"`
-
+	Altitude float64 `json:"altitude,omitempty"`
 }
-
-
 
 // CoverageParameters defines coverage requirements.
 
 type CoverageParameters struct {
+	Indoor bool `json:"indoor,omitempty"`
 
-	Indoor   bool   `json:"indoor,omitempty"`
-
-	Outdoor  bool   `json:"outdoor,omitempty"`
+	Outdoor bool `json:"outdoor,omitempty"`
 
 	Mobility string `json:"mobility,omitempty"` // stationary, pedestrian, vehicular
 
-	Density  string `json:"density,omitempty"`  // sparse, dense, ultra_dense
+	Density string `json:"density,omitempty"` // sparse, dense, ultra_dense
 
 }
 
-
-
 // SLA requirement types.
-
-
 
 // LatencyRequirement defines latency requirements.
 
 type LatencyRequirement struct {
-
-	MaxLatency     *metav1.Duration `json:"maxLatency"`
+	MaxLatency *metav1.Duration `json:"maxLatency"`
 
 	TypicalLatency *metav1.Duration `json:"typicalLatency,omitempty"`
 
-	Percentile     float64          `json:"percentile,omitempty"`
-
+	Percentile float64 `json:"percentile,omitempty"`
 }
-
-
 
 // ThroughputRequirement defines throughput requirements.
 
 type ThroughputRequirement struct {
-
 	MinDownlink *resource.Quantity `json:"minDownlink,omitempty"`
 
-	MinUplink   *resource.Quantity `json:"minUplink,omitempty"`
+	MinUplink *resource.Quantity `json:"minUplink,omitempty"`
 
 	MaxDownlink *resource.Quantity `json:"maxDownlink,omitempty"`
 
-	MaxUplink   *resource.Quantity `json:"maxUplink,omitempty"`
+	MaxUplink *resource.Quantity `json:"maxUplink,omitempty"`
 
-	UserDensity int32              `json:"userDensity,omitempty"`
-
+	UserDensity int32 `json:"userDensity,omitempty"`
 }
-
-
 
 // AvailabilityRequirement defines availability requirements.
 
 type AvailabilityRequirement struct {
+	Target float64 `json:"target"` // 0.999, 0.9999, etc.
 
-	Target       float64          `json:"target"` // 0.999, 0.9999, etc.
+	ServiceLevel string `json:"serviceLevel,omitempty"`
 
-	ServiceLevel string           `json:"serviceLevel,omitempty"`
-
-	Downtime     *metav1.Duration `json:"downtime,omitempty"`
-
+	Downtime *metav1.Duration `json:"downtime,omitempty"`
 }
-
-
 
 // ReliabilityRequirement defines reliability requirements.
 
 type ReliabilityRequirement struct {
+	SuccessRate float64 `json:"successRate"`
 
-	SuccessRate             float64          `json:"successRate"`
-
-	ErrorRate               float64          `json:"errorRate,omitempty"`
+	ErrorRate float64 `json:"errorRate,omitempty"`
 
 	MeanTimeBetweenFailures *metav1.Duration `json:"mtbf,omitempty"`
 
-	MeanTimeToRepair        *metav1.Duration `json:"mttr,omitempty"`
-
+	MeanTimeToRepair *metav1.Duration `json:"mttr,omitempty"`
 }
 
-
-
 // Utility functions and helpers.
-
-
 
 // GetPackageReference creates a PackageReference from components.
 
@@ -2089,17 +1582,14 @@ func GetPackageReference(repository, packageName, revision string) *PackageRefer
 
 	return &PackageReference{
 
-		Repository:  repository,
+		Repository: repository,
 
 		PackageName: packageName,
 
-		Revision:    revision,
-
+		Revision: revision,
 	}
 
 }
-
-
 
 // GetPackageKey returns a unique key for a package revision.
 
@@ -2108,8 +1598,6 @@ func (pr *PackageReference) GetPackageKey() string {
 	return fmt.Sprintf("%s/%s@%s", pr.Repository, pr.PackageName, pr.Revision)
 
 }
-
-
 
 // IsValidLifecycle checks if a lifecycle value is valid.
 
@@ -2135,8 +1623,6 @@ func IsValidLifecycle(lifecycle PackageRevisionLifecycle) bool {
 
 }
 
-
-
 // CanTransitionTo is a helper function that works like a method for PackageRevisionLifecycle.
 
 // Usage: CanTransitionTo(current, target) instead of current.CanTransitionTo(target).
@@ -2146,8 +1632,6 @@ func CanTransitionTo(current, target PackageRevisionLifecycle) bool {
 	return CanPackageRevisionTransitionTo(current, target)
 
 }
-
-
 
 // CanPackageRevisionTransitionTo checks if lifecycle transition is valid.
 
@@ -2160,7 +1644,6 @@ func CanPackageRevisionTransitionTo(current, target PackageRevisionLifecycle) bo
 			PackageRevisionLifecycleProposed,
 
 			PackageRevisionLifecycleDeletable,
-
 		},
 
 		PackageRevisionLifecycleProposed: {
@@ -2170,20 +1653,15 @@ func CanPackageRevisionTransitionTo(current, target PackageRevisionLifecycle) bo
 			PackageRevisionLifecycleDraft,
 
 			PackageRevisionLifecycleDeletable,
-
 		},
 
 		PackageRevisionLifecyclePublished: {
 
 			PackageRevisionLifecycleDeletable,
-
 		},
 
 		PackageRevisionLifecycleDeletable: {},
-
 	}
-
-
 
 	validTargets, exists := transitions[current]
 
@@ -2192,8 +1670,6 @@ func CanPackageRevisionTransitionTo(current, target PackageRevisionLifecycle) bo
 		return false
 
 	}
-
-
 
 	for _, valid := range validTargets {
 
@@ -2208,8 +1684,6 @@ func CanPackageRevisionTransitionTo(current, target PackageRevisionLifecycle) bo
 	return false
 
 }
-
-
 
 // Helper methods for working with conditions.
 
@@ -2228,8 +1702,6 @@ func (r *Repository) GetCondition(conditionType string) *metav1.Condition {
 	return nil
 
 }
-
-
 
 // SetCondition performs setcondition operation.
 
@@ -2251,8 +1723,6 @@ func (r *Repository) SetCondition(condition metav1.Condition) {
 
 }
 
-
-
 // Helper functions for PackageRevision conditions (since we can't define methods on type aliases).
 
 func GetPackageRevisionCondition(pr *PackageRevision, conditionType string) *metav1.Condition {
@@ -2270,8 +1740,6 @@ func GetPackageRevisionCondition(pr *PackageRevision, conditionType string) *met
 	return nil
 
 }
-
-
 
 // SetPackageRevisionCondition performs setpackagerevisioncondition operation.
 
@@ -2293,8 +1761,6 @@ func SetPackageRevisionCondition(pr *PackageRevision, condition metav1.Condition
 
 }
 
-
-
 // Implement runtime.Object interface for Kubernetes integration.
 
 func (r *Repository) DeepCopyObject() runtime.Object {
@@ -2302,8 +1768,6 @@ func (r *Repository) DeepCopyObject() runtime.Object {
 	return r.DeepCopy()
 
 }
-
-
 
 // DeepCopyObject performs deepcopyobject operation.
 
@@ -2313,11 +1777,7 @@ func (rl *RepositoryList) DeepCopyObject() runtime.Object {
 
 }
 
-
-
 // DeepCopyObject methods are implemented by the multicluster package types.
-
-
 
 // DeepCopyObject performs deepcopyobject operation.
 
@@ -2327,8 +1787,6 @@ func (w *Workflow) DeepCopyObject() runtime.Object {
 
 }
 
-
-
 // DeepCopyObject performs deepcopyobject operation.
 
 func (wl *WorkflowList) DeepCopyObject() runtime.Object {
@@ -2336,8 +1794,6 @@ func (wl *WorkflowList) DeepCopyObject() runtime.Object {
 	return wl.DeepCopy()
 
 }
-
-
 
 // DeepCopy methods would be generated by code-gen or implemented manually.
 
@@ -2359,8 +1815,6 @@ func (r *Repository) DeepCopy() *Repository {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (r *Repository) DeepCopyInto(out *Repository) {
@@ -2376,8 +1830,6 @@ func (r *Repository) DeepCopyInto(out *Repository) {
 	r.Status.DeepCopyInto(&out.Status)
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -2407,8 +1859,6 @@ func (rs *RepositorySpec) DeepCopyInto(out *RepositorySpec) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (rs *RepositoryStatus) DeepCopyInto(out *RepositoryStatus) {
@@ -2435,59 +1885,43 @@ func (rs *RepositoryStatus) DeepCopyInto(out *RepositoryStatus) {
 
 }
 
-
-
 // DeepCopy methods are implemented in deepcopy.go.
-
-
 
 // ContentMetrics represents metrics for package content.
 
 type ContentMetrics struct {
+	FileCount int `json:"fileCount"`
 
-	FileCount      int            `json:"fileCount"`
-
-	TotalSize      int64          `json:"totalSize"`
+	TotalSize int64 `json:"totalSize"`
 
 	ResourceCounts map[string]int `json:"resourceCounts"`
 
-	LastModified   time.Time      `json:"lastModified"`
-
+	LastModified time.Time `json:"lastModified"`
 }
-
-
 
 // ContentManagerHealth represents health status of the content manager.
 
 type ContentManagerHealth struct {
+	Status string `json:"status"`
 
-	Status         string    `json:"status"`
+	LastCheck time.Time `json:"lastCheck"`
 
-	LastCheck      time.Time `json:"lastCheck"`
+	CacheSize int64 `json:"cacheSize"`
 
-	CacheSize      int64     `json:"cacheSize"`
+	ActiveRequests int `json:"activeRequests"`
 
-	ActiveRequests int       `json:"activeRequests"`
-
-	ErrorCount     int       `json:"errorCount"`
-
+	ErrorCount int `json:"errorCount"`
 }
-
-
 
 // Error types for better error handling.
 
 type PorchError struct {
-
-	Type    string
+	Type string
 
 	Message string
 
-	Cause   error
-
+	Cause error
 }
-
-
 
 // Error performs error operation.
 
@@ -2503,8 +1937,6 @@ func (e *PorchError) Error() string {
 
 }
 
-
-
 // Unwrap performs unwrap operation.
 
 func (e *PorchError) Unwrap() error {
@@ -2512,8 +1944,6 @@ func (e *PorchError) Unwrap() error {
 	return e.Cause
 
 }
-
-
 
 // Common error types.
 
@@ -2542,10 +1972,7 @@ var (
 	// ErrWorkflowLocked holds errworkflowlocked value.
 
 	ErrWorkflowLocked = &PorchError{Type: "WorkflowLocked", Message: "package is locked by workflow"}
-
 )
-
-
 
 // Constants for common values.
 
@@ -2559,8 +1986,6 @@ const (
 
 	RepositoryTypeOCI = "oci"
 
-
-
 	// Auth types.
 
 	AuthTypeBasic = "basic"
@@ -2573,8 +1998,6 @@ const (
 
 	AuthTypeSSH = "ssh"
 
-
-
 	// Function types.
 
 	FunctionTypeMutator = "mutator"
@@ -2582,8 +2005,6 @@ const (
 	// FunctionTypeValidator holds functiontypevalidator value.
 
 	FunctionTypeValidator = "validator"
-
-
 
 	// Workflow trigger types.
 
@@ -2596,8 +2017,6 @@ const (
 	// WorkflowTriggerSchedule holds workflowtriggerschedule value.
 
 	WorkflowTriggerSchedule = "schedule"
-
-
 
 	// Standard annotations.
 
@@ -2630,8 +2049,6 @@ const (
 	// AnnotationORANCompliance holds annotationorancompliance value.
 
 	AnnotationORANCompliance = "porch.nephoran.com/oran-compliance"
-
-
 
 	// Standard labels.
 
@@ -2676,6 +2093,4 @@ const (
 	// LabelORANInterface holds labeloraninterface value.
 
 	LabelORANInterface = "porch.nephoran.com/oran-interface"
-
 )
-

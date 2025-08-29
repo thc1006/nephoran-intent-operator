@@ -1,31 +1,16 @@
 //go:build !disable_rag
-
 // +build !disable_rag
-
-
-
 
 package rag
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"log"
 
-
-
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
-
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
-
 )
-
-
 
 // ExampleWeaviateV4Query demonstrates the updated v4 API patterns.
 
@@ -35,10 +20,9 @@ func ExampleWeaviateV4Query() {
 
 	cfg := weaviate.Config{
 
-		Host:   "localhost:8080",
+		Host: "localhost:8080",
 
 		Scheme: "http",
-
 	}
 
 	client, err := weaviate.NewClient(cfg)
@@ -49,105 +33,79 @@ func ExampleWeaviateV4Query() {
 
 	}
 
-
-
 	// Example 1: Hybrid Search with Named Vectors.
 
 	hybridQuery := &SearchQuery{
 
-		Query:         "O-RAN network slicing configuration",
+		Query: "O-RAN network slicing configuration",
 
-		HybridSearch:  true,
+		HybridSearch: true,
 
-		HybridAlpha:   0.75, // 75% vector, 25% keyword
+		HybridAlpha: 0.75, // 75% vector, 25% keyword
 
-		Limit:         10,
+		Limit: 10,
 
 		TargetVectors: []string{"title_vector", "content_vector"}, // Named vectors
 
 		IncludeVector: true,
-
 	}
-
-
 
 	// Build hybrid search with v4 API.
 
 	hybridArg := (&graphql.HybridArgumentBuilder{}).
-
 		WithQuery(hybridQuery.Query).
-
 		WithAlpha(hybridQuery.HybridAlpha)
 		// TODO: WithTargetVectors not available in current Weaviate client version
 		// .WithTargetVectors(hybridQuery.TargetVectors...)
-
-
 
 	// Example 2: Near Text Search with Certainty.
 
 	nearTextQuery := &SearchQuery{
 
-		Query:         "5G RAN optimization techniques",
+		Query: "5G RAN optimization techniques",
 
 		MinConfidence: 0.8,
 
-		Limit:         5,
+		Limit: 5,
 
 		TargetVectors: []string{"content_vector"},
-
 	}
-
-
 
 	// Build near text search with v4 API.
 
 	nearTextArg := (&graphql.NearTextArgumentBuilder{}).
-
 		WithConcepts([]string{nearTextQuery.Query}).
-
 		WithCertainty(float32(nearTextQuery.MinConfidence))
 		// TODO: WithTargetVectors not available in current Weaviate client version
 		// .WithTargetVectors(nearTextQuery.TargetVectors...)
-
-
 
 	// Example 3: Multi-Target Vector Search with Manual Weights.
 
 	// TODO: MultiTargetArgumentBuilder not available in current Weaviate client version
 	// multiTargetArg := (&graphql.MultiTargetArgumentBuilder{}).
 
-		// ManualWeights(map[string]float32{
-		//
-		//	"title_vector":   0.3,
-		//
-		//	"content_vector": 0.7,
-		//
-		// })
-
-
+	// ManualWeights(map[string]float32{
+	//
+	//	"title_vector":   0.3,
+	//
+	//	"content_vector": 0.7,
+	//
+	// })
 
 	hybridWithMultiTarget := (&graphql.HybridArgumentBuilder{}).
-
 		WithQuery("network function virtualization")
 		// TODO: WithTargets not available in current Weaviate client version
 		// .WithTargets(multiTargetArg)
-
-
 
 	// Execute queries.
 
 	ctx := context.Background()
 
-
-
 	// Query 1: Hybrid search.
 
 	result1, err := client.GraphQL().Get().
-
 		WithClassName("TelecomKnowledge").
-
 		WithHybrid(hybridArg).
-
 		WithFields(
 
 			graphql.Field{Name: "content"},
@@ -165,14 +123,9 @@ func ExampleWeaviateV4Query() {
 				{Name: "vector"}, // Vector is now stored in metadata
 
 			}},
-
 		).
-
 		WithLimit(10).
-
 		Do(ctx)
-
-
 
 	if err != nil {
 
@@ -184,29 +137,19 @@ func ExampleWeaviateV4Query() {
 
 	}
 
-
-
 	// Query 2: Near text search.
 
 	result2, err := client.GraphQL().Get().
-
 		WithClassName("TelecomKnowledge").
-
 		WithNearText(nearTextArg).
-
 		WithFields(
 
 			graphql.Field{Name: "content"},
 
 			graphql.Field{Name: "title"},
-
 		).
-
 		WithLimit(5).
-
 		Do(ctx)
-
-
 
 	if err != nil {
 
@@ -218,29 +161,19 @@ func ExampleWeaviateV4Query() {
 
 	}
 
-
-
 	// Query 3: Multi-target hybrid search.
 
 	result3, err := client.GraphQL().Get().
-
 		WithClassName("TelecomKnowledge").
-
 		WithHybrid(hybridWithMultiTarget).
-
 		WithFields(
 
 			graphql.Field{Name: "content"},
 
 			graphql.Field{Name: "title"},
-
 		).
-
 		WithLimit(10).
-
 		Do(ctx)
-
-
 
 	if err != nil {
 
@@ -253,8 +186,6 @@ func ExampleWeaviateV4Query() {
 	}
 
 }
-
-
 
 // Key v4 API Changes:.
 
@@ -271,4 +202,3 @@ func ExampleWeaviateV4Query() {
 // 5. WithCertainty() instead of MinConfidence in where filters.
 
 // 6. Simplified filter building - complex WHERE filters need proper v4 construction.
-

@@ -1,67 +1,45 @@
-
 package auth
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"log/slog"
-
 	"net/http"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
-
 )
-
-
 
 // Manager manages authentication providers and sessions.
 
 type Manager struct {
+	config *Config
 
-	config         *Config
+	logger *slog.Logger
 
-	logger         *slog.Logger
-
-	jwtManager     *JWTManager
+	jwtManager *JWTManager
 
 	sessionManager *SessionManager
 
-	rbacManager    *RBACManager
-
-
+	rbacManager *RBACManager
 
 	// Authentication providers.
 
 	oauthProviders map[string]providers.OAuthProvider
 
-	ldapProviders  map[string]providers.LDAPProvider
-
-
+	ldapProviders map[string]providers.LDAPProvider
 
 	// Middleware and handlers.
 
-	middleware     *AuthMiddleware
+	middleware *AuthMiddleware
 
 	ldapMiddleware *LDAPAuthMiddleware
 
-	oauth2Manager  *OAuth2Manager
+	oauth2Manager *OAuth2Manager
 
-	handlers       *AuthHandlers
-
+	handlers *AuthHandlers
 }
-
-
 
 // NewAuthManager creates a new authentication manager.
 
@@ -73,29 +51,22 @@ func NewAuthManager(config *Config, logger *slog.Logger) (*Manager, error) {
 
 	}
 
-
-
 	if logger == nil {
 
 		logger = slog.Default()
 
 	}
 
-
-
 	am := &Manager{
 
-		config:         config,
+		config: config,
 
-		logger:         logger,
+		logger: logger,
 
 		oauthProviders: make(map[string]providers.OAuthProvider),
 
-		ldapProviders:  make(map[string]providers.LDAPProvider),
-
+		ldapProviders: make(map[string]providers.LDAPProvider),
 	}
-
-
 
 	// Initialize JWT manager.
 
@@ -105,14 +76,13 @@ func NewAuthManager(config *Config, logger *slog.Logger) (*Manager, error) {
 
 		jwtConfig := &JWTConfig{
 
-			Issuer:     "nephoran-intent-operator",
+			Issuer: "nephoran-intent-operator",
 
 			SigningKey: config.JWTSecretKey,
 
 			DefaultTTL: config.TokenTTL,
 
 			RefreshTTL: config.RefreshTTL,
-
 		}
 
 		jwtManager, err := NewJWTManager(jwtConfig, nil, nil, logger)
@@ -127,25 +97,20 @@ func NewAuthManager(config *Config, logger *slog.Logger) (*Manager, error) {
 
 	}
 
-
-
 	// Initialize session manager - using stub for now.
 
 	sessionConfig := &SessionConfig{
 
 		SessionTimeout: config.TokenTTL,
 
-		MaxSessions:    100,
+		MaxSessions: 100,
 
-		SecureCookies:  true,
-
+		SecureCookies: true,
 	}
 
 	sessionManager := NewSessionManager(sessionConfig, am.jwtManager, am.rbacManager, logger)
 
 	am.sessionManager = sessionManager
-
-
 
 	// Initialize RBAC manager.
 
@@ -153,18 +118,17 @@ func NewAuthManager(config *Config, logger *slog.Logger) (*Manager, error) {
 
 		rbacConfig := &RBACManagerConfig{
 
-			CacheTTL:           5 * time.Minute,
+			CacheTTL: 5 * time.Minute,
 
-			EnableHierarchy:    true,
+			EnableHierarchy: true,
 
-			DefaultDenyAll:     true,
+			DefaultDenyAll: true,
 
-			PolicyEvaluation:   "first-applicable",
+			PolicyEvaluation: "first-applicable",
 
-			MaxPolicyDepth:     10,
+			MaxPolicyDepth: 10,
 
 			EnableAuditLogging: true,
-
 		}
 
 		rbacManager := NewRBACManager(rbacConfig, logger)
@@ -172,8 +136,6 @@ func NewAuthManager(config *Config, logger *slog.Logger) (*Manager, error) {
 		am.rbacManager = rbacManager
 
 	}
-
-
 
 	// Initialize LDAP providers first.
 
@@ -187,45 +149,42 @@ func NewAuthManager(config *Config, logger *slog.Logger) (*Manager, error) {
 
 			ldapConfig := &providers.LDAPConfig{
 
-				Host:                 ldapProviderConfig.Host,
+				Host: ldapProviderConfig.Host,
 
-				Port:                 ldapProviderConfig.Port,
+				Port: ldapProviderConfig.Port,
 
-				UseSSL:               ldapProviderConfig.UseSSL,
+				UseSSL: ldapProviderConfig.UseSSL,
 
-				UseTLS:               ldapProviderConfig.UseTLS,
+				UseTLS: ldapProviderConfig.UseTLS,
 
-				SkipVerify:           ldapProviderConfig.SkipVerify,
+				SkipVerify: ldapProviderConfig.SkipVerify,
 
-				BindDN:               ldapProviderConfig.BindDN,
+				BindDN: ldapProviderConfig.BindDN,
 
-				BindPassword:         ldapProviderConfig.BindPassword,
+				BindPassword: ldapProviderConfig.BindPassword,
 
-				BaseDN:               ldapProviderConfig.BaseDN,
+				BaseDN: ldapProviderConfig.BaseDN,
 
-				UserFilter:           ldapProviderConfig.UserFilter,
+				UserFilter: ldapProviderConfig.UserFilter,
 
-				GroupFilter:          ldapProviderConfig.GroupFilter,
+				GroupFilter: ldapProviderConfig.GroupFilter,
 
-				UserSearchBase:       ldapProviderConfig.UserSearchBase,
+				UserSearchBase: ldapProviderConfig.UserSearchBase,
 
-				GroupSearchBase:      ldapProviderConfig.GroupSearchBase,
+				GroupSearchBase: ldapProviderConfig.GroupSearchBase,
 
-				IsActiveDirectory:    ldapProviderConfig.IsActiveDirectory,
+				IsActiveDirectory: ldapProviderConfig.IsActiveDirectory,
 
-				Domain:               ldapProviderConfig.Domain,
+				Domain: ldapProviderConfig.Domain,
 
 				GroupMemberAttribute: ldapProviderConfig.GroupMemberAttribute,
 
-				UserGroupAttribute:   ldapProviderConfig.UserGroupAttribute,
+				UserGroupAttribute: ldapProviderConfig.UserGroupAttribute,
 
-				RoleMappings:         ldapProviderConfig.RoleMappings,
+				RoleMappings: ldapProviderConfig.RoleMappings,
 
-				DefaultRoles:         ldapProviderConfig.DefaultRoles,
-
+				DefaultRoles: ldapProviderConfig.DefaultRoles,
 			}
-
-
 
 			ldapClient := providers.NewLDAPClient(ldapConfig, logger)
 
@@ -237,19 +196,14 @@ func NewAuthManager(config *Config, logger *slog.Logger) (*Manager, error) {
 
 	}
 
-
-
 	// Initialize middleware with existing signature.
 
 	middlewareConfig := &MiddlewareConfig{
 
 		SkipAuth: []string{"/health", "/auth/login", "/auth/callback"},
-
 	}
 
 	am.middleware = NewAuthMiddleware(am.sessionManager, am.jwtManager, am.rbacManager, middlewareConfig)
-
-
 
 	// Initialize LDAP middleware if LDAP providers are configured.
 
@@ -257,17 +211,14 @@ func NewAuthManager(config *Config, logger *slog.Logger) (*Manager, error) {
 
 		ldapMiddlewareConfig := &LDAPMiddlewareConfig{
 
-			Realm:          "Nephoran Intent Operator",
+			Realm: "Nephoran Intent Operator",
 
 			AllowBasicAuth: true,
-
 		}
 
 		am.ldapMiddleware = NewLDAPAuthMiddleware(ldapProviders, am.sessionManager, am.jwtManager, am.rbacManager, ldapMiddlewareConfig, logger)
 
 	}
-
-
 
 	// Initialize OAuth2 manager if OAuth2 providers are configured.
 
@@ -275,16 +226,15 @@ func NewAuthManager(config *Config, logger *slog.Logger) (*Manager, error) {
 
 		oauth2ManagerConfig := &OAuth2ManagerConfig{
 
-			Enabled:       config.Enabled,
+			Enabled: config.Enabled,
 
-			JWTSecretKey:  config.JWTSecretKey,
+			JWTSecretKey: config.JWTSecretKey,
 
-			RequireAuth:   true,
+			RequireAuth: true,
 
-			AdminUsers:    config.AdminUsers,
+			AdminUsers: config.AdminUsers,
 
 			OperatorUsers: config.OperatorUsers,
-
 		}
 
 		// TODO: Pass proper context from caller instead of Background()
@@ -300,15 +250,11 @@ func NewAuthManager(config *Config, logger *slog.Logger) (*Manager, error) {
 
 	}
 
-
-
 	// Initialize handlers with existing signature.
 
 	handlersConfig := &HandlersConfig{}
 
 	am.handlers = NewAuthHandlers(am.sessionManager, am.jwtManager, am.rbacManager, handlersConfig)
-
-
 
 	logger.Info("AuthManager initialized successfully",
 
@@ -316,13 +262,9 @@ func NewAuthManager(config *Config, logger *slog.Logger) (*Manager, error) {
 
 		"oauth_providers", len(am.oauthProviders))
 
-
-
 	return am, nil
 
 }
-
-
 
 // GetMiddleware returns the auth middleware.
 
@@ -332,8 +274,6 @@ func (am *Manager) GetMiddleware() *AuthMiddleware {
 
 }
 
-
-
 // GetLDAPMiddleware returns the LDAP auth middleware.
 
 func (am *Manager) GetLDAPMiddleware() *LDAPAuthMiddleware {
@@ -341,8 +281,6 @@ func (am *Manager) GetLDAPMiddleware() *LDAPAuthMiddleware {
 	return am.ldapMiddleware
 
 }
-
-
 
 // GetOAuth2Manager returns the OAuth2 manager.
 
@@ -352,8 +290,6 @@ func (am *Manager) GetOAuth2Manager() *OAuth2Manager {
 
 }
 
-
-
 // GetSessionManager returns the session manager.
 
 func (am *Manager) GetSessionManager() *SessionManager {
@@ -361,8 +297,6 @@ func (am *Manager) GetSessionManager() *SessionManager {
 	return am.sessionManager
 
 }
-
-
 
 // GetJWTManager returns the JWT manager.
 
@@ -372,8 +306,6 @@ func (am *Manager) GetJWTManager() *JWTManager {
 
 }
 
-
-
 // GetRBACManager returns the RBAC manager.
 
 func (am *Manager) GetRBACManager() *RBACManager {
@@ -381,8 +313,6 @@ func (am *Manager) GetRBACManager() *RBACManager {
 	return am.rbacManager
 
 }
-
-
 
 // GetHandlers returns the auth handlers.
 
@@ -392,15 +322,11 @@ func (am *Manager) GetHandlers() *AuthHandlers {
 
 }
 
-
-
 // ListProviders returns information about available authentication providers.
 
 func (am *Manager) ListProviders() map[string]interface{} {
 
 	result := make(map[string]interface{})
-
-
 
 	// LDAP providers.
 
@@ -410,17 +336,14 @@ func (am *Manager) ListProviders() map[string]interface{} {
 
 		ldapProviders[name] = map[string]interface{}{
 
-			"type":    "ldap",
+			"type": "ldap",
 
 			"enabled": true,
-
 		}
 
 	}
 
 	result["ldap"] = ldapProviders
-
-
 
 	// OAuth2 providers.
 
@@ -430,23 +353,18 @@ func (am *Manager) ListProviders() map[string]interface{} {
 
 		oauth2Providers[name] = map[string]interface{}{
 
-			"type":    "oauth2",
+			"type": "oauth2",
 
 			"enabled": true,
-
 		}
 
 	}
 
 	result["oauth2"] = oauth2Providers
 
-
-
 	return result
 
 }
-
-
 
 // RefreshTokens refreshes access and refresh tokens.
 
@@ -458,8 +376,6 @@ func (am *Manager) RefreshTokens(ctx context.Context, refreshToken string) (stri
 
 	}
 
-
-
 	// Validate the refresh token.
 
 	claims, err := am.jwtManager.ValidateToken(ctx, refreshToken)
@@ -470,27 +386,22 @@ func (am *Manager) RefreshTokens(ctx context.Context, refreshToken string) (stri
 
 	}
 
-
-
 	// Create a new user info from claims for token generation.
 
 	userInfo := &providers.UserInfo{
 
-		Subject:       claims.Subject,
+		Subject: claims.Subject,
 
-		Email:         claims.Email,
+		Email: claims.Email,
 
 		PreferredName: claims.PreferredName,
 
-		Name:          claims.Name,
+		Name: claims.Name,
 
-		Roles:         claims.Roles,
+		Roles: claims.Roles,
 
-		Provider:      claims.Provider,
-
+		Provider: claims.Provider,
 	}
-
-
 
 	// Generate new access token.
 
@@ -502,8 +413,6 @@ func (am *Manager) RefreshTokens(ctx context.Context, refreshToken string) (stri
 
 	}
 
-
-
 	// Generate new refresh token.
 
 	newRefreshToken, _, err := am.jwtManager.GenerateRefreshToken(ctx, userInfo, "session-"+claims.Subject)
@@ -514,8 +423,6 @@ func (am *Manager) RefreshTokens(ctx context.Context, refreshToken string) (stri
 
 	}
 
-
-
 	// Revoke the old refresh token.
 
 	if err := am.jwtManager.RevokeToken(ctx, refreshToken); err != nil {
@@ -524,13 +431,9 @@ func (am *Manager) RefreshTokens(ctx context.Context, refreshToken string) (stri
 
 	}
 
-
-
 	return newAccessToken, newRefreshToken, nil
 
 }
-
-
 
 // ValidateSession validates a session and returns session information.
 
@@ -542,8 +445,6 @@ func (am *Manager) ValidateSession(ctx context.Context, sessionID string) (*User
 
 	}
 
-
-
 	session, err := am.sessionManager.GetSession(ctx, sessionID)
 
 	if err != nil {
@@ -552,19 +453,13 @@ func (am *Manager) ValidateSession(ctx context.Context, sessionID string) (*User
 
 	}
 
-
-
 	// Check if session is expired - the session manager should handle this.
 
 	// Just return the session as-is for now.
 
-
-
 	return session, nil
 
 }
-
-
 
 // HandleHealthCheck handles health check requests.
 
@@ -576,17 +471,13 @@ func (am *Manager) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
 
 		"services": map[string]string{
 
-			"jwt_manager":     "unknown",
+			"jwt_manager": "unknown",
 
 			"session_manager": "unknown",
 
-			"rbac_manager":    "unknown",
-
+			"rbac_manager": "unknown",
 		},
-
 	}
-
-
 
 	if am.jwtManager != nil {
 
@@ -594,15 +485,11 @@ func (am *Manager) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	if am.sessionManager != nil {
 
 		health["services"].(map[string]string)["session_manager"] = "healthy"
 
 	}
-
-
 
 	if am.rbacManager != nil {
 
@@ -610,15 +497,11 @@ func (am *Manager) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(health)
 
 }
-
-
 
 // Shutdown gracefully shuts down the auth manager.
 
@@ -626,11 +509,7 @@ func (am *Manager) Shutdown(ctx context.Context) error {
 
 	am.logger.Info("Shutting down AuthManager")
 
-
-
 	var errors []error
-
-
 
 	// Close LDAP providers.
 
@@ -644,19 +523,14 @@ func (am *Manager) Shutdown(ctx context.Context) error {
 
 	}
 
-
-
 	if len(errors) > 0 {
 
 		return fmt.Errorf("shutdown errors: %v", errors)
 
 	}
 
-
-
 	am.logger.Info("AuthManager shutdown completed")
 
 	return nil
 
 }
-

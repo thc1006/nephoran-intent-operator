@@ -1,51 +1,32 @@
 // Package o2 implements the main entry point for the O2 IMS API server.
 
-
 package o2
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"os"
-
 	"os/signal"
-
 	"syscall"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/middleware"
-
 )
-
-
 
 // ServerManager manages the lifecycle of the O2 IMS API server.
 
 type ServerManager struct {
-
 	config *O2IMSConfig
 
 	server *O2APIServer
 
 	logger *logging.StructuredLogger
 
-	ctx    context.Context
+	ctx context.Context
 
 	cancel context.CancelFunc
-
 }
-
-
 
 // NewServerManager creates a new server manager.
 
@@ -57,8 +38,6 @@ func NewServerManager(config *O2IMSConfig) (*ServerManager, error) {
 
 	}
 
-
-
 	logger := config.Logger
 
 	if logger == nil {
@@ -67,11 +46,7 @@ func NewServerManager(config *O2IMSConfig) (*ServerManager, error) {
 
 	}
 
-
-
 	ctx, cancel := context.WithCancel(context.Background())
-
-
 
 	return &ServerManager{
 
@@ -79,23 +54,18 @@ func NewServerManager(config *O2IMSConfig) (*ServerManager, error) {
 
 		logger: logger,
 
-		ctx:    ctx,
+		ctx: ctx,
 
 		cancel: cancel,
-
 	}, nil
 
 }
-
-
 
 // Start starts the O2 IMS API server.
 
 func (sm *ServerManager) Start() error {
 
 	sm.logger.Info("starting O2 IMS API server")
-
-
 
 	// Create and configure the API server.
 
@@ -107,19 +77,13 @@ func (sm *ServerManager) Start() error {
 
 	}
 
-
-
 	sm.server = server
-
-
 
 	// Set up signal handling for graceful shutdown.
 
 	signalChan := make(chan os.Signal, 1)
 
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
-
-
 
 	// Start the server in a goroutine.
 
@@ -135,15 +99,11 @@ func (sm *ServerManager) Start() error {
 
 	}()
 
-
-
 	sm.logger.Info("O2 IMS API server started successfully",
 
 		"address", fmt.Sprintf("%s:%d", sm.config.Host, sm.config.Port),
 
 		"tls_enabled", sm.config.TLSEnabled)
-
-
 
 	// Wait for shutdown signal or server error.
 
@@ -165,21 +125,15 @@ func (sm *ServerManager) Start() error {
 
 }
 
-
-
 // Shutdown gracefully shuts down the server.
 
 func (sm *ServerManager) Shutdown() error {
 
 	sm.logger.Info("shutting down O2 IMS API server")
 
-
-
 	// Cancel context to signal shutdown to all components.
 
 	sm.cancel()
-
-
 
 	// If server is running, shut it down.
 
@@ -188,8 +142,6 @@ func (sm *ServerManager) Shutdown() error {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
 		defer cancel()
-
-
 
 		if err := sm.server.Shutdown(shutdownCtx); err != nil {
 
@@ -201,15 +153,11 @@ func (sm *ServerManager) Shutdown() error {
 
 	}
 
-
-
 	sm.logger.Info("O2 IMS API server shutdown completed")
 
 	return nil
 
 }
-
-
 
 // RunServer is a convenience function to run the server with default configuration.
 
@@ -217,13 +165,9 @@ func RunServer() error {
 
 	config := DefaultO2IMSConfig()
 
-
-
 	// Override with environment variables if available.
 
 	config = applyEnvironmentOverrides(config)
-
-
 
 	manager, err := NewServerManager(config)
 
@@ -233,13 +177,9 @@ func RunServer() error {
 
 	}
 
-
-
 	return manager.Start()
 
 }
-
-
 
 // RunServerWithConfig runs the server with custom configuration.
 
@@ -251,8 +191,6 @@ func RunServerWithConfig(config *O2IMSConfig) error {
 
 	}
 
-
-
 	manager, err := NewServerManager(config)
 
 	if err != nil {
@@ -261,13 +199,9 @@ func RunServerWithConfig(config *O2IMSConfig) error {
 
 	}
 
-
-
 	return manager.Start()
 
 }
-
-
 
 // applyEnvironmentOverrides applies environment variable overrides to configuration.
 
@@ -285,8 +219,6 @@ func applyEnvironmentOverrides(config *O2IMSConfig) *O2IMSConfig {
 
 	}
 
-
-
 	// Host override.
 
 	if host := os.Getenv("O2_IMS_HOST"); host != "" {
@@ -294,8 +226,6 @@ func applyEnvironmentOverrides(config *O2IMSConfig) *O2IMSConfig {
 		config.Host = host
 
 	}
-
-
 
 	// TLS configuration.
 
@@ -317,8 +247,6 @@ func applyEnvironmentOverrides(config *O2IMSConfig) *O2IMSConfig {
 
 	}
 
-
-
 	// Database configuration.
 
 	if dbType := os.Getenv("O2_IMS_DB_TYPE"); dbType != "" {
@@ -333,8 +261,6 @@ func applyEnvironmentOverrides(config *O2IMSConfig) *O2IMSConfig {
 
 	}
 
-
-
 	// Authentication configuration.
 
 	if authEnabled := os.Getenv("O2_IMS_AUTH_ENABLED"); authEnabled == "true" {
@@ -347,8 +273,6 @@ func applyEnvironmentOverrides(config *O2IMSConfig) *O2IMSConfig {
 
 		config.AuthenticationConfig.Enabled = true
 
-
-
 		if jwtSecret := os.Getenv("O2_IMS_JWT_SECRET"); jwtSecret != "" {
 
 			config.AuthenticationConfig.JWTSecret = jwtSecret
@@ -356,8 +280,6 @@ func applyEnvironmentOverrides(config *O2IMSConfig) *O2IMSConfig {
 		}
 
 	}
-
-
 
 	// Metrics configuration.
 
@@ -373,13 +295,9 @@ func applyEnvironmentOverrides(config *O2IMSConfig) *O2IMSConfig {
 
 	}
 
-
-
 	return config
 
 }
-
-
 
 // Helper function to parse integer from string.
 
@@ -393,11 +311,7 @@ func parseInt(s string) (int, error) {
 
 }
 
-
-
 // Production deployment helper functions.
-
-
 
 // CreateProductionConfig creates a production-ready configuration.
 
@@ -405,15 +319,11 @@ func CreateProductionConfig() *O2IMSConfig {
 
 	config := DefaultO2IMSConfig()
 
-
-
 	// Production defaults.
 
 	config.TLSEnabled = true
 
 	config.DatabaseType = "postgres"
-
-
 
 	// Security hardening.
 
@@ -429,15 +339,11 @@ func CreateProductionConfig() *O2IMSConfig {
 
 	config.SecurityConfig.AuditLogging = true
 
-
-
 	// Authentication enabled.
 
 	config.AuthenticationConfig.Enabled = true
 
 	config.AuthenticationConfig.TokenValidation = true
-
-
 
 	// Enhanced monitoring.
 
@@ -447,13 +353,9 @@ func CreateProductionConfig() *O2IMSConfig {
 
 	config.HealthCheckConfig.DeepHealthCheck = true
 
-
-
 	// Notifications enabled.
 
 	config.NotificationConfig.Enabled = true
-
-
 
 	// Resource management tuning.
 
@@ -463,13 +365,9 @@ func CreateProductionConfig() *O2IMSConfig {
 
 	config.ResourceConfig.AutoDiscoveryEnabled = true
 
-
-
 	return config
 
 }
-
-
 
 // CreateDevelopmentConfig creates a development-friendly configuration.
 
@@ -477,15 +375,11 @@ func CreateDevelopmentConfig() *O2IMSConfig {
 
 	config := DefaultO2IMSConfig()
 
-
-
 	// Development defaults.
 
 	config.TLSEnabled = false
 
 	config.DatabaseType = "memory"
-
-
 
 	// Relaxed security for development.
 
@@ -495,13 +389,9 @@ func CreateDevelopmentConfig() *O2IMSConfig {
 
 	config.SecurityConfig.AuditLogging = false
 
-
-
 	// Authentication disabled for easier development.
 
 	config.AuthenticationConfig.Enabled = false
-
-
 
 	// Basic monitoring.
 
@@ -511,13 +401,9 @@ func CreateDevelopmentConfig() *O2IMSConfig {
 
 	config.HealthCheckConfig.DeepHealthCheck = false
 
-
-
 	return config
 
 }
-
-
 
 // ValidateConfiguration validates the server configuration.
 
@@ -529,8 +415,6 @@ func ValidateConfiguration(config *O2IMSConfig) error {
 
 	}
 
-
-
 	// Validate port.
 
 	if config.Port <= 0 || config.Port > 65535 {
@@ -538,8 +422,6 @@ func ValidateConfiguration(config *O2IMSConfig) error {
 		return fmt.Errorf("invalid port: %d", config.Port)
 
 	}
-
-
 
 	// Validate TLS configuration.
 
@@ -557,8 +439,6 @@ func ValidateConfiguration(config *O2IMSConfig) error {
 
 		}
 
-
-
 		// Check if files exist.
 
 		if _, err := os.Stat(config.CertFile); os.IsNotExist(err) {
@@ -575,8 +455,6 @@ func ValidateConfiguration(config *O2IMSConfig) error {
 
 	}
 
-
-
 	// Validate database configuration.
 
 	if config.DatabaseType != "memory" && config.DatabaseURL == "" {
@@ -584,8 +462,6 @@ func ValidateConfiguration(config *O2IMSConfig) error {
 		return fmt.Errorf("database URL required for database type: %s", config.DatabaseType)
 
 	}
-
-
 
 	// Validate authentication configuration.
 
@@ -599,22 +475,19 @@ func ValidateConfiguration(config *O2IMSConfig) error {
 
 	}
 
-
-
 	// Validate CORS configuration.
 
 	if config.SecurityConfig != nil && config.SecurityConfig.CORSEnabled {
 
 		if err := middleware.ValidateConfig(middleware.CORSConfig{
 
-			AllowedOrigins:   config.SecurityConfig.CORSAllowedOrigins,
+			AllowedOrigins: config.SecurityConfig.CORSAllowedOrigins,
 
-			AllowedMethods:   config.SecurityConfig.CORSAllowedMethods,
+			AllowedMethods: config.SecurityConfig.CORSAllowedMethods,
 
-			AllowedHeaders:   config.SecurityConfig.CORSAllowedHeaders,
+			AllowedHeaders: config.SecurityConfig.CORSAllowedHeaders,
 
 			AllowCredentials: config.AuthenticationConfig != nil && config.AuthenticationConfig.Enabled,
-
 		}); err != nil {
 
 			return fmt.Errorf("invalid CORS configuration: %w", err)
@@ -623,13 +496,9 @@ func ValidateConfiguration(config *O2IMSConfig) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // SetupDefaultProviders sets up default cloud providers.
 
@@ -641,57 +510,48 @@ func SetupDefaultProviders(config *O2IMSConfig) {
 
 	}
 
-
-
 	// Add default Kubernetes provider if not exists.
 
 	if _, exists := config.CloudProviders["kubernetes"]; !exists {
 
 		config.CloudProviders["kubernetes"] = &CloudProviderConfig{
 
-			ProviderID:  "kubernetes",
+			ProviderID: "kubernetes",
 
-			Name:        "Default Kubernetes Provider",
+			Name: "Default Kubernetes Provider",
 
-			Type:        CloudProviderKubernetes,
+			Type: CloudProviderKubernetes,
 
 			Description: "Default Kubernetes provider for local development",
 
-			Endpoint:    "",
+			Endpoint: "",
 
-			Enabled:     true,
+			Enabled: true,
 
-			Status:      "ACTIVE",
+			Status: "ACTIVE",
 
 			Properties: map[string]interface{}{
 
 				"in_cluster": true,
-
 			},
 
 			Tags: map[string]string{
 
 				"environment": "development",
 
-				"default":     "true",
-
+				"default": "true",
 			},
 
 			CreatedAt: time.Now(),
 
 			UpdatedAt: time.Now(),
-
 		}
 
 	}
 
 }
 
-
-
 // Example usage and testing helpers.
-
-
 
 // ExampleUsage demonstrates how to use the O2 IMS API server.
 
@@ -701,13 +561,9 @@ func ExampleUsage() {
 
 	config := CreateDevelopmentConfig()
 
-
-
 	// Setup default providers.
 
 	SetupDefaultProviders(config)
-
-
 
 	// Validate configuration.
 
@@ -718,8 +574,6 @@ func ExampleUsage() {
 		return
 
 	}
-
-
 
 	// Create and start server.
 
@@ -733,8 +587,6 @@ func ExampleUsage() {
 
 	}
 
-
-
 	fmt.Println("Starting O2 IMS API server...")
 
 	if err := manager.Start(); err != nil {
@@ -745,15 +597,11 @@ func ExampleUsage() {
 
 }
 
-
-
 // TestConfiguration creates a test configuration for unit tests.
 
 func TestConfiguration() *O2IMSConfig {
 
 	config := DefaultO2IMSConfig()
-
-
 
 	// Test-specific settings.
 
@@ -773,9 +621,6 @@ func TestConfiguration() *O2IMSConfig {
 
 	config.NotificationConfig.Enabled = false
 
-
-
 	return config
 
 }
-

@@ -1,57 +1,38 @@
-
 package providers
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
-
-
 
 	"k8s.io/client-go/kubernetes"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // IntegrationManager manages the integration between O2 IMS and cloud providers.
 
 type IntegrationManager struct {
+	registry *ProviderRegistry
 
-	registry          *ProviderRegistry
+	factory *ProviderFactory
 
-	factory           *ProviderFactory
+	kubeClient client.Client
 
-	kubeClient        client.Client
+	clientset kubernetes.Interface
 
-	clientset         kubernetes.Interface
+	defaultProvider string
 
-	defaultProvider   string
-
-	mu                sync.RWMutex
+	mu sync.RWMutex
 
 	metricsAggregator *MetricsAggregator
 
-	eventProcessor    *EventProcessor
+	eventProcessor *EventProcessor
 
-	resourceCache     *ResourceCache
-
+	resourceCache *ResourceCache
 }
-
-
 
 // NewIntegrationManager creates a new integration manager.
 
@@ -59,29 +40,24 @@ func NewIntegrationManager(kubeClient client.Client, clientset kubernetes.Interf
 
 	registry := NewProviderRegistry()
 
-
-
 	return &IntegrationManager{
 
-		registry:          registry,
+		registry: registry,
 
-		factory:           NewProviderFactory(registry),
+		factory: NewProviderFactory(registry),
 
-		kubeClient:        kubeClient,
+		kubeClient: kubeClient,
 
-		clientset:         clientset,
+		clientset: clientset,
 
 		metricsAggregator: NewMetricsAggregator(),
 
-		eventProcessor:    NewEventProcessor(),
+		eventProcessor: NewEventProcessor(),
 
-		resourceCache:     NewResourceCache(),
-
+		resourceCache: NewResourceCache(),
 	}
 
 }
-
-
 
 // Initialize sets up the integration manager with default providers.
 
@@ -91,14 +67,11 @@ func (im *IntegrationManager) Initialize(ctx context.Context) error {
 
 	logger.Info("initializing O2 IMS integration manager")
 
-
-
 	// Register Kubernetes provider (always available in K8s environment).
 
 	k8sProvider, err := NewKubernetesProvider(im.kubeClient, im.clientset, map[string]string{
 
 		"in_cluster": "true",
-
 	})
 
 	if err != nil {
@@ -107,21 +80,16 @@ func (im *IntegrationManager) Initialize(ctx context.Context) error {
 
 	}
 
-
-
 	k8sConfig := &ProviderConfiguration{
 
-		Name:    "kubernetes-default",
+		Name: "kubernetes-default",
 
-		Type:    ProviderTypeKubernetes,
+		Type: ProviderTypeKubernetes,
 
 		Version: "1.0.0",
 
 		Enabled: true,
-
 	}
-
-
 
 	if err := im.registry.RegisterProvider("kubernetes-default", k8sProvider, k8sConfig); err != nil {
 
@@ -129,15 +97,11 @@ func (im *IntegrationManager) Initialize(ctx context.Context) error {
 
 	}
 
-
-
 	im.mu.Lock()
 
 	im.defaultProvider = "kubernetes-default"
 
 	im.mu.Unlock()
-
-
 
 	// Connect to registered providers.
 
@@ -149,33 +113,23 @@ func (im *IntegrationManager) Initialize(ctx context.Context) error {
 
 	}
 
-
-
 	// Start health checks.
 
 	im.registry.StartHealthChecks(ctx)
-
-
 
 	// Start metrics aggregation.
 
 	go im.metricsAggregator.Start(ctx, im.registry)
 
-
-
 	// Start event processing.
 
 	go im.eventProcessor.Start(ctx)
-
-
 
 	logger.Info("O2 IMS integration manager initialized successfully")
 
 	return nil
 
 }
-
-
 
 // RegisterCloudProvider registers a new cloud provider.
 
@@ -185,15 +139,11 @@ func (im *IntegrationManager) RegisterCloudProvider(ctx context.Context, name st
 
 	logger.Info("registering cloud provider", "name", name, "type", config.Type)
 
-
-
 	// Create provider based on type.
 
 	var provider CloudProvider
 
 	var err error
-
-
 
 	switch config.Type {
 
@@ -205,8 +155,7 @@ func (im *IntegrationManager) RegisterCloudProvider(ctx context.Context, name st
 
 			"kubeconfig": config.Parameters["kubeconfig"].(string),
 
-			"context":    config.Parameters["context"].(string),
-
+			"context": config.Parameters["context"].(string),
 		})
 
 	case ProviderTypeOpenStack:
@@ -235,15 +184,11 @@ func (im *IntegrationManager) RegisterCloudProvider(ctx context.Context, name st
 
 	}
 
-
-
 	if err != nil {
 
 		return fmt.Errorf("failed to create provider: %w", err)
 
 	}
-
-
 
 	// Register with the registry.
 
@@ -252,8 +197,6 @@ func (im *IntegrationManager) RegisterCloudProvider(ctx context.Context, name st
 		return fmt.Errorf("failed to register provider: %w", err)
 
 	}
-
-
 
 	// Connect to the provider.
 
@@ -265,21 +208,15 @@ func (im *IntegrationManager) RegisterCloudProvider(ctx context.Context, name st
 
 	}
 
-
-
 	// Subscribe to provider events.
 
 	provider.SubscribeToEvents(ctx, im.eventProcessor.HandleProviderEvent)
-
-
 
 	logger.Info("cloud provider registered successfully", "name", name)
 
 	return nil
 
 }
-
-
 
 // UnregisterCloudProvider removes a cloud provider.
 
@@ -289,8 +226,6 @@ func (im *IntegrationManager) UnregisterCloudProvider(ctx context.Context, name 
 
 	logger.Info("unregistering cloud provider", "name", name)
 
-
-
 	// Check if it's the default provider.
 
 	im.mu.RLock()
@@ -299,15 +234,11 @@ func (im *IntegrationManager) UnregisterCloudProvider(ctx context.Context, name 
 
 	im.mu.RUnlock()
 
-
-
 	if isDefault {
 
 		return fmt.Errorf("cannot unregister default provider")
 
 	}
-
-
 
 	// Unsubscribe from events.
 
@@ -319,8 +250,6 @@ func (im *IntegrationManager) UnregisterCloudProvider(ctx context.Context, name 
 
 	}
 
-
-
 	// Unregister from registry.
 
 	if err := im.registry.UnregisterProvider(name); err != nil {
@@ -329,21 +258,15 @@ func (im *IntegrationManager) UnregisterCloudProvider(ctx context.Context, name 
 
 	}
 
-
-
 	// Clear cached resources for this provider.
 
 	im.resourceCache.ClearProvider(name)
-
-
 
 	logger.Info("cloud provider unregistered successfully", "name", name)
 
 	return nil
 
 }
-
-
 
 // GetProvider retrieves a specific provider.
 
@@ -352,8 +275,6 @@ func (im *IntegrationManager) GetProvider(name string) (CloudProvider, error) {
 	return im.registry.GetProvider(name)
 
 }
-
-
 
 // GetDefaultProvider retrieves the default provider.
 
@@ -365,21 +286,15 @@ func (im *IntegrationManager) GetDefaultProvider() (CloudProvider, error) {
 
 	im.mu.RUnlock()
 
-
-
 	if defaultName == "" {
 
 		return nil, fmt.Errorf("no default provider configured")
 
 	}
 
-
-
 	return im.registry.GetProvider(defaultName)
 
 }
-
-
 
 // SetDefaultProvider sets the default provider.
 
@@ -393,21 +308,15 @@ func (im *IntegrationManager) SetDefaultProvider(name string) error {
 
 	}
 
-
-
 	im.mu.Lock()
 
 	im.defaultProvider = name
 
 	im.mu.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 // ListProviders returns all registered providers.
 
@@ -417,8 +326,6 @@ func (im *IntegrationManager) ListProviders() []string {
 
 }
 
-
-
 // GetProviderHealth returns health status for all providers.
 
 func (im *IntegrationManager) GetProviderHealth() map[string]*HealthStatus {
@@ -426,8 +333,6 @@ func (im *IntegrationManager) GetProviderHealth() map[string]*HealthStatus {
 	return im.registry.GetAllProviderHealth()
 
 }
-
-
 
 // CreateResource creates a resource on a specific provider.
 
@@ -441,8 +346,6 @@ func (im *IntegrationManager) CreateResource(ctx context.Context, providerName s
 
 	}
 
-
-
 	// Create resource.
 
 	response, err := provider.CreateResource(ctx, req)
@@ -453,25 +356,17 @@ func (im *IntegrationManager) CreateResource(ctx context.Context, providerName s
 
 	}
 
-
-
 	// Cache the resource.
 
 	im.resourceCache.Add(providerName, response)
-
-
 
 	// Record metrics.
 
 	im.metricsAggregator.RecordResourceCreation(providerName, req.Type)
 
-
-
 	return response, nil
 
 }
-
-
 
 // GetResource retrieves a resource from a provider.
 
@@ -485,8 +380,6 @@ func (im *IntegrationManager) GetResource(ctx context.Context, providerName, res
 
 	}
 
-
-
 	provider, err := im.getProviderOrDefault(providerName)
 
 	if err != nil {
@@ -494,8 +387,6 @@ func (im *IntegrationManager) GetResource(ctx context.Context, providerName, res
 		return nil, err
 
 	}
-
-
 
 	response, err := provider.GetResource(ctx, resourceID)
 
@@ -505,19 +396,13 @@ func (im *IntegrationManager) GetResource(ctx context.Context, providerName, res
 
 	}
 
-
-
 	// Update cache.
 
 	im.resourceCache.Add(providerName, response)
 
-
-
 	return response, nil
 
 }
-
-
 
 // UpdateResource updates a resource on a provider.
 
@@ -531,8 +416,6 @@ func (im *IntegrationManager) UpdateResource(ctx context.Context, providerName, 
 
 	}
 
-
-
 	response, err := provider.UpdateResource(ctx, resourceID, req)
 
 	if err != nil {
@@ -541,25 +424,17 @@ func (im *IntegrationManager) UpdateResource(ctx context.Context, providerName, 
 
 	}
 
-
-
 	// Update cache.
 
 	im.resourceCache.Add(providerName, response)
-
-
 
 	// Record metrics.
 
 	im.metricsAggregator.RecordResourceUpdate(providerName, resourceID)
 
-
-
 	return response, nil
 
 }
-
-
 
 // DeleteResource deletes a resource from a provider.
 
@@ -573,33 +448,23 @@ func (im *IntegrationManager) DeleteResource(ctx context.Context, providerName, 
 
 	}
 
-
-
 	if err := provider.DeleteResource(ctx, resourceID); err != nil {
 
 		return fmt.Errorf("failed to delete resource: %w", err)
 
 	}
 
-
-
 	// Remove from cache.
 
 	im.resourceCache.Remove(providerName, resourceID)
-
-
 
 	// Record metrics.
 
 	im.metricsAggregator.RecordResourceDeletion(providerName, resourceID)
 
-
-
 	return nil
 
 }
-
-
 
 // ListResources lists resources across providers.
 
@@ -621,8 +486,6 @@ func (im *IntegrationManager) ListResources(ctx context.Context, providerName st
 
 	}
 
-
-
 	// List from all providers.
 
 	var allResources []*ResourceResponse
@@ -637,8 +500,6 @@ func (im *IntegrationManager) ListResources(ctx context.Context, providerName st
 
 		}
 
-
-
 		resources, err := provider.ListResources(ctx, filter)
 
 		if err != nil {
@@ -651,19 +512,13 @@ func (im *IntegrationManager) ListResources(ctx context.Context, providerName st
 
 		}
 
-
-
 		allResources = append(allResources, resources...)
 
 	}
 
-
-
 	return allResources, nil
 
 }
-
-
 
 // Deploy creates a deployment on a provider.
 
@@ -677,8 +532,6 @@ func (im *IntegrationManager) Deploy(ctx context.Context, providerName string, r
 
 	}
 
-
-
 	response, err := provider.Deploy(ctx, req)
 
 	if err != nil {
@@ -687,19 +540,13 @@ func (im *IntegrationManager) Deploy(ctx context.Context, providerName string, r
 
 	}
 
-
-
 	// Record metrics.
 
 	im.metricsAggregator.RecordDeployment(providerName, req.Name)
 
-
-
 	return response, nil
 
 }
-
-
 
 // ScaleResource scales a resource on a provider.
 
@@ -713,27 +560,19 @@ func (im *IntegrationManager) ScaleResource(ctx context.Context, providerName, r
 
 	}
 
-
-
 	if err := provider.ScaleResource(ctx, resourceID, req); err != nil {
 
 		return fmt.Errorf("failed to scale resource: %w", err)
 
 	}
 
-
-
 	// Record metrics.
 
 	im.metricsAggregator.RecordScaling(providerName, resourceID, req.Direction)
 
-
-
 	return nil
 
 }
-
-
 
 // GetAggregatedMetrics returns aggregated metrics across all providers.
 
@@ -743,27 +582,22 @@ func (im *IntegrationManager) GetAggregatedMetrics(ctx context.Context) (map[str
 
 }
 
-
-
 // SelectOptimalProvider selects the best provider for a workload.
 
 func (im *IntegrationManager) SelectOptimalProvider(ctx context.Context, requirements *WorkloadRequirements) (string, error) {
 
 	criteria := &ProviderSelectionCriteria{
 
-		Type:                 requirements.ProviderType,
+		Type: requirements.ProviderType,
 
-		Region:               requirements.Region,
+		Region: requirements.Region,
 
-		RequireHealthy:       true,
+		RequireHealthy: true,
 
 		RequiredCapabilities: requirements.Capabilities,
 
-		SelectionStrategy:    requirements.Strategy,
-
+		SelectionStrategy: requirements.Strategy,
 	}
-
-
 
 	provider, err := im.registry.SelectProvider(ctx, criteria)
 
@@ -773,15 +607,11 @@ func (im *IntegrationManager) SelectOptimalProvider(ctx context.Context, require
 
 	}
 
-
-
 	info := provider.GetProviderInfo()
 
 	return info.Name, nil
 
 }
-
-
 
 // Shutdown gracefully shuts down the integration manager.
 
@@ -791,25 +621,17 @@ func (im *IntegrationManager) Shutdown(ctx context.Context) error {
 
 	logger.Info("shutting down O2 IMS integration manager")
 
-
-
 	// Stop health checks.
 
 	im.registry.StopHealthChecks()
-
-
 
 	// Stop metrics aggregator.
 
 	im.metricsAggregator.Stop()
 
-
-
 	// Stop event processor.
 
 	im.eventProcessor.Stop()
-
-
 
 	// Disconnect all providers.
 
@@ -819,15 +641,11 @@ func (im *IntegrationManager) Shutdown(ctx context.Context) error {
 
 	}
 
-
-
 	logger.Info("O2 IMS integration manager shut down successfully")
 
 	return nil
 
 }
-
-
 
 // getProviderOrDefault returns the specified provider or the default.
 
@@ -843,49 +661,38 @@ func (im *IntegrationManager) getProviderOrDefault(providerName string) (CloudPr
 
 }
 
-
-
 // WorkloadRequirements defines requirements for workload placement.
 
 type WorkloadRequirements struct {
+	ProviderType string // Preferred provider type
 
-	ProviderType string   // Preferred provider type
+	Region string // Required region
 
-	Region       string   // Required region
-
-	Zone         string   // Preferred zone
+	Zone string // Preferred zone
 
 	Capabilities []string // Required capabilities
 
-	Strategy     string   // Selection strategy
+	Strategy string // Selection strategy
 
-	Resources    struct {
-
-		CPU    int // Required CPU cores
+	Resources struct {
+		CPU int // Required CPU cores
 
 		Memory int // Required memory in MB
 
-		Disk   int // Required disk in GB
+		Disk int // Required disk in GB
 
 	}
-
 }
-
-
 
 // MetricsAggregator aggregates metrics across providers.
 
 type MetricsAggregator struct {
-
 	metrics map[string]map[string]interface{}
 
-	mu      sync.RWMutex
+	mu sync.RWMutex
 
-	stopCh  chan struct{}
-
+	stopCh chan struct{}
 }
-
-
 
 // NewMetricsAggregator performs newmetricsaggregator operation.
 
@@ -895,13 +702,10 @@ func NewMetricsAggregator() *MetricsAggregator {
 
 		metrics: make(map[string]map[string]interface{}),
 
-		stopCh:  make(chan struct{}),
-
+		stopCh: make(chan struct{}),
 	}
 
 }
-
-
 
 // Start performs start operation.
 
@@ -910,8 +714,6 @@ func (ma *MetricsAggregator) Start(ctx context.Context, registry *ProviderRegist
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -935,8 +737,6 @@ func (ma *MetricsAggregator) Start(ctx context.Context, registry *ProviderRegist
 
 }
 
-
-
 // Stop performs stop operation.
 
 func (ma *MetricsAggregator) Stop() {
@@ -944,8 +744,6 @@ func (ma *MetricsAggregator) Stop() {
 	close(ma.stopCh)
 
 }
-
-
 
 func (ma *MetricsAggregator) collectMetrics(ctx context.Context, registry *ProviderRegistry) {
 
@@ -959,8 +757,6 @@ func (ma *MetricsAggregator) collectMetrics(ctx context.Context, registry *Provi
 
 		}
 
-
-
 		metrics, err := provider.GetMetrics(ctx)
 
 		if err != nil {
@@ -968,8 +764,6 @@ func (ma *MetricsAggregator) collectMetrics(ctx context.Context, registry *Provi
 			continue
 
 		}
-
-
 
 		ma.mu.Lock()
 
@@ -981,8 +775,6 @@ func (ma *MetricsAggregator) collectMetrics(ctx context.Context, registry *Provi
 
 }
 
-
-
 // GetAggregatedMetrics performs getaggregatedmetrics operation.
 
 func (ma *MetricsAggregator) GetAggregatedMetrics() (map[string]interface{}, error) {
@@ -991,15 +783,11 @@ func (ma *MetricsAggregator) GetAggregatedMetrics() (map[string]interface{}, err
 
 	defer ma.mu.RUnlock()
 
-
-
 	aggregated := make(map[string]interface{})
 
 	aggregated["providers"] = ma.metrics
 
 	aggregated["timestamp"] = time.Now().Unix()
-
-
 
 	// Calculate totals.
 
@@ -1008,8 +796,6 @@ func (ma *MetricsAggregator) GetAggregatedMetrics() (map[string]interface{}, err
 	totalStorage := 0
 
 	totalNetwork := 0
-
-
 
 	for _, providerMetrics := range ma.metrics {
 
@@ -1033,8 +819,6 @@ func (ma *MetricsAggregator) GetAggregatedMetrics() (map[string]interface{}, err
 
 	}
 
-
-
 	aggregated["totals"] = map[string]int{
 
 		"compute": totalCompute,
@@ -1042,16 +826,11 @@ func (ma *MetricsAggregator) GetAggregatedMetrics() (map[string]interface{}, err
 		"storage": totalStorage,
 
 		"network": totalNetwork,
-
 	}
-
-
 
 	return aggregated, nil
 
 }
-
-
 
 // RecordResourceCreation performs recordresourcecreation operation.
 
@@ -1061,8 +840,6 @@ func (ma *MetricsAggregator) RecordResourceCreation(provider, resourceType strin
 
 }
 
-
-
 // RecordResourceUpdate performs recordresourceupdate operation.
 
 func (ma *MetricsAggregator) RecordResourceUpdate(provider, resourceID string) {
@@ -1070,8 +847,6 @@ func (ma *MetricsAggregator) RecordResourceUpdate(provider, resourceID string) {
 	// Implementation for recording resource update metrics.
 
 }
-
-
 
 // RecordResourceDeletion performs recordresourcedeletion operation.
 
@@ -1081,8 +856,6 @@ func (ma *MetricsAggregator) RecordResourceDeletion(provider, resourceID string)
 
 }
 
-
-
 // RecordDeployment performs recorddeployment operation.
 
 func (ma *MetricsAggregator) RecordDeployment(provider, deploymentName string) {
@@ -1090,8 +863,6 @@ func (ma *MetricsAggregator) RecordDeployment(provider, deploymentName string) {
 	// Implementation for recording deployment metrics.
 
 }
-
-
 
 // RecordScaling performs recordscaling operation.
 
@@ -1101,29 +872,21 @@ func (ma *MetricsAggregator) RecordScaling(provider, resourceID, direction strin
 
 }
 
-
-
 // EventProcessor processes events from providers.
 
 type EventProcessor struct {
-
 	handlers []EventHandler
 
-	mu       sync.RWMutex
+	mu sync.RWMutex
 
-	stopCh   chan struct{}
+	stopCh chan struct{}
 
-	eventCh  chan *ProviderEvent
-
+	eventCh chan *ProviderEvent
 }
-
-
 
 // EventHandler represents a eventhandler.
 
 type EventHandler func(event *ProviderEvent)
-
-
 
 // NewEventProcessor performs neweventprocessor operation.
 
@@ -1133,15 +896,12 @@ func NewEventProcessor() *EventProcessor {
 
 		handlers: make([]EventHandler, 0),
 
-		stopCh:   make(chan struct{}),
+		stopCh: make(chan struct{}),
 
-		eventCh:  make(chan *ProviderEvent, 100),
-
+		eventCh: make(chan *ProviderEvent, 100),
 	}
 
 }
-
-
 
 // Start performs start operation.
 
@@ -1169,8 +929,6 @@ func (ep *EventProcessor) Start(ctx context.Context) {
 
 }
 
-
-
 // Stop performs stop operation.
 
 func (ep *EventProcessor) Stop() {
@@ -1178,8 +936,6 @@ func (ep *EventProcessor) Stop() {
 	close(ep.stopCh)
 
 }
-
-
 
 // HandleProviderEvent performs handleproviderevent operation.
 
@@ -1197,8 +953,6 @@ func (ep *EventProcessor) HandleProviderEvent(event *ProviderEvent) {
 
 }
 
-
-
 // RegisterHandler performs registerhandler operation.
 
 func (ep *EventProcessor) RegisterHandler(handler EventHandler) {
@@ -1211,8 +965,6 @@ func (ep *EventProcessor) RegisterHandler(handler EventHandler) {
 
 }
 
-
-
 func (ep *EventProcessor) processEvent(event *ProviderEvent) {
 
 	ep.mu.RLock()
@@ -1223,8 +975,6 @@ func (ep *EventProcessor) processEvent(event *ProviderEvent) {
 
 	ep.mu.RUnlock()
 
-
-
 	for _, handler := range handlers {
 
 		handler(event)
@@ -1233,21 +983,15 @@ func (ep *EventProcessor) processEvent(event *ProviderEvent) {
 
 }
 
-
-
 // ResourceCache caches resource information.
 
 type ResourceCache struct {
-
 	cache map[string]map[string]*ResourceResponse // provider -> resourceID -> resource
 
-	mu    sync.RWMutex
+	mu sync.RWMutex
 
-	ttl   time.Duration
-
+	ttl time.Duration
 }
-
-
 
 // NewResourceCache performs newresourcecache operation.
 
@@ -1257,13 +1001,10 @@ func NewResourceCache() *ResourceCache {
 
 		cache: make(map[string]map[string]*ResourceResponse),
 
-		ttl:   5 * time.Minute,
-
+		ttl: 5 * time.Minute,
 	}
 
 }
-
-
 
 // Add performs add operation.
 
@@ -1273,21 +1014,15 @@ func (rc *ResourceCache) Add(provider string, resource *ResourceResponse) {
 
 	defer rc.mu.Unlock()
 
-
-
 	if _, exists := rc.cache[provider]; !exists {
 
 		rc.cache[provider] = make(map[string]*ResourceResponse)
 
 	}
 
-
-
 	rc.cache[provider][resource.ID] = resource
 
 }
-
-
 
 // Get performs get operation.
 
@@ -1296,8 +1031,6 @@ func (rc *ResourceCache) Get(provider, resourceID string) *ResourceResponse {
 	rc.mu.RLock()
 
 	defer rc.mu.RUnlock()
-
-
 
 	if providerCache, exists := rc.cache[provider]; exists {
 
@@ -1315,13 +1048,9 @@ func (rc *ResourceCache) Get(provider, resourceID string) *ResourceResponse {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Remove performs remove operation.
 
@@ -1331,8 +1060,6 @@ func (rc *ResourceCache) Remove(provider, resourceID string) {
 
 	defer rc.mu.Unlock()
 
-
-
 	if providerCache, exists := rc.cache[provider]; exists {
 
 		delete(providerCache, resourceID)
@@ -1340,8 +1067,6 @@ func (rc *ResourceCache) Remove(provider, resourceID string) {
 	}
 
 }
-
-
 
 // ClearProvider performs clearprovider operation.
 
@@ -1351,9 +1076,6 @@ func (rc *ResourceCache) ClearProvider(provider string) {
 
 	defer rc.mu.Unlock()
 
-
-
 	delete(rc.cache, provider)
 
 }
-

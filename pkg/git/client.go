@@ -1,45 +1,23 @@
-
 package git
 
-
-
 import (
-
 	"fmt"
-
 	"io/fs"
-
 	"log/slog"
-
 	"os"
-
 	"path/filepath"
-
 	"runtime"
-
 	"strconv"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-git/go-git/v5"
-
 	"github.com/go-git/go-git/v5/plumbing"
-
 	"github.com/go-git/go-git/v5/plumbing/object"
-
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
-
 	"github.com/prometheus/client_golang/prometheus"
-
 )
-
-
 
 var (
 
@@ -47,15 +25,10 @@ var (
 
 	metricsOnce sync.Once
 
-
-
 	// Git push in-flight gauge metric.
 
 	gitPushInFlightGauge prometheus.Gauge
-
 )
-
-
 
 // InitMetrics initializes the git client metrics.
 
@@ -70,10 +43,7 @@ func InitMetrics(registerer prometheus.Registerer) {
 			Name: "nephoran_git_push_in_flight",
 
 			Help: "Number of git push operations currently in flight",
-
 		})
-
-
 
 		if registerer != nil {
 
@@ -85,186 +55,150 @@ func InitMetrics(registerer prometheus.Registerer) {
 
 }
 
-
-
 // CommitInfo represents information about a Git commit.
 
 type CommitInfo struct {
+	Hash string
 
-	Hash      string
+	Message string
 
-	Message   string
+	Author string
 
-	Author    string
-
-	Email     string
+	Email string
 
 	Timestamp time.Time
-
 }
-
-
 
 // StatusInfo represents the status of a file in the Git repository.
 
 type StatusInfo struct {
+	Path string
 
-	Path     string
+	Status string // Modified, Added, Deleted, Untracked, etc.
 
-	Status   string // Modified, Added, Deleted, Untracked, etc.
-
-	Staging  string // Status in staging area
+	Staging string // Status in staging area
 
 	Worktree string // Status in working tree
 
 }
 
-
-
 // PullRequestOptions contains options for creating a pull request.
 
 type PullRequestOptions struct {
+	Title string
 
-	Title        string
-
-	Description  string
+	Description string
 
 	SourceBranch string
 
 	TargetBranch string
 
-	Labels       []string
+	Labels []string
 
-	Assignees    []string
-
+	Assignees []string
 }
-
-
 
 // PullRequestInfo represents information about a pull request.
 
 type PullRequestInfo struct {
+	ID int
 
-	ID           int
+	Number int
 
-	Number       int
+	Title string
 
-	Title        string
+	Description string
 
-	Description  string
-
-	State        string // open, closed, merged
+	State string // open, closed, merged
 
 	SourceBranch string
 
 	TargetBranch string
 
-	Author       string
+	Author string
 
-	URL          string
+	URL string
 
-	CreatedAt    time.Time
+	CreatedAt time.Time
 
-	UpdatedAt    time.Time
-
+	UpdatedAt time.Time
 }
-
-
 
 // TagInfo represents information about a Git tag.
 
 type TagInfo struct {
+	Name string
 
-	Name      string
+	Hash string
 
-	Hash      string
+	Message string
 
-	Message   string
+	Author string
 
-	Author    string
-
-	Email     string
+	Email string
 
 	Timestamp time.Time
-
 }
-
-
 
 // RemoteInfo represents information about a Git remote.
 
 type RemoteInfo struct {
-
 	Name string
 
-	URL  string
+	URL string
 
 	Type string // fetch, push
 
 }
 
-
-
 // LogOptions contains options for getting Git log.
 
 type LogOptions struct {
+	Limit int
 
-	Limit   int
+	Since *time.Time
 
-	Since   *time.Time
+	Until *time.Time
 
-	Until   *time.Time
+	Author string
 
-	Author  string
-
-	Grep    string
+	Grep string
 
 	OneLine bool
 
-	Graph   bool
+	Graph bool
 
-	Path    string
-
+	Path string
 }
-
-
 
 // DiffOptions contains options for Git diff operations.
 
 type DiffOptions struct {
-
-	Cached   bool
+	Cached bool
 
 	NameOnly bool
 
-	Stat     bool
+	Stat bool
 
-	Source   string
+	Source string
 
-	Target   string
+	Target string
 
-	Path     string
-
+	Path string
 }
-
-
 
 // ResetOptions contains options for Git reset operations.
 
 type ResetOptions struct {
-
-	Mode   string // soft, mixed, hard
+	Mode string // soft, mixed, hard
 
 	Target string // commit hash, branch, tag
 
 }
 
-
-
 // ClientInterface defines the interface for a Git client.
 
 type ClientInterface interface {
-
 	CommitAndPush(files map[string]string, message string) (string, error)
 
 	CommitAndPushChanges(message string) error
@@ -272,8 +206,6 @@ type ClientInterface interface {
 	InitRepo() error
 
 	RemoveDirectory(path string, commitMessage string) error
-
-
 
 	// New methods.
 
@@ -288,50 +220,41 @@ type ClientInterface interface {
 	ListBranches() ([]string, error)
 
 	GetFileContent(path string) ([]byte, error)
-
 }
-
-
 
 // ClientConfig holds configuration for creating a Git client.
 
 type ClientConfig struct {
+	RepoURL string
 
-	RepoURL             string
+	Branch string
 
-	Branch              string
+	Token string // Token loaded from file or environment
 
-	Token               string // Token loaded from file or environment
+	TokenPath string // Optional path to token file
 
-	TokenPath           string // Optional path to token file
+	RepoPath string
 
-	RepoPath            string
-
-	Logger              *slog.Logger
+	Logger *slog.Logger
 
 	ConcurrentPushLimit int // Maximum concurrent git operations (default 4 if <= 0)
 
 }
 
-
-
 // Client implements the Git client.
 
 type Client struct {
+	RepoURL string
 
-	RepoURL  string
+	Branch string
 
-	Branch   string
-
-	SSHKey   string
+	SSHKey string
 
 	RepoPath string
 
-	logger   *slog.Logger
+	logger *slog.Logger
 
-	pushSem  chan struct{} // Semaphore for concurrent git operations (buffered channel with capacity 4)
-
-
+	pushSem chan struct{} // Semaphore for concurrent git operations (buffered channel with capacity 4)
 
 	// Test hooks - only used during testing, unexported.
 
@@ -339,11 +262,8 @@ type Client struct {
 
 	beforePushHook func()
 
-	afterPushHook  func()
-
+	afterPushHook func()
 }
-
-
 
 // NewGitClientConfig creates a new client configuration with token loading support.
 
@@ -355,19 +275,17 @@ func NewGitClientConfig(repoURL, branch, token, tokenPath string) (*ClientConfig
 
 	config := &ClientConfig{
 
-		RepoURL:             repoURL,
+		RepoURL: repoURL,
 
-		Branch:              branch,
+		Branch: branch,
 
-		RepoPath:            "/tmp/deployment-repo",
+		RepoPath: "/tmp/deployment-repo",
 
-		Logger:              slog.Default().With("component", "git-client"),
+		Logger: slog.Default().With("component", "git-client"),
 
 		ConcurrentPushLimit: 4, // Default value
 
 	}
-
-
 
 	// Override from environment variable if set.
 
@@ -386,8 +304,6 @@ func NewGitClientConfig(repoURL, branch, token, tokenPath string) (*ClientConfig
 		}
 
 	}
-
-
 
 	// Try to read token from file first.
 
@@ -415,8 +331,6 @@ func NewGitClientConfig(repoURL, branch, token, tokenPath string) (*ClientConfig
 
 	}
 
-
-
 	// Fallback to provided token (from environment variable).
 
 	if token != "" {
@@ -427,13 +341,9 @@ func NewGitClientConfig(repoURL, branch, token, tokenPath string) (*ClientConfig
 
 	}
 
-
-
 	return nil, fmt.Errorf("no git token available: neither file at %s nor environment variable", tokenPath)
 
 }
-
-
 
 // NewClientFromConfig creates a new Git client from configuration.
 
@@ -445,8 +355,6 @@ func NewClientFromConfig(config *ClientConfig) *Client {
 
 	}
 
-
-
 	// Use configured limit or default to 4.
 
 	limit := config.ConcurrentPushLimit
@@ -457,27 +365,23 @@ func NewClientFromConfig(config *ClientConfig) *Client {
 
 	}
 
-
-
 	return &Client{
 
-		RepoURL:  config.RepoURL,
+		RepoURL: config.RepoURL,
 
-		Branch:   config.Branch,
+		Branch: config.Branch,
 
-		SSHKey:   config.Token,
+		SSHKey: config.Token,
 
 		RepoPath: config.RepoPath,
 
-		logger:   config.Logger,
+		logger: config.Logger,
 
-		pushSem:  make(chan struct{}, limit), // Initialize semaphore with configurable capacity
+		pushSem: make(chan struct{}, limit), // Initialize semaphore with configurable capacity
 
 	}
 
 }
-
-
 
 // NewClient creates a new Git client.
 
@@ -486,8 +390,6 @@ func NewClient(repoURL, branch, sshKey string) *Client {
 	// Create a default logger if none provided.
 
 	logger := slog.Default().With("component", "git-client")
-
-
 
 	// Read concurrent push limit from environment or use default.
 
@@ -505,27 +407,23 @@ func NewClient(repoURL, branch, sshKey string) *Client {
 
 	}
 
-
-
 	return &Client{
 
-		RepoURL:  repoURL,
+		RepoURL: repoURL,
 
-		Branch:   branch,
+		Branch: branch,
 
-		SSHKey:   sshKey,
+		SSHKey: sshKey,
 
 		RepoPath: "/tmp/deployment-repo",
 
-		logger:   logger,
+		logger: logger,
 
-		pushSem:  make(chan struct{}, limit), // Initialize semaphore with configurable capacity
+		pushSem: make(chan struct{}, limit), // Initialize semaphore with configurable capacity
 
 	}
 
 }
-
-
 
 // NewClientWithLogger creates a new Git client with a specific logger.
 
@@ -539,8 +437,6 @@ func NewClientWithLogger(repoURL, branch, sshKey string, logger *slog.Logger) *C
 
 	logger = logger.With("component", "git-client")
 
-
-
 	// Read concurrent push limit from environment or use default.
 
 	limit := 4
@@ -557,27 +453,23 @@ func NewClientWithLogger(repoURL, branch, sshKey string, logger *slog.Logger) *C
 
 	}
 
-
-
 	return &Client{
 
-		RepoURL:  repoURL,
+		RepoURL: repoURL,
 
-		Branch:   branch,
+		Branch: branch,
 
-		SSHKey:   sshKey,
+		SSHKey: sshKey,
 
 		RepoPath: "/tmp/deployment-repo",
 
-		logger:   logger,
+		logger: logger,
 
-		pushSem:  make(chan struct{}, limit), // Initialize semaphore with configurable capacity
+		pushSem: make(chan struct{}, limit), // Initialize semaphore with configurable capacity
 
 	}
 
 }
-
-
 
 // acquireSemaphore acquires the semaphore for git operations with debug logging.
 
@@ -596,8 +488,6 @@ func (c *Client) acquireSemaphore(operation string) {
 		c.logger = slog.Default().With("component", "git-client")
 
 	}
-
-
 
 	// Try to acquire immediately first.
 
@@ -620,8 +510,6 @@ func (c *Client) acquireSemaphore(operation string) {
 			"acquired_immediately", true,
 
 			"goroutine", runtime.NumGoroutine())
-
-
 
 		// Update metrics if available.
 
@@ -649,8 +537,6 @@ func (c *Client) acquireSemaphore(operation string) {
 
 	}
 
-
-
 	// Now block and wait for acquisition.
 
 	c.pushSem <- struct{}{}
@@ -669,8 +555,6 @@ func (c *Client) acquireSemaphore(operation string) {
 
 		"goroutine", runtime.NumGoroutine())
 
-
-
 	// Update metrics if available.
 
 	if gitPushInFlightGauge != nil {
@@ -680,8 +564,6 @@ func (c *Client) acquireSemaphore(operation string) {
 	}
 
 }
-
-
 
 // releaseSemaphore releases the semaphore for git operations with debug logging.
 
@@ -694,8 +576,6 @@ func (c *Client) releaseSemaphore(operation string) {
 		return // No semaphore to release, nothing to do
 
 	}
-
-
 
 	defer func() {
 
@@ -715,8 +595,6 @@ func (c *Client) releaseSemaphore(operation string) {
 
 	}()
 
-
-
 	select {
 
 	case <-c.pushSem:
@@ -732,8 +610,6 @@ func (c *Client) releaseSemaphore(operation string) {
 			"limit", cap(c.pushSem),
 
 			"goroutine", runtime.NumGoroutine())
-
-
 
 		// Update metrics if available.
 
@@ -759,8 +635,6 @@ func (c *Client) releaseSemaphore(operation string) {
 
 }
 
-
-
 // InitRepo clones the repository if it doesn't exist locally.
 
 func (c *Client) InitRepo() error {
@@ -769,16 +643,13 @@ func (c *Client) InitRepo() error {
 
 	defer c.releaseSemaphore("InitRepo")
 
-
-
 	if _, err := os.Stat(c.RepoPath); os.IsNotExist(err) {
 
 		_, err := git.PlainClone(c.RepoPath, false, &git.CloneOptions{
 
-			URL:      c.RepoURL,
+			URL: c.RepoURL,
 
 			Progress: os.Stdout,
-
 		})
 
 		if err != nil && err != git.ErrRepositoryAlreadyExists {
@@ -793,8 +664,6 @@ func (c *Client) InitRepo() error {
 
 }
 
-
-
 // CommitAndPush writes files, commits them, and pushes to the remote repository.
 
 // Returns the commit hash of the created commit.
@@ -804,8 +673,6 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 	c.acquireSemaphore("CommitAndPush")
 
 	defer c.releaseSemaphore("CommitAndPush")
-
-
 
 	// Test hook - before push operations.
 
@@ -823,8 +690,6 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 
 	}
 
-
-
 	r, err := git.PlainOpen(c.RepoPath)
 
 	if err != nil {
@@ -833,8 +698,6 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 
 	}
 
-
-
 	w, err := r.Worktree()
 
 	if err != nil {
@@ -842,8 +705,6 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 		return "", fmt.Errorf("failed to get worktree: %w", err)
 
 	}
-
-
 
 	for path, content := range files {
 
@@ -899,20 +760,16 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 
 	}
 
-
-
 	commit, err := w.Commit(message, &git.CommitOptions{
 
 		Author: &object.Signature{
 
-			Name:  "Nephio Bridge",
+			Name: "Nephio Bridge",
 
 			Email: "nephio-bridge@example.com",
 
-			When:  time.Now(),
-
+			When: time.Now(),
 		},
-
 	})
 
 	if err != nil {
@@ -920,8 +777,6 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 		return "", fmt.Errorf("failed to commit: %w", err)
 
 	}
-
-
 
 	commitObj, err := r.CommitObject(commit)
 
@@ -931,8 +786,6 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 
 	}
 
-
-
 	auth, err := ssh.NewPublicKeys("git", []byte(c.SSHKey), "")
 
 	if err != nil {
@@ -941,14 +794,11 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 
 	}
 
-
-
 	err = r.Push(&git.PushOptions{
 
 		RemoteName: "origin",
 
-		Auth:       auth,
-
+		Auth: auth,
 	})
 
 	if err != nil {
@@ -957,13 +807,9 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 
 	}
 
-
-
 	return commitObj.Hash.String(), nil
 
 }
-
-
 
 // CommitAndPushChanges commits and pushes any changes without specifying files.
 
@@ -972,8 +818,6 @@ func (c *Client) CommitAndPushChanges(message string) error {
 	c.acquireSemaphore("CommitAndPushChanges")
 
 	defer c.releaseSemaphore("CommitAndPushChanges")
-
-
 
 	// Test hook - before push operations.
 
@@ -991,8 +835,6 @@ func (c *Client) CommitAndPushChanges(message string) error {
 
 	}
 
-
-
 	r, err := git.PlainOpen(c.RepoPath)
 
 	if err != nil {
@@ -1001,8 +843,6 @@ func (c *Client) CommitAndPushChanges(message string) error {
 
 	}
 
-
-
 	w, err := r.Worktree()
 
 	if err != nil {
@@ -1010,8 +850,6 @@ func (c *Client) CommitAndPushChanges(message string) error {
 		return fmt.Errorf("failed to get worktree: %w", err)
 
 	}
-
-
 
 	// Get status and stage only tracked files, skip untracked and .git files.
 
@@ -1023,8 +861,6 @@ func (c *Client) CommitAndPushChanges(message string) error {
 
 	}
 
-
-
 	for file := range status {
 
 		// Skip files/directories starting with .git.
@@ -1034,8 +870,6 @@ func (c *Client) CommitAndPushChanges(message string) error {
 			continue
 
 		}
-
-
 
 		// Stage only tracked files (modified, deleted, renamed).
 
@@ -1053,20 +887,16 @@ func (c *Client) CommitAndPushChanges(message string) error {
 
 	}
 
-
-
 	_, err = w.Commit(message, &git.CommitOptions{
 
 		Author: &object.Signature{
 
-			Name:  "Nephio Bridge",
+			Name: "Nephio Bridge",
 
 			Email: "nephio-bridge@example.com",
 
-			When:  time.Now(),
-
+			When: time.Now(),
 		},
-
 	})
 
 	if err != nil {
@@ -1074,8 +904,6 @@ func (c *Client) CommitAndPushChanges(message string) error {
 		return fmt.Errorf("failed to commit: %w", err)
 
 	}
-
-
 
 	auth, err := ssh.NewPublicKeys("git", []byte(c.SSHKey), "")
 
@@ -1085,14 +913,11 @@ func (c *Client) CommitAndPushChanges(message string) error {
 
 	}
 
-
-
 	err = r.Push(&git.PushOptions{
 
 		RemoteName: "origin",
 
-		Auth:       auth,
-
+		Auth: auth,
 	})
 
 	if err != nil {
@@ -1101,13 +926,9 @@ func (c *Client) CommitAndPushChanges(message string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // RemoveDirectory removes a directory from the repository and commits the change.
 
@@ -1116,8 +937,6 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 	c.acquireSemaphore("RemoveDirectory")
 
 	defer c.releaseSemaphore("RemoveDirectory")
-
-
 
 	// Test hook - before push operations.
 
@@ -1135,8 +954,6 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 
 	}
 
-
-
 	r, err := git.PlainOpen(c.RepoPath)
 
 	if err != nil {
@@ -1145,8 +962,6 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 
 	}
 
-
-
 	w, err := r.Worktree()
 
 	if err != nil {
@@ -1154,8 +969,6 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 		return fmt.Errorf("failed to get worktree: %w", err)
 
 	}
-
-
 
 	// Check if directory exists before attempting removal.
 
@@ -1169,8 +982,6 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 
 	}
 
-
-
 	// Remove directory from filesystem.
 
 	if err := os.RemoveAll(fullPath); err != nil {
@@ -1178,8 +989,6 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 		return fmt.Errorf("failed to remove directory %s: %w", fullPath, err)
 
 	}
-
-
 
 	// Get status to find all files that were deleted.
 
@@ -1190,8 +999,6 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 		return fmt.Errorf("failed to get worktree status: %w", err)
 
 	}
-
-
 
 	// Stage all deletions within the removed directory.
 
@@ -1217,8 +1024,6 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 
 	}
 
-
-
 	// If no files were staged for deletion, the directory was already empty or didn't contain tracked files.
 
 	if filesStaged == 0 {
@@ -1229,22 +1034,18 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 
 	}
 
-
-
 	// Commit the changes.
 
 	_, err = w.Commit(commitMessage, &git.CommitOptions{
 
 		Author: &object.Signature{
 
-			Name:  "Nephio Bridge",
+			Name: "Nephio Bridge",
 
 			Email: "nephio-bridge@example.com",
 
-			When:  time.Now(),
-
+			When: time.Now(),
 		},
-
 	})
 
 	if err != nil {
@@ -1252,8 +1053,6 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 		return fmt.Errorf("failed to commit directory removal: %w", err)
 
 	}
-
-
 
 	// Push the changes.
 
@@ -1265,14 +1064,11 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 
 	}
 
-
-
 	err = r.Push(&git.PushOptions{
 
 		RemoteName: "origin",
 
-		Auth:       auth,
-
+		Auth: auth,
 	})
 
 	if err != nil {
@@ -1281,13 +1077,9 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // CommitFiles commits specified files with a message without pushing.
 
@@ -1297,8 +1089,6 @@ func (c *Client) CommitFiles(files []string, msg string) error {
 
 	defer c.releaseSemaphore("CommitFiles")
 
-
-
 	r, err := git.PlainOpen(c.RepoPath)
 
 	if err != nil {
@@ -1307,8 +1097,6 @@ func (c *Client) CommitFiles(files []string, msg string) error {
 
 	}
 
-
-
 	w, err := r.Worktree()
 
 	if err != nil {
@@ -1316,8 +1104,6 @@ func (c *Client) CommitFiles(files []string, msg string) error {
 		return fmt.Errorf("failed to get worktree: %w", err)
 
 	}
-
-
 
 	// Stage specified files.
 
@@ -1331,22 +1117,18 @@ func (c *Client) CommitFiles(files []string, msg string) error {
 
 	}
 
-
-
 	// Commit the changes.
 
 	_, err = w.Commit(msg, &git.CommitOptions{
 
 		Author: &object.Signature{
 
-			Name:  "Nephio Bridge",
+			Name: "Nephio Bridge",
 
 			Email: "nephio-bridge@example.com",
 
-			When:  time.Now(),
-
+			When: time.Now(),
 		},
-
 	})
 
 	if err != nil {
@@ -1355,13 +1137,9 @@ func (c *Client) CommitFiles(files []string, msg string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // CreateBranch creates a new branch from the current HEAD.
 
@@ -1371,8 +1149,6 @@ func (c *Client) CreateBranch(name string) error {
 
 	defer c.releaseSemaphore("CreateBranch")
 
-
-
 	r, err := git.PlainOpen(c.RepoPath)
 
 	if err != nil {
@@ -1380,8 +1156,6 @@ func (c *Client) CreateBranch(name string) error {
 		return fmt.Errorf("failed to open repo: %w", err)
 
 	}
-
-
 
 	// Get HEAD reference.
 
@@ -1393,15 +1167,11 @@ func (c *Client) CreateBranch(name string) error {
 
 	}
 
-
-
 	// Create new branch reference.
 
 	branchRef := plumbing.NewBranchReferenceName(name)
 
 	ref := plumbing.NewHashReference(branchRef, headRef.Hash())
-
-
 
 	err = r.Storer.SetReference(ref)
 
@@ -1411,13 +1181,9 @@ func (c *Client) CreateBranch(name string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // SwitchBranch switches to the specified branch.
 
@@ -1427,8 +1193,6 @@ func (c *Client) SwitchBranch(name string) error {
 
 	defer c.releaseSemaphore("SwitchBranch")
 
-
-
 	r, err := git.PlainOpen(c.RepoPath)
 
 	if err != nil {
@@ -1436,8 +1200,6 @@ func (c *Client) SwitchBranch(name string) error {
 		return fmt.Errorf("failed to open repo: %w", err)
 
 	}
-
-
 
 	w, err := r.Worktree()
 
@@ -1447,14 +1209,11 @@ func (c *Client) SwitchBranch(name string) error {
 
 	}
 
-
-
 	// Checkout the branch.
 
 	err = w.Checkout(&git.CheckoutOptions{
 
 		Branch: plumbing.NewBranchReferenceName(name),
-
 	})
 
 	if err != nil {
@@ -1463,19 +1222,13 @@ func (c *Client) SwitchBranch(name string) error {
 
 	}
 
-
-
 	// Update the client's branch field.
 
 	c.Branch = name
 
-
-
 	return nil
 
 }
-
-
 
 // GetCurrentBranch returns the name of the current branch.
 
@@ -1485,8 +1238,6 @@ func (c *Client) GetCurrentBranch() (string, error) {
 
 	defer c.releaseSemaphore("GetCurrentBranch")
 
-
-
 	r, err := git.PlainOpen(c.RepoPath)
 
 	if err != nil {
@@ -1494,8 +1245,6 @@ func (c *Client) GetCurrentBranch() (string, error) {
 		return "", fmt.Errorf("failed to open repo: %w", err)
 
 	}
-
-
 
 	headRef, err := r.Head()
 
@@ -1505,8 +1254,6 @@ func (c *Client) GetCurrentBranch() (string, error) {
 
 	}
 
-
-
 	// Extract branch name from reference.
 
 	if headRef.Name().IsBranch() {
@@ -1515,15 +1262,11 @@ func (c *Client) GetCurrentBranch() (string, error) {
 
 	}
 
-
-
 	// If we're in detached HEAD state, return the hash.
 
 	return headRef.Hash().String()[:7], nil
 
 }
-
-
 
 // ListBranches returns a list of all local branches.
 
@@ -1533,8 +1276,6 @@ func (c *Client) ListBranches() ([]string, error) {
 
 	defer c.releaseSemaphore("ListBranches")
 
-
-
 	r, err := git.PlainOpen(c.RepoPath)
 
 	if err != nil {
@@ -1543,8 +1284,6 @@ func (c *Client) ListBranches() ([]string, error) {
 
 	}
 
-
-
 	refs, err := r.References()
 
 	if err != nil {
@@ -1552,8 +1291,6 @@ func (c *Client) ListBranches() ([]string, error) {
 		return nil, fmt.Errorf("failed to get references: %w", err)
 
 	}
-
-
 
 	var branches []string
 
@@ -1575,13 +1312,9 @@ func (c *Client) ListBranches() ([]string, error) {
 
 	}
 
-
-
 	return branches, nil
 
 }
-
-
 
 // GetFileContent reads and returns the content of a file from the repository.
 
@@ -1591,11 +1324,7 @@ func (c *Client) GetFileContent(path string) ([]byte, error) {
 
 	defer c.releaseSemaphore("GetFileContent")
 
-
-
 	fullPath := filepath.Join(c.RepoPath, path)
-
-
 
 	// Check if file exists.
 
@@ -1605,12 +1334,11 @@ func (c *Client) GetFileContent(path string) ([]byte, error) {
 
 			return nil, &fs.PathError{
 
-				Op:   "open",
+				Op: "open",
 
 				Path: path,
 
-				Err:  fs.ErrNotExist,
-
+				Err: fs.ErrNotExist,
 			}
 
 		}
@@ -1618,8 +1346,6 @@ func (c *Client) GetFileContent(path string) ([]byte, error) {
 		return nil, fmt.Errorf("failed to stat file %s: %w", path, err)
 
 	}
-
-
 
 	content, err := os.ReadFile(fullPath)
 
@@ -1629,13 +1355,9 @@ func (c *Client) GetFileContent(path string) ([]byte, error) {
 
 	}
 
-
-
 	return content, nil
 
 }
-
-
 
 // DeleteBranch deletes a branch.
 
@@ -1645,8 +1367,6 @@ func (c *Client) DeleteBranch(name string) error {
 
 }
 
-
-
 // MergeBranch merges sourceBranch into targetBranch.
 
 func (c *Client) MergeBranch(sourceBranch, targetBranch string) error {
@@ -1654,8 +1374,6 @@ func (c *Client) MergeBranch(sourceBranch, targetBranch string) error {
 	return fmt.Errorf("MergeBranch not implemented: would merge %s into %s", sourceBranch, targetBranch)
 
 }
-
-
 
 // RebaseBranch rebases sourceBranch onto targetBranch.
 
@@ -1665,8 +1383,6 @@ func (c *Client) RebaseBranch(sourceBranch, targetBranch string) error {
 
 }
 
-
-
 // CherryPick cherry-picks a commit.
 
 func (c *Client) CherryPick(commitHash string) error {
@@ -1674,8 +1390,6 @@ func (c *Client) CherryPick(commitHash string) error {
 	return fmt.Errorf("CherryPick not implemented: would cherry-pick %s", commitHash)
 
 }
-
-
 
 // Reset resets the repository state.
 
@@ -1685,8 +1399,6 @@ func (c *Client) Reset(options ResetOptions) error {
 
 }
 
-
-
 // Clean removes untracked files.
 
 func (c *Client) Clean(force bool) error {
@@ -1694,8 +1406,6 @@ func (c *Client) Clean(force bool) error {
 	return fmt.Errorf("Clean not implemented: would clean with force=%t", force)
 
 }
-
-
 
 // GetCommitHistory returns commit history based on options.
 
@@ -1705,8 +1415,6 @@ func (c *Client) GetCommitHistory(options LogOptions) ([]CommitInfo, error) {
 
 }
 
-
-
 // CreateTag creates a new tag.
 
 func (c *Client) CreateTag(name, message string) error {
@@ -1714,8 +1422,6 @@ func (c *Client) CreateTag(name, message string) error {
 	return fmt.Errorf("CreateTag not implemented: would create tag %s with message %s", name, message)
 
 }
-
-
 
 // ListTags returns all tags.
 
@@ -1725,8 +1431,6 @@ func (c *Client) ListTags() ([]TagInfo, error) {
 
 }
 
-
-
 // GetTagInfo returns information about a specific tag.
 
 func (c *Client) GetTagInfo(name string) (TagInfo, error) {
@@ -1734,8 +1438,6 @@ func (c *Client) GetTagInfo(name string) (TagInfo, error) {
 	return TagInfo{}, fmt.Errorf("GetTagInfo not implemented for tag %s", name)
 
 }
-
-
 
 // CreatePullRequest creates a new pull request.
 
@@ -1745,8 +1447,6 @@ func (c *Client) CreatePullRequest(options PullRequestOptions) (PullRequestInfo,
 
 }
 
-
-
 // GetPullRequestStatus returns the status of a pull request.
 
 func (c *Client) GetPullRequestStatus(id int) (string, error) {
@@ -1754,8 +1454,6 @@ func (c *Client) GetPullRequestStatus(id int) (string, error) {
 	return "", fmt.Errorf("GetPullRequestStatus not implemented for PR %d", id)
 
 }
-
-
 
 // ApprovePullRequest approves a pull request.
 
@@ -1765,8 +1463,6 @@ func (c *Client) ApprovePullRequest(id int) error {
 
 }
 
-
-
 // MergePullRequest merges a pull request.
 
 func (c *Client) MergePullRequest(id int) error {
@@ -1774,8 +1470,6 @@ func (c *Client) MergePullRequest(id int) error {
 	return fmt.Errorf("MergePullRequest not implemented for PR %d", id)
 
 }
-
-
 
 // GetDiff returns diff based on options.
 
@@ -1785,8 +1479,6 @@ func (c *Client) GetDiff(options DiffOptions) (string, error) {
 
 }
 
-
-
 // GetStatus returns the status of the working directory.
 
 func (c *Client) GetStatus() ([]StatusInfo, error) {
@@ -1794,8 +1486,6 @@ func (c *Client) GetStatus() ([]StatusInfo, error) {
 	return nil, fmt.Errorf("GetStatus not implemented")
 
 }
-
-
 
 // Add stages a file for commit.
 
@@ -1805,8 +1495,6 @@ func (c *Client) Add(path string) error {
 
 }
 
-
-
 // Remove removes a file from the index.
 
 func (c *Client) Remove(path string) error {
@@ -1814,8 +1502,6 @@ func (c *Client) Remove(path string) error {
 	return fmt.Errorf("Remove not implemented: would remove %s", path)
 
 }
-
-
 
 // Move renames/moves a file.
 
@@ -1825,8 +1511,6 @@ func (c *Client) Move(oldPath, newPath string) error {
 
 }
 
-
-
 // Restore restores a file.
 
 func (c *Client) Restore(path string) error {
@@ -1834,8 +1518,6 @@ func (c *Client) Restore(path string) error {
 	return fmt.Errorf("Restore not implemented: would restore %s", path)
 
 }
-
-
 
 // ApplyPatch applies a patch to the repository.
 
@@ -1845,8 +1527,6 @@ func (c *Client) ApplyPatch(patch string) error {
 
 }
 
-
-
 // CreatePatch creates a patch based on options.
 
 func (c *Client) CreatePatch(options DiffOptions) (string, error) {
@@ -1854,8 +1534,6 @@ func (c *Client) CreatePatch(options DiffOptions) (string, error) {
 	return "", fmt.Errorf("CreatePatch not implemented")
 
 }
-
-
 
 // GetRemotes returns all remotes.
 
@@ -1865,8 +1543,6 @@ func (c *Client) GetRemotes() ([]RemoteInfo, error) {
 
 }
 
-
-
 // AddRemote adds a new remote.
 
 func (c *Client) AddRemote(name, url string) error {
@@ -1874,8 +1550,6 @@ func (c *Client) AddRemote(name, url string) error {
 	return fmt.Errorf("AddRemote not implemented: would add remote %s with URL %s", name, url)
 
 }
-
-
 
 // RemoveRemote removes a remote.
 
@@ -1885,8 +1559,6 @@ func (c *Client) RemoveRemote(name string) error {
 
 }
 
-
-
 // Fetch fetches changes from a remote.
 
 func (c *Client) Fetch(remote string) error {
@@ -1894,8 +1566,6 @@ func (c *Client) Fetch(remote string) error {
 	return fmt.Errorf("Fetch not implemented: would fetch from %s", remote)
 
 }
-
-
 
 // Pull pulls changes from a remote.
 
@@ -1905,8 +1575,6 @@ func (c *Client) Pull(remote string) error {
 
 }
 
-
-
 // Push pushes changes to a remote.
 
 func (c *Client) Push(remote string) error {
@@ -1915,8 +1583,6 @@ func (c *Client) Push(remote string) error {
 
 }
 
-
-
 // GetLog returns commit log based on options.
 
 func (c *Client) GetLog(options LogOptions) ([]CommitInfo, error) {
@@ -1924,4 +1590,3 @@ func (c *Client) GetLog(options LogOptions) ([]CommitInfo, error) {
 	return nil, fmt.Errorf("GetLog not implemented")
 
 }
-

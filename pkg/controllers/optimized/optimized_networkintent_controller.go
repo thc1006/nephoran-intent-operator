@@ -1,49 +1,25 @@
-
 package optimized
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
 
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/apimachinery/pkg/types"
-
 	"k8s.io/client-go/tools/record"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 const (
 
@@ -54,66 +30,49 @@ const (
 	// NetworkIntentFinalizer holds networkintentfinalizer value.
 
 	NetworkIntentFinalizer = "networkintent.nephoran.com/finalizer"
-
 )
-
-
 
 // OptimizedNetworkIntentReconciler implements an optimized version of the NetworkIntent controller.
 
 type OptimizedNetworkIntentReconciler struct {
-
 	client.Client
 
-	Scheme   *runtime.Scheme
+	Scheme *runtime.Scheme
 
 	Recorder record.EventRecorder
-
-
 
 	// Optimization components.
 
 	backoffManager *BackoffManager
 
-	statusBatcher  *StatusBatcher
+	statusBatcher *StatusBatcher
 
-	metrics        *ControllerMetrics
-
-
+	metrics *ControllerMetrics
 
 	// Configuration.
 
 	config controllers.Config
 
-	deps   controllers.Dependencies
-
-
+	deps controllers.Dependencies
 
 	// Performance tracking.
 
 	activeReconcilers int64
 
-	reconcilePool     sync.Pool
-
-
+	reconcilePool sync.Pool
 
 	// Batching for API calls.
 
 	apiCallBatcher *APICallBatcher
 
-
-
 	// Context for graceful shutdown.
 
-	ctx    context.Context
+	ctx context.Context
 
 	cancel context.CancelFunc
 
-	wg     sync.WaitGroup
-
+	wg sync.WaitGroup
 }
-
-
 
 // NewOptimizedNetworkIntentReconciler creates a new optimized NetworkIntent reconciler.
 
@@ -133,8 +92,6 @@ func NewOptimizedNetworkIntentReconciler(
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-
-
 	// Initialize optimization components.
 
 	backoffManager := NewBackoffManager()
@@ -145,35 +102,30 @@ func NewOptimizedNetworkIntentReconciler(
 
 	apiCallBatcher := NewAPICallBatcher(client, DefaultAPIBatchConfig)
 
-
-
 	reconciler := &OptimizedNetworkIntentReconciler{
 
-		Client:         client,
+		Client: client,
 
-		Scheme:         scheme,
+		Scheme: scheme,
 
-		Recorder:       recorder,
+		Recorder: recorder,
 
 		backoffManager: backoffManager,
 
-		statusBatcher:  statusBatcher,
+		statusBatcher: statusBatcher,
 
-		metrics:        metrics,
+		metrics: metrics,
 
-		config:         config,
+		config: config,
 
-		deps:           deps,
+		deps: deps,
 
 		apiCallBatcher: apiCallBatcher,
 
-		ctx:            ctx,
+		ctx: ctx,
 
-		cancel:         cancel,
-
+		cancel: cancel,
 	}
-
-
 
 	// Initialize object pool for reconcile contexts.
 
@@ -185,17 +137,13 @@ func NewOptimizedNetworkIntentReconciler(
 
 				ProcessingMetrics: make(map[string]float64),
 
-				ResourcePlan:      make(map[string]interface{}),
+				ResourcePlan: make(map[string]interface{}),
 
-				Manifests:         make(map[string]string),
-
+				Manifests: make(map[string]string),
 			}
 
 		},
-
 	}
-
-
 
 	// Start background cleanup for stale backoff entries.
 
@@ -209,37 +157,29 @@ func NewOptimizedNetworkIntentReconciler(
 
 	}()
 
-
-
 	return reconciler
 
 }
 
-
-
 // ReconcileContext contains optimized reconcile state with object pooling.
 
 type ReconcileContext struct {
+	StartTime time.Time
 
-	StartTime         time.Time
+	NetworkIntent *nephoranv1.NetworkIntent
 
-	NetworkIntent     *nephoranv1.NetworkIntent
-
-	ProcessingPhase   string
+	ProcessingPhase string
 
 	ProcessingMetrics map[string]float64
 
-	ResourcePlan      map[string]interface{}
+	ResourcePlan map[string]interface{}
 
-	Manifests         map[string]string
+	Manifests map[string]string
 
-	ErrorCount        int
+	ErrorCount int
 
-	LastError         error
-
+	LastError error
 }
-
-
 
 // Reset resets the context for reuse.
 
@@ -275,23 +215,17 @@ func (rc *ReconcileContext) Reset() {
 
 }
 
-
-
 //+kubebuilder:rbac:groups=nephoran.com,resources=networkintents,verbs=get;list;watch;create;update;patch;delete
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=networkintents/status,verbs=get;update;patch
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=networkintents/finalizers,verbs=update
 
-
-
 // Reconcile implements the optimized reconcile loop.
 
 func (r *OptimizedNetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	logger := log.FromContext(ctx)
-
-
 
 	// Track active reconcilers.
 
@@ -300,8 +234,6 @@ func (r *OptimizedNetworkIntentReconciler) Reconcile(ctx context.Context, req ct
 	defer atomic.AddInt64(&r.activeReconcilers, -1)
 
 	r.metrics.UpdateActiveReconcilers(OptimizedNetworkIntentController, int(atomic.LoadInt64(&r.activeReconcilers)))
-
-
 
 	// Get recycled context from pool.
 
@@ -315,25 +247,17 @@ func (r *OptimizedNetworkIntentReconciler) Reconcile(ctx context.Context, req ct
 
 	}()
 
-
-
 	reconcileCtx.StartTime = time.Now()
 
 	timer := r.metrics.NewReconcileTimer(OptimizedNetworkIntentController, req.Namespace, req.Name, "main")
 
 	defer timer.Finish()
 
-
-
 	// Generate resource key for backoff management.
 
 	resourceKey := fmt.Sprintf("%s/%s", req.Namespace, req.Name)
 
-
-
 	logger.V(1).Info("Starting optimized reconciliation", "resource", resourceKey)
-
-
 
 	// Optimized object retrieval with API call batching.
 
@@ -351,21 +275,15 @@ func (r *OptimizedNetworkIntentReconciler) Reconcile(ctx context.Context, req ct
 
 		}
 
-
-
 		// Classify error and determine backoff.
 
 		errorType := r.backoffManager.ClassifyError(err)
 
 		delay := r.backoffManager.GetNextDelay(resourceKey, errorType, err)
 
-
-
 		r.metrics.RecordReconcileError(OptimizedNetworkIntentController, errorType, "fetch")
 
 		r.metrics.RecordBackoffDelay(OptimizedNetworkIntentController, errorType, ExponentialBackoff, delay)
-
-
 
 		logger.Error(err, "Failed to get NetworkIntent", "backoff_delay", delay)
 
@@ -373,11 +291,7 @@ func (r *OptimizedNetworkIntentReconciler) Reconcile(ctx context.Context, req ct
 
 	}
 
-
-
 	reconcileCtx.NetworkIntent = networkIntent
-
-
 
 	// Handle deletion with optimized cleanup.
 
@@ -386,8 +300,6 @@ func (r *OptimizedNetworkIntentReconciler) Reconcile(ctx context.Context, req ct
 		return r.handleDeletionOptimized(ctx, networkIntent, resourceKey)
 
 	}
-
-
 
 	// Ensure finalizer exists (batched operation).
 
@@ -398,8 +310,6 @@ func (r *OptimizedNetworkIntentReconciler) Reconcile(ctx context.Context, req ct
 			errorType := r.backoffManager.ClassifyError(err)
 
 			delay := r.backoffManager.GetNextDelay(resourceKey, errorType, err)
-
-
 
 			r.metrics.RecordReconcileError(OptimizedNetworkIntentController, errorType, "finalizer")
 
@@ -413,13 +323,9 @@ func (r *OptimizedNetworkIntentReconciler) Reconcile(ctx context.Context, req ct
 
 	}
 
-
-
 	// Execute optimized processing pipeline.
 
 	result, err := r.executeOptimizedPipeline(ctx, networkIntent, reconcileCtx, resourceKey)
-
-
 
 	// Record metrics based on result.
 
@@ -443,13 +349,9 @@ func (r *OptimizedNetworkIntentReconciler) Reconcile(ctx context.Context, req ct
 
 	}
 
-
-
 	return result, err
 
 }
-
-
 
 // getNetworkIntentOptimized retrieves NetworkIntent using optimized API calls.
 
@@ -457,17 +359,11 @@ func (r *OptimizedNetworkIntentReconciler) getNetworkIntentOptimized(ctx context
 
 	timer := r.metrics.NewAPICallTimer(OptimizedNetworkIntentController, "get", "NetworkIntent")
 
-
-
 	var networkIntent nephoranv1.NetworkIntent
 
 	err := r.Get(ctx, key, &networkIntent)
 
-
-
 	timer.FinishWithResult(err == nil, r.backoffManager.ClassifyError(err).String())
-
-
 
 	if err != nil {
 
@@ -475,13 +371,9 @@ func (r *OptimizedNetworkIntentReconciler) getNetworkIntentOptimized(ctx context
 
 	}
 
-
-
 	return &networkIntent, nil
 
 }
-
-
 
 // executeOptimizedPipeline runs the optimized processing pipeline.
 
@@ -499,8 +391,6 @@ func (r *OptimizedNetworkIntentReconciler) executeOptimizedPipeline(
 
 	logger := log.FromContext(ctx).WithValues("pipeline", "optimized")
 
-
-
 	// Phase 1: LLM Processing (if not already processed).
 
 	if !r.hasCondition(networkIntent, "Processed") {
@@ -509,13 +399,9 @@ func (r *OptimizedNetworkIntentReconciler) executeOptimizedPipeline(
 
 			networkIntent.Namespace, networkIntent.Name, "llm-processing")
 
-
-
 		result, err := r.processLLMPhaseOptimized(ctx, networkIntent, reconcileCtx, resourceKey)
 
 		phaseTimer.Finish()
-
-
 
 		if err != nil || result.Requeue || result.RequeueAfter > 0 {
 
@@ -524,8 +410,6 @@ func (r *OptimizedNetworkIntentReconciler) executeOptimizedPipeline(
 		}
 
 	}
-
-
 
 	// Phase 2: Resource Planning (if processed but not planned).
 
@@ -535,13 +419,9 @@ func (r *OptimizedNetworkIntentReconciler) executeOptimizedPipeline(
 
 			networkIntent.Namespace, networkIntent.Name, "resource-planning")
 
-
-
 		result, err := r.planResourcesOptimized(ctx, networkIntent, reconcileCtx, resourceKey)
 
 		phaseTimer.Finish()
-
-
 
 		if err != nil || result.Requeue || result.RequeueAfter > 0 {
 
@@ -550,8 +430,6 @@ func (r *OptimizedNetworkIntentReconciler) executeOptimizedPipeline(
 		}
 
 	}
-
-
 
 	// Phase 3: Manifest Generation (if planned but not generated).
 
@@ -561,13 +439,9 @@ func (r *OptimizedNetworkIntentReconciler) executeOptimizedPipeline(
 
 			networkIntent.Namespace, networkIntent.Name, "manifest-generation")
 
-
-
 		result, err := r.generateManifestsOptimized(ctx, networkIntent, reconcileCtx, resourceKey)
 
 		phaseTimer.Finish()
-
-
 
 		if err != nil || result.Requeue || result.RequeueAfter > 0 {
 
@@ -576,8 +450,6 @@ func (r *OptimizedNetworkIntentReconciler) executeOptimizedPipeline(
 		}
 
 	}
-
-
 
 	// Phase 4: GitOps Deployment (if manifests generated but not deployed).
 
@@ -587,13 +459,9 @@ func (r *OptimizedNetworkIntentReconciler) executeOptimizedPipeline(
 
 			networkIntent.Namespace, networkIntent.Name, "deployment")
 
-
-
 		result, err := r.deployViaGitOpsOptimized(ctx, networkIntent, reconcileCtx, resourceKey)
 
 		phaseTimer.Finish()
-
-
 
 		if err != nil || result.Requeue || result.RequeueAfter > 0 {
 
@@ -603,19 +471,13 @@ func (r *OptimizedNetworkIntentReconciler) executeOptimizedPipeline(
 
 	}
 
-
-
 	// Final status update.
 
 	r.queueStatusUpdate(networkIntent, "Ready", "Completed", HighPriority)
 
-
-
 	// Use intelligent requeue interval based on resource state.
 
 	requeueInterval := r.calculateOptimalRequeueInterval(networkIntent, reconcileCtx)
-
-
 
 	logger.V(1).Info("Pipeline completed successfully",
 
@@ -623,13 +485,9 @@ func (r *OptimizedNetworkIntentReconciler) executeOptimizedPipeline(
 
 		"processing_time", time.Since(reconcileCtx.StartTime))
 
-
-
 	return ctrl.Result{RequeueAfter: requeueInterval}, nil
 
 }
-
-
 
 // processLLMPhaseOptimized handles LLM processing with optimizations.
 
@@ -649,59 +507,42 @@ func (r *OptimizedNetworkIntentReconciler) processLLMPhaseOptimized(
 
 	reconcileCtx.ProcessingPhase = "LLMProcessing"
 
-
-
 	// Check retry count using backoff manager.
 
 	retryCount := r.backoffManager.GetRetryCount(resourceKey + "-llm")
-
-
 
 	// Queue phase status update.
 
 	r.queueStatusUpdate(networkIntent, "LLMProcessing", "Processing intent with LLM", MediumPriority)
 
-
-
 	// Simulate LLM processing (replace with actual implementation).
 
 	processingStart := time.Now()
-
-
 
 	// Mock LLM call - in real implementation, this would call the LLM service.
 
 	time.Sleep(100 * time.Millisecond) // Simulate processing time
 
-
-
 	processingDuration := time.Since(processingStart)
 
 	reconcileCtx.ProcessingMetrics["llm_processing_duration"] = processingDuration.Seconds()
-
-
 
 	// Queue success status update.
 
 	condition := metav1.Condition{
 
-		Type:               "Processed",
+		Type: "Processed",
 
-		Status:             metav1.ConditionTrue,
+		Status: metav1.ConditionTrue,
 
-		Reason:             "LLMProcessingCompleted",
+		Reason: "LLMProcessingCompleted",
 
-		Message:            fmt.Sprintf("Intent processed successfully in %v", processingDuration),
+		Message: fmt.Sprintf("Intent processed successfully in %v", processingDuration),
 
 		LastTransitionTime: metav1.Now(),
-
 	}
 
-
-
 	r.queueConditionUpdate(networkIntent, condition, HighPriority)
-
-
 
 	logger.V(1).Info("LLM processing completed",
 
@@ -709,13 +550,9 @@ func (r *OptimizedNetworkIntentReconciler) processLLMPhaseOptimized(
 
 		"retry_count", retryCount)
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // planResourcesOptimized handles resource planning with optimizations.
 
@@ -735,13 +572,9 @@ func (r *OptimizedNetworkIntentReconciler) planResourcesOptimized(
 
 	reconcileCtx.ProcessingPhase = "ResourcePlanning"
 
-
-
 	// Queue phase status update.
 
 	r.queueStatusUpdate(networkIntent, "ResourcePlanning", "Planning resource deployment", MediumPriority)
-
-
 
 	// Simulate resource planning.
 
@@ -751,11 +584,7 @@ func (r *OptimizedNetworkIntentReconciler) planResourcesOptimized(
 
 	planningDuration := time.Since(planningStart)
 
-
-
 	reconcileCtx.ProcessingMetrics["resource_planning_duration"] = planningDuration.Seconds()
-
-
 
 	// Mock resource plan.
 
@@ -765,35 +594,27 @@ func (r *OptimizedNetworkIntentReconciler) planResourcesOptimized(
 
 	reconcileCtx.ResourcePlan["resources"] = map[string]string{
 
-		"cpu":    "500m",
+		"cpu": "500m",
 
 		"memory": "512Mi",
-
 	}
-
-
 
 	// Queue success status update.
 
 	condition := metav1.Condition{
 
-		Type:               "ResourcesPlanned",
+		Type: "ResourcesPlanned",
 
-		Status:             metav1.ConditionTrue,
+		Status: metav1.ConditionTrue,
 
-		Reason:             "ResourcePlanningCompleted",
+		Reason: "ResourcePlanningCompleted",
 
-		Message:            fmt.Sprintf("Resource planning completed in %v", planningDuration),
+		Message: fmt.Sprintf("Resource planning completed in %v", planningDuration),
 
 		LastTransitionTime: metav1.Now(),
-
 	}
 
-
-
 	r.queueConditionUpdate(networkIntent, condition, HighPriority)
-
-
 
 	logger.V(1).Info("Resource planning completed",
 
@@ -801,13 +622,9 @@ func (r *OptimizedNetworkIntentReconciler) planResourcesOptimized(
 
 		"functions", len(reconcileCtx.ResourcePlan))
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // generateManifestsOptimized handles manifest generation with optimizations.
 
@@ -827,13 +644,9 @@ func (r *OptimizedNetworkIntentReconciler) generateManifestsOptimized(
 
 	reconcileCtx.ProcessingPhase = "ManifestGeneration"
 
-
-
 	// Queue phase status update.
 
 	r.queueStatusUpdate(networkIntent, "ManifestGeneration", "Generating Kubernetes manifests", MediumPriority)
-
-
 
 	// Simulate manifest generation.
 
@@ -843,11 +656,7 @@ func (r *OptimizedNetworkIntentReconciler) generateManifestsOptimized(
 
 	generationDuration := time.Since(generationStart)
 
-
-
 	reconcileCtx.ProcessingMetrics["manifest_generation_duration"] = generationDuration.Seconds()
-
-
 
 	// Mock manifest generation.
 
@@ -857,29 +666,22 @@ func (r *OptimizedNetworkIntentReconciler) generateManifestsOptimized(
 
 	reconcileCtx.Manifests["upf-deployment.yaml"] = "apiVersion: apps/v1\nkind: Deployment\n..."
 
-
-
 	// Queue success status update.
 
 	condition := metav1.Condition{
 
-		Type:               "ManifestsGenerated",
+		Type: "ManifestsGenerated",
 
-		Status:             metav1.ConditionTrue,
+		Status: metav1.ConditionTrue,
 
-		Reason:             "ManifestGenerationCompleted",
+		Reason: "ManifestGenerationCompleted",
 
-		Message:            fmt.Sprintf("Generated %d manifests in %v", len(reconcileCtx.Manifests), generationDuration),
+		Message: fmt.Sprintf("Generated %d manifests in %v", len(reconcileCtx.Manifests), generationDuration),
 
 		LastTransitionTime: metav1.Now(),
-
 	}
 
-
-
 	r.queueConditionUpdate(networkIntent, condition, HighPriority)
-
-
 
 	logger.V(1).Info("Manifest generation completed",
 
@@ -887,13 +689,9 @@ func (r *OptimizedNetworkIntentReconciler) generateManifestsOptimized(
 
 		"manifests", len(reconcileCtx.Manifests))
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // deployViaGitOpsOptimized handles GitOps deployment with optimizations.
 
@@ -913,13 +711,9 @@ func (r *OptimizedNetworkIntentReconciler) deployViaGitOpsOptimized(
 
 	reconcileCtx.ProcessingPhase = "GitOpsDeployment"
 
-
-
 	// Queue phase status update.
 
 	r.queueStatusUpdate(networkIntent, "Deploying", "Committing to GitOps repository", MediumPriority)
-
-
 
 	// Simulate GitOps deployment.
 
@@ -929,39 +723,28 @@ func (r *OptimizedNetworkIntentReconciler) deployViaGitOpsOptimized(
 
 	deploymentDuration := time.Since(deploymentStart)
 
-
-
 	reconcileCtx.ProcessingMetrics["deployment_duration"] = deploymentDuration.Seconds()
-
-
 
 	// Mock successful deployment.
 
 	gitCommitHash := fmt.Sprintf("abc123-%d", time.Now().Unix())
 
-
-
 	// Queue success status update.
 
 	condition := metav1.Condition{
 
-		Type:               "Deployed",
+		Type: "Deployed",
 
-		Status:             metav1.ConditionTrue,
+		Status: metav1.ConditionTrue,
 
-		Reason:             "GitOpsDeploymentCompleted",
+		Reason: "GitOpsDeploymentCompleted",
 
-		Message:            fmt.Sprintf("Deployed to GitOps repository (commit: %s) in %v", gitCommitHash, deploymentDuration),
+		Message: fmt.Sprintf("Deployed to GitOps repository (commit: %s) in %v", gitCommitHash, deploymentDuration),
 
 		LastTransitionTime: metav1.Now(),
-
 	}
 
-
-
 	r.queueConditionUpdate(networkIntent, condition, CriticalPriority)
-
-
 
 	logger.V(1).Info("GitOps deployment completed",
 
@@ -969,17 +752,11 @@ func (r *OptimizedNetworkIntentReconciler) deployViaGitOpsOptimized(
 
 		"commit_hash", gitCommitHash)
 
-
-
 	return ctrl.Result{}, nil
 
 }
 
-
-
 // Helper methods for optimized operations.
-
-
 
 func (r *OptimizedNetworkIntentReconciler) queueStatusUpdate(networkIntent *nephoranv1.NetworkIntent, phase, message string, priority UpdatePriority) {
 
@@ -987,27 +764,21 @@ func (r *OptimizedNetworkIntentReconciler) queueStatusUpdate(networkIntent *neph
 
 		Namespace: networkIntent.Namespace,
 
-		Name:      networkIntent.Name,
-
+		Name: networkIntent.Name,
 	}
-
-
 
 	condition := metav1.Condition{
 
-		Type:               "Phase",
+		Type: "Phase",
 
-		Status:             metav1.ConditionTrue,
+		Status: metav1.ConditionTrue,
 
-		Reason:             phase,
+		Reason: phase,
 
-		Message:            message,
+		Message: message,
 
 		LastTransitionTime: metav1.Now(),
-
 	}
-
-
 
 	r.statusBatcher.QueueNetworkIntentUpdate(key, []metav1.Condition{condition}, phase, priority)
 
@@ -1015,27 +786,20 @@ func (r *OptimizedNetworkIntentReconciler) queueStatusUpdate(networkIntent *neph
 
 }
 
-
-
 func (r *OptimizedNetworkIntentReconciler) queueConditionUpdate(networkIntent *nephoranv1.NetworkIntent, condition metav1.Condition, priority UpdatePriority) {
 
 	key := types.NamespacedName{
 
 		Namespace: networkIntent.Namespace,
 
-		Name:      networkIntent.Name,
-
+		Name: networkIntent.Name,
 	}
-
-
 
 	r.statusBatcher.QueueNetworkIntentUpdate(key, []metav1.Condition{condition}, "", priority)
 
 	r.metrics.RecordStatusUpdate(OptimizedNetworkIntentController, priority.String(), "NetworkIntent", "queued")
 
 }
-
-
 
 func (r *OptimizedNetworkIntentReconciler) hasCondition(networkIntent *nephoranv1.NetworkIntent, conditionType string) bool {
 
@@ -1053,8 +817,6 @@ func (r *OptimizedNetworkIntentReconciler) hasCondition(networkIntent *nephoranv
 
 }
 
-
-
 func (r *OptimizedNetworkIntentReconciler) hasFinalizer(networkIntent *nephoranv1.NetworkIntent, finalizer string) bool {
 
 	for _, f := range networkIntent.Finalizers {
@@ -1071,13 +833,9 @@ func (r *OptimizedNetworkIntentReconciler) hasFinalizer(networkIntent *nephoranv
 
 }
 
-
-
 func (r *OptimizedNetworkIntentReconciler) addFinalizerOptimized(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
 
 	networkIntent.Finalizers = append(networkIntent.Finalizers, NetworkIntentFinalizer)
-
-
 
 	timer := r.metrics.NewAPICallTimer(OptimizedNetworkIntentController, "update", "NetworkIntent")
 
@@ -1085,25 +843,17 @@ func (r *OptimizedNetworkIntentReconciler) addFinalizerOptimized(ctx context.Con
 
 	timer.FinishWithResult(err == nil, r.backoffManager.ClassifyError(err).String())
 
-
-
 	return err
 
 }
-
-
 
 func (r *OptimizedNetworkIntentReconciler) handleDeletionOptimized(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, resourceKey string) (ctrl.Result, error) {
 
 	logger := log.FromContext(ctx).WithValues("phase", "deletion")
 
-
-
 	// Queue deletion status update.
 
 	r.queueStatusUpdate(networkIntent, "Deleting", "Cleaning up resources", HighPriority)
-
-
 
 	// Simulate cleanup operations.
 
@@ -1112,8 +862,6 @@ func (r *OptimizedNetworkIntentReconciler) handleDeletionOptimized(ctx context.C
 	time.Sleep(100 * time.Millisecond)
 
 	cleanupDuration := time.Since(cleanupStart)
-
-
 
 	// Remove finalizer.
 
@@ -1131,23 +879,17 @@ func (r *OptimizedNetworkIntentReconciler) handleDeletionOptimized(ctx context.C
 
 	networkIntent.Finalizers = finalizers
 
-
-
 	timer := r.metrics.NewAPICallTimer(OptimizedNetworkIntentController, "update", "NetworkIntent")
 
 	err := r.Update(ctx, networkIntent)
 
 	timer.FinishWithResult(err == nil, r.backoffManager.ClassifyError(err).String())
 
-
-
 	if err != nil {
 
 		errorType := r.backoffManager.ClassifyError(err)
 
 		delay := r.backoffManager.GetNextDelay(resourceKey, errorType, err)
-
-
 
 		r.metrics.RecordReconcileError(OptimizedNetworkIntentController, errorType, "deletion")
 
@@ -1157,27 +899,19 @@ func (r *OptimizedNetworkIntentReconciler) handleDeletionOptimized(ctx context.C
 
 	}
 
-
-
 	logger.Info("Resource deletion completed", "cleanup_duration", cleanupDuration)
 
 	r.metrics.RecordReconcileResult(OptimizedNetworkIntentController, "deleted")
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 func (r *OptimizedNetworkIntentReconciler) calculateOptimalRequeueInterval(networkIntent *nephoranv1.NetworkIntent, reconcileCtx *ReconcileContext) time.Duration {
 
 	// Adaptive requeue intervals based on resource state and processing time.
 
 	processingTime := time.Since(reconcileCtx.StartTime)
-
-
 
 	// Base interval depends on current phase.
 
@@ -1199,8 +933,6 @@ func (r *OptimizedNetworkIntentReconciler) calculateOptimalRequeueInterval(netwo
 
 	}
 
-
-
 	// Adjust based on processing time.
 
 	if processingTime > 1*time.Second {
@@ -1210,8 +942,6 @@ func (r *OptimizedNetworkIntentReconciler) calculateOptimalRequeueInterval(netwo
 		baseInterval = time.Duration(float64(baseInterval) * 1.5)
 
 	}
-
-
 
 	// Cap the maximum interval.
 
@@ -1223,22 +953,16 @@ func (r *OptimizedNetworkIntentReconciler) calculateOptimalRequeueInterval(netwo
 
 	}
 
-
-
 	return baseInterval
 
 }
-
-
 
 // SetupWithManager sets up the controller with optimized configuration.
 
 func (r *OptimizedNetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
-
 		For(&nephoranv1.NetworkIntent{}).
-
 		WithOptions(controller.Options{
 
 			MaxConcurrentReconciles: 5, // Increased concurrency
@@ -1251,15 +975,11 @@ func (r *OptimizedNetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) er
 
 }
 
-
-
 // Shutdown gracefully shuts down the optimized controller.
 
 func (r *OptimizedNetworkIntentReconciler) Shutdown() error {
 
 	r.cancel()
-
-
 
 	// Stop status batcher.
 
@@ -1269,8 +989,6 @@ func (r *OptimizedNetworkIntentReconciler) Shutdown() error {
 
 	}
 
-
-
 	// Stop API call batcher.
 
 	if err := r.apiCallBatcher.Stop(); err != nil {
@@ -1279,19 +997,13 @@ func (r *OptimizedNetworkIntentReconciler) Shutdown() error {
 
 	}
 
-
-
 	// Wait for background goroutines.
 
 	r.wg.Wait()
 
-
-
 	return nil
 
 }
-
-
 
 // String methods for priority types.
 
@@ -1323,8 +1035,6 @@ func (p UpdatePriority) String() string {
 
 }
 
-
-
 // String performs string operation.
 
 func (e ErrorType) String() string {
@@ -1333,8 +1043,6 @@ func (e ErrorType) String() string {
 
 }
 
-
-
 // String performs string operation.
 
 func (b BackoffStrategy) String() string {
@@ -1342,4 +1050,3 @@ func (b BackoffStrategy) String() string {
 	return string(b)
 
 }
-

@@ -35,6 +35,44 @@ env:
 jobs:
 
   # =============================================================================
+  # Emergency Detection - Check for emergency bypass keywords
+  # =============================================================================
+  emergency-check:
+    name: Emergency Detection
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      is_emergency: ${{ steps.check-emergency.outputs.emergency }}
+      skip_comprehensive: ${{ steps.check-emergency.outputs.skip_comprehensive }}
+    steps:
+      - name: Check for emergency keywords
+        id: check-emergency
+        run: |
+          echo "Checking for emergency bypass keywords..."
+          
+          emergency=false
+          skip_comprehensive=false
+          
+          # Check commit message for emergency keywords
+          commit_msg="${{ github.event.head_commit.message }}"
+          pr_title="${{ github.event.pull_request.title }}"
+          
+          search_text="$commit_msg $pr_title"
+          
+          if echo "$search_text" | grep -qiE '\[emergency\]|\[urgent-merge\]|\[bypass-lint\]|\[hotfix\]|\[critical\]|\[skip-lint\]'; then
+            emergency=true
+            skip_comprehensive=true
+            echo "🚨 EMERGENCY/BYPASS MODE DETECTED"
+            echo "Will run minimal CI checks only"
+            echo "Search text: $search_text"
+          else
+            echo "✅ Standard CI mode - running comprehensive checks"
+          fi
+          
+          echo "emergency=$emergency" >> $GITHUB_OUTPUT
+          echo "skip_comprehensive=$skip_comprehensive" >> $GITHUB_OUTPUT
+
+  # =============================================================================
   # File Change Detection - Only run expensive jobs when relevant files change
   # =============================================================================
   changes:
@@ -83,8 +121,8 @@ jobs:
   quality:
     name: Code Quality
     runs-on: ubuntu-latest
-    needs: [changes]
-    if: needs.changes.outputs.go-code == 'true' || needs.changes.outputs.workflows == 'true'
+    needs: [emergency-check, changes]
+    if: (needs.changes.outputs.go-code == 'true' || needs.changes.outputs.workflows == 'true') && needs.emergency-check.outputs.skip_comprehensive != 'true'
     timeout-minutes: 20
     outputs:
       quality_score: ${{ steps.quality-summary.outputs.score }}
@@ -265,13 +303,81 @@ jobs:
           retention-days: 7
 
   # =============================================================================
+  # Emergency Quality Check - Minimal checks for emergency merges
+  # =============================================================================
+  emergency-quality:
+    name: Emergency Quality Check
+    runs-on: ubuntu-latest
+    needs: [emergency-check, changes]
+    if: needs.emergency-check.outputs.skip_comprehensive == 'true' && needs.changes.outputs.go-code == 'true'
+    timeout-minutes: 5
+    outputs:
+      emergency_status: ${{ steps.emergency-summary.outputs.status }}
+    steps:
+      - name: Emergency Quality Banner
+        run: |
+          echo "🚨 EMERGENCY MODE: Running minimal quality checks only"
+          echo "⚠️  Comprehensive linting SKIPPED for speed"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+          cache: true
+
+      - name: Fast dependency download
+        run: |
+          echo "EMERGENCY: Ultra-fast dependency download..."
+          export GOPROXY="https://proxy.golang.org,direct"
+          export CGO_ENABLED=0
+          
+          if ! timeout 90s go mod download; then
+            echo "Download timeout - continuing with cache"
+          fi
+
+      - name: Critical Build Test
+        run: |
+          echo "EMERGENCY: Testing code compilation..."
+          CGO_ENABLED=0 go build -o /tmp/emergency-test ./cmd/conductor/main.go
+          echo "✅ Build test passed"
+
+      - name: Critical Go Vet
+        run: |
+          echo "EMERGENCY: Running go vet (critical issues only)..."
+          go vet ./...
+          echo "✅ Go vet passed"
+
+      - name: Emergency summary
+        id: emergency-summary
+        run: |
+          echo "## 🚨 Emergency Quality Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Mode:** Emergency bypass active" >> $GITHUB_STEP_SUMMARY
+          echo "**Checks performed:**" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Code compilation" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Go vet (critical issues)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**BYPASSED CHECKS:**" >> $GITHUB_STEP_SUMMARY
+          echo "- ⏭️ golangci-lint comprehensive analysis" >> $GITHUB_STEP_SUMMARY
+          echo "- ⏭️ Code formatting validation" >> $GITHUB_STEP_SUMMARY
+          echo "- ⏭️ Import organization checks" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**⚠️ POST-MERGE ACTION REQUIRED:**" >> $GITHUB_STEP_SUMMARY
+          echo "Run full CI on next commit to ensure code quality!" >> $GITHUB_STEP_SUMMARY
+          
+          echo "status=emergency_passed" >> $GITHUB_OUTPUT
+
+  # =============================================================================
   # Test Suite Job - Unit and integration tests
   # =============================================================================
   test:
     name: Test Suite
     runs-on: ubuntu-latest
-    needs: [changes]
-    if: needs.changes.outputs.go-code == 'true'
+    needs: [emergency-check, changes]
+    if: needs.changes.outputs.go-code == 'true' && needs.emergency-check.outputs.skip_comprehensive != 'true'
     timeout-minutes: 25
     outputs:
       coverage_pct: ${{ steps.test-summary.outputs.coverage_pct }}

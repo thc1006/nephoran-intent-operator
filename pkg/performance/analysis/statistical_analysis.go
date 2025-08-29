@@ -1,47 +1,28 @@
-
 package analysis
 
-
-
 import (
-
 	"math"
-
 	"sort"
 
-
-
 	"gonum.org/v1/gonum/floats"
-
 	"gonum.org/v1/gonum/stat"
-
 	"gonum.org/v1/gonum/stat/distuv"
-
 )
-
-
 
 // PerformanceMetric represents a single performance measurement.
 
 type PerformanceMetric struct {
+	Timestamp int64 // Unix timestamp
 
-	Timestamp int64   // Unix timestamp
-
-	Value     float64 // Metric value
+	Value float64 // Metric value
 
 }
-
-
 
 // StatisticalAnalyzer provides advanced statistical analysis capabilities.
 
 type StatisticalAnalyzer struct {
-
 	metrics []PerformanceMetric
-
 }
-
-
 
 // NewStatisticalAnalyzer creates a new analyzer instance.
 
@@ -50,8 +31,6 @@ func NewStatisticalAnalyzer(metrics []PerformanceMetric) *StatisticalAnalyzer {
 	return &StatisticalAnalyzer{metrics: metrics}
 
 }
-
-
 
 // ExtractValues converts metrics to a slice of float64 values.
 
@@ -69,8 +48,6 @@ func (sa *StatisticalAnalyzer) ExtractValues() []float64 {
 
 }
 
-
-
 // DescriptiveStatistics computes comprehensive statistical descriptions.
 
 func (sa *StatisticalAnalyzer) DescriptiveStatistics() DescriptiveStats {
@@ -83,8 +60,6 @@ func (sa *StatisticalAnalyzer) DescriptiveStatistics() DescriptiveStats {
 
 	}
 
-
-
 	// Handle single value case.
 
 	if len(values) == 1 {
@@ -93,23 +68,20 @@ func (sa *StatisticalAnalyzer) DescriptiveStatistics() DescriptiveStats {
 
 		return DescriptiveStats{
 
-			Mean:         val,
+			Mean: val,
 
-			Median:       val,
+			Median: val,
 
-			StdDev:       0.0,
+			StdDev: 0.0,
 
-			Min:          val,
+			Min: val,
 
-			Max:          val,
+			Max: val,
 
 			Percentile95: val,
-
 		}
 
 	}
-
-
 
 	// Create a copy and sort for percentile calculations.
 
@@ -119,27 +91,22 @@ func (sa *StatisticalAnalyzer) DescriptiveStatistics() DescriptiveStats {
 
 	sort.Float64s(sortedValues)
 
-
-
 	return DescriptiveStats{
 
-		Mean:         stat.Mean(values, nil),
+		Mean: stat.Mean(values, nil),
 
-		Median:       stat.Quantile(0.5, stat.Empirical, sortedValues, nil),
+		Median: stat.Quantile(0.5, stat.Empirical, sortedValues, nil),
 
-		StdDev:       stat.StdDev(values, nil),
+		StdDev: stat.StdDev(values, nil),
 
-		Min:          floats.Min(values),
+		Min: floats.Min(values),
 
-		Max:          floats.Max(values),
+		Max: floats.Max(values),
 
 		Percentile95: stat.Quantile(0.95, stat.Empirical, sortedValues, nil),
-
 	}
 
 }
-
-
 
 // OutlierDetection uses multiple methods for robust outlier identification.
 
@@ -153,13 +120,10 @@ func (sa *StatisticalAnalyzer) OutlierDetection() OutlierResult {
 
 			ZScoreOutliers: []float64{},
 
-			IQROutliers:    []float64{},
-
+			IQROutliers: []float64{},
 		}
 
 	}
-
-
 
 	// Create sorted copy for quantile calculations.
 
@@ -168,8 +132,6 @@ func (sa *StatisticalAnalyzer) OutlierDetection() OutlierResult {
 	copy(sortedValues, values)
 
 	sort.Float64s(sortedValues)
-
-
 
 	// IQR Method.
 
@@ -183,8 +145,6 @@ func (sa *StatisticalAnalyzer) OutlierDetection() OutlierResult {
 
 	upperBound := q3 + 1.5*iqr
 
-
-
 	// Z-Score Method.
 
 	mean := stat.Mean(values, nil)
@@ -194,8 +154,6 @@ func (sa *StatisticalAnalyzer) OutlierDetection() OutlierResult {
 	zScoreOutliers := make([]float64, 0)
 
 	iqrOutliers := make([]float64, 0)
-
-
 
 	// Avoid division by zero for standard deviation.
 
@@ -221,19 +179,14 @@ func (sa *StatisticalAnalyzer) OutlierDetection() OutlierResult {
 
 	}
 
-
-
 	return OutlierResult{
 
 		ZScoreOutliers: zScoreOutliers,
 
-		IQROutliers:    iqrOutliers,
-
+		IQROutliers: iqrOutliers,
 	}
 
 }
-
-
 
 // HypothesisTesting conducts statistical hypothesis tests.
 
@@ -245,15 +198,11 @@ func (sa *StatisticalAnalyzer) HypothesisTesting(expectedMean float64) Hypothesi
 
 	stdDev := stat.StdDev(values, nil)
 
-
-
 	// One-sample t-test.
 
 	t := (mean - expectedMean) / (stdDev / math.Sqrt(float64(len(values))))
 
 	df := float64(len(values) - 1)
-
-
 
 	// Two-tailed test at 0.05 significance level.
 
@@ -261,67 +210,51 @@ func (sa *StatisticalAnalyzer) HypothesisTesting(expectedMean float64) Hypothesi
 
 	pValue := 2 * (1 - tDist.CDF(math.Abs(t)))
 
-
-
 	return HypothesisResult{
 
-		TestStatistic:    t,
+		TestStatistic: t,
 
 		DegreesOfFreedom: df,
 
-		PValue:           pValue,
+		PValue: pValue,
 
-		Significant:      pValue < 0.05,
-
+		Significant: pValue < 0.05,
 	}
 
 }
 
-
-
 // Structs for returning complex results.
 
 type DescriptiveStats struct {
+	Mean float64
 
-	Mean         float64
+	Median float64
 
-	Median       float64
+	StdDev float64
 
-	StdDev       float64
+	Min float64
 
-	Min          float64
-
-	Max          float64
+	Max float64
 
 	Percentile95 float64
-
 }
-
-
 
 // OutlierResult represents a outlierresult.
 
 type OutlierResult struct {
-
 	ZScoreOutliers []float64
 
-	IQROutliers    []float64
-
+	IQROutliers []float64
 }
-
-
 
 // HypothesisResult represents a hypothesisresult.
 
 type HypothesisResult struct {
-
-	TestStatistic    float64
+	TestStatistic float64
 
 	DegreesOfFreedom float64
 
-	PValue           float64
+	PValue float64
 
-	Significant      bool
-
+	Significant bool
 }
-

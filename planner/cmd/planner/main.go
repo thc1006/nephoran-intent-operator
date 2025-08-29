@@ -1,93 +1,58 @@
-
 package main
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"flag"
-
 	"fmt"
-
 	"io"
-
 	"log"
-
 	"net"
-
 	"net/http"
-
 	"os"
-
 	"os/signal"
-
 	"path/filepath"
-
 	"sync"
-
 	"syscall"
-
 	"time"
 
-
-
-	"gopkg.in/yaml.v3"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/planner"
-
 	"github.com/nephio-project/nephoran-intent-operator/planner/internal/rules"
-
 	"github.com/nephio-project/nephoran-intent-operator/planner/internal/security"
-
+	"gopkg.in/yaml.v3"
 )
-
-
 
 // Config represents the main application configuration.
 
 type Config struct {
+	MetricsURL string `json:"metrics_url"`
 
-	MetricsURL      string        `json:"metrics_url"`
+	EventsURL string `json:"events_url"`
 
-	EventsURL       string        `json:"events_url"`
+	OutputDir string `json:"output_dir"`
 
-	OutputDir       string        `json:"output_dir"`
-
-	IntentEndpoint  string        `json:"intent_endpoint"`
+	IntentEndpoint string `json:"intent_endpoint"`
 
 	PollingInterval time.Duration `json:"polling_interval"`
 
-	SimMode         bool          `json:"sim_mode"`
+	SimMode bool `json:"sim_mode"`
 
-	SimDataFile     string        `json:"sim_data_file"`
+	SimDataFile string `json:"sim_data_file"`
 
-	StateFile       string        `json:"state_file"`
+	StateFile string `json:"state_file"`
 
-	MetricsDir      string        `json:"metrics_dir"`
-
+	MetricsDir string `json:"metrics_dir"`
 }
-
-
 
 // YAMLConfig represents the YAML file structure.
 
 type YAMLConfig struct {
-
-	Planner      PlannerConfig      `yaml:"planner"`
+	Planner PlannerConfig `yaml:"planner"`
 
 	ScalingRules ScalingRulesConfig `yaml:"scaling_rules"`
 
-	Logging      LoggingConfig      `yaml:"logging"`
-
+	Logging LoggingConfig `yaml:"logging"`
 }
-
-
 
 // httpClient is a reusable HTTP client optimized for polling scenarios.
 
@@ -101,123 +66,92 @@ var httpClient = &http.Client{
 
 		// Connection pooling settings optimized for repeated requests.
 
-		MaxIdleConns:        10,
+		MaxIdleConns: 10,
 
 		MaxIdleConnsPerHost: 5,
 
-		IdleConnTimeout:     90 * time.Second,
-
-
+		IdleConnTimeout: 90 * time.Second,
 
 		// Timeouts for different phases of the request.
 
 		DialContext: (&net.Dialer{
 
-			Timeout:   5 * time.Second,
+			Timeout: 5 * time.Second,
 
 			KeepAlive: 30 * time.Second,
-
 		}).DialContext,
 
-		TLSHandshakeTimeout:   5 * time.Second,
+		TLSHandshakeTimeout: 5 * time.Second,
 
 		ResponseHeaderTimeout: 10 * time.Second,
-
-
 
 		// Disable compression for KMP metrics (typically small JSON).
 
 		DisableCompression: true,
 
-
-
 		// Force HTTP/1.1 for better connection reuse with most metrics endpoints.
 
 		ForceAttemptHTTP2: false,
-
 	},
-
 }
-
-
 
 // PlannerConfig represents the planner section of the YAML.
 
 type PlannerConfig struct {
+	MetricsURL string `yaml:"metrics_url"`
 
-	MetricsURL      string `yaml:"metrics_url"`
+	EventsURL string `yaml:"events_url"`
 
-	EventsURL       string `yaml:"events_url"`
+	OutputDir string `yaml:"output_dir"`
 
-	OutputDir       string `yaml:"output_dir"`
-
-	IntentEndpoint  string `yaml:"intent_endpoint"`
+	IntentEndpoint string `yaml:"intent_endpoint"`
 
 	PollingInterval string `yaml:"polling_interval"`
 
-	SimMode         bool   `yaml:"sim_mode"`
+	SimMode bool `yaml:"sim_mode"`
 
-	SimDataFile     string `yaml:"sim_data_file"`
+	SimDataFile string `yaml:"sim_data_file"`
 
-	StateFile       string `yaml:"state_file"`
-
+	StateFile string `yaml:"state_file"`
 }
-
-
 
 // ScalingRulesConfig represents the scaling_rules section.
 
 type ScalingRulesConfig struct {
+	CooldownDuration string `yaml:"cooldown_duration"`
 
-	CooldownDuration string                  `yaml:"cooldown_duration"`
+	MinReplicas int `yaml:"min_replicas"`
 
-	MinReplicas      int                     `yaml:"min_replicas"`
+	MaxReplicas int `yaml:"max_replicas"`
 
-	MaxReplicas      int                     `yaml:"max_replicas"`
+	EvaluationWindow string `yaml:"evaluation_window"`
 
-	EvaluationWindow string                  `yaml:"evaluation_window"`
-
-	Thresholds       ScalingThresholdsConfig `yaml:"thresholds"`
-
+	Thresholds ScalingThresholdsConfig `yaml:"thresholds"`
 }
-
-
 
 // ScalingThresholdsConfig represents the thresholds section.
 
 type ScalingThresholdsConfig struct {
-
-	Latency        ThresholdConfig `yaml:"latency"`
+	Latency ThresholdConfig `yaml:"latency"`
 
 	PRBUtilization ThresholdConfig `yaml:"prb_utilization"`
-
 }
-
-
 
 // ThresholdConfig represents individual threshold configuration.
 
 type ThresholdConfig struct {
-
 	ScaleOut float64 `yaml:"scale_out"`
 
-	ScaleIn  float64 `yaml:"scale_in"`
-
+	ScaleIn float64 `yaml:"scale_in"`
 }
-
-
 
 // LoggingConfig represents the logging section.
 
 type LoggingConfig struct {
-
-	Level  string `yaml:"level"`
+	Level string `yaml:"level"`
 
 	Format string `yaml:"format"`
-
 }
-
-
 
 func main() {
 
@@ -227,35 +161,28 @@ func main() {
 
 	flag.Parse()
 
-
-
 	// Initialize security validator with default configuration.
 
 	validator := security.NewValidator(security.DefaultValidationConfig())
 
-
-
 	cfg := &Config{
 
-		MetricsURL:      "http://localhost:9090/metrics/kmp",
+		MetricsURL: "http://localhost:9090/metrics/kmp",
 
-		EventsURL:       "http://localhost:9091/events/ves",
+		EventsURL: "http://localhost:9091/events/ves",
 
-		OutputDir:       "./handoff",
+		OutputDir: "./handoff",
 
-		IntentEndpoint:  "http://localhost:8080/intent",
+		IntentEndpoint: "http://localhost:8080/intent",
 
 		PollingInterval: 30 * time.Second,
 
-		SimMode:         false,
+		SimMode: false,
 
-		SimDataFile:     "examples/planner/kmp-sample.json",
+		SimDataFile: "examples/planner/kmp-sample.json",
 
-		StateFile:       filepath.Join(os.TempDir(), "planner-state.json"),
-
+		StateFile: filepath.Join(os.TempDir(), "planner-state.json"),
 	}
-
-
 
 	var yamlConfig *YAMLConfig
 
@@ -268,8 +195,6 @@ func main() {
 			log.Fatalf("Security validation failed for config file path: %v", err)
 
 		}
-
-
 
 		if err := loadConfig(configFile, cfg, validator); err != nil {
 
@@ -296,8 +221,6 @@ func main() {
 		}
 
 	}
-
-
 
 	// SECURITY: Validate environment variables to prevent injection attacks.
 
@@ -343,15 +266,11 @@ func main() {
 
 	}
 
-
-
 	log.Printf("Starting Nephoran Closed-Loop Planner")
 
 	log.Printf("Config: MetricsURL=%s, OutputDir=%s, PollingInterval=%v, SimMode=%v",
 
 		validator.SanitizeForLogging(cfg.MetricsURL), validator.SanitizeForLogging(cfg.OutputDir), cfg.PollingInterval, cfg.SimMode)
-
-
 
 	// SECURITY: Validate output directory path before creation.
 
@@ -361,15 +280,11 @@ func main() {
 
 	}
 
-
-
 	if err := os.MkdirAll(cfg.OutputDir, 0o755); err != nil {
 
 		log.Fatalf("Failed to create output directory: %v", err)
 
 	}
-
-
 
 	// Create rule engine configuration.
 
@@ -377,31 +292,21 @@ func main() {
 
 	engine := rules.NewRuleEngine(ruleConfig)
 
-
-
 	// Set the validator in the engine for KMP data validation.
 
 	engine.SetValidator(validator)
-
-
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	defer cancel()
 
-
-
 	sigChan := make(chan os.Signal, 1)
 
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-
-
 	var wg sync.WaitGroup
 
 	wg.Add(1)
-
-
 
 	go func() {
 
@@ -410,8 +315,6 @@ func main() {
 		runPlannerLoop(ctx, cfg, engine, validator)
 
 	}()
-
-
 
 	<-sigChan
 
@@ -425,15 +328,11 @@ func main() {
 
 }
 
-
-
 func runPlannerLoop(ctx context.Context, cfg *Config, engine *rules.RuleEngine, validator *security.Validator) {
 
 	ticker := time.NewTicker(cfg.PollingInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -453,15 +352,11 @@ func runPlannerLoop(ctx context.Context, cfg *Config, engine *rules.RuleEngine, 
 
 }
 
-
-
 func processMetrics(cfg *Config, engine *rules.RuleEngine, validator *security.Validator) {
 
 	var kmpData rules.KPMData
 
 	var err error
-
-
 
 	if cfg.SimMode {
 
@@ -477,8 +372,6 @@ func processMetrics(cfg *Config, engine *rules.RuleEngine, validator *security.V
 
 	}
 
-
-
 	if err != nil {
 
 		log.Printf("Error fetching metrics: %v", err)
@@ -486,8 +379,6 @@ func processMetrics(cfg *Config, engine *rules.RuleEngine, validator *security.V
 		return
 
 	}
-
-
 
 	decision := engine.Evaluate(kmpData)
 
@@ -499,33 +390,26 @@ func processMetrics(cfg *Config, engine *rules.RuleEngine, validator *security.V
 
 	}
 
-
-
 	log.Printf("Scaling decision: %s, Reason: %s, Target replicas: %d",
 
 		decision.Action, decision.Reason, decision.TargetReplicas)
 
-
-
 	intent := &planner.Intent{
 
-		IntentType:    "scaling",
+		IntentType: "scaling",
 
-		Target:        decision.Target,
+		Target: decision.Target,
 
-		Namespace:     decision.Namespace,
+		Namespace: decision.Namespace,
 
-		Replicas:      decision.TargetReplicas,
+		Replicas: decision.TargetReplicas,
 
-		Reason:        decision.Reason,
+		Reason: decision.Reason,
 
-		Source:        "planner",
+		Source: "planner",
 
 		CorrelationID: fmt.Sprintf("planner-%d", time.Now().Unix()),
-
 	}
-
-
 
 	if err := writeIntent(cfg.OutputDir, intent, validator); err != nil {
 
@@ -534,8 +418,6 @@ func processMetrics(cfg *Config, engine *rules.RuleEngine, validator *security.V
 	}
 
 }
-
-
 
 func fetchKPMMetrics(url string, validator *security.Validator) (rules.KPMData, error) {
 
@@ -549,15 +431,11 @@ func fetchKPMMetrics(url string, validator *security.Validator) (rules.KPMData, 
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return rules.KPMData{}, fmt.Errorf("metrics endpoint returned status %d", resp.StatusCode)
 
 	}
-
-
 
 	body, err := io.ReadAll(resp.Body)
 
@@ -567,8 +445,6 @@ func fetchKPMMetrics(url string, validator *security.Validator) (rules.KPMData, 
 
 	}
 
-
-
 	var data rules.KPMData
 
 	if err := json.Unmarshal(body, &data); err != nil {
@@ -576,8 +452,6 @@ func fetchKPMMetrics(url string, validator *security.Validator) (rules.KPMData, 
 		return rules.KPMData{}, fmt.Errorf("failed to unmarshal KMP data: %w", err)
 
 	}
-
-
 
 	// SECURITY: Validate KMP data structure and values.
 
@@ -587,13 +461,9 @@ func fetchKPMMetrics(url string, validator *security.Validator) (rules.KPMData, 
 
 	}
 
-
-
 	return data, nil
 
 }
-
-
 
 func loadSimData(file string, validator *security.Validator) (rules.KPMData, error) {
 
@@ -605,8 +475,6 @@ func loadSimData(file string, validator *security.Validator) (rules.KPMData, err
 
 	}
 
-
-
 	data, err := os.ReadFile(file)
 
 	if err != nil {
@@ -614,8 +482,6 @@ func loadSimData(file string, validator *security.Validator) (rules.KPMData, err
 		return rules.KPMData{}, err
 
 	}
-
-
 
 	var kmpData rules.KPMData
 
@@ -625,8 +491,6 @@ func loadSimData(file string, validator *security.Validator) (rules.KPMData, err
 
 	}
 
-
-
 	// SECURITY: Validate KMP data structure and values.
 
 	if err := validator.ValidateKMPData(kmpData); err != nil {
@@ -635,13 +499,9 @@ func loadSimData(file string, validator *security.Validator) (rules.KPMData, err
 
 	}
 
-
-
 	return kmpData, nil
 
 }
-
-
 
 func loadLatestMetricsFromDir(dir string, validator *security.Validator) (rules.KPMData, error) {
 
@@ -653,8 +513,6 @@ func loadLatestMetricsFromDir(dir string, validator *security.Validator) (rules.
 
 	}
 
-
-
 	// Read all JSON files from metrics directory.
 
 	files, err := filepath.Glob(filepath.Join(dir, "kmp-*.json"))
@@ -665,15 +523,11 @@ func loadLatestMetricsFromDir(dir string, validator *security.Validator) (rules.
 
 	}
 
-
-
 	if len(files) == 0 {
 
 		return rules.KPMData{}, fmt.Errorf("no metrics files found in %s", dir)
 
 	}
-
-
 
 	// Get the most recent file (but we'll read them all for history).
 
@@ -701,15 +555,11 @@ func loadLatestMetricsFromDir(dir string, validator *security.Validator) (rules.
 
 	}
 
-
-
 	if latestFile == "" {
 
 		return rules.KPMData{}, fmt.Errorf("no valid metrics files found")
 
 	}
-
-
 
 	// Read the latest file for current data.
 
@@ -723,8 +573,6 @@ func loadLatestMetricsFromDir(dir string, validator *security.Validator) (rules.
 
 	}
 
-
-
 	// Note: In a real system, we'd accumulate history differently.
 
 	// For now, return the latest data point.
@@ -732,8 +580,6 @@ func loadLatestMetricsFromDir(dir string, validator *security.Validator) (rules.
 	return latestData, nil
 
 }
-
-
 
 // writeIntent writes scaling intent to a secure file with O-RAN compliant permissions.
 
@@ -751,13 +597,9 @@ func writeIntent(outputDir string, intent *planner.Intent, validator *security.V
 
 	}
 
-
-
 	filename := fmt.Sprintf("intent-%d.json", time.Now().Unix())
 
 	path := filepath.Join(outputDir, filename)
-
-
 
 	// SECURITY: Validate intent file path to prevent directory traversal.
 
@@ -766,8 +608,6 @@ func writeIntent(outputDir string, intent *planner.Intent, validator *security.V
 		return fmt.Errorf("intent file path validation failed: %w", err)
 
 	}
-
-
 
 	// SECURITY: Use 0600 permissions to ensure only the owner can read/write intent files.
 
@@ -781,15 +621,11 @@ func writeIntent(outputDir string, intent *planner.Intent, validator *security.V
 
 	}
 
-
-
 	log.Printf("Intent written securely to %s (permissions: 0600)", validator.SanitizeForLogging(path))
 
 	return nil
 
 }
-
-
 
 // loadConfig reads and parses the YAML configuration file.
 
@@ -803,8 +639,6 @@ func loadConfig(file string, cfg *Config, validator *security.Validator) error {
 
 	}
 
-
-
 	var yamlConfig YAMLConfig
 
 	if err := yaml.Unmarshal(data, &yamlConfig); err != nil {
@@ -812,8 +646,6 @@ func loadConfig(file string, cfg *Config, validator *security.Validator) error {
 		return fmt.Errorf("failed to parse YAML config: %w", err)
 
 	}
-
-
 
 	// Apply planner configuration.
 
@@ -823,15 +655,11 @@ func loadConfig(file string, cfg *Config, validator *security.Validator) error {
 
 	}
 
-
-
 	log.Printf("Successfully loaded configuration from %s", validator.SanitizeForLogging(file))
 
 	return nil
 
 }
-
-
 
 // applyPlannerConfig applies the planner section to the main Config struct.
 
@@ -911,13 +739,9 @@ func applyPlannerConfig(plannerCfg *PlannerConfig, cfg *Config, validator *secur
 
 	}
 
-
-
 	// Set SimMode.
 
 	cfg.SimMode = plannerCfg.SimMode
-
-
 
 	// Parse polling interval.
 
@@ -935,8 +759,6 @@ func applyPlannerConfig(plannerCfg *PlannerConfig, cfg *Config, validator *secur
 
 	}
 
-
-
 	// Handle state file path - if not absolute, use temp dir.
 
 	if cfg.StateFile != "" && !filepath.IsAbs(cfg.StateFile) {
@@ -945,13 +767,9 @@ func applyPlannerConfig(plannerCfg *PlannerConfig, cfg *Config, validator *secur
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // createRuleEngineConfig creates the rule engine configuration from YAML config or defaults.
 
@@ -961,35 +779,30 @@ func createRuleEngineConfig(cfg *Config, yamlConfig *YAMLConfig) rules.Config {
 
 	ruleConfig := rules.Config{
 
-		StateFile:            cfg.StateFile,
+		StateFile: cfg.StateFile,
 
-		CooldownDuration:     60 * time.Second,
+		CooldownDuration: 60 * time.Second,
 
-		MinReplicas:          1,
+		MinReplicas: 1,
 
-		MaxReplicas:          10,
+		MaxReplicas: 10,
 
 		LatencyThresholdHigh: 100.0,
 
-		LatencyThresholdLow:  50.0,
+		LatencyThresholdLow: 50.0,
 
-		PRBThresholdHigh:     0.8,
+		PRBThresholdHigh: 0.8,
 
-		PRBThresholdLow:      0.3,
+		PRBThresholdLow: 0.3,
 
-		EvaluationWindow:     90 * time.Second,
-
+		EvaluationWindow: 90 * time.Second,
 	}
-
-
 
 	// Apply YAML configuration if available.
 
 	if yamlConfig != nil {
 
 		scalingRules := &yamlConfig.ScalingRules
-
-
 
 		// Parse durations.
 
@@ -1007,8 +820,6 @@ func createRuleEngineConfig(cfg *Config, yamlConfig *YAMLConfig) rules.Config {
 
 		}
 
-
-
 		if scalingRules.EvaluationWindow != "" {
 
 			if duration, err := time.ParseDuration(scalingRules.EvaluationWindow); err == nil {
@@ -1023,8 +834,6 @@ func createRuleEngineConfig(cfg *Config, yamlConfig *YAMLConfig) rules.Config {
 
 		}
 
-
-
 		// Apply replica limits.
 
 		if scalingRules.MinReplicas > 0 {
@@ -1038,8 +847,6 @@ func createRuleEngineConfig(cfg *Config, yamlConfig *YAMLConfig) rules.Config {
 			ruleConfig.MaxReplicas = scalingRules.MaxReplicas
 
 		}
-
-
 
 		// Apply thresholds.
 
@@ -1071,13 +878,9 @@ func createRuleEngineConfig(cfg *Config, yamlConfig *YAMLConfig) rules.Config {
 
 	}
 
-
-
 	return ruleConfig
 
 }
-
-
 
 func fileExists(path string) bool {
 
@@ -1086,4 +889,3 @@ func fileExists(path string) bool {
 	return err == nil
 
 }
-

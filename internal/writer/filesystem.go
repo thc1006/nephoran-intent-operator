@@ -1,57 +1,37 @@
-
 package writer
 
-
-
 import (
-
 	"crypto/sha256"
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/generator"
-
 )
-
-
 
 // FilesystemWriter handles idempotent writing of KRM packages to the filesystem.
 
 type FilesystemWriter struct {
-
 	baseDir string
 
-	dryRun  bool
-
+	dryRun bool
 }
-
-
 
 // WriteResult contains the result of a write operation.
 
 type WriteResult struct {
+	PackagePath string
 
-	PackagePath   string
+	FilesWritten []string
 
-	FilesWritten  []string
+	FilesSkipped []string
 
-	FilesSkipped  []string
+	FilesUpdated []string
 
-	FilesUpdated  []string
-
-	TotalFiles    int
+	TotalFiles int
 
 	WasIdempotent bool
-
 }
-
-
 
 // NewFilesystemWriter creates a new filesystem writer.
 
@@ -61,13 +41,10 @@ func NewFilesystemWriter(baseDir string, dryRun bool) *FilesystemWriter {
 
 		baseDir: baseDir,
 
-		dryRun:  dryRun,
-
+		dryRun: dryRun,
 	}
 
 }
-
-
 
 // WritePackage writes a KRM package to the filesystem idempotently.
 
@@ -75,21 +52,18 @@ func (w *FilesystemWriter) WritePackage(pkg *generator.Package) (*WriteResult, e
 
 	result := &WriteResult{
 
-		PackagePath:   pkg.Directory,
+		PackagePath: pkg.Directory,
 
-		FilesWritten:  make([]string, 0),
+		FilesWritten: make([]string, 0),
 
-		FilesSkipped:  make([]string, 0),
+		FilesSkipped: make([]string, 0),
 
-		FilesUpdated:  make([]string, 0),
+		FilesUpdated: make([]string, 0),
 
-		TotalFiles:    pkg.GetFileCount(),
+		TotalFiles: pkg.GetFileCount(),
 
 		WasIdempotent: true,
-
 	}
-
-
 
 	// Ensure package directory exists.
 
@@ -103,15 +77,11 @@ func (w *FilesystemWriter) WritePackage(pkg *generator.Package) (*WriteResult, e
 
 	}
 
-
-
 	// Process each file.
 
 	for _, file := range pkg.GetPackageFiles() {
 
 		filePath := filepath.Join(pkg.Directory, file.Path)
-
-
 
 		action, err := w.writeFile(filePath, file.Content)
 
@@ -120,8 +90,6 @@ func (w *FilesystemWriter) WritePackage(pkg *generator.Package) (*WriteResult, e
 			return result, fmt.Errorf("failed to write file %s: %w", filePath, err)
 
 		}
-
-
 
 		switch action {
 
@@ -145,13 +113,9 @@ func (w *FilesystemWriter) WritePackage(pkg *generator.Package) (*WriteResult, e
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // writeFile writes a single file idempotently.
 
@@ -160,8 +124,6 @@ func (w *FilesystemWriter) writeFile(filePath string, content []byte) (string, e
 	// Calculate content hash for comparison.
 
 	newHash := sha256.Sum256(content)
-
-
 
 	// Check if file exists.
 
@@ -179,8 +141,6 @@ func (w *FilesystemWriter) writeFile(filePath string, content []byte) (string, e
 
 			}
 
-
-
 			// Ensure directory exists.
 
 			dir := filepath.Dir(filePath)
@@ -190,8 +150,6 @@ func (w *FilesystemWriter) writeFile(filePath string, content []byte) (string, e
 				return "", fmt.Errorf("failed to create directory %s: %w", dir, err)
 
 			}
-
-
 
 			if err := os.WriteFile(filePath, content, 0o640); err != nil {
 
@@ -207,8 +165,6 @@ func (w *FilesystemWriter) writeFile(filePath string, content []byte) (string, e
 
 	}
 
-
-
 	// Compare content hashes.
 
 	existingHash := sha256.Sum256(existingContent)
@@ -221,8 +177,6 @@ func (w *FilesystemWriter) writeFile(filePath string, content []byte) (string, e
 
 	}
 
-
-
 	// Content differs, update the file.
 
 	if w.dryRun {
@@ -230,8 +184,6 @@ func (w *FilesystemWriter) writeFile(filePath string, content []byte) (string, e
 		return "updated", nil
 
 	}
-
-
 
 	if err := os.WriteFile(filePath, content, 0o640); err != nil {
 
@@ -243,8 +195,6 @@ func (w *FilesystemWriter) writeFile(filePath string, content []byte) (string, e
 
 }
 
-
-
 // CleanupPackage removes a package directory if it exists.
 
 func (w *FilesystemWriter) CleanupPackage(packageDir string) error {
@@ -255,21 +205,15 @@ func (w *FilesystemWriter) CleanupPackage(packageDir string) error {
 
 	}
 
-
-
 	if _, err := os.Stat(packageDir); os.IsNotExist(err) {
 
 		return nil // Directory doesn't exist, nothing to clean
 
 	}
 
-
-
 	return os.RemoveAll(packageDir)
 
 }
-
-
 
 // ListPackages returns all package directories in the base directory.
 
@@ -288,8 +232,6 @@ func (w *FilesystemWriter) ListPackages() ([]string, error) {
 		return nil, fmt.Errorf("failed to read base directory %s: %w", w.baseDir, err)
 
 	}
-
-
 
 	var packages []string
 
@@ -311,13 +253,9 @@ func (w *FilesystemWriter) ListPackages() ([]string, error) {
 
 	}
 
-
-
 	return packages, nil
 
 }
-
-
 
 // ValidatePackage checks if a package directory contains valid KRM files.
 
@@ -333,8 +271,6 @@ func (w *FilesystemWriter) ValidatePackage(packageDir string) error {
 
 	}
 
-
-
 	// Check if at least one YAML file exists.
 
 	entries, err := os.ReadDir(packageDir)
@@ -344,8 +280,6 @@ func (w *FilesystemWriter) ValidatePackage(packageDir string) error {
 		return fmt.Errorf("failed to read package directory: %w", err)
 
 	}
-
-
 
 	hasYAML := false
 
@@ -367,21 +301,15 @@ func (w *FilesystemWriter) ValidatePackage(packageDir string) error {
 
 	}
 
-
-
 	if !hasYAML {
 
 		return fmt.Errorf("package contains no YAML files")
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetBaseDir returns the base directory for package output.
 
@@ -391,8 +319,6 @@ func (w *FilesystemWriter) GetBaseDir() string {
 
 }
 
-
-
 // IsDryRun returns whether this writer is in dry-run mode.
 
 func (w *FilesystemWriter) IsDryRun() bool {
@@ -401,8 +327,6 @@ func (w *FilesystemWriter) IsDryRun() bool {
 
 }
 
-
-
 // SetDryRun enables or disables dry-run mode.
 
 func (w *FilesystemWriter) SetDryRun(dryRun bool) {
@@ -410,4 +334,3 @@ func (w *FilesystemWriter) SetDryRun(dryRun bool) {
 	w.dryRun = dryRun
 
 }
-

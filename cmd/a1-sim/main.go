@@ -2,34 +2,21 @@
 
 // Package main implements the A1 interface simulator for O-RAN network policy management.
 
-
 package main
 
-
-
 import (
-
 	"log"
-
 	"net/http"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/a1sim"
-
 )
-
-
 
 func main() {
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/a1/policies", a1sim.SavePolicyHandler("policies"))
-
-
 
 	addr := ":8081"
 
@@ -39,19 +26,17 @@ func main() {
 
 	server := &http.Server{
 
-		Addr:         addr,
+		Addr: addr,
 
-		Handler:      mux,
+		Handler: mux,
 
-		ReadTimeout:  15 * time.Second,
+		ReadTimeout: 15 * time.Second,
 
 		WriteTimeout: 15 * time.Second,
 
-		IdleTimeout:  60 * time.Second,
-
+		IdleTimeout: 60 * time.Second,
 	}
 
 	log.Fatal(server.ListenAndServe())
 
 }
-

@@ -1,53 +1,29 @@
-
 package ca
 
-
-
 import (
-
 	"context"
-
 	"crypto/sha256"
-
 	"crypto/x509"
-
 	"crypto/x509/pkix"
-
 	"encoding/json"
-
 	"encoding/pem"
-
 	"fmt"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/hashicorp/vault/api"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 )
-
-
 
 // VaultBackend implements the HashiCorp Vault PKI backend.
 
 type VaultBackend struct {
-
 	logger *logging.StructuredLogger
 
 	client *api.Client
 
 	config *VaultBackendConfig
-
 }
-
-
 
 // VaultBackendConfig holds Vault PKI backend configuration.
 
@@ -55,87 +31,72 @@ type VaultBackendConfig struct {
 
 	// Vault connection.
 
-	Address       string `yaml:"address"`
+	Address string `yaml:"address"`
 
-	Token         string `yaml:"token"`
+	Token string `yaml:"token"`
 
-	CACert        string `yaml:"ca_cert"`
+	CACert string `yaml:"ca_cert"`
 
-	CAPath        string `yaml:"ca_path"`
+	CAPath string `yaml:"ca_path"`
 
-	ClientCert    string `yaml:"client_cert"`
+	ClientCert string `yaml:"client_cert"`
 
-	ClientKey     string `yaml:"client_key"`
+	ClientKey string `yaml:"client_key"`
 
-	TLSSkipVerify bool   `yaml:"tls_skip_verify"`
+	TLSSkipVerify bool `yaml:"tls_skip_verify"`
 
-	Namespace     string `yaml:"namespace"`
-
-
+	Namespace string `yaml:"namespace"`
 
 	// PKI configuration.
 
-	PKIMount  string `yaml:"pki_mount"`
+	PKIMount string `yaml:"pki_mount"`
 
-	Role      string `yaml:"role"`
+	Role string `yaml:"role"`
 
 	IssuerRef string `yaml:"issuer_ref"`
-
-
 
 	// Authentication.
 
 	AuthMethod VaultAuthMethod `yaml:"auth_method"`
 
-	AuthConfig interface{}     `yaml:"auth_config"`
-
-
+	AuthConfig interface{} `yaml:"auth_config"`
 
 	// Advanced settings.
 
-	MaxLeaseTTL         time.Duration `yaml:"max_lease_ttl"`
+	MaxLeaseTTL time.Duration `yaml:"max_lease_ttl"`
 
-	DefaultTTL          time.Duration `yaml:"default_ttl"`
+	DefaultTTL time.Duration `yaml:"default_ttl"`
 
-	AllowedDomains      []string      `yaml:"allowed_domains"`
+	AllowedDomains []string `yaml:"allowed_domains"`
 
-	AllowSubdomains     bool          `yaml:"allow_subdomains"`
+	AllowSubdomains bool `yaml:"allow_subdomains"`
 
-	AllowAnyName        bool          `yaml:"allow_any_name"`
+	AllowAnyName bool `yaml:"allow_any_name"`
 
-	EnforceHostnames    bool          `yaml:"enforce_hostnames"`
+	EnforceHostnames bool `yaml:"enforce_hostnames"`
 
-	AllowIPSANs         bool          `yaml:"allow_ip_sans"`
+	AllowIPSANs bool `yaml:"allow_ip_sans"`
 
-	ServerFlag          bool          `yaml:"server_flag"`
+	ServerFlag bool `yaml:"server_flag"`
 
-	ClientFlag          bool          `yaml:"client_flag"`
+	ClientFlag bool `yaml:"client_flag"`
 
-	CodeSigningFlag     bool          `yaml:"code_signing_flag"`
+	CodeSigningFlag bool `yaml:"code_signing_flag"`
 
-	EmailProtectionFlag bool          `yaml:"email_protection_flag"`
-
-
+	EmailProtectionFlag bool `yaml:"email_protection_flag"`
 
 	// CRL settings.
 
 	CRLConfig *VaultCRLConfig `yaml:"crl_config"`
 
-
-
 	// OCSP settings.
 
 	OCSPConfig *VaultOCSPConfig `yaml:"ocsp_config"`
-
 }
-
-
 
 // VaultAuthMethod represents Vault authentication methods.
 
 type VaultAuthMethod string
-
-
 
 const (
 
@@ -166,134 +127,103 @@ const (
 	// AuthMethodLDAP holds authmethodldap value.
 
 	AuthMethodLDAP VaultAuthMethod = "ldap"
-
 )
-
-
 
 // VaultCRLConfig holds CRL configuration for Vault.
 
 type VaultCRLConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled          bool          `yaml:"enabled"`
+	ExpiryBuffer time.Duration `yaml:"expiry_buffer"`
 
-	ExpiryBuffer     time.Duration `yaml:"expiry_buffer"`
+	DisableExpiry bool `yaml:"disable_expiry"`
 
-	DisableExpiry    bool          `yaml:"disable_expiry"`
-
-	AutoRebuild      bool          `yaml:"auto_rebuild"`
+	AutoRebuild bool `yaml:"auto_rebuild"`
 
 	AutoRebuildGrace time.Duration `yaml:"auto_rebuild_grace"`
-
 }
-
-
 
 // VaultOCSPConfig holds OCSP configuration for Vault.
 
 type VaultOCSPConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled       bool     `yaml:"enabled"`
+	OCSPServers []string `yaml:"ocsp_servers"`
 
-	OCSPServers   []string `yaml:"ocsp_servers"`
+	ResponderCert string `yaml:"responder_cert"`
 
-	ResponderCert string   `yaml:"responder_cert"`
-
-	ResponderKey  string   `yaml:"responder_key"`
-
+	ResponderKey string `yaml:"responder_key"`
 }
-
-
 
 // VaultAppRoleAuth holds AppRole authentication configuration.
 
 type VaultAppRoleAuth struct {
+	RoleID string `yaml:"role_id"`
 
-	RoleID    string `yaml:"role_id"`
-
-	SecretID  string `yaml:"secret_id"`
+	SecretID string `yaml:"secret_id"`
 
 	MountPath string `yaml:"mount_path"`
-
 }
-
-
 
 // VaultKubernetesAuth holds Kubernetes authentication configuration.
 
 type VaultKubernetesAuth struct {
+	Role string `yaml:"role"`
 
-	Role           string `yaml:"role"`
+	JWT string `yaml:"jwt"`
 
-	JWT            string `yaml:"jwt"`
-
-	MountPath      string `yaml:"mount_path"`
+	MountPath string `yaml:"mount_path"`
 
 	ServiceAccount string `yaml:"service_account"`
-
 }
-
-
 
 // VaultIssueRequest represents a Vault certificate issue request.
 
 type VaultIssueRequest struct {
+	CommonName string `json:"common_name"`
 
-	CommonName        string `json:"common_name"`
+	AltNames string `json:"alt_names,omitempty"`
 
-	AltNames          string `json:"alt_names,omitempty"`
+	IPSans string `json:"ip_sans,omitempty"`
 
-	IPSans            string `json:"ip_sans,omitempty"`
+	URISans string `json:"uri_sans,omitempty"`
 
-	URISans           string `json:"uri_sans,omitempty"`
+	OtherSans string `json:"other_sans,omitempty"`
 
-	OtherSans         string `json:"other_sans,omitempty"`
+	TTL string `json:"ttl,omitempty"`
 
-	TTL               string `json:"ttl,omitempty"`
+	Format string `json:"format"`
 
-	Format            string `json:"format"`
+	PrivateKeyFormat string `json:"private_key_format,omitempty"`
 
-	PrivateKeyFormat  string `json:"private_key_format,omitempty"`
+	ExcludeCNFromSans bool `json:"exclude_cn_from_sans"`
 
-	ExcludeCNFromSans bool   `json:"exclude_cn_from_sans"`
-
-	NotAfter          string `json:"not_after,omitempty"`
-
+	NotAfter string `json:"not_after,omitempty"`
 }
-
-
 
 // VaultIssueResponse represents Vault certificate issue response.
 
 type VaultIssueResponse struct {
+	Certificate string `json:"certificate"`
 
-	Certificate    string   `json:"certificate"`
+	PrivateKey string `json:"private_key"`
 
-	PrivateKey     string   `json:"private_key"`
+	PrivateKeyType string `json:"private_key_type"`
 
-	PrivateKeyType string   `json:"private_key_type"`
+	SerialNumber string `json:"serial_number"`
 
-	SerialNumber   string   `json:"serial_number"`
+	CAChain []string `json:"ca_chain"`
 
-	CAChain        []string `json:"ca_chain"`
+	IssuingCA string `json:"issuing_ca"`
 
-	IssuingCA      string   `json:"issuing_ca"`
-
-	Expiration     int64    `json:"expiration"`
-
+	Expiration int64 `json:"expiration"`
 }
-
-
 
 // VaultRevokeRequest represents a Vault certificate revoke request.
 
 type VaultRevokeRequest struct {
-
 	SerialNumber string `json:"serial_number"`
-
 }
-
-
 
 // NewVaultBackend creates a new Vault PKI backend.
 
@@ -302,12 +232,9 @@ func NewVaultBackend(logger *logging.StructuredLogger) (Backend, error) {
 	return &VaultBackend{
 
 		logger: logger,
-
 	}, nil
 
 }
-
-
 
 // Initialize initializes the Vault backend.
 
@@ -321,11 +248,7 @@ func (b *VaultBackend) Initialize(ctx context.Context, config interface{}) error
 
 	}
 
-
-
 	b.config = vaultConfig
-
-
 
 	// Validate configuration.
 
@@ -335,8 +258,6 @@ func (b *VaultBackend) Initialize(ctx context.Context, config interface{}) error
 
 	}
 
-
-
 	// Initialize Vault client.
 
 	if err := b.initializeClient(); err != nil {
@@ -344,8 +265,6 @@ func (b *VaultBackend) Initialize(ctx context.Context, config interface{}) error
 		return fmt.Errorf("Vault client initialization failed: %w", err)
 
 	}
-
-
 
 	// Authenticate with Vault.
 
@@ -355,8 +274,6 @@ func (b *VaultBackend) Initialize(ctx context.Context, config interface{}) error
 
 	}
 
-
-
 	// Verify PKI mount and role.
 
 	if err := b.verifyPKISetup(ctx); err != nil {
@@ -364,8 +281,6 @@ func (b *VaultBackend) Initialize(ctx context.Context, config interface{}) error
 		return fmt.Errorf("PKI setup verification failed: %w", err)
 
 	}
-
-
 
 	b.logger.Info("Vault backend initialized successfully",
 
@@ -375,13 +290,9 @@ func (b *VaultBackend) Initialize(ctx context.Context, config interface{}) error
 
 		"role", b.config.Role)
 
-
-
 	return nil
 
 }
-
-
 
 // HealthCheck performs health check on the Vault backend.
 
@@ -397,15 +308,11 @@ func (b *VaultBackend) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	if resp.Sealed {
 
 		return fmt.Errorf("Vault is sealed")
 
 	}
-
-
 
 	// Check token validity.
 
@@ -417,15 +324,11 @@ func (b *VaultBackend) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	if tokenInfo == nil || tokenInfo.Data == nil {
 
 		return fmt.Errorf("invalid token")
 
 	}
-
-
 
 	// Check PKI mount accessibility.
 
@@ -437,8 +340,6 @@ func (b *VaultBackend) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	mountPath := b.config.PKIMount + "/"
 
 	if _, exists := mounts[mountPath]; !exists {
@@ -447,13 +348,9 @@ func (b *VaultBackend) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // IssueCertificate issues a certificate using Vault PKI.
 
@@ -467,23 +364,18 @@ func (b *VaultBackend) IssueCertificate(ctx context.Context, req *CertificateReq
 
 		"role", b.config.Role)
 
-
-
 	// Prepare Vault request.
 
 	vaultReq := &VaultIssueRequest{
 
-		CommonName:        req.CommonName,
+		CommonName: req.CommonName,
 
-		Format:            "pem",
+		Format: "pem",
 
-		PrivateKeyFormat:  "pkcs8",
+		PrivateKeyFormat: "pkcs8",
 
 		ExcludeCNFromSans: false,
-
 	}
-
-
 
 	// Set alternative names.
 
@@ -493,8 +385,6 @@ func (b *VaultBackend) IssueCertificate(ctx context.Context, req *CertificateReq
 
 	}
 
-
-
 	// Set IP SANs.
 
 	if len(req.IPAddresses) > 0 {
@@ -502,8 +392,6 @@ func (b *VaultBackend) IssueCertificate(ctx context.Context, req *CertificateReq
 		vaultReq.IPSans = strings.Join(req.IPAddresses, ",")
 
 	}
-
-
 
 	// Set URI SANs.
 
@@ -521,8 +409,6 @@ func (b *VaultBackend) IssueCertificate(ctx context.Context, req *CertificateReq
 
 	}
 
-
-
 	// Set TTL.
 
 	if req.ValidityDuration > 0 {
@@ -530,8 +416,6 @@ func (b *VaultBackend) IssueCertificate(ctx context.Context, req *CertificateReq
 		vaultReq.TTL = req.ValidityDuration.String()
 
 	}
-
-
 
 	// Issue certificate.
 
@@ -545,15 +429,11 @@ func (b *VaultBackend) IssueCertificate(ctx context.Context, req *CertificateReq
 
 	}
 
-
-
 	if resp == nil || resp.Data == nil {
 
 		return nil, fmt.Errorf("empty response from Vault")
 
 	}
-
-
 
 	// Parse response.
 
@@ -565,8 +445,6 @@ func (b *VaultBackend) IssueCertificate(ctx context.Context, req *CertificateReq
 
 	}
 
-
-
 	// Parse certificate.
 
 	cert, err := b.parseCertificate(vaultResp.Certificate)
@@ -577,51 +455,45 @@ func (b *VaultBackend) IssueCertificate(ctx context.Context, req *CertificateReq
 
 	}
 
-
-
 	// Build response.
 
 	response := &CertificateResponse{
 
-		RequestID:        req.ID,
+		RequestID: req.ID,
 
-		Certificate:      cert,
+		Certificate: cert,
 
-		CertificatePEM:   vaultResp.Certificate,
+		CertificatePEM: vaultResp.Certificate,
 
-		PrivateKeyPEM:    vaultResp.PrivateKey,
+		PrivateKeyPEM: vaultResp.PrivateKey,
 
 		CACertificatePEM: vaultResp.IssuingCA,
 
-		TrustChainPEM:    vaultResp.CAChain,
+		TrustChainPEM: vaultResp.CAChain,
 
-		SerialNumber:     vaultResp.SerialNumber,
+		SerialNumber: vaultResp.SerialNumber,
 
-		Fingerprint:      b.calculateFingerprint(cert.Raw),
+		Fingerprint: b.calculateFingerprint(cert.Raw),
 
-		ExpiresAt:        time.Unix(vaultResp.Expiration, 0),
+		ExpiresAt: time.Unix(vaultResp.Expiration, 0),
 
-		IssuedBy:         string(BackendVault),
+		IssuedBy: string(BackendVault),
 
-		Status:           StatusIssued,
+		Status: StatusIssued,
 
 		Metadata: map[string]string{
 
-			"vault_address":   b.config.Address,
+			"vault_address": b.config.Address,
 
 			"vault_pki_mount": b.config.PKIMount,
 
-			"vault_role":      b.config.Role,
+			"vault_role": b.config.Role,
 
-			"tenant_id":       req.TenantID,
-
+			"tenant_id": req.TenantID,
 		},
 
 		CreatedAt: time.Now(),
-
 	}
-
-
 
 	b.logger.Info("certificate issued successfully via Vault PKI",
 
@@ -631,13 +503,9 @@ func (b *VaultBackend) IssueCertificate(ctx context.Context, req *CertificateReq
 
 		"expires_at", response.ExpiresAt)
 
-
-
 	return response, nil
 
 }
-
-
 
 // RevokeCertificate revokes a certificate using Vault PKI.
 
@@ -649,17 +517,12 @@ func (b *VaultBackend) RevokeCertificate(ctx context.Context, serialNumber strin
 
 		"reason", reason)
 
-
-
 	// Prepare revoke request.
 
 	revokeReq := &VaultRevokeRequest{
 
 		SerialNumber: serialNumber,
-
 	}
-
-
 
 	// Revoke certificate.
 
@@ -673,19 +536,13 @@ func (b *VaultBackend) RevokeCertificate(ctx context.Context, serialNumber strin
 
 	}
 
-
-
 	b.logger.Info("certificate revoked successfully via Vault PKI",
 
 		"serial_number", serialNumber)
 
-
-
 	return nil
 
 }
-
-
 
 // RenewCertificate renews a certificate (Vault issues a new certificate).
 
@@ -701,23 +558,17 @@ func (b *VaultBackend) RenewCertificate(ctx context.Context, req *CertificateReq
 
 	}
 
-
-
 	response.Status = StatusRenewed
 
 	return response, nil
 
 }
 
-
-
 // GetCAChain retrieves the CA certificate chain.
 
 func (b *VaultBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate, error) {
 
 	b.logger.Debug("retrieving CA chain from Vault PKI")
-
-
 
 	// Get CA certificate.
 
@@ -731,15 +582,11 @@ func (b *VaultBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate, err
 
 	}
 
-
-
 	if resp == nil || resp.Data == nil {
 
 		return nil, fmt.Errorf("empty CA response from Vault")
 
 	}
-
-
 
 	caCertPEM, ok := resp.Data["certificate"].(string)
 
@@ -748,8 +595,6 @@ func (b *VaultBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate, err
 		return nil, fmt.Errorf("invalid CA certificate format")
 
 	}
-
-
 
 	// Parse CA certificate.
 
@@ -760,8 +605,6 @@ func (b *VaultBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate, err
 		return nil, fmt.Errorf("failed to parse CA certificate: %w", err)
 
 	}
-
-
 
 	// Get CA chain.
 
@@ -777,13 +620,9 @@ func (b *VaultBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate, err
 
 	}
 
-
-
 	var chain []*x509.Certificate
 
 	chain = append(chain, caCert)
-
-
 
 	if chainResp != nil && chainResp.Data != nil {
 
@@ -801,21 +640,15 @@ func (b *VaultBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate, err
 
 	}
 
-
-
 	return chain, nil
 
 }
-
-
 
 // GetCRL retrieves the Certificate Revocation List.
 
 func (b *VaultBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, error) {
 
 	b.logger.Debug("retrieving CRL from Vault PKI")
-
-
 
 	path := fmt.Sprintf("%s/crl", b.config.PKIMount)
 
@@ -827,15 +660,11 @@ func (b *VaultBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, error
 
 	}
 
-
-
 	if resp == nil || resp.Data == nil {
 
 		return nil, fmt.Errorf("empty CRL response from Vault")
 
 	}
-
-
 
 	crlPEM, ok := resp.Data["crl"].(string)
 
@@ -845,13 +674,9 @@ func (b *VaultBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, error
 
 	}
 
-
-
 	return b.parseCRL(crlPEM)
 
 }
-
-
 
 // GetBackendInfo returns backend information.
 
@@ -864,8 +689,6 @@ func (b *VaultBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error)
 		return nil, fmt.Errorf("failed to get Vault health: %w", err)
 
 	}
-
-
 
 	// Get CA info.
 
@@ -883,8 +706,6 @@ func (b *VaultBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error)
 
 	}
 
-
-
 	status := "ready"
 
 	if health.Sealed {
@@ -897,39 +718,33 @@ func (b *VaultBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error)
 
 	}
 
-
-
 	return &BackendInfo{
 
-		Type:       BackendVault,
+		Type: BackendVault,
 
-		Version:    health.Version,
+		Version: health.Version,
 
-		Status:     status,
+		Status: status,
 
-		Issuer:     issuer,
+		Issuer: issuer,
 
 		ValidUntil: validUntil,
 
-		Features:   b.GetSupportedFeatures(),
+		Features: b.GetSupportedFeatures(),
 
 		Metrics: map[string]interface{}{
 
-			"sealed":       health.Sealed,
+			"sealed": health.Sealed,
 
-			"initialized":  health.Initialized,
+			"initialized": health.Initialized,
 
-			"cluster_id":   health.ClusterID,
+			"cluster_id": health.ClusterID,
 
 			"cluster_name": health.ClusterName,
-
 		},
-
 	}, nil
 
 }
-
-
 
 // GetSupportedFeatures returns supported features.
 
@@ -956,16 +771,11 @@ func (b *VaultBackend) GetSupportedFeatures() []string {
 		"key_usage_control",
 
 		"custom_extensions",
-
 	}
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (b *VaultBackend) validateConfig() error {
 
@@ -975,15 +785,11 @@ func (b *VaultBackend) validateConfig() error {
 
 	}
 
-
-
 	if b.config.PKIMount == "" {
 
 		b.config.PKIMount = "pki" // Default PKI mount
 
 	}
-
-
 
 	if b.config.Role == "" {
 
@@ -991,15 +797,11 @@ func (b *VaultBackend) validateConfig() error {
 
 	}
 
-
-
 	if b.config.AuthMethod == "" {
 
 		b.config.AuthMethod = AuthMethodToken // Default to token auth
 
 	}
-
-
 
 	if b.config.DefaultTTL == 0 {
 
@@ -1007,13 +809,9 @@ func (b *VaultBackend) validateConfig() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (b *VaultBackend) initializeClient() error {
 
@@ -1021,14 +819,11 @@ func (b *VaultBackend) initializeClient() error {
 
 	config.Address = b.config.Address
 
-
-
 	if b.config.CACert != "" {
 
 		tlsConfig := &api.TLSConfig{
 
 			CACert: b.config.CACert,
-
 		}
 
 		if b.config.ClientCert != "" {
@@ -1045,8 +840,6 @@ func (b *VaultBackend) initializeClient() error {
 
 	}
 
-
-
 	client, err := api.NewClient(config)
 
 	if err != nil {
@@ -1055,23 +848,17 @@ func (b *VaultBackend) initializeClient() error {
 
 	}
 
-
-
 	if b.config.Namespace != "" {
 
 		client.SetNamespace(b.config.Namespace)
 
 	}
 
-
-
 	b.client = client
 
 	return nil
 
 }
-
-
 
 func (b *VaultBackend) authenticate(ctx context.Context) error {
 
@@ -1087,8 +874,6 @@ func (b *VaultBackend) authenticate(ctx context.Context) error {
 
 		b.client.SetToken(b.config.Token)
 
-
-
 	case AuthMethodAppRole:
 
 		authConfig, ok := b.config.AuthConfig.(*VaultAppRoleAuth)
@@ -1100,8 +885,6 @@ func (b *VaultBackend) authenticate(ctx context.Context) error {
 		}
 
 		return b.authenticateAppRole(ctx, authConfig)
-
-
 
 	case AuthMethodKubernetes:
 
@@ -1115,21 +898,15 @@ func (b *VaultBackend) authenticate(ctx context.Context) error {
 
 		return b.authenticateKubernetes(ctx, authConfig)
 
-
-
 	default:
 
 		return fmt.Errorf("unsupported auth method: %s", b.config.AuthMethod)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (b *VaultBackend) authenticateAppRole(ctx context.Context, authConfig *VaultAppRoleAuth) error {
 
@@ -1141,17 +918,12 @@ func (b *VaultBackend) authenticateAppRole(ctx context.Context, authConfig *Vaul
 
 	}
 
-
-
 	data := map[string]interface{}{
 
-		"role_id":   authConfig.RoleID,
+		"role_id": authConfig.RoleID,
 
 		"secret_id": authConfig.SecretID,
-
 	}
-
-
 
 	resp, err := b.client.Logical().Write(path, data)
 
@@ -1161,23 +933,17 @@ func (b *VaultBackend) authenticateAppRole(ctx context.Context, authConfig *Vaul
 
 	}
 
-
-
 	if resp == nil || resp.Auth == nil {
 
 		return fmt.Errorf("invalid AppRole authentication response")
 
 	}
 
-
-
 	b.client.SetToken(resp.Auth.ClientToken)
 
 	return nil
 
 }
-
-
 
 func (b *VaultBackend) authenticateKubernetes(ctx context.Context, authConfig *VaultKubernetesAuth) error {
 
@@ -1189,17 +955,12 @@ func (b *VaultBackend) authenticateKubernetes(ctx context.Context, authConfig *V
 
 	}
 
-
-
 	data := map[string]interface{}{
 
 		"role": authConfig.Role,
 
-		"jwt":  authConfig.JWT,
-
+		"jwt": authConfig.JWT,
 	}
-
-
 
 	resp, err := b.client.Logical().Write(path, data)
 
@@ -1209,23 +970,17 @@ func (b *VaultBackend) authenticateKubernetes(ctx context.Context, authConfig *V
 
 	}
 
-
-
 	if resp == nil || resp.Auth == nil {
 
 		return fmt.Errorf("invalid Kubernetes authentication response")
 
 	}
 
-
-
 	b.client.SetToken(resp.Auth.ClientToken)
 
 	return nil
 
 }
-
-
 
 func (b *VaultBackend) verifyPKISetup(ctx context.Context) error {
 
@@ -1239,8 +994,6 @@ func (b *VaultBackend) verifyPKISetup(ctx context.Context) error {
 
 	}
 
-
-
 	mountPath := b.config.PKIMount + "/"
 
 	mount, exists := mounts[mountPath]
@@ -1251,15 +1004,11 @@ func (b *VaultBackend) verifyPKISetup(ctx context.Context) error {
 
 	}
 
-
-
 	if mount.Type != "pki" {
 
 		return fmt.Errorf("mount %s is not a PKI mount (type: %s)", b.config.PKIMount, mount.Type)
 
 	}
-
-
 
 	// Check if role exists.
 
@@ -1273,13 +1022,9 @@ func (b *VaultBackend) verifyPKISetup(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (b *VaultBackend) parseCertificate(certPEM string) (*x509.Certificate, error) {
 
@@ -1291,21 +1036,15 @@ func (b *VaultBackend) parseCertificate(certPEM string) (*x509.Certificate, erro
 
 	}
 
-
-
 	return x509.ParseCertificate(block.Bytes)
 
 }
-
-
 
 func (b *VaultBackend) parseMultipleCertificates(certsPEM string) ([]*x509.Certificate, error) {
 
 	var certs []*x509.Certificate
 
 	remaining := []byte(certsPEM)
-
-
 
 	for {
 
@@ -1317,8 +1056,6 @@ func (b *VaultBackend) parseMultipleCertificates(certsPEM string) ([]*x509.Certi
 
 		}
 
-
-
 		cert, err := x509.ParseCertificate(block.Bytes)
 
 		if err != nil {
@@ -1327,21 +1064,15 @@ func (b *VaultBackend) parseMultipleCertificates(certsPEM string) ([]*x509.Certi
 
 		}
 
-
-
 		certs = append(certs, cert)
 
 		remaining = rest
 
 	}
 
-
-
 	return certs, nil
 
 }
-
-
 
 func (b *VaultBackend) parseCRL(crlPEM string) (*pkix.CertificateList, error) {
 
@@ -1353,21 +1084,15 @@ func (b *VaultBackend) parseCRL(crlPEM string) (*pkix.CertificateList, error) {
 
 	}
 
-
-
 	return x509.ParseCRL(block.Bytes)
 
 }
-
-
 
 func (b *VaultBackend) calculateFingerprint(certBytes []byte) string {
 
 	return fmt.Sprintf("%x", sha256.Sum256(certBytes))
 
 }
-
-
 
 func (b *VaultBackend) structToMap(s interface{}) map[string]interface{} {
 
@@ -1380,8 +1105,6 @@ func (b *VaultBackend) structToMap(s interface{}) map[string]interface{} {
 	return result
 
 }
-
-
 
 func (b *VaultBackend) mapToStruct(data map[string]interface{}, s interface{}) error {
 
@@ -1396,4 +1119,3 @@ func (b *VaultBackend) mapToStruct(data map[string]interface{}, s interface{}) e
 	return json.Unmarshal(jsonData, s)
 
 }
-

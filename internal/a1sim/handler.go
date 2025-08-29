@@ -1,73 +1,50 @@
 // Package a1sim provides A1 interface simulation handlers for O-RAN policy management.
 
-
 package a1sim
 
-
-
 import (
-
 	"encoding/json"
-
 	"net/http"
-
 	"os"
-
 	"path/filepath"
-
 	"time"
-
 )
-
-
 
 // A1Policy matches the a1.policy.schema.json contract.
 
 type A1Policy struct {
+	PolicyTypeID string `json:"policyTypeId"` // "oran.sim.scaling.v1"
 
-	PolicyTypeID string      `json:"policyTypeId"` // "oran.sim.scaling.v1"
+	Scope PolicyScope `json:"scope"`
 
-	Scope        PolicyScope `json:"scope"`
+	Rules PolicyRules `json:"rules"`
 
-	Rules        PolicyRules `json:"rules"`
-
-	Notes        string      `json:"notes,omitempty"`
-
+	Notes string `json:"notes,omitempty"`
 }
-
-
 
 // PolicyScope defines the target scope for an A1 policy.
 
 type PolicyScope struct {
-
 	Namespace string `json:"namespace"`
 
-	Target    string `json:"target"`
-
+	Target string `json:"target"`
 }
-
-
 
 // PolicyRules defines the scaling rules and thresholds for an A1 policy.
 
 type PolicyRules struct {
-
-	Metric            string  `json:"metric"` // e.g., "kpm.p95_latency_ms"
+	Metric string `json:"metric"` // e.g., "kpm.p95_latency_ms"
 
 	ScaleOutThreshold float64 `json:"scale_out_threshold"`
 
-	ScaleInThreshold  float64 `json:"scale_in_threshold"`
+	ScaleInThreshold float64 `json:"scale_in_threshold"`
 
-	CooldownSeconds   int     `json:"cooldown_seconds"`
+	CooldownSeconds int `json:"cooldown_seconds"`
 
-	MinReplicas       int     `json:"min_replicas"`
+	MinReplicas int `json:"min_replicas"`
 
-	MaxReplicas       int     `json:"max_replicas"`
-
+	MaxReplicas int `json:"max_replicas"`
 }
-
-
 
 // SavePolicyHandler creates an HTTP handler that saves A1 policies to the specified directory.
 
@@ -140,4 +117,3 @@ func SavePolicyHandler(dir string) http.HandlerFunc {
 	}
 
 }
-

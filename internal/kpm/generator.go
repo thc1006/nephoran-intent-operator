@@ -2,28 +2,16 @@
 
 // for the Nephoran Intent Operator, generating metrics compatible with O-RAN E2SM-KPM.
 
-
 package kpm
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"math/rand"
-
 	"os"
-
 	"path/filepath"
-
 	"time"
-
 )
-
-
 
 // KPMMetric represents a single KPM measurement from an E2 node.
 
@@ -32,20 +20,16 @@ import (
 // for planner consumption.
 
 type KPMMetric struct {
-
-	NodeID    string    `json:"node_id"`
+	NodeID string `json:"node_id"`
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Metric    string    `json:"metric"`
+	Metric string `json:"metric"`
 
-	Value     float64   `json:"value"`
+	Value float64 `json:"value"`
 
-	Unit      string    `json:"unit"`
-
+	Unit string `json:"unit"`
 }
-
-
 
 // Generator produces periodic KPM metrics for a specified E2 node.
 
@@ -54,16 +38,13 @@ type KPMMetric struct {
 // as JSON files for consumption by the planner component.
 
 type Generator struct {
-
-	nodeID    string
+	nodeID string
 
 	outputDir string
 
-	rng       *rand.Rand // instance-specific random number generator
+	rng *rand.Rand // instance-specific random number generator
 
 }
-
-
 
 // NewGenerator creates a new KPM metric generator for the specified node.
 
@@ -87,21 +68,16 @@ func NewGenerator(nodeID, outputDir string) (*Generator, error) {
 
 	}
 
-
-
 	return &Generator{
 
-		nodeID:    nodeID,
+		nodeID: nodeID,
 
 		outputDir: outputDir,
 
-		rng:       rand.New(rand.NewSource(time.Now().UnixNano())),
-
+		rng: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}, nil
 
 }
-
-
 
 // GenerateMetric creates a new utilization metric and writes it to a timestamped JSON file.
 
@@ -125,23 +101,18 @@ func (g *Generator) GenerateMetric() error {
 
 	}
 
-
-
 	metric := &KPMMetric{
 
-		NodeID:    g.nodeID,
+		NodeID: g.nodeID,
 
 		Timestamp: time.Now().UTC(),
 
-		Metric:    "utilization",
+		Metric: "utilization",
 
-		Value:     value,
+		Value: value,
 
-		Unit:      "ratio",
-
+		Unit: "ratio",
 	}
-
-
 
 	data, err := json.MarshalIndent(metric, "", "  ")
 
@@ -151,8 +122,6 @@ func (g *Generator) GenerateMetric() error {
 
 	}
 
-
-
 	filename := fmt.Sprintf("%s_%s.json",
 
 		metric.Timestamp.Format("20060102T150405Z"),
@@ -161,17 +130,12 @@ func (g *Generator) GenerateMetric() error {
 
 	metricPath := filepath.Join(g.outputDir, filename)
 
-
-
 	if err := os.WriteFile(metricPath, data, 0o600); err != nil {
 
 		return fmt.Errorf("write file: %w", err)
 
 	}
 
-
-
 	return nil
 
 }
-

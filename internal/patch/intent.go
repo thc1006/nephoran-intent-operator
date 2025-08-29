@@ -1,41 +1,28 @@
-
 package patch
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"os"
-
 )
-
-
 
 // Intent represents the scaling intent structure.
 
 type Intent struct {
+	IntentType string `json:"intent_type"`
 
-	IntentType    string `json:"intent_type"`
+	Target string `json:"target"`
 
-	Target        string `json:"target"`
+	Namespace string `json:"namespace"`
 
-	Namespace     string `json:"namespace"`
+	Replicas int `json:"replicas"`
 
-	Replicas      int    `json:"replicas"`
+	Reason string `json:"reason,omitempty"`
 
-	Reason        string `json:"reason,omitempty"`
-
-	Source        string `json:"source,omitempty"`
+	Source string `json:"source,omitempty"`
 
 	CorrelationID string `json:"correlation_id,omitempty"`
-
 }
-
-
 
 // LoadIntent reads and parses an intent JSON file.
 
@@ -49,8 +36,6 @@ func LoadIntent(path string) (*Intent, error) {
 
 	}
 
-
-
 	var intent Intent
 
 	if err := json.Unmarshal(data, &intent); err != nil {
@@ -58,8 +43,6 @@ func LoadIntent(path string) (*Intent, error) {
 		return nil, fmt.Errorf("failed to parse intent JSON: %w", err)
 
 	}
-
-
 
 	// Validate required fields.
 
@@ -87,9 +70,6 @@ func LoadIntent(path string) (*Intent, error) {
 
 	}
 
-
-
 	return &intent, nil
 
 }
-

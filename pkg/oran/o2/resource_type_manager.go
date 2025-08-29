@@ -1,85 +1,55 @@
-
 package o2
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
-
-
 
 	"k8s.io/apimachinery/pkg/runtime"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // ResourceTypeManager manages resource type definitions and YANG models.
 
 type ResourceTypeManager struct {
-
-	storage    O2IMSStorage
+	storage O2IMSStorage
 
 	kubeClient client.Client
 
-	logger     *logging.StructuredLogger
+	logger *logging.StructuredLogger
 
-	config     *ResourceTypeConfig
-
-
+	config *ResourceTypeConfig
 
 	// Resource type cache.
 
-	typeCache   map[string]*models.ResourceType
+	typeCache map[string]*models.ResourceType
 
-	cacheMu     sync.RWMutex
+	cacheMu sync.RWMutex
 
 	cacheExpiry time.Duration
-
-
 
 	// YANG model management.
 
 	yangModelStore YANGModelStore
 
-	yangValidator  YANGValidator
-
-
+	yangValidator YANGValidator
 
 	// Schema registry.
 
 	schemaRegistry SchemaRegistry
 
-
-
 	// Type discovery and validation.
 
-	discoveryEnabled  bool
+	discoveryEnabled bool
 
 	validationEnabled bool
-
 }
-
-
 
 // ResourceTypeConfig defines configuration for resource type management.
 
@@ -87,61 +57,48 @@ type ResourceTypeConfig struct {
 
 	// Cache configuration.
 
-	CacheEnabled bool          `json:"cache_enabled"`
+	CacheEnabled bool `json:"cache_enabled"`
 
-	CacheExpiry  time.Duration `json:"cache_expiry"`
+	CacheExpiry time.Duration `json:"cache_expiry"`
 
-	MaxCacheSize int           `json:"max_cache_size"`
-
-
+	MaxCacheSize int `json:"max_cache_size"`
 
 	// YANG model configuration.
 
-	YANGModelsEnabled     bool   `json:"yang_models_enabled"`
+	YANGModelsEnabled bool `json:"yang_models_enabled"`
 
-	YANGModelsPath        string `json:"yang_models_path"`
+	YANGModelsPath string `json:"yang_models_path"`
 
-	YANGValidationEnabled bool   `json:"yang_validation_enabled"`
-
-
+	YANGValidationEnabled bool `json:"yang_validation_enabled"`
 
 	// Schema validation.
 
 	SchemaValidationEnabled bool `json:"schema_validation_enabled"`
 
-	StrictValidation        bool `json:"strict_validation"`
-
-
+	StrictValidation bool `json:"strict_validation"`
 
 	// Type discovery.
 
-	AutoDiscoveryEnabled bool          `json:"auto_discovery_enabled"`
+	AutoDiscoveryEnabled bool `json:"auto_discovery_enabled"`
 
-	DiscoveryInterval    time.Duration `json:"discovery_interval"`
+	DiscoveryInterval time.Duration `json:"discovery_interval"`
 
-	SupportedProviders   []string      `json:"supported_providers"`
-
-
+	SupportedProviders []string `json:"supported_providers"`
 
 	// Vendor extensions.
 
-	VendorExtensionsEnabled bool     `json:"vendor_extensions_enabled"`
+	VendorExtensionsEnabled bool `json:"vendor_extensions_enabled"`
 
-	AllowedVendors          []string `json:"allowed_vendors"`
-
-
+	AllowedVendors []string `json:"allowed_vendors"`
 
 	// Versioning.
 
-	VersioningEnabled bool     `json:"versioning_enabled"`
+	VersioningEnabled bool `json:"versioning_enabled"`
 
-	DefaultVersion    string   `json:"default_version"`
+	DefaultVersion string `json:"default_version"`
 
 	SupportedVersions []string `json:"supported_versions"`
-
 }
-
-
 
 // YANGModelStore defines the interface for YANG model storage and retrieval.
 
@@ -159,25 +116,18 @@ type YANGModelStore interface {
 
 	DeleteYANGModel(ctx context.Context, modelName, version string) error
 
-
-
 	// Module dependency resolution.
 
 	ResolveDependencies(ctx context.Context, modelName, version string) ([]*YANGModel, error)
 
 	ValidateDependencies(ctx context.Context, model *YANGModel) error
 
-
-
 	// Schema compilation.
 
 	CompileSchema(ctx context.Context, modelName, version string) (*CompiledSchema, error)
 
 	CacheCompiledSchema(ctx context.Context, schema *CompiledSchema) error
-
 }
-
-
 
 // YANGValidator defines the interface for YANG model validation.
 
@@ -191,23 +141,16 @@ type YANGValidator interface {
 
 	ValidateYANGSemantics(ctx context.Context, model *YANGModel) (*ValidationResult, error)
 
-
-
 	// Instance validation.
 
 	ValidateInstance(ctx context.Context, data *runtime.RawExtension, schemaRef *SchemaReference) (*ValidationResult, error)
 
 	ValidateConfiguration(ctx context.Context, config *runtime.RawExtension, resourceType *models.ResourceType) (*ValidationResult, error)
 
-
-
 	// Constraint validation.
 
 	ValidateConstraints(ctx context.Context, data interface{}, constraints []*YANGConstraint) (*ValidationResult, error)
-
 }
-
-
 
 // SchemaRegistry defines the interface for schema registration and lookup.
 
@@ -223,8 +166,6 @@ type SchemaRegistry interface {
 
 	ListSchemas(ctx context.Context, filter *SchemaFilter) ([]*Schema, error)
 
-
-
 	// Schema versioning.
 
 	RegisterSchemaVersion(ctx context.Context, schemaID, version string, schema *Schema) error
@@ -233,245 +174,189 @@ type SchemaRegistry interface {
 
 	ListSchemaVersions(ctx context.Context, schemaID string) ([]string, error)
 
-
-
 	// Schema compatibility.
 
 	CheckCompatibility(ctx context.Context, oldSchema, newSchema *Schema) (*CompatibilityResult, error)
 
 	ValidateBackwardCompatibility(ctx context.Context, schemaID, newVersion string, schema *Schema) (*CompatibilityResult, error)
-
 }
-
-
 
 // YANGModel represents a YANG model definition.
 
 type YANGModel struct {
+	ModelID string `json:"modelId"`
 
-	ModelID      string `json:"modelId"`
+	Name string `json:"name"`
 
-	Name         string `json:"name"`
+	Version string `json:"version"`
 
-	Version      string `json:"version"`
+	Namespace string `json:"namespace"`
 
-	Namespace    string `json:"namespace"`
+	Prefix string `json:"prefix"`
 
-	Prefix       string `json:"prefix"`
-
-	Description  string `json:"description,omitempty"`
+	Description string `json:"description,omitempty"`
 
 	Organization string `json:"organization,omitempty"`
 
-	Contact      string `json:"contact,omitempty"`
-
-
+	Contact string `json:"contact,omitempty"`
 
 	// Model content.
 
-	YANGContent    string          `json:"yangContent"`
+	YANGContent string `json:"yangContent"`
 
 	CompiledSchema *CompiledSchema `json:"compiledSchema,omitempty"`
 
-
-
 	// Dependencies.
 
-	ImportedModules    []*YANGModuleRef  `json:"importedModules,omitempty"`
+	ImportedModules []*YANGModuleRef `json:"importedModules,omitempty"`
 
-	IncludedSubmodules []*YANGModuleRef  `json:"includedSubmodules,omitempty"`
+	IncludedSubmodules []*YANGModuleRef `json:"includedSubmodules,omitempty"`
 
-	Dependencies       []*YANGDependency `json:"dependencies,omitempty"`
-
-
+	Dependencies []*YANGDependency `json:"dependencies,omitempty"`
 
 	// Validation and metadata.
 
 	ValidationStatus *ValidationResult `json:"validationStatus,omitempty"`
 
-	Features         []string          `json:"features,omitempty"`
+	Features []string `json:"features,omitempty"`
 
-	Deviations       []*YANGDeviation  `json:"deviations,omitempty"`
-
-
+	Deviations []*YANGDeviation `json:"deviations,omitempty"`
 
 	// Lifecycle.
 
-	Status     string                 `json:"status"` // DRAFT, ACTIVE, DEPRECATED, OBSOLETE
+	Status string `json:"status"` // DRAFT, ACTIVE, DEPRECATED, OBSOLETE
 
-	Tags       map[string]string      `json:"tags,omitempty"`
+	Tags map[string]string `json:"tags,omitempty"`
 
 	Extensions map[string]interface{} `json:"extensions,omitempty"`
 
-	CreatedAt  time.Time              `json:"createdAt"`
+	CreatedAt time.Time `json:"createdAt"`
 
-	UpdatedAt  time.Time              `json:"updatedAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
-	CreatedBy  string                 `json:"createdBy,omitempty"`
+	CreatedBy string `json:"createdBy,omitempty"`
 
-	UpdatedBy  string                 `json:"updatedBy,omitempty"`
-
+	UpdatedBy string `json:"updatedBy,omitempty"`
 }
-
-
 
 // YANGModuleRef represents a reference to a YANG module.
 
 type YANGModuleRef struct {
+	Name string `json:"name"`
 
-	Name     string `json:"name"`
+	Version string `json:"version,omitempty"`
 
-	Version  string `json:"version,omitempty"`
+	Prefix string `json:"prefix,omitempty"`
 
-	Prefix   string `json:"prefix,omitempty"`
-
-	Required bool   `json:"required"`
-
+	Required bool `json:"required"`
 }
-
-
 
 // YANGDependency represents a dependency between YANG models.
 
 type YANGDependency struct {
-
 	DependencyType string `json:"dependencyType"` // IMPORT, INCLUDE, AUGMENT, DEVIATION
 
-	ModuleName     string `json:"moduleName"`
+	ModuleName string `json:"moduleName"`
 
-	Version        string `json:"version,omitempty"`
+	Version string `json:"version,omitempty"`
 
-	Required       bool   `json:"required"`
+	Required bool `json:"required"`
 
-	Description    string `json:"description,omitempty"`
-
+	Description string `json:"description,omitempty"`
 }
-
-
 
 // YANGDeviation represents a YANG deviation.
 
 type YANGDeviation struct {
+	TargetNode string `json:"targetNode"`
 
-	TargetNode    string                 `json:"targetNode"`
+	DeviationType string `json:"deviationType"` // NOT_SUPPORTED, ADD, REPLACE, DELETE
 
-	DeviationType string                 `json:"deviationType"` // NOT_SUPPORTED, ADD, REPLACE, DELETE
+	Description string `json:"description,omitempty"`
 
-	Description   string                 `json:"description,omitempty"`
+	Reference string `json:"reference,omitempty"`
 
-	Reference     string                 `json:"reference,omitempty"`
-
-	Condition     map[string]interface{} `json:"condition,omitempty"`
-
+	Condition map[string]interface{} `json:"condition,omitempty"`
 }
-
-
 
 // CompiledSchema represents a compiled YANG schema.
 
 type CompiledSchema struct {
+	SchemaID string `json:"schemaId"`
 
-	SchemaID   string    `json:"schemaId"`
+	ModelName string `json:"modelName"`
 
-	ModelName  string    `json:"modelName"`
-
-	Version    string    `json:"version"`
+	Version string `json:"version"`
 
 	CompiledAt time.Time `json:"compiledAt"`
 
-
-
 	// Schema structure.
 
-	RootNodes  []*YANGNode     `json:"rootNodes"`
+	RootNodes []*YANGNode `json:"rootNodes"`
 
-	DataTypes  []*YANGDataType `json:"dataTypes"`
+	DataTypes []*YANGDataType `json:"dataTypes"`
 
 	Identities []*YANGIdentity `json:"identities"`
 
-	Features   []*YANGFeature  `json:"features"`
-
-
+	Features []*YANGFeature `json:"features"`
 
 	// Constraints and validations.
 
 	Constraints []*YANGConstraint `json:"constraints,omitempty"`
 
-
-
 	// Metadata.
 
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
-
 }
-
-
 
 // YANGNode represents a node in the YANG schema tree.
 
 type YANGNode struct {
+	Name string `json:"name"`
 
-	Name        string `json:"name"`
+	Type string `json:"type"` // CONTAINER, LIST, LEAF, LEAF_LIST, CHOICE, CASE, ANYXML, ANYDATA
 
-	Type        string `json:"type"` // CONTAINER, LIST, LEAF, LEAF_LIST, CHOICE, CASE, ANYXML, ANYDATA
-
-	Path        string `json:"path"`
+	Path string `json:"path"`
 
 	Description string `json:"description,omitempty"`
 
-
-
 	// Node properties.
 
-	Config    *bool  `json:"config,omitempty"`
+	Config *bool `json:"config,omitempty"`
 
-	Mandatory *bool  `json:"mandatory,omitempty"`
+	Mandatory *bool `json:"mandatory,omitempty"`
 
-	Status    string `json:"status,omitempty"` // CURRENT, DEPRECATED, OBSOLETE
-
-
+	Status string `json:"status,omitempty"` // CURRENT, DEPRECATED, OBSOLETE
 
 	// Type information.
 
-	DataType     *YANGDataType `json:"dataType,omitempty"`
+	DataType *YANGDataType `json:"dataType,omitempty"`
 
-	DefaultValue interface{}   `json:"defaultValue,omitempty"`
-
-
+	DefaultValue interface{} `json:"defaultValue,omitempty"`
 
 	// Constraints.
 
 	Constraints []*YANGConstraint `json:"constraints,omitempty"`
 
-
-
 	// Hierarchy.
 
-	Parent   *YANGNode   `json:"parent,omitempty"`
+	Parent *YANGNode `json:"parent,omitempty"`
 
 	Children []*YANGNode `json:"children,omitempty"`
-
-
 
 	// Extensions.
 
 	Extensions map[string]interface{} `json:"extensions,omitempty"`
-
 }
-
-
 
 // YANGDataType represents a YANG data type.
 
 type YANGDataType struct {
+	Name string `json:"name"`
 
-	Name        string `json:"name"`
-
-	BaseType    string `json:"baseType"`
+	BaseType string `json:"baseType"`
 
 	Description string `json:"description,omitempty"`
-
-
 
 	// Type restrictions.
 
@@ -479,319 +364,251 @@ type YANGDataType struct {
 
 	Enumerations []*YANGEnumeration `json:"enumerations,omitempty"`
 
-	UnionTypes   []*YANGDataType    `json:"unionTypes,omitempty"`
-
-
+	UnionTypes []*YANGDataType `json:"unionTypes,omitempty"`
 
 	// Derived type information.
 
 	DerivedFrom string `json:"derivedFrom,omitempty"`
 
-
-
 	// Extensions.
 
 	Extensions map[string]interface{} `json:"extensions,omitempty"`
-
 }
-
-
 
 // YANGRestriction represents a restriction on a YANG data type.
 
 type YANGRestriction struct {
+	Type string `json:"type"` // LENGTH, PATTERN, RANGE, FRACTION_DIGITS
 
-	Type         string      `json:"type"` // LENGTH, PATTERN, RANGE, FRACTION_DIGITS
+	Value interface{} `json:"value"`
 
-	Value        interface{} `json:"value"`
+	ErrorMessage string `json:"errorMessage,omitempty"`
 
-	ErrorMessage string      `json:"errorMessage,omitempty"`
-
-	Description  string      `json:"description,omitempty"`
-
+	Description string `json:"description,omitempty"`
 }
-
-
 
 // YANGEnumeration represents an enumeration value in YANG.
 
 type YANGEnumeration struct {
+	Name string `json:"name"`
 
-	Name        string `json:"name"`
-
-	Value       *int   `json:"value,omitempty"`
+	Value *int `json:"value,omitempty"`
 
 	Description string `json:"description,omitempty"`
 
-	Status      string `json:"status,omitempty"`
-
+	Status string `json:"status,omitempty"`
 }
-
-
 
 // YANGIdentity represents a YANG identity.
 
 type YANGIdentity struct {
-
-	Name           string   `json:"name"`
+	Name string `json:"name"`
 
 	BaseIdentities []string `json:"baseIdentities,omitempty"`
 
-	Description    string   `json:"description,omitempty"`
+	Description string `json:"description,omitempty"`
 
-	Status         string   `json:"status,omitempty"`
-
+	Status string `json:"status,omitempty"`
 }
-
-
 
 // YANGFeature represents a YANG feature.
 
 type YANGFeature struct {
+	Name string `json:"name"`
 
-	Name        string   `json:"name"`
+	Description string `json:"description,omitempty"`
 
-	Description string   `json:"description,omitempty"`
+	Status string `json:"status,omitempty"`
 
-	Status      string   `json:"status,omitempty"`
-
-	IfFeatures  []string `json:"ifFeatures,omitempty"`
-
+	IfFeatures []string `json:"ifFeatures,omitempty"`
 }
-
-
 
 // YANGConstraint represents a YANG constraint.
 
 type YANGConstraint struct {
+	Type string `json:"type"` // MUST, WHEN, UNIQUE, KEY
 
-	Type         string                 `json:"type"` // MUST, WHEN, UNIQUE, KEY
+	Expression string `json:"expression"`
 
-	Expression   string                 `json:"expression"`
+	ErrorMessage string `json:"errorMessage,omitempty"`
 
-	ErrorMessage string                 `json:"errorMessage,omitempty"`
+	Description string `json:"description,omitempty"`
 
-	Description  string                 `json:"description,omitempty"`
-
-	Context      map[string]interface{} `json:"context,omitempty"`
-
+	Context map[string]interface{} `json:"context,omitempty"`
 }
-
-
 
 // ValidationResult represents the result of YANG validation.
 
 type ValidationResult struct {
+	Valid bool `json:"valid"`
 
-	Valid          bool                 `json:"valid"`
+	Errors []*ValidationError `json:"errors,omitempty"`
 
-	Errors         []*ValidationError   `json:"errors,omitempty"`
+	Warnings []*ValidationWarning `json:"warnings,omitempty"`
 
-	Warnings       []*ValidationWarning `json:"warnings,omitempty"`
+	Summary string `json:"summary,omitempty"`
 
-	Summary        string               `json:"summary,omitempty"`
+	ValidationTime time.Duration `json:"validationTime"`
 
-	ValidationTime time.Duration        `json:"validationTime"`
-
-	ValidatedAt    time.Time            `json:"validatedAt"`
-
+	ValidatedAt time.Time `json:"validatedAt"`
 }
-
-
 
 // ValidationError represents a validation error.
 
 type ValidationError struct {
+	Code string `json:"code"`
 
-	Code     string `json:"code"`
+	Message string `json:"message"`
 
-	Message  string `json:"message"`
+	Path string `json:"path,omitempty"`
 
-	Path     string `json:"path,omitempty"`
+	Line int `json:"line,omitempty"`
 
-	Line     int    `json:"line,omitempty"`
-
-	Column   int    `json:"column,omitempty"`
+	Column int `json:"column,omitempty"`
 
 	Severity string `json:"severity"` // ERROR, WARNING, INFO
 
 }
 
-
-
 // ValidationWarning represents a validation warning.
 
 type ValidationWarning struct {
-
-	Code    string `json:"code"`
+	Code string `json:"code"`
 
 	Message string `json:"message"`
 
-	Path    string `json:"path,omitempty"`
+	Path string `json:"path,omitempty"`
 
-	Line    int    `json:"line,omitempty"`
+	Line int `json:"line,omitempty"`
 
-	Column  int    `json:"column,omitempty"`
-
+	Column int `json:"column,omitempty"`
 }
-
-
 
 // Schema represents a generic schema definition.
 
 type Schema struct {
+	SchemaID string `json:"schemaId"`
 
-	SchemaID       string          `json:"schemaId"`
+	Name string `json:"name"`
 
-	Name           string          `json:"name"`
+	Version string `json:"version"`
 
-	Version        string          `json:"version"`
+	Type string `json:"type"` // YANG, JSON_SCHEMA, XSD, AVRO
 
-	Type           string          `json:"type"` // YANG, JSON_SCHEMA, XSD, AVRO
-
-	Content        string          `json:"content"`
+	Content string `json:"content"`
 
 	CompiledSchema *CompiledSchema `json:"compiledSchema,omitempty"`
 
-
-
 	// Metadata.
 
-	Description string                 `json:"description,omitempty"`
+	Description string `json:"description,omitempty"`
 
-	Tags        map[string]string      `json:"tags,omitempty"`
+	Tags map[string]string `json:"tags,omitempty"`
 
-	Extensions  map[string]interface{} `json:"extensions,omitempty"`
-
-
+	Extensions map[string]interface{} `json:"extensions,omitempty"`
 
 	// Lifecycle.
 
-	Status    string    `json:"status"`
+	Status string `json:"status"`
 
 	CreatedAt time.Time `json:"createdAt"`
 
 	UpdatedAt time.Time `json:"updatedAt"`
 
-	CreatedBy string    `json:"createdBy,omitempty"`
-
+	CreatedBy string `json:"createdBy,omitempty"`
 }
-
-
 
 // SchemaReference represents a reference to a schema.
 
 type SchemaReference struct {
-
 	SchemaID string `json:"schemaId"`
 
-	Version  string `json:"version,omitempty"`
+	Version string `json:"version,omitempty"`
 
-	Type     string `json:"type,omitempty"`
-
+	Type string `json:"type,omitempty"`
 }
-
-
 
 // CompatibilityResult represents the result of schema compatibility check.
 
 type CompatibilityResult struct {
+	Compatible bool `json:"compatible"`
 
-	Compatible         bool                  `json:"compatible"`
+	CompatibilityLevel string `json:"compatibilityLevel"` // FULL, BACKWARD, FORWARD, NONE
 
-	CompatibilityLevel string                `json:"compatibilityLevel"` // FULL, BACKWARD, FORWARD, NONE
+	Issues []*CompatibilityIssue `json:"issues,omitempty"`
 
-	Issues             []*CompatibilityIssue `json:"issues,omitempty"`
-
-	Summary            string                `json:"summary,omitempty"`
-
+	Summary string `json:"summary,omitempty"`
 }
-
-
 
 // CompatibilityIssue represents a compatibility issue.
 
 type CompatibilityIssue struct {
+	Type string `json:"type"` // BREAKING, NON_BREAKING, WARNING
 
-	Type     string `json:"type"` // BREAKING, NON_BREAKING, WARNING
+	Message string `json:"message"`
 
-	Message  string `json:"message"`
-
-	Path     string `json:"path,omitempty"`
+	Path string `json:"path,omitempty"`
 
 	Severity string `json:"severity"`
-
 }
 
-
-
 // Filter types for queries.
-
-
 
 // YANGModelFilter defines filters for YANG model queries.
 
 type YANGModelFilter struct {
+	Names []string `json:"names,omitempty"`
 
-	Names         []string          `json:"names,omitempty"`
+	Versions []string `json:"versions,omitempty"`
 
-	Versions      []string          `json:"versions,omitempty"`
+	Namespaces []string `json:"namespaces,omitempty"`
 
-	Namespaces    []string          `json:"namespaces,omitempty"`
+	Organizations []string `json:"organizations,omitempty"`
 
-	Organizations []string          `json:"organizations,omitempty"`
+	Status []string `json:"status,omitempty"`
 
-	Status        []string          `json:"status,omitempty"`
+	Features []string `json:"features,omitempty"`
 
-	Features      []string          `json:"features,omitempty"`
+	Tags map[string]string `json:"tags,omitempty"`
 
-	Tags          map[string]string `json:"tags,omitempty"`
+	CreatedAfter *time.Time `json:"createdAfter,omitempty"`
 
-	CreatedAfter  *time.Time        `json:"createdAfter,omitempty"`
+	CreatedBefore *time.Time `json:"createdBefore,omitempty"`
 
-	CreatedBefore *time.Time        `json:"createdBefore,omitempty"`
+	Limit int `json:"limit,omitempty"`
 
-	Limit         int               `json:"limit,omitempty"`
+	Offset int `json:"offset,omitempty"`
 
-	Offset        int               `json:"offset,omitempty"`
+	SortBy string `json:"sortBy,omitempty"`
 
-	SortBy        string            `json:"sortBy,omitempty"`
-
-	SortOrder     string            `json:"sortOrder,omitempty"`
-
+	SortOrder string `json:"sortOrder,omitempty"`
 }
-
-
 
 // SchemaFilter defines filters for schema queries.
 
 type SchemaFilter struct {
+	Names []string `json:"names,omitempty"`
 
-	Names         []string          `json:"names,omitempty"`
+	Versions []string `json:"versions,omitempty"`
 
-	Versions      []string          `json:"versions,omitempty"`
+	Types []string `json:"types,omitempty"`
 
-	Types         []string          `json:"types,omitempty"`
+	Status []string `json:"status,omitempty"`
 
-	Status        []string          `json:"status,omitempty"`
+	Tags map[string]string `json:"tags,omitempty"`
 
-	Tags          map[string]string `json:"tags,omitempty"`
+	CreatedAfter *time.Time `json:"createdAfter,omitempty"`
 
-	CreatedAfter  *time.Time        `json:"createdAfter,omitempty"`
+	CreatedBefore *time.Time `json:"createdBefore,omitempty"`
 
-	CreatedBefore *time.Time        `json:"createdBefore,omitempty"`
+	Limit int `json:"limit,omitempty"`
 
-	Limit         int               `json:"limit,omitempty"`
+	Offset int `json:"offset,omitempty"`
 
-	Offset        int               `json:"offset,omitempty"`
+	SortBy string `json:"sortBy,omitempty"`
 
-	SortBy        string            `json:"sortBy,omitempty"`
-
-	SortOrder     string            `json:"sortOrder,omitempty"`
-
+	SortOrder string `json:"sortOrder,omitempty"`
 }
-
-
 
 // NewResourceTypeManager creates a new resource type manager.
 
@@ -799,65 +616,59 @@ func NewResourceTypeManager(storage O2IMSStorage, kubeClient client.Client, logg
 
 	config := &ResourceTypeConfig{
 
-		CacheEnabled:            true,
+		CacheEnabled: true,
 
-		CacheExpiry:             30 * time.Minute,
+		CacheExpiry: 30 * time.Minute,
 
-		MaxCacheSize:            500,
+		MaxCacheSize: 500,
 
-		YANGModelsEnabled:       true,
+		YANGModelsEnabled: true,
 
-		YANGModelsPath:          "/etc/yang-models",
+		YANGModelsPath: "/etc/yang-models",
 
-		YANGValidationEnabled:   true,
+		YANGValidationEnabled: true,
 
 		SchemaValidationEnabled: true,
 
-		StrictValidation:        false,
+		StrictValidation: false,
 
-		AutoDiscoveryEnabled:    true,
+		AutoDiscoveryEnabled: true,
 
-		DiscoveryInterval:       10 * time.Minute,
+		DiscoveryInterval: 10 * time.Minute,
 
-		SupportedProviders:      []string{"kubernetes", "openstack", "aws", "azure", "gcp"},
+		SupportedProviders: []string{"kubernetes", "openstack", "aws", "azure", "gcp"},
 
 		VendorExtensionsEnabled: true,
 
-		AllowedVendors:          []string{"ericsson", "nokia", "huawei", "cisco", "juniper"},
+		AllowedVendors: []string{"ericsson", "nokia", "huawei", "cisco", "juniper"},
 
-		VersioningEnabled:       true,
+		VersioningEnabled: true,
 
-		DefaultVersion:          "1.0.0",
+		DefaultVersion: "1.0.0",
 
-		SupportedVersions:       []string{"1.0.0", "1.1.0"},
-
+		SupportedVersions: []string{"1.0.0", "1.1.0"},
 	}
-
-
 
 	return &ResourceTypeManager{
 
-		storage:           storage,
+		storage: storage,
 
-		kubeClient:        kubeClient,
+		kubeClient: kubeClient,
 
-		logger:            logger,
+		logger: logger,
 
-		config:            config,
+		config: config,
 
-		typeCache:         make(map[string]*models.ResourceType),
+		typeCache: make(map[string]*models.ResourceType),
 
-		cacheExpiry:       config.CacheExpiry,
+		cacheExpiry: config.CacheExpiry,
 
-		discoveryEnabled:  config.AutoDiscoveryEnabled,
+		discoveryEnabled: config.AutoDiscoveryEnabled,
 
 		validationEnabled: config.YANGValidationEnabled,
-
 	}
 
 }
-
-
 
 // GetResourceTypes retrieves resource types with filtering support.
 
@@ -866,8 +677,6 @@ func (rtm *ResourceTypeManager) GetResourceTypes(ctx context.Context, filter *mo
 	logger := log.FromContext(ctx)
 
 	logger.Info("retrieving resource types", "filter", filter)
-
-
 
 	// Check cache first if enabled and no specific filter.
 
@@ -881,8 +690,6 @@ func (rtm *ResourceTypeManager) GetResourceTypes(ctx context.Context, filter *mo
 
 	}
 
-
-
 	// Retrieve from storage.
 
 	types, err := rtm.storage.ListResourceTypes(ctx, filter)
@@ -893,8 +700,6 @@ func (rtm *ResourceTypeManager) GetResourceTypes(ctx context.Context, filter *mo
 
 	}
 
-
-
 	// Update cache if enabled.
 
 	if rtm.config.CacheEnabled {
@@ -902,8 +707,6 @@ func (rtm *ResourceTypeManager) GetResourceTypes(ctx context.Context, filter *mo
 		rtm.updateTypeCache(types)
 
 	}
-
-
 
 	// Enrich with YANG model information if enabled.
 
@@ -917,15 +720,11 @@ func (rtm *ResourceTypeManager) GetResourceTypes(ctx context.Context, filter *mo
 
 	}
 
-
-
 	logger.Info("retrieved resource types", "count", len(types))
 
 	return types, nil
 
 }
-
-
 
 // GetResourceType retrieves a specific resource type.
 
@@ -934,8 +733,6 @@ func (rtm *ResourceTypeManager) GetResourceType(ctx context.Context, resourceTyp
 	logger := log.FromContext(ctx)
 
 	logger.Info("retrieving resource type", "typeId", resourceTypeID)
-
-
 
 	// Check cache first.
 
@@ -949,8 +746,6 @@ func (rtm *ResourceTypeManager) GetResourceType(ctx context.Context, resourceTyp
 
 	}
 
-
-
 	// Retrieve from storage.
 
 	resourceType, err := rtm.storage.GetResourceType(ctx, resourceTypeID)
@@ -961,8 +756,6 @@ func (rtm *ResourceTypeManager) GetResourceType(ctx context.Context, resourceTyp
 
 	}
 
-
-
 	// Update cache.
 
 	if rtm.config.CacheEnabled {
@@ -970,8 +763,6 @@ func (rtm *ResourceTypeManager) GetResourceType(ctx context.Context, resourceTyp
 		rtm.setCachedType(resourceType)
 
 	}
-
-
 
 	// Enrich with YANG model information.
 
@@ -985,13 +776,9 @@ func (rtm *ResourceTypeManager) GetResourceType(ctx context.Context, resourceTyp
 
 	}
 
-
-
 	return resourceType, nil
 
 }
-
-
 
 // CreateResourceType creates a new resource type.
 
@@ -1001,8 +788,6 @@ func (rtm *ResourceTypeManager) CreateResourceType(ctx context.Context, resource
 
 	logger.Info("creating resource type", "name", resourceType.Name, "vendor", resourceType.Vendor)
 
-
-
 	// Validate the resource type.
 
 	if err := rtm.validateResourceType(ctx, resourceType); err != nil {
@@ -1011,15 +796,11 @@ func (rtm *ResourceTypeManager) CreateResourceType(ctx context.Context, resource
 
 	}
 
-
-
 	// Set creation metadata.
 
 	resourceType.CreatedAt = time.Now()
 
 	resourceType.UpdatedAt = time.Now()
-
-
 
 	// Generate resource type ID if not provided.
 
@@ -1029,8 +810,6 @@ func (rtm *ResourceTypeManager) CreateResourceType(ctx context.Context, resource
 
 	}
 
-
-
 	// Store the resource type.
 
 	if err := rtm.storage.StoreResourceType(ctx, resourceType); err != nil {
@@ -1039,8 +818,6 @@ func (rtm *ResourceTypeManager) CreateResourceType(ctx context.Context, resource
 
 	}
 
-
-
 	// Update cache.
 
 	if rtm.config.CacheEnabled {
@@ -1048,8 +825,6 @@ func (rtm *ResourceTypeManager) CreateResourceType(ctx context.Context, resource
 		rtm.setCachedType(resourceType)
 
 	}
-
-
 
 	// Process YANG model if provided.
 
@@ -1063,15 +838,11 @@ func (rtm *ResourceTypeManager) CreateResourceType(ctx context.Context, resource
 
 	}
 
-
-
 	logger.Info("resource type created successfully", "typeId", resourceType.ResourceTypeID)
 
 	return resourceType, nil
 
 }
-
-
 
 // UpdateResourceType updates an existing resource type.
 
@@ -1080,8 +851,6 @@ func (rtm *ResourceTypeManager) UpdateResourceType(ctx context.Context, resource
 	logger := log.FromContext(ctx)
 
 	logger.Info("updating resource type", "typeId", resourceTypeID)
-
-
 
 	// Get current resource type.
 
@@ -1093,8 +862,6 @@ func (rtm *ResourceTypeManager) UpdateResourceType(ctx context.Context, resource
 
 	}
 
-
-
 	// Update fields.
 
 	resourceType.ResourceTypeID = resourceTypeID
@@ -1103,8 +870,6 @@ func (rtm *ResourceTypeManager) UpdateResourceType(ctx context.Context, resource
 
 	resourceType.UpdatedAt = time.Now()
 
-
-
 	// Validate the updated resource type.
 
 	if err := rtm.validateResourceType(ctx, resourceType); err != nil {
@@ -1112,8 +877,6 @@ func (rtm *ResourceTypeManager) UpdateResourceType(ctx context.Context, resource
 		return nil, fmt.Errorf("resource type validation failed: %w", err)
 
 	}
-
-
 
 	// Check compatibility if versioning is enabled.
 
@@ -1127,8 +890,6 @@ func (rtm *ResourceTypeManager) UpdateResourceType(ctx context.Context, resource
 
 	}
 
-
-
 	// Update in storage.
 
 	if err := rtm.storage.UpdateResourceType(ctx, resourceTypeID, resourceType); err != nil {
@@ -1136,8 +897,6 @@ func (rtm *ResourceTypeManager) UpdateResourceType(ctx context.Context, resource
 		return nil, fmt.Errorf("failed to update resource type: %w", err)
 
 	}
-
-
 
 	// Update cache.
 
@@ -1147,15 +906,11 @@ func (rtm *ResourceTypeManager) UpdateResourceType(ctx context.Context, resource
 
 	}
 
-
-
 	logger.Info("resource type updated successfully", "typeId", resourceTypeID)
 
 	return resourceType, nil
 
 }
-
-
 
 // DeleteResourceType deletes a resource type.
 
@@ -1164,8 +919,6 @@ func (rtm *ResourceTypeManager) DeleteResourceType(ctx context.Context, resource
 	logger := log.FromContext(ctx)
 
 	logger.Info("deleting resource type", "typeId", resourceTypeID)
-
-
 
 	// Check if type exists.
 
@@ -1177,8 +930,6 @@ func (rtm *ResourceTypeManager) DeleteResourceType(ctx context.Context, resource
 
 	}
 
-
-
 	// Check for dependent resources.
 
 	if err := rtm.checkResourceTypeDependencies(ctx, resourceTypeID); err != nil {
@@ -1186,8 +937,6 @@ func (rtm *ResourceTypeManager) DeleteResourceType(ctx context.Context, resource
 		return fmt.Errorf("cannot delete resource type with dependencies: %w", err)
 
 	}
-
-
 
 	// Delete from storage.
 
@@ -1197,8 +946,6 @@ func (rtm *ResourceTypeManager) DeleteResourceType(ctx context.Context, resource
 
 	}
 
-
-
 	// Remove from cache.
 
 	if rtm.config.CacheEnabled {
@@ -1207,15 +954,11 @@ func (rtm *ResourceTypeManager) DeleteResourceType(ctx context.Context, resource
 
 	}
 
-
-
 	logger.Info("resource type deleted successfully", "typeId", resourceTypeID)
 
 	return nil
 
 }
-
-
 
 // DiscoverResourceTypes discovers resource types from registered providers.
 
@@ -1225,11 +968,7 @@ func (rtm *ResourceTypeManager) DiscoverResourceTypes(ctx context.Context) (map[
 
 	logger.Info("discovering resource types from providers")
 
-
-
 	discovered := make(map[string][]*models.ResourceType)
-
-
 
 	for _, provider := range rtm.config.SupportedProviders {
 
@@ -1247,15 +986,11 @@ func (rtm *ResourceTypeManager) DiscoverResourceTypes(ctx context.Context) (map[
 
 	}
 
-
-
 	logger.Info("resource type discovery completed", "providers", len(discovered))
 
 	return discovered, nil
 
 }
-
-
 
 // RegisterYANGModel registers a YANG model in the system.
 
@@ -1267,13 +1002,9 @@ func (rtm *ResourceTypeManager) RegisterYANGModel(ctx context.Context, model *YA
 
 	}
 
-
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("registering YANG model", "name", model.Name, "version", model.Version)
-
-
 
 	// Validate YANG model.
 
@@ -1287,21 +1018,15 @@ func (rtm *ResourceTypeManager) RegisterYANGModel(ctx context.Context, model *YA
 
 		}
 
-
-
 		if !result.Valid {
 
 			return fmt.Errorf("YANG model is invalid: %v", result.Errors)
 
 		}
 
-
-
 		model.ValidationStatus = result
 
 	}
-
-
 
 	// Store YANG model.
 
@@ -1311,15 +1036,11 @@ func (rtm *ResourceTypeManager) RegisterYANGModel(ctx context.Context, model *YA
 
 	}
 
-
-
 	logger.Info("YANG model registered successfully", "name", model.Name, "version", model.Version)
 
 	return nil
 
 }
-
-
 
 // ValidateResourceConfiguration validates resource configuration against YANG model.
 
@@ -1331,8 +1052,6 @@ func (rtm *ResourceTypeManager) ValidateResourceConfiguration(ctx context.Contex
 
 	}
 
-
-
 	// Get resource type.
 
 	resourceType, err := rtm.GetResourceType(ctx, resourceTypeID)
@@ -1342,8 +1061,6 @@ func (rtm *ResourceTypeManager) ValidateResourceConfiguration(ctx context.Contex
 		return nil, fmt.Errorf("failed to get resource type: %w", err)
 
 	}
-
-
 
 	// Validate configuration.
 
@@ -1355,17 +1072,11 @@ func (rtm *ResourceTypeManager) ValidateResourceConfiguration(ctx context.Contex
 
 	}
 
-
-
 	return result, nil
 
 }
 
-
-
 // Private helper methods.
-
-
 
 // validateResourceType validates a resource type definition.
 
@@ -1388,8 +1099,6 @@ func (rtm *ResourceTypeManager) validateResourceType(ctx context.Context, resour
 		return fmt.Errorf("resource type version is required")
 
 	}
-
-
 
 	// Validate vendor if restrictions are configured.
 
@@ -1417,8 +1126,6 @@ func (rtm *ResourceTypeManager) validateResourceType(ctx context.Context, resour
 
 	}
 
-
-
 	// Validate version format if versioning is enabled.
 
 	if rtm.config.VersioningEnabled {
@@ -1431,13 +1138,9 @@ func (rtm *ResourceTypeManager) validateResourceType(ctx context.Context, resour
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // generateResourceTypeID generates a unique resource type ID.
 
@@ -1454,8 +1157,6 @@ func (rtm *ResourceTypeManager) generateResourceTypeID(resourceType *models.Reso
 		time.Now().Unix())
 
 }
-
-
 
 // validateVersion validates version format.
 
@@ -1475,8 +1176,6 @@ func (rtm *ResourceTypeManager) validateVersion(version string) error {
 
 }
 
-
-
 // checkTypeCompatibility checks compatibility between resource type versions.
 
 func (rtm *ResourceTypeManager) checkTypeCompatibility(ctx context.Context, oldType, newType *models.ResourceType) error {
@@ -1495,8 +1194,6 @@ func (rtm *ResourceTypeManager) checkTypeCompatibility(ctx context.Context, oldT
 
 }
 
-
-
 // checkResourceTypeDependencies checks if there are resources using this type.
 
 func (rtm *ResourceTypeManager) checkResourceTypeDependencies(ctx context.Context, resourceTypeID string) error {
@@ -1507,11 +1204,8 @@ func (rtm *ResourceTypeManager) checkResourceTypeDependencies(ctx context.Contex
 
 		ResourceTypeIDs: []string{resourceTypeID},
 
-		Limit:           1,
-
+		Limit: 1,
 	}
-
-
 
 	resources, err := rtm.storage.ListResources(ctx, filter)
 
@@ -1521,21 +1215,15 @@ func (rtm *ResourceTypeManager) checkResourceTypeDependencies(ctx context.Contex
 
 	}
 
-
-
 	if len(resources) > 0 {
 
 		return fmt.Errorf("resource type has %d dependent resources", len(resources))
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // discoverProviderResourceTypes discovers resource types from a specific provider.
 
@@ -1551,8 +1239,6 @@ func (rtm *ResourceTypeManager) discoverProviderResourceTypes(ctx context.Contex
 
 }
 
-
-
 // processYANGModel processes and validates a YANG model.
 
 func (rtm *ResourceTypeManager) processYANGModel(ctx context.Context, resourceType *models.ResourceType) error {
@@ -1563,8 +1249,6 @@ func (rtm *ResourceTypeManager) processYANGModel(ctx context.Context, resourceTy
 
 	}
 
-
-
 	// This would process the YANG model associated with the resource type.
 
 	// Implementation would involve parsing, validating, and compiling the YANG model.
@@ -1572,8 +1256,6 @@ func (rtm *ResourceTypeManager) processYANGModel(ctx context.Context, resourceTy
 	return nil
 
 }
-
-
 
 // enrichTypesWithYANGModels enriches resource types with YANG model information.
 
@@ -1593,8 +1275,6 @@ func (rtm *ResourceTypeManager) enrichTypesWithYANGModels(ctx context.Context, t
 
 }
 
-
-
 // enrichTypeWithYANGModel enriches a single resource type with YANG model information.
 
 func (rtm *ResourceTypeManager) enrichTypeWithYANGModel(ctx context.Context, resourceType *models.ResourceType) error {
@@ -1605,8 +1285,6 @@ func (rtm *ResourceTypeManager) enrichTypeWithYANGModel(ctx context.Context, res
 
 	}
 
-
-
 	// Retrieve and attach compiled YANG model information.
 
 	// This would involve fetching the YANG model and its compiled schema.
@@ -1615,11 +1293,7 @@ func (rtm *ResourceTypeManager) enrichTypeWithYANGModel(ctx context.Context, res
 
 }
 
-
-
 // Cache management methods.
-
-
 
 // getCachedTypes returns all cached resource types.
 
@@ -1628,8 +1302,6 @@ func (rtm *ResourceTypeManager) getCachedTypes(ctx context.Context) []*models.Re
 	rtm.cacheMu.RLock()
 
 	defer rtm.cacheMu.RUnlock()
-
-
 
 	types := make([]*models.ResourceType, 0, len(rtm.typeCache))
 
@@ -1643,8 +1315,6 @@ func (rtm *ResourceTypeManager) getCachedTypes(ctx context.Context) []*models.Re
 
 }
 
-
-
 // getCachedType returns a cached resource type by ID.
 
 func (rtm *ResourceTypeManager) getCachedType(typeID string) *models.ResourceType {
@@ -1657,8 +1327,6 @@ func (rtm *ResourceTypeManager) getCachedType(typeID string) *models.ResourceTyp
 
 }
 
-
-
 // setCachedType adds or updates a resource type in the cache.
 
 func (rtm *ResourceTypeManager) setCachedType(resourceType *models.ResourceType) {
@@ -1670,8 +1338,6 @@ func (rtm *ResourceTypeManager) setCachedType(resourceType *models.ResourceType)
 	rtm.typeCache[resourceType.ResourceTypeID] = resourceType
 
 }
-
-
 
 // updateTypeCache updates multiple resource types in the cache.
 
@@ -1689,8 +1355,6 @@ func (rtm *ResourceTypeManager) updateTypeCache(types []*models.ResourceType) {
 
 }
 
-
-
 // removeCachedType removes a resource type from the cache.
 
 func (rtm *ResourceTypeManager) removeCachedType(typeID string) {
@@ -1703,8 +1367,6 @@ func (rtm *ResourceTypeManager) removeCachedType(typeID string) {
 
 }
 
-
-
 // SetYANGModelStore sets the YANG model store for the resource type manager.
 
 func (rtm *ResourceTypeManager) SetYANGModelStore(store YANGModelStore) {
@@ -1712,8 +1374,6 @@ func (rtm *ResourceTypeManager) SetYANGModelStore(store YANGModelStore) {
 	rtm.yangModelStore = store
 
 }
-
-
 
 // SetYANGValidator sets the YANG validator for the resource type manager.
 
@@ -1723,8 +1383,6 @@ func (rtm *ResourceTypeManager) SetYANGValidator(validator YANGValidator) {
 
 }
 
-
-
 // SetSchemaRegistry sets the schema registry for the resource type manager.
 
 func (rtm *ResourceTypeManager) SetSchemaRegistry(registry SchemaRegistry) {
@@ -1733,8 +1391,6 @@ func (rtm *ResourceTypeManager) SetSchemaRegistry(registry SchemaRegistry) {
 
 }
 
-
-
 // GetConfig returns the current configuration.
 
 func (rtm *ResourceTypeManager) GetConfig() *ResourceTypeConfig {
@@ -1742,8 +1398,6 @@ func (rtm *ResourceTypeManager) GetConfig() *ResourceTypeConfig {
 	return rtm.config
 
 }
-
-
 
 // UpdateConfig updates the configuration.
 
@@ -1758,4 +1412,3 @@ func (rtm *ResourceTypeManager) UpdateConfig(config *ResourceTypeConfig) {
 	rtm.validationEnabled = config.YANGValidationEnabled
 
 }
-

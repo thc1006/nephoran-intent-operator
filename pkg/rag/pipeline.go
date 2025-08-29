@@ -1,35 +1,18 @@
 //go:build !disable_rag && !test
 
-
-
-
 package rag
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"log/slog"
-
 	"runtime"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-
 )
-
-
 
 // RAGPipeline orchestrates the complete RAG processing pipeline.
 
@@ -37,25 +20,23 @@ type RAGPipeline struct {
 
 	// Core components.
 
-	documentLoader    *DocumentLoader
+	documentLoader *DocumentLoader
 
-	chunkingService   *ChunkingService
+	chunkingService *ChunkingService
 
-	embeddingService  *EmbeddingService
+	embeddingService *EmbeddingService
 
-	weaviateClient    *WeaviateClient
+	weaviateClient *WeaviateClient
 
-	weaviatePool      *WeaviateConnectionPool
+	weaviatePool *WeaviateConnectionPool
 
 	enhancedRetrieval *EnhancedRetrievalService
 
-	llmClient         shared.ClientInterface
+	llmClient shared.ClientInterface
 
-	redisCache        *RedisCache
+	redisCache *RedisCache
 
-	monitor           *RAGMonitor
-
-
+	monitor *RAGMonitor
 
 	// Configuration.
 
@@ -63,49 +44,40 @@ type RAGPipeline struct {
 
 	logger *slog.Logger
 
-
-
 	// State management.
 
 	isInitialized bool
 
-	isProcessing  bool
+	isProcessing bool
 
-	mutex         sync.RWMutex
-
-
+	mutex sync.RWMutex
 
 	// Async processing components.
 
-	documentQueue   chan DocumentJob
+	documentQueue chan DocumentJob
 
-	queryQueue      chan QueryJob
+	queryQueue chan QueryJob
 
-	workerPool      *AsyncWorkerPool
+	workerPool *AsyncWorkerPool
 
 	resultCallbacks map[string]func(interface{}, error)
 
-	callbackMutex   sync.RWMutex
-
-
+	callbackMutex sync.RWMutex
 
 	// Metrics and monitoring.
 
-	startTime          time.Time
+	startTime time.Time
 
 	processedDocuments int64
 
-	processedQueries   int64
+	processedQueries int64
 
-	totalChunks        int64
+	totalChunks int64
 
-	activeJobs         int64
+	activeJobs int64
 
-	queuedJobs         int64
-
+	queuedJobs int64
 }
-
-
 
 // PipelineConfig holds configuration for the entire RAG pipeline.
 
@@ -115,325 +87,264 @@ type PipelineConfig struct {
 
 	DocumentLoaderConfig *DocumentLoaderConfig `json:"document_loader"`
 
-	ChunkingConfig       *ChunkingConfig       `json:"chunking"`
+	ChunkingConfig *ChunkingConfig `json:"chunking"`
 
-	EmbeddingConfig      *EmbeddingConfig      `json:"embedding"`
+	EmbeddingConfig *EmbeddingConfig `json:"embedding"`
 
-	WeaviateConfig       *WeaviateConfig       `json:"weaviate"`
+	WeaviateConfig *WeaviateConfig `json:"weaviate"`
 
-	WeaviatePoolConfig   *PoolConfig           `json:"weaviate_pool"`
+	WeaviatePoolConfig *PoolConfig `json:"weaviate_pool"`
 
-	RetrievalConfig      *RetrievalConfig      `json:"retrieval"`
+	RetrievalConfig *RetrievalConfig `json:"retrieval"`
 
-	RedisCacheConfig     *RedisCacheConfig     `json:"redis_cache"`
+	RedisCacheConfig *RedisCacheConfig `json:"redis_cache"`
 
-	MonitoringConfig     *MonitoringConfig     `json:"monitoring"`
-
-
+	MonitoringConfig *MonitoringConfig `json:"monitoring"`
 
 	// Pipeline-specific settings.
 
-	EnableCaching           bool          `json:"enable_caching"`
+	EnableCaching bool `json:"enable_caching"`
 
-	EnableMonitoring        bool          `json:"enable_monitoring"`
+	EnableMonitoring bool `json:"enable_monitoring"`
 
-	MaxConcurrentProcessing int           `json:"max_concurrent_processing"`
+	MaxConcurrentProcessing int `json:"max_concurrent_processing"`
 
-	ProcessingTimeout       time.Duration `json:"processing_timeout"`
-
-
+	ProcessingTimeout time.Duration `json:"processing_timeout"`
 
 	// Async processing settings.
 
-	AsyncProcessing   bool `json:"async_processing"`
+	AsyncProcessing bool `json:"async_processing"`
 
-	DocumentQueueSize int  `json:"document_queue_size"`
+	DocumentQueueSize int `json:"document_queue_size"`
 
-	QueryQueueSize    int  `json:"query_queue_size"`
+	QueryQueueSize int `json:"query_queue_size"`
 
-	WorkerPoolSize    int  `json:"worker_pool_size"`
+	WorkerPoolSize int `json:"worker_pool_size"`
 
-	BatchSize         int  `json:"batch_size"`
+	BatchSize int `json:"batch_size"`
 
-	MaxRetries        int  `json:"max_retries"`
-
-
+	MaxRetries int `json:"max_retries"`
 
 	// Knowledge base management.
 
-	AutoIndexing     bool          `json:"auto_indexing"`
+	AutoIndexing bool `json:"auto_indexing"`
 
 	IndexingInterval time.Duration `json:"indexing_interval"`
 
-
-
 	// Quality assurance.
 
-	EnableQualityChecks bool    `json:"enable_quality_checks"`
+	EnableQualityChecks bool `json:"enable_quality_checks"`
 
 	MinQualityThreshold float32 `json:"min_quality_threshold"`
 
-
-
 	// Integration settings.
 
-	LLMIntegration        bool `json:"llm_integration"`
+	LLMIntegration bool `json:"llm_integration"`
 
 	KubernetesIntegration bool `json:"kubernetes_integration"`
-
 }
-
-
 
 // PipelineStatus represents the current status of the pipeline.
 
 type PipelineStatus struct {
+	IsHealthy bool `json:"is_healthy"`
 
-	IsHealthy          bool              `json:"is_healthy"`
+	IsProcessing bool `json:"is_processing"`
 
-	IsProcessing       bool              `json:"is_processing"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime          time.Time         `json:"start_time"`
+	Uptime time.Duration `json:"uptime"`
 
-	Uptime             time.Duration     `json:"uptime"`
+	ProcessedDocuments int64 `json:"processed_documents"`
 
-	ProcessedDocuments int64             `json:"processed_documents"`
+	ProcessedQueries int64 `json:"processed_queries"`
 
-	ProcessedQueries   int64             `json:"processed_queries"`
+	TotalChunks int64 `json:"total_chunks"`
 
-	TotalChunks        int64             `json:"total_chunks"`
+	ComponentStatuses map[string]string `json:"component_statuses"`
 
-	ComponentStatuses  map[string]string `json:"component_statuses"`
+	LastProcessingTime time.Time `json:"last_processing_time"`
 
-	LastProcessingTime time.Time         `json:"last_processing_time"`
+	ErrorCount int64 `json:"error_count"`
 
-	ErrorCount         int64             `json:"error_count"`
+	LastError string `json:"last_error,omitempty"`
 
-	LastError          string            `json:"last_error,omitempty"`
+	ActiveJobs int64 `json:"active_jobs"`
 
-	ActiveJobs         int64             `json:"active_jobs"`
+	QueuedJobs int64 `json:"queued_jobs"`
 
-	QueuedJobs         int64             `json:"queued_jobs"`
-
-	AsyncEnabled       bool              `json:"async_enabled"`
-
+	AsyncEnabled bool `json:"async_enabled"`
 }
-
-
 
 // DocumentJob represents an async document processing job.
 
 type DocumentJob struct {
+	ID string
 
-	ID         string
+	Documents []Document
 
-	Documents  []Document
+	Callback func([]ProcessedDocument, error)
 
-	Callback   func([]ProcessedDocument, error)
+	Context context.Context
 
-	Context    context.Context
-
-	StartTime  time.Time
+	StartTime time.Time
 
 	RetryCount int
 
 	MaxRetries int
-
 }
-
-
 
 // QueryJob represents an async query processing job.
 
 type QueryJob struct {
+	ID string
 
-	ID         string
-
-	Query      string
+	Query string
 
 	Parameters QueryParameters
 
-	Callback   func(QueryResult, error)
+	Callback func(QueryResult, error)
 
-	Context    context.Context
+	Context context.Context
 
-	StartTime  time.Time
+	StartTime time.Time
 
 	RetryCount int
 
 	MaxRetries int
-
 }
-
-
 
 // AsyncWorkerPool manages async processing workers.
 
 type AsyncWorkerPool struct {
-
-	workers     []*AsyncWorker
+	workers []*AsyncWorker
 
 	workerCount int
 
-	jobQueue    chan AsyncJob
+	jobQueue chan AsyncJob
 
-	ctx         context.Context
+	ctx context.Context
 
-	cancel      context.CancelFunc
+	cancel context.CancelFunc
 
-	wg          sync.WaitGroup
+	wg sync.WaitGroup
 
-	metrics     *AsyncMetrics
-
+	metrics *AsyncMetrics
 }
-
-
 
 // AsyncWorker processes jobs asynchronously.
 
 type AsyncWorker struct {
+	id int
 
-	id       int
-
-	pool     *AsyncWorkerPool
+	pool *AsyncWorkerPool
 
 	pipeline *RAGPipeline
 
-	logger   *slog.Logger
-
+	logger *slog.Logger
 }
-
-
 
 // AsyncJob represents a generic async job.
 
 type AsyncJob struct {
-
-	Type    string
+	Type string
 
 	Payload interface{}
 
 	Process func(ctx context.Context, payload interface{}) error
-
 }
-
-
 
 // AsyncMetrics tracks async processing metrics.
 
 type AsyncMetrics struct {
+	TotalJobs int64
 
-	TotalJobs      int64
+	CompletedJobs int64
 
-	CompletedJobs  int64
+	FailedJobs int64
 
-	FailedJobs     int64
-
-	ActiveWorkers  int64
+	ActiveWorkers int64
 
 	AverageLatency time.Duration
 
-	mutex          sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ProcessedDocument represents a processed document result.
 
 type ProcessedDocument struct {
+	ID string
 
-	ID          string
+	Chunks []ProcessedChunk
 
-	Chunks      []ProcessedChunk
+	Embeddings [][]float32
 
-	Embeddings  [][]float32
-
-	Metadata    map[string]interface{}
+	Metadata map[string]interface{}
 
 	ProcessTime time.Duration
 
-	Error       error
-
+	Error error
 }
-
-
 
 // ProcessedChunk represents a processed chunk result.
 
 type ProcessedChunk struct {
+	Content string
 
-	Content    string
+	Embedding []float32
 
-	Embedding  []float32
-
-	Metadata   map[string]interface{}
+	Metadata map[string]interface{}
 
 	ChunkIndex int
 
-	Quality    float32
-
+	Quality float32
 }
-
-
 
 // QueryResult represents the result of a query operation.
 
 type QueryResult struct {
+	ID string
 
-	ID          string
+	Results []RetrievedDocument
 
-	Results     []RetrievedDocument
+	Response string
 
-	Response    string
-
-	Confidence  float32
+	Confidence float32
 
 	ProcessTime time.Duration
 
-	CacheHit    bool
+	CacheHit bool
 
-	Metadata    map[string]interface{}
-
+	Metadata map[string]interface{}
 }
-
-
 
 // RetrievedDocument represents a document retrieved from the query.
 
 type RetrievedDocument struct {
+	ID string
 
-	ID       string
+	Content string
 
-	Content  string
+	Score float32
 
-	Score    float32
-
-	Source   string
+	Source string
 
 	Metadata map[string]interface{}
-
 }
-
-
 
 // QueryParameters contains parameters for query processing.
 
 type QueryParameters struct {
+	MaxResults int
 
-	MaxResults      int
+	MinScore float32
 
-	MinScore        float32
-
-	FilterCriteria  map[string]interface{}
+	FilterCriteria map[string]interface{}
 
 	IncludeMetadata bool
 
-	Timeout         time.Duration
-
+	Timeout time.Duration
 }
-
-
 
 // NewRAGPipeline creates a new RAG pipeline with all components.
 
@@ -445,21 +356,16 @@ func NewRAGPipeline(config *PipelineConfig, llmClient shared.ClientInterface) (*
 
 	}
 
-
-
 	pipeline := &RAGPipeline{
 
-		config:    config,
+		config: config,
 
 		llmClient: llmClient,
 
-		logger:    slog.Default().With("component", "rag-pipeline"),
+		logger: slog.Default().With("component", "rag-pipeline"),
 
 		startTime: time.Now(),
-
 	}
-
-
 
 	// Initialize components in dependency order.
 
@@ -468,8 +374,6 @@ func NewRAGPipeline(config *PipelineConfig, llmClient shared.ClientInterface) (*
 		return nil, fmt.Errorf("failed to initialize pipeline components: %w", err)
 
 	}
-
-
 
 	// Set up monitoring.
 
@@ -483,8 +387,6 @@ func NewRAGPipeline(config *PipelineConfig, llmClient shared.ClientInterface) (*
 
 	}
 
-
-
 	// Start background tasks.
 
 	if config.AutoIndexing {
@@ -493,19 +395,13 @@ func NewRAGPipeline(config *PipelineConfig, llmClient shared.ClientInterface) (*
 
 	}
 
-
-
 	pipeline.isInitialized = true
 
 	pipeline.logger.Info("RAG pipeline initialized successfully")
 
-
-
 	return pipeline, nil
 
 }
-
-
 
 // getDefaultPipelineConfig returns default pipeline configuration.
 
@@ -515,61 +411,57 @@ func getDefaultPipelineConfig() *PipelineConfig {
 
 		DocumentLoaderConfig: getDefaultLoaderConfig(),
 
-		ChunkingConfig:       getDefaultChunkingConfig(),
+		ChunkingConfig: getDefaultChunkingConfig(),
 
-		EmbeddingConfig:      getDefaultEmbeddingConfig(),
+		EmbeddingConfig: getDefaultEmbeddingConfig(),
 
 		WeaviateConfig: &WeaviateConfig{
 
-			Host:   "localhost:8080",
+			Host: "localhost:8080",
 
 			Scheme: "http",
-
 		},
 
-		RetrievalConfig:         getDefaultRetrievalConfig(),
+		RetrievalConfig: getDefaultRetrievalConfig(),
 
-		RedisCacheConfig:        getDefaultRedisCacheConfig(),
+		RedisCacheConfig: getDefaultRedisCacheConfig(),
 
-		MonitoringConfig:        getDefaultMonitoringConfig(),
+		MonitoringConfig: getDefaultMonitoringConfig(),
 
-		EnableCaching:           true,
+		EnableCaching: true,
 
-		EnableMonitoring:        true,
+		EnableMonitoring: true,
 
 		MaxConcurrentProcessing: 10,
 
-		ProcessingTimeout:       5 * time.Minute,
+		ProcessingTimeout: 5 * time.Minute,
 
-		AsyncProcessing:         true,
+		AsyncProcessing: true,
 
-		DocumentQueueSize:       1000,
+		DocumentQueueSize: 1000,
 
-		QueryQueueSize:          5000,
+		QueryQueueSize: 5000,
 
-		WorkerPoolSize:          runtime.NumCPU(),
+		WorkerPoolSize: runtime.NumCPU(),
 
-		BatchSize:               50,
+		BatchSize: 50,
 
-		MaxRetries:              3,
+		MaxRetries: 3,
 
-		AutoIndexing:            true,
+		AutoIndexing: true,
 
-		IndexingInterval:        1 * time.Hour,
+		IndexingInterval: 1 * time.Hour,
 
-		EnableQualityChecks:     true,
+		EnableQualityChecks: true,
 
-		MinQualityThreshold:     0.7,
+		MinQualityThreshold: 0.7,
 
-		LLMIntegration:          true,
+		LLMIntegration: true,
 
-		KubernetesIntegration:   true,
-
+		KubernetesIntegration: true,
 	}
 
 }
-
-
 
 // initializeComponents initializes all pipeline components.
 
@@ -577,19 +469,13 @@ func (rp *RAGPipeline) initializeComponents() error {
 
 	rp.logger.Info("Initializing RAG pipeline components")
 
-
-
 	// Initialize document loader.
 
 	rp.documentLoader = NewDocumentLoader(rp.config.DocumentLoaderConfig)
 
-
-
 	// Initialize chunking service.
 
 	rp.chunkingService = NewChunkingService(rp.config.ChunkingConfig)
-
-
 
 	// Load secrets from files.
 
@@ -599,13 +485,9 @@ func (rp *RAGPipeline) initializeComponents() error {
 
 	}
 
-
-
 	// Initialize embedding service.
 
 	rp.embeddingService = NewEmbeddingService(rp.config.EmbeddingConfig)
-
-
 
 	// Initialize Weaviate client.
 
@@ -619,8 +501,6 @@ func (rp *RAGPipeline) initializeComponents() error {
 
 	}
 
-
-
 	// Initialize enhanced retrieval service.
 
 	rp.enhancedRetrieval = NewEnhancedRetrievalService(
@@ -630,10 +510,7 @@ func (rp *RAGPipeline) initializeComponents() error {
 		rp.embeddingService,
 
 		rp.config.RetrievalConfig,
-
 	)
-
-
 
 	// Initialize Redis cache if enabled.
 
@@ -651,8 +528,6 @@ func (rp *RAGPipeline) initializeComponents() error {
 
 	}
 
-
-
 	// Initialize async processing components if enabled.
 
 	if rp.config.AsyncProcessing {
@@ -667,23 +542,17 @@ func (rp *RAGPipeline) initializeComponents() error {
 
 	}
 
-
-
 	rp.logger.Info("All RAG pipeline components initialized successfully")
 
 	return nil
 
 }
 
-
-
 // setupMonitoring sets up monitoring and health checks.
 
 func (rp *RAGPipeline) setupMonitoring() error {
 
 	rp.monitor = NewRAGMonitor(rp.config.MonitoringConfig)
-
-
 
 	// Register health checkers for components.
 
@@ -693,19 +562,13 @@ func (rp *RAGPipeline) setupMonitoring() error {
 
 	}
 
-
-
 	rp.monitor.RegisterHealthChecker(&EmbeddingServiceHealthChecker{embeddingService: rp.embeddingService})
-
-
 
 	rp.logger.Info("Monitoring setup completed")
 
 	return nil
 
 }
-
-
 
 // ProcessDocument processes a document through the complete RAG pipeline.
 
@@ -717,15 +580,11 @@ func (rp *RAGPipeline) ProcessDocument(ctx context.Context, documentPath string)
 
 	}
 
-
-
 	rp.mutex.Lock()
 
 	rp.isProcessing = true
 
 	rp.mutex.Unlock()
-
-
 
 	defer func() {
 
@@ -737,13 +596,9 @@ func (rp *RAGPipeline) ProcessDocument(ctx context.Context, documentPath string)
 
 	}()
 
-
-
 	startTime := time.Now()
 
 	rp.logger.Info("Starting document processing", "document", documentPath)
-
-
 
 	// Monitor processing if monitoring is enabled.
 
@@ -754,8 +609,6 @@ func (rp *RAGPipeline) ProcessDocument(ctx context.Context, documentPath string)
 		defer rp.monitor.RecordDocumentProcessing(0)
 
 	}
-
-
 
 	// Step 1: Load document.
 
@@ -777,8 +630,6 @@ func (rp *RAGPipeline) ProcessDocument(ctx context.Context, documentPath string)
 
 	loadTime := time.Since(loadStart)
 
-
-
 	// Step 2: Process documents in parallel.
 
 	if err := rp.processDocumentsParallel(ctx, documents); err != nil {
@@ -789,11 +640,7 @@ func (rp *RAGPipeline) ProcessDocument(ctx context.Context, documentPath string)
 
 	}
 
-
-
 	processingTime := time.Since(startTime)
-
-
 
 	rp.logger.Info("Document processing completed",
 
@@ -804,16 +651,11 @@ func (rp *RAGPipeline) ProcessDocument(ctx context.Context, documentPath string)
 		"load_time", loadTime,
 
 		"total_time", processingTime,
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // processIndividualDocument processes a single document through the pipeline.
 
@@ -833,19 +675,13 @@ func (rp *RAGPipeline) processIndividualDocument(ctx context.Context, doc *Loade
 
 	chunkTime := time.Since(chunkStart)
 
-
-
 	if rp.monitor != nil {
 
 		rp.monitor.RecordChunkingLatency(chunkTime, "intelligent")
 
 	}
 
-
-
 	rp.totalChunks += int64(len(chunks))
-
-
 
 	// Step 2: Generate embeddings for chunks.
 
@@ -861,15 +697,11 @@ func (rp *RAGPipeline) processIndividualDocument(ctx context.Context, doc *Loade
 
 	embeddingTime := time.Since(embeddingStart)
 
-
-
 	if rp.monitor != nil {
 
 		rp.monitor.RecordEmbeddingLatency(embeddingTime, rp.config.EmbeddingConfig.ModelName, len(chunks))
 
 	}
-
-
 
 	// Step 3: Store in vector database.
 
@@ -897,8 +729,6 @@ func (rp *RAGPipeline) processIndividualDocument(ctx context.Context, doc *Loade
 
 	}
 
-
-
 	// Step 4: Cache document if caching is enabled.
 
 	if rp.redisCache != nil {
@@ -911,8 +741,6 @@ func (rp *RAGPipeline) processIndividualDocument(ctx context.Context, doc *Loade
 
 	}
 
-
-
 	rp.logger.Debug("Document processed successfully",
 
 		"doc_id", doc.ID,
@@ -922,16 +750,11 @@ func (rp *RAGPipeline) processIndividualDocument(ctx context.Context, doc *Loade
 		"chunk_time", chunkTime,
 
 		"embedding_time", embeddingTime,
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // processDocumentsParallel processes multiple documents concurrently using a worker pool.
 
@@ -945,8 +768,6 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 
 	}
 
-
-
 	// Limit to reasonable maximum to avoid resource exhaustion.
 
 	if maxWorkers > 20 {
@@ -954,8 +775,6 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 		maxWorkers = 20
 
 	}
-
-
 
 	// Don't create more workers than documents.
 
@@ -965,25 +784,18 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 
 	}
 
-
-
 	rp.logger.Info("Starting parallel document processing",
 
 		"documents", len(documents),
 
 		"workers", maxWorkers,
-
 	)
-
-
 
 	// Create channels for work distribution.
 
 	docChan := make(chan *LoadedDocument, len(documents))
 
 	resultChan := make(chan error, len(documents))
-
-
 
 	// Start worker goroutines.
 
@@ -998,8 +810,6 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 			defer wg.Done()
 
 			rp.logger.Debug("Starting document processing worker", "worker_id", workerID)
-
-
 
 			for doc := range docChan {
 
@@ -1019,8 +829,6 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 
 					processingTime := time.Since(startTime)
 
-
-
 					if err != nil {
 
 						rp.logger.Error("Worker failed to process document",
@@ -1032,7 +840,6 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 							"error", err,
 
 							"processing_time", processingTime,
-
 						)
 
 						resultChan <- fmt.Errorf("worker %d failed to process doc %s: %w", workerID, doc.ID, err)
@@ -1046,7 +853,6 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 							"doc_id", doc.ID,
 
 							"processing_time", processingTime,
-
 						)
 
 						rp.processedDocuments++
@@ -1062,8 +868,6 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 		}(i)
 
 	}
-
-
 
 	// Send documents to workers.
 
@@ -1087,8 +891,6 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 
 	}()
 
-
-
 	// Wait for all workers to complete.
 
 	go func() {
@@ -1099,15 +901,11 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 
 	}()
 
-
-
 	// Collect results and track errors.
 
 	var errors []error
 
 	processedCount := 0
-
-
 
 	for err := range resultChan {
 
@@ -1123,8 +921,6 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 
 	}
 
-
-
 	rp.logger.Info("Parallel document processing completed",
 
 		"total_documents", len(documents),
@@ -1134,10 +930,7 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 		"errors", len(errors),
 
 		"workers", maxWorkers,
-
 	)
-
-
 
 	// If we have some errors but not all failed, log warnings but continue.
 
@@ -1162,20 +955,15 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 				"success_count", processedCount,
 
 				"error_rate", errorRate,
-
 			)
 
 		}
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ProcessQuery processes a query through the enhanced retrieval pipeline.
 
@@ -1187,23 +975,16 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 
 	}
 
-
-
 	startTime := time.Now()
 
 	rp.processedQueries++
-
-
 
 	rp.logger.Info("Processing query",
 
 		"query", request.Query,
 
 		"intent_type", request.IntentType,
-
 	)
-
-
 
 	// Check cache first if enabled.
 
@@ -1213,33 +994,26 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 
 			rp.logger.Debug("Query result found in cache", "query", request.Query)
 
-
-
 			if rp.monitor != nil {
 
 				rp.monitor.RecordCacheHitRate("query_result", 1.0)
 
 			}
 
-
-
 			return &EnhancedSearchResponse{
 
-				Query:            request.Query,
+				Query: request.Query,
 
 				AssembledContext: cached,
 
-				ContextMetadata:  metadata,
+				ContextMetadata: metadata,
 
-				ProcessingTime:   time.Since(startTime),
+				ProcessingTime: time.Since(startTime),
 
-				ProcessedAt:      time.Now(),
-
+				ProcessedAt: time.Now(),
 			}, nil
 
 		}
-
-
 
 		if rp.monitor != nil {
 
@@ -1248,8 +1022,6 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 		}
 
 	}
-
-
 
 	// Process query through enhanced retrieval.
 
@@ -1267,11 +1039,7 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 
 	}
 
-
-
 	processingTime := time.Since(startTime)
-
-
 
 	// Cache the result if caching is enabled.
 
@@ -1285,8 +1053,6 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 
 		}
 
-
-
 		if err := rp.redisCache.SetContext(ctx, request.Query, contextKey, response.AssembledContext, response.ContextMetadata); err != nil {
 
 			rp.logger.Warn("Failed to cache query result", "query", request.Query, "error", err)
@@ -1294,8 +1060,6 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 		}
 
 	}
-
-
 
 	// Record metrics.
 
@@ -1310,7 +1074,6 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 			request.EnableQueryEnhancement,
 
 			request.EnableReranking,
-
 		)
 
 		rp.monitor.RecordRetrievalLatency(response.RetrievalTime, "enhanced")
@@ -1318,8 +1081,6 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 		rp.monitor.RecordContextAssemblyLatency(response.ContextAssemblyTime, "intelligent")
 
 	}
-
-
 
 	rp.logger.Info("Query processing completed",
 
@@ -1330,16 +1091,11 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 		"processing_time", processingTime,
 
 		"average_relevance", response.AverageRelevanceScore,
-
 	)
-
-
 
 	return response, nil
 
 }
-
-
 
 // ProcessIntent processes a high-level intent through the complete RAG pipeline.
 
@@ -1351,33 +1107,24 @@ func (rp *RAGPipeline) ProcessIntent(ctx context.Context, intent string) (string
 
 	}
 
-
-
 	rp.logger.Info("Processing intent", "intent", intent)
-
-
 
 	// Step 1: Enhance and retrieve relevant context.
 
 	searchRequest := &EnhancedSearchRequest{
 
-		Query:                  intent,
+		Query: intent,
 
 		EnableQueryEnhancement: true,
 
-		EnableReranking:        true,
+		EnableReranking: true,
 
-		RequiredContextLength:  rp.config.RetrievalConfig.MaxContextLength,
-
+		RequiredContextLength: rp.config.RetrievalConfig.MaxContextLength,
 	}
-
-
 
 	// Classify intent type (simplified).
 
 	searchRequest.IntentType = rp.classifyIntent(intent)
-
-
 
 	// Get enhanced context.
 
@@ -1389,13 +1136,9 @@ func (rp *RAGPipeline) ProcessIntent(ctx context.Context, intent string) (string
 
 	}
 
-
-
 	// Step 2: Create enhanced prompt with context.
 
 	enhancedPrompt := rp.buildEnhancedPrompt(intent, response.AssembledContext, searchRequest.IntentType)
-
-
 
 	// Step 3: Process through LLM.
 
@@ -1407,8 +1150,6 @@ func (rp *RAGPipeline) ProcessIntent(ctx context.Context, intent string) (string
 
 	}
 
-
-
 	rp.logger.Info("Intent processing completed",
 
 		"intent", intent,
@@ -1418,20 +1159,13 @@ func (rp *RAGPipeline) ProcessIntent(ctx context.Context, intent string) (string
 		"context_length", len(response.AssembledContext),
 
 		"response_length", len(result),
-
 	)
-
-
 
 	return result, nil
 
 }
 
-
-
 // Utility methods.
-
-
 
 // convertChunkToTelecomDocument converts a DocumentChunk to TelecomDocument.
 
@@ -1475,8 +1209,6 @@ func (rp *RAGPipeline) ProcessIntent(ctx context.Context, intent string) (string
 
 // }.
 
-
-
 // Helper methods for metadata extraction.
 
 func (rp *RAGPipeline) getSourceFromMetadata(metadata *DocumentMetadata) string {
@@ -1491,8 +1223,6 @@ func (rp *RAGPipeline) getSourceFromMetadata(metadata *DocumentMetadata) string 
 
 }
 
-
-
 func (rp *RAGPipeline) getCategoryFromMetadata(metadata *DocumentMetadata) string {
 
 	if metadata != nil {
@@ -1504,8 +1234,6 @@ func (rp *RAGPipeline) getCategoryFromMetadata(metadata *DocumentMetadata) strin
 	return "General"
 
 }
-
-
 
 func (rp *RAGPipeline) getVersionFromMetadata(metadata *DocumentMetadata) string {
 
@@ -1519,8 +1247,6 @@ func (rp *RAGPipeline) getVersionFromMetadata(metadata *DocumentMetadata) string
 
 }
 
-
-
 func (rp *RAGPipeline) getNetworkFunctionsFromMetadata(metadata *DocumentMetadata) []string {
 
 	if metadata != nil {
@@ -1532,8 +1258,6 @@ func (rp *RAGPipeline) getNetworkFunctionsFromMetadata(metadata *DocumentMetadat
 	return []string{}
 
 }
-
-
 
 func (rp *RAGPipeline) getTechnologiesFromMetadata(metadata *DocumentMetadata) []string {
 
@@ -1547,15 +1271,11 @@ func (rp *RAGPipeline) getTechnologiesFromMetadata(metadata *DocumentMetadata) [
 
 }
 
-
-
 // classifyIntent performs simple intent classification.
 
 func (rp *RAGPipeline) classifyIntent(intent string) string {
 
 	intentLower := strings.ToLower(intent)
-
-
 
 	configKeywords := []string{"configure", "config", "setup", "parameter", "setting"}
 
@@ -1564,8 +1284,6 @@ func (rp *RAGPipeline) classifyIntent(intent string) string {
 	optimizeKeywords := []string{"optimize", "improve", "performance", "enhance", "tuning"}
 
 	monitorKeywords := []string{"monitor", "metric", "measurement", "kpi", "tracking"}
-
-
 
 	for _, keyword := range configKeywords {
 
@@ -1577,8 +1295,6 @@ func (rp *RAGPipeline) classifyIntent(intent string) string {
 
 	}
 
-
-
 	for _, keyword := range troubleshootKeywords {
 
 		if strings.Contains(intentLower, keyword) {
@@ -1588,8 +1304,6 @@ func (rp *RAGPipeline) classifyIntent(intent string) string {
 		}
 
 	}
-
-
 
 	for _, keyword := range optimizeKeywords {
 
@@ -1601,8 +1315,6 @@ func (rp *RAGPipeline) classifyIntent(intent string) string {
 
 	}
 
-
-
 	for _, keyword := range monitorKeywords {
 
 		if strings.Contains(intentLower, keyword) {
@@ -1613,13 +1325,9 @@ func (rp *RAGPipeline) classifyIntent(intent string) string {
 
 	}
 
-
-
 	return "general"
 
 }
-
-
 
 // buildEnhancedPrompt creates an enhanced prompt with RAG context.
 
@@ -1627,15 +1335,11 @@ func (rp *RAGPipeline) buildEnhancedPrompt(intent, context, intentType string) s
 
 	var promptBuilder strings.Builder
 
-
-
 	// System prompt.
 
 	promptBuilder.WriteString("You are an expert telecommunications engineer with deep knowledge of 5G, 4G, O-RAN, and network infrastructure. ")
 
 	promptBuilder.WriteString("You provide accurate, actionable responses based on technical documentation and specifications.\n\n")
-
-
 
 	// Intent-specific instructions.
 
@@ -1659,8 +1363,6 @@ func (rp *RAGPipeline) buildEnhancedPrompt(intent, context, intentType string) s
 
 	}
 
-
-
 	// Context section.
 
 	if context != "" {
@@ -1673,8 +1375,6 @@ func (rp *RAGPipeline) buildEnhancedPrompt(intent, context, intentType string) s
 
 	}
 
-
-
 	// User intent.
 
 	promptBuilder.WriteString("User Request:\n")
@@ -1682,8 +1382,6 @@ func (rp *RAGPipeline) buildEnhancedPrompt(intent, context, intentType string) s
 	promptBuilder.WriteString(intent)
 
 	promptBuilder.WriteString("\n\n")
-
-
 
 	// Response instructions.
 
@@ -1695,13 +1393,9 @@ func (rp *RAGPipeline) buildEnhancedPrompt(intent, context, intentType string) s
 
 	promptBuilder.WriteString("clearly state what information is missing and provide general guidance based on telecom best practices.")
 
-
-
 	return promptBuilder.String()
 
 }
-
-
 
 // startAutoIndexing starts the automatic indexing background task.
 
@@ -1711,15 +1405,11 @@ func (rp *RAGPipeline) startAutoIndexing() {
 
 	defer ticker.Stop()
 
-
-
 	for range ticker.C {
 
 		rp.logger.Info("Starting automatic indexing")
 
 		ctx, cancel := context.WithTimeout(context.Background(), rp.config.ProcessingTimeout)
-
-
 
 		// Process documents from configured paths.
 
@@ -1733,8 +1423,6 @@ func (rp *RAGPipeline) startAutoIndexing() {
 
 		}
 
-
-
 		cancel()
 
 		rp.logger.Info("Automatic indexing completed")
@@ -1743,11 +1431,7 @@ func (rp *RAGPipeline) startAutoIndexing() {
 
 }
 
-
-
 // Status and management methods.
-
-
 
 // GetStatus returns the current pipeline status.
 
@@ -1757,29 +1441,24 @@ func (rp *RAGPipeline) GetStatus() PipelineStatus {
 
 	defer rp.mutex.RUnlock()
 
-
-
 	status := PipelineStatus{
 
-		IsHealthy:          rp.isInitialized,
+		IsHealthy: rp.isInitialized,
 
-		IsProcessing:       rp.isProcessing,
+		IsProcessing: rp.isProcessing,
 
-		StartTime:          rp.startTime,
+		StartTime: rp.startTime,
 
-		Uptime:             time.Since(rp.startTime),
+		Uptime: time.Since(rp.startTime),
 
 		ProcessedDocuments: rp.processedDocuments,
 
-		ProcessedQueries:   rp.processedQueries,
+		ProcessedQueries: rp.processedQueries,
 
-		TotalChunks:        rp.totalChunks,
+		TotalChunks: rp.totalChunks,
 
-		ComponentStatuses:  make(map[string]string),
-
+		ComponentStatuses: make(map[string]string),
 	}
-
-
 
 	// Check component statuses.
 
@@ -1801,8 +1480,6 @@ func (rp *RAGPipeline) GetStatus() PipelineStatus {
 
 	}
 
-
-
 	if rp.redisCache != nil {
 
 		health := rp.redisCache.GetHealthStatus(context.Background())
@@ -1819,13 +1496,9 @@ func (rp *RAGPipeline) GetStatus() PipelineStatus {
 
 	}
 
-
-
 	return status
 
 }
-
-
 
 // Shutdown gracefully shuts down the pipeline.
 
@@ -1833,19 +1506,13 @@ func (rp *RAGPipeline) Shutdown(ctx context.Context) error {
 
 	rp.logger.Info("Shutting down RAG pipeline")
 
-
-
 	// Wait for current processing to complete.
 
 	rp.mutex.Lock()
 
 	defer rp.mutex.Unlock()
 
-
-
 	var errors []error
-
-
 
 	// Shutdown components.
 
@@ -1859,8 +1526,6 @@ func (rp *RAGPipeline) Shutdown(ctx context.Context) error {
 
 	}
 
-
-
 	if rp.redisCache != nil {
 
 		if err := rp.redisCache.Close(); err != nil {
@@ -1870,8 +1535,6 @@ func (rp *RAGPipeline) Shutdown(ctx context.Context) error {
 		}
 
 	}
-
-
 
 	if rp.weaviateClient != nil {
 
@@ -1883,15 +1546,11 @@ func (rp *RAGPipeline) Shutdown(ctx context.Context) error {
 
 	}
 
-
-
 	if len(errors) > 0 {
 
 		return fmt.Errorf("shutdown errors: %v", errors)
 
 	}
-
-
 
 	rp.logger.Info("RAG pipeline shutdown completed")
 
@@ -1899,15 +1558,11 @@ func (rp *RAGPipeline) Shutdown(ctx context.Context) error {
 
 }
 
-
-
 // initializeAsyncProcessing initializes async processing components.
 
 func (rp *RAGPipeline) initializeAsyncProcessing() error {
 
 	rp.logger.Info("Initializing async processing components")
-
-
 
 	// Initialize queues.
 
@@ -1917,8 +1572,6 @@ func (rp *RAGPipeline) initializeAsyncProcessing() error {
 
 	rp.resultCallbacks = make(map[string]func(interface{}, error))
 
-
-
 	// Initialize worker pool.
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -1927,29 +1580,25 @@ func (rp *RAGPipeline) initializeAsyncProcessing() error {
 
 		workerCount: rp.config.WorkerPoolSize,
 
-		jobQueue:    make(chan AsyncJob, rp.config.WorkerPoolSize*10),
+		jobQueue: make(chan AsyncJob, rp.config.WorkerPoolSize*10),
 
-		ctx:         ctx,
+		ctx: ctx,
 
-		cancel:      cancel,
+		cancel: cancel,
 
 		metrics: &AsyncMetrics{
 
-			TotalJobs:      0,
+			TotalJobs: 0,
 
-			CompletedJobs:  0,
+			CompletedJobs: 0,
 
-			FailedJobs:     0,
+			FailedJobs: 0,
 
-			ActiveWorkers:  0,
+			ActiveWorkers: 0,
 
 			AverageLatency: 0,
-
 		},
-
 	}
-
-
 
 	// Create workers.
 
@@ -1959,21 +1608,18 @@ func (rp *RAGPipeline) initializeAsyncProcessing() error {
 
 		worker := &AsyncWorker{
 
-			id:       i,
+			id: i,
 
-			pool:     rp.workerPool,
+			pool: rp.workerPool,
 
 			pipeline: rp,
 
-			logger:   rp.logger.With("worker_id", i),
-
+			logger: rp.logger.With("worker_id", i),
 		}
 
 		rp.workerPool.workers[i] = worker
 
 	}
-
-
 
 	// Start workers.
 
@@ -1985,15 +1631,11 @@ func (rp *RAGPipeline) initializeAsyncProcessing() error {
 
 	}
 
-
-
 	// Start job dispatchers.
 
 	go rp.processDocumentJobs()
 
 	go rp.processQueryJobs()
-
-
 
 	rp.logger.Info("Async processing initialized",
 
@@ -2002,16 +1644,11 @@ func (rp *RAGPipeline) initializeAsyncProcessing() error {
 		"document_queue_size", rp.config.DocumentQueueSize,
 
 		"query_queue_size", rp.config.QueryQueueSize,
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // ProcessDocumentsAsync processes documents asynchronously.
 
@@ -2023,25 +1660,20 @@ func (rp *RAGPipeline) ProcessDocumentsAsync(ctx context.Context, jobID string, 
 
 	}
 
-
-
 	job := DocumentJob{
 
-		ID:         jobID,
+		ID: jobID,
 
-		Documents:  documents,
+		Documents: documents,
 
-		Callback:   callback,
+		Callback: callback,
 
-		Context:    ctx,
+		Context: ctx,
 
-		StartTime:  time.Now(),
+		StartTime: time.Now(),
 
 		MaxRetries: rp.config.MaxRetries,
-
 	}
-
-
 
 	select {
 
@@ -2063,8 +1695,6 @@ func (rp *RAGPipeline) ProcessDocumentsAsync(ctx context.Context, jobID string, 
 
 }
 
-
-
 // ProcessQueryAsync processes a query asynchronously.
 
 func (rp *RAGPipeline) ProcessQueryAsync(ctx context.Context, jobID string, query string, params QueryParameters, callback func(QueryResult, error)) error {
@@ -2075,27 +1705,22 @@ func (rp *RAGPipeline) ProcessQueryAsync(ctx context.Context, jobID string, quer
 
 	}
 
-
-
 	job := QueryJob{
 
-		ID:         jobID,
+		ID: jobID,
 
-		Query:      query,
+		Query: query,
 
 		Parameters: params,
 
-		Callback:   callback,
+		Callback: callback,
 
-		Context:    ctx,
+		Context: ctx,
 
-		StartTime:  time.Now(),
+		StartTime: time.Now(),
 
 		MaxRetries: rp.config.MaxRetries,
-
 	}
-
-
 
 	select {
 
@@ -2117,8 +1742,6 @@ func (rp *RAGPipeline) ProcessQueryAsync(ctx context.Context, jobID string, quer
 
 }
 
-
-
 // processDocumentJobs processes document jobs from the queue.
 
 func (rp *RAGPipeline) processDocumentJobs() {
@@ -2127,15 +1750,12 @@ func (rp *RAGPipeline) processDocumentJobs() {
 
 		asyncJob := AsyncJob{
 
-			Type:    "document",
+			Type: "document",
 
 			Payload: job,
 
 			Process: rp.processDocumentJob,
-
 		}
-
-
 
 		select {
 
@@ -2153,8 +1773,6 @@ func (rp *RAGPipeline) processDocumentJobs() {
 
 }
 
-
-
 // processQueryJobs processes query jobs from the queue.
 
 func (rp *RAGPipeline) processQueryJobs() {
@@ -2163,15 +1781,12 @@ func (rp *RAGPipeline) processQueryJobs() {
 
 		asyncJob := AsyncJob{
 
-			Type:    "query",
+			Type: "query",
 
 			Payload: job,
 
 			Process: rp.processQueryJob,
-
 		}
-
-
 
 		select {
 
@@ -2189,8 +1804,6 @@ func (rp *RAGPipeline) processQueryJobs() {
 
 }
 
-
-
 // processDocumentJob processes a single document job.
 
 func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface{}) error {
@@ -2203,13 +1816,9 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 
 	}
 
-
-
 	startTime := time.Now()
 
 	processedDocs := make([]ProcessedDocument, 0, len(job.Documents))
-
-
 
 	for _, doc := range job.Documents {
 
@@ -2217,29 +1826,25 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 
 		chunks, err := rp.chunkingService.ChunkDocument(ctx, &LoadedDocument{
 
-			ID:       doc.ID,
+			ID: doc.ID,
 
-			Content:  doc.Content,
+			Content: doc.Content,
 
 			Metadata: &DocumentMetadata{},
-
 		})
 
 		if err != nil {
 
 			processedDocs = append(processedDocs, ProcessedDocument{
 
-				ID:    doc.ID,
+				ID: doc.ID,
 
 				Error: fmt.Errorf("chunking failed: %w", err),
-
 			})
 
 			continue
 
 		}
-
-
 
 		// Generate embeddings for chunks.
 
@@ -2247,14 +1852,11 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 
 		embeddings := make([][]float32, 0, len(chunks))
 
-
-
 		for i, chunk := range chunks {
 
 			embeddingResp, err := rp.embeddingService.GenerateEmbeddings(ctx, &EmbeddingRequest{
 
 				Texts: []string{chunk.Content},
-
 			})
 
 			if err != nil {
@@ -2265,22 +1867,19 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 
 			}
 
-
-
 			if len(embeddingResp.Embeddings) > 0 {
 
 				processedChunks = append(processedChunks, ProcessedChunk{
 
-					Content:    chunk.Content,
+					Content: chunk.Content,
 
-					Embedding:  embeddingResp.Embeddings[0],
+					Embedding: embeddingResp.Embeddings[0],
 
-					Metadata:   make(map[string]interface{}),
+					Metadata: make(map[string]interface{}),
 
 					ChunkIndex: i,
 
-					Quality:    float32(chunk.QualityScore),
-
+					Quality: float32(chunk.QualityScore),
 				})
 
 				embeddings = append(embeddings, embeddingResp.Embeddings[0])
@@ -2289,25 +1888,20 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 
 		}
 
-
-
 		processedDocs = append(processedDocs, ProcessedDocument{
 
-			ID:          doc.ID,
+			ID: doc.ID,
 
-			Chunks:      processedChunks,
+			Chunks: processedChunks,
 
-			Embeddings:  embeddings,
+			Embeddings: embeddings,
 
-			Metadata:    doc.Metadata,
+			Metadata: doc.Metadata,
 
 			ProcessTime: time.Since(startTime),
-
 		})
 
 	}
-
-
 
 	// Call callback with results.
 
@@ -2317,13 +1911,9 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // processQueryJob processes a single query job.
 
@@ -2337,27 +1927,20 @@ func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{})
 
 	}
 
-
-
 	startTime := time.Now()
-
-
 
 	// Create search request.
 
 	searchRequest := &EnhancedSearchRequest{
 
-		Query:                  job.Query,
+		Query: job.Query,
 
 		EnableQueryEnhancement: true,
 
-		EnableReranking:        true,
+		EnableReranking: true,
 
-		RequiredContextLength:  job.Parameters.MaxResults,
-
+		RequiredContextLength: job.Parameters.MaxResults,
 	}
-
-
 
 	// Process query.
 
@@ -2369,10 +1952,9 @@ func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{})
 
 			job.Callback(QueryResult{
 
-				ID:          job.ID,
+				ID: job.ID,
 
 				ProcessTime: time.Since(startTime),
-
 			}, err)
 
 		}
@@ -2380,8 +1962,6 @@ func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{})
 		return err
 
 	}
-
-
 
 	// Convert response to query result.
 
@@ -2391,41 +1971,35 @@ func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{})
 
 		retrievedDocs[i] = RetrievedDocument{
 
-			ID:       result.SearchResult.Document.ID,
+			ID: result.SearchResult.Document.ID,
 
-			Content:  result.SearchResult.Document.Content,
+			Content: result.SearchResult.Document.Content,
 
-			Score:    result.SearchResult.Score,
+			Score: result.SearchResult.Score,
 
-			Source:   result.SearchResult.Document.Source,
+			Source: result.SearchResult.Document.Source,
 
 			Metadata: make(map[string]interface{}),
-
 		}
 
 	}
 
-
-
 	queryResult := QueryResult{
 
-		ID:          job.ID,
+		ID: job.ID,
 
-		Results:     retrievedDocs,
+		Results: retrievedDocs,
 
-		Response:    response.AssembledContext,
+		Response: response.AssembledContext,
 
-		Confidence:  response.AverageRelevanceScore,
+		Confidence: response.AverageRelevanceScore,
 
 		ProcessTime: time.Since(startTime),
 
-		CacheHit:    false, // Would need to track this from ProcessQuery
+		CacheHit: false, // Would need to track this from ProcessQuery
 
-		Metadata:    make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}
-
-
 
 	// Call callback with results.
 
@@ -2435,13 +2009,9 @@ func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{})
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // processDocumentsSync processes documents synchronously (fallback).
 
@@ -2451,11 +2021,8 @@ func (rp *RAGPipeline) processDocumentsSync(ctx context.Context, documents []Doc
 
 		Documents: documents,
 
-		Context:   ctx,
-
+		Context: ctx,
 	}
-
-
 
 	err := rp.processDocumentJob(ctx, job)
 
@@ -2463,23 +2030,18 @@ func (rp *RAGPipeline) processDocumentsSync(ctx context.Context, documents []Doc
 
 }
 
-
-
 // processQuerySync processes query synchronously (fallback).
 
 func (rp *RAGPipeline) processQuerySync(ctx context.Context, query string, params QueryParameters, callback func(QueryResult, error)) error {
 
 	job := QueryJob{
 
-		Query:      query,
+		Query: query,
 
 		Parameters: params,
 
-		Context:    ctx,
-
+		Context: ctx,
 	}
-
-
 
 	err := rp.processQueryJob(ctx, job)
 
@@ -2487,11 +2049,7 @@ func (rp *RAGPipeline) processQuerySync(ctx context.Context, query string, param
 
 }
 
-
-
 // AsyncWorker methods.
-
-
 
 // start starts the worker's processing loop.
 
@@ -2505,8 +2063,6 @@ func (w *AsyncWorker) start() {
 
 	w.pool.metrics.mutex.Unlock()
 
-
-
 	defer func() {
 
 		w.pool.metrics.mutex.Lock()
@@ -2516,8 +2072,6 @@ func (w *AsyncWorker) start() {
 		w.pool.metrics.mutex.Unlock()
 
 	}()
-
-
 
 	for {
 
@@ -2537,15 +2091,11 @@ func (w *AsyncWorker) start() {
 
 }
 
-
-
 // processJob processes a single async job.
 
 func (w *AsyncWorker) processJob(job AsyncJob) {
 
 	startTime := time.Now()
-
-
 
 	w.pool.metrics.mutex.Lock()
 
@@ -2553,15 +2103,9 @@ func (w *AsyncWorker) processJob(job AsyncJob) {
 
 	w.pool.metrics.mutex.Unlock()
 
-
-
 	err := job.Process(w.pool.ctx, job.Payload)
 
-
-
 	processingTime := time.Since(startTime)
-
-
 
 	w.pool.metrics.mutex.Lock()
 
@@ -2574,8 +2118,6 @@ func (w *AsyncWorker) processJob(job AsyncJob) {
 		w.logger.Error("Job processing failed", "job_type", job.Type, "error", err)
 
 	}
-
-
 
 	// Update average latency.
 
@@ -2593,8 +2135,6 @@ func (w *AsyncWorker) processJob(job AsyncJob) {
 
 }
 
-
-
 // GetAsyncMetrics returns current async processing metrics.
 
 func (rp *RAGPipeline) GetAsyncMetrics() *AsyncMetrics {
@@ -2605,35 +2145,28 @@ func (rp *RAGPipeline) GetAsyncMetrics() *AsyncMetrics {
 
 	}
 
-
-
 	rp.workerPool.metrics.mutex.RLock()
 
 	defer rp.workerPool.metrics.mutex.RUnlock()
-
-
 
 	// Field-by-field copying to avoid mutex copying.
 
 	metrics := &AsyncMetrics{
 
-		TotalJobs:      rp.workerPool.metrics.TotalJobs,
+		TotalJobs: rp.workerPool.metrics.TotalJobs,
 
-		CompletedJobs:  rp.workerPool.metrics.CompletedJobs,
+		CompletedJobs: rp.workerPool.metrics.CompletedJobs,
 
-		FailedJobs:     rp.workerPool.metrics.FailedJobs,
+		FailedJobs: rp.workerPool.metrics.FailedJobs,
 
-		ActiveWorkers:  rp.workerPool.metrics.ActiveWorkers,
+		ActiveWorkers: rp.workerPool.metrics.ActiveWorkers,
 
 		AverageLatency: rp.workerPool.metrics.AverageLatency,
-
 	}
 
 	return metrics
 
 }
-
-
 
 // updateQueueMetrics updates queue size metrics.
 
@@ -2642,8 +2175,6 @@ func (rp *RAGPipeline) updateQueueMetrics(docDelta, queryDelta int64) {
 	rp.mutex.Lock()
 
 	defer rp.mutex.Unlock()
-
-
 
 	rp.queuedJobs += docDelta + queryDelta
 
@@ -2655,8 +2186,6 @@ func (rp *RAGPipeline) updateQueueMetrics(docDelta, queryDelta int64) {
 
 }
 
-
-
 // GetQueueStatus returns current queue status.
 
 func (rp *RAGPipeline) GetQueueStatus() map[string]interface{} {
@@ -2665,29 +2194,24 @@ func (rp *RAGPipeline) GetQueueStatus() map[string]interface{} {
 
 	defer rp.mutex.RUnlock()
 
-
-
 	return map[string]interface{}{
 
-		"document_queue_length":   len(rp.documentQueue),
+		"document_queue_length": len(rp.documentQueue),
 
-		"query_queue_length":      len(rp.queryQueue),
+		"query_queue_length": len(rp.queryQueue),
 
 		"document_queue_capacity": cap(rp.documentQueue),
 
-		"query_queue_capacity":    cap(rp.queryQueue),
+		"query_queue_capacity": cap(rp.queryQueue),
 
-		"total_queued_jobs":       rp.queuedJobs,
+		"total_queued_jobs": rp.queuedJobs,
 
-		"active_jobs":             rp.activeJobs,
+		"active_jobs": rp.activeJobs,
 
-		"async_enabled":           rp.config.AsyncProcessing,
-
+		"async_enabled": rp.config.AsyncProcessing,
 	}
 
 }
-
-
 
 // LoadRAGPipelineSecrets loads secrets from configuration files.
 
@@ -2698,8 +2222,6 @@ func LoadRAGPipelineSecrets(config *PipelineConfig, logger *slog.Logger) error {
 		return fmt.Errorf("config is nil")
 
 	}
-
-
 
 	// Placeholder implementation - in real scenarios this would load.
 
@@ -2713,8 +2235,6 @@ func LoadRAGPipelineSecrets(config *PipelineConfig, logger *slog.Logger) error {
 
 		"vector_db_type", config.WeaviateConfig.Host)
 
-
-
 	// For now, just validate that required configuration is present.
 
 	if config.EmbeddingConfig.Provider == "" {
@@ -2723,17 +2243,12 @@ func LoadRAGPipelineSecrets(config *PipelineConfig, logger *slog.Logger) error {
 
 	}
 
-
-
 	if config.WeaviateConfig.Host == "" {
 
 		return fmt.Errorf("Weaviate host not configured")
 
 	}
 
-
-
 	return nil
 
 }
-

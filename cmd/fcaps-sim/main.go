@@ -1,89 +1,61 @@
-
 package main
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"flag"
-
 	"fmt"
-
 	"io"
-
 	"log"
-
 	"net/http"
-
 	"os"
-
 	"path/filepath"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/fcaps"
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/ingest"
-
 )
-
-
 
 // Config represents a config.
 
 type Config struct {
-
-	InputFile    string
+	InputFile string
 
 	DelaySeconds int
 
-	Target       string
+	Target string
 
-	Namespace    string
+	Namespace string
 
-	IntentURL    string
+	IntentURL string
 
-	Verbose      bool
+	Verbose bool
 
 	// VES collector configuration.
 
 	CollectorURL string
 
-	Period       int
+	Period int
 
-	Burst        int
+	Burst int
 
-	NFName       string
+	NFName string
 
-	OutHandoff   string // Local handoff directory for reducer mode
+	OutHandoff string // Local handoff directory for reducer mode
 
 }
-
-
 
 func main() {
 
 	config := parseFlags()
-
-
 
 	if config.Verbose {
 
 		log.Printf("FCAPS Simulator starting with config: %+v", config)
 
 	}
-
-
 
 	// Ensure handoff directory exists if specified.
 
@@ -97,8 +69,6 @@ func main() {
 
 	}
 
-
-
 	// Read FCAPS events from file.
 
 	events, err := loadFCAPSEvents(config.InputFile)
@@ -109,17 +79,11 @@ func main() {
 
 	}
 
-
-
 	log.Printf("Loaded %d FCAPS events from %s", len(events), config.InputFile)
-
-
 
 	// Create processor.
 
 	processor := fcaps.NewProcessor(config.Target, config.Namespace)
-
-
 
 	// Create reducer if in local mode.
 
@@ -133,8 +97,6 @@ func main() {
 
 	}
 
-
-
 	// If collector URL is provided, send VES events there as well.
 
 	if config.CollectorURL != "" {
@@ -143,15 +105,11 @@ func main() {
 
 	}
 
-
-
 	// Process events with configurable delay.
 
 	for i, event := range events {
 
 		log.Printf("\n=== Processing Event %d/%d ===", i+1, len(events))
-
-
 
 		// Send to VES collector if configured.
 
@@ -168,8 +126,6 @@ func main() {
 			}
 
 		}
-
-
 
 		// Process with local reducer if enabled.
 
@@ -189,21 +145,15 @@ func main() {
 
 		}
 
-
-
 		// Process the event.
 
 		decision := processor.ProcessEvent(event)
-
-
 
 		if decision.ShouldScale {
 
 			log.Printf("Scaling decision: scale %s to %d replicas (reason: %s)",
 
 				config.Target, decision.NewReplicas, decision.Reason)
-
-
 
 			// Generate intent.
 
@@ -216,8 +166,6 @@ func main() {
 				continue
 
 			}
-
-
 
 			// Send intent to the intent-ingest service if not in local-only mode.
 
@@ -241,8 +189,6 @@ func main() {
 
 		}
 
-
-
 		// Wait before processing next event (except for the last one).
 
 		if i < len(events)-1 && config.DelaySeconds > 0 {
@@ -255,19 +201,13 @@ func main() {
 
 	}
 
-
-
 	log.Printf("\nFCAPS simulation completed. Final replica count: %d", processor.GetCurrentReplicas())
 
 }
 
-
-
 func parseFlags() Config {
 
 	var config Config
-
-
 
 	// Get default input file path relative to repo root.
 
@@ -281,8 +221,6 @@ func parseFlags() Config {
 
 	defaultInputFile := filepath.Join(repoRoot, "docs", "contracts", "fcaps.ves.examples.json")
 
-
-
 	flag.StringVar(&config.InputFile, "input", defaultInputFile, "Path to FCAPS events JSON file")
 
 	flag.IntVar(&config.DelaySeconds, "delay", 5, "Delay in seconds between processing events")
@@ -294,8 +232,6 @@ func parseFlags() Config {
 	flag.StringVar(&config.IntentURL, "intent-url", "http://localhost:8080/intent", "URL for posting scaling intents")
 
 	flag.BoolVar(&config.Verbose, "verbose", false, "Enable verbose logging")
-
-
 
 	// VES collector flags.
 
@@ -311,13 +247,9 @@ func parseFlags() Config {
 
 	flag.Parse()
 
-
-
 	return config
 
 }
-
-
 
 func loadFCAPSEvents(inputFile string) ([]fcaps.FCAPSEvent, error) {
 
@@ -331,8 +263,6 @@ func loadFCAPSEvents(inputFile string) ([]fcaps.FCAPSEvent, error) {
 
 	}
 
-
-
 	// Parse JSON structure - the file contains examples as a map.
 
 	var examples map[string]fcaps.FCAPSEvent
@@ -343,19 +273,13 @@ func loadFCAPSEvents(inputFile string) ([]fcaps.FCAPSEvent, error) {
 
 	}
 
-
-
 	// Convert map to slice for processing order.
 
 	var events []fcaps.FCAPSEvent
 
-
-
 	// Process in a predictable order: fault, measurement, heartbeat.
 
 	orderedKeys := []string{"fault_example", "measurement_example", "heartbeat_example"}
-
-
 
 	for _, key := range orderedKeys {
 
@@ -366,8 +290,6 @@ func loadFCAPSEvents(inputFile string) ([]fcaps.FCAPSEvent, error) {
 		}
 
 	}
-
-
 
 	// Add any remaining events not in the ordered list.
 
@@ -395,21 +317,15 @@ func loadFCAPSEvents(inputFile string) ([]fcaps.FCAPSEvent, error) {
 
 	}
 
-
-
 	if len(events) == 0 {
 
 		return nil, fmt.Errorf("no valid FCAPS events found in file")
 
 	}
 
-
-
 	return events, nil
 
 }
-
-
 
 func sendVESEvent(collectorURL string, event fcaps.FCAPSEvent, verbose bool) error {
 
@@ -423,15 +339,11 @@ func sendVESEvent(collectorURL string, event fcaps.FCAPSEvent, verbose bool) err
 
 	}
 
-
-
 	if verbose {
 
 		log.Printf("Sending VES event: %s", string(eventJSON))
 
 	}
-
-
 
 	// Create HTTP request with context.
 
@@ -442,8 +354,6 @@ func sendVESEvent(collectorURL string, event fcaps.FCAPSEvent, verbose bool) err
 		return fmt.Errorf("failed to create VES request: %w", err)
 
 	}
-
-
 
 	// Set headers according to VES specification.
 
@@ -457,17 +367,12 @@ func sendVESEvent(collectorURL string, event fcaps.FCAPSEvent, verbose bool) err
 
 	req.Header.Set("X-LatestVersion", "7.3")
 
-
-
 	// Send request.
 
 	client := &http.Client{
 
 		Timeout: 10 * time.Second,
-
 	}
-
-
 
 	resp, err := client.Do(req)
 
@@ -479,8 +384,6 @@ func sendVESEvent(collectorURL string, event fcaps.FCAPSEvent, verbose bool) err
 
 	defer func() { _ = resp.Body.Close() }()
 
-
-
 	// Read response.
 
 	responseBody, err := io.ReadAll(resp.Body)
@@ -491,8 +394,6 @@ func sendVESEvent(collectorURL string, event fcaps.FCAPSEvent, verbose bool) err
 
 	}
 
-
-
 	// Check response status (VES typically returns 202 Accepted).
 
 	if resp.StatusCode != http.StatusAccepted && resp.StatusCode != http.StatusOK {
@@ -501,29 +402,21 @@ func sendVESEvent(collectorURL string, event fcaps.FCAPSEvent, verbose bool) err
 
 	}
 
-
-
 	if verbose {
 
 		log.Printf("VES collector response: %s", strings.TrimSpace(string(responseBody)))
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func writeReducerIntent(outDir string, intent *fcaps.ScalingIntent) string {
 
 	timestamp := time.Now().UTC().Format("20060102T150405Z")
 
 	filename := filepath.Join(outDir, fmt.Sprintf("intent-%s.json", timestamp))
-
-
 
 	data, err := json.MarshalIndent(intent, "", "  ")
 
@@ -535,8 +428,6 @@ func writeReducerIntent(outDir string, intent *fcaps.ScalingIntent) string {
 
 	}
 
-
-
 	if err := os.WriteFile(filename, data, 0o640); err != nil {
 
 		log.Printf("Failed to write reducer intent: %v", err)
@@ -545,13 +436,9 @@ func writeReducerIntent(outDir string, intent *fcaps.ScalingIntent) string {
 
 	}
 
-
-
 	return filename
 
 }
-
-
 
 func sendIntent(intentURL string, intent *ingest.Intent) error {
 
@@ -565,8 +452,6 @@ func sendIntent(intentURL string, intent *ingest.Intent) error {
 
 	}
 
-
-
 	// Create HTTP request with context.
 
 	req, err := http.NewRequestWithContext(context.Background(), "POST", intentURL, bytes.NewBuffer(intentJSON))
@@ -577,25 +462,18 @@ func sendIntent(intentURL string, intent *ingest.Intent) error {
 
 	}
 
-
-
 	// Set headers.
 
 	req.Header.Set("Content-Type", "application/json")
 
 	req.Header.Set("User-Agent", "fcaps-sim/1.0")
 
-
-
 	// Send request.
 
 	client := &http.Client{
 
 		Timeout: 10 * time.Second,
-
 	}
-
-
 
 	resp, err := client.Do(req)
 
@@ -607,8 +485,6 @@ func sendIntent(intentURL string, intent *ingest.Intent) error {
 
 	defer func() { _ = resp.Body.Close() }()
 
-
-
 	// Read response.
 
 	responseBody, err := io.ReadAll(resp.Body)
@@ -619,8 +495,6 @@ func sendIntent(intentURL string, intent *ingest.Intent) error {
 
 	}
 
-
-
 	// Check response status.
 
 	if resp.StatusCode != http.StatusAccepted {
@@ -629,15 +503,10 @@ func sendIntent(intentURL string, intent *ingest.Intent) error {
 
 	}
 
-
-
 	// Log successful response.
 
 	log.Printf("Intent accepted by server: %s", strings.TrimSpace(string(responseBody)))
 
-
-
 	return nil
 
 }
-

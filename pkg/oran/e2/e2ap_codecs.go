@@ -1,29 +1,17 @@
-
 package e2
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 )
-
-
 
 // Message codecs implementing the MessageCodec interface.
 
 // These provide JSON-based encoding for HTTP transport (simplified ASN.1).
 
-
-
 // E2SetupRequestCodec handles E2 Setup Request encoding/decoding.
 
 type E2SetupRequestCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -32,8 +20,6 @@ func (c *E2SetupRequestCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeSetupRequest
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -51,8 +37,6 @@ func (c *E2SetupRequestCodec) Encode(message interface{}) ([]byte, error) {
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *E2SetupRequestCodec) Decode(data []byte) (interface{}, error) {
@@ -68,8 +52,6 @@ func (c *E2SetupRequestCodec) Decode(data []byte) (interface{}, error) {
 	return &req, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -99,13 +81,9 @@ func (c *E2SetupRequestCodec) Validate(message interface{}) error {
 
 }
 
-
-
 // E2SetupResponseCodec handles E2 Setup Response encoding/decoding.
 
 type E2SetupResponseCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -114,8 +92,6 @@ func (c *E2SetupResponseCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeSetupResponse
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -133,8 +109,6 @@ func (c *E2SetupResponseCodec) Encode(message interface{}) ([]byte, error) {
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *E2SetupResponseCodec) Decode(data []byte) (interface{}, error) {
@@ -150,8 +124,6 @@ func (c *E2SetupResponseCodec) Decode(data []byte) (interface{}, error) {
 	return &resp, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -175,13 +147,9 @@ func (c *E2SetupResponseCodec) Validate(message interface{}) error {
 
 }
 
-
-
 // E2SetupFailureCodec handles E2 Setup Failure encoding/decoding.
 
 type E2SetupFailureCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -190,8 +158,6 @@ func (c *E2SetupFailureCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeSetupFailure
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -209,8 +175,6 @@ func (c *E2SetupFailureCodec) Encode(message interface{}) ([]byte, error) {
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *E2SetupFailureCodec) Decode(data []byte) (interface{}, error) {
@@ -226,8 +190,6 @@ func (c *E2SetupFailureCodec) Decode(data []byte) (interface{}, error) {
 	return &fail, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -257,13 +219,9 @@ func (c *E2SetupFailureCodec) Validate(message interface{}) error {
 
 }
 
-
-
 // RICSubscriptionRequestCodec handles RIC Subscription Request encoding/decoding.
 
 type RICSubscriptionRequestCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -272,8 +230,6 @@ func (c *RICSubscriptionRequestCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeRICSubscriptionRequest
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -291,8 +247,6 @@ func (c *RICSubscriptionRequestCodec) Encode(message interface{}) ([]byte, error
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *RICSubscriptionRequestCodec) Decode(data []byte) (interface{}, error) {
@@ -308,8 +262,6 @@ func (c *RICSubscriptionRequestCodec) Decode(data []byte) (interface{}, error) {
 	return &req, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -339,13 +291,9 @@ func (c *RICSubscriptionRequestCodec) Validate(message interface{}) error {
 
 }
 
-
-
 // RICSubscriptionResponseCodec handles RIC Subscription Response encoding/decoding.
 
 type RICSubscriptionResponseCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -354,8 +302,6 @@ func (c *RICSubscriptionResponseCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeRICSubscriptionResponse
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -373,8 +319,6 @@ func (c *RICSubscriptionResponseCodec) Encode(message interface{}) ([]byte, erro
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *RICSubscriptionResponseCodec) Decode(data []byte) (interface{}, error) {
@@ -390,8 +334,6 @@ func (c *RICSubscriptionResponseCodec) Decode(data []byte) (interface{}, error) 
 	return &resp, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -415,13 +357,9 @@ func (c *RICSubscriptionResponseCodec) Validate(message interface{}) error {
 
 }
 
-
-
 // RICSubscriptionFailureCodec handles RIC Subscription Failure encoding/decoding.
 
 type RICSubscriptionFailureCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -430,8 +368,6 @@ func (c *RICSubscriptionFailureCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeRICSubscriptionFailure
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -449,8 +385,6 @@ func (c *RICSubscriptionFailureCodec) Encode(message interface{}) ([]byte, error
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *RICSubscriptionFailureCodec) Decode(data []byte) (interface{}, error) {
@@ -466,8 +400,6 @@ func (c *RICSubscriptionFailureCodec) Decode(data []byte) (interface{}, error) {
 	return &fail, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -491,13 +423,9 @@ func (c *RICSubscriptionFailureCodec) Validate(message interface{}) error {
 
 }
 
-
-
 // RICControlRequestCodec handles RIC Control Request encoding/decoding.
 
 type RICControlRequestCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -506,8 +434,6 @@ func (c *RICControlRequestCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeRICControlRequest
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -525,8 +451,6 @@ func (c *RICControlRequestCodec) Encode(message interface{}) ([]byte, error) {
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *RICControlRequestCodec) Decode(data []byte) (interface{}, error) {
@@ -542,8 +466,6 @@ func (c *RICControlRequestCodec) Decode(data []byte) (interface{}, error) {
 	return &req, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -579,13 +501,9 @@ func (c *RICControlRequestCodec) Validate(message interface{}) error {
 
 }
 
-
-
 // RICControlAcknowledgeCodec handles RIC Control Acknowledge encoding/decoding.
 
 type RICControlAcknowledgeCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -594,8 +512,6 @@ func (c *RICControlAcknowledgeCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeRICControlAcknowledge
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -613,8 +529,6 @@ func (c *RICControlAcknowledgeCodec) Encode(message interface{}) ([]byte, error)
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *RICControlAcknowledgeCodec) Decode(data []byte) (interface{}, error) {
@@ -630,8 +544,6 @@ func (c *RICControlAcknowledgeCodec) Decode(data []byte) (interface{}, error) {
 	return &ack, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -655,13 +567,9 @@ func (c *RICControlAcknowledgeCodec) Validate(message interface{}) error {
 
 }
 
-
-
 // RICControlFailureCodec handles RIC Control Failure encoding/decoding.
 
 type RICControlFailureCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -670,8 +578,6 @@ func (c *RICControlFailureCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeRICControlFailure
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -689,8 +595,6 @@ func (c *RICControlFailureCodec) Encode(message interface{}) ([]byte, error) {
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *RICControlFailureCodec) Decode(data []byte) (interface{}, error) {
@@ -706,8 +610,6 @@ func (c *RICControlFailureCodec) Decode(data []byte) (interface{}, error) {
 	return &fail, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -731,13 +633,9 @@ func (c *RICControlFailureCodec) Validate(message interface{}) error {
 
 }
 
-
-
 // RICIndicationCodec handles RIC Indication encoding/decoding.
 
 type RICIndicationCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -746,8 +644,6 @@ func (c *RICIndicationCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeRICIndication
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -765,8 +661,6 @@ func (c *RICIndicationCodec) Encode(message interface{}) ([]byte, error) {
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *RICIndicationCodec) Decode(data []byte) (interface{}, error) {
@@ -782,8 +676,6 @@ func (c *RICIndicationCodec) Decode(data []byte) (interface{}, error) {
 	return &ind, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -825,13 +717,9 @@ func (c *RICIndicationCodec) Validate(message interface{}) error {
 
 }
 
-
-
 // RICServiceUpdateCodec handles RIC Service Update encoding/decoding.
 
 type RICServiceUpdateCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -840,8 +728,6 @@ func (c *RICServiceUpdateCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeRICServiceUpdate
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -859,8 +745,6 @@ func (c *RICServiceUpdateCodec) Encode(message interface{}) ([]byte, error) {
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *RICServiceUpdateCodec) Decode(data []byte) (interface{}, error) {
@@ -876,8 +760,6 @@ func (c *RICServiceUpdateCodec) Decode(data []byte) (interface{}, error) {
 	return &update, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -901,13 +783,9 @@ func (c *RICServiceUpdateCodec) Validate(message interface{}) error {
 
 }
 
-
-
 // RICServiceUpdateAcknowledgeCodec handles RIC Service Update Acknowledge encoding/decoding.
 
 type RICServiceUpdateAcknowledgeCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -916,8 +794,6 @@ func (c *RICServiceUpdateAcknowledgeCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeRICServiceUpdateAcknowledge
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -935,8 +811,6 @@ func (c *RICServiceUpdateAcknowledgeCodec) Encode(message interface{}) ([]byte, 
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *RICServiceUpdateAcknowledgeCodec) Decode(data []byte) (interface{}, error) {
@@ -952,8 +826,6 @@ func (c *RICServiceUpdateAcknowledgeCodec) Decode(data []byte) (interface{}, err
 	return &ack, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -971,13 +843,9 @@ func (c *RICServiceUpdateAcknowledgeCodec) Validate(message interface{}) error {
 
 }
 
-
-
 // RICServiceUpdateFailureCodec handles RIC Service Update Failure encoding/decoding.
 
 type RICServiceUpdateFailureCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -986,8 +854,6 @@ func (c *RICServiceUpdateFailureCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeRICServiceUpdateFailure
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -1005,8 +871,6 @@ func (c *RICServiceUpdateFailureCodec) Encode(message interface{}) ([]byte, erro
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *RICServiceUpdateFailureCodec) Decode(data []byte) (interface{}, error) {
@@ -1022,8 +886,6 @@ func (c *RICServiceUpdateFailureCodec) Decode(data []byte) (interface{}, error) 
 	return &fail, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -1053,13 +915,9 @@ func (c *RICServiceUpdateFailureCodec) Validate(message interface{}) error {
 
 }
 
-
-
 // RICSubscriptionDeleteRequestCodec handles RIC Subscription Delete Request encoding/decoding.
 
 type RICSubscriptionDeleteRequestCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -1068,8 +926,6 @@ func (c *RICSubscriptionDeleteRequestCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeRICSubscriptionDeleteRequest
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -1087,8 +943,6 @@ func (c *RICSubscriptionDeleteRequestCodec) Encode(message interface{}) ([]byte,
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *RICSubscriptionDeleteRequestCodec) Decode(data []byte) (interface{}, error) {
@@ -1104,8 +958,6 @@ func (c *RICSubscriptionDeleteRequestCodec) Decode(data []byte) (interface{}, er
 	return &req, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -1129,13 +981,9 @@ func (c *RICSubscriptionDeleteRequestCodec) Validate(message interface{}) error 
 
 }
 
-
-
 // RICSubscriptionDeleteResponseCodec handles RIC Subscription Delete Response encoding/decoding.
 
 type RICSubscriptionDeleteResponseCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -1144,8 +992,6 @@ func (c *RICSubscriptionDeleteResponseCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeRICSubscriptionDeleteResponse
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -1163,8 +1009,6 @@ func (c *RICSubscriptionDeleteResponseCodec) Encode(message interface{}) ([]byte
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *RICSubscriptionDeleteResponseCodec) Decode(data []byte) (interface{}, error) {
@@ -1180,8 +1024,6 @@ func (c *RICSubscriptionDeleteResponseCodec) Decode(data []byte) (interface{}, e
 	return &resp, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -1205,13 +1047,9 @@ func (c *RICSubscriptionDeleteResponseCodec) Validate(message interface{}) error
 
 }
 
-
-
 // RICSubscriptionDeleteFailureCodec handles RIC Subscription Delete Failure encoding/decoding.
 
 type RICSubscriptionDeleteFailureCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -1220,8 +1058,6 @@ func (c *RICSubscriptionDeleteFailureCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeRICSubscriptionDeleteFailure
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -1239,8 +1075,6 @@ func (c *RICSubscriptionDeleteFailureCodec) Encode(message interface{}) ([]byte,
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *RICSubscriptionDeleteFailureCodec) Decode(data []byte) (interface{}, error) {
@@ -1256,8 +1090,6 @@ func (c *RICSubscriptionDeleteFailureCodec) Decode(data []byte) (interface{}, er
 	return &fail, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -1281,13 +1113,9 @@ func (c *RICSubscriptionDeleteFailureCodec) Validate(message interface{}) error 
 
 }
 
-
-
 // ResetRequestCodec handles Reset Request encoding/decoding.
 
 type ResetRequestCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -1296,8 +1124,6 @@ func (c *ResetRequestCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeResetRequest
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -1315,8 +1141,6 @@ func (c *ResetRequestCodec) Encode(message interface{}) ([]byte, error) {
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *ResetRequestCodec) Decode(data []byte) (interface{}, error) {
@@ -1332,8 +1156,6 @@ func (c *ResetRequestCodec) Decode(data []byte) (interface{}, error) {
 	return &req, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -1363,13 +1185,9 @@ func (c *ResetRequestCodec) Validate(message interface{}) error {
 
 }
 
-
-
 // ResetResponseCodec handles Reset Response encoding/decoding.
 
 type ResetResponseCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -1378,8 +1196,6 @@ func (c *ResetResponseCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeResetResponse
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -1397,8 +1213,6 @@ func (c *ResetResponseCodec) Encode(message interface{}) ([]byte, error) {
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *ResetResponseCodec) Decode(data []byte) (interface{}, error) {
@@ -1414,8 +1228,6 @@ func (c *ResetResponseCodec) Decode(data []byte) (interface{}, error) {
 	return &resp, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -1433,13 +1245,9 @@ func (c *ResetResponseCodec) Validate(message interface{}) error {
 
 }
 
-
-
 // ErrorIndicationCodec handles Error Indication encoding/decoding.
 
 type ErrorIndicationCodec struct{}
-
-
 
 // GetMessageType performs getmessagetype operation.
 
@@ -1448,8 +1256,6 @@ func (c *ErrorIndicationCodec) GetMessageType() E2APMessageType {
 	return E2APMessageTypeErrorIndication
 
 }
-
-
 
 // Encode performs encode operation.
 
@@ -1467,8 +1273,6 @@ func (c *ErrorIndicationCodec) Encode(message interface{}) ([]byte, error) {
 
 }
 
-
-
 // Decode performs decode operation.
 
 func (c *ErrorIndicationCodec) Decode(data []byte) (interface{}, error) {
@@ -1484,8 +1288,6 @@ func (c *ErrorIndicationCodec) Decode(data []byte) (interface{}, error) {
 	return &err, nil
 
 }
-
-
 
 // Validate performs validate operation.
 
@@ -1514,4 +1316,3 @@ func (c *ErrorIndicationCodec) Validate(message interface{}) error {
 	return nil
 
 }
-

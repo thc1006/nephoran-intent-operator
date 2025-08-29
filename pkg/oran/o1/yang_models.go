@@ -1,131 +1,96 @@
-
 package o1
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"regexp"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // YANGModelRegistry manages YANG model schemas and validation.
 
 type YANGModelRegistry struct {
+	models map[string]*YANGModel
 
-	models        map[string]*YANGModel
+	modelsByNS map[string]*YANGModel
 
-	modelsByNS    map[string]*YANGModel
+	validators map[string]YANGValidator
 
-	validators    map[string]YANGValidator
-
-	mutex         sync.RWMutex
+	mutex sync.RWMutex
 
 	loadedModules map[string]time.Time
-
 }
-
-
 
 // YANGModel represents a YANG model definition.
 
 type YANGModel struct {
+	Name string `json:"name"`
 
-	Name         string                 `json:"name"`
+	Namespace string `json:"namespace"`
 
-	Namespace    string                 `json:"namespace"`
+	Version string `json:"version"`
 
-	Version      string                 `json:"version"`
+	Revision string `json:"revision"`
 
-	Revision     string                 `json:"revision"`
+	Description string `json:"description"`
 
-	Description  string                 `json:"description"`
+	Contact string `json:"contact,omitempty"`
 
-	Contact      string                 `json:"contact,omitempty"`
+	Organization string `json:"organization,omitempty"`
 
-	Organization string                 `json:"organization,omitempty"`
+	Schema map[string]interface{} `json:"schema"`
 
-	Schema       map[string]interface{} `json:"schema"`
+	Dependencies []string `json:"dependencies,omitempty"`
 
-	Dependencies []string               `json:"dependencies,omitempty"`
+	ModulePath string `json:"module_path,omitempty"`
 
-	ModulePath   string                 `json:"module_path,omitempty"`
-
-	LoadTime     time.Time              `json:"load_time"`
-
+	LoadTime time.Time `json:"load_time"`
 }
-
-
 
 // YANGValidator provides validation functionality for YANG models.
 
 type YANGValidator interface {
-
 	ValidateData(data interface{}, modelName string) error
 
 	ValidateXPath(xpath, modelName string) error
 
 	GetModelInfo(modelName string) (*YANGModel, error)
-
 }
-
-
 
 // StandardYANGValidator implements basic YANG validation.
 
 type StandardYANGValidator struct {
-
 	registry *YANGModelRegistry
 
-	mutex    sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // YANGNode represents a YANG schema node.
 
 type YANGNode struct {
+	Name string `json:"name"`
 
-	Name        string                 `json:"name"`
+	Type string `json:"type"` // container, leaf, leaf-list, list, choice, case
 
-	Type        string                 `json:"type"` // container, leaf, leaf-list, list, choice, case
+	DataType string `json:"data_type,omitempty"`
 
-	DataType    string                 `json:"data_type,omitempty"`
+	Description string `json:"description,omitempty"`
 
-	Description string                 `json:"description,omitempty"`
+	Mandatory bool `json:"mandatory,omitempty"`
 
-	Mandatory   bool                   `json:"mandatory,omitempty"`
+	Config bool `json:"config"`
 
-	Config      bool                   `json:"config"`
+	Children map[string]*YANGNode `json:"children,omitempty"`
 
-	Children    map[string]*YANGNode   `json:"children,omitempty"`
-
-	Keys        []string               `json:"keys,omitempty"`
+	Keys []string `json:"keys,omitempty"`
 
 	Constraints map[string]interface{} `json:"constraints,omitempty"`
-
 }
-
-
 
 // NewYANGModelRegistry creates a new YANG model registry.
 
@@ -133,17 +98,14 @@ func NewYANGModelRegistry() *YANGModelRegistry {
 
 	registry := &YANGModelRegistry{
 
-		models:        make(map[string]*YANGModel),
+		models: make(map[string]*YANGModel),
 
-		modelsByNS:    make(map[string]*YANGModel),
+		modelsByNS: make(map[string]*YANGModel),
 
-		validators:    make(map[string]YANGValidator),
+		validators: make(map[string]YANGValidator),
 
 		loadedModules: make(map[string]time.Time),
-
 	}
-
-
 
 	// Register default validator.
 
@@ -151,19 +113,13 @@ func NewYANGModelRegistry() *YANGModelRegistry {
 
 	registry.validators["standard"] = validator
 
-
-
 	// Load standard O-RAN YANG models.
 
 	registry.loadORANModels()
 
-
-
 	return registry
 
 }
-
-
 
 // loadORANModels loads standard O-RAN YANG models.
 
@@ -171,23 +127,21 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 	logger := log.Log.WithName("yang-registry")
 
-
-
 	// Define O-RAN standard models.
 
 	oranModels := []*YANGModel{
 
 		{
 
-			Name:         "o-ran-hardware",
+			Name: "o-ran-hardware",
 
-			Namespace:    "urn:o-ran:hardware:1.0",
+			Namespace: "urn:o-ran:hardware:1.0",
 
-			Version:      "1.0",
+			Version: "1.0",
 
-			Revision:     "2019-03-28",
+			Revision: "2019-03-28",
 
-			Description:  "O-RAN Hardware Management YANG module",
+			Description: "O-RAN Hardware Management YANG module",
 
 			Organization: "O-RAN Alliance",
 
@@ -213,24 +167,22 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 								"name": {
 
-									Name:      "name",
+									Name: "name",
 
-									Type:      "leaf",
+									Type: "leaf",
 
-									DataType:  "string",
+									DataType: "string",
 
 									Mandatory: true,
-
 								},
 
 								"class": {
 
-									Name:     "class",
+									Name: "class",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "string",
-
 								},
 
 								"state": {
@@ -243,43 +195,34 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 										"name": {
 
-											Name:     "name",
+											Name: "name",
 
-											Type:     "leaf",
+											Type: "leaf",
 
 											DataType: "string",
 
-											Config:   false,
-
+											Config: false,
 										},
-
 									},
-
 								},
-
 							},
-
 						},
-
 					},
-
 				},
-
 			},
-
 		},
 
 		{
 
-			Name:         "o-ran-software-management",
+			Name: "o-ran-software-management",
 
-			Namespace:    "urn:o-ran:software-management:1.0",
+			Namespace: "urn:o-ran:software-management:1.0",
 
-			Version:      "1.0",
+			Version: "1.0",
 
-			Revision:     "2019-03-28",
+			Revision: "2019-03-28",
 
-			Description:  "O-RAN Software Management YANG module",
+			Description: "O-RAN Software Management YANG module",
 
 			Organization: "O-RAN Alliance",
 
@@ -305,66 +248,59 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 								"name": {
 
-									Name:      "name",
+									Name: "name",
 
-									Type:      "leaf",
+									Type: "leaf",
 
-									DataType:  "string",
+									DataType: "string",
 
 									Mandatory: true,
-
 								},
 
 								"status": {
 
-									Name:     "status",
+									Name: "status",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "enumeration",
 
 									Constraints: map[string]interface{}{
 
 										"enum": []string{"valid", "invalid", "empty"},
-
 									},
-
 								},
 
 								"active": {
 
-									Name:     "active",
+									Name: "active",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "boolean",
-
 								},
 
 								"running": {
 
-									Name:     "running",
+									Name: "running",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "boolean",
-
 								},
 
 								"access": {
 
-									Name:     "access",
+									Name: "access",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "enumeration",
 
 									Constraints: map[string]interface{}{
 
 										"enum": []string{"read-only", "read-write"},
-
 									},
-
 								},
 
 								"build-info": {
@@ -377,51 +313,41 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 										"build-name": {
 
-											Name:     "build-name",
+											Name: "build-name",
 
-											Type:     "leaf",
+											Type: "leaf",
 
 											DataType: "string",
-
 										},
 
 										"build-version": {
 
-											Name:     "build-version",
+											Name: "build-version",
 
-											Type:     "leaf",
+											Type: "leaf",
 
 											DataType: "string",
-
 										},
-
 									},
-
 								},
-
 							},
-
 						},
-
 					},
-
 				},
-
 			},
-
 		},
 
 		{
 
-			Name:         "o-ran-performance-management",
+			Name: "o-ran-performance-management",
 
-			Namespace:    "urn:o-ran:performance-management:1.0",
+			Namespace: "urn:o-ran:performance-management:1.0",
 
-			Version:      "1.0",
+			Version: "1.0",
 
-			Revision:     "2019-03-28",
+			Revision: "2019-03-28",
 
-			Description:  "O-RAN Performance Management YANG module",
+			Description: "O-RAN Performance Management YANG module",
 
 			Organization: "O-RAN Alliance",
 
@@ -447,34 +373,31 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 								"measurement-object-id": {
 
-									Name:      "measurement-object-id",
+									Name: "measurement-object-id",
 
-									Type:      "leaf",
+									Type: "leaf",
 
-									DataType:  "string",
+									DataType: "string",
 
 									Mandatory: true,
-
 								},
 
 								"object-unit": {
 
-									Name:     "object-unit",
+									Name: "object-unit",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "string",
-
 								},
 
 								"function": {
 
-									Name:     "function",
+									Name: "function",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "string",
-
 								},
 
 								"measurement-type": {
@@ -489,53 +412,43 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 										"measurement-type-id": {
 
-											Name:      "measurement-type-id",
+											Name: "measurement-type-id",
 
-											Type:      "leaf",
+											Type: "leaf",
 
-											DataType:  "string",
+											DataType: "string",
 
 											Mandatory: true,
-
 										},
 
 										"measurement-description": {
 
-											Name:     "measurement-description",
+											Name: "measurement-description",
 
-											Type:     "leaf",
+											Type: "leaf",
 
 											DataType: "string",
-
 										},
-
 									},
-
 								},
-
 							},
-
 						},
-
 					},
-
 				},
-
 			},
-
 		},
 
 		{
 
-			Name:         "o-ran-fault-management",
+			Name: "o-ran-fault-management",
 
-			Namespace:    "urn:o-ran:fault-management:1.0",
+			Namespace: "urn:o-ran:fault-management:1.0",
 
-			Version:      "1.0",
+			Version: "1.0",
 
-			Revision:     "2019-03-28",
+			Revision: "2019-03-28",
 
-			Description:  "O-RAN Fault Management YANG module",
+			Description: "O-RAN Fault Management YANG module",
 
 			Organization: "O-RAN Alliance",
 
@@ -561,97 +474,84 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 								"fault-id": {
 
-									Name:      "fault-id",
+									Name: "fault-id",
 
-									Type:      "leaf",
+									Type: "leaf",
 
-									DataType:  "uint16",
+									DataType: "uint16",
 
 									Mandatory: true,
-
 								},
 
 								"fault-source": {
 
-									Name:      "fault-source",
+									Name: "fault-source",
 
-									Type:      "leaf",
+									Type: "leaf",
 
-									DataType:  "string",
+									DataType: "string",
 
 									Mandatory: true,
-
 								},
 
 								"fault-severity": {
 
-									Name:     "fault-severity",
+									Name: "fault-severity",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "enumeration",
 
 									Constraints: map[string]interface{}{
 
 										"enum": []string{"critical", "major", "minor", "warning"},
-
 									},
-
 								},
 
 								"is-cleared": {
 
-									Name:     "is-cleared",
+									Name: "is-cleared",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "boolean",
-
 								},
 
 								"fault-text": {
 
-									Name:     "fault-text",
+									Name: "fault-text",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "string",
-
 								},
 
 								"event-time": {
 
-									Name:     "event-time",
+									Name: "event-time",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "yang:date-and-time",
-
 								},
-
 							},
-
 						},
-
 					},
-
 				},
-
 			},
-
 		},
 
 		{
 
-			Name:         "ietf-interfaces",
+			Name: "ietf-interfaces",
 
-			Namespace:    "urn:ietf:params:xml:ns:yang:ietf-interfaces",
+			Namespace: "urn:ietf:params:xml:ns:yang:ietf-interfaces",
 
-			Version:      "1.0",
+			Version: "1.0",
 
-			Revision:     "2018-02-20",
+			Revision: "2018-02-20",
 
-			Description:  "IETF Interfaces YANG module",
+			Description: "IETF Interfaces YANG module",
 
 			Organization: "IETF",
 
@@ -677,63 +577,50 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 								"name": {
 
-									Name:      "name",
+									Name: "name",
 
-									Type:      "leaf",
+									Type: "leaf",
 
-									DataType:  "string",
+									DataType: "string",
 
 									Mandatory: true,
-
 								},
 
 								"description": {
 
-									Name:     "description",
+									Name: "description",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "string",
-
 								},
 
 								"type": {
 
-									Name:      "type",
+									Name: "type",
 
-									Type:      "leaf",
+									Type: "leaf",
 
-									DataType:  "identityref",
+									DataType: "identityref",
 
 									Mandatory: true,
-
 								},
 
 								"enabled": {
 
-									Name:     "enabled",
+									Name: "enabled",
 
-									Type:     "leaf",
+									Type: "leaf",
 
 									DataType: "boolean",
-
 								},
-
 							},
-
 						},
-
 					},
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	// Register all models.
 
@@ -755,8 +642,6 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 }
 
-
-
 // RegisterModel registers a YANG model in the registry.
 
 func (yr *YANGModelRegistry) RegisterModel(model *YANGModel) error {
@@ -765,23 +650,17 @@ func (yr *YANGModelRegistry) RegisterModel(model *YANGModel) error {
 
 	defer yr.mutex.Unlock()
 
-
-
 	if model.Name == "" {
 
 		return fmt.Errorf("model name cannot be empty")
 
 	}
 
-
-
 	if model.Namespace == "" {
 
 		return fmt.Errorf("model namespace cannot be empty")
 
 	}
-
-
 
 	// Check for conflicts.
 
@@ -797,21 +676,15 @@ func (yr *YANGModelRegistry) RegisterModel(model *YANGModel) error {
 
 	}
 
-
-
 	yr.models[model.Name] = model
 
 	yr.modelsByNS[model.Namespace] = model
 
 	yr.loadedModules[model.Name] = time.Now()
 
-
-
 	return nil
 
 }
-
-
 
 // GetModel retrieves a YANG model by name.
 
@@ -821,8 +694,6 @@ func (yr *YANGModelRegistry) GetModel(name string) (*YANGModel, error) {
 
 	defer yr.mutex.RUnlock()
 
-
-
 	model, exists := yr.models[name]
 
 	if !exists {
@@ -831,13 +702,9 @@ func (yr *YANGModelRegistry) GetModel(name string) (*YANGModel, error) {
 
 	}
 
-
-
 	return model, nil
 
 }
-
-
 
 // GetModelByNamespace retrieves a YANG model by namespace.
 
@@ -847,8 +714,6 @@ func (yr *YANGModelRegistry) GetModelByNamespace(namespace string) (*YANGModel, 
 
 	defer yr.mutex.RUnlock()
 
-
-
 	model, exists := yr.modelsByNS[namespace]
 
 	if !exists {
@@ -857,13 +722,9 @@ func (yr *YANGModelRegistry) GetModelByNamespace(namespace string) (*YANGModel, 
 
 	}
 
-
-
 	return model, nil
 
 }
-
-
 
 // ListModels returns all registered models.
 
@@ -873,8 +734,6 @@ func (yr *YANGModelRegistry) ListModels() []*YANGModel {
 
 	defer yr.mutex.RUnlock()
 
-
-
 	models := make([]*YANGModel, 0, len(yr.models))
 
 	for _, model := range yr.models {
@@ -883,13 +742,9 @@ func (yr *YANGModelRegistry) ListModels() []*YANGModel {
 
 	}
 
-
-
 	return models
 
 }
-
-
 
 // ValidateConfig validates configuration data against YANG schemas.
 
@@ -903,13 +758,9 @@ func (yr *YANGModelRegistry) ValidateConfig(ctx context.Context, data interface{
 
 	}
 
-
-
 	return validator.ValidateData(data, modelName)
 
 }
-
-
 
 // ValidateXPath validates an XPath expression against YANG schemas.
 
@@ -923,13 +774,9 @@ func (yr *YANGModelRegistry) ValidateXPath(xpath, modelName string) error {
 
 	}
 
-
-
 	return validator.ValidateXPath(xpath, modelName)
 
 }
-
-
 
 // GetSchemaNode retrieves a specific schema node by path.
 
@@ -943,8 +790,6 @@ func (yr *YANGModelRegistry) GetSchemaNode(modelName, path string) (*YANGNode, e
 
 	}
 
-
-
 	// Parse path and navigate to node.
 
 	pathParts := strings.Split(strings.Trim(path, "/"), "/")
@@ -954,8 +799,6 @@ func (yr *YANGModelRegistry) GetSchemaNode(modelName, path string) (*YANGNode, e
 		return nil, fmt.Errorf("invalid path")
 
 	}
-
-
 
 	// Start from root schema.
 
@@ -967,8 +810,6 @@ func (yr *YANGModelRegistry) GetSchemaNode(modelName, path string) (*YANGNode, e
 
 	}
 
-
-
 	currentNode, ok := rootNode.(*YANGNode)
 
 	if !ok {
@@ -976,8 +817,6 @@ func (yr *YANGModelRegistry) GetSchemaNode(modelName, path string) (*YANGNode, e
 		return nil, fmt.Errorf("invalid root node type")
 
 	}
-
-
 
 	// Navigate through path.
 
@@ -989,8 +828,6 @@ func (yr *YANGModelRegistry) GetSchemaNode(modelName, path string) (*YANGNode, e
 
 		}
 
-
-
 		nextNode, exists := currentNode.Children[pathParts[i]]
 
 		if !exists {
@@ -999,23 +836,15 @@ func (yr *YANGModelRegistry) GetSchemaNode(modelName, path string) (*YANGNode, e
 
 		}
 
-
-
 		currentNode = nextNode
 
 	}
-
-
 
 	return currentNode, nil
 
 }
 
-
-
 // StandardYANGValidator implementation.
-
-
 
 // ValidateData validates data against a YANG model.
 
@@ -1028,8 +857,6 @@ func (sv *StandardYANGValidator) ValidateData(data interface{}, modelName string
 		return fmt.Errorf("model validation failed: %w", err)
 
 	}
-
-
 
 	// Convert data to map for validation.
 
@@ -1057,15 +884,11 @@ func (sv *StandardYANGValidator) ValidateData(data interface{}, modelName string
 
 	}
 
-
-
 	// Validate against schema.
 
 	return sv.validateNode(dataMap, model.Schema)
 
 }
-
-
 
 // validateNode validates a data node against schema node.
 
@@ -1081,11 +904,7 @@ func (sv *StandardYANGValidator) validateNode(data, schema map[string]interface{
 
 		}
 
-
-
 		dataValue, exists := data[schemaKey]
-
-
 
 		// Check mandatory fields.
 
@@ -1095,15 +914,11 @@ func (sv *StandardYANGValidator) validateNode(data, schema map[string]interface{
 
 		}
 
-
-
 		if !exists {
 
 			continue
 
 		}
-
-
 
 		// Validate based on node type.
 
@@ -1165,13 +980,9 @@ func (sv *StandardYANGValidator) validateNode(data, schema map[string]interface{
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateLeaf validates a leaf node value.
 
@@ -1249,13 +1060,9 @@ func (sv *StandardYANGValidator) validateLeaf(value interface{}, node *YANGNode)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateXPath validates an XPath expression.
 
@@ -1269,8 +1076,6 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath, modelName string) error {
 
 	}
 
-
-
 	// Check for basic XPath syntax.
 
 	xpathRegex := regexp.MustCompile(`^(/[a-zA-Z0-9_-]+(\[[^\]]+\])*)+$`)
@@ -1281,8 +1086,6 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath, modelName string) error {
 
 	}
 
-
-
 	// Implement comprehensive XPath validation against schema.
 
 	sv.mutex.RLock()
@@ -1291,15 +1094,11 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath, modelName string) error {
 
 	sv.mutex.RUnlock()
 
-
-
 	if !exists {
 
 		return fmt.Errorf("model %s not found for XPath validation", modelName)
 
 	}
-
-
 
 	// Parse XPath into components for validation.
 
@@ -1310,8 +1109,6 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath, modelName string) error {
 		return fmt.Errorf("invalid XPath structure: %s", xpath)
 
 	}
-
-
 
 	// Validate each XPath component against the model schema.
 
@@ -1341,8 +1138,6 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath, modelName string) error {
 
 		}
 
-
-
 		// Check if the node exists in the current schema level.
 
 		if currentSchemaMap, ok := currentSchema.(map[string]interface{}); ok {
@@ -1370,8 +1165,6 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath, modelName string) error {
 					}
 
 				}
-
-
 
 				// Validate condition syntax if present.
 
@@ -1433,13 +1226,9 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath, modelName string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateXPathCondition validates XPath condition syntax against schema.
 
@@ -1527,8 +1316,6 @@ func (sv *StandardYANGValidator) validateXPathCondition(condition string, nodeSc
 
 	}
 
-
-
 	// Handle numeric indices like [1], [2], etc.
 
 	if numericRegex := regexp.MustCompile(`^\d+$`); numericRegex.MatchString(condition) {
@@ -1536,8 +1323,6 @@ func (sv *StandardYANGValidator) validateXPathCondition(condition string, nodeSc
 		return nil // Valid numeric index
 
 	}
-
-
 
 	// Handle attribute conditions like [@attr='value'].
 
@@ -1577,8 +1362,6 @@ func (sv *StandardYANGValidator) validateXPathCondition(condition string, nodeSc
 
 	}
 
-
-
 	// Handle node value conditions like [text()='value'].
 
 	if textRegex := regexp.MustCompile(`^text\(\)\s*=\s*['"][^'"]*['"]$`); textRegex.MatchString(condition) {
@@ -1586,8 +1369,6 @@ func (sv *StandardYANGValidator) validateXPathCondition(condition string, nodeSc
 		return nil // Valid text condition
 
 	}
-
-
 
 	// Handle position conditions like [position()=1].
 
@@ -1597,8 +1378,6 @@ func (sv *StandardYANGValidator) validateXPathCondition(condition string, nodeSc
 
 	}
 
-
-
 	// Handle last() condition.
 
 	if condition == "last()" {
@@ -1606,8 +1385,6 @@ func (sv *StandardYANGValidator) validateXPathCondition(condition string, nodeSc
 		return nil
 
 	}
-
-
 
 	// Handle complex conditions with logical operators.
 
@@ -1631,13 +1408,9 @@ func (sv *StandardYANGValidator) validateXPathCondition(condition string, nodeSc
 
 	}
 
-
-
 	return fmt.Errorf("unsupported condition syntax: %s", condition)
 
 }
-
-
 
 // GetModelInfo returns model information.
 
@@ -1646,8 +1419,6 @@ func (sv *StandardYANGValidator) GetModelInfo(modelName string) (*YANGModel, err
 	return sv.registry.GetModel(modelName)
 
 }
-
-
 
 // Helper function to convert YANG children to schema format.
 
@@ -1665,8 +1436,6 @@ func convertYANGChildren(children map[string]*YANGNode) map[string]interface{} {
 
 }
 
-
-
 // GetStatistics returns registry statistics.
 
 func (yr *YANGModelRegistry) GetStatistics() map[string]interface{} {
@@ -1674,8 +1443,6 @@ func (yr *YANGModelRegistry) GetStatistics() map[string]interface{} {
 	yr.mutex.RLock()
 
 	defer yr.mutex.RUnlock()
-
-
 
 	stats := make(map[string]interface{})
 
@@ -1685,33 +1452,27 @@ func (yr *YANGModelRegistry) GetStatistics() map[string]interface{} {
 
 	stats["validators"] = len(yr.validators)
 
-
-
 	modelStats := make(map[string]interface{})
 
 	for name, model := range yr.models {
 
 		modelStats[name] = map[string]interface{}{
 
-			"version":    model.Version,
+			"version": model.Version,
 
-			"revision":   model.Revision,
+			"revision": model.Revision,
 
-			"namespace":  model.Namespace,
+			"namespace": model.Namespace,
 
-			"load_time":  model.LoadTime,
+			"load_time": model.LoadTime,
 
 			"has_schema": len(model.Schema) > 0,
-
 		}
 
 	}
 
 	stats["models"] = modelStats
 
-
-
 	return stats
 
 }
-

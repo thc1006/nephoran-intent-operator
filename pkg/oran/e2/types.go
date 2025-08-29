@@ -1,23 +1,12 @@
-
 package e2
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
 
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 )
-
-
 
 // E2ManagerInterface defines the interface for E2 management operations.
 
@@ -33,13 +22,9 @@ type E2ManagerInterface interface {
 
 	ListE2Nodes(ctx context.Context) ([]*E2Node, error)
 
-
-
 	// High-level provisioning operation for controller use.
 
 	ProvisionNode(ctx context.Context, spec nephoranv1.E2NodeSetSpec) error
-
-
 
 	// Subscription operations.
 
@@ -47,115 +32,90 @@ type E2ManagerInterface interface {
 
 	SendControlMessage(ctx context.Context, nodeID string, controlReq *RICControlRequest) (*RICControlAcknowledge, error)
 
-
-
 	// Management operations.
 
 	GetMetrics() *E2Metrics
 
 	Shutdown() error
-
 }
 
-
-
 // Additional types and interfaces for E2 implementation.
-
-
 
 // E2SubscriptionRequest represents a request to create an E2 subscription.
 
 type E2SubscriptionRequest struct {
+	NodeID string `json:"node_id"`
 
-	NodeID          string           `json:"node_id"`
+	SubscriptionID string `json:"subscription_id"`
 
-	SubscriptionID  string           `json:"subscription_id"`
+	RequestorID string `json:"requestor_id"`
 
-	RequestorID     string           `json:"requestor_id"`
+	RanFunctionID int `json:"ran_function_id"`
 
-	RanFunctionID   int              `json:"ran_function_id"`
+	EventTriggers []E2EventTrigger `json:"event_triggers"`
 
-	EventTriggers   []E2EventTrigger `json:"event_triggers"`
+	Actions []E2Action `json:"actions"`
 
-	Actions         []E2Action       `json:"actions"`
-
-	ReportingPeriod time.Duration    `json:"reporting_period"`
-
+	ReportingPeriod time.Duration `json:"reporting_period"`
 }
-
-
 
 // E2ControlMessage represents a control message to be sent to an E2 node.
 
 type E2ControlMessage struct {
+	NodeID string `json:"node_id"`
 
-	NodeID            string                 `json:"node_id"`
+	RequestID string `json:"request_id"`
 
-	RequestID         string                 `json:"request_id"`
+	RanFunctionID int `json:"ran_function_id"`
 
-	RanFunctionID     int                    `json:"ran_function_id"`
+	CallProcessID string `json:"call_process_id,omitempty"`
 
-	CallProcessID     string                 `json:"call_process_id,omitempty"`
+	ControlHeader map[string]interface{} `json:"control_header"`
 
-	ControlHeader     map[string]interface{} `json:"control_header"`
+	ControlMessage map[string]interface{} `json:"control_message"`
 
-	ControlMessage    map[string]interface{} `json:"control_message"`
+	ControlAckRequest bool `json:"control_ack_request"`
 
-	ControlAckRequest bool                   `json:"control_ack_request"`
-
-	Response          *E2ControlResponse     `json:"response,omitempty"`
-
+	Response *E2ControlResponse `json:"response,omitempty"`
 }
-
-
 
 // E2Node represents an E2 node with enhanced information.
 
 type E2Node struct {
+	NodeID string `json:"node_id"`
 
-	NodeID            string                 `json:"node_id"`
+	GlobalE2NodeID E2NodeID `json:"global_e2_node_id"`
 
-	GlobalE2NodeID    E2NodeID               `json:"global_e2_node_id"`
+	RanFunctions []*E2NodeFunction `json:"ran_functions"`
 
-	RanFunctions      []*E2NodeFunction      `json:"ran_functions"`
+	ConnectionStatus E2ConnectionStatus `json:"connection_status"`
 
-	ConnectionStatus  E2ConnectionStatus     `json:"connection_status"`
+	HealthStatus NodeHealth `json:"health_status"`
 
-	HealthStatus      NodeHealth             `json:"health_status"`
+	SubscriptionCount int `json:"subscription_count"`
 
-	SubscriptionCount int                    `json:"subscription_count"`
+	LastSeen time.Time `json:"last_seen"`
 
-	LastSeen          time.Time              `json:"last_seen"`
-
-	Configuration     map[string]interface{} `json:"configuration,omitempty"`
-
+	Configuration map[string]interface{} `json:"configuration,omitempty"`
 }
-
-
 
 // RanFunction represents a RAN function for registration.
 
 type RanFunction struct {
+	FunctionID int `json:"function_id"`
 
-	FunctionID          int            `json:"function_id"`
+	FunctionDefinition string `json:"function_definition"`
 
-	FunctionDefinition  string         `json:"function_definition"`
+	FunctionRevision int `json:"function_revision"`
 
-	FunctionRevision    int            `json:"function_revision"`
+	FunctionOID string `json:"function_oid"`
 
-	FunctionOID         string         `json:"function_oid"`
+	FunctionDescription string `json:"function_description"`
 
-	FunctionDescription string         `json:"function_description"`
-
-	ServiceModel        E2ServiceModel `json:"service_model"`
-
+	ServiceModel E2ServiceModel `json:"service_model"`
 }
 
-
-
 // Connection pool methods for E2ConnectionPool.
-
-
 
 // getConnection gets a connection from the pool.
 
@@ -165,8 +125,6 @@ func (p *E2ConnectionPool) getConnection(nodeID string) (*PooledConnection, erro
 
 	defer p.mutex.RUnlock()
 
-
-
 	conn, exists := p.connections[nodeID]
 
 	if !exists {
@@ -175,13 +133,9 @@ func (p *E2ConnectionPool) getConnection(nodeID string) (*PooledConnection, erro
 
 	}
 
-
-
 	conn.mutex.Lock()
 
 	defer conn.mutex.Unlock()
-
-
 
 	if conn.inUse {
 
@@ -189,27 +143,19 @@ func (p *E2ConnectionPool) getConnection(nodeID string) (*PooledConnection, erro
 
 	}
 
-
-
 	if !conn.healthy {
 
 		return nil, fmt.Errorf("connection for node %s is unhealthy", nodeID)
 
 	}
 
-
-
 	conn.inUse = true
 
 	conn.lastUsed = time.Now()
 
-
-
 	return conn, nil
 
 }
-
-
 
 // releaseConnection releases a connection back to the pool.
 
@@ -219,8 +165,6 @@ func (p *E2ConnectionPool) releaseConnection(nodeID string) {
 
 	defer p.mutex.RUnlock()
 
-
-
 	conn, exists := p.connections[nodeID]
 
 	if !exists {
@@ -229,21 +173,15 @@ func (p *E2ConnectionPool) releaseConnection(nodeID string) {
 
 	}
 
-
-
 	conn.mutex.Lock()
 
 	defer conn.mutex.Unlock()
-
-
 
 	conn.inUse = false
 
 	conn.lastUsed = time.Now()
 
 }
-
-
 
 // addConnection adds a new connection to the pool.
 
@@ -253,37 +191,28 @@ func (p *E2ConnectionPool) addConnection(nodeID string, adaptor *E2Adaptor) erro
 
 	defer p.mutex.Unlock()
 
-
-
 	if len(p.connections) >= p.maxConnections {
 
 		return fmt.Errorf("connection pool is full")
 
 	}
 
-
-
 	p.connections[nodeID] = &PooledConnection{
 
-		adaptor:   adaptor,
+		adaptor: adaptor,
 
-		lastUsed:  time.Now(),
+		lastUsed: time.Now(),
 
-		inUse:     false,
+		inUse: false,
 
-		healthy:   true,
+		healthy: true,
 
 		failCount: 0,
-
 	}
-
-
 
 	return nil
 
 }
-
-
 
 // removeConnection removes a connection from the pool.
 
@@ -293,13 +222,9 @@ func (p *E2ConnectionPool) removeConnection(nodeID string) {
 
 	defer p.mutex.Unlock()
 
-
-
 	delete(p.connections, nodeID)
 
 }
-
-
 
 // startHealthChecker starts the background health checker for the connection pool.
 
@@ -308,8 +233,6 @@ func (p *E2ConnectionPool) startHealthChecker() {
 	ticker := time.NewTicker(p.healthInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -329,8 +252,6 @@ func (p *E2ConnectionPool) startHealthChecker() {
 
 }
 
-
-
 // checkConnections performs health checks on all connections.
 
 func (p *E2ConnectionPool) checkConnections() {
@@ -347,8 +268,6 @@ func (p *E2ConnectionPool) checkConnections() {
 
 	p.mutex.RUnlock()
 
-
-
 	for nodeID, conn := range connections {
 
 		go p.checkConnection(nodeID, conn)
@@ -356,8 +275,6 @@ func (p *E2ConnectionPool) checkConnections() {
 	}
 
 }
-
-
 
 // checkConnection performs a health check on a single connection.
 
@@ -367,8 +284,6 @@ func (p *E2ConnectionPool) checkConnection(nodeID string, conn *PooledConnection
 
 	defer conn.mutex.Unlock()
 
-
-
 	// Skip if connection is in use.
 
 	if conn.inUse {
@@ -376,8 +291,6 @@ func (p *E2ConnectionPool) checkConnection(nodeID string, conn *PooledConnection
 		return
 
 	}
-
-
 
 	// Check if connection is idle for too long.
 
@@ -390,8 +303,6 @@ func (p *E2ConnectionPool) checkConnection(nodeID string, conn *PooledConnection
 		return
 
 	}
-
-
 
 	// Perform actual health check (simplified for HTTP transport).
 
@@ -441,11 +352,7 @@ func (p *E2ConnectionPool) checkConnection(nodeID string, conn *PooledConnection
 
 }
 
-
-
 // Health monitor methods for E2HealthMonitor.
-
-
 
 // startHealthMonitoring starts the background health monitoring.
 
@@ -454,8 +361,6 @@ func (h *E2HealthMonitor) startHealthMonitoring() {
 	ticker := time.NewTicker(h.checkInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -475,8 +380,6 @@ func (h *E2HealthMonitor) startHealthMonitoring() {
 
 }
 
-
-
 // performHealthChecks performs health checks on all monitored components.
 
 func (h *E2HealthMonitor) performHealthChecks() {
@@ -493,8 +396,6 @@ func (h *E2HealthMonitor) performHealthChecks() {
 
 	h.mutex.RUnlock()
 
-
-
 	for nodeID, health := range nodes {
 
 		go h.checkNodeHealth(nodeID, health)
@@ -503,15 +404,11 @@ func (h *E2HealthMonitor) performHealthChecks() {
 
 }
 
-
-
 // checkNodeHealth performs a health check on a single node.
 
 func (h *E2HealthMonitor) checkNodeHealth(nodeID string, health *NodeHealth) {
 
 	start := time.Now()
-
-
 
 	// Perform health check (simplified).
 
@@ -519,21 +416,15 @@ func (h *E2HealthMonitor) checkNodeHealth(nodeID string, health *NodeHealth) {
 
 	err := h.pingNode(nodeID)
 
-
-
 	health.LastCheck = time.Now()
 
 	health.ResponseTime = time.Since(start)
-
-
 
 	if err != nil {
 
 		health.FailureCount++
 
 		health.LastFailure = err.Error()
-
-
 
 		// Update status based on failure count.
 
@@ -559,8 +450,6 @@ func (h *E2HealthMonitor) checkNodeHealth(nodeID string, health *NodeHealth) {
 
 }
 
-
-
 // pingNode performs a simple ping to check node connectivity.
 
 func (h *E2HealthMonitor) pingNode(nodeID string) error {
@@ -573,8 +462,6 @@ func (h *E2HealthMonitor) pingNode(nodeID string) error {
 
 }
 
-
-
 // updateNodeHealth updates the health status of a node.
 
 func (h *E2HealthMonitor) updateNodeHealth(nodeID, status string) {
@@ -582,8 +469,6 @@ func (h *E2HealthMonitor) updateNodeHealth(nodeID, status string) {
 	h.mutex.Lock()
 
 	defer h.mutex.Unlock()
-
-
 
 	if health, exists := h.nodeHealth[nodeID]; exists {
 
@@ -595,8 +480,6 @@ func (h *E2HealthMonitor) updateNodeHealth(nodeID, status string) {
 
 }
 
-
-
 // getNodeHealth returns the health status of a node.
 
 func (h *E2HealthMonitor) getNodeHealth(nodeID string) (*NodeHealth, bool) {
@@ -604,8 +487,6 @@ func (h *E2HealthMonitor) getNodeHealth(nodeID string) (*NodeHealth, bool) {
 	h.mutex.RLock()
 
 	defer h.mutex.RUnlock()
-
-
 
 	health, exists := h.nodeHealth[nodeID]
 
@@ -615,8 +496,6 @@ func (h *E2HealthMonitor) getNodeHealth(nodeID string) (*NodeHealth, bool) {
 
 	}
 
-
-
 	// Return a copy to avoid race conditions.
 
 	healthCopy := *health
@@ -624,8 +503,6 @@ func (h *E2HealthMonitor) getNodeHealth(nodeID string) (*NodeHealth, bool) {
 	return &healthCopy, true
 
 }
-
-
 
 // addNodeHealth adds health monitoring for a new node.
 
@@ -635,23 +512,18 @@ func (h *E2HealthMonitor) addNodeHealth(nodeID string) {
 
 	defer h.mutex.Unlock()
 
-
-
 	h.nodeHealth[nodeID] = &NodeHealth{
 
-		NodeID:    nodeID,
+		NodeID: nodeID,
 
-		Status:    "UNKNOWN",
+		Status: "UNKNOWN",
 
 		LastCheck: time.Now(),
 
 		Functions: make(map[int]*FunctionHealth),
-
 	}
 
 }
-
-
 
 // removeNodeHealth removes health monitoring for a node.
 
@@ -661,19 +533,13 @@ func (h *E2HealthMonitor) removeNodeHealth(nodeID string) {
 
 	defer h.mutex.Unlock()
 
-
-
 	delete(h.nodeHealth, nodeID)
 
 	delete(h.subscriptionHealth, nodeID)
 
 }
 
-
-
 // Subscription listener implementation.
-
-
 
 // AddSubscriptionListener adds a subscription event listener.
 
@@ -687,8 +553,6 @@ func (n *SubscriptionNotifier) AddSubscriptionListener(listener SubscriptionList
 
 }
 
-
-
 // RemoveSubscriptionListener removes a subscription event listener.
 
 func (n *SubscriptionNotifier) RemoveSubscriptionListener(listener SubscriptionListener) {
@@ -696,8 +560,6 @@ func (n *SubscriptionNotifier) RemoveSubscriptionListener(listener SubscriptionL
 	n.mutex.Lock()
 
 	defer n.mutex.Unlock()
-
-
 
 	for i, l := range n.listeners {
 
@@ -713,8 +575,6 @@ func (n *SubscriptionNotifier) RemoveSubscriptionListener(listener SubscriptionL
 
 }
 
-
-
 // notifyStateChange notifies all listeners of a state change.
 
 func (n *SubscriptionNotifier) notifyStateChange(nodeID, subscriptionID string, oldState, newState SubscriptionState) {
@@ -722,8 +582,6 @@ func (n *SubscriptionNotifier) notifyStateChange(nodeID, subscriptionID string, 
 	n.mutex.RLock()
 
 	defer n.mutex.RUnlock()
-
-
 
 	for _, listener := range n.listeners {
 
@@ -733,8 +591,6 @@ func (n *SubscriptionNotifier) notifyStateChange(nodeID, subscriptionID string, 
 
 }
 
-
-
 // notifyError notifies all listeners of an error.
 
 func (n *SubscriptionNotifier) notifyError(nodeID, subscriptionID string, err error) {
@@ -742,8 +598,6 @@ func (n *SubscriptionNotifier) notifyError(nodeID, subscriptionID string, err er
 	n.mutex.RLock()
 
 	defer n.mutex.RUnlock()
-
-
 
 	for _, listener := range n.listeners {
 
@@ -753,8 +607,6 @@ func (n *SubscriptionNotifier) notifyError(nodeID, subscriptionID string, err er
 
 }
 
-
-
 // notifyMessage notifies all listeners of a message.
 
 func (n *SubscriptionNotifier) notifyMessage(nodeID, subscriptionID string, indication *E2Indication) {
@@ -763,8 +615,6 @@ func (n *SubscriptionNotifier) notifyMessage(nodeID, subscriptionID string, indi
 
 	defer n.mutex.RUnlock()
 
-
-
 	for _, listener := range n.listeners {
 
 		go listener.OnSubscriptionMessage(nodeID, subscriptionID, indication)
@@ -772,4 +622,3 @@ func (n *SubscriptionNotifier) notifyMessage(nodeID, subscriptionID string, indi
 	}
 
 }
-

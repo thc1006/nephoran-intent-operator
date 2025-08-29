@@ -28,88 +28,56 @@ limitations under the License.
 
 */
 
-
-
-
 package nephio
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
+	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 	"go.opentelemetry.io/otel"
-
 	"go.opentelemetry.io/otel/attribute"
-
 	"go.opentelemetry.io/otel/trace"
 
-
-
-	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
-
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // NephioWorkflowOrchestrator provides native Nephio R5 workflow orchestration.
 
 // Implements standard Nephio patterns for GitOps package management.
 
 type NephioWorkflowOrchestrator struct {
+	client client.Client
 
-	client           client.Client
+	porchClient porch.PorchClient
 
-	porchClient      porch.PorchClient
-
-	configSync       *ConfigSyncClient
+	configSync *ConfigSyncClient
 
 	workloadRegistry *WorkloadClusterRegistry
 
-	packageCatalog   *NephioPackageCatalog
+	packageCatalog *NephioPackageCatalog
 
-	workflowEngine   *NephioWorkflowEngine
+	workflowEngine *NephioWorkflowEngine
 
-	metrics          *WorkflowMetrics
+	metrics *WorkflowMetrics
 
-	tracer           trace.Tracer
+	tracer trace.Tracer
 
-	config           *WorkflowOrchestratorConfig
+	config *WorkflowOrchestratorConfig
 
-	executionCache   sync.Map
+	executionCache sync.Map
 
-	mu               sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // WorkflowOrchestratorConfig defines configuration for workflow orchestrator.
 
@@ -117,123 +85,100 @@ type WorkflowOrchestratorConfig struct {
 
 	// Repository settings.
 
-	UpstreamRepository   string `json:"upstreamRepository" yaml:"upstreamRepository"`
+	UpstreamRepository string `json:"upstreamRepository" yaml:"upstreamRepository"`
 
 	DownstreamRepository string `json:"downstreamRepository" yaml:"downstreamRepository"`
 
-	CatalogRepository    string `json:"catalogRepository" yaml:"catalogRepository"`
+	CatalogRepository string `json:"catalogRepository" yaml:"catalogRepository"`
 
-	DefaultNamespace     string `json:"defaultNamespace" yaml:"defaultNamespace"`
-
-
+	DefaultNamespace string `json:"defaultNamespace" yaml:"defaultNamespace"`
 
 	// Workflow execution settings.
 
-	MaxConcurrentWorkflows int           `json:"maxConcurrentWorkflows" yaml:"maxConcurrentWorkflows"`
+	MaxConcurrentWorkflows int `json:"maxConcurrentWorkflows" yaml:"maxConcurrentWorkflows"`
 
-	WorkflowTimeout        time.Duration `json:"workflowTimeout" yaml:"workflowTimeout"`
+	WorkflowTimeout time.Duration `json:"workflowTimeout" yaml:"workflowTimeout"`
 
-	StageTimeout           time.Duration `json:"stageTimeout" yaml:"stageTimeout"`
-
-
+	StageTimeout time.Duration `json:"stageTimeout" yaml:"stageTimeout"`
 
 	// GitOps settings.
 
-	GitBranch         string `json:"gitBranch" yaml:"gitBranch"`
+	GitBranch string `json:"gitBranch" yaml:"gitBranch"`
 
-	AutoApproval      bool   `json:"autoApproval" yaml:"autoApproval"`
+	AutoApproval bool `json:"autoApproval" yaml:"autoApproval"`
 
-	RequiredApprovers int    `json:"requiredApprovers" yaml:"requiredApprovers"`
-
-
+	RequiredApprovers int `json:"requiredApprovers" yaml:"requiredApprovers"`
 
 	// Config Sync settings.
 
-	ConfigSyncEnabled bool          `json:"configSyncEnabled" yaml:"configSyncEnabled"`
+	ConfigSyncEnabled bool `json:"configSyncEnabled" yaml:"configSyncEnabled"`
 
-	SyncTimeout       time.Duration `json:"syncTimeout" yaml:"syncTimeout"`
+	SyncTimeout time.Duration `json:"syncTimeout" yaml:"syncTimeout"`
 
-	RollbackOnFailure bool          `json:"rollbackOnFailure" yaml:"rollbackOnFailure"`
-
-
+	RollbackOnFailure bool `json:"rollbackOnFailure" yaml:"rollbackOnFailure"`
 
 	// Cluster management settings.
 
-	AutoClusterRegistration bool          `json:"autoClusterRegistration" yaml:"autoClusterRegistration"`
+	AutoClusterRegistration bool `json:"autoClusterRegistration" yaml:"autoClusterRegistration"`
 
-	HealthCheckInterval     time.Duration `json:"healthCheckInterval" yaml:"healthCheckInterval"`
-
-
+	HealthCheckInterval time.Duration `json:"healthCheckInterval" yaml:"healthCheckInterval"`
 
 	// Monitoring settings.
 
 	EnableMetrics bool `json:"enableMetrics" yaml:"enableMetrics"`
 
 	EnableTracing bool `json:"enableTracing" yaml:"enableTracing"`
-
 }
-
-
 
 // WorkflowMetrics provides comprehensive workflow metrics.
 
 type WorkflowMetrics struct {
+	WorkflowExecutions *prometheus.CounterVec
 
-	WorkflowExecutions   *prometheus.CounterVec
+	WorkflowDuration *prometheus.HistogramVec
 
-	WorkflowDuration     *prometheus.HistogramVec
+	WorkflowPhases *prometheus.GaugeVec
 
-	WorkflowPhases       *prometheus.GaugeVec
+	PackageVariants *prometheus.CounterVec
 
-	PackageVariants      *prometheus.CounterVec
-
-	ClusterDeployments   *prometheus.CounterVec
+	ClusterDeployments *prometheus.CounterVec
 
 	ConfigSyncOperations *prometheus.CounterVec
 
-	WorkflowErrors       *prometheus.CounterVec
-
+	WorkflowErrors *prometheus.CounterVec
 }
-
-
 
 // WorkflowExecution represents a Nephio workflow execution.
 
 type WorkflowExecution struct {
+	ID string `json:"id"`
 
-	ID               string                    `json:"id"`
+	Intent *v1.NetworkIntent `json:"intent"`
 
-	Intent           *v1.NetworkIntent         `json:"intent"`
+	WorkflowDef *WorkflowDefinition `json:"workflowDef"`
 
-	WorkflowDef      *WorkflowDefinition       `json:"workflowDef"`
+	Status WorkflowExecutionStatus `json:"status"`
 
-	Status           WorkflowExecutionStatus   `json:"status"`
+	Phases []WorkflowPhaseExecution `json:"phases"`
 
-	Phases           []WorkflowPhaseExecution  `json:"phases"`
+	BlueprintPackage *BlueprintPackage `json:"blueprintPackage,omitempty"`
 
-	BlueprintPackage *BlueprintPackage         `json:"blueprintPackage,omitempty"`
+	PackageVariants []*PackageVariant `json:"packageVariants,omitempty"`
 
-	PackageVariants  []*PackageVariant         `json:"packageVariants,omitempty"`
+	Deployments []*WorkloadDeployment `json:"deployments,omitempty"`
 
-	Deployments      []*WorkloadDeployment     `json:"deployments,omitempty"`
+	Results *WorkflowExecutionResults `json:"results,omitempty"`
 
-	Results          *WorkflowExecutionResults `json:"results,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
-	CreatedAt        time.Time                 `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
-	UpdatedAt        time.Time                 `json:"updatedAt"`
-
-	CompletedAt      *time.Time                `json:"completedAt,omitempty"`
-
+	CompletedAt *time.Time `json:"completedAt,omitempty"`
 }
-
-
 
 // WorkflowExecutionStatus represents the status of workflow execution.
 
 type WorkflowExecutionStatus string
-
-
 
 const (
 
@@ -260,158 +205,129 @@ const (
 	// WorkflowExecutionStatusCancelled holds workflowexecutionstatuscancelled value.
 
 	WorkflowExecutionStatusCancelled WorkflowExecutionStatus = "Cancelled"
-
 )
-
-
 
 // WorkflowPhaseExecution represents execution of a workflow phase.
 
 type WorkflowPhaseExecution struct {
+	Name string `json:"name"`
 
-	Name        string                  `json:"name"`
+	Status WorkflowExecutionStatus `json:"status"`
 
-	Status      WorkflowExecutionStatus `json:"status"`
+	StartedAt *time.Time `json:"startedAt,omitempty"`
 
-	StartedAt   *time.Time              `json:"startedAt,omitempty"`
+	CompletedAt *time.Time `json:"completedAt,omitempty"`
 
-	CompletedAt *time.Time              `json:"completedAt,omitempty"`
+	Duration time.Duration `json:"duration"`
 
-	Duration    time.Duration           `json:"duration"`
+	Results map[string]interface{} `json:"results,omitempty"`
 
-	Results     map[string]interface{}  `json:"results,omitempty"`
+	Errors []string `json:"errors,omitempty"`
 
-	Errors      []string                `json:"errors,omitempty"`
-
-	Conditions  []WorkflowCondition     `json:"conditions,omitempty"`
-
+	Conditions []WorkflowCondition `json:"conditions,omitempty"`
 }
-
-
 
 // WorkflowExecutionResults contains comprehensive workflow results.
 
 type WorkflowExecutionResults struct {
+	PackageRevisions []*porch.PackageRevision `json:"packageRevisions"`
 
-	PackageRevisions  []*porch.PackageRevision  `json:"packageRevisions"`
-
-	DeploymentResults []*DeploymentResult       `json:"deploymentResults"`
+	DeploymentResults []*DeploymentResult `json:"deploymentResults"`
 
 	ValidationResults []*porch.ValidationResult `json:"validationResults"`
 
-	ConfigSyncResults []*ConfigSyncResult       `json:"configSyncResults"`
+	ConfigSyncResults []*ConfigSyncResult `json:"configSyncResults"`
 
-	ClusterHealth     map[string]*ClusterHealth `json:"clusterHealth"`
+	ClusterHealth map[string]*ClusterHealth `json:"clusterHealth"`
 
-	ResourceUsage     *ResourceUsageSummary     `json:"resourceUsage"`
+	ResourceUsage *ResourceUsageSummary `json:"resourceUsage"`
 
-	ComplianceResults *ComplianceResults        `json:"complianceResults"`
-
+	ComplianceResults *ComplianceResults `json:"complianceResults"`
 }
-
-
 
 // ConfigSyncResult represents the result of a ConfigSync operation.
 
 type ConfigSyncResult struct {
+	ClusterName string `json:"clusterName"`
 
-	ClusterName     string        `json:"clusterName"`
+	ResourcesSynced int `json:"resourcesSynced"`
 
-	ResourcesSynced int           `json:"resourcesSynced"`
+	ReconcileTime time.Duration `json:"reconcileTime"`
 
-	ReconcileTime   time.Duration `json:"reconcileTime"`
+	ApplyTime time.Duration `json:"applyTime"`
 
-	ApplyTime       time.Duration `json:"applyTime"`
+	Status string `json:"status"`
 
-	Status          string        `json:"status"`
+	Error string `json:"error,omitempty"`
 
-	Error           string        `json:"error,omitempty"`
-
-	Timestamp       time.Time     `json:"timestamp"`
-
+	Timestamp time.Time `json:"timestamp"`
 }
-
-
 
 // WorkloadClusterRegistry manages workload cluster lifecycle.
 
 type WorkloadClusterRegistry struct {
+	client client.Client
 
-	client        client.Client
-
-	clusters      sync.Map
+	clusters sync.Map
 
 	healthMonitor *ClusterHealthMonitor
 
 	registrations sync.Map
 
-	metrics       *ClusterRegistryMetrics
+	metrics *ClusterRegistryMetrics
 
-	tracer        trace.Tracer
+	tracer trace.Tracer
 
-	config        *WorkloadClusterConfig
-
+	config *WorkloadClusterConfig
 }
-
-
 
 // WorkloadCluster represents a registered workload cluster.
 
 type WorkloadCluster struct {
+	Name string `json:"name"`
 
-	Name            string                `json:"name"`
+	Endpoint string `json:"endpoint"`
 
-	Endpoint        string                `json:"endpoint"`
+	Region string `json:"region"`
 
-	Region          string                `json:"region"`
+	Zone string `json:"zone"`
 
-	Zone            string                `json:"zone"`
+	Capabilities []ClusterCapability `json:"capabilities"`
 
-	Capabilities    []ClusterCapability   `json:"capabilities"`
+	Status WorkloadClusterStatus `json:"status"`
 
-	Status          WorkloadClusterStatus `json:"status"`
+	Health *ClusterHealth `json:"health"`
 
-	Health          *ClusterHealth        `json:"health"`
+	ConfigSync *ClusterConfigSync `json:"configSync"`
 
-	ConfigSync      *ClusterConfigSync    `json:"configSync"`
+	Resources *ClusterResources `json:"resources"`
 
-	Resources       *ClusterResources     `json:"resources"`
+	Labels map[string]string `json:"labels"`
 
-	Labels          map[string]string     `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
 
-	Annotations     map[string]string     `json:"annotations"`
+	CreatedAt time.Time `json:"createdAt"`
 
-	CreatedAt       time.Time             `json:"createdAt"`
-
-	LastHealthCheck *time.Time            `json:"lastHealthCheck,omitempty"`
-
+	LastHealthCheck *time.Time `json:"lastHealthCheck,omitempty"`
 }
-
-
 
 // ClusterCapability defines cluster capabilities.
 
 type ClusterCapability struct {
+	Name string `json:"name"`
 
-	Name    string                 `json:"name"`
+	Type string `json:"type"`
 
-	Type    string                 `json:"type"`
+	Version string `json:"version"`
 
-	Version string                 `json:"version"`
+	Config map[string]interface{} `json:"config,omitempty"`
 
-	Config  map[string]interface{} `json:"config,omitempty"`
-
-	Status  string                 `json:"status"`
-
+	Status string `json:"status"`
 }
-
-
 
 // WorkloadClusterStatus represents cluster status.
 
 type WorkloadClusterStatus string
-
-
 
 const (
 
@@ -438,130 +354,109 @@ const (
 	// WorkloadClusterStatusTerminating holds workloadclusterstatusterminating value.
 
 	WorkloadClusterStatusTerminating WorkloadClusterStatus = "Terminating"
-
 )
-
-
 
 // NephioPackageCatalog manages blueprint catalog and package variants.
 
 type NephioPackageCatalog struct {
-
-	client       client.Client
+	client client.Client
 
 	repositories sync.Map
 
-	blueprints   sync.Map
+	blueprints sync.Map
 
-	variants     sync.Map
+	variants sync.Map
 
-	templates    sync.Map
+	templates sync.Map
 
-	metrics      *PackageCatalogMetrics
+	metrics *PackageCatalogMetrics
 
-	tracer       trace.Tracer
+	tracer trace.Tracer
 
-	config       *PackageCatalogConfig
-
+	config *PackageCatalogConfig
 }
-
-
 
 // BlueprintPackage represents a blueprint package in the catalog.
 
 type BlueprintPackage struct {
+	Name string `json:"name"`
 
-	Name           string                `json:"name"`
+	Repository string `json:"repository"`
 
-	Repository     string                `json:"repository"`
+	Version string `json:"version"`
 
-	Version        string                `json:"version"`
+	Description string `json:"description"`
 
-	Description    string                `json:"description"`
+	Category string `json:"category"`
 
-	Category       string                `json:"category"`
+	IntentTypes []v1.IntentType `json:"intentTypes"`
 
-	IntentTypes    []v1.IntentType       `json:"intentTypes"`
+	Dependencies []PackageDependency `json:"dependencies"`
 
-	Dependencies   []PackageDependency   `json:"dependencies"`
+	Parameters []ParameterDefinition `json:"parameters"`
 
-	Parameters     []ParameterDefinition `json:"parameters"`
+	Validations []ValidationRule `json:"validations"`
 
-	Validations    []ValidationRule      `json:"validations"`
+	Resources []ResourceTemplate `json:"resources"`
 
-	Resources      []ResourceTemplate    `json:"resources"`
+	Functions []FunctionDefinition `json:"functions"`
 
-	Functions      []FunctionDefinition  `json:"functions"`
+	Specialization *SpecializationSpec `json:"specialization,omitempty"`
 
-	Specialization *SpecializationSpec   `json:"specialization,omitempty"`
+	Metadata map[string]string `json:"metadata"`
 
-	Metadata       map[string]string     `json:"metadata"`
+	CreatedAt time.Time `json:"createdAt"`
 
-	CreatedAt      time.Time             `json:"createdAt"`
-
-	UpdatedAt      time.Time             `json:"updatedAt"`
-
+	UpdatedAt time.Time `json:"updatedAt"`
 }
-
-
 
 // PackageVariant represents a specialized package for a target cluster.
 
 type PackageVariant struct {
+	Name string `json:"name"`
 
-	Name              string                    `json:"name"`
+	Blueprint *BlueprintPackage `json:"blueprint"`
 
-	Blueprint         *BlueprintPackage         `json:"blueprint"`
+	TargetCluster *WorkloadCluster `json:"targetCluster"`
 
-	TargetCluster     *WorkloadCluster          `json:"targetCluster"`
+	Specialization *SpecializationRequest `json:"specialization"`
 
-	Specialization    *SpecializationRequest    `json:"specialization"`
+	Status PackageVariantStatus `json:"status"`
 
-	Status            PackageVariantStatus      `json:"status"`
+	PackageRevision *porch.PackageRevision `json:"packageRevision"`
 
-	PackageRevision   *porch.PackageRevision    `json:"packageRevision"`
-
-	DeploymentStatus  *porch.DeploymentStatus   `json:"deploymentStatus,omitempty"`
+	DeploymentStatus *porch.DeploymentStatus `json:"deploymentStatus,omitempty"`
 
 	ValidationResults []*porch.ValidationResult `json:"validationResults,omitempty"`
 
-	Errors            []string                  `json:"errors,omitempty"`
+	Errors []string `json:"errors,omitempty"`
 
-	CreatedAt         time.Time                 `json:"createdAt"`
+	CreatedAt time.Time `json:"createdAt"`
 
-	UpdatedAt         time.Time                 `json:"updatedAt"`
-
+	UpdatedAt time.Time `json:"updatedAt"`
 }
-
-
 
 // SpecializationRequest defines how to specialize a blueprint.
 
 type SpecializationRequest struct {
+	ClusterContext *ClusterContext `json:"clusterContext"`
 
-	ClusterContext    *ClusterContext        `json:"clusterContext"`
-
-	Parameters        map[string]interface{} `json:"parameters"`
+	Parameters map[string]interface{} `json:"parameters"`
 
 	ResourceOverrides map[string]interface{} `json:"resourceOverrides,omitempty"`
 
-	NetworkSlice      *NetworkSliceSpec      `json:"networkSlice,omitempty"`
+	NetworkSlice *NetworkSliceSpec `json:"networkSlice,omitempty"`
 
-	ORANCompliance    *ORANComplianceSpec    `json:"oranCompliance,omitempty"`
+	ORANCompliance *ORANComplianceSpec `json:"oranCompliance,omitempty"`
 
-	SecurityPolicy    *SecurityPolicySpec    `json:"securityPolicy,omitempty"`
+	SecurityPolicy *SecurityPolicySpec `json:"securityPolicy,omitempty"`
 
-	PlacementPolicy   *PlacementPolicySpec   `json:"placementPolicy,omitempty"`
-
+	PlacementPolicy *PlacementPolicySpec `json:"placementPolicy,omitempty"`
 }
-
-
 
 // PackageVariantStatus represents variant status.
 
 type PackageVariantStatus string
-
-
 
 const (
 
@@ -588,94 +483,77 @@ const (
 	// PackageVariantStatusTerminating holds packagevariantstatusterminating value.
 
 	PackageVariantStatusTerminating PackageVariantStatus = "Terminating"
-
 )
-
-
 
 // NephioWorkflowEngine manages workflow definitions and execution.
 
 type NephioWorkflowEngine struct {
-
 	workflows sync.Map
 
-	executor  *WorkflowExecutor
+	executor *WorkflowExecutor
 
 	validator *WorkflowValidator
 
-	metrics   *WorkflowEngineMetrics
+	metrics *WorkflowEngineMetrics
 
-	tracer    trace.Tracer
+	tracer trace.Tracer
 
-	config    *WorkflowEngineConfig
-
+	config *WorkflowEngineConfig
 }
-
-
 
 // WorkflowDefinition defines a Nephio workflow.
 
 type WorkflowDefinition struct {
+	Name string `json:"name"`
 
-	Name          string                `json:"name"`
+	Description string `json:"description"`
 
-	Description   string                `json:"description"`
+	IntentTypes []v1.IntentType `json:"intentTypes"`
 
-	IntentTypes   []v1.IntentType       `json:"intentTypes"`
+	Phases []WorkflowPhase `json:"phases"`
 
-	Phases        []WorkflowPhase       `json:"phases"`
+	Conditions []WorkflowCondition `json:"conditions"`
 
-	Conditions    []WorkflowCondition   `json:"conditions"`
+	Rollback *RollbackStrategy `json:"rollback,omitempty"`
 
-	Rollback      *RollbackStrategy     `json:"rollback,omitempty"`
-
-	Approvals     *ApprovalStrategy     `json:"approvals,omitempty"`
+	Approvals *ApprovalStrategy `json:"approvals,omitempty"`
 
 	Notifications *NotificationStrategy `json:"notifications,omitempty"`
 
-	Timeouts      *TimeoutStrategy      `json:"timeouts,omitempty"`
+	Timeouts *TimeoutStrategy `json:"timeouts,omitempty"`
 
-	Metadata      map[string]string     `json:"metadata"`
+	Metadata map[string]string `json:"metadata"`
 
-	CreatedAt     time.Time             `json:"createdAt"`
+	CreatedAt time.Time `json:"createdAt"`
 
-	UpdatedAt     time.Time             `json:"updatedAt"`
-
+	UpdatedAt time.Time `json:"updatedAt"`
 }
-
-
 
 // WorkflowPhase represents a phase in the workflow.
 
 type WorkflowPhase struct {
+	Name string `json:"name"`
 
-	Name            string              `json:"name"`
+	Description string `json:"description"`
 
-	Description     string              `json:"description"`
+	Type WorkflowPhaseType `json:"type"`
 
-	Type            WorkflowPhaseType   `json:"type"`
+	Dependencies []string `json:"dependencies"`
 
-	Dependencies    []string            `json:"dependencies"`
+	Conditions []WorkflowCondition `json:"conditions"`
 
-	Conditions      []WorkflowCondition `json:"conditions"`
+	Actions []WorkflowAction `json:"actions"`
 
-	Actions         []WorkflowAction    `json:"actions"`
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout         time.Duration       `json:"timeout"`
+	RetryPolicy *RetryPolicy `json:"retryPolicy,omitempty"`
 
-	RetryPolicy     *RetryPolicy        `json:"retryPolicy,omitempty"`
-
-	ContinueOnError bool                `json:"continueOnError"`
-
+	ContinueOnError bool `json:"continueOnError"`
 }
-
-
 
 // WorkflowPhaseType defines the type of workflow phase.
 
 type WorkflowPhaseType string
-
-
 
 const (
 
@@ -710,36 +588,27 @@ const (
 	// WorkflowPhaseTypeRollback holds workflowphasetyperollback value.
 
 	WorkflowPhaseTypeRollback WorkflowPhaseType = "Rollback"
-
 )
-
-
 
 // WorkflowAction defines an action to execute in a phase.
 
 type WorkflowAction struct {
+	Name string `json:"name"`
 
-	Name        string                 `json:"name"`
+	Type WorkflowActionType `json:"type"`
 
-	Type        WorkflowActionType     `json:"type"`
+	Config map[string]interface{} `json:"config"`
 
-	Config      map[string]interface{} `json:"config"`
+	Required bool `json:"required"`
 
-	Required    bool                   `json:"required"`
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout     time.Duration          `json:"timeout"`
-
-	RetryPolicy *RetryPolicy           `json:"retryPolicy,omitempty"`
-
+	RetryPolicy *RetryPolicy `json:"retryPolicy,omitempty"`
 }
-
-
 
 // WorkflowActionType defines the type of workflow action.
 
 type WorkflowActionType string
-
-
 
 const (
 
@@ -774,34 +643,25 @@ const (
 	// WorkflowActionTypeNotifyUsers holds workflowactiontypenotifyusers value.
 
 	WorkflowActionTypeNotifyUsers WorkflowActionType = "NotifyUsers"
-
 )
-
-
 
 // WorkflowCondition defines a condition for workflow execution.
 
 type WorkflowCondition struct {
+	Name string `json:"name"`
 
-	Name       string                 `json:"name"`
+	Type WorkflowConditionType `json:"type"`
 
-	Type       WorkflowConditionType  `json:"type"`
+	Expression string `json:"expression"`
 
-	Expression string                 `json:"expression"`
+	Config map[string]interface{} `json:"config,omitempty"`
 
-	Config     map[string]interface{} `json:"config,omitempty"`
-
-	Required   bool                   `json:"required"`
-
+	Required bool `json:"required"`
 }
-
-
 
 // WorkflowConditionType defines the type of workflow condition.
 
 type WorkflowConditionType string
-
-
 
 const (
 
@@ -824,68 +684,58 @@ const (
 	// WorkflowConditionTypeHealthCheckPassed holds workflowconditiontypehealthcheckpassed value.
 
 	WorkflowConditionTypeHealthCheckPassed WorkflowConditionType = "HealthCheckPassed"
-
 )
-
-
 
 // RetryPolicy defines retry behavior.
 
 type RetryPolicy struct {
+	MaxAttempts int `json:"maxAttempts"`
 
-	MaxAttempts int           `json:"maxAttempts"`
+	Delay time.Duration `json:"delay"`
 
-	Delay       time.Duration `json:"delay"`
+	BackoffRate float64 `json:"backoffRate"`
 
-	BackoffRate float64       `json:"backoffRate"`
-
-	MaxDelay    time.Duration `json:"maxDelay"`
-
+	MaxDelay time.Duration `json:"maxDelay"`
 }
-
-
 
 // Default configuration.
 
 var DefaultWorkflowOrchestratorConfig = &WorkflowOrchestratorConfig{
 
-	UpstreamRepository:      "nephoran-blueprints",
+	UpstreamRepository: "nephoran-blueprints",
 
-	DownstreamRepository:    "nephoran-deployments",
+	DownstreamRepository: "nephoran-deployments",
 
-	CatalogRepository:       "nephoran-catalog",
+	CatalogRepository: "nephoran-catalog",
 
-	DefaultNamespace:        "nephoran-system",
+	DefaultNamespace: "nephoran-system",
 
-	MaxConcurrentWorkflows:  10,
+	MaxConcurrentWorkflows: 10,
 
-	WorkflowTimeout:         30 * time.Minute,
+	WorkflowTimeout: 30 * time.Minute,
 
-	StageTimeout:            10 * time.Minute,
+	StageTimeout: 10 * time.Minute,
 
-	GitBranch:               "main",
+	GitBranch: "main",
 
-	AutoApproval:            false,
+	AutoApproval: false,
 
-	RequiredApprovers:       1,
+	RequiredApprovers: 1,
 
-	ConfigSyncEnabled:       true,
+	ConfigSyncEnabled: true,
 
-	SyncTimeout:             5 * time.Minute,
+	SyncTimeout: 5 * time.Minute,
 
-	RollbackOnFailure:       true,
+	RollbackOnFailure: true,
 
 	AutoClusterRegistration: true,
 
-	HealthCheckInterval:     1 * time.Minute,
+	HealthCheckInterval: 1 * time.Minute,
 
-	EnableMetrics:           true,
+	EnableMetrics: true,
 
-	EnableTracing:           true,
-
+	EnableTracing: true,
 }
-
-
 
 // NewNephioWorkflowOrchestrator creates a new Nephio workflow orchestrator.
 
@@ -905,8 +755,6 @@ func NewNephioWorkflowOrchestrator(
 
 	}
 
-
-
 	// Initialize metrics.
 
 	metrics := &WorkflowMetrics{
@@ -918,27 +766,23 @@ func NewNephioWorkflowOrchestrator(
 				Name: "nephio_workflow_executions_total",
 
 				Help: "Total number of Nephio workflow executions",
-
 			},
 
 			[]string{"workflow", "intent_type", "status"},
-
 		),
 
 		WorkflowDuration: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "nephio_workflow_duration_seconds",
+				Name: "nephio_workflow_duration_seconds",
 
-				Help:    "Duration of Nephio workflow executions",
+				Help: "Duration of Nephio workflow executions",
 
 				Buckets: prometheus.ExponentialBuckets(1, 2, 10),
-
 			},
 
 			[]string{"workflow", "phase"},
-
 		),
 
 		WorkflowPhases: promauto.NewGaugeVec(
@@ -948,11 +792,9 @@ func NewNephioWorkflowOrchestrator(
 				Name: "nephio_workflow_phases",
 
 				Help: "Current workflow phases in progress",
-
 			},
 
 			[]string{"workflow", "phase", "status"},
-
 		),
 
 		PackageVariants: promauto.NewCounterVec(
@@ -962,11 +804,9 @@ func NewNephioWorkflowOrchestrator(
 				Name: "nephio_package_variants_total",
 
 				Help: "Total number of package variants created",
-
 			},
 
 			[]string{"blueprint", "cluster", "status"},
-
 		),
 
 		ClusterDeployments: promauto.NewCounterVec(
@@ -976,11 +816,9 @@ func NewNephioWorkflowOrchestrator(
 				Name: "nephio_cluster_deployments_total",
 
 				Help: "Total number of cluster deployments",
-
 			},
 
 			[]string{"cluster", "package", "status"},
-
 		),
 
 		ConfigSyncOperations: promauto.NewCounterVec(
@@ -990,11 +828,9 @@ func NewNephioWorkflowOrchestrator(
 				Name: "nephio_configsync_operations_total",
 
 				Help: "Total number of Config Sync operations",
-
 			},
 
 			[]string{"operation", "cluster", "status"},
-
 		),
 
 		WorkflowErrors: promauto.NewCounterVec(
@@ -1004,16 +840,11 @@ func NewNephioWorkflowOrchestrator(
 				Name: "nephio_workflow_errors_total",
 
 				Help: "Total number of workflow errors",
-
 			},
 
 			[]string{"workflow", "phase", "error_type"},
-
 		),
-
 	}
-
-
 
 	// Initialize Config Sync client.
 
@@ -1022,10 +853,7 @@ func NewNephioWorkflowOrchestrator(
 		client: client,
 
 		tracer: otel.Tracer("nephio-configsync"),
-
 	}
-
-
 
 	// Initialize workload cluster registry.
 
@@ -1035,17 +863,13 @@ func NewNephioWorkflowOrchestrator(
 
 		config: &WorkloadClusterConfig{
 
-			HealthCheckInterval:     config.HealthCheckInterval,
+			HealthCheckInterval: config.HealthCheckInterval,
 
 			AutoClusterRegistration: config.AutoClusterRegistration,
-
 		},
 
 		tracer: otel.Tracer("nephio-workload-registry"),
-
 	}
-
-
 
 	// Initialize package catalog.
 
@@ -1055,19 +879,15 @@ func NewNephioWorkflowOrchestrator(
 
 		config: &PackageCatalogConfig{
 
-			CatalogRepository:  config.CatalogRepository,
+			CatalogRepository: config.CatalogRepository,
 
 			BlueprintDirectory: "blueprints",
 
-			VariantDirectory:   "variants",
-
+			VariantDirectory: "variants",
 		},
 
 		tracer: otel.Tracer("nephio-package-catalog"),
-
 	}
-
-
 
 	// Initialize workflow engine.
 
@@ -1077,41 +897,34 @@ func NewNephioWorkflowOrchestrator(
 
 			MaxConcurrentWorkflows: config.MaxConcurrentWorkflows,
 
-			DefaultTimeout:         config.WorkflowTimeout,
+			DefaultTimeout: config.WorkflowTimeout,
 
-			StageTimeout:           config.StageTimeout,
-
+			StageTimeout: config.StageTimeout,
 		},
 
 		tracer: otel.Tracer("nephio-workflow-engine"),
-
 	}
-
-
 
 	nwo := &NephioWorkflowOrchestrator{
 
-		client:           client,
+		client: client,
 
-		porchClient:      porchClient,
+		porchClient: porchClient,
 
-		configSync:       configSync,
+		configSync: configSync,
 
 		workloadRegistry: workloadRegistry,
 
-		packageCatalog:   packageCatalog,
+		packageCatalog: packageCatalog,
 
-		workflowEngine:   workflowEngine,
+		workflowEngine: workflowEngine,
 
-		metrics:          metrics,
+		metrics: metrics,
 
-		tracer:           otel.Tracer("nephio-workflow-orchestrator"),
+		tracer: otel.Tracer("nephio-workflow-orchestrator"),
 
-		config:           config,
-
+		config: config,
 	}
-
-
 
 	// Register standard Nephio workflows.
 
@@ -1121,13 +934,9 @@ func NewNephioWorkflowOrchestrator(
 
 	}
 
-
-
 	return nwo, nil
 
 }
-
-
 
 // ExecuteNephioWorkflow executes a complete Nephio workflow for a NetworkIntent.
 
@@ -1137,8 +946,6 @@ func (nwo *NephioWorkflowOrchestrator) ExecuteNephioWorkflow(ctx context.Context
 
 	defer span.End()
 
-
-
 	logger := log.FromContext(ctx).WithName("nephio-workflow").WithValues(
 
 		"intent", intent.Name,
@@ -1146,10 +953,7 @@ func (nwo *NephioWorkflowOrchestrator) ExecuteNephioWorkflow(ctx context.Context
 		"namespace", intent.Namespace,
 
 		"type", string(intent.Spec.IntentType),
-
 	)
-
-
 
 	span.SetAttributes(
 
@@ -1158,14 +962,9 @@ func (nwo *NephioWorkflowOrchestrator) ExecuteNephioWorkflow(ctx context.Context
 		attribute.String("intent.namespace", intent.Namespace),
 
 		attribute.String("intent.type", string(intent.Spec.IntentType)),
-
 	)
 
-
-
 	startTime := time.Now()
-
-
 
 	// Step 1: Select appropriate workflow.
 
@@ -1179,29 +978,24 @@ func (nwo *NephioWorkflowOrchestrator) ExecuteNephioWorkflow(ctx context.Context
 
 	}
 
-
-
 	// Step 2: Create workflow execution.
 
 	execution := &WorkflowExecution{
 
-		ID:          generateExecutionID(),
+		ID: generateExecutionID(),
 
-		Intent:      intent,
+		Intent: intent,
 
 		WorkflowDef: workflow,
 
-		Status:      WorkflowExecutionStatusPending,
+		Status: WorkflowExecutionStatusPending,
 
-		Phases:      make([]WorkflowPhaseExecution, len(workflow.Phases)),
+		Phases: make([]WorkflowPhaseExecution, len(workflow.Phases)),
 
-		CreatedAt:   time.Now(),
+		CreatedAt: time.Now(),
 
-		UpdatedAt:   time.Now(),
-
+		UpdatedAt: time.Now(),
 	}
-
-
 
 	// Initialize phase executions.
 
@@ -1209,25 +1003,18 @@ func (nwo *NephioWorkflowOrchestrator) ExecuteNephioWorkflow(ctx context.Context
 
 		execution.Phases[i] = WorkflowPhaseExecution{
 
-			Name:   phase.Name,
+			Name: phase.Name,
 
 			Status: WorkflowExecutionStatusPending,
-
 		}
 
 	}
-
-
 
 	// Store in cache.
 
 	nwo.executionCache.Store(execution.ID, execution)
 
-
-
 	logger.Info("Created workflow execution", "workflowId", execution.ID, "workflow", workflow.Name)
-
-
 
 	// Step 3: Execute workflow asynchronously.
 
@@ -1240,10 +1027,7 @@ func (nwo *NephioWorkflowOrchestrator) ExecuteNephioWorkflow(ctx context.Context
 			nwo.metrics.WorkflowDuration.WithLabelValues(
 
 				workflow.Name, "total",
-
 			).Observe(duration.Seconds())
-
-
 
 			nwo.metrics.WorkflowExecutions.WithLabelValues(
 
@@ -1252,12 +1036,9 @@ func (nwo *NephioWorkflowOrchestrator) ExecuteNephioWorkflow(ctx context.Context
 				string(intent.Spec.IntentType),
 
 				string(execution.Status),
-
 			).Inc()
 
 		}()
-
-
 
 		if err := nwo.executeWorkflowPhases(ctx, execution); err != nil {
 
@@ -1268,12 +1049,9 @@ func (nwo *NephioWorkflowOrchestrator) ExecuteNephioWorkflow(ctx context.Context
 			nwo.metrics.WorkflowErrors.WithLabelValues(
 
 				workflow.Name, "execution", "workflow_failed",
-
 			).Inc()
 
 		}
-
-
 
 		execution.UpdatedAt = time.Now()
 
@@ -1287,13 +1065,9 @@ func (nwo *NephioWorkflowOrchestrator) ExecuteNephioWorkflow(ctx context.Context
 
 		}
 
-
-
 		// Update cache.
 
 		nwo.executionCache.Store(execution.ID, execution)
-
-
 
 		// Update intent status.
 
@@ -1305,15 +1079,11 @@ func (nwo *NephioWorkflowOrchestrator) ExecuteNephioWorkflow(ctx context.Context
 
 	}()
 
-
-
 	span.SetAttributes(attribute.String("execution.id", execution.ID))
 
 	return execution, nil
 
 }
-
-
 
 // selectWorkflow selects the appropriate workflow for an intent.
 
@@ -1323,13 +1093,9 @@ func (nwo *NephioWorkflowOrchestrator) selectWorkflow(ctx context.Context, inten
 
 	defer span.End()
 
-
-
 	// Find workflow that matches intent type.
 
 	var selectedWorkflow *WorkflowDefinition
-
-
 
 	nwo.workflowEngine.workflows.Range(func(key, value interface{}) bool {
 
@@ -1353,23 +1119,17 @@ func (nwo *NephioWorkflowOrchestrator) selectWorkflow(ctx context.Context, inten
 
 	})
 
-
-
 	if selectedWorkflow == nil {
 
 		return nil, fmt.Errorf("no workflow found for intent type: %s", intent.Spec.IntentType)
 
 	}
 
-
-
 	span.SetAttributes(attribute.String("workflow.name", selectedWorkflow.Name))
 
 	return selectedWorkflow, nil
 
 }
-
-
 
 // executeWorkflowPhases executes all phases of a workflow.
 
@@ -1379,17 +1139,11 @@ func (nwo *NephioWorkflowOrchestrator) executeWorkflowPhases(ctx context.Context
 
 	defer span.End()
 
-
-
 	logger := log.FromContext(ctx).WithName("workflow-phases").WithValues("executionId", execution.ID)
-
-
 
 	execution.Status = WorkflowExecutionStatusRunning
 
 	execution.UpdatedAt = time.Now()
-
-
 
 	// Execute phases in order.
 
@@ -1399,11 +1153,7 @@ func (nwo *NephioWorkflowOrchestrator) executeWorkflowPhases(ctx context.Context
 
 		phaseDefinition := &execution.WorkflowDef.Phases[i]
 
-
-
 		logger.Info("Executing workflow phase", "phase", phaseExecution.Name)
-
-
 
 		if err := nwo.executeWorkflowPhase(ctx, execution, phaseExecution, phaseDefinition); err != nil {
 
@@ -1412,8 +1162,6 @@ func (nwo *NephioWorkflowOrchestrator) executeWorkflowPhases(ctx context.Context
 			phaseExecution.Status = WorkflowExecutionStatusFailed
 
 			phaseExecution.Errors = append(phaseExecution.Errors, err.Error())
-
-
 
 			if !phaseDefinition.ContinueOnError {
 
@@ -1431,8 +1179,6 @@ func (nwo *NephioWorkflowOrchestrator) executeWorkflowPhases(ctx context.Context
 
 		}
 
-
-
 		completedAt := time.Now()
 
 		phaseExecution.CompletedAt = &completedAt
@@ -1443,27 +1189,19 @@ func (nwo *NephioWorkflowOrchestrator) executeWorkflowPhases(ctx context.Context
 
 		}
 
-
-
 		execution.UpdatedAt = time.Now()
 
 		nwo.executionCache.Store(execution.ID, execution)
 
 	}
 
-
-
 	execution.Status = WorkflowExecutionStatusCompleted
 
 	logger.Info("Workflow execution completed", "executionId", execution.ID)
 
-
-
 	return nil
 
 }
-
-
 
 // executeWorkflowPhase executes a single workflow phase.
 
@@ -1473,23 +1211,16 @@ func (nwo *NephioWorkflowOrchestrator) executeWorkflowPhase(ctx context.Context,
 
 	defer span.End()
 
-
-
 	span.SetAttributes(
 
 		attribute.String("phase.name", phaseDef.Name),
 
 		attribute.String("phase.type", string(phaseDef.Type)),
-
 	)
-
-
 
 	phaseCtx, cancel := context.WithTimeout(ctx, phaseDef.Timeout)
 
 	defer cancel()
-
-
 
 	startTime := time.Now()
 
@@ -1497,17 +1228,12 @@ func (nwo *NephioWorkflowOrchestrator) executeWorkflowPhase(ctx context.Context,
 
 	phaseExec.Status = WorkflowExecutionStatusRunning
 
-
-
 	// Update metrics.
 
 	nwo.metrics.WorkflowPhases.WithLabelValues(
 
 		execution.WorkflowDef.Name, phaseDef.Name, string(phaseExec.Status),
-
 	).Inc()
-
-
 
 	defer func() {
 
@@ -1516,20 +1242,14 @@ func (nwo *NephioWorkflowOrchestrator) executeWorkflowPhase(ctx context.Context,
 		nwo.metrics.WorkflowDuration.WithLabelValues(
 
 			execution.WorkflowDef.Name, phaseDef.Name,
-
 		).Observe(duration.Seconds())
-
-
 
 		nwo.metrics.WorkflowPhases.WithLabelValues(
 
 			execution.WorkflowDef.Name, phaseDef.Name, string(phaseExec.Status),
-
 		).Dec()
 
 	}()
-
-
 
 	// Execute phase based on type.
 
@@ -1571,8 +1291,6 @@ func (nwo *NephioWorkflowOrchestrator) executeWorkflowPhase(ctx context.Context,
 
 }
 
-
-
 // executeBlueprintSelectionPhase executes blueprint selection phase.
 
 func (nwo *NephioWorkflowOrchestrator) executeBlueprintSelectionPhase(ctx context.Context, execution *WorkflowExecution, phaseExec *WorkflowPhaseExecution, phaseDef *WorkflowPhase) error {
@@ -1581,11 +1299,7 @@ func (nwo *NephioWorkflowOrchestrator) executeBlueprintSelectionPhase(ctx contex
 
 	defer span.End()
 
-
-
 	logger := log.FromContext(ctx).WithName("blueprint-selection")
-
-
 
 	// Find suitable blueprint for the intent.
 
@@ -1599,15 +1313,11 @@ func (nwo *NephioWorkflowOrchestrator) executeBlueprintSelectionPhase(ctx contex
 
 	}
 
-
-
 	if blueprint == nil {
 
 		return fmt.Errorf("no suitable blueprint found for intent type: %s", execution.Intent.Spec.IntentType)
 
 	}
-
-
 
 	execution.BlueprintPackage = blueprint
 
@@ -1615,19 +1325,15 @@ func (nwo *NephioWorkflowOrchestrator) executeBlueprintSelectionPhase(ctx contex
 
 		"blueprint": map[string]interface{}{
 
-			"name":       blueprint.Name,
+			"name": blueprint.Name,
 
 			"repository": blueprint.Repository,
 
-			"version":    blueprint.Version,
+			"version": blueprint.Version,
 
-			"category":   blueprint.Category,
-
+			"category": blueprint.Category,
 		},
-
 	}
-
-
 
 	logger.Info("Selected blueprint",
 
@@ -1636,26 +1342,18 @@ func (nwo *NephioWorkflowOrchestrator) executeBlueprintSelectionPhase(ctx contex
 		"version", blueprint.Version,
 
 		"repository", blueprint.Repository,
-
 	)
-
-
 
 	span.SetAttributes(
 
 		attribute.String("blueprint.name", blueprint.Name),
 
 		attribute.String("blueprint.version", blueprint.Version),
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // executePackageSpecializationPhase executes package specialization phase.
 
@@ -1665,19 +1363,13 @@ func (nwo *NephioWorkflowOrchestrator) executePackageSpecializationPhase(ctx con
 
 	defer span.End()
 
-
-
 	logger := log.FromContext(ctx).WithName("package-specialization")
-
-
 
 	if execution.BlueprintPackage == nil {
 
 		return fmt.Errorf("no blueprint selected for specialization")
 
 	}
-
-
 
 	// Get target clusters for deployment.
 
@@ -1691,11 +1383,7 @@ func (nwo *NephioWorkflowOrchestrator) executePackageSpecializationPhase(ctx con
 
 	}
 
-
-
 	execution.PackageVariants = make([]*PackageVariant, 0, len(clusters))
-
-
 
 	// Create package variant for each target cluster.
 
@@ -1705,18 +1393,16 @@ func (nwo *NephioWorkflowOrchestrator) executePackageSpecializationPhase(ctx con
 
 			ClusterContext: &ClusterContext{
 
-				Name:         cluster.Name,
+				Name: cluster.Name,
 
-				Region:       cluster.Region,
+				Region: cluster.Region,
 
-				Zone:         cluster.Zone,
+				Zone: cluster.Zone,
 
 				Capabilities: cluster.Capabilities,
-
 			},
 
 			Parameters: nwo.extractParametersFromIntent(execution.Intent),
-
 		})
 
 		if err != nil {
@@ -1726,24 +1412,18 @@ func (nwo *NephioWorkflowOrchestrator) executePackageSpecializationPhase(ctx con
 			nwo.metrics.PackageVariants.WithLabelValues(
 
 				execution.BlueprintPackage.Name, cluster.Name, "failed",
-
 			).Inc()
 
 			continue
 
 		}
 
-
-
 		execution.PackageVariants = append(execution.PackageVariants, variant)
 
 		nwo.metrics.PackageVariants.WithLabelValues(
 
 			execution.BlueprintPackage.Name, cluster.Name, "created",
-
 		).Inc()
-
-
 
 		logger.Info("Created package variant",
 
@@ -1752,38 +1432,27 @@ func (nwo *NephioWorkflowOrchestrator) executePackageSpecializationPhase(ctx con
 			"cluster", cluster.Name,
 
 			"blueprint", execution.BlueprintPackage.Name,
-
 		)
 
 	}
-
-
 
 	phaseExec.Results = map[string]interface{}{
 
 		"variants": len(execution.PackageVariants),
 
 		"clusters": len(clusters),
-
 	}
-
-
 
 	span.SetAttributes(
 
 		attribute.Int("variants.created", len(execution.PackageVariants)),
 
 		attribute.Int("clusters.targeted", len(clusters)),
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // executeValidationPhase executes validation phase.
 
@@ -1793,17 +1462,11 @@ func (nwo *NephioWorkflowOrchestrator) executeValidationPhase(ctx context.Contex
 
 	defer span.End()
 
-
-
 	logger := log.FromContext(ctx).WithName("validation")
-
-
 
 	validationResults := make([]*porch.ValidationResult, 0)
 
 	validationErrors := make([]string, 0)
-
-
 
 	// Validate each package variant.
 
@@ -1814,8 +1477,6 @@ func (nwo *NephioWorkflowOrchestrator) executeValidationPhase(ctx context.Contex
 			continue
 
 		}
-
-
 
 		result, err := nwo.porchClient.ValidatePackage(ctx,
 
@@ -1833,19 +1494,14 @@ func (nwo *NephioWorkflowOrchestrator) executeValidationPhase(ctx context.Contex
 
 		}
 
-
-
 		validationResults = append(validationResults, &porch.ValidationResult{
 
-			Valid:    result.Valid,
+			Valid: result.Valid,
 
-			Errors:   result.Errors,
+			Errors: result.Errors,
 
 			Warnings: result.Warnings,
-
 		})
-
-
 
 		if !result.Valid {
 
@@ -1853,21 +1509,16 @@ func (nwo *NephioWorkflowOrchestrator) executeValidationPhase(ctx context.Contex
 
 		}
 
-
-
 		variant.ValidationResults = []*porch.ValidationResult{{
 
-			Valid:    result.Valid,
+			Valid: result.Valid,
 
-			Errors:   result.Errors,
+			Errors: result.Errors,
 
 			Warnings: result.Warnings,
-
 		}}
 
 	}
-
-
 
 	// Store results.
 
@@ -1879,19 +1530,14 @@ func (nwo *NephioWorkflowOrchestrator) executeValidationPhase(ctx context.Contex
 
 	execution.Results.ValidationResults = validationResults
 
-
-
 	phaseExec.Results = map[string]interface{}{
 
 		"totalValidations": len(validationResults),
 
-		"passed":           len(validationResults) - len(validationErrors),
+		"passed": len(validationResults) - len(validationErrors),
 
-		"failed":           len(validationErrors),
-
+		"failed": len(validationErrors),
 	}
-
-
 
 	if len(validationErrors) > 0 {
 
@@ -1902,7 +1548,6 @@ func (nwo *NephioWorkflowOrchestrator) executeValidationPhase(ctx context.Contex
 			"passed", len(validationResults)-len(validationErrors),
 
 			"failed", len(validationErrors),
-
 		)
 
 	} else {
@@ -1911,8 +1556,6 @@ func (nwo *NephioWorkflowOrchestrator) executeValidationPhase(ctx context.Contex
 
 	}
 
-
-
 	span.SetAttributes(
 
 		attribute.Int("validations.total", len(validationResults)),
@@ -1920,16 +1563,11 @@ func (nwo *NephioWorkflowOrchestrator) executeValidationPhase(ctx context.Contex
 		attribute.Int("validations.passed", len(validationResults)-len(validationErrors)),
 
 		attribute.Int("validations.failed", len(validationErrors)),
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // executeApprovalPhase executes approval phase.
 
@@ -1939,11 +1577,7 @@ func (nwo *NephioWorkflowOrchestrator) executeApprovalPhase(ctx context.Context,
 
 	defer span.End()
 
-
-
 	logger := log.FromContext(ctx).WithName("approval")
-
-
 
 	// If auto-approval is enabled, approve automatically.
 
@@ -1965,31 +1599,22 @@ func (nwo *NephioWorkflowOrchestrator) executeApprovalPhase(ctx context.Context,
 
 				}
 
-
-
 				logger.Info("Auto-approved package", "variant", variant.Name)
 
 			}
 
 		}
 
-
-
 		phaseExec.Results = map[string]interface{}{
 
 			"approvalType": "automatic",
 
-			"approved":     len(execution.PackageVariants),
-
+			"approved": len(execution.PackageVariants),
 		}
-
-
 
 		return nil
 
 	}
-
-
 
 	// Manual approval process.
 
@@ -1997,19 +1622,14 @@ func (nwo *NephioWorkflowOrchestrator) executeApprovalPhase(ctx context.Context,
 
 	logger.Info("Manual approval required", "variants", len(execution.PackageVariants))
 
-
-
 	phaseExec.Results = map[string]interface{}{
 
 		"approvalType": "manual",
 
-		"status":       "pending",
+		"status": "pending",
 
-		"required":     len(execution.PackageVariants),
-
+		"required": len(execution.PackageVariants),
 	}
-
-
 
 	// For now, we'll simulate approval.
 
@@ -2019,8 +1639,6 @@ func (nwo *NephioWorkflowOrchestrator) executeApprovalPhase(ctx context.Context,
 
 }
 
-
-
 // executeDeploymentPhase executes deployment phase.
 
 func (nwo *NephioWorkflowOrchestrator) executeDeploymentPhase(ctx context.Context, execution *WorkflowExecution, phaseExec *WorkflowPhaseExecution, phaseDef *WorkflowPhase) error {
@@ -2029,17 +1647,11 @@ func (nwo *NephioWorkflowOrchestrator) executeDeploymentPhase(ctx context.Contex
 
 	defer span.End()
 
-
-
 	logger := log.FromContext(ctx).WithName("deployment")
-
-
 
 	deploymentResults := make([]*DeploymentResult, 0)
 
 	execution.Deployments = make([]*WorkloadDeployment, 0)
-
-
 
 	// Deploy each package variant to its target cluster.
 
@@ -2051,25 +1663,18 @@ func (nwo *NephioWorkflowOrchestrator) executeDeploymentPhase(ctx context.Contex
 
 		}
 
-
-
 		deployment := &WorkloadDeployment{
 
 			PackageVariant: variant,
 
-			TargetCluster:  variant.TargetCluster,
+			TargetCluster: variant.TargetCluster,
 
-			Status:         "Deploying",
+			Status: "Deploying",
 
-			StartedAt:      time.Now(),
-
+			StartedAt: time.Now(),
 		}
 
-
-
 		execution.Deployments = append(execution.Deployments, deployment)
-
-
 
 		// Deploy via Config Sync.
 
@@ -2082,28 +1687,20 @@ func (nwo *NephioWorkflowOrchestrator) executeDeploymentPhase(ctx context.Contex
 				"variant", variant.Name,
 
 				"cluster", variant.TargetCluster.Name,
-
 			)
-
-
 
 			deployment.Status = "Failed"
 
 			deployment.Error = err.Error()
 
-
-
 			nwo.metrics.ClusterDeployments.WithLabelValues(
 
 				variant.TargetCluster.Name, variant.Name, "failed",
-
 			).Inc()
 
 			continue
 
 		}
-
-
 
 		deployment.Status = "Deployed"
 
@@ -2113,43 +1710,32 @@ func (nwo *NephioWorkflowOrchestrator) executeDeploymentPhase(ctx context.Contex
 
 		deployment.CompletedAt = &completedAt
 
-
-
 		deploymentResult := &DeploymentResult{
 
 			PackageName: variant.Name,
 
 			ClusterName: variant.TargetCluster.Name,
 
-			Status:      "Success",
+			Status: "Success",
 
-			SyncResult:  syncResult,
-
+			SyncResult: syncResult,
 		}
 
 		deploymentResults = append(deploymentResults, deploymentResult)
 
-
-
 		nwo.metrics.ClusterDeployments.WithLabelValues(
 
 			variant.TargetCluster.Name, variant.Name, "success",
-
 		).Inc()
-
-
 
 		logger.Info("Deployed package successfully",
 
 			"variant", variant.Name,
 
 			"cluster", variant.TargetCluster.Name,
-
 		)
 
 	}
-
-
 
 	// Store results.
 
@@ -2161,45 +1747,32 @@ func (nwo *NephioWorkflowOrchestrator) executeDeploymentPhase(ctx context.Contex
 
 	execution.Results.DeploymentResults = deploymentResults
 
-
-
 	phaseExec.Results = map[string]interface{}{
 
 		"totalDeployments": len(execution.Deployments),
 
-		"successful":       len(deploymentResults),
+		"successful": len(deploymentResults),
 
-		"failed":           len(execution.Deployments) - len(deploymentResults),
-
+		"failed": len(execution.Deployments) - len(deploymentResults),
 	}
-
-
 
 	logger.Info("Deployment phase completed",
 
 		"successful", len(deploymentResults),
 
 		"failed", len(execution.Deployments)-len(deploymentResults),
-
 	)
-
-
 
 	span.SetAttributes(
 
 		attribute.Int("deployments.total", len(execution.Deployments)),
 
 		attribute.Int("deployments.successful", len(deploymentResults)),
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // executeMonitoringPhase executes monitoring phase.
 
@@ -2209,17 +1782,11 @@ func (nwo *NephioWorkflowOrchestrator) executeMonitoringPhase(ctx context.Contex
 
 	defer span.End()
 
-
-
 	logger := log.FromContext(ctx).WithName("monitoring")
-
-
 
 	// Verify deployment health across all clusters.
 
 	clusterHealthMap := make(map[string]*ClusterHealth)
-
-
 
 	for _, deployment := range execution.Deployments {
 
@@ -2228,8 +1795,6 @@ func (nwo *NephioWorkflowOrchestrator) executeMonitoringPhase(ctx context.Contex
 			continue
 
 		}
-
-
 
 		health, err := nwo.workloadRegistry.CheckClusterHealth(ctx, deployment.TargetCluster.Name)
 
@@ -2241,13 +1806,9 @@ func (nwo *NephioWorkflowOrchestrator) executeMonitoringPhase(ctx context.Contex
 
 		}
 
-
-
 		clusterHealthMap[deployment.TargetCluster.Name] = health
 
 	}
-
-
 
 	// Store results.
 
@@ -2259,33 +1820,23 @@ func (nwo *NephioWorkflowOrchestrator) executeMonitoringPhase(ctx context.Contex
 
 	execution.Results.ClusterHealth = clusterHealthMap
 
-
-
 	phaseExec.Results = map[string]interface{}{
 
 		"clustersMonitored": len(clusterHealthMap),
 
-		"healthyCount":      nwo.countHealthyClusters(clusterHealthMap),
-
+		"healthyCount": nwo.countHealthyClusters(clusterHealthMap),
 	}
-
-
 
 	logger.Info("Monitoring phase completed",
 
 		"clustersMonitored", len(clusterHealthMap),
 
 		"healthy", nwo.countHealthyClusters(clusterHealthMap),
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // executeRollbackPhase executes rollback phase.
 
@@ -2295,11 +1846,7 @@ func (nwo *NephioWorkflowOrchestrator) executeRollbackPhase(ctx context.Context,
 
 	defer span.End()
 
-
-
 	logger := log.FromContext(ctx).WithName("rollback")
-
-
 
 	// Rollback deployments in reverse order.
 
@@ -2315,8 +1862,6 @@ func (nwo *NephioWorkflowOrchestrator) executeRollbackPhase(ctx context.Context,
 
 		}
 
-
-
 		if err := nwo.rollbackDeployment(ctx, deployment); err != nil {
 
 			logger.Error(err, "Failed to rollback deployment",
@@ -2324,14 +1869,11 @@ func (nwo *NephioWorkflowOrchestrator) executeRollbackPhase(ctx context.Context,
 				"cluster", deployment.TargetCluster.Name,
 
 				"package", deployment.PackageVariant.Name,
-
 			)
 
 			continue
 
 		}
-
-
 
 		rollbackCount++
 
@@ -2340,44 +1882,30 @@ func (nwo *NephioWorkflowOrchestrator) executeRollbackPhase(ctx context.Context,
 			"cluster", deployment.TargetCluster.Name,
 
 			"package", deployment.PackageVariant.Name,
-
 		)
 
 	}
-
-
 
 	phaseExec.Results = map[string]interface{}{
 
 		"rolledBack": rollbackCount,
 
-		"total":      len(execution.Deployments),
-
+		"total": len(execution.Deployments),
 	}
 
-
-
 	logger.Info("Rollback phase completed", "rolledBack", rollbackCount)
-
-
 
 	return nil
 
 }
 
-
-
 // Helper methods.
-
-
 
 func generateExecutionID() string {
 
 	return fmt.Sprintf("exec-%d", time.Now().UnixNano())
 
 }
-
-
 
 func (nwo *NephioWorkflowOrchestrator) getTargetClusters(ctx context.Context, intent *v1.NetworkIntent) ([]*WorkloadCluster, error) {
 
@@ -2386,8 +1914,6 @@ func (nwo *NephioWorkflowOrchestrator) getTargetClusters(ctx context.Context, in
 	// This would integrate with cluster selection policies.
 
 	clusters := make([]*WorkloadCluster, 0)
-
-
 
 	// For now, return all active clusters.
 
@@ -2407,21 +1933,15 @@ func (nwo *NephioWorkflowOrchestrator) getTargetClusters(ctx context.Context, in
 
 	})
 
-
-
 	return clusters, nil
 
 }
-
-
 
 func (nwo *NephioWorkflowOrchestrator) extractParametersFromIntent(intent *v1.NetworkIntent) map[string]interface{} {
 
 	// Extract configuration parameters from intent.
 
 	params := make(map[string]interface{})
-
-
 
 	if intent.Spec.ProcessedParameters != nil {
 
@@ -2449,8 +1969,6 @@ func (nwo *NephioWorkflowOrchestrator) extractParametersFromIntent(intent *v1.Ne
 
 	}
 
-
-
 	params["intentType"] = string(intent.Spec.IntentType)
 
 	if len(intent.Spec.TargetComponents) > 0 {
@@ -2461,13 +1979,9 @@ func (nwo *NephioWorkflowOrchestrator) extractParametersFromIntent(intent *v1.Ne
 
 	}
 
-
-
 	return params
 
 }
-
-
 
 func (nwo *NephioWorkflowOrchestrator) countHealthyClusters(healthMap map[string]*ClusterHealth) int {
 
@@ -2487,8 +2001,6 @@ func (nwo *NephioWorkflowOrchestrator) countHealthyClusters(healthMap map[string
 
 }
 
-
-
 func (nwo *NephioWorkflowOrchestrator) rollbackDeployment(ctx context.Context, deployment *WorkloadDeployment) error {
 
 	// Implement rollback logic.
@@ -2499,15 +2011,11 @@ func (nwo *NephioWorkflowOrchestrator) rollbackDeployment(ctx context.Context, d
 
 }
 
-
-
 func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx context.Context, intent *v1.NetworkIntent, execution *WorkflowExecution) error {
 
 	// Update NetworkIntent status with workflow execution results.
 
 	intent.Status.Phase = v1.NetworkIntentPhaseProcessing
-
-
 
 	if execution.Status == WorkflowExecutionStatusCompleted {
 
@@ -2518,8 +2026,6 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 		intent.Status.Phase = v1.NetworkIntentPhaseFailed
 
 	}
-
-
 
 	// Update last message with execution summary.
 
@@ -2533,8 +2039,6 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 
 	}
 
-
-
 	// Store execution details in extensions.
 
 	if intent.Status.Extensions == nil {
@@ -2542,8 +2046,6 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 		intent.Status.Extensions = make(map[string]runtime.RawExtension)
 
 	}
-
-
 
 	// Store package revision information in extensions.
 
@@ -2553,12 +2055,11 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 
 		_ = map[string]interface{}{
 
-			"repository":  pr.Spec.Repository,
+			"repository": pr.Spec.Repository,
 
 			"packageName": pr.Spec.PackageName,
 
-			"revision":    pr.Spec.Revision,
-
+			"revision": pr.Spec.Revision,
 		}
 
 		packageInfoJSON := fmt.Sprintf(`{"repository":"%s","packageName":"%s","revision":"%s"}`, pr.Spec.Repository, pr.Spec.PackageName, pr.Spec.Revision)
@@ -2567,39 +2068,31 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 
 	}
 
-
-
 	// Store deployment status in extensions.
 
 	if len(execution.Deployments) > 0 {
 
 		deploymentInfo := map[string]interface{}{
 
-			"phase":   "Deployed",
+			"phase": "Deployed",
 
 			"targets": make([]map[string]interface{}, 0, len(execution.Deployments)),
-
 		}
-
-
 
 		for _, deployment := range execution.Deployments {
 
 			target := map[string]interface{}{
 
-				"cluster":   deployment.TargetCluster.Name,
+				"cluster": deployment.TargetCluster.Name,
 
 				"namespace": nwo.config.DefaultNamespace,
 
-				"status":    deployment.Status,
-
+				"status": deployment.Status,
 			}
 
 			deploymentInfo["targets"] = append(deploymentInfo["targets"].([]map[string]interface{}), target)
 
 		}
-
-
 
 		deploymentInfoJSON := fmt.Sprintf(`{"phase":"Deployed","targetCount":%d}`, len(execution.Deployments))
 
@@ -2607,17 +2100,12 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 
 	}
 
-
-
 	// Update timestamp.
 
 	now := metav1.NewTime(time.Now())
 
 	intent.Status.LastUpdateTime = now
 
-
-
 	return nwo.client.Status().Update(ctx, intent)
 
 }
-

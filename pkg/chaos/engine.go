@@ -2,44 +2,25 @@
 
 // system resilience and SLA compliance under failure conditions.
 
-
 package chaos
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"go.uber.org/zap"
-
-
 
 	"k8s.io/client-go/kubernetes"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // ExperimentStatus represents the current state of a chaos experiment.
 
 type ExperimentStatus string
-
-
 
 const (
 
@@ -66,16 +47,11 @@ const (
 	// StatusAborted holds statusaborted value.
 
 	StatusAborted ExperimentStatus = "Aborted"
-
 )
-
-
 
 // SafetyLevel defines the safety constraints for experiments.
 
 type SafetyLevel string
-
-
 
 const (
 
@@ -93,93 +69,79 @@ const (
 
 )
 
-
-
 // BlastRadius defines the scope of impact for experiments.
 
 type BlastRadius struct {
+	Namespaces []string // Affected namespaces
 
-	Namespaces     []string      // Affected namespaces
+	Services []string // Affected services
 
-	Services       []string      // Affected services
+	MaxPods int // Maximum number of pods to affect
 
-	MaxPods        int           // Maximum number of pods to affect
+	MaxNodes int // Maximum number of nodes to affect
 
-	MaxNodes       int           // Maximum number of nodes to affect
+	TrafficPercent float64 // Percentage of traffic to affect
 
-	TrafficPercent float64       // Percentage of traffic to affect
-
-	Duration       time.Duration // Maximum duration of impact
+	Duration time.Duration // Maximum duration of impact
 
 }
-
-
 
 // SLAThresholds defines acceptable SLA impact during experiments.
 
 type SLAThresholds struct {
+	MaxLatencyMS int64 // Maximum acceptable latency in milliseconds
 
-	MaxLatencyMS       int64   // Maximum acceptable latency in milliseconds
+	MinAvailability float64 // Minimum acceptable availability percentage
 
-	MinAvailability    float64 // Minimum acceptable availability percentage
+	MinThroughput float64 // Minimum acceptable throughput (intents/minute)
 
-	MinThroughput      float64 // Minimum acceptable throughput (intents/minute)
+	MaxErrorRate float64 // Maximum acceptable error rate percentage
 
-	MaxErrorRate       float64 // Maximum acceptable error rate percentage
-
-	AutoRollbackEnable bool    // Enable automatic rollback on threshold breach
+	AutoRollbackEnable bool // Enable automatic rollback on threshold breach
 
 }
-
-
 
 // Experiment represents a chaos experiment configuration.
 
 type Experiment struct {
+	ID string `json:"id"`
 
-	ID             string            `json:"id"`
+	Name string `json:"name"`
 
-	Name           string            `json:"name"`
+	Description string `json:"description"`
 
-	Description    string            `json:"description"`
+	Type ExperimentType `json:"type"`
 
-	Type           ExperimentType    `json:"type"`
+	Target ExperimentTarget `json:"target"`
 
-	Target         ExperimentTarget  `json:"target"`
+	Parameters map[string]string `json:"parameters"`
 
-	Parameters     map[string]string `json:"parameters"`
+	SafetyLevel SafetyLevel `json:"safetyLevel"`
 
-	SafetyLevel    SafetyLevel       `json:"safetyLevel"`
+	BlastRadius BlastRadius `json:"blastRadius"`
 
-	BlastRadius    BlastRadius       `json:"blastRadius"`
+	SLAThresholds SLAThresholds `json:"slaThresholds"`
 
-	SLAThresholds  SLAThresholds     `json:"slaThresholds"`
+	Schedule *Schedule `json:"schedule,omitempty"`
 
-	Schedule       *Schedule         `json:"schedule,omitempty"`
+	Duration time.Duration `json:"duration"`
 
-	Duration       time.Duration     `json:"duration"`
+	Status ExperimentStatus `json:"status"`
 
-	Status         ExperimentStatus  `json:"status"`
+	StartTime *time.Time `json:"startTime,omitempty"`
 
-	StartTime      *time.Time        `json:"startTime,omitempty"`
+	EndTime *time.Time `json:"endTime,omitempty"`
 
-	EndTime        *time.Time        `json:"endTime,omitempty"`
+	Results *ExperimentResult `json:"results,omitempty"`
 
-	Results        *ExperimentResult `json:"results,omitempty"`
+	RollbackOnFail bool `json:"rollbackOnFail"`
 
-	RollbackOnFail bool              `json:"rollbackOnFail"`
-
-	DryRun         bool              `json:"dryRun"`
-
+	DryRun bool `json:"dryRun"`
 }
-
-
 
 // ExperimentType defines the type of chaos experiment.
 
 type ExperimentType string
-
-
 
 const (
 
@@ -214,48 +176,35 @@ const (
 	// ExperimentTypeComposite holds experimenttypecomposite value.
 
 	ExperimentTypeComposite ExperimentType = "Composite"
-
 )
-
-
 
 // ExperimentTarget specifies what to target in the experiment.
 
 type ExperimentTarget struct {
-
-	Namespace     string            `json:"namespace"`
+	Namespace string `json:"namespace"`
 
 	LabelSelector map[string]string `json:"labelSelector"`
 
-	Services      []string          `json:"services"`
+	Services []string `json:"services"`
 
-	Pods          []string          `json:"pods"`
+	Pods []string `json:"pods"`
 
-	Nodes         []string          `json:"nodes"`
-
+	Nodes []string `json:"nodes"`
 }
-
-
 
 // Schedule defines when experiments should run.
 
 type Schedule struct {
+	Type ScheduleType `json:"type"`
 
-	Type       ScheduleType `json:"type"`
+	Expression string `json:"expression"` // Cron expression or interval
 
-	Expression string       `json:"expression"` // Cron expression or interval
-
-	TimeWindow TimeWindow   `json:"timeWindow"`
-
+	TimeWindow TimeWindow `json:"timeWindow"`
 }
-
-
 
 // ScheduleType defines how experiments are scheduled.
 
 type ScheduleType string
-
-
 
 const (
 
@@ -274,194 +223,159 @@ const (
 	// ScheduleTypeContinuous holds scheduletypecontinuous value.
 
 	ScheduleTypeContinuous ScheduleType = "Continuous"
-
 )
-
-
 
 // TimeWindow defines when experiments are allowed to run.
 
 type TimeWindow struct {
+	StartHour int `json:"startHour"`
 
-	StartHour int      `json:"startHour"`
+	EndHour int `json:"endHour"`
 
-	EndHour   int      `json:"endHour"`
+	Weekdays []string `json:"weekdays"`
 
-	Weekdays  []string `json:"weekdays"`
-
-	Timezone  string   `json:"timezone"`
-
+	Timezone string `json:"timezone"`
 }
-
-
 
 // ExperimentResult captures the outcome of an experiment.
 
 type ExperimentResult struct {
+	Success bool `json:"success"`
 
-	Success          bool                   `json:"success"`
+	SLAImpact SLAImpactMetrics `json:"slaImpact"`
 
-	SLAImpact        SLAImpactMetrics       `json:"slaImpact"`
+	RecoveryMetrics RecoveryMetrics `json:"recoveryMetrics"`
 
-	RecoveryMetrics  RecoveryMetrics        `json:"recoveryMetrics"`
+	Observations []string `json:"observations"`
 
-	Observations     []string               `json:"observations"`
+	Recommendations []string `json:"recommendations"`
 
-	Recommendations  []string               `json:"recommendations"`
+	FailureDetails string `json:"failureDetails,omitempty"`
 
-	FailureDetails   string                 `json:"failureDetails,omitempty"`
+	RollbackRequired bool `json:"rollbackRequired"`
 
-	RollbackRequired bool                   `json:"rollbackRequired"`
+	RollbackSuccess bool `json:"rollbackSuccess"`
 
-	RollbackSuccess  bool                   `json:"rollbackSuccess"`
-
-	Artifacts        map[string]interface{} `json:"artifacts"`
-
+	Artifacts map[string]interface{} `json:"artifacts"`
 }
-
-
 
 // SLAImpactMetrics tracks SLA impact during experiments.
 
 type SLAImpactMetrics struct {
+	AvailabilityImpact float64 `json:"availabilityImpact"`
 
-	AvailabilityImpact   float64       `json:"availabilityImpact"`
+	LatencyP50Impact time.Duration `json:"latencyP50Impact"`
 
-	LatencyP50Impact     time.Duration `json:"latencyP50Impact"`
+	LatencyP95Impact time.Duration `json:"latencyP95Impact"`
 
-	LatencyP95Impact     time.Duration `json:"latencyP95Impact"`
+	LatencyP99Impact time.Duration `json:"latencyP99Impact"`
 
-	LatencyP99Impact     time.Duration `json:"latencyP99Impact"`
+	ThroughputImpact float64 `json:"throughputImpact"`
 
-	ThroughputImpact     float64       `json:"throughputImpact"`
+	ErrorRateImpact float64 `json:"errorRateImpact"`
 
-	ErrorRateImpact      float64       `json:"errorRateImpact"`
+	AffectedUsers int `json:"affectedUsers"`
 
-	AffectedUsers        int           `json:"affectedUsers"`
-
-	DataConsistencyCheck bool          `json:"dataConsistencyCheck"`
-
+	DataConsistencyCheck bool `json:"dataConsistencyCheck"`
 }
-
-
 
 // RecoveryMetrics tracks recovery behavior.
 
 type RecoveryMetrics struct {
+	MTTR time.Duration `json:"mttr"`
 
-	MTTR                  time.Duration `json:"mttr"`
+	AutoRecoveryTriggered bool `json:"autoRecoveryTriggered"`
 
-	AutoRecoveryTriggered bool          `json:"autoRecoveryTriggered"`
+	AutoRecoverySuccess bool `json:"autoRecoverySuccess"`
 
-	AutoRecoverySuccess   bool          `json:"autoRecoverySuccess"`
+	ManualIntervention bool `json:"manualIntervention"`
 
-	ManualIntervention    bool          `json:"manualIntervention"`
+	DataLoss bool `json:"dataLoss"`
 
-	DataLoss              bool          `json:"dataLoss"`
-
-	ServiceDegradation    []string      `json:"serviceDegradation"`
-
+	ServiceDegradation []string `json:"serviceDegradation"`
 }
-
-
 
 // ChaosEngine orchestrates chaos experiments with safety controls.
 
 type ChaosEngine struct {
+	client client.Client
 
-	client            client.Client
+	kubeClient kubernetes.Interface
 
-	kubeClient        kubernetes.Interface
+	logger *zap.Logger
 
-	logger            *zap.Logger
-
-	experiments       map[string]*Experiment
+	experiments map[string]*Experiment
 
 	activeExperiments sync.Map
 
-	injector          *FailureInjector
+	injector *FailureInjector
 
-	validator         *ResilienceValidator
+	validator *ResilienceValidator
 
-	recoveryTester    *RecoveryTester
+	recoveryTester *RecoveryTester
 
-	killSwitch        *KillSwitch
+	killSwitch *KillSwitch
 
-	metrics           *ChaosMetrics
+	metrics *ChaosMetrics
 
-	config            *EngineConfig
+	config *EngineConfig
 
-	mu                sync.RWMutex
+	mu sync.RWMutex
 
-	ctx               context.Context
+	ctx context.Context
 
-	cancel            context.CancelFunc
-
+	cancel context.CancelFunc
 }
-
-
 
 // EngineConfig defines chaos engine configuration.
 
 type EngineConfig struct {
+	MaxConcurrentExperiments int `json:"maxConcurrentExperiments"`
 
-	MaxConcurrentExperiments int           `json:"maxConcurrentExperiments"`
+	DefaultSafetyLevel SafetyLevel `json:"defaultSafetyLevel"`
 
-	DefaultSafetyLevel       SafetyLevel   `json:"defaultSafetyLevel"`
+	DefaultDuration time.Duration `json:"defaultDuration"`
 
-	DefaultDuration          time.Duration `json:"defaultDuration"`
+	MaxDuration time.Duration `json:"maxDuration"`
 
-	MaxDuration              time.Duration `json:"maxDuration"`
+	ProductionMode bool `json:"productionMode"`
 
-	ProductionMode           bool          `json:"productionMode"`
+	AutoRollback bool `json:"autoRollback"`
 
-	AutoRollback             bool          `json:"autoRollback"`
+	MetricsInterval time.Duration `json:"metricsInterval"`
 
-	MetricsInterval          time.Duration `json:"metricsInterval"`
+	AlertThreshold float64 `json:"alertThreshold"`
 
-	AlertThreshold           float64       `json:"alertThreshold"`
-
-	DryRunMode               bool          `json:"dryRunMode"`
-
+	DryRunMode bool `json:"dryRunMode"`
 }
-
-
 
 // KillSwitch provides emergency experiment termination.
 
 type KillSwitch struct {
-
-	enabled   bool
+	enabled bool
 
 	triggered bool
 
-	reason    string
+	reason string
 
-	mu        sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // ChaosMetrics tracks chaos engineering metrics.
 
 type ChaosMetrics struct {
+	experimentsTotal *prometheus.CounterVec
 
-	experimentsTotal    *prometheus.CounterVec
-
-	experimentsActive   prometheus.Gauge
+	experimentsActive prometheus.Gauge
 
 	experimentsDuration *prometheus.HistogramVec
 
-	slaViolations       *prometheus.CounterVec
+	slaViolations *prometheus.CounterVec
 
-	recoveryTime        *prometheus.HistogramVec
+	recoveryTime *prometheus.HistogramVec
 
-	rollbacksTotal      *prometheus.CounterVec
-
+	rollbacksTotal *prometheus.CounterVec
 }
-
-
 
 // NewChaosEngine creates a new chaos engineering orchestration engine.
 
@@ -479,67 +393,59 @@ func NewChaosEngine(
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-
-
 	if config == nil {
 
 		config = &EngineConfig{
 
 			MaxConcurrentExperiments: 3,
 
-			DefaultSafetyLevel:       SafetyLevelMedium,
+			DefaultSafetyLevel: SafetyLevelMedium,
 
-			DefaultDuration:          5 * time.Minute,
+			DefaultDuration: 5 * time.Minute,
 
-			MaxDuration:              30 * time.Minute,
+			MaxDuration: 30 * time.Minute,
 
-			ProductionMode:           false,
+			ProductionMode: false,
 
-			AutoRollback:             true,
+			AutoRollback: true,
 
-			MetricsInterval:          10 * time.Second,
+			MetricsInterval: 10 * time.Second,
 
-			AlertThreshold:           0.95,
+			AlertThreshold: 0.95,
 
-			DryRunMode:               false,
-
+			DryRunMode: false,
 		}
 
 	}
 
-
-
 	return &ChaosEngine{
 
-		client:         client,
+		client: client,
 
-		kubeClient:     kubeClient,
+		kubeClient: kubeClient,
 
-		logger:         logger,
+		logger: logger,
 
-		experiments:    make(map[string]*Experiment),
+		experiments: make(map[string]*Experiment),
 
-		injector:       NewFailureInjector(client, kubeClient, logger),
+		injector: NewFailureInjector(client, kubeClient, logger),
 
-		validator:      NewResilienceValidator(client, logger),
+		validator: NewResilienceValidator(client, logger),
 
 		recoveryTester: NewRecoveryTester(client, kubeClient, logger),
 
-		killSwitch:     &KillSwitch{enabled: true},
+		killSwitch: &KillSwitch{enabled: true},
 
-		metrics:        initMetrics(),
+		metrics: initMetrics(),
 
-		config:         config,
+		config: config,
 
-		ctx:            ctx,
+		ctx: ctx,
 
-		cancel:         cancel,
-
+		cancel: cancel,
 	}
 
 }
-
-
 
 // initMetrics initializes Prometheus metrics.
 
@@ -554,11 +460,9 @@ func initMetrics() *ChaosMetrics {
 				Name: "chaos_experiments_total",
 
 				Help: "Total number of chaos experiments executed",
-
 			},
 
 			[]string{"type", "status", "safety_level"},
-
 		),
 
 		experimentsActive: prometheus.NewGauge(
@@ -568,25 +472,21 @@ func initMetrics() *ChaosMetrics {
 				Name: "chaos_experiments_active",
 
 				Help: "Number of currently active chaos experiments",
-
 			},
-
 		),
 
 		experimentsDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "chaos_experiment_duration_seconds",
+				Name: "chaos_experiment_duration_seconds",
 
-				Help:    "Duration of chaos experiments in seconds",
+				Help: "Duration of chaos experiments in seconds",
 
 				Buckets: prometheus.ExponentialBuckets(1, 2, 10),
-
 			},
 
 			[]string{"type", "safety_level"},
-
 		),
 
 		slaViolations: prometheus.NewCounterVec(
@@ -596,27 +496,23 @@ func initMetrics() *ChaosMetrics {
 				Name: "chaos_sla_violations_total",
 
 				Help: "Total number of SLA violations during chaos experiments",
-
 			},
 
 			[]string{"type", "metric"},
-
 		),
 
 		recoveryTime: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "chaos_recovery_time_seconds",
+				Name: "chaos_recovery_time_seconds",
 
-				Help:    "Time to recover from injected failures",
+				Help: "Time to recover from injected failures",
 
 				Buckets: prometheus.ExponentialBuckets(1, 2, 10),
-
 			},
 
 			[]string{"type", "auto_recovery"},
-
 		),
 
 		rollbacksTotal: prometheus.NewCounterVec(
@@ -626,18 +522,13 @@ func initMetrics() *ChaosMetrics {
 				Name: "chaos_rollbacks_total",
 
 				Help: "Total number of experiment rollbacks",
-
 			},
 
 			[]string{"type", "reason"},
-
 		),
-
 	}
 
 }
-
-
 
 // RunExperiment executes a chaos experiment with safety controls.
 
@@ -651,8 +542,6 @@ func (e *ChaosEngine) RunExperiment(ctx context.Context, experiment *Experiment)
 
 		zap.String("type", string(experiment.Type)))
 
-
-
 	// Check if kill switch is triggered.
 
 	if e.killSwitch.IsTriggered() {
@@ -660,8 +549,6 @@ func (e *ChaosEngine) RunExperiment(ctx context.Context, experiment *Experiment)
 		return nil, fmt.Errorf("kill switch triggered: %s", e.killSwitch.GetReason())
 
 	}
-
-
 
 	// Validate experiment configuration.
 
@@ -671,8 +558,6 @@ func (e *ChaosEngine) RunExperiment(ctx context.Context, experiment *Experiment)
 
 	}
 
-
-
 	// Check concurrent experiment limits.
 
 	if !e.canRunExperiment() {
@@ -681,13 +566,9 @@ func (e *ChaosEngine) RunExperiment(ctx context.Context, experiment *Experiment)
 
 	}
 
-
-
 	// Apply safety constraints based on environment.
 
 	e.applySafetyConstraints(experiment)
-
-
 
 	// Register experiment.
 
@@ -695,27 +576,19 @@ func (e *ChaosEngine) RunExperiment(ctx context.Context, experiment *Experiment)
 
 	defer e.unregisterExperiment(experiment.ID)
 
-
-
 	// Set up monitoring for the experiment.
 
 	monitorCtx, monitorCancel := context.WithCancel(ctx)
 
 	defer monitorCancel()
 
-
-
 	monitoringChan := e.startMonitoring(monitorCtx, experiment)
-
-
 
 	// Execute experiment with timeout.
 
 	experimentCtx, experimentCancel := context.WithTimeout(ctx, experiment.Duration)
 
 	defer experimentCancel()
-
-
 
 	// Track experiment start.
 
@@ -727,15 +600,11 @@ func (e *ChaosEngine) RunExperiment(ctx context.Context, experiment *Experiment)
 
 	e.metrics.experimentsActive.Inc()
 
-
-
 	// Execute based on experiment type.
 
 	var result *ExperimentResult
 
 	var err error
-
-
 
 	if experiment.DryRun {
 
@@ -747,8 +616,6 @@ func (e *ChaosEngine) RunExperiment(ctx context.Context, experiment *Experiment)
 
 	}
 
-
-
 	// Track experiment completion.
 
 	endTime := time.Now()
@@ -757,8 +624,6 @@ func (e *ChaosEngine) RunExperiment(ctx context.Context, experiment *Experiment)
 
 	duration := endTime.Sub(startTime)
 
-
-
 	e.metrics.experimentsActive.Dec()
 
 	e.metrics.experimentsDuration.WithLabelValues(
@@ -766,10 +631,7 @@ func (e *ChaosEngine) RunExperiment(ctx context.Context, experiment *Experiment)
 		string(experiment.Type),
 
 		string(experiment.SafetyLevel),
-
 	).Observe(duration.Seconds())
-
-
 
 	// Update experiment status.
 
@@ -787,8 +649,6 @@ func (e *ChaosEngine) RunExperiment(ctx context.Context, experiment *Experiment)
 
 	}
 
-
-
 	e.metrics.experimentsTotal.WithLabelValues(
 
 		string(experiment.Type),
@@ -796,24 +656,17 @@ func (e *ChaosEngine) RunExperiment(ctx context.Context, experiment *Experiment)
 		string(experiment.Status),
 
 		string(experiment.SafetyLevel),
-
 	).Inc()
-
-
 
 	// Generate recommendations based on results.
 
 	e.generateRecommendations(result, experiment)
-
-
 
 	experiment.Results = result
 
 	return result, err
 
 }
-
-
 
 // validateExperiment validates experiment configuration.
 
@@ -827,15 +680,11 @@ func (e *ChaosEngine) validateExperiment(experiment *Experiment) error {
 
 	}
 
-
-
 	if experiment.Duration == 0 {
 
 		experiment.Duration = e.config.DefaultDuration
 
 	}
-
-
 
 	if experiment.Duration > e.config.MaxDuration {
 
@@ -845,8 +694,6 @@ func (e *ChaosEngine) validateExperiment(experiment *Experiment) error {
 
 	}
 
-
-
 	// Validate blast radius.
 
 	if err := e.validateBlastRadius(&experiment.BlastRadius); err != nil {
@@ -855,8 +702,6 @@ func (e *ChaosEngine) validateExperiment(experiment *Experiment) error {
 
 	}
 
-
-
 	// Validate SLA thresholds.
 
 	if err := e.validateSLAThresholds(&experiment.SLAThresholds); err != nil {
@@ -864,8 +709,6 @@ func (e *ChaosEngine) validateExperiment(experiment *Experiment) error {
 		return fmt.Errorf("invalid SLA thresholds: %w", err)
 
 	}
-
-
 
 	// Production mode validations.
 
@@ -877,8 +720,6 @@ func (e *ChaosEngine) validateExperiment(experiment *Experiment) error {
 
 		}
 
-
-
 		if !experiment.RollbackOnFail {
 
 			e.logger.Warn("Rollback disabled in production mode",
@@ -889,13 +730,9 @@ func (e *ChaosEngine) validateExperiment(experiment *Experiment) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateBlastRadius validates blast radius configuration.
 
@@ -907,15 +744,11 @@ func (e *ChaosEngine) validateBlastRadius(radius *BlastRadius) error {
 
 	}
 
-
-
 	if radius.TrafficPercent < 0 || radius.TrafficPercent > 100 {
 
 		return fmt.Errorf("traffic percent must be between 0 and 100")
 
 	}
-
-
 
 	if radius.Duration > e.config.MaxDuration {
 
@@ -923,13 +756,9 @@ func (e *ChaosEngine) validateBlastRadius(radius *BlastRadius) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateSLAThresholds validates SLA threshold configuration.
 
@@ -941,15 +770,11 @@ func (e *ChaosEngine) validateSLAThresholds(thresholds *SLAThresholds) error {
 
 	}
 
-
-
 	if thresholds.MinAvailability < 0 || thresholds.MinAvailability > 100 {
 
 		return fmt.Errorf("availability must be between 0 and 100")
 
 	}
-
-
 
 	if thresholds.MinThroughput < 0 {
 
@@ -957,21 +782,15 @@ func (e *ChaosEngine) validateSLAThresholds(thresholds *SLAThresholds) error {
 
 	}
 
-
-
 	if thresholds.MaxErrorRate < 0 || thresholds.MaxErrorRate > 100 {
 
 		return fmt.Errorf("error rate must be between 0 and 100")
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // canRunExperiment checks if a new experiment can be started.
 
@@ -990,8 +809,6 @@ func (e *ChaosEngine) canRunExperiment() bool {
 	return count < e.config.MaxConcurrentExperiments
 
 }
-
-
 
 // applySafetyConstraints applies safety constraints based on environment.
 
@@ -1019,8 +836,6 @@ func (e *ChaosEngine) applySafetyConstraints(experiment *Experiment) {
 
 		experiment.SLAThresholds.AutoRollbackEnable = true
 
-
-
 	case SafetyLevelMedium:
 
 		// Standard safety constraints.
@@ -1036,8 +851,6 @@ func (e *ChaosEngine) applySafetyConstraints(experiment *Experiment) {
 			experiment.BlastRadius.TrafficPercent = 25
 
 		}
-
-
 
 	case SafetyLevelLow:
 
@@ -1055,8 +868,6 @@ func (e *ChaosEngine) applySafetyConstraints(experiment *Experiment) {
 
 }
 
-
-
 // registerExperiment registers an experiment as active.
 
 func (e *ChaosEngine) registerExperiment(experiment *Experiment) {
@@ -1065,15 +876,11 @@ func (e *ChaosEngine) registerExperiment(experiment *Experiment) {
 
 	defer e.mu.Unlock()
 
-
-
 	e.experiments[experiment.ID] = experiment
 
 	e.activeExperiments.Store(experiment.ID, experiment)
 
 }
-
-
 
 // unregisterExperiment removes an experiment from active list.
 
@@ -1083,15 +890,11 @@ func (e *ChaosEngine) unregisterExperiment(id string) {
 
 }
 
-
-
 // startMonitoring starts monitoring for SLA violations during experiment.
 
 func (e *ChaosEngine) startMonitoring(ctx context.Context, experiment *Experiment) <-chan SLAViolation {
 
 	violationChan := make(chan SLAViolation, 10)
-
-
 
 	go func() {
 
@@ -1100,8 +903,6 @@ func (e *ChaosEngine) startMonitoring(ctx context.Context, experiment *Experimen
 		defer ticker.Stop()
 
 		defer close(violationChan)
-
-
 
 		for {
 
@@ -1137,13 +938,9 @@ func (e *ChaosEngine) startMonitoring(ctx context.Context, experiment *Experimen
 
 	}()
 
-
-
 	return violationChan
 
 }
-
-
 
 // handleSLAViolation handles SLA violations during experiments.
 
@@ -1159,17 +956,12 @@ func (e *ChaosEngine) handleSLAViolation(experiment *Experiment, violation SLAVi
 
 		zap.Float64("actual", violation.ActualValue))
 
-
-
 	e.metrics.slaViolations.WithLabelValues(
 
 		string(experiment.Type),
 
 		violation.Metric,
-
 	).Inc()
-
-
 
 	// Auto-rollback if enabled and threshold breached.
 
@@ -1178,8 +970,6 @@ func (e *ChaosEngine) handleSLAViolation(experiment *Experiment, violation SLAVi
 		e.logger.Info("Triggering auto-rollback due to SLA violation",
 
 			zap.String("experiment", experiment.ID))
-
-
 
 		if err := e.rollbackExperiment(experiment); err != nil {
 
@@ -1195,8 +985,6 @@ func (e *ChaosEngine) handleSLAViolation(experiment *Experiment, violation SLAVi
 
 }
 
-
-
 // executeExperiment executes the actual chaos experiment.
 
 func (e *ChaosEngine) executeExperiment(
@@ -1211,13 +999,10 @@ func (e *ChaosEngine) executeExperiment(
 
 	result := &ExperimentResult{
 
-		Success:   true,
+		Success: true,
 
 		Artifacts: make(map[string]interface{}),
-
 	}
-
-
 
 	// Pre-experiment validation.
 
@@ -1232,8 +1017,6 @@ func (e *ChaosEngine) executeExperiment(
 		return result
 
 	}
-
-
 
 	// Inject failures based on experiment type.
 
@@ -1250,8 +1033,6 @@ func (e *ChaosEngine) executeExperiment(
 		return result
 
 	}
-
-
 
 	// Monitor experiment execution.
 
@@ -1273,13 +1054,9 @@ func (e *ChaosEngine) executeExperiment(
 
 	}()
 
-
-
 	// Collect metrics during experiment.
 
 	metricsCollector := e.startMetricsCollection(ctx, experiment)
-
-
 
 	// Wait for experiment completion or interruption.
 
@@ -1311,8 +1088,6 @@ func (e *ChaosEngine) executeExperiment(
 
 	}
 
-
-
 	// Stop failure injection.
 
 	if err := e.injector.StopFailure(ctx, injectionResult.InjectionID); err != nil {
@@ -1325,13 +1100,9 @@ func (e *ChaosEngine) executeExperiment(
 
 	}
 
-
-
 	// Collect final metrics.
 
 	result.SLAImpact = metricsCollector.GetImpactMetrics()
-
-
 
 	// Test recovery.
 
@@ -1341,35 +1112,27 @@ func (e *ChaosEngine) executeExperiment(
 
 	recoveryDuration := time.Since(recoveryStart)
 
-
-
 	result.RecoveryMetrics = RecoveryMetrics{
 
-		MTTR:                  recoveryDuration,
+		MTTR: recoveryDuration,
 
 		AutoRecoveryTriggered: recoveryResult.AutoRecoveryTriggered,
 
-		AutoRecoverySuccess:   recoveryResult.Success,
+		AutoRecoverySuccess: recoveryResult.Success,
 
-		ManualIntervention:    recoveryResult.ManualRequired,
+		ManualIntervention: recoveryResult.ManualRequired,
 
-		DataLoss:              recoveryResult.DataLoss,
+		DataLoss: recoveryResult.DataLoss,
 
-		ServiceDegradation:    recoveryResult.DegradedServices,
-
+		ServiceDegradation: recoveryResult.DegradedServices,
 	}
-
-
 
 	e.metrics.recoveryTime.WithLabelValues(
 
 		string(experiment.Type),
 
 		fmt.Sprintf("%v", recoveryResult.AutoRecoveryTriggered),
-
 	).Observe(recoveryDuration.Seconds())
-
-
 
 	// Post-experiment validation.
 
@@ -1383,13 +1146,9 @@ func (e *ChaosEngine) executeExperiment(
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // simulateExperiment simulates an experiment in dry-run mode.
 
@@ -1398,8 +1157,6 @@ func (e *ChaosEngine) simulateExperiment(ctx context.Context, experiment *Experi
 	e.logger.Info("Simulating experiment in dry-run mode",
 
 		zap.String("id", experiment.ID))
-
-
 
 	// Simulate expected impact based on experiment type and parameters.
 
@@ -1411,22 +1168,20 @@ func (e *ChaosEngine) simulateExperiment(ctx context.Context, experiment *Experi
 
 			AvailabilityImpact: e.simulateAvailabilityImpact(experiment),
 
-			LatencyP95Impact:   e.simulateLatencyImpact(experiment),
+			LatencyP95Impact: e.simulateLatencyImpact(experiment),
 
-			ThroughputImpact:   e.simulateThroughputImpact(experiment),
+			ThroughputImpact: e.simulateThroughputImpact(experiment),
 
-			ErrorRateImpact:    e.simulateErrorRateImpact(experiment),
-
+			ErrorRateImpact: e.simulateErrorRateImpact(experiment),
 		},
 
 		RecoveryMetrics: RecoveryMetrics{
 
-			MTTR:                  e.simulateMTTR(experiment),
+			MTTR: e.simulateMTTR(experiment),
 
 			AutoRecoveryTriggered: true,
 
-			AutoRecoverySuccess:   true,
-
+			AutoRecoverySuccess: true,
 		},
 
 		Observations: []string{
@@ -1436,26 +1191,18 @@ func (e *ChaosEngine) simulateExperiment(ctx context.Context, experiment *Experi
 			fmt.Sprintf("Expected availability impact: %.2f%%", e.simulateAvailabilityImpact(experiment)),
 
 			fmt.Sprintf("Expected latency impact: %v", e.simulateLatencyImpact(experiment)),
-
 		},
 
 		Artifacts: make(map[string]interface{}),
-
 	}
-
-
 
 	result.Artifacts["simulation"] = true
 
 	result.Artifacts["parameters"] = experiment.Parameters
 
-
-
 	return result
 
 }
-
-
 
 // Simulation helper methods.
 
@@ -1483,8 +1230,6 @@ func (e *ChaosEngine) simulateAvailabilityImpact(experiment *Experiment) float64
 
 	}
 
-
-
 	// Adjust based on blast radius.
 
 	radiusMultiplier := float64(experiment.BlastRadius.MaxPods) * 0.5
@@ -1492,8 +1237,6 @@ func (e *ChaosEngine) simulateAvailabilityImpact(experiment *Experiment) float64
 	return baseImpact * (1 + radiusMultiplier)
 
 }
-
-
 
 func (e *ChaosEngine) simulateLatencyImpact(experiment *Experiment) time.Duration {
 
@@ -1519,8 +1262,6 @@ func (e *ChaosEngine) simulateLatencyImpact(experiment *Experiment) time.Duratio
 
 }
 
-
-
 func (e *ChaosEngine) simulateThroughputImpact(experiment *Experiment) float64 {
 
 	baseImpact := 5.0
@@ -1534,8 +1275,6 @@ func (e *ChaosEngine) simulateThroughputImpact(experiment *Experiment) float64 {
 	return baseImpact
 
 }
-
-
 
 func (e *ChaosEngine) simulateErrorRateImpact(experiment *Experiment) float64 {
 
@@ -1561,8 +1300,6 @@ func (e *ChaosEngine) simulateErrorRateImpact(experiment *Experiment) float64 {
 
 }
 
-
-
 func (e *ChaosEngine) simulateMTTR(experiment *Experiment) time.Duration {
 
 	baseTime := 30 * time.Second
@@ -1577,8 +1314,6 @@ func (e *ChaosEngine) simulateMTTR(experiment *Experiment) time.Duration {
 
 }
 
-
-
 // rollbackExperiment performs experiment rollback.
 
 func (e *ChaosEngine) rollbackExperiment(experiment *Experiment) error {
@@ -1587,17 +1322,12 @@ func (e *ChaosEngine) rollbackExperiment(experiment *Experiment) error {
 
 		zap.String("id", experiment.ID))
 
-
-
 	e.metrics.rollbacksTotal.WithLabelValues(
 
 		string(experiment.Type),
 
 		"sla_violation",
-
 	).Inc()
-
-
 
 	// Stop all active injections for this experiment.
 
@@ -1607,8 +1337,6 @@ func (e *ChaosEngine) rollbackExperiment(experiment *Experiment) error {
 
 	}
 
-
-
 	// Trigger recovery procedures.
 
 	if err := e.recoveryTester.TriggerRecovery(context.Background(), experiment); err != nil {
@@ -1617,23 +1345,17 @@ func (e *ChaosEngine) rollbackExperiment(experiment *Experiment) error {
 
 	}
 
-
-
 	experiment.Status = StatusRolledBack
 
 	return nil
 
 }
 
-
-
 // generateRecommendations generates recommendations based on experiment results.
 
 func (e *ChaosEngine) generateRecommendations(result *ExperimentResult, experiment *Experiment) {
 
 	recommendations := []string{}
-
-
 
 	// Availability recommendations.
 
@@ -1645,8 +1367,6 @@ func (e *ChaosEngine) generateRecommendations(result *ExperimentResult, experime
 
 	}
 
-
-
 	// Latency recommendations.
 
 	if result.SLAImpact.LatencyP95Impact > 2*time.Second {
@@ -1656,8 +1376,6 @@ func (e *ChaosEngine) generateRecommendations(result *ExperimentResult, experime
 			"Implement circuit breakers to prevent latency cascades")
 
 	}
-
-
 
 	// Recovery recommendations.
 
@@ -1669,8 +1387,6 @@ func (e *ChaosEngine) generateRecommendations(result *ExperimentResult, experime
 
 	}
 
-
-
 	if !result.RecoveryMetrics.AutoRecoveryTriggered {
 
 		recommendations = append(recommendations,
@@ -1678,8 +1394,6 @@ func (e *ChaosEngine) generateRecommendations(result *ExperimentResult, experime
 			"Implement automatic recovery triggers for this failure type")
 
 	}
-
-
 
 	if result.RecoveryMetrics.ManualIntervention {
 
@@ -1689,13 +1403,9 @@ func (e *ChaosEngine) generateRecommendations(result *ExperimentResult, experime
 
 	}
 
-
-
 	result.Recommendations = recommendations
 
 }
-
-
 
 // startMetricsCollection starts metrics collection during experiment.
 
@@ -1705,15 +1415,12 @@ func (e *ChaosEngine) startMetricsCollection(ctx context.Context, experiment *Ex
 
 		experiment: experiment,
 
-		validator:  e.validator,
+		validator: e.validator,
 
-		startTime:  time.Now(),
+		startTime: time.Now(),
 
-		samples:    []MetricsSample{},
-
+		samples: []MetricsSample{},
 	}
-
-
 
 	go collector.Collect(ctx, e.config.MetricsInterval)
 
@@ -1721,15 +1428,11 @@ func (e *ChaosEngine) startMetricsCollection(ctx context.Context, experiment *Ex
 
 }
 
-
-
 // TriggerKillSwitch triggers the emergency kill switch.
 
 func (e *ChaosEngine) TriggerKillSwitch(reason string) error {
 
 	e.killSwitch.Trigger(reason)
-
-
 
 	// Stop all active experiments.
 
@@ -1751,21 +1454,15 @@ func (e *ChaosEngine) TriggerKillSwitch(reason string) error {
 
 	})
 
-
-
 	if len(errors) > 0 {
 
 		return fmt.Errorf("failed to stop some experiments: %v", errors)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetExperimentStatus returns the status of an experiment.
 
@@ -1774,8 +1471,6 @@ func (e *ChaosEngine) GetExperimentStatus(id string) (*Experiment, error) {
 	e.mu.RLock()
 
 	defer e.mu.RUnlock()
-
-
 
 	if exp, exists := e.experiments[id]; exists {
 
@@ -1787,8 +1482,6 @@ func (e *ChaosEngine) GetExperimentStatus(id string) (*Experiment, error) {
 
 }
 
-
-
 // ListExperiments lists all experiments.
 
 func (e *ChaosEngine) ListExperiments() []*Experiment {
@@ -1796,8 +1489,6 @@ func (e *ChaosEngine) ListExperiments() []*Experiment {
 	e.mu.RLock()
 
 	defer e.mu.RUnlock()
-
-
 
 	experiments := make([]*Experiment, 0, len(e.experiments))
 
@@ -1811,21 +1502,15 @@ func (e *ChaosEngine) ListExperiments() []*Experiment {
 
 }
 
-
-
 // Stop gracefully stops the chaos engine.
 
 func (e *ChaosEngine) Stop() error {
 
 	e.logger.Info("Stopping chaos engine")
 
-
-
 	// Cancel context to stop all goroutines.
 
 	e.cancel()
-
-
 
 	// Stop all active experiments.
 
@@ -1847,21 +1532,15 @@ func (e *ChaosEngine) Stop() error {
 
 	})
 
-
-
 	if len(errors) > 0 {
 
 		return fmt.Errorf("failed to stop some experiments: %v", errors)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // KillSwitch methods.
 
@@ -1877,8 +1556,6 @@ func (k *KillSwitch) Trigger(reason string) {
 
 }
 
-
-
 // IsTriggered performs istriggered operation.
 
 func (k *KillSwitch) IsTriggered() bool {
@@ -1891,8 +1568,6 @@ func (k *KillSwitch) IsTriggered() bool {
 
 }
 
-
-
 // GetReason performs getreason operation.
 
 func (k *KillSwitch) GetReason() string {
@@ -1904,8 +1579,6 @@ func (k *KillSwitch) GetReason() string {
 	return k.reason
 
 }
-
-
 
 // Reset performs reset operation.
 
@@ -1921,47 +1594,37 @@ func (k *KillSwitch) Reset() {
 
 }
 
-
-
 // MetricsCollector collects metrics during experiments.
 
 type MetricsCollector struct {
-
 	experiment *Experiment
 
-	validator  *ResilienceValidator
+	validator *ResilienceValidator
 
-	startTime  time.Time
+	startTime time.Time
 
-	samples    []MetricsSample
+	samples []MetricsSample
 
-	mu         sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // MetricsSample represents a single metrics sample.
 
 type MetricsSample struct {
-
-	Timestamp    time.Time
+	Timestamp time.Time
 
 	Availability float64
 
-	LatencyP50   time.Duration
+	LatencyP50 time.Duration
 
-	LatencyP95   time.Duration
+	LatencyP95 time.Duration
 
-	LatencyP99   time.Duration
+	LatencyP99 time.Duration
 
-	Throughput   float64
+	Throughput float64
 
-	ErrorRate    float64
-
+	ErrorRate float64
 }
-
-
 
 // Collect starts collecting metrics.
 
@@ -1970,8 +1633,6 @@ func (m *MetricsCollector) Collect(ctx context.Context, interval time.Duration) 
 	ticker := time.NewTicker(interval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1997,8 +1658,6 @@ func (m *MetricsCollector) Collect(ctx context.Context, interval time.Duration) 
 
 }
 
-
-
 // GetImpactMetrics calculates impact metrics from samples.
 
 func (m *MetricsCollector) GetImpactMetrics() SLAImpactMetrics {
@@ -2007,15 +1666,11 @@ func (m *MetricsCollector) GetImpactMetrics() SLAImpactMetrics {
 
 	defer m.mu.RUnlock()
 
-
-
 	if len(m.samples) == 0 {
 
 		return SLAImpactMetrics{}
 
 	}
-
-
 
 	// Calculate impact by comparing baseline with experiment samples.
 
@@ -2025,8 +1680,6 @@ func (m *MetricsCollector) GetImpactMetrics() SLAImpactMetrics {
 
 	var maxLatencyP50, maxLatencyP95, maxLatencyP99 time.Duration
 
-
-
 	for _, sample := range m.samples {
 
 		totalAvailability += sample.Availability
@@ -2034,8 +1687,6 @@ func (m *MetricsCollector) GetImpactMetrics() SLAImpactMetrics {
 		totalThroughput += sample.Throughput
 
 		totalErrorRate += sample.ErrorRate
-
-
 
 		if sample.LatencyP50 > maxLatencyP50 {
 
@@ -2057,29 +1708,24 @@ func (m *MetricsCollector) GetImpactMetrics() SLAImpactMetrics {
 
 	}
 
-
-
 	count := float64(len(m.samples))
 
 	return SLAImpactMetrics{
 
 		AvailabilityImpact: 100 - (totalAvailability / count),
 
-		LatencyP50Impact:   maxLatencyP50,
+		LatencyP50Impact: maxLatencyP50,
 
-		LatencyP95Impact:   maxLatencyP95,
+		LatencyP95Impact: maxLatencyP95,
 
-		LatencyP99Impact:   maxLatencyP99,
+		LatencyP99Impact: maxLatencyP99,
 
-		ThroughputImpact:   45 - (totalThroughput / count), // Assuming 45 intents/min baseline
+		ThroughputImpact: 45 - (totalThroughput / count), // Assuming 45 intents/min baseline
 
-		ErrorRateImpact:    totalErrorRate / count,
-
+		ErrorRateImpact: totalErrorRate / count,
 	}
 
 }
-
-
 
 // Helper function to generate experiment ID.
 
@@ -2088,4 +1734,3 @@ func generateExperimentID() string {
 	return fmt.Sprintf("exp-%d", time.Now().UnixNano())
 
 }
-

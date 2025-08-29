@@ -28,42 +28,22 @@ limitations under the License.
 
 */
 
-
-
-
 package optimization
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
-
 )
-
-
 
 // PerformanceManager handles performance optimization and scaling decisions.
 
 type PerformanceManager struct {
-
 	logger logr.Logger
-
-
 
 	// Resource monitoring.
 
@@ -73,49 +53,34 @@ type PerformanceManager struct {
 
 	scalingDecision *ScalingDecisionEngine
 
-
-
 	// Caching.
 
 	cacheManager *MultiLevelCacheManager
-
-
 
 	// Connection pooling.
 
 	connectionManager *ConnectionPoolManager
 
-
-
 	// Load balancing.
 
 	loadBalancer *LoadBalancer
-
-
 
 	// Performance profiles.
 
 	profiles map[string]*PerformanceProfile
 
-
-
 	// Configuration.
 
 	config *PerformanceConfig
 
-
-
 	// State.
 
-	started  bool
+	started bool
 
 	stopChan chan bool
 
-	mutex    sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // PerformanceConfig holds performance optimization configuration.
 
@@ -125,163 +90,128 @@ type PerformanceConfig struct {
 
 	MetricsCollectionInterval time.Duration `json:"metricsCollectionInterval"`
 
-	AnalysisInterval          time.Duration `json:"analysisInterval"`
-
-
+	AnalysisInterval time.Duration `json:"analysisInterval"`
 
 	// Scaling thresholds.
 
-	CPUScaleUpThreshold      float64       `json:"cpuScaleUpThreshold"`
+	CPUScaleUpThreshold float64 `json:"cpuScaleUpThreshold"`
 
-	CPUScaleDownThreshold    float64       `json:"cpuScaleDownThreshold"`
+	CPUScaleDownThreshold float64 `json:"cpuScaleDownThreshold"`
 
-	MemoryScaleUpThreshold   float64       `json:"memoryScaleUpThreshold"`
+	MemoryScaleUpThreshold float64 `json:"memoryScaleUpThreshold"`
 
-	MemoryScaleDownThreshold float64       `json:"memoryScaleDownThreshold"`
+	MemoryScaleDownThreshold float64 `json:"memoryScaleDownThreshold"`
 
-	QueueDepthThreshold      int           `json:"queueDepthThreshold"`
+	QueueDepthThreshold int `json:"queueDepthThreshold"`
 
-	ResponseTimeThreshold    time.Duration `json:"responseTimeThreshold"`
-
-
+	ResponseTimeThreshold time.Duration `json:"responseTimeThreshold"`
 
 	// Connection pool settings.
 
-	MaxConnectionsPerPool int           `json:"maxConnectionsPerPool"`
+	MaxConnectionsPerPool int `json:"maxConnectionsPerPool"`
 
 	ConnectionIdleTimeout time.Duration `json:"connectionIdleTimeout"`
 
 	ConnectionMaxLifetime time.Duration `json:"connectionMaxLifetime"`
 
-
-
 	// Cache settings.
 
-	L1CacheSize     int64         `json:"l1CacheSize"`
+	L1CacheSize int64 `json:"l1CacheSize"`
 
-	L2CacheSize     int64         `json:"l2CacheSize"`
+	L2CacheSize int64 `json:"l2CacheSize"`
 
 	DefaultCacheTTL time.Duration `json:"defaultCacheTTL"`
-
-
 
 	// Performance profiles.
 
 	Profiles map[string]PerformanceProfile `json:"profiles"`
-
 }
-
-
 
 // PerformanceProfile defines performance characteristics for different workloads.
 
 type PerformanceProfile struct {
+	Name string `json:"name"`
 
-	Name                    string          `json:"name"`
+	Description string `json:"description"`
 
-	Description             string          `json:"description"`
+	MaxConcurrentOperations int `json:"maxConcurrentOperations"`
 
-	MaxConcurrentOperations int             `json:"maxConcurrentOperations"`
+	TimeoutSettings TimeoutProfile `json:"timeoutSettings"`
 
-	TimeoutSettings         TimeoutProfile  `json:"timeoutSettings"`
+	CachingStrategy CachingProfile `json:"cachingStrategy"`
 
-	CachingStrategy         CachingProfile  `json:"cachingStrategy"`
+	ResourceLimits ResourceProfile `json:"resourceLimits"`
 
-	ResourceLimits          ResourceProfile `json:"resourceLimits"`
-
-	ScalingPolicy           ScalingProfile  `json:"scalingPolicy"`
-
+	ScalingPolicy ScalingProfile `json:"scalingPolicy"`
 }
-
-
 
 // TimeoutProfile defines timeout settings.
 
 type TimeoutProfile struct {
+	LLMProcessing time.Duration `json:"llmProcessing"`
 
-	LLMProcessing          time.Duration `json:"llmProcessing"`
+	ResourcePlanning time.Duration `json:"resourcePlanning"`
 
-	ResourcePlanning       time.Duration `json:"resourcePlanning"`
+	ManifestGeneration time.Duration `json:"manifestGeneration"`
 
-	ManifestGeneration     time.Duration `json:"manifestGeneration"`
-
-	GitOpsCommit           time.Duration `json:"gitOpsCommit"`
+	GitOpsCommit time.Duration `json:"gitOpsCommit"`
 
 	DeploymentVerification time.Duration `json:"deploymentVerification"`
-
 }
-
-
 
 // CachingProfile defines caching strategy.
 
 type CachingProfile struct {
+	EnableL1Cache bool `json:"enableL1Cache"`
 
-	EnableL1Cache      bool    `json:"enableL1Cache"`
+	EnableL2Cache bool `json:"enableL2Cache"`
 
-	EnableL2Cache      bool    `json:"enableL2Cache"`
+	EnableL3Cache bool `json:"enableL3Cache"`
 
-	EnableL3Cache      bool    `json:"enableL3Cache"`
+	TTLMultiplier float64 `json:"ttlMultiplier"`
 
-	TTLMultiplier      float64 `json:"ttlMultiplier"`
+	PrefetchEnabled bool `json:"prefetchEnabled"`
 
-	PrefetchEnabled    bool    `json:"prefetchEnabled"`
-
-	CompressionEnabled bool    `json:"compressionEnabled"`
-
+	CompressionEnabled bool `json:"compressionEnabled"`
 }
-
-
 
 // ResourceProfile defines resource allocation.
 
 type ResourceProfile struct {
+	CPURequest string `json:"cpuRequest"`
 
-	CPURequest    string `json:"cpuRequest"`
-
-	CPULimit      string `json:"cpuLimit"`
+	CPULimit string `json:"cpuLimit"`
 
 	MemoryRequest string `json:"memoryRequest"`
 
-	MemoryLimit   string `json:"memoryLimit"`
+	MemoryLimit string `json:"memoryLimit"`
 
-	MaxWorkers    int    `json:"maxWorkers"`
-
+	MaxWorkers int `json:"maxWorkers"`
 }
-
-
 
 // ScalingProfile defines scaling behavior.
 
 type ScalingProfile struct {
+	MinReplicas int `json:"minReplicas"`
 
-	MinReplicas     int           `json:"minReplicas"`
+	MaxReplicas int `json:"maxReplicas"`
 
-	MaxReplicas     int           `json:"maxReplicas"`
-
-	ScaleUpPolicy   ScalingPolicy `json:"scaleUpPolicy"`
+	ScaleUpPolicy ScalingPolicy `json:"scaleUpPolicy"`
 
 	ScaleDownPolicy ScalingPolicy `json:"scaleDownPolicy"`
-
 }
-
-
 
 // ScalingPolicy defines how scaling should occur.
 
 type ScalingPolicy struct {
+	MetricType string `json:"metricType"`
 
-	MetricType          string        `json:"metricType"`
-
-	TargetValue         float64       `json:"targetValue"`
+	TargetValue float64 `json:"targetValue"`
 
 	StabilizationWindow time.Duration `json:"stabilizationWindow"`
 
-	ScalingFactor       float64       `json:"scalingFactor"`
-
+	ScalingFactor float64 `json:"scalingFactor"`
 }
-
-
 
 // NewPerformanceManager creates a new performance manager.
 
@@ -289,17 +219,14 @@ func NewPerformanceManager(config *PerformanceConfig, logger logr.Logger) *Perfo
 
 	pm := &PerformanceManager{
 
-		logger:   logger.WithName("performance-manager"),
+		logger: logger.WithName("performance-manager"),
 
-		config:   config,
+		config: config,
 
 		profiles: make(map[string]*PerformanceProfile),
 
 		stopChan: make(chan bool),
-
 	}
-
-
 
 	// Initialize components.
 
@@ -315,19 +242,13 @@ func NewPerformanceManager(config *PerformanceConfig, logger logr.Logger) *Perfo
 
 	pm.loadBalancer = NewLoadBalancer(logger)
 
-
-
 	// Load performance profiles.
 
 	pm.loadPerformanceProfiles(config.Profiles)
 
-
-
 	return pm
 
 }
-
-
 
 // Start starts the performance manager.
 
@@ -337,15 +258,11 @@ func (pm *PerformanceManager) Start(ctx context.Context) error {
 
 	defer pm.mutex.Unlock()
 
-
-
 	if pm.started {
 
 		return fmt.Errorf("performance manager already started")
 
 	}
-
-
 
 	// Start all components.
 
@@ -355,23 +272,17 @@ func (pm *PerformanceManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	if err := pm.cacheManager.Start(ctx); err != nil {
 
 		return fmt.Errorf("failed to start cache manager: %w", err)
 
 	}
 
-
-
 	if err := pm.connectionManager.Start(ctx); err != nil {
 
 		return fmt.Errorf("failed to start connection manager: %w", err)
 
 	}
-
-
 
 	// Start performance monitoring and optimization loops.
 
@@ -381,19 +292,13 @@ func (pm *PerformanceManager) Start(ctx context.Context) error {
 
 	go pm.scalingDecisionLoop(ctx)
 
-
-
 	pm.started = true
 
 	pm.logger.Info("Performance manager started")
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the performance manager.
 
@@ -403,19 +308,13 @@ func (pm *PerformanceManager) Stop(ctx context.Context) error {
 
 	defer pm.mutex.Unlock()
 
-
-
 	if !pm.started {
 
 		return nil
 
 	}
 
-
-
 	pm.logger.Info("Stopping performance manager")
-
-
 
 	// Stop all components.
 
@@ -425,15 +324,11 @@ func (pm *PerformanceManager) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	if err := pm.cacheManager.Stop(ctx); err != nil {
 
 		pm.logger.Error(err, "Error stopping cache manager")
 
 	}
-
-
 
 	if err := pm.resourceMonitor.Stop(ctx); err != nil {
 
@@ -441,25 +336,17 @@ func (pm *PerformanceManager) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	// Signal stop to all loops.
 
 	close(pm.stopChan)
-
-
 
 	pm.started = false
 
 	pm.logger.Info("Performance manager stopped")
 
-
-
 	return nil
 
 }
-
-
 
 // OptimizeForProfile applies a performance profile to the system.
 
@@ -473,11 +360,7 @@ func (pm *PerformanceManager) OptimizeForProfile(ctx context.Context, profileNam
 
 	}
 
-
-
 	pm.logger.Info("Applying performance profile", "profile", profileName, "phase", phase)
-
-
 
 	// Apply caching strategy.
 
@@ -487,8 +370,6 @@ func (pm *PerformanceManager) OptimizeForProfile(ctx context.Context, profileNam
 
 	}
 
-
-
 	// Apply connection pool settings.
 
 	if err := pm.connectionManager.ApplyResourceProfile(profile.ResourceLimits); err != nil {
@@ -497,19 +378,13 @@ func (pm *PerformanceManager) OptimizeForProfile(ctx context.Context, profileNam
 
 	}
 
-
-
 	// Apply scaling policies.
 
 	pm.scalingDecision.ApplyScalingProfile(profile.ScalingPolicy)
 
-
-
 	return nil
 
 }
-
-
 
 // GetPerformanceRecommendations analyzes current performance and provides recommendations.
 
@@ -519,29 +394,22 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 
 	currentMetrics := pm.resourceMonitor.GetCurrentMetrics()
 
-
-
 	// Analyze performance.
 
 	analysis := pm.metricsAnalyzer.AnalyzePerformance(currentMetrics)
-
-
 
 	// Generate recommendations.
 
 	recommendations := &PerformanceRecommendations{
 
-		Timestamp:       time.Now(),
+		Timestamp: time.Now(),
 
-		CurrentMetrics:  currentMetrics,
+		CurrentMetrics: currentMetrics,
 
-		Analysis:        analysis,
+		Analysis: analysis,
 
 		Recommendations: make([]Recommendation, 0),
-
 	}
-
-
 
 	// CPU optimization recommendations.
 
@@ -549,31 +417,27 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 
 		recommendations.Recommendations = append(recommendations.Recommendations, Recommendation{
 
-			Type:        "scaling",
+			Type: "scaling",
 
-			Priority:    "high",
+			Priority: "high",
 
 			Description: "CPU utilization is high, consider scaling up workers",
 
-			Action:      "scale_up",
+			Action: "scale_up",
 
 			Parameters: map[string]interface{}{
 
-				"metric":     "cpu",
+				"metric": "cpu",
 
-				"current":    analysis.CPUUtilization,
+				"current": analysis.CPUUtilization,
 
-				"threshold":  pm.config.CPUScaleUpThreshold,
+				"threshold": pm.config.CPUScaleUpThreshold,
 
 				"suggestion": "increase worker count by 25%",
-
 			},
-
 		})
 
 	}
-
-
 
 	// Memory optimization recommendations.
 
@@ -581,29 +445,25 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 
 		recommendations.Recommendations = append(recommendations.Recommendations, Recommendation{
 
-			Type:        "resource",
+			Type: "resource",
 
-			Priority:    "medium",
+			Priority: "medium",
 
 			Description: "Memory utilization is high, consider optimizing caching",
 
-			Action:      "optimize_cache",
+			Action: "optimize_cache",
 
 			Parameters: map[string]interface{}{
 
-				"metric":     "memory",
+				"metric": "memory",
 
-				"current":    analysis.MemoryUtilization,
+				"current": analysis.MemoryUtilization,
 
 				"suggestion": "reduce cache size or implement compression",
-
 			},
-
 		})
 
 	}
-
-
 
 	// Queue depth recommendations.
 
@@ -611,31 +471,27 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 
 		recommendations.Recommendations = append(recommendations.Recommendations, Recommendation{
 
-			Type:        "scaling",
+			Type: "scaling",
 
-			Priority:    "high",
+			Priority: "high",
 
 			Description: "Queue depth is high, consider increasing processing capacity",
 
-			Action:      "scale_up",
+			Action: "scale_up",
 
 			Parameters: map[string]interface{}{
 
-				"metric":     "queue_depth",
+				"metric": "queue_depth",
 
-				"current":    analysis.MaxQueueDepth,
+				"current": analysis.MaxQueueDepth,
 
-				"threshold":  pm.config.QueueDepthThreshold,
+				"threshold": pm.config.QueueDepthThreshold,
 
 				"suggestion": "increase worker pools for bottleneck phases",
-
 			},
-
 		})
 
 	}
-
-
 
 	// Response time recommendations.
 
@@ -643,31 +499,27 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 
 		recommendations.Recommendations = append(recommendations.Recommendations, Recommendation{
 
-			Type:        "performance",
+			Type: "performance",
 
-			Priority:    "medium",
+			Priority: "medium",
 
 			Description: "Response time is degraded, consider optimization",
 
-			Action:      "optimize_performance",
+			Action: "optimize_performance",
 
 			Parameters: map[string]interface{}{
 
-				"metric":     "response_time",
+				"metric": "response_time",
 
-				"current":    analysis.AverageResponseTime.String(),
+				"current": analysis.AverageResponseTime.String(),
 
-				"threshold":  pm.config.ResponseTimeThreshold.String(),
+				"threshold": pm.config.ResponseTimeThreshold.String(),
 
 				"suggestion": "enable advanced caching and connection pooling",
-
 			},
-
 		})
 
 	}
-
-
 
 	// Cache optimization recommendations.
 
@@ -675,35 +527,29 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 
 		recommendations.Recommendations = append(recommendations.Recommendations, Recommendation{
 
-			Type:        "caching",
+			Type: "caching",
 
-			Priority:    "low",
+			Priority: "low",
 
 			Description: "Cache hit rate is low, consider tuning cache strategy",
 
-			Action:      "optimize_cache",
+			Action: "optimize_cache",
 
 			Parameters: map[string]interface{}{
 
-				"metric":     "cache_hit_rate",
+				"metric": "cache_hit_rate",
 
-				"current":    analysis.CacheHitRate,
+				"current": analysis.CacheHitRate,
 
 				"suggestion": "increase cache size or adjust TTL settings",
-
 			},
-
 		})
 
 	}
 
-
-
 	return recommendations, nil
 
 }
-
-
 
 // AutoOptimize automatically applies optimizations based on current performance.
 
@@ -717,11 +563,7 @@ func (pm *PerformanceManager) AutoOptimize(ctx context.Context) error {
 
 	}
 
-
-
 	pm.logger.Info("Applying auto-optimizations", "recommendationCount", len(recommendations.Recommendations))
-
-
 
 	for _, recommendation := range recommendations.Recommendations {
 
@@ -737,13 +579,9 @@ func (pm *PerformanceManager) AutoOptimize(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // metricsCollectionLoop continuously collects performance metrics.
 
@@ -753,11 +591,7 @@ func (pm *PerformanceManager) metricsCollectionLoop(ctx context.Context) {
 
 	defer ticker.Stop()
 
-
-
 	pm.logger.Info("Started metrics collection loop")
-
-
 
 	for {
 
@@ -767,15 +601,11 @@ func (pm *PerformanceManager) metricsCollectionLoop(ctx context.Context) {
 
 			pm.collectMetrics(ctx)
 
-
-
 		case <-pm.stopChan:
 
 			pm.logger.Info("Metrics collection loop stopped")
 
 			return
-
-
 
 		case <-ctx.Done():
 
@@ -789,8 +619,6 @@ func (pm *PerformanceManager) metricsCollectionLoop(ctx context.Context) {
 
 }
 
-
-
 // performanceAnalysisLoop continuously analyzes performance.
 
 func (pm *PerformanceManager) performanceAnalysisLoop(ctx context.Context) {
@@ -799,11 +627,7 @@ func (pm *PerformanceManager) performanceAnalysisLoop(ctx context.Context) {
 
 	defer ticker.Stop()
 
-
-
 	pm.logger.Info("Started performance analysis loop")
-
-
 
 	for {
 
@@ -813,15 +637,11 @@ func (pm *PerformanceManager) performanceAnalysisLoop(ctx context.Context) {
 
 			pm.analyzePerformance(ctx)
 
-
-
 		case <-pm.stopChan:
 
 			pm.logger.Info("Performance analysis loop stopped")
 
 			return
-
-
 
 		case <-ctx.Done():
 
@@ -835,8 +655,6 @@ func (pm *PerformanceManager) performanceAnalysisLoop(ctx context.Context) {
 
 }
 
-
-
 // scalingDecisionLoop makes scaling decisions based on performance metrics.
 
 func (pm *PerformanceManager) scalingDecisionLoop(ctx context.Context) {
@@ -845,11 +663,7 @@ func (pm *PerformanceManager) scalingDecisionLoop(ctx context.Context) {
 
 	defer ticker.Stop()
 
-
-
 	pm.logger.Info("Started scaling decision loop")
-
-
 
 	for {
 
@@ -859,15 +673,11 @@ func (pm *PerformanceManager) scalingDecisionLoop(ctx context.Context) {
 
 			pm.makeScalingDecisions(ctx)
 
-
-
 		case <-pm.stopChan:
 
 			pm.logger.Info("Scaling decision loop stopped")
 
 			return
-
-
 
 		case <-ctx.Done():
 
@@ -881,11 +691,7 @@ func (pm *PerformanceManager) scalingDecisionLoop(ctx context.Context) {
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (pm *PerformanceManager) loadPerformanceProfiles(profiles map[string]PerformanceProfile) {
 
@@ -897,8 +703,6 @@ func (pm *PerformanceManager) loadPerformanceProfiles(profiles map[string]Perfor
 
 	}
 
-
-
 	// Add default profiles if none exist.
 
 	if len(pm.profiles) == 0 {
@@ -907,13 +711,9 @@ func (pm *PerformanceManager) loadPerformanceProfiles(profiles map[string]Perfor
 
 	}
 
-
-
 	pm.logger.Info("Loaded performance profiles", "count", len(pm.profiles))
 
 }
-
-
 
 func (pm *PerformanceManager) addDefaultProfiles() {
 
@@ -921,37 +721,36 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 
 	pm.profiles["high-performance"] = &PerformanceProfile{
 
-		Name:                    "high-performance",
+		Name: "high-performance",
 
-		Description:             "Maximum performance for production workloads",
+		Description: "Maximum performance for production workloads",
 
 		MaxConcurrentOperations: 100,
 
 		TimeoutSettings: TimeoutProfile{
 
-			LLMProcessing:          30 * time.Second,
+			LLMProcessing: 30 * time.Second,
 
-			ResourcePlanning:       15 * time.Second,
+			ResourcePlanning: 15 * time.Second,
 
-			ManifestGeneration:     10 * time.Second,
+			ManifestGeneration: 10 * time.Second,
 
-			GitOpsCommit:           30 * time.Second,
+			GitOpsCommit: 30 * time.Second,
 
 			DeploymentVerification: 120 * time.Second,
-
 		},
 
 		CachingStrategy: CachingProfile{
 
-			EnableL1Cache:      true,
+			EnableL1Cache: true,
 
-			EnableL2Cache:      true,
+			EnableL2Cache: true,
 
-			EnableL3Cache:      true,
+			EnableL3Cache: true,
 
-			TTLMultiplier:      1.5,
+			TTLMultiplier: 1.5,
 
-			PrefetchEnabled:    true,
+			PrefetchEnabled: true,
 
 			CompressionEnabled: false, // Trade CPU for speed
 
@@ -959,16 +758,15 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 
 		ResourceLimits: ResourceProfile{
 
-			CPURequest:    "2",
+			CPURequest: "2",
 
-			CPULimit:      "4",
+			CPULimit: "4",
 
 			MemoryRequest: "4Gi",
 
-			MemoryLimit:   "8Gi",
+			MemoryLimit: "8Gi",
 
-			MaxWorkers:    20,
-
+			MaxWorkers: 20,
 		},
 
 		ScalingPolicy: ScalingProfile{
@@ -979,74 +777,66 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 
 			ScaleUpPolicy: ScalingPolicy{
 
-				MetricType:          "cpu",
+				MetricType: "cpu",
 
-				TargetValue:         70.0,
+				TargetValue: 70.0,
 
 				StabilizationWindow: 1 * time.Minute,
 
-				ScalingFactor:       1.5,
-
+				ScalingFactor: 1.5,
 			},
-
 		},
-
 	}
-
-
 
 	// Balanced profile.
 
 	pm.profiles["balanced"] = &PerformanceProfile{
 
-		Name:                    "balanced",
+		Name: "balanced",
 
-		Description:             "Balanced performance and resource usage",
+		Description: "Balanced performance and resource usage",
 
 		MaxConcurrentOperations: 50,
 
 		TimeoutSettings: TimeoutProfile{
 
-			LLMProcessing:          60 * time.Second,
+			LLMProcessing: 60 * time.Second,
 
-			ResourcePlanning:       30 * time.Second,
+			ResourcePlanning: 30 * time.Second,
 
-			ManifestGeneration:     20 * time.Second,
+			ManifestGeneration: 20 * time.Second,
 
-			GitOpsCommit:           60 * time.Second,
+			GitOpsCommit: 60 * time.Second,
 
 			DeploymentVerification: 180 * time.Second,
-
 		},
 
 		CachingStrategy: CachingProfile{
 
-			EnableL1Cache:      true,
+			EnableL1Cache: true,
 
-			EnableL2Cache:      true,
+			EnableL2Cache: true,
 
-			EnableL3Cache:      false,
+			EnableL3Cache: false,
 
-			TTLMultiplier:      1.0,
+			TTLMultiplier: 1.0,
 
-			PrefetchEnabled:    false,
+			PrefetchEnabled: false,
 
 			CompressionEnabled: true,
-
 		},
 
 		ResourceLimits: ResourceProfile{
 
-			CPURequest:    "1",
+			CPURequest: "1",
 
-			CPULimit:      "2",
+			CPULimit: "2",
 
 			MemoryRequest: "2Gi",
 
-			MemoryLimit:   "4Gi",
+			MemoryLimit: "4Gi",
 
-			MaxWorkers:    10,
-
+			MaxWorkers: 10,
 		},
 
 		ScalingPolicy: ScalingProfile{
@@ -1057,74 +847,66 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 
 			ScaleUpPolicy: ScalingPolicy{
 
-				MetricType:          "cpu",
+				MetricType: "cpu",
 
-				TargetValue:         80.0,
+				TargetValue: 80.0,
 
 				StabilizationWindow: 3 * time.Minute,
 
-				ScalingFactor:       1.25,
-
+				ScalingFactor: 1.25,
 			},
-
 		},
-
 	}
-
-
 
 	// Resource-efficient profile.
 
 	pm.profiles["efficient"] = &PerformanceProfile{
 
-		Name:                    "efficient",
+		Name: "efficient",
 
-		Description:             "Optimized for resource efficiency",
+		Description: "Optimized for resource efficiency",
 
 		MaxConcurrentOperations: 20,
 
 		TimeoutSettings: TimeoutProfile{
 
-			LLMProcessing:          120 * time.Second,
+			LLMProcessing: 120 * time.Second,
 
-			ResourcePlanning:       60 * time.Second,
+			ResourcePlanning: 60 * time.Second,
 
-			ManifestGeneration:     30 * time.Second,
+			ManifestGeneration: 30 * time.Second,
 
-			GitOpsCommit:           90 * time.Second,
+			GitOpsCommit: 90 * time.Second,
 
 			DeploymentVerification: 300 * time.Second,
-
 		},
 
 		CachingStrategy: CachingProfile{
 
-			EnableL1Cache:      true,
+			EnableL1Cache: true,
 
-			EnableL2Cache:      false,
+			EnableL2Cache: false,
 
-			EnableL3Cache:      false,
+			EnableL3Cache: false,
 
-			TTLMultiplier:      0.5,
+			TTLMultiplier: 0.5,
 
-			PrefetchEnabled:    false,
+			PrefetchEnabled: false,
 
 			CompressionEnabled: true,
-
 		},
 
 		ResourceLimits: ResourceProfile{
 
-			CPURequest:    "500m",
+			CPURequest: "500m",
 
-			CPULimit:      "1",
+			CPULimit: "1",
 
 			MemoryRequest: "1Gi",
 
-			MemoryLimit:   "2Gi",
+			MemoryLimit: "2Gi",
 
-			MaxWorkers:    5,
-
+			MaxWorkers: 5,
 		},
 
 		ScalingPolicy: ScalingProfile{
@@ -1135,23 +917,18 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 
 			ScaleUpPolicy: ScalingPolicy{
 
-				MetricType:          "memory",
+				MetricType: "memory",
 
-				TargetValue:         90.0,
+				TargetValue: 90.0,
 
 				StabilizationWindow: 5 * time.Minute,
 
-				ScalingFactor:       1.1,
-
+				ScalingFactor: 1.1,
 			},
-
 		},
-
 	}
 
 }
-
-
 
 func (pm *PerformanceManager) collectMetrics(ctx context.Context) {
 
@@ -1161,19 +938,13 @@ func (pm *PerformanceManager) collectMetrics(ctx context.Context) {
 
 }
 
-
-
 func (pm *PerformanceManager) analyzePerformance(ctx context.Context) {
 
 	pm.logger.V(1).Info("Analyzing performance")
 
-
-
 	metrics := pm.resourceMonitor.GetCurrentMetrics()
 
 	analysis := pm.metricsAnalyzer.AnalyzePerformance(metrics)
-
-
 
 	// Log significant performance issues.
 
@@ -1183,15 +954,11 @@ func (pm *PerformanceManager) analyzePerformance(ctx context.Context) {
 
 	}
 
-
-
 	if analysis.MemoryUtilization > pm.config.MemoryScaleUpThreshold {
 
 		pm.logger.Info("High memory utilization detected", "utilization", analysis.MemoryUtilization)
 
 	}
-
-
 
 	if analysis.MaxQueueDepth > pm.config.QueueDepthThreshold {
 
@@ -1201,19 +968,13 @@ func (pm *PerformanceManager) analyzePerformance(ctx context.Context) {
 
 }
 
-
-
 func (pm *PerformanceManager) makeScalingDecisions(ctx context.Context) {
 
 	pm.logger.V(1).Info("Making scaling decisions")
 
-
-
 	metrics := pm.resourceMonitor.GetCurrentMetrics()
 
 	decisions := pm.scalingDecision.EvaluateScaling(ctx, metrics)
-
-
 
 	for _, decision := range decisions {
 
@@ -1227,8 +988,6 @@ func (pm *PerformanceManager) makeScalingDecisions(ctx context.Context) {
 
 			"confidence", decision.Confidence)
 
-
-
 		// Apply scaling decisions (this would integrate with Kubernetes HPA or custom scaling logic).
 
 		if err := pm.applyScalingDecision(ctx, &decision); err != nil {
@@ -1241,8 +1000,6 @@ func (pm *PerformanceManager) makeScalingDecisions(ctx context.Context) {
 
 }
 
-
-
 func (pm *PerformanceManager) applyRecommendation(ctx context.Context, recommendation Recommendation) error {
 
 	pm.logger.Info("Applying performance recommendation",
@@ -1252,8 +1009,6 @@ func (pm *PerformanceManager) applyRecommendation(ctx context.Context, recommend
 		"action", recommendation.Action,
 
 		"priority", recommendation.Priority)
-
-
 
 	switch recommendation.Action {
 
@@ -1277,8 +1032,6 @@ func (pm *PerformanceManager) applyRecommendation(ctx context.Context, recommend
 
 }
 
-
-
 func (pm *PerformanceManager) handleScaleUpRecommendation(ctx context.Context, recommendation Recommendation) error {
 
 	// This would implement actual scaling logic.
@@ -1288,8 +1041,6 @@ func (pm *PerformanceManager) handleScaleUpRecommendation(ctx context.Context, r
 	return nil
 
 }
-
-
 
 func (pm *PerformanceManager) handleCacheOptimizationRecommendation(ctx context.Context, recommendation Recommendation) error {
 
@@ -1301,8 +1052,6 @@ func (pm *PerformanceManager) handleCacheOptimizationRecommendation(ctx context.
 
 }
 
-
-
 func (pm *PerformanceManager) handlePerformanceOptimizationRecommendation(ctx context.Context, recommendation Recommendation) error {
 
 	// This would implement general performance optimization.
@@ -1312,8 +1061,6 @@ func (pm *PerformanceManager) handlePerformanceOptimizationRecommendation(ctx co
 	return nil
 
 }
-
-
 
 func (pm *PerformanceManager) applyScalingDecision(ctx context.Context, decision *ScalingDecision) error {
 
@@ -1325,223 +1072,179 @@ func (pm *PerformanceManager) applyScalingDecision(ctx context.Context, decision
 
 }
 
-
-
 // Data structures.
-
-
 
 // PerformanceRecommendations contains performance analysis and recommendations.
 
 type PerformanceRecommendations struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp       time.Time            `json:"timestamp"`
+	CurrentMetrics *SystemMetrics `json:"currentMetrics"`
 
-	CurrentMetrics  *SystemMetrics       `json:"currentMetrics"`
+	Analysis *PerformanceAnalysis `json:"analysis"`
 
-	Analysis        *PerformanceAnalysis `json:"analysis"`
-
-	Recommendations []Recommendation     `json:"recommendations"`
-
+	Recommendations []Recommendation `json:"recommendations"`
 }
-
-
 
 // Recommendation represents a performance optimization recommendation.
 
 type Recommendation struct {
+	Type string `json:"type"` // scaling, caching, resource, performance
 
-	Type        string                 `json:"type"`     // scaling, caching, resource, performance
+	Priority string `json:"priority"` // low, medium, high, critical
 
-	Priority    string                 `json:"priority"` // low, medium, high, critical
+	Description string `json:"description"`
 
-	Description string                 `json:"description"`
+	Action string `json:"action"` // scale_up, scale_down, optimize_cache, etc.
 
-	Action      string                 `json:"action"` // scale_up, scale_down, optimize_cache, etc.
-
-	Parameters  map[string]interface{} `json:"parameters"`
-
-	Confidence  float64                `json:"confidence"` // 0.0 to 1.0
-
-}
-
-
-
-// SystemMetrics represents current system performance metrics.
-
-type SystemMetrics struct {
-
-	Timestamp         time.Time                                    `json:"timestamp"`
-
-	CPUUtilization    float64                                      `json:"cpuUtilization"`
-
-	MemoryUtilization float64                                      `json:"memoryUtilization"`
-
-	NetworkIO         NetworkIOMetrics                             `json:"networkIO"`
-
-	DiskIO            DiskIOMetrics                                `json:"diskIO"`
-
-	QueueDepths       map[interfaces.ProcessingPhase]int           `json:"queueDepths"`
-
-	ResponseTimes     map[interfaces.ProcessingPhase]time.Duration `json:"responseTimes"`
-
-	ThroughputRates   map[interfaces.ProcessingPhase]float64       `json:"throughputRates"`
-
-	ErrorRates        map[interfaces.ProcessingPhase]float64       `json:"errorRates"`
-
-	CacheMetrics      *CacheMetrics                                `json:"cacheMetrics"`
-
-	ConnectionMetrics *ConnectionMetrics                           `json:"connectionMetrics"`
-
-}
-
-
-
-// NetworkIOMetrics represents network I/O metrics.
-
-type NetworkIOMetrics struct {
-
-	BytesIn    int64 `json:"bytesIn"`
-
-	BytesOut   int64 `json:"bytesOut"`
-
-	PacketsIn  int64 `json:"packetsIn"`
-
-	PacketsOut int64 `json:"packetsOut"`
-
-}
-
-
-
-// DiskIOMetrics represents disk I/O metrics.
-
-type DiskIOMetrics struct {
-
-	BytesRead    int64 `json:"bytesRead"`
-
-	BytesWritten int64 `json:"bytesWritten"`
-
-	IOPSRead     int64 `json:"iopsRead"`
-
-	IOPSWrite    int64 `json:"iopsWrite"`
-
-}
-
-
-
-// CacheMetrics represents cache performance metrics.
-
-type CacheMetrics struct {
-
-	HitRate      float64 `json:"hitRate"`
-
-	MissRate     float64 `json:"missRate"`
-
-	EvictionRate float64 `json:"evictionRate"`
-
-	SizeBytes    int64   `json:"sizeBytes"`
-
-	ItemCount    int64   `json:"itemCount"`
-
-}
-
-
-
-// ConnectionMetrics represents connection pool metrics.
-
-type ConnectionMetrics struct {
-
-	TotalConnections  int `json:"totalConnections"`
-
-	ActiveConnections int `json:"activeConnections"`
-
-	IdleConnections   int `json:"idleConnections"`
-
-	FailedConnections int `json:"failedConnections"`
-
-}
-
-
-
-// PerformanceAnalysis represents the results of performance analysis.
-
-type PerformanceAnalysis struct {
-
-	OverallHealth       string                      `json:"overallHealth"` // healthy, degraded, unhealthy
-
-	CPUUtilization      float64                     `json:"cpuUtilization"`
-
-	MemoryUtilization   float64                     `json:"memoryUtilization"`
-
-	MaxQueueDepth       int                         `json:"maxQueueDepth"`
-
-	AverageResponseTime time.Duration               `json:"averageResponseTime"`
-
-	TotalThroughput     float64                     `json:"totalThroughput"`
-
-	OverallErrorRate    float64                     `json:"overallErrorRate"`
-
-	CacheHitRate        float64                     `json:"cacheHitRate"`
-
-	Bottlenecks         []PerformanceBottleneck     `json:"bottlenecks"`
-
-	Trends              map[string]PerformanceTrend `json:"trends"`
-
-}
-
-
-
-// PerformanceBottleneck identifies a performance bottleneck.
-
-type PerformanceBottleneck struct {
-
-	Phase       interfaces.ProcessingPhase `json:"phase"`
-
-	Type        string                     `json:"type"`     // cpu, memory, io, queue, external
-
-	Severity    string                     `json:"severity"` // low, medium, high, critical
-
-	Description string                     `json:"description"`
-
-	Impact      float64                    `json:"impact"` // 0.0 to 1.0
-
-}
-
-
-
-// PerformanceTrend represents a performance trend over time.
-
-type PerformanceTrend struct {
-
-	Metric     string  `json:"metric"`
-
-	Direction  string  `json:"direction"`  // improving, degrading, stable
-
-	Rate       float64 `json:"rate"`       // rate of change
+	Parameters map[string]interface{} `json:"parameters"`
 
 	Confidence float64 `json:"confidence"` // 0.0 to 1.0
 
 }
 
+// SystemMetrics represents current system performance metrics.
 
+type SystemMetrics struct {
+	Timestamp time.Time `json:"timestamp"`
+
+	CPUUtilization float64 `json:"cpuUtilization"`
+
+	MemoryUtilization float64 `json:"memoryUtilization"`
+
+	NetworkIO NetworkIOMetrics `json:"networkIO"`
+
+	DiskIO DiskIOMetrics `json:"diskIO"`
+
+	QueueDepths map[interfaces.ProcessingPhase]int `json:"queueDepths"`
+
+	ResponseTimes map[interfaces.ProcessingPhase]time.Duration `json:"responseTimes"`
+
+	ThroughputRates map[interfaces.ProcessingPhase]float64 `json:"throughputRates"`
+
+	ErrorRates map[interfaces.ProcessingPhase]float64 `json:"errorRates"`
+
+	CacheMetrics *CacheMetrics `json:"cacheMetrics"`
+
+	ConnectionMetrics *ConnectionMetrics `json:"connectionMetrics"`
+}
+
+// NetworkIOMetrics represents network I/O metrics.
+
+type NetworkIOMetrics struct {
+	BytesIn int64 `json:"bytesIn"`
+
+	BytesOut int64 `json:"bytesOut"`
+
+	PacketsIn int64 `json:"packetsIn"`
+
+	PacketsOut int64 `json:"packetsOut"`
+}
+
+// DiskIOMetrics represents disk I/O metrics.
+
+type DiskIOMetrics struct {
+	BytesRead int64 `json:"bytesRead"`
+
+	BytesWritten int64 `json:"bytesWritten"`
+
+	IOPSRead int64 `json:"iopsRead"`
+
+	IOPSWrite int64 `json:"iopsWrite"`
+}
+
+// CacheMetrics represents cache performance metrics.
+
+type CacheMetrics struct {
+	HitRate float64 `json:"hitRate"`
+
+	MissRate float64 `json:"missRate"`
+
+	EvictionRate float64 `json:"evictionRate"`
+
+	SizeBytes int64 `json:"sizeBytes"`
+
+	ItemCount int64 `json:"itemCount"`
+}
+
+// ConnectionMetrics represents connection pool metrics.
+
+type ConnectionMetrics struct {
+	TotalConnections int `json:"totalConnections"`
+
+	ActiveConnections int `json:"activeConnections"`
+
+	IdleConnections int `json:"idleConnections"`
+
+	FailedConnections int `json:"failedConnections"`
+}
+
+// PerformanceAnalysis represents the results of performance analysis.
+
+type PerformanceAnalysis struct {
+	OverallHealth string `json:"overallHealth"` // healthy, degraded, unhealthy
+
+	CPUUtilization float64 `json:"cpuUtilization"`
+
+	MemoryUtilization float64 `json:"memoryUtilization"`
+
+	MaxQueueDepth int `json:"maxQueueDepth"`
+
+	AverageResponseTime time.Duration `json:"averageResponseTime"`
+
+	TotalThroughput float64 `json:"totalThroughput"`
+
+	OverallErrorRate float64 `json:"overallErrorRate"`
+
+	CacheHitRate float64 `json:"cacheHitRate"`
+
+	Bottlenecks []PerformanceBottleneck `json:"bottlenecks"`
+
+	Trends map[string]PerformanceTrend `json:"trends"`
+}
+
+// PerformanceBottleneck identifies a performance bottleneck.
+
+type PerformanceBottleneck struct {
+	Phase interfaces.ProcessingPhase `json:"phase"`
+
+	Type string `json:"type"` // cpu, memory, io, queue, external
+
+	Severity string `json:"severity"` // low, medium, high, critical
+
+	Description string `json:"description"`
+
+	Impact float64 `json:"impact"` // 0.0 to 1.0
+
+}
+
+// PerformanceTrend represents a performance trend over time.
+
+type PerformanceTrend struct {
+	Metric string `json:"metric"`
+
+	Direction string `json:"direction"` // improving, degrading, stable
+
+	Rate float64 `json:"rate"` // rate of change
+
+	Confidence float64 `json:"confidence"` // 0.0 to 1.0
+
+}
 
 // ScalingDecision represents a scaling decision.
 
 type ScalingDecision struct {
+	Action string `json:"action"` // scale_up, scale_down, no_action
 
-	Action          string                     `json:"action"` // scale_up, scale_down, no_action
+	Phase interfaces.ProcessingPhase `json:"phase"` // which phase to scale
 
-	Phase           interfaces.ProcessingPhase `json:"phase"`  // which phase to scale
+	CurrentReplicas int `json:"currentReplicas"`
 
-	CurrentReplicas int                        `json:"currentReplicas"`
+	TargetReplicas int `json:"targetReplicas"`
 
-	TargetReplicas  int                        `json:"targetReplicas"`
+	Reason string `json:"reason"`
 
-	Reason          string                     `json:"reason"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence      float64                    `json:"confidence"`
-
-	Timestamp       time.Time                  `json:"timestamp"`
-
+	Timestamp time.Time `json:"timestamp"`
 }
-

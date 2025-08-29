@@ -4,22 +4,13 @@
 
 // to support comprehensive O-RAN interface integration testing.
 
-
 package validation
 
-
-
 import (
-
 	"fmt"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // NewRICMockService creates a new RIC mock service.
 
@@ -27,23 +18,21 @@ func NewRICMockService(endpoint string) *RICMockService {
 
 	return &RICMockService{
 
-		endpoint:      endpoint,
+		endpoint: endpoint,
 
-		policies:      make(map[string]*A1Policy),
+		policies: make(map[string]*A1Policy),
 
 		subscriptions: make(map[string]*E2Subscription),
 
-		xApps:         make(map[string]*XAppConfig),
+		xApps: make(map[string]*XAppConfig),
 
-		isHealthy:     true,
+		isHealthy: true,
 
-		latencySimMs:  50, // 50ms simulated latency
+		latencySimMs: 50, // 50ms simulated latency
 
 	}
 
 }
-
-
 
 // NewSMOMockService creates a new SMO mock service.
 
@@ -51,21 +40,19 @@ func NewSMOMockService(endpoint string) *SMOMockService {
 
 	return &SMOMockService{
 
-		endpoint:        endpoint,
+		endpoint: endpoint,
 
 		managedElements: make(map[string]*ManagedElement),
 
-		configurations:  make(map[string]*O1Configuration),
+		configurations: make(map[string]*O1Configuration),
 
-		isHealthy:       true,
+		isHealthy: true,
 
-		latencySimMs:    30, // 30ms simulated latency
+		latencySimMs: 30, // 30ms simulated latency
 
 	}
 
 }
-
-
 
 // NewE2MockService creates a new E2 mock service.
 
@@ -73,31 +60,25 @@ func NewE2MockService(endpoint string) *E2MockService {
 
 	return &E2MockService{
 
-		endpoint:       endpoint,
+		endpoint: endpoint,
 
 		connectedNodes: make(map[string]*E2Node),
 
-		subscriptions:  make(map[string]*E2Subscription),
+		subscriptions: make(map[string]*E2Subscription),
 
-		serviceModels:  make(map[string]*ServiceModel),
+		serviceModels: make(map[string]*ServiceModel),
 
-		isHealthy:      true,
+		isHealthy: true,
 
-		latencySimMs:   20, // 20ms simulated latency
+		latencySimMs: 20, // 20ms simulated latency
 
 	}
 
 }
 
-
-
 // RICMockService implementation.
 
-
-
 var ricMutex sync.RWMutex
-
-
 
 // CreatePolicy creates a new A1 policy.
 
@@ -107,13 +88,9 @@ func (rms *RICMockService) CreatePolicy(policy *A1Policy) error {
 
 	defer ricMutex.Unlock()
 
-
-
 	// Simulate processing latency.
 
 	time.Sleep(time.Duration(rms.latencySimMs) * time.Millisecond)
-
-
 
 	if !rms.isHealthy {
 
@@ -121,15 +98,11 @@ func (rms *RICMockService) CreatePolicy(policy *A1Policy) error {
 
 	}
 
-
-
 	if _, exists := rms.policies[policy.PolicyID]; exists {
 
 		return fmt.Errorf("policy %s already exists", policy.PolicyID)
 
 	}
-
-
 
 	policy.CreatedAt = time.Now()
 
@@ -137,15 +110,11 @@ func (rms *RICMockService) CreatePolicy(policy *A1Policy) error {
 
 	policy.Status = "ACTIVE"
 
-
-
 	rms.policies[policy.PolicyID] = policy
 
 	return nil
 
 }
-
-
 
 // GetPolicy retrieves an A1 policy.
 
@@ -155,19 +124,13 @@ func (rms *RICMockService) GetPolicy(policyID string) (*A1Policy, error) {
 
 	defer ricMutex.RUnlock()
 
-
-
 	time.Sleep(time.Duration(rms.latencySimMs) * time.Millisecond)
-
-
 
 	if !rms.isHealthy {
 
 		return nil, fmt.Errorf("RIC service is not healthy")
 
 	}
-
-
 
 	policy, exists := rms.policies[policyID]
 
@@ -177,13 +140,9 @@ func (rms *RICMockService) GetPolicy(policyID string) (*A1Policy, error) {
 
 	}
 
-
-
 	return policy, nil
 
 }
-
-
 
 // UpdatePolicy updates an A1 policy.
 
@@ -193,11 +152,7 @@ func (rms *RICMockService) UpdatePolicy(policy *A1Policy) error {
 
 	defer ricMutex.Unlock()
 
-
-
 	time.Sleep(time.Duration(rms.latencySimMs) * time.Millisecond)
-
-
 
 	if !rms.isHealthy {
 
@@ -205,15 +160,11 @@ func (rms *RICMockService) UpdatePolicy(policy *A1Policy) error {
 
 	}
 
-
-
 	if _, exists := rms.policies[policy.PolicyID]; !exists {
 
 		return fmt.Errorf("policy %s not found", policy.PolicyID)
 
 	}
-
-
 
 	policy.UpdatedAt = time.Now()
 
@@ -223,8 +174,6 @@ func (rms *RICMockService) UpdatePolicy(policy *A1Policy) error {
 
 }
 
-
-
 // DeletePolicy deletes an A1 policy.
 
 func (rms *RICMockService) DeletePolicy(policyID string) error {
@@ -233,11 +182,7 @@ func (rms *RICMockService) DeletePolicy(policyID string) error {
 
 	defer ricMutex.Unlock()
 
-
-
 	time.Sleep(time.Duration(rms.latencySimMs) * time.Millisecond)
-
-
 
 	if !rms.isHealthy {
 
@@ -245,23 +190,17 @@ func (rms *RICMockService) DeletePolicy(policyID string) error {
 
 	}
 
-
-
 	if _, exists := rms.policies[policyID]; !exists {
 
 		return fmt.Errorf("policy %s not found", policyID)
 
 	}
 
-
-
 	delete(rms.policies, policyID)
 
 	return nil
 
 }
-
-
 
 // DeployXApp deploys an xApp to the Near-RT RIC.
 
@@ -271,11 +210,7 @@ func (rms *RICMockService) DeployXApp(xappConfig *XAppConfig) error {
 
 	defer ricMutex.Unlock()
 
-
-
 	time.Sleep(time.Duration(rms.latencySimMs*2) * time.Millisecond) // Deployment takes longer
-
-
 
 	if !rms.isHealthy {
 
@@ -283,29 +218,21 @@ func (rms *RICMockService) DeployXApp(xappConfig *XAppConfig) error {
 
 	}
 
-
-
 	if _, exists := rms.xApps[xappConfig.Name]; exists {
 
 		return fmt.Errorf("xApp %s already deployed", xappConfig.Name)
 
 	}
 
-
-
 	xappConfig.Status = "RUNNING"
 
 	xappConfig.DeployedAt = time.Now()
-
-
 
 	rms.xApps[xappConfig.Name] = xappConfig
 
 	return nil
 
 }
-
-
 
 // GetXApp retrieves xApp configuration.
 
@@ -315,19 +242,13 @@ func (rms *RICMockService) GetXApp(name string) (*XAppConfig, error) {
 
 	defer ricMutex.RUnlock()
 
-
-
 	time.Sleep(time.Duration(rms.latencySimMs) * time.Millisecond)
-
-
 
 	if !rms.isHealthy {
 
 		return nil, fmt.Errorf("RIC service is not healthy")
 
 	}
-
-
 
 	xapp, exists := rms.xApps[name]
 
@@ -337,13 +258,9 @@ func (rms *RICMockService) GetXApp(name string) (*XAppConfig, error) {
 
 	}
 
-
-
 	return xapp, nil
 
 }
-
-
 
 // UndeployXApp undeploys an xApp from the Near-RT RIC.
 
@@ -353,11 +270,7 @@ func (rms *RICMockService) UndeployXApp(name string) error {
 
 	defer ricMutex.Unlock()
 
-
-
 	time.Sleep(time.Duration(rms.latencySimMs) * time.Millisecond)
-
-
 
 	if !rms.isHealthy {
 
@@ -365,23 +278,17 @@ func (rms *RICMockService) UndeployXApp(name string) error {
 
 	}
 
-
-
 	if _, exists := rms.xApps[name]; !exists {
 
 		return fmt.Errorf("xApp %s not found", name)
 
 	}
 
-
-
 	delete(rms.xApps, name)
 
 	return nil
 
 }
-
-
 
 // ListPolicies lists all A1 policies.
 
@@ -391,19 +298,13 @@ func (rms *RICMockService) ListPolicies() ([]*A1Policy, error) {
 
 	defer ricMutex.RUnlock()
 
-
-
 	time.Sleep(time.Duration(rms.latencySimMs) * time.Millisecond)
-
-
 
 	if !rms.isHealthy {
 
 		return nil, fmt.Errorf("RIC service is not healthy")
 
 	}
-
-
 
 	policies := make([]*A1Policy, 0, len(rms.policies))
 
@@ -413,13 +314,9 @@ func (rms *RICMockService) ListPolicies() ([]*A1Policy, error) {
 
 	}
 
-
-
 	return policies, nil
 
 }
-
-
 
 // ListXApps lists all deployed xApps.
 
@@ -429,19 +326,13 @@ func (rms *RICMockService) ListXApps() ([]*XAppConfig, error) {
 
 	defer ricMutex.RUnlock()
 
-
-
 	time.Sleep(time.Duration(rms.latencySimMs) * time.Millisecond)
-
-
 
 	if !rms.isHealthy {
 
 		return nil, fmt.Errorf("RIC service is not healthy")
 
 	}
-
-
 
 	xapps := make([]*XAppConfig, 0, len(rms.xApps))
 
@@ -451,13 +342,9 @@ func (rms *RICMockService) ListXApps() ([]*XAppConfig, error) {
 
 	}
 
-
-
 	return xapps, nil
 
 }
-
-
 
 // GetHealthStatus returns the health status of the RIC service.
 
@@ -471,8 +358,6 @@ func (rms *RICMockService) GetHealthStatus() bool {
 
 }
 
-
-
 // SetHealthStatus sets the health status of the RIC service.
 
 func (rms *RICMockService) SetHealthStatus(healthy bool) {
@@ -485,8 +370,6 @@ func (rms *RICMockService) SetHealthStatus(healthy bool) {
 
 }
 
-
-
 // Cleanup performs cleanup of RIC mock service resources.
 
 func (rms *RICMockService) Cleanup() {
@@ -494,8 +377,6 @@ func (rms *RICMockService) Cleanup() {
 	ricMutex.Lock()
 
 	defer ricMutex.Unlock()
-
-
 
 	// Clear all maps.
 
@@ -509,15 +390,9 @@ func (rms *RICMockService) Cleanup() {
 
 }
 
-
-
 // SMOMockService implementation.
 
-
-
 var smoMutex sync.RWMutex
-
-
 
 // AddManagedElement adds a managed element to SMO.
 
@@ -527,11 +402,7 @@ func (sms *SMOMockService) AddManagedElement(element *ManagedElement) error {
 
 	defer smoMutex.Unlock()
 
-
-
 	time.Sleep(time.Duration(sms.latencySimMs) * time.Millisecond)
-
-
 
 	if !sms.isHealthy {
 
@@ -539,15 +410,11 @@ func (sms *SMOMockService) AddManagedElement(element *ManagedElement) error {
 
 	}
 
-
-
 	if _, exists := sms.managedElements[element.ElementID]; exists {
 
 		return fmt.Errorf("managed element %s already exists", element.ElementID)
 
 	}
-
-
 
 	element.LastSync = time.Now()
 
@@ -556,8 +423,6 @@ func (sms *SMOMockService) AddManagedElement(element *ManagedElement) error {
 	return nil
 
 }
-
-
 
 // GetManagedElement retrieves a managed element.
 
@@ -567,19 +432,13 @@ func (sms *SMOMockService) GetManagedElement(elementID string) (*ManagedElement,
 
 	defer smoMutex.RUnlock()
 
-
-
 	time.Sleep(time.Duration(sms.latencySimMs) * time.Millisecond)
-
-
 
 	if !sms.isHealthy {
 
 		return nil, fmt.Errorf("SMO service is not healthy")
 
 	}
-
-
 
 	element, exists := sms.managedElements[elementID]
 
@@ -589,13 +448,9 @@ func (sms *SMOMockService) GetManagedElement(elementID string) (*ManagedElement,
 
 	}
 
-
-
 	return element, nil
 
 }
-
-
 
 // UpdateManagedElement updates a managed element.
 
@@ -605,11 +460,7 @@ func (sms *SMOMockService) UpdateManagedElement(element *ManagedElement) error {
 
 	defer smoMutex.Unlock()
 
-
-
 	time.Sleep(time.Duration(sms.latencySimMs) * time.Millisecond)
-
-
 
 	if !sms.isHealthy {
 
@@ -617,15 +468,11 @@ func (sms *SMOMockService) UpdateManagedElement(element *ManagedElement) error {
 
 	}
 
-
-
 	if _, exists := sms.managedElements[element.ElementID]; !exists {
 
 		return fmt.Errorf("managed element %s not found", element.ElementID)
 
 	}
-
-
 
 	element.LastSync = time.Now()
 
@@ -635,8 +482,6 @@ func (sms *SMOMockService) UpdateManagedElement(element *ManagedElement) error {
 
 }
 
-
-
 // RemoveManagedElement removes a managed element from SMO.
 
 func (sms *SMOMockService) RemoveManagedElement(elementID string) error {
@@ -645,11 +490,7 @@ func (sms *SMOMockService) RemoveManagedElement(elementID string) error {
 
 	defer smoMutex.Unlock()
 
-
-
 	time.Sleep(time.Duration(sms.latencySimMs) * time.Millisecond)
-
-
 
 	if !sms.isHealthy {
 
@@ -657,23 +498,17 @@ func (sms *SMOMockService) RemoveManagedElement(elementID string) error {
 
 	}
 
-
-
 	if _, exists := sms.managedElements[elementID]; !exists {
 
 		return fmt.Errorf("managed element %s not found", elementID)
 
 	}
 
-
-
 	delete(sms.managedElements, elementID)
 
 	return nil
 
 }
-
-
 
 // ApplyConfiguration applies O1 configuration to a managed element.
 
@@ -683,19 +518,13 @@ func (sms *SMOMockService) ApplyConfiguration(config *O1Configuration) error {
 
 	defer smoMutex.Unlock()
 
-
-
 	time.Sleep(time.Duration(sms.latencySimMs*2) * time.Millisecond) // Configuration takes longer
-
-
 
 	if !sms.isHealthy {
 
 		return fmt.Errorf("SMO service is not healthy")
 
 	}
-
-
 
 	// Check if managed element exists.
 
@@ -705,13 +534,9 @@ func (sms *SMOMockService) ApplyConfiguration(config *O1Configuration) error {
 
 	}
 
-
-
 	config.AppliedAt = time.Now()
 
 	sms.configurations[config.ConfigID] = config
-
-
 
 	// Update managed element configuration.
 
@@ -722,8 +547,6 @@ func (sms *SMOMockService) ApplyConfiguration(config *O1Configuration) error {
 		element.Configuration = make(map[string]interface{})
 
 	}
-
-
 
 	// Merge configuration based on type.
 
@@ -747,17 +570,11 @@ func (sms *SMOMockService) ApplyConfiguration(config *O1Configuration) error {
 
 	}
 
-
-
 	element.LastSync = time.Now()
-
-
 
 	return nil
 
 }
-
-
 
 // GetConfiguration retrieves O1 configuration.
 
@@ -767,19 +584,13 @@ func (sms *SMOMockService) GetConfiguration(configID string) (*O1Configuration, 
 
 	defer smoMutex.RUnlock()
 
-
-
 	time.Sleep(time.Duration(sms.latencySimMs) * time.Millisecond)
-
-
 
 	if !sms.isHealthy {
 
 		return nil, fmt.Errorf("SMO service is not healthy")
 
 	}
-
-
 
 	config, exists := sms.configurations[configID]
 
@@ -789,13 +600,9 @@ func (sms *SMOMockService) GetConfiguration(configID string) (*O1Configuration, 
 
 	}
 
-
-
 	return config, nil
 
 }
-
-
 
 // ListManagedElements lists all managed elements.
 
@@ -805,19 +612,13 @@ func (sms *SMOMockService) ListManagedElements() ([]*ManagedElement, error) {
 
 	defer smoMutex.RUnlock()
 
-
-
 	time.Sleep(time.Duration(sms.latencySimMs) * time.Millisecond)
-
-
 
 	if !sms.isHealthy {
 
 		return nil, fmt.Errorf("SMO service is not healthy")
 
 	}
-
-
 
 	elements := make([]*ManagedElement, 0, len(sms.managedElements))
 
@@ -827,13 +628,9 @@ func (sms *SMOMockService) ListManagedElements() ([]*ManagedElement, error) {
 
 	}
 
-
-
 	return elements, nil
 
 }
-
-
 
 // ListConfigurations lists all O1 configurations.
 
@@ -843,19 +640,13 @@ func (sms *SMOMockService) ListConfigurations() ([]*O1Configuration, error) {
 
 	defer smoMutex.RUnlock()
 
-
-
 	time.Sleep(time.Duration(sms.latencySimMs) * time.Millisecond)
-
-
 
 	if !sms.isHealthy {
 
 		return nil, fmt.Errorf("SMO service is not healthy")
 
 	}
-
-
 
 	configs := make([]*O1Configuration, 0, len(sms.configurations))
 
@@ -865,13 +656,9 @@ func (sms *SMOMockService) ListConfigurations() ([]*O1Configuration, error) {
 
 	}
 
-
-
 	return configs, nil
 
 }
-
-
 
 // GetHealthStatus returns the health status of the SMO service.
 
@@ -885,8 +672,6 @@ func (sms *SMOMockService) GetHealthStatus() bool {
 
 }
 
-
-
 // SetHealthStatus sets the health status of the SMO service.
 
 func (sms *SMOMockService) SetHealthStatus(healthy bool) {
@@ -899,8 +684,6 @@ func (sms *SMOMockService) SetHealthStatus(healthy bool) {
 
 }
 
-
-
 // Cleanup performs cleanup of SMO mock service resources.
 
 func (sms *SMOMockService) Cleanup() {
@@ -908,8 +691,6 @@ func (sms *SMOMockService) Cleanup() {
 	smoMutex.Lock()
 
 	defer smoMutex.Unlock()
-
-
 
 	// Clear all maps.
 
@@ -921,15 +702,9 @@ func (sms *SMOMockService) Cleanup() {
 
 }
 
-
-
 // E2MockService implementation.
 
-
-
 var e2Mutex sync.RWMutex
-
-
 
 // RegisterNode registers an E2 node.
 
@@ -939,11 +714,7 @@ func (ems *E2MockService) RegisterNode(node *E2Node) error {
 
 	defer e2Mutex.Unlock()
 
-
-
 	time.Sleep(time.Duration(ems.latencySimMs) * time.Millisecond)
-
-
 
 	if !ems.isHealthy {
 
@@ -951,15 +722,11 @@ func (ems *E2MockService) RegisterNode(node *E2Node) error {
 
 	}
 
-
-
 	if _, exists := ems.connectedNodes[node.NodeID]; exists {
 
 		return fmt.Errorf("E2 node %s already registered", node.NodeID)
 
 	}
-
-
 
 	node.Status = "CONNECTED"
 
@@ -971,8 +738,6 @@ func (ems *E2MockService) RegisterNode(node *E2Node) error {
 
 }
 
-
-
 // GetNode retrieves an E2 node.
 
 func (ems *E2MockService) GetNode(nodeID string) (*E2Node, error) {
@@ -981,19 +746,13 @@ func (ems *E2MockService) GetNode(nodeID string) (*E2Node, error) {
 
 	defer e2Mutex.RUnlock()
 
-
-
 	time.Sleep(time.Duration(ems.latencySimMs) * time.Millisecond)
-
-
 
 	if !ems.isHealthy {
 
 		return nil, fmt.Errorf("E2 service is not healthy")
 
 	}
-
-
 
 	node, exists := ems.connectedNodes[nodeID]
 
@@ -1003,13 +762,9 @@ func (ems *E2MockService) GetNode(nodeID string) (*E2Node, error) {
 
 	}
 
-
-
 	return node, nil
 
 }
-
-
 
 // UnregisterNode unregisters an E2 node.
 
@@ -1019,11 +774,7 @@ func (ems *E2MockService) UnregisterNode(nodeID string) error {
 
 	defer e2Mutex.Unlock()
 
-
-
 	time.Sleep(time.Duration(ems.latencySimMs) * time.Millisecond)
-
-
 
 	if !ems.isHealthy {
 
@@ -1031,15 +782,11 @@ func (ems *E2MockService) UnregisterNode(nodeID string) error {
 
 	}
 
-
-
 	if _, exists := ems.connectedNodes[nodeID]; !exists {
 
 		return fmt.Errorf("E2 node %s not found", nodeID)
 
 	}
-
-
 
 	// Update node status to disconnected before removing.
 
@@ -1051,8 +798,6 @@ func (ems *E2MockService) UnregisterNode(nodeID string) error {
 
 }
 
-
-
 // CreateSubscription creates an E2 subscription.
 
 func (ems *E2MockService) CreateSubscription(subscription *E2Subscription) error {
@@ -1061,19 +806,13 @@ func (ems *E2MockService) CreateSubscription(subscription *E2Subscription) error
 
 	defer e2Mutex.Unlock()
 
-
-
 	time.Sleep(time.Duration(ems.latencySimMs) * time.Millisecond)
-
-
 
 	if !ems.isHealthy {
 
 		return fmt.Errorf("E2 service is not healthy")
 
 	}
-
-
 
 	// Check if node exists.
 
@@ -1083,15 +822,11 @@ func (ems *E2MockService) CreateSubscription(subscription *E2Subscription) error
 
 	}
 
-
-
 	if _, exists := ems.subscriptions[subscription.SubscriptionID]; exists {
 
 		return fmt.Errorf("E2 subscription %s already exists", subscription.SubscriptionID)
 
 	}
-
-
 
 	subscription.Status = "ACTIVE"
 
@@ -1103,8 +838,6 @@ func (ems *E2MockService) CreateSubscription(subscription *E2Subscription) error
 
 }
 
-
-
 // GetSubscription retrieves an E2 subscription.
 
 func (ems *E2MockService) GetSubscription(subscriptionID string) (*E2Subscription, error) {
@@ -1113,19 +846,13 @@ func (ems *E2MockService) GetSubscription(subscriptionID string) (*E2Subscriptio
 
 	defer e2Mutex.RUnlock()
 
-
-
 	time.Sleep(time.Duration(ems.latencySimMs) * time.Millisecond)
-
-
 
 	if !ems.isHealthy {
 
 		return nil, fmt.Errorf("E2 service is not healthy")
 
 	}
-
-
 
 	subscription, exists := ems.subscriptions[subscriptionID]
 
@@ -1135,13 +862,9 @@ func (ems *E2MockService) GetSubscription(subscriptionID string) (*E2Subscriptio
 
 	}
 
-
-
 	return subscription, nil
 
 }
-
-
 
 // UpdateSubscription updates an E2 subscription.
 
@@ -1151,11 +874,7 @@ func (ems *E2MockService) UpdateSubscription(subscription *E2Subscription) error
 
 	defer e2Mutex.Unlock()
 
-
-
 	time.Sleep(time.Duration(ems.latencySimMs) * time.Millisecond)
-
-
 
 	if !ems.isHealthy {
 
@@ -1163,23 +882,17 @@ func (ems *E2MockService) UpdateSubscription(subscription *E2Subscription) error
 
 	}
 
-
-
 	if _, exists := ems.subscriptions[subscription.SubscriptionID]; !exists {
 
 		return fmt.Errorf("E2 subscription %s not found", subscription.SubscriptionID)
 
 	}
 
-
-
 	ems.subscriptions[subscription.SubscriptionID] = subscription
 
 	return nil
 
 }
-
-
 
 // DeleteSubscription deletes an E2 subscription.
 
@@ -1189,11 +902,7 @@ func (ems *E2MockService) DeleteSubscription(subscriptionID string) error {
 
 	defer e2Mutex.Unlock()
 
-
-
 	time.Sleep(time.Duration(ems.latencySimMs) * time.Millisecond)
-
-
 
 	if !ems.isHealthy {
 
@@ -1201,23 +910,17 @@ func (ems *E2MockService) DeleteSubscription(subscriptionID string) error {
 
 	}
 
-
-
 	if _, exists := ems.subscriptions[subscriptionID]; !exists {
 
 		return fmt.Errorf("E2 subscription %s not found", subscriptionID)
 
 	}
 
-
-
 	delete(ems.subscriptions, subscriptionID)
 
 	return nil
 
 }
-
-
 
 // RegisterServiceModel registers an E2 service model.
 
@@ -1227,19 +930,13 @@ func (ems *E2MockService) RegisterServiceModel(model *ServiceModel) error {
 
 	defer e2Mutex.Unlock()
 
-
-
 	time.Sleep(time.Duration(ems.latencySimMs) * time.Millisecond)
-
-
 
 	if !ems.isHealthy {
 
 		return fmt.Errorf("E2 service is not healthy")
 
 	}
-
-
 
 	modelKey := fmt.Sprintf("%s-%s", model.ModelName, model.Version)
 
@@ -1249,15 +946,11 @@ func (ems *E2MockService) RegisterServiceModel(model *ServiceModel) error {
 
 	}
 
-
-
 	ems.serviceModels[modelKey] = model
 
 	return nil
 
 }
-
-
 
 // GetServiceModel retrieves a service model.
 
@@ -1267,19 +960,13 @@ func (ems *E2MockService) GetServiceModel(modelName, version string) (*ServiceMo
 
 	defer e2Mutex.RUnlock()
 
-
-
 	time.Sleep(time.Duration(ems.latencySimMs) * time.Millisecond)
-
-
 
 	if !ems.isHealthy {
 
 		return nil, fmt.Errorf("E2 service is not healthy")
 
 	}
-
-
 
 	modelKey := fmt.Sprintf("%s-%s", modelName, version)
 
@@ -1291,13 +978,9 @@ func (ems *E2MockService) GetServiceModel(modelName, version string) (*ServiceMo
 
 	}
 
-
-
 	return model, nil
 
 }
-
-
 
 // ListNodes lists all connected E2 nodes.
 
@@ -1307,19 +990,13 @@ func (ems *E2MockService) ListNodes() ([]*E2Node, error) {
 
 	defer e2Mutex.RUnlock()
 
-
-
 	time.Sleep(time.Duration(ems.latencySimMs) * time.Millisecond)
-
-
 
 	if !ems.isHealthy {
 
 		return nil, fmt.Errorf("E2 service is not healthy")
 
 	}
-
-
 
 	nodes := make([]*E2Node, 0, len(ems.connectedNodes))
 
@@ -1329,13 +1006,9 @@ func (ems *E2MockService) ListNodes() ([]*E2Node, error) {
 
 	}
 
-
-
 	return nodes, nil
 
 }
-
-
 
 // ListSubscriptions lists all E2 subscriptions.
 
@@ -1345,19 +1018,13 @@ func (ems *E2MockService) ListSubscriptions() ([]*E2Subscription, error) {
 
 	defer e2Mutex.RUnlock()
 
-
-
 	time.Sleep(time.Duration(ems.latencySimMs) * time.Millisecond)
-
-
 
 	if !ems.isHealthy {
 
 		return nil, fmt.Errorf("E2 service is not healthy")
 
 	}
-
-
 
 	subscriptions := make([]*E2Subscription, 0, len(ems.subscriptions))
 
@@ -1367,13 +1034,9 @@ func (ems *E2MockService) ListSubscriptions() ([]*E2Subscription, error) {
 
 	}
 
-
-
 	return subscriptions, nil
 
 }
-
-
 
 // ListServiceModels lists all registered service models.
 
@@ -1383,19 +1046,13 @@ func (ems *E2MockService) ListServiceModels() ([]*ServiceModel, error) {
 
 	defer e2Mutex.RUnlock()
 
-
-
 	time.Sleep(time.Duration(ems.latencySimMs) * time.Millisecond)
-
-
 
 	if !ems.isHealthy {
 
 		return nil, fmt.Errorf("E2 service is not healthy")
 
 	}
-
-
 
 	models := make([]*ServiceModel, 0, len(ems.serviceModels))
 
@@ -1405,13 +1062,9 @@ func (ems *E2MockService) ListServiceModels() ([]*ServiceModel, error) {
 
 	}
 
-
-
 	return models, nil
 
 }
-
-
 
 // SendHeartbeat sends a heartbeat from an E2 node.
 
@@ -1421,19 +1074,13 @@ func (ems *E2MockService) SendHeartbeat(nodeID string) error {
 
 	defer e2Mutex.Unlock()
 
-
-
 	time.Sleep(time.Duration(ems.latencySimMs/10) * time.Millisecond) // Heartbeats are fast
-
-
 
 	if !ems.isHealthy {
 
 		return fmt.Errorf("E2 service is not healthy")
 
 	}
-
-
 
 	node, exists := ems.connectedNodes[nodeID]
 
@@ -1443,19 +1090,13 @@ func (ems *E2MockService) SendHeartbeat(nodeID string) error {
 
 	}
 
-
-
 	node.LastHeartbeat = time.Now()
 
 	node.Status = "CONNECTED"
 
-
-
 	return nil
 
 }
-
-
 
 // GetHealthStatus returns the health status of the E2 service.
 
@@ -1469,8 +1110,6 @@ func (ems *E2MockService) GetHealthStatus() bool {
 
 }
 
-
-
 // SetHealthStatus sets the health status of the E2 service.
 
 func (ems *E2MockService) SetHealthStatus(healthy bool) {
@@ -1483,8 +1122,6 @@ func (ems *E2MockService) SetHealthStatus(healthy bool) {
 
 }
 
-
-
 // Cleanup performs cleanup of E2 mock service resources.
 
 func (ems *E2MockService) Cleanup() {
@@ -1492,8 +1129,6 @@ func (ems *E2MockService) Cleanup() {
 	e2Mutex.Lock()
 
 	defer e2Mutex.Unlock()
-
-
 
 	// Clear all maps.
 
@@ -1506,4 +1141,3 @@ func (ems *E2MockService) Cleanup() {
 	ems.isHealthy = true
 
 }
-

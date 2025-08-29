@@ -1,57 +1,34 @@
-
 package controllers
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
-
-
 
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // Reconciler handles the main reconciliation logic for NetworkIntents.
 
 type Reconciler struct {
-
 	*NetworkIntentReconciler
 
-	llmProcessor    *LLMProcessor
+	llmProcessor *LLMProcessor
 
 	resourcePlanner *ResourcePlanner
 
-	gitopsHandler   *GitOpsHandler
-
+	gitopsHandler *GitOpsHandler
 }
-
-
 
 // Ensure Reconciler implements the required interfaces.
 
 var _ ReconcilerInterface = (*Reconciler)(nil)
-
-
 
 // NewReconciler creates a new Reconciler with all required components.
 
@@ -61,17 +38,14 @@ func NewReconciler(r *NetworkIntentReconciler) *Reconciler {
 
 		NetworkIntentReconciler: r,
 
-		llmProcessor:            NewLLMProcessor(r),
+		llmProcessor: NewLLMProcessor(r),
 
-		resourcePlanner:         NewResourcePlanner(r),
+		resourcePlanner: NewResourcePlanner(r),
 
-		gitopsHandler:           NewGitOpsHandler(r),
-
+		gitopsHandler: NewGitOpsHandler(r),
 	}
 
 }
-
-
 
 // Reconcile is the main reconciliation entry point.
 
@@ -79,15 +53,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	logger := log.FromContext(ctx)
 
-
-
 	// Add request ID for better tracking.
 
 	reqID := fmt.Sprintf("req-%d", time.Now().UnixNano())
 
 	logger = logger.WithValues("request_id", reqID)
-
-
 
 	// Check for context cancellation early.
 
@@ -103,11 +73,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	}
 
-
-
 	logger.V(1).Info("Starting reconciliation", "namespace", req.Namespace, "name", req.Name)
-
-
 
 	// Fetch the NetworkIntent instance with timeout.
 
@@ -129,8 +95,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	}
 
-
-
 	// Handle deletion with proper context checking.
 
 	if networkIntent.DeletionTimestamp != nil {
@@ -140,8 +104,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return r.handleDeletion(ctx, &networkIntent)
 
 	}
-
-
 
 	// Add finalizer if it doesn't exist, with context checking.
 
@@ -163,31 +125,24 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	}
 
-
-
 	// Initialize processing context.
 
 	processingCtx := &ProcessingContext{
 
-		StartTime:         time.Now(),
+		StartTime: time.Now(),
 
 		ExtractedEntities: make(map[string]interface{}),
 
-		TelecomContext:    make(map[string]interface{}),
+		TelecomContext: make(map[string]interface{}),
 
-		DeploymentStatus:  make(map[string]interface{}),
+		DeploymentStatus: make(map[string]interface{}),
 
-		Metrics:           make(map[string]float64),
-
+		Metrics: make(map[string]float64),
 	}
-
-
 
 	// Update observed generation.
 
 	networkIntent.Status.ObservedGeneration = networkIntent.Generation
-
-
 
 	// Initialize metrics collector.
 
@@ -201,13 +156,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	}
 
-
-
 	// Set status to processing in controller-runtime metrics.
 
 	r.metrics.SetStatus(networkIntent.Namespace, networkIntent.Name, "processing", StatusProcessing)
-
-
 
 	// Check if already completed to avoid unnecessary work.
 
@@ -218,8 +169,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 
 	}
-
-
 
 	// Execute multi-phase processing pipeline.
 
@@ -247,8 +196,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	}
 
-
-
 	if result.RequeueAfter > 0 {
 
 		logger.V(1).Info("Processing pipeline requires requeue", "requeue_after", result.RequeueAfter)
@@ -256,8 +203,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return result, nil
 
 	}
-
-
 
 	// Final status update.
 
@@ -269,8 +214,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	}
 
-
-
 	// Set Ready condition to True indicating successful completion of entire pipeline.
 
 	if err := r.setReadyCondition(ctx, &networkIntent, metav1.ConditionTrue, "AllPhasesCompleted", "All processing phases completed successfully and NetworkIntent is ready"); err != nil {
@@ -280,8 +223,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// Don't fail the reconciliation for this.
 
 	}
-
-
 
 	// Record success metrics.
 
@@ -299,13 +240,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	}
 
-
-
 	// Set status to ready in controller-runtime metrics.
 
 	r.metrics.SetStatus(networkIntent.Namespace, networkIntent.Name, "ready", StatusReady)
-
-
 
 	r.recordEvent(&networkIntent, "Normal", "ReconciliationCompleted",
 
@@ -321,21 +258,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		"request_id", reqID)
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // executeProcessingPipeline executes the multi-phase processing pipeline.
 
 func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, processingCtx *ProcessingContext) (ctrl.Result, error) {
 
 	logger := log.FromContext(ctx).WithValues("pipeline", "multi-phase")
-
-
 
 	// Phase 1: LLM Processing with RAG context retrieval.
 
@@ -345,35 +276,25 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 
 		phaseStartTime := time.Now()
 
-
-
 		if err := r.updatePhase(ctx, networkIntent, "LLMProcessing"); err != nil {
 
 			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update LLM processing phase: %w", err)
 
 		}
 
-
-
 		result, err := r.llmProcessor.ProcessLLMPhase(ctx, networkIntent, processingCtx)
-
-
 
 		// Record phase duration.
 
 		r.metrics.RecordProcessingDuration(networkIntent.Namespace, networkIntent.Name, "llm_processing", time.Since(phaseStartTime).Seconds())
 
-
-
-		if err != nil ||  result.RequeueAfter > 0 {
+		if err != nil || result.RequeueAfter > 0 {
 
 			return result, err
 
 		}
 
 	}
-
-
 
 	// Phase 2: Resource planning with telecom knowledge.
 
@@ -383,35 +304,25 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 
 		phaseStartTime := time.Now()
 
-
-
 		if err := r.updatePhase(ctx, networkIntent, "ResourcePlanning"); err != nil {
 
 			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update resource planning phase: %w", err)
 
 		}
 
-
-
 		result, err := r.resourcePlanner.PlanResources(ctx, networkIntent, processingCtx)
-
-
 
 		// Record phase duration.
 
 		r.metrics.RecordProcessingDuration(networkIntent.Namespace, networkIntent.Name, "resource_planning", time.Since(phaseStartTime).Seconds())
 
-
-
-		if err != nil ||  result.RequeueAfter > 0 {
+		if err != nil || result.RequeueAfter > 0 {
 
 			return result, err
 
 		}
 
 	}
-
-
 
 	// Phase 3: Deployment manifest generation.
 
@@ -421,35 +332,25 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 
 		phaseStartTime := time.Now()
 
-
-
 		if err := r.updatePhase(ctx, networkIntent, "ManifestGeneration"); err != nil {
 
 			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update manifest generation phase: %w", err)
 
 		}
 
-
-
 		result, err := r.resourcePlanner.GenerateManifests(ctx, networkIntent, processingCtx)
-
-
 
 		// Record phase duration.
 
 		r.metrics.RecordProcessingDuration(networkIntent.Namespace, networkIntent.Name, "manifest_generation", time.Since(phaseStartTime).Seconds())
 
-
-
-		if err != nil ||  result.RequeueAfter > 0 {
+		if err != nil || result.RequeueAfter > 0 {
 
 			return result, err
 
 		}
 
 	}
-
-
 
 	// Phase 4: GitOps commit and validation.
 
@@ -459,35 +360,25 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 
 		phaseStartTime := time.Now()
 
-
-
 		if err := r.updatePhase(ctx, networkIntent, "GitOpsCommit"); err != nil {
 
 			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update GitOps commit phase: %w", err)
 
 		}
 
-
-
 		result, err := r.gitopsHandler.CommitToGitOps(ctx, networkIntent, processingCtx)
-
-
 
 		// Record phase duration.
 
 		r.metrics.RecordProcessingDuration(networkIntent.Namespace, networkIntent.Name, "gitops_commit", time.Since(phaseStartTime).Seconds())
 
-
-
-		if err != nil ||  result.RequeueAfter > 0 {
+		if err != nil || result.RequeueAfter > 0 {
 
 			return result, err
 
 		}
 
 	}
-
-
 
 	// Phase 5: Deployment verification.
 
@@ -497,27 +388,19 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 
 		phaseStartTime := time.Now()
 
-
-
 		if err := r.updatePhase(ctx, networkIntent, "DeploymentVerification"); err != nil {
 
 			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update deployment verification phase: %w", err)
 
 		}
 
-
-
 		result, err := r.gitopsHandler.VerifyDeployment(ctx, networkIntent, processingCtx)
-
-
 
 		// Record phase duration.
 
 		r.metrics.RecordProcessingDuration(networkIntent.Namespace, networkIntent.Name, "deployment_verification", time.Since(phaseStartTime).Seconds())
 
-
-
-		if err != nil ||  result.RequeueAfter > 0 {
+		if err != nil || result.RequeueAfter > 0 {
 
 			return result, err
 
@@ -525,15 +408,11 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 
 	}
 
-
-
 	logger.Info("All phases completed successfully", "total_time", time.Since(processingCtx.StartTime))
 
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // isProcessingComplete checks if all processing phases are complete.
 
@@ -553,11 +432,7 @@ func (r *Reconciler) isProcessingComplete(networkIntent *nephoranv1.NetworkInten
 
 }
 
-
-
 // Interface implementation methods.
-
-
 
 // ExecuteProcessingPipeline implements ReconcilerInterface (expose existing method).
 
@@ -567,8 +442,6 @@ func (r *Reconciler) ExecuteProcessingPipeline(ctx context.Context, networkInten
 
 }
 
-
-
 // IsProcessingComplete implements ReconcilerInterface (expose existing method).
 
 func (r *Reconciler) IsProcessingComplete(networkIntent *nephoranv1.NetworkIntent) bool {
@@ -576,4 +449,3 @@ func (r *Reconciler) IsProcessingComplete(networkIntent *nephoranv1.NetworkInten
 	return r.isProcessingComplete(networkIntent)
 
 }
-

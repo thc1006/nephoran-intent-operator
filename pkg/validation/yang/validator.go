@@ -28,30 +28,15 @@ limitations under the License.
 
 */
 
-
-
-
 package yang
 
-
-
 import (
-
 	"context"
-
 	"time"
 
-
-
-	"github.com/prometheus/client_golang/prometheus"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
-
+	"github.com/prometheus/client_golang/prometheus"
 )
-
-
 
 // ValidatorConfig holds configuration for YANG validation.
 
@@ -59,61 +44,50 @@ type ValidatorConfig struct {
 
 	// Validation options.
 
-	EnableConstraintValidation bool          `yaml:"enableConstraintValidation"`
+	EnableConstraintValidation bool `yaml:"enableConstraintValidation"`
 
-	EnableDataTypeValidation   bool          `yaml:"enableDataTypeValidation"`
+	EnableDataTypeValidation bool `yaml:"enableDataTypeValidation"`
 
-	EnableMandatoryCheck       bool          `yaml:"enableMandatoryCheck"`
+	EnableMandatoryCheck bool `yaml:"enableMandatoryCheck"`
 
-	ValidationTimeout          time.Duration `yaml:"validationTimeout"`
+	ValidationTimeout time.Duration `yaml:"validationTimeout"`
 
-	MaxValidationDepth         int           `yaml:"maxValidationDepth"`
-
-
+	MaxValidationDepth int `yaml:"maxValidationDepth"`
 
 	// Model support.
 
-	EnableO_RANModels  bool     `yaml:"enableORANModels"`
+	EnableO_RANModels bool `yaml:"enableORANModels"`
 
-	Enable3GPPModels   bool     `yaml:"enable3GPPModels"`
+	Enable3GPPModels bool `yaml:"enable3GPPModels"`
 
-	EnableCustomModels bool     `yaml:"enableCustomModels"`
+	EnableCustomModels bool `yaml:"enableCustomModels"`
 
-	ModelSearchPaths   []string `yaml:"modelSearchPaths"`
-
-
+	ModelSearchPaths []string `yaml:"modelSearchPaths"`
 
 	// Performance options.
 
-	EnableCaching            bool          `yaml:"enableCaching"`
+	EnableCaching bool `yaml:"enableCaching"`
 
-	CacheSize                int           `yaml:"cacheSize"`
+	CacheSize int `yaml:"cacheSize"`
 
-	CacheTTL                 time.Duration `yaml:"cacheTTL"`
+	CacheTTL time.Duration `yaml:"cacheTTL"`
 
-	MaxConcurrentValidations int           `yaml:"maxConcurrentValidations"`
-
-
+	MaxConcurrentValidations int `yaml:"maxConcurrentValidations"`
 
 	// Metrics and monitoring.
 
-	EnableMetrics    bool   `yaml:"enableMetrics"`
+	EnableMetrics bool `yaml:"enableMetrics"`
 
 	MetricsNamespace string `yaml:"metricsNamespace"`
 
-
-
 	// Error handling.
 
-	StrictMode          bool `yaml:"strictMode"`
+	StrictMode bool `yaml:"strictMode"`
 
-	FailOnWarnings      bool `yaml:"failOnWarnings"`
+	FailOnWarnings bool `yaml:"failOnWarnings"`
 
-	MaxValidationErrors int  `yaml:"maxValidationErrors"`
-
+	MaxValidationErrors int `yaml:"maxValidationErrors"`
 }
-
-
 
 // DefaultValidatorConfig returns a default ValidatorConfig.
 
@@ -123,45 +97,42 @@ func DefaultValidatorConfig() *ValidatorConfig {
 
 		EnableConstraintValidation: true,
 
-		EnableDataTypeValidation:   true,
+		EnableDataTypeValidation: true,
 
-		EnableMandatoryCheck:       true,
+		EnableMandatoryCheck: true,
 
-		ValidationTimeout:          30 * time.Second,
+		ValidationTimeout: 30 * time.Second,
 
-		MaxValidationDepth:         100,
+		MaxValidationDepth: 100,
 
-		EnableO_RANModels:          true,
+		EnableO_RANModels: true,
 
-		Enable3GPPModels:           true,
+		Enable3GPPModels: true,
 
-		EnableCustomModels:         false,
+		EnableCustomModels: false,
 
-		ModelSearchPaths:           []string{"/etc/yang/models", "/usr/local/share/yang/models"},
+		ModelSearchPaths: []string{"/etc/yang/models", "/usr/local/share/yang/models"},
 
-		EnableCaching:              true,
+		EnableCaching: true,
 
-		CacheSize:                  1000,
+		CacheSize: 1000,
 
-		CacheTTL:                   60 * time.Minute,
+		CacheTTL: 60 * time.Minute,
 
-		MaxConcurrentValidations:   10,
+		MaxConcurrentValidations: 10,
 
-		EnableMetrics:              true,
+		EnableMetrics: true,
 
-		MetricsNamespace:           "yang_validator",
+		MetricsNamespace: "yang_validator",
 
-		StrictMode:                 false,
+		StrictMode: false,
 
-		FailOnWarnings:             false,
+		FailOnWarnings: false,
 
-		MaxValidationErrors:        50,
-
+		MaxValidationErrors: 50,
 	}
 
 }
-
-
 
 // YANGValidator defines the interface for YANG model validation.
 
@@ -171,67 +142,52 @@ type YANGValidator interface {
 
 	ValidatePackageRevision(ctx context.Context, pkg *porch.PackageRevision) (*ValidationResult, error)
 
-
-
 	// GetValidatorHealth returns the health status of the validator.
 
 	GetValidatorHealth(ctx context.Context) (*ValidatorHealth, error)
 
-
-
 	// Close gracefully shuts down the validator.
 
 	Close() error
-
 }
-
-
 
 // ValidatorHealth represents the health status of the YANG validator.
 
 type ValidatorHealth struct {
+	Status string `json:"status"` // healthy, degraded, unhealthy
 
-	Status            string        `json:"status"` // healthy, degraded, unhealthy
+	LastCheck time.Time `json:"lastCheck"`
 
-	LastCheck         time.Time     `json:"lastCheck"`
+	LoadedModels int `json:"loadedModels"`
 
-	LoadedModels      int           `json:"loadedModels"`
+	CacheHitRate float64 `json:"cacheHitRate"`
 
-	CacheHitRate      float64       `json:"cacheHitRate"`
+	ActiveValidations int `json:"activeValidations"`
 
-	ActiveValidations int           `json:"activeValidations"`
+	Errors []string `json:"errors,omitempty"`
 
-	Errors            []string      `json:"errors,omitempty"`
+	Warnings []string `json:"warnings,omitempty"`
 
-	Warnings          []string      `json:"warnings,omitempty"`
+	Uptime time.Duration `json:"uptime"`
 
-	Uptime            time.Duration `json:"uptime"`
-
-	Version           string        `json:"version,omitempty"`
-
+	Version string `json:"version,omitempty"`
 }
-
-
 
 // ValidatorMetrics implements metrics tracking for YANG validation processes.
 
 type ValidatorMetrics struct {
-
-	ValidationsTotal   prometheus.Counter
+	ValidationsTotal prometheus.Counter
 
 	ValidationDuration prometheus.Histogram
 
-	ValidationErrors   *prometheus.CounterVec
+	ValidationErrors *prometheus.CounterVec
 
-	ModelsLoaded       prometheus.Gauge
+	ModelsLoaded prometheus.Gauge
 
-	CacheHitRate       prometheus.Gauge
+	CacheHitRate prometheus.Gauge
 
-	ActiveValidations  prometheus.Gauge
-
+	ActiveValidations prometheus.Gauge
 }
-
-
 
 // Create a new ValidatorMetrics instance.
 
@@ -244,17 +200,15 @@ func newValidatorMetrics() *ValidatorMetrics {
 			Name: "yang_validations_total",
 
 			Help: "Total number of YANG validations performed",
-
 		}),
 
 		ValidationDuration: prometheus.NewHistogram(prometheus.HistogramOpts{
 
-			Name:    "yang_validation_duration_seconds",
+			Name: "yang_validation_duration_seconds",
 
-			Help:    "Duration of YANG validation processes",
+			Help: "Duration of YANG validation processes",
 
 			Buckets: prometheus.DefBuckets,
-
 		}),
 
 		ValidationErrors: prometheus.NewCounterVec(
@@ -264,11 +218,9 @@ func newValidatorMetrics() *ValidatorMetrics {
 				Name: "yang_validation_errors_total",
 
 				Help: "Total number of YANG validation errors",
-
 			},
 
 			[]string{"type"},
-
 		),
 
 		ModelsLoaded: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -276,7 +228,6 @@ func newValidatorMetrics() *ValidatorMetrics {
 			Name: "yang_models_loaded",
 
 			Help: "Number of YANG models currently loaded",
-
 		}),
 
 		CacheHitRate: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -284,7 +235,6 @@ func newValidatorMetrics() *ValidatorMetrics {
 			Name: "yang_cache_hit_rate",
 
 			Help: "Cache hit rate for YANG model validations",
-
 		}),
 
 		ActiveValidations: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -292,68 +242,48 @@ func newValidatorMetrics() *ValidatorMetrics {
 			Name: "yang_active_validations",
 
 			Help: "Number of currently active YANG validations",
-
 		}),
-
 	}
 
 }
 
-
-
 // Custom type for package revision resource.
 
 type PackageResource struct {
-
 	Kind string
 
 	Data interface{}
-
 }
-
-
 
 // Structure definitions.
 
 type ValidationResult struct {
+	Valid bool
 
-	Valid          bool
-
-	ModelName      string
+	ModelName string
 
 	ValidationTime time.Time
 
-	Errors         []*ValidationError
-
+	Errors []*ValidationError
 }
-
-
 
 // ValidationError represents a validationerror.
 
 type ValidationError struct {
-
-	Code    string
+	Code string
 
 	Message string
-
 }
-
-
 
 // yangValidator implements the YANGValidator interface.
 
 type yangValidator struct {
+	config *ValidatorConfig
 
-	config    *ValidatorConfig
-
-	metrics   *ValidatorMetrics
+	metrics *ValidatorMetrics
 
 	startTime time.Time
-
 }
-
-
 
 // NewYANGValidator creates a new YANG validator.
 
@@ -365,21 +295,16 @@ func NewYANGValidator(config *ValidatorConfig) (YANGValidator, error) {
 
 	}
 
-
-
 	return &yangValidator{
 
-		config:    config,
+		config: config,
 
-		metrics:   newValidatorMetrics(),
+		metrics: newValidatorMetrics(),
 
 		startTime: time.Now(),
-
 	}, nil
 
 }
-
-
 
 // Additional modifications for resource validation.
 
@@ -387,17 +312,12 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 
 	result := &ValidationResult{
 
-		ModelName:      pkg.ObjectMeta.Name,
+		ModelName: pkg.ObjectMeta.Name,
 
 		ValidationTime: time.Now(),
-
 	}
 
-
-
 	configData := make(map[string]interface{})
-
-
 
 	for _, resource := range pkg.Spec.Resources {
 
@@ -422,17 +342,15 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 						Kind: kindStr,
 
 						Data: r["data"],
-
 					}
 
 				} else {
 
 					result.Errors = append(result.Errors, &ValidationError{
 
-						Code:    "INVALID_KIND_TYPE",
+						Code: "INVALID_KIND_TYPE",
 
 						Message: "Resource kind is not a string",
-
 					})
 
 					continue
@@ -443,10 +361,9 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 
 				result.Errors = append(result.Errors, &ValidationError{
 
-					Code:    "MISSING_KIND",
+					Code: "MISSING_KIND",
 
 					Message: "Resource missing kind field",
-
 				})
 
 				continue
@@ -457,17 +374,14 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 
 			result.Errors = append(result.Errors, &ValidationError{
 
-				Code:    "INVALID_RESOURCE_TYPE",
+				Code: "INVALID_RESOURCE_TYPE",
 
 				Message: "Unable to parse resource type",
-
 			})
 
 			continue
 
 		}
-
-
 
 		if res.Kind == "ConfigMap" {
 
@@ -477,17 +391,14 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 
 				result.Errors = append(result.Errors, &ValidationError{
 
-					Code:    "INVALID_CONFIGMAP_DATA",
+					Code: "INVALID_CONFIGMAP_DATA",
 
 					Message: "ConfigMap data is not a map",
-
 				})
 
 				continue
 
 			}
-
-
 
 			config, exists := dataMap["config"]
 
@@ -497,25 +408,20 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 
 			}
 
-
-
 			configMapData, ok := config.(map[string]interface{})
 
 			if !ok {
 
 				result.Errors = append(result.Errors, &ValidationError{
 
-					Code:    "INVALID_CONFIG_DATA",
+					Code: "INVALID_CONFIG_DATA",
 
 					Message: "ConfigMap config is not a map",
-
 				})
 
 				continue
 
 			}
-
-
 
 			for k, v := range configMapData {
 
@@ -527,19 +433,13 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 
 	}
 
-
-
 	// Mark result as valid if no errors.
 
 	result.Valid = len(result.Errors) == 0
 
-
-
 	return result, nil
 
 }
-
-
 
 // GetValidatorHealth returns the health status of the validator.
 
@@ -547,25 +447,22 @@ func (v *yangValidator) GetValidatorHealth(ctx context.Context) (*ValidatorHealt
 
 	return &ValidatorHealth{
 
-		Status:            "healthy",
+		Status: "healthy",
 
-		LastCheck:         time.Now(),
+		LastCheck: time.Now(),
 
-		Uptime:            time.Since(v.startTime),
+		Uptime: time.Since(v.startTime),
 
-		LoadedModels:      0,   // This would be populated based on actual loaded models
+		LoadedModels: 0, // This would be populated based on actual loaded models
 
-		CacheHitRate:      0.0, // This would be calculated from actual cache metrics
+		CacheHitRate: 0.0, // This would be calculated from actual cache metrics
 
-		ActiveValidations: 0,   // This would be tracked during validation
+		ActiveValidations: 0, // This would be tracked during validation
 
-		Version:           "1.0.0",
-
+		Version: "1.0.0",
 	}, nil
 
 }
-
-
 
 // Close gracefully shuts down the validator.
 
@@ -576,4 +473,3 @@ func (v *yangValidator) Close() error {
 	return nil
 
 }
-

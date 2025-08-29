@@ -1,27 +1,15 @@
 // Package security provides secure HTTP configurations.
 
-
 package security
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"net"
-
 	"net/http"
-
 	"net/url"
-
 	"time"
-
 )
-
-
 
 // SecureHTTPClient creates an HTTP client with security best practices.
 
@@ -33,43 +21,37 @@ func SecureHTTPClient(timeout time.Duration) *http.Client {
 
 	}
 
-
-
 	transport := &http.Transport{
 
 		Proxy: http.ProxyFromEnvironment,
 
 		DialContext: (&net.Dialer{
 
-			Timeout:   30 * time.Second,
+			Timeout: 30 * time.Second,
 
 			KeepAlive: 30 * time.Second,
-
 		}).DialContext,
 
-		ForceAttemptHTTP2:     true,
+		ForceAttemptHTTP2: true,
 
-		MaxIdleConns:          100,
+		MaxIdleConns: 100,
 
-		MaxIdleConnsPerHost:   10,
+		MaxIdleConnsPerHost: 10,
 
-		IdleConnTimeout:       90 * time.Second,
+		IdleConnTimeout: 90 * time.Second,
 
-		TLSHandshakeTimeout:   10 * time.Second,
+		TLSHandshakeTimeout: 10 * time.Second,
 
 		ExpectContinueTimeout: 1 * time.Second,
 
-		DisableCompression:    false,
+		DisableCompression: false,
 
-		DisableKeepAlives:     false,
-
+		DisableKeepAlives: false,
 	}
-
-
 
 	return &http.Client{
 
-		Timeout:   timeout,
+		Timeout: timeout,
 
 		Transport: transport,
 
@@ -86,12 +68,9 @@ func SecureHTTPClient(timeout time.Duration) *http.Client {
 			return nil
 
 		},
-
 	}
 
 }
-
-
 
 // ValidateURL validates and sanitizes URLs to prevent injection attacks.
 
@@ -107,8 +86,6 @@ func ValidateURL(rawURL string) (*url.URL, error) {
 
 	}
 
-
-
 	// Validate scheme (only allow http/https).
 
 	if u.Scheme != "http" && u.Scheme != "https" {
@@ -116,8 +93,6 @@ func ValidateURL(rawURL string) (*url.URL, error) {
 		return nil, fmt.Errorf("invalid URL scheme: %s", u.Scheme)
 
 	}
-
-
 
 	// Check for suspicious patterns.
 
@@ -127,8 +102,6 @@ func ValidateURL(rawURL string) (*url.URL, error) {
 
 	}
 
-
-
 	// Validate host.
 
 	if u.Host == "" {
@@ -136,8 +109,6 @@ func ValidateURL(rawURL string) (*url.URL, error) {
 		return nil, fmt.Errorf("URL must have a host")
 
 	}
-
-
 
 	// Check for local addresses (prevent SSRF).
 
@@ -147,13 +118,9 @@ func ValidateURL(rawURL string) (*url.URL, error) {
 
 	}
 
-
-
 	return u, nil
 
 }
-
-
 
 // isLocalAddress checks if the address is a local/private address.
 
@@ -169,8 +136,6 @@ func isLocalAddress(host string) bool {
 
 	}
 
-
-
 	// Check common local hostnames.
 
 	localHosts := []string{
@@ -182,10 +147,7 @@ func isLocalAddress(host string) bool {
 		"::1",
 
 		"0.0.0.0",
-
 	}
-
-
 
 	for _, localHost := range localHosts {
 
@@ -197,8 +159,6 @@ func isLocalAddress(host string) bool {
 
 	}
 
-
-
 	// Parse IP and check if it's private.
 
 	ip := net.ParseIP(hostname)
@@ -209,13 +169,9 @@ func isLocalAddress(host string) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // SecureHTTPServer creates an HTTP server with security best practices.
 
@@ -223,23 +179,19 @@ func SecureHTTPServer(addr string, handler http.Handler) *http.Server {
 
 	return &http.Server{
 
-		Addr:    addr,
+		Addr: addr,
 
 		Handler: SecurityHeadersMiddleware(handler),
 
-
-
 		// Timeouts to prevent DoS attacks.
 
-		ReadTimeout:       15 * time.Second,
+		ReadTimeout: 15 * time.Second,
 
 		ReadHeaderTimeout: 10 * time.Second,
 
-		WriteTimeout:      15 * time.Second,
+		WriteTimeout: 15 * time.Second,
 
-		IdleTimeout:       60 * time.Second,
-
-
+		IdleTimeout: 60 * time.Second,
 
 		// Limits.
 
@@ -248,8 +200,6 @@ func SecureHTTPServer(addr string, handler http.Handler) *http.Server {
 	}
 
 }
-
-
 
 // SecurityHeadersMiddleware adds security headers to HTTP responses.
 
@@ -273,29 +223,21 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 
 		w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 
-
-
 		next.ServeHTTP(w, r)
 
 	})
 
 }
 
-
-
 // RateLimitMiddleware implements basic rate limiting.
 
 type RateLimiter struct {
-
 	requests map[string][]time.Time
 
-	limit    int
+	limit int
 
-	window   time.Duration
-
+	window time.Duration
 }
-
-
 
 // NewRateLimiter creates a new rate limiter.
 
@@ -305,15 +247,12 @@ func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
 
 		requests: make(map[string][]time.Time),
 
-		limit:    limit,
+		limit: limit,
 
-		window:   window,
-
+		window: window,
 	}
 
 }
-
-
 
 // RateLimitMiddleware creates a rate limiting middleware.
 
@@ -331,11 +270,7 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		now := time.Now()
-
-
 
 		// Clean old requests.
 
@@ -357,8 +292,6 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// Check rate limit.
 
 		if len(rl.requests[clientIP]) >= rl.limit {
@@ -369,21 +302,15 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// Add current request.
 
 		rl.requests[clientIP] = append(rl.requests[clientIP], now)
-
-
 
 		next.ServeHTTP(w, r)
 
 	})
 
 }
-
-
 
 // SecureRequest creates a secure HTTP request with context.
 
@@ -399,8 +326,6 @@ func SecureRequest(ctx context.Context, method, url string, timeout time.Duratio
 
 	}
 
-
-
 	// Create request with context.
 
 	if timeout > 0 {
@@ -413,8 +338,6 @@ func SecureRequest(ctx context.Context, method, url string, timeout time.Duratio
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, method, validURL.String(), http.NoBody)
 
 	if err != nil {
@@ -423,21 +346,15 @@ func SecureRequest(ctx context.Context, method, url string, timeout time.Duratio
 
 	}
 
-
-
 	// Set security headers.
 
 	req.Header.Set("User-Agent", "Nephoran-Security-Client/1.0")
 
 	req.Header.Set("Accept", "application/json")
 
-
-
 	return req, nil
 
 }
-
-
 
 // SafeCloseBody safely closes an HTTP response body with error handling.
 
@@ -452,4 +369,3 @@ func SafeCloseBody(resp *http.Response) error {
 	return resp.Body.Close()
 
 }
-

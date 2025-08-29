@@ -1,59 +1,39 @@
 // internal/ingest/validator.go.
 
-
 package ingest
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
 
-
-
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
-
 )
-
-
 
 // Intent represents a intent.
 
 type Intent struct {
+	IntentType string `json:"intent_type"`
 
-	IntentType    string `json:"intent_type"`
+	Target string `json:"target"`
 
-	Target        string `json:"target"`
+	Namespace string `json:"namespace"`
 
-	Namespace     string `json:"namespace"`
+	Replicas int `json:"replicas"`
 
-	Replicas      int    `json:"replicas"`
+	Reason string `json:"reason,omitempty"`
 
-	Reason        string `json:"reason,omitempty"`
-
-	Source        string `json:"source,omitempty"`
+	Source string `json:"source,omitempty"`
 
 	CorrelationID string `json:"correlation_id,omitempty"`
-
 }
-
-
 
 // Validator represents a validator.
 
 type Validator struct {
-
 	schema *jsonschema.Schema
-
 }
-
-
 
 // NewValidator performs newvalidator operation.
 
@@ -77,8 +57,6 @@ func NewValidator(schemaPath string) (*Validator, error) {
 
 	}
 
-
-
 	// 讀入 schema -> 轉成 JSON 值（v6 的 AddResource 需要 JSON 值）.
 
 	b, err := os.ReadFile(schemaPath)
@@ -97,11 +75,7 @@ func NewValidator(schemaPath string) (*Validator, error) {
 
 	}
 
-
-
 	c := jsonschema.NewCompiler()
-
-
 
 	// （可選）如果你的環境離線、避免去抓 metaschema，.
 
@@ -112,8 +86,6 @@ func NewValidator(schemaPath string) (*Validator, error) {
 	//   _ = c.AddResource("https://json-schema.org/draft/2020-12/schema", meta).
 
 	// 不加也行：編譯器會依 $schema 自動載入。.
-
-
 
 	const resName = "intent.schema.json"
 
@@ -134,8 +106,6 @@ func NewValidator(schemaPath string) (*Validator, error) {
 	return &Validator{schema: s}, nil
 
 }
-
-
 
 // ValidateBytes performs validatebytes operation.
 
@@ -166,4 +136,3 @@ func (v *Validator) ValidateBytes(b []byte) (*Intent, error) {
 	return &in, nil
 
 }
-

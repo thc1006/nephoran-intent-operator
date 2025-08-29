@@ -1,51 +1,32 @@
-
 package auth
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"log/slog"
-
 	"net/http"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
-
 )
-
-
 
 // LDAPAuthMiddleware provides LDAP-based authentication middleware.
 
 type LDAPAuthMiddleware struct {
-
-	providers      map[string]providers.LDAPProvider
+	providers map[string]providers.LDAPProvider
 
 	sessionManager *SessionManager
 
-	jwtManager     *JWTManager
+	jwtManager *JWTManager
 
-	rbacManager    *RBACManager
+	rbacManager *RBACManager
 
-	config         *LDAPMiddlewareConfig
+	config *LDAPMiddlewareConfig
 
-	logger         *slog.Logger
-
+	logger *slog.Logger
 }
-
-
 
 // LDAPMiddlewareConfig represents LDAP middleware configuration.
 
@@ -53,121 +34,98 @@ type LDAPMiddlewareConfig struct {
 
 	// Authentication settings.
 
-	Realm           string        `json:"realm"`
+	Realm string `json:"realm"`
 
-	DefaultProvider string        `json:"default_provider"`
+	DefaultProvider string `json:"default_provider"`
 
-	AllowBasicAuth  bool          `json:"allow_basic_auth"`
+	AllowBasicAuth bool `json:"allow_basic_auth"`
 
-	AllowFormAuth   bool          `json:"allow_form_auth"`
+	AllowFormAuth bool `json:"allow_form_auth"`
 
-	AllowJSONAuth   bool          `json:"allow_json_auth"`
+	AllowJSONAuth bool `json:"allow_json_auth"`
 
-	SessionTimeout  time.Duration `json:"session_timeout"`
-
-
+	SessionTimeout time.Duration `json:"session_timeout"`
 
 	// Security settings.
 
-	RequireHTTPS      bool          `json:"require_https"`
+	RequireHTTPS bool `json:"require_https"`
 
-	MaxFailedAttempts int           `json:"max_failed_attempts"`
+	MaxFailedAttempts int `json:"max_failed_attempts"`
 
-	LockoutDuration   time.Duration `json:"lockout_duration"`
-
-
+	LockoutDuration time.Duration `json:"lockout_duration"`
 
 	// Cache settings.
 
-	EnableUserCache bool          `json:"enable_user_cache"`
+	EnableUserCache bool `json:"enable_user_cache"`
 
-	CacheTTL        time.Duration `json:"cache_ttl"`
-
-
+	CacheTTL time.Duration `json:"cache_ttl"`
 
 	// Headers.
 
-	UserHeader   string `json:"user_header"`
+	UserHeader string `json:"user_header"`
 
-	RolesHeader  string `json:"roles_header"`
+	RolesHeader string `json:"roles_header"`
 
 	GroupsHeader string `json:"groups_header"`
-
-
 
 	// Skip authentication for these paths.
 
 	SkipAuth []string `json:"skip_auth"`
-
 }
-
-
 
 // LDAPAuthRequest represents LDAP authentication request.
 
 type LDAPAuthRequest struct {
-
 	Username string `json:"username"`
 
 	Password string `json:"password"`
 
 	Provider string `json:"provider,omitempty"`
-
 }
-
-
 
 // LDAPAuthResponse represents LDAP authentication response.
 
 type LDAPAuthResponse struct {
+	Success bool `json:"success"`
 
-	Success      bool              `json:"success"`
+	AccessToken string `json:"access_token,omitempty"`
 
-	AccessToken  string            `json:"access_token,omitempty"`
+	RefreshToken string `json:"refresh_token,omitempty"`
 
-	RefreshToken string            `json:"refresh_token,omitempty"`
+	ExpiresIn int64 `json:"expires_in,omitempty"`
 
-	ExpiresIn    int64             `json:"expires_in,omitempty"`
+	TokenType string `json:"token_type,omitempty"`
 
-	TokenType    string            `json:"token_type,omitempty"`
+	User *LDAPUserResponse `json:"user,omitempty"`
 
-	User         *LDAPUserResponse `json:"user,omitempty"`
+	Error string `json:"error,omitempty"`
 
-	Error        string            `json:"error,omitempty"`
-
-	ErrorCode    string            `json:"error_code,omitempty"`
-
+	ErrorCode string `json:"error_code,omitempty"`
 }
-
-
 
 // LDAPUserResponse represents LDAP user in response.
 
 type LDAPUserResponse struct {
+	Username string `json:"username"`
 
-	Username    string   `json:"username"`
+	Email string `json:"email"`
 
-	Email       string   `json:"email"`
+	DisplayName string `json:"display_name"`
 
-	DisplayName string   `json:"display_name"`
+	FirstName string `json:"first_name"`
 
-	FirstName   string   `json:"first_name"`
+	LastName string `json:"last_name"`
 
-	LastName    string   `json:"last_name"`
+	Title string `json:"title"`
 
-	Title       string   `json:"title"`
+	Department string `json:"department"`
 
-	Department  string   `json:"department"`
+	Phone string `json:"phone"`
 
-	Phone       string   `json:"phone"`
+	Groups []string `json:"groups"`
 
-	Groups      []string `json:"groups"`
-
-	Roles       []string `json:"roles"`
-
+	Roles []string `json:"roles"`
 }
-
-
 
 // NewLDAPAuthMiddleware creates new LDAP authentication middleware.
 
@@ -177,45 +135,41 @@ func NewLDAPAuthMiddleware(providers map[string]providers.LDAPProvider, sessionM
 
 		config = &LDAPMiddlewareConfig{
 
-			Realm:             "Nephoran Intent Operator",
+			Realm: "Nephoran Intent Operator",
 
-			AllowBasicAuth:    true,
+			AllowBasicAuth: true,
 
-			AllowFormAuth:     true,
+			AllowFormAuth: true,
 
-			AllowJSONAuth:     true,
+			AllowJSONAuth: true,
 
-			SessionTimeout:    24 * time.Hour,
+			SessionTimeout: 24 * time.Hour,
 
-			RequireHTTPS:      true,
+			RequireHTTPS: true,
 
 			MaxFailedAttempts: 5,
 
-			LockoutDuration:   15 * time.Minute,
+			LockoutDuration: 15 * time.Minute,
 
-			EnableUserCache:   true,
+			EnableUserCache: true,
 
-			CacheTTL:          5 * time.Minute,
+			CacheTTL: 5 * time.Minute,
 
-			UserHeader:        "X-LDAP-User",
+			UserHeader: "X-LDAP-User",
 
-			RolesHeader:       "X-LDAP-Roles",
+			RolesHeader: "X-LDAP-Roles",
 
-			GroupsHeader:      "X-LDAP-Groups",
+			GroupsHeader: "X-LDAP-Groups",
 
 			SkipAuth: []string{
 
 				"/health", "/metrics", "/auth/ldap/login",
 
 				"/.well-known/", "/favicon.ico",
-
 			},
-
 		}
 
 	}
-
-
 
 	if logger == nil {
 
@@ -223,27 +177,22 @@ func NewLDAPAuthMiddleware(providers map[string]providers.LDAPProvider, sessionM
 
 	}
 
-
-
 	return &LDAPAuthMiddleware{
 
-		providers:      providers,
+		providers: providers,
 
 		sessionManager: sessionManager,
 
-		jwtManager:     jwtManager,
+		jwtManager: jwtManager,
 
-		rbacManager:    rbacManager,
+		rbacManager: rbacManager,
 
-		config:         config,
+		config: config,
 
-		logger:         logger,
-
+		logger: logger,
 	}
 
 }
-
-
 
 // LDAPAuthenticateMiddleware handles LDAP authentication.
 
@@ -261,8 +210,6 @@ func (lm *LDAPAuthMiddleware) LDAPAuthenticateMiddleware(next http.Handler) http
 
 		}
 
-
-
 		// Require HTTPS in production.
 
 		if lm.config.RequireHTTPS && r.TLS == nil && !lm.isLocalhost(r) {
@@ -272,8 +219,6 @@ func (lm *LDAPAuthMiddleware) LDAPAuthenticateMiddleware(next http.Handler) http
 			return
 
 		}
-
-
 
 		// Try to authenticate with existing session first.
 
@@ -287,15 +232,11 @@ func (lm *LDAPAuthMiddleware) LDAPAuthenticateMiddleware(next http.Handler) http
 
 		}
 
-
-
 		// Try various authentication methods.
 
 		var authContext *AuthContext
 
 		var err error
-
-
 
 		// Try Basic Authentication.
 
@@ -313,8 +254,6 @@ func (lm *LDAPAuthMiddleware) LDAPAuthenticateMiddleware(next http.Handler) http
 
 		}
 
-
-
 		// Try JWT token authentication.
 
 		if authContext, err = lm.tryJWTAuth(r); err == nil && authContext != nil {
@@ -327,8 +266,6 @@ func (lm *LDAPAuthMiddleware) LDAPAuthenticateMiddleware(next http.Handler) http
 
 		}
 
-
-
 		// If no authentication succeeded, require authentication.
 
 		lm.requireAuthentication(w, r)
@@ -336,8 +273,6 @@ func (lm *LDAPAuthMiddleware) LDAPAuthenticateMiddleware(next http.Handler) http
 	})
 
 }
-
-
 
 // HandleLDAPLogin handles LDAP login requests.
 
@@ -350,8 +285,6 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 		return
 
 	}
-
-
 
 	// Parse authentication request.
 
@@ -367,8 +300,6 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 
 	}
 
-
-
 	// Authenticate user.
 
 	userInfo, provider, err := lm.authenticateUser(r.Context(), authReq.Username, authReq.Password, authReq.Provider)
@@ -383,26 +314,23 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 
 	}
 
-
-
 	// Create session.
 
 	sessionInfo, err := lm.sessionManager.CreateSession(r.Context(), &SessionData{
 
-		UserID:      userInfo.Username,
+		UserID: userInfo.Username,
 
-		Username:    userInfo.Username,
+		Username: userInfo.Username,
 
-		Email:       userInfo.Email,
+		Email: userInfo.Email,
 
 		DisplayName: userInfo.Name,
 
-		Provider:    "ldap:" + provider,
+		Provider: "ldap:" + provider,
 
-		Groups:      userInfo.Groups,
+		Groups: userInfo.Groups,
 
-		Roles:       userInfo.Roles,
-
+		Roles: userInfo.Roles,
 	})
 
 	if err != nil {
@@ -414,8 +342,6 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 		return
 
 	}
-
-
 
 	// Create JWT tokens.
 
@@ -431,65 +357,56 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 
 	}
 
-
-
 	// Set session cookie.
 
 	http.SetCookie(w, &http.Cookie{
 
-		Name:     "nephoran_session",
+		Name: "nephoran_session",
 
-		Value:    sessionInfo.ID,
+		Value: sessionInfo.ID,
 
-		Path:     "/",
+		Path: "/",
 
 		HttpOnly: true,
 
-		Secure:   r.TLS != nil,
+		Secure: r.TLS != nil,
 
 		SameSite: http.SameSiteLaxMode,
 
-		Expires:  sessionInfo.ExpiresAt,
-
+		Expires: sessionInfo.ExpiresAt,
 	})
-
-
 
 	// Return successful response.
 
 	response := &LDAPAuthResponse{
 
-		Success:      true,
+		Success: true,
 
-		AccessToken:  accessToken,
+		AccessToken: accessToken,
 
 		RefreshToken: refreshToken,
 
-		ExpiresIn:    int64(lm.config.SessionTimeout.Seconds()),
+		ExpiresIn: int64(lm.config.SessionTimeout.Seconds()),
 
-		TokenType:    "Bearer",
+		TokenType: "Bearer",
 
 		User: &LDAPUserResponse{
 
-			Username:    userInfo.Username,
+			Username: userInfo.Username,
 
-			Email:       userInfo.Email,
+			Email: userInfo.Email,
 
 			DisplayName: userInfo.Name,
 
-			FirstName:   userInfo.GivenName,
+			FirstName: userInfo.GivenName,
 
-			LastName:    userInfo.FamilyName,
+			LastName: userInfo.FamilyName,
 
-			Groups:      userInfo.Groups,
+			Groups: userInfo.Groups,
 
-			Roles:       userInfo.Roles,
-
+			Roles: userInfo.Roles,
 		},
-
 	}
-
-
 
 	// Add user attributes if available.
 
@@ -523,8 +440,6 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 
 	}
 
-
-
 	lm.logger.Info("User authenticated successfully via LDAP",
 
 		"username", authReq.Username,
@@ -537,15 +452,11 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 
 		"remote_addr", r.RemoteAddr)
 
-
-
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(response)
 
 }
-
-
 
 // HandleLDAPLogout handles LDAP logout requests.
 
@@ -558,8 +469,6 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogout(w http.ResponseWriter, r *http.Re
 		return
 
 	}
-
-
 
 	// Get session ID.
 
@@ -575,31 +484,26 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogout(w http.ResponseWriter, r *http.Re
 
 		}
 
-
-
 		// Clear session cookie.
 
 		http.SetCookie(w, &http.Cookie{
 
-			Name:     "nephoran_session",
+			Name: "nephoran_session",
 
-			Value:    "",
+			Value: "",
 
-			Path:     "/",
+			Path: "/",
 
 			HttpOnly: true,
 
-			Secure:   r.TLS != nil,
+			Secure: r.TLS != nil,
 
 			SameSite: http.SameSiteLaxMode,
 
-			MaxAge:   -1,
-
+			MaxAge: -1,
 		})
 
 	}
-
-
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -608,16 +512,11 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogout(w http.ResponseWriter, r *http.Re
 		"success": true,
 
 		"message": "Logged out successfully",
-
 	})
 
 }
 
-
-
 // Private helper methods.
-
-
 
 func (lm *LDAPAuthMiddleware) shouldSkipAuth(path string) bool {
 
@@ -635,8 +534,6 @@ func (lm *LDAPAuthMiddleware) shouldSkipAuth(path string) bool {
 
 }
 
-
-
 func (lm *LDAPAuthMiddleware) isLocalhost(r *http.Request) bool {
 
 	host := r.Host
@@ -651,8 +548,6 @@ func (lm *LDAPAuthMiddleware) isLocalhost(r *http.Request) bool {
 
 }
 
-
-
 func (lm *LDAPAuthMiddleware) trySessionAuth(r *http.Request) *AuthContext {
 
 	sessionID := lm.getSessionID(r)
@@ -663,8 +558,6 @@ func (lm *LDAPAuthMiddleware) trySessionAuth(r *http.Request) *AuthContext {
 
 	}
 
-
-
 	sessionInfo, err := lm.sessionManager.ValidateSession(r.Context(), sessionID)
 
 	if err != nil {
@@ -673,29 +566,24 @@ func (lm *LDAPAuthMiddleware) trySessionAuth(r *http.Request) *AuthContext {
 
 	}
 
-
-
 	return &AuthContext{
 
-		UserID:      sessionInfo.UserID,
+		UserID: sessionInfo.UserID,
 
-		SessionID:   sessionInfo.ID,
+		SessionID: sessionInfo.ID,
 
-		Provider:    sessionInfo.Provider,
+		Provider: sessionInfo.Provider,
 
-		Roles:       sessionInfo.Roles,
+		Roles: sessionInfo.Roles,
 
 		Permissions: lm.getUserPermissions(r.Context(), sessionInfo.UserID),
 
-		IsAdmin:     lm.hasAdminRole(sessionInfo.Roles),
+		IsAdmin: lm.hasAdminRole(sessionInfo.Roles),
 
-		Attributes:  make(map[string]interface{}),
-
+		Attributes: make(map[string]interface{}),
 	}
 
 }
-
-
 
 func (lm *LDAPAuthMiddleware) tryBasicAuth(r *http.Request) (*AuthContext, error) {
 
@@ -707,8 +595,6 @@ func (lm *LDAPAuthMiddleware) tryBasicAuth(r *http.Request) (*AuthContext, error
 
 	}
 
-
-
 	userInfo, provider, err := lm.authenticateUser(r.Context(), username, password, "")
 
 	if err != nil {
@@ -717,33 +603,27 @@ func (lm *LDAPAuthMiddleware) tryBasicAuth(r *http.Request) (*AuthContext, error
 
 	}
 
-
-
 	return &AuthContext{
 
-		UserID:      userInfo.Username,
+		UserID: userInfo.Username,
 
-		Provider:    "ldap:" + provider,
+		Provider: "ldap:" + provider,
 
-		Roles:       userInfo.Roles,
+		Roles: userInfo.Roles,
 
 		Permissions: lm.getUserPermissions(r.Context(), userInfo.Username),
 
-		IsAdmin:     lm.hasAdminRole(userInfo.Roles),
+		IsAdmin: lm.hasAdminRole(userInfo.Roles),
 
 		Attributes: map[string]interface{}{
 
 			"auth_method": "basic",
 
-			"ldap_dn":     userInfo.ProviderID,
-
+			"ldap_dn": userInfo.ProviderID,
 		},
-
 	}, nil
 
 }
-
-
 
 func (lm *LDAPAuthMiddleware) tryJWTAuth(r *http.Request) (*AuthContext, error) {
 
@@ -753,8 +633,6 @@ func (lm *LDAPAuthMiddleware) tryJWTAuth(r *http.Request) (*AuthContext, error) 
 
 	}
 
-
-
 	authHeader := r.Header.Get("Authorization")
 
 	if !strings.HasPrefix(authHeader, "Bearer ") {
@@ -762,8 +640,6 @@ func (lm *LDAPAuthMiddleware) tryJWTAuth(r *http.Request) (*AuthContext, error) 
 		return nil, fmt.Errorf("no bearer token")
 
 	}
-
-
 
 	token := strings.TrimPrefix(authHeader, "Bearer ")
 
@@ -775,37 +651,30 @@ func (lm *LDAPAuthMiddleware) tryJWTAuth(r *http.Request) (*AuthContext, error) 
 
 	}
 
-
-
 	if claims.TokenType != "access" {
 
 		return nil, fmt.Errorf("invalid token type")
 
 	}
 
-
-
 	return &AuthContext{
 
-		UserID:      claims.Subject,
+		UserID: claims.Subject,
 
-		SessionID:   claims.SessionID,
+		SessionID: claims.SessionID,
 
-		Provider:    claims.Provider,
+		Provider: claims.Provider,
 
-		Roles:       claims.Roles,
+		Roles: claims.Roles,
 
 		Permissions: claims.Permissions,
 
-		IsAdmin:     lm.hasAdminRole(claims.Roles),
+		IsAdmin: lm.hasAdminRole(claims.Roles),
 
-		Attributes:  claims.Attributes,
-
+		Attributes: claims.Attributes,
 	}, nil
 
 }
-
-
 
 func (lm *LDAPAuthMiddleware) authenticateUser(ctx context.Context, username, password, providerName string) (*providers.UserInfo, string, error) {
 
@@ -817,8 +686,6 @@ func (lm *LDAPAuthMiddleware) authenticateUser(ctx context.Context, username, pa
 
 	}
 
-
-
 	// Use constant-time comparison to prevent timing attacks on password validation.
 
 	if len(password) > 256 {
@@ -826,8 +693,6 @@ func (lm *LDAPAuthMiddleware) authenticateUser(ctx context.Context, username, pa
 		return nil, "", fmt.Errorf("password too long")
 
 	}
-
-
 
 	// Try specific provider if requested.
 
@@ -850,8 +715,6 @@ func (lm *LDAPAuthMiddleware) authenticateUser(ctx context.Context, username, pa
 		return nil, "", fmt.Errorf("provider %s not found", providerName)
 
 	}
-
-
 
 	// Try default provider first.
 
@@ -879,8 +742,6 @@ func (lm *LDAPAuthMiddleware) authenticateUser(ctx context.Context, username, pa
 
 	}
 
-
-
 	// Try all providers.
 
 	var lastErr error
@@ -892,8 +753,6 @@ func (lm *LDAPAuthMiddleware) authenticateUser(ctx context.Context, username, pa
 			continue // Already tried
 
 		}
-
-
 
 		userInfo, err := provider.Authenticate(ctx, username, password)
 
@@ -915,8 +774,6 @@ func (lm *LDAPAuthMiddleware) authenticateUser(ctx context.Context, username, pa
 
 	}
 
-
-
 	if lastErr != nil {
 
 		return nil, "", fmt.Errorf("authentication failed with all providers: %w", lastErr)
@@ -927,8 +784,6 @@ func (lm *LDAPAuthMiddleware) authenticateUser(ctx context.Context, username, pa
 
 }
 
-
-
 func (lm *LDAPAuthMiddleware) createTokens(ctx context.Context, userInfo *providers.UserInfo, sessionID, provider string) (string, string, error) {
 
 	if lm.jwtManager == nil {
@@ -936,8 +791,6 @@ func (lm *LDAPAuthMiddleware) createTokens(ctx context.Context, userInfo *provid
 		return "", "", fmt.Errorf("JWT manager not available")
 
 	}
-
-
 
 	// Create access token.
 
@@ -949,8 +802,6 @@ func (lm *LDAPAuthMiddleware) createTokens(ctx context.Context, userInfo *provid
 
 	}
 
-
-
 	// Create refresh token.
 
 	refreshTokenStr, _, err := lm.jwtManager.GenerateRefreshToken(ctx, userInfo, sessionID)
@@ -961,23 +812,15 @@ func (lm *LDAPAuthMiddleware) createTokens(ctx context.Context, userInfo *provid
 
 	}
 
-
-
 	return accessTokenStr, refreshTokenStr, nil
 
 }
-
-
 
 func (lm *LDAPAuthMiddleware) parseAuthRequest(r *http.Request) (*LDAPAuthRequest, error) {
 
 	contentType := r.Header.Get("Content-Type")
 
-
-
 	var authReq LDAPAuthRequest
-
-
 
 	switch {
 
@@ -988,8 +831,6 @@ func (lm *LDAPAuthMiddleware) parseAuthRequest(r *http.Request) (*LDAPAuthReques
 			return nil, fmt.Errorf("invalid JSON request: %w", err)
 
 		}
-
-
 
 	case strings.Contains(contentType, "application/x-www-form-urlencoded") && lm.config.AllowFormAuth:
 
@@ -1005,15 +846,11 @@ func (lm *LDAPAuthMiddleware) parseAuthRequest(r *http.Request) (*LDAPAuthReques
 
 		authReq.Provider = r.FormValue("provider")
 
-
-
 	default:
 
 		return nil, fmt.Errorf("unsupported content type: %s", contentType)
 
 	}
-
-
 
 	// Validate required fields.
 
@@ -1029,13 +866,9 @@ func (lm *LDAPAuthMiddleware) parseAuthRequest(r *http.Request) (*LDAPAuthReques
 
 	}
 
-
-
 	return &authReq, nil
 
 }
-
-
 
 func (lm *LDAPAuthMiddleware) getSessionID(r *http.Request) string {
 
@@ -1049,15 +882,11 @@ func (lm *LDAPAuthMiddleware) getSessionID(r *http.Request) string {
 
 	}
 
-
-
 	// Try header.
 
 	return r.Header.Get("X-Session-ID")
 
 }
-
-
 
 func (lm *LDAPAuthMiddleware) getUserPermissions(ctx context.Context, userID string) []string {
 
@@ -1070,8 +899,6 @@ func (lm *LDAPAuthMiddleware) getUserPermissions(ctx context.Context, userID str
 	return lm.rbacManager.GetUserPermissions(ctx, userID)
 
 }
-
-
 
 func (lm *LDAPAuthMiddleware) hasAdminRole(roles []string) bool {
 
@@ -1095,8 +922,6 @@ func (lm *LDAPAuthMiddleware) hasAdminRole(roles []string) bool {
 
 }
 
-
-
 func (lm *LDAPAuthMiddleware) requireAuthentication(w http.ResponseWriter, r *http.Request) {
 
 	// Set WWW-Authenticate header for Basic auth.
@@ -1107,13 +932,9 @@ func (lm *LDAPAuthMiddleware) requireAuthentication(w http.ResponseWriter, r *ht
 
 	}
 
-
-
 	lm.writeErrorResponse(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 
 }
-
-
 
 func (lm *LDAPAuthMiddleware) writeErrorResponse(w http.ResponseWriter, status int, code, message string) {
 
@@ -1121,31 +942,22 @@ func (lm *LDAPAuthMiddleware) writeErrorResponse(w http.ResponseWriter, status i
 
 	w.WriteHeader(status)
 
-
-
 	errorResponse := map[string]interface{}{
 
-		"error":             code,
+		"error": code,
 
 		"error_description": message,
 
-		"status":            status,
+		"status": status,
 
-		"timestamp":         time.Now().Unix(),
-
+		"timestamp": time.Now().Unix(),
 	}
-
-
 
 	json.NewEncoder(w).Encode(errorResponse)
 
 }
 
-
-
 // Utility methods for integration.
-
-
 
 // GetLDAPProviders returns available LDAP providers.
 
@@ -1154,8 +966,6 @@ func (lm *LDAPAuthMiddleware) GetLDAPProviders() map[string]providers.LDAPProvid
 	return lm.providers
 
 }
-
-
 
 // TestLDAPConnection tests connection to all LDAP providers.
 
@@ -1185,8 +995,6 @@ func (lm *LDAPAuthMiddleware) TestLDAPConnection(ctx context.Context) map[string
 
 }
 
-
-
 // GetUserInfo retrieves user information from LDAP without authentication.
 
 func (lm *LDAPAuthMiddleware) GetUserInfo(ctx context.Context, username, providerName string) (*providers.UserInfo, error) {
@@ -1194,8 +1002,6 @@ func (lm *LDAPAuthMiddleware) GetUserInfo(ctx context.Context, username, provide
 	var provider providers.LDAPProvider
 
 	var exists bool
-
-
 
 	if providerName != "" {
 
@@ -1237,9 +1043,6 @@ func (lm *LDAPAuthMiddleware) GetUserInfo(ctx context.Context, username, provide
 
 	}
 
-
-
 	return provider.SearchUser(ctx, username)
 
 }
-

@@ -28,36 +28,20 @@ limitations under the License.
 
 */
 
-
-
-
 package testutil
 
-
-
 import (
-
 	"context"
-
 	"testing"
-
 	"time"
-
-
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/client-go/rest"
-
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
-
-
 
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
+
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
-
-
 
 // TestConfig creates a test configuration for porch clients.
 
@@ -72,40 +56,32 @@ func NewTestConfig() *porch.Config {
 			Auth: &porch.AuthenticationConfig{
 
 				Type: "none",
-
 			},
 
 			Timeout: 30 * time.Second,
 
 			Retry: &porch.RetryConfig{
 
-				MaxRetries:   3,
+				MaxRetries: 3,
 
 				InitialDelay: 1 * time.Second,
-
 			},
-
 		},
 
 		Observability: &porch.ObservabilityConfig{
 
 			Logging: &porch.LoggingConfig{
 
-				Level:  "debug",
+				Level: "debug",
 
 				Format: "text",
 
 				Output: []string{"stdout"},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // GetTestKubeConfig returns a test Kubernetes configuration.
 
@@ -113,35 +89,28 @@ func GetTestKubeConfig() *rest.Config {
 
 	return &rest.Config{
 
-		Host:    "http://localhost:8080",
+		Host: "http://localhost:8080",
 
-		QPS:     100,
+		QPS: 100,
 
-		Burst:   150,
+		Burst: 150,
 
 		Timeout: 30 * time.Second,
-
 	}
 
 }
 
-
-
 // ClientOptions represents options for creating test clients.
 
 type ClientOptions struct {
-
-	Config     *porch.Config
+	Config *porch.Config
 
 	KubeConfig *rest.Config
 
-	Context    context.Context
+	Context context.Context
 
-	Namespace  string
-
+	Namespace string
 }
-
-
 
 // NewTestEnvironment creates a test environment with envtest.
 
@@ -149,15 +118,10 @@ func NewTestEnvironment(t *testing.T) (*envtest.Environment, *rest.Config) {
 
 	t.Helper()
 
-
-
 	testEnv := &envtest.Environment{
 
 		CRDDirectoryPaths: []string{"../../../config/crd/bases"},
-
 	}
-
-
 
 	cfg, err := testEnv.Start()
 
@@ -167,27 +131,19 @@ func NewTestEnvironment(t *testing.T) (*envtest.Environment, *rest.Config) {
 
 	}
 
-
-
 	return testEnv, cfg
 
 }
 
-
-
 // MockPorchClient creates a mock porch client for testing.
 
 type MockPorchClient struct {
-
 	*porch.Client
 
 	MockResponses map[string]interface{}
 
-	CallLog       []string
-
+	CallLog []string
 }
-
-
 
 // NewMockPorchClient creates a new mock client.
 
@@ -197,13 +153,10 @@ func NewMockPorchClient() *MockPorchClient {
 
 		MockResponses: make(map[string]interface{}),
 
-		CallLog:       make([]string, 0),
-
+		CallLog: make([]string, 0),
 	}
 
 }
-
-
 
 // RecordCall records a method call for verification.
 
@@ -213,8 +166,6 @@ func (m *MockPorchClient) RecordCall(method string) {
 
 }
 
-
-
 // GetCallLog returns the recorded method calls.
 
 func (m *MockPorchClient) GetCallLog() []string {
@@ -222,8 +173,6 @@ func (m *MockPorchClient) GetCallLog() []string {
 	return m.CallLog
 
 }
-
-
 
 // SetMockResponse sets a mock response for a given method.
 
@@ -233,8 +182,6 @@ func (m *MockPorchClient) SetMockResponse(method string, response interface{}) {
 
 }
 
-
-
 // GetMockResponse gets a mock response for a given method.
 
 func (m *MockPorchClient) GetMockResponse(method string) interface{} {
@@ -242,8 +189,6 @@ func (m *MockPorchClient) GetMockResponse(method string) interface{} {
 	return m.MockResponses[method]
 
 }
-
-
 
 // TestRepository creates a test repository configuration.
 
@@ -253,31 +198,26 @@ func NewTestRepository(name string) *porch.Repository {
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      name,
+			Name: name,
 
 			Namespace: "default",
-
 		},
 
 		Spec: porch.RepositorySpec{
 
-			Type:         "git",
+			Type: "git",
 
-			URL:          "https://github.com/test/repo.git",
+			URL: "https://github.com/test/repo.git",
 
-			Branch:       "main",
+			Branch: "main",
 
-			Directory:    "/",
+			Directory: "/",
 
 			Capabilities: []string{"upstream"},
-
 		},
-
 	}
 
 }
-
-
 
 // TestPackageRevision creates a test package revision.
 
@@ -287,31 +227,26 @@ func NewTestPackageRevision(name, repository string) *porch.PackageRevision {
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      name,
+			Name: name,
 
 			Namespace: "default",
-
 		},
 
 		Spec: porch.PackageRevisionSpec{
 
-			Repository:    repository,
+			Repository: repository,
 
-			PackageName:   name,
+			PackageName: name,
 
-			Revision:      "v1.0.0",
+			Revision: "v1.0.0",
 
-			Lifecycle:     porch.PackageRevisionLifecyclePublished,
+			Lifecycle: porch.PackageRevisionLifecyclePublished,
 
 			WorkspaceName: "",
-
 		},
-
 	}
 
 }
-
-
 
 // TestFunctionConfig creates a test function configuration.
 
@@ -323,17 +258,13 @@ func NewTestFunctionConfig(name string) porch.FunctionConfig {
 
 		ConfigMap: map[string]interface{}{
 
-			"name":        name,
+			"name": name,
 
 			"description": "Test function for " + name,
-
 		},
-
 	}
 
 }
-
-
 
 // AssertNoError is a test helper for asserting no error.
 
@@ -349,8 +280,6 @@ func AssertNoError(t *testing.T, err error) {
 
 }
 
-
-
 // AssertError is a test helper for asserting an error occurred.
 
 func AssertError(t *testing.T, err error) {
@@ -365,8 +294,6 @@ func AssertError(t *testing.T, err error) {
 
 }
 
-
-
 // AssertEqual is a test helper for asserting equality.
 
 func AssertEqual(t *testing.T, expected, actual interface{}) {
@@ -380,4 +307,3 @@ func AssertEqual(t *testing.T, expected, actual interface{}) {
 	}
 
 }
-

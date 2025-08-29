@@ -1,95 +1,70 @@
 // Performance comparison script for Go 1.24+ migration validation.
 
-
 package main
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"log"
-
 	"math"
-
 	"os"
-
 	"runtime"
-
 	"time"
-
 )
-
-
 
 // PerformanceMetrics represents performance measurement results.
 
 type PerformanceMetrics struct {
+	TestName string `json:"test_name"`
 
-	TestName           string        `json:"test_name"`
+	GoVersion string `json:"go_version"`
 
-	GoVersion          string        `json:"go_version"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp          time.Time     `json:"timestamp"`
+	Duration time.Duration `json:"duration"`
 
-	Duration           time.Duration `json:"duration"`
+	MemoryAllocated int64 `json:"memory_allocated"`
 
-	MemoryAllocated    int64         `json:"memory_allocated"`
+	MemoryReleased int64 `json:"memory_released"`
 
-	MemoryReleased     int64         `json:"memory_released"`
+	GoroutineCount int `json:"goroutine_count"`
 
-	GoroutineCount     int           `json:"goroutine_count"`
+	GCCount uint32 `json:"gc_count"`
 
-	GCCount            uint32        `json:"gc_count"`
+	HTTPRequestsPerSec int64 `json:"http_requests_per_sec"`
 
-	HTTPRequestsPerSec int64         `json:"http_requests_per_sec"`
+	JSONOpsPerSec int64 `json:"json_ops_per_sec"`
 
-	JSONOpsPerSec      int64         `json:"json_ops_per_sec"`
-
-	CryptoOpsPerSec    int64         `json:"crypto_ops_per_sec"`
-
+	CryptoOpsPerSec int64 `json:"crypto_ops_per_sec"`
 }
-
-
 
 // ComparisonResult represents comparison between old and new performance.
 
 type ComparisonResult struct {
+	Metric string `json:"metric"`
 
-	Metric             string  `json:"metric"`
+	OldValue float64 `json:"old_value"`
 
-	OldValue           float64 `json:"old_value"`
-
-	NewValue           float64 `json:"new_value"`
+	NewValue float64 `json:"new_value"`
 
 	ImprovementPercent float64 `json:"improvement_percent"`
 
-	Status             string  `json:"status"`
-
+	Status string `json:"status"`
 }
-
-
 
 // PerformanceComparison contains all comparison results.
 
 type PerformanceComparison struct {
+	Summary string `json:"summary"`
 
-	Summary     string             `json:"summary"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp   time.Time          `json:"timestamp"`
+	GoVersion string `json:"go_version"`
 
-	GoVersion   string             `json:"go_version"`
+	Results []ComparisonResult `json:"results"`
 
-	Results     []ComparisonResult `json:"results"`
-
-	OverallGain float64            `json:"overall_gain"`
-
+	OverallGain float64 `json:"overall_gain"`
 }
-
-
 
 // safeIntConversion safely converts uint64 difference to int64 with bounds checking.
 
@@ -113,8 +88,6 @@ func safeIntConversion(after, before uint64) int64 {
 
 }
 
-
-
 // safeUintToInt safely converts uint64 to int64 with bounds checking.
 
 func safeUintToInt(val uint64) int64 {
@@ -129,33 +102,23 @@ func safeUintToInt(val uint64) int64 {
 
 }
 
-
-
 func main() {
 
 	fmt.Println("🚀 Nephoran Intent Operator - Go 1.24+ Performance Comparison")
 
 	fmt.Println("============================================================")
 
-
-
 	// Run performance tests.
 
 	currentMetrics := runPerformanceTests()
-
-
 
 	// Load baseline metrics if available.
 
 	baselineMetrics := loadBaselineMetrics()
 
-
-
 	// Compare and generate report.
 
 	comparison := comparePerformance(baselineMetrics, currentMetrics)
-
-
 
 	// Generate reports.
 
@@ -165,19 +128,13 @@ func main() {
 
 	generateMarkdownReport(comparison)
 
-
-
 	// Save current metrics as new baseline.
 
 	saveMetricsAsBaseline(currentMetrics)
 
-
-
 	fmt.Println("✅ Performance comparison completed successfully!")
 
 }
-
-
 
 // runPerformanceTests executes comprehensive performance tests.
 
@@ -185,39 +142,27 @@ func runPerformanceTests() *PerformanceMetrics {
 
 	fmt.Println("📊 Running performance tests...")
 
-
-
 	var memStatsBefore, memStatsAfter runtime.MemStats
 
 	runtime.GC()
 
 	runtime.ReadMemStats(&memStatsBefore)
 
-
-
 	startTime := time.Now()
 
 	goroutinesBefore := runtime.NumGoroutine()
-
-
 
 	// HTTP Performance Test.
 
 	httpOps := benchmarkHTTPPerformance()
 
-
-
 	// JSON Processing Test.
 
 	jsonOps := benchmarkJSONProcessing()
 
-
-
 	// Cryptographic Operations Test.
 
 	cryptoOps := benchmarkCryptographicOperations()
-
-
 
 	// Memory and runtime metrics.
 
@@ -227,37 +172,32 @@ func runPerformanceTests() *PerformanceMetrics {
 
 	duration := time.Since(startTime)
 
-
-
 	metrics := &PerformanceMetrics{
 
-		TestName:  "Go 1.24+ Performance Benchmark",
+		TestName: "Go 1.24+ Performance Benchmark",
 
 		GoVersion: runtime.Version(),
 
 		Timestamp: time.Now(),
 
-		Duration:  duration,
+		Duration: duration,
 
 		// Fix G115: Add bounds checking for integer overflow.
 
-		MemoryAllocated:    safeIntConversion(memStatsAfter.TotalAlloc, memStatsBefore.TotalAlloc),
+		MemoryAllocated: safeIntConversion(memStatsAfter.TotalAlloc, memStatsBefore.TotalAlloc),
 
-		MemoryReleased:     safeUintToInt(memStatsAfter.Frees - memStatsBefore.Frees),
+		MemoryReleased: safeUintToInt(memStatsAfter.Frees - memStatsBefore.Frees),
 
-		GoroutineCount:     goroutinesAfter - goroutinesBefore,
+		GoroutineCount: goroutinesAfter - goroutinesBefore,
 
-		GCCount:            memStatsAfter.NumGC - memStatsBefore.NumGC,
+		GCCount: memStatsAfter.NumGC - memStatsBefore.NumGC,
 
 		HTTPRequestsPerSec: httpOps,
 
-		JSONOpsPerSec:      jsonOps,
+		JSONOpsPerSec: jsonOps,
 
-		CryptoOpsPerSec:    cryptoOps,
-
+		CryptoOpsPerSec: cryptoOps,
 	}
-
-
 
 	fmt.Printf("  HTTP Requests/sec: %d\n", httpOps)
 
@@ -269,13 +209,9 @@ func runPerformanceTests() *PerformanceMetrics {
 
 	fmt.Printf("  Duration: %v\n", duration)
 
-
-
 	return metrics
 
 }
-
-
 
 // benchmarkHTTPPerformance tests HTTP client performance.
 
@@ -289,8 +225,6 @@ func benchmarkHTTPPerformance() int64 {
 
 	testDuration := 5 * time.Second
 
-
-
 	for time.Since(start) < testDuration {
 
 		// Simulate HTTP request processing.
@@ -299,13 +233,9 @@ func benchmarkHTTPPerformance() int64 {
 
 	}
 
-
-
 	return operations / int64(testDuration.Seconds())
 
 }
-
-
 
 // benchmarkJSONProcessing tests JSON marshaling/unmarshaling performance.
 
@@ -321,29 +251,22 @@ func benchmarkJSONProcessing() int64 {
 
 			"networkFunction": "AMF",
 
-			"parameters":      []string{"param1", "param2", "param3"},
-
+			"parameters": []string{"param1", "param2", "param3"},
 		},
 
 		"metadata": map[string]string{
 
-			"namespace":     "default",
+			"namespace": "default",
 
 			"correlationId": "test-123",
-
 		},
-
 	}
-
-
 
 	start := time.Now()
 
 	operations := int64(0)
 
 	testDuration := 5 * time.Second
-
-
 
 	for time.Since(start) < testDuration {
 
@@ -359,8 +282,6 @@ func benchmarkJSONProcessing() int64 {
 
 		}
 
-
-
 		// Unmarshal.
 
 		var result map[string]interface{}
@@ -375,19 +296,13 @@ func benchmarkJSONProcessing() int64 {
 
 		}
 
-
-
 		operations++
 
 	}
 
-
-
 	return operations / int64(testDuration.Seconds())
 
 }
-
-
 
 // benchmarkCryptographicOperations tests crypto performance.
 
@@ -411,15 +326,11 @@ func benchmarkCryptographicOperations() int64 {
 
 	}
 
-
-
 	start := time.Now()
 
 	operations := int64(0)
 
 	testDuration := 5 * time.Second
-
-
 
 	for time.Since(start) < testDuration {
 
@@ -429,13 +340,9 @@ func benchmarkCryptographicOperations() int64 {
 
 	}
 
-
-
 	return operations / int64(testDuration.Seconds())
 
 }
-
-
 
 // loadBaselineMetrics loads baseline performance metrics.
 
@@ -453,8 +360,6 @@ func loadBaselineMetrics() *PerformanceMetrics {
 
 	defer func() { _ = file.Close() }()
 
-
-
 	var metrics PerformanceMetrics
 
 	if err := json.NewDecoder(file).Decode(&metrics); err != nil {
@@ -465,15 +370,11 @@ func loadBaselineMetrics() *PerformanceMetrics {
 
 	}
 
-
-
 	fmt.Printf("📈 Loaded baseline metrics from: %s\n", metrics.Timestamp.Format("2006-01-02 15:04:05"))
 
 	return &metrics
 
 }
-
-
 
 // comparePerformance compares current metrics with baseline.
 
@@ -483,25 +384,20 @@ func comparePerformance(baseline, current *PerformanceMetrics) *PerformanceCompa
 
 		return &PerformanceComparison{
 
-			Summary:     "No baseline available for comparison",
+			Summary: "No baseline available for comparison",
 
-			Timestamp:   time.Now(),
+			Timestamp: time.Now(),
 
-			GoVersion:   runtime.Version(),
+			GoVersion: runtime.Version(),
 
-			Results:     []ComparisonResult{},
+			Results: []ComparisonResult{},
 
 			OverallGain: 0,
-
 		}
 
 	}
 
-
-
 	fmt.Println("🔍 Comparing performance metrics...")
-
-
 
 	results := []ComparisonResult{
 
@@ -514,10 +410,7 @@ func comparePerformance(baseline, current *PerformanceMetrics) *PerformanceCompa
 		compareMetric("Memory Allocated", float64(baseline.MemoryAllocated), float64(current.MemoryAllocated)),
 
 		compareMetric("Duration (ms)", float64(baseline.Duration.Milliseconds()), float64(current.Duration.Milliseconds())),
-
 	}
-
-
 
 	// Calculate overall performance gain.
 
@@ -537,8 +430,6 @@ func comparePerformance(baseline, current *PerformanceMetrics) *PerformanceCompa
 
 	}
 
-
-
 	overallGain := 0.0
 
 	if validMetrics > 0 {
@@ -547,25 +438,20 @@ func comparePerformance(baseline, current *PerformanceMetrics) *PerformanceCompa
 
 	}
 
-
-
 	return &PerformanceComparison{
 
-		Summary:     fmt.Sprintf("Performance comparison between %s and %s", baseline.GoVersion, current.GoVersion),
+		Summary: fmt.Sprintf("Performance comparison between %s and %s", baseline.GoVersion, current.GoVersion),
 
-		Timestamp:   time.Now(),
+		Timestamp: time.Now(),
 
-		GoVersion:   current.GoVersion,
+		GoVersion: current.GoVersion,
 
-		Results:     results,
+		Results: results,
 
 		OverallGain: overallGain,
-
 	}
 
 }
-
-
 
 // compareMetric compares individual performance metrics.
 
@@ -575,19 +461,16 @@ func compareMetric(name string, oldValue, newValue float64) ComparisonResult {
 
 		return ComparisonResult{
 
-			Metric:   name,
+			Metric: name,
 
 			OldValue: oldValue,
 
 			NewValue: newValue,
 
-			Status:   "Error: Division by zero",
-
+			Status: "Error: Division by zero",
 		}
 
 	}
-
-
 
 	improvement := ((newValue - oldValue) / oldValue) * 100
 
@@ -602,8 +485,6 @@ func compareMetric(name string, oldValue, newValue float64) ComparisonResult {
 		status = "Unchanged"
 
 	}
-
-
 
 	// For metrics where lower is better (like memory usage, duration).
 
@@ -622,25 +503,20 @@ func compareMetric(name string, oldValue, newValue float64) ComparisonResult {
 
 	}
 
-
-
 	return ComparisonResult{
 
-		Metric:             name,
+		Metric: name,
 
-		OldValue:           oldValue,
+		OldValue: oldValue,
 
-		NewValue:           newValue,
+		NewValue: newValue,
 
 		ImprovementPercent: improvement,
 
-		Status:             status,
-
+		Status: status,
 	}
 
 }
-
-
 
 // generateJSONReport creates a JSON performance report.
 
@@ -658,8 +534,6 @@ func generateJSONReport(comparison *PerformanceComparison) {
 
 	defer func() { _ = file.Close() }()
 
-
-
 	encoder := json.NewEncoder(file)
 
 	encoder.SetIndent("", "  ")
@@ -672,13 +546,9 @@ func generateJSONReport(comparison *PerformanceComparison) {
 
 	}
 
-
-
 	fmt.Println("📄 JSON report generated: performance-comparison.json")
 
 }
-
-
 
 // generateTextReport creates a human-readable text report.
 
@@ -695,8 +565,6 @@ func generateTextReport(comparison *PerformanceComparison) {
 	}
 
 	defer func() { _ = file.Close() }()
-
-
 
 	// FIXME: Batch error handling for multiple fmt.Fprintf calls.
 
@@ -737,8 +605,6 @@ func generateTextReport(comparison *PerformanceComparison) {
 		writeErr = err
 
 	}
-
-
 
 	if _, err := fmt.Fprintf(file, "Detailed Results:\n"); err != nil && writeErr == nil {
 
@@ -786,8 +652,6 @@ func generateTextReport(comparison *PerformanceComparison) {
 
 	}
 
-
-
 	// Check for any write errors.
 
 	if writeErr != nil {
@@ -798,13 +662,9 @@ func generateTextReport(comparison *PerformanceComparison) {
 
 	}
 
-
-
 	fmt.Println("📄 Text report generated: performance-comparison.txt")
 
 }
-
-
 
 // generateMarkdownReport creates a markdown performance report.
 
@@ -821,8 +681,6 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 	}
 
 	defer func() { _ = file.Close() }()
-
-
 
 	// FIXME: Batch error handling for multiple fmt.Fprintf calls in markdown generation.
 
@@ -858,8 +716,6 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 
 	}
 
-
-
 	if _, err := fmt.Fprintf(file, "## Performance Metrics\n\n"); err != nil && mdWriteErr == nil {
 
 		mdWriteErr = err
@@ -878,8 +734,6 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 
 	}
 
-
-
 	for _, result := range comparison.Results {
 
 		status := "✅"
@@ -893,8 +747,6 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 			status = "🔄"
 
 		}
-
-
 
 		if _, err := fmt.Fprintf(file, "| %s | %.2f | %.2f | %.2f%% | %s %s |\n",
 
@@ -915,8 +767,6 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 		}
 
 	}
-
-
 
 	if _, err := fmt.Fprintf(file, "\n## Key Improvements\n\n"); err != nil && mdWriteErr == nil {
 
@@ -966,8 +816,6 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 
 	}
 
-
-
 	if _, err := fmt.Fprintf(file, "\n## Next Steps\n\n"); err != nil && mdWriteErr == nil {
 
 		mdWriteErr = err
@@ -998,8 +846,6 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 
 	}
 
-
-
 	// Check for any write errors in markdown generation.
 
 	if mdWriteErr != nil {
@@ -1010,13 +856,9 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 
 	}
 
-
-
 	fmt.Println("📄 Markdown report generated: performance-comparison.md")
 
 }
-
-
 
 // saveMetricsAsBaseline saves current metrics as new baseline.
 
@@ -1034,8 +876,6 @@ func saveMetricsAsBaseline(metrics *PerformanceMetrics) {
 
 	defer func() { _ = file.Close() }()
 
-
-
 	encoder := json.NewEncoder(file)
 
 	encoder.SetIndent("", "  ")
@@ -1048,9 +888,6 @@ func saveMetricsAsBaseline(metrics *PerformanceMetrics) {
 
 	}
 
-
-
 	fmt.Println("💾 Current metrics saved as new baseline")
 
 }
-

@@ -1,7 +1,5 @@
 //go:build stub
 
-
-
 /*
 
 Copyright 2025.
@@ -32,28 +30,15 @@ limitations under the License.
 
 */
 
-
-
-
 package blueprint
 
-
-
 import (
-
 	"fmt"
-
 	"strings"
-
 	"time"
 
-
-
 	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 )
-
-
 
 // generateKptFile generates the Kpt package file.
 
@@ -91,8 +76,6 @@ upstream:
 
 }
 
-
-
 // generateReadme generates the README file.
 
 func (g *Generator) generateReadme(genCtx *GenerationContext) (string, error) {
@@ -129,8 +112,6 @@ kubectl apply -k .
 
 }
 
-
-
 // generateMetadata generates package metadata.
 
 func (g *Generator) generateMetadata(genCtx *GenerationContext) (string, error) {
@@ -163,8 +144,6 @@ data:
 
 }
 
-
-
 // generateFunctionConfig generates function configuration.
 
 func (g *Generator) generateFunctionConfig(genCtx *GenerationContext) (string, error) {
@@ -192,8 +171,6 @@ spec:
 `, genCtx.Intent.Name, genCtx.Intent.Name), nil
 
 }
-
-
 
 // generateGenericBlueprint generates a generic blueprint for components without specific templates.
 
@@ -249,13 +226,9 @@ spec:
 
 		strings.ToLower(string(component)))
 
-
-
 	return nil
 
 }
-
-
 
 // generateComponentService generates a service for a component.
 
@@ -287,8 +260,6 @@ spec:
 
 }
 
-
-
 // Configuration generation stub methods.
 
 func (g *Generator) generateAMFConfig(genCtx *GenerationContext) (string, error) {
@@ -297,15 +268,11 @@ func (g *Generator) generateAMFConfig(genCtx *GenerationContext) (string, error)
 
 }
 
-
-
 func (g *Generator) generateSMFConfig(genCtx *GenerationContext) (string, error) {
 
 	return `# SMF Configuration placeholder`, nil
 
 }
-
-
 
 func (g *Generator) generateUPFNetworking(genCtx *GenerationContext) (string, error) {
 
@@ -313,15 +280,11 @@ func (g *Generator) generateUPFNetworking(genCtx *GenerationContext) (string, er
 
 }
 
-
-
 func (g *Generator) generateE2Configuration(genCtx *GenerationContext) (string, error) {
 
 	return `# E2 Configuration placeholder`, nil
 
 }
-
-
 
 func (g *Generator) generateXAppManagementConfig(genCtx *GenerationContext) (string, error) {
 
@@ -329,15 +292,11 @@ func (g *Generator) generateXAppManagementConfig(genCtx *GenerationContext) (str
 
 }
 
-
-
 func (g *Generator) generateXAppDescriptor(genCtx *GenerationContext) (string, error) {
 
 	return `{"xapp_name": "placeholder", "version": "1.0.0"}`, nil
 
 }
-
-
 
 // Template data building helpers.
 
@@ -345,49 +304,40 @@ func (g *Generator) buildRICTemplateData(genCtx *GenerationContext, ricType stri
 
 	return map[string]interface{}{
 
-		"Name":      fmt.Sprintf("%s-%s-ric", genCtx.Intent.Name, ricType),
+		"Name": fmt.Sprintf("%s-%s-ric", genCtx.Intent.Name, ricType),
 
 		"Namespace": genCtx.TargetNamespace,
 
-		"RICType":   ricType,
-
+		"RICType": ricType,
 	}
 
 }
-
-
 
 func (g *Generator) buildXAppTemplateData(genCtx *GenerationContext) map[string]interface{} {
 
 	return map[string]interface{}{
 
-		"Name":      fmt.Sprintf("%s-xapp", genCtx.Intent.Name),
+		"Name": fmt.Sprintf("%s-xapp", genCtx.Intent.Name),
 
 		"Namespace": genCtx.TargetNamespace,
 
-		"Image":     "placeholder-xapp:latest",
-
+		"Image": "placeholder-xapp:latest",
 	}
 
 }
-
-
 
 func (g *Generator) buildNetworkSliceTemplateData(genCtx *GenerationContext) map[string]interface{} {
 
 	return map[string]interface{}{
 
-		"Name":         fmt.Sprintf("%s-slice", genCtx.Intent.Name),
+		"Name": fmt.Sprintf("%s-slice", genCtx.Intent.Name),
 
 		"NetworkSlice": genCtx.NetworkSlice,
 
-		"Namespace":    genCtx.TargetNamespace,
-
+		"Namespace": genCtx.TargetNamespace,
 	}
 
 }
-
-
 
 func (g *Generator) buildAMFConfig(genCtx *GenerationContext) map[string]interface{} {
 
@@ -396,14 +346,10 @@ func (g *Generator) buildAMFConfig(genCtx *GenerationContext) map[string]interfa
 		"plmn_list": []map[string]string{
 
 			{"mcc": "001", "mnc": "01"},
-
 		},
-
 	}
 
 }
-
-
 
 func (g *Generator) buildSMFConfig(genCtx *GenerationContext) map[string]interface{} {
 
@@ -416,18 +362,12 @@ func (g *Generator) buildSMFConfig(genCtx *GenerationContext) map[string]interfa
 				"gNB1": map[string]interface{}{
 
 					"type": "AN",
-
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 func (g *Generator) buildUPFNetworkConfig(genCtx *GenerationContext) map[string]interface{} {
 
@@ -436,14 +376,10 @@ func (g *Generator) buildUPFNetworkConfig(genCtx *GenerationContext) map[string]
 		"gtpu": map[string]interface{}{
 
 			"forwarder": "gtp5g",
-
 		},
-
 	}
 
 }
-
-
 
 func (g *Generator) extractResources(deployConfig map[string]interface{}) map[string]interface{} {
 
@@ -457,13 +393,10 @@ func (g *Generator) extractResources(deployConfig map[string]interface{}) map[st
 
 		"requests": map[string]string{"cpu": "100m", "memory": "128Mi"},
 
-		"limits":   map[string]string{"cpu": "500m", "memory": "512Mi"},
-
+		"limits": map[string]string{"cpu": "500m", "memory": "512Mi"},
 	}
 
 }
-
-
 
 func (g *Generator) extractEnvironment(deployConfig map[string]interface{}) []map[string]string {
 
@@ -477,10 +410,9 @@ func (g *Generator) extractEnvironment(deployConfig map[string]interface{}) []ma
 
 				result[i] = map[string]string{
 
-					"name":  envMap["name"].(string),
+					"name": envMap["name"].(string),
 
 					"value": envMap["value"].(string),
-
 				}
 
 			}
@@ -495,8 +427,6 @@ func (g *Generator) extractEnvironment(deployConfig map[string]interface{}) []ma
 
 }
 
-
-
 // Service mesh and observability stub methods.
 
 func (g *Generator) generateSliceQoSConfig(genCtx *GenerationContext) (string, error) {
@@ -505,15 +435,11 @@ func (g *Generator) generateSliceQoSConfig(genCtx *GenerationContext) (string, e
 
 }
 
-
-
 func (g *Generator) generateVirtualService(genCtx *GenerationContext) (string, error) {
 
 	return `# Istio VirtualService placeholder`, nil
 
 }
-
-
 
 func (g *Generator) generateDestinationRule(genCtx *GenerationContext) (string, error) {
 
@@ -521,15 +447,11 @@ func (g *Generator) generateDestinationRule(genCtx *GenerationContext) (string, 
 
 }
 
-
-
 func (g *Generator) generateGateway(genCtx *GenerationContext) (string, error) {
 
 	return `# Istio Gateway placeholder`, nil
 
 }
-
-
 
 func (g *Generator) generatePeerAuthentication(genCtx *GenerationContext) (string, error) {
 
@@ -537,15 +459,11 @@ func (g *Generator) generatePeerAuthentication(genCtx *GenerationContext) (strin
 
 }
 
-
-
 func (g *Generator) generateServiceMonitor(genCtx *GenerationContext) (string, error) {
 
 	return `# Prometheus ServiceMonitor placeholder`, nil
 
 }
-
-
 
 func (g *Generator) generateGrafanaDashboard(genCtx *GenerationContext) (string, error) {
 
@@ -553,11 +471,8 @@ func (g *Generator) generateGrafanaDashboard(genCtx *GenerationContext) (string,
 
 }
 
-
-
 func (g *Generator) generateAlertRules(genCtx *GenerationContext) (string, error) {
 
 	return `# Prometheus AlertRules placeholder`, nil
 
 }
-

@@ -1,73 +1,44 @@
 //go:build go1.24
 
-
-
-
 package generics
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net"
-
 	"net/url"
-
 	"reflect"
-
 	"regexp"
-
 	"strconv"
-
 	"strings"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // Validator represents a validation function for type T.
 
 type Validator[T any] func(T) ValidationResult
 
-
-
 // ValidationResult represents the result of a validation operation.
 
 type ValidationResult struct {
-
-	Valid  bool
+	Valid bool
 
 	Errors []ValidationError
-
 }
-
-
 
 // ValidationError represents a validation error.
 
 type ValidationError struct {
-
-	Field   string
+	Field string
 
 	Message string
 
-	Code    string
+	Code string
 
-	Value   any
-
+	Value any
 }
-
-
 
 // NewValidationResult creates a new validation result.
 
@@ -75,15 +46,12 @@ func NewValidationResult() ValidationResult {
 
 	return ValidationResult{
 
-		Valid:  true,
+		Valid: true,
 
 		Errors: make([]ValidationError, 0),
-
 	}
 
 }
-
-
 
 // AddError adds a validation error.
 
@@ -93,19 +61,16 @@ func (vr *ValidationResult) AddError(field, message, code string, value any) {
 
 	vr.Errors = append(vr.Errors, ValidationError{
 
-		Field:   field,
+		Field: field,
 
 		Message: message,
 
-		Code:    code,
+		Code: code,
 
-		Value:   value,
-
+		Value: value,
 	})
 
 }
-
-
 
 // Combine combines multiple validation results.
 
@@ -121,8 +86,6 @@ func (vr *ValidationResult) Combine(other ValidationResult) {
 
 }
 
-
-
 // Error returns a string representation of all validation errors.
 
 func (vr ValidationResult) Error() string {
@@ -133,8 +96,6 @@ func (vr ValidationResult) Error() string {
 
 	}
 
-
-
 	var messages []string
 
 	for _, err := range vr.Errors {
@@ -143,23 +104,15 @@ func (vr ValidationResult) Error() string {
 
 	}
 
-
-
 	return strings.Join(messages, "; ")
 
 }
 
-
-
 // ValidationBuilder provides a fluent interface for building validators.
 
 type ValidationBuilder[T any] struct {
-
 	validators []Validator[T]
-
 }
-
-
 
 // NewValidationBuilder creates a new validation builder.
 
@@ -168,12 +121,9 @@ func NewValidationBuilder[T any]() *ValidationBuilder[T] {
 	return &ValidationBuilder[T]{
 
 		validators: make([]Validator[T], 0),
-
 	}
 
 }
-
-
 
 // Add adds a validator to the builder.
 
@@ -184,8 +134,6 @@ func (vb *ValidationBuilder[T]) Add(validator Validator[T]) *ValidationBuilder[T
 	return vb
 
 }
-
-
 
 // Required adds a required field validator.
 
@@ -213,8 +161,6 @@ func (vb *ValidationBuilder[T]) Required(fieldName string, extractor func(T) any
 
 }
 
-
-
 // MinLength adds a minimum length validator for strings.
 
 func (vb *ValidationBuilder[T]) MinLength(fieldName string, minLength int, extractor func(T) string) *ValidationBuilder[T] {
@@ -239,8 +185,6 @@ func (vb *ValidationBuilder[T]) MinLength(fieldName string, minLength int, extra
 
 }
 
-
-
 // MaxLength adds a maximum length validator for strings.
 
 func (vb *ValidationBuilder[T]) MaxLength(fieldName string, maxLength int, extractor func(T) string) *ValidationBuilder[T] {
@@ -264,8 +208,6 @@ func (vb *ValidationBuilder[T]) MaxLength(fieldName string, maxLength int, extra
 	return vb.Add(validator)
 
 }
-
-
 
 // Pattern adds a regex pattern validator for strings.
 
@@ -293,8 +235,6 @@ func (vb *ValidationBuilder[T]) Pattern(fieldName, pattern, message string, extr
 
 }
 
-
-
 // Email adds an email validation validator.
 
 func (vb *ValidationBuilder[T]) Email(fieldName string, extractor func(T) string) *ValidationBuilder[T] {
@@ -320,8 +260,6 @@ func (vb *ValidationBuilder[T]) Email(fieldName string, extractor func(T) string
 	return vb.Add(validator)
 
 }
-
-
 
 // URL adds a URL validation validator.
 
@@ -351,8 +289,6 @@ func (vb *ValidationBuilder[T]) URL(fieldName string, extractor func(T) string) 
 
 }
 
-
-
 // IP adds an IP address validation validator.
 
 func (vb *ValidationBuilder[T]) IP(fieldName string, extractor func(T) string) *ValidationBuilder[T] {
@@ -377,8 +313,6 @@ func (vb *ValidationBuilder[T]) IP(fieldName string, extractor func(T) string) *
 
 }
 
-
-
 // Range adds a numeric range validator.
 
 func (vb *ValidationBuilder[T]) Range(fieldName string, min, max int64, extractor func(T) int64) *ValidationBuilder[T] {
@@ -402,8 +336,6 @@ func (vb *ValidationBuilder[T]) Range(fieldName string, min, max int64, extracto
 	return vb.Add(validator)
 
 }
-
-
 
 // OneOf adds a validator that checks if value is one of the allowed values.
 
@@ -437,8 +369,6 @@ func (vb *ValidationBuilder[T]) OneOf(fieldName string, allowedValues []interfac
 
 }
 
-
-
 // Custom adds a custom validator function.
 
 func (vb *ValidationBuilder[T]) Custom(validator Validator[T]) *ValidationBuilder[T] {
@@ -446,8 +376,6 @@ func (vb *ValidationBuilder[T]) Custom(validator Validator[T]) *ValidationBuilde
 	return vb.Add(validator)
 
 }
-
-
 
 // Conditional adds a conditional validator that only runs if condition is true.
 
@@ -468,8 +396,6 @@ func (vb *ValidationBuilder[T]) Conditional(condition func(T) bool, validator Va
 	return vb.Add(conditionalValidator)
 
 }
-
-
 
 // Build builds the final validator.
 
@@ -493,29 +419,19 @@ func (vb *ValidationBuilder[T]) Build() Validator[T] {
 
 }
 
-
-
 // StructValidator provides validation for struct fields using reflection.
 
 type StructValidator[T any] struct {
-
 	fieldValidators map[string][]FieldValidator
-
 }
-
-
 
 // FieldValidator represents a validator for a specific field.
 
 type FieldValidator struct {
-
-	Name      string
+	Name string
 
 	Validator func(reflect.Value) ValidationResult
-
 }
-
-
 
 // NewStructValidator creates a new struct validator.
 
@@ -524,12 +440,9 @@ func NewStructValidator[T any]() *StructValidator[T] {
 	return &StructValidator[T]{
 
 		fieldValidators: make(map[string][]FieldValidator),
-
 	}
 
 }
-
-
 
 // Field adds validators for a specific field.
 
@@ -541,8 +454,6 @@ func (sv *StructValidator[T]) Field(fieldName string, validators ...FieldValidat
 
 }
 
-
-
 // Validate validates a struct using reflection.
 
 func (sv *StructValidator[T]) Validate(obj T) ValidationResult {
@@ -552,8 +463,6 @@ func (sv *StructValidator[T]) Validate(obj T) ValidationResult {
 	objValue := reflect.ValueOf(obj)
 
 	objType := reflect.TypeOf(obj)
-
-
 
 	// Handle pointer types.
 
@@ -565,8 +474,6 @@ func (sv *StructValidator[T]) Validate(obj T) ValidationResult {
 
 	}
 
-
-
 	if objValue.Kind() != reflect.Struct {
 
 		result.AddError("", "value must be a struct", "type_error", obj)
@@ -574,8 +481,6 @@ func (sv *StructValidator[T]) Validate(obj T) ValidationResult {
 		return result
 
 	}
-
-
 
 	// Validate each field.
 
@@ -587,8 +492,6 @@ func (sv *StructValidator[T]) Validate(obj T) ValidationResult {
 
 		fieldName := fieldType.Name
 
-
-
 		// Skip unexported fields.
 
 		if !fieldValue.CanInterface() {
@@ -596,8 +499,6 @@ func (sv *StructValidator[T]) Validate(obj T) ValidationResult {
 			continue
 
 		}
-
-
 
 		// Check for validation tag.
 
@@ -608,8 +509,6 @@ func (sv *StructValidator[T]) Validate(obj T) ValidationResult {
 			result.Combine(tagResult)
 
 		}
-
-
 
 		// Apply custom field validators.
 
@@ -627,13 +526,9 @@ func (sv *StructValidator[T]) Validate(obj T) ValidationResult {
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // validateTag validates a field based on struct tags.
 
@@ -642,8 +537,6 @@ func (sv *StructValidator[T]) validateTag(fieldName string, fieldValue reflect.V
 	result := NewValidationResult()
 
 	rules := strings.Split(tag, ",")
-
-
 
 	for _, rule := range rules {
 
@@ -660,8 +553,6 @@ func (sv *StructValidator[T]) validateTag(fieldName string, fieldValue reflect.V
 			ruleValue = parts[1]
 
 		}
-
-
 
 		switch ruleName {
 
@@ -727,25 +618,17 @@ func (sv *StructValidator[T]) validateTag(fieldName string, fieldValue reflect.V
 
 	}
 
-
-
 	return result
 
 }
 
-
-
 // ValidationPipeline allows chaining multiple validators.
 
 type ValidationPipeline[T any] struct {
-
-	validators       []Validator[T]
+	validators []Validator[T]
 
 	stopOnFirstError bool
-
 }
-
-
 
 // NewValidationPipeline creates a new validation pipeline.
 
@@ -754,12 +637,9 @@ func NewValidationPipeline[T any]() *ValidationPipeline[T] {
 	return &ValidationPipeline[T]{
 
 		validators: make([]Validator[T], 0),
-
 	}
 
 }
-
-
 
 // Add adds a validator to the pipeline.
 
@@ -771,8 +651,6 @@ func (vp *ValidationPipeline[T]) Add(validator Validator[T]) *ValidationPipeline
 
 }
 
-
-
 // StopOnFirstError configures the pipeline to stop on first error.
 
 func (vp *ValidationPipeline[T]) StopOnFirstError(stop bool) *ValidationPipeline[T] {
@@ -783,23 +661,17 @@ func (vp *ValidationPipeline[T]) StopOnFirstError(stop bool) *ValidationPipeline
 
 }
 
-
-
 // Execute executes the validation pipeline.
 
 func (vp *ValidationPipeline[T]) Execute(obj T) ValidationResult {
 
 	result := NewValidationResult()
 
-
-
 	for _, validator := range vp.validators {
 
 		validationResult := validator(obj)
 
 		result.Combine(validationResult)
-
-
 
 		if vp.stopOnFirstError && !validationResult.Valid {
 
@@ -809,23 +681,15 @@ func (vp *ValidationPipeline[T]) Execute(obj T) ValidationResult {
 
 	}
 
-
-
 	return result
 
 }
 
-
-
 // AsyncValidator provides asynchronous validation capabilities.
 
 type AsyncValidator[T any] struct {
-
 	validator Validator[T]
-
 }
-
-
 
 // NewAsyncValidator creates a new async validator.
 
@@ -834,12 +698,9 @@ func NewAsyncValidator[T any](validator Validator[T]) *AsyncValidator[T] {
 	return &AsyncValidator[T]{
 
 		validator: validator,
-
 	}
 
 }
-
-
 
 // ValidateAsync validates asynchronously.
 
@@ -847,15 +708,11 @@ func (av *AsyncValidator[T]) ValidateAsync(ctx context.Context, obj T) <-chan Va
 
 	resultChan := make(chan ValidationResult, 1)
 
-
-
 	go func() {
 
 		defer close(resultChan)
 
 		result := av.validator(obj)
-
-
 
 		select {
 
@@ -869,25 +726,17 @@ func (av *AsyncValidator[T]) ValidateAsync(ctx context.Context, obj T) <-chan Va
 
 	}()
 
-
-
 	return resultChan
 
 }
 
-
-
 // BatchValidator validates multiple objects concurrently.
 
 type BatchValidator[T any] struct {
-
-	validator      Validator[T]
+	validator Validator[T]
 
 	maxConcurrency int
-
 }
-
-
 
 // NewBatchValidator creates a new batch validator.
 
@@ -899,19 +748,14 @@ func NewBatchValidator[T any](validator Validator[T], maxConcurrency int) *Batch
 
 	}
 
-
-
 	return &BatchValidator[T]{
 
-		validator:      validator,
+		validator: validator,
 
 		maxConcurrency: maxConcurrency,
-
 	}
 
 }
-
-
 
 // ValidateBatch validates multiple objects concurrently.
 
@@ -919,23 +763,15 @@ func (bv *BatchValidator[T]) ValidateBatch(ctx context.Context, objects []T) <-c
 
 	resultChan := make(chan BatchValidationResult[T], len(objects))
 
-
-
 	// Create semaphore for concurrency control.
 
 	semaphore := make(chan struct{}, bv.maxConcurrency)
-
-
 
 	go func() {
 
 		defer close(resultChan)
 
-
-
 		var wg sync.WaitGroup
-
-
 
 		for i, obj := range objects {
 
@@ -945,29 +781,22 @@ func (bv *BatchValidator[T]) ValidateBatch(ctx context.Context, objects []T) <-c
 
 				defer wg.Done()
 
-
-
 				// Acquire semaphore.
 
 				semaphore <- struct{}{}
 
 				defer func() { <-semaphore }()
 
-
-
 				result := bv.validator(object)
 
 				batchResult := BatchValidationResult[T]{
 
-					Index:  index,
+					Index: index,
 
 					Object: object,
 
 					Result: result,
-
 				}
-
-
 
 				select {
 
@@ -983,57 +812,39 @@ func (bv *BatchValidator[T]) ValidateBatch(ctx context.Context, objects []T) <-c
 
 		}
 
-
-
 		wg.Wait()
 
 	}()
-
-
 
 	return resultChan
 
 }
 
-
-
 // BatchValidationResult represents the result of a batch validation.
 
 type BatchValidationResult[T any] struct {
-
-	Index  int
+	Index int
 
 	Object T
 
 	Result ValidationResult
-
 }
-
-
 
 // ConditionalValidator applies different validators based on conditions.
 
 type ConditionalValidator[T any] struct {
-
-	conditions       []ConditionalRule[T]
+	conditions []ConditionalRule[T]
 
 	defaultValidator Validator[T]
-
 }
-
-
 
 // ConditionalRule represents a conditional validation rule.
 
 type ConditionalRule[T any] struct {
-
 	Condition func(T) bool
 
 	Validator Validator[T]
-
 }
-
-
 
 // NewConditionalValidator creates a new conditional validator.
 
@@ -1042,12 +853,9 @@ func NewConditionalValidator[T any]() *ConditionalValidator[T] {
 	return &ConditionalValidator[T]{
 
 		conditions: make([]ConditionalRule[T], 0),
-
 	}
 
 }
-
-
 
 // When adds a conditional rule.
 
@@ -1058,14 +866,11 @@ func (cv *ConditionalValidator[T]) When(condition func(T) bool, validator Valida
 		Condition: condition,
 
 		Validator: validator,
-
 	})
 
 	return cv
 
 }
-
-
 
 // Default sets the default validator when no conditions match.
 
@@ -1076,8 +881,6 @@ func (cv *ConditionalValidator[T]) Default(validator Validator[T]) *ConditionalV
 	return cv
 
 }
-
-
 
 // Validate validates using the first matching condition.
 
@@ -1093,25 +896,17 @@ func (cv *ConditionalValidator[T]) Validate(obj T) ValidationResult {
 
 	}
 
-
-
 	if cv.defaultValidator != nil {
 
 		return cv.defaultValidator(obj)
 
 	}
 
-
-
 	return NewValidationResult()
 
 }
 
-
-
 // Utility functions.
-
-
 
 // isZeroValue checks if a value is the zero value.
 
@@ -1123,15 +918,11 @@ func isZeroValue(value any) bool {
 
 	}
 
-
-
 	v := reflect.ValueOf(value)
 
 	return v.IsZero()
 
 }
-
-
 
 // isZeroReflectValue checks if a reflect.Value is zero.
 
@@ -1140,8 +931,6 @@ func isZeroReflectValue(value reflect.Value) bool {
 	return value.IsZero()
 
 }
-
-
 
 // validateMinReflectValue validates minimum value for reflect.Value.
 
@@ -1175,8 +964,6 @@ func validateMinReflectValue(value reflect.Value, min int64) bool {
 
 }
 
-
-
 // validateMaxReflectValue validates maximum value for reflect.Value.
 
 func validateMaxReflectValue(value reflect.Value, max int64) bool {
@@ -1209,11 +996,7 @@ func validateMaxReflectValue(value reflect.Value, max int64) bool {
 
 }
 
-
-
 // Predefined validators.
-
-
 
 // NotEmpty validates that a string is not empty.
 
@@ -1237,8 +1020,6 @@ func NotEmpty[T any](fieldName string, extractor func(T) string) Validator[T] {
 
 }
 
-
-
 // PositiveNumber validates that a number is positive.
 
 func PositiveNumber[T any](fieldName string, extractor func(T) int64) Validator[T] {
@@ -1260,8 +1041,6 @@ func PositiveNumber[T any](fieldName string, extractor func(T) int64) Validator[
 	}
 
 }
-
-
 
 // InFuture validates that a time is in the future.
 
@@ -1285,8 +1064,6 @@ func InFuture[T any](fieldName string, extractor func(T) time.Time) Validator[T]
 
 }
 
-
-
 // InPast validates that a time is in the past.
 
 func InPast[T any](fieldName string, extractor func(T) time.Time) Validator[T] {
@@ -1309,8 +1086,6 @@ func InPast[T any](fieldName string, extractor func(T) time.Time) Validator[T] {
 
 }
 
-
-
 // ValidateUniqueSlice validates that slice elements are unique.
 
 func ValidateUniqueSlice[T any, E Comparable](fieldName string, extractor func(T) []E) Validator[T] {
@@ -1322,8 +1097,6 @@ func ValidateUniqueSlice[T any, E Comparable](fieldName string, extractor func(T
 		result := NewValidationResult()
 
 		seen := NewSet[E]()
-
-
 
 		for _, value := range values {
 
@@ -1339,15 +1112,11 @@ func ValidateUniqueSlice[T any, E Comparable](fieldName string, extractor func(T
 
 		}
 
-
-
 		return result
 
 	}
 
 }
-
-
 
 // ValidJSON validates that a string contains valid JSON.
 
@@ -1359,8 +1128,6 @@ func ValidJSON[T any](fieldName string, extractor func(T) string) Validator[T] {
 
 		result := NewValidationResult()
 
-
-
 		var js json.RawMessage
 
 		if err := json.Unmarshal([]byte(value), &js); err != nil {
@@ -1369,25 +1136,17 @@ func ValidJSON[T any](fieldName string, extractor func(T) string) Validator[T] {
 
 		}
 
-
-
 		return result
 
 	}
 
 }
 
-
-
 // CrossFieldValidator provides cross-field validation capabilities.
 
 type CrossFieldValidator[T any] struct {
-
 	validator func(T) ValidationResult
-
 }
-
-
 
 // NewCrossFieldValidator creates a new cross-field validator.
 
@@ -1396,12 +1155,9 @@ func NewCrossFieldValidator[T any](validator func(T) ValidationResult) *CrossFie
 	return &CrossFieldValidator[T]{
 
 		validator: validator,
-
 	}
 
 }
-
-
 
 // Validate validates using cross-field logic.
 
@@ -1410,8 +1166,6 @@ func (cfv *CrossFieldValidator[T]) Validate(obj T) ValidationResult {
 	return cfv.validator(obj)
 
 }
-
-
 
 // PasswordStrength validates password strength.
 
@@ -1423,15 +1177,11 @@ func PasswordStrength[T any](fieldName string, extractor func(T) string) Validat
 
 		result := NewValidationResult()
 
-
-
 		if len(password) < 8 {
 
 			result.AddError(fieldName, "password must be at least 8 characters long", "password_length", password)
 
 		}
-
-
 
 		hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(password)
 
@@ -1440,8 +1190,6 @@ func PasswordStrength[T any](fieldName string, extractor func(T) string) Validat
 		hasDigit := regexp.MustCompile(`[0-9]`).MatchString(password)
 
 		hasSpecial := regexp.MustCompile(`[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]`).MatchString(password)
-
-
 
 		if !hasUpper {
 
@@ -1467,11 +1215,8 @@ func PasswordStrength[T any](fieldName string, extractor func(T) string) Validat
 
 		}
 
-
-
 		return result
 
 	}
 
 }
-

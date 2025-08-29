@@ -1,29 +1,15 @@
-
 package porch
 
-
-
 import (
-
 	"context"
-
 	"fmt"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	"k8s.io/client-go/dynamic"
-
 	"k8s.io/client-go/rest"
-
 )
-
-
 
 // CreateDraftPackageRevision performs createdraftpackagerevision operation.
 
@@ -49,15 +35,12 @@ func CreateDraftPackageRevision(
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "porch.kpt.dev",
+		Group: "porch.kpt.dev",
 
-		Version:  "v1alpha1",
+		Version: "v1alpha1",
 
 		Resource: "packagerevisions",
-
 	}
-
-
 
 	u := &unstructured.Unstructured{
 
@@ -65,39 +48,33 @@ func CreateDraftPackageRevision(
 
 			"apiVersion": "porch.kpt.dev/v1alpha1",
 
-			"kind":       "PackageRevision",
+			"kind": "PackageRevision",
 
 			"metadata": map[string]interface{}{
 
 				"generateName": fmt.Sprintf("%s.%s.", repository, packageName),
 
-				"namespace":    namespace,
+				"namespace": namespace,
 
-				"labels":       labels,
+				"labels": labels,
 
-				"annotations":  annotations,
-
+				"annotations": annotations,
 			},
 
 			"spec": map[string]interface{}{
 
-				"lifecycle":     "Draft",
+				"lifecycle": "Draft",
 
-				"repository":    repository,
+				"repository": repository,
 
-				"packageName":   packageName,
+				"packageName": packageName,
 
 				"workspaceName": workspace,
 
-				"revision":      0,
-
+				"revision": 0,
 			},
-
 		},
-
 	}
-
-
 
 	dc, err := dynamic.NewForConfig(restcfg)
 
@@ -110,4 +87,3 @@ func CreateDraftPackageRevision(
 	return dc.Resource(gvr).Namespace(namespace).Create(ctx, u, metav1.CreateOptions{})
 
 }
-

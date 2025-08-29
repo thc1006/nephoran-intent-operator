@@ -5,19 +5,14 @@ import (
 	"os"
 
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers"
 
 	"k8s.io/apimachinery/pkg/runtime"
-
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 

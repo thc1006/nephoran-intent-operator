@@ -1,21 +1,11 @@
-
 package validation
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"os"
-
 	"time"
-
 )
-
-
 
 // DefaultValidationConfig returns a comprehensive default validation configuration.
 
@@ -25,31 +15,31 @@ func DefaultValidationConfig() *ValidationConfig {
 
 		Claims: PerformanceClaims{
 
-			IntentLatencyP95:       2 * time.Second,        // Sub-2-second P95 latency
+			IntentLatencyP95: 2 * time.Second, // Sub-2-second P95 latency
 
-			ConcurrentCapacity:     200,                    // 200+ concurrent intents
+			ConcurrentCapacity: 200, // 200+ concurrent intents
 
-			ThroughputRate:         45,                     // 45 intents per minute
+			ThroughputRate: 45, // 45 intents per minute
 
-			SystemAvailability:     99.95,                  // 99.95% availability
+			SystemAvailability: 99.95, // 99.95% availability
 
 			RAGRetrievalLatencyP95: 200 * time.Millisecond, // Sub-200ms P95 retrieval
 
-			CacheHitRate:           87.0,                   // 87% cache hit rate
+			CacheHitRate: 87.0, // 87% cache hit rate
 
 		},
 
 		Statistics: StatisticalConfig{
 
-			ConfidenceLevel:     95.0,  // 95% confidence level
+			ConfidenceLevel: 95.0, // 95% confidence level
 
-			SignificanceLevel:   0.05,  // 5% alpha level (p < 0.05)
+			SignificanceLevel: 0.05, // 5% alpha level (p < 0.05)
 
-			MinSampleSize:       30,    // Minimum 30 samples for statistical validity
+			MinSampleSize: 30, // Minimum 30 samples for statistical validity
 
-			PowerThreshold:      0.80,  // 80% statistical power
+			PowerThreshold: 0.80, // 80% statistical power
 
-			EffectSizeThreshold: 0.5,   // Medium effect size threshold
+			EffectSizeThreshold: 0.5, // Medium effect size threshold
 
 			MultipleComparisons: "fdr", // False Discovery Rate correction
 
@@ -57,11 +47,11 @@ func DefaultValidationConfig() *ValidationConfig {
 
 		TestConfig: TestConfiguration{
 
-			TestDuration:      30 * time.Minute, // 30-minute comprehensive test
+			TestDuration: 30 * time.Minute, // 30-minute comprehensive test
 
-			WarmupDuration:    5 * time.Minute,  // 5-minute warmup
+			WarmupDuration: 5 * time.Minute, // 5-minute warmup
 
-			CooldownDuration:  2 * time.Minute,  // 2-minute cooldown between tests
+			CooldownDuration: 2 * time.Minute, // 2-minute cooldown between tests
 
 			ConcurrencyLevels: []int{1, 5, 10, 25, 50, 100, 150, 200, 250, 300},
 
@@ -69,9 +59,9 @@ func DefaultValidationConfig() *ValidationConfig {
 
 				{
 
-					Name:     "constant_load",
+					Name: "constant_load",
 
-					Pattern:  "constant",
+					Pattern: "constant",
 
 					Duration: 10 * time.Minute,
 
@@ -80,14 +70,13 @@ func DefaultValidationConfig() *ValidationConfig {
 						"rate": 30, // 30 requests per minute
 
 					},
-
 				},
 
 				{
 
-					Name:     "ramp_up_load",
+					Name: "ramp_up_load",
 
-					Pattern:  "ramp",
+					Pattern: "ramp",
 
 					Duration: 10 * time.Minute,
 
@@ -95,56 +84,49 @@ func DefaultValidationConfig() *ValidationConfig {
 
 						"start_rate": 10,
 
-						"end_rate":   60,
+						"end_rate": 60,
 
-						"steps":      10,
-
+						"steps": 10,
 					},
-
 				},
 
 				{
 
-					Name:     "spike_load",
+					Name: "spike_load",
 
-					Pattern:  "spike",
+					Pattern: "spike",
 
 					Duration: 5 * time.Minute,
 
 					Parameters: map[string]interface{}{
 
-						"base_rate":      20,
+						"base_rate": 20,
 
-						"spike_rate":     100,
+						"spike_rate": 100,
 
 						"spike_duration": "30s",
 
 						"spike_interval": "2m",
-
 					},
-
 				},
 
 				{
 
-					Name:     "burst_load",
+					Name: "burst_load",
 
-					Pattern:  "burst",
+					Pattern: "burst",
 
 					Duration: 8 * time.Minute,
 
 					Parameters: map[string]interface{}{
 
-						"burst_rate":     80,
+						"burst_rate": 80,
 
 						"burst_duration": "1m",
 
-						"rest_duration":  "2m",
-
+						"rest_duration": "2m",
 					},
-
 				},
-
 			},
 
 			TestScenarios: []TestScenario{
@@ -153,165 +135,147 @@ func DefaultValidationConfig() *ValidationConfig {
 
 				{
 
-					Name:        "simple_5g_config",
+					Name: "simple_5g_config",
 
 					Description: "Simple 5G network configuration",
 
 					IntentTypes: []string{"monitoring-config", "basic-security"},
 
-					Complexity:  "simple",
+					Complexity: "simple",
 
 					Parameters: map[string]interface{}{
 
-						"weight":                0.20,
+						"weight": 0.20,
 
 						"resource_requirements": "low",
-
 					},
-
 				},
 
 				// Moderate Scenarios (50% of tests).
 
 				{
 
-					Name:        "moderate_5g_deployment",
+					Name: "moderate_5g_deployment",
 
 					Description: "Moderate complexity 5G core deployment",
 
 					IntentTypes: []string{"5g-core-amf", "oran-odu", "network-slice-embb"},
 
-					Complexity:  "moderate",
+					Complexity: "moderate",
 
 					Parameters: map[string]interface{}{
 
-						"weight":                0.50,
+						"weight": 0.50,
 
 						"resource_requirements": "medium",
 
-						"dependencies":          []string{"networking", "storage"},
-
+						"dependencies": []string{"networking", "storage"},
 					},
-
 				},
 
 				// Complex Scenarios (30% of tests).
 
 				{
 
-					Name:        "complex_oran_deployment",
+					Name: "complex_oran_deployment",
 
 					Description: "Complex O-RAN deployment with multiple components",
 
 					IntentTypes: []string{"5g-core-smf", "5g-core-upf", "oran-ocu", "network-slice-urllc"},
 
-					Complexity:  "complex",
+					Complexity: "complex",
 
 					Parameters: map[string]interface{}{
 
-						"weight":                0.30,
+						"weight": 0.30,
 
 						"resource_requirements": "high",
 
-						"dependencies":          []string{"networking", "storage", "compute", "certificates"},
+						"dependencies": []string{"networking", "storage", "compute", "certificates"},
 
 						"coordination_required": true,
-
 					},
-
 				},
-
 			},
 
 			EnvironmentVariants: []EnvVariant{
 
 				{
 
-					Name:        "development",
+					Name: "development",
 
 					Description: "Development environment with minimal resources",
 
 					Config: map[string]interface{}{
 
-						"node_count":    1,
+						"node_count": 1,
 
-						"cpu_limit":     "2000m",
+						"cpu_limit": "2000m",
 
-						"memory_limit":  "4Gi",
+						"memory_limit": "4Gi",
 
 						"storage_class": "standard",
-
 					},
-
 				},
 
 				{
 
-					Name:        "staging",
+					Name: "staging",
 
 					Description: "Staging environment simulating production load",
 
 					Config: map[string]interface{}{
 
-						"node_count":    3,
+						"node_count": 3,
 
-						"cpu_limit":     "4000m",
+						"cpu_limit": "4000m",
 
-						"memory_limit":  "8Gi",
+						"memory_limit": "8Gi",
 
 						"storage_class": "fast-ssd",
-
 					},
-
 				},
 
 				{
 
-					Name:        "production",
+					Name: "production",
 
 					Description: "Production environment with full resources",
 
 					Config: map[string]interface{}{
 
-						"node_count":        5,
+						"node_count": 5,
 
-						"cpu_limit":         "8000m",
+						"cpu_limit": "8000m",
 
-						"memory_limit":      "16Gi",
+						"memory_limit": "16Gi",
 
-						"storage_class":     "premium-ssd",
+						"storage_class": "premium-ssd",
 
 						"high_availability": true,
-
 					},
-
 				},
-
 			},
-
 		},
 
 		Evidence: EvidenceRequirements{
 
-			MetricsPrecision:     4,    // 4 decimal places
+			MetricsPrecision: 4, // 4 decimal places
 
 			TimeSeriesResolution: "1s", // 1-second resolution
 
-			HistoricalBaselines:  true, // Compare with historical data
+			HistoricalBaselines: true, // Compare with historical data
 
 			DistributionAnalysis: true, // Full distribution analysis
 
-			ConfidenceIntervals:  true, // Include confidence intervals
+			ConfidenceIntervals: true, // Include confidence intervals
 
-			HypothesisTests:      true, // Perform formal hypothesis tests
+			HypothesisTests: true, // Perform formal hypothesis tests
 
 		},
-
 	}
 
 }
-
-
 
 // LoadValidationConfig loads validation configuration from file or environment.
 
@@ -329,8 +293,6 @@ func LoadValidationConfig(configPath string) (*ValidationConfig, error) {
 
 	}
 
-
-
 	// Try environment variable.
 
 	if envPath := os.Getenv("VALIDATION_CONFIG_PATH"); envPath != "" {
@@ -343,21 +305,15 @@ func LoadValidationConfig(configPath string) (*ValidationConfig, error) {
 
 	}
 
-
-
 	// Fall back to default configuration with environment overrides.
 
 	config := DefaultValidationConfig()
 
 	applyEnvironmentOverrides(config)
 
-
-
 	return config, nil
 
 }
-
-
 
 // loadConfigFromFile loads configuration from a JSON file.
 
@@ -371,8 +327,6 @@ func loadConfigFromFile(path string) (*ValidationConfig, error) {
 
 	}
 
-
-
 	var config ValidationConfig
 
 	if err := json.Unmarshal(data, &config); err != nil {
@@ -381,19 +335,13 @@ func loadConfigFromFile(path string) (*ValidationConfig, error) {
 
 	}
 
-
-
 	// Apply environment overrides even when loading from file.
 
 	applyEnvironmentOverrides(&config)
 
-
-
 	return &config, nil
 
 }
-
-
 
 // applyEnvironmentOverrides applies environment variable overrides to configuration.
 
@@ -411,8 +359,6 @@ func applyEnvironmentOverrides(config *ValidationConfig) {
 
 	}
 
-
-
 	// Confidence level override.
 
 	if confidence := os.Getenv("VALIDATION_CONFIDENCE_LEVEL"); confidence != "" {
@@ -426,8 +372,6 @@ func applyEnvironmentOverrides(config *ValidationConfig) {
 		}
 
 	}
-
-
 
 	// Sample size override.
 
@@ -443,8 +387,6 @@ func applyEnvironmentOverrides(config *ValidationConfig) {
 
 	}
 
-
-
 	// Output precision override.
 
 	if precision := os.Getenv("VALIDATION_METRICS_PRECISION"); precision != "" {
@@ -459,8 +401,6 @@ func applyEnvironmentOverrides(config *ValidationConfig) {
 
 	}
 
-
-
 	// Performance target overrides.
 
 	if latency := os.Getenv("VALIDATION_INTENT_LATENCY_TARGET"); latency != "" {
@@ -472,8 +412,6 @@ func applyEnvironmentOverrides(config *ValidationConfig) {
 		}
 
 	}
-
-
 
 	if capacity := os.Getenv("VALIDATION_CONCURRENT_CAPACITY_TARGET"); capacity != "" {
 
@@ -487,8 +425,6 @@ func applyEnvironmentOverrides(config *ValidationConfig) {
 
 	}
 
-
-
 	if throughput := os.Getenv("VALIDATION_THROUGHPUT_TARGET"); throughput != "" {
 
 		var tp int
@@ -500,8 +436,6 @@ func applyEnvironmentOverrides(config *ValidationConfig) {
 		}
 
 	}
-
-
 
 	if availability := os.Getenv("VALIDATION_AVAILABILITY_TARGET"); availability != "" {
 
@@ -515,8 +449,6 @@ func applyEnvironmentOverrides(config *ValidationConfig) {
 
 	}
 
-
-
 	if ragLatency := os.Getenv("VALIDATION_RAG_LATENCY_TARGET"); ragLatency != "" {
 
 		if d, err := time.ParseDuration(ragLatency); err == nil {
@@ -526,8 +458,6 @@ func applyEnvironmentOverrides(config *ValidationConfig) {
 		}
 
 	}
-
-
 
 	if hitRate := os.Getenv("VALIDATION_CACHE_HIT_RATE_TARGET"); hitRate != "" {
 
@@ -543,15 +473,11 @@ func applyEnvironmentOverrides(config *ValidationConfig) {
 
 }
 
-
-
 // SaveConfigTemplate saves a template configuration file for customization.
 
 func SaveConfigTemplate(path string) error {
 
 	config := DefaultValidationConfig()
-
-
 
 	data, err := json.MarshalIndent(config, "", "  ")
 
@@ -561,29 +487,21 @@ func SaveConfigTemplate(path string) error {
 
 	}
 
-
-
 	if err := os.WriteFile(path, data, 0o640); err != nil {
 
 		return fmt.Errorf("failed to write config template to %s: %w", path, err)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateConfig validates the configuration for consistency and completeness.
 
 func ValidateConfig(config *ValidationConfig) error {
 
 	errors := []string{}
-
-
 
 	// Validate statistical configuration.
 
@@ -593,15 +511,11 @@ func ValidateConfig(config *ValidationConfig) error {
 
 	}
 
-
-
 	if config.Statistics.SignificanceLevel <= 0 || config.Statistics.SignificanceLevel >= 1 {
 
 		errors = append(errors, "significance level must be between 0 and 1")
 
 	}
-
-
 
 	if config.Statistics.MinSampleSize < 2 {
 
@@ -609,15 +523,11 @@ func ValidateConfig(config *ValidationConfig) error {
 
 	}
 
-
-
 	if config.Statistics.PowerThreshold <= 0 || config.Statistics.PowerThreshold >= 1 {
 
 		errors = append(errors, "power threshold must be between 0 and 1")
 
 	}
-
-
 
 	// Validate test configuration.
 
@@ -627,15 +537,11 @@ func ValidateConfig(config *ValidationConfig) error {
 
 	}
 
-
-
 	if config.TestConfig.WarmupDuration < 0 {
 
 		errors = append(errors, "warmup duration cannot be negative")
 
 	}
-
-
 
 	if config.TestConfig.CooldownDuration < 0 {
 
@@ -643,15 +549,11 @@ func ValidateConfig(config *ValidationConfig) error {
 
 	}
 
-
-
 	if len(config.TestConfig.ConcurrencyLevels) == 0 {
 
 		errors = append(errors, "at least one concurrency level must be specified")
 
 	}
-
-
 
 	for _, level := range config.TestConfig.ConcurrencyLevels {
 
@@ -665,15 +567,11 @@ func ValidateConfig(config *ValidationConfig) error {
 
 	}
 
-
-
 	if len(config.TestConfig.TestScenarios) == 0 {
 
 		errors = append(errors, "at least one test scenario must be specified")
 
 	}
-
-
 
 	// Validate claims.
 
@@ -683,15 +581,11 @@ func ValidateConfig(config *ValidationConfig) error {
 
 	}
 
-
-
 	if config.Claims.ConcurrentCapacity <= 0 {
 
 		errors = append(errors, "concurrent capacity target must be positive")
 
 	}
-
-
 
 	if config.Claims.ThroughputRate <= 0 {
 
@@ -699,15 +593,11 @@ func ValidateConfig(config *ValidationConfig) error {
 
 	}
 
-
-
 	if config.Claims.SystemAvailability <= 0 || config.Claims.SystemAvailability > 100 {
 
 		errors = append(errors, "system availability target must be between 0 and 100")
 
 	}
-
-
 
 	if config.Claims.RAGRetrievalLatencyP95 <= 0 {
 
@@ -715,15 +605,11 @@ func ValidateConfig(config *ValidationConfig) error {
 
 	}
 
-
-
 	if config.Claims.CacheHitRate < 0 || config.Claims.CacheHitRate > 100 {
 
 		errors = append(errors, "cache hit rate target must be between 0 and 100")
 
 	}
-
-
 
 	// Validate evidence requirements.
 
@@ -733,29 +619,21 @@ func ValidateConfig(config *ValidationConfig) error {
 
 	}
 
-
-
 	if len(errors) > 0 {
 
 		return fmt.Errorf("configuration validation failed: %v", errors)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetEnvironmentSpecificConfig returns configuration optimized for specific environments.
 
 func GetEnvironmentSpecificConfig(environment string) *ValidationConfig {
 
 	config := DefaultValidationConfig()
-
-
 
 	switch environment {
 
@@ -773,8 +651,6 @@ func GetEnvironmentSpecificConfig(environment string) *ValidationConfig {
 
 		config.TestConfig.ConcurrencyLevels = []int{1, 5, 10, 25, 50}
 
-
-
 	case "development":
 
 		// Quick validation for development.
@@ -789,8 +665,6 @@ func GetEnvironmentSpecificConfig(environment string) *ValidationConfig {
 
 		config.TestConfig.ConcurrencyLevels = []int{1, 5, 10}
 
-
-
 	case "staging":
 
 		// Production-like testing.
@@ -800,8 +674,6 @@ func GetEnvironmentSpecificConfig(environment string) *ValidationConfig {
 		config.TestConfig.WarmupDuration = 3 * time.Minute
 
 		config.Statistics.MinSampleSize = 50
-
-
 
 	case "production":
 
@@ -817,8 +689,6 @@ func GetEnvironmentSpecificConfig(environment string) *ValidationConfig {
 
 		config.TestConfig.ConcurrencyLevels = []int{1, 5, 10, 25, 50, 100, 150, 200, 250, 300, 400, 500}
 
-
-
 	case "regression":
 
 		// Focused regression testing.
@@ -831,21 +701,15 @@ func GetEnvironmentSpecificConfig(environment string) *ValidationConfig {
 
 	}
 
-
-
 	return config
 
 }
-
-
 
 // ExampleConfigurations provides example configurations for different use cases.
 
 func ExampleConfigurations() map[string]*ValidationConfig {
 
 	examples := make(map[string]*ValidationConfig)
-
-
 
 	// Quick smoke test configuration.
 
@@ -863,8 +727,6 @@ func ExampleConfigurations() map[string]*ValidationConfig {
 
 	examples["smoke_test"] = smokeTest
 
-
-
 	// Performance regression test.
 
 	regressionTest := DefaultValidationConfig()
@@ -877,8 +739,6 @@ func ExampleConfigurations() map[string]*ValidationConfig {
 
 	examples["regression_test"] = regressionTest
 
-
-
 	// Stress test configuration.
 
 	stressTest := DefaultValidationConfig()
@@ -890,8 +750,6 @@ func ExampleConfigurations() map[string]*ValidationConfig {
 	stressTest.Claims.ConcurrentCapacity = 500 // Higher target for stress testing
 
 	examples["stress_test"] = stressTest
-
-
 
 	// Statistical rigor test (for research/publication).
 
@@ -911,33 +769,25 @@ func ExampleConfigurations() map[string]*ValidationConfig {
 
 	examples["rigorous_test"] = rigorousTest
 
-
-
 	return examples
 
 }
 
-
-
 // ConfigurationPresets provides predefined configurations for common scenarios.
 
 type ConfigurationPresets struct {
+	QuickValidation *ValidationConfig
 
-	QuickValidation         *ValidationConfig
-
-	StandardValidation      *ValidationConfig
+	StandardValidation *ValidationConfig
 
 	ComprehensiveValidation *ValidationConfig
 
-	RegressionTesting       *ValidationConfig
+	RegressionTesting *ValidationConfig
 
-	StressTesting           *ValidationConfig
+	StressTesting *ValidationConfig
 
-	ContinuousIntegration   *ValidationConfig
-
+	ContinuousIntegration *ValidationConfig
 }
-
-
 
 // GetConfigurationPresets returns all predefined configuration presets.
 
@@ -945,23 +795,19 @@ func GetConfigurationPresets() *ConfigurationPresets {
 
 	examples := ExampleConfigurations()
 
-
-
 	return &ConfigurationPresets{
 
-		QuickValidation:         examples["smoke_test"],
+		QuickValidation: examples["smoke_test"],
 
-		StandardValidation:      DefaultValidationConfig(),
+		StandardValidation: DefaultValidationConfig(),
 
 		ComprehensiveValidation: examples["rigorous_test"],
 
-		RegressionTesting:       examples["regression_test"],
+		RegressionTesting: examples["regression_test"],
 
-		StressTesting:           examples["stress_test"],
+		StressTesting: examples["stress_test"],
 
-		ContinuousIntegration:   GetEnvironmentSpecificConfig("ci"),
-
+		ContinuousIntegration: GetEnvironmentSpecificConfig("ci"),
 	}
 
 }
-

@@ -1,127 +1,81 @@
 //go:build !disable_rag
-
 // +build !disable_rag
-
-
-
 
 package llm
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"crypto/tls"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"net"
-
 	"net/http"
-
 	"sync"
-
 	"time"
-
 	"unsafe"
 
-
-
 	"github.com/valyala/fastjson"
-
 	"go.opentelemetry.io/otel/attribute"
-
 	"go.opentelemetry.io/otel/trace"
-
 )
-
-
 
 // OptimizedHTTPClient provides high-performance HTTP operations for LLM requests.
 
 type OptimizedHTTPClient struct {
+	client *http.Client
 
-	client    *http.Client
-
-	pool      *ConnectionPool
+	pool *ConnectionPool
 
 	transport *OptimizedTransport
 
-
-
 	// Request optimization.
 
-	requestPool  sync.Pool
+	requestPool sync.Pool
 
 	responsePool sync.Pool
 
-	bufferPool   sync.Pool
-
-
+	bufferPool sync.Pool
 
 	// JSON optimization.
 
-	parser     *fastjson.Parser
+	parser *fastjson.Parser
 
 	parserPool sync.Pool
 
-
-
 	// Metrics and monitoring.
 
-	stats  *HTTPClientStats
+	stats *HTTPClientStats
 
 	tracer trace.Tracer
-
-
 
 	// Configuration.
 
 	config *OptimizedClientConfig
 
-	mutex  sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // OptimizedTransport extends http.RoundTripper with performance optimizations.
 
 type OptimizedTransport struct {
-
 	*http.Transport
-
-
 
 	// Connection management.
 
-	connPool    *ConnectionPool
+	connPool *ConnectionPool
 
 	healthCheck *HealthChecker
-
-
 
 	// Performance tracking.
 
 	stats *TransportStats
 
-
-
 	// Request routing and load balancing.
 
 	endpointPool *EndpointPool
-
 }
-
-
 
 // ConnectionPool manages HTTP connection reuse and optimization.
 
@@ -131,81 +85,66 @@ type ConnectionPool struct {
 
 	hostPools map[string]*HostConnectionPool
 
-	mutex     sync.RWMutex
-
-
+	mutex sync.RWMutex
 
 	// Configuration.
 
-	maxConnsPerHost  int
+	maxConnsPerHost int
 
-	maxIdleConns     int
+	maxIdleConns int
 
-	idleConnTimeout  time.Duration
+	idleConnTimeout time.Duration
 
 	keepAliveTimeout time.Duration
 
-
-
 	// Metrics.
 
-	totalConns  int64
+	totalConns int64
 
 	activeConns int64
 
-	idleConns   int64
+	idleConns int64
 
 	connCreated int64
 
-	connClosed  int64
+	connClosed int64
 
-	connReused  int64
-
+	connReused int64
 }
-
-
 
 // HostConnectionPool manages connections for a specific host.
 
 type HostConnectionPool struct {
-
-	host        string
+	host string
 
 	connections []*PooledConnection
 
-	available   chan *PooledConnection
+	available chan *PooledConnection
 
-	maxSize     int
+	maxSize int
 
-	created     int
+	created int
 
-	mutex       sync.Mutex
+	mutex sync.Mutex
 
-	lastUsed    time.Time
-
+	lastUsed time.Time
 }
-
-
 
 // PooledConnection represents a reusable HTTP connection.
 
 type PooledConnection struct {
+	conn net.Conn
 
-	conn         net.Conn
+	created time.Time
 
-	created      time.Time
-
-	lastUsed     time.Time
+	lastUsed time.Time
 
 	requestCount int64
 
-	isHealthy    bool
+	isHealthy bool
 
-	metadata     map[string]interface{}
-
+	metadata map[string]interface{}
 }
-
-
 
 // OptimizedClientConfig holds configuration for the optimized client.
 
@@ -213,135 +152,104 @@ type OptimizedClientConfig struct {
 
 	// Connection pooling.
 
-	MaxConnsPerHost  int           `json:"max_conns_per_host"`
+	MaxConnsPerHost int `json:"max_conns_per_host"`
 
-	MaxIdleConns     int           `json:"max_idle_conns"`
+	MaxIdleConns int `json:"max_idle_conns"`
 
-	IdleConnTimeout  time.Duration `json:"idle_conn_timeout"`
+	IdleConnTimeout time.Duration `json:"idle_conn_timeout"`
 
 	KeepAliveTimeout time.Duration `json:"keep_alive_timeout"`
 
-
-
 	// HTTP timeouts.
 
-	ConnectTimeout      time.Duration `json:"connect_timeout"`
+	ConnectTimeout time.Duration `json:"connect_timeout"`
 
-	RequestTimeout      time.Duration `json:"request_timeout"`
+	RequestTimeout time.Duration `json:"request_timeout"`
 
-	ResponseTimeout     time.Duration `json:"response_timeout"`
+	ResponseTimeout time.Duration `json:"response_timeout"`
 
 	TLSHandshakeTimeout time.Duration `json:"tls_handshake_timeout"`
 
-
-
 	// Buffer management.
 
-	ReadBufferSize  int `json:"read_buffer_size"`
+	ReadBufferSize int `json:"read_buffer_size"`
 
 	WriteBufferSize int `json:"write_buffer_size"`
-
-
 
 	// Performance tuning.
 
 	DisableCompression bool `json:"disable_compression"`
 
-	DisableKeepAlives  bool `json:"disable_keep_alives"`
+	DisableKeepAlives bool `json:"disable_keep_alives"`
 
-	MaxResponseSize    int  `json:"max_response_size"`
-
-
+	MaxResponseSize int `json:"max_response_size"`
 
 	// Health checking.
 
-	HealthCheckEnabled  bool          `json:"health_check_enabled"`
+	HealthCheckEnabled bool `json:"health_check_enabled"`
 
 	HealthCheckInterval time.Duration `json:"health_check_interval"`
 
-
-
 	// Load balancing.
 
-	LoadBalancingEnabled bool     `json:"load_balancing_enabled"`
+	LoadBalancingEnabled bool `json:"load_balancing_enabled"`
 
-	BackendURLs          []string `json:"backend_urls"`
-
-
+	BackendURLs []string `json:"backend_urls"`
 
 	// TLS optimization.
 
 	TLSOptimization TLSConfig `json:"tls_optimization"`
-
 }
-
-
 
 // TLSConfig holds TLS optimization settings.
 
 type TLSConfig struct {
+	SessionCacheSize int `json:"session_cache_size"`
 
-	SessionCacheSize    int           `json:"session_cache_size"`
+	ReuseThreshold int `json:"reuse_threshold"`
 
-	ReuseThreshold      int           `json:"reuse_threshold"`
+	SessionTimeout time.Duration `json:"session_timeout"`
 
-	SessionTimeout      time.Duration `json:"session_timeout"`
+	PreferServerCiphers bool `json:"prefer_server_ciphers"`
 
-	PreferServerCiphers bool          `json:"prefer_server_ciphers"`
-
-	MinVersion          uint16        `json:"min_version"`
-
+	MinVersion uint16 `json:"min_version"`
 }
-
-
 
 // HTTPClientStats tracks HTTP client performance.
 
 type HTTPClientStats struct {
-
-	RequestsTotal      int64 `json:"requests_total"`
+	RequestsTotal int64 `json:"requests_total"`
 
 	RequestsSuccessful int64 `json:"requests_successful"`
 
-	RequestsFailed     int64 `json:"requests_failed"`
-
-
+	RequestsFailed int64 `json:"requests_failed"`
 
 	// Timing statistics.
 
-	TotalLatency   time.Duration `json:"total_latency"`
+	TotalLatency time.Duration `json:"total_latency"`
 
 	AverageLatency time.Duration `json:"average_latency"`
 
-	P95Latency     time.Duration `json:"p95_latency"`
+	P95Latency time.Duration `json:"p95_latency"`
 
-	P99Latency     time.Duration `json:"p99_latency"`
-
-
+	P99Latency time.Duration `json:"p99_latency"`
 
 	// Connection statistics.
 
 	ConnectionsCreated int64 `json:"connections_created"`
 
-	ConnectionsReused  int64 `json:"connections_reused"`
+	ConnectionsReused int64 `json:"connections_reused"`
 
-	ConnectionsClosed  int64 `json:"connections_closed"`
-
-
+	ConnectionsClosed int64 `json:"connections_closed"`
 
 	// Buffer utilization.
 
-	BufferPoolHits   int64 `json:"buffer_pool_hits"`
+	BufferPoolHits int64 `json:"buffer_pool_hits"`
 
 	BufferPoolMisses int64 `json:"buffer_pool_misses"`
 
-
-
 	mutex sync.RWMutex
-
 }
-
-
 
 // NewOptimizedHTTPClient creates a new optimized HTTP client.
 
@@ -353,25 +261,20 @@ func NewOptimizedHTTPClient(config *OptimizedClientConfig) (*OptimizedHTTPClient
 
 	}
 
-
-
 	// Create connection pool.
 
 	pool := &ConnectionPool{
 
-		hostPools:        make(map[string]*HostConnectionPool),
+		hostPools: make(map[string]*HostConnectionPool),
 
-		maxConnsPerHost:  config.MaxConnsPerHost,
+		maxConnsPerHost: config.MaxConnsPerHost,
 
-		maxIdleConns:     config.MaxIdleConns,
+		maxIdleConns: config.MaxIdleConns,
 
-		idleConnTimeout:  config.IdleConnTimeout,
+		idleConnTimeout: config.IdleConnTimeout,
 
 		keepAliveTimeout: config.KeepAliveTimeout,
-
 	}
-
-
 
 	// Create optimized transport.
 
@@ -381,53 +284,42 @@ func NewOptimizedHTTPClient(config *OptimizedClientConfig) (*OptimizedHTTPClient
 
 			DialContext: (&net.Dialer{
 
-				Timeout:   config.ConnectTimeout,
+				Timeout: config.ConnectTimeout,
 
 				KeepAlive: config.KeepAliveTimeout,
 
 				DualStack: true,
-
 			}).DialContext,
-
-
 
 			// Connection pool settings.
 
-			MaxIdleConns:        config.MaxIdleConns,
+			MaxIdleConns: config.MaxIdleConns,
 
 			MaxIdleConnsPerHost: config.MaxConnsPerHost,
 
-			MaxConnsPerHost:     config.MaxConnsPerHost,
+			MaxConnsPerHost: config.MaxConnsPerHost,
 
-			IdleConnTimeout:     config.IdleConnTimeout,
-
-
+			IdleConnTimeout: config.IdleConnTimeout,
 
 			// Timeout settings.
 
-			TLSHandshakeTimeout:   config.TLSHandshakeTimeout,
+			TLSHandshakeTimeout: config.TLSHandshakeTimeout,
 
 			ResponseHeaderTimeout: config.ResponseTimeout,
 
 			ExpectContinueTimeout: time.Second,
 
-
-
 			// Buffer settings.
 
-			ReadBufferSize:  config.ReadBufferSize,
+			ReadBufferSize: config.ReadBufferSize,
 
 			WriteBufferSize: config.WriteBufferSize,
-
-
 
 			// Performance settings.
 
 			DisableCompression: config.DisableCompression,
 
-			DisableKeepAlives:  config.DisableKeepAlives,
-
-
+			DisableKeepAlives: config.DisableKeepAlives,
 
 			// TLS optimization.
 
@@ -438,22 +330,16 @@ func NewOptimizedHTTPClient(config *OptimizedClientConfig) (*OptimizedHTTPClient
 				ClientSessionCache: tls.NewLRUClientSessionCache(
 
 					config.TLSOptimization.SessionCacheSize,
-
 				),
 
 				PreferServerCipherSuites: config.TLSOptimization.PreferServerCiphers,
-
 			},
-
 		},
 
 		connPool: pool,
 
-		stats:    &TransportStats{},
-
+		stats: &TransportStats{},
 	}
-
-
 
 	// Create HTTP client.
 
@@ -461,25 +347,20 @@ func NewOptimizedHTTPClient(config *OptimizedClientConfig) (*OptimizedHTTPClient
 
 		Transport: transport,
 
-		Timeout:   config.RequestTimeout,
-
+		Timeout: config.RequestTimeout,
 	}
-
-
 
 	client := &OptimizedHTTPClient{
 
-		client:    httpClient,
+		client: httpClient,
 
-		pool:      pool,
+		pool: pool,
 
 		transport: transport,
 
-		config:    config,
+		config: config,
 
-		stats:     &HTTPClientStats{},
-
-
+		stats: &HTTPClientStats{},
 
 		// Initialize object pools.
 
@@ -490,7 +371,6 @@ func NewOptimizedHTTPClient(config *OptimizedClientConfig) (*OptimizedHTTPClient
 				return &OptimizedRequest{}
 
 			},
-
 		},
 
 		responsePool: sync.Pool{
@@ -500,7 +380,6 @@ func NewOptimizedHTTPClient(config *OptimizedClientConfig) (*OptimizedHTTPClient
 				return &OptimizedResponse{}
 
 			},
-
 		},
 
 		bufferPool: sync.Pool{
@@ -510,7 +389,6 @@ func NewOptimizedHTTPClient(config *OptimizedClientConfig) (*OptimizedHTTPClient
 				return make([]byte, 0, 4096) // 4KB initial capacity
 
 			},
-
 		},
 
 		parserPool: sync.Pool{
@@ -520,72 +398,58 @@ func NewOptimizedHTTPClient(config *OptimizedClientConfig) (*OptimizedHTTPClient
 				return &fastjson.Parser{}
 
 			},
-
 		},
-
 	}
-
-
 
 	return client, nil
 
 }
 
-
-
 // OptimizedRequest represents a pooled HTTP request.
 
 type OptimizedRequest struct {
+	Method string
 
-	Method      string
+	URL string
 
-	URL         string
+	Headers map[string]string
 
-	Headers     map[string]string
-
-	Body        []byte
+	Body []byte
 
 	ContentType string
 
-	Timeout     time.Duration
+	Timeout time.Duration
 
-	Metadata    map[string]interface{}
-
+	Metadata map[string]interface{}
 }
-
-
 
 // OptimizedResponse represents a pooled HTTP response.
 
 type OptimizedResponse struct {
+	StatusCode int
 
-	StatusCode     int
+	Headers map[string]string
 
-	Headers        map[string]string
+	Body []byte
 
-	Body           []byte
+	Size int
 
-	Size           int
+	Latency time.Duration
 
-	Latency        time.Duration
+	FromCache bool
 
-	FromCache      bool
+	Content string // LLM response content
 
-	Content        string        // LLM response content
+	FromBatch bool // Whether from batch processing
 
-	FromBatch      bool          // Whether from batch processing
-
-	TokensUsed     int           // Number of tokens used
+	TokensUsed int // Number of tokens used
 
 	ProcessingTime time.Duration // Processing time
 
-	Response       string        // Alias for Content
+	Response string // Alias for Content
 
-	Metadata       map[string]interface{}
-
+	Metadata map[string]interface{}
 }
-
-
 
 // ProcessLLMRequest processes an LLM request with all optimizations.
 
@@ -595,11 +459,7 @@ func (c *OptimizedHTTPClient) ProcessLLMRequest(ctx context.Context, request *LL
 
 	defer span.End()
 
-
-
 	start := time.Now()
-
-
 
 	// Get request from pool.
 
@@ -607,15 +467,11 @@ func (c *OptimizedHTTPClient) ProcessLLMRequest(ctx context.Context, request *LL
 
 	defer c.putRequest(optReq)
 
-
-
 	// Get response from pool.
 
 	optResp := c.responsePool.Get().(*OptimizedResponse)
 
 	defer c.putResponse(optResp)
-
-
 
 	// Prepare request with zero-copy optimizations.
 
@@ -626,8 +482,6 @@ func (c *OptimizedHTTPClient) ProcessLLMRequest(ctx context.Context, request *LL
 		return nil, fmt.Errorf("failed to prepare request: %w", err)
 
 	}
-
-
 
 	// Execute request with connection reuse.
 
@@ -640,8 +494,6 @@ func (c *OptimizedHTTPClient) ProcessLLMRequest(ctx context.Context, request *LL
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 
 	}
-
-
 
 	// Parse response with fast JSON parsing.
 
@@ -657,13 +509,9 @@ func (c *OptimizedHTTPClient) ProcessLLMRequest(ctx context.Context, request *LL
 
 	}
 
-
-
 	latency := time.Since(start)
 
 	c.updateStats(true, latency)
-
-
 
 	span.SetAttributes(
 
@@ -674,16 +522,11 @@ func (c *OptimizedHTTPClient) ProcessLLMRequest(ctx context.Context, request *LL
 		attribute.Int64("latency_ms", latency.Milliseconds()),
 
 		attribute.Bool("from_cache", optResp.FromCache),
-
 	)
-
-
 
 	return llmResp, nil
 
 }
-
-
 
 // prepareRequest optimizes request preparation with zero-copy techniques.
 
@@ -697,15 +540,11 @@ func (c *OptimizedHTTPClient) prepareRequest(optReq *OptimizedRequest, req *LLMR
 
 	optReq.ContentType = "application/json"
 
-
-
 	// Use buffer pool for JSON marshaling.
 
 	buf := c.bufferPool.Get().([]byte)
 
 	defer c.bufferPool.Put(buf[:0])
-
-
 
 	// Fast JSON encoding using unsafe operations where appropriate.
 
@@ -717,15 +556,11 @@ func (c *OptimizedHTTPClient) prepareRequest(optReq *OptimizedRequest, req *LLMR
 
 	}
 
-
-
 	// Copy to request body (avoiding extra allocations).
 
 	optReq.Body = make([]byte, len(jsonData))
 
 	copy(optReq.Body, jsonData)
-
-
 
 	// Prepare headers.
 
@@ -739,21 +574,15 @@ func (c *OptimizedHTTPClient) prepareRequest(optReq *OptimizedRequest, req *LLMR
 
 	optReq.Headers["User-Agent"] = "nephoran-intent-operator/v2.0.0-optimized"
 
-
-
 	if req.APIKey != "" {
 
 		optReq.Headers["Authorization"] = "Bearer " + req.APIKey
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // executeRequest executes the HTTP request with connection reuse optimization.
 
@@ -769,8 +598,6 @@ func (c *OptimizedHTTPClient) executeRequest(ctx context.Context, req *Optimized
 
 	}
 
-
-
 	// Set headers efficiently.
 
 	for key, value := range req.Headers {
@@ -778,8 +605,6 @@ func (c *OptimizedHTTPClient) executeRequest(ctx context.Context, req *Optimized
 		httpReq.Header.Set(key, value)
 
 	}
-
-
 
 	// Execute with optimized transport.
 
@@ -793,15 +618,11 @@ func (c *OptimizedHTTPClient) executeRequest(ctx context.Context, req *Optimized
 
 	defer httpResp.Body.Close()
 
-
-
 	// Read response body with buffer reuse.
 
 	buf := c.bufferPool.Get().([]byte)
 
 	defer c.bufferPool.Put(buf[:0])
-
-
 
 	// Use pre-allocated buffer with growth strategy.
 
@@ -813,8 +634,6 @@ func (c *OptimizedHTTPClient) executeRequest(ctx context.Context, req *Optimized
 
 	}
 
-
-
 	// Populate response.
 
 	resp.StatusCode = httpResp.StatusCode
@@ -824,8 +643,6 @@ func (c *OptimizedHTTPClient) executeRequest(ctx context.Context, req *Optimized
 	copy(resp.Body, bodyData)
 
 	resp.Size = len(bodyData)
-
-
 
 	// Copy headers if needed.
 
@@ -845,13 +662,9 @@ func (c *OptimizedHTTPClient) executeRequest(ctx context.Context, req *Optimized
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // readResponseBody optimized response body reading with buffer management.
 
@@ -861,19 +674,13 @@ func (c *OptimizedHTTPClient) readResponseBody(body io.ReadCloser, buf []byte) (
 
 	const maxResponseSize = 10 * 1024 * 1024 // 10MB limit
 
-
-
 	if cap(buf) < 1024 {
 
 		buf = make([]byte, 0, 4096)
 
 	}
 
-
-
 	buf = buf[:0]
-
-
 
 	for {
 
@@ -895,13 +702,9 @@ func (c *OptimizedHTTPClient) readResponseBody(body io.ReadCloser, buf []byte) (
 
 		}
 
-
-
 		n, err := body.Read(buf[len(buf):cap(buf)])
 
 		buf = buf[:len(buf)+n]
-
-
 
 		if err != nil {
 
@@ -917,13 +720,9 @@ func (c *OptimizedHTTPClient) readResponseBody(body io.ReadCloser, buf []byte) (
 
 	}
 
-
-
 	return buf, nil
 
 }
-
-
 
 // parseResponse parses LLM response with fast JSON parsing.
 
@@ -935,15 +734,11 @@ func (c *OptimizedHTTPClient) parseResponse(resp *OptimizedResponse) (*LLMRespon
 
 	}
 
-
-
 	// Get parser from pool.
 
 	parser := c.parserPool.Get().(*fastjson.Parser)
 
 	defer c.parserPool.Put(parser)
-
-
 
 	// Parse JSON efficiently.
 
@@ -955,13 +750,9 @@ func (c *OptimizedHTTPClient) parseResponse(resp *OptimizedResponse) (*LLMRespon
 
 	}
 
-
-
 	// Extract response content based on backend type.
 
 	var content string
-
-
 
 	// Try OpenAI format first.
 
@@ -1005,27 +796,22 @@ func (c *OptimizedHTTPClient) parseResponse(resp *OptimizedResponse) (*LLMRespon
 
 	}
 
-
-
 	return &LLMResponse{
 
-		Content:    content,
+		Content: content,
 
 		StatusCode: resp.StatusCode,
 
-		Latency:    resp.Latency,
+		Latency: resp.Latency,
 
-		Size:       resp.Size,
+		Size: resp.Size,
 
-		FromCache:  resp.FromCache,
+		FromCache: resp.FromCache,
 
-		Metadata:   resp.Metadata,
-
+		Metadata: resp.Metadata,
 	}, nil
 
 }
-
-
 
 // fastJSONEncode performs optimized JSON encoding.
 
@@ -1039,8 +825,6 @@ func (c *OptimizedHTTPClient) fastJSONEncode(payload interface{}) ([]byte, error
 
 }
 
-
-
 // updateStats updates client statistics.
 
 func (c *OptimizedHTTPClient) updateStats(success bool, latency time.Duration) {
@@ -1048,8 +832,6 @@ func (c *OptimizedHTTPClient) updateStats(success bool, latency time.Duration) {
 	c.stats.mutex.Lock()
 
 	defer c.stats.mutex.Unlock()
-
-
 
 	c.stats.RequestsTotal++
 
@@ -1063,15 +845,11 @@ func (c *OptimizedHTTPClient) updateStats(success bool, latency time.Duration) {
 
 	}
 
-
-
 	c.stats.TotalLatency += latency
 
 	c.stats.AverageLatency = time.Duration(int64(c.stats.TotalLatency) / c.stats.RequestsTotal)
 
 }
-
-
 
 // putRequest returns request to pool.
 
@@ -1089,8 +867,6 @@ func (c *OptimizedHTTPClient) putRequest(req *OptimizedRequest) {
 
 	req.Timeout = 0
 
-
-
 	// Clear maps but keep allocated.
 
 	for k := range req.Headers {
@@ -1105,13 +881,9 @@ func (c *OptimizedHTTPClient) putRequest(req *OptimizedRequest) {
 
 	}
 
-
-
 	c.requestPool.Put(req)
 
 }
-
-
 
 // putResponse returns response to pool.
 
@@ -1129,8 +901,6 @@ func (c *OptimizedHTTPClient) putResponse(resp *OptimizedResponse) {
 
 	resp.FromCache = false
 
-
-
 	// Clear maps but keep allocated.
 
 	for k := range resp.Headers {
@@ -1145,13 +915,9 @@ func (c *OptimizedHTTPClient) putResponse(resp *OptimizedResponse) {
 
 	}
 
-
-
 	c.responsePool.Put(resp)
 
 }
-
-
 
 // GetStats returns current HTTP client statistics.
 
@@ -1161,43 +927,38 @@ func (c *OptimizedHTTPClient) GetStats() *HTTPClientStats {
 
 	defer c.stats.mutex.RUnlock()
 
-
-
 	// Create a copy without the mutex.
 
 	stats := HTTPClientStats{
 
-		RequestsTotal:      c.stats.RequestsTotal,
+		RequestsTotal: c.stats.RequestsTotal,
 
 		RequestsSuccessful: c.stats.RequestsSuccessful,
 
-		RequestsFailed:     c.stats.RequestsFailed,
+		RequestsFailed: c.stats.RequestsFailed,
 
-		TotalLatency:       c.stats.TotalLatency,
+		TotalLatency: c.stats.TotalLatency,
 
-		AverageLatency:     c.stats.AverageLatency,
+		AverageLatency: c.stats.AverageLatency,
 
-		P95Latency:         c.stats.P95Latency,
+		P95Latency: c.stats.P95Latency,
 
-		P99Latency:         c.stats.P99Latency,
+		P99Latency: c.stats.P99Latency,
 
 		ConnectionsCreated: c.stats.ConnectionsCreated,
 
-		ConnectionsReused:  c.stats.ConnectionsReused,
+		ConnectionsReused: c.stats.ConnectionsReused,
 
-		ConnectionsClosed:  c.stats.ConnectionsClosed,
+		ConnectionsClosed: c.stats.ConnectionsClosed,
 
-		BufferPoolHits:     c.stats.BufferPoolHits,
+		BufferPoolHits: c.stats.BufferPoolHits,
 
-		BufferPoolMisses:   c.stats.BufferPoolMisses,
-
+		BufferPoolMisses: c.stats.BufferPoolMisses,
 	}
 
 	return &stats
 
 }
-
-
 
 // getDefaultOptimizedClientConfig returns default configuration.
 
@@ -1205,111 +966,96 @@ func getDefaultOptimizedClientConfig() *OptimizedClientConfig {
 
 	return &OptimizedClientConfig{
 
-		MaxConnsPerHost:      100,
+		MaxConnsPerHost: 100,
 
-		MaxIdleConns:         50,
+		MaxIdleConns: 50,
 
-		IdleConnTimeout:      90 * time.Second,
+		IdleConnTimeout: 90 * time.Second,
 
-		KeepAliveTimeout:     30 * time.Second,
+		KeepAliveTimeout: 30 * time.Second,
 
-		ConnectTimeout:       10 * time.Second,
+		ConnectTimeout: 10 * time.Second,
 
-		RequestTimeout:       60 * time.Second,
+		RequestTimeout: 60 * time.Second,
 
-		ResponseTimeout:      30 * time.Second,
+		ResponseTimeout: 30 * time.Second,
 
-		TLSHandshakeTimeout:  10 * time.Second,
+		TLSHandshakeTimeout: 10 * time.Second,
 
-		ReadBufferSize:       32 * 1024, // 32KB
+		ReadBufferSize: 32 * 1024, // 32KB
 
-		WriteBufferSize:      32 * 1024, // 32KB
+		WriteBufferSize: 32 * 1024, // 32KB
 
-		DisableCompression:   false,
+		DisableCompression: false,
 
-		DisableKeepAlives:    false,
+		DisableKeepAlives: false,
 
-		MaxResponseSize:      10 * 1024 * 1024, // 10MB
+		MaxResponseSize: 10 * 1024 * 1024, // 10MB
 
-		HealthCheckEnabled:   true,
+		HealthCheckEnabled: true,
 
-		HealthCheckInterval:  30 * time.Second,
+		HealthCheckInterval: 30 * time.Second,
 
 		LoadBalancingEnabled: false,
 
 		TLSOptimization: TLSConfig{
 
-			SessionCacheSize:    1000,
+			SessionCacheSize: 1000,
 
-			ReuseThreshold:      10,
+			ReuseThreshold: 10,
 
-			SessionTimeout:      24 * time.Hour,
+			SessionTimeout: 24 * time.Hour,
 
 			PreferServerCiphers: true,
 
-			MinVersion:          tls.VersionTLS12,
-
+			MinVersion: tls.VersionTLS12,
 		},
-
 	}
 
 }
 
-
-
 // Supporting types for the optimization.
 
 type LLMRequest struct {
+	URL string `json:"url"`
 
-	URL      string                 `json:"url"`
+	Payload interface{} `json:"payload"`
 
-	Payload  interface{}            `json:"payload"`
+	APIKey string `json:"api_key,omitempty"`
 
-	APIKey   string                 `json:"api_key,omitempty"`
+	Timeout time.Duration `json:"timeout,omitempty"`
 
-	Timeout  time.Duration          `json:"timeout,omitempty"`
-
-	Headers  map[string]string      `json:"headers,omitempty"`
+	Headers map[string]string `json:"headers,omitempty"`
 
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
-
 }
-
-
 
 // LLMResponse represents a llmresponse.
 
 type LLMResponse struct {
+	Content string `json:"content"`
 
-	Content    string                 `json:"content"`
+	StatusCode int `json:"status_code"`
 
-	StatusCode int                    `json:"status_code"`
+	Latency time.Duration `json:"latency"`
 
-	Latency    time.Duration          `json:"latency"`
+	Size int `json:"size"`
 
-	Size       int                    `json:"size"`
+	FromCache bool `json:"from_cache"`
 
-	FromCache  bool                   `json:"from_cache"`
-
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // TransportStats represents a transportstats.
 
 type TransportStats struct {
+	RoundTrips int64 `json:"round_trips"`
 
-	RoundTrips        int64         `json:"round_trips"`
+	ConnectionsOpened int64 `json:"connections_opened"`
 
-	ConnectionsOpened int64         `json:"connections_opened"`
+	ConnectionsReused int64 `json:"connections_reused"`
 
-	ConnectionsReused int64         `json:"connections_reused"`
+	TotalLatency time.Duration `json:"total_latency"`
 
-	TotalLatency      time.Duration `json:"total_latency"`
-
-	mutex             sync.RWMutex
-
+	mutex sync.RWMutex
 }
-

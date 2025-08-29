@@ -28,46 +28,28 @@ limitations under the License.
 
 */
 
-
-
-
 package optimization
 
-
-
 import (
-
 	"context"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
 )
-
-
 
 // TelecomPerformanceOptimizer specializes in telecommunications-specific optimizations.
 
 type TelecomPerformanceOptimizer struct {
-
 	logger logr.Logger
 
 	config *TelecomOptimizerConfig
-
-
 
 	// 5G Core optimizers.
 
 	coreNetworkOptimizer *CoreNetworkOptimizer
 
-	sliceOptimizer       *NetworkSliceOptimizer
-
-
+	sliceOptimizer *NetworkSliceOptimizer
 
 	// O-RAN optimizers.
 
@@ -75,33 +57,22 @@ type TelecomPerformanceOptimizer struct {
 
 	ranOptimizer *RANOptimizer
 
-
-
 	// Multi-vendor interop optimizer.
 
 	interopOptimizer *InteropOptimizer
-
-
 
 	// QoS/SLA optimizer.
 
 	qosOptimizer *QoSOptimizer
 
-
-
 	// Edge deployment optimizer.
 
 	edgeOptimizer *EdgeDeploymentOptimizer
 
-
-
 	// Performance metrics collector.
 
 	telecomMetrics *TelecomMetricsCollector
-
 }
-
-
 
 // TelecomOptimizerConfig contains telecom-specific optimization configuration.
 
@@ -109,11 +80,9 @@ type TelecomOptimizerConfig struct {
 
 	// 5G Core optimization parameters.
 
-	CoreNetworkConfig  *CoreNetworkConfig  `json:"coreNetworkConfig"`
+	CoreNetworkConfig *CoreNetworkConfig `json:"coreNetworkConfig"`
 
 	NetworkSliceConfig *NetworkSliceConfig `json:"networkSliceConfig"`
-
-
 
 	// O-RAN optimization parameters.
 
@@ -121,49 +90,34 @@ type TelecomOptimizerConfig struct {
 
 	RANConfig *RANConfig `json:"ranConfig"`
 
-
-
 	// Multi-vendor interoperability.
 
 	InteropConfig *InteropConfig `json:"interopConfig"`
-
-
 
 	// QoS and SLA parameters.
 
 	QoSConfig *QoSConfig `json:"qosConfig"`
 
-
-
 	// Edge deployment parameters.
 
 	EdgeConfig *EdgeConfig `json:"edgeConfig"`
 
-
-
 	// Performance thresholds.
 
-	LatencyThresholds    map[string]time.Duration `json:"latencyThresholds"`
+	LatencyThresholds map[string]time.Duration `json:"latencyThresholds"`
 
-	ThroughputThresholds map[string]float64       `json:"throughputThresholds"`
+	ThroughputThresholds map[string]float64 `json:"throughputThresholds"`
 
-	AvailabilityTargets  map[string]float64       `json:"availabilityTargets"`
-
-
+	AvailabilityTargets map[string]float64 `json:"availabilityTargets"`
 
 	// Optimization priorities.
 
 	OptimizationPriorities map[TelecomOptimizationCategory]float64 `json:"optimizationPriorities"`
-
 }
-
-
 
 // TelecomOptimizationCategory defines telecom-specific optimization categories.
 
 type TelecomOptimizationCategory string
-
-
 
 const (
 
@@ -198,10 +152,7 @@ const (
 	// TelecomCategoryEnergyEff holds telecomcategoryenergyeff value.
 
 	TelecomCategoryEnergyEff TelecomOptimizationCategory = "energy_efficiency"
-
 )
-
-
 
 // CoreNetworkConfig defines 5G Core network optimization parameters.
 
@@ -211,175 +162,136 @@ type CoreNetworkConfig struct {
 
 	AMFConfig *AMFConfig `json:"amfConfig"`
 
-
-
 	// SMF optimization.
 
 	SMFConfig *SMFConfig `json:"smfConfig"`
-
-
 
 	// UPF optimization.
 
 	UPFConfig *UPFConfig `json:"upfConfig"`
 
-
-
 	// NSSF optimization.
 
 	NSSFConfig *NSSFConfig `json:"nssfConfig"`
-
-
 
 	// Service mesh optimization.
 
 	ServiceMeshConfig *ServiceMeshConfig `json:"serviceMeshConfig"`
 
-
-
 	// Session management.
 
 	SessionOptimization *SessionOptimization `json:"sessionOptimization"`
-
 }
-
-
 
 // AMFConfig defines Access and Mobility Management Function optimization.
 
 type AMFConfig struct {
+	MaxConcurrentRegistrations int `json:"maxConcurrentRegistrations"`
 
-	MaxConcurrentRegistrations int                   `json:"maxConcurrentRegistrations"`
+	RegistrationRetryPolicy RetryPolicy `json:"registrationRetryPolicy"`
 
-	RegistrationRetryPolicy    RetryPolicy           `json:"registrationRetryPolicy"`
+	MobilityUpdateInterval time.Duration `json:"mobilityUpdateInterval"`
 
-	MobilityUpdateInterval     time.Duration         `json:"mobilityUpdateInterval"`
+	AuthenticationCacheSize int `json:"authenticationCacheSize"`
 
-	AuthenticationCacheSize    int                   `json:"authenticationCacheSize"`
+	AuthenticationCacheTTL time.Duration `json:"authenticationCacheTTL"`
 
-	AuthenticationCacheTTL     time.Duration         `json:"authenticationCacheTTL"`
+	LoadBalancingStrategy LoadBalancingStrategy `json:"loadBalancingStrategy"`
 
-	LoadBalancingStrategy      LoadBalancingStrategy `json:"loadBalancingStrategy"`
+	FailoverThreshold float64 `json:"failoverThreshold"`
 
-	FailoverThreshold          float64               `json:"failoverThreshold"`
-
-	ScalingPolicy              ScalingPolicyConfig   `json:"scalingPolicy"`
-
+	ScalingPolicy ScalingPolicyConfig `json:"scalingPolicy"`
 }
-
-
 
 // SMFConfig defines Session Management Function optimization.
 
 type SMFConfig struct {
+	MaxConcurrentSessions int `json:"maxConcurrentSessions"`
 
-	MaxConcurrentSessions       int                   `json:"maxConcurrentSessions"`
+	SessionEstablishmentTimeout time.Duration `json:"sessionEstablishmentTimeout"`
 
-	SessionEstablishmentTimeout time.Duration         `json:"sessionEstablishmentTimeout"`
+	QoSFlowOptimization *QoSFlowOptimization `json:"qosFlowOptimization"`
 
-	QoSFlowOptimization         *QoSFlowOptimization  `json:"qosFlowOptimization"`
+	UPFSelectionStrategy UPFSelectionStrategy `json:"upfSelectionStrategy"`
 
-	UPFSelectionStrategy        UPFSelectionStrategy  `json:"upfSelectionStrategy"`
+	ChargingOptimization *ChargingOptimization `json:"chargingOptimization"`
 
-	ChargingOptimization        *ChargingOptimization `json:"chargingOptimization"`
+	PolicyEngineConfig *PolicyEngineConfig `json:"policyEngineConfig"`
 
-	PolicyEngineConfig          *PolicyEngineConfig   `json:"policyEngineConfig"`
-
-	SessionStateManagement      *SessionStateConfig   `json:"sessionStateManagement"`
-
+	SessionStateManagement *SessionStateConfig `json:"sessionStateManagement"`
 }
-
-
 
 // UPFConfig defines User Plane Function optimization.
 
 type UPFConfig struct {
+	PacketProcessingMode PacketProcessingMode `json:"packetProcessingMode"`
 
-	PacketProcessingMode      PacketProcessingMode  `json:"packetProcessingMode"`
+	BufferSizes BufferSizeConfig `json:"bufferSizes"`
 
-	BufferSizes               BufferSizeConfig      `json:"bufferSizes"`
+	TrafficSteeringRules []TrafficSteeringRule `json:"trafficSteeringRules"`
 
-	TrafficSteeringRules      []TrafficSteeringRule `json:"trafficSteeringRules"`
+	QoSEnforcementPolicy QoSEnforcementPolicy `json:"qosEnforcementPolicy"`
 
-	QoSEnforcementPolicy      QoSEnforcementPolicy  `json:"qosEnforcementPolicy"`
+	EdgeProximityOptimization bool `json:"edgeProximityOptimization"`
 
-	EdgeProximityOptimization bool                  `json:"edgeProximityOptimization"`
+	DataPathOptimization *DataPathOptimization `json:"dataPathOptimization"`
 
-	DataPathOptimization      *DataPathOptimization `json:"dataPathOptimization"`
-
-	HardwareAcceleration      *HWAccelerationConfig `json:"hardwareAcceleration"`
-
+	HardwareAcceleration *HWAccelerationConfig `json:"hardwareAcceleration"`
 }
-
-
 
 // NSSFConfig defines Network Slice Selection Function optimization.
 
 type NSSFConfig struct {
+	SliceSelectionCriteria []SliceSelectionCriterion `json:"sliceSelectionCriteria"`
 
-	SliceSelectionCriteria    []SliceSelectionCriterion `json:"sliceSelectionCriteria"`
+	SliceAvailabilityTracking bool `json:"sliceAvailabilityTracking"`
 
-	SliceAvailabilityTracking bool                      `json:"sliceAvailabilityTracking"`
+	LoadBalancingEnabled bool `json:"loadBalancingEnabled"`
 
-	LoadBalancingEnabled      bool                      `json:"loadBalancingEnabled"`
+	DynamicSliceAllocation bool `json:"dynamicSliceAllocation"`
 
-	DynamicSliceAllocation    bool                      `json:"dynamicSliceAllocation"`
+	SliceIsolationLevel SliceIsolationLevel `json:"sliceIsolationLevel"`
 
-	SliceIsolationLevel       SliceIsolationLevel       `json:"sliceIsolationLevel"`
-
-	ResourceAllocationPolicy  ResourceAllocationPolicy  `json:"resourceAllocationPolicy"`
-
+	ResourceAllocationPolicy ResourceAllocationPolicy `json:"resourceAllocationPolicy"`
 }
-
-
 
 // NetworkSliceConfig defines network slice optimization parameters.
 
 type NetworkSliceConfig struct {
+	SliceTemplates map[string]*SliceTemplate `json:"sliceTemplates"`
 
-	SliceTemplates     map[string]*SliceTemplate `json:"sliceTemplates"`
+	ResourcePooling *ResourcePoolingConfig `json:"resourcePooling"`
 
-	ResourcePooling    *ResourcePoolingConfig    `json:"resourcePooling"`
-
-	SliceIsolation     *SliceIsolationConfig     `json:"sliceIsolation"`
+	SliceIsolation *SliceIsolationConfig `json:"sliceIsolation"`
 
 	QoSDifferentiation *QoSDifferentiationConfig `json:"qosDifferentiation"`
 
-	AutoScaling        *SliceAutoScalingConfig   `json:"autoScaling"`
+	AutoScaling *SliceAutoScalingConfig `json:"autoScaling"`
 
-	Performance        *SlicePerformanceConfig   `json:"performance"`
-
+	Performance *SlicePerformanceConfig `json:"performance"`
 }
-
-
 
 // SliceTemplate defines optimization parameters for different slice types.
 
 type SliceTemplate struct {
+	SliceType SliceType `json:"sliceType"`
 
-	SliceType              SliceType                 `json:"sliceType"`
+	LatencyRequirement time.Duration `json:"latencyRequirement"`
 
-	LatencyRequirement     time.Duration             `json:"latencyRequirement"`
+	ThroughputRequirement float64 `json:"throughputRequirement"`
 
-	ThroughputRequirement  float64                   `json:"throughputRequirement"`
+	ReliabilityRequirement float64 `json:"reliabilityRequirement"`
 
-	ReliabilityRequirement float64                   `json:"reliabilityRequirement"`
+	ResourceAllocation *ResourceAllocation `json:"resourceAllocation"`
 
-	ResourceAllocation     *ResourceAllocation       `json:"resourceAllocation"`
+	QoSParameters *QoSParameters `json:"qosParameters"`
 
-	QoSParameters          *QoSParameters            `json:"qosParameters"`
-
-	OptimizationStrategy   SliceOptimizationStrategy `json:"optimizationStrategy"`
-
+	OptimizationStrategy SliceOptimizationStrategy `json:"optimizationStrategy"`
 }
-
-
 
 // SliceType defines different network slice types.
 
 type SliceType string
-
-
 
 const (
 
@@ -397,8 +309,6 @@ const (
 
 )
 
-
-
 // RICConfig defines RAN Intelligent Controller optimization.
 
 type RICConfig struct {
@@ -407,81 +317,60 @@ type RICConfig struct {
 
 	NearRTRICConfig *NearRTRICConfig `json:"nearRtRicConfig"`
 
-
-
 	// Non-RT RIC configuration.
 
 	NonRTRICConfig *NonRTRICConfig `json:"nonRtRicConfig"`
-
-
 
 	// xApp optimization.
 
 	XAppOptimization *XAppOptimization `json:"xAppOptimization"`
 
-
-
 	// E2 interface optimization.
 
 	E2InterfaceConfig *E2InterfaceConfig `json:"e2InterfaceConfig"`
-
-
 
 	// A1 interface optimization.
 
 	A1InterfaceConfig *A1InterfaceConfig `json:"a1InterfaceConfig"`
 
-
-
 	// RIC services optimization.
 
 	RICServicesConfig *RICServicesConfig `json:"ricServicesConfig"`
-
 }
-
-
 
 // NearRTRICConfig defines Near Real-Time RIC optimization.
 
 type NearRTRICConfig struct {
+	ProcessingLatencyTarget time.Duration `json:"processingLatencyTarget"`
 
-	ProcessingLatencyTarget  time.Duration            `json:"processingLatencyTarget"`
+	ControlLoopFrequency time.Duration `json:"controlLoopFrequency"`
 
-	ControlLoopFrequency     time.Duration            `json:"controlLoopFrequency"`
-
-	XAppSchedulingPolicy     XAppSchedulingPolicy     `json:"xAppSchedulingPolicy"`
+	XAppSchedulingPolicy XAppSchedulingPolicy `json:"xAppSchedulingPolicy"`
 
 	ConflictResolutionPolicy ConflictResolutionPolicy `json:"conflictResolutionPolicy"`
 
-	ResourceAllocation       *RICResourceAllocation   `json:"resourceAllocation"`
+	ResourceAllocation *RICResourceAllocation `json:"resourceAllocation"`
 
-	MessageRouting           *MessageRoutingConfig    `json:"messageRouting"`
+	MessageRouting *MessageRoutingConfig `json:"messageRouting"`
 
-	HighAvailabilityConfig   *HAConfig                `json:"highAvailabilityConfig"`
-
+	HighAvailabilityConfig *HAConfig `json:"highAvailabilityConfig"`
 }
-
-
 
 // XAppOptimization defines xApp-specific optimizations.
 
 type XAppOptimization struct {
+	AutoDeployment bool `json:"autoDeployment"`
 
-	AutoDeployment         bool                 `json:"autoDeployment"`
+	LoadBalancing *XAppLoadBalancing `json:"loadBalancing"`
 
-	LoadBalancing          *XAppLoadBalancing   `json:"loadBalancing"`
+	ResourceManagement *XAppResourceMgmt `json:"resourceManagement"`
 
-	ResourceManagement     *XAppResourceMgmt    `json:"resourceManagement"`
-
-	PerformanceMonitoring  *XAppPerfMonitoring  `json:"performanceMonitoring"`
+	PerformanceMonitoring *XAppPerfMonitoring `json:"performanceMonitoring"`
 
 	InterXAppCommunication *InterXAppCommConfig `json:"interXAppCommunication"`
 
-	LifecycleManagement    *XAppLifecycleConfig `json:"lifecycleManagement"`
-
+	LifecycleManagement *XAppLifecycleConfig `json:"lifecycleManagement"`
 }
-
-
 
 // RANConfig defines RAN optimization parameters.
 
@@ -491,99 +380,74 @@ type RANConfig struct {
 
 	CoverageOptimization *CoverageOptimization `json:"coverageOptimization"`
 
-
-
 	// Capacity optimization.
 
 	CapacityOptimization *CapacityOptimization `json:"capacityOptimization"`
-
-
 
 	// Interference management.
 
 	InterferenceManagement *InterferenceManagement `json:"interferenceManagement"`
 
-
-
 	// Handover optimization.
 
 	HandoverOptimization *HandoverOptimization `json:"handoverOptimization"`
-
-
 
 	// Beamforming optimization.
 
 	BeamformingConfig *BeamformingConfig `json:"beamformingConfig"`
 
-
-
 	// Energy efficiency.
 
 	EnergyEfficiencyConfig *EnergyEfficiencyConfig `json:"energyEfficiencyConfig"`
-
 }
-
-
 
 // InteropConfig defines multi-vendor interoperability optimization.
 
 type InteropConfig struct {
+	VendorAdaptationLayer *VendorAdaptationConfig `json:"vendorAdaptationLayer"`
 
-	VendorAdaptationLayer    *VendorAdaptationConfig     `json:"vendorAdaptationLayer"`
+	ProtocolTranslation *ProtocolTranslationConfig `json:"protocolTranslation"`
 
-	ProtocolTranslation      *ProtocolTranslationConfig  `json:"protocolTranslation"`
+	StandardsCompliance *ComplianceCheckConfig `json:"standardsCompliance"`
 
-	StandardsCompliance      *ComplianceCheckConfig      `json:"standardsCompliance"`
+	IntegrationTesting *IntegrationTestConfig `json:"integrationTesting"`
 
-	IntegrationTesting       *IntegrationTestConfig      `json:"integrationTesting"`
+	VersionCompatibility *VersionCompatibilityConfig `json:"versionCompatibility"`
 
-	VersionCompatibility     *VersionCompatibilityConfig `json:"versionCompatibility"`
-
-	PerformanceNormalization *PerfNormalizationConfig    `json:"performanceNormalization"`
-
+	PerformanceNormalization *PerfNormalizationConfig `json:"performanceNormalization"`
 }
-
-
 
 // QoSConfig defines Quality of Service optimization.
 
 type QoSConfig struct {
+	QoSClassDefinitions map[string]*QoSClass `json:"qosClassDefinitions"`
 
-	QoSClassDefinitions  map[string]*QoSClass    `json:"qosClassDefinitions"`
+	DynamicQoSAdjustment bool `json:"dynamicQosAdjustment"`
 
-	DynamicQoSAdjustment bool                    `json:"dynamicQosAdjustment"`
+	QoSViolationHandling *QoSViolationConfig `json:"qosViolationHandling"`
 
-	QoSViolationHandling *QoSViolationConfig     `json:"qosViolationHandling"`
+	SLAMonitoring *SLAMonitoringConfig `json:"slaMonitoring"`
 
-	SLAMonitoring        *SLAMonitoringConfig    `json:"slaMonitoring"`
+	TrafficShaping *TrafficShapingConfig `json:"trafficShaping"`
 
-	TrafficShaping       *TrafficShapingConfig   `json:"trafficShaping"`
-
-	AdmissionControl     *AdmissionControlConfig `json:"admissionControl"`
-
+	AdmissionControl *AdmissionControlConfig `json:"admissionControl"`
 }
-
-
 
 // EdgeConfig defines edge deployment optimization.
 
 type EdgeConfig struct {
+	EdgeNodeSelection *EdgeNodeSelectionConfig `json:"edgeNodeSelection"`
 
-	EdgeNodeSelection        *EdgeNodeSelectionConfig   `json:"edgeNodeSelection"`
+	WorkloadPlacement *WorkloadPlacementConfig `json:"workloadPlacement"`
 
-	WorkloadPlacement        *WorkloadPlacementConfig   `json:"workloadPlacement"`
+	LatencyOptimization *LatencyOptimizationConfig `json:"latencyOptimization"`
 
-	LatencyOptimization      *LatencyOptimizationConfig `json:"latencyOptimization"`
+	CachingStrategy *EdgeCachingConfig `json:"cachingStrategy"`
 
-	CachingStrategy          *EdgeCachingConfig         `json:"cachingStrategy"`
+	ConnectivityOptimization *ConnectivityOptConfig `json:"connectivityOptimization"`
 
-	ConnectivityOptimization *ConnectivityOptConfig     `json:"connectivityOptimization"`
-
-	ResourceManagement       *EdgeResourceMgmtConfig    `json:"resourceManagement"`
-
+	ResourceManagement *EdgeResourceMgmtConfig `json:"resourceManagement"`
 }
-
-
 
 // NewTelecomPerformanceOptimizer creates a new telecom performance optimizer.
 
@@ -594,10 +458,7 @@ func NewTelecomPerformanceOptimizer(config *TelecomOptimizerConfig, logger logr.
 		logger: logger.WithName("telecom-optimizer"),
 
 		config: config,
-
 	}
-
-
 
 	// Initialize component optimizers.
 
@@ -617,35 +478,27 @@ func NewTelecomPerformanceOptimizer(config *TelecomOptimizerConfig, logger logr.
 
 	optimizer.telecomMetrics = NewTelecomMetricsCollector(logger)
 
-
-
 	return optimizer
 
 }
 
-
-
 // TelecomOptimizationStrategy represents a telecom-specific optimization strategy.
 
 type TelecomOptimizationStrategy struct {
+	Name string `json:"name"`
 
-	Name                string                     `json:"name"`
+	Category OptimizationCategory `json:"category"`
 
-	Category            OptimizationCategory       `json:"category"`
+	TargetComponent ComponentType `json:"targetComponent"`
 
-	TargetComponent     ComponentType              `json:"targetComponent"`
+	ApplicableScenarios []ScenarioCondition `json:"applicableScenarios"`
 
-	ApplicableScenarios []ScenarioCondition        `json:"applicableScenarios"`
+	ExpectedBenefits *ExpectedBenefits `json:"expectedBenefits"`
 
-	ExpectedBenefits    *ExpectedBenefits          `json:"expectedBenefits"`
+	ImplementationSteps []ImplementationStep `json:"implementationSteps"`
 
-	ImplementationSteps []ImplementationStep       `json:"implementationSteps"`
-
-	RiskFactors         []RecommendationRiskFactor `json:"riskFactors"`
-
+	RiskFactors []RecommendationRiskFactor `json:"riskFactors"`
 }
-
-
 
 // GetTelecomOptimizationStrategies returns telecom-specific optimization strategies.
 
@@ -657,9 +510,9 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 
 		{
 
-			Name:            "5g_core_latency_optimization",
+			Name: "5g_core_latency_optimization",
 
-			Category:        CategoryTelecommunications,
+			Category: CategoryTelecommunications,
 
 			TargetComponent: ComponentType("5g_core"),
 
@@ -667,105 +520,93 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 
 				{
 
-					MetricName:    "core_network_latency",
+					MetricName: "core_network_latency",
 
-					Operator:      OperatorGreaterThan,
+					Operator: OperatorGreaterThan,
 
-					Threshold:     10.0, // 10ms
+					Threshold: 10.0, // 10ms
 
 					ComponentType: ComponentType("5g_core"),
-
 				},
-
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
 
-				LatencyReduction:        50.0,
+				LatencyReduction: 50.0,
 
 				SignalingEfficiencyGain: 30.0,
 
-				ReliabilityImprovement:  20.0,
-
+				ReliabilityImprovement: 20.0,
 			},
 
 			ImplementationSteps: []ImplementationStep{
 
 				{
 
-					Order:           1,
+					Order: 1,
 
-					Name:            "optimize_amf_configuration",
+					Name: "optimize_amf_configuration",
 
-					Description:     "Optimize AMF connection pooling and caching",
+					Description: "Optimize AMF connection pooling and caching",
 
-					EstimatedTime:   15 * time.Minute,
+					EstimatedTime: 15 * time.Minute,
 
 					AutomationLevel: AutomationFull,
-
 				},
 
 				{
 
-					Order:           2,
+					Order: 2,
 
-					Name:            "optimize_smf_session_management",
+					Name: "optimize_smf_session_management",
 
-					Description:     "Optimize SMF session establishment procedures",
+					Description: "Optimize SMF session establishment procedures",
 
-					EstimatedTime:   20 * time.Minute,
+					EstimatedTime: 20 * time.Minute,
 
 					AutomationLevel: AutomationPartial,
-
 				},
 
 				{
 
-					Order:           3,
+					Order: 3,
 
-					Name:            "optimize_upf_packet_processing",
+					Name: "optimize_upf_packet_processing",
 
-					Description:     "Enable hardware acceleration for UPF packet processing",
+					Description: "Enable hardware acceleration for UPF packet processing",
 
-					EstimatedTime:   30 * time.Minute,
+					EstimatedTime: 30 * time.Minute,
 
 					AutomationLevel: AutomationAssisted,
-
 				},
-
 			},
 
 			RiskFactors: []RecommendationRiskFactor{
 
 				{
 
-					Name:        "service_disruption",
+					Name: "service_disruption",
 
 					Description: "Potential service disruption during optimization",
 
 					Probability: 0.1,
 
-					Impact:      ImpactMedium,
+					Impact: ImpactMedium,
 
-					Mitigation:  "Implement gradual rollout with rollback capability",
+					Mitigation: "Implement gradual rollout with rollback capability",
 
-					Category:    RiskCategoryAvailability,
-
+					Category: RiskCategoryAvailability,
 				},
-
 			},
-
 		},
-
-
 
 		// Network slicing optimization.
 
 		{
 
-			Name:            "network_slice_optimization",
+			Name: "network_slice_optimization",
 
-			Category:        CategoryTelecommunications,
+			Category: CategoryTelecommunications,
 
 			TargetComponent: ComponentType("network_slicing"),
 
@@ -773,85 +614,75 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 
 				{
 
-					MetricName:    "slice_isolation_efficiency",
+					MetricName: "slice_isolation_efficiency",
 
-					Operator:      OperatorLessThan,
+					Operator: OperatorLessThan,
 
-					Threshold:     0.9,
+					Threshold: 0.9,
 
 					ComponentType: ComponentType("network_slicing"),
-
 				},
-
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
 
-				LatencyReduction:   40.0,
+				LatencyReduction: 40.0,
 
 				ThroughputIncrease: 35.0,
 
-				ResourceSavings:    25.0,
-
+				ResourceSavings: 25.0,
 			},
 
 			ImplementationSteps: []ImplementationStep{
 
 				{
 
-					Order:           1,
+					Order: 1,
 
-					Name:            "analyze_slice_utilization",
+					Name: "analyze_slice_utilization",
 
-					Description:     "Analyze current slice resource utilization patterns",
+					Description: "Analyze current slice resource utilization patterns",
 
-					EstimatedTime:   10 * time.Minute,
+					EstimatedTime: 10 * time.Minute,
 
 					AutomationLevel: AutomationFull,
-
 				},
 
 				{
 
-					Order:           2,
+					Order: 2,
 
-					Name:            "optimize_slice_allocation",
+					Name: "optimize_slice_allocation",
 
-					Description:     "Implement dynamic slice resource allocation",
+					Description: "Implement dynamic slice resource allocation",
 
-					EstimatedTime:   25 * time.Minute,
+					EstimatedTime: 25 * time.Minute,
 
 					AutomationLevel: AutomationPartial,
-
 				},
 
 				{
 
-					Order:           3,
+					Order: 3,
 
-					Name:            "enable_slice_isolation",
+					Name: "enable_slice_isolation",
 
-					Description:     "Enhance slice isolation mechanisms",
+					Description: "Enhance slice isolation mechanisms",
 
-					EstimatedTime:   20 * time.Minute,
+					EstimatedTime: 20 * time.Minute,
 
 					AutomationLevel: AutomationAssisted,
-
 				},
-
 			},
-
 		},
-
-
 
 		// O-RAN RIC optimization.
 
 		{
 
-			Name:            "oran_ric_optimization",
+			Name: "oran_ric_optimization",
 
-			Category:        CategoryTelecommunications,
+			Category: CategoryTelecommunications,
 
 			TargetComponent: ComponentType("oran_ric"),
 
@@ -859,87 +690,77 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 
 				{
 
-					MetricName:    "ric_processing_latency",
+					MetricName: "ric_processing_latency",
 
-					Operator:      OperatorGreaterThan,
+					Operator: OperatorGreaterThan,
 
-					Threshold:     1.0, // 1ms
+					Threshold: 1.0, // 1ms
 
 					ComponentType: ComponentType("oran_ric"),
-
 				},
-
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
 
-				LatencyReduction:       70.0,
+				LatencyReduction: 70.0,
 
-				ThroughputIncrease:     45.0,
+				ThroughputIncrease: 45.0,
 
 				ReliabilityImprovement: 30.0,
 
-				InteropImprovements:    40.0,
-
+				InteropImprovements: 40.0,
 			},
 
 			ImplementationSteps: []ImplementationStep{
 
 				{
 
-					Order:           1,
+					Order: 1,
 
-					Name:            "optimize_near_rt_ric",
+					Name: "optimize_near_rt_ric",
 
-					Description:     "Optimize Near-RT RIC control loop frequency",
+					Description: "Optimize Near-RT RIC control loop frequency",
 
-					EstimatedTime:   15 * time.Minute,
+					EstimatedTime: 15 * time.Minute,
 
 					AutomationLevel: AutomationFull,
-
 				},
 
 				{
 
-					Order:           2,
+					Order: 2,
 
-					Name:            "optimize_xapp_deployment",
+					Name: "optimize_xapp_deployment",
 
-					Description:     "Optimize xApp deployment and resource allocation",
+					Description: "Optimize xApp deployment and resource allocation",
 
-					EstimatedTime:   20 * time.Minute,
+					EstimatedTime: 20 * time.Minute,
 
 					AutomationLevel: AutomationPartial,
-
 				},
 
 				{
 
-					Order:           3,
+					Order: 3,
 
-					Name:            "optimize_e2_interface",
+					Name: "optimize_e2_interface",
 
-					Description:     "Optimize E2 interface message handling",
+					Description: "Optimize E2 interface message handling",
 
-					EstimatedTime:   25 * time.Minute,
+					EstimatedTime: 25 * time.Minute,
 
 					AutomationLevel: AutomationAssisted,
-
 				},
-
 			},
-
 		},
-
-
 
 		// RAN optimization.
 
 		{
 
-			Name:            "ran_performance_optimization",
+			Name: "ran_performance_optimization",
 
-			Category:        CategoryTelecommunications,
+			Category: CategoryTelecommunications,
 
 			TargetComponent: ComponentType("ran"),
 
@@ -947,87 +768,77 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 
 				{
 
-					MetricName:    "ran_efficiency",
+					MetricName: "ran_efficiency",
 
-					Operator:      OperatorLessThan,
+					Operator: OperatorLessThan,
 
-					Threshold:     0.8,
+					Threshold: 0.8,
 
 					ComponentType: ComponentType("ran"),
-
 				},
-
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
 
-				ThroughputIncrease:     60.0,
+				ThroughputIncrease: 60.0,
 
 				SpectrumEfficiencyGain: 45.0,
 
-				EnergyEfficiencyGain:   35.0,
+				EnergyEfficiencyGain: 35.0,
 
-				LatencyReduction:       30.0,
-
+				LatencyReduction: 30.0,
 			},
 
 			ImplementationSteps: []ImplementationStep{
 
 				{
 
-					Order:           1,
+					Order: 1,
 
-					Name:            "optimize_coverage",
+					Name: "optimize_coverage",
 
-					Description:     "Optimize cell coverage and capacity planning",
+					Description: "Optimize cell coverage and capacity planning",
 
-					EstimatedTime:   30 * time.Minute,
+					EstimatedTime: 30 * time.Minute,
 
 					AutomationLevel: AutomationPartial,
-
 				},
 
 				{
 
-					Order:           2,
+					Order: 2,
 
-					Name:            "optimize_interference",
+					Name: "optimize_interference",
 
-					Description:     "Implement advanced interference management",
+					Description: "Implement advanced interference management",
 
-					EstimatedTime:   25 * time.Minute,
+					EstimatedTime: 25 * time.Minute,
 
 					AutomationLevel: AutomationAssisted,
-
 				},
 
 				{
 
-					Order:           3,
+					Order: 3,
 
-					Name:            "optimize_handover",
+					Name: "optimize_handover",
 
-					Description:     "Optimize handover procedures and parameters",
+					Description: "Optimize handover procedures and parameters",
 
-					EstimatedTime:   20 * time.Minute,
+					EstimatedTime: 20 * time.Minute,
 
 					AutomationLevel: AutomationPartial,
-
 				},
-
 			},
-
 		},
-
-
 
 		// Multi-vendor interoperability.
 
 		{
 
-			Name:            "multi_vendor_interop_optimization",
+			Name: "multi_vendor_interop_optimization",
 
-			Category:        CategoryTelecommunications,
+			Category: CategoryTelecommunications,
 
 			TargetComponent: ComponentType("interoperability"),
 
@@ -1035,39 +846,33 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 
 				{
 
-					MetricName:    "interop_efficiency",
+					MetricName: "interop_efficiency",
 
-					Operator:      OperatorLessThan,
+					Operator: OperatorLessThan,
 
-					Threshold:     0.95,
+					Threshold: 0.95,
 
 					ComponentType: ComponentType("interoperability"),
-
 				},
-
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
 
-				InteropImprovements:    50.0,
+				InteropImprovements: 50.0,
 
-				LatencyReduction:       20.0,
+				LatencyReduction: 20.0,
 
 				ReliabilityImprovement: 25.0,
-
 			},
-
 		},
-
-
 
 		// QoS optimization.
 
 		{
 
-			Name:            "qos_sla_optimization",
+			Name: "qos_sla_optimization",
 
-			Category:        CategoryTelecommunications,
+			Category: CategoryTelecommunications,
 
 			TargetComponent: ComponentType("qos_management"),
 
@@ -1075,39 +880,33 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 
 				{
 
-					MetricName:    "sla_compliance_rate",
+					MetricName: "sla_compliance_rate",
 
-					Operator:      OperatorLessThan,
+					Operator: OperatorLessThan,
 
-					Threshold:     0.99,
+					Threshold: 0.99,
 
 					ComponentType: ComponentType("qos_management"),
-
 				},
-
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
 
 				ReliabilityImprovement: 40.0,
 
-				LatencyReduction:       25.0,
+				LatencyReduction: 25.0,
 
-				ThroughputIncrease:     20.0,
-
+				ThroughputIncrease: 20.0,
 			},
-
 		},
-
-
 
 		// Edge deployment optimization.
 
 		{
 
-			Name:            "edge_deployment_optimization",
+			Name: "edge_deployment_optimization",
 
-			Category:        CategoryTelecommunications,
+			Category: CategoryTelecommunications,
 
 			TargetComponent: ComponentType("edge_computing"),
 
@@ -1115,39 +914,30 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 
 				{
 
-					MetricName:    "edge_latency",
+					MetricName: "edge_latency",
 
-					Operator:      OperatorGreaterThan,
+					Operator: OperatorGreaterThan,
 
-					Threshold:     5.0, // 5ms
+					Threshold: 5.0, // 5ms
 
 					ComponentType: ComponentType("edge_computing"),
-
 				},
-
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
 
-				LatencyReduction:   80.0,
+				LatencyReduction: 80.0,
 
 				ThroughputIncrease: 40.0,
 
-				ResourceSavings:    30.0,
-
+				ResourceSavings: 30.0,
 			},
-
 		},
-
 	}
-
-
 
 	return strategies
 
 }
-
-
 
 // OptimizeTelecomPerformance applies telecom-specific optimizations.
 
@@ -1161,11 +951,7 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 
 	optimizer.logger.Info("Starting telecom-specific performance optimization")
 
-
-
 	var recommendations []*OptimizationRecommendation
-
-
 
 	// Collect telecom-specific metrics.
 
@@ -1178,8 +964,6 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 		return nil, err
 
 	}
-
-
 
 	// Optimize 5G Core network functions.
 
@@ -1195,8 +979,6 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 
 	}
 
-
-
 	// Optimize network slicing.
 
 	sliceRecommendations, err := optimizer.sliceOptimizer.OptimizeSlicing(ctx, telecomMetrics, analysisResult)
@@ -1210,8 +992,6 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 		recommendations = append(recommendations, sliceRecommendations...)
 
 	}
-
-
 
 	// Optimize O-RAN RIC.
 
@@ -1227,8 +1007,6 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 
 	}
 
-
-
 	// Optimize RAN performance.
 
 	ranRecommendations, err := optimizer.ranOptimizer.OptimizeRAN(ctx, telecomMetrics, analysisResult)
@@ -1242,8 +1020,6 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 		recommendations = append(recommendations, ranRecommendations...)
 
 	}
-
-
 
 	// Optimize multi-vendor interoperability.
 
@@ -1259,8 +1035,6 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 
 	}
 
-
-
 	// Optimize QoS and SLA compliance.
 
 	qosRecommendations, err := optimizer.qosOptimizer.OptimizeQoS(ctx, telecomMetrics, analysisResult)
@@ -1274,8 +1048,6 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 		recommendations = append(recommendations, qosRecommendations...)
 
 	}
-
-
 
 	// Optimize edge deployment.
 
@@ -1291,25 +1063,17 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 
 	}
 
-
-
 	// Apply telecom-specific prioritization.
 
 	optimizer.prioritizeTelecomRecommendations(recommendations)
-
-
 
 	optimizer.logger.Info("Completed telecom-specific optimization",
 
 		"totalRecommendations", len(recommendations))
 
-
-
 	return recommendations, nil
 
 }
-
-
 
 // prioritizeTelecomRecommendations applies telecom-specific prioritization logic.
 
@@ -1321,8 +1085,6 @@ func (optimizer *TelecomPerformanceOptimizer) prioritizeTelecomRecommendations(r
 
 		// Since the OptimizationRecommendation struct is minimal, we work with what's available.
 
-
-
 		// Boost recommendations that mention latency or reliability in title/description.
 
 		if contains(rec.Title, "latency") || contains(rec.Description, "latency") {
@@ -1331,15 +1093,11 @@ func (optimizer *TelecomPerformanceOptimizer) prioritizeTelecomRecommendations(r
 
 		}
 
-
-
 		if contains(rec.Title, "reliability") || contains(rec.Description, "reliability") {
 
 			rec.RiskScore *= 0.95 // Slight risk reduction for reliability improvements
 
 		}
-
-
 
 		// Telecom-specific optimizations get priority.
 
@@ -1355,8 +1113,6 @@ func (optimizer *TelecomPerformanceOptimizer) prioritizeTelecomRecommendations(r
 
 }
 
-
-
 // contains checks if a string contains a substring (case-insensitive).
 
 func contains(s, substr string) bool {
@@ -1364,8 +1120,6 @@ func contains(s, substr string) bool {
 	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 
 }
-
-
 
 func (optimizer *TelecomPerformanceOptimizer) mapCategoryToTelecom(category OptimizationCategory) TelecomOptimizationCategory {
 
@@ -1375,13 +1129,10 @@ func (optimizer *TelecomPerformanceOptimizer) mapCategoryToTelecom(category Opti
 
 		CategoryReliability: TelecomCategoryReliability,
 
-		CategoryResource:    TelecomCategoryEfficiency,
+		CategoryResource: TelecomCategoryEfficiency,
 
-		CategoryCompliance:  TelecomCategoryCompliance,
-
+		CategoryCompliance: TelecomCategoryCompliance,
 	}
-
-
 
 	if telecomCategory, exists := mapping[category]; exists {
 
@@ -1389,17 +1140,11 @@ func (optimizer *TelecomPerformanceOptimizer) mapCategoryToTelecom(category Opti
 
 	}
 
-
-
 	return TelecomCategoryEfficiency
 
 }
 
-
-
 // Telecom-specific metrics and analysis.
-
-
 
 // TelecomMetrics contains telecom-specific performance metrics.
 
@@ -1413,353 +1158,260 @@ type TelecomMetrics struct {
 
 	UPFMetrics *UPFMetrics `json:"upfMetrics"`
 
-
-
 	// Network slicing metrics.
 
 	SliceMetrics map[string]*SliceMetrics `json:"sliceMetrics"`
-
-
 
 	// O-RAN metrics.
 
 	RICMetrics *RICMetrics `json:"ricMetrics"`
 
-
-
 	// RAN metrics.
 
 	RANMetrics *RANMetrics `json:"ranMetrics"`
-
-
 
 	// QoS metrics.
 
 	QoSMetrics *QoSMetrics `json:"qosMetrics"`
 
-
-
 	// Edge metrics.
 
 	EdgeMetrics map[string]*EdgeMetrics `json:"edgeMetrics"`
 
-
-
 	// Interoperability metrics.
 
 	InteropMetrics *InteropMetrics `json:"interopMetrics"`
-
 }
-
-
 
 // Component-specific metrics structures.
 
 type AMFMetrics struct {
+	RegistrationLatency time.Duration `json:"registrationLatency"`
 
-	RegistrationLatency     time.Duration `json:"registrationLatency"`
+	RegistrationSuccessRate float64 `json:"registrationSuccessRate"`
 
-	RegistrationSuccessRate float64       `json:"registrationSuccessRate"`
+	ActiveConnections int `json:"activeConnections"`
 
-	ActiveConnections       int           `json:"activeConnections"`
+	HandoverSuccessRate float64 `json:"handoverSuccessRate"`
 
-	HandoverSuccessRate     float64       `json:"handoverSuccessRate"`
-
-	AuthenticationLatency   time.Duration `json:"authenticationLatency"`
-
+	AuthenticationLatency time.Duration `json:"authenticationLatency"`
 }
-
-
 
 // SMFMetrics represents a smfmetrics.
 
 type SMFMetrics struct {
-
 	SessionEstablishmentLatency time.Duration `json:"sessionEstablishmentLatency"`
 
-	SessionEstablishmentRate    float64       `json:"sessionEstablishmentRate"`
+	SessionEstablishmentRate float64 `json:"sessionEstablishmentRate"`
 
-	ActiveSessions              int           `json:"activeSessions"`
+	ActiveSessions int `json:"activeSessions"`
 
-	QoSFlowSetupSuccessRate     float64       `json:"qosFlowSetupSuccessRate"`
+	QoSFlowSetupSuccessRate float64 `json:"qosFlowSetupSuccessRate"`
 
-	PolicyEnforcementLatency    time.Duration `json:"policyEnforcementLatency"`
-
+	PolicyEnforcementLatency time.Duration `json:"policyEnforcementLatency"`
 }
-
-
 
 // UPFMetrics represents a upfmetrics.
 
 type UPFMetrics struct {
+	PacketProcessingLatency time.Duration `json:"packetProcessingLatency"`
 
-	PacketProcessingLatency   time.Duration `json:"packetProcessingLatency"`
+	PacketLossRate float64 `json:"packetLossRate"`
 
-	PacketLossRate            float64       `json:"packetLossRate"`
+	Throughput float64 `json:"throughput"`
 
-	Throughput                float64       `json:"throughput"`
+	BufferUtilization float64 `json:"bufferUtilization"`
 
-	BufferUtilization         float64       `json:"bufferUtilization"`
-
-	HardwareAccelerationRatio float64       `json:"hardwareAccelerationRatio"`
-
+	HardwareAccelerationRatio float64 `json:"hardwareAccelerationRatio"`
 }
-
-
 
 // SliceMetrics represents a slicemetrics.
 
 type SliceMetrics struct {
+	SliceID string `json:"sliceId"`
 
-	SliceID             string        `json:"sliceId"`
+	SliceType SliceType `json:"sliceType"`
 
-	SliceType           SliceType     `json:"sliceType"`
+	Latency time.Duration `json:"latency"`
 
-	Latency             time.Duration `json:"latency"`
+	Throughput float64 `json:"throughput"`
 
-	Throughput          float64       `json:"throughput"`
+	Reliability float64 `json:"reliability"`
 
-	Reliability         float64       `json:"reliability"`
+	ResourceUtilization float64 `json:"resourceUtilization"`
 
-	ResourceUtilization float64       `json:"resourceUtilization"`
+	IsolationEfficiency float64 `json:"isolationEfficiency"`
 
-	IsolationEfficiency float64       `json:"isolationEfficiency"`
-
-	SLACompliance       float64       `json:"slaCompliance"`
-
+	SLACompliance float64 `json:"slaCompliance"`
 }
-
-
 
 // RICMetrics represents a ricmetrics.
 
 type RICMetrics struct {
+	NearRTRICLatency time.Duration `json:"nearRtRicLatency"`
 
-	NearRTRICLatency    time.Duration           `json:"nearRtRicLatency"`
+	NonRTRICLatency time.Duration `json:"nonRtRicLatency"`
 
-	NonRTRICLatency     time.Duration           `json:"nonRtRicLatency"`
+	XAppPerformance map[string]*XAppMetrics `json:"xAppPerformance"`
 
-	XAppPerformance     map[string]*XAppMetrics `json:"xAppPerformance"`
+	E2MessageLatency time.Duration `json:"e2MessageLatency"`
 
-	E2MessageLatency    time.Duration           `json:"e2MessageLatency"`
+	A1PolicyLatency time.Duration `json:"a1PolicyLatency"`
 
-	A1PolicyLatency     time.Duration           `json:"a1PolicyLatency"`
-
-	ConflictResolutions int                     `json:"conflictResolutions"`
-
+	ConflictResolutions int `json:"conflictResolutions"`
 }
-
-
 
 // XAppMetrics represents a xappmetrics.
 
 type XAppMetrics struct {
-
 	ProcessingLatency time.Duration `json:"processingLatency"`
 
-	DecisionAccuracy  float64       `json:"decisionAccuracy"`
+	DecisionAccuracy float64 `json:"decisionAccuracy"`
 
-	ResourceUsage     float64       `json:"resourceUsage"`
+	ResourceUsage float64 `json:"resourceUsage"`
 
-	MessageThroughput float64       `json:"messageThroughput"`
-
+	MessageThroughput float64 `json:"messageThroughput"`
 }
-
-
 
 // RANMetrics represents a ranmetrics.
 
 type RANMetrics struct {
-
-	CoverageEfficiency  float64 `json:"coverageEfficiency"`
+	CoverageEfficiency float64 `json:"coverageEfficiency"`
 
 	CapacityUtilization float64 `json:"capacityUtilization"`
 
-	InterferenceLevel   float64 `json:"interferenceLevel"`
+	InterferenceLevel float64 `json:"interferenceLevel"`
 
 	HandoverSuccessRate float64 `json:"handoverSuccessRate"`
 
-	BeamformingGain     float64 `json:"beamformingGain"`
+	BeamformingGain float64 `json:"beamformingGain"`
 
-	EnergyEfficiency    float64 `json:"energyEfficiency"`
+	EnergyEfficiency float64 `json:"energyEfficiency"`
 
-	SpectrumEfficiency  float64 `json:"spectrumEfficiency"`
-
+	SpectrumEfficiency float64 `json:"spectrumEfficiency"`
 }
-
-
 
 // QoSMetrics represents a qosmetrics.
 
 type QoSMetrics struct {
+	SLACompliance float64 `json:"slaCompliance"`
 
-	SLACompliance        float64                     `json:"slaCompliance"`
+	QoSViolations int `json:"qosViolations"`
 
-	QoSViolations        int                         `json:"qosViolations"`
+	TrafficShapingEff float64 `json:"trafficShapingEfficiency"`
 
-	TrafficShapingEff    float64                     `json:"trafficShapingEfficiency"`
+	AdmissionControlRate float64 `json:"admissionControlRate"`
 
-	AdmissionControlRate float64                     `json:"admissionControlRate"`
-
-	ClassMetrics         map[string]*QoSClassMetrics `json:"classMetrics"`
-
+	ClassMetrics map[string]*QoSClassMetrics `json:"classMetrics"`
 }
-
-
 
 // QoSClassMetrics represents a qosclassmetrics.
 
 type QoSClassMetrics struct {
+	LatencyP99 time.Duration `json:"latencyP99"`
 
-	LatencyP99     time.Duration `json:"latencyP99"`
+	PacketLossRate float64 `json:"packetLossRate"`
 
-	PacketLossRate float64       `json:"packetLossRate"`
+	Jitter time.Duration `json:"jitter"`
 
-	Jitter         time.Duration `json:"jitter"`
+	Throughput float64 `json:"throughput"`
 
-	Throughput     float64       `json:"throughput"`
-
-	ComplianceRate float64       `json:"complianceRate"`
-
+	ComplianceRate float64 `json:"complianceRate"`
 }
-
-
 
 // EdgeMetrics represents a edgemetrics.
 
 type EdgeMetrics struct {
+	EdgeNodeID string `json:"edgeNodeId"`
 
-	EdgeNodeID          string        `json:"edgeNodeId"`
+	Latency time.Duration `json:"latency"`
 
-	Latency             time.Duration `json:"latency"`
+	Throughput float64 `json:"throughput"`
 
-	Throughput          float64       `json:"throughput"`
+	ResourceUtilization float64 `json:"resourceUtilization"`
 
-	ResourceUtilization float64       `json:"resourceUtilization"`
+	CacheHitRate float64 `json:"cacheHitRate"`
 
-	CacheHitRate        float64       `json:"cacheHitRate"`
-
-	ConnectivityQuality float64       `json:"connectivityQuality"`
-
+	ConnectivityQuality float64 `json:"connectivityQuality"`
 }
-
-
 
 // InteropMetrics represents a interopmetrics.
 
 type InteropMetrics struct {
-
 	VendorCompatibility map[string]float64 `json:"vendorCompatibility"`
 
-	ProtocolCompliance  float64            `json:"protocolCompliance"`
+	ProtocolCompliance float64 `json:"protocolCompliance"`
 
-	IntegrationLatency  time.Duration      `json:"integrationLatency"`
+	IntegrationLatency time.Duration `json:"integrationLatency"`
 
-	StandardsCompliance float64            `json:"standardsCompliance"`
+	StandardsCompliance float64 `json:"standardsCompliance"`
 
-	CrossVendorLatency  time.Duration      `json:"crossVendorLatency"`
-
+	CrossVendorLatency time.Duration `json:"crossVendorLatency"`
 }
 
-
-
 // Component optimizers (simplified implementations for demonstration).
-
-
 
 // CoreNetworkOptimizer represents a corenetworkoptimizer.
 
 type CoreNetworkOptimizer struct {
-
 	logger logr.Logger
 
 	config *CoreNetworkConfig
-
 }
-
-
 
 // NetworkSliceOptimizer represents a networksliceoptimizer.
 
 type NetworkSliceOptimizer struct {
-
 	logger logr.Logger
 
 	config *NetworkSliceConfig
-
 }
-
-
 
 // RICOptimizer represents a ricoptimizer.
 
 type RICOptimizer struct {
-
 	logger logr.Logger
 
 	config *RICConfig
-
 }
-
-
 
 // RANOptimizer represents a ranoptimizer.
 
 type RANOptimizer struct {
-
 	logger logr.Logger
 
 	config *RANConfig
-
 }
-
-
 
 // InteropOptimizer represents a interopoptimizer.
 
 type InteropOptimizer struct {
-
 	logger logr.Logger
 
 	config *InteropConfig
-
 }
-
-
 
 // QoSOptimizer represents a qosoptimizer.
 
 type QoSOptimizer struct {
-
 	logger logr.Logger
 
 	config *QoSConfig
-
 }
-
-
 
 // EdgeDeploymentOptimizer represents a edgedeploymentoptimizer.
 
 type EdgeDeploymentOptimizer struct {
-
 	logger logr.Logger
 
 	config *EdgeConfig
-
 }
-
-
 
 // TelecomMetricsCollector represents a telecommetricscollector.
 
 type TelecomMetricsCollector struct {
-
 	logger logr.Logger
-
 }
-
-
 
 // Constructor functions.
 
@@ -1769,8 +1421,6 @@ func NewCoreNetworkOptimizer(config *CoreNetworkConfig, logger logr.Logger) *Cor
 
 }
 
-
-
 // NewNetworkSliceOptimizer performs newnetworksliceoptimizer operation.
 
 func NewNetworkSliceOptimizer(config *NetworkSliceConfig, logger logr.Logger) *NetworkSliceOptimizer {
@@ -1778,8 +1428,6 @@ func NewNetworkSliceOptimizer(config *NetworkSliceConfig, logger logr.Logger) *N
 	return &NetworkSliceOptimizer{logger: logger.WithName("slice-optimizer"), config: config}
 
 }
-
-
 
 // NewRICOptimizer performs newricoptimizer operation.
 
@@ -1789,8 +1437,6 @@ func NewRICOptimizer(config *RICConfig, logger logr.Logger) *RICOptimizer {
 
 }
 
-
-
 // NewRANOptimizer performs newranoptimizer operation.
 
 func NewRANOptimizer(config *RANConfig, logger logr.Logger) *RANOptimizer {
@@ -1798,8 +1444,6 @@ func NewRANOptimizer(config *RANConfig, logger logr.Logger) *RANOptimizer {
 	return &RANOptimizer{logger: logger.WithName("ran-optimizer"), config: config}
 
 }
-
-
 
 // NewInteropOptimizer performs newinteropoptimizer operation.
 
@@ -1809,8 +1453,6 @@ func NewInteropOptimizer(config *InteropConfig, logger logr.Logger) *InteropOpti
 
 }
 
-
-
 // NewQoSOptimizer performs newqosoptimizer operation.
 
 func NewQoSOptimizer(config *QoSConfig, logger logr.Logger) *QoSOptimizer {
@@ -1818,8 +1460,6 @@ func NewQoSOptimizer(config *QoSConfig, logger logr.Logger) *QoSOptimizer {
 	return &QoSOptimizer{logger: logger.WithName("qos-optimizer"), config: config}
 
 }
-
-
 
 // NewEdgeDeploymentOptimizer performs newedgedeploymentoptimizer operation.
 
@@ -1829,8 +1469,6 @@ func NewEdgeDeploymentOptimizer(config *EdgeConfig, logger logr.Logger) *EdgeDep
 
 }
 
-
-
 // NewTelecomMetricsCollector performs newtelecommetricscollector operation.
 
 func NewTelecomMetricsCollector(logger logr.Logger) *TelecomMetricsCollector {
@@ -1838,8 +1476,6 @@ func NewTelecomMetricsCollector(logger logr.Logger) *TelecomMetricsCollector {
 	return &TelecomMetricsCollector{logger: logger.WithName("telecom-metrics")}
 
 }
-
-
 
 // Placeholder implementations (would be fully implemented in production).
 
@@ -1851,12 +1487,11 @@ func (collector *TelecomMetricsCollector) CollectMetrics(ctx context.Context) (*
 
 		AMFMetrics: &AMFMetrics{
 
-			RegistrationLatency:     50 * time.Millisecond,
+			RegistrationLatency: 50 * time.Millisecond,
 
 			RegistrationSuccessRate: 0.99,
 
-			ActiveConnections:       1000,
-
+			ActiveConnections: 1000,
 		},
 
 		// ... other metrics.
@@ -1864,8 +1499,6 @@ func (collector *TelecomMetricsCollector) CollectMetrics(ctx context.Context) (*
 	}, nil
 
 }
-
-
 
 // OptimizeCore performs optimizecore operation.
 
@@ -1877,8 +1510,6 @@ func (optimizer *CoreNetworkOptimizer) OptimizeCore(ctx context.Context, metrics
 
 }
 
-
-
 // OptimizeSlicing performs optimizeslicing operation.
 
 func (optimizer *NetworkSliceOptimizer) OptimizeSlicing(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
@@ -1886,8 +1517,6 @@ func (optimizer *NetworkSliceOptimizer) OptimizeSlicing(ctx context.Context, met
 	return []*OptimizationRecommendation{}, nil
 
 }
-
-
 
 // OptimizeRIC performs optimizeric operation.
 
@@ -1897,8 +1526,6 @@ func (optimizer *RICOptimizer) OptimizeRIC(ctx context.Context, metrics *Telecom
 
 }
 
-
-
 // OptimizeRAN performs optimizeran operation.
 
 func (optimizer *RANOptimizer) OptimizeRAN(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
@@ -1906,8 +1533,6 @@ func (optimizer *RANOptimizer) OptimizeRAN(ctx context.Context, metrics *Telecom
 	return []*OptimizationRecommendation{}, nil
 
 }
-
-
 
 // OptimizeInterop performs optimizeinterop operation.
 
@@ -1917,8 +1542,6 @@ func (optimizer *InteropOptimizer) OptimizeInterop(ctx context.Context, metrics 
 
 }
 
-
-
 // OptimizeQoS performs optimizeqos operation.
 
 func (optimizer *QoSOptimizer) OptimizeQoS(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
@@ -1926,8 +1549,6 @@ func (optimizer *QoSOptimizer) OptimizeQoS(ctx context.Context, metrics *Telecom
 	return []*OptimizationRecommendation{}, nil
 
 }
-
-
 
 // OptimizeEdge performs optimizeedge operation.
 
@@ -1937,12 +1558,9 @@ func (optimizer *EdgeDeploymentOptimizer) OptimizeEdge(ctx context.Context, metr
 
 }
 
-
-
 // Additional type definitions for completeness (simplified).
 
 type (
-
 	RetryPolicy struct{}
 
 	// LoadBalancingStrategy represents a loadbalancingstrategy.
@@ -2196,10 +1814,7 @@ type (
 	// SessionOptimization represents a sessionoptimization.
 
 	SessionOptimization struct{}
-
 )
-
-
 
 // GetDefaultTelecomOptimizerConfig returns default telecom optimizer configuration.
 
@@ -2211,47 +1826,41 @@ func GetDefaultTelecomOptimizerConfig() *TelecomOptimizerConfig {
 
 			"5g_core": 10 * time.Millisecond,
 
-			"ric":     1 * time.Millisecond,
+			"ric": 1 * time.Millisecond,
 
-			"edge":    5 * time.Millisecond,
-
+			"edge": 5 * time.Millisecond,
 		},
 
 		ThroughputThresholds: map[string]float64{
 
-			"upf":  1000.0, // Mbps
+			"upf": 1000.0, // Mbps
 
-			"ran":  500.0,
+			"ran": 500.0,
 
 			"edge": 200.0,
-
 		},
 
 		AvailabilityTargets: map[string]float64{
 
 			"5g_core": 0.9999,
 
-			"ran":     0.999,
+			"ran": 0.999,
 
-			"edge":    0.99,
-
+			"edge": 0.99,
 		},
 
 		OptimizationPriorities: map[TelecomOptimizationCategory]float64{
 
-			TelecomCategoryLatency:     1.3,
+			TelecomCategoryLatency: 1.3,
 
 			TelecomCategoryReliability: 1.2,
 
-			TelecomCategoryInterop:     1.1,
+			TelecomCategoryInterop: 1.1,
 
-			TelecomCategoryCompliance:  1.15,
+			TelecomCategoryCompliance: 1.15,
 
-			TelecomCategoryEfficiency:  1.0,
-
+			TelecomCategoryEfficiency: 1.0,
 		},
-
 	}
 
 }
-

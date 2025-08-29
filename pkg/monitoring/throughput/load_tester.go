@@ -1,65 +1,41 @@
-
 package throughput
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"math/rand"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 )
-
-
 
 // LoadTester provides comprehensive load testing capabilities.
 
 type LoadTester struct {
-
 	mu sync.Mutex
-
-
 
 	// Test configuration.
 
 	config LoadTestConfig
 
-
-
 	// Performance tracking.
 
-	results     []LoadTestResult
+	results []LoadTestResult
 
 	currentTest *LoadTestRun
 
-
-
 	// Metrics.
 
-	throughputMetric  *prometheus.HistogramVec
+	throughputMetric *prometheus.HistogramVec
 
-	latencyMetric     *prometheus.HistogramVec
+	latencyMetric *prometheus.HistogramVec
 
-	errorRateMetric   *prometheus.CounterVec
+	errorRateMetric *prometheus.CounterVec
 
 	concurrencyMetric prometheus.Gauge
-
 }
-
-
 
 // LoadTestConfig defines parameters for load testing.
 
@@ -69,35 +45,24 @@ type LoadTestConfig struct {
 
 	MaxConcurrentIntents int
 
-	IntentsPerMinute     int
-
-
+	IntentsPerMinute int
 
 	// Duration configuration.
 
 	TestDuration time.Duration
 
-
-
 	// Failure simulation.
 
 	ErrorInjectionRate float64
 
-
-
 	// Load profile.
 
 	LoadProfile LoadProfile
-
 }
-
-
 
 // LoadProfile defines varying load patterns.
 
 type LoadProfile string
-
-
 
 const (
 
@@ -116,46 +81,35 @@ const (
 	// ProfileRandomSpike holds profilerandomspike value.
 
 	ProfileRandomSpike LoadProfile = "random_spike"
-
 )
-
-
 
 // LoadTestResult captures the outcome of a load test.
 
 type LoadTestResult struct {
+	Timestamp time.Time
 
-	Timestamp         time.Time
+	Throughput float64
 
-	Throughput        float64
+	Latency time.Duration
 
-	Latency           time.Duration
-
-	ErrorRate         float64
+	ErrorRate float64
 
 	ConcurrentIntents int
 
-	Success           bool
-
+	Success bool
 }
-
-
 
 // LoadTestRun tracks an ongoing load test.
 
 type LoadTestRun struct {
-
-	StartTime      time.Time
+	StartTime time.Time
 
 	CompletedTests int
 
-	Successful     int
+	Successful int
 
-	Failed         int
-
+	Failed int
 }
-
-
 
 // NewLoadTester creates a new load tester.
 
@@ -163,28 +117,26 @@ func NewLoadTester(config LoadTestConfig) *LoadTester {
 
 	return &LoadTester{
 
-		config:  config,
+		config: config,
 
 		results: make([]LoadTestResult, 0, 1000),
 
 		throughputMetric: promauto.NewHistogramVec(prometheus.HistogramOpts{
 
-			Name:    "nephoran_load_test_throughput",
+			Name: "nephoran_load_test_throughput",
 
-			Help:    "Throughput during load testing",
+			Help: "Throughput during load testing",
 
 			Buckets: prometheus.LinearBuckets(0, 10, 20),
-
 		}, []string{"profile", "status"}),
 
 		latencyMetric: promauto.NewHistogramVec(prometheus.HistogramOpts{
 
-			Name:    "nephoran_load_test_latency",
+			Name: "nephoran_load_test_latency",
 
-			Help:    "Latency during load testing",
+			Help: "Latency during load testing",
 
 			Buckets: prometheus.DefBuckets,
-
 		}, []string{"profile", "status"}),
 
 		errorRateMetric: promauto.NewCounterVec(prometheus.CounterOpts{
@@ -192,7 +144,6 @@ func NewLoadTester(config LoadTestConfig) *LoadTester {
 			Name: "nephoran_load_test_errors",
 
 			Help: "Error counts during load testing",
-
 		}, []string{"profile", "type"}),
 
 		concurrencyMetric: promauto.NewGauge(prometheus.GaugeOpts{
@@ -200,14 +151,10 @@ func NewLoadTester(config LoadTestConfig) *LoadTester {
 			Name: "nephoran_load_test_concurrency",
 
 			Help: "Current concurrent intents during load test",
-
 		}),
-
 	}
 
 }
-
-
 
 // RunLoadTest executes a comprehensive load test.
 
@@ -218,12 +165,9 @@ func (lt *LoadTester) RunLoadTest(ctx context.Context) ([]LoadTestResult, error)
 	lt.currentTest = &LoadTestRun{
 
 		StartTime: time.Now(),
-
 	}
 
 	lt.mu.Unlock()
-
-
 
 	// Apply context deadline or use default.
 
@@ -236,8 +180,6 @@ func (lt *LoadTester) RunLoadTest(ctx context.Context) ([]LoadTestResult, error)
 		defer cancel()
 
 	}
-
-
 
 	// Select appropriate load generation strategy.
 
@@ -267,21 +209,15 @@ func (lt *LoadTester) RunLoadTest(ctx context.Context) ([]LoadTestResult, error)
 
 	}
 
-
-
 	// Run load generation.
 
 	err := generateLoad(ctx)
-
-
 
 	// Compile and return results.
 
 	return lt.results, err
 
 }
-
-
 
 // generateSteadyLoad maintains consistent intent processing rate.
 
@@ -290,8 +226,6 @@ func (lt *LoadTester) generateSteadyLoad(ctx context.Context) error {
 	ticker := time.NewTicker(time.Minute / time.Duration(lt.config.IntentsPerMinute))
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -311,8 +245,6 @@ func (lt *LoadTester) generateSteadyLoad(ctx context.Context) error {
 
 }
 
-
-
 // generateRampUpLoad incrementally increases load.
 
 func (lt *LoadTester) generateRampUpLoad(ctx context.Context) error {
@@ -327,13 +259,9 @@ func (lt *LoadTester) generateRampUpLoad(ctx context.Context) error {
 
 		ticker := time.NewTicker(time.Minute / time.Duration(currentRate))
 
-
-
 		phaseCtx, cancel := context.WithTimeout(ctx, rampDuration)
 
 		defer cancel()
-
-
 
 		for {
 
@@ -357,8 +285,6 @@ func (lt *LoadTester) generateRampUpLoad(ctx context.Context) error {
 
 }
 
-
-
 // generatePeakBurstLoad simulates high-intensity short bursts.
 
 func (lt *LoadTester) generatePeakBurstLoad(ctx context.Context) error {
@@ -368,8 +294,6 @@ func (lt *LoadTester) generatePeakBurstLoad(ctx context.Context) error {
 	burstDuration := 30 * time.Second
 
 	cooldownDuration := 2 * time.Minute
-
-
 
 	for {
 
@@ -388,8 +312,6 @@ func (lt *LoadTester) generatePeakBurstLoad(ctx context.Context) error {
 			lt.runIntenseBurst(burstCtx)
 
 			cancel()
-
-
 
 			// Cooldown period.
 
@@ -411,8 +333,6 @@ func (lt *LoadTester) generatePeakBurstLoad(ctx context.Context) error {
 
 }
 
-
-
 // generateRandomSpikeLoad creates unpredictable load variations.
 
 func (lt *LoadTester) generateRandomSpikeLoad(ctx context.Context) error {
@@ -433,13 +353,9 @@ func (lt *LoadTester) generateRandomSpikeLoad(ctx context.Context) error {
 
 			currentRate := int(float64(lt.config.IntentsPerMinute) * spikeMultiplier)
 
-
-
 			ticker := time.NewTicker(time.Minute / time.Duration(currentRate))
 
 			spikeCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-
-
 
 			for {
 
@@ -460,14 +376,11 @@ func (lt *LoadTester) generateRandomSpikeLoad(ctx context.Context) error {
 			}
 
 		NextSpike:
-
 		}
 
 	}
 
 }
-
-
 
 // runIntenseBurst simulates a high-concurrency burst.
 
@@ -476,8 +389,6 @@ func (lt *LoadTester) runIntenseBurst(ctx context.Context) {
 	// Create semaphore for max concurrency.
 
 	sem := make(chan struct{}, lt.config.MaxConcurrentIntents)
-
-
 
 	for {
 
@@ -505,8 +416,6 @@ func (lt *LoadTester) runIntenseBurst(ctx context.Context) {
 
 }
 
-
-
 // simulateIntentProcessing models an intent processing event.
 
 func (lt *LoadTester) simulateIntentProcessing(profile LoadProfile) {
@@ -519,15 +428,11 @@ func (lt *LoadTester) simulateIntentProcessing(profile LoadProfile) {
 
 	lt.mu.Unlock()
 
-
-
 	// Update concurrency metric.
 
 	lt.concurrencyMetric.Inc()
 
 	defer lt.concurrencyMetric.Dec()
-
-
 
 	// Simulate processing with potential errors.
 
@@ -543,39 +448,30 @@ func (lt *LoadTester) simulateIntentProcessing(profile LoadProfile) {
 
 	}
 
-
-
 	// Calculate latency with some randomness.
 
 	latency := time.Duration(50+rand.Intn(200)) * time.Millisecond
-
-
 
 	// Record result.
 
 	result := LoadTestResult{
 
-		Timestamp:         startTime,
+		Timestamp: startTime,
 
-		Throughput:        float64(lt.config.IntentsPerMinute),
+		Throughput: float64(lt.config.IntentsPerMinute),
 
-		Latency:           latency,
+		Latency: latency,
 
-		ErrorRate:         lt.config.ErrorInjectionRate,
+		ErrorRate: lt.config.ErrorInjectionRate,
 
 		ConcurrentIntents: lt.config.MaxConcurrentIntents,
 
-		Success:           success,
-
+		Success: success,
 	}
-
-
 
 	lt.mu.Lock()
 
 	lt.results = append(lt.results, result)
-
-
 
 	// Track test outcomes.
 
@@ -591,15 +487,11 @@ func (lt *LoadTester) simulateIntentProcessing(profile LoadProfile) {
 
 	lt.mu.Unlock()
 
-
-
 	// Update Prometheus metrics.
 
 	lt.throughputMetric.WithLabelValues(string(profile), fmt.Sprintf("%v", success)).Observe(result.Throughput)
 
 	lt.latencyMetric.WithLabelValues(string(profile), fmt.Sprintf("%v", success)).Observe(result.Latency.Seconds())
-
-
 
 	if processingError != nil {
 
@@ -609,8 +501,6 @@ func (lt *LoadTester) simulateIntentProcessing(profile LoadProfile) {
 
 }
 
-
-
 // AnalyzeTestResults provides comprehensive load test analysis.
 
 func (lt *LoadTester) AnalyzeTestResults() map[string]interface{} {
@@ -619,11 +509,7 @@ func (lt *LoadTester) AnalyzeTestResults() map[string]interface{} {
 
 	defer lt.mu.Unlock()
 
-
-
 	analysis := make(map[string]interface{})
-
-
 
 	// Calculate overall metrics.
 
@@ -633,8 +519,6 @@ func (lt *LoadTester) AnalyzeTestResults() map[string]interface{} {
 
 	latencyTotal := time.Duration(0)
 
-
-
 	for _, result := range lt.results {
 
 		totalThroughput += result.Throughput
@@ -642,8 +526,6 @@ func (lt *LoadTester) AnalyzeTestResults() map[string]interface{} {
 		latencyTotal += result.Latency
 
 	}
-
-
 
 	analysis["total_tests"] = lt.currentTest.CompletedTests
 
@@ -659,9 +541,6 @@ func (lt *LoadTester) AnalyzeTestResults() map[string]interface{} {
 
 	analysis["peak_concurrency"] = lt.config.MaxConcurrentIntents
 
-
-
 	return analysis
 
 }
-

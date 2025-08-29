@@ -1,79 +1,50 @@
-
 package a1
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"net/http"
-
 	"time"
-
 )
 
-
-
 // O-RAN compliant A1 interface implementation.
-
-
 
 // A1PolicyTypeResponse represents O-RAN compliant policy type response.
 
 type A1PolicyTypeResponse struct {
+	PolicyTypeID int `json:"policy_type_id"`
 
-	PolicyTypeID int                    `json:"policy_type_id"`
+	Name string `json:"name"`
 
-	Name         string                 `json:"name"`
+	Description string `json:"description"`
 
-	Description  string                 `json:"description"`
-
-	Schema       map[string]interface{} `json:"schema"`
+	Schema map[string]interface{} `json:"schema"`
 
 	CreateSchema map[string]interface{} `json:"create_schema,omitempty"`
-
 }
-
-
 
 // A1ErrorResponse represents O-RAN compliant error response (RFC 7807).
 
 type A1ErrorResponse struct {
+	Type string `json:"type"`
 
-	Type     string `json:"type"`
+	Title string `json:"title"`
 
-	Title    string `json:"title"`
+	Status int `json:"status"`
 
-	Status   int    `json:"status"`
-
-	Detail   string `json:"detail,omitempty"`
+	Detail string `json:"detail,omitempty"`
 
 	Instance string `json:"instance,omitempty"`
-
 }
-
-
 
 // EnrichmentInfoType is defined in types.go.
 
-
-
 // EnrichmentInfoJob is defined in types.go.
 
-
-
 // O-RAN Compliant A1-P Interface Methods.
-
-
 
 // CreatePolicyTypeCompliant creates a policy type using O-RAN compliant endpoints.
 
@@ -83,25 +54,20 @@ func (a *A1Adaptor) CreatePolicyTypeCompliant(ctx context.Context, policyType *A
 
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d", a.ricURL, policyType.PolicyTypeID)
 
-
-
 	// Convert to O-RAN compliant format.
 
 	oranPolicyType := A1PolicyTypeResponse{
 
 		PolicyTypeID: policyType.PolicyTypeID,
 
-		Name:         policyType.Name,
+		Name: policyType.Name,
 
-		Description:  policyType.Description,
+		Description: policyType.Description,
 
-		Schema:       policyType.PolicySchema,
+		Schema: policyType.PolicySchema,
 
 		CreateSchema: policyType.CreateSchema,
-
 	}
-
-
 
 	body, err := json.Marshal(oranPolicyType)
 
@@ -111,8 +77,6 @@ func (a *A1Adaptor) CreatePolicyTypeCompliant(ctx context.Context, policyType *A
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
 
 	if err != nil {
@@ -121,15 +85,11 @@ func (a *A1Adaptor) CreatePolicyTypeCompliant(ctx context.Context, policyType *A
 
 	}
 
-
-
 	// O-RAN compliant headers.
 
 	req.Header.Set("Content-Type", "application/json")
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
-
-
 
 	resp, err := a.httpClient.Do(req)
 
@@ -140,8 +100,6 @@ func (a *A1Adaptor) CreatePolicyTypeCompliant(ctx context.Context, policyType *A
 	}
 
 	defer resp.Body.Close()
-
-
 
 	// O-RAN compliant status code handling.
 
@@ -175,15 +133,11 @@ func (a *A1Adaptor) CreatePolicyTypeCompliant(ctx context.Context, policyType *A
 
 }
 
-
-
 // GetPolicyTypeCompliant retrieves a policy type using O-RAN compliant format.
 
 func (a *A1Adaptor) GetPolicyTypeCompliant(ctx context.Context, policyTypeID int) (*A1PolicyTypeResponse, error) {
 
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d", a.ricURL, policyTypeID)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
@@ -193,11 +147,7 @@ func (a *A1Adaptor) GetPolicyTypeCompliant(ctx context.Context, policyTypeID int
 
 	}
 
-
-
 	req.Header.Set("Accept", "application/json, application/problem+json")
-
-
 
 	resp, err := a.httpClient.Do(req)
 
@@ -208,8 +158,6 @@ func (a *A1Adaptor) GetPolicyTypeCompliant(ctx context.Context, policyTypeID int
 	}
 
 	defer resp.Body.Close()
-
-
 
 	switch resp.StatusCode {
 
@@ -237,15 +185,11 @@ func (a *A1Adaptor) GetPolicyTypeCompliant(ctx context.Context, policyTypeID int
 
 }
 
-
-
 // ListPolicyTypesCompliant lists all policy types in O-RAN compliant format.
 
 func (a *A1Adaptor) ListPolicyTypesCompliant(ctx context.Context) ([]int, error) {
 
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes", a.ricURL)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
@@ -255,11 +199,7 @@ func (a *A1Adaptor) ListPolicyTypesCompliant(ctx context.Context) ([]int, error)
 
 	}
 
-
-
 	req.Header.Set("Accept", "application/json, application/problem+json")
-
-
 
 	resp, err := a.httpClient.Do(req)
 
@@ -271,15 +211,11 @@ func (a *A1Adaptor) ListPolicyTypesCompliant(ctx context.Context) ([]int, error)
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, a.handleErrorResponse(resp, "Failed to list policy types")
 
 	}
-
-
 
 	var policyTypeIDs []int
 
@@ -289,21 +225,15 @@ func (a *A1Adaptor) ListPolicyTypesCompliant(ctx context.Context) ([]int, error)
 
 	}
 
-
-
 	return policyTypeIDs, nil
 
 }
-
-
 
 // DeletePolicyTypeCompliant deletes a policy type using O-RAN compliant format.
 
 func (a *A1Adaptor) DeletePolicyTypeCompliant(ctx context.Context, policyTypeID int) error {
 
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d", a.ricURL, policyTypeID)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, http.NoBody)
 
@@ -313,11 +243,7 @@ func (a *A1Adaptor) DeletePolicyTypeCompliant(ctx context.Context, policyTypeID 
 
 	}
 
-
-
 	req.Header.Set("Accept", "application/json, application/problem+json")
-
-
 
 	resp, err := a.httpClient.Do(req)
 
@@ -328,8 +254,6 @@ func (a *A1Adaptor) DeletePolicyTypeCompliant(ctx context.Context, policyTypeID 
 	}
 
 	defer resp.Body.Close()
-
-
 
 	switch resp.StatusCode {
 
@@ -353,8 +277,6 @@ func (a *A1Adaptor) DeletePolicyTypeCompliant(ctx context.Context, policyTypeID 
 
 }
 
-
-
 // CreatePolicyInstanceCompliant creates a policy instance with proper validation.
 
 func (a *A1Adaptor) CreatePolicyInstanceCompliant(ctx context.Context, policyTypeID int, instanceID string, policyData map[string]interface{}) error {
@@ -367,11 +289,7 @@ func (a *A1Adaptor) CreatePolicyInstanceCompliant(ctx context.Context, policyTyp
 
 	}
 
-
-
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d/policies/%s", a.ricURL, policyTypeID, instanceID)
-
-
 
 	body, err := json.Marshal(policyData)
 
@@ -381,8 +299,6 @@ func (a *A1Adaptor) CreatePolicyInstanceCompliant(ctx context.Context, policyTyp
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
 
 	if err != nil {
@@ -391,13 +307,9 @@ func (a *A1Adaptor) CreatePolicyInstanceCompliant(ctx context.Context, policyTyp
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
 
 	req.Header.Set("Accept", "application/json, application/problem+json")
-
-
 
 	resp, err := a.httpClient.Do(req)
 
@@ -408,8 +320,6 @@ func (a *A1Adaptor) CreatePolicyInstanceCompliant(ctx context.Context, policyTyp
 	}
 
 	defer resp.Body.Close()
-
-
 
 	switch resp.StatusCode {
 
@@ -441,15 +351,11 @@ func (a *A1Adaptor) CreatePolicyInstanceCompliant(ctx context.Context, policyTyp
 
 }
 
-
-
 // GetPolicyStatusCompliant retrieves policy status with detailed information.
 
 func (a *A1Adaptor) GetPolicyStatusCompliant(ctx context.Context, policyTypeID int, instanceID string) (*A1PolicyStatusCompliant, error) {
 
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d/policies/%s/status", a.ricURL, policyTypeID, instanceID)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 
@@ -459,11 +365,7 @@ func (a *A1Adaptor) GetPolicyStatusCompliant(ctx context.Context, policyTypeID i
 
 	}
 
-
-
 	req.Header.Set("Accept", "application/json, application/problem+json")
-
-
 
 	resp, err := a.httpClient.Do(req)
 
@@ -474,8 +376,6 @@ func (a *A1Adaptor) GetPolicyStatusCompliant(ctx context.Context, policyTypeID i
 	}
 
 	defer resp.Body.Close()
-
-
 
 	switch resp.StatusCode {
 
@@ -503,29 +403,23 @@ func (a *A1Adaptor) GetPolicyStatusCompliant(ctx context.Context, policyTypeID i
 
 }
 
-
-
 // A1PolicyStatusCompliant represents O-RAN compliant policy status.
 
 type A1PolicyStatusCompliant struct {
+	EnforcementStatus string `json:"enforcement_status"`
 
-	EnforcementStatus string                 `json:"enforcement_status"`
+	EnforcementReason string `json:"enforcement_reason,omitempty"`
 
-	EnforcementReason string                 `json:"enforcement_reason,omitempty"`
+	HasBeenDeleted bool `json:"has_been_deleted,omitempty"`
 
-	HasBeenDeleted    bool                   `json:"has_been_deleted,omitempty"`
+	Deleted bool `json:"deleted,omitempty"`
 
-	Deleted           bool                   `json:"deleted,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
 
-	CreatedAt         time.Time              `json:"created_at,omitempty"`
+	ModifiedAt time.Time `json:"modified_at,omitempty"`
 
-	ModifiedAt        time.Time              `json:"modified_at,omitempty"`
-
-	AdditionalInfo    map[string]interface{} `json:"additional_info,omitempty"`
-
+	AdditionalInfo map[string]interface{} `json:"additional_info,omitempty"`
 }
-
-
 
 // validatePolicyData validates policy data against the policy type schema.
 
@@ -540,8 +434,6 @@ func (a *A1Adaptor) validatePolicyData(ctx context.Context, policyTypeID int, po
 		return fmt.Errorf("failed to get policy type: %w", err)
 
 	}
-
-
 
 	// Implement JSON schema validation here.
 
@@ -571,21 +463,15 @@ func (a *A1Adaptor) validatePolicyData(ctx context.Context, policyTypeID int, po
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // handleErrorResponse handles O-RAN compliant error responses.
 
 func (a *A1Adaptor) handleErrorResponse(resp *http.Response, defaultMessage string) error {
 
 	bodyBytes, _ := io.ReadAll(resp.Body)
-
-
 
 	// Try to parse as O-RAN error response (RFC 7807 format).
 
@@ -601,11 +487,8 @@ func (a *A1Adaptor) handleErrorResponse(resp *http.Response, defaultMessage stri
 
 	}
 
-
-
 	// Fallback to generic error.
 
 	return fmt.Errorf("%s: status=%d, body=%s", defaultMessage, resp.StatusCode, string(bodyBytes))
 
 }
-

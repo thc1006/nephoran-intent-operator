@@ -28,172 +28,120 @@ limitations under the License.
 
 */
 
-
-
-
 package blueprint
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"regexp"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
-	"go.uber.org/zap"
-
-	"gopkg.in/yaml.v2"
-
-
-
 	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
+	"go.uber.org/zap"
+	"gopkg.in/yaml.v2"
 )
-
-
 
 // Customizer handles blueprint customization and parameterization based on NetworkIntent context.
 
 type Customizer struct {
-
 	config *BlueprintConfig
 
 	logger *zap.Logger
 
-
-
 	// Customization rules and policies.
 
-	customizationRules  map[string]*CustomizationRule
+	customizationRules map[string]*CustomizationRule
 
-	policyEngine        *PolicyEngine
+	policyEngine *PolicyEngine
 
 	environmentProfiles map[string]*EnvironmentProfile
 
-
-
 	// Template processing.
 
-	templateCache    sync.Map
+	templateCache sync.Map
 
 	functionRegistry map[string]CustomFunction
 
-
-
 	// Performance optimization.
 
-	processingPool     sync.Pool
+	processingPool sync.Pool
 
 	customizationMutex sync.RWMutex
-
 }
-
-
 
 // CustomizationRule defines rules for blueprint customization.
 
 type CustomizationRule struct {
+	ID string `json:"id" yaml:"id"`
 
-	ID          string `json:"id" yaml:"id"`
-
-	Name        string `json:"name" yaml:"name"`
+	Name string `json:"name" yaml:"name"`
 
 	Description string `json:"description" yaml:"description"`
 
-	Priority    int    `json:"priority" yaml:"priority"`
-
-
+	Priority int `json:"priority" yaml:"priority"`
 
 	// Targeting criteria.
 
-	Components   []v1.ORANComponent `json:"components,omitempty" yaml:"components,omitempty"`
+	Components []v1.ORANComponent `json:"components,omitempty" yaml:"components,omitempty"`
 
-	IntentTypes  []v1.IntentType    `json:"intentTypes,omitempty" yaml:"intentTypes,omitempty"`
+	IntentTypes []v1.IntentType `json:"intentTypes,omitempty" yaml:"intentTypes,omitempty"`
 
-	Environments []string           `json:"environments,omitempty" yaml:"environments,omitempty"`
-
-
+	Environments []string `json:"environments,omitempty" yaml:"environments,omitempty"`
 
 	// Conditions for rule activation.
 
 	Conditions []RuleCondition `json:"conditions" yaml:"conditions"`
 
-
-
 	// Transformations to apply.
 
 	Transformations []Transformation `json:"transformations" yaml:"transformations"`
 
-
-
 	// Rule metadata.
 
-	Enabled bool     `json:"enabled" yaml:"enabled"`
+	Enabled bool `json:"enabled" yaml:"enabled"`
 
-	Author  string   `json:"author" yaml:"author"`
+	Author string `json:"author" yaml:"author"`
 
-	Version string   `json:"version" yaml:"version"`
+	Version string `json:"version" yaml:"version"`
 
-	Tags    []string `json:"tags,omitempty" yaml:"tags,omitempty"`
-
+	Tags []string `json:"tags,omitempty" yaml:"tags,omitempty"`
 }
-
-
 
 // RuleCondition defines conditions for rule activation.
 
 type RuleCondition struct {
+	Field string `json:"field" yaml:"field"`
 
-	Field       string      `json:"field" yaml:"field"`
+	Operator string `json:"operator" yaml:"operator"`
 
-	Operator    string      `json:"operator" yaml:"operator"`
+	Value interface{} `json:"value" yaml:"value"`
 
-	Value       interface{} `json:"value" yaml:"value"`
-
-	Description string      `json:"description,omitempty" yaml:"description,omitempty"`
-
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 }
-
-
 
 // Transformation defines a transformation to apply to blueprint.
 
 type Transformation struct {
+	Type TransformationType `json:"type" yaml:"type"`
 
-	Type        TransformationType `json:"type" yaml:"type"`
+	Target string `json:"target" yaml:"target"`
 
-	Target      string             `json:"target" yaml:"target"`
+	Action string `json:"action" yaml:"action"`
 
-	Action      string             `json:"action" yaml:"action"`
+	Value interface{} `json:"value,omitempty" yaml:"value,omitempty"`
 
-	Value       interface{}        `json:"value,omitempty" yaml:"value,omitempty"`
+	Template string `json:"template,omitempty" yaml:"template,omitempty"`
 
-	Template    string             `json:"template,omitempty" yaml:"template,omitempty"`
+	Conditions []string `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 
-	Conditions  []string           `json:"conditions,omitempty" yaml:"conditions,omitempty"`
-
-	Description string             `json:"description,omitempty" yaml:"description,omitempty"`
-
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 }
-
-
 
 // TransformationType defines types of transformations.
 
 type TransformationType string
-
-
 
 const (
 
@@ -224,75 +172,55 @@ const (
 	// TransformationFunction holds transformationfunction value.
 
 	TransformationFunction TransformationType = "function"
-
 )
-
-
 
 // EnvironmentProfile defines environment-specific configurations.
 
 type EnvironmentProfile struct {
-
-	Name        string `json:"name" yaml:"name"`
+	Name string `json:"name" yaml:"name"`
 
 	Description string `json:"description" yaml:"description"`
 
-
-
 	// Environment characteristics.
 
-	Type          EnvironmentType  `json:"type" yaml:"type"`
+	Type EnvironmentType `json:"type" yaml:"type"`
 
-	Scale         EnvironmentScale `json:"scale" yaml:"scale"`
+	Scale EnvironmentScale `json:"scale" yaml:"scale"`
 
-	SecurityLevel SecurityLevel    `json:"securityLevel" yaml:"securityLevel"`
-
-
+	SecurityLevel SecurityLevel `json:"securityLevel" yaml:"securityLevel"`
 
 	// Resource configurations.
 
-	ResourceLimits  ResourceConfiguration   `json:"resourceLimits" yaml:"resourceLimits"`
+	ResourceLimits ResourceConfiguration `json:"resourceLimits" yaml:"resourceLimits"`
 
 	NetworkPolicies []NetworkPolicyTemplate `json:"networkPolicies,omitempty" yaml:"networkPolicies,omitempty"`
 
-
-
 	// Deployment configurations.
 
-	ReplicaCounts map[string]int       `json:"replicaCounts,omitempty" yaml:"replicaCounts,omitempty"`
+	ReplicaCounts map[string]int `json:"replicaCounts,omitempty" yaml:"replicaCounts,omitempty"`
 
-	NodeSelectors map[string]string    `json:"nodeSelectors,omitempty" yaml:"nodeSelectors,omitempty"`
+	NodeSelectors map[string]string `json:"nodeSelectors,omitempty" yaml:"nodeSelectors,omitempty"`
 
-	Tolerations   []TolerationTemplate `json:"tolerations,omitempty" yaml:"tolerations,omitempty"`
+	Tolerations []TolerationTemplate `json:"tolerations,omitempty" yaml:"tolerations,omitempty"`
 
-	Affinity      *AffinityTemplate    `json:"affinity,omitempty" yaml:"affinity,omitempty"`
-
-
+	Affinity *AffinityTemplate `json:"affinity,omitempty" yaml:"affinity,omitempty"`
 
 	// Service mesh configuration.
 
 	ServiceMesh ServiceMeshProfile `json:"serviceMesh" yaml:"serviceMesh"`
 
-
-
 	// Monitoring configuration.
 
 	Monitoring MonitoringProfile `json:"monitoring" yaml:"monitoring"`
 
-
-
 	// Custom parameters.
 
 	Parameters map[string]interface{} `json:"parameters,omitempty" yaml:"parameters,omitempty"`
-
 }
-
-
 
 // Environment classification enums.
 
 type (
-
 	EnvironmentType string
 
 	// EnvironmentScale represents a environmentscale.
@@ -302,10 +230,7 @@ type (
 	// SecurityLevel represents a securitylevel.
 
 	SecurityLevel string
-
 )
-
-
 
 const (
 
@@ -328,10 +253,7 @@ const (
 	// EnvironmentEdge holds environmentedge value.
 
 	EnvironmentEdge EnvironmentType = "edge"
-
 )
-
-
 
 const (
 
@@ -350,10 +272,7 @@ const (
 	// ScaleXLarge holds scalexlarge value.
 
 	ScaleXLarge EnvironmentScale = "xlarge"
-
 )
-
-
 
 const (
 
@@ -372,280 +291,207 @@ const (
 	// SecurityLevelCritical holds securitylevelcritical value.
 
 	SecurityLevelCritical SecurityLevel = "critical"
-
 )
-
-
 
 // Configuration templates.
 
 type ResourceConfiguration struct {
+	CPU string `json:"cpu" yaml:"cpu"`
 
-	CPU        string `json:"cpu" yaml:"cpu"`
+	Memory string `json:"memory" yaml:"memory"`
 
-	Memory     string `json:"memory" yaml:"memory"`
+	Storage string `json:"storage" yaml:"storage"`
 
-	Storage    string `json:"storage" yaml:"storage"`
+	MaxCPU string `json:"maxCpu" yaml:"maxCpu"`
 
-	MaxCPU     string `json:"maxCpu" yaml:"maxCpu"`
-
-	MaxMemory  string `json:"maxMemory" yaml:"maxMemory"`
+	MaxMemory string `json:"maxMemory" yaml:"maxMemory"`
 
 	MaxStorage string `json:"maxStorage" yaml:"maxStorage"`
-
 }
-
-
 
 // NetworkPolicyTemplate represents a networkpolicytemplate.
 
 type NetworkPolicyTemplate struct {
+	Name string `json:"name" yaml:"name"`
 
-	Name        string   `json:"name" yaml:"name"`
+	Ingress []string `json:"ingress,omitempty" yaml:"ingress,omitempty"`
 
-	Ingress     []string `json:"ingress,omitempty" yaml:"ingress,omitempty"`
+	Egress []string `json:"egress,omitempty" yaml:"egress,omitempty"`
 
-	Egress      []string `json:"egress,omitempty" yaml:"egress,omitempty"`
-
-	PodSelector string   `json:"podSelector" yaml:"podSelector"`
-
+	PodSelector string `json:"podSelector" yaml:"podSelector"`
 }
-
-
 
 // TolerationTemplate represents a tolerationtemplate.
 
 type TolerationTemplate struct {
-
-	Key      string `json:"key" yaml:"key"`
+	Key string `json:"key" yaml:"key"`
 
 	Operator string `json:"operator" yaml:"operator"`
 
-	Value    string `json:"value,omitempty" yaml:"value,omitempty"`
+	Value string `json:"value,omitempty" yaml:"value,omitempty"`
 
-	Effect   string `json:"effect" yaml:"effect"`
-
+	Effect string `json:"effect" yaml:"effect"`
 }
-
-
 
 // AffinityTemplate represents a affinitytemplate.
 
 type AffinityTemplate struct {
+	NodeAffinity *NodeAffinityTemplate `json:"nodeAffinity,omitempty" yaml:"nodeAffinity,omitempty"`
 
-	NodeAffinity    *NodeAffinityTemplate `json:"nodeAffinity,omitempty" yaml:"nodeAffinity,omitempty"`
+	PodAffinity *PodAffinityTemplate `json:"podAffinity,omitempty" yaml:"podAffinity,omitempty"`
 
-	PodAffinity     *PodAffinityTemplate  `json:"podAffinity,omitempty" yaml:"podAffinity,omitempty"`
-
-	PodAntiAffinity *PodAffinityTemplate  `json:"podAntiAffinity,omitempty" yaml:"podAntiAffinity,omitempty"`
-
+	PodAntiAffinity *PodAffinityTemplate `json:"podAntiAffinity,omitempty" yaml:"podAntiAffinity,omitempty"`
 }
-
-
 
 // NodeAffinityTemplate represents a nodeaffinitytemplate.
 
 type NodeAffinityTemplate struct {
-
-	RequiredDuringScheduling  []NodeSelectorTerm `json:"requiredDuringScheduling,omitempty" yaml:"requiredDuringScheduling,omitempty"`
+	RequiredDuringScheduling []NodeSelectorTerm `json:"requiredDuringScheduling,omitempty" yaml:"requiredDuringScheduling,omitempty"`
 
 	PreferredDuringScheduling []NodeSelectorTerm `json:"preferredDuringScheduling,omitempty" yaml:"preferredDuringScheduling,omitempty"`
-
 }
-
-
 
 // PodAffinityTemplate represents a podaffinitytemplate.
 
 type PodAffinityTemplate struct {
-
-	RequiredDuringScheduling  []PodAffinityTerm `json:"requiredDuringScheduling,omitempty" yaml:"requiredDuringScheduling,omitempty"`
+	RequiredDuringScheduling []PodAffinityTerm `json:"requiredDuringScheduling,omitempty" yaml:"requiredDuringScheduling,omitempty"`
 
 	PreferredDuringScheduling []PodAffinityTerm `json:"preferredDuringScheduling,omitempty" yaml:"preferredDuringScheduling,omitempty"`
-
 }
-
-
 
 // NodeSelectorTerm represents a nodeselectorterm.
 
 type NodeSelectorTerm struct {
-
 	MatchExpressions []NodeSelectorRequirement `json:"matchExpressions,omitempty" yaml:"matchExpressions,omitempty"`
-
 }
-
-
 
 // NodeSelectorRequirement represents a nodeselectorrequirement.
 
 type NodeSelectorRequirement struct {
+	Key string `json:"key" yaml:"key"`
 
-	Key      string   `json:"key" yaml:"key"`
+	Operator string `json:"operator" yaml:"operator"`
 
-	Operator string   `json:"operator" yaml:"operator"`
-
-	Values   []string `json:"values,omitempty" yaml:"values,omitempty"`
-
+	Values []string `json:"values,omitempty" yaml:"values,omitempty"`
 }
-
-
 
 // PodAffinityTerm represents a podaffinityterm.
 
 type PodAffinityTerm struct {
-
 	LabelSelector map[string]string `json:"labelSelector" yaml:"labelSelector"`
 
-	TopologyKey   string            `json:"topologyKey" yaml:"topologyKey"`
-
+	TopologyKey string `json:"topologyKey" yaml:"topologyKey"`
 }
-
-
 
 // ServiceMeshProfile represents a servicemeshprofile.
 
 type ServiceMeshProfile struct {
+	Enabled bool `json:"enabled" yaml:"enabled"`
 
-	Enabled        bool   `json:"enabled" yaml:"enabled"`
+	InjectSidecar bool `json:"injectSidecar" yaml:"injectSidecar"`
 
-	InjectSidecar  bool   `json:"injectSidecar" yaml:"injectSidecar"`
+	MTLSMode string `json:"mtlsMode" yaml:"mtlsMode"`
 
-	MTLSMode       string `json:"mtlsMode" yaml:"mtlsMode"`
+	TrafficPolicy string `json:"trafficPolicy" yaml:"trafficPolicy"`
 
-	TrafficPolicy  string `json:"trafficPolicy" yaml:"trafficPolicy"`
+	CircuitBreaker bool `json:"circuitBreaker" yaml:"circuitBreaker"`
 
-	CircuitBreaker bool   `json:"circuitBreaker" yaml:"circuitBreaker"`
+	RetryPolicy string `json:"retryPolicy" yaml:"retryPolicy"`
 
-	RetryPolicy    string `json:"retryPolicy" yaml:"retryPolicy"`
-
-	TimeoutPolicy  string `json:"timeoutPolicy" yaml:"timeoutPolicy"`
-
+	TimeoutPolicy string `json:"timeoutPolicy" yaml:"timeoutPolicy"`
 }
-
-
 
 // MonitoringProfile represents a monitoringprofile.
 
 type MonitoringProfile struct {
+	Enabled bool `json:"enabled" yaml:"enabled"`
 
-	Enabled               bool     `json:"enabled" yaml:"enabled"`
+	MetricsEnabled bool `json:"metricsEnabled" yaml:"metricsEnabled"`
 
-	MetricsEnabled        bool     `json:"metricsEnabled" yaml:"metricsEnabled"`
+	LoggingEnabled bool `json:"loggingEnabled" yaml:"loggingEnabled"`
 
-	LoggingEnabled        bool     `json:"loggingEnabled" yaml:"loggingEnabled"`
+	TracingEnabled bool `json:"tracingEnabled" yaml:"tracingEnabled"`
 
-	TracingEnabled        bool     `json:"tracingEnabled" yaml:"tracingEnabled"`
+	AlertingEnabled bool `json:"alertingEnabled" yaml:"alertingEnabled"`
 
-	AlertingEnabled       bool     `json:"alertingEnabled" yaml:"alertingEnabled"`
+	MetricsScrapeInterval string `json:"metricsScrapeInterval" yaml:"metricsScrapeInterval"`
 
-	MetricsScrapeInterval string   `json:"metricsScrapeInterval" yaml:"metricsScrapeInterval"`
+	LogLevel string `json:"logLevel" yaml:"logLevel"`
 
-	LogLevel              string   `json:"logLevel" yaml:"logLevel"`
-
-	AlertRules            []string `json:"alertRules,omitempty" yaml:"alertRules,omitempty"`
-
+	AlertRules []string `json:"alertRules,omitempty" yaml:"alertRules,omitempty"`
 }
-
-
 
 // CustomFunction represents a custom function for blueprint customization.
 
 type CustomFunction func(context.Context, interface{}) (interface{}, error)
 
-
-
 // PolicyEngine handles policy-based customization.
 
 type PolicyEngine struct {
-
-	policies  map[string]*CustomizationPolicy
+	policies map[string]*CustomizationPolicy
 
 	evaluator *PolicyEvaluator
 
-	mutex     sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // CustomizationPolicy represents a customizationpolicy.
 
 type CustomizationPolicy struct {
+	ID string `json:"id" yaml:"id"`
 
-	ID          string            `json:"id" yaml:"id"`
+	Name string `json:"name" yaml:"name"`
 
-	Name        string            `json:"name" yaml:"name"`
+	Description string `json:"description" yaml:"description"`
 
-	Description string            `json:"description" yaml:"description"`
+	Rules []PolicyRule `json:"rules" yaml:"rules"`
 
-	Rules       []PolicyRule      `json:"rules" yaml:"rules"`
+	Priority int `json:"priority" yaml:"priority"`
 
-	Priority    int               `json:"priority" yaml:"priority"`
+	Enabled bool `json:"enabled" yaml:"enabled"`
 
-	Enabled     bool              `json:"enabled" yaml:"enabled"`
+	Scope PolicyScope `json:"scope" yaml:"scope"`
 
-	Scope       PolicyScope       `json:"scope" yaml:"scope"`
-
-	Metadata    map[string]string `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-
+	Metadata map[string]string `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
-
-
 
 // PolicyRule represents a policyrule.
 
 type PolicyRule struct {
+	If PolicyCondition `json:"if" yaml:"if"`
 
-	If   PolicyCondition `json:"if" yaml:"if"`
+	Then PolicyAction `json:"then" yaml:"then"`
 
-	Then PolicyAction    `json:"then" yaml:"then"`
-
-	Else *PolicyAction   `json:"else,omitempty" yaml:"else,omitempty"`
-
+	Else *PolicyAction `json:"else,omitempty" yaml:"else,omitempty"`
 }
-
-
 
 // PolicyCondition represents a policycondition.
 
 type PolicyCondition struct {
+	Field string `json:"field" yaml:"field"`
 
-	Field    string      `json:"field" yaml:"field"`
+	Operator string `json:"operator" yaml:"operator"`
 
-	Operator string      `json:"operator" yaml:"operator"`
-
-	Value    interface{} `json:"value" yaml:"value"`
-
+	Value interface{} `json:"value" yaml:"value"`
 }
-
-
 
 // PolicyAction represents a policyaction.
 
 type PolicyAction struct {
-
-	Action     string                 `json:"action" yaml:"action"`
+	Action string `json:"action" yaml:"action"`
 
 	Parameters map[string]interface{} `json:"parameters,omitempty" yaml:"parameters,omitempty"`
-
 }
-
-
 
 // PolicyScope represents a policyscope.
 
 type PolicyScope struct {
-
-	Namespaces []string           `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
+	Namespaces []string `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
 
 	Components []v1.ORANComponent `json:"components,omitempty" yaml:"components,omitempty"`
 
-	Labels     map[string]string  `json:"labels,omitempty" yaml:"labels,omitempty"`
-
+	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
-
-
 
 // PolicyEvaluator represents a policyevaluator.
 
@@ -654,8 +500,6 @@ type PolicyEvaluator struct {
 	// Implementation for policy evaluation logic.
 
 }
-
-
 
 // NewCustomizer creates a new blueprint customizer.
 
@@ -667,29 +511,25 @@ func NewCustomizer(config *BlueprintConfig, logger *zap.Logger) (*Customizer, er
 
 	}
 
-
-
 	if logger == nil {
 
 		logger = zap.NewNop()
 
 	}
 
-
-
 	customizer := &Customizer{
 
-		config:              config,
+		config: config,
 
-		logger:              logger,
+		logger: logger,
 
-		customizationRules:  make(map[string]*CustomizationRule),
+		customizationRules: make(map[string]*CustomizationRule),
 
-		policyEngine:        NewPolicyEngine(),
+		policyEngine: NewPolicyEngine(),
 
 		environmentProfiles: make(map[string]*EnvironmentProfile),
 
-		functionRegistry:    make(map[string]CustomFunction),
+		functionRegistry: make(map[string]CustomFunction),
 
 		processingPool: sync.Pool{
 
@@ -698,12 +538,8 @@ func NewCustomizer(config *BlueprintConfig, logger *zap.Logger) (*Customizer, er
 				return make(map[string]interface{})
 
 			},
-
 		},
-
 	}
-
-
 
 	// Initialize default rules and profiles.
 
@@ -713,13 +549,9 @@ func NewCustomizer(config *BlueprintConfig, logger *zap.Logger) (*Customizer, er
 
 	}
 
-
-
 	// Register built-in functions.
 
 	customizer.registerBuiltinFunctions()
-
-
 
 	logger.Info("Blueprint customizer initialized",
 
@@ -729,21 +561,15 @@ func NewCustomizer(config *BlueprintConfig, logger *zap.Logger) (*Customizer, er
 
 		zap.Int("custom_functions", len(customizer.functionRegistry)))
 
-
-
 	return customizer, nil
 
 }
-
-
 
 // CustomizeBlueprint customizes blueprint files based on NetworkIntent context.
 
 func (c *Customizer) CustomizeBlueprint(ctx context.Context, intent *v1.NetworkIntent, files map[string]string) (map[string]string, error) {
 
 	startTime := time.Now()
-
-
 
 	c.logger.Info("Customizing blueprint",
 
@@ -753,31 +579,26 @@ func (c *Customizer) CustomizeBlueprint(ctx context.Context, intent *v1.NetworkI
 
 		zap.Int("files", len(files)))
 
-
-
 	// Create customization context.
 
 	customCtx := &CustomizationContext{
 
-		Intent:          intent,
+		Intent: intent,
 
-		Files:           make(map[string]string),
+		Files: make(map[string]string),
 
-		Parameters:      c.extractParameters(intent),
+		Parameters: c.extractParameters(intent),
 
-		Environment:     c.determineEnvironment(intent),
+		Environment: c.determineEnvironment(intent),
 
-		TargetCluster:   intent.Spec.TargetCluster,
+		TargetCluster: intent.Spec.TargetCluster,
 
 		TargetNamespace: intent.Spec.TargetNamespace,
 
-		NetworkSlice:    intent.Spec.NetworkSlice,
+		NetworkSlice: intent.Spec.NetworkSlice,
 
-		StartTime:       startTime,
-
+		StartTime: startTime,
 	}
-
-
 
 	// Copy original files to customization context.
 
@@ -787,8 +608,6 @@ func (c *Customizer) CustomizeBlueprint(ctx context.Context, intent *v1.NetworkI
 
 	}
 
-
-
 	// Apply environment-specific customizations.
 
 	if err := c.applyEnvironmentCustomizations(ctx, customCtx); err != nil {
@@ -796,8 +615,6 @@ func (c *Customizer) CustomizeBlueprint(ctx context.Context, intent *v1.NetworkI
 		return nil, fmt.Errorf("environment customization failed: %w", err)
 
 	}
-
-
 
 	// Apply component-specific customizations.
 
@@ -807,8 +624,6 @@ func (c *Customizer) CustomizeBlueprint(ctx context.Context, intent *v1.NetworkI
 
 	}
 
-
-
 	// Apply resource customizations.
 
 	if err := c.applyResourceCustomizations(ctx, customCtx); err != nil {
@@ -817,8 +632,6 @@ func (c *Customizer) CustomizeBlueprint(ctx context.Context, intent *v1.NetworkI
 
 	}
 
-
-
 	// Apply security customizations.
 
 	if err := c.applySecurityCustomizations(ctx, customCtx); err != nil {
@@ -826,8 +639,6 @@ func (c *Customizer) CustomizeBlueprint(ctx context.Context, intent *v1.NetworkI
 		return nil, fmt.Errorf("security customization failed: %w", err)
 
 	}
-
-
 
 	// Apply network slice customizations.
 
@@ -841,8 +652,6 @@ func (c *Customizer) CustomizeBlueprint(ctx context.Context, intent *v1.NetworkI
 
 	}
 
-
-
 	// Apply policy-based customizations.
 
 	if err := c.applyPolicyCustomizations(ctx, customCtx); err != nil {
@@ -850,8 +659,6 @@ func (c *Customizer) CustomizeBlueprint(ctx context.Context, intent *v1.NetworkI
 		return nil, fmt.Errorf("policy customization failed: %w", err)
 
 	}
-
-
 
 	// Apply rule-based customizations.
 
@@ -861,8 +668,6 @@ func (c *Customizer) CustomizeBlueprint(ctx context.Context, intent *v1.NetworkI
 
 	}
 
-
-
 	// Perform final validations.
 
 	if err := c.validateCustomizedBlueprint(ctx, customCtx); err != nil {
@@ -870,8 +675,6 @@ func (c *Customizer) CustomizeBlueprint(ctx context.Context, intent *v1.NetworkI
 		return nil, fmt.Errorf("customized blueprint validation failed: %w", err)
 
 	}
-
-
 
 	duration := time.Since(startTime)
 
@@ -883,45 +686,37 @@ func (c *Customizer) CustomizeBlueprint(ctx context.Context, intent *v1.NetworkI
 
 		zap.Int("customized_files", len(customCtx.Files)))
 
-
-
 	return customCtx.Files, nil
 
 }
 
-
-
 // CustomizationContext holds context for blueprint customization.
 
 type CustomizationContext struct {
+	Intent *v1.NetworkIntent
 
-	Intent             *v1.NetworkIntent
+	Files map[string]string
 
-	Files              map[string]string
+	Parameters map[string]interface{}
 
-	Parameters         map[string]interface{}
+	Environment *EnvironmentProfile
 
-	Environment        *EnvironmentProfile
+	TargetCluster string
 
-	TargetCluster      string
+	TargetNamespace string
 
-	TargetNamespace    string
+	NetworkSlice string
 
-	NetworkSlice       string
+	SecurityProfile string
 
-	SecurityProfile    string
-
-	ResourceProfile    string
+	ResourceProfile string
 
 	ServiceMeshEnabled bool
 
-	StartTime          time.Time
+	StartTime time.Time
 
-	Metadata           map[string]interface{}
-
+	Metadata map[string]interface{}
 }
-
-
 
 // applyEnvironmentCustomizations applies environment-specific customizations.
 
@@ -933,11 +728,7 @@ func (c *Customizer) applyEnvironmentCustomizations(ctx context.Context, customC
 
 	}
 
-
-
 	env := customCtx.Environment
-
-
 
 	// Apply resource limits.
 
@@ -947,8 +738,6 @@ func (c *Customizer) applyEnvironmentCustomizations(ctx context.Context, customC
 
 	}
 
-
-
 	// Apply replica counts.
 
 	if err := c.applyReplicaCounts(customCtx, env.ReplicaCounts); err != nil {
@@ -956,8 +745,6 @@ func (c *Customizer) applyEnvironmentCustomizations(ctx context.Context, customC
 		return fmt.Errorf("failed to apply replica counts: %w", err)
 
 	}
-
-
 
 	// Apply node selectors and affinity.
 
@@ -967,8 +754,6 @@ func (c *Customizer) applyEnvironmentCustomizations(ctx context.Context, customC
 
 	}
 
-
-
 	// Apply network policies.
 
 	if err := c.applyNetworkPolicies(customCtx, env.NetworkPolicies); err != nil {
@@ -976,8 +761,6 @@ func (c *Customizer) applyEnvironmentCustomizations(ctx context.Context, customC
 		return fmt.Errorf("failed to apply network policies: %w", err)
 
 	}
-
-
 
 	// Apply service mesh configuration.
 
@@ -991,8 +774,6 @@ func (c *Customizer) applyEnvironmentCustomizations(ctx context.Context, customC
 
 	}
 
-
-
 	// Apply monitoring configuration.
 
 	if env.Monitoring.Enabled {
@@ -1005,8 +786,6 @@ func (c *Customizer) applyEnvironmentCustomizations(ctx context.Context, customC
 
 	}
 
-
-
 	c.logger.Debug("Applied environment customizations",
 
 		zap.String("environment", env.Name),
@@ -1017,13 +796,9 @@ func (c *Customizer) applyEnvironmentCustomizations(ctx context.Context, customC
 
 		zap.String("security_level", string(env.SecurityLevel)))
 
-
-
 	return nil
 
 }
-
-
 
 // applyComponentCustomizations applies component-specific customizations.
 
@@ -1083,17 +858,11 @@ func (c *Customizer) applyComponentCustomizations(ctx context.Context, customCtx
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Component-specific customization methods.
-
-
 
 func (c *Customizer) customizeAMF(ctx *CustomizationContext) error {
 
@@ -1121,8 +890,6 @@ func (c *Customizer) customizeAMF(ctx *CustomizationContext) error {
 
 }
 
-
-
 func (c *Customizer) applyAMFCustomizations(content string, ctx *CustomizationContext) (string, error) {
 
 	// Parse YAML content.
@@ -1134,8 +901,6 @@ func (c *Customizer) applyAMFCustomizations(content string, ctx *CustomizationCo
 		return content, nil // Skip non-YAML files
 
 	}
-
-
 
 	// Apply AMF-specific customizations.
 
@@ -1169,8 +934,6 @@ func (c *Customizer) applyAMFCustomizations(content string, ctx *CustomizationCo
 
 	}
 
-
-
 	// Convert back to YAML.
 
 	customizedYAML, err := yaml.Marshal(obj)
@@ -1181,13 +944,9 @@ func (c *Customizer) applyAMFCustomizations(content string, ctx *CustomizationCo
 
 	}
 
-
-
 	return string(customizedYAML), nil
 
 }
-
-
 
 func (c *Customizer) customizeAMFContainer(container map[interface{}]interface{}, ctx *CustomizationContext) {
 
@@ -1201,15 +960,12 @@ func (c *Customizer) customizeAMFContainer(container map[interface{}]interface{}
 
 			env = append(env, map[interface{}]interface{}{
 
-				"name":  "NETWORK_SLICE_ID",
+				"name": "NETWORK_SLICE_ID",
 
 				"value": ctx.NetworkSlice,
-
 			})
 
 		}
-
-
 
 		// Add environment-specific configurations.
 
@@ -1217,21 +973,16 @@ func (c *Customizer) customizeAMFContainer(container map[interface{}]interface{}
 
 			env = append(env, map[interface{}]interface{}{
 
-				"name":  "DEPLOYMENT_ENV",
+				"name": "DEPLOYMENT_ENV",
 
 				"value": string(ctx.Environment.Type),
-
 			})
 
 		}
 
-
-
 		container["env"] = env
 
 	}
-
-
 
 	// Customize resource requirements.
 
@@ -1251,8 +1002,6 @@ func (c *Customizer) customizeAMFContainer(container map[interface{}]interface{}
 
 }
 
-
-
 func (c *Customizer) customizeSMF(ctx *CustomizationContext) error {
 
 	// Similar implementation for SMF customization.
@@ -1260,8 +1009,6 @@ func (c *Customizer) customizeSMF(ctx *CustomizationContext) error {
 	return nil
 
 }
-
-
 
 func (c *Customizer) customizeUPF(ctx *CustomizationContext) error {
 
@@ -1289,8 +1036,6 @@ func (c *Customizer) customizeUPF(ctx *CustomizationContext) error {
 
 }
 
-
-
 func (c *Customizer) applyUPFCustomizations(content string, ctx *CustomizationContext) (string, error) {
 
 	var obj map[string]interface{}
@@ -1300,8 +1045,6 @@ func (c *Customizer) applyUPFCustomizations(content string, ctx *CustomizationCo
 		return content, nil
 
 	}
-
-
 
 	// Apply UPF-specific networking configurations.
 
@@ -1321,8 +1064,6 @@ func (c *Customizer) applyUPFCustomizations(content string, ctx *CustomizationCo
 
 				}
 
-
-
 				// Add privileged security context.
 
 				if containers, ok := spec["containers"].([]interface{}); ok {
@@ -1338,9 +1079,7 @@ func (c *Customizer) applyUPFCustomizations(content string, ctx *CustomizationCo
 								"capabilities": map[interface{}]interface{}{
 
 									"add": []interface{}{"NET_ADMIN", "SYS_ADMIN"},
-
 								},
-
 							}
 
 							containerMap["securityContext"] = securityContext
@@ -1359,8 +1098,6 @@ func (c *Customizer) applyUPFCustomizations(content string, ctx *CustomizationCo
 
 	}
 
-
-
 	customizedYAML, err := yaml.Marshal(obj)
 
 	if err != nil {
@@ -1369,13 +1106,9 @@ func (c *Customizer) applyUPFCustomizations(content string, ctx *CustomizationCo
 
 	}
 
-
-
 	return string(customizedYAML), nil
 
 }
-
-
 
 func (c *Customizer) customizeNearRTRIC(ctx *CustomizationContext) error {
 
@@ -1385,8 +1118,6 @@ func (c *Customizer) customizeNearRTRIC(ctx *CustomizationContext) error {
 
 }
 
-
-
 func (c *Customizer) customizeXApp(ctx *CustomizationContext) error {
 
 	// Apply xApp specific customizations.
@@ -1395,11 +1126,7 @@ func (c *Customizer) customizeXApp(ctx *CustomizationContext) error {
 
 }
 
-
-
 // Helper methods for applying various customizations.
-
-
 
 func (c *Customizer) applyResourceLimits(ctx *CustomizationContext, limits *ResourceConfiguration) error {
 
@@ -1431,8 +1158,6 @@ func (c *Customizer) applyResourceLimits(ctx *CustomizationContext, limits *Reso
 
 }
 
-
-
 func (c *Customizer) applyResourceLimitsToManifest(content string, limits *ResourceConfiguration) (string, error) {
 
 	var obj map[string]interface{}
@@ -1443,8 +1168,6 @@ func (c *Customizer) applyResourceLimitsToManifest(content string, limits *Resou
 
 	}
 
-
-
 	// Navigate to container resources.
 
 	if c.navigateToContainerResources(obj, func(resources map[interface{}]interface{}) {
@@ -1454,8 +1177,6 @@ func (c *Customizer) applyResourceLimitsToManifest(content string, limits *Resou
 		requests := make(map[interface{}]interface{})
 
 		limitsMap := make(map[interface{}]interface{})
-
-
 
 		if limits.CPU != "" {
 
@@ -1480,8 +1201,6 @@ func (c *Customizer) applyResourceLimitsToManifest(content string, limits *Resou
 			limitsMap["memory"] = limits.MaxMemory
 
 		}
-
-
 
 		if len(requests) > 0 {
 
@@ -1509,13 +1228,9 @@ func (c *Customizer) applyResourceLimitsToManifest(content string, limits *Resou
 
 	}
 
-
-
 	return content, nil
 
 }
-
-
 
 func (c *Customizer) applyReplicaCounts(ctx *CustomizationContext, replicaCounts map[string]int) error {
 
@@ -1524,8 +1239,6 @@ func (c *Customizer) applyReplicaCounts(ctx *CustomizationContext, replicaCounts
 		return nil
 
 	}
-
-
 
 	for filename, content := range ctx.Files {
 
@@ -1551,13 +1264,9 @@ func (c *Customizer) applyReplicaCounts(ctx *CustomizationContext, replicaCounts
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (c *Customizer) applyReplicaCountToDeployment(content string, replicaCounts map[string]int) (string, error) {
 
@@ -1568,8 +1277,6 @@ func (c *Customizer) applyReplicaCountToDeployment(content string, replicaCounts
 		return content, nil
 
 	}
-
-
 
 	// Get deployment name to find matching replica count.
 
@@ -1605,8 +1312,6 @@ func (c *Customizer) applyReplicaCountToDeployment(content string, replicaCounts
 
 	}
 
-
-
 	customizedYAML, err := yaml.Marshal(obj)
 
 	if err != nil {
@@ -1615,23 +1320,15 @@ func (c *Customizer) applyReplicaCountToDeployment(content string, replicaCounts
 
 	}
 
-
-
 	return string(customizedYAML), nil
 
 }
 
-
-
 // Utility methods.
-
-
 
 func (c *Customizer) extractParameters(intent *v1.NetworkIntent) map[string]interface{} {
 
 	params := make(map[string]interface{})
-
-
 
 	// Extract from processed parameters if available.
 
@@ -1661,8 +1358,6 @@ func (c *Customizer) extractParameters(intent *v1.NetworkIntent) map[string]inte
 
 	}
 
-
-
 	// Add intent metadata.
 
 	params["intent_name"] = intent.Name
@@ -1673,21 +1368,15 @@ func (c *Customizer) extractParameters(intent *v1.NetworkIntent) map[string]inte
 
 	params["priority"] = string(intent.Spec.Priority)
 
-
-
 	return params
 
 }
-
-
 
 func (c *Customizer) determineEnvironment(intent *v1.NetworkIntent) *EnvironmentProfile {
 
 	// Default to production environment.
 
 	envName := "production"
-
-
 
 	// Extract environment from various sources.
 
@@ -1713,21 +1402,15 @@ func (c *Customizer) determineEnvironment(intent *v1.NetworkIntent) *Environment
 
 	}
 
-
-
 	if profile, ok := c.environmentProfiles[envName]; ok {
 
 		return profile
 
 	}
 
-
-
 	return c.environmentProfiles["production"] // fallback
 
 }
-
-
 
 func (c *Customizer) isKubernetesManifest(content string) bool {
 
@@ -1735,15 +1418,11 @@ func (c *Customizer) isKubernetesManifest(content string) bool {
 
 }
 
-
-
 func (c *Customizer) isDeploymentManifest(content string) bool {
 
 	return c.isKubernetesManifest(content) && strings.Contains(content, "kind: Deployment")
 
 }
-
-
 
 func (c *Customizer) navigateToContainerResources(obj map[string]interface{}, callback func(map[interface{}]interface{})) bool {
 
@@ -1797,8 +1476,6 @@ func (c *Customizer) navigateToContainerResources(obj map[string]interface{}, ca
 
 }
 
-
-
 // initializeDefaults initializes default customization rules and environment profiles.
 
 func (c *Customizer) initializeDefaults() error {
@@ -1807,26 +1484,25 @@ func (c *Customizer) initializeDefaults() error {
 
 	c.environmentProfiles["development"] = &EnvironmentProfile{
 
-		Name:          "development",
+		Name: "development",
 
-		Description:   "Development environment profile",
+		Description: "Development environment profile",
 
-		Type:          EnvironmentDevelopment,
+		Type: EnvironmentDevelopment,
 
-		Scale:         ScaleSmall,
+		Scale: ScaleSmall,
 
 		SecurityLevel: SecurityLevelBasic,
 
 		ResourceLimits: ResourceConfiguration{
 
-			CPU:       "100m",
+			CPU: "100m",
 
-			Memory:    "256Mi",
+			Memory: "256Mi",
 
-			MaxCPU:    "500m",
+			MaxCPU: "500m",
 
 			MaxMemory: "512Mi",
-
 		},
 
 		ReplicaCounts: map[string]int{
@@ -1837,56 +1513,50 @@ func (c *Customizer) initializeDefaults() error {
 
 		ServiceMesh: ServiceMeshProfile{
 
-			Enabled:  false,
+			Enabled: false,
 
 			MTLSMode: "PERMISSIVE",
-
 		},
 
 		Monitoring: MonitoringProfile{
 
-			Enabled:               true,
+			Enabled: true,
 
-			MetricsEnabled:        true,
+			MetricsEnabled: true,
 
-			LoggingEnabled:        true,
+			LoggingEnabled: true,
 
-			TracingEnabled:        false,
+			TracingEnabled: false,
 
-			AlertingEnabled:       false,
+			AlertingEnabled: false,
 
 			MetricsScrapeInterval: "30s",
 
-			LogLevel:              "debug",
-
+			LogLevel: "debug",
 		},
-
 	}
-
-
 
 	c.environmentProfiles["production"] = &EnvironmentProfile{
 
-		Name:          "production",
+		Name: "production",
 
-		Description:   "Production environment profile",
+		Description: "Production environment profile",
 
-		Type:          EnvironmentProduction,
+		Type: EnvironmentProduction,
 
-		Scale:         ScaleLarge,
+		Scale: ScaleLarge,
 
 		SecurityLevel: SecurityLevelEnhanced,
 
 		ResourceLimits: ResourceConfiguration{
 
-			CPU:       "500m",
+			CPU: "500m",
 
-			Memory:    "1Gi",
+			Memory: "1Gi",
 
-			MaxCPU:    "2",
+			MaxCPU: "2",
 
 			MaxMemory: "4Gi",
-
 		},
 
 		ReplicaCounts: map[string]int{
@@ -1897,49 +1567,42 @@ func (c *Customizer) initializeDefaults() error {
 
 			"upf": 2,
 
-			".*":  2, // Default 2 replicas
+			".*": 2, // Default 2 replicas
 
 		},
 
 		ServiceMesh: ServiceMeshProfile{
 
-			Enabled:        true,
+			Enabled: true,
 
-			InjectSidecar:  true,
+			InjectSidecar: true,
 
-			MTLSMode:       "STRICT",
+			MTLSMode: "STRICT",
 
 			CircuitBreaker: true,
-
 		},
 
 		Monitoring: MonitoringProfile{
 
-			Enabled:               true,
+			Enabled: true,
 
-			MetricsEnabled:        true,
+			MetricsEnabled: true,
 
-			LoggingEnabled:        true,
+			LoggingEnabled: true,
 
-			TracingEnabled:        true,
+			TracingEnabled: true,
 
-			AlertingEnabled:       true,
+			AlertingEnabled: true,
 
 			MetricsScrapeInterval: "15s",
 
-			LogLevel:              "info",
-
+			LogLevel: "info",
 		},
-
 	}
-
-
 
 	return nil
 
 }
-
-
 
 func (c *Customizer) registerBuiltinFunctions() {
 
@@ -1951,8 +1614,6 @@ func (c *Customizer) registerBuiltinFunctions() {
 
 }
 
-
-
 // Built-in custom functions.
 
 func (c *Customizer) formatResourceFunction(ctx context.Context, input interface{}) (interface{}, error) {
@@ -1963,8 +1624,6 @@ func (c *Customizer) formatResourceFunction(ctx context.Context, input interface
 
 }
 
-
-
 func (c *Customizer) calculateReplicasFunction(ctx context.Context, input interface{}) (interface{}, error) {
 
 	// Implementation for replica calculation function.
@@ -1973,8 +1632,6 @@ func (c *Customizer) calculateReplicasFunction(ctx context.Context, input interf
 
 }
 
-
-
 func (c *Customizer) generateLabelsFunction(ctx context.Context, input interface{}) (interface{}, error) {
 
 	// Implementation for label generation function.
@@ -1982,8 +1639,6 @@ func (c *Customizer) generateLabelsFunction(ctx context.Context, input interface
 	return input, nil
 
 }
-
-
 
 // HealthCheck performs health check on the customizer.
 
@@ -1999,8 +1654,6 @@ func (c *Customizer) HealthCheck(ctx context.Context) bool {
 
 	}
 
-
-
 	// Check if we have customization rules loaded.
 
 	if len(c.customizationRules) == 0 {
@@ -2011,13 +1664,9 @@ func (c *Customizer) HealthCheck(ctx context.Context) bool {
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // Additional helper methods would be implemented for:.
 
@@ -2043,11 +1692,7 @@ func (c *Customizer) HealthCheck(ctx context.Context) bool {
 
 // - NewPolicyEngine and related policy methods.
 
-
-
 // These would follow similar patterns to the methods shown above.
-
-
 
 // NewPolicyEngine creates a new policy engine.
 
@@ -2055,15 +1700,12 @@ func NewPolicyEngine() *PolicyEngine {
 
 	return &PolicyEngine{
 
-		policies:  make(map[string]*CustomizationPolicy),
+		policies: make(map[string]*CustomizationPolicy),
 
 		evaluator: &PolicyEvaluator{},
-
 	}
 
 }
-
-
 
 // applyResourceCustomizations applies resource-related customizations.
 
@@ -2077,8 +1719,6 @@ func (c *Customizer) applyResourceCustomizations(ctx context.Context, customCtx 
 
 }
 
-
-
 // applySecurityCustomizations applies security-related customizations.
 
 func (c *Customizer) applySecurityCustomizations(ctx context.Context, customCtx *CustomizationContext) error {
@@ -2090,8 +1730,6 @@ func (c *Customizer) applySecurityCustomizations(ctx context.Context, customCtx 
 	return nil
 
 }
-
-
 
 // applyNetworkSliceCustomizations applies network slice customizations.
 
@@ -2105,8 +1743,6 @@ func (c *Customizer) applyNetworkSliceCustomizations(ctx context.Context, custom
 
 }
 
-
-
 // applyPolicyCustomizations applies policy-based customizations.
 
 func (c *Customizer) applyPolicyCustomizations(ctx context.Context, customCtx *CustomizationContext) error {
@@ -2118,8 +1754,6 @@ func (c *Customizer) applyPolicyCustomizations(ctx context.Context, customCtx *C
 	return nil
 
 }
-
-
 
 // applyRuleBasedCustomizations applies rule-based customizations.
 
@@ -2133,8 +1767,6 @@ func (c *Customizer) applyRuleBasedCustomizations(ctx context.Context, customCtx
 
 }
 
-
-
 // validateCustomizedBlueprint validates the customized blueprint.
 
 func (c *Customizer) validateCustomizedBlueprint(ctx context.Context, customCtx *CustomizationContext) error {
@@ -2146,8 +1778,6 @@ func (c *Customizer) validateCustomizedBlueprint(ctx context.Context, customCtx 
 	return nil
 
 }
-
-
 
 // applySchedulingConstraints applies scheduling constraints.
 
@@ -2161,8 +1791,6 @@ func (c *Customizer) applySchedulingConstraints(customCtx *CustomizationContext,
 
 }
 
-
-
 // applyNetworkPolicies applies network policies.
 
 func (c *Customizer) applyNetworkPolicies(customCtx *CustomizationContext, policies []NetworkPolicyTemplate) error {
@@ -2174,8 +1802,6 @@ func (c *Customizer) applyNetworkPolicies(customCtx *CustomizationContext, polic
 	return nil
 
 }
-
-
 
 // applyServiceMeshConfiguration applies service mesh configuration.
 
@@ -2189,8 +1815,6 @@ func (c *Customizer) applyServiceMeshConfiguration(customCtx *CustomizationConte
 
 }
 
-
-
 // applyMonitoringConfiguration applies monitoring configuration.
 
 func (c *Customizer) applyMonitoringConfiguration(customCtx *CustomizationContext, monitoring *MonitoringProfile) error {
@@ -2203,8 +1827,6 @@ func (c *Customizer) applyMonitoringConfiguration(customCtx *CustomizationContex
 
 }
 
-
-
 // applyContainerResourceLimits applies resource limits to a specific container resource section.
 
 func (c *Customizer) applyContainerResourceLimits(resources map[interface{}]interface{}, limits *ResourceConfiguration) error {
@@ -2214,8 +1836,6 @@ func (c *Customizer) applyContainerResourceLimits(resources map[interface{}]inte
 	requests := make(map[interface{}]interface{})
 
 	limitsMap := make(map[interface{}]interface{})
-
-
 
 	if limits.CPU != "" {
 
@@ -2241,8 +1861,6 @@ func (c *Customizer) applyContainerResourceLimits(resources map[interface{}]inte
 
 	}
 
-
-
 	if len(requests) > 0 {
 
 		resources["requests"] = requests
@@ -2255,9 +1873,6 @@ func (c *Customizer) applyContainerResourceLimits(resources map[interface{}]inte
 
 	}
 
-
-
 	return nil
 
 }
-

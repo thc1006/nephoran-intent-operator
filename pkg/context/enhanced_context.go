@@ -1,183 +1,138 @@
-
 package context
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
 
-
-
 	"github.com/google/uuid"
-
 )
-
-
 
 // EnhancedContext extends Go 1.24+ context capabilities with additional features.
 
 // for distributed tracing, request correlation, and performance monitoring.
 
 type EnhancedContext struct {
-
 	context.Context
-
-
 
 	// Request correlation.
 
-	requestID    string
+	requestID string
 
-	traceID      string
+	traceID string
 
-	spanID       string
+	spanID string
 
 	parentSpanID string
 
-
-
 	// User and session context.
 
-	userID    string
+	userID string
 
 	sessionID string
 
-	tenantID  string
-
-
+	tenantID string
 
 	// Component context.
 
-	serviceName   string
+	serviceName string
 
 	componentName string
 
 	operationName string
 
-
-
 	// Performance tracking.
 
-	startTime    time.Time
+	startTime time.Time
 
 	deadlineTime time.Time
 
-	timeoutDur   time.Duration
-
-
+	timeoutDur time.Duration
 
 	// Resource tracking.
 
 	resourceType string
 
-	resourceID   string
+	resourceID string
 
 	resourceName string
-
-
 
 	// Metadata and tags.
 
 	metadata map[string]interface{}
 
-	tags     map[string]string
-
-
+	tags map[string]string
 
 	// Cancellation enhancements.
 
-	cancelFunc   context.CancelFunc
+	cancelFunc context.CancelFunc
 
 	cancelReason string
 
-	cancelledAt  time.Time
-
-
+	cancelledAt time.Time
 
 	// Error context.
 
 	errors []error
 
-
-
 	// Performance metrics.
 
 	metrics *ContextMetrics
 
-
-
 	// Thread safety.
 
 	mu sync.RWMutex
-
 }
-
-
 
 // ContextMetrics tracks performance metrics for context operations.
 
 type ContextMetrics struct {
+	CreatedAt time.Time
 
-	CreatedAt        time.Time
+	OperationCount atomic.Int64
 
-	OperationCount   atomic.Int64
-
-	ErrorCount       atomic.Int64
+	ErrorCount atomic.Int64
 
 	CancellationTime time.Duration
 
-	MaxDepth         atomic.Int32
+	MaxDepth atomic.Int32
 
-	ChildContexts    atomic.Int32
-
+	ChildContexts atomic.Int32
 }
-
-
 
 // ContextBuilder provides a fluent interface for creating enhanced contexts.
 
 type ContextBuilder struct {
+	parent context.Context
 
-	parent        context.Context
+	requestID string
 
-	requestID     string
+	traceID string
 
-	traceID       string
+	spanID string
 
-	spanID        string
+	userID string
 
-	userID        string
+	sessionID string
 
-	sessionID     string
+	tenantID string
 
-	tenantID      string
-
-	serviceName   string
+	serviceName string
 
 	componentName string
 
 	operationName string
 
-	timeout       time.Duration
+	timeout time.Duration
 
-	deadline      time.Time
+	deadline time.Time
 
-	metadata      map[string]interface{}
+	metadata map[string]interface{}
 
-	tags          map[string]string
-
+	tags map[string]string
 }
-
-
 
 // NewContextBuilder creates a new context builder.
 
@@ -189,21 +144,16 @@ func NewContextBuilder(parent context.Context) *ContextBuilder {
 
 	}
 
-
-
 	return &ContextBuilder{
 
-		parent:   parent,
+		parent: parent,
 
 		metadata: make(map[string]interface{}),
 
-		tags:     make(map[string]string),
-
+		tags: make(map[string]string),
 	}
 
 }
-
-
 
 // WithRequestID sets the request ID.
 
@@ -221,8 +171,6 @@ func (b *ContextBuilder) WithRequestID(requestID string) *ContextBuilder {
 
 }
 
-
-
 // WithTrace sets trace information.
 
 func (b *ContextBuilder) WithTrace(traceID, spanID string) *ContextBuilder {
@@ -234,8 +182,6 @@ func (b *ContextBuilder) WithTrace(traceID, spanID string) *ContextBuilder {
 	return b
 
 }
-
-
 
 // WithUser sets user context information.
 
@@ -251,8 +197,6 @@ func (b *ContextBuilder) WithUser(userID, sessionID, tenantID string) *ContextBu
 
 }
 
-
-
 // WithComponent sets component information.
 
 func (b *ContextBuilder) WithComponent(service, component, operation string) *ContextBuilder {
@@ -267,8 +211,6 @@ func (b *ContextBuilder) WithComponent(service, component, operation string) *Co
 
 }
 
-
-
 // WithTimeout sets a timeout for the context.
 
 func (b *ContextBuilder) WithTimeout(timeout time.Duration) *ContextBuilder {
@@ -278,8 +220,6 @@ func (b *ContextBuilder) WithTimeout(timeout time.Duration) *ContextBuilder {
 	return b
 
 }
-
-
 
 // WithDeadline sets a deadline for the context.
 
@@ -291,8 +231,6 @@ func (b *ContextBuilder) WithDeadline(deadline time.Time) *ContextBuilder {
 
 }
 
-
-
 // WithMetadata adds metadata key-value pairs.
 
 func (b *ContextBuilder) WithMetadata(key string, value interface{}) *ContextBuilder {
@@ -302,8 +240,6 @@ func (b *ContextBuilder) WithMetadata(key string, value interface{}) *ContextBui
 	return b
 
 }
-
-
 
 // WithTag adds a tag key-value pair.
 
@@ -315,8 +251,6 @@ func (b *ContextBuilder) WithTag(key, value string) *ContextBuilder {
 
 }
 
-
-
 // Build creates the enhanced context.
 
 func (b *ContextBuilder) Build() *EnhancedContext {
@@ -324,8 +258,6 @@ func (b *ContextBuilder) Build() *EnhancedContext {
 	var ctx context.Context
 
 	var cancel context.CancelFunc
-
-
 
 	// Apply timeout or deadline.
 
@@ -342,8 +274,6 @@ func (b *ContextBuilder) Build() *EnhancedContext {
 		ctx, cancel = context.WithCancel(b.parent)
 
 	}
-
-
 
 	// Generate IDs if not provided.
 
@@ -365,51 +295,45 @@ func (b *ContextBuilder) Build() *EnhancedContext {
 
 	}
 
-
-
 	enhanced := &EnhancedContext{
 
-		Context:       ctx,
+		Context: ctx,
 
-		requestID:     b.requestID,
+		requestID: b.requestID,
 
-		traceID:       b.traceID,
+		traceID: b.traceID,
 
-		spanID:        b.spanID,
+		spanID: b.spanID,
 
-		userID:        b.userID,
+		userID: b.userID,
 
-		sessionID:     b.sessionID,
+		sessionID: b.sessionID,
 
-		tenantID:      b.tenantID,
+		tenantID: b.tenantID,
 
-		serviceName:   b.serviceName,
+		serviceName: b.serviceName,
 
 		componentName: b.componentName,
 
 		operationName: b.operationName,
 
-		startTime:     time.Now(),
+		startTime: time.Now(),
 
-		deadlineTime:  b.deadline,
+		deadlineTime: b.deadline,
 
-		timeoutDur:    b.timeout,
+		timeoutDur: b.timeout,
 
-		metadata:      make(map[string]interface{}),
+		metadata: make(map[string]interface{}),
 
-		tags:          make(map[string]string),
+		tags: make(map[string]string),
 
-		cancelFunc:    cancel,
+		cancelFunc: cancel,
 
 		metrics: &ContextMetrics{
 
 			CreatedAt: time.Now(),
-
 		},
-
 	}
-
-
 
 	// Copy metadata and tags.
 
@@ -425,17 +349,11 @@ func (b *ContextBuilder) Build() *EnhancedContext {
 
 	}
 
-
-
 	return enhanced
 
 }
 
-
-
 // Request correlation methods.
-
-
 
 // RequestID returns the request ID.
 
@@ -445,8 +363,6 @@ func (c *EnhancedContext) RequestID() string {
 
 }
 
-
-
 // TraceID returns the trace ID.
 
 func (c *EnhancedContext) TraceID() string {
@@ -454,8 +370,6 @@ func (c *EnhancedContext) TraceID() string {
 	return c.traceID
 
 }
-
-
 
 // SpanID returns the span ID.
 
@@ -465,11 +379,7 @@ func (c *EnhancedContext) SpanID() string {
 
 }
 
-
-
 // User context methods.
-
-
 
 // UserID returns the user ID.
 
@@ -479,8 +389,6 @@ func (c *EnhancedContext) UserID() string {
 
 }
 
-
-
 // SessionID returns the session ID.
 
 func (c *EnhancedContext) SessionID() string {
@@ -488,8 +396,6 @@ func (c *EnhancedContext) SessionID() string {
 	return c.sessionID
 
 }
-
-
 
 // TenantID returns the tenant ID.
 
@@ -499,11 +405,7 @@ func (c *EnhancedContext) TenantID() string {
 
 }
 
-
-
 // Component context methods.
-
-
 
 // ServiceName returns the service name.
 
@@ -513,8 +415,6 @@ func (c *EnhancedContext) ServiceName() string {
 
 }
 
-
-
 // ComponentName returns the component name.
 
 func (c *EnhancedContext) ComponentName() string {
@@ -522,8 +422,6 @@ func (c *EnhancedContext) ComponentName() string {
 	return c.componentName
 
 }
-
-
 
 // OperationName returns the operation name.
 
@@ -533,11 +431,7 @@ func (c *EnhancedContext) OperationName() string {
 
 }
 
-
-
 // Performance tracking methods.
-
-
 
 // StartTime returns when the context was created.
 
@@ -547,8 +441,6 @@ func (c *EnhancedContext) StartTime() time.Time {
 
 }
 
-
-
 // Duration returns how long the context has been active.
 
 func (c *EnhancedContext) Duration() time.Duration {
@@ -556,8 +448,6 @@ func (c *EnhancedContext) Duration() time.Duration {
 	return time.Since(c.startTime)
 
 }
-
-
 
 // RemainingTime returns time until deadline.
 
@@ -581,8 +471,6 @@ func (c *EnhancedContext) RemainingTime() time.Duration {
 
 }
 
-
-
 // IsExpired checks if the context has exceeded its deadline.
 
 func (c *EnhancedContext) IsExpired() bool {
@@ -597,11 +485,7 @@ func (c *EnhancedContext) IsExpired() bool {
 
 }
 
-
-
 // Metadata methods.
-
-
 
 // GetMetadata retrieves metadata by key.
 
@@ -617,8 +501,6 @@ func (c *EnhancedContext) GetMetadata(key string) (interface{}, bool) {
 
 }
 
-
-
 // SetMetadata sets metadata key-value pair.
 
 func (c *EnhancedContext) SetMetadata(key string, value interface{}) {
@@ -631,8 +513,6 @@ func (c *EnhancedContext) SetMetadata(key string, value interface{}) {
 
 }
 
-
-
 // GetAllMetadata returns all metadata.
 
 func (c *EnhancedContext) GetAllMetadata() map[string]interface{} {
@@ -640,8 +520,6 @@ func (c *EnhancedContext) GetAllMetadata() map[string]interface{} {
 	c.mu.RLock()
 
 	defer c.mu.RUnlock()
-
-
 
 	result := make(map[string]interface{})
 
@@ -655,11 +533,7 @@ func (c *EnhancedContext) GetAllMetadata() map[string]interface{} {
 
 }
 
-
-
 // Tag methods.
-
-
 
 // GetTag retrieves tag by key.
 
@@ -675,8 +549,6 @@ func (c *EnhancedContext) GetTag(key string) (string, bool) {
 
 }
 
-
-
 // SetTag sets tag key-value pair.
 
 func (c *EnhancedContext) SetTag(key, value string) {
@@ -689,8 +561,6 @@ func (c *EnhancedContext) SetTag(key, value string) {
 
 }
 
-
-
 // GetAllTags returns all tags.
 
 func (c *EnhancedContext) GetAllTags() map[string]string {
@@ -698,8 +568,6 @@ func (c *EnhancedContext) GetAllTags() map[string]string {
 	c.mu.RLock()
 
 	defer c.mu.RUnlock()
-
-
 
 	result := make(map[string]string)
 
@@ -713,11 +581,7 @@ func (c *EnhancedContext) GetAllTags() map[string]string {
 
 }
 
-
-
 // Enhanced cancellation methods.
-
-
 
 // CancelWithReason cancels the context with a reason.
 
@@ -731,8 +595,6 @@ func (c *EnhancedContext) CancelWithReason(reason string) {
 
 	c.mu.Unlock()
 
-
-
 	if c.cancelFunc != nil {
 
 		c.cancelFunc()
@@ -740,8 +602,6 @@ func (c *EnhancedContext) CancelWithReason(reason string) {
 	}
 
 }
-
-
 
 // CancelReason returns the cancellation reason.
 
@@ -755,8 +615,6 @@ func (c *EnhancedContext) CancelReason() string {
 
 }
 
-
-
 // CancelledAt returns when the context was cancelled.
 
 func (c *EnhancedContext) CancelledAt() time.Time {
@@ -769,11 +627,7 @@ func (c *EnhancedContext) CancelledAt() time.Time {
 
 }
 
-
-
 // Error handling methods.
-
-
 
 // AddError adds an error to the context.
 
@@ -785,8 +639,6 @@ func (c *EnhancedContext) AddError(err error) {
 
 	}
 
-
-
 	c.mu.Lock()
 
 	defer c.mu.Unlock()
@@ -797,8 +649,6 @@ func (c *EnhancedContext) AddError(err error) {
 
 }
 
-
-
 // GetErrors returns all errors associated with the context.
 
 func (c *EnhancedContext) GetErrors() []error {
@@ -807,8 +657,6 @@ func (c *EnhancedContext) GetErrors() []error {
 
 	defer c.mu.RUnlock()
 
-
-
 	result := make([]error, len(c.errors))
 
 	copy(result, c.errors)
@@ -816,8 +664,6 @@ func (c *EnhancedContext) GetErrors() []error {
 	return result
 
 }
-
-
 
 // HasErrors returns true if there are any errors.
 
@@ -831,19 +677,13 @@ func (c *EnhancedContext) HasErrors() bool {
 
 }
 
-
-
 // Child context methods.
-
-
 
 // WithChildSpan creates a child context with a new span.
 
 func (c *EnhancedContext) WithChildSpan(operationName string) *EnhancedContext {
 
 	builder := NewContextBuilder(c.Context)
-
-
 
 	// Inherit parent information.
 
@@ -855,13 +695,9 @@ func (c *EnhancedContext) WithChildSpan(operationName string) *EnhancedContext {
 
 	builder.WithComponent(c.serviceName, c.componentName, operationName)
 
-
-
 	child := builder.Build()
 
 	child.parentSpanID = c.spanID
-
-
 
 	c.metrics.ChildContexts.Add(1)
 
@@ -869,15 +705,11 @@ func (c *EnhancedContext) WithChildSpan(operationName string) *EnhancedContext {
 
 }
 
-
-
 // WithChildOperation creates a child context for a specific operation.
 
 func (c *EnhancedContext) WithChildOperation(componentName, operationName string) *EnhancedContext {
 
 	builder := NewContextBuilder(c.Context)
-
-
 
 	// Inherit parent information.
 
@@ -889,13 +721,9 @@ func (c *EnhancedContext) WithChildOperation(componentName, operationName string
 
 	builder.WithComponent(c.serviceName, componentName, operationName)
 
-
-
 	child := builder.Build()
 
 	child.parentSpanID = c.spanID
-
-
 
 	// Inherit metadata and tags.
 
@@ -915,19 +743,13 @@ func (c *EnhancedContext) WithChildOperation(componentName, operationName string
 
 	c.mu.RUnlock()
 
-
-
 	c.metrics.ChildContexts.Add(1)
 
 	return child
 
 }
 
-
-
 // Metrics methods.
-
-
 
 // GetMetrics returns context performance metrics.
 
@@ -937,8 +759,6 @@ func (c *EnhancedContext) GetMetrics() *ContextMetrics {
 
 }
 
-
-
 // IncrementOperationCount increments the operation counter.
 
 func (c *EnhancedContext) IncrementOperationCount() {
@@ -947,11 +767,7 @@ func (c *EnhancedContext) IncrementOperationCount() {
 
 }
 
-
-
 // Utility methods.
-
-
 
 // String returns a string representation of the context.
 
@@ -962,12 +778,9 @@ func (c *EnhancedContext) String() string {
 		"EnhancedContext{requestID=%s, traceID=%s, spanID=%s, user=%s, service=%s, component=%s, operation=%s}",
 
 		c.requestID, c.traceID, c.spanID, c.userID, c.serviceName, c.componentName, c.operationName,
-
 	)
 
 }
-
-
 
 // ToMap returns context information as a map for logging.
 
@@ -977,39 +790,34 @@ func (c *EnhancedContext) ToMap() map[string]interface{} {
 
 	defer c.mu.RUnlock()
 
-
-
 	result := map[string]interface{}{
 
-		"request_id":     c.requestID,
+		"request_id": c.requestID,
 
-		"trace_id":       c.traceID,
+		"trace_id": c.traceID,
 
-		"span_id":        c.spanID,
+		"span_id": c.spanID,
 
 		"parent_span_id": c.parentSpanID,
 
-		"user_id":        c.userID,
+		"user_id": c.userID,
 
-		"session_id":     c.sessionID,
+		"session_id": c.sessionID,
 
-		"tenant_id":      c.tenantID,
+		"tenant_id": c.tenantID,
 
-		"service_name":   c.serviceName,
+		"service_name": c.serviceName,
 
 		"component_name": c.componentName,
 
 		"operation_name": c.operationName,
 
-		"start_time":     c.startTime,
+		"start_time": c.startTime,
 
-		"duration":       c.Duration(),
+		"duration": c.Duration(),
 
-		"cancel_reason":  c.cancelReason,
-
+		"cancel_reason": c.cancelReason,
 	}
-
-
 
 	// Add metadata.
 
@@ -1019,8 +827,6 @@ func (c *EnhancedContext) ToMap() map[string]interface{} {
 
 	}
 
-
-
 	// Add tags.
 
 	for k, v := range c.tags {
@@ -1029,17 +835,11 @@ func (c *EnhancedContext) ToMap() map[string]interface{} {
 
 	}
 
-
-
 	return result
 
 }
 
-
-
 // Context propagation utilities.
-
-
 
 // FromContext extracts an EnhancedContext from a standard context.
 
@@ -1050,8 +850,6 @@ func FromContext(ctx context.Context) (*EnhancedContext, bool) {
 	return enhanced, ok
 
 }
-
-
 
 // MustFromContext extracts an EnhancedContext or creates a new one.
 
@@ -1067,33 +865,23 @@ func MustFromContext(ctx context.Context) *EnhancedContext {
 
 }
 
-
-
 // WithEnhancedContext creates an enhanced context from a standard context.
 
 func WithEnhancedContext(ctx context.Context) *EnhancedContext {
 
 	return NewContextBuilder(ctx).
-
 		WithRequestID("").
-
 		Build()
 
 }
 
-
-
 // Middleware for HTTP handlers to create enhanced contexts.
 
 type ContextMiddleware struct {
-
-	serviceName   string
+	serviceName string
 
 	componentName string
-
 }
-
-
 
 // NewContextMiddleware creates a new context middleware.
 
@@ -1101,15 +889,12 @@ func NewContextMiddleware(serviceName, componentName string) *ContextMiddleware 
 
 	return &ContextMiddleware{
 
-		serviceName:   serviceName,
+		serviceName: serviceName,
 
 		componentName: componentName,
-
 	}
 
 }
-
-
 
 // Handler wraps an HTTP handler with enhanced context.
 
@@ -1118,22 +903,15 @@ func (m *ContextMiddleware) Handler(next func(*EnhancedContext)) func(context.Co
 	return func(ctx context.Context) {
 
 		enhanced := NewContextBuilder(ctx).
-
 			WithComponent(m.serviceName, m.componentName, "http_request").
-
 			WithRequestID("").
-
 			Build()
-
-
 
 		next(enhanced)
 
 	}
 
 }
-
-
 
 // Background creates a new enhanced background context.
 
@@ -1143,8 +921,6 @@ func Background() *EnhancedContext {
 
 }
 
-
-
 // TODO creates a new enhanced TODO context.
 
 func TODO() *EnhancedContext {
@@ -1152,4 +928,3 @@ func TODO() *EnhancedContext {
 	return NewContextBuilder(context.TODO()).Build()
 
 }
-

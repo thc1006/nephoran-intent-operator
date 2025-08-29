@@ -1,31 +1,17 @@
-
 package multicluster
 
-
-
 import (
-
 	"context"
-
 	"time"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/client-go/kubernetes"
-
 	"k8s.io/client-go/rest"
-
 )
-
-
 
 // ClusterStatus represents the current state of a workload cluster.
 
 type ClusterStatus string
-
-
 
 const (
 
@@ -40,44 +26,34 @@ const (
 	// ClusterStatusUnreachable holds clusterstatusunreachable value.
 
 	ClusterStatusUnreachable ClusterStatus = "Unreachable"
-
 )
-
-
 
 // ResourceCapacity represents the computational resources of a cluster.
 
 type ResourceCapacity struct {
+	CPU int64 // millicores
 
-	CPU              int64 // millicores
+	Memory int64 // bytes
 
-	Memory           int64 // bytes
-
-	StorageGB        int64
+	StorageGB int64
 
 	EphemeralStorage int64 // bytes
 
 }
 
-
-
 // EdgeLocation provides geographic and network context for edge clusters.
 
 type EdgeLocation struct {
+	Region string
 
-	Region           string
+	Zone string
 
-	Zone             string
+	Latitude float64
 
-	Latitude         float64
-
-	Longitude        float64
+	Longitude float64
 
 	NetworkLatencyMS float64
-
 }
-
-
 
 // WorkloadCluster represents a managed Kubernetes cluster.
 
@@ -87,21 +63,17 @@ type WorkloadCluster struct {
 
 	ID string
 
-
-
 	// Cluster metadata.
 
-	Name       string
+	Name string
 
 	KubeConfig *rest.Config
 
-	Client     *kubernetes.Clientset
+	Client *kubernetes.Clientset
 
-	Region     string
+	Region string
 
-	Zone       string
-
-
+	Zone string
 
 	// Capabilities and characteristics.
 
@@ -109,27 +81,20 @@ type WorkloadCluster struct {
 
 	Capabilities []string
 
-	Resources    *ResourceCapacity
-
-
+	Resources *ResourceCapacity
 
 	// Current cluster status.
 
-	Status        ClusterStatus
+	Status ClusterStatus
 
 	LastCheckedAt time.Time
 
-
-
 	// Additional metadata.
 
-	Labels      map[string]string
+	Labels map[string]string
 
 	Annotations map[string]string
-
 }
-
-
 
 // ClusterRegistrationOptions provides configuration for cluster registration.
 
@@ -139,91 +104,68 @@ type ClusterRegistrationOptions struct {
 
 	ConnectionTimeout time.Duration
 
-
-
 	// Number of retries for cluster connection.
 
 	ConnectionRetries int
 
-
-
 	// Validation and security options.
 
-	RequiredCapabilities     []string
+	RequiredCapabilities []string
 
 	MinimumResourceThreshold *ResourceCapacity
-
 }
-
-
 
 // NetworkTopology represents the network relationships between clusters.
 
 type NetworkTopology struct {
+	Clusters map[string]*WorkloadCluster
 
-	Clusters        map[string]*WorkloadCluster
-
-	LatencyMatrix   map[string]map[string]float64
+	LatencyMatrix map[string]map[string]float64
 
 	NetworkPolicies []NetworkPolicy
-
 }
-
-
 
 // NetworkPolicy defines network constraints and routing rules.
 
 type NetworkPolicy struct {
+	Source string
 
-	Source           string
-
-	Destination      string
+	Destination string
 
 	AllowedProtocols []string
 
-	MaxLatencyMS     float64
+	MaxLatencyMS float64
 
-	Bandwidth        int64 // Mbps
+	Bandwidth int64 // Mbps
 
 }
-
-
 
 // DeploymentTarget represents a selected cluster for package deployment.
 
 type DeploymentTarget struct {
-
-	Cluster     *WorkloadCluster
+	Cluster *WorkloadCluster
 
 	Constraints []PlacementConstraint
 
-	Priority    int
+	Priority int
 
-	Fitness     float64 // Deployment suitability score
+	Fitness float64 // Deployment suitability score
 
 }
-
-
 
 // PlacementConstraint defines rules for package deployment.
 
 type PlacementConstraint struct {
+	Type string
 
-	Type        string
-
-	Value       string
+	Value string
 
 	Requirement ConstraintType
-
 }
-
-
 
 // ConstraintType defines how a constraint should be evaluated.
 
 type ConstraintType string
-
-
 
 const (
 
@@ -238,99 +180,75 @@ const (
 	// ConstraintAvoid holds constraintavoid value.
 
 	ConstraintAvoid ConstraintType = "Avoid"
-
 )
-
-
 
 // PropagationResult captures the outcome of package deployment.
 
 type PropagationResult struct {
+	PackageName string
 
-	PackageName           string
-
-	TargetClusters        []string
+	TargetClusters []string
 
 	SuccessfulDeployments []string
 
-	FailedDeployments     []string
+	FailedDeployments []string
 
-	Timestamp             metav1.Time
+	Timestamp metav1.Time
 
-	TotalLatencyMS        float64
-
+	TotalLatencyMS float64
 }
-
-
 
 // DeploymentStrategy defines how packages are propagated.
 
 type DeploymentStrategy struct {
+	Type string
 
-	Type                  string
-
-	RolloutPercentage     int
+	RolloutPercentage int
 
 	MaxConcurrentClusters int
 
-	RollbackOnFailure     bool
-
+	RollbackOnFailure bool
 }
-
-
 
 // MultiClusterStatus aggregates deployment status across clusters.
 
 type MultiClusterStatus struct {
+	PackageName string
 
-	PackageName     string
-
-	OverallStatus   string
+	OverallStatus string
 
 	ClusterStatuses map[string]ClusterDeploymentStatus
 
-	LastUpdated     metav1.Time
-
+	LastUpdated metav1.Time
 }
-
-
 
 // ClusterDeploymentStatus represents the deployment status for a specific cluster.
 
 type ClusterDeploymentStatus struct {
+	ClusterName string
 
-	ClusterName  string
+	Status string
 
-	Status       string
-
-	LastUpdated  metav1.Time
+	LastUpdated metav1.Time
 
 	ErrorMessage string
-
 }
-
-
 
 // PropagationOptions provides configuration for package deployment.
 
 type PropagationOptions struct {
+	Strategy DeploymentStrategy
 
-	Strategy     DeploymentStrategy
-
-	Constraints  []PlacementConstraint
+	Constraints []PlacementConstraint
 
 	ValidateOnly bool
 
-	DryRun       bool
-
+	DryRun bool
 }
-
-
 
 // ClusterPropagationManager interface defines multi-cluster package management.
 
 type ClusterPropagationManager interface {
-
 	PropagatePackage(ctx context.Context, packageName string, options *PropagationOptions) (*PropagationResult, error)
 
 	GetMultiClusterStatus(ctx context.Context, packageName string) (*MultiClusterStatus, error)
@@ -338,6 +256,4 @@ type ClusterPropagationManager interface {
 	RegisterCluster(ctx context.Context, cluster *WorkloadCluster, options *ClusterRegistrationOptions) error
 
 	UnregisterCluster(ctx context.Context, clusterID string) error
-
 }
-

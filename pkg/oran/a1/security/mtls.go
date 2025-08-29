@@ -1,325 +1,253 @@
-
 package security
 
-
-
 import (
-
 	"context"
-
 	"crypto/tls"
-
 	"crypto/x509"
-
 	"crypto/x509/pkix"
-
 	"encoding/asn1"
-
 	"errors"
-
 	"fmt"
-
 	"io"
-
 	"log/slog"
-
 	"net/http"
-
 	"os"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
-	"golang.org/x/crypto/ocsp"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
+	"golang.org/x/crypto/ocsp"
 )
-
-
 
 // MTLSConfig holds mutual TLS configuration.
 
 type MTLSConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled                bool                `json:"enabled"`
+	CertFile string `json:"cert_file"`
 
-	CertFile               string              `json:"cert_file"`
+	KeyFile string `json:"key_file"`
 
-	KeyFile                string              `json:"key_file"`
+	CAFile string `json:"ca_file"`
 
-	CAFile                 string              `json:"ca_file"`
+	ClientCAFiles []string `json:"client_ca_files"`
 
-	ClientCAFiles          []string            `json:"client_ca_files"`
+	RequireClientCert bool `json:"require_client_cert"`
 
-	RequireClientCert      bool                `json:"require_client_cert"`
+	VerifyClientCert bool `json:"verify_client_cert"`
 
-	VerifyClientCert       bool                `json:"verify_client_cert"`
+	ClientAuthType tls.ClientAuthType `json:"client_auth_type"`
 
-	ClientAuthType         tls.ClientAuthType  `json:"client_auth_type"`
+	MinTLSVersion uint16 `json:"min_tls_version"`
 
-	MinTLSVersion          uint16              `json:"min_tls_version"`
+	MaxTLSVersion uint16 `json:"max_tls_version"`
 
-	MaxTLSVersion          uint16              `json:"max_tls_version"`
+	CipherSuites []uint16 `json:"cipher_suites"`
 
-	CipherSuites           []uint16            `json:"cipher_suites"`
+	PreferServerCiphers bool `json:"prefer_server_ciphers"`
 
-	PreferServerCiphers    bool                `json:"prefer_server_ciphers"`
+	SessionTicketsDisabled bool `json:"session_tickets_disabled"`
 
-	SessionTicketsDisabled bool                `json:"session_tickets_disabled"`
+	SNIRequired bool `json:"sni_required"`
 
-	SNIRequired            bool                `json:"sni_required"`
+	CertPinning *CertPinningConfig `json:"cert_pinning,omitempty"`
 
-	CertPinning            *CertPinningConfig  `json:"cert_pinning,omitempty"`
+	OCSPConfig *OCSPConfig `json:"ocsp_config,omitempty"`
 
-	OCSPConfig             *OCSPConfig         `json:"ocsp_config,omitempty"`
+	CRLConfig *CRLConfig `json:"crl_config,omitempty"`
 
-	CRLConfig              *CRLConfig          `json:"crl_config,omitempty"`
+	AutoRotation *CertRotationConfig `json:"auto_rotation,omitempty"`
 
-	AutoRotation           *CertRotationConfig `json:"auto_rotation,omitempty"`
-
-	MultiTenant            *MultiTenantConfig  `json:"multi_tenant,omitempty"`
-
+	MultiTenant *MultiTenantConfig `json:"multi_tenant,omitempty"`
 }
-
-
 
 // CertPinningConfig holds certificate pinning configuration.
 
 type CertPinningConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled           bool              `json:"enabled"`
+	Pins map[string]string `json:"pins"` // hostname -> pin (SHA256)
 
-	Pins              map[string]string `json:"pins"` // hostname -> pin (SHA256)
+	EnforceForAll bool `json:"enforce_for_all"`
 
-	EnforceForAll     bool              `json:"enforce_for_all"`
+	ReportOnly bool `json:"report_only"`
 
-	ReportOnly        bool              `json:"report_only"`
+	MaxAge time.Duration `json:"max_age"`
 
-	MaxAge            time.Duration     `json:"max_age"`
-
-	IncludeSubdomains bool              `json:"include_subdomains"`
-
+	IncludeSubdomains bool `json:"include_subdomains"`
 }
-
-
 
 // OCSPConfig holds OCSP configuration.
 
 type OCSPConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled          bool          `json:"enabled"`
+	Stapling bool `json:"stapling"`
 
-	Stapling         bool          `json:"stapling"`
-
-	StaplingCache    bool          `json:"stapling_cache"`
+	StaplingCache bool `json:"stapling_cache"`
 
 	StaplingCacheTTL time.Duration `json:"stapling_cache_ttl"`
 
-	RequireStapling  bool          `json:"require_stapling"`
+	RequireStapling bool `json:"require_stapling"`
 
-	ResponderURL     string        `json:"responder_url"`
+	ResponderURL string `json:"responder_url"`
 
-	Timeout          time.Duration `json:"timeout"`
+	Timeout time.Duration `json:"timeout"`
 
-	FailOpen         bool          `json:"fail_open"`
-
+	FailOpen bool `json:"fail_open"`
 }
-
-
 
 // CRLConfig holds CRL configuration.
 
 type CRLConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled         bool              `json:"enabled"`
+	URLs []string `json:"urls"`
 
-	URLs            []string          `json:"urls"`
+	RefreshInterval time.Duration `json:"refresh_interval"`
 
-	RefreshInterval time.Duration     `json:"refresh_interval"`
+	CacheTTL time.Duration `json:"cache_ttl"`
 
-	CacheTTL        time.Duration     `json:"cache_ttl"`
+	FailOpen bool `json:"fail_open"`
 
-	FailOpen        bool              `json:"fail_open"`
+	CheckPeriod time.Duration `json:"check_period"`
 
-	CheckPeriod     time.Duration     `json:"check_period"`
-
-	Distribution    map[string]string `json:"distribution"` // issuer -> CRL URL
+	Distribution map[string]string `json:"distribution"` // issuer -> CRL URL
 
 }
-
-
 
 // CertRotationConfig holds certificate rotation configuration.
 
 type CertRotationConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled         bool          `json:"enabled"`
+	CheckInterval time.Duration `json:"check_interval"`
 
-	CheckInterval   time.Duration `json:"check_interval"`
+	RotationDays int `json:"rotation_days"`
 
-	RotationDays    int           `json:"rotation_days"`
+	WarnDays int `json:"warn_days"`
 
-	WarnDays        int           `json:"warn_days"`
+	AutoRenew bool `json:"auto_renew"`
 
-	AutoRenew       bool          `json:"auto_renew"`
+	RenewProvider string `json:"renew_provider"`
 
-	RenewProvider   string        `json:"renew_provider"`
+	BackupEnabled bool `json:"backup_enabled"`
 
-	BackupEnabled   bool          `json:"backup_enabled"`
+	BackupPath string `json:"backup_path"`
 
-	BackupPath      string        `json:"backup_path"`
-
-	NotificationURL string        `json:"notification_url"`
-
+	NotificationURL string `json:"notification_url"`
 }
-
-
 
 // MultiTenantConfig holds multi-tenant configuration.
 
 type MultiTenantConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled        bool                     `json:"enabled"`
-
-	DefaultTenant  string                   `json:"default_tenant"`
+	DefaultTenant string `json:"default_tenant"`
 
 	TenantMappings map[string]*TenantConfig `json:"tenant_mappings"`
 
-	SNIRouting     bool                     `json:"sni_routing"`
+	SNIRouting bool `json:"sni_routing"`
 
-	HeaderRouting  bool                     `json:"header_routing"`
+	HeaderRouting bool `json:"header_routing"`
 
-	HeaderName     string                   `json:"header_name"`
-
+	HeaderName string `json:"header_name"`
 }
-
-
 
 // TenantConfig holds per-tenant TLS configuration.
 
 type TenantConfig struct {
+	TenantID string `json:"tenant_id"`
 
-	TenantID     string      `json:"tenant_id"`
+	CertFile string `json:"cert_file"`
 
-	CertFile     string      `json:"cert_file"`
+	KeyFile string `json:"key_file"`
 
-	KeyFile      string      `json:"key_file"`
+	CAFile string `json:"ca_file"`
 
-	CAFile       string      `json:"ca_file"`
+	AllowedCNs []string `json:"allowed_cns"`
 
-	AllowedCNs   []string    `json:"allowed_cns"`
-
-	AllowedSANs  []string    `json:"allowed_sans"`
+	AllowedSANs []string `json:"allowed_sans"`
 
 	CustomConfig *tls.Config `json:"-"`
-
 }
-
-
 
 // MTLSManager manages mutual TLS operations.
 
 type MTLSManager struct {
+	config *MTLSConfig
 
-	config          *MTLSConfig
+	logger *logging.StructuredLogger
 
-	logger          *logging.StructuredLogger
+	tlsConfig *tls.Config
 
-	tlsConfig       *tls.Config
+	certPool *x509.CertPool
 
-	certPool        *x509.CertPool
+	clientCertPool *x509.CertPool
 
-	clientCertPool  *x509.CertPool
+	ocspCache *OCSPCache
 
-	ocspCache       *OCSPCache
+	crlCache *CRLCache
 
-	crlCache        *CRLCache
+	certPins map[string][]byte
 
-	certPins        map[string][]byte
+	tenantConfigs map[string]*tls.Config
 
-	tenantConfigs   map[string]*tls.Config
+	mu sync.RWMutex
 
-	mu              sync.RWMutex
-
-	certWatcher     *CertificateWatcher
+	certWatcher *CertificateWatcher
 
 	rotationManager *CertRotationManager
-
 }
-
-
 
 // OCSPCache caches OCSP responses.
 
 type OCSPCache struct {
-
-	mu        sync.RWMutex
+	mu sync.RWMutex
 
 	responses map[string]*ocsp.Response
 
-	expiry    map[string]time.Time
-
+	expiry map[string]time.Time
 }
-
-
 
 // CRLCache caches Certificate Revocation Lists.
 
 type CRLCache struct {
+	mu sync.RWMutex
 
-	mu     sync.RWMutex
-
-	crls   map[string]*pkix.CertificateList
+	crls map[string]*pkix.CertificateList
 
 	expiry map[string]time.Time
-
 }
-
-
 
 // CertificateWatcher watches for certificate changes.
 
 type CertificateWatcher struct {
-
-	paths    []string
+	paths []string
 
 	callback func()
 
-	stop     chan bool
+	stop chan bool
 
-	mu       sync.Mutex
-
+	mu sync.Mutex
 }
-
-
 
 // CertRotationManager manages certificate rotation.
 
 type CertRotationManager struct {
+	config *CertRotationConfig
 
-	config       *CertRotationConfig
+	logger *logging.StructuredLogger
 
-	logger       *logging.StructuredLogger
+	currentCert *tls.Certificate
 
-	currentCert  *tls.Certificate
-
-	nextCert     *tls.Certificate
+	nextCert *tls.Certificate
 
 	rotationTime time.Time
 
-	mu           sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewMTLSManager creates a new mTLS manager.
 
@@ -331,21 +259,16 @@ func NewMTLSManager(config *MTLSConfig, logger *logging.StructuredLogger) (*MTLS
 
 	}
 
-
-
 	m := &MTLSManager{
 
-		config:        config,
+		config: config,
 
-		logger:        logger,
+		logger: logger,
 
-		certPins:      make(map[string][]byte),
+		certPins: make(map[string][]byte),
 
 		tenantConfigs: make(map[string]*tls.Config),
-
 	}
-
-
 
 	// Initialize TLS configuration.
 
@@ -355,8 +278,6 @@ func NewMTLSManager(config *MTLSConfig, logger *logging.StructuredLogger) (*MTLS
 
 	}
 
-
-
 	// Initialize OCSP if enabled.
 
 	if config.OCSPConfig != nil && config.OCSPConfig.Enabled {
@@ -365,8 +286,7 @@ func NewMTLSManager(config *MTLSConfig, logger *logging.StructuredLogger) (*MTLS
 
 			responses: make(map[string]*ocsp.Response),
 
-			expiry:    make(map[string]time.Time),
-
+			expiry: make(map[string]time.Time),
 		}
 
 		if config.OCSPConfig.Stapling {
@@ -377,25 +297,20 @@ func NewMTLSManager(config *MTLSConfig, logger *logging.StructuredLogger) (*MTLS
 
 	}
 
-
-
 	// Initialize CRL if enabled.
 
 	if config.CRLConfig != nil && config.CRLConfig.Enabled {
 
 		m.crlCache = &CRLCache{
 
-			crls:   make(map[string]*pkix.CertificateList),
+			crls: make(map[string]*pkix.CertificateList),
 
 			expiry: make(map[string]time.Time),
-
 		}
 
 		go m.refreshCRLs()
 
 	}
-
-
 
 	// Initialize certificate pinning.
 
@@ -409,8 +324,6 @@ func NewMTLSManager(config *MTLSConfig, logger *logging.StructuredLogger) (*MTLS
 
 	}
 
-
-
 	// Initialize certificate rotation.
 
 	if config.AutoRotation != nil && config.AutoRotation.Enabled {
@@ -420,14 +333,11 @@ func NewMTLSManager(config *MTLSConfig, logger *logging.StructuredLogger) (*MTLS
 			config: config.AutoRotation,
 
 			logger: logger,
-
 		}
 
 		go m.rotationManager.Start()
 
 	}
-
-
 
 	// Initialize multi-tenant configurations.
 
@@ -441,8 +351,6 @@ func NewMTLSManager(config *MTLSConfig, logger *logging.StructuredLogger) (*MTLS
 
 	}
 
-
-
 	// Start certificate watcher.
 
 	if config.AutoRotation != nil && config.AutoRotation.Enabled {
@@ -451,13 +359,9 @@ func NewMTLSManager(config *MTLSConfig, logger *logging.StructuredLogger) (*MTLS
 
 	}
 
-
-
 	return m, nil
 
 }
-
-
 
 // initializeTLSConfig initializes the main TLS configuration.
 
@@ -473,25 +377,20 @@ func (m *MTLSManager) initializeTLSConfig() error {
 
 	}
 
-
-
 	// Create TLS config.
 
 	m.tlsConfig = &tls.Config{
 
-		Certificates:             []tls.Certificate{cert},
+		Certificates: []tls.Certificate{cert},
 
-		MinVersion:               m.config.MinTLSVersion,
+		MinVersion: m.config.MinTLSVersion,
 
-		MaxVersion:               m.config.MaxTLSVersion,
+		MaxVersion: m.config.MaxTLSVersion,
 
 		PreferServerCipherSuites: m.config.PreferServerCiphers,
 
-		SessionTicketsDisabled:   m.config.SessionTicketsDisabled,
-
+		SessionTicketsDisabled: m.config.SessionTicketsDisabled,
 	}
-
-
 
 	// Set TLS 1.3 as minimum if not specified.
 
@@ -500,8 +399,6 @@ func (m *MTLSManager) initializeTLSConfig() error {
 		m.tlsConfig.MinVersion = tls.VersionTLS13
 
 	}
-
-
 
 	// Configure cipher suites for TLS 1.2.
 
@@ -526,12 +423,9 @@ func (m *MTLSManager) initializeTLSConfig() error {
 			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
 
 			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-
 		}
 
 	}
-
-
 
 	// Load CA certificates for client verification.
 
@@ -540,8 +434,6 @@ func (m *MTLSManager) initializeTLSConfig() error {
 		return fmt.Errorf("failed to load CA certificates: %w", err)
 
 	}
-
-
 
 	// Configure client authentication.
 
@@ -559,13 +451,9 @@ func (m *MTLSManager) initializeTLSConfig() error {
 
 	}
 
-
-
 	// Set custom verification function.
 
 	m.tlsConfig.VerifyPeerCertificate = m.verifyPeerCertificate
-
-
 
 	// Configure GetCertificate for SNI support.
 
@@ -575,8 +463,6 @@ func (m *MTLSManager) initializeTLSConfig() error {
 
 	}
 
-
-
 	// Configure OCSP stapling.
 
 	if m.config.OCSPConfig != nil && m.config.OCSPConfig.Stapling {
@@ -585,13 +471,9 @@ func (m *MTLSManager) initializeTLSConfig() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // loadCACertificates loads CA certificates for client verification.
 
@@ -600,8 +482,6 @@ func (m *MTLSManager) loadCACertificates() error {
 	m.clientCertPool = x509.NewCertPool()
 
 	m.certPool = x509.NewCertPool()
-
-
 
 	// Load main CA file.
 
@@ -625,8 +505,6 @@ func (m *MTLSManager) loadCACertificates() error {
 
 	}
 
-
-
 	// Load additional client CA files.
 
 	for _, caFile := range m.config.ClientCAFiles {
@@ -647,13 +525,9 @@ func (m *MTLSManager) loadCACertificates() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // verifyPeerCertificate performs custom certificate verification.
 
@@ -665,8 +539,6 @@ func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains []
 
 	}
 
-
-
 	// Parse the peer certificate.
 
 	cert, err := x509.ParseCertificate(rawCerts[0])
@@ -676,8 +548,6 @@ func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains []
 		return fmt.Errorf("failed to parse certificate: %w", err)
 
 	}
-
-
 
 	// Check certificate pinning if enabled.
 
@@ -701,8 +571,6 @@ func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains []
 
 	}
 
-
-
 	// Check OCSP if enabled.
 
 	if m.config.OCSPConfig != nil && m.config.OCSPConfig.Enabled {
@@ -724,8 +592,6 @@ func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains []
 		}
 
 	}
-
-
 
 	// Check CRL if enabled.
 
@@ -749,8 +615,6 @@ func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains []
 
 	}
 
-
-
 	// Additional custom checks.
 
 	if err := m.performCustomChecks(cert); err != nil {
@@ -759,21 +623,15 @@ func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains []
 
 	}
 
-
-
 	m.logger.Debug("certificate verification successful",
 
 		slog.String("subject", cert.Subject.String()),
 
 		slog.String("issuer", cert.Issuer.String()))
 
-
-
 	return nil
 
 }
-
-
 
 // checkOCSP checks certificate revocation status via OCSP.
 
@@ -803,8 +661,6 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 
 	m.ocspCache.mu.RUnlock()
 
-
-
 	// Get issuer certificate.
 
 	if len(verifiedChains) == 0 || len(verifiedChains[0]) < 2 {
@@ -814,8 +670,6 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 	}
 
 	issuer := verifiedChains[0][1]
-
-
 
 	// Get OCSP responder URL.
 
@@ -833,8 +687,6 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 
 	}
 
-
-
 	// Create OCSP request.
 
 	ocspReq, err := ocsp.CreateRequest(cert, issuer, nil)
@@ -845,15 +697,11 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 
 	}
 
-
-
 	// Send OCSP request.
 
 	ctx, cancel := context.WithTimeout(context.Background(), m.config.OCSPConfig.Timeout)
 
 	defer cancel()
-
-
 
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", ocspURL, strings.NewReader(string(ocspReq)))
 
@@ -864,8 +712,6 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 	}
 
 	httpReq.Header.Set("Content-Type", "application/ocsp-request")
-
-
 
 	client := &http.Client{Timeout: m.config.OCSPConfig.Timeout}
 
@@ -879,8 +725,6 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 
 	defer httpResp.Body.Close()
 
-
-
 	ocspRespBytes, err := io.ReadAll(httpResp.Body)
 
 	if err != nil {
@@ -888,8 +732,6 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 		return fmt.Errorf("failed to read OCSP response: %w", err)
 
 	}
-
-
 
 	// Parse OCSP response.
 
@@ -901,8 +743,6 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 
 	}
 
-
-
 	// Cache the response.
 
 	m.ocspCache.mu.Lock()
@@ -912,8 +752,6 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 	m.ocspCache.expiry[cert.SerialNumber.String()] = ocspResp.NextUpdate
 
 	m.ocspCache.mu.Unlock()
-
-
 
 	// Check status.
 
@@ -935,8 +773,6 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 
 }
 
-
-
 // checkCRL checks certificate revocation status via CRL.
 
 func (m *MTLSManager) checkCRL(cert *x509.Certificate) error {
@@ -950,8 +786,6 @@ func (m *MTLSManager) checkCRL(cert *x509.Certificate) error {
 		return errors.New("no CRL distribution points found")
 
 	}
-
-
 
 	for _, crlURL := range crlURLs {
 
@@ -985,8 +819,6 @@ func (m *MTLSManager) checkCRL(cert *x509.Certificate) error {
 
 		m.crlCache.mu.RUnlock()
 
-
-
 		// Fetch CRL.
 
 		crl, err := m.fetchCRL(crlURL)
@@ -1003,8 +835,6 @@ func (m *MTLSManager) checkCRL(cert *x509.Certificate) error {
 
 		}
 
-
-
 		// Cache the CRL.
 
 		m.crlCache.mu.Lock()
@@ -1014,8 +844,6 @@ func (m *MTLSManager) checkCRL(cert *x509.Certificate) error {
 		m.crlCache.expiry[crlURL] = crl.TBSCertList.NextUpdate
 
 		m.crlCache.mu.Unlock()
-
-
 
 		// Check if certificate is revoked.
 
@@ -1029,29 +857,21 @@ func (m *MTLSManager) checkCRL(cert *x509.Certificate) error {
 
 		}
 
-
-
 		// Certificate not in CRL, it's valid.
 
 		return nil
 
 	}
 
-
-
 	return errors.New("failed to check any CRL")
 
 }
-
-
 
 // getCRLDistributionPoints extracts CRL distribution points from certificate.
 
 func (m *MTLSManager) getCRLDistributionPoints(cert *x509.Certificate) []string {
 
 	var urls []string
-
-
 
 	// Check configured distribution points first.
 
@@ -1066,8 +886,6 @@ func (m *MTLSManager) getCRLDistributionPoints(cert *x509.Certificate) []string 
 		urls = append(urls, m.config.CRLConfig.URLs...)
 
 	}
-
-
 
 	// Extract from certificate extensions.
 
@@ -1085,13 +903,9 @@ func (m *MTLSManager) getCRLDistributionPoints(cert *x509.Certificate) []string 
 
 	}
 
-
-
 	return urls
 
 }
-
-
 
 // fetchCRL fetches a CRL from the given URL.
 
@@ -1101,8 +915,6 @@ func (m *MTLSManager) fetchCRL(url string) (*pkix.CertificateList, error) {
 
 	defer cancel()
 
-
-
 	req, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
 
 	if err != nil {
@@ -1110,8 +922,6 @@ func (m *MTLSManager) fetchCRL(url string) (*pkix.CertificateList, error) {
 		return nil, err
 
 	}
-
-
 
 	client := &http.Client{Timeout: 10 * time.Second}
 
@@ -1125,8 +935,6 @@ func (m *MTLSManager) fetchCRL(url string) (*pkix.CertificateList, error) {
 
 	defer resp.Body.Close()
 
-
-
 	crlBytes, err := io.ReadAll(resp.Body)
 
 	if err != nil {
@@ -1135,13 +943,9 @@ func (m *MTLSManager) fetchCRL(url string) (*pkix.CertificateList, error) {
 
 	}
 
-
-
 	return x509.ParseCRL(crlBytes)
 
 }
-
-
 
 // verifyCertificatePin verifies certificate against configured pins.
 
@@ -1150,8 +954,6 @@ func (m *MTLSManager) verifyCertificatePin(cert *x509.Certificate) error {
 	// Calculate certificate fingerprint.
 
 	fingerprint := calculateFingerprint(cert.Raw)
-
-
 
 	// Check if this certificate is pinned.
 
@@ -1171,8 +973,6 @@ func (m *MTLSManager) verifyCertificatePin(cert *x509.Certificate) error {
 
 	}
 
-
-
 	// If enforce for all is enabled, reject unpinned certificates.
 
 	if m.config.CertPinning.EnforceForAll {
@@ -1181,13 +981,9 @@ func (m *MTLSManager) verifyCertificatePin(cert *x509.Certificate) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // performCustomChecks performs additional custom certificate checks.
 
@@ -1209,8 +1005,6 @@ func (m *MTLSManager) performCustomChecks(cert *x509.Certificate) error {
 
 	}
 
-
-
 	// Check key usage.
 
 	if cert.KeyUsage&x509.KeyUsageDigitalSignature == 0 {
@@ -1218,8 +1012,6 @@ func (m *MTLSManager) performCustomChecks(cert *x509.Certificate) error {
 		return errors.New("certificate lacks digital signature key usage")
 
 	}
-
-
 
 	// Check extended key usage for client authentication.
 
@@ -1243,8 +1035,6 @@ func (m *MTLSManager) performCustomChecks(cert *x509.Certificate) error {
 
 	}
 
-
-
 	// Check SNI if required.
 
 	if m.config.SNIRequired && len(cert.DNSNames) == 0 {
@@ -1253,13 +1043,9 @@ func (m *MTLSManager) performCustomChecks(cert *x509.Certificate) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetTLSConfig returns the TLS configuration.
 
@@ -1273,8 +1059,6 @@ func (m *MTLSManager) GetTLSConfig() *tls.Config {
 
 }
 
-
-
 // GetTenantTLSConfig returns TLS configuration for a specific tenant.
 
 func (m *MTLSManager) GetTenantTLSConfig(tenantID string) (*tls.Config, error) {
@@ -1283,15 +1067,11 @@ func (m *MTLSManager) GetTenantTLSConfig(tenantID string) (*tls.Config, error) {
 
 	defer m.mu.RUnlock()
 
-
-
 	if config, ok := m.tenantConfigs[tenantID]; ok {
 
 		return config.Clone(), nil
 
 	}
-
-
 
 	if m.config.MultiTenant != nil && m.config.MultiTenant.DefaultTenant != "" {
 
@@ -1303,17 +1083,11 @@ func (m *MTLSManager) GetTenantTLSConfig(tenantID string) (*tls.Config, error) {
 
 	}
 
-
-
 	return nil, fmt.Errorf("no TLS config for tenant: %s", tenantID)
 
 }
 
-
-
 // Helper functions.
-
-
 
 func calculateFingerprint(data []byte) string {
 
@@ -1324,8 +1098,6 @@ func calculateFingerprint(data []byte) string {
 	return ""
 
 }
-
-
 
 func matchesHostname(cert *x509.Certificate, hostname string) bool {
 
@@ -1345,8 +1117,6 @@ func matchesHostname(cert *x509.Certificate, hostname string) bool {
 
 }
 
-
-
 func matchesWildcard(pattern, hostname string) bool {
 
 	// Simple wildcard matching.
@@ -1363,11 +1133,7 @@ func matchesWildcard(pattern, hostname string) bool {
 
 }
 
-
-
 // Additional helper methods for certificate management...
-
-
 
 func (m *MTLSManager) initializeCertPinning() error {
 
@@ -1377,8 +1143,6 @@ func (m *MTLSManager) initializeCertPinning() error {
 
 }
 
-
-
 func (m *MTLSManager) initializeMultiTenant() error {
 
 	// Initialize multi-tenant configurations.
@@ -1386,8 +1150,6 @@ func (m *MTLSManager) initializeMultiTenant() error {
 	return nil
 
 }
-
-
 
 func (m *MTLSManager) getCertificateForSNI(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 
@@ -1397,8 +1159,6 @@ func (m *MTLSManager) getCertificateForSNI(hello *tls.ClientHelloInfo) (*tls.Cer
 
 }
 
-
-
 func (m *MTLSManager) getCertificateWithOCSP(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 
 	// Get certificate with OCSP stapling.
@@ -1407,15 +1167,11 @@ func (m *MTLSManager) getCertificateWithOCSP(hello *tls.ClientHelloInfo) (*tls.C
 
 }
 
-
-
 func (m *MTLSManager) refreshOCSPStapling() {
 
 	// Refresh OCSP stapling responses.
 
 }
-
-
 
 func (m *MTLSManager) refreshCRLs() {
 
@@ -1423,15 +1179,11 @@ func (m *MTLSManager) refreshCRLs() {
 
 }
 
-
-
 func (m *MTLSManager) startCertificateWatcher() {
 
 	// Start watching certificate files for changes.
 
 }
-
-
 
 // Start begins the certificate rotation process.
 
@@ -1443,15 +1195,11 @@ func (crm *CertRotationManager) Start() {
 
 	}
 
-
-
 	// Create a ticker for certificate rotation.
 
 	ticker := time.NewTicker(crm.config.CheckInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1475,8 +1223,6 @@ func (crm *CertRotationManager) Start() {
 
 }
 
-
-
 // rotateCertificate performs the actual certificate rotation.
 
 func (crm *CertRotationManager) rotateCertificate(ctx context.Context) error {
@@ -1484,8 +1230,6 @@ func (crm *CertRotationManager) rotateCertificate(ctx context.Context) error {
 	// Certificate rotation implementation.
 
 	crm.logger.Info("performing certificate rotation")
-
-
 
 	// This would normally:.
 
@@ -1497,9 +1241,6 @@ func (crm *CertRotationManager) rotateCertificate(ctx context.Context) error {
 
 	// 4. Clean up old certificates.
 
-
-
 	return nil
 
 }
-

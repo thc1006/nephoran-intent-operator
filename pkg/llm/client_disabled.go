@@ -1,69 +1,44 @@
 //go:build disable_rag
-
 // +build disable_rag
-
-
-
 
 package llm
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"crypto/tls"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"log/slog"
-
 	"net"
-
 	"net/http"
-
 	"strings"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // ClientMetrics tracks client performance metrics (simplified for disable_rag).
 
 type ClientMetrics struct {
+	RequestsTotal int64 `json:"requests_total"`
 
-	RequestsTotal    int64         `json:"requests_total"`
+	RequestsSuccess int64 `json:"requests_success"`
 
-	RequestsSuccess  int64         `json:"requests_success"`
+	RequestsFailure int64 `json:"requests_failure"`
 
-	RequestsFailure  int64         `json:"requests_failure"`
+	TotalLatency time.Duration `json:"total_latency"`
 
-	TotalLatency     time.Duration `json:"total_latency"`
+	CacheHits int64 `json:"cache_hits"`
 
-	CacheHits        int64         `json:"cache_hits"`
+	CacheMisses int64 `json:"cache_misses"`
 
-	CacheMisses      int64         `json:"cache_misses"`
+	RetryAttempts int64 `json:"retry_attempts"`
 
-	RetryAttempts    int64         `json:"retry_attempts"`
+	FallbackAttempts int64 `json:"fallback_attempts"`
 
-	FallbackAttempts int64         `json:"fallback_attempts"`
-
-	mutex            sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // Client is the simplified LLM client when RAG is disabled.
 
@@ -73,129 +48,100 @@ type Client struct {
 
 	httpClient *http.Client
 
-	transport  *http.Transport
-
-
+	transport *http.Transport
 
 	// Core configuration.
 
-	url         string
+	url string
 
-	apiKey      string
+	apiKey string
 
-	modelName   string
+	modelName string
 
-	maxTokens   int
+	maxTokens int
 
 	backendType string
-
-
 
 	// Smart endpoints for backends.
 
 	processEndpoint string
 
-	healthEndpoint  string
-
-
+	healthEndpoint string
 
 	// Performance components (simplified).
 
-	cache          *ResponseCache
+	cache *ResponseCache
 
 	circuitBreaker *CircuitBreaker
 
-	retryConfig    RetryConfig
-
-
+	retryConfig RetryConfig
 
 	// Observability (simplified).
 
-	logger  *slog.Logger
+	logger *slog.Logger
 
 	metrics *ClientMetrics
 
-
-
 	// Concurrency control.
 
-	mutex        sync.RWMutex
+	mutex sync.RWMutex
 
 	fallbackURLs []string
-
-
 
 	// Token and cost tracking.
 
 	tokenTracker *SimpleTokenTracker
-
 }
-
-
 
 // ClientConfig holds unified configuration (simplified).
 
 type ClientConfig struct {
+	APIKey string `json:"api_key"`
 
-	APIKey              string        `json:"api_key"`
+	ModelName string `json:"model_name"`
 
-	ModelName           string        `json:"model_name"`
+	MaxTokens int `json:"max_tokens"`
 
-	MaxTokens           int           `json:"max_tokens"`
+	BackendType string `json:"backend_type"`
 
-	BackendType         string        `json:"backend_type"`
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout             time.Duration `json:"timeout"`
-
-	SkipTLSVerification bool          `json:"skip_tls_verification"`
-
-
+	SkipTLSVerification bool `json:"skip_tls_verification"`
 
 	// Performance settings.
 
-	MaxConnsPerHost  int           `json:"max_conns_per_host"`
+	MaxConnsPerHost int `json:"max_conns_per_host"`
 
-	MaxIdleConns     int           `json:"max_idle_conns"`
+	MaxIdleConns int `json:"max_idle_conns"`
 
-	IdleConnTimeout  time.Duration `json:"idle_conn_timeout"`
+	IdleConnTimeout time.Duration `json:"idle_conn_timeout"`
 
 	KeepAliveTimeout time.Duration `json:"keep_alive_timeout"`
 
-
-
 	// Cache settings.
 
-	CacheTTL     time.Duration `json:"cache_ttl"`
+	CacheTTL time.Duration `json:"cache_ttl"`
 
-	CacheMaxSize int           `json:"cache_max_size"`
-
-
+	CacheMaxSize int `json:"cache_max_size"`
 
 	// Circuit breaker settings.
 
 	CircuitBreakerConfig *CircuitBreakerConfig `json:"circuit_breaker_config"`
-
 }
-
-
 
 // RetryConfig defines retry behavior.
 
 type RetryConfig struct {
+	MaxRetries int `json:"max_retries"`
 
-	MaxRetries    int           `json:"max_retries"`
+	BaseDelay time.Duration `json:"base_delay"`
 
-	BaseDelay     time.Duration `json:"base_delay"`
+	MaxDelay time.Duration `json:"max_delay"`
 
-	MaxDelay      time.Duration `json:"max_delay"`
+	JitterEnabled bool `json:"jitter_enabled"`
 
-	JitterEnabled bool          `json:"jitter_enabled"`
-
-	BackoffFactor float64       `json:"backoff_factor"`
-
+	BackoffFactor float64 `json:"backoff_factor"`
 }
-
-
 
 // NewClient creates a new simplified client when RAG is disabled.
 
@@ -207,33 +153,27 @@ func NewClient(url, apiKey, modelName string, maxTokens int, config *ClientConfi
 
 	}
 
-
-
 	transport := &http.Transport{
 
-		MaxIdleConns:          config.MaxIdleConns,
+		MaxIdleConns: config.MaxIdleConns,
 
-		MaxIdleConnsPerHost:   config.MaxConnsPerHost,
+		MaxIdleConnsPerHost: config.MaxConnsPerHost,
 
-		IdleConnTimeout:       config.IdleConnTimeout,
+		IdleConnTimeout: config.IdleConnTimeout,
 
-		TLSHandshakeTimeout:   10 * time.Second,
+		TLSHandshakeTimeout: 10 * time.Second,
 
 		ExpectContinueTimeout: time.Second,
 
-		ForceAttemptHTTP2:     true,
+		ForceAttemptHTTP2: true,
 
 		DialContext: (&net.Dialer{
 
-			Timeout:   30 * time.Second,
+			Timeout: 30 * time.Second,
 
 			KeepAlive: config.KeepAliveTimeout,
-
 		}).DialContext,
-
 	}
-
-
 
 	if config.SkipTLSVerification {
 
@@ -241,79 +181,66 @@ func NewClient(url, apiKey, modelName string, maxTokens int, config *ClientConfi
 
 	}
 
-
-
 	httpClient := &http.Client{
 
 		Transport: transport,
 
-		Timeout:   config.Timeout,
-
+		Timeout: config.Timeout,
 	}
-
-
 
 	client := &Client{
 
-		httpClient:      httpClient,
+		httpClient: httpClient,
 
-		transport:       transport,
+		transport: transport,
 
-		url:             url,
+		url: url,
 
-		apiKey:          apiKey,
+		apiKey: apiKey,
 
-		modelName:       modelName,
+		modelName: modelName,
 
-		maxTokens:       maxTokens,
+		maxTokens: maxTokens,
 
-		backendType:     config.BackendType,
+		backendType: config.BackendType,
 
 		processEndpoint: url,
 
-		healthEndpoint:  strings.TrimSuffix(url, "/") + "/health",
+		healthEndpoint: strings.TrimSuffix(url, "/") + "/health",
 
-		logger:          slog.Default().With("component", "llm-client"),
+		logger: slog.Default().With("component", "llm-client"),
 
-		metrics:         &ClientMetrics{},
+		metrics: &ClientMetrics{},
 
-		cache:           NewResponseCache(config.CacheTTL, config.CacheMaxSize),
+		cache: NewResponseCache(config.CacheTTL, config.CacheMaxSize),
 
-		circuitBreaker:  NewCircuitBreaker("llm-client", config.CircuitBreakerConfig),
+		circuitBreaker: NewCircuitBreaker("llm-client", config.CircuitBreakerConfig),
 
 		retryConfig: RetryConfig{
 
-			MaxRetries:    3,
+			MaxRetries: 3,
 
-			BaseDelay:     time.Second,
+			BaseDelay: time.Second,
 
-			MaxDelay:      30 * time.Second,
+			MaxDelay: 30 * time.Second,
 
 			JitterEnabled: true,
 
 			BackoffFactor: 2.0,
-
 		},
 
 		tokenTracker: NewSimpleTokenTracker(),
-
 	}
-
-
 
 	return client
 
 }
-
-
 
 // ProcessIntent processes an intent (simplified implementation).
 
 func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, error) {
 
 	startTime := time.Now()
-
-
 
 	// Update metrics.
 
@@ -322,8 +249,6 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 		m.RequestsTotal++
 
 	})
-
-
 
 	// Check cache first.
 
@@ -343,21 +268,16 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 	}
 
-
-
 	// Create request.
 
 	reqBody := map[string]interface{}{
 
-		"intent":     intent,
+		"intent": intent,
 
-		"model":      c.modelName,
+		"model": c.modelName,
 
 		"max_tokens": c.maxTokens,
-
 	}
-
-
 
 	jsonData, err := json.Marshal(reqBody)
 
@@ -373,8 +293,6 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 	}
 
-
-
 	// Execute request with retry logic.
 
 	var response string
@@ -388,8 +306,6 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 		return execErr
 
 	})
-
-
 
 	// Update metrics.
 
@@ -413,27 +329,19 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 	})
 
-
-
 	if err != nil {
 
 		return "", err
 
 	}
 
-
-
 	// Cache the response.
 
 	c.cache.Set(intent, response)
 
-
-
 	return response, nil
 
 }
-
-
 
 // executeRequest executes the HTTP request.
 
@@ -447,8 +355,6 @@ func (c *Client) executeRequest(ctx context.Context, jsonData []byte) (string, e
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
 
 	if c.apiKey != "" {
@@ -456,8 +362,6 @@ func (c *Client) executeRequest(ctx context.Context, jsonData []byte) (string, e
 		req.Header.Set("Authorization", "Bearer "+c.apiKey)
 
 	}
-
-
 
 	resp, err := c.httpClient.Do(req)
 
@@ -469,8 +373,6 @@ func (c *Client) executeRequest(ctx context.Context, jsonData []byte) (string, e
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		body, _ := io.ReadAll(resp.Body)
@@ -479,8 +381,6 @@ func (c *Client) executeRequest(ctx context.Context, jsonData []byte) (string, e
 
 	}
 
-
-
 	responseBody, err := io.ReadAll(resp.Body)
 
 	if err != nil {
@@ -488,8 +388,6 @@ func (c *Client) executeRequest(ctx context.Context, jsonData []byte) (string, e
 		return "", fmt.Errorf("failed to read response body: %w", err)
 
 	}
-
-
 
 	// Parse response.
 
@@ -501,8 +399,6 @@ func (c *Client) executeRequest(ctx context.Context, jsonData []byte) (string, e
 
 	}
 
-
-
 	// Extract content from response.
 
 	if content, ok := result["content"].(string); ok {
@@ -511,29 +407,21 @@ func (c *Client) executeRequest(ctx context.Context, jsonData []byte) (string, e
 
 	}
 
-
-
 	if response, ok := result["response"].(string); ok {
 
 		return response, nil
 
 	}
 
-
-
 	return string(responseBody), nil
 
 }
-
-
 
 // executeWithRetry executes a function with retry logic.
 
 func (c *Client) executeWithRetry(ctx context.Context, fn func() error) error {
 
 	var lastErr error
-
-
 
 	for attempt := 0; attempt <= c.retryConfig.MaxRetries; attempt++ {
 
@@ -551,8 +439,6 @@ func (c *Client) executeWithRetry(ctx context.Context, fn func() error) error {
 
 			}
 
-
-
 			c.updateMetrics(func(m *ClientMetrics) {
 
 				m.RetryAttempts++
@@ -560,8 +446,6 @@ func (c *Client) executeWithRetry(ctx context.Context, fn func() error) error {
 			})
 
 		}
-
-
 
 		if err := fn(); err != nil {
 
@@ -577,19 +461,13 @@ func (c *Client) executeWithRetry(ctx context.Context, fn func() error) error {
 
 		}
 
-
-
 		return nil
 
 	}
 
-
-
 	return lastErr
 
 }
-
-
 
 // calculateBackoffDelay calculates the delay for exponential backoff.
 
@@ -603,8 +481,6 @@ func (c *Client) calculateBackoffDelay(attempt int) time.Duration {
 
 	}
 
-
-
 	if c.retryConfig.JitterEnabled {
 
 		// Add 20% jitter.
@@ -617,13 +493,9 @@ func (c *Client) calculateBackoffDelay(attempt int) time.Duration {
 
 	}
 
-
-
 	return delay
 
 }
-
-
 
 // isRetryableError determines if an error is retryable.
 
@@ -639,8 +511,6 @@ func (c *Client) isRetryableError(err error) bool {
 
 }
 
-
-
 // updateMetrics safely updates metrics.
 
 func (c *Client) updateMetrics(updater func(*ClientMetrics)) {
@@ -653,8 +523,6 @@ func (c *Client) updateMetrics(updater func(*ClientMetrics)) {
 
 }
 
-
-
 // GetMetrics returns current metrics.
 
 func (c *Client) GetMetrics() ClientMetrics {
@@ -666,8 +534,6 @@ func (c *Client) GetMetrics() ClientMetrics {
 	return *c.metrics
 
 }
-
-
 
 // Close closes the client and cleans up resources.
 
@@ -689,8 +555,6 @@ func (c *Client) Close() error {
 
 }
 
-
-
 // Health checks the health of the backend.
 
 func (c *Client) Health(ctx context.Context) error {
@@ -703,8 +567,6 @@ func (c *Client) Health(ctx context.Context) error {
 
 	}
 
-
-
 	resp, err := c.httpClient.Do(req)
 
 	if err != nil {
@@ -715,21 +577,15 @@ func (c *Client) Health(ctx context.Context) error {
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return fmt.Errorf("health check returned status %d", resp.StatusCode)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // getDefaultClientConfig returns default client configuration.
 
@@ -737,31 +593,28 @@ func getDefaultClientConfig() *ClientConfig {
 
 	return &ClientConfig{
 
-		Timeout:          30 * time.Second,
+		Timeout: 30 * time.Second,
 
-		MaxConnsPerHost:  10,
+		MaxConnsPerHost: 10,
 
-		MaxIdleConns:     100,
+		MaxIdleConns: 100,
 
-		IdleConnTimeout:  90 * time.Second,
+		IdleConnTimeout: 90 * time.Second,
 
 		KeepAliveTimeout: 30 * time.Second,
 
-		CacheTTL:         5 * time.Minute,
+		CacheTTL: 5 * time.Minute,
 
-		CacheMaxSize:     1000,
+		CacheMaxSize: 1000,
 
-		BackendType:      "openai",
+		BackendType: "openai",
 
 		CircuitBreakerConfig: &CircuitBreakerConfig{
 
 			FailureThreshold: 5,
 
-			Timeout:          60 * time.Second,
-
+			Timeout: 60 * time.Second,
 		},
-
 	}
 
 }
-

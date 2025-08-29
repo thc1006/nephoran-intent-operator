@@ -28,22 +28,12 @@ limitations under the License.
 
 */
 
-
-
-
 package shared
 
-
-
 import (
-
 	"context"
-
 	"time"
-
 )
-
-
 
 // EventBus defines the interface for event communication.
 
@@ -57,62 +47,48 @@ type EventBus interface {
 
 	Unsubscribe(eventType string) error
 
-
-
 	// Event bus lifecycle.
 
 	Start(ctx context.Context) error
 
 	Stop(ctx context.Context) error
 
-
-
 	// Event querying.
 
 	GetEventHistory(ctx context.Context, intentID string) ([]ProcessingEvent, error)
 
 	GetEventsByType(ctx context.Context, eventType string, limit int) ([]ProcessingEvent, error)
-
 }
-
-
 
 // EventHandler defines the function signature for event handlers.
 
 type EventHandler func(ctx context.Context, event ProcessingEvent) error
 
-
-
 // ProcessingEvent represents an event during intent processing.
 
 type ProcessingEvent struct {
+	Type string `json:"type"`
 
-	Type          string                 `json:"type"`
+	Source string `json:"source"`
 
-	Source        string                 `json:"source"`
+	IntentID string `json:"intentId"`
 
-	IntentID      string                 `json:"intentId"`
+	Phase string `json:"phase"`
 
-	Phase         string                 `json:"phase"`
+	Success bool `json:"success"`
 
-	Success       bool                   `json:"success"`
+	Data map[string]interface{} `json:"data"`
 
-	Data          map[string]interface{} `json:"data"`
+	Timestamp int64 `json:"timestamp"` // Unix timestamp
 
-	Timestamp     int64                  `json:"timestamp"` // Unix timestamp
+	CorrelationID string `json:"correlationId"`
 
-	CorrelationID string                 `json:"correlationId"`
-
-	Metadata      map[string]string      `json:"metadata,omitempty"`
-
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
-
-
 
 // EventBusMetrics provides metrics for the event bus.
 
 type EventBusMetrics interface {
-
 	GetTotalEventsPublished() int64
 
 	GetTotalEventsProcessed() int64
@@ -122,8 +98,6 @@ type EventBusMetrics interface {
 	GetAverageProcessingTime() int64 // in milliseconds
 
 	GetBufferUtilization() float64
-
-
 
 	// Recording methods.
 
@@ -136,6 +110,4 @@ type EventBusMetrics interface {
 	SetBufferUtilization(utilization float64)
 
 	SetPartitionCount(count int)
-
 }
-

@@ -1,121 +1,85 @@
-
 package watch
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"crypto/tls"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"log"
-
 	"net/http"
-
 	"os"
-
 	"path/filepath"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/fsnotify/fsnotify"
-
 )
-
-
 
 // IntentFile represents the structure of an intent JSON file.
 
 type IntentFile struct {
+	IntentType string `json:"intent_type"`
 
-	IntentType    string  `json:"intent_type"`
+	Target string `json:"target"`
 
-	Target        string  `json:"target"`
+	Namespace string `json:"namespace"`
 
-	Namespace     string  `json:"namespace"`
+	Replicas int `json:"replicas"`
 
-	Replicas      int     `json:"replicas"`
+	Reason *string `json:"reason,omitempty"`
 
-	Reason        *string `json:"reason,omitempty"`
-
-	Source        *string `json:"source,omitempty"`
+	Source *string `json:"source,omitempty"`
 
 	CorrelationID *string `json:"correlation_id,omitempty"`
-
 }
-
-
 
 // Config holds watcher configuration.
 
 type Config struct {
+	HandoffDir string
 
-	HandoffDir    string
+	SchemaPath string
 
-	SchemaPath    string
-
-	PostURL       string
+	PostURL string
 
 	DebounceDelay time.Duration
 
 	// Security configuration.
 
-	BearerToken        string // Optional Bearer token for HTTP auth
+	BearerToken string // Optional Bearer token for HTTP auth
 
-	APIKey             string // Optional API key for HTTP auth
+	APIKey string // Optional API key for HTTP auth
 
-	APIKeyHeader       string // Header name for API key (default: "X-API-Key")
+	APIKeyHeader string // Header name for API key (default: "X-API-Key")
 
-	InsecureSkipVerify bool   // Skip TLS certificate verification (for development only)
+	InsecureSkipVerify bool // Skip TLS certificate verification (for development only)
 
 }
-
-
 
 // Watcher watches for intent files with debouncing and validation.
 
 type Watcher struct {
-
-	config    *Config
+	config *Config
 
 	validator *Validator
 
-	watcher   *fsnotify.Watcher
-
-
+	watcher *fsnotify.Watcher
 
 	// Debouncing.
 
-	mu         sync.Mutex
+	mu sync.Mutex
 
-	pending    map[string]*time.Timer
+	pending map[string]*time.Timer
 
 	httpClient *http.Client
-
-
 
 	// Worker pool for HTTP operations.
 
 	httpSemaphore chan struct{}
-
 }
-
-
 
 // NewWatcher creates a new file watcher.
 
@@ -129,8 +93,6 @@ func NewWatcher(config *Config) (*Watcher, error) {
 
 	}
 
-
-
 	// Create validator.
 
 	validator, err := NewValidator(config.SchemaPath)
@@ -140,8 +102,6 @@ func NewWatcher(config *Config) (*Watcher, error) {
 		return nil, fmt.Errorf("failed to create validator: %w", err)
 
 	}
-
-
 
 	// Create fsnotify watcher.
 
@@ -153,8 +113,6 @@ func NewWatcher(config *Config) (*Watcher, error) {
 
 	}
 
-
-
 	// Add directory to watch.
 
 	if err := fsWatcher.Add(config.HandoffDir); err != nil {
@@ -165,8 +123,6 @@ func NewWatcher(config *Config) (*Watcher, error) {
 
 	}
 
-
-
 	// Set default API key header.
 
 	if config.APIKeyHeader == "" {
@@ -175,44 +131,35 @@ func NewWatcher(config *Config) (*Watcher, error) {
 
 	}
 
-
-
 	// Create HTTP client with TLS security.
 
 	tlsConfig := &tls.Config{
 
-		MinVersion:         tls.VersionTLS12,
+		MinVersion: tls.VersionTLS12,
 
 		InsecureSkipVerify: config.InsecureSkipVerify,
-
 	}
-
-
 
 	transport := &http.Transport{
 
 		TLSClientConfig: tlsConfig,
-
 	}
-
-
 
 	return &Watcher{
 
-		config:    config,
+		config: config,
 
 		validator: validator,
 
-		watcher:   fsWatcher,
+		watcher: fsWatcher,
 
-		pending:   make(map[string]*time.Timer),
+		pending: make(map[string]*time.Timer),
 
 		httpClient: &http.Client{
 
-			Timeout:   30 * time.Second, // Extended timeout for secure connections
+			Timeout: 30 * time.Second, // Extended timeout for secure connections
 
 			Transport: transport,
-
 		},
 
 		httpSemaphore: make(chan struct{}, 10), // Limit to 10 concurrent HTTP operations
@@ -220,8 +167,6 @@ func NewWatcher(config *Config) (*Watcher, error) {
 	}, nil
 
 }
-
-
 
 // Start begins watching for file changes.
 
@@ -234,8 +179,6 @@ func (w *Watcher) Start() error {
 		log.Printf("Warning: Failed to process existing files: %v", err)
 
 	}
-
-
 
 	// Main event loop.
 
@@ -251,8 +194,6 @@ func (w *Watcher) Start() error {
 
 			}
 
-
-
 			// Only process Create and Write events for intent files.
 
 			if event.Op&(fsnotify.Create|fsnotify.Write) != 0 {
@@ -264,8 +205,6 @@ func (w *Watcher) Start() error {
 				}
 
 			}
-
-
 
 		case err, ok := <-w.watcher.Errors:
 
@@ -287,8 +226,6 @@ func (w *Watcher) Start() error {
 
 }
 
-
-
 // Stop stops the watcher.
 
 func (w *Watcher) Stop() error {
@@ -296,8 +233,6 @@ func (w *Watcher) Stop() error {
 	w.mu.Lock()
 
 	defer w.mu.Unlock()
-
-
 
 	// Cancel all pending timers.
 
@@ -307,19 +242,13 @@ func (w *Watcher) Stop() error {
 
 	}
 
-
-
 	// Close semaphore channel to prevent new HTTP operations.
 
 	close(w.httpSemaphore)
 
-
-
 	return w.watcher.Close()
 
 }
-
-
 
 // handleFileEvent handles a file event with debouncing.
 
@@ -329,8 +258,6 @@ func (w *Watcher) handleFileEvent(event fsnotify.Event) {
 
 	defer w.mu.Unlock()
 
-
-
 	// Cancel existing timer for this file.
 
 	if timer, exists := w.pending[event.Name]; exists {
@@ -339,15 +266,11 @@ func (w *Watcher) handleFileEvent(event fsnotify.Event) {
 
 	}
 
-
-
 	// Create new debounced timer.
 
 	w.pending[event.Name] = time.AfterFunc(w.config.DebounceDelay, func() {
 
 		w.processFile(event.Name, event.Op&fsnotify.Create != 0)
-
-
 
 		// Clean up timer.
 
@@ -361,8 +284,6 @@ func (w *Watcher) handleFileEvent(event fsnotify.Event) {
 
 }
 
-
-
 // processExistingFiles processes any existing intent files in the directory.
 
 func (w *Watcher) processExistingFiles() error {
@@ -375,8 +296,6 @@ func (w *Watcher) processExistingFiles() error {
 
 	}
 
-
-
 	count := 0
 
 	for _, entry := range entries {
@@ -386,8 +305,6 @@ func (w *Watcher) processExistingFiles() error {
 			continue
 
 		}
-
-
 
 		if w.isIntentFile(entry.Name()) {
 
@@ -401,21 +318,15 @@ func (w *Watcher) processExistingFiles() error {
 
 	}
 
-
-
 	if count > 0 {
 
 		log.Printf("Processed %d existing intent files on startup", count)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // isIntentFile checks if a filename matches the intent file pattern.
 
@@ -425,15 +336,11 @@ func (w *Watcher) isIntentFile(filename string) bool {
 
 }
 
-
-
 // processFile validates and optionally posts an intent file.
 
 func (w *Watcher) processFile(filePath string, isNew bool) {
 
 	filename := filepath.Base(filePath)
-
-
 
 	// Log new file detection.
 
@@ -442,8 +349,6 @@ func (w *Watcher) processFile(filePath string, isNew bool) {
 		log.Printf("WATCH:NEW %s", filename)
 
 	}
-
-
 
 	// Check file size before reading (max 5MB for JSON).
 
@@ -457,8 +362,6 @@ func (w *Watcher) processFile(filePath string, isNew bool) {
 
 	}
 
-
-
 	const maxFileSize = 5 * 1024 * 1024 // 5MB
 
 	if fileInfo.Size() > maxFileSize {
@@ -468,8 +371,6 @@ func (w *Watcher) processFile(filePath string, isNew bool) {
 		return
 
 	}
-
-
 
 	// Read file content with retry for Windows file lock issues.
 
@@ -501,8 +402,6 @@ func (w *Watcher) processFile(filePath string, isNew bool) {
 
 	}
 
-
-
 	// Validate against schema.
 
 	if err := w.validator.Validate(data); err != nil {
@@ -512,8 +411,6 @@ func (w *Watcher) processFile(filePath string, isNew bool) {
 		return
 
 	}
-
-
 
 	// Parse into struct for logging.
 
@@ -527,15 +424,11 @@ func (w *Watcher) processFile(filePath string, isNew bool) {
 
 	}
 
-
-
 	// Log successful validation with structured summary.
 
 	log.Printf("WATCH:OK %s - type=%s target=%s namespace=%s replicas=%d",
 
 		filename, intent.IntentType, intent.Target, intent.Namespace, intent.Replicas)
-
-
 
 	// Optionally POST to HTTP endpoint.
 
@@ -547,23 +440,17 @@ func (w *Watcher) processFile(filePath string, isNew bool) {
 
 }
 
-
-
 // postIntent sends the validated intent to an HTTP endpoint with worker pool management.
 
 func (w *Watcher) postIntent(filePath string, data []byte) {
 
 	filename := filepath.Base(filePath)
 
-
-
 	// Acquire semaphore to limit concurrent HTTP operations.
 
 	w.httpSemaphore <- struct{}{}
 
 	defer func() { <-w.httpSemaphore }()
-
-
 
 	// Create HTTP request with context and timeout.
 
@@ -581,8 +468,6 @@ func (w *Watcher) postIntent(filePath string, data []byte) {
 
 	}
 
-
-
 	// Set standard headers.
 
 	req.Header.Set("Content-Type", "application/json")
@@ -590,8 +475,6 @@ func (w *Watcher) postIntent(filePath string, data []byte) {
 	req.Header.Set("X-Intent-File", filename)
 
 	req.Header.Set("X-Timestamp", time.Now().UTC().Format(time.RFC3339))
-
-
 
 	// Add authentication headers if configured.
 
@@ -607,8 +490,6 @@ func (w *Watcher) postIntent(filePath string, data []byte) {
 
 	}
 
-
-
 	// Send request.
 
 	resp, err := w.httpClient.Do(req)
@@ -622,8 +503,6 @@ func (w *Watcher) postIntent(filePath string, data []byte) {
 	}
 
 	defer resp.Body.Close()
-
-
 
 	// Read response body with size limit (10MB).
 
@@ -641,8 +520,6 @@ func (w *Watcher) postIntent(filePath string, data []byte) {
 
 	}
 
-
-
 	// Log result.
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
@@ -656,4 +533,3 @@ func (w *Watcher) postIntent(filePath string, data []byte) {
 	}
 
 }
-

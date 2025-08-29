@@ -1,41 +1,25 @@
-
 package watch
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"os"
-
 	"sync"
 
-
-
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
-
 )
-
-
 
 // Validator handles JSON schema validation with caching.
 
 type Validator struct {
-
-	mu       sync.RWMutex
+	mu sync.RWMutex
 
 	compiler *jsonschema.Compiler
 
-	schema   *jsonschema.Schema
+	schema *jsonschema.Schema
 
-	path     string
-
+	path string
 }
-
-
 
 // NewValidator creates a new validator with the given schema file.
 
@@ -43,13 +27,10 @@ func NewValidator(schemaPath string) (*Validator, error) {
 
 	v := &Validator{
 
-		path:     schemaPath,
+		path: schemaPath,
 
 		compiler: jsonschema.NewCompiler(),
-
 	}
-
-
 
 	if err := v.loadSchema(); err != nil {
 
@@ -57,13 +38,9 @@ func NewValidator(schemaPath string) (*Validator, error) {
 
 	}
 
-
-
 	return v, nil
 
 }
-
-
 
 // loadSchema loads and compiles the JSON schema.
 
@@ -79,8 +56,6 @@ func (v *Validator) loadSchema() error {
 
 	}
 
-
-
 	// Parse schema as JSON.
 
 	var schemaJSON interface{}
@@ -90,8 +65,6 @@ func (v *Validator) loadSchema() error {
 		return fmt.Errorf("failed to parse schema JSON: %w", err)
 
 	}
-
-
 
 	// Add schema to compiler with draft 2020-12 support.
 
@@ -103,8 +76,6 @@ func (v *Validator) loadSchema() error {
 
 	}
 
-
-
 	// Compile the schema.
 
 	schema, err := v.compiler.Compile(v.path)
@@ -115,15 +86,11 @@ func (v *Validator) loadSchema() error {
 
 	}
 
-
-
 	v.schema = schema
 
 	return nil
 
 }
-
-
 
 // Validate validates JSON data against the schema.
 
@@ -132,8 +99,6 @@ func (v *Validator) Validate(data []byte) error {
 	v.mu.RLock()
 
 	defer v.mu.RUnlock()
-
-
 
 	// Parse JSON for validation.
 
@@ -145,8 +110,6 @@ func (v *Validator) Validate(data []byte) error {
 
 	}
 
-
-
 	// Validate against schema.
 
 	if err := v.schema.Validate(jsonData); err != nil {
@@ -155,13 +118,9 @@ func (v *Validator) Validate(data []byte) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ReloadSchema reloads the schema file (useful for hot reload).
 
@@ -171,11 +130,8 @@ func (v *Validator) ReloadSchema() error {
 
 	defer v.mu.Unlock()
 
-
-
 	v.compiler = jsonschema.NewCompiler()
 
 	return v.loadSchema()
 
 }
-

@@ -1,39 +1,21 @@
 //go:build !disable_rag
-
 // +build !disable_rag
-
-
-
 
 package llm
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"net/http"
-
 	"net/http/httptest"
-
 	"strings"
-
 	"testing"
-
 	"time"
-
 )
-
-
 
 // Note: All required types (BatchConfig, StreamingRequest, WorkerPoolConfig, etc.).
 
 // are already defined in other files in this package.
-
-
 
 // TestFullIntegrationWorkflow tests the complete LLM processing workflow.
 
@@ -45,75 +27,61 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 
 	defer llmServer.Close()
 
-
-
 	ragServer := setupMockRAGServer(t)
 
 	defer ragServer.Close()
-
-
 
 	// Create processing engine with all components.
 
 	client := NewClientWithConfig(llmServer.URL, ClientConfig{
 
-		APIKey:      "test-key",
+		APIKey: "test-key",
 
-		ModelName:   "gpt-4o-mini",
+		ModelName: "gpt-4o-mini",
 
 		BackendType: "openai",
 
-		Timeout:     10 * time.Second,
+		Timeout: 10 * time.Second,
 
-		CacheTTL:    1 * time.Minute,
-
+		CacheTTL: 1 * time.Minute,
 	})
-
-
 
 	processingConfig := &ProcessingConfig{
 
-		EnableRAG:       true,
+		EnableRAG: true,
 
-		RAGAPIURL:       ragServer.URL,
+		RAGAPIURL: ragServer.URL,
 
-		EnableBatching:  true,
+		EnableBatching: true,
 
-		MinBatchSize:    2,
+		MinBatchSize: 2,
 
-		MaxBatchSize:    5,
+		MaxBatchSize: 5,
 
 		EnableStreaming: false, // Simplified for testing
 
-		QueryTimeout:    30 * time.Second,
+		QueryTimeout: 30 * time.Second,
 
-		EnableCaching:   true,
-
+		EnableCaching: true,
 	}
 
-
-
 	engine := NewProcessingEngine(client, processingConfig)
-
-
 
 	// Test scenarios.
 
 	testScenarios := []struct {
+		name string
 
-		name        string
-
-		intent      string
+		intent string
 
 		expectError bool
 
-		validateFn  func(string) bool
-
+		validateFn func(string) bool
 	}{
 
 		{
 
-			name:   "Deploy AMF",
+			name: "Deploy AMF",
 
 			intent: "Deploy AMF network function with 3 replicas for high availability",
 
@@ -124,12 +92,11 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 					strings.Contains(result, "amf")
 
 			},
-
 		},
 
 		{
 
-			name:   "Scale UPF",
+			name: "Scale UPF",
 
 			intent: "Scale UPF to 5 replicas to handle increased traffic",
 
@@ -140,12 +107,11 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 					strings.Contains(result, "upf")
 
 			},
-
 		},
 
 		{
 
-			name:   "Deploy Near-RT RIC",
+			name: "Deploy Near-RT RIC",
 
 			intent: "Set up Near-RT RIC with traffic steering capabilities",
 
@@ -156,16 +122,10 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 					strings.Contains(result, "traffic")
 
 			},
-
 		},
-
 	}
 
-
-
 	ctx := context.Background()
-
-
 
 	// Execute test scenarios.
 
@@ -175,8 +135,6 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 
 			result, err := engine.ProcessIntent(ctx, scenario.intent)
 
-
-
 			if scenario.expectError && err == nil {
 
 				t.Errorf("Expected error for scenario %s, but got none", scenario.name)
@@ -185,8 +143,6 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 
 			}
 
-
-
 			if !scenario.expectError && err != nil {
 
 				t.Errorf("Unexpected error for scenario %s: %v", scenario.name, err)
@@ -194,8 +150,6 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 				return
 
 			}
-
-
 
 			if !scenario.expectError && scenario.validateFn != nil {
 
@@ -206,8 +160,6 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 				}
 
 			}
-
-
 
 			// Verify processing time is reasonable.
 
@@ -223,21 +175,15 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 
 }
 
-
-
 // TestCacheIntegration tests cache integration across components.
 
 func TestCacheIntegration(t *testing.T) {
 
 	callCount := 0
 
-
-
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		callCount++
-
-
 
 		w.WriteHeader(http.StatusOK)
 
@@ -261,47 +207,37 @@ func TestCacheIntegration(t *testing.T) {
 
 	defer server.Close()
 
-
-
 	// Create client with caching enabled.
 
 	client := NewClientWithConfig(server.URL, ClientConfig{
 
-		APIKey:      "test-key",
+		APIKey: "test-key",
 
 		BackendType: "openai",
 
-		CacheTTL:    2 * time.Minute,
+		CacheTTL: 2 * time.Minute,
 
-		Timeout:     10 * time.Second,
-
+		Timeout: 10 * time.Second,
 	})
-
-
 
 	// Create cache with semantic similarity.
 
 	cache := NewResponseCacheWithConfig(&CacheConfig{
 
-		TTL:                 2 * time.Minute,
+		TTL: 2 * time.Minute,
 
-		MaxSize:             1000,
+		MaxSize: 1000,
 
-		L1MaxSize:           250,
+		L1MaxSize: 250,
 
-		L2MaxSize:           750,
+		L2MaxSize: 750,
 
 		SimilarityThreshold: 0.8,
 
-		AdaptiveTTL:         true,
-
+		AdaptiveTTL: true,
 	})
 
-
-
 	ctx := context.Background()
-
-
 
 	// Test exact cache matches.
 
@@ -315,8 +251,6 @@ func TestCacheIntegration(t *testing.T) {
 
 	}
 
-
-
 	result2, err := client.ProcessIntent(ctx, intent1)
 
 	if err != nil {
@@ -325,15 +259,11 @@ func TestCacheIntegration(t *testing.T) {
 
 	}
 
-
-
 	if result1 != result2 {
 
 		t.Error("Cached results should be identical")
 
 	}
-
-
 
 	if callCount != 1 {
 
@@ -341,13 +271,9 @@ func TestCacheIntegration(t *testing.T) {
 
 	}
 
-
-
 	// Test semantic similarity caching.
 
 	cache.Set("similar_intent_1", "{\"deployment\": \"amf-similar\"}")
-
-
 
 	if result, found := cache.Get("similar_intent_2"); found {
 
@@ -356,8 +282,6 @@ func TestCacheIntegration(t *testing.T) {
 		t.Logf("Found similar cached result: %s", result)
 
 	}
-
-
 
 	// Verify cache statistics.
 
@@ -369,21 +293,15 @@ func TestCacheIntegration(t *testing.T) {
 
 	}
 
-
-
 	if stats["hit_rate"].(float64) <= 0 {
 
 		t.Error("Cache hit rate should be positive")
 
 	}
 
-
-
 	cache.Stop()
 
 }
-
-
 
 // TestWorkerPoolIntegration tests worker pool integration.
 
@@ -393,27 +311,24 @@ func TestWorkerPoolIntegration(t *testing.T) {
 
 	config := &WorkerPoolConfig{
 
-		MinWorkers:          2,
+		MinWorkers: 2,
 
-		MaxWorkers:          5,
+		MaxWorkers: 5,
 
-		QueueSize:           100,
+		QueueSize: 100,
 
-		TaskTimeout:         30 * time.Second,
+		TaskTimeout: 30 * time.Second,
 
-		ScalingEnabled:      true,
+		ScalingEnabled: true,
 
-		ScaleUpThreshold:    0.8,
+		ScaleUpThreshold: 0.8,
 
-		ScaleDownThreshold:  0.2,
+		ScaleDownThreshold: 0.2,
 
-		HealthCheckEnabled:  true,
+		HealthCheckEnabled: true,
 
 		HealthCheckInterval: 1 * time.Second,
-
 	}
-
-
 
 	pool, err := NewWorkerPool(config)
 
@@ -423,11 +338,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 
 	}
 
-
-
 	ctx := context.Background()
-
-
 
 	// Start worker pool.
 
@@ -436,8 +347,6 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		t.Fatalf("Failed to start worker pool: %v", err)
 
 	}
-
-
 
 	defer func() {
 
@@ -449,57 +358,49 @@ func TestWorkerPoolIntegration(t *testing.T) {
 
 	}()
 
-
-
 	// Submit various task types.
 
 	tasks := []Task{
 
 		{
 
-			ID:       "llm-task-1",
+			ID: "llm-task-1",
 
-			Type:     TaskTypeLLMProcessing,
+			Type: TaskTypeLLMProcessing,
 
-			Intent:   "Deploy AMF",
+			Intent: "Deploy AMF",
 
 			Priority: PriorityNormal,
 
-			Context:  ctx,
-
+			Context: ctx,
 		},
 
 		{
 
-			ID:       "rag-task-1",
+			ID: "rag-task-1",
 
-			Type:     TaskTypeRAGProcessing,
+			Type: TaskTypeRAGProcessing,
 
-			Intent:   "Process with RAG",
+			Intent: "Process with RAG",
 
 			Priority: PriorityHigh,
 
-			Context:  ctx,
-
+			Context: ctx,
 		},
 
 		{
 
-			ID:       "batch-task-1",
+			ID: "batch-task-1",
 
-			Type:     TaskTypeBatchProcessing,
+			Type: TaskTypeBatchProcessing,
 
-			Intent:   "Process batch",
+			Intent: "Process batch",
 
 			Priority: PriorityLow,
 
-			Context:  ctx,
-
+			Context: ctx,
 		},
-
 	}
-
-
 
 	// Submit tasks.
 
@@ -513,13 +414,9 @@ func TestWorkerPoolIntegration(t *testing.T) {
 
 	}
 
-
-
 	// Wait for processing.
 
 	time.Sleep(1 * time.Second)
-
-
 
 	// Check metrics.
 
@@ -531,8 +428,6 @@ func TestWorkerPoolIntegration(t *testing.T) {
 
 	}
 
-
-
 	status := pool.GetStatus()
 
 	if !status["running"].(bool) {
@@ -541,27 +436,22 @@ func TestWorkerPoolIntegration(t *testing.T) {
 
 	}
 
-
-
 	// Test scaling by submitting many tasks.
 
 	for i := 0; i < 50; i++ {
 
 		task := Task{
 
-			ID:       fmt.Sprintf("scale-task-%d", i),
+			ID: fmt.Sprintf("scale-task-%d", i),
 
-			Type:     TaskTypeLLMProcessing,
+			Type: TaskTypeLLMProcessing,
 
-			Intent:   fmt.Sprintf("Scale test %d", i),
+			Intent: fmt.Sprintf("Scale test %d", i),
 
 			Priority: PriorityNormal,
 
-			Context:  ctx,
-
+			Context: ctx,
 		}
-
-
 
 		// Non-blocking submit (queue might be full).
 
@@ -569,13 +459,9 @@ func TestWorkerPoolIntegration(t *testing.T) {
 
 	}
 
-
-
 	// Wait for scaling.
 
 	time.Sleep(2 * time.Second)
-
-
 
 	// Verify scaling occurred.
 
@@ -589,21 +475,15 @@ func TestWorkerPoolIntegration(t *testing.T) {
 
 }
 
-
-
 // TestCircuitBreakerIntegration tests circuit breaker integration.
 
 func TestCircuitBreakerIntegration(t *testing.T) {
 
 	failureCount := 0
 
-
-
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		failureCount++
-
-
 
 		// Fail first 5 requests, then succeed.
 
@@ -616,8 +496,6 @@ func TestCircuitBreakerIntegration(t *testing.T) {
 			return
 
 		}
-
-
 
 		w.WriteHeader(http.StatusOK)
 
@@ -641,45 +519,35 @@ func TestCircuitBreakerIntegration(t *testing.T) {
 
 	defer server.Close()
 
-
-
 	// Configure circuit breaker with low thresholds for testing.
 
 	cbConfig := &CircuitBreakerConfig{
 
-		FailureThreshold:    3,
+		FailureThreshold: 3,
 
-		FailureRate:         0.6,
+		FailureRate: 0.6,
 
 		MinimumRequestCount: 3,
 
-		Timeout:             1 * time.Second,
+		Timeout: 1 * time.Second,
 
-		ResetTimeout:        100 * time.Millisecond,
+		ResetTimeout: 100 * time.Millisecond,
 
 		HalfOpenMaxRequests: 2,
-
 	}
-
-
 
 	client := NewClientWithConfig(server.URL, ClientConfig{
 
-		APIKey:               "test-key",
+		APIKey: "test-key",
 
-		BackendType:          "openai",
+		BackendType: "openai",
 
-		Timeout:              5 * time.Second,
+		Timeout: 5 * time.Second,
 
 		CircuitBreakerConfig: cbConfig,
-
 	})
 
-
-
 	ctx := context.Background()
-
-
 
 	// Make failing requests to trigger circuit breaker.
 
@@ -713,13 +581,9 @@ func TestCircuitBreakerIntegration(t *testing.T) {
 
 	}
 
-
-
 	// Wait for circuit breaker to potentially reset.
 
 	time.Sleep(200 * time.Millisecond)
-
-
 
 	// Try again - circuit might be half-open.
 
@@ -737,8 +601,6 @@ func TestCircuitBreakerIntegration(t *testing.T) {
 
 }
 
-
-
 // TestPerformanceUnderLoad tests system performance under load.
 
 func TestPerformanceUnderLoad(t *testing.T) {
@@ -749,49 +611,37 @@ func TestPerformanceUnderLoad(t *testing.T) {
 
 	}
 
-
-
 	server := setupHighPerformanceMockServer(t)
 
 	defer server.Close()
 
-
-
 	client := NewClientWithConfig(server.URL, ClientConfig{
 
-		APIKey:      "test-key",
+		APIKey: "test-key",
 
 		BackendType: "openai",
 
-		Timeout:     30 * time.Second,
+		Timeout: 30 * time.Second,
 
-		CacheTTL:    5 * time.Minute,
-
+		CacheTTL: 5 * time.Minute,
 	})
-
-
 
 	engine := NewProcessingEngine(client, &ProcessingConfig{
 
-		EnableRAG:             false, // Simplified for performance test
+		EnableRAG: false, // Simplified for performance test
 
-		EnableBatching:        true,
+		EnableBatching: true,
 
-		MinBatchSize:          5,
+		MinBatchSize: 5,
 
-		MaxBatchSize:          20,
+		MaxBatchSize: 20,
 
-		BatchTimeout:          50 * time.Millisecond,
+		BatchTimeout: 50 * time.Millisecond,
 
 		MaxConcurrentRequests: 50,
-
 	})
 
-
-
 	ctx := context.Background()
-
-
 
 	// Create multiple concurrent requests.
 
@@ -799,13 +649,9 @@ func TestPerformanceUnderLoad(t *testing.T) {
 
 	numWorkers := 10
 
-
-
 	requestChan := make(chan string, numRequests)
 
 	resultChan := make(chan *ProcessingResult, numRequests)
-
-
 
 	// Generate requests.
 
@@ -817,13 +663,9 @@ func TestPerformanceUnderLoad(t *testing.T) {
 
 	close(requestChan)
 
-
-
 	// Start workers.
 
 	startTime := time.Now()
-
-
 
 	for i := 0; i < numWorkers; i++ {
 
@@ -851,8 +693,6 @@ func TestPerformanceUnderLoad(t *testing.T) {
 
 	}
 
-
-
 	// Collect results.
 
 	successCount := 0
@@ -860,8 +700,6 @@ func TestPerformanceUnderLoad(t *testing.T) {
 	errorCount := 0
 
 	totalProcessingTime := time.Duration(0)
-
-
 
 	for i := 0; i < numRequests; i++ {
 
@@ -881,11 +719,7 @@ func TestPerformanceUnderLoad(t *testing.T) {
 
 	}
 
-
-
 	totalTime := time.Since(startTime)
-
-
 
 	// Analyze performance.
 
@@ -894,8 +728,6 @@ func TestPerformanceUnderLoad(t *testing.T) {
 	averageProcessingTime := totalProcessingTime / time.Duration(successCount)
 
 	requestsPerSecond := float64(numRequests) / totalTime.Seconds()
-
-
 
 	t.Logf("Performance Results:")
 
@@ -909,8 +741,6 @@ func TestPerformanceUnderLoad(t *testing.T) {
 
 	t.Logf("  Total Time: %v", totalTime)
 
-
-
 	// Performance assertions.
 
 	if successRate < 0.95 {
@@ -919,23 +749,17 @@ func TestPerformanceUnderLoad(t *testing.T) {
 
 	}
 
-
-
 	if averageProcessingTime > 1*time.Second {
 
 		t.Errorf("Average processing time too high: %v (expected < 1s)", averageProcessingTime)
 
 	}
 
-
-
 	if requestsPerSecond < 10 {
 
 		t.Errorf("Throughput too low: %.2f RPS (expected > 10 RPS)", requestsPerSecond)
 
 	}
-
-
 
 	// Check metrics.
 
@@ -949,8 +773,6 @@ func TestPerformanceUnderLoad(t *testing.T) {
 
 }
 
-
-
 // TestSecurityFeatures tests security-related functionality.
 
 func TestSecurityFeatures(t *testing.T) {
@@ -959,15 +781,12 @@ func TestSecurityFeatures(t *testing.T) {
 
 	client := NewClientWithConfig("https://secure.example.com", ClientConfig{
 
-		APIKey:              "test-key",
+		APIKey: "test-key",
 
 		SkipTLSVerification: false, // Security should be enforced
 
-		Timeout:             10 * time.Second,
-
+		Timeout: 10 * time.Second,
 	})
-
-
 
 	// Test API key handling (simplified check).
 
@@ -977,8 +796,6 @@ func TestSecurityFeatures(t *testing.T) {
 
 	}
 
-
-
 	// Test timeout enforcement.
 
 	shortClient := NewClientWithConfig("http://slow.example.com", ClientConfig{
@@ -986,8 +803,6 @@ func TestSecurityFeatures(t *testing.T) {
 		Timeout: 1 * time.Millisecond, // Very short timeout
 
 	})
-
-
 
 	if shortClient == nil {
 
@@ -997,11 +812,7 @@ func TestSecurityFeatures(t *testing.T) {
 
 }
 
-
-
 // Helper functions for testing.
-
-
 
 func setupMockLLMServer(t *testing.T) *httptest.Server {
 
@@ -1010,8 +821,6 @@ func setupMockLLMServer(t *testing.T) *httptest.Server {
 		// Simulate realistic LLM API responses.
 
 		time.Sleep(10 * time.Millisecond) // Simulate processing time
-
-
 
 		w.WriteHeader(http.StatusOK)
 
@@ -1043,8 +852,6 @@ func setupMockLLMServer(t *testing.T) *httptest.Server {
 
 }
 
-
-
 func setupMockRAGServer(t *testing.T) *httptest.Server {
 
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1057,11 +864,7 @@ func setupMockRAGServer(t *testing.T) *httptest.Server {
 
 		}
 
-
-
 		time.Sleep(20 * time.Millisecond) // Simulate RAG processing time
-
-
 
 		w.WriteHeader(http.StatusOK)
 
@@ -1099,8 +902,6 @@ func setupMockRAGServer(t *testing.T) *httptest.Server {
 
 }
 
-
-
 func setupHighPerformanceMockServer(t *testing.T) *httptest.Server {
 
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1128,4 +929,3 @@ func setupHighPerformanceMockServer(t *testing.T) *httptest.Server {
 	}))
 
 }
-

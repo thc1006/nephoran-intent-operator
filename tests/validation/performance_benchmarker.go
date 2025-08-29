@@ -1,97 +1,65 @@
 // Package validation provides performance benchmarking and validation.
 
-
 package validation
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"sync/atomic"
-
 	"time"
 
-
-
-	"github.com/onsi/ginkgo/v2"
-
-
-
 	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
-
+	"github.com/onsi/ginkgo/v2"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // PerformanceBenchmarker provides comprehensive performance testing.
 
 type PerformanceBenchmarker struct {
-
-	config    *ValidationConfig
+	config *ValidationConfig
 
 	k8sClient client.Client
-
 }
-
-
 
 // LatencyBenchmarkResult contains latency benchmark results.
 
 type LatencyBenchmarkResult struct {
-
-	TotalRequests  int
+	TotalRequests int
 
 	SuccessfulReqs int
 
-	FailedReqs     int
+	FailedReqs int
 
 	AverageLatency time.Duration
 
-	P95Latency     time.Duration
+	P95Latency time.Duration
 
-	P99Latency     time.Duration
+	P99Latency time.Duration
 
-	MinLatency     time.Duration
+	MinLatency time.Duration
 
-	MaxLatency     time.Duration
-
+	MaxLatency time.Duration
 }
-
-
 
 // ThroughputBenchmarkResult contains throughput benchmark results.
 
 type ThroughputBenchmarkResult struct {
+	TestDuration time.Duration
 
-	TestDuration       time.Duration
+	TotalIntents int
 
-	TotalIntents       int
+	SuccessfulIntents int
 
-	SuccessfulIntents  int
-
-	FailedIntents      int
+	FailedIntents int
 
 	ThroughputAchieved float64 // intents per minute
 
-	AverageLatency     time.Duration
-
+	AverageLatency time.Duration
 }
-
-
 
 // NewPerformanceBenchmarker creates a new performance benchmarker.
 
@@ -100,12 +68,9 @@ func NewPerformanceBenchmarker(config *ValidationConfig) *PerformanceBenchmarker
 	return &PerformanceBenchmarker{
 
 		config: config,
-
 	}
 
 }
-
-
 
 // SetK8sClient sets the Kubernetes client for benchmarking.
 
@@ -115,15 +80,11 @@ func (pb *PerformanceBenchmarker) SetK8sClient(client client.Client) {
 
 }
 
-
-
 // BenchmarkLatency performs comprehensive latency benchmarking.
 
 func (pb *PerformanceBenchmarker) BenchmarkLatency(ctx context.Context) *LatencyBenchmarkResult {
 
 	ginkgo.By("Running Latency Performance Benchmark")
-
-
 
 	const numRequests = 100
 
@@ -135,17 +96,11 @@ func (pb *PerformanceBenchmarker) BenchmarkLatency(ctx context.Context) *Latency
 
 	var wg sync.WaitGroup
 
-
-
 	// Create a buffered channel to control concurrency.
 
 	semaphore := make(chan struct{}, pb.config.ConcurrencyLevel)
 
-
-
 	startTime := time.Now()
-
-
 
 	for i := range numRequests {
 
@@ -155,21 +110,15 @@ func (pb *PerformanceBenchmarker) BenchmarkLatency(ctx context.Context) *Latency
 
 			defer wg.Done()
 
-
-
 			// Acquire semaphore.
 
 			semaphore <- struct{}{}
 
 			defer func() { <-semaphore }()
 
-
-
 			latency, success := pb.measureSingleRequestLatency(ctx, requestID)
 
 			latencies[requestID] = latency
-
-
 
 			if success {
 
@@ -185,37 +134,28 @@ func (pb *PerformanceBenchmarker) BenchmarkLatency(ctx context.Context) *Latency
 
 	}
 
-
-
 	wg.Wait()
 
 	totalTime := time.Since(startTime)
-
-
 
 	// Calculate statistics.
 
 	result := &LatencyBenchmarkResult{
 
-		TotalRequests:  numRequests,
+		TotalRequests: numRequests,
 
 		SuccessfulReqs: int(successCount),
 
-		FailedReqs:     int(failCount),
+		FailedReqs: int(failCount),
 
-		MinLatency:     time.Hour, // Initialize to max value
+		MinLatency: time.Hour, // Initialize to max value
 
-		MaxLatency:     0,
-
+		MaxLatency: 0,
 	}
-
-
 
 	var totalLatency time.Duration
 
 	validLatencies := make([]time.Duration, 0, numRequests)
-
-
 
 	for _, latency := range latencies {
 
@@ -224,8 +164,6 @@ func (pb *PerformanceBenchmarker) BenchmarkLatency(ctx context.Context) *Latency
 			validLatencies = append(validLatencies, latency)
 
 			totalLatency += latency
-
-
 
 			if latency < result.MinLatency {
 
@@ -243,8 +181,6 @@ func (pb *PerformanceBenchmarker) BenchmarkLatency(ctx context.Context) *Latency
 
 	}
 
-
-
 	if len(validLatencies) > 0 {
 
 		result.AverageLatency = totalLatency / time.Duration(len(validLatencies))
@@ -254,8 +190,6 @@ func (pb *PerformanceBenchmarker) BenchmarkLatency(ctx context.Context) *Latency
 		result.P99Latency = pb.calculatePercentile(validLatencies, 99)
 
 	}
-
-
 
 	ginkgo.By("Latency Benchmark Results:")
 
@@ -275,13 +209,9 @@ func (pb *PerformanceBenchmarker) BenchmarkLatency(ctx context.Context) *Latency
 
 	ginkgo.By(fmt.Sprintf("  Total Test Time: %v", totalTime))
 
-
-
 	return result
 
 }
-
-
 
 // measureSingleRequestLatency measures latency for a single intent request.
 
@@ -291,25 +221,18 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      fmt.Sprintf("latency-test-%d-%d", time.Now().Unix(), requestID),
+			Name: fmt.Sprintf("latency-test-%d-%d", time.Now().Unix(), requestID),
 
 			Namespace: "default",
-
 		},
 
 		Spec: nephranv1.NetworkIntentSpec{
 
 			Intent: "Deploy AMF with standard configuration",
-
 		},
-
 	}
 
-
-
 	startTime := time.Now()
-
-
 
 	// Create the intent.
 
@@ -321,8 +244,6 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 
 	}
 
-
-
 	// Wait for processing to start (latency measurement endpoint).
 
 	timeout := time.After(30 * time.Second)
@@ -330,8 +251,6 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 	ticker := time.NewTicker(500 * time.Millisecond)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -357,8 +276,6 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 
 			}
 
-
-
 			// Consider latency measured when intent reaches processing phase.
 
 			if testIntent.Status.Phase == "Processing" ||
@@ -370,8 +287,6 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 				testIntent.Status.Phase == "Deployed" {
 
 				latency := time.Since(startTime)
-
-
 
 				// Cleanup.
 
@@ -385,13 +300,9 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 
 				}()
 
-
-
 				return latency, true
 
 			}
-
-
 
 			// If failed, cleanup and return.
 
@@ -413,15 +324,11 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 
 }
 
-
-
 // BenchmarkThroughput performs comprehensive throughput benchmarking.
 
 func (pb *PerformanceBenchmarker) BenchmarkThroughput(ctx context.Context) *ThroughputBenchmarkResult {
 
 	ginkgo.By("Running Throughput Performance Benchmark")
-
-
 
 	testDuration := pb.config.LoadTestDuration
 
@@ -431,8 +338,6 @@ func (pb *PerformanceBenchmarker) BenchmarkThroughput(ctx context.Context) *Thro
 
 	}
 
-
-
 	var intentCount int64
 
 	var successCount int64
@@ -441,23 +346,15 @@ func (pb *PerformanceBenchmarker) BenchmarkThroughput(ctx context.Context) *Thro
 
 	var totalLatency int64 // in nanoseconds
 
-
-
 	startTime := time.Now()
 
 	endTime := startTime.Add(testDuration)
 
-
-
 	var wg sync.WaitGroup
-
-
 
 	// Channel to signal workers to stop.
 
 	stopChan := make(chan struct{})
-
-
 
 	// Start multiple workers.
 
@@ -469,8 +366,6 @@ func (pb *PerformanceBenchmarker) BenchmarkThroughput(ctx context.Context) *Thro
 
 	}
 
-
-
 	for i := range numWorkers {
 
 		wg.Add(1)
@@ -478,8 +373,6 @@ func (pb *PerformanceBenchmarker) BenchmarkThroughput(ctx context.Context) *Thro
 		go func(workerID int) {
 
 			defer wg.Done()
-
-
 
 			workerIntentCount := 0
 
@@ -499,13 +392,9 @@ func (pb *PerformanceBenchmarker) BenchmarkThroughput(ctx context.Context) *Thro
 
 					}
 
-
-
 					latency, success := pb.processThroughputIntent(ctx, workerID, workerIntentCount)
 
 					atomic.AddInt64(&intentCount, 1)
-
-
 
 					if success {
 
@@ -519,8 +408,6 @@ func (pb *PerformanceBenchmarker) BenchmarkThroughput(ctx context.Context) *Thro
 
 					}
 
-
-
 					workerIntentCount++
 
 				}
@@ -531,8 +418,6 @@ func (pb *PerformanceBenchmarker) BenchmarkThroughput(ctx context.Context) *Thro
 
 	}
 
-
-
 	// Wait for test duration.
 
 	time.Sleep(testDuration)
@@ -541,27 +426,20 @@ func (pb *PerformanceBenchmarker) BenchmarkThroughput(ctx context.Context) *Thro
 
 	wg.Wait()
 
-
-
 	actualDuration := time.Since(startTime)
-
-
 
 	// Calculate results.
 
 	result := &ThroughputBenchmarkResult{
 
-		TestDuration:      actualDuration,
+		TestDuration: actualDuration,
 
-		TotalIntents:      int(intentCount),
+		TotalIntents: int(intentCount),
 
 		SuccessfulIntents: int(successCount),
 
-		FailedIntents:     int(failCount),
-
+		FailedIntents: int(failCount),
 	}
-
-
 
 	// Calculate throughput (intents per minute).
 
@@ -571,8 +449,6 @@ func (pb *PerformanceBenchmarker) BenchmarkThroughput(ctx context.Context) *Thro
 
 	}
 
-
-
 	// Calculate average latency.
 
 	if successCount > 0 {
@@ -580,8 +456,6 @@ func (pb *PerformanceBenchmarker) BenchmarkThroughput(ctx context.Context) *Thro
 		result.AverageLatency = time.Duration(totalLatency / successCount)
 
 	}
-
-
 
 	ginkgo.By("Throughput Benchmark Results:")
 
@@ -597,13 +471,9 @@ func (pb *PerformanceBenchmarker) BenchmarkThroughput(ctx context.Context) *Thro
 
 	ginkgo.By(fmt.Sprintf("  Average Latency: %v", result.AverageLatency))
 
-
-
 	return result
 
 }
-
-
 
 // processThroughputIntent processes a single intent for throughput testing.
 
@@ -613,25 +483,18 @@ func (pb *PerformanceBenchmarker) processThroughputIntent(ctx context.Context, w
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      fmt.Sprintf("throughput-test-w%d-i%d-%d", workerID, intentID, time.Now().UnixNano()),
+			Name: fmt.Sprintf("throughput-test-w%d-i%d-%d", workerID, intentID, time.Now().UnixNano()),
 
 			Namespace: "default",
-
 		},
 
 		Spec: nephranv1.NetworkIntentSpec{
 
 			Intent: fmt.Sprintf("Deploy AMF instance %d for worker %d", intentID, workerID),
-
 		},
-
 	}
 
-
-
 	startTime := time.Now()
-
-
 
 	err := pb.k8sClient.Create(ctx, testIntent)
 
@@ -641,8 +504,6 @@ func (pb *PerformanceBenchmarker) processThroughputIntent(ctx context.Context, w
 
 	}
 
-
-
 	// For throughput testing, we just measure creation + initial processing time.
 
 	timeout := time.After(10 * time.Second)
@@ -650,8 +511,6 @@ func (pb *PerformanceBenchmarker) processThroughputIntent(ctx context.Context, w
 	ticker := time.NewTicker(200 * time.Millisecond)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -677,13 +536,9 @@ func (pb *PerformanceBenchmarker) processThroughputIntent(ctx context.Context, w
 
 			}
 
-
-
 			if testIntent.Status.Phase != "" && testIntent.Status.Phase != "Pending" {
 
 				latency := time.Since(startTime)
-
-
 
 				// Async cleanup.
 
@@ -697,8 +552,6 @@ func (pb *PerformanceBenchmarker) processThroughputIntent(ctx context.Context, w
 
 				}()
 
-
-
 				return latency, testIntent.Status.Phase != "Failed"
 
 			}
@@ -709,32 +562,24 @@ func (pb *PerformanceBenchmarker) processThroughputIntent(ctx context.Context, w
 
 }
 
-
-
 // BenchmarkScalability performs scalability testing (returns score 0-5).
 
 func (pb *PerformanceBenchmarker) BenchmarkScalability(ctx context.Context) int {
 
 	ginkgo.By("Running Scalability Benchmark")
 
-
-
 	score := 0
 
 	maxScore := 5
 
-
-
 	// Test concurrent intent processing at different scales.
 
 	testCases := []struct {
-
-		concurrency   int
+		concurrency int
 
 		expectedScore int
 
-		description   string
-
+		description string
 	}{
 
 		{10, 1, "10 concurrent intents"},
@@ -746,16 +591,11 @@ func (pb *PerformanceBenchmarker) BenchmarkScalability(ctx context.Context) int 
 		{100, 1, "100 concurrent intents"},
 
 		{200, 1, "200 concurrent intents"},
-
 	}
-
-
 
 	for _, testCase := range testCases {
 
 		ginkgo.By(fmt.Sprintf("Testing scalability: %s", testCase.description))
-
-
 
 		success := pb.runScalabilityTest(ctx, testCase.concurrency)
 
@@ -777,15 +617,11 @@ func (pb *PerformanceBenchmarker) BenchmarkScalability(ctx context.Context) int 
 
 	}
 
-
-
 	ginkgo.By(fmt.Sprintf("Scalability Benchmark: %d/%d points", score, maxScore))
 
 	return score
 
 }
-
-
 
 // runScalabilityTest runs a scalability test with specified concurrency.
 
@@ -797,11 +633,7 @@ func (pb *PerformanceBenchmarker) runScalabilityTest(ctx context.Context, concur
 
 	var failCount int64
 
-
-
 	startTime := time.Now()
-
-
 
 	for i := range concurrency {
 
@@ -811,27 +643,20 @@ func (pb *PerformanceBenchmarker) runScalabilityTest(ctx context.Context, concur
 
 			defer wg.Done()
 
-
-
 			testIntent := &nephranv1.NetworkIntent{
 
 				ObjectMeta: metav1.ObjectMeta{
 
-					Name:      fmt.Sprintf("scale-test-%d-%d", id, time.Now().UnixNano()),
+					Name: fmt.Sprintf("scale-test-%d-%d", id, time.Now().UnixNano()),
 
 					Namespace: "default",
-
 				},
 
 				Spec: nephranv1.NetworkIntentSpec{
 
 					Intent: fmt.Sprintf("Deploy network function for scale test %d", id),
-
 				},
-
 			}
-
-
 
 			err := pb.k8sClient.Create(ctx, testIntent)
 
@@ -843,8 +668,6 @@ func (pb *PerformanceBenchmarker) runScalabilityTest(ctx context.Context, concur
 
 			}
 
-
-
 			// Wait for processing to start.
 
 			timeout := time.After(30 * time.Second)
@@ -852,8 +675,6 @@ func (pb *PerformanceBenchmarker) runScalabilityTest(ctx context.Context, concur
 			ticker := time.NewTicker(1 * time.Second)
 
 			defer ticker.Stop()
-
-
 
 			for {
 
@@ -881,8 +702,6 @@ func (pb *PerformanceBenchmarker) runScalabilityTest(ctx context.Context, concur
 
 					}
 
-
-
 					if testIntent.Status.Phase != "" && testIntent.Status.Phase != "Pending" {
 
 						if testIntent.Status.Phase != "Failed" {
@@ -894,8 +713,6 @@ func (pb *PerformanceBenchmarker) runScalabilityTest(ctx context.Context, concur
 							atomic.AddInt64(&failCount, 1)
 
 						}
-
-
 
 						// Cleanup.
 
@@ -917,23 +734,15 @@ func (pb *PerformanceBenchmarker) runScalabilityTest(ctx context.Context, concur
 
 	}
 
-
-
 	wg.Wait()
 
 	testDuration := time.Since(startTime)
 
-
-
 	successRate := float64(successCount) / float64(concurrency) * 100
-
-
 
 	ginkgo.By(fmt.Sprintf("  Concurrency: %d, Success: %d/%d (%.1f%%), Duration: %v",
 
 		concurrency, successCount, concurrency, successRate, testDuration))
-
-
 
 	// Require at least 80% success rate for scalability test to pass.
 
@@ -941,19 +750,13 @@ func (pb *PerformanceBenchmarker) runScalabilityTest(ctx context.Context, concur
 
 }
 
-
-
 // BenchmarkResourceEfficiency measures resource utilization efficiency (returns score 0-4).
 
 func (pb *PerformanceBenchmarker) BenchmarkResourceEfficiency(ctx context.Context) int {
 
 	ginkgo.By("Running Resource Efficiency Benchmark")
 
-
-
 	score := 0
-
-
 
 	// Test 1: Memory efficiency (2 points).
 
@@ -971,8 +774,6 @@ func (pb *PerformanceBenchmarker) BenchmarkResourceEfficiency(ctx context.Contex
 
 	}
 
-
-
 	// Test 2: CPU efficiency (2 points).
 
 	cpuEfficient := pb.testCPUEfficiency(ctx)
@@ -989,15 +790,11 @@ func (pb *PerformanceBenchmarker) BenchmarkResourceEfficiency(ctx context.Contex
 
 	}
 
-
-
 	ginkgo.By(fmt.Sprintf("Resource Efficiency: %d/4 points", score))
 
 	return score
 
 }
-
-
 
 // testMemoryEfficiency tests memory usage efficiency.
 
@@ -1007,13 +804,9 @@ func (pb *PerformanceBenchmarker) testMemoryEfficiency(ctx context.Context) bool
 
 	// For now, we'll simulate by creating several intents and assuming efficient memory use.
 
-
-
 	const numIntents = 20
 
 	var wg sync.WaitGroup
-
-
 
 	for i := range numIntents {
 
@@ -1023,27 +816,20 @@ func (pb *PerformanceBenchmarker) testMemoryEfficiency(ctx context.Context) bool
 
 			defer wg.Done()
 
-
-
 			testIntent := &nephranv1.NetworkIntent{
 
 				ObjectMeta: metav1.ObjectMeta{
 
-					Name:      fmt.Sprintf("memory-test-%d", id),
+					Name: fmt.Sprintf("memory-test-%d", id),
 
 					Namespace: "default",
-
 				},
 
 				Spec: nephranv1.NetworkIntentSpec{
 
 					Intent: "Deploy lightweight test function for memory efficiency",
-
 				},
-
 			}
-
-
 
 			if err := pb.k8sClient.Create(ctx, testIntent); err != nil {
 
@@ -1053,13 +839,9 @@ func (pb *PerformanceBenchmarker) testMemoryEfficiency(ctx context.Context) bool
 
 			}
 
-
-
 			// Quick processing check.
 
 			time.Sleep(5 * time.Second)
-
-
 
 			// Cleanup.
 
@@ -1073,11 +855,7 @@ func (pb *PerformanceBenchmarker) testMemoryEfficiency(ctx context.Context) bool
 
 	}
 
-
-
 	wg.Wait()
-
-
 
 	// In a real implementation, this would check memory metrics.
 
@@ -1087,8 +865,6 @@ func (pb *PerformanceBenchmarker) testMemoryEfficiency(ctx context.Context) bool
 
 }
 
-
-
 // testCPUEfficiency tests CPU usage efficiency.
 
 func (pb *PerformanceBenchmarker) testCPUEfficiency(ctx context.Context) bool {
@@ -1097,19 +873,13 @@ func (pb *PerformanceBenchmarker) testCPUEfficiency(ctx context.Context) bool {
 
 	// This would monitor CPU usage during processing.
 
-
-
 	startTime := time.Now()
-
-
 
 	// Process multiple intents concurrently.
 
 	const concurrency = 15
 
 	var wg sync.WaitGroup
-
-
 
 	for i := range concurrency {
 
@@ -1119,27 +889,20 @@ func (pb *PerformanceBenchmarker) testCPUEfficiency(ctx context.Context) bool {
 
 			defer wg.Done()
 
-
-
 			testIntent := &nephranv1.NetworkIntent{
 
 				ObjectMeta: metav1.ObjectMeta{
 
-					Name:      fmt.Sprintf("cpu-test-%d", id),
+					Name: fmt.Sprintf("cpu-test-%d", id),
 
 					Namespace: "default",
-
 				},
 
 				Spec: nephranv1.NetworkIntentSpec{
 
 					Intent: "Deploy CPU-efficient test function",
-
 				},
-
 			}
-
-
 
 			if err := pb.k8sClient.Create(ctx, testIntent); err != nil {
 
@@ -1161,21 +924,15 @@ func (pb *PerformanceBenchmarker) testCPUEfficiency(ctx context.Context) bool {
 
 	}
 
-
-
 	wg.Wait()
 
 	processingTime := time.Since(startTime)
-
-
 
 	// Assume efficient if processing completed in reasonable time.
 
 	return processingTime < 2*time.Minute
 
 }
-
-
 
 // calculatePercentile calculates the specified percentile from a slice of durations.
 
@@ -1187,13 +944,9 @@ func (pb *PerformanceBenchmarker) calculatePercentile(durations []time.Duration,
 
 	}
 
-
-
 	// Simple percentile calculation (would use proper sorting in production).
 
 	// For testing purposes, we'll use a reasonable approximation.
-
-
 
 	// Sort the durations (simple bubble sort for testing).
 
@@ -1211,8 +964,6 @@ func (pb *PerformanceBenchmarker) calculatePercentile(durations []time.Duration,
 
 	}
 
-
-
 	index := (percentile * len(durations)) / 100
 
 	if index >= len(durations) {
@@ -1221,13 +972,9 @@ func (pb *PerformanceBenchmarker) calculatePercentile(durations []time.Duration,
 
 	}
 
-
-
 	return durations[index]
 
 }
-
-
 
 // ExecutePerformanceTests executes performance tests and returns score.
 
@@ -1235,11 +982,7 @@ func (pb *PerformanceBenchmarker) ExecutePerformanceTests(ctx context.Context) (
 
 	ginkgo.By("Executing Performance Benchmarking Tests")
 
-
-
 	score := 0
-
-
 
 	// Test 1: Latency Performance (8 points).
 
@@ -1260,8 +1003,6 @@ func (pb *PerformanceBenchmarker) ExecutePerformanceTests(ctx context.Context) (
 			latencyResult.P95Latency, pb.config.LatencyThreshold))
 
 	}
-
-
 
 	// Test 2: Throughput Performance (8 points).
 
@@ -1285,8 +1026,6 @@ func (pb *PerformanceBenchmarker) ExecutePerformanceTests(ctx context.Context) (
 
 	}
 
-
-
 	// Test 3: Scalability Testing (5 points).
 
 	ginkgo.By("Testing Scalability")
@@ -1296,8 +1035,6 @@ func (pb *PerformanceBenchmarker) ExecutePerformanceTests(ctx context.Context) (
 	score += scalabilityScore
 
 	ginkgo.By(fmt.Sprintf("Scalability Performance: %d/5 points", scalabilityScore))
-
-
 
 	// Test 4: Resource Efficiency (4 points).
 
@@ -1309,9 +1046,6 @@ func (pb *PerformanceBenchmarker) ExecutePerformanceTests(ctx context.Context) (
 
 	ginkgo.By(fmt.Sprintf("Resource Efficiency: %d/4 points", resourceScore))
 
-
-
 	return score, nil
 
 }
-

@@ -1,113 +1,84 @@
-
 package disaster_recovery
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
-
-
 
 	"k8s.io/apimachinery/pkg/util/wait"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // RecoveryOrchestrator coordinates disaster recovery operations.
 
 type RecoveryOrchestrator struct {
+	client client.Client
 
-	client           client.Client
+	backupManager *BackupManager
 
-	backupManager    *BackupManager
-
-	scenarios        map[string]*DisasterScenario
+	scenarios map[string]*DisasterScenario
 
 	activeRecoveries sync.Map
 
-	mu               sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // RecoveryPlan defines a comprehensive recovery strategy.
 
 type RecoveryPlan struct {
+	ID string `json:"id"`
 
-	ID               string           `json:"id"`
+	Name string `json:"name"`
 
-	Name             string           `json:"name"`
+	Description string `json:"description"`
 
-	Description      string           `json:"description"`
+	DisasterType DisasterType `json:"disaster_type"`
 
-	DisasterType     DisasterType     `json:"disaster_type"`
+	Steps []RecoveryStep `json:"steps"`
 
-	Steps            []RecoveryStep   `json:"steps"`
+	Rollback []RecoveryStep `json:"rollback"`
 
-	Rollback         []RecoveryStep   `json:"rollback"`
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout          time.Duration    `json:"timeout"`
+	MaxRetries int `json:"max_retries"`
 
-	MaxRetries       int              `json:"max_retries"`
+	Prerequisites []string `json:"prerequisites"`
 
-	Prerequisites    []string         `json:"prerequisites"`
-
-	HealthChecks     []HealthCheck    `json:"health_checks"`
+	HealthChecks []HealthCheck `json:"health_checks"`
 
 	NotificationPlan NotificationPlan `json:"notification_plan"`
-
 }
-
-
 
 // RecoveryStep represents a single step in recovery process.
 
 type RecoveryStep struct {
+	ID string `json:"id"`
 
-	ID           string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name         string                 `json:"name"`
+	Type RecoveryStepType `json:"type"`
 
-	Type         RecoveryStepType       `json:"type"`
+	Parameters map[string]interface{} `json:"parameters"`
 
-	Parameters   map[string]interface{} `json:"parameters"`
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout      time.Duration          `json:"timeout"`
+	RetryPolicy RetryPolicy `json:"retry_policy"`
 
-	RetryPolicy  RetryPolicy            `json:"retry_policy"`
+	Dependencies []string `json:"dependencies"`
 
-	Dependencies []string               `json:"dependencies"`
+	Parallel bool `json:"parallel"`
 
-	Parallel     bool                   `json:"parallel"`
+	Critical bool `json:"critical"`
 
-	Critical     bool                   `json:"critical"`
-
-	Executor     StepExecutor           `json:"-"`
-
+	Executor StepExecutor `json:"-"`
 }
-
-
 
 // RecoveryStepType defines types of recovery steps.
 
 type RecoveryStepType string
-
-
 
 const (
 
@@ -150,146 +121,113 @@ const (
 	// StepTypeNotification holds steptypenotification value.
 
 	StepTypeNotification RecoveryStepType = "notification"
-
 )
-
-
 
 // RetryPolicy defines retry behavior for recovery steps.
 
 type RetryPolicy struct {
+	MaxRetries int `json:"max_retries"`
 
-	MaxRetries        int           `json:"max_retries"`
+	InitialDelay time.Duration `json:"initial_delay"`
 
-	InitialDelay      time.Duration `json:"initial_delay"`
+	BackoffMultiplier float64 `json:"backoff_multiplier"`
 
-	BackoffMultiplier float64       `json:"backoff_multiplier"`
-
-	MaxDelay          time.Duration `json:"max_delay"`
-
+	MaxDelay time.Duration `json:"max_delay"`
 }
-
-
 
 // HealthCheck defines a health validation.
 
 type HealthCheck struct {
+	Name string `json:"name"`
 
-	Name     string        `json:"name"`
+	Type string `json:"type"`
 
-	Type     string        `json:"type"`
+	Target string `json:"target"`
 
-	Target   string        `json:"target"`
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout  time.Duration `json:"timeout"`
+	Expected interface{} `json:"expected"`
 
-	Expected interface{}   `json:"expected"`
-
-	Critical bool          `json:"critical"`
-
+	Critical bool `json:"critical"`
 }
-
-
 
 // NotificationPlan defines how to notify stakeholders.
 
 type NotificationPlan struct {
+	OnStart []NotificationTarget `json:"on_start"`
 
-	OnStart    []NotificationTarget `json:"on_start"`
+	OnSuccess []NotificationTarget `json:"on_success"`
 
-	OnSuccess  []NotificationTarget `json:"on_success"`
-
-	OnFailure  []NotificationTarget `json:"on_failure"`
+	OnFailure []NotificationTarget `json:"on_failure"`
 
 	OnProgress []NotificationTarget `json:"on_progress"`
-
 }
-
-
 
 // NotificationTarget represents a notification destination.
 
 type NotificationTarget struct {
+	Type string `json:"type"` // email, slack, webhook, etc.
 
-	Type       string                 `json:"type"` // email, slack, webhook, etc.
-
-	Address    string                 `json:"address"`
+	Address string `json:"address"`
 
 	Parameters map[string]interface{} `json:"parameters"`
-
 }
-
-
 
 // StepExecutor interface for implementing custom recovery steps.
 
 type StepExecutor interface {
-
 	Execute(ctx context.Context, step RecoveryStep, orchestrator *RecoveryOrchestrator) error
 
 	Validate(ctx context.Context, step RecoveryStep, orchestrator *RecoveryOrchestrator) error
 
 	Rollback(ctx context.Context, step RecoveryStep, orchestrator *RecoveryOrchestrator) error
-
 }
-
-
 
 // RecoveryExecution tracks the execution of a recovery plan.
 
 type RecoveryExecution struct {
+	ID string `json:"id"`
 
-	ID        string                    `json:"id"`
+	PlanID string `json:"plan_id"`
 
-	PlanID    string                    `json:"plan_id"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime time.Time                 `json:"start_time"`
+	EndTime *time.Time `json:"end_time,omitempty"`
 
-	EndTime   *time.Time                `json:"end_time,omitempty"`
+	Status RecoveryStatus `json:"status"`
 
-	Status    RecoveryStatus            `json:"status"`
+	Steps map[string]*StepExecution `json:"steps"`
 
-	Steps     map[string]*StepExecution `json:"steps"`
+	Errors []RecoveryError `json:"errors"`
 
-	Errors    []RecoveryError           `json:"errors"`
+	Metrics RecoveryExecutionMetrics `json:"metrics"`
 
-	Metrics   RecoveryExecutionMetrics  `json:"metrics"`
-
-	Context   map[string]interface{}    `json:"context"`
-
+	Context map[string]interface{} `json:"context"`
 }
-
-
 
 // StepExecution tracks the execution of a single step.
 
 type StepExecution struct {
+	StepID string `json:"step_id"`
 
-	StepID    string        `json:"step_id"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime time.Time     `json:"start_time"`
+	EndTime *time.Time `json:"end_time,omitempty"`
 
-	EndTime   *time.Time    `json:"end_time,omitempty"`
+	Status StepStatus `json:"status"`
 
-	Status    StepStatus    `json:"status"`
+	Attempts int `json:"attempts"`
 
-	Attempts  int           `json:"attempts"`
+	Duration time.Duration `json:"duration"`
 
-	Duration  time.Duration `json:"duration"`
+	Error string `json:"error,omitempty"`
 
-	Error     string        `json:"error,omitempty"`
-
-	Output    interface{}   `json:"output,omitempty"`
-
+	Output interface{} `json:"output,omitempty"`
 }
-
-
 
 // RecoveryStatus represents the status of a recovery operation.
 
 type RecoveryStatus string
-
-
 
 const (
 
@@ -316,16 +254,11 @@ const (
 	// StatusRollingBack holds statusrollingback value.
 
 	StatusRollingBack RecoveryStatus = "rolling_back"
-
 )
-
-
 
 // StepStatus represents the status of a recovery step.
 
 type StepStatus string
-
-
 
 const (
 
@@ -352,52 +285,41 @@ const (
 	// StepStatusRetrying holds stepstatusretrying value.
 
 	StepStatusRetrying StepStatus = "retrying"
-
 )
-
-
 
 // RecoveryError represents an error during recovery.
 
 type RecoveryError struct {
+	StepID string `json:"step_id"`
 
-	StepID    string    `json:"step_id"`
-
-	Message   string    `json:"message"`
+	Message string `json:"message"`
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Critical  bool      `json:"critical"`
+	Critical bool `json:"critical"`
 
-	Retryable bool      `json:"retryable"`
-
+	Retryable bool `json:"retryable"`
 }
-
-
 
 // RecoveryExecutionMetrics contains metrics about recovery execution.
 
 type RecoveryExecutionMetrics struct {
+	TotalSteps int `json:"total_steps"`
 
-	TotalSteps        int           `json:"total_steps"`
+	CompletedSteps int `json:"completed_steps"`
 
-	CompletedSteps    int           `json:"completed_steps"`
+	FailedSteps int `json:"failed_steps"`
 
-	FailedSteps       int           `json:"failed_steps"`
+	SkippedSteps int `json:"skipped_steps"`
 
-	SkippedSteps      int           `json:"skipped_steps"`
+	TotalDuration time.Duration `json:"total_duration"`
 
-	TotalDuration     time.Duration `json:"total_duration"`
+	DataLossDetected bool `json:"data_loss_detected"`
 
-	DataLossDetected  bool          `json:"data_loss_detected"`
+	ServiceDowntime time.Duration `json:"service_downtime"`
 
-	ServiceDowntime   time.Duration `json:"service_downtime"`
-
-	ResourcesAffected int           `json:"resources_affected"`
-
+	ResourcesAffected int `json:"resources_affected"`
 }
-
-
 
 // NewRecoveryOrchestrator creates a new recovery orchestrator.
 
@@ -405,17 +327,14 @@ func NewRecoveryOrchestrator(client client.Client, backupManager *BackupManager)
 
 	return &RecoveryOrchestrator{
 
-		client:        client,
+		client: client,
 
 		backupManager: backupManager,
 
-		scenarios:     make(map[string]*DisasterScenario),
-
+		scenarios: make(map[string]*DisasterScenario),
 	}
 
 }
-
-
 
 // RegisterScenario registers a disaster recovery scenario.
 
@@ -429,39 +348,31 @@ func (ro *RecoveryOrchestrator) RegisterScenario(scenario *DisasterScenario) {
 
 }
 
-
-
 // ExecuteRecoveryPlan executes a recovery plan.
 
 func (ro *RecoveryOrchestrator) ExecuteRecoveryPlan(ctx context.Context, plan *RecoveryPlan) (*RecoveryExecution, error) {
 
 	logger := log.FromContext(ctx)
 
-
-
 	execution := &RecoveryExecution{
 
-		ID:        fmt.Sprintf("%s-%d", plan.ID, time.Now().Unix()),
+		ID: fmt.Sprintf("%s-%d", plan.ID, time.Now().Unix()),
 
-		PlanID:    plan.ID,
+		PlanID: plan.ID,
 
 		StartTime: time.Now(),
 
-		Status:    StatusRunning,
+		Status: StatusRunning,
 
-		Steps:     make(map[string]*StepExecution),
+		Steps: make(map[string]*StepExecution),
 
-		Context:   make(map[string]interface{}),
+		Context: make(map[string]interface{}),
 
 		Metrics: RecoveryExecutionMetrics{
 
 			TotalSteps: len(plan.Steps),
-
 		},
-
 	}
-
-
 
 	// Store active recovery.
 
@@ -469,17 +380,11 @@ func (ro *RecoveryOrchestrator) ExecuteRecoveryPlan(ctx context.Context, plan *R
 
 	defer ro.activeRecoveries.Delete(execution.ID)
 
-
-
 	logger.Info("Starting recovery plan execution", "plan", plan.Name, "execution", execution.ID)
-
-
 
 	// Send start notifications.
 
 	go ro.sendNotifications(ctx, plan.NotificationPlan.OnStart, execution, nil)
-
-
 
 	// Check prerequisites.
 
@@ -493,15 +398,11 @@ func (ro *RecoveryOrchestrator) ExecuteRecoveryPlan(ctx context.Context, plan *R
 
 	}
 
-
-
 	// Execute steps.
 
 	if err := ro.executeSteps(ctx, plan.Steps, execution); err != nil {
 
 		logger.Error(err, "Recovery plan execution failed", "execution", execution.ID)
-
-
 
 		// Execute rollback if needed.
 
@@ -519,8 +420,6 @@ func (ro *RecoveryOrchestrator) ExecuteRecoveryPlan(ctx context.Context, plan *R
 
 		}
 
-
-
 		execution.Status = StatusFailed
 
 		go ro.sendNotifications(ctx, plan.NotificationPlan.OnFailure, execution, err)
@@ -528,8 +427,6 @@ func (ro *RecoveryOrchestrator) ExecuteRecoveryPlan(ctx context.Context, plan *R
 		return execution, err
 
 	}
-
-
 
 	// Perform health checks.
 
@@ -547,8 +444,6 @@ func (ro *RecoveryOrchestrator) ExecuteRecoveryPlan(ctx context.Context, plan *R
 
 	}
 
-
-
 	// Complete execution.
 
 	now := time.Now()
@@ -559,27 +454,19 @@ func (ro *RecoveryOrchestrator) ExecuteRecoveryPlan(ctx context.Context, plan *R
 
 	execution.Metrics.TotalDuration = now.Sub(execution.StartTime)
 
-
-
 	logger.Info("Recovery plan execution completed successfully", "execution", execution.ID, "duration", execution.Metrics.TotalDuration)
 
 	go ro.sendNotifications(ctx, plan.NotificationPlan.OnSuccess, execution, nil)
 
-
-
 	return execution, nil
 
 }
-
-
 
 // executeSteps executes a list of recovery steps.
 
 func (ro *RecoveryOrchestrator) executeSteps(ctx context.Context, steps []RecoveryStep, execution *RecoveryExecution) error {
 
 	logger := log.FromContext(ctx)
-
-
 
 	// Build dependency graph.
 
@@ -591,19 +478,13 @@ func (ro *RecoveryOrchestrator) executeSteps(ctx context.Context, steps []Recove
 
 	}
 
-
-
 	// Execute steps in dependency order.
 
 	executed := make(map[string]bool)
 
-
-
 	for len(executed) < len(steps) {
 
 		progress := false
-
-
 
 		for _, step := range steps {
 
@@ -612,8 +493,6 @@ func (ro *RecoveryOrchestrator) executeSteps(ctx context.Context, steps []Recove
 				continue
 
 			}
-
-
 
 			// Check if all dependencies are satisfied.
 
@@ -631,35 +510,26 @@ func (ro *RecoveryOrchestrator) executeSteps(ctx context.Context, steps []Recove
 
 			}
 
-
-
 			if !canExecute {
 
 				continue
 
 			}
 
-
-
 			// Execute step.
 
 			stepExecution := &StepExecution{
 
-				StepID:    step.ID,
+				StepID: step.ID,
 
 				StartTime: time.Now(),
 
-				Status:    StepStatusRunning,
-
+				Status: StepStatusRunning,
 			}
 
 			execution.Steps[step.ID] = stepExecution
 
-
-
 			logger.Info("Executing recovery step", "step", step.Name, "execution", execution.ID)
-
-
 
 			if err := ro.executeStep(ctx, step, execution, stepExecution); err != nil {
 
@@ -668,8 +538,6 @@ func (ro *RecoveryOrchestrator) executeSteps(ctx context.Context, steps []Recove
 				stepExecution.Error = err.Error()
 
 				execution.Metrics.FailedSteps++
-
-
 
 				if step.Critical {
 
@@ -691,23 +559,17 @@ func (ro *RecoveryOrchestrator) executeSteps(ctx context.Context, steps []Recove
 
 			}
 
-
-
 			now := time.Now()
 
 			stepExecution.EndTime = &now
 
 			stepExecution.Duration = now.Sub(stepExecution.StartTime)
 
-
-
 			executed[step.ID] = true
 
 			progress = true
 
 		}
-
-
 
 		if !progress {
 
@@ -717,21 +579,15 @@ func (ro *RecoveryOrchestrator) executeSteps(ctx context.Context, steps []Recove
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // executeStep executes a single recovery step with retry logic.
 
 func (ro *RecoveryOrchestrator) executeStep(ctx context.Context, step RecoveryStep, execution *RecoveryExecution, stepExecution *StepExecution) error {
 
 	var lastError error
-
-
 
 	retryPolicy := step.RetryPolicy
 
@@ -759,25 +615,17 @@ func (ro *RecoveryOrchestrator) executeStep(ctx context.Context, step RecoverySt
 
 	}
 
-
-
 	delay := retryPolicy.InitialDelay
-
-
 
 	for attempt := 0; attempt <= retryPolicy.MaxRetries; attempt++ {
 
 		stepExecution.Attempts = attempt + 1
-
-
 
 		if attempt > 0 {
 
 			stepExecution.Status = StepStatusRetrying
 
 			time.Sleep(delay)
-
-
 
 			// Increase delay for next attempt.
 
@@ -791,8 +639,6 @@ func (ro *RecoveryOrchestrator) executeStep(ctx context.Context, step RecoverySt
 
 		}
 
-
-
 		// Execute step based on type.
 
 		if err := ro.executeStepByType(ctx, step, execution); err != nil {
@@ -803,21 +649,15 @@ func (ro *RecoveryOrchestrator) executeStep(ctx context.Context, step RecoverySt
 
 		}
 
-
-
 		// Step succeeded.
 
 		return nil
 
 	}
 
-
-
 	return fmt.Errorf("step failed after %d attempts: %w", retryPolicy.MaxRetries+1, lastError)
 
 }
-
-
 
 // executeStepByType executes a step based on its type.
 
@@ -828,8 +668,6 @@ func (ro *RecoveryOrchestrator) executeStepByType(ctx context.Context, step Reco
 		return step.Executor.Execute(ctx, step, ro)
 
 	}
-
-
 
 	switch step.Type {
 
@@ -873,11 +711,7 @@ func (ro *RecoveryOrchestrator) executeStepByType(ctx context.Context, step Reco
 
 }
 
-
-
 // Step execution implementations.
-
-
 
 func (ro *RecoveryOrchestrator) executeBackupRestoreStep(ctx context.Context, step RecoveryStep, execution *RecoveryExecution) error {
 
@@ -889,19 +723,14 @@ func (ro *RecoveryOrchestrator) executeBackupRestoreStep(ctx context.Context, st
 
 	}
 
-
-
 	options := RestoreOptions{
 
-		Namespace:      execution.getStringParameter("namespace", "default"),
+		Namespace: execution.getStringParameter("namespace", "default"),
 
-		IgnoreErrors:   step.Parameters["ignore_errors"] == true,
+		IgnoreErrors: step.Parameters["ignore_errors"] == true,
 
 		ValidationMode: ValidationModeBasic,
-
 	}
-
-
 
 	result, err := ro.backupManager.RestoreBackup(ctx, backupID, options)
 
@@ -911,15 +740,11 @@ func (ro *RecoveryOrchestrator) executeBackupRestoreStep(ctx context.Context, st
 
 	}
 
-
-
 	execution.Context["restore_result"] = result
 
 	return nil
 
 }
-
-
 
 func (ro *RecoveryOrchestrator) executeServiceRestartStep(ctx context.Context, step RecoveryStep, execution *RecoveryExecution) error {
 
@@ -931,8 +756,6 @@ func (ro *RecoveryOrchestrator) executeServiceRestartStep(ctx context.Context, s
 
 }
 
-
-
 func (ro *RecoveryOrchestrator) executeScaleStep(ctx context.Context, step RecoveryStep, execution *RecoveryExecution, scaleUp bool) error {
 
 	// Implementation would scale Kubernetes deployments.
@@ -942,8 +765,6 @@ func (ro *RecoveryOrchestrator) executeScaleStep(ctx context.Context, step Recov
 	return nil
 
 }
-
-
 
 func (ro *RecoveryOrchestrator) executeHealthCheckStep(ctx context.Context, step RecoveryStep, execution *RecoveryExecution) error {
 
@@ -955,13 +776,9 @@ func (ro *RecoveryOrchestrator) executeHealthCheckStep(ctx context.Context, step
 
 	}
 
-
-
 	return ro.performHealthChecks(ctx, checks)
 
 }
-
-
 
 func (ro *RecoveryOrchestrator) executeWaitStep(ctx context.Context, step RecoveryStep, execution *RecoveryExecution) error {
 
@@ -973,8 +790,6 @@ func (ro *RecoveryOrchestrator) executeWaitStep(ctx context.Context, step Recove
 
 	}
 
-
-
 	condition, ok := step.Parameters["condition"].(string)
 
 	if !ok {
@@ -983,13 +798,9 @@ func (ro *RecoveryOrchestrator) executeWaitStep(ctx context.Context, step Recove
 
 	}
 
-
-
 	// TODO: Implement condition checking logic.
 
 	_ = condition // Suppress unused variable error for now
-
-
 
 	return wait.PollImmediate(1*time.Second, timeout, func() (bool, error) {
 
@@ -1003,8 +814,6 @@ func (ro *RecoveryOrchestrator) executeWaitStep(ctx context.Context, step Recove
 
 }
 
-
-
 func (ro *RecoveryOrchestrator) executeDataValidationStep(ctx context.Context, step RecoveryStep, execution *RecoveryExecution) error {
 
 	// Implementation would validate data integrity.
@@ -1014,8 +823,6 @@ func (ro *RecoveryOrchestrator) executeDataValidationStep(ctx context.Context, s
 	return nil
 
 }
-
-
 
 func (ro *RecoveryOrchestrator) executeNotificationStep(ctx context.Context, step RecoveryStep, execution *RecoveryExecution) error {
 
@@ -1027,17 +834,11 @@ func (ro *RecoveryOrchestrator) executeNotificationStep(ctx context.Context, ste
 
 	}
 
-
-
 	return ro.sendNotifications(ctx, targets, execution, nil)
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (ro *RecoveryOrchestrator) checkPrerequisites(ctx context.Context, prerequisites []string) error {
 
@@ -1065,8 +866,6 @@ func (ro *RecoveryOrchestrator) checkPrerequisites(ctx context.Context, prerequi
 
 }
 
-
-
 func (ro *RecoveryOrchestrator) performHealthChecks(ctx context.Context, checks []HealthCheck) error {
 
 	for _, check := range checks {
@@ -1089,8 +888,6 @@ func (ro *RecoveryOrchestrator) performHealthChecks(ctx context.Context, checks 
 
 }
 
-
-
 func (ro *RecoveryOrchestrator) performSingleHealthCheck(ctx context.Context, check HealthCheck) error {
 
 	// Implementation would perform actual health checks.
@@ -1100,8 +897,6 @@ func (ro *RecoveryOrchestrator) performSingleHealthCheck(ctx context.Context, ch
 	return nil
 
 }
-
-
 
 func (ro *RecoveryOrchestrator) sendNotifications(ctx context.Context, targets []NotificationTarget, execution *RecoveryExecution, err error) error {
 
@@ -1113,31 +908,24 @@ func (ro *RecoveryOrchestrator) sendNotifications(ctx context.Context, targets [
 
 }
 
-
-
 // Utility methods for RecoveryExecution.
-
-
 
 func (re *RecoveryExecution) addError(stepID, message string, critical, retryable bool) {
 
 	re.Errors = append(re.Errors, RecoveryError{
 
-		StepID:    stepID,
+		StepID: stepID,
 
-		Message:   message,
+		Message: message,
 
 		Timestamp: time.Now(),
 
-		Critical:  critical,
+		Critical: critical,
 
 		Retryable: retryable,
-
 	})
 
 }
-
-
 
 func (re *RecoveryExecution) getStringParameter(key, defaultValue string) string {
 
@@ -1150,8 +938,6 @@ func (re *RecoveryExecution) getStringParameter(key, defaultValue string) string
 	return defaultValue
 
 }
-
-
 
 // GetActiveRecoveries returns currently active recovery executions.
 
@@ -1179,8 +965,6 @@ func (ro *RecoveryOrchestrator) GetActiveRecoveries() map[string]*RecoveryExecut
 
 }
 
-
-
 // CancelRecovery cancels an active recovery execution.
 
 func (ro *RecoveryOrchestrator) CancelRecovery(executionID string) error {
@@ -1204,4 +988,3 @@ func (ro *RecoveryOrchestrator) CancelRecovery(executionID string) error {
 	return fmt.Errorf("recovery execution not found: %s", executionID)
 
 }
-

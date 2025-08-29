@@ -1,77 +1,48 @@
-
 package multicluster
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
-
-
 
 	"github.com/go-logr/logr"
 
-
-
 	"k8s.io/apimachinery/pkg/types"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // SyncEngineInterface defines the interface for package synchronization.
 
 type SyncEngineInterface interface {
-
 	SyncPackageToCluster(ctx context.Context, packageRevision *PackageRevision, targetCluster types.NamespacedName) (*ClusterDeploymentStatus, error)
-
 }
-
-
 
 // SyncEngine manages synchronization of packages across clusters.
 
 type SyncEngine struct {
-
 	client client.Client
 
 	logger logr.Logger
-
 }
-
-
 
 // SyncOptions configuration for package synchronization.
 
 type SyncOptions struct {
+	SyncMethod SyncMethod
 
-	SyncMethod         SyncMethod
+	Timeout time.Duration
 
-	Timeout            time.Duration
-
-	RetryAttempts      int
+	RetryAttempts int
 
 	ConflictResolution ConflictResolutionStrategy
 
-	ValidationMode     ValidationMode
-
+	ValidationMode ValidationMode
 }
-
-
 
 // SyncMethod defines different synchronization approaches.
 
 type SyncMethod string
-
-
 
 const (
 
@@ -86,16 +57,11 @@ const (
 	// SyncMethodFleet holds syncmethodfleet value.
 
 	SyncMethodFleet SyncMethod = "fleet"
-
 )
-
-
 
 // ConflictResolutionStrategy defines how sync conflicts are handled.
 
 type ConflictResolutionStrategy string
-
-
 
 const (
 
@@ -110,16 +76,11 @@ const (
 	// ResolutionStrategyReject holds resolutionstrategyreject value.
 
 	ResolutionStrategyReject ConflictResolutionStrategy = "reject"
-
 )
-
-
 
 // ValidationMode determines how package validation is performed.
 
 type ValidationMode string
-
-
 
 const (
 
@@ -134,10 +95,7 @@ const (
 	// ValidationModeDisabled holds validationmodedisabled value.
 
 	ValidationModeDisabled ValidationMode = "disabled"
-
 )
-
-
 
 // SyncPackageToCluster synchronizes a package to a target cluster.
 
@@ -155,19 +113,16 @@ func (se *SyncEngine) SyncPackageToCluster(
 
 	opts := SyncOptions{
 
-		SyncMethod:         SyncMethodConfigSync,
+		SyncMethod: SyncMethodConfigSync,
 
-		Timeout:            5 * time.Minute,
+		Timeout: 5 * time.Minute,
 
-		RetryAttempts:      3,
+		RetryAttempts: 3,
 
 		ConflictResolution: ResolutionStrategyMerge,
 
-		ValidationMode:     ValidationModeStrict,
-
+		ValidationMode: ValidationModeStrict,
 	}
-
-
 
 	// 2. Validate package before sync.
 
@@ -176,8 +131,6 @@ func (se *SyncEngine) SyncPackageToCluster(
 		return nil, fmt.Errorf("package validation failed: %w", err)
 
 	}
-
-
 
 	// 3. Perform package synchronization.
 
@@ -189,13 +142,9 @@ func (se *SyncEngine) SyncPackageToCluster(
 
 	}
 
-
-
 	return status, nil
 
 }
-
-
 
 // validatePackage performs comprehensive package validation.
 
@@ -247,8 +196,6 @@ func (se *SyncEngine) validatePackage(
 
 }
 
-
-
 // performSync executes the actual package synchronization.
 
 func (se *SyncEngine) performSync(
@@ -265,8 +212,6 @@ func (se *SyncEngine) performSync(
 
 	var lastErr error
 
-
-
 	// Retry sync with exponential backoff.
 
 	for attempt := range opts.RetryAttempts {
@@ -279,8 +224,6 @@ func (se *SyncEngine) performSync(
 
 		}
 
-
-
 		lastErr = err
 
 		se.logger.Error(err, "Sync attempt failed",
@@ -290,10 +233,7 @@ func (se *SyncEngine) performSync(
 			"attempt", attempt+1,
 
 			"syncMethod", opts.SyncMethod,
-
 		)
-
-
 
 		// Exponential backoff.
 
@@ -301,15 +241,11 @@ func (se *SyncEngine) performSync(
 
 	}
 
-
-
 	return nil, fmt.Errorf("sync failed after %d attempts: %w",
 
 		opts.RetryAttempts, lastErr)
 
 }
-
-
 
 // executeSyncMethod selects and executes the appropriate sync method.
 
@@ -347,8 +283,6 @@ func (se *SyncEngine) executeSyncMethod(
 
 }
 
-
-
 // syncWithConfigSync implements ConfigSync synchronization.
 
 func (se *SyncEngine) syncWithConfigSync(
@@ -369,17 +303,14 @@ func (se *SyncEngine) syncWithConfigSync(
 
 		ClusterName: targetCluster.String(),
 
-		Status:      DeploymentStatusSucceeded,
+		Status: DeploymentStatusSucceeded,
 
-		Timestamp:   time.Now(),
-
+		Timestamp: time.Now(),
 	}
 
 	return status, nil
 
 }
-
-
 
 // syncWithArgoCD implements ArgoCD synchronization.
 
@@ -401,17 +332,14 @@ func (se *SyncEngine) syncWithArgoCD(
 
 		ClusterName: targetCluster.String(),
 
-		Status:      DeploymentStatusSucceeded,
+		Status: DeploymentStatusSucceeded,
 
-		Timestamp:   time.Now(),
-
+		Timestamp: time.Now(),
 	}
 
 	return status, nil
 
 }
-
-
 
 // syncWithFleet implements Google Cloud Fleet synchronization.
 
@@ -433,17 +361,14 @@ func (se *SyncEngine) syncWithFleet(
 
 		ClusterName: targetCluster.String(),
 
-		Status:      DeploymentStatusSucceeded,
+		Status: DeploymentStatusSucceeded,
 
-		Timestamp:   time.Now(),
-
+		Timestamp: time.Now(),
 	}
 
 	return status, nil
 
 }
-
-
 
 // monitorSyncStatus tracks the synchronization progress.
 
@@ -462,8 +387,6 @@ func (se *SyncEngine) monitorSyncStatus(
 	return nil, nil
 
 }
-
-
 
 // handleSyncConflicts resolves conflicts during package synchronization.
 
@@ -507,8 +430,6 @@ func (se *SyncEngine) handleSyncConflicts(
 
 }
 
-
-
 // NewSyncEngine creates a new sync engine.
 
 func NewSyncEngine(
@@ -524,8 +445,6 @@ func NewSyncEngine(
 		client: client,
 
 		logger: logger,
-
 	}
 
 }
-

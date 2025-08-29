@@ -1,169 +1,125 @@
-
 package performance
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"net/http"
-
 	"sync"
-
 	"time"
-
-
 
 	"github.com/sony/gobreaker"
 
-
-
 	"k8s.io/client-go/util/workqueue"
-
 	"k8s.io/klog/v2"
-
 )
-
-
 
 // OptimizationEngine provides performance optimization capabilities.
 
 type OptimizationEngine struct {
+	httpPool *HTTPConnectionPool
 
-	httpPool        *HTTPConnectionPool
+	dbPool *DatabaseConnectionPool
 
-	dbPool          *DatabaseConnectionPool
+	cache *MultiLevelCache
 
-	cache           *MultiLevelCache
-
-	batchProcessor  *OptimizationBatchProcessor
+	batchProcessor *OptimizationBatchProcessor
 
 	circuitBreakers map[string]*gobreaker.CircuitBreaker
 
-	goroutinePool   *GoroutinePool
+	goroutinePool *GoroutinePool
 
-	rateLimiters    map[string]workqueue.RateLimiter
+	rateLimiters map[string]workqueue.RateLimiter
 
-	metrics         *MetricsCollector
+	metrics *MetricsCollector
 
-	mu              sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // HTTPConnectionPool manages HTTP client connections.
 
 type HTTPConnectionPool struct {
-
-	clients  chan *http.Client
+	clients chan *http.Client
 
 	maxConns int
 
-	timeout  time.Duration
-
+	timeout time.Duration
 }
-
-
 
 // DatabaseConnectionPool manages database connections.
 
 type DatabaseConnectionPool struct {
-
 	connections chan interface{}
 
-	maxConns    int
+	maxConns int
 
-	minConns    int
+	minConns int
 
 	idleTimeout time.Duration
 
-	mu          sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // MultiLevelCache provides hierarchical caching.
 
 type MultiLevelCache struct {
+	l1Cache *MemoryCache // In-memory cache (fastest)
 
-	l1Cache  *MemoryCache      // In-memory cache (fastest)
+	l2Cache *DistributedCache // Redis cache (shared)
 
-	l2Cache  *DistributedCache // Redis cache (shared)
-
-	l3Cache  *DiskCache        // Disk cache (persistent)
+	l3Cache *DiskCache // Disk cache (persistent)
 
 	hitRates map[string]float64
 
-	mu       sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // OptimizationBatchProcessor handles batch operations for optimization engine.
 
 type OptimizationBatchProcessor struct {
-
-	batchSize     int
+	batchSize int
 
 	flushInterval time.Duration
 
-	processor     func([]interface{}) error
+	processor func([]interface{}) error
 
-	buffer        []interface{}
+	buffer []interface{}
 
-	mu            sync.Mutex
+	mu sync.Mutex
 
-	ticker        *time.Ticker
+	ticker *time.Ticker
 
-	done          chan bool
-
+	done chan bool
 }
-
-
 
 // GoroutinePool manages goroutine resources.
 
 type GoroutinePool struct {
-
 	maxWorkers int
 
-	workQueue  chan func()
+	workQueue chan func()
 
-	workerWG   sync.WaitGroup
+	workerWG sync.WaitGroup
 
-	shutdown   chan struct{}
+	shutdown chan struct{}
 
-	metrics    *BasicPoolMetrics
-
+	metrics *BasicPoolMetrics
 }
-
-
 
 // BasicPoolMetrics tracks basic goroutine pool performance for optimization engine.
 
 type BasicPoolMetrics struct {
+	ActiveWorkers int64
 
-	ActiveWorkers  int64
-
-	QueuedTasks    int64
+	QueuedTasks int64
 
 	CompletedTasks int64
 
-	FailedTasks    int64
+	FailedTasks int64
 
 	AvgProcessTime time.Duration
 
-	mu             sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewOptimizationEngine creates a new optimization engine.
 
@@ -171,43 +127,34 @@ func NewOptimizationEngine() *OptimizationEngine {
 
 	engine := &OptimizationEngine{
 
-		httpPool:        NewHTTPConnectionPool(100, 30*time.Second),
+		httpPool: NewHTTPConnectionPool(100, 30*time.Second),
 
-		dbPool:          NewDatabaseConnectionPool(50, 10),
+		dbPool: NewDatabaseConnectionPool(50, 10),
 
-		cache:           NewMultiLevelCache(),
+		cache: NewMultiLevelCache(),
 
-		batchProcessor:  NewOptimizationBatchProcessor(100, 5*time.Second),
+		batchProcessor: NewOptimizationBatchProcessor(100, 5*time.Second),
 
 		circuitBreakers: make(map[string]*gobreaker.CircuitBreaker),
 
-		goroutinePool:   NewGoroutinePool(200),
+		goroutinePool: NewGoroutinePool(200),
 
-		rateLimiters:    make(map[string]workqueue.RateLimiter),
+		rateLimiters: make(map[string]workqueue.RateLimiter),
 
-		metrics:         NewMetricsCollector(),
-
+		metrics: NewMetricsCollector(),
 	}
-
-
 
 	// Initialize default circuit breakers.
 
 	engine.initializeCircuitBreakers()
 
-
-
 	// Initialize default rate limiters.
 
 	engine.initializeRateLimiters()
 
-
-
 	return engine
 
 }
-
-
 
 // NewHTTPConnectionPool creates a new HTTP connection pool.
 
@@ -215,15 +162,12 @@ func NewHTTPConnectionPool(maxConns int, timeout time.Duration) *HTTPConnectionP
 
 	pool := &HTTPConnectionPool{
 
-		clients:  make(chan *http.Client, maxConns),
+		clients: make(chan *http.Client, maxConns),
 
 		maxConns: maxConns,
 
-		timeout:  timeout,
-
+		timeout: timeout,
 	}
-
-
 
 	// Pre-populate pool with clients.
 
@@ -235,31 +179,25 @@ func NewHTTPConnectionPool(maxConns int, timeout time.Duration) *HTTPConnectionP
 
 			Transport: &http.Transport{
 
-				MaxIdleConns:        100,
+				MaxIdleConns: 100,
 
 				MaxIdleConnsPerHost: 10,
 
-				IdleConnTimeout:     90 * time.Second,
+				IdleConnTimeout: 90 * time.Second,
 
-				DisableKeepAlives:   false,
+				DisableKeepAlives: false,
 
-				DisableCompression:  false,
-
+				DisableCompression: false,
 			},
-
 		}
 
 		pool.clients <- client
 
 	}
 
-
-
 	return pool
 
 }
-
-
 
 // GetClient gets an HTTP client from the pool.
 
@@ -281,21 +219,17 @@ func (p *HTTPConnectionPool) GetClient() *http.Client {
 
 			Transport: &http.Transport{
 
-				MaxIdleConns:        100,
+				MaxIdleConns: 100,
 
 				MaxIdleConnsPerHost: 10,
 
-				IdleConnTimeout:     90 * time.Second,
-
+				IdleConnTimeout: 90 * time.Second,
 			},
-
 		}
 
 	}
 
 }
-
-
 
 // ReturnClient returns a client to the pool.
 
@@ -315,8 +249,6 @@ func (p *HTTPConnectionPool) ReturnClient(client *http.Client) {
 
 }
 
-
-
 // NewDatabaseConnectionPool creates a new database connection pool.
 
 func NewDatabaseConnectionPool(maxConns, minConns int) *DatabaseConnectionPool {
@@ -325,15 +257,12 @@ func NewDatabaseConnectionPool(maxConns, minConns int) *DatabaseConnectionPool {
 
 		connections: make(chan interface{}, maxConns),
 
-		maxConns:    maxConns,
+		maxConns: maxConns,
 
-		minConns:    minConns,
+		minConns: minConns,
 
 		idleTimeout: 5 * time.Minute,
-
 	}
-
-
 
 	// Pre-populate with minimum connections.
 
@@ -345,19 +274,13 @@ func NewDatabaseConnectionPool(maxConns, minConns int) *DatabaseConnectionPool {
 
 	}
 
-
-
 	// Start connection health checker.
 
 	go pool.healthChecker()
 
-
-
 	return pool
 
 }
-
-
 
 // GetConnection gets a database connection from the pool.
 
@@ -377,8 +300,6 @@ func (p *DatabaseConnectionPool) GetConnection() (interface{}, error) {
 
 }
 
-
-
 // ReturnConnection returns a connection to the pool.
 
 func (p *DatabaseConnectionPool) ReturnConnection(conn interface{}) {
@@ -397,8 +318,6 @@ func (p *DatabaseConnectionPool) ReturnConnection(conn interface{}) {
 
 }
 
-
-
 // healthChecker periodically checks connection health.
 
 func (p *DatabaseConnectionPool) healthChecker() {
@@ -406,8 +325,6 @@ func (p *DatabaseConnectionPool) healthChecker() {
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for range ticker.C {
 
@@ -423,63 +340,50 @@ func (p *DatabaseConnectionPool) healthChecker() {
 
 }
 
-
-
 // NewMultiLevelCache creates a new multi-level cache.
 
 func NewMultiLevelCache() *MultiLevelCache {
 
 	return &MultiLevelCache{
 
-		l1Cache:  NewMemoryCache(1000, 5*time.Minute),
+		l1Cache: NewMemoryCache(1000, 5*time.Minute),
 
-		l2Cache:  NewDistributedCache("redis://localhost:6379"),
+		l2Cache: NewDistributedCache("redis://localhost:6379"),
 
-		l3Cache:  NewDiskCache("/var/cache/nephoran"),
+		l3Cache: NewDiskCache("/var/cache/nephoran"),
 
 		hitRates: make(map[string]float64),
-
 	}
 
 }
 
-
-
 // MemoryCache provides in-memory caching.
 
 type MemoryCache struct {
-
-	cache   map[string]SimpleCacheEntry
+	cache map[string]SimpleCacheEntry
 
 	maxSize int
 
-	ttl     time.Duration
+	ttl time.Duration
 
-	mu      sync.RWMutex
+	mu sync.RWMutex
 
-	hits    int64
+	hits int64
 
-	misses  int64
-
+	misses int64
 }
-
-
 
 // SimpleCacheEntry represents a simple cache entry for optimization engine.
 
 type SimpleCacheEntry struct {
+	Value interface{}
 
-	Value       interface{}
+	Expiration time.Time
 
-	Expiration  time.Time
-
-	Size        int
+	Size int
 
 	AccessCount int
-
 }
-
-
 
 // NewMemoryCache creates a new memory cache.
 
@@ -487,27 +391,20 @@ func NewMemoryCache(maxSize int, ttl time.Duration) *MemoryCache {
 
 	cache := &MemoryCache{
 
-		cache:   make(map[string]SimpleCacheEntry),
+		cache: make(map[string]SimpleCacheEntry),
 
 		maxSize: maxSize,
 
-		ttl:     ttl,
-
+		ttl: ttl,
 	}
-
-
 
 	// Start cleanup goroutine.
 
 	go cache.cleanup()
 
-
-
 	return cache
 
 }
-
-
 
 // Get retrieves a value from the cache.
 
@@ -516,8 +413,6 @@ func (c *MemoryCache) Get(key string) (interface{}, bool) {
 	c.mu.RLock()
 
 	defer c.mu.RUnlock()
-
-
 
 	entry, exists := c.cache[key]
 
@@ -529,8 +424,6 @@ func (c *MemoryCache) Get(key string) (interface{}, bool) {
 
 	}
 
-
-
 	if time.Now().After(entry.Expiration) {
 
 		c.misses++
@@ -538,8 +431,6 @@ func (c *MemoryCache) Get(key string) (interface{}, bool) {
 		return nil, false
 
 	}
-
-
 
 	c.hits++
 
@@ -551,8 +442,6 @@ func (c *MemoryCache) Get(key string) (interface{}, bool) {
 
 }
 
-
-
 // Set stores a value in the cache.
 
 func (c *MemoryCache) Set(key string, value interface{}, size int) {
@@ -560,8 +449,6 @@ func (c *MemoryCache) Set(key string, value interface{}, size int) {
 	c.mu.Lock()
 
 	defer c.mu.Unlock()
-
-
 
 	// Implement LRU eviction if cache is full.
 
@@ -571,23 +458,18 @@ func (c *MemoryCache) Set(key string, value interface{}, size int) {
 
 	}
 
-
-
 	c.cache[key] = SimpleCacheEntry{
 
-		Value:       value,
+		Value: value,
 
-		Expiration:  time.Now().Add(c.ttl),
+		Expiration: time.Now().Add(c.ttl),
 
-		Size:        size,
+		Size: size,
 
 		AccessCount: 0,
-
 	}
 
 }
-
-
 
 // evictLRU evicts the least recently used entry.
 
@@ -598,8 +480,6 @@ func (c *MemoryCache) evictLRU() {
 	var lruEntry SimpleCacheEntry
 
 	first := true
-
-
 
 	for key, entry := range c.cache {
 
@@ -615,8 +495,6 @@ func (c *MemoryCache) evictLRU() {
 
 	}
 
-
-
 	if lruKey != "" {
 
 		delete(c.cache, lruKey)
@@ -625,8 +503,6 @@ func (c *MemoryCache) evictLRU() {
 
 }
 
-
-
 // cleanup periodically removes expired entries.
 
 func (c *MemoryCache) cleanup() {
@@ -634,8 +510,6 @@ func (c *MemoryCache) cleanup() {
 	ticker := time.NewTicker(1 * time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for range ticker.C {
 
@@ -659,8 +533,6 @@ func (c *MemoryCache) cleanup() {
 
 }
 
-
-
 // GetHitRate returns the cache hit rate.
 
 func (c *MemoryCache) GetHitRate() float64 {
@@ -668,8 +540,6 @@ func (c *MemoryCache) GetHitRate() float64 {
 	c.mu.RLock()
 
 	defer c.mu.RUnlock()
-
-
 
 	total := c.hits + c.misses
 
@@ -683,19 +553,14 @@ func (c *MemoryCache) GetHitRate() float64 {
 
 }
 
-
-
 // DistributedCache provides distributed caching (Redis).
 
 type DistributedCache struct {
-
 	address string
 
 	// In real implementation, would have Redis client.
 
 }
-
-
 
 // NewDistributedCache creates a new distributed cache.
 
@@ -704,24 +569,18 @@ func NewDistributedCache(address string) *DistributedCache {
 	return &DistributedCache{
 
 		address: address,
-
 	}
 
 }
 
-
-
 // DiskCache provides disk-based caching.
 
 type DiskCache struct {
-
 	basePath string
 
 	// In real implementation, would have file system operations.
 
 }
-
-
 
 // NewDiskCache creates a new disk cache.
 
@@ -730,12 +589,9 @@ func NewDiskCache(basePath string) *DiskCache {
 	return &DiskCache{
 
 		basePath: basePath,
-
 	}
 
 }
-
-
 
 // Get retrieves from multi-level cache.
 
@@ -753,25 +609,17 @@ func (c *MultiLevelCache) Get(key string) (interface{}, bool) {
 
 	c.updateHitRate("l1", false)
 
-
-
 	// Check L2 (distributed).
 
 	// In real implementation, check Redis.
-
-
 
 	// Check L3 (disk).
 
 	// In real implementation, check disk.
 
-
-
 	return nil, false
 
 }
-
-
 
 // Set stores in multi-level cache.
 
@@ -785,8 +633,6 @@ func (c *MultiLevelCache) Set(key string, value interface{}, size int) {
 
 }
 
-
-
 // updateHitRate updates cache hit rate metrics.
 
 func (c *MultiLevelCache) updateHitRate(level string, hit bool) {
@@ -795,13 +641,9 @@ func (c *MultiLevelCache) updateHitRate(level string, hit bool) {
 
 	defer c.mu.Unlock()
 
-
-
 	key := fmt.Sprintf("%s_total", level)
 
 	c.hitRates[key]++
-
-
 
 	if hit {
 
@@ -813,39 +655,30 @@ func (c *MultiLevelCache) updateHitRate(level string, hit bool) {
 
 }
 
-
-
 // NewOptimizationBatchProcessor creates a new optimization batch processor.
 
 func NewOptimizationBatchProcessor(batchSize int, flushInterval time.Duration) *OptimizationBatchProcessor {
 
 	bp := &OptimizationBatchProcessor{
 
-		batchSize:     batchSize,
+		batchSize: batchSize,
 
 		flushInterval: flushInterval,
 
-		buffer:        make([]interface{}, 0, batchSize),
+		buffer: make([]interface{}, 0, batchSize),
 
-		ticker:        time.NewTicker(flushInterval),
+		ticker: time.NewTicker(flushInterval),
 
-		done:          make(chan bool),
-
+		done: make(chan bool),
 	}
-
-
 
 	// Start flush goroutine.
 
 	go bp.flushPeriodically()
 
-
-
 	return bp
 
 }
-
-
 
 // Add adds an item to the batch.
 
@@ -855,11 +688,7 @@ func (bp *OptimizationBatchProcessor) Add(item interface{}) error {
 
 	defer bp.mu.Unlock()
 
-
-
 	bp.buffer = append(bp.buffer, item)
-
-
 
 	// Flush if batch is full.
 
@@ -869,13 +698,9 @@ func (bp *OptimizationBatchProcessor) Add(item interface{}) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // SetProcessor sets the batch processing function.
 
@@ -884,8 +709,6 @@ func (bp *OptimizationBatchProcessor) SetProcessor(processor func([]interface{})
 	bp.processor = processor
 
 }
-
-
 
 // flush processes the current batch.
 
@@ -897,8 +720,6 @@ func (bp *OptimizationBatchProcessor) flush() error {
 
 	}
 
-
-
 	// Process batch.
 
 	err := bp.processor(bp.buffer)
@@ -909,8 +730,6 @@ func (bp *OptimizationBatchProcessor) flush() error {
 
 	}
 
-
-
 	// Clear buffer.
 
 	bp.buffer = bp.buffer[:0]
@@ -918,8 +737,6 @@ func (bp *OptimizationBatchProcessor) flush() error {
 	return nil
 
 }
-
-
 
 // flushPeriodically flushes the batch at regular intervals.
 
@@ -951,8 +768,6 @@ func (bp *OptimizationBatchProcessor) flushPeriodically() {
 
 }
 
-
-
 // Stop stops the batch processor.
 
 func (bp *OptimizationBatchProcessor) Stop() {
@@ -960,8 +775,6 @@ func (bp *OptimizationBatchProcessor) Stop() {
 	bp.ticker.Stop()
 
 	close(bp.done)
-
-
 
 	// Final flush.
 
@@ -973,8 +786,6 @@ func (bp *OptimizationBatchProcessor) Stop() {
 
 }
 
-
-
 // NewGoroutinePool creates a new goroutine pool.
 
 func NewGoroutinePool(maxWorkers int) *GoroutinePool {
@@ -983,15 +794,12 @@ func NewGoroutinePool(maxWorkers int) *GoroutinePool {
 
 		maxWorkers: maxWorkers,
 
-		workQueue:  make(chan func(), maxWorkers*2),
+		workQueue: make(chan func(), maxWorkers*2),
 
-		shutdown:   make(chan struct{}),
+		shutdown: make(chan struct{}),
 
-		metrics:    &BasicPoolMetrics{},
-
+		metrics: &BasicPoolMetrics{},
 	}
-
-
 
 	// Start workers.
 
@@ -1003,13 +811,9 @@ func NewGoroutinePool(maxWorkers int) *GoroutinePool {
 
 	}
 
-
-
 	return pool
 
 }
-
-
 
 // Submit submits a task to the pool.
 
@@ -1035,15 +839,11 @@ func (p *GoroutinePool) Submit(task func()) error {
 
 }
 
-
-
 // worker processes tasks from the queue.
 
 func (p *GoroutinePool) worker() {
 
 	defer p.workerWG.Done()
-
-
 
 	for {
 
@@ -1056,8 +856,6 @@ func (p *GoroutinePool) worker() {
 			p.metrics.ActiveWorkers++
 
 			p.metrics.mu.Unlock()
-
-
 
 			start := time.Now()
 
@@ -1083,11 +881,7 @@ func (p *GoroutinePool) worker() {
 
 			}()
 
-
-
 			duration := time.Since(start)
-
-
 
 			p.metrics.mu.Lock()
 
@@ -1109,8 +903,6 @@ func (p *GoroutinePool) worker() {
 
 			p.metrics.mu.Unlock()
 
-
-
 		case <-p.shutdown:
 
 			return
@@ -1121,15 +913,11 @@ func (p *GoroutinePool) worker() {
 
 }
 
-
-
 // Shutdown gracefully shuts down the pool.
 
 func (p *GoroutinePool) Shutdown(ctx context.Context) error {
 
 	close(p.shutdown)
-
-
 
 	done := make(chan struct{})
 
@@ -1140,8 +928,6 @@ func (p *GoroutinePool) Shutdown(ctx context.Context) error {
 		close(done)
 
 	}()
-
-
 
 	select {
 
@@ -1157,8 +943,6 @@ func (p *GoroutinePool) Shutdown(ctx context.Context) error {
 
 }
 
-
-
 // GetMetrics returns pool metrics.
 
 func (p *GoroutinePool) GetMetrics() BasicPoolMetrics {
@@ -1171,21 +955,18 @@ func (p *GoroutinePool) GetMetrics() BasicPoolMetrics {
 
 	return BasicPoolMetrics{
 
-		ActiveWorkers:  p.metrics.ActiveWorkers,
+		ActiveWorkers: p.metrics.ActiveWorkers,
 
-		QueuedTasks:    p.metrics.QueuedTasks,
+		QueuedTasks: p.metrics.QueuedTasks,
 
 		CompletedTasks: p.metrics.CompletedTasks,
 
-		FailedTasks:    p.metrics.FailedTasks,
+		FailedTasks: p.metrics.FailedTasks,
 
 		AvgProcessTime: p.metrics.AvgProcessTime,
-
 	}
 
 }
-
-
 
 // initializeCircuitBreakers sets up circuit breakers for external services.
 
@@ -1195,13 +976,13 @@ func (e *OptimizationEngine) initializeCircuitBreakers() {
 
 	e.circuitBreakers["llm"] = gobreaker.NewCircuitBreaker(gobreaker.Settings{
 
-		Name:        "LLM Service",
+		Name: "LLM Service",
 
 		MaxRequests: 3,
 
-		Interval:    10 * time.Second,
+		Interval: 10 * time.Second,
 
-		Timeout:     60 * time.Second,
+		Timeout: 60 * time.Second,
 
 		ReadyToTrip: func(counts gobreaker.Counts) bool {
 
@@ -1216,44 +997,38 @@ func (e *OptimizationEngine) initializeCircuitBreakers() {
 			klog.Infof("Circuit breaker %s changed from %v to %v", name, from, to)
 
 		},
-
 	})
-
-
 
 	// Database circuit breaker.
 
 	e.circuitBreakers["database"] = gobreaker.NewCircuitBreaker(gobreaker.Settings{
 
-		Name:        "Database",
+		Name: "Database",
 
 		MaxRequests: 5,
 
-		Interval:    10 * time.Second,
+		Interval: 10 * time.Second,
 
-		Timeout:     30 * time.Second,
+		Timeout: 30 * time.Second,
 
 		ReadyToTrip: func(counts gobreaker.Counts) bool {
 
 			return counts.ConsecutiveFailures > 5
 
 		},
-
 	})
-
-
 
 	// External API circuit breaker.
 
 	e.circuitBreakers["external_api"] = gobreaker.NewCircuitBreaker(gobreaker.Settings{
 
-		Name:        "External API",
+		Name: "External API",
 
 		MaxRequests: 3,
 
-		Interval:    5 * time.Second,
+		Interval: 5 * time.Second,
 
-		Timeout:     30 * time.Second,
+		Timeout: 30 * time.Second,
 
 		ReadyToTrip: func(counts gobreaker.Counts) bool {
 
@@ -1262,12 +1037,9 @@ func (e *OptimizationEngine) initializeCircuitBreakers() {
 			return counts.Requests >= 3 && failureRatio >= 0.5
 
 		},
-
 	})
 
 }
-
-
 
 // initializeRateLimiters sets up rate limiters.
 
@@ -1279,11 +1051,9 @@ func (e *OptimizationEngine) initializeRateLimiters() {
 
 		time.Millisecond*10, // base delay
 
-		time.Second*10,      // max delay
+		time.Second*10, // max delay
 
 	)
-
-
 
 	// Database rate limiter - 50 queries per second.
 
@@ -1292,10 +1062,7 @@ func (e *OptimizationEngine) initializeRateLimiters() {
 		time.Millisecond*20,
 
 		time.Second*5,
-
 	)
-
-
 
 	// LLM rate limiter - 10 requests per second.
 
@@ -1304,12 +1071,9 @@ func (e *OptimizationEngine) initializeRateLimiters() {
 		time.Millisecond*100,
 
 		time.Second*30,
-
 	)
 
 }
-
-
 
 // ExecuteWithCircuitBreaker executes a function with circuit breaker protection.
 
@@ -1323,8 +1087,6 @@ func (e *OptimizationEngine) ExecuteWithCircuitBreaker(service string, fn func()
 
 	}
 
-
-
 	result, err := cb.Execute(func() (interface{}, error) {
 
 		return fn()
@@ -1337,13 +1099,9 @@ func (e *OptimizationEngine) ExecuteWithCircuitBreaker(service string, fn func()
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // ApplyRateLimit applies rate limiting to a request.
 
@@ -1357,13 +1115,9 @@ func (e *OptimizationEngine) ApplyRateLimit(service, key string) {
 
 	}
 
-
-
 	rl.When(key)
 
 }
-
-
 
 // OptimizeHTTPRequest optimizes HTTP request handling.
 
@@ -1373,15 +1127,11 @@ func (e *OptimizationEngine) OptimizeHTTPRequest(ctx context.Context, url string
 
 	e.ApplyRateLimit("api", url)
 
-
-
 	// Get connection from pool.
 
 	client := e.httpPool.GetClient()
 
 	defer e.httpPool.ReturnClient(client)
-
-
 
 	// Check cache first.
 
@@ -1396,8 +1146,6 @@ func (e *OptimizationEngine) OptimizeHTTPRequest(ctx context.Context, url string
 		}
 
 	}
-
-
 
 	// Execute with circuit breaker.
 
@@ -1421,11 +1169,7 @@ func (e *OptimizationEngine) OptimizeHTTPRequest(ctx context.Context, url string
 
 	}
 
-
-
 	resp := result.(*http.Response)
-
-
 
 	// Cache successful responses.
 
@@ -1435,13 +1179,9 @@ func (e *OptimizationEngine) OptimizeHTTPRequest(ctx context.Context, url string
 
 	}
 
-
-
 	return resp, nil
 
 }
-
-
 
 // OptimizeBatchOperation optimizes batch operations.
 
@@ -1453,21 +1193,15 @@ func (e *OptimizationEngine) OptimizeBatchOperation(items []interface{}) error {
 
 	errors := make(chan error, len(items))
 
-
-
 	for _, item := range items {
 
 		wg.Add(1)
 
 		itemCopy := item // Capture for goroutine
 
-
-
 		err := e.goroutinePool.Submit(func() {
 
 			defer wg.Done()
-
-
 
 			// Process item.
 
@@ -1489,8 +1223,6 @@ func (e *OptimizationEngine) OptimizeBatchOperation(items []interface{}) error {
 
 	}
 
-
-
 	// Wait for completion.
 
 	go func() {
@@ -1500,8 +1232,6 @@ func (e *OptimizationEngine) OptimizeBatchOperation(items []interface{}) error {
 		close(errors)
 
 	}()
-
-
 
 	// Collect errors.
 
@@ -1513,21 +1243,15 @@ func (e *OptimizationEngine) OptimizeBatchOperation(items []interface{}) error {
 
 	}
 
-
-
 	if len(errs) > 0 {
 
 		return fmt.Errorf("batch operation had %d errors", len(errs))
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // processItem processes a single item (placeholder).
 
@@ -1541,21 +1265,15 @@ func (e *OptimizationEngine) processItem(item interface{}) error {
 
 }
 
-
-
 // GetOptimizationMetrics returns optimization metrics.
 
 func (e *OptimizationEngine) GetOptimizationMetrics() map[string]interface{} {
 
 	metrics := make(map[string]interface{})
 
-
-
 	// Cache metrics.
 
 	metrics["cache_l1_hit_rate"] = e.cache.l1Cache.GetHitRate()
-
-
 
 	// Pool metrics.
 
@@ -1569,8 +1287,6 @@ func (e *OptimizationEngine) GetOptimizationMetrics() map[string]interface{} {
 
 	metrics["pool_avg_process_time"] = poolMetrics.AvgProcessTime
 
-
-
 	// Circuit breaker states.
 
 	for name, cb := range e.circuitBreakers {
@@ -1579,13 +1295,9 @@ func (e *OptimizationEngine) GetOptimizationMetrics() map[string]interface{} {
 
 	}
 
-
-
 	return metrics
 
 }
-
-
 
 // Shutdown gracefully shuts down the optimization engine.
 
@@ -1595,8 +1307,6 @@ func (e *OptimizationEngine) Shutdown(ctx context.Context) error {
 
 	e.batchProcessor.Stop()
 
-
-
 	// Shutdown goroutine pool.
 
 	if err := e.goroutinePool.Shutdown(ctx); err != nil {
@@ -1605,9 +1315,6 @@ func (e *OptimizationEngine) Shutdown(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-

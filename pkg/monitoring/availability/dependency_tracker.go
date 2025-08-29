@@ -2,100 +2,74 @@
 
 // This is a stub implementation that provides the DependencyChainTracker type and basic functionality.
 
-
 package availability
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // DependencyChain represents a chain of service dependencies.
 
 type DependencyChain struct {
+	ID string `json:"id"`
 
-	ID           string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name         string                 `json:"name"`
+	Services []ServiceDependency `json:"services"`
 
-	Services     []ServiceDependency    `json:"services"`
+	CriticalPath bool `json:"critical_path"`
 
-	CriticalPath bool                   `json:"critical_path"`
-
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // ServiceDependency represents a service in the dependency chain.
 
 type ServiceDependency struct {
+	Name string `json:"name"`
 
-	Name         string                 `json:"name"`
+	Type string `json:"type"`
 
-	Type         string                 `json:"type"`
+	Critical bool `json:"critical"`
 
-	Critical     bool                   `json:"critical"`
+	Dependencies []string `json:"dependencies,omitempty"`
 
-	Dependencies []string               `json:"dependencies,omitempty"`
-
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // DependencyServiceStatus represents the status of a service dependency.
 
 type DependencyServiceStatus struct {
+	ServiceName string `json:"service_name"`
 
-	ServiceName      string                 `json:"service_name"`
+	Status DependencyStatus `json:"status"`
 
-	Status           DependencyStatus       `json:"status"`
+	ResponseTime time.Duration `json:"response_time"`
 
-	ResponseTime     time.Duration          `json:"response_time"`
+	LastChecked time.Time `json:"last_checked"`
 
-	LastChecked      time.Time              `json:"last_checked"`
+	FailureReason string `json:"failure_reason,omitempty"`
 
-	FailureReason    string                 `json:"failure_reason,omitempty"`
+	ConsecutiveFails int `json:"consecutive_fails"`
 
-	ConsecutiveFails int                    `json:"consecutive_fails"`
-
-	Metadata         map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // DependencyChainTracker tracks service dependency chains and their health (stub implementation).
 
 type DependencyChainTracker struct {
-
-	chains   map[string]*DependencyChain
+	chains map[string]*DependencyChain
 
 	statuses map[string]*DependencyServiceStatus
 
-	mu       sync.RWMutex
+	mu sync.RWMutex
 
-	ctx      context.Context
+	ctx context.Context
 
-	cancel   context.CancelFunc
-
+	cancel context.CancelFunc
 }
-
-
 
 // NewDependencyChainTracker creates a new dependency chain tracker.
 
@@ -105,19 +79,16 @@ func NewDependencyChainTracker() *DependencyChainTracker {
 
 	return &DependencyChainTracker{
 
-		chains:   make(map[string]*DependencyChain),
+		chains: make(map[string]*DependencyChain),
 
 		statuses: make(map[string]*DependencyServiceStatus),
 
-		ctx:      ctx,
+		ctx: ctx,
 
-		cancel:   cancel,
-
+		cancel: cancel,
 	}
 
 }
-
-
 
 // AddChain adds a dependency chain to track.
 
@@ -129,17 +100,11 @@ func (dct *DependencyChainTracker) AddChain(chain *DependencyChain) error {
 
 	}
 
-
-
 	dct.mu.Lock()
 
 	defer dct.mu.Unlock()
 
-
-
 	dct.chains[chain.ID] = chain
-
-
 
 	// Initialize status for all services in the chain.
 
@@ -147,27 +112,22 @@ func (dct *DependencyChainTracker) AddChain(chain *DependencyChain) error {
 
 		dct.statuses[service.Name] = &DependencyServiceStatus{
 
-			ServiceName:      service.Name,
+			ServiceName: service.Name,
 
-			Status:           DepStatusUnknown,
+			Status: DepStatusUnknown,
 
-			ResponseTime:     0,
+			ResponseTime: 0,
 
-			LastChecked:      time.Now(),
+			LastChecked: time.Now(),
 
 			ConsecutiveFails: 0,
-
 		}
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // RemoveChain removes a dependency chain from tracking.
 
@@ -177,8 +137,6 @@ func (dct *DependencyChainTracker) RemoveChain(chainID string) error {
 
 	defer dct.mu.Unlock()
 
-
-
 	chain, exists := dct.chains[chainID]
 
 	if !exists {
@@ -186,8 +144,6 @@ func (dct *DependencyChainTracker) RemoveChain(chainID string) error {
 		return fmt.Errorf("chain with ID %s not found", chainID)
 
 	}
-
-
 
 	// Remove statuses for all services in the chain.
 
@@ -197,15 +153,11 @@ func (dct *DependencyChainTracker) RemoveChain(chainID string) error {
 
 	}
 
-
-
 	delete(dct.chains, chainID)
 
 	return nil
 
 }
-
-
 
 // UpdateStatus updates the status of a service in the dependency chain (stub implementation).
 
@@ -214,8 +166,6 @@ func (dct *DependencyChainTracker) UpdateStatus(serviceName, status string, resp
 	dct.mu.Lock()
 
 	defer dct.mu.Unlock()
-
-
 
 	serviceStatus, exists := dct.statuses[serviceName]
 
@@ -226,14 +176,11 @@ func (dct *DependencyChainTracker) UpdateStatus(serviceName, status string, resp
 		serviceStatus = &DependencyServiceStatus{
 
 			ServiceName: serviceName,
-
 		}
 
 		dct.statuses[serviceName] = serviceStatus
 
 	}
-
-
 
 	// Update the status (stub always marks as healthy).
 
@@ -247,13 +194,9 @@ func (dct *DependencyChainTracker) UpdateStatus(serviceName, status string, resp
 
 	serviceStatus.ConsecutiveFails = 0
 
-
-
 	return nil
 
 }
-
-
 
 // GetChainStatus returns the overall status of a dependency chain (stub implementation).
 
@@ -263,8 +206,6 @@ func (dct *DependencyChainTracker) GetChainStatus(chainID string) (string, error
 
 	defer dct.mu.RUnlock()
 
-
-
 	chain, exists := dct.chains[chainID]
 
 	if !exists {
@@ -272,8 +213,6 @@ func (dct *DependencyChainTracker) GetChainStatus(chainID string) (string, error
 		return "", fmt.Errorf("chain with ID %s not found", chainID)
 
 	}
-
-
 
 	// Stub implementation always returns healthy.
 
@@ -283,8 +222,6 @@ func (dct *DependencyChainTracker) GetChainStatus(chainID string) (string, error
 
 }
 
-
-
 // GetServiceStatus returns the status of a specific service.
 
 func (dct *DependencyChainTracker) GetServiceStatus(serviceName string) (*DependencyServiceStatus, error) {
@@ -292,8 +229,6 @@ func (dct *DependencyChainTracker) GetServiceStatus(serviceName string) (*Depend
 	dct.mu.RLock()
 
 	defer dct.mu.RUnlock()
-
-
 
 	status, exists := dct.statuses[serviceName]
 
@@ -303,8 +238,6 @@ func (dct *DependencyChainTracker) GetServiceStatus(serviceName string) (*Depend
 
 	}
 
-
-
 	// Return a copy to avoid concurrent modifications.
 
 	statusCopy := *status
@@ -313,8 +246,6 @@ func (dct *DependencyChainTracker) GetServiceStatus(serviceName string) (*Depend
 
 }
 
-
-
 // GetAllChains returns all tracked dependency chains.
 
 func (dct *DependencyChainTracker) GetAllChains() []*DependencyChain {
@@ -322,8 +253,6 @@ func (dct *DependencyChainTracker) GetAllChains() []*DependencyChain {
 	dct.mu.RLock()
 
 	defer dct.mu.RUnlock()
-
-
 
 	chains := make([]*DependencyChain, 0, len(dct.chains))
 
@@ -337,13 +266,9 @@ func (dct *DependencyChainTracker) GetAllChains() []*DependencyChain {
 
 	}
 
-
-
 	return chains
 
 }
-
-
 
 // Start begins dependency tracking (stub implementation).
 
@@ -355,8 +280,6 @@ func (dct *DependencyChainTracker) Start() error {
 
 }
 
-
-
 // Stop stops dependency tracking.
 
 func (dct *DependencyChainTracker) Stop() error {
@@ -367,8 +290,6 @@ func (dct *DependencyChainTracker) Stop() error {
 
 }
 
-
-
 // AnalyzeImpact analyzes the impact of a service failure on dependency chains (stub implementation).
 
 func (dct *DependencyChainTracker) AnalyzeImpact(serviceName string) ([]string, error) {
@@ -377,15 +298,11 @@ func (dct *DependencyChainTracker) AnalyzeImpact(serviceName string) ([]string, 
 
 	defer dct.mu.RUnlock()
 
-
-
 	// Stub implementation returns empty impact.
 
 	return []string{}, nil
 
 }
-
-
 
 // GetCriticalPath returns services on the critical path (stub implementation).
 
@@ -395,11 +312,8 @@ func (dct *DependencyChainTracker) GetCriticalPath() ([]string, error) {
 
 	defer dct.mu.RUnlock()
 
-
-
 	// Stub implementation returns empty critical path.
 
 	return []string{}, nil
 
 }
-

@@ -28,44 +28,24 @@ limitations under the License.
 
 */
 
-
-
-
 package blueprints
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
 
-
-
-	"go.uber.org/zap"
-
-
-
 	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
+	"go.uber.org/zap"
 )
-
-
 
 // NetworkFunctionConfigGenerator generates network function configurations.
 
 type NetworkFunctionConfigGenerator struct {
-
 	config *BlueprintConfig
 
 	logger *zap.Logger
-
 }
-
-
 
 // NewNetworkFunctionConfigGenerator creates a new network function config generator.
 
@@ -83,19 +63,14 @@ func NewNetworkFunctionConfigGenerator(config *BlueprintConfig, logger *zap.Logg
 
 	}
 
-
-
 	return &NetworkFunctionConfigGenerator{
 
 		config: config,
 
 		logger: logger,
-
 	}, nil
 
 }
-
-
 
 // GenerateConfigurations generates network function configurations from intent and templates.
 
@@ -115,11 +90,7 @@ func (nfcg *NetworkFunctionConfigGenerator) GenerateConfigurations(
 
 		zap.Int("template_count", len(templates)))
 
-
-
 	configs := make([]NetworkFunctionConfig, 0, len(templates)) // Preallocate with capacity
-
-
 
 	for _, template := range templates {
 
@@ -127,12 +98,11 @@ func (nfcg *NetworkFunctionConfigGenerator) GenerateConfigurations(
 
 			config := NetworkFunctionConfig{
 
-				Interfaces:           template.NetworkConfig.Interfaces,
+				Interfaces: template.NetworkConfig.Interfaces,
 
-				ServiceBindings:      template.NetworkConfig.ServiceBindings,
+				ServiceBindings: template.NetworkConfig.ServiceBindings,
 
 				ResourceRequirements: template.NetworkConfig.ResourceRequirements,
-
 			}
 
 			configs = append(configs, config)
@@ -141,33 +111,23 @@ func (nfcg *NetworkFunctionConfigGenerator) GenerateConfigurations(
 
 	}
 
-
-
 	nfcg.logger.Info("Generated network function configurations",
 
 		zap.String("intent_name", intent.Name),
 
 		zap.Int("config_count", len(configs)))
 
-
-
 	return configs, nil
 
 }
 
-
-
 // ORANValidator validates O-RAN compliance.
 
 type ORANValidator struct {
-
 	config *BlueprintConfig
 
 	logger *zap.Logger
-
 }
-
-
 
 // NewORANValidator creates a new O-RAN validator.
 
@@ -185,19 +145,14 @@ func NewORANValidator(config *BlueprintConfig, logger *zap.Logger) (*ORANValidat
 
 	}
 
-
-
 	return &ORANValidator{
 
 		config: config,
 
 		logger: logger,
-
 	}, nil
 
 }
-
-
 
 // ValidateORANCompliance validates O-RAN compliance for rendered blueprint and network function configs.
 
@@ -217,8 +172,6 @@ func (ov *ORANValidator) ValidateORANCompliance(
 
 		zap.Int("nf_config_count", len(nfConfigs)))
 
-
-
 	// Basic O-RAN compliance validation.
 
 	if !blueprint.ORANCompliant {
@@ -226,8 +179,6 @@ func (ov *ORANValidator) ValidateORANCompliance(
 		return fmt.Errorf("blueprint is not marked as O-RAN compliant")
 
 	}
-
-
 
 	// Validate required O-RAN interfaces.
 
@@ -243,8 +194,6 @@ func (ov *ORANValidator) ValidateORANCompliance(
 
 	}
 
-
-
 	// Validate network function configurations.
 
 	for _, nfConfig := range nfConfigs {
@@ -257,19 +206,13 @@ func (ov *ORANValidator) ValidateORANCompliance(
 
 	}
 
-
-
 	ov.logger.Info("O-RAN compliance validation completed successfully",
 
 		zap.String("blueprint_name", blueprint.Name))
 
-
-
 	return nil
 
 }
-
-
 
 // hasInterface checks if blueprint has a specific interface.
 
@@ -281,8 +224,6 @@ func (ov *ORANValidator) hasInterface(blueprint *RenderedBlueprint, interfaceTyp
 
 	}
 
-
-
 	for _, iface := range blueprint.Metadata.InterfaceTypes {
 
 		if iface == interfaceType {
@@ -293,13 +234,9 @@ func (ov *ORANValidator) hasInterface(blueprint *RenderedBlueprint, interfaceTyp
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // validateNetworkFunctionConfig validates a network function configuration.
 
@@ -313,8 +250,6 @@ func (ov *ORANValidator) validateNetworkFunctionConfig(nfConfig NetworkFunctionC
 
 	}
 
-
-
 	// Validate service bindings.
 
 	if len(nfConfig.ServiceBindings) == 0 {
@@ -322,8 +257,6 @@ func (ov *ORANValidator) validateNetworkFunctionConfig(nfConfig NetworkFunctionC
 		return fmt.Errorf("network function must have at least one service binding")
 
 	}
-
-
 
 	// Validate resource requirements.
 
@@ -339,25 +272,17 @@ func (ov *ORANValidator) validateNetworkFunctionConfig(nfConfig NetworkFunctionC
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // TemplateEngine processes blueprint templates.
 
 type TemplateEngine struct {
-
 	config *BlueprintConfig
 
 	logger *zap.Logger
-
 }
-
-
 
 // NewTemplateEngine creates a new template engine.
 
@@ -375,19 +300,14 @@ func NewTemplateEngine(config *BlueprintConfig, logger *zap.Logger) (*TemplateEn
 
 	}
 
-
-
 	return &TemplateEngine{
 
 		config: config,
 
 		logger: logger,
-
 	}, nil
 
 }
-
-
 
 // ProcessTemplate processes a blueprint template.
 
@@ -407,27 +327,22 @@ func (te *TemplateEngine) ProcessTemplate(
 
 		zap.String("template_version", template.Version))
 
-
-
 	// Create processed template.
 
 	processed := &ProcessedTemplate{
 
-		ID:             template.ID,
+		ID: template.ID,
 
-		Name:           template.Name,
+		Name: template.Name,
 
-		Version:        template.Version,
+		Version: template.Version,
 
-		ProcessedAt:    time.Now(),
+		ProcessedAt: time.Now(),
 
-		Parameters:     parameters,
+		Parameters: parameters,
 
 		GeneratedFiles: make(map[string]string),
-
 	}
-
-
 
 	// Process template components.
 
@@ -439,77 +354,61 @@ func (te *TemplateEngine) ProcessTemplate(
 
 	}
 
-
-
 	te.logger.Info("Template processing completed",
 
 		zap.String("template_name", template.Name),
 
 		zap.Int("generated_files", len(processed.GeneratedFiles)))
 
-
-
 	return processed, nil
 
 }
 
-
-
 // ProcessedTemplate represents a processed blueprint template.
 
 type ProcessedTemplate struct {
+	ID string `json:"id"`
 
-	ID             string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name           string                 `json:"name"`
+	Version string `json:"version"`
 
-	Version        string                 `json:"version"`
+	ProcessedAt time.Time `json:"processedAt"`
 
-	ProcessedAt    time.Time              `json:"processedAt"`
+	Parameters map[string]interface{} `json:"parameters"`
 
-	Parameters     map[string]interface{} `json:"parameters"`
-
-	GeneratedFiles map[string]string      `json:"generatedFiles"`
-
+	GeneratedFiles map[string]string `json:"generatedFiles"`
 }
-
-
 
 // BlueprintOperation represents a blueprint operation.
 
 type BlueprintOperation struct {
+	ID string `json:"id"`
 
-	ID          string                 `json:"id"`
+	Type BlueprintOperationType `json:"type"`
 
-	Type        BlueprintOperationType `json:"type"`
+	Intent *v1.NetworkIntent `json:"intent"`
 
-	Intent      *v1.NetworkIntent      `json:"intent"`
+	Templates []*BlueprintTemplate `json:"templates"`
 
-	Templates   []*BlueprintTemplate   `json:"templates"`
+	Parameters map[string]interface{} `json:"parameters"`
 
-	Parameters  map[string]interface{} `json:"parameters"`
+	Status OperationStatus `json:"status"`
 
-	Status      OperationStatus        `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
 
-	CreatedAt   time.Time              `json:"createdAt"`
+	StartedAt *time.Time `json:"startedAt,omitempty"`
 
-	StartedAt   *time.Time             `json:"startedAt,omitempty"`
+	CompletedAt *time.Time `json:"completedAt,omitempty"`
 
-	CompletedAt *time.Time             `json:"completedAt,omitempty"`
+	Error string `json:"error,omitempty"`
 
-	Error       string                 `json:"error,omitempty"`
-
-	Result      *OperationResult       `json:"result,omitempty"`
-
+	Result *OperationResult `json:"result,omitempty"`
 }
-
-
 
 // BlueprintOperationType represents the type of blueprint operation.
 
 type BlueprintOperationType string
-
-
 
 const (
 
@@ -524,16 +423,11 @@ const (
 	// BlueprintOperationTypeDeploy deploys a blueprint.
 
 	BlueprintOperationTypeDeploy BlueprintOperationType = "deploy"
-
 )
-
-
 
 // OperationStatus represents the status of a blueprint operation.
 
 type OperationStatus string
-
-
 
 const (
 
@@ -552,62 +446,48 @@ const (
 	// OperationStatusFailed indicates operation failed.
 
 	OperationStatusFailed OperationStatus = "failed"
-
 )
-
-
 
 // OperationResult represents the result of a blueprint operation.
 
 type OperationResult struct {
+	RenderedBlueprint *RenderedBlueprint `json:"renderedBlueprint,omitempty"`
 
-	RenderedBlueprint  *RenderedBlueprint      `json:"renderedBlueprint,omitempty"`
+	ValidationResult *ValidationResult `json:"validationResult,omitempty"`
 
-	ValidationResult   *ValidationResult       `json:"validationResult,omitempty"`
+	DeploymentResult *DeploymentResult `json:"deploymentResult,omitempty"`
 
-	DeploymentResult   *DeploymentResult       `json:"deploymentResult,omitempty"`
+	GeneratedFiles map[string]string `json:"generatedFiles,omitempty"`
 
-	GeneratedFiles     map[string]string       `json:"generatedFiles,omitempty"`
+	ProcessedTemplates []*ProcessedTemplate `json:"processedTemplates,omitempty"`
 
-	ProcessedTemplates []*ProcessedTemplate    `json:"processedTemplates,omitempty"`
-
-	NfConfigs          []NetworkFunctionConfig `json:"nfConfigs,omitempty"`
-
+	NfConfigs []NetworkFunctionConfig `json:"nfConfigs,omitempty"`
 }
-
-
 
 // ValidationResult represents the result of blueprint validation.
 
 type ValidationResult struct {
+	Valid bool `json:"valid"`
 
-	Valid       bool          `json:"valid"`
+	Errors []string `json:"errors,omitempty"`
 
-	Errors      []string      `json:"errors,omitempty"`
+	Warnings []string `json:"warnings,omitempty"`
 
-	Warnings    []string      `json:"warnings,omitempty"`
+	Duration time.Duration `json:"duration"`
 
-	Duration    time.Duration `json:"duration"`
-
-	ValidatedAt time.Time     `json:"validatedAt"`
-
+	ValidatedAt time.Time `json:"validatedAt"`
 }
-
-
 
 // DeploymentResult represents the result of blueprint deployment.
 
 type DeploymentResult struct {
+	Success bool `json:"success"`
 
-	Success          bool          `json:"success"`
+	ResourcesCreated []string `json:"resourcesCreated,omitempty"`
 
-	ResourcesCreated []string      `json:"resourcesCreated,omitempty"`
+	Errors []string `json:"errors,omitempty"`
 
-	Errors           []string      `json:"errors,omitempty"`
+	Duration time.Duration `json:"duration"`
 
-	Duration         time.Duration `json:"duration"`
-
-	DeployedAt       time.Time     `json:"deployedAt"`
-
+	DeployedAt time.Time `json:"deployedAt"`
 }
-

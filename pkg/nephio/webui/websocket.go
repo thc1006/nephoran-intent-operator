@@ -1,61 +1,39 @@
-
 package webui
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/gorilla/websocket"
-
 	"go.uber.org/zap"
 
-
-
 	"k8s.io/client-go/informers"
-
 	"k8s.io/client-go/kubernetes"
-
 )
-
-
 
 // WebSocketServer manages WebSocket connections and event distribution.
 
 type WebSocketServer struct {
+	logger *zap.Logger
 
-	logger          *zap.Logger
+	upgrader websocket.Upgrader
 
-	upgrader        websocket.Upgrader
+	clients map[*websocket.Conn]bool
 
-	clients         map[*websocket.Conn]bool
+	broadcaster chan WebSocketMessage
 
-	broadcaster     chan WebSocketMessage
+	stopChan chan struct{}
 
-	stopChan        chan struct{}
+	clientsMutex sync.RWMutex
 
-	clientsMutex    sync.RWMutex
-
-	kubeClient      kubernetes.Interface
+	kubeClient kubernetes.Interface
 
 	informerFactory informers.SharedInformerFactory
-
 }
-
-
 
 // NewWebSocketServer creates a new WebSocket server.
 
@@ -81,29 +59,25 @@ func NewWebSocketServer(
 
 			},
 
-			ReadBufferSize:  1024,
+			ReadBufferSize: 1024,
 
 			WriteBufferSize: 1024,
-
 		},
 
-		clients:         make(map[*websocket.Conn]bool),
+		clients: make(map[*websocket.Conn]bool),
 
-		broadcaster:     make(chan WebSocketMessage, 100),
+		broadcaster: make(chan WebSocketMessage, 100),
 
-		stopChan:        make(chan struct{}),
+		stopChan: make(chan struct{}),
 
-		kubeClient:      kubeClient,
+		kubeClient: kubeClient,
 
 		informerFactory: informers.NewSharedInformerFactory(kubeClient, 30*time.Minute),
-
 	}
 
 	return ws
 
 }
-
-
 
 // HandleWebSocket manages WebSocket connection lifecycle.
 
@@ -119,21 +93,15 @@ func (ws *WebSocketServer) HandleWebSocket(w http.ResponseWriter, r *http.Reques
 
 	}
 
-
-
 	ws.clientsMutex.Lock()
 
 	ws.clients[conn] = true
 
 	ws.clientsMutex.Unlock()
 
-
-
 	go ws.handleClient(conn)
 
 }
-
-
 
 // handleClient manages individual WebSocket client interactions.
 
@@ -151,8 +119,6 @@ func (ws *WebSocketServer) handleClient(conn *websocket.Conn) {
 
 	}()
 
-
-
 	for {
 
 		_, message, err := conn.ReadMessage()
@@ -169,8 +135,6 @@ func (ws *WebSocketServer) handleClient(conn *websocket.Conn) {
 
 		}
 
-
-
 		// Process client messages.
 
 		var wsMessage WebSocketMessage
@@ -183,15 +147,11 @@ func (ws *WebSocketServer) handleClient(conn *websocket.Conn) {
 
 		}
 
-
-
 		ws.processClientMessage(conn, wsMessage)
 
 	}
 
 }
-
-
 
 // processClientMessage handles incoming WebSocket messages.
 
@@ -209,10 +169,9 @@ func (ws *WebSocketServer) processClientMessage(conn *websocket.Conn, message We
 
 		ws.sendMessage(conn, WebSocketMessage{
 
-			Type:    "pong",
+			Type: "pong",
 
 			Payload: "pong",
-
 		})
 
 	default:
@@ -223,8 +182,6 @@ func (ws *WebSocketServer) processClientMessage(conn *websocket.Conn, message We
 
 }
 
-
-
 // sendMessage sends a message to a specific WebSocket client.
 
 func (ws *WebSocketServer) sendMessage(conn *websocket.Conn, message WebSocketMessage) error {
@@ -233,21 +190,15 @@ func (ws *WebSocketServer) sendMessage(conn *websocket.Conn, message WebSocketMe
 
 	defer ws.clientsMutex.RUnlock()
 
-
-
 	if !ws.clients[conn] {
 
 		return fmt.Errorf("client not connected")
 
 	}
 
-
-
 	return conn.WriteJSON(message)
 
 }
-
-
 
 // Start initializes WebSocket server and Kubernetes event watchers.
 
@@ -257,13 +208,9 @@ func (ws *WebSocketServer) Start(ctx context.Context) error {
 
 	ws.startInformers(ctx)
 
-
-
 	// Start broadcaster.
 
 	go ws.startBroadcaster(ctx)
-
-
 
 	// Start event watchers.
 
@@ -273,13 +220,9 @@ func (ws *WebSocketServer) Start(ctx context.Context) error {
 
 	go ws.watchIntentEvents(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // startBroadcaster distributes messages to all connected clients.
 
@@ -303,8 +246,6 @@ func (ws *WebSocketServer) startBroadcaster(ctx context.Context) {
 
 }
 
-
-
 // broadcastMessage sends a message to all connected clients.
 
 func (ws *WebSocketServer) broadcastMessage(message WebSocketMessage) {
@@ -312,8 +253,6 @@ func (ws *WebSocketServer) broadcastMessage(message WebSocketMessage) {
 	ws.clientsMutex.RLock()
 
 	defer ws.clientsMutex.RUnlock()
-
-
 
 	for client := range ws.clients {
 
@@ -327,8 +266,6 @@ func (ws *WebSocketServer) broadcastMessage(message WebSocketMessage) {
 
 }
 
-
-
 // startInformers initializes Kubernetes resource informers.
 
 func (ws *WebSocketServer) startInformers(ctx context.Context) {
@@ -341,8 +278,6 @@ func (ws *WebSocketServer) startInformers(ctx context.Context) {
 
 }
 
-
-
 // watchPackageEvents monitors PackageRevision events.
 
 func (ws *WebSocketServer) watchPackageEvents(ctx context.Context) {
@@ -352,8 +287,6 @@ func (ws *WebSocketServer) watchPackageEvents(ctx context.Context) {
 	// Use Kubernetes informers or custom watcher to track package changes.
 
 }
-
-
 
 // watchClusterEvents monitors Workload Cluster events.
 
@@ -365,8 +298,6 @@ func (ws *WebSocketServer) watchClusterEvents(ctx context.Context) {
 
 }
 
-
-
 // watchIntentEvents monitors NetworkIntent processing events.
 
 func (ws *WebSocketServer) watchIntentEvents(ctx context.Context) {
@@ -377,21 +308,15 @@ func (ws *WebSocketServer) watchIntentEvents(ctx context.Context) {
 
 }
 
-
-
 // Stop gracefully shuts down the WebSocket server.
 
 func (ws *WebSocketServer) Stop() {
 
 	close(ws.stopChan)
 
-
-
 	ws.clientsMutex.Lock()
 
 	defer ws.clientsMutex.Unlock()
-
-
 
 	for conn := range ws.clients {
 
@@ -402,4 +327,3 @@ func (ws *WebSocketServer) Stop() {
 	}
 
 }
-

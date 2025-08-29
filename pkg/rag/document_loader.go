@@ -1,73 +1,45 @@
 //go:build !disable_rag && !test
 
-
-
-
 package rag
 
-
-
 import (
-
 	"bufio"
-
 	"context"
-
 	"crypto/md5"
-
 	"fmt"
-
 	"io"
-
 	"log/slog"
-
 	"net/http"
-
 	"os"
-
 	"path/filepath"
-
 	"regexp"
-
 	"runtime"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/ledongthuc/pdf"
-
 )
-
-
 
 // DocumentLoader provides functionality to load and parse telecom specification documents.
 
 type DocumentLoader struct {
+	config *DocumentLoaderConfig
 
-	config         *DocumentLoaderConfig
+	logger *slog.Logger
 
-	logger         *slog.Logger
+	cache map[string]*LoadedDocument
 
-	cache          map[string]*LoadedDocument
+	cacheMutex sync.RWMutex
 
-	cacheMutex     sync.RWMutex
+	metrics *LoaderMetrics
 
-	metrics        *LoaderMetrics
+	httpClient *http.Client
 
-	httpClient     *http.Client
-
-	memoryMonitor  *MemoryMonitor
+	memoryMonitor *MemoryMonitor
 
 	processingPool *ProcessingPool
-
 }
-
-
 
 // DocumentLoaderConfig holds configuration for the document loader.
 
@@ -79,111 +51,92 @@ type DocumentLoaderConfig struct {
 
 	RemoteURLs []string `json:"remote_urls"`
 
-
-
 	// PDF processing configuration.
 
-	MaxFileSize            int64  `json:"max_file_size"`      // Maximum file size in bytes
+	MaxFileSize int64 `json:"max_file_size"` // Maximum file size in bytes
 
-	PDFTextExtractor       string `json:"pdf_text_extractor"` // "native", "hybrid", "pdfcpu", or "ocr"
+	PDFTextExtractor string `json:"pdf_text_extractor"` // "native", "hybrid", "pdfcpu", or "ocr"
 
-	OCREnabled             bool   `json:"ocr_enabled"`
+	OCREnabled bool `json:"ocr_enabled"`
 
-	OCRLanguage            string `json:"ocr_language"`
+	OCRLanguage string `json:"ocr_language"`
 
-	StreamingEnabled       bool   `json:"streaming_enabled"`        // Enable streaming for large files
+	StreamingEnabled bool `json:"streaming_enabled"` // Enable streaming for large files
 
-	StreamingThreshold     int64  `json:"streaming_threshold"`      // File size threshold for streaming
+	StreamingThreshold int64 `json:"streaming_threshold"` // File size threshold for streaming
 
-	MaxMemoryUsage         int64  `json:"max_memory_usage"`         // Maximum memory usage in bytes
+	MaxMemoryUsage int64 `json:"max_memory_usage"` // Maximum memory usage in bytes
 
-	PageProcessingBatch    int    `json:"page_processing_batch"`    // Pages to process in one batch
+	PageProcessingBatch int `json:"page_processing_batch"` // Pages to process in one batch
 
-	EnableTableExtraction  bool   `json:"enable_table_extraction"`  // Enhanced table extraction
+	EnableTableExtraction bool `json:"enable_table_extraction"` // Enhanced table extraction
 
-	EnableFigureExtraction bool   `json:"enable_figure_extraction"` // Enhanced figure extraction
-
-
+	EnableFigureExtraction bool `json:"enable_figure_extraction"` // Enhanced figure extraction
 
 	// Content filtering.
 
-	MinContentLength int      `json:"min_content_length"`
+	MinContentLength int `json:"min_content_length"`
 
-	MaxContentLength int      `json:"max_content_length"`
+	MaxContentLength int `json:"max_content_length"`
 
-	LanguageFilter   []string `json:"language_filter"`
-
-
+	LanguageFilter []string `json:"language_filter"`
 
 	// Caching configuration.
 
-	EnableCaching  bool          `json:"enable_caching"`
+	EnableCaching bool `json:"enable_caching"`
 
-	CacheDirectory string        `json:"cache_directory"`
+	CacheDirectory string `json:"cache_directory"`
 
-	CacheTTL       time.Duration `json:"cache_ttl"`
-
-
+	CacheTTL time.Duration `json:"cache_ttl"`
 
 	// Processing configuration.
 
-	BatchSize         int           `json:"batch_size"`
+	BatchSize int `json:"batch_size"`
 
-	MaxConcurrency    int           `json:"max_concurrency"`
+	MaxConcurrency int `json:"max_concurrency"`
 
 	ProcessingTimeout time.Duration `json:"processing_timeout"`
 
-
-
 	// Retry configuration.
 
-	MaxRetries int           `json:"max_retries"`
+	MaxRetries int `json:"max_retries"`
 
 	RetryDelay time.Duration `json:"retry_delay"`
-
-
 
 	// 3GPP and O-RAN specific settings.
 
 	PreferredSources map[string]int `json:"preferred_sources"` // source -> priority mapping
 
-	TechnicalDomains []string       `json:"technical_domains"`
-
+	TechnicalDomains []string `json:"technical_domains"`
 }
-
-
 
 // LoadedDocument represents a processed document ready for embedding.
 
 type LoadedDocument struct {
+	ID string `json:"id"`
 
-	ID             string            `json:"id"`
+	SourcePath string `json:"source_path"`
 
-	SourcePath     string            `json:"source_path"`
+	Filename string `json:"filename"`
 
-	Filename       string            `json:"filename"`
+	Title string `json:"title"`
 
-	Title          string            `json:"title"`
+	Content string `json:"content"`
 
-	Content        string            `json:"content"`
+	RawContent string `json:"raw_content"`
 
-	RawContent     string            `json:"raw_content"`
+	Metadata *DocumentMetadata `json:"metadata"`
 
-	Metadata       *DocumentMetadata `json:"metadata"`
+	LoadedAt time.Time `json:"loaded_at"`
 
-	LoadedAt       time.Time         `json:"loaded_at"`
+	ProcessingTime time.Duration `json:"processing_time"`
 
-	ProcessingTime time.Duration     `json:"processing_time"`
+	Hash string `json:"hash"`
 
-	Hash           string            `json:"hash"`
+	Size int64 `json:"size"`
 
-	Size           int64             `json:"size"`
-
-	Language       string            `json:"language"`
-
+	Language string `json:"language"`
 }
-
-
 
 // DocumentMetadata contains extracted metadata from telecom specifications.
 
@@ -191,87 +144,72 @@ type DocumentMetadata struct {
 
 	// Standard document metadata.
 
-	Source       string `json:"source"`        // 3GPP, O-RAN, ETSI, ITU, etc.
+	Source string `json:"source"` // 3GPP, O-RAN, ETSI, ITU, etc.
 
 	DocumentType string `json:"document_type"` // TS, TR, WID, etc.
 
-	Version      string `json:"version"`       // Rel-17, v1.5.0, etc.
+	Version string `json:"version"` // Rel-17, v1.5.0, etc.
 
 	WorkingGroup string `json:"working_group"` // RAN1, SA2, WG1, etc.
 
-	Category     string `json:"category"`      // RAN, Core, Transport, etc.
+	Category string `json:"category"` // RAN, Core, Transport, etc.
 
-	Subcategory  string `json:"subcategory"`
-
-
+	Subcategory string `json:"subcategory"`
 
 	// Technical metadata.
 
-	Technologies     []string `json:"technologies"`      // 5G, 4G, O-RAN, etc.
+	Technologies []string `json:"technologies"` // 5G, 4G, O-RAN, etc.
 
 	NetworkFunctions []string `json:"network_functions"` // gNB, AMF, SMF, etc.
 
-	UseCases         []string `json:"use_cases"`         // eMBB, URLLC, mMTC, etc.
+	UseCases []string `json:"use_cases"` // eMBB, URLLC, mMTC, etc.
 
-	Keywords         []string `json:"keywords"`
-
-
+	Keywords []string `json:"keywords"`
 
 	// Document structure.
 
-	PageCount    int `json:"page_count"`
+	PageCount int `json:"page_count"`
 
 	SectionCount int `json:"section_count"`
 
-	TableCount   int `json:"table_count"`
+	TableCount int `json:"table_count"`
 
-	FigureCount  int `json:"figure_count"`
-
-
+	FigureCount int `json:"figure_count"`
 
 	// Quality indicators.
 
-	Confidence      float32  `json:"confidence"`
+	Confidence float32 `json:"confidence"`
 
-	Language        string   `json:"language"`
+	Language string `json:"language"`
 
 	ProcessingNotes []string `json:"processing_notes"`
-
-
 
 	// Custom metadata.
 
 	Custom map[string]interface{} `json:"custom,omitempty"`
-
 }
-
-
 
 // LoaderMetrics tracks document loading performance and statistics.
 
 type LoaderMetrics struct {
+	TotalDocuments int64 `json:"total_documents"`
 
-	TotalDocuments      int64         `json:"total_documents"`
+	SuccessfulLoads int64 `json:"successful_loads"`
 
-	SuccessfulLoads     int64         `json:"successful_loads"`
+	FailedLoads int64 `json:"failed_loads"`
 
-	FailedLoads         int64         `json:"failed_loads"`
+	CacheHits int64 `json:"cache_hits"`
 
-	CacheHits           int64         `json:"cache_hits"`
+	CacheMisses int64 `json:"cache_misses"`
 
-	CacheMisses         int64         `json:"cache_misses"`
-
-	AverageLoadTime     time.Duration `json:"average_load_time"`
+	AverageLoadTime time.Duration `json:"average_load_time"`
 
 	TotalProcessingTime time.Duration `json:"total_processing_time"`
 
-	LastProcessedAt     time.Time     `json:"last_processed_at"`
+	LastProcessedAt time.Time `json:"last_processed_at"`
 
-	mutex               sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewDocumentLoader creates a new document loader with the specified configuration.
 
@@ -283,8 +221,6 @@ func NewDocumentLoader(config *DocumentLoaderConfig) *DocumentLoader {
 
 	}
 
-
-
 	// Set up HTTP client with appropriate timeouts.
 
 	httpClient := &http.Client{
@@ -293,53 +229,42 @@ func NewDocumentLoader(config *DocumentLoaderConfig) *DocumentLoader {
 
 		Transport: &http.Transport{
 
-			MaxIdleConns:       100,
+			MaxIdleConns: 100,
 
-			MaxConnsPerHost:    10,
+			MaxConnsPerHost: 10,
 
-			IdleConnTimeout:    90 * time.Second,
+			IdleConnTimeout: 90 * time.Second,
 
 			DisableCompression: false,
-
 		},
-
 	}
-
-
 
 	// Create memory monitor.
 
 	memoryMonitor := NewMemoryMonitor(config.MaxMemoryUsage)
 
-
-
 	// Create processing pool.
 
 	processingPool := NewProcessingPool(config.MaxConcurrency)
 
-
-
 	return &DocumentLoader{
 
-		config:         config,
+		config: config,
 
-		logger:         slog.Default().With("component", "document-loader"),
+		logger: slog.Default().With("component", "document-loader"),
 
-		cache:          make(map[string]*LoadedDocument),
+		cache: make(map[string]*LoadedDocument),
 
-		metrics:        &LoaderMetrics{LastProcessedAt: time.Now()},
+		metrics: &LoaderMetrics{LastProcessedAt: time.Now()},
 
-		httpClient:     httpClient,
+		httpClient: httpClient,
 
-		memoryMonitor:  memoryMonitor,
+		memoryMonitor: memoryMonitor,
 
 		processingPool: processingPool,
-
 	}
 
 }
-
-
 
 // LoadDocuments loads documents from configured sources.
 
@@ -350,16 +275,11 @@ func (dl *DocumentLoader) LoadDocuments(ctx context.Context) ([]*LoadedDocument,
 		"local_paths", len(dl.config.LocalPaths),
 
 		"remote_urls", len(dl.config.RemoteURLs),
-
 	)
-
-
 
 	var allDocuments []*LoadedDocument
 
 	var allErrors []error
-
-
 
 	// Load from local paths.
 
@@ -381,8 +301,6 @@ func (dl *DocumentLoader) LoadDocuments(ctx context.Context) ([]*LoadedDocument,
 
 	}
 
-
-
 	// Load from remote URLs.
 
 	for _, url := range dl.config.RemoteURLs {
@@ -403,8 +321,6 @@ func (dl *DocumentLoader) LoadDocuments(ctx context.Context) ([]*LoadedDocument,
 
 	}
 
-
-
 	// Update metrics.
 
 	dl.updateMetrics(func(m *LoaderMetrics) {
@@ -415,17 +331,12 @@ func (dl *DocumentLoader) LoadDocuments(ctx context.Context) ([]*LoadedDocument,
 
 	})
 
-
-
 	dl.logger.Info("Document loading completed",
 
 		"total_documents", len(allDocuments),
 
 		"errors", len(allErrors),
-
 	)
-
-
 
 	if len(allDocuments) == 0 && len(allErrors) > 0 {
 
@@ -433,21 +344,15 @@ func (dl *DocumentLoader) LoadDocuments(ctx context.Context) ([]*LoadedDocument,
 
 	}
 
-
-
 	return allDocuments, nil
 
 }
-
-
 
 // loadFromLocalPath loads documents from a local directory.
 
 func (dl *DocumentLoader) loadFromLocalPath(ctx context.Context, path string) ([]*LoadedDocument, error) {
 
 	var documents []*LoadedDocument
-
-
 
 	err := filepath.Walk(path, func(filePath string, info os.FileInfo, err error) error {
 
@@ -457,8 +362,6 @@ func (dl *DocumentLoader) loadFromLocalPath(ctx context.Context, path string) ([
 
 		}
 
-
-
 		// Skip directories.
 
 		if info.IsDir() {
@@ -467,8 +370,6 @@ func (dl *DocumentLoader) loadFromLocalPath(ctx context.Context, path string) ([
 
 		}
 
-
-
 		// Check file extension.
 
 		if !dl.isSupportedFile(filePath) {
@@ -476,8 +377,6 @@ func (dl *DocumentLoader) loadFromLocalPath(ctx context.Context, path string) ([
 			return nil
 
 		}
-
-
 
 		// Check file size.
 
@@ -488,8 +387,6 @@ func (dl *DocumentLoader) loadFromLocalPath(ctx context.Context, path string) ([
 			return nil
 
 		}
-
-
 
 		// Check cache first.
 
@@ -509,8 +406,6 @@ func (dl *DocumentLoader) loadFromLocalPath(ctx context.Context, path string) ([
 
 		}
 
-
-
 		// Load and process the document.
 
 		doc, err := dl.processFile(ctx, filePath, info)
@@ -525,13 +420,9 @@ func (dl *DocumentLoader) loadFromLocalPath(ctx context.Context, path string) ([
 
 		}
 
-
-
 		documents = append(documents, doc)
 
 		dl.updateMetrics(func(m *LoaderMetrics) { m.SuccessfulLoads++ })
-
-
 
 		// Cache the processed document.
 
@@ -541,27 +432,19 @@ func (dl *DocumentLoader) loadFromLocalPath(ctx context.Context, path string) ([
 
 		}
 
-
-
 		return nil
 
 	})
 
-
-
 	return documents, err
 
 }
-
-
 
 // loadFromRemoteURL loads documents from a remote URL.
 
 func (dl *DocumentLoader) loadFromRemoteURL(ctx context.Context, url string) ([]*LoadedDocument, error) {
 
 	dl.logger.Info("Loading document from remote URL", "url", url)
-
-
 
 	// Create request with context.
 
@@ -573,15 +456,11 @@ func (dl *DocumentLoader) loadFromRemoteURL(ctx context.Context, url string) ([]
 
 	}
 
-
-
 	// Set appropriate headers.
 
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
 
 	req.Header.Set("Accept", "application/pdf,application/octet-stream,*/*")
-
-
 
 	// Execute request.
 
@@ -595,15 +474,11 @@ func (dl *DocumentLoader) loadFromRemoteURL(ctx context.Context, url string) ([]
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("HTTP error: %d %s", resp.StatusCode, resp.Status)
 
 	}
-
-
 
 	// Check content length.
 
@@ -612,8 +487,6 @@ func (dl *DocumentLoader) loadFromRemoteURL(ctx context.Context, url string) ([]
 		return nil, fmt.Errorf("remote file too large: %d bytes", resp.ContentLength)
 
 	}
-
-
 
 	// Create temporary file.
 
@@ -629,8 +502,6 @@ func (dl *DocumentLoader) loadFromRemoteURL(ctx context.Context, url string) ([]
 
 	defer tmpFile.Close()
 
-
-
 	// Copy content to temp file.
 
 	size, err := io.Copy(tmpFile, resp.Body)
@@ -641,21 +512,16 @@ func (dl *DocumentLoader) loadFromRemoteURL(ctx context.Context, url string) ([]
 
 	}
 
-
-
 	// Create file info.
 
 	info := &fileInfo{
 
-		name:    filepath.Base(url),
+		name: filepath.Base(url),
 
-		size:    size,
+		size: size,
 
 		modTime: time.Now(),
-
 	}
-
-
 
 	// Process the downloaded file.
 
@@ -667,19 +533,13 @@ func (dl *DocumentLoader) loadFromRemoteURL(ctx context.Context, url string) ([]
 
 	}
 
-
-
 	// Update source path to reflect the original URL.
 
 	doc.SourcePath = url
 
-
-
 	return []*LoadedDocument{doc}, nil
 
 }
-
-
 
 // processFile processes a single file and extracts its content.
 
@@ -687,11 +547,7 @@ func (dl *DocumentLoader) processFile(ctx context.Context, filePath string, info
 
 	startTime := time.Now()
 
-
-
 	dl.logger.Debug("Processing file", "file", filePath, "size", info.Size())
-
-
 
 	// Generate document hash.
 
@@ -703,15 +559,11 @@ func (dl *DocumentLoader) processFile(ctx context.Context, filePath string, info
 
 	}
 
-
-
 	// Extract content based on file type.
 
 	var content, rawContent string
 
 	var metadata *DocumentMetadata
-
-
 
 	switch strings.ToLower(filepath.Ext(filePath)) {
 
@@ -725,15 +577,11 @@ func (dl *DocumentLoader) processFile(ctx context.Context, filePath string, info
 
 	}
 
-
-
 	if err != nil {
 
 		return nil, fmt.Errorf("failed to extract content: %w", err)
 
 	}
-
-
 
 	// Validate content length.
 
@@ -751,39 +599,34 @@ func (dl *DocumentLoader) processFile(ctx context.Context, filePath string, info
 
 	}
 
-
-
 	// Create loaded document.
 
 	doc := &LoadedDocument{
 
-		ID:             hash,
+		ID: hash,
 
-		SourcePath:     filePath,
+		SourcePath: filePath,
 
-		Filename:       filepath.Base(filePath),
+		Filename: filepath.Base(filePath),
 
-		Title:          dl.extractTitle(content, metadata),
+		Title: dl.extractTitle(content, metadata),
 
-		Content:        content,
+		Content: content,
 
-		RawContent:     rawContent,
+		RawContent: rawContent,
 
-		Metadata:       metadata,
+		Metadata: metadata,
 
-		LoadedAt:       time.Now(),
+		LoadedAt: time.Now(),
 
 		ProcessingTime: time.Since(startTime),
 
-		Hash:           hash,
+		Hash: hash,
 
-		Size:           info.Size(),
+		Size: info.Size(),
 
-		Language:       dl.detectLanguage(content),
-
+		Language: dl.detectLanguage(content),
 	}
-
-
 
 	// Update processing time metrics.
 
@@ -803,8 +646,6 @@ func (dl *DocumentLoader) processFile(ctx context.Context, filePath string, info
 
 	})
 
-
-
 	dl.logger.Debug("File processed successfully",
 
 		"file", filePath,
@@ -812,16 +653,11 @@ func (dl *DocumentLoader) processFile(ctx context.Context, filePath string, info
 		"content_length", len(content),
 
 		"processing_time", doc.ProcessingTime,
-
 	)
-
-
 
 	return doc, nil
 
 }
-
-
 
 // processPDF extracts content and metadata from a PDF file using enhanced processing.
 
@@ -837,8 +673,6 @@ func (dl *DocumentLoader) processPDF(ctx context.Context, filePath string) (stri
 
 	}
 
-
-
 	// Check if streaming is needed for large files.
 
 	if dl.config.StreamingEnabled && info.Size() > dl.config.StreamingThreshold {
@@ -846,8 +680,6 @@ func (dl *DocumentLoader) processPDF(ctx context.Context, filePath string) (stri
 		return dl.processPDFStreaming(ctx, filePath, info.Size())
 
 	}
-
-
 
 	// Use hybrid approach based on configuration.
 
@@ -873,8 +705,6 @@ func (dl *DocumentLoader) processPDF(ctx context.Context, filePath string) (stri
 
 }
 
-
-
 // processPDFStreaming processes large PDF files using enhanced streaming approach.
 
 func (dl *DocumentLoader) processPDFStreaming(ctx context.Context, filePath string, fileSize int64) (string, string, *DocumentMetadata, error) {
@@ -886,10 +716,7 @@ func (dl *DocumentLoader) processPDFStreaming(ctx context.Context, filePath stri
 		"size", fileSize,
 
 		"threshold", dl.config.StreamingThreshold,
-
 	)
-
-
 
 	// Dynamic memory estimation based on file size and content complexity.
 
@@ -913,8 +740,6 @@ func (dl *DocumentLoader) processPDFStreaming(ctx context.Context, filePath stri
 
 	}
 
-
-
 	// Allocate memory with proper error handling.
 
 	if !dl.memoryMonitor.AllocateMemory(estimatedMemory) {
@@ -925,15 +750,11 @@ func (dl *DocumentLoader) processPDFStreaming(ctx context.Context, filePath stri
 
 	defer dl.memoryMonitor.ReleaseMemory(estimatedMemory)
 
-
-
 	// Use processing pool to manage concurrency.
 
 	dl.processingPool.AcquireWorker()
 
 	defer dl.processingPool.ReleaseWorker()
-
-
 
 	// Choose optimal processing strategy based on file size.
 
@@ -949,8 +770,6 @@ func (dl *DocumentLoader) processPDFStreaming(ctx context.Context, filePath stri
 
 }
 
-
-
 // estimateMemoryRequirement provides better memory estimation for PDF processing.
 
 func (dl *DocumentLoader) estimateMemoryRequirement(fileSize int64) int64 {
@@ -959,13 +778,9 @@ func (dl *DocumentLoader) estimateMemoryRequirement(fileSize int64) int64 {
 
 	baseMemory := fileSize * 15 / 100
 
-
-
 	// Additional memory for text extraction and processing.
 
 	processingOverhead := int64(50 * 1024 * 1024) // 50MB base overhead
-
-
 
 	// Scale with file size but cap at reasonable limits.
 
@@ -973,15 +788,11 @@ func (dl *DocumentLoader) estimateMemoryRequirement(fileSize int64) int64 {
 
 	maxMemory := int64(500 * 1024 * 1024) // 500MB max
 
-
-
 	if totalMemory > maxMemory {
 
 		return maxMemory
 
 	}
-
-
 
 	minMemory := int64(20 * 1024 * 1024) // 20MB minimum
 
@@ -991,21 +802,15 @@ func (dl *DocumentLoader) estimateMemoryRequirement(fileSize int64) int64 {
 
 	}
 
-
-
 	return totalMemory
 
 }
-
-
 
 // processPDFStreamingAdvanced handles very large PDFs with advanced streaming.
 
 func (dl *DocumentLoader) processPDFStreamingAdvanced(ctx context.Context, filePath string, fileSize int64) (string, string, *DocumentMetadata, error) {
 
 	dl.logger.Info("Processing very large PDF with advanced streaming", "file", filePath, "size", fileSize)
-
-
 
 	// Open file with buffered reading.
 
@@ -1019,29 +824,24 @@ func (dl *DocumentLoader) processPDFStreamingAdvanced(ctx context.Context, fileP
 
 	defer file.Close()
 
-
-
 	// Create a streaming PDF processor.
 
 	processor := &StreamingPDFProcessor{
 
-		file:          file,
+		file: file,
 
-		logger:        dl.logger,
+		logger: dl.logger,
 
-		config:        dl.config,
+		config: dl.config,
 
 		memoryMonitor: dl.memoryMonitor,
 
-		pageBuffer:    make(chan *PDFPageResult, dl.config.PageProcessingBatch),
+		pageBuffer: make(chan *PDFPageResult, dl.config.PageProcessingBatch),
 
-		resultBuffer:  strings.Builder{},
+		resultBuffer: strings.Builder{},
 
-		rawBuffer:     strings.Builder{},
-
+		rawBuffer: strings.Builder{},
 	}
-
-
 
 	// Process PDF with streaming.
 
@@ -1053,8 +853,6 @@ func (dl *DocumentLoader) processPDFStreamingAdvanced(ctx context.Context, fileP
 
 	}
 
-
-
 	// Extract enhanced metadata.
 
 	metadata := dl.extractTelecomMetadata(result.Content, filepath.Base(filePath))
@@ -1063,27 +861,19 @@ func (dl *DocumentLoader) processPDFStreamingAdvanced(ctx context.Context, fileP
 
 	metadata.ProcessingNotes = append(metadata.ProcessingNotes, "Processed with advanced streaming")
 
-
-
 	// Add quality metrics.
 
 	metadata.Confidence = dl.calculateProcessingConfidence(result.Content, result.PageCount, len(result.ProcessingErrors))
 
-
-
 	return result.Content, result.RawContent, metadata, nil
 
 }
-
-
 
 // processPDFHybrid uses a hybrid approach combining multiple PDF libraries.
 
 func (dl *DocumentLoader) processPDFHybrid(ctx context.Context, filePath string) (string, string, *DocumentMetadata, error) {
 
 	dl.logger.Debug("Processing PDF with hybrid approach", "file", filePath)
-
-
 
 	// Try pdfcpu first for better table extraction.
 
@@ -1099,8 +889,6 @@ func (dl *DocumentLoader) processPDFHybrid(ctx context.Context, filePath string)
 
 	}
 
-
-
 	// Enhance with additional processing if needed.
 
 	if dl.config.EnableTableExtraction || dl.config.EnableFigureExtraction {
@@ -1111,21 +899,15 @@ func (dl *DocumentLoader) processPDFHybrid(ctx context.Context, filePath string)
 
 	}
 
-
-
 	return content, rawContent, metadata, nil
 
 }
-
-
 
 // processPDFWithPDFCPU processes PDF using pdfcpu library for better performance.
 
 func (dl *DocumentLoader) processPDFWithPDFCPU(ctx context.Context, filePath string) (string, string, *DocumentMetadata, error) {
 
 	dl.logger.Debug("Processing PDF with pdfcpu", "file", filePath)
-
-
 
 	// For now, use a simpler approach with pdfcpu API.
 
@@ -1141,8 +923,6 @@ func (dl *DocumentLoader) processPDFWithPDFCPU(ctx context.Context, filePath str
 
 	defer file.Close()
 
-
-
 	// Get basic info about the PDF.
 
 	info, err := file.Stat()
@@ -1153,15 +933,11 @@ func (dl *DocumentLoader) processPDFWithPDFCPU(ctx context.Context, filePath str
 
 	}
 
-
-
 	// Placeholder for actual text extraction - would require implementing proper pdfcpu text extraction.
 
 	content := fmt.Sprintf("PDF content from %s (size: %d bytes)", filepath.Base(filePath), info.Size())
 
 	rawContent := content
-
-
 
 	// Extract metadata.
 
@@ -1169,21 +945,15 @@ func (dl *DocumentLoader) processPDFWithPDFCPU(ctx context.Context, filePath str
 
 	metadata.PageCount = 1 // Placeholder
 
-
-
 	return content, rawContent, metadata, nil
 
 }
-
-
 
 // processPDFNative processes PDF using the native ledongthuc/pdf library.
 
 func (dl *DocumentLoader) processPDFNative(ctx context.Context, filePath string) (string, string, *DocumentMetadata, error) {
 
 	dl.logger.Debug("Processing PDF with native library", "file", filePath)
-
-
 
 	// Open PDF file.
 
@@ -1197,8 +967,6 @@ func (dl *DocumentLoader) processPDFNative(ctx context.Context, filePath string)
 
 	defer file.Close()
 
-
-
 	// Get file info.
 
 	info, err := file.Stat()
@@ -1208,8 +976,6 @@ func (dl *DocumentLoader) processPDFNative(ctx context.Context, filePath string)
 		return "", "", nil, fmt.Errorf("failed to get file info: %w", err)
 
 	}
-
-
 
 	// Read PDF.
 
@@ -1221,8 +987,6 @@ func (dl *DocumentLoader) processPDFNative(ctx context.Context, filePath string)
 
 	}
 
-
-
 	// Extract text from all pages.
 
 	var textBuilder strings.Builder
@@ -1230,8 +994,6 @@ func (dl *DocumentLoader) processPDFNative(ctx context.Context, filePath string)
 	var rawTextBuilder strings.Builder
 
 	pageCount := reader.NumPage()
-
-
 
 	// Process pages in batches to manage memory.
 
@@ -1247,8 +1009,6 @@ func (dl *DocumentLoader) processPDFNative(ctx context.Context, filePath string)
 
 		}
 
-
-
 		// Process batch.
 
 		for i := startPage; i <= endPage; i++ {
@@ -1263,8 +1023,6 @@ func (dl *DocumentLoader) processPDFNative(ctx context.Context, filePath string)
 
 			}
 
-
-
 			page := reader.Page(i)
 
 			if page.V.IsNull() {
@@ -1272,8 +1030,6 @@ func (dl *DocumentLoader) processPDFNative(ctx context.Context, filePath string)
 				continue
 
 			}
-
-
 
 			// Extract text from page.
 
@@ -1287,8 +1043,6 @@ func (dl *DocumentLoader) processPDFNative(ctx context.Context, filePath string)
 
 			}
 
-
-
 			textBuilder.WriteString(text)
 
 			textBuilder.WriteString("\n")
@@ -1298,8 +1052,6 @@ func (dl *DocumentLoader) processPDFNative(ctx context.Context, filePath string)
 			rawTextBuilder.WriteString("\n")
 
 		}
-
-
 
 		// Force garbage collection after each batch for large files.
 
@@ -1311,21 +1063,15 @@ func (dl *DocumentLoader) processPDFNative(ctx context.Context, filePath string)
 
 	}
 
-
-
 	rawContent := rawTextBuilder.String()
 
 	content := dl.cleanTextContent(textBuilder.String())
-
-
 
 	// Extract metadata from PDF and content.
 
 	metadata := dl.extractTelecomMetadata(content, filepath.Base(filePath))
 
 	metadata.PageCount = pageCount
-
-
 
 	// Update metadata with additional PDF-specific information.
 
@@ -1339,21 +1085,15 @@ func (dl *DocumentLoader) processPDFNative(ctx context.Context, filePath string)
 
 	}
 
-
-
 	return content, rawContent, metadata, nil
 
 }
-
-
 
 // processPDFInBatches processes PDF in smaller batches for memory efficiency.
 
 func (dl *DocumentLoader) processPDFInBatches(ctx context.Context, filePath string) (string, string, *DocumentMetadata, error) {
 
 	dl.logger.Debug("Processing PDF in batches", "file", filePath)
-
-
 
 	// Use a buffered approach to process the PDF.
 
@@ -1367,21 +1107,15 @@ func (dl *DocumentLoader) processPDFInBatches(ctx context.Context, filePath stri
 
 	defer file.Close()
 
-
-
 	// Create buffered reader.
 
 	bufReader := bufio.NewReaderSize(file, 64*1024) // 64KB buffer
-
-
 
 	// Process in chunks (this is a simplified implementation).
 
 	var contentBuilder strings.Builder
 
 	var rawContentBuilder strings.Builder
-
-
 
 	// Read file in chunks.
 
@@ -1399,8 +1133,6 @@ func (dl *DocumentLoader) processPDFInBatches(ctx context.Context, filePath stri
 
 		}
 
-
-
 		n, err := bufReader.Read(buffer)
 
 		if err == io.EOF {
@@ -1415,8 +1147,6 @@ func (dl *DocumentLoader) processPDFInBatches(ctx context.Context, filePath stri
 
 		}
 
-
-
 		// Process chunk (simplified - in reality you'd need proper PDF parsing).
 
 		chunkData := string(buffer[:n])
@@ -1427,33 +1157,23 @@ func (dl *DocumentLoader) processPDFInBatches(ctx context.Context, filePath stri
 
 	}
 
-
-
 	rawContent := rawContentBuilder.String()
 
 	content := dl.cleanTextContent(contentBuilder.String())
-
-
 
 	// Extract metadata.
 
 	metadata := dl.extractTelecomMetadata(content, filepath.Base(filePath))
 
-
-
 	return content, rawContent, metadata, nil
 
 }
-
-
 
 // enhancePDFExtraction enhances PDF extraction with additional table and figure processing.
 
 func (dl *DocumentLoader) enhancePDFExtraction(content string, metadata *DocumentMetadata, filePath string) (string, *DocumentMetadata) {
 
 	dl.logger.Debug("Enhancing PDF extraction", "file", filePath)
-
-
 
 	// Enhanced table extraction.
 
@@ -1467,8 +1187,6 @@ func (dl *DocumentLoader) enhancePDFExtraction(content string, metadata *Documen
 
 	}
 
-
-
 	// Enhanced figure extraction.
 
 	if dl.config.EnableFigureExtraction {
@@ -1481,21 +1199,15 @@ func (dl *DocumentLoader) enhancePDFExtraction(content string, metadata *Documen
 
 	}
 
-
-
 	return content, metadata
 
 }
-
-
 
 // extractAdvancedTables performs advanced table extraction.
 
 func (dl *DocumentLoader) extractAdvancedTables(content string) []ExtractedTable {
 
 	var tables []ExtractedTable
-
-
 
 	// Advanced table detection patterns for telecom documents.
 
@@ -1504,10 +1216,7 @@ func (dl *DocumentLoader) extractAdvancedTables(content string) []ExtractedTable
 		regexp.MustCompile(`(?i)table\s+(\d+)[-:]?\s*(.+?)\n([\s\S]*?)(?=\n\s*(?:table|figure|section|$))`),
 
 		regexp.MustCompile(`(?s)\|[^\n]+\|\s*\n\s*\|[-\s\|]+\|\s*\n((?:\s*\|[^\n]+\|\s*\n)*)`),
-
 	}
-
-
 
 	for _, pattern := range tablePatterns {
 
@@ -1521,15 +1230,12 @@ func (dl *DocumentLoader) extractAdvancedTables(content string) []ExtractedTable
 
 					PageNumber: -1, // Unknown without page context
 
-					Caption:    strings.TrimSpace(match[2]),
+					Caption: strings.TrimSpace(match[2]),
 
-					Quality:    0.8,
+					Quality: 0.8,
 
-					Metadata:   make(map[string]interface{}),
-
+					Metadata: make(map[string]interface{}),
 				}
-
-
 
 				// Parse table content.
 
@@ -1537,11 +1243,7 @@ func (dl *DocumentLoader) extractAdvancedTables(content string) []ExtractedTable
 
 				table.Headers, table.Rows = dl.parseTableContent(tableContent)
 
-
-
 				tables = append(tables, table)
-
-
 
 				// Limit extraction to prevent excessive processing.
 
@@ -1557,21 +1259,15 @@ func (dl *DocumentLoader) extractAdvancedTables(content string) []ExtractedTable
 
 	}
 
-
-
 	return tables
 
 }
-
-
 
 // extractAdvancedFigures performs advanced figure extraction.
 
 func (dl *DocumentLoader) extractAdvancedFigures(content string) []ExtractedFigure {
 
 	var figures []ExtractedFigure
-
-
 
 	// Advanced figure detection patterns for telecom documents.
 
@@ -1580,10 +1276,7 @@ func (dl *DocumentLoader) extractAdvancedFigures(content string) []ExtractedFigu
 		regexp.MustCompile(`(?i)figure\s+(\d+)[-:]?\s*(.+?)(?:\n|$)`),
 
 		regexp.MustCompile(`(?i)fig\.?\s*(\d+)[-:]?\s*(.+?)(?:\n|$)`),
-
 	}
-
-
 
 	for _, pattern := range figurePatterns {
 
@@ -1597,27 +1290,20 @@ func (dl *DocumentLoader) extractAdvancedFigures(content string) []ExtractedFigu
 
 					PageNumber: -1, // Unknown without page context
 
-					Caption:    strings.TrimSpace(match[2]),
+					Caption: strings.TrimSpace(match[2]),
 
 					FigureType: "diagram", // Default type
 
-					Quality:    0.8,
+					Quality: 0.8,
 
-					Metadata:   make(map[string]interface{}),
-
+					Metadata: make(map[string]interface{}),
 				}
-
-
 
 				// Determine figure type based on caption.
 
 				figure.FigureType = dl.determineFigureType(figure.Caption)
 
-
-
 				figures = append(figures, figure)
-
-
 
 				// Limit extraction to prevent excessive processing.
 
@@ -1633,13 +1319,9 @@ func (dl *DocumentLoader) extractAdvancedFigures(content string) []ExtractedFigu
 
 	}
 
-
-
 	return figures
 
 }
-
-
 
 // parseTableContent parses table content to extract headers and rows.
 
@@ -1651,8 +1333,6 @@ func (dl *DocumentLoader) parseTableContent(tableContent string) ([]string, [][]
 
 	var rows [][]string
 
-
-
 	for i, line := range lines {
 
 		line = strings.TrimSpace(line)
@@ -1662,8 +1342,6 @@ func (dl *DocumentLoader) parseTableContent(tableContent string) ([]string, [][]
 			continue
 
 		}
-
-
 
 		// Parse pipe-separated tables.
 
@@ -1684,8 +1362,6 @@ func (dl *DocumentLoader) parseTableContent(tableContent string) ([]string, [][]
 				}
 
 			}
-
-
 
 			if len(cleanCells) > 0 {
 
@@ -1725,13 +1401,9 @@ func (dl *DocumentLoader) parseTableContent(tableContent string) ([]string, [][]
 
 	}
 
-
-
 	return headers, rows
 
 }
-
-
 
 // determineFigureType determines the type of figure based on its caption.
 
@@ -1739,25 +1411,20 @@ func (dl *DocumentLoader) determineFigureType(caption string) string {
 
 	lowerCaption := strings.ToLower(caption)
 
-
-
 	typePatterns := map[string][]string{
 
 		"architecture": {"architecture", "framework", "structure", "overview"},
 
-		"flowchart":    {"flow", "procedure", "process", "algorithm"},
+		"flowchart": {"flow", "procedure", "process", "algorithm"},
 
-		"diagram":      {"diagram", "schematic", "block", "connection"},
+		"diagram": {"diagram", "schematic", "block", "connection"},
 
-		"graph":        {"graph", "chart", "plot", "performance"},
+		"graph": {"graph", "chart", "plot", "performance"},
 
-		"timeline":     {"timeline", "sequence", "phase", "stage"},
+		"timeline": {"timeline", "sequence", "phase", "stage"},
 
-		"network":      {"network", "topology", "deployment", "configuration"},
-
+		"network": {"network", "topology", "deployment", "configuration"},
 	}
-
-
 
 	for figType, patterns := range typePatterns {
 
@@ -1773,13 +1440,9 @@ func (dl *DocumentLoader) determineFigureType(caption string) string {
 
 	}
 
-
-
 	return "diagram" // Default type
 
 }
-
-
 
 // extractTelecomMetadata extracts telecom-specific metadata from document content.
 
@@ -1787,79 +1450,59 @@ func (dl *DocumentLoader) extractTelecomMetadata(content, filename string) *Docu
 
 	metadata := &DocumentMetadata{
 
-		Technologies:     []string{},
+		Technologies: []string{},
 
 		NetworkFunctions: []string{},
 
-		UseCases:         []string{},
+		UseCases: []string{},
 
-		Keywords:         []string{},
+		Keywords: []string{},
 
-		ProcessingNotes:  []string{},
+		ProcessingNotes: []string{},
 
-		Custom:           make(map[string]interface{}),
+		Custom: make(map[string]interface{}),
 
-		Confidence:       0.8,  // Default confidence
+		Confidence: 0.8, // Default confidence
 
-		Language:         "en", // Default to English
+		Language: "en", // Default to English
 
 	}
-
-
 
 	// Extract source organization.
 
 	metadata.Source = dl.detectSource(content, filename)
 
-
-
 	// Extract document type and version.
 
 	metadata.DocumentType, metadata.Version = dl.extractDocumentTypeAndVersion(content, filename)
-
-
 
 	// Extract working group.
 
 	metadata.WorkingGroup = dl.extractWorkingGroup(content)
 
-
-
 	// Extract category and subcategory.
 
 	metadata.Category, metadata.Subcategory = dl.extractCategory(content)
-
-
 
 	// Extract technologies.
 
 	metadata.Technologies = dl.extractTechnologies(content)
 
-
-
 	// Extract network functions.
 
 	metadata.NetworkFunctions = dl.extractNetworkFunctions(content)
-
-
 
 	// Extract use cases.
 
 	metadata.UseCases = dl.extractUseCases(content)
 
-
-
 	// Extract keywords.
 
 	metadata.Keywords = dl.extractKeywords(content)
 
-
-
 	return metadata
 
 }
-
-
 
 // detectSource identifies the source organization from content and filename.
 
@@ -1893,25 +1536,20 @@ func (dl *DocumentLoader) detectSource(content, filename string) string {
 
 	}
 
-
-
 	// Check content patterns.
 
 	lowerContent := strings.ToLower(content)
 
 	patterns := map[string]string{
 
-		"3GPP":  `(?i)\b3gpp\b|\bthird generation partnership project\b`,
+		"3GPP": `(?i)\b3gpp\b|\bthird generation partnership project\b`,
 
 		"O-RAN": `(?i)\bo-ran\b|\bopen ran\b|\boran alliance\b`,
 
-		"ETSI":  `(?i)\betsi\b|\beuropean telecommunications standards institute\b`,
+		"ETSI": `(?i)\betsi\b|\beuropean telecommunications standards institute\b`,
 
-		"ITU":   `(?i)\bitu-t\b|\bitu-r\b|\binternational telecommunication union\b`,
-
+		"ITU": `(?i)\bitu-t\b|\bitu-r\b|\binternational telecommunication union\b`,
 	}
-
-
 
 	for source, pattern := range patterns {
 
@@ -1923,13 +1561,9 @@ func (dl *DocumentLoader) detectSource(content, filename string) string {
 
 	}
 
-
-
 	return "Unknown"
 
 }
-
-
 
 // extractDocumentTypeAndVersion extracts document type and version information.
 
@@ -1943,17 +1577,11 @@ func (dl *DocumentLoader) extractDocumentTypeAndVersion(content, filename string
 
 	relPattern := regexp.MustCompile(`(?i)\brel(?:ease)?[-\s]*(\d+)\b`)
 
-
-
 	// O-RAN patterns.
 
 	oranVersionPattern := regexp.MustCompile(`(?i)\bv(\d+\.\d+(?:\.\d+)?)\b`)
 
-
-
 	var docType, version string
-
-
 
 	// Check for 3GPP document types.
 
@@ -1971,8 +1599,6 @@ func (dl *DocumentLoader) extractDocumentTypeAndVersion(content, filename string
 
 	}
 
-
-
 	// Check for release information.
 
 	if matches := relPattern.FindStringSubmatch(content); len(matches) > 1 {
@@ -1989,8 +1615,6 @@ func (dl *DocumentLoader) extractDocumentTypeAndVersion(content, filename string
 
 	}
 
-
-
 	// Check for O-RAN version patterns.
 
 	if version == "" {
@@ -2002,8 +1626,6 @@ func (dl *DocumentLoader) extractDocumentTypeAndVersion(content, filename string
 		}
 
 	}
-
-
 
 	// Fallback to filename analysis.
 
@@ -2025,13 +1647,9 @@ func (dl *DocumentLoader) extractDocumentTypeAndVersion(content, filename string
 
 	}
 
-
-
 	return docType, version
 
 }
-
-
 
 // extractWorkingGroup identifies the responsible working group.
 
@@ -2047,35 +1665,32 @@ func (dl *DocumentLoader) extractWorkingGroup(content string) string {
 
 		"RAN4": `(?i)\bran\s*4\b|\bran4\b`,
 
-		"SA1":  `(?i)\bsa\s*1\b|\bsa1\b`,
+		"SA1": `(?i)\bsa\s*1\b|\bsa1\b`,
 
-		"SA2":  `(?i)\bsa\s*2\b|\bsa2\b`,
+		"SA2": `(?i)\bsa\s*2\b|\bsa2\b`,
 
-		"SA3":  `(?i)\bsa\s*3\b|\bsa3\b`,
+		"SA3": `(?i)\bsa\s*3\b|\bsa3\b`,
 
-		"SA4":  `(?i)\bsa\s*4\b|\bsa4\b`,
+		"SA4": `(?i)\bsa\s*4\b|\bsa4\b`,
 
-		"SA5":  `(?i)\bsa\s*5\b|\bsa5\b`,
+		"SA5": `(?i)\bsa\s*5\b|\bsa5\b`,
 
-		"SA6":  `(?i)\bsa\s*6\b|\bsa6\b`,
+		"SA6": `(?i)\bsa\s*6\b|\bsa6\b`,
 
-		"CT1":  `(?i)\bct\s*1\b|\bct1\b`,
+		"CT1": `(?i)\bct\s*1\b|\bct1\b`,
 
-		"CT3":  `(?i)\bct\s*3\b|\bct3\b`,
+		"CT3": `(?i)\bct\s*3\b|\bct3\b`,
 
-		"CT4":  `(?i)\bct\s*4\b|\bct4\b`,
+		"CT4": `(?i)\bct\s*4\b|\bct4\b`,
 
-		"WG1":  `(?i)\bwg\s*1\b|\bworking\s+group\s+1\b`,
+		"WG1": `(?i)\bwg\s*1\b|\bworking\s+group\s+1\b`,
 
-		"WG2":  `(?i)\bwg\s*2\b|\bworking\s+group\s+2\b`,
+		"WG2": `(?i)\bwg\s*2\b|\bworking\s+group\s+2\b`,
 
-		"WG3":  `(?i)\bwg\s*3\b|\bworking\s+group\s+3\b`,
+		"WG3": `(?i)\bwg\s*3\b|\bworking\s+group\s+3\b`,
 
-		"WG4":  `(?i)\bwg\s*4\b|\bworking\s+group\s+4\b`,
-
+		"WG4": `(?i)\bwg\s*4\b|\bworking\s+group\s+4\b`,
 	}
-
-
 
 	for wg, pattern := range patterns {
 
@@ -2087,13 +1702,9 @@ func (dl *DocumentLoader) extractWorkingGroup(content string) string {
 
 	}
 
-
-
 	return ""
 
 }
-
-
 
 // extractCategory determines the technical category and subcategory.
 
@@ -2101,31 +1712,26 @@ func (dl *DocumentLoader) extractCategory(content string) (string, string) {
 
 	lowerContent := strings.ToLower(content)
 
-
-
 	// Main categories.
 
 	categoryPatterns := map[string][]string{
 
-		"RAN":        {"radio access", "base station", "gnb", "enb", "ue", "radio", "antenna", "rf"},
+		"RAN": {"radio access", "base station", "gnb", "enb", "ue", "radio", "antenna", "rf"},
 
-		"Core":       {"core network", "5gc", "epc", "amf", "smf", "upf", "ausf", "udm", "nrf"},
+		"Core": {"core network", "5gc", "epc", "amf", "smf", "upf", "ausf", "udm", "nrf"},
 
-		"Transport":  {"transport", "backhaul", "fronthaul", "xhaul", "ethernet", "ip"},
+		"Transport": {"transport", "backhaul", "fronthaul", "xhaul", "ethernet", "ip"},
 
 		"Management": {"management", "orchestration", "oam", "configuration", "monitoring"},
 
-		"Security":   {"security", "authentication", "encryption", "privacy", "key"},
+		"Security": {"security", "authentication", "encryption", "privacy", "key"},
 
-		"QoS":        {"quality of service", "qos", "latency", "throughput", "reliability"},
+		"QoS": {"quality of service", "qos", "latency", "throughput", "reliability"},
 
-		"Slicing":    {"network slice", "slicing", "slice", "tenant"},
+		"Slicing": {"network slice", "slicing", "slice", "tenant"},
 
-		"Edge":       {"edge computing", "mec", "mobile edge", "edge"},
-
+		"Edge": {"edge computing", "mec", "mobile edge", "edge"},
 	}
-
-
 
 	for category, keywords := range categoryPatterns {
 
@@ -2145,13 +1751,9 @@ func (dl *DocumentLoader) extractCategory(content string) (string, string) {
 
 	}
 
-
-
 	return "General", ""
 
 }
-
-
 
 // extractSubcategory determines the subcategory within a main category.
 
@@ -2163,14 +1765,13 @@ func (dl *DocumentLoader) extractSubcategory(content, category string) string {
 
 			"Physical Layer": {"physical layer", "phy", "modulation", "coding"},
 
-			"MAC":            {"mac", "medium access control", "scheduling"},
+			"MAC": {"mac", "medium access control", "scheduling"},
 
-			"RLC":            {"rlc", "radio link control"},
+			"RLC": {"rlc", "radio link control"},
 
-			"PDCP":           {"pdcp", "packet data convergence"},
+			"PDCP": {"pdcp", "packet data convergence"},
 
-			"RRC":            {"rrc", "radio resource control"},
-
+			"RRC": {"rrc", "radio resource control"},
 		},
 
 		"Core": {
@@ -2184,22 +1785,17 @@ func (dl *DocumentLoader) extractSubcategory(content, category string) string {
 			"PCF": {"pcf", "policy control"},
 
 			"UDM": {"udm", "unified data management"},
-
 		},
 
 		"Management": {
 
 			"Configuration": {"configuration", "config", "provisioning"},
 
-			"Performance":   {"performance", "kpi", "monitoring"},
+			"Performance": {"performance", "kpi", "monitoring"},
 
-			"Fault":         {"fault", "alarm", "error", "failure"},
-
+			"Fault": {"fault", "alarm", "error", "failure"},
 		},
-
 	}
-
-
 
 	if subPatterns, exists := subcategoryPatterns[category]; exists {
 
@@ -2219,13 +1815,9 @@ func (dl *DocumentLoader) extractSubcategory(content, category string) string {
 
 	}
 
-
-
 	return ""
 
 }
-
-
 
 // extractTechnologies identifies relevant technologies mentioned.
 
@@ -2237,33 +1829,28 @@ func (dl *DocumentLoader) extractTechnologies(content string) []string {
 
 	techMap := make(map[string]bool)
 
-
-
 	techPatterns := map[string][]string{
 
-		"5G":        {"5g", "5g-nr", "nr", "new radio"},
+		"5G": {"5g", "5g-nr", "nr", "new radio"},
 
-		"4G":        {"4g", "lte", "lte-a", "lte-advanced"},
+		"4G": {"4g", "lte", "lte-a", "lte-advanced"},
 
-		"O-RAN":     {"o-ran", "open ran", "oran"},
+		"O-RAN": {"o-ran", "open ran", "oran"},
 
 		"Cloud RAN": {"c-ran", "cloud ran", "centralized ran"},
 
-		"vRAN":      {"vran", "virtualized ran", "virtual ran"},
+		"vRAN": {"vran", "virtualized ran", "virtual ran"},
 
-		"SON":       {"son", "self-organizing", "self-optimizing"},
+		"SON": {"son", "self-organizing", "self-optimizing"},
 
-		"NFV":       {"nfv", "network function virtualization"},
+		"NFV": {"nfv", "network function virtualization"},
 
-		"SDN":       {"sdn", "software defined network"},
+		"SDN": {"sdn", "software defined network"},
 
-		"MANO":      {"mano", "management and orchestration"},
+		"MANO": {"mano", "management and orchestration"},
 
-		"ETSI":      {"etsi", "european telecommunications"},
-
+		"ETSI": {"etsi", "european telecommunications"},
 	}
-
-
 
 	for tech, patterns := range techPatterns {
 
@@ -2283,13 +1870,9 @@ func (dl *DocumentLoader) extractTechnologies(content string) []string {
 
 	}
 
-
-
 	return technologies
 
 }
-
-
 
 // extractNetworkFunctions identifies network functions mentioned.
 
@@ -2301,45 +1884,40 @@ func (dl *DocumentLoader) extractNetworkFunctions(content string) []string {
 
 	funcMap := make(map[string]bool)
 
-
-
 	funcPatterns := map[string][]string{
 
-		"gNB":  {"gnb", "g-nb", "next generation nodeb"},
+		"gNB": {"gnb", "g-nb", "next generation nodeb"},
 
-		"eNB":  {"enb", "e-nb", "evolved nodeb"},
+		"eNB": {"enb", "e-nb", "evolved nodeb"},
 
-		"AMF":  {"amf", "access and mobility management function"},
+		"AMF": {"amf", "access and mobility management function"},
 
-		"SMF":  {"smf", "session management function"},
+		"SMF": {"smf", "session management function"},
 
-		"UPF":  {"upf", "user plane function"},
+		"UPF": {"upf", "user plane function"},
 
-		"PCF":  {"pcf", "policy control function"},
+		"PCF": {"pcf", "policy control function"},
 
-		"UDM":  {"udm", "unified data management"},
+		"UDM": {"udm", "unified data management"},
 
-		"UDR":  {"udr", "unified data repository"},
+		"UDR": {"udr", "unified data repository"},
 
 		"AUSF": {"ausf", "authentication server function"},
 
-		"NRF":  {"nrf", "network repository function"},
+		"NRF": {"nrf", "network repository function"},
 
 		"NSSF": {"nssf", "network slice selection function"},
 
-		"NEF":  {"nef", "network exposure function"},
+		"NEF": {"nef", "network exposure function"},
 
-		"AF":   {"af", "application function"},
+		"AF": {"af", "application function"},
 
-		"DU":   {"du", "distributed unit"},
+		"DU": {"du", "distributed unit"},
 
-		"CU":   {"cu", "centralized unit", "central unit"},
+		"CU": {"cu", "centralized unit", "central unit"},
 
-		"RU":   {"ru", "radio unit"},
-
+		"RU": {"ru", "radio unit"},
 	}
-
-
 
 	for function, patterns := range funcPatterns {
 
@@ -2359,13 +1937,9 @@ func (dl *DocumentLoader) extractNetworkFunctions(content string) []string {
 
 	}
 
-
-
 	return functions
 
 }
-
-
 
 // extractUseCases identifies relevant use cases.
 
@@ -2377,31 +1951,26 @@ func (dl *DocumentLoader) extractUseCases(content string) []string {
 
 	ucMap := make(map[string]bool)
 
-
-
 	ucPatterns := map[string][]string{
 
-		"eMBB":         {"embb", "enhanced mobile broadband"},
+		"eMBB": {"embb", "enhanced mobile broadband"},
 
-		"URLLC":        {"urllc", "ultra-reliable low latency"},
+		"URLLC": {"urllc", "ultra-reliable low latency"},
 
-		"mMTC":         {"mmtc", "massive machine type communication"},
+		"mMTC": {"mmtc", "massive machine type communication"},
 
-		"IoT":          {"iot", "internet of things"},
+		"IoT": {"iot", "internet of things"},
 
-		"V2X":          {"v2x", "vehicle to everything", "v2v", "v2i"},
+		"V2X": {"v2x", "vehicle to everything", "v2v", "v2i"},
 
-		"AR/VR":        {"augmented reality", "virtual reality", "ar", "vr"},
+		"AR/VR": {"augmented reality", "virtual reality", "ar", "vr"},
 
 		"Industry 4.0": {"industry 4.0", "industrial automation"},
 
-		"Smart City":   {"smart city", "smart cities"},
+		"Smart City": {"smart city", "smart cities"},
 
 		"Telemedicine": {"telemedicine", "remote healthcare"},
-
 	}
-
-
 
 	for useCase, patterns := range ucPatterns {
 
@@ -2421,13 +1990,9 @@ func (dl *DocumentLoader) extractUseCases(content string) []string {
 
 	}
 
-
-
 	return useCases
 
 }
-
-
 
 // extractKeywords extracts important telecom keywords.
 
@@ -2438,8 +2003,6 @@ func (dl *DocumentLoader) extractKeywords(content string) []string {
 	// For now, return a basic set based on content analysis.
 
 	keywords := []string{}
-
-
 
 	// Basic keyword extraction based on frequency and telecom relevance.
 
@@ -2458,10 +2021,7 @@ func (dl *DocumentLoader) extractKeywords(content string) []string {
 		"authentication", "security", "encryption",
 
 		"orchestration", "virtualization", "automation",
-
 	}
-
-
 
 	lowerContent := strings.ToLower(content)
 
@@ -2475,17 +2035,11 @@ func (dl *DocumentLoader) extractKeywords(content string) []string {
 
 	}
 
-
-
 	return keywords
 
 }
 
-
-
 // Helper functions.
-
-
 
 // isSupportedFile checks if the file type is supported.
 
@@ -2494,8 +2048,6 @@ func (dl *DocumentLoader) isSupportedFile(filePath string) bool {
 	ext := strings.ToLower(filepath.Ext(filePath))
 
 	supportedExtensions := []string{".pdf"}
-
-
 
 	for _, supported := range supportedExtensions {
 
@@ -2511,8 +2063,6 @@ func (dl *DocumentLoader) isSupportedFile(filePath string) bool {
 
 }
 
-
-
 // generateFileHash generates a hash for the file content.
 
 func (dl *DocumentLoader) generateFileHash(filePath string) (string, error) {
@@ -2527,8 +2077,6 @@ func (dl *DocumentLoader) generateFileHash(filePath string) (string, error) {
 
 	defer file.Close()
 
-
-
 	hash := md5.New()
 
 	if _, err := io.Copy(hash, file); err != nil {
@@ -2537,13 +2085,9 @@ func (dl *DocumentLoader) generateFileHash(filePath string) (string, error) {
 
 	}
 
-
-
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 
 }
-
-
 
 // cleanTextContent cleans and normalizes extracted text.
 
@@ -2553,15 +2097,11 @@ func (dl *DocumentLoader) cleanTextContent(content string) string {
 
 	content = regexp.MustCompile(`\s+`).ReplaceAllString(content, " ")
 
-
-
 	// Remove common PDF artifacts.
 
 	content = regexp.MustCompile(`(?i)page\s+\d+\s+of\s+\d+`).ReplaceAllString(content, "")
 
 	content = regexp.MustCompile(`(?i)© \d{4}`).ReplaceAllString(content, "")
-
-
 
 	// Normalize line breaks.
 
@@ -2569,27 +2109,19 @@ func (dl *DocumentLoader) cleanTextContent(content string) string {
 
 	content = strings.ReplaceAll(content, "\r", "\n")
 
-
-
 	// Remove excessive line breaks.
 
 	content = regexp.MustCompile(`\n{3,}`).ReplaceAllString(content, "\n\n")
 
-
-
 	return strings.TrimSpace(content)
 
 }
-
-
 
 // extractTitle attempts to extract a meaningful title from content or metadata.
 
 func (dl *DocumentLoader) extractTitle(content string, metadata *DocumentMetadata) string {
 
 	lines := strings.Split(content, "\n")
-
-
 
 	// Look for title in the first few lines.
 
@@ -2600,8 +2132,6 @@ func (dl *DocumentLoader) extractTitle(content string, metadata *DocumentMetadat
 			break
 
 		}
-
-
 
 		line = strings.TrimSpace(line)
 
@@ -2619,8 +2149,6 @@ func (dl *DocumentLoader) extractTitle(content string, metadata *DocumentMetadat
 
 	}
 
-
-
 	// Fallback to document type and version if available.
 
 	if metadata.DocumentType != "" && metadata.Version != "" {
@@ -2629,21 +2157,15 @@ func (dl *DocumentLoader) extractTitle(content string, metadata *DocumentMetadat
 
 	}
 
-
-
 	return "Telecom Document"
 
 }
-
-
 
 // looksLikeTitle determines if a line looks like a document title.
 
 func (dl *DocumentLoader) looksLikeTitle(line string) bool {
 
 	line = strings.ToLower(line)
-
-
 
 	// Title indicators.
 
@@ -2654,10 +2176,7 @@ func (dl *DocumentLoader) looksLikeTitle(line string) bool {
 		"specification", "requirements", "architecture",
 
 		"protocol", "interface", "procedures",
-
 	}
-
-
 
 	for _, indicator := range titleIndicators {
 
@@ -2669,8 +2188,6 @@ func (dl *DocumentLoader) looksLikeTitle(line string) bool {
 
 	}
 
-
-
 	// Check if it contains version or release information.
 
 	if matched, _ := regexp.MatchString(`(?i)\bv?\d+\.\d+|\brel(?:ease)?[-\s]*\d+`, line); matched {
@@ -2679,13 +2196,9 @@ func (dl *DocumentLoader) looksLikeTitle(line string) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // detectLanguage attempts to detect the document language.
 
@@ -2695,25 +2208,17 @@ func (dl *DocumentLoader) detectLanguage(content string) string {
 
 	// In production, you might want to use a proper language detection library.
 
-
-
 	if len(content) < 100 {
 
 		return "unknown"
 
 	}
 
-
-
 	sample := strings.ToLower(content[:1000]) // Use first 1000 chars
-
-
 
 	englishWords := []string{"the", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with"}
 
 	englishCount := 0
-
-
 
 	for _, word := range englishWords {
 
@@ -2721,25 +2226,17 @@ func (dl *DocumentLoader) detectLanguage(content string) string {
 
 	}
 
-
-
 	if englishCount > 5 {
 
 		return "en"
 
 	}
 
-
-
 	return "unknown"
 
 }
 
-
-
 // Cache management functions.
-
-
 
 // getCachedDocument retrieves a document from cache if it exists and is valid.
 
@@ -2748,8 +2245,6 @@ func (dl *DocumentLoader) getCachedDocument(filePath string, modTime time.Time) 
 	dl.cacheMutex.RLock()
 
 	defer dl.cacheMutex.RUnlock()
-
-
 
 	if cached, exists := dl.cache[filePath]; exists {
 
@@ -2767,13 +2262,9 @@ func (dl *DocumentLoader) getCachedDocument(filePath string, modTime time.Time) 
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // cacheDocument stores a document in the cache.
 
@@ -2783,13 +2274,9 @@ func (dl *DocumentLoader) cacheDocument(doc *LoadedDocument) {
 
 	defer dl.cacheMutex.Unlock()
 
-
-
 	dl.cache[doc.SourcePath] = doc
 
 }
-
-
 
 // updateMetrics safely updates the loader metrics.
 
@@ -2803,8 +2290,6 @@ func (dl *DocumentLoader) updateMetrics(updater func(*LoaderMetrics)) {
 
 }
 
-
-
 // GetMetrics returns the current loader metrics.
 
 func (dl *DocumentLoader) GetMetrics() *LoaderMetrics {
@@ -2813,99 +2298,74 @@ func (dl *DocumentLoader) GetMetrics() *LoaderMetrics {
 
 	defer dl.metrics.mutex.RUnlock()
 
-
-
 	// Return a copy without the mutex.
 
 	metrics := &LoaderMetrics{
 
-		TotalDocuments:      dl.metrics.TotalDocuments,
+		TotalDocuments: dl.metrics.TotalDocuments,
 
-		SuccessfulLoads:     dl.metrics.SuccessfulLoads,
+		SuccessfulLoads: dl.metrics.SuccessfulLoads,
 
-		FailedLoads:         dl.metrics.FailedLoads,
+		FailedLoads: dl.metrics.FailedLoads,
 
-		CacheHits:           dl.metrics.CacheHits,
+		CacheHits: dl.metrics.CacheHits,
 
-		CacheMisses:         dl.metrics.CacheMisses,
+		CacheMisses: dl.metrics.CacheMisses,
 
-		AverageLoadTime:     dl.metrics.AverageLoadTime,
+		AverageLoadTime: dl.metrics.AverageLoadTime,
 
 		TotalProcessingTime: dl.metrics.TotalProcessingTime,
 
-		LastProcessedAt:     dl.metrics.LastProcessedAt,
-
+		LastProcessedAt: dl.metrics.LastProcessedAt,
 	}
 
 	return metrics
 
 }
 
-
-
 // fileInfo implements os.FileInfo for remote files.
 
 type fileInfo struct {
+	name string
 
-	name    string
-
-	size    int64
+	size int64
 
 	modTime time.Time
-
 }
-
-
 
 // Name performs name operation.
 
 func (fi *fileInfo) Name() string { return fi.name }
 
-
-
 // Size performs size operation.
 
 func (fi *fileInfo) Size() int64 { return fi.size }
-
-
 
 // Mode performs mode operation.
 
 func (fi *fileInfo) Mode() os.FileMode { return 0o644 }
 
-
-
 // ModTime performs modtime operation.
 
 func (fi *fileInfo) ModTime() time.Time { return fi.modTime }
-
-
 
 // IsDir performs isdir operation.
 
 func (fi *fileInfo) IsDir() bool { return false }
 
-
-
 // Sys performs sys operation.
 
 func (fi *fileInfo) Sys() interface{} { return nil }
 
-
-
 // MemoryMonitor manages memory usage for PDF processing.
 
 type MemoryMonitor struct {
-
 	maxMemoryUsage int64
 
-	currentUsage   int64
+	currentUsage int64
 
-	mutex          sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewMemoryMonitor creates a new memory monitor.
 
@@ -2915,13 +2375,10 @@ func NewMemoryMonitor(maxMemoryUsage int64) *MemoryMonitor {
 
 		maxMemoryUsage: maxMemoryUsage,
 
-		currentUsage:   0,
-
+		currentUsage: 0,
 	}
 
 }
-
-
 
 // CheckMemoryAvailable checks if enough memory is available.
 
@@ -2934,8 +2391,6 @@ func (mm *MemoryMonitor) CheckMemoryAvailable(requiredMemory int64) bool {
 	return mm.currentUsage+requiredMemory <= mm.maxMemoryUsage
 
 }
-
-
 
 // AllocateMemory allocates memory for processing.
 
@@ -2957,8 +2412,6 @@ func (mm *MemoryMonitor) AllocateMemory(memorySize int64) bool {
 
 }
 
-
-
 // ReleaseMemory releases allocated memory.
 
 func (mm *MemoryMonitor) ReleaseMemory(memorySize int64) {
@@ -2977,8 +2430,6 @@ func (mm *MemoryMonitor) ReleaseMemory(memorySize int64) {
 
 }
 
-
-
 // GetMemoryUsage returns current memory usage.
 
 func (mm *MemoryMonitor) GetMemoryUsage() (int64, int64) {
@@ -2991,25 +2442,20 @@ func (mm *MemoryMonitor) GetMemoryUsage() (int64, int64) {
 
 }
 
-
-
 // ProcessingPool manages concurrent PDF processing tasks.
 
 type ProcessingPool struct {
+	workers chan struct{}
 
-	workers          chan struct{}
+	activeTasks sync.WaitGroup
 
-	activeTasks      sync.WaitGroup
+	documentWorkers chan func() // For streaming document loader compatibility
 
-	documentWorkers  chan func() // For streaming document loader compatibility
-
-	chunkWorkers     chan func() // For streaming document loader compatibility
+	chunkWorkers chan func() // For streaming document loader compatibility
 
 	embeddingWorkers chan func() // For streaming document loader compatibility
 
 }
-
-
 
 // NewProcessingPool creates a new processing pool.
 
@@ -3018,12 +2464,9 @@ func NewProcessingPool(maxConcurrency int) *ProcessingPool {
 	return &ProcessingPool{
 
 		workers: make(chan struct{}, maxConcurrency),
-
 	}
 
 }
-
-
 
 // AcquireWorker acquires a worker from the pool.
 
@@ -3035,8 +2478,6 @@ func (pp *ProcessingPool) AcquireWorker() {
 
 }
 
-
-
 // ReleaseWorker releases a worker back to the pool.
 
 func (pp *ProcessingPool) ReleaseWorker() {
@@ -3047,8 +2488,6 @@ func (pp *ProcessingPool) ReleaseWorker() {
 
 }
 
-
-
 // WaitForCompletion waits for all active tasks to complete.
 
 func (pp *ProcessingPool) WaitForCompletion() {
@@ -3057,165 +2496,135 @@ func (pp *ProcessingPool) WaitForCompletion() {
 
 }
 
-
-
 // PDFProcessingResult holds the result of PDF processing.
 
 type PDFProcessingResult struct {
-
-	Content    string
+	Content string
 
 	RawContent string
 
-	Metadata   *DocumentMetadata
+	Metadata *DocumentMetadata
 
-	Error      error
+	Error error
 
-	Pages      int
+	Pages int
 
-	Tables     []ExtractedTable
+	Tables []ExtractedTable
 
-	Figures    []ExtractedFigure
-
+	Figures []ExtractedFigure
 }
-
-
 
 // ExtractedTable represents a table extracted from PDF.
 
 type ExtractedTable struct {
+	PageNumber int `json:"page_number"`
 
-	PageNumber int                    `json:"page_number"`
+	Caption string `json:"caption"`
 
-	Caption    string                 `json:"caption"`
+	Headers []string `json:"headers"`
 
-	Headers    []string               `json:"headers"`
+	Rows [][]string `json:"rows"`
 
-	Rows       [][]string             `json:"rows"`
+	Bounds Rectangle `json:"bounds"`
 
-	Bounds     Rectangle              `json:"bounds"`
+	Quality float64 `json:"quality"`
 
-	Quality    float64                `json:"quality"`
-
-	Metadata   map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // ExtractedFigure represents a figure extracted from PDF.
 
 type ExtractedFigure struct {
+	PageNumber int `json:"page_number"`
 
-	PageNumber  int                    `json:"page_number"`
+	Caption string `json:"caption"`
 
-	Caption     string                 `json:"caption"`
+	Description string `json:"description"`
 
-	Description string                 `json:"description"`
+	Bounds Rectangle `json:"bounds"`
 
-	Bounds      Rectangle              `json:"bounds"`
+	FigureType string `json:"figure_type"`
 
-	FigureType  string                 `json:"figure_type"`
+	Quality float64 `json:"quality"`
 
-	Quality     float64                `json:"quality"`
-
-	Metadata    map[string]interface{} `json:"metadata"`
-
+	Metadata map[string]interface{} `json:"metadata"`
 }
-
-
 
 // Rectangle represents a bounding rectangle.
 
 type Rectangle struct {
+	X float64 `json:"x"`
 
-	X      float64 `json:"x"`
+	Y float64 `json:"y"`
 
-	Y      float64 `json:"y"`
-
-	Width  float64 `json:"width"`
+	Width float64 `json:"width"`
 
 	Height float64 `json:"height"`
-
 }
-
-
 
 // StreamingPDFProcessor handles large PDF processing with memory management.
 
 type StreamingPDFProcessor struct {
+	file *os.File
 
-	file           *os.File
+	logger *slog.Logger
 
-	logger         *slog.Logger
+	config *DocumentLoaderConfig
 
-	config         *DocumentLoaderConfig
+	memoryMonitor *MemoryMonitor
 
-	memoryMonitor  *MemoryMonitor
+	pageBuffer chan *PDFPageResult
 
-	pageBuffer     chan *PDFPageResult
+	resultBuffer strings.Builder
 
-	resultBuffer   strings.Builder
+	rawBuffer strings.Builder
 
-	rawBuffer      strings.Builder
-
-	mutex          sync.Mutex
+	mutex sync.Mutex
 
 	processedPages int
 
-	totalPages     int
-
+	totalPages int
 }
-
-
 
 // PDFPageResult holds the result of processing a single PDF page.
 
 type PDFPageResult struct {
+	PageNumber int
 
-	PageNumber     int
+	Content string
 
-	Content        string
+	RawContent string
 
-	RawContent     string
+	Tables []ExtractedTable
 
-	Tables         []ExtractedTable
-
-	Figures        []ExtractedFigure
+	Figures []ExtractedFigure
 
 	ProcessingTime time.Duration
 
-	Error          error
+	Error error
 
-	MemoryUsed     int64
-
+	MemoryUsed int64
 }
-
-
 
 // StreamingProcessingResult holds the complete result of streaming PDF processing.
 
 type StreamingProcessingResult struct {
+	Content string
 
-	Content             string
+	RawContent string
 
-	RawContent          string
+	PageCount int
 
-	PageCount           int
-
-	ProcessingErrors    []error
+	ProcessingErrors []error
 
 	TotalProcessingTime time.Duration
 
-	PeakMemoryUsage     int64
+	PeakMemoryUsage int64
 
-	Tables              []ExtractedTable
+	Tables []ExtractedTable
 
-	Figures             []ExtractedFigure
-
+	Figures []ExtractedFigure
 }
-
-
 
 // ProcessStreamingPDF processes a PDF using streaming approach with memory management.
 
@@ -3224,8 +2633,6 @@ func (spp *StreamingPDFProcessor) ProcessStreamingPDF(ctx context.Context) (*Str
 	startTime := time.Now()
 
 	spp.logger.Info("Starting streaming PDF processing")
-
-
 
 	// Get PDF info using pdfcpu.
 
@@ -3237,13 +2644,9 @@ func (spp *StreamingPDFProcessor) ProcessStreamingPDF(ctx context.Context) (*Str
 
 	}
 
-
-
 	spp.totalPages = pdfInfo.PageCount
 
 	spp.logger.Info("PDF analysis complete", "total_pages", spp.totalPages)
-
-
 
 	// Process pages in parallel batches.
 
@@ -3255,8 +2658,6 @@ func (spp *StreamingPDFProcessor) ProcessStreamingPDF(ctx context.Context) (*Str
 
 	}
 
-
-
 	var allTables []ExtractedTable
 
 	var allFigures []ExtractedFigure
@@ -3264,8 +2665,6 @@ func (spp *StreamingPDFProcessor) ProcessStreamingPDF(ctx context.Context) (*Str
 	var processingErrors []error
 
 	var peakMemoryUsage int64
-
-
 
 	// Process pages in batches to manage memory.
 
@@ -3281,8 +2680,6 @@ func (spp *StreamingPDFProcessor) ProcessStreamingPDF(ctx context.Context) (*Str
 
 		}
 
-
-
 		endPage := startPage + batchSize - 1
 
 		if endPage > spp.totalPages {
@@ -3291,11 +2688,7 @@ func (spp *StreamingPDFProcessor) ProcessStreamingPDF(ctx context.Context) (*Str
 
 		}
 
-
-
 		spp.logger.Debug("Processing page batch", "start", startPage, "end", endPage)
-
-
 
 		// Process batch.
 
@@ -3311,8 +2704,6 @@ func (spp *StreamingPDFProcessor) ProcessStreamingPDF(ctx context.Context) (*Str
 
 		}
 
-
-
 		// Aggregate results.
 
 		for _, result := range batchResults {
@@ -3325,8 +2716,6 @@ func (spp *StreamingPDFProcessor) ProcessStreamingPDF(ctx context.Context) (*Str
 
 			}
 
-
-
 			spp.resultBuffer.WriteString(result.Content)
 
 			spp.rawBuffer.WriteString(result.RawContent)
@@ -3334,8 +2723,6 @@ func (spp *StreamingPDFProcessor) ProcessStreamingPDF(ctx context.Context) (*Str
 			allTables = append(allTables, result.Tables...)
 
 			allFigures = append(allFigures, result.Figures...)
-
-
 
 			if result.MemoryUsed > peakMemoryUsage {
 
@@ -3345,8 +2732,6 @@ func (spp *StreamingPDFProcessor) ProcessStreamingPDF(ctx context.Context) (*Str
 
 		}
 
-
-
 		// Force garbage collection after each batch for large files.
 
 		if spp.totalPages > 100 {
@@ -3354,8 +2739,6 @@ func (spp *StreamingPDFProcessor) ProcessStreamingPDF(ctx context.Context) (*Str
 			runtime.GC()
 
 		}
-
-
 
 		// Check memory pressure and adjust if needed.
 
@@ -3373,29 +2756,24 @@ func (spp *StreamingPDFProcessor) ProcessStreamingPDF(ctx context.Context) (*Str
 
 	}
 
-
-
 	result := &StreamingProcessingResult{
 
-		Content:             spp.resultBuffer.String(),
+		Content: spp.resultBuffer.String(),
 
-		RawContent:          spp.rawBuffer.String(),
+		RawContent: spp.rawBuffer.String(),
 
-		PageCount:           spp.totalPages,
+		PageCount: spp.totalPages,
 
-		ProcessingErrors:    processingErrors,
+		ProcessingErrors: processingErrors,
 
 		TotalProcessingTime: time.Since(startTime),
 
-		PeakMemoryUsage:     peakMemoryUsage,
+		PeakMemoryUsage: peakMemoryUsage,
 
-		Tables:              allTables,
+		Tables: allTables,
 
-		Figures:             allFigures,
-
+		Figures: allFigures,
 	}
-
-
 
 	spp.logger.Info("Streaming PDF processing completed",
 
@@ -3408,16 +2786,11 @@ func (spp *StreamingPDFProcessor) ProcessStreamingPDF(ctx context.Context) (*Str
 		"tables", len(allTables),
 
 		"figures", len(allFigures),
-
 	)
-
-
 
 	return result, nil
 
 }
-
-
 
 // getPDFInfo extracts basic PDF information.
 
@@ -3433,8 +2806,6 @@ func (spp *StreamingPDFProcessor) getPDFInfo() (*PDFInfo, error) {
 
 	}
 
-
-
 	// Create PDF reader to get page count.
 
 	reader, err := pdf.NewReader(spp.file, info.Size())
@@ -3445,25 +2816,18 @@ func (spp *StreamingPDFProcessor) getPDFInfo() (*PDFInfo, error) {
 
 	}
 
-
-
 	pageCount := reader.NumPage()
-
-
 
 	return &PDFInfo{
 
 		PageCount: pageCount,
 
-		FileSize:  info.Size(),
+		FileSize: info.Size(),
 
 		CreatedAt: info.ModTime(),
-
 	}, nil
 
 }
-
-
 
 // processBatch processes a batch of PDF pages.
 
@@ -3472,8 +2836,6 @@ func (spp *StreamingPDFProcessor) processBatch(ctx context.Context, startPage, e
 	var results []*PDFPageResult
 
 	var wg sync.WaitGroup
-
-
 
 	// Create semaphore to limit concurrent page processing.
 
@@ -3487,8 +2849,6 @@ func (spp *StreamingPDFProcessor) processBatch(ctx context.Context, startPage, e
 
 	semaphore := make(chan struct{}, concurrency)
 
-
-
 	// Process pages in the batch.
 
 	for pageNum := startPage; pageNum <= endPage; pageNum++ {
@@ -3499,15 +2859,11 @@ func (spp *StreamingPDFProcessor) processBatch(ctx context.Context, startPage, e
 
 			defer wg.Done()
 
-
-
 			// Acquire semaphore.
 
 			semaphore <- struct{}{}
 
 			defer func() { <-semaphore }()
-
-
 
 			result := spp.processPage(ctx, pageNumber)
 
@@ -3521,15 +2877,11 @@ func (spp *StreamingPDFProcessor) processBatch(ctx context.Context, startPage, e
 
 	}
 
-
-
 	wg.Wait()
 
 	return results, nil
 
 }
-
-
 
 // processPage processes a single PDF page.
 
@@ -3537,25 +2889,18 @@ func (spp *StreamingPDFProcessor) processPage(ctx context.Context, pageNumber in
 
 	startTime := time.Now()
 
-
-
 	result := &PDFPageResult{
 
 		PageNumber: pageNumber,
 
-		Tables:     []ExtractedTable{},
+		Tables: []ExtractedTable{},
 
-		Figures:    []ExtractedFigure{},
-
+		Figures: []ExtractedFigure{},
 	}
-
-
 
 	// Track memory usage for this page.
 
 	memBefore, _ := spp.memoryMonitor.GetMemoryUsage()
-
-
 
 	// Extract page content using the most appropriate method.
 
@@ -3569,13 +2914,9 @@ func (spp *StreamingPDFProcessor) processPage(ctx context.Context, pageNumber in
 
 	}
 
-
-
 	result.Content = content
 
 	result.RawContent = rawContent
-
-
 
 	// Extract tables if enabled.
 
@@ -3587,8 +2928,6 @@ func (spp *StreamingPDFProcessor) processPage(ctx context.Context, pageNumber in
 
 	}
 
-
-
 	// Extract figures if enabled.
 
 	if spp.config.EnableFigureExtraction {
@@ -3599,8 +2938,6 @@ func (spp *StreamingPDFProcessor) processPage(ctx context.Context, pageNumber in
 
 	}
 
-
-
 	// Calculate memory used.
 
 	memAfter, _ := spp.memoryMonitor.GetMemoryUsage()
@@ -3609,13 +2946,9 @@ func (spp *StreamingPDFProcessor) processPage(ctx context.Context, pageNumber in
 
 	result.ProcessingTime = time.Since(startTime)
 
-
-
 	return result
 
 }
-
-
 
 // extractPageContent extracts content from a specific page.
 
@@ -3624,8 +2957,6 @@ func (spp *StreamingPDFProcessor) extractPageContent(pageNumber int) (string, st
 	// Reset file position.
 
 	spp.file.Seek(0, 0)
-
-
 
 	// Get file info.
 
@@ -3637,8 +2968,6 @@ func (spp *StreamingPDFProcessor) extractPageContent(pageNumber int) (string, st
 
 	}
 
-
-
 	// Create PDF reader.
 
 	reader, err := pdf.NewReader(spp.file, info.Size())
@@ -3648,8 +2977,6 @@ func (spp *StreamingPDFProcessor) extractPageContent(pageNumber int) (string, st
 		return "", "", fmt.Errorf("failed to create PDF reader: %w", err)
 
 	}
-
-
 
 	// Extract text from specific page.
 
@@ -3661,8 +2988,6 @@ func (spp *StreamingPDFProcessor) extractPageContent(pageNumber int) (string, st
 
 	}
 
-
-
 	// Get plain text.
 
 	text, err := page.GetPlainText(nil) // Pass nil for font map as we don't need font-specific extraction
@@ -3673,19 +2998,13 @@ func (spp *StreamingPDFProcessor) extractPageContent(pageNumber int) (string, st
 
 	}
 
-
-
 	// Clean the text.
 
 	cleanContent := spp.cleanPageContent(text)
 
-
-
 	return cleanContent, text, nil
 
 }
-
-
 
 // cleanPageContent cleans and normalizes content from a single page.
 
@@ -3695,15 +3014,11 @@ func (spp *StreamingPDFProcessor) cleanPageContent(content string) string {
 
 	content = regexp.MustCompile(`\s+`).ReplaceAllString(content, " ")
 
-
-
 	// Remove page headers/footers patterns.
 
 	content = regexp.MustCompile(`(?i)page\s+\d+\s+of\s+\d+`).ReplaceAllString(content, "")
 
 	content = regexp.MustCompile(`(?i)© \d{4}.*?(?:\n|$)`).ReplaceAllString(content, "")
-
-
 
 	// Remove document headers that appear on every page.
 
@@ -3711,35 +3026,25 @@ func (spp *StreamingPDFProcessor) cleanPageContent(content string) string {
 
 	content = regexp.MustCompile(`(?i)O-RAN Alliance.*?(?:\n|$)`).ReplaceAllString(content, "")
 
-
-
 	// Normalize line breaks.
 
 	content = strings.ReplaceAll(content, "\r\n", "\n")
 
 	content = strings.ReplaceAll(content, "\r", "\n")
 
-
-
 	// Remove excessive line breaks but preserve paragraph structure.
 
 	content = regexp.MustCompile(`\n{3,}`).ReplaceAllString(content, "\n\n")
 
-
-
 	return strings.TrimSpace(content)
 
 }
-
-
 
 // extractTablesFromPage extracts tables from a specific page.
 
 func (spp *StreamingPDFProcessor) extractTablesFromPage(content string, pageNumber int) []ExtractedTable {
 
 	var tables []ExtractedTable
-
-
 
 	// Enhanced table detection patterns for telecom documents.
 
@@ -3760,10 +3065,7 @@ func (spp *StreamingPDFProcessor) extractTablesFromPage(content string, pageNumb
 		// Parameter tables common in telecom specs.
 
 		regexp.MustCompile(`(?i)(parameter|field|attribute|value).*?\n([\s\S]*?)(?=\n\s*(?:note|table|figure|section|\d+\.\d+|$))`),
-
 	}
-
-
 
 	for i, pattern := range tablePatterns {
 
@@ -3777,19 +3079,15 @@ func (spp *StreamingPDFProcessor) extractTablesFromPage(content string, pageNumb
 
 					PageNumber: pageNumber,
 
-					Quality:    0.8,
+					Quality: 0.8,
 
 					Metadata: map[string]interface{}{
 
 						"extraction_method": fmt.Sprintf("pattern_%d", i),
 
-						"match_index":       j,
-
+						"match_index": j,
 					},
-
 				}
-
-
 
 				// Extract caption if available.
 
@@ -3803,21 +3101,15 @@ func (spp *StreamingPDFProcessor) extractTablesFromPage(content string, pageNumb
 
 				}
 
-
-
 				// Parse table content.
 
 				tableContent := match[len(match)-1]
 
 				table.Headers, table.Rows = spp.parseTableContent(tableContent)
 
-
-
 				// Quality assessment.
 
 				table.Quality = spp.assessTableQuality(table)
-
-
 
 				// Skip low-quality tables.
 
@@ -3826,8 +3118,6 @@ func (spp *StreamingPDFProcessor) extractTablesFromPage(content string, pageNumb
 					tables = append(tables, table)
 
 				}
-
-
 
 				// Limit tables per page.
 
@@ -3843,21 +3133,15 @@ func (spp *StreamingPDFProcessor) extractTablesFromPage(content string, pageNumb
 
 	}
 
-
-
 	return tables
 
 }
-
-
 
 // extractFiguresFromPage extracts figures from a specific page.
 
 func (spp *StreamingPDFProcessor) extractFiguresFromPage(content string, pageNumber int) []ExtractedFigure {
 
 	var figures []ExtractedFigure
-
-
 
 	// Enhanced figure detection patterns.
 
@@ -3868,10 +3152,7 @@ func (spp *StreamingPDFProcessor) extractFiguresFromPage(content string, pageNum
 		regexp.MustCompile(`(?i)fig\.?\s*(\d+)[-:]?\s*(.+?)(?:\n|$)`),
 
 		regexp.MustCompile(`(?i)(diagram|architecture|schematic|block\s+diagram|flow\s+chart|topology)\s*[-:]?\s*(.+?)(?:\n|$)`),
-
 	}
-
-
 
 	for i, pattern := range figurePatterns {
 
@@ -3885,19 +3166,15 @@ func (spp *StreamingPDFProcessor) extractFiguresFromPage(content string, pageNum
 
 					PageNumber: pageNumber,
 
-					Quality:    0.8,
+					Quality: 0.8,
 
 					Metadata: map[string]interface{}{
 
 						"extraction_method": fmt.Sprintf("pattern_%d", i),
 
-						"match_index":       j,
-
+						"match_index": j,
 					},
-
 				}
-
-
 
 				// Extract caption.
 
@@ -3911,27 +3188,19 @@ func (spp *StreamingPDFProcessor) extractFiguresFromPage(content string, pageNum
 
 				}
 
-
-
 				// Determine figure type.
 
 				figure.FigureType = spp.determineFigureType(figure.Caption)
 
-
-
 				// Quality assessment.
 
 				figure.Quality = spp.assessFigureQuality(figure)
-
-
 
 				if figure.Quality > 0.5 {
 
 					figures = append(figures, figure)
 
 				}
-
-
 
 				// Limit figures per page.
 
@@ -3947,13 +3216,9 @@ func (spp *StreamingPDFProcessor) extractFiguresFromPage(content string, pageNum
 
 	}
 
-
-
 	return figures
 
 }
-
-
 
 // parseTableContent parses table content with enhanced logic.
 
@@ -3967,8 +3232,6 @@ func (spp *StreamingPDFProcessor) parseTableContent(tableContent string) ([]stri
 
 	var potentialHeaders []string
 
-
-
 	for i, line := range lines {
 
 		line = strings.TrimSpace(line)
@@ -3979,11 +3242,7 @@ func (spp *StreamingPDFProcessor) parseTableContent(tableContent string) ([]stri
 
 		}
 
-
-
 		var cells []string
-
-
 
 		// Parse pipe-separated tables.
 
@@ -4025,8 +3284,6 @@ func (spp *StreamingPDFProcessor) parseTableContent(tableContent string) ([]stri
 
 		}
 
-
-
 		if len(cells) > 0 {
 
 			// Determine if this is a header row.
@@ -4049,8 +3306,6 @@ func (spp *StreamingPDFProcessor) parseTableContent(tableContent string) ([]stri
 
 			}
 
-
-
 			// Add as data row.
 
 			rows = append(rows, cells)
@@ -4058,8 +3313,6 @@ func (spp *StreamingPDFProcessor) parseTableContent(tableContent string) ([]stri
 		}
 
 	}
-
-
 
 	// If no clear headers were found, use potential headers.
 
@@ -4075,13 +3328,9 @@ func (spp *StreamingPDFProcessor) parseTableContent(tableContent string) ([]stri
 
 	}
 
-
-
 	return headers, rows
 
 }
-
-
 
 // looksLikeHeader determines if a row looks like a table header.
 
@@ -4094,10 +3343,7 @@ func (spp *StreamingPDFProcessor) looksLikeHeader(cells []string) bool {
 		"attribute", "element", "component", "function", "protocol", "interface",
 
 		"frequency", "band", "channel", "power", "signal", "reference",
-
 	}
-
-
 
 	for _, cell := range cells {
 
@@ -4115,21 +3361,15 @@ func (spp *StreamingPDFProcessor) looksLikeHeader(cells []string) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // assessTableQuality assesses the quality of an extracted table.
 
 func (spp *StreamingPDFProcessor) assessTableQuality(table ExtractedTable) float64 {
 
 	quality := 0.5 // Base quality
-
-
 
 	// Header quality.
 
@@ -4145,8 +3385,6 @@ func (spp *StreamingPDFProcessor) assessTableQuality(table ExtractedTable) float
 
 	}
 
-
-
 	// Row quality.
 
 	if len(table.Rows) > 0 {
@@ -4160,8 +3398,6 @@ func (spp *StreamingPDFProcessor) assessTableQuality(table ExtractedTable) float
 		}
 
 	}
-
-
 
 	// Consistency check.
 
@@ -4185,8 +3421,6 @@ func (spp *StreamingPDFProcessor) assessTableQuality(table ExtractedTable) float
 
 	}
 
-
-
 	// Caption quality.
 
 	if table.Caption != "" && len(table.Caption) > 10 {
@@ -4195,29 +3429,21 @@ func (spp *StreamingPDFProcessor) assessTableQuality(table ExtractedTable) float
 
 	}
 
-
-
 	if quality > 1.0 {
 
 		quality = 1.0
 
 	}
 
-
-
 	return quality
 
 }
-
-
 
 // assessFigureQuality assesses the quality of an extracted figure.
 
 func (spp *StreamingPDFProcessor) assessFigureQuality(figure ExtractedFigure) float64 {
 
 	quality := 0.6 // Base quality for figures
-
-
 
 	// Caption quality.
 
@@ -4233,8 +3459,6 @@ func (spp *StreamingPDFProcessor) assessFigureQuality(figure ExtractedFigure) fl
 
 	}
 
-
-
 	// Type-specific quality.
 
 	if figure.FigureType != "diagram" { // More specific than default
@@ -4243,13 +3467,9 @@ func (spp *StreamingPDFProcessor) assessFigureQuality(figure ExtractedFigure) fl
 
 	}
 
-
-
 	return quality
 
 }
-
-
 
 // determineFigureType determines the type of figure with enhanced logic.
 
@@ -4257,29 +3477,24 @@ func (spp *StreamingPDFProcessor) determineFigureType(caption string) string {
 
 	lowerCaption := strings.ToLower(caption)
 
-
-
 	typePatterns := map[string][]string{
 
 		"architecture": {"architecture", "framework", "structure", "overview", "system"},
 
-		"flowchart":    {"flow", "procedure", "process", "algorithm", "sequence"},
+		"flowchart": {"flow", "procedure", "process", "algorithm", "sequence"},
 
-		"diagram":      {"diagram", "schematic", "block", "connection", "layout"},
+		"diagram": {"diagram", "schematic", "block", "connection", "layout"},
 
-		"graph":        {"graph", "chart", "plot", "performance", "measurement"},
+		"graph": {"graph", "chart", "plot", "performance", "measurement"},
 
-		"timeline":     {"timeline", "sequence", "phase", "stage", "evolution"},
+		"timeline": {"timeline", "sequence", "phase", "stage", "evolution"},
 
-		"network":      {"network", "topology", "deployment", "configuration"},
+		"network": {"network", "topology", "deployment", "configuration"},
 
-		"protocol":     {"protocol", "stack", "layer", "interface", "message"},
+		"protocol": {"protocol", "stack", "layer", "interface", "message"},
 
-		"signal":       {"signal", "waveform", "spectrum", "frequency", "modulation"},
-
+		"signal": {"signal", "waveform", "spectrum", "frequency", "modulation"},
 	}
-
-
 
 	for figType, patterns := range typePatterns {
 
@@ -4295,21 +3510,15 @@ func (spp *StreamingPDFProcessor) determineFigureType(caption string) string {
 
 	}
 
-
-
 	return "diagram" // Default type
 
 }
-
-
 
 // calculateProcessingConfidence calculates confidence score for document processing.
 
 func (dl *DocumentLoader) calculateProcessingConfidence(content string, pageCount int, errorCount int) float32 {
 
 	confidence := float32(0.8) // Base confidence
-
-
 
 	// Content length factor.
 
@@ -4325,8 +3534,6 @@ func (dl *DocumentLoader) calculateProcessingConfidence(content string, pageCoun
 
 	}
 
-
-
 	// Page count factor.
 
 	if pageCount > 5 {
@@ -4334,8 +3541,6 @@ func (dl *DocumentLoader) calculateProcessingConfidence(content string, pageCoun
 		confidence += 0.05
 
 	}
-
-
 
 	// Error factor.
 
@@ -4351,8 +3556,6 @@ func (dl *DocumentLoader) calculateProcessingConfidence(content string, pageCoun
 
 	}
 
-
-
 	// Telecom content indicators.
 
 	telecomIndicators := []string{
@@ -4360,10 +3563,7 @@ func (dl *DocumentLoader) calculateProcessingConfidence(content string, pageCoun
 		"3gpp", "o-ran", "5g", "4g", "lte", "gnb", "enb", "amf", "smf", "upf",
 
 		"frequency", "bandwidth", "protocol", "specification", "technical",
-
 	}
-
-
 
 	telecomCount := 0
 
@@ -4379,15 +3579,11 @@ func (dl *DocumentLoader) calculateProcessingConfidence(content string, pageCoun
 
 	}
 
-
-
 	if telecomCount > 3 {
 
 		confidence += 0.1
 
 	}
-
-
 
 	// Cap confidence.
 
@@ -4403,13 +3599,9 @@ func (dl *DocumentLoader) calculateProcessingConfidence(content string, pageCoun
 
 	}
 
-
-
 	return confidence
 
 }
-
-
 
 // LoadDocument loads a single document from the given path.
 
@@ -4423,8 +3615,6 @@ func (dl *DocumentLoader) LoadDocument(ctx context.Context, docPath string) (*Lo
 
 	}
 
-
-
 	// Check file size.
 
 	if dl.config.MaxFileSize > 0 && fileInfo.Size() > dl.config.MaxFileSize {
@@ -4433,13 +3623,9 @@ func (dl *DocumentLoader) LoadDocument(ctx context.Context, docPath string) (*Lo
 
 	}
 
-
-
 	// Generate document ID.
 
 	docID := generateDocumentID(docPath)
-
-
 
 	// Check cache first.
 
@@ -4459,19 +3645,13 @@ func (dl *DocumentLoader) LoadDocument(ctx context.Context, docPath string) (*Lo
 
 	dl.metrics.CacheMisses++
 
-
-
 	startTime := time.Now()
-
-
 
 	// Process document based on file type.
 
 	var content, rawContent string
 
 	var metadata *DocumentMetadata
-
-
 
 	ext := strings.ToLower(filepath.Ext(docPath))
 
@@ -4491,8 +3671,6 @@ func (dl *DocumentLoader) LoadDocument(ctx context.Context, docPath string) (*Lo
 
 	}
 
-
-
 	if err != nil {
 
 		dl.metrics.FailedLoads++
@@ -4501,39 +3679,34 @@ func (dl *DocumentLoader) LoadDocument(ctx context.Context, docPath string) (*Lo
 
 	}
 
-
-
 	// Create loaded document.
 
 	doc := &LoadedDocument{
 
-		ID:             docID,
+		ID: docID,
 
-		SourcePath:     docPath,
+		SourcePath: docPath,
 
-		Filename:       filepath.Base(docPath),
+		Filename: filepath.Base(docPath),
 
-		Title:          extractTitle(content),
+		Title: extractTitle(content),
 
-		Content:        content,
+		Content: content,
 
-		RawContent:     rawContent,
+		RawContent: rawContent,
 
-		Metadata:       metadata,
+		Metadata: metadata,
 
-		LoadedAt:       time.Now(),
+		LoadedAt: time.Now(),
 
 		ProcessingTime: time.Since(startTime),
 
-		Hash:           fmt.Sprintf("%x", md5.Sum([]byte(content))),
+		Hash: fmt.Sprintf("%x", md5.Sum([]byte(content))),
 
-		Size:           fileInfo.Size(),
+		Size: fileInfo.Size(),
 
-		Language:       detectLanguage(content),
-
+		Language: detectLanguage(content),
 	}
-
-
 
 	// Cache the document.
 
@@ -4543,21 +3716,15 @@ func (dl *DocumentLoader) LoadDocument(ctx context.Context, docPath string) (*Lo
 
 	dl.cacheMutex.Unlock()
 
-
-
 	dl.metrics.SuccessfulLoads++
 
 	dl.metrics.TotalDocuments++
 
 	dl.metrics.LastProcessedAt = time.Now()
 
-
-
 	return doc, nil
 
 }
-
-
 
 // processPDFFile processes PDF files.
 
@@ -4573,23 +3740,17 @@ func (dl *DocumentLoader) processPDFFile(ctx context.Context, filePath string) (
 
 	}
 
-
-
 	if dl.config.StreamingEnabled && fileInfo.Size() > dl.config.StreamingThreshold {
 
 		return dl.processPDFStreamingAdvanced(ctx, filePath, fileInfo.Size())
 
 	}
 
-
-
 	// Use hybrid approach for regular PDFs.
 
 	return dl.processPDFHybrid(ctx, filePath)
 
 }
-
-
 
 // processTextFile processes plain text and markdown files.
 
@@ -4603,19 +3764,13 @@ func (dl *DocumentLoader) processTextFile(ctx context.Context, filePath string) 
 
 	}
 
-
-
 	textContent := string(content)
 
 	metadata := dl.extractTelecomMetadata(textContent, filepath.Base(filePath))
 
-
-
 	return textContent, textContent, metadata, nil
 
 }
-
-
 
 // extractTitle extracts title from document content.
 
@@ -4645,8 +3800,6 @@ func extractTitle(content string) string {
 
 }
 
-
-
 // detectLanguage detects the language of document content.
 
 func detectLanguage(content string) string {
@@ -4665,8 +3818,6 @@ func detectLanguage(content string) string {
 
 }
 
-
-
 // generateDocumentID generates a unique ID for a document.
 
 func generateDocumentID(path string) string {
@@ -4675,17 +3826,12 @@ func generateDocumentID(path string) string {
 
 }
 
-
-
 // PDFInfo holds basic PDF information.
 
 type PDFInfo struct {
-
 	PageCount int
 
-	FileSize  int64
+	FileSize int64
 
 	CreatedAt time.Time
-
 }
-

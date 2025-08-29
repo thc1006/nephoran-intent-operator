@@ -1,53 +1,33 @@
-
 package main
 
-
-
 import (
-
 	"flag"
-
 	"log"
-
 	"os"
-
 	"os/signal"
-
 	"syscall"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/kpm"
-
 )
-
-
 
 func main() {
 
 	var (
-
 		outputDir = flag.String("out", "metrics", "output directory for metrics")
 
-		period    = flag.Duration("period", 1*time.Second, "metric generation period")
+		period = flag.Duration("period", 1*time.Second, "metric generation period")
 
-		nodeID    = flag.String("node", "e2-node-001", "E2 node identifier")
-
+		nodeID = flag.String("node", "e2-node-001", "E2 node identifier")
 	)
 
 	flag.Parse()
-
-
 
 	if err := os.MkdirAll(*outputDir, 0o750); err != nil {
 
 		log.Fatalf("Failed to create output directory: %v", err)
 
 	}
-
-
 
 	generator, err := kpm.NewGenerator(*nodeID, *outputDir)
 
@@ -57,29 +37,19 @@ func main() {
 
 	}
 
-
-
 	ticker := time.NewTicker(*period)
 
 	defer ticker.Stop()
-
-
 
 	sigCh := make(chan os.Signal, 1)
 
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 
-
-
 	log.Printf("E2 KPM Simulator started: node=%s, output=%s, period=%v", *nodeID, *outputDir, *period)
-
-
 
 	var errorCount int
 
 	const maxRetries = 3
-
-
 
 	for {
 
@@ -117,8 +87,6 @@ func main() {
 
 			}
 
-
-
 			if lastErr != nil {
 
 				errorCount++
@@ -140,4 +108,3 @@ func main() {
 	}
 
 }
-

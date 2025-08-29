@@ -1,39 +1,21 @@
-
 package availability
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"math"
-
 	"sort"
-
 	"sync"
-
 	"time"
 
-
-
 	"go.opentelemetry.io/otel"
-
 	"go.opentelemetry.io/otel/attribute"
-
 	"go.opentelemetry.io/otel/trace"
-
 )
-
-
 
 // TimeWindow represents different time aggregation windows.
 
 type TimeWindow string
-
-
 
 const (
 
@@ -60,16 +42,11 @@ const (
 	// Window1Month holds window1month value.
 
 	Window1Month TimeWindow = "30d"
-
 )
-
-
 
 // SLATarget represents SLA availability targets.
 
 type SLATarget string
-
-
 
 const (
 
@@ -95,281 +72,221 @@ const (
 
 )
 
-
-
 // ErrorBudget represents error budget calculations.
 
 type ErrorBudget struct {
+	Target SLATarget `json:"target"`
 
-	Target            SLATarget             `json:"target"`
+	TotalTime time.Duration `json:"total_time"`
 
-	TotalTime         time.Duration         `json:"total_time"`
+	AllowedDowntime time.Duration `json:"allowed_downtime"`
 
-	AllowedDowntime   time.Duration         `json:"allowed_downtime"`
+	ActualDowntime time.Duration `json:"actual_downtime"`
 
-	ActualDowntime    time.Duration         `json:"actual_downtime"`
+	RemainingDowntime time.Duration `json:"remaining_downtime"`
 
-	RemainingDowntime time.Duration         `json:"remaining_downtime"`
+	BudgetUtilization float64 `json:"budget_utilization"` // 0.0 to 1.0
 
-	BudgetUtilization float64               `json:"budget_utilization"` // 0.0 to 1.0
+	BurnRate float64 `json:"burn_rate"` // Current consumption rate
 
-	BurnRate          float64               `json:"burn_rate"`          // Current consumption rate
+	TimeToExhaustion time.Duration `json:"time_to_exhaustion"` // Time until budget exhausted
 
-	TimeToExhaustion  time.Duration         `json:"time_to_exhaustion"` // Time until budget exhausted
+	IsExhausted bool `json:"is_exhausted"`
 
-	IsExhausted       bool                  `json:"is_exhausted"`
-
-	AlertThresholds   BudgetAlertThresholds `json:"alert_thresholds"`
-
+	AlertThresholds BudgetAlertThresholds `json:"alert_thresholds"`
 }
-
-
 
 // BudgetAlertThresholds defines when to alert on error budget consumption.
 
 type BudgetAlertThresholds struct {
+	Warning float64 `json:"warning"` // Alert at this utilization level (e.g., 0.5)
 
-	Warning   float64 `json:"warning"`   // Alert at this utilization level (e.g., 0.5)
-
-	Critical  float64 `json:"critical"`  // Alert at this utilization level (e.g., 0.8)
+	Critical float64 `json:"critical"` // Alert at this utilization level (e.g., 0.8)
 
 	Emergency float64 `json:"emergency"` // Alert at this utilization level (e.g., 0.95)
 
 }
 
-
-
 // AvailabilityCalculation represents a calculated availability metric.
 
 type AvailabilityCalculation struct {
+	EntityID string `json:"entity_id"`
 
-	EntityID   string                `json:"entity_id"`
+	EntityType string `json:"entity_type"`
 
-	EntityType string                `json:"entity_type"`
+	Dimension AvailabilityDimension `json:"dimension"`
 
-	Dimension  AvailabilityDimension `json:"dimension"`
+	TimeWindow TimeWindow `json:"time_window"`
 
-	TimeWindow TimeWindow            `json:"time_window"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime  time.Time             `json:"start_time"`
-
-	EndTime    time.Time             `json:"end_time"`
-
-
+	EndTime time.Time `json:"end_time"`
 
 	// Core metrics.
 
-	Availability float64       `json:"availability"` // 0.0 to 1.0
+	Availability float64 `json:"availability"` // 0.0 to 1.0
 
-	Uptime       time.Duration `json:"uptime"`
+	Uptime time.Duration `json:"uptime"`
 
-	Downtime     time.Duration `json:"downtime"`
+	Downtime time.Duration `json:"downtime"`
 
-	TotalTime    time.Duration `json:"total_time"`
-
-
+	TotalTime time.Duration `json:"total_time"`
 
 	// Performance metrics.
 
 	MeanResponseTime time.Duration `json:"mean_response_time"`
 
-	P50ResponseTime  time.Duration `json:"p50_response_time"`
+	P50ResponseTime time.Duration `json:"p50_response_time"`
 
-	P95ResponseTime  time.Duration `json:"p95_response_time"`
+	P95ResponseTime time.Duration `json:"p95_response_time"`
 
-	P99ResponseTime  time.Duration `json:"p99_response_time"`
-
-
+	P99ResponseTime time.Duration `json:"p99_response_time"`
 
 	// Error metrics.
 
-	ErrorRate          float64 `json:"error_rate"` // 0.0 to 1.0
+	ErrorRate float64 `json:"error_rate"` // 0.0 to 1.0
 
-	TotalRequests      int64   `json:"total_requests"`
+	TotalRequests int64 `json:"total_requests"`
 
-	SuccessfulRequests int64   `json:"successful_requests"`
+	SuccessfulRequests int64 `json:"successful_requests"`
 
-	FailedRequests     int64   `json:"failed_requests"`
-
-
+	FailedRequests int64 `json:"failed_requests"`
 
 	// Quality metrics.
 
-	QualityScore         float64 `json:"quality_score"`         // Weighted score 0.0 to 1.0
+	QualityScore float64 `json:"quality_score"` // Weighted score 0.0 to 1.0
 
 	WeightedAvailability float64 `json:"weighted_availability"` // Business impact weighted
-
-
 
 	// Error budget.
 
 	ErrorBudget *ErrorBudget `json:"error_budget,omitempty"`
 
-
-
 	// Incident data.
 
-	IncidentCount int           `json:"incident_count"`
+	IncidentCount int `json:"incident_count"`
 
-	MTTR          time.Duration `json:"mttr"` // Mean Time To Recovery
+	MTTR time.Duration `json:"mttr"` // Mean Time To Recovery
 
-	MTBF          time.Duration `json:"mtbf"` // Mean Time Between Failures
-
-
+	MTBF time.Duration `json:"mtbf"` // Mean Time Between Failures
 
 	// Metadata.
 
 	Metadata map[string]interface{} `json:"metadata"`
-
 }
-
-
 
 // BusinessHoursConfig defines business hours for weighted calculations.
 
 type BusinessHoursConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled           bool           `json:"enabled"`
+	StartHour int `json:"start_hour"` // 0-23
 
-	StartHour         int            `json:"start_hour"` // 0-23
+	EndHour int `json:"end_hour"` // 0-23
 
-	EndHour           int            `json:"end_hour"`   // 0-23
+	WeekDays []time.Weekday `json:"weekdays"`
 
-	WeekDays          []time.Weekday `json:"weekdays"`
+	Timezone string `json:"timezone"`
 
-	Timezone          string         `json:"timezone"`
+	Weight float64 `json:"weight"` // Weight multiplier for business hours
 
-	Weight            float64        `json:"weight"`              // Weight multiplier for business hours
-
-	NonBusinessWeight float64        `json:"non_business_weight"` // Weight for non-business hours
+	NonBusinessWeight float64 `json:"non_business_weight"` // Weight for non-business hours
 
 }
-
-
 
 // MaintenanceWindow represents planned maintenance periods.
 
 type MaintenanceWindow struct {
+	ID string `json:"id"`
 
-	ID             string            `json:"id"`
+	Name string `json:"name"`
 
-	Name           string            `json:"name"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime      time.Time         `json:"start_time"`
+	EndTime time.Time `json:"end_time"`
 
-	EndTime        time.Time         `json:"end_time"`
+	Recurring bool `json:"recurring"`
 
-	Recurring      bool              `json:"recurring"`
+	RecurrenceRule string `json:"recurrence_rule,omitempty"` // RRULE format
 
-	RecurrenceRule string            `json:"recurrence_rule,omitempty"` // RRULE format
+	EntityFilter map[string]string `json:"entity_filter"` // Filter which entities this applies to
 
-	EntityFilter   map[string]string `json:"entity_filter"`             // Filter which entities this applies to
-
-	ExcludeFromSLA bool              `json:"exclude_from_sla"`
-
+	ExcludeFromSLA bool `json:"exclude_from_sla"`
 }
-
-
 
 // AvailabilityCalculatorConfig holds configuration for the calculator.
 
 type AvailabilityCalculatorConfig struct {
+	DefaultSLATarget SLATarget `json:"default_sla_target"`
 
-	DefaultSLATarget    SLATarget           `json:"default_sla_target"`
+	BusinessHours BusinessHoursConfig `json:"business_hours"`
 
-	BusinessHours       BusinessHoursConfig `json:"business_hours"`
+	MaintenanceWindows []MaintenanceWindow `json:"maintenance_windows"`
 
-	MaintenanceWindows  []MaintenanceWindow `json:"maintenance_windows"`
+	CalculationInterval time.Duration `json:"calculation_interval"`
 
-	CalculationInterval time.Duration       `json:"calculation_interval"`
-
-	RetentionPeriod     time.Duration       `json:"retention_period"`
-
-
+	RetentionPeriod time.Duration `json:"retention_period"`
 
 	// Aggregation settings.
 
-	EnabledWindows   []TimeWindow  `json:"enabled_windows"`
+	EnabledWindows []TimeWindow `json:"enabled_windows"`
 
-	MaxDataPoints    int           `json:"max_data_points"`   // Max data points per calculation
+	MaxDataPoints int `json:"max_data_points"` // Max data points per calculation
 
 	SamplingInterval time.Duration `json:"sampling_interval"` // How often to sample data
-
-
 
 	// Quality scoring weights.
 
 	AvailabilityWeight float64 `json:"availability_weight"` // Weight for availability in quality score
 
-	PerformanceWeight  float64 `json:"performance_weight"`  // Weight for performance in quality score
+	PerformanceWeight float64 `json:"performance_weight"` // Weight for performance in quality score
 
-	ErrorRateWeight    float64 `json:"error_rate_weight"`   // Weight for error rate in quality score
-
-
+	ErrorRateWeight float64 `json:"error_rate_weight"` // Weight for error rate in quality score
 
 	// Business impact weighting.
 
-	EnableBusinessWeighting bool                       `json:"enable_business_weighting"`
+	EnableBusinessWeighting bool `json:"enable_business_weighting"`
 
-	BusinessImpactWeights   map[BusinessImpact]float64 `json:"business_impact_weights"`
-
-
+	BusinessImpactWeights map[BusinessImpact]float64 `json:"business_impact_weights"`
 
 	// Error budget settings.
 
 	ErrorBudgetAlertThresholds BudgetAlertThresholds `json:"error_budget_alert_thresholds"`
-
 }
-
-
 
 // AvailabilityCalculator performs sophisticated availability calculations.
 
 type AvailabilityCalculator struct {
-
 	config *AvailabilityCalculatorConfig
-
-
 
 	// Storage for calculated metrics.
 
-	calculations      map[string]*AvailabilityCalculation
+	calculations map[string]*AvailabilityCalculation
 
 	calculationsMutex sync.RWMutex
-
-
 
 	// Historical data.
 
 	calculationHistory []AvailabilityCalculation
 
-	historyMutex       sync.RWMutex
-
-
+	historyMutex sync.RWMutex
 
 	// Control.
 
-	ctx    context.Context
+	ctx context.Context
 
 	cancel context.CancelFunc
 
 	stopCh chan struct{}
 
-
-
 	// Observability.
 
 	tracer trace.Tracer
 
-
-
 	// Data sources.
 
 	tracker *MultiDimensionalTracker
-
 }
-
-
 
 // NewAvailabilityCalculator creates a new availability calculator.
 
@@ -392,8 +309,6 @@ func NewAvailabilityCalculator(
 		return nil, fmt.Errorf("tracker cannot be nil")
 
 	}
-
-
 
 	// Set defaults.
 
@@ -427,51 +342,41 @@ func NewAvailabilityCalculator(
 
 			ImpactCritical: 1.0,
 
-			ImpactHigh:     0.8,
+			ImpactHigh: 0.8,
 
-			ImpactMedium:   0.6,
+			ImpactMedium: 0.6,
 
-			ImpactLow:      0.4,
+			ImpactLow: 0.4,
 
-			ImpactMinimal:  0.2,
-
+			ImpactMinimal: 0.2,
 		}
 
 	}
 
-
-
 	ctx, cancel := context.WithCancel(context.Background())
-
-
 
 	calculator := &AvailabilityCalculator{
 
-		config:             config,
+		config: config,
 
-		calculations:       make(map[string]*AvailabilityCalculation),
+		calculations: make(map[string]*AvailabilityCalculation),
 
 		calculationHistory: make([]AvailabilityCalculation, 0, 10000),
 
-		ctx:                ctx,
+		ctx: ctx,
 
-		cancel:             cancel,
+		cancel: cancel,
 
-		stopCh:             make(chan struct{}),
+		stopCh: make(chan struct{}),
 
-		tracer:             otel.Tracer("availability-calculator"),
+		tracer: otel.Tracer("availability-calculator"),
 
-		tracker:            tracker,
-
+		tracker: tracker,
 	}
-
-
 
 	return calculator, nil
 
 }
-
-
 
 // Start begins availability calculations.
 
@@ -481,11 +386,7 @@ func (ac *AvailabilityCalculator) Start() error {
 
 	defer span.End()
 
-
-
 	span.AddEvent("Starting availability calculator")
-
-
 
 	// Start calculation routines for each time window.
 
@@ -495,19 +396,13 @@ func (ac *AvailabilityCalculator) Start() error {
 
 	}
 
-
-
 	// Start cleanup routine.
 
 	go ac.runCleanup(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops availability calculations.
 
@@ -521,8 +416,6 @@ func (ac *AvailabilityCalculator) Stop() error {
 
 }
 
-
-
 // runCalculations runs calculations for a specific time window.
 
 func (ac *AvailabilityCalculator) runCalculations(ctx context.Context, window TimeWindow) {
@@ -532,8 +425,6 @@ func (ac *AvailabilityCalculator) runCalculations(ctx context.Context, window Ti
 	ticker := time.NewTicker(interval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -552,8 +443,6 @@ func (ac *AvailabilityCalculator) runCalculations(ctx context.Context, window Ti
 	}
 
 }
-
-
 
 // getCalculationInterval returns the calculation interval for a time window.
 
@@ -593,8 +482,6 @@ func (ac *AvailabilityCalculator) getCalculationInterval(window TimeWindow) time
 
 }
 
-
-
 // performCalculations performs availability calculations for a time window.
 
 func (ac *AvailabilityCalculator) performCalculations(ctx context.Context, window TimeWindow) {
@@ -605,15 +492,11 @@ func (ac *AvailabilityCalculator) performCalculations(ctx context.Context, windo
 
 	defer span.End()
 
-
-
 	now := time.Now()
 
 	windowDuration := ac.getWindowDuration(window)
 
 	startTime := now.Add(-windowDuration)
-
-
 
 	// Get current state from tracker.
 
@@ -627,11 +510,7 @@ func (ac *AvailabilityCalculator) performCalculations(ctx context.Context, windo
 
 	}
 
-
-
 	calculationCount := 0
-
-
 
 	// Calculate for each entity.
 
@@ -647,8 +526,6 @@ func (ac *AvailabilityCalculator) performCalculations(ctx context.Context, windo
 
 		}
 
-
-
 		// Store calculation.
 
 		calcKey := fmt.Sprintf("%s:%s", key, window)
@@ -659,8 +536,6 @@ func (ac *AvailabilityCalculator) performCalculations(ctx context.Context, windo
 
 		ac.calculationsMutex.Unlock()
 
-
-
 		// Add to history.
 
 		ac.historyMutex.Lock()
@@ -669,21 +544,15 @@ func (ac *AvailabilityCalculator) performCalculations(ctx context.Context, windo
 
 		ac.historyMutex.Unlock()
 
-
-
 		calculationCount++
 
 	}
-
-
 
 	span.AddEvent("Calculations completed",
 
 		trace.WithAttributes(attribute.Int("calculation_count", calculationCount)))
 
 }
-
-
 
 // calculateAvailabilityForEntity calculates availability for a specific entity.
 
@@ -710,22 +579,16 @@ func (ac *AvailabilityCalculator) calculateAvailabilityForEntity(
 			attribute.String("entity_type", metric.EntityType),
 
 			attribute.String("window", string(window)),
-
 		),
-
 	)
 
 	defer span.End()
-
-
 
 	// Get historical metrics for this entity.
 
 	historicalMetrics := ac.tracker.GetMetricsHistory(startTime, endTime)
 
 	entityMetrics := ac.filterMetricsByEntity(historicalMetrics, metric.EntityID, metric.EntityType)
-
-
 
 	if len(entityMetrics) == 0 {
 
@@ -735,59 +598,44 @@ func (ac *AvailabilityCalculator) calculateAvailabilityForEntity(
 
 	}
 
-
-
 	calculation := &AvailabilityCalculation{
 
-		EntityID:   metric.EntityID,
+		EntityID: metric.EntityID,
 
 		EntityType: metric.EntityType,
 
-		Dimension:  metric.Dimension,
+		Dimension: metric.Dimension,
 
 		TimeWindow: window,
 
-		StartTime:  startTime,
+		StartTime: startTime,
 
-		EndTime:    endTime,
+		EndTime: endTime,
 
-		TotalTime:  endTime.Sub(startTime),
+		TotalTime: endTime.Sub(startTime),
 
-		Metadata:   make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}
-
-
 
 	// Calculate core availability metrics.
 
 	ac.calculateCoreMetrics(calculation, entityMetrics)
 
-
-
 	// Calculate performance metrics.
 
 	ac.calculatePerformanceMetrics(calculation, entityMetrics)
-
-
 
 	// Calculate error metrics.
 
 	ac.calculateErrorMetrics(calculation, entityMetrics)
 
-
-
 	// Calculate quality score.
 
 	ac.calculateQualityScore(calculation, metric.BusinessImpact)
 
-
-
 	// Calculate weighted availability with business impact.
 
 	ac.calculateWeightedAvailability(calculation, metric.BusinessImpact)
-
-
 
 	// Apply business hours weighting if enabled.
 
@@ -797,13 +645,9 @@ func (ac *AvailabilityCalculator) calculateAvailabilityForEntity(
 
 	}
 
-
-
 	// Exclude maintenance windows.
 
 	ac.excludeMaintenanceWindows(calculation, startTime, endTime)
-
-
 
 	// Calculate error budget.
 
@@ -813,13 +657,9 @@ func (ac *AvailabilityCalculator) calculateAvailabilityForEntity(
 
 	}
 
-
-
 	// Calculate incident metrics.
 
 	ac.calculateIncidentMetrics(calculation, entityMetrics)
-
-
 
 	// Add metadata.
 
@@ -829,8 +669,6 @@ func (ac *AvailabilityCalculator) calculateAvailabilityForEntity(
 
 	calculation.Metadata["calculation_time"] = time.Now()
 
-
-
 	span.AddEvent("Entity availability calculated",
 
 		trace.WithAttributes(
@@ -838,18 +676,12 @@ func (ac *AvailabilityCalculator) calculateAvailabilityForEntity(
 			attribute.Float64("availability", calculation.Availability),
 
 			attribute.Float64("quality_score", calculation.QualityScore),
-
 		),
-
 	)
-
-
 
 	return calculation, nil
 
 }
-
-
 
 // filterMetricsByEntity filters metrics for a specific entity.
 
@@ -879,8 +711,6 @@ func (ac *AvailabilityCalculator) filterMetricsByEntity(
 
 }
 
-
-
 // calculateCoreMetrics calculates core availability metrics.
 
 func (ac *AvailabilityCalculator) calculateCoreMetrics(
@@ -899,13 +729,9 @@ func (ac *AvailabilityCalculator) calculateCoreMetrics(
 
 	}
 
-
-
 	var totalDuration time.Duration
 
 	var uptimeDuration time.Duration
-
-
 
 	// Sort metrics by timestamp.
 
@@ -918,8 +744,6 @@ func (ac *AvailabilityCalculator) calculateCoreMetrics(
 		return sortedMetrics[i].Timestamp.Before(sortedMetrics[j].Timestamp)
 
 	})
-
-
 
 	// Calculate uptime based on status.
 
@@ -939,11 +763,7 @@ func (ac *AvailabilityCalculator) calculateCoreMetrics(
 
 		}
 
-
-
 		totalDuration += duration
-
-
 
 		if metric.Status == HealthHealthy {
 
@@ -961,8 +781,6 @@ func (ac *AvailabilityCalculator) calculateCoreMetrics(
 
 	}
 
-
-
 	if totalDuration > 0 {
 
 		calculation.Availability = float64(uptimeDuration) / float64(totalDuration)
@@ -973,15 +791,11 @@ func (ac *AvailabilityCalculator) calculateCoreMetrics(
 
 	}
 
-
-
 	calculation.Uptime = uptimeDuration
 
 	calculation.Downtime = totalDuration - uptimeDuration
 
 }
-
-
 
 // calculatePerformanceMetrics calculates performance-related metrics.
 
@@ -999,13 +813,9 @@ func (ac *AvailabilityCalculator) calculatePerformanceMetrics(
 
 	}
 
-
-
 	responseTimes := make([]time.Duration, 0, len(metrics))
 
 	var totalResponseTime time.Duration
-
-
 
 	for _, metric := range metrics {
 
@@ -1019,21 +829,15 @@ func (ac *AvailabilityCalculator) calculatePerformanceMetrics(
 
 	}
 
-
-
 	if len(responseTimes) == 0 {
 
 		return
 
 	}
 
-
-
 	// Calculate mean.
 
 	calculation.MeanResponseTime = totalResponseTime / time.Duration(len(responseTimes))
-
-
 
 	// Sort for percentile calculations.
 
@@ -1042,8 +846,6 @@ func (ac *AvailabilityCalculator) calculatePerformanceMetrics(
 		return responseTimes[i] < responseTimes[j]
 
 	})
-
-
 
 	// Calculate percentiles.
 
@@ -1055,8 +857,6 @@ func (ac *AvailabilityCalculator) calculatePerformanceMetrics(
 
 }
 
-
-
 // calculatePercentile calculates a percentile from sorted response times.
 
 func (ac *AvailabilityCalculator) calculatePercentile(sortedTimes []time.Duration, percentile float64) time.Duration {
@@ -1067,23 +867,17 @@ func (ac *AvailabilityCalculator) calculatePercentile(sortedTimes []time.Duratio
 
 	}
 
-
-
 	index := percentile * float64(len(sortedTimes)-1)
 
 	lowerIndex := int(math.Floor(index))
 
 	upperIndex := int(math.Ceil(index))
 
-
-
 	if lowerIndex == upperIndex {
 
 		return sortedTimes[lowerIndex]
 
 	}
-
-
 
 	// Linear interpolation.
 
@@ -1093,13 +887,9 @@ func (ac *AvailabilityCalculator) calculatePercentile(sortedTimes []time.Duratio
 
 	upper := sortedTimes[upperIndex]
 
-
-
 	return time.Duration(float64(lower)*(1-weight) + float64(upper)*weight)
 
 }
-
-
 
 // calculateErrorMetrics calculates error-related metrics.
 
@@ -1117,15 +907,11 @@ func (ac *AvailabilityCalculator) calculateErrorMetrics(
 
 	}
 
-
-
 	var totalErrorRate float64
 
 	var totalRequests int64
 
 	var totalErrors int64
-
-
 
 	for _, metric := range metrics {
 
@@ -1141,15 +927,11 @@ func (ac *AvailabilityCalculator) calculateErrorMetrics(
 
 	}
 
-
-
 	if len(metrics) > 0 {
 
 		calculation.ErrorRate = totalErrorRate / float64(len(metrics))
 
 	}
-
-
 
 	calculation.TotalRequests = totalRequests
 
@@ -1158,8 +940,6 @@ func (ac *AvailabilityCalculator) calculateErrorMetrics(
 	calculation.SuccessfulRequests = totalRequests - totalErrors
 
 }
-
-
 
 // calculateQualityScore calculates an overall quality score.
 
@@ -1189,13 +969,9 @@ func (ac *AvailabilityCalculator) calculateQualityScore(
 
 	}
 
-
-
 	// Normalize error rate score.
 
 	errorScore := math.Max(0.0, 1.0-calculation.ErrorRate)
-
-
 
 	// Calculate weighted quality score.
 
@@ -1205,13 +981,9 @@ func (ac *AvailabilityCalculator) calculateQualityScore(
 
 		(errorScore * ac.config.ErrorRateWeight)
 
-
-
 	calculation.QualityScore = math.Max(0.0, math.Min(1.0, calculation.QualityScore))
 
 }
-
-
 
 // calculateWeightedAvailability calculates business impact weighted availability.
 
@@ -1231,8 +1003,6 @@ func (ac *AvailabilityCalculator) calculateWeightedAvailability(
 
 	}
 
-
-
 	weight, exists := ac.config.BusinessImpactWeights[businessImpact]
 
 	if !exists {
@@ -1241,15 +1011,11 @@ func (ac *AvailabilityCalculator) calculateWeightedAvailability(
 
 	}
 
-
-
 	// Apply business impact weighting.
 
 	calculation.WeightedAvailability = calculation.Availability * weight
 
 }
-
-
 
 // applyBusinessHoursWeighting applies business hours weighting to availability calculation.
 
@@ -1269,8 +1035,6 @@ func (ac *AvailabilityCalculator) applyBusinessHoursWeighting(
 
 	}
 
-
-
 	// Load timezone.
 
 	loc, err := time.LoadLocation(ac.config.BusinessHours.Timezone)
@@ -1281,15 +1045,11 @@ func (ac *AvailabilityCalculator) applyBusinessHoursWeighting(
 
 	}
 
-
-
 	// Calculate business hours vs non-business hours.
 
 	totalTime := endTime.Sub(startTime)
 
 	businessTime, nonBusinessTime := ac.calculateBusinessHours(startTime, endTime, loc)
-
-
 
 	if totalTime == 0 {
 
@@ -1297,15 +1057,11 @@ func (ac *AvailabilityCalculator) applyBusinessHoursWeighting(
 
 	}
 
-
-
 	// Apply weighted calculation.
 
 	businessWeight := float64(businessTime) / float64(totalTime) * ac.config.BusinessHours.Weight
 
 	nonBusinessWeight := float64(nonBusinessTime) / float64(totalTime) * ac.config.BusinessHours.NonBusinessWeight
-
-
 
 	totalWeight := businessWeight + nonBusinessWeight
 
@@ -1316,8 +1072,6 @@ func (ac *AvailabilityCalculator) applyBusinessHoursWeighting(
 	}
 
 }
-
-
 
 // calculateBusinessHours calculates business and non-business time within a period.
 
@@ -1335,8 +1089,6 @@ func (ac *AvailabilityCalculator) calculateBusinessHours(
 
 	end := endTime.In(loc)
 
-
-
 	for current.Before(end) {
 
 		nextHour := current.Truncate(time.Hour).Add(time.Hour)
@@ -1347,11 +1099,7 @@ func (ac *AvailabilityCalculator) calculateBusinessHours(
 
 		}
 
-
-
 		duration := nextHour.Sub(current)
-
-
 
 		if ac.isBusinessHour(current) {
 
@@ -1363,19 +1111,13 @@ func (ac *AvailabilityCalculator) calculateBusinessHours(
 
 		}
 
-
-
 		current = nextHour
 
 	}
 
-
-
 	return
 
 }
-
-
 
 // isBusinessHour checks if a time falls within business hours.
 
@@ -1397,15 +1139,11 @@ func (ac *AvailabilityCalculator) isBusinessHour(t time.Time) bool {
 
 	}
 
-
-
 	if !isBusinessDay {
 
 		return false
 
 	}
-
-
 
 	// Check if it's within business hours.
 
@@ -1414,8 +1152,6 @@ func (ac *AvailabilityCalculator) isBusinessHour(t time.Time) bool {
 	return hour >= ac.config.BusinessHours.StartHour && hour < ac.config.BusinessHours.EndHour
 
 }
-
-
 
 // excludeMaintenanceWindows excludes planned maintenance from availability calculations.
 
@@ -1431,8 +1167,6 @@ func (ac *AvailabilityCalculator) excludeMaintenanceWindows(
 
 	var maintenanceTime time.Duration
 
-
-
 	for _, window := range ac.config.MaintenanceWindows {
 
 		if !window.ExcludeFromSLA {
@@ -1440,8 +1174,6 @@ func (ac *AvailabilityCalculator) excludeMaintenanceWindows(
 			continue
 
 		}
-
-
 
 		// Check if this entity is affected by this maintenance window.
 
@@ -1451,8 +1183,6 @@ func (ac *AvailabilityCalculator) excludeMaintenanceWindows(
 
 		}
 
-
-
 		// Calculate overlap with our calculation window.
 
 		overlap := ac.calculateTimeOverlap(
@@ -1460,10 +1190,7 @@ func (ac *AvailabilityCalculator) excludeMaintenanceWindows(
 			startTime, endTime,
 
 			window.StartTime, window.EndTime,
-
 		)
-
-
 
 		if overlap > 0 {
 
@@ -1472,8 +1199,6 @@ func (ac *AvailabilityCalculator) excludeMaintenanceWindows(
 		}
 
 	}
-
-
 
 	// Adjust availability calculation by removing maintenance time.
 
@@ -1493,8 +1218,6 @@ func (ac *AvailabilityCalculator) excludeMaintenanceWindows(
 
 			}
 
-
-
 			calculation.Availability = float64(adjustedTotalTime-adjustedDowntime) / float64(adjustedTotalTime)
 
 			calculation.TotalTime = adjustedTotalTime
@@ -1508,8 +1231,6 @@ func (ac *AvailabilityCalculator) excludeMaintenanceWindows(
 	}
 
 }
-
-
 
 // entityMatchesFilter checks if an entity matches a maintenance window filter.
 
@@ -1526,8 +1247,6 @@ func (ac *AvailabilityCalculator) entityMatchesFilter(
 		return true // Empty filter matches all
 
 	}
-
-
 
 	for key, value := range filter {
 
@@ -1579,13 +1298,9 @@ func (ac *AvailabilityCalculator) entityMatchesFilter(
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // calculateTimeOverlap calculates overlap between two time periods.
 
@@ -1603,8 +1318,6 @@ func (ac *AvailabilityCalculator) calculateTimeOverlap(
 
 	}
 
-
-
 	earliest := end1
 
 	if end2.Before(end1) {
@@ -1613,21 +1326,15 @@ func (ac *AvailabilityCalculator) calculateTimeOverlap(
 
 	}
 
-
-
 	if latest.Before(earliest) {
 
 		return earliest.Sub(latest)
 
 	}
 
-
-
 	return 0
 
 }
-
-
 
 // calculateErrorBudget calculates error budget for the entity.
 
@@ -1643,33 +1350,23 @@ func (ac *AvailabilityCalculator) calculateErrorBudget(
 
 	targetAvailability := ac.getSLATargetValue(slaTarget)
 
-
-
 	calculation.ErrorBudget = &ErrorBudget{
 
-		Target:    slaTarget,
+		Target: slaTarget,
 
 		TotalTime: calculation.TotalTime,
-
 	}
-
-
 
 	// Calculate allowed downtime based on SLA target.
 
 	calculation.ErrorBudget.AllowedDowntime = time.Duration(
 
 		float64(calculation.TotalTime) * (1.0 - targetAvailability),
-
 	)
-
-
 
 	// Use actual downtime from calculation.
 
 	calculation.ErrorBudget.ActualDowntime = calculation.Downtime
-
-
 
 	// Calculate remaining downtime.
 
@@ -1683,8 +1380,6 @@ func (ac *AvailabilityCalculator) calculateErrorBudget(
 
 	}
 
-
-
 	// Calculate budget utilization.
 
 	if calculation.ErrorBudget.AllowedDowntime > 0 {
@@ -1694,8 +1389,6 @@ func (ac *AvailabilityCalculator) calculateErrorBudget(
 			float64(calculation.ErrorBudget.AllowedDowntime)
 
 	}
-
-
 
 	// Calculate burn rate (how fast we're consuming the budget).
 
@@ -1709,8 +1402,6 @@ func (ac *AvailabilityCalculator) calculateErrorBudget(
 
 	}
 
-
-
 	// Calculate time to exhaustion at current burn rate.
 
 	if calculation.ErrorBudget.BurnRate > 0 && !calculation.ErrorBudget.IsExhausted {
@@ -1723,15 +1414,11 @@ func (ac *AvailabilityCalculator) calculateErrorBudget(
 
 	}
 
-
-
 	// Set alert thresholds.
 
 	calculation.ErrorBudget.AlertThresholds = ac.config.ErrorBudgetAlertThresholds
 
 }
-
-
 
 // getSLATargetForBusinessImpact returns appropriate SLA target based on business impact.
 
@@ -1767,8 +1454,6 @@ func (ac *AvailabilityCalculator) getSLATargetForBusinessImpact(impact BusinessI
 
 }
 
-
-
 // getSLATargetValue converts SLA target to numeric value.
 
 func (ac *AvailabilityCalculator) getSLATargetValue(target SLATarget) float64 {
@@ -1803,8 +1488,6 @@ func (ac *AvailabilityCalculator) getSLATargetValue(target SLATarget) float64 {
 
 }
 
-
-
 // calculateIncidentMetrics calculates incident-related metrics.
 
 func (ac *AvailabilityCalculator) calculateIncidentMetrics(
@@ -1821,23 +1504,17 @@ func (ac *AvailabilityCalculator) calculateIncidentMetrics(
 
 	}
 
-
-
 	// Identify incidents (periods of unhealthy status).
 
 	incidents := ac.identifyIncidents(metrics)
 
 	calculation.IncidentCount = len(incidents)
 
-
-
 	if len(incidents) == 0 {
 
 		return
 
 	}
-
-
 
 	// Calculate MTTR (Mean Time To Recovery).
 
@@ -1851,8 +1528,6 @@ func (ac *AvailabilityCalculator) calculateIncidentMetrics(
 
 	calculation.MTTR = totalRecoveryTime / time.Duration(len(incidents))
 
-
-
 	// Calculate MTBF (Mean Time Between Failures).
 
 	if len(incidents) > 1 {
@@ -1865,23 +1540,17 @@ func (ac *AvailabilityCalculator) calculateIncidentMetrics(
 
 }
 
-
-
 // Incident represents a service incident.
 
 type Incident struct {
-
 	StartTime time.Time
 
-	EndTime   time.Time
+	EndTime time.Time
 
-	Duration  time.Duration
+	Duration time.Duration
 
-	Severity  string
-
+	Severity string
 }
-
-
 
 // identifyIncidents identifies incidents from metrics.
 
@@ -1899,13 +1568,9 @@ func (ac *AvailabilityCalculator) identifyIncidents(metrics []AvailabilityMetric
 
 	})
 
-
-
 	incidents := make([]Incident, 0)
 
 	var currentIncident *Incident
-
-
 
 	for _, metric := range sortedMetrics {
 
@@ -1919,8 +1584,7 @@ func (ac *AvailabilityCalculator) identifyIncidents(metrics []AvailabilityMetric
 
 					StartTime: metric.Timestamp,
 
-					Severity:  "unhealthy",
-
+					Severity: "unhealthy",
 				}
 
 			}
@@ -1941,8 +1605,6 @@ func (ac *AvailabilityCalculator) identifyIncidents(metrics []AvailabilityMetric
 
 	}
 
-
-
 	// Handle ongoing incident.
 
 	if currentIncident != nil {
@@ -1955,13 +1617,9 @@ func (ac *AvailabilityCalculator) identifyIncidents(metrics []AvailabilityMetric
 
 	}
 
-
-
 	return incidents
 
 }
-
-
 
 // getWindowDuration converts TimeWindow to time.Duration.
 
@@ -2001,8 +1659,6 @@ func (ac *AvailabilityCalculator) getWindowDuration(window TimeWindow) time.Dura
 
 }
 
-
-
 // runCleanup runs cleanup of old calculations.
 
 func (ac *AvailabilityCalculator) runCleanup(ctx context.Context) {
@@ -2010,8 +1666,6 @@ func (ac *AvailabilityCalculator) runCleanup(ctx context.Context) {
 	ticker := time.NewTicker(time.Hour)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -2031,8 +1685,6 @@ func (ac *AvailabilityCalculator) runCleanup(ctx context.Context) {
 
 }
 
-
-
 // performCleanup cleans up old calculations.
 
 func (ac *AvailabilityCalculator) performCleanup(ctx context.Context) {
@@ -2041,11 +1693,7 @@ func (ac *AvailabilityCalculator) performCleanup(ctx context.Context) {
 
 	defer span.End()
 
-
-
 	cutoff := time.Now().Add(-ac.config.RetentionPeriod)
-
-
 
 	// Clean calculation history.
 
@@ -2069,15 +1717,11 @@ func (ac *AvailabilityCalculator) performCleanup(ctx context.Context) {
 
 	ac.historyMutex.Unlock()
 
-
-
 	span.AddEvent("Cleanup completed",
 
 		trace.WithAttributes(attribute.Int("calculations_removed", removed)))
 
 }
-
-
 
 // GetCalculation returns a specific calculation.
 
@@ -2087,8 +1731,6 @@ func (ac *AvailabilityCalculator) GetCalculation(entityID, entityType string, wi
 
 	defer ac.calculationsMutex.RUnlock()
 
-
-
 	key := fmt.Sprintf("%s:%s:%s:%s", DimensionService, entityType, entityID, window)
 
 	calc, exists := ac.calculations[key]
@@ -2096,8 +1738,6 @@ func (ac *AvailabilityCalculator) GetCalculation(entityID, entityType string, wi
 	return calc, exists
 
 }
-
-
 
 // GetCalculationsForEntity returns all calculations for an entity.
 
@@ -2107,11 +1747,7 @@ func (ac *AvailabilityCalculator) GetCalculationsForEntity(entityID, entityType 
 
 	defer ac.calculationsMutex.RUnlock()
 
-
-
 	result := make(map[TimeWindow]*AvailabilityCalculation)
-
-
 
 	for _, window := range ac.config.EnabledWindows {
 
@@ -2125,13 +1761,9 @@ func (ac *AvailabilityCalculator) GetCalculationsForEntity(entityID, entityType 
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // GetCalculationHistory returns historical calculations.
 
@@ -2150,8 +1782,6 @@ func (ac *AvailabilityCalculator) GetCalculationHistory(
 	ac.historyMutex.RLock()
 
 	defer ac.historyMutex.RUnlock()
-
-
 
 	result := make([]AvailabilityCalculation, 0)
 
@@ -2173,13 +1803,9 @@ func (ac *AvailabilityCalculator) GetCalculationHistory(
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // GetSLACompliance returns SLA compliance status for an entity.
 
@@ -2193,39 +1819,32 @@ func (ac *AvailabilityCalculator) GetSLACompliance(entityID, entityType string, 
 
 	}
 
-
-
 	if calc.ErrorBudget == nil {
 
 		return nil, fmt.Errorf("no error budget calculated for entity %s:%s", entityType, entityID)
 
 	}
 
-
-
 	status := &SLAComplianceStatus{
 
-		EntityID:             entityID,
+		EntityID: entityID,
 
-		EntityType:           entityType,
+		EntityType: entityType,
 
-		TimeWindow:           window,
+		TimeWindow: window,
 
-		SLATarget:            calc.ErrorBudget.Target,
+		SLATarget: calc.ErrorBudget.Target,
 
-		CurrentAvailability:  calc.Availability,
+		CurrentAvailability: calc.Availability,
 
 		RequiredAvailability: ac.getSLATargetValue(calc.ErrorBudget.Target),
 
-		IsCompliant:          calc.Availability >= ac.getSLATargetValue(calc.ErrorBudget.Target),
+		IsCompliant: calc.Availability >= ac.getSLATargetValue(calc.ErrorBudget.Target),
 
-		ErrorBudget:          *calc.ErrorBudget,
+		ErrorBudget: *calc.ErrorBudget,
 
-		LastUpdate:           calc.EndTime,
-
+		LastUpdate: calc.EndTime,
 	}
-
-
 
 	// Determine compliance status.
 
@@ -2251,37 +1870,30 @@ func (ac *AvailabilityCalculator) GetSLACompliance(entityID, entityType string, 
 
 	}
 
-
-
 	return status, nil
 
 }
 
-
-
 // SLAComplianceStatus represents SLA compliance status.
 
 type SLAComplianceStatus struct {
+	EntityID string `json:"entity_id"`
 
-	EntityID             string      `json:"entity_id"`
+	EntityType string `json:"entity_type"`
 
-	EntityType           string      `json:"entity_type"`
+	TimeWindow TimeWindow `json:"time_window"`
 
-	TimeWindow           TimeWindow  `json:"time_window"`
+	SLATarget SLATarget `json:"sla_target"`
 
-	SLATarget            SLATarget   `json:"sla_target"`
+	CurrentAvailability float64 `json:"current_availability"`
 
-	CurrentAvailability  float64     `json:"current_availability"`
+	RequiredAvailability float64 `json:"required_availability"`
 
-	RequiredAvailability float64     `json:"required_availability"`
+	IsCompliant bool `json:"is_compliant"`
 
-	IsCompliant          bool        `json:"is_compliant"`
+	ComplianceLevel string `json:"compliance_level"` // healthy, warning, critical, breach
 
-	ComplianceLevel      string      `json:"compliance_level"` // healthy, warning, critical, breach
+	ErrorBudget ErrorBudget `json:"error_budget"`
 
-	ErrorBudget          ErrorBudget `json:"error_budget"`
-
-	LastUpdate           time.Time   `json:"last_update"`
-
+	LastUpdate time.Time `json:"last_update"`
 }
-

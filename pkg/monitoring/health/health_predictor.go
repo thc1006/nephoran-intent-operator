@@ -1,33 +1,16 @@
-
 package health
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"log/slog"
-
 	"math"
-
 	"sync"
-
 	"time"
 
-
-
-	"github.com/prometheus/client_golang/prometheus"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
-
+	"github.com/prometheus/client_golang/prometheus"
 )
-
-
 
 // HealthPredictor provides predictive health monitoring and early warning capabilities.
 
@@ -35,67 +18,48 @@ type HealthPredictor struct {
 
 	// Core configuration.
 
-	logger      *slog.Logger
+	logger *slog.Logger
 
 	serviceName string
 
-
-
 	// Data sources.
 
-	aggregator        *HealthAggregator
+	aggregator *HealthAggregator
 
 	dependencyTracker *DependencyHealthTracker
 
-
-
 	// ML models and algorithms.
 
-	models   map[string]*PredictionModel
+	models map[string]*PredictionModel
 
 	modelsMu sync.RWMutex
-
-
 
 	// Early warning system.
 
 	earlyWarning *EarlyWarningSystem
 
-
-
 	// Resource exhaustion detection.
 
 	resourceMonitor *ResourceExhaustionMonitor
-
-
 
 	// Seasonal pattern detection.
 
 	seasonalDetector *SeasonalPatternDetector
 
-
-
 	// Prediction configuration.
 
 	config *PredictorConfig
-
-
 
 	// Historical data for ML training.
 
 	trainingData map[string]*ModelTrainingData
 
-	trainingMu   sync.RWMutex
-
-
+	trainingMu sync.RWMutex
 
 	// Metrics.
 
 	predictorMetrics *PredictorMetrics
-
 }
-
-
 
 // PredictorConfig holds configuration for health prediction.
 
@@ -103,109 +67,87 @@ type PredictorConfig struct {
 
 	// Prediction horizons.
 
-	DefaultHorizon     time.Duration `json:"default_horizon"`
+	DefaultHorizon time.Duration `json:"default_horizon"`
 
-	MaxHorizon         time.Duration `json:"max_horizon"`
+	MaxHorizon time.Duration `json:"max_horizon"`
 
 	PredictionInterval time.Duration `json:"prediction_interval"`
 
-
-
 	// Model configuration.
 
-	ModelUpdateInterval    time.Duration `json:"model_update_interval"`
+	ModelUpdateInterval time.Duration `json:"model_update_interval"`
 
-	MinTrainingDataSize    int           `json:"min_training_data_size"`
+	MinTrainingDataSize int `json:"min_training_data_size"`
 
-	ModelAccuracyThreshold float64       `json:"model_accuracy_threshold"`
-
-
+	ModelAccuracyThreshold float64 `json:"model_accuracy_threshold"`
 
 	// Early warning thresholds.
 
-	EarlyWarningEnabled bool    `json:"early_warning_enabled"`
+	EarlyWarningEnabled bool `json:"early_warning_enabled"`
 
-	WarningThreshold    float64 `json:"warning_threshold"`
+	WarningThreshold float64 `json:"warning_threshold"`
 
-	CriticalThreshold   float64 `json:"critical_threshold"`
-
-
+	CriticalThreshold float64 `json:"critical_threshold"`
 
 	// Resource exhaustion detection.
 
-	ResourceMonitoringEnabled bool               `json:"resource_monitoring_enabled"`
+	ResourceMonitoringEnabled bool `json:"resource_monitoring_enabled"`
 
-	ResourceThresholds        map[string]float64 `json:"resource_thresholds"`
-
-
+	ResourceThresholds map[string]float64 `json:"resource_thresholds"`
 
 	// Seasonal detection.
 
-	SeasonalDetectionEnabled bool          `json:"seasonal_detection_enabled"`
+	SeasonalDetectionEnabled bool `json:"seasonal_detection_enabled"`
 
-	SeasonalMinPeriod        time.Duration `json:"seasonal_min_period"`
+	SeasonalMinPeriod time.Duration `json:"seasonal_min_period"`
 
-	SeasonalMaxPeriod        time.Duration `json:"seasonal_max_period"`
-
-
+	SeasonalMaxPeriod time.Duration `json:"seasonal_max_period"`
 
 	// Confidence thresholds.
 
 	MinPredictionConfidence float64 `json:"min_prediction_confidence"`
 
 	HighConfidenceThreshold float64 `json:"high_confidence_threshold"`
-
 }
-
-
 
 // PredictionModel represents a machine learning model for health prediction.
 
 type PredictionModel struct {
+	ID string `json:"id"`
 
-	ID               string                 `json:"id"`
+	Component string `json:"component"`
 
-	Component        string                 `json:"component"`
+	Algorithm ModelAlgorithm `json:"algorithm"`
 
-	Algorithm        ModelAlgorithm         `json:"algorithm"`
+	Features []string `json:"features"`
 
-	Features         []string               `json:"features"`
+	Accuracy float64 `json:"accuracy"`
 
-	Accuracy         float64                `json:"accuracy"`
+	LastTrained time.Time `json:"last_trained"`
 
-	LastTrained      time.Time              `json:"last_trained"`
+	TrainingDataSize int `json:"training_data_size"`
 
-	TrainingDataSize int                    `json:"training_data_size"`
-
-	Hyperparameters  map[string]interface{} `json:"hyperparameters"`
-
-
+	Hyperparameters map[string]interface{} `json:"hyperparameters"`
 
 	// Model state.
 
-	weights        []float64                 `json:"-"`
+	weights []float64 `json:"-"`
 
 	featureScalers map[string]*FeatureScaler `json:"-"`
 
-
-
 	// Performance metrics.
 
-	Mae     float64 `json:"mae"`      // Mean Absolute Error
+	Mae float64 `json:"mae"` // Mean Absolute Error
 
-	Rmse    float64 `json:"rmse"`     // Root Mean Square Error
+	Rmse float64 `json:"rmse"` // Root Mean Square Error
 
 	R2Score float64 `json:"r2_score"` // R-squared score
 
 }
 
-
-
 // ModelAlgorithm represents different ML algorithms for prediction.
 
 type ModelAlgorithm string
-
-
 
 const (
 
@@ -232,34 +174,25 @@ const (
 	// AlgorithmNeuralNetwork holds algorithmneuralnetwork value.
 
 	AlgorithmNeuralNetwork ModelAlgorithm = "neural_network"
-
 )
-
-
 
 // FeatureScaler handles feature normalization.
 
 type FeatureScaler struct {
+	Mean float64 `json:"mean"`
 
-	Mean   float64       `json:"mean"`
+	StdDev float64 `json:"std_dev"`
 
-	StdDev float64       `json:"std_dev"`
+	Min float64 `json:"min"`
 
-	Min    float64       `json:"min"`
-
-	Max    float64       `json:"max"`
+	Max float64 `json:"max"`
 
 	Method ScalingMethod `json:"method"`
-
 }
-
-
 
 // ScalingMethod defines feature scaling methods.
 
 type ScalingMethod string
-
-
 
 const (
 
@@ -274,174 +207,138 @@ const (
 	// ScalingRobustScaling holds scalingrobustscaling value.
 
 	ScalingRobustScaling ScalingMethod = "robust_scaling"
-
 )
-
-
 
 // ModelTrainingData holds training data for ML models.
 
 type ModelTrainingData struct {
+	Component string `json:"component"`
 
-	Component   string             `json:"component"`
+	Features []FeatureVector `json:"features"`
 
-	Features    []FeatureVector    `json:"features"`
+	Targets []float64 `json:"targets"`
 
-	Targets     []float64          `json:"targets"`
+	Timestamps []time.Time `json:"timestamps"`
 
-	Timestamps  []time.Time        `json:"timestamps"`
-
-	LastUpdated time.Time          `json:"last_updated"`
+	LastUpdated time.Time `json:"last_updated"`
 
 	DataQuality DataQualityMetrics `json:"data_quality"`
-
 }
-
-
 
 // FeatureVector represents a feature vector for ML training.
 
 type FeatureVector struct {
+	Values []float64 `json:"values"`
 
-	Values    []float64              `json:"values"`
+	Names []string `json:"names"`
 
-	Names     []string               `json:"names"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time              `json:"timestamp"`
-
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // DataQualityMetrics tracks the quality of training data.
 
 type DataQualityMetrics struct {
+	Completeness float64 `json:"completeness"` // Percentage of non-null values
 
-	Completeness  float64 `json:"completeness"`   // Percentage of non-null values
+	Consistency float64 `json:"consistency"` // Data consistency score
 
-	Consistency   float64 `json:"consistency"`    // Data consistency score
+	Accuracy float64 `json:"accuracy"` // Estimated data accuracy
 
-	Accuracy      float64 `json:"accuracy"`       // Estimated data accuracy
+	Timeliness float64 `json:"timeliness"` // Data freshness score
 
-	Timeliness    float64 `json:"timeliness"`     // Data freshness score
+	Outliers int `json:"outliers"` // Number of outliers detected
 
-	Outliers      int     `json:"outliers"`       // Number of outliers detected
-
-	MissingValues int     `json:"missing_values"` // Number of missing values
+	MissingValues int `json:"missing_values"` // Number of missing values
 
 }
-
-
 
 // EarlyWarningSystem provides early warning capabilities.
 
 type EarlyWarningSystem struct {
+	logger *slog.Logger
 
-	logger         *slog.Logger
-
-	config         *EarlyWarningConfig
+	config *EarlyWarningConfig
 
 	activeWarnings map[string]*HealthWarning
 
-	warningMu      sync.RWMutex
+	warningMu sync.RWMutex
 
-	alertChannel   chan *HealthWarning
-
-
+	alertChannel chan *HealthWarning
 
 	// Threshold monitoring.
 
 	thresholdMonitors map[string]*ThresholdMonitor
 
-
-
 	// Pattern detection.
 
 	anomalyDetector *AnomalyDetector
-
 }
-
-
 
 // EarlyWarningConfig configures the early warning system.
 
 type EarlyWarningConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled             bool             `json:"enabled"`
+	WarningThreshold float64 `json:"warning_threshold"`
 
-	WarningThreshold    float64          `json:"warning_threshold"`
+	CriticalThreshold float64 `json:"critical_threshold"`
 
-	CriticalThreshold   float64          `json:"critical_threshold"`
+	PredictionHorizon time.Duration `json:"prediction_horizon"`
 
-	PredictionHorizon   time.Duration    `json:"prediction_horizon"`
+	MinConfidence float64 `json:"min_confidence"`
 
-	MinConfidence       float64          `json:"min_confidence"`
+	SuppressionDuration time.Duration `json:"suppression_duration"`
 
-	SuppressionDuration time.Duration    `json:"suppression_duration"`
-
-	EscalationRules     []EscalationRule `json:"escalation_rules"`
-
+	EscalationRules []EscalationRule `json:"escalation_rules"`
 }
-
-
 
 // HealthWarning represents a health warning or alert.
 
 type HealthWarning struct {
+	ID string `json:"id"`
 
-	ID              string              `json:"id"`
+	Component string `json:"component"`
 
-	Component       string              `json:"component"`
+	Type WarningType `json:"type"`
 
-	Type            WarningType         `json:"type"`
+	Severity WarningSeverity `json:"severity"`
 
-	Severity        WarningSeverity     `json:"severity"`
+	Title string `json:"title"`
 
-	Title           string              `json:"title"`
+	Description string `json:"description"`
 
-	Description     string              `json:"description"`
+	PredictedTime time.Time `json:"predicted_time"`
 
-	PredictedTime   time.Time           `json:"predicted_time"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence      float64             `json:"confidence"`
+	CurrentHealth *EnhancedCheck `json:"current_health,omitempty"`
 
-	CurrentHealth   *EnhancedCheck      `json:"current_health,omitempty"`
+	PredictedHealth *HealthPrediction `json:"predicted_health,omitempty"`
 
-	PredictedHealth *HealthPrediction   `json:"predicted_health,omitempty"`
-
-	RootCause       *RootCauseAnalysis  `json:"root_cause,omitempty"`
+	RootCause *RootCauseAnalysis `json:"root_cause,omitempty"`
 
 	Recommendations []RecommendedAction `json:"recommendations"`
 
-
-
 	// Warning lifecycle.
 
-	CreatedAt       time.Time     `json:"created_at"`
+	CreatedAt time.Time `json:"created_at"`
 
-	LastUpdated     time.Time     `json:"last_updated"`
+	LastUpdated time.Time `json:"last_updated"`
 
-	Status          WarningStatus `json:"status"`
+	Status WarningStatus `json:"status"`
 
-	EscalationLevel int           `json:"escalation_level"`
-
-
+	EscalationLevel int `json:"escalation_level"`
 
 	// Metadata.
 
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
-
 }
-
-
 
 // WarningType defines the type of warning.
 
 type WarningType string
-
-
 
 const (
 
@@ -468,16 +365,11 @@ const (
 	// WarningTypeSeasonalAnomaly holds warningtypeseasonalanomaly value.
 
 	WarningTypeSeasonalAnomaly WarningType = "seasonal_anomaly"
-
 )
-
-
 
 // WarningSeverity defines warning severity levels.
 
 type WarningSeverity string
-
-
 
 const (
 
@@ -496,16 +388,11 @@ const (
 	// SeverityAlert holds severityalert value.
 
 	SeverityAlert WarningSeverity = "critical"
-
 )
-
-
 
 // WarningStatus defines the status of a warning.
 
 type WarningStatus string
-
-
 
 const (
 
@@ -524,126 +411,97 @@ const (
 	// WarningStatusEscalated holds warningstatusescalated value.
 
 	WarningStatusEscalated WarningStatus = "escalated"
-
 )
-
-
 
 // EscalationRule defines when and how warnings should be escalated.
 
 type EscalationRule struct {
+	Level int `json:"level"`
 
-	Level                int               `json:"level"`
+	Duration time.Duration `json:"duration"`
 
-	Duration             time.Duration     `json:"duration"`
+	SeverityFilter []WarningSeverity `json:"severity_filter"`
 
-	SeverityFilter       []WarningSeverity `json:"severity_filter"`
+	Actions []string `json:"actions"`
 
-	Actions              []string          `json:"actions"`
-
-	NotificationChannels []string          `json:"notification_channels"`
-
+	NotificationChannels []string `json:"notification_channels"`
 }
-
-
 
 // RootCauseAnalysis provides analysis of potential root causes.
 
 type RootCauseAnalysis struct {
-
-	PrimaryCandidate      RootCauseCandidate   `json:"primary_candidate"`
+	PrimaryCandidate RootCauseCandidate `json:"primary_candidate"`
 
 	AlternativeCandidates []RootCauseCandidate `json:"alternative_candidates"`
 
-	CorrelatedFactors     []CorrelationFactor  `json:"correlated_factors"`
+	CorrelatedFactors []CorrelationFactor `json:"correlated_factors"`
 
-	Confidence            float64              `json:"confidence"`
+	Confidence float64 `json:"confidence"`
 
-	AnalysisMethod        string               `json:"analysis_method"`
-
+	AnalysisMethod string `json:"analysis_method"`
 }
-
-
 
 // RootCauseCandidate represents a potential root cause.
 
 type RootCauseCandidate struct {
+	Category string `json:"category"`
 
-	Category    string   `json:"category"`
+	Description string `json:"description"`
 
-	Description string   `json:"description"`
+	Probability float64 `json:"probability"`
 
-	Probability float64  `json:"probability"`
+	Evidence []string `json:"evidence"`
 
-	Evidence    []string `json:"evidence"`
+	Component string `json:"component,omitempty"`
 
-	Component   string   `json:"component,omitempty"`
-
-	Dependency  string   `json:"dependency,omitempty"`
-
+	Dependency string `json:"dependency,omitempty"`
 }
-
-
 
 // CorrelationFactor represents correlated factors in root cause analysis.
 
 type CorrelationFactor struct {
+	Factor string `json:"factor"`
 
-	Factor      string        `json:"factor"`
+	Correlation float64 `json:"correlation"`
 
-	Correlation float64       `json:"correlation"`
+	TimeOffset time.Duration `json:"time_offset"`
 
-	TimeOffset  time.Duration `json:"time_offset"`
-
-	Description string        `json:"description"`
-
+	Description string `json:"description"`
 }
-
-
 
 // ThresholdMonitor monitors specific thresholds for a component.
 
 type ThresholdMonitor struct {
+	Component string `json:"component"`
 
-	Component             string    `json:"component"`
+	Metric string `json:"metric"`
 
-	Metric                string    `json:"metric"`
+	WarningThreshold float64 `json:"warning_threshold"`
 
-	WarningThreshold      float64   `json:"warning_threshold"`
+	CriticalThreshold float64 `json:"critical_threshold"`
 
-	CriticalThreshold     float64   `json:"critical_threshold"`
+	LastValue float64 `json:"last_value"`
 
-	LastValue             float64   `json:"last_value"`
+	LastChecked time.Time `json:"last_checked"`
 
-	LastChecked           time.Time `json:"last_checked"`
-
-	ConsecutiveViolations int       `json:"consecutive_violations"`
-
+	ConsecutiveViolations int `json:"consecutive_violations"`
 }
-
-
 
 // AnomalyDetector detects anomalies in health patterns.
 
 type AnomalyDetector struct {
+	logger *slog.Logger
 
-	logger             *slog.Logger
+	algorithms []AnomalyAlgorithm
 
-	algorithms         []AnomalyAlgorithm
-
-	sensitivityLevel   AnomalySensitivity
+	sensitivityLevel AnomalySensitivity
 
 	historicalBaseline map[string]*BaselineModel
-
 }
-
-
 
 // AnomalyAlgorithm defines different anomaly detection algorithms.
 
 type AnomalyAlgorithm string
-
-
 
 const (
 
@@ -666,16 +524,11 @@ const (
 	// AnomalySeasonalESD holds anomalyseasonalesd value.
 
 	AnomalySeasonalESD AnomalyAlgorithm = "seasonal_esd"
-
 )
-
-
 
 // AnomalySensitivity defines sensitivity levels for anomaly detection.
 
 type AnomalySensitivity string
-
-
 
 const (
 
@@ -690,76 +543,59 @@ const (
 	// SensitivityHigh holds sensitivityhigh value.
 
 	SensitivityHigh AnomalySensitivity = "high"
-
 )
-
-
 
 // BaselineModel represents a baseline model for anomaly detection.
 
 type BaselineModel struct {
+	Component string `json:"component"`
 
-	Component   string          `json:"component"`
+	Mean float64 `json:"mean"`
 
-	Mean        float64         `json:"mean"`
-
-	StdDev      float64         `json:"std_dev"`
+	StdDev float64 `json:"std_dev"`
 
 	Percentiles map[int]float64 `json:"percentiles"`
 
-	LastUpdated time.Time       `json:"last_updated"`
+	LastUpdated time.Time `json:"last_updated"`
 
-	DataPoints  int             `json:"data_points"`
-
+	DataPoints int `json:"data_points"`
 }
-
-
 
 // ResourceExhaustionMonitor monitors resource exhaustion patterns.
 
 type ResourceExhaustionMonitor struct {
-
-	logger           *slog.Logger
+	logger *slog.Logger
 
 	resourceTrackers map[string]*ResourceTracker
 
-	predictions      map[string]*ResourceExhaustionPrediction
+	predictions map[string]*ResourceExhaustionPrediction
 
-	mu               sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // ResourceTracker tracks resource usage patterns.
 
 type ResourceTracker struct {
+	ResourceType ResourceType `json:"resource_type"`
 
-	ResourceType    ResourceType        `json:"resource_type"`
+	Component string `json:"component"`
 
-	Component       string              `json:"component"`
+	CurrentUsage float64 `json:"current_usage"`
 
-	CurrentUsage    float64             `json:"current_usage"`
+	MaxCapacity float64 `json:"max_capacity"`
 
-	MaxCapacity     float64             `json:"max_capacity"`
+	UtilizationRate float64 `json:"utilization_rate"`
 
-	UtilizationRate float64             `json:"utilization_rate"`
+	GrowthRate float64 `json:"growth_rate"`
 
-	GrowthRate      float64             `json:"growth_rate"`
+	History []ResourceDataPoint `json:"history"`
 
-	History         []ResourceDataPoint `json:"history"`
-
-	LastUpdated     time.Time           `json:"last_updated"`
-
+	LastUpdated time.Time `json:"last_updated"`
 }
-
-
 
 // ResourceType defines different types of resources to monitor.
 
 type ResourceType string
-
-
 
 const (
 
@@ -786,176 +622,135 @@ const (
 	// ResourceFileHandles holds resourcefilehandles value.
 
 	ResourceFileHandles ResourceType = "file_handles"
-
 )
-
-
 
 // ResourceDataPoint represents a resource usage data point.
 
 type ResourceDataPoint struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp   time.Time `json:"timestamp"`
+	Usage float64 `json:"usage"`
 
-	Usage       float64   `json:"usage"`
+	Capacity float64 `json:"capacity"`
 
-	Capacity    float64   `json:"capacity"`
-
-	Utilization float64   `json:"utilization"`
-
+	Utilization float64 `json:"utilization"`
 }
-
-
 
 // ResourceExhaustionPrediction predicts when a resource will be exhausted.
 
 type ResourceExhaustionPrediction struct {
+	ResourceType ResourceType `json:"resource_type"`
 
-	ResourceType        ResourceType        `json:"resource_type"`
+	Component string `json:"component"`
 
-	Component           string              `json:"component"`
+	PredictedExhaustion time.Time `json:"predicted_exhaustion"`
 
-	PredictedExhaustion time.Time           `json:"predicted_exhaustion"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence          float64             `json:"confidence"`
+	CurrentTrend string `json:"current_trend"`
 
-	CurrentTrend        string              `json:"current_trend"`
+	RecommendedActions []RecommendedAction `json:"recommended_actions"`
 
-	RecommendedActions  []RecommendedAction `json:"recommended_actions"`
-
-	TimeToExhaustion    time.Duration       `json:"time_to_exhaustion"`
-
+	TimeToExhaustion time.Duration `json:"time_to_exhaustion"`
 }
-
-
 
 // SeasonalPatternDetector detects seasonal patterns in health data.
 
 type SeasonalPatternDetector struct {
-
-	logger           *slog.Logger
+	logger *slog.Logger
 
 	detectedPatterns map[string][]SeasonalPattern
 
-	patternsMu       sync.RWMutex
+	patternsMu sync.RWMutex
 
-	minPeriod        time.Duration
+	minPeriod time.Duration
 
-	maxPeriod        time.Duration
+	maxPeriod time.Duration
 
-	minConfidence    float64
-
+	minConfidence float64
 }
-
-
 
 // PredictorMetrics contains Prometheus metrics for the health predictor.
 
 type PredictorMetrics struct {
+	PredictionAccuracy *prometheus.GaugeVec
 
-	PredictionAccuracy         *prometheus.GaugeVec
+	PredictionLatency prometheus.Histogram
 
-	PredictionLatency          prometheus.Histogram
+	ModelTrainingTime prometheus.Histogram
 
-	ModelTrainingTime          prometheus.Histogram
+	EarlyWarningsGenerated *prometheus.CounterVec
 
-	EarlyWarningsGenerated     *prometheus.CounterVec
-
-	AnomaliesDetected          *prometheus.CounterVec
+	AnomaliesDetected *prometheus.CounterVec
 
 	ResourceExhaustionWarnings *prometheus.CounterVec
 
-	ModelPerformanceMetrics    *prometheus.GaugeVec
-
+	ModelPerformanceMetrics *prometheus.GaugeVec
 }
-
-
 
 // HealthPredictionResult represents the result of health prediction.
 
 type HealthPredictionResult struct {
+	Component string `json:"component"`
 
-	Component         string        `json:"component"`
-
-	Timestamp         time.Time     `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp"`
 
 	PredictionHorizon time.Duration `json:"prediction_horizon"`
-
-
 
 	// Predictions.
 
 	Predictions []HealthPrediction `json:"predictions"`
 
-
-
 	// Early warnings.
 
 	Warnings []HealthWarning `json:"warnings,omitempty"`
-
-
 
 	// Resource exhaustion predictions.
 
 	ResourcePredictions []ResourceExhaustionPrediction `json:"resource_predictions,omitempty"`
 
-
-
 	// Anomalies detected.
 
 	Anomalies []DetectedAnomaly `json:"anomalies,omitempty"`
-
-
 
 	// Seasonal patterns.
 
 	SeasonalPatterns []SeasonalPattern `json:"seasonal_patterns,omitempty"`
 
-
-
 	// Model information.
 
-	ModelUsed     *PredictionModel `json:"model_used,omitempty"`
+	ModelUsed *PredictionModel `json:"model_used,omitempty"`
 
-	ModelAccuracy float64          `json:"model_accuracy"`
-
-
+	ModelAccuracy float64 `json:"model_accuracy"`
 
 	// Confidence and quality.
 
-	OverallConfidence float64            `json:"overall_confidence"`
+	OverallConfidence float64 `json:"overall_confidence"`
 
-	DataQuality       DataQualityMetrics `json:"data_quality"`
-
+	DataQuality DataQualityMetrics `json:"data_quality"`
 }
-
-
 
 // DetectedAnomaly represents an anomaly in health data.
 
 type DetectedAnomaly struct {
+	Component string `json:"component"`
 
-	Component     string                 `json:"component"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp     time.Time              `json:"timestamp"`
+	Value float64 `json:"value"`
 
-	Value         float64                `json:"value"`
+	ExpectedValue float64 `json:"expected_value"`
 
-	ExpectedValue float64                `json:"expected_value"`
+	AnomalyScore float64 `json:"anomaly_score"`
 
-	AnomalyScore  float64                `json:"anomaly_score"`
+	Algorithm AnomalyAlgorithm `json:"algorithm"`
 
-	Algorithm     AnomalyAlgorithm       `json:"algorithm"`
+	Severity WarningSeverity `json:"severity"`
 
-	Severity      WarningSeverity        `json:"severity"`
+	Description string `json:"description"`
 
-	Description   string                 `json:"description"`
-
-	Context       map[string]interface{} `json:"context,omitempty"`
-
+	Context map[string]interface{} `json:"context,omitempty"`
 }
-
-
 
 // NewHealthPredictor creates a new health predictor.
 
@@ -967,103 +762,84 @@ func NewHealthPredictor(serviceName string, aggregator *HealthAggregator, depend
 
 	}
 
-
-
 	predictor := &HealthPredictor{
 
-		logger:            logger.With("component", "health_predictor"),
+		logger: logger.With("component", "health_predictor"),
 
-		serviceName:       serviceName,
+		serviceName: serviceName,
 
-		aggregator:        aggregator,
+		aggregator: aggregator,
 
 		dependencyTracker: dependencyTracker,
 
-		models:            make(map[string]*PredictionModel),
+		models: make(map[string]*PredictionModel),
 
-		trainingData:      make(map[string]*ModelTrainingData),
+		trainingData: make(map[string]*ModelTrainingData),
 
-		config:            defaultPredictorConfig(),
+		config: defaultPredictorConfig(),
 
-		predictorMetrics:  initializePredictorMetrics(),
-
+		predictorMetrics: initializePredictorMetrics(),
 	}
-
-
 
 	// Initialize early warning system.
 
 	predictor.earlyWarning = &EarlyWarningSystem{
 
-		logger:            logger.With("component", "early_warning"),
+		logger: logger.With("component", "early_warning"),
 
-		config:            defaultEarlyWarningConfig(),
+		config: defaultEarlyWarningConfig(),
 
-		activeWarnings:    make(map[string]*HealthWarning),
+		activeWarnings: make(map[string]*HealthWarning),
 
-		alertChannel:      make(chan *HealthWarning, 100),
+		alertChannel: make(chan *HealthWarning, 100),
 
 		thresholdMonitors: make(map[string]*ThresholdMonitor),
 
 		anomalyDetector: &AnomalyDetector{
 
-			logger:             logger.With("component", "anomaly_detector"),
+			logger: logger.With("component", "anomaly_detector"),
 
-			algorithms:         []AnomalyAlgorithm{AnomalyStatisticalOutlier, AnomalySeasonalESD},
+			algorithms: []AnomalyAlgorithm{AnomalyStatisticalOutlier, AnomalySeasonalESD},
 
-			sensitivityLevel:   SensitivityMedium,
+			sensitivityLevel: SensitivityMedium,
 
 			historicalBaseline: make(map[string]*BaselineModel),
-
 		},
-
 	}
-
-
 
 	// Initialize resource exhaustion monitor.
 
 	predictor.resourceMonitor = &ResourceExhaustionMonitor{
 
-		logger:           logger.With("component", "resource_monitor"),
+		logger: logger.With("component", "resource_monitor"),
 
 		resourceTrackers: make(map[string]*ResourceTracker),
 
-		predictions:      make(map[string]*ResourceExhaustionPrediction),
-
+		predictions: make(map[string]*ResourceExhaustionPrediction),
 	}
-
-
 
 	// Initialize seasonal pattern detector.
 
 	predictor.seasonalDetector = &SeasonalPatternDetector{
 
-		logger:           logger.With("component", "seasonal_detector"),
+		logger: logger.With("component", "seasonal_detector"),
 
 		detectedPatterns: make(map[string][]SeasonalPattern),
 
-		minPeriod:        time.Hour,
+		minPeriod: time.Hour,
 
-		maxPeriod:        7 * 24 * time.Hour, // 1 week
+		maxPeriod: 7 * 24 * time.Hour, // 1 week
 
-		minConfidence:    0.7,
-
+		minConfidence: 0.7,
 	}
-
-
 
 	// Initialize default models.
 
 	predictor.initializeDefaultModels()
 
-
-
 	return predictor
 
 }
-
-
 
 // defaultPredictorConfig returns default predictor configuration.
 
@@ -1071,23 +847,23 @@ func defaultPredictorConfig() *PredictorConfig {
 
 	return &PredictorConfig{
 
-		DefaultHorizon:            4 * time.Hour,
+		DefaultHorizon: 4 * time.Hour,
 
-		MaxHorizon:                24 * time.Hour,
+		MaxHorizon: 24 * time.Hour,
 
-		PredictionInterval:        15 * time.Minute,
+		PredictionInterval: 15 * time.Minute,
 
-		ModelUpdateInterval:       time.Hour,
+		ModelUpdateInterval: time.Hour,
 
-		MinTrainingDataSize:       50,
+		MinTrainingDataSize: 50,
 
-		ModelAccuracyThreshold:    0.7,
+		ModelAccuracyThreshold: 0.7,
 
-		EarlyWarningEnabled:       true,
+		EarlyWarningEnabled: true,
 
-		WarningThreshold:          0.7,
+		WarningThreshold: 0.7,
 
-		CriticalThreshold:         0.5,
+		CriticalThreshold: 0.5,
 
 		ResourceMonitoringEnabled: true,
 
@@ -1095,27 +871,23 @@ func defaultPredictorConfig() *PredictorConfig {
 
 			"memory": 0.8,
 
-			"cpu":    0.8,
+			"cpu": 0.8,
 
-			"disk":   0.9,
-
+			"disk": 0.9,
 		},
 
 		SeasonalDetectionEnabled: true,
 
-		SeasonalMinPeriod:        time.Hour,
+		SeasonalMinPeriod: time.Hour,
 
-		SeasonalMaxPeriod:        7 * 24 * time.Hour,
+		SeasonalMaxPeriod: 7 * 24 * time.Hour,
 
-		MinPredictionConfidence:  0.6,
+		MinPredictionConfidence: 0.6,
 
-		HighConfidenceThreshold:  0.8,
-
+		HighConfidenceThreshold: 0.8,
 	}
 
 }
-
-
 
 // defaultEarlyWarningConfig returns default early warning configuration.
 
@@ -1123,15 +895,15 @@ func defaultEarlyWarningConfig() *EarlyWarningConfig {
 
 	return &EarlyWarningConfig{
 
-		Enabled:             true,
+		Enabled: true,
 
-		WarningThreshold:    0.7,
+		WarningThreshold: 0.7,
 
-		CriticalThreshold:   0.5,
+		CriticalThreshold: 0.5,
 
-		PredictionHorizon:   2 * time.Hour,
+		PredictionHorizon: 2 * time.Hour,
 
-		MinConfidence:       0.7,
+		MinConfidence: 0.7,
 
 		SuppressionDuration: 30 * time.Minute,
 
@@ -1139,39 +911,33 @@ func defaultEarlyWarningConfig() *EarlyWarningConfig {
 
 			{
 
-				Level:                1,
+				Level: 1,
 
-				Duration:             15 * time.Minute,
+				Duration: 15 * time.Minute,
 
-				SeverityFilter:       []WarningSeverity{SeverityHigh, SeverityAlert},
+				SeverityFilter: []WarningSeverity{SeverityHigh, SeverityAlert},
 
-				Actions:              []string{"notify_on_call"},
+				Actions: []string{"notify_on_call"},
 
 				NotificationChannels: []string{"slack", "email"},
-
 			},
 
 			{
 
-				Level:                2,
+				Level: 2,
 
-				Duration:             30 * time.Minute,
+				Duration: 30 * time.Minute,
 
-				SeverityFilter:       []WarningSeverity{SeverityAlert},
+				SeverityFilter: []WarningSeverity{SeverityAlert},
 
-				Actions:              []string{"page_management", "create_incident"},
+				Actions: []string{"page_management", "create_incident"},
 
 				NotificationChannels: []string{"pagerduty", "phone"},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // initializePredictorMetrics initializes Prometheus metrics.
 
@@ -1184,86 +950,62 @@ func initializePredictorMetrics() *PredictorMetrics {
 			Name: "health_prediction_accuracy",
 
 			Help: "Accuracy of health predictions by model and component",
-
 		}, []string{"component", "model", "metric"}),
-
-
 
 		PredictionLatency: prometheus.NewHistogram(prometheus.HistogramOpts{
 
-			Name:    "health_prediction_latency_seconds",
+			Name: "health_prediction_latency_seconds",
 
-			Help:    "Latency of health prediction operations",
+			Help: "Latency of health prediction operations",
 
 			Buckets: prometheus.ExponentialBuckets(0.001, 2, 8),
-
 		}),
-
-
 
 		ModelTrainingTime: prometheus.NewHistogram(prometheus.HistogramOpts{
 
-			Name:    "model_training_time_seconds",
+			Name: "model_training_time_seconds",
 
-			Help:    "Time taken to train prediction models",
+			Help: "Time taken to train prediction models",
 
 			Buckets: prometheus.ExponentialBuckets(0.1, 2, 10),
-
 		}),
-
-
 
 		EarlyWarningsGenerated: prometheus.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "early_warnings_generated_total",
 
 			Help: "Total number of early warnings generated",
-
 		}, []string{"component", "warning_type", "severity"}),
-
-
 
 		AnomaliesDetected: prometheus.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "anomalies_detected_total",
 
 			Help: "Total number of anomalies detected",
-
 		}, []string{"component", "algorithm", "severity"}),
-
-
 
 		ResourceExhaustionWarnings: prometheus.NewCounterVec(prometheus.CounterOpts{
 
 			Name: "resource_exhaustion_warnings_total",
 
 			Help: "Total number of resource exhaustion warnings",
-
 		}, []string{"component", "resource_type"}),
-
-
 
 		ModelPerformanceMetrics: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 
 			Name: "model_performance_metrics",
 
 			Help: "Performance metrics for prediction models",
-
 		}, []string{"component", "model", "metric"}),
-
 	}
 
 }
-
-
 
 // PredictHealth performs comprehensive health prediction.
 
 func (hp *HealthPredictor) PredictHealth(ctx context.Context, component string, horizon time.Duration) (*HealthPredictionResult, error) {
 
 	start := time.Now()
-
-
 
 	if horizon > hp.config.MaxHorizon {
 
@@ -1277,23 +1019,18 @@ func (hp *HealthPredictor) PredictHealth(ctx context.Context, component string, 
 
 	}
 
-
-
 	result := &HealthPredictionResult{
 
-		Component:         component,
+		Component: component,
 
-		Timestamp:         start,
+		Timestamp: start,
 
 		PredictionHorizon: horizon,
 
-		Predictions:       []HealthPrediction{},
+		Predictions: []HealthPrediction{},
 
-		Warnings:          []HealthWarning{},
-
+		Warnings: []HealthWarning{},
 	}
-
-
 
 	// Get or create model for component.
 
@@ -1307,13 +1044,9 @@ func (hp *HealthPredictor) PredictHealth(ctx context.Context, component string, 
 
 	}
 
-
-
 	result.ModelUsed = model
 
 	result.ModelAccuracy = model.Accuracy
-
-
 
 	// Get training data and update if needed.
 
@@ -1327,11 +1060,7 @@ func (hp *HealthPredictor) PredictHealth(ctx context.Context, component string, 
 
 	}
 
-
-
 	result.DataQuality = trainingData.DataQuality
-
-
 
 	// Generate predictions using the model.
 
@@ -1345,13 +1074,9 @@ func (hp *HealthPredictor) PredictHealth(ctx context.Context, component string, 
 
 	}
 
-
-
 	result.Predictions = predictions
 
 	result.OverallConfidence = confidence
-
-
 
 	// Check for early warnings if enabled.
 
@@ -1363,8 +1088,6 @@ func (hp *HealthPredictor) PredictHealth(ctx context.Context, component string, 
 
 	}
 
-
-
 	// Check for resource exhaustion if enabled.
 
 	if hp.config.ResourceMonitoringEnabled {
@@ -1375,15 +1098,11 @@ func (hp *HealthPredictor) PredictHealth(ctx context.Context, component string, 
 
 	}
 
-
-
 	// Detect anomalies.
 
 	anomalies := hp.detectAnomalies(component, trainingData)
 
 	result.Anomalies = anomalies
-
-
 
 	// Detect seasonal patterns if enabled.
 
@@ -1395,8 +1114,6 @@ func (hp *HealthPredictor) PredictHealth(ctx context.Context, component string, 
 
 	}
 
-
-
 	// Record metrics.
 
 	duration := time.Since(start)
@@ -1404,8 +1121,6 @@ func (hp *HealthPredictor) PredictHealth(ctx context.Context, component string, 
 	hp.predictorMetrics.PredictionLatency.Observe(duration.Seconds())
 
 	hp.predictorMetrics.PredictionAccuracy.WithLabelValues(component, string(model.Algorithm), "overall").Set(confidence)
-
-
 
 	// Record warnings and anomalies.
 
@@ -1415,15 +1130,11 @@ func (hp *HealthPredictor) PredictHealth(ctx context.Context, component string, 
 
 	}
 
-
-
 	for _, anomaly := range result.Anomalies {
 
 		hp.predictorMetrics.AnomaliesDetected.WithLabelValues(component, string(anomaly.Algorithm), string(anomaly.Severity)).Inc()
 
 	}
-
-
 
 	hp.logger.Debug("Health prediction completed",
 
@@ -1437,13 +1148,9 @@ func (hp *HealthPredictor) PredictHealth(ctx context.Context, component string, 
 
 		"warnings", len(result.Warnings))
 
-
-
 	return result, nil
 
 }
-
-
 
 // getOrCreateModel gets an existing model or creates a new one for a component.
 
@@ -1455,8 +1162,6 @@ func (hp *HealthPredictor) getOrCreateModel(component string) (*PredictionModel,
 
 		hp.modelsMu.RUnlock()
 
-
-
 		// Check if model needs retraining.
 
 		if time.Since(model.LastTrained) > hp.config.ModelUpdateInterval {
@@ -1465,15 +1170,11 @@ func (hp *HealthPredictor) getOrCreateModel(component string) (*PredictionModel,
 
 		}
 
-
-
 		return model, nil
 
 	}
 
 	hp.modelsMu.RUnlock()
-
-
 
 	// Create new model.
 
@@ -1481,51 +1182,43 @@ func (hp *HealthPredictor) getOrCreateModel(component string) (*PredictionModel,
 
 }
 
-
-
 // createModel creates a new prediction model for a component.
 
 func (hp *HealthPredictor) createModel(component string) (*PredictionModel, error) {
 
 	model := &PredictionModel{
 
-		ID:               fmt.Sprintf("%s-model-%d", component, time.Now().Unix()),
+		ID: fmt.Sprintf("%s-model-%d", component, time.Now().Unix()),
 
-		Component:        component,
+		Component: component,
 
-		Algorithm:        AlgorithmLinearRegression, // Default algorithm
+		Algorithm: AlgorithmLinearRegression, // Default algorithm
 
-		Features:         []string{"score", "latency", "error_rate", "timestamp"},
+		Features: []string{"score", "latency", "error_rate", "timestamp"},
 
-		Accuracy:         0.0,
+		Accuracy: 0.0,
 
-		LastTrained:      time.Time{},
+		LastTrained: time.Time{},
 
 		TrainingDataSize: 0,
 
 		Hyperparameters: map[string]interface{}{
 
-			"learning_rate":  0.01,
+			"learning_rate": 0.01,
 
 			"regularization": 0.001,
-
 		},
 
-		weights:        []float64{},
+		weights: []float64{},
 
 		featureScalers: make(map[string]*FeatureScaler),
-
 	}
-
-
 
 	hp.modelsMu.Lock()
 
 	hp.models[component] = model
 
 	hp.modelsMu.Unlock()
-
-
 
 	hp.logger.Info("Created new prediction model",
 
@@ -1535,21 +1228,15 @@ func (hp *HealthPredictor) createModel(component string) (*PredictionModel, erro
 
 		"features", model.Features)
 
-
-
 	return model, nil
 
 }
-
-
 
 // retrainModel retrains an existing model with fresh data.
 
 func (hp *HealthPredictor) retrainModel(component string, model *PredictionModel) (*PredictionModel, error) {
 
 	start := time.Now()
-
-
 
 	// Get fresh training data.
 
@@ -1560,8 +1247,6 @@ func (hp *HealthPredictor) retrainModel(component string, model *PredictionModel
 		return model, fmt.Errorf("failed to get training data: %w", err)
 
 	}
-
-
 
 	if len(trainingData.Features) < hp.config.MinTrainingDataSize {
 
@@ -1577,8 +1262,6 @@ func (hp *HealthPredictor) retrainModel(component string, model *PredictionModel
 
 	}
 
-
-
 	// Train the model based on algorithm.
 
 	err = hp.trainModel(model, trainingData)
@@ -1589,23 +1272,17 @@ func (hp *HealthPredictor) retrainModel(component string, model *PredictionModel
 
 	}
 
-
-
 	// Update model metadata.
 
 	model.LastTrained = time.Now()
 
 	model.TrainingDataSize = len(trainingData.Features)
 
-
-
 	// Record training time.
 
 	trainingDuration := time.Since(start)
 
 	hp.predictorMetrics.ModelTrainingTime.Observe(trainingDuration.Seconds())
-
-
 
 	// Update model in registry.
 
@@ -1614,8 +1291,6 @@ func (hp *HealthPredictor) retrainModel(component string, model *PredictionModel
 	hp.models[component] = model
 
 	hp.modelsMu.Unlock()
-
-
 
 	hp.logger.Info("Model retrained successfully",
 
@@ -1629,13 +1304,9 @@ func (hp *HealthPredictor) retrainModel(component string, model *PredictionModel
 
 		"data_size", model.TrainingDataSize)
 
-
-
 	return model, nil
 
 }
-
-
 
 // trainModel trains a model using the specified algorithm.
 
@@ -1663,8 +1334,6 @@ func (hp *HealthPredictor) trainModel(model *PredictionModel, trainingData *Mode
 
 }
 
-
-
 // trainLinearRegression trains a linear regression model.
 
 func (hp *HealthPredictor) trainLinearRegression(model *PredictionModel, trainingData *ModelTrainingData) error {
@@ -1675,35 +1344,25 @@ func (hp *HealthPredictor) trainLinearRegression(model *PredictionModel, trainin
 
 	}
 
-
-
 	// Prepare feature matrix and target vector.
 
 	numFeatures := len(trainingData.Features[0].Values)
 
 	numSamples := len(trainingData.Features)
 
-
-
 	// Initialize weights (simple approach).
 
 	model.weights = make([]float64, numFeatures+1) // +1 for bias
 
-
-
 	// Simple linear regression using normal equations (simplified).
 
 	// In production, use proper ML libraries like golearn or TensorFlow.
-
-
 
 	// Calculate means.
 
 	var targetMean float64
 
 	featureMeans := make([]float64, numFeatures)
-
-
 
 	for i, target := range trainingData.Targets {
 
@@ -1717,8 +1376,6 @@ func (hp *HealthPredictor) trainLinearRegression(model *PredictionModel, trainin
 
 	}
 
-
-
 	targetMean /= float64(numSamples)
 
 	for j := range featureMeans {
@@ -1727,15 +1384,11 @@ func (hp *HealthPredictor) trainLinearRegression(model *PredictionModel, trainin
 
 	}
 
-
-
 	// Simple weight calculation (this is a simplified approach).
 
 	for j := range numFeatures {
 
 		var numerator, denominator float64
-
-
 
 		for i := range trainingData.Features {
 
@@ -1743,15 +1396,11 @@ func (hp *HealthPredictor) trainLinearRegression(model *PredictionModel, trainin
 
 			targetDiff := trainingData.Targets[i] - targetMean
 
-
-
 			numerator += featureDiff * targetDiff
 
 			denominator += featureDiff * featureDiff
 
 		}
-
-
 
 		if denominator > 0 {
 
@@ -1760,8 +1409,6 @@ func (hp *HealthPredictor) trainLinearRegression(model *PredictionModel, trainin
 		}
 
 	}
-
-
 
 	// Calculate bias.
 
@@ -1783,19 +1430,13 @@ func (hp *HealthPredictor) trainLinearRegression(model *PredictionModel, trainin
 
 	model.weights[numFeatures] = biasSum / float64(numSamples) // bias term
 
-
-
 	// Calculate accuracy metrics.
 
 	model.Accuracy, model.Mae, model.Rmse, model.R2Score = hp.calculateModelAccuracy(model, trainingData)
 
-
-
 	return nil
 
 }
-
-
 
 // trainMovingAverage trains a moving average model.
 
@@ -1809,25 +1450,17 @@ func (hp *HealthPredictor) trainMovingAverage(model *PredictionModel, trainingDa
 
 	}
 
-
-
 	// Store window size in weights for prediction.
 
 	model.weights = []float64{float64(windowSize)}
-
-
 
 	// Calculate accuracy using moving average predictions.
 
 	model.Accuracy, model.Mae, model.Rmse, model.R2Score = hp.calculateModelAccuracy(model, trainingData)
 
-
-
 	return nil
 
 }
-
-
 
 // trainExponentialSmoothing trains an exponential smoothing model.
 
@@ -1841,25 +1474,17 @@ func (hp *HealthPredictor) trainExponentialSmoothing(model *PredictionModel, tra
 
 	}
 
-
-
 	// Store alpha in weights for prediction.
 
 	model.weights = []float64{alpha}
-
-
 
 	// Calculate accuracy.
 
 	model.Accuracy, model.Mae, model.Rmse, model.R2Score = hp.calculateModelAccuracy(model, trainingData)
 
-
-
 	return nil
 
 }
-
-
 
 // calculateModelAccuracy calculates model accuracy metrics.
 
@@ -1871,13 +1496,9 @@ func (hp *HealthPredictor) calculateModelAccuracy(model *PredictionModel, traini
 
 	}
 
-
-
 	var totalError, totalSquaredError, totalVariance float64
 
 	targetMean := 0.0
-
-
 
 	// Calculate target mean.
 
@@ -1889,8 +1510,6 @@ func (hp *HealthPredictor) calculateModelAccuracy(model *PredictionModel, traini
 
 	targetMean /= float64(len(trainingData.Targets))
 
-
-
 	// Calculate predictions and errors.
 
 	for i, features := range trainingData.Features {
@@ -1899,15 +1518,11 @@ func (hp *HealthPredictor) calculateModelAccuracy(model *PredictionModel, traini
 
 		predicted := hp.makePrediction(model, features.Values)
 
-
-
 		error := math.Abs(actual - predicted)
 
 		squaredError := math.Pow(actual-predicted, 2)
 
 		variance := math.Pow(actual-targetMean, 2)
-
-
 
 		totalError += error
 
@@ -1917,15 +1532,11 @@ func (hp *HealthPredictor) calculateModelAccuracy(model *PredictionModel, traini
 
 	}
 
-
-
 	n := float64(len(trainingData.Targets))
 
 	mae := totalError / n
 
 	rmse := math.Sqrt(totalSquaredError / n)
-
-
 
 	// R-squared calculation.
 
@@ -1937,19 +1548,13 @@ func (hp *HealthPredictor) calculateModelAccuracy(model *PredictionModel, traini
 
 	}
 
-
-
 	// Overall accuracy (simplified metric).
 
 	accuracy := math.Max(0, r2Score)
 
-
-
 	return accuracy, mae, rmse, r2Score
 
 }
-
-
 
 // makePrediction makes a prediction using the trained model.
 
@@ -1977,8 +1582,6 @@ func (hp *HealthPredictor) makePrediction(model *PredictionModel, features []flo
 
 }
 
-
-
 // predictLinearRegression makes prediction using linear regression.
 
 func (hp *HealthPredictor) predictLinearRegression(model *PredictionModel, features []float64) float64 {
@@ -1989,11 +1592,7 @@ func (hp *HealthPredictor) predictLinearRegression(model *PredictionModel, featu
 
 	}
 
-
-
 	prediction := 0.0
-
-
 
 	// Apply weights to features.
 
@@ -2007,8 +1606,6 @@ func (hp *HealthPredictor) predictLinearRegression(model *PredictionModel, featu
 
 	}
 
-
-
 	// Add bias term.
 
 	if len(model.weights) > len(features) {
@@ -2016,8 +1613,6 @@ func (hp *HealthPredictor) predictLinearRegression(model *PredictionModel, featu
 		prediction += model.weights[len(model.weights)-1]
 
 	}
-
-
 
 	// Clamp between 0 and 1.
 
@@ -2031,13 +1626,9 @@ func (hp *HealthPredictor) predictLinearRegression(model *PredictionModel, featu
 
 	}
 
-
-
 	return prediction
 
 }
-
-
 
 // predictMovingAverage makes prediction using moving average.
 
@@ -2049,8 +1640,6 @@ func (hp *HealthPredictor) predictMovingAverage(model *PredictionModel, features
 
 	}
 
-
-
 	windowSize := 10
 
 	if len(model.weights) > 0 {
@@ -2058,8 +1647,6 @@ func (hp *HealthPredictor) predictMovingAverage(model *PredictionModel, features
 		windowSize = int(model.weights[0])
 
 	}
-
-
 
 	// Use recent values for moving average.
 
@@ -2070,8 +1657,6 @@ func (hp *HealthPredictor) predictMovingAverage(model *PredictionModel, features
 		startIdx = 0
 
 	}
-
-
 
 	sum := 0.0
 
@@ -2085,21 +1670,15 @@ func (hp *HealthPredictor) predictMovingAverage(model *PredictionModel, features
 
 	}
 
-
-
 	if count == 0 {
 
 		return 0.5
 
 	}
 
-
-
 	return sum / float64(count)
 
 }
-
-
 
 // predictExponentialSmoothing makes prediction using exponential smoothing.
 
@@ -2111,8 +1690,6 @@ func (hp *HealthPredictor) predictExponentialSmoothing(model *PredictionModel, f
 
 	}
 
-
-
 	alpha := 0.3
 
 	if len(model.weights) > 0 {
@@ -2121,13 +1698,9 @@ func (hp *HealthPredictor) predictExponentialSmoothing(model *PredictionModel, f
 
 	}
 
-
-
 	// Start with first value.
 
 	smoothed := features[0]
-
-
 
 	// Apply exponential smoothing.
 
@@ -2137,13 +1710,9 @@ func (hp *HealthPredictor) predictExponentialSmoothing(model *PredictionModel, f
 
 	}
 
-
-
 	return smoothed
 
 }
-
-
 
 // generatePredictions generates future health predictions.
 
@@ -2154,8 +1723,6 @@ func (hp *HealthPredictor) generatePredictions(model *PredictionModel, trainingD
 		return nil, 0, fmt.Errorf("no training data available")
 
 	}
-
-
 
 	// Calculate number of prediction points.
 
@@ -2169,17 +1736,11 @@ func (hp *HealthPredictor) generatePredictions(model *PredictionModel, trainingD
 
 	}
 
-
-
 	predictions := make([]HealthPrediction, numPredictions)
-
-
 
 	// Get the most recent features as baseline.
 
 	lastFeatures := trainingData.Features[len(trainingData.Features)-1]
-
-
 
 	// Generate predictions.
 
@@ -2187,21 +1748,15 @@ func (hp *HealthPredictor) generatePredictions(model *PredictionModel, trainingD
 
 		futureTime := time.Now().Add(time.Duration(i+1) * interval)
 
-
-
 		// Make prediction (simplified - in practice would use time series analysis).
 
 		predictedScore := hp.makePrediction(model, lastFeatures.Values)
-
-
 
 		// Add some uncertainty over time.
 
 		uncertainty := float64(i) * 0.05 // Increasing uncertainty
 
 		confidence := math.Max(0.1, model.Accuracy-uncertainty)
-
-
 
 		// Convert score to status.
 
@@ -2221,25 +1776,20 @@ func (hp *HealthPredictor) generatePredictions(model *PredictionModel, trainingD
 
 		}
 
-
-
 		predictions[i] = HealthPrediction{
 
-			PredictedTime:   futureTime,
+			PredictedTime: futureTime,
 
 			PredictedStatus: predictedStatus,
 
-			PredictedScore:  predictedScore,
+			PredictedScore: predictedScore,
 
-			Confidence:      confidence,
+			Confidence: confidence,
 
-			Reasoning:       fmt.Sprintf("Predicted using %s model", model.Algorithm),
-
+			Reasoning: fmt.Sprintf("Predicted using %s model", model.Algorithm),
 		}
 
 	}
-
-
 
 	// Calculate overall confidence.
 
@@ -2259,13 +1809,9 @@ func (hp *HealthPredictor) generatePredictions(model *PredictionModel, trainingD
 
 	}
 
-
-
 	return predictions, overallConfidence, nil
 
 }
-
-
 
 // getTrainingData gets or creates training data for a component.
 
@@ -2276,8 +1822,6 @@ func (hp *HealthPredictor) getTrainingData(component string) (*ModelTrainingData
 	if data, exists := hp.trainingData[component]; exists {
 
 		hp.trainingMu.RUnlock()
-
-
 
 		// Check if data needs update.
 
@@ -2293,15 +1837,11 @@ func (hp *HealthPredictor) getTrainingData(component string) (*ModelTrainingData
 
 	}
 
-
-
 	// Create or update training data.
 
 	return hp.updateTrainingData(component)
 
 }
-
-
 
 // updateTrainingData updates training data for a component.
 
@@ -2309,13 +1849,13 @@ func (hp *HealthPredictor) updateTrainingData(component string) (*ModelTrainingD
 
 	data := &ModelTrainingData{
 
-		Component:   component,
+		Component: component,
 
-		Features:    []FeatureVector{},
+		Features: []FeatureVector{},
 
-		Targets:     []float64{},
+		Targets: []float64{},
 
-		Timestamps:  []time.Time{},
+		Timestamps: []time.Time{},
 
 		LastUpdated: time.Now(),
 
@@ -2323,25 +1863,19 @@ func (hp *HealthPredictor) updateTrainingData(component string) (*ModelTrainingD
 
 			Completeness: 1.0,
 
-			Consistency:  1.0,
+			Consistency: 1.0,
 
-			Accuracy:     1.0,
+			Accuracy: 1.0,
 
-			Timeliness:   1.0,
-
+			Timeliness: 1.0,
 		},
-
 	}
-
-
 
 	// Get historical data from aggregator.
 
 	if hp.aggregator != nil {
 
 		history := hp.aggregator.GetCheckHistory(component, 100)
-
-
 
 		for _, point := range history {
 
@@ -2356,16 +1890,12 @@ func (hp *HealthPredictor) updateTrainingData(component string) (*ModelTrainingD
 					0.0, // placeholder for error rate
 
 					float64(point.Timestamp.Unix()),
-
 				},
 
-				Names:     []string{"score", "latency", "error_rate", "timestamp"},
+				Names: []string{"score", "latency", "error_rate", "timestamp"},
 
 				Timestamp: point.Timestamp,
-
 			}
-
-
 
 			data.Features = append(data.Features, featureVector)
 
@@ -2377,13 +1907,9 @@ func (hp *HealthPredictor) updateTrainingData(component string) (*ModelTrainingD
 
 	}
 
-
-
 	// Calculate data quality metrics.
 
 	hp.calculateDataQuality(data)
-
-
 
 	// Store training data.
 
@@ -2393,13 +1919,9 @@ func (hp *HealthPredictor) updateTrainingData(component string) (*ModelTrainingD
 
 	hp.trainingMu.Unlock()
 
-
-
 	return data, nil
 
 }
-
-
 
 // calculateDataQuality calculates data quality metrics.
 
@@ -2411,15 +1933,11 @@ func (hp *HealthPredictor) calculateDataQuality(data *ModelTrainingData) {
 
 	}
 
-
-
 	// Calculate completeness (percentage of non-null values).
 
 	nonNullCount := 0
 
 	totalValues := 0
-
-
 
 	for _, feature := range data.Features {
 
@@ -2437,15 +1955,11 @@ func (hp *HealthPredictor) calculateDataQuality(data *ModelTrainingData) {
 
 	}
 
-
-
 	if totalValues > 0 {
 
 		data.DataQuality.Completeness = float64(nonNullCount) / float64(totalValues)
 
 	}
-
-
 
 	// Calculate timeliness (how recent is the data).
 
@@ -2455,21 +1969,15 @@ func (hp *HealthPredictor) calculateDataQuality(data *ModelTrainingData) {
 
 		age := time.Since(latest)
 
-
-
 		// Timeliness score decreases with age.
 
 		data.DataQuality.Timeliness = math.Max(0, 1.0-age.Hours()/24.0) // 1.0 for today, 0.0 for 24h+ old
 
 	}
 
-
-
 	// Other quality metrics would be calculated here in a full implementation.
 
 }
-
-
 
 // checkEarlyWarnings checks for early warning conditions.
 
@@ -2477,15 +1985,11 @@ func (hp *HealthPredictor) checkEarlyWarnings(component string, predictions []He
 
 	var warnings []HealthWarning
 
-
-
 	if !hp.config.EarlyWarningEnabled || confidence < hp.config.MinPredictionConfidence {
 
 		return warnings
 
 	}
-
-
 
 	// Check each prediction for warning conditions.
 
@@ -2495,46 +1999,43 @@ func (hp *HealthPredictor) checkEarlyWarnings(component string, predictions []He
 
 			warning := HealthWarning{
 
-				ID:              fmt.Sprintf("warning-%s-%d", component, time.Now().Unix()),
+				ID: fmt.Sprintf("warning-%s-%d", component, time.Now().Unix()),
 
-				Component:       component,
+				Component: component,
 
-				Type:            WarningTypeHealthDegradation,
+				Type: WarningTypeHealthDegradation,
 
-				Severity:        SeverityAlert,
+				Severity: SeverityAlert,
 
-				Title:           fmt.Sprintf("Critical health degradation predicted for %s", component),
+				Title: fmt.Sprintf("Critical health degradation predicted for %s", component),
 
-				Description:     fmt.Sprintf("Health score predicted to drop to %.2f at %s", prediction.PredictedScore, prediction.PredictedTime.Format(time.RFC3339)),
+				Description: fmt.Sprintf("Health score predicted to drop to %.2f at %s", prediction.PredictedScore, prediction.PredictedTime.Format(time.RFC3339)),
 
-				PredictedTime:   prediction.PredictedTime,
+				PredictedTime: prediction.PredictedTime,
 
-				Confidence:      prediction.Confidence,
+				Confidence: prediction.Confidence,
 
 				PredictedHealth: &prediction,
 
-				CreatedAt:       time.Now(),
+				CreatedAt: time.Now(),
 
-				Status:          WarningStatusActive,
+				Status: WarningStatusActive,
 
 				Recommendations: []RecommendedAction{
 
 					{
 
-						Action:      "investigate_degradation",
+						Action: "investigate_degradation",
 
-						Priority:    ActionPriorityImmediate,
+						Priority: ActionPriorityImmediate,
 
 						Description: "Investigate potential causes of health degradation",
 
-						Automated:   false,
+						Automated: false,
 
-						ETA:         15 * time.Minute,
-
+						ETA: 15 * time.Minute,
 					},
-
 				},
-
 			}
 
 			warnings = append(warnings, warning)
@@ -2543,46 +2044,43 @@ func (hp *HealthPredictor) checkEarlyWarnings(component string, predictions []He
 
 			warning := HealthWarning{
 
-				ID:              fmt.Sprintf("warning-%s-%d", component, time.Now().Unix()),
+				ID: fmt.Sprintf("warning-%s-%d", component, time.Now().Unix()),
 
-				Component:       component,
+				Component: component,
 
-				Type:            WarningTypeHealthDegradation,
+				Type: WarningTypeHealthDegradation,
 
-				Severity:        SeverityHigh,
+				Severity: SeverityHigh,
 
-				Title:           fmt.Sprintf("Health degradation predicted for %s", component),
+				Title: fmt.Sprintf("Health degradation predicted for %s", component),
 
-				Description:     fmt.Sprintf("Health score predicted to drop to %.2f at %s", prediction.PredictedScore, prediction.PredictedTime.Format(time.RFC3339)),
+				Description: fmt.Sprintf("Health score predicted to drop to %.2f at %s", prediction.PredictedScore, prediction.PredictedTime.Format(time.RFC3339)),
 
-				PredictedTime:   prediction.PredictedTime,
+				PredictedTime: prediction.PredictedTime,
 
-				Confidence:      prediction.Confidence,
+				Confidence: prediction.Confidence,
 
 				PredictedHealth: &prediction,
 
-				CreatedAt:       time.Now(),
+				CreatedAt: time.Now(),
 
-				Status:          WarningStatusActive,
+				Status: WarningStatusActive,
 
 				Recommendations: []RecommendedAction{
 
 					{
 
-						Action:      "monitor_closely",
+						Action: "monitor_closely",
 
-						Priority:    ActionPriorityUrgent,
+						Priority: ActionPriorityUrgent,
 
 						Description: "Monitor component health closely",
 
-						Automated:   true,
+						Automated: true,
 
-						ETA:         5 * time.Minute,
-
+						ETA: 5 * time.Minute,
 					},
-
 				},
-
 			}
 
 			warnings = append(warnings, warning)
@@ -2591,13 +2089,9 @@ func (hp *HealthPredictor) checkEarlyWarnings(component string, predictions []He
 
 	}
 
-
-
 	return warnings
 
 }
-
-
 
 // checkResourceExhaustion checks for resource exhaustion predictions.
 
@@ -2605,13 +2099,9 @@ func (hp *HealthPredictor) checkResourceExhaustion(component string) []ResourceE
 
 	var predictions []ResourceExhaustionPrediction
 
-
-
 	hp.resourceMonitor.mu.RLock()
 
 	defer hp.resourceMonitor.mu.RUnlock()
-
-
 
 	// Check each resource tracker for the component.
 
@@ -2623,8 +2113,6 @@ func (hp *HealthPredictor) checkResourceExhaustion(component string) []ResourceE
 
 		}
 
-
-
 		// Predict resource exhaustion based on current trend.
 
 		if tracker.GrowthRate > 0 && tracker.UtilizationRate > 0.7 {
@@ -2633,47 +2121,40 @@ func (hp *HealthPredictor) checkResourceExhaustion(component string) []ResourceE
 
 			timeToExhaustion := time.Duration(remainingCapacity/tracker.GrowthRate) * time.Hour
 
-
-
 			if timeToExhaustion < 24*time.Hour { // Warn if exhaustion within 24 hours
 
 				prediction := ResourceExhaustionPrediction{
 
-					ResourceType:        tracker.ResourceType,
+					ResourceType: tracker.ResourceType,
 
-					Component:           component,
+					Component: component,
 
 					PredictedExhaustion: time.Now().Add(timeToExhaustion),
 
-					Confidence:          0.8, // Simplified confidence calculation
+					Confidence: 0.8, // Simplified confidence calculation
 
-					CurrentTrend:        "increasing",
+					CurrentTrend: "increasing",
 
-					TimeToExhaustion:    timeToExhaustion,
+					TimeToExhaustion: timeToExhaustion,
 
 					RecommendedActions: []RecommendedAction{
 
 						{
 
-							Action:      fmt.Sprintf("scale_%s", tracker.ResourceType),
+							Action: fmt.Sprintf("scale_%s", tracker.ResourceType),
 
-							Priority:    ActionPriorityUrgent,
+							Priority: ActionPriorityUrgent,
 
 							Description: fmt.Sprintf("Scale %s resources before exhaustion", tracker.ResourceType),
 
-							Automated:   true,
+							Automated: true,
 
-							ETA:         30 * time.Minute,
-
+							ETA: 30 * time.Minute,
 						},
-
 					},
-
 				}
 
 				predictions = append(predictions, prediction)
-
-
 
 				// Record metric.
 
@@ -2685,13 +2166,9 @@ func (hp *HealthPredictor) checkResourceExhaustion(component string) []ResourceE
 
 	}
 
-
-
 	return predictions
 
 }
-
-
 
 // detectAnomalies detects anomalies in health data.
 
@@ -2699,27 +2176,19 @@ func (hp *HealthPredictor) detectAnomalies(component string, trainingData *Model
 
 	var anomalies []DetectedAnomaly
 
-
-
 	if len(trainingData.Targets) < 10 {
 
 		return anomalies // Need sufficient data for anomaly detection
 
 	}
 
-
-
 	// Statistical outlier detection.
 
 	anomalies = append(anomalies, hp.detectStatisticalOutliers(component, trainingData)...)
 
-
-
 	return anomalies
 
 }
-
-
 
 // detectStatisticalOutliers detects statistical outliers in the data.
 
@@ -2727,15 +2196,11 @@ func (hp *HealthPredictor) detectStatisticalOutliers(component string, trainingD
 
 	var anomalies []DetectedAnomaly
 
-
-
 	// Calculate mean and standard deviation.
 
 	var sum, sumSquares float64
 
 	n := float64(len(trainingData.Targets))
-
-
 
 	for _, value := range trainingData.Targets {
 
@@ -2745,21 +2210,15 @@ func (hp *HealthPredictor) detectStatisticalOutliers(component string, trainingD
 
 	}
 
-
-
 	mean := sum / n
 
 	variance := (sumSquares / n) - (mean * mean)
 
 	stdDev := math.Sqrt(variance)
 
-
-
 	// Detect outliers (values more than 3 standard deviations from mean).
 
 	threshold := 3.0
-
-
 
 	for i, value := range trainingData.Targets {
 
@@ -2768,8 +2227,6 @@ func (hp *HealthPredictor) detectStatisticalOutliers(component string, trainingD
 			continue
 
 		}
-
-
 
 		deviation := math.Abs(value - mean)
 
@@ -2783,26 +2240,23 @@ func (hp *HealthPredictor) detectStatisticalOutliers(component string, trainingD
 
 			}
 
-
-
 			anomaly := DetectedAnomaly{
 
-				Component:     component,
+				Component: component,
 
-				Timestamp:     trainingData.Timestamps[i],
+				Timestamp: trainingData.Timestamps[i],
 
-				Value:         value,
+				Value: value,
 
 				ExpectedValue: mean,
 
-				AnomalyScore:  deviation / stdDev,
+				AnomalyScore: deviation / stdDev,
 
-				Algorithm:     AnomalyStatisticalOutlier,
+				Algorithm: AnomalyStatisticalOutlier,
 
-				Severity:      severity,
+				Severity: severity,
 
-				Description:   fmt.Sprintf("Value %.3f deviates %.1f standard deviations from mean %.3f", value, deviation/stdDev, mean),
-
+				Description: fmt.Sprintf("Value %.3f deviates %.1f standard deviations from mean %.3f", value, deviation/stdDev, mean),
 			}
 
 			anomalies = append(anomalies, anomaly)
@@ -2811,13 +2265,9 @@ func (hp *HealthPredictor) detectStatisticalOutliers(component string, trainingD
 
 	}
 
-
-
 	return anomalies
 
 }
-
-
 
 // detectSeasonalPatterns detects seasonal patterns in health data.
 
@@ -2825,21 +2275,15 @@ func (hp *HealthPredictor) detectSeasonalPatterns(component string, trainingData
 
 	var patterns []SeasonalPattern
 
-
-
 	if len(trainingData.Timestamps) < 50 {
 
 		return patterns // Need sufficient data for pattern detection
 
 	}
 
-
-
 	// Simplified seasonal pattern detection.
 
 	// In a full implementation, this would use FFT or autocorrelation.
-
-
 
 	// Check for daily patterns (simplified).
 
@@ -2851,13 +2295,9 @@ func (hp *HealthPredictor) detectSeasonalPatterns(component string, trainingData
 
 	}
 
-
-
 	return patterns
 
 }
-
-
 
 // checkDailyPattern checks for daily seasonal patterns.
 
@@ -2867,8 +2307,6 @@ func (hp *HealthPredictor) checkDailyPattern(trainingData *ModelTrainingData) *S
 
 	hourlyData := make(map[int][]float64)
 
-
-
 	for i, timestamp := range trainingData.Timestamps {
 
 		if i >= len(trainingData.Targets) {
@@ -2877,15 +2315,11 @@ func (hp *HealthPredictor) checkDailyPattern(trainingData *ModelTrainingData) *S
 
 		}
 
-
-
 		hour := timestamp.Hour()
 
 		hourlyData[hour] = append(hourlyData[hour], trainingData.Targets[i])
 
 	}
-
-
 
 	// Calculate hourly averages.
 
@@ -2909,8 +2343,6 @@ func (hp *HealthPredictor) checkDailyPattern(trainingData *ModelTrainingData) *S
 
 	}
 
-
-
 	// Check if there's a significant daily pattern.
 
 	var totalVariation float64
@@ -2918,8 +2350,6 @@ func (hp *HealthPredictor) checkDailyPattern(trainingData *ModelTrainingData) *S
 	globalMean := 0.0
 
 	validHours := 0
-
-
 
 	for _, avg := range hourlyAverages {
 
@@ -2933,19 +2363,13 @@ func (hp *HealthPredictor) checkDailyPattern(trainingData *ModelTrainingData) *S
 
 	}
 
-
-
 	if validHours == 0 {
 
 		return nil
 
 	}
 
-
-
 	globalMean /= float64(validHours)
-
-
 
 	for _, avg := range hourlyAverages {
 
@@ -2957,35 +2381,28 @@ func (hp *HealthPredictor) checkDailyPattern(trainingData *ModelTrainingData) *S
 
 	}
 
-
-
 	// If variation is significant, consider it a pattern.
 
 	if totalVariation/globalMean > 0.1 { // 10% variation threshold
 
 		return &SeasonalPattern{
 
-			Period:      24 * time.Hour,
+			Period: 24 * time.Hour,
 
-			Amplitude:   totalVariation / float64(validHours),
+			Amplitude: totalVariation / float64(validHours),
 
-			Phase:       0,   // Simplified
+			Phase: 0, // Simplified
 
-			Confidence:  0.7, // Simplified confidence
+			Confidence: 0.7, // Simplified confidence
 
 			Description: "Daily pattern detected in health metrics",
-
 		}
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // initializeDefaultModels initializes default models for common components.
 
@@ -3000,10 +2417,7 @@ func (hp *HealthPredictor) initializeDefaultModels() {
 		"weaviate",
 
 		"kubernetes-api",
-
 	}
-
-
 
 	for _, component := range defaultComponents {
 
@@ -3023,8 +2437,6 @@ func (hp *HealthPredictor) initializeDefaultModels() {
 
 }
 
-
-
 // GetActiveWarnings returns all currently active warnings.
 
 func (hp *HealthPredictor) GetActiveWarnings() []HealthWarning {
@@ -3032,8 +2444,6 @@ func (hp *HealthPredictor) GetActiveWarnings() []HealthWarning {
 	hp.earlyWarning.warningMu.RLock()
 
 	defer hp.earlyWarning.warningMu.RUnlock()
-
-
 
 	var activeWarnings []HealthWarning
 
@@ -3047,13 +2457,9 @@ func (hp *HealthPredictor) GetActiveWarnings() []HealthWarning {
 
 	}
 
-
-
 	return activeWarnings
 
 }
-
-
 
 // GetModelPerformance returns performance metrics for all models.
 
@@ -3062,8 +2468,6 @@ func (hp *HealthPredictor) GetModelPerformance() map[string]*PredictionModel {
 	hp.modelsMu.RLock()
 
 	defer hp.modelsMu.RUnlock()
-
-
 
 	result := make(map[string]*PredictionModel)
 
@@ -3077,13 +2481,9 @@ func (hp *HealthPredictor) GetModelPerformance() map[string]*PredictionModel {
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // UpdateResourceUsage updates resource usage data for monitoring.
 
@@ -3093,11 +2493,7 @@ func (hp *HealthPredictor) UpdateResourceUsage(component string, resourceType Re
 
 	defer hp.resourceMonitor.mu.Unlock()
 
-
-
 	key := fmt.Sprintf("%s-%s", component, resourceType)
-
-
 
 	tracker, exists := hp.resourceMonitor.resourceTrackers[key]
 
@@ -3107,19 +2503,16 @@ func (hp *HealthPredictor) UpdateResourceUsage(component string, resourceType Re
 
 			ResourceType: resourceType,
 
-			Component:    component,
+			Component: component,
 
-			MaxCapacity:  capacity,
+			MaxCapacity: capacity,
 
-			History:      []ResourceDataPoint{},
-
+			History: []ResourceDataPoint{},
 		}
 
 		hp.resourceMonitor.resourceTrackers[key] = tracker
 
 	}
-
-
 
 	// Update current values.
 
@@ -3133,8 +2526,6 @@ func (hp *HealthPredictor) UpdateResourceUsage(component string, resourceType Re
 
 	tracker.LastUpdated = time.Now()
 
-
-
 	// Calculate growth rate (simplified).
 
 	if prevUsage > 0 {
@@ -3143,25 +2534,20 @@ func (hp *HealthPredictor) UpdateResourceUsage(component string, resourceType Re
 
 	}
 
-
-
 	// Add to history.
 
 	dataPoint := ResourceDataPoint{
 
-		Timestamp:   time.Now(),
+		Timestamp: time.Now(),
 
-		Usage:       usage,
+		Usage: usage,
 
-		Capacity:    capacity,
+		Capacity: capacity,
 
 		Utilization: tracker.UtilizationRate,
-
 	}
 
 	tracker.History = append(tracker.History, dataPoint)
-
-
 
 	// Keep only last 100 points.
 
@@ -3172,4 +2558,3 @@ func (hp *HealthPredictor) UpdateResourceUsage(component string, resourceType Re
 	}
 
 }
-

@@ -2,34 +2,19 @@
 
 // Package main provides import cycle detection utilities for the codebase.
 
-
 package main
 
-
-
 import (
-
 	"fmt"
 
-
-
-	// Test that both packages can be imported without causing import cycle.
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/interfaces"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/security"
-
 )
-
-
 
 func main() {
 
 	fmt.Println("Testing import cycle resolution...")
-
-
 
 	// Test that types from interfaces can be used.
 
@@ -43,15 +28,11 @@ func main() {
 
 	var _ *interfaces.RotationResult
 
-
-
 	// Test that packages can be instantiated.
 
 	cfg := config.DefaultConfig()
 
 	fmt.Printf("Default config created: %v\n", cfg != nil)
-
-
 
 	auditLogger, err := security.NewAuditLogger("", interfaces.AuditLevelInfo)
 
@@ -71,9 +52,6 @@ func main() {
 
 	}
 
-
-
 	fmt.Println("Import cycle test completed successfully!")
 
 }
-

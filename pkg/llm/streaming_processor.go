@@ -1,71 +1,48 @@
 //go:build !disable_rag
-
 // +build !disable_rag
-
-
-
 
 package llm
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"log/slog"
-
 	"net/http"
-
 	"strings"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // StreamingProcessorImpl handles Server-Sent Events (SSE) streaming for real-time LLM responses.
 
 type StreamingProcessorImpl struct {
-
-	baseClient     *Client
+	baseClient *Client
 
 	contextManager *StreamingContextManager
 
-	tokenManager   *TokenManager
+	tokenManager *TokenManager
 
-	config         *StreamingConfig
+	config *StreamingConfig
 
-	logger         *slog.Logger
+	logger *slog.Logger
 
-	metrics        *StreamingMetrics
+	metrics *StreamingMetrics
 
-	activeStreams  map[string]*StreamingSession
+	activeStreams map[string]*StreamingSession
 
-	mutex          sync.RWMutex
-
-
+	mutex sync.RWMutex
 
 	// Smart endpoints for RAG integration.
 
 	processEndpoint string
 
-	streamEndpoint  string
+	streamEndpoint string
 
-	healthEndpoint  string
+	healthEndpoint string
 
-	ragAPIURL       string
-
+	ragAPIURL string
 }
-
-
 
 // StreamingConfig holds configuration for streaming operations.
 
@@ -73,131 +50,110 @@ type StreamingConfig struct {
 
 	// SSE Configuration.
 
-	MaxConcurrentStreams int           `json:"max_concurrent_streams"`
+	MaxConcurrentStreams int `json:"max_concurrent_streams"`
 
-	StreamTimeout        time.Duration `json:"stream_timeout"`
+	StreamTimeout time.Duration `json:"stream_timeout"`
 
-	HeartbeatInterval    time.Duration `json:"heartbeat_interval"`
+	HeartbeatInterval time.Duration `json:"heartbeat_interval"`
 
-	BufferSize           int           `json:"buffer_size"`
-
-
+	BufferSize int `json:"buffer_size"`
 
 	// Context Management.
 
 	ContextInjectionOverhead time.Duration `json:"context_injection_overhead"`
 
-	MaxContextUpdates        int           `json:"max_context_updates"`
+	MaxContextUpdates int `json:"max_context_updates"`
 
-	ContextUpdateThreshold   float64       `json:"context_update_threshold"`
-
-
+	ContextUpdateThreshold float64 `json:"context_update_threshold"`
 
 	// Performance Settings.
 
-	ChunkSize         int           `json:"chunk_size"`
+	ChunkSize int `json:"chunk_size"`
 
-	MaxChunkDelay     time.Duration `json:"max_chunk_delay"`
+	MaxChunkDelay time.Duration `json:"max_chunk_delay"`
 
-	EnableCompression bool          `json:"enable_compression"`
-
-
+	EnableCompression bool `json:"enable_compression"`
 
 	// Error Handling.
 
-	MaxRetries           int           `json:"max_retries"`
+	MaxRetries int `json:"max_retries"`
 
-	RetryDelay           time.Duration `json:"retry_delay"`
+	RetryDelay time.Duration `json:"retry_delay"`
 
-	ErrorRecoveryEnabled bool          `json:"error_recovery_enabled"`
-
-
+	ErrorRecoveryEnabled bool `json:"error_recovery_enabled"`
 
 	// Client Reconnection.
 
-	ReconnectionEnabled  bool          `json:"reconnection_enabled"`
+	ReconnectionEnabled bool `json:"reconnection_enabled"`
 
-	MaxReconnectAttempts int           `json:"max_reconnect_attempts"`
+	MaxReconnectAttempts int `json:"max_reconnect_attempts"`
 
-	ReconnectBackoff     time.Duration `json:"reconnect_backoff"`
-
+	ReconnectBackoff time.Duration `json:"reconnect_backoff"`
 }
-
-
 
 // StreamingMetrics tracks streaming performance.
 
 type StreamingMetrics struct {
+	ActiveStreams int64 `json:"active_streams"`
 
-	ActiveStreams      int64         `json:"active_streams"`
+	TotalStreams int64 `json:"total_streams"`
 
-	TotalStreams       int64         `json:"total_streams"`
+	CompletedStreams int64 `json:"completed_streams"`
 
-	CompletedStreams   int64         `json:"completed_streams"`
+	FailedStreams int64 `json:"failed_streams"`
 
-	FailedStreams      int64         `json:"failed_streams"`
+	AverageStreamTime time.Duration `json:"average_stream_time"`
 
-	AverageStreamTime  time.Duration `json:"average_stream_time"`
+	TotalBytesStreamed int64 `json:"total_bytes_streamed"`
 
-	TotalBytesStreamed int64         `json:"total_bytes_streamed"`
+	AverageLatency time.Duration `json:"average_latency"`
 
-	AverageLatency     time.Duration `json:"average_latency"`
+	ContextInjections int64 `json:"context_injections"`
 
-	ContextInjections  int64         `json:"context_injections"`
+	Reconnections int64 `json:"reconnections"`
 
-	Reconnections      int64         `json:"reconnections"`
+	HeartbeatsSent int64 `json:"heartbeats_sent"`
 
-	HeartbeatsSent     int64         `json:"heartbeats_sent"`
+	LastUpdated time.Time `json:"last_updated"`
 
-	LastUpdated        time.Time     `json:"last_updated"`
-
-	mutex              sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // StreamingSession represents an active streaming session.
 
 type StreamingSession struct {
+	ID string `json:"id"`
 
-	ID             string                 `json:"id"`
+	Writer http.ResponseWriter `json:"-"`
 
-	Writer         http.ResponseWriter    `json:"-"`
+	Flusher http.Flusher `json:"-"`
 
-	Flusher        http.Flusher           `json:"-"`
+	Context context.Context `json:"-"`
 
-	Context        context.Context        `json:"-"`
+	Cancel context.CancelFunc `json:"-"`
 
-	Cancel         context.CancelFunc     `json:"-"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime      time.Time              `json:"start_time"`
+	LastActivity time.Time `json:"last_activity"`
 
-	LastActivity   time.Time              `json:"last_activity"`
+	BytesStreamed int64 `json:"bytes_streamed"`
 
-	BytesStreamed  int64                  `json:"bytes_streamed"`
+	ChunksStreamed int64 `json:"chunks_streamed"`
 
-	ChunksStreamed int64                  `json:"chunks_streamed"`
+	ContextUpdates int `json:"context_updates"`
 
-	ContextUpdates int                    `json:"context_updates"`
+	Status StreamingStatus `json:"status"`
 
-	Status         StreamingStatus        `json:"status"`
+	Metadata map[string]interface{} `json:"metadata"`
 
-	Metadata       map[string]interface{} `json:"metadata"`
+	ErrorCount int `json:"error_count"`
 
-	ErrorCount     int                    `json:"error_count"`
-
-	mutex          sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // StreamingStatus represents the status of a streaming session.
 
 type StreamingStatus string
-
-
 
 const (
 
@@ -216,54 +172,41 @@ const (
 	// StatusCancelled holds statuscancelled value.
 
 	StatusCancelled StreamingStatus = "cancelled"
-
 )
 
-
-
 // StreamingRequest is defined in interface_consolidated.go.
-
-
 
 // StreamingChunk represents a chunk of streaming data.
 
 type StreamingChunk struct {
+	Type string `json:"type"`
 
-	Type       string                 `json:"type"`
+	Content string `json:"content,omitempty"`
 
-	Content    string                 `json:"content,omitempty"`
+	Delta string `json:"delta,omitempty"`
 
-	Delta      string                 `json:"delta,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp  time.Time              `json:"timestamp"`
+	ChunkIndex int `json:"chunk_index"`
 
-	ChunkIndex int                    `json:"chunk_index"`
+	IsComplete bool `json:"is_complete,omitempty"`
 
-	IsComplete bool                   `json:"is_complete,omitempty"`
-
-	Error      string                 `json:"error,omitempty"`
-
+	Error string `json:"error,omitempty"`
 }
-
-
 
 // SSEEvent represents a Server-Sent Event.
 
 type SSEEvent struct {
-
 	Event string `json:"event,omitempty"`
 
-	Data  string `json:"data"`
+	Data string `json:"data"`
 
-	ID    string `json:"id,omitempty"`
+	ID string `json:"id,omitempty"`
 
-	Retry int    `json:"retry,omitempty"`
-
+	Retry int `json:"retry,omitempty"`
 }
-
-
 
 // NewStreamingProcessor creates a new streaming processor.
 
@@ -275,49 +218,36 @@ func NewStreamingProcessorImpl(baseClient *Client, tokenManager *TokenManager, c
 
 	}
 
-
-
 	sp := &StreamingProcessorImpl{
 
-		baseClient:    baseClient,
+		baseClient: baseClient,
 
-		tokenManager:  tokenManager,
+		tokenManager: tokenManager,
 
-		config:        config,
+		config: config,
 
-		logger:        slog.Default().With("component", "streaming-processor"),
+		logger: slog.Default().With("component", "streaming-processor"),
 
-		metrics:       &StreamingMetrics{LastUpdated: time.Now()},
+		metrics: &StreamingMetrics{LastUpdated: time.Now()},
 
 		activeStreams: make(map[string]*StreamingSession),
-
 	}
-
-
 
 	// Initialize endpoints - will be set later via SetRAGEndpoints.
 
 	sp.ragAPIURL = "" // Will be configured when used
 
-
-
 	// Initialize context manager.
 
 	sp.contextManager = NewStreamingContextManager(tokenManager, config.ContextInjectionOverhead)
-
-
 
 	// Start background maintenance.
 
 	go sp.maintenanceRoutine()
 
-
-
 	return sp
 
 }
-
-
 
 // SetRAGEndpoints configures the RAG API endpoints for streaming.
 
@@ -327,17 +257,11 @@ func (sp *StreamingProcessorImpl) SetRAGEndpoints(ragAPIURL string) {
 
 	defer sp.mutex.Unlock()
 
-
-
 	sp.ragAPIURL = ragAPIURL
-
-
 
 	// Initialize smart endpoints using the same logic as ProcessingEngine.
 
 	baseURL := strings.TrimSuffix(ragAPIURL, "/")
-
-
 
 	// Determine process endpoint based on URL pattern.
 
@@ -361,8 +285,6 @@ func (sp *StreamingProcessorImpl) SetRAGEndpoints(ragAPIURL string) {
 
 	}
 
-
-
 	// Streaming endpoint.
 
 	processBase := baseURL
@@ -381,8 +303,6 @@ func (sp *StreamingProcessorImpl) SetRAGEndpoints(ragAPIURL string) {
 
 	sp.healthEndpoint = processBase + "/health"
 
-
-
 	sp.logger.Info("Configured RAG endpoints for streaming",
 
 		slog.String("process_endpoint", sp.processEndpoint),
@@ -390,12 +310,9 @@ func (sp *StreamingProcessorImpl) SetRAGEndpoints(ragAPIURL string) {
 		slog.String("stream_endpoint", sp.streamEndpoint),
 
 		slog.String("health_endpoint", sp.healthEndpoint),
-
 	)
 
 }
-
-
 
 // GetConfiguredEndpoints returns the currently configured endpoints.
 
@@ -409,51 +326,46 @@ func (sp *StreamingProcessorImpl) GetConfiguredEndpoints() (process, stream, hea
 
 }
 
-
-
 // getDefaultStreamingConfig returns default streaming configuration.
 
 func getDefaultStreamingConfig() *StreamingConfig {
 
 	return &StreamingConfig{
 
-		MaxConcurrentStreams:     100,
+		MaxConcurrentStreams: 100,
 
-		StreamTimeout:            5 * time.Minute,
+		StreamTimeout: 5 * time.Minute,
 
-		HeartbeatInterval:        30 * time.Second,
+		HeartbeatInterval: 30 * time.Second,
 
-		BufferSize:               4096,
+		BufferSize: 4096,
 
 		ContextInjectionOverhead: 100 * time.Millisecond,
 
-		MaxContextUpdates:        5,
+		MaxContextUpdates: 5,
 
-		ContextUpdateThreshold:   0.3,
+		ContextUpdateThreshold: 0.3,
 
-		ChunkSize:                256,
+		ChunkSize: 256,
 
-		MaxChunkDelay:            50 * time.Millisecond,
+		MaxChunkDelay: 50 * time.Millisecond,
 
-		EnableCompression:        true,
+		EnableCompression: true,
 
-		MaxRetries:               3,
+		MaxRetries: 3,
 
-		RetryDelay:               time.Second,
+		RetryDelay: time.Second,
 
-		ErrorRecoveryEnabled:     true,
+		ErrorRecoveryEnabled: true,
 
-		ReconnectionEnabled:      true,
+		ReconnectionEnabled: true,
 
-		MaxReconnectAttempts:     5,
+		MaxReconnectAttempts: 5,
 
-		ReconnectBackoff:         2 * time.Second,
-
+		ReconnectBackoff: 2 * time.Second,
 	}
 
 }
-
-
 
 // HandleStreamingRequest handles an SSE streaming request.
 
@@ -467,8 +379,6 @@ func (sp *StreamingProcessorImpl) HandleStreamingRequest(w http.ResponseWriter, 
 
 	}
 
-
-
 	// Setup SSE headers.
 
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -481,8 +391,6 @@ func (sp *StreamingProcessorImpl) HandleStreamingRequest(w http.ResponseWriter, 
 
 	w.Header().Set("Access-Control-Allow-Headers", "Cache-Control")
 
-
-
 	// Get flusher.
 
 	flusher, ok := w.(http.Flusher)
@@ -492,8 +400,6 @@ func (sp *StreamingProcessorImpl) HandleStreamingRequest(w http.ResponseWriter, 
 		return fmt.Errorf("streaming not supported")
 
 	}
-
-
 
 	// Create session.
 
@@ -505,33 +411,28 @@ func (sp *StreamingProcessorImpl) HandleStreamingRequest(w http.ResponseWriter, 
 
 	}
 
-
-
 	ctx, cancel := context.WithTimeout(r.Context(), sp.config.StreamTimeout)
 
 	session := &StreamingSession{
 
-		ID:           sessionID,
+		ID: sessionID,
 
-		Writer:       w,
+		Writer: w,
 
-		Flusher:      flusher,
+		Flusher: flusher,
 
-		Context:      ctx,
+		Context: ctx,
 
-		Cancel:       cancel,
+		Cancel: cancel,
 
-		StartTime:    time.Now(),
+		StartTime: time.Now(),
 
 		LastActivity: time.Now(),
 
-		Status:       StatusStreaming,
+		Status: StatusStreaming,
 
-		Metadata:     request.Metadata,
-
+		Metadata: request.Metadata,
 	}
-
-
 
 	// Register session.
 
@@ -541,8 +442,6 @@ func (sp *StreamingProcessorImpl) HandleStreamingRequest(w http.ResponseWriter, 
 
 	defer cancel()
 
-
-
 	sp.logger.Info("Starting streaming session",
 
 		"session_id", sessionID,
@@ -550,10 +449,7 @@ func (sp *StreamingProcessorImpl) HandleStreamingRequest(w http.ResponseWriter, 
 		"query", request.Query,
 
 		"model", request.ModelName,
-
 	)
-
-
 
 	// Send initial event.
 
@@ -561,17 +457,14 @@ func (sp *StreamingProcessorImpl) HandleStreamingRequest(w http.ResponseWriter, 
 
 		Event: "start",
 
-		Data:  fmt.Sprintf(`{"session_id":"%s","status":"started"}`, sessionID),
+		Data: fmt.Sprintf(`{"session_id":"%s","status":"started"}`, sessionID),
 
-		ID:    "start",
-
+		ID: "start",
 	}); err != nil {
 
 		return err
 
 	}
-
-
 
 	// Start heartbeat.
 
@@ -580,8 +473,6 @@ func (sp *StreamingProcessorImpl) HandleStreamingRequest(w http.ResponseWriter, 
 	go sp.heartbeatRoutine(session, heartbeatDone)
 
 	defer func() { heartbeatDone <- true }()
-
-
 
 	// Process the streaming request.
 
@@ -594,26 +485,20 @@ func (sp *StreamingProcessorImpl) HandleStreamingRequest(w http.ResponseWriter, 
 			"session_id", sessionID,
 
 			"error", err,
-
 		)
-
-
 
 		// Send error event.
 
 		errorChunk := &StreamingChunk{
 
-			Type:      "error",
+			Type: "error",
 
-			Error:     err.Error(),
+			Error: err.Error(),
 
 			Timestamp: time.Now(),
-
 		}
 
 		sp.sendChunk(session, errorChunk)
-
-
 
 		session.mutex.Lock()
 
@@ -623,55 +508,43 @@ func (sp *StreamingProcessorImpl) HandleStreamingRequest(w http.ResponseWriter, 
 
 		session.mutex.Unlock()
 
-
-
 		sp.updateMetrics(func(m *StreamingMetrics) {
 
 			m.FailedStreams++
 
 		})
 
-
-
 		return err
 
 	}
-
-
 
 	// Send completion event.
 
 	completionChunk := &StreamingChunk{
 
-		Type:       "completion",
+		Type: "completion",
 
 		IsComplete: true,
 
-		Timestamp:  time.Now(),
+		Timestamp: time.Now(),
 
 		Metadata: map[string]interface{}{
 
-			"total_chunks":    session.ChunksStreamed,
+			"total_chunks": session.ChunksStreamed,
 
-			"total_bytes":     session.BytesStreamed,
+			"total_bytes": session.BytesStreamed,
 
 			"processing_time": time.Since(session.StartTime).String(),
-
 		},
-
 	}
 
 	sp.sendChunk(session, completionChunk)
-
-
 
 	session.mutex.Lock()
 
 	session.Status = StatusCompleted
 
 	session.mutex.Unlock()
-
-
 
 	sp.updateMetrics(func(m *StreamingMetrics) {
 
@@ -685,8 +558,6 @@ func (sp *StreamingProcessorImpl) HandleStreamingRequest(w http.ResponseWriter, 
 
 	})
 
-
-
 	sp.logger.Info("Streaming session completed",
 
 		"session_id", sessionID,
@@ -696,16 +567,11 @@ func (sp *StreamingProcessorImpl) HandleStreamingRequest(w http.ResponseWriter, 
 		"bytes_streamed", session.BytesStreamed,
 
 		"processing_time", time.Since(session.StartTime),
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // processStreamingRequest processes the actual streaming request.
 
@@ -719,8 +585,6 @@ func (sp *StreamingProcessorImpl) processStreamingRequest(session *StreamingSess
 
 	}
 
-
-
 	// Prepare context if RAG is enabled.
 
 	var ragContext string
@@ -733,21 +597,17 @@ func (sp *StreamingProcessorImpl) processStreamingRequest(session *StreamingSess
 
 		ragContext = request.Context
 
-
-
 		// If we have a process endpoint configured, we could call it here for context.
 
 		// This is where integration with RAG retrieval would happen.
-
-
 
 		// Send context injection event.
 
 		contextChunk := &StreamingChunk{
 
-			Type:      "context_injection",
+			Type: "context_injection",
 
-			Content:   "Context retrieved and injected",
+			Content: "Context retrieved and injected",
 
 			Timestamp: time.Now(),
 
@@ -756,14 +616,10 @@ func (sp *StreamingProcessorImpl) processStreamingRequest(session *StreamingSess
 				"context_length": len(ragContext),
 
 				"injection_time": sp.config.ContextInjectionOverhead.String(),
-
 			},
-
 		}
 
 		sp.sendChunk(session, contextChunk)
-
-
 
 		// Simulate context injection overhead.
 
@@ -771,15 +627,11 @@ func (sp *StreamingProcessorImpl) processStreamingRequest(session *StreamingSess
 
 	}
 
-
-
 	// Create streaming request for the base client.
 
 	// Note: This is a simplified implementation.
 
 	// In production, you would need to implement actual streaming for each backend.
-
-
 
 	// For now, always use simulated streaming as base client is a concrete struct type.
 
@@ -789,17 +641,11 @@ func (sp *StreamingProcessorImpl) processStreamingRequest(session *StreamingSess
 
 }
 
-
-
 // StreamingClient interface for clients that support streaming.
 
 type StreamingClient interface {
-
 	ProcessIntentStream(context.Context, string, chan<- *StreamingChunk) error
-
 }
-
-
 
 // handleClientStreaming handles streaming from a client that supports it.
 
@@ -807,15 +653,11 @@ func (sp *StreamingProcessorImpl) handleClientStreaming(session *StreamingSessio
 
 	chunkChan := make(chan *StreamingChunk, sp.config.BufferSize)
 
-
-
 	// Start the streaming process.
 
 	go func() {
 
 		defer close(chunkChan)
-
-
 
 		// Build the full prompt.
 
@@ -827,27 +669,22 @@ func (sp *StreamingProcessorImpl) handleClientStreaming(session *StreamingSessio
 
 		}
 
-
-
 		if err := client.ProcessIntentStream(session.Context, prompt, chunkChan); err != nil {
 
 			sp.logger.Error("Client streaming failed", "error", err)
 
 			chunkChan <- &StreamingChunk{
 
-				Type:      "error",
+				Type: "error",
 
-				Error:     err.Error(),
+				Error: err.Error(),
 
 				Timestamp: time.Now(),
-
 			}
 
 		}
 
 	}()
-
-
 
 	// Process chunks as they arrive.
 
@@ -865,21 +702,15 @@ func (sp *StreamingProcessorImpl) handleClientStreaming(session *StreamingSessio
 
 			}
 
-
-
 			chunk.ChunkIndex = chunkIndex
 
 			chunkIndex++
-
-
 
 			if err := sp.sendChunk(session, chunk); err != nil {
 
 				return fmt.Errorf("failed to send chunk: %w", err)
 
 			}
-
-
 
 			// Check for errors.
 
@@ -888,8 +719,6 @@ func (sp *StreamingProcessorImpl) handleClientStreaming(session *StreamingSessio
 				return fmt.Errorf("streaming error: %s", chunk.Error)
 
 			}
-
-
 
 		case <-session.Context.Done():
 
@@ -900,8 +729,6 @@ func (sp *StreamingProcessorImpl) handleClientStreaming(session *StreamingSessio
 	}
 
 }
-
-
 
 // simulateStreaming simulates streaming by chunking a complete response.
 
@@ -919,8 +746,6 @@ func (sp *StreamingProcessorImpl) simulateStreaming(session *StreamingSession, r
 
 	}
 
-
-
 	// Get complete response from base client or RAG endpoint if configured.
 
 	response, err := sp.getResponseForStreaming(session.Context, prompt)
@@ -931,37 +756,28 @@ func (sp *StreamingProcessorImpl) simulateStreaming(session *StreamingSession, r
 
 	}
 
-
-
 	// Chunk the response and stream it.
 
 	chunks := sp.chunkResponse(response)
-
-
 
 	for i, chunkContent := range chunks {
 
 		chunk := &StreamingChunk{
 
-			Type:       "content",
+			Type: "content",
 
-			Delta:      chunkContent,
+			Delta: chunkContent,
 
-			Timestamp:  time.Now(),
+			Timestamp: time.Now(),
 
 			ChunkIndex: i,
-
 		}
-
-
 
 		if err := sp.sendChunk(session, chunk); err != nil {
 
 			return fmt.Errorf("failed to send chunk: %w", err)
 
 		}
-
-
 
 		// Add small delay to simulate real streaming.
 
@@ -970,8 +786,6 @@ func (sp *StreamingProcessorImpl) simulateStreaming(session *StreamingSession, r
 			time.Sleep(sp.config.MaxChunkDelay)
 
 		}
-
-
 
 		// Check for cancellation.
 
@@ -987,13 +801,9 @@ func (sp *StreamingProcessorImpl) simulateStreaming(session *StreamingSession, r
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // chunkResponse splits a response into chunks for streaming.
 
@@ -1005,15 +815,11 @@ func (sp *StreamingProcessorImpl) chunkResponse(response string) []string {
 
 	}
 
-
-
 	var chunks []string
 
 	words := strings.Fields(response)
 
 	currentChunk := ""
-
-
 
 	for _, word := range words {
 
@@ -1049,21 +855,15 @@ func (sp *StreamingProcessorImpl) chunkResponse(response string) []string {
 
 	}
 
-
-
 	if currentChunk != "" {
 
 		chunks = append(chunks, currentChunk)
 
 	}
 
-
-
 	return chunks
 
 }
-
-
 
 // sendChunk sends a chunk as an SSE event.
 
@@ -1077,27 +877,20 @@ func (sp *StreamingProcessorImpl) sendChunk(session *StreamingSession, chunk *St
 
 	}
 
-
-
 	event := &SSEEvent{
 
 		Event: "chunk",
 
-		Data:  string(chunkData),
+		Data: string(chunkData),
 
-		ID:    fmt.Sprintf("chunk_%d", chunk.ChunkIndex),
-
+		ID: fmt.Sprintf("chunk_%d", chunk.ChunkIndex),
 	}
-
-
 
 	if err := sp.sendSSEEvent(session, event); err != nil {
 
 		return err
 
 	}
-
-
 
 	// Update session metrics.
 
@@ -1111,21 +904,15 @@ func (sp *StreamingProcessorImpl) sendChunk(session *StreamingSession, chunk *St
 
 	session.mutex.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 // sendSSEEvent sends a Server-Sent Event.
 
 func (sp *StreamingProcessorImpl) sendSSEEvent(session *StreamingSession, event *SSEEvent) error {
 
 	var eventStr strings.Builder
-
-
 
 	if event.ID != "" {
 
@@ -1145,8 +932,6 @@ func (sp *StreamingProcessorImpl) sendSSEEvent(session *StreamingSession, event 
 
 	}
 
-
-
 	// Handle multi-line data.
 
 	lines := strings.Split(event.Data, "\n")
@@ -1159,8 +944,6 @@ func (sp *StreamingProcessorImpl) sendSSEEvent(session *StreamingSession, event 
 
 	eventStr.WriteString("\n")
 
-
-
 	// Write to response.
 
 	if _, err := session.Writer.Write([]byte(eventStr.String())); err != nil {
@@ -1169,15 +952,11 @@ func (sp *StreamingProcessorImpl) sendSSEEvent(session *StreamingSession, event 
 
 	}
 
-
-
 	session.Flusher.Flush()
 
 	return nil
 
 }
-
-
 
 // heartbeatRoutine sends periodic heartbeats to keep the connection alive.
 
@@ -1186,8 +965,6 @@ func (sp *StreamingProcessorImpl) heartbeatRoutine(session *StreamingSession, do
 	ticker := time.NewTicker(sp.config.HeartbeatInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1199,11 +976,8 @@ func (sp *StreamingProcessorImpl) heartbeatRoutine(session *StreamingSession, do
 
 				Event: "heartbeat",
 
-				Data:  fmt.Sprintf(`{"timestamp":"%s"}`, time.Now().Format(time.RFC3339)),
-
+				Data: fmt.Sprintf(`{"timestamp":"%s"}`, time.Now().Format(time.RFC3339)),
 			}
-
-
 
 			if err := sp.sendSSEEvent(session, heartbeat); err != nil {
 
@@ -1212,22 +986,17 @@ func (sp *StreamingProcessorImpl) heartbeatRoutine(session *StreamingSession, do
 					"session_id", session.ID,
 
 					"error", err,
-
 				)
 
 				return
 
 			}
 
-
-
 			sp.updateMetrics(func(m *StreamingMetrics) {
 
 				m.HeartbeatsSent++
 
 			})
-
-
 
 		case <-done:
 
@@ -1243,8 +1012,6 @@ func (sp *StreamingProcessorImpl) heartbeatRoutine(session *StreamingSession, do
 
 }
 
-
-
 // maintenanceRoutine performs background maintenance tasks with context support.
 
 func (sp *StreamingProcessorImpl) maintenanceRoutine() {
@@ -1253,19 +1020,13 @@ func (sp *StreamingProcessorImpl) maintenanceRoutine() {
 
 	defer ticker.Stop()
 
-
-
 	// Create a context for the maintenance routine that can be cancelled.
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	defer cancel()
 
-
-
 	sp.logger.Info("Starting maintenance routine")
-
-
 
 	for {
 
@@ -1281,8 +1042,6 @@ func (sp *StreamingProcessorImpl) maintenanceRoutine() {
 
 			sp.performMaintenanceTasks(ctx)
 
-
-
 		case <-ctx.Done():
 
 			sp.logger.Info("Maintenance routine cancelled")
@@ -1294,8 +1053,6 @@ func (sp *StreamingProcessorImpl) maintenanceRoutine() {
 	}
 
 }
-
-
 
 // performMaintenanceTasks performs additional maintenance with context awareness.
 
@@ -1311,8 +1068,6 @@ func (sp *StreamingProcessorImpl) performMaintenanceTasks(ctx context.Context) {
 
 	}
 
-
-
 	// Update metrics timestamp.
 
 	sp.updateMetrics(func(m *StreamingMetrics) {
@@ -1321,8 +1076,6 @@ func (sp *StreamingProcessorImpl) performMaintenanceTasks(ctx context.Context) {
 
 	})
 
-
-
 	// Log current status.
 
 	sp.mutex.RLock()
@@ -1330,8 +1083,6 @@ func (sp *StreamingProcessorImpl) performMaintenanceTasks(ctx context.Context) {
 	activeCount := len(sp.activeStreams)
 
 	sp.mutex.RUnlock()
-
-
 
 	if activeCount > 0 {
 
@@ -1344,8 +1095,6 @@ func (sp *StreamingProcessorImpl) performMaintenanceTasks(ctx context.Context) {
 	}
 
 }
-
-
 
 // cleanupExpiredSessions removes expired or stale sessions with context support.
 
@@ -1361,13 +1110,9 @@ func (sp *StreamingProcessorImpl) cleanupExpiredSessions(ctx context.Context) {
 
 	}
 
-
-
 	sp.mutex.Lock()
 
 	defer sp.mutex.Unlock()
-
-
 
 	now := time.Now()
 
@@ -1381,15 +1126,11 @@ func (sp *StreamingProcessorImpl) cleanupExpiredSessions(ctx context.Context) {
 
 		session.mutex.RUnlock()
 
-
-
 		if expired || cancelled {
 
 			session.Cancel()
 
 			delete(sp.activeStreams, sessionID)
-
-
 
 			sp.logger.Debug("Cleaned up session",
 
@@ -1398,7 +1139,6 @@ func (sp *StreamingProcessorImpl) cleanupExpiredSessions(ctx context.Context) {
 				"expired", expired,
 
 				"cancelled", cancelled,
-
 			)
 
 		}
@@ -1406,8 +1146,6 @@ func (sp *StreamingProcessorImpl) cleanupExpiredSessions(ctx context.Context) {
 	}
 
 }
-
-
 
 // registerSession registers a new active session.
 
@@ -1417,11 +1155,7 @@ func (sp *StreamingProcessorImpl) registerSession(session *StreamingSession) {
 
 	defer sp.mutex.Unlock()
 
-
-
 	sp.activeStreams[session.ID] = session
-
-
 
 	sp.updateMetrics(func(m *StreamingMetrics) {
 
@@ -1433,8 +1167,6 @@ func (sp *StreamingProcessorImpl) registerSession(session *StreamingSession) {
 
 }
 
-
-
 // unregisterSession removes a session from active sessions.
 
 func (sp *StreamingProcessorImpl) unregisterSession(sessionID string) {
@@ -1443,13 +1175,9 @@ func (sp *StreamingProcessorImpl) unregisterSession(sessionID string) {
 
 	defer sp.mutex.Unlock()
 
-
-
 	if _, exists := sp.activeStreams[sessionID]; exists {
 
 		delete(sp.activeStreams, sessionID)
-
-
 
 		sp.updateMetrics(func(m *StreamingMetrics) {
 
@@ -1460,8 +1188,6 @@ func (sp *StreamingProcessorImpl) unregisterSession(sessionID string) {
 	}
 
 }
-
-
 
 // getActiveStreamCount returns the current number of active streams.
 
@@ -1474,8 +1200,6 @@ func (sp *StreamingProcessorImpl) getActiveStreamCount() int64 {
 	return int64(len(sp.activeStreams))
 
 }
-
-
 
 // updateActiveStreamCount updates the active stream count in metrics.
 
@@ -1493,8 +1217,6 @@ func (sp *StreamingProcessorImpl) updateActiveStreamCount() {
 
 }
 
-
-
 // GetActiveSession returns information about an active session.
 
 func (sp *StreamingProcessorImpl) GetActiveSession(sessionID string) (*StreamingSession, bool) {
@@ -1502,8 +1224,6 @@ func (sp *StreamingProcessorImpl) GetActiveSession(sessionID string) (*Streaming
 	sp.mutex.RLock()
 
 	defer sp.mutex.RUnlock()
-
-
 
 	session, exists := sp.activeStreams[sessionID]
 
@@ -1513,43 +1233,36 @@ func (sp *StreamingProcessorImpl) GetActiveSession(sessionID string) (*Streaming
 
 	}
 
-
-
 	// Return a copy to prevent external modification.
 
 	session.mutex.RLock()
 
 	sessionCopy := &StreamingSession{
 
-		ID:             session.ID,
+		ID: session.ID,
 
-		StartTime:      session.StartTime,
+		StartTime: session.StartTime,
 
-		LastActivity:   session.LastActivity,
+		LastActivity: session.LastActivity,
 
-		BytesStreamed:  session.BytesStreamed,
+		BytesStreamed: session.BytesStreamed,
 
 		ChunksStreamed: session.ChunksStreamed,
 
 		ContextUpdates: session.ContextUpdates,
 
-		Status:         session.Status,
+		Status: session.Status,
 
-		Metadata:       session.Metadata,
+		Metadata: session.Metadata,
 
-		ErrorCount:     session.ErrorCount,
-
+		ErrorCount: session.ErrorCount,
 	}
 
 	session.mutex.RUnlock()
 
-
-
 	return sessionCopy, true
 
 }
-
-
 
 // CancelSession cancels an active streaming session.
 
@@ -1561,19 +1274,13 @@ func (sp *StreamingProcessorImpl) CancelSession(sessionID string) error {
 
 	sp.mutex.RUnlock()
 
-
-
 	if !exists {
 
 		return fmt.Errorf("session not found: %s", sessionID)
 
 	}
 
-
-
 	session.Cancel()
-
-
 
 	session.mutex.Lock()
 
@@ -1581,15 +1288,11 @@ func (sp *StreamingProcessorImpl) CancelSession(sessionID string) error {
 
 	session.mutex.Unlock()
 
-
-
 	sp.logger.Info("Session cancelled", "session_id", sessionID)
 
 	return nil
 
 }
-
-
 
 // updateMetrics safely updates metrics.
 
@@ -1603,8 +1306,6 @@ func (sp *StreamingProcessorImpl) updateMetrics(updater func(*StreamingMetrics))
 
 }
 
-
-
 // GetMetrics returns current streaming metrics.
 
 func (sp *StreamingProcessorImpl) GetMetrics() *StreamingMetrics {
@@ -1613,41 +1314,36 @@ func (sp *StreamingProcessorImpl) GetMetrics() *StreamingMetrics {
 
 	defer sp.metrics.mutex.RUnlock()
 
-
-
 	// Create a copy without the mutex.
 
 	metrics := &StreamingMetrics{
 
-		ActiveStreams:      sp.metrics.ActiveStreams,
+		ActiveStreams: sp.metrics.ActiveStreams,
 
-		TotalStreams:       sp.metrics.TotalStreams,
+		TotalStreams: sp.metrics.TotalStreams,
 
-		CompletedStreams:   sp.metrics.CompletedStreams,
+		CompletedStreams: sp.metrics.CompletedStreams,
 
-		FailedStreams:      sp.metrics.FailedStreams,
+		FailedStreams: sp.metrics.FailedStreams,
 
-		AverageStreamTime:  sp.metrics.AverageStreamTime,
+		AverageStreamTime: sp.metrics.AverageStreamTime,
 
 		TotalBytesStreamed: sp.metrics.TotalBytesStreamed,
 
-		AverageLatency:     sp.metrics.AverageLatency,
+		AverageLatency: sp.metrics.AverageLatency,
 
-		ContextInjections:  sp.metrics.ContextInjections,
+		ContextInjections: sp.metrics.ContextInjections,
 
-		Reconnections:      sp.metrics.Reconnections,
+		Reconnections: sp.metrics.Reconnections,
 
-		HeartbeatsSent:     sp.metrics.HeartbeatsSent,
+		HeartbeatsSent: sp.metrics.HeartbeatsSent,
 
-		LastUpdated:        sp.metrics.LastUpdated,
-
+		LastUpdated: sp.metrics.LastUpdated,
 	}
 
 	return metrics
 
 }
-
-
 
 // GetConfig returns the current configuration.
 
@@ -1657,8 +1353,6 @@ func (sp *StreamingProcessorImpl) GetConfig() *StreamingConfig {
 
 	defer sp.mutex.RUnlock()
 
-
-
 	// Create a copy of the config.
 
 	config := *sp.config
@@ -1667,15 +1361,11 @@ func (sp *StreamingProcessorImpl) GetConfig() *StreamingConfig {
 
 }
 
-
-
 // Close gracefully shuts down the streaming processor.
 
 func (sp *StreamingProcessorImpl) Close() error {
 
 	sp.logger.Info("Shutting down streaming processor")
-
-
 
 	// Cancel all active sessions.
 
@@ -1691,21 +1381,15 @@ func (sp *StreamingProcessorImpl) Close() error {
 
 	sp.mutex.RUnlock()
 
-
-
 	for _, session := range sessions {
 
 		session.Cancel()
 
 	}
 
-
-
 	// Wait for sessions to clean up.
 
 	time.Sleep(time.Second)
-
-
 
 	if sp.contextManager != nil {
 
@@ -1713,15 +1397,11 @@ func (sp *StreamingProcessorImpl) Close() error {
 
 	}
 
-
-
 	sp.logger.Info("Streaming processor shutdown complete")
 
 	return nil
 
 }
-
-
 
 // getResponseForStreaming gets response either from base client or RAG endpoint.
 
@@ -1732,8 +1412,6 @@ func (sp *StreamingProcessorImpl) getResponseForStreaming(ctx context.Context, p
 	processEndpoint := sp.processEndpoint
 
 	sp.mutex.RUnlock()
-
-
 
 	// If we have a configured RAG endpoint, we could use it here.
 
@@ -1749,9 +1427,6 @@ func (sp *StreamingProcessorImpl) getResponseForStreaming(ctx context.Context, p
 
 	}
 
-
-
 	return sp.baseClient.ProcessIntent(ctx, prompt)
 
 }
-

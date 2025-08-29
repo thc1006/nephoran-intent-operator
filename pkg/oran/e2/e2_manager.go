@@ -1,35 +1,18 @@
-
 package e2
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"log"
-
 	"regexp"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
-
 )
-
-
 
 // E2Manager provides comprehensive E2 interface management with connection pooling,.
 
@@ -39,35 +22,28 @@ type E2Manager struct {
 
 	// Core components.
 
-	adaptors        map[string]*E2Adaptor   // nodeID -> adaptor mapping
+	adaptors map[string]*E2Adaptor // nodeID -> adaptor mapping
 
-	connectionPool  *E2ConnectionPool       // Connection pool management
+	connectionPool *E2ConnectionPool // Connection pool management
 
-	subscriptionMgr *E2SubscriptionManager  // Subscription lifecycle management
+	subscriptionMgr *E2SubscriptionManager // Subscription lifecycle management
 
 	serviceRegistry *E2ServiceModelRegistry // Service model registry with plugin support
 
-	health          *E2HealthMonitor        // Health monitoring system
-
-
+	health *E2HealthMonitor // Health monitoring system
 
 	// Configuration and synchronization.
 
 	config *E2ManagerConfig
 
-	mutex  sync.RWMutex
-
-
+	mutex sync.RWMutex
 
 	// Metrics and monitoring.
 
 	metrics *E2Metrics
 
-	logger  *log.Logger
-
+	logger *log.Logger
 }
-
-
 
 // E2ManagerConfig holds configuration for the E2Manager.
 
@@ -75,141 +51,112 @@ type E2ManagerConfig struct {
 
 	// Connection settings.
 
-	DefaultRICURL     string
+	DefaultRICURL string
 
 	DefaultAPIVersion string
 
-	DefaultTimeout    time.Duration
+	DefaultTimeout time.Duration
 
 	HeartbeatInterval time.Duration
 
-	MaxRetries        int
-
-
+	MaxRetries int
 
 	// Pool settings.
 
-	MaxConnections      int
+	MaxConnections int
 
-	ConnectionIdleTime  time.Duration
+	ConnectionIdleTime time.Duration
 
 	HealthCheckInterval time.Duration
 
-
-
 	// Security settings.
 
-	TLSConfig            *oran.TLSConfig
+	TLSConfig *oran.TLSConfig
 
 	EnableAuthentication bool
-
-
 
 	// Service model settings.
 
 	ServiceModelDir string
 
-	EnablePlugins   bool
+	EnablePlugins bool
 
-	PluginTimeout   time.Duration
-
-
+	PluginTimeout time.Duration
 
 	// Simulation settings.
 
-	SimulationMode   bool
+	SimulationMode bool
 
 	SimulateRICCalls bool
-
 }
-
-
 
 // E2ConnectionPool manages a pool of E2 connections with health monitoring.
 
 type E2ConnectionPool struct {
-
-	connections    map[string]*PooledConnection
+	connections map[string]*PooledConnection
 
 	maxConnections int
 
-	idleTimeout    time.Duration
+	idleTimeout time.Duration
 
 	healthInterval time.Duration
 
-	mutex          sync.RWMutex
+	mutex sync.RWMutex
 
-	stopChan       chan struct{}
-
+	stopChan chan struct{}
 }
-
-
 
 // PooledConnection represents a pooled E2 connection.
 
 type PooledConnection struct {
+	adaptor *E2Adaptor
 
-	adaptor   *E2Adaptor
+	lastUsed time.Time
 
-	lastUsed  time.Time
+	inUse bool
 
-	inUse     bool
-
-	healthy   bool
+	healthy bool
 
 	failCount int
 
-	mutex     sync.Mutex
-
+	mutex sync.Mutex
 }
-
-
 
 // E2SubscriptionManager manages subscription lifecycle with state tracking.
 
 type E2SubscriptionManager struct {
-
 	subscriptions map[string]map[string]*ManagedSubscription // nodeID -> subscriptionID -> subscription
 
-	stateTracker  *SubscriptionStateTracker
+	stateTracker *SubscriptionStateTracker
 
-	notifier      *SubscriptionNotifier
+	notifier *SubscriptionNotifier
 
-	mutex         sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ManagedSubscription extends E2Subscription with lifecycle management.
 
 type ManagedSubscription struct {
-
 	E2Subscription
 
-	State        SubscriptionState
+	State SubscriptionState
 
 	CreationTime time.Time
 
-	LastUpdate   time.Time
+	LastUpdate time.Time
 
-	RetryCount   int
+	RetryCount int
 
-	MaxRetries   int
+	MaxRetries int
 
 	HealthStatus SubscriptionHealth
 
-	Metrics      SubscriptionMetrics
-
+	Metrics SubscriptionMetrics
 }
-
-
 
 // SubscriptionState represents the state of a managed subscription.
 
 type SubscriptionState string
-
-
 
 const (
 
@@ -232,118 +179,87 @@ const (
 	// SubscriptionStateDeleting holds subscriptionstatedeleting value.
 
 	SubscriptionStateDeleting SubscriptionState = "DELETING"
-
 )
-
-
 
 // SubscriptionHealth represents subscription health status.
 
 type SubscriptionHealth struct {
+	Status string `json:"status"` // HEALTHY, DEGRADED, UNHEALTHY
 
-	Status       string        `json:"status"` // HEALTHY, DEGRADED, UNHEALTHY
+	LastCheck time.Time `json:"last_check"`
 
-	LastCheck    time.Time     `json:"last_check"`
+	FailureCount int `json:"failure_count"`
 
-	FailureCount int           `json:"failure_count"`
-
-	LastFailure  string        `json:"last_failure,omitempty"`
+	LastFailure string `json:"last_failure,omitempty"`
 
 	ResponseTime time.Duration `json:"response_time"`
-
 }
-
-
 
 // SubscriptionMetrics holds metrics for a subscription.
 
 type SubscriptionMetrics struct {
+	MessagesReceived int64 `json:"messages_received"`
 
-	MessagesReceived int64         `json:"messages_received"`
+	MessagesSent int64 `json:"messages_sent"`
 
-	MessagesSent     int64         `json:"messages_sent"`
+	LastMessageTime time.Time `json:"last_message_time"`
 
-	LastMessageTime  time.Time     `json:"last_message_time"`
+	AverageLatency time.Duration `json:"average_latency"`
 
-	AverageLatency   time.Duration `json:"average_latency"`
-
-	ErrorCount       int64         `json:"error_count"`
-
+	ErrorCount int64 `json:"error_count"`
 }
-
-
 
 // SubscriptionStateTracker tracks subscription state transitions.
 
 type SubscriptionStateTracker struct {
-
 	stateHistory map[string][]StateTransition
 
-	mutex        sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // StateTransition represents a subscription state change.
 
 type StateTransition struct {
-
 	FromState SubscriptionState
 
-	ToState   SubscriptionState
+	ToState SubscriptionState
 
 	Timestamp time.Time
 
-	Reason    string
-
+	Reason string
 }
-
-
 
 // SubscriptionNotifier handles subscription event notifications.
 
 type SubscriptionNotifier struct {
-
 	listeners []SubscriptionListener
 
-	mutex     sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // SubscriptionListener interface for subscription events.
 
 type SubscriptionListener interface {
-
 	OnSubscriptionStateChange(nodeID, subscriptionID string, oldState, newState SubscriptionState)
 
 	OnSubscriptionError(nodeID, subscriptionID string, err error)
 
 	OnSubscriptionMessage(nodeID, subscriptionID string, indication *E2Indication)
-
 }
-
-
 
 // E2ServiceModelRegistry manages service models with plugin architecture.
 
 type E2ServiceModelRegistry struct {
-
 	serviceModels map[string]*RegisteredServiceModel
 
-	plugins       map[string]ServiceModelPlugin
+	plugins map[string]ServiceModelPlugin
 
-	mutex         sync.RWMutex
+	mutex sync.RWMutex
 
-	pluginsDir    string
+	pluginsDir string
 
 	enablePlugins bool
-
 }
-
-
 
 // NewE2ServiceModelRegistry creates a new E2ServiceModelRegistry.
 
@@ -353,40 +269,32 @@ func NewE2ServiceModelRegistry() *E2ServiceModelRegistry {
 
 		serviceModels: make(map[string]*RegisteredServiceModel),
 
-		plugins:       make(map[string]ServiceModelPlugin),
+		plugins: make(map[string]ServiceModelPlugin),
 
 		enablePlugins: true,
-
 	}
 
 }
 
-
-
 // RegisteredServiceModel extends E2ServiceModel with registry information.
 
 type RegisteredServiceModel struct {
-
 	E2ServiceModel
 
 	RegistrationTime time.Time
 
-	Version          string
+	Version string
 
-	Plugin           ServiceModelPlugin
+	Plugin ServiceModelPlugin
 
-	ValidationRules  []ValidationRule
+	ValidationRules []ValidationRule
 
-	Compatibility    []string
-
+	Compatibility []string
 }
-
-
 
 // ServiceModelPlugin interface for service model plugins.
 
 type ServiceModelPlugin interface {
-
 	GetName() string
 
 	GetVersion() string
@@ -396,106 +304,83 @@ type ServiceModelPlugin interface {
 	Process(ctx context.Context, request interface{}) (interface{}, error)
 
 	GetSupportedProcedures() []string
-
 }
-
-
 
 // ValidationRule represents a service model validation rule.
 
 type ValidationRule struct {
-
-	Name        string
+	Name string
 
 	Description string
 
-	Validate    func(*E2ServiceModel) error
-
+	Validate func(*E2ServiceModel) error
 }
-
-
 
 // E2HealthMonitor monitors the health of E2 components.
 
 type E2HealthMonitor struct {
+	nodeHealth map[string]*NodeHealth
 
-	nodeHealth         map[string]*NodeHealth
-
-	connectionHealth   map[string]*ConnectionHealth
+	connectionHealth map[string]*ConnectionHealth
 
 	subscriptionHealth map[string]map[string]*SubscriptionHealth
 
-	mutex              sync.RWMutex
+	mutex sync.RWMutex
 
-	checkInterval      time.Duration
+	checkInterval time.Duration
 
-	stopChan           chan struct{}
-
+	stopChan chan struct{}
 }
-
-
 
 // NodeHealth represents the health status of an E2 node.
 
 type NodeHealth struct {
+	NodeID string `json:"node_id"`
 
-	NodeID       string                  `json:"node_id"`
+	Status string `json:"status"` // HEALTHY, DEGRADED, UNHEALTHY, DISCONNECTED
 
-	Status       string                  `json:"status"` // HEALTHY, DEGRADED, UNHEALTHY, DISCONNECTED
+	LastCheck time.Time `json:"last_check"`
 
-	LastCheck    time.Time               `json:"last_check"`
+	ResponseTime time.Duration `json:"response_time"`
 
-	ResponseTime time.Duration           `json:"response_time"`
+	Uptime time.Duration `json:"uptime"`
 
-	Uptime       time.Duration           `json:"uptime"`
+	FailureCount int `json:"failure_count"`
 
-	FailureCount int                     `json:"failure_count"`
+	LastFailure string `json:"last_failure,omitempty"`
 
-	LastFailure  string                  `json:"last_failure,omitempty"`
-
-	Functions    map[int]*FunctionHealth `json:"functions"`
-
+	Functions map[int]*FunctionHealth `json:"functions"`
 }
-
-
 
 // FunctionHealth represents the health of a RAN function.
 
 type FunctionHealth struct {
+	FunctionID int `json:"function_id"`
 
-	FunctionID   int           `json:"function_id"`
+	Status string `json:"status"`
 
-	Status       string        `json:"status"`
-
-	LastCheck    time.Time     `json:"last_check"`
+	LastCheck time.Time `json:"last_check"`
 
 	ResponseTime time.Duration `json:"response_time"`
 
-	ErrorRate    float64       `json:"error_rate"`
-
+	ErrorRate float64 `json:"error_rate"`
 }
-
-
 
 // ConnectionHealth represents the health of a connection.
 
 type ConnectionHealth struct {
+	ConnectionID string `json:"connection_id"`
 
-	ConnectionID string        `json:"connection_id"`
+	Status string `json:"status"`
 
-	Status       string        `json:"status"`
+	LastCheck time.Time `json:"last_check"`
 
-	LastCheck    time.Time     `json:"last_check"`
+	Latency time.Duration `json:"latency"`
 
-	Latency      time.Duration `json:"latency"`
+	Throughput float64 `json:"throughput"`
 
-	Throughput   float64       `json:"throughput"`
-
-	ErrorRate    float64       `json:"error_rate"`
-
+	ErrorRate float64 `json:"error_rate"`
 }
-
-
 
 // E2Metrics holds comprehensive metrics for E2 operations.
 
@@ -503,65 +388,52 @@ type E2Metrics struct {
 
 	// Connection metrics.
 
-	ConnectionsTotal    int64
+	ConnectionsTotal int64
 
-	ConnectionsActive   int64
+	ConnectionsActive int64
 
-	ConnectionsFailed   int64
+	ConnectionsFailed int64
 
 	ConnectionLatencyMs float64
 
-
-
 	// Node metrics.
 
-	NodesRegistered   int64
+	NodesRegistered int64
 
-	NodesActive       int64
+	NodesActive int64
 
 	NodesDisconnected int64
 
-
-
 	// Subscription metrics.
 
-	SubscriptionsTotal    int64
+	SubscriptionsTotal int64
 
-	SubscriptionsActive   int64
+	SubscriptionsActive int64
 
-	SubscriptionsFailed   int64
+	SubscriptionsFailed int64
 
 	SubscriptionLatencyMs float64
 
-
-
 	// Message metrics.
 
-	MessagesReceived  int64
+	MessagesReceived int64
 
-	MessagesSent      int64
+	MessagesSent int64
 
 	MessagesProcessed int64
 
-	MessagesFailed    int64
-
-
+	MessagesFailed int64
 
 	// Error metrics.
 
-	ErrorsTotal  int64
+	ErrorsTotal int64
 
 	ErrorsByType map[string]int64
 
-
-
-	mutex       sync.RWMutex
+	mutex sync.RWMutex
 
 	lastUpdated time.Time
-
 }
-
-
 
 // NewE2Manager creates a new E2Manager with comprehensive functionality.
 
@@ -571,55 +443,49 @@ func NewE2Manager(config *E2ManagerConfig) (*E2Manager, error) {
 
 		config = &E2ManagerConfig{
 
-			DefaultRICURL:       "http://near-rt-ric:38080",
+			DefaultRICURL: "http://near-rt-ric:38080",
 
-			DefaultAPIVersion:   "v1",
+			DefaultAPIVersion: "v1",
 
-			DefaultTimeout:      30 * time.Second,
+			DefaultTimeout: 30 * time.Second,
 
-			HeartbeatInterval:   30 * time.Second,
+			HeartbeatInterval: 30 * time.Second,
 
-			MaxRetries:          3,
+			MaxRetries: 3,
 
-			MaxConnections:      100,
+			MaxConnections: 100,
 
-			ConnectionIdleTime:  5 * time.Minute,
+			ConnectionIdleTime: 5 * time.Minute,
 
 			HealthCheckInterval: 30 * time.Second,
 
-			ServiceModelDir:     "/etc/nephoran/service-models",
+			ServiceModelDir: "/etc/nephoran/service-models",
 
-			EnablePlugins:       true,
+			EnablePlugins: true,
 
-			PluginTimeout:       10 * time.Second,
+			PluginTimeout: 10 * time.Second,
 
-			SimulationMode:      false,
+			SimulationMode: false,
 
-			SimulateRICCalls:    false,
-
+			SimulateRICCalls: false,
 		}
 
 	}
-
-
 
 	// Initialize connection pool.
 
 	connectionPool := &E2ConnectionPool{
 
-		connections:    make(map[string]*PooledConnection),
+		connections: make(map[string]*PooledConnection),
 
 		maxConnections: config.MaxConnections,
 
-		idleTimeout:    config.ConnectionIdleTime,
+		idleTimeout: config.ConnectionIdleTime,
 
 		healthInterval: config.HealthCheckInterval,
 
-		stopChan:       make(chan struct{}),
-
+		stopChan: make(chan struct{}),
 	}
-
-
 
 	// Initialize subscription manager.
 
@@ -630,18 +496,13 @@ func NewE2Manager(config *E2ManagerConfig) (*E2Manager, error) {
 		stateTracker: &SubscriptionStateTracker{
 
 			stateHistory: make(map[string][]StateTransition),
-
 		},
 
 		notifier: &SubscriptionNotifier{
 
 			listeners: make([]SubscriptionListener, 0),
-
 		},
-
 	}
-
-
 
 	// Initialize service model registry.
 
@@ -649,33 +510,27 @@ func NewE2Manager(config *E2ManagerConfig) (*E2Manager, error) {
 
 		serviceModels: make(map[string]*RegisteredServiceModel),
 
-		plugins:       make(map[string]ServiceModelPlugin),
+		plugins: make(map[string]ServiceModelPlugin),
 
-		pluginsDir:    config.ServiceModelDir,
+		pluginsDir: config.ServiceModelDir,
 
 		enablePlugins: config.EnablePlugins,
-
 	}
-
-
 
 	// Initialize health monitor.
 
 	health := &E2HealthMonitor{
 
-		nodeHealth:         make(map[string]*NodeHealth),
+		nodeHealth: make(map[string]*NodeHealth),
 
-		connectionHealth:   make(map[string]*ConnectionHealth),
+		connectionHealth: make(map[string]*ConnectionHealth),
 
 		subscriptionHealth: make(map[string]map[string]*SubscriptionHealth),
 
-		checkInterval:      config.HealthCheckInterval,
+		checkInterval: config.HealthCheckInterval,
 
-		stopChan:           make(chan struct{}),
-
+		stopChan: make(chan struct{}),
 	}
-
-
 
 	// Initialize metrics.
 
@@ -683,31 +538,25 @@ func NewE2Manager(config *E2ManagerConfig) (*E2Manager, error) {
 
 		ErrorsByType: make(map[string]int64),
 
-		lastUpdated:  time.Now(),
-
+		lastUpdated: time.Now(),
 	}
-
-
 
 	manager := &E2Manager{
 
-		adaptors:        make(map[string]*E2Adaptor),
+		adaptors: make(map[string]*E2Adaptor),
 
-		connectionPool:  connectionPool,
+		connectionPool: connectionPool,
 
 		subscriptionMgr: subscriptionMgr,
 
 		serviceRegistry: serviceRegistry,
 
-		health:          health,
+		health: health,
 
-		config:          config,
+		config: config,
 
-		metrics:         metrics,
-
+		metrics: metrics,
 	}
-
-
 
 	// Register default service models.
 
@@ -717,8 +566,6 @@ func NewE2Manager(config *E2ManagerConfig) (*E2Manager, error) {
 
 	}
 
-
-
 	// Start background services.
 
 	go connectionPool.startHealthChecker()
@@ -727,13 +574,9 @@ func NewE2Manager(config *E2ManagerConfig) (*E2Manager, error) {
 
 	go manager.startMetricsCollector()
 
-
-
 	return manager, nil
 
 }
-
-
 
 // ProvisionNode is a high-level method to provision an E2 node based on E2NodeSet spec.
 
@@ -742,8 +585,6 @@ func (m *E2Manager) ProvisionNode(ctx context.Context, spec nephoranv1.E2NodeSet
 	// This method provides a simplified interface for the controller to provision nodes.
 
 	// It combines the lower-level operations into a single call.
-
-
 
 	// For now, this returns success as the controller already handles the individual operations.
 
@@ -756,8 +597,6 @@ func (m *E2Manager) ProvisionNode(ctx context.Context, spec nephoranv1.E2NodeSet
 	// - Coordinating with external systems.
 
 	// - Managing resource allocation.
-
-
 
 	if m.logger != nil {
 
@@ -773,13 +612,9 @@ func (m *E2Manager) ProvisionNode(ctx context.Context, spec nephoranv1.E2NodeSet
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // SetupE2Connection establishes an E2 connection to a node with comprehensive error handling.
 
@@ -799,8 +634,6 @@ func (m *E2Manager) SetupE2Connection(nodeID, endpoint string) error {
 
 	}
 
-
-
 	// Log operation mode.
 
 	if m.logger != nil {
@@ -817,13 +650,9 @@ func (m *E2Manager) SetupE2Connection(nodeID, endpoint string) error {
 
 	}
 
-
-
 	m.mutex.Lock()
 
 	defer m.mutex.Unlock()
-
-
 
 	// Check if connection already exists.
 
@@ -833,27 +662,22 @@ func (m *E2Manager) SetupE2Connection(nodeID, endpoint string) error {
 
 	}
 
-
-
 	// Create adaptor configuration.
 
 	config := &E2AdaptorConfig{
 
-		RICURL:            endpoint,
+		RICURL: endpoint,
 
-		APIVersion:        m.config.DefaultAPIVersion,
+		APIVersion: m.config.DefaultAPIVersion,
 
-		Timeout:           m.config.DefaultTimeout,
+		Timeout: m.config.DefaultTimeout,
 
 		HeartbeatInterval: m.config.HeartbeatInterval,
 
-		MaxRetries:        m.config.MaxRetries,
+		MaxRetries: m.config.MaxRetries,
 
-		TLSConfig:         m.config.TLSConfig,
-
+		TLSConfig: m.config.TLSConfig,
 	}
-
-
 
 	// Create new adaptor.
 
@@ -867,15 +691,11 @@ func (m *E2Manager) SetupE2Connection(nodeID, endpoint string) error {
 
 	}
 
-
-
 	m.adaptors[nodeID] = adaptor
 
 	m.metrics.ConnectionsTotal++
 
 	m.metrics.ConnectionsActive++
-
-
 
 	// Initialize health monitoring for this node.
 
@@ -883,25 +703,20 @@ func (m *E2Manager) SetupE2Connection(nodeID, endpoint string) error {
 
 	m.health.nodeHealth[nodeID] = &NodeHealth{
 
-		NodeID:    nodeID,
+		NodeID: nodeID,
 
-		Status:    "CONNECTING",
+		Status: "CONNECTING",
 
 		LastCheck: time.Now(),
 
 		Functions: make(map[int]*FunctionHealth),
-
 	}
 
 	m.health.mutex.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 // SubscribeE2 creates a managed E2 subscription with comprehensive lifecycle management.
 
@@ -925,15 +740,11 @@ func (m *E2Manager) SubscribeE2(req *E2SubscriptionRequest) (*E2Subscription, er
 
 	}
 
-
-
 	m.mutex.RLock()
 
 	adaptor, exists := m.adaptors[req.NodeID]
 
 	m.mutex.RUnlock()
-
-
 
 	if !exists {
 
@@ -941,27 +752,22 @@ func (m *E2Manager) SubscribeE2(req *E2SubscriptionRequest) (*E2Subscription, er
 
 	}
 
-
-
 	// Create subscription from request.
 
 	subscription := &E2Subscription{
 
-		SubscriptionID:  req.SubscriptionID,
+		SubscriptionID: req.SubscriptionID,
 
-		RequestorID:     req.RequestorID,
+		RequestorID: req.RequestorID,
 
-		RanFunctionID:   req.RanFunctionID,
+		RanFunctionID: req.RanFunctionID,
 
-		EventTriggers:   req.EventTriggers,
+		EventTriggers: req.EventTriggers,
 
-		Actions:         req.Actions,
+		Actions: req.Actions,
 
 		ReportingPeriod: req.ReportingPeriod,
-
 	}
-
-
 
 	// Create subscription through adaptor (or simulate).
 
@@ -993,35 +799,29 @@ func (m *E2Manager) SubscribeE2(req *E2SubscriptionRequest) (*E2Subscription, er
 
 	}
 
-
-
 	// Create managed subscription.
 
 	managedSub := &ManagedSubscription{
 
 		E2Subscription: *subscription,
 
-		State:          SubscriptionStatePending,
+		State: SubscriptionStatePending,
 
-		CreationTime:   time.Now(),
+		CreationTime: time.Now(),
 
-		LastUpdate:     time.Now(),
+		LastUpdate: time.Now(),
 
-		MaxRetries:     m.config.MaxRetries,
+		MaxRetries: m.config.MaxRetries,
 
 		HealthStatus: SubscriptionHealth{
 
-			Status:    "HEALTHY",
+			Status: "HEALTHY",
 
 			LastCheck: time.Now(),
-
 		},
 
 		Metrics: SubscriptionMetrics{},
-
 	}
-
-
 
 	// Add to subscription manager.
 
@@ -1037,25 +837,17 @@ func (m *E2Manager) SubscribeE2(req *E2SubscriptionRequest) (*E2Subscription, er
 
 	m.subscriptionMgr.mutex.Unlock()
 
-
-
 	// Update state to active.
 
 	m.updateSubscriptionState(req.NodeID, req.SubscriptionID, SubscriptionStateActive, "Subscription created successfully")
-
-
 
 	m.metrics.SubscriptionsTotal++
 
 	m.metrics.SubscriptionsActive++
 
-
-
 	return subscription, nil
 
 }
-
-
 
 // SendControlMessage sends a control message to a specified E2 node with retry logic.
 
@@ -1085,8 +877,6 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, contr
 
 	}
 
-
-
 	// Log operation mode.
 
 	if m.config.SimulationMode {
@@ -1101,13 +891,9 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, contr
 
 	}
 
-
-
 	// Use the provided nodeID parameter as the target node.
 
 	targetNodeID := nodeID
-
-
 
 	// Optionally validate against control header if present (for consistency checking).
 
@@ -1129,8 +915,6 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, contr
 
 	}
 
-
-
 	// Find the target adaptor.
 
 	m.mutex.RLock()
@@ -1138,8 +922,6 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, contr
 	adaptor, exists := m.adaptors[targetNodeID]
 
 	m.mutex.RUnlock()
-
-
 
 	if !exists || adaptor == nil {
 
@@ -1157,15 +939,11 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, contr
 
 		m.mutex.RUnlock()
 
-
-
 		if len(availableNodes) == 0 {
 
 			return nil, fmt.Errorf("no E2 connections available")
 
 		}
-
-
 
 		// In production, this should be an error. For backward compatibility, warn and use first available.
 
@@ -1177,15 +955,11 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, contr
 
 		}
 
-
-
 		targetNodeID = availableNodes[0]
 
 		adaptor = m.adaptors[targetNodeID]
 
 	}
-
-
 
 	// Log the target node for the operation.
 
@@ -1207,8 +981,6 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, contr
 
 	}
 
-
-
 	// Convert RICControlRequest to E2ControlRequest.
 
 	var callProcessID string
@@ -1218,8 +990,6 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, contr
 		callProcessID = string(*controlReq.RICCallProcessID)
 
 	}
-
-
 
 	// Convert byte slices to map[string]interface{} for JSON transport.
 
@@ -1233,8 +1003,6 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, contr
 
 	}
 
-
-
 	controlMessage := make(map[string]interface{})
 
 	if len(controlReq.RICControlMessage) > 0 {
@@ -1243,33 +1011,26 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, contr
 
 	}
 
-
-
 	request := &E2ControlRequest{
 
-		RequestID:         fmt.Sprintf("%d-%d", controlReq.RICRequestID.RICRequestorID, controlReq.RICRequestID.RICInstanceID),
+		RequestID: fmt.Sprintf("%d-%d", controlReq.RICRequestID.RICRequestorID, controlReq.RICRequestID.RICInstanceID),
 
-		RanFunctionID:     int(controlReq.RANFunctionID),
+		RanFunctionID: int(controlReq.RANFunctionID),
 
-		CallProcessID:     callProcessID,
+		CallProcessID: callProcessID,
 
-		ControlHeader:     controlHeader,
+		ControlHeader: controlHeader,
 
-		ControlMessage:    controlMessage,
+		ControlMessage: controlMessage,
 
 		ControlAckRequest: controlReq.RICControlAckRequest != nil,
-
 	}
-
-
 
 	// Handle simulation mode vs production mode.
 
 	var response *E2ControlResponse
 
 	var err error
-
-
 
 	if m.config.SimulationMode || m.config.SimulateRICCalls {
 
@@ -1281,23 +1042,17 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, contr
 
 		}
 
-
-
 		response = &E2ControlResponse{
 
 			RequestID: request.RequestID,
 
 			Status: E2ControlStatus{
 
-				Result:           "SUCCESS",
+				Result: "SUCCESS",
 
 				CauseDescription: "Simulated RIC control response",
-
 			},
-
 		}
-
-
 
 		// Simulate processing delay.
 
@@ -1319,13 +1074,9 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, contr
 
 	}
 
-
-
 	m.metrics.MessagesSent++
 
 	m.metrics.MessagesProcessed++
-
-
 
 	// Convert response to RICControlAcknowledge.
 
@@ -1333,27 +1084,20 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, contr
 
 	statusBytes := []byte(fmt.Sprintf("Result: %s, Cause: %s", response.Status.Result, response.Status.CauseDescription))
 
-
-
 	ack := &RICControlAcknowledge{
 
-		RICRequestID:      controlReq.RICRequestID,
+		RICRequestID: controlReq.RICRequestID,
 
-		RANFunctionID:     controlReq.RANFunctionID,
+		RANFunctionID: controlReq.RANFunctionID,
 
-		RICCallProcessID:  controlReq.RICCallProcessID,
+		RICCallProcessID: controlReq.RICCallProcessID,
 
 		RICControlOutcome: statusBytes,
-
 	}
-
-
 
 	return ack, nil
 
 }
-
-
 
 // SendControlMessageLegacy sends a control message extracting node ID from the request.
 
@@ -1371,8 +1115,6 @@ func (m *E2Manager) SendControlMessageLegacy(ctx context.Context, controlReq *RI
 
 	}
 
-
-
 	// Extract node ID from control header for backward compatibility.
 
 	nodeID := ""
@@ -1382,8 +1124,6 @@ func (m *E2Manager) SendControlMessageLegacy(ctx context.Context, controlReq *RI
 		nodeID = m.extractNodeIDFromControlHeader(controlReq.RICControlHeader)
 
 	}
-
-
 
 	// If no node ID could be extracted, try to use the first available node.
 
@@ -1401,15 +1141,11 @@ func (m *E2Manager) SendControlMessageLegacy(ctx context.Context, controlReq *RI
 
 		m.mutex.RUnlock()
 
-
-
 		if nodeID == "" {
 
 			return nil, fmt.Errorf("no node ID found in control header and no E2 connections available")
 
 		}
-
-
 
 		if m.logger != nil {
 
@@ -1419,15 +1155,11 @@ func (m *E2Manager) SendControlMessageLegacy(ctx context.Context, controlReq *RI
 
 	}
 
-
-
 	// Call the new method with extracted node ID.
 
 	return m.SendControlMessage(ctx, nodeID, controlReq)
 
 }
-
-
 
 // extractNodeIDFromControlHeader extracts node ID from RIC control header.
 
@@ -1437,8 +1169,6 @@ func (m *E2Manager) extractNodeIDFromControlHeader(controlHeader []byte) string 
 
 	// Implementation for control header parsing based on O-RAN specifications.
 
-
-
 	// For simulation mode, return a predictable test node ID.
 
 	if m.config.SimulationMode {
@@ -1447,8 +1177,6 @@ func (m *E2Manager) extractNodeIDFromControlHeader(controlHeader []byte) string 
 
 	}
 
-
-
 	// Handle empty header.
 
 	if len(controlHeader) == 0 {
@@ -1456,8 +1184,6 @@ func (m *E2Manager) extractNodeIDFromControlHeader(controlHeader []byte) string 
 		return ""
 
 	}
-
-
 
 	// Try to parse as JSON first (HTTP/REST transport).
 
@@ -1487,8 +1213,6 @@ func (m *E2Manager) extractNodeIDFromControlHeader(controlHeader []byte) string 
 
 	}
 
-
-
 	// Try to parse as string-encoded node ID (simple format).
 
 	headerStr := string(controlHeader)
@@ -1498,8 +1222,6 @@ func (m *E2Manager) extractNodeIDFromControlHeader(controlHeader []byte) string 
 		return strings.TrimPrefix(headerStr, "node:")
 
 	}
-
-
 
 	// Check for gNB ID patterns in the header string.
 
@@ -1511,8 +1233,6 @@ func (m *E2Manager) extractNodeIDFromControlHeader(controlHeader []byte) string 
 
 	}
 
-
-
 	// Check for eNB ID patterns.
 
 	enbPattern := regexp.MustCompile(`enb-([a-zA-Z0-9_-]+)`)
@@ -1522,8 +1242,6 @@ func (m *E2Manager) extractNodeIDFromControlHeader(controlHeader []byte) string 
 		return "node-" + matches[1]
 
 	}
-
-
 
 	// If header is a simple node ID string (alphanumeric with dashes/underscores).
 
@@ -1535,13 +1253,9 @@ func (m *E2Manager) extractNodeIDFromControlHeader(controlHeader []byte) string 
 
 	}
 
-
-
 	return ""
 
 }
-
-
 
 // mapRequestorIDToNodeID maps a RIC requestor ID to a node ID.
 
@@ -1551,8 +1265,6 @@ func (m *E2Manager) mapRequestorIDToNodeID(requestorID RICRequestorID) string {
 
 	// Implementation for requestor ID to node ID mapping.
 
-
-
 	// In simulation mode, return a default test node ID.
 
 	if m.config.SimulationMode {
@@ -1560,8 +1272,6 @@ func (m *E2Manager) mapRequestorIDToNodeID(requestorID RICRequestorID) string {
 		return "sim-node-001"
 
 	}
-
-
 
 	// O-RAN standard requestor ID ranges:.
 
@@ -1577,8 +1287,6 @@ func (m *E2Manager) mapRequestorIDToNodeID(requestorID RICRequestorID) string {
 
 	// 5000-9999: Vendor-specific ranges.
 
-
-
 	switch {
 
 	// Near-RT RIC internal functions.
@@ -1586,8 +1294,6 @@ func (m *E2Manager) mapRequestorIDToNodeID(requestorID RICRequestorID) string {
 	case requestorID >= 1 && requestorID <= 999:
 
 		return "ric-internal-node"
-
-
 
 	// xApp requestor IDs - map to gNB nodes.
 
@@ -1607,8 +1313,6 @@ func (m *E2Manager) mapRequestorIDToNodeID(requestorID RICRequestorID) string {
 
 		return fmt.Sprintf("node-gnb-%03d", ((requestorID-1300)/100)+4)
 
-
-
 	// O-CU functions.
 
 	case requestorID >= 2000 && requestorID <= 2999:
@@ -1616,8 +1320,6 @@ func (m *E2Manager) mapRequestorIDToNodeID(requestorID RICRequestorID) string {
 		cuID := (requestorID - 2000) / 100
 
 		return fmt.Sprintf("node-cu-%03d", cuID+1)
-
-
 
 	// O-DU functions.
 
@@ -1627,8 +1329,6 @@ func (m *E2Manager) mapRequestorIDToNodeID(requestorID RICRequestorID) string {
 
 		return fmt.Sprintf("node-du-%03d", duID+1)
 
-
-
 	// O-RU functions.
 
 	case requestorID >= 4000 && requestorID <= 4999:
@@ -1637,8 +1337,6 @@ func (m *E2Manager) mapRequestorIDToNodeID(requestorID RICRequestorID) string {
 
 		return fmt.Sprintf("node-ru-%03d", ruID+1)
 
-
-
 	// Vendor-specific ranges - map to generic nodes.
 
 	case requestorID >= 5000 && requestorID <= 9999:
@@ -1646,8 +1344,6 @@ func (m *E2Manager) mapRequestorIDToNodeID(requestorID RICRequestorID) string {
 		vendorNodeID := (requestorID - 5000) / 1000
 
 		return fmt.Sprintf("node-vendor-%d", vendorNodeID+1)
-
-
 
 	default:
 
@@ -1659,8 +1355,6 @@ func (m *E2Manager) mapRequestorIDToNodeID(requestorID RICRequestorID) string {
 
 }
 
-
-
 // ListE2Nodes returns all registered E2 nodes with their status.
 
 func (m *E2Manager) ListE2Nodes(ctx context.Context) ([]*E2Node, error) {
@@ -1669,13 +1363,9 @@ func (m *E2Manager) ListE2Nodes(ctx context.Context) ([]*E2Node, error) {
 
 	defer m.mutex.RUnlock()
 
-
-
 	nodes := make([]*E2Node, 0, len(m.adaptors))
 
 	var retrievalErrors []string
-
-
 
 	for nodeID, adaptor := range m.adaptors {
 
@@ -1697,8 +1387,6 @@ func (m *E2Manager) ListE2Nodes(ctx context.Context) ([]*E2Node, error) {
 
 		}
 
-
-
 		// Get health information.
 
 		m.health.mutex.RLock()
@@ -1707,21 +1395,16 @@ func (m *E2Manager) ListE2Nodes(ctx context.Context) ([]*E2Node, error) {
 
 		m.health.mutex.RUnlock()
 
-
-
 		if !exists {
 
 			health = &NodeHealth{
 
-				Status:    "UNKNOWN",
+				Status: "UNKNOWN",
 
 				LastCheck: time.Now(),
-
 			}
 
 		}
-
-
 
 		// Get subscription count.
 
@@ -1736,8 +1419,6 @@ func (m *E2Manager) ListE2Nodes(ctx context.Context) ([]*E2Node, error) {
 		}
 
 		m.subscriptionMgr.mutex.RUnlock()
-
-
 
 		// Convert GlobalE2NodeID to E2NodeID for the E2Node struct.
 
@@ -1761,35 +1442,28 @@ func (m *E2Manager) ListE2Nodes(ctx context.Context) ([]*E2Node, error) {
 
 		}
 
-
-
 		node := &E2Node{
 
-			NodeID:            nodeInfo.NodeID,
+			NodeID: nodeInfo.NodeID,
 
-			GlobalE2NodeID:    nodeE2ID,
+			GlobalE2NodeID: nodeE2ID,
 
-			RanFunctions:      nodeInfo.RANFunctions,
+			RanFunctions: nodeInfo.RANFunctions,
 
-			ConnectionStatus:  nodeInfo.ConnectionStatus,
+			ConnectionStatus: nodeInfo.ConnectionStatus,
 
-			HealthStatus:      *health,
+			HealthStatus: *health,
 
 			SubscriptionCount: subscriptionCount,
 
-			LastSeen:          nodeInfo.LastSeen,
+			LastSeen: nodeInfo.LastSeen,
 
-			Configuration:     nodeInfo.Configuration,
-
+			Configuration: nodeInfo.Configuration,
 		}
-
-
 
 		nodes = append(nodes, node)
 
 	}
-
-
 
 	// If there were retrieval errors but we got some nodes, log warning.
 
@@ -1801,15 +1475,11 @@ func (m *E2Manager) ListE2Nodes(ctx context.Context) ([]*E2Node, error) {
 
 	}
 
-
-
 	// Return partial results if we have any nodes, even with some errors.
 
 	return nodes, nil
 
 }
-
-
 
 // RegisterE2Node registers an E2 node with comprehensive function support.
 
@@ -1831,23 +1501,17 @@ func (m *E2Manager) RegisterE2Node(ctx context.Context, nodeID string, ranFuncti
 
 	}
 
-
-
 	m.mutex.RLock()
 
 	adaptor, exists := m.adaptors[nodeID]
 
 	m.mutex.RUnlock()
 
-
-
 	if !exists {
 
 		return fmt.Errorf("no connection to node %s", nodeID)
 
 	}
-
-
 
 	// Convert RanFunction to E2NodeFunction.
 
@@ -1863,35 +1527,29 @@ func (m *E2Manager) RegisterE2Node(ctx context.Context, nodeID string, ranFuncti
 
 		}
 
-
-
 		functions[i] = &E2NodeFunction{
 
-			FunctionID:          rf.FunctionID,
+			FunctionID: rf.FunctionID,
 
-			FunctionDefinition:  rf.FunctionDefinition,
+			FunctionDefinition: rf.FunctionDefinition,
 
-			FunctionRevision:    rf.FunctionRevision,
+			FunctionRevision: rf.FunctionRevision,
 
-			FunctionOID:         rf.FunctionOID,
+			FunctionOID: rf.FunctionOID,
 
 			FunctionDescription: rf.FunctionDescription,
 
-			ServiceModel:        rf.ServiceModel,
+			ServiceModel: rf.ServiceModel,
 
 			Status: E2NodeFunctionStatus{
 
-				State:         "ACTIVE",
+				State: "ACTIVE",
 
 				LastHeartbeat: time.Now(),
-
 			},
-
 		}
 
 	}
-
-
 
 	// Register with adaptor (or simulate).
 
@@ -1917,8 +1575,6 @@ func (m *E2Manager) RegisterE2Node(ctx context.Context, nodeID string, ranFuncti
 
 	}
 
-
-
 	// Update health status.
 
 	m.health.mutex.Lock()
@@ -1937,10 +1593,9 @@ func (m *E2Manager) RegisterE2Node(ctx context.Context, nodeID string, ranFuncti
 
 				FunctionID: function.FunctionID,
 
-				Status:     "ACTIVE",
+				Status: "ACTIVE",
 
-				LastCheck:  time.Now(),
-
+				LastCheck: time.Now(),
 			}
 
 		}
@@ -1949,19 +1604,13 @@ func (m *E2Manager) RegisterE2Node(ctx context.Context, nodeID string, ranFuncti
 
 	m.health.mutex.Unlock()
 
-
-
 	m.metrics.NodesRegistered++
 
 	m.metrics.NodesActive++
 
-
-
 	return nil
 
 }
-
-
 
 // DeregisterE2Node deregisters an E2 node with comprehensive cleanup.
 
@@ -1971,8 +1620,6 @@ func (m *E2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
 
 	defer m.mutex.Unlock()
 
-
-
 	adaptor, exists := m.adaptors[nodeID]
 
 	if !exists {
@@ -1980,8 +1627,6 @@ func (m *E2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
 		return fmt.Errorf("no connection to node %s", nodeID)
 
 	}
-
-
 
 	// Log the start of deregistration.
 
@@ -1999,8 +1644,6 @@ func (m *E2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
 
 	}
 
-
-
 	// First, clean up all subscriptions for this node.
 
 	m.subscriptionMgr.mutex.Lock()
@@ -2008,8 +1651,6 @@ func (m *E2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
 	subscriptionCount := 0
 
 	var subscriptionErrors []string
-
-
 
 	if nodeSubs, exists := m.subscriptionMgr.subscriptions[nodeID]; exists {
 
@@ -2020,8 +1661,6 @@ func (m *E2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
 			// Update subscription state to deleting.
 
 			m.updateSubscriptionState(nodeID, subscriptionID, SubscriptionStateDeleting, "Node deregistration in progress")
-
-
 
 			// Delete subscription from adaptor (or simulate).
 
@@ -2061,8 +1700,6 @@ func (m *E2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
 
 			}
 
-
-
 			// Update metrics.
 
 			if managedSub.State == SubscriptionStateActive {
@@ -2075,13 +1712,9 @@ func (m *E2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
 
 		}
 
-
-
 		// Clear all subscriptions for this node.
 
 		delete(m.subscriptionMgr.subscriptions, nodeID)
-
-
 
 		// Log summary of subscription cleanup.
 
@@ -2096,8 +1729,6 @@ func (m *E2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
 	}
 
 	m.subscriptionMgr.mutex.Unlock()
-
-
 
 	// Clean up health monitoring data.
 
@@ -2124,8 +1755,6 @@ func (m *E2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
 	delete(m.health.subscriptionHealth, nodeID)
 
 	m.health.mutex.Unlock()
-
-
 
 	// Deregister from the adaptor (calls Near-RT RIC or simulate).
 
@@ -2161,13 +1790,9 @@ func (m *E2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
 
 	}
 
-
-
 	// Remove from local registry.
 
 	delete(m.adaptors, nodeID)
-
-
 
 	// Update metrics.
 
@@ -2183,8 +1808,6 @@ func (m *E2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
 
 	m.metrics.NodesDisconnected++
 
-
-
 	// Log successful completion.
 
 	if m.logger != nil {
@@ -2193,13 +1816,9 @@ func (m *E2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // registerDefaultServiceModels registers the default O-RAN service models.
 
@@ -2215,8 +1834,6 @@ func (m *E2Manager) registerDefaultServiceModels() error {
 
 	}
 
-
-
 	// Register RC service model.
 
 	rcModel := CreateRCServiceModel()
@@ -2227,13 +1844,9 @@ func (m *E2Manager) registerDefaultServiceModels() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // updateSubscriptionState updates the state of a managed subscription.
 
@@ -2242,8 +1855,6 @@ func (m *E2Manager) updateSubscriptionState(nodeID, subscriptionID string, newSt
 	m.subscriptionMgr.mutex.Lock()
 
 	defer m.subscriptionMgr.mutex.Unlock()
-
-
 
 	if nodeSubs, exists := m.subscriptionMgr.subscriptions[nodeID]; exists {
 
@@ -2254,8 +1865,6 @@ func (m *E2Manager) updateSubscriptionState(nodeID, subscriptionID string, newSt
 			sub.State = newState
 
 			sub.LastUpdate = time.Now()
-
-
 
 			// Record state transition.
 
@@ -2277,19 +1886,15 @@ func (m *E2Manager) updateSubscriptionState(nodeID, subscriptionID string, newSt
 
 					FromState: oldState,
 
-					ToState:   newState,
+					ToState: newState,
 
 					Timestamp: time.Now(),
 
-					Reason:    reason,
-
+					Reason: reason,
 				},
-
 			)
 
 			m.subscriptionMgr.stateTracker.mutex.Unlock()
-
-
 
 			// Notify listeners.
 
@@ -2309,8 +1914,6 @@ func (m *E2Manager) updateSubscriptionState(nodeID, subscriptionID string, newSt
 
 }
 
-
-
 // startMetricsCollector starts the background metrics collection.
 
 func (m *E2Manager) startMetricsCollector() {
@@ -2318,8 +1921,6 @@ func (m *E2Manager) startMetricsCollector() {
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for range ticker.C {
 
@@ -2329,8 +1930,6 @@ func (m *E2Manager) startMetricsCollector() {
 
 }
 
-
-
 // updateMetrics updates the E2Manager metrics.
 
 func (m *E2Manager) updateMetrics() {
@@ -2339,8 +1938,6 @@ func (m *E2Manager) updateMetrics() {
 
 	defer m.metrics.mutex.Unlock()
 
-
-
 	// Update connection metrics.
 
 	m.mutex.RLock()
@@ -2348,8 +1945,6 @@ func (m *E2Manager) updateMetrics() {
 	m.metrics.ConnectionsActive = int64(len(m.adaptors))
 
 	m.mutex.RUnlock()
-
-
 
 	// Update subscription metrics.
 
@@ -2374,8 +1969,6 @@ func (m *E2Manager) updateMetrics() {
 	m.metrics.SubscriptionsActive = activeSubscriptions
 
 	m.subscriptionMgr.mutex.RUnlock()
-
-
 
 	// Update node metrics.
 
@@ -2405,13 +1998,9 @@ func (m *E2Manager) updateMetrics() {
 
 	m.health.mutex.RUnlock()
 
-
-
 	m.metrics.lastUpdated = time.Now()
 
 }
-
-
 
 // GetMetrics returns the current E2Manager metrics.
 
@@ -2420,8 +2009,6 @@ func (m *E2Manager) GetMetrics() *E2Metrics {
 	m.metrics.mutex.RLock()
 
 	defer m.metrics.mutex.RUnlock()
-
-
 
 	// Create a new metrics instance to avoid copying the mutex.
 
@@ -2433,73 +2020,58 @@ func (m *E2Manager) GetMetrics() *E2Metrics {
 
 	}
 
-
-
 	return &E2Metrics{
 
 		// Connection metrics.
 
-		ConnectionsTotal:    m.metrics.ConnectionsTotal,
+		ConnectionsTotal: m.metrics.ConnectionsTotal,
 
-		ConnectionsActive:   m.metrics.ConnectionsActive,
+		ConnectionsActive: m.metrics.ConnectionsActive,
 
-		ConnectionsFailed:   m.metrics.ConnectionsFailed,
+		ConnectionsFailed: m.metrics.ConnectionsFailed,
 
 		ConnectionLatencyMs: m.metrics.ConnectionLatencyMs,
 
-
-
 		// Node metrics.
 
-		NodesRegistered:   m.metrics.NodesRegistered,
+		NodesRegistered: m.metrics.NodesRegistered,
 
-		NodesActive:       m.metrics.NodesActive,
+		NodesActive: m.metrics.NodesActive,
 
 		NodesDisconnected: m.metrics.NodesDisconnected,
 
-
-
 		// Subscription metrics.
 
-		SubscriptionsTotal:    m.metrics.SubscriptionsTotal,
+		SubscriptionsTotal: m.metrics.SubscriptionsTotal,
 
-		SubscriptionsActive:   m.metrics.SubscriptionsActive,
+		SubscriptionsActive: m.metrics.SubscriptionsActive,
 
-		SubscriptionsFailed:   m.metrics.SubscriptionsFailed,
+		SubscriptionsFailed: m.metrics.SubscriptionsFailed,
 
 		SubscriptionLatencyMs: m.metrics.SubscriptionLatencyMs,
 
-
-
 		// Message metrics.
 
-		MessagesReceived:  m.metrics.MessagesReceived,
+		MessagesReceived: m.metrics.MessagesReceived,
 
-		MessagesSent:      m.metrics.MessagesSent,
+		MessagesSent: m.metrics.MessagesSent,
 
 		MessagesProcessed: m.metrics.MessagesProcessed,
 
-		MessagesFailed:    m.metrics.MessagesFailed,
-
-
+		MessagesFailed: m.metrics.MessagesFailed,
 
 		// Error metrics.
 
-		ErrorsTotal:  m.metrics.ErrorsTotal,
+		ErrorsTotal: m.metrics.ErrorsTotal,
 
 		ErrorsByType: errorsByType,
-
-
 
 		// Note: mutex and lastUpdated are not copied to avoid race conditions.
 
 		lastUpdated: m.metrics.lastUpdated,
-
 	}
 
 }
-
-
 
 // Shutdown gracefully shuts down the E2Manager.
 
@@ -2511,15 +2083,11 @@ func (m *E2Manager) Shutdown() error {
 
 	close(m.health.stopChan)
 
-
-
 	// Close all connections.
 
 	m.mutex.Lock()
 
 	defer m.mutex.Unlock()
-
-
 
 	for nodeID, adaptor := range m.adaptors {
 
@@ -2539,17 +2107,12 @@ func (m *E2Manager) Shutdown() error {
 
 	}
 
-
-
 	// Clear internal state.
 
 	m.adaptors = make(map[string]*E2Adaptor)
 
 	m.subscriptionMgr.subscriptions = make(map[string]map[string]*ManagedSubscription)
 
-
-
 	return nil
 
 }
-

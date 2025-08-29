@@ -28,9 +28,6 @@ limitations under the License.
 
 */
 
-
-
-
 // Package v1 provides API types for Cloud Native Network Function (CNF) deployment
 // in the Nephoran Intent Operator. This package defines custom resources and
 // specifications for managing the lifecycle, scaling, and configuration of
@@ -43,19 +40,15 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/runtime"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
-
-
 
 // CNFType defines the type of Cloud Native Function.
 
 // +kubebuilder:validation:Enum="5G-Core";"O-RAN";"Edge";"Custom"
 
 type CNFType string
-
-
 
 const (
 
@@ -74,18 +67,13 @@ const (
 	// CNFCustom represents custom telecommunications functions.
 
 	CNFCustom CNFType = "Custom"
-
 )
-
-
 
 // CNFFunction defines specific CNF function types.
 
 // +kubebuilder:validation:Enum=AMF;SMF;UPF;NRF;AUSF;UDM;PCF;NSSF;NEF;SMSF;BSF;UDR;UDSF;CHF;N3IWF;TNGF;TWIF;NWDAF;SCP;SEPP;O-DU;O-CU-CP;O-CU-UP;Near-RT-RIC;Non-RT-RIC;O-eNB;SMO;rApp;xApp;O-FH;O-M-P;UE-Simulator;Traffic-Generator
 
 type CNFFunction string
-
-
 
 const (
 
@@ -169,8 +157,6 @@ const (
 
 	CNFFunctionSEPP CNFFunction = "SEPP"
 
-
-
 	// O-RAN Functions.
 
 	CNFFunctionODU CNFFunction = "O-DU"
@@ -215,8 +201,6 @@ const (
 
 	CNFFunctionOMP CNFFunction = "O-M-P"
 
-
-
 	// Testing and Support Functions.
 
 	CNFFunctionUESimulator CNFFunction = "UE-Simulator"
@@ -224,18 +208,13 @@ const (
 	// CNFFunctionTrafficGenerator holds cnffunctiontrafficgenerator value.
 
 	CNFFunctionTrafficGenerator CNFFunction = "Traffic-Generator"
-
 )
-
-
 
 // CNFDeploymentStrategy defines how the CNF should be deployed.
 
 // +kubebuilder:validation:Enum=Helm;Operator;Direct;GitOps
 
 type CNFDeploymentStrategy string
-
-
 
 const (
 
@@ -254,10 +233,7 @@ const (
 	// CNFDeploymentStrategyGitOps holds cnfdeploymentstrategygitops value.
 
 	CNFDeploymentStrategyGitOps CNFDeploymentStrategy = "GitOps"
-
 )
-
-
 
 // CNFResources defines resource requirements for CNF.
 
@@ -267,13 +243,9 @@ type CNFResources struct {
 
 	CPU resource.Quantity `json:"cpu"`
 
-
-
 	// Memory resource requirements.
 
 	Memory resource.Quantity `json:"memory"`
-
-
 
 	// Storage resource requirements.
 
@@ -281,15 +253,11 @@ type CNFResources struct {
 
 	Storage *resource.Quantity `json:"storage,omitempty"`
 
-
-
 	// Maximum CPU resource limit.
 
 	// +optional
 
 	MaxCPU *resource.Quantity `json:"maxCpu,omitempty"`
-
-
 
 	// Maximum Memory resource limit.
 
@@ -297,15 +265,11 @@ type CNFResources struct {
 
 	MaxMemory *resource.Quantity `json:"maxMemory,omitempty"`
 
-
-
 	// GPU resource requirements.
 
 	// +optional
 
 	GPU *int32 `json:"gpu,omitempty"`
-
-
 
 	// Hugepages requirements for high-performance networking.
 
@@ -313,17 +277,12 @@ type CNFResources struct {
 
 	Hugepages map[string]resource.Quantity `json:"hugepages,omitempty"`
 
-
-
 	// DPDK requirements for packet processing.
 
 	// +optional
 
 	DPDK *DPDKConfig `json:"dpdk,omitempty"`
-
 }
-
-
 
 // DPDKConfig defines DPDK-specific configuration.
 
@@ -333,15 +292,11 @@ type DPDKConfig struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// Number of DPDK cores.
 
 	// +optional
 
 	Cores *int32 `json:"cores,omitempty"`
-
-
 
 	// DPDK memory in MB.
 
@@ -349,17 +304,12 @@ type DPDKConfig struct {
 
 	Memory *int32 `json:"memory,omitempty"`
 
-
-
 	// DPDK driver.
 
 	// +optional
 
 	Driver string `json:"driver,omitempty"`
-
 }
-
-
 
 // HelmConfig defines Helm chart configuration.
 
@@ -371,19 +321,13 @@ type HelmConfig struct {
 
 	Repository string `json:"repository"`
 
-
-
 	// Chart name.
 
 	ChartName string `json:"chartName"`
 
-
-
 	// Chart version.
 
 	ChartVersion string `json:"chartVersion"`
-
-
 
 	// Values override the default chart values.
 
@@ -393,17 +337,12 @@ type HelmConfig struct {
 
 	Values runtime.RawExtension `json:"values,omitempty"`
 
-
-
 	// Release name for the Helm deployment.
 
 	// +optional
 
 	ReleaseName string `json:"releaseName,omitempty"`
-
 }
-
-
 
 // OperatorConfig defines operator-based deployment configuration.
 
@@ -413,23 +352,16 @@ type OperatorConfig struct {
 
 	Name string `json:"name"`
 
-
-
 	// Operator namespace.
 
 	Namespace string `json:"namespace"`
-
-
 
 	// Custom resource definition for the operator.
 
 	// +kubebuilder:pruning:PreserveUnknownFields
 
 	CustomResource runtime.RawExtension `json:"customResource"`
-
 }
-
-
 
 // ServiceMeshConfig defines service mesh integration.
 
@@ -439,8 +371,6 @@ type ServiceMeshConfig struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// Service mesh type (Istio, Linkerd, Consul Connect).
 
 	// +optional
@@ -449,25 +379,18 @@ type ServiceMeshConfig struct {
 
 	Type string `json:"type,omitempty"`
 
-
-
 	// mTLS configuration.
 
 	// +optional
 
 	MTLS *MTLSConfig `json:"mtls,omitempty"`
 
-
-
 	// Traffic policies.
 
 	// +optional
 
 	TrafficPolicies []TrafficPolicy `json:"trafficPolicies,omitempty"`
-
 }
-
-
 
 // MTLSConfig defines mutual TLS configuration.
 
@@ -477,8 +400,6 @@ type MTLSConfig struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// mTLS mode (strict, permissive).
 
 	// +optional
@@ -486,10 +407,7 @@ type MTLSConfig struct {
 	// +kubebuilder:validation:Enum=strict;permissive
 
 	Mode string `json:"mode,omitempty"`
-
 }
-
-
 
 // TrafficPolicy defines traffic routing policies.
 
@@ -499,29 +417,20 @@ type TrafficPolicy struct {
 
 	Name string `json:"name"`
 
-
-
 	// Source service.
 
 	Source string `json:"source"`
 
-
-
 	// Destination service.
 
 	Destination string `json:"destination"`
-
-
 
 	// Load balancing configuration.
 
 	// +optional
 
 	LoadBalancing *LoadBalancingConfig `json:"loadBalancing,omitempty"`
-
 }
-
-
 
 // LoadBalancingConfig defines load balancing configuration.
 
@@ -533,17 +442,12 @@ type LoadBalancingConfig struct {
 
 	Algorithm string `json:"algorithm"`
 
-
-
 	// Health check configuration.
 
 	// +optional
 
 	HealthCheck *CNFHealthCheckConfig `json:"healthCheck,omitempty"`
-
 }
-
-
 
 // CNFHealthCheckConfig defines health check configuration.
 
@@ -553,13 +457,9 @@ type CNFHealthCheckConfig struct {
 
 	Path string `json:"path"`
 
-
-
 	// Port for health checks.
 
 	Port int32 `json:"port"`
-
-
 
 	// Check interval in seconds.
 
@@ -569,8 +469,6 @@ type CNFHealthCheckConfig struct {
 
 	Interval int32 `json:"interval"`
 
-
-
 	// Timeout in seconds.
 
 	// +kubebuilder:validation:Minimum=1
@@ -579,8 +477,6 @@ type CNFHealthCheckConfig struct {
 
 	Timeout int32 `json:"timeout"`
 
-
-
 	// Number of retries.
 
 	// +kubebuilder:validation:Minimum=1
@@ -588,10 +484,7 @@ type CNFHealthCheckConfig struct {
 	// +kubebuilder:validation:Maximum=10
 
 	Retries int32 `json:"retries"`
-
 }
-
-
 
 // AutoScaling defines auto-scaling configuration.
 
@@ -601,23 +494,17 @@ type AutoScaling struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// Minimum number of replicas.
 
 	// +kubebuilder:validation:Minimum=1
 
 	MinReplicas int32 `json:"minReplicas"`
 
-
-
 	// Maximum number of replicas.
 
 	// +kubebuilder:validation:Minimum=1
 
 	MaxReplicas int32 `json:"maxReplicas"`
-
-
 
 	// CPU utilization threshold for scaling.
 
@@ -629,8 +516,6 @@ type AutoScaling struct {
 
 	CPUUtilization *int32 `json:"cpuUtilization,omitempty"`
 
-
-
 	// Memory utilization threshold for scaling.
 
 	// +optional
@@ -641,17 +526,12 @@ type AutoScaling struct {
 
 	MemoryUtilization *int32 `json:"memoryUtilization,omitempty"`
 
-
-
 	// Custom metrics for scaling.
 
 	// +optional
 
 	CustomMetrics []CustomMetric `json:"customMetrics,omitempty"`
-
 }
-
-
 
 // CustomMetric defines custom metrics for auto-scaling.
 
@@ -661,23 +541,16 @@ type CustomMetric struct {
 
 	Name string `json:"name"`
 
-
-
 	// Metric type (pods, object, external).
 
 	// +kubebuilder:validation:Enum=pods;object;external
 
 	Type string `json:"type"`
 
-
-
 	// Target value.
 
 	TargetValue string `json:"targetValue"`
-
 }
-
-
 
 // CNFDeploymentSpec defines the desired state of CNFDeployment.
 
@@ -689,15 +562,11 @@ type CNFDeploymentSpec struct {
 
 	CNFType CNFType `json:"cnfType"`
 
-
-
 	// Specific CNF function.
 
 	// +kubebuilder:validation:Required
 
 	Function CNFFunction `json:"function"`
-
-
 
 	// Deployment strategy.
 
@@ -706,8 +575,6 @@ type CNFDeploymentSpec struct {
 	// +kubebuilder:default="Helm"
 
 	DeploymentStrategy CNFDeploymentStrategy `json:"deploymentStrategy"`
-
-
 
 	// Number of replicas.
 
@@ -719,15 +586,11 @@ type CNFDeploymentSpec struct {
 
 	Replicas int32 `json:"replicas"`
 
-
-
 	// Resource requirements.
 
 	// +kubebuilder:validation:Required
 
 	Resources CNFResources `json:"resources"`
-
-
 
 	// Helm configuration (if using Helm strategy).
 
@@ -735,15 +598,11 @@ type CNFDeploymentSpec struct {
 
 	Helm *HelmConfig `json:"helm,omitempty"`
 
-
-
 	// Operator configuration (if using Operator strategy).
 
 	// +optional
 
 	Operator *OperatorConfig `json:"operator,omitempty"`
-
-
 
 	// Service mesh integration.
 
@@ -751,15 +610,11 @@ type CNFDeploymentSpec struct {
 
 	ServiceMesh *ServiceMeshConfig `json:"serviceMesh,omitempty"`
 
-
-
 	// Auto-scaling configuration.
 
 	// +optional
 
 	AutoScaling *AutoScaling `json:"autoScaling,omitempty"`
-
-
 
 	// Network slice identifier.
 
@@ -769,15 +624,11 @@ type CNFDeploymentSpec struct {
 
 	NetworkSlice string `json:"networkSlice,omitempty"`
 
-
-
 	// Target cluster for deployment.
 
 	// +optional
 
 	TargetCluster string `json:"targetCluster,omitempty"`
-
-
 
 	// Target namespace for deployment.
 
@@ -789,8 +640,6 @@ type CNFDeploymentSpec struct {
 
 	TargetNamespace string `json:"targetNamespace,omitempty"`
 
-
-
 	// Configuration parameters.
 
 	// +optional
@@ -799,15 +648,11 @@ type CNFDeploymentSpec struct {
 
 	Configuration runtime.RawExtension `json:"configuration,omitempty"`
 
-
-
 	// Security policies.
 
 	// +optional
 
 	SecurityPolicies []string `json:"securityPolicies,omitempty"`
-
-
 
 	// Monitoring configuration.
 
@@ -815,17 +660,12 @@ type CNFDeploymentSpec struct {
 
 	Monitoring *MonitoringConfig `json:"monitoring,omitempty"`
 
-
-
 	// Backup configuration.
 
 	// +optional
 
 	Backup *BackupConfig `json:"backup,omitempty"`
-
 }
-
-
 
 // MonitoringConfig defines monitoring configuration.
 
@@ -835,15 +675,11 @@ type MonitoringConfig struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// Prometheus scraping configuration.
 
 	// +optional
 
 	Prometheus *PrometheusConfig `json:"prometheus,omitempty"`
-
-
 
 	// Custom metrics to collect.
 
@@ -851,17 +687,12 @@ type MonitoringConfig struct {
 
 	CustomMetrics []string `json:"customMetrics,omitempty"`
 
-
-
 	// Alerting rules.
 
 	// +optional
 
 	AlertingRules []string `json:"alertingRules,omitempty"`
-
 }
-
-
 
 // PrometheusConfig defines Prometheus configuration.
 
@@ -871,8 +702,6 @@ type PrometheusConfig struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// Scraping path.
 
 	// +optional
@@ -880,8 +709,6 @@ type PrometheusConfig struct {
 	// +kubebuilder:default="/metrics"
 
 	Path string `json:"path,omitempty"`
-
-
 
 	// Scraping port.
 
@@ -891,8 +718,6 @@ type PrometheusConfig struct {
 
 	Port int32 `json:"port,omitempty"`
 
-
-
 	// Scraping interval.
 
 	// +optional
@@ -900,10 +725,7 @@ type PrometheusConfig struct {
 	// +kubebuilder:default="30s"
 
 	Interval string `json:"interval,omitempty"`
-
 }
-
-
 
 // BackupConfig defines backup configuration.
 
@@ -913,15 +735,11 @@ type BackupConfig struct {
 
 	Enabled bool `json:"enabled"`
 
-
-
 	// Backup schedule (cron format).
 
 	// +optional
 
 	Schedule string `json:"schedule,omitempty"`
-
-
 
 	// Retention policy in days.
 
@@ -933,17 +751,12 @@ type BackupConfig struct {
 
 	RetentionDays *int32 `json:"retentionDays,omitempty"`
 
-
-
 	// Backup storage location.
 
 	// +optional
 
 	StorageLocation string `json:"storageLocation,omitempty"`
-
 }
-
-
 
 // CNFDeploymentStatus defines the observed state of CNFDeployment.
 
@@ -956,8 +769,6 @@ type CNFDeploymentStatus struct {
 	// +listType=atomic
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-
-
 	// Phase represents the current deployment phase.
 
 	// +optional
@@ -966,15 +777,11 @@ type CNFDeploymentStatus struct {
 
 	Phase string `json:"phase,omitempty"`
 
-
-
 	// Ready replicas count.
 
 	// +optional
 
 	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
-
-
 
 	// Available replicas count.
 
@@ -982,15 +789,11 @@ type CNFDeploymentStatus struct {
 
 	AvailableReplicas int32 `json:"availableReplicas,omitempty"`
 
-
-
 	// Deployment start time.
 
 	// +optional
 
 	DeploymentStartTime *metav1.Time `json:"deploymentStartTime,omitempty"`
-
-
 
 	// Last updated time.
 
@@ -998,15 +801,11 @@ type CNFDeploymentStatus struct {
 
 	LastUpdatedTime *metav1.Time `json:"lastUpdatedTime,omitempty"`
 
-
-
 	// Deployed Helm release name.
 
 	// +optional
 
 	HelmRelease string `json:"helmRelease,omitempty"`
-
-
 
 	// Resource utilization metrics.
 
@@ -1014,15 +813,11 @@ type CNFDeploymentStatus struct {
 
 	ResourceUtilization map[string]string `json:"resourceUtilization,omitempty"`
 
-
-
 	// Health status.
 
 	// +optional
 
 	Health *CNFHealthStatus `json:"health,omitempty"`
-
-
 
 	// Service endpoints.
 
@@ -1030,17 +825,12 @@ type CNFDeploymentStatus struct {
 
 	ServiceEndpoints []ServiceEndpoint `json:"serviceEndpoints,omitempty"`
 
-
-
 	// Observed generation.
 
 	// +optional
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-
 }
-
-
 
 // CNFHealthStatus defines the health status.
 
@@ -1052,25 +842,18 @@ type CNFHealthStatus struct {
 
 	Status string `json:"status"`
 
-
-
 	// Last health check time.
 
 	// +optional
 
 	LastCheckTime *metav1.Time `json:"lastCheckTime,omitempty"`
 
-
-
 	// Health check details.
 
 	// +optional
 
 	Details map[string]string `json:"details,omitempty"`
-
 }
-
-
 
 // ServiceEndpoint defines service endpoint information.
 
@@ -1080,13 +863,9 @@ type ServiceEndpoint struct {
 
 	Name string `json:"name"`
 
-
-
 	// Service type.
 
 	Type string `json:"type"`
-
-
 
 	// Cluster IP.
 
@@ -1094,23 +873,16 @@ type ServiceEndpoint struct {
 
 	ClusterIP string `json:"clusterIP,omitempty"`
 
-
-
 	// External IP (for LoadBalancer services).
 
 	// +optional
 
 	ExternalIP string `json:"externalIP,omitempty"`
 
-
-
 	// Ports.
 
 	Ports []ServicePort `json:"ports"`
-
 }
-
-
 
 // ServicePort defines service port information.
 
@@ -1120,27 +892,18 @@ type ServicePort struct {
 
 	Name string `json:"name"`
 
-
-
 	// Port number.
 
 	Port int32 `json:"port"`
-
-
 
 	// Target port.
 
 	TargetPort string `json:"targetPort"`
 
-
-
 	// Protocol.
 
 	Protocol string `json:"protocol"`
-
 }
-
-
 
 //+kubebuilder:object:root=true
 
@@ -1166,43 +929,29 @@ type ServicePort struct {
 
 //+kubebuilder:storageversion
 
-
-
 // CNFDeployment is the Schema for the cnfdeployments API.
 
 type CNFDeployment struct {
-
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-
-
-	Spec   CNFDeploymentSpec   `json:"spec,omitempty"`
+	Spec CNFDeploymentSpec `json:"spec,omitempty"`
 
 	Status CNFDeploymentStatus `json:"status,omitempty"`
-
 }
 
-
-
 //+kubebuilder:object:root=true
-
-
 
 // CNFDeploymentList contains a list of CNFDeployment.
 
 type CNFDeploymentList struct {
-
 	metav1.TypeMeta `json:",inline"`
 
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-	Items           []CNFDeployment `json:"items"`
-
+	Items []CNFDeployment `json:"items"`
 }
-
-
 
 // ValidateCNFDeployment validates the CNF deployment specification.
 
@@ -1212,8 +961,6 @@ func (cnf *CNFDeployment) ValidateCNFDeployment() error {
 
 	errors := make([]string, 0, 4)
 
-
-
 	// Validate function compatibility with CNF type.
 
 	if err := cnf.validateFunctionCompatibility(); err != nil {
@@ -1221,8 +968,6 @@ func (cnf *CNFDeployment) ValidateCNFDeployment() error {
 		errors = append(errors, err.Error())
 
 	}
-
-
 
 	// Validate deployment strategy configuration.
 
@@ -1232,8 +977,6 @@ func (cnf *CNFDeployment) ValidateCNFDeployment() error {
 
 	}
 
-
-
 	// Validate resource requirements.
 
 	if err := cnf.validateResources(); err != nil {
@@ -1241,8 +984,6 @@ func (cnf *CNFDeployment) ValidateCNFDeployment() error {
 		errors = append(errors, err.Error())
 
 	}
-
-
 
 	// Validate auto-scaling configuration.
 
@@ -1252,21 +993,15 @@ func (cnf *CNFDeployment) ValidateCNFDeployment() error {
 
 	}
 
-
-
 	if len(errors) > 0 {
 
 		return fmt.Errorf("validation errors: %s", strings.Join(errors, "; "))
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateFunctionCompatibility ensures CNF function is compatible with CNF type.
 
@@ -1285,7 +1020,6 @@ func (cnf *CNFDeployment) validateFunctionCompatibility() error {
 			CNFFunctionUDSF, CNFFunctionCHF, CNFFunctionN3IWF, CNFFunctionTNGF,
 
 			CNFFunctionTWIF, CNFFunctionNWDAF, CNFFunctionSCP, CNFFunctionSEPP,
-
 		},
 
 		CNFORAN: {
@@ -1297,20 +1031,16 @@ func (cnf *CNFDeployment) validateFunctionCompatibility() error {
 			CNFFunctionSMO, CNFFunctionRApp, CNFFunctionXApp,
 
 			CNFFunctionOFH, CNFFunctionOMP,
-
 		},
 
 		CNFEdge: {
 
 			CNFFunctionUESimulator, CNFFunctionTrafficGenerator,
-
 		},
 
 		CNFCustom: {}, // Custom type allows any function
 
 	}
-
-
 
 	if cnf.Spec.CNFType != CNFCustom {
 
@@ -1322,8 +1052,6 @@ func (cnf *CNFDeployment) validateFunctionCompatibility() error {
 
 		}
 
-
-
 		for _, validFunction := range compatible {
 
 			if cnf.Spec.Function == validFunction {
@@ -1334,19 +1062,13 @@ func (cnf *CNFDeployment) validateFunctionCompatibility() error {
 
 		}
 
-
-
 		return fmt.Errorf("function %s is not compatible with CNF type %s", cnf.Spec.Function, cnf.Spec.CNFType)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateDeploymentStrategy ensures deployment strategy configuration is valid.
 
@@ -1384,13 +1106,9 @@ func (cnf *CNFDeployment) validateDeploymentStrategy() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateResources ensures resource requirements are properly specified.
 
@@ -1408,8 +1126,6 @@ func (cnf *CNFDeployment) validateResources() error {
 
 	}
 
-
-
 	if cnf.Spec.Resources.MaxMemory != nil {
 
 		if cnf.Spec.Resources.MaxMemory.Cmp(cnf.Spec.Resources.Memory) < 0 {
@@ -1420,13 +1136,10 @@ func (cnf *CNFDeployment) validateResources() error {
 
 	}
 
-
-
 	// Validate minimum resource requirements for specific functions.
 
 	minRequirements := map[CNFFunction]struct {
-
-		CPU    int64 // milliCPU
+		CPU int64 // milliCPU
 
 		Memory int64 // bytes
 
@@ -1439,8 +1152,6 @@ func (cnf *CNFDeployment) validateResources() error {
 		CNFFunctionSMF: {CPU: 1000, Memory: 2 << 30}, // 1 CPU, 2Gi memory
 
 	}
-
-
 
 	if req, exists := minRequirements[cnf.Spec.Function]; exists {
 
@@ -1458,13 +1169,9 @@ func (cnf *CNFDeployment) validateResources() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateAutoScaling ensures auto-scaling configuration is valid.
 
@@ -1476,11 +1183,7 @@ func (cnf *CNFDeployment) validateAutoScaling() error {
 
 	}
 
-
-
 	as := cnf.Spec.AutoScaling
-
-
 
 	// Validate replica counts.
 
@@ -1490,15 +1193,11 @@ func (cnf *CNFDeployment) validateAutoScaling() error {
 
 	}
 
-
-
 	if cnf.Spec.Replicas < as.MinReplicas || cnf.Spec.Replicas > as.MaxReplicas {
 
 		return fmt.Errorf("replicas must be between minReplicas and maxReplicas")
 
 	}
-
-
 
 	// Ensure at least one scaling metric is configured.
 
@@ -1508,17 +1207,12 @@ func (cnf *CNFDeployment) validateAutoScaling() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func init() {
 
 	SchemeBuilder.Register(&CNFDeployment{}, &CNFDeploymentList{})
 
 }
-

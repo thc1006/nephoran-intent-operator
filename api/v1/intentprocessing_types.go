@@ -28,26 +28,14 @@ limitations under the License.
 
 */
 
-
-
-
 package v1
 
-
-
 import (
-
 	"time"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 )
-
-
 
 // ProcessedParameters defines structured parameters extracted from intent processing.
 
@@ -59,15 +47,11 @@ type ProcessedParameters struct {
 
 	NetworkFunction string `json:"networkFunction,omitempty"`
 
-
-
 	// Region specifies the deployment region.
 
 	// +optional
 
 	Region string `json:"region,omitempty"`
-
-
 
 	// ScaleParameters contains scaling configuration.
 
@@ -75,15 +59,11 @@ type ProcessedParameters struct {
 
 	ScaleParameters *ScaleParameters `json:"scaleParameters,omitempty"`
 
-
-
 	// QoSParameters contains quality of service settings.
 
 	// +optional
 
 	QoSParameters *QoSParameters `json:"qosParameters,omitempty"`
-
-
 
 	// SecurityParameters contains security settings.
 
@@ -91,17 +71,12 @@ type ProcessedParameters struct {
 
 	SecurityParameters *SecurityParameters `json:"securityParameters,omitempty"`
 
-
-
 	// CustomParameters contains additional custom parameters.
 
 	// +optional
 
 	CustomParameters map[string]string `json:"customParameters,omitempty"`
-
 }
-
-
 
 // ScaleParameters defines scaling configuration.
 
@@ -115,8 +90,6 @@ type ScaleParameters struct {
 
 	MinReplicas *int32 `json:"minReplicas,omitempty"`
 
-
-
 	// MaxReplicas specifies the maximum number of replicas.
 
 	// +optional
@@ -124,8 +97,6 @@ type ScaleParameters struct {
 	// +kubebuilder:validation:Minimum=1
 
 	MaxReplicas *int32 `json:"maxReplicas,omitempty"`
-
-
 
 	// TargetCPUUtilization specifies the target CPU utilization percentage.
 
@@ -137,17 +108,12 @@ type ScaleParameters struct {
 
 	TargetCPUUtilization *int32 `json:"targetCPUUtilization,omitempty"`
 
-
-
 	// AutoScalingEnabled indicates if auto-scaling is enabled.
 
 	// +optional
 
 	AutoScalingEnabled *bool `json:"autoScalingEnabled,omitempty"`
-
 }
-
-
 
 // QoSParameters defines quality of service parameters.
 
@@ -159,15 +125,11 @@ type QoSParameters struct {
 
 	Latency string `json:"latency,omitempty"`
 
-
-
 	// Bandwidth specifies the bandwidth requirement.
 
 	// +optional
 
 	Bandwidth string `json:"bandwidth,omitempty"`
-
-
 
 	// Priority specifies the traffic priority.
 
@@ -177,17 +139,12 @@ type QoSParameters struct {
 
 	Priority string `json:"priority,omitempty"`
 
-
-
 	// ServiceLevel specifies the service level agreement.
 
 	// +optional
 
 	ServiceLevel string `json:"serviceLevel,omitempty"`
-
 }
-
-
 
 // SecurityParameters defines security configuration.
 
@@ -199,15 +156,11 @@ type SecurityParameters struct {
 
 	Encryption *EncryptionConfig `json:"encryption,omitempty"`
 
-
-
 	// NetworkPolicies specifies network security policies.
 
 	// +optional
 
 	NetworkPolicies []string `json:"networkPolicies,omitempty"`
-
-
 
 	// ServiceMesh indicates if service mesh should be enabled.
 
@@ -215,17 +168,12 @@ type SecurityParameters struct {
 
 	ServiceMesh *bool `json:"serviceMesh,omitempty"`
 
-
-
 	// TLSEnabled indicates if TLS should be enabled.
 
 	// +optional
 
 	TLSEnabled *bool `json:"tlsEnabled,omitempty"`
-
 }
-
-
 
 // EncryptionConfig defines encryption configuration.
 
@@ -237,8 +185,6 @@ type EncryptionConfig struct {
 
 	Enabled *bool `json:"enabled,omitempty"`
 
-
-
 	// Algorithm specifies the encryption algorithm.
 
 	// +optional
@@ -247,23 +193,16 @@ type EncryptionConfig struct {
 
 	Algorithm string `json:"algorithm,omitempty"`
 
-
-
 	// KeyRotationInterval specifies the key rotation interval.
 
 	// +optional
 
 	KeyRotationInterval string `json:"keyRotationInterval,omitempty"`
-
 }
-
-
 
 // IntentProcessingPhase represents the phase of LLM processing.
 
 type IntentProcessingPhase string
-
-
 
 const (
 
@@ -286,16 +225,11 @@ const (
 	// IntentProcessingPhaseRetrying indicates the processing is retrying.
 
 	IntentProcessingPhaseRetrying IntentProcessingPhase = "Retrying"
-
 )
-
-
 
 // LLMProvider represents the LLM provider used for processing.
 
 type LLMProvider string
-
-
 
 const (
 
@@ -314,10 +248,7 @@ const (
 	// LLMProviderLocal represents local models.
 
 	LLMProviderLocal LLMProvider = "local"
-
 )
-
-
 
 // IntentProcessingSpec defines the desired state of IntentProcessing.
 
@@ -329,8 +260,6 @@ type IntentProcessingSpec struct {
 
 	ParentIntentRef ObjectReference `json:"parentIntentRef"`
 
-
-
 	// OriginalIntent contains the raw natural language intent.
 
 	// +kubebuilder:validation:Required
@@ -341,15 +270,11 @@ type IntentProcessingSpec struct {
 
 	OriginalIntent string `json:"originalIntent"`
 
-
-
 	// ProcessingConfiguration contains LLM processing configuration.
 
 	// +optional
 
 	ProcessingConfiguration *LLMProcessingConfig `json:"processingConfiguration,omitempty"`
-
-
 
 	// Priority defines processing priority.
 
@@ -358,8 +283,6 @@ type IntentProcessingSpec struct {
 	// +kubebuilder:default="medium"
 
 	Priority Priority `json:"priority,omitempty"`
-
-
 
 	// Timeout for processing in seconds.
 
@@ -373,8 +296,6 @@ type IntentProcessingSpec struct {
 
 	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
 
-
-
 	// MaxRetries defines maximum retry attempts.
 
 	// +optional
@@ -387,8 +308,6 @@ type IntentProcessingSpec struct {
 
 	MaxRetries *int32 `json:"maxRetries,omitempty"`
 
-
-
 	// ContextEnrichment enables RAG-based context enrichment.
 
 	// +optional
@@ -396,8 +315,6 @@ type IntentProcessingSpec struct {
 	// +kubebuilder:default=true
 
 	ContextEnrichment *bool `json:"contextEnrichment,omitempty"`
-
-
 
 	// OutputFormat specifies the expected output format.
 
@@ -408,10 +325,7 @@ type IntentProcessingSpec struct {
 	// +kubebuilder:validation:Enum=structured;json;yaml
 
 	OutputFormat string `json:"outputFormat,omitempty"`
-
 }
-
-
 
 // LLMProcessingConfig contains configuration for LLM processing.
 
@@ -425,8 +339,6 @@ type LLMProcessingConfig struct {
 
 	Provider LLMProvider `json:"provider,omitempty"`
 
-
-
 	// Model specifies the model to use within the provider.
 
 	// +optional
@@ -435,8 +347,6 @@ type LLMProcessingConfig struct {
 
 	Model string `json:"model,omitempty"`
 
-
-
 	// Temperature controls randomness in generation.
 
 	// +optional
@@ -444,8 +354,6 @@ type LLMProcessingConfig struct {
 	// +kubebuilder:default=01
 
 	Temperature *float64 `json:"temperature,omitempty"`
-
-
 
 	// MaxTokens limits the response length.
 
@@ -459,15 +367,11 @@ type LLMProcessingConfig struct {
 
 	MaxTokens *int32 `json:"maxTokens,omitempty"`
 
-
-
 	// SystemPrompt provides system-level instructions.
 
 	// +optional
 
 	SystemPrompt string `json:"systemPrompt,omitempty"`
-
-
 
 	// ContextWindow defines the context window size.
 
@@ -477,17 +381,12 @@ type LLMProcessingConfig struct {
 
 	ContextWindow *int32 `json:"contextWindow,omitempty"`
 
-
-
 	// RAGConfiguration contains RAG-specific settings.
 
 	// +optional
 
 	RAGConfiguration *RAGConfig `json:"ragConfiguration,omitempty"`
-
 }
-
-
 
 // RAGConfig contains RAG system configuration.
 
@@ -501,8 +400,6 @@ type RAGConfig struct {
 
 	Enabled *bool `json:"enabled,omitempty"`
 
-
-
 	// MaxDocuments limits the number of retrieved documents.
 
 	// +optional
@@ -515,8 +412,6 @@ type RAGConfig struct {
 
 	MaxDocuments *int32 `json:"maxDocuments,omitempty"`
 
-
-
 	// RetrievalThreshold sets the minimum similarity threshold.
 
 	// +optional
@@ -524,8 +419,6 @@ type RAGConfig struct {
 	// +kubebuilder:default=07
 
 	RetrievalThreshold *float64 `json:"retrievalThreshold,omitempty"`
-
-
 
 	// KnowledgeBase specifies the knowledge base to use.
 
@@ -535,8 +428,6 @@ type RAGConfig struct {
 
 	KnowledgeBase string `json:"knowledgeBase,omitempty"`
 
-
-
 	// EmbeddingModel specifies the embedding model for RAG.
 
 	// +optional
@@ -544,10 +435,7 @@ type RAGConfig struct {
 	// +kubebuilder:default="text-embedding-3-large"
 
 	EmbeddingModel string `json:"embeddingModel,omitempty"`
-
 }
-
-
 
 // IntentProcessingStatus defines the observed state of IntentProcessing.
 
@@ -559,8 +447,6 @@ type IntentProcessingStatus struct {
 
 	Phase IntentProcessingPhase `json:"phase,omitempty"`
 
-
-
 	// Conditions represent the latest available observations.
 
 	// +optional
@@ -568,23 +454,17 @@ type IntentProcessingStatus struct {
 	// +listType=atomic
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-
-
 	// ProcessingStartTime indicates when processing started.
 
 	// +optional
 
 	ProcessingStartTime *metav1.Time `json:"processingStartTime,omitempty"`
 
-
-
 	// ProcessingCompletionTime indicates when processing completed.
 
 	// +optional
 
 	ProcessingCompletionTime *metav1.Time `json:"processingCompletionTime,omitempty"`
-
-
 
 	// LLMResponse contains the processed response from the LLM.
 
@@ -594,23 +474,17 @@ type IntentProcessingStatus struct {
 
 	LLMResponse runtime.RawExtension `json:"llmResponse,omitempty"`
 
-
-
 	// ProcessedParameters contains structured parameters.
 
 	// +optional
 
 	ProcessedParameters *ProcessedParameters `json:"processedParameters,omitempty"`
 
-
-
 	// ExtractedEntities contains telecommunications entities.
 
 	// +optional
 
 	ExtractedEntities map[string]string `json:"extractedEntities,omitempty"`
-
-
 
 	// TelecomContext contains domain-specific context.
 
@@ -620,15 +494,11 @@ type IntentProcessingStatus struct {
 
 	TelecomContext runtime.RawExtension `json:"telecomContext,omitempty"`
 
-
-
 	// RetryCount tracks the number of retry attempts.
 
 	// +optional
 
 	RetryCount int32 `json:"retryCount,omitempty"`
-
-
 
 	// LastRetryTime indicates the last retry attempt.
 
@@ -636,15 +506,11 @@ type IntentProcessingStatus struct {
 
 	LastRetryTime *metav1.Time `json:"lastRetryTime,omitempty"`
 
-
-
 	// ProcessingDuration represents total processing time.
 
 	// +optional
 
 	ProcessingDuration *metav1.Duration `json:"processingDuration,omitempty"`
-
-
 
 	// TokenUsage tracks token consumption.
 
@@ -652,15 +518,11 @@ type IntentProcessingStatus struct {
 
 	TokenUsage *TokenUsageInfo `json:"tokenUsage,omitempty"`
 
-
-
 	// RAGMetrics contains retrieval-augmented generation metrics.
 
 	// +optional
 
 	RAGMetrics *RAGMetrics `json:"ragMetrics,omitempty"`
-
-
 
 	// QualityScore represents the quality of processing.
 
@@ -668,25 +530,18 @@ type IntentProcessingStatus struct {
 
 	QualityScore *float64 `json:"qualityScore,omitempty"`
 
-
-
 	// ValidationErrors contains any validation errors.
 
 	// +optional
 
 	ValidationErrors []string `json:"validationErrors,omitempty"`
 
-
-
 	// ObservedGeneration reflects the generation observed.
 
 	// +optional
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-
 }
-
-
 
 // TokenUsageInfo tracks LLM token usage.
 
@@ -717,10 +572,7 @@ type TokenUsageInfo struct {
 	// Model used for processing.
 
 	Model string `json:"model"`
-
 }
-
-
 
 // RAGMetrics contains metrics for RAG processing.
 
@@ -749,10 +601,7 @@ type RAGMetrics struct {
 	// QueryEnhancement indicates if query was enhanced.
 
 	QueryEnhancement bool `json:"queryEnhancement"`
-
 }
-
-
 
 // ObjectReference represents a reference to a Kubernetes object.
 
@@ -793,10 +642,7 @@ type ObjectReference struct {
 	// +optional
 
 	ResourceVersion string `json:"resourceVersion,omitempty"`
-
 }
-
-
 
 //+kubebuilder:object:root=true
 
@@ -818,43 +664,29 @@ type ObjectReference struct {
 
 //+kubebuilder:storageversion
 
-
-
 // IntentProcessing is the Schema for the intentprocessings API.
 
 type IntentProcessing struct {
-
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-
-
-	Spec   IntentProcessingSpec   `json:"spec,omitempty"`
+	Spec IntentProcessingSpec `json:"spec,omitempty"`
 
 	Status IntentProcessingStatus `json:"status,omitempty"`
-
 }
 
-
-
 //+kubebuilder:object:root=true
-
-
 
 // IntentProcessingList contains a list of IntentProcessing.
 
 type IntentProcessingList struct {
-
 	metav1.TypeMeta `json:",inline"`
 
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-	Items           []IntentProcessing `json:"items"`
-
+	Items []IntentProcessing `json:"items"`
 }
-
-
 
 // GetParentIntentName returns the name of the parent NetworkIntent.
 
@@ -864,8 +696,6 @@ func (ip *IntentProcessing) GetParentIntentName() string {
 
 }
 
-
-
 // GetNamespace returns the namespace of the resource.
 
 func (ip *IntentProcessing) GetNamespace() string {
@@ -873,8 +703,6 @@ func (ip *IntentProcessing) GetNamespace() string {
 	return ip.ObjectMeta.Namespace
 
 }
-
-
 
 // GetParentIntentNamespace returns the namespace of the parent NetworkIntent.
 
@@ -890,8 +718,6 @@ func (ip *IntentProcessing) GetParentIntentNamespace() string {
 
 }
 
-
-
 // IsProcessingComplete returns true if processing is complete.
 
 func (ip *IntentProcessing) IsProcessingComplete() bool {
@@ -900,8 +726,6 @@ func (ip *IntentProcessing) IsProcessingComplete() bool {
 
 }
 
-
-
 // IsProcessingFailed returns true if processing has failed.
 
 func (ip *IntentProcessing) IsProcessingFailed() bool {
@@ -909,8 +733,6 @@ func (ip *IntentProcessing) IsProcessingFailed() bool {
 	return ip.Status.Phase == IntentProcessingPhaseFailed
 
 }
-
-
 
 // CanRetry returns true if the processing can be retried.
 
@@ -926,8 +748,6 @@ func (ip *IntentProcessing) CanRetry() bool {
 
 }
 
-
-
 // GetProcessingTimeout returns the timeout for processing.
 
 func (ip *IntentProcessing) GetProcessingTimeout() time.Duration {
@@ -941,8 +761,6 @@ func (ip *IntentProcessing) GetProcessingTimeout() time.Duration {
 	return time.Duration(*ip.Spec.TimeoutSeconds) * time.Second
 
 }
-
-
 
 // ShouldEnableRAG returns true if RAG should be enabled.
 
@@ -958,11 +776,8 @@ func (ip *IntentProcessing) ShouldEnableRAG() bool {
 
 }
 
-
-
 func init() {
 
 	SchemeBuilder.Register(&IntentProcessing{}, &IntentProcessingList{})
 
 }
-

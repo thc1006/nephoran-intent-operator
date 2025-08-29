@@ -1,81 +1,52 @@
-
 package loop
 
-
-
 import (
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 	"runtime"
-
 	"sync"
-
 	"sync/atomic"
-
 	"testing"
-
 	"time"
 
-
-
-	"github.com/stretchr/testify/require"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/porch"
-
+	"github.com/stretchr/testify/require"
 )
-
-
 
 // TestSyncHelper provides comprehensive test synchronization primitives.
 
 type TestSyncHelper struct {
+	t testing.TB
 
-	t          testing.TB
-
-	tempDir    string
+	tempDir string
 
 	handoffDir string
 
-	outDir     string
-
-
+	outDir string
 
 	// Synchronization primitives.
 
-	filesCreated   sync.WaitGroup
+	filesCreated sync.WaitGroup
 
 	filesProcessed sync.WaitGroup
 
-
-
 	// State tracking.
 
-	createdFiles   map[string]bool
+	createdFiles map[string]bool
 
 	processedFiles map[string]bool
 
-	mu             sync.RWMutex
-
-
+	mu sync.RWMutex
 
 	// Cross-platform timing.
 
-	baseDelay   time.Duration
+	baseDelay time.Duration
 
-	fileSettle  time.Duration
+	fileSettle time.Duration
 
 	processWait time.Duration
-
 }
-
-
 
 // NewTestSyncHelper creates a new test synchronization helper.
 
@@ -87,13 +58,9 @@ func NewTestSyncHelper(t testing.TB) *TestSyncHelper {
 
 	outDir := filepath.Join(tempDir, "out")
 
-
-
 	require.NoError(t, os.MkdirAll(handoffDir, 0o755))
 
 	require.NoError(t, os.MkdirAll(outDir, 0o755))
-
-
 
 	// Cross-platform timing adjustments.
 
@@ -102,8 +69,6 @@ func NewTestSyncHelper(t testing.TB) *TestSyncHelper {
 	fileSettle := 100 * time.Millisecond
 
 	processWait := 2 * time.Second
-
-
 
 	if runtime.GOOS == "windows" {
 
@@ -117,33 +82,28 @@ func NewTestSyncHelper(t testing.TB) *TestSyncHelper {
 
 	}
 
-
-
 	return &TestSyncHelper{
 
-		t:              t,
+		t: t,
 
-		tempDir:        tempDir,
+		tempDir: tempDir,
 
-		handoffDir:     handoffDir,
+		handoffDir: handoffDir,
 
-		outDir:         outDir,
+		outDir: outDir,
 
-		createdFiles:   make(map[string]bool),
+		createdFiles: make(map[string]bool),
 
 		processedFiles: make(map[string]bool),
 
-		baseDelay:      baseDelay,
+		baseDelay: baseDelay,
 
-		fileSettle:     fileSettle,
+		fileSettle: fileSettle,
 
-		processWait:    processWait,
-
+		processWait: processWait,
 	}
 
 }
-
-
 
 // CreateIntentFile creates an intent file with proper naming and waits for file system to settle.
 
@@ -173,19 +133,13 @@ func (h *TestSyncHelper) CreateIntentFile(filename, content string) string {
 
 	}
 
-
-
 	filePath := filepath.Join(h.handoffDir, filename)
-
-
 
 	h.mu.Lock()
 
 	h.createdFiles[filename] = true
 
 	h.mu.Unlock()
-
-
 
 	// Create file atomically.
 
@@ -195,13 +149,9 @@ func (h *TestSyncHelper) CreateIntentFile(filename, content string) string {
 
 	require.NoError(h.t, os.Rename(tempPath, filePath))
 
-
-
 	// Wait for file system to settle.
 
 	time.Sleep(h.fileSettle)
-
-
 
 	// Verify file exists and is readable.
 
@@ -209,13 +159,9 @@ func (h *TestSyncHelper) CreateIntentFile(filename, content string) string {
 
 	require.NoError(h.t, err, "Created file should be readable")
 
-
-
 	return filePath
 
 }
-
-
 
 // CreateMultipleIntentFiles creates multiple intent files with proper synchronization.
 
@@ -223,21 +169,15 @@ func (h *TestSyncHelper) CreateMultipleIntentFiles(count int, contentTemplate st
 
 	var files []string
 
-
-
 	// Pre-increment WaitGroup.
 
 	h.filesCreated.Add(count)
-
-
 
 	for i := range count {
 
 		filename := fmt.Sprintf("intent-test-%d.json", i)
 
 		content := fmt.Sprintf(contentTemplate, i, i+1) // Allows template substitution
-
-
 
 		go func(idx int, fname, cont string) {
 
@@ -249,19 +189,13 @@ func (h *TestSyncHelper) CreateMultipleIntentFiles(count int, contentTemplate st
 
 		}(i, filename, content)
 
-
-
 		files = append(files, filepath.Join(h.handoffDir, filename))
 
 	}
 
-
-
 	return files
 
 }
-
-
 
 // WaitForFilesCreated waits for all files to be created.
 
@@ -277,8 +211,6 @@ func (h *TestSyncHelper) WaitForFilesCreated(timeout time.Duration) bool {
 
 	}()
 
-
-
 	select {
 
 	case <-done:
@@ -293,8 +225,6 @@ func (h *TestSyncHelper) WaitForFilesCreated(timeout time.Duration) bool {
 
 }
 
-
-
 // StartWatcherWithSync starts a watcher with proper synchronization for testing.
 
 func (h *TestSyncHelper) StartWatcherWithSync(config Config) (*Watcher, error) {
@@ -307,13 +237,9 @@ func (h *TestSyncHelper) StartWatcherWithSync(config Config) (*Watcher, error) {
 
 	}
 
-
-
 	// Additional settling time.
 
 	time.Sleep(h.fileSettle)
-
-
 
 	// Create watcher.
 
@@ -325,31 +251,23 @@ func (h *TestSyncHelper) StartWatcherWithSync(config Config) (*Watcher, error) {
 
 	}
 
-
-
 	return watcher, nil
 
 }
 
-
-
 // ProcessingTracker tracks file processing completion.
 
 type ProcessingTracker struct {
-
-	expectedFiles  int
+	expectedFiles int
 
 	processedCount int64
 
-	completeChan   chan struct{}
+	completeChan chan struct{}
 
-	timeout        time.Duration
+	timeout time.Duration
 
-	mu             sync.Mutex
-
+	mu sync.Mutex
 }
-
-
 
 // NewProcessingTracker creates a new processing tracker.
 
@@ -359,15 +277,12 @@ func (h *TestSyncHelper) NewProcessingTracker(expectedFiles int) *ProcessingTrac
 
 		expectedFiles: expectedFiles,
 
-		completeChan:  make(chan struct{}),
+		completeChan: make(chan struct{}),
 
-		timeout:       h.processWait,
-
+		timeout: h.processWait,
 	}
 
 }
-
-
 
 // MarkProcessed marks a file as processed.
 
@@ -397,8 +312,6 @@ func (pt *ProcessingTracker) MarkProcessed() {
 
 }
 
-
-
 // WaitForCompletion waits for all files to be processed.
 
 func (pt *ProcessingTracker) WaitForCompletion() bool {
@@ -417,8 +330,6 @@ func (pt *ProcessingTracker) WaitForCompletion() bool {
 
 }
 
-
-
 // GetProcessedCount returns the current processed count.
 
 func (pt *ProcessingTracker) GetProcessedCount() int {
@@ -427,25 +338,19 @@ func (pt *ProcessingTracker) GetProcessedCount() int {
 
 }
 
-
-
 // EnhancedOnceWatcher wraps watcher with completion tracking for once mode.
 
 type EnhancedOnceWatcher struct {
-
 	*Watcher
 
-	tracker    *ProcessingTracker
+	tracker *ProcessingTracker
 
-	done       chan error
+	done chan error
 
-	started    chan struct{}
+	started chan struct{}
 
 	processing chan struct{}
-
 }
-
-
 
 // NewEnhancedOnceWatcher creates a watcher with completion tracking.
 
@@ -459,33 +364,24 @@ func (h *TestSyncHelper) NewEnhancedOnceWatcher(config Config, expectedFiles int
 
 	}
 
-
-
 	tracker := h.NewProcessingTracker(expectedFiles)
-
-
 
 	enhanced := &EnhancedOnceWatcher{
 
-		Watcher:    watcher,
+		Watcher: watcher,
 
-		tracker:    tracker,
+		tracker: tracker,
 
-		done:       make(chan error, 1),
+		done: make(chan error, 1),
 
-		started:    make(chan struct{}),
+		started: make(chan struct{}),
 
 		processing: make(chan struct{}),
-
 	}
-
-
 
 	return enhanced, nil
 
 }
-
-
 
 // StartWithTracking starts the watcher with completion tracking.
 
@@ -495,13 +391,9 @@ func (ew *EnhancedOnceWatcher) StartWithTracking() error {
 
 		close(ew.started)
 
-
-
 		// Signal that processing has begun.
 
 		close(ew.processing)
-
-
 
 		// Start the actual watcher.
 
@@ -511,25 +403,17 @@ func (ew *EnhancedOnceWatcher) StartWithTracking() error {
 
 	}()
 
-
-
 	// Wait for watcher to start.
 
 	<-ew.started
-
-
 
 	// Brief delay to ensure watcher is fully initialized.
 
 	time.Sleep(50 * time.Millisecond)
 
-
-
 	return nil
 
 }
-
-
 
 // WaitForProcessingComplete waits for processing to complete in once mode.
 
@@ -538,8 +422,6 @@ func (ew *EnhancedOnceWatcher) WaitForProcessingComplete(timeout time.Duration) 
 	// Wait for processing to start.
 
 	<-ew.processing
-
-
 
 	// Wait for all files to be processed OR watcher to complete.
 
@@ -550,8 +432,6 @@ func (ew *EnhancedOnceWatcher) WaitForProcessingComplete(timeout time.Duration) 
 		processingDone <- ew.tracker.WaitForCompletion()
 
 	}()
-
-
 
 	watcherDone := make(chan error, 1)
 
@@ -571,8 +451,6 @@ func (ew *EnhancedOnceWatcher) WaitForProcessingComplete(timeout time.Duration) 
 
 	}()
 
-
-
 	// Wait for either processing to complete or watcher to finish.
 
 	select {
@@ -586,8 +464,6 @@ func (ew *EnhancedOnceWatcher) WaitForProcessingComplete(timeout time.Duration) 
 				ew.tracker.expectedFiles, ew.tracker.GetProcessedCount())
 
 		}
-
-
 
 		// Give a bit more time for watcher to finish cleanup.
 
@@ -603,8 +479,6 @@ func (ew *EnhancedOnceWatcher) WaitForProcessingComplete(timeout time.Duration) 
 
 		}
 
-
-
 	case err := <-watcherDone:
 
 		return err
@@ -613,19 +487,13 @@ func (ew *EnhancedOnceWatcher) WaitForProcessingComplete(timeout time.Duration) 
 
 }
 
-
-
 // FileSystemSyncGuard ensures files are properly synced before testing.
 
 type FileSystemSyncGuard struct {
-
 	dir string
 
-	t   testing.TB
-
+	t testing.TB
 }
-
-
 
 // NewFileSystemSyncGuard creates a new sync guard.
 
@@ -635,13 +503,10 @@ func (h *TestSyncHelper) NewFileSystemSyncGuard() *FileSystemSyncGuard {
 
 		dir: h.handoffDir,
 
-		t:   h.t,
-
+		t: h.t,
 	}
 
 }
-
-
 
 // EnsureFilesVisible ensures all files are visible to the file system watcher.
 
@@ -651,13 +516,9 @@ func (fsg *FileSystemSyncGuard) EnsureFilesVisible(expectedFiles []string) error
 
 	retryDelay := 50 * time.Millisecond
 
-
-
 	for range maxRetries {
 
 		allVisible := true
-
-
 
 		for _, expectedFile := range expectedFiles {
 
@@ -671,8 +532,6 @@ func (fsg *FileSystemSyncGuard) EnsureFilesVisible(expectedFiles []string) error
 
 		}
 
-
-
 		if allVisible {
 
 			// Additional sync for directory listing.
@@ -684,8 +543,6 @@ func (fsg *FileSystemSyncGuard) EnsureFilesVisible(expectedFiles []string) error
 				return fmt.Errorf("failed to read directory: %w", err)
 
 			}
-
-
 
 			visibleCount := 0
 
@@ -699,8 +556,6 @@ func (fsg *FileSystemSyncGuard) EnsureFilesVisible(expectedFiles []string) error
 
 			}
 
-
-
 			if visibleCount >= len(expectedFiles) {
 
 				// All files are visible.
@@ -713,21 +568,15 @@ func (fsg *FileSystemSyncGuard) EnsureFilesVisible(expectedFiles []string) error
 
 		}
 
-
-
 		time.Sleep(retryDelay)
 
 		retryDelay = time.Duration(float64(retryDelay) * 1.2) // Exponential backoff
 
 	}
 
-
-
 	return fmt.Errorf("timeout: not all files became visible")
 
 }
-
-
 
 // FlushFileSystem flushes file system caches (platform-specific).
 
@@ -743,8 +592,6 @@ func (fsg *FileSystemSyncGuard) FlushFileSystem() {
 
 	}
 
-
-
 	// Platform-specific optimizations could go here.
 
 	if runtime.GOOS == "windows" {
@@ -755,25 +602,20 @@ func (fsg *FileSystemSyncGuard) FlushFileSystem() {
 
 }
 
-
-
 // MockPorchConfig provides configuration for creating mock porch executables.
 
 type MockPorchConfig struct {
+	ExitCode int
 
-	ExitCode     int
+	Stdout string
 
-	Stdout       string
-
-	Stderr       string
+	Stderr string
 
 	ProcessDelay time.Duration
 
-	FailPattern  string // Pattern in filename that causes failure
+	FailPattern string // Pattern in filename that causes failure
 
 }
-
-
 
 // CreateMockPorch creates a cross-platform mock porch executable with tracking.
 
@@ -781,21 +623,16 @@ func (h *TestSyncHelper) CreateMockPorch(config MockPorchConfig) (string, *Proce
 
 	tracker := h.NewProcessingTracker(1) // Will be updated by caller
 
-
-
 	options := porch.CrossPlatformMockOptions{
 
 		ExitCode: config.ExitCode,
 
-		Stdout:   config.Stdout,
+		Stdout: config.Stdout,
 
-		Stderr:   config.Stderr,
+		Stderr: config.Stderr,
 
-		Sleep:    config.ProcessDelay,
-
+		Sleep: config.ProcessDelay,
 	}
-
-
 
 	if config.FailPattern != "" {
 
@@ -803,19 +640,13 @@ func (h *TestSyncHelper) CreateMockPorch(config MockPorchConfig) (string, *Proce
 
 	}
 
-
-
 	mockPath, err := porch.CreateCrossPlatformMock(h.tempDir, options)
 
 	require.NoError(h.t, err)
 
-
-
 	return mockPath, tracker
 
 }
-
-
 
 // VerifyProcessingResults verifies that files were processed correctly.
 
@@ -833,8 +664,6 @@ func (h *TestSyncHelper) VerifyProcessingResults(expectedProcessed, expectedFail
 
 	}
 
-
-
 	// Check failed directory.
 
 	failedDir := filepath.Join(h.handoffDir, "failed")
@@ -846,8 +675,6 @@ func (h *TestSyncHelper) VerifyProcessingResults(expectedProcessed, expectedFail
 		failedFiles = len(entries)
 
 	}
-
-
 
 	// Check status directory.
 
@@ -861,8 +688,6 @@ func (h *TestSyncHelper) VerifyProcessingResults(expectedProcessed, expectedFail
 
 	}
 
-
-
 	// Verify counts.
 
 	if processedFiles != expectedProcessed {
@@ -871,15 +696,11 @@ func (h *TestSyncHelper) VerifyProcessingResults(expectedProcessed, expectedFail
 
 	}
 
-
-
 	if failedFiles != expectedFailed {
 
 		return fmt.Errorf("expected %d failed files, got %d", expectedFailed, failedFiles)
 
 	}
-
-
 
 	expectedStatus := expectedProcessed + expectedFailed
 
@@ -889,13 +710,9 @@ func (h *TestSyncHelper) VerifyProcessingResults(expectedProcessed, expectedFail
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // WaitWithTimeout waits for a condition with timeout.
 
@@ -911,8 +728,6 @@ func (h *TestSyncHelper) WaitWithTimeout(condition func() bool, timeout time.Dur
 
 	}
 
-
-
 	for time.Now().Before(deadline) {
 
 		if condition() {
@@ -925,13 +740,9 @@ func (h *TestSyncHelper) WaitWithTimeout(condition func() bool, timeout time.Dur
 
 	}
 
-
-
 	return fmt.Errorf("timeout waiting for %s", description)
 
 }
-
-
 
 // GetTempDir returns the temporary directory path.
 
@@ -941,8 +752,6 @@ func (h *TestSyncHelper) GetTempDir() string {
 
 }
 
-
-
 // GetHandoffDir returns the handoff directory path.
 
 func (h *TestSyncHelper) GetHandoffDir() string {
@@ -951,8 +760,6 @@ func (h *TestSyncHelper) GetHandoffDir() string {
 
 }
 
-
-
 // GetOutDir returns the output directory path.
 
 func (h *TestSyncHelper) GetOutDir() string {
@@ -960,8 +767,6 @@ func (h *TestSyncHelper) GetOutDir() string {
 	return h.outDir
 
 }
-
-
 
 // Cleanup performs cleanup operations.
 
@@ -972,4 +777,3 @@ func (h *TestSyncHelper) Cleanup() {
 	// But we can perform any additional cleanup here if needed.
 
 }
-

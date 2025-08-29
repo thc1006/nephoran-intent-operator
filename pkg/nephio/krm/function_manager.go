@@ -28,80 +28,49 @@ limitations under the License.
 
 */
 
-
-
-
 package krm
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/krm/functions"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 	"go.opentelemetry.io/otel"
-
 	"go.opentelemetry.io/otel/attribute"
-
 	"go.opentelemetry.io/otel/codes"
-
 	"go.opentelemetry.io/otel/trace"
 
-
-
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/krm/functions"
-
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
-
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // FunctionManager provides comprehensive KRM function management.
 
 type FunctionManager struct {
+	config *FunctionManagerConfig
 
-	config           *FunctionManagerConfig
-
-	runtime          *Runtime
+	runtime *Runtime
 
 	containerRuntime *ContainerRuntime
 
-	registry         *Registry
+	registry *Registry
 
-	functionCache    *FunctionCache
+	functionCache *FunctionCache
 
-	metrics          *FunctionManagerMetrics
+	metrics *FunctionManagerMetrics
 
-	tracer           trace.Tracer
+	tracer trace.Tracer
 
-	nativeFunctions  map[string]functions.KRMFunction
+	nativeFunctions map[string]functions.KRMFunction
 
-	mu               sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // FunctionManagerConfig defines configuration for function management.
 
@@ -109,57 +78,47 @@ type FunctionManagerConfig struct {
 
 	// Function execution settings.
 
-	ExecutionMode      string        `json:"executionMode" yaml:"executionMode"`           // native, container, hybrid
+	ExecutionMode string `json:"executionMode" yaml:"executionMode"` // native, container, hybrid
 
-	DefaultTimeout     time.Duration `json:"defaultTimeout" yaml:"defaultTimeout"`         // Default function timeout
+	DefaultTimeout time.Duration `json:"defaultTimeout" yaml:"defaultTimeout"` // Default function timeout
 
-	MaxConcurrentExecs int           `json:"maxConcurrentExecs" yaml:"maxConcurrentExecs"` // Max concurrent executions
-
-
+	MaxConcurrentExecs int `json:"maxConcurrentExecs" yaml:"maxConcurrentExecs"` // Max concurrent executions
 
 	// Native function settings.
 
-	EnableNativeFunctions bool     `json:"enableNativeFunctions" yaml:"enableNativeFunctions"` // Enable native functions
+	EnableNativeFunctions bool `json:"enableNativeFunctions" yaml:"enableNativeFunctions"` // Enable native functions
 
-	NativeFunctionPaths   []string `json:"nativeFunctionPaths" yaml:"nativeFunctionPaths"`     // Paths to native functions
-
-
+	NativeFunctionPaths []string `json:"nativeFunctionPaths" yaml:"nativeFunctionPaths"` // Paths to native functions
 
 	// Container function settings.
 
-	EnableContainerFunctions bool   `json:"enableContainerFunctions" yaml:"enableContainerFunctions"` // Enable container functions
+	EnableContainerFunctions bool `json:"enableContainerFunctions" yaml:"enableContainerFunctions"` // Enable container functions
 
-	DefaultRegistry          string `json:"defaultRegistry" yaml:"defaultRegistry"`                   // Default container registry
+	DefaultRegistry string `json:"defaultRegistry" yaml:"defaultRegistry"` // Default container registry
 
-	ImagePullSecret          string `json:"imagePullSecret" yaml:"imagePullSecret"`                   // Image pull secret
-
-
+	ImagePullSecret string `json:"imagePullSecret" yaml:"imagePullSecret"` // Image pull secret
 
 	// Caching settings.
 
-	EnableFunctionCache bool          `json:"enableFunctionCache" yaml:"enableFunctionCache"` // Enable function caching
+	EnableFunctionCache bool `json:"enableFunctionCache" yaml:"enableFunctionCache"` // Enable function caching
 
-	CacheSize           int64         `json:"cacheSize" yaml:"cacheSize"`                     // Cache size in bytes
+	CacheSize int64 `json:"cacheSize" yaml:"cacheSize"` // Cache size in bytes
 
-	CacheTTL            time.Duration `json:"cacheTtl" yaml:"cacheTtl"`                       // Cache TTL
-
-
+	CacheTTL time.Duration `json:"cacheTtl" yaml:"cacheTtl"` // Cache TTL
 
 	// Security settings.
 
-	EnableSandboxing  bool     `json:"enableSandboxing" yaml:"enableSandboxing"`   // Enable sandboxing
+	EnableSandboxing bool `json:"enableSandboxing" yaml:"enableSandboxing"` // Enable sandboxing
 
 	AllowedRegistries []string `json:"allowedRegistries" yaml:"allowedRegistries"` // Allowed registries
 
-	TrustedImages     []string `json:"trustedImages" yaml:"trustedImages"`         // Trusted images
-
-
+	TrustedImages []string `json:"trustedImages" yaml:"trustedImages"` // Trusted images
 
 	// Observability settings.
 
-	EnableMetrics   bool `json:"enableMetrics" yaml:"enableMetrics"`     // Enable metrics
+	EnableMetrics bool `json:"enableMetrics" yaml:"enableMetrics"` // Enable metrics
 
-	EnableTracing   bool `json:"enableTracing" yaml:"enableTracing"`     // Enable tracing
+	EnableTracing bool `json:"enableTracing" yaml:"enableTracing"` // Enable tracing
 
 	EnableProfiling bool `json:"enableProfiling" yaml:"enableProfiling"` // Enable profiling
 
@@ -167,61 +126,48 @@ type FunctionManagerConfig struct {
 
 }
 
-
-
 // FunctionExecutionRequest represents a function execution request.
 
 type FunctionExecutionRequest struct {
 
 	// Function identification.
 
-	FunctionName   string                 `json:"functionName"`
+	FunctionName string `json:"functionName"`
 
-	FunctionImage  string                 `json:"functionImage,omitempty"`
+	FunctionImage string `json:"functionImage,omitempty"`
 
 	FunctionConfig map[string]interface{} `json:"functionConfig,omitempty"`
 
-
-
 	// Input resources.
 
-	Resources    []*porch.KRMResource    `json:"resources"`
+	Resources []*porch.KRMResource `json:"resources"`
 
 	ResourceList *functions.ResourceList `json:"resourceList,omitempty"`
 
-
-
 	// Execution context.
 
-	Context       *functions.ExecutionContext `json:"context,omitempty"`
+	Context *functions.ExecutionContext `json:"context,omitempty"`
 
-	Timeout       time.Duration               `json:"timeout,omitempty"`
+	Timeout time.Duration `json:"timeout,omitempty"`
 
-	ExecutionMode string                      `json:"executionMode,omitempty"`
-
-
+	ExecutionMode string `json:"executionMode,omitempty"`
 
 	// Options.
 
-	EnableCaching   bool `json:"enableCaching,omitempty"`
+	EnableCaching bool `json:"enableCaching,omitempty"`
 
 	EnableProfiling bool `json:"enableProfiling,omitempty"`
 
-	EnableTracing   bool `json:"enableTracing,omitempty"`
-
-
+	EnableTracing bool `json:"enableTracing,omitempty"`
 
 	// Metadata.
 
-	RequestID   string            `json:"requestId,omitempty"`
+	RequestID string `json:"requestId,omitempty"`
 
-	Labels      map[string]string `json:"labels,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
 
 	Annotations map[string]string `json:"annotations,omitempty"`
-
 }
-
-
 
 // FunctionExecutionResponse represents a function execution response.
 
@@ -229,59 +175,48 @@ type FunctionExecutionResponse struct {
 
 	// Results.
 
-	Resources    []*porch.KRMResource    `json:"resources"`
+	Resources []*porch.KRMResource `json:"resources"`
 
 	ResourceList *functions.ResourceList `json:"resourceList,omitempty"`
 
-	Results      []*porch.FunctionResult `json:"results,omitempty"`
-
-
+	Results []*porch.FunctionResult `json:"results,omitempty"`
 
 	// Execution metadata.
 
-	ExecutionID   string        `json:"executionId"`
+	ExecutionID string `json:"executionId"`
 
-	FunctionName  string        `json:"functionName"`
+	FunctionName string `json:"functionName"`
 
-	ExecutionMode string        `json:"executionMode"`
+	ExecutionMode string `json:"executionMode"`
 
-	Duration      time.Duration `json:"duration"`
+	Duration time.Duration `json:"duration"`
 
-	StartTime     time.Time     `json:"startTime"`
+	StartTime time.Time `json:"startTime"`
 
-	EndTime       time.Time     `json:"endTime"`
-
-
+	EndTime time.Time `json:"endTime"`
 
 	// Performance metrics.
 
-	CPUUsage    float64 `json:"cpuUsage,omitempty"`
+	CPUUsage float64 `json:"cpuUsage,omitempty"`
 
-	MemoryUsage int64   `json:"memoryUsage,omitempty"`
+	MemoryUsage int64 `json:"memoryUsage,omitempty"`
 
-	CacheHit    bool    `json:"cacheHit,omitempty"`
-
-
+	CacheHit bool `json:"cacheHit,omitempty"`
 
 	// Error information.
 
-	Error        error  `json:"error,omitempty"`
+	Error error `json:"error,omitempty"`
 
-	ErrorCode    string `json:"errorCode,omitempty"`
+	ErrorCode string `json:"errorCode,omitempty"`
 
 	ErrorDetails string `json:"errorDetails,omitempty"`
-
-
 
 	// Audit information.
 
 	SecurityEvents []*SecurityEvent `json:"securityEvents,omitempty"`
 
-	AuditLogs      []string         `json:"auditLogs,omitempty"`
-
+	AuditLogs []string `json:"auditLogs,omitempty"`
 }
-
-
 
 // FunctionRegistration represents a function registration.
 
@@ -289,247 +224,205 @@ type FunctionRegistration struct {
 
 	// Function metadata.
 
-	Name        string                 `json:"name"`
+	Name string `json:"name"`
 
-	Version     string                 `json:"version"`
+	Version string `json:"version"`
 
-	Description string                 `json:"description"`
+	Description string `json:"description"`
 
-	Type        functions.FunctionType `json:"type"`
-
-
+	Type functions.FunctionType `json:"type"`
 
 	// Function source.
 
-	NativeFunction  functions.KRMFunction    `json:"-"`                         // Native Go function
+	NativeFunction functions.KRMFunction `json:"-"` // Native Go function
 
-	ContainerImage  string                   `json:"containerImage,omitempty"`  // Container image
+	ContainerImage string `json:"containerImage,omitempty"` // Container image
 
 	ContainerConfig *ContainerFunctionConfig `json:"containerConfig,omitempty"` // Container configuration
 
-
-
 	// Function metadata.
 
-	Metadata *functions.FunctionMetadata  `json:"metadata,omitempty"`
+	Metadata *functions.FunctionMetadata `json:"metadata,omitempty"`
 
-	Schema   *functions.FunctionSchema    `json:"schema,omitempty"`
+	Schema *functions.FunctionSchema `json:"schema,omitempty"`
 
 	Examples []*functions.FunctionExample `json:"examples,omitempty"`
-
-
 
 	// Registration metadata.
 
 	RegisteredAt time.Time `json:"registeredAt"`
 
-	RegisteredBy string    `json:"registeredBy,omitempty"`
+	RegisteredBy string `json:"registeredBy,omitempty"`
 
-	Source       string    `json:"source,omitempty"`
+	Source string `json:"source,omitempty"`
 
-	Verified     bool      `json:"verified"`
-
-
+	Verified bool `json:"verified"`
 
 	// Statistics.
 
-	ExecutionCount int64         `json:"executionCount"`
+	ExecutionCount int64 `json:"executionCount"`
 
-	LastExecuted   *time.Time    `json:"lastExecuted,omitempty"`
+	LastExecuted *time.Time `json:"lastExecuted,omitempty"`
 
 	AverageLatency time.Duration `json:"averageLatency"`
 
-	ErrorRate      float64       `json:"errorRate"`
-
+	ErrorRate float64 `json:"errorRate"`
 }
-
-
 
 // ContainerFunctionConfig represents container function configuration.
 
 type ContainerFunctionConfig struct {
+	Image string `json:"image"`
 
-	Image           string            `json:"image"`
+	Tag string `json:"tag,omitempty"`
 
-	Tag             string            `json:"tag,omitempty"`
+	Command []string `json:"command,omitempty"`
 
-	Command         []string          `json:"command,omitempty"`
+	Args []string `json:"args,omitempty"`
 
-	Args            []string          `json:"args,omitempty"`
+	Environment map[string]string `json:"environment,omitempty"`
 
-	Environment     map[string]string `json:"environment,omitempty"`
+	WorkingDir string `json:"workingDir,omitempty"`
 
-	WorkingDir      string            `json:"workingDir,omitempty"`
+	CPULimit string `json:"cpuLimit,omitempty"`
 
-	CPULimit        string            `json:"cpuLimit,omitempty"`
+	MemoryLimit string `json:"memoryLimit,omitempty"`
 
-	MemoryLimit     string            `json:"memoryLimit,omitempty"`
+	Timeout time.Duration `json:"timeout,omitempty"`
 
-	Timeout         time.Duration     `json:"timeout,omitempty"`
+	Mounts []*VolumeMount `json:"mounts,omitempty"`
 
-	Mounts          []*VolumeMount    `json:"mounts,omitempty"`
-
-	SecurityContext *SecurityConfig   `json:"securityContext,omitempty"`
-
+	SecurityContext *SecurityConfig `json:"securityContext,omitempty"`
 }
-
-
 
 // SecurityConfig represents security configuration for container functions.
 
 type SecurityConfig struct {
+	RunAsUser *int64 `json:"runAsUser,omitempty"`
 
-	RunAsUser       *int64                `json:"runAsUser,omitempty"`
+	RunAsGroup *int64 `json:"runAsGroup,omitempty"`
 
-	RunAsGroup      *int64                `json:"runAsGroup,omitempty"`
+	ReadOnlyRootFS bool `json:"readOnlyRootFS,omitempty"`
 
-	ReadOnlyRootFS  bool                  `json:"readOnlyRootFS,omitempty"`
+	Privileged bool `json:"privileged,omitempty"`
 
-	Privileged      bool                  `json:"privileged,omitempty"`
+	Capabilities *SecurityCapabilities `json:"capabilities,omitempty"`
 
-	Capabilities    *SecurityCapabilities `json:"capabilities,omitempty"`
+	AppArmorProfile string `json:"appArmorProfile,omitempty"`
 
-	AppArmorProfile string                `json:"appArmorProfile,omitempty"`
-
-	SeccompProfile  string                `json:"seccompProfile,omitempty"`
-
+	SeccompProfile string `json:"seccompProfile,omitempty"`
 }
-
-
 
 // SecurityCapabilities represents security capabilities.
 
 type SecurityCapabilities struct {
-
-	Add  []string `json:"add,omitempty"`
+	Add []string `json:"add,omitempty"`
 
 	Drop []string `json:"drop,omitempty"`
-
 }
-
-
 
 // FunctionCache provides caching for function execution results.
 
 type FunctionCache struct {
+	cache map[string]*CacheEntry
 
-	cache    map[string]*CacheEntry
+	size int64
 
-	size     int64
+	maxSize int64
 
-	maxSize  int64
+	ttl time.Duration
 
-	ttl      time.Duration
+	mu sync.RWMutex
 
-	mu       sync.RWMutex
-
-	metrics  *CacheMetrics
+	metrics *CacheMetrics
 
 	cacheDir string
 
-	items    map[string]*CacheItem
-
+	items map[string]*CacheItem
 }
-
-
 
 // CacheEntry represents a cache entry.
 
 type CacheEntry struct {
+	Key string `json:"key"`
 
-	Key         string                     `json:"key"`
+	Response *FunctionExecutionResponse `json:"response"`
 
-	Response    *FunctionExecutionResponse `json:"response"`
+	Size int64 `json:"size"`
 
-	Size        int64                      `json:"size"`
+	CreatedAt time.Time `json:"createdAt"`
 
-	CreatedAt   time.Time                  `json:"createdAt"`
+	ExpiresAt time.Time `json:"expiresAt"`
 
-	ExpiresAt   time.Time                  `json:"expiresAt"`
+	AccessCount int64 `json:"accessCount"`
 
-	AccessCount int64                      `json:"accessCount"`
-
-	LastAccess  time.Time                  `json:"lastAccess"`
-
+	LastAccess time.Time `json:"lastAccess"`
 }
-
-
 
 // CacheMetrics provides cache performance metrics.
 
 type CacheMetrics struct {
+	Hits prometheus.Counter
 
-	Hits      prometheus.Counter
-
-	Misses    prometheus.Counter
+	Misses prometheus.Counter
 
 	Evictions prometheus.Counter
 
-	Size      prometheus.Gauge
+	Size prometheus.Gauge
 
-	Entries   prometheus.Gauge
+	Entries prometheus.Gauge
 
 	ItemCount prometheus.Gauge
-
 }
-
-
 
 // FunctionManagerMetrics provides comprehensive metrics.
 
 type FunctionManagerMetrics struct {
+	FunctionExecutions *prometheus.CounterVec
 
-	FunctionExecutions    *prometheus.CounterVec
-
-	ExecutionDuration     *prometheus.HistogramVec
+	ExecutionDuration *prometheus.HistogramVec
 
 	FunctionRegistrations prometheus.Gauge
 
-	ExecutionErrors       *prometheus.CounterVec
+	ExecutionErrors *prometheus.CounterVec
 
-	CachePerformance      *prometheus.HistogramVec
+	CachePerformance *prometheus.HistogramVec
 
-	SecurityViolations    *prometheus.CounterVec
+	SecurityViolations *prometheus.CounterVec
 
-	ResourceUtilization   *prometheus.GaugeVec
-
+	ResourceUtilization *prometheus.GaugeVec
 }
-
-
 
 // Default configuration.
 
 var DefaultFunctionManagerConfig = &FunctionManagerConfig{
 
-	ExecutionMode:            "hybrid",
+	ExecutionMode: "hybrid",
 
-	DefaultTimeout:           5 * time.Minute,
+	DefaultTimeout: 5 * time.Minute,
 
-	MaxConcurrentExecs:       50,
+	MaxConcurrentExecs: 50,
 
-	EnableNativeFunctions:    true,
+	EnableNativeFunctions: true,
 
 	EnableContainerFunctions: true,
 
-	DefaultRegistry:          "gcr.io/kpt-fn",
+	DefaultRegistry: "gcr.io/kpt-fn",
 
-	EnableFunctionCache:      true,
+	EnableFunctionCache: true,
 
-	CacheSize:                1024 * 1024 * 1024, // 1GB
+	CacheSize: 1024 * 1024 * 1024, // 1GB
 
-	CacheTTL:                 1 * time.Hour,
+	CacheTTL: 1 * time.Hour,
 
-	EnableSandboxing:         true,
+	EnableSandboxing: true,
 
-	EnableMetrics:            true,
+	EnableMetrics: true,
 
-	EnableTracing:            true,
+	EnableTracing: true,
 
-	DetailedLogging:          false,
-
+	DetailedLogging: false,
 }
-
-
 
 // NewFunctionManager creates a new function manager.
 
@@ -541,8 +434,6 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 
 	}
 
-
-
 	// Validate configuration.
 
 	if err := validateFunctionManagerConfig(config); err != nil {
@@ -550,8 +441,6 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 		return nil, fmt.Errorf("invalid function manager configuration: %w", err)
 
 	}
-
-
 
 	// Initialize metrics.
 
@@ -564,27 +453,23 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 				Name: "krm_function_manager_executions_total",
 
 				Help: "Total number of function executions",
-
 			},
 
 			[]string{"function", "mode", "status"},
-
 		),
 
 		ExecutionDuration: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "krm_function_manager_execution_duration_seconds",
+				Name: "krm_function_manager_execution_duration_seconds",
 
-				Help:    "Duration of function executions",
+				Help: "Duration of function executions",
 
 				Buckets: prometheus.ExponentialBuckets(0.01, 2, 10),
-
 			},
 
 			[]string{"function", "mode"},
-
 		),
 
 		FunctionRegistrations: promauto.NewGauge(
@@ -594,9 +479,7 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 				Name: "krm_function_manager_registrations_total",
 
 				Help: "Total number of registered functions",
-
 			},
-
 		),
 
 		ExecutionErrors: promauto.NewCounterVec(
@@ -606,27 +489,23 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 				Name: "krm_function_manager_errors_total",
 
 				Help: "Total number of execution errors",
-
 			},
 
 			[]string{"function", "error_type"},
-
 		),
 
 		CachePerformance: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "krm_function_manager_cache_operation_duration_seconds",
+				Name: "krm_function_manager_cache_operation_duration_seconds",
 
-				Help:    "Duration of cache operations",
+				Help: "Duration of cache operations",
 
 				Buckets: prometheus.ExponentialBuckets(0.001, 2, 10),
-
 			},
 
 			[]string{"operation", "result"},
-
 		),
 
 		SecurityViolations: promauto.NewCounterVec(
@@ -636,11 +515,9 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 				Name: "krm_function_manager_security_violations_total",
 
 				Help: "Total number of security violations",
-
 			},
 
 			[]string{"violation_type", "severity"},
-
 		),
 
 		ResourceUtilization: promauto.NewGaugeVec(
@@ -650,16 +527,11 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 				Name: "krm_function_manager_resource_utilization",
 
 				Help: "Resource utilization during function execution",
-
 			},
 
 			[]string{"resource_type", "function"},
-
 		),
-
 	}
-
-
 
 	// Initialize cache.
 
@@ -674,7 +546,6 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 				Name: "krm_function_cache_hits_total",
 
 				Help: "Total number of cache hits",
-
 			}),
 
 			Misses: promauto.NewCounter(prometheus.CounterOpts{
@@ -682,7 +553,6 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 				Name: "krm_function_cache_misses_total",
 
 				Help: "Total number of cache misses",
-
 			}),
 
 			Evictions: promauto.NewCounter(prometheus.CounterOpts{
@@ -690,7 +560,6 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 				Name: "krm_function_cache_evictions_total",
 
 				Help: "Total number of cache evictions",
-
 			}),
 
 			Size: promauto.NewGauge(prometheus.GaugeOpts{
@@ -698,7 +567,6 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 				Name: "krm_function_cache_size_bytes",
 
 				Help: "Current cache size in bytes",
-
 			}),
 
 			Entries: promauto.NewGauge(prometheus.GaugeOpts{
@@ -706,50 +574,40 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 				Name: "krm_function_cache_entries_total",
 
 				Help: "Current number of cache entries",
-
 			}),
-
 		}
-
-
 
 		functionCache = &FunctionCache{
 
-			cache:   make(map[string]*CacheEntry),
+			cache: make(map[string]*CacheEntry),
 
 			maxSize: config.CacheSize,
 
-			ttl:     config.CacheTTL,
+			ttl: config.CacheTTL,
 
 			metrics: cacheMetrics,
-
 		}
 
 	}
 
-
-
 	manager := &FunctionManager{
 
-		config:           config,
+		config: config,
 
-		runtime:          runtime,
+		runtime: runtime,
 
 		containerRuntime: containerRuntime,
 
-		registry:         registry,
+		registry: registry,
 
-		functionCache:    functionCache,
+		functionCache: functionCache,
 
-		metrics:          metrics,
+		metrics: metrics,
 
-		tracer:           otel.Tracer("krm-function-manager"),
+		tracer: otel.Tracer("krm-function-manager"),
 
-		nativeFunctions:  make(map[string]functions.KRMFunction),
-
+		nativeFunctions: make(map[string]functions.KRMFunction),
 	}
-
-
 
 	// Register built-in native functions.
 
@@ -759,13 +617,9 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 
 	}
 
-
-
 	return manager, nil
 
 }
-
-
 
 // ExecuteFunction executes a KRM function.
 
@@ -775,13 +629,9 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 
 	defer span.End()
 
-
-
 	// Generate execution ID.
 
 	req.RequestID = generateExecutionID()
-
-
 
 	span.SetAttributes(
 
@@ -792,26 +642,18 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 		attribute.String("execution.mode", req.ExecutionMode),
 
 		attribute.Int("resources.count", len(req.Resources)),
-
 	)
-
-
 
 	logger := log.FromContext(ctx).WithName("function-manager").WithValues(
 
 		"function", req.FunctionName,
 
 		"executionId", req.RequestID,
-
 	)
-
-
 
 	logger.Info("Starting function execution")
 
 	startTime := time.Now()
-
-
 
 	// Determine execution mode.
 
@@ -822,8 +664,6 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 		executionMode = fm.determineExecutionMode(req.FunctionName)
 
 	}
-
-
 
 	// Check cache if enabled.
 
@@ -843,15 +683,11 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 
 	}
 
-
-
 	// Execute function.
 
 	var response *FunctionExecutionResponse
 
 	var err error
-
-
 
 	switch executionMode {
 
@@ -873,11 +709,7 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 
 	}
 
-
-
 	duration := time.Since(startTime)
-
-
 
 	if err != nil {
 
@@ -893,8 +725,6 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 
 	}
 
-
-
 	// Complete response.
 
 	response.ExecutionID = req.RequestID
@@ -909,8 +739,6 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 
 	response.EndTime = time.Now()
 
-
-
 	// Cache result if enabled.
 
 	if fm.config.EnableFunctionCache && req.EnableCaching && err == nil {
@@ -919,15 +747,11 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 
 	}
 
-
-
 	// Record metrics.
 
 	fm.metrics.ExecutionDuration.WithLabelValues(req.FunctionName, executionMode).Observe(duration.Seconds())
 
 	fm.metrics.FunctionExecutions.WithLabelValues(req.FunctionName, executionMode, "success").Inc()
-
-
 
 	logger.Info("Function execution completed",
 
@@ -935,15 +759,11 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 
 		"mode", executionMode)
 
-
-
 	span.SetStatus(codes.Ok, "function execution completed")
 
 	return response, nil
 
 }
-
-
 
 // RegisterNativeFunction registers a native Go function.
 
@@ -953,27 +773,19 @@ func (fm *FunctionManager) RegisterNativeFunction(name string, function function
 
 	defer fm.mu.Unlock()
 
-
-
 	if _, exists := fm.nativeFunctions[name]; exists {
 
 		return fmt.Errorf("function %s is already registered", name)
 
 	}
 
-
-
 	fm.nativeFunctions[name] = function
 
 	fm.metrics.FunctionRegistrations.Inc()
 
-
-
 	return nil
 
 }
-
-
 
 // RegisterContainerFunction registers a container-based function.
 
@@ -985,29 +797,24 @@ func (fm *FunctionManager) RegisterContainerFunction(name string, config *Contai
 
 	registration := &FunctionRegistration{
 
-		Name:            name,
+		Name: name,
 
-		Version:         "latest",
+		Version: "latest",
 
-		Type:            functions.FunctionTypeMutator,
+		Type: functions.FunctionTypeMutator,
 
-		ContainerImage:  config.Image,
+		ContainerImage: config.Image,
 
 		ContainerConfig: config,
 
-		RegisteredAt:    time.Now(),
+		RegisteredAt: time.Now(),
 
-		Verified:        false,
-
+		Verified: false,
 	}
-
-
 
 	// Store in registry (implementation would persist this).
 
 	_ = registration
-
-
 
 	fm.metrics.FunctionRegistrations.Inc()
 
@@ -1015,15 +822,11 @@ func (fm *FunctionManager) RegisterContainerFunction(name string, config *Contai
 
 }
 
-
-
 // ListFunctions returns all registered functions.
 
 func (fm *FunctionManager) ListFunctions(ctx context.Context) ([]*FunctionRegistration, error) {
 
 	var functions []*FunctionRegistration
-
-
 
 	// Add native functions.
 
@@ -1035,22 +838,21 @@ func (fm *FunctionManager) ListFunctions(ctx context.Context) ([]*FunctionRegist
 
 		registration := &FunctionRegistration{
 
-			Name:         name,
+			Name: name,
 
-			Version:      metadata.Version,
+			Version: metadata.Version,
 
-			Description:  metadata.Description,
+			Description: metadata.Description,
 
-			Type:         metadata.Type,
+			Type: metadata.Type,
 
-			Metadata:     metadata,
+			Metadata: metadata,
 
 			RegisteredAt: time.Now(),
 
-			Verified:     true,
+			Verified: true,
 
-			Source:       "native",
-
+			Source: "native",
 		}
 
 		functions = append(functions, registration)
@@ -1058,8 +860,6 @@ func (fm *FunctionManager) ListFunctions(ctx context.Context) ([]*FunctionRegist
 	}
 
 	fm.mu.RUnlock()
-
-
 
 	// Add container functions from registry.
 
@@ -1069,13 +869,9 @@ func (fm *FunctionManager) ListFunctions(ctx context.Context) ([]*FunctionRegist
 
 	}
 
-
-
 	return functions, nil
 
 }
-
-
 
 // GetFunction returns information about a specific function.
 
@@ -1093,31 +889,28 @@ func (fm *FunctionManager) GetFunction(ctx context.Context, name string) (*Funct
 
 		return &FunctionRegistration{
 
-			Name:         name,
+			Name: name,
 
-			Version:      metadata.Version,
+			Version: metadata.Version,
 
-			Description:  metadata.Description,
+			Description: metadata.Description,
 
-			Type:         metadata.Type,
+			Type: metadata.Type,
 
-			Metadata:     metadata,
+			Metadata: metadata,
 
-			Schema:       function.GetSchema(),
+			Schema: function.GetSchema(),
 
 			RegisteredAt: time.Now(),
 
-			Verified:     true,
+			Verified: true,
 
-			Source:       "native",
-
+			Source: "native",
 		}, nil
 
 	}
 
 	fm.mu.RUnlock()
-
-
 
 	// Check container functions.
 
@@ -1125,11 +918,7 @@ func (fm *FunctionManager) GetFunction(ctx context.Context, name string) (*Funct
 
 }
 
-
-
 // Private methods.
-
-
 
 func (fm *FunctionManager) registerBuiltinFunctions() error {
 
@@ -1143,8 +932,6 @@ func (fm *FunctionManager) registerBuiltinFunctions() error {
 
 	}
 
-
-
 	a1Validator := functions.NewA1PolicyValidator()
 
 	if err := fm.RegisterNativeFunction("a1-policy-validator", a1Validator); err != nil {
@@ -1153,8 +940,6 @@ func (fm *FunctionManager) registerBuiltinFunctions() error {
 
 	}
 
-
-
 	fiveGValidator := functions.NewFiveGCoreValidator()
 
 	if err := fm.RegisterNativeFunction("5g-core-validator", fiveGValidator); err != nil {
@@ -1162,8 +947,6 @@ func (fm *FunctionManager) registerBuiltinFunctions() error {
 		return err
 
 	}
-
-
 
 	// Register optimization functions.
 
@@ -1175,8 +958,6 @@ func (fm *FunctionManager) registerBuiltinFunctions() error {
 
 	}
 
-
-
 	sliceOptimizer := functions.NewNetworkSliceOptimizer()
 
 	if err := fm.RegisterNativeFunction("network-slice-optimizer", sliceOptimizer); err != nil {
@@ -1184,8 +965,6 @@ func (fm *FunctionManager) registerBuiltinFunctions() error {
 		return err
 
 	}
-
-
 
 	vendorNormalizer := functions.NewMultiVendorNormalizer()
 
@@ -1195,13 +974,9 @@ func (fm *FunctionManager) registerBuiltinFunctions() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (fm *FunctionManager) determineExecutionMode(functionName string) string {
 
@@ -1213,15 +988,11 @@ func (fm *FunctionManager) determineExecutionMode(functionName string) string {
 
 	fm.mu.RUnlock()
 
-
-
 	if isNative {
 
 		return "native"
 
 	}
-
-
 
 	// Check if it's a container function.
 
@@ -1231,13 +1002,9 @@ func (fm *FunctionManager) determineExecutionMode(functionName string) string {
 
 	}
 
-
-
 	return fm.config.ExecutionMode
 
 }
-
-
 
 func (fm *FunctionManager) isContainerFunction(functionName string) bool {
 
@@ -1254,10 +1021,7 @@ func (fm *FunctionManager) isContainerFunction(functionName string) bool {
 		"quay.io/",
 
 		"registry.k8s.io/",
-
 	}
-
-
 
 	for _, pattern := range containerPatterns {
 
@@ -1269,13 +1033,9 @@ func (fm *FunctionManager) isContainerFunction(functionName string) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 func (fm *FunctionManager) executeNativeFunction(ctx context.Context, req *FunctionExecutionRequest) (*FunctionExecutionResponse, error) {
 
@@ -1285,29 +1045,22 @@ func (fm *FunctionManager) executeNativeFunction(ctx context.Context, req *Funct
 
 	fm.mu.RUnlock()
 
-
-
 	if !exists {
 
 		return nil, fmt.Errorf("native function %s not found", req.FunctionName)
 
 	}
 
-
-
 	// Convert request to ResourceList.
 
 	resourceList := &functions.ResourceList{
 
-		Items:          convertToKRMResources(req.Resources),
+		Items: convertToKRMResources(req.Resources),
 
 		FunctionConfig: req.FunctionConfig,
 
-		Context:        req.Context,
-
+		Context: req.Context,
 	}
-
-
 
 	// Execute function.
 
@@ -1319,27 +1072,20 @@ func (fm *FunctionManager) executeNativeFunction(ctx context.Context, req *Funct
 
 	}
 
-
-
 	// Convert result to response.
 
 	response := &FunctionExecutionResponse{
 
-		Resources:    convertFromKRMResources(result.Items),
+		Resources: convertFromKRMResources(result.Items),
 
 		ResourceList: result,
 
-		Results:      result.Results,
-
+		Results: result.Results,
 	}
-
-
 
 	return response, nil
 
 }
-
-
 
 func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *FunctionExecutionRequest) (*FunctionExecutionResponse, error) {
 
@@ -1348,8 +1094,6 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 		return nil, fmt.Errorf("container runtime not available")
 
 	}
-
-
 
 	// Get container function configuration.
 
@@ -1361,27 +1105,20 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 
 	}
 
-
-
 	// Prepare input files.
 
 	inputFiles := make(map[string][]byte)
-
-
 
 	// Create resource list input.
 
 	resourceList := &functions.ResourceList{
 
-		Items:          convertToKRMResources(req.Resources),
+		Items: convertToKRMResources(req.Resources),
 
 		FunctionConfig: req.FunctionConfig,
 
-		Context:        req.Context,
-
+		Context: req.Context,
 	}
-
-
 
 	inputData, err := json.Marshal(resourceList)
 
@@ -1393,41 +1130,36 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 
 	inputFiles["input.json"] = inputData
 
-
-
 	// Create container request.
 
 	containerReq := &ContainerRequest{
 
-		Image:        config.Image,
+		Image: config.Image,
 
-		Tag:          config.Tag,
+		Tag: config.Tag,
 
-		Command:      config.Command,
+		Command: config.Command,
 
-		Args:         config.Args,
+		Args: config.Args,
 
-		Environment:  config.Environment,
+		Environment: config.Environment,
 
-		WorkingDir:   config.WorkingDir,
+		WorkingDir: config.WorkingDir,
 
-		CPULimit:     config.CPULimit,
+		CPULimit: config.CPULimit,
 
-		MemoryLimit:  config.MemoryLimit,
+		MemoryLimit: config.MemoryLimit,
 
-		Timeout:      config.Timeout,
+		Timeout: config.Timeout,
 
-		InputFiles:   inputFiles,
+		InputFiles: inputFiles,
 
-		Context:      ctx,
+		Context: ctx,
 
-		RequestID:    req.RequestID,
+		RequestID: req.RequestID,
 
 		FunctionName: req.FunctionName,
-
 	}
-
-
 
 	// Configure security context.
 
@@ -1449,8 +1181,6 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 
 		containerReq.Privileged = config.SecurityContext.Privileged
 
-
-
 		if config.SecurityContext.Capabilities != nil {
 
 			containerReq.Capabilities = config.SecurityContext.Capabilities.Add
@@ -1458,8 +1188,6 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 		}
 
 	}
-
-
 
 	// Execute container.
 
@@ -1471,8 +1199,6 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 
 	}
 
-
-
 	// Parse output.
 
 	if containerResp.ExitCode != 0 {
@@ -1482,8 +1208,6 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 			containerResp.ExitCode, string(containerResp.Stderr))
 
 	}
-
-
 
 	// Parse output files.
 
@@ -1509,29 +1233,22 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 
 	}
 
-
-
 	response := &FunctionExecutionResponse{
 
-		Resources:    convertFromKRMResources(outputResourceList.Items),
+		Resources: convertFromKRMResources(outputResourceList.Items),
 
 		ResourceList: &outputResourceList,
 
-		Results:      outputResourceList.Results,
+		Results: outputResourceList.Results,
 
-		CPUUsage:     float64(containerResp.CPUUsage.MilliValue()),
+		CPUUsage: float64(containerResp.CPUUsage.MilliValue()),
 
-		MemoryUsage:  containerResp.MemoryUsage.Value(),
-
+		MemoryUsage: containerResp.MemoryUsage.Value(),
 	}
-
-
 
 	return response, nil
 
 }
-
-
 
 func (fm *FunctionManager) executeHybridFunction(ctx context.Context, req *FunctionExecutionRequest) (*FunctionExecutionResponse, error) {
 
@@ -1547,8 +1264,6 @@ func (fm *FunctionManager) executeHybridFunction(ctx context.Context, req *Funct
 
 }
 
-
-
 func (fm *FunctionManager) isNativeFunction(functionName string) bool {
 
 	fm.mu.RLock()
@@ -1561,8 +1276,6 @@ func (fm *FunctionManager) isNativeFunction(functionName string) bool {
 
 }
 
-
-
 func (fm *FunctionManager) getContainerFunctionConfig(functionName string) (*ContainerFunctionConfig, error) {
 
 	// This would retrieve container function configuration from registry.
@@ -1571,13 +1284,13 @@ func (fm *FunctionManager) getContainerFunctionConfig(functionName string) (*Con
 
 	return &ContainerFunctionConfig{
 
-		Image:       functionName,
+		Image: functionName,
 
-		CPULimit:    "500m",
+		CPULimit: "500m",
 
 		MemoryLimit: "512Mi",
 
-		Timeout:     5 * time.Minute,
+		Timeout: 5 * time.Minute,
 
 		SecurityContext: &SecurityConfig{
 
@@ -1586,16 +1299,11 @@ func (fm *FunctionManager) getContainerFunctionConfig(functionName string) (*Con
 			Capabilities: &SecurityCapabilities{
 
 				Drop: []string{"ALL"},
-
 			},
-
 		},
-
 	}, nil
 
 }
-
-
 
 func (fm *FunctionManager) getContainerFunctions(ctx context.Context) ([]*FunctionRegistration, error) {
 
@@ -1605,8 +1313,6 @@ func (fm *FunctionManager) getContainerFunctions(ctx context.Context) ([]*Functi
 
 }
 
-
-
 func (fm *FunctionManager) getContainerFunction(ctx context.Context, name string) (*FunctionRegistration, error) {
 
 	// This would retrieve a specific container function from registry.
@@ -1615,11 +1321,7 @@ func (fm *FunctionManager) getContainerFunction(ctx context.Context, name string
 
 }
 
-
-
 // Cache methods.
-
-
 
 func (fm *FunctionManager) checkCache(ctx context.Context, req *FunctionExecutionRequest) *FunctionExecutionResponse {
 
@@ -1629,17 +1331,11 @@ func (fm *FunctionManager) checkCache(ctx context.Context, req *FunctionExecutio
 
 	}
 
-
-
 	key := fm.generateCacheKey(req)
-
-
 
 	fm.functionCache.mu.RLock()
 
 	defer fm.functionCache.mu.RUnlock()
-
-
 
 	entry, exists := fm.functionCache.cache[key]
 
@@ -1651,8 +1347,6 @@ func (fm *FunctionManager) checkCache(ctx context.Context, req *FunctionExecutio
 
 	}
 
-
-
 	// Check expiration.
 
 	if time.Now().After(entry.ExpiresAt) {
@@ -1663,23 +1357,17 @@ func (fm *FunctionManager) checkCache(ctx context.Context, req *FunctionExecutio
 
 	}
 
-
-
 	// Update access statistics.
 
 	entry.AccessCount++
 
 	entry.LastAccess = time.Now()
 
-
-
 	fm.functionCache.metrics.Hits.Inc()
 
 	return entry.Response
 
 }
-
-
 
 func (fm *FunctionManager) cacheResult(ctx context.Context, req *FunctionExecutionRequest, response *FunctionExecutionResponse) {
 
@@ -1689,11 +1377,7 @@ func (fm *FunctionManager) cacheResult(ctx context.Context, req *FunctionExecuti
 
 	}
 
-
-
 	key := fm.generateCacheKey(req)
-
-
 
 	// Calculate entry size.
 
@@ -1701,33 +1385,26 @@ func (fm *FunctionManager) cacheResult(ctx context.Context, req *FunctionExecuti
 
 	size := int64(len(data))
 
-
-
 	entry := &CacheEntry{
 
-		Key:         key,
+		Key: key,
 
-		Response:    response,
+		Response: response,
 
-		Size:        size,
+		Size: size,
 
-		CreatedAt:   time.Now(),
+		CreatedAt: time.Now(),
 
-		ExpiresAt:   time.Now().Add(fm.functionCache.ttl),
+		ExpiresAt: time.Now().Add(fm.functionCache.ttl),
 
 		AccessCount: 1,
 
-		LastAccess:  time.Now(),
-
+		LastAccess: time.Now(),
 	}
-
-
 
 	fm.functionCache.mu.Lock()
 
 	defer fm.functionCache.mu.Unlock()
-
-
 
 	// Check if we need to evict entries.
 
@@ -1737,13 +1414,9 @@ func (fm *FunctionManager) cacheResult(ctx context.Context, req *FunctionExecuti
 
 	}
 
-
-
 	fm.functionCache.cache[key] = entry
 
 	fm.functionCache.size += size
-
-
 
 	fm.functionCache.metrics.Size.Set(float64(fm.functionCache.size))
 
@@ -1751,37 +1424,28 @@ func (fm *FunctionManager) cacheResult(ctx context.Context, req *FunctionExecuti
 
 }
 
-
-
 func (fm *FunctionManager) generateCacheKey(req *FunctionExecutionRequest) string {
 
 	// Generate a hash of the request for caching.
 
 	data, _ := json.Marshal(struct {
+		Function string `json:"function"`
 
-		Function  string                 `json:"function"`
+		Config map[string]interface{} `json:"config"`
 
-		Config    map[string]interface{} `json:"config"`
-
-		Resources string                 `json:"resources"`
-
+		Resources string `json:"resources"`
 	}{
 
-		Function:  req.FunctionName,
+		Function: req.FunctionName,
 
-		Config:    req.FunctionConfig,
+		Config: req.FunctionConfig,
 
 		Resources: fmt.Sprintf("%v", req.Resources),
-
 	})
-
-
 
 	return fmt.Sprintf("%x", data)
 
 }
-
-
 
 func (fm *FunctionManager) evictCacheEntries(neededSize int64) {
 
@@ -1792,8 +1456,6 @@ func (fm *FunctionManager) evictCacheEntries(neededSize int64) {
 		var oldestKey string
 
 		var oldestTime time.Time
-
-
 
 		for key, entry := range fm.functionCache.cache {
 
@@ -1806,8 +1468,6 @@ func (fm *FunctionManager) evictCacheEntries(neededSize int64) {
 			}
 
 		}
-
-
 
 		if oldestKey != "" {
 
@@ -1825,8 +1485,6 @@ func (fm *FunctionManager) evictCacheEntries(neededSize int64) {
 
 }
 
-
-
 // Health returns function manager health status.
 
 func (fm *FunctionManager) Health() *FunctionManagerHealth {
@@ -1835,19 +1493,14 @@ func (fm *FunctionManager) Health() *FunctionManagerHealth {
 
 	defer fm.mu.RUnlock()
 
-
-
 	health := &FunctionManagerHealth{
 
-		Status:              "healthy",
+		Status: "healthy",
 
 		RegisteredFunctions: len(fm.nativeFunctions),
 
-		LastHealthCheck:     time.Now(),
-
+		LastHealthCheck: time.Now(),
 	}
-
-
 
 	if fm.functionCache != nil {
 
@@ -1861,31 +1514,23 @@ func (fm *FunctionManager) Health() *FunctionManagerHealth {
 
 	}
 
-
-
 	return health
 
 }
 
-
-
 // FunctionManagerHealth represents health status.
 
 type FunctionManagerHealth struct {
+	Status string `json:"status"`
 
-	Status              string    `json:"status"`
+	RegisteredFunctions int `json:"registeredFunctions"`
 
-	RegisteredFunctions int       `json:"registeredFunctions"`
+	CacheSize int64 `json:"cacheSize"`
 
-	CacheSize           int64     `json:"cacheSize"`
+	CacheEntries int `json:"cacheEntries"`
 
-	CacheEntries        int       `json:"cacheEntries"`
-
-	LastHealthCheck     time.Time `json:"lastHealthCheck"`
-
+	LastHealthCheck time.Time `json:"lastHealthCheck"`
 }
-
-
 
 // Shutdown gracefully shuts down the function manager.
 
@@ -1894,8 +1539,6 @@ func (fm *FunctionManager) Shutdown(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithName("function-manager")
 
 	logger.Info("Shutting down function manager")
-
-
 
 	// Clear function cache.
 
@@ -1911,19 +1554,13 @@ func (fm *FunctionManager) Shutdown(ctx context.Context) error {
 
 	}
 
-
-
 	logger.Info("Function manager shutdown complete")
 
 	return nil
 
 }
 
-
-
 // Helper functions.
-
-
 
 func validateFunctionManagerConfig(config *FunctionManagerConfig) error {
 
@@ -1943,8 +1580,6 @@ func validateFunctionManagerConfig(config *FunctionManagerConfig) error {
 
 }
 
-
-
 func convertToKRMResources(resources []*porch.KRMResource) []porch.KRMResource {
 
 	result := make([]porch.KRMResource, len(resources))
@@ -1959,8 +1594,6 @@ func convertToKRMResources(resources []*porch.KRMResource) []porch.KRMResource {
 
 }
 
-
-
 func convertFromKRMResources(resources []porch.KRMResource) []*porch.KRMResource {
 
 	result := make([]*porch.KRMResource, len(resources))
@@ -1974,4 +1607,3 @@ func convertFromKRMResources(resources []porch.KRMResource) []*porch.KRMResource
 	return result
 
 }
-

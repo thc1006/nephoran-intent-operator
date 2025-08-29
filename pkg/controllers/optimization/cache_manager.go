@@ -28,38 +28,21 @@ limitations under the License.
 
 */
 
-
-
-
 package optimization
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
 	"github.com/redis/go-redis/v9"
-
 )
-
-
 
 // CacheLevel represents different levels of caching.
 
 type CacheLevel int
-
-
 
 const (
 
@@ -77,17 +60,12 @@ const (
 
 )
 
-
-
 // MultiLevelCacheManager implements a multi-level caching strategy.
 
 type MultiLevelCacheManager struct {
-
 	logger logr.Logger
 
 	config *PerformanceConfig
-
-
 
 	// Cache levels.
 
@@ -97,59 +75,44 @@ type MultiLevelCacheManager struct {
 
 	l3Cache *L3Cache
 
-
-
 	// Cache policies.
 
 	policies map[string]*CachePolicy
-
-
 
 	// Metrics.
 
 	metrics *CacheMetricsCollector
 
-
-
 	// Control.
 
-	started  bool
+	started bool
 
 	stopChan chan bool
 
-	mutex    sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // CachePolicy defines caching behavior for different data types.
 
 type CachePolicy struct {
+	TTL time.Duration `json:"ttl"`
 
-	TTL                time.Duration  `json:"ttl"`
+	MaxSize int64 `json:"maxSize"`
 
-	MaxSize            int64          `json:"maxSize"`
+	EvictionPolicy EvictionPolicy `json:"evictionPolicy"`
 
-	EvictionPolicy     EvictionPolicy `json:"evictionPolicy"`
+	Levels []CacheLevel `json:"levels"`
 
-	Levels             []CacheLevel   `json:"levels"`
+	CompressionEnabled bool `json:"compressionEnabled"`
 
-	CompressionEnabled bool           `json:"compressionEnabled"`
+	PrefetchEnabled bool `json:"prefetchEnabled"`
 
-	PrefetchEnabled    bool           `json:"prefetchEnabled"`
-
-	ReplicationFactor  int            `json:"replicationFactor"`
-
+	ReplicationFactor int `json:"replicationFactor"`
 }
-
-
 
 // EvictionPolicy defines cache eviction strategies.
 
 type EvictionPolicy string
-
-
 
 const (
 
@@ -172,10 +135,7 @@ const (
 	// EvictionRandom holds evictionrandom value.
 
 	EvictionRandom EvictionPolicy = "random"
-
 )
-
-
 
 // Cache keys for different data types.
 
@@ -211,27 +171,22 @@ const (
 
 )
 
-
-
 // NewMultiLevelCacheManager creates a new multi-level cache manager.
 
 func NewMultiLevelCacheManager(config *PerformanceConfig, logger logr.Logger) *MultiLevelCacheManager {
 
 	cm := &MultiLevelCacheManager{
 
-		logger:   logger.WithName("cache-manager"),
+		logger: logger.WithName("cache-manager"),
 
-		config:   config,
+		config: config,
 
 		policies: make(map[string]*CachePolicy),
 
 		stopChan: make(chan bool),
 
-		metrics:  NewCacheMetricsCollector(),
-
+		metrics: NewCacheMetricsCollector(),
 	}
-
-
 
 	// Initialize cache levels.
 
@@ -241,19 +196,13 @@ func NewMultiLevelCacheManager(config *PerformanceConfig, logger logr.Logger) *M
 
 	cm.l3Cache = NewL3Cache(logger)
 
-
-
 	// Initialize default policies.
 
 	cm.initializeDefaultPolicies()
 
-
-
 	return cm
 
 }
-
-
 
 // Start starts the cache manager.
 
@@ -263,15 +212,11 @@ func (cm *MultiLevelCacheManager) Start(ctx context.Context) error {
 
 	defer cm.mutex.Unlock()
 
-
-
 	if cm.started {
 
 		return fmt.Errorf("cache manager already started")
 
 	}
-
-
 
 	// Start cache levels.
 
@@ -281,23 +226,17 @@ func (cm *MultiLevelCacheManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	if err := cm.l2Cache.Start(ctx); err != nil {
 
 		return fmt.Errorf("failed to start L2 cache: %w", err)
 
 	}
 
-
-
 	if err := cm.l3Cache.Start(ctx); err != nil {
 
 		return fmt.Errorf("failed to start L3 cache: %w", err)
 
 	}
-
-
 
 	// Start cache warming and maintenance.
 
@@ -307,19 +246,13 @@ func (cm *MultiLevelCacheManager) Start(ctx context.Context) error {
 
 	go cm.metricsCollectionLoop(ctx)
 
-
-
 	cm.started = true
 
 	cm.logger.Info("Multi-level cache manager started")
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the cache manager.
 
@@ -329,25 +262,17 @@ func (cm *MultiLevelCacheManager) Stop(ctx context.Context) error {
 
 	defer cm.mutex.Unlock()
 
-
-
 	if !cm.started {
 
 		return nil
 
 	}
 
-
-
 	cm.logger.Info("Stopping cache manager")
-
-
 
 	// Stop maintenance loops.
 
 	close(cm.stopChan)
-
-
 
 	// Stop cache levels.
 
@@ -357,15 +282,11 @@ func (cm *MultiLevelCacheManager) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	if err := cm.l2Cache.Stop(ctx); err != nil {
 
 		cm.logger.Error(err, "Error stopping L2 cache")
 
 	}
-
-
 
 	if err := cm.l1Cache.Stop(ctx); err != nil {
 
@@ -373,27 +294,19 @@ func (cm *MultiLevelCacheManager) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	cm.started = false
 
 	cm.logger.Info("Cache manager stopped")
 
-
-
 	return nil
 
 }
-
-
 
 // Get retrieves a value from the multi-level cache.
 
 func (cm *MultiLevelCacheManager) Get(ctx context.Context, key string) (interface{}, error) {
 
 	policy := cm.getPolicyForKey(key)
-
-
 
 	// Try each cache level in order.
 
@@ -412,8 +325,6 @@ func (cm *MultiLevelCacheManager) Get(ctx context.Context, key string) (interfac
 			}
 
 			cm.metrics.RecordCacheMiss(level, key)
-
-
 
 		case L2CacheLevel:
 
@@ -434,8 +345,6 @@ func (cm *MultiLevelCacheManager) Get(ctx context.Context, key string) (interfac
 			}
 
 			cm.metrics.RecordCacheMiss(level, key)
-
-
 
 		case L3CacheLevel:
 
@@ -467,13 +376,9 @@ func (cm *MultiLevelCacheManager) Get(ctx context.Context, key string) (interfac
 
 	}
 
-
-
 	return nil, fmt.Errorf("key %s not found in any cache level", key)
 
 }
-
-
 
 // Set stores a value in the appropriate cache levels.
 
@@ -487,11 +392,7 @@ func (cm *MultiLevelCacheManager) Set(ctx context.Context, key string, value int
 
 	}
 
-
-
 	var errors []error
-
-
 
 	// Store in all configured cache levels.
 
@@ -511,8 +412,6 @@ func (cm *MultiLevelCacheManager) Set(ctx context.Context, key string, value int
 
 			}
 
-
-
 		case L2CacheLevel:
 
 			if err := cm.l2Cache.Set(ctx, key, value, ttl); err != nil {
@@ -524,8 +423,6 @@ func (cm *MultiLevelCacheManager) Set(ctx context.Context, key string, value int
 				cm.metrics.RecordCacheSet(level, key)
 
 			}
-
-
 
 		case L3CacheLevel:
 
@@ -543,29 +440,21 @@ func (cm *MultiLevelCacheManager) Set(ctx context.Context, key string, value int
 
 	}
 
-
-
 	if len(errors) > 0 {
 
 		return fmt.Errorf("cache set errors: %v", errors)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Delete removes a value from all cache levels.
 
 func (cm *MultiLevelCacheManager) Delete(ctx context.Context, key string) error {
 
 	var errors []error
-
-
 
 	// Delete from all cache levels.
 
@@ -575,15 +464,11 @@ func (cm *MultiLevelCacheManager) Delete(ctx context.Context, key string) error 
 
 	}
 
-
-
 	if err := cm.l2Cache.Delete(ctx, key); err != nil {
 
 		errors = append(errors, fmt.Errorf("L2 cache delete failed: %w", err))
 
 	}
-
-
 
 	if err := cm.l3Cache.Delete(ctx, key); err != nil {
 
@@ -591,29 +476,21 @@ func (cm *MultiLevelCacheManager) Delete(ctx context.Context, key string) error 
 
 	}
 
-
-
 	if len(errors) > 0 {
 
 		return fmt.Errorf("cache delete errors: %v", errors)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // WarmCache pre-populates frequently used cache entries.
 
 func (cm *MultiLevelCacheManager) WarmCache(ctx context.Context) error {
 
 	cm.logger.Info("Starting cache warming")
-
-
 
 	// Warm manifest templates.
 
@@ -623,8 +500,6 @@ func (cm *MultiLevelCacheManager) WarmCache(ctx context.Context) error {
 
 	}
 
-
-
 	// Warm resource plans.
 
 	if err := cm.warmResourcePlans(ctx); err != nil {
@@ -632,8 +507,6 @@ func (cm *MultiLevelCacheManager) WarmCache(ctx context.Context) error {
 		cm.logger.Error(err, "Failed to warm resource plans")
 
 	}
-
-
 
 	// Warm RAG contexts.
 
@@ -643,15 +516,11 @@ func (cm *MultiLevelCacheManager) WarmCache(ctx context.Context) error {
 
 	}
 
-
-
 	cm.logger.Info("Cache warming completed")
 
 	return nil
 
 }
-
-
 
 // OptimizeCache optimizes cache performance based on usage patterns.
 
@@ -659,13 +528,9 @@ func (cm *MultiLevelCacheManager) OptimizeCache(ctx context.Context, parameters 
 
 	cm.logger.Info("Optimizing cache performance", "parameters", parameters)
 
-
-
 	// Analyze cache usage patterns.
 
 	usage := cm.metrics.GetUsagePatterns()
-
-
 
 	// Optimize cache sizes.
 
@@ -675,8 +540,6 @@ func (cm *MultiLevelCacheManager) OptimizeCache(ctx context.Context, parameters 
 
 	}
 
-
-
 	// Optimize TTL settings.
 
 	if err := cm.optimizeTTLSettings(usage); err != nil {
@@ -684,8 +547,6 @@ func (cm *MultiLevelCacheManager) OptimizeCache(ctx context.Context, parameters 
 		cm.logger.Error(err, "Failed to optimize TTL settings")
 
 	}
-
-
 
 	// Optimize eviction policies.
 
@@ -695,21 +556,15 @@ func (cm *MultiLevelCacheManager) OptimizeCache(ctx context.Context, parameters 
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ApplyCachingProfile applies a caching profile to the cache manager.
 
 func (cm *MultiLevelCacheManager) ApplyCachingProfile(profile CachingProfile) error {
 
 	cm.logger.Info("Applying caching profile", "profile", profile)
-
-
 
 	// Update cache configurations based on profile.
 
@@ -723,8 +578,6 @@ func (cm *MultiLevelCacheManager) ApplyCachingProfile(profile CachingProfile) er
 
 	}
 
-
-
 	if profile.EnableL2Cache {
 
 		cm.l2Cache.Enable()
@@ -734,8 +587,6 @@ func (cm *MultiLevelCacheManager) ApplyCachingProfile(profile CachingProfile) er
 		cm.l2Cache.Disable()
 
 	}
-
-
 
 	if profile.EnableL3Cache {
 
@@ -747,31 +598,21 @@ func (cm *MultiLevelCacheManager) ApplyCachingProfile(profile CachingProfile) er
 
 	}
 
-
-
 	// Update TTL settings.
 
 	cm.updateTTLMultiplier(profile.TTLMultiplier)
-
-
 
 	// Update compression settings.
 
 	cm.updateCompressionSettings(profile.CompressionEnabled)
 
-
-
 	// Update prefetch settings.
 
 	cm.updatePrefetchSettings(profile.PrefetchEnabled)
 
-
-
 	return nil
 
 }
-
-
 
 // GetCacheMetrics returns current cache performance metrics.
 
@@ -779,25 +620,20 @@ func (cm *MultiLevelCacheManager) GetCacheMetrics() *CacheMetrics {
 
 	return &CacheMetrics{
 
-		HitRate:      cm.metrics.GetOverallHitRate(),
+		HitRate: cm.metrics.GetOverallHitRate(),
 
-		MissRate:     cm.metrics.GetOverallMissRate(),
+		MissRate: cm.metrics.GetOverallMissRate(),
 
 		EvictionRate: cm.metrics.GetEvictionRate(),
 
-		SizeBytes:    cm.getTotalCacheSize(),
+		SizeBytes: cm.getTotalCacheSize(),
 
-		ItemCount:    cm.getTotalItemCount(),
-
+		ItemCount: cm.getTotalItemCount(),
 	}
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (cm *MultiLevelCacheManager) initializeDefaultPolicies() {
 
@@ -805,113 +641,98 @@ func (cm *MultiLevelCacheManager) initializeDefaultPolicies() {
 
 	cm.policies[CacheKeyLLMResponse] = &CachePolicy{
 
-		TTL:                30 * time.Minute,
+		TTL: 30 * time.Minute,
 
-		MaxSize:            1000,
+		MaxSize: 1000,
 
-		EvictionPolicy:     EvictionLRU,
+		EvictionPolicy: EvictionLRU,
 
-		Levels:             []CacheLevel{L1CacheLevel, L2CacheLevel},
+		Levels: []CacheLevel{L1CacheLevel, L2CacheLevel},
 
 		CompressionEnabled: true,
 
-		PrefetchEnabled:    false,
+		PrefetchEnabled: false,
 
-		ReplicationFactor:  2,
-
+		ReplicationFactor: 2,
 	}
-
-
 
 	// RAG Context caching policy.
 
 	cm.policies[CacheKeyRAGContext] = &CachePolicy{
 
-		TTL:                2 * time.Hour,
+		TTL: 2 * time.Hour,
 
-		MaxSize:            5000,
+		MaxSize: 5000,
 
-		EvictionPolicy:     EvictionLFU,
+		EvictionPolicy: EvictionLFU,
 
-		Levels:             []CacheLevel{L1CacheLevel, L2CacheLevel, L3CacheLevel},
+		Levels: []CacheLevel{L1CacheLevel, L2CacheLevel, L3CacheLevel},
 
 		CompressionEnabled: true,
 
-		PrefetchEnabled:    true,
+		PrefetchEnabled: true,
 
-		ReplicationFactor:  3,
-
+		ReplicationFactor: 3,
 	}
-
-
 
 	// Resource Plan caching policy.
 
 	cm.policies[CacheKeyResourcePlan] = &CachePolicy{
 
-		TTL:                15 * time.Minute,
+		TTL: 15 * time.Minute,
 
-		MaxSize:            2000,
+		MaxSize: 2000,
 
-		EvictionPolicy:     EvictionLRU,
+		EvictionPolicy: EvictionLRU,
 
-		Levels:             []CacheLevel{L1CacheLevel, L2CacheLevel},
+		Levels: []CacheLevel{L1CacheLevel, L2CacheLevel},
 
 		CompressionEnabled: false,
 
-		PrefetchEnabled:    false,
+		PrefetchEnabled: false,
 
-		ReplicationFactor:  2,
-
+		ReplicationFactor: 2,
 	}
-
-
 
 	// Manifest Template caching policy.
 
 	cm.policies[CacheKeyManifestTemplate] = &CachePolicy{
 
-		TTL:                1 * time.Hour,
+		TTL: 1 * time.Hour,
 
-		MaxSize:            1000,
+		MaxSize: 1000,
 
-		EvictionPolicy:     EvictionLFU,
+		EvictionPolicy: EvictionLFU,
 
-		Levels:             []CacheLevel{L1CacheLevel, L2CacheLevel, L3CacheLevel},
+		Levels: []CacheLevel{L1CacheLevel, L2CacheLevel, L3CacheLevel},
 
 		CompressionEnabled: true,
 
-		PrefetchEnabled:    true,
+		PrefetchEnabled: true,
 
-		ReplicationFactor:  2,
-
+		ReplicationFactor: 2,
 	}
-
-
 
 	// Default policy for unknown keys.
 
 	cm.policies["default"] = &CachePolicy{
 
-		TTL:                10 * time.Minute,
+		TTL: 10 * time.Minute,
 
-		MaxSize:            500,
+		MaxSize: 500,
 
-		EvictionPolicy:     EvictionLRU,
+		EvictionPolicy: EvictionLRU,
 
-		Levels:             []CacheLevel{L1CacheLevel},
+		Levels: []CacheLevel{L1CacheLevel},
 
 		CompressionEnabled: false,
 
-		PrefetchEnabled:    false,
+		PrefetchEnabled: false,
 
-		ReplicationFactor:  1,
-
+		ReplicationFactor: 1,
 	}
 
 }
-
-
 
 func (cm *MultiLevelCacheManager) getPolicyForKey(key string) *CachePolicy {
 
@@ -927,15 +748,11 @@ func (cm *MultiLevelCacheManager) getPolicyForKey(key string) *CachePolicy {
 
 	}
 
-
-
 	// Return default policy.
 
 	return cm.policies["default"]
 
 }
-
-
 
 func (cm *MultiLevelCacheManager) matchesKeyPattern(key, pattern string) bool {
 
@@ -946,8 +763,6 @@ func (cm *MultiLevelCacheManager) matchesKeyPattern(key, pattern string) bool {
 	return len(key) > 0 && len(pattern) > 0
 
 }
-
-
 
 func (cm *MultiLevelCacheManager) shouldBackfill(policy *CachePolicy, level CacheLevel) bool {
 
@@ -965,15 +780,11 @@ func (cm *MultiLevelCacheManager) shouldBackfill(policy *CachePolicy, level Cach
 
 }
 
-
-
 func (cm *MultiLevelCacheManager) cacheWarmingLoop(ctx context.Context) {
 
 	ticker := time.NewTicker(1 * time.Hour) // Warm cache every hour
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -987,13 +798,9 @@ func (cm *MultiLevelCacheManager) cacheWarmingLoop(ctx context.Context) {
 
 			}
 
-
-
 		case <-cm.stopChan:
 
 			return
-
-
 
 		case <-ctx.Done():
 
@@ -1005,15 +812,11 @@ func (cm *MultiLevelCacheManager) cacheWarmingLoop(ctx context.Context) {
 
 }
 
-
-
 func (cm *MultiLevelCacheManager) cacheMaintenanceLoop(ctx context.Context) {
 
 	ticker := time.NewTicker(30 * time.Minute) // Maintenance every 30 minutes
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1023,13 +826,9 @@ func (cm *MultiLevelCacheManager) cacheMaintenanceLoop(ctx context.Context) {
 
 			cm.performMaintenance(ctx)
 
-
-
 		case <-cm.stopChan:
 
 			return
-
-
 
 		case <-ctx.Done():
 
@@ -1041,15 +840,11 @@ func (cm *MultiLevelCacheManager) cacheMaintenanceLoop(ctx context.Context) {
 
 }
 
-
-
 func (cm *MultiLevelCacheManager) metricsCollectionLoop(ctx context.Context) {
 
 	ticker := time.NewTicker(1 * time.Minute) // Collect metrics every minute
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1059,13 +854,9 @@ func (cm *MultiLevelCacheManager) metricsCollectionLoop(ctx context.Context) {
 
 			cm.collectCacheMetrics()
 
-
-
 		case <-cm.stopChan:
 
 			return
-
-
 
 		case <-ctx.Done():
 
@@ -1077,15 +868,11 @@ func (cm *MultiLevelCacheManager) metricsCollectionLoop(ctx context.Context) {
 
 }
 
-
-
 func (cm *MultiLevelCacheManager) warmManifestTemplates(ctx context.Context) error {
 
 	// Pre-load commonly used manifest templates.
 
 	templates := []string{"deployment", "service", "configmap", "networkpolicy"}
-
-
 
 	for _, template := range templates {
 
@@ -1095,8 +882,6 @@ func (cm *MultiLevelCacheManager) warmManifestTemplates(ctx context.Context) err
 
 		templateData := fmt.Sprintf("template-data-for-%s", template)
 
-
-
 		if err := cm.Set(ctx, key, templateData, 1*time.Hour); err != nil {
 
 			return fmt.Errorf("failed to warm template %s: %w", template, err)
@@ -1105,21 +890,15 @@ func (cm *MultiLevelCacheManager) warmManifestTemplates(ctx context.Context) err
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (cm *MultiLevelCacheManager) warmResourcePlans(ctx context.Context) error {
 
 	// Pre-compute common resource plan scenarios.
 
 	plans := []string{"small", "medium", "large", "xlarge"}
-
-
 
 	for _, plan := range plans {
 
@@ -1129,8 +908,6 @@ func (cm *MultiLevelCacheManager) warmResourcePlans(ctx context.Context) error {
 
 		planData := fmt.Sprintf("resource-plan-for-%s", plan)
 
-
-
 		if err := cm.Set(ctx, key, planData, 15*time.Minute); err != nil {
 
 			return fmt.Errorf("failed to warm plan %s: %w", plan, err)
@@ -1139,21 +916,15 @@ func (cm *MultiLevelCacheManager) warmResourcePlans(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (cm *MultiLevelCacheManager) warmRAGContexts(ctx context.Context) error {
 
 	// Pre-load frequently accessed RAG contexts.
 
 	contexts := []string{"5g-core", "oran", "deployment", "scaling"}
-
-
 
 	for _, context := range contexts {
 
@@ -1163,8 +934,6 @@ func (cm *MultiLevelCacheManager) warmRAGContexts(ctx context.Context) error {
 
 		contextData := fmt.Sprintf("rag-context-for-%s", context)
 
-
-
 		if err := cm.Set(ctx, key, contextData, 2*time.Hour); err != nil {
 
 			return fmt.Errorf("failed to warm context %s: %w", context, err)
@@ -1173,19 +942,13 @@ func (cm *MultiLevelCacheManager) warmRAGContexts(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 func (cm *MultiLevelCacheManager) performMaintenance(ctx context.Context) {
 
 	cm.logger.V(1).Info("Performing cache maintenance")
-
-
 
 	// Cleanup expired entries.
 
@@ -1194,8 +957,6 @@ func (cm *MultiLevelCacheManager) performMaintenance(ctx context.Context) {
 	cm.l2Cache.Cleanup(ctx)
 
 	cm.l3Cache.Cleanup(ctx)
-
-
 
 	// Analyze cache efficiency.
 
@@ -1211,10 +972,9 @@ func (cm *MultiLevelCacheManager) performMaintenance(ctx context.Context) {
 
 			if err := cm.OptimizeCache(ctx, map[string]interface{}{
 
-				"reason":  "low_hit_rate",
+				"reason": "low_hit_rate",
 
 				"hitRate": metrics.HitRate,
-
 			}); err != nil {
 
 				cm.logger.Error(err, "Failed to optimize cache")
@@ -1227,8 +987,6 @@ func (cm *MultiLevelCacheManager) performMaintenance(ctx context.Context) {
 
 }
 
-
-
 func (cm *MultiLevelCacheManager) collectCacheMetrics() {
 
 	// This would collect detailed metrics from each cache level.
@@ -1236,8 +994,6 @@ func (cm *MultiLevelCacheManager) collectCacheMetrics() {
 	cm.logger.V(2).Info("Collecting cache metrics")
 
 }
-
-
 
 func (cm *MultiLevelCacheManager) optimizeCacheSizes(usage *CacheUsagePatterns) error {
 
@@ -1249,8 +1005,6 @@ func (cm *MultiLevelCacheManager) optimizeCacheSizes(usage *CacheUsagePatterns) 
 
 }
 
-
-
 func (cm *MultiLevelCacheManager) optimizeTTLSettings(usage *CacheUsagePatterns) error {
 
 	// Implement TTL optimization based on access patterns.
@@ -1260,8 +1014,6 @@ func (cm *MultiLevelCacheManager) optimizeTTLSettings(usage *CacheUsagePatterns)
 	return nil
 
 }
-
-
 
 func (cm *MultiLevelCacheManager) optimizeEvictionPolicies(usage *CacheUsagePatterns) error {
 
@@ -1273,8 +1025,6 @@ func (cm *MultiLevelCacheManager) optimizeEvictionPolicies(usage *CacheUsagePatt
 
 }
 
-
-
 func (cm *MultiLevelCacheManager) updateTTLMultiplier(multiplier float64) {
 
 	for _, policy := range cm.policies {
@@ -1284,8 +1034,6 @@ func (cm *MultiLevelCacheManager) updateTTLMultiplier(multiplier float64) {
 	}
 
 }
-
-
 
 func (cm *MultiLevelCacheManager) updateCompressionSettings(enabled bool) {
 
@@ -1297,8 +1045,6 @@ func (cm *MultiLevelCacheManager) updateCompressionSettings(enabled bool) {
 
 }
 
-
-
 func (cm *MultiLevelCacheManager) updatePrefetchSettings(enabled bool) {
 
 	for _, policy := range cm.policies {
@@ -1309,15 +1055,11 @@ func (cm *MultiLevelCacheManager) updatePrefetchSettings(enabled bool) {
 
 }
 
-
-
 func (cm *MultiLevelCacheManager) getTotalCacheSize() int64 {
 
 	return cm.l1Cache.GetSize() + cm.l2Cache.GetSize() + cm.l3Cache.GetSize()
 
 }
-
-
 
 func (cm *MultiLevelCacheManager) getTotalItemCount() int64 {
 
@@ -1325,65 +1067,49 @@ func (cm *MultiLevelCacheManager) getTotalItemCount() int64 {
 
 }
 
-
-
 // Supporting data structures would continue with L1Cache, L2Cache, L3Cache implementations...
 
 // These would implement specific caching mechanisms for each level.
 
-
-
 // CacheUsagePatterns represents cache usage analytics.
 
 type CacheUsagePatterns struct {
+	HotKeys []string `json:"hotKeys"`
 
-	HotKeys          []string                   `json:"hotKeys"`
+	ColdKeys []string `json:"coldKeys"`
 
-	ColdKeys         []string                   `json:"coldKeys"`
+	AccessFrequency map[string]int `json:"accessFrequency"`
 
-	AccessFrequency  map[string]int             `json:"accessFrequency"`
-
-	AccessTimes      map[string][]time.Time     `json:"accessTimes"`
+	AccessTimes map[string][]time.Time `json:"accessTimes"`
 
 	EvictionPatterns map[string]EvictionPattern `json:"evictionPatterns"`
-
 }
-
-
 
 // EvictionPattern represents cache eviction analytics.
 
 type EvictionPattern struct {
+	Key string `json:"key"`
 
-	Key           string    `json:"key"`
+	EvictionCount int `json:"evictionCount"`
 
-	EvictionCount int       `json:"evictionCount"`
+	LastEviction time.Time `json:"lastEviction"`
 
-	LastEviction  time.Time `json:"lastEviction"`
-
-	Reason        string    `json:"reason"`
-
+	Reason string `json:"reason"`
 }
-
-
 
 // CacheMetricsCollector collects cache performance metrics.
 
 type CacheMetricsCollector struct {
+	hitCounts map[CacheLevel]int64
 
-	hitCounts   map[CacheLevel]int64
+	missCounts map[CacheLevel]int64
 
-	missCounts  map[CacheLevel]int64
-
-	setCounts   map[CacheLevel]int64
+	setCounts map[CacheLevel]int64
 
 	evictCounts map[CacheLevel]int64
 
-	mutex       sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewCacheMetricsCollector creates a new cache metrics collector.
 
@@ -1391,19 +1117,16 @@ func NewCacheMetricsCollector() *CacheMetricsCollector {
 
 	return &CacheMetricsCollector{
 
-		hitCounts:   make(map[CacheLevel]int64),
+		hitCounts: make(map[CacheLevel]int64),
 
-		missCounts:  make(map[CacheLevel]int64),
+		missCounts: make(map[CacheLevel]int64),
 
-		setCounts:   make(map[CacheLevel]int64),
+		setCounts: make(map[CacheLevel]int64),
 
 		evictCounts: make(map[CacheLevel]int64),
-
 	}
 
 }
-
-
 
 // RecordCacheHit records a cache hit.
 
@@ -1417,8 +1140,6 @@ func (c *CacheMetricsCollector) RecordCacheHit(level CacheLevel, key string) {
 
 }
 
-
-
 // RecordCacheMiss records a cache miss.
 
 func (c *CacheMetricsCollector) RecordCacheMiss(level CacheLevel, key string) {
@@ -1430,8 +1151,6 @@ func (c *CacheMetricsCollector) RecordCacheMiss(level CacheLevel, key string) {
 	c.missCounts[level]++
 
 }
-
-
 
 // RecordCacheSet records a cache set operation.
 
@@ -1445,8 +1164,6 @@ func (c *CacheMetricsCollector) RecordCacheSet(level CacheLevel, key string) {
 
 }
 
-
-
 // GetOverallHitRate returns the overall cache hit rate.
 
 func (c *CacheMetricsCollector) GetOverallHitRate() float64 {
@@ -1455,13 +1172,9 @@ func (c *CacheMetricsCollector) GetOverallHitRate() float64 {
 
 	defer c.mutex.RUnlock()
 
-
-
 	totalHits := int64(0)
 
 	totalRequests := int64(0)
-
-
 
 	for level := range c.hitCounts {
 
@@ -1471,21 +1184,15 @@ func (c *CacheMetricsCollector) GetOverallHitRate() float64 {
 
 	}
 
-
-
 	if totalRequests == 0 {
 
 		return 0.0
 
 	}
 
-
-
 	return float64(totalHits) / float64(totalRequests)
 
 }
-
-
 
 // GetOverallMissRate returns the overall cache miss rate.
 
@@ -1495,8 +1202,6 @@ func (c *CacheMetricsCollector) GetOverallMissRate() float64 {
 
 }
 
-
-
 // GetEvictionRate returns the cache eviction rate.
 
 func (c *CacheMetricsCollector) GetEvictionRate() float64 {
@@ -1505,13 +1210,9 @@ func (c *CacheMetricsCollector) GetEvictionRate() float64 {
 
 	defer c.mutex.RUnlock()
 
-
-
 	totalEvictions := int64(0)
 
 	totalSets := int64(0)
-
-
 
 	for level := range c.evictCounts {
 
@@ -1521,21 +1222,15 @@ func (c *CacheMetricsCollector) GetEvictionRate() float64 {
 
 	}
 
-
-
 	if totalSets == 0 {
 
 		return 0.0
 
 	}
 
-
-
 	return float64(totalEvictions) / float64(totalSets)
 
 }
-
-
 
 // GetUsagePatterns analyzes and returns cache usage patterns.
 
@@ -1545,37 +1240,29 @@ func (c *CacheMetricsCollector) GetUsagePatterns() *CacheUsagePatterns {
 
 	return &CacheUsagePatterns{
 
-		HotKeys:          []string{},
+		HotKeys: []string{},
 
-		ColdKeys:         []string{},
+		ColdKeys: []string{},
 
-		AccessFrequency:  make(map[string]int),
+		AccessFrequency: make(map[string]int),
 
-		AccessTimes:      make(map[string][]time.Time),
+		AccessTimes: make(map[string][]time.Time),
 
 		EvictionPatterns: make(map[string]EvictionPattern),
-
 	}
 
 }
 
-
-
 // Placeholder cache implementations - in production these would be fully implemented.
-
-
 
 // L1Cache represents the in-memory local cache.
 
 type L1Cache struct {
-
 	logger logr.Logger
 
 	// Implementation would include LRU cache, metrics, etc.
 
 }
-
-
 
 // NewL1Cache performs newl1cache operation.
 
@@ -1585,79 +1272,53 @@ func NewL1Cache(size int64, logger logr.Logger) *L1Cache {
 
 }
 
-
-
 // Start performs start operation.
 
 func (c *L1Cache) Start(_ context.Context) error { return nil }
-
-
 
 // Stop performs stop operation.
 
 func (c *L1Cache) Stop(_ context.Context) error { return nil }
 
-
-
 // Get performs get operation.
 
 func (c *L1Cache) Get(_ string) (interface{}, bool) { return nil, false }
-
-
 
 // Set performs set operation.
 
 func (c *L1Cache) Set(_ string, _ interface{}, _ time.Duration) error { return nil }
 
-
-
 // Delete performs delete operation.
 
 func (c *L1Cache) Delete(_ string) error { return nil }
-
-
 
 // Cleanup performs cleanup operation.
 
 func (c *L1Cache) Cleanup() {}
 
-
-
 // Enable performs enable operation.
 
 func (c *L1Cache) Enable() {}
-
-
 
 // Disable performs disable operation.
 
 func (c *L1Cache) Disable() {}
 
-
-
 // GetSize performs getsize operation.
 
 func (c *L1Cache) GetSize() int64 { return 0 }
-
-
 
 // GetItemCount performs getitemcount operation.
 
 func (c *L1Cache) GetItemCount() int64 { return 0 }
 
-
-
 // L2Cache represents the distributed Redis cache.
 
 type L2Cache struct {
-
 	logger logr.Logger
 
 	client *redis.Client
-
 }
-
-
 
 // NewL2Cache performs newl2cache operation.
 
@@ -1667,19 +1328,13 @@ func NewL2Cache(size int64, logger logr.Logger) *L2Cache {
 
 }
 
-
-
 // Start performs start operation.
 
 func (c *L2Cache) Start(_ context.Context) error { return nil }
 
-
-
 // Stop performs stop operation.
 
 func (c *L2Cache) Stop(_ context.Context) error { return nil }
-
-
 
 // Get performs get operation.
 
@@ -1689,8 +1344,6 @@ func (c *L2Cache) Get(ctx context.Context, key string) (interface{}, error) {
 
 }
 
-
-
 // Set performs set operation.
 
 func (c *L2Cache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
@@ -1699,53 +1352,35 @@ func (c *L2Cache) Set(ctx context.Context, key string, value interface{}, ttl ti
 
 }
 
-
-
 // Delete performs delete operation.
 
 func (c *L2Cache) Delete(_ context.Context, _ string) error { return nil }
-
-
 
 // Cleanup performs cleanup operation.
 
 func (c *L2Cache) Cleanup(_ context.Context) {}
 
-
-
 // Enable performs enable operation.
 
 func (c *L2Cache) Enable() {}
-
-
 
 // Disable performs disable operation.
 
 func (c *L2Cache) Disable() {}
 
-
-
 // GetSize performs getsize operation.
 
 func (c *L2Cache) GetSize() int64 { return 0 }
-
-
 
 // GetItemCount performs getitemcount operation.
 
 func (c *L2Cache) GetItemCount() int64 { return 0 }
 
-
-
 // L3Cache represents the persistent storage cache.
 
 type L3Cache struct {
-
 	logger logr.Logger
-
 }
-
-
 
 // NewL3Cache performs newl3cache operation.
 
@@ -1755,19 +1390,13 @@ func NewL3Cache(logger logr.Logger) *L3Cache {
 
 }
 
-
-
 // Start performs start operation.
 
 func (c *L3Cache) Start(_ context.Context) error { return nil }
 
-
-
 // Stop performs stop operation.
 
 func (c *L3Cache) Stop(_ context.Context) error { return nil }
-
-
 
 // Get performs get operation.
 
@@ -1777,8 +1406,6 @@ func (c *L3Cache) Get(ctx context.Context, key string) (interface{}, error) {
 
 }
 
-
-
 // Set performs set operation.
 
 func (c *L3Cache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
@@ -1787,39 +1414,26 @@ func (c *L3Cache) Set(ctx context.Context, key string, value interface{}, ttl ti
 
 }
 
-
-
 // Delete performs delete operation.
 
 func (c *L3Cache) Delete(_ context.Context, _ string) error { return nil }
-
-
 
 // Cleanup performs cleanup operation.
 
 func (c *L3Cache) Cleanup(_ context.Context) {}
 
-
-
 // Enable performs enable operation.
 
 func (c *L3Cache) Enable() {}
-
-
 
 // Disable performs disable operation.
 
 func (c *L3Cache) Disable() {}
 
-
-
 // GetSize performs getsize operation.
 
 func (c *L3Cache) GetSize() int64 { return 0 }
 
-
-
 // GetItemCount performs getitemcount operation.
 
 func (c *L3Cache) GetItemCount() int64 { return 0 }
-

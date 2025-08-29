@@ -1,35 +1,17 @@
-
 package knowledge
 
-
-
 import (
-
 	"bytes"
-
 	"compress/gzip"
-
 	"encoding/gob"
-
 	"fmt"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	lru "github.com/hashicorp/golang-lru/v2"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
-
 )
-
-
 
 // LazyKnowledgeLoader provides lazy loading and caching for telecom knowledge base.
 
@@ -37,113 +19,87 @@ type LazyKnowledgeLoader struct {
 
 	// LRU cache for frequently accessed items.
 
-	nfCache        *lru.Cache[string, *telecom.NetworkFunctionSpec]
+	nfCache *lru.Cache[string, *telecom.NetworkFunctionSpec]
 
 	interfaceCache *lru.Cache[string, *telecom.InterfaceSpec]
 
-	qosCache       *lru.Cache[string, *telecom.QosProfile]
+	qosCache *lru.Cache[string, *telecom.QosProfile]
 
-	sliceCache     *lru.Cache[string, *telecom.SliceTypeSpec]
-
-
+	sliceCache *lru.Cache[string, *telecom.SliceTypeSpec]
 
 	// Index for fast keyword lookup.
 
 	keywordIndex map[string][]string // keyword -> [resource_ids]
 
-
-
 	// Compressed data storage.
 
 	compressedData map[string][]byte // resource_id -> compressed_data
-
-
 
 	// Resource metadata for lazy loading decisions.
 
 	metadata map[string]*ResourceMetadata
 
-
-
 	// Mutex for thread-safe operations.
 
 	mu sync.RWMutex
-
-
 
 	// Cache statistics.
 
 	stats *CacheStats
 
-
-
 	// Configuration.
 
 	config *LoaderConfig
-
 }
-
-
 
 // ResourceMetadata contains metadata about a resource.
 
 type ResourceMetadata struct {
+	ID string
 
-	ID          string
+	Type string // "nf", "interface", "qos", "slice", "kpi", "deployment"
 
-	Type        string // "nf", "interface", "qos", "slice", "kpi", "deployment"
+	Name string
 
-	Name        string
+	Keywords []string
 
-	Keywords    []string
+	Size int
 
-	Size        int
-
-	LastAccess  time.Time
+	LastAccess time.Time
 
 	AccessCount int
-
 }
-
-
 
 // CacheStats tracks cache performance.
 
 type CacheStats struct {
+	Hits int64
 
-	Hits       int64
+	Misses int64
 
-	Misses     int64
+	Evictions int64
 
-	Evictions  int64
-
-	LoadTime   time.Duration
+	LoadTime time.Duration
 
 	TotalLoads int64
 
-	mu         sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // LoaderConfig contains configuration for the lazy loader.
 
 type LoaderConfig struct {
+	CacheSize int // Number of items to keep in LRU cache
 
-	CacheSize        int           // Number of items to keep in LRU cache
+	CompressData bool // Whether to compress stored data
 
-	CompressData     bool          // Whether to compress stored data
+	PreloadEssential bool // Preload essential network functions
 
-	PreloadEssential bool          // Preload essential network functions
+	MaxMemoryMB int // Maximum memory usage in MB
 
-	MaxMemoryMB      int           // Maximum memory usage in MB
-
-	TTL              time.Duration // Cache TTL
+	TTL time.Duration // Cache TTL
 
 }
-
-
 
 // DefaultLoaderConfig returns default configuration.
 
@@ -151,21 +107,18 @@ func DefaultLoaderConfig() *LoaderConfig {
 
 	return &LoaderConfig{
 
-		CacheSize:        50, // Keep 50 most recent items in memory
+		CacheSize: 50, // Keep 50 most recent items in memory
 
-		CompressData:     true,
+		CompressData: true,
 
 		PreloadEssential: true,
 
-		MaxMemoryMB:      100, // 100MB max memory
+		MaxMemoryMB: 100, // 100MB max memory
 
-		TTL:              30 * time.Minute,
-
+		TTL: 30 * time.Minute,
 	}
 
 }
-
-
 
 // NewLazyKnowledgeLoader creates a new lazy loader with the given configuration.
 
@@ -177,8 +130,6 @@ func NewLazyKnowledgeLoader(config *LoaderConfig) (*LazyKnowledgeLoader, error) 
 
 	}
 
-
-
 	// Create LRU caches.
 
 	nfCache, err := lru.New[string, *telecom.NetworkFunctionSpec](config.CacheSize)
@@ -189,8 +140,6 @@ func NewLazyKnowledgeLoader(config *LoaderConfig) (*LazyKnowledgeLoader, error) 
 
 	}
 
-
-
 	interfaceCache, err := lru.New[string, *telecom.InterfaceSpec](config.CacheSize / 2)
 
 	if err != nil {
@@ -198,8 +147,6 @@ func NewLazyKnowledgeLoader(config *LoaderConfig) (*LazyKnowledgeLoader, error) 
 		return nil, fmt.Errorf("failed to create interface cache: %w", err)
 
 	}
-
-
 
 	qosCache, err := lru.New[string, *telecom.QosProfile](config.CacheSize / 4)
 
@@ -209,8 +156,6 @@ func NewLazyKnowledgeLoader(config *LoaderConfig) (*LazyKnowledgeLoader, error) 
 
 	}
 
-
-
 	sliceCache, err := lru.New[string, *telecom.SliceTypeSpec](config.CacheSize / 4)
 
 	if err != nil {
@@ -219,31 +164,26 @@ func NewLazyKnowledgeLoader(config *LoaderConfig) (*LazyKnowledgeLoader, error) 
 
 	}
 
-
-
 	loader := &LazyKnowledgeLoader{
 
-		nfCache:        nfCache,
+		nfCache: nfCache,
 
 		interfaceCache: interfaceCache,
 
-		qosCache:       qosCache,
+		qosCache: qosCache,
 
-		sliceCache:     sliceCache,
+		sliceCache: sliceCache,
 
-		keywordIndex:   make(map[string][]string),
+		keywordIndex: make(map[string][]string),
 
 		compressedData: make(map[string][]byte),
 
-		metadata:       make(map[string]*ResourceMetadata),
+		metadata: make(map[string]*ResourceMetadata),
 
-		stats:          &CacheStats{},
+		stats: &CacheStats{},
 
-		config:         config,
-
+		config: config,
 	}
-
-
 
 	// Initialize with minimal data.
 
@@ -253,8 +193,6 @@ func NewLazyKnowledgeLoader(config *LoaderConfig) (*LazyKnowledgeLoader, error) 
 
 	}
 
-
-
 	// Preload essential items if configured.
 
 	if config.PreloadEssential {
@@ -263,13 +201,9 @@ func NewLazyKnowledgeLoader(config *LoaderConfig) (*LazyKnowledgeLoader, error) 
 
 	}
 
-
-
 	return loader, nil
 
 }
-
-
 
 // initializeMinimal initializes only the index and metadata.
 
@@ -279,25 +213,20 @@ func (l *LazyKnowledgeLoader) initializeMinimal() error {
 
 	essentialNFs := []string{"amf", "smf", "upf", "pcf", "udm", "ausf", "nrf", "nssf"}
 
-
-
 	for _, nfName := range essentialNFs {
 
 		metadata := &ResourceMetadata{
 
-			ID:       nfName,
+			ID: nfName,
 
-			Type:     "nf",
+			Type: "nf",
 
-			Name:     strings.ToUpper(nfName),
+			Name: strings.ToUpper(nfName),
 
 			Keywords: l.extractKeywords(nfName),
-
 		}
 
 		l.metadata[nfName] = metadata
-
-
 
 		// Update keyword index.
 
@@ -309,8 +238,6 @@ func (l *LazyKnowledgeLoader) initializeMinimal() error {
 
 	}
 
-
-
 	// Add interface metadata.
 
 	interfaces := []string{"n1", "n2", "n3", "n4", "namf", "nsmf"}
@@ -319,19 +246,16 @@ func (l *LazyKnowledgeLoader) initializeMinimal() error {
 
 		metadata := &ResourceMetadata{
 
-			ID:       ifName,
+			ID: ifName,
 
-			Type:     "interface",
+			Type: "interface",
 
-			Name:     strings.ToUpper(ifName),
+			Name: strings.ToUpper(ifName),
 
 			Keywords: []string{ifName, "interface", "5g"},
-
 		}
 
 		l.metadata[ifName] = metadata
-
-
 
 		for _, keyword := range metadata.Keywords {
 
@@ -341,8 +265,6 @@ func (l *LazyKnowledgeLoader) initializeMinimal() error {
 
 	}
 
-
-
 	// Add slice types.
 
 	sliceTypes := []string{"embb", "urllc", "mmtc"}
@@ -351,19 +273,16 @@ func (l *LazyKnowledgeLoader) initializeMinimal() error {
 
 		metadata := &ResourceMetadata{
 
-			ID:       sliceType,
+			ID: sliceType,
 
-			Type:     "slice",
+			Type: "slice",
 
-			Name:     strings.ToUpper(sliceType),
+			Name: strings.ToUpper(sliceType),
 
 			Keywords: []string{sliceType, "slice", "network"},
-
 		}
 
 		l.metadata[sliceType] = metadata
-
-
 
 		for _, keyword := range metadata.Keywords {
 
@@ -373,13 +292,9 @@ func (l *LazyKnowledgeLoader) initializeMinimal() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // preloadEssentials preloads essential network functions.
 
@@ -397,23 +312,17 @@ func (l *LazyKnowledgeLoader) preloadEssentials() {
 
 }
 
-
-
 // extractKeywords extracts keywords from a resource name.
 
 func (l *LazyKnowledgeLoader) extractKeywords(name string) []string {
 
 	keywords := []string{name}
 
-
-
 	// Add common variations.
 
 	keywords = append(keywords, strings.ToLower(name))
 
 	keywords = append(keywords, strings.ToUpper(name))
-
-
 
 	// Add domain-specific keywords.
 
@@ -441,21 +350,15 @@ func (l *LazyKnowledgeLoader) extractKeywords(name string) []string {
 
 	}
 
-
-
 	return keywords
 
 }
-
-
 
 // GetNetworkFunction retrieves a network function with lazy loading.
 
 func (l *LazyKnowledgeLoader) GetNetworkFunction(name string) (*telecom.NetworkFunctionSpec, bool) {
 
 	l.mu.RLock()
-
-
 
 	// Check cache first.
 
@@ -469,21 +372,15 @@ func (l *LazyKnowledgeLoader) GetNetworkFunction(name string) (*telecom.NetworkF
 
 	}
 
-
-
 	l.stats.recordMiss()
 
 	l.mu.RUnlock()
-
-
 
 	// Load from compressed storage or generate on-demand.
 
 	l.mu.Lock()
 
 	defer l.mu.Unlock()
-
-
 
 	nf := l.loadNetworkFunction(strings.ToLower(name))
 
@@ -493,13 +390,9 @@ func (l *LazyKnowledgeLoader) GetNetworkFunction(name string) (*telecom.NetworkF
 
 	}
 
-
-
 	// Add to cache.
 
 	l.nfCache.Add(strings.ToLower(name), nf)
-
-
 
 	// Update metadata.
 
@@ -511,13 +404,9 @@ func (l *LazyKnowledgeLoader) GetNetworkFunction(name string) (*telecom.NetworkF
 
 	}
 
-
-
 	return nf, true
 
 }
-
-
 
 // loadNetworkFunction loads or generates a network function specification.
 
@@ -536,8 +425,6 @@ func (l *LazyKnowledgeLoader) loadNetworkFunction(name string) *telecom.NetworkF
 		}
 
 	}
-
-
 
 	// Generate on-demand based on the function name.
 
@@ -583,83 +470,75 @@ func (l *LazyKnowledgeLoader) loadNetworkFunction(name string) *telecom.NetworkF
 
 }
 
-
-
 // generateAMFSpec generates AMF specification on-demand.
 
 func (l *LazyKnowledgeLoader) generateAMFSpec() *telecom.NetworkFunctionSpec {
 
 	return &telecom.NetworkFunctionSpec{
 
-		Name:              "AMF",
+		Name: "AMF",
 
-		Type:              "5gc-control-plane",
+		Type: "5gc-control-plane",
 
-		Description:       "Access and Mobility Management Function",
+		Description: "Access and Mobility Management Function",
 
-		Version:           "R17",
+		Version: "R17",
 
-		Vendor:            "multi-vendor",
+		Vendor: "multi-vendor",
 
 		Specification3GPP: []string{"TS 23.501", "TS 23.502"},
 
-		Interfaces:        []string{"N1", "N2", "N8", "N11"},
+		Interfaces: []string{"N1", "N2", "N8", "N11"},
 
 		ServiceInterfaces: []string{"Namf_Communication", "Namf_EventExposure"},
 
-		Dependencies:      []string{"AUSF", "UDM", "PCF", "SMF"},
+		Dependencies: []string{"AUSF", "UDM", "PCF", "SMF"},
 
 		Resources: telecom.ResourceRequirements{
 
-			MinCPU:    "2",
+			MinCPU: "2",
 
 			MinMemory: "4Gi",
 
-			MaxCPU:    "8",
+			MaxCPU: "8",
 
 			MaxMemory: "16Gi",
 
-			Storage:   "100Gi",
+			Storage: "100Gi",
 
 			NetworkBW: "10Gbps",
-
 		},
 
 		Scaling: telecom.ScalingParameters{
 
-			MinReplicas:      3,
+			MinReplicas: 3,
 
-			MaxReplicas:      20,
+			MaxReplicas: 20,
 
-			TargetCPU:        70,
+			TargetCPU: 70,
 
-			TargetMemory:     80,
+			TargetMemory: 80,
 
 			ScaleUpThreshold: 80,
 
-			ScaleDownDelay:   300,
-
+			ScaleDownDelay: 300,
 		},
 
 		Performance: telecom.PerformanceBaseline{
 
-			MaxThroughputRPS:      10000,
+			MaxThroughputRPS: 10000,
 
-			AvgLatencyMs:          50,
+			AvgLatencyMs: 50,
 
-			P95LatencyMs:          100,
+			P95LatencyMs: 100,
 
-			P99LatencyMs:          200,
+			P99LatencyMs: 200,
 
 			MaxConcurrentSessions: 100000,
-
 		},
-
 	}
 
 }
-
-
 
 // generateSMFSpec generates SMF specification on-demand.
 
@@ -667,75 +546,69 @@ func (l *LazyKnowledgeLoader) generateSMFSpec() *telecom.NetworkFunctionSpec {
 
 	return &telecom.NetworkFunctionSpec{
 
-		Name:              "SMF",
+		Name: "SMF",
 
-		Type:              "5gc-control-plane",
+		Type: "5gc-control-plane",
 
-		Description:       "Session Management Function",
+		Description: "Session Management Function",
 
-		Version:           "R17",
+		Version: "R17",
 
-		Vendor:            "multi-vendor",
+		Vendor: "multi-vendor",
 
 		Specification3GPP: []string{"TS 23.501", "TS 23.502"},
 
-		Interfaces:        []string{"N4", "N7", "N10", "N11"},
+		Interfaces: []string{"N4", "N7", "N10", "N11"},
 
 		ServiceInterfaces: []string{"Nsmf_PDUSession", "Nsmf_EventExposure"},
 
-		Dependencies:      []string{"UPF", "PCF", "UDM", "AMF"},
+		Dependencies: []string{"UPF", "PCF", "UDM", "AMF"},
 
 		Resources: telecom.ResourceRequirements{
 
-			MinCPU:    "2",
+			MinCPU: "2",
 
 			MinMemory: "4Gi",
 
-			MaxCPU:    "6",
+			MaxCPU: "6",
 
 			MaxMemory: "12Gi",
 
-			Storage:   "50Gi",
+			Storage: "50Gi",
 
 			NetworkBW: "5Gbps",
-
 		},
 
 		Scaling: telecom.ScalingParameters{
 
-			MinReplicas:      2,
+			MinReplicas: 2,
 
-			MaxReplicas:      15,
+			MaxReplicas: 15,
 
-			TargetCPU:        70,
+			TargetCPU: 70,
 
-			TargetMemory:     75,
+			TargetMemory: 75,
 
 			ScaleUpThreshold: 75,
 
-			ScaleDownDelay:   300,
-
+			ScaleDownDelay: 300,
 		},
 
 		Performance: telecom.PerformanceBaseline{
 
-			MaxThroughputRPS:      5000,
+			MaxThroughputRPS: 5000,
 
-			AvgLatencyMs:          100,
+			AvgLatencyMs: 100,
 
-			P95LatencyMs:          200,
+			P95LatencyMs: 200,
 
-			P99LatencyMs:          400,
+			P99LatencyMs: 400,
 
 			MaxConcurrentSessions: 200000,
-
 		},
-
 	}
 
 }
-
-
 
 // generateUPFSpec generates UPF specification on-demand.
 
@@ -743,75 +616,69 @@ func (l *LazyKnowledgeLoader) generateUPFSpec() *telecom.NetworkFunctionSpec {
 
 	return &telecom.NetworkFunctionSpec{
 
-		Name:              "UPF",
+		Name: "UPF",
 
-		Type:              "5gc-user-plane",
+		Type: "5gc-user-plane",
 
-		Description:       "User Plane Function",
+		Description: "User Plane Function",
 
-		Version:           "R17",
+		Version: "R17",
 
-		Vendor:            "multi-vendor",
+		Vendor: "multi-vendor",
 
 		Specification3GPP: []string{"TS 23.501", "TS 23.502"},
 
-		Interfaces:        []string{"N3", "N4", "N6", "N9"},
+		Interfaces: []string{"N3", "N4", "N6", "N9"},
 
-		Dependencies:      []string{"SMF"},
+		Dependencies: []string{"SMF"},
 
 		Resources: telecom.ResourceRequirements{
 
-			MinCPU:      "4",
+			MinCPU: "4",
 
-			MinMemory:   "8Gi",
+			MinMemory: "8Gi",
 
-			MaxCPU:      "16",
+			MaxCPU: "16",
 
-			MaxMemory:   "32Gi",
+			MaxMemory: "32Gi",
 
-			Storage:     "200Gi",
+			Storage: "200Gi",
 
-			NetworkBW:   "100Gbps",
+			NetworkBW: "100Gbps",
 
 			Accelerator: "intel.com/qat",
-
 		},
 
 		Scaling: telecom.ScalingParameters{
 
-			MinReplicas:      2,
+			MinReplicas: 2,
 
-			MaxReplicas:      10,
+			MaxReplicas: 10,
 
-			TargetCPU:        60,
+			TargetCPU: 60,
 
-			TargetMemory:     70,
+			TargetMemory: 70,
 
 			ScaleUpThreshold: 70,
 
-			ScaleDownDelay:   600,
-
+			ScaleDownDelay: 600,
 		},
 
 		Performance: telecom.PerformanceBaseline{
 
-			MaxThroughputRPS:      100000,
+			MaxThroughputRPS: 100000,
 
-			AvgLatencyMs:          10,
+			AvgLatencyMs: 10,
 
-			P95LatencyMs:          20,
+			P95LatencyMs: 20,
 
-			P99LatencyMs:          50,
+			P99LatencyMs: 50,
 
 			MaxConcurrentSessions: 1000000,
-
 		},
-
 	}
 
 }
-
-
 
 // generatePCFSpec generates PCF specification on-demand.
 
@@ -819,51 +686,46 @@ func (l *LazyKnowledgeLoader) generatePCFSpec() *telecom.NetworkFunctionSpec {
 
 	return &telecom.NetworkFunctionSpec{
 
-		Name:              "PCF",
+		Name: "PCF",
 
-		Type:              "5gc-control-plane",
+		Type: "5gc-control-plane",
 
-		Description:       "Policy Control Function",
+		Description: "Policy Control Function",
 
-		Version:           "R17",
+		Version: "R17",
 
 		Specification3GPP: []string{"TS 23.501", "TS 23.503"},
 
-		Interfaces:        []string{"N5", "N7", "N15"},
+		Interfaces: []string{"N5", "N7", "N15"},
 
 		ServiceInterfaces: []string{"Npcf_PolicyControl"},
 
-		Dependencies:      []string{"UDR"},
+		Dependencies: []string{"UDR"},
 
 		Resources: telecom.ResourceRequirements{
 
-			MinCPU:    "1",
+			MinCPU: "1",
 
 			MinMemory: "2Gi",
 
-			MaxCPU:    "4",
+			MaxCPU: "4",
 
 			MaxMemory: "8Gi",
 
-			Storage:   "50Gi",
-
+			Storage: "50Gi",
 		},
 
 		Performance: telecom.PerformanceBaseline{
 
 			MaxThroughputRPS: 2000,
 
-			AvgLatencyMs:     75,
+			AvgLatencyMs: 75,
 
-			P95LatencyMs:     150,
-
+			P95LatencyMs: 150,
 		},
-
 	}
 
 }
-
-
 
 // generateUDMSpec generates UDM specification on-demand.
 
@@ -871,51 +733,46 @@ func (l *LazyKnowledgeLoader) generateUDMSpec() *telecom.NetworkFunctionSpec {
 
 	return &telecom.NetworkFunctionSpec{
 
-		Name:              "UDM",
+		Name: "UDM",
 
-		Type:              "5gc-control-plane",
+		Type: "5gc-control-plane",
 
-		Description:       "Unified Data Management",
+		Description: "Unified Data Management",
 
-		Version:           "R17",
+		Version: "R17",
 
 		Specification3GPP: []string{"TS 23.501", "TS 29.503"},
 
-		Interfaces:        []string{"N8", "N10", "N13"},
+		Interfaces: []string{"N8", "N10", "N13"},
 
 		ServiceInterfaces: []string{"Nudm_SubscriberDataManagement"},
 
-		Dependencies:      []string{"UDR"},
+		Dependencies: []string{"UDR"},
 
 		Resources: telecom.ResourceRequirements{
 
-			MinCPU:    "2",
+			MinCPU: "2",
 
 			MinMemory: "4Gi",
 
-			MaxCPU:    "6",
+			MaxCPU: "6",
 
 			MaxMemory: "12Gi",
 
-			Storage:   "100Gi",
-
+			Storage: "100Gi",
 		},
 
 		Performance: telecom.PerformanceBaseline{
 
 			MaxThroughputRPS: 8000,
 
-			AvgLatencyMs:     60,
+			AvgLatencyMs: 60,
 
-			P95LatencyMs:     120,
-
+			P95LatencyMs: 120,
 		},
-
 	}
 
 }
-
-
 
 // generateAUSFSpec generates AUSF specification on-demand.
 
@@ -923,51 +780,46 @@ func (l *LazyKnowledgeLoader) generateAUSFSpec() *telecom.NetworkFunctionSpec {
 
 	return &telecom.NetworkFunctionSpec{
 
-		Name:              "AUSF",
+		Name: "AUSF",
 
-		Type:              "5gc-control-plane",
+		Type: "5gc-control-plane",
 
-		Description:       "Authentication Server Function",
+		Description: "Authentication Server Function",
 
-		Version:           "R17",
+		Version: "R17",
 
 		Specification3GPP: []string{"TS 23.501", "TS 33.501"},
 
-		Interfaces:        []string{"N12", "N13"},
+		Interfaces: []string{"N12", "N13"},
 
 		ServiceInterfaces: []string{"Nausf_UEAuthentication"},
 
-		Dependencies:      []string{"UDM"},
+		Dependencies: []string{"UDM"},
 
 		Resources: telecom.ResourceRequirements{
 
-			MinCPU:    "1",
+			MinCPU: "1",
 
 			MinMemory: "2Gi",
 
-			MaxCPU:    "4",
+			MaxCPU: "4",
 
 			MaxMemory: "8Gi",
 
-			Storage:   "20Gi",
-
+			Storage: "20Gi",
 		},
 
 		Performance: telecom.PerformanceBaseline{
 
 			MaxThroughputRPS: 5000,
 
-			AvgLatencyMs:     80,
+			AvgLatencyMs: 80,
 
-			P95LatencyMs:     160,
-
+			P95LatencyMs: 160,
 		},
-
 	}
 
 }
-
-
 
 // generateNRFSpec generates NRF specification on-demand.
 
@@ -975,13 +827,13 @@ func (l *LazyKnowledgeLoader) generateNRFSpec() *telecom.NetworkFunctionSpec {
 
 	return &telecom.NetworkFunctionSpec{
 
-		Name:              "NRF",
+		Name: "NRF",
 
-		Type:              "5gc-control-plane",
+		Type: "5gc-control-plane",
 
-		Description:       "Network Repository Function",
+		Description: "Network Repository Function",
 
-		Version:           "R17",
+		Version: "R17",
 
 		Specification3GPP: []string{"TS 23.501", "TS 29.510"},
 
@@ -989,33 +841,28 @@ func (l *LazyKnowledgeLoader) generateNRFSpec() *telecom.NetworkFunctionSpec {
 
 		Resources: telecom.ResourceRequirements{
 
-			MinCPU:    "1",
+			MinCPU: "1",
 
 			MinMemory: "2Gi",
 
-			MaxCPU:    "3",
+			MaxCPU: "3",
 
 			MaxMemory: "6Gi",
 
-			Storage:   "50Gi",
-
+			Storage: "50Gi",
 		},
 
 		Performance: telecom.PerformanceBaseline{
 
 			MaxThroughputRPS: 15000,
 
-			AvgLatencyMs:     30,
+			AvgLatencyMs: 30,
 
-			P95LatencyMs:     60,
-
+			P95LatencyMs: 60,
 		},
-
 	}
 
 }
-
-
 
 // generateNSSFSpec generates NSSF specification on-demand.
 
@@ -1023,59 +870,52 @@ func (l *LazyKnowledgeLoader) generateNSSFSpec() *telecom.NetworkFunctionSpec {
 
 	return &telecom.NetworkFunctionSpec{
 
-		Name:              "NSSF",
+		Name: "NSSF",
 
-		Type:              "5gc-control-plane",
+		Type: "5gc-control-plane",
 
-		Description:       "Network Slice Selection Function",
+		Description: "Network Slice Selection Function",
 
-		Version:           "R17",
+		Version: "R17",
 
 		Specification3GPP: []string{"TS 23.501", "TS 29.531"},
 
-		Interfaces:        []string{"N22"},
+		Interfaces: []string{"N22"},
 
 		ServiceInterfaces: []string{"Nnssf_NSSelection"},
 
-		Dependencies:      []string{"NRF"},
+		Dependencies: []string{"NRF"},
 
 		Resources: telecom.ResourceRequirements{
 
-			MinCPU:    "1",
+			MinCPU: "1",
 
 			MinMemory: "1Gi",
 
-			MaxCPU:    "2",
+			MaxCPU: "2",
 
 			MaxMemory: "4Gi",
 
-			Storage:   "20Gi",
-
+			Storage: "20Gi",
 		},
 
 		Performance: telecom.PerformanceBaseline{
 
 			MaxThroughputRPS: 3000,
 
-			AvgLatencyMs:     40,
+			AvgLatencyMs: 40,
 
-			P95LatencyMs:     80,
-
+			P95LatencyMs: 80,
 		},
-
 	}
 
 }
-
-
 
 // GetInterface retrieves an interface specification with lazy loading.
 
 func (l *LazyKnowledgeLoader) GetInterface(name string) (*telecom.InterfaceSpec, bool) {
 
 	l.mu.RLock()
-
-
 
 	// Check cache first.
 
@@ -1089,21 +929,15 @@ func (l *LazyKnowledgeLoader) GetInterface(name string) (*telecom.InterfaceSpec,
 
 	}
 
-
-
 	l.stats.recordMiss()
 
 	l.mu.RUnlock()
-
-
 
 	// Load on-demand.
 
 	l.mu.Lock()
 
 	defer l.mu.Unlock()
-
-
 
 	iface := l.loadInterface(strings.ToLower(name))
 
@@ -1113,15 +947,11 @@ func (l *LazyKnowledgeLoader) GetInterface(name string) (*telecom.InterfaceSpec,
 
 	}
 
-
-
 	l.interfaceCache.Add(strings.ToLower(name), iface)
 
 	return iface, true
 
 }
-
-
 
 // loadInterface loads or generates an interface specification.
 
@@ -1133,64 +963,60 @@ func (l *LazyKnowledgeLoader) loadInterface(name string) *telecom.InterfaceSpec 
 
 		return &telecom.InterfaceSpec{
 
-			Name:          "N1",
+			Name: "N1",
 
-			Type:          "reference-point",
+			Type: "reference-point",
 
-			Protocol:      []string{"NAS"},
+			Protocol: []string{"NAS"},
 
 			Specification: "3GPP TS 24.501",
 
-			Description:   "Interface between UE and AMF",
-
+			Description: "Interface between UE and AMF",
 		}
 
 	case "n2":
 
 		return &telecom.InterfaceSpec{
 
-			Name:          "N2",
+			Name: "N2",
 
-			Type:          "reference-point",
+			Type: "reference-point",
 
-			Protocol:      []string{"NGAP"},
+			Protocol: []string{"NGAP"},
 
 			Specification: "3GPP TS 38.413",
 
-			Description:   "Interface between gNB and AMF",
-
+			Description: "Interface between gNB and AMF",
 		}
 
 	case "n3":
 
 		return &telecom.InterfaceSpec{
 
-			Name:          "N3",
+			Name: "N3",
 
-			Type:          "reference-point",
+			Type: "reference-point",
 
-			Protocol:      []string{"GTP-U"},
+			Protocol: []string{"GTP-U"},
 
 			Specification: "3GPP TS 29.281",
 
-			Description:   "Interface between gNB and UPF",
-
+			Description: "Interface between gNB and UPF",
 		}
 
 	case "n4":
 
 		return &telecom.InterfaceSpec{
 
-			Name:          "N4",
+			Name: "N4",
 
-			Type:          "reference-point",
+			Type: "reference-point",
 
-			Protocol:      []string{"PFCP"},
+			Protocol: []string{"PFCP"},
 
 			Specification: "3GPP TS 29.244",
 
-			Description:   "Interface between SMF and UPF",
-
+			Description: "Interface between SMF and UPF",
 		}
 
 	default:
@@ -1201,15 +1027,11 @@ func (l *LazyKnowledgeLoader) loadInterface(name string) *telecom.InterfaceSpec 
 
 }
 
-
-
 // GetQosProfile retrieves a QoS profile with lazy loading.
 
 func (l *LazyKnowledgeLoader) GetQosProfile(name string) (*telecom.QosProfile, bool) {
 
 	l.mu.RLock()
-
-
 
 	if qos, ok := l.qosCache.Get(strings.ToLower(name)); ok {
 
@@ -1221,19 +1043,13 @@ func (l *LazyKnowledgeLoader) GetQosProfile(name string) (*telecom.QosProfile, b
 
 	}
 
-
-
 	l.stats.recordMiss()
 
 	l.mu.RUnlock()
 
-
-
 	l.mu.Lock()
 
 	defer l.mu.Unlock()
-
-
 
 	qos := l.loadQosProfile(strings.ToLower(name))
 
@@ -1243,15 +1059,11 @@ func (l *LazyKnowledgeLoader) GetQosProfile(name string) (*telecom.QosProfile, b
 
 	}
 
-
-
 	l.qosCache.Add(strings.ToLower(name), qos)
 
 	return qos, true
 
 }
-
-
 
 // loadQosProfile loads or generates a QoS profile.
 
@@ -1263,46 +1075,44 @@ func (l *LazyKnowledgeLoader) loadQosProfile(name string) *telecom.QosProfile {
 
 		return &telecom.QosProfile{
 
-			QCI:          1,
+			QCI: 1,
 
-			QFI:          1,
+			QFI: 1,
 
-			Resource:     "GBR",
+			Resource: "GBR",
 
-			Priority:     2,
+			Priority: 2,
 
-			DelayBudget:  100,
+			DelayBudget: 100,
 
-			ErrorRate:    0.01,
+			ErrorRate: 0.01,
 
 			MaxBitrateUL: "150",
 
 			MaxBitrateDL: "150",
 
 			GuaranteedBR: "64",
-
 		}
 
 	case "5qi_9":
 
 		return &telecom.QosProfile{
 
-			QCI:          9,
+			QCI: 9,
 
-			QFI:          9,
+			QFI: 9,
 
-			Resource:     "Non-GBR",
+			Resource: "Non-GBR",
 
-			Priority:     9,
+			Priority: 9,
 
-			DelayBudget:  300,
+			DelayBudget: 300,
 
-			ErrorRate:    0.000001,
+			ErrorRate: 0.000001,
 
 			MaxBitrateUL: "unlimited",
 
 			MaxBitrateDL: "unlimited",
-
 		}
 
 	default:
@@ -1313,15 +1123,11 @@ func (l *LazyKnowledgeLoader) loadQosProfile(name string) *telecom.QosProfile {
 
 }
 
-
-
 // GetSliceType retrieves a slice type with lazy loading.
 
 func (l *LazyKnowledgeLoader) GetSliceType(name string) (*telecom.SliceTypeSpec, bool) {
 
 	l.mu.RLock()
-
-
 
 	if slice, ok := l.sliceCache.Get(strings.ToLower(name)); ok {
 
@@ -1333,19 +1139,13 @@ func (l *LazyKnowledgeLoader) GetSliceType(name string) (*telecom.SliceTypeSpec,
 
 	}
 
-
-
 	l.stats.recordMiss()
 
 	l.mu.RUnlock()
 
-
-
 	l.mu.Lock()
 
 	defer l.mu.Unlock()
-
-
 
 	slice := l.loadSliceType(strings.ToLower(name))
 
@@ -1355,15 +1155,11 @@ func (l *LazyKnowledgeLoader) GetSliceType(name string) (*telecom.SliceTypeSpec,
 
 	}
 
-
-
 	l.sliceCache.Add(strings.ToLower(name), slice)
 
 	return slice, true
 
 }
-
-
 
 // loadSliceType loads or generates a slice type specification.
 
@@ -1375,46 +1171,43 @@ func (l *LazyKnowledgeLoader) loadSliceType(name string) *telecom.SliceTypeSpec 
 
 		return &telecom.SliceTypeSpec{
 
-			SST:              1,
+			SST: 1,
 
-			Description:      "Enhanced Mobile Broadband",
+			Description: "Enhanced Mobile Broadband",
 
-			UseCase:          "High-speed data services",
+			UseCase: "High-speed data services",
 
-			QosProfile:       "5qi_9",
+			QosProfile: "5qi_9",
 
 			NetworkFunctions: []string{"amf", "smf", "upf", "pcf", "udm"},
-
 		}
 
 	case "urllc":
 
 		return &telecom.SliceTypeSpec{
 
-			SST:              2,
+			SST: 2,
 
-			Description:      "Ultra-Reliable Low Latency Communications",
+			Description: "Ultra-Reliable Low Latency Communications",
 
-			UseCase:          "Industrial automation",
+			UseCase: "Industrial automation",
 
-			QosProfile:       "5qi_82",
+			QosProfile: "5qi_82",
 
 			NetworkFunctions: []string{"amf", "smf", "upf", "pcf"},
-
 		}
 
 	case "mmtc":
 
 		return &telecom.SliceTypeSpec{
 
-			SST:              3,
+			SST: 3,
 
-			Description:      "Massive Machine Type Communications",
+			Description: "Massive Machine Type Communications",
 
-			UseCase:          "IoT sensors",
+			UseCase: "IoT sensors",
 
 			NetworkFunctions: []string{"amf", "smf", "upf"},
-
 		}
 
 	default:
@@ -1425,8 +1218,6 @@ func (l *LazyKnowledgeLoader) loadSliceType(name string) *telecom.SliceTypeSpec 
 
 }
 
-
-
 // FindResourcesByKeywords finds resources matching the given keywords.
 
 func (l *LazyKnowledgeLoader) FindResourcesByKeywords(keywords []string) []string {
@@ -1435,11 +1226,7 @@ func (l *LazyKnowledgeLoader) FindResourcesByKeywords(keywords []string) []strin
 
 	defer l.mu.RUnlock()
 
-
-
 	resourceSet := make(map[string]bool)
-
-
 
 	for _, keyword := range keywords {
 
@@ -1457,8 +1244,6 @@ func (l *LazyKnowledgeLoader) FindResourcesByKeywords(keywords []string) []strin
 
 	}
 
-
-
 	// Convert set to slice.
 
 	var results []string
@@ -1469,13 +1254,9 @@ func (l *LazyKnowledgeLoader) FindResourcesByKeywords(keywords []string) []strin
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 // compress compresses data using gzip.
 
@@ -1484,8 +1265,6 @@ func (l *LazyKnowledgeLoader) compress(data interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 
 	gz := gzip.NewWriter(&buf)
-
-
 
 	enc := gob.NewEncoder(gz)
 
@@ -1497,21 +1276,15 @@ func (l *LazyKnowledgeLoader) compress(data interface{}) ([]byte, error) {
 
 	}
 
-
-
 	if err := gz.Close(); err != nil {
 
 		return nil, err
 
 	}
 
-
-
 	return buf.Bytes(), nil
 
 }
-
-
 
 // decompress decompresses data.
 
@@ -1529,15 +1302,11 @@ func (l *LazyKnowledgeLoader) decompress(data []byte, target interface{}) error 
 
 	defer gz.Close()
 
-
-
 	dec := gob.NewDecoder(gz)
 
 	return dec.Decode(target)
 
 }
-
-
 
 // GetStats returns cache statistics.
 
@@ -1547,8 +1316,6 @@ func (l *LazyKnowledgeLoader) GetStats() map[string]interface{} {
 
 	defer l.stats.mu.RUnlock()
 
-
-
 	hitRate := float64(0)
 
 	if total := l.stats.Hits + l.stats.Misses; total > 0 {
@@ -1557,27 +1324,22 @@ func (l *LazyKnowledgeLoader) GetStats() map[string]interface{} {
 
 	}
 
-
-
 	return map[string]interface{}{
 
-		"hits":          l.stats.Hits,
+		"hits": l.stats.Hits,
 
-		"misses":        l.stats.Misses,
+		"misses": l.stats.Misses,
 
-		"hit_rate":      hitRate,
+		"hit_rate": hitRate,
 
-		"evictions":     l.stats.Evictions,
+		"evictions": l.stats.Evictions,
 
-		"total_loads":   l.stats.TotalLoads,
+		"total_loads": l.stats.TotalLoads,
 
 		"avg_load_time": l.stats.LoadTime / time.Duration(l.stats.TotalLoads+1),
-
 	}
 
 }
-
-
 
 // ClearCache clears all caches.
 
@@ -1586,8 +1348,6 @@ func (l *LazyKnowledgeLoader) ClearCache() {
 	l.mu.Lock()
 
 	defer l.mu.Unlock()
-
-
 
 	l.nfCache.Purge()
 
@@ -1598,8 +1358,6 @@ func (l *LazyKnowledgeLoader) ClearCache() {
 	l.sliceCache.Purge()
 
 }
-
-
 
 // recordHit records a cache hit.
 
@@ -1613,8 +1371,6 @@ func (s *CacheStats) recordHit() {
 
 }
 
-
-
 // recordMiss records a cache miss.
 
 func (s *CacheStats) recordMiss() {
@@ -1627,8 +1383,6 @@ func (s *CacheStats) recordMiss() {
 
 }
 
-
-
 // ListNetworkFunctions returns available network function names.
 
 func (l *LazyKnowledgeLoader) ListNetworkFunctions() []string {
@@ -1636,8 +1390,6 @@ func (l *LazyKnowledgeLoader) ListNetworkFunctions() []string {
 	l.mu.RLock()
 
 	defer l.mu.RUnlock()
-
-
 
 	var names []string
 
@@ -1655,8 +1407,6 @@ func (l *LazyKnowledgeLoader) ListNetworkFunctions() []string {
 
 }
 
-
-
 // PreloadByIntent preloads resources based on intent keywords.
 
 func (l *LazyKnowledgeLoader) PreloadByIntent(intent string) {
@@ -1665,13 +1415,9 @@ func (l *LazyKnowledgeLoader) PreloadByIntent(intent string) {
 
 	keywords := strings.Fields(strings.ToLower(intent))
 
-
-
 	// Find matching resources.
 
 	resources := l.FindResourcesByKeywords(keywords)
-
-
 
 	// Preload found resources.
 
@@ -1705,8 +1451,6 @@ func (l *LazyKnowledgeLoader) PreloadByIntent(intent string) {
 
 }
 
-
-
 // GetMemoryUsage estimates current memory usage.
 
 func (l *LazyKnowledgeLoader) GetMemoryUsage() int64 {
@@ -1715,19 +1459,15 @@ func (l *LazyKnowledgeLoader) GetMemoryUsage() int64 {
 
 	defer l.mu.RUnlock()
 
-
-
 	// Rough estimation based on cache sizes.
 
-	nfCacheSize := l.nfCache.Len() * 10240              // ~10KB per NF
+	nfCacheSize := l.nfCache.Len() * 10240 // ~10KB per NF
 
 	interfaceCacheSize := l.interfaceCache.Len() * 2048 // ~2KB per interface
 
-	qosCacheSize := l.qosCache.Len() * 1024             // ~1KB per QoS profile
+	qosCacheSize := l.qosCache.Len() * 1024 // ~1KB per QoS profile
 
-	sliceCacheSize := l.sliceCache.Len() * 5120         // ~5KB per slice
-
-
+	sliceCacheSize := l.sliceCache.Len() * 5120 // ~5KB per slice
 
 	compressedSize := 0
 
@@ -1737,13 +1477,9 @@ func (l *LazyKnowledgeLoader) GetMemoryUsage() int64 {
 
 	}
 
-
-
 	return int64(nfCacheSize + interfaceCacheSize + qosCacheSize + sliceCacheSize + compressedSize)
 
 }
-
-
 
 // IsInitialized returns whether the loader is initialized.
 
@@ -1753,8 +1489,6 @@ func (l *LazyKnowledgeLoader) IsInitialized() bool {
 
 }
 
-
-
 // SaveToFile saves compressed knowledge base to a file.
 
 func (l *LazyKnowledgeLoader) SaveToFile(filename string) error {
@@ -1763,19 +1497,14 @@ func (l *LazyKnowledgeLoader) SaveToFile(filename string) error {
 
 	defer l.mu.RUnlock()
 
-
-
 	data := map[string]interface{}{
 
-		"metadata":       l.metadata,
+		"metadata": l.metadata,
 
-		"keywordIndex":   l.keywordIndex,
+		"keywordIndex": l.keywordIndex,
 
 		"compressedData": l.compressedData,
-
 	}
-
-
 
 	compressed, err := l.compress(data)
 
@@ -1784,8 +1513,6 @@ func (l *LazyKnowledgeLoader) SaveToFile(filename string) error {
 		return fmt.Errorf("failed to compress data: %w", err)
 
 	}
-
-
 
 	// In production, write to file.
 
@@ -1796,8 +1523,6 @@ func (l *LazyKnowledgeLoader) SaveToFile(filename string) error {
 	return nil
 
 }
-
-
 
 // LoadFromFile loads compressed knowledge base from a file.
 
@@ -1810,4 +1535,3 @@ func (l *LazyKnowledgeLoader) LoadFromFile(filename string) error {
 	return nil
 
 }
-

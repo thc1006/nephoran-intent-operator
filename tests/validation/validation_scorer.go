@@ -1,63 +1,44 @@
 // Package validation provides automated scoring system for comprehensive validation.
 
-
 package validation
 
-
-
 import (
-
 	"fmt"
-
 	"strings"
-
 	"sync"
 
-
-
 	"github.com/onsi/ginkgo/v2"
-
 )
-
-
 
 // ValidationScorer provides automated scoring for validation results.
 
 type ValidationScorer struct {
-
-	config  *ValidationConfig
+	config *ValidationConfig
 
 	metrics map[string]*ScoreMetric
 
-	mu      sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // ScoreMetric represents a specific scoring criterion.
 
 type ScoreMetric struct {
+	Name string
 
-	Name        string
+	Category string
 
-	Category    string
+	MaxPoints int
 
-	MaxPoints   int
+	Threshold float64
 
-	Threshold   float64
+	Unit string
 
-	Unit        string
-
-	Weight      float64
+	Weight float64
 
 	ActualValue float64
 
-	Achieved    bool
-
+	Achieved bool
 }
-
-
 
 // NewValidationScorer creates a new validation scorer.
 
@@ -65,10 +46,9 @@ func NewValidationScorer(config *ValidationConfig) *ValidationScorer {
 
 	scorer := &ValidationScorer{
 
-		config:  config,
+		config: config,
 
 		metrics: make(map[string]*ScoreMetric),
-
 	}
 
 	scorer.initializeMetrics()
@@ -76,8 +56,6 @@ func NewValidationScorer(config *ValidationConfig) *ValidationScorer {
 	return scorer
 
 }
-
-
 
 // initializeMetrics sets up all scoring metrics and thresholds.
 
@@ -90,7 +68,6 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "Intent Processing Pipeline", Category: "functional", MaxPoints: 15,
 
 		Threshold: 100.0, Unit: "% completion", Weight: 1.0,
-
 	}
 
 	vs.metrics["llm_rag_integration"] = &ScoreMetric{
@@ -98,7 +75,6 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "LLM/RAG Integration", Category: "functional", MaxPoints: 10,
 
 		Threshold: 95.0, Unit: "% accuracy", Weight: 1.0,
-
 	}
 
 	vs.metrics["porch_integration"] = &ScoreMetric{
@@ -106,7 +82,6 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "Porch Package Management", Category: "functional", MaxPoints: 10,
 
 		Threshold: 100.0, Unit: "% functionality", Weight: 1.0,
-
 	}
 
 	vs.metrics["multi_cluster"] = &ScoreMetric{
@@ -114,7 +89,6 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "Multi-cluster Deployment", Category: "functional", MaxPoints: 8,
 
 		Threshold: 100.0, Unit: "% success", Weight: 1.0,
-
 	}
 
 	vs.metrics["oran_compliance"] = &ScoreMetric{
@@ -122,10 +96,7 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "O-RAN Interface Compliance", Category: "functional", MaxPoints: 7,
 
 		Threshold: 85.0, Unit: "% compliance", Weight: 1.0,
-
 	}
-
-
 
 	// Performance Benchmarks (25 points total).
 
@@ -142,7 +113,6 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "Throughput Performance", Category: "performance", MaxPoints: 8,
 
 		Threshold: 45.0, Unit: "intents/minute", Weight: 1.0,
-
 	}
 
 	vs.metrics["scalability"] = &ScoreMetric{
@@ -150,7 +120,6 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "Scalability", Category: "performance", MaxPoints: 5,
 
 		Threshold: 200.0, Unit: "concurrent intents", Weight: 1.0,
-
 	}
 
 	vs.metrics["resource_efficiency"] = &ScoreMetric{
@@ -158,10 +127,7 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "Resource Efficiency", Category: "performance", MaxPoints: 4,
 
 		Threshold: 80.0, Unit: "% efficiency", Weight: 1.0,
-
 	}
-
-
 
 	// Security Compliance (15 points total).
 
@@ -170,7 +136,6 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "Authentication & Authorization", Category: "security", MaxPoints: 5,
 
 		Threshold: 100.0, Unit: "% compliance", Weight: 1.0,
-
 	}
 
 	vs.metrics["encryption"] = &ScoreMetric{
@@ -178,7 +143,6 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "Data Encryption", Category: "security", MaxPoints: 4,
 
 		Threshold: 100.0, Unit: "% coverage", Weight: 1.0,
-
 	}
 
 	vs.metrics["network_security"] = &ScoreMetric{
@@ -186,7 +150,6 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "Network Security", Category: "security", MaxPoints: 3,
 
 		Threshold: 95.0, Unit: "% secure", Weight: 1.0,
-
 	}
 
 	vs.metrics["vulnerability_scan"] = &ScoreMetric{
@@ -194,10 +157,7 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "Vulnerability Scanning", Category: "security", MaxPoints: 3,
 
 		Threshold: 100.0, Unit: "% clean", Weight: 1.0,
-
 	}
-
-
 
 	// Production Readiness (10 points total).
 
@@ -206,7 +166,6 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "High Availability", Category: "production", MaxPoints: 3,
 
 		Threshold: 99.95, Unit: "% uptime", Weight: 1.0,
-
 	}
 
 	vs.metrics["fault_tolerance"] = &ScoreMetric{
@@ -214,7 +173,6 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "Fault Tolerance", Category: "production", MaxPoints: 3,
 
 		Threshold: 100.0, Unit: "% recovery", Weight: 1.0,
-
 	}
 
 	vs.metrics["observability"] = &ScoreMetric{
@@ -222,7 +180,6 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "Monitoring & Observability", Category: "production", MaxPoints: 2,
 
 		Threshold: 95.0, Unit: "% coverage", Weight: 1.0,
-
 	}
 
 	vs.metrics["disaster_recovery"] = &ScoreMetric{
@@ -230,12 +187,9 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "Disaster Recovery", Category: "production", MaxPoints: 2,
 
 		Threshold: 100.0, Unit: "% tested", Weight: 1.0,
-
 	}
 
 }
-
-
 
 // ScoreMetric updates a metric with actual value and calculates score.
 
@@ -244,8 +198,6 @@ func (vs *ValidationScorer) ScoreMetric(metricName string, actualValue float64) 
 	vs.mu.Lock()
 
 	defer vs.mu.Unlock()
-
-
 
 	metric, exists := vs.metrics[metricName]
 
@@ -257,11 +209,7 @@ func (vs *ValidationScorer) ScoreMetric(metricName string, actualValue float64) 
 
 	}
 
-
-
 	metric.ActualValue = actualValue
-
-
 
 	// Calculate score based on threshold and weight.
 
@@ -321,19 +269,13 @@ func (vs *ValidationScorer) ScoreMetric(metricName string, actualValue float64) 
 
 	}
 
-
-
 	ginkgo.By(fmt.Sprintf("Metric '%s': %.2f %s (threshold: %.2f) = %d/%d points",
 
 		metric.Name, actualValue, metric.Unit, metric.Threshold, score, metric.MaxPoints))
 
-
-
 	return score
 
 }
-
-
 
 // ScoreBinary provides binary pass/fail scoring.
 
@@ -342,8 +284,6 @@ func (vs *ValidationScorer) ScoreBinary(metricName string, passed bool) int {
 	vs.mu.Lock()
 
 	defer vs.mu.Unlock()
-
-
 
 	metric, exists := vs.metrics[metricName]
 
@@ -354,8 +294,6 @@ func (vs *ValidationScorer) ScoreBinary(metricName string, passed bool) int {
 		return 0
 
 	}
-
-
 
 	var score int
 
@@ -375,19 +313,13 @@ func (vs *ValidationScorer) ScoreBinary(metricName string, passed bool) int {
 
 	}
 
-
-
 	ginkgo.By(fmt.Sprintf("Metric '%s': %t = %d/%d points",
 
 		metric.Name, passed, score, metric.MaxPoints))
 
-
-
 	return score
 
 }
-
-
 
 // GetCategoryScore calculates total score for a category.
 
@@ -397,13 +329,9 @@ func (vs *ValidationScorer) GetCategoryScore(category string) (int, int) {
 
 	defer vs.mu.RUnlock()
 
-
-
 	totalScore := 0
 
 	maxScore := 0
-
-
 
 	for _, metric := range vs.metrics {
 
@@ -443,13 +371,9 @@ func (vs *ValidationScorer) GetCategoryScore(category string) (int, int) {
 
 	}
 
-
-
 	return totalScore, maxScore
 
 }
-
-
 
 // GetDetailedScoreReport provides detailed scoring breakdown.
 
@@ -459,35 +383,26 @@ func (vs *ValidationScorer) GetDetailedScoreReport() string {
 
 	defer vs.mu.RUnlock()
 
-
-
 	report := "DETAILED SCORING BREAKDOWN:\n"
 
 	report += "==========================\n\n"
-
-
 
 	categories := []string{"functional", "performance", "security", "production"}
 
 	categoryNames := map[string]string{
 
-		"functional":  "Functional Completeness",
+		"functional": "Functional Completeness",
 
 		"performance": "Performance Benchmarks",
 
-		"security":    "Security Compliance",
+		"security": "Security Compliance",
 
-		"production":  "Production Readiness",
-
+		"production": "Production Readiness",
 	}
-
-
 
 	totalScore := 0
 
 	totalMaxScore := 0
-
-
 
 	for _, category := range categories {
 
@@ -495,13 +410,9 @@ func (vs *ValidationScorer) GetDetailedScoreReport() string {
 
 		report += strings.Repeat("-", len(categoryNames[category])+1) + "\n"
 
-
-
 		categoryScore := 0
 
 		categoryMaxScore := 0
-
-
 
 		for _, metric := range vs.metrics {
 
@@ -539,8 +450,6 @@ func (vs *ValidationScorer) GetDetailedScoreReport() string {
 
 				}
 
-
-
 				status := "✓"
 
 				if !metric.Achieved {
@@ -549,15 +458,11 @@ func (vs *ValidationScorer) GetDetailedScoreReport() string {
 
 				}
 
-
-
 				report += fmt.Sprintf("  %s %-30s: %2d/%2d points (%.1f %s)\n",
 
 					status, metric.Name, actualScore, metric.MaxPoints,
 
 					metric.ActualValue, metric.Unit)
-
-
 
 				categoryScore += actualScore
 
@@ -567,8 +472,6 @@ func (vs *ValidationScorer) GetDetailedScoreReport() string {
 
 		}
 
-
-
 		report += fmt.Sprintf("  Category Total: %d/%d points\n\n", categoryScore, categoryMaxScore)
 
 		totalScore += categoryScore
@@ -577,17 +480,11 @@ func (vs *ValidationScorer) GetDetailedScoreReport() string {
 
 	}
 
-
-
 	report += fmt.Sprintf("OVERALL TOTAL: %d/%d POINTS\n", totalScore, totalMaxScore)
-
-
 
 	return report
 
 }
-
-
 
 // ValidateScoreThresholds checks if scores meet minimum requirements.
 
@@ -600,8 +497,6 @@ func (vs *ValidationScorer) ValidateScoreThresholds() error {
 	secScore, _ := vs.GetCategoryScore("security")
 
 	prodScore, _ := vs.GetCategoryScore("production")
-
-
 
 	if funcScore < vs.config.FunctionalTarget {
 
@@ -627,8 +522,6 @@ func (vs *ValidationScorer) ValidateScoreThresholds() error {
 
 	}
 
-
-
 	totalScore := funcScore + perfScore + secScore + prodScore
 
 	if totalScore < vs.config.TotalTarget {
@@ -637,13 +530,9 @@ func (vs *ValidationScorer) ValidateScoreThresholds() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetScoreMetrics returns all metrics for external analysis.
 
@@ -652,8 +541,6 @@ func (vs *ValidationScorer) GetScoreMetrics() map[string]*ScoreMetric {
 	vs.mu.RLock()
 
 	defer vs.mu.RUnlock()
-
-
 
 	// Return copy to prevent external modification.
 
@@ -667,13 +554,9 @@ func (vs *ValidationScorer) GetScoreMetrics() map[string]*ScoreMetric {
 
 	}
 
-
-
 	return metrics
 
 }
-
-
 
 // ResetMetrics resets all metrics for a new validation run.
 
@@ -682,8 +565,6 @@ func (vs *ValidationScorer) ResetMetrics() {
 	vs.mu.Lock()
 
 	defer vs.mu.Unlock()
-
-
 
 	for _, metric := range vs.metrics {
 
@@ -694,4 +575,3 @@ func (vs *ValidationScorer) ResetMetrics() {
 	}
 
 }
-

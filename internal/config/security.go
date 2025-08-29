@@ -1,25 +1,13 @@
-
 package config
 
-
-
 import (
-
 	"crypto/sha256"
-
 	"encoding/hex"
-
 	"fmt"
-
 	"os"
-
 	"regexp"
-
 	"strings"
-
 )
-
-
 
 // SecurityConfig contains security-related configuration.
 
@@ -29,21 +17,14 @@ type SecurityConfig struct {
 
 	ImageConfig ImageSecurityConfig `json:"imageConfig"`
 
-
-
 	// Input validation rules.
 
 	ValidationRules ValidationConfig `json:"validationRules"`
 
-
-
 	// Repository allowlist.
 
 	RepositoryAllowlist map[string]RepositoryConfig `json:"repositoryAllowlist"`
-
 }
-
-
 
 // ImageSecurityConfig defines container image security settings.
 
@@ -53,39 +34,26 @@ type ImageSecurityConfig struct {
 
 	DefaultRegistry string `json:"defaultRegistry"`
 
-
-
 	// Default image version (never use 'latest').
 
 	DefaultVersion string `json:"defaultVersion"`
-
-
 
 	// Require image digest verification.
 
 	RequireDigest bool `json:"requireDigest"`
 
-
-
 	// Require signature verification (Sigstore/cosign).
 
 	RequireSignature bool `json:"requireSignature"`
-
-
 
 	// Trusted image digests map[image:tag]digest.
 
 	TrustedDigests map[string]string `json:"trustedDigests"`
 
-
-
 	// Cosign public key for signature verification.
 
 	CosignPublicKey string `json:"cosignPublicKey"`
-
 }
-
-
 
 // ValidationConfig defines input validation rules.
 
@@ -95,27 +63,18 @@ type ValidationConfig struct {
 
 	TargetNamePattern string `json:"targetNamePattern"`
 
-
-
 	// Maximum length for target names.
 
 	MaxTargetLength int `json:"maxTargetLength"`
-
-
 
 	// Allowed characters in repository names.
 
 	RepoNamePattern string `json:"repoNamePattern"`
 
-
-
 	// Maximum replicas allowed.
 
 	MaxReplicas int `json:"maxReplicas"`
-
 }
-
-
 
 // RepositoryConfig defines repository configuration.
 
@@ -125,21 +84,14 @@ type RepositoryConfig struct {
 
 	Name string `json:"name"`
 
-
-
 	// Allowed targets for this repository.
 
 	AllowedTargets []string `json:"allowedTargets"`
 
-
-
 	// Description.
 
 	Description string `json:"description"`
-
 }
-
-
 
 // DefaultSecurityConfig returns default security configuration.
 
@@ -149,11 +101,11 @@ func DefaultSecurityConfig() *SecurityConfig {
 
 		ImageConfig: ImageSecurityConfig{
 
-			DefaultRegistry:  getEnvOrDefault("NF_IMAGE_REGISTRY", "registry.nephoran.io"),
+			DefaultRegistry: getEnvOrDefault("NF_IMAGE_REGISTRY", "registry.nephoran.io"),
 
-			DefaultVersion:   getEnvOrDefault("NF_IMAGE_VERSION", "v1.0.0"),
+			DefaultVersion: getEnvOrDefault("NF_IMAGE_VERSION", "v1.0.0"),
 
-			RequireDigest:    getEnvBool("NF_REQUIRE_DIGEST", true),
+			RequireDigest: getEnvBool("NF_REQUIRE_DIGEST", true),
 
 			RequireSignature: getEnvBool("NF_REQUIRE_SIGNATURE", false),
 
@@ -166,90 +118,78 @@ func DefaultSecurityConfig() *SecurityConfig {
 			},
 
 			CosignPublicKey: getEnvOrDefault("NF_COSIGN_PUBLIC_KEY", ""),
-
 		},
 
 		ValidationRules: ValidationConfig{
 
 			TargetNamePattern: `^[a-zA-Z][a-zA-Z0-9-_]{0,62}$`,
 
-			MaxTargetLength:   63,
+			MaxTargetLength: 63,
 
-			RepoNamePattern:   `^[a-z][a-z0-9-]{0,62}$`,
+			RepoNamePattern: `^[a-z][a-z0-9-]{0,62}$`,
 
-			MaxReplicas:       100,
-
+			MaxReplicas: 100,
 		},
 
 		RepositoryAllowlist: map[string]RepositoryConfig{
 
 			"ran": {
 
-				Name:           "ran-packages",
+				Name: "ran-packages",
 
 				AllowedTargets: []string{"ran", "gnb", "du", "cu", "ru"},
 
-				Description:    "RAN network functions",
-
+				Description: "RAN network functions",
 			},
 
 			"core": {
 
-				Name:           "core-packages",
+				Name: "core-packages",
 
 				AllowedTargets: []string{"core", "smf", "upf", "amf", "ausf", "udm", "udr", "nrf", "pcf", "nssf"},
 
-				Description:    "5G Core network functions",
-
+				Description: "5G Core network functions",
 			},
 
 			"edge": {
 
-				Name:           "edge-packages",
+				Name: "edge-packages",
 
 				AllowedTargets: []string{"mec", "edge", "uecm", "uelcm"},
 
-				Description:    "Edge computing functions",
-
+				Description: "Edge computing functions",
 			},
 
 			"transport": {
 
-				Name:           "transport-packages",
+				Name: "transport-packages",
 
 				AllowedTargets: []string{"transport", "xhaul", "fronthaul", "midhaul", "backhaul"},
 
-				Description:    "Transport network functions",
-
+				Description: "Transport network functions",
 			},
 
 			"management": {
 
-				Name:           "management-packages",
+				Name: "management-packages",
 
 				AllowedTargets: []string{"smo", "nms", "ems", "orchestrator"},
 
-				Description:    "Management and orchestration functions",
-
+				Description: "Management and orchestration functions",
 			},
 
 			"default": {
 
-				Name:           "nephio-packages",
+				Name: "nephio-packages",
 
 				AllowedTargets: []string{}, // Empty means any target not in other repos
 
-				Description:    "Default package repository",
-
+				Description: "Default package repository",
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // GetSecureImage returns a secure image reference with digest.
 
@@ -263,21 +203,15 @@ func (sc *SecurityConfig) GetSecureImage(baseImage string) (string, error) {
 
 	imageTag := sc.ImageConfig.DefaultVersion
 
-
-
 	if len(parts) > 1 && parts[1] != "latest" {
 
 		imageTag = parts[1]
 
 	}
 
-
-
 	// Build full image reference.
 
 	fullImage := fmt.Sprintf("%s/%s:%s", sc.ImageConfig.DefaultRegistry, imageName, imageTag)
-
-
 
 	// Check for trusted digest.
 
@@ -289,13 +223,9 @@ func (sc *SecurityConfig) GetSecureImage(baseImage string) (string, error) {
 
 	}
 
-
-
 	return fullImage, nil
 
 }
-
-
 
 // ValidateTarget validates a target name against security rules.
 
@@ -307,15 +237,11 @@ func (sc *SecurityConfig) ValidateTarget(target string) error {
 
 	}
 
-
-
 	if len(target) > sc.ValidationRules.MaxTargetLength {
 
 		return fmt.Errorf("target name exceeds maximum length of %d characters", sc.ValidationRules.MaxTargetLength)
 
 	}
-
-
 
 	// Additional security checks first (before pattern check).
 
@@ -325,15 +251,11 @@ func (sc *SecurityConfig) ValidateTarget(target string) error {
 
 	}
 
-
-
 	if containsPathTraversal(target) {
 
 		return fmt.Errorf("target name contains potential path traversal pattern")
 
 	}
-
-
 
 	// Check against pattern last (after security checks).
 
@@ -345,13 +267,9 @@ func (sc *SecurityConfig) ValidateTarget(target string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ResolveRepository returns the repository name for a given target with validation.
 
@@ -365,13 +283,9 @@ func (sc *SecurityConfig) ResolveRepository(target string) (string, error) {
 
 	}
 
-
-
 	// Normalize target to lowercase for comparison.
 
 	normalizedTarget := strings.ToLower(target)
-
-
 
 	// Check each repository's allowed targets.
 
@@ -389,8 +303,6 @@ func (sc *SecurityConfig) ResolveRepository(target string) (string, error) {
 
 	}
 
-
-
 	// Return default repository if no specific match.
 
 	if defaultRepo, ok := sc.RepositoryAllowlist["default"]; ok {
@@ -399,13 +311,9 @@ func (sc *SecurityConfig) ResolveRepository(target string) (string, error) {
 
 	}
 
-
-
 	return "", fmt.Errorf("no repository mapping found for target: %s", target)
 
 }
-
-
 
 // containsSQLInjectionPattern checks for common SQL injection patterns.
 
@@ -442,10 +350,7 @@ func containsSQLInjectionPattern(input string) bool {
 		"delete",
 
 		"drop",
-
 	}
-
-
 
 	lowerInput := strings.ToLower(input)
 
@@ -459,13 +364,9 @@ func containsSQLInjectionPattern(input string) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // containsPathTraversal checks for path traversal patterns.
 
@@ -488,10 +389,7 @@ func containsPathTraversal(input string) bool {
 		"%252e",
 
 		"0x2e",
-
 	}
-
-
 
 	lowerInput := strings.ToLower(input)
 
@@ -505,13 +403,9 @@ func containsPathTraversal(input string) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // HashTarget creates a secure hash of the target for use in labels.
 
@@ -524,8 +418,6 @@ func HashTarget(target string) string {
 	return hex.EncodeToString(h.Sum(nil))[:8]
 
 }
-
-
 
 // Helper functions.
 
@@ -541,8 +433,6 @@ func getEnvOrDefault(key, defaultValue string) string {
 
 }
 
-
-
 func getEnvBool(key string, defaultValue bool) bool {
 
 	value := os.Getenv(key)
@@ -556,4 +446,3 @@ func getEnvBool(key string, defaultValue bool) bool {
 	return strings.EqualFold(value, "true") || value == "1"
 
 }
-

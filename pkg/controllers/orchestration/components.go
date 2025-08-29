@@ -28,104 +28,67 @@ limitations under the License.
 
 */
 
-
-
-
 package orchestration
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
 
-
-
 	coordinationv1 "k8s.io/api/coordination/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/client-go/util/workqueue"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // WorkerPool manages a pool of workers for processing jobs.
 
 type WorkerPool struct {
-
-	id          string
+	id string
 
 	workerCount int
 
-	workers     []*Worker
-
-	workQueue   workqueue.TypedRateLimitingInterface[string]
-
-	processor   JobProcessor
-
-	logger      logr.Logger
-
-
-
-	// Control.
-
-	stopChan chan bool
-
-	started  bool
-
-	mutex    sync.RWMutex
-
-}
-
-
-
-// JobProcessor defines the interface for processing jobs.
-
-type JobProcessor func(ctx context.Context, jobID string) error
-
-
-
-// Worker represents a single worker in the pool.
-
-type Worker struct {
-
-	id        string
+	workers []*Worker
 
 	workQueue workqueue.TypedRateLimitingInterface[string]
 
 	processor JobProcessor
 
-	logger    logr.Logger
+	logger logr.Logger
 
-
+	// Control.
 
 	stopChan chan bool
 
-	started  bool
+	started bool
 
+	mutex sync.RWMutex
 }
 
+// JobProcessor defines the interface for processing jobs.
 
+type JobProcessor func(ctx context.Context, jobID string) error
+
+// Worker represents a single worker in the pool.
+
+type Worker struct {
+	id string
+
+	workQueue workqueue.TypedRateLimitingInterface[string]
+
+	processor JobProcessor
+
+	logger logr.Logger
+
+	stopChan chan bool
+
+	started bool
+}
 
 // NewWorkerPool creates a new worker pool.
 
@@ -133,25 +96,22 @@ func NewWorkerPool(id string, workerCount int, workQueue workqueue.TypedRateLimi
 
 	return &WorkerPool{
 
-		id:          id,
+		id: id,
 
 		workerCount: workerCount,
 
-		workQueue:   workQueue,
+		workQueue: workQueue,
 
-		processor:   processor,
+		processor: processor,
 
-		logger:      logger.WithName("worker-pool").WithValues("poolId", id),
+		logger: logger.WithName("worker-pool").WithValues("poolId", id),
 
-		workers:     make([]*Worker, 0, workerCount),
+		workers: make([]*Worker, 0, workerCount),
 
-		stopChan:    make(chan bool),
-
+		stopChan: make(chan bool),
 	}
 
 }
-
-
 
 // Start starts the worker pool.
 
@@ -161,15 +121,11 @@ func (wp *WorkerPool) Start(ctx context.Context) error {
 
 	defer wp.mutex.Unlock()
 
-
-
 	if wp.started {
 
 		return fmt.Errorf("worker pool %s already started", wp.id)
 
 	}
-
-
 
 	// Create and start workers.
 
@@ -177,19 +133,16 @@ func (wp *WorkerPool) Start(ctx context.Context) error {
 
 		worker := &Worker{
 
-			id:        fmt.Sprintf("%s-worker-%d", wp.id, i),
+			id: fmt.Sprintf("%s-worker-%d", wp.id, i),
 
 			workQueue: wp.workQueue,
 
 			processor: wp.processor,
 
-			logger:    wp.logger.WithValues("workerId", fmt.Sprintf("%s-worker-%d", wp.id, i)),
+			logger: wp.logger.WithValues("workerId", fmt.Sprintf("%s-worker-%d", wp.id, i)),
 
-			stopChan:  make(chan bool),
-
+			stopChan: make(chan bool),
 		}
-
-
 
 		wp.workers = append(wp.workers, worker)
 
@@ -197,19 +150,13 @@ func (wp *WorkerPool) Start(ctx context.Context) error {
 
 	}
 
-
-
 	wp.started = true
 
 	wp.logger.Info("Worker pool started", "workerCount", wp.workerCount)
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the worker pool.
 
@@ -219,19 +166,13 @@ func (wp *WorkerPool) Stop(ctx context.Context) error {
 
 	defer wp.mutex.Unlock()
 
-
-
 	if !wp.started {
 
 		return nil
 
 	}
 
-
-
 	wp.logger.Info("Stopping worker pool")
-
-
 
 	// Stop all workers.
 
@@ -241,21 +182,15 @@ func (wp *WorkerPool) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	close(wp.stopChan)
 
 	wp.started = false
-
-
 
 	wp.logger.Info("Worker pool stopped")
 
 	return nil
 
 }
-
-
 
 // GetStatus returns the status of the worker pool.
 
@@ -265,43 +200,33 @@ func (wp *WorkerPool) GetStatus() WorkerPoolStatus {
 
 	defer wp.mutex.RUnlock()
 
-
-
 	status := WorkerPoolStatus{
 
-		ID:          wp.id,
+		ID: wp.id,
 
 		WorkerCount: wp.workerCount,
 
-		Started:     wp.started,
+		Started: wp.started,
 
 		QueueLength: wp.workQueue.Len(),
 
-		Workers:     make([]WorkerStatus, len(wp.workers)),
-
+		Workers: make([]WorkerStatus, len(wp.workers)),
 	}
-
-
 
 	for i, worker := range wp.workers {
 
 		status.Workers[i] = WorkerStatus{
 
-			ID:      worker.id,
+			ID: worker.id,
 
 			Started: worker.started,
-
 		}
 
 	}
 
-
-
 	return status
 
 }
-
-
 
 // Start starts a worker.
 
@@ -310,8 +235,6 @@ func (w *Worker) Start(ctx context.Context) {
 	w.started = true
 
 	w.logger.Info("Worker started")
-
-
 
 	// Main processing loop.
 
@@ -325,15 +248,11 @@ func (w *Worker) Start(ctx context.Context) {
 
 			return
 
-
-
 		case <-ctx.Done():
 
 			w.logger.Info("Worker cancelled")
 
 			return
-
-
 
 		default:
 
@@ -347,8 +266,6 @@ func (w *Worker) Start(ctx context.Context) {
 
 }
 
-
-
 // Stop stops a worker.
 
 func (w *Worker) Stop(ctx context.Context) {
@@ -359,15 +276,11 @@ func (w *Worker) Stop(ctx context.Context) {
 
 	}
 
-
-
 	close(w.stopChan)
 
 	w.started = false
 
 }
-
-
 
 // processNextJob processes the next job from the queue.
 
@@ -385,23 +298,15 @@ func (w *Worker) processNextJob(ctx context.Context) {
 
 	defer w.workQueue.Done(item)
 
-
-
 	jobID := item
 
-
-
 	w.logger.V(1).Info("Processing job", "jobId", jobID)
-
-
 
 	// Process the job.
 
 	if err := w.processor(ctx, jobID); err != nil {
 
 		w.logger.Error(err, "Job processing failed", "jobId", jobID)
-
-
 
 		// Check if we should retry.
 
@@ -421,8 +326,6 @@ func (w *Worker) processNextJob(ctx context.Context) {
 
 	}
 
-
-
 	// Job succeeded.
 
 	w.workQueue.Forget(item)
@@ -431,23 +334,18 @@ func (w *Worker) processNextJob(ctx context.Context) {
 
 }
 
-
-
 // IntentLockManager handles distributed locking for intent processing.
 
 type IntentLockManager struct {
+	client client.Client
 
-	client         client.Client
-
-	logger         logr.Logger
+	logger logr.Logger
 
 	holderIdentity string
 
-	leaseDuration  int32
+	leaseDuration int32
 
-	renewDeadline  int32
-
-
+	renewDeadline int32
 
 	// Active leases.
 
@@ -455,29 +353,25 @@ type IntentLockManager struct {
 
 }
 
-
-
 // NewIntentLockManager creates a new lock manager.
 
 func NewIntentLockManager(client client.Client, logger logr.Logger) *IntentLockManager {
 
 	return &IntentLockManager{
 
-		client:         client,
+		client: client,
 
-		logger:         logger.WithName("lock-manager"),
+		logger: logger.WithName("lock-manager"),
 
 		holderIdentity: fmt.Sprintf("intent-orchestrator-%d", time.Now().Unix()),
 
-		leaseDuration:  60, // 60 seconds
+		leaseDuration: 60, // 60 seconds
 
-		renewDeadline:  45, // 45 seconds
+		renewDeadline: 45, // 45 seconds
 
 	}
 
 }
-
-
 
 // AcquireIntentLock acquires a distributed lock for intent processing.
 
@@ -485,41 +379,32 @@ func (l *IntentLockManager) AcquireIntentLock(ctx context.Context, intentID stri
 
 	lockName := fmt.Sprintf("intent-lock-%s", intentID)
 
-
-
 	// Create lease resource.
 
 	lease := &coordinationv1.Lease{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      lockName,
+			Name: lockName,
 
 			Namespace: "nephoran-system",
-
 		},
 
 		Spec: coordinationv1.LeaseSpec{
 
-			HolderIdentity:       &l.holderIdentity,
+			HolderIdentity: &l.holderIdentity,
 
 			LeaseDurationSeconds: &l.leaseDuration,
 
-			RenewTime:            &metav1.MicroTime{Time: time.Now()},
-
+			RenewTime: &metav1.MicroTime{Time: time.Now()},
 		},
-
 	}
-
-
 
 	// Try to create or update the lease.
 
 	existingLease := &coordinationv1.Lease{}
 
 	err := l.client.Get(ctx, client.ObjectKeyFromObject(lease), existingLease)
-
-
 
 	if err == nil {
 
@@ -542,8 +427,6 @@ func (l *IntentLockManager) AcquireIntentLock(ctx context.Context, intentID stri
 			}
 
 		}
-
-
 
 		// Update existing lease.
 
@@ -571,37 +454,28 @@ func (l *IntentLockManager) AcquireIntentLock(ctx context.Context, intentID stri
 
 	}
 
-
-
 	// Store lease for renewal.
 
 	l.leases.Store(intentID, lease)
-
-
 
 	// Create lock object.
 
 	lock := &IntentLock{
 
-		intentID:    intentID,
+		intentID: intentID,
 
 		lockManager: l,
 
-		lease:       lease,
+		lease: lease,
 
-		ctx:         ctx,
+		ctx: ctx,
 
 		stopRenewal: make(chan bool),
-
 	}
-
-
 
 	// Start renewal goroutine.
 
 	go lock.renewLease()
-
-
 
 	l.logger.Info("Acquired intent lock", "intentId", intentID)
 
@@ -609,25 +483,19 @@ func (l *IntentLockManager) AcquireIntentLock(ctx context.Context, intentID stri
 
 }
 
-
-
 // IntentLock represents a distributed lock on an intent.
 
 type IntentLock struct {
-
-	intentID    string
+	intentID string
 
 	lockManager *IntentLockManager
 
-	lease       *coordinationv1.Lease
+	lease *coordinationv1.Lease
 
-	ctx         context.Context
+	ctx context.Context
 
 	stopRenewal chan bool
-
 }
-
-
 
 // Release releases the intent lock.
 
@@ -635,13 +503,9 @@ func (l *IntentLock) Release() error {
 
 	l.lockManager.logger.Info("Releasing intent lock", "intentId", l.intentID)
 
-
-
 	// Stop renewal.
 
 	close(l.stopRenewal)
-
-
 
 	// Delete lease.
 
@@ -651,19 +515,13 @@ func (l *IntentLock) Release() error {
 
 	}
 
-
-
 	// Remove from active leases.
 
 	l.lockManager.leases.Delete(l.intentID)
 
-
-
 	return nil
 
 }
-
-
 
 // renewLease periodically renews the lease.
 
@@ -672,8 +530,6 @@ func (l *IntentLock) renewLease() {
 	ticker := time.NewTicker(time.Duration(l.lockManager.renewDeadline) * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -691,13 +547,9 @@ func (l *IntentLock) renewLease() {
 
 			}
 
-
-
 		case <-l.stopRenewal:
 
 			return
-
-
 
 		case <-l.ctx.Done():
 
@@ -709,101 +561,79 @@ func (l *IntentLock) renewLease() {
 
 }
 
-
-
 // MetricsCollector collects and manages metrics for the orchestrator.
 
 type MetricsCollector struct {
+	phaseMetrics map[interfaces.ProcessingPhase]*PhaseMetrics
 
-	phaseMetrics   map[interfaces.ProcessingPhase]*PhaseMetrics
-
-	intentMetrics  map[string]*IntentMetrics
+	intentMetrics map[string]*IntentMetrics
 
 	overallMetrics *OverallMetrics
 
-	mutex          sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // PhaseMetrics tracks metrics for a specific processing phase.
 
 type PhaseMetrics struct {
+	Phase interfaces.ProcessingPhase `json:"phase"`
 
-	Phase                 interfaces.ProcessingPhase `json:"phase"`
+	TotalStarted int64 `json:"totalStarted"`
 
-	TotalStarted          int64                      `json:"totalStarted"`
+	TotalCompleted int64 `json:"totalCompleted"`
 
-	TotalCompleted        int64                      `json:"totalCompleted"`
+	TotalFailed int64 `json:"totalFailed"`
 
-	TotalFailed           int64                      `json:"totalFailed"`
+	AverageProcessingTime time.Duration `json:"averageProcessingTime"`
 
-	AverageProcessingTime time.Duration              `json:"averageProcessingTime"`
-
-	SuccessRate           float64                    `json:"successRate"`
-
-
+	SuccessRate float64 `json:"successRate"`
 
 	// Current state.
 
-	ActiveCount        int       `json:"activeCount"`
+	ActiveCount int `json:"activeCount"`
 
-	LastStartTime      time.Time `json:"lastStartTime"`
+	LastStartTime time.Time `json:"lastStartTime"`
 
 	LastCompletionTime time.Time `json:"lastCompletionTime"`
-
 }
-
-
 
 // IntentMetrics tracks metrics for a specific intent.
 
 type IntentMetrics struct {
+	IntentID string `json:"intentId"`
 
-	IntentID        string                       `json:"intentId"`
+	StartTime time.Time `json:"startTime"`
 
-	StartTime       time.Time                    `json:"startTime"`
+	CompletionTime *time.Time `json:"completionTime,omitempty"`
 
-	CompletionTime  *time.Time                   `json:"completionTime,omitempty"`
-
-	CurrentPhase    interfaces.ProcessingPhase   `json:"currentPhase"`
+	CurrentPhase interfaces.ProcessingPhase `json:"currentPhase"`
 
 	CompletedPhases []interfaces.ProcessingPhase `json:"completedPhases"`
 
-	TotalDuration   time.Duration                `json:"totalDuration"`
+	TotalDuration time.Duration `json:"totalDuration"`
 
-	Success         bool                         `json:"success"`
-
+	Success bool `json:"success"`
 }
-
-
 
 // OverallMetrics tracks system-wide metrics.
 
 type OverallMetrics struct {
+	TotalIntents int64 `json:"totalIntents"`
 
-	TotalIntents          int64         `json:"totalIntents"`
+	CompletedIntents int64 `json:"completedIntents"`
 
-	CompletedIntents      int64         `json:"completedIntents"`
+	FailedIntents int64 `json:"failedIntents"`
 
-	FailedIntents         int64         `json:"failedIntents"`
-
-	ActiveIntents         int64         `json:"activeIntents"`
+	ActiveIntents int64 `json:"activeIntents"`
 
 	AverageProcessingTime time.Duration `json:"averageProcessingTime"`
 
-	SystemThroughput      float64       `json:"systemThroughput"` // intents per minute
+	SystemThroughput float64 `json:"systemThroughput"` // intents per minute
 
-
-
-	StartTime  time.Time `json:"startTime"`
+	StartTime time.Time `json:"startTime"`
 
 	LastUpdate time.Time `json:"lastUpdate"`
-
 }
-
-
 
 // NewMetricsCollector creates a new metrics collector.
 
@@ -811,21 +641,17 @@ func NewMetricsCollector() *MetricsCollector {
 
 	return &MetricsCollector{
 
-		phaseMetrics:  make(map[interfaces.ProcessingPhase]*PhaseMetrics),
+		phaseMetrics: make(map[interfaces.ProcessingPhase]*PhaseMetrics),
 
 		intentMetrics: make(map[string]*IntentMetrics),
 
 		overallMetrics: &OverallMetrics{
 
 			StartTime: time.Now(),
-
 		},
-
 	}
 
 }
-
-
 
 // RecordPhaseStart records the start of a processing phase.
 
@@ -835,8 +661,6 @@ func (m *MetricsCollector) RecordPhaseStart(phase interfaces.ProcessingPhase, in
 
 	defer m.mutex.Unlock()
 
-
-
 	// Initialize phase metrics if not exists.
 
 	if _, exists := m.phaseMetrics[phase]; !exists {
@@ -844,12 +668,9 @@ func (m *MetricsCollector) RecordPhaseStart(phase interfaces.ProcessingPhase, in
 		m.phaseMetrics[phase] = &PhaseMetrics{
 
 			Phase: phase,
-
 		}
 
 	}
-
-
 
 	phaseMetrics := m.phaseMetrics[phase]
 
@@ -859,20 +680,17 @@ func (m *MetricsCollector) RecordPhaseStart(phase interfaces.ProcessingPhase, in
 
 	phaseMetrics.LastStartTime = time.Now()
 
-
-
 	// Initialize intent metrics if not exists.
 
 	if _, exists := m.intentMetrics[intentID]; !exists {
 
 		m.intentMetrics[intentID] = &IntentMetrics{
 
-			IntentID:        intentID,
+			IntentID: intentID,
 
-			StartTime:       time.Now(),
+			StartTime: time.Now(),
 
 			CompletedPhases: make([]interfaces.ProcessingPhase, 0),
-
 		}
 
 		m.overallMetrics.TotalIntents++
@@ -881,15 +699,11 @@ func (m *MetricsCollector) RecordPhaseStart(phase interfaces.ProcessingPhase, in
 
 	}
 
-
-
 	intentMetrics := m.intentMetrics[intentID]
 
 	intentMetrics.CurrentPhase = phase
 
 }
-
-
 
 // RecordPhaseCompletion records the completion of a processing phase.
 
@@ -899,8 +713,6 @@ func (m *MetricsCollector) RecordPhaseCompletion(phase interfaces.ProcessingPhas
 
 	defer m.mutex.Unlock()
 
-
-
 	phaseMetrics := m.phaseMetrics[phase]
 
 	if phaseMetrics == nil {
@@ -909,13 +721,9 @@ func (m *MetricsCollector) RecordPhaseCompletion(phase interfaces.ProcessingPhas
 
 	}
 
-
-
 	phaseMetrics.ActiveCount--
 
 	phaseMetrics.LastCompletionTime = time.Now()
-
-
 
 	if success {
 
@@ -927,8 +735,6 @@ func (m *MetricsCollector) RecordPhaseCompletion(phase interfaces.ProcessingPhas
 
 	}
 
-
-
 	// Calculate success rate.
 
 	if phaseMetrics.TotalStarted > 0 {
@@ -936,8 +742,6 @@ func (m *MetricsCollector) RecordPhaseCompletion(phase interfaces.ProcessingPhas
 		phaseMetrics.SuccessRate = float64(phaseMetrics.TotalCompleted) / float64(phaseMetrics.TotalStarted)
 
 	}
-
-
 
 	// Update intent metrics.
 
@@ -953,8 +757,6 @@ func (m *MetricsCollector) RecordPhaseCompletion(phase interfaces.ProcessingPhas
 
 }
 
-
-
 // RecordIntentCompletion records the completion of an intent.
 
 func (m *MetricsCollector) RecordIntentCompletion(intentID string, success bool, duration time.Duration) {
@@ -962,8 +764,6 @@ func (m *MetricsCollector) RecordIntentCompletion(intentID string, success bool,
 	m.mutex.Lock()
 
 	defer m.mutex.Unlock()
-
-
 
 	if intentMetrics, exists := m.intentMetrics[intentID]; exists {
 
@@ -975,11 +775,7 @@ func (m *MetricsCollector) RecordIntentCompletion(intentID string, success bool,
 
 		intentMetrics.Success = success
 
-
-
 		m.overallMetrics.ActiveIntents--
-
-
 
 		if success {
 
@@ -990,8 +786,6 @@ func (m *MetricsCollector) RecordIntentCompletion(intentID string, success bool,
 			m.overallMetrics.FailedIntents++
 
 		}
-
-
 
 		// Update average processing time.
 
@@ -1009,8 +803,6 @@ func (m *MetricsCollector) RecordIntentCompletion(intentID string, success bool,
 
 		}
 
-
-
 		// Calculate throughput (intents per minute).
 
 		elapsed := time.Since(m.overallMetrics.StartTime)
@@ -1021,15 +813,11 @@ func (m *MetricsCollector) RecordIntentCompletion(intentID string, success bool,
 
 		}
 
-
-
 		m.overallMetrics.LastUpdate = now
 
 	}
 
 }
-
-
 
 // GetPhaseMetrics returns metrics for a specific phase.
 
@@ -1038,8 +826,6 @@ func (m *MetricsCollector) GetPhaseMetrics(phase interfaces.ProcessingPhase) *Ph
 	m.mutex.RLock()
 
 	defer m.mutex.RUnlock()
-
-
 
 	if metrics, exists := m.phaseMetrics[phase]; exists {
 
@@ -1051,13 +837,9 @@ func (m *MetricsCollector) GetPhaseMetrics(phase interfaces.ProcessingPhase) *Ph
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetIntentMetrics returns metrics for a specific intent.
 
@@ -1066,8 +848,6 @@ func (m *MetricsCollector) GetIntentMetrics(intentID string) *IntentMetrics {
 	m.mutex.RLock()
 
 	defer m.mutex.RUnlock()
-
-
 
 	if metrics, exists := m.intentMetrics[intentID]; exists {
 
@@ -1083,13 +863,9 @@ func (m *MetricsCollector) GetIntentMetrics(intentID string) *IntentMetrics {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetOverallMetrics returns overall system metrics.
 
@@ -1099,8 +875,6 @@ func (m *MetricsCollector) GetOverallMetrics() *OverallMetrics {
 
 	defer m.mutex.RUnlock()
 
-
-
 	// Return a copy.
 
 	metricsCopy := *m.overallMetrics
@@ -1108,8 +882,6 @@ func (m *MetricsCollector) GetOverallMetrics() *OverallMetrics {
 	return &metricsCopy
 
 }
-
-
 
 // GetAllMetrics returns all collected metrics.
 
@@ -1119,51 +891,37 @@ func (m *MetricsCollector) GetAllMetrics() map[string]interface{} {
 
 	defer m.mutex.RUnlock()
 
-
-
 	return map[string]interface{}{
 
-		"phases":  m.phaseMetrics,
+		"phases": m.phaseMetrics,
 
 		"intents": m.intentMetrics,
 
 		"overall": m.overallMetrics,
-
 	}
 
 }
 
-
-
 // Supporting data structures.
-
-
 
 // WorkerPoolStatus represents the status of a worker pool.
 
 type WorkerPoolStatus struct {
+	ID string `json:"id"`
 
-	ID          string         `json:"id"`
+	WorkerCount int `json:"workerCount"`
 
-	WorkerCount int            `json:"workerCount"`
+	Started bool `json:"started"`
 
-	Started     bool           `json:"started"`
+	QueueLength int `json:"queueLength"`
 
-	QueueLength int            `json:"queueLength"`
-
-	Workers     []WorkerStatus `json:"workers"`
-
+	Workers []WorkerStatus `json:"workers"`
 }
-
-
 
 // WorkerStatus represents the status of a single worker.
 
 type WorkerStatus struct {
+	ID string `json:"id"`
 
-	ID      string `json:"id"`
-
-	Started bool   `json:"started"`
-
+	Started bool `json:"started"`
 }
-

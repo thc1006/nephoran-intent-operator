@@ -28,78 +28,44 @@ limitations under the License.
 
 */
 
-
-
-
 package controllers
 
-
-
 import (
-
 	"context"
-
 	"crypto/x509"
-
 	"fmt"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	nephv1alpha1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/security/ca"
 
-
-
 	v1 "k8s.io/api/core/v1"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/apimachinery/pkg/types"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
 )
-
-
 
 // CertificateAutomationReconciler reconciles CertificateAutomation objects.
 
 type CertificateAutomationReconciler struct {
-
 	client.Client
 
-	Scheme           *runtime.Scheme
+	Scheme *runtime.Scheme
 
-	Log              logr.Logger
+	Log logr.Logger
 
 	AutomationEngine *ca.AutomationEngine
 
-	CAManager        *ca.CAManager
-
+	CAManager *ca.CAManager
 }
-
-
 
 // CertificateAutomationSpec defines the desired state of CertificateAutomation.
 
@@ -109,57 +75,38 @@ type CertificateAutomationSpec struct {
 
 	ServiceName string `json:"serviceName"`
 
-
-
 	// Namespace specifies the target namespace.
 
 	Namespace string `json:"namespace"`
-
-
 
 	// DNSNames specifies additional DNS names for the certificate.
 
 	DNSNames []string `json:"dnsNames,omitempty"`
 
-
-
 	// IPAddresses specifies IP addresses for the certificate.
 
 	IPAddresses []string `json:"ipAddresses,omitempty"`
-
-
 
 	// Template specifies the certificate template to use.
 
 	Template string `json:"template,omitempty"`
 
-
-
 	// AutoRenewal enables automatic certificate renewal.
 
 	AutoRenewal bool `json:"autoRenewal,omitempty"`
-
-
 
 	// ValidityDuration specifies certificate validity period.
 
 	ValidityDuration *metav1.Duration `json:"validityDuration,omitempty"`
 
-
-
 	// SecretName specifies the target secret name.
 
 	SecretName string `json:"secretName,omitempty"`
 
-
-
 	// Priority specifies provisioning priority.
 
 	Priority string `json:"priority,omitempty"`
-
 }
-
-
 
 // CertificateAutomationStatus defines the observed state of CertificateAutomation.
 
@@ -169,67 +116,44 @@ type CertificateAutomationStatus struct {
 
 	Phase nephv1alpha1.CertificateAutomationPhase `json:"phase,omitempty"`
 
-
-
 	// Conditions represents the current conditions.
 
 	Conditions []CertificateAutomationCondition `json:"conditions,omitempty"`
-
-
 
 	// CertificateSerialNumber contains the serial number of the issued certificate.
 
 	CertificateSerialNumber string `json:"certificateSerialNumber,omitempty"`
 
-
-
 	// ExpiresAt contains the certificate expiration time.
 
 	ExpiresAt *metav1.Time `json:"expiresAt,omitempty"`
-
-
 
 	// LastRenewalTime contains the last renewal time.
 
 	LastRenewalTime *metav1.Time `json:"lastRenewalTime,omitempty"`
 
-
-
 	// NextRenewalTime contains the next scheduled renewal time.
 
 	NextRenewalTime *metav1.Time `json:"nextRenewalTime,omitempty"`
-
-
 
 	// SecretRef contains reference to the created secret.
 
 	SecretRef *v1.LocalObjectReference `json:"secretRef,omitempty"`
 
-
-
 	// ValidationStatus contains certificate validation status.
 
 	ValidationStatus *CertificateValidationStatus `json:"validationStatus,omitempty"`
-
-
 
 	// RevocationStatus contains certificate revocation status.
 
 	RevocationStatus string `json:"revocationStatus,omitempty"`
 
-
-
 	// ObservedGeneration represents the generation observed by the controller.
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-
 }
 
-
-
 // CertificateAutomationPhase and constants are now used from api/v1 package.
-
-
 
 // CertificateAutomationCondition describes the state of certificate automation.
 
@@ -239,39 +163,26 @@ type CertificateAutomationCondition struct {
 
 	Type CertificateAutomationConditionType `json:"type"`
 
-
-
 	// Status of the condition.
 
 	Status metav1.ConditionStatus `json:"status"`
-
-
 
 	// Last time the condition transitioned.
 
 	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 
-
-
 	// Reason for the condition's last transition.
 
 	Reason string `json:"reason,omitempty"`
 
-
-
 	// Message providing details about the transition.
 
 	Message string `json:"message,omitempty"`
-
 }
-
-
 
 // CertificateAutomationConditionType represents condition types.
 
 type CertificateAutomationConditionType string
-
-
 
 const (
 
@@ -279,33 +190,22 @@ const (
 
 	CertificateAutomationConditionReady CertificateAutomationConditionType = "Ready"
 
-
-
 	// CertificateAutomationConditionIssued indicates the certificate has been issued.
 
 	CertificateAutomationConditionIssued CertificateAutomationConditionType = "Issued"
-
-
 
 	// CertificateAutomationConditionValidated indicates the certificate has been validated.
 
 	CertificateAutomationConditionValidated CertificateAutomationConditionType = "Validated"
 
-
-
 	// CertificateAutomationConditionRenewed indicates the certificate has been renewed.
 
 	CertificateAutomationConditionRenewed CertificateAutomationConditionType = "Renewed"
 
-
-
 	// CertificateAutomationConditionRevoked indicates the certificate has been revoked.
 
 	CertificateAutomationConditionRevoked CertificateAutomationConditionType = "Revoked"
-
 )
-
-
 
 // CertificateValidationStatus contains certificate validation details.
 
@@ -315,39 +215,26 @@ type CertificateValidationStatus struct {
 
 	Valid bool `json:"valid"`
 
-
-
 	// ChainValid indicates if the certificate chain is valid.
 
 	ChainValid bool `json:"chainValid,omitempty"`
-
-
 
 	// CTLogVerified indicates if the certificate is in CT logs.
 
 	CTLogVerified bool `json:"ctLogVerified,omitempty"`
 
-
-
 	// LastValidationTime contains the last validation time.
 
 	LastValidationTime *metav1.Time `json:"lastValidationTime,omitempty"`
-
-
 
 	// ValidationErrors contains validation errors.
 
 	ValidationErrors []string `json:"validationErrors,omitempty"`
 
-
-
 	// ValidationWarnings contains validation warnings.
 
 	ValidationWarnings []string `json:"validationWarnings,omitempty"`
-
 }
-
-
 
 //+kubebuilder:rbac:groups=nephoran.io,resources=certificateautomations,verbs=get;list;watch;create;update;patch;delete
 
@@ -361,15 +248,11 @@ type CertificateValidationStatus struct {
 
 //+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
-
-
 // Reconcile is part of the main kubernetes reconciliation loop.
 
 func (r *CertificateAutomationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	log := r.Log.WithValues("certificateautomation", req.NamespacedName)
-
-
 
 	// Fetch the CertificateAutomation instance.
 
@@ -395,8 +278,6 @@ func (r *CertificateAutomationReconciler) Reconcile(ctx context.Context, req ctr
 
 	}
 
-
-
 	// Handle deletion.
 
 	if !certAutomation.DeletionTimestamp.IsZero() {
@@ -404,8 +285,6 @@ func (r *CertificateAutomationReconciler) Reconcile(ctx context.Context, req ctr
 		return r.reconcileDelete(ctx, &certAutomation)
 
 	}
-
-
 
 	// Add finalizer if not present.
 
@@ -422,8 +301,6 @@ func (r *CertificateAutomationReconciler) Reconcile(ctx context.Context, req ctr
 		}
 
 	}
-
-
 
 	// Reconcile based on current phase.
 
@@ -463,23 +340,17 @@ func (r *CertificateAutomationReconciler) Reconcile(ctx context.Context, req ctr
 
 }
 
-
-
 // reconcileDelete handles deletion of CertificateAutomation.
 
 func (r *CertificateAutomationReconciler) reconcileDelete(ctx context.Context, certAutomation *nephv1alpha1.CertificateAutomation) (ctrl.Result, error) {
 
 	log := r.Log.WithValues("certificateautomation", certAutomation.Name, "namespace", certAutomation.Namespace)
 
-
-
 	// Revoke certificate if it exists.
 
 	if certAutomation.Status.CertificateSerialNumber != "" {
 
 		log.Info("Revoking certificate", "serial_number", certAutomation.Status.CertificateSerialNumber)
-
-
 
 		if err := r.CAManager.RevokeCertificate(ctx, certAutomation.Status.CertificateSerialNumber, 1, "default"); err != nil {
 
@@ -490,8 +361,6 @@ func (r *CertificateAutomationReconciler) reconcileDelete(ctx context.Context, c
 		}
 
 	}
-
-
 
 	// Remove finalizer.
 
@@ -505,23 +374,17 @@ func (r *CertificateAutomationReconciler) reconcileDelete(ctx context.Context, c
 
 	}
 
-
-
 	log.Info("CertificateAutomation deleted successfully")
 
 	return ctrl.Result{}, nil
 
 }
 
-
-
 // reconcileProvisioning initiates certificate provisioning.
 
 func (r *CertificateAutomationReconciler) reconcileProvisioning(ctx context.Context, certAutomation *nephv1alpha1.CertificateAutomation) (ctrl.Result, error) {
 
 	log := r.Log.WithValues("certificateautomation", certAutomation.Name, "namespace", certAutomation.Namespace)
-
-
 
 	// Build DNS names.
 
@@ -532,16 +395,11 @@ func (r *CertificateAutomationReconciler) reconcileProvisioning(ctx context.Cont
 		fmt.Sprintf("%s.%s", certAutomation.Spec.ServiceName, certAutomation.Spec.Namespace),
 
 		certAutomation.Spec.ServiceName,
-
 	}
-
-
 
 	// Add additional DNS names.
 
 	dnsNames = append(dnsNames, certAutomation.Spec.DNSNames...)
-
-
 
 	// Create provisioning request.
 
@@ -563,37 +421,31 @@ func (r *CertificateAutomationReconciler) reconcileProvisioning(ctx context.Cont
 
 	}
 
-
-
 	req := &ca.AutomationRequest{
 
-		Type:             ca.RequestTypeProvisioning,
+		Type: ca.RequestTypeProvisioning,
 
-		ServiceName:      certAutomation.Spec.ServiceName,
+		ServiceName: certAutomation.Spec.ServiceName,
 
 		ServiceNamespace: certAutomation.Spec.Namespace,
 
-		Priority:         priority,
+		Priority: priority,
 
 		Metadata: map[string]interface{}{
 
 			"kubernetes_managed": "true",
 
-			"resource_name":      certAutomation.Name,
+			"resource_name": certAutomation.Name,
 
 			"resource_namespace": certAutomation.Namespace,
 
-			"auto_renew":         fmt.Sprintf("%v", certAutomation.Spec.AutoRenew),
+			"auto_renew": fmt.Sprintf("%v", certAutomation.Spec.AutoRenew),
 
-			"dns_names":          dnsNames,
+			"dns_names": dnsNames,
 
-			"ip_addresses":       certAutomation.Spec.IPAddresses,
-
+			"ip_addresses": certAutomation.Spec.IPAddresses,
 		},
-
 	}
-
-
 
 	// Submit provisioning request.
 
@@ -607,23 +459,17 @@ func (r *CertificateAutomationReconciler) reconcileProvisioning(ctx context.Cont
 
 	}
 
-
-
 	log.Info("Certificate provisioning requested")
 
 	return r.updateStatus(ctx, certAutomation, nephv1alpha1.CertificateAutomationPhaseProvisioning, "Certificate provisioning in progress")
 
 }
 
-
-
 // reconcileProvisioningStatus checks provisioning status.
 
 func (r *CertificateAutomationReconciler) reconcileProvisioningStatus(ctx context.Context, certAutomation *nephv1alpha1.CertificateAutomation) (ctrl.Result, error) {
 
 	log := r.Log.WithValues("certificateautomation", certAutomation.Name, "namespace", certAutomation.Namespace)
-
-
 
 	// Check if secret exists (indicates successful provisioning).
 
@@ -635,19 +481,14 @@ func (r *CertificateAutomationReconciler) reconcileProvisioningStatus(ctx contex
 
 	}
 
-
-
 	secret := &v1.Secret{}
 
 	secretKey := types.NamespacedName{
 
-		Name:      secretName,
+		Name: secretName,
 
 		Namespace: certAutomation.Spec.Namespace,
-
 	}
-
-
 
 	if err := r.Get(ctx, secretKey, secret); err != nil {
 
@@ -669,8 +510,6 @@ func (r *CertificateAutomationReconciler) reconcileProvisioningStatus(ctx contex
 
 	}
 
-
-
 	// Extract certificate information from secret.
 
 	certPEM, exists := secret.Data["tls.crt"]
@@ -682,8 +521,6 @@ func (r *CertificateAutomationReconciler) reconcileProvisioningStatus(ctx contex
 		return r.updateStatus(ctx, certAutomation, nephv1alpha1.CertificateAutomationPhaseFailed, "Certificate data not found in secret")
 
 	}
-
-
 
 	// Parse certificate to get details.
 
@@ -697,8 +534,6 @@ func (r *CertificateAutomationReconciler) reconcileProvisioningStatus(ctx contex
 
 	}
 
-
-
 	// Update status with certificate information.
 
 	certAutomation.Status.CertificateSerialNumber = cert.SerialNumber.String()
@@ -707,8 +542,6 @@ func (r *CertificateAutomationReconciler) reconcileProvisioningStatus(ctx contex
 
 	certAutomation.Status.SecretName = secretName
 
-
-
 	// Update last renewal time on successful provisioning.
 
 	if certAutomation.Spec.AutoRenew {
@@ -716,8 +549,6 @@ func (r *CertificateAutomationReconciler) reconcileProvisioningStatus(ctx contex
 		certAutomation.Status.LastRenewalTime = &metav1.Time{Time: time.Now()}
 
 	}
-
-
 
 	// Certificate validation and revocation checking would be implemented here.
 
@@ -729,13 +560,9 @@ func (r *CertificateAutomationReconciler) reconcileProvisioningStatus(ctx contex
 
 		"expires_at", certAutomation.Status.ExpirationTime.Time)
 
-
-
 	return r.updateStatus(ctx, certAutomation, nephv1alpha1.CertificateAutomationPhaseReady, "Certificate ready")
 
 }
-
-
 
 // reconcileReady handles ready state monitoring.
 
@@ -743,11 +570,7 @@ func (r *CertificateAutomationReconciler) reconcileReady(ctx context.Context, ce
 
 	log := r.Log.WithValues("certificateautomation", certAutomation.Name, "namespace", certAutomation.Namespace)
 
-
-
 	now := time.Now()
-
-
 
 	// Check if certificate has expired.
 
@@ -758,8 +581,6 @@ func (r *CertificateAutomationReconciler) reconcileReady(ctx context.Context, ce
 		return r.updateStatus(ctx, certAutomation, nephv1alpha1.CertificateAutomationPhaseExpired, "Certificate expired")
 
 	}
-
-
 
 	// Check if renewal is needed (simplified - check if we're within renewal window).
 
@@ -779,8 +600,6 @@ func (r *CertificateAutomationReconciler) reconcileReady(ctx context.Context, ce
 
 	}
 
-
-
 	// Periodic validation if enabled (simplified check).
 
 	if certAutomation.Status.ValidationStatus == "" {
@@ -790,8 +609,6 @@ func (r *CertificateAutomationReconciler) reconcileReady(ctx context.Context, ce
 		log.V(1).Info("Certificate validation not yet performed")
 
 	}
-
-
 
 	// Requeue for next check.
 
@@ -813,13 +630,9 @@ func (r *CertificateAutomationReconciler) reconcileReady(ctx context.Context, ce
 
 	}
 
-
-
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 
 }
-
-
 
 // reconcileRenewalStatus checks renewal status.
 
@@ -831,15 +644,11 @@ func (r *CertificateAutomationReconciler) reconcileRenewalStatus(ctx context.Con
 
 }
 
-
-
 // reconcileExpired handles expired certificates.
 
 func (r *CertificateAutomationReconciler) reconcileExpired(ctx context.Context, certAutomation *nephv1alpha1.CertificateAutomation) (ctrl.Result, error) {
 
 	log := r.Log.WithValues("certificateautomation", certAutomation.Name, "namespace", certAutomation.Namespace)
-
-
 
 	if certAutomation.Spec.AutoRenew {
 
@@ -849,8 +658,6 @@ func (r *CertificateAutomationReconciler) reconcileExpired(ctx context.Context, 
 
 	}
 
-
-
 	// Manual intervention required.
 
 	log.Info("Certificate expired and auto-renewal is disabled", "warning", true)
@@ -858,8 +665,6 @@ func (r *CertificateAutomationReconciler) reconcileExpired(ctx context.Context, 
 	return ctrl.Result{RequeueAfter: 24 * time.Hour}, nil
 
 }
-
-
 
 // reconcileFailed handles failed state.
 
@@ -871,15 +676,11 @@ func (r *CertificateAutomationReconciler) reconcileFailed(ctx context.Context, c
 
 }
 
-
-
 // initiateRenewal starts certificate renewal process.
 
 func (r *CertificateAutomationReconciler) initiateRenewal(ctx context.Context, certAutomation *nephv1alpha1.CertificateAutomation) (ctrl.Result, error) {
 
 	log := r.Log.WithValues("certificateautomation", certAutomation.Name, "namespace", certAutomation.Namespace)
-
-
 
 	if certAutomation.Status.CertificateSerialNumber == "" {
 
@@ -887,15 +688,13 @@ func (r *CertificateAutomationReconciler) initiateRenewal(ctx context.Context, c
 
 	}
 
-
-
 	// Create renewal request using AutomationRequest.
 
 	req := &ca.AutomationRequest{
 
-		Type:             ca.RequestTypeRenewal,
+		Type: ca.RequestTypeRenewal,
 
-		ServiceName:      certAutomation.Spec.ServiceName,
+		ServiceName: certAutomation.Spec.ServiceName,
 
 		ServiceNamespace: certAutomation.Spec.Namespace,
 
@@ -903,19 +702,15 @@ func (r *CertificateAutomationReconciler) initiateRenewal(ctx context.Context, c
 
 			"kubernetes_managed": "true",
 
-			"resource_name":      certAutomation.Name,
+			"resource_name": certAutomation.Name,
 
 			"resource_namespace": certAutomation.Namespace,
 
-			"serial_number":      certAutomation.Status.CertificateSerialNumber,
+			"serial_number": certAutomation.Status.CertificateSerialNumber,
 
-			"current_expiry":     certAutomation.Status.ExpiresAt.Time,
-
+			"current_expiry": certAutomation.Status.ExpiresAt.Time,
 		},
-
 	}
-
-
 
 	resp := r.AutomationEngine.ProcessManualRequest(req)
 
@@ -927,15 +722,11 @@ func (r *CertificateAutomationReconciler) initiateRenewal(ctx context.Context, c
 
 	}
 
-
-
 	log.Info("Certificate renewal requested")
 
 	return r.updateStatus(ctx, certAutomation, nephv1alpha1.CertificateAutomationPhaseRenewing, "Certificate renewal in progress")
 
 }
-
-
 
 // performPeriodicValidation performs background certificate validation.
 
@@ -947,8 +738,6 @@ func (r *CertificateAutomationReconciler) performPeriodicValidation(ctx context.
 
 }
 
-
-
 // updateStatus updates the CertificateAutomation status.
 
 func (r *CertificateAutomationReconciler) updateStatus(ctx context.Context, certAutomation *nephv1alpha1.CertificateAutomation, phase nephv1alpha1.CertificateAutomationPhase, message string) (ctrl.Result, error) {
@@ -957,25 +746,20 @@ func (r *CertificateAutomationReconciler) updateStatus(ctx context.Context, cert
 
 	certAutomation.Status.ObservedGeneration = certAutomation.Generation
 
-
-
 	// Update conditions.
 
 	condition := nephv1alpha1.CertificateAutomationCondition{
 
-		Type:               nephv1alpha1.CertificateAutomationConditionReady,
+		Type: nephv1alpha1.CertificateAutomationConditionReady,
 
-		Status:             metav1.ConditionFalse,
+		Status: metav1.ConditionFalse,
 
 		LastTransitionTime: metav1.Now(),
 
-		Reason:             string(phase),
+		Reason: string(phase),
 
-		Message:            message,
-
+		Message: message,
 	}
-
-
 
 	if phase == nephv1alpha1.CertificateAutomationPhaseReady {
 
@@ -983,13 +767,9 @@ func (r *CertificateAutomationReconciler) updateStatus(ctx context.Context, cert
 
 	}
 
-
-
 	// Update or add condition.
 
 	r.setCondition(&certAutomation.Status, condition)
-
-
 
 	if err := r.Status().Update(ctx, certAutomation); err != nil {
 
@@ -999,13 +779,9 @@ func (r *CertificateAutomationReconciler) updateStatus(ctx context.Context, cert
 
 	}
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // setCondition sets or updates a condition.
 
@@ -1033,15 +809,11 @@ func (r *CertificateAutomationReconciler) setCondition(status *nephv1alpha1.Cert
 
 	}
 
-
-
 	// Condition not found, add it.
 
 	status.Conditions = append(status.Conditions, condition)
 
 }
-
-
 
 // Helper function to parse certificate from PEM data.
 
@@ -1055,39 +827,28 @@ func (r *CertificateAutomationReconciler) parseCertificateFromPEM(pemData []byte
 
 }
 
-
-
 // SetupWithManager sets up the controller with the Manager.
 
 func (r *CertificateAutomationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
-
 		For(&nephv1alpha1.CertificateAutomation{}).
-
 		Owns(&v1.Secret{}).
-
 		Watches(
 
 			&v1.Service{},
 
 			handler.EnqueueRequestsFromMapFunc(handler.MapFunc(r.findCertificateAutomationsForService)),
-
 		).
-
 		Complete(r)
 
 }
-
-
 
 // findCertificateAutomationsForService finds CertificateAutomations that reference a Service.
 
 func (r *CertificateAutomationReconciler) findCertificateAutomationsForService(ctx context.Context, obj client.Object) []reconcile.Request {
 
 	service := obj.(*v1.Service)
-
-
 
 	var certAutomationList nephv1alpha1.CertificateAutomationList
 
@@ -1096,8 +857,6 @@ func (r *CertificateAutomationReconciler) findCertificateAutomationsForService(c
 		return nil
 
 	}
-
-
 
 	var requests []reconcile.Request
 
@@ -1109,21 +868,16 @@ func (r *CertificateAutomationReconciler) findCertificateAutomationsForService(c
 
 				NamespacedName: types.NamespacedName{
 
-					Name:      certAutomation.Name,
+					Name: certAutomation.Name,
 
 					Namespace: certAutomation.Namespace,
-
 				},
-
 			})
 
 		}
 
 	}
 
-
-
 	return requests
 
 }
-

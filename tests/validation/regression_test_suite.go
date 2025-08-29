@@ -1,49 +1,30 @@
 // Package validation provides comprehensive regression testing suite integration.
 
-
 package validation
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 	"testing"
-
 	"time"
 
-
-
 	"github.com/onsi/ginkgo/v2"
-
 	"github.com/onsi/gomega"
-
 )
-
-
 
 // RegressionTestSuite provides a comprehensive regression testing framework.
 
 // that integrates with existing validation suite and CI/CD pipelines.
 
 type RegressionTestSuite struct {
-
 	framework *RegressionFramework
 
-	suite     *ValidationSuite
+	suite *ValidationSuite
 
-	config    *RegressionTestConfig
-
+	config *RegressionTestConfig
 }
-
-
 
 // RegressionTestConfig holds configuration for regression testing integration.
 
@@ -55,39 +36,30 @@ type RegressionTestConfig struct {
 
 	RegressionConfig *RegressionConfig
 
-
-
 	// CI/CD integration.
 
-	CIMode           bool
+	CIMode bool
 
 	FailOnRegression bool
 
-	BaselineFromEnv  string   // Environment variable for baseline ID
+	BaselineFromEnv string // Environment variable for baseline ID
 
-	ReportFormats    []string // "json", "junit", "html", "prometheus"
+	ReportFormats []string // "json", "junit", "html", "prometheus"
 
-	ArtifactPath     string   // Path to store test artifacts
-
-
+	ArtifactPath string // Path to store test artifacts
 
 	// Environment detection.
 
-	AutoDetectEnv       bool
+	AutoDetectEnv bool
 
 	EnvironmentOverride string
-
-
 
 	// Parallel execution.
 
 	MaxParallelism int
 
-	TestTimeout    time.Duration
-
+	TestTimeout time.Duration
 }
-
-
 
 // DefaultRegressionTestConfig returns production-ready regression test configuration.
 
@@ -99,27 +71,24 @@ func DefaultRegressionTestConfig() *RegressionTestConfig {
 
 		RegressionConfig: DefaultRegressionConfig(),
 
-		CIMode:           detectCIEnvironment(),
+		CIMode: detectCIEnvironment(),
 
 		FailOnRegression: true,
 
-		BaselineFromEnv:  "REGRESSION_BASELINE_ID",
+		BaselineFromEnv: "REGRESSION_BASELINE_ID",
 
-		ReportFormats:    []string{"json", "junit"},
+		ReportFormats: []string{"json", "junit"},
 
-		ArtifactPath:     "./regression-artifacts",
+		ArtifactPath: "./regression-artifacts",
 
-		AutoDetectEnv:    true,
+		AutoDetectEnv: true,
 
-		MaxParallelism:   4,
+		MaxParallelism: 4,
 
-		TestTimeout:      45 * time.Minute,
-
+		TestTimeout: 45 * time.Minute,
 	}
 
 }
-
-
 
 // NewRegressionTestSuite creates a new regression test suite.
 
@@ -131,8 +100,6 @@ func NewRegressionTestSuite(config *RegressionTestConfig) *RegressionTestSuite {
 
 	}
 
-
-
 	// Create artifact directory.
 
 	if err := os.MkdirAll(config.ArtifactPath, 0o755); err != nil {
@@ -140,8 +107,6 @@ func NewRegressionTestSuite(config *RegressionTestConfig) *RegressionTestSuite {
 		ginkgo.Fail(fmt.Sprintf("Failed to create artifact directory: %v", err))
 
 	}
-
-
 
 	// Configure for CI/CD environment if detected.
 
@@ -155,27 +120,20 @@ func NewRegressionTestSuite(config *RegressionTestConfig) *RegressionTestSuite {
 
 	}
 
-
-
 	framework := NewRegressionFramework(config.RegressionConfig, config.ValidationConfig)
 
 	validationSuite := NewValidationSuite(config.ValidationConfig)
-
-
 
 	return &RegressionTestSuite{
 
 		framework: framework,
 
-		suite:     validationSuite,
+		suite: validationSuite,
 
-		config:    config,
-
+		config: config,
 	}
 
 }
-
-
 
 // RunRegressionTests is the main entry point for regression testing.
 
@@ -187,13 +145,9 @@ func RunRegressionTests(t *testing.T, config *RegressionTestConfig) {
 
 	}
 
-
-
 	// Set up Ginkgo.
 
 	gomega.RegisterFailHandler(ginkgo.Fail)
-
-
 
 	// Configure Ginkgo for CI environments.
 
@@ -205,37 +159,27 @@ func RunRegressionTests(t *testing.T, config *RegressionTestConfig) {
 
 	}
 
-
-
 	// Run the test suite.
 
 	ginkgo.RunSpecs(t, "Nephoran Intent Operator Regression Test Suite")
 
 }
 
-
-
 // Ginkgo test suite definition.
 
 var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 	var (
-
 		regressionSuite *RegressionTestSuite
 
-		ctx             context.Context
+		ctx context.Context
 
-		cancel          context.CancelFunc
-
+		cancel context.CancelFunc
 	)
-
-
 
 	ginkgo.BeforeEach(func() {
 
 		config := DefaultRegressionTestConfig()
-
-
 
 		// Override with environment-specific configuration.
 
@@ -245,15 +189,11 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 		}
 
-
-
 		regressionSuite = NewRegressionTestSuite(config)
 
 		ctx, cancel = context.WithTimeout(context.Background(), config.TestTimeout)
 
 	})
-
-
 
 	ginkgo.AfterEach(func() {
 
@@ -267,23 +207,17 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 	})
 
-
-
 	ginkgo.Context("when executing comprehensive regression testing", func() {
 
 		ginkgo.It("should detect performance regressions", func() {
 
 			ginkgo.By("Running performance regression detection")
 
-
-
 			detection, err := regressionSuite.framework.ExecuteRegressionTest(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			gomega.Expect(detection).NotTo(gomega.BeNil())
-
-
 
 			// Validate performance regression detection.
 
@@ -294,8 +228,6 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 					ginkgo.By(fmt.Sprintf("Performance regression detected: %s degraded by %.2f%%",
 
 						regression.MetricName, regression.DegradationPercent))
-
-
 
 					// Assert regression is within acceptable bounds for tests.
 
@@ -311,19 +243,13 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 		})
 
-
-
 		ginkgo.It("should detect functional regressions", func() {
 
 			ginkgo.By("Running functional regression detection")
 
-
-
 			detection, err := regressionSuite.framework.ExecuteRegressionTest(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-
 
 			// Validate functional regression detection.
 
@@ -334,8 +260,6 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 					ginkgo.By(fmt.Sprintf("Functional regression detected in %s: pass rate %.1f%% → %.1f%%",
 
 						regression.TestCategory, regression.BaselinePassRate, regression.CurrentPassRate))
-
-
 
 					// Critical functional regressions should fail the test.
 
@@ -351,19 +275,13 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 		})
 
-
-
 		ginkgo.It("should detect security regressions", func() {
 
 			ginkgo.By("Running security regression detection")
 
-
-
 			detection, err := regressionSuite.framework.ExecuteRegressionTest(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-
 
 			// Security regressions are always serious.
 
@@ -374,8 +292,6 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 					ginkgo.By(fmt.Sprintf("Security regression detected: %s",
 
 						regression.Finding.Description))
-
-
 
 					// Any new critical security vulnerability should fail.
 
@@ -391,19 +307,13 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 		})
 
-
-
 		ginkgo.It("should detect production readiness regressions", func() {
 
 			ginkgo.By("Running production readiness regression detection")
 
-
-
 			detection, err := regressionSuite.framework.ExecuteRegressionTest(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-
 
 			// Production readiness regressions affect deployment confidence.
 
@@ -414,8 +324,6 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 					ginkgo.By(fmt.Sprintf("Production readiness regression: %s (%.2f → %.2f)",
 
 						regression.Metric, regression.BaselineValue, regression.CurrentValue))
-
-
 
 					// Availability regressions are critical.
 
@@ -431,19 +339,13 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 		})
 
-
-
 		ginkgo.It("should maintain regression detection accuracy", func() {
 
 			ginkgo.By("Validating regression detection accuracy")
 
-
-
 			detection, err := regressionSuite.framework.ExecuteRegressionTest(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-
 
 			// Validate statistical confidence.
 
@@ -453,19 +355,13 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 		})
 
-
-
 		ginkgo.It("should generate comprehensive reports", func() {
 
 			ginkgo.By("Generating comprehensive regression reports")
 
-
-
 			_, err := regressionSuite.framework.ExecuteRegressionTest(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-
 
 			// Validate report generation.
 
@@ -481,13 +377,9 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 		})
 
-
-
 		ginkgo.It("should integrate with trend analysis", func() {
 
 			ginkgo.By("Testing trend analysis integration")
-
-
 
 			// Generate trend analysis.
 
@@ -497,8 +389,6 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 			gomega.Expect(trends).NotTo(gomega.BeNil())
 
-
-
 			// Validate trend analysis completeness.
 
 			gomega.Expect(trends.OverallTrend).NotTo(gomega.BeNil())
@@ -506,8 +396,6 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 			gomega.Expect(trends.AnalysisTime).To(gomega.BeTemporally("~", time.Now(), 1*time.Minute))
 
 		})
-
-
 
 		ginkgo.When("running in CI/CD mode", func() {
 
@@ -521,21 +409,15 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 			})
 
-
-
 			ginkgo.It("should fail fast on critical regressions", func() {
 
 				ginkgo.By("Testing CI/CD fail-fast behavior")
-
-
 
 				// This test would simulate critical regressions.
 
 				// and verify that the system fails appropriately.
 
 				detection, err := regressionSuite.framework.ExecuteRegressionTest(ctx)
-
-
 
 				if err != nil && detection != nil && detection.HasRegression {
 
@@ -546,24 +428,17 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 						gomega.Equal("high"),
 
 						gomega.Equal("critical"),
-
 					))
 
 				}
 
 			})
 
-
-
 			ginkgo.It("should generate CI/CD compatible reports", func() {
 
 				ginkgo.By("Validating CI/CD report formats")
 
-
-
 				regressionSuite.framework.ExecuteRegressionTest(ctx)
-
-
 
 				// Check for JUnit report.
 
@@ -581,15 +456,11 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 		})
 
-
-
 		ginkgo.When("baseline management is tested", func() {
 
 			ginkgo.It("should create baseline when none exists", func() {
 
 				ginkgo.By("Testing baseline creation for new projects")
-
-
 
 				// Clear existing baselines for test.
 
@@ -597,11 +468,7 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 				tempConfig.BaselineStoragePath = filepath.Join(regressionSuite.config.ArtifactPath, "test-baselines")
 
-
-
 				tempFramework := NewRegressionFramework(&tempConfig, regressionSuite.config.ValidationConfig)
-
-
 
 				detection, err := tempFramework.EstablishNewBaseline(ctx)
 
@@ -613,13 +480,9 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 			})
 
-
-
 			ginkgo.It("should manage baseline retention", func() {
 
 				ginkgo.By("Testing baseline retention policies")
-
-
 
 				// This would test the baseline cleanup functionality.
 
@@ -635,21 +498,15 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 	})
 
-
-
 	ginkgo.Context("when testing alert system integration", func() {
 
 		ginkgo.It("should trigger alerts for regressions", func() {
 
 			ginkgo.By("Testing alert system integration")
 
-
-
 			detection, err := regressionSuite.framework.ExecuteRegressionTest(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-
 
 			// If regressions are detected, alerts should be configured.
 
@@ -667,19 +524,13 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 })
 
-
-
 // generateTestArtifacts creates test artifacts and reports.
 
 func (rts *RegressionTestSuite) generateTestArtifacts() {
 
 	ginkgo.By("Generating test artifacts")
 
-
-
 	artifactPath := rts.config.ArtifactPath
-
-
 
 	// Generate reports in requested formats.
 
@@ -707,8 +558,6 @@ func (rts *RegressionTestSuite) generateTestArtifacts() {
 
 	}
 
-
-
 	// Copy baseline data if needed.
 
 	if rts.config.CIMode {
@@ -718,8 +567,6 @@ func (rts *RegressionTestSuite) generateTestArtifacts() {
 	}
 
 }
-
-
 
 func (rts *RegressionTestSuite) generateJSONReport(artifactPath string) {
 
@@ -731,8 +578,6 @@ func (rts *RegressionTestSuite) generateJSONReport(artifactPath string) {
 
 }
 
-
-
 func (rts *RegressionTestSuite) generateJUnitReport(artifactPath string) {
 
 	reportPath := filepath.Join(artifactPath, "junit-report.xml")
@@ -742,8 +587,6 @@ func (rts *RegressionTestSuite) generateJUnitReport(artifactPath string) {
 	ginkgo.By(fmt.Sprintf("JUnit report generated: %s", reportPath))
 
 }
-
-
 
 func (rts *RegressionTestSuite) generateHTMLReport(artifactPath string) {
 
@@ -755,8 +598,6 @@ func (rts *RegressionTestSuite) generateHTMLReport(artifactPath string) {
 
 }
 
-
-
 func (rts *RegressionTestSuite) generatePrometheusMetrics(artifactPath string) {
 
 	metricsPath := filepath.Join(artifactPath, "regression-metrics.prom")
@@ -766,8 +607,6 @@ func (rts *RegressionTestSuite) generatePrometheusMetrics(artifactPath string) {
 	ginkgo.By(fmt.Sprintf("Prometheus metrics generated: %s", metricsPath))
 
 }
-
-
 
 func (rts *RegressionTestSuite) preserveBaselineArtifacts(artifactPath string) {
 
@@ -781,8 +620,6 @@ func (rts *RegressionTestSuite) preserveBaselineArtifacts(artifactPath string) {
 
 	}
 
-
-
 	// Copy current baselines for artifact preservation.
 
 	// Implementation would copy baseline files.
@@ -790,8 +627,6 @@ func (rts *RegressionTestSuite) preserveBaselineArtifacts(artifactPath string) {
 	ginkgo.By(fmt.Sprintf("Baseline artifacts preserved: %s", baselinePath))
 
 }
-
-
 
 // detectCIEnvironment detects if running in CI/CD environment.
 
@@ -816,10 +651,7 @@ func detectCIEnvironment() bool {
 		"TRAVIS",
 
 		"AZURE_DEVOPS",
-
 	}
-
-
 
 	for _, envVar := range ciEnvVars {
 
@@ -831,13 +663,9 @@ func detectCIEnvironment() bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // GetRegressionMetrics returns current regression metrics for monitoring.
 
@@ -845,25 +673,22 @@ func (rts *RegressionTestSuite) GetRegressionMetrics() map[string]interface{} {
 
 	return map[string]interface{}{
 
-		"regression_tests_enabled":      true,
+		"regression_tests_enabled": true,
 
-		"baseline_count":                rts.getBaselineCount(),
+		"baseline_count": rts.getBaselineCount(),
 
-		"last_regression_check":         time.Now().Format(time.RFC3339),
+		"last_regression_check": time.Now().Format(time.RFC3339),
 
 		"regression_detection_accuracy": 95.0,
 
-		"ci_mode_enabled":               rts.config.CIMode,
+		"ci_mode_enabled": rts.config.CIMode,
 
-		"alert_system_enabled":          rts.config.RegressionConfig.EnableAlerting,
+		"alert_system_enabled": rts.config.RegressionConfig.EnableAlerting,
 
-		"trend_analysis_enabled":        rts.config.RegressionConfig.EnableTrendAnalysis,
-
+		"trend_analysis_enabled": rts.config.RegressionConfig.EnableTrendAnalysis,
 	}
 
 }
-
-
 
 func (rts *RegressionTestSuite) getBaselineCount() int {
 
@@ -878,4 +703,3 @@ func (rts *RegressionTestSuite) getBaselineCount() int {
 	return len(baselines)
 
 }
-

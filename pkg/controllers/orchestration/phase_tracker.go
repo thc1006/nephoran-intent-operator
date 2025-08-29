@@ -28,82 +28,53 @@ limitations under the License.
 
 */
 
-
-
-
 package orchestration
 
-
-
 import (
-
 	"context"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
 
-
-
 // Note: Conflict and CoordinationContext types are defined in coordination_controller.go to avoid duplication.
-
-
 
 // PhaseTracker tracks the status of phases across intents.
 
 type PhaseTracker struct {
-
 	phaseStatuses map[string]map[interfaces.ProcessingPhase]PhaseStatus
 
-	mutex         sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // PhaseStatus represents the status of a phase for an intent.
 
 type PhaseStatus struct {
+	IntentID string
 
-	IntentID   string
+	Phase interfaces.ProcessingPhase
 
-	Phase      interfaces.ProcessingPhase
+	Status string // Pending, InProgress, Completed, Failed
 
-	Status     string // Pending, InProgress, Completed, Failed
+	StartTime *time.Time
 
-	StartTime  *time.Time
-
-	EndTime    *time.Time
+	EndTime *time.Time
 
 	RetryCount int
 
-	LastError  string
+	LastError string
 
-	Metrics    map[string]float64
+	Metrics map[string]float64
 
-	DependsOn  []interfaces.ProcessingPhase
+	DependsOn []interfaces.ProcessingPhase
 
-	BlockedBy  []interfaces.ProcessingPhase
-
+	BlockedBy []interfaces.ProcessingPhase
 }
-
-
 
 // NewPhaseTracker creates a new PhaseTracker.
 
@@ -112,12 +83,9 @@ func NewPhaseTracker() *PhaseTracker {
 	return &PhaseTracker{
 
 		phaseStatuses: make(map[string]map[interfaces.ProcessingPhase]PhaseStatus),
-
 	}
 
 }
-
-
 
 // UpdatePhaseStatus updates the status of a phase.
 
@@ -127,15 +95,11 @@ func (pt *PhaseTracker) UpdatePhaseStatus(intentID string, phase interfaces.Proc
 
 	defer pt.mutex.Unlock()
 
-
-
 	if _, exists := pt.phaseStatuses[intentID]; !exists {
 
 		pt.phaseStatuses[intentID] = make(map[interfaces.ProcessingPhase]PhaseStatus)
 
 	}
-
-
 
 	phaseStatus := pt.phaseStatuses[intentID][phase]
 
@@ -144,8 +108,6 @@ func (pt *PhaseTracker) UpdatePhaseStatus(intentID string, phase interfaces.Proc
 	phaseStatus.Phase = phase
 
 	phaseStatus.Status = status
-
-
 
 	now := time.Now()
 
@@ -161,13 +123,9 @@ func (pt *PhaseTracker) UpdatePhaseStatus(intentID string, phase interfaces.Proc
 
 	}
 
-
-
 	pt.phaseStatuses[intentID][phase] = phaseStatus
 
 }
-
-
 
 // GetPhaseStatus returns the status of a phase for an intent.
 
@@ -176,8 +134,6 @@ func (pt *PhaseTracker) GetPhaseStatus(intentID string, phase interfaces.Process
 	pt.mutex.RLock()
 
 	defer pt.mutex.RUnlock()
-
-
 
 	if intentStatuses, exists := pt.phaseStatuses[intentID]; exists {
 
@@ -189,13 +145,9 @@ func (pt *PhaseTracker) GetPhaseStatus(intentID string, phase interfaces.Process
 
 	}
 
-
-
 	return PhaseStatus{}, false
 
 }
-
-
 
 // GetIntentPhases returns all phase statuses for an intent.
 
@@ -204,8 +156,6 @@ func (pt *PhaseTracker) GetIntentPhases(intentID string) map[interfaces.Processi
 	pt.mutex.RLock()
 
 	defer pt.mutex.RUnlock()
-
-
 
 	if intentStatuses, exists := pt.phaseStatuses[intentID]; exists {
 
@@ -223,13 +173,9 @@ func (pt *PhaseTracker) GetIntentPhases(intentID string) map[interfaces.Processi
 
 	}
 
-
-
 	return make(map[interfaces.ProcessingPhase]PhaseStatus)
 
 }
-
-
 
 // RemoveIntent removes all phase statuses for an intent.
 
@@ -239,33 +185,23 @@ func (pt *PhaseTracker) RemoveIntent(intentID string) {
 
 	defer pt.mutex.Unlock()
 
-
-
 	delete(pt.phaseStatuses, intentID)
 
 }
 
-
-
 // ConflictResolver handles resource conflicts between intents.
 
 type ConflictResolver struct {
+	logger logr.Logger
 
-	logger               logr.Logger
-
-	client               client.Client
+	client client.Client
 
 	resolutionStrategies map[string]ConflictResolutionStrategy
-
 }
-
-
 
 // ConflictResolutionStrategy defines how to resolve a specific type of conflict.
 
 type ConflictResolutionStrategy func(conflict Conflict) (bool, error)
-
-
 
 // NewConflictResolver creates a new ConflictResolver.
 
@@ -279,19 +215,15 @@ func NewConflictResolver(client client.Client, logger logr.Logger) *ConflictReso
 
 		resolutionStrategies: map[string]ConflictResolutionStrategy{
 
-			"NamespaceConflict":  resolveNamespaceConflict,
+			"NamespaceConflict": resolveNamespaceConflict,
 
-			"ResourceConflict":   resolveResourceConflict,
+			"ResourceConflict": resolveResourceConflict,
 
 			"DependencyConflict": resolveDependencyConflict,
-
 		},
-
 	}
 
 }
-
-
 
 // ResolveConflict attempts to resolve a conflict.
 
@@ -303,15 +235,11 @@ func (cr *ConflictResolver) ResolveConflict(ctx context.Context, conflict Confli
 
 	}
 
-
-
 	// No specific strategy, attempt generic resolution.
 
 	return cr.genericResolution(conflict)
 
 }
-
-
 
 // genericResolution provides generic conflict resolution.
 
@@ -325,11 +253,7 @@ func (cr *ConflictResolver) genericResolution(conflict Conflict) (bool, error) {
 
 }
 
-
-
 // Resolution strategies.
-
-
 
 func resolveNamespaceConflict(conflict Conflict) (bool, error) {
 
@@ -341,8 +265,6 @@ func resolveNamespaceConflict(conflict Conflict) (bool, error) {
 
 }
 
-
-
 func resolveResourceConflict(conflict Conflict) (bool, error) {
 
 	// Resource conflicts might be resolved by resource sharing or priority-based allocation.
@@ -350,8 +272,6 @@ func resolveResourceConflict(conflict Conflict) (bool, error) {
 	return false, nil // Require manual intervention for now
 
 }
-
-
 
 func resolveDependencyConflict(conflict Conflict) (bool, error) {
 
@@ -361,27 +281,19 @@ func resolveDependencyConflict(conflict Conflict) (bool, error) {
 
 }
 
-
-
 // RecoveryManager handles automatic recovery from failures.
 
 type RecoveryManager struct {
+	logger logr.Logger
 
-	logger             logr.Logger
-
-	client             client.Client
+	client client.Client
 
 	recoveryStrategies map[string]RecoveryStrategy
-
 }
-
-
 
 // RecoveryStrategy defines how to recover from a specific type of failure.
 
 type RecoveryStrategy func(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, errorCode string, coordCtx *CoordinationContext) (bool, []string, error)
-
-
 
 // NewRecoveryManager creates a new RecoveryManager.
 
@@ -395,21 +307,17 @@ func NewRecoveryManager(client client.Client, logger logr.Logger) *RecoveryManag
 
 		recoveryStrategies: map[string]RecoveryStrategy{
 
-			"LLM_PROCESSING_FAILED":      recoverLLMProcessing,
+			"LLM_PROCESSING_FAILED": recoverLLMProcessing,
 
-			"RESOURCE_PLANNING_FAILED":   recoverResourcePlanning,
+			"RESOURCE_PLANNING_FAILED": recoverResourcePlanning,
 
 			"MANIFEST_GENERATION_FAILED": recoverManifestGeneration,
 
-			"DEPLOYMENT_FAILED":          recoverDeployment,
-
+			"DEPLOYMENT_FAILED": recoverDeployment,
 		},
-
 	}
 
 }
-
-
 
 // AttemptRecovery attempts to recover from a failure.
 
@@ -421,15 +329,11 @@ func (rm *RecoveryManager) AttemptRecovery(ctx context.Context, networkIntent *n
 
 	}
 
-
-
 	// No specific strategy, attempt generic recovery.
 
 	return rm.genericRecovery(ctx, networkIntent, phase, errorCode, coordCtx)
 
 }
-
-
 
 // genericRecovery provides generic failure recovery.
 
@@ -445,11 +349,7 @@ func (rm *RecoveryManager) genericRecovery(ctx context.Context, networkIntent *n
 
 }
 
-
-
 // Recovery strategies.
-
-
 
 func recoverLLMProcessing(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, errorCode string, coordCtx *CoordinationContext) (bool, []string, error) {
 
@@ -467,8 +367,6 @@ func recoverLLMProcessing(ctx context.Context, networkIntent *nephoranv1.Network
 
 }
 
-
-
 func recoverResourcePlanning(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, errorCode string, coordCtx *CoordinationContext) (bool, []string, error) {
 
 	// Resource planning recovery might involve:.
@@ -484,8 +382,6 @@ func recoverResourcePlanning(ctx context.Context, networkIntent *nephoranv1.Netw
 	return true, actions, nil
 
 }
-
-
 
 func recoverManifestGeneration(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, errorCode string, coordCtx *CoordinationContext) (bool, []string, error) {
 
@@ -503,8 +399,6 @@ func recoverManifestGeneration(ctx context.Context, networkIntent *nephoranv1.Ne
 
 }
 
-
-
 func recoverDeployment(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, errorCode string, coordCtx *CoordinationContext) (bool, []string, error) {
 
 	// Deployment recovery might involve:.
@@ -520,4 +414,3 @@ func recoverDeployment(ctx context.Context, networkIntent *nephoranv1.NetworkInt
 	return true, actions, nil
 
 }
-

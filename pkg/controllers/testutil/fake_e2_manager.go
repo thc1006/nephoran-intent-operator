@@ -1,63 +1,46 @@
-
 package testutil
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/e2"
-
 )
-
-
 
 // FakeE2Manager implements E2ManagerInterface for testing.
 
 type FakeE2Manager struct {
+	mutex sync.RWMutex
 
-	mutex                    sync.RWMutex
+	nodes map[string]*e2.E2Node
 
-	nodes                    map[string]*e2.E2Node
+	connections map[string]string // nodeID -> endpoint
 
-	connections              map[string]string // nodeID -> endpoint
+	provisionCallCount int
 
-	provisionCallCount       int
+	registrationCallCount int
 
-	registrationCallCount    int
+	connectionCallCount int
 
-	connectionCallCount      int
+	deregistrationCallCount int
 
-	deregistrationCallCount  int
+	listCallCount int
 
-	listCallCount            int
+	lastProvisionedSpec nephoranv1.E2NodeSetSpec
 
-	lastProvisionedSpec      nephoranv1.E2NodeSetSpec
+	shouldFailProvision bool
 
-	shouldFailProvision      bool
+	shouldFailConnection bool
 
-	shouldFailConnection     bool
-
-	shouldFailRegistration   bool
+	shouldFailRegistration bool
 
 	shouldFailDeregistration bool
 
-	shouldFailList           bool
-
+	shouldFailList bool
 }
-
-
 
 // NewFakeE2Manager creates a new fake E2Manager for testing.
 
@@ -65,15 +48,12 @@ func NewFakeE2Manager() *FakeE2Manager {
 
 	return &FakeE2Manager{
 
-		nodes:       make(map[string]*e2.E2Node),
+		nodes: make(map[string]*e2.E2Node),
 
 		connections: make(map[string]string),
-
 	}
 
 }
-
-
 
 // ProvisionNode performs provisionnode operation.
 
@@ -83,13 +63,9 @@ func (f *FakeE2Manager) ProvisionNode(ctx context.Context, spec nephoranv1.E2Nod
 
 	defer f.mutex.Unlock()
 
-
-
 	f.provisionCallCount++
 
 	f.lastProvisionedSpec = spec
-
-
 
 	if f.shouldFailProvision {
 
@@ -101,8 +77,6 @@ func (f *FakeE2Manager) ProvisionNode(ctx context.Context, spec nephoranv1.E2Nod
 
 }
 
-
-
 // SetupE2Connection performs setupe2connection operation.
 
 func (f *FakeE2Manager) SetupE2Connection(nodeID string, endpoint string) error {
@@ -110,8 +84,6 @@ func (f *FakeE2Manager) SetupE2Connection(nodeID string, endpoint string) error 
 	f.mutex.Lock()
 
 	defer f.mutex.Unlock()
-
-
 
 	f.connectionCallCount++
 
@@ -121,15 +93,11 @@ func (f *FakeE2Manager) SetupE2Connection(nodeID string, endpoint string) error 
 
 	}
 
-
-
 	f.connections[nodeID] = endpoint
 
 	return nil
 
 }
-
-
 
 // RegisterE2Node performs registere2node operation.
 
@@ -139,8 +107,6 @@ func (f *FakeE2Manager) RegisterE2Node(ctx context.Context, nodeID string, ranFu
 
 	defer f.mutex.Unlock()
 
-
-
 	f.registrationCallCount++
 
 	if f.shouldFailRegistration {
@@ -149,37 +115,30 @@ func (f *FakeE2Manager) RegisterE2Node(ctx context.Context, nodeID string, ranFu
 
 	}
 
-
-
 	node := &e2.E2Node{
 
-		NodeID:       nodeID,
+		NodeID: nodeID,
 
 		RanFunctions: make([]*e2.E2NodeFunction, len(ranFunctions)),
 
 		ConnectionStatus: e2.E2ConnectionStatus{
 
 			State: "CONNECTED",
-
 		},
 
 		HealthStatus: e2.NodeHealth{
 
-			NodeID:    nodeID,
+			NodeID: nodeID,
 
-			Status:    "HEALTHY",
+			Status: "HEALTHY",
 
 			LastCheck: time.Now(),
 
 			Functions: make(map[int]*e2.FunctionHealth),
-
 		},
 
 		LastSeen: time.Now(),
-
 	}
-
-
 
 	// Convert RanFunction to E2NodeFunction.
 
@@ -187,39 +146,33 @@ func (f *FakeE2Manager) RegisterE2Node(ctx context.Context, nodeID string, ranFu
 
 		node.RanFunctions[i] = &e2.E2NodeFunction{
 
-			FunctionID:          rf.FunctionID,
+			FunctionID: rf.FunctionID,
 
-			FunctionDefinition:  rf.FunctionDefinition,
+			FunctionDefinition: rf.FunctionDefinition,
 
-			FunctionRevision:    rf.FunctionRevision,
+			FunctionRevision: rf.FunctionRevision,
 
-			FunctionOID:         rf.FunctionOID,
+			FunctionOID: rf.FunctionOID,
 
 			FunctionDescription: rf.FunctionDescription,
 
-			ServiceModel:        rf.ServiceModel,
+			ServiceModel: rf.ServiceModel,
 
 			Status: e2.E2NodeFunctionStatus{
 
-				State:         "ACTIVE",
+				State: "ACTIVE",
 
 				LastHeartbeat: time.Now(),
-
 			},
-
 		}
 
 	}
-
-
 
 	f.nodes[nodeID] = node
 
 	return nil
 
 }
-
-
 
 // DeregisterE2Node performs deregistere2node operation.
 
@@ -229,8 +182,6 @@ func (f *FakeE2Manager) DeregisterE2Node(ctx context.Context, nodeID string) err
 
 	defer f.mutex.Unlock()
 
-
-
 	f.deregistrationCallCount++
 
 	if f.shouldFailDeregistration {
@@ -238,8 +189,6 @@ func (f *FakeE2Manager) DeregisterE2Node(ctx context.Context, nodeID string) err
 		return fmt.Errorf("fake deregistration failure for node %s", nodeID)
 
 	}
-
-
 
 	delete(f.nodes, nodeID)
 
@@ -249,8 +198,6 @@ func (f *FakeE2Manager) DeregisterE2Node(ctx context.Context, nodeID string) err
 
 }
 
-
-
 // ListE2Nodes performs liste2nodes operation.
 
 func (f *FakeE2Manager) ListE2Nodes(ctx context.Context) ([]*e2.E2Node, error) {
@@ -259,8 +206,6 @@ func (f *FakeE2Manager) ListE2Nodes(ctx context.Context) ([]*e2.E2Node, error) {
 
 	defer f.mutex.RUnlock()
 
-
-
 	f.listCallCount++
 
 	if f.shouldFailList {
@@ -268,8 +213,6 @@ func (f *FakeE2Manager) ListE2Nodes(ctx context.Context) ([]*e2.E2Node, error) {
 		return nil, fmt.Errorf("fake list failure")
 
 	}
-
-
 
 	nodes := make([]*e2.E2Node, 0, len(f.nodes))
 
@@ -283,11 +226,7 @@ func (f *FakeE2Manager) ListE2Nodes(ctx context.Context) ([]*e2.E2Node, error) {
 
 }
 
-
-
 // Test helper methods.
-
-
 
 // Reset performs reset operation.
 
@@ -296,8 +235,6 @@ func (f *FakeE2Manager) Reset() {
 	f.mutex.Lock()
 
 	defer f.mutex.Unlock()
-
-
 
 	f.nodes = make(map[string]*e2.E2Node)
 
@@ -325,8 +262,6 @@ func (f *FakeE2Manager) Reset() {
 
 }
 
-
-
 // SetShouldFailProvision performs setshouldfailprovision operation.
 
 func (f *FakeE2Manager) SetShouldFailProvision(fail bool) {
@@ -338,8 +273,6 @@ func (f *FakeE2Manager) SetShouldFailProvision(fail bool) {
 	f.shouldFailProvision = fail
 
 }
-
-
 
 // SetShouldFailConnection performs setshouldfailconnection operation.
 
@@ -353,8 +286,6 @@ func (f *FakeE2Manager) SetShouldFailConnection(fail bool) {
 
 }
 
-
-
 // SetShouldFailRegistration performs setshouldfailregistration operation.
 
 func (f *FakeE2Manager) SetShouldFailRegistration(fail bool) {
@@ -366,8 +297,6 @@ func (f *FakeE2Manager) SetShouldFailRegistration(fail bool) {
 	f.shouldFailRegistration = fail
 
 }
-
-
 
 // SetShouldFailDeregistration performs setshouldfailderegistration operation.
 
@@ -381,8 +310,6 @@ func (f *FakeE2Manager) SetShouldFailDeregistration(fail bool) {
 
 }
 
-
-
 // SetShouldFailList performs setshouldfaillist operation.
 
 func (f *FakeE2Manager) SetShouldFailList(fail bool) {
@@ -395,11 +322,7 @@ func (f *FakeE2Manager) SetShouldFailList(fail bool) {
 
 }
 
-
-
 // Getters for test verification.
-
-
 
 // GetProvisionCallCount performs getprovisioncallcount operation.
 
@@ -413,8 +336,6 @@ func (f *FakeE2Manager) GetProvisionCallCount() int {
 
 }
 
-
-
 // GetRegistrationCallCount performs getregistrationcallcount operation.
 
 func (f *FakeE2Manager) GetRegistrationCallCount() int {
@@ -426,8 +347,6 @@ func (f *FakeE2Manager) GetRegistrationCallCount() int {
 	return f.registrationCallCount
 
 }
-
-
 
 // GetConnectionCallCount performs getconnectioncallcount operation.
 
@@ -441,8 +360,6 @@ func (f *FakeE2Manager) GetConnectionCallCount() int {
 
 }
 
-
-
 // GetDeregistrationCallCount performs getderegistrationcallcount operation.
 
 func (f *FakeE2Manager) GetDeregistrationCallCount() int {
@@ -454,8 +371,6 @@ func (f *FakeE2Manager) GetDeregistrationCallCount() int {
 	return f.deregistrationCallCount
 
 }
-
-
 
 // GetListCallCount performs getlistcallcount operation.
 
@@ -469,8 +384,6 @@ func (f *FakeE2Manager) GetListCallCount() int {
 
 }
 
-
-
 // GetLastProvisionedSpec performs getlastprovisionedspec operation.
 
 func (f *FakeE2Manager) GetLastProvisionedSpec() nephoranv1.E2NodeSetSpec {
@@ -483,8 +396,6 @@ func (f *FakeE2Manager) GetLastProvisionedSpec() nephoranv1.E2NodeSetSpec {
 
 }
 
-
-
 // GetNodes performs getnodes operation.
 
 func (f *FakeE2Manager) GetNodes() map[string]*e2.E2Node {
@@ -492,8 +403,6 @@ func (f *FakeE2Manager) GetNodes() map[string]*e2.E2Node {
 	f.mutex.RLock()
 
 	defer f.mutex.RUnlock()
-
-
 
 	// Return a copy to avoid race conditions.
 
@@ -509,8 +418,6 @@ func (f *FakeE2Manager) GetNodes() map[string]*e2.E2Node {
 
 }
 
-
-
 // GetConnections performs getconnections operation.
 
 func (f *FakeE2Manager) GetConnections() map[string]string {
@@ -518,8 +425,6 @@ func (f *FakeE2Manager) GetConnections() map[string]string {
 	f.mutex.RLock()
 
 	defer f.mutex.RUnlock()
-
-
 
 	// Return a copy to avoid race conditions.
 
@@ -535,8 +440,6 @@ func (f *FakeE2Manager) GetConnections() map[string]string {
 
 }
 
-
-
 // AddNode adds a node directly to the fake manager for testing scenarios.
 
 func (f *FakeE2Manager) AddNode(nodeID string, node *e2.E2Node) {
@@ -548,4 +451,3 @@ func (f *FakeE2Manager) AddNode(nodeID string, node *e2.E2Node) {
 	f.nodes[nodeID] = node
 
 }
-

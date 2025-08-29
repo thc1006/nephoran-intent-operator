@@ -1,33 +1,18 @@
-
 package health
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"log/slog"
-
 	"net/http"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // Status represents the health status of a component.
 
 type Status string
-
-
 
 const (
 
@@ -46,118 +31,97 @@ const (
 	// StatusDegraded holds statusdegraded value.
 
 	StatusDegraded Status = "degraded"
-
 )
-
-
 
 // Check represents a single health check.
 
 type Check struct {
+	Name string `json:"name"`
 
-	Name      string        `json:"name"`
+	Status Status `json:"status"`
 
-	Status    Status        `json:"status"`
+	Message string `json:"message,omitempty"`
 
-	Message   string        `json:"message,omitempty"`
+	Error string `json:"error,omitempty"`
 
-	Error     string        `json:"error,omitempty"`
+	Duration time.Duration `json:"duration"`
 
-	Duration  time.Duration `json:"duration"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time     `json:"timestamp"`
+	Component string `json:"component"`
 
-	Component string        `json:"component"`
+	Version string `json:"version,omitempty"`
 
-	Version   string        `json:"version,omitempty"`
-
-	Metadata  interface{}   `json:"metadata,omitempty"`
-
+	Metadata interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // CheckFunc is a function that performs a health check.
 
 type CheckFunc func(ctx context.Context) *Check
 
-
-
 // HealthChecker manages and executes health checks.
 
 type HealthChecker struct {
-
-	serviceName    string
+	serviceName string
 
 	serviceVersion string
 
-	startTime      time.Time
+	startTime time.Time
 
-	checks         map[string]CheckFunc
+	checks map[string]CheckFunc
 
-	dependencies   map[string]CheckFunc
+	dependencies map[string]CheckFunc
 
-	mu             sync.RWMutex
+	mu sync.RWMutex
 
-	logger         *slog.Logger
+	logger *slog.Logger
 
-	timeout        time.Duration
+	timeout time.Duration
 
-	gracePeriod    time.Duration
+	gracePeriod time.Duration
 
-	healthyState   bool
+	healthyState bool
 
-	readyState     bool
+	readyState bool
 
-	stateMu        sync.RWMutex
-
+	stateMu sync.RWMutex
 }
-
-
 
 // HealthResponse represents the complete health check response.
 
 type HealthResponse struct {
+	Service string `json:"service"`
 
-	Service      string                 `json:"service"`
+	Version string `json:"version"`
 
-	Version      string                 `json:"version"`
+	Status Status `json:"status"`
 
-	Status       Status                 `json:"status"`
+	Uptime string `json:"uptime"`
 
-	Uptime       string                 `json:"uptime"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp    time.Time              `json:"timestamp"`
+	Checks []Check `json:"checks"`
 
-	Checks       []Check                `json:"checks"`
+	Dependencies []Check `json:"dependencies"`
 
-	Dependencies []Check                `json:"dependencies"`
+	Summary HealthSummary `json:"summary"`
 
-	Summary      HealthSummary          `json:"summary"`
-
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // HealthSummary provides aggregated health information.
 
 type HealthSummary struct {
+	Total int `json:"total"`
 
-	Total     int `json:"total"`
-
-	Healthy   int `json:"healthy"`
+	Healthy int `json:"healthy"`
 
 	Unhealthy int `json:"unhealthy"`
 
-	Degraded  int `json:"degraded"`
+	Degraded int `json:"degraded"`
 
-	Unknown   int `json:"unknown"`
-
+	Unknown int `json:"unknown"`
 }
-
-
 
 // NewHealthChecker creates a new health checker instance.
 
@@ -165,31 +129,28 @@ func NewHealthChecker(serviceName, serviceVersion string, logger *slog.Logger) *
 
 	return &HealthChecker{
 
-		serviceName:    serviceName,
+		serviceName: serviceName,
 
 		serviceVersion: serviceVersion,
 
-		startTime:      time.Now(),
+		startTime: time.Now(),
 
-		checks:         make(map[string]CheckFunc),
+		checks: make(map[string]CheckFunc),
 
-		dependencies:   make(map[string]CheckFunc),
+		dependencies: make(map[string]CheckFunc),
 
-		logger:         logger,
+		logger: logger,
 
-		timeout:        30 * time.Second,
+		timeout: 30 * time.Second,
 
-		gracePeriod:    15 * time.Second,
+		gracePeriod: 15 * time.Second,
 
-		healthyState:   true,
+		healthyState: true,
 
-		readyState:     false,
-
+		readyState: false,
 	}
 
 }
-
-
 
 // RegisterCheck registers a health check function.
 
@@ -211,8 +172,6 @@ func (hc *HealthChecker) RegisterCheck(name string, checkFunc CheckFunc) {
 
 }
 
-
-
 // RegisterDependency registers a dependency health check.
 
 func (hc *HealthChecker) RegisterDependency(name string, checkFunc CheckFunc) {
@@ -233,8 +192,6 @@ func (hc *HealthChecker) RegisterDependency(name string, checkFunc CheckFunc) {
 
 }
 
-
-
 // SetReady marks the service as ready.
 
 func (hc *HealthChecker) SetReady(ready bool) {
@@ -248,8 +205,6 @@ func (hc *HealthChecker) SetReady(ready bool) {
 	hc.logger.Info("Readiness state changed", "ready", ready, "service", hc.serviceName)
 
 }
-
-
 
 // SetHealthy marks the service as healthy or unhealthy.
 
@@ -265,8 +220,6 @@ func (hc *HealthChecker) SetHealthy(healthy bool) {
 
 }
 
-
-
 // IsReady returns the current readiness state.
 
 func (hc *HealthChecker) IsReady() bool {
@@ -278,8 +231,6 @@ func (hc *HealthChecker) IsReady() bool {
 	return hc.readyState
 
 }
-
-
 
 // IsHealthy returns the current health state.
 
@@ -293,8 +244,6 @@ func (hc *HealthChecker) IsHealthy() bool {
 
 }
 
-
-
 // Check performs all registered health checks.
 
 func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
@@ -303,19 +252,17 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 
 	defer cancel()
 
-
-
 	response := &HealthResponse{
 
-		Service:      hc.serviceName,
+		Service: hc.serviceName,
 
-		Version:      hc.serviceVersion,
+		Version: hc.serviceVersion,
 
-		Uptime:       time.Since(hc.startTime).String(),
+		Uptime: time.Since(hc.startTime).String(),
 
-		Timestamp:    time.Now(),
+		Timestamp: time.Now(),
 
-		Checks:       []Check{},
+		Checks: []Check{},
 
 		Dependencies: []Check{},
 
@@ -323,15 +270,11 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 
 			"grace_period_remaining": hc.getGracePeriodRemaining(),
 
-			"checks_count":           len(hc.checks),
+			"checks_count": len(hc.checks),
 
-			"dependencies_count":     len(hc.dependencies),
-
+			"dependencies_count": len(hc.dependencies),
 		},
-
 	}
-
-
 
 	// Perform internal health checks.
 
@@ -355,15 +298,11 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 
 	hc.mu.RUnlock()
 
-
-
 	// Execute checks concurrently.
 
 	var wg sync.WaitGroup
 
 	checkResults := make(chan Check, len(checks)+len(dependencies))
-
-
 
 	// Execute service checks.
 
@@ -383,18 +322,17 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 
 				check = &Check{
 
-					Name:      name,
+					Name: name,
 
-					Status:    StatusUnknown,
+					Status: StatusUnknown,
 
-					Message:   "Check function returned nil",
+					Message: "Check function returned nil",
 
-					Duration:  time.Since(start),
+					Duration: time.Since(start),
 
 					Timestamp: time.Now(),
 
 					Component: hc.serviceName,
-
 				}
 
 			}
@@ -412,8 +350,6 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 		}(name, checkFunc)
 
 	}
-
-
 
 	// Execute dependency checks.
 
@@ -433,18 +369,17 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 
 				check = &Check{
 
-					Name:      name,
+					Name: name,
 
-					Status:    StatusUnknown,
+					Status: StatusUnknown,
 
-					Message:   "Dependency check function returned nil",
+					Message: "Dependency check function returned nil",
 
-					Duration:  time.Since(start),
+					Duration: time.Since(start),
 
 					Timestamp: time.Now(),
 
 					Component: "dependency",
-
 				}
 
 			}
@@ -463,8 +398,6 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 
 	}
 
-
-
 	// Wait for all checks to complete.
 
 	go func() {
@@ -474,8 +407,6 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 		close(checkResults)
 
 	}()
-
-
 
 	// Collect results.
 
@@ -505,8 +436,6 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 
 		}
 
-
-
 		if check.Component == "dependency" {
 
 			response.Dependencies = append(response.Dependencies, check)
@@ -519,29 +448,19 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 
 	}
 
-
-
 	response.Summary = summary
-
-
 
 	// Determine overall status.
 
 	response.Status = hc.determineOverallStatus(summary)
 
-
-
 	// Update internal health state based on checks.
 
 	hc.updateHealthState(response.Status)
 
-
-
 	return response
 
 }
-
-
 
 // HealthzHandler provides Kubernetes liveness probe endpoint.
 
@@ -555,17 +474,11 @@ func (hc *HealthChecker) HealthzHandler(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-
-
 	ctx := r.Context()
 
 	response := hc.Check(ctx)
 
-
-
 	w.Header().Set("Content-Type", "application/json")
-
-
 
 	// During grace period, always return healthy.
 
@@ -585,8 +498,6 @@ func (hc *HealthChecker) HealthzHandler(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-
-
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 
 		http.Error(w, "Failed to encode livez response", http.StatusInternalServerError)
@@ -594,8 +505,6 @@ func (hc *HealthChecker) HealthzHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 }
-
-
 
 // ReadyzHandler provides Kubernetes readiness probe endpoint.
 
@@ -609,19 +518,13 @@ func (hc *HealthChecker) ReadyzHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	ctx := r.Context()
 
 	response := hc.Check(ctx)
 
-
-
 	// Readiness includes dependency checks and internal ready state.
 
 	isReady := hc.IsReady() && (response.Status == StatusHealthy || response.Status == StatusDegraded)
-
-
 
 	// Check critical dependencies.
 
@@ -637,11 +540,7 @@ func (hc *HealthChecker) ReadyzHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	w.Header().Set("Content-Type", "application/json")
-
-
 
 	if isReady {
 
@@ -657,8 +556,6 @@ func (hc *HealthChecker) ReadyzHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 
 		http.Error(w, "Failed to encode readyz response", http.StatusInternalServerError)
@@ -666,8 +563,6 @@ func (hc *HealthChecker) ReadyzHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-
-
 
 // determineOverallStatus determines the overall service status.
 
@@ -679,8 +574,6 @@ func (hc *HealthChecker) determineOverallStatus(summary HealthSummary) Status {
 
 	}
 
-
-
 	// If all checks are healthy, service is healthy.
 
 	if summary.Healthy == summary.Total {
@@ -688,8 +581,6 @@ func (hc *HealthChecker) determineOverallStatus(summary HealthSummary) Status {
 		return StatusHealthy
 
 	}
-
-
 
 	// If any check is unhealthy, service is unhealthy.
 
@@ -699,8 +590,6 @@ func (hc *HealthChecker) determineOverallStatus(summary HealthSummary) Status {
 
 	}
 
-
-
 	// If we have degraded checks but no unhealthy ones, service is degraded.
 
 	if summary.Degraded > 0 {
@@ -709,15 +598,11 @@ func (hc *HealthChecker) determineOverallStatus(summary HealthSummary) Status {
 
 	}
 
-
-
 	// Otherwise, status is unknown.
 
 	return StatusUnknown
 
 }
-
-
 
 // updateHealthState updates the internal health state.
 
@@ -729,8 +614,6 @@ func (hc *HealthChecker) updateHealthState(status Status) {
 
 }
 
-
-
 // isInGracePeriod checks if we're still in the startup grace period.
 
 func (hc *HealthChecker) isInGracePeriod() bool {
@@ -738,8 +621,6 @@ func (hc *HealthChecker) isInGracePeriod() bool {
 	return time.Since(hc.startTime) < hc.gracePeriod
 
 }
-
-
 
 // getGracePeriodRemaining returns remaining grace period duration.
 
@@ -757,11 +638,7 @@ func (hc *HealthChecker) getGracePeriodRemaining() time.Duration {
 
 }
 
-
-
 // Common health check functions.
-
-
 
 // HTTPCheck performs an HTTP health check.
 
@@ -777,17 +654,14 @@ func HTTPCheck(name, url string) CheckFunc {
 
 			return &Check{
 
-				Name:   name,
+				Name: name,
 
 				Status: StatusUnhealthy,
 
-				Error:  fmt.Sprintf("Failed to create request: %v", err),
-
+				Error: fmt.Sprintf("Failed to create request: %v", err),
 			}
 
 		}
-
-
 
 		resp, err := client.Do(req)
 
@@ -795,51 +669,42 @@ func HTTPCheck(name, url string) CheckFunc {
 
 			return &Check{
 
-				Name:   name,
+				Name: name,
 
 				Status: StatusUnhealthy,
 
-				Error:  fmt.Sprintf("HTTP request failed: %v", err),
-
+				Error: fmt.Sprintf("HTTP request failed: %v", err),
 			}
 
 		}
 
 		defer resp.Body.Close()
 
-
-
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 
 			return &Check{
 
-				Name:    name,
+				Name: name,
 
-				Status:  StatusHealthy,
+				Status: StatusHealthy,
 
 				Message: fmt.Sprintf("HTTP %d", resp.StatusCode),
-
 			}
 
 		}
 
-
-
 		return &Check{
 
-			Name:   name,
+			Name: name,
 
 			Status: StatusUnhealthy,
 
-			Error:  fmt.Sprintf("HTTP %d", resp.StatusCode),
-
+			Error: fmt.Sprintf("HTTP %d", resp.StatusCode),
 		}
 
 	}
 
 }
-
-
 
 // DatabaseCheck performs a database connection health check.
 
@@ -853,31 +718,27 @@ func DatabaseCheck(name string, pingFunc func(ctx context.Context) error) CheckF
 
 			return &Check{
 
-				Name:   name,
+				Name: name,
 
 				Status: StatusUnhealthy,
 
-				Error:  fmt.Sprintf("Database connection failed: %v", err),
-
+				Error: fmt.Sprintf("Database connection failed: %v", err),
 			}
 
 		}
 
 		return &Check{
 
-			Name:    name,
+			Name: name,
 
-			Status:  StatusHealthy,
+			Status: StatusHealthy,
 
 			Message: "Database connection successful",
-
 		}
 
 	}
 
 }
-
-
 
 // MemoryCheck performs a memory usage health check.
 
@@ -891,15 +752,13 @@ func MemoryCheck(name string, maxMemoryMB int64) CheckFunc {
 
 		return &Check{
 
-			Name:    name,
+			Name: name,
 
-			Status:  StatusHealthy,
+			Status: StatusHealthy,
 
 			Message: "Memory usage within limits",
-
 		}
 
 	}
 
 }
-

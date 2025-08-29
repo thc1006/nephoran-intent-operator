@@ -1,139 +1,107 @@
 // Package main provides technical debt monitoring and analysis for the Nephoran project.
 
-
 package main
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"log"
-
 	"os"
-
 	"runtime"
-
 	"time"
-
 )
-
-
 
 // TechnicalDebtMonitor represents the main technical debt monitoring system.
 
 type TechnicalDebtMonitor struct {
+	ProjectPath string `json:"project_path"`
 
-	ProjectPath string              `json:"project_path"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp   time.Time           `json:"timestamp"`
+	DebtItems []TechnicalDebtItem `json:"debt_items"`
 
-	DebtItems   []TechnicalDebtItem `json:"debt_items"`
+	Summary DebtSummary `json:"summary"`
 
-	Summary     DebtSummary         `json:"summary"`
+	Trends []DebtTrend `json:"trends"`
 
-	Trends      []DebtTrend         `json:"trends"`
-
-	Actions     []ActionItem        `json:"actions"`
-
+	Actions []ActionItem `json:"actions"`
 }
-
-
 
 // TechnicalDebtItem represents a single item of technical debt.
 
 type TechnicalDebtItem struct {
+	ID string `json:"id"`
 
-	ID             string    `json:"id"`
+	Type string `json:"type"`
 
-	Type           string    `json:"type"`
+	Severity string `json:"severity"`
 
-	Severity       string    `json:"severity"`
+	Description string `json:"description"`
 
-	Description    string    `json:"description"`
+	Location string `json:"location"`
 
-	Location       string    `json:"location"`
+	EstimatedHours float64 `json:"estimated_hours"`
 
-	EstimatedHours float64   `json:"estimated_hours"`
+	Priority int `json:"priority"`
 
-	Priority       int       `json:"priority"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 
-	UpdatedAt      time.Time `json:"updated_at"`
+	Status string `json:"status"`
 
-	Status         string    `json:"status"`
-
-	Category       string    `json:"category"`
-
+	Category string `json:"category"`
 }
-
-
 
 // DebtSummary provides an overview of technical debt.
 
 type DebtSummary struct {
+	TotalItems int `json:"total_items"`
 
-	TotalItems          int            `json:"total_items"`
+	TotalHours float64 `json:"total_hours"`
 
-	TotalHours          float64        `json:"total_hours"`
+	HighPriorityItems int `json:"high_priority_items"`
 
-	HighPriorityItems   int            `json:"high_priority_items"`
+	MediumPriorityItems int `json:"medium_priority_items"`
 
-	MediumPriorityItems int            `json:"medium_priority_items"`
+	LowPriorityItems int `json:"low_priority_items"`
 
-	LowPriorityItems    int            `json:"low_priority_items"`
+	DebtByCategory map[string]int `json:"debt_by_category"`
 
-	DebtByCategory      map[string]int `json:"debt_by_category"`
+	DebtRatio float64 `json:"debt_ratio"`
 
-	DebtRatio           float64        `json:"debt_ratio"`
-
-	TrendDirection      string         `json:"trend_direction"`
-
+	TrendDirection string `json:"trend_direction"`
 }
-
-
 
 // DebtTrend represents trend data for technical debt.
 
 type DebtTrend struct {
+	Date time.Time `json:"date"`
 
-	Date         time.Time `json:"date"`
+	TotalDebt float64 `json:"total_debt"`
 
-	TotalDebt    float64   `json:"total_debt"`
+	NewDebt int `json:"new_debt"`
 
-	NewDebt      int       `json:"new_debt"`
+	ResolvedDebt int `json:"resolved_debt"`
 
-	ResolvedDebt int       `json:"resolved_debt"`
-
-	DebtRatio    float64   `json:"debt_ratio"`
-
+	DebtRatio float64 `json:"debt_ratio"`
 }
-
-
 
 // ActionItem represents a recommended action to address technical debt.
 
 type ActionItem struct {
+	Type string `json:"type"`
 
-	Type            string  `json:"type"`
+	Priority int `json:"priority"`
 
-	Priority        int     `json:"priority"`
-
-	Description     string  `json:"description"`
+	Description string `json:"description"`
 
 	EstimatedEffort float64 `json:"estimated_effort"`
 
-	Impact          string  `json:"impact"`
+	Impact string `json:"impact"`
 
-	Timeline        string  `json:"timeline"`
-
+	Timeline string `json:"timeline"`
 }
-
-
 
 func main() {
 
@@ -141,25 +109,20 @@ func main() {
 
 	fmt.Println("==================================")
 
-
-
 	// Initialize monitor.
 
 	monitor := &TechnicalDebtMonitor{
 
 		ProjectPath: ".",
 
-		Timestamp:   time.Now(),
+		Timestamp: time.Now(),
 
-		DebtItems:   []TechnicalDebtItem{},
+		DebtItems: []TechnicalDebtItem{},
 
-		Trends:      []DebtTrend{},
+		Trends: []DebtTrend{},
 
-		Actions:     []ActionItem{},
-
+		Actions: []ActionItem{},
 	}
-
-
 
 	// Scan for technical debt.
 
@@ -169,43 +132,29 @@ func main() {
 
 	}
 
-
-
 	// Generate summary.
 
 	monitor.generateSummary()
-
-
 
 	// Analyze trends.
 
 	monitor.analyzeTrends()
 
-
-
 	// Generate action items.
 
 	monitor.generateActionItems()
-
-
 
 	// Generate reports.
 
 	monitor.generateReports()
 
-
-
 	fmt.Println("✅ Technical debt monitoring completed!")
 
 }
 
-
-
 func (tdm *TechnicalDebtMonitor) scanTechnicalDebt() error {
 
 	fmt.Println("🔍 Scanning for technical debt...")
-
-
 
 	// Simulate debt items found during scanning.
 
@@ -213,137 +162,129 @@ func (tdm *TechnicalDebtMonitor) scanTechnicalDebt() error {
 
 		{
 
-			ID:             "TD-001",
+			ID: "TD-001",
 
-			Type:           "code_complexity",
+			Type: "code_complexity",
 
-			Severity:       "high",
+			Severity: "high",
 
-			Description:    "Function exceeds cyclomatic complexity threshold",
+			Description: "Function exceeds cyclomatic complexity threshold",
 
-			Location:       "pkg/handlers/network_intent.go:145",
+			Location: "pkg/handlers/network_intent.go:145",
 
 			EstimatedHours: 4.0,
 
-			Priority:       1,
+			Priority: 1,
 
-			CreatedAt:      time.Now().AddDate(0, -1, -5),
+			CreatedAt: time.Now().AddDate(0, -1, -5),
 
-			UpdatedAt:      time.Now().AddDate(0, 0, -2),
+			UpdatedAt: time.Now().AddDate(0, 0, -2),
 
-			Status:         "open",
+			Status: "open",
 
-			Category:       "complexity",
-
+			Category: "complexity",
 		},
 
 		{
 
-			ID:             "TD-002",
+			ID: "TD-002",
 
-			Type:           "code_duplication",
+			Type: "code_duplication",
 
-			Severity:       "medium",
+			Severity: "medium",
 
-			Description:    "Duplicate error handling logic across multiple files",
+			Description: "Duplicate error handling logic across multiple files",
 
-			Location:       "pkg/services/",
+			Location: "pkg/services/",
 
 			EstimatedHours: 2.5,
 
-			Priority:       2,
+			Priority: 2,
 
-			CreatedAt:      time.Now().AddDate(0, -2, -10),
+			CreatedAt: time.Now().AddDate(0, -2, -10),
 
-			UpdatedAt:      time.Now().AddDate(0, 0, -1),
+			UpdatedAt: time.Now().AddDate(0, 0, -1),
 
-			Status:         "open",
+			Status: "open",
 
-			Category:       "duplication",
-
+			Category: "duplication",
 		},
 
 		{
 
-			ID:             "TD-003",
+			ID: "TD-003",
 
-			Type:           "deprecated_api",
+			Type: "deprecated_api",
 
-			Severity:       "low",
+			Severity: "low",
 
-			Description:    "Using deprecated Kubernetes API version",
+			Description: "Using deprecated Kubernetes API version",
 
-			Location:       "pkg/controllers/networkintent_controller.go",
+			Location: "pkg/controllers/networkintent_controller.go",
 
 			EstimatedHours: 1.0,
 
-			Priority:       3,
+			Priority: 3,
 
-			CreatedAt:      time.Now().AddDate(0, -3, -15),
+			CreatedAt: time.Now().AddDate(0, -3, -15),
 
-			UpdatedAt:      time.Now().AddDate(0, 0, -7),
+			UpdatedAt: time.Now().AddDate(0, 0, -7),
 
-			Status:         "open",
+			Status: "open",
 
-			Category:       "deprecation",
-
+			Category: "deprecation",
 		},
 
 		{
 
-			ID:             "TD-004",
+			ID: "TD-004",
 
-			Type:           "missing_tests",
+			Type: "missing_tests",
 
-			Severity:       "medium",
+			Severity: "medium",
 
-			Description:    "Critical functions lack unit tests",
+			Description: "Critical functions lack unit tests",
 
-			Location:       "pkg/security/",
+			Location: "pkg/security/",
 
 			EstimatedHours: 6.0,
 
-			Priority:       2,
+			Priority: 2,
 
-			CreatedAt:      time.Now().AddDate(0, -1, -20),
+			CreatedAt: time.Now().AddDate(0, -1, -20),
 
-			UpdatedAt:      time.Now().AddDate(0, 0, -3),
+			UpdatedAt: time.Now().AddDate(0, 0, -3),
 
-			Status:         "open",
+			Status: "open",
 
-			Category:       "testing",
-
+			Category: "testing",
 		},
 
 		{
 
-			ID:             "TD-005",
+			ID: "TD-005",
 
-			Type:           "performance_issue",
+			Type: "performance_issue",
 
-			Severity:       "high",
+			Severity: "high",
 
-			Description:    "Inefficient database queries causing bottlenecks",
+			Description: "Inefficient database queries causing bottlenecks",
 
-			Location:       "pkg/database/queries.go",
+			Location: "pkg/database/queries.go",
 
 			EstimatedHours: 8.0,
 
-			Priority:       1,
+			Priority: 1,
 
-			CreatedAt:      time.Now().AddDate(0, -2, -5),
+			CreatedAt: time.Now().AddDate(0, -2, -5),
 
-			UpdatedAt:      time.Now().AddDate(0, 0, -1),
+			UpdatedAt: time.Now().AddDate(0, 0, -1),
 
-			Status:         "open",
+			Status: "open",
 
-			Category:       "performance",
-
+			Category: "performance",
 		},
-
 	}
-
-
 
 	fmt.Printf("📊 Found %d technical debt items\n", len(tdm.DebtItems))
 
@@ -351,13 +292,9 @@ func (tdm *TechnicalDebtMonitor) scanTechnicalDebt() error {
 
 }
 
-
-
 func (tdm *TechnicalDebtMonitor) generateSummary() {
 
 	fmt.Println("📊 Generating debt summary...")
-
-
 
 	totalHours := 0.0
 
@@ -369,13 +306,9 @@ func (tdm *TechnicalDebtMonitor) generateSummary() {
 
 	debtByCategory := make(map[string]int)
 
-
-
 	for _, item := range tdm.DebtItems {
 
 		totalHours += item.EstimatedHours
-
-
 
 		switch item.Priority {
 
@@ -393,13 +326,9 @@ func (tdm *TechnicalDebtMonitor) generateSummary() {
 
 		}
 
-
-
 		debtByCategory[item.Category]++
 
 	}
-
-
 
 	trendDirection := "stable"
 
@@ -413,37 +342,30 @@ func (tdm *TechnicalDebtMonitor) generateSummary() {
 
 	}
 
-
-
 	tdm.Summary = DebtSummary{
 
-		TotalItems:          len(tdm.DebtItems),
+		TotalItems: len(tdm.DebtItems),
 
-		TotalHours:          totalHours,
+		TotalHours: totalHours,
 
-		HighPriorityItems:   highPriority,
+		HighPriorityItems: highPriority,
 
 		MediumPriorityItems: mediumPriority,
 
-		LowPriorityItems:    lowPriority,
+		LowPriorityItems: lowPriority,
 
-		DebtByCategory:      debtByCategory,
+		DebtByCategory: debtByCategory,
 
-		DebtRatio:           totalHours / 1000.0 * 100, // Assuming 1000 hours total project size
+		DebtRatio: totalHours / 1000.0 * 100, // Assuming 1000 hours total project size
 
-		TrendDirection:      trendDirection,
-
+		TrendDirection: trendDirection,
 	}
 
 }
 
-
-
 func (tdm *TechnicalDebtMonitor) analyzeTrends() {
 
 	fmt.Println("📈 Analyzing debt trends...")
-
-
 
 	// Simulate trend data for the last 30 days.
 
@@ -453,16 +375,15 @@ func (tdm *TechnicalDebtMonitor) analyzeTrends() {
 
 		trend := DebtTrend{
 
-			Date:         date,
+			Date: date,
 
-			TotalDebt:    float64(len(tdm.DebtItems)) + float64(i)*0.1,
+			TotalDebt: float64(len(tdm.DebtItems)) + float64(i)*0.1,
 
-			NewDebt:      1,
+			NewDebt: 1,
 
 			ResolvedDebt: 0,
 
-			DebtRatio:    2.0 + float64(i)*0.05,
-
+			DebtRatio: 2.0 + float64(i)*0.05,
 		}
 
 		tdm.Trends = append(tdm.Trends, trend)
@@ -471,103 +392,86 @@ func (tdm *TechnicalDebtMonitor) analyzeTrends() {
 
 }
 
-
-
 func (tdm *TechnicalDebtMonitor) generateActionItems() {
 
 	fmt.Println("💡 Generating action items...")
-
-
 
 	tdm.Actions = []ActionItem{
 
 		{
 
-			Type:            "refactoring",
+			Type: "refactoring",
 
-			Priority:        1,
+			Priority: 1,
 
-			Description:     "Refactor high-complexity functions to improve maintainability",
+			Description: "Refactor high-complexity functions to improve maintainability",
 
 			EstimatedEffort: 16.0,
 
-			Impact:          "high",
+			Impact: "high",
 
-			Timeline:        "2-3 weeks",
-
+			Timeline: "2-3 weeks",
 		},
 
 		{
 
-			Type:            "testing",
+			Type: "testing",
 
-			Priority:        2,
+			Priority: 2,
 
-			Description:     "Add comprehensive unit tests for security-critical functions",
+			Description: "Add comprehensive unit tests for security-critical functions",
 
 			EstimatedEffort: 12.0,
 
-			Impact:          "medium",
+			Impact: "medium",
 
-			Timeline:        "1-2 weeks",
-
+			Timeline: "1-2 weeks",
 		},
 
 		{
 
-			Type:            "dependency_update",
+			Type: "dependency_update",
 
-			Priority:        2,
+			Priority: 2,
 
-			Description:     "Update deprecated APIs to current versions",
+			Description: "Update deprecated APIs to current versions",
 
 			EstimatedEffort: 4.0,
 
-			Impact:          "low",
+			Impact: "low",
 
-			Timeline:        "3-5 days",
-
+			Timeline: "3-5 days",
 		},
 
 		{
 
-			Type:            "performance_optimization",
+			Type: "performance_optimization",
 
-			Priority:        1,
+			Priority: 1,
 
-			Description:     "Optimize database queries and caching strategy",
+			Description: "Optimize database queries and caching strategy",
 
 			EstimatedEffort: 20.0,
 
-			Impact:          "high",
+			Impact: "high",
 
-			Timeline:        "3-4 weeks",
-
+			Timeline: "3-4 weeks",
 		},
-
 	}
 
 }
-
-
 
 func (tdm *TechnicalDebtMonitor) generateReports() {
 
 	fmt.Println("📄 Generating technical debt reports...")
 
-
-
 	// Generate JSON report.
 
 	tdm.generateJSONReport()
 
-
-
 	// Generate markdown report.
 
 	tdm.generateMarkdownReport()
-
-
 
 	// Generate CSV report for tracking.
 
@@ -575,15 +479,11 @@ func (tdm *TechnicalDebtMonitor) generateReports() {
 
 }
 
-
-
 func (tdm *TechnicalDebtMonitor) generateJSONReport() {
 
 	filename := fmt.Sprintf("technical-debt-report-%s.json",
 
 		time.Now().Format("20060102-150405"))
-
-
 
 	file, err := os.Create(filename)
 
@@ -597,8 +497,6 @@ func (tdm *TechnicalDebtMonitor) generateJSONReport() {
 
 	defer func() { _ = file.Close() }()
 
-
-
 	encoder := json.NewEncoder(file)
 
 	encoder.SetIndent("", "  ")
@@ -611,21 +509,15 @@ func (tdm *TechnicalDebtMonitor) generateJSONReport() {
 
 	}
 
-
-
 	fmt.Printf("📄 JSON report generated: %s\n", filename)
 
 }
-
-
 
 func (tdm *TechnicalDebtMonitor) generateMarkdownReport() {
 
 	filename := fmt.Sprintf("technical-debt-report-%s.md",
 
 		time.Now().Format("20060102-150405"))
-
-
 
 	file, err := os.Create(filename)
 
@@ -638,8 +530,6 @@ func (tdm *TechnicalDebtMonitor) generateMarkdownReport() {
 	}
 
 	defer func() { _ = file.Close() }()
-
-
 
 	// FIXME: Batch error handling for fmt.Fprintf calls per errcheck linter.
 
@@ -662,8 +552,6 @@ func (tdm *TechnicalDebtMonitor) generateMarkdownReport() {
 		mdWriteErr = err
 
 	}
-
-
 
 	if _, err := fmt.Fprintf(file, "## Summary\n\n"); err != nil && mdWriteErr == nil {
 
@@ -695,8 +583,6 @@ func (tdm *TechnicalDebtMonitor) generateMarkdownReport() {
 
 	}
 
-
-
 	if _, err := fmt.Fprintf(file, "## Priority Breakdown\n\n"); err != nil && mdWriteErr == nil {
 
 		mdWriteErr = err
@@ -721,15 +607,11 @@ func (tdm *TechnicalDebtMonitor) generateMarkdownReport() {
 
 	}
 
-
-
 	fmt.Fprintf(file, "## Debt Items\n\n")
 
 	fmt.Fprintf(file, "| ID | Type | Severity | Description | Location | Hours |\n")
 
 	fmt.Fprintf(file, "|----|------|----------|-------------|----------|-------|\n")
-
-
 
 	for _, item := range tdm.DebtItems {
 
@@ -738,8 +620,6 @@ func (tdm *TechnicalDebtMonitor) generateMarkdownReport() {
 			item.ID, item.Type, item.Severity, item.Description, item.Location, item.EstimatedHours)
 
 	}
-
-
 
 	fmt.Fprintf(file, "\n## Recommended Actions\n\n")
 
@@ -768,15 +648,11 @@ func (tdm *TechnicalDebtMonitor) generateMarkdownReport() {
 
 }
 
-
-
 func (tdm *TechnicalDebtMonitor) generateCSVReport() {
 
 	filename := fmt.Sprintf("technical-debt-items-%s.csv",
 
 		time.Now().Format("20060102-150405"))
-
-
 
 	file, err := os.Create(filename)
 
@@ -790,8 +666,6 @@ func (tdm *TechnicalDebtMonitor) generateCSVReport() {
 
 	defer func() { _ = file.Close() }()
 
-
-
 	// Write CSV header.
 
 	// FIXME: Adding error check for fmt.Fprintf per errcheck linter.
@@ -803,8 +677,6 @@ func (tdm *TechnicalDebtMonitor) generateCSVReport() {
 		csvWriteErr = err
 
 	}
-
-
 
 	// Write debt items.
 
@@ -828,8 +700,6 @@ func (tdm *TechnicalDebtMonitor) generateCSVReport() {
 
 	}
 
-
-
 	// Check for any write errors.
 
 	if csvWriteErr != nil {
@@ -840,9 +710,6 @@ func (tdm *TechnicalDebtMonitor) generateCSVReport() {
 
 	}
 
-
-
 	fmt.Printf("📄 CSV report generated: %s\n", filename)
 
 }
-

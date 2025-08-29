@@ -2,20 +2,12 @@
 
 // This module contains helper methods that support the main O-RAN interface validation functionality.
 
-
 package validation
 
-
-
 import (
-
 	"context"
-
 	"time"
-
 )
-
-
 
 // GetRICMockService returns the RIC mock service for testing.
 
@@ -25,8 +17,6 @@ func (oiv *ORANInterfaceValidator) GetRICMockService() *RICMockService {
 
 }
 
-
-
 // GetSMOMockService returns the SMO mock service for testing.
 
 func (oiv *ORANInterfaceValidator) GetSMOMockService() *SMOMockService {
@@ -35,8 +25,6 @@ func (oiv *ORANInterfaceValidator) GetSMOMockService() *SMOMockService {
 
 }
 
-
-
 // GetE2MockService returns the E2 mock service for testing.
 
 func (oiv *ORANInterfaceValidator) GetE2MockService() *E2MockService {
@@ -44,8 +32,6 @@ func (oiv *ORANInterfaceValidator) GetE2MockService() *E2MockService {
 	return oiv.e2MockService
 
 }
-
-
 
 // ValidateYANGModel validates YANG model structure for O1 testing.
 
@@ -64,8 +50,6 @@ func (oiv *ORANInterfaceValidator) ValidateYANGModel(model map[string]interface{
 		}
 
 	}
-
-
 
 	// Validate schema structure.
 
@@ -91,13 +75,9 @@ func (oiv *ORANInterfaceValidator) ValidateYANGModel(model map[string]interface{
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // TestNETCONFOperations tests NETCONF protocol operations for O1 testing.
 
@@ -116,16 +96,12 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 			"urn:ietf:params:netconf:base:1.1",
 
 			"urn:o-ran:netconf:capability:1.0",
-
 		},
 
 		"transport": "SSH",
 
-		"status":    "active",
-
+		"status": "active",
 	}
-
-
 
 	// Validate session establishment.
 
@@ -135,27 +111,21 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 
 	}
 
-
-
 	// Test get operation.
 
 	getConfig := map[string]interface{}{
 
 		"operation": "get-config",
 
-		"source":    "running",
+		"source": "running",
 
 		"filter": map[string]interface{}{
 
-			"type":  "xpath",
+			"type": "xpath",
 
 			"xpath": "/ric-config",
-
 		},
-
 	}
-
-
 
 	// Test edit-config operation.
 
@@ -163,33 +133,25 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 
 		"operation": "edit-config",
 
-		"target":    "candidate",
+		"target": "candidate",
 
 		"config": map[string]interface{}{
 
 			"ric-config": map[string]interface{}{
 
-				"ric-id":         "ric-001",
+				"ric-id": "ric-001",
 
 				"xapp-namespace": "ricxapp",
-
 			},
-
 		},
-
 	}
-
-
 
 	// Test commit operation.
 
 	commit := map[string]interface{}{
 
 		"operation": "commit",
-
 	}
-
-
 
 	// Simulate NETCONF operations execution.
 
@@ -221,13 +183,9 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // ValidateTerraformTemplate validates Terraform template structure for O2 testing.
 
@@ -247,8 +205,6 @@ func (oiv *ORANInterfaceValidator) ValidateTerraformTemplate(template map[string
 
 	}
 
-
-
 	// Validate terraform section.
 
 	if terraform, exists := template["terraform"]; exists {
@@ -265,13 +221,9 @@ func (oiv *ORANInterfaceValidator) ValidateTerraformTemplate(template map[string
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // ValidateCloudProviderConfig validates cloud provider configuration for O2 testing.
 
@@ -289,8 +241,6 @@ func (oiv *ORANInterfaceValidator) ValidateCloudProviderConfig(config map[string
 
 	}
 
-
-
 	// Validate resources section.
 
 	if resources, exists := config["resources"]; exists {
@@ -307,9 +257,6 @@ func (oiv *ORANInterfaceValidator) ValidateCloudProviderConfig(config map[string
 
 	}
 
-
-
 	return true
 
 }
-

@@ -1,23 +1,13 @@
 // Package main validates struct tags in Go source code for compliance with project standards.
 
-
 package main
 
-
-
 import (
-
 	"go/ast"
-
 	"go/parser"
-
 	"go/token"
-
 	"strings"
-
 )
-
-
 
 func main() {
 
@@ -30,8 +20,6 @@ func main() {
 		panic(err)
 
 	}
-
-
 
 	tagCount := 0
 
@@ -88,4 +76,3 @@ func main() {
 	println("Validated", tagCount, "struct tags - all are syntactically correct")
 
 }
-

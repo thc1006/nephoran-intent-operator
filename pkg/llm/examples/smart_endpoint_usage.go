@@ -1,23 +1,12 @@
-
 package examples
 
-
-
 import (
-
 	"context"
-
 	"log/slog"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
-
 )
-
-
 
 // SmartEndpointUsageExample demonstrates proper usage of the updated client integration.
 
@@ -27,19 +16,14 @@ func SmartEndpointUsageExample() error {
 
 	logger := slog.Default()
 
-
-
 	// Example 1: Legacy URL pattern (backward compatibility).
 
 	legacyClient := llm.NewClientWithConfig("http://rag-api:5001/process_intent", llm.ClientConfig{
 
 		BackendType: "rag",
 
-		Timeout:     30 * time.Second,
-
+		Timeout: 30 * time.Second,
 	})
-
-
 
 	// Example 2: New URL pattern (preferred).
 
@@ -47,11 +31,8 @@ func SmartEndpointUsageExample() error {
 
 		BackendType: "rag",
 
-		Timeout:     30 * time.Second,
-
+		Timeout: 30 * time.Second,
 	})
-
-
 
 	// Example 3: Base URL pattern (auto-detects to /process).
 
@@ -59,41 +40,33 @@ func SmartEndpointUsageExample() error {
 
 		BackendType: "rag",
 
-		Timeout:     30 * time.Second,
-
+		Timeout: 30 * time.Second,
 	})
-
-
 
 	// Example 4: ProcessingEngine with smart endpoint configuration.
 
 	processingConfig := &llm.ProcessingConfig{
 
-		EnableRAG:              true,
+		EnableRAG: true,
 
-		RAGAPIURL:              "http://rag-api:5001", // Base URL - will auto-detect to /process
+		RAGAPIURL: "http://rag-api:5001", // Base URL - will auto-detect to /process
 
 		RAGConfidenceThreshold: 0.7,
 
-		QueryTimeout:           30 * time.Second,
+		QueryTimeout: 30 * time.Second,
 
-		FallbackToBase:         true,
+		FallbackToBase: true,
 
-		EnableStreaming:        true,
+		EnableStreaming: true,
 
-		StreamTimeout:          5 * time.Minute,
+		StreamTimeout: 5 * time.Minute,
 
-		EnableBatching:         true,
-
+		EnableBatching: true,
 	}
-
-
 
 	processingEngine := llm.NewProcessingEngine(autoDetectClient, processingConfig)
 
 	defer processingEngine.Shutdown(context.Background())
-
-
 
 	// Example 5: StreamingProcessor with endpoint configuration.
 
@@ -101,28 +74,20 @@ func SmartEndpointUsageExample() error {
 
 	_ = &llm.StreamingProcessor{}
 
-
-
 	ctx := context.Background()
-
-
 
 	// Test the configurations.
 
 	logger.Info("Testing smart endpoint configurations...")
 
-
-
 	// Test cases for different URL patterns.
 
 	testCases := []struct {
-
-		name   string
+		name string
 
 		client *llm.Client
 
-		url    string
-
+		url string
 	}{
 
 		{"Legacy URL Pattern", legacyClient, "http://rag-api:5001/process_intent"},
@@ -130,10 +95,7 @@ func SmartEndpointUsageExample() error {
 		{"New URL Pattern", newClient, "http://rag-api:5001/process"},
 
 		{"Auto-detect Pattern", autoDetectClient, "http://rag-api:5001 (auto-detects to /process)"},
-
 	}
-
-
 
 	for _, tc := range testCases {
 
@@ -142,10 +104,7 @@ func SmartEndpointUsageExample() error {
 			slog.String("name", tc.name),
 
 			slog.String("url", tc.url),
-
 		)
-
-
 
 		// Each client will automatically use the correct endpoint.
 
@@ -158,26 +117,20 @@ func SmartEndpointUsageExample() error {
 				slog.String("name", tc.name),
 
 				slog.String("error", err.Error()),
-
 			)
 
 			continue
 
 		}
 
-
-
 		logger.Info("Client test successful",
 
 			slog.String("name", tc.name),
 
 			slog.String("result_preview", truncate(result, 100)),
-
 		)
 
 	}
-
-
 
 	// Test ProcessingEngine.
 
@@ -198,28 +151,20 @@ func SmartEndpointUsageExample() error {
 			slog.Duration("processing_time", processingResult.ProcessingTime),
 
 			slog.Bool("cache_hit", processingResult.CacheHit),
-
 		)
 
 	}
-
-
 
 	// StreamingProcessor stub - basic functionality demonstration.
 
 	logger.Info("StreamingProcessor created",
 
 		slog.String("type", "stub_implementation"),
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // ConfigurationFromEnvironmentExample shows how to configure endpoints from environment variables.
 
@@ -227,13 +172,9 @@ func ConfigurationFromEnvironmentExample() error {
 
 	logger := slog.Default()
 
-
-
 	// Load configuration from environment.
 
 	// This demonstrates how the LLMProcessorConfig integrates with smart endpoints.
-
-
 
 	// Example environment variables:.
 
@@ -247,8 +188,6 @@ func ConfigurationFromEnvironmentExample() error {
 
 	// RAG_ENDPOINT_PATH=/custom_endpoint                 # Custom endpoint override.
 
-
-
 	logger.Info("Smart endpoint configuration patterns:")
 
 	logger.Info("1. Base URL (http://rag-api:5001) -> Auto-detects to /process")
@@ -259,19 +198,13 @@ func ConfigurationFromEnvironmentExample() error {
 
 	logger.Info("4. Custom path via RAG_ENDPOINT_PATH -> Uses custom endpoint")
 
-
-
 	// The configuration system handles all these patterns automatically.
 
 	logger.Info("All patterns ensure backward compatibility while supporting new endpoints")
 
-
-
 	return nil
 
 }
-
-
 
 // TroubleshootingExample shows common issues and solutions.
 
@@ -279,11 +212,7 @@ func TroubleshootingExample() error {
 
 	logger := slog.Default()
 
-
-
 	logger.Info("Common endpoint configuration issues and solutions:")
-
-
 
 	// Issue 1: 404 errors with hardcoded endpoints.
 
@@ -291,15 +220,11 @@ func TroubleshootingExample() error {
 
 	logger.Info("Solution: Smart endpoint detection automatically uses correct URLs")
 
-
-
 	// Issue 2: Legacy vs new endpoint confusion.
 
 	logger.Info("FIXED: Confusion between /process_intent and /process endpoints")
 
 	logger.Info("Solution: Auto-detection based on URL pattern, backward compatible")
-
-
 
 	// Issue 3: Streaming endpoint mismatches.
 
@@ -307,21 +232,15 @@ func TroubleshootingExample() error {
 
 	logger.Info("Solution: Consistent endpoint derivation for all operations")
 
-
-
 	// Issue 4: Configuration complexity.
 
 	logger.Info("FIXED: Complex endpoint configuration requirements")
 
 	logger.Info("Solution: Sensible defaults with explicit override options")
 
-
-
 	return nil
 
 }
-
-
 
 // BestPracticesExample demonstrates best practices for endpoint configuration.
 
@@ -329,11 +248,7 @@ func BestPracticesExample() error {
 
 	logger := slog.Default()
 
-
-
 	logger.Info("Best practices for endpoint configuration:")
-
-
 
 	// Best Practice 1: Use base URLs for new deployments.
 
@@ -345,8 +260,6 @@ func BestPracticesExample() error {
 
 	logger.Info("   - Future-proof")
 
-
-
 	// Best Practice 2: Keep existing URLs for legacy systems.
 
 	logger.Info("✅ Keep full URLs for existing systems")
@@ -356,8 +269,6 @@ func BestPracticesExample() error {
 	logger.Info("   - No breaking changes required")
 
 	logger.Info("   - Smooth migration path")
-
-
 
 	// Best Practice 3: Use environment variables for configuration.
 
@@ -369,8 +280,6 @@ func BestPracticesExample() error {
 
 	logger.Info("   - RAG_ENDPOINT_PATH for custom overrides")
 
-
-
 	// Best Practice 4: Monitor endpoint usage.
 
 	logger.Info("✅ Monitor endpoint usage and errors")
@@ -381,13 +290,9 @@ func BestPracticesExample() error {
 
 	logger.Info("   - Monitor for 404 errors")
 
-
-
 	return nil
 
 }
-
-
 
 // Helper function to truncate long strings.
 
@@ -402,4 +307,3 @@ func truncate(s string, maxLen int) string {
 	return s[:maxLen] + "..."
 
 }
-

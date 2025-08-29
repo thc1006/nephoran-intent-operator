@@ -4,42 +4,25 @@
 
 // graceful command execution with proper signal handling.
 
-
 package porch
 
-
-
 import (
-
 	"context"
-
 	"errors"
-
 	"log"
-
 	"os/exec"
-
 	"runtime"
-
 	"syscall"
-
 	"time"
-
 )
-
-
 
 // GracefulCommand wraps exec.Cmd with graceful termination support.
 
 type GracefulCommand struct {
-
 	*exec.Cmd
 
 	gracePeriod time.Duration
-
 }
-
-
 
 // NewGracefulCommand creates a command with graceful shutdown support.
 
@@ -47,31 +30,23 @@ func NewGracefulCommand(ctx context.Context, name string, args ...string) *Grace
 
 	cmd := exec.CommandContext(ctx, name, args...)
 
-
-
 	// Set graceful termination behavior.
 
 	gc := &GracefulCommand{
 
-		Cmd:         cmd,
+		Cmd: cmd,
 
 		gracePeriod: 5 * time.Second, // Default grace period
 
 	}
 
-
-
 	// Configure graceful process termination.
 
 	gc.setupGracefulTermination()
 
-
-
 	return gc
 
 }
-
-
 
 // setupGracefulTermination configures the command for graceful shutdown.
 
@@ -87,11 +62,7 @@ func (gc *GracefulCommand) setupGracefulTermination() {
 
 		}
 
-
-
 		log.Printf("Sending graceful termination signal to process %d", gc.Process.Pid)
-
-
 
 		// Send SIGTERM first for graceful shutdown.
 
@@ -123,13 +94,9 @@ func (gc *GracefulCommand) setupGracefulTermination() {
 
 	}
 
-
-
 	// Set WaitDelay for escalation to SIGKILL.
 
 	gc.WaitDelay = gc.gracePeriod
-
-
 
 	// Set process group for better process management on Unix systems.
 
@@ -141,8 +108,6 @@ func (gc *GracefulCommand) setupGracefulTermination() {
 
 }
 
-
-
 // SetGracePeriod configures how long to wait before escalating to SIGKILL.
 
 func (gc *GracefulCommand) SetGracePeriod(d time.Duration) {
@@ -153,15 +118,11 @@ func (gc *GracefulCommand) SetGracePeriod(d time.Duration) {
 
 }
 
-
-
 // RunWithGracefulShutdown runs the command with enhanced error handling.
 
 func (gc *GracefulCommand) RunWithGracefulShutdown() error {
 
 	log.Printf("Starting graceful command: %s", gc.String())
-
-
 
 	if err := gc.Start(); err != nil {
 
@@ -169,11 +130,7 @@ func (gc *GracefulCommand) RunWithGracefulShutdown() error {
 
 	}
 
-
-
 	log.Printf("Process %d started, waiting for completion...", gc.Process.Pid)
-
-
 
 	err := gc.Wait()
 
@@ -197,13 +154,9 @@ func (gc *GracefulCommand) RunWithGracefulShutdown() error {
 
 	}
 
-
-
 	return err
 
 }
-
-
 
 // configurePlatformSpecific configures platform-specific process attributes.
 
@@ -214,4 +167,3 @@ func (gc *GracefulCommand) configurePlatformSpecific() {
 	// This method can be extended with platform-specific build tags if needed.
 
 }
-

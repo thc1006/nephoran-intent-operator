@@ -1,35 +1,17 @@
-
 package health
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"log/slog"
-
 	"math"
-
 	"sort"
-
 	"sync"
-
 	"time"
 
-
-
-	"github.com/prometheus/client_golang/prometheus"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
-
+	"github.com/prometheus/client_golang/prometheus"
 )
-
-
 
 // HealthAggregator provides multi-dimensional health aggregation and analysis.
 
@@ -37,67 +19,50 @@ type HealthAggregator struct {
 
 	// Core configuration.
 
-	logger      *slog.Logger
+	logger *slog.Logger
 
 	serviceName string
 
-
-
 	// Data sources.
 
-	enhancedChecker   *EnhancedHealthChecker
+	enhancedChecker *EnhancedHealthChecker
 
 	dependencyTracker *DependencyHealthTracker
-
-
 
 	// Aggregation configuration.
 
 	aggregationConfig *AggregationConfig
 
-
-
 	// Business impact weighting.
 
 	businessWeights map[string]BusinessWeight
 
-	featureWeights  map[string]FeatureWeight
-
-
+	featureWeights map[string]FeatureWeight
 
 	// User journey monitoring.
 
-	userJourneys   map[string]*UserJourney
+	userJourneys map[string]*UserJourney
 
 	journeyResults map[string]*JourneyHealthResult
 
-	journeyMu      sync.RWMutex
-
-
+	journeyMu sync.RWMutex
 
 	// Trend analysis.
 
-	trendAnalyzer  *TrendAnalyzer
+	trendAnalyzer *TrendAnalyzer
 
 	historicalData map[string][]HealthDataPoint
 
-	historyMu      sync.RWMutex
-
-
+	historyMu sync.RWMutex
 
 	// Health reporting.
 
 	reportGenerator *ReportGenerator
 
-
-
 	// Metrics.
 
 	aggregatorMetrics *AggregatorMetrics
-
 }
-
-
 
 // AggregationConfig holds configuration for health aggregation.
 
@@ -105,61 +70,46 @@ type AggregationConfig struct {
 
 	// Aggregation methods.
 
-	DefaultMethod AggregationMethod                `json:"default_method"`
+	DefaultMethod AggregationMethod `json:"default_method"`
 
-	TierMethods   map[HealthTier]AggregationMethod `json:"tier_methods"`
-
-
+	TierMethods map[HealthTier]AggregationMethod `json:"tier_methods"`
 
 	// Weighting configuration.
 
-	BusinessWeightEnabled    bool `json:"business_weight_enabled"`
+	BusinessWeightEnabled bool `json:"business_weight_enabled"`
 
 	PerformanceWeightEnabled bool `json:"performance_weight_enabled"`
 
-
-
 	// Trend analysis.
 
-	TrendAnalysisEnabled bool          `json:"trend_analysis_enabled"`
+	TrendAnalysisEnabled bool `json:"trend_analysis_enabled"`
 
-	TrendWindow          time.Duration `json:"trend_window"`
+	TrendWindow time.Duration `json:"trend_window"`
 
-	TrendMinDataPoints   int           `json:"trend_min_data_points"`
-
-
+	TrendMinDataPoints int `json:"trend_min_data_points"`
 
 	// Forecasting.
 
-	ForecastingEnabled bool          `json:"forecasting_enabled"`
+	ForecastingEnabled bool `json:"forecasting_enabled"`
 
-	ForecastHorizon    time.Duration `json:"forecast_horizon"`
-
-
+	ForecastHorizon time.Duration `json:"forecast_horizon"`
 
 	// User journey tracking.
 
-	UserJourneyEnabled bool          `json:"user_journey_enabled"`
+	UserJourneyEnabled bool `json:"user_journey_enabled"`
 
-	JourneyTimeout     time.Duration `json:"journey_timeout"`
-
-
+	JourneyTimeout time.Duration `json:"journey_timeout"`
 
 	// Health reporting.
 
-	ReportingEnabled bool          `json:"reporting_enabled"`
+	ReportingEnabled bool `json:"reporting_enabled"`
 
-	ReportInterval   time.Duration `json:"report_interval"`
-
+	ReportInterval time.Duration `json:"report_interval"`
 }
-
-
 
 // AggregationMethod defines how health scores are aggregated.
 
 type AggregationMethod string
-
-
 
 const (
 
@@ -186,266 +136,209 @@ const (
 	// AggregationCustom holds aggregationcustom value.
 
 	AggregationCustom AggregationMethod = "custom"
-
 )
-
-
 
 // BusinessWeight represents the business importance of a component.
 
 type BusinessWeight struct {
+	Component string `json:"component"`
 
-	Component        string  `json:"component"`
+	Weight float64 `json:"weight"`
 
-	Weight           float64 `json:"weight"`
+	RevenueImpact float64 `json:"revenue_impact"`
 
-	RevenueImpact    float64 `json:"revenue_impact"`
-
-	UserImpact       float64 `json:"user_impact"`
+	UserImpact float64 `json:"user_impact"`
 
 	ComplianceImpact float64 `json:"compliance_impact"`
-
 }
-
-
 
 // FeatureWeight represents the importance of specific features.
 
 type FeatureWeight struct {
+	Feature string `json:"feature"`
 
-	Feature          string  `json:"feature"`
+	Weight float64 `json:"weight"`
 
-	Weight           float64 `json:"weight"`
+	UserBase int `json:"user_base"`
 
-	UserBase         int     `json:"user_base"`
-
-	CriticalityLevel string  `json:"criticality_level"`
-
+	CriticalityLevel string `json:"criticality_level"`
 }
-
-
 
 // UserJourney defines a user journey for health monitoring.
 
 type UserJourney struct {
+	ID string `json:"id"`
 
-	ID             string              `json:"id"`
+	Name string `json:"name"`
 
-	Name           string              `json:"name"`
+	Description string `json:"description"`
 
-	Description    string              `json:"description"`
+	Steps []JourneyStep `json:"steps"`
 
-	Steps          []JourneyStep       `json:"steps"`
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout        time.Duration       `json:"timeout"`
-
-	CriticalPath   bool                `json:"critical_path"`
+	CriticalPath bool `json:"critical_path"`
 
 	BusinessImpact BusinessImpactLevel `json:"business_impact"`
 
-	UserSegment    string              `json:"user_segment"`
-
+	UserSegment string `json:"user_segment"`
 }
-
-
 
 // JourneyStep represents a step in a user journey.
 
 type JourneyStep struct {
+	ID string `json:"id"`
 
-	ID           string        `json:"id"`
+	Name string `json:"name"`
 
-	Name         string        `json:"name"`
+	Dependencies []string `json:"dependencies"`
 
-	Dependencies []string      `json:"dependencies"`
+	MaxLatency time.Duration `json:"max_latency"`
 
-	MaxLatency   time.Duration `json:"max_latency"`
+	Required bool `json:"required"`
 
-	Required     bool          `json:"required"`
+	Weight float64 `json:"weight"`
 
-	Weight       float64       `json:"weight"`
-
-	HealthChecks []string      `json:"health_checks"`
-
+	HealthChecks []string `json:"health_checks"`
 }
-
-
 
 // JourneyHealthResult represents the health result of a user journey.
 
 type JourneyHealthResult struct {
+	JourneyID string `json:"journey_id"`
 
-	JourneyID      string                 `json:"journey_id"`
+	Status health.Status `json:"status"`
 
-	Status         health.Status          `json:"status"`
+	OverallScore float64 `json:"overall_score"`
 
-	OverallScore   float64                `json:"overall_score"`
+	StepResults map[string]*StepResult `json:"step_results"`
 
-	StepResults    map[string]*StepResult `json:"step_results"`
+	TotalLatency time.Duration `json:"total_latency"`
 
-	TotalLatency   time.Duration          `json:"total_latency"`
+	BottleneckStep string `json:"bottleneck_step,omitempty"`
 
-	BottleneckStep string                 `json:"bottleneck_step,omitempty"`
+	LastChecked time.Time `json:"last_checked"`
 
-	LastChecked    time.Time              `json:"last_checked"`
+	Availability float64 `json:"availability"`
 
-	Availability   float64                `json:"availability"`
-
-	UserImpact     UserImpactAssessment   `json:"user_impact"`
-
+	UserImpact UserImpactAssessment `json:"user_impact"`
 }
-
-
 
 // StepResult represents the result of a journey step.
 
 type StepResult struct {
+	StepID string `json:"step_id"`
 
-	StepID            string                   `json:"step_id"`
+	Status health.Status `json:"status"`
 
-	Status            health.Status            `json:"status"`
+	Score float64 `json:"score"`
 
-	Score             float64                  `json:"score"`
+	Latency time.Duration `json:"latency"`
 
-	Latency           time.Duration            `json:"latency"`
-
-	Error             string                   `json:"error,omitempty"`
+	Error string `json:"error,omitempty"`
 
 	DependencyResults map[string]health.Status `json:"dependency_results"`
-
 }
-
-
 
 // UserImpactAssessment assesses the impact on users.
 
 type UserImpactAssessment struct {
+	AffectedUsers int `json:"affected_users"`
 
-	AffectedUsers     int             `json:"affected_users"`
+	ImpactLevel UserImpactLevel `json:"impact_level"`
 
-	ImpactLevel       UserImpactLevel `json:"impact_level"`
+	Features []string `json:"features"`
 
-	Features          []string        `json:"features"`
+	Workarounds []string `json:"workarounds"`
 
-	Workarounds       []string        `json:"workarounds"`
-
-	EstimatedDuration time.Duration   `json:"estimated_duration"`
-
+	EstimatedDuration time.Duration `json:"estimated_duration"`
 }
-
-
 
 // TrendAnalyzer analyzes health trends and patterns.
 
 type TrendAnalyzer struct {
+	logger *slog.Logger
 
-	logger               *slog.Logger
+	minDataPoints int
 
-	minDataPoints        int
-
-	confidenceThreshold  float64
+	confidenceThreshold float64
 
 	seasonalityDetection bool
-
 }
-
-
 
 // HealthTrendResult represents the result of trend analysis.
 
 type HealthTrendResult struct {
+	Component string `json:"component"`
 
-	Component       string             `json:"component"`
+	Trend TrendDirection `json:"trend"`
 
-	Trend           TrendDirection     `json:"trend"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence      float64            `json:"confidence"`
+	Slope float64 `json:"slope"`
 
-	Slope           float64            `json:"slope"`
+	Volatility float64 `json:"volatility"`
 
-	Volatility      float64            `json:"volatility"`
+	Seasonality *SeasonalPattern `json:"seasonality,omitempty"`
 
-	Seasonality     *SeasonalPattern   `json:"seasonality,omitempty"`
+	Predictions []HealthPrediction `json:"predictions"`
 
-	Predictions     []HealthPrediction `json:"predictions"`
-
-	Recommendations []string           `json:"recommendations"`
-
+	Recommendations []string `json:"recommendations"`
 }
-
-
 
 // SeasonalPattern represents detected seasonal patterns in health data.
 
 type SeasonalPattern struct {
+	Period time.Duration `json:"period"`
 
-	Period      time.Duration `json:"period"`
+	Amplitude float64 `json:"amplitude"`
 
-	Amplitude   float64       `json:"amplitude"`
+	Phase float64 `json:"phase"`
 
-	Phase       float64       `json:"phase"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence  float64       `json:"confidence"`
-
-	Description string        `json:"description"`
-
+	Description string `json:"description"`
 }
-
-
 
 // ReportGenerator generates comprehensive health reports.
 
 type ReportGenerator struct {
+	logger *slog.Logger
 
-	logger          *slog.Logger
-
-	templateEngine  *ReportTemplateEngine
+	templateEngine *ReportTemplateEngine
 
 	dashboardConfig *DashboardConfig
-
 }
-
-
 
 // ReportTemplateEngine handles report template processing.
 
 type ReportTemplateEngine struct {
-
 	templates map[string]*ReportTemplate
 
-	mu        sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // ReportTemplate defines a health report template.
 
 type ReportTemplate struct {
+	ID string `json:"id"`
 
-	ID          string          `json:"id"`
+	Name string `json:"name"`
 
-	Name        string          `json:"name"`
-
-	Type        ReportType      `json:"type"`
+	Type ReportType `json:"type"`
 
 	Stakeholder StakeholderType `json:"stakeholder"`
 
-	Sections    []ReportSection `json:"sections"`
+	Sections []ReportSection `json:"sections"`
 
-	Format      ReportFormat    `json:"format"`
+	Format ReportFormat `json:"format"`
 
-	Schedule    ReportSchedule  `json:"schedule"`
-
+	Schedule ReportSchedule `json:"schedule"`
 }
-
-
 
 // ReportType defines the type of health report.
 
 type ReportType string
-
-
 
 const (
 
@@ -468,16 +361,11 @@ const (
 	// ReportTypeIncident holds reporttypeincident value.
 
 	ReportTypeIncident ReportType = "incident"
-
 )
-
-
 
 // StakeholderType defines the target stakeholder for reports.
 
 type StakeholderType string
-
-
 
 const (
 
@@ -500,36 +388,27 @@ const (
 	// StakeholderCustomer holds stakeholdercustomer value.
 
 	StakeholderCustomer StakeholderType = "customer"
-
 )
-
-
 
 // ReportSection defines a section of a health report.
 
 type ReportSection struct {
+	ID string `json:"id"`
 
-	ID            string                 `json:"id"`
+	Title string `json:"title"`
 
-	Title         string                 `json:"title"`
+	Type ReportSectionType `json:"type"`
 
-	Type          ReportSectionType      `json:"type"`
+	DataSources []string `json:"data_sources"`
 
-	DataSources   []string               `json:"data_sources"`
+	Visualization VisualizationType `json:"visualization"`
 
-	Visualization VisualizationType      `json:"visualization"`
-
-	Filters       map[string]interface{} `json:"filters,omitempty"`
-
+	Filters map[string]interface{} `json:"filters,omitempty"`
 }
-
-
 
 // ReportSectionType defines the type of report section.
 
 type ReportSectionType string
-
-
 
 const (
 
@@ -560,16 +439,11 @@ const (
 	// SectionRecommendations holds sectionrecommendations value.
 
 	SectionRecommendations ReportSectionType = "recommendations"
-
 )
-
-
 
 // VisualizationType defines visualization types for report sections.
 
 type VisualizationType string
-
-
 
 const (
 
@@ -596,16 +470,11 @@ const (
 	// VizDashboard holds vizdashboard value.
 
 	VizDashboard VisualizationType = "dashboard"
-
 )
-
-
 
 // ReportFormat defines the output format of reports.
 
 type ReportFormat string
-
-
 
 const (
 
@@ -628,36 +497,27 @@ const (
 	// FormatDashboard holds formatdashboard value.
 
 	FormatDashboard ReportFormat = "dashboard"
-
 )
-
-
 
 // ReportSchedule defines when reports are generated.
 
 type ReportSchedule struct {
+	Frequency ReportFrequency `json:"frequency"`
 
-	Frequency   ReportFrequency `json:"frequency"`
+	Time string `json:"time"` // HH:MM format
 
-	Time        string          `json:"time"`          // HH:MM format
+	DaysOfWeek []int `json:"days_of_week"` // 0=Sunday, 1=Monday, etc.
 
-	DaysOfWeek  []int           `json:"days_of_week"`  // 0=Sunday, 1=Monday, etc.
+	DaysOfMonth []int `json:"days_of_month"` // 1-31
 
-	DaysOfMonth []int           `json:"days_of_month"` // 1-31
+	Timezone string `json:"timezone"`
 
-	Timezone    string          `json:"timezone"`
-
-	Enabled     bool            `json:"enabled"`
-
+	Enabled bool `json:"enabled"`
 }
-
-
 
 // ReportFrequency defines how often reports are generated.
 
 type ReportFrequency string
-
-
 
 const (
 
@@ -688,56 +548,43 @@ const (
 	// FrequencyOnDemand holds frequencyondemand value.
 
 	FrequencyOnDemand ReportFrequency = "on_demand"
-
 )
-
-
 
 // DashboardConfig configures health dashboards.
 
 type DashboardConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled         bool                       `json:"enabled"`
+	RefreshInterval time.Duration `json:"refresh_interval"`
 
-	RefreshInterval time.Duration              `json:"refresh_interval"`
+	Widgets []DashboardWidget `json:"widgets"`
 
-	Widgets         []DashboardWidget          `json:"widgets"`
-
-	Layouts         map[string]DashboardLayout `json:"layouts"`
-
+	Layouts map[string]DashboardLayout `json:"layouts"`
 }
-
-
 
 // DashboardWidget defines a dashboard widget.
 
 type DashboardWidget struct {
+	ID string `json:"id"`
 
-	ID              string            `json:"id"`
+	Type WidgetType `json:"type"`
 
-	Type            WidgetType        `json:"type"`
+	Title string `json:"title"`
 
-	Title           string            `json:"title"`
+	DataSource string `json:"data_source"`
 
-	DataSource      string            `json:"data_source"`
+	Query string `json:"query"`
 
-	Query           string            `json:"query"`
+	Visualization VisualizationType `json:"visualization"`
 
-	Visualization   VisualizationType `json:"visualization"`
+	RefreshInterval time.Duration `json:"refresh_interval"`
 
-	RefreshInterval time.Duration     `json:"refresh_interval"`
-
-	Position        WidgetPosition    `json:"position"`
-
+	Position WidgetPosition `json:"position"`
 }
-
-
 
 // WidgetType defines the type of dashboard widget.
 
 type WidgetType string
-
-
 
 const (
 
@@ -764,62 +611,47 @@ const (
 	// WidgetMetricsTable holds widgetmetricstable value.
 
 	WidgetMetricsTable WidgetType = "metrics_table"
-
 )
-
-
 
 // WidgetPosition defines widget position and size.
 
 type WidgetPosition struct {
+	X int `json:"x"`
 
-	X      int `json:"x"`
+	Y int `json:"y"`
 
-	Y      int `json:"y"`
-
-	Width  int `json:"width"`
+	Width int `json:"width"`
 
 	Height int `json:"height"`
-
 }
-
-
 
 // DashboardLayout defines dashboard layout configuration.
 
 type DashboardLayout struct {
+	Name string `json:"name"`
 
-	Name        string   `json:"name"`
+	Description string `json:"description"`
 
-	Description string   `json:"description"`
+	Widgets []string `json:"widgets"`
 
-	Widgets     []string `json:"widgets"`
-
-	Responsive  bool     `json:"responsive"`
-
+	Responsive bool `json:"responsive"`
 }
-
-
 
 // AggregatorMetrics contains Prometheus metrics for the health aggregator.
 
 type AggregatorMetrics struct {
-
-	AggregationLatency    prometheus.Histogram
+	AggregationLatency prometheus.Histogram
 
 	AggregatedHealthScore *prometheus.GaugeVec
 
-	JourneyHealthScore    *prometheus.GaugeVec
+	JourneyHealthScore *prometheus.GaugeVec
 
-	TrendConfidence       *prometheus.GaugeVec
+	TrendConfidence *prometheus.GaugeVec
 
-	BusinessImpactScore   *prometheus.GaugeVec
+	BusinessImpactScore *prometheus.GaugeVec
 
-	ReportGenerationTime  prometheus.Histogram
-
+	ReportGenerationTime prometheus.Histogram
 }
-
-
 
 // AggregatedHealthResult represents the result of health aggregation.
 
@@ -827,143 +659,110 @@ type AggregatedHealthResult struct {
 
 	// Overall health information.
 
-	Timestamp     time.Time     `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp"`
 
 	OverallStatus health.Status `json:"overall_status"`
 
-	OverallScore  float64       `json:"overall_score"`
-
-
+	OverallScore float64 `json:"overall_score"`
 
 	// Multi-dimensional scores.
 
-	BusinessScore       float64 `json:"business_score"`
+	BusinessScore float64 `json:"business_score"`
 
-	TechnicalScore      float64 `json:"technical_score"`
+	TechnicalScore float64 `json:"technical_score"`
 
 	UserExperienceScore float64 `json:"user_experience_score"`
 
-	PerformanceScore    float64 `json:"performance_score"`
-
-
+	PerformanceScore float64 `json:"performance_score"`
 
 	// Tier-based aggregation.
 
 	TierScores map[HealthTier]TierHealthResult `json:"tier_scores"`
 
-
-
 	// Component-based aggregation.
 
 	ComponentScores map[string]ComponentHealthResult `json:"component_scores"`
-
-
 
 	// Journey-based aggregation.
 
 	JourneyResults map[string]*JourneyHealthResult `json:"journey_results"`
 
-
-
 	// Trend analysis.
 
 	TrendAnalysis map[string]*HealthTrendResult `json:"trend_analysis,omitempty"`
-
-
 
 	// Business impact assessment.
 
 	BusinessImpact *BusinessImpactResult `json:"business_impact"`
 
-
-
 	// Recommendations.
 
 	Recommendations []HealthRecommendation `json:"recommendations"`
 
-
-
 	// Execution metadata.
 
 	AggregationMetadata AggregationMetadata `json:"aggregation_metadata"`
-
 }
-
-
 
 // TierHealthResult represents health results for a specific tier.
 
 type TierHealthResult struct {
+	Tier HealthTier `json:"tier"`
 
-	Tier           HealthTier    `json:"tier"`
+	Status health.Status `json:"status"`
 
-	Status         health.Status `json:"status"`
+	Score float64 `json:"score"`
 
-	Score          float64       `json:"score"`
+	ComponentCount int `json:"component_count"`
 
-	ComponentCount int           `json:"component_count"`
+	HealthyCount int `json:"healthy_count"`
 
-	HealthyCount   int           `json:"healthy_count"`
+	UnhealthyCount int `json:"unhealthy_count"`
 
-	UnhealthyCount int           `json:"unhealthy_count"`
+	Weight float64 `json:"weight"`
 
-	Weight         float64       `json:"weight"`
-
-	CriticalIssues []string      `json:"critical_issues,omitempty"`
-
+	CriticalIssues []string `json:"critical_issues,omitempty"`
 }
-
-
 
 // ComponentHealthResult represents health results for a specific component.
 
 type ComponentHealthResult struct {
+	Name string `json:"name"`
 
-	Name           string        `json:"name"`
+	Type string `json:"type"`
 
-	Type           string        `json:"type"`
+	Status health.Status `json:"status"`
 
-	Status         health.Status `json:"status"`
+	Score float64 `json:"score"`
 
-	Score          float64       `json:"score"`
+	BusinessWeight float64 `json:"business_weight"`
 
-	BusinessWeight float64       `json:"business_weight"`
+	Dependencies []string `json:"dependencies"`
 
-	Dependencies   []string      `json:"dependencies"`
+	LastUpdated time.Time `json:"last_updated"`
 
-	LastUpdated    time.Time     `json:"last_updated"`
-
-	Issues         []string      `json:"issues,omitempty"`
-
+	Issues []string `json:"issues,omitempty"`
 }
-
-
 
 // BusinessImpactResult represents the business impact of health status.
 
 type BusinessImpactResult struct {
+	Level BusinessImpactLevel `json:"level"`
 
-	Level                BusinessImpactLevel   `json:"level"`
+	EstimatedRevenueLoss float64 `json:"estimated_revenue_loss"`
 
-	EstimatedRevenueLoss float64               `json:"estimated_revenue_loss"`
+	AffectedCustomers int `json:"affected_customers"`
 
-	AffectedCustomers    int                   `json:"affected_customers"`
+	AffectedFeatures []string `json:"affected_features"`
 
-	AffectedFeatures     []string              `json:"affected_features"`
+	ComplianceRisks []string `json:"compliance_risks"`
 
-	ComplianceRisks      []string              `json:"compliance_risks"`
-
-	ReputationImpact     ReputationImpactLevel `json:"reputation_impact"`
-
+	ReputationImpact ReputationImpactLevel `json:"reputation_impact"`
 }
-
-
 
 // ReputationImpactLevel represents the level of reputation impact.
 
 type ReputationImpactLevel string
-
-
 
 const (
 
@@ -986,44 +785,35 @@ const (
 	// ReputationSevere holds reputationsevere value.
 
 	ReputationSevere ReputationImpactLevel = "severe"
-
 )
-
-
 
 // HealthRecommendation represents a recommendation based on health analysis.
 
 type HealthRecommendation struct {
+	ID string `json:"id"`
 
-	ID                 string                 `json:"id"`
+	Type RecommendationType `json:"type"`
 
-	Type               RecommendationType     `json:"type"`
+	Priority RecommendationPriority `json:"priority"`
 
-	Priority           RecommendationPriority `json:"priority"`
+	Title string `json:"title"`
 
-	Title              string                 `json:"title"`
+	Description string `json:"description"`
 
-	Description        string                 `json:"description"`
+	AffectedComponents []string `json:"affected_components"`
 
-	AffectedComponents []string               `json:"affected_components"`
+	Actions []RecommendedAction `json:"actions"`
 
-	Actions            []RecommendedAction    `json:"actions"`
+	EstimatedImpact RecommendationImpact `json:"estimated_impact"`
 
-	EstimatedImpact    RecommendationImpact   `json:"estimated_impact"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence         float64                `json:"confidence"`
-
-	AutomationLevel    AutomationLevel        `json:"automation_level"`
-
+	AutomationLevel AutomationLevel `json:"automation_level"`
 }
-
-
 
 // RecommendationType defines the type of recommendation.
 
 type RecommendationType string
-
-
 
 const (
 
@@ -1050,16 +840,11 @@ const (
 	// RecommendationConfiguration holds recommendationconfiguration value.
 
 	RecommendationConfiguration RecommendationType = "configuration"
-
 )
-
-
 
 // RecommendationPriority defines the priority of a recommendation.
 
 type RecommendationPriority string
-
-
 
 const (
 
@@ -1082,34 +867,25 @@ const (
 	// PriorityInformational holds priorityinformational value.
 
 	PriorityInformational RecommendationPriority = "informational"
-
 )
-
-
 
 // RecommendationImpact represents the estimated impact of a recommendation.
 
 type RecommendationImpact struct {
+	HealthImprovement float64 `json:"health_improvement"`
 
-	HealthImprovement  float64       `json:"health_improvement"`
+	PerformanceGain float64 `json:"performance_gain"`
 
-	PerformanceGain    float64       `json:"performance_gain"`
+	CostSavings float64 `json:"cost_savings"`
 
-	CostSavings        float64       `json:"cost_savings"`
-
-	RiskReduction      float64       `json:"risk_reduction"`
+	RiskReduction float64 `json:"risk_reduction"`
 
 	ImplementationTime time.Duration `json:"implementation_time"`
-
 }
-
-
 
 // AutomationLevel defines how automated a recommendation can be.
 
 type AutomationLevel string
-
-
 
 const (
 
@@ -1124,30 +900,23 @@ const (
 	// AutomationManual holds automationmanual value.
 
 	AutomationManual AutomationLevel = "manual"
-
 )
-
-
 
 // AggregationMetadata contains metadata about the aggregation process.
 
 type AggregationMetadata struct {
+	ExecutionTime time.Duration `json:"execution_time"`
 
-	ExecutionTime        time.Duration     `json:"execution_time"`
+	DataPointsProcessed int `json:"data_points_processed"`
 
-	DataPointsProcessed  int               `json:"data_points_processed"`
+	AggregationMethod AggregationMethod `json:"aggregation_method"`
 
-	AggregationMethod    AggregationMethod `json:"aggregation_method"`
+	WeightingEnabled bool `json:"weighting_enabled"`
 
-	WeightingEnabled     bool              `json:"weighting_enabled"`
+	TrendAnalysisEnabled bool `json:"trend_analysis_enabled"`
 
-	TrendAnalysisEnabled bool              `json:"trend_analysis_enabled"`
-
-	DataSources          []string          `json:"data_sources"`
-
+	DataSources []string `json:"data_sources"`
 }
-
-
 
 // NewHealthAggregator creates a new health aggregator.
 
@@ -1159,87 +928,69 @@ func NewHealthAggregator(serviceName string, enhancedChecker *EnhancedHealthChec
 
 	}
 
-
-
 	aggregator := &HealthAggregator{
 
-		logger:            logger.With("component", "health_aggregator"),
+		logger: logger.With("component", "health_aggregator"),
 
-		serviceName:       serviceName,
+		serviceName: serviceName,
 
-		enhancedChecker:   enhancedChecker,
+		enhancedChecker: enhancedChecker,
 
 		dependencyTracker: dependencyTracker,
 
 		aggregationConfig: defaultAggregationConfig(),
 
-		businessWeights:   make(map[string]BusinessWeight),
+		businessWeights: make(map[string]BusinessWeight),
 
-		featureWeights:    make(map[string]FeatureWeight),
+		featureWeights: make(map[string]FeatureWeight),
 
-		userJourneys:      make(map[string]*UserJourney),
+		userJourneys: make(map[string]*UserJourney),
 
-		journeyResults:    make(map[string]*JourneyHealthResult),
+		journeyResults: make(map[string]*JourneyHealthResult),
 
-		historicalData:    make(map[string][]HealthDataPoint),
+		historicalData: make(map[string][]HealthDataPoint),
 
 		aggregatorMetrics: initializeAggregatorMetrics(),
-
 	}
-
-
 
 	// Initialize components.
 
 	aggregator.trendAnalyzer = &TrendAnalyzer{
 
-		logger:               logger.With("component", "trend_analyzer"),
+		logger: logger.With("component", "trend_analyzer"),
 
-		minDataPoints:        10,
+		minDataPoints: 10,
 
-		confidenceThreshold:  0.7,
+		confidenceThreshold: 0.7,
 
 		seasonalityDetection: true,
-
 	}
-
-
 
 	aggregator.reportGenerator = &ReportGenerator{
 
-		logger:         logger.With("component", "report_generator"),
+		logger: logger.With("component", "report_generator"),
 
 		templateEngine: &ReportTemplateEngine{templates: make(map[string]*ReportTemplate)},
 
 		dashboardConfig: &DashboardConfig{
 
-			Enabled:         true,
+			Enabled: true,
 
 			RefreshInterval: 30 * time.Second,
-
 		},
-
 	}
-
-
 
 	// Configure default business weights.
 
 	aggregator.configureDefaultWeights()
 
-
-
 	// Configure default user journeys.
 
 	aggregator.configureDefaultUserJourneys()
 
-
-
 	return aggregator
 
 }
-
-
 
 // defaultAggregationConfig returns default aggregation configuration.
 
@@ -1251,43 +1002,39 @@ func defaultAggregationConfig() *AggregationConfig {
 
 		TierMethods: map[HealthTier]AggregationMethod{
 
-			TierSystem:     AggregationMinimum,
+			TierSystem: AggregationMinimum,
 
-			TierService:    AggregationWeightedAverage,
+			TierService: AggregationWeightedAverage,
 
-			TierComponent:  AggregationWeightedAverage,
+			TierComponent: AggregationWeightedAverage,
 
 			TierDependency: AggregationWeightedAverage,
-
 		},
 
-		BusinessWeightEnabled:    true,
+		BusinessWeightEnabled: true,
 
 		PerformanceWeightEnabled: true,
 
-		TrendAnalysisEnabled:     true,
+		TrendAnalysisEnabled: true,
 
-		TrendWindow:              24 * time.Hour,
+		TrendWindow: 24 * time.Hour,
 
-		TrendMinDataPoints:       10,
+		TrendMinDataPoints: 10,
 
-		ForecastingEnabled:       true,
+		ForecastingEnabled: true,
 
-		ForecastHorizon:          4 * time.Hour,
+		ForecastHorizon: 4 * time.Hour,
 
-		UserJourneyEnabled:       true,
+		UserJourneyEnabled: true,
 
-		JourneyTimeout:           30 * time.Second,
+		JourneyTimeout: 30 * time.Second,
 
-		ReportingEnabled:         true,
+		ReportingEnabled: true,
 
-		ReportInterval:           time.Hour,
-
+		ReportInterval: time.Hour,
 	}
 
 }
-
-
 
 // initializeAggregatorMetrics initializes Prometheus metrics for the aggregator.
 
@@ -1297,71 +1044,52 @@ func initializeAggregatorMetrics() *AggregatorMetrics {
 
 		AggregationLatency: prometheus.NewHistogram(prometheus.HistogramOpts{
 
-			Name:    "health_aggregation_latency_seconds",
+			Name: "health_aggregation_latency_seconds",
 
-			Help:    "Latency of health aggregation operations",
+			Help: "Latency of health aggregation operations",
 
 			Buckets: prometheus.ExponentialBuckets(0.001, 2, 8),
-
 		}),
-
-
 
 		AggregatedHealthScore: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 
 			Name: "aggregated_health_score",
 
 			Help: "Aggregated health scores by dimension",
-
 		}, []string{"dimension", "tier"}),
-
-
 
 		JourneyHealthScore: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 
 			Name: "user_journey_health_score",
 
 			Help: "Health scores for user journeys",
-
 		}, []string{"journey_id", "journey_name"}),
-
-
 
 		TrendConfidence: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 
 			Name: "health_trend_confidence",
 
 			Help: "Confidence levels for health trends",
-
 		}, []string{"component", "trend"}),
-
-
 
 		BusinessImpactScore: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 
 			Name: "business_impact_score",
 
 			Help: "Business impact scores by component",
-
 		}, []string{"component", "impact_type"}),
-
-
 
 		ReportGenerationTime: prometheus.NewHistogram(prometheus.HistogramOpts{
 
-			Name:    "health_report_generation_time_seconds",
+			Name: "health_report_generation_time_seconds",
 
-			Help:    "Time taken to generate health reports",
+			Help: "Time taken to generate health reports",
 
 			Buckets: prometheus.ExponentialBuckets(0.1, 2, 8),
-
 		}),
-
 	}
 
 }
-
-
 
 // AggregateHealth performs comprehensive health aggregation.
 
@@ -1369,35 +1097,29 @@ func (ha *HealthAggregator) AggregateHealth(ctx context.Context) (*AggregatedHea
 
 	start := time.Now()
 
-
-
 	// Create result structure.
 
 	result := &AggregatedHealthResult{
 
-		Timestamp:       start,
+		Timestamp: start,
 
-		TierScores:      make(map[HealthTier]TierHealthResult),
+		TierScores: make(map[HealthTier]TierHealthResult),
 
 		ComponentScores: make(map[string]ComponentHealthResult),
 
-		JourneyResults:  make(map[string]*JourneyHealthResult),
+		JourneyResults: make(map[string]*JourneyHealthResult),
 
 		AggregationMetadata: AggregationMetadata{
 
-			AggregationMethod:    ha.aggregationConfig.DefaultMethod,
+			AggregationMethod: ha.aggregationConfig.DefaultMethod,
 
-			WeightingEnabled:     ha.aggregationConfig.BusinessWeightEnabled,
+			WeightingEnabled: ha.aggregationConfig.BusinessWeightEnabled,
 
 			TrendAnalysisEnabled: ha.aggregationConfig.TrendAnalysisEnabled,
 
-			DataSources:          []string{"enhanced_checker", "dependency_tracker"},
-
+			DataSources: []string{"enhanced_checker", "dependency_tracker"},
 		},
-
 	}
-
-
 
 	// Collect health data from all sources.
 
@@ -1405,31 +1127,21 @@ func (ha *HealthAggregator) AggregateHealth(ctx context.Context) (*AggregatedHea
 
 	dependencyHealthData := ha.dependencyTracker.GetAllDependencyHealth(ctx)
 
-
-
 	// Update historical data.
 
 	ha.updateHistoricalData(enhancedHealthData, dependencyHealthData)
-
-
 
 	// Aggregate by tiers.
 
 	ha.aggregateByTiers(enhancedHealthData, result)
 
-
-
 	// Aggregate by components.
 
 	ha.aggregateByComponents(enhancedHealthData, dependencyHealthData, result)
 
-
-
 	// Calculate multi-dimensional scores.
 
 	ha.calculateMultiDimensionalScores(result)
-
-
 
 	// Evaluate user journeys if enabled.
 
@@ -1439,8 +1151,6 @@ func (ha *HealthAggregator) AggregateHealth(ctx context.Context) (*AggregatedHea
 
 	}
 
-
-
 	// Perform trend analysis if enabled.
 
 	if ha.aggregationConfig.TrendAnalysisEnabled {
@@ -1449,25 +1159,17 @@ func (ha *HealthAggregator) AggregateHealth(ctx context.Context) (*AggregatedHea
 
 	}
 
-
-
 	// Assess business impact.
 
 	result.BusinessImpact = ha.assessBusinessImpact(result)
-
-
 
 	// Generate recommendations.
 
 	result.Recommendations = ha.generateRecommendations(result)
 
-
-
 	// Determine overall status and score.
 
 	ha.calculateOverallHealth(result)
-
-
 
 	// Record execution metadata.
 
@@ -1475,13 +1177,9 @@ func (ha *HealthAggregator) AggregateHealth(ctx context.Context) (*AggregatedHea
 
 	result.AggregationMetadata.DataPointsProcessed = len(enhancedHealthData.Checks) + len(dependencyHealthData)
 
-
-
 	// Record metrics.
 
 	ha.recordAggregationMetrics(result)
-
-
 
 	ha.logger.Debug("Health aggregation completed",
 
@@ -1493,13 +1191,9 @@ func (ha *HealthAggregator) AggregateHealth(ctx context.Context) (*AggregatedHea
 
 		"data_points", result.AggregationMetadata.DataPointsProcessed)
 
-
-
 	return result, nil
 
 }
-
-
 
 // aggregateByTiers aggregates health data by tiers.
 
@@ -1509,8 +1203,6 @@ func (ha *HealthAggregator) aggregateByTiers(enhancedData *EnhancedHealthRespons
 
 	tierCounts := make(map[HealthTier]map[health.Status]int)
 
-
-
 	// Initialize tier counts.
 
 	for tier := TierSystem; tier <= TierDependency; tier++ {
@@ -1518,8 +1210,6 @@ func (ha *HealthAggregator) aggregateByTiers(enhancedData *EnhancedHealthRespons
 		tierCounts[tier] = make(map[health.Status]int)
 
 	}
-
-
 
 	// Process enhanced check results.
 
@@ -1531,8 +1221,6 @@ func (ha *HealthAggregator) aggregateByTiers(enhancedData *EnhancedHealthRespons
 
 	}
 
-
-
 	// Calculate tier results.
 
 	for tier, scores := range tierData {
@@ -1543,8 +1231,6 @@ func (ha *HealthAggregator) aggregateByTiers(enhancedData *EnhancedHealthRespons
 
 		}
 
-
-
 		method := ha.aggregationConfig.TierMethods[tier]
 
 		if method == "" {
@@ -1553,37 +1239,30 @@ func (ha *HealthAggregator) aggregateByTiers(enhancedData *EnhancedHealthRespons
 
 		}
 
-
-
 		aggregatedScore := ha.aggregateScores(scores, method)
 
 		overallStatus := ha.determineStatusFromCounts(tierCounts[tier])
 
-
-
 		result.TierScores[tier] = TierHealthResult{
 
-			Tier:           tier,
+			Tier: tier,
 
-			Status:         overallStatus,
+			Status: overallStatus,
 
-			Score:          aggregatedScore,
+			Score: aggregatedScore,
 
 			ComponentCount: len(scores),
 
-			HealthyCount:   tierCounts[tier][health.StatusHealthy],
+			HealthyCount: tierCounts[tier][health.StatusHealthy],
 
 			UnhealthyCount: tierCounts[tier][health.StatusUnhealthy],
 
-			Weight:         ha.getTierWeight(tier),
-
+			Weight: ha.getTierWeight(tier),
 		}
 
 	}
 
 }
-
-
 
 // aggregateByComponents aggregates health data by components.
 
@@ -1595,29 +1274,24 @@ func (ha *HealthAggregator) aggregateByComponents(enhancedData *EnhancedHealthRe
 
 		businessWeight := ha.getBusinessWeight(check.Name)
 
-
-
 		result.ComponentScores[check.Name] = ComponentHealthResult{
 
-			Name:           check.Name,
+			Name: check.Name,
 
-			Type:           check.Tier.String(),
+			Type: check.Tier.String(),
 
-			Status:         check.Status,
+			Status: check.Status,
 
-			Score:          check.Score,
+			Score: check.Score,
 
 			BusinessWeight: businessWeight,
 
-			Dependencies:   check.Dependencies,
+			Dependencies: check.Dependencies,
 
-			LastUpdated:    check.Timestamp,
-
+			LastUpdated: check.Timestamp,
 		}
 
 	}
-
-
 
 	// Process dependency health.
 
@@ -1627,29 +1301,24 @@ func (ha *HealthAggregator) aggregateByComponents(enhancedData *EnhancedHealthRe
 
 		score := ha.dependencyHealthToScore(dependency.Status)
 
-
-
 		result.ComponentScores[name] = ComponentHealthResult{
 
-			Name:           name,
+			Name: name,
 
-			Type:           string(dependency.Type),
+			Type: string(dependency.Type),
 
-			Status:         dependency.Status,
+			Status: dependency.Status,
 
-			Score:          score,
+			Score: score,
 
 			BusinessWeight: businessWeight,
 
-			LastUpdated:    dependency.LastChecked,
-
+			LastUpdated: dependency.LastChecked,
 		}
 
 	}
 
 }
-
-
 
 // calculateMultiDimensionalScores calculates scores for different dimensions.
 
@@ -1667,8 +1336,6 @@ func (ha *HealthAggregator) calculateMultiDimensionalScores(result *AggregatedHe
 
 	var performanceWeights []float64
 
-
-
 	for _, component := range result.ComponentScores {
 
 		// Business score based on business weight.
@@ -1679,15 +1346,11 @@ func (ha *HealthAggregator) calculateMultiDimensionalScores(result *AggregatedHe
 
 		businessWeights = append(businessWeights, component.BusinessWeight)
 
-
-
 		// Technical score (unweighted component score).
 
 		technicalScores = append(technicalScores, component.Score)
 
 		technicalWeights = append(technicalWeights, 1.0)
-
-
 
 		// Performance score (could be enhanced with latency data).
 
@@ -1699,8 +1362,6 @@ func (ha *HealthAggregator) calculateMultiDimensionalScores(result *AggregatedHe
 
 	}
 
-
-
 	// Calculate weighted averages.
 
 	result.BusinessScore = ha.calculateWeightedAverage(businessScores, businessWeights)
@@ -1709,15 +1370,11 @@ func (ha *HealthAggregator) calculateMultiDimensionalScores(result *AggregatedHe
 
 	result.PerformanceScore = ha.calculateWeightedAverage(performanceScores, performanceWeights)
 
-
-
 	// User experience score is a combination of business and performance.
 
 	result.UserExperienceScore = (result.BusinessScore*0.6 + result.PerformanceScore*0.4)
 
 }
-
-
 
 // evaluateUserJourneys evaluates the health of user journeys.
 
@@ -1726,8 +1383,6 @@ func (ha *HealthAggregator) evaluateUserJourneys(ctx context.Context, result *Ag
 	ha.journeyMu.Lock()
 
 	defer ha.journeyMu.Unlock()
-
-
 
 	for journeyID, journey := range ha.userJourneys {
 
@@ -1741,23 +1396,18 @@ func (ha *HealthAggregator) evaluateUserJourneys(ctx context.Context, result *Ag
 
 }
 
-
-
 // evaluateUserJourney evaluates a single user journey.
 
 func (ha *HealthAggregator) evaluateUserJourney(ctx context.Context, journey *UserJourney, componentScores map[string]ComponentHealthResult) *JourneyHealthResult {
 
 	journeyResult := &JourneyHealthResult{
 
-		JourneyID:   journey.ID,
+		JourneyID: journey.ID,
 
 		StepResults: make(map[string]*StepResult),
 
 		LastChecked: time.Now(),
-
 	}
-
-
 
 	totalLatency := time.Duration(0)
 
@@ -1771,29 +1421,22 @@ func (ha *HealthAggregator) evaluateUserJourney(ctx context.Context, journey *Us
 
 	bottleneckStep := ""
 
-
-
 	for _, step := range journey.Steps {
 
 		stepResult := &StepResult{
 
-			StepID:            step.ID,
+			StepID: step.ID,
 
-			Status:            health.StatusHealthy,
+			Status: health.StatusHealthy,
 
-			Score:             1.0,
+			Score: 1.0,
 
 			DependencyResults: make(map[string]health.Status),
-
 		}
-
-
 
 		stepHealthy := true
 
 		stepScore := 1.0
-
-
 
 		// Check dependencies for this step.
 
@@ -1823,8 +1466,6 @@ func (ha *HealthAggregator) evaluateUserJourney(ctx context.Context, journey *Us
 
 		}
 
-
-
 		// Simulate latency (in real implementation, this would come from actual measurements).
 
 		stepLatency := time.Duration(len(step.Dependencies)) * 10 * time.Millisecond
@@ -1832,8 +1473,6 @@ func (ha *HealthAggregator) evaluateUserJourney(ctx context.Context, journey *Us
 		stepResult.Latency = stepLatency
 
 		totalLatency += stepLatency
-
-
 
 		// Check if step is bottleneck.
 
@@ -1845,8 +1484,6 @@ func (ha *HealthAggregator) evaluateUserJourney(ctx context.Context, journey *Us
 
 		}
 
-
-
 		// Check latency threshold.
 
 		if stepLatency > step.MaxLatency {
@@ -1856,8 +1493,6 @@ func (ha *HealthAggregator) evaluateUserJourney(ctx context.Context, journey *Us
 			stepScore *= 0.8 // Latency penalty
 
 		}
-
-
 
 		// Set step status based on health.
 
@@ -1875,21 +1510,15 @@ func (ha *HealthAggregator) evaluateUserJourney(ctx context.Context, journey *Us
 
 		}
 
-
-
 		stepResult.Score = stepScore
 
 		journeyResult.StepResults[step.ID] = stepResult
-
-
 
 		// Update journey totals.
 
 		totalScore += stepScore * step.Weight
 
 		totalWeight += step.Weight
-
-
 
 		if !stepHealthy && step.Required {
 
@@ -1898,8 +1527,6 @@ func (ha *HealthAggregator) evaluateUserJourney(ctx context.Context, journey *Us
 		}
 
 	}
-
-
 
 	// Calculate overall journey health.
 
@@ -1912,8 +1539,6 @@ func (ha *HealthAggregator) evaluateUserJourney(ctx context.Context, journey *Us
 		journeyResult.OverallScore = 0
 
 	}
-
-
 
 	if allStepsHealthy {
 
@@ -1929,19 +1554,13 @@ func (ha *HealthAggregator) evaluateUserJourney(ctx context.Context, journey *Us
 
 	}
 
-
-
 	journeyResult.TotalLatency = totalLatency
 
 	journeyResult.BottleneckStep = bottleneckStep
 
-
-
 	// Calculate availability (simplified).
 
 	journeyResult.Availability = journeyResult.OverallScore * 100
-
-
 
 	// Assess user impact.
 
@@ -1949,19 +1568,14 @@ func (ha *HealthAggregator) evaluateUserJourney(ctx context.Context, journey *Us
 
 		AffectedUsers: ha.estimateAffectedUsers(journey, journeyResult.Status),
 
-		ImpactLevel:   ha.assessUserImpactLevel(journey, journeyResult.Status),
+		ImpactLevel: ha.assessUserImpactLevel(journey, journeyResult.Status),
 
-		Features:      ha.getAffectedFeatures(journey),
-
+		Features: ha.getAffectedFeatures(journey),
 	}
-
-
 
 	return journeyResult
 
 }
-
-
 
 // performTrendAnalysis performs trend analysis on health data.
 
@@ -1971,11 +1585,7 @@ func (ha *HealthAggregator) performTrendAnalysis(ctx context.Context) map[string
 
 	defer ha.historyMu.RUnlock()
 
-
-
 	results := make(map[string]*HealthTrendResult)
-
-
 
 	for component, history := range ha.historicalData {
 
@@ -1985,21 +1595,15 @@ func (ha *HealthAggregator) performTrendAnalysis(ctx context.Context) map[string
 
 		}
 
-
-
 		trendResult := ha.trendAnalyzer.analyzeTrend(component, history)
 
 		results[component] = trendResult
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 // analyzeTrend analyzes the trend for a component's health data.
 
@@ -2009,23 +1613,18 @@ func (ta *TrendAnalyzer) analyzeTrend(component string, history []HealthDataPoin
 
 		return &HealthTrendResult{
 
-			Component:  component,
+			Component: component,
 
-			Trend:      TrendUnknown,
+			Trend: TrendUnknown,
 
 			Confidence: 0.0,
-
 		}
 
 	}
 
-
-
 	// Calculate linear regression for trend.
 
 	slope, confidence := ta.calculateLinearRegression(history)
-
-
 
 	// Determine trend direction.
 
@@ -2045,8 +1644,6 @@ func (ta *TrendAnalyzer) analyzeTrend(component string, history []HealthDataPoin
 
 	}
 
-
-
 	// Calculate volatility.
 
 	volatility := ta.calculateVolatility(history)
@@ -2057,23 +1654,18 @@ func (ta *TrendAnalyzer) analyzeTrend(component string, history []HealthDataPoin
 
 	}
 
-
-
 	result := &HealthTrendResult{
 
-		Component:  component,
+		Component: component,
 
-		Trend:      trend,
+		Trend: trend,
 
 		Confidence: confidence,
 
-		Slope:      slope,
+		Slope: slope,
 
 		Volatility: volatility,
-
 	}
-
-
 
 	// Generate predictions if confidence is high enough.
 
@@ -2083,19 +1675,13 @@ func (ta *TrendAnalyzer) analyzeTrend(component string, history []HealthDataPoin
 
 	}
 
-
-
 	// Generate recommendations based on trend.
 
 	result.Recommendations = ta.generateTrendRecommendations(result)
 
-
-
 	return result
 
 }
-
-
 
 // calculateLinearRegression calculates linear regression slope and confidence.
 
@@ -2109,15 +1695,11 @@ func (ta *TrendAnalyzer) calculateLinearRegression(history []HealthDataPoint) (f
 
 	}
 
-
-
 	// Convert timestamps to numeric values (hours since first point).
 
 	var x, y []float64
 
 	firstTime := history[0].Timestamp
-
-
 
 	for _, point := range history {
 
@@ -2128,8 +1710,6 @@ func (ta *TrendAnalyzer) calculateLinearRegression(history []HealthDataPoint) (f
 		y = append(y, point.Score)
 
 	}
-
-
 
 	// Calculate means.
 
@@ -2146,8 +1726,6 @@ func (ta *TrendAnalyzer) calculateLinearRegression(history []HealthDataPoint) (f
 	meanX := sumX / n
 
 	meanY := sumY / n
-
-
 
 	// Calculate slope and correlation.
 
@@ -2167,19 +1745,13 @@ func (ta *TrendAnalyzer) calculateLinearRegression(history []HealthDataPoint) (f
 
 	}
 
-
-
 	if denominatorX == 0 {
 
 		return 0, 0
 
 	}
 
-
-
 	slope := numerator / denominatorX
-
-
 
 	// Calculate correlation coefficient (confidence measure).
 
@@ -2187,13 +1759,9 @@ func (ta *TrendAnalyzer) calculateLinearRegression(history []HealthDataPoint) (f
 
 	confidence := math.Abs(correlation)
 
-
-
 	return slope, confidence
 
 }
-
-
 
 // calculateVolatility calculates the volatility of health scores.
 
@@ -2205,15 +1773,11 @@ func (ta *TrendAnalyzer) calculateVolatility(history []HealthDataPoint) float64 
 
 	}
 
-
-
 	// Calculate standard deviation.
 
 	var sum, sumSquares float64
 
 	n := float64(len(history))
-
-
 
 	for _, point := range history {
 
@@ -2223,19 +1787,13 @@ func (ta *TrendAnalyzer) calculateVolatility(history []HealthDataPoint) float64 
 
 	}
 
-
-
 	mean := sum / n
 
 	variance := (sumSquares / n) - (mean * mean)
 
-
-
 	return math.Sqrt(variance)
 
 }
-
-
 
 // generatePredictions generates future health predictions.
 
@@ -2247,13 +1805,9 @@ func (ta *TrendAnalyzer) generatePredictions(history []HealthDataPoint, slope fl
 
 	}
 
-
-
 	predictions := make([]HealthPrediction, count)
 
 	lastPoint := history[len(history)-1]
-
-
 
 	for i := range count {
 
@@ -2262,8 +1816,6 @@ func (ta *TrendAnalyzer) generatePredictions(history []HealthDataPoint, slope fl
 		futureTime := lastPoint.Timestamp.Add(time.Duration(i+1) * time.Hour)
 
 		predictedScore := lastPoint.Score + slope*float64(i+1)
-
-
 
 		// Clamp score between 0 and 1.
 
@@ -2276,8 +1828,6 @@ func (ta *TrendAnalyzer) generatePredictions(history []HealthDataPoint, slope fl
 			predictedScore = 1
 
 		}
-
-
 
 		// Convert score to status.
 
@@ -2297,37 +1847,29 @@ func (ta *TrendAnalyzer) generatePredictions(history []HealthDataPoint, slope fl
 
 		}
 
-
-
 		predictions[i] = HealthPrediction{
 
-			PredictedTime:   futureTime,
+			PredictedTime: futureTime,
 
 			PredictedStatus: predictedStatus,
 
-			PredictedScore:  predictedScore,
+			PredictedScore: predictedScore,
 
-			Confidence:      math.Max(0.5-float64(i)*0.1, 0.1), // Decreasing confidence
+			Confidence: math.Max(0.5-float64(i)*0.1, 0.1), // Decreasing confidence
 
 		}
 
 	}
 
-
-
 	return predictions
 
 }
-
-
 
 // generateTrendRecommendations generates recommendations based on trend analysis.
 
 func (ta *TrendAnalyzer) generateTrendRecommendations(result *HealthTrendResult) []string {
 
 	var recommendations []string
-
-
 
 	switch result.Trend {
 
@@ -2355,21 +1897,15 @@ func (ta *TrendAnalyzer) generateTrendRecommendations(result *HealthTrendResult)
 
 	}
 
-
-
 	if result.Volatility > 0.3 {
 
 		recommendations = append(recommendations, "High volatility detected - consider smoothing configurations")
 
 	}
 
-
-
 	return recommendations
 
 }
-
-
 
 // Helper methods.
 
@@ -2380,8 +1916,6 @@ func (ha *HealthAggregator) aggregateScores(scores []float64, method Aggregation
 		return 0
 
 	}
-
-
 
 	switch method {
 
@@ -2411,8 +1945,6 @@ func (ha *HealthAggregator) aggregateScores(scores []float64, method Aggregation
 
 }
 
-
-
 func (ha *HealthAggregator) calculateAverage(scores []float64) float64 {
 
 	sum := 0.0
@@ -2427,8 +1959,6 @@ func (ha *HealthAggregator) calculateAverage(scores []float64) float64 {
 
 }
 
-
-
 func (ha *HealthAggregator) calculateWeightedAverage(scores, weights []float64) float64 {
 
 	if len(scores) != len(weights) || len(scores) == 0 {
@@ -2436,8 +1966,6 @@ func (ha *HealthAggregator) calculateWeightedAverage(scores, weights []float64) 
 		return 0
 
 	}
-
-
 
 	var weightedSum, totalWeight float64
 
@@ -2449,21 +1977,15 @@ func (ha *HealthAggregator) calculateWeightedAverage(scores, weights []float64) 
 
 	}
 
-
-
 	if totalWeight == 0 {
 
 		return 0
 
 	}
 
-
-
 	return weightedSum / totalWeight
 
 }
-
-
 
 func (ha *HealthAggregator) findMinimum(scores []float64) float64 {
 
@@ -2472,8 +1994,6 @@ func (ha *HealthAggregator) findMinimum(scores []float64) float64 {
 		return 0
 
 	}
-
-
 
 	minVal := scores[0]
 
@@ -2491,8 +2011,6 @@ func (ha *HealthAggregator) findMinimum(scores []float64) float64 {
 
 }
 
-
-
 func (ha *HealthAggregator) findMaximum(scores []float64) float64 {
 
 	if len(scores) == 0 {
@@ -2500,8 +2018,6 @@ func (ha *HealthAggregator) findMaximum(scores []float64) float64 {
 		return 0
 
 	}
-
-
 
 	maxVal := scores[0]
 
@@ -2519,8 +2035,6 @@ func (ha *HealthAggregator) findMaximum(scores []float64) float64 {
 
 }
 
-
-
 func (ha *HealthAggregator) calculateMedian(scores []float64) float64 {
 
 	if len(scores) == 0 {
@@ -2529,15 +2043,11 @@ func (ha *HealthAggregator) calculateMedian(scores []float64) float64 {
 
 	}
 
-
-
 	sorted := make([]float64, len(scores))
 
 	copy(sorted, scores)
 
 	sort.Float64s(sorted)
-
-
 
 	n := len(sorted)
 
@@ -2551,8 +2061,6 @@ func (ha *HealthAggregator) calculateMedian(scores []float64) float64 {
 
 }
 
-
-
 func (ha *HealthAggregator) determineStatusFromCounts(counts map[health.Status]int) health.Status {
 
 	total := 0
@@ -2563,15 +2071,11 @@ func (ha *HealthAggregator) determineStatusFromCounts(counts map[health.Status]i
 
 	}
 
-
-
 	if total == 0 {
 
 		return health.StatusUnknown
 
 	}
-
-
 
 	// If more than 50% unhealthy, overall is unhealthy.
 
@@ -2581,8 +2085,6 @@ func (ha *HealthAggregator) determineStatusFromCounts(counts map[health.Status]i
 
 	}
 
-
-
 	// If any unhealthy or more than 25% degraded, overall is degraded.
 
 	if counts[health.StatusUnhealthy] > 0 || counts[health.StatusDegraded] > total/4 {
@@ -2590,8 +2092,6 @@ func (ha *HealthAggregator) determineStatusFromCounts(counts map[health.Status]i
 		return health.StatusDegraded
 
 	}
-
-
 
 	// If most are healthy, overall is healthy.
 
@@ -2601,13 +2101,9 @@ func (ha *HealthAggregator) determineStatusFromCounts(counts map[health.Status]i
 
 	}
 
-
-
 	return health.StatusDegraded
 
 }
-
-
 
 func (ha *HealthAggregator) getTierWeight(tier HealthTier) float64 {
 
@@ -2637,8 +2133,6 @@ func (ha *HealthAggregator) getTierWeight(tier HealthTier) float64 {
 
 }
 
-
-
 func (ha *HealthAggregator) getBusinessWeight(componentName string) float64 {
 
 	if weight, exists := ha.businessWeights[componentName]; exists {
@@ -2650,8 +2144,6 @@ func (ha *HealthAggregator) getBusinessWeight(componentName string) float64 {
 	return 1.0 // Default weight
 
 }
-
-
 
 func (ha *HealthAggregator) dependencyHealthToScore(status health.Status) float64 {
 
@@ -2677,8 +2169,6 @@ func (ha *HealthAggregator) dependencyHealthToScore(status health.Status) float6
 
 }
 
-
-
 // updateHistoricalData updates historical health data for trend analysis.
 
 func (ha *HealthAggregator) updateHistoricalData(enhancedData *EnhancedHealthResponse, dependencyData map[string]*DependencyHealth) {
@@ -2687,11 +2177,7 @@ func (ha *HealthAggregator) updateHistoricalData(enhancedData *EnhancedHealthRes
 
 	defer ha.historyMu.Unlock()
 
-
-
 	now := time.Now()
-
-
 
 	// Update enhanced check history.
 
@@ -2701,19 +2187,14 @@ func (ha *HealthAggregator) updateHistoricalData(enhancedData *EnhancedHealthRes
 
 			Timestamp: now,
 
-			Status:    check.Status,
+			Status: check.Status,
 
-			Score:     check.Score,
+			Score: check.Score,
 
-			Duration:  check.Duration,
-
+			Duration: check.Duration,
 		}
 
-
-
 		ha.historicalData[check.Name] = append(ha.historicalData[check.Name], dataPoint)
-
-
 
 		// Keep only last 100 points.
 
@@ -2725,8 +2206,6 @@ func (ha *HealthAggregator) updateHistoricalData(enhancedData *EnhancedHealthRes
 
 	}
 
-
-
 	// Update dependency history.
 
 	for name, dependency := range dependencyData {
@@ -2737,19 +2216,14 @@ func (ha *HealthAggregator) updateHistoricalData(enhancedData *EnhancedHealthRes
 
 			Timestamp: now,
 
-			Status:    dependency.Status,
+			Status: dependency.Status,
 
-			Score:     score,
+			Score: score,
 
-			Duration:  dependency.ResponseTime,
-
+			Duration: dependency.ResponseTime,
 		}
 
-
-
 		ha.historicalData[name] = append(ha.historicalData[name], dataPoint)
-
-
 
 		// Keep only last 100 points.
 
@@ -2763,29 +2237,24 @@ func (ha *HealthAggregator) updateHistoricalData(enhancedData *EnhancedHealthRes
 
 }
 
-
-
 // assessBusinessImpact assesses the business impact of current health status.
 
 func (ha *HealthAggregator) assessBusinessImpact(result *AggregatedHealthResult) *BusinessImpactResult {
 
 	impact := &BusinessImpactResult{
 
-		Level:                BusinessImpactNone,
+		Level: BusinessImpactNone,
 
 		EstimatedRevenueLoss: 0,
 
-		AffectedCustomers:    0,
+		AffectedCustomers: 0,
 
-		AffectedFeatures:     []string{},
+		AffectedFeatures: []string{},
 
-		ComplianceRisks:      []string{},
+		ComplianceRisks: []string{},
 
-		ReputationImpact:     ReputationNone,
-
+		ReputationImpact: ReputationNone,
 	}
-
-
 
 	// Assess based on overall score.
 
@@ -2821,8 +2290,6 @@ func (ha *HealthAggregator) assessBusinessImpact(result *AggregatedHealthResult)
 
 	}
 
-
-
 	// Identify affected features based on component health.
 
 	for name, component := range result.ComponentScores {
@@ -2839,21 +2306,15 @@ func (ha *HealthAggregator) assessBusinessImpact(result *AggregatedHealthResult)
 
 	}
 
-
-
 	return impact
 
 }
-
-
 
 // generateRecommendations generates actionable recommendations based on health analysis.
 
 func (ha *HealthAggregator) generateRecommendations(result *AggregatedHealthResult) []HealthRecommendation {
 
 	var recommendations []HealthRecommendation
-
-
 
 	// Generate recommendations based on unhealthy components.
 
@@ -2863,15 +2324,15 @@ func (ha *HealthAggregator) generateRecommendations(result *AggregatedHealthResu
 
 			recommendation := HealthRecommendation{
 
-				ID:                 fmt.Sprintf("rec-%s-%d", name, time.Now().Unix()),
+				ID: fmt.Sprintf("rec-%s-%d", name, time.Now().Unix()),
 
-				Type:               RecommendationRecovery,
+				Type: RecommendationRecovery,
 
-				Priority:           ha.determinePriority(component),
+				Priority: ha.determinePriority(component),
 
-				Title:              fmt.Sprintf("Address issues with %s", name),
+				Title: fmt.Sprintf("Address issues with %s", name),
 
-				Description:        fmt.Sprintf("Component %s is %s with score %.2f", name, component.Status, component.Score),
+				Description: fmt.Sprintf("Component %s is %s with score %.2f", name, component.Status, component.Score),
 
 				AffectedComponents: []string{name},
 
@@ -2879,32 +2340,28 @@ func (ha *HealthAggregator) generateRecommendations(result *AggregatedHealthResu
 
 					{
 
-						Action:      fmt.Sprintf("investigate_%s", name),
+						Action: fmt.Sprintf("investigate_%s", name),
 
-						Priority:    ActionPriorityUrgent,
+						Priority: ActionPriorityUrgent,
 
 						Description: fmt.Sprintf("Investigate root cause of %s issues", name),
 
-						Automated:   false,
+						Automated: false,
 
-						ETA:         15 * time.Minute,
-
+						ETA: 15 * time.Minute,
 					},
-
 				},
 
 				EstimatedImpact: RecommendationImpact{
 
-					HealthImprovement:  1.0 - component.Score,
+					HealthImprovement: 1.0 - component.Score,
 
 					ImplementationTime: 30 * time.Minute,
-
 				},
 
-				Confidence:      0.8,
+				Confidence: 0.8,
 
 				AutomationLevel: AutomationPartial,
-
 			}
 
 			recommendations = append(recommendations, recommendation)
@@ -2913,21 +2370,19 @@ func (ha *HealthAggregator) generateRecommendations(result *AggregatedHealthResu
 
 	}
 
-
-
 	// Generate recommendations based on business impact.
 
 	if result.BusinessImpact.Level == BusinessImpactCritical {
 
 		recommendation := HealthRecommendation{
 
-			ID:          fmt.Sprintf("business-critical-%d", time.Now().Unix()),
+			ID: fmt.Sprintf("business-critical-%d", time.Now().Unix()),
 
-			Type:        RecommendationRecovery,
+			Type: RecommendationRecovery,
 
-			Priority:    PriorityEmergency,
+			Priority: PriorityEmergency,
 
-			Title:       "Critical business impact detected",
+			Title: "Critical business impact detected",
 
 			Description: "Multiple components are affecting business operations",
 
@@ -2935,47 +2390,39 @@ func (ha *HealthAggregator) generateRecommendations(result *AggregatedHealthResu
 
 				{
 
-					Action:      "activate_incident_response",
+					Action: "activate_incident_response",
 
-					Priority:    ActionPriorityImmediate,
+					Priority: ActionPriorityImmediate,
 
 					Description: "Activate incident response procedures",
 
-					Automated:   true,
+					Automated: true,
 
-					ETA:         5 * time.Minute,
-
+					ETA: 5 * time.Minute,
 				},
-
 			},
 
 			EstimatedImpact: RecommendationImpact{
 
-				HealthImprovement:  0.5,
+				HealthImprovement: 0.5,
 
-				CostSavings:        result.BusinessImpact.EstimatedRevenueLoss * 0.8,
+				CostSavings: result.BusinessImpact.EstimatedRevenueLoss * 0.8,
 
 				ImplementationTime: time.Hour,
-
 			},
 
-			Confidence:      0.9,
+			Confidence: 0.9,
 
 			AutomationLevel: AutomationFull,
-
 		}
 
 		recommendations = append(recommendations, recommendation)
 
 	}
 
-
-
 	return recommendations
 
 }
-
-
 
 // calculateOverallHealth calculates the overall health status and score.
 
@@ -2985,17 +2432,14 @@ func (ha *HealthAggregator) calculateOverallHealth(result *AggregatedHealthResul
 
 	weights := map[string]float64{
 
-		"business":        0.4,
+		"business": 0.4,
 
-		"technical":       0.3,
+		"technical": 0.3,
 
-		"performance":     0.2,
+		"performance": 0.2,
 
 		"user_experience": 0.1,
-
 	}
-
-
 
 	result.OverallScore = result.BusinessScore*weights["business"] +
 
@@ -3004,8 +2448,6 @@ func (ha *HealthAggregator) calculateOverallHealth(result *AggregatedHealthResul
 		result.PerformanceScore*weights["performance"] +
 
 		result.UserExperienceScore*weights["user_experience"]
-
-
 
 	// Determine overall status.
 
@@ -3025,8 +2467,6 @@ func (ha *HealthAggregator) calculateOverallHealth(result *AggregatedHealthResul
 
 }
 
-
-
 // recordAggregationMetrics records metrics for aggregation results.
 
 func (ha *HealthAggregator) recordAggregationMetrics(result *AggregatedHealthResult) {
@@ -3034,8 +2474,6 @@ func (ha *HealthAggregator) recordAggregationMetrics(result *AggregatedHealthRes
 	// Record aggregation latency.
 
 	ha.aggregatorMetrics.AggregationLatency.Observe(result.AggregationMetadata.ExecutionTime.Seconds())
-
-
 
 	// Record aggregated health scores.
 
@@ -3049,8 +2487,6 @@ func (ha *HealthAggregator) recordAggregationMetrics(result *AggregatedHealthRes
 
 	ha.aggregatorMetrics.AggregatedHealthScore.WithLabelValues("user_experience", "all").Set(result.UserExperienceScore)
 
-
-
 	// Record tier scores.
 
 	for tier, tierResult := range result.TierScores {
@@ -3058,8 +2494,6 @@ func (ha *HealthAggregator) recordAggregationMetrics(result *AggregatedHealthRes
 		ha.aggregatorMetrics.AggregatedHealthScore.WithLabelValues("tier", tier.String()).Set(tierResult.Score)
 
 	}
-
-
 
 	// Record journey scores.
 
@@ -3069,8 +2503,6 @@ func (ha *HealthAggregator) recordAggregationMetrics(result *AggregatedHealthRes
 
 	}
 
-
-
 	// Record business impact.
 
 	ha.aggregatorMetrics.BusinessImpactScore.WithLabelValues("overall", "revenue").Set(result.BusinessImpact.EstimatedRevenueLoss)
@@ -3078,8 +2510,6 @@ func (ha *HealthAggregator) recordAggregationMetrics(result *AggregatedHealthRes
 	ha.aggregatorMetrics.BusinessImpactScore.WithLabelValues("overall", "customers").Set(float64(result.BusinessImpact.AffectedCustomers))
 
 }
-
-
 
 // configureDefaultWeights configures default business and feature weights.
 
@@ -3089,83 +2519,68 @@ func (ha *HealthAggregator) configureDefaultWeights() {
 
 	ha.businessWeights["llm-processor"] = BusinessWeight{
 
-		Component:        "llm-processor",
+		Component: "llm-processor",
 
-		Weight:           1.0,
+		Weight: 1.0,
 
-		RevenueImpact:    0.8,
+		RevenueImpact: 0.8,
 
-		UserImpact:       0.9,
+		UserImpact: 0.9,
 
 		ComplianceImpact: 0.6,
-
 	}
-
-
 
 	ha.businessWeights["kubernetes-api"] = BusinessWeight{
 
-		Component:        "kubernetes-api",
+		Component: "kubernetes-api",
 
-		Weight:           0.9,
+		Weight: 0.9,
 
-		RevenueImpact:    0.7,
+		RevenueImpact: 0.7,
 
-		UserImpact:       0.8,
+		UserImpact: 0.8,
 
 		ComplianceImpact: 0.9,
-
 	}
-
-
 
 	ha.businessWeights["rag-api"] = BusinessWeight{
 
-		Component:        "rag-api",
+		Component: "rag-api",
 
-		Weight:           0.8,
+		Weight: 0.8,
 
-		RevenueImpact:    0.6,
+		RevenueImpact: 0.6,
 
-		UserImpact:       0.7,
+		UserImpact: 0.7,
 
 		ComplianceImpact: 0.4,
-
 	}
-
-
 
 	// Feature weights.
 
 	ha.featureWeights["intent_processing"] = FeatureWeight{
 
-		Feature:          "intent_processing",
+		Feature: "intent_processing",
 
-		Weight:           1.0,
+		Weight: 1.0,
 
-		UserBase:         1000,
+		UserBase: 1000,
 
 		CriticalityLevel: "critical",
-
 	}
-
-
 
 	ha.featureWeights["deployment"] = FeatureWeight{
 
-		Feature:          "deployment",
+		Feature: "deployment",
 
-		Weight:           0.9,
+		Weight: 0.9,
 
-		UserBase:         500,
+		UserBase: 500,
 
 		CriticalityLevel: "high",
-
 	}
 
 }
-
-
 
 // configureDefaultUserJourneys configures default user journeys for monitoring.
 
@@ -3175,81 +2590,72 @@ func (ha *HealthAggregator) configureDefaultUserJourneys() {
 
 	intentJourney := &UserJourney{
 
-		ID:             "intent_processing",
+		ID: "intent_processing",
 
-		Name:           "Intent Processing Journey",
+		Name: "Intent Processing Journey",
 
-		Description:    "Complete flow from intent submission to deployment",
+		Description: "Complete flow from intent submission to deployment",
 
-		Timeout:        5 * time.Minute,
+		Timeout: 5 * time.Minute,
 
-		CriticalPath:   true,
+		CriticalPath: true,
 
 		BusinessImpact: BusinessImpactHigh,
 
-		UserSegment:    "all_users",
+		UserSegment: "all_users",
 
 		Steps: []JourneyStep{
 
 			{
 
-				ID:           "intent_validation",
+				ID: "intent_validation",
 
-				Name:         "Intent Validation",
+				Name: "Intent Validation",
 
 				Dependencies: []string{"kubernetes-api"},
 
-				MaxLatency:   time.Second,
+				MaxLatency: time.Second,
 
-				Required:     true,
+				Required: true,
 
-				Weight:       0.2,
-
+				Weight: 0.2,
 			},
 
 			{
 
-				ID:           "llm_processing",
+				ID: "llm_processing",
 
-				Name:         "LLM Processing",
+				Name: "LLM Processing",
 
 				Dependencies: []string{"llm-processor", "rag-api"},
 
-				MaxLatency:   10 * time.Second,
+				MaxLatency: 10 * time.Second,
 
-				Required:     true,
+				Required: true,
 
-				Weight:       0.5,
-
+				Weight: 0.5,
 			},
 
 			{
 
-				ID:           "resource_deployment",
+				ID: "resource_deployment",
 
-				Name:         "Resource Deployment",
+				Name: "Resource Deployment",
 
 				Dependencies: []string{"kubernetes-api"},
 
-				MaxLatency:   30 * time.Second,
+				MaxLatency: 30 * time.Second,
 
-				Required:     true,
+				Required: true,
 
-				Weight:       0.3,
-
+				Weight: 0.3,
 			},
-
 		},
-
 	}
-
-
 
 	ha.userJourneys["intent_processing"] = intentJourney
 
 }
-
-
 
 // Helper methods for user journey evaluation.
 
@@ -3257,15 +2663,11 @@ func (ha *HealthAggregator) estimateAffectedUsers(journey *UserJourney, status h
 
 	baseUsers := 1000 // Default user base
 
-
-
 	if feature, exists := ha.featureWeights[journey.ID]; exists {
 
 		baseUsers = feature.UserBase
 
 	}
-
-
 
 	switch status {
 
@@ -3285,8 +2687,6 @@ func (ha *HealthAggregator) estimateAffectedUsers(journey *UserJourney, status h
 
 }
 
-
-
 func (ha *HealthAggregator) assessUserImpactLevel(journey *UserJourney, status health.Status) UserImpactLevel {
 
 	if !journey.CriticalPath {
@@ -3300,8 +2700,6 @@ func (ha *HealthAggregator) assessUserImpactLevel(journey *UserJourney, status h
 		return UserImpactNone
 
 	}
-
-
 
 	switch status {
 
@@ -3321,13 +2719,9 @@ func (ha *HealthAggregator) assessUserImpactLevel(journey *UserJourney, status h
 
 }
 
-
-
 func (ha *HealthAggregator) getAffectedFeatures(journey *UserJourney) []string {
 
 	features := []string{}
-
-
 
 	// Map journey to features (simplified).
 
@@ -3339,13 +2733,9 @@ func (ha *HealthAggregator) getAffectedFeatures(journey *UserJourney) []string {
 
 	}
 
-
-
 	return features
 
 }
-
-
 
 func (ha *HealthAggregator) determinePriority(component ComponentHealthResult) RecommendationPriority {
 
@@ -3369,8 +2759,6 @@ func (ha *HealthAggregator) determinePriority(component ComponentHealthResult) R
 
 }
 
-
-
 // GetCheckHistory returns historical health data for a component.
 
 func (ha *HealthAggregator) GetCheckHistory(component string, limit int) []HealthDataPoint {
@@ -3378,8 +2766,6 @@ func (ha *HealthAggregator) GetCheckHistory(component string, limit int) []Healt
 	ha.historyMu.RLock()
 
 	defer ha.historyMu.RUnlock()
-
-
 
 	history, exists := ha.historicalData[component]
 
@@ -3389,17 +2775,12 @@ func (ha *HealthAggregator) GetCheckHistory(component string, limit int) []Healt
 
 	}
 
-
-
 	if limit > 0 && len(history) > limit {
 
 		return history[len(history)-limit:]
 
 	}
 
-
-
 	return history
 
 }
-

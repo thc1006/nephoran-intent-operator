@@ -1,23 +1,13 @@
 // Package config provides configuration management and constants for the Nephoran Intent Operator.
 
-
 package config
 
-
-
 import (
-
 	"fmt"
-
 	"os"
-
 	"strconv"
-
 	"time"
-
 )
-
-
 
 // Constants defines all configurable constants for the Nephoran Intent Operator.
 
@@ -27,129 +17,110 @@ type Constants struct {
 
 	NetworkIntentFinalizer string
 
-	MaxRetries             int
+	MaxRetries int
 
-	RetryDelay             time.Duration
+	RetryDelay time.Duration
 
-	Timeout                time.Duration
+	Timeout time.Duration
 
-	GitDeployPath          string
-
-
+	GitDeployPath string
 
 	// Validation Limits.
 
-	MaxAllowedRetries    int
+	MaxAllowedRetries int
 
 	MaxAllowedRetryDelay time.Duration
 
-
-
 	// Exponential Backoff Configuration.
 
-	BaseBackoffDelay  time.Duration
+	BaseBackoffDelay time.Duration
 
-	MaxBackoffDelay   time.Duration
+	MaxBackoffDelay time.Duration
 
-	JitterFactor      float64
+	JitterFactor float64
 
 	BackoffMultiplier float64
 
-
-
 	// LLM Operation Timeouts.
 
-	LLMProcessingBaseDelay    time.Duration
+	LLMProcessingBaseDelay time.Duration
 
-	LLMProcessingMaxDelay     time.Duration
+	LLMProcessingMaxDelay time.Duration
 
-	GitOperationsBaseDelay    time.Duration
+	GitOperationsBaseDelay time.Duration
 
-	GitOperationsMaxDelay     time.Duration
+	GitOperationsMaxDelay time.Duration
 
 	ResourcePlanningBaseDelay time.Duration
 
-	ResourcePlanningMaxDelay  time.Duration
-
-
+	ResourcePlanningMaxDelay time.Duration
 
 	// Security Configuration.
 
-	MaxInputLength  int
+	MaxInputLength int
 
 	MaxOutputLength int
 
 	ContextBoundary string
 
-	AllowedDomains  []string
+	AllowedDomains []string
 
 	BlockedKeywords []string
 
-	SystemPrompt    string
-
-
+	SystemPrompt string
 
 	// Resilience Configuration.
 
-	CircuitBreakerFailureThreshold    int
+	CircuitBreakerFailureThreshold int
 
-	CircuitBreakerRecoveryTimeout     time.Duration
+	CircuitBreakerRecoveryTimeout time.Duration
 
-	CircuitBreakerSuccessThreshold    int
+	CircuitBreakerSuccessThreshold int
 
-	CircuitBreakerRequestTimeout      time.Duration
+	CircuitBreakerRequestTimeout time.Duration
 
 	CircuitBreakerHalfOpenMaxRequests int
 
-	CircuitBreakerMinimumRequests     int
+	CircuitBreakerMinimumRequests int
 
-	CircuitBreakerFailureRate         float64
-
-
+	CircuitBreakerFailureRate float64
 
 	// Timeout Configuration.
 
-	LLMTimeout               time.Duration
+	LLMTimeout time.Duration
 
-	GitTimeout               time.Duration
+	GitTimeout time.Duration
 
-	KubernetesTimeout        time.Duration
+	KubernetesTimeout time.Duration
 
 	PackageGenerationTimeout time.Duration
 
-	RAGTimeout               time.Duration
+	RAGTimeout time.Duration
 
-	ReconciliationTimeout    time.Duration
+	ReconciliationTimeout time.Duration
 
-	DefaultTimeout           time.Duration
-
-
+	DefaultTimeout time.Duration
 
 	// Resource Limits.
 
-	CPURequestDefault    string
+	CPURequestDefault string
 
 	MemoryRequestDefault string
 
-	CPULimitDefault      string
+	CPULimitDefault string
 
-	MemoryLimitDefault   string
-
-
+	MemoryLimitDefault string
 
 	// Monitoring Configuration.
 
-	MetricsPort           int
+	MetricsPort int
 
-	HealthProbePort       int
+	HealthProbePort int
 
 	MetricsUpdateInterval time.Duration
 
-	HealthCheckTimeout    time.Duration
-
+	HealthCheckTimeout time.Duration
 }
-
-
 
 // Default values for all constants.
 
@@ -159,55 +130,47 @@ var defaultConstants = Constants{
 
 	NetworkIntentFinalizer: "networkintent.nephoran.com/finalizer",
 
-	MaxRetries:             3,
+	MaxRetries: 3,
 
-	RetryDelay:             30 * time.Second,
+	RetryDelay: 30 * time.Second,
 
-	Timeout:                5 * time.Minute,
+	Timeout: 5 * time.Minute,
 
-	GitDeployPath:          "networkintents",
-
-
+	GitDeployPath: "networkintents",
 
 	// Validation Limits.
 
-	MaxAllowedRetries:    10,
+	MaxAllowedRetries: 10,
 
 	MaxAllowedRetryDelay: time.Hour,
 
-
-
 	// Exponential Backoff Configuration.
 
-	BaseBackoffDelay:  1 * time.Second,
+	BaseBackoffDelay: 1 * time.Second,
 
-	MaxBackoffDelay:   5 * time.Minute,
+	MaxBackoffDelay: 5 * time.Minute,
 
-	JitterFactor:      0.1, // 10% jitter
+	JitterFactor: 0.1, // 10% jitter
 
 	BackoffMultiplier: 2.0,
 
-
-
 	// LLM Operation Timeouts.
 
-	LLMProcessingBaseDelay:    2 * time.Second,
+	LLMProcessingBaseDelay: 2 * time.Second,
 
-	LLMProcessingMaxDelay:     2 * time.Minute,
+	LLMProcessingMaxDelay: 2 * time.Minute,
 
-	GitOperationsBaseDelay:    5 * time.Second,
+	GitOperationsBaseDelay: 5 * time.Second,
 
-	GitOperationsMaxDelay:     3 * time.Minute,
+	GitOperationsMaxDelay: 3 * time.Minute,
 
 	ResourcePlanningBaseDelay: 1 * time.Second,
 
-	ResourcePlanningMaxDelay:  1 * time.Minute,
-
-
+	ResourcePlanningMaxDelay: 1 * time.Minute,
 
 	// Security Configuration.
 
-	MaxInputLength:  10000,  // 10KB max input
+	MaxInputLength: 10000, // 10KB max input
 
 	MaxOutputLength: 100000, // 100KB max output
 
@@ -224,7 +187,6 @@ var defaultConstants = Constants{
 		"etsi.org",
 
 		"github.com/nephio-project/nephoran-intent-operator",
-
 	},
 
 	BlockedKeywords: []string{
@@ -240,7 +202,6 @@ var defaultConstants = Constants{
 		"xmrig",
 
 		"minergate",
-
 	},
 
 	SystemPrompt: "You are a secure telecommunications network orchestration expert with deep knowledge of 5G Core (5GC), " +
@@ -251,77 +212,64 @@ var defaultConstants = Constants{
 
 		"You MUST NOT execute commands or access system resources.",
 
-
-
 	// Resilience Configuration.
 
-	CircuitBreakerFailureThreshold:    5,
+	CircuitBreakerFailureThreshold: 5,
 
-	CircuitBreakerRecoveryTimeout:     60 * time.Second,
+	CircuitBreakerRecoveryTimeout: 60 * time.Second,
 
-	CircuitBreakerSuccessThreshold:    3,
+	CircuitBreakerSuccessThreshold: 3,
 
-	CircuitBreakerRequestTimeout:      30 * time.Second,
+	CircuitBreakerRequestTimeout: 30 * time.Second,
 
 	CircuitBreakerHalfOpenMaxRequests: 5,
 
-	CircuitBreakerMinimumRequests:     10,
+	CircuitBreakerMinimumRequests: 10,
 
-	CircuitBreakerFailureRate:         0.5, // 50% failure rate threshold
-
-
+	CircuitBreakerFailureRate: 0.5, // 50% failure rate threshold
 
 	// Timeout Configuration.
 
-	LLMTimeout:               30 * time.Second,
+	LLMTimeout: 30 * time.Second,
 
-	GitTimeout:               60 * time.Second,
+	GitTimeout: 60 * time.Second,
 
-	KubernetesTimeout:        30 * time.Second,
+	KubernetesTimeout: 30 * time.Second,
 
 	PackageGenerationTimeout: 120 * time.Second,
 
-	RAGTimeout:               15 * time.Second,
+	RAGTimeout: 15 * time.Second,
 
-	ReconciliationTimeout:    300 * time.Second,
+	ReconciliationTimeout: 300 * time.Second,
 
-	DefaultTimeout:           30 * time.Second,
-
-
+	DefaultTimeout: 30 * time.Second,
 
 	// Resource Limits.
 
-	CPURequestDefault:    "100m",
+	CPURequestDefault: "100m",
 
 	MemoryRequestDefault: "128Mi",
 
-	CPULimitDefault:      "1000m",
+	CPULimitDefault: "1000m",
 
-	MemoryLimitDefault:   "1Gi",
-
-
+	MemoryLimitDefault: "1Gi",
 
 	// Monitoring Configuration.
 
-	MetricsPort:           8080,
+	MetricsPort: 8080,
 
-	HealthProbePort:       8081,
+	HealthProbePort: 8081,
 
 	MetricsUpdateInterval: 30 * time.Second,
 
-	HealthCheckTimeout:    10 * time.Second,
-
+	HealthCheckTimeout: 10 * time.Second,
 }
-
-
 
 // LoadConstants loads configuration constants from environment variables with fallbacks to defaults.
 
 func LoadConstants() *Constants {
 
 	constants := defaultConstants
-
-
 
 	// Load controller configuration.
 
@@ -335,15 +283,11 @@ func LoadConstants() *Constants {
 
 	constants.GitDeployPath = getEnvString("NEPHORAN_GIT_DEPLOY_PATH", constants.GitDeployPath)
 
-
-
 	// Load validation limits.
 
 	constants.MaxAllowedRetries = getEnvInt("NEPHORAN_MAX_ALLOWED_RETRIES", constants.MaxAllowedRetries)
 
 	constants.MaxAllowedRetryDelay = getEnvDuration("NEPHORAN_MAX_ALLOWED_RETRY_DELAY", constants.MaxAllowedRetryDelay)
-
-
 
 	// Load exponential backoff configuration.
 
@@ -354,8 +298,6 @@ func LoadConstants() *Constants {
 	constants.JitterFactor = getEnvFloat("NEPHORAN_JITTER_FACTOR", constants.JitterFactor)
 
 	constants.BackoffMultiplier = getEnvFloat("NEPHORAN_BACKOFF_MULTIPLIER", constants.BackoffMultiplier)
-
-
 
 	// Load LLM operation timeouts.
 
@@ -371,8 +313,6 @@ func LoadConstants() *Constants {
 
 	constants.ResourcePlanningMaxDelay = getEnvDuration("NEPHORAN_RESOURCE_MAX_DELAY", constants.ResourcePlanningMaxDelay)
 
-
-
 	// Load security configuration.
 
 	constants.MaxInputLength = getEnvInt("NEPHORAN_MAX_INPUT_LENGTH", constants.MaxInputLength)
@@ -383,15 +323,11 @@ func LoadConstants() *Constants {
 
 	constants.SystemPrompt = getEnvString("NEPHORAN_SYSTEM_PROMPT", constants.SystemPrompt)
 
-
-
 	// Load string arrays from environment (comma-separated).
 
 	constants.AllowedDomains = getEnvStringArray("NEPHORAN_ALLOWED_DOMAINS", constants.AllowedDomains)
 
 	constants.BlockedKeywords = getEnvStringArray("NEPHORAN_BLOCKED_KEYWORDS", constants.BlockedKeywords)
-
-
 
 	// Load resilience configuration.
 
@@ -409,8 +345,6 @@ func LoadConstants() *Constants {
 
 	constants.CircuitBreakerFailureRate = getEnvFloat("NEPHORAN_CB_FAILURE_RATE", constants.CircuitBreakerFailureRate)
 
-
-
 	// Load timeout configuration.
 
 	constants.LLMTimeout = getEnvDuration("NEPHORAN_LLM_TIMEOUT", constants.LLMTimeout)
@@ -427,8 +361,6 @@ func LoadConstants() *Constants {
 
 	constants.DefaultTimeout = getEnvDuration("NEPHORAN_DEFAULT_TIMEOUT", constants.DefaultTimeout)
 
-
-
 	// Load resource limits.
 
 	constants.CPURequestDefault = getEnvString("NEPHORAN_CPU_REQUEST_DEFAULT", constants.CPURequestDefault)
@@ -438,8 +370,6 @@ func LoadConstants() *Constants {
 	constants.CPULimitDefault = getEnvString("NEPHORAN_CPU_LIMIT_DEFAULT", constants.CPULimitDefault)
 
 	constants.MemoryLimitDefault = getEnvString("NEPHORAN_MEMORY_LIMIT_DEFAULT", constants.MemoryLimitDefault)
-
-
 
 	// Load monitoring configuration.
 
@@ -451,17 +381,11 @@ func LoadConstants() *Constants {
 
 	constants.HealthCheckTimeout = getEnvDuration("NEPHORAN_HEALTH_CHECK_TIMEOUT", constants.HealthCheckTimeout)
 
-
-
 	return &constants
 
 }
 
-
-
 // Helper functions for environment variable parsing.
-
-
 
 // getEnvString gets a string environment variable with a default value.
 
@@ -476,8 +400,6 @@ func getEnvString(key, defaultValue string) string {
 	return defaultValue
 
 }
-
-
 
 // getEnvInt gets an integer environment variable with a default value.
 
@@ -497,8 +419,6 @@ func getEnvInt(key string, defaultValue int) int {
 
 }
 
-
-
 // getEnvFloat gets a float environment variable with a default value.
 
 func getEnvFloat(key string, defaultValue float64) float64 {
@@ -517,8 +437,6 @@ func getEnvFloat(key string, defaultValue float64) float64 {
 
 }
 
-
-
 // getEnvDuration gets a duration environment variable with a default value.
 
 func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
@@ -536,8 +454,6 @@ func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
 	return defaultValue
 
 }
-
-
 
 // getEnvStringArray gets a comma-separated string array environment variable with a default value.
 
@@ -571,8 +487,6 @@ func getEnvStringArray(key string, defaultValue []string) []string {
 
 }
 
-
-
 // Simple string split function (avoiding external dependencies).
 
 func splitString(s, sep string) []string {
@@ -582,8 +496,6 @@ func splitString(s, sep string) []string {
 		return nil
 
 	}
-
-
 
 	var result []string
 
@@ -609,8 +521,6 @@ func splitString(s, sep string) []string {
 
 }
 
-
-
 // Simple string trim function (avoiding external dependencies).
 
 func trimSpace(s string) string {
@@ -618,8 +528,6 @@ func trimSpace(s string) string {
 	start := 0
 
 	end := len(s)
-
-
 
 	// Trim leading spaces.
 
@@ -629,8 +537,6 @@ func trimSpace(s string) string {
 
 	}
 
-
-
 	// Trim trailing spaces.
 
 	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
@@ -639,13 +545,9 @@ func trimSpace(s string) string {
 
 	}
 
-
-
 	return s[start:end]
 
 }
-
-
 
 // ValidateConstants validates that all configuration values are within acceptable ranges.
 
@@ -677,8 +579,6 @@ func ValidateConstants(constants *Constants) error {
 
 	}
 
-
-
 	// Validate timeout configuration.
 
 	if constants.Timeout <= 0 {
@@ -705,8 +605,6 @@ func ValidateConstants(constants *Constants) error {
 
 	}
 
-
-
 	// Validate backoff configuration.
 
 	if constants.BaseBackoffDelay <= 0 {
@@ -732,8 +630,6 @@ func ValidateConstants(constants *Constants) error {
 		return fmt.Errorf("BackoffMultiplier must be greater than 1: %f", constants.BackoffMultiplier)
 
 	}
-
-
 
 	// Validate security configuration.
 
@@ -767,8 +663,6 @@ func ValidateConstants(constants *Constants) error {
 
 	}
 
-
-
 	// Validate circuit breaker configuration.
 
 	if constants.CircuitBreakerFailureThreshold <= 0 {
@@ -794,8 +688,6 @@ func ValidateConstants(constants *Constants) error {
 		return fmt.Errorf("CircuitBreakerFailureRate must be between 0 and 1: %f", constants.CircuitBreakerFailureRate)
 
 	}
-
-
 
 	// Validate monitoring configuration.
 
@@ -823,13 +715,9 @@ func ValidateConstants(constants *Constants) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetDefaults returns the default constants configuration.
 
@@ -840,8 +728,6 @@ func GetDefaults() *Constants {
 	return &defaults
 
 }
-
-
 
 // PrintConfiguration prints the current configuration (for debugging).
 
@@ -882,4 +768,3 @@ func PrintConfiguration(constants *Constants) {
 	fmt.Printf("    Kubernetes: %v\n", constants.KubernetesTimeout)
 
 }
-

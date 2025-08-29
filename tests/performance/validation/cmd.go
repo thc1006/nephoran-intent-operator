@@ -1,49 +1,28 @@
-
 package validation
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"log"
-
 	"os"
-
 	"path/filepath"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/spf13/cobra"
-
 	"github.com/spf13/viper"
-
 )
-
-
 
 // ValidationCommand provides CLI interface for performance validation.
 
 type ValidationCommand struct {
-
-	config      *ValidationConfig
+	config *ValidationConfig
 
 	dataManager *DataManager
 
-	automation  *AutomationRunner
-
+	automation *AutomationRunner
 }
-
-
 
 // NewValidationCommand creates the main validation command.
 
@@ -51,11 +30,9 @@ func NewValidationCommand() *cobra.Command {
 
 	vc := &ValidationCommand{}
 
-
-
 	cmd := &cobra.Command{
 
-		Use:   "validate",
+		Use: "validate",
 
 		Short: "Run comprehensive performance validation with statistical rigor",
 
@@ -116,10 +93,7 @@ Examples:
 `,
 
 		PersistentPreRunE: vc.initializeConfig,
-
 	}
-
-
 
 	// Add global flags.
 
@@ -133,8 +107,6 @@ Examples:
 
 	cmd.PersistentFlags().Bool("ci-mode", false, "Enable CI/CD mode with optimized settings")
 
-
-
 	// Bind flags to viper.
 
 	viper.BindPFlag("config", cmd.PersistentFlags().Lookup("config"))
@@ -146,8 +118,6 @@ Examples:
 	viper.BindPFlag("verbose", cmd.PersistentFlags().Lookup("verbose"))
 
 	viper.BindPFlag("ci-mode", cmd.PersistentFlags().Lookup("ci-mode"))
-
-
 
 	// Add subcommands.
 
@@ -165,13 +135,9 @@ Examples:
 
 	cmd.AddCommand(vc.newDataCommand())
 
-
-
 	return cmd
 
 }
-
-
 
 // initializeConfig initializes configuration from files and environment.
 
@@ -184,8 +150,6 @@ func (vc *ValidationCommand) initializeConfig(cmd *cobra.Command, args []string)
 	viper.AutomaticEnv()
 
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
-
-
 
 	// Load configuration file if specified.
 
@@ -201,23 +165,17 @@ func (vc *ValidationCommand) initializeConfig(cmd *cobra.Command, args []string)
 
 	}
 
-
-
 	// Load validation configuration.
 
 	environment := viper.GetString("environment")
 
 	var err error
 
-
-
 	if viper.GetBool("ci-mode") {
 
 		environment = "ci"
 
 	}
-
-
 
 	vc.config, err = LoadValidationConfig(viper.GetString("config"))
 
@@ -231,8 +189,6 @@ func (vc *ValidationCommand) initializeConfig(cmd *cobra.Command, args []string)
 
 	}
 
-
-
 	// Apply environment-specific optimizations.
 
 	if environment == "ci" {
@@ -242,8 +198,6 @@ func (vc *ValidationCommand) initializeConfig(cmd *cobra.Command, args []string)
 		vc.config.Statistics.MinSampleSize = 20
 
 	}
-
-
 
 	// Initialize data manager.
 
@@ -257,13 +211,9 @@ func (vc *ValidationCommand) initializeConfig(cmd *cobra.Command, args []string)
 
 	vc.dataManager = NewDataManager(dataConfig)
 
-
-
 	// Initialize automation runner.
 
 	vc.automation = NewAutomationRunner(vc.config, environment)
-
-
 
 	// Set up logging.
 
@@ -273,13 +223,9 @@ func (vc *ValidationCommand) initializeConfig(cmd *cobra.Command, args []string)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // newRunCommand creates the run validation command.
 
@@ -287,7 +233,7 @@ func (vc *ValidationCommand) newRunCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 
-		Use:   "run",
+		Use: "run",
 
 		Short: "Run performance validation tests",
 
@@ -304,10 +250,7 @@ evidence for each claim with proper statistical rigor.
 `,
 
 		RunE: vc.runValidation,
-
 	}
-
-
 
 	// Add run-specific flags.
 
@@ -327,13 +270,9 @@ evidence for each claim with proper statistical rigor.
 
 	cmd.Flags().StringSlice("tags", []string{}, "Tags to associate with this run")
 
-
-
 	return cmd
 
 }
-
-
 
 // newTrendsCommand creates the trends analysis command.
 
@@ -341,7 +280,7 @@ func (vc *ValidationCommand) newTrendsCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 
-		Use:   "trends",
+		Use: "trends",
 
 		Short: "Analyze performance trends over time",
 
@@ -358,10 +297,7 @@ identifying trends, regressions, and seasonal patterns.
 `,
 
 		RunE: vc.analyzeTrends,
-
 	}
-
-
 
 	cmd.Flags().String("claim", "", "Specific claim to analyze (required)")
 
@@ -379,17 +315,11 @@ identifying trends, regressions, and seasonal patterns.
 
 	cmd.Flags().String("format", "table", "Output format (table, json, csv)")
 
-
-
 	cmd.MarkFlagRequired("claim")
-
-
 
 	return cmd
 
 }
-
-
 
 // newReportCommand creates the report generation command.
 
@@ -397,7 +327,7 @@ func (vc *ValidationCommand) newReportCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 
-		Use:   "report",
+		Use: "report",
 
 		Short: "Generate comprehensive validation reports",
 
@@ -414,10 +344,7 @@ statistical analysis, and quality assessments.
 `,
 
 		RunE: vc.generateReport,
-
 	}
-
-
 
 	cmd.Flags().String("run-id", "", "Specific run ID to report on")
 
@@ -431,13 +358,9 @@ statistical analysis, and quality assessments.
 
 	cmd.Flags().String("comparison-baseline", "", "Compare against specific baseline")
 
-
-
 	return cmd
 
 }
-
-
 
 // newBaselineCommand creates the baseline management command.
 
@@ -445,7 +368,7 @@ func (vc *ValidationCommand) newBaselineCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 
-		Use:   "baseline",
+		Use: "baseline",
 
 		Short: "Manage performance baselines",
 
@@ -460,52 +383,38 @@ Baselines are used to detect performance regressions and track improvements
 over time.
 
 `,
-
 	}
-
-
 
 	cmd.AddCommand(&cobra.Command{
 
-		Use:   "create",
+		Use: "create",
 
 		Short: "Create new performance baseline",
 
-		RunE:  vc.createBaseline,
-
+		RunE: vc.createBaseline,
 	})
-
-
 
 	cmd.AddCommand(&cobra.Command{
 
-		Use:   "list",
+		Use: "list",
 
 		Short: "List available baselines",
 
-		RunE:  vc.listBaselines,
-
+		RunE: vc.listBaselines,
 	})
-
-
 
 	cmd.AddCommand(&cobra.Command{
 
-		Use:   "compare",
+		Use: "compare",
 
 		Short: "Compare current results with baseline",
 
-		RunE:  vc.compareBaseline,
-
+		RunE: vc.compareBaseline,
 	})
-
-
 
 	return cmd
 
 }
-
-
 
 // newRegressionCommand creates the regression detection command.
 
@@ -513,7 +422,7 @@ func (vc *ValidationCommand) newRegressionCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 
-		Use:   "regression",
+		Use: "regression",
 
 		Short: "Detect performance regressions",
 
@@ -530,10 +439,7 @@ degradations compared to historical baselines.
 `,
 
 		RunE: vc.detectRegressions,
-
 	}
-
-
 
 	cmd.Flags().Int("lookback-days", 30, "Days to look back for regression detection")
 
@@ -543,13 +449,9 @@ degradations compared to historical baselines.
 
 	cmd.Flags().Bool("auto-alert", false, "Send automatic alerts for detected regressions")
 
-
-
 	return cmd
 
 }
-
-
 
 // newConfigCommand creates the configuration management command.
 
@@ -557,7 +459,7 @@ func (vc *ValidationCommand) newConfigCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 
-		Use:   "config",
+		Use: "config",
 
 		Short: "Manage validation configuration",
 
@@ -572,52 +474,38 @@ This command helps create, validate, and manage validation configurations
 for different environments and use cases.
 
 `,
-
 	}
-
-
 
 	cmd.AddCommand(&cobra.Command{
 
-		Use:   "init",
+		Use: "init",
 
 		Short: "Initialize configuration template",
 
-		RunE:  vc.initConfig,
-
+		RunE: vc.initConfig,
 	})
-
-
 
 	cmd.AddCommand(&cobra.Command{
 
-		Use:   "validate",
+		Use: "validate",
 
 		Short: "Validate configuration file",
 
-		RunE:  vc.validateConfig,
-
+		RunE: vc.validateConfig,
 	})
-
-
 
 	cmd.AddCommand(&cobra.Command{
 
-		Use:   "presets",
+		Use: "presets",
 
 		Short: "List available configuration presets",
 
-		RunE:  vc.listPresets,
-
+		RunE: vc.listPresets,
 	})
-
-
 
 	return cmd
 
 }
-
-
 
 // newDataCommand creates the data management command.
 
@@ -625,7 +513,7 @@ func (vc *ValidationCommand) newDataCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 
-		Use:   "data",
+		Use: "data",
 
 		Short: "Manage validation data and archives",
 
@@ -640,56 +528,40 @@ This command provides tools for managing the validation data lifecycle,
 including archival, cleanup, and data integrity verification.
 
 `,
-
 	}
-
-
 
 	cmd.AddCommand(&cobra.Command{
 
-		Use:   "cleanup",
+		Use: "cleanup",
 
 		Short: "Perform data cleanup based on retention policy",
 
-		RunE:  vc.performDataCleanup,
-
+		RunE: vc.performDataCleanup,
 	})
-
-
 
 	cmd.AddCommand(&cobra.Command{
 
-		Use:   "archive",
+		Use: "archive",
 
 		Short: "Archive validation data",
 
-		RunE:  vc.archiveData,
-
+		RunE: vc.archiveData,
 	})
-
-
 
 	cmd.AddCommand(&cobra.Command{
 
-		Use:   "verify",
+		Use: "verify",
 
 		Short: "Verify data integrity",
 
-		RunE:  vc.verifyDataIntegrity,
-
+		RunE: vc.verifyDataIntegrity,
 	})
-
-
 
 	return cmd
 
 }
 
-
-
 // Command implementations.
-
-
 
 func (vc *ValidationCommand) runValidation(cmd *cobra.Command, args []string) error {
 
@@ -697,11 +569,7 @@ func (vc *ValidationCommand) runValidation(cmd *cobra.Command, args []string) er
 
 	defer cancel()
 
-
-
 	log.Printf("Starting performance validation...")
-
-
 
 	// Apply command-line overrides.
 
@@ -710,8 +578,6 @@ func (vc *ValidationCommand) runValidation(cmd *cobra.Command, args []string) er
 		return fmt.Errorf("failed to apply configuration overrides: %w", err)
 
 	}
-
-
 
 	// Use automation runner for comprehensive execution.
 
@@ -723,13 +589,9 @@ func (vc *ValidationCommand) runValidation(cmd *cobra.Command, args []string) er
 
 	}
 
-
-
 	// Display results summary.
 
 	vc.displayResultsSummary(result)
-
-
 
 	// Save results.
 
@@ -738,8 +600,6 @@ func (vc *ValidationCommand) runValidation(cmd *cobra.Command, args []string) er
 		log.Printf("Warning: failed to save results: %v", err)
 
 	}
-
-
 
 	// Archive results if configured.
 
@@ -751,8 +611,6 @@ func (vc *ValidationCommand) runValidation(cmd *cobra.Command, args []string) er
 
 	}
 
-
-
 	// Return appropriate exit code.
 
 	if result.Status == "failed" {
@@ -763,13 +621,9 @@ func (vc *ValidationCommand) runValidation(cmd *cobra.Command, args []string) er
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (vc *ValidationCommand) analyzeTrends(cmd *cobra.Command, args []string) error {
 
@@ -779,15 +633,11 @@ func (vc *ValidationCommand) analyzeTrends(cmd *cobra.Command, args []string) er
 
 	format, _ := cmd.Flags().GetString("format")
 
-
-
 	// Determine time range.
 
 	endTime := time.Now()
 
 	startTime := endTime.AddDate(0, 0, -days)
-
-
 
 	if startDateStr, _ := cmd.Flags().GetString("start-date"); startDateStr != "" {
 
@@ -799,8 +649,6 @@ func (vc *ValidationCommand) analyzeTrends(cmd *cobra.Command, args []string) er
 
 	}
 
-
-
 	if endDateStr, _ := cmd.Flags().GetString("end-date"); endDateStr != "" {
 
 		if t, err := time.Parse("2006-01-02", endDateStr); err == nil {
@@ -811,19 +659,13 @@ func (vc *ValidationCommand) analyzeTrends(cmd *cobra.Command, args []string) er
 
 	}
 
-
-
 	timeRange := &TimeRange{Start: startTime, End: endTime}
-
-
 
 	// Perform trend analysis.
 
 	log.Printf("Analyzing trends for claim '%s' from %s to %s...",
 
 		claim, startTime.Format("2006-01-02"), endTime.Format("2006-01-02"))
-
-
 
 	result, err := vc.dataManager.AnalyzeTrends(claim, timeRange)
 
@@ -832,8 +674,6 @@ func (vc *ValidationCommand) analyzeTrends(cmd *cobra.Command, args []string) er
 		return fmt.Errorf("trend analysis failed: %w", err)
 
 	}
-
-
 
 	// Output results in requested format.
 
@@ -855,13 +695,9 @@ func (vc *ValidationCommand) analyzeTrends(cmd *cobra.Command, args []string) er
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (vc *ValidationCommand) generateReport(cmd *cobra.Command, args []string) error {
 
@@ -871,11 +707,7 @@ func (vc *ValidationCommand) generateReport(cmd *cobra.Command, args []string) e
 
 	format, _ := cmd.Flags().GetString("format")
 
-
-
 	log.Printf("Generating %s report for run: %s", template, runID)
-
-
 
 	// This would implement comprehensive report generation.
 
@@ -883,21 +715,15 @@ func (vc *ValidationCommand) generateReport(cmd *cobra.Command, args []string) e
 
 		fmt.Sprintf("report-%s-%s.%s", runID, template, format))
 
-
-
 	log.Printf("Report generated: %s", reportPath)
 
 	return nil
 
 }
 
-
-
 func (vc *ValidationCommand) detectRegressions(cmd *cobra.Command, args []string) error {
 
 	log.Printf("Detecting performance regressions...")
-
-
 
 	alerts, err := vc.dataManager.DetectRegressions()
 
@@ -907,8 +733,6 @@ func (vc *ValidationCommand) detectRegressions(cmd *cobra.Command, args []string
 
 	}
 
-
-
 	if len(alerts) == 0 {
 
 		fmt.Println("No performance regressions detected.")
@@ -916,8 +740,6 @@ func (vc *ValidationCommand) detectRegressions(cmd *cobra.Command, args []string
 		return nil
 
 	}
-
-
 
 	fmt.Printf("Detected %d potential performance regressions:\n\n", len(alerts))
 
@@ -937,17 +759,11 @@ func (vc *ValidationCommand) detectRegressions(cmd *cobra.Command, args []string
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (vc *ValidationCommand) applyRunOverrides(cmd *cobra.Command) error {
 
@@ -991,8 +807,6 @@ func (vc *ValidationCommand) applyRunOverrides(cmd *cobra.Command) error {
 
 	}
 
-
-
 	// Apply individual overrides.
 
 	if timeout, _ := cmd.Flags().GetDuration("timeout"); timeout > 0 {
@@ -1001,15 +815,11 @@ func (vc *ValidationCommand) applyRunOverrides(cmd *cobra.Command) error {
 
 	}
 
-
-
 	if minSamples, _ := cmd.Flags().GetInt("min-samples"); minSamples > 0 {
 
 		vc.config.Statistics.MinSampleSize = minSamples
 
 	}
-
-
 
 	if confidence, _ := cmd.Flags().GetFloat64("confidence"); confidence > 0 {
 
@@ -1017,13 +827,9 @@ func (vc *ValidationCommand) applyRunOverrides(cmd *cobra.Command) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (vc *ValidationCommand) displayResultsSummary(result *ValidationResult) {
 
@@ -1039,15 +845,11 @@ func (vc *ValidationCommand) displayResultsSummary(result *ValidationResult) {
 
 	fmt.Printf("\n")
 
-
-
 	// Claims summary.
 
 	passed := 0
 
 	total := len(result.Claims)
-
-
 
 	fmt.Printf("Claims Results:\n")
 
@@ -1071,13 +873,9 @@ func (vc *ValidationCommand) displayResultsSummary(result *ValidationResult) {
 
 	}
 
-
-
 	fmt.Printf("\nSummary: %d/%d claims validated (%.1f%%)\n",
 
 		passed, total, float64(passed)/float64(total)*100)
-
-
 
 	// Quality gates summary.
 
@@ -1101,13 +899,9 @@ func (vc *ValidationCommand) displayResultsSummary(result *ValidationResult) {
 
 	}
 
-
-
 	fmt.Printf("\nArtifacts saved to: %v\n", result.Artifacts)
 
 }
-
-
 
 func (vc *ValidationCommand) saveValidationResults(result *ValidationResult) error {
 
@@ -1119,15 +913,11 @@ func (vc *ValidationCommand) saveValidationResults(result *ValidationResult) err
 
 	}
 
-
-
 	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 
 		return err
 
 	}
-
-
 
 	resultsPath := filepath.Join(outputDir, fmt.Sprintf("%s-results.json", result.ID))
 
@@ -1139,13 +929,9 @@ func (vc *ValidationCommand) saveValidationResults(result *ValidationResult) err
 
 	}
 
-
-
 	return os.WriteFile(resultsPath, data, 0o640)
 
 }
-
-
 
 func (vc *ValidationCommand) countValidatedClaims(result *ValidationResult) int {
 
@@ -1165,8 +951,6 @@ func (vc *ValidationCommand) countValidatedClaims(result *ValidationResult) int 
 
 }
 
-
-
 func (vc *ValidationCommand) outputTrendsTable(result *TrendAnalysisResult) {
 
 	fmt.Printf("\n=== Trend Analysis for %s ===\n", result.Claim)
@@ -1185,8 +969,6 @@ func (vc *ValidationCommand) outputTrendsTable(result *TrendAnalysisResult) {
 
 	fmt.Printf("Data Points: %d\n", len(result.DataPoints))
 
-
-
 	if len(result.ChangePoints) > 0 {
 
 		fmt.Printf("\nDetected Change Points:\n")
@@ -1202,8 +984,6 @@ func (vc *ValidationCommand) outputTrendsTable(result *TrendAnalysisResult) {
 	}
 
 }
-
-
 
 func (vc *ValidationCommand) outputTrendsCSV(result *TrendAnalysisResult) {
 
@@ -1221,8 +1001,6 @@ func (vc *ValidationCommand) outputTrendsCSV(result *TrendAnalysisResult) {
 
 }
 
-
-
 // Placeholder implementations for other commands.
 
 func (vc *ValidationCommand) createBaseline(cmd *cobra.Command, args []string) error {
@@ -1233,8 +1011,6 @@ func (vc *ValidationCommand) createBaseline(cmd *cobra.Command, args []string) e
 
 }
 
-
-
 func (vc *ValidationCommand) listBaselines(cmd *cobra.Command, args []string) error {
 
 	fmt.Println("Available performance baselines:")
@@ -1243,8 +1019,6 @@ func (vc *ValidationCommand) listBaselines(cmd *cobra.Command, args []string) er
 
 }
 
-
-
 func (vc *ValidationCommand) compareBaseline(cmd *cobra.Command, args []string) error {
 
 	fmt.Println("Comparing with baseline...")
@@ -1252,8 +1026,6 @@ func (vc *ValidationCommand) compareBaseline(cmd *cobra.Command, args []string) 
 	return nil
 
 }
-
-
 
 func (vc *ValidationCommand) initConfig(cmd *cobra.Command, args []string) error {
 
@@ -1265,23 +1037,17 @@ func (vc *ValidationCommand) initConfig(cmd *cobra.Command, args []string) error
 
 	}
 
-
-
 	if err := SaveConfigTemplate(configPath); err != nil {
 
 		return fmt.Errorf("failed to create config template: %w", err)
 
 	}
 
-
-
 	fmt.Printf("Configuration template created: %s\n", configPath)
 
 	return nil
 
 }
-
-
 
 func (vc *ValidationCommand) validateConfig(cmd *cobra.Command, args []string) error {
 
@@ -1293,8 +1059,6 @@ func (vc *ValidationCommand) validateConfig(cmd *cobra.Command, args []string) e
 
 	}
 
-
-
 	config, err := LoadValidationConfig(configPath)
 
 	if err != nil {
@@ -1303,15 +1067,11 @@ func (vc *ValidationCommand) validateConfig(cmd *cobra.Command, args []string) e
 
 	}
 
-
-
 	if err := ValidateConfig(config); err != nil {
 
 		return fmt.Errorf("configuration validation failed: %w", err)
 
 	}
-
-
 
 	fmt.Println("Configuration is valid ✓")
 
@@ -1319,13 +1079,9 @@ func (vc *ValidationCommand) validateConfig(cmd *cobra.Command, args []string) e
 
 }
 
-
-
 func (vc *ValidationCommand) listPresets(cmd *cobra.Command, args []string) error {
 
 	presets := GetConfigurationPresets()
-
-
 
 	fmt.Println("Available configuration presets:")
 
@@ -1341,15 +1097,11 @@ func (vc *ValidationCommand) listPresets(cmd *cobra.Command, args []string) erro
 
 	fmt.Printf("  ci              - Optimized for CI/CD pipelines\n")
 
-
-
 	_ = presets // Use presets to avoid unused variable
 
 	return nil
 
 }
-
-
 
 func (vc *ValidationCommand) performDataCleanup(cmd *cobra.Command, args []string) error {
 
@@ -1359,8 +1111,6 @@ func (vc *ValidationCommand) performDataCleanup(cmd *cobra.Command, args []strin
 
 }
 
-
-
 func (vc *ValidationCommand) archiveData(cmd *cobra.Command, args []string) error {
 
 	fmt.Println("Archiving validation data...")
@@ -1369,8 +1119,6 @@ func (vc *ValidationCommand) archiveData(cmd *cobra.Command, args []string) erro
 
 }
 
-
-
 func (vc *ValidationCommand) verifyDataIntegrity(cmd *cobra.Command, args []string) error {
 
 	fmt.Println("Verifying data integrity...")
@@ -1378,4 +1126,3 @@ func (vc *ValidationCommand) verifyDataIntegrity(cmd *cobra.Command, args []stri
 	return nil
 
 }
-

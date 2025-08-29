@@ -1,385 +1,298 @@
-
 package validation
 
-
-
 import (
-
 	"compress/gzip"
-
 	"crypto/sha256"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"log"
-
 	"os"
-
 	"path/filepath"
-
 	"sort"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/pkg/errors"
-
 )
-
-
 
 // DataManager handles test data management, archival, and historical analysis.
 
 type DataManager struct {
-
-	config   *DataManagementConfig
+	config *DataManagementConfig
 
 	archiver *DataArchiver
 
 	analyzer *HistoricalAnalyzer
 
-	cleaner  *DataCleaner
+	cleaner *DataCleaner
 
-	mu       sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // DataManagementConfig defines data management configuration.
 
 type DataManagementConfig struct {
+	BaseDir string `json:"base_dir"`
 
-	BaseDir         string            `json:"base_dir"`
+	RetentionPolicy RetentionPolicy `json:"retention_policy"`
 
-	RetentionPolicy RetentionPolicy   `json:"retention_policy"`
+	Compression CompressionConfig `json:"compression"`
 
-	Compression     CompressionConfig `json:"compression"`
+	Encryption EncryptionConfig `json:"encryption"`
 
-	Encryption      EncryptionConfig  `json:"encryption"`
+	Backup BackupConfig `json:"backup"`
 
-	Backup          BackupConfig      `json:"backup"`
-
-	Analysis        AnalysisConfig    `json:"analysis"`
-
+	Analysis AnalysisConfig `json:"analysis"`
 }
-
-
 
 // RetentionPolicy defines how long data should be kept.
 
 type RetentionPolicy struct {
+	RawData time.Duration `json:"raw_data"` // e.g., "30d"
 
-	RawData         time.Duration `json:"raw_data"`        // e.g., "30d"
+	SummaryData time.Duration `json:"summary_data"` // e.g., "1y"
 
-	SummaryData     time.Duration `json:"summary_data"`    // e.g., "1y"
+	BaselineData time.Duration `json:"baseline_data"` // e.g., "5y"
 
-	BaselineData    time.Duration `json:"baseline_data"`   // e.g., "5y"
+	FailedRuns time.Duration `json:"failed_runs"` // e.g., "90d"
 
-	FailedRuns      time.Duration `json:"failed_runs"`     // e.g., "90d"
+	RegressionData time.Duration `json:"regression_data"` // e.g., "2y"
 
-	RegressionData  time.Duration `json:"regression_data"` // e.g., "2y"
-
-	AutoCleanup     bool          `json:"auto_cleanup"`
+	AutoCleanup bool `json:"auto_cleanup"`
 
 	CleanupInterval time.Duration `json:"cleanup_interval"` // e.g., "24h"
 
 }
 
-
-
 // CompressionConfig defines compression settings.
 
 type CompressionConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled   bool     `json:"enabled"`
+	Algorithm string `json:"algorithm"` // "gzip", "lz4", "zstd"
 
-	Algorithm string   `json:"algorithm"`  // "gzip", "lz4", "zstd"
-
-	Level     int      `json:"level"`      // Compression level
+	Level int `json:"level"` // Compression level
 
 	FileTypes []string `json:"file_types"` // Which files to compress
 
-	MinSize   int64    `json:"min_size"`   // Minimum file size for compression
+	MinSize int64 `json:"min_size"` // Minimum file size for compression
 
 }
-
-
 
 // EncryptionConfig defines encryption settings.
 
 type EncryptionConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled    bool     `json:"enabled"`
+	Algorithm string `json:"algorithm"` // "AES-256-GCM"
 
-	Algorithm  string   `json:"algorithm"`  // "AES-256-GCM"
+	KeySource string `json:"key_source"` // "env", "file", "kms"
 
-	KeySource  string   `json:"key_source"` // "env", "file", "kms"
-
-	KeyPath    string   `json:"key_path,omitempty"`
+	KeyPath string `json:"key_path,omitempty"`
 
 	Compliance []string `json:"compliance"` // "GDPR", "HIPAA", etc.
 
 }
 
-
-
 // BackupConfig defines backup settings.
 
 type BackupConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled      bool          `json:"enabled"`
+	Destinations []BackupDest `json:"destinations"`
 
-	Destinations []BackupDest  `json:"destinations"`
+	Schedule string `json:"schedule"` // Cron expression
 
-	Schedule     string        `json:"schedule"` // Cron expression
+	Incremental bool `json:"incremental"`
 
-	Incremental  bool          `json:"incremental"`
+	Verification bool `json:"verification"`
 
-	Verification bool          `json:"verification"`
-
-	Retention    time.Duration `json:"retention"`
-
+	Retention time.Duration `json:"retention"`
 }
-
-
 
 // BackupDest defines a backup destination.
 
 type BackupDest struct {
+	Type string `json:"type"` // "local", "s3", "gcs", "azure"
 
-	Type        string            `json:"type"` // "local", "s3", "gcs", "azure"
-
-	Location    string            `json:"location"`
+	Location string `json:"location"`
 
 	Credentials map[string]string `json:"credentials,omitempty"`
 
-	Encryption  bool              `json:"encryption"`
-
+	Encryption bool `json:"encryption"`
 }
-
-
 
 // AnalysisConfig defines historical analysis configuration.
 
 type AnalysisConfig struct {
+	TrendAnalysis bool `json:"trend_analysis"`
 
-	TrendAnalysis       bool          `json:"trend_analysis"`
+	BaselineTracking bool `json:"baseline_tracking"`
 
-	BaselineTracking    bool          `json:"baseline_tracking"`
+	RegressionDetection bool `json:"regression_detection"`
 
-	RegressionDetection bool          `json:"regression_detection"`
+	StatisticalModeling bool `json:"statistical_modeling"`
 
-	StatisticalModeling bool          `json:"statistical_modeling"`
+	AnalysisInterval time.Duration `json:"analysis_interval"`
 
-	AnalysisInterval    time.Duration `json:"analysis_interval"`
-
-	MinDataPoints       int           `json:"min_data_points"`
-
+	MinDataPoints int `json:"min_data_points"`
 }
-
-
 
 // DataArchiver handles data archival and retrieval.
 
 type DataArchiver struct {
-
 	config *DataManagementConfig
-
 }
-
-
 
 // HistoricalAnalyzer performs historical data analysis.
 
 type HistoricalAnalyzer struct {
-
 	config *AnalysisConfig
-
 }
-
-
 
 // DataCleaner handles automated data cleanup.
 
 type DataCleaner struct {
-
 	retentionPolicy *RetentionPolicy
-
 }
-
-
 
 // ArchivalRecord represents an archived validation run.
 
 type ArchivalRecord struct {
+	ID string `json:"id"`
 
-	ID             string                  `json:"id"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp      time.Time               `json:"timestamp"`
+	Environment string `json:"environment"`
 
-	Environment    string                  `json:"environment"`
+	CommitHash string `json:"commit_hash,omitempty"`
 
-	CommitHash     string                  `json:"commit_hash,omitempty"`
+	Branch string `json:"branch,omitempty"`
 
-	Branch         string                  `json:"branch,omitempty"`
+	Status string `json:"status"`
 
-	Status         string                  `json:"status"`
+	Duration time.Duration `json:"duration"`
 
-	Duration       time.Duration           `json:"duration"`
+	Claims map[string]ClaimSummary `json:"claims"`
 
-	Claims         map[string]ClaimSummary `json:"claims"`
+	Metadata map[string]interface{} `json:"metadata"`
 
-	Metadata       map[string]interface{}  `json:"metadata"`
+	DataPaths []string `json:"data_paths"`
 
-	DataPaths      []string                `json:"data_paths"`
+	Checksum string `json:"checksum"`
 
-	Checksum       string                  `json:"checksum"`
+	CompressedSize int64 `json:"compressed_size"`
 
-	CompressedSize int64                   `json:"compressed_size"`
-
-	OriginalSize   int64                   `json:"original_size"`
-
+	OriginalSize int64 `json:"original_size"`
 }
-
-
 
 // ClaimSummary contains summary data for archived claims.
 
 type ClaimSummary struct {
+	Status string `json:"status"`
 
-	Status     string  `json:"status"`
+	Measured float64 `json:"measured"`
 
-	Measured   float64 `json:"measured"`
-
-	Target     float64 `json:"target"`
+	Target float64 `json:"target"`
 
 	Confidence float64 `json:"confidence"`
 
-	SampleSize int     `json:"sample_size"`
+	SampleSize int `json:"sample_size"`
 
-	PValue     float64 `json:"p_value,omitempty"`
+	PValue float64 `json:"p_value,omitempty"`
 
 	EffectSize float64 `json:"effect_size,omitempty"`
-
 }
-
-
 
 // TrendAnalysisResult contains trend analysis results.
 
 type TrendAnalysisResult struct {
+	Claim string `json:"claim"`
 
-	Claim           string           `json:"claim"`
+	TimeRange TimeRange `json:"time_range"`
 
-	TimeRange       TimeRange        `json:"time_range"`
+	TrendType string `json:"trend_type"` // "improving", "degrading", "stable"
 
-	TrendType       string           `json:"trend_type"` // "improving", "degrading", "stable"
+	Slope float64 `json:"slope"`
 
-	Slope           float64          `json:"slope"`
+	RSquared float64 `json:"r_squared"`
 
-	RSquared        float64          `json:"r_squared"`
+	Significance float64 `json:"significance"`
 
-	Significance    float64          `json:"significance"`
+	DataPoints []TrendDataPoint `json:"data_points"`
 
-	DataPoints      []TrendDataPoint `json:"data_points"`
+	Forecast []ForecastPoint `json:"forecast"`
 
-	Forecast        []ForecastPoint  `json:"forecast"`
-
-	ChangePoints    []ChangePoint    `json:"change_points"`
+	ChangePoints []ChangePoint `json:"change_points"`
 
 	SeasonalPattern *SeasonalPattern `json:"seasonal_pattern,omitempty"`
-
 }
-
-
 
 // TrendDataPoint represents a data point in trend analysis.
 
 type TrendDataPoint struct {
-
 	Timestamp time.Time `json:"timestamp"`
 
-	Value     float64   `json:"value"`
+	Value float64 `json:"value"`
 
-	RunID     string    `json:"run_id"`
+	RunID string `json:"run_id"`
 
-	Weight    float64   `json:"weight"` // For weighted regression
+	Weight float64 `json:"weight"` // For weighted regression
 
 }
-
-
 
 // SeasonalPattern represents seasonal patterns in the data.
 
 type SeasonalPattern struct {
+	Detected bool `json:"detected"`
 
-	Detected      bool          `json:"detected"`
+	Period time.Duration `json:"period"`
 
-	Period        time.Duration `json:"period"`
+	Amplitude float64 `json:"amplitude"`
 
-	Amplitude     float64       `json:"amplitude"`
+	Phase time.Duration `json:"phase"`
 
-	Phase         time.Duration `json:"phase"`
+	Strength float64 `json:"strength"`
 
-	Strength      float64       `json:"strength"`
-
-	Decomposition []float64     `json:"decomposition"`
-
+	Decomposition []float64 `json:"decomposition"`
 }
-
-
 
 // TimeRange represents a time range.
 
 type TimeRange struct {
-
 	Start time.Time `json:"start"`
 
-	End   time.Time `json:"end"`
-
+	End time.Time `json:"end"`
 }
-
-
 
 // RegressionAlert represents a detected regression.
 
 type RegressionAlert struct {
+	ID string `json:"id"`
 
-	ID              string    `json:"id"`
+	Claim string `json:"claim"`
 
-	Claim           string    `json:"claim"`
+	DetectedAt time.Time `json:"detected_at"`
 
-	DetectedAt      time.Time `json:"detected_at"`
+	Severity string `json:"severity"` // "critical", "major", "minor"
 
-	Severity        string    `json:"severity"` // "critical", "major", "minor"
+	Type string `json:"type"` // "performance", "reliability", "accuracy"
 
-	Type            string    `json:"type"`     // "performance", "reliability", "accuracy"
+	CurrentValue float64 `json:"current_value"`
 
-	CurrentValue    float64   `json:"current_value"`
+	BaselineValue float64 `json:"baseline_value"`
 
-	BaselineValue   float64   `json:"baseline_value"`
+	ChangePercent float64 `json:"change_percent"`
 
-	ChangePercent   float64   `json:"change_percent"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence      float64   `json:"confidence"`
+	Description string `json:"description"`
 
-	Description     string    `json:"description"`
+	Impact string `json:"impact"`
 
-	Impact          string    `json:"impact"`
-
-	Recommendations []string  `json:"recommendations"`
-
+	Recommendations []string `json:"recommendations"`
 }
-
-
 
 // NewDataManager creates a new data manager instance.
 
@@ -391,23 +304,18 @@ func NewDataManager(config *DataManagementConfig) *DataManager {
 
 	}
 
-
-
 	return &DataManager{
 
-		config:   config,
+		config: config,
 
 		archiver: &DataArchiver{config: config},
 
 		analyzer: &HistoricalAnalyzer{config: &config.Analysis},
 
-		cleaner:  &DataCleaner{retentionPolicy: &config.RetentionPolicy},
-
+		cleaner: &DataCleaner{retentionPolicy: &config.RetentionPolicy},
 	}
 
 }
-
-
 
 // DefaultDataManagementConfig returns default data management configuration.
 
@@ -419,17 +327,17 @@ func DefaultDataManagementConfig() *DataManagementConfig {
 
 		RetentionPolicy: RetentionPolicy{
 
-			RawData:         30 * 24 * time.Hour,      // 30 days
+			RawData: 30 * 24 * time.Hour, // 30 days
 
-			SummaryData:     365 * 24 * time.Hour,     // 1 year
+			SummaryData: 365 * 24 * time.Hour, // 1 year
 
-			BaselineData:    5 * 365 * 24 * time.Hour, // 5 years
+			BaselineData: 5 * 365 * 24 * time.Hour, // 5 years
 
-			FailedRuns:      90 * 24 * time.Hour,      // 90 days
+			FailedRuns: 90 * 24 * time.Hour, // 90 days
 
-			RegressionData:  2 * 365 * 24 * time.Hour, // 2 years
+			RegressionData: 2 * 365 * 24 * time.Hour, // 2 years
 
-			AutoCleanup:     true,
+			AutoCleanup: true,
 
 			CleanupInterval: 24 * time.Hour, // Daily cleanup
 
@@ -437,63 +345,58 @@ func DefaultDataManagementConfig() *DataManagementConfig {
 
 		Compression: CompressionConfig{
 
-			Enabled:   true,
+			Enabled: true,
 
 			Algorithm: "gzip",
 
-			Level:     6,
+			Level: 6,
 
 			FileTypes: []string{".json", ".csv", ".log"},
 
-			MinSize:   1024, // 1KB minimum
+			MinSize: 1024, // 1KB minimum
 
 		},
 
 		Encryption: EncryptionConfig{
 
-			Enabled:   false, // Disabled by default for simplicity
+			Enabled: false, // Disabled by default for simplicity
 
 			Algorithm: "AES-256-GCM",
 
 			KeySource: "env",
-
 		},
 
 		Backup: BackupConfig{
 
-			Enabled:      false,       // Disabled by default
+			Enabled: false, // Disabled by default
 
-			Schedule:     "0 2 * * *", // Daily at 2 AM
+			Schedule: "0 2 * * *", // Daily at 2 AM
 
-			Incremental:  true,
+			Incremental: true,
 
 			Verification: true,
 
-			Retention:    90 * 24 * time.Hour, // 90 days
+			Retention: 90 * 24 * time.Hour, // 90 days
 
 		},
 
 		Analysis: AnalysisConfig{
 
-			TrendAnalysis:       true,
+			TrendAnalysis: true,
 
-			BaselineTracking:    true,
+			BaselineTracking: true,
 
 			RegressionDetection: true,
 
 			StatisticalModeling: true,
 
-			AnalysisInterval:    6 * time.Hour, // Every 6 hours
+			AnalysisInterval: 6 * time.Hour, // Every 6 hours
 
-			MinDataPoints:       5,
-
+			MinDataPoints: 5,
 		},
-
 	}
 
 }
-
-
 
 // ArchiveValidationResults archives validation results for long-term storage.
 
@@ -503,17 +406,11 @@ func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*Ar
 
 	defer dm.mu.Unlock()
 
-
-
 	timestamp := time.Now()
 
 	runID := fmt.Sprintf("val-%s", timestamp.Format("20060102-150405"))
 
-
-
 	log.Printf("Archiving validation results: %s", runID)
-
-
 
 	// Create archival directory structure.
 
@@ -521,15 +418,11 @@ func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*Ar
 
 		timestamp.Format("2006"), timestamp.Format("01"), timestamp.Format("02"))
 
-
-
 	if err := os.MkdirAll(archiveDir, 0o755); err != nil {
 
 		return nil, errors.Wrap(err, "failed to create archive directory")
 
 	}
-
-
 
 	// Serialize validation results.
 
@@ -541,29 +434,24 @@ func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*Ar
 
 	}
 
-
-
 	// Create summary record.
 
 	record := &ArchivalRecord{
 
-		ID:        runID,
+		ID: runID,
 
 		Timestamp: timestamp,
 
-		Status:    dm.determineStatus(results),
+		Status: dm.determineStatus(results),
 
-		Duration:  results.Summary.TestDuration,
+		Duration: results.Summary.TestDuration,
 
-		Claims:    dm.summarizeClaims(results.ClaimResults),
+		Claims: dm.summarizeClaims(results.ClaimResults),
 
-		Metadata:  dm.extractMetadata(results),
+		Metadata: dm.extractMetadata(results),
 
 		DataPaths: []string{dataPath},
-
 	}
-
-
 
 	// Add environment info if available.
 
@@ -572,8 +460,6 @@ func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*Ar
 		record.Environment = results.Metadata.Environment.Platform
 
 	}
-
-
 
 	// Calculate checksum.
 
@@ -588,8 +474,6 @@ func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*Ar
 		record.Checksum = checksum
 
 	}
-
-
 
 	// Compress if configured.
 
@@ -609,8 +493,6 @@ func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*Ar
 
 			record.CompressedSize = compressedSize
 
-
-
 			// Remove original file after successful compression.
 
 			os.Remove(dataPath)
@@ -618,8 +500,6 @@ func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*Ar
 		}
 
 	}
-
-
 
 	// Save archival record.
 
@@ -631,8 +511,6 @@ func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*Ar
 
 	}
 
-
-
 	// Update indices.
 
 	if err := dm.updateIndices(record); err != nil {
@@ -641,15 +519,11 @@ func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*Ar
 
 	}
 
-
-
 	log.Printf("Validation results archived successfully: %s", runID)
 
 	return record, nil
 
 }
-
-
 
 // RetrieveHistoricalData retrieves historical validation data for analysis.
 
@@ -659,11 +533,7 @@ func (dm *DataManager) RetrieveHistoricalData(criteria HistoricalDataCriteria) (
 
 	defer dm.mu.RUnlock()
 
-
-
 	log.Printf("Retrieving historical data with criteria: %+v", criteria)
-
-
 
 	records, err := dm.loadArchivalRecords(criteria)
 
@@ -673,13 +543,9 @@ func (dm *DataManager) RetrieveHistoricalData(criteria HistoricalDataCriteria) (
 
 	}
 
-
-
 	// Filter records based on criteria.
 
 	filtered := dm.filterRecords(records, criteria)
-
-
 
 	// Sort by timestamp.
 
@@ -689,37 +555,29 @@ func (dm *DataManager) RetrieveHistoricalData(criteria HistoricalDataCriteria) (
 
 	})
 
-
-
 	log.Printf("Retrieved %d historical records", len(filtered))
 
 	return filtered, nil
 
 }
 
-
-
 // HistoricalDataCriteria defines criteria for retrieving historical data.
 
 type HistoricalDataCriteria struct {
+	TimeRange *TimeRange `json:"time_range,omitempty"`
 
-	TimeRange     *TimeRange `json:"time_range,omitempty"`
+	Environment string `json:"environment,omitempty"`
 
-	Environment   string     `json:"environment,omitempty"`
+	Branch string `json:"branch,omitempty"`
 
-	Branch        string     `json:"branch,omitempty"`
+	Status string `json:"status,omitempty"`
 
-	Status        string     `json:"status,omitempty"`
+	Claims []string `json:"claims,omitempty"`
 
-	Claims        []string   `json:"claims,omitempty"`
+	MinDataPoints int `json:"min_data_points,omitempty"`
 
-	MinDataPoints int        `json:"min_data_points,omitempty"`
-
-	MaxResults    int        `json:"max_results,omitempty"`
-
+	MaxResults int `json:"max_results,omitempty"`
 }
-
-
 
 // AnalyzeTrends performs trend analysis on historical data.
 
@@ -727,19 +585,14 @@ func (dm *DataManager) AnalyzeTrends(claim string, timeRange *TimeRange) (*Trend
 
 	log.Printf("Analyzing trends for claim: %s", claim)
 
-
-
 	criteria := HistoricalDataCriteria{
 
-		TimeRange:     timeRange,
+		TimeRange: timeRange,
 
-		Claims:        []string{claim},
+		Claims: []string{claim},
 
 		MinDataPoints: dm.config.Analysis.MinDataPoints,
-
 	}
-
-
 
 	records, err := dm.RetrieveHistoricalData(criteria)
 
@@ -749,8 +602,6 @@ func (dm *DataManager) AnalyzeTrends(claim string, timeRange *TimeRange) (*Trend
 
 	}
 
-
-
 	if len(records) < dm.config.Analysis.MinDataPoints {
 
 		return nil, fmt.Errorf("insufficient data points: %d (minimum: %d)",
@@ -758,8 +609,6 @@ func (dm *DataManager) AnalyzeTrends(claim string, timeRange *TimeRange) (*Trend
 			len(records), dm.config.Analysis.MinDataPoints)
 
 	}
-
-
 
 	// Extract trend data points.
 
@@ -775,37 +624,29 @@ func (dm *DataManager) AnalyzeTrends(claim string, timeRange *TimeRange) (*Trend
 
 		}
 
-
-
 		dataPoints[i] = TrendDataPoint{
 
 			Timestamp: record.Timestamp,
 
-			Value:     claimData.Measured,
+			Value: claimData.Measured,
 
-			RunID:     record.ID,
+			RunID: record.ID,
 
-			Weight:    dm.calculateDataPointWeight(record, claimData),
-
+			Weight: dm.calculateDataPointWeight(record, claimData),
 		}
 
 	}
-
-
 
 	// Perform trend analysis.
 
 	result := &TrendAnalysisResult{
 
-		Claim:      claim,
+		Claim: claim,
 
-		TimeRange:  *timeRange,
+		TimeRange: *timeRange,
 
 		DataPoints: dataPoints,
-
 	}
-
-
 
 	// Calculate linear trend.
 
@@ -815,13 +656,9 @@ func (dm *DataManager) AnalyzeTrends(claim string, timeRange *TimeRange) (*Trend
 
 	result.Significance = dm.calculateTrendSignificance(dataPoints, result.Slope)
 
-
-
 	// Detect change points.
 
 	result.ChangePoints = dm.detectChangePoints(dataPoints)
-
-
 
 	// Analyze seasonal patterns if enough data.
 
@@ -831,25 +668,17 @@ func (dm *DataManager) AnalyzeTrends(claim string, timeRange *TimeRange) (*Trend
 
 	}
 
-
-
 	// Generate forecast.
 
 	result.Forecast = dm.generateForecast(dataPoints, 5) // 5-point forecast
-
-
 
 	log.Printf("Trend analysis completed for claim: %s (trend: %s, R²: %.3f)",
 
 		claim, result.TrendType, result.RSquared)
 
-
-
 	return result, nil
 
 }
-
-
 
 // DetectRegressions detects performance regressions based on historical data.
 
@@ -857,11 +686,7 @@ func (dm *DataManager) DetectRegressions() ([]RegressionAlert, error) {
 
 	log.Printf("Starting regression detection...")
 
-
-
 	var alerts []RegressionAlert
-
-
 
 	// Get recent data for analysis.
 
@@ -869,21 +694,16 @@ func (dm *DataManager) DetectRegressions() ([]RegressionAlert, error) {
 
 		Start: time.Now().AddDate(0, 0, -30), // Last 30 days
 
-		End:   time.Now(),
-
+		End: time.Now(),
 	}
-
-
 
 	criteria := HistoricalDataCriteria{
 
 		TimeRange: timeRange,
 
-		Status:    "passed", // Only analyze successful runs
+		Status: "passed", // Only analyze successful runs
 
 	}
-
-
 
 	records, err := dm.RetrieveHistoricalData(criteria)
 
@@ -893,13 +713,9 @@ func (dm *DataManager) DetectRegressions() ([]RegressionAlert, error) {
 
 	}
 
-
-
 	// Analyze each claim for regressions.
 
 	claimNames := dm.extractClaimNames(records)
-
-
 
 	for _, claim := range claimNames {
 
@@ -913,15 +729,11 @@ func (dm *DataManager) DetectRegressions() ([]RegressionAlert, error) {
 
 	}
 
-
-
 	log.Printf("Regression detection completed. Found %d potential regressions", len(alerts))
 
 	return alerts, nil
 
 }
-
-
 
 // PerformDataCleanup performs automated data cleanup based on retention policy.
 
@@ -931,8 +743,6 @@ func (dm *DataManager) PerformDataCleanup() error {
 
 	defer dm.mu.Unlock()
 
-
-
 	if !dm.config.RetentionPolicy.AutoCleanup {
 
 		log.Printf("Auto cleanup disabled, skipping")
@@ -941,15 +751,9 @@ func (dm *DataManager) PerformDataCleanup() error {
 
 	}
 
-
-
 	log.Printf("Starting data cleanup...")
 
-
-
 	cleanupStats := &CleanupStats{}
-
-
 
 	// Clean up raw data.
 
@@ -959,8 +763,6 @@ func (dm *DataManager) PerformDataCleanup() error {
 
 	}
 
-
-
 	// Clean up failed runs (more aggressive cleanup).
 
 	if err := dm.cleanupFailedRuns(dm.config.RetentionPolicy.FailedRuns, cleanupStats); err != nil {
@@ -968,8 +770,6 @@ func (dm *DataManager) PerformDataCleanup() error {
 		log.Printf("Warning: failed runs cleanup failed: %v", err)
 
 	}
-
-
 
 	// Clean up summary data.
 
@@ -979,23 +779,15 @@ func (dm *DataManager) PerformDataCleanup() error {
 
 	}
 
-
-
 	log.Printf("Data cleanup completed: removed %d files, freed %d bytes",
 
 		cleanupStats.FilesRemoved, cleanupStats.BytesFreed)
-
-
 
 	return nil
 
 }
 
-
-
 // Helper methods for data management.
-
-
 
 func (dm *DataManager) saveResults(results *ValidationResults, path string) error {
 
@@ -1007,13 +799,9 @@ func (dm *DataManager) saveResults(results *ValidationResults, path string) erro
 
 	}
 
-
-
 	return os.WriteFile(path, data, 0o640)
 
 }
-
-
 
 func (dm *DataManager) saveArchivalRecord(record *ArchivalRecord, path string) error {
 
@@ -1025,13 +813,9 @@ func (dm *DataManager) saveArchivalRecord(record *ArchivalRecord, path string) e
 
 	}
 
-
-
 	return os.WriteFile(path, data, 0o640)
 
 }
-
-
 
 func (dm *DataManager) calculateChecksum(filePath string) (string, error) {
 
@@ -1045,8 +829,6 @@ func (dm *DataManager) calculateChecksum(filePath string) (string, error) {
 
 	defer file.Close()
 
-
-
 	hash := sha256.New()
 
 	if _, err := io.Copy(hash, file); err != nil {
@@ -1055,13 +837,9 @@ func (dm *DataManager) calculateChecksum(filePath string) (string, error) {
 
 	}
 
-
-
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 
 }
-
-
 
 func (dm *DataManager) compressFile(filePath string) (string, int64, int64, error) {
 
@@ -1077,8 +855,6 @@ func (dm *DataManager) compressFile(filePath string) (string, int64, int64, erro
 
 	defer originalFile.Close()
 
-
-
 	// Get original size.
 
 	originalInfo, err := originalFile.Stat()
@@ -1090,8 +866,6 @@ func (dm *DataManager) compressFile(filePath string) (string, int64, int64, erro
 	}
 
 	originalSize := originalInfo.Size()
-
-
 
 	// Create compressed file.
 
@@ -1107,8 +881,6 @@ func (dm *DataManager) compressFile(filePath string) (string, int64, int64, erro
 
 	defer compressedFile.Close()
 
-
-
 	// Create gzip writer.
 
 	gzipWriter, err := gzip.NewWriterLevel(compressedFile, dm.config.Compression.Level)
@@ -1121,8 +893,6 @@ func (dm *DataManager) compressFile(filePath string) (string, int64, int64, erro
 
 	defer gzipWriter.Close()
 
-
-
 	// Compress data.
 
 	if _, err := io.Copy(gzipWriter, originalFile); err != nil {
@@ -1131,15 +901,11 @@ func (dm *DataManager) compressFile(filePath string) (string, int64, int64, erro
 
 	}
 
-
-
 	if err := gzipWriter.Close(); err != nil {
 
 		return "", 0, 0, err
 
 	}
-
-
 
 	// Get compressed size.
 
@@ -1153,13 +919,9 @@ func (dm *DataManager) compressFile(filePath string) (string, int64, int64, erro
 
 	compressedSize := compressedInfo.Size()
 
-
-
 	return compressedPath, originalSize, compressedSize, nil
 
 }
-
-
 
 func (dm *DataManager) determineStatus(results *ValidationResults) string {
 
@@ -1173,25 +935,18 @@ func (dm *DataManager) determineStatus(results *ValidationResults) string {
 
 }
 
-
-
 func (dm *DataManager) summarizeClaims(claims map[string]*ClaimResult) map[string]ClaimSummary {
 
 	summaries := make(map[string]ClaimSummary)
-
-
 
 	for name, result := range claims {
 
 		summary := ClaimSummary{
 
-			Status:     result.Status,
+			Status: result.Status,
 
 			Confidence: result.Confidence,
-
 		}
-
-
 
 		// Extract measured value (simplified).
 
@@ -1201,8 +956,6 @@ func (dm *DataManager) summarizeClaims(claims map[string]*ClaimResult) map[strin
 
 		}
 
-
-
 		if result.HypothesisTest != nil {
 
 			summary.PValue = result.HypothesisTest.PValue
@@ -1211,25 +964,17 @@ func (dm *DataManager) summarizeClaims(claims map[string]*ClaimResult) map[strin
 
 		}
 
-
-
 		summaries[name] = summary
 
 	}
-
-
 
 	return summaries
 
 }
 
-
-
 func (dm *DataManager) extractMetadata(results *ValidationResults) map[string]interface{} {
 
 	metadata := make(map[string]interface{})
-
-
 
 	if results.Metadata != nil {
 
@@ -1239,45 +984,32 @@ func (dm *DataManager) extractMetadata(results *ValidationResults) map[string]in
 
 		metadata["duration"] = results.Metadata.Duration
 
-
-
 		if results.Metadata.Environment != nil {
 
 			metadata["environment"] = map[string]interface{}{
 
-				"platform":   results.Metadata.Environment.Platform,
+				"platform": results.Metadata.Environment.Platform,
 
 				"node_count": results.Metadata.Environment.NodeCount,
-
 			}
 
 		}
 
 	}
 
-
-
 	return metadata
 
 }
 
-
-
 // Additional helper methods and data structures would be implemented here...
-
-
 
 // CleanupStats represents a cleanupstats.
 
 type CleanupStats struct {
-
 	FilesRemoved int
 
-	BytesFreed   int64
-
+	BytesFreed int64
 }
-
-
 
 func (dm *DataManager) loadArchivalRecords(criteria HistoricalDataCriteria) ([]ArchivalRecord, error) {
 
@@ -1289,8 +1021,6 @@ func (dm *DataManager) loadArchivalRecords(criteria HistoricalDataCriteria) ([]A
 
 }
 
-
-
 func (dm *DataManager) filterRecords(records []ArchivalRecord, criteria HistoricalDataCriteria) []ArchivalRecord {
 
 	// This would implement record filtering logic.
@@ -1298,8 +1028,6 @@ func (dm *DataManager) filterRecords(records []ArchivalRecord, criteria Historic
 	return records
 
 }
-
-
 
 func (dm *DataManager) updateIndices(record *ArchivalRecord) error {
 
@@ -1309,8 +1037,6 @@ func (dm *DataManager) updateIndices(record *ArchivalRecord) error {
 
 }
 
-
-
 func (dm *DataManager) cleanupByAge(maxAge time.Duration, dataType string, stats *CleanupStats) error {
 
 	// This would implement age-based cleanup.
@@ -1318,8 +1044,6 @@ func (dm *DataManager) cleanupByAge(maxAge time.Duration, dataType string, stats
 	return nil
 
 }
-
-
 
 func (dm *DataManager) cleanupFailedRuns(maxAge time.Duration, stats *CleanupStats) error {
 
@@ -1329,11 +1053,7 @@ func (dm *DataManager) cleanupFailedRuns(maxAge time.Duration, stats *CleanupSta
 
 }
 
-
-
 // Statistical analysis helper methods.
-
-
 
 func (dm *DataManager) calculateDataPointWeight(record ArchivalRecord, claim ClaimSummary) float64 {
 
@@ -1341,15 +1061,11 @@ func (dm *DataManager) calculateDataPointWeight(record ArchivalRecord, claim Cla
 
 	weight := 1.0
 
-
-
 	if claim.SampleSize > 0 {
 
 		weight *= float64(claim.SampleSize) / 100.0 // Normalize sample size
 
 	}
-
-
 
 	if claim.Confidence > 0 {
 
@@ -1357,13 +1073,9 @@ func (dm *DataManager) calculateDataPointWeight(record ArchivalRecord, claim Cla
 
 	}
 
-
-
 	return weight
 
 }
-
-
 
 func (dm *DataManager) calculateLinearTrend(dataPoints []TrendDataPoint) (slope, rSquared float64) {
 
@@ -1375,8 +1087,6 @@ func (dm *DataManager) calculateLinearTrend(dataPoints []TrendDataPoint) (slope,
 
 }
 
-
-
 func (dm *DataManager) determineTrendType(slope, rSquared float64) string {
 
 	if rSquared < 0.3 {
@@ -1384,8 +1094,6 @@ func (dm *DataManager) determineTrendType(slope, rSquared float64) string {
 		return "stable" // Low correlation, no clear trend
 
 	}
-
-
 
 	if slope > 0.01 {
 
@@ -1397,13 +1105,9 @@ func (dm *DataManager) determineTrendType(slope, rSquared float64) string {
 
 	}
 
-
-
 	return "stable"
 
 }
-
-
 
 func (dm *DataManager) calculateTrendSignificance(dataPoints []TrendDataPoint, slope float64) float64 {
 
@@ -1415,8 +1119,6 @@ func (dm *DataManager) calculateTrendSignificance(dataPoints []TrendDataPoint, s
 
 }
 
-
-
 func (dm *DataManager) detectChangePoints(dataPoints []TrendDataPoint) []ChangePoint {
 
 	// This would implement change point detection algorithms.
@@ -1425,8 +1127,6 @@ func (dm *DataManager) detectChangePoints(dataPoints []TrendDataPoint) []ChangeP
 
 }
 
-
-
 func (dm *DataManager) analyzeSeasonalPattern(dataPoints []TrendDataPoint) *SeasonalPattern {
 
 	// This would implement seasonal pattern analysis.
@@ -1434,12 +1134,9 @@ func (dm *DataManager) analyzeSeasonalPattern(dataPoints []TrendDataPoint) *Seas
 	return &SeasonalPattern{
 
 		Detected: false,
-
 	}
 
 }
-
-
 
 func (dm *DataManager) generateForecast(dataPoints []TrendDataPoint, points int) []ForecastPoint {
 
@@ -1449,13 +1146,9 @@ func (dm *DataManager) generateForecast(dataPoints []TrendDataPoint, points int)
 
 }
 
-
-
 func (dm *DataManager) extractClaimNames(records []ArchivalRecord) []string {
 
 	claimSet := make(map[string]bool)
-
-
 
 	for _, record := range records {
 
@@ -1467,8 +1160,6 @@ func (dm *DataManager) extractClaimNames(records []ArchivalRecord) []string {
 
 	}
 
-
-
 	var claims []string
 
 	for claim := range claimSet {
@@ -1477,13 +1168,9 @@ func (dm *DataManager) extractClaimNames(records []ArchivalRecord) []string {
 
 	}
 
-
-
 	return claims
 
 }
-
-
 
 func (dm *DataManager) detectClaimRegression(claim string, records []ArchivalRecord) *RegressionAlert {
 
@@ -1494,4 +1181,3 @@ func (dm *DataManager) detectClaimRegression(claim string, records []ArchivalRec
 	return nil
 
 }
-

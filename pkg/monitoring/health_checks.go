@@ -1,37 +1,20 @@
-
 package monitoring
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"log/slog"
-
 	"net/http"
-
 	"sync"
-
 	"time"
 
-
-
 	"k8s.io/client-go/kubernetes"
-
 )
-
-
 
 // HealthStatus represents the health status of a component.
 
 type HealthStatus string
-
-
 
 const (
 
@@ -54,126 +37,101 @@ const (
 	// HealthStatusUnknown holds healthstatusunknown value.
 
 	HealthStatusUnknown HealthStatus = "UNKNOWN"
-
 )
-
-
 
 // ComponentHealth represents the health of a single component.
 
 type ComponentHealth struct {
+	Name string `json:"name"`
 
-	Name             string                 `json:"name"`
+	Status HealthStatus `json:"status"`
 
-	Status           HealthStatus           `json:"status"`
+	Message string `json:"message,omitempty"`
 
-	Message          string                 `json:"message,omitempty"`
+	LastChecked time.Time `json:"last_checked"`
 
-	LastChecked      time.Time              `json:"last_checked"`
+	ResponseTime time.Duration `json:"response_time"`
 
-	ResponseTime     time.Duration          `json:"response_time"`
+	Details map[string]interface{} `json:"details,omitempty"`
 
-	Details          map[string]interface{} `json:"details,omitempty"`
+	Dependencies []ComponentHealth `json:"dependencies,omitempty"`
 
-	Dependencies     []ComponentHealth      `json:"dependencies,omitempty"`
+	CheckInterval time.Duration `json:"check_interval"`
 
-	CheckInterval    time.Duration          `json:"check_interval"`
+	FailureCount int `json:"failure_count"`
 
-	FailureCount     int                    `json:"failure_count"`
-
-	ConsecutiveFails int                    `json:"consecutive_fails"`
-
+	ConsecutiveFails int `json:"consecutive_fails"`
 }
-
-
 
 // SystemHealth represents the overall system health.
 
 type SystemHealth struct {
+	Status HealthStatus `json:"status"`
 
-	Status     HealthStatus      `json:"status"`
+	Version string `json:"version"`
 
-	Version    string            `json:"version"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp  time.Time         `json:"timestamp"`
-
-	Uptime     time.Duration     `json:"uptime"`
+	Uptime time.Duration `json:"uptime"`
 
 	Components []ComponentHealth `json:"components"`
 
-	Summary    HealthSummary     `json:"summary"`
-
+	Summary HealthSummary `json:"summary"`
 }
-
-
 
 // HealthSummary provides a summary of system health.
 
 type HealthSummary struct {
+	TotalComponents int `json:"total_components"`
 
-	TotalComponents     int `json:"total_components"`
-
-	HealthyComponents   int `json:"healthy_components"`
+	HealthyComponents int `json:"healthy_components"`
 
 	UnhealthyComponents int `json:"unhealthy_components"`
 
-	DegradedComponents  int `json:"degraded_components"`
-
+	DegradedComponents int `json:"degraded_components"`
 }
-
-
 
 // HealthCheckFunc defines a health check function.
 
 type HealthCheckFunc func(ctx context.Context) *ComponentHealth
 
-
-
 // HealthCheckConfig holds configuration for a health check.
 
 type HealthCheckConfig struct {
+	Name string `json:"name"`
 
-	Name             string        `json:"name"`
+	Interval time.Duration `json:"interval"`
 
-	Interval         time.Duration `json:"interval"`
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout          time.Duration `json:"timeout"`
+	FailureThreshold int `json:"failure_threshold"`
 
-	FailureThreshold int           `json:"failure_threshold"`
-
-	Enabled          bool          `json:"enabled"`
-
+	Enabled bool `json:"enabled"`
 }
-
-
 
 // HealthChecker manages health checks for all components.
 
 type HealthChecker struct {
+	mu sync.RWMutex
 
-	mu              sync.RWMutex
+	checks map[string]*HealthCheckConfig
 
-	checks          map[string]*HealthCheckConfig
+	checkResults map[string]*ComponentHealth
 
-	checkResults    map[string]*ComponentHealth
+	checkFuncs map[string]HealthCheckFunc
 
-	checkFuncs      map[string]HealthCheckFunc
+	running bool
 
-	running         bool
+	stopCh chan struct{}
 
-	stopCh          chan struct{}
+	startTime time.Time
 
-	startTime       time.Time
+	version string
 
-	version         string
-
-	kubeClient      kubernetes.Interface
+	kubeClient kubernetes.Interface
 
 	metricsRecorder *MetricsRecorder
-
 }
-
-
 
 // NewHealthChecker creates a new health checker.
 
@@ -181,27 +139,24 @@ func NewHealthChecker(version string, kubeClient kubernetes.Interface, metricsRe
 
 	return &HealthChecker{
 
-		checks:          make(map[string]*HealthCheckConfig),
+		checks: make(map[string]*HealthCheckConfig),
 
-		checkResults:    make(map[string]*ComponentHealth),
+		checkResults: make(map[string]*ComponentHealth),
 
-		checkFuncs:      make(map[string]HealthCheckFunc),
+		checkFuncs: make(map[string]HealthCheckFunc),
 
-		stopCh:          make(chan struct{}),
+		stopCh: make(chan struct{}),
 
-		startTime:       time.Now(),
+		startTime: time.Now(),
 
-		version:         version,
+		version: version,
 
-		kubeClient:      kubeClient,
+		kubeClient: kubeClient,
 
 		metricsRecorder: metricsRecorder,
-
 	}
 
 }
-
-
 
 // RegisterHealthCheck registers a health check with configuration.
 
@@ -211,31 +166,24 @@ func (hc *HealthChecker) RegisterHealthCheck(config *HealthCheckConfig, checkFun
 
 	defer hc.mu.Unlock()
 
-
-
 	hc.checks[config.Name] = config
 
 	hc.checkFuncs[config.Name] = checkFunc
-
-
 
 	// Initialize result.
 
 	hc.checkResults[config.Name] = &ComponentHealth{
 
-		Name:          config.Name,
+		Name: config.Name,
 
-		Status:        HealthStatusUnknown,
+		Status: HealthStatusUnknown,
 
-		LastChecked:   time.Time{},
+		LastChecked: time.Time{},
 
 		CheckInterval: config.Interval,
-
 	}
 
 }
-
-
 
 // Start starts the health checker.
 
@@ -255,13 +203,9 @@ func (hc *HealthChecker) Start(ctx context.Context) error {
 
 	hc.mu.Unlock()
 
-
-
 	// Register default health checks.
 
 	hc.registerDefaultHealthChecks()
-
-
 
 	// Start health check goroutines.
 
@@ -275,13 +219,9 @@ func (hc *HealthChecker) Start(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the health checker.
 
@@ -291,23 +231,17 @@ func (hc *HealthChecker) Stop() {
 
 	defer hc.mu.Unlock()
 
-
-
 	if !hc.running {
 
 		return
 
 	}
 
-
-
 	close(hc.stopCh)
 
 	hc.running = false
 
 }
-
-
 
 // GetSystemHealth returns the current system health.
 
@@ -317,19 +251,13 @@ func (hc *HealthChecker) GetSystemHealth() *SystemHealth {
 
 	defer hc.mu.RUnlock()
 
-
-
 	components := make([]ComponentHealth, 0, len(hc.checkResults))
 
 	summary := HealthSummary{TotalComponents: len(hc.checkResults)}
 
-
-
 	for _, result := range hc.checkResults {
 
 		components = append(components, *result)
-
-
 
 		switch result.Status {
 
@@ -349,8 +277,6 @@ func (hc *HealthChecker) GetSystemHealth() *SystemHealth {
 
 	}
 
-
-
 	// Determine overall system status.
 
 	systemStatus := HealthStatusHealthy
@@ -365,27 +291,22 @@ func (hc *HealthChecker) GetSystemHealth() *SystemHealth {
 
 	}
 
-
-
 	return &SystemHealth{
 
-		Status:     systemStatus,
+		Status: systemStatus,
 
-		Version:    hc.version,
+		Version: hc.version,
 
-		Timestamp:  time.Now(),
+		Timestamp: time.Now(),
 
-		Uptime:     time.Since(hc.startTime),
+		Uptime: time.Since(hc.startTime),
 
 		Components: components,
 
-		Summary:    summary,
-
+		Summary: summary,
 	}
 
 }
-
-
 
 // GetComponentHealth returns the health of a specific component.
 
@@ -395,8 +316,6 @@ func (hc *HealthChecker) GetComponentHealth(name string) (*ComponentHealth, bool
 
 	defer hc.mu.RUnlock()
 
-
-
 	result, exists := hc.checkResults[name]
 
 	if !exists {
@@ -404,8 +323,6 @@ func (hc *HealthChecker) GetComponentHealth(name string) (*ComponentHealth, bool
 		return nil, false
 
 	}
-
-
 
 	// Return a copy to avoid race conditions.
 
@@ -415,8 +332,6 @@ func (hc *HealthChecker) GetComponentHealth(name string) (*ComponentHealth, bool
 
 }
 
-
-
 // runHealthCheck runs a specific health check in a loop.
 
 func (hc *HealthChecker) runHealthCheck(ctx context.Context, name string, config *HealthCheckConfig) {
@@ -424,8 +339,6 @@ func (hc *HealthChecker) runHealthCheck(ctx context.Context, name string, config
 	ticker := time.NewTicker(config.Interval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -449,8 +362,6 @@ func (hc *HealthChecker) runHealthCheck(ctx context.Context, name string, config
 
 }
 
-
-
 // executeHealthCheck executes a single health check.
 
 func (hc *HealthChecker) executeHealthCheck(ctx context.Context, name string, config *HealthCheckConfig) {
@@ -463,15 +374,11 @@ func (hc *HealthChecker) executeHealthCheck(ctx context.Context, name string, co
 
 	}
 
-
-
 	// Create timeout context.
 
 	checkCtx, cancel := context.WithTimeout(ctx, config.Timeout)
 
 	defer cancel()
-
-
 
 	startTime := time.Now()
 
@@ -479,33 +386,26 @@ func (hc *HealthChecker) executeHealthCheck(ctx context.Context, name string, co
 
 	duration := time.Since(startTime)
 
-
-
 	if result == nil {
 
 		result = &ComponentHealth{
 
-			Name:         name,
+			Name: name,
 
-			Status:       HealthStatusUnknown,
+			Status: HealthStatusUnknown,
 
-			Message:      "Health check returned nil result",
+			Message: "Health check returned nil result",
 
 			ResponseTime: duration,
-
 		}
 
 	}
-
-
 
 	result.LastChecked = time.Now()
 
 	result.ResponseTime = duration
 
 	result.CheckInterval = config.Interval
-
-
 
 	// Update failure counts.
 
@@ -516,8 +416,6 @@ func (hc *HealthChecker) executeHealthCheck(ctx context.Context, name string, co
 		result.FailureCount = oldResult.FailureCount
 
 		result.ConsecutiveFails = oldResult.ConsecutiveFails
-
-
 
 		if result.Status != HealthStatusHealthy {
 
@@ -531,8 +429,6 @@ func (hc *HealthChecker) executeHealthCheck(ctx context.Context, name string, co
 
 		}
 
-
-
 		// Apply failure threshold logic.
 
 		if result.ConsecutiveFails >= config.FailureThreshold && result.Status == HealthStatusHealthy {
@@ -545,13 +441,9 @@ func (hc *HealthChecker) executeHealthCheck(ctx context.Context, name string, co
 
 	}
 
-
-
 	hc.checkResults[name] = result
 
 	hc.mu.Unlock()
-
-
 
 	// Record metrics.
 
@@ -565,8 +457,6 @@ func (hc *HealthChecker) executeHealthCheck(ctx context.Context, name string, co
 
 }
 
-
-
 // registerDefaultHealthChecks registers default health checks.
 
 func (hc *HealthChecker) registerDefaultHealthChecks() {
@@ -575,97 +465,80 @@ func (hc *HealthChecker) registerDefaultHealthChecks() {
 
 	hc.RegisterHealthCheck(&HealthCheckConfig{
 
-		Name:             "kubernetes-api",
+		Name: "kubernetes-api",
 
-		Interval:         30 * time.Second,
+		Interval: 30 * time.Second,
 
-		Timeout:          10 * time.Second,
+		Timeout: 10 * time.Second,
 
 		FailureThreshold: 3,
 
-		Enabled:          true,
-
+		Enabled: true,
 	}, hc.kubernetesAPIHealthCheck)
-
-
 
 	// LLM Processor Health Check.
 
 	hc.RegisterHealthCheck(&HealthCheckConfig{
 
-		Name:             "llm-processor",
+		Name: "llm-processor",
 
-		Interval:         30 * time.Second,
+		Interval: 30 * time.Second,
 
-		Timeout:          15 * time.Second,
+		Timeout: 15 * time.Second,
 
 		FailureThreshold: 3,
 
-		Enabled:          true,
-
+		Enabled: true,
 	}, hc.llmProcessorHealthCheck)
-
-
 
 	// RAG API Health Check.
 
 	hc.RegisterHealthCheck(&HealthCheckConfig{
 
-		Name:             "rag-api",
+		Name: "rag-api",
 
-		Interval:         30 * time.Second,
+		Interval: 30 * time.Second,
 
-		Timeout:          15 * time.Second,
+		Timeout: 15 * time.Second,
 
 		FailureThreshold: 3,
 
-		Enabled:          true,
-
+		Enabled: true,
 	}, hc.ragAPIHealthCheck)
-
-
 
 	// Weaviate Health Check.
 
 	hc.RegisterHealthCheck(&HealthCheckConfig{
 
-		Name:             "weaviate",
+		Name: "weaviate",
 
-		Interval:         30 * time.Second,
+		Interval: 30 * time.Second,
 
-		Timeout:          10 * time.Second,
+		Timeout: 10 * time.Second,
 
 		FailureThreshold: 3,
 
-		Enabled:          true,
-
+		Enabled: true,
 	}, hc.weaviateHealthCheck)
-
-
 
 	// Controller Health Check.
 
 	hc.RegisterHealthCheck(&HealthCheckConfig{
 
-		Name:             "controller-manager",
+		Name: "controller-manager",
 
-		Interval:         60 * time.Second,
+		Interval: 60 * time.Second,
 
-		Timeout:          10 * time.Second,
+		Timeout: 10 * time.Second,
 
 		FailureThreshold: 3,
 
-		Enabled:          true,
-
+		Enabled: true,
 	}, hc.controllerManagerHealthCheck)
 
 }
 
-
-
 // Specific health check implementations.
-
-
 
 // kubernetesAPIHealthCheck checks Kubernetes API connectivity.
 
@@ -675,21 +548,16 @@ func (hc *HealthChecker) kubernetesAPIHealthCheck(ctx context.Context) *Componen
 
 		return &ComponentHealth{
 
-			Name:    "kubernetes-api",
+			Name: "kubernetes-api",
 
-			Status:  HealthStatusUnhealthy,
+			Status: HealthStatusUnhealthy,
 
 			Message: "Kubernetes client not initialized",
-
 		}
 
 	}
 
-
-
 	startTime := time.Now()
-
-
 
 	// Try to get server version.
 
@@ -697,33 +565,28 @@ func (hc *HealthChecker) kubernetesAPIHealthCheck(ctx context.Context) *Componen
 
 	duration := time.Since(startTime)
 
-
-
 	if err != nil {
 
 		return &ComponentHealth{
 
-			Name:         "kubernetes-api",
+			Name: "kubernetes-api",
 
-			Status:       HealthStatusUnhealthy,
+			Status: HealthStatusUnhealthy,
 
-			Message:      fmt.Sprintf("Failed to connect to Kubernetes API: %v", err),
+			Message: fmt.Sprintf("Failed to connect to Kubernetes API: %v", err),
 
 			ResponseTime: duration,
-
 		}
 
 	}
 
-
-
 	return &ComponentHealth{
 
-		Name:         "kubernetes-api",
+		Name: "kubernetes-api",
 
-		Status:       HealthStatusHealthy,
+		Status: HealthStatusHealthy,
 
-		Message:      fmt.Sprintf("Connected to Kubernetes API server version %s", version.GitVersion),
+		Message: fmt.Sprintf("Connected to Kubernetes API server version %s", version.GitVersion),
 
 		ResponseTime: duration,
 
@@ -731,15 +594,11 @@ func (hc *HealthChecker) kubernetesAPIHealthCheck(ctx context.Context) *Componen
 
 			"server_version": version.GitVersion,
 
-			"platform":       version.Platform,
-
+			"platform": version.Platform,
 		},
-
 	}
 
 }
-
-
 
 // llmProcessorHealthCheck checks LLM processor service health.
 
@@ -751,8 +610,6 @@ func (hc *HealthChecker) llmProcessorHealthCheck(ctx context.Context) *Component
 
 }
 
-
-
 // ragAPIHealthCheck checks RAG API service health.
 
 func (hc *HealthChecker) ragAPIHealthCheck(ctx context.Context) *ComponentHealth {
@@ -762,8 +619,6 @@ func (hc *HealthChecker) ragAPIHealthCheck(ctx context.Context) *ComponentHealth
 	return hc.httpHealthCheck(ctx, "rag-api", url+"/health")
 
 }
-
-
 
 // weaviateHealthCheck checks Weaviate health.
 
@@ -775,8 +630,6 @@ func (hc *HealthChecker) weaviateHealthCheck(ctx context.Context) *ComponentHeal
 
 }
 
-
-
 // controllerManagerHealthCheck checks controller manager health.
 
 func (hc *HealthChecker) controllerManagerHealthCheck(ctx context.Context) *ComponentHealth {
@@ -787,21 +640,16 @@ func (hc *HealthChecker) controllerManagerHealthCheck(ctx context.Context) *Comp
 
 		return &ComponentHealth{
 
-			Name:    "controller-manager",
+			Name: "controller-manager",
 
-			Status:  HealthStatusUnhealthy,
+			Status: HealthStatusUnhealthy,
 
 			Message: "Kubernetes client not initialized",
-
 		}
 
 	}
 
-
-
 	startTime := time.Now()
-
-
 
 	// Check if we can list custom resources.
 
@@ -809,41 +657,33 @@ func (hc *HealthChecker) controllerManagerHealthCheck(ctx context.Context) *Comp
 
 	duration := time.Since(startTime)
 
-
-
 	if err != nil {
 
 		return &ComponentHealth{
 
-			Name:         "controller-manager",
+			Name: "controller-manager",
 
-			Status:       HealthStatusUnhealthy,
+			Status: HealthStatusUnhealthy,
 
-			Message:      fmt.Sprintf("Failed to discover Nephoran CRDs: %v", err),
+			Message: fmt.Sprintf("Failed to discover Nephoran CRDs: %v", err),
 
 			ResponseTime: duration,
-
 		}
 
 	}
 
-
-
 	return &ComponentHealth{
 
-		Name:         "controller-manager",
+		Name: "controller-manager",
 
-		Status:       HealthStatusHealthy,
+		Status: HealthStatusHealthy,
 
-		Message:      "Controller manager is running and CRDs are available",
+		Message: "Controller manager is running and CRDs are available",
 
 		ResponseTime: duration,
-
 	}
 
 }
-
-
 
 // httpHealthCheck performs an HTTP health check.
 
@@ -852,10 +692,7 @@ func (hc *HealthChecker) httpHealthCheck(ctx context.Context, name, url string) 
 	client := &http.Client{
 
 		Timeout: 10 * time.Second,
-
 	}
-
-
 
 	startTime := time.Now()
 
@@ -865,49 +702,39 @@ func (hc *HealthChecker) httpHealthCheck(ctx context.Context, name, url string) 
 
 		return &ComponentHealth{
 
-			Name:    name,
+			Name: name,
 
-			Status:  HealthStatusUnhealthy,
+			Status: HealthStatusUnhealthy,
 
 			Message: fmt.Sprintf("Failed to create request: %v", err),
-
 		}
 
 	}
-
-
 
 	resp, err := client.Do(req)
 
 	duration := time.Since(startTime)
 
-
-
 	if err != nil {
 
 		return &ComponentHealth{
 
-			Name:         name,
+			Name: name,
 
-			Status:       HealthStatusUnhealthy,
+			Status: HealthStatusUnhealthy,
 
-			Message:      fmt.Sprintf("HTTP request failed: %v", err),
+			Message: fmt.Sprintf("HTTP request failed: %v", err),
 
 			ResponseTime: duration,
-
 		}
 
 	}
 
 	defer resp.Body.Close()
 
-
-
 	status := HealthStatusHealthy
 
 	message := fmt.Sprintf("HTTP %d", resp.StatusCode)
-
-
 
 	if resp.StatusCode >= 400 {
 
@@ -923,15 +750,13 @@ func (hc *HealthChecker) httpHealthCheck(ctx context.Context, name, url string) 
 
 	}
 
-
-
 	return &ComponentHealth{
 
-		Name:         name,
+		Name: name,
 
-		Status:       status,
+		Status: status,
 
-		Message:      message,
+		Message: message,
 
 		ResponseTime: duration,
 
@@ -939,27 +764,19 @@ func (hc *HealthChecker) httpHealthCheck(ctx context.Context, name, url string) 
 
 			"status_code": resp.StatusCode,
 
-			"url":         url,
-
+			"url": url,
 		},
-
 	}
 
 }
 
-
-
 // HealthCheckHandler provides HTTP endpoints for health checks.
 
 type HealthCheckHandler struct {
-
 	healthChecker *HealthChecker
 
-	logger        *StructuredLogger
-
+	logger *StructuredLogger
 }
-
-
 
 // NewHealthCheckHandler creates a new health check HTTP handler.
 
@@ -969,13 +786,10 @@ func NewHealthCheckHandler(healthChecker *HealthChecker, logger *StructuredLogge
 
 		healthChecker: healthChecker,
 
-		logger:        logger,
-
+		logger: logger,
 	}
 
 }
-
-
 
 // ServeHTTP implements http.Handler.
 
@@ -1003,8 +817,6 @@ func (h *HealthCheckHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 // handleLiveness handles liveness probe.
 
 func (h *HealthCheckHandler) handleLiveness(w http.ResponseWriter, r *http.Request) {
@@ -1015,8 +827,6 @@ func (h *HealthCheckHandler) handleLiveness(w http.ResponseWriter, r *http.Reque
 
 }
 
-
-
 // handleReadiness handles readiness probe.
 
 func (h *HealthCheckHandler) handleReadiness(w http.ResponseWriter, r *http.Request) {
@@ -1024,8 +834,6 @@ func (h *HealthCheckHandler) handleReadiness(w http.ResponseWriter, r *http.Requ
 	ctx := r.Context()
 
 	systemHealth := h.healthChecker.GetSystemHealth()
-
-
 
 	if systemHealth.Status == HealthStatusHealthy {
 
@@ -1036,8 +844,6 @@ func (h *HealthCheckHandler) handleReadiness(w http.ResponseWriter, r *http.Requ
 		w.WriteHeader(http.StatusServiceUnavailable)
 
 	}
-
-
 
 	if h.logger != nil {
 
@@ -1048,18 +854,13 @@ func (h *HealthCheckHandler) handleReadiness(w http.ResponseWriter, r *http.Requ
 			slog.Int("healthy_components", systemHealth.Summary.HealthyComponents),
 
 			slog.Int("total_components", systemHealth.Summary.TotalComponents),
-
 		)
 
 	}
 
-
-
 	w.Write([]byte(string(systemHealth.Status)))
 
 }
-
-
 
 // handleHealth handles detailed health check.
 
@@ -1069,11 +870,7 @@ func (h *HealthCheckHandler) handleHealth(w http.ResponseWriter, r *http.Request
 
 	systemHealth := h.healthChecker.GetSystemHealth()
 
-
-
 	w.Header().Set("Content-Type", "application/json")
-
-
 
 	if systemHealth.Status == HealthStatusHealthy {
 
@@ -1084,8 +881,6 @@ func (h *HealthCheckHandler) handleHealth(w http.ResponseWriter, r *http.Request
 		w.WriteHeader(http.StatusServiceUnavailable)
 
 	}
-
-
 
 	if err := json.NewEncoder(w).Encode(systemHealth); err != nil {
 
@@ -1101,8 +896,6 @@ func (h *HealthCheckHandler) handleHealth(w http.ResponseWriter, r *http.Request
 
 	}
 
-
-
 	if h.logger != nil {
 
 		h.logger.Info(ctx, "Health check performed",
@@ -1114,52 +907,39 @@ func (h *HealthCheckHandler) handleHealth(w http.ResponseWriter, r *http.Request
 			slog.Int("healthy_components", systemHealth.Summary.HealthyComponents),
 
 			slog.Int("total_components", systemHealth.Summary.TotalComponents),
-
 		)
 
 	}
 
 }
 
-
-
 // CircuitBreakerHealthCheck implements health check for circuit breakers.
 
 type CircuitBreakerHealthCheck struct {
-
-	name     string
+	name string
 
 	breakers map[string]*CircuitBreaker
-
 }
-
-
 
 // CircuitBreaker represents a simple circuit breaker.
 
 type CircuitBreaker struct {
+	name string
 
-	name             string
+	failureCount int
 
-	failureCount     int
+	lastFailure time.Time
 
-	lastFailure      time.Time
-
-	state            CircuitBreakerState
+	state CircuitBreakerState
 
 	failureThreshold int
 
-	timeout          time.Duration
-
+	timeout time.Duration
 }
-
-
 
 // CircuitBreakerState represents circuit breaker states.
 
 type CircuitBreakerState int
-
-
 
 const (
 
@@ -1174,10 +954,7 @@ const (
 	// CircuitBreakerHalfOpen holds circuitbreakerhalfopen value.
 
 	CircuitBreakerHalfOpen
-
 )
-
-
 
 // NewCircuitBreakerHealthCheck creates a new circuit breaker health check.
 
@@ -1185,15 +962,12 @@ func NewCircuitBreakerHealthCheck(name string, breakers map[string]*CircuitBreak
 
 	return &CircuitBreakerHealthCheck{
 
-		name:     name,
+		name: name,
 
 		breakers: breakers,
-
 	}
 
 }
-
-
 
 // Check performs the circuit breaker health check.
 
@@ -1203,25 +977,20 @@ func (cb *CircuitBreakerHealthCheck) Check(ctx context.Context) *ComponentHealth
 
 		return &ComponentHealth{
 
-			Name:    cb.name,
+			Name: cb.name,
 
-			Status:  HealthStatusHealthy,
+			Status: HealthStatusHealthy,
 
 			Message: "No circuit breakers configured",
-
 		}
 
 	}
-
-
 
 	openBreakers := 0
 
 	degradedBreakers := 0
 
 	details := make(map[string]interface{})
-
-
 
 	for name, breaker := range cb.breakers {
 
@@ -1237,27 +1006,20 @@ func (cb *CircuitBreakerHealthCheck) Check(ctx context.Context) *ComponentHealth
 
 		}
 
-
-
 		details[name] = map[string]interface{}{
 
-			"state":         breaker.state,
+			"state": breaker.state,
 
 			"failure_count": breaker.failureCount,
 
-			"last_failure":  breaker.lastFailure,
-
+			"last_failure": breaker.lastFailure,
 		}
 
 	}
 
-
-
 	status := HealthStatusHealthy
 
 	message := "All circuit breakers are closed"
-
-
 
 	if openBreakers > 0 {
 
@@ -1273,19 +1035,15 @@ func (cb *CircuitBreakerHealthCheck) Check(ctx context.Context) *ComponentHealth
 
 	}
 
-
-
 	return &ComponentHealth{
 
-		Name:    cb.name,
+		Name: cb.name,
 
-		Status:  status,
+		Status: status,
 
 		Message: message,
 
 		Details: details,
-
 	}
 
 }
-

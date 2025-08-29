@@ -2,22 +2,13 @@
 
 // Package fake provides mock implementations of Git client interfaces for testing.
 
-
 package fake
 
-
-
 import (
-
 	"fmt"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
-
 )
-
-
 
 // Client is a fake implementation of git.ClientInterface for testing.
 
@@ -43,47 +34,37 @@ type Client struct {
 
 	ShouldFailWithPushError bool
 
-
-
 	// New failure flags for the missing methods.
 
-	ShouldFailCommitFiles      bool
+	ShouldFailCommitFiles bool
 
-	ShouldFailCreateBranch     bool
+	ShouldFailCreateBranch bool
 
-	ShouldFailSwitchBranch     bool
+	ShouldFailSwitchBranch bool
 
 	ShouldFailGetCurrentBranch bool
 
-	ShouldFailListBranches     bool
+	ShouldFailListBranches bool
 
-	ShouldFailGetFileContent   bool
-
-
+	ShouldFailGetFileContent bool
 
 	// CallHistory tracks method calls for verification in tests.
 
 	CallHistory []string
 
-
-
 	// CommitHash is the hash that will be returned by CommitAndPush.
 
 	CommitHash string
-
-
 
 	// Mock data for testing.
 
 	CurrentBranch string
 
-	Branches      []string
+	Branches []string
 
-	FileContents  map[string][]byte // path -> content mapping
+	FileContents map[string][]byte // path -> content mapping
 
 }
-
-
 
 // NewClient creates a new fake Git client.
 
@@ -91,27 +72,22 @@ func NewClient() *Client {
 
 	return &Client{
 
-		CallHistory:   make([]string, 0),
+		CallHistory: make([]string, 0),
 
-		CommitHash:    "fake-commit-hash-12345678",
+		CommitHash: "fake-commit-hash-12345678",
 
 		CurrentBranch: "main",
 
-		Branches:      []string{"main", "dev", "feature-branch"},
+		Branches: []string{"main", "dev", "feature-branch"},
 
-		FileContents:  make(map[string][]byte),
-
+		FileContents: make(map[string][]byte),
 	}
 
 }
 
-
-
 // Ensure Client implements the GitClientInterface.
 
 var _ git.ClientInterface = (*Client)(nil)
-
-
 
 // InitRepo fake implementation.
 
@@ -129,8 +105,6 @@ func (c *Client) InitRepo() error {
 
 }
 
-
-
 // CommitAndPush fake implementation.
 
 func (c *Client) CommitAndPush(files map[string]string, message string) (string, error) {
@@ -147,8 +121,6 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 
 }
 
-
-
 // CommitAndPushChanges fake implementation.
 
 func (c *Client) CommitAndPushChanges(message string) error {
@@ -164,8 +136,6 @@ func (c *Client) CommitAndPushChanges(message string) error {
 	return nil
 
 }
-
-
 
 // RemoveDirectory fake implementation.
 
@@ -190,8 +160,6 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 	return nil
 
 }
-
-
 
 // Reset clears the call history and resets failure flags.
 
@@ -223,8 +191,6 @@ func (c *Client) Reset() {
 
 }
 
-
-
 // SetCommitHash sets the commit hash returned by CommitAndPush.
 
 func (c *Client) SetCommitHash(hash string) {
@@ -233,8 +199,6 @@ func (c *Client) SetCommitHash(hash string) {
 
 }
 
-
-
 // GetCallHistory returns the history of method calls.
 
 func (c *Client) GetCallHistory() []string {
@@ -242,8 +206,6 @@ func (c *Client) GetCallHistory() []string {
 	return c.CallHistory
 
 }
-
-
 
 // CommitFiles fake implementation.
 
@@ -260,8 +222,6 @@ func (c *Client) CommitFiles(files []string, msg string) error {
 	return nil
 
 }
-
-
 
 // CreateBranch fake implementation.
 
@@ -292,8 +252,6 @@ func (c *Client) CreateBranch(name string) error {
 	return nil
 
 }
-
-
 
 // SwitchBranch fake implementation.
 
@@ -335,8 +293,6 @@ func (c *Client) SwitchBranch(name string) error {
 
 }
 
-
-
 // GetCurrentBranch fake implementation.
 
 func (c *Client) GetCurrentBranch() (string, error) {
@@ -352,8 +308,6 @@ func (c *Client) GetCurrentBranch() (string, error) {
 	return c.CurrentBranch, nil
 
 }
-
-
 
 // ListBranches fake implementation.
 
@@ -376,8 +330,6 @@ func (c *Client) ListBranches() ([]string, error) {
 	return branches, nil
 
 }
-
-
 
 // GetFileContent fake implementation.
 
@@ -409,8 +361,6 @@ func (c *Client) GetFileContent(path string) ([]byte, error) {
 
 }
 
-
-
 // SetFileContent sets the content for a file (for testing purposes).
 
 func (c *Client) SetFileContent(path string, content []byte) {
@@ -425,8 +375,6 @@ func (c *Client) SetFileContent(path string, content []byte) {
 
 }
 
-
-
 // SetCurrentBranch sets the current branch (for testing purposes).
 
 func (c *Client) SetCurrentBranch(branch string) {
@@ -435,8 +383,6 @@ func (c *Client) SetCurrentBranch(branch string) {
 
 }
 
-
-
 // SetBranches sets the list of branches (for testing purposes).
 
 func (c *Client) SetBranches(branches []string) {
@@ -444,4 +390,3 @@ func (c *Client) SetBranches(branches []string) {
 	c.Branches = branches
 
 }
-

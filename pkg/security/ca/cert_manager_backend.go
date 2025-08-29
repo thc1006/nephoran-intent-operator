@@ -1,49 +1,26 @@
-
 package ca
 
-
-
 import (
-
 	"context"
-
 	"crypto/x509"
-
 	"crypto/x509/pkix"
-
 	"fmt"
-
 	"time"
-
-
-
-	// certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1".
-
-	// certmanagermetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1".
 
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // CertManagerBackend implements the cert-manager backend.
 
 type CertManagerBackend struct {
-
 	logger *logging.StructuredLogger
 
 	client client.Client
 
 	config *CertManagerConfig
-
 }
-
-
 
 // CertManagerConfig holds cert-manager specific configuration.
 
@@ -51,265 +28,192 @@ type CertManagerConfig struct {
 
 	// Issuer configuration.
 
-	IssuerName      string `yaml:"issuer_name"`
+	IssuerName string `yaml:"issuer_name"`
 
-	IssuerKind      string `yaml:"issuer_kind"` // Issuer or ClusterIssuer
+	IssuerKind string `yaml:"issuer_kind"` // Issuer or ClusterIssuer
 
 	IssuerNamespace string `yaml:"issuer_namespace"`
-
-
 
 	// Certificate configuration.
 
 	CertificateNamespace string `yaml:"certificate_namespace"`
 
-	SecretNamePrefix     string `yaml:"secret_name_prefix"`
-
-
+	SecretNamePrefix string `yaml:"secret_name_prefix"`
 
 	// Advanced settings.
 
-	EnableApproval  bool          `yaml:"enable_approval"`
+	EnableApproval bool `yaml:"enable_approval"`
 
 	DefaultDuration time.Duration `yaml:"default_duration"`
 
-	RenewBefore     time.Duration `yaml:"renew_before"`
+	RenewBefore time.Duration `yaml:"renew_before"`
 
-	RevisionLimit   int32         `yaml:"revision_limit"`
-
-
+	RevisionLimit int32 `yaml:"revision_limit"`
 
 	// ACME settings (if using ACME issuer).
 
 	ACMEConfig *ACMEConfig `yaml:"acme_config,omitempty"`
 
-
-
 	// CA issuer settings (if using CA issuer).
 
 	CAConfig *IssuerConfig `yaml:"ca_config,omitempty"`
 
-
-
 	// Vault issuer settings (if using Vault issuer).
 
 	VaultConfig *VaultIssuerConfig `yaml:"vault_config,omitempty"`
-
 }
-
-
 
 // ACMEConfig holds ACME-specific configuration.
 
 type ACMEConfig struct {
+	Server string `yaml:"server"`
 
-	Server         string         `yaml:"server"`
+	Email string `yaml:"email"`
 
-	Email          string         `yaml:"email"`
+	PreferredChain string `yaml:"preferred_chain"`
 
-	PreferredChain string         `yaml:"preferred_chain"`
+	Solvers []ACMESolver `yaml:"solvers"`
 
-	Solvers        []ACMESolver   `yaml:"solvers"`
-
-	PrivateKey     ACMEPrivateKey `yaml:"private_key"`
-
+	PrivateKey ACMEPrivateKey `yaml:"private_key"`
 }
-
-
 
 // ACMESolver defines ACME challenge solvers.
 
 type ACMESolver struct {
+	DNS01 *DNS01Solver `yaml:"dns01,omitempty"`
 
-	DNS01    *DNS01Solver    `yaml:"dns01,omitempty"`
-
-	HTTP01   *HTTP01Solver   `yaml:"http01,omitempty"`
+	HTTP01 *HTTP01Solver `yaml:"http01,omitempty"`
 
 	Selector *SolverSelector `yaml:"selector,omitempty"`
-
 }
-
-
 
 // DNS01Solver defines DNS-01 challenge solver.
 
 type DNS01Solver struct {
+	Provider string `yaml:"provider"`
 
-	Provider string                 `yaml:"provider"`
-
-	Config   map[string]interface{} `yaml:"config"`
-
+	Config map[string]interface{} `yaml:"config"`
 }
-
-
 
 // HTTP01Solver defines HTTP-01 challenge solver.
 
 type HTTP01Solver struct {
-
 	Ingress *HTTP01IngressSolver `yaml:"ingress,omitempty"`
 
 	Gateway *HTTP01GatewaySolver `yaml:"gateway,omitempty"`
-
 }
-
-
 
 // HTTP01IngressSolver defines ingress-based HTTP-01 solver.
 
 type HTTP01IngressSolver struct {
+	Class string `yaml:"class"`
 
-	Class           string            `yaml:"class"`
-
-	ServiceType     string            `yaml:"service_type"`
+	ServiceType string `yaml:"service_type"`
 
 	IngressTemplate map[string]string `yaml:"ingress_template"`
 
-	PodTemplate     map[string]string `yaml:"pod_template"`
-
+	PodTemplate map[string]string `yaml:"pod_template"`
 }
-
-
 
 // HTTP01GatewaySolver defines gateway-based HTTP-01 solver.
 
 type HTTP01GatewaySolver struct {
-
-	Name      string `yaml:"name"`
+	Name string `yaml:"name"`
 
 	Namespace string `yaml:"namespace"`
-
 }
-
-
 
 // SolverSelector defines selector for ACME solvers.
 
 type SolverSelector struct {
+	DNSNames []string `yaml:"dns_names"`
 
-	DNSNames    []string          `yaml:"dns_names"`
-
-	DNSZones    []string          `yaml:"dns_zones"`
+	DNSZones []string `yaml:"dns_zones"`
 
 	MatchLabels map[string]string `yaml:"match_labels"`
-
 }
-
-
 
 // ACMEPrivateKey defines ACME private key configuration.
 
 type ACMEPrivateKey struct {
+	SecretRef SecretRef `yaml:"secret_ref"`
 
-	SecretRef      SecretRef `yaml:"secret_ref"`
+	Algorithm string `yaml:"algorithm"`
 
-	Algorithm      string    `yaml:"algorithm"`
+	Size int `yaml:"size"`
 
-	Size           int       `yaml:"size"`
-
-	RotationPolicy string    `yaml:"rotation_policy"`
-
+	RotationPolicy string `yaml:"rotation_policy"`
 }
-
-
 
 // IssuerConfig holds CA issuer specific configuration.
 
 type IssuerConfig struct {
-
-	SecretName            string   `yaml:"secret_name"`
+	SecretName string `yaml:"secret_name"`
 
 	CRLDistributionPoints []string `yaml:"crl_distribution_points"`
 
-	OCSPServers           []string `yaml:"ocsp_servers"`
-
+	OCSPServers []string `yaml:"ocsp_servers"`
 }
-
-
 
 // VaultIssuerConfig holds Vault issuer specific configuration.
 
 type VaultIssuerConfig struct {
+	Server string `yaml:"server"`
 
-	Server    string    `yaml:"server"`
+	Path string `yaml:"path"`
 
-	Path      string    `yaml:"path"`
+	Role string `yaml:"role"`
 
-	Role      string    `yaml:"role"`
+	Auth VaultAuth `yaml:"auth"`
 
-	Auth      VaultAuth `yaml:"auth"`
+	CABundle string `yaml:"ca_bundle"`
 
-	CABundle  string    `yaml:"ca_bundle"`
-
-	Namespace string    `yaml:"namespace"`
-
+	Namespace string `yaml:"namespace"`
 }
-
-
 
 // VaultAuth defines Vault authentication configuration.
 
 type VaultAuth struct {
+	TokenSecretRef *SecretRef `yaml:"token_secret_ref,omitempty"`
 
-	TokenSecretRef *SecretRef       `yaml:"token_secret_ref,omitempty"`
+	AppRole *VaultAppRole `yaml:"app_role,omitempty"`
 
-	AppRole        *VaultAppRole    `yaml:"app_role,omitempty"`
-
-	Kubernetes     *VaultKubernetes `yaml:"kubernetes,omitempty"`
-
+	Kubernetes *VaultKubernetes `yaml:"kubernetes,omitempty"`
 }
-
-
 
 // VaultAppRole defines Vault AppRole authentication.
 
 type VaultAppRole struct {
+	Path string `yaml:"path"`
 
-	Path      string    `yaml:"path"`
-
-	RoleID    string    `yaml:"role_id"`
+	RoleID string `yaml:"role_id"`
 
 	SecretRef SecretRef `yaml:"secret_ref"`
-
 }
-
-
 
 // VaultKubernetes defines Vault Kubernetes authentication.
 
 type VaultKubernetes struct {
+	Path string `yaml:"path"`
 
-	Path              string             `yaml:"path"`
-
-	Role              string             `yaml:"role"`
+	Role string `yaml:"role"`
 
 	ServiceAccountRef *ServiceAccountRef `yaml:"service_account_ref,omitempty"`
-
 }
-
-
 
 // SecretRef references a Kubernetes secret.
 
 type SecretRef struct {
-
 	Name string `yaml:"name"`
 
-	Key  string `yaml:"key"`
-
+	Key string `yaml:"key"`
 }
-
-
 
 // ServiceAccountRef references a Kubernetes service account.
 
 type ServiceAccountRef struct {
-
 	Name string `yaml:"name"`
-
 }
-
-
 
 // NewCertManagerBackend creates a new cert-manager backend.
 
@@ -320,12 +224,9 @@ func NewCertManagerBackend(logger *logging.StructuredLogger, client client.Clien
 		logger: logger,
 
 		client: client,
-
 	}, nil
 
 }
-
-
 
 // Initialize initializes the cert-manager backend.
 
@@ -339,11 +240,7 @@ func (b *CertManagerBackend) Initialize(ctx context.Context, config interface{})
 
 	}
 
-
-
 	b.config = cmConfig
-
-
 
 	// Validate configuration.
 
@@ -353,8 +250,6 @@ func (b *CertManagerBackend) Initialize(ctx context.Context, config interface{})
 
 	}
 
-
-
 	// Check if issuer exists and is ready.
 
 	if err := b.verifyIssuer(ctx); err != nil {
@@ -362,8 +257,6 @@ func (b *CertManagerBackend) Initialize(ctx context.Context, config interface{})
 		return fmt.Errorf("issuer verification failed: %w", err)
 
 	}
-
-
 
 	b.logger.Info("cert-manager backend initialized successfully",
 
@@ -373,13 +266,9 @@ func (b *CertManagerBackend) Initialize(ctx context.Context, config interface{})
 
 		"namespace", b.config.IssuerNamespace)
 
-
-
 	return nil
 
 }
-
-
 
 // HealthCheck performs health check on the cert-manager backend.
 
@@ -390,8 +279,6 @@ func (b *CertManagerBackend) HealthCheck(ctx context.Context) error {
 	return b.verifyIssuer(ctx)
 
 }
-
-
 
 // IssueCertificate issues a certificate using cert-manager.
 
@@ -405,13 +292,9 @@ func (b *CertManagerBackend) IssueCertificate(ctx context.Context, req *Certific
 
 		"issuer", b.config.IssuerName)
 
-
-
 	// Stub implementation - would create cert-manager Certificate resource.
 
 	b.logger.Info("Would create cert-manager Certificate resource", "request_id", req.ID)
-
-
 
 	// Return a stub response for now.
 
@@ -419,17 +302,14 @@ func (b *CertManagerBackend) IssueCertificate(ctx context.Context, req *Certific
 
 		RequestID: req.ID,
 
-		Status:    CertStatusPending,
+		Status: CertStatusPending,
 
-		IssuedBy:  string(BackendCertManager),
+		IssuedBy: string(BackendCertManager),
 
 		CreatedAt: time.Now(),
-
 	}, fmt.Errorf("cert-manager backend is not fully implemented")
 
 }
-
-
 
 // RevokeCertificate revokes a certificate.
 
@@ -445,21 +325,15 @@ func (b *CertManagerBackend) RevokeCertificate(ctx context.Context, serialNumber
 
 		"reason", reason)
 
-
-
 	// For CA issuers, we might need to maintain our own CRL.
 
 	// For ACME issuers, revocation happens at the CA level.
 
 	// For Vault issuers, we can use Vault's revocation API.
 
-
-
 	return fmt.Errorf("revocation not implemented for cert-manager backend")
 
 }
-
-
 
 // RenewCertificate renews a certificate.
 
@@ -471,11 +345,7 @@ func (b *CertManagerBackend) RenewCertificate(ctx context.Context, req *Certific
 
 		"common_name", req.CommonName)
 
-
-
 	b.logger.Info("Would renew cert-manager certificate", "request_id", req.ID)
-
-
 
 	// Stub implementation.
 
@@ -483,17 +353,14 @@ func (b *CertManagerBackend) RenewCertificate(ctx context.Context, req *Certific
 
 		RequestID: req.ID,
 
-		Status:    CertStatusPending,
+		Status: CertStatusPending,
 
-		IssuedBy:  string(BackendCertManager),
+		IssuedBy: string(BackendCertManager),
 
 		CreatedAt: time.Now(),
-
 	}, fmt.Errorf("cert-manager backend renewal is not fully implemented")
 
 }
-
-
 
 // GetCAChain retrieves the CA certificate chain.
 
@@ -507,19 +374,13 @@ func (b *CertManagerBackend) GetCAChain(ctx context.Context) ([]*x509.Certificat
 
 	// This is a simplified implementation.
 
-
-
 	b.logger.Debug("retrieving CA chain for cert-manager backend")
-
-
 
 	// This would be issuer-specific logic.
 
 	return nil, fmt.Errorf("CA chain retrieval not implemented for cert-manager backend")
 
 }
-
-
 
 // GetCRL retrieves the Certificate Revocation List.
 
@@ -531,29 +392,24 @@ func (b *CertManagerBackend) GetCRL(ctx context.Context) (*pkix.CertificateList,
 
 }
 
-
-
 // GetBackendInfo returns backend information.
 
 func (b *CertManagerBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error) {
 
 	return &BackendInfo{
 
-		Type:     BackendCertManager,
+		Type: BackendCertManager,
 
-		Version:  "cert-manager v1.x",
+		Version: "cert-manager v1.x",
 
-		Status:   "ready",
+		Status: "ready",
 
-		Issuer:   fmt.Sprintf("%s/%s", b.config.IssuerKind, b.config.IssuerName),
+		Issuer: fmt.Sprintf("%s/%s", b.config.IssuerKind, b.config.IssuerName),
 
 		Features: b.GetSupportedFeatures(),
-
 	}, nil
 
 }
-
-
 
 // GetSupportedFeatures returns supported features.
 
@@ -572,16 +428,11 @@ func (b *CertManagerBackend) GetSupportedFeatures() []string {
 		"kubernetes_integration",
 
 		"secret_management",
-
 	}
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (b *CertManagerBackend) validateConfig() error {
 
@@ -591,15 +442,11 @@ func (b *CertManagerBackend) validateConfig() error {
 
 	}
 
-
-
 	if b.config.IssuerKind == "" {
 
 		b.config.IssuerKind = "Issuer" // Default to Issuer
 
 	}
-
-
 
 	if b.config.IssuerKind != "Issuer" && b.config.IssuerKind != "ClusterIssuer" {
 
@@ -607,15 +454,11 @@ func (b *CertManagerBackend) validateConfig() error {
 
 	}
 
-
-
 	if b.config.CertificateNamespace == "" {
 
 		b.config.CertificateNamespace = "default"
 
 	}
-
-
 
 	if b.config.SecretNamePrefix == "" {
 
@@ -623,15 +466,11 @@ func (b *CertManagerBackend) validateConfig() error {
 
 	}
 
-
-
 	if b.config.DefaultDuration == 0 {
 
 		b.config.DefaultDuration = 24 * 30 * time.Hour // 30 days
 
 	}
-
-
 
 	if b.config.RenewBefore == 0 {
 
@@ -639,21 +478,15 @@ func (b *CertManagerBackend) validateConfig() error {
 
 	}
 
-
-
 	if b.config.RevisionLimit == 0 {
 
 		b.config.RevisionLimit = 3
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (b *CertManagerBackend) verifyIssuer(ctx context.Context) error {
 
@@ -665,23 +498,17 @@ func (b *CertManagerBackend) verifyIssuer(ctx context.Context) error {
 
 }
 
-
-
 func (b *CertManagerBackend) generateCertificateName(req *CertificateRequest) string {
 
 	return fmt.Sprintf("%s-%s", b.config.SecretNamePrefix, req.ID)
 
 }
 
-
-
 func (b *CertManagerBackend) generateSecretName(req *CertificateRequest) string {
 
 	return fmt.Sprintf("%s-%s-tls", b.config.SecretNamePrefix, req.ID)
 
 }
-
-
 
 func (b *CertManagerBackend) convertKeyUsages(keyUsage, extKeyUsage []string) []string {
 
@@ -697,8 +524,6 @@ func (b *CertManagerBackend) convertKeyUsages(keyUsage, extKeyUsage []string) []
 
 }
 
-
-
 func (b *CertManagerBackend) waitForCertificateReady(ctx context.Context, certName string, req *CertificateRequest) (*CertificateResponse, error) {
 
 	// Stub implementation.
@@ -707,17 +532,14 @@ func (b *CertManagerBackend) waitForCertificateReady(ctx context.Context, certNa
 
 		RequestID: req.ID,
 
-		Status:    CertStatusPending,
+		Status: CertStatusPending,
 
-		IssuedBy:  string(BackendCertManager),
+		IssuedBy: string(BackendCertManager),
 
 		CreatedAt: time.Now(),
-
 	}, fmt.Errorf("cert-manager wait not implemented")
 
 }
-
-
 
 func (b *CertManagerBackend) buildCertificateResponse(ctx context.Context, certName string, req *CertificateRequest) (*CertificateResponse, error) {
 
@@ -727,13 +549,11 @@ func (b *CertManagerBackend) buildCertificateResponse(ctx context.Context, certN
 
 		RequestID: req.ID,
 
-		Status:    CertStatusPending,
+		Status: CertStatusPending,
 
-		IssuedBy:  string(BackendCertManager),
+		IssuedBy: string(BackendCertManager),
 
 		CreatedAt: time.Now(),
-
 	}, fmt.Errorf("cert-manager response building not implemented")
 
 }
-

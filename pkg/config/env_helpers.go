@@ -1,23 +1,12 @@
-
 package config
 
-
-
 import (
-
 	"fmt"
-
 	"os"
-
 	"strconv"
-
 	"strings"
-
 	"time"
-
 )
-
-
 
 // GetEnvOrDefault retrieves the value of the environment variable named by key.
 
@@ -49,8 +38,6 @@ func GetEnvOrDefault(key, defaultValue string) string {
 
 }
 
-
-
 // GetBoolEnv retrieves a boolean value from the environment variable.
 
 // It accepts "true", "1", "yes", "on" (case-insensitive) as true values.
@@ -77,8 +64,6 @@ func GetBoolEnv(key string, defaultValue bool) bool {
 
 	}
 
-
-
 	// Accept common truthy values.
 
 	switch value {
@@ -100,8 +85,6 @@ func GetBoolEnv(key string, defaultValue bool) bool {
 	}
 
 }
-
-
 
 // GetDurationEnv retrieves a duration value from the environment variable.
 
@@ -129,8 +112,6 @@ func GetDurationEnv(key string, defaultValue time.Duration) time.Duration {
 
 	}
 
-
-
 	duration, err := time.ParseDuration(value)
 
 	if err != nil {
@@ -142,8 +123,6 @@ func GetDurationEnv(key string, defaultValue time.Duration) time.Duration {
 	return duration
 
 }
-
-
 
 // GetStringSliceEnv retrieves a string slice from the environment variable.
 
@@ -171,8 +150,6 @@ func GetStringSliceEnv(key string, defaultValue []string) []string {
 
 	}
 
-
-
 	var result []string
 
 	for _, item := range strings.Split(value, ",") {
@@ -185,8 +162,6 @@ func GetStringSliceEnv(key string, defaultValue []string) []string {
 
 	}
 
-
-
 	if len(result) == 0 {
 
 		return defaultValue
@@ -196,8 +171,6 @@ func GetStringSliceEnv(key string, defaultValue []string) []string {
 	return result
 
 }
-
-
 
 // GetIntEnv retrieves an integer value from the environment variable.
 
@@ -223,8 +196,6 @@ func GetIntEnv(key string, defaultValue int) int {
 
 	}
 
-
-
 	intValue, err := strconv.Atoi(value)
 
 	if err != nil {
@@ -236,8 +207,6 @@ func GetIntEnv(key string, defaultValue int) int {
 	return intValue
 
 }
-
-
 
 // GetInt64Env retrieves an int64 value from the environment variable.
 
@@ -263,8 +232,6 @@ func GetInt64Env(key string, defaultValue int64) int64 {
 
 	}
 
-
-
 	intValue, err := strconv.ParseInt(value, 10, 64)
 
 	if err != nil {
@@ -276,8 +243,6 @@ func GetInt64Env(key string, defaultValue int64) int64 {
 	return intValue
 
 }
-
-
 
 // GetFloatEnv retrieves a float64 value from the environment variable.
 
@@ -303,8 +268,6 @@ func GetFloatEnv(key string, defaultValue float64) float64 {
 
 	}
 
-
-
 	floatValue, err := strconv.ParseFloat(value, 64)
 
 	if err != nil {
@@ -316,8 +279,6 @@ func GetFloatEnv(key string, defaultValue float64) float64 {
 	return floatValue
 
 }
-
-
 
 // GetEnvWithValidation retrieves an environment variable with validation.
 
@@ -373,8 +334,6 @@ func GetEnvWithValidation(key, defaultValue string, validator func(string) error
 
 }
 
-
-
 // GetIntEnvWithValidation retrieves an integer environment variable with validation.
 
 // If parsing or validation fails, returns the defaultValue and an error.
@@ -399,8 +358,6 @@ func GetIntEnvWithValidation(key string, defaultValue int, validator func(int) e
 
 	var intValue int
 
-
-
 	if value == "" {
 
 		intValue = defaultValue
@@ -419,8 +376,6 @@ func GetIntEnvWithValidation(key string, defaultValue int, validator func(int) e
 
 	}
 
-
-
 	if err := validator(intValue); err != nil {
 
 		return defaultValue, fmt.Errorf("%s: %w", key, err)
@@ -430,8 +385,6 @@ func GetIntEnvWithValidation(key string, defaultValue int, validator func(int) e
 	return intValue, nil
 
 }
-
-
 
 // GetDurationEnvWithValidation retrieves a duration environment variable with validation.
 
@@ -457,8 +410,6 @@ func GetDurationEnvWithValidation(key string, defaultValue time.Duration, valida
 
 	var duration time.Duration
 
-
-
 	if value == "" {
 
 		duration = defaultValue
@@ -477,8 +428,6 @@ func GetDurationEnvWithValidation(key string, defaultValue time.Duration, valida
 
 	}
 
-
-
 	if err := validator(duration); err != nil {
 
 		return defaultValue, fmt.Errorf("%s: %w", key, err)
@@ -489,11 +438,7 @@ func GetDurationEnvWithValidation(key string, defaultValue time.Duration, valida
 
 }
 
-
-
 // Common validator functions.
-
-
 
 // ValidateNonEmpty validates that a string is not empty after trimming whitespace.
 
@@ -508,8 +453,6 @@ func ValidateNonEmpty(value string) error {
 	return nil
 
 }
-
-
 
 // ValidatePort validates that a string represents a valid port number (1-65535).
 
@@ -533,8 +476,6 @@ func ValidatePort(value string) error {
 
 }
 
-
-
 // ValidatePositiveInt validates that an integer is positive (> 0).
 
 func ValidatePositiveInt(value int) error {
@@ -548,8 +489,6 @@ func ValidatePositiveInt(value int) error {
 	return nil
 
 }
-
-
 
 // ValidateNonNegativeInt validates that an integer is non-negative (>= 0).
 
@@ -565,8 +504,6 @@ func ValidateNonNegativeInt(value int) error {
 
 }
 
-
-
 // ValidatePositiveDuration validates that a duration is positive.
 
 func ValidatePositiveDuration(value time.Duration) error {
@@ -581,8 +518,6 @@ func ValidatePositiveDuration(value time.Duration) error {
 
 }
 
-
-
 // ValidateNonNegativeDuration validates that a duration is non-negative.
 
 func ValidateNonNegativeDuration(value time.Duration) error {
@@ -596,8 +531,6 @@ func ValidateNonNegativeDuration(value time.Duration) error {
 	return nil
 
 }
-
-
 
 // ValidateURL validates that a string is a valid HTTP/HTTPS URL.
 
@@ -621,8 +554,6 @@ func ValidateURL(value string) error {
 
 }
 
-
-
 // ValidateLogLevel validates common log level values.
 
 func ValidateLogLevel(value string) error {
@@ -630,8 +561,6 @@ func ValidateLogLevel(value string) error {
 	validLevels := []string{"debug", "info", "warn", "error", "fatal", "panic", "trace"}
 
 	level := strings.ToLower(strings.TrimSpace(value))
-
-
 
 	for _, valid := range validLevels {
 
@@ -646,8 +575,6 @@ func ValidateLogLevel(value string) error {
 	return fmt.Errorf("invalid log level '%s', must be one of: %s", value, strings.Join(validLevels, ", "))
 
 }
-
-
 
 // ValidateOneOf creates a validator that checks if the value is one of the allowed values.
 
@@ -685,8 +612,6 @@ func ValidateOneOf(allowedValues []string) func(string) error {
 
 }
 
-
-
 // ValidateOneOfIgnoreCase creates a validator that checks if the value is one of the allowed values.
 
 // The comparison is case-insensitive.
@@ -723,8 +648,6 @@ func ValidateOneOfIgnoreCase(allowedValues []string) func(string) error {
 
 }
 
-
-
 // ValidateIntRange creates a validator that checks if an integer is within a specified range (inclusive).
 
 //
@@ -752,8 +675,6 @@ func ValidateIntRange(min, max int) func(int) error {
 	}
 
 }
-
-
 
 // ValidateDurationRange creates a validator that checks if a duration is within a specified range (inclusive).
 
@@ -783,8 +704,6 @@ func ValidateDurationRange(min, max time.Duration) func(time.Duration) error {
 
 }
 
-
-
 // MustGetEnv retrieves an environment variable and panics if it's not set or empty.
 
 // This should only be used for critical configuration that must be present.
@@ -810,8 +729,6 @@ func MustGetEnv(key string) string {
 	return value
 
 }
-
-
 
 // MustGetEnvWithValidation retrieves an environment variable with validation and panics on failure.
 
@@ -839,8 +756,6 @@ func MustGetEnvWithValidation(key string, validator func(string) error) string {
 
 }
 
-
-
 // IsSet checks if an environment variable is set (even if empty).
 
 // This is useful to distinguish between unset variables and empty values.
@@ -864,8 +779,6 @@ func IsSet(key string) bool {
 	return exists
 
 }
-
-
 
 // GetEnvKeys returns all environment variable keys.
 
@@ -906,4 +819,3 @@ func GetEnvKeys() []string {
 	return keys
 
 }
-

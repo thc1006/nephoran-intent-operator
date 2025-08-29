@@ -28,62 +28,41 @@ limitations under the License.
 
 */
 
-
-
-
 package nephio
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
 
-
-
 	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // NephioIntegration provides the main integration point for Nephio-native operations.
 
 // This is the primary interface for the Nephoran Intent Operator to interact with Nephio.
 
 type NephioIntegration struct {
+	client client.Client
 
-	client               client.Client
-
-	porchClient          porch.PorchClient
+	porchClient porch.PorchClient
 
 	workflowOrchestrator *NephioWorkflowOrchestrator
 
-	packageCatalog       *NephioPackageCatalog
+	packageCatalog *NephioPackageCatalog
 
-	workloadRegistry     *WorkloadClusterRegistry
+	workloadRegistry *WorkloadClusterRegistry
 
-	configSync           *ConfigSyncClient
+	configSync *ConfigSyncClient
 
-	workflowEngine       *NephioWorkflowEngine
+	workflowEngine *NephioWorkflowEngine
 
-	config               *NephioIntegrationConfig
-
+	config *NephioIntegrationConfig
 }
-
-
 
 // NephioIntegrationConfig defines configuration for Nephio integration.
 
@@ -91,109 +70,93 @@ type NephioIntegrationConfig struct {
 
 	// Core Nephio settings.
 
-	NephioNamespace   string `json:"nephioNamespace" yaml:"nephioNamespace"`
+	NephioNamespace string `json:"nephioNamespace" yaml:"nephioNamespace"`
 
-	PorchAPI          string `json:"porchAPI" yaml:"porchAPI"`
+	PorchAPI string `json:"porchAPI" yaml:"porchAPI"`
 
-	ConfigSyncEnabled bool   `json:"configSyncEnabled" yaml:"configSyncEnabled"`
-
-
+	ConfigSyncEnabled bool `json:"configSyncEnabled" yaml:"configSyncEnabled"`
 
 	// Repository settings.
 
-	UpstreamRepository   string `json:"upstreamRepository" yaml:"upstreamRepository"`
+	UpstreamRepository string `json:"upstreamRepository" yaml:"upstreamRepository"`
 
 	DownstreamRepository string `json:"downstreamRepository" yaml:"downstreamRepository"`
 
-	CatalogRepository    string `json:"catalogRepository" yaml:"catalogRepository"`
-
-
+	CatalogRepository string `json:"catalogRepository" yaml:"catalogRepository"`
 
 	// Workflow settings.
 
 	WorkflowOrchestrator *WorkflowOrchestratorConfig `json:"workflowOrchestrator,omitempty" yaml:"workflowOrchestrator,omitempty"`
 
-	PackageCatalog       *PackageCatalogConfig       `json:"packageCatalog,omitempty" yaml:"packageCatalog,omitempty"`
+	PackageCatalog *PackageCatalogConfig `json:"packageCatalog,omitempty" yaml:"packageCatalog,omitempty"`
 
-	WorkloadRegistry     *WorkloadClusterConfig      `json:"workloadRegistry,omitempty" yaml:"workloadRegistry,omitempty"`
+	WorkloadRegistry *WorkloadClusterConfig `json:"workloadRegistry,omitempty" yaml:"workloadRegistry,omitempty"`
 
-	ConfigSync           *ConfigSyncConfig           `json:"configSync,omitempty" yaml:"configSync,omitempty"`
+	ConfigSync *ConfigSyncConfig `json:"configSync,omitempty" yaml:"configSync,omitempty"`
 
-	WorkflowEngine       *WorkflowEngineConfig       `json:"workflowEngine,omitempty" yaml:"workflowEngine,omitempty"`
-
-
+	WorkflowEngine *WorkflowEngineConfig `json:"workflowEngine,omitempty" yaml:"workflowEngine,omitempty"`
 
 	// Integration settings.
 
-	EnableMetrics       bool          `json:"enableMetrics" yaml:"enableMetrics"`
+	EnableMetrics bool `json:"enableMetrics" yaml:"enableMetrics"`
 
-	EnableTracing       bool          `json:"enableTracing" yaml:"enableTracing"`
+	EnableTracing bool `json:"enableTracing" yaml:"enableTracing"`
 
 	HealthCheckInterval time.Duration `json:"healthCheckInterval" yaml:"healthCheckInterval"`
 
-	InitTimeout         time.Duration `json:"initTimeout" yaml:"initTimeout"`
-
+	InitTimeout time.Duration `json:"initTimeout" yaml:"initTimeout"`
 }
-
-
 
 // NephioIntegrationStatus represents the status of Nephio integration.
 
 type NephioIntegrationStatus struct {
+	Ready bool `json:"ready"`
 
-	Ready                bool      `json:"ready"`
+	InitializedAt time.Time `json:"initializedAt"`
 
-	InitializedAt        time.Time `json:"initializedAt"`
+	LastHealthCheck time.Time `json:"lastHealthCheck"`
 
-	LastHealthCheck      time.Time `json:"lastHealthCheck"`
+	WorkflowOrchestrator string `json:"workflowOrchestrator"`
 
-	WorkflowOrchestrator string    `json:"workflowOrchestrator"`
+	PackageCatalog string `json:"packageCatalog"`
 
-	PackageCatalog       string    `json:"packageCatalog"`
+	WorkloadRegistry string `json:"workloadRegistry"`
 
-	WorkloadRegistry     string    `json:"workloadRegistry"`
+	ConfigSync string `json:"configSync"`
 
-	ConfigSync           string    `json:"configSync"`
+	WorkflowEngine string `json:"workflowEngine"`
 
-	WorkflowEngine       string    `json:"workflowEngine"`
+	RegisteredWorkflows int `json:"registeredWorkflows"`
 
-	RegisteredWorkflows  int       `json:"registeredWorkflows"`
+	RegisteredBlueprints int `json:"registeredBlueprints"`
 
-	RegisteredBlueprints int       `json:"registeredBlueprints"`
-
-	RegisteredClusters   int       `json:"registeredClusters"`
-
+	RegisteredClusters int `json:"registeredClusters"`
 }
-
-
 
 // Default configuration.
 
 var DefaultNephioIntegrationConfig = &NephioIntegrationConfig{
 
-	NephioNamespace:      "nephio-system",
+	NephioNamespace: "nephio-system",
 
-	PorchAPI:             "https://porch.nephio-system.svc.cluster.local:8080",
+	PorchAPI: "https://porch.nephio-system.svc.cluster.local:8080",
 
-	ConfigSyncEnabled:    true,
+	ConfigSyncEnabled: true,
 
-	UpstreamRepository:   "nephoran-blueprints",
+	UpstreamRepository: "nephoran-blueprints",
 
 	DownstreamRepository: "nephoran-deployments",
 
-	CatalogRepository:    "nephoran-catalog",
+	CatalogRepository: "nephoran-catalog",
 
-	EnableMetrics:        true,
+	EnableMetrics: true,
 
-	EnableTracing:        true,
+	EnableTracing: true,
 
-	HealthCheckInterval:  1 * time.Minute,
+	HealthCheckInterval: 1 * time.Minute,
 
-	InitTimeout:          10 * time.Minute,
-
+	InitTimeout: 10 * time.Minute,
 }
-
-
 
 // NewNephioIntegration creates a new Nephio integration instance.
 
@@ -213,8 +176,6 @@ func NewNephioIntegration(
 
 	}
 
-
-
 	logger := log.Log.WithName("nephio-integration")
 
 	logger.Info("Initializing Nephio integration",
@@ -224,10 +185,7 @@ func NewNephioIntegration(
 		"porchAPI", config.PorchAPI,
 
 		"configSyncEnabled", config.ConfigSyncEnabled,
-
 	)
-
-
 
 	// Initialize Config Sync client.
 
@@ -243,17 +201,14 @@ func NewNephioIntegration(
 
 				Repository: config.DownstreamRepository,
 
-				Branch:     "main",
+				Branch: "main",
 
-				Directory:  "clusters",
+				Directory: "clusters",
 
 				SyncPeriod: 30 * time.Second,
-
 			}
 
 		}
-
-
 
 		var err error
 
@@ -269,8 +224,6 @@ func NewNephioIntegration(
 
 	}
 
-
-
 	// Initialize workload cluster registry.
 
 	workloadRegistryConfig := config.WorkloadRegistry
@@ -281,8 +234,6 @@ func NewNephioIntegration(
 
 	}
 
-
-
 	workloadRegistry, err := NewWorkloadClusterRegistry(client, workloadRegistryConfig)
 
 	if err != nil {
@@ -292,8 +243,6 @@ func NewNephioIntegration(
 	}
 
 	logger.Info("Workload cluster registry initialized successfully")
-
-
 
 	// Initialize package catalog.
 
@@ -307,8 +256,6 @@ func NewNephioIntegration(
 
 	}
 
-
-
 	packageCatalog, err := NewNephioPackageCatalog(client, porchClient, packageCatalogConfig)
 
 	if err != nil {
@@ -318,8 +265,6 @@ func NewNephioIntegration(
 	}
 
 	logger.Info("Package catalog initialized successfully")
-
-
 
 	// Initialize workflow engine.
 
@@ -331,8 +276,6 @@ func NewNephioIntegration(
 
 	}
 
-
-
 	workflowEngine, err := NewNephioWorkflowEngine(workflowEngineConfig)
 
 	if err != nil {
@@ -342,8 +285,6 @@ func NewNephioIntegration(
 	}
 
 	logger.Info("Workflow engine initialized successfully")
-
-
 
 	// Initialize workflow orchestrator.
 
@@ -361,8 +302,6 @@ func NewNephioIntegration(
 
 	}
 
-
-
 	workflowOrchestrator, err := NewNephioWorkflowOrchestrator(
 
 		client,
@@ -370,7 +309,6 @@ func NewNephioIntegration(
 		porchClient,
 
 		workflowOrchestratorConfig,
-
 	)
 
 	if err != nil {
@@ -378,8 +316,6 @@ func NewNephioIntegration(
 		return nil, fmt.Errorf("failed to initialize workflow orchestrator: %w", err)
 
 	}
-
-
 
 	// Wire up dependencies.
 
@@ -391,41 +327,32 @@ func NewNephioIntegration(
 
 	workflowOrchestrator.workflowEngine = workflowEngine
 
-
-
 	logger.Info("Workflow orchestrator initialized successfully")
-
-
 
 	integration := &NephioIntegration{
 
-		client:               client,
+		client: client,
 
-		porchClient:          porchClient,
+		porchClient: porchClient,
 
 		workflowOrchestrator: workflowOrchestrator,
 
-		packageCatalog:       packageCatalog,
+		packageCatalog: packageCatalog,
 
-		workloadRegistry:     workloadRegistry,
+		workloadRegistry: workloadRegistry,
 
-		configSync:           configSync,
+		configSync: configSync,
 
-		workflowEngine:       workflowEngine,
+		workflowEngine: workflowEngine,
 
-		config:               config,
-
+		config: config,
 	}
-
-
 
 	logger.Info("Nephio integration initialized successfully")
 
 	return integration, nil
 
 }
-
-
 
 // ProcessNetworkIntent processes a NetworkIntent using Nephio-native workflows.
 
@@ -438,14 +365,9 @@ func (ni *NephioIntegration) ProcessNetworkIntent(ctx context.Context, intent *v
 		"namespace", intent.Namespace,
 
 		"type", string(intent.Spec.IntentType),
-
 	)
 
-
-
 	logger.Info("Processing NetworkIntent with Nephio workflow")
-
-
 
 	// Validate intent for Nephio processing.
 
@@ -454,8 +376,6 @@ func (ni *NephioIntegration) ProcessNetworkIntent(ctx context.Context, intent *v
 		return nil, fmt.Errorf("%s: %w", "intent validation failed for Nephio processing", err)
 
 	}
-
-
 
 	// Execute Nephio workflow.
 
@@ -467,23 +387,16 @@ func (ni *NephioIntegration) ProcessNetworkIntent(ctx context.Context, intent *v
 
 	}
 
-
-
 	logger.Info("Nephio workflow execution initiated",
 
 		"executionId", execution.ID,
 
 		"workflow", execution.WorkflowDef.Name,
-
 	)
-
-
 
 	return execution, nil
 
 }
-
-
 
 // GetWorkflowExecution retrieves a workflow execution by ID.
 
@@ -503,15 +416,11 @@ func (ni *NephioIntegration) GetWorkflowExecution(ctx context.Context, execution
 
 }
 
-
-
 // ListWorkflowExecutions lists all workflow executions.
 
 func (ni *NephioIntegration) ListWorkflowExecutions(ctx context.Context) ([]*WorkflowExecution, error) {
 
 	executions := make([]*WorkflowExecution, 0)
-
-
 
 	ni.workflowOrchestrator.executionCache.Range(func(key, value interface{}) bool {
 
@@ -525,13 +434,9 @@ func (ni *NephioIntegration) ListWorkflowExecutions(ctx context.Context) ([]*Wor
 
 	})
 
-
-
 	return executions, nil
 
 }
-
-
 
 // RegisterWorkloadCluster registers a new workload cluster.
 
@@ -541,8 +446,6 @@ func (ni *NephioIntegration) RegisterWorkloadCluster(ctx context.Context, cluste
 
 }
 
-
-
 // GetWorkloadClusters retrieves all registered workload clusters.
 
 func (ni *NephioIntegration) GetWorkloadClusters(ctx context.Context) ([]*WorkloadCluster, error) {
@@ -550,8 +453,6 @@ func (ni *NephioIntegration) GetWorkloadClusters(ctx context.Context) ([]*Worklo
 	return ni.workloadRegistry.ListWorkloadClusters(ctx)
 
 }
-
-
 
 // GetPackageCatalog provides access to the package catalog.
 
@@ -561,8 +462,6 @@ func (ni *NephioIntegration) GetPackageCatalog() *NephioPackageCatalog {
 
 }
 
-
-
 // GetWorkflowEngine provides access to the workflow engine.
 
 func (ni *NephioIntegration) GetWorkflowEngine() *NephioWorkflowEngine {
@@ -571,8 +470,6 @@ func (ni *NephioIntegration) GetWorkflowEngine() *NephioWorkflowEngine {
 
 }
 
-
-
 // GetConfigSyncClient provides access to the Config Sync client.
 
 func (ni *NephioIntegration) GetConfigSyncClient() *ConfigSyncClient {
@@ -580,8 +477,6 @@ func (ni *NephioIntegration) GetConfigSyncClient() *ConfigSyncClient {
 	return ni.configSync
 
 }
-
-
 
 // GetStatus returns the current status of Nephio integration.
 
@@ -597,8 +492,6 @@ func (ni *NephioIntegration) GetStatus(ctx context.Context) (*NephioIntegrationS
 
 	}
 
-
-
 	// Count registered clusters.
 
 	clusters, err := ni.workloadRegistry.ListWorkloadClusters(ctx)
@@ -608,8 +501,6 @@ func (ni *NephioIntegration) GetStatus(ctx context.Context) (*NephioIntegrationS
 		return nil, err
 
 	}
-
-
 
 	// Count blueprints (simulated).
 
@@ -623,45 +514,38 @@ func (ni *NephioIntegration) GetStatus(ctx context.Context) (*NephioIntegrationS
 
 	})
 
-
-
 	return &NephioIntegrationStatus{
 
-		Ready:                true,
+		Ready: true,
 
-		InitializedAt:        time.Now(), // Would store actual initialization time
+		InitializedAt: time.Now(), // Would store actual initialization time
 
-		LastHealthCheck:      time.Now(),
+		LastHealthCheck: time.Now(),
 
 		WorkflowOrchestrator: "active",
 
-		PackageCatalog:       "active",
+		PackageCatalog: "active",
 
-		WorkloadRegistry:     "active",
+		WorkloadRegistry: "active",
 
-		ConfigSync:           ni.getConfigSyncStatus(),
+		ConfigSync: ni.getConfigSyncStatus(),
 
-		WorkflowEngine:       "active",
+		WorkflowEngine: "active",
 
-		RegisteredWorkflows:  len(workflows),
+		RegisteredWorkflows: len(workflows),
 
 		RegisteredBlueprints: blueprintCount,
 
-		RegisteredClusters:   len(clusters),
-
+		RegisteredClusters: len(clusters),
 	}, nil
 
 }
-
-
 
 // HealthCheck performs a comprehensive health check of Nephio integration.
 
 func (ni *NephioIntegration) HealthCheck(ctx context.Context) error {
 
 	logger := log.FromContext(ctx).WithName("nephio-health-check")
-
-
 
 	// Check workflow orchestrator.
 
@@ -671,8 +555,6 @@ func (ni *NephioIntegration) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	// Check package catalog.
 
 	if ni.packageCatalog == nil {
@@ -680,8 +562,6 @@ func (ni *NephioIntegration) HealthCheck(ctx context.Context) error {
 		return fmt.Errorf("package catalog not initialized")
 
 	}
-
-
 
 	// Check workload registry.
 
@@ -691,8 +571,6 @@ func (ni *NephioIntegration) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	// Check workflow engine.
 
 	if ni.workflowEngine == nil {
@@ -701,8 +579,6 @@ func (ni *NephioIntegration) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	// Check Config Sync (if enabled).
 
 	if ni.config.ConfigSyncEnabled && ni.configSync == nil {
@@ -710,8 +586,6 @@ func (ni *NephioIntegration) HealthCheck(ctx context.Context) error {
 		return fmt.Errorf("Config Sync not initialized but required")
 
 	}
-
-
 
 	// Verify workflow registrations.
 
@@ -723,31 +597,22 @@ func (ni *NephioIntegration) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	if len(workflows) == 0 {
 
 		return fmt.Errorf("no workflows registered")
 
 	}
 
-
-
 	logger.Info("Nephio integration health check passed",
 
 		"workflows", len(workflows),
 
 		"configSyncEnabled", ni.config.ConfigSyncEnabled,
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // validateIntentForNephio validates that an intent can be processed with Nephio.
 
@@ -763,8 +628,6 @@ func (ni *NephioIntegration) validateIntentForNephio(ctx context.Context, intent
 
 	}
 
-
-
 	for _, workflow := range workflows {
 
 		for _, intentType := range workflow.IntentTypes {
@@ -779,13 +642,9 @@ func (ni *NephioIntegration) validateIntentForNephio(ctx context.Context, intent
 
 	}
 
-
-
 	return fmt.Errorf("no workflow found for intent type: %s", intent.Spec.IntentType)
 
 }
-
-
 
 // getConfigSyncStatus returns the Config Sync status.
 
@@ -801,15 +660,11 @@ func (ni *NephioIntegration) getConfigSyncStatus() string {
 
 }
 
-
-
 // Cleanup performs cleanup of Nephio integration resources.
 
 func (ni *NephioIntegration) Cleanup(ctx context.Context) error {
 
 	logger := log.FromContext(ctx).WithName("nephio-cleanup")
-
-
 
 	// Stop health monitoring.
 
@@ -818,8 +673,6 @@ func (ni *NephioIntegration) Cleanup(ctx context.Context) error {
 		ni.workloadRegistry.healthMonitor.Stop()
 
 	}
-
-
 
 	// Cleanup workflows (if any active executions need to be stopped).
 
@@ -841,15 +694,11 @@ func (ni *NephioIntegration) Cleanup(ctx context.Context) error {
 
 	}
 
-
-
 	logger.Info("Nephio integration cleanup completed")
 
 	return nil
 
 }
-
-
 
 // GetWorkflowForIntent finds the appropriate workflow for a given intent.
 
@@ -859,8 +708,6 @@ func (ni *NephioIntegration) GetWorkflowForIntent(ctx context.Context, intent *v
 
 }
 
-
-
 // CreatePackageVariant creates a package variant for a specific cluster.
 
 func (ni *NephioIntegration) CreatePackageVariant(ctx context.Context, blueprint *BlueprintPackage, specialization *SpecializationRequest) (*PackageVariant, error) {
@@ -869,8 +716,6 @@ func (ni *NephioIntegration) CreatePackageVariant(ctx context.Context, blueprint
 
 }
 
-
-
 // FindBlueprint finds a blueprint for a given intent.
 
 func (ni *NephioIntegration) FindBlueprint(ctx context.Context, intent *v1.NetworkIntent) (*BlueprintPackage, error) {
@@ -878,8 +723,6 @@ func (ni *NephioIntegration) FindBlueprint(ctx context.Context, intent *v1.Netwo
 	return ni.packageCatalog.FindBlueprintForIntent(ctx, intent)
 
 }
-
-
 
 // DeployPackageToCluster deploys a package to a specific cluster via Config Sync.
 
@@ -895,8 +738,6 @@ func (ni *NephioIntegration) DeployPackageToCluster(ctx context.Context, pkg *po
 
 }
 
-
-
 // GetClusterHealth checks the health of a specific cluster.
 
 func (ni *NephioIntegration) GetClusterHealth(ctx context.Context, clusterName string) (*ClusterHealth, error) {
@@ -904,8 +745,6 @@ func (ni *NephioIntegration) GetClusterHealth(ctx context.Context, clusterName s
 	return ni.workloadRegistry.CheckClusterHealth(ctx, clusterName)
 
 }
-
-
 
 // RegisterCustomWorkflow allows registration of custom workflow definitions.
 
@@ -915,15 +754,11 @@ func (ni *NephioIntegration) RegisterCustomWorkflow(workflow *WorkflowDefinition
 
 }
 
-
-
 // GetIntegrationMetrics returns integration metrics (placeholder for metrics collection).
 
 func (ni *NephioIntegration) GetIntegrationMetrics(ctx context.Context) (map[string]interface{}, error) {
 
 	metrics := make(map[string]interface{})
-
-
 
 	// Workflow metrics.
 
@@ -931,23 +766,17 @@ func (ni *NephioIntegration) GetIntegrationMetrics(ctx context.Context) (map[str
 
 	metrics["registered_workflows"] = len(workflows)
 
-
-
 	// Cluster metrics.
 
 	clusters, _ := ni.workloadRegistry.ListWorkloadClusters(ctx)
 
 	metrics["registered_clusters"] = len(clusters)
 
-
-
 	// Execution metrics.
 
 	executions, _ := ni.ListWorkflowExecutions(ctx)
 
 	metrics["total_executions"] = len(executions)
-
-
 
 	runningExecutions := 0
 
@@ -963,8 +792,6 @@ func (ni *NephioIntegration) GetIntegrationMetrics(ctx context.Context) (map[str
 
 	metrics["running_executions"] = runningExecutions
 
-
-
 	// Blueprint metrics.
 
 	blueprintCount := 0
@@ -979,13 +806,9 @@ func (ni *NephioIntegration) GetIntegrationMetrics(ctx context.Context) (map[str
 
 	metrics["available_blueprints"] = blueprintCount
 
-
-
 	return metrics, nil
 
 }
-
-
 
 // ValidateWorkflow validates a workflow definition.
 
@@ -994,4 +817,3 @@ func (ni *NephioIntegration) ValidateWorkflow(ctx context.Context, workflow *Wor
 	return ni.workflowEngine.validator.ValidateWorkflow(ctx, workflow), nil
 
 }
-

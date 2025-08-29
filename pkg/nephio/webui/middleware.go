@@ -1,38 +1,20 @@
-
 package webui
 
-
-
 import (
-
 	"context"
-
 	"net/http"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/google/uuid"
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 	"go.uber.org/zap"
-
 	"golang.org/x/time/rate"
-
 	"gopkg.in/square/go-jose.v2/jwt"
-
 )
 
-
-
 var (
-
 	requestCounter = promauto.NewCounterVec(
 
 		prometheus.CounterOpts{
@@ -40,34 +22,25 @@ var (
 			Name: "nephio_webui_requests_total",
 
 			Help: "Total number of HTTP requests",
-
 		},
 
 		[]string{"method", "path", "status"},
-
 	)
-
-
 
 	requestDuration = promauto.NewHistogramVec(
 
 		prometheus.HistogramOpts{
 
-			Name:    "nephio_webui_request_duration_seconds",
+			Name: "nephio_webui_request_duration_seconds",
 
-			Help:    "HTTP request latencies in seconds",
+			Help: "HTTP request latencies in seconds",
 
 			Buckets: prometheus.DefBuckets,
-
 		},
 
 		[]string{"method", "path"},
-
 	)
-
 )
-
-
 
 // AuthMiddleware handles JWT/OIDC token validation.
 
@@ -87,8 +60,6 @@ func AuthMiddleware(logger *zap.Logger, jwtVerifier func(token string) (*jwt.Cla
 
 			}
 
-
-
 			parts := strings.Split(authHeader, " ")
 
 			if len(parts) != 2 || parts[0] != "Bearer" {
@@ -98,8 +69,6 @@ func AuthMiddleware(logger *zap.Logger, jwtVerifier func(token string) (*jwt.Cla
 				return
 
 			}
-
-
 
 			claims, err := jwtVerifier(parts[1])
 
@@ -113,8 +82,6 @@ func AuthMiddleware(logger *zap.Logger, jwtVerifier func(token string) (*jwt.Cla
 
 			}
 
-
-
 			// Add user claims to context.
 
 			ctx := context.WithValue(r.Context(), "claims", claims)
@@ -126,8 +93,6 @@ func AuthMiddleware(logger *zap.Logger, jwtVerifier func(token string) (*jwt.Cla
 	}
 
 }
-
-
 
 // RBACMiddleware handles role-based access control.
 
@@ -147,8 +112,6 @@ func RBACMiddleware(logger *zap.Logger, checkAccess func(claims *jwt.Claims, pat
 
 			}
 
-
-
 			if !checkAccess(claims, r.URL.Path, r.Method) {
 
 				http.Error(w, "Insufficient permissions", http.StatusForbidden)
@@ -157,8 +120,6 @@ func RBACMiddleware(logger *zap.Logger, checkAccess func(claims *jwt.Claims, pat
 
 			}
 
-
-
 			next.ServeHTTP(w, r)
 
 		})
@@ -166,8 +127,6 @@ func RBACMiddleware(logger *zap.Logger, checkAccess func(claims *jwt.Claims, pat
 	}
 
 }
-
-
 
 // LoggingMiddleware provides structured logging for HTTP requests.
 
@@ -187,21 +146,15 @@ func LoggingMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
 
 			}
 
-
-
 			ctx := context.WithValue(r.Context(), "correlation_id", correlationID)
 
 			w.Header().Set("X-Correlation-ID", correlationID)
-
-
 
 			// Use a custom ResponseWriter to capture status code.
 
 			crw := &customResponseWriter{ResponseWriter: w, status: http.StatusOK}
 
 			next.ServeHTTP(crw, r.WithContext(ctx))
-
-
 
 			duration := time.Since(start)
 
@@ -216,10 +169,7 @@ func LoggingMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
 				zap.String("correlation_id", correlationID),
 
 				zap.Duration("duration", duration),
-
 			)
-
-
 
 			// Prometheus metrics.
 
@@ -233,8 +183,6 @@ func LoggingMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
 
 }
 
-
-
 // CORSMiddleware handles Cross-Origin Resource Sharing.
 
 func CORSMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
@@ -246,8 +194,6 @@ func CORSMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 			origin := r.Header.Get("Origin")
 
 			allowOrigin := false
-
-
 
 			for _, allowed := range allowedOrigins {
 
@@ -261,8 +207,6 @@ func CORSMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 
 			}
 
-
-
 			if allowOrigin {
 
 				w.Header().Set("Access-Control-Allow-Origin", origin)
@@ -275,8 +219,6 @@ func CORSMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 
 			}
 
-
-
 			if r.Method == "OPTIONS" {
 
 				w.WriteHeader(http.StatusOK)
@@ -284,8 +226,6 @@ func CORSMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 				return
 
 			}
-
-
 
 			next.ServeHTTP(w, r)
 
@@ -295,15 +235,11 @@ func CORSMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 
 }
 
-
-
 // RateLimitMiddleware provides request rate limiting.
 
 func RateLimitMiddleware(requestsPerSecond float64, burst int) func(http.Handler) http.Handler {
 
 	limiter := rate.NewLimiter(rate.Limit(requestsPerSecond), burst)
-
-
 
 	return func(next http.Handler) http.Handler {
 
@@ -325,8 +261,6 @@ func RateLimitMiddleware(requestsPerSecond float64, burst int) func(http.Handler
 
 }
 
-
-
 // SecurityHeadersMiddleware adds security-related HTTP headers.
 
 func SecurityHeadersMiddleware(next http.Handler) http.Handler {
@@ -345,27 +279,19 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'")
 
-
-
 		next.ServeHTTP(w, r)
 
 	})
 
 }
 
-
-
 // customResponseWriter wraps http.ResponseWriter to capture status code.
 
 type customResponseWriter struct {
-
 	http.ResponseWriter
 
 	status int
-
 }
-
-
 
 // WriteHeader performs writeheader operation.
 
@@ -376,4 +302,3 @@ func (crw *customResponseWriter) WriteHeader(status int) {
 	crw.ResponseWriter.WriteHeader(status)
 
 }
-

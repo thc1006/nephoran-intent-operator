@@ -1,37 +1,21 @@
-
 package patch
 
-
-
 import (
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 	"time"
 
-
-
 	"sigs.k8s.io/yaml"
-
 )
-
-
 
 // Generator creates KRM patches from intents.
 
 type Generator struct {
-
-	Intent    *Intent
+	Intent *Intent
 
 	OutputDir string
-
 }
-
-
 
 // NewGenerator creates a new patch generator.
 
@@ -39,15 +23,12 @@ func NewGenerator(intent *Intent, outputDir string) *Generator {
 
 	return &Generator{
 
-		Intent:    intent,
+		Intent: intent,
 
 		OutputDir: outputDir,
-
 	}
 
 }
-
-
 
 // Generate creates the KRM patch files.
 
@@ -59,15 +40,11 @@ func (g *Generator) Generate() error {
 
 	packageDir := filepath.Join(g.OutputDir, packageName)
 
-
-
 	if err := os.MkdirAll(packageDir, 0o755); err != nil {
 
 		return fmt.Errorf("failed to create package directory: %w", err)
 
 	}
-
-
 
 	// Generate Kptfile.
 
@@ -77,8 +54,6 @@ func (g *Generator) Generate() error {
 
 	}
 
-
-
 	// Generate patch YAML.
 
 	if err := g.generatePatch(packageDir); err != nil {
@@ -86,8 +61,6 @@ func (g *Generator) Generate() error {
 		return err
 
 	}
-
-
 
 	// Generate setter configuration.
 
@@ -97,8 +70,6 @@ func (g *Generator) Generate() error {
 
 	}
 
-
-
 	// Generate README.
 
 	if err := g.generateReadme(packageDir); err != nil {
@@ -106,8 +77,6 @@ func (g *Generator) Generate() error {
 		return err
 
 	}
-
-
 
 	fmt.Printf("\n=== Patch Package Generated ===\n")
 
@@ -123,13 +92,9 @@ func (g *Generator) Generate() error {
 
 	fmt.Printf("================================\n\n")
 
-
-
 	return nil
 
 }
-
-
 
 func (g *Generator) generateKptfile(packageDir string) error {
 
@@ -137,7 +102,7 @@ func (g *Generator) generateKptfile(packageDir string) error {
 
 		"apiVersion": "kpt.dev/v1",
 
-		"kind":       "Kptfile",
+		"kind": "Kptfile",
 
 		"metadata": map[string]interface{}{
 
@@ -146,15 +111,12 @@ func (g *Generator) generateKptfile(packageDir string) error {
 			"annotations": map[string]string{
 
 				"config.kubernetes.io/local-config": "true",
-
 			},
-
 		},
 
 		"info": map[string]interface{}{
 
 			"description": fmt.Sprintf("Scaling patch for %s", g.Intent.Target),
-
 		},
 
 		"pipeline": map[string]interface{}{
@@ -168,18 +130,11 @@ func (g *Generator) generateKptfile(packageDir string) error {
 					"configMap": map[string]interface{}{
 
 						"replicas": fmt.Sprintf("%d", g.Intent.Replicas),
-
 					},
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	data, err := yaml.Marshal(kptfile)
 
@@ -189,15 +144,11 @@ func (g *Generator) generateKptfile(packageDir string) error {
 
 	}
 
-
-
 	kptfilePath := filepath.Join(packageDir, "Kptfile")
 
 	return os.WriteFile(kptfilePath, data, 0o640)
 
 }
-
-
 
 func (g *Generator) generatePatch(packageDir string) error {
 
@@ -205,14 +156,13 @@ func (g *Generator) generatePatch(packageDir string) error {
 
 		"apiVersion": "apps/v1",
 
-		"kind":       "Deployment",
+		"kind": "Deployment",
 
 		"metadata": map[string]interface{}{
 
-			"name":      g.Intent.Target,
+			"name": g.Intent.Target,
 
 			"namespace": g.Intent.Namespace,
-
 		},
 
 		"spec": map[string]interface{}{
@@ -220,10 +170,7 @@ func (g *Generator) generatePatch(packageDir string) error {
 			"replicas": g.Intent.Replicas, // kpt-set: ${replicas}
 
 		},
-
 	}
-
-
 
 	data, err := yaml.Marshal(patch)
 
@@ -233,15 +180,11 @@ func (g *Generator) generatePatch(packageDir string) error {
 
 	}
 
-
-
 	// Add kpt setter comment.
 
 	patchContent := string(data)
 
 	patchContent = fmt.Sprintf("# kpt-file: deployment-patch.yaml\n%s", patchContent)
-
-
 
 	patchPath := filepath.Join(packageDir, "deployment-patch.yaml")
 
@@ -249,37 +192,30 @@ func (g *Generator) generatePatch(packageDir string) error {
 
 }
 
-
-
 func (g *Generator) generateSetters(packageDir string) error {
 
 	setters := map[string]interface{}{
 
 		"apiVersion": "v1",
 
-		"kind":       "ConfigMap",
+		"kind": "ConfigMap",
 
 		"metadata": map[string]interface{}{
 
-			"name":      "setters",
+			"name": "setters",
 
 			"namespace": g.Intent.Namespace,
-
 		},
 
 		"data": map[string]string{
 
-			"replicas":  fmt.Sprintf("%d", g.Intent.Replicas),
+			"replicas": fmt.Sprintf("%d", g.Intent.Replicas),
 
-			"target":    g.Intent.Target,
+			"target": g.Intent.Target,
 
 			"namespace": g.Intent.Namespace,
-
 		},
-
 	}
-
-
 
 	data, err := yaml.Marshal(setters)
 
@@ -289,15 +225,11 @@ func (g *Generator) generateSetters(packageDir string) error {
 
 	}
 
-
-
 	settersPath := filepath.Join(packageDir, "setters.yaml")
 
 	return os.WriteFile(settersPath, data, 0o640)
 
 }
-
-
 
 func (g *Generator) generateReadme(packageDir string) error {
 
@@ -339,11 +271,8 @@ kubectl apply -f deployment-patch.yaml
 
 `, g.Intent.Target, g.Intent.Namespace, g.Intent.Replicas)
 
-
-
 	readmePath := filepath.Join(packageDir, "README.md")
 
 	return os.WriteFile(readmePath, []byte(readme), 0o640)
 
 }
-

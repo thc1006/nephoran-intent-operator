@@ -28,66 +28,37 @@ limitations under the License.
 
 */
 
-
-
-
 package shared
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"strconv"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/apimachinery/pkg/types"
-
 	"k8s.io/client-go/tools/record"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // StateManager provides centralized state management for all controllers.
 
 type StateManager struct {
-
-	client   client.Client
+	client client.Client
 
 	recorder record.EventRecorder
 
-	logger   logr.Logger
+	logger logr.Logger
 
-	scheme   *runtime.Scheme
-
-
+	scheme *runtime.Scheme
 
 	// State caching and synchronization.
 
@@ -95,35 +66,24 @@ type StateManager struct {
 
 	stateLocks *LockManager
 
-
-
 	// Event notification.
 
 	eventBus EventBus
-
-
 
 	// Configuration.
 
 	config *StateManagerConfig
 
-
-
 	// Metrics.
 
 	metrics *StateMetrics
 
-
-
 	// Internal coordination.
 
-	mutex   sync.RWMutex
+	mutex sync.RWMutex
 
 	started bool
-
 }
-
-
 
 // StateManagerConfig provides configuration for the state manager.
 
@@ -131,45 +91,36 @@ type StateManagerConfig struct {
 
 	// Cache configuration.
 
-	CacheSize            int           `json:"cacheSize"`
+	CacheSize int `json:"cacheSize"`
 
-	CacheTTL             time.Duration `json:"cacheTTL"`
+	CacheTTL time.Duration `json:"cacheTTL"`
 
 	CacheCleanupInterval time.Duration `json:"cacheCleanupInterval"`
 
-
-
 	// Lock configuration.
 
-	LockTimeout       time.Duration `json:"lockTimeout"`
+	LockTimeout time.Duration `json:"lockTimeout"`
 
 	LockRetryInterval time.Duration `json:"lockRetryInterval"`
 
-	MaxLockRetries    int           `json:"maxLockRetries"`
-
-
+	MaxLockRetries int `json:"maxLockRetries"`
 
 	// State synchronization.
 
-	SyncInterval           time.Duration `json:"syncInterval"`
+	SyncInterval time.Duration `json:"syncInterval"`
 
-	StateValidationEnabled bool          `json:"stateValidationEnabled"`
+	StateValidationEnabled bool `json:"stateValidationEnabled"`
 
-	ConflictResolutionMode string        `json:"conflictResolutionMode"` // "latest", "merge", "manual"
-
-
+	ConflictResolutionMode string `json:"conflictResolutionMode"` // "latest", "merge", "manual"
 
 	// Performance.
 
-	BatchStateUpdates bool          `json:"batchStateUpdates"`
+	BatchStateUpdates bool `json:"batchStateUpdates"`
 
-	BatchSize         int           `json:"batchSize"`
+	BatchSize int `json:"batchSize"`
 
-	BatchTimeout      time.Duration `json:"batchTimeout"`
-
+	BatchTimeout time.Duration `json:"batchTimeout"`
 }
-
-
 
 // DefaultStateManagerConfig returns default configuration.
 
@@ -177,35 +128,32 @@ func DefaultStateManagerConfig() *StateManagerConfig {
 
 	return &StateManagerConfig{
 
-		CacheSize:              10000,
+		CacheSize: 10000,
 
-		CacheTTL:               30 * time.Minute,
+		CacheTTL: 30 * time.Minute,
 
-		CacheCleanupInterval:   5 * time.Minute,
+		CacheCleanupInterval: 5 * time.Minute,
 
-		LockTimeout:            30 * time.Second,
+		LockTimeout: 30 * time.Second,
 
-		LockRetryInterval:      1 * time.Second,
+		LockRetryInterval: 1 * time.Second,
 
-		MaxLockRetries:         10,
+		MaxLockRetries: 10,
 
-		SyncInterval:           10 * time.Second,
+		SyncInterval: 10 * time.Second,
 
 		StateValidationEnabled: true,
 
 		ConflictResolutionMode: "latest",
 
-		BatchStateUpdates:      true,
+		BatchStateUpdates: true,
 
-		BatchSize:              50,
+		BatchSize: 50,
 
-		BatchTimeout:           5 * time.Second,
-
+		BatchTimeout: 5 * time.Second,
 	}
 
 }
-
-
 
 // NewStateManager creates a new state manager.
 
@@ -213,33 +161,28 @@ func NewStateManager(client client.Client, recorder record.EventRecorder, logger
 
 	config := DefaultStateManagerConfig()
 
-
-
 	return &StateManager{
 
-		client:     client,
+		client: client,
 
-		recorder:   recorder,
+		recorder: recorder,
 
-		logger:     logger.WithName("state-manager"),
+		logger: logger.WithName("state-manager"),
 
-		scheme:     scheme,
+		scheme: scheme,
 
 		stateCache: NewStateCache(config.CacheSize, config.CacheTTL),
 
 		stateLocks: NewLockManager(config.LockTimeout, config.LockRetryInterval, config.MaxLockRetries),
 
-		eventBus:   eventBus,
+		eventBus: eventBus,
 
-		config:     config,
+		config: config,
 
-		metrics:    NewStateMetrics(),
-
+		metrics: NewStateMetrics(),
 	}
 
 }
-
-
 
 // Start starts the state manager.
 
@@ -249,15 +192,11 @@ func (sm *StateManager) Start(ctx context.Context) error {
 
 	defer sm.mutex.Unlock()
 
-
-
 	if sm.started {
 
 		return fmt.Errorf("state manager already started")
 
 	}
-
-
 
 	// Start background processes.
 
@@ -267,19 +206,13 @@ func (sm *StateManager) Start(ctx context.Context) error {
 
 	go sm.runMetricsCollection(ctx)
 
-
-
 	sm.started = true
 
 	sm.logger.Info("State manager started")
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the state manager.
 
@@ -289,27 +222,19 @@ func (sm *StateManager) Stop(ctx context.Context) error {
 
 	defer sm.mutex.Unlock()
 
-
-
 	if !sm.started {
 
 		return nil
 
 	}
 
-
-
 	sm.started = false
 
 	sm.logger.Info("State manager stopped")
 
-
-
 	return nil
 
 }
-
-
 
 // GetIntentState retrieves the current state of a network intent.
 
@@ -325,11 +250,7 @@ func (sm *StateManager) GetIntentState(ctx context.Context, namespacedName types
 
 	}
 
-
-
 	sm.metrics.RecordCacheMiss()
-
-
 
 	// Fetch from Kubernetes API.
 
@@ -341,25 +262,17 @@ func (sm *StateManager) GetIntentState(ctx context.Context, namespacedName types
 
 	}
 
-
-
 	// Convert to internal state representation.
 
 	state := sm.convertToIntentState(intent)
-
-
 
 	// Cache the state.
 
 	sm.stateCache.Set(namespacedName.String(), state, sm.config.CacheTTL)
 
-
-
 	return state, nil
 
 }
-
-
 
 // UpdateIntentState updates the state of a network intent.
 
@@ -377,8 +290,6 @@ func (sm *StateManager) UpdateIntentState(ctx context.Context, namespacedName ty
 
 	defer sm.stateLocks.ReleaseLock(lockKey)
 
-
-
 	// Get current state.
 
 	state, err := sm.GetIntentState(ctx, namespacedName)
@@ -389,8 +300,6 @@ func (sm *StateManager) UpdateIntentState(ctx context.Context, namespacedName ty
 
 	}
 
-
-
 	// Apply update.
 
 	oldVersion := state.Version
@@ -400,8 +309,6 @@ func (sm *StateManager) UpdateIntentState(ctx context.Context, namespacedName ty
 		return fmt.Errorf("failed to apply state update: %w", err)
 
 	}
-
-
 
 	// Increment version (convert from string to int, increment, convert back).
 
@@ -421,8 +328,6 @@ func (sm *StateManager) UpdateIntentState(ctx context.Context, namespacedName ty
 
 	state.LastModified = time.Now()
 
-
-
 	// Validate state if enabled.
 
 	if sm.config.StateValidationEnabled {
@@ -434,8 +339,6 @@ func (sm *StateManager) UpdateIntentState(ctx context.Context, namespacedName ty
 		}
 
 	}
-
-
 
 	// Update in Kubernetes.
 
@@ -449,29 +352,19 @@ func (sm *StateManager) UpdateIntentState(ctx context.Context, namespacedName ty
 
 	}
 
-
-
 	// Update cache.
 
 	sm.stateCache.Set(namespacedName.String(), state, sm.config.CacheTTL)
-
-
 
 	// Publish state change event.
 
 	sm.publishStateChangeEvent(ctx, namespacedName, state)
 
-
-
 	sm.metrics.RecordStateUpdate()
-
-
 
 	return nil
 
 }
-
-
 
 // TransitionPhase transitions an intent to a new phase.
 
@@ -485,23 +378,18 @@ func (sm *StateManager) TransitionPhase(ctx context.Context, namespacedName type
 
 			FromPhase: state.CurrentPhase,
 
-			ToPhase:   newPhase,
+			ToPhase: newPhase,
 
 			Timestamp: time.Now(),
 
-			Metadata:  metadata,
-
+			Metadata: metadata,
 		}
-
-
 
 		state.PhaseTransitions = append(state.PhaseTransitions, transition)
 
 		state.CurrentPhase = newPhase
 
 		state.PhaseStartTime = time.Now()
-
-
 
 		// Update phase-specific data.
 
@@ -511,27 +399,19 @@ func (sm *StateManager) TransitionPhase(ctx context.Context, namespacedName type
 
 		}
 
-
-
 		if metadata != nil {
 
 			state.PhaseData[newPhase] = metadata
 
 		}
 
-
-
 		sm.logger.Info("Phase transition", "intent", namespacedName, "fromPhase", transition.FromPhase, "toPhase", transition.ToPhase)
-
-
 
 		return nil
 
 	})
 
 }
-
-
 
 // SetPhaseError sets an error for the current phase.
 
@@ -545,23 +425,17 @@ func (sm *StateManager) SetPhaseError(ctx context.Context, namespacedName types.
 
 		}
 
-
-
 		state.PhaseErrors[phase] = append(state.PhaseErrors[phase], err.Error())
 
 		state.LastError = err.Error()
 
 		state.LastErrorTime = time.Now()
 
-
-
 		return nil
 
 	})
 
 }
-
-
 
 // GetPhaseData retrieves phase-specific data.
 
@@ -575,21 +449,15 @@ func (sm *StateManager) GetPhaseData(ctx context.Context, namespacedName types.N
 
 	}
 
-
-
 	if state.PhaseData == nil {
 
 		return nil, nil
 
 	}
 
-
-
 	return state.PhaseData[phase], nil
 
 }
-
-
 
 // SetPhaseData sets phase-specific data.
 
@@ -603,8 +471,6 @@ func (sm *StateManager) SetPhaseData(ctx context.Context, namespacedName types.N
 
 		}
 
-
-
 		state.PhaseData[phase] = data
 
 		return nil
@@ -612,8 +478,6 @@ func (sm *StateManager) SetPhaseData(ctx context.Context, namespacedName types.N
 	})
 
 }
-
-
 
 // AddDependency adds a dependency between intents.
 
@@ -631,19 +495,14 @@ func (sm *StateManager) AddDependency(ctx context.Context, intentName, dependsOn
 
 		}
 
-
-
 		dependency := IntentDependency{
 
-			Intent:    dependsOnIntent.String(),
+			Intent: dependsOnIntent.String(),
 
-			Phase:     interfaces.PhaseCompleted, // Default: wait for completion
+			Phase: interfaces.PhaseCompleted, // Default: wait for completion
 
 			Timestamp: time.Now(),
-
 		}
-
-
 
 		state.Dependencies = append(state.Dependencies, dependency)
 
@@ -652,8 +511,6 @@ func (sm *StateManager) AddDependency(ctx context.Context, intentName, dependsOn
 	})
 
 }
-
-
 
 // CheckDependencies checks if all dependencies are satisfied.
 
@@ -667,11 +524,7 @@ func (sm *StateManager) CheckDependencies(ctx context.Context, namespacedName ty
 
 	}
 
-
-
 	var unsatisfied []string
-
-
 
 	for _, dep := range state.Dependencies {
 
@@ -685,8 +538,6 @@ func (sm *StateManager) CheckDependencies(ctx context.Context, namespacedName ty
 
 		}
 
-
-
 		depState, err := sm.GetIntentState(ctx, nn)
 
 		if err != nil {
@@ -696,8 +547,6 @@ func (sm *StateManager) CheckDependencies(ctx context.Context, namespacedName ty
 			continue
 
 		}
-
-
 
 		// Check if dependency phase is satisfied.
 
@@ -709,13 +558,9 @@ func (sm *StateManager) CheckDependencies(ctx context.Context, namespacedName ty
 
 	}
 
-
-
 	return len(unsatisfied) == 0, unsatisfied, nil
 
 }
-
-
 
 // ListStates lists all intent states matching the given selector.
 
@@ -726,10 +571,7 @@ func (sm *StateManager) ListStates(ctx context.Context, namespace string, labelS
 	listOpts := []client.ListOption{
 
 		client.InNamespace(namespace),
-
 	}
-
-
 
 	if len(labelSelector) > 0 {
 
@@ -737,15 +579,11 @@ func (sm *StateManager) ListStates(ctx context.Context, namespace string, labelS
 
 	}
 
-
-
 	if err := sm.client.List(ctx, intentList, listOpts...); err != nil {
 
 		return nil, fmt.Errorf("failed to list network intents: %w", err)
 
 	}
-
-
 
 	states := make([]*IntentState, len(intentList.Items))
 
@@ -755,13 +593,9 @@ func (sm *StateManager) ListStates(ctx context.Context, namespace string, labelS
 
 	}
 
-
-
 	return states, nil
 
 }
-
-
 
 // GetStatistics returns state management statistics.
 
@@ -769,27 +603,22 @@ func (sm *StateManager) GetStatistics() *StateStatistics {
 
 	return &StateStatistics{
 
-		TotalStates:           sm.stateCache.Size(),
+		TotalStates: sm.stateCache.Size(),
 
-		CacheHitRate:          sm.metrics.GetCacheHitRate(),
+		CacheHitRate: sm.metrics.GetCacheHitRate(),
 
-		ActiveLocks:           sm.stateLocks.ActiveLocks(),
+		ActiveLocks: sm.stateLocks.ActiveLocks(),
 
-		AverageUpdateTime:     sm.metrics.GetAverageUpdateTime(),
+		AverageUpdateTime: sm.metrics.GetAverageUpdateTime(),
 
 		StateValidationErrors: sm.metrics.GetValidationErrors(),
 
-		LastSyncTime:          sm.metrics.GetLastSyncTime(),
-
+		LastSyncTime: sm.metrics.GetLastSyncTime(),
 	}
 
 }
 
-
-
 // Internal methods.
-
-
 
 func (sm *StateManager) convertToIntentState(intent *nephoranv1.NetworkIntent) *IntentState {
 
@@ -799,33 +628,29 @@ func (sm *StateManager) convertToIntentState(intent *nephoranv1.NetworkIntent) *
 
 			Namespace: intent.Namespace,
 
-			Name:      intent.Name,
-
+			Name: intent.Name,
 		},
 
-		CurrentPhase:     interfaces.ProcessingPhase(intent.Status.Phase),
+		CurrentPhase: interfaces.ProcessingPhase(intent.Status.Phase),
 
-		CreationTime:     intent.CreationTimestamp.Time,
+		CreationTime: intent.CreationTimestamp.Time,
 
-		LastModified:     time.Now(),
+		LastModified: time.Now(),
 
-		Version:          intent.ResourceVersion,
+		Version: intent.ResourceVersion,
 
-		Conditions:       make([]StateCondition, 0, 5),
+		Conditions: make([]StateCondition, 0, 5),
 
 		PhaseTransitions: make([]PhaseTransition, 0, 10),
 
-		PhaseData:        make(map[interfaces.ProcessingPhase]interface{}),
+		PhaseData: make(map[interfaces.ProcessingPhase]interface{}),
 
-		PhaseErrors:      make(map[interfaces.ProcessingPhase][]string),
+		PhaseErrors: make(map[interfaces.ProcessingPhase][]string),
 
-		Dependencies:     make([]IntentDependency, 0, 3),
+		Dependencies: make([]IntentDependency, 0, 3),
 
-		Metadata:         make(map[string]interface{}),
-
+		Metadata: make(map[string]interface{}),
 	}
-
-
 
 	// Initialize basic condition based on phase.
 
@@ -833,21 +658,18 @@ func (sm *StateManager) convertToIntentState(intent *nephoranv1.NetworkIntent) *
 
 		state.Conditions = append(state.Conditions, StateCondition{
 
-			Type:               "Ready",
+			Type: "Ready",
 
-			Status:             "True",
+			Status: "True",
 
 			LastTransitionTime: intent.Status.LastUpdateTime.Time,
 
-			Reason:             "PhaseSet",
+			Reason: "PhaseSet",
 
-			Message:            intent.Status.LastMessage,
-
+			Message: intent.Status.LastMessage,
 		})
 
 	}
-
-
 
 	// Extract metadata from annotations.
 
@@ -869,8 +691,6 @@ func (sm *StateManager) convertToIntentState(intent *nephoranv1.NetworkIntent) *
 
 	}
 
-
-
 	// Set phase start time based on last update time if available.
 
 	if !intent.Status.LastUpdateTime.IsZero() {
@@ -879,13 +699,9 @@ func (sm *StateManager) convertToIntentState(intent *nephoranv1.NetworkIntent) *
 
 	}
 
-
-
 	return state
 
 }
-
-
 
 func (sm *StateManager) updateKubernetesState(ctx context.Context, namespacedName types.NamespacedName, state *IntentState) error {
 
@@ -897,13 +713,9 @@ func (sm *StateManager) updateKubernetesState(ctx context.Context, namespacedNam
 
 	}
 
-
-
 	// Update intent status based on state.
 
 	intent.Status.Phase = ProcessingPhaseToNetworkIntentPhase(state.CurrentPhase)
-
-
 
 	// Update last message from conditions if available.
 
@@ -913,8 +725,6 @@ func (sm *StateManager) updateKubernetesState(ctx context.Context, namespacedNam
 
 	}
 
-
-
 	// Update processing times (use LastUpdateTime as available field).
 
 	if !state.PhaseStartTime.IsZero() {
@@ -922,8 +732,6 @@ func (sm *StateManager) updateKubernetesState(ctx context.Context, namespacedNam
 		intent.Status.LastUpdateTime = metav1.Time{Time: state.PhaseStartTime}
 
 	}
-
-
 
 	// Update last error (using LastUpdateTime as available field).
 
@@ -933,15 +741,11 @@ func (sm *StateManager) updateKubernetesState(ctx context.Context, namespacedNam
 
 	}
 
-
-
 	// Update status.
 
 	return sm.client.Status().Update(ctx, intent)
 
 }
-
-
 
 func (sm *StateManager) validateState(state *IntentState) error {
 
@@ -953,15 +757,11 @@ func (sm *StateManager) validateState(state *IntentState) error {
 
 	}
 
-
-
 	if state.Version == "" {
 
 		return fmt.Errorf("version cannot be empty")
 
 	}
-
-
 
 	// Validate phase transitions.
 
@@ -977,8 +777,6 @@ func (sm *StateManager) validateState(state *IntentState) error {
 
 	}
 
-
-
 	// Validate dependencies.
 
 	for _, dep := range state.Dependencies {
@@ -991,33 +789,26 @@ func (sm *StateManager) validateState(state *IntentState) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (sm *StateManager) publishStateChangeEvent(ctx context.Context, namespacedName types.NamespacedName, state *IntentState) {
 
 	event := StateChangeEvent{
 
-		Type:       "state.changed",
+		Type: "state.changed",
 
 		IntentName: namespacedName,
 
-		NewPhase:   state.CurrentPhase,
+		NewPhase: state.CurrentPhase,
 
-		Version:    state.Version,
+		Version: state.Version,
 
-		Timestamp:  time.Now(),
+		Timestamp: time.Now(),
 
-		Metadata:   state.Metadata,
-
+		Metadata: state.Metadata,
 	}
-
-
 
 	if sm.eventBus != nil {
 
@@ -1026,8 +817,6 @@ func (sm *StateManager) publishStateChangeEvent(ctx context.Context, namespacedN
 	}
 
 }
-
-
 
 func (sm *StateManager) isPhaseSatisfied(state *IntentState, requiredPhase interfaces.ProcessingPhase) bool {
 
@@ -1048,16 +837,11 @@ func (sm *StateManager) isPhaseSatisfied(state *IntentState, requiredPhase inter
 		interfaces.PhaseDeploymentVerification,
 
 		interfaces.PhaseCompleted,
-
 	}
-
-
 
 	currentIndex := -1
 
 	requiredIndex := -1
-
-
 
 	for i, phase := range phaseOrder {
 
@@ -1075,13 +859,9 @@ func (sm *StateManager) isPhaseSatisfied(state *IntentState, requiredPhase inter
 
 	}
 
-
-
 	return currentIndex >= requiredIndex
 
 }
-
-
 
 func (sm *StateManager) parseNamespacedName(nameStr string) (types.NamespacedName, error) {
 
@@ -1095,31 +875,22 @@ func (sm *StateManager) parseNamespacedName(nameStr string) (types.NamespacedNam
 
 	}
 
-
-
 	return types.NamespacedName{
 
 		Namespace: parts[0],
 
-		Name:      parts[1],
-
+		Name: parts[1],
 	}, nil
 
 }
 
-
-
 // Background processes.
-
-
 
 func (sm *StateManager) runCacheCleanup(ctx context.Context) {
 
 	ticker := time.NewTicker(sm.config.CacheCleanupInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1141,15 +912,11 @@ func (sm *StateManager) runCacheCleanup(ctx context.Context) {
 
 }
 
-
-
 func (sm *StateManager) runStateSync(ctx context.Context) {
 
 	ticker := time.NewTicker(sm.config.SyncInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1169,8 +936,6 @@ func (sm *StateManager) runStateSync(ctx context.Context) {
 
 }
 
-
-
 func (sm *StateManager) performStateSync(ctx context.Context) {
 
 	// This is a placeholder for state synchronization logic.
@@ -1181,15 +946,11 @@ func (sm *StateManager) performStateSync(ctx context.Context) {
 
 }
 
-
-
 func (sm *StateManager) runMetricsCollection(ctx context.Context) {
 
 	ticker := time.NewTicker(1 * time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1209,8 +970,6 @@ func (sm *StateManager) runMetricsCollection(ctx context.Context) {
 
 }
 
-
-
 func (sm *StateManager) collectMetrics() {
 
 	// Collect various metrics.
@@ -1220,4 +979,3 @@ func (sm *StateManager) collectMetrics() {
 	sm.metrics.RecordActiveLocks(sm.stateLocks.ActiveLocks())
 
 }
-

@@ -1,35 +1,20 @@
-
 package intent
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 	"time"
-
 )
-
-
 
 // Loader handles loading and validating intent files.
 
 type Loader struct {
-
-	validator   *Validator
+	validator *Validator
 
 	projectRoot string
-
 }
-
-
 
 // NewLoader creates a new loader with the given project root.
 
@@ -43,27 +28,20 @@ func NewLoader(projectRoot string) (*Loader, error) {
 
 	}
 
-
-
 	return &Loader{
 
-		validator:   validator,
+		validator: validator,
 
 		projectRoot: projectRoot,
-
 	}, nil
 
 }
-
-
 
 // LoadFromFile loads and validates an intent from a JSON file.
 
 func (l *Loader) LoadFromFile(filePath string) (*LoadResult, error) {
 
 	startTime := time.Now()
-
-
 
 	// Read the file.
 
@@ -73,25 +51,20 @@ func (l *Loader) LoadFromFile(filePath string) (*LoadResult, error) {
 
 		return &LoadResult{
 
-			Errors:   []ValidationError{{Field: "file", Message: fmt.Sprintf("failed to read file: %v", err)}},
+			Errors: []ValidationError{{Field: "file", Message: fmt.Sprintf("failed to read file: %v", err)}},
 
 			LoadedAt: startTime,
 
 			FilePath: filePath,
 
-			IsValid:  false,
-
+			IsValid: false,
 		}, err
 
 	}
 
-
-
 	return l.LoadFromJSON(data, filePath)
 
 }
-
-
 
 // LoadFromJSON loads and validates an intent from JSON data.
 
@@ -105,11 +78,8 @@ func (l *Loader) LoadFromJSON(data []byte, sourcePath string) (*LoadResult, erro
 
 		FilePath: sourcePath,
 
-		IsValid:  false,
-
+		IsValid: false,
 	}
-
-
 
 	// First validate against the schema.
 
@@ -123,8 +93,6 @@ func (l *Loader) LoadFromJSON(data []byte, sourcePath string) (*LoadResult, erro
 
 	}
 
-
-
 	// Parse into our struct.
 
 	var intent ScalingIntent
@@ -133,17 +101,14 @@ func (l *Loader) LoadFromJSON(data []byte, sourcePath string) (*LoadResult, erro
 
 		result.Errors = []ValidationError{{
 
-			Field:   "json",
+			Field: "json",
 
 			Message: fmt.Sprintf("failed to unmarshal intent: %v", err),
-
 		}}
 
 		return result, nil
 
 	}
-
-
 
 	// Additional business logic validation.
 
@@ -157,8 +122,6 @@ func (l *Loader) LoadFromJSON(data []byte, sourcePath string) (*LoadResult, erro
 
 	}
 
-
-
 	// Success.
 
 	result.Intent = &intent
@@ -169,15 +132,11 @@ func (l *Loader) LoadFromJSON(data []byte, sourcePath string) (*LoadResult, erro
 
 }
 
-
-
 // validateBusinessLogic performs additional validation beyond the schema.
 
 func (l *Loader) validateBusinessLogic(intent *ScalingIntent) []ValidationError {
 
 	var errors []ValidationError
-
-
 
 	// Validate target name format (Kubernetes resource naming).
 
@@ -185,17 +144,14 @@ func (l *Loader) validateBusinessLogic(intent *ScalingIntent) []ValidationError 
 
 		errors = append(errors, ValidationError{
 
-			Field:   "target",
+			Field: "target",
 
 			Message: "target must be a valid Kubernetes resource name (lowercase alphanumeric and hyphens)",
 
-			Value:   intent.Target,
-
+			Value: intent.Target,
 		})
 
 	}
-
-
 
 	// Validate namespace format.
 
@@ -203,17 +159,14 @@ func (l *Loader) validateBusinessLogic(intent *ScalingIntent) []ValidationError 
 
 		errors = append(errors, ValidationError{
 
-			Field:   "namespace",
+			Field: "namespace",
 
 			Message: "namespace must be a valid Kubernetes namespace name (lowercase alphanumeric and hyphens)",
 
-			Value:   intent.Namespace,
-
+			Value: intent.Namespace,
 		})
 
 	}
-
-
 
 	// Validate replicas range (additional business constraints).
 
@@ -221,12 +174,11 @@ func (l *Loader) validateBusinessLogic(intent *ScalingIntent) []ValidationError 
 
 		errors = append(errors, ValidationError{
 
-			Field:   "replicas",
+			Field: "replicas",
 
 			Message: "replicas must be at least 1",
 
-			Value:   intent.Replicas,
-
+			Value: intent.Replicas,
 		})
 
 	}
@@ -235,23 +187,18 @@ func (l *Loader) validateBusinessLogic(intent *ScalingIntent) []ValidationError 
 
 		errors = append(errors, ValidationError{
 
-			Field:   "replicas",
+			Field: "replicas",
 
 			Message: "replicas must not exceed 50 for MVP",
 
-			Value:   intent.Replicas,
-
+			Value: intent.Replicas,
 		})
 
 	}
 
-
-
 	return errors
 
 }
-
-
 
 // isValidKubernetesName checks if a string is a valid Kubernetes resource name.
 
@@ -263,8 +210,6 @@ func isValidKubernetesName(name string) bool {
 
 	}
 
-
-
 	// Must start and end with alphanumeric.
 
 	if !isAlphaNumeric(name[0]) || !isAlphaNumeric(name[len(name)-1]) {
@@ -272,8 +217,6 @@ func isValidKubernetesName(name string) bool {
 		return false
 
 	}
-
-
 
 	// Check each character.
 
@@ -287,13 +230,9 @@ func isValidKubernetesName(name string) bool {
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // isAlphaNumeric checks if a byte is alphanumeric lowercase.
 
@@ -303,8 +242,6 @@ func isAlphaNumeric(b byte) bool {
 
 }
 
-
-
 // GetProjectRoot returns the project root directory.
 
 func (l *Loader) GetProjectRoot() string {
@@ -313,8 +250,6 @@ func (l *Loader) GetProjectRoot() string {
 
 }
 
-
-
 // GetSchemaPath returns the path to the intent schema file.
 
 func (l *Loader) GetSchemaPath() string {
@@ -322,4 +257,3 @@ func (l *Loader) GetSchemaPath() string {
 	return filepath.Join(l.projectRoot, "docs", "contracts", "intent.schema.json")
 
 }
-

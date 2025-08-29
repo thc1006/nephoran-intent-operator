@@ -1,49 +1,29 @@
 //go:build !disable_rag && !test
 
-
-
-
 package rag
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"log/slog"
-
 	"net/http"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // OpenAIProvider implements the OpenAI embedding provider.
 
 type OpenAIProvider struct {
-
-	config     ProviderConfig
+	config ProviderConfig
 
 	httpClient *http.Client
 
-	logger     *slog.Logger
+	logger *slog.Logger
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewBasicOpenAIProvider creates a new basic OpenAI provider.
 
@@ -51,17 +31,14 @@ func NewBasicOpenAIProvider(config ProviderConfig, httpClient *http.Client) *Ope
 
 	return &OpenAIProvider{
 
-		config:     config,
+		config: config,
 
 		httpClient: httpClient,
 
-		logger:     slog.Default().With("component", "openai-provider"),
-
+		logger: slog.Default().With("component", "openai-provider"),
 	}
 
 }
-
-
 
 // GenerateEmbeddings implements EmbeddingProvider.
 
@@ -72,10 +49,7 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 		Input: texts,
 
 		Model: p.config.ModelName,
-
 	}
-
-
 
 	jsonBody, err := json.Marshal(requestBody)
 
@@ -85,8 +59,6 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, "POST", p.config.APIEndpoint, bytes.NewBuffer(jsonBody))
 
 	if err != nil {
@@ -94,8 +66,6 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 		return nil, TokenUsage{}, fmt.Errorf("failed to create request: %w", err)
 
 	}
-
-
 
 	// Set headers.
 
@@ -105,8 +75,6 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
 
-
-
 	// Execute request with retries.
 
 	var resp *http.Response
@@ -114,8 +82,6 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 	var lastErr error
 
 	maxRetries := 3
-
-
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 
@@ -127,15 +93,11 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 
 		}
 
-
-
 		if resp != nil {
 
 			resp.Body.Close()
 
 		}
-
-
 
 		if attempt < maxRetries {
 
@@ -156,10 +118,7 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 					return 0
 
 				}(),
-
 			)
-
-
 
 			// Exponential backoff.
 
@@ -179,15 +138,11 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 
 	}
 
-
-
 	if lastErr != nil {
 
 		return nil, TokenUsage{}, fmt.Errorf("OpenAI API request failed after %d attempts: %w", maxRetries+1, lastErr)
 
 	}
-
-
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -195,11 +150,7 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 
 	}
 
-
-
 	defer resp.Body.Close()
-
-
 
 	var apiResponse OpenAIEmbeddingResponse
 
@@ -208,8 +159,6 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 		return nil, TokenUsage{}, fmt.Errorf("failed to decode OpenAI response: %w", err)
 
 	}
-
-
 
 	// Extract embeddings.
 
@@ -221,31 +170,22 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 
 	}
 
-
-
 	// Calculate estimated cost.
 
 	estimatedCost := float64(apiResponse.Usage.TotalTokens) * p.config.CostPerToken / 1000
 
-
-
 	usage := TokenUsage{
 
-		PromptTokens:  apiResponse.Usage.PromptTokens,
+		PromptTokens: apiResponse.Usage.PromptTokens,
 
-		TotalTokens:   apiResponse.Usage.TotalTokens,
+		TotalTokens: apiResponse.Usage.TotalTokens,
 
 		EstimatedCost: estimatedCost,
-
 	}
-
-
 
 	return embeddings, usage, nil
 
 }
-
-
 
 // GetConfig implements EmbeddingProvider.
 
@@ -259,8 +199,6 @@ func (p *OpenAIProvider) GetConfig() ProviderConfig {
 
 }
 
-
-
 // HealthCheck implements EmbeddingProvider.
 
 func (p *OpenAIProvider) HealthCheck(ctx context.Context) error {
@@ -271,8 +209,6 @@ func (p *OpenAIProvider) HealthCheck(ctx context.Context) error {
 
 	_, _, err := p.GenerateEmbeddings(ctx, testTexts)
 
-
-
 	p.mutex.Lock()
 
 	p.config.Healthy = (err == nil)
@@ -281,13 +217,9 @@ func (p *OpenAIProvider) HealthCheck(ctx context.Context) error {
 
 	p.mutex.Unlock()
 
-
-
 	return err
 
 }
-
-
 
 // GetCostEstimate implements EmbeddingProvider.
 
@@ -297,8 +229,6 @@ func (p *OpenAIProvider) GetCostEstimate(tokenCount int) float64 {
 
 }
 
-
-
 // GetName implements EmbeddingProvider.
 
 func (p *OpenAIProvider) GetName() string {
@@ -306,8 +236,6 @@ func (p *OpenAIProvider) GetName() string {
 	return p.config.Name
 
 }
-
-
 
 // IsHealthy performs ishealthy operation.
 
@@ -318,8 +246,6 @@ func (p *OpenAIProvider) IsHealthy() bool {
 	return p.httpClient != nil && p.config.APIKey != ""
 
 }
-
-
 
 // GetLatency performs getlatency operation.
 
@@ -333,23 +259,17 @@ func (p *OpenAIProvider) GetLatency() time.Duration {
 
 }
 
-
-
 // AzureOpenAIProvider implements the Azure OpenAI embedding provider.
 
 type AzureOpenAIProvider struct {
-
-	config     ProviderConfig
+	config ProviderConfig
 
 	httpClient *http.Client
 
-	logger     *slog.Logger
+	logger *slog.Logger
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewBasicAzureOpenAIProvider creates a new basic Azure OpenAI provider.
 
@@ -357,17 +277,14 @@ func NewBasicAzureOpenAIProvider(config ProviderConfig, httpClient *http.Client)
 
 	return &AzureOpenAIProvider{
 
-		config:     config,
+		config: config,
 
 		httpClient: httpClient,
 
-		logger:     slog.Default().With("component", "azure-openai-provider"),
-
+		logger: slog.Default().With("component", "azure-openai-provider"),
 	}
 
 }
-
-
 
 // GenerateEmbeddings implements EmbeddingProvider for Azure OpenAI.
 
@@ -378,10 +295,7 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 	requestBody := map[string]interface{}{
 
 		"input": texts,
-
 	}
-
-
 
 	jsonBody, err := json.Marshal(requestBody)
 
@@ -391,8 +305,6 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, "POST", p.config.APIEndpoint, bytes.NewBuffer(jsonBody))
 
 	if err != nil {
@@ -400,8 +312,6 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 		return nil, TokenUsage{}, fmt.Errorf("failed to create Azure request: %w", err)
 
 	}
-
-
 
 	// Set Azure-specific headers.
 
@@ -411,8 +321,6 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
 
-
-
 	// Execute request with retries.
 
 	var resp *http.Response
@@ -420,8 +328,6 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 	var lastErr error
 
 	maxRetries := 3
-
-
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 
@@ -433,15 +339,11 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 
 		}
 
-
-
 		if resp != nil {
 
 			resp.Body.Close()
 
 		}
-
-
 
 		if attempt < maxRetries {
 
@@ -462,10 +364,7 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 					return 0
 
 				}(),
-
 			)
-
-
 
 			// Exponential backoff.
 
@@ -485,15 +384,11 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 
 	}
 
-
-
 	if lastErr != nil {
 
 		return nil, TokenUsage{}, fmt.Errorf("Azure OpenAI API request failed after %d attempts: %w", maxRetries+1, lastErr)
 
 	}
-
-
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -501,11 +396,7 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 
 	}
 
-
-
 	defer resp.Body.Close()
-
-
 
 	var apiResponse OpenAIEmbeddingResponse // Azure uses similar response format
 
@@ -514,8 +405,6 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 		return nil, TokenUsage{}, fmt.Errorf("failed to decode Azure response: %w", err)
 
 	}
-
-
 
 	// Extract embeddings.
 
@@ -527,31 +416,22 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 
 	}
 
-
-
 	// Calculate estimated cost.
 
 	estimatedCost := float64(apiResponse.Usage.TotalTokens) * p.config.CostPerToken / 1000
 
-
-
 	usage := TokenUsage{
 
-		PromptTokens:  apiResponse.Usage.PromptTokens,
+		PromptTokens: apiResponse.Usage.PromptTokens,
 
-		TotalTokens:   apiResponse.Usage.TotalTokens,
+		TotalTokens: apiResponse.Usage.TotalTokens,
 
 		EstimatedCost: estimatedCost,
-
 	}
-
-
 
 	return embeddings, usage, nil
 
 }
-
-
 
 // GetConfig implements EmbeddingProvider.
 
@@ -565,8 +445,6 @@ func (p *AzureOpenAIProvider) GetConfig() ProviderConfig {
 
 }
 
-
-
 // HealthCheck implements EmbeddingProvider.
 
 func (p *AzureOpenAIProvider) HealthCheck(ctx context.Context) error {
@@ -574,8 +452,6 @@ func (p *AzureOpenAIProvider) HealthCheck(ctx context.Context) error {
 	testTexts := []string{"health check"}
 
 	_, _, err := p.GenerateEmbeddings(ctx, testTexts)
-
-
 
 	p.mutex.Lock()
 
@@ -585,13 +461,9 @@ func (p *AzureOpenAIProvider) HealthCheck(ctx context.Context) error {
 
 	p.mutex.Unlock()
 
-
-
 	return err
 
 }
-
-
 
 // GetCostEstimate implements EmbeddingProvider.
 
@@ -601,8 +473,6 @@ func (p *AzureOpenAIProvider) GetCostEstimate(tokenCount int) float64 {
 
 }
 
-
-
 // GetName implements EmbeddingProvider.
 
 func (p *AzureOpenAIProvider) GetName() string {
@@ -610,8 +480,6 @@ func (p *AzureOpenAIProvider) GetName() string {
 	return p.config.Name
 
 }
-
-
 
 // IsHealthy performs ishealthy operation.
 
@@ -623,8 +491,6 @@ func (p *AzureOpenAIProvider) IsHealthy() bool {
 
 }
 
-
-
 // GetLatency performs getlatency operation.
 
 func (p *AzureOpenAIProvider) GetLatency() time.Duration {
@@ -635,21 +501,15 @@ func (p *AzureOpenAIProvider) GetLatency() time.Duration {
 
 }
 
-
-
 // LocalProvider implements a local embedding provider (placeholder for future implementation).
 
 type LocalProvider struct {
-
 	config ProviderConfig
 
 	logger *slog.Logger
 
-	mutex  sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewLocalProvider creates a new local provider.
 
@@ -660,12 +520,9 @@ func NewLocalProvider(config ProviderConfig) *LocalProvider {
 		config: config,
 
 		logger: slog.Default().With("component", "local-provider"),
-
 	}
 
 }
-
-
 
 // GenerateEmbeddings implements EmbeddingProvider for local models.
 
@@ -683,19 +540,13 @@ func (p *LocalProvider) GenerateEmbeddings(ctx context.Context, texts []string) 
 
 	// - Ollama for local LLM embeddings.
 
-
-
 	p.logger.Warn("Local provider called but not implemented - would generate embeddings locally")
-
-
 
 	// For now, return an error indicating this is not yet implemented.
 
 	return nil, TokenUsage{}, fmt.Errorf("local embedding provider not implemented yet - requires integration with local models")
 
 }
-
-
 
 // GetConfig implements EmbeddingProvider.
 
@@ -709,8 +560,6 @@ func (p *LocalProvider) GetConfig() ProviderConfig {
 
 }
 
-
-
 // HealthCheck implements EmbeddingProvider.
 
 func (p *LocalProvider) HealthCheck(ctx context.Context) error {
@@ -723,15 +572,11 @@ func (p *LocalProvider) HealthCheck(ctx context.Context) error {
 
 	p.mutex.Unlock()
 
-
-
 	// For now, return healthy status.
 
 	return nil
 
 }
-
-
 
 // GetCostEstimate implements EmbeddingProvider (local is free).
 
@@ -741,8 +586,6 @@ func (p *LocalProvider) GetCostEstimate(tokenCount int) float64 {
 
 }
 
-
-
 // GetName implements EmbeddingProvider.
 
 func (p *LocalProvider) GetName() string {
@@ -750,8 +593,6 @@ func (p *LocalProvider) GetName() string {
 	return p.config.Name
 
 }
-
-
 
 // IsHealthy performs ishealthy operation.
 
@@ -763,8 +604,6 @@ func (p *LocalProvider) IsHealthy() bool {
 
 }
 
-
-
 // GetLatency performs getlatency operation.
 
 func (p *LocalProvider) GetLatency() time.Duration {
@@ -775,23 +614,17 @@ func (p *LocalProvider) GetLatency() time.Duration {
 
 }
 
-
-
 // HuggingFaceProvider implements Hugging Face Inference API provider.
 
 type HuggingFaceProvider struct {
-
-	config     ProviderConfig
+	config ProviderConfig
 
 	httpClient *http.Client
 
-	logger     *slog.Logger
+	logger *slog.Logger
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewBasicHuggingFaceProvider creates a new basic Hugging Face provider.
 
@@ -799,17 +632,14 @@ func NewBasicHuggingFaceProvider(config ProviderConfig, httpClient *http.Client)
 
 	return &HuggingFaceProvider{
 
-		config:     config,
+		config: config,
 
 		httpClient: httpClient,
 
-		logger:     slog.Default().With("component", "huggingface-provider"),
-
+		logger: slog.Default().With("component", "huggingface-provider"),
 	}
 
 }
-
-
 
 // GenerateEmbeddings implements EmbeddingProvider for Hugging Face.
 
@@ -824,12 +654,8 @@ func (p *HuggingFaceProvider) GenerateEmbeddings(ctx context.Context, texts []st
 		"options": map[string]interface{}{
 
 			"wait_for_model": true,
-
 		},
-
 	}
-
-
 
 	jsonBody, err := json.Marshal(requestBody)
 
@@ -839,8 +665,6 @@ func (p *HuggingFaceProvider) GenerateEmbeddings(ctx context.Context, texts []st
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, "POST", p.config.APIEndpoint, bytes.NewBuffer(jsonBody))
 
 	if err != nil {
@@ -849,8 +673,6 @@ func (p *HuggingFaceProvider) GenerateEmbeddings(ctx context.Context, texts []st
 
 	}
 
-
-
 	// Set Hugging Face headers.
 
 	req.Header.Set("Content-Type", "application/json")
@@ -858,8 +680,6 @@ func (p *HuggingFaceProvider) GenerateEmbeddings(ctx context.Context, texts []st
 	req.Header.Set("Authorization", "Bearer "+p.config.APIKey)
 
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
-
-
 
 	// Execute request.
 
@@ -873,15 +693,11 @@ func (p *HuggingFaceProvider) GenerateEmbeddings(ctx context.Context, texts []st
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, TokenUsage{}, fmt.Errorf("HuggingFace API returned status %d", resp.StatusCode)
 
 	}
-
-
 
 	// HuggingFace returns embeddings directly as arrays.
 
@@ -893,8 +709,6 @@ func (p *HuggingFaceProvider) GenerateEmbeddings(ctx context.Context, texts []st
 
 	}
 
-
-
 	// Estimate token usage (HuggingFace doesn't provide this).
 
 	totalTokens := 0
@@ -905,25 +719,18 @@ func (p *HuggingFaceProvider) GenerateEmbeddings(ctx context.Context, texts []st
 
 	}
 
-
-
 	usage := TokenUsage{
 
-		PromptTokens:  totalTokens,
+		PromptTokens: totalTokens,
 
-		TotalTokens:   totalTokens,
+		TotalTokens: totalTokens,
 
 		EstimatedCost: p.GetCostEstimate(totalTokens),
-
 	}
-
-
 
 	return embeddings, usage, nil
 
 }
-
-
 
 // GetConfig implements EmbeddingProvider.
 
@@ -937,8 +744,6 @@ func (p *HuggingFaceProvider) GetConfig() ProviderConfig {
 
 }
 
-
-
 // HealthCheck implements EmbeddingProvider.
 
 func (p *HuggingFaceProvider) HealthCheck(ctx context.Context) error {
@@ -946,8 +751,6 @@ func (p *HuggingFaceProvider) HealthCheck(ctx context.Context) error {
 	testTexts := []string{"health check"}
 
 	_, _, err := p.GenerateEmbeddings(ctx, testTexts)
-
-
 
 	p.mutex.Lock()
 
@@ -957,13 +760,9 @@ func (p *HuggingFaceProvider) HealthCheck(ctx context.Context) error {
 
 	p.mutex.Unlock()
 
-
-
 	return err
 
 }
-
-
 
 // GetCostEstimate implements EmbeddingProvider.
 
@@ -973,8 +772,6 @@ func (p *HuggingFaceProvider) GetCostEstimate(tokenCount int) float64 {
 
 }
 
-
-
 // GetName implements EmbeddingProvider.
 
 func (p *HuggingFaceProvider) GetName() string {
@@ -982,8 +779,6 @@ func (p *HuggingFaceProvider) GetName() string {
 	return p.config.Name
 
 }
-
-
 
 // IsHealthy performs ishealthy operation.
 
@@ -995,8 +790,6 @@ func (p *HuggingFaceProvider) IsHealthy() bool {
 
 }
 
-
-
 // GetLatency performs getlatency operation.
 
 func (p *HuggingFaceProvider) GetLatency() time.Duration {
@@ -1007,23 +800,17 @@ func (p *HuggingFaceProvider) GetLatency() time.Duration {
 
 }
 
-
-
 // CohereProvider implements Cohere embedding provider.
 
 type CohereProvider struct {
-
-	config     ProviderConfig
+	config ProviderConfig
 
 	httpClient *http.Client
 
-	logger     *slog.Logger
+	logger *slog.Logger
 
-	mutex      sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewCohereProvider creates a new Cohere provider.
 
@@ -1031,17 +818,14 @@ func NewCohereProvider(config ProviderConfig, httpClient *http.Client) *CoherePr
 
 	return &CohereProvider{
 
-		config:     config,
+		config: config,
 
 		httpClient: httpClient,
 
-		logger:     slog.Default().With("component", "cohere-provider"),
-
+		logger: slog.Default().With("component", "cohere-provider"),
 	}
 
 }
-
-
 
 // GenerateEmbeddings implements EmbeddingProvider for Cohere.
 
@@ -1049,15 +833,13 @@ func (p *CohereProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 
 	requestBody := map[string]interface{}{
 
-		"texts":      texts,
+		"texts": texts,
 
-		"model":      p.config.ModelName,
+		"model": p.config.ModelName,
 
 		"input_type": "search_document", // For retrieval use cases
 
 	}
-
-
 
 	jsonBody, err := json.Marshal(requestBody)
 
@@ -1067,8 +849,6 @@ func (p *CohereProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, "POST", p.config.APIEndpoint, bytes.NewBuffer(jsonBody))
 
 	if err != nil {
@@ -1077,8 +857,6 @@ func (p *CohereProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 
 	}
 
-
-
 	// Set Cohere headers.
 
 	req.Header.Set("Content-Type", "application/json")
@@ -1086,8 +864,6 @@ func (p *CohereProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 	req.Header.Set("Authorization", "Bearer "+p.config.APIKey)
 
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -1099,33 +875,21 @@ func (p *CohereProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, TokenUsage{}, fmt.Errorf("Cohere API returned status %d", resp.StatusCode)
 
 	}
 
-
-
 	var apiResponse struct {
-
 		Embeddings [][]float32 `json:"embeddings"`
 
-		Meta       struct {
-
+		Meta struct {
 			BilledUnits struct {
-
 				InputTokens int `json:"input_tokens"`
-
 			} `json:"billed_units"`
-
 		} `json:"meta"`
-
 	}
-
-
 
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
 
@@ -1133,25 +897,18 @@ func (p *CohereProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 
 	}
 
-
-
 	usage := TokenUsage{
 
-		PromptTokens:  apiResponse.Meta.BilledUnits.InputTokens,
+		PromptTokens: apiResponse.Meta.BilledUnits.InputTokens,
 
-		TotalTokens:   apiResponse.Meta.BilledUnits.InputTokens,
+		TotalTokens: apiResponse.Meta.BilledUnits.InputTokens,
 
 		EstimatedCost: p.GetCostEstimate(apiResponse.Meta.BilledUnits.InputTokens),
-
 	}
-
-
 
 	return apiResponse.Embeddings, usage, nil
 
 }
-
-
 
 // GetConfig implements EmbeddingProvider.
 
@@ -1165,8 +922,6 @@ func (p *CohereProvider) GetConfig() ProviderConfig {
 
 }
 
-
-
 // HealthCheck implements EmbeddingProvider.
 
 func (p *CohereProvider) HealthCheck(ctx context.Context) error {
@@ -1174,8 +929,6 @@ func (p *CohereProvider) HealthCheck(ctx context.Context) error {
 	testTexts := []string{"health check"}
 
 	_, _, err := p.GenerateEmbeddings(ctx, testTexts)
-
-
 
 	p.mutex.Lock()
 
@@ -1185,13 +938,9 @@ func (p *CohereProvider) HealthCheck(ctx context.Context) error {
 
 	p.mutex.Unlock()
 
-
-
 	return err
 
 }
-
-
 
 // GetCostEstimate implements EmbeddingProvider.
 
@@ -1201,8 +950,6 @@ func (p *CohereProvider) GetCostEstimate(tokenCount int) float64 {
 
 }
 
-
-
 // GetName implements EmbeddingProvider.
 
 func (p *CohereProvider) GetName() string {
@@ -1210,8 +957,6 @@ func (p *CohereProvider) GetName() string {
 	return p.config.Name
 
 }
-
-
 
 // IsHealthy performs ishealthy operation.
 
@@ -1223,8 +968,6 @@ func (p *CohereProvider) IsHealthy() bool {
 
 }
 
-
-
 // GetLatency performs getlatency operation.
 
 func (p *CohereProvider) GetLatency() time.Duration {
@@ -1234,4 +977,3 @@ func (p *CohereProvider) GetLatency() time.Duration {
 	return 300 * time.Millisecond
 
 }
-

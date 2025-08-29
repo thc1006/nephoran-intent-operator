@@ -1,21 +1,11 @@
-
 package main
 
-
-
 import (
-
 	"log"
-
 	"os"
 
-
-
 	validation "github.com/nephio-project/nephoran-intent-operator/tests/performance/validation"
-
 )
-
-
 
 // main provides a CLI entry point for the validation suite.
 
@@ -24,8 +14,6 @@ func main() {
 	// Set up logging.
 
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
-
 
 	// Create and execute the validation command.
 
@@ -40,4 +28,3 @@ func main() {
 	}
 
 }
-

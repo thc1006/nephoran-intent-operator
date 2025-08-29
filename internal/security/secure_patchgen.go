@@ -1,101 +1,66 @@
-
 package security
 
-
-
 import (
-
 	"fmt"
-
 	"log"
-
 	"os"
-
 	"path/filepath"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/patchgen"
 
-
-
 	"sigs.k8s.io/yaml"
-
 )
-
-
 
 // SecurePatchGenerator provides hardened patch package generation.
 
 type SecurePatchGenerator struct {
-
-	intent    *patchgen.Intent
+	intent *patchgen.Intent
 
 	outputDir string
 
 	validator *OWASPValidator
 
-	crypto    *CryptoSecureIdentifier
+	crypto *CryptoSecureIdentifier
 
-	auditor   *GeneratorAuditor
+	auditor *GeneratorAuditor
 
-	logger    logr.Logger
-
+	logger logr.Logger
 }
-
-
 
 // GeneratorAuditor provides audit logging for patch generation.
 
 type GeneratorAuditor struct {
-
 	enabled bool
 
 	logFile string
-
 }
-
-
 
 // SecurePatchPackage extends PatchPackage with security controls.
 
 type SecurePatchPackage struct {
-
 	*patchgen.PatchPackage
 
 	SecurityMetadata SecurityMetadata `yaml:"security,omitempty"`
-
 }
-
-
 
 // SecurityMetadata contains security-related metadata.
 
 type SecurityMetadata struct {
+	GeneratedBy string `yaml:"generated_by"`
 
-	GeneratedBy      string            `yaml:"generated_by"`
-
-	SecurityVersion  string            `yaml:"security_version"`
+	SecurityVersion string `yaml:"security_version"`
 
 	ComplianceChecks map[string]string `yaml:"compliance_checks"`
 
-	ThreatModel      string            `yaml:"threat_model"`
+	ThreatModel string `yaml:"threat_model"`
 
-	ValidationPassed bool              `yaml:"validation_passed"`
+	ValidationPassed bool `yaml:"validation_passed"`
 
-	Timestamp        string            `yaml:"timestamp"`
-
+	Timestamp string `yaml:"timestamp"`
 }
-
-
 
 // NewSecurePatchGenerator creates a secure patch generator.
 
@@ -111,41 +76,31 @@ func NewSecurePatchGenerator(intent *patchgen.Intent, outputDir string, logger l
 
 	}
 
-
-
 	crypto := NewCryptoSecureIdentifier()
-
-
 
 	auditor := &GeneratorAuditor{
 
 		enabled: true,
 
 		logFile: "patch-generation-audit.json",
-
 	}
-
-
 
 	return &SecurePatchGenerator{
 
-		intent:    intent,
+		intent: intent,
 
 		outputDir: outputDir,
 
 		validator: validator,
 
-		crypto:    crypto,
+		crypto: crypto,
 
-		auditor:   auditor,
+		auditor: auditor,
 
-		logger:    logger.WithName("secure-patch-generator"),
-
+		logger: logger.WithName("secure-patch-generator"),
 	}, nil
 
 }
-
-
 
 // GenerateSecure creates a secure patch package with comprehensive validation.
 
@@ -155,8 +110,6 @@ func (g *SecurePatchGenerator) GenerateSecure() (*SecurePatchPackage, error) {
 
 	g.logger.Info("Starting secure patch generation", "intent", g.intent)
 
-
-
 	// 1. Pre-generation security validation.
 
 	if err := g.validateSecurityPreconditions(); err != nil {
@@ -164,8 +117,6 @@ func (g *SecurePatchGenerator) GenerateSecure() (*SecurePatchPackage, error) {
 		return nil, fmt.Errorf("security preconditions failed: %w", err)
 
 	}
-
-
 
 	// 2. Generate secure package name with collision resistance.
 
@@ -177,13 +128,9 @@ func (g *SecurePatchGenerator) GenerateSecure() (*SecurePatchPackage, error) {
 
 	}
 
-
-
 	// 3. Create base patch package with original logic.
 
 	basePatch := g.createBasePatchPackage(packageName)
-
-
 
 	// 4. Create secure wrapper with additional security metadata.
 
@@ -193,7 +140,7 @@ func (g *SecurePatchGenerator) GenerateSecure() (*SecurePatchPackage, error) {
 
 		SecurityMetadata: SecurityMetadata{
 
-			GeneratedBy:     "nephoran-secure-generator-v1.0",
+			GeneratedBy: "nephoran-secure-generator-v1.0",
 
 			SecurityVersion: "OWASP-2021-compliant",
 
@@ -201,23 +148,18 @@ func (g *SecurePatchGenerator) GenerateSecure() (*SecurePatchPackage, error) {
 
 				"input_validation": "passed",
 
-				"path_security":    "validated",
+				"path_security": "validated",
 
-				"crypto_secure":    "collision_resistant",
-
+				"crypto_secure": "collision_resistant",
 			},
 
-			ThreatModel:      "O-RAN-WG11-L-Release",
+			ThreatModel: "O-RAN-WG11-L-Release",
 
 			ValidationPassed: true,
 
-			Timestamp:        time.Now().UTC().Format(time.RFC3339Nano),
-
+			Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
 		},
-
 	}
-
-
 
 	// 5. Validate output directory security.
 
@@ -227,8 +169,6 @@ func (g *SecurePatchGenerator) GenerateSecure() (*SecurePatchPackage, error) {
 
 	}
 
-
-
 	// 6. Generate package files with security controls.
 
 	if err := g.generateSecurePackageFiles(securePatch); err != nil {
@@ -236,8 +176,6 @@ func (g *SecurePatchGenerator) GenerateSecure() (*SecurePatchPackage, error) {
 		return nil, fmt.Errorf("failed to generate secure package files: %w", err)
 
 	}
-
-
 
 	// 7. Post-generation validation.
 
@@ -247,15 +185,11 @@ func (g *SecurePatchGenerator) GenerateSecure() (*SecurePatchPackage, error) {
 
 	}
 
-
-
 	// 8. Audit successful generation.
 
 	duration := time.Since(startTime)
 
 	g.auditor.LogGeneration(g.intent, packageName, duration, true, "")
-
-
 
 	g.logger.Info("Secure patch generation completed",
 
@@ -265,21 +199,15 @@ func (g *SecurePatchGenerator) GenerateSecure() (*SecurePatchPackage, error) {
 
 		"security_validated", true)
 
-
-
 	return securePatch, nil
 
 }
-
-
 
 // validateSecurityPreconditions performs pre-generation security checks.
 
 func (g *SecurePatchGenerator) validateSecurityPreconditions() error {
 
 	g.logger.V(1).Info("Validating security preconditions")
-
-
 
 	// Validate intent structure and content.
 
@@ -289,8 +217,6 @@ func (g *SecurePatchGenerator) validateSecurityPreconditions() error {
 
 	}
 
-
-
 	// Validate intent fields for security compliance.
 
 	if err := g.validateIntentSecurity(g.intent); err != nil {
@@ -298,8 +224,6 @@ func (g *SecurePatchGenerator) validateSecurityPreconditions() error {
 		return fmt.Errorf("intent security validation failed: %w", err)
 
 	}
-
-
 
 	// Validate output directory path security.
 
@@ -311,13 +235,9 @@ func (g *SecurePatchGenerator) validateSecurityPreconditions() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateIntentSecurity validates intent fields for security compliance.
 
@@ -331,8 +251,6 @@ func (g *SecurePatchGenerator) validateIntentSecurity(intent *patchgen.Intent) e
 
 	}
 
-
-
 	// Validate namespace (Kubernetes compliance + security).
 
 	if err := validateKubernetesName(intent.Namespace); err != nil {
@@ -340,8 +258,6 @@ func (g *SecurePatchGenerator) validateIntentSecurity(intent *patchgen.Intent) e
 		return fmt.Errorf("invalid namespace: %w", err)
 
 	}
-
-
 
 	// Validate replicas within security bounds.
 
@@ -351,8 +267,6 @@ func (g *SecurePatchGenerator) validateIntentSecurity(intent *patchgen.Intent) e
 
 	}
 
-
-
 	// Validate intent type.
 
 	if intent.IntentType != "scaling" {
@@ -360,8 +274,6 @@ func (g *SecurePatchGenerator) validateIntentSecurity(intent *patchgen.Intent) e
 		return fmt.Errorf("unsupported intent type: %s", intent.IntentType)
 
 	}
-
-
 
 	// Validate optional fields for injection attacks.
 
@@ -383,13 +295,9 @@ func (g *SecurePatchGenerator) validateIntentSecurity(intent *patchgen.Intent) e
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateStringFieldSecurity validates string fields for injection attacks.
 
@@ -401,8 +309,6 @@ func (g *SecurePatchGenerator) validateStringFieldSecurity(fieldName, value stri
 
 	}
 
-
-
 	// Check for common injection patterns.
 
 	dangerousPatterns := []string{
@@ -410,10 +316,7 @@ func (g *SecurePatchGenerator) validateStringFieldSecurity(fieldName, value stri
 		`<script`, `javascript:`, `eval(`, `system(`, `exec(`,
 
 		`../`, `..\\`, `$(`, "`", `${`,
-
 	}
-
-
 
 	for _, pattern := range dangerousPatterns {
 
@@ -425,8 +328,6 @@ func (g *SecurePatchGenerator) validateStringFieldSecurity(fieldName, value stri
 
 	}
 
-
-
 	// Length validation.
 
 	if len(value) > 512 {
@@ -435,13 +336,9 @@ func (g *SecurePatchGenerator) validateStringFieldSecurity(fieldName, value stri
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // createBasePatchPackage creates the base patch package structure.
 
@@ -459,18 +356,15 @@ func (g *SecurePatchGenerator) createBasePatchPackage(packageName string) *patch
 
 	}
 
-
-
 	kptfile := &patchgen.Kptfile{
 
 		APIVersion: "kpt.dev/v1",
 
-		Kind:       "Kptfile",
+		Kind: "Kptfile",
 
 		Metadata: patchgen.KptMetadata{
 
 			Name: packageName,
-
 		},
 
 		Info: patchgen.KptInfo{
@@ -478,7 +372,6 @@ func (g *SecurePatchGenerator) createBasePatchPackage(packageName string) *patch
 			Description: fmt.Sprintf("Secure scaling patch for %s deployment to %d replicas",
 
 				g.intent.Target, g.intent.Replicas),
-
 		},
 
 		Pipeline: patchgen.KptPipeline{
@@ -492,28 +385,21 @@ func (g *SecurePatchGenerator) createBasePatchPackage(packageName string) *patch
 					ConfigMap: map[string]string{
 
 						"apply-replacements": "true",
-
 					},
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	patchFile := &patchgen.PatchFile{
 
 		APIVersion: "apps/v1",
 
-		Kind:       "Deployment",
+		Kind: "Deployment",
 
 		Metadata: patchgen.PatchMetadata{
 
-			Name:      g.intent.Target,
+			Name: g.intent.Target,
 
 			Namespace: g.intent.Namespace,
 
@@ -521,45 +407,36 @@ func (g *SecurePatchGenerator) createBasePatchPackage(packageName string) *patch
 
 				"config.kubernetes.io/merge-policy": "replace",
 
-				"nephoran.io/intent-type":           g.intent.IntentType,
+				"nephoran.io/intent-type": g.intent.IntentType,
 
-				"nephoran.io/generated-at":          timestamp,
+				"nephoran.io/generated-at": timestamp,
 
-				"nephoran.io/security-validated":    "true",
+				"nephoran.io/security-validated": "true",
 
-				"nephoran.io/compliance-level":      "O-RAN-WG11-L",
+				"nephoran.io/compliance-level": "O-RAN-WG11-L",
 
-				"nephoran.io/generator-version":     "secure-v1.0",
-
+				"nephoran.io/generator-version": "secure-v1.0",
 			},
-
 		},
 
 		Spec: patchgen.PatchSpec{
 
 			Replicas: g.intent.Replicas,
-
 		},
-
 	}
-
-
 
 	return &patchgen.PatchPackage{
 
-		Kptfile:   kptfile,
+		Kptfile: kptfile,
 
 		PatchFile: patchFile,
 
 		OutputDir: g.outputDir,
 
-		Intent:    g.intent,
-
+		Intent: g.intent,
 	}
 
 }
-
-
 
 // validateOutputDirectory performs security validation on output directory.
 
@@ -575,8 +452,6 @@ func (g *SecurePatchGenerator) validateOutputDirectory() error {
 
 	}
 
-
-
 	// Additional checks specific to patch generation.
 
 	absPath, err := filepath.Abs(g.outputDir)
@@ -587,8 +462,6 @@ func (g *SecurePatchGenerator) validateOutputDirectory() error {
 
 	}
 
-
-
 	// Ensure directory exists or can be created.
 
 	if err := os.MkdirAll(absPath, 0o755); err != nil {
@@ -596,8 +469,6 @@ func (g *SecurePatchGenerator) validateOutputDirectory() error {
 		return fmt.Errorf("failed to create output directory: %w", err)
 
 	}
-
-
 
 	// Check directory permissions.
 
@@ -609,29 +480,21 @@ func (g *SecurePatchGenerator) validateOutputDirectory() error {
 
 	}
 
-
-
 	if !info.IsDir() {
 
 		return fmt.Errorf("output path is not a directory: %s", absPath)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // generateSecurePackageFiles generates package files with security controls.
 
 func (g *SecurePatchGenerator) generateSecurePackageFiles(securePatch *SecurePatchPackage) error {
 
 	packageDir := filepath.Join(g.outputDir, securePatch.Kptfile.Metadata.Name)
-
-
 
 	// Create package directory with secure permissions.
 
@@ -641,8 +504,6 @@ func (g *SecurePatchGenerator) generateSecurePackageFiles(securePatch *SecurePat
 
 	}
 
-
-
 	// Generate Kptfile.
 
 	if err := g.generateSecureKptfile(packageDir, securePatch); err != nil {
@@ -650,8 +511,6 @@ func (g *SecurePatchGenerator) generateSecurePackageFiles(securePatch *SecurePat
 		return fmt.Errorf("failed to generate secure Kptfile: %w", err)
 
 	}
-
-
 
 	// Generate patch file.
 
@@ -661,8 +520,6 @@ func (g *SecurePatchGenerator) generateSecurePackageFiles(securePatch *SecurePat
 
 	}
 
-
-
 	// Generate security metadata file.
 
 	if err := g.generateSecurityMetadataFile(packageDir, securePatch); err != nil {
@@ -670,8 +527,6 @@ func (g *SecurePatchGenerator) generateSecurePackageFiles(securePatch *SecurePat
 		return fmt.Errorf("failed to generate security metadata: %w", err)
 
 	}
-
-
 
 	// Generate README with security information.
 
@@ -681,13 +536,9 @@ func (g *SecurePatchGenerator) generateSecurePackageFiles(securePatch *SecurePat
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // generateSecureKptfile creates Kptfile with security metadata.
 
@@ -701,15 +552,11 @@ func (g *SecurePatchGenerator) generateSecureKptfile(packageDir string, securePa
 
 	}
 
-
-
 	kptfilePath := filepath.Join(packageDir, "Kptfile")
 
 	return g.writeSecureFile(kptfilePath, kptfileData)
 
 }
-
-
 
 // generateSecurePatchFile creates patch file with security annotations.
 
@@ -723,15 +570,11 @@ func (g *SecurePatchGenerator) generateSecurePatchFile(packageDir string, secure
 
 	}
 
-
-
 	patchPath := filepath.Join(packageDir, "scaling-patch.yaml")
 
 	return g.writeSecureFile(patchPath, patchData)
 
 }
-
-
 
 // generateSecurityMetadataFile creates security metadata file.
 
@@ -745,15 +588,11 @@ func (g *SecurePatchGenerator) generateSecurityMetadataFile(packageDir string, s
 
 	}
 
-
-
 	metadataPath := filepath.Join(packageDir, "security-metadata.yaml")
 
 	return g.writeSecureFile(metadataPath, metadataData)
 
 }
-
-
 
 // generateSecureReadme creates README with security information.
 
@@ -881,15 +720,11 @@ Package ID: %s
 
 		securePatch.Kptfile.Metadata.Name)
 
-
-
 	readmePath := filepath.Join(packageDir, "README.md")
 
 	return g.writeSecureFile(readmePath, []byte(readmeContent))
 
 }
-
-
 
 // writeSecureFile writes file with secure permissions and validation.
 
@@ -905,8 +740,6 @@ func (g *SecurePatchGenerator) writeSecureFile(path string, data []byte) error {
 
 	}
 
-
-
 	// Ensure parent directory exists.
 
 	dir := filepath.Dir(path)
@@ -917,23 +750,17 @@ func (g *SecurePatchGenerator) writeSecureFile(path string, data []byte) error {
 
 	}
 
-
-
 	// Write file with secure permissions.
 
 	return os.WriteFile(path, data, 0o640)
 
 }
 
-
-
 // validateGeneratedPackage performs post-generation validation.
 
 func (g *SecurePatchGenerator) validateGeneratedPackage(securePatch *SecurePatchPackage) error {
 
 	packagePath := securePatch.GetPackagePath()
-
-
 
 	// Verify package directory exists.
 
@@ -946,8 +773,6 @@ func (g *SecurePatchGenerator) validateGeneratedPackage(securePatch *SecurePatch
 		return fmt.Errorf("generated package path is not a directory")
 
 	}
-
-
 
 	// Verify required files exist.
 
@@ -965,13 +790,9 @@ func (g *SecurePatchGenerator) validateGeneratedPackage(securePatch *SecurePatch
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // containsIgnoreCase performs case-insensitive substring search.
 
@@ -987,8 +808,6 @@ func containsIgnoreCase(s, substr string) bool {
 
 }
 
-
-
 // validateKubernetesName validates that a name conforms to Kubernetes naming rules.
 
 func validateKubernetesName(name string) error {
@@ -998,8 +817,6 @@ func validateKubernetesName(name string) error {
 		return fmt.Errorf("name cannot be empty")
 
 	}
-
-
 
 	// Kubernetes names must be lowercase alphanumeric with hyphens.
 
@@ -1011,8 +828,6 @@ func validateKubernetesName(name string) error {
 
 	}
 
-
-
 	// Must start and end with alphanumeric.
 
 	if !isAlphanumeric(name[0]) || !isAlphanumeric(name[len(name)-1]) {
@@ -1020,8 +835,6 @@ func validateKubernetesName(name string) error {
 		return fmt.Errorf("name must start and end with alphanumeric character")
 
 	}
-
-
 
 	// Check each character.
 
@@ -1033,8 +846,6 @@ func validateKubernetesName(name string) error {
 
 		}
 
-
-
 		// No uppercase allowed.
 
 		if char >= 'A' && char <= 'Z' {
@@ -1045,13 +856,9 @@ func validateKubernetesName(name string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // isAlphanumeric checks if a byte is alphanumeric (lowercase).
 
@@ -1060,8 +867,6 @@ func isAlphanumeric(b byte) bool {
 	return (b >= '0' && b <= '9') || (b >= 'a' && b <= 'z')
 
 }
-
-
 
 // LogGeneration logs patch generation events.
 
@@ -1073,8 +878,6 @@ func (a *GeneratorAuditor) LogGeneration(intent *patchgen.Intent, packageName st
 
 	}
 
-
-
 	status := "SUCCESS"
 
 	if !success {
@@ -1083,11 +886,8 @@ func (a *GeneratorAuditor) LogGeneration(intent *patchgen.Intent, packageName st
 
 	}
 
-
-
 	fmt.Printf("[PATCH GENERATION AUDIT] %s: Package=%s, Target=%s, Duration=%v, Error=%s\n",
 
 		status, packageName, intent.Target, duration, errorMsg)
 
 }
-

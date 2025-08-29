@@ -2,174 +2,129 @@
 
 // Package fcaps provides FCAPS (Fault, Configuration, Accounting, Performance, Security) event processing.
 
-
 package fcaps
 
-
-
 import (
-
 	"fmt"
-
 	"log"
-
 	"time"
 
-
-
 	ingest "github.com/nephio-project/nephoran-intent-operator/internal/ingest"
-
 )
-
-
 
 // CommonEventHeader represents the common header for all VES events.
 
 type CommonEventHeader struct {
+	Version string `json:"version"`
 
-	Version             string `json:"version"`
+	Domain string `json:"domain"`
 
-	Domain              string `json:"domain"`
+	EventName string `json:"eventName"`
 
-	EventName           string `json:"eventName"`
+	EventID string `json:"eventId"`
 
-	EventID             string `json:"eventId"`
+	Sequence int `json:"sequence"`
 
-	Sequence            int    `json:"sequence"`
-
-	Priority            string `json:"priority"`
+	Priority string `json:"priority"`
 
 	ReportingEntityName string `json:"reportingEntityName"`
 
-	SourceName          string `json:"sourceName"`
+	SourceName string `json:"sourceName"`
 
-	NFVendorName        string `json:"nfVendorName"`
+	NFVendorName string `json:"nfVendorName"`
 
-	StartEpochMicrosec  int64  `json:"startEpochMicrosec"`
+	StartEpochMicrosec int64 `json:"startEpochMicrosec"`
 
-	LastEpochMicrosec   int64  `json:"lastEpochMicrosec"`
+	LastEpochMicrosec int64 `json:"lastEpochMicrosec"`
 
-	TimeZoneOffset      string `json:"timeZoneOffset"`
-
+	TimeZoneOffset string `json:"timeZoneOffset"`
 }
-
-
 
 // FaultFields represents fault event specific fields.
 
 type FaultFields struct {
-
 	FaultFieldsVersion string `json:"faultFieldsVersion"`
 
-	AlarmCondition     string `json:"alarmCondition"`
+	AlarmCondition string `json:"alarmCondition"`
 
-	EventSeverity      string `json:"eventSeverity"`
+	EventSeverity string `json:"eventSeverity"`
 
-	SpecificProblem    string `json:"specificProblem"`
+	SpecificProblem string `json:"specificProblem"`
 
-	EventSourceType    string `json:"eventSourceType"`
+	EventSourceType string `json:"eventSourceType"`
 
-	VFStatus           string `json:"vfStatus"`
+	VFStatus string `json:"vfStatus"`
 
-	AlarmInterfaceA    string `json:"alarmInterfaceA"`
-
+	AlarmInterfaceA string `json:"alarmInterfaceA"`
 }
-
-
 
 // MeasurementsForVfScalingFields represents performance measurement fields.
 
 type MeasurementsForVfScalingFields struct {
+	MeasurementsForVfScalingVersion string `json:"measurementsForVfScalingVersion"`
 
-	MeasurementsForVfScalingVersion string                 `json:"measurementsForVfScalingVersion"`
+	VNicUsageArray []VNicUsage `json:"vNicUsageArray,omitempty"`
 
-	VNicUsageArray                  []VNicUsage            `json:"vNicUsageArray,omitempty"`
-
-	AdditionalFields                map[string]interface{} `json:"additionalFields,omitempty"`
-
+	AdditionalFields map[string]interface{} `json:"additionalFields,omitempty"`
 }
-
-
 
 // VNicUsage represents network interface usage metrics.
 
 type VNicUsage struct {
+	VnfNetworkInterface string `json:"vnfNetworkInterface"`
 
-	VnfNetworkInterface    string `json:"vnfNetworkInterface"`
+	ReceivedOctetsDelta int64 `json:"receivedOctetsDelta"`
 
-	ReceivedOctetsDelta    int64  `json:"receivedOctetsDelta"`
-
-	TransmittedOctetsDelta int64  `json:"transmittedOctetsDelta"`
-
+	TransmittedOctetsDelta int64 `json:"transmittedOctetsDelta"`
 }
-
-
 
 // HeartbeatFields represents heartbeat event fields.
 
 type HeartbeatFields struct {
-
 	HeartbeatFieldsVersion string `json:"heartbeatFieldsVersion"`
 
-	HeartbeatInterval      int    `json:"heartbeatInterval"`
-
+	HeartbeatInterval int `json:"heartbeatInterval"`
 }
-
-
 
 // FCAPSEvent represents a VES event with various field types.
 
 type FCAPSEvent struct {
-
 	Event struct {
+		CommonEventHeader CommonEventHeader `json:"commonEventHeader"`
 
-		CommonEventHeader              CommonEventHeader               `json:"commonEventHeader"`
-
-		FaultFields                    *FaultFields                    `json:"faultFields,omitempty"`
+		FaultFields *FaultFields `json:"faultFields,omitempty"`
 
 		MeasurementsForVfScalingFields *MeasurementsForVfScalingFields `json:"measurementsForVfScalingFields,omitempty"`
 
-		HeartbeatFields                *HeartbeatFields                `json:"heartbeatFields,omitempty"`
-
+		HeartbeatFields *HeartbeatFields `json:"heartbeatFields,omitempty"`
 	} `json:"event"`
-
 }
-
-
 
 // Processor handles FCAPS event processing and threshold detection.
 
 type Processor struct {
-
 	currentReplicas int
 
-	maxReplicas     int
+	maxReplicas int
 
-	minReplicas     int
+	minReplicas int
 
-	target          string
+	target string
 
-	namespace       string
-
+	namespace string
 }
-
-
 
 // ScalingDecision represents a scaling decision made by the processor.
 
 type ScalingDecision struct {
-
 	ShouldScale bool
 
 	NewReplicas int
 
-	Reason      string
+	Reason string
 
-	Severity    string
-
+	Severity string
 }
-
-
 
 // NewProcessor creates a new FCAPS processor.
 
@@ -179,19 +134,16 @@ func NewProcessor(target, namespace string) *Processor {
 
 		currentReplicas: 1, // Start with 1 replica
 
-		maxReplicas:     10,
+		maxReplicas: 10,
 
-		minReplicas:     1,
+		minReplicas: 1,
 
-		target:          target,
+		target: target,
 
-		namespace:       namespace,
-
+		namespace: namespace,
 	}
 
 }
-
-
 
 // ProcessEvent processes a FCAPS event and returns scaling decision.
 
@@ -199,13 +151,9 @@ func (p *Processor) ProcessEvent(event FCAPSEvent) ScalingDecision {
 
 	header := event.Event.CommonEventHeader
 
-
-
 	log.Printf("Processing event: %s (domain: %s, source: %s)",
 
 		header.EventName, header.Domain, header.SourceName)
-
-
 
 	switch header.Domain {
 
@@ -231,8 +179,6 @@ func (p *Processor) ProcessEvent(event FCAPSEvent) ScalingDecision {
 
 }
 
-
-
 // processFaultEvent handles fault events and determines scaling needs.
 
 func (p *Processor) processFaultEvent(event FCAPSEvent) ScalingDecision {
@@ -243,15 +189,11 @@ func (p *Processor) processFaultEvent(event FCAPSEvent) ScalingDecision {
 
 	}
 
-
-
 	faultFields := event.Event.FaultFields
 
 	log.Printf("Fault event: severity=%s, condition=%s, problem=%s",
 
 		faultFields.EventSeverity, faultFields.AlarmCondition, faultFields.SpecificProblem)
-
-
 
 	// For CRITICAL fault events, scale up by 2.
 
@@ -265,8 +207,6 @@ func (p *Processor) processFaultEvent(event FCAPSEvent) ScalingDecision {
 
 		}
 
-
-
 		if newReplicas > p.currentReplicas {
 
 			reason := fmt.Sprintf("Critical fault detected: %s (%s)",
@@ -279,23 +219,18 @@ func (p *Processor) processFaultEvent(event FCAPSEvent) ScalingDecision {
 
 				NewReplicas: newReplicas,
 
-				Reason:      reason,
+				Reason: reason,
 
-				Severity:    "critical",
-
+				Severity: "critical",
 			}
 
 		}
 
 	}
 
-
-
 	return ScalingDecision{ShouldScale: false}
 
 }
-
-
 
 // processPerformanceEvent handles performance measurement events.
 
@@ -307,21 +242,15 @@ func (p *Processor) processPerformanceEvent(event FCAPSEvent) ScalingDecision {
 
 	}
 
-
-
 	fields := event.Event.MeasurementsForVfScalingFields
 
 	additionalFields := fields.AdditionalFields
-
-
 
 	if additionalFields == nil {
 
 		return ScalingDecision{ShouldScale: false}
 
 	}
-
-
 
 	// Check PRB utilization threshold (> 0.8).
 
@@ -341,8 +270,6 @@ func (p *Processor) processPerformanceEvent(event FCAPSEvent) ScalingDecision {
 
 	}
 
-
-
 	// Check p95 latency threshold (> 100ms).
 
 	if p95Latency, exists := additionalFields["kpm.p95_latency_ms"]; exists {
@@ -361,13 +288,9 @@ func (p *Processor) processPerformanceEvent(event FCAPSEvent) ScalingDecision {
 
 	}
 
-
-
 	return ScalingDecision{ShouldScale: false}
 
 }
-
-
 
 // processHeartbeatEvent handles heartbeat events (no scaling action needed).
 
@@ -378,8 +301,6 @@ func (p *Processor) processHeartbeatEvent(event FCAPSEvent) ScalingDecision {
 	return ScalingDecision{ShouldScale: false}
 
 }
-
-
 
 // createScaleUpDecision creates a scale-up decision by 1 replica.
 
@@ -393,8 +314,6 @@ func (p *Processor) createScaleUpDecision(reasonFormat string, value float64) Sc
 
 	}
 
-
-
 	if newReplicas > p.currentReplicas {
 
 		reason := fmt.Sprintf(reasonFormat, value)
@@ -405,21 +324,16 @@ func (p *Processor) createScaleUpDecision(reasonFormat string, value float64) Sc
 
 			NewReplicas: newReplicas,
 
-			Reason:      reason,
+			Reason: reason,
 
-			Severity:    "performance",
-
+			Severity: "performance",
 		}
 
 	}
 
-
-
 	return ScalingDecision{ShouldScale: false}
 
 }
-
-
 
 // GenerateIntent creates a scaling intent from a scaling decision.
 
@@ -431,27 +345,22 @@ func (p *Processor) GenerateIntent(decision ScalingDecision) (*ingest.Intent, er
 
 	}
 
-
-
 	intent := &ingest.Intent{
 
-		IntentType:    "scaling",
+		IntentType: "scaling",
 
-		Target:        p.target,
+		Target: p.target,
 
-		Namespace:     p.namespace,
+		Namespace: p.namespace,
 
-		Replicas:      decision.NewReplicas,
+		Replicas: decision.NewReplicas,
 
-		Reason:        decision.Reason,
+		Reason: decision.Reason,
 
-		Source:        "planner",
+		Source: "planner",
 
 		CorrelationID: fmt.Sprintf("fcaps-%d", time.Now().Unix()),
-
 	}
-
-
 
 	// Update current replicas to new value.
 
@@ -459,13 +368,9 @@ func (p *Processor) GenerateIntent(decision ScalingDecision) (*ingest.Intent, er
 
 	log.Printf("Updated current replicas to %d", p.currentReplicas)
 
-
-
 	return intent, nil
 
 }
-
-
 
 // GetCurrentReplicas returns the current replica count.
 
@@ -474,8 +379,6 @@ func (p *Processor) GetCurrentReplicas() int {
 	return p.currentReplicas
 
 }
-
-
 
 // SetCurrentReplicas sets the current replica count (for initialization).
 
@@ -490,4 +393,3 @@ func (p *Processor) SetCurrentReplicas(replicas int) {
 	}
 
 }
-

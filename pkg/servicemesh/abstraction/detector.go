@@ -1,51 +1,30 @@
 // Package abstraction provides service mesh detection and factory capabilities.
 
-
 package abstraction
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"strings"
-
-
 
 	"github.com/go-logr/logr"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/client-go/kubernetes"
-
 	"k8s.io/client-go/rest"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // ServiceMeshDetector detects installed service mesh providers.
 
 type ServiceMeshDetector struct {
-
 	kubeClient kubernetes.Interface
 
-	config     *rest.Config
+	config *rest.Config
 
-	logger     logr.Logger
-
+	logger logr.Logger
 }
-
-
 
 // NewServiceMeshDetector creates a new service mesh detector.
 
@@ -55,15 +34,12 @@ func NewServiceMeshDetector(kubeClient kubernetes.Interface, config *rest.Config
 
 		kubeClient: kubeClient,
 
-		config:     config,
+		config: config,
 
-		logger:     log.Log.WithName("service-mesh-detector"),
-
+		logger: log.Log.WithName("service-mesh-detector"),
 	}
 
 }
-
-
 
 // DetectServiceMesh detects the installed service mesh provider.
 
@@ -79,8 +55,6 @@ func (d *ServiceMeshDetector) DetectServiceMesh(ctx context.Context) (ServiceMes
 
 	}
 
-
-
 	// Check for Linkerd.
 
 	if provider, err := d.detectLinkerd(ctx); err == nil && provider != ProviderNone {
@@ -90,8 +64,6 @@ func (d *ServiceMeshDetector) DetectServiceMesh(ctx context.Context) (ServiceMes
 		return provider, nil
 
 	}
-
-
 
 	// Check for Consul.
 
@@ -103,15 +75,11 @@ func (d *ServiceMeshDetector) DetectServiceMesh(ctx context.Context) (ServiceMes
 
 	}
 
-
-
 	d.logger.Info("No service mesh provider detected")
 
 	return ProviderNone, nil
 
 }
-
-
 
 // detectIstio checks for Istio installation.
 
@@ -127,8 +95,6 @@ func (d *ServiceMeshDetector) detectIstio(ctx context.Context) (ServiceMeshProvi
 
 	}
 
-
-
 	for _, ns := range namespaces.Items {
 
 		if ns.Name == "istio-system" {
@@ -142,8 +108,6 @@ func (d *ServiceMeshDetector) detectIstio(ctx context.Context) (ServiceMeshProvi
 				return ProviderNone, fmt.Errorf("failed to list deployments: %w", err)
 
 			}
-
-
 
 			for _, deploy := range deployments.Items {
 
@@ -165,13 +129,9 @@ func (d *ServiceMeshDetector) detectIstio(ctx context.Context) (ServiceMeshProvi
 
 	}
 
-
-
 	return ProviderNone, nil
 
 }
-
-
 
 // detectLinkerd checks for Linkerd installation.
 
@@ -187,8 +147,6 @@ func (d *ServiceMeshDetector) detectLinkerd(ctx context.Context) (ServiceMeshPro
 
 	}
 
-
-
 	for _, ns := range namespaces.Items {
 
 		if ns.Name == "linkerd" {
@@ -202,8 +160,6 @@ func (d *ServiceMeshDetector) detectLinkerd(ctx context.Context) (ServiceMeshPro
 				return ProviderNone, fmt.Errorf("failed to list deployments: %w", err)
 
 			}
-
-
 
 			for _, deploy := range deployments.Items {
 
@@ -223,13 +179,9 @@ func (d *ServiceMeshDetector) detectLinkerd(ctx context.Context) (ServiceMeshPro
 
 	}
 
-
-
 	return ProviderNone, nil
 
 }
-
-
 
 // detectConsul checks for Consul installation.
 
@@ -245,8 +197,6 @@ func (d *ServiceMeshDetector) detectConsul(ctx context.Context) (ServiceMeshProv
 
 	}
 
-
-
 	for _, ns := range namespaces.Items {
 
 		if ns.Name == "consul" {
@@ -260,8 +210,6 @@ func (d *ServiceMeshDetector) detectConsul(ctx context.Context) (ServiceMeshProv
 				return ProviderNone, fmt.Errorf("failed to list statefulsets: %w", err)
 
 			}
-
-
 
 			for _, sts := range statefulsets.Items {
 
@@ -281,13 +229,9 @@ func (d *ServiceMeshDetector) detectConsul(ctx context.Context) (ServiceMeshProv
 
 	}
 
-
-
 	return ProviderNone, nil
 
 }
-
-
 
 // GetServiceMeshVersion gets the version of the detected service mesh.
 
@@ -315,8 +259,6 @@ func (d *ServiceMeshDetector) GetServiceMeshVersion(ctx context.Context, provide
 
 }
 
-
-
 // getIstioVersion gets the Istio version.
 
 func (d *ServiceMeshDetector) getIstioVersion(ctx context.Context) (string, error) {
@@ -326,7 +268,6 @@ func (d *ServiceMeshDetector) getIstioVersion(ctx context.Context) (string, erro
 	deployments, err := d.kubeClient.AppsV1().Deployments("istio-system").List(ctx, metav1.ListOptions{
 
 		LabelSelector: "app=istiod",
-
 	})
 
 	if err != nil {
@@ -334,8 +275,6 @@ func (d *ServiceMeshDetector) getIstioVersion(ctx context.Context) (string, erro
 		return "", fmt.Errorf("failed to get istiod deployment: %w", err)
 
 	}
-
-
 
 	if len(deployments.Items) > 0 {
 
@@ -367,13 +306,9 @@ func (d *ServiceMeshDetector) getIstioVersion(ctx context.Context) (string, erro
 
 	}
 
-
-
 	return "unknown", nil
 
 }
-
-
 
 // getLinkerdVersion gets the Linkerd version.
 
@@ -384,7 +319,6 @@ func (d *ServiceMeshDetector) getLinkerdVersion(ctx context.Context) (string, er
 	deployments, err := d.kubeClient.AppsV1().Deployments("linkerd").List(ctx, metav1.ListOptions{
 
 		LabelSelector: "linkerd.io/control-plane-component=controller",
-
 	})
 
 	if err != nil {
@@ -392,8 +326,6 @@ func (d *ServiceMeshDetector) getLinkerdVersion(ctx context.Context) (string, er
 		return "", fmt.Errorf("failed to get linkerd deployment: %w", err)
 
 	}
-
-
 
 	if len(deployments.Items) > 0 {
 
@@ -421,13 +353,9 @@ func (d *ServiceMeshDetector) getLinkerdVersion(ctx context.Context) (string, er
 
 	}
 
-
-
 	return "unknown", nil
 
 }
-
-
 
 // getConsulVersion gets the Consul version.
 
@@ -442,8 +370,6 @@ func (d *ServiceMeshDetector) getConsulVersion(ctx context.Context) (string, err
 		return "", fmt.Errorf("failed to get consul statefulset: %w", err)
 
 	}
-
-
 
 	for _, sts := range statefulsets.Items {
 
@@ -471,83 +397,63 @@ func (d *ServiceMeshDetector) getConsulVersion(ctx context.Context) (string, err
 
 	}
 
-
-
 	return "unknown", nil
 
 }
 
-
-
 // DetectorResult contains service mesh detection results.
 
 type DetectorResult struct {
+	Provider ServiceMeshProvider `json:"provider"`
 
-	Provider     ServiceMeshProvider `json:"provider"`
+	Version string `json:"version"`
 
-	Version      string              `json:"version"`
+	Namespace string `json:"namespace"`
 
-	Namespace    string              `json:"namespace"`
+	ControlPlane ControlPlaneInfo `json:"controlPlane"`
 
-	ControlPlane ControlPlaneInfo    `json:"controlPlane"`
+	DataPlane DataPlaneInfo `json:"dataPlane"`
 
-	DataPlane    DataPlaneInfo       `json:"dataPlane"`
-
-	Features     []string            `json:"features"`
-
+	Features []string `json:"features"`
 }
-
-
 
 // ControlPlaneInfo contains control plane information.
 
 type ControlPlaneInfo struct {
+	Ready bool `json:"ready"`
 
-	Ready       bool              `json:"ready"`
+	Components []ComponentStatus `json:"components"`
 
-	Components  []ComponentStatus `json:"components"`
-
-	Endpoints   []string          `json:"endpoints"`
+	Endpoints []string `json:"endpoints"`
 
 	Annotations map[string]string `json:"annotations"`
-
 }
-
-
 
 // DataPlaneInfo contains data plane information.
 
 type DataPlaneInfo struct {
+	ProxyCount int `json:"proxyCount"`
 
-	ProxyCount     int    `json:"proxyCount"`
+	ProxyVersion string `json:"proxyVersion"`
 
-	ProxyVersion   string `json:"proxyVersion"`
+	InjectionMode string `json:"injectionMode"`
 
-	InjectionMode  string `json:"injectionMode"`
-
-	NamespaceCount int    `json:"namespaceCount"`
-
+	NamespaceCount int `json:"namespaceCount"`
 }
-
-
 
 // ComponentStatus represents a control plane component status.
 
 type ComponentStatus struct {
-
-	Name      string `json:"name"`
+	Name string `json:"name"`
 
 	Namespace string `json:"namespace"`
 
-	Type      string `json:"type"`
+	Type string `json:"type"`
 
-	Ready     bool   `json:"ready"`
+	Ready bool `json:"ready"`
 
-	Version   string `json:"version,omitempty"`
-
+	Version string `json:"version,omitempty"`
 }
-
-
 
 // GetDetectionResult gets comprehensive detection results.
 
@@ -561,19 +467,14 @@ func (d *ServiceMeshDetector) GetDetectionResult(ctx context.Context) (*Detector
 
 	}
 
-
-
 	if provider == ProviderNone {
 
 		return &DetectorResult{
 
 			Provider: ProviderNone,
-
 		}, nil
 
 	}
-
-
 
 	version, err := d.GetServiceMeshVersion(ctx, provider)
 
@@ -585,17 +486,12 @@ func (d *ServiceMeshDetector) GetDetectionResult(ctx context.Context) (*Detector
 
 	}
 
-
-
 	result := &DetectorResult{
 
 		Provider: provider,
 
-		Version:  version,
-
+		Version: version,
 	}
-
-
 
 	// Get detailed information based on provider.
 
@@ -633,13 +529,9 @@ func (d *ServiceMeshDetector) GetDetectionResult(ctx context.Context) (*Detector
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // enrichIstioInfo adds Istio-specific information.
 
@@ -650,7 +542,6 @@ func (d *ServiceMeshDetector) enrichIstioInfo(ctx context.Context, result *Detec
 	pods, err := d.kubeClient.CoreV1().Pods("").List(ctx, metav1.ListOptions{
 
 		LabelSelector: "security.istio.io/tlsMode=istio",
-
 	})
 
 	if err == nil {
@@ -659,14 +550,11 @@ func (d *ServiceMeshDetector) enrichIstioInfo(ctx context.Context, result *Detec
 
 	}
 
-
-
 	// Get injection namespaces.
 
 	namespaces, err := d.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
 
 		LabelSelector: "istio-injection=enabled",
-
 	})
 
 	if err == nil {
@@ -677,8 +565,6 @@ func (d *ServiceMeshDetector) enrichIstioInfo(ctx context.Context, result *Detec
 
 	}
 
-
-
 	// Check control plane components.
 
 	result.ControlPlane.Components = []ComponentStatus{
@@ -688,10 +574,7 @@ func (d *ServiceMeshDetector) enrichIstioInfo(ctx context.Context, result *Detec
 		{Name: "istio-ingressgateway", Namespace: "istio-system", Type: "deployment"},
 
 		{Name: "istio-egressgateway", Namespace: "istio-system", Type: "deployment"},
-
 	}
-
-
 
 	for i := range result.ControlPlane.Components {
 
@@ -708,8 +591,6 @@ func (d *ServiceMeshDetector) enrichIstioInfo(ctx context.Context, result *Detec
 	}
 
 }
-
-
 
 // enrichLinkerdInfo adds Linkerd-specific information.
 
@@ -743,14 +624,11 @@ func (d *ServiceMeshDetector) enrichLinkerdInfo(ctx context.Context, result *Det
 
 	}
 
-
-
 	// Get injection namespaces.
 
 	namespaces, err := d.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
 
 		LabelSelector: "linkerd.io/inject=enabled",
-
 	})
 
 	if err == nil {
@@ -760,8 +638,6 @@ func (d *ServiceMeshDetector) enrichLinkerdInfo(ctx context.Context, result *Det
 		result.DataPlane.InjectionMode = "automatic"
 
 	}
-
-
 
 	// Check control plane components.
 
@@ -774,10 +650,7 @@ func (d *ServiceMeshDetector) enrichLinkerdInfo(ctx context.Context, result *Det
 		{Name: "linkerd-identity", Namespace: "linkerd", Type: "deployment"},
 
 		{Name: "linkerd-proxy-injector", Namespace: "linkerd", Type: "deployment"},
-
 	}
-
-
 
 	for i := range result.ControlPlane.Components {
 
@@ -794,8 +667,6 @@ func (d *ServiceMeshDetector) enrichLinkerdInfo(ctx context.Context, result *Det
 	}
 
 }
-
-
 
 // enrichConsulInfo adds Consul-specific information.
 
@@ -823,8 +694,6 @@ func (d *ServiceMeshDetector) enrichConsulInfo(ctx context.Context, result *Dete
 
 	}
 
-
-
 	// Check control plane components.
 
 	result.ControlPlane.Components = []ComponentStatus{
@@ -832,10 +701,7 @@ func (d *ServiceMeshDetector) enrichConsulInfo(ctx context.Context, result *Dete
 		{Name: "consul-server", Namespace: "consul", Type: "statefulset"},
 
 		{Name: "consul-connect-injector", Namespace: "consul", Type: "deployment"},
-
 	}
-
-
 
 	// Check statefulset.
 
@@ -846,8 +712,6 @@ func (d *ServiceMeshDetector) enrichConsulInfo(ctx context.Context, result *Dete
 		result.ControlPlane.Components[0].Ready = true
 
 	}
-
-
 
 	// Check deployment.
 
@@ -860,4 +724,3 @@ func (d *ServiceMeshDetector) enrichConsulInfo(ctx context.Context, result *Dete
 	}
 
 }
-

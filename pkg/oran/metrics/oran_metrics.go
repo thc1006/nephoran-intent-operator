@@ -1,37 +1,20 @@
-
 package metrics
 
-
-
 import (
-
 	"context"
-
 	"strconv"
-
 	"time"
 
-
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 	dto "github.com/prometheus/client_model/go"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
-
 )
-
-
 
 // O-RAN Interface Metrics following O-RAN Alliance specifications.
 
 // These metrics provide comprehensive monitoring of O-RAN interface operations.
-
-
 
 var (
 
@@ -45,17 +28,13 @@ var (
 
 			Subsystem: "a1",
 
-			Name:      "policy_operations_total",
+			Name: "policy_operations_total",
 
-			Help:      "Total number of A1 policy operations",
-
+			Help: "Total number of A1 policy operations",
 		},
 
 		[]string{"operation", "policy_type_id", "status"},
-
 	)
-
-
 
 	a1PolicyOperationDuration = promauto.NewHistogramVec(
 
@@ -65,19 +44,15 @@ var (
 
 			Subsystem: "a1",
 
-			Name:      "policy_operation_duration_seconds",
+			Name: "policy_operation_duration_seconds",
 
-			Help:      "Duration of A1 policy operations in seconds",
+			Help: "Duration of A1 policy operations in seconds",
 
-			Buckets:   prometheus.DefBuckets,
-
+			Buckets: prometheus.DefBuckets,
 		},
 
 		[]string{"operation", "policy_type_id"},
-
 	)
-
-
 
 	a1PolicyTypesActive = promauto.NewGaugeVec(
 
@@ -87,17 +62,13 @@ var (
 
 			Subsystem: "a1",
 
-			Name:      "policy_types_active",
+			Name: "policy_types_active",
 
-			Help:      "Number of active A1 policy types",
-
+			Help: "Number of active A1 policy types",
 		},
 
 		[]string{"ric_id"},
-
 	)
-
-
 
 	a1PolicyInstancesActive = promauto.NewGaugeVec(
 
@@ -107,17 +78,13 @@ var (
 
 			Subsystem: "a1",
 
-			Name:      "policy_instances_active",
+			Name: "policy_instances_active",
 
-			Help:      "Number of active A1 policy instances",
-
+			Help: "Number of active A1 policy instances",
 		},
 
 		[]string{"policy_type_id", "ric_id", "enforcement_status"},
-
 	)
-
-
 
 	a1CircuitBreakerState = promauto.NewGaugeVec(
 
@@ -127,17 +94,13 @@ var (
 
 			Subsystem: "a1",
 
-			Name:      "circuit_breaker_state",
+			Name: "circuit_breaker_state",
 
-			Help:      "A1 circuit breaker state (0=closed, 1=open, 2=half-open)",
-
+			Help: "A1 circuit breaker state (0=closed, 1=open, 2=half-open)",
 		},
 
 		[]string{"ric_id"},
-
 	)
-
-
 
 	a1RetryAttemptsTotal = promauto.NewCounterVec(
 
@@ -147,17 +110,13 @@ var (
 
 			Subsystem: "a1",
 
-			Name:      "retry_attempts_total",
+			Name: "retry_attempts_total",
 
-			Help:      "Total number of A1 retry attempts",
-
+			Help: "Total number of A1 retry attempts",
 		},
 
 		[]string{"operation", "final_status"},
-
 	)
-
-
 
 	// E2 Interface Metrics - Near-RT RIC Communication.
 
@@ -169,17 +128,13 @@ var (
 
 			Subsystem: "e2",
 
-			Name:      "message_operations_total",
+			Name: "message_operations_total",
 
-			Help:      "Total number of E2AP message operations",
-
+			Help: "Total number of E2AP message operations",
 		},
 
 		[]string{"message_type", "node_id", "status"},
-
 	)
-
-
 
 	e2MessageOperationDuration = promauto.NewHistogramVec(
 
@@ -189,19 +144,15 @@ var (
 
 			Subsystem: "e2",
 
-			Name:      "message_operation_duration_seconds",
+			Name: "message_operation_duration_seconds",
 
-			Help:      "Duration of E2AP message operations in seconds",
+			Help: "Duration of E2AP message operations in seconds",
 
-			Buckets:   []float64{.001, .005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10},
-
+			Buckets: []float64{.001, .005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10},
 		},
 
 		[]string{"message_type", "node_id"},
-
 	)
-
-
 
 	e2SubscriptionsActive = promauto.NewGaugeVec(
 
@@ -211,17 +162,13 @@ var (
 
 			Subsystem: "e2",
 
-			Name:      "subscriptions_active",
+			Name: "subscriptions_active",
 
-			Help:      "Number of active E2 subscriptions",
-
+			Help: "Number of active E2 subscriptions",
 		},
 
 		[]string{"node_id", "ran_function_id", "subscription_type"},
-
 	)
-
-
 
 	e2NodesConnected = promauto.NewGaugeVec(
 
@@ -231,17 +178,13 @@ var (
 
 			Subsystem: "e2",
 
-			Name:      "nodes_connected",
+			Name: "nodes_connected",
 
-			Help:      "Number of connected E2 nodes",
-
+			Help: "Number of connected E2 nodes",
 		},
 
 		[]string{"node_type", "plmn_id"},
-
 	)
-
-
 
 	e2IndicationsReceived = promauto.NewCounterVec(
 
@@ -251,17 +194,13 @@ var (
 
 			Subsystem: "e2",
 
-			Name:      "indications_received_total",
+			Name: "indications_received_total",
 
-			Help:      "Total number of E2 indications received",
-
+			Help: "Total number of E2 indications received",
 		},
 
 		[]string{"node_id", "ran_function_id", "action_id", "indication_type"},
-
 	)
-
-
 
 	e2ControlRequestsTotal = promauto.NewCounterVec(
 
@@ -271,17 +210,13 @@ var (
 
 			Subsystem: "e2",
 
-			Name:      "control_requests_total",
+			Name: "control_requests_total",
 
-			Help:      "Total number of E2 control requests",
-
+			Help: "Total number of E2 control requests",
 		},
 
 		[]string{"node_id", "ran_function_id", "status"},
-
 	)
-
-
 
 	e2CircuitBreakerState = promauto.NewGaugeVec(
 
@@ -291,17 +226,13 @@ var (
 
 			Subsystem: "e2",
 
-			Name:      "circuit_breaker_state",
+			Name: "circuit_breaker_state",
 
-			Help:      "E2 circuit breaker state (0=closed, 1=open, 2=half-open)",
-
+			Help: "E2 circuit breaker state (0=closed, 1=open, 2=half-open)",
 		},
 
 		[]string{"node_id"},
-
 	)
-
-
 
 	// O1 Interface Metrics - Configuration and Fault Management.
 
@@ -313,17 +244,13 @@ var (
 
 			Subsystem: "o1",
 
-			Name:      "configuration_operations_total",
+			Name: "configuration_operations_total",
 
-			Help:      "Total number of O1 configuration operations",
-
+			Help: "Total number of O1 configuration operations",
 		},
 
 		[]string{"operation", "managed_element", "status"},
-
 	)
-
-
 
 	o1ConfigurationOperationDuration = promauto.NewHistogramVec(
 
@@ -333,19 +260,15 @@ var (
 
 			Subsystem: "o1",
 
-			Name:      "configuration_operation_duration_seconds",
+			Name: "configuration_operation_duration_seconds",
 
-			Help:      "Duration of O1 configuration operations in seconds",
+			Help: "Duration of O1 configuration operations in seconds",
 
-			Buckets:   prometheus.DefBuckets,
-
+			Buckets: prometheus.DefBuckets,
 		},
 
 		[]string{"operation", "managed_element"},
-
 	)
-
-
 
 	o1FaultNotificationsTotal = promauto.NewCounterVec(
 
@@ -355,17 +278,13 @@ var (
 
 			Subsystem: "o1",
 
-			Name:      "fault_notifications_total",
+			Name: "fault_notifications_total",
 
-			Help:      "Total number of O1 fault notifications",
-
+			Help: "Total number of O1 fault notifications",
 		},
 
 		[]string{"managed_element", "alarm_type", "severity"},
-
 	)
-
-
 
 	o1ManagedElementsConnected = promauto.NewGaugeVec(
 
@@ -375,17 +294,13 @@ var (
 
 			Subsystem: "o1",
 
-			Name:      "managed_elements_connected",
+			Name: "managed_elements_connected",
 
-			Help:      "Number of connected O1 managed elements",
-
+			Help: "Number of connected O1 managed elements",
 		},
 
 		[]string{"element_type", "vendor"},
-
 	)
-
-
 
 	// O2 Interface Metrics - Cloud Infrastructure Management.
 
@@ -397,17 +312,13 @@ var (
 
 			Subsystem: "o2",
 
-			Name:      "infrastructure_operations_total",
+			Name: "infrastructure_operations_total",
 
-			Help:      "Total number of O2 infrastructure operations",
-
+			Help: "Total number of O2 infrastructure operations",
 		},
 
 		[]string{"operation", "resource_type", "status"},
-
 	)
-
-
 
 	o2InfrastructureOperationDuration = promauto.NewHistogramVec(
 
@@ -417,19 +328,15 @@ var (
 
 			Subsystem: "o2",
 
-			Name:      "infrastructure_operation_duration_seconds",
+			Name: "infrastructure_operation_duration_seconds",
 
-			Help:      "Duration of O2 infrastructure operations in seconds",
+			Help: "Duration of O2 infrastructure operations in seconds",
 
-			Buckets:   []float64{.1, .25, .5, 1, 2.5, 5, 10, 25, 50, 100},
-
+			Buckets: []float64{.1, .25, .5, 1, 2.5, 5, 10, 25, 50, 100},
 		},
 
 		[]string{"operation", "resource_type"},
-
 	)
-
-
 
 	o2ResourceUtilization = promauto.NewGaugeVec(
 
@@ -439,17 +346,13 @@ var (
 
 			Subsystem: "o2",
 
-			Name:      "resource_utilization_percent",
+			Name: "resource_utilization_percent",
 
-			Help:      "O2 resource utilization percentage",
-
+			Help: "O2 resource utilization percentage",
 		},
 
 		[]string{"resource_type", "resource_id", "cluster"},
-
 	)
-
-
 
 	o2DeploymentStatus = promauto.NewGaugeVec(
 
@@ -459,17 +362,13 @@ var (
 
 			Subsystem: "o2",
 
-			Name:      "deployment_status",
+			Name: "deployment_status",
 
-			Help:      "O2 deployment status (0=failed, 1=deploying, 2=deployed, 3=terminated)",
-
+			Help: "O2 deployment status (0=failed, 1=deploying, 2=deployed, 3=terminated)",
 		},
 
 		[]string{"deployment_id", "application_type", "cluster"},
-
 	)
-
-
 
 	// General O-RAN Health and Performance Metrics.
 
@@ -481,17 +380,13 @@ var (
 
 			Subsystem: "oran",
 
-			Name:      "health_check_status",
+			Name: "health_check_status",
 
-			Help:      "O-RAN interface health check status (0=unhealthy, 1=healthy, 2=degraded)",
-
+			Help: "O-RAN interface health check status (0=unhealthy, 1=healthy, 2=degraded)",
 		},
 
 		[]string{"interface", "component"},
-
 	)
-
-
 
 	oranHealthCheckDuration = promauto.NewHistogramVec(
 
@@ -501,19 +396,15 @@ var (
 
 			Subsystem: "oran",
 
-			Name:      "health_check_duration_seconds",
+			Name: "health_check_duration_seconds",
 
-			Help:      "Duration of O-RAN health checks in seconds",
+			Help: "Duration of O-RAN health checks in seconds",
 
-			Buckets:   []float64{.001, .005, .01, .025, .05, .1, .25, .5, 1},
-
+			Buckets: []float64{.001, .005, .01, .025, .05, .1, .25, .5, 1},
 		},
 
 		[]string{"interface", "component"},
-
 	)
-
-
 
 	oranDependencyStatus = promauto.NewGaugeVec(
 
@@ -523,17 +414,13 @@ var (
 
 			Subsystem: "oran",
 
-			Name:      "dependency_status",
+			Name: "dependency_status",
 
-			Help:      "O-RAN dependency status (0=unhealthy, 1=healthy)",
-
+			Help: "O-RAN dependency status (0=unhealthy, 1=healthy)",
 		},
 
 		[]string{"dependency_name", "dependency_type"},
-
 	)
-
-
 
 	oranCircuitBreakerTrips = promauto.NewCounterVec(
 
@@ -543,17 +430,13 @@ var (
 
 			Subsystem: "oran",
 
-			Name:      "circuit_breaker_trips_total",
+			Name: "circuit_breaker_trips_total",
 
-			Help:      "Total number of circuit breaker trips across O-RAN interfaces",
-
+			Help: "Total number of circuit breaker trips across O-RAN interfaces",
 		},
 
 		[]string{"interface", "reason"},
-
 	)
-
-
 
 	// Performance and Resource Metrics.
 
@@ -565,17 +448,13 @@ var (
 
 			Subsystem: "oran",
 
-			Name:      "concurrent_connections",
+			Name: "concurrent_connections",
 
-			Help:      "Number of concurrent connections per O-RAN interface",
-
+			Help: "Number of concurrent connections per O-RAN interface",
 		},
 
 		[]string{"interface", "endpoint"},
-
 	)
-
-
 
 	oranThroughput = promauto.NewGaugeVec(
 
@@ -585,17 +464,14 @@ var (
 
 			Subsystem: "oran",
 
-			Name:      "throughput_messages_per_second",
+			Name: "throughput_messages_per_second",
 
-			Help:      "Message throughput per second for O-RAN interfaces",
-
+			Help: "Message throughput per second for O-RAN interfaces",
 		},
 
 		[]string{"interface", "direction"}, // direction: inbound/outbound
 
 	)
-
-
 
 	oranErrorRate = promauto.NewGaugeVec(
 
@@ -605,19 +481,14 @@ var (
 
 			Subsystem: "oran",
 
-			Name:      "error_rate_percent",
+			Name: "error_rate_percent",
 
-			Help:      "Error rate percentage for O-RAN interfaces",
-
+			Help: "Error rate percentage for O-RAN interfaces",
 		},
 
 		[]string{"interface", "error_type"},
-
 	)
-
 )
-
-
 
 // ORANMetricsCollector provides methods to update O-RAN metrics.
 
@@ -626,10 +497,7 @@ type ORANMetricsCollector struct {
 	// Component registry for cleanup.
 
 	componentRegistry map[string]bool
-
 }
-
-
 
 // NewORANMetricsCollector creates a new O-RAN metrics collector.
 
@@ -638,10 +506,7 @@ func NewORANMetricsCollector() *ORANMetricsCollector {
 	collector := &ORANMetricsCollector{
 
 		componentRegistry: make(map[string]bool),
-
 	}
-
-
 
 	// Register all metrics with controller-runtime.
 
@@ -702,20 +567,13 @@ func NewORANMetricsCollector() *ORANMetricsCollector {
 		oranThroughput,
 
 		oranErrorRate,
-
 	)
-
-
 
 	return collector
 
 }
 
-
-
 // A1 Interface Metrics Methods.
-
-
 
 // RecordA1PolicyOperation records an A1 policy operation.
 
@@ -727,8 +585,6 @@ func (c *ORANMetricsCollector) RecordA1PolicyOperation(operation, policyTypeID, 
 
 }
 
-
-
 // UpdateA1PolicyTypesActive updates the number of active A1 policy types.
 
 func (c *ORANMetricsCollector) UpdateA1PolicyTypesActive(ricID string, count int) {
@@ -737,8 +593,6 @@ func (c *ORANMetricsCollector) UpdateA1PolicyTypesActive(ricID string, count int
 
 }
 
-
-
 // UpdateA1PolicyInstancesActive updates the number of active A1 policy instances.
 
 func (c *ORANMetricsCollector) UpdateA1PolicyInstancesActive(policyTypeID, ricID, enforcementStatus string, count int) {
@@ -746,8 +600,6 @@ func (c *ORANMetricsCollector) UpdateA1PolicyInstancesActive(policyTypeID, ricID
 	a1PolicyInstancesActive.WithLabelValues(policyTypeID, ricID, enforcementStatus).Set(float64(count))
 
 }
-
-
 
 // UpdateA1CircuitBreakerState updates the A1 circuit breaker state.
 
@@ -775,8 +627,6 @@ func (c *ORANMetricsCollector) UpdateA1CircuitBreakerState(ricID, state string) 
 
 }
 
-
-
 // RecordA1RetryAttempt records an A1 retry attempt.
 
 func (c *ORANMetricsCollector) RecordA1RetryAttempt(operation, finalStatus string) {
@@ -785,11 +635,7 @@ func (c *ORANMetricsCollector) RecordA1RetryAttempt(operation, finalStatus strin
 
 }
 
-
-
 // E2 Interface Metrics Methods.
-
-
 
 // RecordE2MessageOperation records an E2AP message operation.
 
@@ -801,8 +647,6 @@ func (c *ORANMetricsCollector) RecordE2MessageOperation(messageType, nodeID, sta
 
 }
 
-
-
 // UpdateE2SubscriptionsActive updates the number of active E2 subscriptions.
 
 func (c *ORANMetricsCollector) UpdateE2SubscriptionsActive(nodeID, ranFunctionID, subscriptionType string, count int) {
@@ -810,8 +654,6 @@ func (c *ORANMetricsCollector) UpdateE2SubscriptionsActive(nodeID, ranFunctionID
 	e2SubscriptionsActive.WithLabelValues(nodeID, ranFunctionID, subscriptionType).Set(float64(count))
 
 }
-
-
 
 // UpdateE2NodesConnected updates the number of connected E2 nodes.
 
@@ -821,8 +663,6 @@ func (c *ORANMetricsCollector) UpdateE2NodesConnected(nodeType, plmnID string, c
 
 }
 
-
-
 // RecordE2Indication records an E2 indication received.
 
 func (c *ORANMetricsCollector) RecordE2Indication(nodeID, ranFunctionID, actionID, indicationType string) {
@@ -831,8 +671,6 @@ func (c *ORANMetricsCollector) RecordE2Indication(nodeID, ranFunctionID, actionI
 
 }
 
-
-
 // RecordE2ControlRequest records an E2 control request.
 
 func (c *ORANMetricsCollector) RecordE2ControlRequest(nodeID, ranFunctionID, status string) {
@@ -840,8 +678,6 @@ func (c *ORANMetricsCollector) RecordE2ControlRequest(nodeID, ranFunctionID, sta
 	e2ControlRequestsTotal.WithLabelValues(nodeID, ranFunctionID, status).Inc()
 
 }
-
-
 
 // UpdateE2CircuitBreakerState updates the E2 circuit breaker state.
 
@@ -869,11 +705,7 @@ func (c *ORANMetricsCollector) UpdateE2CircuitBreakerState(nodeID, state string)
 
 }
 
-
-
 // O1 Interface Metrics Methods.
-
-
 
 // RecordO1ConfigurationOperation records an O1 configuration operation.
 
@@ -885,8 +717,6 @@ func (c *ORANMetricsCollector) RecordO1ConfigurationOperation(operation, managed
 
 }
 
-
-
 // RecordO1FaultNotification records an O1 fault notification.
 
 func (c *ORANMetricsCollector) RecordO1FaultNotification(managedElement, alarmType, severity string) {
@@ -894,8 +724,6 @@ func (c *ORANMetricsCollector) RecordO1FaultNotification(managedElement, alarmTy
 	o1FaultNotificationsTotal.WithLabelValues(managedElement, alarmType, severity).Inc()
 
 }
-
-
 
 // UpdateO1ManagedElementsConnected updates the number of connected O1 managed elements.
 
@@ -905,11 +733,7 @@ func (c *ORANMetricsCollector) UpdateO1ManagedElementsConnected(elementType, ven
 
 }
 
-
-
 // O2 Interface Metrics Methods.
-
-
 
 // RecordO2InfrastructureOperation records an O2 infrastructure operation.
 
@@ -921,8 +745,6 @@ func (c *ORANMetricsCollector) RecordO2InfrastructureOperation(operation, resour
 
 }
 
-
-
 // UpdateO2ResourceUtilization updates O2 resource utilization.
 
 func (c *ORANMetricsCollector) UpdateO2ResourceUtilization(resourceType, resourceID, cluster string, utilizationPercent float64) {
@@ -930,8 +752,6 @@ func (c *ORANMetricsCollector) UpdateO2ResourceUtilization(resourceType, resourc
 	o2ResourceUtilization.WithLabelValues(resourceType, resourceID, cluster).Set(utilizationPercent)
 
 }
-
-
 
 // UpdateO2DeploymentStatus updates O2 deployment status.
 
@@ -963,11 +783,7 @@ func (c *ORANMetricsCollector) UpdateO2DeploymentStatus(deploymentID, applicatio
 
 }
 
-
-
 // General O-RAN Metrics Methods.
-
-
 
 // RecordHealthCheck records an O-RAN health check.
 
@@ -997,8 +813,6 @@ func (c *ORANMetricsCollector) RecordHealthCheck(interfaceName, component, statu
 
 }
 
-
-
 // UpdateDependencyStatus updates dependency status.
 
 func (c *ORANMetricsCollector) UpdateDependencyStatus(dependencyName, dependencyType string, isHealthy bool) {
@@ -1015,8 +829,6 @@ func (c *ORANMetricsCollector) UpdateDependencyStatus(dependencyName, dependency
 
 }
 
-
-
 // RecordCircuitBreakerTrip records a circuit breaker trip.
 
 func (c *ORANMetricsCollector) RecordCircuitBreakerTrip(interfaceName, reason string) {
@@ -1024,8 +836,6 @@ func (c *ORANMetricsCollector) RecordCircuitBreakerTrip(interfaceName, reason st
 	oranCircuitBreakerTrips.WithLabelValues(interfaceName, reason).Inc()
 
 }
-
-
 
 // UpdateConcurrentConnections updates concurrent connections count.
 
@@ -1035,8 +845,6 @@ func (c *ORANMetricsCollector) UpdateConcurrentConnections(interfaceName, endpoi
 
 }
 
-
-
 // UpdateThroughput updates message throughput.
 
 func (c *ORANMetricsCollector) UpdateThroughput(interfaceName, direction string, messagesPerSecond float64) {
@@ -1044,8 +852,6 @@ func (c *ORANMetricsCollector) UpdateThroughput(interfaceName, direction string,
 	oranThroughput.WithLabelValues(interfaceName, direction).Set(messagesPerSecond)
 
 }
-
-
 
 // UpdateErrorRate updates error rate percentage.
 
@@ -1055,11 +861,7 @@ func (c *ORANMetricsCollector) UpdateErrorRate(interfaceName, errorType string, 
 
 }
 
-
-
 // Utility Methods.
-
-
 
 // StartMetricsCollection starts periodic metrics collection.
 
@@ -1068,8 +870,6 @@ func (c *ORANMetricsCollector) StartMetricsCollection(ctx context.Context, inter
 	ticker := time.NewTicker(interval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1089,8 +889,6 @@ func (c *ORANMetricsCollector) StartMetricsCollection(ctx context.Context, inter
 
 }
 
-
-
 // collectSystemMetrics collects system-level metrics.
 
 func (c *ORANMetricsCollector) collectSystemMetrics() {
@@ -1102,8 +900,6 @@ func (c *ORANMetricsCollector) collectSystemMetrics() {
 	// and available system information.
 
 }
-
-
 
 // Reset resets all metrics (useful for testing).
 
@@ -1133,8 +929,6 @@ func (c *ORANMetricsCollector) Reset() {
 
 }
 
-
-
 // GetMetricsFamilies returns all registered metric families for debugging.
 
 func (c *ORANMetricsCollector) GetMetricsFamilies() ([]*dto.MetricFamily, error) {
@@ -1142,8 +936,6 @@ func (c *ORANMetricsCollector) GetMetricsFamilies() ([]*dto.MetricFamily, error)
 	return prometheus.DefaultGatherer.Gather()
 
 }
-
-
 
 // Helper function to convert int to string for labels.
 
@@ -1153,8 +945,6 @@ func intToString(i int) string {
 
 }
 
-
-
 // Helper function to convert int64 to string for labels.
 
 func int64ToString(i int64) string {
@@ -1162,4 +952,3 @@ func int64ToString(i int64) string {
 	return strconv.FormatInt(i, 10)
 
 }
-

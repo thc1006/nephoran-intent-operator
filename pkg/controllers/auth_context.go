@@ -1,87 +1,58 @@
-
 package controllers
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"log/slog"
-
 	"time"
 
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // AuthContextKey represents the context key for authentication.
 
 type AuthContextKey string
-
-
 
 const (
 
 	// ControllerAuthContextKey holds controllerauthcontextkey value.
 
 	ControllerAuthContextKey AuthContextKey = "controller_auth_context"
-
 )
-
-
 
 // ControllerAuthContext holds authentication context for controller operations.
 
 type ControllerAuthContext struct {
+	UserID string
 
-	UserID            string
+	OperationType string
 
-	OperationType     string
+	ResourceType string
 
-	ResourceType      string
-
-	ResourceName      string
+	ResourceName string
 
 	ResourceNamespace string
 
-	Timestamp         time.Time
+	Timestamp time.Time
 
-	RequestID         string
-
+	RequestID string
 }
-
-
 
 // AuthenticatedReconciler provides authentication context.
 
 type AuthenticatedReconciler struct {
-
 	client.Client
 
-	logger          *slog.Logger
+	logger *slog.Logger
 
 	authIntegration *auth.NephoranAuthIntegration
 
-	requireAuth     bool
-
+	requireAuth bool
 }
-
-
 
 // NewAuthenticatedReconciler creates authenticated reconciler.
 
@@ -99,19 +70,16 @@ func NewAuthenticatedReconciler(
 
 	return &AuthenticatedReconciler{
 
-		Client:          client,
+		Client: client,
 
-		logger:          logger,
+		logger: logger,
 
 		authIntegration: authIntegration,
 
-		requireAuth:     requireAuth,
-
+		requireAuth: requireAuth,
 	}
 
 }
-
-
 
 // WithAuthContext adds authentication context.
 
@@ -119,27 +87,22 @@ func (ar *AuthenticatedReconciler) WithAuthContext(ctx context.Context, operatio
 
 	authCtx := &ControllerAuthContext{
 
-		OperationType:     operation,
+		OperationType: operation,
 
-		ResourceType:      resourceType,
+		ResourceType: resourceType,
 
-		ResourceName:      resourceName,
+		ResourceName: resourceName,
 
 		ResourceNamespace: resourceNamespace,
 
-		Timestamp:         time.Now(),
+		Timestamp: time.Now(),
 
-		RequestID:         fmt.Sprintf("ctrl-%d", time.Now().UnixNano()),
-
+		RequestID: fmt.Sprintf("ctrl-%d", time.Now().UnixNano()),
 	}
-
-
 
 	return context.WithValue(ctx, ControllerAuthContextKey, authCtx), nil
 
 }
-
-
 
 // ValidateNetworkIntentAccess validates access to NetworkIntent.
 
@@ -155,19 +118,13 @@ func (ar *AuthenticatedReconciler) ValidateNetworkIntentAccess(ctx context.Conte
 
 }
 
-
-
 // NetworkIntentAuthDecorator decorates controller with auth.
 
 type NetworkIntentAuthDecorator struct {
-
 	*AuthenticatedReconciler
 
 	originalReconciler *NetworkIntentReconciler
-
 }
-
-
 
 // NewNetworkIntentAuthDecorator creates authenticated controller.
 
@@ -192,22 +149,16 @@ func NewNetworkIntentAuthDecorator(
 		logger,
 
 		requireAuth,
-
 	)
-
-
 
 	return &NetworkIntentAuthDecorator{
 
 		AuthenticatedReconciler: authReconciler,
 
-		originalReconciler:      originalReconciler,
-
+		originalReconciler: originalReconciler,
 	}
 
 }
-
-
 
 // Reconcile wraps original reconcile with authentication.
 
@@ -221,8 +172,6 @@ func (niad *NetworkIntentAuthDecorator) Reconcile(ctx context.Context, req ctrl.
 
 	}
 
-
-
 	var networkIntent nephoranv1.NetworkIntent
 
 	if err := niad.AuthenticatedReconciler.Get(authCtx, req.NamespacedName, &networkIntent); err != nil {
@@ -231,33 +180,23 @@ func (niad *NetworkIntentAuthDecorator) Reconcile(ctx context.Context, req ctrl.
 
 	}
 
-
-
 	if err := niad.ValidateNetworkIntentAccess(authCtx, &networkIntent, "update"); err != nil {
 
 		return ctrl.Result{}, err
 
 	}
 
-
-
 	return niad.originalReconciler.Reconcile(authCtx, req)
 
 }
 
-
-
 // AuthenticatedE2NodeSetReconciler decorates E2NodeSet controller with auth.
 
 type AuthenticatedE2NodeSetReconciler struct {
-
 	*AuthenticatedReconciler
 
 	OriginalReconciler *E2NodeSetReconciler
-
 }
-
-
 
 // NewAuthenticatedE2NodeSetReconciler creates authenticated E2NodeSet controller.
 
@@ -282,22 +221,16 @@ func NewAuthenticatedE2NodeSetReconciler(
 		logger,
 
 		requireAuth,
-
 	)
-
-
 
 	return &AuthenticatedE2NodeSetReconciler{
 
 		AuthenticatedReconciler: authReconciler,
 
-		OriginalReconciler:      originalReconciler,
-
+		OriginalReconciler: originalReconciler,
 	}
 
 }
-
-
 
 // Reconcile wraps original reconcile with authentication for E2NodeSet.
 
@@ -310,8 +243,6 @@ func (aer *AuthenticatedE2NodeSetReconciler) Reconcile(ctx context.Context, req 
 		return ctrl.Result{}, err
 
 	}
-
-
 
 	// Add E2-specific authentication validation if needed.
 
@@ -335,13 +266,9 @@ func (aer *AuthenticatedE2NodeSetReconciler) Reconcile(ctx context.Context, req 
 
 	}
 
-
-
 	return aer.OriginalReconciler.Reconcile(authCtx, req)
 
 }
-
-
 
 // validateE2NodeAccess validates access to E2NodeSet resources.
 
@@ -357,8 +284,6 @@ func (aer *AuthenticatedE2NodeSetReconciler) validateE2NodeAccess(ctx context.Co
 
 	}
 
-
-
 	// Log the access attempt for audit.
 
 	aer.logger.Info("E2NodeSet access validation",
@@ -373,31 +298,22 @@ func (aer *AuthenticatedE2NodeSetReconciler) validateE2NodeAccess(ctx context.Co
 
 		"request_id", authCtx.RequestID)
 
-
-
 	// For now, we'll allow all authenticated users to manage E2 nodes.
 
 	// In a production environment, you might want to check specific RBAC permissions.
 
 	// using the auth integration's RBAC manager.
 
-
-
 	return nil
 
 }
-
-
 
 // SetupWithManager sets up the authenticated controller with the Manager.
 
 func (aer *AuthenticatedE2NodeSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
-
 		For(&nephoranv1.E2NodeSet{}).
-
 		Complete(aer)
 
 }
-

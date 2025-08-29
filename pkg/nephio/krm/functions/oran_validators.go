@@ -28,48 +28,26 @@ limitations under the License.
 
 */
 
-
-
-
 package functions
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"regexp"
-
 	"strconv"
-
 	"strings"
-
 	"time"
-
-
 
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 
-
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
 )
-
-
 
 // ORANComplianceValidator validates O-RAN interface compliance.
 
 type ORANComplianceValidator struct {
-
 	*BaseFunctionImpl
-
 }
-
-
 
 // NewORANComplianceValidator creates a new O-RAN compliance validator.
 
@@ -77,17 +55,17 @@ func NewORANComplianceValidator() *ORANComplianceValidator {
 
 	metadata := &FunctionMetadata{
 
-		Name:        "oran-compliance-validator",
+		Name: "oran-compliance-validator",
 
-		Version:     "v1.0.0",
+		Version: "v1.0.0",
 
 		Description: "Validates O-RAN interface compliance and configuration",
 
-		Type:        FunctionTypeValidator,
+		Type: FunctionTypeValidator,
 
-		Categories:  []string{"o-ran", "validation", "compliance"},
+		Categories: []string{"o-ran", "validation", "compliance"},
 
-		Keywords:    []string{"o-ran", "a1", "o1", "o2", "e2", "compliance"},
+		Keywords: []string{"o-ran", "a1", "o1", "o2", "e2", "compliance"},
 
 		ResourceTypes: []ResourceTypeSupport{
 
@@ -102,7 +80,6 @@ func NewORANComplianceValidator() *ORANComplianceValidator {
 			{Group: "o-ran.org", Version: "v1alpha1", Kind: "ODU", Operations: []string{"read"}},
 
 			{Group: "o-ran.org", Version: "v1alpha1", Kind: "OCU", Operations: []string{"read"}},
-
 		},
 
 		Telecom: &TelecomProfile{
@@ -112,7 +89,6 @@ func NewORANComplianceValidator() *ORANComplianceValidator {
 				{Name: "O-RAN Alliance", Version: "R1.0", Required: true},
 
 				{Name: "3GPP", Version: "R17", Required: true},
-
 			},
 
 			ORANInterfaces: []ORANInterfaceSupport{
@@ -124,20 +100,15 @@ func NewORANComplianceValidator() *ORANComplianceValidator {
 				{Interface: "O2", Version: "v1.0", Role: "consumer", Required: false},
 
 				{Interface: "E2", Version: "v2.0", Role: "consumer", Required: false},
-
 			},
 
 			NetworkFunctionTypes: []string{"AMF", "SMF", "UPF", "Near-RT RIC", "O-DU", "O-CU"},
-
 		},
 
-		Author:  "Nephoran Intent Operator",
+		Author: "Nephoran Intent Operator",
 
 		License: "Apache-2.0",
-
 	}
-
-
 
 	schema := &FunctionSchema{
 
@@ -147,7 +118,7 @@ func NewORANComplianceValidator() *ORANComplianceValidator {
 
 			"interfaces": {
 
-				Type:        "array",
+				Type: "array",
 
 				Description: "List of O-RAN interfaces to validate",
 
@@ -156,36 +127,28 @@ func NewORANComplianceValidator() *ORANComplianceValidator {
 					Type: "string",
 
 					Enum: []interface{}{"A1", "O1", "O2", "E2"},
-
 				},
-
 			},
 
 			"strictMode": {
 
-				Type:        "boolean",
+				Type: "boolean",
 
 				Description: "Enable strict compliance checking",
 
-				Default:     false,
-
+				Default: false,
 			},
 
 			"skipWarnings": {
 
-				Type:        "boolean",
+				Type: "boolean",
 
 				Description: "Skip warnings and only report errors",
 
-				Default:     false,
-
+				Default: false,
 			},
-
 		},
-
 	}
-
-
 
 	base := NewBaseFunctionImpl(metadata, schema)
 
@@ -193,37 +156,28 @@ func NewORANComplianceValidator() *ORANComplianceValidator {
 
 }
 
-
-
 // Execute validates O-RAN compliance for network functions.
 
 func (v *ORANComplianceValidator) Execute(ctx context.Context, input *ResourceList) (*ResourceList, error) {
 
 	LogInfo(ctx, "Starting O-RAN compliance validation", "resourceCount", len(input.Items))
 
-
-
 	// Parse configuration.
 
 	config := v.parseConfig(input.FunctionConfig)
-
-
 
 	// Create output resource list.
 
 	output := &ResourceList{
 
-		Items:          input.Items, // Pass through all resources
+		Items: input.Items, // Pass through all resources
 
 		FunctionConfig: input.FunctionConfig,
 
-		Results:        []*porch.FunctionResult{},
+		Results: []*porch.FunctionResult{},
 
-		Context:        input.Context,
-
+		Context: input.Context,
 	}
-
-
 
 	// Validate each resource.
 
@@ -233,15 +187,11 @@ func (v *ORANComplianceValidator) Execute(ctx context.Context, input *ResourceLi
 
 		output.Results = append(output.Results, results...)
 
-
-
 		// Add compliance annotations.
 
 		v.addComplianceAnnotations(&output.Items[i], results)
 
 	}
-
-
 
 	LogInfo(ctx, "O-RAN compliance validation completed",
 
@@ -249,23 +199,15 @@ func (v *ORANComplianceValidator) Execute(ctx context.Context, input *ResourceLi
 
 		"validationResults", len(output.Results))
 
-
-
 	return output, nil
 
 }
 
-
-
 // A1PolicyValidator validates A1 interface policy configurations.
 
 type A1PolicyValidator struct {
-
 	*BaseFunctionImpl
-
 }
-
-
 
 // NewA1PolicyValidator creates a new A1 policy validator.
 
@@ -273,17 +215,17 @@ func NewA1PolicyValidator() *A1PolicyValidator {
 
 	metadata := &FunctionMetadata{
 
-		Name:        "a1-policy-validator",
+		Name: "a1-policy-validator",
 
-		Version:     "v1.0.0",
+		Version: "v1.0.0",
 
 		Description: "Validates A1 interface policy configurations",
 
-		Type:        FunctionTypeValidator,
+		Type: FunctionTypeValidator,
 
-		Categories:  []string{"o-ran", "a1", "policy", "validation"},
+		Categories: []string{"o-ran", "a1", "policy", "validation"},
 
-		Keywords:    []string{"a1", "policy", "near-rt-ric", "xapp"},
+		Keywords: []string{"a1", "policy", "near-rt-ric", "xapp"},
 
 		ResourceTypes: []ResourceTypeSupport{
 
@@ -292,7 +234,6 @@ func NewA1PolicyValidator() *A1PolicyValidator {
 			{Group: "o-ran.org", Version: "v1alpha1", Kind: "PolicyType", Operations: []string{"read"}},
 
 			{Group: "o-ran.org", Version: "v1alpha1", Kind: "NearRTRIC", Operations: []string{"read"}},
-
 		},
 
 		Telecom: &TelecomProfile{
@@ -300,18 +241,13 @@ func NewA1PolicyValidator() *A1PolicyValidator {
 			ORANInterfaces: []ORANInterfaceSupport{
 
 				{Interface: "A1", Version: "v2.0", Role: "both", Required: true},
-
 			},
-
 		},
 
-		Author:  "Nephoran Intent Operator",
+		Author: "Nephoran Intent Operator",
 
 		License: "Apache-2.0",
-
 	}
-
-
 
 	schema := &FunctionSchema{
 
@@ -321,39 +257,32 @@ func NewA1PolicyValidator() *A1PolicyValidator {
 
 			"policyTypes": {
 
-				Type:        "array",
+				Type: "array",
 
 				Description: "List of policy types to validate",
 
-				Items:       &SchemaProperty{Type: "string"},
-
+				Items: &SchemaProperty{Type: "string"},
 			},
 
 			"validateSyntax": {
 
-				Type:        "boolean",
+				Type: "boolean",
 
 				Description: "Validate policy syntax",
 
-				Default:     true,
-
+				Default: true,
 			},
 
 			"validateSemantics": {
 
-				Type:        "boolean",
+				Type: "boolean",
 
 				Description: "Validate policy semantics",
 
-				Default:     true,
-
+				Default: true,
 			},
-
 		},
-
 	}
-
-
 
 	base := NewBaseFunctionImpl(metadata, schema)
 
@@ -361,63 +290,48 @@ func NewA1PolicyValidator() *A1PolicyValidator {
 
 }
 
-
-
 // Execute validates A1 policy configurations.
 
 func (v *A1PolicyValidator) Execute(ctx context.Context, input *ResourceList) (*ResourceList, error) {
 
 	LogInfo(ctx, "Starting A1 policy validation")
 
-
-
 	output := &ResourceList{
 
-		Items:          input.Items,
+		Items: input.Items,
 
 		FunctionConfig: input.FunctionConfig,
 
-		Results:        []*porch.FunctionResult{},
+		Results: []*porch.FunctionResult{},
 
-		Context:        input.Context,
-
+		Context: input.Context,
 	}
-
-
 
 	// Find A1 policies.
 
 	a1Policies := FindResourcesByGVK(input.Items, schema.GroupVersionKind{
 
-		Group:   "o-ran.org",
+		Group: "o-ran.org",
 
 		Version: "v1alpha1",
 
-		Kind:    "A1Policy",
-
+		Kind: "A1Policy",
 	})
-
-
 
 	// Find policy types.
 
 	policyTypes := FindResourcesByGVK(input.Items, schema.GroupVersionKind{
 
-		Group:   "o-ran.org",
+		Group: "o-ran.org",
 
 		Version: "v1alpha1",
 
-		Kind:    "PolicyType",
-
+		Kind: "PolicyType",
 	})
-
-
 
 	// Build policy type registry.
 
 	policyTypeRegistry := v.buildPolicyTypeRegistry(policyTypes)
-
-
 
 	// Validate each A1 policy.
 
@@ -429,8 +343,6 @@ func (v *A1PolicyValidator) Execute(ctx context.Context, input *ResourceList) (*
 
 	}
 
-
-
 	LogInfo(ctx, "A1 policy validation completed",
 
 		"policies", len(a1Policies),
@@ -439,23 +351,15 @@ func (v *A1PolicyValidator) Execute(ctx context.Context, input *ResourceList) (*
 
 		"results", len(output.Results))
 
-
-
 	return output, nil
 
 }
 
-
-
 // FiveGCoreValidator validates 5G Core network function configurations.
 
 type FiveGCoreValidator struct {
-
 	*BaseFunctionImpl
-
 }
-
-
 
 // NewFiveGCoreValidator creates a new 5G Core validator.
 
@@ -463,17 +367,17 @@ func NewFiveGCoreValidator() *FiveGCoreValidator {
 
 	metadata := &FunctionMetadata{
 
-		Name:        "5g-core-validator",
+		Name: "5g-core-validator",
 
-		Version:     "v1.0.0",
+		Version: "v1.0.0",
 
 		Description: "Validates 5G Core network function configurations",
 
-		Type:        FunctionTypeValidator,
+		Type: FunctionTypeValidator,
 
-		Categories:  []string{"5g", "core", "validation"},
+		Categories: []string{"5g", "core", "validation"},
 
-		Keywords:    []string{"5g", "amf", "smf", "upf", "nssf", "core"},
+		Keywords: []string{"5g", "amf", "smf", "upf", "nssf", "core"},
 
 		ResourceTypes: []ResourceTypeSupport{
 
@@ -486,7 +390,6 @@ func NewFiveGCoreValidator() *FiveGCoreValidator {
 			{Group: "workload.nephio.org", Version: "v1alpha1", Kind: "NSSF", Operations: []string{"read"}},
 
 			{Group: "workload.nephio.org", Version: "v1alpha1", Kind: "NRF", Operations: []string{"read"}},
-
 		},
 
 		Telecom: &TelecomProfile{
@@ -496,22 +399,17 @@ func NewFiveGCoreValidator() *FiveGCoreValidator {
 				{Name: "3GPP", Version: "TS 23.501", Release: "R17", Required: true},
 
 				{Name: "3GPP", Version: "TS 23.502", Release: "R17", Required: true},
-
 			},
 
 			NetworkFunctionTypes: []string{"AMF", "SMF", "UPF", "NSSF", "NRF"},
 
-			FiveGCapabilities:    []string{"5G-SA", "5G-NSA", "Network-Slicing"},
-
+			FiveGCapabilities: []string{"5G-SA", "5G-NSA", "Network-Slicing"},
 		},
 
-		Author:  "Nephoran Intent Operator",
+		Author: "Nephoran Intent Operator",
 
 		License: "Apache-2.0",
-
 	}
-
-
 
 	schema := &FunctionSchema{
 
@@ -521,7 +419,7 @@ func NewFiveGCoreValidator() *FiveGCoreValidator {
 
 			"networkFunctions": {
 
-				Type:        "array",
+				Type: "array",
 
 				Description: "List of network functions to validate",
 
@@ -530,36 +428,28 @@ func NewFiveGCoreValidator() *FiveGCoreValidator {
 					Type: "string",
 
 					Enum: []interface{}{"AMF", "SMF", "UPF", "NSSF", "NRF"},
-
 				},
-
 			},
 
 			"validateInterfaces": {
 
-				Type:        "boolean",
+				Type: "boolean",
 
 				Description: "Validate network function interfaces",
 
-				Default:     true,
-
+				Default: true,
 			},
 
 			"validateCapacity": {
 
-				Type:        "boolean",
+				Type: "boolean",
 
 				Description: "Validate capacity planning",
 
-				Default:     false,
-
+				Default: false,
 			},
-
 		},
-
 	}
-
-
 
 	base := NewBaseFunctionImpl(metadata, schema)
 
@@ -567,49 +457,37 @@ func NewFiveGCoreValidator() *FiveGCoreValidator {
 
 }
 
-
-
 // Execute validates 5G Core network function configurations.
 
 func (v *FiveGCoreValidator) Execute(ctx context.Context, input *ResourceList) (*ResourceList, error) {
 
 	LogInfo(ctx, "Starting 5G Core validation")
 
-
-
 	output := &ResourceList{
 
-		Items:          input.Items,
+		Items: input.Items,
 
 		FunctionConfig: input.FunctionConfig,
 
-		Results:        []*porch.FunctionResult{},
+		Results: []*porch.FunctionResult{},
 
-		Context:        input.Context,
-
+		Context: input.Context,
 	}
-
-
 
 	// Validate each network function type.
 
 	networkFunctions := []string{"AMF", "SMF", "UPF", "NSSF", "NRF"}
 
-
-
 	for _, nfType := range networkFunctions {
 
 		nfResources := FindResourcesByGVK(input.Items, schema.GroupVersionKind{
 
-			Group:   "workload.nephio.org",
+			Group: "workload.nephio.org",
 
 			Version: "v1alpha1",
 
-			Kind:    nfType,
-
+			Kind: nfType,
 		})
-
-
 
 		for _, nf := range nfResources {
 
@@ -621,15 +499,11 @@ func (v *FiveGCoreValidator) Execute(ctx context.Context, input *ResourceList) (
 
 	}
 
-
-
 	// Cross-function validation.
 
 	crossResults := v.validateNetworkFunctionInteractions(ctx, input.Items)
 
 	output.Results = append(output.Results, crossResults...)
-
-
 
 	LogInfo(ctx, "5G Core validation completed", "results", len(output.Results))
 
@@ -637,11 +511,7 @@ func (v *FiveGCoreValidator) Execute(ctx context.Context, input *ResourceList) (
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (v *ORANComplianceValidator) parseConfig(config map[string]interface{}) map[string]interface{} {
 
@@ -649,12 +519,11 @@ func (v *ORANComplianceValidator) parseConfig(config map[string]interface{}) map
 
 		return map[string]interface{}{
 
-			"interfaces":   []string{"A1", "O1", "O2", "E2"},
+			"interfaces": []string{"A1", "O1", "O2", "E2"},
 
-			"strictMode":   false,
+			"strictMode": false,
 
 			"skipWarnings": false,
-
 		}
 
 	}
@@ -663,17 +532,11 @@ func (v *ORANComplianceValidator) parseConfig(config map[string]interface{}) map
 
 }
 
-
-
 func (v *ORANComplianceValidator) validateResource(ctx context.Context, resource *porch.KRMResource, config map[string]interface{}) []*porch.FunctionResult {
 
 	var results []*porch.FunctionResult
 
-
-
 	name, _ := GetResourceName(resource)
-
-
 
 	// Check if this is an O-RAN related resource.
 
@@ -682,8 +545,6 @@ func (v *ORANComplianceValidator) validateResource(ctx context.Context, resource
 		return results
 
 	}
-
-
 
 	// Validate interface compliance based on resource type.
 
@@ -720,26 +581,19 @@ func (v *ORANComplianceValidator) validateResource(ctx context.Context, resource
 			fmt.Sprintf("Resource %s (%s) is not a known O-RAN component", name, resource.Kind),
 
 			map[string]string{"resource": name, "kind": resource.Kind},
-
 		))
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 func (v *ORANComplianceValidator) isORANResource(resource *porch.KRMResource) bool {
 
 	oranGroups := []string{"o-ran.org", "workload.nephio.org"}
 
 	oranKinds := []string{"AMF", "SMF", "UPF", "NearRTRIC", "ODU", "OCU", "A1Policy", "PolicyType"}
-
-
 
 	// Check API group.
 
@@ -753,8 +607,6 @@ func (v *ORANComplianceValidator) isORANResource(resource *porch.KRMResource) bo
 
 	}
 
-
-
 	// Check kind.
 
 	for _, kind := range oranKinds {
@@ -767,21 +619,15 @@ func (v *ORANComplianceValidator) isORANResource(resource *porch.KRMResource) bo
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 func (v *ORANComplianceValidator) validateAMFCompliance(ctx context.Context, resource *porch.KRMResource) []*porch.FunctionResult {
 
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(resource)
-
-
 
 	// Check required O1 interface configuration.
 
@@ -794,12 +640,9 @@ func (v *ORANComplianceValidator) validateAMFCompliance(ctx context.Context, res
 			fmt.Sprintf("AMF %s missing O1 interface configuration", name),
 
 			map[string]string{"resource": name, "interface": "O1"},
-
 		))
 
 	}
-
-
 
 	// Check SBI interface configuration.
 
@@ -812,12 +655,9 @@ func (v *ORANComplianceValidator) validateAMFCompliance(ctx context.Context, res
 			fmt.Sprintf("AMF %s missing SBI interface configuration", name),
 
 			map[string]string{"resource": name, "interface": "SBI"},
-
 		))
 
 	}
-
-
 
 	// Check N1/N2 interface configuration.
 
@@ -828,12 +668,9 @@ func (v *ORANComplianceValidator) validateAMFCompliance(ctx context.Context, res
 		results = append(results, CreateInfo(
 
 			fmt.Sprintf("AMF %s has N1 interface configured", name),
-
 		))
 
 	}
-
-
 
 	n2Config, err := GetSpecField(resource, "interfaces.n2")
 
@@ -842,18 +679,13 @@ func (v *ORANComplianceValidator) validateAMFCompliance(ctx context.Context, res
 		results = append(results, CreateInfo(
 
 			fmt.Sprintf("AMF %s has N2 interface configured", name),
-
 		))
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 func (v *ORANComplianceValidator) validateSMFCompliance(ctx context.Context, resource *porch.KRMResource) []*porch.FunctionResult {
 
@@ -861,13 +693,9 @@ func (v *ORANComplianceValidator) validateSMFCompliance(ctx context.Context, res
 
 	name, _ := GetResourceName(resource)
 
-
-
 	// Check required interfaces.
 
 	requiredInterfaces := []string{"sbi", "n4", "n7"}
-
-
 
 	for _, iface := range requiredInterfaces {
 
@@ -880,14 +708,11 @@ func (v *ORANComplianceValidator) validateSMFCompliance(ctx context.Context, res
 				fmt.Sprintf("SMF %s missing %s interface configuration", name, strings.ToUpper(iface)),
 
 				map[string]string{"resource": name, "interface": strings.ToUpper(iface)},
-
 			))
 
 		}
 
 	}
-
-
 
 	// Check PDU session handling configuration.
 
@@ -898,26 +723,19 @@ func (v *ORANComplianceValidator) validateSMFCompliance(ctx context.Context, res
 		results = append(results, CreateInfo(
 
 			fmt.Sprintf("SMF %s has PDU session configuration", name),
-
 		))
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 func (v *ORANComplianceValidator) validateUPFCompliance(ctx context.Context, resource *porch.KRMResource) []*porch.FunctionResult {
 
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(resource)
-
-
 
 	// Check N3 interface (gNB connection).
 
@@ -930,12 +748,9 @@ func (v *ORANComplianceValidator) validateUPFCompliance(ctx context.Context, res
 			fmt.Sprintf("UPF %s missing N3 interface configuration", name),
 
 			map[string]string{"resource": name, "interface": "N3"},
-
 		))
 
 	}
-
-
 
 	// Check N4 interface (SMF connection).
 
@@ -948,12 +763,9 @@ func (v *ORANComplianceValidator) validateUPFCompliance(ctx context.Context, res
 			fmt.Sprintf("UPF %s missing N4 interface configuration", name),
 
 			map[string]string{"resource": name, "interface": "N4"},
-
 		))
 
 	}
-
-
 
 	// Check data plane configuration.
 
@@ -964,26 +776,19 @@ func (v *ORANComplianceValidator) validateUPFCompliance(ctx context.Context, res
 		results = append(results, CreateInfo(
 
 			fmt.Sprintf("UPF %s has data plane configuration", name),
-
 		))
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 func (v *ORANComplianceValidator) validateNearRTRICCompliance(ctx context.Context, resource *porch.KRMResource) []*porch.FunctionResult {
 
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(resource)
-
-
 
 	// Check A1 interface.
 
@@ -996,12 +801,9 @@ func (v *ORANComplianceValidator) validateNearRTRICCompliance(ctx context.Contex
 			fmt.Sprintf("Near-RT RIC %s missing A1 interface configuration", name),
 
 			map[string]string{"resource": name, "interface": "A1"},
-
 		))
 
 	}
-
-
 
 	// Check E2 interface.
 
@@ -1014,12 +816,9 @@ func (v *ORANComplianceValidator) validateNearRTRICCompliance(ctx context.Contex
 			fmt.Sprintf("Near-RT RIC %s missing E2 interface configuration", name),
 
 			map[string]string{"resource": name, "interface": "E2"},
-
 		))
 
 	}
-
-
 
 	// Check xApp platform configuration.
 
@@ -1030,26 +829,19 @@ func (v *ORANComplianceValidator) validateNearRTRICCompliance(ctx context.Contex
 		results = append(results, CreateInfo(
 
 			fmt.Sprintf("Near-RT RIC %s has xApp platform configured", name),
-
 		))
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 func (v *ORANComplianceValidator) validateODUCompliance(ctx context.Context, resource *porch.KRMResource) []*porch.FunctionResult {
 
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(resource)
-
-
 
 	// Check Open Fronthaul interface.
 
@@ -1062,12 +854,9 @@ func (v *ORANComplianceValidator) validateODUCompliance(ctx context.Context, res
 			fmt.Sprintf("O-DU %s missing Open Fronthaul interface configuration", name),
 
 			map[string]string{"resource": name, "interface": "Fronthaul"},
-
 		))
 
 	}
-
-
 
 	// Check F1 interface (to O-CU).
 
@@ -1080,26 +869,19 @@ func (v *ORANComplianceValidator) validateODUCompliance(ctx context.Context, res
 			fmt.Sprintf("O-DU %s missing F1 interface configuration", name),
 
 			map[string]string{"resource": name, "interface": "F1"},
-
 		))
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 func (v *ORANComplianceValidator) validateOCUCompliance(ctx context.Context, resource *porch.KRMResource) []*porch.FunctionResult {
 
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(resource)
-
-
 
 	// Check F1 interface (from O-DU).
 
@@ -1112,12 +894,9 @@ func (v *ORANComplianceValidator) validateOCUCompliance(ctx context.Context, res
 			fmt.Sprintf("O-CU %s missing F1 interface configuration", name),
 
 			map[string]string{"resource": name, "interface": "F1"},
-
 		))
 
 	}
-
-
 
 	// Check NG interface (to 5G Core).
 
@@ -1130,26 +909,19 @@ func (v *ORANComplianceValidator) validateOCUCompliance(ctx context.Context, res
 			fmt.Sprintf("O-CU %s missing NG interface configuration", name),
 
 			map[string]string{"resource": name, "interface": "NG"},
-
 		))
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 func (v *ORANComplianceValidator) addComplianceAnnotations(resource *porch.KRMResource, results []*porch.FunctionResult) {
 
 	errorCount := 0
 
 	warningCount := 0
-
-
 
 	for _, result := range results {
 
@@ -1167,8 +939,6 @@ func (v *ORANComplianceValidator) addComplianceAnnotations(resource *porch.KRMRe
 
 	}
 
-
-
 	// Add compliance status annotation.
 
 	complianceStatus := "compliant"
@@ -1183,8 +953,6 @@ func (v *ORANComplianceValidator) addComplianceAnnotations(resource *porch.KRMRe
 
 	}
 
-
-
 	SetResourceAnnotation(resource, "o-ran.org/compliance-status", complianceStatus)
 
 	SetResourceAnnotation(resource, "o-ran.org/validation-errors", strconv.Itoa(errorCount))
@@ -1195,17 +963,11 @@ func (v *ORANComplianceValidator) addComplianceAnnotations(resource *porch.KRMRe
 
 }
 
-
-
 // A1 Policy validation helpers.
-
-
 
 func (v *A1PolicyValidator) buildPolicyTypeRegistry(policyTypes []porch.KRMResource) map[string]*porch.KRMResource {
 
 	registry := make(map[string]*porch.KRMResource)
-
-
 
 	for _, pt := range policyTypes {
 
@@ -1219,21 +981,15 @@ func (v *A1PolicyValidator) buildPolicyTypeRegistry(policyTypes []porch.KRMResou
 
 	}
 
-
-
 	return registry
 
 }
-
-
 
 func (v *A1PolicyValidator) validateA1Policy(ctx context.Context, policy *porch.KRMResource, registry map[string]*porch.KRMResource) []*porch.FunctionResult {
 
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(policy)
-
-
 
 	// Check policy type reference.
 
@@ -1246,14 +1002,11 @@ func (v *A1PolicyValidator) validateA1Policy(ctx context.Context, policy *porch.
 			fmt.Sprintf("A1 Policy %s missing policyType reference", name),
 
 			map[string]string{"resource": name, "field": "spec.policyType"},
-
 		))
 
 		return results
 
 	}
-
-
 
 	policyTypeName, ok := policyType.(string)
 
@@ -1264,14 +1017,11 @@ func (v *A1PolicyValidator) validateA1Policy(ctx context.Context, policy *porch.
 			fmt.Sprintf("A1 Policy %s has invalid policyType reference", name),
 
 			map[string]string{"resource": name, "field": "spec.policyType"},
-
 		))
 
 		return results
 
 	}
-
-
 
 	// Check if policy type exists.
 
@@ -1282,7 +1032,6 @@ func (v *A1PolicyValidator) validateA1Policy(ctx context.Context, policy *porch.
 			fmt.Sprintf("A1 Policy %s references non-existent policy type %s", name, policyTypeName),
 
 			map[string]string{"resource": name, "policyType": policyTypeName},
-
 		))
 
 	} else {
@@ -1290,12 +1039,9 @@ func (v *A1PolicyValidator) validateA1Policy(ctx context.Context, policy *porch.
 		results = append(results, CreateInfo(
 
 			fmt.Sprintf("A1 Policy %s references valid policy type %s", name, policyTypeName),
-
 		))
 
 	}
-
-
 
 	// Validate policy syntax.
 
@@ -1308,28 +1054,19 @@ func (v *A1PolicyValidator) validateA1Policy(ctx context.Context, policy *porch.
 			fmt.Sprintf("A1 Policy %s missing policy data", name),
 
 			map[string]string{"resource": name, "field": "spec.policyData"},
-
 		))
 
 	}
-
-
 
 	return results
 
 }
 
-
-
 // 5G Core validation helpers.
-
-
 
 func (v *FiveGCoreValidator) validateNetworkFunction(ctx context.Context, nf *porch.KRMResource, nfType string) []*porch.FunctionResult {
 
 	var results []*porch.FunctionResult
-
-
 
 	switch nfType {
 
@@ -1355,27 +1092,19 @@ func (v *FiveGCoreValidator) validateNetworkFunction(ctx context.Context, nf *po
 
 	}
 
-
-
 	// Common validations for all NFs.
 
 	results = append(results, v.validateCommonNF(ctx, nf, nfType)...)
 
-
-
 	return results
 
 }
-
-
 
 func (v *FiveGCoreValidator) validateAMF(ctx context.Context, amf *porch.KRMResource) []*porch.FunctionResult {
 
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(amf)
-
-
 
 	// Check GUAMI configuration.
 
@@ -1388,12 +1117,9 @@ func (v *FiveGCoreValidator) validateAMF(ctx context.Context, amf *porch.KRMReso
 			fmt.Sprintf("AMF %s missing GUAMI configuration", name),
 
 			map[string]string{"resource": name, "field": "spec.guami"},
-
 		))
 
 	}
-
-
 
 	// Check served PLMN list.
 
@@ -1406,26 +1132,19 @@ func (v *FiveGCoreValidator) validateAMF(ctx context.Context, amf *porch.KRMReso
 			fmt.Sprintf("AMF %s missing served GUAMI list", name),
 
 			map[string]string{"resource": name, "field": "spec.servedGuamiList"},
-
 		))
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 func (v *FiveGCoreValidator) validateSMF(ctx context.Context, smf *porch.KRMResource) []*porch.FunctionResult {
 
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(smf)
-
-
 
 	// Check UE subnet configuration.
 
@@ -1438,12 +1157,9 @@ func (v *FiveGCoreValidator) validateSMF(ctx context.Context, smf *porch.KRMReso
 			fmt.Sprintf("SMF %s missing UE subnet configuration", name),
 
 			map[string]string{"resource": name, "field": "spec.ueSubnet"},
-
 		))
 
 	}
-
-
 
 	// Check DNN configuration.
 
@@ -1456,26 +1172,19 @@ func (v *FiveGCoreValidator) validateSMF(ctx context.Context, smf *porch.KRMReso
 			fmt.Sprintf("SMF %s missing DNN configuration", name),
 
 			map[string]string{"resource": name, "field": "spec.dnn"},
-
 		))
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 func (v *FiveGCoreValidator) validateUPF(ctx context.Context, upf *porch.KRMResource) []*porch.FunctionResult {
 
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(upf)
-
-
 
 	// Check GTPU configuration.
 
@@ -1488,12 +1197,9 @@ func (v *FiveGCoreValidator) validateUPF(ctx context.Context, upf *porch.KRMReso
 			fmt.Sprintf("UPF %s missing GTPU configuration", name),
 
 			map[string]string{"resource": name, "field": "spec.gtpu"},
-
 		))
 
 	}
-
-
 
 	// Check PFCP configuration.
 
@@ -1506,26 +1212,19 @@ func (v *FiveGCoreValidator) validateUPF(ctx context.Context, upf *porch.KRMReso
 			fmt.Sprintf("UPF %s missing PFCP configuration", name),
 
 			map[string]string{"resource": name, "field": "spec.pfcp"},
-
 		))
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 func (v *FiveGCoreValidator) validateNSSF(ctx context.Context, nssf *porch.KRMResource) []*porch.FunctionResult {
 
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(nssf)
-
-
 
 	// Check NSI configuration.
 
@@ -1538,26 +1237,19 @@ func (v *FiveGCoreValidator) validateNSSF(ctx context.Context, nssf *porch.KRMRe
 			fmt.Sprintf("NSSF %s missing NSI configuration", name),
 
 			map[string]string{"resource": name, "field": "spec.nsi"},
-
 		))
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 func (v *FiveGCoreValidator) validateNRF(ctx context.Context, nrf *porch.KRMResource) []*porch.FunctionResult {
 
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(nrf)
-
-
 
 	// Check OAuth configuration.
 
@@ -1568,26 +1260,19 @@ func (v *FiveGCoreValidator) validateNRF(ctx context.Context, nrf *porch.KRMReso
 		results = append(results, CreateInfo(
 
 			fmt.Sprintf("NRF %s has OAuth configuration", name),
-
 		))
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 func (v *FiveGCoreValidator) validateCommonNF(ctx context.Context, nf *porch.KRMResource, nfType string) []*porch.FunctionResult {
 
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(nf)
-
-
 
 	// Check NF instance ID.
 
@@ -1600,7 +1285,6 @@ func (v *FiveGCoreValidator) validateCommonNF(ctx context.Context, nf *porch.KRM
 			fmt.Sprintf("%s %s missing NF instance ID", nfType, name),
 
 			map[string]string{"resource": name, "field": "spec.nfInstanceId"},
-
 		))
 
 	} else {
@@ -1616,7 +1300,6 @@ func (v *FiveGCoreValidator) validateCommonNF(ctx context.Context, nf *porch.KRM
 					fmt.Sprintf("%s %s has invalid NF instance ID format", nfType, name),
 
 					map[string]string{"resource": name, "field": "spec.nfInstanceId"},
-
 				))
 
 			}
@@ -1624,8 +1307,6 @@ func (v *FiveGCoreValidator) validateCommonNF(ctx context.Context, nf *porch.KRM
 		}
 
 	}
-
-
 
 	// Check heartbeat configuration.
 
@@ -1636,24 +1317,17 @@ func (v *FiveGCoreValidator) validateCommonNF(ctx context.Context, nf *porch.KRM
 		results = append(results, CreateInfo(
 
 			fmt.Sprintf("%s %s has heartbeat configuration", nfType, name),
-
 		))
 
 	}
-
-
 
 	return results
 
 }
 
-
-
 func (v *FiveGCoreValidator) validateNetworkFunctionInteractions(ctx context.Context, resources []porch.KRMResource) []*porch.FunctionResult {
 
 	var results []*porch.FunctionResult
-
-
 
 	// Count network functions.
 
@@ -1663,8 +1337,6 @@ func (v *FiveGCoreValidator) validateNetworkFunctionInteractions(ctx context.Con
 
 	upfCount := len(FindResourcesByGVK(resources, schema.GroupVersionKind{Group: "workload.nephio.org", Version: "v1alpha1", Kind: "UPF"}))
 
-
-
 	// Check minimum requirements.
 
 	if amfCount == 0 {
@@ -1673,23 +1345,17 @@ func (v *FiveGCoreValidator) validateNetworkFunctionInteractions(ctx context.Con
 
 	}
 
-
-
 	if smfCount == 0 {
 
 		results = append(results, CreateWarning("No SMF instances found in package"))
 
 	}
 
-
-
 	if upfCount == 0 {
 
 		results = append(results, CreateWarning("No UPF instances found in package"))
 
 	}
-
-
 
 	// Check ratios.
 
@@ -1700,20 +1366,15 @@ func (v *FiveGCoreValidator) validateNetworkFunctionInteractions(ctx context.Con
 			results = append(results, CreateWarning(
 
 				fmt.Sprintf("High UPF to SMF ratio (%d:%d) may indicate over-provisioning", upfCount, smfCount),
-
 			))
 
 		}
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 func (v *FiveGCoreValidator) isValidUUID(uuid string) bool {
 
@@ -1722,4 +1383,3 @@ func (v *FiveGCoreValidator) isValidUUID(uuid string) bool {
 	return uuidRegex.MatchString(uuid)
 
 }
-

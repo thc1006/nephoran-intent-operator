@@ -1,41 +1,24 @@
 // Package validation provides comprehensive test data factories and fixtures.
 
-
 package validation
 
-
-
 import (
-
 	"fmt"
-
 	"time"
-
-
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/apimachinery/pkg/types"
-
-
 
 	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
-
-
 
 // TestDataFactory provides factory methods for creating test data.
 
 type TestDataFactory struct {
-
 	namespace string
 
-	counter   int
-
+	counter int
 }
-
-
 
 // NewTestDataFactory creates a new test data factory.
 
@@ -45,33 +28,22 @@ func NewTestDataFactory(namespace string) *TestDataFactory {
 
 		namespace: namespace,
 
-		counter:   0,
-
+		counter: 0,
 	}
 
 }
 
-
-
 // NetworkIntentFactory provides factory methods for NetworkIntent test objects.
 
 type NetworkIntentFactory struct {
-
 	factory *TestDataFactory
-
 }
-
-
 
 // E2NodeSetFactory provides factory methods for E2NodeSet test objects.
 
 type E2NodeSetFactory struct {
-
 	factory *TestDataFactory
-
 }
-
-
 
 // GetNetworkIntentFactory returns a NetworkIntent factory.
 
@@ -81,8 +53,6 @@ func (tdf *TestDataFactory) GetNetworkIntentFactory() *NetworkIntentFactory {
 
 }
 
-
-
 // GetE2NodeSetFactory returns an E2NodeSet factory.
 
 func (tdf *TestDataFactory) GetE2NodeSetFactory() *E2NodeSetFactory {
@@ -90,8 +60,6 @@ func (tdf *TestDataFactory) GetE2NodeSetFactory() *E2NodeSetFactory {
 	return &E2NodeSetFactory{factory: tdf}
 
 }
-
-
 
 // getUniqueName generates a unique test name.
 
@@ -103,11 +71,7 @@ func (tdf *TestDataFactory) getUniqueName(prefix string) string {
 
 }
 
-
-
 // NetworkIntent Factory Methods.
-
-
 
 // CreateBasicNetworkIntent creates a basic NetworkIntent for testing.
 
@@ -119,24 +83,21 @@ func (nif *NetworkIntentFactory) CreateBasicNetworkIntent(name, intent string) *
 
 	}
 
-
-
 	return &nephranv1.NetworkIntent{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      name,
+			Name: name,
 
 			Namespace: nif.factory.namespace,
 
 			Labels: map[string]string{
 
-				"test-type":    "basic",
+				"test-type": "basic",
 
-				"created-by":   "test-factory",
+				"created-by": "test-factory",
 
 				"test-session": fmt.Sprintf("session-%d", time.Now().Unix()),
-
 			},
 
 			Annotations: map[string]string{
@@ -144,28 +105,21 @@ func (nif *NetworkIntentFactory) CreateBasicNetworkIntent(name, intent string) *
 				"test.nephoran.io/purpose": "validation",
 
 				"test.nephoran.io/created": time.Now().Format(time.RFC3339),
-
 			},
-
 		},
 
 		Spec: nephranv1.NetworkIntentSpec{
 
 			Intent: intent,
-
 		},
 
 		Status: nephranv1.NetworkIntentStatus{
 
 			Phase: "Pending",
-
 		},
-
 	}
 
 }
-
-
 
 // CreateProcessingNetworkIntent creates a NetworkIntent in processing state.
 
@@ -177,13 +131,9 @@ func (nif *NetworkIntentFactory) CreateProcessingNetworkIntent(name, intent stri
 
 	ni.Status.Phase = "Processing"
 
-
-
 	return ni
 
 }
-
-
 
 // CreateDeployedNetworkIntent creates a NetworkIntent in deployed state.
 
@@ -195,8 +145,6 @@ func (nif *NetworkIntentFactory) CreateDeployedNetworkIntent(name, intent string
 
 	ni.Status.Phase = "Deployed"
 
-
-
 	// Add processing results.
 
 	confidenceScore := float64(0.95)
@@ -205,17 +153,12 @@ func (nif *NetworkIntentFactory) CreateDeployedNetworkIntent(name, intent string
 
 		NetworkFunctionType: "AMF",
 
-		ConfidenceScore:     &confidenceScore,
-
+		ConfidenceScore: &confidenceScore,
 	}
-
-
 
 	return ni
 
 }
-
-
 
 // CreateFailedNetworkIntent creates a NetworkIntent in failed state.
 
@@ -229,13 +172,9 @@ func (nif *NetworkIntentFactory) CreateFailedNetworkIntent(name, intent string, 
 
 	ni.Status.LastMessage = errorMsg
 
-
-
 	return ni
 
 }
-
-
 
 // CreateAMFIntent creates a NetworkIntent specifically for AMF deployment.
 
@@ -249,13 +188,9 @@ func (nif *NetworkIntentFactory) CreateAMFIntent(name string) *nephranv1.Network
 
 	ni.Labels["deployment-type"] = "production"
 
-
-
 	return ni
 
 }
-
-
 
 // CreateSMFIntent creates a NetworkIntent specifically for SMF deployment.
 
@@ -269,13 +204,9 @@ func (nif *NetworkIntentFactory) CreateSMFIntent(name string) *nephranv1.Network
 
 	ni.Labels["integration"] = "upf"
 
-
-
 	return ni
 
 }
-
-
 
 // CreateUPFIntent creates a NetworkIntent specifically for UPF deployment.
 
@@ -289,13 +220,9 @@ func (nif *NetworkIntentFactory) CreateUPFIntent(name string) *nephranv1.Network
 
 	ni.Labels["deployment"] = "edge"
 
-
-
 	return ni
 
 }
-
-
 
 // CreateNSSFIntent creates a NetworkIntent specifically for NSSF deployment.
 
@@ -309,13 +236,9 @@ func (nif *NetworkIntentFactory) CreateNSSFIntent(name string) *nephranv1.Networ
 
 	ni.Labels["capability"] = "slice-selection"
 
-
-
 	return ni
 
 }
-
-
 
 // CreateSliceIntent creates a NetworkIntent for network slicing.
 
@@ -329,13 +252,9 @@ func (nif *NetworkIntentFactory) CreateSliceIntent(name, sliceType string) *neph
 
 	ni.Labels["slice-type"] = sliceType
 
-
-
 	return ni
 
 }
-
-
 
 // CreateComplexIntent creates a NetworkIntent with complex requirements.
 
@@ -351,13 +270,9 @@ func (nif *NetworkIntentFactory) CreateComplexIntent(name string) *nephranv1.Net
 
 	ni.Labels["deployment"] = "multi-region"
 
-
-
 	return ni
 
 }
-
-
 
 // CreateBatchIntents creates multiple NetworkIntents for batch testing.
 
@@ -365,13 +280,9 @@ func (nif *NetworkIntentFactory) CreateBatchIntents(count int, intentType string
 
 	intents := make([]*nephranv1.NetworkIntent, count)
 
-
-
 	for i := range count {
 
 		name := fmt.Sprintf("batch-%s-%d", intentType, i)
-
-
 
 		switch intentType {
 
@@ -397,25 +308,17 @@ func (nif *NetworkIntentFactory) CreateBatchIntents(count int, intentType string
 
 		}
 
-
-
 		intents[i].Labels["batch-test"] = "true"
 
 		intents[i].Labels["batch-id"] = fmt.Sprintf("batch-%d", time.Now().Unix())
 
 	}
 
-
-
 	return intents
 
 }
 
-
-
 // E2NodeSet Factory Methods.
-
-
 
 // CreateBasicE2NodeSet creates a basic E2NodeSet for testing.
 
@@ -427,24 +330,21 @@ func (enf *E2NodeSetFactory) CreateBasicE2NodeSet(name string, replicas int32) *
 
 	}
 
-
-
 	return &nephranv1.E2NodeSet{
 
 		ObjectMeta: metav1.ObjectMeta{
 
-			Name:      name,
+			Name: name,
 
 			Namespace: enf.factory.namespace,
 
 			Labels: map[string]string{
 
-				"test-type":    "basic",
+				"test-type": "basic",
 
-				"created-by":   "test-factory",
+				"created-by": "test-factory",
 
 				"test-session": fmt.Sprintf("session-%d", time.Now().Unix()),
-
 			},
 
 			Annotations: map[string]string{
@@ -452,30 +352,23 @@ func (enf *E2NodeSetFactory) CreateBasicE2NodeSet(name string, replicas int32) *
 				"test.nephoran.io/purpose": "validation",
 
 				"test.nephoran.io/created": time.Now().Format(time.RFC3339),
-
 			},
-
 		},
 
 		Spec: nephranv1.E2NodeSetSpec{
 
 			Replicas: replicas,
-
 		},
 
 		Status: nephranv1.E2NodeSetStatus{
 
 			CurrentReplicas: replicas,
 
-			ReadyReplicas:   0,
-
+			ReadyReplicas: 0,
 		},
-
 	}
 
 }
-
-
 
 // CreateReadyE2NodeSet creates an E2NodeSet in ready state.
 
@@ -487,35 +380,27 @@ func (enf *E2NodeSetFactory) CreateReadyE2NodeSet(name string, replicas int32) *
 
 	e2ns.Status.ReadyReplicas = replicas
 
-
-
 	// Add conditions.
 
 	e2ns.Status.Conditions = []nephranv1.E2NodeSetCondition{
 
 		{
 
-			Type:               nephranv1.E2NodeSetConditionAvailable,
+			Type: nephranv1.E2NodeSetConditionAvailable,
 
-			Status:             metav1.ConditionTrue,
+			Status: metav1.ConditionTrue,
 
 			LastTransitionTime: metav1.Now(),
 
-			Reason:             "AllReplicasReady",
+			Reason: "AllReplicasReady",
 
-			Message:            fmt.Sprintf("All %d replicas are ready", replicas),
-
+			Message: fmt.Sprintf("All %d replicas are ready", replicas),
 		},
-
 	}
-
-
 
 	return e2ns
 
 }
-
-
 
 // CreateScalingE2NodeSet creates an E2NodeSet in scaling state.
 
@@ -527,35 +412,27 @@ func (enf *E2NodeSetFactory) CreateScalingE2NodeSet(name string, currentReplicas
 
 	e2ns.Status.ReadyReplicas = currentReplicas
 
-
-
 	// Add scaling condition.
 
 	e2ns.Status.Conditions = []nephranv1.E2NodeSetCondition{
 
 		{
 
-			Type:               nephranv1.E2NodeSetConditionProgressing,
+			Type: nephranv1.E2NodeSetConditionProgressing,
 
-			Status:             metav1.ConditionTrue,
+			Status: metav1.ConditionTrue,
 
 			LastTransitionTime: metav1.Now(),
 
-			Reason:             "ScalingInProgress",
+			Reason: "ScalingInProgress",
 
-			Message:            fmt.Sprintf("Scaling from %d to %d replicas", currentReplicas, targetReplicas),
-
+			Message: fmt.Sprintf("Scaling from %d to %d replicas", currentReplicas, targetReplicas),
 		},
-
 	}
-
-
 
 	return e2ns
 
 }
-
-
 
 // CreateLargeE2NodeSet creates an E2NodeSet for scalability testing.
 
@@ -567,21 +444,15 @@ func (enf *E2NodeSetFactory) CreateLargeE2NodeSet(name string, replicas int32) *
 
 	e2ns.Labels["scale-test"] = "large"
 
-
-
 	return e2ns
 
 }
-
-
 
 // CreateBatchE2NodeSets creates multiple E2NodeSets for batch testing.
 
 func (enf *E2NodeSetFactory) CreateBatchE2NodeSets(count int, replicasPerSet int32) []*nephranv1.E2NodeSet {
 
 	nodeSets := make([]*nephranv1.E2NodeSet, count)
-
-
 
 	for i := range count {
 
@@ -595,27 +466,17 @@ func (enf *E2NodeSetFactory) CreateBatchE2NodeSets(count int, replicasPerSet int
 
 	}
 
-
-
 	return nodeSets
 
 }
 
-
-
 // Test Scenario Factories.
-
-
 
 // TestScenarioFactory provides factory methods for complete test scenarios.
 
 type TestScenarioFactory struct {
-
 	factory *TestDataFactory
-
 }
-
-
 
 // GetTestScenarioFactory returns a test scenario factory.
 
@@ -625,8 +486,6 @@ func (tdf *TestDataFactory) GetTestScenarioFactory() *TestScenarioFactory {
 
 }
 
-
-
 // CreateLatencyTestScenario creates objects for latency testing.
 
 func (tsf *TestScenarioFactory) CreateLatencyTestScenario(numIntents int) []*nephranv1.NetworkIntent {
@@ -635,19 +494,13 @@ func (tsf *TestScenarioFactory) CreateLatencyTestScenario(numIntents int) []*nep
 
 	intents := make([]*nephranv1.NetworkIntent, numIntents)
 
-
-
 	intentTypes := []string{"amf", "smf", "upf", "nssf"}
-
-
 
 	for i := range numIntents {
 
 		intentType := intentTypes[i%len(intentTypes)]
 
 		name := fmt.Sprintf("latency-test-%d", i)
-
-
 
 		switch intentType {
 
@@ -669,21 +522,15 @@ func (tsf *TestScenarioFactory) CreateLatencyTestScenario(numIntents int) []*nep
 
 		}
 
-
-
 		intents[i].Labels["scenario"] = "latency-test"
 
 		intents[i].Labels["test-order"] = fmt.Sprintf("%d", i)
 
 	}
 
-
-
 	return intents
 
 }
-
-
 
 // CreateThroughputTestScenario creates objects for throughput testing.
 
@@ -692,8 +539,6 @@ func (tsf *TestScenarioFactory) CreateThroughputTestScenario(numIntents int) []*
 	nif := tsf.factory.GetNetworkIntentFactory()
 
 	intents := make([]*nephranv1.NetworkIntent, numIntents)
-
-
 
 	for i := range numIntents {
 
@@ -709,13 +554,9 @@ func (tsf *TestScenarioFactory) CreateThroughputTestScenario(numIntents int) []*
 
 	}
 
-
-
 	return intents
 
 }
-
-
 
 // CreateScalabilityTestScenario creates objects for scalability testing.
 
@@ -724,8 +565,6 @@ func (tsf *TestScenarioFactory) CreateScalabilityTestScenario(maxConcurrency int
 	nif := tsf.factory.GetNetworkIntentFactory()
 
 	intents := make([]*nephranv1.NetworkIntent, maxConcurrency)
-
-
 
 	for i := range maxConcurrency {
 
@@ -741,13 +580,9 @@ func (tsf *TestScenarioFactory) CreateScalabilityTestScenario(maxConcurrency int
 
 	}
 
-
-
 	return intents
 
 }
-
-
 
 // CreateReliabilityTestScenario creates objects for reliability testing.
 
@@ -757,47 +592,36 @@ func (tsf *TestScenarioFactory) CreateReliabilityTestScenario() *ReliabilityTest
 
 	enf := tsf.factory.GetE2NodeSetFactory()
 
-
-
 	return &ReliabilityTestScenario{
 
-		NormalIntent:   nif.CreateAMFIntent("reliability-normal"),
+		NormalIntent: nif.CreateAMFIntent("reliability-normal"),
 
-		RestartIntent:  nif.CreateSMFIntent("reliability-restart"),
+		RestartIntent: nif.CreateSMFIntent("reliability-restart"),
 
 		FailoverIntent: nif.CreateUPFIntent("reliability-failover"),
 
-		E2NodeSet:      enf.CreateReadyE2NodeSet("reliability-e2nodes", 5),
-
+		E2NodeSet: enf.CreateReadyE2NodeSet("reliability-e2nodes", 5),
 	}
 
 }
 
-
-
 // ReliabilityTestScenario contains objects for reliability testing.
 
 type ReliabilityTestScenario struct {
+	NormalIntent *nephranv1.NetworkIntent
 
-	NormalIntent   *nephranv1.NetworkIntent
-
-	RestartIntent  *nephranv1.NetworkIntent
+	RestartIntent *nephranv1.NetworkIntent
 
 	FailoverIntent *nephranv1.NetworkIntent
 
-	E2NodeSet      *nephranv1.E2NodeSet
-
+	E2NodeSet *nephranv1.E2NodeSet
 }
-
-
 
 // CreateSecurityTestScenario creates objects for security testing.
 
 func (tsf *TestScenarioFactory) CreateSecurityTestScenario() *SecurityTestScenario {
 
 	nif := tsf.factory.GetNetworkIntentFactory()
-
-
 
 	// Create intents with different security implications.
 
@@ -807,15 +631,11 @@ func (tsf *TestScenarioFactory) CreateSecurityTestScenario() *SecurityTestScenar
 
 	authIntent.Labels["security-test"] = "authentication"
 
-
-
 	encryptionIntent := nif.CreateBasicNetworkIntent("security-encryption-test",
 
 		"Deploy network function with TLS encryption")
 
 	encryptionIntent.Labels["security-test"] = "encryption"
-
-
 
 	rbacIntent := nif.CreateBasicNetworkIntent("security-rbac-test",
 
@@ -823,39 +643,28 @@ func (tsf *TestScenarioFactory) CreateSecurityTestScenario() *SecurityTestScenar
 
 	rbacIntent.Labels["security-test"] = "rbac"
 
-
-
 	return &SecurityTestScenario{
 
 		AuthenticationIntent: authIntent,
 
-		EncryptionIntent:     encryptionIntent,
+		EncryptionIntent: encryptionIntent,
 
-		RBACIntent:           rbacIntent,
-
+		RBACIntent: rbacIntent,
 	}
 
 }
 
-
-
 // SecurityTestScenario contains objects for security testing.
 
 type SecurityTestScenario struct {
-
 	AuthenticationIntent *nephranv1.NetworkIntent
 
-	EncryptionIntent     *nephranv1.NetworkIntent
+	EncryptionIntent *nephranv1.NetworkIntent
 
-	RBACIntent           *nephranv1.NetworkIntent
-
+	RBACIntent *nephranv1.NetworkIntent
 }
 
-
-
 // Utility methods for test data manipulation.
-
-
 
 // ApplyTestLabels applies common test labels to any Kubernetes object.
 
@@ -869,21 +678,15 @@ func (tdf *TestDataFactory) ApplyTestLabels(obj metav1.Object, testType string) 
 
 	}
 
-
-
 	labels["test.nephoran.io/managed"] = "true"
 
 	labels["test.nephoran.io/type"] = testType
 
 	labels["test.nephoran.io/session"] = fmt.Sprintf("session-%d", time.Now().Unix())
 
-
-
 	obj.SetLabels(labels)
 
 }
-
-
 
 // ApplyTestAnnotations applies common test annotations to any Kubernetes object.
 
@@ -897,19 +700,13 @@ func (tdf *TestDataFactory) ApplyTestAnnotations(obj metav1.Object) {
 
 	}
 
-
-
 	annotations["test.nephoran.io/created"] = time.Now().Format(time.RFC3339)
 
 	annotations["test.nephoran.io/purpose"] = "validation"
 
-
-
 	obj.SetAnnotations(annotations)
 
 }
-
-
 
 // CleanupSelector returns a label selector for cleaning up test objects.
 
@@ -919,8 +716,6 @@ func (tdf *TestDataFactory) CleanupSelector() string {
 
 }
 
-
-
 // GetTestNamespace returns the namespace used for testing.
 
 func (tdf *TestDataFactory) GetTestNamespace() string {
@@ -929,8 +724,6 @@ func (tdf *TestDataFactory) GetTestNamespace() string {
 
 }
 
-
-
 // GenerateUID generates a unique identifier for test objects.
 
 func (tdf *TestDataFactory) GenerateUID() types.UID {
@@ -938,4 +731,3 @@ func (tdf *TestDataFactory) GenerateUID() types.UID {
 	return types.UID(fmt.Sprintf("test-uid-%d-%d", tdf.counter, time.Now().UnixNano()))
 
 }
-

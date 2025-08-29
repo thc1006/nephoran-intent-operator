@@ -28,138 +28,98 @@ limitations under the License.
 
 */
 
-
-
-
 package shared
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"os"
-
 	"sync"
-
 	"time"
-
-
 
 	"github.com/go-logr/logr"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 )
-
-
 
 // EnhancedEventBus provides enhanced event communication with persistence and routing.
 
 type EnhancedEventBus struct {
-
 	logger logr.Logger
 
-	mutex  sync.RWMutex
-
-
+	mutex sync.RWMutex
 
 	// Event handling.
 
-	subscribers  map[string][]EventHandler
+	subscribers map[string][]EventHandler
 
-	eventRoutes  map[string][]string // event type -> target components
+	eventRoutes map[string][]string // event type -> target components
 
 	eventFilters map[string]EventFilter
 
-
-
 	// Event buffering and batching.
 
-	eventBuffer  chan ProcessingEvent
+	eventBuffer chan ProcessingEvent
 
-	batchBuffer  []ProcessingEvent
+	batchBuffer []ProcessingEvent
 
-	batchSize    int
+	batchSize int
 
 	batchTimeout time.Duration
 
-
-
 	// Event persistence.
 
-	persistenceDir    string
+	persistenceDir string
 
 	enablePersistence bool
 
-	eventLog          *EventLog
-
-
+	eventLog *EventLog
 
 	// Delivery guarantees.
 
-	retryPolicy     *RetryPolicy
+	retryPolicy *RetryPolicy
 
 	deadLetterQueue *DeadLetterQueue
 
-	ackTimeouts     map[string]time.Time
-
-
+	ackTimeouts map[string]time.Time
 
 	// Event ordering.
 
 	sequenceNumber int64
 
-	ordering       EventOrdering
+	ordering EventOrdering
 
-	partitions     map[string]*EventPartition
-
-
+	partitions map[string]*EventPartition
 
 	// Performance optimization.
 
-	enableBatching    bool
+	enableBatching bool
 
 	enableCompression bool
 
-	maxEventSize      int64
+	maxEventSize int64
 
-	compressionLevel  int
-
-
+	compressionLevel int
 
 	// Monitoring and metrics.
 
-	metrics       EventBusMetrics
+	metrics EventBusMetrics
 
 	healthChecker *EventHealthChecker
-
-
 
 	// Configuration.
 
 	config *EventBusConfig
 
-
-
 	// Lifecycle management.
 
-	started  bool
+	started bool
 
 	stopChan chan bool
 
 	workerWG sync.WaitGroup
-
 }
-
-
 
 // EventBusConfig provides comprehensive configuration for the event bus.
 
@@ -167,73 +127,60 @@ type EventBusConfig struct {
 
 	// Buffer configuration.
 
-	BufferSize   int           `json:"bufferSize"`
+	BufferSize int `json:"bufferSize"`
 
-	MaxEventSize int64         `json:"maxEventSize"`
+	MaxEventSize int64 `json:"maxEventSize"`
 
-	BatchSize    int           `json:"batchSize"`
+	BatchSize int `json:"batchSize"`
 
 	BatchTimeout time.Duration `json:"batchTimeout"`
 
-
-
 	// Persistence configuration.
 
-	PersistenceDir    string `json:"persistenceDir"`
+	PersistenceDir string `json:"persistenceDir"`
 
-	EnablePersistence bool   `json:"enablePersistence"`
+	EnablePersistence bool `json:"enablePersistence"`
 
-	LogRotationSize   int64  `json:"logRotationSize"`
+	LogRotationSize int64 `json:"logRotationSize"`
 
-	LogRetentionDays  int    `json:"logRetentionDays"`
-
-
+	LogRetentionDays int `json:"logRetentionDays"`
 
 	// Delivery configuration.
 
-	MaxRetries        int           `json:"maxRetries"`
+	MaxRetries int `json:"maxRetries"`
 
-	RetryBackoff      time.Duration `json:"retryBackoff"`
+	RetryBackoff time.Duration `json:"retryBackoff"`
 
-	AckTimeout        time.Duration `json:"ackTimeout"`
+	AckTimeout time.Duration `json:"ackTimeout"`
 
-	DeadLetterEnabled bool          `json:"deadLetterEnabled"`
-
-
+	DeadLetterEnabled bool `json:"deadLetterEnabled"`
 
 	// Ordering configuration.
 
-	OrderingMode      string `json:"orderingMode"`      // "none", "global", "partition"
+	OrderingMode string `json:"orderingMode"` // "none", "global", "partition"
 
 	PartitionStrategy string `json:"partitionStrategy"` // "intent", "component", "hash"
 
-	MaxPartitions     int    `json:"maxPartitions"`
-
-
+	MaxPartitions int `json:"maxPartitions"`
 
 	// Performance configuration.
 
-	EnableBatching    bool `json:"enableBatching"`
+	EnableBatching bool `json:"enableBatching"`
 
 	EnableCompression bool `json:"enableCompression"`
 
-	CompressionLevel  int  `json:"compressionLevel"`
+	CompressionLevel int `json:"compressionLevel"`
 
-	WorkerCount       int  `json:"workerCount"`
-
-
+	WorkerCount int `json:"workerCount"`
 
 	// Monitoring configuration.
 
-	EnableMetrics       bool          `json:"enableMetrics"`
+	EnableMetrics bool `json:"enableMetrics"`
 
-	MetricsInterval     time.Duration `json:"metricsInterval"`
+	MetricsInterval time.Duration `json:"metricsInterval"`
 
 	HealthCheckInterval time.Duration `json:"healthCheckInterval"`
-
 }
-
-
 
 // DefaultEventBusConfig returns default configuration.
 
@@ -241,55 +188,52 @@ func DefaultEventBusConfig() *EventBusConfig {
 
 	return &EventBusConfig{
 
-		BufferSize:          10000,
+		BufferSize: 10000,
 
-		MaxEventSize:        1024 * 1024, // 1MB
+		MaxEventSize: 1024 * 1024, // 1MB
 
-		BatchSize:           100,
+		BatchSize: 100,
 
-		BatchTimeout:        1 * time.Second,
+		BatchTimeout: 1 * time.Second,
 
-		PersistenceDir:      "/tmp/nephoran-events",
+		PersistenceDir: "/tmp/nephoran-events",
 
-		EnablePersistence:   true,
+		EnablePersistence: true,
 
-		LogRotationSize:     100 * 1024 * 1024, // 100MB
+		LogRotationSize: 100 * 1024 * 1024, // 100MB
 
-		LogRetentionDays:    7,
+		LogRetentionDays: 7,
 
-		MaxRetries:          3,
+		MaxRetries: 3,
 
-		RetryBackoff:        1 * time.Second,
+		RetryBackoff: 1 * time.Second,
 
-		AckTimeout:          30 * time.Second,
+		AckTimeout: 30 * time.Second,
 
-		DeadLetterEnabled:   true,
+		DeadLetterEnabled: true,
 
-		OrderingMode:        "partition",
+		OrderingMode: "partition",
 
-		PartitionStrategy:   "intent",
+		PartitionStrategy: "intent",
 
-		MaxPartitions:       10,
+		MaxPartitions: 10,
 
-		EnableBatching:      true,
+		EnableBatching: true,
 
-		EnableCompression:   false,
+		EnableCompression: false,
 
-		CompressionLevel:    6,
+		CompressionLevel: 6,
 
-		WorkerCount:         5,
+		WorkerCount: 5,
 
-		EnableMetrics:       true,
+		EnableMetrics: true,
 
-		MetricsInterval:     30 * time.Second,
+		MetricsInterval: 30 * time.Second,
 
 		HealthCheckInterval: 10 * time.Second,
-
 	}
 
 }
-
-
 
 // NewEnhancedEventBus creates a new enhanced event bus.
 
@@ -301,61 +245,52 @@ func NewEnhancedEventBus(config *EventBusConfig) *EnhancedEventBus {
 
 	}
 
-
-
 	bus := &EnhancedEventBus{
 
-		logger:            ctrl.Log.WithName("enhanced-event-bus"),
+		logger: ctrl.Log.WithName("enhanced-event-bus"),
 
-		subscribers:       make(map[string][]EventHandler),
+		subscribers: make(map[string][]EventHandler),
 
-		eventRoutes:       make(map[string][]string),
+		eventRoutes: make(map[string][]string),
 
-		eventFilters:      make(map[string]EventFilter),
+		eventFilters: make(map[string]EventFilter),
 
-		eventBuffer:       make(chan ProcessingEvent, config.BufferSize),
+		eventBuffer: make(chan ProcessingEvent, config.BufferSize),
 
-		batchBuffer:       make([]ProcessingEvent, 0, config.BatchSize),
+		batchBuffer: make([]ProcessingEvent, 0, config.BatchSize),
 
-		batchSize:         config.BatchSize,
+		batchSize: config.BatchSize,
 
-		batchTimeout:      config.BatchTimeout,
+		batchTimeout: config.BatchTimeout,
 
-		persistenceDir:    config.PersistenceDir,
+		persistenceDir: config.PersistenceDir,
 
 		enablePersistence: config.EnablePersistence,
 
-		ackTimeouts:       make(map[string]time.Time),
+		ackTimeouts: make(map[string]time.Time),
 
-		partitions:        make(map[string]*EventPartition),
+		partitions: make(map[string]*EventPartition),
 
-		enableBatching:    config.EnableBatching,
+		enableBatching: config.EnableBatching,
 
 		enableCompression: config.EnableCompression,
 
-		maxEventSize:      config.MaxEventSize,
+		maxEventSize: config.MaxEventSize,
 
-		compressionLevel:  config.CompressionLevel,
+		compressionLevel: config.CompressionLevel,
 
-		config:            config,
+		config: config,
 
-		stopChan:          make(chan bool),
-
+		stopChan: make(chan bool),
 	}
-
-
 
 	// Initialize components.
 
 	bus.initializeComponents()
 
-
-
 	return bus
 
 }
-
-
 
 // initializeComponents initializes all event bus components.
 
@@ -365,23 +300,18 @@ func (eb *EnhancedEventBus) initializeComponents() {
 
 	eb.retryPolicy = &RetryPolicy{
 
-		MaxRetries:    eb.config.MaxRetries,
+		MaxRetries: eb.config.MaxRetries,
 
-		BackoffBase:   eb.config.RetryBackoff,
+		BackoffBase: eb.config.RetryBackoff,
 
-		BackoffMax:    30 * time.Second,
+		BackoffMax: 30 * time.Second,
 
 		BackoffJitter: true,
-
 	}
-
-
 
 	// Initialize dead letter queue.
 
 	eb.deadLetterQueue = NewDeadLetterQueue(eb.config.DeadLetterEnabled)
-
-
 
 	// Initialize event log.
 
@@ -391,8 +321,6 @@ func (eb *EnhancedEventBus) initializeComponents() {
 
 	}
 
-
-
 	// Initialize metrics.
 
 	if eb.config.EnableMetrics {
@@ -401,13 +329,9 @@ func (eb *EnhancedEventBus) initializeComponents() {
 
 	}
 
-
-
 	// Initialize health checker.
 
 	eb.healthChecker = NewEventHealthChecker(eb.config.HealthCheckInterval)
-
-
 
 	// Initialize event ordering.
 
@@ -415,11 +339,7 @@ func (eb *EnhancedEventBus) initializeComponents() {
 
 }
 
-
-
 // Core event bus interface implementation.
-
-
 
 // PublishStateChange performs publishstatechange operation.
 
@@ -429,15 +349,15 @@ func (eb *EnhancedEventBus) PublishStateChange(ctx context.Context, event StateC
 
 	processingEvent := ProcessingEvent{
 
-		Type:     "state.changed",
+		Type: "state.changed",
 
-		Source:   "state-manager",
+		Source: "state-manager",
 
 		IntentID: event.IntentName.String(),
 
-		Phase:    string(event.NewPhase),
+		Phase: string(event.NewPhase),
 
-		Success:  true,
+		Success: true,
 
 		Data: map[string]interface{}{
 
@@ -445,19 +365,15 @@ func (eb *EnhancedEventBus) PublishStateChange(ctx context.Context, event StateC
 
 			"newPhase": event.NewPhase,
 
-			"version":  event.Version,
-
+			"version": event.Version,
 		},
 
-		Timestamp:     time.Now().UnixNano(),
+		Timestamp: time.Now().UnixNano(),
 
 		CorrelationID: fmt.Sprintf("state-%d", time.Now().UnixNano()),
 
-		Metadata:      make(map[string]string),
-
+		Metadata: make(map[string]string),
 	}
-
-
 
 	// Add metadata from event.
 
@@ -471,13 +387,9 @@ func (eb *EnhancedEventBus) PublishStateChange(ctx context.Context, event StateC
 
 	}
 
-
-
 	return eb.Publish(ctx, processingEvent)
 
 }
-
-
 
 // Subscribe performs subscribe operation.
 
@@ -489,29 +401,19 @@ func (eb *EnhancedEventBus) Subscribe(eventType string, handler EventHandler) er
 
 	}
 
-
-
 	eb.mutex.Lock()
 
 	defer eb.mutex.Unlock()
 
-
-
 	eb.subscribers[eventType] = append(eb.subscribers[eventType], handler)
-
-
 
 	eb.logger.Info("Subscribed to event type", "eventType", eventType,
 
 		"handlerCount", len(eb.subscribers[eventType]))
 
-
-
 	return nil
 
 }
-
-
 
 // Unsubscribe performs unsubscribe operation.
 
@@ -521,21 +423,13 @@ func (eb *EnhancedEventBus) Unsubscribe(eventType string) error {
 
 	defer eb.mutex.Unlock()
 
-
-
 	delete(eb.subscribers, eventType)
 
-
-
 	eb.logger.Info("Unsubscribed from event type", "eventType", eventType)
-
-
 
 	return nil
 
 }
-
-
 
 // Start performs start operation.
 
@@ -545,15 +439,11 @@ func (eb *EnhancedEventBus) Start(ctx context.Context) error {
 
 	defer eb.mutex.Unlock()
 
-
-
 	if eb.started {
 
 		return fmt.Errorf("event bus already started")
 
 	}
-
-
 
 	// Ensure persistence directory exists.
 
@@ -567,8 +457,6 @@ func (eb *EnhancedEventBus) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start worker goroutines.
 
 	for i := range eb.config.WorkerCount {
@@ -578,8 +466,6 @@ func (eb *EnhancedEventBus) Start(ctx context.Context) error {
 		go eb.eventWorker(ctx, i)
 
 	}
-
-
 
 	// Start batch processor if enabled.
 
@@ -591,8 +477,6 @@ func (eb *EnhancedEventBus) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start health checker.
 
 	if eb.healthChecker != nil {
@@ -602,8 +486,6 @@ func (eb *EnhancedEventBus) Start(ctx context.Context) error {
 		go eb.healthChecker.Start(ctx, &eb.workerWG)
 
 	}
-
-
 
 	// Start metrics collector.
 
@@ -615,19 +497,13 @@ func (eb *EnhancedEventBus) Start(ctx context.Context) error {
 
 	}
 
-
-
 	eb.started = true
 
 	eb.logger.Info("Enhanced event bus started", "workers", eb.config.WorkerCount)
 
-
-
 	return nil
 
 }
-
-
 
 // Stop performs stop operation.
 
@@ -637,25 +513,17 @@ func (eb *EnhancedEventBus) Stop(ctx context.Context) error {
 
 	defer eb.mutex.Unlock()
 
-
-
 	if !eb.started {
 
 		return nil
 
 	}
 
-
-
 	eb.logger.Info("Stopping enhanced event bus")
-
-
 
 	// Signal stop.
 
 	close(eb.stopChan)
-
-
 
 	// Wait for workers to finish with timeout.
 
@@ -669,8 +537,6 @@ func (eb *EnhancedEventBus) Stop(ctx context.Context) error {
 
 	}()
 
-
-
 	select {
 
 	case <-done:
@@ -683,8 +549,6 @@ func (eb *EnhancedEventBus) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	// Close resources.
 
 	if eb.eventLog != nil {
@@ -693,17 +557,11 @@ func (eb *EnhancedEventBus) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	eb.started = false
-
-
 
 	return nil
 
 }
-
-
 
 // GetEventHistory performs geteventhistory operation.
 
@@ -715,13 +573,9 @@ func (eb *EnhancedEventBus) GetEventHistory(ctx context.Context, intentID string
 
 	}
 
-
-
 	return eb.eventLog.GetEventsByIntentID(intentID)
 
 }
-
-
 
 // GetEventsByType performs geteventsbytype operation.
 
@@ -733,17 +587,11 @@ func (eb *EnhancedEventBus) GetEventsByType(ctx context.Context, eventType strin
 
 	}
 
-
-
 	return eb.eventLog.GetEventsByType(eventType, limit)
 
 }
 
-
-
 // Enhanced functionality.
-
-
 
 // Publish performs publish operation.
 
@@ -755,8 +603,6 @@ func (eb *EnhancedEventBus) Publish(ctx context.Context, event ProcessingEvent) 
 
 	}
 
-
-
 	// Validate event size.
 
 	eventData, err := json.Marshal(event)
@@ -767,15 +613,11 @@ func (eb *EnhancedEventBus) Publish(ctx context.Context, event ProcessingEvent) 
 
 	}
 
-
-
 	if int64(len(eventData)) > eb.maxEventSize {
 
 		return fmt.Errorf("event size exceeds maximum allowed size")
 
 	}
-
-
 
 	// Assign sequence number for ordering.
 
@@ -787,8 +629,6 @@ func (eb *EnhancedEventBus) Publish(ctx context.Context, event ProcessingEvent) 
 
 	eb.mutex.Unlock()
 
-
-
 	// Add to partition if ordering is enabled.
 
 	if eb.config.OrderingMode == "partition" {
@@ -798,8 +638,6 @@ func (eb *EnhancedEventBus) Publish(ctx context.Context, event ProcessingEvent) 
 		partition.AddEvent(event)
 
 	}
-
-
 
 	// Persist event if enabled.
 
@@ -813,8 +651,6 @@ func (eb *EnhancedEventBus) Publish(ctx context.Context, event ProcessingEvent) 
 
 	}
 
-
-
 	// Update metrics.
 
 	if eb.metrics != nil {
@@ -822,8 +658,6 @@ func (eb *EnhancedEventBus) Publish(ctx context.Context, event ProcessingEvent) 
 		eb.metrics.RecordEventPublished(event.Type)
 
 	}
-
-
 
 	// Send to processing channel.
 
@@ -845,8 +679,6 @@ func (eb *EnhancedEventBus) Publish(ctx context.Context, event ProcessingEvent) 
 
 }
 
-
-
 // AddEventRoute performs addeventroute operation.
 
 func (eb *EnhancedEventBus) AddEventRoute(eventType string, targetComponents []string) {
@@ -855,13 +687,9 @@ func (eb *EnhancedEventBus) AddEventRoute(eventType string, targetComponents []s
 
 	defer eb.mutex.Unlock()
 
-
-
 	eb.eventRoutes[eventType] = targetComponents
 
 }
-
-
 
 // AddEventFilter performs addeventfilter operation.
 
@@ -871,27 +699,17 @@ func (eb *EnhancedEventBus) AddEventFilter(eventType string, filter EventFilter)
 
 	defer eb.mutex.Unlock()
 
-
-
 	eb.eventFilters[eventType] = filter
 
 }
 
-
-
 // Worker methods.
-
-
 
 func (eb *EnhancedEventBus) eventWorker(ctx context.Context, workerID int) {
 
 	defer eb.workerWG.Done()
 
-
-
 	eb.logger.V(1).Info("Event worker started", "workerID", workerID)
-
-
 
 	for {
 
@@ -901,15 +719,11 @@ func (eb *EnhancedEventBus) eventWorker(ctx context.Context, workerID int) {
 
 			eb.processEvent(ctx, event)
 
-
-
 		case <-eb.stopChan:
 
 			eb.logger.V(1).Info("Event worker stopping", "workerID", workerID)
 
 			return
-
-
 
 		case <-ctx.Done():
 
@@ -923,13 +737,9 @@ func (eb *EnhancedEventBus) eventWorker(ctx context.Context, workerID int) {
 
 }
 
-
-
 func (eb *EnhancedEventBus) processEvent(ctx context.Context, event ProcessingEvent) {
 
 	start := time.Now()
-
-
 
 	// Apply filters.
 
@@ -945,8 +755,6 @@ func (eb *EnhancedEventBus) processEvent(ctx context.Context, event ProcessingEv
 
 	}
 
-
-
 	// Get subscribers.
 
 	eb.mutex.RLock()
@@ -954,8 +762,6 @@ func (eb *EnhancedEventBus) processEvent(ctx context.Context, event ProcessingEv
 	handlers := make([]EventHandler, len(eb.subscribers[event.Type]))
 
 	copy(handlers, eb.subscribers[event.Type])
-
-
 
 	// Also get wildcard subscribers.
 
@@ -965,8 +771,6 @@ func (eb *EnhancedEventBus) processEvent(ctx context.Context, event ProcessingEv
 
 	eb.mutex.RUnlock()
 
-
-
 	if len(handlers) == 0 {
 
 		eb.logger.V(1).Info("No subscribers for event type", "eventType", event.Type)
@@ -974,8 +778,6 @@ func (eb *EnhancedEventBus) processEvent(ctx context.Context, event ProcessingEv
 		return
 
 	}
-
-
 
 	// Process with each handler.
 
@@ -988,8 +790,6 @@ func (eb *EnhancedEventBus) processEvent(ctx context.Context, event ProcessingEv
 			eb.logger.Error(err, "Handler failed permanently",
 
 				"eventType", event.Type, "handlerIndex", i)
-
-
 
 			// Send to dead letter queue if enabled.
 
@@ -1007,8 +807,6 @@ func (eb *EnhancedEventBus) processEvent(ctx context.Context, event ProcessingEv
 
 	}
 
-
-
 	// Update metrics.
 
 	if eb.metrics != nil {
@@ -1025,8 +823,6 @@ func (eb *EnhancedEventBus) processEvent(ctx context.Context, event ProcessingEv
 
 }
 
-
-
 func (eb *EnhancedEventBus) executeHandlerWithRetry(ctx context.Context, handler EventHandler, event ProcessingEvent) error {
 
 	return eb.retryPolicy.Execute(func() error {
@@ -1037,19 +833,13 @@ func (eb *EnhancedEventBus) executeHandlerWithRetry(ctx context.Context, handler
 
 }
 
-
-
 func (eb *EnhancedEventBus) batchProcessor(ctx context.Context) {
 
 	defer eb.workerWG.Done()
 
-
-
 	ticker := time.NewTicker(eb.batchTimeout)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1058,8 +848,6 @@ func (eb *EnhancedEventBus) batchProcessor(ctx context.Context) {
 		case <-ticker.C:
 
 			eb.processBatch()
-
-
 
 		case <-eb.stopChan:
 
@@ -1073,8 +861,6 @@ func (eb *EnhancedEventBus) batchProcessor(ctx context.Context) {
 
 			return
 
-
-
 		case <-ctx.Done():
 
 			return
@@ -1084,8 +870,6 @@ func (eb *EnhancedEventBus) batchProcessor(ctx context.Context) {
 	}
 
 }
-
-
 
 func (eb *EnhancedEventBus) processBatch() {
 
@@ -1099,8 +883,6 @@ func (eb *EnhancedEventBus) processBatch() {
 
 	}
 
-
-
 	batch := make([]ProcessingEvent, len(eb.batchBuffer))
 
 	copy(batch, eb.batchBuffer)
@@ -1109,11 +891,7 @@ func (eb *EnhancedEventBus) processBatch() {
 
 	eb.mutex.Unlock()
 
-
-
 	eb.logger.V(1).Info("Processing event batch", "size", len(batch))
-
-
 
 	// Process batch events.
 
@@ -1125,19 +903,13 @@ func (eb *EnhancedEventBus) processBatch() {
 
 }
 
-
-
 func (eb *EnhancedEventBus) metricsCollector(ctx context.Context) {
 
 	defer eb.workerWG.Done()
 
-
-
 	ticker := time.NewTicker(eb.config.MetricsInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1147,13 +919,9 @@ func (eb *EnhancedEventBus) metricsCollector(ctx context.Context) {
 
 			eb.collectMetrics()
 
-
-
 		case <-eb.stopChan:
 
 			return
-
-
 
 		case <-ctx.Done():
 
@@ -1165,8 +933,6 @@ func (eb *EnhancedEventBus) metricsCollector(ctx context.Context) {
 
 }
 
-
-
 func (eb *EnhancedEventBus) collectMetrics() {
 
 	if eb.metrics == nil {
@@ -1175,15 +941,11 @@ func (eb *EnhancedEventBus) collectMetrics() {
 
 	}
 
-
-
 	// Collect buffer utilization.
 
 	bufferUtilization := float64(len(eb.eventBuffer)) / float64(cap(eb.eventBuffer))
 
 	eb.metrics.SetBufferUtilization(bufferUtilization)
-
-
 
 	// Collect partition metrics.
 
@@ -1193,21 +955,15 @@ func (eb *EnhancedEventBus) collectMetrics() {
 
 	eb.mutex.RUnlock()
 
-
-
 	eb.metrics.SetPartitionCount(partitionCount)
 
 }
-
-
 
 func (eb *EnhancedEventBus) getOrCreatePartition(intentID string) *EventPartition {
 
 	eb.mutex.Lock()
 
 	defer eb.mutex.Unlock()
-
-
 
 	partition, exists := eb.partitions[intentID]
 
@@ -1219,37 +975,25 @@ func (eb *EnhancedEventBus) getOrCreatePartition(intentID string) *EventPartitio
 
 	}
 
-
-
 	return partition
 
 }
 
-
-
 // Event filtering interface.
 
 type EventFilter interface {
-
 	ShouldProcess(event ProcessingEvent) bool
-
 }
-
-
 
 // Simple event filter implementation.
 
 type SimpleEventFilter struct {
-
 	AllowedSources []string
 
-	AllowedPhases  []string
+	AllowedPhases []string
 
-	MinTimestamp   int64
-
+	MinTimestamp int64
 }
-
-
 
 // ShouldProcess performs shouldprocess operation.
 
@@ -1281,8 +1025,6 @@ func (f *SimpleEventFilter) ShouldProcess(event ProcessingEvent) bool {
 
 	}
 
-
-
 	// Check phase filter.
 
 	if len(f.AllowedPhases) > 0 {
@@ -1309,8 +1051,6 @@ func (f *SimpleEventFilter) ShouldProcess(event ProcessingEvent) bool {
 
 	}
 
-
-
 	// Check timestamp filter.
 
 	if f.MinTimestamp > 0 && event.Timestamp < f.MinTimestamp {
@@ -1319,9 +1059,6 @@ func (f *SimpleEventFilter) ShouldProcess(event ProcessingEvent) bool {
 
 	}
 
-
-
 	return true
 
 }
-

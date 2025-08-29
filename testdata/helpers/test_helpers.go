@@ -1,45 +1,27 @@
 // Package helpers provides common test utilities and fixtures for conductor-loop testing.
 
-
 package helpers
 
-
-
 import (
-
 	"fmt"
-
 	"os"
-
 	"path/filepath"
-
 	"runtime"
-
 	"testing"
-
 	"time"
 
-
-
 	"github.com/stretchr/testify/require"
-
 )
-
-
 
 // TestFixtures provides access to test fixtures and mock executables.
 
 type TestFixtures struct {
-
-	IntentsDir         string
+	IntentsDir string
 
 	MockExecutablesDir string
 
-	TempDir            string
-
+	TempDir string
 }
-
-
 
 // NewTestFixtures creates a new test fixtures instance.
 
@@ -51,25 +33,18 @@ func NewTestFixtures(t testing.TB) *TestFixtures {
 
 	require.True(t, ok, "Failed to get caller information")
 
-
-
 	testdataDir := filepath.Join(filepath.Dir(filename), "..")
-
-
 
 	return &TestFixtures{
 
-		IntentsDir:         filepath.Join(testdataDir, "intents"),
+		IntentsDir: filepath.Join(testdataDir, "intents"),
 
 		MockExecutablesDir: filepath.Join(testdataDir, "mock-executables"),
 
-		TempDir:            t.TempDir(),
-
+		TempDir: t.TempDir(),
 	}
 
 }
-
-
 
 // GetIntentFile returns the path to a test intent file.
 
@@ -79,15 +54,11 @@ func (tf *TestFixtures) GetIntentFile(name string) string {
 
 }
 
-
-
 // GetMockExecutable returns the path to a mock executable with proper platform extension.
 
 func (tf *TestFixtures) GetMockExecutable(name string) string {
 
 	execPath := filepath.Join(tf.MockExecutablesDir, name)
-
-
 
 	// Only add extension if name doesn't already have one.
 
@@ -109,8 +80,6 @@ func (tf *TestFixtures) GetMockExecutable(name string) string {
 
 }
 
-
-
 // CreateTempIntent creates a temporary intent file with the given content.
 
 func (tf *TestFixtures) CreateTempIntent(t testing.TB, name, content string) string {
@@ -122,8 +91,6 @@ func (tf *TestFixtures) CreateTempIntent(t testing.TB, name, content string) str
 	return intentPath
 
 }
-
-
 
 // CreateTempDir creates a temporary directory for testing.
 
@@ -137,29 +104,23 @@ func (tf *TestFixtures) CreateTempDir(t testing.TB, name string) string {
 
 }
 
-
-
 // CommonIntents provides access to common test intent files.
 
 type CommonIntents struct {
+	ScaleUp string
 
-	ScaleUp      string
+	ScaleDown string
 
-	ScaleDown    string
+	ComplexOran string
 
-	ComplexOran  string
+	Invalid string
 
-	Invalid      string
+	Large string
 
-	Large        string
-
-	Empty        string
+	Empty string
 
 	SpecialChars string
-
 }
-
-
 
 // GetCommonIntents returns paths to commonly used test intent files.
 
@@ -167,39 +128,32 @@ func (tf *TestFixtures) GetCommonIntents() CommonIntents {
 
 	return CommonIntents{
 
-		ScaleUp:      tf.GetIntentFile("scale-up-intent.json"),
+		ScaleUp: tf.GetIntentFile("scale-up-intent.json"),
 
-		ScaleDown:    tf.GetIntentFile("scale-down-intent.json"),
+		ScaleDown: tf.GetIntentFile("scale-down-intent.json"),
 
-		ComplexOran:  tf.GetIntentFile("complex-oran-intent.json"),
+		ComplexOran: tf.GetIntentFile("complex-oran-intent.json"),
 
-		Invalid:      tf.GetIntentFile("invalid-intent.json"),
+		Invalid: tf.GetIntentFile("invalid-intent.json"),
 
-		Large:        tf.GetIntentFile("large-intent.json"),
+		Large: tf.GetIntentFile("large-intent.json"),
 
-		Empty:        tf.GetIntentFile("empty-intent.json"),
+		Empty: tf.GetIntentFile("empty-intent.json"),
 
 		SpecialChars: tf.GetIntentFile("special-chars-intent.json"),
-
 	}
 
 }
 
-
-
 // MockExecutables provides access to mock executable files.
 
 type MockExecutables struct {
-
 	Success string
 
 	Failure string
 
 	Timeout string
-
 }
-
-
 
 // GetMockExecutables returns paths to mock executable files.
 
@@ -212,12 +166,9 @@ func (tf *TestFixtures) GetMockExecutables() MockExecutables {
 		Failure: tf.GetMockExecutable("mock-porch-failure"),
 
 		Timeout: tf.GetMockExecutable("mock-porch-timeout"),
-
 	}
 
 }
-
-
 
 // CreateMockPorch creates a platform-specific mock porch executable.
 
@@ -225,15 +176,11 @@ func (tf *TestFixtures) CreateMockPorch(t testing.TB, exitCode int, stdout, stde
 
 	mockName := fmt.Sprintf("mock-porch-%d", time.Now().UnixNano())
 
-
-
 	var script string
 
 	var ext string
 
 	var executable bool = true
-
-
 
 	if runtime.GOOS == "windows" {
 
@@ -246,8 +193,6 @@ func (tf *TestFixtures) CreateMockPorch(t testing.TB, exitCode int, stdout, stde
 			sleepSeconds = 1
 
 		}
-
-
 
 		script = fmt.Sprintf(`@echo off
 
@@ -281,8 +226,6 @@ exit /b %d`, sleepSeconds, sleepSeconds, stdout, stderr, stderr, exitCode)
 
 		}
 
-
-
 		script = fmt.Sprintf(`#!/bin/bash
 
 if [ "$1" = "--help" ]; then
@@ -307,11 +250,7 @@ exit %d`, sleepCmd, stdout, stderr, stderr, exitCode)
 
 	}
 
-
-
 	mockPath := filepath.Join(tf.TempDir, mockName+ext)
-
-
 
 	// Set appropriate permissions.
 
@@ -323,17 +262,11 @@ exit %d`, sleepCmd, stdout, stderr, stderr, exitCode)
 
 	}
 
-
-
 	require.NoError(t, os.WriteFile(mockPath, []byte(script), perm))
-
-
 
 	return mockPath
 
 }
-
-
 
 // CreateCrossPlatformMockScript creates a mock script that works on both Unix and Windows.
 
@@ -350,8 +283,6 @@ func (tf *TestFixtures) CreateCrossPlatformMockScript(t testing.TB, scriptName s
 	return tf.createUnixMockScript(t, scriptName, exitCode, stdout, stderr, sleepSeconds)
 
 }
-
-
 
 // createWindowsMockScript creates a Windows batch file.
 
@@ -375,8 +306,6 @@ if not "%s"=="" echo %s >&2
 
 exit /b %d`, sleepSeconds, sleepSeconds, stdout, stdout, stderr, stderr, exitCode)
 
-
-
 	mockPath := filepath.Join(tf.TempDir, scriptName+".bat")
 
 	require.NoError(t, os.WriteFile(mockPath, []byte(script), 0755))
@@ -384,8 +313,6 @@ exit /b %d`, sleepSeconds, sleepSeconds, stdout, stdout, stderr, stderr, exitCod
 	return mockPath
 
 }
-
-
 
 // createUnixMockScript creates a Unix shell script.
 
@@ -398,8 +325,6 @@ func (tf *TestFixtures) createUnixMockScript(t testing.TB, scriptName string, ex
 		sleepCmd = fmt.Sprintf("sleep %d", sleepSeconds)
 
 	}
-
-
 
 	script := fmt.Sprintf(`#!/bin/bash
 
@@ -427,8 +352,6 @@ fi
 
 exit %d`, sleepCmd, stdout, stdout, stderr, stderr, exitCode)
 
-
-
 	mockPath := filepath.Join(tf.TempDir, scriptName+".sh")
 
 	require.NoError(t, os.WriteFile(mockPath, []byte(script), 0755))
@@ -436,8 +359,6 @@ exit %d`, sleepCmd, stdout, stdout, stderr, stderr, exitCode)
 	return mockPath
 
 }
-
-
 
 // IntentFileScenarios provides various intent file scenarios for testing.
 
@@ -548,12 +469,9 @@ func GetIntentFileScenarios() map[string]string {
 			}
 
 		}`,
-
 	}
 
 }
-
-
 
 // generateLargeIntent creates a large intent file for testing.
 
@@ -573,8 +491,6 @@ func generateLargeIntent() string {
 
 			"labels": {`
 
-
-
 	// Add many labels to make it large.
 
 	labels := ""
@@ -592,8 +508,6 @@ func generateLargeIntent() string {
 				"label-%d": "value-%d"`, i, i)
 
 	}
-
-
 
 	baseIntent += labels + `
 
@@ -619,8 +533,6 @@ func generateLargeIntent() string {
 
 				"configuration": {`
 
-
-
 	// Add many configuration parameters.
 
 	config := ""
@@ -639,8 +551,6 @@ func generateLargeIntent() string {
 
 	}
 
-
-
 	baseIntent += config + `
 
 				}
@@ -651,27 +561,19 @@ func generateLargeIntent() string {
 
 	}`
 
-
-
 	return baseIntent
 
 }
 
-
-
 // FilePatterns provides common file patterns for testing.
 
 type FilePatterns struct {
-
-	IntentFiles    []string
+	IntentFiles []string
 
 	NonIntentFiles []string
 
-	HiddenFiles    []string
-
+	HiddenFiles []string
 }
-
-
 
 // GetTestFilePatterns returns common file patterns for testing.
 
@@ -692,7 +594,6 @@ func GetTestFilePatterns() FilePatterns {
 			"intent_with_underscores.json",
 
 			"intent-with-dashes.json",
-
 		},
 
 		NonIntentFiles: []string{
@@ -708,7 +609,6 @@ func GetTestFilePatterns() FilePatterns {
 			"binary.exe",
 
 			"README.md",
-
 		},
 
 		HiddenFiles: []string{
@@ -718,14 +618,10 @@ func GetTestFilePatterns() FilePatterns {
 			".config",
 
 			".gitignore",
-
 		},
-
 	}
 
 }
-
-
 
 // WindowsPathScenarios provides Windows-specific path scenarios for testing.
 
@@ -737,47 +633,39 @@ func GetWindowsPathScenarios() map[string]string {
 
 	}
 
-
-
 	return map[string]string{
 
-		"spaces":        "C:\\Program Files\\Test Dir\\intent.json",
+		"spaces": "C:\\Program Files\\Test Dir\\intent.json",
 
-		"long-path":     "C:\\Very\\Long\\Path\\With\\Many\\Nested\\Directories\\That\\Exceeds\\Normal\\Length\\intent.json",
+		"long-path": "C:\\Very\\Long\\Path\\With\\Many\\Nested\\Directories\\That\\Exceeds\\Normal\\Length\\intent.json",
 
 		"special-chars": "C:\\Test-Dir_With.Special\\Chars\\intent.json",
 
-		"unicode":       "C:\\Test\\Dir测试\\intent.json",
+		"unicode": "C:\\Test\\Dir测试\\intent.json",
 
-		"short-path":    "C:\\Test\\intent.json",
+		"short-path": "C:\\Test\\intent.json",
 
-		"network-path":  "\\\\server\\share\\intent.json",
+		"network-path": "\\\\server\\share\\intent.json",
 
 		"relative-path": ".\\relative\\path\\intent.json",
 
-		"drive-root":    "C:\\intent.json",
-
+		"drive-root": "C:\\intent.json",
 	}
 
 }
 
-
-
 // PerformanceTestScenarios provides scenarios for performance testing.
 
 type PerformanceTestScenarios struct {
-
-	SmallFiles  []string // < 1KB
+	SmallFiles []string // < 1KB
 
 	MediumFiles []string // 1KB - 100KB
 
-	LargeFiles  []string // > 100KB
+	LargeFiles []string // > 100KB
 
-	ManyFiles   int      // Number of files for concurrency testing
+	ManyFiles int // Number of files for concurrency testing
 
 }
-
-
 
 // GetPerformanceTestScenarios returns scenarios for performance testing.
 
@@ -792,7 +680,6 @@ func GetPerformanceTestScenarios() PerformanceTestScenarios {
 			"small-intent-2.json",
 
 			"small-intent-3.json",
-
 		},
 
 		MediumFiles: []string{
@@ -800,36 +687,28 @@ func GetPerformanceTestScenarios() PerformanceTestScenarios {
 			"medium-intent-1.json",
 
 			"medium-intent-2.json",
-
 		},
 
 		LargeFiles: []string{
 
 			"large-intent.json",
-
 		},
 
 		ManyFiles: 100,
-
 	}
 
 }
 
-
-
 // TestTimeouts provides common timeout values for testing.
 
 type TestTimeouts struct {
-
-	Short  time.Duration // For quick operations
+	Short time.Duration // For quick operations
 
 	Medium time.Duration // For normal operations
 
-	Long   time.Duration // For slow operations
+	Long time.Duration // For slow operations
 
 }
-
-
 
 // GetTestTimeouts returns common timeout values.
 
@@ -837,23 +716,18 @@ func GetTestTimeouts() TestTimeouts {
 
 	return TestTimeouts{
 
-		Short:  1 * time.Second,
+		Short: 1 * time.Second,
 
 		Medium: 5 * time.Second,
 
-		Long:   30 * time.Second,
-
+		Long: 30 * time.Second,
 	}
 
 }
 
-
-
 // CleanupFunc represents a cleanup function.
 
 type CleanupFunc func()
-
-
 
 // SetupTestEnvironment sets up a complete test environment.
 
@@ -863,8 +737,6 @@ func (tf *TestFixtures) SetupTestEnvironment(t testing.TB) (handoffDir, outDir s
 
 	outDir = tf.CreateTempDir(t, "out")
 
-
-
 	// Create subdirectories.
 
 	require.NoError(t, os.MkdirAll(filepath.Join(handoffDir, "processed"), 0755))
@@ -873,21 +745,15 @@ func (tf *TestFixtures) SetupTestEnvironment(t testing.TB) (handoffDir, outDir s
 
 	require.NoError(t, os.MkdirAll(filepath.Join(handoffDir, "status"), 0755))
 
-
-
 	cleanup = func() {
 
 		// Cleanup is handled by t.TempDir() automatically.
 
 	}
 
-
-
 	return handoffDir, outDir, cleanup
 
 }
-
-
 
 // ValidateFileExists checks if a file exists and optionally validates its content.
 
@@ -899,15 +765,11 @@ func ValidateFileExists(t testing.TB, filePath string, shouldExist bool, content
 
 		require.NoError(t, err, "File should exist: %s", filePath)
 
-
-
 		if len(contentValidators) > 0 {
 
 			content, err := os.ReadFile(filePath)
 
 			require.NoError(t, err, "Failed to read file: %s", filePath)
-
-
 
 			for i, validator := range contentValidators {
 
@@ -925,22 +787,18 @@ func ValidateFileExists(t testing.TB, filePath string, shouldExist bool, content
 
 }
 
-
-
 // ContentValidators provides common content validation functions.
 
 var ContentValidators = struct {
+	IsJSON func([]byte) bool
 
-	IsJSON   func([]byte) bool
-
-	IsEmpty  func([]byte) bool
+	IsEmpty func([]byte) bool
 
 	Contains func(string) func([]byte) bool
 
-	MinSize  func(int) func([]byte) bool
+	MinSize func(int) func([]byte) bool
 
-	MaxSize  func(int) func([]byte) bool
-
+	MaxSize func(int) func([]byte) bool
 }{
 
 	IsJSON: func(content []byte) bool {
@@ -986,6 +844,4 @@ var ContentValidators = struct {
 		}
 
 	},
-
 }
-

@@ -1,73 +1,47 @@
-
 package ca
 
-
-
 import (
-
 	"context"
-
 	"crypto"
-
 	"crypto/rand"
-
 	"crypto/rsa"
-
 	"crypto/sha256"
-
 	"crypto/x509"
-
 	"crypto/x509/pkix"
-
 	"encoding/pem"
-
 	"fmt"
-
 	"math/big"
-
 	"net"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 )
-
-
 
 // SelfSignedBackend implements a self-signed CA backend for development and testing.
 
 type SelfSignedBackend struct {
+	logger *logging.StructuredLogger
 
-	logger        *logging.StructuredLogger
+	config *SelfSignedBackendConfig
 
-	config        *SelfSignedBackendConfig
+	rootCA *x509.Certificate
 
-	rootCA        *x509.Certificate
+	rootKey interface{}
 
-	rootKey       interface{}
+	intermCA *x509.Certificate
 
-	intermCA      *x509.Certificate
+	intermKey interface{}
 
-	intermKey     interface{}
+	mu sync.RWMutex
 
-	mu            sync.RWMutex
+	issuedCerts map[string]*IssuedCertificate
 
-	issuedCerts   map[string]*IssuedCertificate
-
-	revokedCerts  map[string]*RevokedCertificate
+	revokedCerts map[string]*RevokedCertificate
 
 	serialCounter *big.Int
-
 }
-
-
 
 // SelfSignedBackendConfig holds self-signed backend configuration.
 
@@ -77,129 +51,100 @@ type SelfSignedBackendConfig struct {
 
 	RootCA *CAConfig `yaml:"root_ca"`
 
-
-
 	// Intermediate CA configuration.
 
 	IntermediateCA *CAConfig `yaml:"intermediate_ca"`
 
-
-
 	// Certificate defaults.
 
-	DefaultKeySize      int      `yaml:"default_key_size"`
+	DefaultKeySize int `yaml:"default_key_size"`
 
-	DefaultValidityDays int      `yaml:"default_validity_days"`
+	DefaultValidityDays int `yaml:"default_validity_days"`
 
-	MaxValidityDays     int      `yaml:"max_validity_days"`
+	MaxValidityDays int `yaml:"max_validity_days"`
 
-	AllowedKeyUsages    []string `yaml:"allowed_key_usages"`
+	AllowedKeyUsages []string `yaml:"allowed_key_usages"`
 
 	AllowedExtKeyUsages []string `yaml:"allowed_ext_key_usages"`
 
-
-
 	// Security settings.
 
-	MinKeySize              int  `yaml:"min_key_size"`
+	MinKeySize int `yaml:"min_key_size"`
 
 	RequireExplicitKeyUsage bool `yaml:"require_explicit_key_usage"`
-
-
 
 	// CRL settings.
 
 	CRLConfig *SelfSignedCRLConfig `yaml:"crl_config"`
 
-
-
 	// Storage settings.
 
-	PersistentStorage bool   `yaml:"persistent_storage"`
+	PersistentStorage bool `yaml:"persistent_storage"`
 
-	StoragePath       string `yaml:"storage_path"`
+	StoragePath string `yaml:"storage_path"`
 
-	EncryptStorage    bool   `yaml:"encrypt_storage"`
-
+	EncryptStorage bool `yaml:"encrypt_storage"`
 }
-
-
 
 // CAConfig holds CA certificate configuration.
 
 type CAConfig struct {
+	Subject *pkix.Name `yaml:"subject"`
 
-	Subject               *pkix.Name `yaml:"subject"`
+	KeySize int `yaml:"key_size"`
 
-	KeySize               int        `yaml:"key_size"`
+	ValidityDays int `yaml:"validity_days"`
 
-	ValidityDays          int        `yaml:"validity_days"`
+	KeyUsages []string `yaml:"key_usages"`
 
-	KeyUsages             []string   `yaml:"key_usages"`
+	ExtKeyUsages []string `yaml:"ext_key_usages"`
 
-	ExtKeyUsages          []string   `yaml:"ext_key_usages"`
+	CRLDistributionPoints []string `yaml:"crl_distribution_points"`
 
-	CRLDistributionPoints []string   `yaml:"crl_distribution_points"`
+	OCSPServers []string `yaml:"ocsp_servers"`
 
-	OCSPServers           []string   `yaml:"ocsp_servers"`
-
-	IssuerURL             string     `yaml:"issuer_url"`
-
+	IssuerURL string `yaml:"issuer_url"`
 }
-
-
 
 // SelfSignedCRLConfig holds CRL configuration.
 
 type SelfSignedCRLConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled         bool          `yaml:"enabled"`
+	ValidityDays int `yaml:"validity_days"`
 
-	ValidityDays    int           `yaml:"validity_days"`
+	UpdateInterval time.Duration `yaml:"update_interval"`
 
-	UpdateInterval  time.Duration `yaml:"update_interval"`
-
-	DistributionURL string        `yaml:"distribution_url"`
-
+	DistributionURL string `yaml:"distribution_url"`
 }
-
-
 
 // IssuedCertificate represents an issued certificate.
 
 type IssuedCertificate struct {
+	Certificate *x509.Certificate `json:"certificate"`
 
-	Certificate  *x509.Certificate `json:"certificate"`
+	SerialNumber string `json:"serial_number"`
 
-	SerialNumber string            `json:"serial_number"`
+	Fingerprint string `json:"fingerprint"`
 
-	Fingerprint  string            `json:"fingerprint"`
+	IssuedAt time.Time `json:"issued_at"`
 
-	IssuedAt     time.Time         `json:"issued_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 
-	ExpiresAt    time.Time         `json:"expires_at"`
+	Status CertificateStatus `json:"status"`
 
-	Status       CertificateStatus `json:"status"`
-
-	RequestID    string            `json:"request_id"`
-
+	RequestID string `json:"request_id"`
 }
-
-
 
 // RevokedCertificate represents a revoked certificate.
 
 type RevokedCertificate struct {
+	SerialNumber string `json:"serial_number"`
 
-	SerialNumber string    `json:"serial_number"`
+	RevokedAt time.Time `json:"revoked_at"`
 
-	RevokedAt    time.Time `json:"revoked_at"`
-
-	Reason       int       `json:"reason"`
-
+	Reason int `json:"reason"`
 }
-
-
 
 // NewSelfSignedBackend creates a new self-signed CA backend.
 
@@ -207,19 +152,17 @@ func NewSelfSignedBackend(logger *logging.StructuredLogger) (Backend, error) {
 
 	return &SelfSignedBackend{
 
-		logger:        logger,
+		logger: logger,
 
-		issuedCerts:   make(map[string]*IssuedCertificate),
+		issuedCerts: make(map[string]*IssuedCertificate),
 
-		revokedCerts:  make(map[string]*RevokedCertificate),
+		revokedCerts: make(map[string]*RevokedCertificate),
 
 		serialCounter: big.NewInt(1000), // Start from 1000
 
 	}, nil
 
 }
-
-
 
 // Initialize initializes the self-signed backend.
 
@@ -233,11 +176,7 @@ func (b *SelfSignedBackend) Initialize(ctx context.Context, config interface{}) 
 
 	}
 
-
-
 	b.config = ssConfig
-
-
 
 	// Validate configuration.
 
@@ -247,8 +186,6 @@ func (b *SelfSignedBackend) Initialize(ctx context.Context, config interface{}) 
 
 	}
 
-
-
 	// Load or create root CA.
 
 	if err := b.initializeRootCA(); err != nil {
@@ -256,8 +193,6 @@ func (b *SelfSignedBackend) Initialize(ctx context.Context, config interface{}) 
 		return fmt.Errorf("root CA initialization failed: %w", err)
 
 	}
-
-
 
 	// Load or create intermediate CA if configured.
 
@@ -271,8 +206,6 @@ func (b *SelfSignedBackend) Initialize(ctx context.Context, config interface{}) 
 
 	}
 
-
-
 	// Load persisted certificates if enabled.
 
 	if b.config.PersistentStorage {
@@ -285,21 +218,15 @@ func (b *SelfSignedBackend) Initialize(ctx context.Context, config interface{}) 
 
 	}
 
-
-
 	b.logger.Info("self-signed backend initialized successfully",
 
 		"root_ca_subject", b.rootCA.Subject.String(),
 
 		"has_intermediate", b.intermCA != nil)
 
-
-
 	return nil
 
 }
-
-
 
 // HealthCheck performs health check on the self-signed backend.
 
@@ -309,15 +236,11 @@ func (b *SelfSignedBackend) HealthCheck(ctx context.Context) error {
 
 	defer b.mu.RUnlock()
 
-
-
 	if b.rootCA == nil {
 
 		return fmt.Errorf("root CA not initialized")
 
 	}
-
-
 
 	// Check if root CA is still valid.
 
@@ -329,15 +252,11 @@ func (b *SelfSignedBackend) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	if now.Before(b.rootCA.NotBefore) {
 
 		return fmt.Errorf("root CA not yet valid (valid from %v)", b.rootCA.NotBefore)
 
 	}
-
-
 
 	// Check intermediate CA if present.
 
@@ -357,13 +276,9 @@ func (b *SelfSignedBackend) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // IssueCertificate issues a certificate using the self-signed CA.
 
@@ -375,13 +290,9 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 
 		"common_name", req.CommonName)
 
-
-
 	b.mu.Lock()
 
 	defer b.mu.Unlock()
-
-
 
 	// Generate key pair.
 
@@ -393,15 +304,11 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 
 	}
 
-
-
 	// Generate serial number.
 
 	serialNumber := new(big.Int).Set(b.serialCounter)
 
 	b.serialCounter.Add(b.serialCounter, big.NewInt(1))
-
-
 
 	// Create certificate template.
 
@@ -411,33 +318,27 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 
 		Subject: pkix.Name{
 
-			CommonName:   req.CommonName,
+			CommonName: req.CommonName,
 
 			Organization: []string{"Nephoran Development"},
-
 		},
 
-		NotBefore:             time.Now(),
+		NotBefore: time.Now(),
 
-		NotAfter:              time.Now().Add(req.ValidityDuration),
+		NotAfter: time.Now().Add(req.ValidityDuration),
 
-		KeyUsage:              b.convertKeyUsage(req.KeyUsage),
+		KeyUsage: b.convertKeyUsage(req.KeyUsage),
 
-		ExtKeyUsage:           b.convertExtKeyUsage(req.ExtKeyUsage),
+		ExtKeyUsage: b.convertExtKeyUsage(req.ExtKeyUsage),
 
 		BasicConstraintsValid: true,
 
-		IsCA:                  false,
-
+		IsCA: false,
 	}
-
-
 
 	// Add DNS names.
 
 	template.DNSNames = req.DNSNames
-
-
 
 	// Add IP addresses.
 
@@ -451,27 +352,19 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 
 	}
 
-
-
 	// Add email addresses.
 
 	template.EmailAddresses = req.EmailAddresses
 
-
-
 	// Add URIs.
 
 	template.URIs = req.URIs
-
-
 
 	// Select issuer (intermediate CA if available, otherwise root CA).
 
 	var issuer *x509.Certificate
 
 	var issuerKey interface{}
-
-
 
 	if b.intermCA != nil {
 
@@ -487,8 +380,6 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 
 	}
 
-
-
 	// Create certificate.
 
 	certBytes, err := x509.CreateCertificate(rand.Reader, template, issuer, &privateKey.PublicKey, issuerKey)
@@ -498,8 +389,6 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 		return nil, fmt.Errorf("failed to create certificate: %w", err)
 
 	}
-
-
 
 	// Parse the created certificate.
 
@@ -511,19 +400,14 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 
 	}
 
-
-
 	// Encode certificate to PEM.
 
 	certPEM := pem.EncodeToMemory(&pem.Block{
 
-		Type:  "CERTIFICATE",
+		Type: "CERTIFICATE",
 
 		Bytes: certBytes,
-
 	})
-
-
 
 	// Encode private key to PEM.
 
@@ -535,29 +419,21 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 
 	}
 
-
-
 	keyPEM := pem.EncodeToMemory(&pem.Block{
 
-		Type:  "PRIVATE KEY",
+		Type: "PRIVATE KEY",
 
 		Bytes: privKeyBytes,
-
 	})
-
-
 
 	// Encode issuer certificate to PEM.
 
 	issuerPEM := pem.EncodeToMemory(&pem.Block{
 
-		Type:  "CERTIFICATE",
+		Type: "CERTIFICATE",
 
 		Bytes: issuer.Raw,
-
 	})
-
-
 
 	// Build CA chain.
 
@@ -573,10 +449,9 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 
 		rootPEM := pem.EncodeToMemory(&pem.Block{
 
-			Type:  "CERTIFICATE",
+			Type: "CERTIFICATE",
 
 			Bytes: b.rootCA.Raw,
-
 		})
 
 		caChain = append(caChain, string(rootPEM))
@@ -587,31 +462,26 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 
 	}
 
-
-
 	// Store issued certificate.
 
 	issuedCert := &IssuedCertificate{
 
-		Certificate:  cert,
+		Certificate: cert,
 
 		SerialNumber: serialNumber.String(),
 
-		Fingerprint:  b.calculateFingerprint(certBytes),
+		Fingerprint: b.calculateFingerprint(certBytes),
 
-		IssuedAt:     time.Now(),
+		IssuedAt: time.Now(),
 
-		ExpiresAt:    cert.NotAfter,
+		ExpiresAt: cert.NotAfter,
 
-		Status:       StatusIssued,
+		Status: StatusIssued,
 
-		RequestID:    req.ID,
-
+		RequestID: req.ID,
 	}
 
 	b.issuedCerts[serialNumber.String()] = issuedCert
-
-
 
 	// Persist data if enabled.
 
@@ -625,53 +495,47 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 
 	}
 
-
-
 	// Build response.
 
 	response := &CertificateResponse{
 
-		RequestID:        req.ID,
+		RequestID: req.ID,
 
-		Certificate:      cert,
+		Certificate: cert,
 
-		CertificatePEM:   string(certPEM),
+		CertificatePEM: string(certPEM),
 
-		PrivateKeyPEM:    string(keyPEM),
+		PrivateKeyPEM: string(keyPEM),
 
 		CACertificatePEM: string(issuerPEM),
 
-		TrustChainPEM:    caChain,
+		TrustChainPEM: caChain,
 
-		SerialNumber:     serialNumber.String(),
+		SerialNumber: serialNumber.String(),
 
-		Fingerprint:      issuedCert.Fingerprint,
+		Fingerprint: issuedCert.Fingerprint,
 
-		ExpiresAt:        cert.NotAfter,
+		ExpiresAt: cert.NotAfter,
 
-		IssuedBy:         string(BackendSelfSigned),
+		IssuedBy: string(BackendSelfSigned),
 
-		Status:           StatusIssued,
+		Status: StatusIssued,
 
 		Metadata: map[string]string{
 
-			"backend_type":   string(BackendSelfSigned),
+			"backend_type": string(BackendSelfSigned),
 
 			"issuer_subject": issuer.Subject.String(),
 
-			"tenant_id":      req.TenantID,
+			"tenant_id": req.TenantID,
 
-			"key_algorithm":  "RSA",
+			"key_algorithm": "RSA",
 
-			"key_size":       fmt.Sprintf("%d", req.KeySize),
-
+			"key_size": fmt.Sprintf("%d", req.KeySize),
 		},
 
 		CreatedAt: time.Now(),
-
 	}
-
-
 
 	b.logger.Info("certificate issued successfully via self-signed CA",
 
@@ -681,13 +545,9 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 
 		"expires_at", response.ExpiresAt)
 
-
-
 	return response, nil
 
 }
-
-
 
 // RevokeCertificate revokes a certificate.
 
@@ -699,13 +559,9 @@ func (b *SelfSignedBackend) RevokeCertificate(ctx context.Context, serialNumber 
 
 		"reason", reason)
 
-
-
 	b.mu.Lock()
 
 	defer b.mu.Unlock()
-
-
 
 	// Check if certificate exists.
 
@@ -717,8 +573,6 @@ func (b *SelfSignedBackend) RevokeCertificate(ctx context.Context, serialNumber 
 
 	}
 
-
-
 	// Check if already revoked.
 
 	if _, revoked := b.revokedCerts[serialNumber]; revoked {
@@ -727,29 +581,22 @@ func (b *SelfSignedBackend) RevokeCertificate(ctx context.Context, serialNumber 
 
 	}
 
-
-
 	// Add to revoked certificates.
 
 	revokedCert := &RevokedCertificate{
 
 		SerialNumber: serialNumber,
 
-		RevokedAt:    time.Now(),
+		RevokedAt: time.Now(),
 
-		Reason:       reason,
-
+		Reason: reason,
 	}
 
 	b.revokedCerts[serialNumber] = revokedCert
 
-
-
 	// Update issued certificate status.
 
 	issuedCert.Status = StatusRevoked
-
-
 
 	// Persist data if enabled.
 
@@ -763,19 +610,13 @@ func (b *SelfSignedBackend) RevokeCertificate(ctx context.Context, serialNumber 
 
 	}
 
-
-
 	b.logger.Info("certificate revoked successfully",
 
 		"serial_number", serialNumber)
 
-
-
 	return nil
 
 }
-
-
 
 // RenewCertificate renews a certificate (issues a new one).
 
@@ -791,15 +632,11 @@ func (b *SelfSignedBackend) RenewCertificate(ctx context.Context, req *Certifica
 
 	}
 
-
-
 	response.Status = StatusRenewed
 
 	return response, nil
 
 }
-
-
 
 // GetCAChain retrieves the CA certificate chain.
 
@@ -809,11 +646,7 @@ func (b *SelfSignedBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate
 
 	defer b.mu.RUnlock()
 
-
-
 	var chain []*x509.Certificate
-
-
 
 	if b.intermCA != nil {
 
@@ -821,21 +654,15 @@ func (b *SelfSignedBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate
 
 	}
 
-
-
 	if b.rootCA != nil {
 
 		chain = append(chain, b.rootCA)
 
 	}
 
-
-
 	return chain, nil
 
 }
-
-
 
 // GetCRL retrieves the Certificate Revocation List.
 
@@ -847,13 +674,9 @@ func (b *SelfSignedBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, 
 
 	}
 
-
-
 	b.mu.RLock()
 
 	defer b.mu.RUnlock()
-
-
 
 	// Create CRL template.
 
@@ -861,15 +684,12 @@ func (b *SelfSignedBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, 
 
 	template := &x509.RevocationList{
 
-		Number:     big.NewInt(1),
+		Number: big.NewInt(1),
 
 		ThisUpdate: now,
 
 		NextUpdate: now.AddDate(0, 0, b.config.CRLConfig.ValidityDays),
-
 	}
-
-
 
 	// Add revoked certificates.
 
@@ -879,27 +699,20 @@ func (b *SelfSignedBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, 
 
 		serialNumber.SetString(revoked.SerialNumber, 10)
 
-
-
 		template.RevokedCertificates = append(template.RevokedCertificates, pkix.RevokedCertificate{
 
-			SerialNumber:   serialNumber,
+			SerialNumber: serialNumber,
 
 			RevocationTime: revoked.RevokedAt,
-
 		})
 
 	}
-
-
 
 	// Select issuer.
 
 	var issuer *x509.Certificate
 
 	var issuerKey crypto.Signer
-
-
 
 	if b.intermCA != nil {
 
@@ -931,8 +744,6 @@ func (b *SelfSignedBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, 
 
 	}
 
-
-
 	// Create CRL.
 
 	crlBytes, err := x509.CreateRevocationList(rand.Reader, template, issuer, issuerKey)
@@ -943,13 +754,9 @@ func (b *SelfSignedBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, 
 
 	}
 
-
-
 	return x509.ParseCRL(crlBytes)
 
 }
-
-
 
 // GetBackendInfo returns backend information.
 
@@ -959,13 +766,9 @@ func (b *SelfSignedBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, e
 
 	defer b.mu.RUnlock()
 
-
-
 	var validUntil time.Time
 
 	var issuer string
-
-
 
 	if b.intermCA != nil {
 
@@ -981,37 +784,31 @@ func (b *SelfSignedBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, e
 
 	}
 
-
-
 	return &BackendInfo{
 
-		Type:       BackendSelfSigned,
+		Type: BackendSelfSigned,
 
-		Version:    "1.0.0",
+		Version: "1.0.0",
 
-		Status:     "ready",
+		Status: "ready",
 
-		Issuer:     issuer,
+		Issuer: issuer,
 
 		ValidUntil: validUntil,
 
-		Features:   b.GetSupportedFeatures(),
+		Features: b.GetSupportedFeatures(),
 
 		Metrics: map[string]interface{}{
 
-			"issued_certificates":  len(b.issuedCerts),
+			"issued_certificates": len(b.issuedCerts),
 
 			"revoked_certificates": len(b.revokedCerts),
 
-			"has_intermediate_ca":  b.intermCA != nil,
-
+			"has_intermediate_ca": b.intermCA != nil,
 		},
-
 	}, nil
 
 }
-
-
 
 // GetSupportedFeatures returns supported features.
 
@@ -1034,16 +831,11 @@ func (b *SelfSignedBackend) GetSupportedFeatures() []string {
 		"persistent_storage",
 
 		"development_testing",
-
 	}
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (b *SelfSignedBackend) validateConfig() error {
 
@@ -1053,15 +845,11 @@ func (b *SelfSignedBackend) validateConfig() error {
 
 	}
 
-
-
 	if b.config.MinKeySize == 0 {
 
 		b.config.MinKeySize = 2048
 
 	}
-
-
 
 	if b.config.DefaultValidityDays == 0 {
 
@@ -1069,15 +857,11 @@ func (b *SelfSignedBackend) validateConfig() error {
 
 	}
 
-
-
 	if b.config.MaxValidityDays == 0 {
 
 		b.config.MaxValidityDays = 365
 
 	}
-
-
 
 	if b.config.RootCA == nil {
 
@@ -1085,13 +869,9 @@ func (b *SelfSignedBackend) validateConfig() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (b *SelfSignedBackend) initializeRootCA() error {
 
@@ -1101,15 +881,11 @@ func (b *SelfSignedBackend) initializeRootCA() error {
 
 	}
 
-
-
 	if b.config.RootCA.ValidityDays == 0 {
 
 		b.config.RootCA.ValidityDays = 3650 // 10 years
 
 	}
-
-
 
 	// Generate root CA key.
 
@@ -1121,35 +897,30 @@ func (b *SelfSignedBackend) initializeRootCA() error {
 
 	}
 
-
-
 	// Create root CA certificate template.
 
 	template := &x509.Certificate{
 
-		SerialNumber:          big.NewInt(1),
+		SerialNumber: big.NewInt(1),
 
-		Subject:               *b.config.RootCA.Subject,
+		Subject: *b.config.RootCA.Subject,
 
-		NotBefore:             time.Now(),
+		NotBefore: time.Now(),
 
-		NotAfter:              time.Now().AddDate(0, 0, b.config.RootCA.ValidityDays),
+		NotAfter: time.Now().AddDate(0, 0, b.config.RootCA.ValidityDays),
 
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,
+		KeyUsage: x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,
 
-		ExtKeyUsage:           []x509.ExtKeyUsage{},
+		ExtKeyUsage: []x509.ExtKeyUsage{},
 
 		BasicConstraintsValid: true,
 
-		IsCA:                  true,
+		IsCA: true,
 
-		MaxPathLen:            1,
+		MaxPathLen: 1,
 
-		MaxPathLenZero:        false,
-
+		MaxPathLenZero: false,
 	}
-
-
 
 	// Add CRL distribution points if configured.
 
@@ -1159,8 +930,6 @@ func (b *SelfSignedBackend) initializeRootCA() error {
 
 	}
 
-
-
 	// Add OCSP servers if configured.
 
 	if len(b.config.RootCA.OCSPServers) > 0 {
@@ -1168,8 +937,6 @@ func (b *SelfSignedBackend) initializeRootCA() error {
 		template.OCSPServer = b.config.RootCA.OCSPServers
 
 	}
-
-
 
 	// Create self-signed root CA certificate.
 
@@ -1181,8 +948,6 @@ func (b *SelfSignedBackend) initializeRootCA() error {
 
 	}
 
-
-
 	// Parse the created certificate.
 
 	rootCert, err := x509.ParseCertificate(rootCertBytes)
@@ -1193,19 +958,13 @@ func (b *SelfSignedBackend) initializeRootCA() error {
 
 	}
 
-
-
 	b.rootCA = rootCert
 
 	b.rootKey = rootKey
 
-
-
 	return nil
 
 }
-
-
 
 func (b *SelfSignedBackend) initializeIntermediateCA() error {
 
@@ -1215,15 +974,11 @@ func (b *SelfSignedBackend) initializeIntermediateCA() error {
 
 	}
 
-
-
 	if b.config.IntermediateCA.ValidityDays == 0 {
 
 		b.config.IntermediateCA.ValidityDays = 1825 // 5 years
 
 	}
-
-
 
 	// Generate intermediate CA key.
 
@@ -1235,35 +990,30 @@ func (b *SelfSignedBackend) initializeIntermediateCA() error {
 
 	}
 
-
-
 	// Create intermediate CA certificate template.
 
 	template := &x509.Certificate{
 
-		SerialNumber:          big.NewInt(2),
+		SerialNumber: big.NewInt(2),
 
-		Subject:               *b.config.IntermediateCA.Subject,
+		Subject: *b.config.IntermediateCA.Subject,
 
-		NotBefore:             time.Now(),
+		NotBefore: time.Now(),
 
-		NotAfter:              time.Now().AddDate(0, 0, b.config.IntermediateCA.ValidityDays),
+		NotAfter: time.Now().AddDate(0, 0, b.config.IntermediateCA.ValidityDays),
 
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,
+		KeyUsage: x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,
 
-		ExtKeyUsage:           []x509.ExtKeyUsage{},
+		ExtKeyUsage: []x509.ExtKeyUsage{},
 
 		BasicConstraintsValid: true,
 
-		IsCA:                  true,
+		IsCA: true,
 
-		MaxPathLen:            0,
+		MaxPathLen: 0,
 
-		MaxPathLenZero:        true,
-
+		MaxPathLenZero: true,
 	}
-
-
 
 	// Add CRL distribution points if configured.
 
@@ -1273,8 +1023,6 @@ func (b *SelfSignedBackend) initializeIntermediateCA() error {
 
 	}
 
-
-
 	// Add OCSP servers if configured.
 
 	if len(b.config.IntermediateCA.OCSPServers) > 0 {
@@ -1282,8 +1030,6 @@ func (b *SelfSignedBackend) initializeIntermediateCA() error {
 		template.OCSPServer = b.config.IntermediateCA.OCSPServers
 
 	}
-
-
 
 	// Create intermediate CA certificate signed by root CA.
 
@@ -1295,8 +1041,6 @@ func (b *SelfSignedBackend) initializeIntermediateCA() error {
 
 	}
 
-
-
 	// Parse the created certificate.
 
 	intermCert, err := x509.ParseCertificate(intermCertBytes)
@@ -1307,25 +1051,17 @@ func (b *SelfSignedBackend) initializeIntermediateCA() error {
 
 	}
 
-
-
 	b.intermCA = intermCert
 
 	b.intermKey = intermKey
-
-
 
 	return nil
 
 }
 
-
-
 func (b *SelfSignedBackend) convertKeyUsage(keyUsages []string) x509.KeyUsage {
 
 	var usage x509.KeyUsage
-
-
 
 	for _, ku := range keyUsages {
 
@@ -1371,8 +1107,6 @@ func (b *SelfSignedBackend) convertKeyUsage(keyUsages []string) x509.KeyUsage {
 
 	}
 
-
-
 	// Default usage if none specified.
 
 	if usage == 0 {
@@ -1381,19 +1115,13 @@ func (b *SelfSignedBackend) convertKeyUsage(keyUsages []string) x509.KeyUsage {
 
 	}
 
-
-
 	return usage
 
 }
 
-
-
 func (b *SelfSignedBackend) convertExtKeyUsage(extKeyUsages []string) []x509.ExtKeyUsage {
 
 	var usages []x509.ExtKeyUsage
-
-
 
 	for _, eku := range extKeyUsages {
 
@@ -1427,8 +1155,6 @@ func (b *SelfSignedBackend) convertExtKeyUsage(extKeyUsages []string) []x509.Ext
 
 	}
 
-
-
 	// Default extended key usages if none specified.
 
 	if len(usages) == 0 {
@@ -1438,18 +1164,13 @@ func (b *SelfSignedBackend) convertExtKeyUsage(extKeyUsages []string) []x509.Ext
 			x509.ExtKeyUsageServerAuth,
 
 			x509.ExtKeyUsageClientAuth,
-
 		}
 
 	}
 
-
-
 	return usages
 
 }
-
-
 
 func (b *SelfSignedBackend) calculateFingerprint(certBytes []byte) string {
 
@@ -1458,8 +1179,6 @@ func (b *SelfSignedBackend) calculateFingerprint(certBytes []byte) string {
 	return fmt.Sprintf("%x", hash)
 
 }
-
-
 
 func (b *SelfSignedBackend) loadPersistedData() error {
 
@@ -1473,8 +1192,6 @@ func (b *SelfSignedBackend) loadPersistedData() error {
 
 }
 
-
-
 func (b *SelfSignedBackend) persistData() error {
 
 	// Implementation would save to persistent storage.
@@ -1486,4 +1203,3 @@ func (b *SelfSignedBackend) persistData() error {
 	return nil
 
 }
-

@@ -1,39 +1,24 @@
-
 package service_models
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/e2"
-
 )
-
-
 
 // RCServiceModel implements the E2SM-RC v1.0 service model.
 
 type RCServiceModel struct {
+	ServiceModelID string
 
-	ServiceModelID      string
-
-	ServiceModelName    string
+	ServiceModelName string
 
 	ServiceModelVersion string
 
-	ServiceModelOID     string
-
+	ServiceModelOID string
 }
-
-
 
 // NewRCServiceModel creates a new RC service model instance.
 
@@ -41,19 +26,16 @@ func NewRCServiceModel() *RCServiceModel {
 
 	return &RCServiceModel{
 
-		ServiceModelID:      "1.3.6.1.4.1.53148.1.1.2.3",
+		ServiceModelID: "1.3.6.1.4.1.53148.1.1.2.3",
 
-		ServiceModelName:    "RC",
+		ServiceModelName: "RC",
 
 		ServiceModelVersion: "v1.0",
 
-		ServiceModelOID:     "1.3.6.1.4.1.53148.1.1.2.3",
-
+		ServiceModelOID: "1.3.6.1.4.1.53148.1.1.2.3",
 	}
 
 }
-
-
 
 // GetServiceModelID returns the service model ID.
 
@@ -63,8 +45,6 @@ func (rc *RCServiceModel) GetServiceModelID() string {
 
 }
 
-
-
 // GetServiceModelName returns the service model name.
 
 func (rc *RCServiceModel) GetServiceModelName() string {
@@ -72,8 +52,6 @@ func (rc *RCServiceModel) GetServiceModelName() string {
 	return rc.ServiceModelName
 
 }
-
-
 
 // GetServiceModelVersion returns the service model version.
 
@@ -83,8 +61,6 @@ func (rc *RCServiceModel) GetServiceModelVersion() string {
 
 }
 
-
-
 // GetServiceModelOID returns the service model OID.
 
 func (rc *RCServiceModel) GetServiceModelOID() string {
@@ -93,13 +69,9 @@ func (rc *RCServiceModel) GetServiceModelOID() string {
 
 }
 
-
-
 // RCControlType defines types of RC control.
 
 type RCControlType string
-
-
 
 const (
 
@@ -122,162 +94,107 @@ const (
 	// RCControlTypeRadioResourceAlloc holds rccontroltyperadioresourcealloc value.
 
 	RCControlTypeRadioResourceAlloc RCControlType = "RADIO_RESOURCE_ALLOC"
-
 )
-
-
 
 // RCParameter represents a RAN parameter.
 
 type RCParameter struct {
+	ParameterID int `json:"parameter_id"`
 
-	ParameterID    int         `json:"parameter_id"`
-
-	ParameterName  string      `json:"parameter_name"`
+	ParameterName string `json:"parameter_name"`
 
 	ParameterValue interface{} `json:"parameter_value"`
-
 }
-
-
 
 // RCControlParams contains control parameters.
 
 type RCControlParams struct {
-
 	Parameters []RCParameter `json:"parameters"`
-
 }
-
-
 
 // RCControlResult represents control operation result.
 
 type RCControlResult struct {
+	Success bool `json:"success"`
 
-	Success bool                   `json:"success"`
-
-	Cause   string                 `json:"cause,omitempty"`
+	Cause string `json:"cause,omitempty"`
 
 	Details map[string]interface{} `json:"details,omitempty"`
-
 }
-
-
 
 // E2SMRCEventTriggerDefinition represents RC event trigger.
 
 type E2SMRCEventTriggerDefinition struct {
-
 	EventDefinitionFormats *E2SMRCEventTriggerDefinitionFormat1 `json:"event_definition_formats"`
-
 }
-
-
 
 // E2SMRCEventTriggerDefinitionFormat1 represents format 1.
 
 type E2SMRCEventTriggerDefinitionFormat1 struct {
+	TriggerType string `json:"trigger_type"`
 
-	TriggerType string                 `json:"trigger_type"`
-
-	Parameters  map[string]interface{} `json:"parameters,omitempty"`
-
+	Parameters map[string]interface{} `json:"parameters,omitempty"`
 }
-
-
 
 // E2SMRCActionDefinition represents RC action definition.
 
 type E2SMRCActionDefinition struct {
-
 	ActionDefinitionFormats *E2SMRCActionDefinitionFormat1 `json:"action_definition_formats"`
-
 }
-
-
 
 // E2SMRCActionDefinitionFormat1 represents format 1.
 
 type E2SMRCActionDefinitionFormat1 struct {
+	ControlActionID int `json:"control_action_id"`
 
-	ControlActionID int                    `json:"control_action_id"`
+	ControlStyle int `json:"control_style"`
 
-	ControlStyle    int                    `json:"control_style"`
-
-	Parameters      map[string]interface{} `json:"parameters,omitempty"`
-
+	Parameters map[string]interface{} `json:"parameters,omitempty"`
 }
-
-
 
 // E2SMRCControlHeader represents RC control header.
 
 type E2SMRCControlHeader struct {
-
 	ControlHeaderFormats *E2SMRCControlHeaderFormat1 `json:"control_header_formats"`
-
 }
-
-
 
 // E2SMRCControlHeaderFormat1 represents format 1.
 
 type E2SMRCControlHeaderFormat1 struct {
+	UEID string `json:"ue_id"`
 
-	UEID         string        `json:"ue_id"`
+	ControlType RCControlType `json:"control_type"`
 
-	ControlType  RCControlType `json:"control_type"`
-
-	ControlStyle int           `json:"control_style"`
-
+	ControlStyle int `json:"control_style"`
 }
-
-
 
 // E2SMRCControlMessage represents RC control message.
 
 type E2SMRCControlMessage struct {
-
 	ControlMessageFormats *E2SMRCControlMessageFormat1 `json:"control_message_formats"`
-
 }
-
-
 
 // E2SMRCControlMessageFormat1 represents format 1.
 
 type E2SMRCControlMessageFormat1 struct {
-
 	RANParameters []RCParameter `json:"ran_parameters"`
-
 }
-
-
 
 // E2SMRCControlOutcome represents RC control outcome.
 
 type E2SMRCControlOutcome struct {
-
 	ControlOutcomeFormats *E2SMRCControlOutcomeFormat1 `json:"control_outcome_formats"`
-
 }
-
-
 
 // E2SMRCControlOutcomeFormat1 represents format 1.
 
 type E2SMRCControlOutcomeFormat1 struct {
+	ControlStyle int `json:"control_style"`
 
-	ControlStyle int    `json:"control_style"`
+	Result string `json:"result"`
 
-	Result       string `json:"result"`
-
-	Cause        string `json:"cause,omitempty"`
-
+	Cause string `json:"cause,omitempty"`
 }
-
-
 
 // CreateEventTrigger creates an RC event trigger definition.
 
@@ -293,19 +210,13 @@ func (rc *RCServiceModel) CreateEventTrigger(_ interface{}) ([]byte, error) {
 
 			TriggerType: "ON_DEMAND",
 
-			Parameters:  make(map[string]interface{}),
-
+			Parameters: make(map[string]interface{}),
 		},
-
 	}
-
-
 
 	return json.Marshal(trigger)
 
 }
-
-
 
 // CreateActionDefinition creates an RC action definition.
 
@@ -319,21 +230,15 @@ func (rc *RCServiceModel) CreateActionDefinition(_ interface{}) ([]byte, error) 
 
 			ControlActionID: 1,
 
-			ControlStyle:    1,
+			ControlStyle: 1,
 
-			Parameters:      make(map[string]interface{}),
-
+			Parameters: make(map[string]interface{}),
 		},
-
 	}
-
-
 
 	return json.Marshal(action)
 
 }
-
-
 
 // ParseIndication parses an RC indication message (if applicable).
 
@@ -347,8 +252,6 @@ func (rc *RCServiceModel) ParseIndication(_, _ []byte) (interface{}, error) {
 
 }
 
-
-
 // CreateControlHeader creates an RC control header.
 
 func (rc *RCServiceModel) CreateControlHeader(params interface{}) ([]byte, error) {
@@ -361,21 +264,14 @@ func (rc *RCServiceModel) CreateControlHeader(params interface{}) ([]byte, error
 
 	}
 
-
-
 	header := &E2SMRCControlHeader{
 
 		ControlHeaderFormats: headerParams,
-
 	}
-
-
 
 	return json.Marshal(header)
 
 }
-
-
 
 // CreateControlMessage creates an RC control message.
 
@@ -389,25 +285,17 @@ func (rc *RCServiceModel) CreateControlMessage(params interface{}) ([]byte, erro
 
 	}
 
-
-
 	message := &E2SMRCControlMessage{
 
 		ControlMessageFormats: &E2SMRCControlMessageFormat1{
 
 			RANParameters: controlParams.Parameters,
-
 		},
-
 	}
-
-
 
 	return json.Marshal(message)
 
 }
-
-
 
 // ParseControlOutcome parses an RC control outcome.
 
@@ -421,33 +309,24 @@ func (rc *RCServiceModel) ParseControlOutcome(outcome []byte) (interface{}, erro
 
 	}
 
-
-
 	if outcomeMsg.ControlOutcomeFormats == nil {
 
 		return nil, fmt.Errorf("control outcome formats missing")
 
 	}
 
-
-
 	result := &RCControlResult{
 
 		Success: outcomeMsg.ControlOutcomeFormats.Result == "SUCCESS",
 
-		Cause:   outcomeMsg.ControlOutcomeFormats.Cause,
+		Cause: outcomeMsg.ControlOutcomeFormats.Cause,
 
 		Details: make(map[string]interface{}),
-
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // ValidateEventTrigger validates an RC event trigger.
 
@@ -461,13 +340,9 @@ func (rc *RCServiceModel) ValidateEventTrigger(trigger []byte) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateActionDefinition validates an RC action definition.
 
@@ -481,13 +356,9 @@ func (rc *RCServiceModel) ValidateActionDefinition(action []byte) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateControlMessage validates an RC control message.
 
@@ -501,25 +372,17 @@ func (rc *RCServiceModel) ValidateControlMessage(message []byte) error {
 
 	}
 
-
-
 	if controlMsg.ControlMessageFormats == nil {
 
 		return fmt.Errorf("control message formats missing")
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Traffic Steering Control Implementation.
-
-
 
 // CreateTrafficSteeringControl creates a traffic steering control request.
 
@@ -529,12 +392,11 @@ func (rc *RCServiceModel) CreateTrafficSteeringControl(ueID, targetCellID string
 
 	headerParams := &E2SMRCControlHeaderFormat1{
 
-		UEID:         ueID,
+		UEID: ueID,
 
-		ControlType:  RCControlTypeTrafficSteering,
+		ControlType: RCControlTypeTrafficSteering,
 
 		ControlStyle: 1,
-
 	}
 
 	header, err := rc.CreateControlHeader(headerParams)
@@ -544,8 +406,6 @@ func (rc *RCServiceModel) CreateTrafficSteeringControl(ueID, targetCellID string
 		return nil, err
 
 	}
-
-
 
 	// Create control message with parameters.
 
@@ -555,36 +415,31 @@ func (rc *RCServiceModel) CreateTrafficSteeringControl(ueID, targetCellID string
 
 			{
 
-				ParameterID:    1,
+				ParameterID: 1,
 
-				ParameterName:  "target_cell_id",
+				ParameterName: "target_cell_id",
 
 				ParameterValue: targetCellID,
-
 			},
 
 			{
 
-				ParameterID:    2,
+				ParameterID: 2,
 
-				ParameterName:  "handover_cause",
+				ParameterName: "handover_cause",
 
 				ParameterValue: "load-balancing",
-
 			},
 
 			{
 
-				ParameterID:    3,
+				ParameterID: 3,
 
-				ParameterName:  "force_handover",
+				ParameterName: "force_handover",
 
 				ParameterValue: false,
-
 			},
-
 		},
-
 	}
 
 	message, err := rc.CreateControlMessage(params)
@@ -595,37 +450,28 @@ func (rc *RCServiceModel) CreateTrafficSteeringControl(ueID, targetCellID string
 
 	}
 
-
-
 	// Build control request.
 
 	request := &e2.E2ControlRequest{
 
-		RequestID:         fmt.Sprintf("rc-traffic-%s-%d", ueID, time.Now().Unix()),
+		RequestID: fmt.Sprintf("rc-traffic-%s-%d", ueID, time.Now().Unix()),
 
-		RanFunctionID:     2,  // RC function ID
+		RanFunctionID: 2, // RC function ID
 
-		CallProcessID:     "", // Empty string instead of nil
+		CallProcessID: "", // Empty string instead of nil
 
-		ControlHeader:     map[string]interface{}{"data": header},
+		ControlHeader: map[string]interface{}{"data": header},
 
-		ControlMessage:    map[string]interface{}{"data": message},
+		ControlMessage: map[string]interface{}{"data": message},
 
 		ControlAckRequest: true,
-
 	}
-
-
 
 	return request, nil
 
 }
 
-
-
 // QoS Control Implementation.
-
-
 
 // CreateQoSControl creates a QoS modification control request.
 
@@ -635,12 +481,11 @@ func (rc *RCServiceModel) CreateQoSControl(ueID string, bearerID int, qosParams 
 
 	headerParams := &E2SMRCControlHeaderFormat1{
 
-		UEID:         ueID,
+		UEID: ueID,
 
-		ControlType:  RCControlTypeQoSModification,
+		ControlType: RCControlTypeQoSModification,
 
 		ControlStyle: 2,
-
 	}
 
 	header, err := rc.CreateControlHeader(headerParams)
@@ -650,8 +495,6 @@ func (rc *RCServiceModel) CreateQoSControl(ueID string, bearerID int, qosParams 
 		return nil, err
 
 	}
-
-
 
 	// Create control message with QoS parameters.
 
@@ -661,76 +504,67 @@ func (rc *RCServiceModel) CreateQoSControl(ueID string, bearerID int, qosParams 
 
 			{
 
-				ParameterID:    1,
+				ParameterID: 1,
 
-				ParameterName:  "bearer_id",
+				ParameterName: "bearer_id",
 
 				ParameterValue: bearerID,
-
 			},
 
 			{
 
-				ParameterID:    2,
+				ParameterID: 2,
 
-				ParameterName:  "qci",
+				ParameterName: "qci",
 
 				ParameterValue: qosParams["qci"],
-
 			},
 
 			{
 
-				ParameterID:    3,
+				ParameterID: 3,
 
-				ParameterName:  "priority_level",
+				ParameterName: "priority_level",
 
 				ParameterValue: qosParams["priority_level"],
-
 			},
 
 			{
 
-				ParameterID:    4,
+				ParameterID: 4,
 
-				ParameterName:  "preemption_capability",
+				ParameterName: "preemption_capability",
 
 				ParameterValue: qosParams["preemption_capability"],
-
 			},
 
 			{
 
-				ParameterID:    5,
+				ParameterID: 5,
 
-				ParameterName:  "preemption_vulnerability",
+				ParameterName: "preemption_vulnerability",
 
 				ParameterValue: qosParams["preemption_vulnerability"],
-
 			},
 
 			{
 
-				ParameterID:    6,
+				ParameterID: 6,
 
-				ParameterName:  "gbr_dl",
+				ParameterName: "gbr_dl",
 
 				ParameterValue: qosParams["gbr_dl"],
-
 			},
 
 			{
 
-				ParameterID:    7,
+				ParameterID: 7,
 
-				ParameterName:  "gbr_ul",
+				ParameterName: "gbr_ul",
 
 				ParameterValue: qosParams["gbr_ul"],
-
 			},
-
 		},
-
 	}
 
 	message, err := rc.CreateControlMessage(params)
@@ -741,37 +575,28 @@ func (rc *RCServiceModel) CreateQoSControl(ueID string, bearerID int, qosParams 
 
 	}
 
-
-
 	// Build control request.
 
 	request := &e2.E2ControlRequest{
 
-		RequestID:         fmt.Sprintf("rc-qos-%s-%d", ueID, time.Now().Unix()),
+		RequestID: fmt.Sprintf("rc-qos-%s-%d", ueID, time.Now().Unix()),
 
-		RanFunctionID:     2,  // RC function ID
+		RanFunctionID: 2, // RC function ID
 
-		CallProcessID:     "", // Empty string instead of nil
+		CallProcessID: "", // Empty string instead of nil
 
-		ControlHeader:     map[string]interface{}{"data": header},
+		ControlHeader: map[string]interface{}{"data": header},
 
-		ControlMessage:    map[string]interface{}{"data": message},
+		ControlMessage: map[string]interface{}{"data": message},
 
 		ControlAckRequest: true,
-
 	}
-
-
 
 	return request, nil
 
 }
 
-
-
 // Handover Control Implementation.
-
-
 
 // CreateHandoverControl creates a handover control request.
 
@@ -781,12 +606,11 @@ func (rc *RCServiceModel) CreateHandoverControl(ueID, targetCellID, handoverType
 
 	headerParams := &E2SMRCControlHeaderFormat1{
 
-		UEID:         ueID,
+		UEID: ueID,
 
-		ControlType:  RCControlTypeHandoverControl,
+		ControlType: RCControlTypeHandoverControl,
 
 		ControlStyle: 3,
-
 	}
 
 	header, err := rc.CreateControlHeader(headerParams)
@@ -796,8 +620,6 @@ func (rc *RCServiceModel) CreateHandoverControl(ueID, targetCellID, handoverType
 		return nil, err
 
 	}
-
-
 
 	// Create control message with handover parameters.
 
@@ -807,19 +629,18 @@ func (rc *RCServiceModel) CreateHandoverControl(ueID, targetCellID, handoverType
 
 			{
 
-				ParameterID:    1,
+				ParameterID: 1,
 
-				ParameterName:  "target_cell_id",
+				ParameterName: "target_cell_id",
 
 				ParameterValue: targetCellID,
-
 			},
 
 			{
 
-				ParameterID:    2,
+				ParameterID: 2,
 
-				ParameterName:  "handover_type",
+				ParameterName: "handover_type",
 
 				ParameterValue: handoverType, // "intra-freq", "inter-freq", "inter-rat"
 
@@ -827,9 +648,9 @@ func (rc *RCServiceModel) CreateHandoverControl(ueID, targetCellID, handoverType
 
 			{
 
-				ParameterID:    3,
+				ParameterID: 3,
 
-				ParameterName:  "preparation_timer",
+				ParameterName: "preparation_timer",
 
 				ParameterValue: 5000, // milliseconds
 
@@ -837,16 +658,14 @@ func (rc *RCServiceModel) CreateHandoverControl(ueID, targetCellID, handoverType
 
 			{
 
-				ParameterID:    4,
+				ParameterID: 4,
 
-				ParameterName:  "completion_timer",
+				ParameterName: "completion_timer",
 
 				ParameterValue: 10000, // milliseconds
 
 			},
-
 		},
-
 	}
 
 	message, err := rc.CreateControlMessage(params)
@@ -857,37 +676,28 @@ func (rc *RCServiceModel) CreateHandoverControl(ueID, targetCellID, handoverType
 
 	}
 
-
-
 	// Build control request.
 
 	request := &e2.E2ControlRequest{
 
-		RequestID:         fmt.Sprintf("rc-handover-%s-%d", ueID, time.Now().Unix()),
+		RequestID: fmt.Sprintf("rc-handover-%s-%d", ueID, time.Now().Unix()),
 
-		RanFunctionID:     2,  // RC function ID
+		RanFunctionID: 2, // RC function ID
 
-		CallProcessID:     "", // Empty string instead of nil
+		CallProcessID: "", // Empty string instead of nil
 
-		ControlHeader:     map[string]interface{}{"data": header},
+		ControlHeader: map[string]interface{}{"data": header},
 
-		ControlMessage:    map[string]interface{}{"data": message},
+		ControlMessage: map[string]interface{}{"data": message},
 
 		ControlAckRequest: true,
-
 	}
-
-
 
 	return request, nil
 
 }
 
-
-
 // Dual Connectivity Control Implementation.
-
-
 
 // CreateDualConnectivityControl creates a dual connectivity control request.
 
@@ -897,12 +707,11 @@ func (rc *RCServiceModel) CreateDualConnectivityControl(ueID, operation, seconda
 
 	headerParams := &E2SMRCControlHeaderFormat1{
 
-		UEID:         ueID,
+		UEID: ueID,
 
-		ControlType:  RCControlTypeDualConnectivity,
+		ControlType: RCControlTypeDualConnectivity,
 
 		ControlStyle: 4,
-
 	}
 
 	header, err := rc.CreateControlHeader(headerParams)
@@ -913,8 +722,6 @@ func (rc *RCServiceModel) CreateDualConnectivityControl(ueID, operation, seconda
 
 	}
 
-
-
 	// Create control message with dual connectivity parameters.
 
 	params := &RCControlParams{
@@ -923,9 +730,9 @@ func (rc *RCServiceModel) CreateDualConnectivityControl(ueID, operation, seconda
 
 			{
 
-				ParameterID:    1,
+				ParameterID: 1,
 
-				ParameterName:  "operation",
+				ParameterName: "operation",
 
 				ParameterValue: operation, // "add", "modify", "release"
 
@@ -933,19 +740,18 @@ func (rc *RCServiceModel) CreateDualConnectivityControl(ueID, operation, seconda
 
 			{
 
-				ParameterID:    2,
+				ParameterID: 2,
 
-				ParameterName:  "secondary_cell_id",
+				ParameterName: "secondary_cell_id",
 
 				ParameterValue: secondaryCellID,
-
 			},
 
 			{
 
-				ParameterID:    3,
+				ParameterID: 3,
 
-				ParameterName:  "split_bearer_option",
+				ParameterName: "split_bearer_option",
 
 				ParameterValue: "mcg-split", // "mcg-split", "scg-split"
 
@@ -953,16 +759,13 @@ func (rc *RCServiceModel) CreateDualConnectivityControl(ueID, operation, seconda
 
 			{
 
-				ParameterID:    4,
+				ParameterID: 4,
 
-				ParameterName:  "data_forwarding",
+				ParameterName: "data_forwarding",
 
 				ParameterValue: true,
-
 			},
-
 		},
-
 	}
 
 	message, err := rc.CreateControlMessage(params)
@@ -973,33 +776,26 @@ func (rc *RCServiceModel) CreateDualConnectivityControl(ueID, operation, seconda
 
 	}
 
-
-
 	// Build control request.
 
 	request := &e2.E2ControlRequest{
 
-		RequestID:         fmt.Sprintf("rc-dc-%s-%d", ueID, time.Now().Unix()),
+		RequestID: fmt.Sprintf("rc-dc-%s-%d", ueID, time.Now().Unix()),
 
-		RanFunctionID:     2,  // RC function ID
+		RanFunctionID: 2, // RC function ID
 
-		CallProcessID:     "", // Empty string instead of nil
+		CallProcessID: "", // Empty string instead of nil
 
-		ControlHeader:     map[string]interface{}{"data": header},
+		ControlHeader: map[string]interface{}{"data": header},
 
-		ControlMessage:    map[string]interface{}{"data": message},
+		ControlMessage: map[string]interface{}{"data": message},
 
 		ControlAckRequest: true,
-
 	}
-
-
 
 	return request, nil
 
 }
-
-
 
 // GetSupportedControlTypes returns supported RC control types.
 
@@ -1016,8 +812,6 @@ func (rc *RCServiceModel) GetSupportedControlTypes() []RCControlType {
 		RCControlTypeDualConnectivity,
 
 		RCControlTypeRadioResourceAlloc,
-
 	}
 
 }
-

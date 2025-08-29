@@ -1,33 +1,17 @@
-
 package main
 
-
-
 import (
-
 	"flag"
-
 	"fmt"
-
 	"log"
-
 	"os"
-
 	"path/filepath"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/generator"
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/intent"
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/writer"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/porch"
-
 )
-
-
 
 func main() {
 
@@ -39,8 +23,6 @@ func main() {
 
 	var autoApprove bool
 
-
-
 	flag.StringVar(&intentPath, "intent", "", "path to intent JSON (docs/contracts/intent.schema.json)")
 
 	flag.StringVar(&outDir, "out", "examples/packages/direct", "output directory for generated KRM")
@@ -48,8 +30,6 @@ func main() {
 	flag.BoolVar(&dryRun, "dry-run", false, "show what would be generated without writing files")
 
 	flag.BoolVar(&minimal, "minimal", false, "generate minimal package (Deployment + Kptfile only)")
-
-
 
 	// Porch-specific flags.
 
@@ -65,11 +45,7 @@ func main() {
 
 	flag.BoolVar(&autoApprove, "auto-approve", false, "Automatically approve package proposals")
 
-
-
 	flag.Parse()
-
-
 
 	if intentPath == "" {
 
@@ -81,33 +57,28 @@ func main() {
 
 	}
 
-
-
 	cfg := &Config{
 
-		IntentPath:  intentPath,
+		IntentPath: intentPath,
 
-		OutDir:      outDir,
+		OutDir: outDir,
 
-		DryRun:      dryRun,
+		DryRun: dryRun,
 
-		Minimal:     minimal,
+		Minimal: minimal,
 
-		Repo:        repo,
+		Repo: repo,
 
-		Package:     packageName,
+		Package: packageName,
 
-		Workspace:   workspace,
+		Workspace: workspace,
 
-		Namespace:   namespace,
+		Namespace: namespace,
 
-		PorchURL:    porchURL,
+		PorchURL: porchURL,
 
 		AutoApprove: autoApprove,
-
 	}
-
-
 
 	if err := run(cfg); err != nil {
 
@@ -119,35 +90,29 @@ func main() {
 
 }
 
-
-
 // Config represents a config.
 
 type Config struct {
+	IntentPath string
 
-	IntentPath  string
+	OutDir string
 
-	OutDir      string
+	DryRun bool
 
-	DryRun      bool
+	Minimal bool
 
-	Minimal     bool
+	Repo string
 
-	Repo        string
+	Package string
 
-	Package     string
+	Workspace string
 
-	Workspace   string
+	Namespace string
 
-	Namespace   string
-
-	PorchURL    string
+	PorchURL string
 
 	AutoApprove bool
-
 }
-
-
 
 func run(cfg *Config) error {
 
@@ -160,8 +125,6 @@ func run(cfg *Config) error {
 		return fmt.Errorf("failed to find project root: %w", err)
 
 	}
-
-
 
 	fmt.Printf("[porch-direct] Project root: %s\n", projectRoot)
 
@@ -187,8 +150,6 @@ func run(cfg *Config) error {
 
 	}
 
-
-
 	// Create loader.
 
 	loader, err := intent.NewLoader(projectRoot)
@@ -199,8 +160,6 @@ func run(cfg *Config) error {
 
 	}
 
-
-
 	// Load and validate intent.
 
 	result, err := loader.LoadFromFile(cfg.IntentPath)
@@ -210,8 +169,6 @@ func run(cfg *Config) error {
 		return fmt.Errorf("failed to load intent file: %w", err)
 
 	}
-
-
 
 	if !result.IsValid {
 
@@ -227,11 +184,7 @@ func run(cfg *Config) error {
 
 	}
 
-
-
 	fmt.Printf("[porch-direct] Intent validated successfully: %s\n", result.Intent.String())
-
-
 
 	// Resolve repository and package names if not provided.
 
@@ -247,13 +200,9 @@ func run(cfg *Config) error {
 
 	}
 
-
-
 	// Create generator.
 
 	packageGen := generator.NewPackageGenerator()
-
-
 
 	// Generate package.
 
@@ -275,11 +224,7 @@ func run(cfg *Config) error {
 
 	}
 
-
-
 	fmt.Printf("[porch-direct] Generated package: %s (%d files)\n", pkg.Name, pkg.GetFileCount())
-
-
 
 	// If Porch URL is provided, use Porch API (handles both dry-run and live modes).
 
@@ -289,13 +234,9 @@ func run(cfg *Config) error {
 
 	}
 
-
-
 	// Otherwise, write to filesystem.
 
 	fsWriter := writer.NewFilesystemWriter(cfg.OutDir, cfg.DryRun)
-
-
 
 	// Write package.
 
@@ -307,13 +248,9 @@ func run(cfg *Config) error {
 
 	}
 
-
-
 	// Report results.
 
 	fmt.Printf("[porch-direct] Package written to: %s\n", writeResult.PackagePath)
-
-
 
 	if len(writeResult.FilesWritten) > 0 {
 
@@ -333,27 +270,19 @@ func run(cfg *Config) error {
 
 	}
 
-
-
 	if writeResult.WasIdempotent {
 
 		fmt.Printf("[porch-direct] Operation was idempotent (no changes needed)\n")
 
 	}
 
-
-
 	fmt.Printf("[porch-direct] Success! KRM package generated for %s scaling to %d replicas\n",
 
 		result.Intent.Target, result.Intent.Replicas)
 
-
-
 	return nil
 
 }
-
-
 
 // submitToPorch submits the generated package to Porch API.
 
@@ -361,27 +290,22 @@ func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Pac
 
 	client := porch.NewClient(cfg.PorchURL, cfg.DryRun)
 
-
-
 	// Create package request.
 
 	packageReq := &porch.PackageRequest{
 
 		Repository: cfg.Repo,
 
-		Package:    cfg.Package,
+		Package: cfg.Package,
 
-		Workspace:  cfg.Workspace,
+		Workspace: cfg.Workspace,
 
-		Namespace:  cfg.Namespace,
+		Namespace: cfg.Namespace,
 
-		Intent:     intent,
+		Intent: intent,
 
-		Files:      pkg.GetFiles(),
-
+		Files: pkg.GetFiles(),
 	}
-
-
 
 	// Create or update package revision.
 
@@ -393,11 +317,7 @@ func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Pac
 
 	}
 
-
-
 	fmt.Printf("[porch-direct] Package revision created: %s\n", revision.Name)
-
-
 
 	// Submit proposal or auto-approve.
 
@@ -427,13 +347,9 @@ func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Pac
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // resolveRepo determines the repository name based on intent.
 
@@ -457,8 +373,6 @@ func resolveRepo(intent *intent.NetworkIntent) string {
 
 }
 
-
-
 // resolvePackage generates a package name from intent.
 
 func resolvePackage(intent *intent.NetworkIntent) string {
@@ -466,8 +380,6 @@ func resolvePackage(intent *intent.NetworkIntent) string {
 	return fmt.Sprintf("%s-scaling-%d", intent.Target, intent.Replicas)
 
 }
-
-
 
 // findProjectRoot walks up the directory tree to find the project root (containing go.mod).
 
@@ -481,8 +393,6 @@ func findProjectRoot() (string, error) {
 
 	}
 
-
-
 	for {
 
 		gomodPath := filepath.Join(dir, "go.mod")
@@ -492,8 +402,6 @@ func findProjectRoot() (string, error) {
 			return dir, nil
 
 		}
-
-
 
 		parent := filepath.Dir(dir)
 
@@ -507,9 +415,6 @@ func findProjectRoot() (string, error) {
 
 	}
 
-
-
 	return "", fmt.Errorf("go.mod not found in any parent directory")
 
 }
-

@@ -1,41 +1,25 @@
-
 package auth
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"strings"
-
 	"time"
-
 )
-
-
 
 // AuthMiddleware provides authentication and authorization middleware.
 
 type AuthMiddleware struct {
-
 	sessionManager *SessionManager
 
-	jwtManager     *JWTManager
+	jwtManager *JWTManager
 
-	rbacManager    *RBACManager
+	rbacManager *RBACManager
 
-	config         *MiddlewareConfig
-
+	config *MiddlewareConfig
 }
-
-
 
 // MiddlewareConfig represents middleware configuration.
 
@@ -45,89 +29,69 @@ type MiddlewareConfig struct {
 
 	SkipAuth []string `json:"skip_auth"`
 
-
-
 	// CORS settings.
 
-	EnableCORS       bool     `json:"enable_cors"`
+	EnableCORS bool `json:"enable_cors"`
 
-	AllowedOrigins   []string `json:"allowed_origins"`
+	AllowedOrigins []string `json:"allowed_origins"`
 
-	AllowedMethods   []string `json:"allowed_methods"`
+	AllowedMethods []string `json:"allowed_methods"`
 
-	AllowedHeaders   []string `json:"allowed_headers"`
+	AllowedHeaders []string `json:"allowed_headers"`
 
-	AllowCredentials bool     `json:"allow_credentials"`
+	AllowCredentials bool `json:"allow_credentials"`
 
-	MaxAge           int      `json:"max_age"`
-
-
+	MaxAge int `json:"max_age"`
 
 	// Security headers.
 
 	EnableSecurityHeaders bool `json:"enable_security_headers"`
 
-
-
 	// Rate limiting (basic implementation).
 
-	EnableRateLimit bool          `json:"enable_rate_limit"`
+	EnableRateLimit bool `json:"enable_rate_limit"`
 
-	RequestsPerMin  int           `json:"requests_per_min"`
+	RequestsPerMin int `json:"requests_per_min"`
 
 	RateLimitWindow time.Duration `json:"rate_limit_window"`
 
-
-
 	// CSRF protection.
 
-	EnableCSRF      bool     `json:"enable_csrf"`
+	EnableCSRF bool `json:"enable_csrf"`
 
-	CSRFTokenHeader string   `json:"csrf_token_header"`
+	CSRFTokenHeader string `json:"csrf_token_header"`
 
 	CSRFSafeMethods []string `json:"csrf_safe_methods"`
-
 }
-
-
 
 // AuthContext represents authentication context.
 
 type AuthContext struct {
+	UserID string `json:"user_id"`
 
-	UserID      string                 `json:"user_id"`
+	SessionID string `json:"session_id"`
 
-	SessionID   string                 `json:"session_id"`
+	Provider string `json:"provider"`
 
-	Provider    string                 `json:"provider"`
+	Roles []string `json:"roles"`
 
-	Roles       []string               `json:"roles"`
+	Permissions []string `json:"permissions"`
 
-	Permissions []string               `json:"permissions"`
+	IsAdmin bool `json:"is_admin"`
 
-	IsAdmin     bool                   `json:"is_admin"`
-
-	Attributes  map[string]interface{} `json:"attributes"`
-
+	Attributes map[string]interface{} `json:"attributes"`
 }
-
-
 
 // contextKey is used for context keys to avoid collisions.
 
 type contextKey string
-
-
 
 const (
 
 	// AuthContextKey holds authcontextkey value.
 
 	AuthContextKey contextKey = "auth_context"
-
 )
-
-
 
 // NewAuthMiddleware creates new authentication middleware.
 
@@ -142,50 +106,43 @@ func NewAuthMiddleware(sessionManager *SessionManager, jwtManager *JWTManager, r
 				"/health", "/metrics", "/auth/login", "/auth/callback",
 
 				"/auth/providers", "/.well-known/", "/favicon.ico",
-
 			},
 
-			EnableCORS:            true,
+			EnableCORS: true,
 
-			AllowedOrigins:        []string{"*"},
+			AllowedOrigins: []string{"*"},
 
-			AllowedMethods:        []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 
-			AllowedHeaders:        []string{"Authorization", "Content-Type", "X-Requested-With", "X-CSRF-Token"},
+			AllowedHeaders: []string{"Authorization", "Content-Type", "X-Requested-With", "X-CSRF-Token"},
 
-			AllowCredentials:      true,
+			AllowCredentials: true,
 
-			MaxAge:                86400,
+			MaxAge: 86400,
 
 			EnableSecurityHeaders: true,
 
-			EnableCSRF:            true,
+			EnableCSRF: true,
 
-			CSRFTokenHeader:       "X-CSRF-Token",
+			CSRFTokenHeader: "X-CSRF-Token",
 
-			CSRFSafeMethods:       []string{"GET", "HEAD", "OPTIONS", "TRACE"},
-
+			CSRFSafeMethods: []string{"GET", "HEAD", "OPTIONS", "TRACE"},
 		}
 
 	}
-
-
 
 	return &AuthMiddleware{
 
 		sessionManager: sessionManager,
 
-		jwtManager:     jwtManager,
+		jwtManager: jwtManager,
 
-		rbacManager:    rbacManager,
+		rbacManager: rbacManager,
 
-		config:         config,
-
+		config: config,
 	}
 
 }
-
-
 
 // AuthenticateMiddleware handles authentication.
 
@@ -203,8 +160,6 @@ func (am *AuthMiddleware) AuthenticateMiddleware(next http.Handler) http.Handler
 
 		}
 
-
-
 		// Set security headers.
 
 		if am.config.EnableSecurityHeaders {
@@ -212,8 +167,6 @@ func (am *AuthMiddleware) AuthenticateMiddleware(next http.Handler) http.Handler
 			am.setSecurityHeaders(w)
 
 		}
-
-
 
 		// Handle CORS.
 
@@ -231,8 +184,6 @@ func (am *AuthMiddleware) AuthenticateMiddleware(next http.Handler) http.Handler
 
 		}
 
-
-
 		// Authenticate request.
 
 		authContext, err := am.authenticateRequest(r)
@@ -245,8 +196,6 @@ func (am *AuthMiddleware) AuthenticateMiddleware(next http.Handler) http.Handler
 
 		}
 
-
-
 		// Add auth context to request.
 
 		ctx := context.WithValue(r.Context(), AuthContextKey, authContext)
@@ -256,8 +205,6 @@ func (am *AuthMiddleware) AuthenticateMiddleware(next http.Handler) http.Handler
 	})
 
 }
-
-
 
 // RequirePermissionMiddleware requires specific permission.
 
@@ -277,8 +224,6 @@ func (am *AuthMiddleware) RequirePermissionMiddleware(permission string) func(ht
 
 			}
 
-
-
 			// Check permission.
 
 			hasPermission := false
@@ -295,8 +240,6 @@ func (am *AuthMiddleware) RequirePermissionMiddleware(permission string) func(ht
 
 			}
 
-
-
 			if !hasPermission {
 
 				am.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions",
@@ -307,8 +250,6 @@ func (am *AuthMiddleware) RequirePermissionMiddleware(permission string) func(ht
 
 			}
 
-
-
 			next.ServeHTTP(w, r)
 
 		})
@@ -316,8 +257,6 @@ func (am *AuthMiddleware) RequirePermissionMiddleware(permission string) func(ht
 	}
 
 }
-
-
 
 // RequireRoleMiddleware requires specific role.
 
@@ -337,8 +276,6 @@ func (am *AuthMiddleware) RequireRoleMiddleware(role string) func(http.Handler) 
 
 			}
 
-
-
 			// Check role.
 
 			hasRole := false
@@ -355,8 +292,6 @@ func (am *AuthMiddleware) RequireRoleMiddleware(role string) func(http.Handler) 
 
 			}
 
-
-
 			if !hasRole {
 
 				am.writeErrorResponse(w, http.StatusForbidden, "insufficient_role",
@@ -367,8 +302,6 @@ func (am *AuthMiddleware) RequireRoleMiddleware(role string) func(http.Handler) 
 
 			}
 
-
-
 			next.ServeHTTP(w, r)
 
 		})
@@ -376,8 +309,6 @@ func (am *AuthMiddleware) RequireRoleMiddleware(role string) func(http.Handler) 
 	}
 
 }
-
-
 
 // RequireAdminMiddleware requires admin role.
 
@@ -395,8 +326,6 @@ func (am *AuthMiddleware) RequireAdminMiddleware(next http.Handler) http.Handler
 
 		}
 
-
-
 		if !authContext.IsAdmin {
 
 			am.writeErrorResponse(w, http.StatusForbidden, "admin_required", "Administrator access required")
@@ -405,15 +334,11 @@ func (am *AuthMiddleware) RequireAdminMiddleware(next http.Handler) http.Handler
 
 		}
 
-
-
 		next.ServeHTTP(w, r)
 
 	})
 
 }
-
-
 
 // CSRFMiddleware provides CSRF protection.
 
@@ -429,8 +354,6 @@ func (am *AuthMiddleware) CSRFMiddleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// Skip CSRF for safe methods.
 
 		if am.isSafeMethod(r.Method) {
@@ -440,8 +363,6 @@ func (am *AuthMiddleware) CSRFMiddleware(next http.Handler) http.Handler {
 			return
 
 		}
-
-
 
 		// Get session.
 
@@ -455,8 +376,6 @@ func (am *AuthMiddleware) CSRFMiddleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		session, err := am.sessionManager.GetSession(r.Context(), sessionID)
 
 		if err != nil {
@@ -466,8 +385,6 @@ func (am *AuthMiddleware) CSRFMiddleware(next http.Handler) http.Handler {
 			return
 
 		}
-
-
 
 		// Check CSRF token.
 
@@ -479,8 +396,6 @@ func (am *AuthMiddleware) CSRFMiddleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		if csrfToken != session.CSRFToken {
 
 			am.writeErrorResponse(w, http.StatusForbidden, "csrf_token_invalid", "Invalid CSRF token")
@@ -489,15 +404,11 @@ func (am *AuthMiddleware) CSRFMiddleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		next.ServeHTTP(w, r)
 
 	})
 
 }
-
-
 
 // RequestLoggingMiddleware logs HTTP requests.
 
@@ -507,23 +418,15 @@ func (am *AuthMiddleware) RequestLoggingMiddleware(next http.Handler) http.Handl
 
 		start := time.Now()
 
-
-
 		// Wrap response writer to capture status code.
 
 		wrapper := &responseWrapper{ResponseWriter: w, statusCode: http.StatusOK}
 
-
-
 		next.ServeHTTP(wrapper, r)
-
-
 
 		duration := time.Since(start)
 
 		authContext := GetAuthContext(r.Context())
-
-
 
 		userID := "anonymous"
 
@@ -532,8 +435,6 @@ func (am *AuthMiddleware) RequestLoggingMiddleware(next http.Handler) http.Handl
 			userID = authContext.UserID
 
 		}
-
-
 
 		// Log request (using session manager's logger).
 
@@ -554,7 +455,6 @@ func (am *AuthMiddleware) RequestLoggingMiddleware(next http.Handler) http.Handl
 				"ip", getClientIP(r),
 
 				"user_agent", r.UserAgent(),
-
 			)
 
 		}
@@ -563,11 +463,7 @@ func (am *AuthMiddleware) RequestLoggingMiddleware(next http.Handler) http.Handl
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (am *AuthMiddleware) authenticateRequest(r *http.Request) (*AuthContext, error) {
 
@@ -581,8 +477,6 @@ func (am *AuthMiddleware) authenticateRequest(r *http.Request) (*AuthContext, er
 
 	}
 
-
-
 	// Try JWT token authentication.
 
 	authHeader := r.Header.Get("Authorization")
@@ -595,13 +489,9 @@ func (am *AuthMiddleware) authenticateRequest(r *http.Request) (*AuthContext, er
 
 	}
 
-
-
 	return nil, fmt.Errorf("no authentication credentials provided")
 
 }
-
-
 
 func (am *AuthMiddleware) authenticateWithSession(ctx context.Context, sessionID string) (*AuthContext, error) {
 
@@ -613,33 +503,26 @@ func (am *AuthMiddleware) authenticateWithSession(ctx context.Context, sessionID
 
 	}
 
-
-
 	isAdmin := am.hasAdminRole(sessionInfo.Roles)
-
-
 
 	return &AuthContext{
 
-		UserID:      sessionInfo.UserID,
+		UserID: sessionInfo.UserID,
 
-		SessionID:   sessionInfo.ID,
+		SessionID: sessionInfo.ID,
 
-		Provider:    sessionInfo.Provider,
+		Provider: sessionInfo.Provider,
 
-		Roles:       sessionInfo.Roles,
+		Roles: sessionInfo.Roles,
 
 		Permissions: am.getUserPermissions(ctx, sessionInfo.UserID),
 
-		IsAdmin:     isAdmin,
+		IsAdmin: isAdmin,
 
-		Attributes:  make(map[string]interface{}),
-
+		Attributes: make(map[string]interface{}),
 	}, nil
 
 }
-
-
 
 func (am *AuthMiddleware) authenticateWithJWT(ctx context.Context, token string) (*AuthContext, error) {
 
@@ -649,8 +532,6 @@ func (am *AuthMiddleware) authenticateWithJWT(ctx context.Context, token string)
 
 	}
 
-
-
 	claims, err := am.jwtManager.ValidateToken(ctx, token)
 
 	if err != nil {
@@ -659,41 +540,32 @@ func (am *AuthMiddleware) authenticateWithJWT(ctx context.Context, token string)
 
 	}
 
-
-
 	if claims.TokenType != "access" {
 
 		return nil, fmt.Errorf("invalid token type for authentication")
 
 	}
 
-
-
 	isAdmin := am.hasAdminRole(claims.Roles)
-
-
 
 	return &AuthContext{
 
-		UserID:      claims.Subject,
+		UserID: claims.Subject,
 
-		SessionID:   claims.SessionID,
+		SessionID: claims.SessionID,
 
-		Provider:    claims.Provider,
+		Provider: claims.Provider,
 
-		Roles:       claims.Roles,
+		Roles: claims.Roles,
 
 		Permissions: claims.Permissions,
 
-		IsAdmin:     isAdmin,
+		IsAdmin: isAdmin,
 
-		Attributes:  claims.Attributes,
-
+		Attributes: claims.Attributes,
 	}, nil
 
 }
-
-
 
 func (am *AuthMiddleware) getSessionID(r *http.Request) string {
 
@@ -707,15 +579,11 @@ func (am *AuthMiddleware) getSessionID(r *http.Request) string {
 
 	}
 
-
-
 	// Try header.
 
 	return r.Header.Get("X-Session-ID")
 
 }
-
-
 
 func (am *AuthMiddleware) getUserPermissions(ctx context.Context, userID string) []string {
 
@@ -728,8 +596,6 @@ func (am *AuthMiddleware) getUserPermissions(ctx context.Context, userID string)
 	return am.rbacManager.GetUserPermissions(ctx, userID)
 
 }
-
-
 
 func (am *AuthMiddleware) hasAdminRole(roles []string) bool {
 
@@ -753,8 +619,6 @@ func (am *AuthMiddleware) hasAdminRole(roles []string) bool {
 
 }
 
-
-
 func (am *AuthMiddleware) shouldSkipAuth(path string) bool {
 
 	for _, skipPath := range am.config.SkipAuth {
@@ -771,8 +635,6 @@ func (am *AuthMiddleware) shouldSkipAuth(path string) bool {
 
 }
 
-
-
 func (am *AuthMiddleware) matchesPermission(granted, required string) bool {
 
 	if granted == "*" || granted == required {
@@ -780,8 +642,6 @@ func (am *AuthMiddleware) matchesPermission(granted, required string) bool {
 		return true
 
 	}
-
-
 
 	// Handle resource-level wildcards.
 
@@ -799,13 +659,9 @@ func (am *AuthMiddleware) matchesPermission(granted, required string) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 func (am *AuthMiddleware) isSafeMethod(method string) bool {
 
@@ -823,13 +679,9 @@ func (am *AuthMiddleware) isSafeMethod(method string) bool {
 
 }
 
-
-
 func (am *AuthMiddleware) handleCORS(w http.ResponseWriter, r *http.Request) {
 
 	origin := r.Header.Get("Origin")
-
-
 
 	// Check if origin is allowed.
 
@@ -847,23 +699,17 @@ func (am *AuthMiddleware) handleCORS(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	if allowed {
 
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 
 	}
 
-
-
 	if am.config.AllowCredentials {
 
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 	}
-
-
 
 	w.Header().Set("Access-Control-Allow-Methods", strings.Join(am.config.AllowedMethods, ", "))
 
@@ -872,8 +718,6 @@ func (am *AuthMiddleware) handleCORS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Max-Age", fmt.Sprintf("%d", am.config.MaxAge))
 
 }
-
-
 
 func (am *AuthMiddleware) setSecurityHeaders(w http.ResponseWriter) {
 
@@ -891,49 +735,34 @@ func (am *AuthMiddleware) setSecurityHeaders(w http.ResponseWriter) {
 
 }
 
-
-
 func (am *AuthMiddleware) writeErrorResponse(w http.ResponseWriter, status int, code, message string) {
 
 	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(status)
 
-
-
 	errorResponse := map[string]interface{}{
 
-		"error":             code,
+		"error": code,
 
 		"error_description": message,
 
-		"status":            status,
+		"status": status,
 
-		"timestamp":         time.Now().Unix(),
-
+		"timestamp": time.Now().Unix(),
 	}
-
-
 
 	json.NewEncoder(w).Encode(errorResponse)
 
 }
 
-
-
 // Utility types.
 
-
-
 type responseWrapper struct {
-
 	http.ResponseWriter
 
 	statusCode int
-
 }
-
-
 
 // WriteHeader performs writeheader operation.
 
@@ -945,11 +774,7 @@ func (rw *responseWrapper) WriteHeader(code int) {
 
 }
 
-
-
 // Helper functions.
-
-
 
 // GetAuthContext extracts authentication context from request context.
 
@@ -964,8 +789,6 @@ func GetAuthContext(ctx context.Context) *AuthContext {
 	return nil
 
 }
-
-
 
 // RequireAuthContext ensures authentication context exists.
 
@@ -983,8 +806,6 @@ func RequireAuthContext(ctx context.Context) (*AuthContext, error) {
 
 }
 
-
-
 // GetUserID extracts user ID from context.
 
 func GetUserID(ctx context.Context) string {
@@ -999,8 +820,6 @@ func GetUserID(ctx context.Context) string {
 
 }
 
-
-
 // HasPermission checks if user has specific permission.
 
 func HasPermission(ctx context.Context, permission string) bool {
@@ -1012,8 +831,6 @@ func HasPermission(ctx context.Context, permission string) bool {
 		return false
 
 	}
-
-
 
 	for _, perm := range authCtx.Permissions {
 
@@ -1029,8 +846,6 @@ func HasPermission(ctx context.Context, permission string) bool {
 
 }
 
-
-
 // HasRole checks if user has specific role.
 
 func HasRole(ctx context.Context, role string) bool {
@@ -1042,8 +857,6 @@ func HasRole(ctx context.Context, role string) bool {
 		return false
 
 	}
-
-
 
 	for _, userRole := range authCtx.Roles {
 
@@ -1059,8 +872,6 @@ func HasRole(ctx context.Context, role string) bool {
 
 }
 
-
-
 // IsAdmin checks if user has admin privileges.
 
 func IsAdmin(ctx context.Context) bool {
@@ -1070,8 +881,6 @@ func IsAdmin(ctx context.Context) bool {
 	return authCtx != nil && authCtx.IsAdmin
 
 }
-
-
 
 func getClientIP(r *http.Request) string {
 
@@ -1089,8 +898,6 @@ func getClientIP(r *http.Request) string {
 
 	}
 
-
-
 	// Check X-Real-IP header.
 
 	xri := r.Header.Get("X-Real-IP")
@@ -1101,15 +908,11 @@ func getClientIP(r *http.Request) string {
 
 	}
 
-
-
 	// Fall back to RemoteAddr.
 
 	return r.RemoteAddr
 
 }
-
-
 
 func matchesPermission(granted, required string) bool {
 
@@ -1118,8 +921,6 @@ func matchesPermission(granted, required string) bool {
 		return true
 
 	}
-
-
 
 	// Handle resource-level wildcards.
 
@@ -1137,13 +938,9 @@ func matchesPermission(granted, required string) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // RequireOperator returns a middleware that requires operator role.
 
@@ -1153,8 +950,6 @@ func (am *AuthMiddleware) RequireOperator() func(http.Handler) http.Handler {
 
 }
 
-
-
 // RequireAdmin returns a middleware that requires admin role.
 
 func (am *AuthMiddleware) RequireAdmin() func(http.Handler) http.Handler {
@@ -1162,4 +957,3 @@ func (am *AuthMiddleware) RequireAdmin() func(http.Handler) http.Handler {
 	return am.RequireAdminMiddleware
 
 }
-

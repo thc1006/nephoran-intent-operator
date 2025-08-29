@@ -28,238 +28,163 @@ limitations under the License.
 
 */
 
-
-
-
 package orchestration
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"math"
-
 	"sort"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
 
-
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	"k8s.io/apimachinery/pkg/api/resource"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/client-go/tools/record"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // ResourcePlanningController reconciles ResourcePlan objects.
 
 type ResourcePlanningController struct {
-
 	client.Client
 
-	Scheme   *runtime.Scheme
+	Scheme *runtime.Scheme
 
 	Recorder record.EventRecorder
 
-	Logger   logr.Logger
-
-
+	Logger logr.Logger
 
 	// Services.
 
-	ResourcePlanner     *ResourcePlanningService
+	ResourcePlanner *ResourcePlanningService
 
-	CostEstimator       *CostEstimationService
+	CostEstimator *CostEstimationService
 
 	ComplianceValidator *ComplianceValidationService
-
-
 
 	// Configuration.
 
 	Config *ResourcePlanningConfig
 
-
-
 	// Event bus for coordination.
 
 	EventBus *EventBus
 
-
-
 	// Metrics.
 
 	MetricsCollector *MetricsCollector
-
 }
-
-
 
 // ResourcePlanningConfig contains configuration for the controller.
 
 type ResourcePlanningConfig struct {
+	MaxConcurrentPlanning int `json:"maxConcurrentPlanning"`
 
-	MaxConcurrentPlanning          int           `json:"maxConcurrentPlanning"`
+	DefaultTimeout time.Duration `json:"defaultTimeout"`
 
-	DefaultTimeout                 time.Duration `json:"defaultTimeout"`
+	MaxRetries int `json:"maxRetries"`
 
-	MaxRetries                     int           `json:"maxRetries"`
+	RetryBackoff time.Duration `json:"retryBackoff"`
 
-	RetryBackoff                   time.Duration `json:"retryBackoff"`
+	QualityThreshold float64 `json:"qualityThreshold"`
 
-	QualityThreshold               float64       `json:"qualityThreshold"`
+	CostOptimizationEnabled bool `json:"costOptimizationEnabled"`
 
-	CostOptimizationEnabled        bool          `json:"costOptimizationEnabled"`
+	PerformanceOptimizationEnabled bool `json:"performanceOptimizationEnabled"`
 
-	PerformanceOptimizationEnabled bool          `json:"performanceOptimizationEnabled"`
-
-	ComplianceValidationEnabled    bool          `json:"complianceValidationEnabled"`
-
-
+	ComplianceValidationEnabled bool `json:"complianceValidationEnabled"`
 
 	// Cache configuration.
 
-	CacheEnabled    bool          `json:"cacheEnabled"`
+	CacheEnabled bool `json:"cacheEnabled"`
 
-	CacheTTL        time.Duration `json:"cacheTTL"`
+	CacheTTL time.Duration `json:"cacheTTL"`
 
-	MaxCacheEntries int           `json:"maxCacheEntries"`
-
-
+	MaxCacheEntries int `json:"maxCacheEntries"`
 
 	// Optimization configuration.
 
-	OptimizationEnabled   bool    `json:"optimizationEnabled"`
+	OptimizationEnabled bool `json:"optimizationEnabled"`
 
-	CPUOvercommitRatio    float64 `json:"cpuOvercommitRatio"`
+	CPUOvercommitRatio float64 `json:"cpuOvercommitRatio"`
 
 	MemoryOvercommitRatio float64 `json:"memoryOvercommitRatio"`
 
-
-
 	// Default resource requests.
 
-	DefaultCPURequest     string `json:"defaultCpuRequest"`
+	DefaultCPURequest string `json:"defaultCpuRequest"`
 
-	DefaultMemoryRequest  string `json:"defaultMemoryRequest"`
+	DefaultMemoryRequest string `json:"defaultMemoryRequest"`
 
 	DefaultStorageRequest string `json:"defaultStorageRequest"`
-
-
 
 	// Constraint checking.
 
 	ConstraintCheckEnabled bool `json:"constraintCheckEnabled"`
-
 }
-
-
 
 // ResourcePlanningService handles resource planning logic.
 
 type ResourcePlanningService struct {
-
 	Logger logr.Logger
 
 	Config *ResourcePlanningServiceConfig
-
 }
-
-
 
 // ResourcePlanningServiceConfig contains service configuration.
 
 type ResourcePlanningServiceConfig struct {
-
-	DefaultCPURequest    resource.Quantity
+	DefaultCPURequest resource.Quantity
 
 	DefaultMemoryRequest resource.Quantity
 
-	DefaultCPULimit      resource.Quantity
+	DefaultCPULimit resource.Quantity
 
-	DefaultMemoryLimit   resource.Quantity
+	DefaultMemoryLimit resource.Quantity
 
-	DefaultReplicas      int32
+	DefaultReplicas int32
 
-	ResourceMultipliers  map[string]float64
-
+	ResourceMultipliers map[string]float64
 }
-
-
 
 // CostEstimationService handles cost estimation.
 
 type CostEstimationService struct {
-
-	Logger    logr.Logger
+	Logger logr.Logger
 
 	CostRates map[string]float64 // Cost per unit per hour
 
 }
 
-
-
 // ComplianceValidationService handles compliance validation.
 
 type ComplianceValidationService struct {
-
 	Logger logr.Logger
 
-	Rules  map[string]ComplianceRule
-
+	Rules map[string]ComplianceRule
 }
-
-
 
 // ComplianceRule represents a compliance rule.
 
 type ComplianceRule struct {
-
-	Standard    string
+	Standard string
 
 	Requirement string
 
-	Validator   func(plan *nephoranv1.ResourcePlan) (bool, string)
-
+	Validator func(plan *nephoranv1.ResourcePlan) (bool, string)
 }
-
-
 
 // NewResourcePlanningController creates a new ResourcePlanningController.
 
@@ -279,39 +204,34 @@ func NewResourcePlanningController(
 
 	return &ResourcePlanningController{
 
-		Client:              client,
+		Client: client,
 
-		Scheme:              scheme,
+		Scheme: scheme,
 
-		Recorder:            recorder,
+		Recorder: recorder,
 
-		Logger:              log.Log.WithName("resource-planning-controller"),
+		Logger: log.Log.WithName("resource-planning-controller"),
 
-		EventBus:            eventBus,
+		EventBus: eventBus,
 
-		Config:              config,
+		Config: config,
 
-		ResourcePlanner:     NewResourcePlanningService(),
+		ResourcePlanner: NewResourcePlanningService(),
 
-		CostEstimator:       NewCostEstimationService(),
+		CostEstimator: NewCostEstimationService(),
 
 		ComplianceValidator: NewComplianceValidationService(),
 
-		MetricsCollector:    NewMetricsCollector(),
-
+		MetricsCollector: NewMetricsCollector(),
 	}
 
 }
-
-
 
 // Reconcile handles ResourcePlan resources.
 
 func (r *ResourcePlanningController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	log := r.Logger.WithValues("resourceplan", req.NamespacedName)
-
-
 
 	// Fetch the ResourcePlan instance.
 
@@ -333,8 +253,6 @@ func (r *ResourcePlanningController) Reconcile(ctx context.Context, req ctrl.Req
 
 	}
 
-
-
 	// Handle deletion.
 
 	if resourcePlan.DeletionTimestamp != nil {
@@ -342,8 +260,6 @@ func (r *ResourcePlanningController) Reconcile(ctx context.Context, req ctrl.Req
 		return r.handleDeletion(ctx, resourcePlan)
 
 	}
-
-
 
 	// Add finalizer if not present.
 
@@ -355,23 +271,17 @@ func (r *ResourcePlanningController) Reconcile(ctx context.Context, req ctrl.Req
 
 	}
 
-
-
 	// Process the resource plan.
 
 	return r.processResourcePlan(ctx, resourcePlan)
 
 }
 
-
-
 // processResourcePlan processes the resource planning request.
 
 func (r *ResourcePlanningController) processResourcePlan(ctx context.Context, resourcePlan *nephoranv1.ResourcePlan) (ctrl.Result, error) {
 
 	log := r.Logger.WithValues("resourceplan", resourcePlan.Name, "namespace", resourcePlan.Namespace)
-
-
 
 	// Check if planning is already complete.
 
@@ -383,8 +293,6 @@ func (r *ResourcePlanningController) processResourcePlan(ctx context.Context, re
 
 	}
 
-
-
 	// Check if planning failed and can retry.
 
 	if resourcePlan.IsPlanningFailed() && resourcePlan.Status.RetryCount >= int32(r.Config.MaxRetries) {
@@ -394,8 +302,6 @@ func (r *ResourcePlanningController) processResourcePlan(ctx context.Context, re
 		return ctrl.Result{}, nil
 
 	}
-
-
 
 	// Record planning start.
 
@@ -417,8 +323,6 @@ func (r *ResourcePlanningController) processResourcePlan(ctx context.Context, re
 
 	}
 
-
-
 	// Publish planning start event.
 
 	if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseResourcePlanning, EventResourcePlanningStarted,
@@ -427,23 +331,18 @@ func (r *ResourcePlanningController) processResourcePlan(ctx context.Context, re
 
 			"deployment_pattern": resourcePlan.Spec.DeploymentPattern,
 
-			"target_components":  resourcePlan.Spec.TargetComponents,
-
+			"target_components": resourcePlan.Spec.TargetComponents,
 		}); err != nil {
 
 		log.Error(err, "Failed to publish planning start event")
 
 	}
 
-
-
 	// Create planning context with timeout.
 
 	planningCtx, cancel := context.WithTimeout(ctx, r.Config.DefaultTimeout)
 
 	defer cancel()
-
-
 
 	// Execute resource planning.
 
@@ -455,23 +354,17 @@ func (r *ResourcePlanningController) processResourcePlan(ctx context.Context, re
 
 	}
 
-
-
 	// Update status with results.
 
 	return r.handlePlanningSuccess(ctx, resourcePlan, result)
 
 }
 
-
-
 // executeResourcePlanning performs the actual resource planning.
 
 func (r *ResourcePlanningController) executeResourcePlanning(ctx context.Context, resourcePlan *nephoranv1.ResourcePlan) (*ResourcePlanningResult, error) {
 
 	log := r.Logger.WithValues("resourceplan", resourcePlan.Name)
-
-
 
 	// Phase 1: Requirements Analysis.
 
@@ -485,8 +378,6 @@ func (r *ResourcePlanningController) executeResourcePlanning(ctx context.Context
 
 	}
 
-
-
 	requirements, err := r.analyzeRequirements(ctx, resourcePlan)
 
 	if err != nil {
@@ -494,8 +385,6 @@ func (r *ResourcePlanningController) executeResourcePlanning(ctx context.Context
 		return nil, fmt.Errorf("requirements analysis failed: %w", err)
 
 	}
-
-
 
 	// Phase 2: Resource Planning.
 
@@ -509,8 +398,6 @@ func (r *ResourcePlanningController) executeResourcePlanning(ctx context.Context
 
 	}
 
-
-
 	plannedResources, err := r.ResourcePlanner.PlanResources(ctx, requirements)
 
 	if err != nil {
@@ -518,8 +405,6 @@ func (r *ResourcePlanningController) executeResourcePlanning(ctx context.Context
 		return nil, fmt.Errorf("resource planning failed: %w", err)
 
 	}
-
-
 
 	// Phase 3: Optimization.
 
@@ -533,8 +418,6 @@ func (r *ResourcePlanningController) executeResourcePlanning(ctx context.Context
 
 	}
 
-
-
 	optimizedResources, optimizationResults, err := r.optimizeResources(ctx, resourcePlan, plannedResources)
 
 	if err != nil {
@@ -546,8 +429,6 @@ func (r *ResourcePlanningController) executeResourcePlanning(ctx context.Context
 		optimizedResources = plannedResources
 
 	}
-
-
 
 	// Phase 4: Cost Estimation.
 
@@ -563,8 +444,6 @@ func (r *ResourcePlanningController) executeResourcePlanning(ctx context.Context
 
 	}
 
-
-
 	// Phase 5: Performance Estimation.
 
 	log.Info("Calculating performance estimates")
@@ -579,8 +458,6 @@ func (r *ResourcePlanningController) executeResourcePlanning(ctx context.Context
 
 	}
 
-
-
 	// Phase 6: Compliance Validation.
 
 	log.Info("Validating compliance")
@@ -593,8 +470,6 @@ func (r *ResourcePlanningController) executeResourcePlanning(ctx context.Context
 
 	}
 
-
-
 	complianceResults, validationResults, err := r.validateCompliance(ctx, resourcePlan, optimizedResources)
 
 	if err != nil {
@@ -605,41 +480,32 @@ func (r *ResourcePlanningController) executeResourcePlanning(ctx context.Context
 
 	}
 
-
-
 	// Calculate quality score.
 
 	qualityScore := r.calculateQualityScore(optimizedResources, costEstimate, performanceEstimate, complianceResults)
-
-
 
 	// Create result.
 
 	result := &ResourcePlanningResult{
 
-		PlannedResources:    optimizedResources,
+		PlannedResources: optimizedResources,
 
-		CostEstimate:        costEstimate,
+		CostEstimate: costEstimate,
 
 		PerformanceEstimate: performanceEstimate,
 
-		ComplianceResults:   complianceResults,
+		ComplianceResults: complianceResults,
 
 		OptimizationResults: optimizationResults,
 
-		ValidationResults:   validationResults,
+		ValidationResults: validationResults,
 
-		QualityScore:        qualityScore,
-
+		QualityScore: qualityScore,
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // analyzeRequirements analyzes the input requirements.
 
@@ -655,37 +521,30 @@ func (r *ResourcePlanningController) analyzeRequirements(ctx context.Context, re
 
 	}
 
-
-
 	// Create requirements object.
 
 	requirements := &ResourceRequirements{
 
-		TargetComponents:       resourcePlan.Spec.TargetComponents,
+		TargetComponents: resourcePlan.Spec.TargetComponents,
 
-		DeploymentPattern:      resourcePlan.Spec.DeploymentPattern,
+		DeploymentPattern: resourcePlan.Spec.DeploymentPattern,
 
-		ResourceConstraints:    resourcePlan.Spec.ResourceConstraints,
+		ResourceConstraints: resourcePlan.Spec.ResourceConstraints,
 
-		TargetClusters:         resourcePlan.Spec.TargetClusters,
+		TargetClusters: resourcePlan.Spec.TargetClusters,
 
-		NetworkSlice:           resourcePlan.Spec.NetworkSlice,
+		NetworkSlice: resourcePlan.Spec.NetworkSlice,
 
-		OptimizationGoals:      resourcePlan.Spec.OptimizationGoals,
+		OptimizationGoals: resourcePlan.Spec.OptimizationGoals,
 
 		ComplianceRequirements: resourcePlan.Spec.ComplianceRequirements,
 
-		ParsedInput:            requirementsData,
-
+		ParsedInput: requirementsData,
 	}
-
-
 
 	return requirements, nil
 
 }
-
-
 
 // optimizeResources optimizes the resource allocation.
 
@@ -695,11 +554,7 @@ func (r *ResourcePlanningController) optimizeResources(ctx context.Context, reso
 
 	copy(optimizedResources, resources)
 
-
-
 	var optimizationResults []nephoranv1.OptimizationResult
-
-
 
 	// Apply cost optimization if enabled.
 
@@ -717,8 +572,6 @@ func (r *ResourcePlanningController) optimizeResources(ctx context.Context, reso
 
 	}
 
-
-
 	// Apply performance optimization if enabled.
 
 	if resourcePlan.ShouldOptimizePerformance() && r.Config.PerformanceOptimizationEnabled {
@@ -735,8 +588,6 @@ func (r *ResourcePlanningController) optimizeResources(ctx context.Context, reso
 
 	}
 
-
-
 	// Apply resource packing optimization.
 
 	result, err := r.applyResourcePackingOptimization(ctx, optimizedResources)
@@ -749,13 +600,9 @@ func (r *ResourcePlanningController) optimizeResources(ctx context.Context, reso
 
 	optimizationResults = append(optimizationResults, result)
 
-
-
 	return optimizedResources, optimizationResults, nil
 
 }
-
-
 
 // applyCostOptimization applies cost optimization.
 
@@ -765,13 +612,9 @@ func (r *ResourcePlanningController) applyCostOptimization(ctx context.Context, 
 
 	totalSavings := 0.0
 
-
-
 	for i := range resources {
 
 		planResource := &resources[i]
-
-
 
 		// Optimize CPU requests (reduce by 10% if over-provisioned).
 
@@ -792,8 +635,6 @@ func (r *ResourcePlanningController) applyCostOptimization(ctx context.Context, 
 			}
 
 		}
-
-
 
 		// Optimize memory requests (reduce by 5% if over-provisioned).
 
@@ -817,8 +658,6 @@ func (r *ResourcePlanningController) applyCostOptimization(ctx context.Context, 
 
 	}
 
-
-
 	improvementPercent := 0.0
 
 	if len(resources) > 0 {
@@ -827,23 +666,18 @@ func (r *ResourcePlanningController) applyCostOptimization(ctx context.Context, 
 
 	}
 
-
-
 	result := nephoranv1.OptimizationResult{
 
-		Type:               "cost",
+		Type: "cost",
 
-		Status:             "Success",
+		Status: "Success",
 
 		ImprovementPercent: &improvementPercent,
 
-		Description:        fmt.Sprintf("Optimized %d resources for cost reduction", optimizedCount),
+		Description: fmt.Sprintf("Optimized %d resources for cost reduction", optimizedCount),
 
-		OptimizedAt:        metav1.Now(),
-
+		OptimizedAt: metav1.Now(),
 	}
-
-
 
 	if optimizedCount > 0 {
 
@@ -852,18 +686,13 @@ func (r *ResourcePlanningController) applyCostOptimization(ctx context.Context, 
 			fmt.Sprintf("Reduced CPU requests for %d resources", optimizedCount),
 
 			fmt.Sprintf("Estimated savings: $%.2f per hour", totalSavings),
-
 		}
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // applyPerformanceOptimization applies performance optimization.
 
@@ -871,13 +700,9 @@ func (r *ResourcePlanningController) applyPerformanceOptimization(ctx context.Co
 
 	optimizedCount := 0
 
-
-
 	for i := range resources {
 
 		planResource := &resources[i]
-
-
 
 		// Increase CPU limits for performance-critical components.
 
@@ -896,8 +721,6 @@ func (r *ResourcePlanningController) applyPerformanceOptimization(ctx context.Co
 			}
 
 		}
-
-
 
 		// Add memory buffer for memory-intensive components.
 
@@ -919,8 +742,6 @@ func (r *ResourcePlanningController) applyPerformanceOptimization(ctx context.Co
 
 	}
 
-
-
 	improvementPercent := 0.0
 
 	if len(resources) > 0 {
@@ -929,23 +750,18 @@ func (r *ResourcePlanningController) applyPerformanceOptimization(ctx context.Co
 
 	}
 
-
-
 	result := nephoranv1.OptimizationResult{
 
-		Type:               "performance",
+		Type: "performance",
 
-		Status:             "Success",
+		Status: "Success",
 
 		ImprovementPercent: &improvementPercent,
 
-		Description:        fmt.Sprintf("Optimized %d resources for performance", optimizedCount),
+		Description: fmt.Sprintf("Optimized %d resources for performance", optimizedCount),
 
-		OptimizedAt:        metav1.Now(),
-
+		OptimizedAt: metav1.Now(),
 	}
-
-
 
 	if optimizedCount > 0 {
 
@@ -954,18 +770,13 @@ func (r *ResourcePlanningController) applyPerformanceOptimization(ctx context.Co
 			fmt.Sprintf("Increased resource limits for %d performance-critical components", optimizedCount),
 
 			"Added memory buffers for memory-intensive components",
-
 		}
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // applyResourcePackingOptimization applies resource packing optimization.
 
@@ -983,13 +794,9 @@ func (r *ResourcePlanningController) applyResourcePackingOptimization(ctx contex
 
 	})
 
-
-
 	// Group resources by similar resource profiles.
 
 	packingGroups := r.groupResourcesByProfile(resources)
-
-
 
 	improvementPercent := 0.0
 
@@ -1009,23 +816,18 @@ func (r *ResourcePlanningController) applyResourcePackingOptimization(ctx contex
 
 	}
 
-
-
 	result := nephoranv1.OptimizationResult{
 
-		Type:               "packing",
+		Type: "packing",
 
-		Status:             "Success",
+		Status: "Success",
 
 		ImprovementPercent: &improvementPercent,
 
-		Description:        fmt.Sprintf("Grouped %d resources into %d packing groups", len(resources), len(packingGroups)),
+		Description: fmt.Sprintf("Grouped %d resources into %d packing groups", len(resources), len(packingGroups)),
 
-		OptimizedAt:        metav1.Now(),
-
+		OptimizedAt: metav1.Now(),
 	}
-
-
 
 	if len(packingGroups) < len(resources) {
 
@@ -1034,18 +836,13 @@ func (r *ResourcePlanningController) applyResourcePackingOptimization(ctx contex
 			fmt.Sprintf("Optimized resource packing from %d to %d groups", len(resources), len(packingGroups)),
 
 			"Improved cluster resource utilization",
-
 		}
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // groupResourcesByProfile groups resources by similar resource profiles.
 
@@ -1054,8 +851,6 @@ func (r *ResourcePlanningController) groupResourcesByProfile(resources []nephora
 	var groups [][]nephoranv1.PlannedResource
 
 	tolerance := 0.2 // 20% tolerance for grouping
-
-
 
 	for _, resource := range resources {
 
@@ -1083,13 +878,9 @@ func (r *ResourcePlanningController) groupResourcesByProfile(resources []nephora
 
 	}
 
-
-
 	return groups
 
 }
-
-
 
 // areResourceProfilesSimilar checks if two resources have similar profiles.
 
@@ -1103,19 +894,13 @@ func (r *ResourcePlanningController) areResourceProfilesSimilar(r1, r2 nephoranv
 
 	mem2 := float64(r2.ResourceRequirements.Requests.Memory.Value())
 
-
-
 	cpuDiff := math.Abs(cpu1-cpu2) / math.Max(cpu1, cpu2)
 
 	memDiff := math.Abs(mem1-mem2) / math.Max(mem1, mem2)
 
-
-
 	return cpuDiff <= tolerance && memDiff <= tolerance
 
 }
-
-
 
 // isPerformanceCritical checks if a component is performance-critical.
 
@@ -1123,23 +908,20 @@ func (r *ResourcePlanningController) isPerformanceCritical(component nephoranv1.
 
 	performanceCritical := map[string]bool{
 
-		"upf":        true,
+		"upf": true,
 
-		"gnb":        true,
+		"gnb": true,
 
 		"nearrt-ric": true,
 
-		"odu":        true,
+		"odu": true,
 
-		"ocu-up":     true,
-
+		"ocu-up": true,
 	}
 
 	return performanceCritical[component.Name]
 
 }
-
-
 
 // isMemoryIntensive checks if a component is memory-intensive.
 
@@ -1147,21 +929,18 @@ func (r *ResourcePlanningController) isMemoryIntensive(component nephoranv1.Targ
 
 	memoryIntensive := map[string]bool{
 
-		"udr":   true,
+		"udr": true,
 
-		"udm":   true,
+		"udm": true,
 
 		"nwdaf": true,
 
-		"smo":   true,
-
+		"smo": true,
 	}
 
 	return memoryIntensive[component.Name]
 
 }
-
-
 
 // estimatePerformance estimates performance characteristics.
 
@@ -1172,8 +951,6 @@ func (r *ResourcePlanningController) estimatePerformance(ctx context.Context, re
 	totalCPU := int64(0)
 
 	totalMemory := int64(0)
-
-
 
 	for _, resource := range resources {
 
@@ -1191,41 +968,34 @@ func (r *ResourcePlanningController) estimatePerformance(ctx context.Context, re
 
 	}
 
-
-
 	// Estimate performance based on resource capacity.
 
 	// These are simplified estimates - in practice, you'd use more sophisticated models.
 
-	expectedThroughput := float64(totalCPU) * 0.1                              // 0.1 RPS per mCPU
+	expectedThroughput := float64(totalCPU) * 0.1 // 0.1 RPS per mCPU
 
 	expectedLatency := math.Max(10.0, 100.0/math.Sqrt(float64(totalCPU/1000))) // Latency improves with more CPU
 
-	expectedAvailability := math.Min(99.99, 95.0+float64(len(resources))*0.5)  // More replicas = higher availability
-
-
+	expectedAvailability := math.Min(99.99, 95.0+float64(len(resources))*0.5) // More replicas = higher availability
 
 	// Create performance estimate.
 
 	performanceEstimate := &nephoranv1.PerformanceEstimate{
 
-		ExpectedThroughput:   &expectedThroughput,
+		ExpectedThroughput: &expectedThroughput,
 
-		ExpectedLatency:      &expectedLatency,
+		ExpectedLatency: &expectedLatency,
 
 		ExpectedAvailability: &expectedAvailability,
 
 		ResourceUtilization: map[string]float64{
 
-			"cpu_utilization":    0.7, // Assume 70% utilization
+			"cpu_utilization": 0.7, // Assume 70% utilization
 
 			"memory_utilization": 0.8, // Assume 80% utilization
 
 		},
-
 	}
-
-
 
 	// Add bottleneck analysis.
 
@@ -1241,8 +1011,6 @@ func (r *ResourcePlanningController) estimatePerformance(ctx context.Context, re
 
 	}
 
-
-
 	// Add scaling recommendations.
 
 	for _, resource := range resources {
@@ -1251,16 +1019,15 @@ func (r *ResourcePlanningController) estimatePerformance(ctx context.Context, re
 
 			recommendation := nephoranv1.ScalingRecommendation{
 
-				Resource:            resource.Name,
+				Resource: resource.Name,
 
 				RecommendedReplicas: 2,
 
-				Reason:              "Increase replicas for high availability",
+				Reason: "Increase replicas for high availability",
 
-				Impact:              "Improves availability and fault tolerance",
+				Impact: "Improves availability and fault tolerance",
 
-				Confidence:          func() *float64 { c := 0.8; return &c }(),
-
+				Confidence: func() *float64 { c := 0.8; return &c }(),
 			}
 
 			performanceEstimate.ScalingRecommendations = append(performanceEstimate.ScalingRecommendations, recommendation)
@@ -1269,13 +1036,9 @@ func (r *ResourcePlanningController) estimatePerformance(ctx context.Context, re
 
 	}
 
-
-
 	return performanceEstimate, nil
 
 }
-
-
 
 // validateCompliance validates compliance requirements.
 
@@ -1285,15 +1048,11 @@ func (r *ResourcePlanningController) validateCompliance(ctx context.Context, res
 
 	var validationResults []nephoranv1.ValidationResult
 
-
-
 	if !r.Config.ComplianceValidationEnabled {
 
 		return complianceResults, validationResults, nil
 
 	}
-
-
 
 	// Validate each compliance requirement.
 
@@ -1302,8 +1061,6 @@ func (r *ResourcePlanningController) validateCompliance(ctx context.Context, res
 		status, violations := r.ComplianceValidator.ValidateRequirement(requirement, resourcePlan, resources)
 
 		complianceResults = append(complianceResults, status)
-
-
 
 		// Determine validation status based on violations.
 
@@ -1315,23 +1072,18 @@ func (r *ResourcePlanningController) validateCompliance(ctx context.Context, res
 
 		}
 
-
-
 		// Create validation result.
 
 		validationResult := nephoranv1.ValidationResult{
 
-			Type:        "compliance",
+			Type: "compliance",
 
-			Status:      validationStatus,
+			Status: validationStatus,
 
-			Message:     fmt.Sprintf("Compliance validation for %s: %s", requirement.Standard, validationStatus),
+			Message: fmt.Sprintf("Compliance validation for %s: %s", requirement.Standard, validationStatus),
 
 			ValidatedAt: metav1.Now(),
-
 		}
-
-
 
 		if len(violations) > 0 {
 
@@ -1345,13 +1097,9 @@ func (r *ResourcePlanningController) validateCompliance(ctx context.Context, res
 
 		}
 
-
-
 		validationResults = append(validationResults, validationResult)
 
 	}
-
-
 
 	// Add general validation checks.
 
@@ -1359,13 +1107,9 @@ func (r *ResourcePlanningController) validateCompliance(ctx context.Context, res
 
 	validationResults = append(validationResults, generalValidation...)
 
-
-
 	return complianceResults, validationResults, nil
 
 }
-
-
 
 // performGeneralValidation performs general validation checks.
 
@@ -1373,23 +1117,18 @@ func (r *ResourcePlanningController) performGeneralValidation(resources []nephor
 
 	var results []nephoranv1.ValidationResult
 
-
-
 	// Check resource limits.
 
 	result := nephoranv1.ValidationResult{
 
-		Type:        "resource_limits",
+		Type: "resource_limits",
 
-		Status:      "Passed",
+		Status: "Passed",
 
-		Message:     "All resources have appropriate limits set",
+		Message: "All resources have appropriate limits set",
 
 		ValidatedAt: metav1.Now(),
-
 	}
-
-
 
 	for _, resource := range resources {
 
@@ -1405,27 +1144,20 @@ func (r *ResourcePlanningController) performGeneralValidation(resources []nephor
 
 	}
 
-
-
 	results = append(results, result)
-
-
 
 	// Check naming conventions.
 
 	namingResult := nephoranv1.ValidationResult{
 
-		Type:        "naming_conventions",
+		Type: "naming_conventions",
 
-		Status:      "Passed",
+		Status: "Passed",
 
-		Message:     "All resources follow naming conventions",
+		Message: "All resources follow naming conventions",
 
 		ValidatedAt: metav1.Now(),
-
 	}
-
-
 
 	for _, resource := range resources {
 
@@ -1441,17 +1173,11 @@ func (r *ResourcePlanningController) performGeneralValidation(resources []nephor
 
 	}
 
-
-
 	results = append(results, namingResult)
-
-
 
 	return results
 
 }
-
-
 
 // calculateQualityScore calculates an overall quality score for the plan.
 
@@ -1459,15 +1185,11 @@ func (r *ResourcePlanningController) calculateQualityScore(resources []nephoranv
 
 	score := 1.0
 
-
-
 	// Factor in resource optimization (30% weight).
 
 	resourceScore := r.calculateResourceScore(resources)
 
 	score *= (0.7 + 0.3*resourceScore)
-
-
 
 	// Factor in cost efficiency (20% weight).
 
@@ -1478,8 +1200,6 @@ func (r *ResourcePlanningController) calculateQualityScore(resources []nephoranv
 		score *= (0.8 + 0.2*costScore)
 
 	}
-
-
 
 	// Factor in performance expectations (30% weight).
 
@@ -1496,8 +1216,6 @@ func (r *ResourcePlanningController) calculateQualityScore(resources []nephoranv
 		score *= (0.7 + 0.3*performanceScore)
 
 	}
-
-
 
 	// Factor in compliance (20% weight).
 
@@ -1521,8 +1239,6 @@ func (r *ResourcePlanningController) calculateQualityScore(resources []nephoranv
 
 	}
 
-
-
 	// Ensure score is within bounds.
 
 	if score < 0 {
@@ -1537,13 +1253,9 @@ func (r *ResourcePlanningController) calculateQualityScore(resources []nephoranv
 
 	}
 
-
-
 	return score
 
 }
-
-
 
 // calculateResourceScore calculates a score based on resource optimization.
 
@@ -1555,8 +1267,6 @@ func (r *ResourcePlanningController) calculateResourceScore(resources []nephoran
 
 	}
 
-
-
 	score := 0.0
 
 	for _, resource := range resources {
@@ -1564,8 +1274,6 @@ func (r *ResourcePlanningController) calculateResourceScore(resources []nephoran
 		// Check if resource has appropriate limits.
 
 		resourceScore := 0.5 // Base score
-
-
 
 		if resource.ResourceRequirements.Limits.CPU != nil {
 
@@ -1585,27 +1293,19 @@ func (r *ResourcePlanningController) calculateResourceScore(resources []nephoran
 
 		}
 
-
-
 		score += resourceScore
 
 	}
 
-
-
 	return score / float64(len(resources))
 
 }
-
-
 
 // handlePlanningSuccess handles successful planning.
 
 func (r *ResourcePlanningController) handlePlanningSuccess(ctx context.Context, resourcePlan *nephoranv1.ResourcePlan, result *ResourcePlanningResult) (ctrl.Result, error) {
 
 	log := r.Logger.WithValues("resourceplan", resourcePlan.Name)
-
-
 
 	// Update status with results.
 
@@ -1615,13 +1315,9 @@ func (r *ResourcePlanningController) handlePlanningSuccess(ctx context.Context, 
 
 	resourcePlan.Status.Phase = nephoranv1.ResourcePlanPhaseCompleted
 
-
-
 	// Set planned resources.
 
 	resourcePlan.Status.PlannedResources = result.PlannedResources
-
-
 
 	// Set resource allocation.
 
@@ -1631,19 +1327,13 @@ func (r *ResourcePlanningController) handlePlanningSuccess(ctx context.Context, 
 
 	}
 
-
-
 	// Set cost estimate.
 
 	resourcePlan.Status.CostEstimate = result.CostEstimate
 
-
-
 	// Set performance estimate.
 
 	resourcePlan.Status.PerformanceEstimate = result.PerformanceEstimate
-
-
 
 	// Set compliance status - convert ComplianceStatus to ResourceComplianceStatus.
 
@@ -1659,14 +1349,11 @@ func (r *ResourcePlanningController) handlePlanningSuccess(ctx context.Context, 
 
 		}
 
-
-
 		resourceComplianceStatus[i] = nephoranv1.ResourceComplianceStatus{
 
 			Standard: compStatus.Standards[0], // Use first standard if available
 
-			Status:   status,
-
+			Status: status,
 		}
 
 		if len(compStatus.Standards) > 0 {
@@ -1679,25 +1366,17 @@ func (r *ResourcePlanningController) handlePlanningSuccess(ctx context.Context, 
 
 	resourcePlan.Status.ComplianceStatus = resourceComplianceStatus
 
-
-
 	// Set optimization results.
 
 	resourcePlan.Status.OptimizationResults = result.OptimizationResults
-
-
 
 	// Set validation results.
 
 	resourcePlan.Status.ValidationResults = result.ValidationResults
 
-
-
 	// Set quality score.
 
 	resourcePlan.Status.QualityScore = &result.QualityScore
-
-
 
 	// Calculate planning duration.
 
@@ -1709,8 +1388,6 @@ func (r *ResourcePlanningController) handlePlanningSuccess(ctx context.Context, 
 
 	}
 
-
-
 	// Update status.
 
 	if err := r.updateStatus(ctx, resourcePlan); err != nil {
@@ -1719,13 +1396,9 @@ func (r *ResourcePlanningController) handlePlanningSuccess(ctx context.Context, 
 
 	}
 
-
-
 	// Record success event.
 
 	r.Recorder.Event(resourcePlan, "Normal", "PlanningCompleted", "Resource planning completed successfully")
-
-
 
 	// Publish completion event.
 
@@ -1733,25 +1406,20 @@ func (r *ResourcePlanningController) handlePlanningSuccess(ctx context.Context, 
 
 		string(resourcePlan.UID), true, map[string]interface{}{
 
-			"quality_score":           result.QualityScore,
+			"quality_score": result.QualityScore,
 
 			"planned_resources_count": len(result.PlannedResources),
 
-			"planning_duration":       resourcePlan.Status.PlanningDuration.Duration.String(),
-
+			"planning_duration": resourcePlan.Status.PlanningDuration.Duration.String(),
 		}); err != nil {
 
 		log.Error(err, "Failed to publish completion event")
 
 	}
 
-
-
 	// Record metrics.
 
 	r.MetricsCollector.RecordPhaseCompletion(interfaces.PhaseResourcePlanning, string(resourcePlan.UID), true)
-
-
 
 	log.Info("Resource planning completed successfully", "qualityScore", result.QualityScore, "resourceCount", len(result.PlannedResources))
 
@@ -1759,25 +1427,17 @@ func (r *ResourcePlanningController) handlePlanningSuccess(ctx context.Context, 
 
 }
 
-
-
 // handlePlanningError handles planning errors with retry logic.
 
 func (r *ResourcePlanningController) handlePlanningError(ctx context.Context, resourcePlan *nephoranv1.ResourcePlan, err error) (ctrl.Result, error) {
 
 	log := r.Logger.WithValues("resourceplan", resourcePlan.Name)
 
-
-
 	log.Error(err, "Resource planning failed")
-
-
 
 	// Increment retry count.
 
 	resourcePlan.Status.RetryCount++
-
-
 
 	// Check if we should retry.
 
@@ -1787,15 +1447,11 @@ func (r *ResourcePlanningController) handlePlanningError(ctx context.Context, re
 
 		backoffDuration := r.calculateBackoff(resourcePlan.Status.RetryCount)
 
-
-
 		if err := r.updateStatus(ctx, resourcePlan); err != nil {
 
 			return ctrl.Result{}, err
 
 		}
-
-
 
 		// Record retry event.
 
@@ -1805,21 +1461,15 @@ func (r *ResourcePlanningController) handlePlanningError(ctx context.Context, re
 
 				resourcePlan.Status.RetryCount, r.Config.MaxRetries, err))
 
-
-
 		log.Info("Scheduling retry", "attempt", resourcePlan.Status.RetryCount, "backoff", backoffDuration)
 
 		return ctrl.Result{RequeueAfter: backoffDuration}, nil
 
 	}
 
-
-
 	// Max retries exceeded - mark as permanently failed.
 
 	resourcePlan.Status.Phase = nephoranv1.ResourcePlanPhaseFailed
-
-
 
 	// Add failure condition.
 
@@ -1827,31 +1477,26 @@ func (r *ResourcePlanningController) handlePlanningError(ctx context.Context, re
 
 	condition := metav1.Condition{
 
-		Type:               "PlanningFailed",
+		Type: "PlanningFailed",
 
-		Status:             metav1.ConditionTrue,
+		Status: metav1.ConditionTrue,
 
 		ObservedGeneration: resourcePlan.Generation,
 
-		Reason:             "MaxRetriesExceeded",
+		Reason: "MaxRetriesExceeded",
 
-		Message:            fmt.Sprintf("Planning failed after %d attempts: %v", resourcePlan.Status.RetryCount, err),
+		Message: fmt.Sprintf("Planning failed after %d attempts: %v", resourcePlan.Status.RetryCount, err),
 
 		LastTransitionTime: now,
-
 	}
 
 	resourcePlan.Status.Conditions = append(resourcePlan.Status.Conditions, condition)
-
-
 
 	if updateErr := r.updateStatus(ctx, resourcePlan); updateErr != nil {
 
 		return ctrl.Result{}, updateErr
 
 	}
-
-
 
 	// Record failure event.
 
@@ -1860,8 +1505,6 @@ func (r *ResourcePlanningController) handlePlanningError(ctx context.Context, re
 		fmt.Sprintf("Resource planning failed permanently after %d attempts: %v",
 
 			resourcePlan.Status.RetryCount, err))
-
-
 
 	// Publish failure event.
 
@@ -1872,26 +1515,19 @@ func (r *ResourcePlanningController) handlePlanningError(ctx context.Context, re
 			"retry_count": resourcePlan.Status.RetryCount,
 
 			"final_error": err.Error(),
-
 		}); pubErr != nil {
 
 		log.Error(pubErr, "Failed to publish failure event")
 
 	}
 
-
-
 	// Record metrics.
 
 	r.MetricsCollector.RecordPhaseCompletion(interfaces.PhaseResourcePlanning, string(resourcePlan.UID), false)
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // calculateBackoff calculates the backoff duration for retries.
 
@@ -1917,25 +1553,17 @@ func (r *ResourcePlanningController) calculateBackoff(retryCount int32) time.Dur
 
 }
 
-
-
 // handleDeletion handles resource deletion.
 
 func (r *ResourcePlanningController) handleDeletion(ctx context.Context, resourcePlan *nephoranv1.ResourcePlan) (ctrl.Result, error) {
 
 	log := r.Logger.WithValues("resourceplan", resourcePlan.Name)
 
-
-
 	log.Info("Handling ResourcePlan deletion")
-
-
 
 	// Cleanup any resources if needed.
 
 	// (In this case, there are no external resources to clean up).
-
-
 
 	// Remove finalizer.
 
@@ -1944,8 +1572,6 @@ func (r *ResourcePlanningController) handleDeletion(ctx context.Context, resourc
 	return ctrl.Result{}, r.Update(ctx, resourcePlan)
 
 }
-
-
 
 // updateStatus updates the status of the ResourcePlan resource.
 
@@ -1957,77 +1583,58 @@ func (r *ResourcePlanningController) updateStatus(ctx context.Context, resourceP
 
 }
 
-
-
 // SetupWithManager sets up the controller with the Manager.
 
 func (r *ResourcePlanningController) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
-
 		For(&nephoranv1.ResourcePlan{}).
-
 		Named("resourceplanning").
-
 		Complete(r)
 
 }
 
-
-
 // Supporting types and functions.
-
-
 
 // ResourceRequirements contains analyzed requirements.
 
 type ResourceRequirements struct {
+	TargetComponents []nephoranv1.TargetComponent
 
-	TargetComponents       []nephoranv1.TargetComponent
+	DeploymentPattern nephoranv1.DeploymentPattern
 
-	DeploymentPattern      nephoranv1.DeploymentPattern
+	ResourceConstraints *nephoranv1.ResourceConstraints
 
-	ResourceConstraints    *nephoranv1.ResourceConstraints
+	TargetClusters []nephoranv1.ClusterReference
 
-	TargetClusters         []nephoranv1.ClusterReference
+	NetworkSlice *nephoranv1.NetworkSliceSpec
 
-	NetworkSlice           *nephoranv1.NetworkSliceSpec
-
-	OptimizationGoals      []nephoranv1.OptimizationGoal
+	OptimizationGoals []nephoranv1.OptimizationGoal
 
 	ComplianceRequirements []nephoranv1.ComplianceRequirement
 
-	ParsedInput            map[string]interface{}
-
+	ParsedInput map[string]interface{}
 }
-
-
 
 // ResourcePlanningResult contains the result of resource planning.
 
 type ResourcePlanningResult struct {
+	PlannedResources []nephoranv1.PlannedResource
 
-	PlannedResources    []nephoranv1.PlannedResource
-
-	CostEstimate        *nephoranv1.CostEstimate
+	CostEstimate *nephoranv1.CostEstimate
 
 	PerformanceEstimate *nephoranv1.PerformanceEstimate
 
-	ComplianceResults   []nephoranv1.ComplianceStatus
+	ComplianceResults []nephoranv1.ComplianceStatus
 
 	OptimizationResults []nephoranv1.OptimizationResult
 
-	ValidationResults   []nephoranv1.ValidationResult
+	ValidationResults []nephoranv1.ValidationResult
 
-	QualityScore        float64
-
+	QualityScore float64
 }
 
-
-
 // Service constructors.
-
-
 
 // NewResourcePlanningService creates a new ResourcePlanningService.
 
@@ -2038,12 +1645,9 @@ func NewResourcePlanningService() *ResourcePlanningService {
 		Logger: log.Log.WithName("resource-planning-service"),
 
 		Config: DefaultResourcePlanningServiceConfig(),
-
 	}
 
 }
-
-
 
 // NewCostEstimationService creates a new CostEstimationService.
 
@@ -2055,19 +1659,16 @@ func NewCostEstimationService() *CostEstimationService {
 
 		CostRates: map[string]float64{
 
-			"cpu_core_hour":   0.048,  // $0.048 per vCPU hour
+			"cpu_core_hour": 0.048, // $0.048 per vCPU hour
 
-			"memory_gb_hour":  0.0065, // $0.0065 per GB hour
+			"memory_gb_hour": 0.0065, // $0.0065 per GB hour
 
 			"storage_gb_hour": 0.0001, // $0.0001 per GB hour
 
 		},
-
 	}
 
 }
-
-
 
 // NewComplianceValidationService creates a new ComplianceValidationService.
 
@@ -2077,13 +1678,10 @@ func NewComplianceValidationService() *ComplianceValidationService {
 
 		Logger: log.Log.WithName("compliance-validation-service"),
 
-		Rules:  DefaultComplianceRules(),
-
+		Rules: DefaultComplianceRules(),
 	}
 
 }
-
-
 
 // Default configuration values.
 
@@ -2091,63 +1689,52 @@ func DefaultResourcePlanningConfig() *ResourcePlanningConfig {
 
 	return &ResourcePlanningConfig{
 
-		MaxConcurrentPlanning:          5,
+		MaxConcurrentPlanning: 5,
 
-		DefaultTimeout:                 300 * time.Second,
+		DefaultTimeout: 300 * time.Second,
 
-		MaxRetries:                     3,
+		MaxRetries: 3,
 
-		RetryBackoff:                   30 * time.Second,
+		RetryBackoff: 30 * time.Second,
 
-		QualityThreshold:               0.7,
+		QualityThreshold: 0.7,
 
-		CostOptimizationEnabled:        true,
+		CostOptimizationEnabled: true,
 
 		PerformanceOptimizationEnabled: true,
 
-		ComplianceValidationEnabled:    true,
-
-
+		ComplianceValidationEnabled: true,
 
 		// Cache configuration.
 
-		CacheEnabled:    true,
+		CacheEnabled: true,
 
-		CacheTTL:        5 * time.Minute,
+		CacheTTL: 5 * time.Minute,
 
 		MaxCacheEntries: 1000,
 
-
-
 		// Optimization configuration.
 
-		OptimizationEnabled:   true,
+		OptimizationEnabled: true,
 
-		CPUOvercommitRatio:    1.5,
+		CPUOvercommitRatio: 1.5,
 
 		MemoryOvercommitRatio: 1.2,
 
-
-
 		// Default resource requests.
 
-		DefaultCPURequest:     "100m",
+		DefaultCPURequest: "100m",
 
-		DefaultMemoryRequest:  "128Mi",
+		DefaultMemoryRequest: "128Mi",
 
 		DefaultStorageRequest: "1Gi",
-
-
 
 		// Constraint checking.
 
 		ConstraintCheckEnabled: true,
-
 	}
 
 }
-
-
 
 // DefaultResourcePlanningServiceConfig performs defaultresourceplanningserviceconfig operation.
 
@@ -2155,35 +1742,31 @@ func DefaultResourcePlanningServiceConfig() *ResourcePlanningServiceConfig {
 
 	return &ResourcePlanningServiceConfig{
 
-		DefaultCPURequest:    resource.MustParse("100m"),
+		DefaultCPURequest: resource.MustParse("100m"),
 
 		DefaultMemoryRequest: resource.MustParse("128Mi"),
 
-		DefaultCPULimit:      resource.MustParse("500m"),
+		DefaultCPULimit: resource.MustParse("500m"),
 
-		DefaultMemoryLimit:   resource.MustParse("512Mi"),
+		DefaultMemoryLimit: resource.MustParse("512Mi"),
 
-		DefaultReplicas:      1,
+		DefaultReplicas: 1,
 
 		ResourceMultipliers: map[string]float64{
 
-			"AMF":         1.0,
+			"AMF": 1.0,
 
-			"SMF":         1.2,
+			"SMF": 1.2,
 
-			"UPF":         2.0,
+			"UPF": 2.0,
 
-			"gNodeB":      1.8,
+			"gNodeB": 1.8,
 
 			"Near-RT-RIC": 1.5,
-
 		},
-
 	}
 
 }
-
-
 
 // DefaultComplianceRules performs defaultcompliancerules operation.
 
@@ -2193,33 +1776,26 @@ func DefaultComplianceRules() map[string]ComplianceRule {
 
 		"3GPP": {
 
-			Standard:    "3GPP",
+			Standard: "3GPP",
 
 			Requirement: "Network functions must have resource limits",
 
-			Validator:   validate3GPPCompliance,
-
+			Validator: validate3GPPCompliance,
 		},
 
 		"ETSI": {
 
-			Standard:    "ETSI",
+			Standard: "ETSI",
 
 			Requirement: "Network functions must follow ETSI NFV standards",
 
-			Validator:   validateETSICompliance,
-
+			Validator: validateETSICompliance,
 		},
-
 	}
 
 }
 
-
-
 // Compliance validators.
-
-
 
 func validate3GPPCompliance(plan *nephoranv1.ResourcePlan) (bool, string) {
 
@@ -2239,8 +1815,6 @@ func validate3GPPCompliance(plan *nephoranv1.ResourcePlan) (bool, string) {
 
 }
 
-
-
 func validateETSICompliance(plan *nephoranv1.ResourcePlan) (bool, string) {
 
 	// Simplified ETSI compliance check.
@@ -2259,19 +1833,13 @@ func validateETSICompliance(plan *nephoranv1.ResourcePlan) (bool, string) {
 
 }
 
-
-
 // Service method implementations.
-
-
 
 // PlanResources plans resources based on requirements.
 
 func (rps *ResourcePlanningService) PlanResources(ctx context.Context, requirements *ResourceRequirements) ([]nephoranv1.PlannedResource, error) {
 
 	var plannedResources []nephoranv1.PlannedResource
-
-
 
 	// Plan resources for each target component.
 
@@ -2283,13 +1851,9 @@ func (rps *ResourcePlanningService) PlanResources(ctx context.Context, requireme
 
 	}
 
-
-
 	return plannedResources, nil
 
 }
-
-
 
 // planComponentResource plans resources for a specific component.
 
@@ -2299,13 +1863,9 @@ func (rps *ResourcePlanningService) planComponentResource(component nephoranv1.T
 
 	baseResource := rps.getBaseResourceRequirements(component)
 
-
-
 	// Apply multipliers based on deployment pattern.
 
 	multiplier := rps.getDeploymentMultiplier(requirements.DeploymentPattern)
-
-
 
 	// Calculate final resources.
 
@@ -2317,19 +1877,15 @@ func (rps *ResourcePlanningService) planComponentResource(component nephoranv1.T
 
 	memoryLimit := resource.NewQuantity(int64(float64(baseResource.Limits.Memory.Value())*multiplier), resource.BinarySI)
 
-
-
 	// Determine replicas based on deployment pattern.
 
 	replicas := rps.getReplicas(requirements.DeploymentPattern)
 
-
-
 	return nephoranv1.PlannedResource{
 
-		Name:      strings.ToLower(component.Name),
+		Name: strings.ToLower(component.Name),
 
-		Type:      "NetworkFunction",
+		Type: "NetworkFunction",
 
 		Component: component,
 
@@ -2337,39 +1893,32 @@ func (rps *ResourcePlanningService) planComponentResource(component nephoranv1.T
 
 			Requests: nephoranv1.ResourceList{
 
-				CPU:    cpuRequest,
+				CPU: cpuRequest,
 
 				Memory: memoryRequest,
-
 			},
 
 			Limits: nephoranv1.ResourceList{
 
-				CPU:    cpuLimit,
+				CPU: cpuLimit,
 
 				Memory: memoryLimit,
-
 			},
-
 		},
 
 		Replicas: &replicas,
 
 		Labels: map[string]string{
 
-			"app.kubernetes.io/name":      strings.ToLower(component.Name),
+			"app.kubernetes.io/name": strings.ToLower(component.Name),
 
 			"app.kubernetes.io/component": "network-function",
 
-			"nephoran.com/component":      component.Name,
-
+			"nephoran.com/component": component.Name,
 		},
-
 	}
 
 }
-
-
 
 // getBaseResourceRequirements returns base resource requirements for a component.
 
@@ -2385,8 +1934,6 @@ func (rps *ResourcePlanningService) getBaseResourceRequirements(component nephor
 
 	}
 
-
-
 	cpuRequest := resource.NewMilliQuantity(int64(float64(rps.Config.DefaultCPURequest.MilliValue())*multiplier), resource.DecimalSI)
 
 	memoryRequest := resource.NewQuantity(int64(float64(rps.Config.DefaultMemoryRequest.Value())*multiplier), resource.BinarySI)
@@ -2395,31 +1942,24 @@ func (rps *ResourcePlanningService) getBaseResourceRequirements(component nephor
 
 	memoryLimit := resource.NewQuantity(int64(float64(rps.Config.DefaultMemoryLimit.Value())*multiplier), resource.BinarySI)
 
-
-
 	return nephoranv1.ResourceSpec{
 
 		Requests: nephoranv1.ResourceList{
 
-			CPU:    cpuRequest,
+			CPU: cpuRequest,
 
 			Memory: memoryRequest,
-
 		},
 
 		Limits: nephoranv1.ResourceList{
 
-			CPU:    cpuLimit,
+			CPU: cpuLimit,
 
 			Memory: memoryLimit,
-
 		},
-
 	}
 
 }
-
-
 
 // getDeploymentMultiplier returns resource multiplier based on deployment pattern.
 
@@ -2455,8 +1995,6 @@ func (rps *ResourcePlanningService) getDeploymentMultiplier(pattern nephoranv1.D
 
 }
 
-
-
 // getReplicas returns the number of replicas based on deployment pattern.
 
 func (rps *ResourcePlanningService) getReplicas(pattern nephoranv1.DeploymentPattern) int32 {
@@ -2491,8 +2029,6 @@ func (rps *ResourcePlanningService) getReplicas(pattern nephoranv1.DeploymentPat
 
 }
 
-
-
 // EstimateCosts estimates the costs for planned resources.
 
 func (ces *CostEstimationService) EstimateCosts(ctx context.Context, resources []nephoranv1.PlannedResource) (*nephoranv1.CostEstimate, error) {
@@ -2501,15 +2037,11 @@ func (ces *CostEstimationService) EstimateCosts(ctx context.Context, resources [
 
 	costBreakdown := make(map[string]float64)
 
-
-
 	for _, resource := range resources {
 
 		// Calculate hourly cost for this resource.
 
 		hourlyCost := 0.0
-
-
 
 		if resource.ResourceRequirements.Requests.CPU != nil {
 
@@ -2521,8 +2053,6 @@ func (ces *CostEstimationService) EstimateCosts(ctx context.Context, resources [
 
 		}
 
-
-
 		if resource.ResourceRequirements.Requests.Memory != nil {
 
 			memoryGB := float64(resource.ResourceRequirements.Requests.Memory.Value()) / (1024 * 1024 * 1024)
@@ -2533,8 +2063,6 @@ func (ces *CostEstimationService) EstimateCosts(ctx context.Context, resources [
 
 		}
 
-
-
 		// Apply replica multiplier.
 
 		if resource.Replicas != nil {
@@ -2542,8 +2070,6 @@ func (ces *CostEstimationService) EstimateCosts(ctx context.Context, resources [
 			hourlyCost *= float64(*resource.Replicas)
 
 		}
-
-
 
 		// Calculate monthly cost (24 * 30 = 720 hours).
 
@@ -2555,35 +2081,28 @@ func (ces *CostEstimationService) EstimateCosts(ctx context.Context, resources [
 
 	}
 
-
-
 	// Create cost estimate.
 
 	confidence := 0.8 // 80% confidence in the estimate
 
 	costEstimate := &nephoranv1.CostEstimate{
 
-		TotalCost:     totalCost,
+		TotalCost: totalCost,
 
-		Currency:      "USD",
+		Currency: "USD",
 
 		BillingPeriod: "monthly",
 
 		CostBreakdown: costBreakdown,
 
-		EstimatedAt:   metav1.Now(),
+		EstimatedAt: metav1.Now(),
 
-		Confidence:    &confidence,
-
+		Confidence: &confidence,
 	}
-
-
 
 	return costEstimate, nil
 
 }
-
-
 
 // ValidateRequirement validates a compliance requirement.
 
@@ -2591,17 +2110,12 @@ func (cvs *ComplianceValidationService) ValidateRequirement(requirement nephoran
 
 	status := nephoranv1.ComplianceStatus{
 
-		Standards:      []string{requirement.Standard},
+		Standards: []string{requirement.Standard},
 
 		ViolationCount: 0,
-
 	}
 
-
-
 	var violations []nephoranv1.ComplianceViolation
-
-
 
 	// Check if we have a validator for this standard.
 
@@ -2613,12 +2127,11 @@ func (cvs *ComplianceValidationService) ValidateRequirement(requirement nephoran
 
 			violation := nephoranv1.ComplianceViolation{
 
-				Type:        "Standard",
+				Type: "Standard",
 
-				Severity:    "Major",
+				Severity: "Major",
 
 				Description: message,
-
 			}
 
 			violations = append(violations, violation)
@@ -2628,8 +2141,6 @@ func (cvs *ComplianceValidationService) ValidateRequirement(requirement nephoran
 		}
 
 	}
-
-
 
 	// Convert violations to summaries for the status.
 
@@ -2652,4 +2163,3 @@ func (cvs *ComplianceValidationService) ValidateRequirement(requirement nephoran
 	return status, violations
 
 }
-

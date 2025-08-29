@@ -28,64 +28,33 @@ limitations under the License.
 
 */
 
-
-
-
 package porch
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"errors"
-
 	"fmt"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/sony/gobreaker"
-
 	"golang.org/x/time/rate"
 
-
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	"k8s.io/client-go/dynamic"
-
 	"k8s.io/client-go/rest"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // ClientConfig defines configuration for the Porch client.
 
@@ -95,47 +64,32 @@ type ClientConfig struct {
 
 	Endpoint string
 
-
-
 	// Authentication config.
 
 	AuthConfig *AuthConfig
-
-
 
 	// TLS configuration.
 
 	TLSConfig *ClientTLSConfig
 
-
-
 	// Porch-specific configuration.
 
 	PorchConfig *PorchConfig
-
 }
 
-
-
 // AuthConfig is defined in types.go.
-
-
 
 // ClientTLSConfig defines TLS configuration.
 
 type ClientTLSConfig struct {
-
 	InsecureSkipVerify bool
 
-	CertFile           string
+	CertFile string
 
-	KeyFile            string
+	KeyFile string
 
-	CAFile             string
-
+	CAFile string
 }
-
-
 
 // PorchConfig defines Porch-specific configuration.
 
@@ -145,99 +99,70 @@ type PorchConfig struct {
 
 	DefaultNamespace string
 
-
-
 	// Default repository for package operations.
 
 	DefaultRepository string
-
-
 
 	// Circuit breaker configuration.
 
 	CircuitBreaker *ClientCircuitBreakerConfig
 
-
-
 	// Rate limiting configuration.
 
 	RateLimit *ClientRateLimitConfig
-
-
 
 	// Connection pool configuration.
 
 	ConnectionPool *ClientConnectionPoolConfig
 
-
-
 	// Function execution configuration.
 
 	FunctionExecution *ClientFunctionExecutionConfig
-
 }
-
-
 
 // ClientCircuitBreakerConfig defines circuit breaker settings.
 
 type ClientCircuitBreakerConfig struct {
-
-	Enabled          bool
+	Enabled bool
 
 	FailureThreshold int
 
 	SuccessThreshold int
 
-	Timeout          time.Duration
+	Timeout time.Duration
 
 	HalfOpenMaxCalls int
-
 }
-
-
 
 // ClientRateLimitConfig defines rate limiting settings.
 
 type ClientRateLimitConfig struct {
-
-	Enabled           bool
+	Enabled bool
 
 	RequestsPerSecond float64
 
-	Burst             int
-
+	Burst int
 }
-
-
 
 // ClientConnectionPoolConfig defines connection pool settings.
 
 type ClientConnectionPoolConfig struct {
+	MaxOpenConns int
 
-	MaxOpenConns    int
-
-	MaxIdleConns    int
+	MaxIdleConns int
 
 	ConnMaxLifetime time.Duration
-
 }
-
-
 
 // ClientFunctionExecutionConfig defines function execution settings.
 
 type ClientFunctionExecutionConfig struct {
-
 	DefaultTimeout time.Duration
 
 	MaxConcurrency int
 
 	ResourceLimits map[string]string
-
 }
-
-
 
 // GetKubernetesConfig returns the Kubernetes configuration from the Porch config.
 
@@ -251,21 +176,15 @@ func (c *ClientConfig) GetKubernetesConfig() (*rest.Config, error) {
 
 	}
 
-
-
 	// Build config based on auth type.
 
 	config := &rest.Config{}
-
-
 
 	if c.Endpoint != "" {
 
 		config.Host = c.Endpoint
 
 	}
-
-
 
 	switch c.AuthConfig.Type {
 
@@ -291,8 +210,6 @@ func (c *ClientConfig) GetKubernetesConfig() (*rest.Config, error) {
 
 	}
 
-
-
 	// Apply TLS configuration.
 
 	if c.TLSConfig != nil {
@@ -303,21 +220,16 @@ func (c *ClientConfig) GetKubernetesConfig() (*rest.Config, error) {
 
 			CertFile: c.TLSConfig.CertFile,
 
-			KeyFile:  c.TLSConfig.KeyFile,
+			KeyFile: c.TLSConfig.KeyFile,
 
-			CAFile:   c.TLSConfig.CAFile,
-
+			CAFile: c.TLSConfig.CAFile,
 		}
 
 	}
 
-
-
 	return config, nil
 
 }
-
-
 
 // DefaultPorchConfig returns default Porch configuration.
 
@@ -327,42 +239,39 @@ func DefaultPorchConfig() *ClientConfig {
 
 		PorchConfig: &PorchConfig{
 
-			DefaultNamespace:  "default",
+			DefaultNamespace: "default",
 
 			DefaultRepository: "default",
 
 			CircuitBreaker: &ClientCircuitBreakerConfig{
 
-				Enabled:          true,
+				Enabled: true,
 
 				FailureThreshold: 5,
 
 				SuccessThreshold: 3,
 
-				Timeout:          30 * time.Second,
+				Timeout: 30 * time.Second,
 
 				HalfOpenMaxCalls: 3,
-
 			},
 
 			RateLimit: &ClientRateLimitConfig{
 
-				Enabled:           true,
+				Enabled: true,
 
 				RequestsPerSecond: 10.0,
 
-				Burst:             20,
-
+				Burst: 20,
 			},
 
 			ConnectionPool: &ClientConnectionPoolConfig{
 
-				MaxOpenConns:    10,
+				MaxOpenConns: 10,
 
-				MaxIdleConns:    5,
+				MaxIdleConns: 5,
 
 				ConnMaxLifetime: 30 * time.Minute,
-
 			},
 
 			FunctionExecution: &ClientFunctionExecutionConfig{
@@ -373,21 +282,15 @@ func DefaultPorchConfig() *ClientConfig {
 
 				ResourceLimits: map[string]string{
 
-					"cpu":    "100m",
+					"cpu": "100m",
 
 					"memory": "128Mi",
-
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // Client implements the PorchClient interface providing comprehensive CRUD operations.
 
@@ -395,167 +298,122 @@ type Client struct {
 
 	// Kubernetes clients.
 
-	dynamic    dynamic.Interface
+	dynamic dynamic.Interface
 
-	client     client.Client
+	client client.Client
 
 	restClient rest.Interface
-
-
 
 	// Configuration.
 
 	config *ClientConfig
 
-
-
 	// Circuit breaker for fault tolerance.
 
 	circuitBreaker *gobreaker.CircuitBreaker
-
-
 
 	// Rate limiter for API calls.
 
 	rateLimiter *rate.Limiter
 
-
-
 	// Metrics.
 
 	metrics *ClientMetrics
-
-
 
 	// Logger.
 
 	logger logr.Logger
 
-
-
 	// Cache for frequently accessed resources.
 
 	cache *clientCache
-
-
 
 	// Repository manager.
 
 	repoManager RepositoryManager
 
-
-
 	// Package revision manager.
 
 	pkgManager PackageRevisionManager
-
-
 
 	// Function runner.
 
 	functionRunner FunctionRunner
 
-
-
 	// Connection pool.
 
 	connectionPool *connectionPool
 
-
-
 	// Mutex for thread safety.
 
 	mutex sync.RWMutex
-
 }
-
-
 
 // ClientOptions defines options for creating a Porch client.
 
 type ClientOptions struct {
+	Config *ClientConfig
 
-	Config         *ClientConfig
+	KubeConfig *rest.Config
 
-	KubeConfig     *rest.Config
-
-	Logger         logr.Logger
+	Logger logr.Logger
 
 	MetricsEnabled bool
 
-	CacheEnabled   bool
+	CacheEnabled bool
 
-	CacheSize      int
+	CacheSize int
 
-	CacheTTL       time.Duration
-
+	CacheTTL time.Duration
 }
-
-
 
 // ClientMetrics defines Prometheus metrics for the Porch client.
 
 type ClientMetrics struct {
+	requestsTotal *prometheus.CounterVec
 
-	requestsTotal       *prometheus.CounterVec
+	requestDuration *prometheus.HistogramVec
 
-	requestDuration     *prometheus.HistogramVec
+	cacheHits prometheus.Counter
 
-	cacheHits           prometheus.Counter
-
-	cacheMisses         prometheus.Counter
+	cacheMisses prometheus.Counter
 
 	circuitBreakerState prometheus.Gauge
 
-	activeConnections   prometheus.Gauge
+	activeConnections prometheus.Gauge
 
-	errorRate           *prometheus.CounterVec
-
+	errorRate *prometheus.CounterVec
 }
-
-
 
 // clientCache provides caching for frequently accessed resources.
 
 type clientCache struct {
+	cache map[string]*cacheEntry
 
-	cache   map[string]*cacheEntry
+	mutex sync.RWMutex
 
-	mutex   sync.RWMutex
-
-	ttl     time.Duration
+	ttl time.Duration
 
 	maxSize int
-
 }
-
-
 
 type cacheEntry struct {
-
-	data      interface{}
+	data interface{}
 
 	timestamp time.Time
-
 }
-
-
 
 // connectionPool manages HTTP connections for better performance.
 
 type connectionPool struct {
-
-	pool    chan *rest.RESTClient
+	pool chan *rest.RESTClient
 
 	maxSize int
 
 	current int
 
-	mutex   sync.Mutex
-
+	mutex sync.Mutex
 }
-
-
 
 // NewClient creates a new Porch API client with the specified options.
 
@@ -566,8 +424,6 @@ func NewClient(opts ClientOptions) (*Client, error) {
 		return nil, fmt.Errorf("config is required")
 
 	}
-
-
 
 	if opts.KubeConfig == nil {
 
@@ -583,15 +439,11 @@ func NewClient(opts ClientOptions) (*Client, error) {
 
 	}
 
-
-
 	if opts.Logger.GetSink() == nil {
 
 		opts.Logger = log.Log.WithName("porch-client")
 
 	}
-
-
 
 	// Create dynamic client.
 
@@ -603,8 +455,6 @@ func NewClient(opts ClientOptions) (*Client, error) {
 
 	}
 
-
-
 	// Create controller-runtime client.
 
 	scheme := runtime.NewScheme()
@@ -612,7 +462,6 @@ func NewClient(opts ClientOptions) (*Client, error) {
 	ctrlClient, err := client.New(opts.KubeConfig, client.Options{
 
 		Scheme: scheme,
-
 	})
 
 	if err != nil {
@@ -620,8 +469,6 @@ func NewClient(opts ClientOptions) (*Client, error) {
 		return nil, fmt.Errorf("failed to create controller client: %w", err)
 
 	}
-
-
 
 	// Create REST client.
 
@@ -633,23 +480,18 @@ func NewClient(opts ClientOptions) (*Client, error) {
 
 	}
 
-
-
 	client := &Client{
 
-		dynamic:    dynamicClient,
+		dynamic: dynamicClient,
 
-		client:     ctrlClient,
+		client: ctrlClient,
 
 		restClient: restClient,
 
-		config:     opts.Config,
+		config: opts.Config,
 
-		logger:     opts.Logger,
-
+		logger: opts.Logger,
 	}
-
-
 
 	// Initialize circuit breaker.
 
@@ -659,8 +501,6 @@ func NewClient(opts ClientOptions) (*Client, error) {
 
 	}
 
-
-
 	// Initialize rate limiter.
 
 	if err := client.initRateLimiter(); err != nil {
@@ -668,8 +508,6 @@ func NewClient(opts ClientOptions) (*Client, error) {
 		return nil, fmt.Errorf("failed to initialize rate limiter: %w", err)
 
 	}
-
-
 
 	// Initialize metrics.
 
@@ -679,20 +517,17 @@ func NewClient(opts ClientOptions) (*Client, error) {
 
 	}
 
-
-
 	// Initialize cache.
 
 	if opts.CacheEnabled {
 
 		client.cache = &clientCache{
 
-			cache:   make(map[string]*cacheEntry),
+			cache: make(map[string]*cacheEntry),
 
-			ttl:     opts.CacheTTL,
+			ttl: opts.CacheTTL,
 
 			maxSize: opts.CacheSize,
-
 		}
 
 		if client.cache.ttl == 0 {
@@ -709,8 +544,6 @@ func NewClient(opts ClientOptions) (*Client, error) {
 
 	}
 
-
-
 	// Initialize connection pool.
 
 	poolSize := 10
@@ -723,13 +556,10 @@ func NewClient(opts ClientOptions) (*Client, error) {
 
 	client.connectionPool = &connectionPool{
 
-		pool:    make(chan *rest.RESTClient, poolSize),
+		pool: make(chan *rest.RESTClient, poolSize),
 
 		maxSize: poolSize,
-
 	}
-
-
 
 	// Initialize sub-managers with stub implementations.
 
@@ -739,17 +569,11 @@ func NewClient(opts ClientOptions) (*Client, error) {
 
 	client.functionRunner = &functionRunnerStub{client: client}
 
-
-
 	return client, nil
 
 }
 
-
-
 // Repository Operations.
-
-
 
 // GetRepository retrieves a repository by name.
 
@@ -768,8 +592,6 @@ func (c *Client) GetRepository(ctx context.Context, name string) (*Repository, e
 		}
 
 	}()
-
-
 
 	// Check cache first.
 
@@ -799,8 +621,6 @@ func (c *Client) GetRepository(ctx context.Context, name string) (*Repository, e
 
 	}
 
-
-
 	// Execute with circuit breaker.
 
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
@@ -817,11 +637,7 @@ func (c *Client) GetRepository(ctx context.Context, name string) (*Repository, e
 
 	}
 
-
-
 	repo := result.(*Repository)
-
-
 
 	// Cache the result.
 
@@ -831,13 +647,9 @@ func (c *Client) GetRepository(ctx context.Context, name string) (*Repository, e
 
 	}
 
-
-
 	return repo, nil
 
 }
-
-
 
 // ListRepositories lists all repositories matching the provided options.
 
@@ -857,8 +669,6 @@ func (c *Client) ListRepositories(ctx context.Context, opts *ListOptions) (*Repo
 
 	}()
 
-
-
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return c.listRepositoriesInternal(ctx, opts)
@@ -873,13 +683,9 @@ func (c *Client) ListRepositories(ctx context.Context, opts *ListOptions) (*Repo
 
 	}
 
-
-
 	return result.(*RepositoryList), nil
 
 }
-
-
 
 // CreateRepository creates a new repository.
 
@@ -899,8 +705,6 @@ func (c *Client) CreateRepository(ctx context.Context, repo *Repository) (*Repos
 
 	}()
 
-
-
 	// Validate repository.
 
 	if err := c.validateRepository(repo); err != nil {
@@ -908,8 +712,6 @@ func (c *Client) CreateRepository(ctx context.Context, repo *Repository) (*Repos
 		return nil, fmt.Errorf("repository validation failed: %w", err)
 
 	}
-
-
 
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
@@ -925,11 +727,7 @@ func (c *Client) CreateRepository(ctx context.Context, repo *Repository) (*Repos
 
 	}
 
-
-
 	created := result.(*Repository)
-
-
 
 	// Invalidate cache.
 
@@ -939,13 +737,9 @@ func (c *Client) CreateRepository(ctx context.Context, repo *Repository) (*Repos
 
 	}
 
-
-
 	return created, nil
 
 }
-
-
 
 // UpdateRepository updates an existing repository.
 
@@ -965,8 +759,6 @@ func (c *Client) UpdateRepository(ctx context.Context, repo *Repository) (*Repos
 
 	}()
 
-
-
 	// Validate repository.
 
 	if err := c.validateRepository(repo); err != nil {
@@ -974,8 +766,6 @@ func (c *Client) UpdateRepository(ctx context.Context, repo *Repository) (*Repos
 		return nil, fmt.Errorf("repository validation failed: %w", err)
 
 	}
-
-
 
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
@@ -991,11 +781,7 @@ func (c *Client) UpdateRepository(ctx context.Context, repo *Repository) (*Repos
 
 	}
 
-
-
 	updated := result.(*Repository)
-
-
 
 	// Invalidate cache.
 
@@ -1005,13 +791,9 @@ func (c *Client) UpdateRepository(ctx context.Context, repo *Repository) (*Repos
 
 	}
 
-
-
 	return updated, nil
 
 }
-
-
 
 // DeleteRepository deletes a repository.
 
@@ -1031,8 +813,6 @@ func (c *Client) DeleteRepository(ctx context.Context, name string) error {
 
 	}()
 
-
-
 	_, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return nil, c.deleteRepositoryInternal(ctx, name)
@@ -1047,8 +827,6 @@ func (c *Client) DeleteRepository(ctx context.Context, name string) error {
 
 	}
 
-
-
 	// Invalidate cache.
 
 	if c.cache != nil {
@@ -1057,13 +835,9 @@ func (c *Client) DeleteRepository(ctx context.Context, name string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // SyncRepository synchronizes a repository with its remote source.
 
@@ -1083,8 +857,6 @@ func (c *Client) SyncRepository(ctx context.Context, name string) error {
 
 	}()
 
-
-
 	_, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return nil, c.syncRepositoryInternal(ctx, name)
@@ -1099,8 +871,6 @@ func (c *Client) SyncRepository(ctx context.Context, name string) error {
 
 	}
 
-
-
 	// Invalidate cache.
 
 	if c.cache != nil {
@@ -1109,17 +879,11 @@ func (c *Client) SyncRepository(ctx context.Context, name string) error {
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // PackageRevision Operations.
-
-
 
 // GetPackageRevision retrieves a package revision.
 
@@ -1139,11 +903,7 @@ func (c *Client) GetPackageRevision(ctx context.Context, name, revision string) 
 
 	}()
 
-
-
 	cacheKey := fmt.Sprintf("pkg:%s:%s", name, revision)
-
-
 
 	// Check cache first.
 
@@ -1173,8 +933,6 @@ func (c *Client) GetPackageRevision(ctx context.Context, name, revision string) 
 
 	}
 
-
-
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return c.getPackageRevisionInternal(ctx, name, revision)
@@ -1189,11 +947,7 @@ func (c *Client) GetPackageRevision(ctx context.Context, name, revision string) 
 
 	}
 
-
-
 	pkg := result.(*PackageRevision)
-
-
 
 	// Cache the result.
 
@@ -1203,13 +957,9 @@ func (c *Client) GetPackageRevision(ctx context.Context, name, revision string) 
 
 	}
 
-
-
 	return pkg, nil
 
 }
-
-
 
 // ListPackageRevisions lists package revisions matching the provided options.
 
@@ -1229,8 +979,6 @@ func (c *Client) ListPackageRevisions(ctx context.Context, opts *ListOptions) (*
 
 	}()
 
-
-
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return c.listPackageRevisionsInternal(ctx, opts)
@@ -1245,13 +993,9 @@ func (c *Client) ListPackageRevisions(ctx context.Context, opts *ListOptions) (*
 
 	}
 
-
-
 	return result.(*PackageRevisionList), nil
 
 }
-
-
 
 // CreatePackageRevision creates a new package revision.
 
@@ -1271,8 +1015,6 @@ func (c *Client) CreatePackageRevision(ctx context.Context, pkg *PackageRevision
 
 	}()
 
-
-
 	// Validate package revision.
 
 	if err := c.validatePackageRevision(pkg); err != nil {
@@ -1280,8 +1022,6 @@ func (c *Client) CreatePackageRevision(ctx context.Context, pkg *PackageRevision
 		return nil, fmt.Errorf("package revision validation failed: %w", err)
 
 	}
-
-
 
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
@@ -1297,11 +1037,7 @@ func (c *Client) CreatePackageRevision(ctx context.Context, pkg *PackageRevision
 
 	}
 
-
-
 	created := result.(*PackageRevision)
-
-
 
 	// Invalidate cache.
 
@@ -1313,13 +1049,9 @@ func (c *Client) CreatePackageRevision(ctx context.Context, pkg *PackageRevision
 
 	}
 
-
-
 	return created, nil
 
 }
-
-
 
 // UpdatePackageRevision updates an existing package revision.
 
@@ -1339,8 +1071,6 @@ func (c *Client) UpdatePackageRevision(ctx context.Context, pkg *PackageRevision
 
 	}()
 
-
-
 	// Validate package revision.
 
 	if err := c.validatePackageRevision(pkg); err != nil {
@@ -1348,8 +1078,6 @@ func (c *Client) UpdatePackageRevision(ctx context.Context, pkg *PackageRevision
 		return nil, fmt.Errorf("package revision validation failed: %w", err)
 
 	}
-
-
 
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
@@ -1365,11 +1093,7 @@ func (c *Client) UpdatePackageRevision(ctx context.Context, pkg *PackageRevision
 
 	}
 
-
-
 	updated := result.(*PackageRevision)
-
-
 
 	// Invalidate cache.
 
@@ -1381,13 +1105,9 @@ func (c *Client) UpdatePackageRevision(ctx context.Context, pkg *PackageRevision
 
 	}
 
-
-
 	return updated, nil
 
 }
-
-
 
 // DeletePackageRevision deletes a package revision.
 
@@ -1407,8 +1127,6 @@ func (c *Client) DeletePackageRevision(ctx context.Context, name, revision strin
 
 	}()
 
-
-
 	_, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return nil, c.deletePackageRevisionInternal(ctx, name, revision)
@@ -1423,8 +1141,6 @@ func (c *Client) DeletePackageRevision(ctx context.Context, name, revision strin
 
 	}
 
-
-
 	// Invalidate cache.
 
 	if c.cache != nil {
@@ -1435,13 +1151,9 @@ func (c *Client) DeletePackageRevision(ctx context.Context, name, revision strin
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ApprovePackageRevision approves a package revision for publishing.
 
@@ -1461,8 +1173,6 @@ func (c *Client) ApprovePackageRevision(ctx context.Context, name, revision stri
 
 	}()
 
-
-
 	_, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return nil, c.approvePackageRevisionInternal(ctx, name, revision)
@@ -1477,8 +1187,6 @@ func (c *Client) ApprovePackageRevision(ctx context.Context, name, revision stri
 
 	}
 
-
-
 	// Invalidate cache.
 
 	if c.cache != nil {
@@ -1489,13 +1197,9 @@ func (c *Client) ApprovePackageRevision(ctx context.Context, name, revision stri
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ProposePackageRevision proposes a package revision for review.
 
@@ -1515,8 +1219,6 @@ func (c *Client) ProposePackageRevision(ctx context.Context, name, revision stri
 
 	}()
 
-
-
 	_, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return nil, c.proposePackageRevisionInternal(ctx, name, revision)
@@ -1531,8 +1233,6 @@ func (c *Client) ProposePackageRevision(ctx context.Context, name, revision stri
 
 	}
 
-
-
 	// Invalidate cache.
 
 	if c.cache != nil {
@@ -1543,13 +1243,9 @@ func (c *Client) ProposePackageRevision(ctx context.Context, name, revision stri
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // RejectPackageRevision rejects a package revision with a reason.
 
@@ -1569,8 +1265,6 @@ func (c *Client) RejectPackageRevision(ctx context.Context, name, revision, reas
 
 	}()
 
-
-
 	_, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return nil, c.rejectPackageRevisionInternal(ctx, name, revision, reason)
@@ -1585,8 +1279,6 @@ func (c *Client) RejectPackageRevision(ctx context.Context, name, revision, reas
 
 	}
 
-
-
 	// Invalidate cache.
 
 	if c.cache != nil {
@@ -1597,17 +1289,11 @@ func (c *Client) RejectPackageRevision(ctx context.Context, name, revision, reas
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Package Content Operations.
-
-
 
 // GetPackageContents retrieves the contents of a package revision.
 
@@ -1627,8 +1313,6 @@ func (c *Client) GetPackageContents(ctx context.Context, name, revision string) 
 
 	}()
 
-
-
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return c.getPackageContentsInternal(ctx, name, revision)
@@ -1643,13 +1327,9 @@ func (c *Client) GetPackageContents(ctx context.Context, name, revision string) 
 
 	}
 
-
-
 	return result.(map[string][]byte), nil
 
 }
-
-
 
 // UpdatePackageContents updates the contents of a package revision.
 
@@ -1669,8 +1349,6 @@ func (c *Client) UpdatePackageContents(ctx context.Context, name, revision strin
 
 	}()
 
-
-
 	_, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return nil, c.updatePackageContentsInternal(ctx, name, revision, contents)
@@ -1685,8 +1363,6 @@ func (c *Client) UpdatePackageContents(ctx context.Context, name, revision strin
 
 	}
 
-
-
 	// Invalidate cache.
 
 	if c.cache != nil {
@@ -1697,13 +1373,9 @@ func (c *Client) UpdatePackageContents(ctx context.Context, name, revision strin
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // RenderPackage renders a package using KRM functions.
 
@@ -1723,8 +1395,6 @@ func (c *Client) RenderPackage(ctx context.Context, name, revision string) (*Ren
 
 	}()
 
-
-
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return c.renderPackageInternal(ctx, name, revision)
@@ -1739,17 +1409,11 @@ func (c *Client) RenderPackage(ctx context.Context, name, revision string) (*Ren
 
 	}
 
-
-
 	return result.(*RenderResult), nil
 
 }
 
-
-
 // Function Operations.
-
-
 
 // RunFunction executes a KRM function on resources.
 
@@ -1769,8 +1433,6 @@ func (c *Client) RunFunction(ctx context.Context, req *FunctionRequest) (*Functi
 
 	}()
 
-
-
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return c.runFunctionInternal(ctx, req)
@@ -1785,13 +1447,9 @@ func (c *Client) RunFunction(ctx context.Context, req *FunctionRequest) (*Functi
 
 	}
 
-
-
 	return result.(*FunctionResponse), nil
 
 }
-
-
 
 // ExecuteFunction delegates to the function runner.
 
@@ -1807,8 +1465,6 @@ func (c *Client) ExecuteFunction(ctx context.Context, req *FunctionRequest) (*Fu
 
 }
 
-
-
 // ValidateFunction delegates to the function runner.
 
 func (c *Client) ValidateFunction(ctx context.Context, functionName string) (*FunctionValidation, error) {
@@ -1823,8 +1479,6 @@ func (c *Client) ValidateFunction(ctx context.Context, functionName string) (*Fu
 
 }
 
-
-
 // ListFunctions delegates to the function runner.
 
 func (c *Client) ListFunctions(ctx context.Context) ([]*FunctionInfo, error) {
@@ -1838,8 +1492,6 @@ func (c *Client) ListFunctions(ctx context.Context) ([]*FunctionInfo, error) {
 	return c.functionRunner.ListFunctions(ctx)
 
 }
-
-
 
 // ValidatePackage validates a package revision.
 
@@ -1859,8 +1511,6 @@ func (c *Client) ValidatePackage(ctx context.Context, name, revision string) (*V
 
 	}()
 
-
-
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return c.validatePackageInternal(ctx, name, revision)
@@ -1875,17 +1525,11 @@ func (c *Client) ValidatePackage(ctx context.Context, name, revision string) (*V
 
 	}
 
-
-
 	return result.(*ValidationResult), nil
 
 }
 
-
-
 // Workflow Operations.
-
-
 
 // GetWorkflow retrieves a workflow by name.
 
@@ -1905,8 +1549,6 @@ func (c *Client) GetWorkflow(ctx context.Context, name string) (*Workflow, error
 
 	}()
 
-
-
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return c.getWorkflowInternal(ctx, name)
@@ -1921,13 +1563,9 @@ func (c *Client) GetWorkflow(ctx context.Context, name string) (*Workflow, error
 
 	}
 
-
-
 	return result.(*Workflow), nil
 
 }
-
-
 
 // ListWorkflows lists all workflows matching the provided options.
 
@@ -1947,8 +1585,6 @@ func (c *Client) ListWorkflows(ctx context.Context, opts *ListOptions) (*Workflo
 
 	}()
 
-
-
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return c.listWorkflowsInternal(ctx, opts)
@@ -1963,13 +1599,9 @@ func (c *Client) ListWorkflows(ctx context.Context, opts *ListOptions) (*Workflo
 
 	}
 
-
-
 	return result.(*WorkflowList), nil
 
 }
-
-
 
 // CreateWorkflow creates a new workflow.
 
@@ -1989,8 +1621,6 @@ func (c *Client) CreateWorkflow(ctx context.Context, workflow *Workflow) (*Workf
 
 	}()
 
-
-
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return c.createWorkflowInternal(ctx, workflow)
@@ -2005,13 +1635,9 @@ func (c *Client) CreateWorkflow(ctx context.Context, workflow *Workflow) (*Workf
 
 	}
 
-
-
 	return result.(*Workflow), nil
 
 }
-
-
 
 // UpdateWorkflow updates an existing workflow.
 
@@ -2031,8 +1657,6 @@ func (c *Client) UpdateWorkflow(ctx context.Context, workflow *Workflow) (*Workf
 
 	}()
 
-
-
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return c.updateWorkflowInternal(ctx, workflow)
@@ -2047,13 +1671,9 @@ func (c *Client) UpdateWorkflow(ctx context.Context, workflow *Workflow) (*Workf
 
 	}
 
-
-
 	return result.(*Workflow), nil
 
 }
-
-
 
 // DeleteWorkflow deletes a workflow.
 
@@ -2073,8 +1693,6 @@ func (c *Client) DeleteWorkflow(ctx context.Context, name string) error {
 
 	}()
 
-
-
 	_, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return nil, c.deleteWorkflowInternal(ctx, name)
@@ -2089,17 +1707,11 @@ func (c *Client) DeleteWorkflow(ctx context.Context, name string) error {
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Health and Status Operations.
-
-
 
 // Health returns the health status of the Porch system.
 
@@ -2119,8 +1731,6 @@ func (c *Client) Health(ctx context.Context) (*HealthStatus, error) {
 
 	}()
 
-
-
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return c.healthInternal(ctx)
@@ -2135,13 +1745,9 @@ func (c *Client) Health(ctx context.Context) (*HealthStatus, error) {
 
 	}
 
-
-
 	return result.(*HealthStatus), nil
 
 }
-
-
 
 // Version returns version information for the Porch system.
 
@@ -2161,8 +1767,6 @@ func (c *Client) Version(ctx context.Context) (*VersionInfo, error) {
 
 	}()
 
-
-
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 
 		return c.versionInternal(ctx)
@@ -2177,25 +1781,17 @@ func (c *Client) Version(ctx context.Context) (*VersionInfo, error) {
 
 	}
 
-
-
 	return result.(*VersionInfo), nil
 
 }
 
-
-
 // Internal implementation methods.
-
-
 
 // getRepositoryInternal implements the actual repository retrieval logic.
 
 func (c *Client) getRepositoryInternal(ctx context.Context, name string) (*Repository, error) {
 
 	c.logger.V(1).Info("Getting repository", "name", name)
-
-
 
 	// Apply rate limiting.
 
@@ -2209,21 +1805,16 @@ func (c *Client) getRepositoryInternal(ctx context.Context, name string) (*Repos
 
 	}
 
-
-
 	// Get repository using dynamic client.
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "config.porch.kpt.dev",
+		Group: "config.porch.kpt.dev",
 
-		Version:  "v1alpha1",
+		Version: "v1alpha1",
 
 		Resource: "repositories",
-
 	}
-
-
 
 	obj, err := c.dynamic.Resource(gvr).Get(ctx, name, metav1.GetOptions{})
 
@@ -2239,8 +1830,6 @@ func (c *Client) getRepositoryInternal(ctx context.Context, name string) (*Repos
 
 	}
 
-
-
 	// Convert unstructured to Repository.
 
 	repo := &Repository{}
@@ -2251,23 +1840,17 @@ func (c *Client) getRepositoryInternal(ctx context.Context, name string) (*Repos
 
 	}
 
-
-
 	c.logger.V(1).Info("Successfully retrieved repository", "name", name, "url", repo.Spec.URL)
 
 	return repo, nil
 
 }
 
-
-
 // listRepositoriesInternal implements the actual repository listing logic.
 
 func (c *Client) listRepositoriesInternal(ctx context.Context, opts *ListOptions) (*RepositoryList, error) {
 
 	c.logger.V(1).Info("Listing repositories", "opts", opts)
-
-
 
 	// Apply rate limiting.
 
@@ -2281,21 +1864,16 @@ func (c *Client) listRepositoriesInternal(ctx context.Context, opts *ListOptions
 
 	}
 
-
-
 	// Get repositories using dynamic client.
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "config.porch.kpt.dev",
+		Group: "config.porch.kpt.dev",
 
-		Version:  "v1alpha1",
+		Version: "v1alpha1",
 
 		Resource: "repositories",
-
 	}
-
-
 
 	listOptions := metav1.ListOptions{}
 
@@ -2327,8 +1905,6 @@ func (c *Client) listRepositoriesInternal(ctx context.Context, opts *ListOptions
 
 	}
 
-
-
 	namespace := ""
 
 	if opts != nil && opts.Namespace != "" {
@@ -2337,13 +1913,9 @@ func (c *Client) listRepositoriesInternal(ctx context.Context, opts *ListOptions
 
 	}
 
-
-
 	var obj *unstructured.UnstructuredList
 
 	var err error
-
-
 
 	if namespace != "" {
 
@@ -2355,15 +1927,11 @@ func (c *Client) listRepositoriesInternal(ctx context.Context, opts *ListOptions
 
 	}
 
-
-
 	if err != nil {
 
 		return nil, fmt.Errorf("failed to list repositories: %w", err)
 
 	}
-
-
 
 	// Convert unstructured list to RepositoryList.
 
@@ -2375,23 +1943,17 @@ func (c *Client) listRepositoriesInternal(ctx context.Context, opts *ListOptions
 
 	}
 
-
-
 	c.logger.V(1).Info("Successfully listed repositories", "count", len(repoList.Items))
 
 	return repoList, nil
 
 }
 
-
-
 // createRepositoryInternal implements the actual repository creation logic.
 
 func (c *Client) createRepositoryInternal(ctx context.Context, repo *Repository) (*Repository, error) {
 
 	c.logger.V(1).Info("Creating repository", "name", repo.Name, "url", repo.Spec.URL)
-
-
 
 	// Apply rate limiting.
 
@@ -2404,8 +1966,6 @@ func (c *Client) createRepositoryInternal(ctx context.Context, repo *Repository)
 		}
 
 	}
-
-
 
 	// Set creation timestamp and generate name if needed.
 
@@ -2417,15 +1977,11 @@ func (c *Client) createRepositoryInternal(ctx context.Context, repo *Repository)
 
 	}
 
-
-
 	// Set API version and kind.
 
 	repo.APIVersion = "config.porch.kpt.dev/v1alpha1"
 
 	repo.Kind = "Repository"
-
-
 
 	// Convert to unstructured for creation.
 
@@ -2437,21 +1993,16 @@ func (c *Client) createRepositoryInternal(ctx context.Context, repo *Repository)
 
 	}
 
-
-
 	// Create repository using dynamic client.
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "config.porch.kpt.dev",
+		Group: "config.porch.kpt.dev",
 
-		Version:  "v1alpha1",
+		Version: "v1alpha1",
 
 		Resource: "repositories",
-
 	}
-
-
 
 	created, err := c.dynamic.Resource(gvr).Create(ctx, obj, metav1.CreateOptions{})
 
@@ -2460,8 +2011,6 @@ func (c *Client) createRepositoryInternal(ctx context.Context, repo *Repository)
 		return nil, fmt.Errorf("failed to create repository: %w", err)
 
 	}
-
-
 
 	// Convert back to Repository.
 
@@ -2473,23 +2022,17 @@ func (c *Client) createRepositoryInternal(ctx context.Context, repo *Repository)
 
 	}
 
-
-
 	c.logger.Info("Successfully created repository", "name", result.Name, "uid", result.UID)
 
 	return result, nil
 
 }
 
-
-
 // updateRepositoryInternal implements the actual repository update logic.
 
 func (c *Client) updateRepositoryInternal(ctx context.Context, repo *Repository) (*Repository, error) {
 
 	c.logger.V(1).Info("Updating repository", "name", repo.Name)
-
-
 
 	// Apply rate limiting.
 
@@ -2503,8 +2046,6 @@ func (c *Client) updateRepositoryInternal(ctx context.Context, repo *Repository)
 
 	}
 
-
-
 	// Convert to unstructured for update.
 
 	obj, err := convertToUnstructured(repo)
@@ -2515,21 +2056,16 @@ func (c *Client) updateRepositoryInternal(ctx context.Context, repo *Repository)
 
 	}
 
-
-
 	// Update repository using dynamic client.
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "config.porch.kpt.dev",
+		Group: "config.porch.kpt.dev",
 
-		Version:  "v1alpha1",
+		Version: "v1alpha1",
 
 		Resource: "repositories",
-
 	}
-
-
 
 	updated, err := c.dynamic.Resource(gvr).Update(ctx, obj, metav1.UpdateOptions{})
 
@@ -2538,8 +2074,6 @@ func (c *Client) updateRepositoryInternal(ctx context.Context, repo *Repository)
 		return nil, fmt.Errorf("failed to update repository: %w", err)
 
 	}
-
-
 
 	// Convert back to Repository.
 
@@ -2551,23 +2085,17 @@ func (c *Client) updateRepositoryInternal(ctx context.Context, repo *Repository)
 
 	}
 
-
-
 	c.logger.Info("Successfully updated repository", "name", result.Name)
 
 	return result, nil
 
 }
 
-
-
 // deleteRepositoryInternal implements the actual repository deletion logic.
 
 func (c *Client) deleteRepositoryInternal(ctx context.Context, name string) error {
 
 	c.logger.V(1).Info("Deleting repository", "name", name)
-
-
 
 	// Apply rate limiting.
 
@@ -2581,21 +2109,16 @@ func (c *Client) deleteRepositoryInternal(ctx context.Context, name string) erro
 
 	}
 
-
-
 	// Delete repository using dynamic client.
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "config.porch.kpt.dev",
+		Group: "config.porch.kpt.dev",
 
-		Version:  "v1alpha1",
+		Version: "v1alpha1",
 
 		Resource: "repositories",
-
 	}
-
-
 
 	err := c.dynamic.Resource(gvr).Delete(ctx, name, metav1.DeleteOptions{})
 
@@ -2611,23 +2134,17 @@ func (c *Client) deleteRepositoryInternal(ctx context.Context, name string) erro
 
 	}
 
-
-
 	c.logger.Info("Successfully deleted repository", "name", name)
 
 	return nil
 
 }
 
-
-
 // syncRepositoryInternal implements the actual repository synchronization logic.
 
 func (c *Client) syncRepositoryInternal(ctx context.Context, name string) error {
 
 	c.logger.V(1).Info("Syncing repository", "name", name)
-
-
 
 	// Apply rate limiting.
 
@@ -2641,8 +2158,6 @@ func (c *Client) syncRepositoryInternal(ctx context.Context, name string) error 
 
 	}
 
-
-
 	// Get the repository first.
 
 	repo, err := c.getRepositoryInternal(ctx, name)
@@ -2653,15 +2168,11 @@ func (c *Client) syncRepositoryInternal(ctx context.Context, name string) error 
 
 	}
 
-
-
 	// Update sync status.
 
 	repo.Status.LastSyncTime = &metav1.Time{Time: time.Now()}
 
 	repo.Status.SyncError = ""
-
-
 
 	// Update the repository.
 
@@ -2673,23 +2184,17 @@ func (c *Client) syncRepositoryInternal(ctx context.Context, name string) error 
 
 	}
 
-
-
 	c.logger.Info("Successfully synced repository", "name", name)
 
 	return nil
 
 }
 
-
-
 // listPackageRevisionsInternal implements package revision listing.
 
 func (c *Client) listPackageRevisionsInternal(ctx context.Context, opts *ListOptions) (*PackageRevisionList, error) {
 
 	c.logger.V(1).Info("Listing package revisions", "opts", opts)
-
-
 
 	if c.rateLimiter != nil {
 
@@ -2701,21 +2206,16 @@ func (c *Client) listPackageRevisionsInternal(ctx context.Context, opts *ListOpt
 
 	}
 
-
-
 	// Get package revisions using dynamic client.
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "porch.kpt.dev",
+		Group: "porch.kpt.dev",
 
-		Version:  "v1alpha1",
+		Version: "v1alpha1",
 
 		Resource: "packagerevisions",
-
 	}
-
-
 
 	listOptions := metav1.ListOptions{}
 
@@ -2747,8 +2247,6 @@ func (c *Client) listPackageRevisionsInternal(ctx context.Context, opts *ListOpt
 
 	}
 
-
-
 	namespace := ""
 
 	if opts != nil && opts.Namespace != "" {
@@ -2757,13 +2255,9 @@ func (c *Client) listPackageRevisionsInternal(ctx context.Context, opts *ListOpt
 
 	}
 
-
-
 	var obj *unstructured.UnstructuredList
 
 	var err error
-
-
 
 	if namespace != "" {
 
@@ -2775,15 +2269,11 @@ func (c *Client) listPackageRevisionsInternal(ctx context.Context, opts *ListOpt
 
 	}
 
-
-
 	if err != nil {
 
 		return nil, fmt.Errorf("failed to list package revisions: %w", err)
 
 	}
-
-
 
 	// Convert unstructured list to PackageRevisionList.
 
@@ -2795,23 +2285,17 @@ func (c *Client) listPackageRevisionsInternal(ctx context.Context, opts *ListOpt
 
 	}
 
-
-
 	c.logger.V(1).Info("Successfully listed package revisions", "count", len(pkgList.Items))
 
 	return pkgList, nil
 
 }
 
-
-
 // createPackageRevisionInternal implements package revision creation.
 
 func (c *Client) createPackageRevisionInternal(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
 
 	c.logger.V(1).Info("Creating package revision", "name", pkg.Spec.PackageName, "revision", pkg.Spec.Revision)
-
-
 
 	if c.rateLimiter != nil {
 
@@ -2822,8 +2306,6 @@ func (c *Client) createPackageRevisionInternal(ctx context.Context, pkg *Package
 		}
 
 	}
-
-
 
 	// Set creation timestamp and generate name if needed.
 
@@ -2835,15 +2317,11 @@ func (c *Client) createPackageRevisionInternal(ctx context.Context, pkg *Package
 
 	}
 
-
-
 	// Set API version and kind.
 
 	pkg.APIVersion = "porch.kpt.dev/v1alpha1"
 
 	pkg.Kind = "PackageRevision"
-
-
 
 	// Generate name if not set (typically packagename-revision).
 
@@ -2853,8 +2331,6 @@ func (c *Client) createPackageRevisionInternal(ctx context.Context, pkg *Package
 
 	}
 
-
-
 	// Set default lifecycle if not specified.
 
 	if pkg.Spec.Lifecycle == "" {
@@ -2862,8 +2338,6 @@ func (c *Client) createPackageRevisionInternal(ctx context.Context, pkg *Package
 		pkg.Spec.Lifecycle = PackageRevisionLifecycleDraft
 
 	}
-
-
 
 	// Convert to unstructured for creation.
 
@@ -2875,21 +2349,16 @@ func (c *Client) createPackageRevisionInternal(ctx context.Context, pkg *Package
 
 	}
 
-
-
 	// Create package revision using dynamic client.
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "porch.kpt.dev",
+		Group: "porch.kpt.dev",
 
-		Version:  "v1alpha1",
+		Version: "v1alpha1",
 
 		Resource: "packagerevisions",
-
 	}
-
-
 
 	// PackageRevisions are cluster-scoped in Porch.
 
@@ -2901,8 +2370,6 @@ func (c *Client) createPackageRevisionInternal(ctx context.Context, pkg *Package
 
 	}
 
-
-
 	// Convert back to PackageRevision.
 
 	result := &PackageRevision{}
@@ -2913,23 +2380,17 @@ func (c *Client) createPackageRevisionInternal(ctx context.Context, pkg *Package
 
 	}
 
-
-
 	c.logger.Info("Successfully created package revision", "name", result.ObjectMeta.Name, "uid", result.UID)
 
 	return result, nil
 
 }
 
-
-
 // updatePackageRevisionInternal implements package revision update.
 
 func (c *Client) updatePackageRevisionInternal(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
 
 	c.logger.V(1).Info("Updating package revision", "name", pkg.Spec.PackageName, "revision", pkg.Spec.Revision)
-
-
 
 	if c.rateLimiter != nil {
 
@@ -2941,8 +2402,6 @@ func (c *Client) updatePackageRevisionInternal(ctx context.Context, pkg *Package
 
 	}
 
-
-
 	// Convert to unstructured for update.
 
 	obj, err := convertToUnstructured(pkg)
@@ -2953,21 +2412,16 @@ func (c *Client) updatePackageRevisionInternal(ctx context.Context, pkg *Package
 
 	}
 
-
-
 	// Update package revision using dynamic client.
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "porch.kpt.dev",
+		Group: "porch.kpt.dev",
 
-		Version:  "v1alpha1",
+		Version: "v1alpha1",
 
 		Resource: "packagerevisions",
-
 	}
-
-
 
 	updated, err := c.dynamic.Resource(gvr).Update(ctx, obj, metav1.UpdateOptions{})
 
@@ -2976,8 +2430,6 @@ func (c *Client) updatePackageRevisionInternal(ctx context.Context, pkg *Package
 		return nil, fmt.Errorf("failed to update package revision: %w", err)
 
 	}
-
-
 
 	// Convert back to PackageRevision.
 
@@ -2989,23 +2441,17 @@ func (c *Client) updatePackageRevisionInternal(ctx context.Context, pkg *Package
 
 	}
 
-
-
 	c.logger.Info("Successfully updated package revision", "name", result.ObjectMeta.Name)
 
 	return result, nil
 
 }
 
-
-
 // deletePackageRevisionInternal implements package revision deletion.
 
 func (c *Client) deletePackageRevisionInternal(ctx context.Context, name, revision string) error {
 
 	c.logger.V(1).Info("Deleting package revision", "name", name, "revision", revision)
-
-
 
 	if c.rateLimiter != nil {
 
@@ -3017,27 +2463,20 @@ func (c *Client) deletePackageRevisionInternal(ctx context.Context, name, revisi
 
 	}
 
-
-
 	// Delete package revision using dynamic client.
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "porch.kpt.dev",
+		Group: "porch.kpt.dev",
 
-		Version:  "v1alpha1",
+		Version: "v1alpha1",
 
 		Resource: "packagerevisions",
-
 	}
-
-
 
 	// Construct the package revision name (typically name-revision).
 
 	resourceName := fmt.Sprintf("%s-%s", name, revision)
-
-
 
 	err := c.dynamic.Resource(gvr).Delete(ctx, resourceName, metav1.DeleteOptions{})
 
@@ -3053,23 +2492,17 @@ func (c *Client) deletePackageRevisionInternal(ctx context.Context, name, revisi
 
 	}
 
-
-
 	c.logger.Info("Successfully deleted package revision", "name", name, "revision", revision)
 
 	return nil
 
 }
 
-
-
 // approvePackageRevisionInternal implements package revision approval.
 
 func (c *Client) approvePackageRevisionInternal(ctx context.Context, name, revision string) error {
 
 	c.logger.V(1).Info("Approving package revision", "name", name, "revision", revision)
-
-
 
 	if c.rateLimiter != nil {
 
@@ -3081,8 +2514,6 @@ func (c *Client) approvePackageRevisionInternal(ctx context.Context, name, revis
 
 	}
 
-
-
 	// Get the current package revision.
 
 	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
@@ -3093,8 +2524,6 @@ func (c *Client) approvePackageRevisionInternal(ctx context.Context, name, revis
 
 	}
 
-
-
 	// Check current lifecycle state.
 
 	if pkg.Spec.Lifecycle != PackageRevisionLifecycleProposed {
@@ -3103,13 +2532,9 @@ func (c *Client) approvePackageRevisionInternal(ctx context.Context, name, revis
 
 	}
 
-
-
 	// Transition to Published lifecycle.
 
 	pkg.Spec.Lifecycle = PackageRevisionLifecyclePublished
-
-
 
 	// Update status to indicate approval.
 
@@ -3117,27 +2542,22 @@ func (c *Client) approvePackageRevisionInternal(ctx context.Context, name, revis
 
 	pkg.Status.PublishTime = &now
 
-
-
 	// Set approval condition.
 
 	condition := metav1.Condition{
 
-		Type:               "Approved",
+		Type: "Approved",
 
-		Status:             metav1.ConditionTrue,
+		Status: metav1.ConditionTrue,
 
 		LastTransitionTime: now,
 
-		Reason:             "PackageApproved",
+		Reason: "PackageApproved",
 
-		Message:            "Package revision has been approved and published",
-
+		Message: "Package revision has been approved and published",
 	}
 
 	pkg.SetCondition(condition)
-
-
 
 	// Update the package revision.
 
@@ -3149,23 +2569,17 @@ func (c *Client) approvePackageRevisionInternal(ctx context.Context, name, revis
 
 	}
 
-
-
 	c.logger.Info("Successfully approved package revision", "name", name, "revision", revision)
 
 	return nil
 
 }
 
-
-
 // proposePackageRevisionInternal implements package revision proposal.
 
 func (c *Client) proposePackageRevisionInternal(ctx context.Context, name, revision string) error {
 
 	c.logger.V(1).Info("Proposing package revision", "name", name, "revision", revision)
-
-
 
 	if c.rateLimiter != nil {
 
@@ -3177,8 +2591,6 @@ func (c *Client) proposePackageRevisionInternal(ctx context.Context, name, revis
 
 	}
 
-
-
 	// Get the current package revision.
 
 	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
@@ -3189,8 +2601,6 @@ func (c *Client) proposePackageRevisionInternal(ctx context.Context, name, revis
 
 	}
 
-
-
 	// Check current lifecycle state.
 
 	if pkg.Spec.Lifecycle != PackageRevisionLifecycleDraft {
@@ -3199,13 +2609,9 @@ func (c *Client) proposePackageRevisionInternal(ctx context.Context, name, revis
 
 	}
 
-
-
 	// Transition to Proposed lifecycle.
 
 	pkg.Spec.Lifecycle = PackageRevisionLifecycleProposed
-
-
 
 	// Set proposed condition.
 
@@ -3213,21 +2619,18 @@ func (c *Client) proposePackageRevisionInternal(ctx context.Context, name, revis
 
 	condition := metav1.Condition{
 
-		Type:               "Proposed",
+		Type: "Proposed",
 
-		Status:             metav1.ConditionTrue,
+		Status: metav1.ConditionTrue,
 
 		LastTransitionTime: now,
 
-		Reason:             "PackageProposed",
+		Reason: "PackageProposed",
 
-		Message:            "Package revision has been proposed for review",
-
+		Message: "Package revision has been proposed for review",
 	}
 
 	pkg.SetCondition(condition)
-
-
 
 	// Update the package revision.
 
@@ -3239,23 +2642,17 @@ func (c *Client) proposePackageRevisionInternal(ctx context.Context, name, revis
 
 	}
 
-
-
 	c.logger.Info("Successfully proposed package revision", "name", name, "revision", revision)
 
 	return nil
 
 }
 
-
-
 // rejectPackageRevisionInternal implements package revision rejection.
 
 func (c *Client) rejectPackageRevisionInternal(ctx context.Context, name, revision, reason string) error {
 
 	c.logger.V(1).Info("Rejecting package revision", "name", name, "revision", revision, "reason", reason)
-
-
 
 	if c.rateLimiter != nil {
 
@@ -3267,8 +2664,6 @@ func (c *Client) rejectPackageRevisionInternal(ctx context.Context, name, revisi
 
 	}
 
-
-
 	// Get the current package revision.
 
 	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
@@ -3279,8 +2674,6 @@ func (c *Client) rejectPackageRevisionInternal(ctx context.Context, name, revisi
 
 	}
 
-
-
 	// Check current lifecycle state.
 
 	if pkg.Spec.Lifecycle != PackageRevisionLifecycleProposed {
@@ -3289,13 +2682,9 @@ func (c *Client) rejectPackageRevisionInternal(ctx context.Context, name, revisi
 
 	}
 
-
-
 	// Transition back to Draft lifecycle.
 
 	pkg.Spec.Lifecycle = PackageRevisionLifecycleDraft
-
-
 
 	// Set rejection condition.
 
@@ -3303,21 +2692,18 @@ func (c *Client) rejectPackageRevisionInternal(ctx context.Context, name, revisi
 
 	condition := metav1.Condition{
 
-		Type:               "Rejected",
+		Type: "Rejected",
 
-		Status:             metav1.ConditionTrue,
+		Status: metav1.ConditionTrue,
 
 		LastTransitionTime: now,
 
-		Reason:             "PackageRejected",
+		Reason: "PackageRejected",
 
-		Message:            fmt.Sprintf("Package revision rejected: %s", reason),
-
+		Message: fmt.Sprintf("Package revision rejected: %s", reason),
 	}
 
 	pkg.SetCondition(condition)
-
-
 
 	// Update the package revision.
 
@@ -3329,23 +2715,17 @@ func (c *Client) rejectPackageRevisionInternal(ctx context.Context, name, revisi
 
 	}
 
-
-
 	c.logger.Info("Successfully rejected package revision", "name", name, "revision", revision, "reason", reason)
 
 	return nil
 
 }
 
-
-
 // getPackageContentsInternal implements package content retrieval.
 
 func (c *Client) getPackageContentsInternal(ctx context.Context, name, revision string) (map[string][]byte, error) {
 
 	c.logger.V(1).Info("Getting package contents", "name", name, "revision", revision)
-
-
 
 	if c.rateLimiter != nil {
 
@@ -3357,8 +2737,6 @@ func (c *Client) getPackageContentsInternal(ctx context.Context, name, revision 
 
 	}
 
-
-
 	// Get the package revision first.
 
 	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
@@ -3369,11 +2747,7 @@ func (c *Client) getPackageContentsInternal(ctx context.Context, name, revision 
 
 	}
 
-
-
 	contents := make(map[string][]byte)
-
-
 
 	// Extract contents from resources in the package revision spec.
 
@@ -3393,8 +2767,6 @@ func (c *Client) getPackageContentsInternal(ctx context.Context, name, revision 
 
 			}
 
-
-
 			// Convert KRMResource to YAML.
 
 			yamlData, err := convertKRMResourceToYAML(resource)
@@ -3407,8 +2779,6 @@ func (c *Client) getPackageContentsInternal(ctx context.Context, name, revision 
 
 			}
 
-
-
 			// Generate filename based on resource metadata.
 
 			filename := generateResourceFilename(resource)
@@ -3418,8 +2788,6 @@ func (c *Client) getPackageContentsInternal(ctx context.Context, name, revision 
 		}
 
 	}
-
-
 
 	// If no resources in spec, try to get from PackageRevisionResources sub-resource.
 
@@ -3439,23 +2807,17 @@ func (c *Client) getPackageContentsInternal(ctx context.Context, name, revision 
 
 	}
 
-
-
 	c.logger.V(1).Info("Successfully retrieved package contents", "name", name, "revision", revision, "fileCount", len(contents))
 
 	return contents, nil
 
 }
 
-
-
 // updatePackageContentsInternal implements package content update.
 
 func (c *Client) updatePackageContentsInternal(ctx context.Context, name, revision string, contents map[string][]byte) error {
 
 	c.logger.V(1).Info("Updating package contents", "name", name, "revision", revision, "fileCount", len(contents))
-
-
 
 	if c.rateLimiter != nil {
 
@@ -3467,8 +2829,6 @@ func (c *Client) updatePackageContentsInternal(ctx context.Context, name, revisi
 
 	}
 
-
-
 	// Get the current package revision.
 
 	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
@@ -3478,8 +2838,6 @@ func (c *Client) updatePackageContentsInternal(ctx context.Context, name, revisi
 		return fmt.Errorf("failed to get package revision: %w", err)
 
 	}
-
-
 
 	// Convert file contents to KRM resources.
 
@@ -3495,8 +2853,6 @@ func (c *Client) updatePackageContentsInternal(ctx context.Context, name, revisi
 
 		}
 
-
-
 		resource, err := convertYAMLToKRMResource(content)
 
 		if err != nil {
@@ -3507,13 +2863,9 @@ func (c *Client) updatePackageContentsInternal(ctx context.Context, name, revisi
 
 		}
 
-
-
 		resources = append(resources, *resource)
 
 	}
-
-
 
 	// Update the package revision with new resources.
 
@@ -3527,8 +2879,6 @@ func (c *Client) updatePackageContentsInternal(ctx context.Context, name, revisi
 
 	pkg.Spec.Resources = interfaceResources
 
-
-
 	// Update the package revision.
 
 	_, err = c.updatePackageRevisionInternal(ctx, pkg)
@@ -3538,8 +2888,6 @@ func (c *Client) updatePackageContentsInternal(ctx context.Context, name, revisi
 		return fmt.Errorf("failed to update package revision with new contents: %w", err)
 
 	}
-
-
 
 	// Also try to update using PackageRevisionResources if available.
 
@@ -3551,23 +2899,17 @@ func (c *Client) updatePackageContentsInternal(ctx context.Context, name, revisi
 
 	}
 
-
-
 	c.logger.Info("Successfully updated package contents", "name", name, "revision", revision, "resourceCount", len(resources))
 
 	return nil
 
 }
 
-
-
 // renderPackageInternal implements package rendering.
 
 func (c *Client) renderPackageInternal(ctx context.Context, name, revision string) (*RenderResult, error) {
 
 	c.logger.V(1).Info("Rendering package", "name", name, "revision", revision)
-
-
 
 	if c.rateLimiter != nil {
 
@@ -3579,8 +2921,6 @@ func (c *Client) renderPackageInternal(ctx context.Context, name, revision strin
 
 	}
 
-
-
 	// Get the package revision.
 
 	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
@@ -3590,8 +2930,6 @@ func (c *Client) renderPackageInternal(ctx context.Context, name, revision strin
 		return nil, fmt.Errorf("failed to get package revision: %w", err)
 
 	}
-
-
 
 	// If no functions defined, return resources as-is.
 
@@ -3620,12 +2958,9 @@ func (c *Client) renderPackageInternal(ctx context.Context, name, revision strin
 		return &RenderResult{
 
 			Resources: resources,
-
 		}, nil
 
 	}
-
-
 
 	// Execute each function in the pipeline.
 
@@ -3651,8 +2986,6 @@ func (c *Client) renderPackageInternal(ctx context.Context, name, revision strin
 
 	var allResults []*FunctionResult
 
-
-
 	for _, functionInterface := range pkg.Spec.Functions {
 
 		// Convert interface{} to FunctionConfig.
@@ -3669,33 +3002,26 @@ func (c *Client) renderPackageInternal(ctx context.Context, name, revision strin
 
 		c.logger.V(1).Info("Executing function in pipeline", "image", functionConfig.Image)
 
-
-
 		// Create function request.
 
 		req := &FunctionRequest{
 
 			FunctionConfig: functionConfig,
 
-			Resources:      currentResources,
+			Resources: currentResources,
 
 			Context: &FunctionContext{
 
 				Package: &PackageReference{
 
-					Repository:  pkg.Spec.Repository,
+					Repository: pkg.Spec.Repository,
 
 					PackageName: pkg.Spec.PackageName,
 
-					Revision:    pkg.Spec.Revision,
-
+					Revision: pkg.Spec.Revision,
 				},
-
 			},
-
 		}
-
-
 
 		// Execute function.
 
@@ -3711,17 +3037,13 @@ func (c *Client) renderPackageInternal(ctx context.Context, name, revision strin
 
 					Message: fmt.Sprintf("Function %s failed: %v", functionConfig.Image, err),
 
-					Type:    "FunctionExecutionError",
+					Type: "FunctionExecutionError",
 
 					Details: err.Error(),
-
 				},
-
 			}, nil
 
 		}
-
-
 
 		// Check for function execution errors.
 
@@ -3735,17 +3057,13 @@ func (c *Client) renderPackageInternal(ctx context.Context, name, revision strin
 
 					Message: fmt.Sprintf("Function %s error: %s", functionConfig.Image, resp.Error.Message),
 
-					Type:    "FunctionError",
+					Type: "FunctionError",
 
 					Details: resp.Error.Details,
-
 				},
-
 			}, nil
 
 		}
-
-
 
 		// Update resources for next function in pipeline.
 
@@ -3755,29 +3073,22 @@ func (c *Client) renderPackageInternal(ctx context.Context, name, revision strin
 
 	}
 
-
-
 	c.logger.V(1).Info("Successfully rendered package", "name", name, "revision", revision, "finalResourceCount", len(currentResources))
 
 	return &RenderResult{
 
 		Resources: currentResources,
 
-		Results:   allResults,
-
+		Results: allResults,
 	}, nil
 
 }
-
-
 
 // runFunctionInternal implements function execution.
 
 func (c *Client) runFunctionInternal(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
 
 	c.logger.V(1).Info("Running function", "image", req.FunctionConfig.Image)
-
-
 
 	if c.rateLimiter != nil {
 
@@ -3789,21 +3100,16 @@ func (c *Client) runFunctionInternal(ctx context.Context, req *FunctionRequest) 
 
 	}
 
-
-
 	// Create FunctionEvalTask resource for Porch function execution.
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "porch.kpt.dev",
+		Group: "porch.kpt.dev",
 
-		Version:  "v1alpha1",
+		Version: "v1alpha1",
 
 		Resource: "functionevaltasks",
-
 	}
-
-
 
 	// Create the function evaluation task.
 
@@ -3811,7 +3117,7 @@ func (c *Client) runFunctionInternal(ctx context.Context, req *FunctionRequest) 
 
 		"apiVersion": "porch.kpt.dev/v1alpha1",
 
-		"kind":       "FunctionEvalTask",
+		"kind": "FunctionEvalTask",
 
 		"metadata": map[string]interface{}{
 
@@ -3820,34 +3126,26 @@ func (c *Client) runFunctionInternal(ctx context.Context, req *FunctionRequest) 
 			"labels": map[string]interface{}{
 
 				"function.image": strings.ReplaceAll(req.FunctionConfig.Image, "/", "-"),
-
 			},
-
 		},
 
 		"spec": map[string]interface{}{
 
-			"image":     req.FunctionConfig.Image,
+			"image": req.FunctionConfig.Image,
 
 			"resources": c.convertResourcesToUnstructured(req.Resources),
 
-			"config":    req.FunctionConfig.ConfigMap,
+			"config": req.FunctionConfig.ConfigMap,
 
-			"timeout":   "30s",
-
+			"timeout": "30s",
 		},
-
 	}
-
-
 
 	// Convert to unstructured.
 
 	taskObj := &unstructured.Unstructured{}
 
 	taskObj.Object = task
-
-
 
 	// Create the task.
 
@@ -3858,8 +3156,6 @@ func (c *Client) runFunctionInternal(ctx context.Context, req *FunctionRequest) 
 		return nil, fmt.Errorf("failed to create function evaluation task: %w", err)
 
 	}
-
-
 
 	// Wait for task completion (polling approach).
 
@@ -3873,8 +3169,6 @@ func (c *Client) runFunctionInternal(ctx context.Context, req *FunctionRequest) 
 
 	}
 
-
-
 	// Clean up the task.
 
 	if err := c.dynamic.Resource(gvr).Delete(ctx, taskName, metav1.DeleteOptions{}); err != nil {
@@ -3883,23 +3177,17 @@ func (c *Client) runFunctionInternal(ctx context.Context, req *FunctionRequest) 
 
 	}
 
-
-
 	c.logger.V(1).Info("Successfully executed function", "image", req.FunctionConfig.Image, "resourceCount", len(response.Resources))
 
 	return response, nil
 
 }
 
-
-
 // validatePackageInternal implements package validation.
 
 func (c *Client) validatePackageInternal(ctx context.Context, name, revision string) (*ValidationResult, error) {
 
 	c.logger.V(1).Info("Validating package", "name", name, "revision", revision)
-
-
 
 	if c.rateLimiter != nil {
 
@@ -3910,8 +3198,6 @@ func (c *Client) validatePackageInternal(ctx context.Context, name, revision str
 		}
 
 	}
-
-
 
 	// Get the package revision.
 
@@ -3925,25 +3211,19 @@ func (c *Client) validatePackageInternal(ctx context.Context, name, revision str
 
 			Errors: []ValidationError{{
 
-				Path:     "package",
+				Path: "package",
 
-				Message:  fmt.Sprintf("Failed to retrieve package: %v", err),
+				Message: fmt.Sprintf("Failed to retrieve package: %v", err),
 
 				Severity: "error",
-
 			}},
-
 		}, nil
 
 	}
 
-
-
 	var errors []ValidationError
 
 	var warnings []ValidationError
-
-
 
 	// Validate basic package structure.
 
@@ -3951,37 +3231,31 @@ func (c *Client) validatePackageInternal(ctx context.Context, name, revision str
 
 		errors = append(errors, ValidationError{
 
-			Path:     "spec.packageName",
+			Path: "spec.packageName",
 
-			Message:  "Package name is required",
+			Message: "Package name is required",
 
 			Severity: "error",
 
-			Code:     "MISSING_PACKAGE_NAME",
-
+			Code: "MISSING_PACKAGE_NAME",
 		})
 
 	}
-
-
 
 	if pkg.Spec.Repository == "" {
 
 		errors = append(errors, ValidationError{
 
-			Path:     "spec.repository",
+			Path: "spec.repository",
 
-			Message:  "Repository is required",
+			Message: "Repository is required",
 
 			Severity: "error",
 
-			Code:     "MISSING_REPOSITORY",
-
+			Code: "MISSING_REPOSITORY",
 		})
 
 	}
-
-
 
 	// Validate lifecycle transitions.
 
@@ -3989,19 +3263,16 @@ func (c *Client) validatePackageInternal(ctx context.Context, name, revision str
 
 		errors = append(errors, ValidationError{
 
-			Path:     "spec.lifecycle",
+			Path: "spec.lifecycle",
 
-			Message:  fmt.Sprintf("Invalid lifecycle state: %s", pkg.Spec.Lifecycle),
+			Message: fmt.Sprintf("Invalid lifecycle state: %s", pkg.Spec.Lifecycle),
 
 			Severity: "error",
 
-			Code:     "INVALID_LIFECYCLE",
-
+			Code: "INVALID_LIFECYCLE",
 		})
 
 	}
-
-
 
 	// Validate resources.
 
@@ -4013,57 +3284,48 @@ func (c *Client) validatePackageInternal(ctx context.Context, name, revision str
 
 			errors = append(errors, ValidationError{
 
-				Path:     fmt.Sprintf("spec.resources[%d]", i),
+				Path: fmt.Sprintf("spec.resources[%d]", i),
 
-				Message:  fmt.Sprintf("Invalid resource format: %v", err),
+				Message: fmt.Sprintf("Invalid resource format: %v", err),
 
 				Severity: "error",
 
-				Code:     "INVALID_RESOURCE_FORMAT",
-
+				Code: "INVALID_RESOURCE_FORMAT",
 			})
 
 			continue
 
 		}
 
-
-
 		if resource.APIVersion == "" {
 
 			errors = append(errors, ValidationError{
 
-				Path:     fmt.Sprintf("spec.resources[%d].apiVersion", i),
+				Path: fmt.Sprintf("spec.resources[%d].apiVersion", i),
 
-				Message:  "Resource apiVersion is required",
+				Message: "Resource apiVersion is required",
 
 				Severity: "error",
 
-				Code:     "MISSING_API_VERSION",
-
+				Code: "MISSING_API_VERSION",
 			})
 
 		}
-
-
 
 		if resource.Kind == "" {
 
 			errors = append(errors, ValidationError{
 
-				Path:     fmt.Sprintf("spec.resources[%d].kind", i),
+				Path: fmt.Sprintf("spec.resources[%d].kind", i),
 
-				Message:  "Resource kind is required",
+				Message: "Resource kind is required",
 
 				Severity: "error",
 
-				Code:     "MISSING_KIND",
-
+				Code: "MISSING_KIND",
 			})
 
 		}
-
-
 
 		// Check for resource name in metadata.
 
@@ -4071,21 +3333,18 @@ func (c *Client) validatePackageInternal(ctx context.Context, name, revision str
 
 			warnings = append(warnings, ValidationError{
 
-				Path:     fmt.Sprintf("spec.resources[%d].metadata.name", i),
+				Path: fmt.Sprintf("spec.resources[%d].metadata.name", i),
 
-				Message:  "Resource name is recommended in metadata",
+				Message: "Resource name is recommended in metadata",
 
 				Severity: "warning",
 
-				Code:     "MISSING_RESOURCE_NAME",
-
+				Code: "MISSING_RESOURCE_NAME",
 			})
 
 		}
 
 	}
-
-
 
 	// Validate function configurations.
 
@@ -4097,63 +3356,50 @@ func (c *Client) validatePackageInternal(ctx context.Context, name, revision str
 
 			errors = append(errors, ValidationError{
 
-				Path:     fmt.Sprintf("spec.functions[%d]", i),
+				Path: fmt.Sprintf("spec.functions[%d]", i),
 
-				Message:  fmt.Sprintf("Invalid function format: %v", err),
+				Message: fmt.Sprintf("Invalid function format: %v", err),
 
 				Severity: "error",
 
-				Code:     "INVALID_FUNCTION_FORMAT",
-
+				Code: "INVALID_FUNCTION_FORMAT",
 			})
 
 			continue
 
 		}
 
-
-
 		if function.Image == "" {
 
 			errors = append(errors, ValidationError{
 
-				Path:     fmt.Sprintf("spec.functions[%d].image", i),
+				Path: fmt.Sprintf("spec.functions[%d].image", i),
 
-				Message:  "Function image is required",
+				Message: "Function image is required",
 
 				Severity: "error",
 
-				Code:     "MISSING_FUNCTION_IMAGE",
-
+				Code: "MISSING_FUNCTION_IMAGE",
 			})
 
 		}
 
 	}
 
-
-
 	isValid := len(errors) == 0
-
-
 
 	c.logger.V(1).Info("Package validation completed", "name", name, "revision", revision, "valid", isValid, "errors", len(errors), "warnings", len(warnings))
 
-
-
 	return &ValidationResult{
 
-		Valid:    isValid,
+		Valid: isValid,
 
-		Errors:   errors,
+		Errors: errors,
 
 		Warnings: warnings,
-
 	}, nil
 
 }
-
-
 
 // getWorkflowInternal implements workflow retrieval.
 
@@ -4161,8 +3407,6 @@ func (c *Client) getWorkflowInternal(ctx context.Context, name string) (*Workflo
 
 	c.logger.V(1).Info("Getting workflow", "name", name)
 
-
-
 	if c.rateLimiter != nil {
 
 		if err := c.rateLimiter.Wait(ctx); err != nil {
@@ -4173,13 +3417,9 @@ func (c *Client) getWorkflowInternal(ctx context.Context, name string) (*Workflo
 
 	}
 
-
-
 	return &Workflow{}, nil
 
 }
-
-
 
 // listWorkflowsInternal implements workflow listing.
 
@@ -4187,8 +3427,6 @@ func (c *Client) listWorkflowsInternal(ctx context.Context, opts *ListOptions) (
 
 	c.logger.V(1).Info("Listing workflows", "opts", opts)
 
-
-
 	if c.rateLimiter != nil {
 
 		if err := c.rateLimiter.Wait(ctx); err != nil {
@@ -4199,13 +3437,9 @@ func (c *Client) listWorkflowsInternal(ctx context.Context, opts *ListOptions) (
 
 	}
 
-
-
 	return &WorkflowList{}, nil
 
 }
-
-
 
 // createWorkflowInternal implements workflow creation.
 
@@ -4213,8 +3447,6 @@ func (c *Client) createWorkflowInternal(ctx context.Context, workflow *Workflow)
 
 	c.logger.V(1).Info("Creating workflow", "name", workflow.Name)
 
-
-
 	if c.rateLimiter != nil {
 
 		if err := c.rateLimiter.Wait(ctx); err != nil {
@@ -4225,13 +3457,9 @@ func (c *Client) createWorkflowInternal(ctx context.Context, workflow *Workflow)
 
 	}
 
-
-
 	return workflow, nil
 
 }
-
-
 
 // updateWorkflowInternal implements workflow update.
 
@@ -4239,8 +3467,6 @@ func (c *Client) updateWorkflowInternal(ctx context.Context, workflow *Workflow)
 
 	c.logger.V(1).Info("Updating workflow", "name", workflow.Name)
 
-
-
 	if c.rateLimiter != nil {
 
 		if err := c.rateLimiter.Wait(ctx); err != nil {
@@ -4251,21 +3477,15 @@ func (c *Client) updateWorkflowInternal(ctx context.Context, workflow *Workflow)
 
 	}
 
-
-
 	return workflow, nil
 
 }
-
-
 
 // deleteWorkflowInternal implements workflow deletion.
 
 func (c *Client) deleteWorkflowInternal(ctx context.Context, name string) error {
 
 	c.logger.V(1).Info("Deleting workflow", "name", name)
-
-
 
 	if c.rateLimiter != nil {
 
@@ -4277,13 +3497,9 @@ func (c *Client) deleteWorkflowInternal(ctx context.Context, name string) error 
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // healthInternal implements health check.
 
@@ -4291,8 +3507,6 @@ func (c *Client) healthInternal(ctx context.Context) (*HealthStatus, error) {
 
 	c.logger.V(1).Info("Checking health")
 
-
-
 	if c.rateLimiter != nil {
 
 		if err := c.rateLimiter.Wait(ctx); err != nil {
@@ -4303,19 +3517,14 @@ func (c *Client) healthInternal(ctx context.Context) (*HealthStatus, error) {
 
 	}
 
-
-
 	return &HealthStatus{
 
-		Status:    "healthy",
+		Status: "healthy",
 
 		Timestamp: &metav1.Time{Time: time.Now()},
-
 	}, nil
 
 }
-
-
 
 // versionInternal implements version retrieval.
 
@@ -4323,8 +3532,6 @@ func (c *Client) versionInternal(ctx context.Context) (*VersionInfo, error) {
 
 	c.logger.V(1).Info("Getting version")
 
-
-
 	if c.rateLimiter != nil {
 
 		if err := c.rateLimiter.Wait(ctx); err != nil {
@@ -4335,17 +3542,12 @@ func (c *Client) versionInternal(ctx context.Context) (*VersionInfo, error) {
 
 	}
 
-
-
 	return &VersionInfo{
 
 		Version: "v1.0.0",
-
 	}, nil
 
 }
-
-
 
 // getPackageRevisionInternal implements package revision retrieval.
 
@@ -4353,8 +3555,6 @@ func (c *Client) getPackageRevisionInternal(ctx context.Context, name, revision 
 
 	c.logger.V(1).Info("Getting package revision", "name", name, "revision", revision)
 
-
-
 	if c.rateLimiter != nil {
 
 		if err := c.rateLimiter.Wait(ctx); err != nil {
@@ -4365,25 +3565,18 @@ func (c *Client) getPackageRevisionInternal(ctx context.Context, name, revision 
 
 	}
 
-
-
 	gvr := schema.GroupVersionResource{
 
-		Group:    "porch.kpt.dev",
+		Group: "porch.kpt.dev",
 
-		Version:  "v1alpha1",
+		Version: "v1alpha1",
 
 		Resource: "packagerevisions",
-
 	}
-
-
 
 	// Construct the package revision name (typically name-revision).
 
 	resourceName := fmt.Sprintf("%s-%s", name, revision)
-
-
 
 	obj, err := c.dynamic.Resource(gvr).Get(ctx, resourceName, metav1.GetOptions{})
 
@@ -4399,8 +3592,6 @@ func (c *Client) getPackageRevisionInternal(ctx context.Context, name, revision 
 
 	}
 
-
-
 	pkg := &PackageRevision{}
 
 	if err := convertFromUnstructured(obj, pkg); err != nil {
@@ -4409,19 +3600,13 @@ func (c *Client) getPackageRevisionInternal(ctx context.Context, name, revision 
 
 	}
 
-
-
 	c.logger.V(1).Info("Successfully retrieved package revision", "name", name, "revision", revision)
 
 	return pkg, nil
 
 }
 
-
-
 // Validation methods.
-
-
 
 // validateRepository validates repository configuration.
 
@@ -4433,15 +3618,11 @@ func (c *Client) validateRepository(repo *Repository) error {
 
 	}
 
-
-
 	if repo.Name == "" {
 
 		return fmt.Errorf("repository name is required")
 
 	}
-
-
 
 	if repo.Spec.URL == "" {
 
@@ -4449,15 +3630,11 @@ func (c *Client) validateRepository(repo *Repository) error {
 
 	}
 
-
-
 	if repo.Spec.Type == "" {
 
 		return fmt.Errorf("repository type is required")
 
 	}
-
-
 
 	// Validate repository type.
 
@@ -4466,18 +3643,13 @@ func (c *Client) validateRepository(repo *Repository) error {
 		"git": true,
 
 		"oci": true,
-
 	}
-
-
 
 	if !validTypes[repo.Spec.Type] {
 
 		return fmt.Errorf("unsupported repository type: %s", repo.Spec.Type)
 
 	}
-
-
 
 	// Validate URL format.
 
@@ -4493,13 +3665,9 @@ func (c *Client) validateRepository(repo *Repository) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validatePackageRevision validates package revision configuration.
 
@@ -4511,15 +3679,11 @@ func (c *Client) validatePackageRevision(pkg *PackageRevision) error {
 
 	}
 
-
-
 	if pkg.Spec.PackageName == "" {
 
 		return fmt.Errorf("package name is required")
 
 	}
-
-
 
 	if pkg.Spec.Repository == "" {
 
@@ -4527,15 +3691,11 @@ func (c *Client) validatePackageRevision(pkg *PackageRevision) error {
 
 	}
 
-
-
 	if pkg.Spec.Revision == "" {
 
 		return fmt.Errorf("revision is required")
 
 	}
-
-
 
 	// Validate lifecycle.
 
@@ -4545,17 +3705,11 @@ func (c *Client) validatePackageRevision(pkg *PackageRevision) error {
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Initialization methods.
-
-
 
 // initCircuitBreaker initializes the circuit breaker.
 
@@ -4563,13 +3717,13 @@ func (c *Client) initCircuitBreaker() error {
 
 	settings := gobreaker.Settings{
 
-		Name:        "porch-client",
+		Name: "porch-client",
 
 		MaxRequests: 3,
 
-		Interval:    time.Minute,
+		Interval: time.Minute,
 
-		Timeout:     30 * time.Second,
+		Timeout: 30 * time.Second,
 
 		ReadyToTrip: func(counts gobreaker.Counts) bool {
 
@@ -4590,10 +3744,7 @@ func (c *Client) initCircuitBreaker() error {
 			}
 
 		},
-
 	}
-
-
 
 	if c.config.PorchConfig.CircuitBreaker != nil {
 
@@ -4627,15 +3778,11 @@ func (c *Client) initCircuitBreaker() error {
 
 	}
 
-
-
 	c.circuitBreaker = gobreaker.NewCircuitBreaker(settings)
 
 	return nil
 
 }
-
-
 
 // initRateLimiter initializes the rate limiter.
 
@@ -4653,8 +3800,6 @@ func (c *Client) initRateLimiter() error {
 
 }
 
-
-
 // initMetrics initializes Prometheus metrics.
 
 func (c *Client) initMetrics() *ClientMetrics {
@@ -4668,27 +3813,23 @@ func (c *Client) initMetrics() *ClientMetrics {
 				Name: "porch_client_requests_total",
 
 				Help: "Total number of Porch client requests",
-
 			},
 
 			[]string{"operation", "status"},
-
 		),
 
 		requestDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "porch_client_request_duration_seconds",
+				Name: "porch_client_request_duration_seconds",
 
-				Help:    "Duration of Porch client requests",
+				Help: "Duration of Porch client requests",
 
 				Buckets: prometheus.DefBuckets,
-
 			},
 
 			[]string{"operation"},
-
 		),
 
 		cacheHits: prometheus.NewCounter(
@@ -4698,9 +3839,7 @@ func (c *Client) initMetrics() *ClientMetrics {
 				Name: "porch_client_cache_hits_total",
 
 				Help: "Total number of cache hits",
-
 			},
-
 		),
 
 		cacheMisses: prometheus.NewCounter(
@@ -4710,9 +3849,7 @@ func (c *Client) initMetrics() *ClientMetrics {
 				Name: "porch_client_cache_misses_total",
 
 				Help: "Total number of cache misses",
-
 			},
-
 		),
 
 		circuitBreakerState: prometheus.NewGauge(
@@ -4722,9 +3859,7 @@ func (c *Client) initMetrics() *ClientMetrics {
 				Name: "porch_client_circuit_breaker_state",
 
 				Help: "Current circuit breaker state (0=Closed, 1=HalfOpen, 2=Open)",
-
 			},
-
 		),
 
 		activeConnections: prometheus.NewGauge(
@@ -4734,9 +3869,7 @@ func (c *Client) initMetrics() *ClientMetrics {
 				Name: "porch_client_active_connections",
 
 				Help: "Number of active connections",
-
 			},
-
 		),
 
 		errorRate: prometheus.NewCounterVec(
@@ -4746,22 +3879,15 @@ func (c *Client) initMetrics() *ClientMetrics {
 				Name: "porch_client_errors_total",
 
 				Help: "Total number of Porch client errors",
-
 			},
 
 			[]string{"operation", "error_type"},
-
 		),
-
 	}
 
 }
 
-
-
 // Cache methods.
-
-
 
 // getCached retrieves a value from cache.
 
@@ -4773,13 +3899,9 @@ func (c *Client) getCached(key string) interface{} {
 
 	}
 
-
-
 	c.cache.mutex.RLock()
 
 	defer c.cache.mutex.RUnlock()
-
-
 
 	entry, exists := c.cache.cache[key]
 
@@ -4788,8 +3910,6 @@ func (c *Client) getCached(key string) interface{} {
 		return nil
 
 	}
-
-
 
 	// Check if expired.
 
@@ -4801,13 +3921,9 @@ func (c *Client) getCached(key string) interface{} {
 
 	}
 
-
-
 	return entry.data
 
 }
-
-
 
 // setCached stores a value in cache.
 
@@ -4819,13 +3935,9 @@ func (c *Client) setCached(key string, value interface{}) {
 
 	}
 
-
-
 	c.cache.mutex.Lock()
 
 	defer c.cache.mutex.Unlock()
-
-
 
 	// Evict if cache is full.
 
@@ -4835,19 +3947,14 @@ func (c *Client) setCached(key string, value interface{}) {
 
 	}
 
-
-
 	c.cache.cache[key] = &cacheEntry{
 
-		data:      value,
+		data: value,
 
 		timestamp: time.Now(),
-
 	}
 
 }
-
-
 
 // invalidateCache removes a key from cache.
 
@@ -4859,19 +3966,13 @@ func (c *Client) invalidateCache(key string) {
 
 	}
 
-
-
 	c.cache.mutex.Lock()
 
 	defer c.cache.mutex.Unlock()
 
-
-
 	delete(c.cache.cache, key)
 
 }
-
-
 
 // evictExpired removes expired entries from cache.
 
@@ -4883,13 +3984,9 @@ func (c *Client) evictExpired() {
 
 	}
 
-
-
 	c.cache.mutex.Lock()
 
 	defer c.cache.mutex.Unlock()
-
-
 
 	now := time.Now()
 
@@ -4905,8 +4002,6 @@ func (c *Client) evictExpired() {
 
 }
 
-
-
 // evictOldestLocked removes the oldest entry (requires lock).
 
 func (c *Client) evictOldestLocked() {
@@ -4914,8 +4009,6 @@ func (c *Client) evictOldestLocked() {
 	var oldestKey string
 
 	var oldestTime time.Time
-
-
 
 	for key, entry := range c.cache.cache {
 
@@ -4929,8 +4022,6 @@ func (c *Client) evictOldestLocked() {
 
 	}
 
-
-
 	if oldestKey != "" {
 
 		delete(c.cache.cache, oldestKey)
@@ -4939,11 +4030,7 @@ func (c *Client) evictOldestLocked() {
 
 }
 
-
-
 // Utility methods.
-
-
 
 // recordError records an error in metrics.
 
@@ -4954,8 +4041,6 @@ func (c *Client) recordError(operation string, err error) {
 		return
 
 	}
-
-
 
 	errorType := "unknown"
 
@@ -4993,13 +4078,9 @@ func (c *Client) recordError(operation string, err error) {
 
 	}
 
-
-
 	c.metrics.errorRate.WithLabelValues(operation, errorType).Inc()
 
 }
-
-
 
 // convertToUnstructured converts a typed object to unstructured.
 
@@ -5013,8 +4094,6 @@ func convertToUnstructured(obj interface{}) (*unstructured.Unstructured, error) 
 
 	}
 
-
-
 	unstructuredObj := &unstructured.Unstructured{}
 
 	if err := json.Unmarshal(data, unstructuredObj); err != nil {
@@ -5023,13 +4102,9 @@ func convertToUnstructured(obj interface{}) (*unstructured.Unstructured, error) 
 
 	}
 
-
-
 	return unstructuredObj, nil
 
 }
-
-
 
 // convertFromUnstructured converts an unstructured object to a typed object.
 
@@ -5043,25 +4118,17 @@ func convertFromUnstructured(obj, target interface{}) error {
 
 	}
 
-
-
 	if err := json.Unmarshal(data, target); err != nil {
 
 		return fmt.Errorf("failed to unmarshal to target type: %w", err)
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Type conversion helpers for interface{} fields in multicluster types.
-
-
 
 // convertToKRMResource converts interface{} to KRMResource.
 
@@ -5075,8 +4142,6 @@ func convertToKRMResource(resource interface{}) (KRMResource, error) {
 
 	}
 
-
-
 	// Handle map conversion.
 
 	if resourceMap, ok := resource.(map[string]interface{}); ok {
@@ -5084,10 +4149,7 @@ func convertToKRMResource(resource interface{}) (KRMResource, error) {
 		krmRes := KRMResource{
 
 			Metadata: make(map[string]interface{}),
-
 		}
-
-
 
 		if apiVersion, ok := resourceMap["apiVersion"].(string); ok {
 
@@ -5125,19 +4187,13 @@ func convertToKRMResource(resource interface{}) (KRMResource, error) {
 
 		}
 
-
-
 		return krmRes, nil
 
 	}
 
-
-
 	return KRMResource{}, fmt.Errorf("cannot convert %T to KRMResource", resource)
 
 }
-
-
 
 // convertToFunctionConfig converts interface{} to FunctionConfig.
 
@@ -5151,15 +4207,11 @@ func convertToFunctionConfig(function interface{}) (FunctionConfig, error) {
 
 	}
 
-
-
 	// Handle map conversion.
 
 	if functionMap, ok := function.(map[string]interface{}); ok {
 
 		funcConfig := FunctionConfig{}
-
-
 
 		if image, ok := functionMap["image"].(string); ok {
 
@@ -5179,19 +4231,13 @@ func convertToFunctionConfig(function interface{}) (FunctionConfig, error) {
 
 		}
 
-
-
 		return funcConfig, nil
 
 	}
 
-
-
 	return FunctionConfig{}, fmt.Errorf("cannot convert %T to FunctionConfig", function)
 
 }
-
-
 
 // convertFromKRMResource converts KRMResource to interface{} for storage in multicluster types.
 
@@ -5201,21 +4247,18 @@ func convertFromKRMResource(resource KRMResource) interface{} {
 
 		"apiVersion": resource.APIVersion,
 
-		"kind":       resource.Kind,
+		"kind": resource.Kind,
 
-		"metadata":   resource.Metadata,
+		"metadata": resource.Metadata,
 
-		"spec":       resource.Spec,
+		"spec": resource.Spec,
 
-		"status":     resource.Status,
+		"status": resource.Status,
 
-		"data":       resource.Data,
-
+		"data": resource.Data,
 	}
 
 }
-
-
 
 // convertFromFunctionConfig converts FunctionConfig to interface{} for storage in multicluster types.
 
@@ -5223,21 +4266,16 @@ func convertFromFunctionConfig(function FunctionConfig) interface{} {
 
 	return map[string]interface{}{
 
-		"image":      function.Image,
+		"image": function.Image,
 
 		"configPath": function.ConfigPath,
 
-		"configMap":  function.ConfigMap,
-
+		"configMap": function.ConfigMap,
 	}
 
 }
 
-
-
 // Helper functions for package content operations.
-
-
 
 // convertKRMResourceToYAML converts a KRMResource to YAML bytes.
 
@@ -5249,13 +4287,10 @@ func convertKRMResourceToYAML(resource KRMResource) ([]byte, error) {
 
 		"apiVersion": resource.APIVersion,
 
-		"kind":       resource.Kind,
+		"kind": resource.Kind,
 
-		"metadata":   resource.Metadata,
-
+		"metadata": resource.Metadata,
 	}
-
-
 
 	if resource.Spec != nil {
 
@@ -5275,8 +4310,6 @@ func convertKRMResourceToYAML(resource KRMResource) ([]byte, error) {
 
 	}
 
-
-
 	// Convert to YAML using JSON marshaling then conversion.
 
 	jsonBytes, err := json.Marshal(resourceMap)
@@ -5287,8 +4320,6 @@ func convertKRMResourceToYAML(resource KRMResource) ([]byte, error) {
 
 	}
 
-
-
 	// Simple YAML conversion (in production, use proper YAML library).
 
 	// For now, return as formatted JSON which is valid YAML.
@@ -5297,15 +4328,11 @@ func convertKRMResourceToYAML(resource KRMResource) ([]byte, error) {
 
 }
 
-
-
 // convertYAMLToKRMResource converts YAML bytes to a KRMResource.
 
 func convertYAMLToKRMResource(yamlData []byte) (*KRMResource, error) {
 
 	var resourceMap map[string]interface{}
-
-
 
 	// Parse as JSON first (most YAML is valid JSON).
 
@@ -5315,11 +4342,7 @@ func convertYAMLToKRMResource(yamlData []byte) (*KRMResource, error) {
 
 	}
 
-
-
 	resource := &KRMResource{}
-
-
 
 	// Extract required fields.
 
@@ -5359,13 +4382,9 @@ func convertYAMLToKRMResource(yamlData []byte) (*KRMResource, error) {
 
 	}
 
-
-
 	return resource, nil
 
 }
-
-
 
 // generateResourceFilename generates a filename for a KRM resource.
 
@@ -5383,15 +4402,11 @@ func generateResourceFilename(resource KRMResource) string {
 
 	}
 
-
-
 	if name == "" {
 
 		name = "resource"
 
 	}
-
-
 
 	// Create filename from kind and name.
 
@@ -5403,13 +4418,9 @@ func generateResourceFilename(resource KRMResource) string {
 
 	}
 
-
-
 	return fmt.Sprintf("%s-%s.yaml", kind, name)
 
 }
-
-
 
 // isYAMLFile checks if a filename represents a YAML file.
 
@@ -5421,8 +4432,6 @@ func isYAMLFile(filename string) bool {
 
 }
 
-
-
 // getPackageResourcesFromPorch retrieves package resources from Porch PackageRevisionResources.
 
 func (c *Client) getPackageResourcesFromPorch(ctx context.Context, name, revision string) (map[string][]byte, error) {
@@ -5431,19 +4440,14 @@ func (c *Client) getPackageResourcesFromPorch(ctx context.Context, name, revisio
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "porch.kpt.dev",
+		Group: "porch.kpt.dev",
 
-		Version:  "v1alpha1",
+		Version: "v1alpha1",
 
 		Resource: "packagerevisionresources",
-
 	}
 
-
-
 	resourceName := fmt.Sprintf("%s-%s", name, revision)
-
-
 
 	obj, err := c.dynamic.Resource(gvr).Get(ctx, resourceName, metav1.GetOptions{})
 
@@ -5452,8 +4456,6 @@ func (c *Client) getPackageResourcesFromPorch(ctx context.Context, name, revisio
 		return nil, fmt.Errorf("failed to get package revision resources: %w", err)
 
 	}
-
-
 
 	// Extract resources from the PackageRevisionResources spec.
 
@@ -5465,8 +4467,6 @@ func (c *Client) getPackageResourcesFromPorch(ctx context.Context, name, revisio
 
 	}
 
-
-
 	resources, found, err := unstructured.NestedMap(spec, "resources")
 
 	if err != nil || !found {
@@ -5474,8 +4474,6 @@ func (c *Client) getPackageResourcesFromPorch(ctx context.Context, name, revisio
 		return nil, fmt.Errorf("no resources found in PackageRevisionResources spec")
 
 	}
-
-
 
 	contents := make(map[string][]byte)
 
@@ -5489,13 +4487,9 @@ func (c *Client) getPackageResourcesFromPorch(ctx context.Context, name, revisio
 
 	}
 
-
-
 	return contents, nil
 
 }
-
-
 
 // updatePackageResourcesInPorch updates package resources in Porch PackageRevisionResources.
 
@@ -5503,19 +4497,14 @@ func (c *Client) updatePackageResourcesInPorch(ctx context.Context, name, revisi
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "porch.kpt.dev",
+		Group: "porch.kpt.dev",
 
-		Version:  "v1alpha1",
+		Version: "v1alpha1",
 
 		Resource: "packagerevisionresources",
-
 	}
 
-
-
 	resourceName := fmt.Sprintf("%s-%s", name, revision)
-
-
 
 	// Get current PackageRevisionResources.
 
@@ -5527,8 +4516,6 @@ func (c *Client) updatePackageResourcesInPorch(ctx context.Context, name, revisi
 
 	}
 
-
-
 	// Update resources in spec.
 
 	resources := make(map[string]interface{})
@@ -5539,15 +4526,11 @@ func (c *Client) updatePackageResourcesInPorch(ctx context.Context, name, revisi
 
 	}
 
-
-
 	if err := unstructured.SetNestedMap(obj.Object, resources, "spec", "resources"); err != nil {
 
 		return fmt.Errorf("failed to set resources in spec: %w", err)
 
 	}
-
-
 
 	// Update the PackageRevisionResources.
 
@@ -5559,13 +4542,9 @@ func (c *Client) updatePackageResourcesInPorch(ctx context.Context, name, revisi
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // convertResourcesToUnstructured converts KRM resources to unstructured format.
 
@@ -5573,21 +4552,16 @@ func (c *Client) convertResourcesToUnstructured(resources []KRMResource) []inter
 
 	result := make([]interface{}, len(resources))
 
-
-
 	for i, resource := range resources {
 
 		resourceMap := map[string]interface{}{
 
 			"apiVersion": resource.APIVersion,
 
-			"kind":       resource.Kind,
+			"kind": resource.Kind,
 
-			"metadata":   resource.Metadata,
-
+			"metadata": resource.Metadata,
 		}
-
-
 
 		if resource.Spec != nil {
 
@@ -5607,19 +4581,13 @@ func (c *Client) convertResourcesToUnstructured(resources []KRMResource) []inter
 
 		}
 
-
-
 		result[i] = resourceMap
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // waitForFunctionTaskCompletion waits for a function evaluation task to complete.
 
@@ -5627,27 +4595,20 @@ func (c *Client) waitForFunctionTaskCompletion(ctx context.Context, taskName str
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "porch.kpt.dev",
+		Group: "porch.kpt.dev",
 
-		Version:  "v1alpha1",
+		Version: "v1alpha1",
 
 		Resource: "functionevaltasks",
-
 	}
-
-
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 
 	defer cancel()
 
-
-
 	ticker := time.NewTicker(2 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -5669,8 +4630,6 @@ func (c *Client) waitForFunctionTaskCompletion(ctx context.Context, taskName str
 
 			}
 
-
-
 			// Check task status.
 
 			status, found, err := unstructured.NestedMap(obj.Object, "status")
@@ -5680,8 +4639,6 @@ func (c *Client) waitForFunctionTaskCompletion(ctx context.Context, taskName str
 				continue // Task not yet started
 
 			}
-
-
 
 			// Check if completed.
 
@@ -5725,8 +4682,6 @@ func (c *Client) waitForFunctionTaskCompletion(ctx context.Context, taskName str
 
 }
 
-
-
 // extractFunctionResponse extracts FunctionResponse from task status.
 
 func (c *Client) extractFunctionResponse(status map[string]interface{}) (*FunctionResponse, error) {
@@ -5735,13 +4690,10 @@ func (c *Client) extractFunctionResponse(status map[string]interface{}) (*Functi
 
 		Resources: []KRMResource{},
 
-		Results:   []*FunctionResult{},
+		Results: []*FunctionResult{},
 
-		Logs:      []string{},
-
+		Logs: []string{},
 	}
-
-
 
 	// Extract resources.
 
@@ -5752,8 +4704,6 @@ func (c *Client) extractFunctionResponse(status map[string]interface{}) (*Functi
 			if resMap, ok := res.(map[string]interface{}); ok {
 
 				resource := KRMResource{}
-
-
 
 				if apiVersion, ok := resMap["apiVersion"].(string); ok {
 
@@ -5791,8 +4741,6 @@ func (c *Client) extractFunctionResponse(status map[string]interface{}) (*Functi
 
 				}
 
-
-
 				response.Resources = append(response.Resources, resource)
 
 			}
@@ -5800,8 +4748,6 @@ func (c *Client) extractFunctionResponse(status map[string]interface{}) (*Functi
 		}
 
 	}
-
-
 
 	// Extract results.
 
@@ -5812,8 +4758,6 @@ func (c *Client) extractFunctionResponse(status map[string]interface{}) (*Functi
 			if resMap, ok := res.(map[string]interface{}); ok {
 
 				result := &FunctionResult{}
-
-
 
 				if message, ok := resMap["message"].(string); ok {
 
@@ -5855,8 +4799,6 @@ func (c *Client) extractFunctionResponse(status map[string]interface{}) (*Functi
 
 				}
 
-
-
 				response.Results = append(response.Results, result)
 
 			}
@@ -5864,8 +4806,6 @@ func (c *Client) extractFunctionResponse(status map[string]interface{}) (*Functi
 		}
 
 	}
-
-
 
 	// Extract logs.
 
@@ -5883,21 +4823,15 @@ func (c *Client) extractFunctionResponse(status map[string]interface{}) (*Functi
 
 	}
 
-
-
 	return response, nil
 
 }
-
-
 
 // Close closes the client and cleans up resources.
 
 func (c *Client) Close() error {
 
 	c.logger.Info("Closing Porch client")
-
-
 
 	// Close connection pool.
 
@@ -5906,8 +4840,6 @@ func (c *Client) Close() error {
 		close(c.connectionPool.pool)
 
 	}
-
-
 
 	// Clear cache.
 
@@ -5921,13 +4853,9 @@ func (c *Client) Close() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetConfig returns the client configuration.
 
@@ -5937,8 +4865,6 @@ func (c *Client) GetConfig() *ClientConfig {
 
 }
 
-
-
 // GetMetrics returns the client metrics.
 
 func (c *Client) GetMetrics() *ClientMetrics {
@@ -5946,8 +4872,6 @@ func (c *Client) GetMetrics() *ClientMetrics {
 	return c.metrics
 
 }
-
-
 
 // IsHealthy checks if the client is healthy.
 
@@ -5959,8 +4883,6 @@ func (c *Client) IsHealthy(ctx context.Context) bool {
 
 }
 
-
-
 // SetLogger updates the client logger.
 
 func (c *Client) SetLogger(logger logr.Logger) {
@@ -5969,21 +4891,13 @@ func (c *Client) SetLogger(logger logr.Logger) {
 
 }
 
-
-
 // Stub implementations for sub-managers - will be replaced by full implementations.
-
-
 
 // repositoryManagerStub provides a temporary stub implementation.
 
 type repositoryManagerStub struct {
-
 	client *Client
-
 }
-
-
 
 // RegisterRepository performs registerrepository operation.
 
@@ -5993,8 +4907,6 @@ func (r *repositoryManagerStub) RegisterRepository(ctx context.Context, config *
 
 }
 
-
-
 // UnregisterRepository performs unregisterrepository operation.
 
 func (r *repositoryManagerStub) UnregisterRepository(ctx context.Context, name string) error {
@@ -6003,8 +4915,6 @@ func (r *repositoryManagerStub) UnregisterRepository(ctx context.Context, name s
 
 }
 
-
-
 // SynchronizeRepository performs synchronizerepository operation.
 
 func (r *repositoryManagerStub) SynchronizeRepository(ctx context.Context, name string) (*SyncResult, error) {
@@ -6012,8 +4922,6 @@ func (r *repositoryManagerStub) SynchronizeRepository(ctx context.Context, name 
 	return &SyncResult{}, nil
 
 }
-
-
 
 // GetRepositoryHealth performs getrepositoryhealth operation.
 
@@ -6025,8 +4933,6 @@ func (r *repositoryManagerStub) GetRepositoryHealth(ctx context.Context, name st
 
 }
 
-
-
 // CreateBranch performs createbranch operation.
 
 func (r *repositoryManagerStub) CreateBranch(ctx context.Context, repoName, branchName, baseBranch string) error {
@@ -6034,8 +4940,6 @@ func (r *repositoryManagerStub) CreateBranch(ctx context.Context, repoName, bran
 	return nil
 
 }
-
-
 
 // DeleteBranch performs deletebranch operation.
 
@@ -6045,8 +4949,6 @@ func (r *repositoryManagerStub) DeleteBranch(ctx context.Context, repoName, bran
 
 }
 
-
-
 // ListBranches performs listbranches operation.
 
 func (r *repositoryManagerStub) ListBranches(ctx context.Context, repoName string) ([]string, error) {
@@ -6054,8 +4956,6 @@ func (r *repositoryManagerStub) ListBranches(ctx context.Context, repoName strin
 	return []string{"main"}, nil
 
 }
-
-
 
 // UpdateCredentials performs updatecredentials operation.
 
@@ -6065,8 +4965,6 @@ func (r *repositoryManagerStub) UpdateCredentials(ctx context.Context, repoName 
 
 }
 
-
-
 // ValidateAccess performs validateaccess operation.
 
 func (r *repositoryManagerStub) ValidateAccess(ctx context.Context, repoName string) error {
@@ -6075,17 +4973,11 @@ func (r *repositoryManagerStub) ValidateAccess(ctx context.Context, repoName str
 
 }
 
-
-
 // packageRevisionManagerStub provides a temporary stub implementation.
 
 type packageRevisionManagerStub struct {
-
 	client *Client
-
 }
-
-
 
 // CreatePackage performs createpackage operation.
 
@@ -6095,8 +4987,6 @@ func (p *packageRevisionManagerStub) CreatePackage(ctx context.Context, spec *Pa
 
 }
 
-
-
 // ClonePackage performs clonepackage operation.
 
 func (p *packageRevisionManagerStub) ClonePackage(ctx context.Context, source *PackageReference, target *PackageSpec) (*PackageRevision, error) {
@@ -6104,8 +4994,6 @@ func (p *packageRevisionManagerStub) ClonePackage(ctx context.Context, source *P
 	return &PackageRevision{}, nil
 
 }
-
-
 
 // DeletePackage performs deletepackage operation.
 
@@ -6115,8 +5003,6 @@ func (p *packageRevisionManagerStub) DeletePackage(ctx context.Context, ref *Pac
 
 }
 
-
-
 // CreateRevision performs createrevision operation.
 
 func (p *packageRevisionManagerStub) CreateRevision(ctx context.Context, ref *PackageReference) (*PackageRevision, error) {
@@ -6124,8 +5010,6 @@ func (p *packageRevisionManagerStub) CreateRevision(ctx context.Context, ref *Pa
 	return &PackageRevision{}, nil
 
 }
-
-
 
 // GetRevision performs getrevision operation.
 
@@ -6135,8 +5019,6 @@ func (p *packageRevisionManagerStub) GetRevision(ctx context.Context, ref *Packa
 
 }
 
-
-
 // ListRevisions performs listrevisions operation.
 
 func (p *packageRevisionManagerStub) ListRevisions(ctx context.Context, packageName string) ([]*PackageRevision, error) {
@@ -6144,8 +5026,6 @@ func (p *packageRevisionManagerStub) ListRevisions(ctx context.Context, packageN
 	return []*PackageRevision{}, nil
 
 }
-
-
 
 // CompareRevisions performs comparerevisions operation.
 
@@ -6155,8 +5035,6 @@ func (p *packageRevisionManagerStub) CompareRevisions(ctx context.Context, ref1,
 
 }
 
-
-
 // PromoteToProposed performs promotetoproposed operation.
 
 func (p *packageRevisionManagerStub) PromoteToProposed(ctx context.Context, ref *PackageReference) error {
@@ -6164,8 +5042,6 @@ func (p *packageRevisionManagerStub) PromoteToProposed(ctx context.Context, ref 
 	return nil
 
 }
-
-
 
 // PromoteToPublished performs promotetopublished operation.
 
@@ -6175,8 +5051,6 @@ func (p *packageRevisionManagerStub) PromoteToPublished(ctx context.Context, ref
 
 }
 
-
-
 // RevertToRevision performs reverttorevision operation.
 
 func (p *packageRevisionManagerStub) RevertToRevision(ctx context.Context, ref *PackageReference, targetRevision string) error {
@@ -6184,8 +5058,6 @@ func (p *packageRevisionManagerStub) RevertToRevision(ctx context.Context, ref *
 	return nil
 
 }
-
-
 
 // UpdateContent performs updatecontent operation.
 
@@ -6195,8 +5067,6 @@ func (p *packageRevisionManagerStub) UpdateContent(ctx context.Context, ref *Pac
 
 }
 
-
-
 // GetContent performs getcontent operation.
 
 func (p *packageRevisionManagerStub) GetContent(ctx context.Context, ref *PackageReference) (*PackageContent, error) {
@@ -6204,8 +5074,6 @@ func (p *packageRevisionManagerStub) GetContent(ctx context.Context, ref *Packag
 	return &PackageContent{}, nil
 
 }
-
-
 
 // ValidateContent performs validatecontent operation.
 
@@ -6215,17 +5083,11 @@ func (p *packageRevisionManagerStub) ValidateContent(ctx context.Context, ref *P
 
 }
 
-
-
 // functionRunnerStub provides a temporary stub implementation.
 
 type functionRunnerStub struct {
-
 	client *Client
-
 }
-
-
 
 // ExecuteFunction performs executefunction operation.
 
@@ -6235,8 +5097,6 @@ func (f *functionRunnerStub) ExecuteFunction(ctx context.Context, req *FunctionR
 
 }
 
-
-
 // ExecutePipeline performs executepipeline operation.
 
 func (f *functionRunnerStub) ExecutePipeline(ctx context.Context, req *PipelineRequest) (*PipelineResponse, error) {
@@ -6244,8 +5104,6 @@ func (f *functionRunnerStub) ExecutePipeline(ctx context.Context, req *PipelineR
 	return &PipelineResponse{}, nil
 
 }
-
-
 
 // ValidateFunction performs validatefunction operation.
 
@@ -6255,8 +5113,6 @@ func (f *functionRunnerStub) ValidateFunction(ctx context.Context, functionName 
 
 }
 
-
-
 // ListFunctions performs listfunctions operation.
 
 func (f *functionRunnerStub) ListFunctions(ctx context.Context) ([]*FunctionInfo, error) {
@@ -6264,8 +5120,6 @@ func (f *functionRunnerStub) ListFunctions(ctx context.Context) ([]*FunctionInfo
 	return []*FunctionInfo{}, nil
 
 }
-
-
 
 // GetFunctionSchema performs getfunctionschema operation.
 
@@ -6275,8 +5129,6 @@ func (f *functionRunnerStub) GetFunctionSchema(ctx context.Context, functionName
 
 }
 
-
-
 // RegisterFunction performs registerfunction operation.
 
 func (f *functionRunnerStub) RegisterFunction(ctx context.Context, info *FunctionInfo) error {
@@ -6284,4 +5136,3 @@ func (f *functionRunnerStub) RegisterFunction(ctx context.Context, info *Functio
 	return nil
 
 }
-

@@ -2,90 +2,59 @@
 
 // following Google SRE Workbook multi-window alerting patterns.
 
-
 package alerting
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"log/slog"
-
 	"math"
-
 	"sort"
-
 	"sync"
-
 	"time"
 
-
-
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-
-	"github.com/prometheus/common/model"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 )
-
-
 
 // BurnRateCalculator implements multi-window error budget burn rate detection.
 
 // following Google SRE Workbook alerting patterns for rapid and accurate SLA violation detection.
 
 type BurnRateCalculator struct {
+	logger *logging.StructuredLogger
 
-	logger           *logging.StructuredLogger
-
-	config           *BurnRateConfig
+	config *BurnRateConfig
 
 	prometheusClient v1.API
 
-
-
 	// Caching for performance.
 
-	metricCache     map[string]*CachedMetric
+	metricCache map[string]*CachedMetric
 
-	cacheMutex      sync.RWMutex
+	cacheMutex sync.RWMutex
 
 	cacheExpiration time.Duration
 
-
-
 	// State tracking.
 
-	lastCalculation  time.Time
+	lastCalculation time.Time
 
 	calculationCount int64
-
-
 
 	// Performance metrics.
 
 	queryLatencies []time.Duration
 
-	cacheHitRate   float64
-
-
+	cacheHitRate float64
 
 	started bool
 
-	stopCh  chan struct{}
+	stopCh chan struct{}
 
-	mu      sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // BurnRateConfig holds configuration for burn rate calculations.
 
@@ -95,105 +64,83 @@ type BurnRateConfig struct {
 
 	SLATargets map[SLAType]SLATarget `yaml:"sla_targets"`
 
-
-
 	// Evaluation windows following Google SRE patterns.
 
 	EvaluationWindows []time.Duration `yaml:"evaluation_windows"`
 
-
-
 	// Prometheus configuration.
 
-	PrometheusClient v1.API        `yaml:"-"`
+	PrometheusClient v1.API `yaml:"-"`
 
-	QueryTimeout     time.Duration `yaml:"query_timeout"`
-
-
+	QueryTimeout time.Duration `yaml:"query_timeout"`
 
 	// Performance settings.
 
-	CacheExpiration      time.Duration `yaml:"cache_expiration"`
+	CacheExpiration time.Duration `yaml:"cache_expiration"`
 
-	MaxConcurrentQueries int           `yaml:"max_concurrent_queries"`
-
-
+	MaxConcurrentQueries int `yaml:"max_concurrent_queries"`
 
 	// Alert thresholds.
 
-	FastBurnThreshold   float64 `yaml:"fast_burn_threshold"`   // 14.4x for urgent alerts
+	FastBurnThreshold float64 `yaml:"fast_burn_threshold"` // 14.4x for urgent alerts
 
 	MediumBurnThreshold float64 `yaml:"medium_burn_threshold"` // 6x for critical alerts
 
-	SlowBurnThreshold   float64 `yaml:"slow_burn_threshold"`   // 3x for major alerts
+	SlowBurnThreshold float64 `yaml:"slow_burn_threshold"` // 3x for major alerts
 
 }
-
-
 
 // CachedMetric stores cached metric values with expiration.
 
 type CachedMetric struct {
-
-	Value     float64
+	Value float64
 
 	Timestamp time.Time
 
-	Query     string
-
+	Query string
 }
-
-
 
 // BurnRateResult contains comprehensive burn rate analysis.
 
 type BurnRateResult struct {
+	SLAType SLAType `json:"sla_type"`
 
-	SLAType          SLAType                        `json:"sla_type"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp        time.Time                      `json:"timestamp"`
+	Windows map[time.Duration]WindowResult `json:"windows"`
 
-	Windows          map[time.Duration]WindowResult `json:"windows"`
+	OverallBurnRate float64 `json:"overall_burn_rate"`
 
-	OverallBurnRate  float64                        `json:"overall_burn_rate"`
+	BudgetRemaining float64 `json:"budget_remaining"`
 
-	BudgetRemaining  float64                        `json:"budget_remaining"`
+	TimeToExhaustion *time.Duration `json:"time_to_exhaustion,omitempty"`
 
-	TimeToExhaustion *time.Duration                 `json:"time_to_exhaustion,omitempty"`
+	IsViolating bool `json:"is_violating"`
 
-	IsViolating      bool                           `json:"is_violating"`
+	Severity AlertSeverity `json:"severity,omitempty"`
 
-	Severity         AlertSeverity                  `json:"severity,omitempty"`
-
-	Confidence       float64                        `json:"confidence"`
-
+	Confidence float64 `json:"confidence"`
 }
-
-
 
 // WindowResult contains results for a specific evaluation window.
 
 type WindowResult struct {
-
 	ShortWindow time.Duration `json:"short_window"`
 
-	LongWindow  time.Duration `json:"long_window"`
+	LongWindow time.Duration `json:"long_window"`
 
-	BurnRate    float64       `json:"burn_rate"`
+	BurnRate float64 `json:"burn_rate"`
 
-	Threshold   float64       `json:"threshold"`
+	Threshold float64 `json:"threshold"`
 
-	IsViolating bool          `json:"is_violating"`
+	IsViolating bool `json:"is_violating"`
 
-	ErrorRate   float64       `json:"error_rate"`
+	ErrorRate float64 `json:"error_rate"`
 
-	RequestRate float64       `json:"request_rate"`
+	RequestRate float64 `json:"request_rate"`
 
-	Confidence  float64       `json:"confidence"`
-
+	Confidence float64 `json:"confidence"`
 }
-
-
 
 // PromQueryTemplates defines Prometheus queries for different SLA types.
 
@@ -203,59 +150,48 @@ var PromQueryTemplates = map[SLAType]PromQueryTemplate{
 
 		SuccessQuery: `sum(rate(http_requests_total{job="nephoran-intent-operator",code=~"2.."}[%s]))`,
 
-		TotalQuery:   `sum(rate(http_requests_total{job="nephoran-intent-operator"}[%s]))`,
+		TotalQuery: `sum(rate(http_requests_total{job="nephoran-intent-operator"}[%s]))`,
 
-		Description:  "HTTP availability based on successful responses",
-
+		Description: "HTTP availability based on successful responses",
 	},
 
 	SLATypeLatency: {
 
 		SuccessQuery: `histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="nephoran-intent-operator"}[%s])) by (le))`,
 
-		TotalQuery:   `1`, // For latency, we compare against threshold directly
+		TotalQuery: `1`, // For latency, we compare against threshold directly
 
-		Description:  "P95 latency measurements",
-
+		Description: "P95 latency measurements",
 	},
 
 	SLAThroughput: {
 
 		SuccessQuery: `sum(rate(networkintents_processed_total{job="nephoran-intent-operator",status="success"}[%s])) * 60`,
 
-		TotalQuery:   `1`, // Throughput is absolute value
+		TotalQuery: `1`, // Throughput is absolute value
 
-		Description:  "Network intent processing throughput per minute",
-
+		Description: "Network intent processing throughput per minute",
 	},
 
 	SLAErrorRate: {
 
 		SuccessQuery: `sum(rate(http_requests_total{job="nephoran-intent-operator",code=~"5.."}[%s]))`,
 
-		TotalQuery:   `sum(rate(http_requests_total{job="nephoran-intent-operator"}[%s]))`,
+		TotalQuery: `sum(rate(http_requests_total{job="nephoran-intent-operator"}[%s]))`,
 
-		Description:  "Error rate based on 5xx responses",
-
+		Description: "Error rate based on 5xx responses",
 	},
-
 }
-
-
 
 // PromQueryTemplate defines the structure for Prometheus queries.
 
 type PromQueryTemplate struct {
-
 	SuccessQuery string
 
-	TotalQuery   string
+	TotalQuery string
 
-	Description  string
-
+	Description string
 }
-
-
 
 // DefaultBurnRateConfig returns production-ready burn rate calculator configuration.
 
@@ -267,43 +203,37 @@ func DefaultBurnRateConfig() *BurnRateConfig {
 
 		EvaluationWindows: []time.Duration{
 
-			1 * time.Minute,  // Very short window for urgent alerts
+			1 * time.Minute, // Very short window for urgent alerts
 
-			5 * time.Minute,  // Short window for urgent alerts
+			5 * time.Minute, // Short window for urgent alerts
 
 			30 * time.Minute, // Medium window for critical alerts
 
-			2 * time.Hour,    // Long window for major alerts
+			2 * time.Hour, // Long window for major alerts
 
-			6 * time.Hour,    // Very long window for trend analysis
+			6 * time.Hour, // Very long window for trend analysis
 
-			24 * time.Hour,   // Full day window for capacity planning
+			24 * time.Hour, // Full day window for capacity planning
 
 		},
 
+		QueryTimeout: 10 * time.Second,
 
-
-		QueryTimeout:         10 * time.Second,
-
-		CacheExpiration:      30 * time.Second,
+		CacheExpiration: 30 * time.Second,
 
 		MaxConcurrentQueries: 10,
 
-
-
 		// Multi-window thresholds following SRE best practices.
 
-		FastBurnThreshold:   14.4, // Exhausts 99.95% budget in 2 hours
+		FastBurnThreshold: 14.4, // Exhausts 99.95% budget in 2 hours
 
-		MediumBurnThreshold: 6.0,  // Exhausts budget in 5 hours
+		MediumBurnThreshold: 6.0, // Exhausts budget in 5 hours
 
-		SlowBurnThreshold:   3.0,  // Exhausts budget in 1 day
+		SlowBurnThreshold: 3.0, // Exhausts budget in 1 day
 
 	}
 
 }
-
-
 
 // NewBurnRateCalculator creates a new burn rate calculator.
 
@@ -315,41 +245,32 @@ func NewBurnRateCalculator(config *BurnRateConfig, logger *logging.StructuredLog
 
 	}
 
-
-
 	if logger == nil {
 
 		return nil, fmt.Errorf("logger is required")
 
 	}
 
-
-
 	calc := &BurnRateCalculator{
 
-		logger:           logger.WithComponent("burn-rate-calculator"),
+		logger: logger.WithComponent("burn-rate-calculator"),
 
-		config:           config,
+		config: config,
 
 		prometheusClient: config.PrometheusClient,
 
-		metricCache:      make(map[string]*CachedMetric),
+		metricCache: make(map[string]*CachedMetric),
 
-		cacheExpiration:  config.CacheExpiration,
+		cacheExpiration: config.CacheExpiration,
 
-		stopCh:           make(chan struct{}),
+		stopCh: make(chan struct{}),
 
-		queryLatencies:   make([]time.Duration, 0, 100),
-
+		queryLatencies: make([]time.Duration, 0, 100),
 	}
-
-
 
 	return calc, nil
 
 }
-
-
 
 // Start initializes the burn rate calculator.
 
@@ -359,15 +280,11 @@ func (brc *BurnRateCalculator) Start(ctx context.Context) error {
 
 	defer brc.mu.Unlock()
 
-
-
 	if brc.started {
 
 		return fmt.Errorf("burn rate calculator already started")
 
 	}
-
-
 
 	brc.logger.InfoWithContext("Starting burn rate calculator",
 
@@ -376,28 +293,19 @@ func (brc *BurnRateCalculator) Start(ctx context.Context) error {
 		"cache_expiration", brc.cacheExpiration,
 
 		"max_concurrent_queries", brc.config.MaxConcurrentQueries,
-
 	)
-
-
 
 	// Start background cache cleanup.
 
 	go brc.cacheCleanupLoop(ctx)
 
-
-
 	brc.started = true
 
 	brc.logger.InfoWithContext("Burn rate calculator started successfully")
 
-
-
 	return nil
 
 }
-
-
 
 // Stop shuts down the burn rate calculator.
 
@@ -407,33 +315,23 @@ func (brc *BurnRateCalculator) Stop(ctx context.Context) error {
 
 	defer brc.mu.Unlock()
 
-
-
 	if !brc.started {
 
 		return nil
 
 	}
 
-
-
 	brc.logger.InfoWithContext("Stopping burn rate calculator")
 
 	close(brc.stopCh)
-
-
 
 	brc.started = false
 
 	brc.logger.InfoWithContext("Burn rate calculator stopped")
 
-
-
 	return nil
 
 }
-
-
 
 // Calculate performs comprehensive burn rate analysis for the specified SLA type.
 
@@ -452,12 +350,9 @@ func (brc *BurnRateCalculator) Calculate(ctx context.Context, slaType SLAType) (
 			slog.String("sla_type", string(slaType)),
 
 			slog.Duration("duration", duration),
-
 		)
 
 	}()
-
-
 
 	target, exists := brc.config.SLATargets[slaType]
 
@@ -467,19 +362,14 @@ func (brc *BurnRateCalculator) Calculate(ctx context.Context, slaType SLAType) (
 
 	}
 
-
-
 	result := &BurnRateResult{
 
-		SLAType:   slaType,
+		SLAType: slaType,
 
 		Timestamp: startTime,
 
-		Windows:   make(map[time.Duration]WindowResult),
-
+		Windows: make(map[time.Duration]WindowResult),
 	}
-
-
 
 	// Calculate burn rates for all configured windows.
 
@@ -496,38 +386,27 @@ func (brc *BurnRateCalculator) Calculate(ctx context.Context, slaType SLAType) (
 				slog.Duration("window", window),
 
 				slog.String("error", err.Error()),
-
 			)
 
 			continue
 
 		}
 
-
-
 		result.Windows[window] = *windowResult
 
 	}
-
-
 
 	// Analyze results using Google SRE multi-window patterns.
 
 	burnRateInfo := brc.analyzeBurnRateResults(result, target)
 
-
-
 	brc.calculationCount++
 
 	brc.lastCalculation = time.Now()
 
-
-
 	return burnRateInfo, nil
 
 }
-
-
 
 // calculateWindowBurnRate calculates burn rate for a specific time window.
 
@@ -545,15 +424,11 @@ func (brc *BurnRateCalculator) calculateWindowBurnRate(ctx context.Context, slaT
 
 	}
 
-
-
 	// Create context with timeout.
 
 	queryCtx, cancel := context.WithTimeout(ctx, brc.config.QueryTimeout)
 
 	defer cancel()
-
-
 
 	// Calculate short and long windows for multi-window alerting.
 
@@ -567,8 +442,6 @@ func (brc *BurnRateCalculator) calculateWindowBurnRate(ctx context.Context, slaT
 
 	}
 
-
-
 	// Query metrics for both windows.
 
 	shortValue, err := brc.queryMetricValue(queryCtx, slaType, template, shortWindow)
@@ -579,8 +452,6 @@ func (brc *BurnRateCalculator) calculateWindowBurnRate(ctx context.Context, slaT
 
 	}
 
-
-
 	longValue, err := brc.queryMetricValue(queryCtx, slaType, template, longWindow)
 
 	if err != nil {
@@ -589,8 +460,6 @@ func (brc *BurnRateCalculator) calculateWindowBurnRate(ctx context.Context, slaT
 
 	}
 
-
-
 	// Calculate burn rate based on SLA type.
 
 	var burnRate float64
@@ -598,8 +467,6 @@ func (brc *BurnRateCalculator) calculateWindowBurnRate(ctx context.Context, slaT
 	var errorRate, requestRate float64
 
 	confidence := 1.0
-
-
 
 	switch slaType {
 
@@ -623,37 +490,30 @@ func (brc *BurnRateCalculator) calculateWindowBurnRate(ctx context.Context, slaT
 
 	}
 
-
-
 	// Determine if this window is violating based on burn rate thresholds.
 
 	isViolating := brc.isWindowViolatingThreshold(burnRate, window, target)
-
-
 
 	return &WindowResult{
 
 		ShortWindow: shortWindow,
 
-		LongWindow:  longWindow,
+		LongWindow: longWindow,
 
-		BurnRate:    burnRate,
+		BurnRate: burnRate,
 
-		Threshold:   brc.getThresholdForWindow(window),
+		Threshold: brc.getThresholdForWindow(window),
 
 		IsViolating: isViolating,
 
-		ErrorRate:   errorRate,
+		ErrorRate: errorRate,
 
 		RequestRate: requestRate,
 
-		Confidence:  confidence,
-
+		Confidence: confidence,
 	}, nil
 
 }
-
-
 
 // queryMetricValue queries Prometheus for a specific metric value.
 
@@ -673,8 +533,6 @@ func (brc *BurnRateCalculator) queryMetricValue(ctx context.Context, slaType SLA
 
 	}
 
-
-
 	// Build the appropriate query based on SLA type.
 
 	var query string
@@ -689,8 +547,6 @@ func (brc *BurnRateCalculator) queryMetricValue(ctx context.Context, slaType SLA
 
 		totalQuery := fmt.Sprintf(template.TotalQuery, window.String())
 
-
-
 		// Query both metrics.
 
 		successValue, err := brc.executeSingleQuery(ctx, successQuery)
@@ -701,8 +557,6 @@ func (brc *BurnRateCalculator) queryMetricValue(ctx context.Context, slaType SLA
 
 		}
 
-
-
 		totalValue, err := brc.executeSingleQuery(ctx, totalQuery)
 
 		if err != nil {
@@ -711,8 +565,6 @@ func (brc *BurnRateCalculator) queryMetricValue(ctx context.Context, slaType SLA
 
 		}
 
-
-
 		// Calculate ratio.
 
 		if totalValue == 0 {
@@ -720,8 +572,6 @@ func (brc *BurnRateCalculator) queryMetricValue(ctx context.Context, slaType SLA
 			return 1.0, nil // Perfect success if no requests
 
 		}
-
-
 
 		ratio := successValue / totalValue
 
@@ -745,8 +595,6 @@ func (brc *BurnRateCalculator) queryMetricValue(ctx context.Context, slaType SLA
 
 		}
 
-
-
 	default:
 
 		// For latency and throughput, single query.
@@ -761,8 +609,6 @@ func (brc *BurnRateCalculator) queryMetricValue(ctx context.Context, slaType SLA
 
 		}
 
-
-
 		brc.cacheValue(cacheKey, value)
 
 		return value, nil
@@ -770,8 +616,6 @@ func (brc *BurnRateCalculator) queryMetricValue(ctx context.Context, slaType SLA
 	}
 
 }
-
-
 
 // executeSingleQuery executes a single Prometheus query.
 
@@ -785,8 +629,6 @@ func (brc *BurnRateCalculator) executeSingleQuery(ctx context.Context, query str
 
 	}
 
-
-
 	result, warnings, err := brc.prometheusClient.Query(ctx, query, time.Now())
 
 	if err != nil {
@@ -795,8 +637,6 @@ func (brc *BurnRateCalculator) executeSingleQuery(ctx context.Context, query str
 
 	}
 
-
-
 	if len(warnings) > 0 {
 
 		brc.logger.WarnWithContext("Prometheus query warnings",
@@ -804,12 +644,9 @@ func (brc *BurnRateCalculator) executeSingleQuery(ctx context.Context, query str
 			slog.String("query", query),
 
 			slog.Any("warnings", warnings),
-
 		)
 
 	}
-
-
 
 	// Extract value from result.
 
@@ -836,8 +673,6 @@ func (brc *BurnRateCalculator) executeSingleQuery(ctx context.Context, query str
 	}
 
 }
-
-
 
 // getMockValue returns mock values for testing without Prometheus.
 
@@ -873,8 +708,6 @@ func (brc *BurnRateCalculator) getMockValue(query string) float64 {
 
 }
 
-
-
 // calculateAvailabilityBurnRate calculates burn rate for availability SLA.
 
 func (brc *BurnRateCalculator) calculateAvailabilityBurnRate(shortValue, longValue float64,
@@ -887,13 +720,9 @@ func (brc *BurnRateCalculator) calculateAvailabilityBurnRate(shortValue, longVal
 
 	allowedErrorRate := 1.0 - targetAvailability
 
-
-
 	shortErrorRate := 1.0 - shortValue
 
 	_ = 1.0 - longValue // longErrorRate unused but calculated for potential future use
-
-
 
 	// Calculate burn rate as multiple of allowed error rate.
 
@@ -903,13 +732,9 @@ func (brc *BurnRateCalculator) calculateAvailabilityBurnRate(shortValue, longVal
 
 	}
 
-
-
 	return burnRate, shortErrorRate, 1.0 // Assume normalized request rate
 
 }
-
-
 
 // calculateLatencyBurnRate calculates burn rate for latency SLA.
 
@@ -917,15 +742,11 @@ func (brc *BurnRateCalculator) calculateLatencyBurnRate(currentLatency float64, 
 
 	targetLatency := target.Target / 1000.0 // Convert milliseconds to seconds
 
-
-
 	if targetLatency == 0 {
 
 		return 0
 
 	}
-
-
 
 	// Burn rate is how much we exceed the target.
 
@@ -935,13 +756,9 @@ func (brc *BurnRateCalculator) calculateLatencyBurnRate(currentLatency float64, 
 
 	}
 
-
-
 	return 1.0 // No violation
 
 }
-
-
 
 // calculateLatencyConfidence calculates confidence in latency measurements.
 
@@ -955,15 +772,11 @@ func (brc *BurnRateCalculator) calculateLatencyConfidence(shortValue, longValue 
 
 	}
 
-
-
 	ratio := math.Min(shortValue, longValue) / math.Max(shortValue, longValue)
 
 	return ratio*0.9 + 0.1 // Scale between 0.1 and 1.0
 
 }
-
-
 
 // calculateThroughputBurnRate calculates burn rate for throughput SLA.
 
@@ -971,15 +784,11 @@ func (brc *BurnRateCalculator) calculateThroughputBurnRate(currentThroughput flo
 
 	targetThroughput := target.Target
 
-
-
 	if currentThroughput >= targetThroughput {
 
 		return 1.0 // Meeting target
 
 	}
-
-
 
 	// Burn rate based on how far below target we are.
 
@@ -988,8 +797,6 @@ func (brc *BurnRateCalculator) calculateThroughputBurnRate(currentThroughput flo
 	return 1.0 + (deficit / targetThroughput)
 
 }
-
-
 
 // calculateErrorRateBurnRate calculates burn rate for error rate SLA.
 
@@ -1001,23 +808,17 @@ func (brc *BurnRateCalculator) calculateErrorRateBurnRate(shortValue, longValue 
 
 	targetErrorRate := target.Target / 100.0 // Convert percentage to ratio
 
-
-
 	if targetErrorRate == 0 {
 
 		return math.Inf(1), shortValue, 1.0
 
 	}
 
-
-
 	burnRate = shortValue / targetErrorRate
 
 	return burnRate, shortValue, 1.0
 
 }
-
-
 
 // isWindowViolatingThreshold determines if a burn rate violates thresholds for the window.
 
@@ -1032,8 +833,6 @@ func (brc *BurnRateCalculator) isWindowViolatingThreshold(burnRate float64, wind
 	return burnRate > threshold
 
 }
-
-
 
 // getThresholdForWindow returns the appropriate threshold for a time window.
 
@@ -1059,8 +858,6 @@ func (brc *BurnRateCalculator) getThresholdForWindow(window time.Duration) float
 
 }
 
-
-
 // analyzeBurnRateResults analyzes multi-window results following Google SRE patterns.
 
 func (brc *BurnRateCalculator) analyzeBurnRateResults(result *BurnRateResult,
@@ -1085,8 +882,6 @@ func (brc *BurnRateCalculator) analyzeBurnRateResults(result *BurnRateResult,
 
 	})
 
-
-
 	// Find the most severe violation.
 
 	var severity AlertSeverity
@@ -1094,8 +889,6 @@ func (brc *BurnRateCalculator) analyzeBurnRateResults(result *BurnRateResult,
 	_ = false // isViolating initialized but unused in current implementation
 
 	var overallBurnRate float64
-
-
 
 	for _, window := range windows {
 
@@ -1106,8 +899,6 @@ func (brc *BurnRateCalculator) analyzeBurnRateResults(result *BurnRateResult,
 			// isViolating = true  // Commented out as variable is unused.
 
 			overallBurnRate = math.Max(overallBurnRate, windowResult.BurnRate)
-
-
 
 			// Determine severity based on window and burn rate.
 
@@ -1123,21 +914,15 @@ func (brc *BurnRateCalculator) analyzeBurnRateResults(result *BurnRateResult,
 
 	}
 
-
-
 	// Calculate budget information.
 
 	budgetRemaining := brc.calculateBudgetRemaining(result, target)
 
 	_ = brc.calculateTimeToExhaustion(overallBurnRate, budgetRemaining, target) // timeToExhaustion unused in current implementation
 
-
-
 	// Create BurnRateInfo with window-specific details.
 
 	var shortWindow, mediumWindow, longWindow BurnRateWindow
-
-
 
 	if len(windows) >= 3 {
 
@@ -1145,69 +930,58 @@ func (brc *BurnRateCalculator) analyzeBurnRateResults(result *BurnRateResult,
 
 		shortWindow = BurnRateWindow{
 
-			Duration:    windows[0],
+			Duration: windows[0],
 
-			BurnRate:    shortResult.BurnRate,
+			BurnRate: shortResult.BurnRate,
 
-			Threshold:   shortResult.Threshold,
+			Threshold: shortResult.Threshold,
 
 			IsViolating: shortResult.IsViolating,
-
 		}
-
-
 
 		mediumResult := result.Windows[windows[len(windows)/2]]
 
 		mediumWindow = BurnRateWindow{
 
-			Duration:    windows[len(windows)/2],
+			Duration: windows[len(windows)/2],
 
-			BurnRate:    mediumResult.BurnRate,
+			BurnRate: mediumResult.BurnRate,
 
-			Threshold:   mediumResult.Threshold,
+			Threshold: mediumResult.Threshold,
 
 			IsViolating: mediumResult.IsViolating,
-
 		}
-
-
 
 		longResult := result.Windows[windows[len(windows)-1]]
 
 		longWindow = BurnRateWindow{
 
-			Duration:    windows[len(windows)-1],
+			Duration: windows[len(windows)-1],
 
-			BurnRate:    longResult.BurnRate,
+			BurnRate: longResult.BurnRate,
 
-			Threshold:   longResult.Threshold,
+			Threshold: longResult.Threshold,
 
 			IsViolating: longResult.IsViolating,
-
 		}
 
 	}
 
-
-
 	return BurnRateInfo{
 
-		ShortWindow:   shortWindow,
+		ShortWindow: shortWindow,
 
-		MediumWindow:  mediumWindow,
+		MediumWindow: mediumWindow,
 
-		LongWindow:    longWindow,
+		LongWindow: longWindow,
 
-		CurrentRate:   overallBurnRate,
+		CurrentRate: overallBurnRate,
 
 		PredictedRate: overallBurnRate * 1.1, // Simple prediction
 
 	}
 
 }
-
-
 
 // Cache management methods.
 
@@ -1217,8 +991,6 @@ func (brc *BurnRateCalculator) getCachedValue(key string) *CachedMetric {
 
 	defer brc.cacheMutex.RUnlock()
 
-
-
 	cached, exists := brc.metricCache[key]
 
 	if !exists || time.Since(cached.Timestamp) > brc.cacheExpiration {
@@ -1227,13 +999,9 @@ func (brc *BurnRateCalculator) getCachedValue(key string) *CachedMetric {
 
 	}
 
-
-
 	return cached
 
 }
-
-
 
 func (brc *BurnRateCalculator) cacheValue(key string, value float64) {
 
@@ -1241,27 +1009,20 @@ func (brc *BurnRateCalculator) cacheValue(key string, value float64) {
 
 	defer brc.cacheMutex.Unlock()
 
-
-
 	brc.metricCache[key] = &CachedMetric{
 
-		Value:     value,
+		Value: value,
 
 		Timestamp: time.Now(),
-
 	}
 
 }
-
-
 
 func (brc *BurnRateCalculator) cacheCleanupLoop(ctx context.Context) {
 
 	ticker := time.NewTicker(5 * time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1285,15 +1046,11 @@ func (brc *BurnRateCalculator) cacheCleanupLoop(ctx context.Context) {
 
 }
 
-
-
 func (brc *BurnRateCalculator) cleanupExpiredCache() {
 
 	brc.cacheMutex.Lock()
 
 	defer brc.cacheMutex.Unlock()
-
-
 
 	now := time.Now()
 
@@ -1309,8 +1066,6 @@ func (brc *BurnRateCalculator) cleanupExpiredCache() {
 
 }
 
-
-
 // Performance tracking.
 
 func (brc *BurnRateCalculator) recordQueryLatency(duration time.Duration) {
@@ -1318,8 +1073,6 @@ func (brc *BurnRateCalculator) recordQueryLatency(duration time.Duration) {
 	brc.mu.Lock()
 
 	defer brc.mu.Unlock()
-
-
 
 	brc.queryLatencies = append(brc.queryLatencies, duration)
 
@@ -1330,8 +1083,6 @@ func (brc *BurnRateCalculator) recordQueryLatency(duration time.Duration) {
 	}
 
 }
-
-
 
 // Helper methods for severity and budget calculations.
 
@@ -1359,31 +1110,24 @@ func (brc *BurnRateCalculator) getSeverityForWindow(window time.Duration, burnRa
 
 }
 
-
-
 func (brc *BurnRateCalculator) isMoreSevere(a, b AlertSeverity) bool {
 
 	severityOrder := map[AlertSeverity]int{
 
-		AlertSeverityInfo:     1,
+		AlertSeverityInfo: 1,
 
-		AlertSeverityWarning:  2,
+		AlertSeverityWarning: 2,
 
-		AlertSeverityMajor:    3,
+		AlertSeverityMajor: 3,
 
 		AlertSeverityCritical: 4,
 
-		AlertSeverityUrgent:   5,
-
+		AlertSeverityUrgent: 5,
 	}
-
-
 
 	return severityOrder[a] > severityOrder[b]
 
 }
-
-
 
 func (brc *BurnRateCalculator) calculateBudgetRemaining(result *BurnRateResult, target SLATarget) float64 {
 
@@ -1392,8 +1136,6 @@ func (brc *BurnRateCalculator) calculateBudgetRemaining(result *BurnRateResult, 
 	return target.ErrorBudget * 0.8 // Assume 80% remaining
 
 }
-
-
 
 func (brc *BurnRateCalculator) calculateTimeToExhaustion(burnRate, budgetRemaining float64,
 
@@ -1407,21 +1149,15 @@ func (brc *BurnRateCalculator) calculateTimeToExhaustion(burnRate, budgetRemaini
 
 	}
 
-
-
 	// Simple calculation: remaining budget / burn rate = time to exhaustion.
 
 	hoursToExhaustion := budgetRemaining / (burnRate - 1.0)
 
 	duration := time.Duration(hoursToExhaustion * float64(time.Hour))
 
-
-
 	return &duration
 
 }
-
-
 
 // GetStats returns performance statistics.
 
@@ -1430,8 +1166,6 @@ func (brc *BurnRateCalculator) GetStats() map[string]interface{} {
 	brc.mu.RLock()
 
 	defer brc.mu.RUnlock()
-
-
 
 	var avgLatency time.Duration
 
@@ -1449,29 +1183,23 @@ func (brc *BurnRateCalculator) GetStats() map[string]interface{} {
 
 	}
 
-
-
 	brc.cacheMutex.RLock()
 
 	cacheSize := len(brc.metricCache)
 
 	brc.cacheMutex.RUnlock()
 
-
-
 	return map[string]interface{}{
 
-		"calculation_count":     brc.calculationCount,
+		"calculation_count": brc.calculationCount,
 
-		"last_calculation":      brc.lastCalculation,
+		"last_calculation": brc.lastCalculation,
 
 		"average_query_latency": avgLatency,
 
-		"cache_size":            cacheSize,
+		"cache_size": cacheSize,
 
-		"cache_hit_rate":        brc.cacheHitRate,
-
+		"cache_hit_rate": brc.cacheHitRate,
 	}
 
 }
-

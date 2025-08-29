@@ -1,51 +1,28 @@
-
 package multicluster
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
-
-
 
 	"go.uber.org/zap"
 
-
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	"k8s.io/client-go/discovery"
-
 	"k8s.io/client-go/dynamic"
-
 	"k8s.io/client-go/restmapper"
-
 )
-
-
 
 // PackageDeploymentOrchestrator manages package deployments across multiple clusters.
 
 type PackageDeploymentOrchestrator struct {
-
 	clusterRegistry *ClusterRegistry
 
-	logger          *zap.Logger
-
+	logger *zap.Logger
 }
-
-
 
 // NewPackageDeploymentOrchestrator creates a new deployment orchestrator.
 
@@ -55,13 +32,10 @@ func NewPackageDeploymentOrchestrator(registry *ClusterRegistry, logger *zap.Log
 
 		clusterRegistry: registry,
 
-		logger:          logger,
-
+		logger: logger,
 	}
 
 }
-
-
 
 // PropagatePackage deploys a package to selected target clusters.
 
@@ -85,23 +59,18 @@ func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 
 	}
 
-
-
 	// Prepare propagation result.
 
 	result := &PropagationResult{
 
-		PackageName:           packageName,
+		PackageName: packageName,
 
-		Timestamp:             metav1.Now(),
+		Timestamp: metav1.Now(),
 
 		SuccessfulDeployments: []string{},
 
-		FailedDeployments:     []string{},
-
+		FailedDeployments: []string{},
 	}
-
-
 
 	// Determine deployment concurrency based on strategy.
 
@@ -113,8 +82,6 @@ func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 
 	}
 
-
-
 	// Create semaphore for concurrent deployments.
 
 	sem := make(chan struct{}, maxConcurrent)
@@ -123,8 +90,6 @@ func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 
 	var mu sync.Mutex
 
-
-
 	// Deploy to selected targets.
 
 	for _, target := range targets {
@@ -132,8 +97,6 @@ func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 		sem <- struct{}{}
 
 		wg.Add(1)
-
-
 
 		go func(t *DeploymentTarget) {
 
@@ -145,19 +108,13 @@ func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 
 			}()
 
-
-
 			deploymentStart := time.Now()
 
 			_, err := pdo.deployToCluster(ctx, packageName, t, options)
 
-
-
 			mu.Lock()
 
 			defer mu.Unlock()
-
-
 
 			if err != nil {
 
@@ -189,13 +146,9 @@ func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 
 	}
 
-
-
 	// Wait for all deployments to complete.
 
 	wg.Wait()
-
-
 
 	// Determine overall result.
 
@@ -209,13 +162,9 @@ func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // deployToCluster handles package deployment to a single cluster.
 
@@ -241,8 +190,6 @@ func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 
 	}
 
-
-
 	// Create discovery client for RESTMapper.
 
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(target.Cluster.KubeConfig)
@@ -252,8 +199,6 @@ func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 		return false, fmt.Errorf("failed to create discovery client: %w", err)
 
 	}
-
-
 
 	// Create RESTMapper to convert GVK to GVR.
 
@@ -266,8 +211,6 @@ func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 	}
 
 	mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
-
-
 
 	// TODO: Implement package retrieval and parsing logic.
 
@@ -283,8 +226,6 @@ func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 
 	}
 
-
-
 	// If dry run is enabled, just validate without actual deployment.
 
 	if options.DryRun {
@@ -292,8 +233,6 @@ func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 		return pdo.validatePackageDeployment(ctx, packageResources, target)
 
 	}
-
-
 
 	// Apply package resources to the target cluster.
 
@@ -307,8 +246,6 @@ func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 
 		}
 
-
-
 		// Convert GVK to GVR using RESTMapper.
 
 		gvk := resource.GroupVersionKind()
@@ -321,8 +258,6 @@ func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 
 		}
 
-
-
 		// Create or update resource.
 
 		_, err = dynamicClient.Resource(mapping.Resource).Namespace(resource.GetNamespace()).Create(
@@ -332,7 +267,6 @@ func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 			resource,
 
 			metav1.CreateOptions{},
-
 		)
 
 		if err != nil {
@@ -343,13 +277,9 @@ func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 
 	}
 
-
-
 	return true, nil
 
 }
-
-
 
 // validatePackageDeployment performs a dry run validation of package deployment.
 
@@ -374,8 +304,6 @@ func (pdo *PackageDeploymentOrchestrator) validatePackageDeployment(
 	// 3. RBAC permissions.
 
 	// 4. Constraint satisfaction.
-
-
 
 	// Placeholder validation.
 
@@ -411,13 +339,9 @@ func (pdo *PackageDeploymentOrchestrator) validatePackageDeployment(
 
 	}
 
-
-
 	return true, nil
 
 }
-
-
 
 // rollbackFailedDeployments handles rollback for failed deployments.
 
@@ -447,8 +371,6 @@ func (pdo *PackageDeploymentOrchestrator) rollbackFailedDeployments(
 
 		}
 
-
-
 		// TODO: Implement actual rollback logic.
 
 		// This would involve removing deployed resources or restoring previous state.
@@ -462,8 +384,6 @@ func (pdo *PackageDeploymentOrchestrator) rollbackFailedDeployments(
 	}
 
 }
-
-
 
 // selectDeploymentTargets selects clusters for package deployment based on options.
 
@@ -481,11 +401,7 @@ func (pdo *PackageDeploymentOrchestrator) selectDeploymentTargets(
 
 	clusters := pdo.clusterRegistry.ListClusters()
 
-
-
 	var targets []*DeploymentTarget
-
-
 
 	// Filter clusters based on constraints.
 
@@ -505,23 +421,18 @@ func (pdo *PackageDeploymentOrchestrator) selectDeploymentTargets(
 
 		}
 
-
-
 		// Create deployment target.
 
 		target := &DeploymentTarget{
 
-			Cluster:     cluster,
+			Cluster: cluster,
 
 			Constraints: options.Constraints,
 
-			Priority:    1, // Default priority
+			Priority: 1, // Default priority
 
-			Fitness:     1.0,
-
+			Fitness: 1.0,
 		}
-
-
 
 		// Evaluate constraints.
 
@@ -551,8 +462,6 @@ func (pdo *PackageDeploymentOrchestrator) selectDeploymentTargets(
 
 		}
 
-
-
 		if constraintsMet {
 
 			targets = append(targets, target)
@@ -561,21 +470,15 @@ func (pdo *PackageDeploymentOrchestrator) selectDeploymentTargets(
 
 	}
 
-
-
 	if len(targets) == 0 {
 
 		return nil, fmt.Errorf("no suitable target clusters found for package %s", packageName)
 
 	}
 
-
-
 	return targets, nil
 
 }
-
-
 
 // evaluateConstraint checks if a cluster meets a specific constraint.
 
@@ -635,8 +538,6 @@ func (pdo *PackageDeploymentOrchestrator) evaluateConstraint(
 
 }
 
-
-
 // retrievePackageResources fetches package resources.
 
 // TODO: Replace with actual Nephio Porch package retrieval.
@@ -662,4 +563,3 @@ func (pdo *PackageDeploymentOrchestrator) retrievePackageResources(
 	return []*unstructured.Unstructured{}, nil
 
 }
-

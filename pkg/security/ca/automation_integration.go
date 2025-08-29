@@ -1,49 +1,30 @@
-
 package ca
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
-
-
 
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 
-
-
 	"k8s.io/client-go/kubernetes"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-
 )
-
-
 
 // AutomationIntegration provides the main integration point for certificate automation.
 
 type AutomationIntegration struct {
+	manager manager.Manager
 
-	manager          manager.Manager
+	logger *logging.StructuredLogger
 
-	logger           *logging.StructuredLogger
-
-	caManager        *CAManager
+	caManager *CAManager
 
 	automationEngine *AutomationEngine
 
-	config           *AutomationIntegrationConfig
-
+	config *AutomationIntegrationConfig
 }
-
-
 
 // AutomationIntegrationConfig configures the automation integration.
 
@@ -53,13 +34,9 @@ type AutomationIntegrationConfig struct {
 
 	CAManagerConfig *Config `yaml:"ca_manager"`
 
-
-
 	// Automation Engine configuration.
 
 	AutomationConfig *AutomationConfig `yaml:"automation_engine"`
-
-
 
 	// Integration settings.
 
@@ -67,19 +44,15 @@ type AutomationIntegrationConfig struct {
 
 	EnableMonitoringIntegration bool `yaml:"enable_monitoring_integration"`
 
-	EnableAlertingIntegration   bool `yaml:"enable_alerting_integration"`
-
-
+	EnableAlertingIntegration bool `yaml:"enable_alerting_integration"`
 
 	// Performance settings.
 
-	MaxConcurrentOperations int           `yaml:"max_concurrent_operations"`
+	MaxConcurrentOperations int `yaml:"max_concurrent_operations"`
 
-	OperationTimeout        time.Duration `yaml:"operation_timeout"`
+	OperationTimeout time.Duration `yaml:"operation_timeout"`
 
-	HealthCheckInterval     time.Duration `yaml:"health_check_interval"`
-
-
+	HealthCheckInterval time.Duration `yaml:"health_check_interval"`
 
 	// Security settings.
 
@@ -87,11 +60,8 @@ type AutomationIntegrationConfig struct {
 
 	EnableComplianceChecks bool `yaml:"enable_compliance_checks"`
 
-	EnableAuditLogging     bool `yaml:"enable_audit_logging"`
-
+	EnableAuditLogging bool `yaml:"enable_audit_logging"`
 }
-
-
 
 // NewAutomationIntegration creates a new automation integration.
 
@@ -110,8 +80,6 @@ func NewAutomationIntegration(
 		return nil, fmt.Errorf("integration config is required")
 
 	}
-
-
 
 	// Set defaults.
 
@@ -133,33 +101,24 @@ func NewAutomationIntegration(
 
 	}
 
-
-
 	integration := &AutomationIntegration{
 
 		manager: mgr,
 
-		logger:  logger,
+		logger: logger,
 
-		config:  config,
-
+		config: config,
 	}
-
-
 
 	return integration, nil
 
 }
-
-
 
 // Initialize initializes all components of the automation integration.
 
 func (ai *AutomationIntegration) Initialize(ctx context.Context) error {
 
 	ai.logger.Info("initializing certificate automation integration")
-
-
 
 	// Initialize CA Manager.
 
@@ -169,8 +128,6 @@ func (ai *AutomationIntegration) Initialize(ctx context.Context) error {
 
 	}
 
-
-
 	// Initialize Automation Engine.
 
 	if err := ai.initializeAutomationEngine(); err != nil {
@@ -178,8 +135,6 @@ func (ai *AutomationIntegration) Initialize(ctx context.Context) error {
 		return fmt.Errorf("failed to initialize automation engine: %w", err)
 
 	}
-
-
 
 	// Setup Kubernetes controllers if enabled.
 
@@ -193,8 +148,6 @@ func (ai *AutomationIntegration) Initialize(ctx context.Context) error {
 
 	}
 
-
-
 	// Setup monitoring integration if enabled.
 
 	if ai.config.EnableMonitoringIntegration {
@@ -206,8 +159,6 @@ func (ai *AutomationIntegration) Initialize(ctx context.Context) error {
 		}
 
 	}
-
-
 
 	// Setup alerting integration if enabled.
 
@@ -221,23 +172,17 @@ func (ai *AutomationIntegration) Initialize(ctx context.Context) error {
 
 	}
 
-
-
 	ai.logger.Info("certificate automation integration initialized successfully")
 
 	return nil
 
 }
 
-
-
 // Start starts the automation integration.
 
 func (ai *AutomationIntegration) Start(ctx context.Context) error {
 
 	ai.logger.Info("starting certificate automation integration")
-
-
 
 	// Start CA Manager background processes.
 
@@ -246,8 +191,6 @@ func (ai *AutomationIntegration) Start(ctx context.Context) error {
 		ai.caManager.runCertificateLifecycleManager()
 
 	}()
-
-
 
 	// Start Automation Engine.
 
@@ -261,19 +204,13 @@ func (ai *AutomationIntegration) Start(ctx context.Context) error {
 
 	}()
 
-
-
 	// Start health checking.
 
 	go ai.runHealthChecks(ctx)
 
-
-
 	// Wait for context cancellation.
 
 	<-ctx.Done()
-
-
 
 	ai.logger.Info("certificate automation integration stopped")
 
@@ -281,15 +218,11 @@ func (ai *AutomationIntegration) Start(ctx context.Context) error {
 
 }
 
-
-
 // Stop stops the automation integration.
 
 func (ai *AutomationIntegration) Stop() error {
 
 	ai.logger.Info("stopping certificate automation integration")
-
-
 
 	// Stop automation engine.
 
@@ -299,8 +232,6 @@ func (ai *AutomationIntegration) Stop() error {
 
 	}
 
-
-
 	// Stop CA manager.
 
 	if ai.caManager != nil {
@@ -309,13 +240,9 @@ func (ai *AutomationIntegration) Stop() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetCAManager returns the CA manager instance.
 
@@ -325,8 +252,6 @@ func (ai *AutomationIntegration) GetCAManager() *CAManager {
 
 }
 
-
-
 // GetAutomationEngine returns the automation engine instance.
 
 func (ai *AutomationIntegration) GetAutomationEngine() *AutomationEngine {
@@ -335,23 +260,18 @@ func (ai *AutomationIntegration) GetAutomationEngine() *AutomationEngine {
 
 }
 
-
-
 // GetHealthStatus returns the overall health status.
 
 func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
 
 	status := map[string]interface{}{
 
-		"healthy":    true,
+		"healthy": true,
 
-		"timestamp":  time.Now().Format(time.RFC3339),
+		"timestamp": time.Now().Format(time.RFC3339),
 
 		"components": map[string]interface{}{},
-
 	}
-
-
 
 	// Check CA Manager health.
 
@@ -361,13 +281,10 @@ func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
 
 		caStatus := map[string]interface{}{
 
-			"healthy":  len(caHealth) == 0,
+			"healthy": len(caHealth) == 0,
 
 			"backends": caHealth,
-
 		}
-
-
 
 		if len(caHealth) > 0 {
 
@@ -375,13 +292,9 @@ func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
 
 		}
 
-
-
 		status["components"].(map[string]interface{})["ca_manager"] = caStatus
 
 	}
-
-
 
 	// Check Automation Engine health.
 
@@ -389,27 +302,20 @@ func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
 
 		engineStatus := map[string]interface{}{
 
-			"healthy":            true,
+			"healthy": true,
 
 			"provisioning_queue": ai.automationEngine.GetProvisioningQueueSize(),
 
-			"renewal_queue":      ai.automationEngine.GetRenewalQueueSize(),
-
+			"renewal_queue": ai.automationEngine.GetRenewalQueueSize(),
 		}
-
-
 
 		status["components"].(map[string]interface{})["automation_engine"] = engineStatus
 
 	}
 
-
-
 	return status
 
 }
-
-
 
 // GetMetrics returns integration metrics.
 
@@ -417,15 +323,12 @@ func (ai *AutomationIntegration) GetMetrics() map[string]interface{} {
 
 	metrics := map[string]interface{}{
 
-		"timestamp":         time.Now().Format(time.RFC3339),
+		"timestamp": time.Now().Format(time.RFC3339),
 
-		"ca_manager":        map[string]interface{}{},
+		"ca_manager": map[string]interface{}{},
 
 		"automation_engine": map[string]interface{}{},
-
 	}
-
-
 
 	// Add CA Manager metrics if available.
 
@@ -435,17 +338,14 @@ func (ai *AutomationIntegration) GetMetrics() map[string]interface{} {
 
 		metrics["ca_manager"] = map[string]interface{}{
 
-			"certificates_issued":  0, // Placeholder
+			"certificates_issued": 0, // Placeholder
 
 			"certificates_revoked": 0, // Placeholder
 
-			"backend_health":       map[string]bool{},
-
+			"backend_health": map[string]bool{},
 		}
 
 	}
-
-
 
 	// Add Automation Engine metrics.
 
@@ -455,19 +355,14 @@ func (ai *AutomationIntegration) GetMetrics() map[string]interface{} {
 
 			"provisioning_queue_size": ai.automationEngine.GetProvisioningQueueSize(),
 
-			"renewal_queue_size":      ai.automationEngine.GetRenewalQueueSize(),
-
+			"renewal_queue_size": ai.automationEngine.GetRenewalQueueSize(),
 		}
 
 	}
 
-
-
 	return metrics
 
 }
-
-
 
 // Emergency procedures for incident response.
 
@@ -479,15 +374,11 @@ func (ai *AutomationIntegration) EmergencyRevokeCertificate(ctx context.Context,
 
 		"reason", reason)
 
-
-
 	if ai.caManager == nil {
 
 		return fmt.Errorf("CA manager not available for emergency revocation")
 
 	}
-
-
 
 	if err := ai.caManager.RevokeCertificate(ctx, serialNumber, reason, "emergency"); err != nil {
 
@@ -501,19 +392,13 @@ func (ai *AutomationIntegration) EmergencyRevokeCertificate(ctx context.Context,
 
 	}
 
-
-
 	ai.logger.Info("emergency certificate revocation completed",
 
 		"serial_number", serialNumber)
 
-
-
 	return nil
 
 }
-
-
 
 // BulkRevokeCertificates revokes multiple certificates (emergency procedure).
 
@@ -525,21 +410,15 @@ func (ai *AutomationIntegration) BulkRevokeCertificates(ctx context.Context, ser
 
 		"reason", reason)
 
-
-
 	if ai.caManager == nil {
 
 		return fmt.Errorf("CA manager not available for bulk revocation")
 
 	}
 
-
-
 	errors := []string{}
 
 	successCount := 0
-
-
 
 	for _, serialNumber := range serialNumbers {
 
@@ -561,8 +440,6 @@ func (ai *AutomationIntegration) BulkRevokeCertificates(ctx context.Context, ser
 
 	}
 
-
-
 	ai.logger.Info("bulk certificate revocation completed",
 
 		"total", len(serialNumbers),
@@ -571,31 +448,21 @@ func (ai *AutomationIntegration) BulkRevokeCertificates(ctx context.Context, ser
 
 		"failed", len(errors))
 
-
-
 	if len(errors) > 0 {
 
 		return fmt.Errorf("bulk revocation partially failed: %v", errors)
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Internal initialization methods.
-
-
 
 func (ai *AutomationIntegration) initializeCAManager() error {
 
 	ai.logger.Info("initializing CA manager")
-
-
 
 	caManager, err := NewCAManager(ai.config.CAManagerConfig, ai.logger, ai.manager.GetClient())
 
@@ -605,29 +472,21 @@ func (ai *AutomationIntegration) initializeCAManager() error {
 
 	}
 
-
-
 	ai.caManager = caManager
 
 	return nil
 
 }
 
-
-
 func (ai *AutomationIntegration) initializeAutomationEngine() error {
 
 	ai.logger.Info("initializing automation engine")
-
-
 
 	if ai.caManager == nil {
 
 		return fmt.Errorf("CA manager must be initialized before automation engine")
 
 	}
-
-
 
 	kubeClient, err := kubernetes.NewForConfig(ai.manager.GetConfig())
 
@@ -636,8 +495,6 @@ func (ai *AutomationIntegration) initializeAutomationEngine() error {
 		return fmt.Errorf("failed to create kubernetes client: %w", err)
 
 	}
-
-
 
 	automationEngine, err := NewAutomationEngine(
 
@@ -650,7 +507,6 @@ func (ai *AutomationIntegration) initializeAutomationEngine() error {
 		kubeClient,
 
 		ai.manager.GetClient(),
-
 	)
 
 	if err != nil {
@@ -659,77 +515,53 @@ func (ai *AutomationIntegration) initializeAutomationEngine() error {
 
 	}
 
-
-
 	ai.automationEngine = automationEngine
 
 	return nil
 
 }
 
-
-
 func (ai *AutomationIntegration) setupKubernetesControllers() error {
 
 	ai.logger.Info("setting up Kubernetes controllers")
-
-
 
 	// This would setup the CertificateAutomationReconciler and other controllers.
 
 	// Implementation would register controllers with the manager.
 
-
-
 	return nil
 
 }
-
-
 
 func (ai *AutomationIntegration) setupMonitoringIntegration() error {
 
 	ai.logger.Info("setting up monitoring integration")
 
-
-
 	// This would integrate with existing Prometheus/Grafana monitoring.
 
 	// Implementation would expose metrics endpoints and dashboards.
 
-
-
 	return nil
 
 }
-
-
 
 func (ai *AutomationIntegration) setupAlertingIntegration() error {
 
 	ai.logger.Info("setting up alerting integration")
 
-
-
 	// This would integrate with existing alerting systems.
 
 	// Implementation would configure alert rules and notification channels.
 
-
-
 	return nil
 
 }
-
-
 
 func (ai *AutomationIntegration) runHealthChecks(ctx context.Context) {
 
 	ticker := time.NewTicker(ai.config.HealthCheckInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -749,21 +581,15 @@ func (ai *AutomationIntegration) runHealthChecks(ctx context.Context) {
 
 }
 
-
-
 func (ai *AutomationIntegration) performHealthChecks() {
 
 	status := ai.GetHealthStatus()
-
-
 
 	if !status["healthy"].(bool) {
 
 		ai.logger.Warn("certificate automation integration health check failed",
 
 			"status", status)
-
-
 
 		// Trigger alerts if configured.
 
@@ -781,8 +607,6 @@ func (ai *AutomationIntegration) performHealthChecks() {
 
 }
 
-
-
 func (ai *AutomationIntegration) triggerHealthAlert(status map[string]interface{}) {
 
 	// This would trigger health-related alerts.
@@ -790,8 +614,6 @@ func (ai *AutomationIntegration) triggerHealthAlert(status map[string]interface{
 	ai.logger.Warn("health alert triggered", "status", status)
 
 }
-
-
 
 // Default configuration factory.
 
@@ -801,133 +623,117 @@ func NewDefaultAutomationIntegrationConfig() *AutomationIntegrationConfig {
 
 		CAManagerConfig: &Config{
 
-			DefaultBackend:          BackendSelfSigned,
+			DefaultBackend: BackendSelfSigned,
 
-			BackendConfigs:          make(map[CABackendType]interface{}),
+			BackendConfigs: make(map[CABackendType]interface{}),
 
 			DefaultValidityDuration: 365 * 24 * time.Hour, // 1 year
 
-			RenewalThreshold:        30 * 24 * time.Hour,  // 30 days
+			RenewalThreshold: 30 * 24 * time.Hour, // 30 days
 
-			MaxRetryAttempts:        3,
+			MaxRetryAttempts: 3,
 
-			RetryBackoff:            5 * time.Second,
+			RetryBackoff: 5 * time.Second,
 
-			KeySize:                 2048,
+			KeySize: 2048,
 
-			AllowedKeyTypes:         []string{"rsa", "ecdsa"},
+			AllowedKeyTypes: []string{"rsa", "ecdsa"},
 
-			MinValidityDuration:     24 * time.Hour,           // 1 day
+			MinValidityDuration: 24 * time.Hour, // 1 day
 
-			MaxValidityDuration:     2 * 365 * 24 * time.Hour, // 2 years
+			MaxValidityDuration: 2 * 365 * 24 * time.Hour, // 2 years
 
-			AutoRotationEnabled:     true,
+			AutoRotationEnabled: true,
 
 			CertificateStore: &CertificateStoreConfig{
 
-				Type:            "kubernetes",
+				Type: "kubernetes",
 
-				Namespace:       "nephoran-system",
+				Namespace: "nephoran-system",
 
-				SecretPrefix:    "nephoran-cert",
+				SecretPrefix: "nephoran-cert",
 
-				BackupEnabled:   true,
+				BackupEnabled: true,
 
-				BackupInterval:  24 * time.Hour,
+				BackupInterval: 24 * time.Hour,
 
 				RetentionPeriod: 30 * 24 * time.Hour,
-
 			},
 
 			MonitoringConfig: &MonitoringConfig{
 
-				Enabled:               true,
+				Enabled: true,
 
-				HealthCheckInterval:   30 * time.Second,
+				HealthCheckInterval: 30 * time.Second,
 
-				MetricsEnabled:        true,
+				MetricsEnabled: true,
 
-				AlertingEnabled:       true,
+				AlertingEnabled: true,
 
 				ExpirationWarningDays: 30,
-
 			},
-
 		},
 
 		AutomationConfig: &AutomationConfig{
 
 			ServiceDiscoveryEnabled: true,
 
-			DiscoveryInterval:       5 * time.Minute,
+			DiscoveryInterval: 5 * time.Minute,
 
-			DiscoveryNamespaces:     []string{"default", "nephoran-system"},
+			DiscoveryNamespaces: []string{"default", "nephoran-system"},
 
-			DiscoverySelectors:      []string{"app.kubernetes.io/managed-by=nephoran"},
+			DiscoverySelectors: []string{"app.kubernetes.io/managed-by=nephoran"},
 
+			AutoRenewalEnabled: true,
 
-
-			AutoRenewalEnabled:   true,
-
-			RenewalThreshold:     30 * 24 * time.Hour, // 30 days
+			RenewalThreshold: 30 * 24 * time.Hour, // 30 days
 
 			RenewalCheckInterval: 1 * time.Hour,
 
-			CertificateBackup:    true,
+			CertificateBackup: true,
 
-			BackupRetention:      30,
+			BackupRetention: 30,
 
+			HealthCheckEnabled: true,
 
+			HealthCheckTimeout: 30 * time.Second,
 
-			HealthCheckEnabled:  true,
-
-			HealthCheckTimeout:  30 * time.Second,
-
-			HealthCheckRetries:  3,
+			HealthCheckRetries: 3,
 
 			HealthCheckInterval: 1 * time.Minute,
 
-
-
-			NotificationEnabled:   true,
+			NotificationEnabled: true,
 
 			NotificationEndpoints: []string{},
 
-			AlertThresholds:       make(map[string]int),
+			AlertThresholds: make(map[string]int),
 
+			MaxConcurrentOps: 50,
 
+			OperationTimeout: 5 * time.Minute,
 
-			MaxConcurrentOps:   50,
-
-			OperationTimeout:   5 * time.Minute,
-
-			BatchSize:          10,
+			BatchSize: 10,
 
 			ProcessingInterval: 30 * time.Second,
-
 		},
-
-
 
 		EnableKubernetesIntegration: true,
 
 		EnableMonitoringIntegration: true,
 
-		EnableAlertingIntegration:   true,
+		EnableAlertingIntegration: true,
 
-		MaxConcurrentOperations:     50,
+		MaxConcurrentOperations: 50,
 
-		OperationTimeout:            5 * time.Minute,
+		OperationTimeout: 5 * time.Minute,
 
-		HealthCheckInterval:         30 * time.Second,
+		HealthCheckInterval: 30 * time.Second,
 
-		EnableSecurityScanning:      true,
+		EnableSecurityScanning: true,
 
-		EnableComplianceChecks:      true,
+		EnableComplianceChecks: true,
 
-		EnableAuditLogging:          true,
-
+		EnableAuditLogging: true,
 	}
 
 }
-

@@ -1,55 +1,31 @@
-
 package ca
 
-
-
 import (
-
 	"context"
-
 	"crypto"
-
 	"crypto/rand"
-
 	"crypto/rsa"
-
 	"crypto/sha256"
-
 	"crypto/x509"
-
 	"crypto/x509/pkix"
-
 	"fmt"
-
 	"log/slog"
-
 	"math/big"
-
 	"net"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 )
-
-
 
 // HSMBackend implements Hardware Security Module integration.
 
 type HSMBackend struct {
-
 	logger *logging.StructuredLogger
 
 	config *HSMBackendConfig
 
-	hsm    HSMProvider
-
+	hsm HSMProvider
 }
-
-
 
 // HSMBackendConfig holds HSM backend configuration.
 
@@ -57,109 +33,96 @@ type HSMBackendConfig struct {
 
 	// HSM connection.
 
-	ProviderType     HSMProviderType `yaml:"provider_type"`
+	ProviderType HSMProviderType `yaml:"provider_type"`
 
-	ConnectionString string          `yaml:"connection_string"`
+	ConnectionString string `yaml:"connection_string"`
 
-	TokenLabel       string          `yaml:"token_label"`
+	TokenLabel string `yaml:"token_label"`
 
-	PIN              string          `yaml:"pin"`
-
-
+	PIN string `yaml:"pin"`
 
 	// Key management.
 
-	KeyLabel        string `yaml:"key_label"`
+	KeyLabel string `yaml:"key_label"`
 
-	KeySize         int    `yaml:"key_size"`
+	KeySize int `yaml:"key_size"`
 
-	SignatureAlgo   string `yaml:"signature_algorithm"`
+	SignatureAlgo string `yaml:"signature_algorithm"`
 
-	PublicExponent  int    `yaml:"public_exponent"`
+	PublicExponent int `yaml:"public_exponent"`
 
-	ValidityPeriod  string `yaml:"validity_period"`
+	ValidityPeriod string `yaml:"validity_period"`
 
-	CACertPath      string `yaml:"ca_cert_path"`
+	CACertPath string `yaml:"ca_cert_path"`
 
-	CAKeyPath       string `yaml:"ca_key_path"`
+	CAKeyPath string `yaml:"ca_key_path"`
 
-	CertOutputDir   string `yaml:"cert_output_dir"`
+	CertOutputDir string `yaml:"cert_output_dir"`
 
-	MaxConcurrency  int    `yaml:"max_concurrency"`
+	MaxConcurrency int `yaml:"max_concurrency"`
 
-	RetryAttempts   int    `yaml:"retry_attempts"`
+	RetryAttempts int `yaml:"retry_attempts"`
 
-	RetryInterval   string `yaml:"retry_interval"`
+	RetryInterval string `yaml:"retry_interval"`
 
 	HealthCheckFreq string `yaml:"health_check_frequency"`
 
-
-
 	// Security features.
 
-	AutoRotate        bool   `yaml:"auto_rotate"`
+	AutoRotate bool `yaml:"auto_rotate"`
 
-	RotationInterval  string `yaml:"rotation_interval"`
+	RotationInterval string `yaml:"rotation_interval"`
 
-	BackupEnabled     bool   `yaml:"backup_enabled"`
+	BackupEnabled bool `yaml:"backup_enabled"`
 
-	BackupPath        string `yaml:"backup_path"`
+	BackupPath string `yaml:"backup_path"`
 
-	EncryptBackups    bool   `yaml:"encrypt_backups"`
+	EncryptBackups bool `yaml:"encrypt_backups"`
 
-	AuditLogEnabled   bool   `yaml:"audit_log_enabled"`
+	AuditLogEnabled bool `yaml:"audit_log_enabled"`
 
-	AuditLogPath      string `yaml:"audit_log_path"`
+	AuditLogPath string `yaml:"audit_log_path"`
 
-	EnableOCSP        bool   `yaml:"enable_ocsp"`
+	EnableOCSP bool `yaml:"enable_ocsp"`
 
-	OCSPResponderURL  string `yaml:"ocsp_responder_url"`
+	OCSPResponderURL string `yaml:"ocsp_responder_url"`
 
-	EnableCRL         bool   `yaml:"enable_crl"`
+	EnableCRL bool `yaml:"enable_crl"`
 
-	CRLDistPointURL   string `yaml:"crl_distribution_point_url"`
+	CRLDistPointURL string `yaml:"crl_distribution_point_url"`
 
 	CRLUpdateInterval string `yaml:"crl_update_interval"`
 
-
-
 	// Performance tuning.
 
-	CacheSize         int    `yaml:"cache_size"`
+	CacheSize int `yaml:"cache_size"`
 
-	CacheTTL          string `yaml:"cache_ttl"`
+	CacheTTL string `yaml:"cache_ttl"`
 
-	ConnectionPool    int    `yaml:"connection_pool"`
+	ConnectionPool int `yaml:"connection_pool"`
 
 	ConnectionTimeout string `yaml:"connection_timeout"`
 
-	RequestTimeout    string `yaml:"request_timeout"`
-
-
+	RequestTimeout string `yaml:"request_timeout"`
 
 	// High availability.
 
-	HAEnabled      bool     `yaml:"ha_enabled"`
+	HAEnabled bool `yaml:"ha_enabled"`
 
-	ReplicaNodes   []string `yaml:"replica_nodes"`
+	ReplicaNodes []string `yaml:"replica_nodes"`
 
-	SyncInterval   string   `yaml:"sync_interval"`
+	SyncInterval string `yaml:"sync_interval"`
 
-	FailoverDelay  string   `yaml:"failover_delay"`
+	FailoverDelay string `yaml:"failover_delay"`
 
-	LoadBalancing  bool     `yaml:"load_balancing"`
+	LoadBalancing bool `yaml:"load_balancing"`
 
-	HealthChecking bool     `yaml:"health_checking"`
-
+	HealthChecking bool `yaml:"health_checking"`
 }
-
-
 
 // HSMProviderType defines supported HSM provider types.
 
 type HSMProviderType string
-
-
 
 const (
 
@@ -186,10 +149,7 @@ const (
 	// HSMProviderSafenet holds hsmprovidersafenet value.
 
 	HSMProviderSafenet HSMProviderType = "safenet"
-
 )
-
-
 
 // HSMProvider interface for Hardware Security Module operations.
 
@@ -205,8 +165,6 @@ type HSMProvider interface {
 
 	Close() error
 
-
-
 	// Key operations.
 
 	GenerateKey(label string, keySize int) (crypto.PublicKey, error)
@@ -217,107 +175,88 @@ type HSMProvider interface {
 
 	ListKeys() ([]string, error)
 
-
-
 	// Certificate operations.
 
 	Sign(data []byte, key crypto.PrivateKey) ([]byte, error)
 
 	Verify(data, signature []byte, key crypto.PublicKey) error
 
-
-
 	// Health and status.
 
 	GetStatus() (*HSMStatus, error)
 
 	GetCapabilities() []string
-
 }
-
-
 
 // HSMStatus represents HSM device status.
 
 type HSMStatus struct {
+	Connected bool `json:"connected"`
 
-	Connected       bool              `json:"connected"`
+	Authenticated bool `json:"authenticated"`
 
-	Authenticated   bool              `json:"authenticated"`
+	FirmwareVersion string `json:"firmware_version"`
 
-	FirmwareVersion string            `json:"firmware_version"`
+	SerialNumber string `json:"serial_number"`
 
-	SerialNumber    string            `json:"serial_number"`
+	SlotID uint `json:"slot_id"`
 
-	SlotID          uint              `json:"slot_id"`
+	SessionOpen bool `json:"session_open"`
 
-	SessionOpen     bool              `json:"session_open"`
+	KeyCount int `json:"key_count"`
 
-	KeyCount        int               `json:"key_count"`
+	TokenInfo *HSMTokenInfo `json:"token_info,omitempty"`
 
-	TokenInfo       *HSMTokenInfo     `json:"token_info,omitempty"`
+	Performance *HSMPerformance `json:"performance,omitempty"`
 
-	Performance     *HSMPerformance   `json:"performance,omitempty"`
+	Errors []string `json:"errors,omitempty"`
 
-	Errors          []string          `json:"errors,omitempty"`
+	LastUpdate time.Time `json:"last_update"`
 
-	LastUpdate      time.Time         `json:"last_update"`
+	Capabilities []string `json:"capabilities"`
 
-	Capabilities    []string          `json:"capabilities"`
-
-	Configuration   map[string]string `json:"configuration"`
-
+	Configuration map[string]string `json:"configuration"`
 }
-
-
 
 // HSMTokenInfo represents information about HSM token.
 
 type HSMTokenInfo struct {
-
-	Label          string `json:"label"`
+	Label string `json:"label"`
 
 	ManufacturerID string `json:"manufacturer_id"`
 
-	Model          string `json:"model"`
+	Model string `json:"model"`
 
-	SerialNumber   string `json:"serial_number"`
+	SerialNumber string `json:"serial_number"`
 
-	MaxSessions    int    `json:"max_sessions"`
+	MaxSessions int `json:"max_sessions"`
 
-	ActiveSessions int    `json:"active_sessions"`
+	ActiveSessions int `json:"active_sessions"`
 
-	FreeSpace      int64  `json:"free_space"`
+	FreeSpace int64 `json:"free_space"`
 
-	TotalSpace     int64  `json:"total_space"`
-
+	TotalSpace int64 `json:"total_space"`
 }
-
-
 
 // HSMPerformance represents HSM performance metrics.
 
 type HSMPerformance struct {
+	OperationsPerSecond int `json:"operations_per_second"`
 
-	OperationsPerSecond int           `json:"operations_per_second"`
+	AverageLatency time.Duration `json:"average_latency"`
 
-	AverageLatency      time.Duration `json:"average_latency"`
+	MaxLatency time.Duration `json:"max_latency"`
 
-	MaxLatency          time.Duration `json:"max_latency"`
+	MinLatency time.Duration `json:"min_latency"`
 
-	MinLatency          time.Duration `json:"min_latency"`
+	ErrorRate float64 `json:"error_rate"`
 
-	ErrorRate           float64       `json:"error_rate"`
+	ThroughputMBps float64 `json:"throughput_mbps"`
 
-	ThroughputMBps      float64       `json:"throughput_mbps"`
+	ActiveConnections int `json:"active_connections"`
 
-	ActiveConnections   int           `json:"active_connections"`
-
-	QueuedRequests      int           `json:"queued_requests"`
-
+	QueuedRequests int `json:"queued_requests"`
 }
-
-
 
 // NewHSMBackend creates a new HSM backend.
 
@@ -328,12 +267,9 @@ func NewHSMBackend(config *HSMBackendConfig, logger *logging.StructuredLogger) *
 		logger: logger,
 
 		config: config,
-
 	}
 
 }
-
-
 
 // Initialize sets up the HSM backend.
 
@@ -343,11 +279,8 @@ func (h *HSMBackend) Initialize(ctx context.Context, config interface{}) error {
 
 		"provider_type": h.config.ProviderType,
 
-		"token_label":   h.config.TokenLabel,
-
+		"token_label": h.config.TokenLabel,
 	}))
-
-
 
 	// Create HSM provider based on configuration.
 
@@ -359,11 +292,7 @@ func (h *HSMBackend) Initialize(ctx context.Context, config interface{}) error {
 
 	}
 
-
-
 	h.hsm = provider
-
-
 
 	// Initialize the provider.
 
@@ -373,8 +302,6 @@ func (h *HSMBackend) Initialize(ctx context.Context, config interface{}) error {
 
 	}
 
-
-
 	// Login to HSM.
 
 	if err := h.hsm.Login(h.config.PIN); err != nil {
@@ -383,15 +310,11 @@ func (h *HSMBackend) Initialize(ctx context.Context, config interface{}) error {
 
 	}
 
-
-
 	h.logger.Info("HSM backend initialized successfully")
 
 	return nil
 
 }
-
-
 
 // createHSMProvider creates the appropriate HSM provider.
 
@@ -431,8 +354,6 @@ func (h *HSMBackend) createHSMProvider() (HSMProvider, error) {
 
 }
 
-
-
 // GenerateKeyPair generates a key pair in the HSM.
 
 func (h *HSMBackend) GenerateKeyPair(ctx context.Context, keyID string) (crypto.PublicKey, crypto.PrivateKey, error) {
@@ -443,8 +364,6 @@ func (h *HSMBackend) GenerateKeyPair(ctx context.Context, keyID string) (crypto.
 
 		slog.Int("key_size", h.config.KeySize))
 
-
-
 	publicKey, err := h.hsm.GenerateKey(keyID, h.config.KeySize)
 
 	if err != nil {
@@ -452,8 +371,6 @@ func (h *HSMBackend) GenerateKeyPair(ctx context.Context, keyID string) (crypto.
 		return nil, nil, fmt.Errorf("failed to generate key pair: %w", err)
 
 	}
-
-
 
 	privateKey, err := h.hsm.GetKey(keyID)
 
@@ -463,17 +380,11 @@ func (h *HSMBackend) GenerateKeyPair(ctx context.Context, keyID string) (crypto.
 
 	}
 
-
-
 	h.logger.Info("Key pair generated successfully", slog.String("key_id", keyID))
-
-
 
 	return publicKey, privateKey, nil
 
 }
-
-
 
 // GenerateCACertificate generates a CA certificate using HSM.
 
@@ -485,8 +396,6 @@ func (h *HSMBackend) GenerateCACertificate(ctx context.Context, keyID string, su
 
 		slog.String("subject", subject.String()))
 
-
-
 	// Generate key pair.
 
 	publicKey, privateKey, err := h.GenerateKeyPair(ctx, keyID)
@@ -497,31 +406,26 @@ func (h *HSMBackend) GenerateCACertificate(ctx context.Context, keyID string, su
 
 	}
 
-
-
 	// Create certificate template.
 
 	template := &x509.Certificate{
 
-		SerialNumber:          big.NewInt(1),
+		SerialNumber: big.NewInt(1),
 
-		Subject:               subject,
+		Subject: subject,
 
-		NotBefore:             time.Now(),
+		NotBefore: time.Now(),
 
-		NotAfter:              time.Now().Add(365 * 24 * time.Hour), // 1 year validity
+		NotAfter: time.Now().Add(365 * 24 * time.Hour), // 1 year validity
 
-		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		KeyUsage: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 
 		BasicConstraintsValid: true,
 
-		IsCA:                  true,
-
+		IsCA: true,
 	}
-
-
 
 	// Generate certificate.
 
@@ -533,8 +437,6 @@ func (h *HSMBackend) GenerateCACertificate(ctx context.Context, keyID string, su
 
 	}
 
-
-
 	// Parse certificate.
 
 	cert, err := x509.ParseCertificate(certDER)
@@ -545,8 +447,6 @@ func (h *HSMBackend) GenerateCACertificate(ctx context.Context, keyID string, su
 
 	}
 
-
-
 	h.logger.Info("CA certificate generated successfully",
 
 		slog.String("key_id", keyID),
@@ -555,13 +455,9 @@ func (h *HSMBackend) GenerateCACertificate(ctx context.Context, keyID string, su
 
 		slog.String("subject", cert.Subject.String()))
 
-
-
 	return cert, nil
 
 }
-
-
 
 // SignCertificate signs a certificate using HSM-stored CA key.
 
@@ -573,8 +469,6 @@ func (h *HSMBackend) SignCertificate(ctx context.Context, caKeyID string, templa
 
 		slog.String("subject", template.Subject.String()))
 
-
-
 	// Get CA private key from HSM.
 
 	caPrivateKey, err := h.hsm.GetKey(caKeyID)
@@ -584,8 +478,6 @@ func (h *HSMBackend) SignCertificate(ctx context.Context, caKeyID string, templa
 		return nil, fmt.Errorf("failed to get CA private key from HSM: %w", err)
 
 	}
-
-
 
 	// Generate certificate.
 
@@ -597,8 +489,6 @@ func (h *HSMBackend) SignCertificate(ctx context.Context, caKeyID string, templa
 
 	}
 
-
-
 	// Parse certificate.
 
 	cert, err := x509.ParseCertificate(certDER)
@@ -609,8 +499,6 @@ func (h *HSMBackend) SignCertificate(ctx context.Context, caKeyID string, templa
 
 	}
 
-
-
 	h.logger.Info("Certificate signed successfully",
 
 		slog.String("ca_key_id", caKeyID),
@@ -619,13 +507,9 @@ func (h *HSMBackend) SignCertificate(ctx context.Context, caKeyID string, templa
 
 		slog.String("subject", cert.Subject.String()))
 
-
-
 	return cert, nil
 
 }
-
-
 
 // SignData signs data using HSM-stored key.
 
@@ -637,8 +521,6 @@ func (h *HSMBackend) SignData(ctx context.Context, keyID string, data []byte) ([
 
 		slog.Int("data_size", len(data)))
 
-
-
 	// Get private key from HSM.
 
 	privateKey, err := h.hsm.GetKey(keyID)
@@ -648,8 +530,6 @@ func (h *HSMBackend) SignData(ctx context.Context, keyID string, data []byte) ([
 		return nil, fmt.Errorf("failed to get private key from HSM: %w", err)
 
 	}
-
-
 
 	// Sign data.
 
@@ -661,21 +541,15 @@ func (h *HSMBackend) SignData(ctx context.Context, keyID string, data []byte) ([
 
 	}
 
-
-
 	h.logger.Debug("Data signed successfully",
 
 		slog.String("key_id", keyID),
 
 		slog.Int("signature_size", len(signature)))
 
-
-
 	return signature, nil
 
 }
-
-
 
 // VerifyData verifies data signature using HSM.
 
@@ -689,8 +563,6 @@ func (h *HSMBackend) VerifyData(ctx context.Context, keyID string, data, signatu
 
 		slog.Int("signature_size", len(signature)))
 
-
-
 	// Get key from HSM (need public key for verification).
 
 	privateKey, err := h.hsm.GetKey(keyID)
@@ -700,8 +572,6 @@ func (h *HSMBackend) VerifyData(ctx context.Context, keyID string, data, signatu
 		return fmt.Errorf("failed to get key from HSM: %w", err)
 
 	}
-
-
 
 	// Extract public key.
 
@@ -719,8 +589,6 @@ func (h *HSMBackend) VerifyData(ctx context.Context, keyID string, data, signatu
 
 	}
 
-
-
 	// Verify signature.
 
 	if err := h.hsm.Verify(data, signature, publicKey); err != nil {
@@ -729,25 +597,17 @@ func (h *HSMBackend) VerifyData(ctx context.Context, keyID string, data, signatu
 
 	}
 
-
-
 	h.logger.Debug("Data signature verified successfully", slog.String("key_id", keyID))
-
-
 
 	return nil
 
 }
-
-
 
 // GetKeyList returns list of keys stored in HSM.
 
 func (h *HSMBackend) GetKeyList(ctx context.Context) ([]string, error) {
 
 	h.logger.Debug("Getting key list from HSM")
-
-
 
 	keys, err := h.hsm.ListKeys()
 
@@ -757,17 +617,11 @@ func (h *HSMBackend) GetKeyList(ctx context.Context) ([]string, error) {
 
 	}
 
-
-
 	h.logger.Debug("Retrieved key list from HSM", slog.Int("key_count", len(keys)))
-
-
 
 	return keys, nil
 
 }
-
-
 
 // DeleteKey deletes a key from HSM.
 
@@ -775,33 +629,23 @@ func (h *HSMBackend) DeleteKey(ctx context.Context, keyID string) error {
 
 	h.logger.Info("Deleting key from HSM", slog.String("key_id", keyID))
 
-
-
 	if err := h.hsm.DeleteKey(keyID); err != nil {
 
 		return fmt.Errorf("failed to delete key: %w", err)
 
 	}
 
-
-
 	h.logger.Info("Key deleted successfully from HSM", slog.String("key_id", keyID))
-
-
 
 	return nil
 
 }
-
-
 
 // GetStatus returns HSM status.
 
 func (h *HSMBackend) GetStatus(ctx context.Context) (*HSMStatus, error) {
 
 	h.logger.Debug("Getting HSM status")
-
-
 
 	status, err := h.hsm.GetStatus()
 
@@ -811,29 +655,21 @@ func (h *HSMBackend) GetStatus(ctx context.Context) (*HSMStatus, error) {
 
 	}
 
-
-
 	h.logger.Debug("Retrieved HSM status",
 
 		slog.Bool("connected", status.Connected),
 
 		slog.Bool("authenticated", status.Authenticated))
 
-
-
 	return status, nil
 
 }
-
-
 
 // HealthCheck performs HSM health check.
 
 func (h *HSMBackend) HealthCheck(ctx context.Context) error {
 
 	h.logger.Debug("Performing HSM health check")
-
-
 
 	status, err := h.GetStatus(ctx)
 
@@ -843,15 +679,11 @@ func (h *HSMBackend) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	if !status.Connected {
 
 		return fmt.Errorf("HSM not connected")
 
 	}
-
-
 
 	if !status.Authenticated {
 
@@ -859,15 +691,11 @@ func (h *HSMBackend) HealthCheck(ctx context.Context) error {
 
 	}
 
-
-
 	if len(status.Errors) > 0 {
 
 		return fmt.Errorf("HSM has errors: %v", status.Errors)
 
 	}
-
-
 
 	h.logger.Debug("HSM health check passed")
 
@@ -875,15 +703,11 @@ func (h *HSMBackend) HealthCheck(ctx context.Context) error {
 
 }
 
-
-
 // Close closes the HSM backend.
 
 func (h *HSMBackend) Close() error {
 
 	h.logger.Info("Closing HSM backend")
-
-
 
 	if h.hsm != nil {
 
@@ -893,8 +717,6 @@ func (h *HSMBackend) Close() error {
 
 		}
 
-
-
 		if err := h.hsm.Close(); err != nil {
 
 			h.logger.Warn("Failed to close HSM connection", slog.String("error", err.Error()))
@@ -903,15 +725,11 @@ func (h *HSMBackend) Close() error {
 
 	}
 
-
-
 	h.logger.Info("HSM backend closed")
 
 	return nil
 
 }
-
-
 
 // Backup creates a backup of HSM keys and certificates.
 
@@ -919,23 +737,15 @@ func (h *HSMBackend) Backup(ctx context.Context, backupPath string) error {
 
 	h.logger.Info("Creating HSM backup", slog.String("backup_path", backupPath))
 
-
-
 	// Implementation would depend on HSM provider capabilities.
 
 	// This is a placeholder for the backup functionality.
 
-
-
 	h.logger.Info("HSM backup completed", slog.String("backup_path", backupPath))
-
-
 
 	return nil
 
 }
-
-
 
 // Restore restores HSM keys and certificates from backup.
 
@@ -943,23 +753,15 @@ func (h *HSMBackend) Restore(ctx context.Context, backupPath string) error {
 
 	h.logger.Info("Restoring HSM from backup", slog.String("backup_path", backupPath))
 
-
-
 	// Implementation would depend on HSM provider capabilities.
 
 	// This is a placeholder for the restore functionality.
 
-
-
 	h.logger.Info("HSM restore completed", slog.String("backup_path", backupPath))
-
-
 
 	return nil
 
 }
-
-
 
 // GetCapabilities returns HSM capabilities.
 
@@ -967,49 +769,33 @@ func (h *HSMBackend) GetCapabilities(ctx context.Context) ([]string, error) {
 
 	h.logger.Debug("Getting HSM capabilities")
 
-
-
 	if h.hsm == nil {
 
 		return nil, fmt.Errorf("HSM not initialized")
 
 	}
 
-
-
 	capabilities := h.hsm.GetCapabilities()
 
-
-
 	h.logger.Debug("Retrieved HSM capabilities", slog.Any("capabilities", capabilities))
-
-
 
 	return capabilities, nil
 
 }
 
-
-
 // Mock implementations for HSM providers (for testing/demo purposes).
-
-
 
 // MockHSMProvider is a mock implementation for testing.
 
 type MockHSMProvider struct {
+	logger *logging.StructuredLogger
 
-	logger        *logging.StructuredLogger
-
-	initialized   bool
+	initialized bool
 
 	authenticated bool
 
-	keys          map[string]crypto.PrivateKey
-
+	keys map[string]crypto.PrivateKey
 }
-
-
 
 // NewMockHSMProvider creates a new mock HSM provider.
 
@@ -1019,13 +805,10 @@ func NewMockHSMProvider(logger *logging.StructuredLogger) *MockHSMProvider {
 
 		logger: logger,
 
-		keys:   make(map[string]crypto.PrivateKey),
-
+		keys: make(map[string]crypto.PrivateKey),
 	}
 
 }
-
-
 
 // Initialize performs initialize operation.
 
@@ -1036,8 +819,6 @@ func (m *MockHSMProvider) Initialize() error {
 	return nil
 
 }
-
-
 
 // Login performs login operation.
 
@@ -1055,8 +836,6 @@ func (m *MockHSMProvider) Login(pin string) error {
 
 }
 
-
-
 // Logout performs logout operation.
 
 func (m *MockHSMProvider) Logout() error {
@@ -1066,8 +845,6 @@ func (m *MockHSMProvider) Logout() error {
 	return nil
 
 }
-
-
 
 // Close performs close operation.
 
@@ -1081,8 +858,6 @@ func (m *MockHSMProvider) Close() error {
 
 }
 
-
-
 // GenerateKey performs generatekey operation.
 
 func (m *MockHSMProvider) GenerateKey(label string, keySize int) (crypto.PublicKey, error) {
@@ -1093,8 +868,6 @@ func (m *MockHSMProvider) GenerateKey(label string, keySize int) (crypto.PublicK
 
 	}
 
-
-
 	privateKey, err := rsa.GenerateKey(rand.Reader, keySize)
 
 	if err != nil {
@@ -1103,15 +876,11 @@ func (m *MockHSMProvider) GenerateKey(label string, keySize int) (crypto.PublicK
 
 	}
 
-
-
 	m.keys[label] = privateKey
 
 	return &privateKey.PublicKey, nil
 
 }
-
-
 
 // GetKey performs getkey operation.
 
@@ -1123,8 +892,6 @@ func (m *MockHSMProvider) GetKey(label string) (crypto.PrivateKey, error) {
 
 	}
 
-
-
 	key, exists := m.keys[label]
 
 	if !exists {
@@ -1133,13 +900,9 @@ func (m *MockHSMProvider) GetKey(label string) (crypto.PrivateKey, error) {
 
 	}
 
-
-
 	return key, nil
 
 }
-
-
 
 // DeleteKey performs deletekey operation.
 
@@ -1151,15 +914,11 @@ func (m *MockHSMProvider) DeleteKey(label string) error {
 
 	}
 
-
-
 	delete(m.keys, label)
 
 	return nil
 
 }
-
-
 
 // ListKeys performs listkeys operation.
 
@@ -1171,8 +930,6 @@ func (m *MockHSMProvider) ListKeys() ([]string, error) {
 
 	}
 
-
-
 	keys := make([]string, 0, len(m.keys))
 
 	for label := range m.keys {
@@ -1181,13 +938,9 @@ func (m *MockHSMProvider) ListKeys() ([]string, error) {
 
 	}
 
-
-
 	return keys, nil
 
 }
-
-
 
 // Sign performs sign operation.
 
@@ -1199,8 +952,6 @@ func (m *MockHSMProvider) Sign(data []byte, key crypto.PrivateKey) ([]byte, erro
 
 	}
 
-
-
 	hash := sha256.Sum256(data)
 
 	rsaKey, ok := key.(*rsa.PrivateKey)
@@ -1211,13 +962,9 @@ func (m *MockHSMProvider) Sign(data []byte, key crypto.PrivateKey) ([]byte, erro
 
 	}
 
-
-
 	return rsa.SignPKCS1v15(rand.Reader, rsaKey, crypto.SHA256, hash[:])
 
 }
-
-
 
 // Verify performs verify operation.
 
@@ -1233,13 +980,9 @@ func (m *MockHSMProvider) Verify(data, signature []byte, key crypto.PublicKey) e
 
 	}
 
-
-
 	return rsa.VerifyPKCS1v15(rsaKey, crypto.SHA256, hash[:], signature)
 
 }
-
-
 
 // GetStatus performs getstatus operation.
 
@@ -1247,24 +990,23 @@ func (m *MockHSMProvider) GetStatus() (*HSMStatus, error) {
 
 	return &HSMStatus{
 
-		Connected:     m.initialized,
+		Connected: m.initialized,
 
 		Authenticated: m.authenticated,
 
 		TokenInfo: &HSMTokenInfo{
 
-			Label:          "MockHSM",
+			Label: "MockHSM",
 
 			ManufacturerID: "Mock Inc",
 
-			Model:          "MockHSM v1.0",
+			Model: "MockHSM v1.0",
 
-			SerialNumber:   "123456789",
+			SerialNumber: "123456789",
 
-			MaxSessions:    10,
+			MaxSessions: 10,
 
 			ActiveSessions: 1,
-
 		},
 
 		LastUpdate: time.Now(),
@@ -1278,14 +1020,10 @@ func (m *MockHSMProvider) GetStatus() (*HSMStatus, error) {
 			"verification",
 
 			"key_storage",
-
 		},
-
 	}, nil
 
 }
-
-
 
 // GetCapabilities performs getcapabilities operation.
 
@@ -1300,12 +1038,9 @@ func (m *MockHSMProvider) GetCapabilities() []string {
 		"verification",
 
 		"key_storage",
-
 	}
 
 }
-
-
 
 // Placeholder implementations for different HSM providers.
 
@@ -1317,8 +1052,6 @@ func NewPKCS11Provider(config *HSMBackendConfig, logger *logging.StructuredLogge
 
 }
 
-
-
 // NewSoftHSMProvider performs newsofthsmprovider operation.
 
 func NewSoftHSMProvider(config *HSMBackendConfig, logger *logging.StructuredLogger) (HSMProvider, error) {
@@ -1328,8 +1061,6 @@ func NewSoftHSMProvider(config *HSMBackendConfig, logger *logging.StructuredLogg
 	return NewMockHSMProvider(logger), nil
 
 }
-
-
 
 // NewAWSCloudHSMProvider performs newawscloudhsmprovider operation.
 
@@ -1341,8 +1072,6 @@ func NewAWSCloudHSMProvider(config *HSMBackendConfig, logger *logging.Structured
 
 }
 
-
-
 // NewAzureHSMProvider performs newazurehsmprovider operation.
 
 func NewAzureHSMProvider(config *HSMBackendConfig, logger *logging.StructuredLogger) (HSMProvider, error) {
@@ -1352,8 +1081,6 @@ func NewAzureHSMProvider(config *HSMBackendConfig, logger *logging.StructuredLog
 	return NewMockHSMProvider(logger), nil
 
 }
-
-
 
 // NewThalesHSMProvider performs newthaleshsmprovider operation.
 
@@ -1365,8 +1092,6 @@ func NewThalesHSMProvider(config *HSMBackendConfig, logger *logging.StructuredLo
 
 }
 
-
-
 // NewSafenetHSMProvider performs newsafenethsmprovider operation.
 
 func NewSafenetHSMProvider(config *HSMBackendConfig, logger *logging.StructuredLogger) (HSMProvider, error) {
@@ -1377,25 +1102,20 @@ func NewSafenetHSMProvider(config *HSMBackendConfig, logger *logging.StructuredL
 
 }
 
-
-
 // GetBackendInfo returns backend information.
 
 func (b *HSMBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error) {
 
 	info := &BackendInfo{
 
-		Type:     BackendHSM,
+		Type: BackendHSM,
 
-		Version:  "hsm-1.0",
+		Version: "hsm-1.0",
 
-		Status:   "ready",
+		Status: "ready",
 
 		Features: b.GetSupportedFeatures(),
-
 	}
-
-
 
 	// Check HSM connection status.
 
@@ -1405,8 +1125,6 @@ func (b *HSMBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error) {
 
 	}
 
-
-
 	// Add HSM-specific metrics.
 
 	if b.hsm != nil {
@@ -1415,25 +1133,20 @@ func (b *HSMBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error) {
 
 		info.Metrics = map[string]interface{}{
 
-			"connected":    status.Connected,
+			"connected": status.Connected,
 
-			"slot_id":      status.SlotID,
+			"slot_id": status.SlotID,
 
 			"session_open": status.SessionOpen,
 
-			"key_count":    status.KeyCount,
-
+			"key_count": status.KeyCount,
 		}
 
 	}
 
-
-
 	return info, nil
 
 }
-
-
 
 // IssueCertificate issues a certificate using HSM.
 
@@ -1443,23 +1156,20 @@ func (b *HSMBackend) IssueCertificate(ctx context.Context, req *CertificateReque
 
 	return &CertificateResponse{
 
-		RequestID:    req.ID,
+		RequestID: req.ID,
 
-		Status:       StatusIssued,
+		Status: StatusIssued,
 
 		SerialNumber: fmt.Sprintf("HSM-%d", time.Now().Unix()),
 
-		IssuedBy:     string(BackendHSM),
+		IssuedBy: string(BackendHSM),
 
-		CreatedAt:    time.Now(),
+		CreatedAt: time.Now(),
 
-		ExpiresAt:    time.Now().Add(req.ValidityDuration),
-
+		ExpiresAt: time.Now().Add(req.ValidityDuration),
 	}, nil
 
 }
-
-
 
 // RevokeCertificate revokes a certificate.
 
@@ -1470,8 +1180,6 @@ func (b *HSMBackend) RevokeCertificate(ctx context.Context, serialNumber string,
 	return nil
 
 }
-
-
 
 // RenewCertificate renews a certificate.
 
@@ -1493,8 +1201,6 @@ func (b *HSMBackend) RenewCertificate(ctx context.Context, req *CertificateReque
 
 }
 
-
-
 // GetSupportedFeatures returns supported features.
 
 func (b *HSMBackend) GetSupportedFeatures() []string {
@@ -1512,12 +1218,9 @@ func (b *HSMBackend) GetSupportedFeatures() []string {
 		"certificate_signing",
 
 		"high_availability",
-
 	}
 
 }
-
-
 
 // GetCAChain retrieves the CA certificate chain.
 
@@ -1531,8 +1234,6 @@ func (b *HSMBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate, error
 
 }
 
-
-
 // GetCRL retrieves the Certificate Revocation List.
 
 func (b *HSMBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, error) {
@@ -1545,11 +1246,8 @@ func (b *HSMBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, error) 
 
 }
 
-
-
 func parseIP(ipStr string) net.IP {
 
 	return net.ParseIP(ipStr)
 
 }
-

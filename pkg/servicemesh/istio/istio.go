@@ -1,55 +1,28 @@
 // Package istio provides Istio service mesh implementation.
 
-
 package istio
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
+	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"github.com/prometheus/client_golang/prometheus"
 
-
-
-	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
-
-
-
 	corev1 "k8s.io/api/core/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	"k8s.io/apimachinery/pkg/util/intstr"
-
 	"k8s.io/client-go/dynamic"
-
 	"k8s.io/client-go/kubernetes"
-
 	"k8s.io/client-go/rest"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 func init() {
 
@@ -59,23 +32,20 @@ func init() {
 
 		istioConfig := &Config{
 
-			Namespace:           meshConfig.Namespace,
+			Namespace: meshConfig.Namespace,
 
-			TrustDomain:         meshConfig.TrustDomain,
+			TrustDomain: meshConfig.TrustDomain,
 
-			ControlPlaneURL:     meshConfig.ControlPlaneURL,
+			ControlPlaneURL: meshConfig.ControlPlaneURL,
 
-			CertificateConfig:   meshConfig.CertificateConfig,
+			CertificateConfig: meshConfig.CertificateConfig,
 
-			PolicyDefaults:      meshConfig.PolicyDefaults,
+			PolicyDefaults: meshConfig.PolicyDefaults,
 
 			ObservabilityConfig: meshConfig.ObservabilityConfig,
 
-			MultiCluster:        meshConfig.MultiCluster,
-
+			MultiCluster: meshConfig.MultiCluster,
 		}
-
-
 
 		// Extract Istio-specific settings from custom config.
 
@@ -101,65 +71,53 @@ func init() {
 
 		}
 
-
-
 		return NewIstioMesh(kubeClient, dynamicClient, config, istioConfig)
 
 	})
 
 }
 
-
-
 // Config contains Istio-specific configuration.
 
 type Config struct {
+	Namespace string `json:"namespace"`
 
-	Namespace           string                           `json:"namespace"`
+	TrustDomain string `json:"trustDomain"`
 
-	TrustDomain         string                           `json:"trustDomain"`
+	ControlPlaneURL string `json:"controlPlaneUrl"`
 
-	ControlPlaneURL     string                           `json:"controlPlaneUrl"`
+	PilotURL string `json:"pilotUrl"`
 
-	PilotURL            string                           `json:"pilotUrl"`
+	MeshID string `json:"meshId"`
 
-	MeshID              string                           `json:"meshId"`
+	Network string `json:"network"`
 
-	Network             string                           `json:"network"`
+	CertificateConfig *abstraction.CertificateConfig `json:"certificateConfig"`
 
-	CertificateConfig   *abstraction.CertificateConfig   `json:"certificateConfig"`
-
-	PolicyDefaults      *abstraction.PolicyDefaults      `json:"policyDefaults"`
+	PolicyDefaults *abstraction.PolicyDefaults `json:"policyDefaults"`
 
 	ObservabilityConfig *abstraction.ObservabilityConfig `json:"observabilityConfig"`
 
-	MultiCluster        *abstraction.MultiClusterConfig  `json:"multiCluster"`
-
+	MultiCluster *abstraction.MultiClusterConfig `json:"multiCluster"`
 }
-
-
 
 // IstioMesh implements ServiceMeshInterface for Istio.
 
 type IstioMesh struct {
-
-	kubeClient    kubernetes.Interface
+	kubeClient kubernetes.Interface
 
 	dynamicClient client.Client
 
-	config        *rest.Config
+	config *rest.Config
 
-	meshConfig    *Config
+	meshConfig *Config
 
-	certProvider  *IstioCertificateProvider
+	certProvider *IstioCertificateProvider
 
-	metrics       *IstioMetrics
+	metrics *IstioMetrics
 
-	logger        logr.Logger
-
+	logger logr.Logger
 }
-
-
 
 // NewIstioMesh creates a new Istio mesh implementation.
 
@@ -179,43 +137,34 @@ func NewIstioMesh(
 
 	certProvider := NewIstioCertificateProvider(kubeClient, meshConfig.TrustDomain)
 
-
-
 	// Create metrics.
 
 	metrics := NewIstioMetrics()
 
-
-
 	return &IstioMesh{
 
-		kubeClient:    kubeClient,
+		kubeClient: kubeClient,
 
 		dynamicClient: dynamicClient,
 
-		config:        config,
+		config: config,
 
-		meshConfig:    meshConfig,
+		meshConfig: meshConfig,
 
-		certProvider:  certProvider,
+		certProvider: certProvider,
 
-		metrics:       metrics,
+		metrics: metrics,
 
-		logger:        log.Log.WithName("istio-mesh"),
-
+		logger: log.Log.WithName("istio-mesh"),
 	}, nil
 
 }
-
-
 
 // Initialize initializes the Istio mesh.
 
 func (m *IstioMesh) Initialize(ctx context.Context, config *abstraction.ServiceMeshConfig) error {
 
 	m.logger.Info("Initializing Istio service mesh")
-
-
 
 	// Verify Istio installation.
 
@@ -224,8 +173,6 @@ func (m *IstioMesh) Initialize(ctx context.Context, config *abstraction.ServiceM
 		return fmt.Errorf("Istio verification failed: %w", err)
 
 	}
-
-
 
 	// Configure default policies if specified.
 
@@ -239,21 +186,15 @@ func (m *IstioMesh) Initialize(ctx context.Context, config *abstraction.ServiceM
 
 	}
 
-
-
 	// Register metrics.
 
 	prometheus.MustRegister(m.metrics.GetCollectors()...)
-
-
 
 	m.logger.Info("Istio service mesh initialized successfully")
 
 	return nil
 
 }
-
-
 
 // verifyIstioInstallation verifies Istio is properly installed.
 
@@ -269,15 +210,11 @@ func (m *IstioMesh) verifyIstioInstallation(ctx context.Context) error {
 
 	}
 
-
-
 	if deployment.Status.ReadyReplicas == 0 {
 
 		return fmt.Errorf("istiod deployment not ready")
 
 	}
-
-
 
 	// Check Istio CRDs.
 
@@ -290,10 +227,7 @@ func (m *IstioMesh) verifyIstioInstallation(ctx context.Context) error {
 		"destinationrules.networking.istio.io",
 
 		"virtualservices.networking.istio.io",
-
 	}
-
-
 
 	for _, crd := range crds {
 
@@ -303,12 +237,11 @@ func (m *IstioMesh) verifyIstioInstallation(ctx context.Context) error {
 
 		crdGVR := schema.GroupVersionResource{
 
-			Group:    "apiextensions.k8s.io",
+			Group: "apiextensions.k8s.io",
 
-			Version:  "v1",
+			Version: "v1",
 
 			Resource: "customresourcedefinitions",
-
 		}
 
 		_, err := dynamicClient.Resource(crdGVR).Get(ctx, crd, metav1.GetOptions{})
@@ -321,13 +254,9 @@ func (m *IstioMesh) verifyIstioInstallation(ctx context.Context) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // configureDefaultPolicies configures default Istio policies.
 
@@ -343,14 +272,13 @@ func (m *IstioMesh) configureDefaultPolicies(ctx context.Context, defaults *abst
 
 				"apiVersion": "security.istio.io/v1beta1",
 
-				"kind":       "PeerAuthentication",
+				"kind": "PeerAuthentication",
 
 				"metadata": map[string]interface{}{
 
-					"name":      "default",
+					"name": "default",
 
 					"namespace": m.meshConfig.Namespace,
-
 				},
 
 				"spec": map[string]interface{}{
@@ -358,33 +286,23 @@ func (m *IstioMesh) configureDefaultPolicies(ctx context.Context, defaults *abst
 					"mtls": map[string]interface{}{
 
 						"mode": defaults.MTLSMode,
-
 					},
-
 				},
-
 			},
-
 		}
-
-
 
 		gvr := schema.GroupVersionResource{
 
-			Group:    "security.istio.io",
+			Group: "security.istio.io",
 
-			Version:  "v1beta1",
+			Version: "v1beta1",
 
 			Resource: "peerauthentications",
-
 		}
-
-
 
 		dynamicClient := dynamic.NewForConfigOrDie(m.config)
 
 		_, err := dynamicClient.Resource(gvr).Namespace(m.meshConfig.Namespace).
-
 			Create(ctx, peerAuth, metav1.CreateOptions{})
 
 		if err != nil {
@@ -394,8 +312,6 @@ func (m *IstioMesh) configureDefaultPolicies(ctx context.Context, defaults *abst
 		}
 
 	}
-
-
 
 	// Create default AuthorizationPolicy if deny-all is enabled.
 
@@ -407,40 +323,31 @@ func (m *IstioMesh) configureDefaultPolicies(ctx context.Context, defaults *abst
 
 				"apiVersion": "security.istio.io/v1beta1",
 
-				"kind":       "AuthorizationPolicy",
+				"kind": "AuthorizationPolicy",
 
 				"metadata": map[string]interface{}{
 
-					"name":      "default-deny-all",
+					"name": "default-deny-all",
 
 					"namespace": m.meshConfig.Namespace,
-
 				},
 
 				"spec": map[string]interface{}{},
-
 			},
-
 		}
-
-
 
 		gvr := schema.GroupVersionResource{
 
-			Group:    "security.istio.io",
+			Group: "security.istio.io",
 
-			Version:  "v1beta1",
+			Version: "v1beta1",
 
 			Resource: "authorizationpolicies",
-
 		}
-
-
 
 		dynamicClient := dynamic.NewForConfigOrDie(m.config)
 
 		_, err := dynamicClient.Resource(gvr).Namespace(m.meshConfig.Namespace).
-
 			Create(ctx, authPolicy, metav1.CreateOptions{})
 
 		if err != nil {
@@ -451,13 +358,9 @@ func (m *IstioMesh) configureDefaultPolicies(ctx context.Context, defaults *abst
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetCertificateProvider returns the certificate provider.
 
@@ -466,8 +369,6 @@ func (m *IstioMesh) GetCertificateProvider() abstraction.CertificateProvider {
 	return m.certProvider
 
 }
-
-
 
 // RotateCertificates rotates certificates for services in a namespace.
 
@@ -485,8 +386,6 @@ func (m *IstioMesh) RotateCertificates(ctx context.Context, namespace string) er
 
 	}
 
-
-
 	for _, pod := range pods.Items {
 
 		// Check if pod has Istio sidecar.
@@ -496,8 +395,6 @@ func (m *IstioMesh) RotateCertificates(ctx context.Context, namespace string) er
 			continue
 
 		}
-
-
 
 		// Delete pod to trigger recreation with new certificate.
 
@@ -511,13 +408,9 @@ func (m *IstioMesh) RotateCertificates(ctx context.Context, namespace string) er
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateCertificateChain validates the certificate chain in a namespace.
 
@@ -533,8 +426,6 @@ func (m *IstioMesh) ValidateCertificateChain(ctx context.Context, namespace stri
 
 	}
 
-
-
 	for _, pod := range pods.Items {
 
 		if !m.hasIstioSidecar(&pod) {
@@ -542,8 +433,6 @@ func (m *IstioMesh) ValidateCertificateChain(ctx context.Context, namespace stri
 			continue
 
 		}
-
-
 
 		// Validate certificate for each pod.
 
@@ -559,13 +448,9 @@ func (m *IstioMesh) ValidateCertificateChain(ctx context.Context, namespace stri
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ApplyMTLSPolicy applies an mTLS policy.
 
@@ -579,14 +464,13 @@ func (m *IstioMesh) ApplyMTLSPolicy(ctx context.Context, policy *abstraction.MTL
 
 			"apiVersion": "security.istio.io/v1beta1",
 
-			"kind":       "PeerAuthentication",
+			"kind": "PeerAuthentication",
 
 			"metadata": map[string]interface{}{
 
-				"name":      policy.Name,
+				"name": policy.Name,
 
 				"namespace": policy.Namespace,
-
 			},
 
 			"spec": map[string]interface{}{
@@ -596,16 +480,10 @@ func (m *IstioMesh) ApplyMTLSPolicy(ctx context.Context, policy *abstraction.MTL
 				"mtls": map[string]interface{}{
 
 					"mode": policy.Spec.Mode,
-
 				},
-
 			},
-
 		},
-
 	}
-
-
 
 	// Add port-level mTLS if specified.
 
@@ -618,7 +496,6 @@ func (m *IstioMesh) ApplyMTLSPolicy(ctx context.Context, policy *abstraction.MTL
 			portLevelMtls[fmt.Sprintf("%d", portMtls.Port)] = map[string]interface{}{
 
 				"mode": portMtls.Mode,
-
 			}
 
 		}
@@ -627,24 +504,18 @@ func (m *IstioMesh) ApplyMTLSPolicy(ctx context.Context, policy *abstraction.MTL
 
 	}
 
-
-
 	gvr := schema.GroupVersionResource{
 
-		Group:    "security.istio.io",
+		Group: "security.istio.io",
 
-		Version:  "v1beta1",
+		Version: "v1beta1",
 
 		Resource: "peerauthentications",
-
 	}
-
-
 
 	dynamicClient := dynamic.NewForConfigOrDie(m.config)
 
 	_, err := dynamicClient.Resource(gvr).Namespace(policy.Namespace).
-
 		Create(ctx, peerAuth, metav1.CreateOptions{})
 
 	if err != nil {
@@ -653,15 +524,11 @@ func (m *IstioMesh) ApplyMTLSPolicy(ctx context.Context, policy *abstraction.MTL
 
 	}
 
-
-
 	m.metrics.policiesApplied.Inc()
 
 	return nil
 
 }
-
-
 
 // ApplyAuthorizationPolicy applies an authorization policy.
 
@@ -675,48 +542,38 @@ func (m *IstioMesh) ApplyAuthorizationPolicy(ctx context.Context, policy *abstra
 
 			"apiVersion": "security.istio.io/v1beta1",
 
-			"kind":       "AuthorizationPolicy",
+			"kind": "AuthorizationPolicy",
 
 			"metadata": map[string]interface{}{
 
-				"name":      policy.Name,
+				"name": policy.Name,
 
 				"namespace": policy.Namespace,
-
 			},
 
 			"spec": map[string]interface{}{
 
 				"selector": m.convertSelector(policy.Spec.Selector),
 
-				"action":   policy.Spec.Action,
+				"action": policy.Spec.Action,
 
-				"rules":    m.convertAuthorizationRules(policy.Spec.Rules),
-
+				"rules": m.convertAuthorizationRules(policy.Spec.Rules),
 			},
-
 		},
-
 	}
-
-
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "security.istio.io",
+		Group: "security.istio.io",
 
-		Version:  "v1beta1",
+		Version: "v1beta1",
 
 		Resource: "authorizationpolicies",
-
 	}
-
-
 
 	dynamicClient := dynamic.NewForConfigOrDie(m.config)
 
 	_, err := dynamicClient.Resource(gvr).Namespace(policy.Namespace).
-
 		Create(ctx, authPolicy, metav1.CreateOptions{})
 
 	if err != nil {
@@ -725,15 +582,11 @@ func (m *IstioMesh) ApplyAuthorizationPolicy(ctx context.Context, policy *abstra
 
 	}
 
-
-
 	m.metrics.policiesApplied.Inc()
 
 	return nil
 
 }
-
-
 
 // ApplyTrafficPolicy applies a traffic management policy.
 
@@ -747,23 +600,18 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 
 			"apiVersion": "networking.istio.io/v1beta1",
 
-			"kind":       "VirtualService",
+			"kind": "VirtualService",
 
 			"metadata": map[string]interface{}{
 
-				"name":      policy.Name,
+				"name": policy.Name,
 
 				"namespace": policy.Namespace,
-
 			},
 
 			"spec": map[string]interface{}{},
-
 		},
-
 	}
-
-
 
 	// Add traffic shifting if specified.
 
@@ -778,11 +626,9 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 				"destination": map[string]interface{}{
 
 					"host": dest.Service,
-
 				},
 
 				"weight": dest.Weight,
-
 			}
 
 			if dest.Version != "" {
@@ -794,7 +640,6 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 			http = append(http, map[string]interface{}{
 
 				"route": []interface{}{route},
-
 			})
 
 		}
@@ -802,8 +647,6 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 		vs.Object["spec"].(map[string]interface{})["http"] = http
 
 	}
-
-
 
 	// Create DestinationRule for circuit breaker, load balancing, etc.
 
@@ -813,27 +656,20 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 
 			"apiVersion": "networking.istio.io/v1beta1",
 
-			"kind":       "DestinationRule",
+			"kind": "DestinationRule",
 
 			"metadata": map[string]interface{}{
 
-				"name":      policy.Name + "-dr",
+				"name": policy.Name + "-dr",
 
 				"namespace": policy.Namespace,
-
 			},
 
 			"spec": map[string]interface{}{},
-
 		},
-
 	}
 
-
-
 	trafficPolicy := make(map[string]interface{})
-
-
 
 	// Add circuit breaker if specified.
 
@@ -844,26 +680,21 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 			"tcp": map[string]interface{}{
 
 				"maxConnections": 100,
-
 			},
-
 		}
 
 		trafficPolicy["outlierDetection"] = map[string]interface{}{
 
-			"consecutiveErrors":  policy.Spec.CircuitBreaker.ConsecutiveErrors,
+			"consecutiveErrors": policy.Spec.CircuitBreaker.ConsecutiveErrors,
 
-			"interval":           policy.Spec.CircuitBreaker.Interval,
+			"interval": policy.Spec.CircuitBreaker.Interval,
 
-			"baseEjectionTime":   policy.Spec.CircuitBreaker.BaseEjectionTime,
+			"baseEjectionTime": policy.Spec.CircuitBreaker.BaseEjectionTime,
 
 			"maxEjectionPercent": policy.Spec.CircuitBreaker.MaxEjectionPercent,
-
 		}
 
 	}
-
-
 
 	// Add retry policy if specified.
 
@@ -877,12 +708,11 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 
 				http.(map[string]interface{})["retries"] = map[string]interface{}{
 
-					"attempts":      policy.Spec.Retry.Attempts,
+					"attempts": policy.Spec.Retry.Attempts,
 
 					"perTryTimeout": policy.Spec.Retry.PerTryTimeout,
 
-					"retryOn":       policy.Spec.Retry.RetryOn,
-
+					"retryOn": policy.Spec.Retry.RetryOn,
 				}
 
 			}
@@ -890,8 +720,6 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 		}
 
 	}
-
-
 
 	// Add timeout if specified.
 
@@ -911,8 +739,6 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 
 	}
 
-
-
 	// Add load balancer if specified.
 
 	if policy.Spec.LoadBalancer != nil {
@@ -924,7 +750,6 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 			trafficPolicy["loadBalancer"] = map[string]interface{}{
 
 				"simple": "ROUND_ROBIN",
-
 			}
 
 		case "least-conn":
@@ -932,7 +757,6 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 			trafficPolicy["loadBalancer"] = map[string]interface{}{
 
 				"simple": "LEAST_CONN",
-
 			}
 
 		case "random":
@@ -940,7 +764,6 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 			trafficPolicy["loadBalancer"] = map[string]interface{}{
 
 				"simple": "RANDOM",
-
 			}
 
 		case "consistent-hash":
@@ -951,12 +774,10 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 
 					"consistentHash": map[string]interface{}{
 
-						"httpHeaderName":  policy.Spec.LoadBalancer.ConsistentHash.HashKey,
+						"httpHeaderName": policy.Spec.LoadBalancer.ConsistentHash.HashKey,
 
 						"minimumRingSize": policy.Spec.LoadBalancer.ConsistentHash.MinimumRingSize,
-
 					},
-
 				}
 
 			}
@@ -965,34 +786,26 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 
 	}
 
-
-
 	if len(trafficPolicy) > 0 {
 
 		dr.Object["spec"].(map[string]interface{})["trafficPolicy"] = trafficPolicy
 
 	}
 
-
-
 	// Apply VirtualService.
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "networking.istio.io",
+		Group: "networking.istio.io",
 
-		Version:  "v1beta1",
+		Version: "v1beta1",
 
 		Resource: "virtualservices",
-
 	}
-
-
 
 	dynamicClient := dynamic.NewForConfigOrDie(m.config)
 
 	_, err := dynamicClient.Resource(gvr).Namespace(policy.Namespace).
-
 		Create(ctx, vs, metav1.CreateOptions{})
 
 	if err != nil {
@@ -1001,24 +814,20 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 
 	}
 
-
-
 	// Apply DestinationRule if needed.
 
 	if len(trafficPolicy) > 0 {
 
 		gvr = schema.GroupVersionResource{
 
-			Group:    "networking.istio.io",
+			Group: "networking.istio.io",
 
-			Version:  "v1beta1",
+			Version: "v1beta1",
 
 			Resource: "destinationrules",
-
 		}
 
 		_, err = dynamicClient.Resource(gvr).Namespace(policy.Namespace).
-
 			Create(ctx, dr, metav1.CreateOptions{})
 
 		if err != nil {
@@ -1029,15 +838,11 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 
 	}
 
-
-
 	m.metrics.policiesApplied.Inc()
 
 	return nil
 
 }
-
-
 
 // ValidatePolicies validates policies in a namespace.
 
@@ -1045,31 +850,25 @@ func (m *IstioMesh) ValidatePolicies(ctx context.Context, namespace string) (*ab
 
 	result := &abstraction.PolicyValidationResult{
 
-		Valid:     true,
+		Valid: true,
 
-		Errors:    []abstraction.PolicyError{},
+		Errors: []abstraction.PolicyError{},
 
-		Warnings:  []abstraction.PolicyWarning{},
+		Warnings: []abstraction.PolicyWarning{},
 
 		Conflicts: []abstraction.PolicyConflict{},
-
 	}
-
-
 
 	// Check PeerAuthentications.
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "security.istio.io",
+		Group: "security.istio.io",
 
-		Version:  "v1beta1",
+		Version: "v1beta1",
 
 		Resource: "peerauthentications",
-
 	}
-
-
 
 	dynamicClient := dynamic.NewForConfigOrDie(m.config)
 
@@ -1080,8 +879,6 @@ func (m *IstioMesh) ValidatePolicies(ctx context.Context, namespace string) (*ab
 		return nil, fmt.Errorf("failed to list PeerAuthentications: %w", err)
 
 	}
-
-
 
 	// Check for conflicting mTLS modes.
 
@@ -1109,10 +906,9 @@ func (m *IstioMesh) ValidatePolicies(ctx context.Context, namespace string) (*ab
 
 							Policy2: name,
 
-							Type:    "mTLS mode",
+							Type: "mTLS mode",
 
 							Message: fmt.Sprintf("Conflicting mTLS modes: %s vs %s", existingMode, mode),
-
 						})
 
 						result.Valid = false
@@ -1129,21 +925,16 @@ func (m *IstioMesh) ValidatePolicies(ctx context.Context, namespace string) (*ab
 
 	}
 
-
-
 	// Check AuthorizationPolicies.
 
 	gvr = schema.GroupVersionResource{
 
-		Group:    "security.istio.io",
+		Group: "security.istio.io",
 
-		Version:  "v1beta1",
+		Version: "v1beta1",
 
 		Resource: "authorizationpolicies",
-
 	}
-
-
 
 	authPolicies, err := dynamicClient.Resource(gvr).Namespace(namespace).List(ctx, metav1.ListOptions{})
 
@@ -1152,8 +943,6 @@ func (m *IstioMesh) ValidatePolicies(ctx context.Context, namespace string) (*ab
 		return nil, fmt.Errorf("failed to list AuthorizationPolicies: %w", err)
 
 	}
-
-
 
 	// Check for DENY policies without corresponding ALLOW policies.
 
@@ -1181,21 +970,16 @@ func (m *IstioMesh) ValidatePolicies(ctx context.Context, namespace string) (*ab
 
 	}
 
-
-
 	if hasDeny && !hasAllow {
 
 		result.Warnings = append(result.Warnings, abstraction.PolicyWarning{
 
-			Type:    "Authorization",
+			Type: "Authorization",
 
 			Message: "DENY policies found without corresponding ALLOW policies",
-
 		})
 
 	}
-
-
 
 	// Calculate coverage.
 
@@ -1227,29 +1011,22 @@ func (m *IstioMesh) ValidatePolicies(ctx context.Context, namespace string) (*ab
 
 	}
 
-
-
 	// Check compliance.
 
 	result.Compliance = abstraction.PolicyCompliance{
 
-		MTLSCompliant:      len(mtlsModes) > 0 && !hasMode(mtlsModes, "DISABLE"),
+		MTLSCompliant: len(mtlsModes) > 0 && !hasMode(mtlsModes, "DISABLE"),
 
 		ZeroTrustCompliant: hasDeny || hasAllow,
 
-		NetworkSegmented:   len(authPolicies.Items) > 0,
+		NetworkSegmented: len(authPolicies.Items) > 0,
 
-		ComplianceScore:    result.Coverage,
-
+		ComplianceScore: result.Coverage,
 	}
-
-
 
 	return result, nil
 
 }
-
-
 
 // Helper function to check if a mode exists in the map.
 
@@ -1269,8 +1046,6 @@ func hasMode(modes map[string]string, mode string) bool {
 
 }
 
-
-
 // serviceHasPolicies checks if a service has policies applied.
 
 func (m *IstioMesh) serviceHasPolicies(serviceName string, peerAuths, authPolicies []unstructured.Unstructured) bool {
@@ -1282,8 +1057,6 @@ func (m *IstioMesh) serviceHasPolicies(serviceName string, peerAuths, authPolici
 	return len(peerAuths) > 0 || len(authPolicies) > 0
 
 }
-
-
 
 // RegisterService registers a service with the mesh.
 
@@ -1303,22 +1076,19 @@ func (m *IstioMesh) RegisterService(ctx context.Context, service *abstraction.Se
 
 			ObjectMeta: metav1.ObjectMeta{
 
-				Name:        service.Name,
+				Name: service.Name,
 
-				Namespace:   service.Namespace,
+				Namespace: service.Namespace,
 
-				Labels:      service.Labels,
+				Labels: service.Labels,
 
 				Annotations: service.Annotations,
-
 			},
 
 			Spec: corev1.ServiceSpec{
 
 				Ports: m.convertServicePorts(service.Ports),
-
 			},
-
 		}
 
 		_, err = m.kubeClient.CoreV1().Services(service.Namespace).Create(ctx, svc, metav1.CreateOptions{})
@@ -1331,8 +1101,6 @@ func (m *IstioMesh) RegisterService(ctx context.Context, service *abstraction.Se
 
 	}
 
-
-
 	// Ensure namespace has Istio injection enabled.
 
 	ns, err := m.kubeClient.CoreV1().Namespaces().Get(ctx, service.Namespace, metav1.GetOptions{})
@@ -1343,8 +1111,6 @@ func (m *IstioMesh) RegisterService(ctx context.Context, service *abstraction.Se
 
 	}
 
-
-
 	if ns.Labels == nil {
 
 		ns.Labels = make(map[string]string)
@@ -1352,8 +1118,6 @@ func (m *IstioMesh) RegisterService(ctx context.Context, service *abstraction.Se
 	}
 
 	ns.Labels["istio-injection"] = "enabled"
-
-
 
 	_, err = m.kubeClient.CoreV1().Namespaces().Update(ctx, ns, metav1.UpdateOptions{})
 
@@ -1363,15 +1127,11 @@ func (m *IstioMesh) RegisterService(ctx context.Context, service *abstraction.Se
 
 	}
 
-
-
 	m.metrics.servicesRegistered.Inc()
 
 	return nil
 
 }
-
-
 
 // UnregisterService unregisters a service from the mesh.
 
@@ -1383,15 +1143,12 @@ func (m *IstioMesh) UnregisterService(ctx context.Context, serviceName, namespac
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "security.istio.io",
+		Group: "security.istio.io",
 
-		Version:  "v1beta1",
+		Version: "v1beta1",
 
 		Resource: "peerauthentications",
-
 	}
-
-
 
 	dynamicClient := dynamic.NewForConfigOrDie(m.config)
 
@@ -1419,15 +1176,11 @@ func (m *IstioMesh) UnregisterService(ctx context.Context, serviceName, namespac
 
 	}
 
-
-
 	m.metrics.servicesRegistered.Dec()
 
 	return nil
 
 }
-
-
 
 // policyTargetsService checks if a policy targets a specific service.
 
@@ -1439,23 +1192,18 @@ func (m *IstioMesh) policyTargetsService(policy unstructured.Unstructured, servi
 
 }
 
-
-
 // GetServiceStatus gets the status of a service in the mesh.
 
 func (m *IstioMesh) GetServiceStatus(ctx context.Context, serviceName, namespace string) (*abstraction.ServiceStatus, error) {
 
 	status := &abstraction.ServiceStatus{
 
-		Name:      serviceName,
+		Name: serviceName,
 
 		Namespace: namespace,
 
-		Healthy:   true,
-
+		Healthy: true,
 	}
-
-
 
 	// Check if service exists.
 
@@ -1466,8 +1214,6 @@ func (m *IstioMesh) GetServiceStatus(ctx context.Context, serviceName, namespace
 		return nil, fmt.Errorf("service not found: %w", err)
 
 	}
-
-
 
 	// Check endpoints.
 
@@ -1483,14 +1229,13 @@ func (m *IstioMesh) GetServiceStatus(ctx context.Context, serviceName, namespace
 
 					status.Endpoints = append(status.Endpoints, abstraction.EndpointStatus{
 
-						Address:     addr.IP,
+						Address: addr.IP,
 
-						Port:        port.Port,
+						Port: port.Port,
 
-						Healthy:     true,
+						Healthy: true,
 
 						LastChecked: time.Now(),
-
 					})
 
 				}
@@ -1501,25 +1246,17 @@ func (m *IstioMesh) GetServiceStatus(ctx context.Context, serviceName, namespace
 
 	}
 
-
-
 	// Check if mTLS is enabled.
 
 	status.MTLSEnabled = m.isServiceMTLSEnabled(ctx, serviceName, namespace)
-
-
 
 	// Get applied policies.
 
 	status.Policies = m.getServicePolicies(ctx, serviceName, namespace)
 
-
-
 	return status, nil
 
 }
-
-
 
 // isServiceMTLSEnabled checks if mTLS is enabled for a service.
 
@@ -1529,15 +1266,12 @@ func (m *IstioMesh) isServiceMTLSEnabled(ctx context.Context, serviceName, names
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "security.istio.io",
+		Group: "security.istio.io",
 
-		Version:  "v1beta1",
+		Version: "v1beta1",
 
 		Resource: "peerauthentications",
-
 	}
-
-
 
 	dynamicClient := dynamic.NewForConfigOrDie(m.config)
 
@@ -1548,8 +1282,6 @@ func (m *IstioMesh) isServiceMTLSEnabled(ctx context.Context, serviceName, names
 		return false
 
 	}
-
-
 
 	for _, pa := range peerAuths.Items {
 
@@ -1567,13 +1299,9 @@ func (m *IstioMesh) isServiceMTLSEnabled(ctx context.Context, serviceName, names
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // getServicePolicies gets the policies applied to a service.
 
@@ -1581,19 +1309,13 @@ func (m *IstioMesh) getServicePolicies(ctx context.Context, serviceName, namespa
 
 	policies := []string{}
 
-
-
 	// List all policy types and check if they apply to this service.
 
 	// This is simplified - in reality, we'd evaluate selectors.
 
-
-
 	return policies
 
 }
-
-
 
 // GetMetrics returns Prometheus metrics collectors.
 
@@ -1602,8 +1324,6 @@ func (m *IstioMesh) GetMetrics() []prometheus.Collector {
 	return m.metrics.GetCollectors()
 
 }
-
-
 
 // GetServiceDependencies gets service dependencies in the mesh.
 
@@ -1614,10 +1334,7 @@ func (m *IstioMesh) GetServiceDependencies(ctx context.Context, namespace string
 		Nodes: []abstraction.ServiceNode{},
 
 		Edges: []abstraction.ServiceEdge{},
-
 	}
-
-
 
 	// Get all services.
 
@@ -1629,47 +1346,39 @@ func (m *IstioMesh) GetServiceDependencies(ctx context.Context, namespace string
 
 	}
 
-
-
 	// Create nodes for each service.
 
 	for _, svc := range services.Items {
 
 		node := abstraction.ServiceNode{
 
-			ID:          fmt.Sprintf("%s/%s", svc.Namespace, svc.Name),
+			ID: fmt.Sprintf("%s/%s", svc.Namespace, svc.Name),
 
-			Name:        svc.Name,
+			Name: svc.Name,
 
-			Namespace:   svc.Namespace,
+			Namespace: svc.Namespace,
 
-			Type:        "service",
+			Type: "service",
 
-			Labels:      svc.Labels,
+			Labels: svc.Labels,
 
 			MTLSEnabled: m.isServiceMTLSEnabled(ctx, svc.Name, svc.Namespace),
-
 		}
 
 		graph.Nodes = append(graph.Nodes, node)
 
 	}
 
-
-
 	// Get VirtualServices to determine traffic flow.
 
 	gvr := schema.GroupVersionResource{
 
-		Group:    "networking.istio.io",
+		Group: "networking.istio.io",
 
-		Version:  "v1beta1",
+		Version: "v1beta1",
 
 		Resource: "virtualservices",
-
 	}
-
-
 
 	dynamicClient := dynamic.NewForConfigOrDie(m.config)
 
@@ -1687,13 +1396,9 @@ func (m *IstioMesh) GetServiceDependencies(ctx context.Context, namespace string
 
 	}
 
-
-
 	return graph, nil
 
 }
-
-
 
 // GetMTLSStatus gets the mTLS status report.
 
@@ -1702,10 +1407,7 @@ func (m *IstioMesh) GetMTLSStatus(ctx context.Context, namespace string) (*abstr
 	report := &abstraction.MTLSStatusReport{
 
 		Timestamp: time.Now(),
-
 	}
-
-
 
 	// Get all services.
 
@@ -1717,11 +1419,7 @@ func (m *IstioMesh) GetMTLSStatus(ctx context.Context, namespace string) (*abstr
 
 	}
 
-
-
 	report.TotalServices = len(services.Items)
-
-
 
 	// Check mTLS status for each service.
 
@@ -1733,34 +1431,29 @@ func (m *IstioMesh) GetMTLSStatus(ctx context.Context, namespace string) (*abstr
 
 		}
 
-
-
 		// Add certificate status.
 
 		certStatus := abstraction.ServiceCertStatus{
 
-			Service:   svc.Name,
+			Service: svc.Name,
 
 			Namespace: svc.Namespace,
 
-			Valid:     true, // Simplified - would check actual cert
+			Valid: true, // Simplified - would check actual cert
 
 		}
 
 		report.CertificateStatus = append(report.CertificateStatus, certStatus)
 
-
-
 		// Add policy status.
 
 		policyStatus := abstraction.ServicePolicyStatus{
 
-			Service:   svc.Name,
+			Service: svc.Name,
 
 			Namespace: svc.Namespace,
 
-			Policies:  m.getServicePolicies(ctx, svc.Name, svc.Namespace),
-
+			Policies: m.getServicePolicies(ctx, svc.Name, svc.Namespace),
 		}
 
 		if m.isServiceMTLSEnabled(ctx, svc.Name, svc.Namespace) {
@@ -1777,15 +1470,11 @@ func (m *IstioMesh) GetMTLSStatus(ctx context.Context, namespace string) (*abstr
 
 	}
 
-
-
 	if report.TotalServices > 0 {
 
 		report.Coverage = float64(report.MTLSEnabledCount) / float64(report.TotalServices) * 100
 
 	}
-
-
 
 	// Add recommendations.
 
@@ -1797,13 +1486,9 @@ func (m *IstioMesh) GetMTLSStatus(ctx context.Context, namespace string) (*abstr
 
 	}
 
-
-
 	return report, nil
 
 }
-
-
 
 // IsHealthy checks if the Istio mesh is healthy.
 
@@ -1819,21 +1504,15 @@ func (m *IstioMesh) IsHealthy(ctx context.Context) error {
 
 	}
 
-
-
 	if deployment.Status.ReadyReplicas == 0 {
 
 		return fmt.Errorf("istiod not ready")
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // IsReady checks if the Istio mesh is ready.
 
@@ -1843,8 +1522,6 @@ func (m *IstioMesh) IsReady(ctx context.Context) error {
 
 }
 
-
-
 // GetProvider returns the provider type.
 
 func (m *IstioMesh) GetProvider() abstraction.ServiceMeshProvider {
@@ -1852,8 +1529,6 @@ func (m *IstioMesh) GetProvider() abstraction.ServiceMeshProvider {
 	return abstraction.ProviderIstio
 
 }
-
-
 
 // GetVersion returns the Istio version.
 
@@ -1869,21 +1544,15 @@ func (m *IstioMesh) GetVersion() string {
 
 	}
 
-
-
 	if version, ok := deployment.Labels["version"]; ok {
 
 		return version
 
 	}
 
-
-
 	return "unknown"
 
 }
-
-
 
 // GetCapabilities returns Istio capabilities.
 
@@ -1902,12 +1571,9 @@ func (m *IstioMesh) GetCapabilities() []abstraction.Capability {
 		abstraction.CapabilitySPIFFE,
 
 		abstraction.CapabilityWASM,
-
 	}
 
 }
-
-
 
 // hasIstioSidecar checks if a pod has an Istio sidecar.
 
@@ -1927,8 +1593,6 @@ func (m *IstioMesh) hasIstioSidecar(pod *corev1.Pod) bool {
 
 }
 
-
-
 // convertSelector converts abstraction selector to map.
 
 func (m *IstioMesh) convertSelector(selector *abstraction.LabelSelector) map[string]interface{} {
@@ -1939,8 +1603,6 @@ func (m *IstioMesh) convertSelector(selector *abstraction.LabelSelector) map[str
 
 	}
 
-
-
 	result := make(map[string]interface{})
 
 	if len(selector.MatchLabels) > 0 {
@@ -1949,13 +1611,9 @@ func (m *IstioMesh) convertSelector(selector *abstraction.LabelSelector) map[str
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // convertAuthorizationRules converts authorization rules.
 
@@ -1963,13 +1621,9 @@ func (m *IstioMesh) convertAuthorizationRules(rules []abstraction.AuthorizationR
 
 	result := []interface{}{}
 
-
-
 	for _, rule := range rules {
 
 		istioRule := make(map[string]interface{})
-
-
 
 		// Convert From.
 
@@ -2001,8 +1655,6 @@ func (m *IstioMesh) convertAuthorizationRules(rules []abstraction.AuthorizationR
 
 		}
 
-
-
 		// Convert To.
 
 		if len(rule.To) > 0 {
@@ -2033,8 +1685,6 @@ func (m *IstioMesh) convertAuthorizationRules(rules []abstraction.AuthorizationR
 
 		}
 
-
-
 		// Convert When.
 
 		if len(rule.When) > 0 {
@@ -2046,7 +1696,6 @@ func (m *IstioMesh) convertAuthorizationRules(rules []abstraction.AuthorizationR
 				whenCond := map[string]interface{}{
 
 					"key": condition.Key,
-
 				}
 
 				if len(condition.Values) > 0 {
@@ -2063,19 +1712,13 @@ func (m *IstioMesh) convertAuthorizationRules(rules []abstraction.AuthorizationR
 
 		}
 
-
-
 		result = append(result, istioRule)
 
 	}
 
-
-
 	return result
 
 }
-
-
 
 // convertServicePorts converts service ports.
 
@@ -2083,27 +1726,21 @@ func (m *IstioMesh) convertServicePorts(ports []abstraction.ServicePort) []corev
 
 	result := []corev1.ServicePort{}
 
-
-
 	for _, port := range ports {
 
 		result = append(result, corev1.ServicePort{
 
-			Name:       port.Name,
+			Name: port.Name,
 
-			Port:       port.Port,
+			Port: port.Port,
 
 			TargetPort: intstr.FromInt(int(port.TargetPort)),
 
-			Protocol:   corev1.Protocol(port.Protocol),
-
+			Protocol: corev1.Protocol(port.Protocol),
 		})
 
 	}
 
-
-
 	return result
 
 }
-

@@ -1,42 +1,23 @@
-
 package multicluster
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
-
-
 
 	"github.com/go-logr/logr"
 
-
-
 	"k8s.io/apimachinery/pkg/types"
-
 	"k8s.io/client-go/kubernetes"
-
 	"k8s.io/client-go/rest"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // ClusterManagerInterface defines the interface for cluster management operations.
 
 type ClusterManagerInterface interface {
-
 	RegisterCluster(ctx context.Context, clusterConfig *rest.Config, name types.NamespacedName) (*ClusterInfo, error)
 
 	SelectTargetClusters(ctx context.Context, candidates []types.NamespacedName, packageRevision *PackageRevision) ([]types.NamespacedName, error)
@@ -46,132 +27,105 @@ type ClusterManagerInterface interface {
 	GetClusters() map[types.NamespacedName]*ClusterInfo
 
 	SetClusters(clusters map[types.NamespacedName]*ClusterInfo)
-
 }
-
-
 
 // ClusterManager manages cluster registration, discovery, and lifecycle.
 
 type ClusterManager struct {
+	client client.Client
 
-	client      client.Client
+	logger logr.Logger
 
-	logger      logr.Logger
-
-	clusters    map[types.NamespacedName]*ClusterInfo
+	clusters map[types.NamespacedName]*ClusterInfo
 
 	clusterLock sync.RWMutex
-
 }
-
-
 
 // ClusterInfo represents detailed information about a managed cluster.
 
 type ClusterInfo struct {
+	Name types.NamespacedName
 
-	Name                types.NamespacedName
+	Kubeconfig *rest.Config
 
-	Kubeconfig          *rest.Config
+	ClientSet *kubernetes.Clientset
 
-	ClientSet           *kubernetes.Clientset
+	Capabilities ClusterCapabilities
 
-	Capabilities        ClusterCapabilities
+	LastHealthCheck time.Time
 
-	LastHealthCheck     time.Time
-
-	HealthStatus        ClusterHealthStatus
+	HealthStatus ClusterHealthStatus
 
 	ResourceUtilization ResourceUtilization
-
 }
-
-
 
 // ClusterCapabilities represent the features and capabilities of a cluster.
 
 type ClusterCapabilities struct {
-
 	KubernetesVersion string
 
-	CPUArchitecture   string
+	CPUArchitecture string
 
-	OSImage           string
+	OSImage string
 
-	ContainerRuntime  string
+	ContainerRuntime string
 
-	MaxPods           int
+	MaxPods int
 
-	StorageClasses    []string
+	StorageClasses []string
 
-	NetworkPlugins    []string
+	NetworkPlugins []string
 
-	Regions           []string
-
+	Regions []string
 }
-
-
 
 // ClusterHealthStatus represents the current health of a cluster.
 
 type ClusterHealthStatus struct {
-
-	Available        bool
+	Available bool
 
 	LastSuccessCheck time.Time
 
 	LastFailureCheck time.Time
 
-	FailureReason    string
-
+	FailureReason string
 }
-
-
 
 // ResourceUtilization tracks cluster resource usage.
 
 type ResourceUtilization struct {
+	CPUTotal float64
 
-	CPUTotal     float64
+	CPUUsed float64
 
-	CPUUsed      float64
+	MemoryTotal int64
 
-	MemoryTotal  int64
-
-	MemoryUsed   int64
+	MemoryUsed int64
 
 	StorageTotal int64
 
-	StorageUsed  int64
+	StorageUsed int64
 
-	PodCapacity  int
+	PodCapacity int
 
-	PodCount     int
-
+	PodCount int
 }
-
-
 
 // ClusterSelectionCriteria defines requirements for cluster selection.
 
 type ClusterSelectionCriteria struct {
+	MinCPU float64
 
-	MinCPU          float64
-
-	MinMemory       int64
+	MinMemory int64
 
 	StorageRequired int64
 
 	RequiredRegions []string
 
-	NetworkPlugins  []string
+	NetworkPlugins []string
 
-	MaxPodCount     int
-
+	MaxPodCount int
 }
-
-
 
 // RegisterCluster adds a new cluster to management.
 
@@ -195,8 +149,6 @@ func (cm *ClusterManager) RegisterCluster(
 
 	}
 
-
-
 	// Collect cluster capabilities.
 
 	capabilities, err := cm.discoverClusterCapabilities(ctx, clientSet)
@@ -207,29 +159,24 @@ func (cm *ClusterManager) RegisterCluster(
 
 	}
 
-
-
 	// Create cluster info.
 
 	clusterInfo := &ClusterInfo{
 
-		Name:                name,
+		Name: name,
 
-		Kubeconfig:          clusterConfig,
+		Kubeconfig: clusterConfig,
 
-		ClientSet:           clientSet,
+		ClientSet: clientSet,
 
-		Capabilities:        capabilities,
+		Capabilities: capabilities,
 
-		LastHealthCheck:     time.Now(),
+		LastHealthCheck: time.Now(),
 
-		HealthStatus:        cm.initialHealthCheck(ctx, clientSet),
+		HealthStatus: cm.initialHealthCheck(ctx, clientSet),
 
 		ResourceUtilization: cm.collectResourceUtilization(ctx, clientSet),
-
 	}
-
-
 
 	// Thread-safe cluster registration.
 
@@ -239,13 +186,9 @@ func (cm *ClusterManager) RegisterCluster(
 
 	cm.clusters[name] = clusterInfo
 
-
-
 	return clusterInfo, nil
 
 }
-
-
 
 // SelectTargetClusters intelligently selects clusters for package deployment.
 
@@ -267,25 +210,17 @@ func (cm *ClusterManager) SelectTargetClusters(
 
 	}
 
-
-
 	// 2. Extract package-specific requirements.
 
 	selectionCriteria := cm.extractSelectionCriteria(packageRevision)
-
-
 
 	// 3. Filter and rank clusters based on criteria.
 
 	selectedClusters := make([]types.NamespacedName, 0)
 
-
-
 	cm.clusterLock.RLock()
 
 	defer cm.clusterLock.RUnlock()
-
-
 
 	for _, clusterName := range candidates {
 
@@ -299,8 +234,6 @@ func (cm *ClusterManager) SelectTargetClusters(
 
 		}
 
-
-
 		if cm.clusterMatchesCriteria(cluster, selectionCriteria) {
 
 			selectedClusters = append(selectedClusters, clusterName)
@@ -309,21 +242,15 @@ func (cm *ClusterManager) SelectTargetClusters(
 
 	}
 
-
-
 	if len(selectedClusters) == 0 {
 
 		return nil, fmt.Errorf("no clusters match the package requirements")
 
 	}
 
-
-
 	return selectedClusters, nil
 
 }
-
-
 
 // clusterMatchesCriteria checks if a cluster meets deployment requirements.
 
@@ -355,8 +282,6 @@ func (cm *ClusterManager) clusterMatchesCriteria(
 
 	}
 
-
-
 	// Check pod capacity.
 
 	if criteria.MaxPodCount > 0 &&
@@ -366,8 +291,6 @@ func (cm *ClusterManager) clusterMatchesCriteria(
 		return false
 
 	}
-
-
 
 	// Check required network plugins.
 
@@ -399,8 +322,6 @@ func (cm *ClusterManager) clusterMatchesCriteria(
 
 	}
 
-
-
 	// Check regions.
 
 	if len(criteria.RequiredRegions) > 0 {
@@ -431,13 +352,9 @@ func (cm *ClusterManager) clusterMatchesCriteria(
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // periodic health check methods for registered clusters.
 
@@ -467,8 +384,6 @@ func (cm *ClusterManager) StartHealthMonitoring(ctx context.Context, interval ti
 
 }
 
-
-
 // performClusterHealthCheck checks health of all registered clusters.
 
 func (cm *ClusterManager) performClusterHealthCheck(ctx context.Context) {
@@ -476,8 +391,6 @@ func (cm *ClusterManager) performClusterHealthCheck(ctx context.Context) {
 	cm.clusterLock.Lock()
 
 	defer cm.clusterLock.Unlock()
-
-
 
 	var wg sync.WaitGroup
 
@@ -488,8 +401,6 @@ func (cm *ClusterManager) performClusterHealthCheck(ctx context.Context) {
 		go func(name types.NamespacedName, cluster *ClusterInfo) {
 
 			defer wg.Done()
-
-
 
 			healthStatus := cm.checkClusterHealth(ctx, cluster)
 
@@ -507,8 +418,6 @@ func (cm *ClusterManager) performClusterHealthCheck(ctx context.Context) {
 
 }
 
-
-
 // Helper methods for cluster management.
 
 func (cm *ClusterManager) discoverClusterCapabilities(
@@ -525,8 +434,6 @@ func (cm *ClusterManager) discoverClusterCapabilities(
 
 }
 
-
-
 func (cm *ClusterManager) initialHealthCheck(
 
 	ctx context.Context,
@@ -540,12 +447,9 @@ func (cm *ClusterManager) initialHealthCheck(
 	return ClusterHealthStatus{
 
 		Available: true,
-
 	}
 
 }
-
-
 
 func (cm *ClusterManager) checkClusterHealth(
 
@@ -560,12 +464,9 @@ func (cm *ClusterManager) checkClusterHealth(
 	return ClusterHealthStatus{
 
 		Available: true,
-
 	}
 
 }
-
-
 
 func (cm *ClusterManager) collectResourceUtilization(
 
@@ -581,8 +482,6 @@ func (cm *ClusterManager) collectResourceUtilization(
 
 }
 
-
-
 func (cm *ClusterManager) extractSelectionCriteria(
 
 	packageRevision *PackageRevision,
@@ -594,8 +493,6 @@ func (cm *ClusterManager) extractSelectionCriteria(
 	return ClusterSelectionCriteria{}
 
 }
-
-
 
 // NewClusterManager creates a new cluster manager.
 
@@ -609,17 +506,14 @@ func NewClusterManager(
 
 	return &ClusterManager{
 
-		client:   client,
+		client: client,
 
-		logger:   logger,
+		logger: logger,
 
 		clusters: make(map[types.NamespacedName]*ClusterInfo),
-
 	}
 
 }
-
-
 
 // GetClusters returns the cluster information for testing purposes.
 
@@ -628,8 +522,6 @@ func (cm *ClusterManager) GetClusters() map[types.NamespacedName]*ClusterInfo {
 	cm.clusterLock.RLock()
 
 	defer cm.clusterLock.RUnlock()
-
-
 
 	// Return a copy to avoid concurrent access issues.
 
@@ -645,8 +537,6 @@ func (cm *ClusterManager) GetClusters() map[types.NamespacedName]*ClusterInfo {
 
 }
 
-
-
 // SetClusters sets the cluster information for testing purposes.
 
 func (cm *ClusterManager) SetClusters(clusters map[types.NamespacedName]*ClusterInfo) {
@@ -658,4 +548,3 @@ func (cm *ClusterManager) SetClusters(clusters map[types.NamespacedName]*Cluster
 	cm.clusters = clusters
 
 }
-

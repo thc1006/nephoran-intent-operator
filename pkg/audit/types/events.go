@@ -2,36 +2,21 @@
 
 // for the Nephoran Intent Operator audit system.
 
-
 package types
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"net"
-
 	"regexp"
-
 	"time"
 
-
-
 	"github.com/google/uuid"
-
 )
-
-
 
 // Severity levels for audit events (aligned with syslog RFC 5424).
 
 type Severity int
-
-
 
 // Severity constants represent different levels of audit event importance,.
 
@@ -70,10 +55,7 @@ const (
 	// SeverityDebug indicates debug-level messages.
 
 	SeverityDebug
-
 )
-
-
 
 // String returns the string representation of the severity.
 
@@ -121,13 +103,9 @@ func (s Severity) String() string {
 
 }
 
-
-
 // EventType represents the type of audit event.
 
 type EventType string
-
-
 
 const (
 
@@ -175,8 +153,6 @@ const (
 
 	EventTypeTokenRevocation EventType = "token_revocation"
 
-
-
 	// EventTypeDataAccess represents data access events.
 
 	EventTypeDataAccess EventType = "data_access"
@@ -216,8 +192,6 @@ const (
 	// EventTypeDataProcessing holds eventtypedataprocessing value.
 
 	EventTypeDataProcessing EventType = "data_processing"
-
-
 
 	// EventTypeSystemChange represents system management events.
 
@@ -259,8 +233,6 @@ const (
 
 	EventTypeMaintenanceMode EventType = "maintenance_mode"
 
-
-
 	// EventTypeSecurityViolation represents security events.
 
 	EventTypeSecurityViolation EventType = "security_violation"
@@ -289,8 +261,6 @@ const (
 
 	EventTypeIncidentResponse EventType = "incident_response"
 
-
-
 	// EventTypeNetworkAccess represents network and infrastructure events.
 
 	EventTypeNetworkAccess EventType = "network_access"
@@ -315,8 +285,6 @@ const (
 
 	EventTypePerformanceAlert EventType = "performance_alert"
 
-
-
 	// EventTypeAPICall represents application-specific events.
 
 	EventTypeAPICall EventType = "api_call"
@@ -340,8 +308,6 @@ const (
 	// EventTypeHealthCheck holds eventtypehealthcheck value.
 
 	EventTypeHealthCheck EventType = "health_check"
-
-
 
 	// EventTypeIntentProcessing represents O-RAN specific events.
 
@@ -370,16 +336,11 @@ const (
 	// EventTypeSliceManagement holds eventtypeslicemanagement value.
 
 	EventTypeSliceManagement EventType = "slice_management"
-
 )
-
-
 
 // EventResult represents the outcome of an audited action.
 
 type EventResult string
-
-
 
 const (
 
@@ -406,16 +367,11 @@ const (
 	// ResultPartial holds resultpartial value.
 
 	ResultPartial EventResult = "partial"
-
 )
-
-
 
 // ComplianceStandard represents different compliance frameworks.
 
 type ComplianceStandard string
-
-
 
 const (
 
@@ -450,42 +406,35 @@ const (
 	// ComplianceNIST holds compliancenist value.
 
 	ComplianceNIST ComplianceStandard = "nist_csf"
-
 )
-
-
 
 // UserContext contains information about the user performing the action.
 
 type UserContext struct {
+	UserID string `json:"user_id"`
 
-	UserID         string            `json:"user_id"`
+	Username string `json:"username,omitempty"`
 
-	Username       string            `json:"username,omitempty"`
+	Email string `json:"email,omitempty"`
 
-	Email          string            `json:"email,omitempty"`
+	Role string `json:"role,omitempty"`
 
-	Role           string            `json:"role,omitempty"`
+	Groups []string `json:"groups,omitempty"`
 
-	Groups         []string          `json:"groups,omitempty"`
+	Permissions []string `json:"permissions,omitempty"`
 
-	Permissions    []string          `json:"permissions,omitempty"`
+	SessionID string `json:"session_id,omitempty"`
 
-	SessionID      string            `json:"session_id,omitempty"`
+	ClientID string `json:"client_id,omitempty"`
 
-	ClientID       string            `json:"client_id,omitempty"`
+	ServiceAccount bool `json:"service_account"`
 
-	ServiceAccount bool              `json:"service_account"`
+	AuthMethod string `json:"auth_method,omitempty"`
 
-	AuthMethod     string            `json:"auth_method,omitempty"`
+	AuthProvider string `json:"auth_provider,omitempty"`
 
-	AuthProvider   string            `json:"auth_provider,omitempty"`
-
-	Metadata       map[string]string `json:"metadata,omitempty"`
-
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
-
-
 
 // Validate checks if the user context is valid.
 
@@ -496,8 +445,6 @@ func (uc *UserContext) Validate() error {
 		return fmt.Errorf("user ID is required")
 
 	}
-
-
 
 	// Validate email format if present.
 
@@ -513,43 +460,35 @@ func (uc *UserContext) Validate() error {
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // NetworkContext contains network-related information.
 
 type NetworkContext struct {
+	SourceIP net.IP `json:"source_ip,omitempty"`
 
-	SourceIP        net.IP            `json:"source_ip,omitempty"`
+	DestinationIP net.IP `json:"destination_ip,omitempty"`
 
-	DestinationIP   net.IP            `json:"destination_ip,omitempty"`
+	SourcePort int `json:"source_port,omitempty"`
 
-	SourcePort      int               `json:"source_port,omitempty"`
+	DestinationPort int `json:"destination_port,omitempty"`
 
-	DestinationPort int               `json:"destination_port,omitempty"`
+	Protocol string `json:"protocol,omitempty"`
 
-	Protocol        string            `json:"protocol,omitempty"`
+	UserAgent string `json:"user_agent,omitempty"`
 
-	UserAgent       string            `json:"user_agent,omitempty"`
+	Referrer string `json:"referrer,omitempty"`
 
-	Referrer        string            `json:"referrer,omitempty"`
+	RequestID string `json:"request_id,omitempty"`
 
-	RequestID       string            `json:"request_id,omitempty"`
+	Country string `json:"country,omitempty"`
 
-	Country         string            `json:"country,omitempty"`
+	ASN string `json:"asn,omitempty"`
 
-	ASN             string            `json:"asn,omitempty"`
-
-	Headers         map[string]string `json:"headers,omitempty"`
-
+	Headers map[string]string `json:"headers,omitempty"`
 }
-
-
 
 // Validate checks if the network context is valid.
 
@@ -563,79 +502,65 @@ func (nc *NetworkContext) Validate() error {
 
 	}
 
-
-
 	if nc.DestinationPort < 0 || nc.DestinationPort > 65535 {
 
 		return fmt.Errorf("invalid destination port: %d", nc.DestinationPort)
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // SystemContext contains system-related information.
 
 type SystemContext struct {
+	Hostname string `json:"hostname"`
 
-	Hostname    string `json:"hostname"`
-
-	ProcessID   int    `json:"process_id"`
+	ProcessID int `json:"process_id"`
 
 	ProcessName string `json:"process_name,omitempty"`
 
-	ThreadID    int    `json:"thread_id"`
+	ThreadID int `json:"thread_id"`
 
 	ServiceName string `json:"service_name,omitempty"`
 
-	Version     string `json:"version,omitempty"`
+	Version string `json:"version,omitempty"`
 
 	Environment string `json:"environment,omitempty"`
 
-	Cluster     string `json:"cluster,omitempty"`
+	Cluster string `json:"cluster,omitempty"`
 
-	Namespace   string `json:"namespace,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
 
-	PodName     string `json:"pod_name,omitempty"`
+	PodName string `json:"pod_name,omitempty"`
 
-	NodeName    string `json:"node_name,omitempty"`
-
+	NodeName string `json:"node_name,omitempty"`
 }
-
-
 
 // ResourceContext contains information about the resource being accessed.
 
 type ResourceContext struct {
+	ResourceType string `json:"resource_type"`
 
-	ResourceType string            `json:"resource_type"`
+	ResourceID string `json:"resource_id"`
 
-	ResourceID   string            `json:"resource_id"`
+	ResourceName string `json:"resource_name,omitempty"`
 
-	ResourceName string            `json:"resource_name,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
 
-	Namespace    string            `json:"namespace,omitempty"`
+	APIVersion string `json:"api_version,omitempty"`
 
-	APIVersion   string            `json:"api_version,omitempty"`
+	Kind string `json:"kind,omitempty"`
 
-	Kind         string            `json:"kind,omitempty"`
+	Operation string `json:"operation"`
 
-	Operation    string            `json:"operation"`
+	Path string `json:"path,omitempty"`
 
-	Path         string            `json:"path,omitempty"`
+	Query map[string]string `json:"query,omitempty"`
 
-	Query        map[string]string `json:"query,omitempty"`
-
-	Tags         map[string]string `json:"tags,omitempty"`
-
+	Tags map[string]string `json:"tags,omitempty"`
 }
-
-
 
 // Validate checks if the resource context is valid.
 
@@ -647,21 +572,15 @@ func (rc *ResourceContext) Validate() error {
 
 	}
 
-
-
 	if rc.Operation == "" {
 
 		return fmt.Errorf("operation is required")
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // AuditEvent represents a complete audit log entry.
 
@@ -669,121 +588,100 @@ type AuditEvent struct {
 
 	// Core identification fields.
 
-	ID        string    `json:"id"`
+	ID string `json:"id"`
 
-	Version   string    `json:"version"`
+	Version string `json:"version"`
 
 	Timestamp time.Time `json:"timestamp"`
 
-
-
 	// Event classification.
 
-	EventType EventType   `json:"event_type"`
+	EventType EventType `json:"event_type"`
 
-	Category  string      `json:"category,omitempty"`
+	Category string `json:"category,omitempty"`
 
-	Severity  Severity    `json:"severity"`
+	Severity Severity `json:"severity"`
 
-	Result    EventResult `json:"result"`
-
-
+	Result EventResult `json:"result"`
 
 	// Core event information.
 
-	Component   string `json:"component"`
+	Component string `json:"component"`
 
-	Action      string `json:"action"`
+	Action string `json:"action"`
 
 	Description string `json:"description"`
 
-	Message     string `json:"message,omitempty"`
-
-
+	Message string `json:"message,omitempty"`
 
 	// Context information.
 
-	UserContext     *UserContext     `json:"user_context,omitempty"`
+	UserContext *UserContext `json:"user_context,omitempty"`
 
-	NetworkContext  *NetworkContext  `json:"network_context,omitempty"`
+	NetworkContext *NetworkContext `json:"network_context,omitempty"`
 
-	SystemContext   *SystemContext   `json:"system_context,omitempty"`
+	SystemContext *SystemContext `json:"system_context,omitempty"`
 
 	ResourceContext *ResourceContext `json:"resource_context,omitempty"`
-
-
 
 	// Event-specific data.
 
 	Data map[string]interface{} `json:"data,omitempty"`
 
-
-
 	// Security and compliance.
 
-	RiskLevel          string                 `json:"risk_level,omitempty"`
+	RiskLevel string `json:"risk_level,omitempty"`
 
 	ComplianceMetadata map[string]interface{} `json:"compliance_metadata,omitempty"`
 
-	DataClassification string                 `json:"data_classification,omitempty"`
+	DataClassification string `json:"data_classification,omitempty"`
 
-	RetentionPeriod    string                 `json:"retention_period,omitempty"`
-
-
+	RetentionPeriod string `json:"retention_period,omitempty"`
 
 	// Error information.
 
-	Error      string   `json:"error,omitempty"`
+	Error string `json:"error,omitempty"`
 
-	ErrorCode  string   `json:"error_code,omitempty"`
+	ErrorCode string `json:"error_code,omitempty"`
 
-	StackTrace string   `json:"stack_trace,omitempty"`
+	StackTrace string `json:"stack_trace,omitempty"`
 
-	Warnings   []string `json:"warnings,omitempty"`
-
-
+	Warnings []string `json:"warnings,omitempty"`
 
 	// Performance metrics.
 
-	Duration     time.Duration          `json:"duration,omitempty"`
+	Duration time.Duration `json:"duration,omitempty"`
 
-	ResponseSize int64                  `json:"response_size,omitempty"`
+	ResponseSize int64 `json:"response_size,omitempty"`
 
-	RequestSize  int64                  `json:"request_size,omitempty"`
+	RequestSize int64 `json:"request_size,omitempty"`
 
-	Metrics      map[string]interface{} `json:"metrics,omitempty"`
-
-
+	Metrics map[string]interface{} `json:"metrics,omitempty"`
 
 	// Correlation and tracing.
 
-	TraceID       string   `json:"trace_id,omitempty"`
+	TraceID string `json:"trace_id,omitempty"`
 
-	SpanID        string   `json:"span_id,omitempty"`
+	SpanID string `json:"span_id,omitempty"`
 
-	ParentID      string   `json:"parent_id,omitempty"`
+	ParentID string `json:"parent_id,omitempty"`
 
-	CorrelationID string   `json:"correlation_id,omitempty"`
+	CorrelationID string `json:"correlation_id,omitempty"`
 
-	CausationID   string   `json:"causation_id,omitempty"`
+	CausationID string `json:"causation_id,omitempty"`
 
 	RelatedEvents []string `json:"related_events,omitempty"`
 
-
-
 	// Integrity and forensics.
 
-	Signature       string   `json:"signature,omitempty"`
+	Signature string `json:"signature,omitempty"`
 
-	Hash            string   `json:"hash,omitempty"`
+	Hash string `json:"hash,omitempty"`
 
-	PreviousHash    string   `json:"previous_hash,omitempty"`
+	PreviousHash string `json:"previous_hash,omitempty"`
 
 	IntegrityFields []string `json:"integrity_fields,omitempty"`
-
 }
-
-
 
 // Validate checks if the audit event has all required fields.
 
@@ -795,15 +693,11 @@ func (ae *AuditEvent) Validate() error {
 
 	}
 
-
-
 	if !isValidUUID(ae.ID) {
 
 		return fmt.Errorf("audit event ID must be a valid UUID")
 
 	}
-
-
 
 	if ae.EventType == "" {
 
@@ -811,15 +705,11 @@ func (ae *AuditEvent) Validate() error {
 
 	}
 
-
-
 	if ae.Component == "" {
 
 		return fmt.Errorf("component is required")
 
 	}
-
-
 
 	if ae.Action == "" {
 
@@ -827,15 +717,11 @@ func (ae *AuditEvent) Validate() error {
 
 	}
 
-
-
 	if ae.Timestamp.IsZero() {
 
 		return fmt.Errorf("timestamp is required")
 
 	}
-
-
 
 	// Validate network context if present.
 
@@ -849,8 +735,6 @@ func (ae *AuditEvent) Validate() error {
 
 	}
 
-
-
 	// Validate user context if present.
 
 	if ae.UserContext != nil {
@@ -862,8 +746,6 @@ func (ae *AuditEvent) Validate() error {
 		}
 
 	}
-
-
 
 	// Validate resource context if present.
 
@@ -877,13 +759,9 @@ func (ae *AuditEvent) Validate() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ToJSON converts the audit event to JSON.
 
@@ -893,8 +771,6 @@ func (ae *AuditEvent) ToJSON() ([]byte, error) {
 
 }
 
-
-
 // ToJSONIndent converts the audit event to indented JSON.
 
 func (ae *AuditEvent) ToJSONIndent() ([]byte, error) {
@@ -902,8 +778,6 @@ func (ae *AuditEvent) ToJSONIndent() ([]byte, error) {
 	return json.MarshalIndent(ae, "", "  ")
 
 }
-
-
 
 // FromJSON creates an audit event from JSON data.
 
@@ -917,21 +791,15 @@ func FromJSON(data []byte) (*AuditEvent, error) {
 
 	}
 
-
-
 	if err := event.Validate(); err != nil {
 
 		return nil, fmt.Errorf("invalid audit event: %w", err)
 
 	}
 
-
-
 	return &event, nil
 
 }
-
-
 
 // SetRiskLevel sets the risk level based on event type and severity.
 
@@ -971,8 +839,6 @@ func (ae *AuditEvent) SetRiskLevel() {
 
 }
 
-
-
 // SetRetentionPeriod sets the retention period based on compliance requirements and event type.
 
 func (ae *AuditEvent) SetRetentionPeriod(complianceMode []ComplianceStandard) {
@@ -980,8 +846,6 @@ func (ae *AuditEvent) SetRetentionPeriod(complianceMode []ComplianceStandard) {
 	// Default retention periods based on compliance standards.
 
 	maxRetention := "1y" // Default 1 year
-
-
 
 	for _, standard := range complianceMode {
 
@@ -1017,8 +881,6 @@ func (ae *AuditEvent) SetRetentionPeriod(complianceMode []ComplianceStandard) {
 
 	}
 
-
-
 	// Security events may need longer retention.
 
 	switch ae.EventType {
@@ -1033,13 +895,9 @@ func (ae *AuditEvent) SetRetentionPeriod(complianceMode []ComplianceStandard) {
 
 	}
 
-
-
 	ae.RetentionPeriod = maxRetention
 
 }
-
-
 
 // GetEventCategory returns a category for the event type.
 
@@ -1057,8 +915,6 @@ func (ae *AuditEvent) GetEventCategory() string {
 
 		return "authentication_authorization"
 
-
-
 	case EventTypeDataAccess, EventTypeDataCreate, EventTypeDataRead, EventTypeDataUpdate,
 
 		EventTypeDataDelete, EventTypeDataExport, EventTypeDataImport, EventTypeDataBackup,
@@ -1066,8 +922,6 @@ func (ae *AuditEvent) GetEventCategory() string {
 		EventTypeDataRestore:
 
 		return "data_access"
-
-
 
 	case EventTypeSystemChange, EventTypeConfigChange, EventTypeUserManagement,
 
@@ -1079,8 +933,6 @@ func (ae *AuditEvent) GetEventCategory() string {
 
 		return "system_management"
 
-
-
 	case EventTypeSecurityViolation, EventTypeIntrusionAttempt, EventTypeMalwareDetection,
 
 		EventTypeAnomalyDetection, EventTypeComplianceCheck, EventTypeVulnerability,
@@ -1089,23 +941,17 @@ func (ae *AuditEvent) GetEventCategory() string {
 
 		return "security"
 
-
-
 	case EventTypeNetworkAccess, EventTypeFirewallRule, EventTypeNetworkAnomaly,
 
 		EventTypeResourceAccess, EventTypeCapacityChange, EventTypePerformanceAlert:
 
 		return "network_infrastructure"
 
-
-
 	case EventTypeAPICall, EventTypeWorkflowExecution, EventTypeJobExecution,
 
 		EventTypeDeployment, EventTypeRollback, EventTypeHealthCheck:
 
 		return "application"
-
-
 
 	case EventTypeIntentProcessing, EventTypeNetworkFunction, EventTypeRICManagement,
 
@@ -1115,8 +961,6 @@ func (ae *AuditEvent) GetEventCategory() string {
 
 		return "oran_telecom"
 
-
-
 	default:
 
 		return "general"
@@ -1124,8 +968,6 @@ func (ae *AuditEvent) GetEventCategory() string {
 	}
 
 }
-
-
 
 // Helper function to validate UUID format.
 
@@ -1137,17 +979,11 @@ func isValidUUID(u string) bool {
 
 }
 
-
-
 // EventBuilder provides a fluent interface for building audit events.
 
 type EventBuilder struct {
-
 	event *AuditEvent
-
 }
-
-
 
 // NewEventBuilder creates a new event builder.
 
@@ -1157,21 +993,17 @@ func NewEventBuilder() *EventBuilder {
 
 		event: &AuditEvent{
 
-			ID:        uuid.New().String(),
+			ID: uuid.New().String(),
 
-			Version:   "1.0",
+			Version: "1.0",
 
 			Timestamp: time.Now().UTC(),
 
-			Data:      make(map[string]interface{}),
-
+			Data: make(map[string]interface{}),
 		},
-
 	}
 
 }
-
-
 
 // WithEventType sets the event type.
 
@@ -1185,8 +1017,6 @@ func (eb *EventBuilder) WithEventType(eventType EventType) *EventBuilder {
 
 }
 
-
-
 // WithSeverity sets the severity.
 
 func (eb *EventBuilder) WithSeverity(severity Severity) *EventBuilder {
@@ -1196,8 +1026,6 @@ func (eb *EventBuilder) WithSeverity(severity Severity) *EventBuilder {
 	return eb
 
 }
-
-
 
 // WithComponent sets the component.
 
@@ -1209,8 +1037,6 @@ func (eb *EventBuilder) WithComponent(component string) *EventBuilder {
 
 }
 
-
-
 // WithAction sets the action.
 
 func (eb *EventBuilder) WithAction(action string) *EventBuilder {
@@ -1220,8 +1046,6 @@ func (eb *EventBuilder) WithAction(action string) *EventBuilder {
 	return eb
 
 }
-
-
 
 // WithDescription sets the description.
 
@@ -1233,8 +1057,6 @@ func (eb *EventBuilder) WithDescription(description string) *EventBuilder {
 
 }
 
-
-
 // WithResult sets the result.
 
 func (eb *EventBuilder) WithResult(result EventResult) *EventBuilder {
@@ -1244,8 +1066,6 @@ func (eb *EventBuilder) WithResult(result EventResult) *EventBuilder {
 	return eb
 
 }
-
-
 
 // WithUser sets the user context.
 
@@ -1264,8 +1084,6 @@ func (eb *EventBuilder) WithUser(userID, username string) *EventBuilder {
 	return eb
 
 }
-
-
 
 // WithNetwork sets the network context.
 
@@ -1289,8 +1107,6 @@ func (eb *EventBuilder) WithNetwork(sourceIP, userAgent string) *EventBuilder {
 
 }
 
-
-
 // WithResource sets the resource context.
 
 func (eb *EventBuilder) WithResource(resourceType, resourceID, operation string) *EventBuilder {
@@ -1311,8 +1127,6 @@ func (eb *EventBuilder) WithResource(resourceType, resourceID, operation string)
 
 }
 
-
-
 // WithData adds data to the event.
 
 func (eb *EventBuilder) WithData(key string, value interface{}) *EventBuilder {
@@ -1328,8 +1142,6 @@ func (eb *EventBuilder) WithData(key string, value interface{}) *EventBuilder {
 	return eb
 
 }
-
-
 
 // WithError sets error information.
 
@@ -1353,8 +1165,6 @@ func (eb *EventBuilder) WithError(err error) *EventBuilder {
 
 }
 
-
-
 // WithTracing sets tracing information.
 
 func (eb *EventBuilder) WithTracing(traceID, spanID string) *EventBuilder {
@@ -1367,8 +1177,6 @@ func (eb *EventBuilder) WithTracing(traceID, spanID string) *EventBuilder {
 
 }
 
-
-
 // Build creates the final audit event.
 
 func (eb *EventBuilder) Build() *AuditEvent {
@@ -1379,29 +1187,18 @@ func (eb *EventBuilder) Build() *AuditEvent {
 
 }
 
-
-
 // Pre-defined event templates for common scenarios.
-
-
 
 // AuthenticationEvent creates an authentication event.
 
 func AuthenticationEvent(userID, provider string, success bool, err error) *AuditEvent {
 
 	builder := NewEventBuilder().
-
 		WithEventType(EventTypeAuthentication).
-
 		WithComponent("authentication").
-
 		WithAction("login").
-
 		WithUser(userID, "").
-
 		WithData("provider", provider)
-
-
 
 	if success {
 
@@ -1413,99 +1210,62 @@ func AuthenticationEvent(userID, provider string, success bool, err error) *Audi
 
 	}
 
-
-
 	if err != nil {
 
 		builder.WithError(err)
 
 	}
 
-
-
 	return builder.Build()
 
 }
-
-
 
 // DataAccessEvent creates a data access event.
 
 func DataAccessEvent(userID, resourceType, resourceID, operation string) *AuditEvent {
 
 	return NewEventBuilder().
-
 		WithEventType(EventTypeDataAccess).
-
 		WithComponent("data_access").
-
 		WithAction(operation).
-
 		WithUser(userID, "").
-
 		WithResource(resourceType, resourceID, operation).
-
 		WithSeverity(SeverityInfo).
-
 		WithResult(ResultSuccess).
-
 		Build()
 
 }
-
-
 
 // SecurityViolationEvent creates a security violation event.
 
 func SecurityViolationEvent(userID, violationType, description string) *AuditEvent {
 
 	return NewEventBuilder().
-
 		WithEventType(EventTypeSecurityViolation).
-
 		WithComponent("security").
-
 		WithAction("violation_detected").
-
 		WithDescription(description).
-
 		WithUser(userID, "").
-
 		WithData("violation_type", violationType).
-
 		WithSeverity(SeverityCritical).
-
 		WithResult(ResultFailure).
-
 		Build()
 
 }
-
-
 
 // SystemChangeEvent creates a system change event.
 
 func SystemChangeEvent(userID, changeType, description string) *AuditEvent {
 
 	return NewEventBuilder().
-
 		WithEventType(EventTypeSystemChange).
-
 		WithComponent("system").
-
 		WithAction("change").
-
 		WithDescription(description).
-
 		WithUser(userID, "").
-
 		WithData("change_type", changeType).
-
 		WithSeverity(SeverityInfo).
-
 		WithResult(ResultSuccess).
-
 		Build()
 
 }
-

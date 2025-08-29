@@ -1,19 +1,10 @@
-
 package modeladapter
 
-
-
 import (
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
-
 )
-
-
 
 // InternalResourceType represents a stable internal representation of a resource type.
 
@@ -25,45 +16,36 @@ type InternalResourceType struct {
 
 	ResourceTypeID string `json:"resourceTypeId"`
 
-	Name           string `json:"name"`
+	Name string `json:"name"`
 
-	Description    string `json:"description,omitempty"`
+	Description string `json:"description,omitempty"`
 
-	Vendor         string `json:"vendor"`
+	Vendor string `json:"vendor"`
 
-	Model          string `json:"model,omitempty"`
+	Model string `json:"model,omitempty"`
 
-	Version        string `json:"version"`
-
-
+	Version string `json:"version"`
 
 	// Internal specification representation.
 
 	Specifications *InternalResourceTypeSpec `json:"specifications,omitempty"`
 
-
-
 	// Supported actions (mapped from SupportedOperations).
 
 	SupportedActions []string `json:"supportedActions,omitempty"`
 
-
-
 	// Lifecycle information.
 
-	Status    string    `json:"status"`
+	Status string `json:"status"`
 
 	CreatedAt time.Time `json:"createdAt"`
 
 	UpdatedAt time.Time `json:"updatedAt"`
 
-	CreatedBy string    `json:"createdBy,omitempty"`
+	CreatedBy string `json:"createdBy,omitempty"`
 
-	UpdatedBy string    `json:"updatedBy,omitempty"`
-
+	UpdatedBy string `json:"updatedBy,omitempty"`
 }
-
-
 
 // InternalResourceTypeSpec represents internal resource type specifications.
 
@@ -75,37 +57,28 @@ type InternalResourceTypeSpec struct {
 
 	Category string `json:"category"`
 
-
-
 	// Resource classification.
 
 	ResourceClass string `json:"resourceClass,omitempty"`
 
-	ResourceKind  string `json:"resourceKind,omitempty"`
-
-
+	ResourceKind string `json:"resourceKind,omitempty"`
 
 	// Resource limits and capabilities (simplified).
 
-	MinResources     map[string]string `json:"minResources,omitempty"`
+	MinResources map[string]string `json:"minResources,omitempty"`
 
 	DefaultResources map[string]string `json:"defaultResources,omitempty"`
 
-	MaxResources     map[string]string `json:"maxResources,omitempty"`
-
-
+	MaxResources map[string]string `json:"maxResources,omitempty"`
 
 	// Properties and features.
 
-	Properties   map[string]interface{} `json:"properties,omitempty"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
 
-	Capabilities []string               `json:"capabilities,omitempty"`
+	Capabilities []string `json:"capabilities,omitempty"`
 
-	Features     []string               `json:"features,omitempty"`
-
+	Features []string `json:"features,omitempty"`
 }
-
-
 
 // FromGenerated converts a generated ResourceType to our internal representation.
 
@@ -119,35 +92,30 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 
 	}
 
-
-
 	internal := &InternalResourceType{
 
 		ResourceTypeID: generated.ResourceTypeID,
 
-		Name:           generated.Name,
+		Name: generated.Name,
 
-		Description:    generated.Description,
+		Description: generated.Description,
 
-		Vendor:         generated.Vendor,
+		Vendor: generated.Vendor,
 
-		Model:          generated.Model,
+		Model: generated.Model,
 
-		Version:        generated.Version,
+		Version: generated.Version,
 
-		Status:         generated.Status,
+		Status: generated.Status,
 
-		CreatedAt:      generated.CreatedAt,
+		CreatedAt: generated.CreatedAt,
 
-		UpdatedAt:      generated.UpdatedAt,
+		UpdatedAt: generated.UpdatedAt,
 
-		CreatedBy:      generated.CreatedBy,
+		CreatedBy: generated.CreatedBy,
 
-		UpdatedBy:      generated.UpdatedBy,
-
+		UpdatedBy: generated.UpdatedBy,
 	}
-
-
 
 	// Map SupportedOperations to SupportedActions for backward compatibility.
 
@@ -155,21 +123,16 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 
 	copy(internal.SupportedActions, generated.SupportedOperations)
 
-
-
 	// Create internal specifications from current model structure.
 
 	internal.Specifications = &InternalResourceTypeSpec{
 
-		Category:      generated.Category,
+		Category: generated.Category,
 
 		ResourceClass: generated.ResourceClass,
 
-		ResourceKind:  generated.ResourceKind,
-
+		ResourceKind: generated.ResourceKind,
 	}
-
-
 
 	// Extract capabilities from the current model.
 
@@ -185,8 +148,6 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 
 	}
 
-
-
 	// Extract features from the current model.
 
 	if len(generated.Features) > 0 {
@@ -201,8 +162,6 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 
 	}
 
-
-
 	// Map resource limits to simplified format for backward compatibility.
 
 	if generated.ResourceLimits != nil {
@@ -212,8 +171,6 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 		internal.Specifications.DefaultResources = make(map[string]string)
 
 		internal.Specifications.MaxResources = make(map[string]string)
-
-
 
 		// Map CPU limits.
 
@@ -239,8 +196,6 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 
 		}
 
-
-
 		// Map Memory limits.
 
 		if generated.ResourceLimits.MemoryLimits != nil {
@@ -264,8 +219,6 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 			}
 
 		}
-
-
 
 		// Map Storage limits.
 
@@ -293,8 +246,6 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 
 	}
 
-
-
 	// Create properties map from extensions.
 
 	internal.Specifications.Properties = make(map[string]interface{})
@@ -309,13 +260,9 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 
 	}
 
-
-
 	return internal
 
 }
-
-
 
 // ToGenerated converts our internal representation back to the generated model format.
 
@@ -329,43 +276,36 @@ func (i *InternalResourceType) ToGenerated() *models.ResourceType {
 
 	}
 
-
-
 	generated := &models.ResourceType{
 
 		ResourceTypeID: i.ResourceTypeID,
 
-		Name:           i.Name,
+		Name: i.Name,
 
-		Description:    i.Description,
+		Description: i.Description,
 
-		Vendor:         i.Vendor,
+		Vendor: i.Vendor,
 
-		Model:          i.Model,
+		Model: i.Model,
 
-		Version:        i.Version,
+		Version: i.Version,
 
-		Status:         i.Status,
+		Status: i.Status,
 
-		CreatedAt:      i.CreatedAt,
+		CreatedAt: i.CreatedAt,
 
-		UpdatedAt:      i.UpdatedAt,
+		UpdatedAt: i.UpdatedAt,
 
-		CreatedBy:      i.CreatedBy,
+		CreatedBy: i.CreatedBy,
 
-		UpdatedBy:      i.UpdatedBy,
-
+		UpdatedBy: i.UpdatedBy,
 	}
-
-
 
 	// Map SupportedActions back to SupportedOperations.
 
 	generated.SupportedOperations = make([]string, len(i.SupportedActions))
 
 	copy(generated.SupportedOperations, i.SupportedActions)
-
-
 
 	// Map specifications back to current model structure.
 
@@ -376,8 +316,6 @@ func (i *InternalResourceType) ToGenerated() *models.ResourceType {
 		generated.ResourceClass = i.Specifications.ResourceClass
 
 		generated.ResourceKind = i.Specifications.ResourceKind
-
-
 
 		// Map extensions from properties.
 
@@ -395,13 +333,9 @@ func (i *InternalResourceType) ToGenerated() *models.ResourceType {
 
 	}
 
-
-
 	return generated
 
 }
-
-
 
 // CreateDefaultComputeResourceType creates a default compute resource type using our internal format.
 
@@ -411,15 +345,15 @@ func CreateDefaultComputeResourceType() *InternalResourceType {
 
 		ResourceTypeID: "compute-deployment",
 
-		Name:           "Kubernetes Deployment",
+		Name: "Kubernetes Deployment",
 
-		Description:    "Kubernetes Deployment for compute workloads",
+		Description: "Kubernetes Deployment for compute workloads",
 
-		Vendor:         "Kubernetes",
+		Vendor: "Kubernetes",
 
-		Model:          "Deployment",
+		Model: "Deployment",
 
-		Version:        "apps/v1",
+		Version: "apps/v1",
 
 		Specifications: &InternalResourceTypeSpec{
 
@@ -427,35 +361,29 @@ func CreateDefaultComputeResourceType() *InternalResourceType {
 
 			MinResources: map[string]string{
 
-				"cpu":    "100m",
+				"cpu": "100m",
 
 				"memory": "128Mi",
-
 			},
 
 			DefaultResources: map[string]string{
 
-				"cpu":    "500m",
+				"cpu": "500m",
 
 				"memory": "512Mi",
-
 			},
-
 		},
 
 		SupportedActions: []string{"create", "update", "delete", "scale"},
 
-		Status:           models.ResourceTypeStatusActive,
+		Status: models.ResourceTypeStatusActive,
 
-		CreatedAt:        time.Now(),
+		CreatedAt: time.Now(),
 
-		UpdatedAt:        time.Now(),
-
+		UpdatedAt: time.Now(),
 	}
 
 }
-
-
 
 // CreateDefaultNetworkResourceType creates a default network resource type using our internal format.
 
@@ -465,15 +393,15 @@ func CreateDefaultNetworkResourceType() *InternalResourceType {
 
 		ResourceTypeID: "network-service",
 
-		Name:           "Kubernetes Service",
+		Name: "Kubernetes Service",
 
-		Description:    "Kubernetes Service for network connectivity",
+		Description: "Kubernetes Service for network connectivity",
 
-		Vendor:         "Kubernetes",
+		Vendor: "Kubernetes",
 
-		Model:          "Service",
+		Model: "Service",
 
-		Version:        "v1",
+		Version: "v1",
 
 		Specifications: &InternalResourceTypeSpec{
 
@@ -483,25 +411,20 @@ func CreateDefaultNetworkResourceType() *InternalResourceType {
 
 				"serviceTypes": []string{"ClusterIP", "NodePort", "LoadBalancer"},
 
-				"protocols":    []string{"TCP", "UDP"},
-
+				"protocols": []string{"TCP", "UDP"},
 			},
-
 		},
 
 		SupportedActions: []string{"create", "update", "delete"},
 
-		Status:           models.ResourceTypeStatusActive,
+		Status: models.ResourceTypeStatusActive,
 
-		CreatedAt:        time.Now(),
+		CreatedAt: time.Now(),
 
-		UpdatedAt:        time.Now(),
-
+		UpdatedAt: time.Now(),
 	}
 
 }
-
-
 
 // CreateDefaultStorageResourceType creates a default storage resource type using our internal format.
 
@@ -511,15 +434,15 @@ func CreateDefaultStorageResourceType() *InternalResourceType {
 
 		ResourceTypeID: "storage-pvc",
 
-		Name:           "Persistent Volume Claim",
+		Name: "Persistent Volume Claim",
 
-		Description:    "Kubernetes Persistent Volume Claim for storage",
+		Description: "Kubernetes Persistent Volume Claim for storage",
 
-		Vendor:         "Kubernetes",
+		Vendor: "Kubernetes",
 
-		Model:          "PersistentVolumeClaim",
+		Model: "PersistentVolumeClaim",
 
-		Version:        "v1",
+		Version: "v1",
 
 		Specifications: &InternalResourceTypeSpec{
 
@@ -530,20 +453,16 @@ func CreateDefaultStorageResourceType() *InternalResourceType {
 				"accessModes": []string{"ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany"},
 
 				"volumeModes": []string{"Filesystem", "Block"},
-
 			},
-
 		},
 
 		SupportedActions: []string{"create", "delete"},
 
-		Status:           models.ResourceTypeStatusActive,
+		Status: models.ResourceTypeStatusActive,
 
-		CreatedAt:        time.Now(),
+		CreatedAt: time.Now(),
 
-		UpdatedAt:        time.Now(),
-
+		UpdatedAt: time.Now(),
 	}
 
 }
-

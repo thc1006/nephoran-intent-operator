@@ -1,29 +1,15 @@
-
 package patchgen
 
-
-
 import (
-
 	"crypto/rand"
-
 	"fmt"
-
 	"math/big"
-
 	"os"
-
 	"path/filepath"
-
 	"time"
 
-
-
 	"sigs.k8s.io/yaml"
-
 )
-
-
 
 // generateCollisionResistantTimestamp creates a timestamp with nanosecond precision.
 
@@ -38,8 +24,6 @@ func generateCollisionResistantTimestamp() string {
 	return now.Format(time.RFC3339Nano)
 
 }
-
-
 
 // generatePackageName creates a collision-resistant package name that's valid for Kubernetes.
 
@@ -63,8 +47,6 @@ func generatePackageName(target string) string {
 
 	}
 
-
-
 	// Create a timestamp with random suffix that's valid for Kubernetes names.
 
 	timestamp := fmt.Sprintf("%s-%04d", now.Format("20060102-150405"), randomSuffix.Int64())
@@ -73,15 +55,13 @@ func generatePackageName(target string) string {
 
 }
 
-
-
 // NewPatchPackage creates a new patch package from an intent.
 
 func NewPatchPackage(intent *Intent, outputDir string) *PatchPackage {
 
 	return &PatchPackage{
 
-		Intent:    intent,
+		Intent: intent,
 
 		OutputDir: outputDir,
 
@@ -89,18 +69,16 @@ func NewPatchPackage(intent *Intent, outputDir string) *PatchPackage {
 
 			APIVersion: "kpt.dev/v1",
 
-			Kind:       "Kptfile",
+			Kind: "Kptfile",
 
 			Metadata: KptMetadata{
 
 				Name: generatePackageName(intent.Target),
-
 			},
 
 			Info: KptInfo{
 
 				Description: fmt.Sprintf("Structured patch to scale %s deployment to %d replicas", intent.Target, intent.Replicas),
-
 			},
 
 			Pipeline: KptPipeline{
@@ -114,26 +92,21 @@ func NewPatchPackage(intent *Intent, outputDir string) *PatchPackage {
 						ConfigMap: map[string]string{
 
 							"apply-replacements": "true",
-
 						},
-
 					},
-
 				},
-
 			},
-
 		},
 
 		PatchFile: &PatchFile{
 
 			APIVersion: "apps/v1",
 
-			Kind:       "Deployment",
+			Kind: "Deployment",
 
 			Metadata: PatchMetadata{
 
-				Name:      intent.Target,
+				Name: intent.Target,
 
 				Namespace: intent.Namespace,
 
@@ -141,35 +114,26 @@ func NewPatchPackage(intent *Intent, outputDir string) *PatchPackage {
 
 					"config.kubernetes.io/merge-policy": "replace",
 
-					"nephoran.io/intent-type":           intent.IntentType,
+					"nephoran.io/intent-type": intent.IntentType,
 
-					"nephoran.io/generated-at":          generateCollisionResistantTimestamp(),
-
+					"nephoran.io/generated-at": generateCollisionResistantTimestamp(),
 				},
-
 			},
 
 			Spec: PatchSpec{
 
 				Replicas: intent.Replicas,
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // Generate creates the patch package files in the output directory.
 
 func (p *PatchPackage) Generate() error {
 
 	packageDir := filepath.Join(p.OutputDir, p.Kptfile.Metadata.Name)
-
-
 
 	// Ensure output directory is valid and accessible.
 
@@ -183,8 +147,6 @@ func (p *PatchPackage) Generate() error {
 
 	}
 
-
-
 	// Create package directory.
 
 	if err := os.MkdirAll(packageDir, 0o755); err != nil {
@@ -192,8 +154,6 @@ func (p *PatchPackage) Generate() error {
 		return fmt.Errorf("failed to create package directory %s: %w", packageDir, err)
 
 	}
-
-
 
 	// Generate Kptfile.
 
@@ -203,8 +163,6 @@ func (p *PatchPackage) Generate() error {
 
 	}
 
-
-
 	// Generate patch file.
 
 	if err := p.generatePatchFile(packageDir); err != nil {
@@ -212,8 +170,6 @@ func (p *PatchPackage) Generate() error {
 		return fmt.Errorf("failed to generate patch file: %w", err)
 
 	}
-
-
 
 	// Generate README for documentation.
 
@@ -223,13 +179,9 @@ func (p *PatchPackage) Generate() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // generateKptfile creates the Kptfile for the package.
 
@@ -243,15 +195,11 @@ func (p *PatchPackage) generateKptfile(packageDir string) error {
 
 	}
 
-
-
 	kptfilePath := filepath.Join(packageDir, "Kptfile")
 
 	return writeFile(kptfilePath, kptfileData)
 
 }
-
-
 
 // generatePatchFile creates the strategic merge patch file.
 
@@ -265,15 +213,11 @@ func (p *PatchPackage) generatePatchFile(packageDir string) error {
 
 	}
 
-
-
 	patchPath := filepath.Join(packageDir, "scaling-patch.yaml")
 
 	return writeFile(patchPath, patchData)
 
 }
-
-
 
 // generateReadme creates a README file for the package.
 
@@ -341,15 +285,11 @@ Generated at: %s
 
 		time.Now().UTC().Format(time.RFC3339))
 
-
-
 	readmePath := filepath.Join(packageDir, "README.md")
 
 	return writeFile(readmePath, []byte(readmeContent))
 
 }
-
-
 
 // GetPackagePath returns the full path to the generated package.
 
@@ -359,11 +299,7 @@ func (p *PatchPackage) GetPackagePath() string {
 
 }
 
-
-
 // readFile helper function removed - unused.
-
-
 
 // writeFile is a helper function to write files.
 
@@ -377,9 +313,6 @@ func writeFile(path string, data []byte) error {
 
 	}
 
-
-
 	return os.WriteFile(path, data, 0o640)
 
 }
-

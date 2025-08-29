@@ -1,65 +1,34 @@
-
 package controllers
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"reflect"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	nephv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/audit"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/backends"
 
-
-
 	corev1 "k8s.io/api/core/v1"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/client-go/tools/record"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-
 )
-
-
 
 const (
 
 	// AuditTrailFinalizer is the finalizer used for AuditTrail resources.
 
 	AuditTrailFinalizer = "audittrail.nephoran.io/finalizer"
-
-
 
 	// ConditionTypes for AuditTrail status.
 
@@ -76,8 +45,6 @@ const (
 	// ConditionTypeIntegrityReady holds conditiontypeintegrityready value.
 
 	ConditionTypeIntegrityReady = "IntegrityReady"
-
-
 
 	// Event reasons.
 
@@ -106,32 +73,23 @@ const (
 	// EventReasonConfigChanged holds eventreasonconfigchanged value.
 
 	EventReasonConfigChanged = "ConfigChanged"
-
 )
-
-
 
 // AuditTrailController reconciles a AuditTrail object.
 
 type AuditTrailController struct {
-
 	client.Client
 
-	Log      logr.Logger
+	Log logr.Logger
 
-	Scheme   *runtime.Scheme
+	Scheme *runtime.Scheme
 
 	Recorder record.EventRecorder
-
-
 
 	// Audit system instances managed by this controller.
 
 	auditSystems map[string]*audit.AuditSystem
-
 }
-
-
 
 // NewAuditTrailController creates a new AuditTrailController.
 
@@ -139,21 +97,18 @@ func NewAuditTrailController(client client.Client, log logr.Logger, scheme *runt
 
 	return &AuditTrailController{
 
-		Client:       client,
+		Client: client,
 
-		Log:          log,
+		Log: log,
 
-		Scheme:       scheme,
+		Scheme: scheme,
 
-		Recorder:     recorder,
+		Recorder: recorder,
 
 		auditSystems: make(map[string]*audit.AuditSystem),
-
 	}
 
 }
-
-
 
 // +kubebuilder:rbac:groups=nephoran.io,resources=audittrails,verbs=get;list;watch;create;update;patch;delete.
 
@@ -167,8 +122,6 @@ func NewAuditTrailController(client client.Client, log logr.Logger, scheme *runt
 
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch.
 
-
-
 // Reconcile is part of the main kubernetes reconciliation loop which aims to.
 
 // move the current state of the cluster closer to the desired state.
@@ -176,8 +129,6 @@ func NewAuditTrailController(client client.Client, log logr.Logger, scheme *runt
 func (r *AuditTrailController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	log := r.Log.WithValues("audittrail", req.NamespacedName)
-
-
 
 	// Fetch the AuditTrail instance.
 
@@ -201,8 +152,6 @@ func (r *AuditTrailController) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	}
 
-
-
 	// Handle deletion.
 
 	if !auditTrail.DeletionTimestamp.IsZero() {
@@ -210,8 +159,6 @@ func (r *AuditTrailController) Reconcile(ctx context.Context, req ctrl.Request) 
 		return r.handleDeletion(ctx, auditTrail, log)
 
 	}
-
-
 
 	// Add finalizer if not present.
 
@@ -225,8 +172,6 @@ func (r *AuditTrailController) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	}
 
-
-
 	// Initialize or update the audit system.
 
 	result, err := r.reconcileAuditSystem(ctx, auditTrail, log)
@@ -237,15 +182,11 @@ func (r *AuditTrailController) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	}
 
-
-
 	// Update status with current state.
 
 	return result, r.updateStatus(ctx, auditTrail, log)
 
 }
-
-
 
 // handleDeletion handles the deletion of an AuditTrail resource.
 
@@ -254,8 +195,6 @@ func (r *AuditTrailController) handleDeletion(ctx context.Context, auditTrail *n
 	if controllerutil.ContainsFinalizer(auditTrail, AuditTrailFinalizer) {
 
 		log.Info("Finalizing AuditTrail")
-
-
 
 		// Stop and cleanup the audit system.
 
@@ -285,8 +224,6 @@ func (r *AuditTrailController) handleDeletion(ctx context.Context, auditTrail *n
 
 		}
 
-
-
 		// Remove finalizer.
 
 		controllerutil.RemoveFinalizer(auditTrail, AuditTrailFinalizer)
@@ -295,13 +232,9 @@ func (r *AuditTrailController) handleDeletion(ctx context.Context, auditTrail *n
 
 	}
 
-
-
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // reconcileAuditSystem creates or updates the audit system based on the AuditTrail spec.
 
@@ -309,15 +242,11 @@ func (r *AuditTrailController) reconcileAuditSystem(ctx context.Context, auditTr
 
 	key := fmt.Sprintf("%s/%s", auditTrail.Namespace, auditTrail.Name)
 
-
-
 	// Check if audit system exists and if configuration has changed.
 
 	existingSystem, exists := r.auditSystems[key]
 
 	needsRecreation := false
-
-
 
 	if exists {
 
@@ -335,8 +264,6 @@ func (r *AuditTrailController) reconcileAuditSystem(ctx context.Context, auditTr
 
 	}
 
-
-
 	if needsRecreation {
 
 		// Stop existing system.
@@ -353,15 +280,11 @@ func (r *AuditTrailController) reconcileAuditSystem(ctx context.Context, auditTr
 
 	}
 
-
-
 	if !exists || needsRecreation {
 
 		// Create new audit system.
 
 		log.Info("Creating new audit system")
-
-
 
 		// Convert AuditTrail spec to audit system configuration.
 
@@ -373,8 +296,6 @@ func (r *AuditTrailController) reconcileAuditSystem(ctx context.Context, auditTr
 
 		}
 
-
-
 		// Create audit system.
 
 		auditSystem, err := audit.NewAuditSystem(config)
@@ -384,8 +305,6 @@ func (r *AuditTrailController) reconcileAuditSystem(ctx context.Context, auditTr
 			return ctrl.Result{}, fmt.Errorf("failed to create audit system: %w", err)
 
 		}
-
-
 
 		// Start audit system if enabled.
 
@@ -402,8 +321,6 @@ func (r *AuditTrailController) reconcileAuditSystem(ctx context.Context, auditTr
 				"Audit system started successfully")
 
 		}
-
-
 
 		r.auditSystems[key] = auditSystem
 
@@ -447,13 +364,9 @@ func (r *AuditTrailController) reconcileAuditSystem(ctx context.Context, auditTr
 
 	}
 
-
-
 	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 
 }
-
-
 
 // buildAuditSystemConfig converts AuditTrail spec to audit system configuration.
 
@@ -461,23 +374,20 @@ func (r *AuditTrailController) buildAuditSystemConfig(ctx context.Context, audit
 
 	config := &audit.AuditSystemConfig{
 
-		Enabled:         auditTrail.Spec.Enabled,
+		Enabled: auditTrail.Spec.Enabled,
 
-		LogLevel:        r.convertLogLevel(auditTrail.Spec.LogLevel),
+		LogLevel: r.convertLogLevel(auditTrail.Spec.LogLevel),
 
-		BatchSize:       auditTrail.Spec.BatchSize,
+		BatchSize: auditTrail.Spec.BatchSize,
 
-		FlushInterval:   time.Duration(auditTrail.Spec.FlushInterval) * time.Second,
+		FlushInterval: time.Duration(auditTrail.Spec.FlushInterval) * time.Second,
 
-		MaxQueueSize:    auditTrail.Spec.MaxQueueSize,
+		MaxQueueSize: auditTrail.Spec.MaxQueueSize,
 
 		EnableIntegrity: auditTrail.Spec.EnableIntegrity,
 
-		ComplianceMode:  r.convertComplianceMode(auditTrail.Spec.ComplianceMode),
-
+		ComplianceMode: r.convertComplianceMode(auditTrail.Spec.ComplianceMode),
 	}
-
-
 
 	// Set defaults if not specified.
 
@@ -499,8 +409,6 @@ func (r *AuditTrailController) buildAuditSystemConfig(ctx context.Context, audit
 
 	}
 
-
-
 	// Build backend configurations.
 
 	backendConfigs := make([]backends.BackendConfig, 0, len(auditTrail.Spec.Backends))
@@ -521,13 +429,9 @@ func (r *AuditTrailController) buildAuditSystemConfig(ctx context.Context, audit
 
 	config.Backends = backendConfigs
 
-
-
 	return config, nil
 
 }
-
-
 
 // buildBackendConfig converts AuditBackendConfig to backend configuration.
 
@@ -535,23 +439,20 @@ func (r *AuditTrailController) buildBackendConfig(ctx context.Context, auditTrai
 
 	config := &backends.BackendConfig{
 
-		Type:        backends.BackendType(spec.Type),
+		Type: backends.BackendType(spec.Type),
 
-		Enabled:     spec.Enabled,
+		Enabled: spec.Enabled,
 
-		Name:        spec.Name,
+		Name: spec.Name,
 
-		Format:      spec.Format,
+		Format: spec.Format,
 
 		Compression: spec.Compression,
 
-		BufferSize:  spec.BufferSize,
+		BufferSize: spec.BufferSize,
 
-		Timeout:     time.Duration(spec.Timeout) * time.Second,
-
+		Timeout: time.Duration(spec.Timeout) * time.Second,
 	}
-
-
 
 	// Set defaults.
 
@@ -573,8 +474,6 @@ func (r *AuditTrailController) buildBackendConfig(ctx context.Context, auditTrai
 
 	}
 
-
-
 	// Convert settings from RawExtension.
 
 	if spec.Settings.Raw != nil {
@@ -591,22 +490,19 @@ func (r *AuditTrailController) buildBackendConfig(ctx context.Context, auditTrai
 
 	}
 
-
-
 	// Convert retry policy.
 
 	if spec.RetryPolicy != nil {
 
 		config.RetryPolicy = backends.RetryPolicy{
 
-			MaxRetries:    spec.RetryPolicy.MaxRetries,
+			MaxRetries: spec.RetryPolicy.MaxRetries,
 
-			InitialDelay:  time.Duration(spec.RetryPolicy.InitialDelay) * time.Second,
+			InitialDelay: time.Duration(spec.RetryPolicy.InitialDelay) * time.Second,
 
-			MaxDelay:      time.Duration(spec.RetryPolicy.MaxDelay) * time.Second,
+			MaxDelay: time.Duration(spec.RetryPolicy.MaxDelay) * time.Second,
 
 			BackoffFactor: spec.RetryPolicy.BackoffFactor,
-
 		}
 
 	} else {
@@ -615,31 +511,26 @@ func (r *AuditTrailController) buildBackendConfig(ctx context.Context, auditTrai
 
 	}
 
-
-
 	// Convert TLS config.
 
 	if spec.TLS != nil {
 
 		config.TLS = backends.TLSConfig{
 
-			Enabled:            spec.TLS.Enabled,
+			Enabled: spec.TLS.Enabled,
 
-			CertFile:           spec.TLS.CertFile,
+			CertFile: spec.TLS.CertFile,
 
-			KeyFile:            spec.TLS.KeyFile,
+			KeyFile: spec.TLS.KeyFile,
 
-			CAFile:             spec.TLS.CAFile,
+			CAFile: spec.TLS.CAFile,
 
-			ServerName:         spec.TLS.ServerName,
+			ServerName: spec.TLS.ServerName,
 
 			InsecureSkipVerify: spec.TLS.InsecureSkipVerify,
-
 		}
 
 	}
-
-
 
 	// Convert filter config.
 
@@ -647,18 +538,17 @@ func (r *AuditTrailController) buildBackendConfig(ctx context.Context, auditTrai
 
 		config.Filter = backends.FilterConfig{
 
-			MinSeverity:   r.convertLogLevel(spec.Filter.MinSeverity),
+			MinSeverity: r.convertLogLevel(spec.Filter.MinSeverity),
 
-			EventTypes:    r.convertEventTypes(spec.Filter.EventTypes),
+			EventTypes: r.convertEventTypes(spec.Filter.EventTypes),
 
-			Components:    spec.Filter.Components,
+			Components: spec.Filter.Components,
 
-			ExcludeTypes:  r.convertEventTypes(spec.Filter.ExcludeTypes),
+			ExcludeTypes: r.convertEventTypes(spec.Filter.ExcludeTypes),
 
 			IncludeFields: spec.Filter.IncludeFields,
 
 			ExcludeFields: spec.Filter.ExcludeFields,
-
 		}
 
 	} else {
@@ -667,21 +557,15 @@ func (r *AuditTrailController) buildBackendConfig(ctx context.Context, auditTrai
 
 	}
 
-
-
 	return config, nil
 
 }
-
-
 
 // updateStatus updates the AuditTrail status with current information.
 
 func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nephv1.AuditTrail, log logr.Logger) error {
 
 	key := fmt.Sprintf("%s/%s", auditTrail.Namespace, auditTrail.Name)
-
-
 
 	// Get current status from audit system.
 
@@ -709,35 +593,29 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 
 	}
 
-
-
 	// Build status.
 
 	now := metav1.Now()
 
 	status := nephv1.AuditTrailStatus{
 
-		Phase:      phase,
+		Phase: phase,
 
 		LastUpdate: &now,
 
 		Stats: &nephv1.AuditTrailStats{
 
-			EventsReceived:  stats.EventsReceived,
+			EventsReceived: stats.EventsReceived,
 
 			EventsProcessed: stats.EventsReceived - stats.EventsDropped,
 
-			EventsDropped:   stats.EventsDropped,
+			EventsDropped: stats.EventsDropped,
 
-			QueueSize:       stats.QueueSize,
+			QueueSize: stats.QueueSize,
 
-			BackendCount:    stats.BackendCount,
-
+			BackendCount: stats.BackendCount,
 		},
-
 	}
-
-
 
 	// Build conditions.
 
@@ -745,21 +623,17 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 
 		{
 
-			Type:               ConditionTypeReady,
+			Type: ConditionTypeReady,
 
-			Status:             metav1.ConditionTrue,
+			Status: metav1.ConditionTrue,
 
-			Reason:             "SystemOperational",
+			Reason: "SystemOperational",
 
-			Message:            "Audit system is operational",
+			Message: "Audit system is operational",
 
 			LastTransitionTime: now,
-
 		},
-
 	}
-
-
 
 	if phase != "Running" {
 
@@ -771,11 +645,7 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 
 	}
 
-
-
 	status.Conditions = conditions
-
-
 
 	// Update status if changed.
 
@@ -787,13 +657,9 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // updateStatusError updates the status with error information.
 
@@ -809,27 +675,21 @@ func (r *AuditTrailController) updateStatusError(ctx context.Context, auditTrail
 
 		{
 
-			Type:               ConditionTypeReady,
+			Type: ConditionTypeReady,
 
-			Status:             metav1.ConditionFalse,
+			Status: metav1.ConditionFalse,
 
-			Reason:             "Error",
+			Reason: "Error",
 
-			Message:            err.Error(),
+			Message: err.Error(),
 
 			LastTransitionTime: now,
-
 		},
-
 	}
-
-
 
 	r.Recorder.Event(auditTrail, corev1.EventTypeWarning, "ReconcileError",
 
 		fmt.Sprintf("Failed to reconcile: %v", err))
-
-
 
 	if updateErr := r.Status().Update(ctx, auditTrail); updateErr != nil {
 
@@ -839,13 +699,9 @@ func (r *AuditTrailController) updateStatusError(ctx context.Context, auditTrail
 
 	}
 
-
-
 	return err
 
 }
-
-
 
 // cleanupAuditSystem cleans up an audit system when the resource is deleted.
 
@@ -867,8 +723,6 @@ func (r *AuditTrailController) cleanupAuditSystem(key string) (ctrl.Result, erro
 
 }
 
-
-
 // hasConfigurationChanged checks if the configuration has changed.
 
 func (r *AuditTrailController) hasConfigurationChanged(auditTrail *nephv1.AuditTrail) bool {
@@ -881,11 +735,7 @@ func (r *AuditTrailController) hasConfigurationChanged(auditTrail *nephv1.AuditT
 
 }
 
-
-
 // Helper functions for conversion.
-
-
 
 func (r *AuditTrailController) convertLogLevel(level string) audit.Severity {
 
@@ -930,8 +780,6 @@ func (r *AuditTrailController) convertLogLevel(level string) audit.Severity {
 	}
 
 }
-
-
 
 func (r *AuditTrailController) convertComplianceMode(modes []string) []audit.ComplianceStandard {
 
@@ -981,8 +829,6 @@ func (r *AuditTrailController) convertComplianceMode(modes []string) []audit.Com
 
 }
 
-
-
 func (r *AuditTrailController) convertEventTypes(types []string) []audit.EventType {
 
 	eventTypes := make([]audit.EventType, 0, len(types))
@@ -997,29 +843,21 @@ func (r *AuditTrailController) convertEventTypes(types []string) []audit.EventTy
 
 }
 
-
-
 // SetupWithManager sets up the controller with the Manager.
 
 func (r *AuditTrailController) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
-
 		For(&nephv1.AuditTrail{}).
-
 		WithOptions(controller.Options{
 
 			MaxConcurrentReconciles: 1, // Ensure sequential processing
 
 		}).
-
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
-
 		Complete(r)
 
 }
-
-
 
 // GetAuditSystem returns the audit system for a given key (for testing or external access).
 
@@ -1030,4 +868,3 @@ func (r *AuditTrailController) GetAuditSystem(namespace, name string) *audit.Aud
 	return r.auditSystems[key]
 
 }
-

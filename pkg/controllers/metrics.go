@@ -32,30 +32,17 @@
 
 //	metrics.RecordProcessingDuration("default", "my-intent", "llm_processing", 1.5)
 
-
 package controllers
 
-
-
 import (
-
 	"os"
-
 	"strconv"
-
 	"sync"
-
-
 
 	"github.com/prometheus/client_golang/prometheus"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
-
 )
-
-
 
 var (
 
@@ -64,8 +51,6 @@ var (
 	metricsRegistered bool
 
 	metricsRegistryMu sync.Mutex
-
-
 
 	// Controller-runtime metrics for NetworkIntent controller.
 
@@ -76,14 +61,10 @@ var (
 			Name: "networkintent_reconciles_total",
 
 			Help: "Total number of NetworkIntent reconciliations",
-
 		},
 
 		[]string{"controller", "namespace", "name", "result"},
-
 	)
-
-
 
 	networkIntentReconcileErrors = prometheus.NewCounterVec(
 
@@ -92,32 +73,24 @@ var (
 			Name: "networkintent_reconcile_errors_total",
 
 			Help: "Total number of NetworkIntent reconciliation errors",
-
 		},
 
 		[]string{"controller", "namespace", "name", "error_type"},
-
 	)
-
-
 
 	networkIntentProcessingDuration = prometheus.NewHistogramVec(
 
 		prometheus.HistogramOpts{
 
-			Name:    "networkintent_processing_duration_seconds",
+			Name: "networkintent_processing_duration_seconds",
 
-			Help:    "Duration of NetworkIntent processing phases",
+			Help: "Duration of NetworkIntent processing phases",
 
 			Buckets: prometheus.DefBuckets,
-
 		},
 
 		[]string{"controller", "namespace", "name", "phase"},
-
 	)
-
-
 
 	networkIntentStatus = prometheus.NewGaugeVec(
 
@@ -126,36 +99,25 @@ var (
 			Name: "networkintent_status",
 
 			Help: "Status of NetworkIntent resources (0=Failed, 1=Processing, 2=Ready)",
-
 		},
 
 		[]string{"controller", "namespace", "name", "phase"},
-
 	)
-
 )
-
-
 
 // ControllerMetrics provides controller-runtime compatible metrics for controllers.
 
 type ControllerMetrics struct {
-
 	controllerName string
 
-	enabled        bool
-
+	enabled bool
 }
-
-
 
 // NewControllerMetrics creates a new ControllerMetrics instance.
 
 func NewControllerMetrics(controllerName string) *ControllerMetrics {
 
 	enabled := isMetricsEnabled()
-
-
 
 	// Register metrics once globally if enabled.
 
@@ -165,19 +127,14 @@ func NewControllerMetrics(controllerName string) *ControllerMetrics {
 
 	}
 
-
-
 	return &ControllerMetrics{
 
 		controllerName: controllerName,
 
-		enabled:        enabled,
-
+		enabled: enabled,
 	}
 
 }
-
-
 
 // isMetricsEnabled checks if metrics are enabled via environment variable.
 
@@ -195,8 +152,6 @@ func isMetricsEnabled() bool {
 
 }
 
-
-
 // registerMetricsOnce ensures metrics are registered only once.
 
 func registerMetricsOnce() {
@@ -205,15 +160,11 @@ func registerMetricsOnce() {
 
 	defer metricsRegistryMu.Unlock()
 
-
-
 	if metricsRegistered {
 
 		return
 
 	}
-
-
 
 	metrics.Registry.MustRegister(
 
@@ -224,16 +175,11 @@ func registerMetricsOnce() {
 		networkIntentProcessingDuration,
 
 		networkIntentStatus,
-
 	)
-
-
 
 	metricsRegistered = true
 
 }
-
-
 
 // RecordReconcileTotal increments the total reconciliations counter.
 
@@ -249,8 +195,6 @@ func (m *ControllerMetrics) RecordReconcileTotal(namespace, name, result string)
 
 }
 
-
-
 // RecordReconcileError increments the reconciliation errors counter.
 
 func (m *ControllerMetrics) RecordReconcileError(namespace, name, errorType string) {
@@ -264,8 +208,6 @@ func (m *ControllerMetrics) RecordReconcileError(namespace, name, errorType stri
 	networkIntentReconcileErrors.WithLabelValues(m.controllerName, namespace, name, errorType).Inc()
 
 }
-
-
 
 // RecordProcessingDuration records the duration of a processing phase.
 
@@ -281,8 +223,6 @@ func (m *ControllerMetrics) RecordProcessingDuration(namespace, name, phase stri
 
 }
 
-
-
 // SetStatus sets the current status of a NetworkIntent.
 
 func (m *ControllerMetrics) SetStatus(namespace, name, phase string, status float64) {
@@ -297,8 +237,6 @@ func (m *ControllerMetrics) SetStatus(namespace, name, phase string, status floa
 
 }
 
-
-
 // RecordSuccess is a convenience method to record successful reconciliation.
 
 func (m *ControllerMetrics) RecordSuccess(namespace, name string) {
@@ -306,8 +244,6 @@ func (m *ControllerMetrics) RecordSuccess(namespace, name string) {
 	m.RecordReconcileTotal(namespace, name, "success")
 
 }
-
-
 
 // RecordFailure is a convenience method to record failed reconciliation with error.
 
@@ -318,8 +254,6 @@ func (m *ControllerMetrics) RecordFailure(namespace, name, errorType string) {
 	m.RecordReconcileError(namespace, name, errorType)
 
 }
-
-
 
 // StatusValues provides constants for status metric values.
 
@@ -336,10 +270,7 @@ const (
 	// StatusReady holds statusready value.
 
 	StatusReady float64 = 2
-
 )
-
-
 
 // GetMetricsEnabled returns whether metrics are currently enabled.
 
@@ -348,4 +279,3 @@ func GetMetricsEnabled() bool {
 	return isMetricsEnabled()
 
 }
-

@@ -1,55 +1,28 @@
-
 package recovery
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"log/slog"
-
 	"os"
-
 	"path/filepath"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/aws/aws-sdk-go-v2/aws"
-
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
-
 	"github.com/aws/aws-sdk-go-v2/config"
-
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-
-
 	corev1 "k8s.io/api/core/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/client-go/kubernetes"
-
 )
-
-
 
 var (
 
@@ -60,94 +33,71 @@ var (
 		Name: "disaster_recovery_backup_operations_total",
 
 		Help: "Total number of backup operations",
-
 	}, []string{"status", "type"})
-
-
 
 	restoreOperations = promauto.NewCounterVec(prometheus.CounterOpts{
 
 		Name: "disaster_recovery_restore_operations_total",
 
 		Help: "Total number of restore operations",
-
 	}, []string{"status", "type"})
-
-
 
 	backupDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
 
-		Name:    "disaster_recovery_backup_duration_seconds",
+		Name: "disaster_recovery_backup_duration_seconds",
 
-		Help:    "Duration of backup operations",
+		Help: "Duration of backup operations",
 
 		Buckets: prometheus.ExponentialBuckets(1, 2, 10),
-
 	}, []string{"type"})
-
-
 
 	restoreDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
 
-		Name:    "disaster_recovery_restore_duration_seconds",
+		Name: "disaster_recovery_restore_duration_seconds",
 
-		Help:    "Duration of restore operations",
+		Help: "Duration of restore operations",
 
 		Buckets: prometheus.ExponentialBuckets(1, 2, 10),
-
 	}, []string{"type"})
-
-
 
 	backupSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
 
 		Name: "disaster_recovery_backup_size_bytes",
 
 		Help: "Size of backups in bytes",
-
 	}, []string{"type"})
-
-
 
 	recoveryStatus = promauto.NewGaugeVec(prometheus.GaugeOpts{
 
 		Name: "disaster_recovery_status",
 
 		Help: "Current disaster recovery status (0=healthy, 1=degraded, 2=failed)",
-
 	}, []string{"component"})
-
 )
-
-
 
 // DisasterRecoveryManager manages disaster recovery operations.
 
 type DisasterRecoveryManager struct {
+	mu sync.RWMutex
 
-	mu              sync.RWMutex
+	config *DisasterRecoveryConfig
 
-	config          *DisasterRecoveryConfig
+	logger *slog.Logger
 
-	logger          *slog.Logger
+	k8sClient kubernetes.Interface
 
-	k8sClient       kubernetes.Interface
-
-	backupStore     BackupStore
+	backupStore BackupStore
 
 	snapshotManager *SnapshotManager
 
-	validator       *BackupValidator
+	validator *BackupValidator
 
-	metrics         *RecoveryMetrics
+	metrics *RecoveryMetrics
 
-	scheduler       *BackupScheduler
+	scheduler *BackupScheduler
 
-	notifier        *RecoveryNotifier
-
+	notifier *RecoveryNotifier
 }
-
-
 
 // DisasterRecoveryConfig holds DR configuration.
 
@@ -155,90 +105,75 @@ type DisasterRecoveryConfig struct {
 
 	// Backup Configuration.
 
-	BackupEnabled     bool              `json:"backup_enabled"`
+	BackupEnabled bool `json:"backup_enabled"`
 
-	BackupSchedule    string            `json:"backup_schedule"` // Cron expression
+	BackupSchedule string `json:"backup_schedule"` // Cron expression
 
-	BackupRetention   BackupRetention   `json:"backup_retention"`
+	BackupRetention BackupRetention `json:"backup_retention"`
 
-	BackupStorage     BackupStorageConf `json:"backup_storage"`
+	BackupStorage BackupStorageConf `json:"backup_storage"`
 
-	BackupCompression bool              `json:"backup_compression"`
+	BackupCompression bool `json:"backup_compression"`
 
-	BackupEncryption  bool              `json:"backup_encryption"`
+	BackupEncryption bool `json:"backup_encryption"`
 
-	EncryptionKey     string            `json:"encryption_key"`
-
-
+	EncryptionKey string `json:"encryption_key"`
 
 	// Recovery Configuration.
 
-	RecoveryEnabled      bool     `json:"recovery_enabled"`
+	RecoveryEnabled bool `json:"recovery_enabled"`
 
-	RecoveryTestSchedule string   `json:"recovery_test_schedule"`
+	RecoveryTestSchedule string `json:"recovery_test_schedule"`
 
-	RPOMinutes           int      `json:"rpo_minutes"` // Recovery Point Objective
+	RPOMinutes int `json:"rpo_minutes"` // Recovery Point Objective
 
-	RTOMinutes           int      `json:"rto_minutes"` // Recovery Time Objective
+	RTOMinutes int `json:"rto_minutes"` // Recovery Time Objective
 
-	MultiRegion          bool     `json:"multi_region"`
+	MultiRegion bool `json:"multi_region"`
 
-	FailoverRegions      []string `json:"failover_regions"`
-
-
+	FailoverRegions []string `json:"failover_regions"`
 
 	// Monitoring.
 
-	AlertingEnabled    bool     `json:"alerting_enabled"`
+	AlertingEnabled bool `json:"alerting_enabled"`
 
-	SlackWebhook       string   `json:"slack_webhook"`
+	SlackWebhook string `json:"slack_webhook"`
 
 	EmailNotifications []string `json:"email_notifications"`
 
-	MetricsEnabled     bool     `json:"metrics_enabled"`
-
+	MetricsEnabled bool `json:"metrics_enabled"`
 }
-
-
 
 // BackupRetention defines retention policy.
 
 type BackupRetention struct {
+	DailyBackups int `json:"daily_backups"`
 
-	DailyBackups   int `json:"daily_backups"`
-
-	WeeklyBackups  int `json:"weekly_backups"`
+	WeeklyBackups int `json:"weekly_backups"`
 
 	MonthlyBackups int `json:"monthly_backups"`
 
-	YearlyBackups  int `json:"yearly_backups"`
-
+	YearlyBackups int `json:"yearly_backups"`
 }
-
-
 
 // BackupStorageConf defines storage configuration.
 
 type BackupStorageConf struct {
+	Type string `json:"type"` // s3, gcs, azure
 
-	Type       string `json:"type"` // s3, gcs, azure
+	Bucket string `json:"bucket"`
 
-	Bucket     string `json:"bucket"`
+	Path string `json:"path"`
 
-	Path       string `json:"path"`
-
-	Region     string `json:"region"`
+	Region string `json:"region"`
 
 	AWSProfile string `json:"aws_profile"` // AWS profile for authentication
 
 }
 
-
-
 // BackupStore interface for backup storage.
 
 type BackupStore interface {
-
 	Upload(ctx context.Context, backup *Backup) error
 
 	Download(ctx context.Context, backupID string) (*Backup, error)
@@ -248,180 +183,141 @@ type BackupStore interface {
 	Delete(ctx context.Context, backupID string) error
 
 	Verify(ctx context.Context, backupID string) error
-
 }
-
-
 
 // Backup represents a system backup.
 
 type Backup struct {
+	ID string `json:"id"`
 
-	ID            string                     `json:"id"`
+	Type string `json:"type"` // full, incremental
 
-	Type          string                     `json:"type"` // full, incremental
+	Status string `json:"status"`
 
-	Status        string                     `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt     time.Time                  `json:"created_at"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
 
-	CompletedAt   *time.Time                 `json:"completed_at,omitempty"`
+	Size int64 `json:"size"`
 
-	Size          int64                      `json:"size"`
+	Components map[string]ComponentBackup `json:"components"`
 
-	Components    map[string]ComponentBackup `json:"components"`
+	Metadata map[string]string `json:"metadata"`
 
-	Metadata      map[string]string          `json:"metadata"`
+	EncryptionKey string `json:"encryption_key,omitempty"`
 
-	EncryptionKey string                     `json:"encryption_key,omitempty"`
+	Checksum string `json:"checksum"`
 
-	Checksum      string                     `json:"checksum"`
-
-	Region        string                     `json:"region"`
-
+	Region string `json:"region"`
 }
-
-
 
 // BackupMetadata contains backup metadata.
 
 type BackupMetadata struct {
+	ID string `json:"id"`
 
-	ID        string            `json:"id"`
+	Type string `json:"type"`
 
-	Type      string            `json:"type"`
+	Status string `json:"status"`
 
-	Status    string            `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt time.Time         `json:"created_at"`
+	Size int64 `json:"size"`
 
-	Size      int64             `json:"size"`
+	Region string `json:"region"`
 
-	Region    string            `json:"region"`
-
-	Tags      map[string]string `json:"tags"`
-
+	Tags map[string]string `json:"tags"`
 }
-
-
 
 // ComponentBackup represents a component backup.
 
 type ComponentBackup struct {
+	Name string `json:"name"`
 
-	Name      string    `json:"name"`
+	Type string `json:"type"`
 
-	Type      string    `json:"type"`
+	Status string `json:"status"`
 
-	Status    string    `json:"status"`
+	DataPath string `json:"data_path"`
 
-	DataPath  string    `json:"data_path"`
-
-	Size      int64     `json:"size"`
+	Size int64 `json:"size"`
 
 	StartTime time.Time `json:"start_time"`
 
-	EndTime   time.Time `json:"end_time"`
+	EndTime time.Time `json:"end_time"`
 
-	Error     string    `json:"error,omitempty"`
-
+	Error string `json:"error,omitempty"`
 }
-
-
 
 // SnapshotManager manages volume snapshots.
 
 type SnapshotManager struct {
-
 	k8sClient kubernetes.Interface
 
-	logger    *slog.Logger
-
+	logger *slog.Logger
 }
-
-
 
 // BackupValidator validates backup integrity.
 
 type BackupValidator struct {
-
 	logger *slog.Logger
-
 }
-
-
 
 // RecoveryMetrics tracks recovery metrics.
 
 type RecoveryMetrics struct {
+	mu sync.RWMutex
 
-	mu                  sync.RWMutex
+	LastBackupTime time.Time
 
-	LastBackupTime      time.Time
+	LastRestoreTime time.Time
 
-	LastRestoreTime     time.Time
+	BackupSuccessCount int64
 
-	BackupSuccessCount  int64
-
-	BackupFailureCount  int64
+	BackupFailureCount int64
 
 	RestoreSuccessCount int64
 
 	RestoreFailureCount int64
 
-	CurrentRPO          time.Duration
+	CurrentRPO time.Duration
 
-	CurrentRTO          time.Duration
-
+	CurrentRTO time.Duration
 }
-
-
 
 // BackupScheduler manages backup scheduling.
 
 type BackupScheduler struct {
-
-	manager  *DisasterRecoveryManager
+	manager *DisasterRecoveryManager
 
 	cronJobs map[string]*CronJob
 
-	mu       sync.Mutex
-
+	mu sync.Mutex
 }
-
-
 
 // RecoveryNotifier handles notifications.
 
 type RecoveryNotifier struct {
-
 	config *DisasterRecoveryConfig
 
 	logger *slog.Logger
-
 }
-
-
 
 // CronJob represents a scheduled job.
 
 type CronJob struct {
-
-	ID       string
+	ID string
 
 	Schedule string
 
-	LastRun  time.Time
+	LastRun time.Time
 
-	NextRun  time.Time
+	NextRun time.Time
 
-	Active   bool
+	Active bool
 
-	stopCh   chan struct{}
-
+	stopCh chan struct{}
 }
-
-
 
 // NewDisasterRecoveryManager creates a new disaster recovery manager.
 
@@ -432,8 +328,6 @@ func NewDisasterRecoveryManager(config *DisasterRecoveryConfig, k8sClient kubern
 		return nil, fmt.Errorf("disaster recovery configuration is required")
 
 	}
-
-
 
 	// Create backup store based on configuration.
 
@@ -459,15 +353,13 @@ func NewDisasterRecoveryManager(config *DisasterRecoveryConfig, k8sClient kubern
 
 	}
 
-
-
 	manager := &DisasterRecoveryManager{
 
-		config:      config,
+		config: config,
 
-		logger:      logger,
+		logger: logger,
 
-		k8sClient:   k8sClient,
+		k8sClient: k8sClient,
 
 		backupStore: backupStore,
 
@@ -475,14 +367,12 @@ func NewDisasterRecoveryManager(config *DisasterRecoveryConfig, k8sClient kubern
 
 			k8sClient: k8sClient,
 
-			logger:    logger,
-
+			logger: logger,
 		},
 
 		validator: &BackupValidator{
 
 			logger: logger,
-
 		},
 
 		metrics: &RecoveryMetrics{},
@@ -492,28 +382,19 @@ func NewDisasterRecoveryManager(config *DisasterRecoveryConfig, k8sClient kubern
 			config: config,
 
 			logger: logger,
-
 		},
-
 	}
-
-
 
 	manager.scheduler = &BackupScheduler{
 
-		manager:  manager,
+		manager: manager,
 
 		cronJobs: make(map[string]*CronJob),
-
 	}
-
-
 
 	return manager, nil
 
 }
-
-
 
 // Start starts the disaster recovery manager.
 
@@ -521,13 +402,9 @@ func (drm *DisasterRecoveryManager) Start(ctx context.Context) error {
 
 	drm.logger.Info("Starting disaster recovery manager")
 
-
-
 	// Initialize recovery status.
 
 	recoveryStatus.WithLabelValues("overall").Set(0) // Healthy
-
-
 
 	// Start backup scheduler.
 
@@ -541,8 +418,6 @@ func (drm *DisasterRecoveryManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start recovery test scheduler.
 
 	if drm.config.RecoveryEnabled && drm.config.RecoveryTestSchedule != "" {
@@ -555,8 +430,6 @@ func (drm *DisasterRecoveryManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start metrics collection.
 
 	if drm.config.MetricsEnabled {
@@ -565,15 +438,11 @@ func (drm *DisasterRecoveryManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	drm.logger.Info("Disaster recovery manager started successfully")
 
 	return nil
 
 }
-
-
 
 // CreateBackup creates a comprehensive system backup.
 
@@ -587,31 +456,24 @@ func (drm *DisasterRecoveryManager) CreateBackup(ctx context.Context, backupType
 
 	}()
 
-
-
 	drm.logger.Info("Creating backup", "type", backupType)
-
-
 
 	backup := &Backup{
 
-		ID:         fmt.Sprintf("backup-%s-%d", backupType, time.Now().Unix()),
+		ID: fmt.Sprintf("backup-%s-%d", backupType, time.Now().Unix()),
 
-		Type:       backupType,
+		Type: backupType,
 
-		Status:     "in_progress",
+		Status: "in_progress",
 
-		CreatedAt:  time.Now(),
+		CreatedAt: time.Now(),
 
 		Components: make(map[string]ComponentBackup),
 
-		Metadata:   make(map[string]string),
+		Metadata: make(map[string]string),
 
-		Region:     drm.config.BackupStorage.Region,
-
+		Region: drm.config.BackupStorage.Region,
 	}
-
-
 
 	// Backup components concurrently.
 
@@ -628,16 +490,11 @@ func (drm *DisasterRecoveryManager) CreateBackup(ctx context.Context, backupType
 		"prometheus-metrics",
 
 		"application-state",
-
 	}
-
-
 
 	var wg sync.WaitGroup
 
 	errCh := make(chan error, len(components))
-
-
 
 	for _, component := range components {
 
@@ -657,13 +514,9 @@ func (drm *DisasterRecoveryManager) CreateBackup(ctx context.Context, backupType
 
 	}
 
-
-
 	wg.Wait()
 
 	close(errCh)
-
-
 
 	// Check for errors.
 
@@ -674,8 +527,6 @@ func (drm *DisasterRecoveryManager) CreateBackup(ctx context.Context, backupType
 		errors = append(errors, err)
 
 	}
-
-
 
 	if len(errors) > 0 {
 
@@ -689,13 +540,9 @@ func (drm *DisasterRecoveryManager) CreateBackup(ctx context.Context, backupType
 
 	}
 
-
-
 	// Calculate checksum.
 
 	backup.Checksum = drm.calculateChecksum(backup)
-
-
 
 	// Upload to backup store.
 
@@ -709,8 +556,6 @@ func (drm *DisasterRecoveryManager) CreateBackup(ctx context.Context, backupType
 
 	}
 
-
-
 	// Update status.
 
 	now := time.Now()
@@ -718,8 +563,6 @@ func (drm *DisasterRecoveryManager) CreateBackup(ctx context.Context, backupType
 	backup.CompletedAt = &now
 
 	backup.Status = "completed"
-
-
 
 	// Update metrics.
 
@@ -729,19 +572,13 @@ func (drm *DisasterRecoveryManager) CreateBackup(ctx context.Context, backupType
 
 	drm.updateMetrics(backup, nil)
 
-
-
 	// Send notification.
 
 	drm.notifier.NotifyBackupSuccess(backup)
 
-
-
 	// Clean up old backups.
 
 	go drm.cleanupOldBackups(ctx)
-
-
 
 	drm.logger.Info("Backup completed successfully", "backupID", backup.ID, "size", backup.Size)
 
@@ -749,25 +586,20 @@ func (drm *DisasterRecoveryManager) CreateBackup(ctx context.Context, backupType
 
 }
 
-
-
 // backupComponent backs up a specific component.
 
 func (drm *DisasterRecoveryManager) backupComponent(ctx context.Context, backup *Backup, component string) error {
 
 	compBackup := ComponentBackup{
 
-		Name:      component,
+		Name: component,
 
-		Type:      "standard",
+		Type: "standard",
 
-		Status:    "in_progress",
+		Status: "in_progress",
 
 		StartTime: time.Now(),
-
 	}
-
-
 
 	switch component {
 
@@ -845,8 +677,6 @@ func (drm *DisasterRecoveryManager) backupComponent(ctx context.Context, backup 
 
 	}
 
-
-
 	compBackup.EndTime = time.Now()
 
 	if compBackup.Status != "failed" {
@@ -854,8 +684,6 @@ func (drm *DisasterRecoveryManager) backupComponent(ctx context.Context, backup 
 		compBackup.Status = "completed"
 
 	}
-
-
 
 	drm.mu.Lock()
 
@@ -865,13 +693,9 @@ func (drm *DisasterRecoveryManager) backupComponent(ctx context.Context, backup 
 
 	drm.mu.Unlock()
 
-
-
 	return nil
 
 }
-
-
 
 // RestoreBackup restores system from backup.
 
@@ -885,11 +709,7 @@ func (drm *DisasterRecoveryManager) RestoreBackup(ctx context.Context, backupID 
 
 	}()
 
-
-
 	drm.logger.Info("Starting backup restoration", "backupID", backupID)
-
-
 
 	// Download backup.
 
@@ -903,8 +723,6 @@ func (drm *DisasterRecoveryManager) RestoreBackup(ctx context.Context, backupID 
 
 	}
 
-
-
 	// Validate backup integrity.
 
 	if err := drm.validator.ValidateBackup(backup); err != nil {
@@ -915,13 +733,9 @@ func (drm *DisasterRecoveryManager) RestoreBackup(ctx context.Context, backupID 
 
 	}
 
-
-
 	// Create restore plan.
 
 	plan := drm.createRestorePlan(backup)
-
-
 
 	// Execute restore plan.
 
@@ -929,15 +743,11 @@ func (drm *DisasterRecoveryManager) RestoreBackup(ctx context.Context, backupID 
 
 		drm.logger.Info("Executing restore step", "step", step.Name)
 
-
-
 		if err := drm.executeRestoreStep(ctx, step, backup); err != nil {
 
 			drm.logger.Error("Restore step failed", "step", step.Name, "error", err)
 
 			restoreOperations.WithLabelValues("failed", step.Name).Inc()
-
-
 
 			// Rollback if critical step fails.
 
@@ -953,8 +763,6 @@ func (drm *DisasterRecoveryManager) RestoreBackup(ctx context.Context, backupID 
 
 	}
 
-
-
 	// Verify restoration.
 
 	if err := drm.verifyRestoration(ctx, backup); err != nil {
@@ -965,21 +773,15 @@ func (drm *DisasterRecoveryManager) RestoreBackup(ctx context.Context, backupID 
 
 	}
 
-
-
 	// Update metrics.
 
 	restoreOperations.WithLabelValues("success", "full").Inc()
 
 	drm.updateMetrics(nil, backup)
 
-
-
 	// Send notification.
 
 	drm.notifier.NotifyRestoreSuccess(backup)
-
-
 
 	drm.logger.Info("Backup restoration completed successfully", "backupID", backupID)
 
@@ -987,27 +789,20 @@ func (drm *DisasterRecoveryManager) RestoreBackup(ctx context.Context, backupID 
 
 }
 
-
-
 // TestRecovery performs a recovery test.
 
 func (drm *DisasterRecoveryManager) TestRecovery(ctx context.Context) (*RecoveryTestResult, error) {
 
 	drm.logger.Info("Starting disaster recovery test")
 
-
-
 	result := &RecoveryTestResult{
 
-		ID:        fmt.Sprintf("test-%d", time.Now().Unix()),
+		ID: fmt.Sprintf("test-%d", time.Now().Unix()),
 
 		StartTime: time.Now(),
 
-		Tests:     make(map[string]TestResult),
-
+		Tests: make(map[string]TestResult),
 	}
-
-
 
 	// Test backup creation.
 
@@ -1015,15 +810,11 @@ func (drm *DisasterRecoveryManager) TestRecovery(ctx context.Context) (*Recovery
 
 	result.Tests["backup_creation"] = backupTest
 
-
-
 	// Test backup validation.
 
 	validationTest := drm.testBackupValidation(ctx)
 
 	result.Tests["backup_validation"] = validationTest
-
-
 
 	// Test restore procedure.
 
@@ -1031,15 +822,11 @@ func (drm *DisasterRecoveryManager) TestRecovery(ctx context.Context) (*Recovery
 
 	result.Tests["restore_procedure"] = restoreTest
 
-
-
 	// Test failover capability.
 
 	failoverTest := drm.testFailoverCapability(ctx)
 
 	result.Tests["failover_capability"] = failoverTest
-
-
 
 	// Calculate overall result.
 
@@ -1049,19 +836,13 @@ func (drm *DisasterRecoveryManager) TestRecovery(ctx context.Context) (*Recovery
 
 	result.calculateOverallStatus()
 
-
-
 	// Send report.
 
 	drm.notifier.NotifyRecoveryTestResult(result)
 
-
-
 	return result, nil
 
 }
-
-
 
 // backupKubernetesResources backs up Kubernetes resources.
 
@@ -1076,10 +857,7 @@ func (drm *DisasterRecoveryManager) backupKubernetesResources(ctx context.Contex
 		"e2nodesets.nephoran.com",
 
 		"managedelements.nephoran.com",
-
 	}
-
-
 
 	var data []byte
 
@@ -1093,19 +871,13 @@ func (drm *DisasterRecoveryManager) backupKubernetesResources(ctx context.Contex
 
 	}
 
-
-
 	backup.DataPath = fmt.Sprintf("kubernetes-resources-%d.yaml", time.Now().Unix())
 
 	backup.Size = int64(len(data))
 
-
-
 	return nil
 
 }
-
-
 
 // backupPersistentVolumes backs up persistent volumes.
 
@@ -1120,8 +892,6 @@ func (drm *DisasterRecoveryManager) backupPersistentVolumes(ctx context.Context,
 		return fmt.Errorf("failed to list PVs: %w", err)
 
 	}
-
-
 
 	var totalSize int64
 
@@ -1143,27 +913,19 @@ func (drm *DisasterRecoveryManager) backupPersistentVolumes(ctx context.Context,
 
 	}
 
-
-
 	backup.DataPath = fmt.Sprintf("pv-snapshots-%d", time.Now().Unix())
 
 	backup.Size = totalSize
 
-
-
 	return nil
 
 }
-
-
 
 // Failover performs failover to alternate region.
 
 func (drm *DisasterRecoveryManager) Failover(ctx context.Context, targetRegion string) error {
 
 	drm.logger.Info("Initiating failover", "targetRegion", targetRegion)
-
-
 
 	// Validate target region.
 
@@ -1173,33 +935,26 @@ func (drm *DisasterRecoveryManager) Failover(ctx context.Context, targetRegion s
 
 	}
 
-
-
 	// Create failover plan.
 
 	plan := &FailoverPlan{
 
-		ID:           fmt.Sprintf("failover-%d", time.Now().Unix()),
+		ID: fmt.Sprintf("failover-%d", time.Now().Unix()),
 
 		SourceRegion: drm.config.BackupStorage.Region,
 
 		TargetRegion: targetRegion,
 
-		StartTime:    time.Now(),
+		StartTime: time.Now(),
 
-		Steps:        drm.createFailoverSteps(targetRegion),
-
+		Steps: drm.createFailoverSteps(targetRegion),
 	}
-
-
 
 	// Execute failover.
 
 	for _, step := range plan.Steps {
 
 		drm.logger.Info("Executing failover step", "step", step.Name)
-
-
 
 		if err := step.Execute(ctx); err != nil {
 
@@ -1215,19 +970,13 @@ func (drm *DisasterRecoveryManager) Failover(ctx context.Context, targetRegion s
 
 	}
 
-
-
 	// Update configuration.
 
 	drm.config.BackupStorage.Region = targetRegion
 
-
-
 	// Notify completion.
 
 	drm.notifier.NotifyFailoverComplete(plan)
-
-
 
 	drm.logger.Info("Failover completed successfully", "targetRegion", targetRegion)
 
@@ -1235,11 +984,7 @@ func (drm *DisasterRecoveryManager) Failover(ctx context.Context, targetRegion s
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (drm *DisasterRecoveryManager) calculateChecksum(backup *Backup) string {
 
@@ -1251,15 +996,11 @@ func (drm *DisasterRecoveryManager) calculateChecksum(backup *Backup) string {
 
 }
 
-
-
 func (drm *DisasterRecoveryManager) updateMetrics(backup, restore *Backup) {
 
 	drm.metrics.mu.Lock()
 
 	defer drm.metrics.mu.Unlock()
-
-
 
 	if backup != nil {
 
@@ -1277,8 +1018,6 @@ func (drm *DisasterRecoveryManager) updateMetrics(backup, restore *Backup) {
 
 	}
 
-
-
 	if restore != nil {
 
 		drm.metrics.LastRestoreTime = time.Now()
@@ -1287,15 +1026,11 @@ func (drm *DisasterRecoveryManager) updateMetrics(backup, restore *Backup) {
 
 	}
 
-
-
 	// Calculate RPO.
 
 	drm.metrics.CurrentRPO = time.Since(drm.metrics.LastBackupTime)
 
 }
-
-
 
 func (drm *DisasterRecoveryManager) cleanupOldBackups(ctx context.Context) {
 
@@ -1304,8 +1039,6 @@ func (drm *DisasterRecoveryManager) cleanupOldBackups(ctx context.Context) {
 	drm.logger.Info("Cleaning up old backups based on retention policy")
 
 }
-
-
 
 func (drm *DisasterRecoveryManager) isValidFailoverRegion(region string) bool {
 
@@ -1323,21 +1056,15 @@ func (drm *DisasterRecoveryManager) isValidFailoverRegion(region string) bool {
 
 }
 
-
-
 // S3BackupStore implements BackupStore for AWS S3.
 
 type S3BackupStore struct {
-
 	config *BackupStorageConf
 
 	client *s3.Client
 
 	logger *slog.Logger
-
 }
-
-
 
 // NewS3BackupStore creates a new S3 backup store.
 
@@ -1345,17 +1072,12 @@ func NewS3BackupStore(backupConfig BackupStorageConf, logger *slog.Logger) *S3Ba
 
 	ctx := context.TODO()
 
-
-
 	// Configure AWS config options.
 
 	configOptions := []func(*config.LoadOptions) error{
 
 		config.WithRegion(backupConfig.Region),
-
 	}
-
-
 
 	// Check for AWS profile configuration.
 
@@ -1369,8 +1091,6 @@ func NewS3BackupStore(backupConfig BackupStorageConf, logger *slog.Logger) *S3Ba
 
 	}
 
-
-
 	if awsProfile != "" {
 
 		logger.Info("Using AWS profile for authentication", "profile", awsProfile)
@@ -1382,8 +1102,6 @@ func NewS3BackupStore(backupConfig BackupStorageConf, logger *slog.Logger) *S3Ba
 		logger.Info("Using default AWS credential chain (IRSA, instance profile, or environment variables)")
 
 	}
-
-
 
 	// Configure retry policy with exponential backoff.
 
@@ -1401,8 +1119,6 @@ func NewS3BackupStore(backupConfig BackupStorageConf, logger *slog.Logger) *S3Ba
 
 	}))
 
-
-
 	cfg, err := config.LoadDefaultConfig(ctx, configOptions...)
 
 	if err != nil {
@@ -1418,12 +1134,9 @@ func NewS3BackupStore(backupConfig BackupStorageConf, logger *slog.Logger) *S3Ba
 			client: nil,
 
 			logger: logger,
-
 		}
 
 	}
-
-
 
 	return &S3BackupStore{
 
@@ -1432,12 +1145,9 @@ func NewS3BackupStore(backupConfig BackupStorageConf, logger *slog.Logger) *S3Ba
 		client: s3.NewFromConfig(cfg),
 
 		logger: logger,
-
 	}
 
 }
-
-
 
 // Upload uploads backup to S3 with retry logic.
 
@@ -1449,8 +1159,6 @@ func (s *S3BackupStore) Upload(ctx context.Context, backup *Backup) error {
 
 	}
 
-
-
 	// Marshal backup metadata.
 
 	data, err := json.Marshal(backup)
@@ -1461,15 +1169,9 @@ func (s *S3BackupStore) Upload(ctx context.Context, backup *Backup) error {
 
 	}
 
-
-
 	key := filepath.Join(s.config.Path, backup.ID, "metadata.json")
 
-
-
 	s.logger.Info("Uploading backup to S3", "bucket", s.config.Bucket, "key", key, "backupID", backup.ID)
-
-
 
 	// Upload with automatic retry (configured in client).
 
@@ -1477,10 +1179,9 @@ func (s *S3BackupStore) Upload(ctx context.Context, backup *Backup) error {
 
 		Bucket: aws.String(s.config.Bucket),
 
-		Key:    aws.String(key),
+		Key: aws.String(key),
 
-		Body:   strings.NewReader(string(data)),
-
+		Body: strings.NewReader(string(data)),
 	})
 
 	if err != nil {
@@ -1491,15 +1192,11 @@ func (s *S3BackupStore) Upload(ctx context.Context, backup *Backup) error {
 
 	}
 
-
-
 	s.logger.Info("Successfully uploaded backup to S3", "bucket", s.config.Bucket, "key", key, "backupID", backup.ID)
 
 	return nil
 
 }
-
-
 
 // Additional stub implementations for interfaces.
 
@@ -1511,8 +1208,6 @@ func NewGCSBackupStore(config BackupStorageConf, logger *slog.Logger) BackupStor
 
 }
 
-
-
 // NewAzureBackupStore performs newazurebackupstore operation.
 
 func NewAzureBackupStore(config BackupStorageConf, logger *slog.Logger) BackupStore {
@@ -1523,105 +1218,77 @@ func NewAzureBackupStore(config BackupStorageConf, logger *slog.Logger) BackupSt
 
 }
 
-
-
 // Supporting types.
-
-
 
 // RestorePlan represents a restoreplan.
 
 type RestorePlan struct {
-
 	Steps []RestoreStep
-
 }
-
-
 
 // RestoreStep represents a restorestep.
 
 type RestoreStep struct {
-
-	Name     string
+	Name string
 
 	Critical bool
 
-	Execute  func(context.Context, *Backup) error
-
+	Execute func(context.Context, *Backup) error
 }
-
-
 
 // RecoveryTestResult represents a recoverytestresult.
 
 type RecoveryTestResult struct {
+	ID string `json:"id"`
 
-	ID            string                `json:"id"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime     time.Time             `json:"start_time"`
+	EndTime time.Time `json:"end_time"`
 
-	EndTime       time.Time             `json:"end_time"`
+	Duration time.Duration `json:"duration"`
 
-	Duration      time.Duration         `json:"duration"`
+	Tests map[string]TestResult `json:"tests"`
 
-	Tests         map[string]TestResult `json:"tests"`
-
-	OverallStatus string                `json:"overall_status"`
-
+	OverallStatus string `json:"overall_status"`
 }
-
-
 
 // TestResult represents a testresult.
 
 type TestResult struct {
+	Name string `json:"name"`
 
-	Name     string        `json:"name"`
-
-	Status   string        `json:"status"`
+	Status string `json:"status"`
 
 	Duration time.Duration `json:"duration"`
 
-	Error    string        `json:"error,omitempty"`
-
+	Error string `json:"error,omitempty"`
 }
-
-
 
 // FailoverPlan represents a failoverplan.
 
 type FailoverPlan struct {
+	ID string `json:"id"`
 
-	ID           string         `json:"id"`
+	SourceRegion string `json:"source_region"`
 
-	SourceRegion string         `json:"source_region"`
+	TargetRegion string `json:"target_region"`
 
-	TargetRegion string         `json:"target_region"`
+	StartTime time.Time `json:"start_time"`
 
-	StartTime    time.Time      `json:"start_time"`
+	EndTime time.Time `json:"end_time"`
 
-	EndTime      time.Time      `json:"end_time"`
-
-	Steps        []FailoverStep `json:"steps"`
-
+	Steps []FailoverStep `json:"steps"`
 }
-
-
 
 // FailoverStep represents a failoverstep.
 
 type FailoverStep struct {
-
-	Name     string
+	Name string
 
 	Critical bool
 
-	Execute  func(context.Context) error
-
+	Execute func(context.Context) error
 }
-
-
 
 // Method stubs for compilation.
 
@@ -1631,15 +1298,11 @@ func (drm *DisasterRecoveryManager) backupConfigMapsSecrets(ctx context.Context,
 
 }
 
-
-
 func (drm *DisasterRecoveryManager) backupWeaviateDatabase(ctx context.Context, backup *ComponentBackup) error {
 
 	return nil
 
 }
-
-
 
 func (drm *DisasterRecoveryManager) backupPrometheusMetrics(ctx context.Context, backup *ComponentBackup) error {
 
@@ -1647,15 +1310,11 @@ func (drm *DisasterRecoveryManager) backupPrometheusMetrics(ctx context.Context,
 
 }
 
-
-
 func (drm *DisasterRecoveryManager) backupApplicationState(ctx context.Context, backup *ComponentBackup) error {
 
 	return nil
 
 }
-
-
 
 func (drm *DisasterRecoveryManager) createRestorePlan(backup *Backup) *RestorePlan {
 
@@ -1663,21 +1322,15 @@ func (drm *DisasterRecoveryManager) createRestorePlan(backup *Backup) *RestorePl
 
 }
 
-
-
 func (drm *DisasterRecoveryManager) executeRestoreStep(ctx context.Context, step RestoreStep, backup *Backup) error {
 
 	return nil
 
 }
 
-
-
 func (drm *DisasterRecoveryManager) rollbackRestore(ctx context.Context, plan *RestorePlan, failedStep RestoreStep) {
 
 }
-
-
 
 func (drm *DisasterRecoveryManager) verifyRestoration(ctx context.Context, backup *Backup) error {
 
@@ -1685,21 +1338,15 @@ func (drm *DisasterRecoveryManager) verifyRestoration(ctx context.Context, backu
 
 }
 
-
-
 func (drm *DisasterRecoveryManager) createFailoverSteps(targetRegion string) []FailoverStep {
 
 	return []FailoverStep{}
 
 }
 
-
-
 func (drm *DisasterRecoveryManager) collectMetrics(ctx context.Context) {
 
 }
-
-
 
 func (drm *DisasterRecoveryManager) testBackupCreation(ctx context.Context) TestResult {
 
@@ -1707,15 +1354,11 @@ func (drm *DisasterRecoveryManager) testBackupCreation(ctx context.Context) Test
 
 }
 
-
-
 func (drm *DisasterRecoveryManager) testBackupValidation(ctx context.Context) TestResult {
 
 	return TestResult{Name: "backup_validation", Status: "passed"}
 
 }
-
-
 
 func (drm *DisasterRecoveryManager) testRestoreProcedure(ctx context.Context) TestResult {
 
@@ -1723,15 +1366,11 @@ func (drm *DisasterRecoveryManager) testRestoreProcedure(ctx context.Context) Te
 
 }
 
-
-
 func (drm *DisasterRecoveryManager) testFailoverCapability(ctx context.Context) TestResult {
 
 	return TestResult{Name: "failover_capability", Status: "passed"}
 
 }
-
-
 
 // ValidateBackup performs validatebackup operation.
 
@@ -1741,8 +1380,6 @@ func (bv *BackupValidator) ValidateBackup(backup *Backup) error {
 
 }
 
-
-
 // CreateSnapshot performs createsnapshot operation.
 
 func (sm *SnapshotManager) CreateSnapshot(ctx context.Context, pv *corev1.PersistentVolume) (*VolumeSnapshot, error) {
@@ -1750,8 +1387,6 @@ func (sm *SnapshotManager) CreateSnapshot(ctx context.Context, pv *corev1.Persis
 	return &VolumeSnapshot{Size: 1024}, nil
 
 }
-
-
 
 // Start performs start operation.
 
@@ -1761,8 +1396,6 @@ func (bs *BackupScheduler) Start(ctx context.Context) error {
 
 }
 
-
-
 // ScheduleRecoveryTests performs schedulerecoverytests operation.
 
 func (bs *BackupScheduler) ScheduleRecoveryTests(ctx context.Context, schedule string) error {
@@ -1771,15 +1404,11 @@ func (bs *BackupScheduler) ScheduleRecoveryTests(ctx context.Context, schedule s
 
 }
 
-
-
 // NotifyBackupSuccess performs notifybackupsuccess operation.
 
 func (rn *RecoveryNotifier) NotifyBackupSuccess(backup *Backup) {
 
 }
-
-
 
 // NotifyBackupFailure performs notifybackupfailure operation.
 
@@ -1787,15 +1416,11 @@ func (rn *RecoveryNotifier) NotifyBackupFailure(backup *Backup, errors []error) 
 
 }
 
-
-
 // NotifyRestoreSuccess performs notifyrestoresuccess operation.
 
 func (rn *RecoveryNotifier) NotifyRestoreSuccess(backup *Backup) {
 
 }
-
-
 
 // NotifyRecoveryTestResult performs notifyrecoverytestresult operation.
 
@@ -1803,23 +1428,17 @@ func (rn *RecoveryNotifier) NotifyRecoveryTestResult(result *RecoveryTestResult)
 
 }
 
-
-
 // NotifyFailoverComplete performs notifyfailovercomplete operation.
 
 func (rn *RecoveryNotifier) NotifyFailoverComplete(plan *FailoverPlan) {
 
 }
 
-
-
 func (rtr *RecoveryTestResult) calculateOverallStatus() {
 
 	rtr.OverallStatus = "passed"
 
 }
-
-
 
 // Download downloads backup from S3 with retry logic.
 
@@ -1831,15 +1450,9 @@ func (s *S3BackupStore) Download(ctx context.Context, backupID string) (*Backup,
 
 	}
 
-
-
 	key := filepath.Join(s.config.Path, backupID, "metadata.json")
 
-
-
 	s.logger.Info("Downloading backup from S3", "bucket", s.config.Bucket, "key", key, "backupID", backupID)
-
-
 
 	// Download with automatic retry (configured in client).
 
@@ -1847,8 +1460,7 @@ func (s *S3BackupStore) Download(ctx context.Context, backupID string) (*Backup,
 
 		Bucket: aws.String(s.config.Bucket),
 
-		Key:    aws.String(key),
-
+		Key: aws.String(key),
 	})
 
 	if err != nil {
@@ -1861,8 +1473,6 @@ func (s *S3BackupStore) Download(ctx context.Context, backupID string) (*Backup,
 
 	defer result.Body.Close()
 
-
-
 	// Read and unmarshal backup data.
 
 	data, err := io.ReadAll(result.Body)
@@ -1873,8 +1483,6 @@ func (s *S3BackupStore) Download(ctx context.Context, backupID string) (*Backup,
 
 	}
 
-
-
 	var backup Backup
 
 	if err := json.Unmarshal(data, &backup); err != nil {
@@ -1883,15 +1491,11 @@ func (s *S3BackupStore) Download(ctx context.Context, backupID string) (*Backup,
 
 	}
 
-
-
 	s.logger.Info("Successfully downloaded backup from S3", "bucket", s.config.Bucket, "key", key, "backupID", backupID)
 
 	return &backup, nil
 
 }
-
-
 
 // List lists all backups in S3 with retry logic.
 
@@ -1903,11 +1507,7 @@ func (s *S3BackupStore) List(ctx context.Context) ([]*BackupMetadata, error) {
 
 	}
 
-
-
 	s.logger.Info("Listing backups from S3", "bucket", s.config.Bucket, "prefix", s.config.Path)
-
-
 
 	// List objects with automatic retry (configured in client).
 
@@ -1916,7 +1516,6 @@ func (s *S3BackupStore) List(ctx context.Context) ([]*BackupMetadata, error) {
 		Bucket: aws.String(s.config.Bucket),
 
 		Prefix: aws.String(s.config.Path),
-
 	})
 
 	if err != nil {
@@ -1926,8 +1525,6 @@ func (s *S3BackupStore) List(ctx context.Context) ([]*BackupMetadata, error) {
 		return nil, fmt.Errorf("failed to list objects from S3: %w", err)
 
 	}
-
-
 
 	var backups []*BackupMetadata
 
@@ -1943,8 +1540,6 @@ func (s *S3BackupStore) List(ctx context.Context) ([]*BackupMetadata, error) {
 
 		}
 
-
-
 		// Extract backup ID from path.
 
 		parts := strings.Split(key, "/")
@@ -1957,37 +1552,30 @@ func (s *S3BackupStore) List(ctx context.Context) ([]*BackupMetadata, error) {
 
 		backupID := parts[len(parts)-2]
 
-
-
 		backups = append(backups, &BackupMetadata{
 
-			ID:        backupID,
+			ID: backupID,
 
-			Type:      "full", // Default type
+			Type: "full", // Default type
 
-			Status:    "completed",
+			Status: "completed",
 
 			CreatedAt: aws.ToTime(object.LastModified),
 
-			Size:      aws.ToInt64(object.Size),
+			Size: aws.ToInt64(object.Size),
 
-			Region:    s.config.Region,
+			Region: s.config.Region,
 
-			Tags:      make(map[string]string),
-
+			Tags: make(map[string]string),
 		})
 
 	}
-
-
 
 	s.logger.Info("Successfully listed backups from S3", "bucket", s.config.Bucket, "count", len(backups))
 
 	return backups, nil
 
 }
-
-
 
 // Delete deletes backup from S3 with retry logic.
 
@@ -1999,24 +1587,17 @@ func (s *S3BackupStore) Delete(ctx context.Context, backupID string) error {
 
 	}
 
-
-
 	// First, list all objects with the backup prefix.
 
 	prefix := filepath.Join(s.config.Path, backupID)
 
-
-
 	s.logger.Info("Deleting backup from S3", "bucket", s.config.Bucket, "prefix", prefix, "backupID", backupID)
-
-
 
 	result, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
 
 		Bucket: aws.String(s.config.Bucket),
 
 		Prefix: aws.String(prefix),
-
 	})
 
 	if err != nil {
@@ -2026,8 +1607,6 @@ func (s *S3BackupStore) Delete(ctx context.Context, backupID string) error {
 		return fmt.Errorf("failed to list objects for deletion: %w", err)
 
 	}
-
-
 
 	// Delete each object with automatic retry (configured in client).
 
@@ -2039,8 +1618,7 @@ func (s *S3BackupStore) Delete(ctx context.Context, backupID string) error {
 
 			Bucket: aws.String(s.config.Bucket),
 
-			Key:    aws.String(key),
-
+			Key: aws.String(key),
 		})
 
 		if err != nil {
@@ -2053,15 +1631,11 @@ func (s *S3BackupStore) Delete(ctx context.Context, backupID string) error {
 
 	}
 
-
-
 	s.logger.Info("Successfully deleted backup from S3", "bucket", s.config.Bucket, "prefix", prefix, "backupID", backupID)
 
 	return nil
 
 }
-
-
 
 // Verify verifies backup integrity in S3 with retry logic.
 
@@ -2073,15 +1647,9 @@ func (s *S3BackupStore) Verify(ctx context.Context, backupID string) error {
 
 	}
 
-
-
 	key := filepath.Join(s.config.Path, backupID, "metadata.json")
 
-
-
 	s.logger.Info("Verifying backup in S3", "bucket", s.config.Bucket, "key", key, "backupID", backupID)
-
-
 
 	// Check if object exists with automatic retry (configured in client).
 
@@ -2089,8 +1657,7 @@ func (s *S3BackupStore) Verify(ctx context.Context, backupID string) error {
 
 		Bucket: aws.String(s.config.Bucket),
 
-		Key:    aws.String(key),
-
+		Key: aws.String(key),
 	})
 
 	if err != nil {
@@ -2100,8 +1667,6 @@ func (s *S3BackupStore) Verify(ctx context.Context, backupID string) error {
 		return fmt.Errorf("failed to verify backup in S3: %w", err)
 
 	}
-
-
 
 	// Download and validate backup metadata.
 
@@ -2113,8 +1678,6 @@ func (s *S3BackupStore) Verify(ctx context.Context, backupID string) error {
 
 	}
 
-
-
 	// Basic validation.
 
 	if backup.ID != backupID {
@@ -2123,15 +1686,11 @@ func (s *S3BackupStore) Verify(ctx context.Context, backupID string) error {
 
 	}
 
-
-
 	if backup.Status != "completed" {
 
 		return fmt.Errorf("backup is not in completed status: %s", backup.Status)
 
 	}
-
-
 
 	s.logger.Info("Successfully verified backup in S3", "bucket", s.config.Bucket, "key", key, "backupID", backupID)
 
@@ -2139,13 +1698,8 @@ func (s *S3BackupStore) Verify(ctx context.Context, backupID string) error {
 
 }
 
-
-
 // VolumeSnapshot represents a volumesnapshot.
 
 type VolumeSnapshot struct {
-
 	Size int64
-
 }
-

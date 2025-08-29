@@ -1,449 +1,358 @@
-
 package oran
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"sync"
-
 	"time"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // SMOManager manages Service Management and Orchestration integration.
 
 type SMOManager struct {
+	mu sync.RWMutex
 
-	mu              sync.RWMutex
+	config *SMOConfig
 
-	config          *SMOConfig
+	httpClient *http.Client
 
-	httpClient      *http.Client
-
-	policyManager   *PolicyManager
+	policyManager *PolicyManager
 
 	serviceRegistry *ServiceRegistry
 
-	orchestrator    *ServiceOrchestrator
+	orchestrator *ServiceOrchestrator
 
-	connected       bool
-
+	connected bool
 }
-
-
 
 // SMOConfig holds SMO configuration.
 
 type SMOConfig struct {
+	Endpoint string `json:"endpoint"`
 
-	Endpoint        string            `json:"endpoint"`
+	Username string `json:"username"`
 
-	Username        string            `json:"username"`
+	Password string `json:"password"`
 
-	Password        string            `json:"password"`
+	TLSConfig *TLSConfig `json:"tls_config"`
 
-	TLSConfig       *TLSConfig        `json:"tls_config"`
+	APIVersion string `json:"api_version"`
 
-	APIVersion      string            `json:"api_version"`
+	RetryCount int `json:"retry_count"`
 
-	RetryCount      int               `json:"retry_count"`
+	RetryDelay time.Duration `json:"retry_delay"`
 
-	RetryDelay      time.Duration     `json:"retry_delay"`
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout         time.Duration     `json:"timeout"`
+	ExtraHeaders map[string]string `json:"extra_headers"`
 
-	ExtraHeaders    map[string]string `json:"extra_headers"`
-
-	HealthCheckPath string            `json:"health_check_path"`
-
+	HealthCheckPath string `json:"health_check_path"`
 }
-
-
 
 // PolicyManager manages A1 policy orchestration with SMO.
 
 type PolicyManager struct {
+	mu sync.RWMutex
 
-	mu             sync.RWMutex
+	smoClient *SMOClient
 
-	smoClient      *SMOClient
+	policies map[string]*A1Policy
 
-	policies       map[string]*A1Policy
+	policyTypes map[string]*A1PolicyType
 
-	policyTypes    map[string]*A1PolicyType
-
-	subscriptions  map[string]*PolicySubscription
+	subscriptions map[string]*PolicySubscription
 
 	eventCallbacks map[string]func(*PolicyEvent)
-
 }
-
-
 
 // ServiceRegistry manages service discovery and registration with SMO.
 
 type ServiceRegistry struct {
+	mu sync.RWMutex
 
-	mu                 sync.RWMutex
-
-	smoClient          *SMOClient
+	smoClient *SMOClient
 
 	registeredServices map[string]*ServiceInstance
 
 	discoveredServices map[string]*ServiceInstance
 
-	healthCheckers     map[string]*ServiceHealthChecker
-
+	healthCheckers map[string]*ServiceHealthChecker
 }
-
-
 
 // ServiceOrchestrator manages Non-RT RIC service orchestration.
 
 type ServiceOrchestrator struct {
+	mu sync.RWMutex
 
-	mu             sync.RWMutex
+	smoClient *SMOClient
 
-	smoClient      *SMOClient
+	rApps map[string]*RAppInstance
 
-	rApps          map[string]*RAppInstance
-
-	workflows      map[string]*OrchestrationWorkflow
+	workflows map[string]*OrchestrationWorkflow
 
 	lifecycleHooks map[string][]LifecycleHook
-
 }
-
-
 
 // SMOClient handles HTTP communication with SMO.
 
 type SMOClient struct {
-
-	baseURL    string
+	baseURL string
 
 	httpClient *http.Client
 
-	auth       *AuthConfig
+	auth *AuthConfig
 
-	headers    map[string]string
-
+	headers map[string]string
 }
-
-
 
 // Policy management types.
 
 type A1Policy struct {
+	ID string `json:"id"`
 
-	ID          string                 `json:"id"`
+	TypeID string `json:"type_id"`
 
-	TypeID      string                 `json:"type_id"`
+	Version string `json:"version"`
 
-	Version     string                 `json:"version"`
+	Description string `json:"description"`
 
-	Description string                 `json:"description"`
+	Status string `json:"status"` // ACTIVE, INACTIVE, ENFORCING
 
-	Status      string                 `json:"status"` // ACTIVE, INACTIVE, ENFORCING
+	Data map[string]interface{} `json:"data"`
 
-	Data        map[string]interface{} `json:"data"`
+	TargetRICs []string `json:"target_rics"`
 
-	TargetRICs  []string               `json:"target_rics"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt   time.Time              `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 
-	UpdatedAt   time.Time              `json:"updated_at"`
+	EnforcedAt *time.Time `json:"enforced_at,omitempty"`
 
-	EnforcedAt  *time.Time             `json:"enforced_at,omitempty"`
-
-	Metadata    map[string]string      `json:"metadata"`
-
+	Metadata map[string]string `json:"metadata"`
 }
-
-
 
 // A1PolicyType represents a a1policytype.
 
 type A1PolicyType struct {
+	ID string `json:"id"`
 
-	ID            string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name          string                 `json:"name"`
+	Version string `json:"version"`
 
-	Version       string                 `json:"version"`
+	Description string `json:"description"`
 
-	Description   string                 `json:"description"`
+	Schema map[string]interface{} `json:"schema"`
 
-	Schema        map[string]interface{} `json:"schema"`
+	SupportedRICs []string `json:"supported_rics"`
 
-	SupportedRICs []string               `json:"supported_rics"`
-
-	CreatedAt     time.Time              `json:"created_at"`
-
+	CreatedAt time.Time `json:"created_at"`
 }
-
-
 
 // PolicySubscription represents a policysubscription.
 
 type PolicySubscription struct {
+	ID string `json:"id"`
 
-	ID         string             `json:"id"`
+	PolicyID string `json:"policy_id"`
 
-	PolicyID   string             `json:"policy_id"`
+	Subscriber string `json:"subscriber"`
 
-	Subscriber string             `json:"subscriber"`
+	Events []string `json:"events"`
 
-	Events     []string           `json:"events"`
+	Callback func(*PolicyEvent) `json:"-"`
 
-	Callback   func(*PolicyEvent) `json:"-"`
-
-	CreatedAt  time.Time          `json:"created_at"`
-
+	CreatedAt time.Time `json:"created_at"`
 }
-
-
 
 // PolicyEvent represents a policyevent.
 
 type PolicyEvent struct {
+	ID string `json:"id"`
 
-	ID        string                 `json:"id"`
+	Type string `json:"type"` // CREATED, UPDATED, DELETED, VIOLATED
 
-	Type      string                 `json:"type"` // CREATED, UPDATED, DELETED, VIOLATED
+	PolicyID string `json:"policy_id"`
 
-	PolicyID  string                 `json:"policy_id"`
+	RIC string `json:"ric"`
 
-	RIC       string                 `json:"ric"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time              `json:"timestamp"`
+	Data map[string]interface{} `json:"data"`
 
-	Data      map[string]interface{} `json:"data"`
-
-	Severity  string                 `json:"severity"`
-
+	Severity string `json:"severity"`
 }
-
-
 
 // Service management types.
 
 type ServiceInstance struct {
+	ID string `json:"id"`
 
-	ID            string             `json:"id"`
+	Name string `json:"name"`
 
-	Name          string             `json:"name"`
+	Type string `json:"type"` // RIC, xApp, rApp
 
-	Type          string             `json:"type"` // RIC, xApp, rApp
+	Version string `json:"version"`
 
-	Version       string             `json:"version"`
+	Endpoint string `json:"endpoint"`
 
-	Endpoint      string             `json:"endpoint"`
+	Status string `json:"status"` // REGISTERED, ACTIVE, INACTIVE, FAILED
 
-	Status        string             `json:"status"` // REGISTERED, ACTIVE, INACTIVE, FAILED
+	Capabilities []string `json:"capabilities"`
 
-	Capabilities  []string           `json:"capabilities"`
+	Metadata map[string]string `json:"metadata"`
 
-	Metadata      map[string]string  `json:"metadata"`
+	HealthCheck *HealthCheckConfig `json:"health_check"`
 
-	HealthCheck   *HealthCheckConfig `json:"health_check"`
+	RegisteredAt time.Time `json:"registered_at"`
 
-	RegisteredAt  time.Time          `json:"registered_at"`
-
-	LastHeartbeat time.Time          `json:"last_heartbeat"`
-
+	LastHeartbeat time.Time `json:"last_heartbeat"`
 }
-
-
 
 // ServiceHealthChecker represents a servicehealthchecker.
 
 type ServiceHealthChecker struct {
-
 	serviceID string
 
-	config    *HealthCheckConfig
+	config *HealthCheckConfig
 
-	status    string
+	status string
 
 	lastCheck time.Time
 
-	failures  int
+	failures int
 
-	stopCh    chan struct{}
-
+	stopCh chan struct{}
 }
-
-
 
 // HealthCheckConfig represents a healthcheckconfig.
 
 type HealthCheckConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled          bool          `json:"enabled"`
+	Path string `json:"path"`
 
-	Path             string        `json:"path"`
+	Interval time.Duration `json:"interval"`
 
-	Interval         time.Duration `json:"interval"`
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout          time.Duration `json:"timeout"`
+	FailureThreshold int `json:"failure_threshold"`
 
-	FailureThreshold int           `json:"failure_threshold"`
-
-	SuccessThreshold int           `json:"success_threshold"`
-
+	SuccessThreshold int `json:"success_threshold"`
 }
-
-
 
 // rApp orchestration types.
 
 type RAppInstance struct {
+	ID string `json:"id"`
 
-	ID            string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name          string                 `json:"name"`
+	Type string `json:"type"`
 
-	Type          string                 `json:"type"`
+	Version string `json:"version"`
 
-	Version       string                 `json:"version"`
+	Image string `json:"image"`
 
-	Image         string                 `json:"image"`
-
-	Status        string                 `json:"status"` // DEPLOYING, RUNNING, STOPPED, FAILED
+	Status string `json:"status"` // DEPLOYING, RUNNING, STOPPED, FAILED
 
 	Configuration map[string]interface{} `json:"configuration"`
 
-	Resources     *ResourceRequirements  `json:"resources"`
+	Resources *ResourceRequirements `json:"resources"`
 
-	Dependencies  []string               `json:"dependencies"`
+	Dependencies []string `json:"dependencies"`
 
-	Lifecycle     *LifecycleConfig       `json:"lifecycle"`
+	Lifecycle *LifecycleConfig `json:"lifecycle"`
 
-	CreatedAt     time.Time              `json:"created_at"`
+	CreatedAt time.Time `json:"created_at"`
 
-	StartedAt     *time.Time             `json:"started_at,omitempty"`
-
+	StartedAt *time.Time `json:"started_at,omitempty"`
 }
-
-
 
 // OrchestrationWorkflow represents a orchestrationworkflow.
 
 type OrchestrationWorkflow struct {
+	ID string `json:"id"`
 
-	ID          string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name        string                 `json:"name"`
+	Description string `json:"description"`
 
-	Description string                 `json:"description"`
+	Steps []*WorkflowStep `json:"steps"`
 
-	Steps       []*WorkflowStep        `json:"steps"`
+	Status string `json:"status"` // PENDING, RUNNING, COMPLETED, FAILED
 
-	Status      string                 `json:"status"` // PENDING, RUNNING, COMPLETED, FAILED
+	Context map[string]interface{} `json:"context"`
 
-	Context     map[string]interface{} `json:"context"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt   time.Time              `json:"created_at"`
+	StartedAt *time.Time `json:"started_at,omitempty"`
 
-	StartedAt   *time.Time             `json:"started_at,omitempty"`
-
-	CompletedAt *time.Time             `json:"completed_at,omitempty"`
-
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
 }
-
-
 
 // WorkflowStep represents a workflowstep.
 
 type WorkflowStep struct {
+	ID string `json:"id"`
 
-	ID           string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name         string                 `json:"name"`
+	Type string `json:"type"` // DEPLOY, CONFIGURE, VALIDATE, NOTIFICATION
 
-	Type         string                 `json:"type"` // DEPLOY, CONFIGURE, VALIDATE, NOTIFICATION
+	Action string `json:"action"`
 
-	Action       string                 `json:"action"`
+	Parameters map[string]interface{} `json:"parameters"`
 
-	Parameters   map[string]interface{} `json:"parameters"`
+	Dependencies []string `json:"dependencies"`
 
-	Dependencies []string               `json:"dependencies"`
+	Status string `json:"status"` // PENDING, RUNNING, COMPLETED, FAILED
 
-	Status       string                 `json:"status"` // PENDING, RUNNING, COMPLETED, FAILED
+	Output map[string]interface{} `json:"output,omitempty"`
 
-	Output       map[string]interface{} `json:"output,omitempty"`
-
-	Error        string                 `json:"error,omitempty"`
-
+	Error string `json:"error,omitempty"`
 }
-
-
 
 // ResourceRequirements represents a resourcerequirements.
 
 type ResourceRequirements struct {
+	CPU string `json:"cpu"`
 
-	CPU     string `json:"cpu"`
-
-	Memory  string `json:"memory"`
+	Memory string `json:"memory"`
 
 	Storage string `json:"storage"`
-
 }
-
-
 
 // LifecycleConfig represents a lifecycleconfig.
 
 type LifecycleConfig struct {
-
-	PreStart  []LifecycleHook `json:"pre_start"`
+	PreStart []LifecycleHook `json:"pre_start"`
 
 	PostStart []LifecycleHook `json:"post_start"`
 
-	PreStop   []LifecycleHook `json:"pre_stop"`
+	PreStop []LifecycleHook `json:"pre_stop"`
 
-	PostStop  []LifecycleHook `json:"post_stop"`
-
+	PostStop []LifecycleHook `json:"post_stop"`
 }
-
-
 
 // LifecycleHook represents a lifecyclehook.
 
 type LifecycleHook struct {
+	Name string `json:"name"`
 
-	Name    string                 `json:"name"`
+	Type string `json:"type"` // COMMAND, HTTP, SCRIPT
 
-	Type    string                 `json:"type"` // COMMAND, HTTP, SCRIPT
+	Action string `json:"action"`
 
-	Action  string                 `json:"action"`
+	Params map[string]interface{} `json:"params"`
 
-	Params  map[string]interface{} `json:"params"`
-
-	Timeout time.Duration          `json:"timeout"`
-
+	Timeout time.Duration `json:"timeout"`
 }
-
-
 
 // NewSMOManager creates a new SMO manager.
 
@@ -454,8 +363,6 @@ func NewSMOManager(config *SMOConfig) (*SMOManager, error) {
 		return nil, fmt.Errorf("SMO configuration is required")
 
 	}
-
-
 
 	// Set defaults.
 
@@ -489,15 +396,10 @@ func NewSMOManager(config *SMOConfig) (*SMOManager, error) {
 
 	}
 
-
-
 	httpClient := &http.Client{
 
 		Timeout: config.Timeout,
-
 	}
-
-
 
 	// Configure TLS if provided.
 
@@ -507,83 +409,69 @@ func NewSMOManager(config *SMOConfig) (*SMOManager, error) {
 
 	}
 
-
-
 	smoClient := &SMOClient{
 
-		baseURL:    config.Endpoint,
+		baseURL: config.Endpoint,
 
 		httpClient: httpClient,
 
 		auth: &AuthConfig{
 
-			Type:     "basic",
+			Type: "basic",
 
 			Username: config.Username,
 
 			Password: config.Password,
-
 		},
 
 		headers: config.ExtraHeaders,
-
 	}
-
-
 
 	manager := &SMOManager{
 
-		config:     config,
+		config: config,
 
 		httpClient: httpClient,
 
 		policyManager: &PolicyManager{
 
-			smoClient:      smoClient,
+			smoClient: smoClient,
 
-			policies:       make(map[string]*A1Policy),
+			policies: make(map[string]*A1Policy),
 
-			policyTypes:    make(map[string]*A1PolicyType),
+			policyTypes: make(map[string]*A1PolicyType),
 
-			subscriptions:  make(map[string]*PolicySubscription),
+			subscriptions: make(map[string]*PolicySubscription),
 
 			eventCallbacks: make(map[string]func(*PolicyEvent)),
-
 		},
 
 		serviceRegistry: &ServiceRegistry{
 
-			smoClient:          smoClient,
+			smoClient: smoClient,
 
 			registeredServices: make(map[string]*ServiceInstance),
 
 			discoveredServices: make(map[string]*ServiceInstance),
 
-			healthCheckers:     make(map[string]*ServiceHealthChecker),
-
+			healthCheckers: make(map[string]*ServiceHealthChecker),
 		},
 
 		orchestrator: &ServiceOrchestrator{
 
-			smoClient:      smoClient,
+			smoClient: smoClient,
 
-			rApps:          make(map[string]*RAppInstance),
+			rApps: make(map[string]*RAppInstance),
 
-			workflows:      make(map[string]*OrchestrationWorkflow),
+			workflows: make(map[string]*OrchestrationWorkflow),
 
 			lifecycleHooks: make(map[string][]LifecycleHook),
-
 		},
-
 	}
-
-
 
 	return manager, nil
 
 }
-
-
 
 // Start starts the SMO manager.
 
@@ -593,8 +481,6 @@ func (sm *SMOManager) Start(ctx context.Context) error {
 
 	logger.Info("starting SMO manager", "endpoint", sm.config.Endpoint)
 
-
-
 	// Test connection to SMO.
 
 	if err := sm.testConnection(ctx); err != nil {
@@ -603,35 +489,25 @@ func (sm *SMOManager) Start(ctx context.Context) error {
 
 	}
 
-
-
 	sm.mu.Lock()
 
 	sm.connected = true
 
 	sm.mu.Unlock()
 
-
-
 	// Start service health checking.
 
 	go sm.serviceRegistry.startHealthChecking(ctx)
 
-
-
 	// Start policy event monitoring.
 
 	go sm.policyManager.startEventMonitoring(ctx)
-
-
 
 	logger.Info("SMO manager started successfully")
 
 	return nil
 
 }
-
-
 
 // Stop stops the SMO manager.
 
@@ -641,11 +517,7 @@ func (sm *SMOManager) Stop() {
 
 	defer sm.mu.Unlock()
 
-
-
 	sm.connected = false
-
-
 
 	// Stop health checkers.
 
@@ -657,15 +529,11 @@ func (sm *SMOManager) Stop() {
 
 }
 
-
-
 // testConnection tests connection to SMO.
 
 func (sm *SMOManager) testConnection(ctx context.Context) error {
 
 	url := fmt.Sprintf("%s%s", sm.config.Endpoint, sm.config.HealthCheckPath)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
 
@@ -675,8 +543,6 @@ func (sm *SMOManager) testConnection(ctx context.Context) error {
 
 	}
 
-
-
 	// Add authentication.
 
 	if sm.config.Username != "" && sm.config.Password != "" {
@@ -685,8 +551,6 @@ func (sm *SMOManager) testConnection(ctx context.Context) error {
 
 	}
 
-
-
 	// Add extra headers.
 
 	for key, value := range sm.config.ExtraHeaders {
@@ -694,8 +558,6 @@ func (sm *SMOManager) testConnection(ctx context.Context) error {
 		req.Header.Set(key, value)
 
 	}
-
-
 
 	resp, err := sm.httpClient.Do(req)
 
@@ -707,21 +569,15 @@ func (sm *SMOManager) testConnection(ctx context.Context) error {
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode >= 400 {
 
 		return fmt.Errorf("SMO health check failed with status: %d", resp.StatusCode)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // IsConnected returns true if connected to SMO.
 
@@ -735,11 +591,7 @@ func (sm *SMOManager) IsConnected() bool {
 
 }
 
-
-
 // Policy Management Methods.
-
-
 
 // CreatePolicy creates a new A1 policy.
 
@@ -749,8 +601,6 @@ func (pm *PolicyManager) CreatePolicy(ctx context.Context, policy *A1Policy) err
 
 	logger.Info("creating A1 policy", "policyID", policy.ID, "typeID", policy.TypeID)
 
-
-
 	// Validate policy type exists.
 
 	if _, exists := pm.policyTypes[policy.TypeID]; !exists {
@@ -759,8 +609,6 @@ func (pm *PolicyManager) CreatePolicy(ctx context.Context, policy *A1Policy) err
 
 	}
 
-
-
 	// Set timestamps.
 
 	policy.CreatedAt = time.Now()
@@ -768,8 +616,6 @@ func (pm *PolicyManager) CreatePolicy(ctx context.Context, policy *A1Policy) err
 	policy.UpdatedAt = time.Now()
 
 	policy.Status = "ACTIVE"
-
-
 
 	// Call SMO API to create policy.
 
@@ -781,23 +627,17 @@ func (pm *PolicyManager) CreatePolicy(ctx context.Context, policy *A1Policy) err
 
 	}
 
-
-
 	pm.mu.Lock()
 
 	pm.policies[policy.ID] = policy
 
 	pm.mu.Unlock()
 
-
-
 	logger.Info("A1 policy created successfully", "policyID", policy.ID)
 
 	return nil
 
 }
-
-
 
 // UpdatePolicy updates an existing A1 policy.
 
@@ -806,8 +646,6 @@ func (pm *PolicyManager) UpdatePolicy(ctx context.Context, policyID string, upda
 	logger := log.FromContext(ctx)
 
 	logger.Info("updating A1 policy", "policyID", policyID)
-
-
 
 	pm.mu.Lock()
 
@@ -820,8 +658,6 @@ func (pm *PolicyManager) UpdatePolicy(ctx context.Context, policyID string, upda
 		return fmt.Errorf("policy %s not found", policyID)
 
 	}
-
-
 
 	// Apply updates.
 
@@ -861,8 +697,6 @@ func (pm *PolicyManager) UpdatePolicy(ctx context.Context, policyID string, upda
 
 	pm.mu.Unlock()
 
-
-
 	// Call SMO API to update policy.
 
 	url := fmt.Sprintf("%s/api/%s/policies/%s", pm.smoClient.baseURL, "v1", policyID)
@@ -873,15 +707,11 @@ func (pm *PolicyManager) UpdatePolicy(ctx context.Context, policyID string, upda
 
 	}
 
-
-
 	logger.Info("A1 policy updated successfully", "policyID", policyID)
 
 	return nil
 
 }
-
-
 
 // DeletePolicy deletes an A1 policy.
 
@@ -890,8 +720,6 @@ func (pm *PolicyManager) DeletePolicy(ctx context.Context, policyID string) erro
 	logger := log.FromContext(ctx)
 
 	logger.Info("deleting A1 policy", "policyID", policyID)
-
-
 
 	pm.mu.Lock()
 
@@ -907,8 +735,6 @@ func (pm *PolicyManager) DeletePolicy(ctx context.Context, policyID string) erro
 
 	pm.mu.Unlock()
 
-
-
 	// Call SMO API to delete policy.
 
 	url := fmt.Sprintf("%s/api/%s/policies/%s", pm.smoClient.baseURL, "v1", policyID)
@@ -919,15 +745,11 @@ func (pm *PolicyManager) DeletePolicy(ctx context.Context, policyID string) erro
 
 	}
 
-
-
 	logger.Info("A1 policy deleted successfully", "policyID", policyID)
 
 	return nil
 
 }
-
-
 
 // GetPolicy retrieves an A1 policy.
 
@@ -937,8 +759,6 @@ func (pm *PolicyManager) GetPolicy(policyID string) (*A1Policy, error) {
 
 	defer pm.mu.RUnlock()
 
-
-
 	policy, exists := pm.policies[policyID]
 
 	if !exists {
@@ -947,13 +767,9 @@ func (pm *PolicyManager) GetPolicy(policyID string) (*A1Policy, error) {
 
 	}
 
-
-
 	return policy, nil
 
 }
-
-
 
 // ListPolicies lists all A1 policies.
 
@@ -963,8 +779,6 @@ func (pm *PolicyManager) ListPolicies() []*A1Policy {
 
 	defer pm.mu.RUnlock()
 
-
-
 	policies := make([]*A1Policy, 0, len(pm.policies))
 
 	for _, policy := range pm.policies {
@@ -973,13 +787,9 @@ func (pm *PolicyManager) ListPolicies() []*A1Policy {
 
 	}
 
-
-
 	return policies
 
 }
-
-
 
 // SubscribeToPolicyEvents subscribes to policy events.
 
@@ -987,21 +797,18 @@ func (pm *PolicyManager) SubscribeToPolicyEvents(ctx context.Context, policyID s
 
 	subscription := &PolicySubscription{
 
-		ID:         fmt.Sprintf("sub-%s-%d", policyID, time.Now().Unix()),
+		ID: fmt.Sprintf("sub-%s-%d", policyID, time.Now().Unix()),
 
-		PolicyID:   policyID,
+		PolicyID: policyID,
 
 		Subscriber: "nephoran-intent-operator",
 
-		Events:     events,
+		Events: events,
 
-		Callback:   callback,
+		Callback: callback,
 
-		CreatedAt:  time.Now(),
-
+		CreatedAt: time.Now(),
 	}
-
-
 
 	pm.mu.Lock()
 
@@ -1011,13 +818,9 @@ func (pm *PolicyManager) SubscribeToPolicyEvents(ctx context.Context, policyID s
 
 	pm.mu.Unlock()
 
-
-
 	return subscription, nil
 
 }
-
-
 
 // startEventMonitoring starts policy event monitoring.
 
@@ -1026,8 +829,6 @@ func (pm *PolicyManager) startEventMonitoring(ctx context.Context) {
 	ticker := time.NewTicker(10 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1049,8 +850,6 @@ func (pm *PolicyManager) startEventMonitoring(ctx context.Context) {
 
 }
 
-
-
 // pollPolicyEvents polls for policy events.
 
 func (pm *PolicyManager) pollPolicyEvents(ctx context.Context) {
@@ -1061,8 +860,6 @@ func (pm *PolicyManager) pollPolicyEvents(ctx context.Context) {
 
 	url := fmt.Sprintf("%s/api/%s/events", pm.smoClient.baseURL, "v1")
 
-
-
 	var events []*PolicyEvent
 
 	if err := pm.smoClient.get(ctx, url, &events); err != nil {
@@ -1070,8 +867,6 @@ func (pm *PolicyManager) pollPolicyEvents(ctx context.Context) {
 		return // Silently continue on error
 
 	}
-
-
 
 	for _, event := range events {
 
@@ -1107,11 +902,7 @@ func (pm *PolicyManager) pollPolicyEvents(ctx context.Context) {
 
 }
 
-
-
 // Service Registry Methods.
-
-
 
 // RegisterService registers a service with SMO.
 
@@ -1121,15 +912,11 @@ func (sr *ServiceRegistry) RegisterService(ctx context.Context, service *Service
 
 	logger.Info("registering service with SMO", "serviceID", service.ID, "name", service.Name)
 
-
-
 	service.RegisteredAt = time.Now()
 
 	service.LastHeartbeat = time.Now()
 
 	service.Status = "REGISTERED"
-
-
 
 	// Call SMO API to register service.
 
@@ -1141,15 +928,11 @@ func (sr *ServiceRegistry) RegisterService(ctx context.Context, service *Service
 
 	}
 
-
-
 	sr.mu.Lock()
 
 	sr.registeredServices[service.ID] = service
 
 	sr.mu.Unlock()
-
-
 
 	// Start health checking if enabled.
 
@@ -1159,15 +942,11 @@ func (sr *ServiceRegistry) RegisterService(ctx context.Context, service *Service
 
 	}
 
-
-
 	logger.Info("service registered successfully", "serviceID", service.ID)
 
 	return nil
 
 }
-
-
 
 // DiscoverServices discovers services from SMO.
 
@@ -1181,8 +960,6 @@ func (sr *ServiceRegistry) DiscoverServices(ctx context.Context, serviceType str
 
 	}
 
-
-
 	var services []*ServiceInstance
 
 	if err := sr.smoClient.get(ctx, url, &services); err != nil {
@@ -1190,8 +967,6 @@ func (sr *ServiceRegistry) DiscoverServices(ctx context.Context, serviceType str
 		return nil, fmt.Errorf("failed to discover services: %w", err)
 
 	}
-
-
 
 	sr.mu.Lock()
 
@@ -1203,13 +978,9 @@ func (sr *ServiceRegistry) DiscoverServices(ctx context.Context, serviceType str
 
 	sr.mu.Unlock()
 
-
-
 	return services, nil
 
 }
-
-
 
 // startServiceHealthCheck starts health checking for a service.
 
@@ -1219,17 +990,14 @@ func (sr *ServiceRegistry) startServiceHealthCheck(service *ServiceInstance) {
 
 		serviceID: service.ID,
 
-		config:    service.HealthCheck,
+		config: service.HealthCheck,
 
-		status:    "UNKNOWN",
+		status: "UNKNOWN",
 
 		lastCheck: time.Now(),
 
-		stopCh:    make(chan struct{}),
-
+		stopCh: make(chan struct{}),
 	}
-
-
 
 	sr.mu.Lock()
 
@@ -1237,13 +1005,9 @@ func (sr *ServiceRegistry) startServiceHealthCheck(service *ServiceInstance) {
 
 	sr.mu.Unlock()
 
-
-
 	go checker.start()
 
 }
-
-
 
 // startHealthChecking starts the health checking routine.
 
@@ -1252,8 +1016,6 @@ func (sr *ServiceRegistry) startHealthChecking(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1275,8 +1037,6 @@ func (sr *ServiceRegistry) startHealthChecking(ctx context.Context) {
 
 }
 
-
-
 // updateServiceHeartbeats updates service heartbeats.
 
 func (sr *ServiceRegistry) updateServiceHeartbeats(ctx context.Context) {
@@ -1284,8 +1044,6 @@ func (sr *ServiceRegistry) updateServiceHeartbeats(ctx context.Context) {
 	sr.mu.Lock()
 
 	defer sr.mu.Unlock()
-
-
 
 	for serviceID, service := range sr.registeredServices {
 
@@ -1309,8 +1067,6 @@ func (sr *ServiceRegistry) updateServiceHeartbeats(ctx context.Context) {
 
 }
 
-
-
 // start starts the health checker.
 
 func (hc *ServiceHealthChecker) start() {
@@ -1318,8 +1074,6 @@ func (hc *ServiceHealthChecker) start() {
 	ticker := time.NewTicker(hc.config.Interval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1339,8 +1093,6 @@ func (hc *ServiceHealthChecker) start() {
 
 }
 
-
-
 // performHealthCheck performs a health check.
 
 func (hc *ServiceHealthChecker) performHealthCheck() {
@@ -1355,11 +1107,7 @@ func (hc *ServiceHealthChecker) performHealthCheck() {
 
 }
 
-
-
 // Service Orchestrator Methods.
-
-
 
 // DeployRApp deploys an rApp.
 
@@ -1369,13 +1117,9 @@ func (so *ServiceOrchestrator) DeployRApp(ctx context.Context, rApp *RAppInstanc
 
 	logger.Info("deploying rApp", "rAppID", rApp.ID, "name", rApp.Name)
 
-
-
 	rApp.CreatedAt = time.Now()
 
 	rApp.Status = "DEPLOYING"
-
-
 
 	// Execute pre-start lifecycle hooks.
 
@@ -1397,8 +1141,6 @@ func (so *ServiceOrchestrator) DeployRApp(ctx context.Context, rApp *RAppInstanc
 
 	}
 
-
-
 	// Call SMO API to deploy rApp.
 
 	url := fmt.Sprintf("%s/api/%s/rapps", so.smoClient.baseURL, "v1")
@@ -1411,23 +1153,17 @@ func (so *ServiceOrchestrator) DeployRApp(ctx context.Context, rApp *RAppInstanc
 
 	}
 
-
-
 	so.mu.Lock()
 
 	so.rApps[rApp.ID] = rApp
 
 	so.mu.Unlock()
 
-
-
 	rApp.Status = "RUNNING"
 
 	now := time.Now()
 
 	rApp.StartedAt = &now
-
-
 
 	// Execute post-start lifecycle hooks.
 
@@ -1445,15 +1181,11 @@ func (so *ServiceOrchestrator) DeployRApp(ctx context.Context, rApp *RAppInstanc
 
 	}
 
-
-
 	logger.Info("rApp deployed successfully", "rAppID", rApp.ID)
 
 	return nil
 
 }
-
-
 
 // executeLifecycleHook executes a lifecycle hook.
 
@@ -1462,8 +1194,6 @@ func (so *ServiceOrchestrator) executeLifecycleHook(ctx context.Context, hook *L
 	logger := log.FromContext(ctx)
 
 	logger.Info("executing lifecycle hook", "hook", hook.Name, "type", hook.Type)
-
-
 
 	switch hook.Type {
 
@@ -1487,8 +1217,6 @@ func (so *ServiceOrchestrator) executeLifecycleHook(ctx context.Context, hook *L
 
 			}
 
-
-
 			client := &http.Client{Timeout: hook.Timeout}
 
 			resp, err := client.Do(req)
@@ -1500,8 +1228,6 @@ func (so *ServiceOrchestrator) executeLifecycleHook(ctx context.Context, hook *L
 			}
 
 			defer resp.Body.Close()
-
-
 
 			if resp.StatusCode >= 400 {
 
@@ -1527,11 +1253,7 @@ func (so *ServiceOrchestrator) executeLifecycleHook(ctx context.Context, hook *L
 
 }
 
-
-
 // SMOClient HTTP methods.
-
-
 
 func (c *SMOClient) get(ctx context.Context, url string, result interface{}) error {
 
@@ -1546,8 +1268,6 @@ func (c *SMOClient) get(ctx context.Context, url string, result interface{}) err
 	return c.doRequest(req, result)
 
 }
-
-
 
 func (c *SMOClient) post(ctx context.Context, url string, body, result interface{}) error {
 
@@ -1567,8 +1287,6 @@ func (c *SMOClient) post(ctx context.Context, url string, body, result interface
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, "POST", url, http.NoBody)
 
 	if err != nil {
@@ -1577,21 +1295,15 @@ func (c *SMOClient) post(ctx context.Context, url string, body, result interface
 
 	}
 
-
-
 	if reqBody != nil {
 
 		req.Header.Set("Content-Type", "application/json")
 
 	}
 
-
-
 	return c.doRequest(req, result)
 
 }
-
-
 
 func (c *SMOClient) put(ctx context.Context, url string, body, result interface{}) error {
 
@@ -1603,8 +1315,6 @@ func (c *SMOClient) put(ctx context.Context, url string, body, result interface{
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewBuffer(reqBody))
 
 	if err != nil {
@@ -1613,15 +1323,11 @@ func (c *SMOClient) put(ctx context.Context, url string, body, result interface{
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/json")
 
 	return c.doRequest(req, result)
 
 }
-
-
 
 func (c *SMOClient) delete(ctx context.Context, url string) error {
 
@@ -1636,8 +1342,6 @@ func (c *SMOClient) delete(ctx context.Context, url string) error {
 	return c.doRequest(req, nil)
 
 }
-
-
 
 func (c *SMOClient) doRequest(req *http.Request, result interface{}) error {
 
@@ -1659,8 +1363,6 @@ func (c *SMOClient) doRequest(req *http.Request, result interface{}) error {
 
 	}
 
-
-
 	// Add custom headers.
 
 	for key, value := range c.headers {
@@ -1668,8 +1370,6 @@ func (c *SMOClient) doRequest(req *http.Request, result interface{}) error {
 		req.Header.Set(key, value)
 
 	}
-
-
 
 	resp, err := c.httpClient.Do(req)
 
@@ -1681,15 +1381,11 @@ func (c *SMOClient) doRequest(req *http.Request, result interface{}) error {
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode >= 400 {
 
 		return fmt.Errorf("HTTP request failed with status: %d", resp.StatusCode)
 
 	}
-
-
 
 	if result != nil {
 
@@ -1697,9 +1393,6 @@ func (c *SMOClient) doRequest(req *http.Request, result interface{}) error {
 
 	}
 
-
-
 	return nil
 
 }
-

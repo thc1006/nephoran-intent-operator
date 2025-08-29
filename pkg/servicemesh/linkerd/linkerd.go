@@ -1,43 +1,22 @@
 // Package linkerd provides Linkerd service mesh implementation.
 
-
 package linkerd
 
-
-
 import (
-
 	"context"
-
 	"crypto/x509"
-
 	"fmt"
 
-
-
 	"github.com/go-logr/logr"
-
+	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"github.com/prometheus/client_golang/prometheus"
 
-
-
-	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
-
-
-
 	"k8s.io/client-go/kubernetes"
-
 	"k8s.io/client-go/rest"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 func init() {
 
@@ -47,21 +26,18 @@ func init() {
 
 		linkerdConfig := &Config{
 
-			Namespace:           meshConfig.Namespace,
+			Namespace: meshConfig.Namespace,
 
-			TrustDomain:         meshConfig.TrustDomain,
+			TrustDomain: meshConfig.TrustDomain,
 
-			ControlPlaneURL:     meshConfig.ControlPlaneURL,
+			ControlPlaneURL: meshConfig.ControlPlaneURL,
 
-			CertificateConfig:   meshConfig.CertificateConfig,
+			CertificateConfig: meshConfig.CertificateConfig,
 
-			PolicyDefaults:      meshConfig.PolicyDefaults,
+			PolicyDefaults: meshConfig.PolicyDefaults,
 
 			ObservabilityConfig: meshConfig.ObservabilityConfig,
-
 		}
-
-
 
 		// Extract Linkerd-specific settings from custom config.
 
@@ -81,59 +57,47 @@ func init() {
 
 		}
 
-
-
 		return NewLinkerdMesh(kubeClient, dynamicClient, config, linkerdConfig)
 
 	})
 
 }
 
-
-
 // Config contains Linkerd-specific configuration.
 
 type Config struct {
+	Namespace string `json:"namespace"`
 
-	Namespace           string                           `json:"namespace"`
+	TrustDomain string `json:"trustDomain"`
 
-	TrustDomain         string                           `json:"trustDomain"`
+	ControlPlaneURL string `json:"controlPlaneUrl"`
 
-	ControlPlaneURL     string                           `json:"controlPlaneUrl"`
+	IdentityTrustDomain string `json:"identityTrustDomain"`
 
-	IdentityTrustDomain string                           `json:"identityTrustDomain"`
+	ProxyLogLevel string `json:"proxyLogLevel"`
 
-	ProxyLogLevel       string                           `json:"proxyLogLevel"`
+	CertificateConfig *abstraction.CertificateConfig `json:"certificateConfig"`
 
-	CertificateConfig   *abstraction.CertificateConfig   `json:"certificateConfig"`
-
-	PolicyDefaults      *abstraction.PolicyDefaults      `json:"policyDefaults"`
+	PolicyDefaults *abstraction.PolicyDefaults `json:"policyDefaults"`
 
 	ObservabilityConfig *abstraction.ObservabilityConfig `json:"observabilityConfig"`
-
 }
-
-
 
 // LinkerdMesh implements ServiceMeshInterface for Linkerd.
 
 type LinkerdMesh struct {
-
-	kubeClient    kubernetes.Interface
+	kubeClient kubernetes.Interface
 
 	dynamicClient client.Client
 
-	config        *rest.Config
+	config *rest.Config
 
-	meshConfig    *Config
+	meshConfig *Config
 
-	certProvider  *LinkerdCertificateProvider
+	certProvider *LinkerdCertificateProvider
 
-	logger        logr.Logger
-
+	logger logr.Logger
 }
-
-
 
 // NewLinkerdMesh creates a new Linkerd mesh implementation.
 
@@ -151,33 +115,27 @@ func NewLinkerdMesh(
 
 	certProvider := &LinkerdCertificateProvider{
 
-		kubeClient:  kubeClient,
+		kubeClient: kubeClient,
 
 		trustDomain: meshConfig.TrustDomain,
-
 	}
-
-
 
 	return &LinkerdMesh{
 
-		kubeClient:    kubeClient,
+		kubeClient: kubeClient,
 
 		dynamicClient: dynamicClient,
 
-		config:        config,
+		config: config,
 
-		meshConfig:    meshConfig,
+		meshConfig: meshConfig,
 
-		certProvider:  certProvider,
+		certProvider: certProvider,
 
-		logger:        log.Log.WithName("linkerd-mesh"),
-
+		logger: log.Log.WithName("linkerd-mesh"),
 	}, nil
 
 }
-
-
 
 // Initialize initializes the Linkerd mesh.
 
@@ -191,8 +149,6 @@ func (m *LinkerdMesh) Initialize(ctx context.Context, config *abstraction.Servic
 
 }
 
-
-
 // GetCertificateProvider returns the certificate provider.
 
 func (m *LinkerdMesh) GetCertificateProvider() abstraction.CertificateProvider {
@@ -200,8 +156,6 @@ func (m *LinkerdMesh) GetCertificateProvider() abstraction.CertificateProvider {
 	return m.certProvider
 
 }
-
-
 
 // RotateCertificates rotates certificates.
 
@@ -213,8 +167,6 @@ func (m *LinkerdMesh) RotateCertificates(ctx context.Context, namespace string) 
 
 }
 
-
-
 // ValidateCertificateChain validates the certificate chain.
 
 func (m *LinkerdMesh) ValidateCertificateChain(ctx context.Context, namespace string) error {
@@ -224,8 +176,6 @@ func (m *LinkerdMesh) ValidateCertificateChain(ctx context.Context, namespace st
 	return nil
 
 }
-
-
 
 // ApplyMTLSPolicy applies an mTLS policy.
 
@@ -237,8 +187,6 @@ func (m *LinkerdMesh) ApplyMTLSPolicy(ctx context.Context, policy *abstraction.M
 
 }
 
-
-
 // ApplyAuthorizationPolicy applies an authorization policy.
 
 func (m *LinkerdMesh) ApplyAuthorizationPolicy(ctx context.Context, policy *abstraction.AuthorizationPolicy) error {
@@ -248,8 +196,6 @@ func (m *LinkerdMesh) ApplyAuthorizationPolicy(ctx context.Context, policy *abst
 	return nil
 
 }
-
-
 
 // ApplyTrafficPolicy applies a traffic policy.
 
@@ -261,8 +207,6 @@ func (m *LinkerdMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstractio
 
 }
 
-
-
 // ValidatePolicies validates policies.
 
 func (m *LinkerdMesh) ValidatePolicies(ctx context.Context, namespace string) (*abstraction.PolicyValidationResult, error) {
@@ -271,15 +215,12 @@ func (m *LinkerdMesh) ValidatePolicies(ctx context.Context, namespace string) (*
 
 	return &abstraction.PolicyValidationResult{
 
-		Valid:    true,
+		Valid: true,
 
 		Coverage: 0,
-
 	}, nil
 
 }
-
-
 
 // RegisterService registers a service.
 
@@ -291,8 +232,6 @@ func (m *LinkerdMesh) RegisterService(ctx context.Context, service *abstraction.
 
 }
 
-
-
 // UnregisterService unregisters a service.
 
 func (m *LinkerdMesh) UnregisterService(ctx context.Context, serviceName, namespace string) error {
@@ -303,8 +242,6 @@ func (m *LinkerdMesh) UnregisterService(ctx context.Context, serviceName, namesp
 
 }
 
-
-
 // GetServiceStatus gets service status.
 
 func (m *LinkerdMesh) GetServiceStatus(ctx context.Context, serviceName, namespace string) (*abstraction.ServiceStatus, error) {
@@ -313,17 +250,14 @@ func (m *LinkerdMesh) GetServiceStatus(ctx context.Context, serviceName, namespa
 
 	return &abstraction.ServiceStatus{
 
-		Name:      serviceName,
+		Name: serviceName,
 
 		Namespace: namespace,
 
-		Healthy:   true,
-
+		Healthy: true,
 	}, nil
 
 }
-
-
 
 // GetMetrics returns metrics collectors.
 
@@ -332,8 +266,6 @@ func (m *LinkerdMesh) GetMetrics() []prometheus.Collector {
 	return []prometheus.Collector{}
 
 }
-
-
 
 // GetServiceDependencies gets service dependencies.
 
@@ -345,8 +277,6 @@ func (m *LinkerdMesh) GetServiceDependencies(ctx context.Context, namespace stri
 
 }
 
-
-
 // GetMTLSStatus gets mTLS status.
 
 func (m *LinkerdMesh) GetMTLSStatus(ctx context.Context, namespace string) (*abstraction.MTLSStatusReport, error) {
@@ -356,8 +286,6 @@ func (m *LinkerdMesh) GetMTLSStatus(ctx context.Context, namespace string) (*abs
 	return &abstraction.MTLSStatusReport{}, nil
 
 }
-
-
 
 // IsHealthy checks if the mesh is healthy.
 
@@ -369,8 +297,6 @@ func (m *LinkerdMesh) IsHealthy(ctx context.Context) error {
 
 }
 
-
-
 // IsReady checks if the mesh is ready.
 
 func (m *LinkerdMesh) IsReady(ctx context.Context) error {
@@ -379,8 +305,6 @@ func (m *LinkerdMesh) IsReady(ctx context.Context) error {
 
 }
 
-
-
 // GetProvider returns the provider type.
 
 func (m *LinkerdMesh) GetProvider() abstraction.ServiceMeshProvider {
@@ -388,8 +312,6 @@ func (m *LinkerdMesh) GetProvider() abstraction.ServiceMeshProvider {
 	return abstraction.ProviderLinkerd
 
 }
-
-
 
 // GetVersion returns the version.
 
@@ -400,8 +322,6 @@ func (m *LinkerdMesh) GetVersion() string {
 	return "unknown"
 
 }
-
-
 
 // GetCapabilities returns capabilities.
 
@@ -416,24 +336,17 @@ func (m *LinkerdMesh) GetCapabilities() []abstraction.Capability {
 		abstraction.CapabilityObservability,
 
 		abstraction.CapabilitySPIFFE,
-
 	}
 
 }
 
-
-
 // LinkerdCertificateProvider implements CertificateProvider for Linkerd.
 
 type LinkerdCertificateProvider struct {
-
-	kubeClient  kubernetes.Interface
+	kubeClient kubernetes.Interface
 
 	trustDomain string
-
 }
-
-
 
 // IssueCertificate issues a certificate.
 
@@ -445,8 +358,6 @@ func (p *LinkerdCertificateProvider) IssueCertificate(ctx context.Context, servi
 
 }
 
-
-
 // GetRootCA gets the root CA.
 
 func (p *LinkerdCertificateProvider) GetRootCA(ctx context.Context) (*x509.Certificate, error) {
@@ -457,8 +368,6 @@ func (p *LinkerdCertificateProvider) GetRootCA(ctx context.Context) (*x509.Certi
 
 }
 
-
-
 // GetIntermediateCA gets the intermediate CA.
 
 func (p *LinkerdCertificateProvider) GetIntermediateCA(ctx context.Context) (*x509.Certificate, error) {
@@ -466,8 +375,6 @@ func (p *LinkerdCertificateProvider) GetIntermediateCA(ctx context.Context) (*x5
 	return nil, nil // Linkerd doesn't use intermediate CAs by default
 
 }
-
-
 
 // ValidateCertificate validates a certificate.
 
@@ -479,8 +386,6 @@ func (p *LinkerdCertificateProvider) ValidateCertificate(ctx context.Context, ce
 
 }
 
-
-
 // RotateCertificate rotates a certificate.
 
 func (p *LinkerdCertificateProvider) RotateCertificate(ctx context.Context, service, namespace string) (*x509.Certificate, error) {
@@ -491,8 +396,6 @@ func (p *LinkerdCertificateProvider) RotateCertificate(ctx context.Context, serv
 
 }
 
-
-
 // GetCertificateChain gets the certificate chain.
 
 func (p *LinkerdCertificateProvider) GetCertificateChain(ctx context.Context, service, namespace string) ([]*x509.Certificate, error) {
@@ -502,8 +405,6 @@ func (p *LinkerdCertificateProvider) GetCertificateChain(ctx context.Context, se
 	return nil, fmt.Errorf("not implemented")
 
 }
-
-
 
 // GetSPIFFEID gets the SPIFFE ID for a service.
 
@@ -518,4 +419,3 @@ func (p *LinkerdCertificateProvider) GetSPIFFEID(service, namespace, trustDomain
 	return fmt.Sprintf("spiffe://%s/ns/%s/sa/%s", trustDomain, namespace, service)
 
 }
-

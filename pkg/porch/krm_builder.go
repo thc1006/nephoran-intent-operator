@@ -1,31 +1,20 @@
-
 package porch
 
-
-
 import (
-
 	"fmt"
-
 	"strings"
-
 )
-
-
 
 // KRMPackage represents a KRM package structure.
 
 type KRMPackage struct {
-
-	Name      string
+	Name string
 
 	Namespace string
 
-	Content   map[string]string // filename -> content
+	Content map[string]string // filename -> content
 
 }
-
-
 
 // BuildKRMPackage creates a KRM package from a scaling intent.
 
@@ -33,15 +22,12 @@ func BuildKRMPackage(intent *ScalingIntent, packageName string) (*KRMPackage, er
 
 	pkg := &KRMPackage{
 
-		Name:      packageName,
+		Name: packageName,
 
 		Namespace: intent.Namespace,
 
-		Content:   make(map[string]string),
-
+		Content: make(map[string]string),
 	}
-
-
 
 	// Create Kptfile.
 
@@ -71,8 +57,6 @@ info:
 
 	pkg.Content["Kptfile"] = kptfile
 
-
-
 	// Create deployment patch for scaling.
 
 	deploymentPatch := fmt.Sprintf(`apiVersion: apps/v1
@@ -92,8 +76,6 @@ metadata:
     scaling.nephio.org/replicas: "%d"
 
 `, intent.Target, intent.Namespace, intent.IntentType, intent.Replicas)
-
-
 
 	if intent.Reason != "" {
 
@@ -119,19 +101,13 @@ metadata:
 
 	}
 
-
-
 	deploymentPatch += fmt.Sprintf(`spec:
 
   replicas: %d
 
 `, intent.Replicas)
 
-
-
 	pkg.Content["deployment-patch.yaml"] = deploymentPatch
-
-
 
 	// Create kustomization.yaml for the package.
 
@@ -159,11 +135,7 @@ commonAnnotations:
 
 `, intent.Namespace)
 
-
-
 	pkg.Content["kustomization.yaml"] = kustomization
-
-
 
 	// Create README for the package.
 
@@ -199,17 +171,11 @@ This package is managed by Porch and applies scaling operations to the specified
 
 `, packageName, intent.Target, intent.Namespace, intent.Replicas, intent.IntentType)
 
-
-
 	pkg.Content["README.md"] = readme
-
-
 
 	return pkg, nil
 
 }
-
-
 
 // GeneratePackagePath creates the package directory path.
 
@@ -228,4 +194,3 @@ func GeneratePackagePath(repoName, packageName, revision string) string {
 	return fmt.Sprintf("examples/packages/%s/%s/%s", repoName, packageName, revision)
 
 }
-

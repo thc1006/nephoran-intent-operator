@@ -1,73 +1,48 @@
-
 package auth
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"log/slog"
-
 	"net/http"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/gorilla/mux"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/middleware"
-
 )
-
-
 
 // OAuth2Manager handles OAuth2 authentication setup and middleware.
 
 type OAuth2Manager struct {
-
 	authMiddleware *AuthMiddleware
 
-	authHandlers   *AuthHandlers
+	authHandlers *AuthHandlers
 
-	config         *OAuth2ManagerConfig
+	config *OAuth2ManagerConfig
 
-	logger         *slog.Logger
-
+	logger *slog.Logger
 }
-
-
 
 // OAuth2ManagerConfig holds configuration for OAuth2 manager.
 
 type OAuth2ManagerConfig struct {
+	Enabled bool
 
-	Enabled          bool
+	AuthConfigFile string
 
-	AuthConfigFile   string
+	JWTSecretKey string
 
-	JWTSecretKey     string
+	RequireAuth bool
 
-	RequireAuth      bool
+	AdminUsers []string
 
-	AdminUsers       []string
-
-	OperatorUsers    []string
+	OperatorUsers []string
 
 	StreamingEnabled bool
 
-	MaxRequestSize   int64
-
+	MaxRequestSize int64
 }
-
-
 
 // NewOAuth2Manager creates a new OAuth2Manager instance.
 
@@ -82,12 +57,9 @@ func NewOAuth2Manager(ctx context.Context, config *OAuth2ManagerConfig, logger *
 			config: config,
 
 			logger: logger,
-
 		}, nil
 
 	}
-
-
 
 	authConfig, err := LoadAuthConfig(context.Background(), config.AuthConfigFile)
 
@@ -97,8 +69,6 @@ func NewOAuth2Manager(ctx context.Context, config *OAuth2ManagerConfig, logger *
 
 	}
 
-
-
 	oauth2Config, err := authConfig.ToOAuth2Config()
 
 	if err != nil {
@@ -107,39 +77,32 @@ func NewOAuth2Manager(ctx context.Context, config *OAuth2ManagerConfig, logger *
 
 	}
 
-
-
 	// Initialize JWT manager first (required for session manager).
 
 	jwtConfig := &JWTConfig{
 
-		Issuer:               "nephoran-intent-operator",
+		Issuer: "nephoran-intent-operator",
 
-		SigningKey:           config.JWTSecretKey,
+		SigningKey: config.JWTSecretKey,
 
-		KeyRotationPeriod:    24 * time.Hour,
+		KeyRotationPeriod: 24 * time.Hour,
 
-		DefaultTTL:           24 * time.Hour,
+		DefaultTTL: 24 * time.Hour,
 
-		RefreshTTL:           168 * time.Hour, // 7 days
+		RefreshTTL: 168 * time.Hour, // 7 days
 
 		RequireSecureCookies: true,
 
-		CookieDomain:         "",
+		CookieDomain: "",
 
-		CookiePath:           "/",
-
+		CookiePath: "/",
 	}
-
-
 
 	// Create simple in-memory token store and blacklist.
 
 	tokenStore := NewMemoryTokenStore()
 
 	tokenBlacklist := NewMemoryTokenBlacklist()
-
-
 
 	jwtManager, err := NewJWTManager(jwtConfig, tokenStore, tokenBlacklist, logger)
 
@@ -149,133 +112,112 @@ func NewOAuth2Manager(ctx context.Context, config *OAuth2ManagerConfig, logger *
 
 	}
 
-
-
 	// Initialize RBAC manager (required for session manager).
 
 	rbacManager := NewRBACManager(&RBACManagerConfig{
 
-		CacheTTL:           24 * time.Hour,
+		CacheTTL: 24 * time.Hour,
 
-		EnableHierarchy:    true,
+		EnableHierarchy: true,
 
-		DefaultDenyAll:     false,
+		DefaultDenyAll: false,
 
-		PolicyEvaluation:   "deny-overrides",
+		PolicyEvaluation: "deny-overrides",
 
-		MaxPolicyDepth:     10,
+		MaxPolicyDepth: 10,
 
 		EnableAuditLogging: true,
-
 	}, logger)
-
-
 
 	// Initialize session manager.
 
 	sessionManager := NewSessionManager(&SessionConfig{
 
-		SessionTimeout:   24 * time.Hour,
+		SessionTimeout: 24 * time.Hour,
 
 		RefreshThreshold: 1 * time.Hour,
 
-		MaxSessions:      10000,
+		MaxSessions: 10000,
 
-		SecureCookies:    true,
+		SecureCookies: true,
 
-		SameSiteCookies:  "strict",
+		SameSiteCookies: "strict",
 
-		CookieDomain:     "",
+		CookieDomain: "",
 
-		CookiePath:       "/",
+		CookiePath: "/",
 
-		EnableSSO:        false,
+		EnableSSO: false,
 
-		EnableCSRF:       true,
+		EnableCSRF: true,
 
-		StateTimeout:     10 * time.Minute,
+		StateTimeout: 10 * time.Minute,
 
-		RequireHTTPS:     true,
+		RequireHTTPS: true,
 
-		CleanupInterval:  1 * time.Hour,
-
+		CleanupInterval: 1 * time.Hour,
 	}, jwtManager, rbacManager, logger)
-
-
 
 	middlewareConfig := &MiddlewareConfig{
 
-		SkipAuth:              []string{"/health", "/ready", "/metrics"},
+		SkipAuth: []string{"/health", "/ready", "/metrics"},
 
-		EnableCORS:            true,
+		EnableCORS: true,
 
-		AllowedOrigins:        []string{"*"},
+		AllowedOrigins: []string{"*"},
 
-		AllowedMethods:        []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 
-		AllowedHeaders:        []string{"Content-Type", "Authorization"},
+		AllowedHeaders: []string{"Content-Type", "Authorization"},
 
-		AllowCredentials:      true,
+		AllowCredentials: true,
 
-		MaxAge:                3600,
+		MaxAge: 3600,
 
 		EnableSecurityHeaders: true,
-
 	}
 
-
-
 	authMiddleware := NewAuthMiddleware(sessionManager, jwtManager, rbacManager, middlewareConfig)
-
-
 
 	// Initialize auth handlers.
 
 	handlerConfig := &HandlersConfig{
 
-		BaseURL:         "http://localhost:8080",
+		BaseURL: "http://localhost:8080",
 
 		DefaultRedirect: "/",
 
-		LoginPath:       "/auth/login",
+		LoginPath: "/auth/login",
 
-		CallbackPath:    "/auth/callback",
+		CallbackPath: "/auth/callback",
 
-		LogoutPath:      "/auth/logout",
+		LogoutPath: "/auth/logout",
 
-		UserInfoPath:    "/auth/userinfo",
+		UserInfoPath: "/auth/userinfo",
 
 		EnableAPITokens: true,
 
-		TokenPath:       "/auth/token",
-
+		TokenPath: "/auth/token",
 	}
 
 	authHandlers := NewAuthHandlers(sessionManager, jwtManager, rbacManager, handlerConfig)
-
-
 
 	logger.Info("OAuth2 authentication enabled",
 
 		slog.Int("providers", len(oauth2Config.Providers)))
 
-
-
 	return &OAuth2Manager{
 
 		authMiddleware: authMiddleware,
 
-		authHandlers:   authHandlers,
+		authHandlers: authHandlers,
 
-		config:         config,
+		config: config,
 
-		logger:         logger,
-
+		logger: logger,
 	}, nil
 
 }
-
-
 
 // SetupRoutes configures OAuth2 routes on the given router.
 
@@ -286,8 +228,6 @@ func (om *OAuth2Manager) SetupRoutes(router *mux.Router) {
 		return
 
 	}
-
-
 
 	// OAuth2 authentication routes.
 
@@ -301,13 +241,9 @@ func (om *OAuth2Manager) SetupRoutes(router *mux.Router) {
 
 	router.HandleFunc("/auth/userinfo", om.authHandlers.GetUserInfoHandler).Methods("GET")
 
-
-
 	om.logger.Info("OAuth2 routes configured")
 
 }
-
-
 
 // ConfigureProtectedRoutes sets up protected routes with authentication middleware.
 
@@ -323,23 +259,17 @@ func (om *OAuth2Manager) ConfigureProtectedRoutes(router *mux.Router, handlers *
 
 	}
 
-
-
 	// Apply authentication middleware to protected routes.
 
 	protectedRouter := router.PathPrefix("/").Subrouter()
 
 	protectedRouter.Use(om.authMiddleware.AuthenticateMiddleware)
 
-
-
 	// Main processing endpoint - requires operator role.
 
 	protectedRouter.HandleFunc("/process", handlers.ProcessIntent).Methods("POST")
 
 	protectedRouter.Use(om.authMiddleware.RequireOperator())
-
-
 
 	// Streaming endpoint - requires operator role (conditional registration).
 
@@ -348,8 +278,6 @@ func (om *OAuth2Manager) ConfigureProtectedRoutes(router *mux.Router, handlers *
 		protectedRouter.HandleFunc("/stream", handlers.StreamingHandler).Methods("POST")
 
 	}
-
-
 
 	// Admin endpoints - requires admin role.
 
@@ -361,13 +289,9 @@ func (om *OAuth2Manager) ConfigureProtectedRoutes(router *mux.Router, handlers *
 
 	adminRouter.HandleFunc("/circuit-breaker/status", handlers.CircuitBreakerStatus).Methods("GET")
 
-
-
 	om.logger.Info("Protected routes configured with authentication")
 
 }
-
-
 
 // setupDirectRoutes configures routes without authentication.
 
@@ -379,8 +303,6 @@ func (om *OAuth2Manager) setupDirectRoutes(router *mux.Router, handlers *RouteHa
 
 	router.HandleFunc("/circuit-breaker/status", handlers.CircuitBreakerStatus).Methods("GET")
 
-
-
 	// Streaming endpoint (conditional registration).
 
 	if om.config.StreamingEnabled && handlers.StreamingHandler != nil {
@@ -389,13 +311,9 @@ func (om *OAuth2Manager) setupDirectRoutes(router *mux.Router, handlers *RouteHa
 
 	}
 
-
-
 	om.logger.Info("Direct routes configured without authentication")
 
 }
-
-
 
 // IsEnabled returns true if OAuth2 authentication is enabled.
 
@@ -405,8 +323,6 @@ func (om *OAuth2Manager) IsEnabled() bool {
 
 }
 
-
-
 // RequiresAuth returns true if authentication is required.
 
 func (om *OAuth2Manager) RequiresAuth() bool {
@@ -415,25 +331,19 @@ func (om *OAuth2Manager) RequiresAuth() bool {
 
 }
 
-
-
 // RouteHandlers holds all the HTTP handlers for the service.
 
 type RouteHandlers struct {
+	ProcessIntent http.HandlerFunc
 
-	ProcessIntent        http.HandlerFunc
-
-	Status               http.HandlerFunc
+	Status http.HandlerFunc
 
 	CircuitBreakerStatus http.HandlerFunc
 
-	StreamingHandler     http.HandlerFunc
+	StreamingHandler http.HandlerFunc
 
-	Metrics              http.HandlerFunc
-
+	Metrics http.HandlerFunc
 }
-
-
 
 // CreateHandlersWithSizeLimit creates RouteHandlers with MaxBytesHandler applied to POST endpoints.
 
@@ -457,8 +367,6 @@ func (om *OAuth2Manager) CreateHandlersWithSizeLimit(
 
 	var streamingHandlerWrapped http.HandlerFunc
 
-
-
 	if om.config.MaxRequestSize > 0 {
 
 		processIntentHandler = middleware.MaxBytesHandler(om.config.MaxRequestSize, om.logger, processIntent)
@@ -477,39 +385,30 @@ func (om *OAuth2Manager) CreateHandlersWithSizeLimit(
 
 	}
 
-
-
 	return &RouteHandlers{
 
-		ProcessIntent:        processIntentHandler,
+		ProcessIntent: processIntentHandler,
 
-		Status:               status,
+		Status: status,
 
 		CircuitBreakerStatus: circuitBreakerStatus,
 
-		StreamingHandler:     streamingHandlerWrapped,
+		StreamingHandler: streamingHandlerWrapped,
 
-		Metrics:              metrics,
-
+		Metrics: metrics,
 	}
 
 }
 
-
-
 // AuthenticationInfo provides information about the authentication state.
 
 type AuthenticationInfo struct {
+	Enabled bool `json:"enabled"`
 
-	Enabled     bool     `json:"enabled"`
+	RequireAuth bool `json:"require_auth"`
 
-	RequireAuth bool     `json:"require_auth"`
-
-	Providers   []string `json:"providers,omitempty"`
-
+	Providers []string `json:"providers,omitempty"`
 }
-
-
 
 // GetAuthenticationInfo returns information about the current authentication configuration.
 
@@ -517,13 +416,10 @@ func (om *OAuth2Manager) GetAuthenticationInfo() *AuthenticationInfo {
 
 	info := &AuthenticationInfo{
 
-		Enabled:     om.config.Enabled,
+		Enabled: om.config.Enabled,
 
 		RequireAuth: om.config.RequireAuth,
-
 	}
-
-
 
 	// TODO: Get configured providers from auth middleware.
 
@@ -533,13 +429,9 @@ func (om *OAuth2Manager) GetAuthenticationInfo() *AuthenticationInfo {
 
 	// }.
 
-
-
 	return info
 
 }
-
-
 
 // ValidateConfiguration validates the OAuth2 manager configuration.
 
@@ -551,25 +443,17 @@ func (config *OAuth2ManagerConfig) Validate() error {
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // AuthError represents an authentication error.
 
 type AuthError struct {
-
-	Code    string `json:"code"`
+	Code string `json:"code"`
 
 	Message string `json:"message"`
-
 }
-
-
 
 // Error performs error operation.
 
@@ -579,8 +463,6 @@ func (e *AuthError) Error() string {
 
 }
 
-
-
 // Common errors.
 
 var (
@@ -588,26 +470,17 @@ var (
 	// ErrMissingJWTSecret holds errmissingjwtsecret value.
 
 	ErrMissingJWTSecret = &AuthError{Code: "missing_jwt_secret", Message: "JWT secret key is required when OAuth2 is enabled"}
-
 )
 
-
-
 // Simple in-memory implementations for basic functionality.
-
-
 
 // MemoryTokenStore provides a simple in-memory token store.
 
 type MemoryTokenStore struct {
-
 	tokens map[string]*TokenInfo
 
-	mu     sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewMemoryTokenStore performs newmemorytokenstore operation.
 
@@ -616,12 +489,9 @@ func NewMemoryTokenStore() *MemoryTokenStore {
 	return &MemoryTokenStore{
 
 		tokens: make(map[string]*TokenInfo),
-
 	}
 
 }
-
-
 
 // StoreToken performs storetoken operation.
 
@@ -636,8 +506,6 @@ func (m *MemoryTokenStore) StoreToken(ctx context.Context, tokenID string, token
 	return nil
 
 }
-
-
 
 // GetToken performs gettoken operation.
 
@@ -659,8 +527,6 @@ func (m *MemoryTokenStore) GetToken(ctx context.Context, tokenID string) (*Token
 
 }
 
-
-
 // UpdateToken performs updatetoken operation.
 
 func (m *MemoryTokenStore) UpdateToken(ctx context.Context, tokenID string, token *TokenInfo) error {
@@ -675,8 +541,6 @@ func (m *MemoryTokenStore) UpdateToken(ctx context.Context, tokenID string, toke
 
 }
 
-
-
 // DeleteToken performs deletetoken operation.
 
 func (m *MemoryTokenStore) DeleteToken(ctx context.Context, tokenID string) error {
@@ -690,8 +554,6 @@ func (m *MemoryTokenStore) DeleteToken(ctx context.Context, tokenID string) erro
 	return nil
 
 }
-
-
 
 // ListUserTokens performs listusertokens operation.
 
@@ -717,8 +579,6 @@ func (m *MemoryTokenStore) ListUserTokens(ctx context.Context, userID string) ([
 
 }
 
-
-
 // CleanupExpired performs cleanupexpired operation.
 
 func (m *MemoryTokenStore) CleanupExpired(ctx context.Context) error {
@@ -743,19 +603,13 @@ func (m *MemoryTokenStore) CleanupExpired(ctx context.Context) error {
 
 }
 
-
-
 // MemoryTokenBlacklist provides a simple in-memory token blacklist.
 
 type MemoryTokenBlacklist struct {
-
 	blacklisted map[string]time.Time
 
-	mu          sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewMemoryTokenBlacklist performs newmemorytokenblacklist operation.
 
@@ -764,12 +618,9 @@ func NewMemoryTokenBlacklist() *MemoryTokenBlacklist {
 	return &MemoryTokenBlacklist{
 
 		blacklisted: make(map[string]time.Time),
-
 	}
 
 }
-
-
 
 // BlacklistToken performs blacklisttoken operation.
 
@@ -785,8 +636,6 @@ func (m *MemoryTokenBlacklist) BlacklistToken(ctx context.Context, tokenID strin
 
 }
 
-
-
 // IsTokenBlacklisted performs istokenblacklisted operation.
 
 func (m *MemoryTokenBlacklist) IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error) {
@@ -800,8 +649,6 @@ func (m *MemoryTokenBlacklist) IsTokenBlacklisted(ctx context.Context, tokenID s
 	return exists, nil
 
 }
-
-
 
 // CleanupExpired performs cleanupexpired operation.
 
@@ -826,4 +673,3 @@ func (m *MemoryTokenBlacklist) CleanupExpired(ctx context.Context) error {
 	return nil
 
 }
-

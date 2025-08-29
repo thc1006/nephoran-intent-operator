@@ -1,33 +1,16 @@
 //go:build testperformance
 
-
-
-
 package main
 
-
-
 import (
-
 	"context"
-
 	"log"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/optimization"
-
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 )
-
-
 
 // Test that the PerformanceAnalysisEngine compiles and runs.
 
@@ -37,19 +20,13 @@ func main() {
 
 	var prometheusClient v1.API
 
-
-
 	config := optimization.GetDefaultAnalysisConfig()
 
 	engine := optimization.NewPerformanceAnalysisEngine(config, prometheusClient, logger)
 
-
-
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
 	defer cancel()
-
-
 
 	result, err := engine.AnalyzePerformance(ctx)
 
@@ -64,4 +41,3 @@ func main() {
 	}
 
 }
-

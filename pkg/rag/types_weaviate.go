@@ -1,113 +1,73 @@
 //go:build !disable_rag && !test
 
-
-
-
 package rag
 
-
-
 import (
-
 	"context"
-
 	"time"
-
 )
-
-
 
 // WeaviateEmbeddingProvider interface for Weaviate-specific embedding providers.
 
 // NOTE: Renamed to avoid collision with the main EmbeddingProvider in enhanced_rag_integration.go.
 
 type WeaviateEmbeddingProvider interface {
-
 	GetEmbeddings(ctx context.Context, texts []string) ([][]float64, error)
 
 	IsHealthy() bool
 
 	GetLatency() time.Duration
-
 }
 
-
-
 // TokenUsage definition moved to embedding_service.go to avoid duplicates.
-
-
 
 // EmbeddingRequestExt represents extended embedding request.
 
 type EmbeddingRequestExt struct {
+	Texts []string
 
-	Texts     []string
-
-	UseCache  bool
+	UseCache bool
 
 	RequestID string
 
-	Priority  int
+	Priority int
 
-	Metadata  map[string]interface{}
-
+	Metadata map[string]interface{}
 }
-
-
 
 // EmbeddingResponseExt represents extended embedding response.
 
 type EmbeddingResponseExt struct {
-
 	Embeddings [][]float32
 
 	TokenUsage *TokenUsage
 
-	ModelUsed  string
-
+	ModelUsed string
 }
-
-
 
 // CostOptimizerConfig holds cost optimizer configuration.
 
 type CostOptimizerConfig struct {
-
 	MaxCostPerRequest float64
-
 }
-
-
 
 // ParallelChunkConfig holds configuration for parallel chunk processor.
 
 type ParallelChunkConfig struct {
-
 	MaxWorkers int
-
 }
-
-
 
 // StreamingProcessorConfig holds configuration for streaming processor.
 
 type StreamingProcessorConfig struct {
-
 	BufferSize int
-
 }
-
-
 
 // StreamingDocumentProcessor processes documents using streaming.
 
 type StreamingDocumentProcessor struct {
-
 	config *StreamingProcessorConfig
-
 }
-
-
 
 // NewStreamingDocumentProcessor creates a new streaming processor.
 
@@ -124,12 +84,9 @@ func NewStreamingDocumentProcessor(
 	return &StreamingDocumentProcessor{
 
 		config: &StreamingProcessorConfig{BufferSize: 1024},
-
 	}
 
 }
-
-
 
 // ProcessDocumentStream processes a document stream.
 
@@ -141,8 +98,6 @@ func (sdp *StreamingDocumentProcessor) ProcessDocumentStream(ctx context.Context
 
 }
 
-
-
 // GetMetrics returns streaming processor metrics.
 
 func (sdp *StreamingDocumentProcessor) GetMetrics() interface{} {
@@ -151,8 +106,6 @@ func (sdp *StreamingDocumentProcessor) GetMetrics() interface{} {
 
 }
 
-
-
 // Shutdown shuts down the streaming processor.
 
 func (sdp *StreamingDocumentProcessor) Shutdown(timeout time.Duration) error {
@@ -160,8 +113,6 @@ func (sdp *StreamingDocumentProcessor) Shutdown(timeout time.Duration) error {
 	return nil
 
 }
-
-
 
 // NewParallelChunkProcessorExt creates a new parallel chunk processor with extended config.
 
@@ -179,17 +130,11 @@ func NewParallelChunkProcessorExt(
 
 }
 
-
-
 // CostAwareEmbeddingServiceAdapter adapts CostAwareEmbeddingService to expected interface.
 
 type CostAwareEmbeddingServiceAdapter struct {
-
 	service *CostAwareEmbeddingService
-
 }
-
-
 
 // NewCostAwareEmbeddingServiceAdapter creates an adapter.
 
@@ -199,8 +144,6 @@ func NewCostAwareEmbeddingServiceAdapter(service *CostAwareEmbeddingService) *Co
 
 }
 
-
-
 // GenerateEmbeddingsOptimized generates embeddings with cost optimization.
 
 func (caesa *CostAwareEmbeddingServiceAdapter) GenerateEmbeddingsOptimized(ctx context.Context, request *EmbeddingRequestExt) (*EmbeddingResponseExt, error) {
@@ -209,17 +152,14 @@ func (caesa *CostAwareEmbeddingServiceAdapter) GenerateEmbeddingsOptimized(ctx c
 
 	embeddingRequest := CostAwareEmbeddingRequest{
 
-		Text:            request.Texts[0], // Take first text for now
+		Text: request.Texts[0], // Take first text for now
 
-		MaxBudget:       10.0,
+		MaxBudget: 10.0,
 
 		QualityRequired: 0.8,
 
-		LatencyBudget:   5 * time.Second,
-
+		LatencyBudget: 5 * time.Second,
 	}
-
-
 
 	// Call the actual service.
 
@@ -230,8 +170,6 @@ func (caesa *CostAwareEmbeddingServiceAdapter) GenerateEmbeddingsOptimized(ctx c
 		return nil, err
 
 	}
-
-
 
 	// Convert response format.
 
@@ -249,25 +187,18 @@ func (caesa *CostAwareEmbeddingServiceAdapter) GenerateEmbeddingsOptimized(ctx c
 
 	}
 
-
-
 	return &EmbeddingResponseExt{
 
 		Embeddings: embeddings,
 
 		TokenUsage: &TokenUsage{EstimatedCost: response.Cost},
 
-		ModelUsed:  response.Provider,
-
+		ModelUsed: response.Provider,
 	}, nil
 
 }
 
-
-
 // Helper functions.
-
-
 
 func generateChunkID(docID string, index int) string {
 
@@ -275,7 +206,4 @@ func generateChunkID(docID string, index int) string {
 
 }
 
-
-
 // generateDocumentID definition moved to enhanced_rag_integration.go to avoid duplicates.
-

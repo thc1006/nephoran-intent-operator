@@ -1,251 +1,193 @@
-
 package ca
 
-
-
 import (
-
 	"context"
-
 	"crypto/sha256"
-
 	"encoding/hex"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 )
-
-
 
 // PerformanceCache provides high-performance caching for certificate operations.
 
 type PerformanceCache struct {
-
 	logger *logging.StructuredLogger
 
 	config *PerformanceCacheConfig
 
-
-
 	// Multi-level caches.
 
-	l1Cache      *L1Cache              // In-memory hot cache
+	l1Cache *L1Cache // In-memory hot cache
 
-	l2Cache      *L2Cache              // Larger in-memory cache
+	l2Cache *L2Cache // Larger in-memory cache
 
 	preProvCache *PreProvisioningCache // Pre-provisioned certificates
-
-
 
 	// Cache statistics.
 
 	stats *PerfCacheStatistics
 
-
-
 	// Control.
 
-	ctx    context.Context
+	ctx context.Context
 
 	cancel context.CancelFunc
 
-	wg     sync.WaitGroup
-
+	wg sync.WaitGroup
 }
-
-
 
 // PerformanceCacheConfig configures the performance cache.
 
 type PerformanceCacheConfig struct {
+	L1CacheSize int `yaml:"l1_cache_size"`
 
-	L1CacheSize            int           `yaml:"l1_cache_size"`
+	L1CacheTTL time.Duration `yaml:"l1_cache_ttl"`
 
-	L1CacheTTL             time.Duration `yaml:"l1_cache_ttl"`
+	L2CacheSize int `yaml:"l2_cache_size"`
 
-	L2CacheSize            int           `yaml:"l2_cache_size"`
+	L2CacheTTL time.Duration `yaml:"l2_cache_ttl"`
 
-	L2CacheTTL             time.Duration `yaml:"l2_cache_ttl"`
+	PreProvisioningEnabled bool `yaml:"pre_provisioning_enabled"`
 
-	PreProvisioningEnabled bool          `yaml:"pre_provisioning_enabled"`
+	PreProvisioningSize int `yaml:"pre_provisioning_size"`
 
-	PreProvisioningSize    int           `yaml:"pre_provisioning_size"`
+	PreProvisioningTTL time.Duration `yaml:"pre_provisioning_ttl"`
 
-	PreProvisioningTTL     time.Duration `yaml:"pre_provisioning_ttl"`
+	BatchOperationsEnabled bool `yaml:"batch_operations_enabled"`
 
-	BatchOperationsEnabled bool          `yaml:"batch_operations_enabled"`
+	BatchSize int `yaml:"batch_size"`
 
-	BatchSize              int           `yaml:"batch_size"`
+	BatchTimeout time.Duration `yaml:"batch_timeout"`
 
-	BatchTimeout           time.Duration `yaml:"batch_timeout"`
+	MetricsEnabled bool `yaml:"metrics_enabled"`
 
-	MetricsEnabled         bool          `yaml:"metrics_enabled"`
-
-	CleanupInterval        time.Duration `yaml:"cleanup_interval"`
-
+	CleanupInterval time.Duration `yaml:"cleanup_interval"`
 }
-
-
 
 // PerfCacheStatistics tracks cache performance metrics.
 
 type PerfCacheStatistics struct {
+	L1Hits int64 `json:"l1_hits"`
 
-	L1Hits                int64 `json:"l1_hits"`
+	L1Misses int64 `json:"l1_misses"`
 
-	L1Misses              int64 `json:"l1_misses"`
+	L2Hits int64 `json:"l2_hits"`
 
-	L2Hits                int64 `json:"l2_hits"`
+	L2Misses int64 `json:"l2_misses"`
 
-	L2Misses              int64 `json:"l2_misses"`
-
-	PreProvisioningHits   int64 `json:"pre_provisioning_hits"`
+	PreProvisioningHits int64 `json:"pre_provisioning_hits"`
 
 	PreProvisioningMisses int64 `json:"pre_provisioning_misses"`
 
-	TotalRequests         int64 `json:"total_requests"`
+	TotalRequests int64 `json:"total_requests"`
 
-	EvictionCount         int64 `json:"eviction_count"`
+	EvictionCount int64 `json:"eviction_count"`
 
-	mu                    sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // L1Cache is the hot in-memory cache.
 
 type L1Cache struct {
+	cache map[string]*CacheEntry
 
-	cache   map[string]*CacheEntry
-
-	order   []string
+	order []string
 
 	maxSize int
 
-	ttl     time.Duration
+	ttl time.Duration
 
-	mu      sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // L2Cache is the larger in-memory cache.
 
 type L2Cache struct {
-
-	cache   map[string]*CacheEntry
+	cache map[string]*CacheEntry
 
 	maxSize int
 
-	ttl     time.Duration
+	ttl time.Duration
 
-	mu      sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // PreProvisioningCache stores pre-provisioned certificates.
 
 type PreProvisioningCache struct {
-
 	certificates map[string]*PreProvisionedCertificate
 
-	templates    map[string]*CertificateTemplate
+	templates map[string]*CertificateTemplate
 
-	maxSize      int
+	maxSize int
 
-	ttl          time.Duration
+	ttl time.Duration
 
-	mu           sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // CacheEntry represents a cached item.
 
 type CacheEntry struct {
+	Key string `json:"key"`
 
-	Key         string        `json:"key"`
+	Value interface{} `json:"value"`
 
-	Value       interface{}   `json:"value"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt   time.Time     `json:"created_at"`
+	AccessedAt time.Time `json:"accessed_at"`
 
-	AccessedAt  time.Time     `json:"accessed_at"`
+	AccessCount int64 `json:"access_count"`
 
-	AccessCount int64         `json:"access_count"`
+	Size int64 `json:"size"`
 
-	Size        int64         `json:"size"`
-
-	TTL         time.Duration `json:"ttl"`
-
+	TTL time.Duration `json:"ttl"`
 }
-
-
 
 // PreProvisionedCertificate represents a pre-provisioned certificate.
 
 type PreProvisionedCertificate struct {
+	ID string `json:"id"`
 
-	ID               string            `json:"id"`
+	Template string `json:"template"`
 
-	Template         string            `json:"template"`
+	CertificatePEM string `json:"certificate_pem"`
 
-	CertificatePEM   string            `json:"certificate_pem"`
+	PrivateKeyPEM string `json:"private_key_pem"`
 
-	PrivateKeyPEM    string            `json:"private_key_pem"`
+	CACertificatePEM string `json:"ca_certificate_pem"`
 
-	CACertificatePEM string            `json:"ca_certificate_pem"`
+	ValidityDuration time.Duration `json:"validity_duration"`
 
-	ValidityDuration time.Duration     `json:"validity_duration"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt        time.Time         `json:"created_at"`
-
-	Metadata         map[string]string `json:"metadata"`
-
+	Metadata map[string]string `json:"metadata"`
 }
-
-
 
 // BatchOperation represents a batched operation.
 
 type BatchOperation struct {
+	ID string `json:"id"`
 
-	ID          string               `json:"id"`
+	Type BatchOperationType `json:"type"`
 
-	Type        BatchOperationType   `json:"type"`
+	Requests []interface{} `json:"requests"`
 
-	Requests    []interface{}        `json:"requests"`
+	Results []interface{} `json:"results"`
 
-	Results     []interface{}        `json:"results"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt   time.Time            `json:"created_at"`
+	CompletedAt time.Time `json:"completed_at,omitempty"`
 
-	CompletedAt time.Time            `json:"completed_at,omitempty"`
-
-	Status      BatchOperationStatus `json:"status"`
-
+	Status BatchOperationStatus `json:"status"`
 }
-
-
 
 // BatchOperationType represents the type of batch operation.
 
 type BatchOperationType string
-
-
 
 const (
 
@@ -260,16 +202,11 @@ const (
 	// BatchTypeRenewal holds batchtyperenewal value.
 
 	BatchTypeRenewal BatchOperationType = "renewal"
-
 )
-
-
 
 // BatchOperationStatus represents the status of a batch operation.
 
 type BatchOperationStatus string
-
-
 
 const (
 
@@ -288,10 +225,7 @@ const (
 	// BatchStatusFailed holds batchstatusfailed value.
 
 	BatchStatusFailed BatchOperationStatus = "failed"
-
 )
-
-
 
 // NewPerformanceCache creates a new performance cache.
 
@@ -305,53 +239,42 @@ func NewPerformanceCache(
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-
-
 	pc := &PerformanceCache{
 
 		logger: logger,
 
 		config: config,
 
-		stats:  &PerfCacheStatistics{},
+		stats: &PerfCacheStatistics{},
 
-		ctx:    ctx,
+		ctx: ctx,
 
 		cancel: cancel,
-
 	}
-
-
 
 	// Initialize L1 cache.
 
 	pc.l1Cache = &L1Cache{
 
-		cache:   make(map[string]*CacheEntry),
+		cache: make(map[string]*CacheEntry),
 
-		order:   make([]string, 0),
+		order: make([]string, 0),
 
 		maxSize: config.L1CacheSize,
 
-		ttl:     config.L1CacheTTL,
-
+		ttl: config.L1CacheTTL,
 	}
-
-
 
 	// Initialize L2 cache.
 
 	pc.l2Cache = &L2Cache{
 
-		cache:   make(map[string]*CacheEntry),
+		cache: make(map[string]*CacheEntry),
 
 		maxSize: config.L2CacheSize,
 
-		ttl:     config.L2CacheTTL,
-
+		ttl: config.L2CacheTTL,
 	}
-
-
 
 	// Initialize pre-provisioning cache.
 
@@ -361,23 +284,18 @@ func NewPerformanceCache(
 
 			certificates: make(map[string]*PreProvisionedCertificate),
 
-			templates:    make(map[string]*CertificateTemplate),
+			templates: make(map[string]*CertificateTemplate),
 
-			maxSize:      config.PreProvisioningSize,
+			maxSize: config.PreProvisioningSize,
 
-			ttl:          config.PreProvisioningTTL,
-
+			ttl: config.PreProvisioningTTL,
 		}
 
 	}
 
-
-
 	return pc
 
 }
-
-
 
 // Start starts the performance cache.
 
@@ -391,15 +309,11 @@ func (pc *PerformanceCache) Start(ctx context.Context) error {
 
 		"pre_provisioning", pc.config.PreProvisioningEnabled)
 
-
-
 	// Start cache cleanup.
 
 	pc.wg.Add(1)
 
 	go pc.runCacheCleanup()
-
-
 
 	// Start pre-provisioning if enabled.
 
@@ -411,8 +325,6 @@ func (pc *PerformanceCache) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start batch processor if enabled.
 
 	if pc.config.BatchOperationsEnabled {
@@ -422,8 +334,6 @@ func (pc *PerformanceCache) Start(ctx context.Context) error {
 		go pc.runBatchProcessor()
 
 	}
-
-
 
 	// Start metrics collector if enabled.
 
@@ -435,8 +345,6 @@ func (pc *PerformanceCache) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Wait for context cancellation.
 
 	<-ctx.Done()
@@ -445,13 +353,9 @@ func (pc *PerformanceCache) Start(ctx context.Context) error {
 
 	pc.wg.Wait()
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the performance cache.
 
@@ -465,8 +369,6 @@ func (pc *PerformanceCache) Stop() {
 
 }
 
-
-
 // Get retrieves a value from the cache.
 
 func (pc *PerformanceCache) Get(key string) (interface{}, bool) {
@@ -476,8 +378,6 @@ func (pc *PerformanceCache) Get(key string) (interface{}, bool) {
 	pc.stats.TotalRequests++
 
 	pc.stats.mu.Unlock()
-
-
 
 	// Try L1 cache first.
 
@@ -493,15 +393,11 @@ func (pc *PerformanceCache) Get(key string) (interface{}, bool) {
 
 	}
 
-
-
 	pc.stats.mu.Lock()
 
 	pc.stats.L1Misses++
 
 	pc.stats.mu.Unlock()
-
-
 
 	// Try L2 cache.
 
@@ -510,8 +406,6 @@ func (pc *PerformanceCache) Get(key string) (interface{}, bool) {
 		// Promote to L1.
 
 		pc.setToL1(key, value)
-
-
 
 		pc.stats.mu.Lock()
 
@@ -523,21 +417,15 @@ func (pc *PerformanceCache) Get(key string) (interface{}, bool) {
 
 	}
 
-
-
 	pc.stats.mu.Lock()
 
 	pc.stats.L2Misses++
 
 	pc.stats.mu.Unlock()
 
-
-
 	return nil, false
 
 }
-
-
 
 // Set stores a value in the cache.
 
@@ -549,8 +437,6 @@ func (pc *PerformanceCache) Set(key string, value interface{}, ttl time.Duration
 
 }
 
-
-
 // GetPreProvisionedCertificate gets a pre-provisioned certificate.
 
 func (pc *PerformanceCache) GetPreProvisionedCertificate(template string) (*PreProvisionedCertificate, bool) {
@@ -561,13 +447,9 @@ func (pc *PerformanceCache) GetPreProvisionedCertificate(template string) (*PreP
 
 	}
 
-
-
 	pc.preProvCache.mu.RLock()
 
 	defer pc.preProvCache.mu.RUnlock()
-
-
 
 	for _, cert := range pc.preProvCache.certificates {
 
@@ -579,13 +461,9 @@ func (pc *PerformanceCache) GetPreProvisionedCertificate(template string) (*PreP
 
 			pc.stats.mu.Unlock()
 
-
-
 			// Remove from cache since it's now being used.
 
 			delete(pc.preProvCache.certificates, cert.ID)
-
-
 
 			return cert, true
 
@@ -593,21 +471,15 @@ func (pc *PerformanceCache) GetPreProvisionedCertificate(template string) (*PreP
 
 	}
 
-
-
 	pc.stats.mu.Lock()
 
 	pc.stats.PreProvisioningMisses++
 
 	pc.stats.mu.Unlock()
 
-
-
 	return nil, false
 
 }
-
-
 
 // AddPreProvisionedCertificate adds a pre-provisioned certificate.
 
@@ -619,13 +491,9 @@ func (pc *PerformanceCache) AddPreProvisionedCertificate(cert *PreProvisionedCer
 
 	}
 
-
-
 	pc.preProvCache.mu.Lock()
 
 	defer pc.preProvCache.mu.Unlock()
-
-
 
 	// Check if we need to make room.
 
@@ -635,11 +503,7 @@ func (pc *PerformanceCache) AddPreProvisionedCertificate(cert *PreProvisionedCer
 
 	}
 
-
-
 	pc.preProvCache.certificates[cert.ID] = cert
-
-
 
 	pc.logger.Debug("added pre-provisioned certificate",
 
@@ -651,8 +515,6 @@ func (pc *PerformanceCache) AddPreProvisionedCertificate(cert *PreProvisionedCer
 
 }
 
-
-
 // GetStatistics returns cache statistics.
 
 func (pc *PerformanceCache) GetStatistics() *PerfCacheStatistics {
@@ -661,45 +523,36 @@ func (pc *PerformanceCache) GetStatistics() *PerfCacheStatistics {
 
 	defer pc.stats.mu.RUnlock()
 
-
-
 	// Return a copy.
 
 	return &PerfCacheStatistics{
 
-		L1Hits:                pc.stats.L1Hits,
+		L1Hits: pc.stats.L1Hits,
 
-		L1Misses:              pc.stats.L1Misses,
+		L1Misses: pc.stats.L1Misses,
 
-		L2Hits:                pc.stats.L2Hits,
+		L2Hits: pc.stats.L2Hits,
 
-		L2Misses:              pc.stats.L2Misses,
+		L2Misses: pc.stats.L2Misses,
 
-		PreProvisioningHits:   pc.stats.PreProvisioningHits,
+		PreProvisioningHits: pc.stats.PreProvisioningHits,
 
 		PreProvisioningMisses: pc.stats.PreProvisioningMisses,
 
-		TotalRequests:         pc.stats.TotalRequests,
+		TotalRequests: pc.stats.TotalRequests,
 
-		EvictionCount:         pc.stats.EvictionCount,
-
+		EvictionCount: pc.stats.EvictionCount,
 	}
 
 }
 
-
-
 // L1 cache operations.
-
-
 
 func (pc *PerformanceCache) getFromL1(key string) (interface{}, bool) {
 
 	pc.l1Cache.mu.RLock()
 
 	defer pc.l1Cache.mu.RUnlock()
-
-
 
 	entry, exists := pc.l1Cache.cache[key]
 
@@ -708,8 +561,6 @@ func (pc *PerformanceCache) getFromL1(key string) (interface{}, bool) {
 		return nil, false
 
 	}
-
-
 
 	// Check TTL.
 
@@ -723,29 +574,21 @@ func (pc *PerformanceCache) getFromL1(key string) (interface{}, bool) {
 
 	}
 
-
-
 	// Update access information.
 
 	entry.AccessedAt = time.Now()
 
 	entry.AccessCount++
 
-
-
 	return entry.Value, true
 
 }
-
-
 
 func (pc *PerformanceCache) setToL1(key string, value interface{}) {
 
 	pc.l1Cache.mu.Lock()
 
 	defer pc.l1Cache.mu.Unlock()
-
-
 
 	// Check if we need to make room.
 
@@ -755,27 +598,22 @@ func (pc *PerformanceCache) setToL1(key string, value interface{}) {
 
 	}
 
-
-
 	entry := &CacheEntry{
 
-		Key:         key,
+		Key: key,
 
-		Value:       value,
+		Value: value,
 
-		CreatedAt:   time.Now(),
+		CreatedAt: time.Now(),
 
-		AccessedAt:  time.Now(),
+		AccessedAt: time.Now(),
 
 		AccessCount: 1,
 
-		Size:        pc.calculateSize(value),
+		Size: pc.calculateSize(value),
 
-		TTL:         pc.l1Cache.ttl,
-
+		TTL: pc.l1Cache.ttl,
 	}
-
-
 
 	pc.l1Cache.cache[key] = entry
 
@@ -783,21 +621,15 @@ func (pc *PerformanceCache) setToL1(key string, value interface{}) {
 
 }
 
-
-
 func (pc *PerformanceCache) removeFromL1(key string) {
 
 	pc.l1Cache.mu.Lock()
 
 	defer pc.l1Cache.mu.Unlock()
 
-
-
 	if _, exists := pc.l1Cache.cache[key]; exists {
 
 		delete(pc.l1Cache.cache, key)
-
-
 
 		// Remove from order slice.
 
@@ -817,8 +649,6 @@ func (pc *PerformanceCache) removeFromL1(key string) {
 
 }
 
-
-
 func (pc *PerformanceCache) evictFromL1() {
 
 	if len(pc.l1Cache.order) == 0 {
@@ -826,8 +656,6 @@ func (pc *PerformanceCache) evictFromL1() {
 		return
 
 	}
-
-
 
 	// Evict oldest entry (LRU).
 
@@ -837,8 +665,6 @@ func (pc *PerformanceCache) evictFromL1() {
 
 	pc.l1Cache.order = pc.l1Cache.order[1:]
 
-
-
 	pc.stats.mu.Lock()
 
 	pc.stats.EvictionCount++
@@ -847,19 +673,13 @@ func (pc *PerformanceCache) evictFromL1() {
 
 }
 
-
-
 // L2 cache operations.
-
-
 
 func (pc *PerformanceCache) getFromL2(key string) (interface{}, bool) {
 
 	pc.l2Cache.mu.RLock()
 
 	defer pc.l2Cache.mu.RUnlock()
-
-
 
 	entry, exists := pc.l2Cache.cache[key]
 
@@ -868,8 +688,6 @@ func (pc *PerformanceCache) getFromL2(key string) (interface{}, bool) {
 		return nil, false
 
 	}
-
-
 
 	// Check TTL.
 
@@ -883,29 +701,21 @@ func (pc *PerformanceCache) getFromL2(key string) (interface{}, bool) {
 
 	}
 
-
-
 	// Update access information.
 
 	entry.AccessedAt = time.Now()
 
 	entry.AccessCount++
 
-
-
 	return entry.Value, true
 
 }
-
-
 
 func (pc *PerformanceCache) setToL2(key string, value interface{}) {
 
 	pc.l2Cache.mu.Lock()
 
 	defer pc.l2Cache.mu.Unlock()
-
-
 
 	// Check if we need to make room.
 
@@ -915,33 +725,26 @@ func (pc *PerformanceCache) setToL2(key string, value interface{}) {
 
 	}
 
-
-
 	entry := &CacheEntry{
 
-		Key:         key,
+		Key: key,
 
-		Value:       value,
+		Value: value,
 
-		CreatedAt:   time.Now(),
+		CreatedAt: time.Now(),
 
-		AccessedAt:  time.Now(),
+		AccessedAt: time.Now(),
 
 		AccessCount: 1,
 
-		Size:        pc.calculateSize(value),
+		Size: pc.calculateSize(value),
 
-		TTL:         pc.l2Cache.ttl,
-
+		TTL: pc.l2Cache.ttl,
 	}
-
-
 
 	pc.l2Cache.cache[key] = entry
 
 }
-
-
 
 func (pc *PerformanceCache) removeFromL2(key string) {
 
@@ -949,13 +752,9 @@ func (pc *PerformanceCache) removeFromL2(key string) {
 
 	defer pc.l2Cache.mu.Unlock()
 
-
-
 	delete(pc.l2Cache.cache, key)
 
 }
-
-
 
 func (pc *PerformanceCache) evictFromL2() {
 
@@ -964,8 +763,6 @@ func (pc *PerformanceCache) evictFromL2() {
 	var oldestKey string
 
 	oldestTime := time.Now()
-
-
 
 	for key, entry := range pc.l2Cache.cache {
 
@@ -979,13 +776,9 @@ func (pc *PerformanceCache) evictFromL2() {
 
 	}
 
-
-
 	if oldestKey != "" {
 
 		delete(pc.l2Cache.cache, oldestKey)
-
-
 
 		pc.stats.mu.Lock()
 
@@ -997,19 +790,13 @@ func (pc *PerformanceCache) evictFromL2() {
 
 }
 
-
-
 // Pre-provisioning operations.
-
-
 
 func (pc *PerformanceCache) evictOldestPreProvisioned() {
 
 	var oldestKey string
 
 	oldestTime := time.Now()
-
-
 
 	for key, cert := range pc.preProvCache.certificates {
 
@@ -1023,8 +810,6 @@ func (pc *PerformanceCache) evictOldestPreProvisioned() {
 
 	}
 
-
-
 	if oldestKey != "" {
 
 		delete(pc.preProvCache.certificates, oldestKey)
@@ -1033,23 +818,15 @@ func (pc *PerformanceCache) evictOldestPreProvisioned() {
 
 }
 
-
-
 // Background processes.
-
-
 
 func (pc *PerformanceCache) runCacheCleanup() {
 
 	defer pc.wg.Done()
 
-
-
 	ticker := time.NewTicker(pc.config.CleanupInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1069,13 +846,9 @@ func (pc *PerformanceCache) runCacheCleanup() {
 
 }
 
-
-
 func (pc *PerformanceCache) performCleanup() {
 
 	now := time.Now()
-
-
 
 	// Cleanup L1 cache.
 
@@ -1107,8 +880,6 @@ func (pc *PerformanceCache) performCleanup() {
 
 	pc.l1Cache.mu.Unlock()
 
-
-
 	// Cleanup L2 cache.
 
 	pc.l2Cache.mu.Lock()
@@ -1124,8 +895,6 @@ func (pc *PerformanceCache) performCleanup() {
 	}
 
 	pc.l2Cache.mu.Unlock()
-
-
 
 	// Cleanup pre-provisioning cache.
 
@@ -1147,25 +916,17 @@ func (pc *PerformanceCache) performCleanup() {
 
 	}
 
-
-
 	pc.logger.Debug("performed cache cleanup")
 
 }
-
-
 
 func (pc *PerformanceCache) runPreProvisioning() {
 
 	defer pc.wg.Done()
 
-
-
 	ticker := time.NewTicker(5 * time.Minute) // Check every 5 minutes
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1185,8 +946,6 @@ func (pc *PerformanceCache) runPreProvisioning() {
 
 }
 
-
-
 func (pc *PerformanceCache) performPreProvisioning() {
 
 	if pc.preProvCache == nil {
@@ -1194,8 +953,6 @@ func (pc *PerformanceCache) performPreProvisioning() {
 		return
 
 	}
-
-
 
 	// Check current cache size.
 
@@ -1207,15 +964,11 @@ func (pc *PerformanceCache) performPreProvisioning() {
 
 	pc.preProvCache.mu.RUnlock()
 
-
-
 	if currentSize >= targetSize {
 
 		return
 
 	}
-
-
 
 	needed := targetSize - currentSize
 
@@ -1227,27 +980,19 @@ func (pc *PerformanceCache) performPreProvisioning() {
 
 		"needed", needed)
 
-
-
 	// This would integrate with the CA manager to pre-provision certificates.
 
 	// For now, we'll just log the intent.
 
 }
 
-
-
 func (pc *PerformanceCache) runBatchProcessor() {
 
 	defer pc.wg.Done()
 
-
-
 	ticker := time.NewTicker(pc.config.BatchTimeout)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1267,8 +1012,6 @@ func (pc *PerformanceCache) runBatchProcessor() {
 
 }
 
-
-
 func (pc *PerformanceCache) processBatches() {
 
 	// This would implement batch processing logic.
@@ -1277,19 +1020,13 @@ func (pc *PerformanceCache) processBatches() {
 
 }
 
-
-
 func (pc *PerformanceCache) runMetricsCollector() {
 
 	defer pc.wg.Done()
 
-
-
 	ticker := time.NewTicker(1 * time.Minute)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1309,21 +1046,15 @@ func (pc *PerformanceCache) runMetricsCollector() {
 
 }
 
-
-
 func (pc *PerformanceCache) collectMetrics() {
 
 	stats := pc.GetStatistics()
-
-
 
 	// Calculate cache hit rates.
 
 	totalL1Requests := stats.L1Hits + stats.L1Misses
 
 	totalL2Requests := stats.L2Hits + stats.L2Misses
-
-
 
 	var l1HitRate, l2HitRate float64
 
@@ -1339,8 +1070,6 @@ func (pc *PerformanceCache) collectMetrics() {
 
 	}
 
-
-
 	pc.logger.Debug("cache metrics",
 
 		"l1_hit_rate", fmt.Sprintf("%.2f%%", l1HitRate),
@@ -1353,11 +1082,7 @@ func (pc *PerformanceCache) collectMetrics() {
 
 }
 
-
-
 // Helper methods.
-
-
 
 func (pc *PerformanceCache) calculateSize(value interface{}) int64 {
 
@@ -1381,8 +1106,6 @@ func (pc *PerformanceCache) calculateSize(value interface{}) int64 {
 
 }
 
-
-
 func (pc *PerformanceCache) generateCacheKey(prefix string, data interface{}) string {
 
 	hasher := sha256.New()
@@ -1392,4 +1115,3 @@ func (pc *PerformanceCache) generateCacheKey(prefix string, data interface{}) st
 	return hex.EncodeToString(hasher.Sum(nil))
 
 }
-

@@ -1,45 +1,25 @@
-
 package porch
 
-
-
 import (
-
 	"bytes"
-
 	"context"
-
 	"encoding/json"
-
 	"errors"
-
 	"fmt"
-
 	"log"
-
 	"os"
-
 	"os/exec"
-
 	"path/filepath"
-
 	"strings"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 const (
 
 	// DefaultTimeout for porch command execution.
 
 	DefaultTimeout = 30 * time.Second
-
-
 
 	// Mode constants.
 
@@ -48,58 +28,43 @@ const (
 	// ModeStructured holds modestructured value.
 
 	ModeStructured = "structured"
-
 )
-
-
 
 // ExecutorConfig holds configuration for the porch executor.
 
 type ExecutorConfig struct {
+	PorchPath string `json:"porch_path"`
 
-	PorchPath string        `json:"porch_path"`
+	Mode string `json:"mode"`
 
-	Mode      string        `json:"mode"`
+	OutDir string `json:"out_dir"`
 
-	OutDir    string        `json:"out_dir"`
-
-	Timeout   time.Duration `json:"timeout"`
-
+	Timeout time.Duration `json:"timeout"`
 }
-
-
 
 // ExecutionResult holds the result of a porch command execution.
 
 type ExecutionResult struct {
+	Success bool `json:"success"`
 
-	Success  bool          `json:"success"`
+	ExitCode int `json:"exit_code"`
 
-	ExitCode int           `json:"exit_code"`
+	Stdout string `json:"stdout"`
 
-	Stdout   string        `json:"stdout"`
-
-	Stderr   string        `json:"stderr"`
+	Stderr string `json:"stderr"`
 
 	Duration time.Duration `json:"duration"`
 
-	Command  string        `json:"command"`
+	Command string `json:"command"`
 
-	Error    error         `json:"error,omitempty"`
-
+	Error error `json:"error,omitempty"`
 }
-
-
 
 // Executor manages porch command execution.
 
 type Executor struct {
-
 	config ExecutorConfig
-
 }
-
-
 
 // NewExecutor creates a new porch executor with the given configuration.
 
@@ -113,8 +78,6 @@ func NewExecutor(config ExecutorConfig) *Executor {
 
 	}
 
-
-
 	// Validate mode.
 
 	if config.Mode != ModeDirect && config.Mode != ModeStructured {
@@ -123,25 +86,18 @@ func NewExecutor(config ExecutorConfig) *Executor {
 
 	}
 
-
-
 	return &Executor{
 
 		config: config,
-
 	}
 
 }
-
-
 
 // Execute runs the porch command for the given intent file with graceful handling.
 
 func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionResult, error) {
 
 	startTime := time.Now()
-
-
 
 	// Build command based on mode.
 
@@ -151,19 +107,16 @@ func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionRe
 
 		return &ExecutionResult{
 
-			Success:  false,
+			Success: false,
 
-			Command:  fmt.Sprintf("<%s>", err.Error()),
+			Command: fmt.Sprintf("<%s>", err.Error()),
 
 			Duration: time.Since(startTime),
 
-			Error:    err,
-
+			Error: err,
 		}, err
 
 	}
-
-
 
 	// Create context with timeout.
 
@@ -171,15 +124,11 @@ func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionRe
 
 	defer cancel()
 
-
-
 	// Create graceful command instead of regular exec.Command.
 
 	gracefulCmd := NewGracefulCommand(timeoutCtx, cmdArgs[0], cmdArgs[1:]...)
 
 	gracefulCmd.SetGracePeriod(5 * time.Second) // 5 second grace period for SIGTERM->SIGKILL
-
-
 
 	var stdout, stderr bytes.Buffer
 
@@ -187,11 +136,7 @@ func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionRe
 
 	gracefulCmd.Stderr = &stderr
 
-
-
 	log.Printf("Executing porch command: %s", strings.Join(cmdArgs, " "))
-
-
 
 	// Execute the command with graceful shutdown support.
 
@@ -199,31 +144,24 @@ func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionRe
 
 	duration := time.Since(startTime)
 
-
-
 	result := &ExecutionResult{
 
-		Success:  err == nil,
+		Success: err == nil,
 
 		ExitCode: getExitCode(gracefulCmd.Cmd, err),
 
-		Stdout:   strings.TrimSpace(stdout.String()),
+		Stdout: strings.TrimSpace(stdout.String()),
 
-		Stderr:   strings.TrimSpace(stderr.String()),
+		Stderr: strings.TrimSpace(stderr.String()),
 
 		Duration: duration,
 
-		Command:  strings.Join(cmdArgs, " "),
-
+		Command: strings.Join(cmdArgs, " "),
 	}
-
-
 
 	if err != nil {
 
 		result.Error = err
-
-
 
 		// Check for specific error types.
 
@@ -234,8 +172,6 @@ func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionRe
 		}
 
 	}
-
-
 
 	// Log execution result.
 
@@ -261,13 +197,9 @@ func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionRe
 
 	}
 
-
-
 	return result, nil
 
 }
-
-
 
 // buildCommand constructs the porch command based on the mode and configuration.
 
@@ -283,8 +215,6 @@ func (e *Executor) buildCommand(intentPath string) ([]string, error) {
 
 	}
 
-
-
 	absOutDir, err := filepath.Abs(e.config.OutDir)
 
 	if err != nil {
@@ -292,8 +222,6 @@ func (e *Executor) buildCommand(intentPath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to get absolute output directory: %w", err)
 
 	}
-
-
 
 	// Build command based on mode.
 
@@ -308,10 +236,7 @@ func (e *Executor) buildCommand(intentPath string) ([]string, error) {
 			"-intent", absIntentPath,
 
 			"-out", absOutDir,
-
 		}, nil
-
-
 
 	case ModeStructured:
 
@@ -324,10 +249,7 @@ func (e *Executor) buildCommand(intentPath string) ([]string, error) {
 			"-out", absOutDir,
 
 			"-structured",
-
 		}, nil
-
-
 
 	default:
 
@@ -336,8 +258,6 @@ func (e *Executor) buildCommand(intentPath string) ([]string, error) {
 	}
 
 }
-
-
 
 // getExitCode extracts the exit code from a command execution.
 
@@ -349,8 +269,6 @@ func getExitCode(cmd *exec.Cmd, err error) int {
 
 	}
 
-
-
 	var exitError *exec.ExitError
 
 	if errors.As(err, &exitError) {
@@ -359,15 +277,11 @@ func getExitCode(cmd *exec.Cmd, err error) int {
 
 	}
 
-
-
 	// For other types of errors, return -1.
 
 	return -1
 
 }
-
-
 
 // ValidatePorchPath checks if the porch executable exists and is executable.
 
@@ -379,15 +293,11 @@ func ValidatePorchPath(porchPath string) error {
 
 	defer cancel()
 
-
-
 	cmd := exec.CommandContext(ctx, porchPath, "--help")
 
 	var stderr bytes.Buffer
 
 	cmd.Stderr = &stderr
-
-
 
 	err := cmd.Run()
 
@@ -405,47 +315,35 @@ func ValidatePorchPath(porchPath string) error {
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // ExecutorStats holds statistics about executor usage.
 
 type ExecutorStats struct {
+	TotalExecutions int `json:"total_executions"`
 
-	TotalExecutions int           `json:"total_executions"`
+	SuccessfulExecs int `json:"successful_executions"`
 
-	SuccessfulExecs int           `json:"successful_executions"`
-
-	FailedExecs     int           `json:"failed_executions"`
+	FailedExecs int `json:"failed_executions"`
 
 	AverageExecTime time.Duration `json:"average_execution_time"`
 
-	TotalExecTime   time.Duration `json:"total_execution_time"`
+	TotalExecTime time.Duration `json:"total_execution_time"`
 
-	TimeoutCount    int           `json:"timeout_count"`
-
+	TimeoutCount int `json:"timeout_count"`
 }
-
-
 
 // StatefulExecutor wraps Executor with statistics tracking.
 
 type StatefulExecutor struct {
-
 	*Executor
 
 	stats ExecutorStats
 
-	mu    sync.RWMutex
-
+	mu sync.RWMutex
 }
-
-
 
 // NewStatefulExecutor creates a new stateful executor that tracks execution statistics.
 
@@ -455,13 +353,10 @@ func NewStatefulExecutor(config ExecutorConfig) *StatefulExecutor {
 
 		Executor: NewExecutor(config),
 
-		stats:    ExecutorStats{},
-
+		stats: ExecutorStats{},
 	}
 
 }
-
-
 
 // Execute runs the porch command and updates statistics.
 
@@ -501,8 +396,6 @@ func (se *StatefulExecutor) Execute(ctx context.Context, intentPath string) (*Ex
 
 	}
 
-
-
 	// Update statistics with thread safety.
 
 	se.mu.Lock()
@@ -513,8 +406,6 @@ func (se *StatefulExecutor) Execute(ctx context.Context, intentPath string) (*Ex
 
 	se.stats.AverageExecTime = se.stats.TotalExecTime / time.Duration(se.stats.TotalExecutions)
 
-
-
 	if result.Success {
 
 		se.stats.SuccessfulExecs++
@@ -522,8 +413,6 @@ func (se *StatefulExecutor) Execute(ctx context.Context, intentPath string) (*Ex
 	} else {
 
 		se.stats.FailedExecs++
-
-
 
 		// Check if it was a timeout.
 
@@ -537,13 +426,9 @@ func (se *StatefulExecutor) Execute(ctx context.Context, intentPath string) (*Ex
 
 	se.mu.Unlock()
 
-
-
 	return result, err
 
 }
-
-
 
 // GetStats returns a copy of the current execution statistics.
 
@@ -559,8 +444,6 @@ func (se *StatefulExecutor) GetStats() ExecutorStats {
 
 }
 
-
-
 // ResetStats resets all execution statistics.
 
 func (se *StatefulExecutor) ResetStats() {
@@ -573,15 +456,11 @@ func (se *StatefulExecutor) ResetStats() {
 
 }
 
-
-
 // generateFallbackYAML creates a simple YAML output when porch is not available.
 
 func (se *StatefulExecutor) generateFallbackYAML(intentPath string) (*ExecutionResult, error) {
 
 	startTime := time.Now()
-
-
 
 	// Read the intent JSON file.
 
@@ -591,17 +470,14 @@ func (se *StatefulExecutor) generateFallbackYAML(intentPath string) (*ExecutionR
 
 		return &ExecutionResult{
 
-			Success:  false,
+			Success: false,
 
 			Duration: time.Since(startTime),
 
-			Error:    fmt.Errorf("failed to read intent file: %w", err),
-
+			Error: fmt.Errorf("failed to read intent file: %w", err),
 		}, err
 
 	}
-
-
 
 	// Parse the JSON to extract metadata.
 
@@ -611,17 +487,14 @@ func (se *StatefulExecutor) generateFallbackYAML(intentPath string) (*ExecutionR
 
 		return &ExecutionResult{
 
-			Success:  false,
+			Success: false,
 
 			Duration: time.Since(startTime),
 
-			Error:    fmt.Errorf("failed to parse intent JSON: %w", err),
-
+			Error: fmt.Errorf("failed to parse intent JSON: %w", err),
 		}, err
 
 	}
-
-
 
 	// Extract name from metadata or use filename.
 
@@ -642,8 +515,6 @@ func (se *StatefulExecutor) generateFallbackYAML(intentPath string) (*ExecutionR
 		intentName = strings.TrimSuffix(filepath.Base(intentPath), ".json")
 
 	}
-
-
 
 	// Generate simple YAML output.
 
@@ -677,51 +548,41 @@ data:
 
 %s`, intentName, intentName, time.Now().Format(time.RFC3339), indentJSON(string(data)))
 
-
-
 	// Write YAML to output directory.
 
 	yamlFilename := fmt.Sprintf("%s.yaml", intentName)
 
 	yamlPath := filepath.Join(se.config.OutDir, yamlFilename)
 
-
-
 	if err := os.WriteFile(yamlPath, []byte(yamlContent), 0o640); err != nil {
 
 		return &ExecutionResult{
 
-			Success:  false,
+			Success: false,
 
 			Duration: time.Since(startTime),
 
-			Error:    fmt.Errorf("failed to write YAML file: %w", err),
-
+			Error: fmt.Errorf("failed to write YAML file: %w", err),
 		}, err
 
 	}
-
-
 
 	duration := time.Since(startTime)
 
 	return &ExecutionResult{
 
-		Success:  true,
+		Success: true,
 
 		ExitCode: 0,
 
 		Duration: duration,
 
-		Command:  fmt.Sprintf("fallback-yaml-generator %s", intentPath),
+		Command: fmt.Sprintf("fallback-yaml-generator %s", intentPath),
 
-		Stdout:   fmt.Sprintf("Generated YAML: %s", yamlPath),
-
+		Stdout: fmt.Sprintf("Generated YAML: %s", yamlPath),
 	}, nil
 
 }
-
-
 
 // indentJSON adds 4-space indentation to each line of JSON for YAML embedding.
 
@@ -742,4 +603,3 @@ func indentJSON(jsonStr string) string {
 	return strings.Join(lines, "\n")
 
 }
-

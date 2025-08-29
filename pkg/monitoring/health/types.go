@@ -2,28 +2,17 @@
 
 // This serves as the single source of truth for all health-related types to avoid duplicates.
 
-
 package health
 
-
-
 import (
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
-
 )
-
-
 
 // HealthTier represents different tiers of health monitoring.
 
 type HealthTier int
-
-
 
 const (
 
@@ -42,10 +31,7 @@ const (
 	// TierDependency holds tierdependency value.
 
 	TierDependency
-
 )
-
-
 
 // String returns the string representation of HealthTier.
 
@@ -77,13 +63,9 @@ func (ht HealthTier) String() string {
 
 }
 
-
-
 // HealthContext represents different operational contexts for health checks.
 
 type HealthContext int
-
-
 
 const (
 
@@ -106,10 +88,7 @@ const (
 	// ContextMaintenance holds contextmaintenance value.
 
 	ContextMaintenance
-
 )
-
-
 
 // String returns the string representation of HealthContext.
 
@@ -145,13 +124,9 @@ func (hc HealthContext) String() string {
 
 }
 
-
-
 // HealthWeight represents the business criticality weight of a component.
 
 type HealthWeight float64
-
-
 
 const (
 
@@ -170,16 +145,11 @@ const (
 	// WeightCritical holds weightcritical value.
 
 	WeightCritical HealthWeight = 1.0
-
 )
-
-
 
 // AlertSeverity represents the severity level of alerts (unified definition).
 
 type AlertSeverity string
-
-
 
 const (
 
@@ -198,16 +168,11 @@ const (
 	// SeverityCritical holds severitycritical value.
 
 	SeverityCritical AlertSeverity = "critical"
-
 )
-
-
 
 // AlertStatus represents the status of alerts (unified definition).
 
 type AlertStatus string
-
-
 
 const (
 
@@ -222,44 +187,33 @@ const (
 	// AlertStatusSuppressed holds alertstatussuppressed value.
 
 	AlertStatusSuppressed AlertStatus = "suppressed"
-
 )
-
-
 
 // AlertThresholds provides common alert threshold configuration.
 
 type AlertThresholds struct {
-
 	LatencyThreshold time.Duration `json:"latency_threshold"`
 
-	ErrorRatePercent float64       `json:"error_rate_percent"`
+	ErrorRatePercent float64 `json:"error_rate_percent"`
 
-	SuccessRateMin   float64       `json:"success_rate_min"`
+	SuccessRateMin float64 `json:"success_rate_min"`
 
-	UptimeMin        float64       `json:"uptime_min"`
+	UptimeMin float64 `json:"uptime_min"`
 
-	ResponseTimeMax  time.Duration `json:"response_time_max"`
-
+	ResponseTimeMax time.Duration `json:"response_time_max"`
 }
-
-
 
 // StateTransition tracks health state changes over time.
 
 type StateTransition struct {
+	From health.Status `json:"from"`
 
-	From      health.Status `json:"from"`
+	To health.Status `json:"to"`
 
-	To        health.Status `json:"to"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time     `json:"timestamp"`
-
-	Reason    string        `json:"reason,omitempty"`
-
+	Reason string `json:"reason,omitempty"`
 }
-
-
 
 // EnhancedCheck represents an enhanced health check with additional metadata.
 
@@ -267,191 +221,152 @@ type EnhancedCheck struct {
 
 	// Basic health check information.
 
-	Name      string        `json:"name"`
+	Name string `json:"name"`
 
-	Status    health.Status `json:"status"`
+	Status health.Status `json:"status"`
 
-	Message   string        `json:"message,omitempty"`
+	Message string `json:"message,omitempty"`
 
-	Error     string        `json:"error,omitempty"`
+	Error string `json:"error,omitempty"`
 
-	Duration  time.Duration `json:"duration"`
+	Duration time.Duration `json:"duration"`
 
-	Timestamp time.Time     `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Component string        `json:"component"`
-
-
+	Component string `json:"component"`
 
 	// Enhanced metadata.
 
-	Tier        HealthTier    `json:"tier"`
+	Tier HealthTier `json:"tier"`
 
-	Weight      HealthWeight  `json:"weight"`
+	Weight HealthWeight `json:"weight"`
 
-	Context     HealthContext `json:"context"`
+	Context HealthContext `json:"context"`
 
-	Score       float64       `json:"score"`
+	Score float64 `json:"score"`
 
-	Criticality string        `json:"criticality"`
-
-
+	Criticality string `json:"criticality"`
 
 	// State tracking.
 
 	StateTransitions []StateTransition `json:"state_transitions,omitempty"`
 
-	ConsecutiveFails int               `json:"consecutive_fails"`
+	ConsecutiveFails int `json:"consecutive_fails"`
 
-	LastHealthy      time.Time         `json:"last_healthy,omitempty"`
-
-
+	LastHealthy time.Time `json:"last_healthy,omitempty"`
 
 	// Performance metrics.
 
 	AverageLatency time.Duration `json:"average_latency"`
 
-	MaxLatency     time.Duration `json:"max_latency"`
+	MaxLatency time.Duration `json:"max_latency"`
 
-	SuccessRate    float64       `json:"success_rate"`
-
-
+	SuccessRate float64 `json:"success_rate"`
 
 	// Additional context.
 
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 
-	Dependencies []string               `json:"dependencies,omitempty"`
-
+	Dependencies []string `json:"dependencies,omitempty"`
 }
-
-
 
 // EnhancedHealthResponse represents a comprehensive health check response.
 
 type EnhancedHealthResponse struct {
+	Service string `json:"service"`
 
-	Service       string        `json:"service"`
+	Version string `json:"version"`
 
-	Version       string        `json:"version"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp     time.Time     `json:"timestamp"`
-
-	Context       HealthContext `json:"context"`
+	Context HealthContext `json:"context"`
 
 	OverallStatus health.Status `json:"overall_status"`
 
-	WeightedScore float64       `json:"weighted_score"`
-
-
+	WeightedScore float64 `json:"weighted_score"`
 
 	// Check results.
 
-	Checks        []EnhancedCheck            `json:"checks"`
+	Checks []EnhancedCheck `json:"checks"`
 
 	TierSummaries map[HealthTier]TierSummary `json:"tier_summaries"`
-
-
 
 	// Execution information.
 
 	ExecutionMetrics ExecutionMetrics `json:"execution_metrics"`
 
-
-
 	// Additional metadata.
 
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
-
 }
-
-
 
 // TierSummary provides aggregated information for a health tier.
 
 type TierSummary struct {
+	Tier HealthTier `json:"tier"`
 
-	Tier            HealthTier `json:"tier"`
+	TotalChecks int `json:"total_checks"`
 
-	TotalChecks     int        `json:"total_checks"`
+	HealthyChecks int `json:"healthy_checks"`
 
-	HealthyChecks   int        `json:"healthy_checks"`
+	UnhealthyChecks int `json:"unhealthy_checks"`
 
-	UnhealthyChecks int        `json:"unhealthy_checks"`
+	DegradedChecks int `json:"degraded_checks"`
 
-	DegradedChecks  int        `json:"degraded_checks"`
+	UnknownChecks int `json:"unknown_checks"`
 
-	UnknownChecks   int        `json:"unknown_checks"`
+	TotalWeight float64 `json:"total_weight"`
 
-	TotalWeight     float64    `json:"total_weight"`
+	WeightedScore float64 `json:"weighted_score"`
 
-	WeightedScore   float64    `json:"weighted_score"`
-
-	AverageScore    float64    `json:"average_score"`
-
+	AverageScore float64 `json:"average_score"`
 }
-
-
 
 // ExecutionMetrics contains metrics about the health check execution.
 
 type ExecutionMetrics struct {
+	StartTime time.Time `json:"start_time"`
 
-	StartTime         time.Time     `json:"start_time"`
+	Duration time.Duration `json:"duration"`
 
-	Duration          time.Duration `json:"duration"`
+	CheckCount int `json:"check_count"`
 
-	CheckCount        int           `json:"check_count"`
+	ParallelExecution bool `json:"parallel_execution"`
 
-	ParallelExecution bool          `json:"parallel_execution"`
-
-	CacheHitRate      float64       `json:"cache_hit_rate,omitempty"`
-
+	CacheHitRate float64 `json:"cache_hit_rate,omitempty"`
 }
-
-
 
 // HealthTrend represents historical health trend data.
 
 type HealthTrend struct {
+	CheckName string `json:"check_name"`
 
-	CheckName   string             `json:"check_name"`
+	TimeWindow time.Duration `json:"time_window"`
 
-	TimeWindow  time.Duration      `json:"time_window"`
+	DataPoints []HealthDataPoint `json:"data_points"`
 
-	DataPoints  []HealthDataPoint  `json:"data_points"`
+	Trend TrendDirection `json:"trend"`
 
-	Trend       TrendDirection     `json:"trend"`
-
-	Stability   StabilityLevel     `json:"stability"`
+	Stability StabilityLevel `json:"stability"`
 
 	Predictions []HealthPrediction `json:"predictions,omitempty"`
-
 }
-
-
 
 // HealthDataPoint represents a single data point in health history.
 
 type HealthDataPoint struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time     `json:"timestamp"`
+	Status health.Status `json:"status"`
 
-	Status    health.Status `json:"status"`
+	Score float64 `json:"score"`
 
-	Score     float64       `json:"score"`
-
-	Duration  time.Duration `json:"duration"`
-
+	Duration time.Duration `json:"duration"`
 }
-
-
 
 // TrendDirection indicates the direction of health trend.
 
 type TrendDirection string
-
-
 
 const (
 
@@ -474,16 +389,11 @@ const (
 	// TrendVolatile holds trendvolatile value.
 
 	TrendVolatile TrendDirection = "volatile"
-
 )
-
-
 
 // StabilityLevel indicates the stability of health metrics.
 
 type StabilityLevel string
-
-
 
 const (
 
@@ -502,74 +412,57 @@ const (
 	// StabilityUnknown holds stabilityunknown value.
 
 	StabilityUnknown StabilityLevel = "unknown"
-
 )
-
-
 
 // HealthPrediction represents a predicted future health state.
 
 type HealthPrediction struct {
-
-	PredictedTime   time.Time     `json:"predicted_time"`
+	PredictedTime time.Time `json:"predicted_time"`
 
 	PredictedStatus health.Status `json:"predicted_status"`
 
-	PredictedScore  float64       `json:"predicted_score"`
+	PredictedScore float64 `json:"predicted_score"`
 
-	Confidence      float64       `json:"confidence"`
+	Confidence float64 `json:"confidence"`
 
-	Reasoning       string        `json:"reasoning,omitempty"`
-
+	Reasoning string `json:"reasoning,omitempty"`
 }
-
-
 
 // HealthAlert represents a health-based alert.
 
 type HealthAlert struct {
+	ID string `json:"id"`
 
-	ID          string          `json:"id"`
+	CheckName string `json:"check_name"`
 
-	CheckName   string          `json:"check_name"`
+	AlertType HealthAlertType `json:"alert_type"`
 
-	AlertType   HealthAlertType `json:"alert_type"`
+	Severity AlertSeverity `json:"severity"`
 
-	Severity    AlertSeverity   `json:"severity"`
+	Status AlertStatus `json:"status"`
 
-	Status      AlertStatus     `json:"status"`
+	Title string `json:"title"`
 
-	Title       string          `json:"title"`
+	Description string `json:"description"`
 
-	Description string          `json:"description"`
-
-	Timestamp   time.Time       `json:"timestamp"`
-
-
+	Timestamp time.Time `json:"timestamp"`
 
 	// Trigger conditions.
 
-	Threshold   float64 `json:"threshold,omitempty"`
+	Threshold float64 `json:"threshold,omitempty"`
 
 	ActualValue float64 `json:"actual_value,omitempty"`
 
-
-
 	// Context.
 
-	CurrentHealth *EnhancedCheck         `json:"current_health,omitempty"`
+	CurrentHealth *EnhancedCheck `json:"current_health,omitempty"`
 
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // HealthAlertType represents different types of health alerts.
 
 type HealthAlertType string
-
-
 
 const (
 
@@ -592,100 +485,77 @@ const (
 	// AlertTypePredictiveFailure holds alerttypepredictivefailure value.
 
 	AlertTypePredictiveFailure HealthAlertType = "predictive_failure"
-
 )
 
-
-
 // Note: AlertSeverity and AlertStatus are already defined above.
-
-
 
 // DependencyGraph represents health dependencies between components.
 
 type DependencyGraph struct {
-
 	Nodes []DependencyNode `json:"nodes"`
 
 	Edges []DependencyEdge `json:"edges"`
-
 }
-
-
 
 // DependencyNode represents a component in the dependency graph.
 
 type DependencyNode struct {
+	ID string `json:"id"`
 
-	ID       string                 `json:"id"`
+	Name string `json:"name"`
 
-	Name     string                 `json:"name"`
+	Type string `json:"type"`
 
-	Type     string                 `json:"type"`
+	Tier HealthTier `json:"tier"`
 
-	Tier     HealthTier             `json:"tier"`
+	Status health.Status `json:"status"`
 
-	Status   health.Status          `json:"status"`
+	Score float64 `json:"score"`
 
-	Score    float64                `json:"score"`
-
-	Critical bool                   `json:"critical"`
+	Critical bool `json:"critical"`
 
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
-
 }
-
-
 
 // DependencyEdge represents a dependency relationship.
 
 type DependencyEdge struct {
+	Source string `json:"source"`
 
-	Source   string                 `json:"source"`
+	Target string `json:"target"`
 
-	Target   string                 `json:"target"`
+	Type string `json:"type"`
 
-	Type     string                 `json:"type"`
+	Weight float64 `json:"weight"`
 
-	Weight   float64                `json:"weight"`
-
-	Critical bool                   `json:"critical"`
+	Critical bool `json:"critical"`
 
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
-
 }
-
-
 
 // HealthImpactAnalysis provides analysis of health issues and their impact.
 
 type HealthImpactAnalysis struct {
+	CheckName string `json:"check_name"`
 
-	CheckName          string               `json:"check_name"`
+	CurrentStatus health.Status `json:"current_status"`
 
-	CurrentStatus      health.Status        `json:"current_status"`
+	ImpactLevel ImpactLevel `json:"impact_level"`
 
-	ImpactLevel        ImpactLevel          `json:"impact_level"`
+	AffectedComponents []string `json:"affected_components"`
 
-	AffectedComponents []string             `json:"affected_components"`
+	RootCauses []RootCause `json:"root_causes"`
 
-	RootCauses         []RootCause          `json:"root_causes"`
+	RecommendedActions []RecommendedAction `json:"recommended_actions"`
 
-	RecommendedActions []RecommendedAction  `json:"recommended_actions"`
+	EstimatedRecovery time.Duration `json:"estimated_recovery"`
 
-	EstimatedRecovery  time.Duration        `json:"estimated_recovery"`
-
-	BusinessImpact     HealthBusinessImpact `json:"business_impact"`
-
+	BusinessImpact HealthBusinessImpact `json:"business_impact"`
 }
-
-
 
 // ImpactLevel represents the level of impact from a health issue.
 
 type ImpactLevel string
-
-
 
 const (
 
@@ -708,50 +578,37 @@ const (
 	// ImpactCritical holds impactcritical value.
 
 	ImpactCritical ImpactLevel = "critical"
-
 )
-
-
 
 // RootCause represents a potential root cause of health issues.
 
 type RootCause struct {
+	Category string `json:"category"`
 
-	Category    string   `json:"category"`
+	Description string `json:"description"`
 
-	Description string   `json:"description"`
+	Confidence float64 `json:"confidence"`
 
-	Confidence  float64  `json:"confidence"`
-
-	Evidence    []string `json:"evidence"`
-
+	Evidence []string `json:"evidence"`
 }
-
-
 
 // RecommendedAction represents a recommended action to address health issues.
 
 type RecommendedAction struct {
+	Action string `json:"action"`
 
-	Action      string         `json:"action"`
+	Priority ActionPriority `json:"priority"`
 
-	Priority    ActionPriority `json:"priority"`
+	Description string `json:"description"`
 
-	Description string         `json:"description"`
+	Automated bool `json:"automated"`
 
-	Automated   bool           `json:"automated"`
-
-	ETA         time.Duration  `json:"eta,omitempty"`
-
+	ETA time.Duration `json:"eta,omitempty"`
 }
-
-
 
 // ActionPriority represents the priority of recommended actions.
 
 type ActionPriority string
-
-
 
 const (
 
@@ -770,56 +627,45 @@ const (
 	// ActionPriorityLow holds actionprioritylow value.
 
 	ActionPriorityLow ActionPriority = "low"
-
 )
-
-
 
 // HealthBusinessImpact represents the business impact of health issues.
 
 type HealthBusinessImpact struct {
+	Level ImpactLevel `json:"level"`
 
-	Level             ImpactLevel   `json:"level"`
+	Description string `json:"description"`
 
-	Description       string        `json:"description"`
-
-	AffectedServices  []string      `json:"affected_services"`
+	AffectedServices []string `json:"affected_services"`
 
 	EstimatedDowntime time.Duration `json:"estimated_downtime,omitempty"`
 
-	EstimatedCost     float64       `json:"estimated_cost,omitempty"`
+	EstimatedCost float64 `json:"estimated_cost,omitempty"`
 
-	UserImpact        string        `json:"user_impact,omitempty"`
-
+	UserImpact string `json:"user_impact,omitempty"`
 }
-
-
 
 // HealthMetricsSnapshot represents a snapshot of health metrics at a point in time.
 
 type HealthMetricsSnapshot struct {
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp       time.Time              `json:"timestamp"`
+	OverallScore float64 `json:"overall_score"`
 
-	OverallScore    float64                `json:"overall_score"`
+	OverallStatus health.Status `json:"overall_status"`
 
-	OverallStatus   health.Status          `json:"overall_status"`
+	TierScores map[HealthTier]float64 `json:"tier_scores"`
 
-	TierScores      map[HealthTier]float64 `json:"tier_scores"`
+	ComponentScores map[string]float64 `json:"component_scores"`
 
-	ComponentScores map[string]float64     `json:"component_scores"`
+	FailureRate float64 `json:"failure_rate"`
 
-	FailureRate     float64                `json:"failure_rate"`
+	AverageLatency time.Duration `json:"average_latency"`
 
-	AverageLatency  time.Duration          `json:"average_latency"`
+	ActiveAlerts int `json:"active_alerts"`
 
-	ActiveAlerts    int                    `json:"active_alerts"`
-
-	CriticalIssues  int                    `json:"critical_issues"`
-
+	CriticalIssues int `json:"critical_issues"`
 }
-
-
 
 // HealthConfiguration represents the configuration for the enhanced health system.
 
@@ -827,97 +673,73 @@ type HealthConfiguration struct {
 
 	// Global settings.
 
-	DefaultTimeout  time.Duration `json:"default_timeout"`
+	DefaultTimeout time.Duration `json:"default_timeout"`
 
 	DefaultInterval time.Duration `json:"default_interval"`
 
-	WorkerCount     int           `json:"worker_count"`
-
-
+	WorkerCount int `json:"worker_count"`
 
 	// Caching.
 
-	CacheEnabled bool          `json:"cache_enabled"`
+	CacheEnabled bool `json:"cache_enabled"`
 
-	CacheExpiry  time.Duration `json:"cache_expiry"`
-
-
+	CacheExpiry time.Duration `json:"cache_expiry"`
 
 	// Scoring.
 
-	LatencyPenaltyEnabled bool               `json:"latency_penalty_enabled"`
+	LatencyPenaltyEnabled bool `json:"latency_penalty_enabled"`
 
-	LatencyThresholds     []LatencyThreshold `json:"latency_thresholds"`
-
-
+	LatencyThresholds []LatencyThreshold `json:"latency_thresholds"`
 
 	// History and trends.
 
-	HistoryRetention     time.Duration `json:"history_retention"`
+	HistoryRetention time.Duration `json:"history_retention"`
 
-	HistoryMaxPoints     int           `json:"history_max_points"`
+	HistoryMaxPoints int `json:"history_max_points"`
 
-	TrendAnalysisEnabled bool          `json:"trend_analysis_enabled"`
-
-
+	TrendAnalysisEnabled bool `json:"trend_analysis_enabled"`
 
 	// Alerting.
 
-	AlertingEnabled bool             `json:"alerting_enabled"`
+	AlertingEnabled bool `json:"alerting_enabled"`
 
 	AlertThresholds []AlertThreshold `json:"alert_thresholds"`
-
-
 
 	// Context-specific overrides.
 
 	ContextOverrides map[HealthContext]ContextOverride `json:"context_overrides"`
-
 }
-
-
 
 // LatencyThreshold represents a latency threshold configuration.
 
 type LatencyThreshold struct {
-
 	Threshold time.Duration `json:"threshold"`
 
-	Penalty   float64       `json:"penalty"`
-
+	Penalty float64 `json:"penalty"`
 }
-
-
 
 // AlertThreshold represents an alert threshold configuration.
 
 type AlertThreshold struct {
+	CheckName string `json:"check_name"`
 
-	CheckName string        `json:"check_name"`
+	Tier HealthTier `json:"tier"`
 
-	Tier      HealthTier    `json:"tier"`
+	Metric string `json:"metric"`
 
-	Metric    string        `json:"metric"`
+	Threshold float64 `json:"threshold"`
 
-	Threshold float64       `json:"threshold"`
+	Operator string `json:"operator"` // "gt", "lt", "eq", "ne"
 
-	Operator  string        `json:"operator"` // "gt", "lt", "eq", "ne"
-
-	Severity  AlertSeverity `json:"severity"`
-
+	Severity AlertSeverity `json:"severity"`
 }
-
-
 
 // ContextOverride represents context-specific configuration overrides.
 
 type ContextOverride struct {
+	Timeout time.Duration `json:"timeout"`
 
-	Timeout          time.Duration      `json:"timeout"`
-
-	Interval         time.Duration      `json:"interval"`
+	Interval time.Duration `json:"interval"`
 
 	WeightAdjustment map[string]float64 `json:"weight_adjustment"`
-
 }
-

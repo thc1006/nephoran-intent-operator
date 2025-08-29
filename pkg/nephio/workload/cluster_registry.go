@@ -1,59 +1,32 @@
 // Package workload provides comprehensive Nephio workload cluster management.
 
-
 package workload
 
-
-
 import (
-
 	"context"
-
 	"crypto/sha256"
-
 	"encoding/hex"
-
 	"encoding/json"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
 	"github.com/prometheus/client_golang/prometheus"
 
-
-
 	corev1 "k8s.io/api/core/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/labels"
-
 	"k8s.io/client-go/kubernetes"
-
 	"k8s.io/client-go/rest"
-
 	"k8s.io/client-go/tools/clientcmd"
 
-
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
-
-
 
 // ClusterType represents the type of workload cluster.
 
 type ClusterType string
-
-
 
 const (
 
@@ -80,16 +53,11 @@ const (
 	// ClusterTypeSpecialized holds clustertypespecialized value.
 
 	ClusterTypeSpecialized ClusterType = "specialized"
-
 )
-
-
 
 // CloudProvider represents the cloud provider for the cluster.
 
 type CloudProvider string
-
-
 
 const (
 
@@ -116,16 +84,11 @@ const (
 	// CloudProviderHybrid holds cloudproviderhybrid value.
 
 	CloudProviderHybrid CloudProvider = "hybrid"
-
 )
-
-
 
 // ClusterCapability represents a capability of a cluster.
 
 type ClusterCapability string
-
-
 
 const (
 
@@ -160,16 +123,11 @@ const (
 	// CapabilityNetworkSlice holds capabilitynetworkslice value.
 
 	CapabilityNetworkSlice ClusterCapability = "network-slice"
-
 )
-
-
 
 // ClusterStatus represents the status of a cluster.
 
 type ClusterStatus string
-
-
 
 const (
 
@@ -200,385 +158,317 @@ const (
 	// ClusterStatusUnknown holds clusterstatusunknown value.
 
 	ClusterStatusUnknown ClusterStatus = "unknown"
-
 )
-
-
 
 // ClusterMetadata contains metadata about a cluster.
 
 type ClusterMetadata struct {
+	Name string `json:"name"`
 
-	Name         string                `json:"name"`
+	ID string `json:"id"`
 
-	ID           string                `json:"id"`
+	Type ClusterType `json:"type"`
 
-	Type         ClusterType           `json:"type"`
+	Provider CloudProvider `json:"provider"`
 
-	Provider     CloudProvider         `json:"provider"`
+	Region string `json:"region"`
 
-	Region       string                `json:"region"`
+	Zone string `json:"zone"`
 
-	Zone         string                `json:"zone"`
+	Environment string `json:"environment"`
 
-	Environment  string                `json:"environment"`
+	Version string `json:"version"`
 
-	Version      string                `json:"version"`
+	Capabilities []ClusterCapability `json:"capabilities"`
 
-	Capabilities []ClusterCapability   `json:"capabilities"`
+	Tags map[string]string `json:"tags"`
 
-	Tags         map[string]string     `json:"tags"`
+	Labels map[string]string `json:"labels"`
 
-	Labels       map[string]string     `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
 
-	Annotations  map[string]string     `json:"annotations"`
+	Resources ResourceCapacity `json:"resources"`
 
-	Resources    ResourceCapacity      `json:"resources"`
+	Network NetworkConfiguration `json:"network"`
 
-	Network      NetworkConfiguration  `json:"network"`
+	Security SecurityConfiguration `json:"security"`
 
-	Security     SecurityConfiguration `json:"security"`
+	Cost CostMetadata `json:"cost"`
 
-	Cost         CostMetadata          `json:"cost"`
+	Compliance ComplianceMetadata `json:"compliance"`
 
-	Compliance   ComplianceMetadata    `json:"compliance"`
+	CreatedAt time.Time `json:"created_at"`
 
-	CreatedAt    time.Time             `json:"created_at"`
-
-	UpdatedAt    time.Time             `json:"updated_at"`
-
+	UpdatedAt time.Time `json:"updated_at"`
 }
-
-
 
 // ResourceCapacity represents the resource capacity of a cluster.
 
 type ResourceCapacity struct {
+	TotalCPU int64 `json:"total_cpu"`
 
-	TotalCPU         int64   `json:"total_cpu"`
+	AvailableCPU int64 `json:"available_cpu"`
 
-	AvailableCPU     int64   `json:"available_cpu"`
+	TotalMemory int64 `json:"total_memory"`
 
-	TotalMemory      int64   `json:"total_memory"`
+	AvailableMemory int64 `json:"available_memory"`
 
-	AvailableMemory  int64   `json:"available_memory"`
+	TotalStorage int64 `json:"total_storage"`
 
-	TotalStorage     int64   `json:"total_storage"`
+	AvailableStorage int64 `json:"available_storage"`
 
-	AvailableStorage int64   `json:"available_storage"`
+	TotalGPU int `json:"total_gpu,omitempty"`
 
-	TotalGPU         int     `json:"total_gpu,omitempty"`
+	AvailableGPU int `json:"available_gpu,omitempty"`
 
-	AvailableGPU     int     `json:"available_gpu,omitempty"`
+	NodeCount int `json:"node_count"`
 
-	NodeCount        int     `json:"node_count"`
+	PodCapacity int `json:"pod_capacity"`
 
-	PodCapacity      int     `json:"pod_capacity"`
+	AvailablePods int `json:"available_pods"`
 
-	AvailablePods    int     `json:"available_pods"`
-
-	Utilization      float64 `json:"utilization"`
-
+	Utilization float64 `json:"utilization"`
 }
-
-
 
 // NetworkConfiguration contains network configuration for a cluster.
 
 type NetworkConfiguration struct {
+	ServiceCIDR string `json:"service_cidr"`
 
-	ServiceCIDR   string   `json:"service_cidr"`
+	PodCIDR string `json:"pod_cidr"`
 
-	PodCIDR       string   `json:"pod_cidr"`
-
-	DNSServers    []string `json:"dns_servers"`
+	DNSServers []string `json:"dns_servers"`
 
 	LoadBalancers []string `json:"load_balancers"`
 
-	IngressClass  string   `json:"ingress_class"`
+	IngressClass string `json:"ingress_class"`
 
-	ServiceMesh   string   `json:"service_mesh,omitempty"`
+	ServiceMesh string `json:"service_mesh,omitempty"`
 
-	VPNEndpoint   string   `json:"vpn_endpoint,omitempty"`
-
+	VPNEndpoint string `json:"vpn_endpoint,omitempty"`
 }
-
-
 
 // SecurityConfiguration contains security configuration for a cluster.
 
 type SecurityConfiguration struct {
+	AuthProvider string `json:"auth_provider"`
 
-	AuthProvider     string           `json:"auth_provider"`
+	TLSEnabled bool `json:"tls_enabled"`
 
-	TLSEnabled       bool             `json:"tls_enabled"`
+	NetworkPolicies bool `json:"network_policies"`
 
-	NetworkPolicies  bool             `json:"network_policies"`
+	PodSecurityLevel string `json:"pod_security_level"`
 
-	PodSecurityLevel string           `json:"pod_security_level"`
+	Encryption EncryptionConfig `json:"encryption"`
 
-	Encryption       EncryptionConfig `json:"encryption"`
+	Compliance []string `json:"compliance_standards"`
 
-	Compliance       []string         `json:"compliance_standards"`
-
-	AuditLogging     bool             `json:"audit_logging"`
-
+	AuditLogging bool `json:"audit_logging"`
 }
-
-
 
 // EncryptionConfig contains encryption configuration.
 
 type EncryptionConfig struct {
+	AtRest bool `json:"at_rest"`
 
-	AtRest    bool   `json:"at_rest"`
+	InTransit bool `json:"in_transit"`
 
-	InTransit bool   `json:"in_transit"`
-
-	KMSKeyID  string `json:"kms_key_id,omitempty"`
-
+	KMSKeyID string `json:"kms_key_id,omitempty"`
 }
-
-
 
 // CostMetadata contains cost information for a cluster.
 
 type CostMetadata struct {
+	HourlyCost float64 `json:"hourly_cost"`
 
-	HourlyCost  float64           `json:"hourly_cost"`
+	MonthlyCost float64 `json:"monthly_cost"`
 
-	MonthlyCost float64           `json:"monthly_cost"`
+	CostCenter string `json:"cost_center"`
 
-	CostCenter  string            `json:"cost_center"`
-
-	Budget      float64           `json:"budget"`
+	Budget float64 `json:"budget"`
 
 	BillingTags map[string]string `json:"billing_tags"`
-
 }
-
-
 
 // ComplianceMetadata contains compliance information.
 
 type ComplianceMetadata struct {
+	Standards []string `json:"standards"`
 
-	Standards       []string  `json:"standards"`
+	Certifications []string `json:"certifications"`
 
-	Certifications  []string  `json:"certifications"`
+	LastAudit time.Time `json:"last_audit"`
 
-	LastAudit       time.Time `json:"last_audit"`
+	NextAudit time.Time `json:"next_audit"`
 
-	NextAudit       time.Time `json:"next_audit"`
-
-	ComplianceScore float64   `json:"compliance_score"`
-
+	ComplianceScore float64 `json:"compliance_score"`
 }
-
-
 
 // ClusterEntry represents a registered cluster in the registry.
 
 type ClusterEntry struct {
+	Metadata ClusterMetadata `json:"metadata"`
 
-	Metadata     ClusterMetadata      `json:"metadata"`
+	Status ClusterStatus `json:"status"`
 
-	Status       ClusterStatus        `json:"status"`
+	Health ClusterHealth `json:"health"`
 
-	Health       ClusterHealth        `json:"health"`
+	Credentials ClusterCredentials `json:"-"` // Never serialize credentials
 
-	Credentials  ClusterCredentials   `json:"-"` // Never serialize credentials
+	Config *rest.Config `json:"-"`
 
-	Config       *rest.Config         `json:"-"`
+	Client client.Client `json:"-"`
 
-	Client       client.Client        `json:"-"`
+	Clientset kubernetes.Interface `json:"-"`
 
-	Clientset    kubernetes.Interface `json:"-"`
+	LastSeen time.Time `json:"last_seen"`
 
-	LastSeen     time.Time            `json:"last_seen"`
-
-	RegisteredAt time.Time            `json:"registered_at"`
-
+	RegisteredAt time.Time `json:"registered_at"`
 }
-
-
 
 // ClusterHealth represents the health status of a cluster.
 
 type ClusterHealth struct {
+	Status ClusterStatus `json:"status"`
 
-	Status     ClusterStatus     `json:"status"`
+	Message string `json:"message"`
 
-	Message    string            `json:"message"`
-
-	LastCheck  time.Time         `json:"last_check"`
+	LastCheck time.Time `json:"last_check"`
 
 	Components []ComponentHealth `json:"components"`
 
-	Metrics    HealthMetrics     `json:"metrics"`
+	Metrics HealthMetrics `json:"metrics"`
 
-	Issues     []HealthIssue     `json:"issues"`
-
+	Issues []HealthIssue `json:"issues"`
 }
-
-
 
 // ComponentHealth represents health of a cluster component.
 
 type ComponentHealth struct {
+	Name string `json:"name"`
 
-	Name    string `json:"name"`
-
-	Status  string `json:"status"`
+	Status string `json:"status"`
 
 	Message string `json:"message"`
-
 }
-
-
 
 // HealthMetrics contains health-related metrics.
 
 type HealthMetrics struct {
-
-	CPUUtilization    float64 `json:"cpu_utilization"`
+	CPUUtilization float64 `json:"cpu_utilization"`
 
 	MemoryUtilization float64 `json:"memory_utilization"`
 
-	DiskUtilization   float64 `json:"disk_utilization"`
+	DiskUtilization float64 `json:"disk_utilization"`
 
-	NetworkLatency    float64 `json:"network_latency"`
+	NetworkLatency float64 `json:"network_latency"`
 
-	ErrorRate         float64 `json:"error_rate"`
+	ErrorRate float64 `json:"error_rate"`
 
-	RequestRate       float64 `json:"request_rate"`
-
+	RequestRate float64 `json:"request_rate"`
 }
-
-
 
 // HealthIssue represents a health issue in a cluster.
 
 type HealthIssue struct {
+	Severity string `json:"severity"`
 
-	Severity    string    `json:"severity"`
+	Component string `json:"component"`
 
-	Component   string    `json:"component"`
+	Description string `json:"description"`
 
-	Description string    `json:"description"`
-
-	DetectedAt  time.Time `json:"detected_at"`
-
+	DetectedAt time.Time `json:"detected_at"`
 }
-
-
 
 // ClusterCredentials contains credentials for accessing a cluster.
 
 type ClusterCredentials struct {
+	Kubeconfig []byte `json:"-"`
 
-	Kubeconfig   []byte    `json:"-"`
+	Token string `json:"-"`
 
-	Token        string    `json:"-"`
+	Certificate []byte `json:"-"`
 
-	Certificate  []byte    `json:"-"`
+	Key []byte `json:"-"`
 
-	Key          []byte    `json:"-"`
+	CACert []byte `json:"-"`
 
-	CACert       []byte    `json:"-"`
+	Endpoint string `json:"endpoint"`
 
-	Endpoint     string    `json:"endpoint"`
+	AuthType string `json:"auth_type"`
 
-	AuthType     string    `json:"auth_type"`
-
-	SecretRef    string    `json:"secret_ref,omitempty"`
+	SecretRef string `json:"secret_ref,omitempty"`
 
 	RotationTime time.Time `json:"rotation_time"`
-
 }
-
-
 
 // ClusterQuery represents a query for filtering clusters.
 
 type ClusterQuery struct {
+	Types []ClusterType `json:"types,omitempty"`
 
-	Types        []ClusterType       `json:"types,omitempty"`
+	Providers []CloudProvider `json:"providers,omitempty"`
 
-	Providers    []CloudProvider     `json:"providers,omitempty"`
+	Regions []string `json:"regions,omitempty"`
 
-	Regions      []string            `json:"regions,omitempty"`
-
-	Environments []string            `json:"environments,omitempty"`
+	Environments []string `json:"environments,omitempty"`
 
 	Capabilities []ClusterCapability `json:"capabilities,omitempty"`
 
-	Tags         map[string]string   `json:"tags,omitempty"`
+	Tags map[string]string `json:"tags,omitempty"`
 
-	Labels       labels.Selector     `json:"-"`
+	Labels labels.Selector `json:"-"`
 
-	MinResources *ResourceCapacity   `json:"min_resources,omitempty"`
+	MinResources *ResourceCapacity `json:"min_resources,omitempty"`
 
-	MaxCost      float64             `json:"max_cost,omitempty"`
+	MaxCost float64 `json:"max_cost,omitempty"`
 
-	Status       []ClusterStatus     `json:"status,omitempty"`
-
+	Status []ClusterStatus `json:"status,omitempty"`
 }
-
-
 
 // ClusterRegistry manages cluster registration and discovery.
 
 type ClusterRegistry struct {
+	mu sync.RWMutex
 
-	mu               sync.RWMutex
+	clusters map[string]*ClusterEntry
 
-	clusters         map[string]*ClusterEntry
-
-	clustersByType   map[ClusterType][]*ClusterEntry
+	clustersByType map[ClusterType][]*ClusterEntry
 
 	clustersByRegion map[string][]*ClusterEntry
 
-	discoveryConfig  DiscoveryConfig
+	discoveryConfig DiscoveryConfig
 
-	credentialStore  CredentialStore
+	credentialStore CredentialStore
 
-	logger           logr.Logger
+	logger logr.Logger
 
-	metrics          *registryMetrics
+	metrics *registryMetrics
 
-	stopCh           chan struct{}
+	stopCh chan struct{}
 
-	client           client.Client
-
+	client client.Client
 }
-
-
 
 // DiscoveryConfig contains configuration for cluster discovery.
 
 type DiscoveryConfig struct {
+	AutoDiscovery bool `json:"auto_discovery"`
 
-	AutoDiscovery     bool            `json:"auto_discovery"`
+	DiscoveryInterval time.Duration `json:"discovery_interval"`
 
-	DiscoveryInterval time.Duration   `json:"discovery_interval"`
+	Namespaces []string `json:"namespaces"`
 
-	Namespaces        []string        `json:"namespaces"`
+	LabelSelector labels.Selector `json:"label_selector"`
 
-	LabelSelector     labels.Selector `json:"label_selector"`
+	CloudProviders []CloudProvider `json:"cloud_providers"`
 
-	CloudProviders    []CloudProvider `json:"cloud_providers"`
-
-	Regions           []string        `json:"regions"`
-
+	Regions []string `json:"regions"`
 }
-
-
 
 // CredentialStore interface for managing cluster credentials.
 
 type CredentialStore interface {
-
 	Store(ctx context.Context, clusterID string, creds ClusterCredentials) error
 
 	Retrieve(ctx context.Context, clusterID string) (*ClusterCredentials, error)
@@ -586,28 +476,21 @@ type CredentialStore interface {
 	Rotate(ctx context.Context, clusterID string) (*ClusterCredentials, error)
 
 	Delete(ctx context.Context, clusterID string) error
-
 }
-
-
 
 // registryMetrics contains Prometheus metrics for the registry.
 
 type registryMetrics struct {
+	clustersTotal *prometheus.GaugeVec
 
-	clustersTotal       *prometheus.GaugeVec
+	clustersByStatus *prometheus.GaugeVec
 
-	clustersByStatus    *prometheus.GaugeVec
+	registrations *prometheus.CounterVec
 
-	registrations       *prometheus.CounterVec
-
-	discoveryDuration   *prometheus.HistogramVec
+	discoveryDuration *prometheus.HistogramVec
 
 	credentialRotations *prometheus.CounterVec
-
 }
-
-
 
 // NewClusterRegistry creates a new cluster registry.
 
@@ -632,11 +515,9 @@ func NewClusterRegistry(
 				Name: "nephio_cluster_registry_total",
 
 				Help: "Total number of registered clusters",
-
 			},
 
 			[]string{"type", "provider", "region"},
-
 		),
 
 		clustersByStatus: prometheus.NewGaugeVec(
@@ -646,11 +527,9 @@ func NewClusterRegistry(
 				Name: "nephio_cluster_registry_status",
 
 				Help: "Clusters by status",
-
 			},
 
 			[]string{"status"},
-
 		),
 
 		registrations: prometheus.NewCounterVec(
@@ -660,27 +539,23 @@ func NewClusterRegistry(
 				Name: "nephio_cluster_registrations_total",
 
 				Help: "Total number of cluster registrations",
-
 			},
 
 			[]string{"type", "result"},
-
 		),
 
 		discoveryDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
 
-				Name:    "nephio_cluster_discovery_duration_seconds",
+				Name: "nephio_cluster_discovery_duration_seconds",
 
-				Help:    "Duration of cluster discovery operations",
+				Help: "Duration of cluster discovery operations",
 
 				Buckets: prometheus.DefBuckets,
-
 			},
 
 			[]string{"provider"},
-
 		),
 
 		credentialRotations: prometheus.NewCounterVec(
@@ -690,16 +565,11 @@ func NewClusterRegistry(
 				Name: "nephio_cluster_credential_rotations_total",
 
 				Help: "Total number of credential rotations",
-
 			},
 
 			[]string{"cluster", "result"},
-
 		),
-
 	}
-
-
 
 	// Register metrics.
 
@@ -714,44 +584,36 @@ func NewClusterRegistry(
 		metrics.discoveryDuration,
 
 		metrics.credentialRotations,
-
 	)
-
-
 
 	return &ClusterRegistry{
 
-		clusters:         make(map[string]*ClusterEntry),
+		clusters: make(map[string]*ClusterEntry),
 
-		clustersByType:   make(map[ClusterType][]*ClusterEntry),
+		clustersByType: make(map[ClusterType][]*ClusterEntry),
 
 		clustersByRegion: make(map[string][]*ClusterEntry),
 
-		discoveryConfig:  config,
+		discoveryConfig: config,
 
-		credentialStore:  credStore,
+		credentialStore: credStore,
 
-		logger:           logger.WithName("cluster-registry"),
+		logger: logger.WithName("cluster-registry"),
 
-		metrics:          metrics,
+		metrics: metrics,
 
-		stopCh:           make(chan struct{}),
+		stopCh: make(chan struct{}),
 
-		client:           client,
-
+		client: client,
 	}
 
 }
-
-
 
 // Start starts the cluster registry with automatic discovery.
 
 func (r *ClusterRegistry) Start(ctx context.Context) error {
 
 	r.logger.Info("Starting cluster registry")
-
-
 
 	// Start automatic discovery if enabled.
 
@@ -761,25 +623,17 @@ func (r *ClusterRegistry) Start(ctx context.Context) error {
 
 	}
 
-
-
 	// Start health monitoring.
 
 	go r.runHealthMonitoring(ctx)
-
-
 
 	// Start credential rotation.
 
 	go r.runCredentialRotation(ctx)
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the cluster registry.
 
@@ -791,8 +645,6 @@ func (r *ClusterRegistry) Stop() {
 
 }
 
-
-
 // RegisterCluster registers a new cluster.
 
 func (r *ClusterRegistry) RegisterCluster(ctx context.Context, metadata ClusterMetadata, creds ClusterCredentials) error {
@@ -800,8 +652,6 @@ func (r *ClusterRegistry) RegisterCluster(ctx context.Context, metadata ClusterM
 	r.mu.Lock()
 
 	defer r.mu.Unlock()
-
-
 
 	// Generate cluster ID if not provided.
 
@@ -811,11 +661,7 @@ func (r *ClusterRegistry) RegisterCluster(ctx context.Context, metadata ClusterM
 
 	}
 
-
-
 	r.logger.Info("Registering cluster", "id", metadata.ID, "name", metadata.Name)
-
-
 
 	// Create REST config from credentials.
 
@@ -829,8 +675,6 @@ func (r *ClusterRegistry) RegisterCluster(ctx context.Context, metadata ClusterM
 
 	}
 
-
-
 	// Create Kubernetes clients.
 
 	k8sClient, err := client.New(config, client.Options{})
@@ -843,8 +687,6 @@ func (r *ClusterRegistry) RegisterCluster(ctx context.Context, metadata ClusterM
 
 	}
 
-
-
 	clientset, err := kubernetes.NewForConfig(config)
 
 	if err != nil {
@@ -855,8 +697,6 @@ func (r *ClusterRegistry) RegisterCluster(ctx context.Context, metadata ClusterM
 
 	}
 
-
-
 	// Store credentials securely.
 
 	if err := r.credentialStore.Store(ctx, metadata.ID, creds); err != nil {
@@ -866,8 +706,6 @@ func (r *ClusterRegistry) RegisterCluster(ctx context.Context, metadata ClusterM
 		return fmt.Errorf("failed to store credentials: %w", err)
 
 	}
-
-
 
 	// Discover cluster capabilities.
 
@@ -881,8 +719,6 @@ func (r *ClusterRegistry) RegisterCluster(ctx context.Context, metadata ClusterM
 
 	metadata.Capabilities = append(metadata.Capabilities, capabilities...)
 
-
-
 	// Get cluster resources.
 
 	resources, err := r.getClusterResources(ctx, clientset)
@@ -895,33 +731,28 @@ func (r *ClusterRegistry) RegisterCluster(ctx context.Context, metadata ClusterM
 
 	metadata.Resources = resources
 
-
-
 	// Create cluster entry.
 
 	entry := &ClusterEntry{
 
-		Metadata:     metadata,
+		Metadata: metadata,
 
-		Status:       ClusterStatusHealthy,
+		Status: ClusterStatusHealthy,
 
-		Health:       ClusterHealth{Status: ClusterStatusHealthy},
+		Health: ClusterHealth{Status: ClusterStatusHealthy},
 
-		Credentials:  creds,
+		Credentials: creds,
 
-		Config:       config,
+		Config: config,
 
-		Client:       k8sClient,
+		Client: k8sClient,
 
-		Clientset:    clientset,
+		Clientset: clientset,
 
 		RegisteredAt: time.Now(),
 
-		LastSeen:     time.Now(),
-
+		LastSeen: time.Now(),
 	}
-
-
 
 	// Add to registry.
 
@@ -930,8 +761,6 @@ func (r *ClusterRegistry) RegisterCluster(ctx context.Context, metadata ClusterM
 	r.clustersByType[metadata.Type] = append(r.clustersByType[metadata.Type], entry)
 
 	r.clustersByRegion[metadata.Region] = append(r.clustersByRegion[metadata.Region], entry)
-
-
 
 	// Update metrics.
 
@@ -942,20 +771,15 @@ func (r *ClusterRegistry) RegisterCluster(ctx context.Context, metadata ClusterM
 		string(metadata.Provider),
 
 		metadata.Region,
-
 	).Inc()
 
 	r.metrics.registrations.WithLabelValues(string(metadata.Type), "success").Inc()
-
-
 
 	r.logger.Info("Successfully registered cluster", "id", metadata.ID, "name", metadata.Name)
 
 	return nil
 
 }
-
-
 
 // DeregisterCluster removes a cluster from the registry.
 
@@ -965,8 +789,6 @@ func (r *ClusterRegistry) DeregisterCluster(ctx context.Context, clusterID strin
 
 	defer r.mu.Unlock()
 
-
-
 	entry, exists := r.clusters[clusterID]
 
 	if !exists {
@@ -975,23 +797,15 @@ func (r *ClusterRegistry) DeregisterCluster(ctx context.Context, clusterID strin
 
 	}
 
-
-
 	r.logger.Info("Deregistering cluster", "id", clusterID, "name", entry.Metadata.Name)
-
-
 
 	// Remove from type index.
 
 	r.removeFromTypeIndex(entry)
 
-
-
 	// Remove from region index.
 
 	r.removeFromRegionIndex(entry)
-
-
 
 	// Delete credentials.
 
@@ -1001,13 +815,9 @@ func (r *ClusterRegistry) DeregisterCluster(ctx context.Context, clusterID strin
 
 	}
 
-
-
 	// Remove from main registry.
 
 	delete(r.clusters, clusterID)
-
-
 
 	// Update metrics.
 
@@ -1018,18 +828,13 @@ func (r *ClusterRegistry) DeregisterCluster(ctx context.Context, clusterID strin
 		string(entry.Metadata.Provider),
 
 		entry.Metadata.Region,
-
 	).Dec()
-
-
 
 	r.logger.Info("Successfully deregistered cluster", "id", clusterID)
 
 	return nil
 
 }
-
-
 
 // GetCluster retrieves a cluster by ID.
 
@@ -1039,8 +844,6 @@ func (r *ClusterRegistry) GetCluster(clusterID string) (*ClusterEntry, error) {
 
 	defer r.mu.RUnlock()
 
-
-
 	entry, exists := r.clusters[clusterID]
 
 	if !exists {
@@ -1049,13 +852,9 @@ func (r *ClusterRegistry) GetCluster(clusterID string) (*ClusterEntry, error) {
 
 	}
 
-
-
 	return entry, nil
 
 }
-
-
 
 // ListClusters lists all registered clusters.
 
@@ -1065,8 +864,6 @@ func (r *ClusterRegistry) ListClusters() []*ClusterEntry {
 
 	defer r.mu.RUnlock()
 
-
-
 	clusters := make([]*ClusterEntry, 0, len(r.clusters))
 
 	for _, entry := range r.clusters {
@@ -1075,13 +872,9 @@ func (r *ClusterRegistry) ListClusters() []*ClusterEntry {
 
 	}
 
-
-
 	return clusters
 
 }
-
-
 
 // QueryClusters queries clusters based on criteria.
 
@@ -1091,11 +884,7 @@ func (r *ClusterRegistry) QueryClusters(query ClusterQuery) []*ClusterEntry {
 
 	defer r.mu.RUnlock()
 
-
-
 	var results []*ClusterEntry
-
-
 
 	for _, entry := range r.clusters {
 
@@ -1107,13 +896,9 @@ func (r *ClusterRegistry) QueryClusters(query ClusterQuery) []*ClusterEntry {
 
 	}
 
-
-
 	return results
 
 }
-
-
 
 // UpdateClusterMetadata updates cluster metadata.
 
@@ -1123,8 +908,6 @@ func (r *ClusterRegistry) UpdateClusterMetadata(ctx context.Context, clusterID s
 
 	defer r.mu.Unlock()
 
-
-
 	entry, exists := r.clusters[clusterID]
 
 	if !exists {
@@ -1133,23 +916,17 @@ func (r *ClusterRegistry) UpdateClusterMetadata(ctx context.Context, clusterID s
 
 	}
 
-
-
 	// Update metadata.
 
 	entry.Metadata = metadata
 
 	entry.Metadata.UpdatedAt = time.Now()
 
-
-
 	r.logger.Info("Updated cluster metadata", "id", clusterID)
 
 	return nil
 
 }
-
-
 
 // UpdateClusterStatus updates cluster status.
 
@@ -1159,8 +936,6 @@ func (r *ClusterRegistry) UpdateClusterStatus(clusterID string, status ClusterSt
 
 	defer r.mu.Unlock()
 
-
-
 	entry, exists := r.clusters[clusterID]
 
 	if !exists {
@@ -1168,8 +943,6 @@ func (r *ClusterRegistry) UpdateClusterStatus(clusterID string, status ClusterSt
 		return fmt.Errorf("cluster %s not found", clusterID)
 
 	}
-
-
 
 	oldStatus := entry.Status
 
@@ -1183,8 +956,6 @@ func (r *ClusterRegistry) UpdateClusterStatus(clusterID string, status ClusterSt
 
 	entry.LastSeen = time.Now()
 
-
-
 	// Update metrics.
 
 	if oldStatus != status {
@@ -1195,15 +966,11 @@ func (r *ClusterRegistry) UpdateClusterStatus(clusterID string, status ClusterSt
 
 	}
 
-
-
 	r.logger.Info("Updated cluster status", "id", clusterID, "status", status)
 
 	return nil
 
 }
-
-
 
 // GetClustersByType retrieves clusters by type.
 
@@ -1213,13 +980,9 @@ func (r *ClusterRegistry) GetClustersByType(clusterType ClusterType) []*ClusterE
 
 	defer r.mu.RUnlock()
 
-
-
 	return r.clustersByType[clusterType]
 
 }
-
-
 
 // GetClustersByRegion retrieves clusters by region.
 
@@ -1229,13 +992,9 @@ func (r *ClusterRegistry) GetClustersByRegion(region string) []*ClusterEntry {
 
 	defer r.mu.RUnlock()
 
-
-
 	return r.clustersByRegion[region]
 
 }
-
-
 
 // GetClustersByCapability retrieves clusters with specific capability.
 
@@ -1244,8 +1003,6 @@ func (r *ClusterRegistry) GetClustersByCapability(capability ClusterCapability) 
 	r.mu.RLock()
 
 	defer r.mu.RUnlock()
-
-
 
 	var results []*ClusterEntry
 
@@ -1265,25 +1022,17 @@ func (r *ClusterRegistry) GetClustersByCapability(capability ClusterCapability) 
 
 	}
 
-
-
 	return results
 
 }
 
-
-
 // Private methods.
-
-
 
 func (r *ClusterRegistry) runDiscovery(ctx context.Context) {
 
 	ticker := time.NewTicker(r.discoveryConfig.DiscoveryInterval)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1307,15 +1056,11 @@ func (r *ClusterRegistry) runDiscovery(ctx context.Context) {
 
 }
 
-
-
 func (r *ClusterRegistry) discoverClusters(ctx context.Context) {
 
 	r.logger.Info("Running cluster discovery")
 
 	startTime := time.Now()
-
-
 
 	// Discover clusters from cloud providers.
 
@@ -1329,19 +1074,13 @@ func (r *ClusterRegistry) discoverClusters(ctx context.Context) {
 
 	}
 
-
-
 	// Discover clusters from Kubernetes resources.
 
 	r.discoverKubernetesClusters(ctx)
 
-
-
 	r.logger.Info("Cluster discovery completed", "duration", time.Since(startTime))
 
 }
-
-
 
 func (r *ClusterRegistry) discoverCloudClusters(ctx context.Context, provider CloudProvider) {
 
@@ -1353,8 +1092,6 @@ func (r *ClusterRegistry) discoverCloudClusters(ctx context.Context, provider Cl
 
 }
 
-
-
 func (r *ClusterRegistry) discoverKubernetesClusters(ctx context.Context) {
 
 	// Discover clusters from Kubernetes secrets or ConfigMaps.
@@ -1364,10 +1101,7 @@ func (r *ClusterRegistry) discoverKubernetesClusters(ctx context.Context) {
 	listOpts := []client.ListOption{
 
 		client.MatchingLabels{"nephio.io/cluster": "true"},
-
 	}
-
-
 
 	if err := r.client.List(ctx, secretList, listOpts...); err != nil {
 
@@ -1377,8 +1111,6 @@ func (r *ClusterRegistry) discoverKubernetesClusters(ctx context.Context) {
 
 	}
 
-
-
 	for _, secret := range secretList.Items {
 
 		r.processClusterSecret(ctx, &secret)
@@ -1386,8 +1118,6 @@ func (r *ClusterRegistry) discoverKubernetesClusters(ctx context.Context) {
 	}
 
 }
-
-
 
 func (r *ClusterRegistry) processClusterSecret(ctx context.Context, secret *corev1.Secret) {
 
@@ -1403,8 +1133,6 @@ func (r *ClusterRegistry) processClusterSecret(ctx context.Context, secret *core
 
 	}
 
-
-
 	var metadata ClusterMetadata
 
 	if err := json.Unmarshal(metadataJSON, &metadata); err != nil {
@@ -1414,8 +1142,6 @@ func (r *ClusterRegistry) processClusterSecret(ctx context.Context, secret *core
 		return
 
 	}
-
-
 
 	// Extract credentials.
 
@@ -1429,19 +1155,14 @@ func (r *ClusterRegistry) processClusterSecret(ctx context.Context, secret *core
 
 	}
 
-
-
 	creds := ClusterCredentials{
 
 		Kubeconfig: kubeconfig,
 
-		AuthType:   "kubeconfig",
+		AuthType: "kubeconfig",
 
-		SecretRef:  fmt.Sprintf("%s/%s", secret.Namespace, secret.Name),
-
+		SecretRef: fmt.Sprintf("%s/%s", secret.Namespace, secret.Name),
 	}
-
-
 
 	// Register the discovered cluster.
 
@@ -1453,15 +1174,11 @@ func (r *ClusterRegistry) processClusterSecret(ctx context.Context, secret *core
 
 }
 
-
-
 func (r *ClusterRegistry) runHealthMonitoring(ctx context.Context) {
 
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1485,8 +1202,6 @@ func (r *ClusterRegistry) runHealthMonitoring(ctx context.Context) {
 
 }
 
-
-
 func (r *ClusterRegistry) checkClusterHealth(ctx context.Context) {
 
 	r.mu.RLock()
@@ -1501,8 +1216,6 @@ func (r *ClusterRegistry) checkClusterHealth(ctx context.Context) {
 
 	r.mu.RUnlock()
 
-
-
 	for _, entry := range clusters {
 
 		go r.checkSingleClusterHealth(ctx, entry)
@@ -1511,21 +1224,16 @@ func (r *ClusterRegistry) checkClusterHealth(ctx context.Context) {
 
 }
 
-
-
 func (r *ClusterRegistry) checkSingleClusterHealth(ctx context.Context, entry *ClusterEntry) {
 
 	health := ClusterHealth{
 
-		LastCheck:  time.Now(),
+		LastCheck: time.Now(),
 
 		Components: []ComponentHealth{},
 
-		Issues:     []HealthIssue{},
-
+		Issues: []HealthIssue{},
 	}
-
-
 
 	// Check API server health.
 
@@ -1539,14 +1247,13 @@ func (r *ClusterRegistry) checkSingleClusterHealth(ctx context.Context, entry *C
 
 		health.Issues = append(health.Issues, HealthIssue{
 
-			Severity:    "critical",
+			Severity: "critical",
 
-			Component:   "api-server",
+			Component: "api-server",
 
 			Description: err.Error(),
 
-			DetectedAt:  time.Now(),
-
+			DetectedAt: time.Now(),
 		})
 
 	} else {
@@ -1557,19 +1264,13 @@ func (r *ClusterRegistry) checkSingleClusterHealth(ctx context.Context, entry *C
 
 	}
 
-
-
 	// Check component health.
 
 	health.Components = r.checkComponentHealth(ctx, entry)
 
-
-
 	// Get health metrics.
 
 	health.Metrics = r.getHealthMetrics(ctx, entry)
-
-
 
 	// Update cluster health.
 
@@ -1583,21 +1284,15 @@ func (r *ClusterRegistry) checkSingleClusterHealth(ctx context.Context, entry *C
 
 	r.mu.Unlock()
 
-
-
 	// Update metrics.
 
 	r.metrics.clustersByStatus.WithLabelValues(string(health.Status)).Inc()
 
 }
 
-
-
 func (r *ClusterRegistry) checkComponentHealth(ctx context.Context, entry *ClusterEntry) []ComponentHealth {
 
 	components := []ComponentHealth{}
-
-
 
 	// Check core components.
 
@@ -1608,10 +1303,7 @@ func (r *ClusterRegistry) checkComponentHealth(ctx context.Context, entry *Clust
 		podList, err := entry.Clientset.CoreV1().Pods("kube-system").List(ctx, metav1.ListOptions{
 
 			LabelSelector: fmt.Sprintf("component=%s", comp),
-
 		})
-
-
 
 		status := "healthy"
 
@@ -1625,27 +1317,20 @@ func (r *ClusterRegistry) checkComponentHealth(ctx context.Context, entry *Clust
 
 		}
 
-
-
 		components = append(components, ComponentHealth{
 
-			Name:    comp,
+			Name: comp,
 
-			Status:  status,
+			Status: status,
 
 			Message: message,
-
 		})
 
 	}
 
-
-
 	return components
 
 }
-
-
 
 func (r *ClusterRegistry) getHealthMetrics(ctx context.Context, entry *ClusterEntry) HealthMetrics {
 
@@ -1655,31 +1340,26 @@ func (r *ClusterRegistry) getHealthMetrics(ctx context.Context, entry *ClusterEn
 
 	return HealthMetrics{
 
-		CPUUtilization:    0.65,
+		CPUUtilization: 0.65,
 
 		MemoryUtilization: 0.72,
 
-		DiskUtilization:   0.55,
+		DiskUtilization: 0.55,
 
-		NetworkLatency:    2.5,
+		NetworkLatency: 2.5,
 
-		ErrorRate:         0.001,
+		ErrorRate: 0.001,
 
-		RequestRate:       1000,
-
+		RequestRate: 1000,
 	}
 
 }
-
-
 
 func (r *ClusterRegistry) runCredentialRotation(ctx context.Context) {
 
 	ticker := time.NewTicker(24 * time.Hour)
 
 	defer ticker.Stop()
-
-
 
 	for {
 
@@ -1703,8 +1383,6 @@ func (r *ClusterRegistry) runCredentialRotation(ctx context.Context) {
 
 }
 
-
-
 func (r *ClusterRegistry) rotateCredentials(ctx context.Context) {
 
 	r.mu.RLock()
@@ -1718,8 +1396,6 @@ func (r *ClusterRegistry) rotateCredentials(ctx context.Context) {
 	}
 
 	r.mu.RUnlock()
-
-
 
 	for _, entry := range clusters {
 
@@ -1735,13 +1411,9 @@ func (r *ClusterRegistry) rotateCredentials(ctx context.Context) {
 
 }
 
-
-
 func (r *ClusterRegistry) rotateSingleClusterCredentials(ctx context.Context, entry *ClusterEntry) {
 
 	r.logger.Info("Rotating credentials", "cluster", entry.Metadata.ID)
-
-
 
 	newCreds, err := r.credentialStore.Rotate(ctx, entry.Metadata.ID)
 
@@ -1754,8 +1426,6 @@ func (r *ClusterRegistry) rotateSingleClusterCredentials(ctx context.Context, en
 		return
 
 	}
-
-
 
 	// Create new REST config.
 
@@ -1771,8 +1441,6 @@ func (r *ClusterRegistry) rotateSingleClusterCredentials(ctx context.Context, en
 
 	}
 
-
-
 	// Update cluster entry.
 
 	r.mu.Lock()
@@ -1783,15 +1451,11 @@ func (r *ClusterRegistry) rotateSingleClusterCredentials(ctx context.Context, en
 
 	r.mu.Unlock()
 
-
-
 	r.metrics.credentialRotations.WithLabelValues(entry.Metadata.ID, "success").Inc()
 
 	r.logger.Info("Successfully rotated credentials", "cluster", entry.Metadata.ID)
 
 }
-
-
 
 func (r *ClusterRegistry) createRestConfig(creds ClusterCredentials) (*rest.Config, error) {
 
@@ -1801,11 +1465,9 @@ func (r *ClusterRegistry) createRestConfig(creds ClusterCredentials) (*rest.Conf
 
 	}
 
-
-
 	return &rest.Config{
 
-		Host:        creds.Endpoint,
+		Host: creds.Endpoint,
 
 		BearerToken: creds.Token,
 
@@ -1813,17 +1475,13 @@ func (r *ClusterRegistry) createRestConfig(creds ClusterCredentials) (*rest.Conf
 
 			CertData: creds.Certificate,
 
-			KeyData:  creds.Key,
+			KeyData: creds.Key,
 
-			CAData:   creds.CACert,
-
+			CAData: creds.CACert,
 		},
-
 	}, nil
 
 }
-
-
 
 func (r *ClusterRegistry) generateClusterID(metadata ClusterMetadata) string {
 
@@ -1835,13 +1493,9 @@ func (r *ClusterRegistry) generateClusterID(metadata ClusterMetadata) string {
 
 }
 
-
-
 func (r *ClusterRegistry) discoverCapabilities(ctx context.Context, clientset kubernetes.Interface) ([]ClusterCapability, error) {
 
 	capabilities := []ClusterCapability{}
-
-
 
 	// Check for GPU nodes.
 
@@ -1852,8 +1506,6 @@ func (r *ClusterRegistry) discoverCapabilities(ctx context.Context, clientset ku
 		return capabilities, err
 
 	}
-
-
 
 	for _, node := range nodeList.Items {
 
@@ -1867,8 +1519,6 @@ func (r *ClusterRegistry) discoverCapabilities(ctx context.Context, clientset ku
 
 	}
 
-
-
 	// Check for service mesh.
 
 	if _, err := clientset.AppsV1().Deployments("istio-system").Get(ctx, "istiod", metav1.GetOptions{}); err == nil {
@@ -1876,8 +1526,6 @@ func (r *ClusterRegistry) discoverCapabilities(ctx context.Context, clientset ku
 		capabilities = append(capabilities, CapabilityServiceMesh)
 
 	}
-
-
 
 	// Check for 5G core components.
 
@@ -1887,19 +1535,13 @@ func (r *ClusterRegistry) discoverCapabilities(ctx context.Context, clientset ku
 
 	}
 
-
-
 	return capabilities, nil
 
 }
 
-
-
 func (r *ClusterRegistry) getClusterResources(ctx context.Context, clientset kubernetes.Interface) (ResourceCapacity, error) {
 
 	resources := ResourceCapacity{}
-
-
 
 	nodeList, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 
@@ -1909,11 +1551,7 @@ func (r *ClusterRegistry) getClusterResources(ctx context.Context, clientset kub
 
 	}
 
-
-
 	resources.NodeCount = len(nodeList.Items)
-
-
 
 	for _, node := range nodeList.Items {
 
@@ -1943,8 +1581,6 @@ func (r *ClusterRegistry) getClusterResources(ctx context.Context, clientset kub
 
 		}
 
-
-
 		// Add allocatable resources.
 
 		if cpu, ok := node.Status.Allocatable["cpu"]; ok {
@@ -1973,8 +1609,6 @@ func (r *ClusterRegistry) getClusterResources(ctx context.Context, clientset kub
 
 	}
 
-
-
 	// Calculate utilization.
 
 	if resources.TotalCPU > 0 {
@@ -1983,13 +1617,9 @@ func (r *ClusterRegistry) getClusterResources(ctx context.Context, clientset kub
 
 	}
 
-
-
 	return resources, nil
 
 }
-
-
 
 func (r *ClusterRegistry) matchesQuery(entry *ClusterEntry, query ClusterQuery) bool {
 
@@ -2019,8 +1649,6 @@ func (r *ClusterRegistry) matchesQuery(entry *ClusterEntry, query ClusterQuery) 
 
 	}
 
-
-
 	// Check provider.
 
 	if len(query.Providers) > 0 {
@@ -2046,8 +1674,6 @@ func (r *ClusterRegistry) matchesQuery(entry *ClusterEntry, query ClusterQuery) 
 		}
 
 	}
-
-
 
 	// Check region.
 
@@ -2075,8 +1701,6 @@ func (r *ClusterRegistry) matchesQuery(entry *ClusterEntry, query ClusterQuery) 
 
 	}
 
-
-
 	// Check environment.
 
 	if len(query.Environments) > 0 {
@@ -2102,8 +1726,6 @@ func (r *ClusterRegistry) matchesQuery(entry *ClusterEntry, query ClusterQuery) 
 		}
 
 	}
-
-
 
 	// Check capabilities.
 
@@ -2135,8 +1757,6 @@ func (r *ClusterRegistry) matchesQuery(entry *ClusterEntry, query ClusterQuery) 
 
 	}
 
-
-
 	// Check tags.
 
 	if len(query.Tags) > 0 {
@@ -2153,8 +1773,6 @@ func (r *ClusterRegistry) matchesQuery(entry *ClusterEntry, query ClusterQuery) 
 
 	}
 
-
-
 	// Check labels.
 
 	if query.Labels != nil {
@@ -2168,8 +1786,6 @@ func (r *ClusterRegistry) matchesQuery(entry *ClusterEntry, query ClusterQuery) 
 		}
 
 	}
-
-
 
 	// Check resources.
 
@@ -2187,8 +1803,6 @@ func (r *ClusterRegistry) matchesQuery(entry *ClusterEntry, query ClusterQuery) 
 
 	}
 
-
-
 	// Check cost.
 
 	if query.MaxCost > 0 {
@@ -2200,8 +1814,6 @@ func (r *ClusterRegistry) matchesQuery(entry *ClusterEntry, query ClusterQuery) 
 		}
 
 	}
-
-
 
 	// Check status.
 
@@ -2229,13 +1841,9 @@ func (r *ClusterRegistry) matchesQuery(entry *ClusterEntry, query ClusterQuery) 
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 func (r *ClusterRegistry) removeFromTypeIndex(entry *ClusterEntry) {
 
@@ -2255,8 +1863,6 @@ func (r *ClusterRegistry) removeFromTypeIndex(entry *ClusterEntry) {
 
 }
 
-
-
 func (r *ClusterRegistry) removeFromRegionIndex(entry *ClusterEntry) {
 
 	clusters := r.clustersByRegion[entry.Metadata.Region]
@@ -2274,4 +1880,3 @@ func (r *ClusterRegistry) removeFromRegionIndex(entry *ClusterEntry) {
 	}
 
 }
-

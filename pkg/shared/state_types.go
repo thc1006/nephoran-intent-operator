@@ -28,28 +28,15 @@ limitations under the License.
 
 */
 
-
-
-
 package shared
 
-
-
 import (
-
 	"time"
-
-
 
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
 
-
-
 	"k8s.io/apimachinery/pkg/types"
-
 )
-
-
 
 // IntentState represents the complete state of a network intent.
 
@@ -59,529 +46,430 @@ type IntentState struct {
 
 	NamespacedName types.NamespacedName `json:"namespacedName"`
 
-	Version        string               `json:"version"`
+	Version string `json:"version"`
 
-	CreationTime   time.Time            `json:"creationTime"`
+	CreationTime time.Time `json:"creationTime"`
 
-	LastModified   time.Time            `json:"lastModified"`
-
-
+	LastModified time.Time `json:"lastModified"`
 
 	// Processing state.
 
-	CurrentPhase     interfaces.ProcessingPhase `json:"currentPhase"`
+	CurrentPhase interfaces.ProcessingPhase `json:"currentPhase"`
 
-	PhaseStartTime   time.Time                  `json:"phaseStartTime"`
+	PhaseStartTime time.Time `json:"phaseStartTime"`
 
-	PhaseTransitions []PhaseTransition          `json:"phaseTransitions"`
-
-
+	PhaseTransitions []PhaseTransition `json:"phaseTransitions"`
 
 	// Phase-specific data.
 
-	PhaseData   map[interfaces.ProcessingPhase]interface{} `json:"phaseData"`
+	PhaseData map[interfaces.ProcessingPhase]interface{} `json:"phaseData"`
 
-	PhaseErrors map[interfaces.ProcessingPhase][]string    `json:"phaseErrors"`
-
-
+	PhaseErrors map[interfaces.ProcessingPhase][]string `json:"phaseErrors"`
 
 	// Status conditions.
 
 	Conditions []StateCondition `json:"conditions"`
 
-
-
 	// Dependencies and relationships.
 
-	Dependencies     []IntentDependency `json:"dependencies"`
+	Dependencies []IntentDependency `json:"dependencies"`
 
-	DependentIntents []string           `json:"dependentIntents"`
-
-
+	DependentIntents []string `json:"dependentIntents"`
 
 	// Error tracking.
 
-	LastError     string    `json:"lastError,omitempty"`
+	LastError string `json:"lastError,omitempty"`
 
 	LastErrorTime time.Time `json:"lastErrorTime,omitempty"`
 
-	RetryCount    int       `json:"retryCount"`
-
-
+	RetryCount int `json:"retryCount"`
 
 	// Resource tracking.
 
 	AllocatedResources []ResourceAllocation `json:"allocatedResources"`
 
-	ResourceLocks      []ResourceLock       `json:"resourceLocks"`
-
-
+	ResourceLocks []ResourceLock `json:"resourceLocks"`
 
 	// Processing metrics.
 
-	ProcessingDuration time.Duration                               `json:"processingDuration"`
+	ProcessingDuration time.Duration `json:"processingDuration"`
 
-	PhaseMetrics       map[interfaces.ProcessingPhase]PhaseMetrics `json:"phaseMetrics"`
-
-
+	PhaseMetrics map[interfaces.ProcessingPhase]PhaseMetrics `json:"phaseMetrics"`
 
 	// Metadata and annotations.
 
 	Metadata map[string]interface{} `json:"metadata"`
 
-	Tags     []string               `json:"tags"`
-
+	Tags []string `json:"tags"`
 }
-
-
 
 // PhaseTransition represents a transition between processing phases.
 
 type PhaseTransition struct {
+	FromPhase interfaces.ProcessingPhase `json:"fromPhase"`
 
-	FromPhase     interfaces.ProcessingPhase `json:"fromPhase"`
+	ToPhase interfaces.ProcessingPhase `json:"toPhase"`
 
-	ToPhase       interfaces.ProcessingPhase `json:"toPhase"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp     time.Time                  `json:"timestamp"`
+	Duration time.Duration `json:"duration"`
 
-	Duration      time.Duration              `json:"duration"`
+	TriggerReason string `json:"triggerReason,omitempty"`
 
-	TriggerReason string                     `json:"triggerReason,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 
-	Metadata      map[string]interface{}     `json:"metadata,omitempty"`
+	Success bool `json:"success"`
 
-	Success       bool                       `json:"success"`
-
-	ErrorMessage  string                     `json:"errorMessage,omitempty"`
-
+	ErrorMessage string `json:"errorMessage,omitempty"`
 }
-
-
 
 // StateCondition represents a condition in the intent state.
 
 type StateCondition struct {
+	Type string `json:"type"`
 
-	Type               string    `json:"type"`
-
-	Status             string    `json:"status"`
+	Status string `json:"status"`
 
 	LastTransitionTime time.Time `json:"lastTransitionTime"`
 
-	Reason             string    `json:"reason,omitempty"`
+	Reason string `json:"reason,omitempty"`
 
-	Message            string    `json:"message,omitempty"`
+	Message string `json:"message,omitempty"`
 
-	Severity           string    `json:"severity,omitempty"`
-
+	Severity string `json:"severity,omitempty"`
 }
-
-
 
 // IntentDependency represents a dependency on another intent.
 
 type IntentDependency struct {
+	Intent string `json:"intent"`
 
-	Intent    string                     `json:"intent"`
+	Phase interfaces.ProcessingPhase `json:"phase"`
 
-	Phase     interfaces.ProcessingPhase `json:"phase"`
+	Type string `json:"type"` // "blocking", "soft", "notification"
 
-	Type      string                     `json:"type"` // "blocking", "soft", "notification"
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp time.Time                  `json:"timestamp"`
+	Condition string `json:"condition,omitempty"`
 
-	Condition string                     `json:"condition,omitempty"`
-
-	Timeout   time.Duration              `json:"timeout,omitempty"`
-
+	Timeout time.Duration `json:"timeout,omitempty"`
 }
-
-
 
 // ResourceAllocation represents allocated resources for an intent.
 
 type ResourceAllocation struct {
+	ResourceType string `json:"resourceType"`
 
-	ResourceType string            `json:"resourceType"`
+	ResourceID string `json:"resourceId"`
 
-	ResourceID   string            `json:"resourceId"`
+	Quantity string `json:"quantity"`
 
-	Quantity     string            `json:"quantity"`
+	Status string `json:"status"` // "allocated", "released", "pending"
 
-	Status       string            `json:"status"` // "allocated", "released", "pending"
+	AllocatedAt time.Time `json:"allocatedAt"`
 
-	AllocatedAt  time.Time         `json:"allocatedAt"`
-
-	Metadata     map[string]string `json:"metadata,omitempty"`
-
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
-
-
 
 // ResourceLock represents a resource lock held by an intent.
 
 type ResourceLock struct {
+	LockID string `json:"lockId"`
 
-	LockID       string            `json:"lockId"`
+	ResourceType string `json:"resourceType"`
 
-	ResourceType string            `json:"resourceType"`
+	ResourceID string `json:"resourceId"`
 
-	ResourceID   string            `json:"resourceId"`
+	LockType string `json:"lockType"` // "exclusive", "shared"
 
-	LockType     string            `json:"lockType"` // "exclusive", "shared"
+	AcquiredAt time.Time `json:"acquiredAt"`
 
-	AcquiredAt   time.Time         `json:"acquiredAt"`
+	ExpiresAt time.Time `json:"expiresAt"`
 
-	ExpiresAt    time.Time         `json:"expiresAt"`
-
-	Metadata     map[string]string `json:"metadata,omitempty"`
-
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
-
-
 
 // PhaseMetrics contains metrics for a specific processing phase.
 
 type PhaseMetrics struct {
+	StartTime time.Time `json:"startTime"`
 
-	StartTime       time.Time     `json:"startTime"`
+	EndTime time.Time `json:"endTime"`
 
-	EndTime         time.Time     `json:"endTime"`
+	Duration time.Duration `json:"duration"`
 
-	Duration        time.Duration `json:"duration"`
+	AttemptsCount int `json:"attemptsCount"`
 
-	AttemptsCount   int           `json:"attemptsCount"`
+	SuccessCount int `json:"successCount"`
 
-	SuccessCount    int           `json:"successCount"`
+	ErrorCount int `json:"errorCount"`
 
-	ErrorCount      int           `json:"errorCount"`
+	ResourcesUsed []string `json:"resourcesUsed"`
 
-	ResourcesUsed   []string      `json:"resourcesUsed"`
+	ProcessedItems int `json:"processedItems"`
 
-	ProcessedItems  int           `json:"processedItems"`
+	ThroughputRate float64 `json:"throughputRate"`
 
-	ThroughputRate  float64       `json:"throughputRate"`
+	MemoryUsageMB float64 `json:"memoryUsageMB"`
 
-	MemoryUsageMB   float64       `json:"memoryUsageMB"`
-
-	CPUUsagePercent float64       `json:"cpuUsagePercent"`
-
+	CPUUsagePercent float64 `json:"cpuUsagePercent"`
 }
-
-
 
 // StateChangeEvent represents a state change event.
 
 type StateChangeEvent struct {
+	Type string `json:"type"`
 
-	Type           string                     `json:"type"`
+	IntentName types.NamespacedName `json:"intentName"`
 
-	IntentName     types.NamespacedName       `json:"intentName"`
+	OldPhase interfaces.ProcessingPhase `json:"oldPhase,omitempty"`
 
-	OldPhase       interfaces.ProcessingPhase `json:"oldPhase,omitempty"`
+	NewPhase interfaces.ProcessingPhase `json:"newPhase"`
 
-	NewPhase       interfaces.ProcessingPhase `json:"newPhase"`
+	Version string `json:"version"`
 
-	Version        string                     `json:"version"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp      time.Time                  `json:"timestamp"`
+	ChangeReason string `json:"changeReason,omitempty"`
 
-	ChangeReason   string                     `json:"changeReason,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 
-	Metadata       map[string]interface{}     `json:"metadata,omitempty"`
-
-	AffectedFields []string                   `json:"affectedFields,omitempty"`
-
+	AffectedFields []string `json:"affectedFields,omitempty"`
 }
-
-
 
 // StateStatistics provides statistics about state management.
 
 type StateStatistics struct {
+	TotalStates int `json:"totalStates"`
 
-	TotalStates           int            `json:"totalStates"`
+	StatesByPhase map[string]int `json:"statesByPhase"`
 
-	StatesByPhase         map[string]int `json:"statesByPhase"`
+	CacheHitRate float64 `json:"cacheHitRate"`
 
-	CacheHitRate          float64        `json:"cacheHitRate"`
+	ActiveLocks int `json:"activeLocks"`
 
-	ActiveLocks           int            `json:"activeLocks"`
+	AverageUpdateTime time.Duration `json:"averageUpdateTime"`
 
-	AverageUpdateTime     time.Duration  `json:"averageUpdateTime"`
+	StateValidationErrors int64 `json:"stateValidationErrors"`
 
-	StateValidationErrors int64          `json:"stateValidationErrors"`
+	LastSyncTime time.Time `json:"lastSyncTime"`
 
-	LastSyncTime          time.Time      `json:"lastSyncTime"`
+	ConflictResolutions int64 `json:"conflictResolutions"`
 
-	ConflictResolutions   int64          `json:"conflictResolutions"`
-
-	DependencyViolations  int64          `json:"dependencyViolations"`
-
+	DependencyViolations int64 `json:"dependencyViolations"`
 }
-
-
 
 // StateSyncRequest represents a request to synchronize state.
 
 type StateSyncRequest struct {
+	IntentName types.NamespacedName `json:"intentName"`
 
-	IntentName    types.NamespacedName `json:"intentName"`
+	RequestedBy string `json:"requestedBy"`
 
-	RequestedBy   string               `json:"requestedBy"`
+	SyncType string `json:"syncType"` // "full", "incremental", "validate"
 
-	SyncType      string               `json:"syncType"` // "full", "incremental", "validate"
+	ForceSync bool `json:"forceSync"`
 
-	ForceSync     bool                 `json:"forceSync"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Timestamp     time.Time            `json:"timestamp"`
-
-	TargetVersion string               `json:"targetVersion,omitempty"`
-
+	TargetVersion string `json:"targetVersion,omitempty"`
 }
-
-
 
 // StateSyncResponse represents a response to state synchronization.
 
 type StateSyncResponse struct {
+	RequestID string `json:"requestId"`
 
-	RequestID         string            `json:"requestId"`
+	Success bool `json:"success"`
 
-	Success           bool              `json:"success"`
+	ConflictsFound int `json:"conflictsFound"`
 
-	ConflictsFound    int               `json:"conflictsFound"`
+	ConflictsResolved int `json:"conflictsResolved"`
 
-	ConflictsResolved int               `json:"conflictsResolved"`
+	UpdatesApplied int `json:"updatesApplied"`
 
-	UpdatesApplied    int               `json:"updatesApplied"`
+	ErrorMessage string `json:"errorMessage,omitempty"`
 
-	ErrorMessage      string            `json:"errorMessage,omitempty"`
+	ProcessingTime time.Duration `json:"processingTime"`
 
-	ProcessingTime    time.Duration     `json:"processingTime"`
-
-	Metadata          map[string]string `json:"metadata,omitempty"`
-
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
-
-
 
 // StateConflict represents a conflict between states.
 
 type StateConflict struct {
+	IntentName types.NamespacedName `json:"intentName"`
 
-	IntentName      types.NamespacedName `json:"intentName"`
+	ConflictType string `json:"conflictType"`
 
-	ConflictType    string               `json:"conflictType"`
+	Field string `json:"field"`
 
-	Field           string               `json:"field"`
+	CachedValue interface{} `json:"cachedValue"`
 
-	CachedValue     interface{}          `json:"cachedValue"`
+	KubernetesValue interface{} `json:"kubernetesValue"`
 
-	KubernetesValue interface{}          `json:"kubernetesValue"`
+	LastModified time.Time `json:"lastModified"`
 
-	LastModified    time.Time            `json:"lastModified"`
+	Severity string `json:"severity"` // "low", "medium", "high", "critical"
 
-	Severity        string               `json:"severity"` // "low", "medium", "high", "critical"
-
-	Resolution      string               `json:"resolution,omitempty"`
-
+	Resolution string `json:"resolution,omitempty"`
 }
-
-
 
 // StateValidationResult represents the result of state validation.
 
 type StateValidationResult struct {
+	Valid bool `json:"valid"`
 
-	Valid           bool                     `json:"valid"`
+	Errors []StateValidationError `json:"errors,omitempty"`
 
-	Errors          []StateValidationError   `json:"errors,omitempty"`
+	Warnings []StateValidationWarning `json:"warnings,omitempty"`
 
-	Warnings        []StateValidationWarning `json:"warnings,omitempty"`
+	ValidationTime time.Duration `json:"validationTime"`
 
-	ValidationTime  time.Duration            `json:"validationTime"`
+	ValidatedFields int `json:"validatedFields"`
 
-	ValidatedFields int                      `json:"validatedFields"`
-
-	Version         string                   `json:"version"`
-
+	Version string `json:"version"`
 }
-
-
 
 // StateValidationError represents a state validation error.
 
 type StateValidationError struct {
+	Field string `json:"field"`
 
-	Field      string                 `json:"field"`
+	Value interface{} `json:"value"`
 
-	Value      interface{}            `json:"value"`
+	Constraint string `json:"constraint"`
 
-	Constraint string                 `json:"constraint"`
+	Message string `json:"message"`
 
-	Message    string                 `json:"message"`
+	Severity string `json:"severity"`
 
-	Severity   string                 `json:"severity"`
-
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // StateValidationWarning represents a state validation warning.
 
 type StateValidationWarning struct {
+	Field string `json:"field"`
 
-	Field      string                 `json:"field"`
+	Value interface{} `json:"value"`
 
-	Value      interface{}            `json:"value"`
+	Message string `json:"message"`
 
-	Message    string                 `json:"message"`
+	Suggestion string `json:"suggestion,omitempty"`
 
-	Suggestion string                 `json:"suggestion,omitempty"`
-
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
-
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
-
 
 // StateMutex represents a distributed mutex for state synchronization.
 
 type StateMutex struct {
+	Name string `json:"name"`
 
-	Name       string            `json:"name"`
+	Owner string `json:"owner"`
 
-	Owner      string            `json:"owner"`
+	AcquiredAt time.Time `json:"acquiredAt"`
 
-	AcquiredAt time.Time         `json:"acquiredAt"`
+	ExpiresAt time.Time `json:"expiresAt"`
 
-	ExpiresAt  time.Time         `json:"expiresAt"`
+	Renewable bool `json:"renewable"`
 
-	Renewable  bool              `json:"renewable"`
-
-	Metadata   map[string]string `json:"metadata,omitempty"`
-
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
-
-
 
 // StateSnapshot represents a point-in-time snapshot of intent state.
 
 type StateSnapshot struct {
+	IntentName types.NamespacedName `json:"intentName"`
 
-	IntentName     types.NamespacedName `json:"intentName"`
+	Version string `json:"version"`
 
-	Version        string               `json:"version"`
+	SnapshotTime time.Time `json:"snapshotTime"`
 
-	SnapshotTime   time.Time            `json:"snapshotTime"`
+	State *IntentState `json:"state"`
 
-	State          *IntentState         `json:"state"`
+	Checksum string `json:"checksum"`
 
-	Checksum       string               `json:"checksum"`
+	CompressedSize int64 `json:"compressedSize"`
 
-	CompressedSize int64                `json:"compressedSize"`
-
-	Metadata       map[string]string    `json:"metadata,omitempty"`
-
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
-
-
 
 // StateRecoveryInfo contains information for state recovery.
 
 type StateRecoveryInfo struct {
+	IntentName types.NamespacedName `json:"intentName"`
 
-	IntentName           types.NamespacedName `json:"intentName"`
+	LastKnownGoodVersion string `json:"lastKnownGoodVersion"`
 
-	LastKnownGoodVersion string               `json:"lastKnownGoodVersion"`
+	CorruptedVersion string `json:"corruptedVersion"`
 
-	CorruptedVersion     string               `json:"corruptedVersion"`
+	RecoveryStrategy string `json:"recoveryStrategy"`
 
-	RecoveryStrategy     string               `json:"recoveryStrategy"`
+	RecoveryTime time.Time `json:"recoveryTime"`
 
-	RecoveryTime         time.Time            `json:"recoveryTime"`
+	DataLoss bool `json:"dataLoss"`
 
-	DataLoss             bool                 `json:"dataLoss"`
+	RecoveredFields []string `json:"recoveredFields"`
 
-	RecoveredFields      []string             `json:"recoveredFields"`
-
-	Notes                string               `json:"notes,omitempty"`
-
+	Notes string `json:"notes,omitempty"`
 }
 
-
-
 // State query and filtering types.
-
-
 
 // StateQuery represents a query for intent states.
 
 type StateQuery struct {
+	Namespace string `json:"namespace,omitempty"`
 
-	Namespace       string                       `json:"namespace,omitempty"`
+	Name string `json:"name,omitempty"`
 
-	Name            string                       `json:"name,omitempty"`
+	Phase interfaces.ProcessingPhase `json:"phase,omitempty"`
 
-	Phase           interfaces.ProcessingPhase   `json:"phase,omitempty"`
+	Phases []interfaces.ProcessingPhase `json:"phases,omitempty"`
 
-	Phases          []interfaces.ProcessingPhase `json:"phases,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
 
-	Labels          map[string]string            `json:"labels,omitempty"`
+	Tags []string `json:"tags,omitempty"`
 
-	Tags            []string                     `json:"tags,omitempty"`
+	CreatedAfter *time.Time `json:"createdAfter,omitempty"`
 
-	CreatedAfter    *time.Time                   `json:"createdAfter,omitempty"`
+	CreatedBefore *time.Time `json:"createdBefore,omitempty"`
 
-	CreatedBefore   *time.Time                   `json:"createdBefore,omitempty"`
+	ModifiedAfter *time.Time `json:"modifiedAfter,omitempty"`
 
-	ModifiedAfter   *time.Time                   `json:"modifiedAfter,omitempty"`
+	ModifiedBefore *time.Time `json:"modifiedBefore,omitempty"`
 
-	ModifiedBefore  *time.Time                   `json:"modifiedBefore,omitempty"`
+	HasErrors *bool `json:"hasErrors,omitempty"`
 
-	HasErrors       *bool                        `json:"hasErrors,omitempty"`
+	HasDependencies *bool `json:"hasDependencies,omitempty"`
 
-	HasDependencies *bool                        `json:"hasDependencies,omitempty"`
+	OrderBy string `json:"orderBy,omitempty"` // "name", "created", "modified", "phase"
 
-	OrderBy         string                       `json:"orderBy,omitempty"` // "name", "created", "modified", "phase"
+	Order string `json:"order,omitempty"` // "asc", "desc"
 
-	Order           string                       `json:"order,omitempty"`   // "asc", "desc"
+	Limit int `json:"limit,omitempty"`
 
-	Limit           int                          `json:"limit,omitempty"`
-
-	Offset          int                          `json:"offset,omitempty"`
-
+	Offset int `json:"offset,omitempty"`
 }
-
-
 
 // StateQueryResult represents the result of a state query.
 
 type StateQueryResult struct {
+	States []*IntentState `json:"states"`
 
-	States        []*IntentState `json:"states"`
+	TotalCount int `json:"totalCount"`
 
-	TotalCount    int            `json:"totalCount"`
+	FilteredCount int `json:"filteredCount"`
 
-	FilteredCount int            `json:"filteredCount"`
+	ExecutionTime time.Duration `json:"executionTime"`
 
-	ExecutionTime time.Duration  `json:"executionTime"`
+	HasMore bool `json:"hasMore"`
 
-	HasMore       bool           `json:"hasMore"`
-
-	NextOffset    int            `json:"nextOffset,omitempty"`
-
+	NextOffset int `json:"nextOffset,omitempty"`
 }
 
-
-
 // Constants for state management.
-
-
 
 const (
 
@@ -617,8 +505,6 @@ const (
 
 	ConditionTypeValidated = "Validated"
 
-
-
 	// State condition statuses.
 
 	ConditionStatusTrue = "True"
@@ -631,8 +517,6 @@ const (
 
 	ConditionStatusUnknown = "Unknown"
 
-
-
 	// Dependency types.
 
 	DependencyTypeBlocking = "blocking"
@@ -644,8 +528,6 @@ const (
 	// DependencyTypeNotification holds dependencytypenotification value.
 
 	DependencyTypeNotification = "notification"
-
-
 
 	// Resource allocation statuses.
 
@@ -663,8 +545,6 @@ const (
 
 	ResourceStatusFailed = "failed"
 
-
-
 	// Lock types.
 
 	LockTypeExclusive = "exclusive"
@@ -672,8 +552,6 @@ const (
 	// LockTypeShared holds locktypeshared value.
 
 	LockTypeShared = "shared"
-
-
 
 	// Conflict resolution modes.
 
@@ -687,8 +565,6 @@ const (
 
 	ConflictResolutionManual = "manual"
 
-
-
 	// Sync types.
 
 	SyncTypeFull = "full"
@@ -700,8 +576,6 @@ const (
 	// SyncTypeValidate holds synctypevalidate value.
 
 	SyncTypeValidate = "validate"
-
-
 
 	// Severity levels.
 
@@ -718,6 +592,4 @@ const (
 	// SeverityCritical holds severitycritical value.
 
 	SeverityCritical = "critical"
-
 )
-

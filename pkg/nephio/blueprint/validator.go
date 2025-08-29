@@ -28,217 +28,157 @@ limitations under the License.
 
 */
 
-
-
-
 package blueprint
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"net/http"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/ghodss/yaml"
-
+	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 	"github.com/xeipuuv/gojsonschema"
-
 	"go.uber.org/zap"
 
-
-
-	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
-
-
 	"k8s.io/apimachinery/pkg/api/resource"
-
 )
-
-
 
 // Validator handles blueprint validation and O-RAN compliance checking.
 
 type Validator struct {
-
 	config *BlueprintConfig
 
 	logger *zap.Logger
-
-
 
 	// Validation engines.
 
 	kubernetesValidator *KubernetesValidator
 
-	oranValidator       *ORANValidator
+	oranValidator *ORANValidator
 
-	securityValidator   *SecurityValidator
+	securityValidator *SecurityValidator
 
-	policyValidator     *PolicyValidator
-
-
+	policyValidator *PolicyValidator
 
 	// Schema validation.
 
-	schemaCache  sync.Map
+	schemaCache sync.Map
 
 	schemaLoader gojsonschema.JSONLoader
-
-
 
 	// O-RAN compliance checking.
 
 	oranSpecifications map[string]*ORANSpecification
 
-	complianceRules    map[string]*ORANComplianceRule
-
-
+	complianceRules map[string]*ORANComplianceRule
 
 	// Performance and caching.
 
 	validationCache sync.Map
 
-	httpClient      *http.Client
+	httpClient *http.Client
 
 	validationMutex sync.RWMutex
-
 }
-
-
 
 // ValidationResult represents the result of blueprint validation.
 
 type ValidationResult struct {
+	IsValid bool `json:"isValid"`
 
-	IsValid            bool                      `json:"isValid"`
+	Errors []ValidationError `json:"errors,omitempty"`
 
-	Errors             []ValidationError         `json:"errors,omitempty"`
+	Warnings []ValidationWarning `json:"warnings,omitempty"`
 
-	Warnings           []ValidationWarning       `json:"warnings,omitempty"`
-
-	ORANCompliance     *ORANComplianceResult     `json:"oranCompliance,omitempty"`
+	ORANCompliance *ORANComplianceResult `json:"oranCompliance,omitempty"`
 
 	SecurityCompliance *SecurityComplianceResult `json:"securityCompliance,omitempty"`
 
-	PolicyCompliance   *PolicyComplianceResult   `json:"policyCompliance,omitempty"`
+	PolicyCompliance *PolicyComplianceResult `json:"policyCompliance,omitempty"`
 
 	ResourceValidation *ResourceValidationResult `json:"resourceValidation,omitempty"`
-
-
 
 	// Metrics.
 
 	ValidationDuration time.Duration `json:"validationDuration"`
 
-	ValidatedFiles     int           `json:"validatedFiles"`
+	ValidatedFiles int `json:"validatedFiles"`
 
-	ValidatedResources int           `json:"validatedResources"`
-
-
+	ValidatedResources int `json:"validatedResources"`
 
 	// Recommendations.
 
 	Recommendations []ValidationRecommendation `json:"recommendations,omitempty"`
-
 }
-
-
 
 // ValidationError represents a validation error.
 
 type ValidationError struct {
+	Code string `json:"code"`
 
-	Code        string        `json:"code"`
+	Message string `json:"message"`
 
-	Message     string        `json:"message"`
+	Severity ErrorSeverity `json:"severity"`
 
-	Severity    ErrorSeverity `json:"severity"`
+	Source string `json:"source"`
 
-	Source      string        `json:"source"`
+	Field string `json:"field,omitempty"`
 
-	Field       string        `json:"field,omitempty"`
+	Value interface{} `json:"value,omitempty"`
 
-	Value       interface{}   `json:"value,omitempty"`
+	Suggestion string `json:"suggestion,omitempty"`
 
-	Suggestion  string        `json:"suggestion,omitempty"`
-
-	DocumentRef string        `json:"documentRef,omitempty"`
-
+	DocumentRef string `json:"documentRef,omitempty"`
 }
-
-
 
 // ValidationWarning represents a validation warning.
 
 type ValidationWarning struct {
+	Code string `json:"code"`
 
-	Code       string `json:"code"`
+	Message string `json:"message"`
 
-	Message    string `json:"message"`
+	Source string `json:"source"`
 
-	Source     string `json:"source"`
-
-	Field      string `json:"field,omitempty"`
+	Field string `json:"field,omitempty"`
 
 	Suggestion string `json:"suggestion,omitempty"`
-
 }
-
-
 
 // ValidationRecommendation represents an improvement recommendation.
 
 type ValidationRecommendation struct {
+	Type RecommendationType `json:"type"`
 
-	Type        RecommendationType  `json:"type"`
+	Title string `json:"title"`
 
-	Title       string              `json:"title"`
+	Description string `json:"description"`
 
-	Description string              `json:"description"`
+	Impact ImpactLevel `json:"impact"`
 
-	Impact      ImpactLevel         `json:"impact"`
+	Effort EffortLevel `json:"effort"`
 
-	Effort      EffortLevel         `json:"effort"`
+	Category string `json:"category"`
 
-	Category    string              `json:"category"`
-
-	Actions     []RecommendedAction `json:"actions,omitempty"`
-
+	Actions []RecommendedAction `json:"actions,omitempty"`
 }
-
-
 
 // RecommendedAction represents a recommendedaction.
 
 type RecommendedAction struct {
+	Action string `json:"action"`
 
-	Action      string            `json:"action"`
+	Parameters map[string]string `json:"parameters,omitempty"`
 
-	Parameters  map[string]string `json:"parameters,omitempty"`
-
-	Description string            `json:"description"`
-
+	Description string `json:"description"`
 }
-
-
 
 // Enums for validation types.
 
 type (
-
 	ErrorSeverity string
 
 	// RecommendationType represents a recommendationtype.
@@ -252,10 +192,7 @@ type (
 	// EffortLevel represents a effortlevel.
 
 	EffortLevel string
-
 )
-
-
 
 const (
 
@@ -270,10 +207,7 @@ const (
 	// SeverityInfo holds severityinfo value.
 
 	SeverityInfo ErrorSeverity = "info"
-
 )
-
-
 
 const (
 
@@ -296,10 +230,7 @@ const (
 	// RecommendationOptimization holds recommendationoptimization value.
 
 	RecommendationOptimization RecommendationType = "optimization"
-
 )
-
-
 
 const (
 
@@ -314,10 +245,7 @@ const (
 	// ImpactLow holds impactlow value.
 
 	ImpactLow ImpactLevel = "low"
-
 )
-
-
 
 const (
 
@@ -332,558 +260,427 @@ const (
 	// EffortLow holds effortlow value.
 
 	EffortLow EffortLevel = "low"
-
 )
-
-
 
 // Compliance result structures.
 
 type ORANComplianceResult struct {
+	IsCompliant bool `json:"isCompliant"`
 
-	IsCompliant     bool                           `json:"isCompliant"`
+	ComplianceScore float64 `json:"complianceScore"`
 
-	ComplianceScore float64                        `json:"complianceScore"`
+	Interfaces map[string]InterfaceCompliance `json:"interfaces"`
 
-	Interfaces      map[string]InterfaceCompliance `json:"interfaces"`
+	Specifications []SpecificationCompliance `json:"specifications"`
 
-	Specifications  []SpecificationCompliance      `json:"specifications"`
-
-	Violations      []ComplianceViolation          `json:"violations,omitempty"`
-
+	Violations []ComplianceViolation `json:"violations,omitempty"`
 }
-
-
 
 // InterfaceCompliance represents a interfacecompliance.
 
 type InterfaceCompliance struct {
+	Interface string `json:"interface"` // A1, O1, O2, E2
 
-	Interface   string   `json:"interface"` // A1, O1, O2, E2
+	Compliant bool `json:"compliant"`
 
-	Compliant   bool     `json:"compliant"`
+	Score float64 `json:"score"`
 
-	Score       float64  `json:"score"`
+	Issues []string `json:"issues,omitempty"`
 
-	Issues      []string `json:"issues,omitempty"`
-
-	Implemented bool     `json:"implemented"`
-
+	Implemented bool `json:"implemented"`
 }
-
-
 
 // SpecificationCompliance represents a specificationcompliance.
 
 type SpecificationCompliance struct {
+	Specification string `json:"specification"` // O-RAN.WG1.O1, O-RAN.WG2.A1, etc.
 
-	Specification string   `json:"specification"` // O-RAN.WG1.O1, O-RAN.WG2.A1, etc.
+	Version string `json:"version"`
 
-	Version       string   `json:"version"`
+	Compliant bool `json:"compliant"`
 
-	Compliant     bool     `json:"compliant"`
+	Coverage float64 `json:"coverage"`
 
-	Coverage      float64  `json:"coverage"`
-
-	MissingItems  []string `json:"missingItems,omitempty"`
-
+	MissingItems []string `json:"missingItems,omitempty"`
 }
-
-
 
 // ComplianceViolation represents a complianceviolation.
 
 type ComplianceViolation struct {
+	Rule string `json:"rule"`
 
-	Rule        string        `json:"rule"`
+	Description string `json:"description"`
 
-	Description string        `json:"description"`
+	Severity ErrorSeverity `json:"severity"`
 
-	Severity    ErrorSeverity `json:"severity"`
+	Component string `json:"component"`
 
-	Component   string        `json:"component"`
-
-	Remediation string        `json:"remediation"`
-
+	Remediation string `json:"remediation"`
 }
-
-
 
 // SecurityComplianceResult represents a securitycomplianceresult.
 
 type SecurityComplianceResult struct {
+	IsCompliant bool `json:"isCompliant"`
 
-	IsCompliant     bool                     `json:"isCompliant"`
+	SecurityScore float64 `json:"securityScore"`
 
-	SecurityScore   float64                  `json:"securityScore"`
+	Vulnerabilities []SecurityVulnerability `json:"vulnerabilities,omitempty"`
 
-	Vulnerabilities []SecurityVulnerability  `json:"vulnerabilities,omitempty"`
-
-	MissingControls []SecurityControl        `json:"missingControls,omitempty"`
+	MissingControls []SecurityControl `json:"missingControls,omitempty"`
 
 	Recommendations []SecurityRecommendation `json:"recommendations,omitempty"`
-
 }
-
-
 
 // SecurityVulnerability represents a securityvulnerability.
 
 type SecurityVulnerability struct {
+	ID string `json:"id"`
 
-	ID          string        `json:"id"`
+	Title string `json:"title"`
 
-	Title       string        `json:"title"`
+	Description string `json:"description"`
 
-	Description string        `json:"description"`
+	Severity ErrorSeverity `json:"severity"`
 
-	Severity    ErrorSeverity `json:"severity"`
+	CVSS float64 `json:"cvss,omitempty"`
 
-	CVSS        float64       `json:"cvss,omitempty"`
+	Component string `json:"component"`
 
-	Component   string        `json:"component"`
-
-	Mitigation  string        `json:"mitigation"`
-
+	Mitigation string `json:"mitigation"`
 }
-
-
 
 // SecurityControl represents a securitycontrol.
 
 type SecurityControl struct {
+	ID string `json:"id"`
 
-	ID          string `json:"id"`
+	Name string `json:"name"`
 
-	Name        string `json:"name"`
-
-	Category    string `json:"category"`
+	Category string `json:"category"`
 
 	Description string `json:"description"`
 
-	Required    bool   `json:"required"`
-
+	Required bool `json:"required"`
 }
-
-
 
 // SecurityRecommendation represents a securityrecommendation.
 
 type SecurityRecommendation struct {
+	Control string `json:"control"`
 
-	Control     string `json:"control"`
+	Action string `json:"action"`
 
-	Action      string `json:"action"`
-
-	Priority    string `json:"priority"`
+	Priority string `json:"priority"`
 
 	Description string `json:"description"`
-
 }
-
-
 
 // PolicyComplianceResult represents a policycomplianceresult.
 
 type PolicyComplianceResult struct {
+	IsCompliant bool `json:"isCompliant"`
 
-	IsCompliant     bool              `json:"isCompliant"`
+	PolicyScore float64 `json:"policyScore"`
 
-	PolicyScore     float64           `json:"policyScore"`
+	Violations []PolicyViolation `json:"violations,omitempty"`
 
-	Violations      []PolicyViolation `json:"violations,omitempty"`
-
-	MissingPolicies []RequiredPolicy  `json:"missingPolicies,omitempty"`
-
+	MissingPolicies []RequiredPolicy `json:"missingPolicies,omitempty"`
 }
-
-
 
 // PolicyViolation represents a policyviolation.
 
 type PolicyViolation struct {
+	Policy string `json:"policy"`
 
-	Policy      string `json:"policy"`
+	Rule string `json:"rule"`
 
-	Rule        string `json:"rule"`
-
-	Component   string `json:"component"`
+	Component string `json:"component"`
 
 	Description string `json:"description"`
 
-	Severity    string `json:"severity"`
-
+	Severity string `json:"severity"`
 }
-
-
 
 // RequiredPolicy represents a requiredpolicy.
 
 type RequiredPolicy struct {
+	Name string `json:"name"`
 
-	Name        string `json:"name"`
-
-	Type        string `json:"type"`
+	Type string `json:"type"`
 
 	Description string `json:"description"`
 
-	Required    bool   `json:"required"`
-
+	Required bool `json:"required"`
 }
-
-
 
 // ResourceValidationResult represents a resourcevalidationresult.
 
 type ResourceValidationResult struct {
+	IsValid bool `json:"isValid"`
 
-	IsValid         bool                     `json:"isValid"`
+	ResourceScore float64 `json:"resourceScore"`
 
-	ResourceScore   float64                  `json:"resourceScore"`
-
-	ResourceIssues  []ResourceIssue          `json:"resourceIssues,omitempty"`
+	ResourceIssues []ResourceIssue `json:"resourceIssues,omitempty"`
 
 	Recommendations []ResourceRecommendation `json:"recommendations,omitempty"`
-
 }
-
-
 
 // ResourceIssue represents a resourceissue.
 
 type ResourceIssue struct {
+	Resource string `json:"resource"`
 
-	Resource    string        `json:"resource"`
+	Issue string `json:"issue"`
 
-	Issue       string        `json:"issue"`
+	Severity ErrorSeverity `json:"severity"`
 
-	Severity    ErrorSeverity `json:"severity"`
+	Current string `json:"current,omitempty"`
 
-	Current     string        `json:"current,omitempty"`
-
-	Recommended string        `json:"recommended,omitempty"`
-
+	Recommended string `json:"recommended,omitempty"`
 }
-
-
 
 // ResourceRecommendation represents a resourcerecommendation.
 
 type ResourceRecommendation struct {
-
 	Resource string `json:"resource"`
 
-	Action   string `json:"action"`
+	Action string `json:"action"`
 
-	Reason   string `json:"reason"`
+	Reason string `json:"reason"`
 
-	Impact   string `json:"impact"`
-
+	Impact string `json:"impact"`
 }
-
-
 
 // Validator components.
 
 type KubernetesValidator struct {
-
 	schemas map[string]gojsonschema.JSONLoader
 
-	mutex   sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // ORANValidator represents a oranvalidator.
 
 type ORANValidator struct {
-
 	specifications map[string]*ORANSpecification
 
 	interfaceRules map[string]*InterfaceRule
 
-	mutex          sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // SecurityValidator represents a securityvalidator.
 
 type SecurityValidator struct {
-
-	securityRules   map[string]*SecurityRule
+	securityRules map[string]*SecurityRule
 
 	vulnerabilityDB map[string]*VulnerabilityInfo
 
-	mutex           sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // PolicyValidator represents a policyvalidator.
 
 type PolicyValidator struct {
-
 	organizationalPolicies map[string]*OrganizationalPolicy
 
-	compliancePolicies     map[string]*CompliancePolicy
+	compliancePolicies map[string]*CompliancePolicy
 
-	mutex                  sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // Rule and specification definitions.
 
 type ORANSpecification struct {
+	ID string `json:"id"`
 
-	ID           string                  `json:"id"`
+	Name string `json:"name"`
 
-	Name         string                  `json:"name"`
+	Version string `json:"version"`
 
-	Version      string                  `json:"version"`
+	Interfaces []string `json:"interfaces"`
 
-	Interfaces   []string                `json:"interfaces"`
+	Requirements []ORANRequirement `json:"requirements"`
 
-	Requirements []ORANRequirement       `json:"requirements"`
-
-	Schema       gojsonschema.JSONLoader `json:"-"`
-
+	Schema gojsonschema.JSONLoader `json:"-"`
 }
-
-
 
 // ORANRequirement represents a oranrequirement.
 
 type ORANRequirement struct {
+	ID string `json:"id"`
 
-	ID          string   `json:"id"`
+	Description string `json:"description"`
 
-	Description string   `json:"description"`
+	Type string `json:"type"`
 
-	Type        string   `json:"type"`
+	Mandatory bool `json:"mandatory"`
 
-	Mandatory   bool     `json:"mandatory"`
+	Validation string `json:"validation"`
 
-	Validation  string   `json:"validation"`
-
-	References  []string `json:"references,omitempty"`
-
+	References []string `json:"references,omitempty"`
 }
-
-
 
 // InterfaceRule represents a interfacerule.
 
 type InterfaceRule struct {
+	Interface string `json:"interface"` // A1, O1, O2, E2
 
-	Interface    string                  `json:"interface"` // A1, O1, O2, E2
+	Requirements []InterfaceRequirement `json:"requirements"`
 
-	Requirements []InterfaceRequirement  `json:"requirements"`
-
-	Schema       gojsonschema.JSONLoader `json:"-"`
-
+	Schema gojsonschema.JSONLoader `json:"-"`
 }
-
-
 
 // InterfaceRequirement represents a interfacerequirement.
 
 type InterfaceRequirement struct {
+	Field string `json:"field"`
 
-	Field         string        `json:"field"`
+	Type string `json:"type"`
 
-	Type          string        `json:"type"`
+	Required bool `json:"required"`
 
-	Required      bool          `json:"required"`
+	Pattern string `json:"pattern,omitempty"`
 
-	Pattern       string        `json:"pattern,omitempty"`
+	MinValue interface{} `json:"minValue,omitempty"`
 
-	MinValue      interface{}   `json:"minValue,omitempty"`
-
-	MaxValue      interface{}   `json:"maxValue,omitempty"`
+	MaxValue interface{} `json:"maxValue,omitempty"`
 
 	AllowedValues []interface{} `json:"allowedValues,omitempty"`
-
 }
-
-
 
 // SecurityRule represents a securityrule.
 
 type SecurityRule struct {
+	ID string `json:"id"`
 
-	ID          string        `json:"id"`
+	Name string `json:"name"`
 
-	Name        string        `json:"name"`
+	Category string `json:"category"`
 
-	Category    string        `json:"category"`
+	Severity ErrorSeverity `json:"severity"`
 
-	Severity    ErrorSeverity `json:"severity"`
+	Description string `json:"description"`
 
-	Description string        `json:"description"`
+	Check SecurityCheck `json:"check"`
 
-	Check       SecurityCheck `json:"check"`
-
-	Mitigation  string        `json:"mitigation"`
-
+	Mitigation string `json:"mitigation"`
 }
-
-
 
 // SecurityCheck represents a securitycheck.
 
 type SecurityCheck struct {
+	Type string `json:"type"`
 
-	Type       string                 `json:"type"`
-
-	Target     string                 `json:"target"`
+	Target string `json:"target"`
 
 	Conditions map[string]interface{} `json:"conditions"`
-
 }
-
-
 
 // VulnerabilityInfo represents a vulnerabilityinfo.
 
 type VulnerabilityInfo struct {
+	ID string `json:"id"`
 
-	ID          string        `json:"id"`
+	CVSS float64 `json:"cvss"`
 
-	CVSS        float64       `json:"cvss"`
+	Severity ErrorSeverity `json:"severity"`
 
-	Severity    ErrorSeverity `json:"severity"`
+	Description string `json:"description"`
 
-	Description string        `json:"description"`
+	Affected []string `json:"affected"`
 
-	Affected    []string      `json:"affected"`
-
-	Fixed       []string      `json:"fixed,omitempty"`
-
+	Fixed []string `json:"fixed,omitempty"`
 }
-
-
 
 // OrganizationalPolicy represents a organizationalpolicy.
 
 type OrganizationalPolicy struct {
+	ID string `json:"id"`
 
-	ID          string               `json:"id"`
+	Name string `json:"name"`
 
-	Name        string               `json:"name"`
+	Type string `json:"type"`
 
-	Type        string               `json:"type"`
+	Rules []OrganizationalRule `json:"rules"`
 
-	Rules       []OrganizationalRule `json:"rules"`
-
-	Enforcement PolicyEnforcement    `json:"enforcement"`
-
+	Enforcement PolicyEnforcement `json:"enforcement"`
 }
-
-
 
 // OrganizationalRule represents a organizationalrule.
 
 type OrganizationalRule struct {
+	Condition string `json:"condition"`
 
-	Condition string        `json:"condition"`
+	Action string `json:"action"`
 
-	Action    string        `json:"action"`
+	Message string `json:"message"`
 
-	Message   string        `json:"message"`
-
-	Severity  ErrorSeverity `json:"severity"`
-
+	Severity ErrorSeverity `json:"severity"`
 }
-
-
 
 // CompliancePolicy represents a compliancepolicy.
 
 type CompliancePolicy struct {
+	Standard string `json:"standard"` // SOC2, ISO27001, etc.
 
-	Standard string              `json:"standard"` // SOC2, ISO27001, etc.
-
-	Version  string              `json:"version"`
+	Version string `json:"version"`
 
 	Controls []ComplianceControl `json:"controls"`
-
 }
-
-
 
 // ComplianceControl represents a compliancecontrol.
 
 type ComplianceControl struct {
+	ID string `json:"id"`
 
-	ID          string `json:"id"`
-
-	Name        string `json:"name"`
+	Name string `json:"name"`
 
 	Description string `json:"description"`
 
-	Required    bool   `json:"required"`
+	Required bool `json:"required"`
 
-	Validation  string `json:"validation"`
-
+	Validation string `json:"validation"`
 }
-
-
 
 // PolicyEnforcement represents a policyenforcement.
 
 type PolicyEnforcement struct {
-
-	Mode    string   `json:"mode"` // warn, block, monitor
+	Mode string `json:"mode"` // warn, block, monitor
 
 	Actions []string `json:"actions,omitempty"`
-
 }
-
-
 
 // ORANComplianceRule represents an O-RAN compliance rule.
 
 type ORANComplianceRule struct {
+	ID string `json:"id"`
 
-	ID          string          `json:"id"`
+	Name string `json:"name"`
 
-	Name        string          `json:"name"`
+	Category string `json:"category"`
 
-	Category    string          `json:"category"`
+	Severity ErrorSeverity `json:"severity"`
 
-	Severity    ErrorSeverity   `json:"severity"`
+	Description string `json:"description"`
 
-	Description string          `json:"description"`
+	Check ComplianceCheck `json:"check"`
 
-	Check       ComplianceCheck `json:"check"`
+	Remediation string `json:"remediation"`
 
-	Remediation string          `json:"remediation"`
-
-	Interfaces  []string        `json:"interfaces,omitempty"`
-
+	Interfaces []string `json:"interfaces,omitempty"`
 }
-
-
 
 // ComplianceCheck represents a compliance check.
 
 type ComplianceCheck struct {
+	Type string `json:"type"`
 
-	Type       string                 `json:"type"`
-
-	Target     string                 `json:"target"`
+	Target string `json:"target"`
 
 	Conditions map[string]interface{} `json:"conditions"`
-
 }
-
-
 
 // NewValidator creates a new blueprint validator.
 
@@ -895,37 +692,28 @@ func NewValidator(config *BlueprintConfig, logger *zap.Logger) (*Validator, erro
 
 	}
 
-
-
 	if logger == nil {
 
 		logger = zap.NewNop()
 
 	}
 
-
-
 	validator := &Validator{
 
-		config:             config,
+		config: config,
 
-		logger:             logger,
+		logger: logger,
 
 		oranSpecifications: make(map[string]*ORANSpecification),
 
-		complianceRules:    make(map[string]*ORANComplianceRule),
+		complianceRules: make(map[string]*ORANComplianceRule),
 
-		httpClient:         &http.Client{Timeout: 30 * time.Second},
-
+		httpClient: &http.Client{Timeout: 30 * time.Second},
 	}
-
-
 
 	// Initialize sub-validators.
 
 	var err error
-
-
 
 	validator.kubernetesValidator, err = NewKubernetesValidator()
 
@@ -935,8 +723,6 @@ func NewValidator(config *BlueprintConfig, logger *zap.Logger) (*Validator, erro
 
 	}
 
-
-
 	validator.oranValidator, err = NewORANValidator()
 
 	if err != nil {
@@ -944,8 +730,6 @@ func NewValidator(config *BlueprintConfig, logger *zap.Logger) (*Validator, erro
 		return nil, fmt.Errorf("failed to create O-RAN validator: %w", err)
 
 	}
-
-
 
 	validator.securityValidator, err = NewSecurityValidator()
 
@@ -955,8 +739,6 @@ func NewValidator(config *BlueprintConfig, logger *zap.Logger) (*Validator, erro
 
 	}
 
-
-
 	validator.policyValidator, err = NewPolicyValidator()
 
 	if err != nil {
@@ -964,8 +746,6 @@ func NewValidator(config *BlueprintConfig, logger *zap.Logger) (*Validator, erro
 		return nil, fmt.Errorf("failed to create policy validator: %w", err)
 
 	}
-
-
 
 	// Load O-RAN specifications and compliance rules.
 
@@ -975,8 +755,6 @@ func NewValidator(config *BlueprintConfig, logger *zap.Logger) (*Validator, erro
 
 	}
 
-
-
 	logger.Info("Blueprint validator initialized",
 
 		zap.Bool("oran_compliance", config.EnableORANCompliance),
@@ -985,21 +763,15 @@ func NewValidator(config *BlueprintConfig, logger *zap.Logger) (*Validator, erro
 
 		zap.Int("compliance_rules", len(validator.complianceRules)))
 
-
-
 	return validator, nil
 
 }
-
-
 
 // ValidateBlueprint validates a blueprint against all configured rules and standards.
 
 func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkIntent, files map[string]string) (*ValidationResult, error) {
 
 	startTime := time.Now()
-
-
 
 	v.logger.Info("Validating blueprint",
 
@@ -1009,25 +781,20 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 
 		zap.Int("files", len(files)))
 
-
-
 	result := &ValidationResult{
 
-		IsValid:            true,
+		IsValid: true,
 
-		Errors:             []ValidationError{},
+		Errors: []ValidationError{},
 
-		Warnings:           []ValidationWarning{},
+		Warnings: []ValidationWarning{},
 
-		Recommendations:    []ValidationRecommendation{},
+		Recommendations: []ValidationRecommendation{},
 
-		ValidatedFiles:     len(files),
+		ValidatedFiles: len(files),
 
 		ValidatedResources: 0,
-
 	}
-
-
 
 	// Validate individual files.
 
@@ -1045,8 +812,6 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 
 	}
 
-
-
 	// Perform cross-file validations.
 
 	if err := v.validateCrossFileConsistency(ctx, files, result); err != nil {
@@ -1054,8 +819,6 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 		v.logger.Warn("Cross-file validation failed", zap.Error(err))
 
 	}
-
-
 
 	// O-RAN compliance validation.
 
@@ -1081,8 +844,6 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 
 	}
 
-
-
 	// Security compliance validation.
 
 	securityResult, err := v.validateSecurityCompliance(ctx, intent, files)
@@ -1102,8 +863,6 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 		}
 
 	}
-
-
 
 	// Policy compliance validation.
 
@@ -1125,8 +884,6 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 
 	}
 
-
-
 	// Resource validation.
 
 	resourceResult, err := v.validateResourceRequirements(ctx, intent, files)
@@ -1147,13 +904,9 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 
 	}
 
-
-
 	// Generate recommendations.
 
 	v.generateRecommendations(result)
-
-
 
 	// Final validation status.
 
@@ -1173,11 +926,7 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 
 	}
 
-
-
 	result.ValidationDuration = time.Since(startTime)
-
-
 
 	v.logger.Info("Blueprint validation completed",
 
@@ -1191,13 +940,9 @@ func (v *Validator) ValidateBlueprint(ctx context.Context, intent *v1.NetworkInt
 
 		zap.Duration("duration", result.ValidationDuration))
 
-
-
 	return result, nil
 
 }
-
-
 
 // validateFile validates an individual file.
 
@@ -1211,8 +956,6 @@ func (v *Validator) validateFile(ctx context.Context, filename, content string, 
 
 	}
 
-
-
 	// Parse YAML content.
 
 	var obj map[string]interface{}
@@ -1221,25 +964,20 @@ func (v *Validator) validateFile(ctx context.Context, filename, content string, 
 
 		result.Errors = append(result.Errors, ValidationError{
 
-			Code:     "YAML_PARSE_ERROR",
+			Code: "YAML_PARSE_ERROR",
 
-			Message:  fmt.Sprintf("Failed to parse YAML: %v", err),
+			Message: fmt.Sprintf("Failed to parse YAML: %v", err),
 
 			Severity: SeverityError,
 
-			Source:   filename,
-
+			Source: filename,
 		})
 
 		return err
 
 	}
 
-
-
 	result.ValidatedResources++
-
-
 
 	// Kubernetes validation.
 
@@ -1253,8 +991,6 @@ func (v *Validator) validateFile(ctx context.Context, filename, content string, 
 
 	}
 
-
-
 	// Component-specific validation.
 
 	if err := v.validateComponentSpecific(obj, filename, result); err != nil {
@@ -1267,13 +1003,9 @@ func (v *Validator) validateFile(ctx context.Context, filename, content string, 
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateORANCompliance validates O-RAN compliance.
 
@@ -1281,17 +1013,14 @@ func (v *Validator) validateORANCompliance(ctx context.Context, intent *v1.Netwo
 
 	result := &ORANComplianceResult{
 
-		IsCompliant:    true,
+		IsCompliant: true,
 
-		Interfaces:     make(map[string]InterfaceCompliance),
+		Interfaces: make(map[string]InterfaceCompliance),
 
 		Specifications: []SpecificationCompliance{},
 
-		Violations:     []ComplianceViolation{},
-
+		Violations: []ComplianceViolation{},
 	}
-
-
 
 	// Check each target component for O-RAN compliance.
 
@@ -1309,25 +1038,17 @@ func (v *Validator) validateORANCompliance(ctx context.Context, intent *v1.Netwo
 
 	}
 
-
-
 	// Validate O-RAN interfaces.
 
 	v.validateORANInterfaces(files, result)
-
-
 
 	// Calculate compliance score.
 
 	result.ComplianceScore = v.calculateORANComplianceScore(result)
 
-
-
 	return result, nil
 
 }
-
-
 
 // validateORANInterfaces validates O-RAN interface implementations.
 
@@ -1335,25 +1056,20 @@ func (v *Validator) validateORANInterfaces(files map[string]string, result *ORAN
 
 	interfaces := []string{"A1", "O1", "O2", "E2"}
 
-
-
 	for _, interfaceName := range interfaces {
 
 		compliance := InterfaceCompliance{
 
-			Interface:   interfaceName,
+			Interface: interfaceName,
 
-			Compliant:   true,
+			Compliant: true,
 
-			Score:       100.0,
+			Score: 100.0,
 
-			Issues:      []string{},
+			Issues: []string{},
 
 			Implemented: false,
-
 		}
-
-
 
 		// Check if interface is implemented.
 
@@ -1362,8 +1078,6 @@ func (v *Validator) validateORANInterfaces(files map[string]string, result *ORAN
 			if v.containsInterfaceImplementation(content, interfaceName) {
 
 				compliance.Implemented = true
-
-
 
 				// Validate interface-specific requirements.
 
@@ -1385,11 +1099,7 @@ func (v *Validator) validateORANInterfaces(files map[string]string, result *ORAN
 
 		}
 
-
-
 		result.Interfaces[interfaceName] = compliance
-
-
 
 		if !compliance.Compliant {
 
@@ -1401,27 +1111,22 @@ func (v *Validator) validateORANInterfaces(files map[string]string, result *ORAN
 
 }
 
-
-
 // validateSecurityCompliance validates security compliance.
 
 func (v *Validator) validateSecurityCompliance(ctx context.Context, intent *v1.NetworkIntent, files map[string]string) (*SecurityComplianceResult, error) {
 
 	result := &SecurityComplianceResult{
 
-		IsCompliant:     true,
+		IsCompliant: true,
 
-		SecurityScore:   100.0,
+		SecurityScore: 100.0,
 
 		Vulnerabilities: []SecurityVulnerability{},
 
 		MissingControls: []SecurityControl{},
 
 		Recommendations: []SecurityRecommendation{},
-
 	}
-
-
 
 	// Validate each file for security issues.
 
@@ -1439,21 +1144,15 @@ func (v *Validator) validateSecurityCompliance(ctx context.Context, intent *v1.N
 
 	}
 
-
-
 	// Calculate security score.
 
 	result.SecurityScore = v.calculateSecurityScore(result)
 
 	result.IsCompliant = result.SecurityScore >= 80.0 // 80% threshold
 
-
-
 	return result, nil
 
 }
-
-
 
 // validatePolicyCompliance validates policy compliance.
 
@@ -1461,17 +1160,14 @@ func (v *Validator) validatePolicyCompliance(ctx context.Context, intent *v1.Net
 
 	result := &PolicyComplianceResult{
 
-		IsCompliant:     true,
+		IsCompliant: true,
 
-		PolicyScore:     100.0,
+		PolicyScore: 100.0,
 
-		Violations:      []PolicyViolation{},
+		Violations: []PolicyViolation{},
 
 		MissingPolicies: []RequiredPolicy{},
-
 	}
-
-
 
 	// Validate organizational policies.
 
@@ -1481,8 +1177,6 @@ func (v *Validator) validatePolicyCompliance(ctx context.Context, intent *v1.Net
 
 	}
 
-
-
 	// Validate compliance policies.
 
 	if err := v.policyValidator.ValidateCompliancePolicies(intent, files, result); err != nil {
@@ -1491,21 +1185,15 @@ func (v *Validator) validatePolicyCompliance(ctx context.Context, intent *v1.Net
 
 	}
 
-
-
 	// Calculate policy score.
 
 	result.PolicyScore = v.calculatePolicyScore(result)
 
 	result.IsCompliant = len(result.Violations) == 0
 
-
-
 	return result, nil
 
 }
-
-
 
 // validateResourceRequirements validates resource requirements and constraints.
 
@@ -1513,17 +1201,14 @@ func (v *Validator) validateResourceRequirements(ctx context.Context, intent *v1
 
 	result := &ResourceValidationResult{
 
-		IsValid:         true,
+		IsValid: true,
 
-		ResourceScore:   100.0,
+		ResourceScore: 100.0,
 
-		ResourceIssues:  []ResourceIssue{},
+		ResourceIssues: []ResourceIssue{},
 
 		Recommendations: []ResourceRecommendation{},
-
 	}
-
-
 
 	// Validate resource specifications in each file.
 
@@ -1545,8 +1230,6 @@ func (v *Validator) validateResourceRequirements(ctx context.Context, intent *v1
 
 	}
 
-
-
 	// Validate against intent constraints.
 
 	if intent.Spec.ResourceConstraints != nil {
@@ -1555,25 +1238,17 @@ func (v *Validator) validateResourceRequirements(ctx context.Context, intent *v1
 
 	}
 
-
-
 	// Calculate resource score.
 
 	result.ResourceScore = v.calculateResourceScore(result)
 
 	result.IsValid = len(result.ResourceIssues) == 0
 
-
-
 	return result, nil
 
 }
 
-
-
 // Helper methods for specific validations.
-
-
 
 func (v *Validator) validateComponentSpecific(obj map[string]interface{}, filename string, result *ValidationResult) error {
 
@@ -1584,8 +1259,6 @@ func (v *Validator) validateComponentSpecific(obj map[string]interface{}, filena
 		return nil
 
 	}
-
-
 
 	switch kind {
 
@@ -1619,8 +1292,6 @@ func (v *Validator) validateComponentSpecific(obj map[string]interface{}, filena
 
 }
 
-
-
 func (v *Validator) validateDeployment(obj map[string]interface{}, filename string, result *ValidationResult) error {
 
 	// Validate deployment-specific requirements.
@@ -1631,21 +1302,18 @@ func (v *Validator) validateDeployment(obj map[string]interface{}, filename stri
 
 		result.Errors = append(result.Errors, ValidationError{
 
-			Code:     "DEPLOYMENT_MISSING_SPEC",
+			Code: "DEPLOYMENT_MISSING_SPEC",
 
-			Message:  "Deployment is missing spec section",
+			Message: "Deployment is missing spec section",
 
 			Severity: SeverityError,
 
-			Source:   filename,
-
+			Source: filename,
 		})
 
 		return nil
 
 	}
-
-
 
 	// Validate replicas.
 
@@ -1657,34 +1325,32 @@ func (v *Validator) validateDeployment(obj map[string]interface{}, filename stri
 
 				result.Errors = append(result.Errors, ValidationError{
 
-					Code:     "DEPLOYMENT_INVALID_REPLICAS",
+					Code: "DEPLOYMENT_INVALID_REPLICAS",
 
-					Message:  "Deployment replicas must be at least 1",
+					Message: "Deployment replicas must be at least 1",
 
 					Severity: SeverityError,
 
-					Source:   filename,
+					Source: filename,
 
-					Field:    "spec.replicas",
+					Field: "spec.replicas",
 
-					Value:    replicasNum,
-
+					Value: replicasNum,
 				})
 
 			} else if replicasNum == 1 {
 
 				result.Warnings = append(result.Warnings, ValidationWarning{
 
-					Code:       "DEPLOYMENT_SINGLE_REPLICA",
+					Code: "DEPLOYMENT_SINGLE_REPLICA",
 
-					Message:    "Deployment has only 1 replica, consider increasing for high availability",
+					Message: "Deployment has only 1 replica, consider increasing for high availability",
 
-					Source:     filename,
+					Source: filename,
 
-					Field:      "spec.replicas",
+					Field: "spec.replicas",
 
 					Suggestion: "Consider setting replicas to 2 or more for production deployments",
-
 				})
 
 			}
@@ -1692,8 +1358,6 @@ func (v *Validator) validateDeployment(obj map[string]interface{}, filename stri
 		}
 
 	}
-
-
 
 	// Validate template.
 
@@ -1707,13 +1371,9 @@ func (v *Validator) validateDeployment(obj map[string]interface{}, filename stri
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (v *Validator) validatePodTemplate(template map[interface{}]interface{}, filename string, result *ValidationResult) error {
 
@@ -1723,21 +1383,18 @@ func (v *Validator) validatePodTemplate(template map[interface{}]interface{}, fi
 
 		result.Errors = append(result.Errors, ValidationError{
 
-			Code:     "POD_TEMPLATE_MISSING_SPEC",
+			Code: "POD_TEMPLATE_MISSING_SPEC",
 
-			Message:  "Pod template is missing spec section",
+			Message: "Pod template is missing spec section",
 
 			Severity: SeverityError,
 
-			Source:   filename,
-
+			Source: filename,
 		})
 
 		return nil
 
 	}
-
-
 
 	// Validate containers.
 
@@ -1757,25 +1414,20 @@ func (v *Validator) validatePodTemplate(template map[interface{}]interface{}, fi
 
 		result.Errors = append(result.Errors, ValidationError{
 
-			Code:     "POD_TEMPLATE_MISSING_CONTAINERS",
+			Code: "POD_TEMPLATE_MISSING_CONTAINERS",
 
-			Message:  "Pod template is missing containers",
+			Message: "Pod template is missing containers",
 
 			Severity: SeverityError,
 
-			Source:   filename,
-
+			Source: filename,
 		})
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (v *Validator) validateContainer(container interface{}, index int, filename string, result *ValidationResult) error {
 
@@ -1786,8 +1438,6 @@ func (v *Validator) validateContainer(container interface{}, index int, filename
 		return nil
 
 	}
-
-
 
 	// Validate image.
 
@@ -1807,21 +1457,18 @@ func (v *Validator) validateContainer(container interface{}, index int, filename
 
 		result.Errors = append(result.Errors, ValidationError{
 
-			Code:     "CONTAINER_MISSING_IMAGE",
+			Code: "CONTAINER_MISSING_IMAGE",
 
-			Message:  fmt.Sprintf("Container %d is missing image specification", index),
+			Message: fmt.Sprintf("Container %d is missing image specification", index),
 
 			Severity: SeverityError,
 
-			Source:   filename,
+			Source: filename,
 
-			Field:    fmt.Sprintf("spec.template.spec.containers[%d].image", index),
-
+			Field: fmt.Sprintf("spec.template.spec.containers[%d].image", index),
 		})
 
 	}
-
-
 
 	// Validate resource requirements.
 
@@ -1837,21 +1484,18 @@ func (v *Validator) validateContainer(container interface{}, index int, filename
 
 		result.Warnings = append(result.Warnings, ValidationWarning{
 
-			Code:       "CONTAINER_MISSING_RESOURCES",
+			Code: "CONTAINER_MISSING_RESOURCES",
 
-			Message:    fmt.Sprintf("Container %d is missing resource requirements", index),
+			Message: fmt.Sprintf("Container %d is missing resource requirements", index),
 
-			Source:     filename,
+			Source: filename,
 
-			Field:      fmt.Sprintf("spec.template.spec.containers[%d].resources", index),
+			Field: fmt.Sprintf("spec.template.spec.containers[%d].resources", index),
 
 			Suggestion: "Define resource requests and limits for better resource management",
-
 		})
 
 	}
-
-
 
 	// Validate security context.
 
@@ -1861,13 +1505,9 @@ func (v *Validator) validateContainer(container interface{}, index int, filename
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (v *Validator) validateContainerImage(image, filename string, result *ValidationResult) error {
 
@@ -1877,19 +1517,16 @@ func (v *Validator) validateContainerImage(image, filename string, result *Valid
 
 		result.Warnings = append(result.Warnings, ValidationWarning{
 
-			Code:       "CONTAINER_IMAGE_LATEST_TAG",
+			Code: "CONTAINER_IMAGE_LATEST_TAG",
 
-			Message:    "Container image uses 'latest' tag",
+			Message: "Container image uses 'latest' tag",
 
-			Source:     filename,
+			Source: filename,
 
 			Suggestion: "Use specific version tags for better version control and security",
-
 		})
 
 	}
-
-
 
 	// Check for private registry or known secure sources.
 
@@ -1897,25 +1534,20 @@ func (v *Validator) validateContainerImage(image, filename string, result *Valid
 
 		result.Warnings = append(result.Warnings, ValidationWarning{
 
-			Code:       "CONTAINER_IMAGE_UNTRUSTED_REGISTRY",
+			Code: "CONTAINER_IMAGE_UNTRUSTED_REGISTRY",
 
-			Message:    "Container image is not from a known trusted registry",
+			Message: "Container image is not from a known trusted registry",
 
-			Source:     filename,
+			Source: filename,
 
 			Suggestion: "Consider using images from trusted registries for better security",
-
 		})
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (v *Validator) validateContainerResources(resources map[interface{}]interface{}, index int, filename string, result *ValidationResult) error {
 
@@ -1931,18 +1563,17 @@ func (v *Validator) validateContainerResources(resources map[interface{}]interfa
 
 					result.Errors = append(result.Errors, ValidationError{
 
-						Code:     "CONTAINER_INVALID_CPU_REQUEST",
+						Code: "CONTAINER_INVALID_CPU_REQUEST",
 
-						Message:  fmt.Sprintf("Container %d has invalid CPU request: %v", index, err),
+						Message: fmt.Sprintf("Container %d has invalid CPU request: %v", index, err),
 
 						Severity: SeverityError,
 
-						Source:   filename,
+						Source: filename,
 
-						Field:    fmt.Sprintf("spec.template.spec.containers[%d].resources.requests.cpu", index),
+						Field: fmt.Sprintf("spec.template.spec.containers[%d].resources.requests.cpu", index),
 
-						Value:    cpuStr,
-
+						Value: cpuStr,
 					})
 
 				}
@@ -1950,8 +1581,6 @@ func (v *Validator) validateContainerResources(resources map[interface{}]interfa
 			}
 
 		}
-
-
 
 		if memory, ok := requests["memory"]; ok {
 
@@ -1961,18 +1590,17 @@ func (v *Validator) validateContainerResources(resources map[interface{}]interfa
 
 					result.Errors = append(result.Errors, ValidationError{
 
-						Code:     "CONTAINER_INVALID_MEMORY_REQUEST",
+						Code: "CONTAINER_INVALID_MEMORY_REQUEST",
 
-						Message:  fmt.Sprintf("Container %d has invalid memory request: %v", index, err),
+						Message: fmt.Sprintf("Container %d has invalid memory request: %v", index, err),
 
 						Severity: SeverityError,
 
-						Source:   filename,
+						Source: filename,
 
-						Field:    fmt.Sprintf("spec.template.spec.containers[%d].resources.requests.memory", index),
+						Field: fmt.Sprintf("spec.template.spec.containers[%d].resources.requests.memory", index),
 
-						Value:    memoryStr,
-
+						Value: memoryStr,
 					})
 
 				}
@@ -1982,8 +1610,6 @@ func (v *Validator) validateContainerResources(resources map[interface{}]interfa
 		}
 
 	}
-
-
 
 	// Validate limits.
 
@@ -1997,18 +1623,17 @@ func (v *Validator) validateContainerResources(resources map[interface{}]interfa
 
 					result.Errors = append(result.Errors, ValidationError{
 
-						Code:     "CONTAINER_INVALID_CPU_LIMIT",
+						Code: "CONTAINER_INVALID_CPU_LIMIT",
 
-						Message:  fmt.Sprintf("Container %d has invalid CPU limit: %v", index, err),
+						Message: fmt.Sprintf("Container %d has invalid CPU limit: %v", index, err),
 
 						Severity: SeverityError,
 
-						Source:   filename,
+						Source: filename,
 
-						Field:    fmt.Sprintf("spec.template.spec.containers[%d].resources.limits.cpu", index),
+						Field: fmt.Sprintf("spec.template.spec.containers[%d].resources.limits.cpu", index),
 
-						Value:    cpuStr,
-
+						Value: cpuStr,
 					})
 
 				}
@@ -2019,13 +1644,9 @@ func (v *Validator) validateContainerResources(resources map[interface{}]interfa
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 func (v *Validator) validateContainerSecurity(container map[interface{}]interface{}, index int, filename string, result *ValidationResult) error {
 
@@ -2033,24 +1654,21 @@ func (v *Validator) validateContainerSecurity(container map[interface{}]interfac
 
 	securityContext, hasSecurityContext := container["securityContext"].(map[interface{}]interface{})
 
-
-
 	// Warn if running as root.
 
 	if !hasSecurityContext {
 
 		result.Warnings = append(result.Warnings, ValidationWarning{
 
-			Code:       "CONTAINER_MISSING_SECURITY_CONTEXT",
+			Code: "CONTAINER_MISSING_SECURITY_CONTEXT",
 
-			Message:    fmt.Sprintf("Container %d is missing security context", index),
+			Message: fmt.Sprintf("Container %d is missing security context", index),
 
-			Source:     filename,
+			Source: filename,
 
-			Field:      fmt.Sprintf("spec.template.spec.containers[%d].securityContext", index),
+			Field: fmt.Sprintf("spec.template.spec.containers[%d].securityContext", index),
 
 			Suggestion: "Define security context to improve security posture",
-
 		})
 
 	} else {
@@ -2063,23 +1681,20 @@ func (v *Validator) validateContainerSecurity(container map[interface{}]interfac
 
 				result.Warnings = append(result.Warnings, ValidationWarning{
 
-					Code:       "CONTAINER_RUNS_AS_ROOT",
+					Code: "CONTAINER_RUNS_AS_ROOT",
 
-					Message:    fmt.Sprintf("Container %d runs as root user", index),
+					Message: fmt.Sprintf("Container %d runs as root user", index),
 
-					Source:     filename,
+					Source: filename,
 
-					Field:      fmt.Sprintf("spec.template.spec.containers[%d].securityContext.runAsUser", index),
+					Field: fmt.Sprintf("spec.template.spec.containers[%d].securityContext.runAsUser", index),
 
 					Suggestion: "Use non-root user for better security",
-
 				})
 
 			}
 
 		}
-
-
 
 		// Check for privileged mode.
 
@@ -2089,16 +1704,15 @@ func (v *Validator) validateContainerSecurity(container map[interface{}]interfac
 
 				result.Warnings = append(result.Warnings, ValidationWarning{
 
-					Code:       "CONTAINER_PRIVILEGED",
+					Code: "CONTAINER_PRIVILEGED",
 
-					Message:    fmt.Sprintf("Container %d runs in privileged mode", index),
+					Message: fmt.Sprintf("Container %d runs in privileged mode", index),
 
-					Source:     filename,
+					Source: filename,
 
-					Field:      fmt.Sprintf("spec.template.spec.containers[%d].securityContext.privileged", index),
+					Field: fmt.Sprintf("spec.template.spec.containers[%d].securityContext.privileged", index),
 
 					Suggestion: "Avoid privileged mode unless absolutely necessary",
-
 				})
 
 			}
@@ -2107,17 +1721,11 @@ func (v *Validator) validateContainerSecurity(container map[interface{}]interfac
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Utility methods.
-
-
 
 func (v *Validator) isYAMLFile(filename, content string) bool {
 
@@ -2127,15 +1735,11 @@ func (v *Validator) isYAMLFile(filename, content string) bool {
 
 }
 
-
-
 func (v *Validator) isKubernetesManifest(content string) bool {
 
 	return strings.Contains(content, "apiVersion:") && strings.Contains(content, "kind:")
 
 }
-
-
 
 func (v *Validator) isFromTrustedRegistry(image string) bool {
 
@@ -2154,10 +1758,7 @@ func (v *Validator) isFromTrustedRegistry(image string) bool {
 		"docker.elastic.co",
 
 		"registry.redhat.io",
-
 	}
-
-
 
 	for _, registry := range trustedRegistries {
 
@@ -2169,8 +1770,6 @@ func (v *Validator) isFromTrustedRegistry(image string) bool {
 
 	}
 
-
-
 	// Check if it's an official image (no registry prefix).
 
 	if !strings.Contains(image, "/") || strings.Count(image, "/") == 1 {
@@ -2179,13 +1778,9 @@ func (v *Validator) isFromTrustedRegistry(image string) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 func (v *Validator) containsInterfaceImplementation(content, interfaceName string) bool {
 
@@ -2198,10 +1793,7 @@ func (v *Validator) containsInterfaceImplementation(content, interfaceName strin
 		"O2": {"o2", "infrastructure", "cloud"},
 
 		"E2": {"e2", "subscription", "indication"},
-
 	}
-
-
 
 	if interfacePatterns, ok := patterns[interfaceName]; ok {
 
@@ -2219,17 +1811,11 @@ func (v *Validator) containsInterfaceImplementation(content, interfaceName strin
 
 	}
 
-
-
 	return false
 
 }
 
-
-
 // Score calculation methods.
-
-
 
 func (v *Validator) calculateORANComplianceScore(result *ORANComplianceResult) float64 {
 
@@ -2239,8 +1825,6 @@ func (v *Validator) calculateORANComplianceScore(result *ORANComplianceResult) f
 
 	}
 
-
-
 	totalScore := 0.0
 
 	for _, compliance := range result.Interfaces {
@@ -2249,19 +1833,13 @@ func (v *Validator) calculateORANComplianceScore(result *ORANComplianceResult) f
 
 	}
 
-
-
 	return totalScore / float64(len(result.Interfaces))
 
 }
 
-
-
 func (v *Validator) calculateSecurityScore(result *SecurityComplianceResult) float64 {
 
 	baseScore := 100.0
-
-
 
 	// Deduct points for vulnerabilities.
 
@@ -2285,13 +1863,9 @@ func (v *Validator) calculateSecurityScore(result *SecurityComplianceResult) flo
 
 	}
 
-
-
 	// Deduct points for missing controls.
 
 	baseScore -= float64(len(result.MissingControls)) * 3.0
-
-
 
 	if baseScore < 0 {
 
@@ -2299,19 +1873,13 @@ func (v *Validator) calculateSecurityScore(result *SecurityComplianceResult) flo
 
 	}
 
-
-
 	return baseScore
 
 }
 
-
-
 func (v *Validator) calculatePolicyScore(result *PolicyComplianceResult) float64 {
 
 	baseScore := 100.0
-
-
 
 	// Deduct points for violations.
 
@@ -2339,13 +1907,9 @@ func (v *Validator) calculatePolicyScore(result *PolicyComplianceResult) float64
 
 	}
 
-
-
 	// Deduct points for missing policies.
 
 	baseScore -= float64(len(result.MissingPolicies)) * 5.0
-
-
 
 	if baseScore < 0 {
 
@@ -2353,19 +1917,13 @@ func (v *Validator) calculatePolicyScore(result *PolicyComplianceResult) float64
 
 	}
 
-
-
 	return baseScore
 
 }
 
-
-
 func (v *Validator) calculateResourceScore(result *ResourceValidationResult) float64 {
 
 	baseScore := 100.0
-
-
 
 	for _, issue := range result.ResourceIssues {
 
@@ -2387,21 +1945,15 @@ func (v *Validator) calculateResourceScore(result *ResourceValidationResult) flo
 
 	}
 
-
-
 	if baseScore < 0 {
 
 		return 0.0
 
 	}
 
-
-
 	return baseScore
 
 }
-
-
 
 // HealthCheck performs health check on the validator.
 
@@ -2419,8 +1971,6 @@ func (v *Validator) HealthCheck(ctx context.Context) bool {
 
 	}
 
-
-
 	// Check if O-RAN specifications are loaded.
 
 	if v.config.EnableORANCompliance && len(v.oranSpecifications) == 0 {
@@ -2431,13 +1981,9 @@ func (v *Validator) HealthCheck(ctx context.Context) bool {
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // Placeholder implementations for complex components that would need full implementation.
 
@@ -2446,12 +1992,9 @@ func NewKubernetesValidator() (*KubernetesValidator, error) {
 	return &KubernetesValidator{
 
 		schemas: make(map[string]gojsonschema.JSONLoader),
-
 	}, nil
 
 }
-
-
 
 // NewORANValidator performs neworanvalidator operation.
 
@@ -2462,12 +2005,9 @@ func NewORANValidator() (*ORANValidator, error) {
 		specifications: make(map[string]*ORANSpecification),
 
 		interfaceRules: make(map[string]*InterfaceRule),
-
 	}, nil
 
 }
-
-
 
 // NewSecurityValidator performs newsecurityvalidator operation.
 
@@ -2475,15 +2015,12 @@ func NewSecurityValidator() (*SecurityValidator, error) {
 
 	return &SecurityValidator{
 
-		securityRules:   make(map[string]*SecurityRule),
+		securityRules: make(map[string]*SecurityRule),
 
 		vulnerabilityDB: make(map[string]*VulnerabilityInfo),
-
 	}, nil
 
 }
-
-
 
 // NewPolicyValidator performs newpolicyvalidator operation.
 
@@ -2493,13 +2030,10 @@ func NewPolicyValidator() (*PolicyValidator, error) {
 
 		organizationalPolicies: make(map[string]*OrganizationalPolicy),
 
-		compliancePolicies:     make(map[string]*CompliancePolicy),
-
+		compliancePolicies: make(map[string]*CompliancePolicy),
 	}, nil
 
 }
-
-
 
 // loadORANSpecifications loads O-RAN specifications from configuration.
 
@@ -2513,8 +2047,6 @@ func (v *Validator) loadORANSpecifications() error {
 
 }
 
-
-
 // validateCrossFileConsistency validates consistency across multiple files.
 
 func (v *Validator) validateCrossFileConsistency(ctx context.Context, files map[string]string, result *ValidationResult) error {
@@ -2527,8 +2059,6 @@ func (v *Validator) validateCrossFileConsistency(ctx context.Context, files map[
 
 }
 
-
-
 // generateRecommendations generates improvement recommendations.
 
 func (v *Validator) generateRecommendations(result *ValidationResult) {
@@ -2538,8 +2068,6 @@ func (v *Validator) generateRecommendations(result *ValidationResult) {
 	v.logger.Debug("Generating recommendations (stub)")
 
 }
-
-
 
 // validateInterfaceImplementation validates specific O-RAN interface implementation.
 
@@ -2557,8 +2085,6 @@ func (v *Validator) validateInterfaceImplementation(filename, content, interface
 
 }
 
-
-
 // validateResourceSpecifications validates Kubernetes resource specifications.
 
 func (v *Validator) validateResourceSpecifications(filename, content string, intent *v1.NetworkIntent, result *ResourceValidationResult) error {
@@ -2571,8 +2097,6 @@ func (v *Validator) validateResourceSpecifications(filename, content string, int
 
 }
 
-
-
 // validateAgainstResourceConstraints validates against intent resource constraints.
 
 func (v *Validator) validateAgainstResourceConstraints(files map[string]string, constraints *v1.ResourceConstraints, result *ResourceValidationResult) {
@@ -2582,8 +2106,6 @@ func (v *Validator) validateAgainstResourceConstraints(files map[string]string, 
 	v.logger.Debug("Validating against resource constraints (stub)")
 
 }
-
-
 
 // KubernetesValidator method stubs.
 
@@ -2595,8 +2117,6 @@ func (kv *KubernetesValidator) ValidateResource(obj map[string]interface{}, file
 
 }
 
-
-
 // ORANValidator method stubs.
 
 func (ov *ORANValidator) ValidateComponent(component v1.ORANComponent, files map[string]string, result *ORANComplianceResult) error {
@@ -2606,8 +2126,6 @@ func (ov *ORANValidator) ValidateComponent(component v1.ORANComponent, files map
 	return nil
 
 }
-
-
 
 // SecurityValidator method stubs.
 
@@ -2619,8 +2137,6 @@ func (sv *SecurityValidator) ValidateFile(filename, content string, result *Secu
 
 }
 
-
-
 // PolicyValidator method stubs.
 
 func (pv *PolicyValidator) ValidateOrganizationalPolicies(intent *v1.NetworkIntent, files map[string]string, result *PolicyComplianceResult) error {
@@ -2630,8 +2146,6 @@ func (pv *PolicyValidator) ValidateOrganizationalPolicies(intent *v1.NetworkInte
 	return nil
 
 }
-
-
 
 // ValidateCompliancePolicies performs validatecompliancepolicies operation.
 
@@ -2643,8 +2157,6 @@ func (pv *PolicyValidator) ValidateCompliancePolicies(intent *v1.NetworkIntent, 
 
 }
 
-
-
 // Additional helper methods for service, configmap, secret validation.
 
 func (v *Validator) validateService(obj map[string]interface{}, filename string, result *ValidationResult) error {
@@ -2655,8 +2167,6 @@ func (v *Validator) validateService(obj map[string]interface{}, filename string,
 
 }
 
-
-
 func (v *Validator) validateConfigMap(obj map[string]interface{}, filename string, result *ValidationResult) error {
 
 	// Stub implementation.
@@ -2664,8 +2174,6 @@ func (v *Validator) validateConfigMap(obj map[string]interface{}, filename strin
 	return nil
 
 }
-
-
 
 func (v *Validator) validateSecret(obj map[string]interface{}, filename string, result *ValidationResult) error {
 
@@ -2675,8 +2183,6 @@ func (v *Validator) validateSecret(obj map[string]interface{}, filename string, 
 
 }
 
-
-
 func (v *Validator) validateNetworkPolicy(obj map[string]interface{}, filename string, result *ValidationResult) error {
 
 	// Stub implementation.
@@ -2685,8 +2191,6 @@ func (v *Validator) validateNetworkPolicy(obj map[string]interface{}, filename s
 
 }
 
-
-
 func (v *Validator) validateGenericKubernetesResource(obj map[string]interface{}, filename string, result *ValidationResult) error {
 
 	// Stub implementation.
@@ -2694,4 +2198,3 @@ func (v *Validator) validateGenericKubernetesResource(obj map[string]interface{}
 	return nil
 
 }
-

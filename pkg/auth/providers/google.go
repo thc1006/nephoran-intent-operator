@@ -1,143 +1,108 @@
-
 package providers
 
-
-
 import (
-
 	"context"
-
 	"crypto/rsa"
-
 	"crypto/tls"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"net/url"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/golang-jwt/jwt/v5"
-
 	"golang.org/x/oauth2"
-
 	"golang.org/x/oauth2/google"
-
 )
-
-
 
 // GoogleProvider implements OAuth2/OIDC authentication for Google.
 
 type GoogleProvider struct {
+	config *ProviderConfig
 
-	config       *ProviderConfig
+	httpClient *http.Client
 
-	httpClient   *http.Client
+	oauth2Cfg *oauth2.Config
 
-	oauth2Cfg    *oauth2.Config
+	oidcConfig *OIDCConfiguration
 
-	oidcConfig   *OIDCConfiguration
-
-	jwksCache    *JWKSCache
+	jwksCache *JWKSCache
 
 	hostedDomain string // Optional hosted domain restriction
 
 }
 
-
-
 // GoogleUserInfo represents Google user information.
 
 type GoogleUserInfo struct {
+	ID string `json:"id"`
 
-	ID            string `json:"id"`
+	Email string `json:"email"`
 
-	Email         string `json:"email"`
+	VerifiedEmail bool `json:"verified_email"`
 
-	VerifiedEmail bool   `json:"verified_email"`
+	Name string `json:"name"`
 
-	Name          string `json:"name"`
+	GivenName string `json:"given_name"`
 
-	GivenName     string `json:"given_name"`
+	FamilyName string `json:"family_name"`
 
-	FamilyName    string `json:"family_name"`
+	Picture string `json:"picture"`
 
-	Picture       string `json:"picture"`
+	Locale string `json:"locale"`
 
-	Locale        string `json:"locale"`
-
-	HostedDomain  string `json:"hd,omitempty"`
-
+	HostedDomain string `json:"hd,omitempty"`
 }
-
-
 
 // GoogleIDToken represents Google ID token claims.
 
 type GoogleIDToken struct {
+	Issuer string `json:"iss"`
 
-	Issuer        string `json:"iss"`
+	Subject string `json:"sub"`
 
-	Subject       string `json:"sub"`
+	Audience string `json:"aud"`
 
-	Audience      string `json:"aud"`
+	ExpiresAt int64 `json:"exp"`
 
-	ExpiresAt     int64  `json:"exp"`
+	IssuedAt int64 `json:"iat"`
 
-	IssuedAt      int64  `json:"iat"`
+	AuthTime int64 `json:"auth_time,omitempty"`
 
-	AuthTime      int64  `json:"auth_time,omitempty"`
+	Nonce string `json:"nonce,omitempty"`
 
-	Nonce         string `json:"nonce,omitempty"`
+	Name string `json:"name"`
 
-	Name          string `json:"name"`
+	GivenName string `json:"given_name"`
 
-	GivenName     string `json:"given_name"`
+	FamilyName string `json:"family_name"`
 
-	FamilyName    string `json:"family_name"`
+	Picture string `json:"picture"`
 
-	Picture       string `json:"picture"`
+	Email string `json:"email"`
 
-	Email         string `json:"email"`
+	EmailVerified bool `json:"email_verified"`
 
-	EmailVerified bool   `json:"email_verified"`
+	Locale string `json:"locale"`
 
-	Locale        string `json:"locale"`
+	HostedDomain string `json:"hd,omitempty"`
 
-	HostedDomain  string `json:"hd,omitempty"`
-
-	AtHash        string `json:"at_hash,omitempty"`
+	AtHash string `json:"at_hash,omitempty"`
 
 	jwt.RegisteredClaims
-
 }
-
-
 
 // JWKSCache represents a cached JWKS with expiration.
 
 type JWKSCache struct {
-
-	JWKS      *JWKS
+	JWKS *JWKS
 
 	ExpiresAt time.Time
 
-	mutex     sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // NewGoogleProvider creates a new Google OAuth2/OIDC provider.
 
@@ -145,30 +110,29 @@ func NewGoogleProvider(clientID, clientSecret, redirectURL string, hostedDomain 
 
 	config := &ProviderConfig{
 
-		Name:         "google",
+		Name: "google",
 
-		Type:         "google",
+		Type: "google",
 
-		ClientID:     clientID,
+		ClientID: clientID,
 
 		ClientSecret: clientSecret,
 
-		RedirectURL:  redirectURL,
+		RedirectURL: redirectURL,
 
-		Scopes:       []string{"openid", "profile", "email"},
+		Scopes: []string{"openid", "profile", "email"},
 
 		Endpoints: ProviderEndpoints{
 
-			AuthURL:      google.Endpoint.AuthURL,
+			AuthURL: google.Endpoint.AuthURL,
 
-			TokenURL:     google.Endpoint.TokenURL,
+			TokenURL: google.Endpoint.TokenURL,
 
-			UserInfoURL:  "https://www.googleapis.com/oauth2/v2/userinfo",
+			UserInfoURL: "https://www.googleapis.com/oauth2/v2/userinfo",
 
-			JWKSURL:      "https://www.googleapis.com/oauth2/v3/certs",
+			JWKSURL: "https://www.googleapis.com/oauth2/v3/certs",
 
 			DiscoveryURL: "https://accounts.google.com/.well-known/openid_configuration",
-
 		},
 
 		Features: []ProviderFeature{
@@ -186,28 +150,21 @@ func NewGoogleProvider(clientID, clientSecret, redirectURL string, hostedDomain 
 			FeatureJWTTokens,
 
 			FeatureDiscovery,
-
 		},
-
 	}
-
-
 
 	oauth2Cfg := &oauth2.Config{
 
-		ClientID:     clientID,
+		ClientID: clientID,
 
 		ClientSecret: clientSecret,
 
-		RedirectURL:  redirectURL,
+		RedirectURL: redirectURL,
 
-		Scopes:       config.Scopes,
+		Scopes: config.Scopes,
 
-		Endpoint:     google.Endpoint,
-
+		Endpoint: google.Endpoint,
 	}
-
-
 
 	var hd string
 
@@ -217,17 +174,15 @@ func NewGoogleProvider(clientID, clientSecret, redirectURL string, hostedDomain 
 
 	}
 
-
-
 	return &GoogleProvider{
 
-		config:       config,
+		config: config,
 
-		oauth2Cfg:    oauth2Cfg,
+		oauth2Cfg: oauth2Cfg,
 
 		hostedDomain: hd,
 
-		jwksCache:    &JWKSCache{},
+		jwksCache: &JWKSCache{},
 
 		httpClient: &http.Client{
 
@@ -238,18 +193,12 @@ func NewGoogleProvider(clientID, clientSecret, redirectURL string, hostedDomain 
 				TLSClientConfig: &tls.Config{
 
 					MinVersion: tls.VersionTLS12,
-
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // NewGoogleProviderWithDomain creates a new Google OAuth2/OIDC provider with hosted domain restriction.
 
@@ -259,8 +208,6 @@ func NewGoogleProviderWithDomain(clientID, clientSecret, redirectURL, hostedDoma
 
 }
 
-
-
 // GetProviderName returns the provider name.
 
 func (p *GoogleProvider) GetProviderName() string {
@@ -269,15 +216,11 @@ func (p *GoogleProvider) GetProviderName() string {
 
 }
 
-
-
 // GetAuthorizationURL generates OAuth2 authorization URL with PKCE support.
 
 func (p *GoogleProvider) GetAuthorizationURL(state, redirectURI string, options ...AuthOption) (string, *PKCEChallenge, error) {
 
 	opts := ApplyOptions(options...)
-
-
 
 	// Update redirect URI if provided.
 
@@ -289,18 +232,12 @@ func (p *GoogleProvider) GetAuthorizationURL(state, redirectURI string, options 
 
 	}
 
-
-
 	// Pre-allocate with capacity 1 since we know we're adding exactly one option
 	authOpts := []oauth2.AuthCodeOption{oauth2.AccessTypeOffline}
-
-
 
 	var challenge *PKCEChallenge
 
 	var err error
-
-
 
 	if opts.UsePKCE {
 
@@ -312,19 +249,14 @@ func (p *GoogleProvider) GetAuthorizationURL(state, redirectURI string, options 
 
 		}
 
-
-
 		authOpts = append(authOpts,
 
 			oauth2.SetAuthURLParam("code_challenge", challenge.CodeChallenge),
 
 			oauth2.SetAuthURLParam("code_challenge_method", challenge.Method),
-
 		)
 
 	}
-
-
 
 	// Add hosted domain restriction.
 
@@ -334,8 +266,6 @@ func (p *GoogleProvider) GetAuthorizationURL(state, redirectURI string, options 
 
 	}
 
-
-
 	// Add custom options.
 
 	if opts.Prompt != "" {
@@ -344,15 +274,11 @@ func (p *GoogleProvider) GetAuthorizationURL(state, redirectURI string, options 
 
 	}
 
-
-
 	if opts.LoginHint != "" {
 
 		authOpts = append(authOpts, oauth2.SetAuthURLParam("login_hint", opts.LoginHint))
 
 	}
-
-
 
 	if opts.MaxAge > 0 {
 
@@ -360,25 +286,17 @@ func (p *GoogleProvider) GetAuthorizationURL(state, redirectURI string, options 
 
 	}
 
-
-
 	for key, value := range opts.CustomParams {
 
 		authOpts = append(authOpts, oauth2.SetAuthURLParam(key, value))
 
 	}
 
-
-
 	authURL := config.AuthCodeURL(state, authOpts...)
-
-
 
 	return authURL, challenge, nil
 
 }
-
-
 
 // ExchangeCodeForToken exchanges authorization code for access token.
 
@@ -392,8 +310,6 @@ func (p *GoogleProvider) ExchangeCodeForToken(ctx context.Context, code, redirec
 
 	}
 
-
-
 	var opts []oauth2.AuthCodeOption
 
 	if challenge != nil {
@@ -401,8 +317,6 @@ func (p *GoogleProvider) ExchangeCodeForToken(ctx context.Context, code, redirec
 		opts = append(opts, oauth2.SetAuthURLParam("code_verifier", challenge.CodeVerifier))
 
 	}
-
-
 
 	token, err := config.Exchange(ctx, code, opts...)
 
@@ -414,23 +328,18 @@ func (p *GoogleProvider) ExchangeCodeForToken(ctx context.Context, code, redirec
 
 	}
 
-
-
 	response := &TokenResponse{
 
-		AccessToken:  token.AccessToken,
+		AccessToken: token.AccessToken,
 
 		RefreshToken: token.RefreshToken,
 
-		TokenType:    token.TokenType,
+		TokenType: token.TokenType,
 
-		ExpiresIn:    int64(time.Until(token.Expiry).Seconds()),
+		ExpiresIn: int64(time.Until(token.Expiry).Seconds()),
 
-		IssuedAt:     time.Now(),
-
+		IssuedAt: time.Now(),
 	}
-
-
 
 	// Extract ID token if present.
 
@@ -440,13 +349,9 @@ func (p *GoogleProvider) ExchangeCodeForToken(ctx context.Context, code, redirec
 
 	}
 
-
-
 	return response, nil
 
 }
-
-
 
 // RefreshToken refreshes an access token using refresh token.
 
@@ -455,10 +360,7 @@ func (p *GoogleProvider) RefreshToken(ctx context.Context, refreshToken string) 
 	token := &oauth2.Token{
 
 		RefreshToken: refreshToken,
-
 	}
-
-
 
 	tokenSource := p.oauth2Cfg.TokenSource(ctx, token)
 
@@ -472,23 +374,18 @@ func (p *GoogleProvider) RefreshToken(ctx context.Context, refreshToken string) 
 
 	}
 
-
-
 	response := &TokenResponse{
 
-		AccessToken:  newToken.AccessToken,
+		AccessToken: newToken.AccessToken,
 
 		RefreshToken: newToken.RefreshToken,
 
-		TokenType:    newToken.TokenType,
+		TokenType: newToken.TokenType,
 
-		ExpiresIn:    int64(time.Until(newToken.Expiry).Seconds()),
+		ExpiresIn: int64(time.Until(newToken.Expiry).Seconds()),
 
-		IssuedAt:     time.Now(),
-
+		IssuedAt: time.Now(),
 	}
-
-
 
 	// Extract ID token if present.
 
@@ -498,13 +395,9 @@ func (p *GoogleProvider) RefreshToken(ctx context.Context, refreshToken string) 
 
 	}
 
-
-
 	return response, nil
 
 }
-
-
 
 // GetUserInfo retrieves user information using access token.
 
@@ -518,13 +411,9 @@ func (p *GoogleProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 
 	}
 
-
-
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	req.Header.Set("Accept", "application/json")
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -536,8 +425,6 @@ func (p *GoogleProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, NewProviderError(p.GetProviderName(), "userinfo_failed",
@@ -546,8 +433,6 @@ func (p *GoogleProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 
 	}
 
-
-
 	var googleUser GoogleUserInfo
 
 	if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
@@ -555,8 +440,6 @@ func (p *GoogleProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 		return nil, fmt.Errorf("failed to decode user info: %w", err)
 
 	}
-
-
 
 	// Validate hosted domain if required.
 
@@ -570,41 +453,35 @@ func (p *GoogleProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 
 	}
 
-
-
 	userInfo := &UserInfo{
 
-		Subject:       googleUser.ID,
+		Subject: googleUser.ID,
 
-		Email:         googleUser.Email,
+		Email: googleUser.Email,
 
 		EmailVerified: googleUser.VerifiedEmail,
 
-		Name:          googleUser.Name,
+		Name: googleUser.Name,
 
-		GivenName:     googleUser.GivenName,
+		GivenName: googleUser.GivenName,
 
-		FamilyName:    googleUser.FamilyName,
+		FamilyName: googleUser.FamilyName,
 
-		Picture:       googleUser.Picture,
+		Picture: googleUser.Picture,
 
-		Locale:        googleUser.Locale,
+		Locale: googleUser.Locale,
 
-		Provider:      p.GetProviderName(),
+		Provider: p.GetProviderName(),
 
-		ProviderID:    googleUser.ID,
+		ProviderID: googleUser.ID,
 
 		Attributes: map[string]interface{}{
 
-			"google_id":     googleUser.ID,
+			"google_id": googleUser.ID,
 
 			"hosted_domain": googleUser.HostedDomain,
-
 		},
-
 	}
-
-
 
 	// Add domain-based groups if hosted domain is present.
 
@@ -616,27 +493,21 @@ func (p *GoogleProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 
 			{
 
-				ID:          googleUser.HostedDomain,
+				ID: googleUser.HostedDomain,
 
-				Name:        googleUser.HostedDomain,
+				Name: googleUser.HostedDomain,
 
 				DisplayName: googleUser.HostedDomain,
 
-				Role:        "member",
-
+				Role: "member",
 			},
-
 		}
 
 	}
 
-
-
 	return userInfo, nil
 
 }
-
-
 
 // ValidateToken validates an access token.
 
@@ -646,8 +517,6 @@ func (p *GoogleProvider) ValidateToken(ctx context.Context, accessToken string) 
 
 	tokenInfoURL := fmt.Sprintf("https://oauth2.googleapis.com/tokeninfo?access_token=%s", accessToken)
 
-
-
 	req, err := http.NewRequestWithContext(ctx, "GET", tokenInfoURL, http.NoBody)
 
 	if err != nil {
@@ -655,8 +524,6 @@ func (p *GoogleProvider) ValidateToken(ctx context.Context, accessToken string) 
 		return nil, fmt.Errorf("failed to create token validation request: %w", err)
 
 	}
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -667,14 +534,11 @@ func (p *GoogleProvider) ValidateToken(ctx context.Context, accessToken string) 
 			Valid: false,
 
 			Error: err.Error(),
-
 		}, nil
 
 	}
 
 	defer resp.Body.Close()
-
-
 
 	if resp.StatusCode == http.StatusBadRequest {
 
@@ -683,12 +547,9 @@ func (p *GoogleProvider) ValidateToken(ctx context.Context, accessToken string) 
 			Valid: false,
 
 			Error: "Token is invalid or expired",
-
 		}, nil
 
 	}
-
-
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -697,12 +558,9 @@ func (p *GoogleProvider) ValidateToken(ctx context.Context, accessToken string) 
 			Valid: false,
 
 			Error: fmt.Sprintf("Unexpected status code: %d", resp.StatusCode),
-
 		}, nil
 
 	}
-
-
 
 	var tokenInfo map[string]interface{}
 
@@ -713,12 +571,9 @@ func (p *GoogleProvider) ValidateToken(ctx context.Context, accessToken string) 
 			Valid: false,
 
 			Error: "Failed to decode token info",
-
 		}, nil
 
 	}
-
-
 
 	// Check if token is valid.
 
@@ -729,20 +584,14 @@ func (p *GoogleProvider) ValidateToken(ctx context.Context, accessToken string) 
 			Valid: false,
 
 			Error: fmt.Sprintf("Token validation error: %v", errMsg),
-
 		}, nil
 
 	}
 
-
-
 	validation := &TokenValidation{
 
 		Valid: true,
-
 	}
-
-
 
 	// Extract token information.
 
@@ -752,15 +601,11 @@ func (p *GoogleProvider) ValidateToken(ctx context.Context, accessToken string) 
 
 	}
 
-
-
 	if scope, ok := tokenInfo["scope"].(string); ok {
 
 		validation.Scopes = strings.Split(scope, " ")
 
 	}
-
-
 
 	if expiresIn, ok := tokenInfo["expires_in"].(float64); ok {
 
@@ -768,13 +613,9 @@ func (p *GoogleProvider) ValidateToken(ctx context.Context, accessToken string) 
 
 	}
 
-
-
 	return validation, nil
 
 }
-
-
 
 // RevokeToken revokes an access token.
 
@@ -782,13 +623,9 @@ func (p *GoogleProvider) RevokeToken(ctx context.Context, token string) error {
 
 	revokeURL := "https://oauth2.googleapis.com/revoke"
 
-
-
 	data := url.Values{}
 
 	data.Set("token", token)
-
-
 
 	req, err := http.NewRequestWithContext(ctx, "POST", revokeURL, strings.NewReader(data.Encode()))
 
@@ -798,11 +635,7 @@ func (p *GoogleProvider) RevokeToken(ctx context.Context, token string) error {
 
 	}
 
-
-
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -814,8 +647,6 @@ func (p *GoogleProvider) RevokeToken(ctx context.Context, token string) error {
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return NewProviderError(p.GetProviderName(), "token_revocation_failed",
@@ -824,13 +655,9 @@ func (p *GoogleProvider) RevokeToken(ctx context.Context, token string) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // SupportsFeature checks if provider supports specific features.
 
@@ -850,8 +677,6 @@ func (p *GoogleProvider) SupportsFeature(feature ProviderFeature) bool {
 
 }
 
-
-
 // GetConfiguration returns provider configuration.
 
 func (p *GoogleProvider) GetConfiguration() *ProviderConfig {
@@ -860,11 +685,7 @@ func (p *GoogleProvider) GetConfiguration() *ProviderConfig {
 
 }
 
-
-
 // OIDC Provider Implementation.
-
-
 
 // DiscoverConfiguration discovers OIDC configuration from well-known endpoint.
 
@@ -876,8 +697,6 @@ func (p *GoogleProvider) DiscoverConfiguration(ctx context.Context) (*OIDCConfig
 
 	}
 
-
-
 	req, err := http.NewRequestWithContext(ctx, "GET", p.config.Endpoints.DiscoveryURL, http.NoBody)
 
 	if err != nil {
@@ -885,8 +704,6 @@ func (p *GoogleProvider) DiscoverConfiguration(ctx context.Context) (*OIDCConfig
 		return nil, fmt.Errorf("failed to create discovery request: %w", err)
 
 	}
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -898,15 +715,11 @@ func (p *GoogleProvider) DiscoverConfiguration(ctx context.Context) (*OIDCConfig
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("OIDC discovery failed with status %d", resp.StatusCode)
 
 	}
-
-
 
 	var config OIDCConfiguration
 
@@ -916,15 +729,11 @@ func (p *GoogleProvider) DiscoverConfiguration(ctx context.Context) (*OIDCConfig
 
 	}
 
-
-
 	p.oidcConfig = &config
 
 	return &config, nil
 
 }
-
-
 
 // ValidateIDToken validates an OpenID Connect ID token.
 
@@ -942,8 +751,6 @@ func (p *GoogleProvider) ValidateIDToken(ctx context.Context, idToken string) (*
 
 	}
 
-
-
 	// Get key ID from token header.
 
 	keyID, ok := token.Header["kid"].(string)
@@ -954,8 +761,6 @@ func (p *GoogleProvider) ValidateIDToken(ctx context.Context, idToken string) (*
 
 	}
 
-
-
 	// Get JWKS and find the key.
 
 	jwks, err := p.GetJWKS(ctx)
@@ -965,8 +770,6 @@ func (p *GoogleProvider) ValidateIDToken(ctx context.Context, idToken string) (*
 		return nil, fmt.Errorf("failed to get JWKS: %w", err)
 
 	}
-
-
 
 	var signingKey *rsa.PublicKey
 
@@ -988,15 +791,11 @@ func (p *GoogleProvider) ValidateIDToken(ctx context.Context, idToken string) (*
 
 	}
 
-
-
 	if signingKey == nil {
 
 		return nil, fmt.Errorf("signing key not found")
 
 	}
-
-
 
 	// Parse and validate token.
 
@@ -1020,15 +819,11 @@ func (p *GoogleProvider) ValidateIDToken(ctx context.Context, idToken string) (*
 
 	}
 
-
-
 	if !parsedToken.Valid {
 
 		return nil, fmt.Errorf("invalid ID token")
 
 	}
-
-
 
 	// Validate issuer.
 
@@ -1038,8 +833,6 @@ func (p *GoogleProvider) ValidateIDToken(ctx context.Context, idToken string) (*
 
 	}
 
-
-
 	// Validate audience.
 
 	if claims.Audience != p.config.ClientID {
@@ -1048,57 +841,49 @@ func (p *GoogleProvider) ValidateIDToken(ctx context.Context, idToken string) (*
 
 	}
 
-
-
 	// Convert to standard IDTokenClaims.
 
 	standardClaims := &IDTokenClaims{
 
-		Issuer:        claims.Issuer,
+		Issuer: claims.Issuer,
 
-		Subject:       claims.Subject,
+		Subject: claims.Subject,
 
-		Audience:      claims.Audience,
+		Audience: claims.Audience,
 
-		ExpiresAt:     claims.ExpiresAt,
+		ExpiresAt: claims.ExpiresAt,
 
-		IssuedAt:      claims.IssuedAt,
+		IssuedAt: claims.IssuedAt,
 
-		AuthTime:      claims.AuthTime,
+		AuthTime: claims.AuthTime,
 
-		Nonce:         claims.Nonce,
+		Nonce: claims.Nonce,
 
-		Name:          claims.Name,
+		Name: claims.Name,
 
-		GivenName:     claims.GivenName,
+		GivenName: claims.GivenName,
 
-		FamilyName:    claims.FamilyName,
+		FamilyName: claims.FamilyName,
 
-		Picture:       claims.Picture,
+		Picture: claims.Picture,
 
-		Email:         claims.Email,
+		Email: claims.Email,
 
 		EmailVerified: claims.EmailVerified,
 
 		Extra: map[string]interface{}{
 
-			"locale":        claims.Locale,
+			"locale": claims.Locale,
 
 			"hosted_domain": claims.HostedDomain,
 
-			"at_hash":       claims.AtHash,
-
+			"at_hash": claims.AtHash,
 		},
-
 	}
-
-
 
 	return standardClaims, nil
 
 }
-
-
 
 // GetJWKS retrieves JSON Web Key Set for token validation.
 
@@ -1118,8 +903,6 @@ func (p *GoogleProvider) GetJWKS(ctx context.Context) (*JWKS, error) {
 
 	p.jwksCache.mutex.RUnlock()
 
-
-
 	// Fetch JWKS.
 
 	req, err := http.NewRequestWithContext(ctx, "GET", p.config.Endpoints.JWKSURL, http.NoBody)
@@ -1129,8 +912,6 @@ func (p *GoogleProvider) GetJWKS(ctx context.Context) (*JWKS, error) {
 		return nil, fmt.Errorf("failed to create JWKS request: %w", err)
 
 	}
-
-
 
 	resp, err := p.httpClient.Do(req)
 
@@ -1142,15 +923,11 @@ func (p *GoogleProvider) GetJWKS(ctx context.Context) (*JWKS, error) {
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode != http.StatusOK {
 
 		return nil, fmt.Errorf("JWKS request failed with status %d", resp.StatusCode)
 
 	}
-
-
 
 	var jwks JWKS
 
@@ -1159,8 +936,6 @@ func (p *GoogleProvider) GetJWKS(ctx context.Context) (*JWKS, error) {
 		return nil, fmt.Errorf("failed to decode JWKS: %w", err)
 
 	}
-
-
 
 	// Cache JWKS for 24 hours.
 
@@ -1172,13 +947,9 @@ func (p *GoogleProvider) GetJWKS(ctx context.Context) (*JWKS, error) {
 
 	p.jwksCache.mutex.Unlock()
 
-
-
 	return &jwks, nil
 
 }
-
-
 
 // GetUserInfoFromIDToken extracts user info from ID token claims.
 
@@ -1192,33 +963,28 @@ func (p *GoogleProvider) GetUserInfoFromIDToken(idToken string) (*UserInfo, erro
 
 	}
 
-
-
 	userInfo := &UserInfo{
 
-		Subject:       claims.Subject,
+		Subject: claims.Subject,
 
-		Email:         claims.Email,
+		Email: claims.Email,
 
 		EmailVerified: claims.EmailVerified,
 
-		Name:          claims.Name,
+		Name: claims.Name,
 
-		GivenName:     claims.GivenName,
+		GivenName: claims.GivenName,
 
-		FamilyName:    claims.FamilyName,
+		FamilyName: claims.FamilyName,
 
-		Picture:       claims.Picture,
+		Picture: claims.Picture,
 
-		Provider:      p.GetProviderName(),
+		Provider: p.GetProviderName(),
 
-		ProviderID:    claims.Subject,
+		ProviderID: claims.Subject,
 
-		Attributes:    claims.Extra,
-
+		Attributes: claims.Extra,
 	}
-
-
 
 	// Add domain-based groups if hosted domain is present.
 
@@ -1230,27 +996,21 @@ func (p *GoogleProvider) GetUserInfoFromIDToken(idToken string) (*UserInfo, erro
 
 			{
 
-				ID:          hostedDomain,
+				ID: hostedDomain,
 
-				Name:        hostedDomain,
+				Name: hostedDomain,
 
 				DisplayName: hostedDomain,
 
-				Role:        "member",
-
+				Role: "member",
 			},
-
 		}
 
 	}
 
-
-
 	return userInfo, nil
 
 }
-
-
 
 // parseRSAKey parses an RSA public key from JWK.
 
@@ -1264,11 +1024,7 @@ func (p *GoogleProvider) parseRSAKey(key *JWK) (*rsa.PublicKey, error) {
 
 }
 
-
-
 // Additional helper methods.
-
-
 
 // SetHostedDomain sets or updates the hosted domain restriction.
 
@@ -1278,8 +1034,6 @@ func (p *GoogleProvider) SetHostedDomain(domain string) {
 
 }
 
-
-
 // GetHostedDomain returns the current hosted domain restriction.
 
 func (p *GoogleProvider) GetHostedDomain() string {
@@ -1288,11 +1042,7 @@ func (p *GoogleProvider) GetHostedDomain() string {
 
 }
 
-
-
 // Enterprise provider methods (limited for Google).
-
-
 
 // GetGroups retrieves user groups (limited for Google).
 
@@ -1310,8 +1060,6 @@ func (p *GoogleProvider) GetGroups(ctx context.Context, accessToken string) ([]s
 
 }
 
-
-
 // GetRoles retrieves user roles (not supported by Google).
 
 func (p *GoogleProvider) GetRoles(ctx context.Context, accessToken string) ([]string, error) {
@@ -1319,8 +1067,6 @@ func (p *GoogleProvider) GetRoles(ctx context.Context, accessToken string) ([]st
 	return []string{}, nil
 
 }
-
-
 
 // CheckGroupMembership checks if user belongs to specific groups.
 
@@ -1334,8 +1080,6 @@ func (p *GoogleProvider) CheckGroupMembership(ctx context.Context, accessToken s
 
 	}
 
-
-
 	userGroupMap := make(map[string]bool)
 
 	for _, group := range userGroups {
@@ -1343,8 +1087,6 @@ func (p *GoogleProvider) CheckGroupMembership(ctx context.Context, accessToken s
 		userGroupMap[group] = true
 
 	}
-
-
 
 	var memberGroups []string
 
@@ -1358,13 +1100,9 @@ func (p *GoogleProvider) CheckGroupMembership(ctx context.Context, accessToken s
 
 	}
 
-
-
 	return memberGroups, nil
 
 }
-
-
 
 // ValidateUserAccess validates if user has required access level.
 
@@ -1378,8 +1116,6 @@ func (p *GoogleProvider) ValidateUserAccess(ctx context.Context, accessToken str
 
 	}
 
-
-
 	// Basic validation - ensure user has verified email.
 
 	if !userInfo.EmailVerified {
@@ -1387,8 +1123,6 @@ func (p *GoogleProvider) ValidateUserAccess(ctx context.Context, accessToken str
 		return fmt.Errorf("user email is not verified")
 
 	}
-
-
 
 	// Check hosted domain if required.
 
@@ -1402,9 +1136,6 @@ func (p *GoogleProvider) ValidateUserAccess(ctx context.Context, accessToken str
 
 	}
 
-
-
 	return nil
 
 }
-

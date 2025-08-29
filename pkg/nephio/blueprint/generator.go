@@ -28,112 +28,77 @@ limitations under the License.
 
 */
 
-
-
-
 package blueprint
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"net/http"
-
 	"strings"
-
 	"sync"
-
 	"text/template"
-
 	"time"
 
-
-
 	"github.com/Masterminds/sprig/v3"
-
-	"go.uber.org/zap"
-
-
-
 	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
-
+	"go.uber.org/zap"
 )
-
-
 
 // Generator handles blueprint package generation from NetworkIntents.
 
 type Generator struct {
+	config *BlueprintConfig
 
-	config        *BlueprintConfig
+	logger *zap.Logger
 
-	logger        *zap.Logger
+	llmClient *llm.Client
 
-	llmClient     *llm.Client
-
-	httpClient    *http.Client
+	httpClient *http.Client
 
 	templateCache sync.Map
 
-
-
 	// O-RAN specific templates.
 
-	oranTemplates        map[string]*template.Template
+	oranTemplates map[string]*template.Template
 
-	coreTemplates        map[string]*template.Template
+	coreTemplates map[string]*template.Template
 
-	edgeTemplates        map[string]*template.Template
+	edgeTemplates map[string]*template.Template
 
-	sliceTemplates       map[string]*template.Template
+	sliceTemplates map[string]*template.Template
 
 	serviceMeshTemplates map[string]*template.Template
 
-
-
 	// Performance optimization.
 
-	resourcePool    sync.Pool
+	resourcePool sync.Pool
 
 	generationMutex sync.RWMutex
-
 }
-
-
 
 // GenerationContext contains context for blueprint generation.
 
 type GenerationContext struct {
+	Intent *v1.NetworkIntent
 
-	Intent          *v1.NetworkIntent
+	LLMOutput map[string]interface{}
 
-	LLMOutput       map[string]interface{}
-
-	TargetCluster   string
+	TargetCluster string
 
 	TargetNamespace string
 
-	NetworkSlice    string
+	NetworkSlice string
 
-	ComponentType   v1.ORANComponent
+	ComponentType v1.ORANComponent
 
-	DeploymentMode  string
+	DeploymentMode string
 
 	SecurityProfile string
 
 	ResourceProfile string
-
 }
-
-
 
 // NewGenerator creates a new blueprint generator.
 
@@ -145,39 +110,33 @@ func NewGenerator(config *BlueprintConfig, logger *zap.Logger) (*Generator, erro
 
 	}
 
-
-
 	if logger == nil {
 
 		logger = zap.NewNop()
 
 	}
 
-
-
 	// Initialize LLM client.
 
 	llmClient := llm.NewClient(config.LLMEndpoint)
 
-
-
 	generator := &Generator{
 
-		config:               config,
+		config: config,
 
-		logger:               logger,
+		logger: logger,
 
-		llmClient:            llmClient,
+		llmClient: llmClient,
 
-		httpClient:           &http.Client{Timeout: 30 * time.Second},
+		httpClient: &http.Client{Timeout: 30 * time.Second},
 
-		oranTemplates:        make(map[string]*template.Template),
+		oranTemplates: make(map[string]*template.Template),
 
-		coreTemplates:        make(map[string]*template.Template),
+		coreTemplates: make(map[string]*template.Template),
 
-		edgeTemplates:        make(map[string]*template.Template),
+		edgeTemplates: make(map[string]*template.Template),
 
-		sliceTemplates:       make(map[string]*template.Template),
+		sliceTemplates: make(map[string]*template.Template),
 
 		serviceMeshTemplates: make(map[string]*template.Template),
 
@@ -188,12 +147,8 @@ func NewGenerator(config *BlueprintConfig, logger *zap.Logger) (*Generator, erro
 				return make(map[string]interface{})
 
 			},
-
 		},
-
 	}
-
-
 
 	// Initialize templates.
 
@@ -203,21 +158,15 @@ func NewGenerator(config *BlueprintConfig, logger *zap.Logger) (*Generator, erro
 
 	}
 
-
-
 	return generator, nil
 
 }
-
-
 
 // GenerateFromNetworkIntent generates blueprint files from NetworkIntent.
 
 func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.NetworkIntent) (map[string]string, error) {
 
 	startTime := time.Now()
-
-
 
 	g.logger.Info("Generating blueprint from NetworkIntent",
 
@@ -226,8 +175,6 @@ func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.Ne
 		zap.String("intent_type", string(intent.Spec.IntentType)),
 
 		zap.Strings("target_components", g.targetComponentsToStrings(intent.Spec.TargetComponents)))
-
-
 
 	// Step 1: Process intent with LLM to extract parameters.
 
@@ -239,31 +186,26 @@ func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.Ne
 
 	}
 
-
-
 	// Step 2: Create generation context.
 
 	genCtx := &GenerationContext{
 
-		Intent:          intent,
+		Intent: intent,
 
-		LLMOutput:       llmOutput,
+		LLMOutput: llmOutput,
 
-		TargetCluster:   intent.Spec.TargetCluster,
+		TargetCluster: intent.Spec.TargetCluster,
 
 		TargetNamespace: intent.Spec.TargetNamespace,
 
-		NetworkSlice:    intent.Spec.NetworkSlice,
+		NetworkSlice: intent.Spec.NetworkSlice,
 
-		DeploymentMode:  g.extractDeploymentMode(llmOutput),
+		DeploymentMode: g.extractDeploymentMode(llmOutput),
 
 		SecurityProfile: g.extractSecurityProfile(llmOutput),
 
 		ResourceProfile: g.extractResourceProfile(llmOutput),
-
 	}
-
-
 
 	if genCtx.TargetNamespace == "" {
 
@@ -271,13 +213,9 @@ func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.Ne
 
 	}
 
-
-
 	// Step 3: Generate blueprint files based on intent type and target components.
 
 	files := make(map[string]string)
-
-
 
 	// Generate core blueprint structure.
 
@@ -286,8 +224,6 @@ func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.Ne
 		return nil, fmt.Errorf("core structure generation failed: %w", err)
 
 	}
-
-
 
 	// Generate component-specific blueprints.
 
@@ -303,8 +239,6 @@ func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.Ne
 
 	}
 
-
-
 	// Generate network slice configuration if applicable.
 
 	if genCtx.NetworkSlice != "" {
@@ -316,8 +250,6 @@ func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.Ne
 		}
 
 	}
-
-
 
 	// Generate service mesh configuration.
 
@@ -331,8 +263,6 @@ func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.Ne
 
 	}
 
-
-
 	// Generate monitoring and observability configuration.
 
 	if err := g.generateObservabilityConfiguration(ctx, genCtx, files); err != nil {
@@ -340,8 +270,6 @@ func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.Ne
 		return nil, fmt.Errorf("observability configuration generation failed: %w", err)
 
 	}
-
-
 
 	duration := time.Since(startTime)
 
@@ -353,21 +281,15 @@ func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.Ne
 
 		zap.Int("files_generated", len(files)))
 
-
-
 	return files, nil
 
 }
-
-
 
 // processIntentWithLLM processes the NetworkIntent with LLM to extract structured parameters.
 
 func (g *Generator) processIntentWithLLM(ctx context.Context, intent *v1.NetworkIntent) (map[string]interface{}, error) {
 
 	prompt := g.buildLLMPrompt(intent)
-
-
 
 	response, err := g.llmClient.ProcessIntent(ctx, prompt)
 
@@ -376,8 +298,6 @@ func (g *Generator) processIntentWithLLM(ctx context.Context, intent *v1.Network
 		return nil, fmt.Errorf("LLM processing failed: %w", err)
 
 	}
-
-
 
 	// Parse LLM response as JSON.
 
@@ -389,13 +309,9 @@ func (g *Generator) processIntentWithLLM(ctx context.Context, intent *v1.Network
 
 	}
 
-
-
 	return llmOutput, nil
 
 }
-
-
 
 // buildLLMPrompt creates a specialized prompt for blueprint generation.
 
@@ -507,33 +423,28 @@ Ensure all values are appropriate for the specified intent and components.
 
 }
 
-
-
 // buildLLMContext creates context for LLM processing.
 
 func (g *Generator) buildLLMContext(intent *v1.NetworkIntent) map[string]interface{} {
 
 	return map[string]interface{}{
 
-		"intent_type":          intent.Spec.IntentType,
+		"intent_type": intent.Spec.IntentType,
 
-		"target_components":    intent.Spec.TargetComponents,
+		"target_components": intent.Spec.TargetComponents,
 
 		"resource_constraints": intent.Spec.ResourceConstraints,
 
-		"network_slice":        intent.Spec.NetworkSlice,
+		"network_slice": intent.Spec.NetworkSlice,
 
-		"target_cluster":       intent.Spec.TargetCluster,
+		"target_cluster": intent.Spec.TargetCluster,
 
-		"target_namespace":     intent.Spec.TargetNamespace,
+		"target_namespace": intent.Spec.TargetNamespace,
 
-		"priority":             intent.Spec.Priority,
-
+		"priority": intent.Spec.Priority,
 	}
 
 }
-
-
 
 // generateCoreStructure generates the core blueprint structure files.
 
@@ -551,8 +462,6 @@ func (g *Generator) generateCoreStructure(ctx context.Context, genCtx *Generatio
 
 	files["Kptfile"] = kptfile
 
-
-
 	// Generate README.
 
 	readme, err := g.generateReadme(genCtx)
@@ -564,8 +473,6 @@ func (g *Generator) generateCoreStructure(ctx context.Context, genCtx *Generatio
 	}
 
 	files["README.md"] = readme
-
-
 
 	// Generate package metadata.
 
@@ -579,8 +486,6 @@ func (g *Generator) generateCoreStructure(ctx context.Context, genCtx *Generatio
 
 	files["package-meta.yaml"] = metadata
 
-
-
 	// Generate function configuration.
 
 	fnConfig, err := g.generateFunctionConfig(genCtx)
@@ -593,13 +498,9 @@ func (g *Generator) generateCoreStructure(ctx context.Context, genCtx *Generatio
 
 	files["fn-config.yaml"] = fnConfig
 
-
-
 	return nil
 
 }
-
-
 
 // generateComponentBlueprint generates blueprint for specific O-RAN/5GC component.
 
@@ -621,8 +522,6 @@ func (g *Generator) generateComponentBlueprint(ctx context.Context, genCtx *Gene
 
 		return g.generateUPFBlueprint(genCtx, files)
 
-
-
 	// O-RAN Components.
 
 	case v1.ORANComponentNearRTRIC:
@@ -637,8 +536,6 @@ func (g *Generator) generateComponentBlueprint(ctx context.Context, genCtx *Gene
 
 		return g.generateGenericBlueprint(genCtx, component, files)
 
-
-
 	default:
 
 		return g.generateGenericBlueprint(genCtx, component, files)
@@ -646,8 +543,6 @@ func (g *Generator) generateComponentBlueprint(ctx context.Context, genCtx *Gene
 	}
 
 }
-
-
 
 // generateAMFBlueprint generates AMF-specific blueprint.
 
@@ -661,8 +556,6 @@ func (g *Generator) generateAMFBlueprint(genCtx *GenerationContext, files map[st
 
 	}
 
-
-
 	data := g.buildAMFTemplateData(genCtx)
 
 	content, err := g.executeTemplate(template, data)
@@ -673,11 +566,7 @@ func (g *Generator) generateAMFBlueprint(genCtx *GenerationContext, files map[st
 
 	}
 
-
-
 	files["amf-deployment.yaml"] = content
-
-
 
 	// Generate AMF service.
 
@@ -687,8 +576,6 @@ func (g *Generator) generateAMFBlueprint(genCtx *GenerationContext, files map[st
 
 	}
 
-
-
 	// Generate AMF configuration.
 
 	if configContent, err := g.generateAMFConfig(genCtx); err == nil {
@@ -697,13 +584,9 @@ func (g *Generator) generateAMFBlueprint(genCtx *GenerationContext, files map[st
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // generateSMFBlueprint generates SMF-specific blueprint.
 
@@ -717,8 +600,6 @@ func (g *Generator) generateSMFBlueprint(genCtx *GenerationContext, files map[st
 
 	}
 
-
-
 	data := g.buildSMFTemplateData(genCtx)
 
 	content, err := g.executeTemplate(template, data)
@@ -729,11 +610,7 @@ func (g *Generator) generateSMFBlueprint(genCtx *GenerationContext, files map[st
 
 	}
 
-
-
 	files["smf-deployment.yaml"] = content
-
-
 
 	// Generate SMF service and configuration.
 
@@ -743,21 +620,15 @@ func (g *Generator) generateSMFBlueprint(genCtx *GenerationContext, files map[st
 
 	}
 
-
-
 	if configContent, err := g.generateSMFConfig(genCtx); err == nil {
 
 		files["smf-config.yaml"] = configContent
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // generateUPFBlueprint generates UPF-specific blueprint.
 
@@ -771,8 +642,6 @@ func (g *Generator) generateUPFBlueprint(genCtx *GenerationContext, files map[st
 
 	}
 
-
-
 	data := g.buildUPFTemplateData(genCtx)
 
 	content, err := g.executeTemplate(template, data)
@@ -783,11 +652,7 @@ func (g *Generator) generateUPFBlueprint(genCtx *GenerationContext, files map[st
 
 	}
 
-
-
 	files["upf-deployment.yaml"] = content
-
-
 
 	// TODO: UPF typically needs special networking configuration.
 
@@ -797,13 +662,9 @@ func (g *Generator) generateUPFBlueprint(genCtx *GenerationContext, files map[st
 
 	// }.
 
-
-
 	return nil
 
 }
-
-
 
 // generateNearRTRICBlueprint generates Near-RT RIC blueprint.
 
@@ -817,8 +678,6 @@ func (g *Generator) generateNearRTRICBlueprint(genCtx *GenerationContext, files 
 
 	}
 
-
-
 	// TODO: data := g.buildRICTemplateData(genCtx, "near-rt").
 
 	data := map[string]interface{}{"Name": fmt.Sprintf("%s-near-rt-ric", genCtx.Intent.Name)}
@@ -831,11 +690,7 @@ func (g *Generator) generateNearRTRICBlueprint(genCtx *GenerationContext, files 
 
 	}
 
-
-
 	files["near-rt-ric-deployment.yaml"] = content
-
-
 
 	// TODO: Generate E2 interface configuration.
 
@@ -845,8 +700,6 @@ func (g *Generator) generateNearRTRICBlueprint(genCtx *GenerationContext, files 
 
 	// }.
 
-
-
 	// TODO: Generate xApp management configuration.
 
 	// if xappConfig, err := g.generateXAppManagementConfig(genCtx); err == nil {.
@@ -855,13 +708,9 @@ func (g *Generator) generateNearRTRICBlueprint(genCtx *GenerationContext, files 
 
 	// }.
 
-
-
 	return nil
 
 }
-
-
 
 // generateXAppBlueprint generates xApp blueprint.
 
@@ -875,8 +724,6 @@ func (g *Generator) generateXAppBlueprint(genCtx *GenerationContext, files map[s
 
 	}
 
-
-
 	// TODO: data := g.buildXAppTemplateData(genCtx).
 
 	data := map[string]interface{}{"Name": fmt.Sprintf("%s-xapp", genCtx.Intent.Name)}
@@ -889,11 +736,7 @@ func (g *Generator) generateXAppBlueprint(genCtx *GenerationContext, files map[s
 
 	}
 
-
-
 	files["xapp-deployment.yaml"] = content
-
-
 
 	// TODO: Generate xApp descriptor.
 
@@ -903,13 +746,9 @@ func (g *Generator) generateXAppBlueprint(genCtx *GenerationContext, files map[s
 
 	// }.
 
-
-
 	return nil
 
 }
-
-
 
 // generateNetworkSliceConfiguration generates network slice configuration.
 
@@ -923,8 +762,6 @@ func (g *Generator) generateNetworkSliceConfiguration(ctx context.Context, genCt
 
 	}
 
-
-
 	// TODO: data := g.buildNetworkSliceTemplateData(genCtx).
 
 	data := map[string]interface{}{"Name": fmt.Sprintf("%s-slice", genCtx.Intent.Name)}
@@ -937,11 +774,7 @@ func (g *Generator) generateNetworkSliceConfiguration(ctx context.Context, genCt
 
 	}
 
-
-
 	files["network-slice.yaml"] = content
-
-
 
 	// TODO: Generate slice-specific QoS configuration.
 
@@ -951,13 +784,9 @@ func (g *Generator) generateNetworkSliceConfiguration(ctx context.Context, genCt
 
 	// }.
 
-
-
 	return nil
 
 }
-
-
 
 // generateServiceMeshConfiguration generates Istio service mesh configuration.
 
@@ -971,8 +800,6 @@ func (g *Generator) generateServiceMeshConfiguration(ctx context.Context, genCtx
 
 	// }.
 
-
-
 	// TODO: Generate DestinationRule.
 
 	// if drConfig, err := g.generateDestinationRule(genCtx); err == nil {.
@@ -980,8 +807,6 @@ func (g *Generator) generateServiceMeshConfiguration(ctx context.Context, genCtx
 	// 	files["destination-rule.yaml"] = drConfig.
 
 	// }.
-
-
 
 	// TODO: Generate Gateway if ingress is needed.
 
@@ -995,8 +820,6 @@ func (g *Generator) generateServiceMeshConfiguration(ctx context.Context, genCtx
 
 	// }.
 
-
-
 	// TODO: Generate PeerAuthentication for mTLS.
 
 	// if paConfig, err := g.generatePeerAuthentication(genCtx); err == nil {.
@@ -1005,13 +828,9 @@ func (g *Generator) generateServiceMeshConfiguration(ctx context.Context, genCtx
 
 	// }.
 
-
-
 	return nil
 
 }
-
-
 
 // generateObservabilityConfiguration generates monitoring and observability configuration.
 
@@ -1025,8 +844,6 @@ func (g *Generator) generateObservabilityConfiguration(ctx context.Context, genC
 
 	}
 
-
-
 	// Generate Grafana dashboard configuration.
 
 	if dashConfig, err := g.generateGrafanaDashboard(genCtx); err == nil {
@@ -1034,8 +851,6 @@ func (g *Generator) generateObservabilityConfiguration(ctx context.Context, genC
 		files["grafana-dashboard.json"] = dashConfig
 
 	}
-
-
 
 	// Generate alert rules.
 
@@ -1045,17 +860,11 @@ func (g *Generator) generateObservabilityConfiguration(ctx context.Context, genC
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // Core structure generation methods.
-
-
 
 // generateKptFile generates a Kptfile for the package.
 
@@ -1091,8 +900,6 @@ pipeline:
 
 `
 
-
-
 	funcMap := sprig.TxtFuncMap()
 
 	tmpl, err := template.New("kptfile").Funcs(funcMap).Parse(kptfileTemplate)
@@ -1103,23 +910,16 @@ pipeline:
 
 	}
 
-
-
 	data := map[string]interface{}{
 
 		"PackageName": fmt.Sprintf("%s-blueprint", genCtx.Intent.Name),
 
 		"Description": fmt.Sprintf("Blueprint package for %s components", strings.Join(g.targetComponentsToStrings(genCtx.Intent.Spec.TargetComponents), ", ")),
-
 	}
-
-
 
 	return g.executeTemplate(tmpl, data)
 
 }
-
-
 
 // generateReadme generates a README.md for the package.
 
@@ -1173,8 +973,6 @@ Generated by Nephoran Intent Operator.
 
 `
 
-
-
 	funcMap := sprig.TxtFuncMap()
 
 	tmpl, err := template.New("readme").Funcs(funcMap).Parse(readmeTemplate)
@@ -1185,25 +983,18 @@ Generated by Nephoran Intent Operator.
 
 	}
 
-
-
 	data := map[string]interface{}{
 
 		"PackageName": fmt.Sprintf("%s-blueprint", genCtx.Intent.Name),
 
 		"Description": genCtx.Intent.Spec.Description,
 
-		"Components":  g.targetComponentsToStrings(genCtx.Intent.Spec.TargetComponents),
-
+		"Components": g.targetComponentsToStrings(genCtx.Intent.Spec.TargetComponents),
 	}
-
-
 
 	return g.executeTemplate(tmpl, data)
 
 }
-
-
 
 // generateMetadata generates package metadata.
 
@@ -1241,8 +1032,6 @@ spec:
 
 `
 
-
-
 	funcMap := sprig.TxtFuncMap()
 
 	tmpl, err := template.New("metadata").Funcs(funcMap).Parse(metadataTemplate)
@@ -1253,25 +1042,18 @@ spec:
 
 	}
 
-
-
 	data := map[string]interface{}{
 
 		"PackageName": fmt.Sprintf("%s-blueprint", genCtx.Intent.Name),
 
-		"Version":     "v1.0.0",
+		"Version": "v1.0.0",
 
 		"Description": genCtx.Intent.Spec.Description,
-
 	}
-
-
 
 	return g.executeTemplate(tmpl, data)
 
 }
-
-
 
 // generateFunctionConfig generates function configuration.
 
@@ -1327,8 +1109,6 @@ spec:
 
 `
 
-
-
 	funcMap := sprig.TxtFuncMap()
 
 	tmpl, err := template.New("fnconfig").Funcs(funcMap).Parse(fnConfigTemplate)
@@ -1339,21 +1119,14 @@ spec:
 
 	}
 
-
-
 	data := map[string]interface{}{
 
 		"PackageName": fmt.Sprintf("%s-blueprint", genCtx.Intent.Name),
-
 	}
-
-
 
 	return g.executeTemplate(tmpl, data)
 
 }
-
-
 
 // generateGenericBlueprint generates a generic blueprint for components.
 
@@ -1403,8 +1176,6 @@ spec:
 
 `
 
-
-
 	funcMap := sprig.TxtFuncMap()
 
 	tmpl, err := template.New("generic-deployment").Funcs(funcMap).Parse(deploymentTemplate)
@@ -1415,25 +1186,20 @@ spec:
 
 	}
 
-
-
 	data := map[string]interface{}{
 
-		"Name":          fmt.Sprintf("%s-%s", genCtx.Intent.Name, strings.ToLower(string(component))),
+		"Name": fmt.Sprintf("%s-%s", genCtx.Intent.Name, strings.ToLower(string(component))),
 
-		"Namespace":     genCtx.TargetNamespace,
+		"Namespace": genCtx.TargetNamespace,
 
 		"ComponentType": strings.ToLower(string(component)),
 
-		"Replicas":      1,
+		"Replicas": 1,
 
-		"Image":         fmt.Sprintf("generic/%s:latest", strings.ToLower(string(component))),
+		"Image": fmt.Sprintf("generic/%s:latest", strings.ToLower(string(component))),
 
-		"Port":          8080,
-
+		"Port": 8080,
 	}
-
-
 
 	content, err := g.executeTemplate(tmpl, data)
 
@@ -1443,15 +1209,11 @@ spec:
 
 	}
 
-
-
 	files[fmt.Sprintf("%s-deployment.yaml", strings.ToLower(string(component)))] = content
 
 	return nil
 
 }
-
-
 
 // generateComponentService generates a Kubernetes service for a component.
 
@@ -1483,8 +1245,6 @@ spec:
 
 `
 
-
-
 	funcMap := sprig.TxtFuncMap()
 
 	tmpl, err := template.New("component-service").Funcs(funcMap).Parse(serviceTemplate)
@@ -1495,27 +1255,20 @@ spec:
 
 	}
 
-
-
 	data := map[string]interface{}{
 
-		"Name":       fmt.Sprintf("%s-%s", genCtx.Intent.Name, componentType),
+		"Name": fmt.Sprintf("%s-%s", genCtx.Intent.Name, componentType),
 
-		"Namespace":  genCtx.TargetNamespace,
+		"Namespace": genCtx.TargetNamespace,
 
-		"Port":       8080,
+		"Port": 8080,
 
 		"TargetPort": 8080,
-
 	}
-
-
 
 	return g.executeTemplate(tmpl, data)
 
 }
-
-
 
 // generateAMFConfig generates AMF-specific configuration.
 
@@ -1571,8 +1324,6 @@ data:
 
 `
 
-
-
 	funcMap := sprig.TxtFuncMap()
 
 	tmpl, err := template.New("amf-config").Funcs(funcMap).Parse(configTemplate)
@@ -1583,25 +1334,18 @@ data:
 
 	}
 
-
-
 	data := map[string]interface{}{
 
-		"Name":      fmt.Sprintf("%s-amf", genCtx.Intent.Name),
+		"Name": fmt.Sprintf("%s-amf", genCtx.Intent.Name),
 
 		"Namespace": genCtx.TargetNamespace,
 
-		"AMFName":   fmt.Sprintf("%s-amf", genCtx.Intent.Name),
-
+		"AMFName": fmt.Sprintf("%s-amf", genCtx.Intent.Name),
 	}
-
-
 
 	return g.executeTemplate(tmpl, data)
 
 }
-
-
 
 // generateSMFConfig generates SMF-specific configuration  .
 
@@ -1649,8 +1393,6 @@ data:
 
 `
 
-
-
 	funcMap := sprig.TxtFuncMap()
 
 	tmpl, err := template.New("smf-config").Funcs(funcMap).Parse(configTemplate)
@@ -1661,117 +1403,93 @@ data:
 
 	}
 
-
-
 	data := map[string]interface{}{
 
-		"Name":      fmt.Sprintf("%s-smf", genCtx.Intent.Name),
+		"Name": fmt.Sprintf("%s-smf", genCtx.Intent.Name),
 
 		"Namespace": genCtx.TargetNamespace,
 
-		"SMFName":   fmt.Sprintf("%s-smf", genCtx.Intent.Name),
-
+		"SMFName": fmt.Sprintf("%s-smf", genCtx.Intent.Name),
 	}
-
-
 
 	return g.executeTemplate(tmpl, data)
 
 }
 
-
-
 // Helper methods for template data building.
-
-
 
 func (g *Generator) buildAMFTemplateData(genCtx *GenerationContext) map[string]interface{} {
 
 	deployConfig := g.extractDeploymentConfig(genCtx.LLMOutput)
 
-
-
 	return map[string]interface{}{
 
-		"Name":         fmt.Sprintf("%s-amf", genCtx.Intent.Name),
+		"Name": fmt.Sprintf("%s-amf", genCtx.Intent.Name),
 
-		"Namespace":    genCtx.TargetNamespace,
+		"Namespace": genCtx.TargetNamespace,
 
-		"Image":        g.getOrDefault(deployConfig, "image", "free5gc/amf:v3.2.1").(string),
+		"Image": g.getOrDefault(deployConfig, "image", "free5gc/amf:v3.2.1").(string),
 
-		"Replicas":     g.getOrDefault(deployConfig, "replicas", 1).(int),
+		"Replicas": g.getOrDefault(deployConfig, "replicas", 1).(int),
 
-		"Resources":    g.extractResources(deployConfig),
+		"Resources": g.extractResources(deployConfig),
 
-		"Environment":  g.extractEnvironment(deployConfig),
+		"Environment": g.extractEnvironment(deployConfig),
 
 		"NetworkSlice": genCtx.NetworkSlice,
 
-		"Config":       g.buildAMFConfig(genCtx),
-
+		"Config": g.buildAMFConfig(genCtx),
 	}
 
 }
-
-
 
 func (g *Generator) buildSMFTemplateData(genCtx *GenerationContext) map[string]interface{} {
 
 	deployConfig := g.extractDeploymentConfig(genCtx.LLMOutput)
 
-
-
 	return map[string]interface{}{
 
-		"Name":        fmt.Sprintf("%s-smf", genCtx.Intent.Name),
+		"Name": fmt.Sprintf("%s-smf", genCtx.Intent.Name),
 
-		"Namespace":   genCtx.TargetNamespace,
+		"Namespace": genCtx.TargetNamespace,
 
-		"Image":       g.getOrDefault(deployConfig, "image", "free5gc/smf:v3.2.1").(string),
+		"Image": g.getOrDefault(deployConfig, "image", "free5gc/smf:v3.2.1").(string),
 
-		"Replicas":    g.getOrDefault(deployConfig, "replicas", 1).(int),
+		"Replicas": g.getOrDefault(deployConfig, "replicas", 1).(int),
 
-		"Resources":   g.extractResources(deployConfig),
+		"Resources": g.extractResources(deployConfig),
 
 		"Environment": g.extractEnvironment(deployConfig),
 
-		"Config":      g.buildSMFConfig(genCtx),
-
+		"Config": g.buildSMFConfig(genCtx),
 	}
 
 }
-
-
 
 func (g *Generator) buildUPFTemplateData(genCtx *GenerationContext) map[string]interface{} {
 
 	deployConfig := g.extractDeploymentConfig(genCtx.LLMOutput)
 
-
-
 	return map[string]interface{}{
 
-		"Name":          fmt.Sprintf("%s-upf", genCtx.Intent.Name),
+		"Name": fmt.Sprintf("%s-upf", genCtx.Intent.Name),
 
-		"Namespace":     genCtx.TargetNamespace,
+		"Namespace": genCtx.TargetNamespace,
 
-		"Image":         g.getOrDefault(deployConfig, "image", "free5gc/upf:v3.2.1").(string),
+		"Image": g.getOrDefault(deployConfig, "image", "free5gc/upf:v3.2.1").(string),
 
-		"Replicas":      g.getOrDefault(deployConfig, "replicas", 1).(int),
+		"Replicas": g.getOrDefault(deployConfig, "replicas", 1).(int),
 
-		"Resources":     g.extractResources(deployConfig),
+		"Resources": g.extractResources(deployConfig),
 
-		"Environment":   g.extractEnvironment(deployConfig),
+		"Environment": g.extractEnvironment(deployConfig),
 
-		"Privileged":    true, // UPF typically needs privileged access
+		"Privileged": true, // UPF typically needs privileged access
 
 		"NetworkConfig": g.buildUPFNetworkConfig(genCtx),
-
 	}
 
 }
-
-
 
 // Template execution helper.
 
@@ -1789,8 +1507,6 @@ func (g *Generator) executeTemplate(tmpl *template.Template, data interface{}) (
 
 }
 
-
-
 // Configuration extraction helpers.
 
 func (g *Generator) extractDeploymentConfig(llmOutput map[string]interface{}) map[string]interface{} {
@@ -1804,8 +1520,6 @@ func (g *Generator) extractDeploymentConfig(llmOutput map[string]interface{}) ma
 	return make(map[string]interface{})
 
 }
-
-
 
 func (g *Generator) extractSecurityProfile(llmOutput map[string]interface{}) string {
 
@@ -1823,8 +1537,6 @@ func (g *Generator) extractSecurityProfile(llmOutput map[string]interface{}) str
 
 }
 
-
-
 func (g *Generator) extractResourceProfile(llmOutput map[string]interface{}) string {
 
 	if perf, ok := llmOutput["performance_requirements"].(map[string]interface{}); ok {
@@ -1840,8 +1552,6 @@ func (g *Generator) extractResourceProfile(llmOutput map[string]interface{}) str
 	return "medium"
 
 }
-
-
 
 func (g *Generator) extractDeploymentMode(llmOutput map[string]interface{}) string {
 
@@ -1859,8 +1569,6 @@ func (g *Generator) extractDeploymentMode(llmOutput map[string]interface{}) stri
 
 }
 
-
-
 // Utility functions.
 
 func (g *Generator) targetComponentsToStrings(components []v1.ORANComponent) []string {
@@ -1877,8 +1585,6 @@ func (g *Generator) targetComponentsToStrings(components []v1.ORANComponent) []s
 
 }
 
-
-
 func (g *Generator) getOrDefault(m map[string]interface{}, key string, defaultValue interface{}) interface{} {
 
 	if val, ok := m[key]; ok {
@@ -1890,8 +1596,6 @@ func (g *Generator) getOrDefault(m map[string]interface{}, key string, defaultVa
 	return defaultValue
 
 }
-
-
 
 func (g *Generator) shouldGenerateServiceMesh(genCtx *GenerationContext) bool {
 
@@ -1909,8 +1613,6 @@ func (g *Generator) shouldGenerateServiceMesh(genCtx *GenerationContext) bool {
 
 }
 
-
-
 func (g *Generator) shouldGenerateGateway(genCtx *GenerationContext) bool {
 
 	if serviceMesh, ok := genCtx.LLMOutput["service_mesh"].(map[string]interface{}); ok {
@@ -1927,8 +1629,6 @@ func (g *Generator) shouldGenerateGateway(genCtx *GenerationContext) bool {
 
 }
 
-
-
 // HealthCheck performs health check on the generator.
 
 func (g *Generator) HealthCheck(ctx context.Context) bool {
@@ -1943,8 +1643,6 @@ func (g *Generator) HealthCheck(ctx context.Context) bool {
 
 	}
 
-
-
 	// Check template availability.
 
 	if len(g.coreTemplates) == 0 && len(g.oranTemplates) == 0 {
@@ -1955,13 +1653,9 @@ func (g *Generator) HealthCheck(ctx context.Context) bool {
 
 	}
 
-
-
 	return true
 
 }
-
-
 
 // initializeTemplates loads and compiles all blueprint templates.
 
@@ -1971,11 +1665,7 @@ func (g *Generator) initializeTemplates() error {
 
 	// For brevity, showing the structure without full template content.
 
-
-
 	funcMap := sprig.TxtFuncMap()
-
-
 
 	// Load core templates (AMF, SMF, UPF, etc.).
 
@@ -1995,8 +1685,6 @@ func (g *Generator) initializeTemplates() error {
 
 	}
 
-
-
 	// Load O-RAN templates.
 
 	oranTemplateNames := []string{"near-rt-ric", "non-rt-ric", "xapp", "rapp", "o-du", "o-cu-cp", "o-cu-up"}
@@ -2015,21 +1703,15 @@ func (g *Generator) initializeTemplates() error {
 
 	}
 
-
-
 	g.logger.Info("Templates initialized successfully",
 
 		zap.Int("core_templates", len(g.coreTemplates)),
 
 		zap.Int("oran_templates", len(g.oranTemplates)))
 
-
-
 	return nil
 
 }
-
-
 
 // Placeholder template getters (in a real implementation, these would load from files).
 
@@ -2041,8 +1723,6 @@ func (g *Generator) getCoreTemplate(name string) string {
 
 }
 
-
-
 func (g *Generator) getORANTemplate(name string) string {
 
 	// Return appropriate O-RAN template content based on name.
@@ -2050,8 +1730,6 @@ func (g *Generator) getORANTemplate(name string) string {
 	return fmt.Sprintf("# O-RAN %s template placeholder\n", name)
 
 }
-
-
 
 // Additional helper methods would be implemented for:.
 
@@ -2073,11 +1751,7 @@ func (g *Generator) getORANTemplate(name string) string {
 
 // - generateServiceMonitor, generateGrafanaDashboard, etc.
 
-
-
 // These would follow similar patterns to the methods shown above.
-
-
 
 // generateServiceMonitor generates ServiceMonitor for Prometheus.
 
@@ -2111,8 +1785,6 @@ spec:
 
 `
 
-
-
 	funcMap := sprig.TxtFuncMap()
 
 	tmpl, err := template.New("service-monitor").Funcs(funcMap).Parse(serviceMonitorTemplate)
@@ -2123,23 +1795,16 @@ spec:
 
 	}
 
-
-
 	data := map[string]interface{}{
 
-		"Name":      genCtx.Intent.Name,
+		"Name": genCtx.Intent.Name,
 
 		"Namespace": genCtx.TargetNamespace,
-
 	}
-
-
 
 	return g.executeTemplate(tmpl, data)
 
 }
-
-
 
 // generateGrafanaDashboard generates Grafana dashboard configuration.
 
@@ -2219,8 +1884,6 @@ func (g *Generator) generateGrafanaDashboard(genCtx *GenerationContext) (string,
 
 }`
 
-
-
 	funcMap := sprig.TxtFuncMap()
 
 	tmpl, err := template.New("grafana-dashboard").Funcs(funcMap).Parse(dashboardTemplate)
@@ -2231,23 +1894,16 @@ func (g *Generator) generateGrafanaDashboard(genCtx *GenerationContext) (string,
 
 	}
 
-
-
 	data := map[string]interface{}{
 
-		"Name":  genCtx.Intent.Name,
+		"Name": genCtx.Intent.Name,
 
 		"Title": fmt.Sprintf("%s Dashboard", genCtx.Intent.Name),
-
 	}
-
-
 
 	return g.executeTemplate(tmpl, data)
 
 }
-
-
 
 // generateAlertRules generates Prometheus alert rules.
 
@@ -2309,8 +1965,6 @@ spec:
 
 `
 
-
-
 	funcMap := sprig.TxtFuncMap()
 
 	tmpl, err := template.New("alert-rules").Funcs(funcMap).Parse(alertRulesTemplate)
@@ -2321,23 +1975,16 @@ spec:
 
 	}
 
-
-
 	data := map[string]interface{}{
 
-		"Name":      genCtx.Intent.Name,
+		"Name": genCtx.Intent.Name,
 
 		"Namespace": genCtx.TargetNamespace,
-
 	}
-
-
 
 	return g.executeTemplate(tmpl, data)
 
 }
-
-
 
 // extractResources extracts resource requirements from deployment config.
 
@@ -2349,33 +1996,26 @@ func (g *Generator) extractResources(deployConfig map[string]interface{}) map[st
 
 	}
 
-
-
 	// Return default resource requirements
 
 	return map[string]interface{}{
 
 		"requests": map[string]string{
 
-			"cpu":    "100m",
+			"cpu": "100m",
 
 			"memory": "128Mi",
-
 		},
 
 		"limits": map[string]string{
 
-			"cpu":    "500m",
+			"cpu": "500m",
 
 			"memory": "512Mi",
-
 		},
-
 	}
 
 }
-
-
 
 // extractEnvironment extracts environment variables from deployment config.
 
@@ -2399,8 +2039,6 @@ func (g *Generator) extractEnvironment(deployConfig map[string]interface{}) []ma
 
 	}
 
-
-
 	// Return default environment variables
 
 	return []map[string]interface{}{
@@ -2408,12 +2046,9 @@ func (g *Generator) extractEnvironment(deployConfig map[string]interface{}) []ma
 		{"name": "LOG_LEVEL", "value": "info"},
 
 		{"name": "DEBUG", "value": "false"},
-
 	}
 
 }
-
-
 
 // buildAMFConfig builds AMF-specific configuration.
 
@@ -2421,20 +2056,19 @@ func (g *Generator) buildAMFConfig(genCtx *GenerationContext) map[string]interfa
 
 	config := map[string]interface{}{
 
-		"amfName":    fmt.Sprintf("%s-amf", genCtx.Intent.Name),
+		"amfName": fmt.Sprintf("%s-amf", genCtx.Intent.Name),
 
 		"ngapIpList": []string{"127.0.0.1"},
 
 		"sbi": map[string]interface{}{
 
-			"scheme":       "http",
+			"scheme": "http",
 
 			"registerIPv4": "127.0.0.1",
 
-			"bindingIPv4":  "0.0.0.0",
+			"bindingIPv4": "0.0.0.0",
 
-			"port":         8000,
-
+			"port": 8000,
 		},
 
 		"serviceNameList": []string{
@@ -2446,12 +2080,8 @@ func (g *Generator) buildAMFConfig(genCtx *GenerationContext) map[string]interfa
 			"namf-mt",
 
 			"namf-loc",
-
 		},
-
 	}
-
-
 
 	if genCtx.NetworkSlice != "" {
 
@@ -2459,13 +2089,9 @@ func (g *Generator) buildAMFConfig(genCtx *GenerationContext) map[string]interfa
 
 	}
 
-
-
 	return config
 
 }
-
-
 
 // buildSMFConfig builds SMF-specific configuration.
 
@@ -2477,14 +2103,13 @@ func (g *Generator) buildSMFConfig(genCtx *GenerationContext) map[string]interfa
 
 		"sbi": map[string]interface{}{
 
-			"scheme":       "http",
+			"scheme": "http",
 
 			"registerIPv4": "127.0.0.1",
 
-			"bindingIPv4":  "0.0.0.0",
+			"bindingIPv4": "0.0.0.0",
 
-			"port":         8000,
-
+			"port": 8000,
 		},
 
 		"serviceNameList": []string{
@@ -2492,14 +2117,10 @@ func (g *Generator) buildSMFConfig(genCtx *GenerationContext) map[string]interfa
 			"nsmf-pdusession",
 
 			"nsmf-event-exposure",
-
 		},
-
 	}
 
 }
-
-
 
 // buildUPFNetworkConfig builds UPF-specific network configuration.
 
@@ -2513,18 +2134,15 @@ func (g *Generator) buildUPFNetworkConfig(genCtx *GenerationContext) map[string]
 
 				{
 
-					"addr":   "127.0.0.8",
+					"addr": "127.0.0.8",
 
-					"type":   "N3",
+					"type": "N3",
 
-					"name":   "upf-n3",
+					"name": "upf-n3",
 
 					"ifname": "eth0",
-
 				},
-
 			},
-
 		},
 
 		"pfcp": map[string]interface{}{
@@ -2532,10 +2150,7 @@ func (g *Generator) buildUPFNetworkConfig(genCtx *GenerationContext) map[string]
 			"addr": "127.0.0.8",
 
 			"port": 8805,
-
 		},
-
 	}
 
 }
-

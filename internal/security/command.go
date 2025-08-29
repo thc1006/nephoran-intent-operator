@@ -1,137 +1,97 @@
-
 package security
 
-
-
 import (
-
 	"context"
-
 	"errors"
-
 	"fmt"
-
 	"os"
-
 	"os/exec"
-
 	"path/filepath"
-
 	"regexp"
-
 	"strings"
-
 	"syscall"
-
 	"time"
-
 )
-
-
 
 // SecureCommandExecutor provides hardened command execution with zero-trust controls.
 
 type SecureCommandExecutor struct {
-
 	allowedBinaries map[string]BinaryPolicy
 
-	maxTimeout      time.Duration
+	maxTimeout time.Duration
 
-	auditor         *CommandAuditor
-
+	auditor *CommandAuditor
 }
-
-
 
 // BinaryPolicy defines security policy for executable binaries.
 
 type BinaryPolicy struct {
-
-	AllowedPaths   []string
+	AllowedPaths []string
 
 	RequiredSigner string
 
-	MaxArgs        int
+	MaxArgs int
 
-	AllowedArgs    []string
+	AllowedArgs []string
 
-	ForbiddenArgs  []string
+	ForbiddenArgs []string
 
-	Environment    map[string]string
+	Environment map[string]string
 
-	Capabilities   []string
-
+	Capabilities []string
 }
-
-
 
 // CommandAuditor provides audit logging for command execution.
 
 type CommandAuditor struct {
-
 	logPath string
 
 	enabled bool
-
 }
-
-
 
 // SecureCommand represents a validated and sanitized command.
 
 type SecureCommand struct {
+	Binary string
 
-	Binary      string
-
-	Args        []string
+	Args []string
 
 	Environment []string
 
-	WorkingDir  string
+	WorkingDir string
 
-	Timeout     time.Duration
+	Timeout time.Duration
 
-	Policy      BinaryPolicy
-
+	Policy BinaryPolicy
 }
-
-
 
 // CommandResult contains execution results with security context.
 
 type CommandResult struct {
+	ExitCode int
 
-	ExitCode     int
+	Output []byte
 
-	Output       []byte
+	Error error
 
-	Error        error
-
-	Duration     time.Duration
+	Duration time.Duration
 
 	SecurityInfo SecurityExecutionInfo
-
 }
-
-
 
 // SecurityExecutionInfo contains security-related execution information.
 
 type SecurityExecutionInfo struct {
-
-	BinaryVerified     bool
+	BinaryVerified bool
 
 	ArgumentsSanitized bool
 
-	EnvironmentSecure  bool
+	EnvironmentSecure bool
 
-	ResourcesLimited   bool
+	ResourcesLimited bool
 
-	AuditLogged        bool
-
+	AuditLogged bool
 }
-
-
 
 // NewSecureCommandExecutor creates a new secure command executor.
 
@@ -145,21 +105,16 @@ func NewSecureCommandExecutor() (*SecureCommandExecutor, error) {
 
 	}
 
-
-
 	return &SecureCommandExecutor{
 
 		allowedBinaries: getDefaultBinaryPolicies(),
 
-		maxTimeout:      10 * time.Minute, // O-RAN WG11 recommended timeout
+		maxTimeout: 10 * time.Minute, // O-RAN WG11 recommended timeout
 
-		auditor:         auditor,
-
+		auditor: auditor,
 	}, nil
 
 }
-
-
 
 // ExecuteSecure executes a command with comprehensive security controls.
 
@@ -167,15 +122,10 @@ func (e *SecureCommandExecutor) ExecuteSecure(ctx context.Context, binaryName st
 
 	startTime := time.Now()
 
-
-
 	result := &CommandResult{
 
 		SecurityInfo: SecurityExecutionInfo{},
-
 	}
-
-
 
 	// 1. Binary validation and policy enforcement.
 
@@ -193,8 +143,6 @@ func (e *SecureCommandExecutor) ExecuteSecure(ctx context.Context, binaryName st
 
 	result.SecurityInfo.ArgumentsSanitized = true
 
-
-
 	// 2. Environment hardening.
 
 	if err := e.hardenEnvironment(secureCmd); err != nil {
@@ -207,15 +155,11 @@ func (e *SecureCommandExecutor) ExecuteSecure(ctx context.Context, binaryName st
 
 	result.SecurityInfo.EnvironmentSecure = true
 
-
-
 	// 3. Resource limiting.
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, secureCmd.Timeout)
 
 	defer cancel()
-
-
 
 	// 4. Command execution with security monitoring.
 
@@ -224,8 +168,6 @@ func (e *SecureCommandExecutor) ExecuteSecure(ctx context.Context, binaryName st
 	cmd.Dir = secureCmd.WorkingDir
 
 	cmd.Env = secureCmd.Environment
-
-
 
 	// Apply system-level security controls.
 
@@ -239,8 +181,6 @@ func (e *SecureCommandExecutor) ExecuteSecure(ctx context.Context, binaryName st
 
 	result.SecurityInfo.ResourcesLimited = true
 
-
-
 	// 5. Audit logging.
 
 	auditEntry := e.createAuditEntry(secureCmd, startTime)
@@ -249,8 +189,6 @@ func (e *SecureCommandExecutor) ExecuteSecure(ctx context.Context, binaryName st
 
 	result.SecurityInfo.AuditLogged = true
 
-
-
 	// 6. Execute command.
 
 	output, err := cmd.CombinedOutput()
@@ -258,8 +196,6 @@ func (e *SecureCommandExecutor) ExecuteSecure(ctx context.Context, binaryName st
 	result.Output = output
 
 	result.Duration = time.Since(startTime)
-
-
 
 	if err != nil {
 
@@ -280,8 +216,6 @@ func (e *SecureCommandExecutor) ExecuteSecure(ctx context.Context, binaryName st
 
 	}
 
-
-
 	// 7. Post-execution audit.
 
 	auditEntry.Duration = result.Duration
@@ -292,13 +226,9 @@ func (e *SecureCommandExecutor) ExecuteSecure(ctx context.Context, binaryName st
 
 	e.auditor.LogCompletion(auditEntry)
 
-
-
 	return result, nil
 
 }
-
-
 
 // validateAndPrepareCommand performs comprehensive validation and sanitization.
 
@@ -314,8 +244,6 @@ func (e *SecureCommandExecutor) validateAndPrepareCommand(binaryName string, arg
 
 	}
 
-
-
 	// Validate binary path.
 
 	binaryPath, err := e.validateBinaryPath(binaryName, policy)
@@ -325,8 +253,6 @@ func (e *SecureCommandExecutor) validateAndPrepareCommand(binaryName string, arg
 		return nil, fmt.Errorf("binary path validation failed: %w", err)
 
 	}
-
-
 
 	// Sanitize and validate arguments.
 
@@ -338,8 +264,6 @@ func (e *SecureCommandExecutor) validateAndPrepareCommand(binaryName string, arg
 
 	}
 
-
-
 	// Validate working directory.
 
 	cleanWorkingDir, err := e.validateWorkingDirectory(workingDir)
@@ -350,25 +274,20 @@ func (e *SecureCommandExecutor) validateAndPrepareCommand(binaryName string, arg
 
 	}
 
-
-
 	return &SecureCommand{
 
-		Binary:     binaryPath,
+		Binary: binaryPath,
 
-		Args:       sanitizedArgs,
+		Args: sanitizedArgs,
 
 		WorkingDir: cleanWorkingDir,
 
-		Timeout:    e.maxTimeout,
+		Timeout: e.maxTimeout,
 
-		Policy:     policy,
-
+		Policy: policy,
 	}, nil
 
 }
-
-
 
 // validateBinaryPath ensures binary is in allowed locations and signed.
 
@@ -384,8 +303,6 @@ func (e *SecureCommandExecutor) validateBinaryPath(binaryName string, policy Bin
 
 	}
 
-
-
 	// Get absolute path.
 
 	absBinaryPath, err := filepath.Abs(binaryPath)
@@ -395,8 +312,6 @@ func (e *SecureCommandExecutor) validateBinaryPath(binaryName string, policy Bin
 		return "", fmt.Errorf("failed to resolve absolute path: %w", err)
 
 	}
-
-
 
 	// Validate against allowed paths.
 
@@ -422,15 +337,11 @@ func (e *SecureCommandExecutor) validateBinaryPath(binaryName string, policy Bin
 
 	}
 
-
-
 	if !allowed {
 
 		return "", fmt.Errorf("binary %s not in allowed paths", absBinaryPath)
 
 	}
-
-
 
 	// Security checks for suspicious locations.
 
@@ -446,13 +357,9 @@ func (e *SecureCommandExecutor) validateBinaryPath(binaryName string, policy Bin
 
 	}
 
-
-
 	return absBinaryPath, nil
 
 }
-
-
 
 // sanitizeArguments validates and sanitizes command arguments.
 
@@ -464,11 +371,7 @@ func (e *SecureCommandExecutor) sanitizeArguments(args []string, policy BinaryPo
 
 	}
 
-
-
 	sanitized := make([]string, 0, len(args))
-
-
 
 	for _, arg := range args {
 
@@ -492,13 +395,9 @@ func (e *SecureCommandExecutor) sanitizeArguments(args []string, policy BinaryPo
 
 		}
 
-
-
 		// Sanitize argument.
 
 		clean := e.sanitizeArgument(arg)
-
-
 
 		// Validate against allowed patterns if specified.
 
@@ -534,19 +433,13 @@ func (e *SecureCommandExecutor) sanitizeArguments(args []string, policy BinaryPo
 
 		}
 
-
-
 		sanitized = append(sanitized, clean)
 
 	}
 
-
-
 	return sanitized, nil
 
 }
-
-
 
 // sanitizeArgument removes potential injection characters.
 
@@ -556,13 +449,9 @@ func (e *SecureCommandExecutor) sanitizeArgument(arg string) string {
 
 	clean := strings.ReplaceAll(arg, "\x00", "")
 
-
-
 	// Remove potentially dangerous characters for shell injection.
 
 	dangerousChars := []string{";", "&", "|", "`", "$", "(", ")", "{", "}", "[", "]", "<", ">", "\\", "\"", "'", "*", "?"}
-
-
 
 	for _, char := range dangerousChars {
 
@@ -570,13 +459,9 @@ func (e *SecureCommandExecutor) sanitizeArgument(arg string) string {
 
 	}
 
-
-
 	return clean
 
 }
-
-
 
 // validateWorkingDirectory ensures working directory is secure.
 
@@ -596,13 +481,9 @@ func (e *SecureCommandExecutor) validateWorkingDirectory(workingDir string) (str
 
 	}
 
-
-
 	// Clean and validate path.
 
 	clean := filepath.Clean(workingDir)
-
-
 
 	// Check for path traversal.
 
@@ -611,8 +492,6 @@ func (e *SecureCommandExecutor) validateWorkingDirectory(workingDir string) (str
 		return "", fmt.Errorf("working directory contains path traversal: %s", workingDir)
 
 	}
-
-
 
 	// Ensure directory exists.
 
@@ -626,13 +505,9 @@ func (e *SecureCommandExecutor) validateWorkingDirectory(workingDir string) (str
 
 	}
 
-
-
 	return clean, nil
 
 }
-
-
 
 // hardenEnvironment sets up secure environment variables.
 
@@ -651,10 +526,7 @@ func (e *SecureCommandExecutor) hardenEnvironment(cmd *SecureCommand) error {
 		"LANG=C",
 
 		"LC_ALL=C",
-
 	}
-
-
 
 	// Add policy-specific environment variables.
 
@@ -664,15 +536,11 @@ func (e *SecureCommandExecutor) hardenEnvironment(cmd *SecureCommand) error {
 
 	}
 
-
-
 	cmd.Environment = baseEnv
 
 	return nil
 
 }
-
-
 
 // applySecurityControls applies system-level security controls.
 
@@ -686,27 +554,19 @@ func (e *SecureCommandExecutor) applySecurityControls(cmd *exec.Cmd) error {
 
 	}
 
-
-
 	// Create new process group (Unix-like systems only).
 
 	// On Windows, process groups work differently and Setpgid is not available.
 
 	// TODO: Implement Windows-specific job object for process isolation.
 
-
-
 	// Additional Windows-specific security controls could be added here.
 
 	// For example, job objects for resource limiting.
 
-
-
 	return nil
 
 }
-
-
 
 // createAuditEntry creates an audit log entry for the command.
 
@@ -714,23 +574,20 @@ func (e *SecureCommandExecutor) createAuditEntry(cmd *SecureCommand, startTime t
 
 	return &CommandAuditEntry{
 
-		Timestamp:  startTime,
+		Timestamp: startTime,
 
-		Binary:     cmd.Binary,
+		Binary: cmd.Binary,
 
-		Args:       cmd.Args,
+		Args: cmd.Args,
 
 		WorkingDir: cmd.WorkingDir,
 
-		User:       os.Getenv("USER"),
+		User: os.Getenv("USER"),
 
-		PID:        os.Getpid(),
-
+		PID: os.Getpid(),
 	}
 
 }
-
-
 
 // getDefaultBinaryPolicies returns default security policies for allowed binaries.
 
@@ -751,7 +608,6 @@ func getDefaultBinaryPolicies() map[string]BinaryPolicy {
 				"*/bin/porch-direct",
 
 				"porch-direct.exe",
-
 			},
 
 			MaxArgs: 10,
@@ -760,7 +616,7 @@ func getDefaultBinaryPolicies() map[string]BinaryPolicy {
 
 				`^--package$`,
 
-				`^--.*$`,             // Allow all flag patterns for now, can be restricted later
+				`^--.*$`, // Allow all flag patterns for now, can be restricted later
 
 				`^[a-zA-Z0-9._/-]+$`, // Allow alphanumeric paths
 
@@ -768,19 +624,19 @@ func getDefaultBinaryPolicies() map[string]BinaryPolicy {
 
 			ForbiddenArgs: []string{
 
-				`;.*`,    // Command injection
+				`;.*`, // Command injection
 
-				`&.*`,    // Background execution
+				`&.*`, // Background execution
 
-				`\|.*`,   // Piping
+				`\|.*`, // Piping
 
-				`>.*`,    // Redirection
+				`>.*`, // Redirection
 
-				`<.*`,    // Input redirection
+				`<.*`, // Input redirection
 
-				`\$.*`,   // Variable expansion
+				`\$.*`, // Variable expansion
 
-				"`.*`",   // Command substitution
+				"`.*`", // Command substitution
 
 				`\(.*\)`, // Subshell execution
 
@@ -789,9 +645,7 @@ func getDefaultBinaryPolicies() map[string]BinaryPolicy {
 			Environment: map[string]string{
 
 				"PORCH_SECURE_MODE": "true",
-
 			},
-
 		},
 
 		"kpt": {
@@ -807,7 +661,6 @@ func getDefaultBinaryPolicies() map[string]BinaryPolicy {
 				"*/bin/kpt",
 
 				"kpt.exe",
-
 			},
 
 			MaxArgs: 20,
@@ -819,48 +672,38 @@ func getDefaultBinaryPolicies() map[string]BinaryPolicy {
 				`^--.*$`,
 
 				`^[a-zA-Z0-9._/-]+$`,
-
 			},
 
 			ForbiddenArgs: []string{
 
 				`;.*`, `&.*`, `\|.*`, `>.*`, `<.*`, `\$.*`, "`.*`", `\(.*\)`,
-
 			},
-
 		},
-
 	}
 
 }
 
-
-
 // CommandAuditEntry represents an audit log entry.
 
 type CommandAuditEntry struct {
+	Timestamp time.Time
 
-	Timestamp  time.Time
+	Binary string
 
-	Binary     string
-
-	Args       []string
+	Args []string
 
 	WorkingDir string
 
-	User       string
+	User string
 
-	PID        int
+	PID int
 
-	Duration   time.Duration
+	Duration time.Duration
 
-	ExitCode   int
+	ExitCode int
 
-	Success    bool
-
+	Success bool
 }
-
-
 
 // NewCommandAuditor creates a new command auditor.
 
@@ -871,12 +714,9 @@ func NewCommandAuditor() (*CommandAuditor, error) {
 		logPath: "./security-audit.log",
 
 		enabled: true,
-
 	}, nil
 
 }
-
-
 
 // LogExecution logs command execution start.
 
@@ -888,8 +728,6 @@ func (a *CommandAuditor) LogExecution(entry *CommandAuditEntry) {
 
 	}
 
-
-
 	// In a production system, this would write to secure audit logs.
 
 	// For now, we'll use structured logging.
@@ -897,8 +735,6 @@ func (a *CommandAuditor) LogExecution(entry *CommandAuditEntry) {
 	fmt.Printf("[AUDIT] Command execution started: %s %v\n", entry.Binary, entry.Args)
 
 }
-
-
 
 // LogCompletion logs command execution completion.
 
@@ -910,11 +746,8 @@ func (a *CommandAuditor) LogCompletion(entry *CommandAuditEntry) {
 
 	}
 
-
-
 	fmt.Printf("[AUDIT] Command execution completed: %s (exit: %d, duration: %v)\n",
 
 		entry.Binary, entry.ExitCode, entry.Duration)
 
 }
-

@@ -1,41 +1,21 @@
 // Package o2 implements helper methods and background services for resource lifecycle management.
 
-
 package o2
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sort"
-
 	"strconv"
-
 	"strings"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/google/uuid"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 
-
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 )
-
-
 
 // ResourceLifecycleConfig configures the resource lifecycle manager.
 
@@ -45,33 +25,27 @@ type ResourceLifecycleConfig struct {
 
 }
 
-
-
 // ResourceLifecycleManagerImpl implements ResourceLifecycleManager.
 
 type ResourceLifecycleManagerImpl struct {
+	config *ResourceLifecycleConfig
 
-	config         *ResourceLifecycleConfig
+	logger *logging.StructuredLogger
 
-	logger         *logging.StructuredLogger
+	mu sync.RWMutex
 
-	mu             sync.RWMutex
-
-	stateMutex     sync.RWMutex
+	stateMutex sync.RWMutex
 
 	resourceStates map[string]*ResourceState
 
 	operationQueue chan *ResourceOperation
 
-	metrics        *ResourceLifecycleMetrics
+	metrics *ResourceLifecycleMetrics
 
-	workers        int
+	workers int
 
-	stopCh         chan struct{}
-
+	stopCh chan struct{}
 }
-
-
 
 // NewResourceLifecycleManager creates a new resource lifecycle manager.
 
@@ -79,21 +53,16 @@ func NewResourceLifecycleManager(config *ResourceLifecycleConfig, logger *loggin
 
 	return &ResourceLifecycleManagerImpl{
 
-		config:         config,
+		config: config,
 
-		logger:         logger,
+		logger: logger,
 
 		resourceStates: make(map[string]*ResourceState),
-
 	}
 
 }
 
-
-
 // Helper methods for resource lifecycle operations.
-
-
 
 // generateResourceID generates a unique resource ID.
 
@@ -107,8 +76,6 @@ func (rlm *ResourceLifecycleManagerImpl) generateResourceID(provider, resourceTy
 
 }
 
-
-
 // generateOperationID generates a unique operation ID.
 
 func (rlm *ResourceLifecycleManagerImpl) generateOperationID() string {
@@ -117,8 +84,6 @@ func (rlm *ResourceLifecycleManagerImpl) generateOperationID() string {
 
 }
 
-
-
 // generateEventID generates a unique event ID.
 
 func (rlm *ResourceLifecycleManagerImpl) generateEventID() string {
@@ -126,8 +91,6 @@ func (rlm *ResourceLifecycleManagerImpl) generateEventID() string {
 	return fmt.Sprintf("evt-%s", uuid.New().String())
 
 }
-
-
 
 // generateBackupID generates a unique backup ID.
 
@@ -141,11 +104,7 @@ func (rlm *ResourceLifecycleManagerImpl) generateBackupID(resourceID string) str
 
 }
 
-
-
 // State management methods.
-
-
 
 // updateResourceState updates the resource state in memory.
 
@@ -155,15 +114,11 @@ func (rlm *ResourceLifecycleManagerImpl) updateResourceState(state *ResourceStat
 
 	defer rlm.stateMutex.Unlock()
 
-
-
 	rlm.resourceStates[state.ResourceID] = state
 
 	rlm.updateMetricsForResourceState(state)
 
 }
-
-
 
 // getResourceState retrieves the current state of a resource.
 
@@ -173,8 +128,6 @@ func (rlm *ResourceLifecycleManagerImpl) getResourceState(resourceID string) (*R
 
 	defer rlm.stateMutex.RUnlock()
 
-
-
 	state, exists := rlm.resourceStates[resourceID]
 
 	if !exists {
@@ -183,13 +136,9 @@ func (rlm *ResourceLifecycleManagerImpl) getResourceState(resourceID string) (*R
 
 	}
 
-
-
 	return state, nil
 
 }
-
-
 
 // updateMetricsForResourceState updates metrics for a resource state change.
 
@@ -199,11 +148,7 @@ func (rlm *ResourceLifecycleManagerImpl) updateMetricsForResourceState(state *Re
 
 }
 
-
-
 // Background processing methods.
-
-
 
 // startBackgroundProcessors starts background processing routines.
 
@@ -218,8 +163,6 @@ func (rlm *ResourceLifecycleManagerImpl) startBackgroundProcessors() {
 	}
 
 }
-
-
 
 // processOperations processes operations from the queue.
 
@@ -243,8 +186,6 @@ func (rlm *ResourceLifecycleManagerImpl) processOperations() {
 
 }
 
-
-
 // processOperation processes a single operation.
 
 func (rlm *ResourceLifecycleManagerImpl) processOperation(ctx context.Context, operation *ResourceOperation) {
@@ -257,8 +198,6 @@ func (rlm *ResourceLifecycleManagerImpl) processOperation(ctx context.Context, o
 
 }
 
-
-
 // Stub helper methods to satisfy interface requirements.
 
 func (rlm *ResourceLifecycleManagerImpl) getProviderAdapter(providerType string) (interface{}, error) {
@@ -267,15 +206,11 @@ func (rlm *ResourceLifecycleManagerImpl) getProviderAdapter(providerType string)
 
 }
 
-
-
 func (rlm *ResourceLifecycleManagerImpl) handleResourceOperation(ctx context.Context, operationType, resourceID string, request interface{}) (*OperationResult, error) {
 
 	return &OperationResult{Success: true}, nil
 
 }
-
-
 
 func (rlm *ResourceLifecycleManagerImpl) getResourceDependencies(resourceID string) []string {
 
@@ -283,15 +218,11 @@ func (rlm *ResourceLifecycleManagerImpl) getResourceDependencies(resourceID stri
 
 }
 
-
-
 func (rlm *ResourceLifecycleManagerImpl) getResourceDependents(resourceID string) []string {
 
 	return []string{}
 
 }
-
-
 
 // Sorting and filtering utilities.
 
@@ -300,8 +231,6 @@ func sortStrings(items []string) {
 	sort.Strings(items)
 
 }
-
-
 
 func filterByPattern(items []string, pattern string) []string {
 
@@ -321,15 +250,11 @@ func filterByPattern(items []string, pattern string) []string {
 
 }
 
-
-
 func parseResourceQuota(quotaStr string) (int, error) {
 
 	return strconv.Atoi(quotaStr)
 
 }
-
-
 
 func validateResourceSpec(spec interface{}) error {
 
@@ -343,8 +268,6 @@ func validateResourceSpec(spec interface{}) error {
 
 }
 
-
-
 func convertToRuntimeObject(obj interface{}) (runtime.Object, error) {
 
 	if runtimeObj, ok := obj.(runtime.Object); ok {
@@ -356,4 +279,3 @@ func convertToRuntimeObject(obj interface{}) (runtime.Object, error) {
 	return nil, fmt.Errorf("object is not a runtime.Object")
 
 }
-

@@ -1,33 +1,19 @@
 //go:build disable_rag
 
-
-
-
 package rag
 
-
-
 import (
-
 	"context"
-
 	"time"
-
 )
-
-
 
 // noOpRAGClient is a no-op implementation of RAGClient.
 
 // Used when the rag build tag is not enabled.
 
 type noOpRAGClient struct {
-
 	config *RAGClientConfig
-
 }
-
-
 
 // newRAGClientImpl creates a no-op RAG client.
 
@@ -36,8 +22,6 @@ func newRAGClientImpl(config *RAGClientConfig) RAGClient {
 	return &noOpRAGClient{config: config}
 
 }
-
-
 
 // Retrieve returns empty results for no-op implementation.
 
@@ -49,8 +33,6 @@ func (c *noOpRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, erro
 
 }
 
-
-
 // Initialize is a no-op for the no-op implementation.
 
 func (c *noOpRAGClient) Initialize(ctx context.Context) error {
@@ -61,8 +43,6 @@ func (c *noOpRAGClient) Initialize(ctx context.Context) error {
 
 }
 
-
-
 // ProcessIntent returns a no-op response.
 
 func (c *noOpRAGClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
@@ -71,8 +51,6 @@ func (c *noOpRAGClient) ProcessIntent(ctx context.Context, intent string) (strin
 
 }
 
-
-
 // IsHealthy always returns false for no-op client.
 
 func (c *noOpRAGClient) IsHealthy() bool {
@@ -80,8 +58,6 @@ func (c *noOpRAGClient) IsHealthy() bool {
 	return false
 
 }
-
-
 
 // Shutdown is a no-op for the no-op implementation.
 
@@ -102,8 +78,6 @@ func (c *noOpRAGClient) Health(ctx context.Context) (*HealthStatus, error) {
 	}, nil
 }
 
-
-
 // Close is a no-op for the no-op implementation.
 
 func (c *noOpRAGClient) Close() error {
@@ -114,8 +88,6 @@ func (c *noOpRAGClient) Close() error {
 
 }
 
-
-
 // Query returns empty results for no-op implementation.
 
 func (c *noOpRAGClient) Query(ctx context.Context, query string) ([]*Doc, error) {
@@ -125,4 +97,3 @@ func (c *noOpRAGClient) Query(ctx context.Context, query string) ([]*Doc, error)
 	return []*Doc{}, nil
 
 }
-

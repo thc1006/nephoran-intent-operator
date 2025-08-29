@@ -1,67 +1,40 @@
-
 package tests
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"log"
-
 	"os"
-
 	"path/filepath"
-
 	"testing"
-
 	"time"
 
-
-
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 	. "github.com/onsi/ginkgo/v2"
-
 	. "github.com/onsi/gomega"
 
 	"k8s.io/client-go/kubernetes/scheme"
-
 	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-
-
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 )
-
-
 
 // TestConfig holds configuration for the test suite.
 
 type TestConfig struct {
+	UseExistingCluster bool
 
-	UseExistingCluster       bool
+	CRDDirectoryPaths []string
 
-	CRDDirectoryPaths        []string
-
-	WebhookInstallOptions    envtest.WebhookInstallOptions
+	WebhookInstallOptions envtest.WebhookInstallOptions
 
 	AttachControlPlaneOutput bool
 
-	TestTimeout              time.Duration
-
+	TestTimeout time.Duration
 }
-
-
 
 // DefaultTestConfig returns a default test configuration.
 
@@ -74,38 +47,30 @@ func DefaultTestConfig() *TestConfig {
 		CRDDirectoryPaths: []string{
 
 			filepath.Join("..", "deployments", "crds"),
-
 		},
 
 		AttachControlPlaneOutput: false,
 
-		TestTimeout:              30 * time.Minute,
-
+		TestTimeout: 30 * time.Minute,
 	}
 
 }
 
-
-
 // TestSuite represents the complete test suite.
 
 type TestSuite struct {
+	Config *TestConfig
 
-	Config     *TestConfig
+	TestEnv *envtest.Environment
 
-	TestEnv    *envtest.Environment
-
-	K8sClient  client.Client
+	K8sClient client.Client
 
 	RestConfig *rest.Config
 
-	ctx        context.Context
+	ctx context.Context
 
-	cancel     context.CancelFunc
-
+	cancel context.CancelFunc
 }
-
-
 
 // NewTestSuite creates a new test suite with the given configuration.
 
@@ -117,17 +82,12 @@ func NewTestSuite(config *TestConfig) *TestSuite {
 
 	}
 
-
-
 	return &TestSuite{
 
 		Config: config,
-
 	}
 
 }
-
-
 
 // Setup initializes the test environment.
 
@@ -135,27 +95,20 @@ func (ts *TestSuite) Setup() error {
 
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
-
-
 	ts.ctx, ts.cancel = context.WithTimeout(context.Background(), ts.Config.TestTimeout)
-
-
 
 	By("bootstrapping test environment")
 
 	ts.TestEnv = &envtest.Environment{
 
-		CRDDirectoryPaths:     ts.Config.CRDDirectoryPaths,
+		CRDDirectoryPaths: ts.Config.CRDDirectoryPaths,
 
 		ErrorIfCRDPathMissing: false,
 
 		WebhookInstallOptions: ts.Config.WebhookInstallOptions,
 
-		UseExistingCluster:    &ts.Config.UseExistingCluster,
-
+		UseExistingCluster: &ts.Config.UseExistingCluster,
 	}
-
-
 
 	if ts.Config.AttachControlPlaneOutput {
 
@@ -173,8 +126,6 @@ func (ts *TestSuite) Setup() error {
 
 	}
 
-
-
 	var err error
 
 	ts.RestConfig, err = ts.TestEnv.Start()
@@ -185,8 +136,6 @@ func (ts *TestSuite) Setup() error {
 
 	}
 
-
-
 	err = nephoranv1.AddToScheme(scheme.Scheme)
 
 	if err != nil {
@@ -194,8 +143,6 @@ func (ts *TestSuite) Setup() error {
 		return fmt.Errorf("failed to add scheme: %v", err)
 
 	}
-
-
 
 	ts.K8sClient, err = client.New(ts.RestConfig, client.Options{Scheme: scheme.Scheme})
 
@@ -205,13 +152,9 @@ func (ts *TestSuite) Setup() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // Teardown cleans up the test environment.
 
@@ -222,8 +165,6 @@ func (ts *TestSuite) Teardown() error {
 		ts.cancel()
 
 	}
-
-
 
 	By("tearing down the test environment")
 
@@ -239,13 +180,9 @@ func (ts *TestSuite) Teardown() error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // RunAllTests runs all test suites.
 
@@ -255,20 +192,15 @@ func RunAllTests(t *testing.T) {
 
 	RegisterFailHandler(Fail)
 
-
-
 	// Run test suites in order.
 
 	RunSpecs(t, "Nephoran Intent Operator Comprehensive Test Suite")
 
 }
 
-
-
 // TestReporter interface for custom test reporting.
 
 type TestReporter interface {
-
 	BeforeSuite()
 
 	AfterSuite()
@@ -276,20 +208,13 @@ type TestReporter interface {
 	BeforeTest(testName string)
 
 	AfterTest(testName string, passed bool, duration time.Duration)
-
 }
-
-
 
 // JUnitReporter implements TestReporter for JUnit XML output.
 
 type JUnitReporter struct {
-
 	OutputFile string
-
 }
-
-
 
 // BeforeSuite performs beforesuite operation.
 
@@ -299,8 +224,6 @@ func (jr *JUnitReporter) BeforeSuite() {
 
 }
 
-
-
 // AfterSuite performs aftersuite operation.
 
 func (jr *JUnitReporter) AfterSuite() {
@@ -308,8 +231,6 @@ func (jr *JUnitReporter) AfterSuite() {
 	// Write JUnit XML to file.
 
 }
-
-
 
 // BeforeTest performs beforetest operation.
 
@@ -319,8 +240,6 @@ func (jr *JUnitReporter) BeforeTest(testName string) {
 
 }
 
-
-
 // AfterTest performs aftertest operation.
 
 func (jr *JUnitReporter) AfterTest(testName string, passed bool, duration time.Duration) {
@@ -329,29 +248,23 @@ func (jr *JUnitReporter) AfterTest(testName string, passed bool, duration time.D
 
 }
 
-
-
 // TestMetrics collects metrics during test execution.
 
 type TestMetrics struct {
+	TotalTests int
 
-	TotalTests      int
+	PassedTests int
 
-	PassedTests     int
+	FailedTests int
 
-	FailedTests     int
+	SkippedTests int
 
-	SkippedTests    int
-
-	TotalDuration   time.Duration
+	TotalDuration time.Duration
 
 	AverageDuration time.Duration
 
 	CoveragePercent float64
-
 }
-
-
 
 // Calculate performs calculate operation.
 
@@ -364,8 +277,6 @@ func (tm *TestMetrics) Calculate() {
 	}
 
 }
-
-
 
 // Print performs print operation.
 
@@ -391,21 +302,15 @@ func (tm *TestMetrics) Print() {
 
 }
 
-
-
 // TestExecutor manages test execution with metrics and reporting.
 
 type TestExecutor struct {
+	Config *TestConfig
 
-	Config    *TestConfig
-
-	Metrics   *TestMetrics
+	Metrics *TestMetrics
 
 	Reporters []TestReporter
-
 }
-
-
 
 // NewTestExecutor performs newtestexecutor operation.
 
@@ -413,17 +318,14 @@ func NewTestExecutor(config *TestConfig) *TestExecutor {
 
 	return &TestExecutor{
 
-		Config:    config,
+		Config: config,
 
-		Metrics:   &TestMetrics{},
+		Metrics: &TestMetrics{},
 
 		Reporters: make([]TestReporter, 0),
-
 	}
 
 }
-
-
 
 // AddReporter performs addreporter operation.
 
@@ -432,8 +334,6 @@ func (te *TestExecutor) AddReporter(reporter TestReporter) {
 	te.Reporters = append(te.Reporters, reporter)
 
 }
-
-
 
 // Execute performs execute operation.
 
@@ -447,23 +347,15 @@ func (te *TestExecutor) Execute() error {
 
 	}
 
-
-
 	startTime := time.Now()
-
-
 
 	// Execute tests (this would integrate with the actual test execution).
 
 	// For now, this is a placeholder for the test execution logic.
 
-
-
 	te.Metrics.TotalDuration = time.Since(startTime)
 
 	te.Metrics.Calculate()
-
-
 
 	// Notify reporters.
 
@@ -473,17 +365,11 @@ func (te *TestExecutor) Execute() error {
 
 	}
 
-
-
 	te.Metrics.Print()
-
-
 
 	return nil
 
 }
-
-
 
 // Coverage analysis helpers.
 
@@ -497,27 +383,19 @@ func AnalyzeCoverage(coverageFile string) (float64, error) {
 
 }
 
-
-
 // Performance benchmark helpers.
 
 func RunPerformanceBenchmarks() error {
 
 	log.Println("Running performance benchmarks...")
 
-
-
 	// This would execute the performance tests and collect metrics.
 
 	// The actual implementation would call the load test suites.
 
-
-
 	return nil
 
 }
-
-
 
 // Integration with CI/CD.
 
@@ -527,13 +405,9 @@ func GenerateTestReport(metrics *TestMetrics, outputDir string) error {
 
 	// This would create files in the output directory.
 
-
-
 	return nil
 
 }
-
-
 
 // Test environment validation.
 
@@ -549,13 +423,9 @@ func ValidateTestEnvironment() error {
 
 	// - Network connectivity (for integration tests).
 
-
-
 	return nil
 
 }
-
-
 
 // Main test runner function.
 
@@ -563,19 +433,13 @@ func RunTestSuite(testType string, verbose bool) error {
 
 	config := DefaultTestConfig()
 
-
-
 	if verbose {
 
 		config.AttachControlPlaneOutput = true
 
 	}
 
-
-
 	executor := NewTestExecutor(config)
-
-
 
 	// Add JUnit reporter for CI/CD integration.
 
@@ -584,14 +448,11 @@ func RunTestSuite(testType string, verbose bool) error {
 		junit := &JUnitReporter{
 
 			OutputFile: "test-results.xml",
-
 		}
 
 		executor.AddReporter(junit)
 
 	}
-
-
 
 	// Validate environment before running tests.
 
@@ -600,8 +461,6 @@ func RunTestSuite(testType string, verbose bool) error {
 		return fmt.Errorf("test environment validation failed: %v", err)
 
 	}
-
-
 
 	// Execute tests based on type.
 
@@ -638,4 +497,3 @@ func RunTestSuite(testType string, verbose bool) error {
 	}
 
 }
-

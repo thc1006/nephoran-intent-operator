@@ -1,59 +1,36 @@
-
 package helpers
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"os"
-
 	"os/exec"
-
 	"path/filepath"
-
 	"runtime"
-
 	"testing"
-
 	"time"
 
-
-
-	"github.com/stretchr/testify/require"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/internal/porch"
-
+	"github.com/stretchr/testify/require"
 )
-
-
 
 // CrossPlatformTestEnvironment provides a consistent testing environment across platforms.
 
 type CrossPlatformTestEnvironment struct {
-
-	TempDir    string
+	TempDir string
 
 	HandoffDir string
 
-	OutDir     string
+	OutDir string
 
-	StatusDir  string
+	StatusDir string
 
-	MockPorch  string
+	MockPorch string
 
 	BinaryPath string
 
-	t          *testing.T
-
+	t *testing.T
 }
-
-
 
 // NewCrossPlatformTestEnvironment creates a new test environment.
 
@@ -61,23 +38,18 @@ func NewCrossPlatformTestEnvironment(t *testing.T) *CrossPlatformTestEnvironment
 
 	tempDir := t.TempDir()
 
-
-
 	env := &CrossPlatformTestEnvironment{
 
-		TempDir:    tempDir,
+		TempDir: tempDir,
 
 		HandoffDir: filepath.Join(tempDir, "handoff"),
 
-		OutDir:     filepath.Join(tempDir, "out"),
+		OutDir: filepath.Join(tempDir, "out"),
 
-		StatusDir:  filepath.Join(tempDir, "status"),
+		StatusDir: filepath.Join(tempDir, "status"),
 
-		t:          t,
-
+		t: t,
 	}
-
-
 
 	// Create required directories.
 
@@ -87,13 +59,9 @@ func NewCrossPlatformTestEnvironment(t *testing.T) *CrossPlatformTestEnvironment
 
 	require.NoError(t, os.MkdirAll(env.StatusDir, 0755))
 
-
-
 	return env
 
 }
-
-
 
 // SetupMockPorch creates a mock porch executable with the specified behavior.
 
@@ -103,13 +71,10 @@ func (env *CrossPlatformTestEnvironment) SetupMockPorch(exitCode int, stdout, st
 
 		ExitCode: exitCode,
 
-		Stdout:   stdout,
+		Stdout: stdout,
 
-		Stderr:   stderr,
-
+		Stderr: stderr,
 	}
-
-
 
 	// Apply options.
 
@@ -119,19 +84,13 @@ func (env *CrossPlatformTestEnvironment) SetupMockPorch(exitCode int, stdout, st
 
 	}
 
-
-
 	mockPath, err := porch.CreateCrossPlatformMock(env.TempDir, mockOpts)
 
 	require.NoError(env.t, err)
 
-
-
 	env.MockPorch = mockPath
 
 }
-
-
 
 // SetupSimpleMockPorch creates a basic working mock porch.
 
@@ -141,8 +100,6 @@ func (env *CrossPlatformTestEnvironment) SetupSimpleMockPorch() {
 
 }
 
-
-
 // SetupFailingMockPorch creates a mock porch that fails.
 
 func (env *CrossPlatformTestEnvironment) SetupFailingMockPorch(exitCode int, errorMsg string) {
@@ -150,8 +107,6 @@ func (env *CrossPlatformTestEnvironment) SetupFailingMockPorch(exitCode int, err
 	env.SetupMockPorch(exitCode, "", errorMsg)
 
 }
-
-
 
 // BuildConductorLoop builds the conductor-loop binary for testing.
 
@@ -165,11 +120,7 @@ func (env *CrossPlatformTestEnvironment) BuildConductorLoop() {
 
 	}
 
-
-
 	env.BinaryPath = filepath.Join(env.TempDir, binaryName)
-
-
 
 	// Find the main package directory.
 
@@ -183,21 +134,15 @@ func (env *CrossPlatformTestEnvironment) BuildConductorLoop() {
 
 	}
 
-
-
 	cmd := exec.Command("go", "build", "-o", env.BinaryPath, ".")
 
 	cmd.Dir = mainDir
-
-
 
 	require.NoError(env.t, cmd.Run())
 
 	require.FileExists(env.t, env.BinaryPath)
 
 }
-
-
 
 // CreateIntentFile creates a test intent file.
 
@@ -211,8 +156,6 @@ func (env *CrossPlatformTestEnvironment) CreateIntentFile(filename, content stri
 
 }
 
-
-
 // RunConductorLoop executes the conductor-loop with the given arguments.
 
 func (env *CrossPlatformTestEnvironment) RunConductorLoop(ctx context.Context, args ...string) (*exec.Cmd, error) {
@@ -223,19 +166,13 @@ func (env *CrossPlatformTestEnvironment) RunConductorLoop(ctx context.Context, a
 
 	}
 
-
-
 	cmd := exec.CommandContext(ctx, env.BinaryPath, args...)
 
 	cmd.Dir = env.TempDir
 
-
-
 	return cmd, cmd.Run()
 
 }
-
-
 
 // RunConductorLoopWithOutput executes conductor-loop and captures output.
 
@@ -247,13 +184,9 @@ func (env *CrossPlatformTestEnvironment) RunConductorLoopWithOutput(ctx context.
 
 	}
 
-
-
 	cmd := exec.CommandContext(ctx, env.BinaryPath, args...)
 
 	cmd.Dir = env.TempDir
-
-
 
 	stdout, err := cmd.Output()
 
@@ -265,13 +198,9 @@ func (env *CrossPlatformTestEnvironment) RunConductorLoopWithOutput(ctx context.
 
 	}
 
-
-
 	return stdout, stderr, err
 
 }
-
-
 
 // GetDefaultArgs returns the default arguments for conductor-loop.
 
@@ -290,18 +219,13 @@ func (env *CrossPlatformTestEnvironment) GetDefaultArgs() []string {
 		"-once",
 
 		"-debounce", "10ms",
-
 	}
 
 }
 
-
-
 // MockPorchOption configures mock porch behavior.
 
 type MockPorchOption func(*porch.CrossPlatformMockOptions)
-
-
 
 // WithSleep adds a sleep delay to the mock porch.
 
@@ -315,8 +239,6 @@ func WithSleep(duration time.Duration) MockPorchOption {
 
 }
 
-
-
 // WithFailOnPattern makes the mock fail when a pattern is found.
 
 func WithFailOnPattern(pattern string) MockPorchOption {
@@ -328,8 +250,6 @@ func WithFailOnPattern(pattern string) MockPorchOption {
 	}
 
 }
-
-
 
 // WithCustomScript provides custom script content.
 
@@ -345,17 +265,11 @@ func WithCustomScript(windows, unix string) MockPorchOption {
 
 }
 
-
-
 // PlatformSpecificTestRunner runs tests with platform-specific behavior.
 
 type PlatformSpecificTestRunner struct {
-
 	t *testing.T
-
 }
-
-
 
 // NewPlatformSpecificTestRunner creates a new platform-specific test runner.
 
@@ -364,8 +278,6 @@ func NewPlatformSpecificTestRunner(t *testing.T) *PlatformSpecificTestRunner {
 	return &PlatformSpecificTestRunner{t: t}
 
 }
-
-
 
 // RunOnWindows runs the test function only on Windows.
 
@@ -383,8 +295,6 @@ func (r *PlatformSpecificTestRunner) RunOnWindows(testFunc func()) {
 
 }
 
-
-
 // RunOnUnix runs the test function only on Unix-like systems.
 
 func (r *PlatformSpecificTestRunner) RunOnUnix(testFunc func()) {
@@ -400,8 +310,6 @@ func (r *PlatformSpecificTestRunner) RunOnUnix(testFunc func()) {
 	}
 
 }
-
-
 
 // RunOnLinux runs the test function only on Linux.
 
@@ -419,8 +327,6 @@ func (r *PlatformSpecificTestRunner) RunOnLinux(testFunc func()) {
 
 }
 
-
-
 // RunOnMacOS runs the test function only on macOS.
 
 func (r *PlatformSpecificTestRunner) RunOnMacOS(testFunc func()) {
@@ -437,17 +343,11 @@ func (r *PlatformSpecificTestRunner) RunOnMacOS(testFunc func()) {
 
 }
 
-
-
 // CrossPlatformAssertions provides platform-aware assertions.
 
 type CrossPlatformAssertions struct {
-
 	t *testing.T
-
 }
-
-
 
 // NewCrossPlatformAssertions creates a new cross-platform assertion helper.
 
@@ -456,8 +356,6 @@ func NewCrossPlatformAssertions(t *testing.T) *CrossPlatformAssertions {
 	return &CrossPlatformAssertions{t: t}
 
 }
-
-
 
 // AssertExecutableExists verifies an executable exists with the correct extension.
 
@@ -489,8 +387,6 @@ func (a *CrossPlatformAssertions) AssertExecutableExists(path string) {
 
 		require.FileExists(a.t, path)
 
-
-
 		// On Unix, also check if it's executable.
 
 		info, err := os.Stat(path)
@@ -503,8 +399,6 @@ func (a *CrossPlatformAssertions) AssertExecutableExists(path string) {
 
 }
 
-
-
 // AssertScriptWorks verifies a script can be executed.
 
 func (a *CrossPlatformAssertions) AssertScriptWorks(scriptPath string) {
@@ -513,8 +407,6 @@ func (a *CrossPlatformAssertions) AssertScriptWorks(scriptPath string) {
 
 	defer cancel()
 
-
-
 	cmd := exec.CommandContext(ctx, scriptPath, "--help")
 
 	err := cmd.Run()
@@ -522,8 +414,6 @@ func (a *CrossPlatformAssertions) AssertScriptWorks(scriptPath string) {
 	require.NoError(a.t, err, "Script failed to execute: %s", scriptPath)
 
 }
-
-
 
 // CreateTestIntent returns a sample intent for testing.
 
@@ -553,8 +443,6 @@ func CreateTestIntent(action string, replicas int) string {
 
 }
 
-
-
 // CreateMinimalIntent returns a minimal intent for testing.
 
 func CreateMinimalIntent() string {
@@ -562,8 +450,6 @@ func CreateMinimalIntent() string {
 	return `{"action": "scale", "target": "deployment/test", "replicas": 1}`
 
 }
-
-
 
 // CreateComplexIntent returns a complex intent for testing.
 
@@ -634,4 +520,3 @@ func CreateComplexIntent() string {
 }`
 
 }
-

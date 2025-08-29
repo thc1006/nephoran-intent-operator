@@ -6,30 +6,19 @@ package backends
 
 import (
 	"bytes"
-
 	"context"
-
 	"crypto/tls"
-
 	"encoding/json"
-
 	"fmt"
-
 	"io"
-
 	"net/http"
-
 	"sync/atomic"
-
 	"time"
 
 	"github.com/go-logr/logr"
-
-	"github.com/prometheus/client_golang/prometheus"
-
-	"github.com/prometheus/client_golang/prometheus/promauto"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/types"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )

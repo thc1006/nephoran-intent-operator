@@ -2,48 +2,30 @@
 
 // with comprehensive webhook integrations and multi-format report generation.
 
-
 package reporting
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"html/template"
-
 	"time"
 
-
-
 	"github.com/prometheus/client_golang/api"
-
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-
 	"github.com/prometheus/common/model"
-
 )
-
-
 
 // PerformanceReporter handles automated performance reporting and notifications.
 
 type PerformanceReporter struct {
-
 	prometheusClient v1.API
 
-	config           *ReporterConfig
+	config *ReporterConfig
 
-	webhooks         []WebhookConfig
+	webhooks []WebhookConfig
 
-	templates        map[string]*template.Template
-
+	templates map[string]*template.Template
 }
-
-
 
 // ReporterConfig contains configuration for the performance reporter.
 
@@ -51,111 +33,87 @@ type ReporterConfig struct {
 
 	// Report generation settings.
 
-	ReportInterval   time.Duration `yaml:"reportInterval"`
+	ReportInterval time.Duration `yaml:"reportInterval"`
 
 	MetricsRetention time.Duration `yaml:"metricsRetention"`
 
-	OutputFormats    []string      `yaml:"outputFormats"` // html, json, pdf, slack
-
-
+	OutputFormats []string `yaml:"outputFormats"` // html, json, pdf, slack
 
 	// Performance thresholds.
 
 	Thresholds PerformanceThresholds `yaml:"thresholds"`
 
-
-
 	// Notification settings.
 
 	Notifications NotificationConfig `yaml:"notifications"`
 
-
-
 	// Storage settings.
 
 	Storage StorageConfig `yaml:"storage"`
-
 }
-
-
 
 // PerformanceThresholds defines the performance claim thresholds.
 
 type PerformanceThresholds struct {
-
 	IntentProcessingLatencyP95 float64 `yaml:"intentProcessingLatencyP95"` // 2.0 seconds
 
-	ConcurrentUserCapacity     int     `yaml:"concurrentUserCapacity"`     // 200 users
+	ConcurrentUserCapacity int `yaml:"concurrentUserCapacity"` // 200 users
 
-	ThroughputTarget           float64 `yaml:"throughputTarget"`           // 45 intents/min
+	ThroughputTarget float64 `yaml:"throughputTarget"` // 45 intents/min
 
-	ServiceAvailability        float64 `yaml:"serviceAvailability"`        // 99.95%
+	ServiceAvailability float64 `yaml:"serviceAvailability"` // 99.95%
 
-	RAGLatencyP95              float64 `yaml:"ragLatencyP95"`              // 0.2 seconds
+	RAGLatencyP95 float64 `yaml:"ragLatencyP95"` // 0.2 seconds
 
-	CacheHitRate               float64 `yaml:"cacheHitRate"`               // 87%
+	CacheHitRate float64 `yaml:"cacheHitRate"` // 87%
 
 }
-
-
 
 // NotificationConfig defines notification settings.
 
 type NotificationConfig struct {
+	Enabled bool `yaml:"enabled"`
 
-	Enabled    bool                `yaml:"enabled"`
-
-	Channels   []string            `yaml:"channels"` // slack, email, webhook, pagerduty
+	Channels []string `yaml:"channels"` // slack, email, webhook, pagerduty
 
 	Recipients map[string][]string `yaml:"recipients"`
 
-	Templates  map[string]string   `yaml:"templates"`
-
+	Templates map[string]string `yaml:"templates"`
 }
-
-
 
 // StorageConfig defines where reports are stored.
 
 type StorageConfig struct {
+	LocalPath string `yaml:"localPath"`
 
-	LocalPath     string `yaml:"localPath"`
+	S3Bucket string `yaml:"s3Bucket"`
 
-	S3Bucket      string `yaml:"s3Bucket"`
+	GCSBucket string `yaml:"gcsBucket"`
 
-	GCSBucket     string `yaml:"gcsBucket"`
-
-	RetentionDays int    `yaml:"retentionDays"`
-
+	RetentionDays int `yaml:"retentionDays"`
 }
-
-
 
 // WebhookConfig defines webhook endpoint configuration.
 
 type WebhookConfig struct {
+	Name string `yaml:"name"`
 
-	Name      string            `yaml:"name"`
+	URL string `yaml:"url"`
 
-	URL       string            `yaml:"url"`
+	Method string `yaml:"method"`
 
-	Method    string            `yaml:"method"`
+	Headers map[string]string `yaml:"headers"`
 
-	Headers   map[string]string `yaml:"headers"`
+	Format string `yaml:"format"` // json, slack, teams, custom
 
-	Format    string            `yaml:"format"` // json, slack, teams, custom
+	Enabled bool `yaml:"enabled"`
 
-	Enabled   bool              `yaml:"enabled"`
+	Retries int `yaml:"retries"`
 
-	Retries   int               `yaml:"retries"`
-
-	Timeout   time.Duration     `yaml:"timeout"`
+	Timeout time.Duration `yaml:"timeout"`
 
 	Templates map[string]string `yaml:"templates"`
-
 }
-
-
 
 // PerformanceReport represents a comprehensive performance report.
 
@@ -163,276 +121,222 @@ type PerformanceReport struct {
 
 	// Report metadata.
 
-	ID          string    `json:"id"`
+	ID string `json:"id"`
 
-	Timestamp   time.Time `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp"`
 
-	Period      string    `json:"period"`
+	Period string `json:"period"`
 
-	Environment string    `json:"environment"`
+	Environment string `json:"environment"`
 
-	Version     string    `json:"version"`
-
-
+	Version string `json:"version"`
 
 	// Executive summary.
 
 	ExecutiveSummary ExecutiveSummary `json:"executiveSummary"`
 
-
-
 	// Performance claims validation.
 
 	PerformanceClaims []ClaimValidation `json:"performanceClaims"`
-
-
 
 	// Detailed metrics.
 
 	Metrics PerformanceMetrics `json:"metrics"`
 
-
-
 	// Statistical analysis.
 
 	StatisticalAnalysis StatisticalAnalysis `json:"statisticalAnalysis"`
-
-
 
 	// Regression analysis.
 
 	RegressionAnalysis RegressionAnalysis `json:"regressionAnalysis"`
 
-
-
 	// Capacity analysis.
 
 	CapacityAnalysis CapacityAnalysis `json:"capacityAnalysis"`
-
-
 
 	// Business impact.
 
 	BusinessImpact BusinessImpact `json:"businessImpact"`
 
-
-
 	// Recommendations.
 
 	Recommendations []Recommendation `json:"recommendations"`
 
-
-
 	// Alerts summary.
 
 	AlertsSummary AlertsSummary `json:"alertsSummary"`
-
 }
-
-
 
 // ExecutiveSummary provides high-level performance overview.
 
 type ExecutiveSummary struct {
+	OverallScore float64 `json:"overallScore"` // 0-100%
 
-	OverallScore       float64  `json:"overallScore"`     // 0-100%
+	PerformanceGrade string `json:"performanceGrade"` // A, B, C, D, F
 
-	PerformanceGrade   string   `json:"performanceGrade"` // A, B, C, D, F
+	SLACompliance float64 `json:"slaCompliance"` // 0-100%
 
-	SLACompliance      float64  `json:"slaCompliance"`    // 0-100%
+	SystemHealth string `json:"systemHealth"` // Excellent, Good, Fair, Poor, Critical
 
-	SystemHealth       string   `json:"systemHealth"`     // Excellent, Good, Fair, Poor, Critical
+	KeyHighlights []string `json:"keyHighlights"`
 
-	KeyHighlights      []string `json:"keyHighlights"`
+	CriticalIssues []string `json:"criticalIssues"`
 
-	CriticalIssues     []string `json:"criticalIssues"`
-
-	TrendDirection     string   `json:"trendDirection"` // Improving, Stable, Degrading
+	TrendDirection string `json:"trendDirection"` // Improving, Stable, Degrading
 
 	RecommendedActions []string `json:"recommendedActions"`
-
 }
-
-
 
 // ClaimValidation represents validation status of a performance claim.
 
 type ClaimValidation struct {
+	ID string `json:"id"`
 
-	ID           string     `json:"id"`
+	Name string `json:"name"`
 
-	Name         string     `json:"name"`
+	Target string `json:"target"`
 
-	Target       string     `json:"target"`
+	Actual string `json:"actual"`
 
-	Actual       string     `json:"actual"`
+	Status string `json:"status"` // PASS, FAIL, WARNING
 
-	Status       string     `json:"status"`     // PASS, FAIL, WARNING
+	Confidence float64 `json:"confidence"` // 0-100%
 
-	Confidence   float64    `json:"confidence"` // 0-100%
+	Trend string `json:"trend"` // Improving, Stable, Degrading
 
-	Trend        string     `json:"trend"`      // Improving, Stable, Degrading
+	LastFailure *time.Time `json:"lastFailure,omitempty"`
 
-	LastFailure  *time.Time `json:"lastFailure,omitempty"`
-
-	FailureCount int        `json:"failureCount"`
-
+	FailureCount int `json:"failureCount"`
 }
-
-
 
 // PerformanceMetrics contains detailed performance data.
 
 type PerformanceMetrics struct {
-
 	IntentProcessing IntentProcessingMetrics `json:"intentProcessing"`
 
-	RAGSystem        RAGSystemMetrics        `json:"ragSystem"`
+	RAGSystem RAGSystemMetrics `json:"ragSystem"`
 
-	CacheSystem      CacheSystemMetrics      `json:"cacheSystem"`
+	CacheSystem CacheSystemMetrics `json:"cacheSystem"`
 
-	ResourceUsage    ResourceUsageMetrics    `json:"resourceUsage"`
+	ResourceUsage ResourceUsageMetrics `json:"resourceUsage"`
 
-	NetworkMetrics   NetworkMetrics          `json:"networkMetrics"`
-
+	NetworkMetrics NetworkMetrics `json:"networkMetrics"`
 }
-
-
 
 // IntentProcessingMetrics contains intent processing performance data.
 
 type IntentProcessingMetrics struct {
+	LatencyP50 float64 `json:"latencyP50"`
 
-	LatencyP50       float64 `json:"latencyP50"`
+	LatencyP95 float64 `json:"latencyP95"`
 
-	LatencyP95       float64 `json:"latencyP95"`
+	LatencyP99 float64 `json:"latencyP99"`
 
-	LatencyP99       float64 `json:"latencyP99"`
+	Throughput float64 `json:"throughput"` // requests/min
 
-	Throughput       float64 `json:"throughput"` // requests/min
+	ErrorRate float64 `json:"errorRate"` // percentage
 
-	ErrorRate        float64 `json:"errorRate"`  // percentage
+	ConcurrentUsers int `json:"concurrentUsers"`
 
-	ConcurrentUsers  int     `json:"concurrentUsers"`
-
-	SuccessRate      float64 `json:"successRate"`      // percentage
+	SuccessRate float64 `json:"successRate"` // percentage
 
 	AverageQueueTime float64 `json:"averageQueueTime"` // seconds
 
 }
 
-
-
 // RAGSystemMetrics contains RAG system performance data.
 
 type RAGSystemMetrics struct {
-
 	RetrievalLatencyP50 float64 `json:"retrievalLatencyP50"`
 
 	RetrievalLatencyP95 float64 `json:"retrievalLatencyP95"`
 
-	ContextAccuracy     float64 `json:"contextAccuracy"` // percentage
+	ContextAccuracy float64 `json:"contextAccuracy"` // percentage
 
-	DocumentsIndexed    int64   `json:"documentsIndexed"`
+	DocumentsIndexed int64 `json:"documentsIndexed"`
 
-	QueriesPerSecond    float64 `json:"queriesPerSecond"`
+	QueriesPerSecond float64 `json:"queriesPerSecond"`
 
-	EmbeddingLatency    float64 `json:"embeddingLatency"` // seconds
+	EmbeddingLatency float64 `json:"embeddingLatency"` // seconds
 
 }
-
-
 
 // CacheSystemMetrics contains cache performance data.
 
 type CacheSystemMetrics struct {
+	HitRate float64 `json:"hitRate"` // percentage
 
-	HitRate        float64 `json:"hitRate"`        // percentage
-
-	MissRate       float64 `json:"missRate"`       // percentage
+	MissRate float64 `json:"missRate"` // percentage
 
 	AverageLatency float64 `json:"averageLatency"` // ms
 
-	CacheSize      int64   `json:"cacheSize"`      // bytes
+	CacheSize int64 `json:"cacheSize"` // bytes
 
-	EvictionRate   float64 `json:"evictionRate"`   // evictions/sec
+	EvictionRate float64 `json:"evictionRate"` // evictions/sec
 
-	HitLatency     float64 `json:"hitLatency"`     // ms
+	HitLatency float64 `json:"hitLatency"` // ms
 
-	MissLatency    float64 `json:"missLatency"`    // ms
+	MissLatency float64 `json:"missLatency"` // ms
 
 }
-
-
 
 // ResourceUsageMetrics contains system resource usage data.
 
 type ResourceUsageMetrics struct {
-
-	CPUUtilization    float64 `json:"cpuUtilization"`    // percentage
+	CPUUtilization float64 `json:"cpuUtilization"` // percentage
 
 	MemoryUtilization float64 `json:"memoryUtilization"` // percentage
 
-	DiskUtilization   float64 `json:"diskUtilization"`   // percentage
+	DiskUtilization float64 `json:"diskUtilization"` // percentage
 
-	NetworkBandwidth  float64 `json:"networkBandwidth"`  // Mbps
+	NetworkBandwidth float64 `json:"networkBandwidth"` // Mbps
 
-	FileDescriptors   int64   `json:"fileDescriptors"`
+	FileDescriptors int64 `json:"fileDescriptors"`
 
-	GoroutineCount    int64   `json:"goroutineCount"`
+	GoroutineCount int64 `json:"goroutineCount"`
 
-	HeapSize          int64   `json:"heapSize"` // bytes
+	HeapSize int64 `json:"heapSize"` // bytes
 
 }
-
-
 
 // NetworkMetrics contains network performance data.
 
 type NetworkMetrics struct {
+	Latency float64 `json:"latency"` // ms
 
-	Latency           float64 `json:"latency"`    // ms
+	Throughput float64 `json:"throughput"` // Mbps
 
-	Throughput        float64 `json:"throughput"` // Mbps
+	PacketLoss float64 `json:"packetLoss"` // percentage
 
-	PacketLoss        float64 `json:"packetLoss"` // percentage
+	ConnectionCount int64 `json:"connectionCount"`
 
-	ConnectionCount   int64   `json:"connectionCount"`
+	ActiveConnections int64 `json:"activeConnections"`
 
-	ActiveConnections int64   `json:"activeConnections"`
-
-	ConnectionErrors  int64   `json:"connectionErrors"`
-
+	ConnectionErrors int64 `json:"connectionErrors"`
 }
-
-
 
 // StatisticalAnalysis contains statistical validation results.
 
 type StatisticalAnalysis struct {
+	ConfidenceLevel float64 `json:"confidenceLevel"` // percentage
 
-	ConfidenceLevel     float64                       `json:"confidenceLevel"` // percentage
+	SampleSize int64 `json:"sampleSize"`
 
-	SampleSize          int64                         `json:"sampleSize"`
+	PValue float64 `json:"pValue"`
 
-	PValue              float64                       `json:"pValue"`
+	EffectSize float64 `json:"effectSize"`
 
-	EffectSize          float64                       `json:"effectSize"`
+	StatisticalPower float64 `json:"statisticalPower"` // percentage
 
-	StatisticalPower    float64                       `json:"statisticalPower"` // percentage
-
-	NormalityTest       bool                          `json:"normalityTest"`    // passed
+	NormalityTest bool `json:"normalityTest"` // passed
 
 	ConfidenceIntervals map[string]ConfidenceInterval `json:"confidenceIntervals"`
-
 }
-
-
 
 // ConfidenceInterval represents statistical confidence intervals.
 
 type ConfidenceInterval struct {
-
 	Lower float64 `json:"lower"`
 
 	Upper float64 `json:"upper"`
@@ -441,191 +345,154 @@ type ConfidenceInterval struct {
 
 }
 
-
-
 // RegressionAnalysis contains regression detection results.
 
 type RegressionAnalysis struct {
+	RegressionDetected bool `json:"regressionDetected"`
 
-	RegressionDetected bool               `json:"regressionDetected"`
+	RegressionSeverity string `json:"regressionSeverity"` // Low, Medium, High, Critical
 
-	RegressionSeverity string             `json:"regressionSeverity"` // Low, Medium, High, Critical
-
-	PerformanceChange  map[string]float64 `json:"performanceChange"`  // metric -> percentage change
+	PerformanceChange map[string]float64 `json:"performanceChange"` // metric -> percentage change
 
 	BaselineComparison BaselineComparison `json:"baselineComparison"`
 
-	TrendAnalysis      TrendAnalysis      `json:"trendAnalysis"`
-
+	TrendAnalysis TrendAnalysis `json:"trendAnalysis"`
 }
-
-
 
 // BaselineComparison compares current performance to baseline.
 
 type BaselineComparison struct {
+	BaselinePeriod string `json:"baselinePeriod"`
 
-	BaselinePeriod     string             `json:"baselinePeriod"`
+	BaselineMetrics map[string]float64 `json:"baselineMetrics"`
 
-	BaselineMetrics    map[string]float64 `json:"baselineMetrics"`
+	CurrentMetrics map[string]float64 `json:"currentMetrics"`
 
-	CurrentMetrics     map[string]float64 `json:"currentMetrics"`
+	PercentageChanges map[string]float64 `json:"percentageChanges"`
 
-	PercentageChanges  map[string]float64 `json:"percentageChanges"`
-
-	SignificantChanges []string           `json:"significantChanges"`
-
+	SignificantChanges []string `json:"significantChanges"`
 }
-
-
 
 // TrendAnalysis provides trend analysis over multiple time periods.
 
 type TrendAnalysis struct {
-
-	ShortTerm  TrendData `json:"shortTerm"`  // 1 hour
+	ShortTerm TrendData `json:"shortTerm"` // 1 hour
 
 	MediumTerm TrendData `json:"mediumTerm"` // 24 hours
 
-	LongTerm   TrendData `json:"longTerm"`   // 7 days
+	LongTerm TrendData `json:"longTerm"` // 7 days
 
 }
-
-
 
 // TrendData represents trend information for a specific time period.
 
 type TrendData struct {
+	Period string `json:"period"`
 
-	Period       string  `json:"period"`
+	Direction string `json:"direction"` // Improving, Stable, Degrading
 
-	Direction    string  `json:"direction"`    // Improving, Stable, Degrading
+	ChangeRate float64 `json:"changeRate"` // percentage change
 
-	ChangeRate   float64 `json:"changeRate"`   // percentage change
+	Significance string `json:"significance"` // High, Medium, Low
 
-	Significance string  `json:"significance"` // High, Medium, Low
-
-	Prediction   string  `json:"prediction"`   // Future trend prediction
+	Prediction string `json:"prediction"` // Future trend prediction
 
 }
-
-
 
 // CapacityAnalysis provides capacity planning insights.
 
 type CapacityAnalysis struct {
+	CurrentCapacity float64 `json:"currentCapacity"` // percentage
 
-	CurrentCapacity        float64                 `json:"currentCapacity"` // percentage
+	PeakCapacity float64 `json:"peakCapacity"` // percentage
 
-	PeakCapacity           float64                 `json:"peakCapacity"`    // percentage
+	CapacityTrend string `json:"capacityTrend"` // Increasing, Stable, Decreasing
 
-	CapacityTrend          string                  `json:"capacityTrend"`   // Increasing, Stable, Decreasing
-
-	EstimatedExhaustion    *time.Time              `json:"estimatedExhaustion,omitempty"`
+	EstimatedExhaustion *time.Time `json:"estimatedExhaustion,omitempty"`
 
 	ScalingRecommendations []ScalingRecommendation `json:"scalingRecommendations"`
 
-	ResourceBottlenecks    []ResourceBottleneck    `json:"resourceBottlenecks"`
-
+	ResourceBottlenecks []ResourceBottleneck `json:"resourceBottlenecks"`
 }
-
-
 
 // ScalingRecommendation provides scaling guidance.
 
 type ScalingRecommendation struct {
+	Component string `json:"component"`
 
-	Component       string  `json:"component"`
+	Action string `json:"action"` // Scale Up, Scale Down, Optimize
 
-	Action          string  `json:"action"`   // Scale Up, Scale Down, Optimize
+	Priority string `json:"priority"` // High, Medium, Low
 
-	Priority        string  `json:"priority"` // High, Medium, Low
+	Timeline string `json:"timeline"` // Immediate, Short-term, Long-term
 
-	Timeline        string  `json:"timeline"` // Immediate, Short-term, Long-term
+	EstimatedCost float64 `json:"estimatedCost"`
 
-	EstimatedCost   float64 `json:"estimatedCost"`
-
-	ExpectedBenefit string  `json:"expectedBenefit"`
-
+	ExpectedBenefit string `json:"expectedBenefit"`
 }
-
-
 
 // ResourceBottleneck identifies performance bottlenecks.
 
 type ResourceBottleneck struct {
-
-	Resource    string  `json:"resource"`    // CPU, Memory, Network, Disk
+	Resource string `json:"resource"` // CPU, Memory, Network, Disk
 
 	Utilization float64 `json:"utilization"` // percentage
 
-	Impact      string  `json:"impact"`      // High, Medium, Low
+	Impact string `json:"impact"` // High, Medium, Low
 
-	Mitigation  string  `json:"mitigation"`  // Recommended action
+	Mitigation string `json:"mitigation"` // Recommended action
 
 }
-
-
 
 // AlertsSummary provides alert analysis.
 
 type AlertsSummary struct {
+	TotalAlerts int `json:"totalAlerts"`
 
-	TotalAlerts       int            `json:"totalAlerts"`
+	CriticalAlerts int `json:"criticalAlerts"`
 
-	CriticalAlerts    int            `json:"criticalAlerts"`
+	WarningAlerts int `json:"warningAlerts"`
 
-	WarningAlerts     int            `json:"warningAlerts"`
-
-	ResolvedAlerts    int            `json:"resolvedAlerts"`
+	ResolvedAlerts int `json:"resolvedAlerts"`
 
 	AlertsByComponent map[string]int `json:"alertsByComponent"`
 
-	AlertTrends       AlertTrends    `json:"alertTrends"`
+	AlertTrends AlertTrends `json:"alertTrends"`
 
-	TopAlerts         []AlertInfo    `json:"topAlerts"`
+	TopAlerts []AlertInfo `json:"topAlerts"`
 
-	MTTR              float64        `json:"mttr"` // Mean Time To Resolution (minutes)
+	MTTR float64 `json:"mttr"` // Mean Time To Resolution (minutes)
 
 }
-
-
 
 // AlertTrends shows alert trending information.
 
 type AlertTrends struct {
-
 	HourlyTrend []int `json:"hourlyTrend"` // Alerts per hour for last 24 hours
 
-	DailyTrend  []int `json:"dailyTrend"`  // Alerts per day for last 7 days
+	DailyTrend []int `json:"dailyTrend"` // Alerts per day for last 7 days
 
 	WeeklyTrend []int `json:"weeklyTrend"` // Alerts per week for last 4 weeks
 
 }
 
-
-
 // AlertInfo provides detailed alert information.
 
 type AlertInfo struct {
+	Name string `json:"name"`
 
-	Name        string        `json:"name"`
+	Severity string `json:"severity"`
 
-	Severity    string        `json:"severity"`
+	Component string `json:"component"`
 
-	Component   string        `json:"component"`
+	Count int `json:"count"`
 
-	Count       int           `json:"count"`
+	LastFired time.Time `json:"lastFired"`
 
-	LastFired   time.Time     `json:"lastFired"`
+	Duration time.Duration `json:"duration"`
 
-	Duration    time.Duration `json:"duration"`
-
-	Description string        `json:"description"`
-
+	Description string `json:"description"`
 }
-
-
 
 // NewPerformanceReporter creates a new performance reporter instance.
 
@@ -634,7 +501,6 @@ func NewPerformanceReporter(prometheusURL string, config *ReporterConfig) (*Perf
 	client, err := api.NewClient(api.Config{
 
 		Address: prometheusURL,
-
 	})
 
 	if err != nil {
@@ -643,19 +509,14 @@ func NewPerformanceReporter(prometheusURL string, config *ReporterConfig) (*Perf
 
 	}
 
-
-
 	reporter := &PerformanceReporter{
 
 		prometheusClient: v1.NewAPI(client),
 
-		config:           config,
+		config: config,
 
-		templates:        make(map[string]*template.Template),
-
+		templates: make(map[string]*template.Template),
 	}
-
-
 
 	// Load templates.
 
@@ -665,13 +526,9 @@ func NewPerformanceReporter(prometheusURL string, config *ReporterConfig) (*Perf
 
 	}
 
-
-
 	return reporter, nil
 
 }
-
-
 
 // GenerateReport creates a comprehensive performance report.
 
@@ -679,25 +536,21 @@ func (pr *PerformanceReporter) GenerateReport(ctx context.Context, period string
 
 	report := &PerformanceReport{
 
-		ID:          fmt.Sprintf("perf-report-%d", time.Now().Unix()),
+		ID: fmt.Sprintf("perf-report-%d", time.Now().Unix()),
 
-		Timestamp:   time.Now(),
+		Timestamp: time.Now(),
 
-		Period:      period,
+		Period: period,
 
 		Environment: "production", // TODO: make configurable
 
-		Version:     "1.0.0",      // TODO: get from build info
+		Version: "1.0.0", // TODO: get from build info
 
 	}
-
-
 
 	// Generate all report sections.
 
 	var err error
-
-
 
 	// Collect performance metrics.
 
@@ -709,8 +562,6 @@ func (pr *PerformanceReporter) GenerateReport(ctx context.Context, period string
 
 	}
 
-
-
 	// Validate performance claims.
 
 	report.PerformanceClaims, err = pr.validatePerformanceClaims(ctx, report.Metrics)
@@ -721,13 +572,9 @@ func (pr *PerformanceReporter) GenerateReport(ctx context.Context, period string
 
 	}
 
-
-
 	// Generate executive summary.
 
 	report.ExecutiveSummary = pr.generateExecutiveSummary(report.PerformanceClaims, report.Metrics)
-
-
 
 	// Statistical analysis.
 
@@ -739,8 +586,6 @@ func (pr *PerformanceReporter) GenerateReport(ctx context.Context, period string
 
 	}
 
-
-
 	// Regression analysis.
 
 	report.RegressionAnalysis, err = pr.performRegressionAnalysis(ctx, period)
@@ -750,8 +595,6 @@ func (pr *PerformanceReporter) GenerateReport(ctx context.Context, period string
 		return nil, fmt.Errorf("failed to perform regression analysis: %w", err)
 
 	}
-
-
 
 	// Capacity analysis.
 
@@ -763,19 +606,13 @@ func (pr *PerformanceReporter) GenerateReport(ctx context.Context, period string
 
 	}
 
-
-
 	// Business impact analysis.
 
 	report.BusinessImpact = pr.calculateBusinessImpact(report.Metrics, report.PerformanceClaims)
 
-
-
 	// Generate recommendations.
 
 	report.Recommendations = pr.generateRecommendations(report)
-
-
 
 	// Collect alerts summary.
 
@@ -787,21 +624,15 @@ func (pr *PerformanceReporter) GenerateReport(ctx context.Context, period string
 
 	}
 
-
-
 	return report, nil
 
 }
-
-
 
 // collectPerformanceMetrics queries Prometheus for current performance metrics.
 
 func (pr *PerformanceReporter) collectPerformanceMetrics(ctx context.Context, period string) (PerformanceMetrics, error) {
 
 	metrics := PerformanceMetrics{}
-
-
 
 	// Intent processing metrics.
 
@@ -815,8 +646,6 @@ func (pr *PerformanceReporter) collectPerformanceMetrics(ctx context.Context, pe
 
 	metrics.IntentProcessing = intentMetrics
 
-
-
 	// RAG system metrics.
 
 	ragMetrics, err := pr.collectRAGSystemMetrics(ctx, period)
@@ -828,8 +657,6 @@ func (pr *PerformanceReporter) collectPerformanceMetrics(ctx context.Context, pe
 	}
 
 	metrics.RAGSystem = ragMetrics
-
-
 
 	// Cache system metrics.
 
@@ -843,8 +670,6 @@ func (pr *PerformanceReporter) collectPerformanceMetrics(ctx context.Context, pe
 
 	metrics.CacheSystem = cacheMetrics
 
-
-
 	// Resource usage metrics.
 
 	resourceMetrics, err := pr.collectResourceUsageMetrics(ctx, period)
@@ -856,8 +681,6 @@ func (pr *PerformanceReporter) collectPerformanceMetrics(ctx context.Context, pe
 	}
 
 	metrics.ResourceUsage = resourceMetrics
-
-
 
 	// Network metrics.
 
@@ -871,21 +694,15 @@ func (pr *PerformanceReporter) collectPerformanceMetrics(ctx context.Context, pe
 
 	metrics.NetworkMetrics = networkMetrics
 
-
-
 	return metrics, nil
 
 }
-
-
 
 // collectIntentProcessingMetrics collects intent processing performance data.
 
 func (pr *PerformanceReporter) collectIntentProcessingMetrics(ctx context.Context, period string) (IntentProcessingMetrics, error) {
 
 	metrics := IntentProcessingMetrics{}
-
-
 
 	// P50 latency.
 
@@ -903,8 +720,6 @@ func (pr *PerformanceReporter) collectIntentProcessingMetrics(ctx context.Contex
 
 	}
 
-
-
 	// P95 latency.
 
 	result, _, err = pr.prometheusClient.Query(ctx, "benchmark:intent_processing_latency_p95", time.Now())
@@ -920,8 +735,6 @@ func (pr *PerformanceReporter) collectIntentProcessingMetrics(ctx context.Contex
 		metrics.LatencyP95 = float64(vector[0].Value)
 
 	}
-
-
 
 	// P99 latency.
 
@@ -939,8 +752,6 @@ func (pr *PerformanceReporter) collectIntentProcessingMetrics(ctx context.Contex
 
 	}
 
-
-
 	// Throughput.
 
 	result, _, err = pr.prometheusClient.Query(ctx, "benchmark:intent_processing_rate_1m", time.Now())
@@ -957,8 +768,6 @@ func (pr *PerformanceReporter) collectIntentProcessingMetrics(ctx context.Contex
 
 	}
 
-
-
 	// Concurrent users.
 
 	result, _, err = pr.prometheusClient.Query(ctx, "benchmark_concurrent_users_current", time.Now())
@@ -974,8 +783,6 @@ func (pr *PerformanceReporter) collectIntentProcessingMetrics(ctx context.Contex
 		metrics.ConcurrentUsers = int(vector[0].Value)
 
 	}
-
-
 
 	// Success rate.
 
@@ -995,17 +802,11 @@ func (pr *PerformanceReporter) collectIntentProcessingMetrics(ctx context.Contex
 
 	}
 
-
-
 	return metrics, nil
 
 }
 
-
-
 // Additional collection methods would be implemented similarly...
-
-
 
 // validatePerformanceClaims validates all 6 performance claims.
 
@@ -1015,97 +816,86 @@ func (pr *PerformanceReporter) validatePerformanceClaims(ctx context.Context, me
 
 		{
 
-			ID:     "claim-1",
+			ID: "claim-1",
 
-			Name:   "Intent Processing P95 Latency",
+			Name: "Intent Processing P95 Latency",
 
 			Target: "≤2.0s",
 
 			Actual: fmt.Sprintf("%.3fs", metrics.IntentProcessing.LatencyP95),
 
 			Status: pr.getClaimStatus(metrics.IntentProcessing.LatencyP95, pr.config.Thresholds.IntentProcessingLatencyP95, false),
-
 		},
 
 		{
 
-			ID:     "claim-2",
+			ID: "claim-2",
 
-			Name:   "Concurrent User Capacity",
+			Name: "Concurrent User Capacity",
 
 			Target: fmt.Sprintf("≥%d users", pr.config.Thresholds.ConcurrentUserCapacity),
 
 			Actual: fmt.Sprintf("%d users", metrics.IntentProcessing.ConcurrentUsers),
 
 			Status: pr.getClaimStatus(float64(metrics.IntentProcessing.ConcurrentUsers), float64(pr.config.Thresholds.ConcurrentUserCapacity), true),
-
 		},
 
 		{
 
-			ID:     "claim-3",
+			ID: "claim-3",
 
-			Name:   "Throughput Target",
+			Name: "Throughput Target",
 
 			Target: fmt.Sprintf("≥%.0f/min", pr.config.Thresholds.ThroughputTarget),
 
 			Actual: fmt.Sprintf("%.2f/min", metrics.IntentProcessing.Throughput),
 
 			Status: pr.getClaimStatus(metrics.IntentProcessing.Throughput, pr.config.Thresholds.ThroughputTarget, true),
-
 		},
 
 		{
 
-			ID:     "claim-4",
+			ID: "claim-4",
 
-			Name:   "Service Availability",
+			Name: "Service Availability",
 
 			Target: fmt.Sprintf("≥%.2f%%", pr.config.Thresholds.ServiceAvailability),
 
 			Actual: fmt.Sprintf("%.2f%%", metrics.IntentProcessing.SuccessRate),
 
 			Status: pr.getClaimStatus(metrics.IntentProcessing.SuccessRate, pr.config.Thresholds.ServiceAvailability, true),
-
 		},
 
 		{
 
-			ID:     "claim-5",
+			ID: "claim-5",
 
-			Name:   "RAG Retrieval P95 Latency",
+			Name: "RAG Retrieval P95 Latency",
 
 			Target: fmt.Sprintf("≤%.0fms", pr.config.Thresholds.RAGLatencyP95*1000),
 
 			Actual: fmt.Sprintf("%.0fms", metrics.RAGSystem.RetrievalLatencyP95*1000),
 
 			Status: pr.getClaimStatus(metrics.RAGSystem.RetrievalLatencyP95, pr.config.Thresholds.RAGLatencyP95, false),
-
 		},
 
 		{
 
-			ID:     "claim-6",
+			ID: "claim-6",
 
-			Name:   "Cache Hit Rate",
+			Name: "Cache Hit Rate",
 
 			Target: fmt.Sprintf("≥%.0f%%", pr.config.Thresholds.CacheHitRate),
 
 			Actual: fmt.Sprintf("%.2f%%", metrics.CacheSystem.HitRate),
 
 			Status: pr.getClaimStatus(metrics.CacheSystem.HitRate, pr.config.Thresholds.CacheHitRate, true),
-
 		},
-
 	}
-
-
 
 	return claims, nil
 
 }
-
-
 
 // getClaimStatus determines if a claim passes or fails.
 
@@ -1133,8 +923,6 @@ func (pr *PerformanceReporter) getClaimStatus(actual, threshold float64, higherI
 
 }
 
-
-
 // generateExecutiveSummary creates the executive summary section.
 
 func (pr *PerformanceReporter) generateExecutiveSummary(claims []ClaimValidation, metrics PerformanceMetrics) ExecutiveSummary {
@@ -1151,11 +939,7 @@ func (pr *PerformanceReporter) generateExecutiveSummary(claims []ClaimValidation
 
 	}
 
-
-
 	overallScore := float64(passCount) / float64(len(claims)) * 100
-
-
 
 	var grade string
 
@@ -1183,8 +967,6 @@ func (pr *PerformanceReporter) generateExecutiveSummary(claims []ClaimValidation
 
 	}
 
-
-
 	var health string
 
 	switch {
@@ -1211,29 +993,24 @@ func (pr *PerformanceReporter) generateExecutiveSummary(claims []ClaimValidation
 
 	}
 
-
-
 	summary := ExecutiveSummary{
 
-		OverallScore:       overallScore,
+		OverallScore: overallScore,
 
-		PerformanceGrade:   grade,
+		PerformanceGrade: grade,
 
-		SLACompliance:      overallScore, // Simplified for now
+		SLACompliance: overallScore, // Simplified for now
 
-		SystemHealth:       health,
+		SystemHealth: health,
 
-		KeyHighlights:      []string{},
+		KeyHighlights: []string{},
 
-		CriticalIssues:     []string{},
+		CriticalIssues: []string{},
 
-		TrendDirection:     "Stable", // TODO: implement trend analysis
+		TrendDirection: "Stable", // TODO: implement trend analysis
 
 		RecommendedActions: []string{},
-
 	}
-
-
 
 	// Add highlights and issues based on claims.
 
@@ -1255,13 +1032,9 @@ func (pr *PerformanceReporter) generateExecutiveSummary(claims []ClaimValidation
 
 	}
 
-
-
 	return summary
 
 }
-
-
 
 // loadTemplates loads report templates from configuration.
 
@@ -1275,8 +1048,6 @@ func (pr *PerformanceReporter) loadTemplates() error {
 
 }
 
-
-
 // performStatisticalAnalysis performs statistical validation of performance metrics.
 
 func (pr *PerformanceReporter) performStatisticalAnalysis(ctx context.Context, period string) (StatisticalAnalysis, error) {
@@ -1285,25 +1056,22 @@ func (pr *PerformanceReporter) performStatisticalAnalysis(ctx context.Context, p
 
 	return StatisticalAnalysis{
 
-		ConfidenceLevel:     95.0,
+		ConfidenceLevel: 95.0,
 
-		SampleSize:          1000,
+		SampleSize: 1000,
 
-		PValue:              0.05,
+		PValue: 0.05,
 
-		EffectSize:          0.0,
+		EffectSize: 0.0,
 
-		StatisticalPower:    80.0,
+		StatisticalPower: 80.0,
 
-		NormalityTest:       true,
+		NormalityTest: true,
 
 		ConfidenceIntervals: make(map[string]ConfidenceInterval),
-
 	}, nil
 
 }
-
-
 
 // performRegressionAnalysis detects performance regressions.
 
@@ -1317,73 +1085,65 @@ func (pr *PerformanceReporter) performRegressionAnalysis(ctx context.Context, pe
 
 		RegressionSeverity: "Low",
 
-		PerformanceChange:  make(map[string]float64),
+		PerformanceChange: make(map[string]float64),
 
 		BaselineComparison: BaselineComparison{
 
-			BaselinePeriod:     "7d",
+			BaselinePeriod: "7d",
 
-			BaselineMetrics:    make(map[string]float64),
+			BaselineMetrics: make(map[string]float64),
 
-			CurrentMetrics:     make(map[string]float64),
+			CurrentMetrics: make(map[string]float64),
 
-			PercentageChanges:  make(map[string]float64),
+			PercentageChanges: make(map[string]float64),
 
 			SignificantChanges: make([]string, 0),
-
 		},
 
 		TrendAnalysis: TrendAnalysis{
 
 			ShortTerm: TrendData{
 
-				Period:       "1h",
+				Period: "1h",
 
-				Direction:    "Stable",
+				Direction: "Stable",
 
-				ChangeRate:   0.0,
+				ChangeRate: 0.0,
 
 				Significance: "Low",
 
-				Prediction:   "Stable",
-
+				Prediction: "Stable",
 			},
 
 			MediumTerm: TrendData{
 
-				Period:       "24h",
+				Period: "24h",
 
-				Direction:    "Stable",
+				Direction: "Stable",
 
-				ChangeRate:   0.0,
+				ChangeRate: 0.0,
 
 				Significance: "Low",
 
-				Prediction:   "Stable",
-
+				Prediction: "Stable",
 			},
 
 			LongTerm: TrendData{
 
-				Period:       "7d",
+				Period: "7d",
 
-				Direction:    "Stable",
+				Direction: "Stable",
 
-				ChangeRate:   0.0,
+				ChangeRate: 0.0,
 
 				Significance: "Low",
 
-				Prediction:   "Stable",
-
+				Prediction: "Stable",
 			},
-
 		},
-
 	}, nil
 
 }
-
-
 
 // performCapacityAnalysis analyzes current capacity and provides scaling recommendations.
 
@@ -1395,23 +1155,20 @@ func (pr *PerformanceReporter) performCapacityAnalysis(ctx context.Context, metr
 
 	return CapacityAnalysis{
 
-		CurrentCapacity:        75.0, // placeholder
+		CurrentCapacity: 75.0, // placeholder
 
-		PeakCapacity:           85.0, // placeholder
+		PeakCapacity: 85.0, // placeholder
 
-		CapacityTrend:          "Stable",
+		CapacityTrend: "Stable",
 
-		EstimatedExhaustion:    nil,
+		EstimatedExhaustion: nil,
 
 		ScalingRecommendations: make([]ScalingRecommendation, 0),
 
-		ResourceBottlenecks:    make([]ResourceBottleneck, 0),
-
+		ResourceBottlenecks: make([]ResourceBottleneck, 0),
 	}, nil
 
 }
-
-
 
 // generateRecommendations generates actionable performance recommendations.
 
@@ -1423,43 +1180,36 @@ func (pr *PerformanceReporter) generateRecommendations(report *PerformanceReport
 
 	recommendations := make([]Recommendation, 0)
 
-
-
 	// Example placeholder recommendation.
 
 	if report.ExecutiveSummary.OverallScore < 80 {
 
 		recommendations = append(recommendations, Recommendation{
 
-			ID:           "perf-rec-1",
+			ID: "perf-rec-1",
 
-			Category:     "Performance",
+			Category: "Performance",
 
-			Priority:     "High",
+			Priority: "High",
 
-			Title:        "Performance Score Below Target",
+			Title: "Performance Score Below Target",
 
-			Description:  "Overall performance score is below 80%, indicating system performance issues",
+			Description: "Overall performance score is below 80%, indicating system performance issues",
 
-			Impact:       "Improved user experience and system reliability",
+			Impact: "Improved user experience and system reliability",
 
-			Effort:       "Medium",
+			Effort: "Medium",
 
-			Timeline:     "1-2 weeks",
+			Timeline: "1-2 weeks",
 
 			Dependencies: []string{"Performance analysis", "Resource optimization"},
-
 		})
 
 	}
 
-
-
 	return recommendations
 
 }
-
-
 
 // collectAlertsSummary collects and summarizes alert data for the report period.
 
@@ -1471,13 +1221,13 @@ func (pr *PerformanceReporter) collectAlertsSummary(ctx context.Context, period 
 
 	return AlertsSummary{
 
-		TotalAlerts:       0,
+		TotalAlerts: 0,
 
-		CriticalAlerts:    0,
+		CriticalAlerts: 0,
 
-		WarningAlerts:     0,
+		WarningAlerts: 0,
 
-		ResolvedAlerts:    0,
+		ResolvedAlerts: 0,
 
 		AlertsByComponent: make(map[string]int),
 
@@ -1485,21 +1235,17 @@ func (pr *PerformanceReporter) collectAlertsSummary(ctx context.Context, period 
 
 			HourlyTrend: make([]int, 24),
 
-			DailyTrend:  make([]int, 7),
+			DailyTrend: make([]int, 7),
 
 			WeeklyTrend: make([]int, 4),
-
 		},
 
 		TopAlerts: make([]AlertInfo, 0),
 
-		MTTR:      0.0,
-
+		MTTR: 0.0,
 	}, nil
 
 }
-
-
 
 // calculateBusinessImpact calculates business impact metrics from performance data.
 
@@ -1511,23 +1257,20 @@ func (pr *PerformanceReporter) calculateBusinessImpact(metrics PerformanceMetric
 
 	return BusinessImpact{
 
-		CostPerIntent:        0.05, // placeholder
+		CostPerIntent: 0.05, // placeholder
 
-		RevenueImpact:        0.0,  // placeholder
+		RevenueImpact: 0.0, // placeholder
 
 		CustomerSatisfaction: 85.0, // placeholder
 
-		SLAViolationCost:     0.0,  // placeholder
+		SLAViolationCost: 0.0, // placeholder
 
-		PerformanceROI:       15.0, // placeholder
+		PerformanceROI: 15.0, // placeholder
 
-		CompetitivePosition:  "Competitive",
-
+		CompetitivePosition: "Competitive",
 	}
 
 }
-
-
 
 // collectRAGSystemMetrics collects RAG system performance data.
 
@@ -1539,23 +1282,21 @@ func (pr *PerformanceReporter) collectRAGSystemMetrics(ctx context.Context, peri
 
 	return RAGSystemMetrics{
 
-		RetrievalLatencyP50: 0.15,  // placeholder
+		RetrievalLatencyP50: 0.15, // placeholder
 
-		RetrievalLatencyP95: 0.25,  // placeholder
+		RetrievalLatencyP95: 0.25, // placeholder
 
-		ContextAccuracy:     92.0,  // placeholder
+		ContextAccuracy: 92.0, // placeholder
 
-		DocumentsIndexed:    10000, // placeholder
+		DocumentsIndexed: 10000, // placeholder
 
-		QueriesPerSecond:    25.0,  // placeholder
+		QueriesPerSecond: 25.0, // placeholder
 
-		EmbeddingLatency:    0.05,  // placeholder
+		EmbeddingLatency: 0.05, // placeholder
 
 	}, nil
 
 }
-
-
 
 // collectCacheSystemMetrics collects cache system performance data.
 
@@ -1567,25 +1308,23 @@ func (pr *PerformanceReporter) collectCacheSystemMetrics(ctx context.Context, pe
 
 	return CacheSystemMetrics{
 
-		HitRate:        87.5,              // placeholder
+		HitRate: 87.5, // placeholder
 
-		MissRate:       12.5,              // placeholder
+		MissRate: 12.5, // placeholder
 
-		AverageLatency: 2.5,               // placeholder
+		AverageLatency: 2.5, // placeholder
 
-		CacheSize:      1024 * 1024 * 100, // placeholder: 100MB
+		CacheSize: 1024 * 1024 * 100, // placeholder: 100MB
 
-		EvictionRate:   0.1,               // placeholder
+		EvictionRate: 0.1, // placeholder
 
-		HitLatency:     1.2,               // placeholder
+		HitLatency: 1.2, // placeholder
 
-		MissLatency:    15.0,              // placeholder
+		MissLatency: 15.0, // placeholder
 
 	}, nil
 
 }
-
-
 
 // collectResourceUsageMetrics collects system resource usage data.
 
@@ -1597,25 +1336,23 @@ func (pr *PerformanceReporter) collectResourceUsageMetrics(ctx context.Context, 
 
 	return ResourceUsageMetrics{
 
-		CPUUtilization:    65.0,             // placeholder
+		CPUUtilization: 65.0, // placeholder
 
-		MemoryUtilization: 70.0,             // placeholder
+		MemoryUtilization: 70.0, // placeholder
 
-		DiskUtilization:   45.0,             // placeholder
+		DiskUtilization: 45.0, // placeholder
 
-		NetworkBandwidth:  100.0,            // placeholder
+		NetworkBandwidth: 100.0, // placeholder
 
-		FileDescriptors:   1024,             // placeholder
+		FileDescriptors: 1024, // placeholder
 
-		GoroutineCount:    200,              // placeholder
+		GoroutineCount: 200, // placeholder
 
-		HeapSize:          1024 * 1024 * 50, // placeholder: 50MB
+		HeapSize: 1024 * 1024 * 50, // placeholder: 50MB
 
 	}, nil
 
 }
-
-
 
 // collectNetworkMetrics collects network performance data.
 
@@ -1627,19 +1364,18 @@ func (pr *PerformanceReporter) collectNetworkMetrics(ctx context.Context, period
 
 	return NetworkMetrics{
 
-		Latency:           5.0,   // placeholder
+		Latency: 5.0, // placeholder
 
-		Throughput:        500.0, // placeholder
+		Throughput: 500.0, // placeholder
 
-		PacketLoss:        0.01,  // placeholder
+		PacketLoss: 0.01, // placeholder
 
-		ConnectionCount:   100,   // placeholder
+		ConnectionCount: 100, // placeholder
 
-		ActiveConnections: 85,    // placeholder
+		ActiveConnections: 85, // placeholder
 
-		ConnectionErrors:  2,     // placeholder
+		ConnectionErrors: 2, // placeholder
 
 	}, nil
 
 }
-

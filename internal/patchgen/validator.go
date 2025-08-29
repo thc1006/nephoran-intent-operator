@@ -1,25 +1,13 @@
-
 package patchgen
 
-
-
 import (
-
 	"encoding/json"
-
 	"fmt"
-
 	"os"
 
-
-
 	"github.com/go-logr/logr"
-
 	"github.com/santhosh-tekuri/jsonschema/v6"
-
 )
-
-
 
 // IntentSchema defines the JSON Schema 2020-12 for Intent validation.
 
@@ -111,19 +99,13 @@ const IntentSchema = `{
 
 }`
 
-
-
 // Validator handles JSON Schema validation using JSON Schema 2020-12.
 
 type Validator struct {
-
 	schema *jsonschema.Schema
 
 	logger logr.Logger
-
 }
-
-
 
 // NewValidator creates a new validator instance with the Intent schema.
 
@@ -132,8 +114,6 @@ func NewValidator(logger logr.Logger) (*Validator, error) {
 	compiler := jsonschema.NewCompiler()
 
 	compiler.DefaultDraft(jsonschema.Draft2020)
-
-
 
 	// Parse the schema as JSON.
 
@@ -145,8 +125,6 @@ func NewValidator(logger logr.Logger) (*Validator, error) {
 
 	}
 
-
-
 	// Add the schema to the compiler.
 
 	if err := compiler.AddResource("https://nephoran.io/schemas/intent.json", schemaDoc); err != nil {
@@ -154,8 +132,6 @@ func NewValidator(logger logr.Logger) (*Validator, error) {
 		return nil, fmt.Errorf("failed to add schema resource: %w", err)
 
 	}
-
-
 
 	schema, err := compiler.Compile("https://nephoran.io/schemas/intent.json")
 
@@ -165,13 +141,9 @@ func NewValidator(logger logr.Logger) (*Validator, error) {
 
 	}
 
-
-
 	return &Validator{schema: schema, logger: logger.WithName("validator")}, nil
 
 }
-
-
 
 // ValidateIntent validates the intent JSON against the schema and returns the parsed Intent.
 
@@ -187,15 +159,11 @@ func (v *Validator) ValidateIntent(intentData []byte) (*Intent, error) {
 
 	}
 
-
-
 	if err := v.schema.Validate(rawIntent); err != nil {
 
 		return nil, fmt.Errorf("schema validation failed: %w", err)
 
 	}
-
-
 
 	// Parse into struct.
 
@@ -207,13 +175,9 @@ func (v *Validator) ValidateIntent(intentData []byte) (*Intent, error) {
 
 	}
 
-
-
 	return &intent, nil
 
 }
-
-
 
 // ValidateIntentFile reads and validates an intent file.
 
@@ -227,13 +191,9 @@ func (v *Validator) ValidateIntentFile(filePath string) (*Intent, error) {
 
 	}
 
-
-
 	return v.ValidateIntent(data)
 
 }
-
-
 
 // ValidateIntentMap validates an intent provided as a map.
 
@@ -241,23 +201,17 @@ func (v *Validator) ValidateIntentMap(intent map[string]interface{}) error {
 
 	v.logger.V(1).Info("Validating intent", "intent", intent)
 
-
-
 	if err := v.schema.Validate(intent); err != nil {
 
 		return fmt.Errorf("schema validation failed: %w", err)
 
 	}
 
-
-
 	v.logger.Info("Intent validation successful")
 
 	return nil
 
 }
-
-
 
 // LoadIntent reads and parses an intent JSON file with validation.
 
@@ -271,8 +225,6 @@ func LoadIntent(path string) (*Intent, error) {
 
 	}
 
-
-
 	var intent Intent
 
 	if err := json.Unmarshal(data, &intent); err != nil {
@@ -280,8 +232,6 @@ func LoadIntent(path string) (*Intent, error) {
 		return nil, fmt.Errorf("failed to parse intent JSON: %w", err)
 
 	}
-
-
 
 	// Validate required fields.
 
@@ -309,9 +259,6 @@ func LoadIntent(path string) (*Intent, error) {
 
 	}
 
-
-
 	return &intent, nil
 
 }
-

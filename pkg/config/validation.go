@@ -1,55 +1,32 @@
-
 package config
 
-
-
 import (
-
 	"crypto/subtle"
-
 	"fmt"
-
 	"net"
-
 	"os"
-
 	"path/filepath"
-
 	"regexp"
-
 	"strconv"
-
 	"strings"
-
 	"time"
-
 )
-
-
 
 // ValidationRule represents a single validation rule.
 
 type ValidationRule struct {
-
-	Name        string
+	Name string
 
 	Description string
 
-	Validate    func(interface{}) error
-
+	Validate func(interface{}) error
 }
-
-
 
 // ValidationRules contains all validation rules for configuration values.
 
 type ValidationRules struct {
-
 	rules map[string]*ValidationRule
-
 }
-
-
 
 // NewValidationRules creates a new validation rules instance.
 
@@ -58,7 +35,6 @@ func NewValidationRules() *ValidationRules {
 	vr := &ValidationRules{
 
 		rules: make(map[string]*ValidationRule),
-
 	}
 
 	vr.initializeDefaultRules()
@@ -66,8 +42,6 @@ func NewValidationRules() *ValidationRules {
 	return vr
 
 }
-
-
 
 // initializeDefaultRules initializes all default validation rules.
 
@@ -113,25 +87,20 @@ func (vr *ValidationRules) initializeDefaultRules() {
 
 }
 
-
-
 // AddRule adds a validation rule.
 
 func (vr *ValidationRules) AddRule(name, description string, validateFunc func(interface{}) error) {
 
 	vr.rules[name] = &ValidationRule{
 
-		Name:        name,
+		Name: name,
 
 		Description: description,
 
-		Validate:    validateFunc,
-
+		Validate: validateFunc,
 	}
 
 }
-
-
 
 // ValidateValue validates a value against a specific rule.
 
@@ -145,29 +114,21 @@ func (vr *ValidationRules) ValidateValue(ruleName string, value interface{}) err
 
 	}
 
-
-
 	if err := rule.Validate(value); err != nil {
 
 		return fmt.Errorf("validation failed for '%s': %w", ruleName, err)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateConfiguration validates a complete configuration against multiple rules.
 
 func (vr *ValidationRules) ValidateConfiguration(config map[string]interface{}, rules map[string]string) error {
 
 	var errors []string
-
-
 
 	for configKey, ruleName := range rules {
 
@@ -179,8 +140,6 @@ func (vr *ValidationRules) ValidateConfiguration(config map[string]interface{}, 
 
 		}
 
-
-
 		if err := vr.ValidateValue(ruleName, value); err != nil {
 
 			errors = append(errors, fmt.Sprintf("%s: %v", configKey, err))
@@ -189,21 +148,15 @@ func (vr *ValidationRules) ValidateConfiguration(config map[string]interface{}, 
 
 	}
 
-
-
 	if len(errors) > 0 {
 
 		return fmt.Errorf("configuration validation failed:\n  - %s", strings.Join(errors, "\n  - "))
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetRuleDescription returns the description for a rule.
 
@@ -218,8 +171,6 @@ func (vr *ValidationRules) GetRuleDescription(ruleName string) string {
 	return "Rule not found"
 
 }
-
-
 
 // ListRules returns all available validation rules.
 
@@ -238,19 +189,13 @@ func (vr *ValidationRules) ListRules() []string {
 
 }
 
-
-
 // Validation functions for specific types.
-
-
 
 // validatePortNumber validates that a value is a valid port number (1-65535).
 
 func validatePortNumber(value interface{}) error {
 
 	var port int
-
-
 
 	switch v := value.(type) {
 
@@ -276,21 +221,15 @@ func validatePortNumber(value interface{}) error {
 
 	}
 
-
-
 	if port < 1 || port > 65535 {
 
 		return fmt.Errorf("port must be between 1 and 65535, got %d", port)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateTimeout validates that a value is a positive duration.
 
@@ -328,21 +267,15 @@ func validateTimeout(value interface{}) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateRetryCount validates retry count (0-100).
 
 func validateRetryCount(value interface{}) error {
 
 	var count int
-
-
 
 	switch v := value.(type) {
 
@@ -368,29 +301,21 @@ func validateRetryCount(value interface{}) error {
 
 	}
 
-
-
 	if count < 0 || count > 100 {
 
 		return fmt.Errorf("retry count must be between 0 and 100, got %d", count)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validatePercentage validates a percentage value (0.0-1.0).
 
 func validatePercentage(value interface{}) error {
 
 	var percentage float64
-
-
 
 	switch v := value.(type) {
 
@@ -420,21 +345,15 @@ func validatePercentage(value interface{}) error {
 
 	}
 
-
-
 	if percentage < 0.0 || percentage > 1.0 {
 
 		return fmt.Errorf("percentage must be between 0.0 and 1.0, got %f", percentage)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validatePositiveInteger validates that a value is a positive integer (> 0).
 
@@ -442,8 +361,6 @@ func validatePositiveInteger(value interface{}) error {
 
 	var num int
 
-
-
 	switch v := value.(type) {
 
 	case int:
@@ -467,8 +384,6 @@ func validatePositiveInteger(value interface{}) error {
 		return fmt.Errorf("value must be integer or string, got %T", value)
 
 	}
-
-
 
 	if num <= 0 {
 
@@ -476,21 +391,15 @@ func validatePositiveInteger(value interface{}) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateNonNegativeInteger validates that a value is a non-negative integer (>= 0).
 
 func validateNonNegativeInteger(value interface{}) error {
 
 	var num int
-
-
 
 	switch v := value.(type) {
 
@@ -516,29 +425,21 @@ func validateNonNegativeInteger(value interface{}) error {
 
 	}
 
-
-
 	if num < 0 {
 
 		return fmt.Errorf("value must be non-negative, got %d", num)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateKubernetesResource validates Kubernetes resource quantity format (e.g., "100m", "1Gi").
 
 func validateKubernetesResource(value interface{}) error {
 
 	var resource string
-
-
 
 	switch v := value.(type) {
 
@@ -552,15 +453,11 @@ func validateKubernetesResource(value interface{}) error {
 
 	}
 
-
-
 	if resource == "" {
 
 		return fmt.Errorf("kubernetes resource cannot be empty")
 
 	}
-
-
 
 	// Basic validation for Kubernetes resource format.
 
@@ -574,21 +471,15 @@ func validateKubernetesResource(value interface{}) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateDomain validates domain name format.
 
 func validateDomain(value interface{}) error {
 
 	var domain string
-
-
 
 	switch v := value.(type) {
 
@@ -602,15 +493,11 @@ func validateDomain(value interface{}) error {
 
 	}
 
-
-
 	if domain == "" {
 
 		return fmt.Errorf("domain cannot be empty")
 
 	}
-
-
 
 	// Basic domain validation - simplified regex.
 
@@ -622,29 +509,21 @@ func validateDomain(value interface{}) error {
 
 	}
 
-
-
 	if len(domain) > 253 {
 
 		return fmt.Errorf("domain too long: %d characters (max 253)", len(domain))
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateURLFormat validates URL format.
 
 func validateURLFormat(value interface{}) error {
 
 	var url string
-
-
 
 	switch v := value.(type) {
 
@@ -658,15 +537,11 @@ func validateURLFormat(value interface{}) error {
 
 	}
 
-
-
 	if url == "" {
 
 		return fmt.Errorf("URL cannot be empty")
 
 	}
-
-
 
 	// Basic URL validation.
 
@@ -678,21 +553,15 @@ func validateURLFormat(value interface{}) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateFilePath validates file path format.
 
 func validateFilePath(value interface{}) error {
 
 	var path string
-
-
 
 	switch v := value.(type) {
 
@@ -706,15 +575,11 @@ func validateFilePath(value interface{}) error {
 
 	}
 
-
-
 	if path == "" {
 
 		return fmt.Errorf("file path cannot be empty")
 
 	}
-
-
 
 	// Check for potentially dangerous path patterns.
 
@@ -727,10 +592,7 @@ func validateFilePath(value interface{}) error {
 		"\\",
 
 		"\x00",
-
 	}
-
-
 
 	for _, pattern := range dangerousPatterns {
 
@@ -742,21 +604,15 @@ func validateFilePath(value interface{}) error {
 
 	}
 
-
-
 	if len(path) > 4096 {
 
 		return fmt.Errorf("file path too long: %d characters (max 4096)", len(path))
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateJitterFactor validates jitter factor (0.0-1.0).
 
@@ -766,15 +622,11 @@ func validateJitterFactor(value interface{}) error {
 
 }
 
-
-
 // validateBackoffMultiplier validates backoff multiplier (> 1.0).
 
 func validateBackoffMultiplier(value interface{}) error {
 
 	var multiplier float64
-
-
 
 	switch v := value.(type) {
 
@@ -804,29 +656,21 @@ func validateBackoffMultiplier(value interface{}) error {
 
 	}
 
-
-
 	if multiplier <= 1.0 {
 
 		return fmt.Errorf("backoff multiplier must be greater than 1.0, got %f", multiplier)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateInputLength validates input length limits (1-1000000).
 
 func validateInputLength(value interface{}) error {
 
 	var length int
-
-
 
 	switch v := value.(type) {
 
@@ -852,29 +696,21 @@ func validateInputLength(value interface{}) error {
 
 	}
 
-
-
 	if length < 1 || length > 1000000 {
 
 		return fmt.Errorf("input length must be between 1 and 1,000,000, got %d", length)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateOutputLength validates output length limits (1-10000000).
 
 func validateOutputLength(value interface{}) error {
 
 	var length int
-
-
 
 	switch v := value.(type) {
 
@@ -900,29 +736,21 @@ func validateOutputLength(value interface{}) error {
 
 	}
 
-
-
 	if length < 1 || length > 10000000 {
 
 		return fmt.Errorf("output length must be between 1 and 10,000,000, got %d", length)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateContextBoundary validates context boundary (non-empty string).
 
 func validateContextBoundary(value interface{}) error {
 
 	var boundary string
-
-
 
 	switch v := value.(type) {
 
@@ -936,15 +764,11 @@ func validateContextBoundary(value interface{}) error {
 
 	}
 
-
-
 	if boundary == "" {
 
 		return fmt.Errorf("context boundary cannot be empty")
 
 	}
-
-
 
 	if len(boundary) < 3 {
 
@@ -952,21 +776,15 @@ func validateContextBoundary(value interface{}) error {
 
 	}
 
-
-
 	if len(boundary) > 50 {
 
 		return fmt.Errorf("context boundary too long, must be at most 50 characters: %s", boundary)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateStringArray validates string array.
 
@@ -1004,15 +822,11 @@ func validateStringArray(value interface{}) error {
 
 }
 
-
-
 // validateCircuitBreakerThreshold validates circuit breaker threshold (1-1000).
 
 func validateCircuitBreakerThreshold(value interface{}) error {
 
 	var threshold int
-
-
 
 	switch v := value.(type) {
 
@@ -1038,21 +852,15 @@ func validateCircuitBreakerThreshold(value interface{}) error {
 
 	}
 
-
-
 	if threshold < 1 || threshold > 1000 {
 
 		return fmt.Errorf("circuit breaker threshold must be between 1 and 1000, got %d", threshold)
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateFailureRate validates failure rate (0.0-1.0).
 
@@ -1062,45 +870,36 @@ func validateFailureRate(value interface{}) error {
 
 }
 
-
-
 // ValidateNetworkConfiguration validates network-specific configuration.
 
 func ValidateNetworkConfiguration(config map[string]interface{}) error {
 
 	vr := NewValidationRules()
 
-
-
 	networkRules := map[string]string{
 
-		"metrics_port":       "port",
+		"metrics_port": "port",
 
-		"health_port":        "port",
+		"health_port": "port",
 
-		"llm_timeout":        "timeout",
+		"llm_timeout": "timeout",
 
-		"git_timeout":        "timeout",
+		"git_timeout": "timeout",
 
-		"k8s_timeout":        "timeout",
+		"k8s_timeout": "timeout",
 
-		"max_retries":        "retry_count",
+		"max_retries": "retry_count",
 
-		"failure_rate":       "percentage",
+		"failure_rate": "percentage",
 
-		"jitter_factor":      "jitter_factor",
+		"jitter_factor": "jitter_factor",
 
 		"backoff_multiplier": "backoff_multiplier",
-
 	}
-
-
 
 	return vr.ValidateConfiguration(config, networkRules)
 
 }
-
-
 
 // ValidateSecurityConfiguration validates security-specific configuration.
 
@@ -1108,29 +907,22 @@ func ValidateSecurityConfiguration(config map[string]interface{}) error {
 
 	vr := NewValidationRules()
 
-
-
 	securityRules := map[string]string{
 
-		"max_input_length":  "input_length",
+		"max_input_length": "input_length",
 
 		"max_output_length": "output_length",
 
-		"context_boundary":  "context_boundary",
+		"context_boundary": "context_boundary",
 
-		"allowed_domains":   "string_array",
+		"allowed_domains": "string_array",
 
-		"blocked_keywords":  "string_array",
-
+		"blocked_keywords": "string_array",
 	}
-
-
 
 	return vr.ValidateConfiguration(config, securityRules)
 
 }
-
-
 
 // ValidateResilienceConfiguration validates resilience-specific configuration.
 
@@ -1138,39 +930,30 @@ func ValidateResilienceConfiguration(config map[string]interface{}) error {
 
 	vr := NewValidationRules()
 
-
-
 	resilienceRules := map[string]string{
 
 		"cb_failure_threshold": "circuit_breaker_threshold",
 
-		"cb_recovery_timeout":  "timeout",
+		"cb_recovery_timeout": "timeout",
 
-		"cb_request_timeout":   "timeout",
+		"cb_request_timeout": "timeout",
 
 		"cb_success_threshold": "positive_integer",
 
-		"cb_min_requests":      "positive_integer",
+		"cb_min_requests": "positive_integer",
 
-		"cb_failure_rate":      "failure_rate",
-
+		"cb_failure_rate": "failure_rate",
 	}
-
-
 
 	return vr.ValidateConfiguration(config, resilienceRules)
 
 }
-
-
 
 // ValidateIPAddress validates IP address format.
 
 func ValidateIPAddress(value interface{}) error {
 
 	var ipStr string
-
-
 
 	switch v := value.(type) {
 
@@ -1184,8 +967,6 @@ func ValidateIPAddress(value interface{}) error {
 
 	}
 
-
-
 	ip := net.ParseIP(ipStr)
 
 	if ip == nil {
@@ -1194,13 +975,9 @@ func ValidateIPAddress(value interface{}) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateCompleteConfiguration validates all configuration sections together.
 
@@ -1212,55 +989,48 @@ func ValidateCompleteConfiguration(constants *Constants) error {
 
 		// Network configuration.
 
-		"metrics_port":       constants.MetricsPort,
+		"metrics_port": constants.MetricsPort,
 
-		"health_port":        constants.HealthProbePort,
+		"health_port": constants.HealthProbePort,
 
-		"llm_timeout":        constants.LLMTimeout,
+		"llm_timeout": constants.LLMTimeout,
 
-		"git_timeout":        constants.GitTimeout,
+		"git_timeout": constants.GitTimeout,
 
-		"k8s_timeout":        constants.KubernetesTimeout,
+		"k8s_timeout": constants.KubernetesTimeout,
 
-		"max_retries":        constants.MaxRetries,
+		"max_retries": constants.MaxRetries,
 
-		"jitter_factor":      constants.JitterFactor,
+		"jitter_factor": constants.JitterFactor,
 
 		"backoff_multiplier": constants.BackoffMultiplier,
 
-
-
 		// Security configuration.
 
-		"max_input_length":  constants.MaxInputLength,
+		"max_input_length": constants.MaxInputLength,
 
 		"max_output_length": constants.MaxOutputLength,
 
-		"context_boundary":  constants.ContextBoundary,
+		"context_boundary": constants.ContextBoundary,
 
-		"allowed_domains":   constants.AllowedDomains,
+		"allowed_domains": constants.AllowedDomains,
 
-		"blocked_keywords":  constants.BlockedKeywords,
-
-
+		"blocked_keywords": constants.BlockedKeywords,
 
 		// Resilience configuration.
 
 		"cb_failure_threshold": constants.CircuitBreakerFailureThreshold,
 
-		"cb_recovery_timeout":  constants.CircuitBreakerRecoveryTimeout,
+		"cb_recovery_timeout": constants.CircuitBreakerRecoveryTimeout,
 
-		"cb_request_timeout":   constants.CircuitBreakerRequestTimeout,
+		"cb_request_timeout": constants.CircuitBreakerRequestTimeout,
 
 		"cb_success_threshold": constants.CircuitBreakerSuccessThreshold,
 
-		"cb_min_requests":      constants.CircuitBreakerMinimumRequests,
+		"cb_min_requests": constants.CircuitBreakerMinimumRequests,
 
-		"cb_failure_rate":      constants.CircuitBreakerFailureRate,
-
+		"cb_failure_rate": constants.CircuitBreakerFailureRate,
 	}
-
-
 
 	// Validate each section.
 
@@ -1270,15 +1040,11 @@ func ValidateCompleteConfiguration(constants *Constants) error {
 
 	}
 
-
-
 	if err := ValidateSecurityConfiguration(config); err != nil {
 
 		return fmt.Errorf("security configuration validation failed: %w", err)
 
 	}
-
-
 
 	if err := ValidateResilienceConfiguration(config); err != nil {
 
@@ -1286,25 +1052,18 @@ func ValidateCompleteConfiguration(constants *Constants) error {
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 // SecretLoader represents a loader for sensitive configuration values.
 
 type SecretLoader struct {
-
 	basePath string
 
 	// Additional fields can be added for encryption, etc.
 
 }
-
-
 
 // NewSecretLoader creates a new secret loader.
 
@@ -1316,8 +1075,6 @@ func NewSecretLoader(basePath string, options map[string]interface{}) (*SecretLo
 
 	}
 
-
-
 	// Clean and validate the base path to prevent directory traversal.
 
 	cleanBase := filepath.Clean(basePath)
@@ -1327,8 +1084,6 @@ func NewSecretLoader(basePath string, options map[string]interface{}) (*SecretLo
 		return nil, fmt.Errorf("invalid base path: contains directory traversal")
 
 	}
-
-
 
 	// Convert to absolute path for security.
 
@@ -1340,17 +1095,12 @@ func NewSecretLoader(basePath string, options map[string]interface{}) (*SecretLo
 
 	}
 
-
-
 	return &SecretLoader{
 
 		basePath: absPath,
-
 	}, nil
 
 }
-
-
 
 // LoadSecret loads a secret from the configured source.
 
@@ -1364,8 +1114,6 @@ func (sl *SecretLoader) LoadSecret(secretName string) (string, error) {
 
 	}
 
-
-
 	// Validate secretName is not empty and reasonable length.
 
 	if secretName == "" || len(secretName) > 255 {
@@ -1374,13 +1122,9 @@ func (sl *SecretLoader) LoadSecret(secretName string) (string, error) {
 
 	}
 
-
-
 	secretPath := filepath.Join(sl.basePath, secretName)
 
 	cleanPath := filepath.Clean(secretPath)
-
-
 
 	// Ensure the clean path is still within basePath (defense in depth).
 
@@ -1389,8 +1133,6 @@ func (sl *SecretLoader) LoadSecret(secretName string) (string, error) {
 		return "", fmt.Errorf("path traversal attempt detected")
 
 	}
-
-
 
 	// Use os.ReadFile instead of deprecated os.ReadFile.
 
@@ -1402,13 +1144,9 @@ func (sl *SecretLoader) LoadSecret(secretName string) (string, error) {
 
 	}
 
-
-
 	return strings.TrimSpace(string(content)), nil
 
 }
-
-
 
 // IsValidOpenAIKey validates if a string is a valid OpenAI API key format.
 
@@ -1420,8 +1158,6 @@ func IsValidOpenAIKey(key string) bool {
 
 	}
 
-
-
 	// OpenAI keys typically start with "sk-" and are 51 characters long.
 
 	if !strings.HasPrefix(key, "sk-") {
@@ -1430,15 +1166,11 @@ func IsValidOpenAIKey(key string) bool {
 
 	}
 
-
-
 	if len(key) != 51 {
 
 		return false
 
 	}
-
-
 
 	// Check if the rest contains only alphanumeric characters.
 
@@ -1446,13 +1178,9 @@ func IsValidOpenAIKey(key string) bool {
 
 	alphanumeric := regexp.MustCompile(`^[a-zA-Z0-9]+$`)
 
-
-
 	return alphanumeric.MatchString(keyPart)
 
 }
-
-
 
 // ClearString securely clears a string from memory.
 
@@ -1464,13 +1192,9 @@ func ClearString(s *string) {
 
 	}
 
-
-
 	// Convert string to byte slice for clearing.
 
 	data := []byte(*s)
-
-
 
 	// Clear the underlying bytes.
 
@@ -1480,15 +1204,11 @@ func ClearString(s *string) {
 
 	}
 
-
-
 	// Clear the string by setting it to empty.
 
 	*s = ""
 
 }
-
-
 
 // SecureCompare performs constant-time comparison of two strings.
 
@@ -1500,11 +1220,8 @@ func SecureCompare(a, b string) bool {
 
 	bBytes := []byte(b)
 
-
-
 	// Use crypto/subtle for constant-time comparison.
 
 	return subtle.ConstantTimeCompare(aBytes, bBytes) == 1
 
 }
-

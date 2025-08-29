@@ -28,32 +28,18 @@ limitations under the License.
 
 */
 
-
-
-
 package porch
 
-
-
 import (
-
 	"k8s.io/apimachinery/pkg/api/resource"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 )
-
-
 
 // DeepCopy implementations for all Porch types.
 
 // These methods provide type-safe deep copying required for Kubernetes client-go.
 
-
-
 // Repository DeepCopy methods.
-
-
 
 // DeepCopy performs deepcopy operation.
 
@@ -72,8 +58,6 @@ func (r *RepositoryList) DeepCopy() *RepositoryList {
 	return out
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -99,8 +83,6 @@ func (r *RepositoryList) DeepCopyInto(out *RepositoryList) {
 
 }
 
-
-
 // DeepCopy performs deepcopy operation.
 
 func (ac *AuthConfig) DeepCopy() *AuthConfig {
@@ -118,8 +100,6 @@ func (ac *AuthConfig) DeepCopy() *AuthConfig {
 	return out
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -149,8 +129,6 @@ func (ac *AuthConfig) DeepCopyInto(out *AuthConfig) {
 
 }
 
-
-
 // DeepCopy performs deepcopy operation.
 
 func (sc *SyncConfig) DeepCopy() *SyncConfig {
@@ -168,8 +146,6 @@ func (sc *SyncConfig) DeepCopy() *SyncConfig {
 	return out
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -195,31 +171,17 @@ func (sc *SyncConfig) DeepCopyInto(out *SyncConfig) {
 
 }
 
-
-
 // PackageRevision DeepCopy methods.
-
-
 
 // DeepCopy methods for PackageRevision are in multicluster package.
 
-
-
 // PackageRevisionSpec DeepCopy methods are in multicluster package.
-
-
 
 // PackageRevisionStatus DeepCopy methods are in multicluster package.
 
-
-
 // Note: PackageRevision-related DeepCopy methods moved to multicluster package.
 
-
-
 // KRMResource DeepCopy methods.
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -277,11 +239,7 @@ func (kr *KRMResource) DeepCopyInto(out *KRMResource) {
 
 }
 
-
-
 // FunctionConfig DeepCopy methods.
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -323,8 +281,6 @@ func (fc *FunctionConfig) DeepCopyInto(out *FunctionConfig) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (rs *ResourceSelector) DeepCopyInto(out *ResourceSelector) {
@@ -344,8 +300,6 @@ func (rs *ResourceSelector) DeepCopyInto(out *ResourceSelector) {
 	}
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -375,11 +329,7 @@ func (ec *ExecConfig) DeepCopyInto(out *ExecConfig) {
 
 }
 
-
-
 // Workflow DeepCopy methods.
-
-
 
 // DeepCopy performs deepcopy operation.
 
@@ -399,8 +349,6 @@ func (w *Workflow) DeepCopy() *Workflow {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (w *Workflow) DeepCopyInto(out *Workflow) {
@@ -416,8 +364,6 @@ func (w *Workflow) DeepCopyInto(out *Workflow) {
 	w.Status.DeepCopyInto(&out.Status)
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -475,8 +421,6 @@ func (ws *WorkflowSpec) DeepCopyInto(out *WorkflowSpec) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (ws *WorkflowStatus) DeepCopyInto(out *WorkflowStatus) {
@@ -525,8 +469,6 @@ func (ws *WorkflowStatus) DeepCopyInto(out *WorkflowStatus) {
 
 }
 
-
-
 // DeepCopy performs deepcopy operation.
 
 func (wl *WorkflowList) DeepCopy() *WorkflowList {
@@ -544,8 +486,6 @@ func (wl *WorkflowList) DeepCopy() *WorkflowList {
 	return out
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -571,11 +511,7 @@ func (wl *WorkflowList) DeepCopyInto(out *WorkflowList) {
 
 }
 
-
-
 // Supporting types DeepCopy methods.
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -617,8 +553,6 @@ func (pm *PackageMetadata) DeepCopyInto(out *PackageMetadata) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (wl *WorkflowLock) DeepCopyInto(out *WorkflowLock) {
@@ -634,8 +568,6 @@ func (wl *WorkflowLock) DeepCopyInto(out *WorkflowLock) {
 	}
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -685,8 +617,6 @@ func (ds *DeploymentStatus) DeepCopyInto(out *DeploymentStatus) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (dt *DeploymentTarget) DeepCopyInto(out *DeploymentTarget) {
@@ -702,8 +632,6 @@ func (dt *DeploymentTarget) DeepCopyInto(out *DeploymentTarget) {
 	}
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -728,8 +656,6 @@ func (vr *ValidationResult) DeepCopyInto(out *ValidationResult) {
 	}
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -789,8 +715,6 @@ func (rr *RenderResult) DeepCopyInto(out *RenderResult) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (ws *WorkflowStage) DeepCopyInto(out *WorkflowStage) {
@@ -847,8 +771,6 @@ func (ws *WorkflowStage) DeepCopyInto(out *WorkflowStage) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (wt *WorkflowTrigger) DeepCopyInto(out *WorkflowTrigger) {
@@ -869,8 +791,6 @@ func (wt *WorkflowTrigger) DeepCopyInto(out *WorkflowTrigger) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (rp *RetryPolicy) DeepCopyInto(out *RetryPolicy) {
@@ -886,8 +806,6 @@ func (rp *RetryPolicy) DeepCopyInto(out *RetryPolicy) {
 	}
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -909,8 +827,6 @@ func (wc *WorkflowCondition) DeepCopyInto(out *WorkflowCondition) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (wa *WorkflowAction) DeepCopyInto(out *WorkflowAction) {
@@ -931,8 +847,6 @@ func (wa *WorkflowAction) DeepCopyInto(out *WorkflowAction) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (fa *FailureAction) DeepCopyInto(out *FailureAction) {
@@ -952,8 +866,6 @@ func (fa *FailureAction) DeepCopyInto(out *FailureAction) {
 	}
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -983,11 +895,7 @@ func (wr *WorkflowResult) DeepCopyInto(out *WorkflowResult) {
 
 }
 
-
-
 // Network slice types DeepCopy methods.
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -1029,8 +937,6 @@ func (sr *SliceResources) DeepCopyInto(out *SliceResources) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (lr *LatencyRequirement) DeepCopyInto(out *LatencyRequirement) {
@@ -1054,8 +960,6 @@ func (lr *LatencyRequirement) DeepCopyInto(out *LatencyRequirement) {
 	}
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -1097,8 +1001,6 @@ func (tr *ThroughputRequirement) DeepCopyInto(out *ThroughputRequirement) {
 
 }
 
-
-
 // DeepCopyInto performs deepcopyinto operation.
 
 func (ar *AvailabilityRequirement) DeepCopyInto(out *AvailabilityRequirement) {
@@ -1114,8 +1016,6 @@ func (ar *AvailabilityRequirement) DeepCopyInto(out *AvailabilityRequirement) {
 	}
 
 }
-
-
 
 // DeepCopyInto performs deepcopyinto operation.
 
@@ -1141,8 +1041,6 @@ func (rr *ReliabilityRequirement) DeepCopyInto(out *ReliabilityRequirement) {
 
 }
 
-
-
 // deepCopyInterface provides deep copying for interface{} values.
 
 func deepCopyInterface(v interface{}) interface{} {
@@ -1152,8 +1050,6 @@ func deepCopyInterface(v interface{}) interface{} {
 		return nil
 
 	}
-
-
 
 	switch val := v.(type) {
 
@@ -1194,4 +1090,3 @@ func deepCopyInterface(v interface{}) interface{} {
 	}
 
 }
-

@@ -1,45 +1,28 @@
-
 package controllers
 
-
-
 import (
-
 	"net/http"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio"
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 
-
-
 	"k8s.io/client-go/tools/record"
-
 )
-
-
 
 // ConcreteDependencies is a concrete implementation of the Dependencies interface.
 
 type ConcreteDependencies struct {
+	gitClient git.ClientInterface
 
-	gitClient     git.ClientInterface
+	llmClient shared.ClientInterface
 
-	llmClient     shared.ClientInterface
+	packageGen *nephio.PackageGenerator
 
-	packageGen    *nephio.PackageGenerator
-
-	httpClient    *http.Client
+	httpClient *http.Client
 
 	eventRecorder record.EventRecorder
-
 }
-
-
 
 // NewConcreteDependencies creates a new instance of ConcreteDependencies.
 
@@ -59,21 +42,18 @@ func NewConcreteDependencies(
 
 	return &ConcreteDependencies{
 
-		gitClient:     gitClient,
+		gitClient: gitClient,
 
-		llmClient:     llmClient,
+		llmClient: llmClient,
 
-		packageGen:    packageGen,
+		packageGen: packageGen,
 
-		httpClient:    httpClient,
+		httpClient: httpClient,
 
 		eventRecorder: eventRecorder,
-
 	}
 
 }
-
-
 
 // GetGitClient returns the Git client.
 
@@ -83,8 +63,6 @@ func (d *ConcreteDependencies) GetGitClient() git.ClientInterface {
 
 }
 
-
-
 // GetLLMClient returns the LLM client.
 
 func (d *ConcreteDependencies) GetLLMClient() shared.ClientInterface {
@@ -92,8 +70,6 @@ func (d *ConcreteDependencies) GetLLMClient() shared.ClientInterface {
 	return d.llmClient
 
 }
-
-
 
 // GetPackageGenerator returns the Nephio package generator.
 
@@ -103,8 +79,6 @@ func (d *ConcreteDependencies) GetPackageGenerator() *nephio.PackageGenerator {
 
 }
 
-
-
 // GetHTTPClient returns the HTTP client.
 
 func (d *ConcreteDependencies) GetHTTPClient() *http.Client {
@@ -113,8 +87,6 @@ func (d *ConcreteDependencies) GetHTTPClient() *http.Client {
 
 }
 
-
-
 // GetEventRecorder returns the event recorder.
 
 func (d *ConcreteDependencies) GetEventRecorder() record.EventRecorder {
@@ -122,4 +94,3 @@ func (d *ConcreteDependencies) GetEventRecorder() record.EventRecorder {
 	return d.eventRecorder
 
 }
-

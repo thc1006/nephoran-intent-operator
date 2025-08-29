@@ -1,79 +1,56 @@
-
 package middleware
 
-
-
 import (
-
 	"fmt"
-
 	"log/slog"
-
 	"net/http"
-
 	"strconv"
-
 	"strings"
-
 	"sync"
-
 	"time"
-
 )
-
-
 
 // CORSMiddleware handles Cross-Origin Resource Sharing (CORS) configuration.
 
 type CORSMiddleware struct {
+	allowedOrigins []string
 
-	allowedOrigins   []string
+	allowedMethods []string
 
-	allowedMethods   []string
+	allowedHeaders []string
 
-	allowedHeaders   []string
-
-	exposedHeaders   []string
+	exposedHeaders []string
 
 	allowCredentials bool
 
-	maxAge           int
+	maxAge int
 
-	logger           *slog.Logger
-
-
+	logger *slog.Logger
 
 	// Rate limiting for warning logs to prevent resource leaks.
 
-	wildcardWarningMutex    sync.RWMutex
+	wildcardWarningMutex sync.RWMutex
 
-	lastWildcardWarning     time.Time
+	lastWildcardWarning time.Time
 
 	wildcardWarningInterval time.Duration
-
 }
-
-
 
 // CORSConfig holds CORS configuration options.
 
 type CORSConfig struct {
+	AllowedOrigins []string
 
-	AllowedOrigins   []string
+	AllowedMethods []string
 
-	AllowedMethods   []string
+	AllowedHeaders []string
 
-	AllowedHeaders   []string
-
-	ExposedHeaders   []string
+	ExposedHeaders []string
 
 	AllowCredentials bool
 
-	MaxAge           time.Duration
-
+	MaxAge time.Duration
 }
-
-
 
 // NewCORSMiddleware creates a new CORS middleware with security-focused defaults.
 
@@ -86,8 +63,6 @@ func NewCORSMiddleware(config CORSConfig, logger *slog.Logger) *CORSMiddleware {
 		config.AllowedMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 
 	}
-
-
 
 	if len(config.AllowedHeaders) == 0 {
 
@@ -104,12 +79,9 @@ func NewCORSMiddleware(config CORSConfig, logger *slog.Logger) *CORSMiddleware {
 			"Accept",
 
 			"Origin",
-
 		}
 
 	}
-
-
 
 	// Default max age of 24 hours (recommended by security guidelines).
 
@@ -121,35 +93,28 @@ func NewCORSMiddleware(config CORSConfig, logger *slog.Logger) *CORSMiddleware {
 
 	}
 
-
-
 	return &CORSMiddleware{
 
-		allowedOrigins:   config.AllowedOrigins,
+		allowedOrigins: config.AllowedOrigins,
 
-		allowedMethods:   config.AllowedMethods,
+		allowedMethods: config.AllowedMethods,
 
-		allowedHeaders:   config.AllowedHeaders,
+		allowedHeaders: config.AllowedHeaders,
 
-		exposedHeaders:   config.ExposedHeaders,
+		exposedHeaders: config.ExposedHeaders,
 
 		allowCredentials: config.AllowCredentials,
 
-		maxAge:           maxAge,
+		maxAge: maxAge,
 
-		logger:           logger,
-
-
+		logger: logger,
 
 		// Initialize rate limiting for wildcard warnings - limit to once per 5 minutes.
 
 		wildcardWarningInterval: 5 * time.Minute,
-
 	}
 
 }
-
-
 
 // Middleware returns the CORS middleware handler.
 
@@ -158,8 +123,6 @@ func (c *CORSMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		origin := r.Header.Get("Origin")
-
-
 
 		// Log CORS requests for security monitoring.
 
@@ -170,8 +133,6 @@ func (c *CORSMiddleware) Middleware(next http.Handler) http.Handler {
 			slog.String("method", r.Method),
 
 			slog.String("path", r.URL.Path))
-
-
 
 		// Check if origin is allowed.
 
@@ -187,8 +148,6 @@ func (c *CORSMiddleware) Middleware(next http.Handler) http.Handler {
 
 				slog.String("user_agent", r.Header.Get("User-Agent")))
 
-
-
 			// Don't set any CORS headers for disallowed origins.
 
 			// This is more secure than sending CORS headers with empty values.
@@ -199,8 +158,6 @@ func (c *CORSMiddleware) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		// Set CORS headers for allowed origins.
 
 		if origin != "" {
@@ -208,8 +165,6 @@ func (c *CORSMiddleware) Middleware(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 
 		}
-
-
 
 		// Set other CORS headers.
 
@@ -219,15 +174,11 @@ func (c *CORSMiddleware) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		if len(c.allowedHeaders) > 0 {
 
 			w.Header().Set("Access-Control-Allow-Headers", strings.Join(c.allowedHeaders, ", "))
 
 		}
-
-
 
 		if len(c.exposedHeaders) > 0 {
 
@@ -235,23 +186,17 @@ func (c *CORSMiddleware) Middleware(next http.Handler) http.Handler {
 
 		}
 
-
-
 		if c.allowCredentials {
 
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 		}
 
-
-
 		if c.maxAge > 0 {
 
 			w.Header().Set("Access-Control-Max-Age", strconv.Itoa(c.maxAge))
 
 		}
-
-
 
 		// Handle preflight OPTIONS requests.
 
@@ -264,8 +209,6 @@ func (c *CORSMiddleware) Middleware(next http.Handler) http.Handler {
 				slog.String("requested_method", r.Header.Get("Access-Control-Request-Method")),
 
 				slog.String("requested_headers", r.Header.Get("Access-Control-Request-Headers")))
-
-
 
 			// Additional security validation for preflight requests.
 
@@ -285,23 +228,17 @@ func (c *CORSMiddleware) Middleware(next http.Handler) http.Handler {
 
 			}
 
-
-
 			w.WriteHeader(http.StatusOK)
 
 			return
 
 		}
 
-
-
 		next.ServeHTTP(w, r)
 
 	})
 
 }
-
-
 
 // isOriginAllowed checks if the given origin is in the allowed list.
 
@@ -312,8 +249,6 @@ func (c *CORSMiddleware) isOriginAllowed(origin string) bool {
 		return true // Allow same-origin requests
 
 	}
-
-
 
 	for _, allowedOrigin := range c.allowedOrigins {
 
@@ -327,15 +262,11 @@ func (c *CORSMiddleware) isOriginAllowed(origin string) bool {
 
 		}
 
-
-
 		if allowedOrigin == origin {
 
 			return true
 
 		}
-
-
 
 		// Additional pattern matching could be added here for subdomain wildcards.
 
@@ -343,13 +274,9 @@ func (c *CORSMiddleware) isOriginAllowed(origin string) bool {
 
 	}
 
-
-
 	return false
 
 }
-
-
 
 // isMethodAllowed checks if the HTTP method is allowed.
 
@@ -369,8 +296,6 @@ func (c *CORSMiddleware) isMethodAllowed(method string) bool {
 
 }
 
-
-
 // ValidateConfig performs security validation on CORS configuration.
 
 func ValidateConfig(config CORSConfig) error {
@@ -385,15 +310,11 @@ func ValidateConfig(config CORSConfig) error {
 
 		}
 
-
-
 		if strings.Contains(origin, "*") && origin != "*" {
 
 			return fmt.Errorf("partial wildcard origins like '%s' are not supported for security reasons", origin)
 
 		}
-
-
 
 		// Validate origin format.
 
@@ -405,13 +326,9 @@ func ValidateConfig(config CORSConfig) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // logWildcardWarning logs wildcard usage warnings with rate limiting to prevent resource leaks.
 
@@ -420,8 +337,6 @@ func (c *CORSMiddleware) logWildcardWarning(origin string) {
 	c.wildcardWarningMutex.Lock()
 
 	defer c.wildcardWarningMutex.Unlock()
-
-
 
 	now := time.Now()
 
@@ -432,8 +347,6 @@ func (c *CORSMiddleware) logWildcardWarning(origin string) {
 		return
 
 	}
-
-
 
 	c.lastWildcardWarning = now
 
@@ -446,4 +359,3 @@ func (c *CORSMiddleware) logWildcardWarning(origin string) {
 		slog.String("rate_limit", "further warnings suppressed for "+c.wildcardWarningInterval.String()))
 
 }
-

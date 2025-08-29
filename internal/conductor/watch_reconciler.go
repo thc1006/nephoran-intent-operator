@@ -2,86 +2,54 @@
 
 // for the Nephoran Intent Operator's intent processing and lifecycle management.
 
-
 package conductor
 
-
-
 import (
-
 	"context"
-
 	"encoding/json"
-
 	"fmt"
-
 	"os"
-
 	"os/exec"
-
 	"path/filepath"
-
 	"regexp"
-
 	"strconv"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
-
 
 	"k8s.io/apimachinery/pkg/runtime"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 )
-
-
 
 // WatchReconciler reconciles a NetworkIntent object for conductor-watch.
 
 type WatchReconciler struct {
-
 	client.Client
 
-	Scheme    *runtime.Scheme
+	Scheme *runtime.Scheme
 
-	Logger    logr.Logger // Injected logger
+	Logger logr.Logger // Injected logger
 
-	PorchPath string      // Path to porch CLI binary
+	PorchPath string // Path to porch CLI binary
 
-	PorchMode string      // "apply" or "dry-run"
+	PorchMode string // "apply" or "dry-run"
 
-	OutputDir string      // Directory for output files
+	OutputDir string // Directory for output files
 
-	DryRun    bool        // Skip actual porch execution
+	DryRun bool // Skip actual porch execution
 
 }
-
-
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=networkintents,verbs=get;list;watch;create;update;patch;delete
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=networkintents/status,verbs=get;update;patch
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=networkintents/finalizers,verbs=update
-
-
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to.
 
@@ -99,8 +67,6 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	}
 
-
-
 	// Enhance logger with request context.
 
 	logger = logger.WithValues(
@@ -110,16 +76,11 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		"reconcile.name", req.Name,
 
 		"reconcile.namespacedName", req.NamespacedName.String(),
-
 	)
-
-
 
 	// Log reconciliation start.
 
 	logger.Info("Starting NetworkIntent reconciliation")
-
-
 
 	// Fetch the NetworkIntent instance.
 
@@ -143,8 +104,6 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	}
 
-
-
 	// Enhance logger with object metadata.
 
 	logger = logger.WithValues(
@@ -156,10 +115,7 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		"object.uid", networkIntent.UID,
 
 		"object.creationTimestamp", networkIntent.CreationTimestamp.Format(time.RFC3339),
-
 	)
-
-
 
 	// Log the NetworkIntent details.
 
@@ -168,10 +124,7 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		"generation", networkIntent.Generation,
 
 		"resourceVersion", networkIntent.ResourceVersion,
-
 	)
-
-
 
 	// Log and validate the spec.
 
@@ -192,7 +145,6 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			"intentSummary", intentSummary,
 
 			"intentLength", len(networkIntent.Spec.Intent),
-
 		)
 
 	} else {
@@ -202,8 +154,6 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 
 	}
-
-
 
 	// Log status if present.
 
@@ -216,12 +166,9 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			"observedGeneration", networkIntent.Status.ObservedGeneration,
 
 			"lastMessage", networkIntent.Status.LastMessage,
-
 		)
 
 	}
-
-
 
 	// Parse intent and generate JSON.
 
@@ -234,7 +181,6 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		logger.Error(err, "Failed to parse intent to JSON",
 
 			"intent", networkIntent.Spec.Intent,
-
 		)
 
 		// Requeue after 30 seconds on parse error.
@@ -242,8 +188,6 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 
 	}
-
-
 
 	logger.Info("Successfully generated intent JSON",
 
@@ -254,10 +198,7 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		"replicas", intentData["replicas"],
 
 		"correlationId", intentData["correlation_id"],
-
 	)
-
-
 
 	// Write intent JSON to file.
 
@@ -273,17 +214,12 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	}
 
-
-
 	logger.Info("Successfully written intent JSON file",
 
 		"file", intentFile,
 
 		"outputDir", r.OutputDir,
-
 	)
-
-
 
 	// Execute porch CLI (conditional on dry-run flag).
 
@@ -296,7 +232,6 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			"porchPath", r.PorchPath,
 
 			"porchMode", r.PorchMode,
-
 		)
 
 	} else {
@@ -308,7 +243,6 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			"porchMode", r.PorchMode,
 
 			"intentFile", intentFile,
-
 		)
 
 		if err := r.executePorch(logger, intentFile, req.NamespacedName.String()); err != nil {
@@ -320,7 +254,6 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 				"porchPath", r.PorchPath,
 
 				"mode", r.PorchMode,
-
 			)
 
 			// Requeue after 1 minute on porch error.
@@ -333,8 +266,6 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	}
 
-
-
 	logger.Info("NetworkIntent reconciliation completed successfully",
 
 		"porchMode", r.PorchMode,
@@ -342,16 +273,11 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		"dryRun", r.DryRun,
 
 		"processingTime", time.Since(time.Now().Add(-time.Since(time.Now()))),
-
 	)
-
-
 
 	return ctrl.Result{}, nil
 
 }
-
-
 
 // parseIntentToJSON converts NetworkIntent spec to intent JSON.
 
@@ -359,16 +285,12 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 
 	intent := ni.Spec.Intent
 
-
-
 	// Regex patterns for different intent formats.
 
 	patterns := []struct {
-
 		regex *regexp.Regexp
 
-		name  string
-
+		name string
 	}{
 
 		{regexp.MustCompile(`scale\s+(deployment|app|service)\s+(\S+)\s+to\s+(\d+)\s+replicas?`), "scale_to"},
@@ -378,16 +300,11 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 		{regexp.MustCompile(`scale\s+(deployment|app|service)\s+(\S+)\s+replicas?:\s*(\d+)`), "scale_colon"},
 
 		{regexp.MustCompile(`scale\s+(\S+)\s+(\d+)\s+instances?`), "scale_instances"},
-
 	}
-
-
 
 	var target string
 
 	var replicas int
-
-
 
 	for _, p := range patterns {
 
@@ -429,15 +346,11 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 
 	}
 
-
-
 	if target == "" || replicas == 0 {
 
 		return nil, fmt.Errorf("unable to parse intent: %s", intent)
 
 	}
-
-
 
 	// Validate replicas.
 
@@ -447,31 +360,26 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 
 	}
 
-
-
 	// Create intent JSON matching docs/contracts/intent.schema.json.
 
 	return map[string]interface{}{
 
-		"intent_type":    "scaling",
+		"intent_type": "scaling",
 
-		"target":         target,
+		"target": target,
 
-		"namespace":      ni.Namespace,
+		"namespace": ni.Namespace,
 
-		"replicas":       replicas,
+		"replicas": replicas,
 
-		"source":         "conductor-watch",
+		"source": "conductor-watch",
 
 		"correlation_id": fmt.Sprintf("%s-%s-%d", ni.Name, ni.Namespace, time.Now().Unix()),
 
-		"reason":         fmt.Sprintf("Generated from NetworkIntent %s/%s", ni.Namespace, ni.Name),
-
+		"reason": fmt.Sprintf("Generated from NetworkIntent %s/%s", ni.Namespace, ni.Name),
 	}, nil
 
 }
-
-
 
 // writeIntentJSON writes the intent data to a JSON file.
 
@@ -485,8 +393,6 @@ func (r *WatchReconciler) writeIntentJSON(name string, data map[string]interface
 
 	}
 
-
-
 	// Generate filename with timestamp.
 
 	timestamp := time.Now().Format("20060102T150405")
@@ -496,12 +402,9 @@ func (r *WatchReconciler) writeIntentJSON(name string, data map[string]interface
 		strings.ReplaceAll(name, "/", "-"),
 
 		timestamp,
-
 	)
 
 	filepath := filepath.Join(r.OutputDir, filename)
-
-
 
 	// Marshal to JSON.
 
@@ -513,8 +416,6 @@ func (r *WatchReconciler) writeIntentJSON(name string, data map[string]interface
 
 	}
 
-
-
 	// Write file.
 
 	if err := os.WriteFile(filepath, jsonData, 0o640); err != nil {
@@ -523,13 +424,9 @@ func (r *WatchReconciler) writeIntentJSON(name string, data map[string]interface
 
 	}
 
-
-
 	return filepath, nil
 
 }
-
-
 
 // executePorch executes the porch CLI with the intent file.
 
@@ -546,10 +443,7 @@ func (r *WatchReconciler) executePorch(logger logr.Logger, intentFile, name stri
 		"--mode", r.PorchMode,
 
 		"--output", r.OutputDir,
-
 	}
-
-
 
 	logger.Info("Preparing porch command",
 
@@ -558,10 +452,7 @@ func (r *WatchReconciler) executePorch(logger logr.Logger, intentFile, name stri
 		"args", strings.Join(args, " "),
 
 		"workingDir", r.OutputDir,
-
 	)
-
-
 
 	// Create command.
 
@@ -569,13 +460,9 @@ func (r *WatchReconciler) executePorch(logger logr.Logger, intentFile, name stri
 
 	cmd.Dir = r.OutputDir
 
-
-
 	// Set environment.
 
 	cmd.Env = os.Environ()
-
-
 
 	// Execute command.
 
@@ -590,38 +477,27 @@ func (r *WatchReconciler) executePorch(logger logr.Logger, intentFile, name stri
 			"output", string(output),
 
 			"exitCode", cmd.ProcessState.ExitCode(),
-
 		)
 
 		return fmt.Errorf("porch execution failed: %w, output: %s", err, string(output))
 
 	}
 
-
-
 	logger.Info("Porch execution completed successfully",
 
 		"output", string(output),
-
 	)
-
-
 
 	return nil
 
 }
-
-
 
 // SetupWithManager sets up the controller with the Manager.
 
 func (r *WatchReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
-
 		For(&nephoranv1.NetworkIntent{}).
-
 		Complete(r)
 
 }
-

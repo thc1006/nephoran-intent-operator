@@ -1,29 +1,15 @@
-
 package security
 
-
-
 import (
-
 	"fmt"
-
 	"net/url"
-
 	"path/filepath"
-
 	"regexp"
-
 	"strings"
-
 	"time"
 
-
-
 	"github.com/nephio-project/nephoran-intent-operator/planner/internal/rules"
-
 )
-
-
 
 // ValidationConfig contains security validation configuration.
 
@@ -33,31 +19,25 @@ type ValidationConfig struct {
 
 	MaxPRBUtilization float64 // Maximum PRB utilization (default: 1.0)
 
-	MaxLatency        float64 // Maximum acceptable latency in ms (default: 10000)
+	MaxLatency float64 // Maximum acceptable latency in ms (default: 10000)
 
-	MaxReplicas       int     // Maximum replica count (default: 100)
+	MaxReplicas int // Maximum replica count (default: 100)
 
-	MaxActiveUEs      int     // Maximum active UEs (default: 10000)
-
-
+	MaxActiveUEs int // Maximum active UEs (default: 10000)
 
 	// File path validation.
 
 	AllowedExtensions []string // Allowed file extensions
 
-	MaxPathLength     int      // Maximum path length (default: 4096)
-
-
+	MaxPathLength int // Maximum path length (default: 4096)
 
 	// URL validation.
 
 	AllowedSchemes []string // Allowed URL schemes (default: http, https)
 
-	MaxURLLength   int      // Maximum URL length (default: 2048)
+	MaxURLLength int // Maximum URL length (default: 2048)
 
 }
-
-
 
 // DefaultValidationConfig returns a secure default configuration.
 
@@ -67,41 +47,34 @@ func DefaultValidationConfig() ValidationConfig {
 
 		MaxPRBUtilization: 1.0,
 
-		MaxLatency:        10000.0,
+		MaxLatency: 10000.0,
 
-		MaxReplicas:       100,
+		MaxReplicas: 100,
 
-		MaxActiveUEs:      10000,
+		MaxActiveUEs: 10000,
 
 		AllowedExtensions: []string{".json", ".yaml", ".yml"},
 
-		MaxPathLength:     4096,
+		MaxPathLength: 4096,
 
-		AllowedSchemes:    []string{"http", "https"},
+		AllowedSchemes: []string{"http", "https"},
 
-		MaxURLLength:      2048,
-
+		MaxURLLength: 2048,
 	}
 
 }
 
-
-
 // ValidationError represents a security validation error.
 
 type ValidationError struct {
+	Field string
 
-	Field   string
+	Value interface{}
 
-	Value   interface{}
-
-	Reason  string
+	Reason string
 
 	Context string
-
 }
-
-
 
 // Error performs error operation.
 
@@ -113,17 +86,11 @@ func (e ValidationError) Error() string {
 
 }
 
-
-
 // Validator provides security validation functions.
 
 type Validator struct {
-
 	config ValidationConfig
-
 }
-
-
 
 // NewValidator creates a new security validator with the given configuration.
 
@@ -132,8 +99,6 @@ func NewValidator(config ValidationConfig) *Validator {
 	return &Validator{config: config}
 
 }
-
-
 
 // ValidateKMPData performs comprehensive validation of KMP metrics data.
 
@@ -147,19 +112,16 @@ func (v *Validator) ValidateKMPData(data rules.KPMData) error {
 
 		return ValidationError{
 
-			Field:   "timestamp",
+			Field: "timestamp",
 
-			Value:   data.Timestamp,
+			Value: data.Timestamp,
 
-			Reason:  "timestamp cannot be zero",
+			Reason: "timestamp cannot be zero",
 
 			Context: "KMP data validation",
-
 		}
 
 	}
-
-
 
 	// Timestamp should not be too far in the future (prevent time-based attacks).
 
@@ -169,19 +131,16 @@ func (v *Validator) ValidateKMPData(data rules.KPMData) error {
 
 		return ValidationError{
 
-			Field:   "timestamp",
+			Field: "timestamp",
 
-			Value:   data.Timestamp,
+			Value: data.Timestamp,
 
-			Reason:  "timestamp too far in future",
+			Reason: "timestamp too far in future",
 
 			Context: "KMP data validation",
-
 		}
 
 	}
-
-
 
 	// Timestamp should not be too old (prevent replay attacks).
 
@@ -191,19 +150,16 @@ func (v *Validator) ValidateKMPData(data rules.KPMData) error {
 
 		return ValidationError{
 
-			Field:   "timestamp",
+			Field: "timestamp",
 
-			Value:   data.Timestamp,
+			Value: data.Timestamp,
 
-			Reason:  "timestamp too old (potential replay attack)",
+			Reason: "timestamp too old (potential replay attack)",
 
 			Context: "KMP data validation",
-
 		}
 
 	}
-
-
 
 	// Validate NodeID - must be non-empty and follow O-RAN naming conventions.
 
@@ -213,8 +169,6 @@ func (v *Validator) ValidateKMPData(data rules.KPMData) error {
 
 	}
 
-
-
 	// Validate PRB utilization - must be between 0.0 and 1.0.
 
 	if err := v.validatePRBUtilization(data.PRBUtilization); err != nil {
@@ -222,8 +176,6 @@ func (v *Validator) ValidateKMPData(data rules.KPMData) error {
 		return err
 
 	}
-
-
 
 	// Validate P95 latency - must be positive and within reasonable bounds.
 
@@ -233,8 +185,6 @@ func (v *Validator) ValidateKMPData(data rules.KPMData) error {
 
 	}
 
-
-
 	// Validate ActiveUEs - must be non-negative and within limits.
 
 	if err := v.validateActiveUEs(data.ActiveUEs); err != nil {
@@ -242,8 +192,6 @@ func (v *Validator) ValidateKMPData(data rules.KPMData) error {
 		return err
 
 	}
-
-
 
 	// Validate CurrentReplicas - must be positive and within limits.
 
@@ -253,13 +201,9 @@ func (v *Validator) ValidateKMPData(data rules.KPMData) error {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateNodeID validates O-RAN node identifier format and security.
 
@@ -269,19 +213,16 @@ func (v *Validator) validateNodeID(nodeID string) error {
 
 		return ValidationError{
 
-			Field:   "node_id",
+			Field: "node_id",
 
-			Value:   nodeID,
+			Value: nodeID,
 
-			Reason:  "node ID cannot be empty",
+			Reason: "node ID cannot be empty",
 
 			Context: "KMP data validation",
-
 		}
 
 	}
-
-
 
 	// Prevent injection attacks through NodeID.
 
@@ -289,19 +230,16 @@ func (v *Validator) validateNodeID(nodeID string) error {
 
 		return ValidationError{
 
-			Field:   "node_id",
+			Field: "node_id",
 
-			Value:   nodeID,
+			Value: nodeID,
 
-			Reason:  "node ID contains potentially dangerous characters",
+			Reason: "node ID contains potentially dangerous characters",
 
 			Context: "KMP data validation",
-
 		}
 
 	}
-
-
 
 	// O-RAN node ID format validation (alphanumeric, hyphens, underscores only).
 
@@ -311,19 +249,16 @@ func (v *Validator) validateNodeID(nodeID string) error {
 
 		return ValidationError{
 
-			Field:   "node_id",
+			Field: "node_id",
 
-			Value:   nodeID,
+			Value: nodeID,
 
-			Reason:  "node ID must contain only alphanumeric characters, hyphens, and underscores",
+			Reason: "node ID must contain only alphanumeric characters, hyphens, and underscores",
 
 			Context: "KMP data validation",
-
 		}
 
 	}
-
-
 
 	// Length validation.
 
@@ -331,25 +266,20 @@ func (v *Validator) validateNodeID(nodeID string) error {
 
 		return ValidationError{
 
-			Field:   "node_id",
+			Field: "node_id",
 
-			Value:   nodeID,
+			Value: nodeID,
 
-			Reason:  "node ID too long (max 255 characters)",
+			Reason: "node ID too long (max 255 characters)",
 
 			Context: "KMP data validation",
-
 		}
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validatePRBUtilization validates Physical Resource Block utilization values.
 
@@ -359,43 +289,35 @@ func (v *Validator) validatePRBUtilization(prb float64) error {
 
 		return ValidationError{
 
-			Field:   "prb_utilization",
+			Field: "prb_utilization",
 
-			Value:   prb,
+			Value: prb,
 
-			Reason:  "PRB utilization cannot be negative",
+			Reason: "PRB utilization cannot be negative",
 
 			Context: "KMP data validation",
-
 		}
 
 	}
-
-
 
 	if prb > v.config.MaxPRBUtilization {
 
 		return ValidationError{
 
-			Field:   "prb_utilization",
+			Field: "prb_utilization",
 
-			Value:   prb,
+			Value: prb,
 
-			Reason:  fmt.Sprintf("PRB utilization exceeds maximum allowed value (%.2f)", v.config.MaxPRBUtilization),
+			Reason: fmt.Sprintf("PRB utilization exceeds maximum allowed value (%.2f)", v.config.MaxPRBUtilization),
 
 			Context: "KMP data validation",
-
 		}
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateLatency validates P95 latency measurements.
 
@@ -405,43 +327,35 @@ func (v *Validator) validateLatency(latency float64) error {
 
 		return ValidationError{
 
-			Field:   "p95_latency",
+			Field: "p95_latency",
 
-			Value:   latency,
+			Value: latency,
 
-			Reason:  "latency cannot be negative",
+			Reason: "latency cannot be negative",
 
 			Context: "KMP data validation",
-
 		}
 
 	}
-
-
 
 	if latency > v.config.MaxLatency {
 
 		return ValidationError{
 
-			Field:   "p95_latency",
+			Field: "p95_latency",
 
-			Value:   latency,
+			Value: latency,
 
-			Reason:  fmt.Sprintf("latency exceeds maximum allowed value (%.2f ms)", v.config.MaxLatency),
+			Reason: fmt.Sprintf("latency exceeds maximum allowed value (%.2f ms)", v.config.MaxLatency),
 
 			Context: "KMP data validation",
-
 		}
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateActiveUEs validates active User Equipment count.
 
@@ -451,43 +365,35 @@ func (v *Validator) validateActiveUEs(ues int) error {
 
 		return ValidationError{
 
-			Field:   "active_ues",
+			Field: "active_ues",
 
-			Value:   ues,
+			Value: ues,
 
-			Reason:  "active UEs cannot be negative",
+			Reason: "active UEs cannot be negative",
 
 			Context: "KMP data validation",
-
 		}
 
 	}
-
-
 
 	if ues > v.config.MaxActiveUEs {
 
 		return ValidationError{
 
-			Field:   "active_ues",
+			Field: "active_ues",
 
-			Value:   ues,
+			Value: ues,
 
-			Reason:  fmt.Sprintf("active UEs exceeds maximum allowed value (%d)", v.config.MaxActiveUEs),
+			Reason: fmt.Sprintf("active UEs exceeds maximum allowed value (%d)", v.config.MaxActiveUEs),
 
 			Context: "KMP data validation",
-
 		}
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // validateReplicaCount validates replica count values.
 
@@ -497,43 +403,35 @@ func (v *Validator) validateReplicaCount(replicas int) error {
 
 		return ValidationError{
 
-			Field:   "current_replicas",
+			Field: "current_replicas",
 
-			Value:   replicas,
+			Value: replicas,
 
-			Reason:  "replica count cannot be negative",
+			Reason: "replica count cannot be negative",
 
 			Context: "KMP data validation",
-
 		}
 
 	}
-
-
 
 	if replicas > v.config.MaxReplicas {
 
 		return ValidationError{
 
-			Field:   "current_replicas",
+			Field: "current_replicas",
 
-			Value:   replicas,
+			Value: replicas,
 
-			Reason:  fmt.Sprintf("replica count exceeds maximum allowed value (%d)", v.config.MaxReplicas),
+			Reason: fmt.Sprintf("replica count exceeds maximum allowed value (%d)", v.config.MaxReplicas),
 
 			Context: "KMP data validation",
-
 		}
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateURL validates URLs from environment variables to prevent injection attacks.
 
@@ -543,19 +441,16 @@ func (v *Validator) ValidateURL(urlStr, context string) error {
 
 		return ValidationError{
 
-			Field:   "url",
+			Field: "url",
 
-			Value:   urlStr,
+			Value: urlStr,
 
-			Reason:  "URL cannot be empty",
+			Reason: "URL cannot be empty",
 
 			Context: context,
-
 		}
 
 	}
-
-
 
 	// Length validation to prevent buffer overflow attacks.
 
@@ -563,19 +458,16 @@ func (v *Validator) ValidateURL(urlStr, context string) error {
 
 		return ValidationError{
 
-			Field:   "url",
+			Field: "url",
 
-			Value:   urlStr,
+			Value: urlStr,
 
-			Reason:  fmt.Sprintf("URL too long (max %d characters)", v.config.MaxURLLength),
+			Reason: fmt.Sprintf("URL too long (max %d characters)", v.config.MaxURLLength),
 
 			Context: context,
-
 		}
 
 	}
-
-
 
 	// Parse URL to validate format.
 
@@ -585,19 +477,16 @@ func (v *Validator) ValidateURL(urlStr, context string) error {
 
 		return ValidationError{
 
-			Field:   "url",
+			Field: "url",
 
-			Value:   urlStr,
+			Value: urlStr,
 
-			Reason:  fmt.Sprintf("invalid URL format: %v", err),
+			Reason: fmt.Sprintf("invalid URL format: %v", err),
 
 			Context: context,
-
 		}
 
 	}
-
-
 
 	// Validate scheme - only allow HTTP/HTTPS.
 
@@ -619,19 +508,16 @@ func (v *Validator) ValidateURL(urlStr, context string) error {
 
 		return ValidationError{
 
-			Field:   "url.scheme",
+			Field: "url.scheme",
 
-			Value:   parsedURL.Scheme,
+			Value: parsedURL.Scheme,
 
-			Reason:  fmt.Sprintf("URL scheme not allowed (allowed: %v)", v.config.AllowedSchemes),
+			Reason: fmt.Sprintf("URL scheme not allowed (allowed: %v)", v.config.AllowedSchemes),
 
 			Context: context,
-
 		}
 
 	}
-
-
 
 	// Prevent access to localhost/loopback addresses in production environments.
 
@@ -643,19 +529,16 @@ func (v *Validator) ValidateURL(urlStr, context string) error {
 
 		return ValidationError{
 
-			Field:   "url.host",
+			Field: "url.host",
 
-			Value:   host,
+			Value: host,
 
-			Reason:  "URL must have a valid hostname",
+			Reason: "URL must have a valid hostname",
 
 			Context: context,
-
 		}
 
 	}
-
-
 
 	// Prevent injection through URL components.
 
@@ -663,25 +546,20 @@ func (v *Validator) ValidateURL(urlStr, context string) error {
 
 		return ValidationError{
 
-			Field:   "url.query",
+			Field: "url.query",
 
-			Value:   parsedURL.RawQuery,
+			Value: parsedURL.RawQuery,
 
-			Reason:  "URL query contains potentially dangerous characters",
+			Reason: "URL query contains potentially dangerous characters",
 
 			Context: context,
-
 		}
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateFilePath validates file paths to prevent directory traversal attacks.
 
@@ -691,19 +569,16 @@ func (v *Validator) ValidateFilePath(path, context string) error {
 
 		return ValidationError{
 
-			Field:   "file_path",
+			Field: "file_path",
 
-			Value:   path,
+			Value: path,
 
-			Reason:  "file path cannot be empty",
+			Reason: "file path cannot be empty",
 
 			Context: context,
-
 		}
 
 	}
-
-
 
 	// Length validation.
 
@@ -711,25 +586,20 @@ func (v *Validator) ValidateFilePath(path, context string) error {
 
 		return ValidationError{
 
-			Field:   "file_path",
+			Field: "file_path",
 
-			Value:   path,
+			Value: path,
 
-			Reason:  fmt.Sprintf("file path too long (max %d characters)", v.config.MaxPathLength),
+			Reason: fmt.Sprintf("file path too long (max %d characters)", v.config.MaxPathLength),
 
 			Context: context,
-
 		}
 
 	}
 
-
-
 	// Clean the path to resolve any relative components.
 
 	cleanPath := filepath.Clean(path)
-
-
 
 	// Prevent directory traversal attacks.
 
@@ -737,19 +607,16 @@ func (v *Validator) ValidateFilePath(path, context string) error {
 
 		return ValidationError{
 
-			Field:   "file_path",
+			Field: "file_path",
 
-			Value:   path,
+			Value: path,
 
-			Reason:  "file path contains directory traversal sequences (..)",
+			Reason: "file path contains directory traversal sequences (..)",
 
 			Context: context,
-
 		}
 
 	}
-
-
 
 	// Prevent absolute paths pointing to sensitive system directories.
 
@@ -770,10 +637,7 @@ func (v *Validator) ValidateFilePath(path, context string) error {
 			"c:\\windows", "c:\\system32", "c:\\program files", "c:\\programdata",
 
 			"c:\\users\\all users", "c:\\users\\default", "c:\\boot",
-
 		}
-
-
 
 		for _, sensitive := range sensitiveDirectories {
 
@@ -781,14 +645,13 @@ func (v *Validator) ValidateFilePath(path, context string) error {
 
 				return ValidationError{
 
-					Field:   "file_path",
+					Field: "file_path",
 
-					Value:   path,
+					Value: path,
 
-					Reason:  "file path points to sensitive system directory",
+					Reason: "file path points to sensitive system directory",
 
 					Context: context,
-
 				}
 
 			}
@@ -796,8 +659,6 @@ func (v *Validator) ValidateFilePath(path, context string) error {
 		}
 
 	}
-
-
 
 	// Validate file extension if specified.
 
@@ -825,14 +686,13 @@ func (v *Validator) ValidateFilePath(path, context string) error {
 
 				return ValidationError{
 
-					Field:   "file_path.extension",
+					Field: "file_path.extension",
 
-					Value:   ext,
+					Value: ext,
 
-					Reason:  fmt.Sprintf("file extension not allowed (allowed: %v)", v.config.AllowedExtensions),
+					Reason: fmt.Sprintf("file extension not allowed (allowed: %v)", v.config.AllowedExtensions),
 
 					Context: context,
-
 				}
 
 			}
@@ -841,33 +701,26 @@ func (v *Validator) ValidateFilePath(path, context string) error {
 
 	}
 
-
-
 	// Prevent null bytes and other dangerous characters.
 
 	if strings.ContainsAny(cleanPath, "\x00<>|\"") {
 
 		return ValidationError{
 
-			Field:   "file_path",
+			Field: "file_path",
 
-			Value:   path,
+			Value: path,
 
-			Reason:  "file path contains dangerous characters",
+			Reason: "file path contains dangerous characters",
 
 			Context: context,
-
 		}
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // ValidateEnvironmentVariable validates environment variable values for security.
 
@@ -877,19 +730,16 @@ func (v *Validator) ValidateEnvironmentVariable(name, value, context string) err
 
 		return ValidationError{
 
-			Field:   "env_var_name",
+			Field: "env_var_name",
 
-			Value:   name,
+			Value: name,
 
-			Reason:  "environment variable name cannot be empty",
+			Reason: "environment variable name cannot be empty",
 
 			Context: context,
-
 		}
 
 	}
-
-
 
 	// Validate based on variable name patterns.
 
@@ -911,27 +761,22 @@ func (v *Validator) ValidateEnvironmentVariable(name, value, context string) err
 
 			return ValidationError{
 
-				Field:   name,
+				Field: name,
 
-				Value:   value,
+				Value: value,
 
-				Reason:  "environment variable contains null bytes or newlines",
+				Reason: "environment variable contains null bytes or newlines",
 
 				Context: context,
-
 			}
 
 		}
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // SanitizeForLogging safely sanitizes values for logging to prevent log injection.
 
@@ -945,8 +790,6 @@ func (v *Validator) SanitizeForLogging(value string) string {
 
 	sanitized = strings.ReplaceAll(sanitized, "\t", "\\t")
 
-
-
 	// Truncate long values to prevent log flooding.
 
 	if len(sanitized) > 256 {
@@ -955,9 +798,6 @@ func (v *Validator) SanitizeForLogging(value string) string {
 
 	}
 
-
-
 	return sanitized
 
 }
-

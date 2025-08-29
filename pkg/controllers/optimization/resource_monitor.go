@@ -28,42 +28,22 @@ limitations under the License.
 
 */
 
-
-
-
 package optimization
 
-
-
 import (
-
 	"context"
-
 	"fmt"
-
 	"sync"
-
 	"time"
 
-
-
 	"github.com/go-logr/logr"
-
-
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
-
 )
-
-
 
 // ResourceMonitor monitors system resource usage and performance metrics.
 
 type ResourceMonitor struct {
-
 	logger logr.Logger
-
-
 
 	// Metrics collection.
 
@@ -71,107 +51,74 @@ type ResourceMonitor struct {
 
 	currentMetrics *SystemMetrics
 
-	historyMutex   sync.RWMutex
-
-
+	historyMutex sync.RWMutex
 
 	// Collection settings.
 
 	maxHistorySize int
 
-
-
 	// Control.
 
-	started  bool
+	started bool
 
 	stopChan chan bool
 
-	mutex    sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // MetricsAnalyzer analyzes performance metrics and identifies trends.
 
 type MetricsAnalyzer struct {
-
 	logger logr.Logger
-
 }
-
-
 
 // ScalingDecisionEngine makes intelligent scaling decisions.
 
 type ScalingDecisionEngine struct {
-
 	logger logr.Logger
 
 	config *PerformanceConfig
 
-
-
 	// Decision history.
 
-	decisions     []ScalingDecision
+	decisions []ScalingDecision
 
 	decisionMutex sync.RWMutex
-
 }
-
-
 
 // ConnectionPoolManager manages connection pools across services.
 
 type ConnectionPoolManager struct {
-
 	logger logr.Logger
 
 	config *PerformanceConfig
-
-
 
 	// Connection pools.
 
 	httpPools map[string]*HTTPConnectionPool
 
-	dbPools   map[string]*DatabaseConnectionPool
-
-
+	dbPools map[string]*DatabaseConnectionPool
 
 	// Control.
 
 	started bool
 
-	mutex   sync.RWMutex
-
+	mutex sync.RWMutex
 }
-
-
 
 // LoadBalancer handles load balancing across controller instances.
 
 type LoadBalancer struct {
-
 	logger logr.Logger
-
-
 
 	// Load balancing state.
 
 	instances map[string]*ControllerInstance
 
-	strategy  LoadBalancingStrategy
-
-
+	strategy LoadBalancingStrategy
 
 	mutex sync.RWMutex
-
 }
-
-
 
 // NewResourceMonitor creates a new resource monitor.
 
@@ -179,19 +126,16 @@ func NewResourceMonitor(logger logr.Logger) *ResourceMonitor {
 
 	return &ResourceMonitor{
 
-		logger:         logger.WithName("resource-monitor"),
+		logger: logger.WithName("resource-monitor"),
 
 		metricsHistory: make([]SystemMetrics, 0),
 
 		maxHistorySize: 1000, // Keep last 1000 metrics snapshots
 
-		stopChan:       make(chan bool),
-
+		stopChan: make(chan bool),
 	}
 
 }
-
-
 
 // Start starts the resource monitor.
 
@@ -201,49 +145,38 @@ func (rm *ResourceMonitor) Start(ctx context.Context) error {
 
 	defer rm.mutex.Unlock()
 
-
-
 	if rm.started {
 
 		return fmt.Errorf("resource monitor already started")
 
 	}
 
-
-
 	// Initialize current metrics.
 
 	rm.currentMetrics = &SystemMetrics{
 
-		Timestamp:         time.Now(),
+		Timestamp: time.Now(),
 
-		QueueDepths:       make(map[interfaces.ProcessingPhase]int),
+		QueueDepths: make(map[interfaces.ProcessingPhase]int),
 
-		ResponseTimes:     make(map[interfaces.ProcessingPhase]time.Duration),
+		ResponseTimes: make(map[interfaces.ProcessingPhase]time.Duration),
 
-		ThroughputRates:   make(map[interfaces.ProcessingPhase]float64),
+		ThroughputRates: make(map[interfaces.ProcessingPhase]float64),
 
-		ErrorRates:        make(map[interfaces.ProcessingPhase]float64),
+		ErrorRates: make(map[interfaces.ProcessingPhase]float64),
 
-		CacheMetrics:      &CacheMetrics{},
+		CacheMetrics: &CacheMetrics{},
 
 		ConnectionMetrics: &ConnectionMetrics{},
-
 	}
-
-
 
 	rm.started = true
 
 	rm.logger.Info("Resource monitor started")
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the resource monitor.
 
@@ -253,15 +186,11 @@ func (rm *ResourceMonitor) Stop(ctx context.Context) error {
 
 	defer rm.mutex.Unlock()
 
-
-
 	if !rm.started {
 
 		return nil
 
 	}
-
-
 
 	close(rm.stopChan)
 
@@ -269,13 +198,9 @@ func (rm *ResourceMonitor) Stop(ctx context.Context) error {
 
 	rm.logger.Info("Resource monitor stopped")
 
-
-
 	return nil
 
 }
-
-
 
 // CollectMetrics collects current system metrics.
 
@@ -293,53 +218,40 @@ func (rm *ResourceMonitor) CollectMetrics(ctx context.Context) {
 
 	rm.mutex.RUnlock()
 
-
-
 	metrics := &SystemMetrics{
 
 		Timestamp: time.Now(),
 
-
-
 		// System resource metrics.
 
-		CPUUtilization:    rm.getCPUUtilization(),
+		CPUUtilization: rm.getCPUUtilization(),
 
 		MemoryUtilization: rm.getMemoryUtilization(),
 
-		NetworkIO:         rm.getNetworkIOMetrics(),
+		NetworkIO: rm.getNetworkIOMetrics(),
 
-		DiskIO:            rm.getDiskIOMetrics(),
-
-
+		DiskIO: rm.getDiskIOMetrics(),
 
 		// Application metrics.
 
-		QueueDepths:     rm.getQueueDepthMetrics(),
+		QueueDepths: rm.getQueueDepthMetrics(),
 
-		ResponseTimes:   rm.getResponseTimeMetrics(),
+		ResponseTimes: rm.getResponseTimeMetrics(),
 
 		ThroughputRates: rm.getThroughputMetrics(),
 
-		ErrorRates:      rm.getErrorRateMetrics(),
-
-
+		ErrorRates: rm.getErrorRateMetrics(),
 
 		// Cache and connection metrics.
 
-		CacheMetrics:      rm.getCacheMetrics(),
+		CacheMetrics: rm.getCacheMetrics(),
 
 		ConnectionMetrics: rm.getConnectionMetrics(),
-
 	}
-
-
 
 	rm.updateMetrics(metrics)
 
 }
-
-
 
 // GetCurrentMetrics returns the current system metrics.
 
@@ -348,8 +260,6 @@ func (rm *ResourceMonitor) GetCurrentMetrics() *SystemMetrics {
 	rm.historyMutex.RLock()
 
 	defer rm.historyMutex.RUnlock()
-
-
 
 	if rm.currentMetrics != nil {
 
@@ -361,13 +271,9 @@ func (rm *ResourceMonitor) GetCurrentMetrics() *SystemMetrics {
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // GetMetricsHistory returns historical metrics.
 
@@ -377,13 +283,9 @@ func (rm *ResourceMonitor) GetMetricsHistory(duration time.Duration) []SystemMet
 
 	defer rm.historyMutex.RUnlock()
 
-
-
 	cutoff := time.Now().Add(-duration)
 
 	var result []SystemMetrics
-
-
 
 	for _, metrics := range rm.metricsHistory {
 
@@ -395,17 +297,11 @@ func (rm *ResourceMonitor) GetMetricsHistory(duration time.Duration) []SystemMet
 
 	}
 
-
-
 	return result
 
 }
 
-
-
 // Helper methods for metrics collection.
-
-
 
 func (rm *ResourceMonitor) getCPUUtilization() float64 {
 
@@ -417,8 +313,6 @@ func (rm *ResourceMonitor) getCPUUtilization() float64 {
 
 }
 
-
-
 func (rm *ResourceMonitor) getMemoryUtilization() float64 {
 
 	// This would implement actual memory utilization collection.
@@ -427,27 +321,22 @@ func (rm *ResourceMonitor) getMemoryUtilization() float64 {
 
 }
 
-
-
 func (rm *ResourceMonitor) getNetworkIOMetrics() NetworkIOMetrics {
 
 	// This would implement actual network I/O metrics collection.
 
 	return NetworkIOMetrics{
 
-		BytesIn:    1024000,
+		BytesIn: 1024000,
 
-		BytesOut:   2048000,
+		BytesOut: 2048000,
 
-		PacketsIn:  5000,
+		PacketsIn: 5000,
 
 		PacketsOut: 7000,
-
 	}
 
 }
-
-
 
 func (rm *ResourceMonitor) getDiskIOMetrics() DiskIOMetrics {
 
@@ -455,19 +344,16 @@ func (rm *ResourceMonitor) getDiskIOMetrics() DiskIOMetrics {
 
 	return DiskIOMetrics{
 
-		BytesRead:    10240000,
+		BytesRead: 10240000,
 
 		BytesWritten: 5120000,
 
-		IOPSRead:     150,
+		IOPSRead: 150,
 
-		IOPSWrite:    75,
-
+		IOPSWrite: 75,
 	}
 
 }
-
-
 
 func (rm *ResourceMonitor) getQueueDepthMetrics() map[interfaces.ProcessingPhase]int {
 
@@ -475,21 +361,18 @@ func (rm *ResourceMonitor) getQueueDepthMetrics() map[interfaces.ProcessingPhase
 
 	return map[interfaces.ProcessingPhase]int{
 
-		interfaces.PhaseLLMProcessing:          25,
+		interfaces.PhaseLLMProcessing: 25,
 
-		interfaces.PhaseResourcePlanning:       15,
+		interfaces.PhaseResourcePlanning: 15,
 
-		interfaces.PhaseManifestGeneration:     8,
+		interfaces.PhaseManifestGeneration: 8,
 
-		interfaces.PhaseGitOpsCommit:           12,
+		interfaces.PhaseGitOpsCommit: 12,
 
 		interfaces.PhaseDeploymentVerification: 20,
-
 	}
 
 }
-
-
 
 func (rm *ResourceMonitor) getResponseTimeMetrics() map[interfaces.ProcessingPhase]time.Duration {
 
@@ -497,21 +380,18 @@ func (rm *ResourceMonitor) getResponseTimeMetrics() map[interfaces.ProcessingPha
 
 	return map[interfaces.ProcessingPhase]time.Duration{
 
-		interfaces.PhaseLLMProcessing:          45 * time.Second,
+		interfaces.PhaseLLMProcessing: 45 * time.Second,
 
-		interfaces.PhaseResourcePlanning:       12 * time.Second,
+		interfaces.PhaseResourcePlanning: 12 * time.Second,
 
-		interfaces.PhaseManifestGeneration:     5 * time.Second,
+		interfaces.PhaseManifestGeneration: 5 * time.Second,
 
-		interfaces.PhaseGitOpsCommit:           18 * time.Second,
+		interfaces.PhaseGitOpsCommit: 18 * time.Second,
 
 		interfaces.PhaseDeploymentVerification: 90 * time.Second,
-
 	}
 
 }
-
-
 
 func (rm *ResourceMonitor) getThroughputMetrics() map[interfaces.ProcessingPhase]float64 {
 
@@ -519,21 +399,18 @@ func (rm *ResourceMonitor) getThroughputMetrics() map[interfaces.ProcessingPhase
 
 	return map[interfaces.ProcessingPhase]float64{
 
-		interfaces.PhaseLLMProcessing:          2.5,
+		interfaces.PhaseLLMProcessing: 2.5,
 
-		interfaces.PhaseResourcePlanning:       8.0,
+		interfaces.PhaseResourcePlanning: 8.0,
 
-		interfaces.PhaseManifestGeneration:     15.0,
+		interfaces.PhaseManifestGeneration: 15.0,
 
-		interfaces.PhaseGitOpsCommit:           4.2,
+		interfaces.PhaseGitOpsCommit: 4.2,
 
 		interfaces.PhaseDeploymentVerification: 1.8,
-
 	}
 
 }
-
-
 
 func (rm *ResourceMonitor) getErrorRateMetrics() map[interfaces.ProcessingPhase]float64 {
 
@@ -541,21 +418,18 @@ func (rm *ResourceMonitor) getErrorRateMetrics() map[interfaces.ProcessingPhase]
 
 	return map[interfaces.ProcessingPhase]float64{
 
-		interfaces.PhaseLLMProcessing:          2.1,
+		interfaces.PhaseLLMProcessing: 2.1,
 
-		interfaces.PhaseResourcePlanning:       0.8,
+		interfaces.PhaseResourcePlanning: 0.8,
 
-		interfaces.PhaseManifestGeneration:     0.3,
+		interfaces.PhaseManifestGeneration: 0.3,
 
-		interfaces.PhaseGitOpsCommit:           1.5,
+		interfaces.PhaseGitOpsCommit: 1.5,
 
 		interfaces.PhaseDeploymentVerification: 3.2,
-
 	}
 
 }
-
-
 
 func (rm *ResourceMonitor) getCacheMetrics() *CacheMetrics {
 
@@ -563,21 +437,18 @@ func (rm *ResourceMonitor) getCacheMetrics() *CacheMetrics {
 
 	return &CacheMetrics{
 
-		HitRate:      0.78,
+		HitRate: 0.78,
 
-		MissRate:     0.22,
+		MissRate: 0.22,
 
 		EvictionRate: 0.05,
 
-		SizeBytes:    1048576000, // 1GB
+		SizeBytes: 1048576000, // 1GB
 
-		ItemCount:    125000,
-
+		ItemCount: 125000,
 	}
 
 }
-
-
 
 func (rm *ResourceMonitor) getConnectionMetrics() *ConnectionMetrics {
 
@@ -585,19 +456,16 @@ func (rm *ResourceMonitor) getConnectionMetrics() *ConnectionMetrics {
 
 	return &ConnectionMetrics{
 
-		TotalConnections:  150,
+		TotalConnections: 150,
 
 		ActiveConnections: 95,
 
-		IdleConnections:   55,
+		IdleConnections: 55,
 
 		FailedConnections: 3,
-
 	}
 
 }
-
-
 
 func (rm *ResourceMonitor) updateMetrics(metrics *SystemMetrics) {
 
@@ -605,19 +473,13 @@ func (rm *ResourceMonitor) updateMetrics(metrics *SystemMetrics) {
 
 	defer rm.historyMutex.Unlock()
 
-
-
 	// Update current metrics.
 
 	rm.currentMetrics = metrics
 
-
-
 	// Add to history.
 
 	rm.metricsHistory = append(rm.metricsHistory, *metrics)
-
-
 
 	// Trim history if too large.
 
@@ -633,8 +495,6 @@ func (rm *ResourceMonitor) updateMetrics(metrics *SystemMetrics) {
 
 }
 
-
-
 // NewMetricsAnalyzer creates a new metrics analyzer.
 
 func NewMetricsAnalyzer(logger logr.Logger) *MetricsAnalyzer {
@@ -642,12 +502,9 @@ func NewMetricsAnalyzer(logger logr.Logger) *MetricsAnalyzer {
 	return &MetricsAnalyzer{
 
 		logger: logger.WithName("metrics-analyzer"),
-
 	}
 
 }
-
-
 
 // AnalyzePerformance analyzes system performance metrics.
 
@@ -658,28 +515,22 @@ func (ma *MetricsAnalyzer) AnalyzePerformance(metrics *SystemMetrics) *Performan
 		return &PerformanceAnalysis{
 
 			OverallHealth: "unknown",
-
 		}
 
 	}
 
-
-
 	analysis := &PerformanceAnalysis{
 
-		CPUUtilization:    metrics.CPUUtilization,
+		CPUUtilization: metrics.CPUUtilization,
 
 		MemoryUtilization: metrics.MemoryUtilization,
 
-		CacheHitRate:      metrics.CacheMetrics.HitRate,
+		CacheHitRate: metrics.CacheMetrics.HitRate,
 
-		Bottlenecks:       make([]PerformanceBottleneck, 0),
+		Bottlenecks: make([]PerformanceBottleneck, 0),
 
-		Trends:            make(map[string]PerformanceTrend),
-
+		Trends: make(map[string]PerformanceTrend),
 	}
-
-
 
 	// Calculate max queue depth.
 
@@ -696,8 +547,6 @@ func (ma *MetricsAnalyzer) AnalyzePerformance(metrics *SystemMetrics) *Performan
 	}
 
 	analysis.MaxQueueDepth = maxQueueDepth
-
-
 
 	// Calculate average response time.
 
@@ -717,8 +566,6 @@ func (ma *MetricsAnalyzer) AnalyzePerformance(metrics *SystemMetrics) *Performan
 
 	}
 
-
-
 	// Calculate total throughput.
 
 	totalThroughput := 0.0
@@ -730,8 +577,6 @@ func (ma *MetricsAnalyzer) AnalyzePerformance(metrics *SystemMetrics) *Performan
 	}
 
 	analysis.TotalThroughput = totalThroughput
-
-
 
 	// Calculate overall error rate.
 
@@ -749,31 +594,21 @@ func (ma *MetricsAnalyzer) AnalyzePerformance(metrics *SystemMetrics) *Performan
 
 	}
 
-
-
 	// Determine overall health.
 
 	analysis.OverallHealth = ma.determineOverallHealth(analysis)
-
-
 
 	// Identify bottlenecks.
 
 	analysis.Bottlenecks = ma.identifyBottlenecks(metrics)
 
-
-
 	return analysis
 
 }
 
-
-
 func (ma *MetricsAnalyzer) determineOverallHealth(analysis *PerformanceAnalysis) string {
 
 	healthScore := 100.0
-
-
 
 	// Deduct points for high resource utilization.
 
@@ -787,8 +622,6 @@ func (ma *MetricsAnalyzer) determineOverallHealth(analysis *PerformanceAnalysis)
 
 	}
 
-
-
 	if analysis.MemoryUtilization > 85 {
 
 		healthScore -= 20
@@ -798,8 +631,6 @@ func (ma *MetricsAnalyzer) determineOverallHealth(analysis *PerformanceAnalysis)
 		healthScore -= 10
 
 	}
-
-
 
 	// Deduct points for high error rates.
 
@@ -813,8 +644,6 @@ func (ma *MetricsAnalyzer) determineOverallHealth(analysis *PerformanceAnalysis)
 
 	}
 
-
-
 	// Deduct points for low cache hit rates.
 
 	if analysis.CacheHitRate < 0.5 {
@@ -827,8 +656,6 @@ func (ma *MetricsAnalyzer) determineOverallHealth(analysis *PerformanceAnalysis)
 
 	}
 
-
-
 	// Deduct points for high queue depths.
 
 	if analysis.MaxQueueDepth > 100 {
@@ -840,8 +667,6 @@ func (ma *MetricsAnalyzer) determineOverallHealth(analysis *PerformanceAnalysis)
 		healthScore -= 10
 
 	}
-
-
 
 	// Determine health category.
 
@@ -861,13 +686,9 @@ func (ma *MetricsAnalyzer) determineOverallHealth(analysis *PerformanceAnalysis)
 
 }
 
-
-
 func (ma *MetricsAnalyzer) identifyBottlenecks(metrics *SystemMetrics) []PerformanceBottleneck {
 
 	bottlenecks := make([]PerformanceBottleneck, 0)
-
-
 
 	// Check for CPU bottlenecks.
 
@@ -875,19 +696,16 @@ func (ma *MetricsAnalyzer) identifyBottlenecks(metrics *SystemMetrics) []Perform
 
 		bottlenecks = append(bottlenecks, PerformanceBottleneck{
 
-			Type:        "cpu",
+			Type: "cpu",
 
-			Severity:    "high",
+			Severity: "high",
 
 			Description: fmt.Sprintf("High CPU utilization: %.1f%%", metrics.CPUUtilization),
 
-			Impact:      metrics.CPUUtilization / 100.0,
-
+			Impact: metrics.CPUUtilization / 100.0,
 		})
 
 	}
-
-
 
 	// Check for memory bottlenecks.
 
@@ -895,19 +713,16 @@ func (ma *MetricsAnalyzer) identifyBottlenecks(metrics *SystemMetrics) []Perform
 
 		bottlenecks = append(bottlenecks, PerformanceBottleneck{
 
-			Type:        "memory",
+			Type: "memory",
 
-			Severity:    "high",
+			Severity: "high",
 
 			Description: fmt.Sprintf("High memory utilization: %.1f%%", metrics.MemoryUtilization),
 
-			Impact:      metrics.MemoryUtilization / 100.0,
-
+			Impact: metrics.MemoryUtilization / 100.0,
 		})
 
 	}
-
-
 
 	// Check for queue bottlenecks.
 
@@ -923,27 +738,23 @@ func (ma *MetricsAnalyzer) identifyBottlenecks(metrics *SystemMetrics) []Perform
 
 			}
 
-
-
 			bottlenecks = append(bottlenecks, PerformanceBottleneck{
 
-				Phase:       phase,
+				Phase: phase,
 
-				Type:        "queue",
+				Type: "queue",
 
-				Severity:    severity,
+				Severity: severity,
 
 				Description: fmt.Sprintf("High queue depth for %s: %d", phase, depth),
 
-				Impact:      float64(depth) / 200.0, // Normalize to 0-1 scale
+				Impact: float64(depth) / 200.0, // Normalize to 0-1 scale
 
 			})
 
 		}
 
 	}
-
-
 
 	// Check for response time bottlenecks.
 
@@ -959,19 +770,17 @@ func (ma *MetricsAnalyzer) identifyBottlenecks(metrics *SystemMetrics) []Perform
 
 			}
 
-
-
 			bottlenecks = append(bottlenecks, PerformanceBottleneck{
 
-				Phase:       phase,
+				Phase: phase,
 
-				Type:        "response_time",
+				Type: "response_time",
 
-				Severity:    severity,
+				Severity: severity,
 
 				Description: fmt.Sprintf("High response time for %s: %v", phase, responseTime),
 
-				Impact:      float64(responseTime) / float64(300*time.Second), // Normalize to 5-minute scale
+				Impact: float64(responseTime) / float64(300*time.Second), // Normalize to 5-minute scale
 
 			})
 
@@ -979,13 +788,9 @@ func (ma *MetricsAnalyzer) identifyBottlenecks(metrics *SystemMetrics) []Perform
 
 	}
 
-
-
 	return bottlenecks
 
 }
-
-
 
 // NewScalingDecisionEngine creates a new scaling decision engine.
 
@@ -993,17 +798,14 @@ func NewScalingDecisionEngine(config *PerformanceConfig, logger logr.Logger) *Sc
 
 	return &ScalingDecisionEngine{
 
-		logger:    logger.WithName("scaling-engine"),
+		logger: logger.WithName("scaling-engine"),
 
-		config:    config,
+		config: config,
 
 		decisions: make([]ScalingDecision, 0),
-
 	}
 
 }
-
-
 
 // EvaluateScaling evaluates whether scaling actions are needed.
 
@@ -1011,15 +813,11 @@ func (sde *ScalingDecisionEngine) EvaluateScaling(ctx context.Context, metrics *
 
 	decisions := make([]ScalingDecision, 0)
 
-
-
 	if metrics == nil {
 
 		return decisions
 
 	}
-
-
 
 	// Check CPU-based scaling.
 
@@ -1027,18 +825,17 @@ func (sde *ScalingDecisionEngine) EvaluateScaling(ctx context.Context, metrics *
 
 		decision := ScalingDecision{
 
-			Action:          "scale_up",
+			Action: "scale_up",
 
 			CurrentReplicas: 3, // This would be retrieved from actual deployment
 
-			TargetReplicas:  4, // Scale up by 1
+			TargetReplicas: 4, // Scale up by 1
 
-			Reason:          fmt.Sprintf("CPU utilization %.1f%% exceeds threshold %.1f%%", metrics.CPUUtilization, sde.config.CPUScaleUpThreshold),
+			Reason: fmt.Sprintf("CPU utilization %.1f%% exceeds threshold %.1f%%", metrics.CPUUtilization, sde.config.CPUScaleUpThreshold),
 
-			Confidence:      0.8,
+			Confidence: 0.8,
 
-			Timestamp:       time.Now(),
-
+			Timestamp: time.Now(),
 		}
 
 		decisions = append(decisions, decision)
@@ -1047,25 +844,22 @@ func (sde *ScalingDecisionEngine) EvaluateScaling(ctx context.Context, metrics *
 
 		decision := ScalingDecision{
 
-			Action:          "scale_down",
+			Action: "scale_down",
 
 			CurrentReplicas: 3,
 
-			TargetReplicas:  2, // Scale down by 1
+			TargetReplicas: 2, // Scale down by 1
 
-			Reason:          fmt.Sprintf("CPU utilization %.1f%% below threshold %.1f%%", metrics.CPUUtilization, sde.config.CPUScaleDownThreshold),
+			Reason: fmt.Sprintf("CPU utilization %.1f%% below threshold %.1f%%", metrics.CPUUtilization, sde.config.CPUScaleDownThreshold),
 
-			Confidence:      0.7,
+			Confidence: 0.7,
 
-			Timestamp:       time.Now(),
-
+			Timestamp: time.Now(),
 		}
 
 		decisions = append(decisions, decision)
 
 	}
-
-
 
 	// Check memory-based scaling.
 
@@ -1073,25 +867,22 @@ func (sde *ScalingDecisionEngine) EvaluateScaling(ctx context.Context, metrics *
 
 		decision := ScalingDecision{
 
-			Action:          "scale_up",
+			Action: "scale_up",
 
 			CurrentReplicas: 3,
 
-			TargetReplicas:  4,
+			TargetReplicas: 4,
 
-			Reason:          fmt.Sprintf("Memory utilization %.1f%% exceeds threshold %.1f%%", metrics.MemoryUtilization, sde.config.MemoryScaleUpThreshold),
+			Reason: fmt.Sprintf("Memory utilization %.1f%% exceeds threshold %.1f%%", metrics.MemoryUtilization, sde.config.MemoryScaleUpThreshold),
 
-			Confidence:      0.75,
+			Confidence: 0.75,
 
-			Timestamp:       time.Now(),
-
+			Timestamp: time.Now(),
 		}
 
 		decisions = append(decisions, decision)
 
 	}
-
-
 
 	// Check queue-based scaling.
 
@@ -1101,20 +892,19 @@ func (sde *ScalingDecisionEngine) EvaluateScaling(ctx context.Context, metrics *
 
 			decision := ScalingDecision{
 
-				Action:          "scale_up",
+				Action: "scale_up",
 
-				Phase:           phase,
+				Phase: phase,
 
 				CurrentReplicas: 2, // This would be retrieved from actual phase worker count
 
-				TargetReplicas:  3,
+				TargetReplicas: 3,
 
-				Reason:          fmt.Sprintf("Queue depth %d for phase %s exceeds threshold %d", depth, phase, sde.config.QueueDepthThreshold),
+				Reason: fmt.Sprintf("Queue depth %d for phase %s exceeds threshold %d", depth, phase, sde.config.QueueDepthThreshold),
 
-				Confidence:      0.85,
+				Confidence: 0.85,
 
-				Timestamp:       time.Now(),
-
+				Timestamp: time.Now(),
 			}
 
 			decisions = append(decisions, decision)
@@ -1123,19 +913,13 @@ func (sde *ScalingDecisionEngine) EvaluateScaling(ctx context.Context, metrics *
 
 	}
 
-
-
 	// Store decisions for history.
 
 	sde.storeDecisions(decisions)
 
-
-
 	return decisions
 
 }
-
-
 
 // ApplyScalingProfile applies a scaling profile to the decision engine.
 
@@ -1147,19 +931,13 @@ func (sde *ScalingDecisionEngine) ApplyScalingProfile(profile ScalingProfile) {
 
 }
 
-
-
 func (sde *ScalingDecisionEngine) storeDecisions(decisions []ScalingDecision) {
 
 	sde.decisionMutex.Lock()
 
 	defer sde.decisionMutex.Unlock()
 
-
-
 	sde.decisions = append(sde.decisions, decisions...)
-
-
 
 	// Keep only recent decisions (last 1000).
 
@@ -1171,27 +949,22 @@ func (sde *ScalingDecisionEngine) storeDecisions(decisions []ScalingDecision) {
 
 }
 
-
-
 // NewConnectionPoolManager creates a new connection pool manager.
 
 func NewConnectionPoolManager(config *PerformanceConfig, logger logr.Logger) *ConnectionPoolManager {
 
 	return &ConnectionPoolManager{
 
-		logger:    logger.WithName("connection-pool-manager"),
+		logger: logger.WithName("connection-pool-manager"),
 
-		config:    config,
+		config: config,
 
 		httpPools: make(map[string]*HTTPConnectionPool),
 
-		dbPools:   make(map[string]*DatabaseConnectionPool),
-
+		dbPools: make(map[string]*DatabaseConnectionPool),
 	}
 
 }
-
-
 
 // Start starts the connection pool manager.
 
@@ -1201,15 +974,11 @@ func (cpm *ConnectionPoolManager) Start(ctx context.Context) error {
 
 	defer cpm.mutex.Unlock()
 
-
-
 	if cpm.started {
 
 		return fmt.Errorf("connection pool manager already started")
 
 	}
-
-
 
 	// Initialize default pools.
 
@@ -1219,19 +988,13 @@ func (cpm *ConnectionPoolManager) Start(ctx context.Context) error {
 
 	cpm.httpPools["git"] = NewHTTPConnectionPool("git", cpm.config.MaxConnectionsPerPool/4, cpm.logger) // Even smaller for git
 
-
-
 	cpm.started = true
 
 	cpm.logger.Info("Connection pool manager started")
 
-
-
 	return nil
 
 }
-
-
 
 // Stop stops the connection pool manager.
 
@@ -1241,15 +1004,11 @@ func (cpm *ConnectionPoolManager) Stop(ctx context.Context) error {
 
 	defer cpm.mutex.Unlock()
 
-
-
 	if !cpm.started {
 
 		return nil
 
 	}
-
-
 
 	// Close all pools.
 
@@ -1263,8 +1022,6 @@ func (cpm *ConnectionPoolManager) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	for name, pool := range cpm.dbPools {
 
 		if err := pool.Close(); err != nil {
@@ -1275,27 +1032,19 @@ func (cpm *ConnectionPoolManager) Stop(ctx context.Context) error {
 
 	}
 
-
-
 	cpm.started = false
 
 	cpm.logger.Info("Connection pool manager stopped")
 
-
-
 	return nil
 
 }
-
-
 
 // ApplyResourceProfile applies a resource profile to connection pools.
 
 func (cpm *ConnectionPoolManager) ApplyResourceProfile(profile ResourceProfile) error {
 
 	cpm.logger.Info("Applying resource profile to connection pools", "profile", profile)
-
-
 
 	// Adjust pool sizes based on profile.
 
@@ -1305,13 +1054,9 @@ func (cpm *ConnectionPoolManager) ApplyResourceProfile(profile ResourceProfile) 
 
 	}
 
-
-
 	return nil
 
 }
-
-
 
 // NewLoadBalancer creates a new load balancer.
 
@@ -1319,27 +1064,20 @@ func NewLoadBalancer(logger logr.Logger) *LoadBalancer {
 
 	return &LoadBalancer{
 
-		logger:    logger.WithName("load-balancer"),
+		logger: logger.WithName("load-balancer"),
 
 		instances: make(map[string]*ControllerInstance),
 
-		strategy:  LoadBalancingStrategyRoundRobin,
-
+		strategy: LoadBalancingStrategyRoundRobin,
 	}
 
 }
 
-
-
 // Supporting data structures and placeholder implementations.
-
-
 
 // LoadBalancingStrategy defines load balancing strategies.
 
 type LoadBalancingStrategy string
-
-
 
 const (
 
@@ -1354,52 +1092,42 @@ const (
 	// LoadBalancingStrategyResourceBased holds loadbalancingstrategyresourcebased value.
 
 	LoadBalancingStrategyResourceBased LoadBalancingStrategy = "resource_based"
-
 )
-
-
 
 // ControllerInstance represents a controller instance for load balancing.
 
 type ControllerInstance struct {
+	ID string `json:"id"`
 
-	ID               string                       `json:"id"`
+	Address string `json:"address"`
 
-	Address          string                       `json:"address"`
+	Health string `json:"health"` // healthy, degraded, unhealthy
 
-	Health           string                       `json:"health"` // healthy, degraded, unhealthy
+	CurrentLoad int `json:"currentLoad"`
 
-	CurrentLoad      int                          `json:"currentLoad"`
-
-	MaxCapacity      int                          `json:"maxCapacity"`
+	MaxCapacity int `json:"maxCapacity"`
 
 	ProcessingPhases []interfaces.ProcessingPhase `json:"processingPhases"`
 
-	AvgResponseTime  time.Duration                `json:"avgResponseTime"`
+	AvgResponseTime time.Duration `json:"avgResponseTime"`
 
-	ErrorRate        float64                      `json:"errorRate"`
+	ErrorRate float64 `json:"errorRate"`
 
-	ThroughputRate   float64                      `json:"throughputRate"`
-
+	ThroughputRate float64 `json:"throughputRate"`
 }
-
-
 
 // HTTPConnectionPool manages HTTP connections.
 
 type HTTPConnectionPool struct {
-
-	name     string
+	name string
 
 	maxConns int
 
-	logger   logr.Logger
+	logger logr.Logger
 
 	// Implementation would include actual connection pool logic.
 
 }
-
-
 
 // NewHTTPConnectionPool performs newhttpconnectionpool operation.
 
@@ -1407,17 +1135,14 @@ func NewHTTPConnectionPool(name string, maxConns int, logger logr.Logger) *HTTPC
 
 	return &HTTPConnectionPool{
 
-		name:     name,
+		name: name,
 
 		maxConns: maxConns,
 
-		logger:   logger.WithName("http-pool").WithValues("pool", name),
-
+		logger: logger.WithName("http-pool").WithValues("pool", name),
 	}
 
 }
-
-
 
 // Close performs close operation.
 
@@ -1429,8 +1154,6 @@ func (p *HTTPConnectionPool) Close() error {
 
 }
 
-
-
 // Resize performs resize operation.
 
 func (p *HTTPConnectionPool) Resize(newSize int) {
@@ -1441,23 +1164,18 @@ func (p *HTTPConnectionPool) Resize(newSize int) {
 
 }
 
-
-
 // DatabaseConnectionPool manages database connections.
 
 type DatabaseConnectionPool struct {
-
-	name     string
+	name string
 
 	maxConns int
 
-	logger   logr.Logger
+	logger logr.Logger
 
 	// Implementation would include actual database connection pool logic.
 
 }
-
-
 
 // NewDatabaseConnectionPool performs newdatabaseconnectionpool operation.
 
@@ -1465,17 +1183,14 @@ func NewDatabaseConnectionPool(name string, maxConns int, logger logr.Logger) *D
 
 	return &DatabaseConnectionPool{
 
-		name:     name,
+		name: name,
 
 		maxConns: maxConns,
 
-		logger:   logger.WithName("db-pool").WithValues("pool", name),
-
+		logger: logger.WithName("db-pool").WithValues("pool", name),
 	}
 
 }
-
-
 
 // Close performs close operation.
 
@@ -1486,4 +1201,3 @@ func (p *DatabaseConnectionPool) Close() error {
 	return nil
 
 }
-

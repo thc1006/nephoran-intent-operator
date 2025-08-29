@@ -28,28 +28,16 @@ limitations under the License.
 
 */
 
-
-
-
 package v1
 
-
-
 import (
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 )
-
-
 
 // ManifestGenerationPhase represents the phase of manifest generation.
 
 type ManifestGenerationPhase string
-
-
 
 const (
 
@@ -80,16 +68,11 @@ const (
 	// ManifestGenerationPhaseFailed indicates generation has failed.
 
 	ManifestGenerationPhaseFailed ManifestGenerationPhase = "Failed"
-
 )
-
-
 
 // TemplateEngine represents the template engine used for generation.
 
 type TemplateEngine string
-
-
 
 const (
 
@@ -112,16 +95,11 @@ const (
 	// TemplateEngineJinja represents Jinja2 templates.
 
 	TemplateEngineJinja TemplateEngine = "jinja"
-
 )
-
-
 
 // ManifestType represents the type of Kubernetes manifest.
 
 type ManifestType string
-
-
 
 const (
 
@@ -160,10 +138,7 @@ const (
 	// ManifestTypeCustomResource represents Custom Resource manifests.
 
 	ManifestTypeCustomResource ManifestType = "CustomResource"
-
 )
-
-
 
 // ManifestGenerationSpec defines the desired state of ManifestGeneration.
 
@@ -175,15 +150,11 @@ type ManifestGenerationSpec struct {
 
 	ParentIntentRef ObjectReference `json:"parentIntentRef"`
 
-
-
 	// ResourcePlanRef references the ResourcePlan resource.
 
 	// +optional
 
 	ResourcePlanRef *ObjectReference `json:"resourcePlanRef,omitempty"`
-
-
 
 	// ResourcePlanInput contains the resource plan for generation.
 
@@ -193,8 +164,6 @@ type ManifestGenerationSpec struct {
 
 	ResourcePlanInput runtime.RawExtension `json:"resourcePlanInput"`
 
-
-
 	// TemplateEngine specifies the template engine to use.
 
 	// +optional
@@ -203,23 +172,17 @@ type ManifestGenerationSpec struct {
 
 	TemplateEngine TemplateEngine `json:"templateEngine,omitempty"`
 
-
-
 	// TemplateSource specifies the source of templates.
 
 	// +optional
 
 	TemplateSource *TemplateSource `json:"templateSource,omitempty"`
 
-
-
 	// GenerationOptions contains options for manifest generation.
 
 	// +optional
 
 	GenerationOptions *GenerationOptions `json:"generationOptions,omitempty"`
-
-
 
 	// OutputFormat specifies the output format for manifests.
 
@@ -231,8 +194,6 @@ type ManifestGenerationSpec struct {
 
 	OutputFormat string `json:"outputFormat,omitempty"`
 
-
-
 	// Priority defines generation priority.
 
 	// +optional
@@ -240,8 +201,6 @@ type ManifestGenerationSpec struct {
 	// +kubebuilder:default="medium"
 
 	Priority Priority `json:"priority,omitempty"`
-
-
 
 	// ValidateManifests enables manifest validation.
 
@@ -251,8 +210,6 @@ type ManifestGenerationSpec struct {
 
 	ValidateManifests *bool `json:"validateManifests,omitempty"`
 
-
-
 	// OptimizeManifests enables manifest optimization.
 
 	// +optional
@@ -261,25 +218,18 @@ type ManifestGenerationSpec struct {
 
 	OptimizeManifests *bool `json:"optimizeManifests,omitempty"`
 
-
-
 	// NamespaceTemplate defines template for namespace creation.
 
 	// +optional
 
 	NamespaceTemplate *NamespaceTemplate `json:"namespaceTemplate,omitempty"`
 
-
-
 	// SecurityContext defines security context for manifests.
 
 	// +optional
 
 	SecurityContext *ManifestSecurityContext `json:"securityContext,omitempty"`
-
 }
-
-
 
 // TemplateSource defines the source of templates.
 
@@ -293,15 +243,11 @@ type TemplateSource struct {
 
 	Type string `json:"type"`
 
-
-
 	// GitSource for Git-based templates.
 
 	// +optional
 
 	GitSource *GitTemplateSource `json:"gitSource,omitempty"`
-
-
 
 	// HelmSource for Helm chart templates.
 
@@ -309,15 +255,11 @@ type TemplateSource struct {
 
 	HelmSource *HelmTemplateSource `json:"helmSource,omitempty"`
 
-
-
 	// OCISource for OCI registry templates.
 
 	// +optional
 
 	OCISource *OCITemplateSource `json:"ociSource,omitempty"`
-
-
 
 	// ConfigMapSource for ConfigMap-based templates.
 
@@ -325,17 +267,12 @@ type TemplateSource struct {
 
 	ConfigMapSource *ConfigMapTemplateSource `json:"configMapSource,omitempty"`
 
-
-
 	// BuiltinTemplates for built-in templates.
 
 	// +optional
 
 	BuiltinTemplates []string `json:"builtinTemplates,omitempty"`
-
 }
-
-
 
 // GitTemplateSource defines Git-based template source.
 
@@ -347,8 +284,6 @@ type GitTemplateSource struct {
 
 	URL string `json:"url"`
 
-
-
 	// Branch to use.
 
 	// +optional
@@ -357,15 +292,11 @@ type GitTemplateSource struct {
 
 	Branch string `json:"branch,omitempty"`
 
-
-
 	// Tag to use (takes precedence over branch).
 
 	// +optional
 
 	Tag string `json:"tag,omitempty"`
-
-
 
 	// Path within the repository.
 
@@ -375,17 +306,12 @@ type GitTemplateSource struct {
 
 	Path string `json:"path,omitempty"`
 
-
-
 	// SecretRef for authentication.
 
 	// +optional
 
 	SecretRef *SecretReference `json:"secretRef,omitempty"`
-
 }
-
-
 
 // HelmTemplateSource defines Helm chart template source.
 
@@ -397,23 +323,17 @@ type HelmTemplateSource struct {
 
 	Repository string `json:"repository"`
 
-
-
 	// Chart name.
 
 	// +kubebuilder:validation:Required
 
 	Chart string `json:"chart"`
 
-
-
 	// Version of the chart.
 
 	// +optional
 
 	Version string `json:"version,omitempty"`
-
-
 
 	// Values for the chart.
 
@@ -423,17 +343,12 @@ type HelmTemplateSource struct {
 
 	Values runtime.RawExtension `json:"values,omitempty"`
 
-
-
 	// SecretRef for authentication.
 
 	// +optional
 
 	SecretRef *SecretReference `json:"secretRef,omitempty"`
-
 }
-
-
 
 // OCITemplateSource defines OCI registry template source.
 
@@ -445,15 +360,11 @@ type OCITemplateSource struct {
 
 	Registry string `json:"registry"`
 
-
-
 	// Repository name.
 
 	// +kubebuilder:validation:Required
 
 	Repository string `json:"repository"`
-
-
 
 	// Tag or digest.
 
@@ -463,17 +374,12 @@ type OCITemplateSource struct {
 
 	Tag string `json:"tag,omitempty"`
 
-
-
 	// SecretRef for authentication.
 
 	// +optional
 
 	SecretRef *SecretReference `json:"secretRef,omitempty"`
-
 }
-
-
 
 // ConfigMapTemplateSource defines ConfigMap-based template source.
 
@@ -485,31 +391,22 @@ type ConfigMapTemplateSource struct {
 
 	Name string `json:"name"`
 
-
-
 	// Namespace of the ConfigMap.
 
 	// +optional
 
 	Namespace string `json:"namespace,omitempty"`
 
-
-
 	// Keys to use from the ConfigMap.
 
 	// +optional
 
 	Keys []string `json:"keys,omitempty"`
-
 }
-
-
 
 // SecretReference defines a reference to a Secret.
 
 // SecretReference is defined in audittrail_types.go to avoid duplication.
-
-
 
 // GenerationOptions contains options for manifest generation.
 
@@ -523,8 +420,6 @@ type GenerationOptions struct {
 
 	IncludeNamespaces *bool `json:"includeNamespaces,omitempty"`
 
-
-
 	// IncludeRBAC generates RBAC manifests.
 
 	// +optional
@@ -532,8 +427,6 @@ type GenerationOptions struct {
 	// +kubebuilder:default=true
 
 	IncludeRBAC *bool `json:"includeRBAC,omitempty"`
-
-
 
 	// IncludeNetworkPolicies generates NetworkPolicy manifests.
 
@@ -543,8 +436,6 @@ type GenerationOptions struct {
 
 	IncludeNetworkPolicies *bool `json:"includeNetworkPolicies,omitempty"`
 
-
-
 	// IncludePodSecurityPolicies generates PodSecurityPolicy manifests.
 
 	// +optional
@@ -552,8 +443,6 @@ type GenerationOptions struct {
 	// +kubebuilder:default=false
 
 	IncludePodSecurityPolicies *bool `json:"includePodSecurityPolicies,omitempty"`
-
-
 
 	// GenerateMonitoring includes monitoring-related manifests.
 
@@ -563,8 +452,6 @@ type GenerationOptions struct {
 
 	GenerateMonitoring *bool `json:"generateMonitoring,omitempty"`
 
-
-
 	// GenerateHealthChecks includes health check configurations.
 
 	// +optional
@@ -573,15 +460,11 @@ type GenerationOptions struct {
 
 	GenerateHealthChecks *bool `json:"generateHealthChecks,omitempty"`
 
-
-
 	// ResourceNaming defines naming conventions.
 
 	// +optional
 
 	ResourceNaming *ResourceNamingOptions `json:"resourceNaming,omitempty"`
-
-
 
 	// Labels to apply to all generated manifests.
 
@@ -589,17 +472,12 @@ type GenerationOptions struct {
 
 	Labels map[string]string `json:"labels,omitempty"`
 
-
-
 	// Annotations to apply to all generated manifests.
 
 	// +optional
 
 	Annotations map[string]string `json:"annotations,omitempty"`
-
 }
-
-
 
 // ResourceNamingOptions defines naming conventions for resources.
 
@@ -611,15 +489,11 @@ type ResourceNamingOptions struct {
 
 	Prefix string `json:"prefix,omitempty"`
 
-
-
 	// Suffix for all resource names.
 
 	// +optional
 
 	Suffix string `json:"suffix,omitempty"`
-
-
 
 	// IncludeIntentName includes the intent name in resource names.
 
@@ -629,8 +503,6 @@ type ResourceNamingOptions struct {
 
 	IncludeIntentName *bool `json:"includeIntentName,omitempty"`
 
-
-
 	// IncludeComponent includes the component name in resource names.
 
 	// +optional
@@ -638,8 +510,6 @@ type ResourceNamingOptions struct {
 	// +kubebuilder:default=true
 
 	IncludeComponent *bool `json:"includeComponent,omitempty"`
-
-
 
 	// MaxLength limits the maximum name length.
 
@@ -652,10 +522,7 @@ type ResourceNamingOptions struct {
 	// +kubebuilder:default=63
 
 	MaxLength *int `json:"maxLength,omitempty"`
-
 }
-
-
 
 // NamespaceTemplate defines template for namespace creation.
 
@@ -667,23 +534,17 @@ type NamespaceTemplate struct {
 
 	NameTemplate string `json:"nameTemplate,omitempty"`
 
-
-
 	// Labels to apply to the namespace.
 
 	// +optional
 
 	Labels map[string]string `json:"labels,omitempty"`
 
-
-
 	// Annotations to apply to the namespace.
 
 	// +optional
 
 	Annotations map[string]string `json:"annotations,omitempty"`
-
-
 
 	// ResourceQuota for the namespace.
 
@@ -693,8 +554,6 @@ type NamespaceTemplate struct {
 
 	ResourceQuota runtime.RawExtension `json:"resourceQuota,omitempty"`
 
-
-
 	// NetworkPolicy for the namespace.
 
 	// +optional
@@ -702,10 +561,7 @@ type NamespaceTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 
 	NetworkPolicy runtime.RawExtension `json:"networkPolicy,omitempty"`
-
 }
-
-
 
 // ManifestSecurityContext defines security context for manifests.
 
@@ -719,8 +575,6 @@ type ManifestSecurityContext struct {
 
 	RunAsNonRoot *bool `json:"runAsNonRoot,omitempty"`
 
-
-
 	// ReadOnlyRootFilesystem makes root filesystem read-only.
 
 	// +optional
@@ -728,8 +582,6 @@ type ManifestSecurityContext struct {
 	// +kubebuilder:default=true
 
 	ReadOnlyRootFilesystem *bool `json:"readOnlyRootFilesystem,omitempty"`
-
-
 
 	// AllowPrivilegeEscalation controls privilege escalation.
 
@@ -739,15 +591,11 @@ type ManifestSecurityContext struct {
 
 	AllowPrivilegeEscalation *bool `json:"allowPrivilegeEscalation,omitempty"`
 
-
-
 	// DropCapabilities specifies capabilities to drop.
 
 	// +optional
 
 	DropCapabilities []string `json:"dropCapabilities,omitempty"`
-
-
 
 	// AddCapabilities specifies capabilities to add.
 
@@ -755,15 +603,11 @@ type ManifestSecurityContext struct {
 
 	AddCapabilities []string `json:"addCapabilities,omitempty"`
 
-
-
 	// SeccompProfile specifies seccomp profile.
 
 	// +optional
 
 	SeccompProfile string `json:"seccompProfile,omitempty"`
-
-
 
 	// SeLinuxOptions specifies SELinux options.
 
@@ -772,10 +616,7 @@ type ManifestSecurityContext struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 
 	SeLinuxOptions runtime.RawExtension `json:"seLinuxOptions,omitempty"`
-
 }
-
-
 
 // ManifestGenerationStatus defines the observed state of ManifestGeneration.
 
@@ -787,8 +628,6 @@ type ManifestGenerationStatus struct {
 
 	Phase ManifestGenerationPhase `json:"phase,omitempty"`
 
-
-
 	// Conditions represent the latest available observations.
 
 	// +optional
@@ -796,15 +635,11 @@ type ManifestGenerationStatus struct {
 	// +listType=atomic
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-
-
 	// GenerationStartTime indicates when generation started.
 
 	// +optional
 
 	GenerationStartTime *metav1.Time `json:"generationStartTime,omitempty"`
-
-
 
 	// GenerationCompletionTime indicates when generation completed.
 
@@ -812,15 +647,11 @@ type ManifestGenerationStatus struct {
 
 	GenerationCompletionTime *metav1.Time `json:"generationCompletionTime,omitempty"`
 
-
-
 	// GeneratedManifests contains the generated Kubernetes manifests.
 
 	// +optional
 
 	GeneratedManifests map[string]string `json:"generatedManifests,omitempty"`
-
-
 
 	// ManifestSummary provides a summary of generated manifests.
 
@@ -828,15 +659,11 @@ type ManifestGenerationStatus struct {
 
 	ManifestSummary *ManifestSummary `json:"manifestSummary,omitempty"`
 
-
-
 	// ValidationResults contains validation results.
 
 	// +optional
 
 	ValidationResults []ManifestValidationResult `json:"validationResults,omitempty"`
-
-
 
 	// OptimizationResults contains optimization results.
 
@@ -844,15 +671,11 @@ type ManifestGenerationStatus struct {
 
 	OptimizationResults []ManifestOptimizationResult `json:"optimizationResults,omitempty"`
 
-
-
 	// SecurityAnalysis contains security analysis results.
 
 	// +optional
 
 	SecurityAnalysis *SecurityAnalysisResult `json:"securityAnalysis,omitempty"`
-
-
 
 	// ResourceReferences contains references to generated resources.
 
@@ -860,15 +683,11 @@ type ManifestGenerationStatus struct {
 
 	ResourceReferences []GeneratedResourceReference `json:"resourceReferences,omitempty"`
 
-
-
 	// GenerationDuration represents total generation time.
 
 	// +optional
 
 	GenerationDuration *metav1.Duration `json:"generationDuration,omitempty"`
-
-
 
 	// TemplateInfo contains information about used templates.
 
@@ -876,15 +695,11 @@ type ManifestGenerationStatus struct {
 
 	TemplateInfo *TemplateInfo `json:"templateInfo,omitempty"`
 
-
-
 	// RetryCount tracks retry attempts.
 
 	// +optional
 
 	RetryCount int32 `json:"retryCount,omitempty"`
-
-
 
 	// QualityScore represents the quality of generated manifests.
 
@@ -892,17 +707,12 @@ type ManifestGenerationStatus struct {
 
 	QualityScore *float64 `json:"qualityScore,omitempty"`
 
-
-
 	// ObservedGeneration reflects the generation observed.
 
 	// +optional
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-
 }
-
-
 
 // ManifestSummary provides a summary of generated manifests.
 
@@ -912,13 +722,9 @@ type ManifestSummary struct {
 
 	TotalManifests int32 `json:"totalManifests"`
 
-
-
 	// ManifestsByType breaks down manifests by type.
 
 	ManifestsByType map[ManifestType]int32 `json:"manifestsByType"`
-
-
 
 	// ManifestsByNamespace breaks down manifests by namespace.
 
@@ -926,15 +732,11 @@ type ManifestSummary struct {
 
 	ManifestsByNamespace map[string]int32 `json:"manifestsByNamespace,omitempty"`
 
-
-
 	// ManifestsByComponent breaks down manifests by component.
 
 	// +optional
 
 	ManifestsByComponent map[string]int32 `json:"manifestsByComponent,omitempty"`
-
-
 
 	// TotalSize is the total size of all manifests in bytes.
 
@@ -942,17 +744,12 @@ type ManifestSummary struct {
 
 	TotalSize *int64 `json:"totalSize,omitempty"`
 
-
-
 	// GeneratedNamespaces lists generated namespaces.
 
 	// +optional
 
 	GeneratedNamespaces []string `json:"generatedNamespaces,omitempty"`
-
 }
-
-
 
 // ManifestValidationResult represents the result of manifest validation.
 
@@ -962,19 +759,13 @@ type ManifestValidationResult struct {
 
 	ManifestName string `json:"manifestName"`
 
-
-
 	// ManifestType specifies the type of manifest.
 
 	ManifestType ManifestType `json:"manifestType"`
 
-
-
 	// Valid indicates if the manifest is valid.
 
 	Valid bool `json:"valid"`
-
-
 
 	// Errors contains validation errors.
 
@@ -982,15 +773,11 @@ type ManifestValidationResult struct {
 
 	Errors []string `json:"errors,omitempty"`
 
-
-
 	// Warnings contains validation warnings.
 
 	// +optional
 
 	Warnings []string `json:"warnings,omitempty"`
-
-
 
 	// ValidationRules lists which validation rules were applied.
 
@@ -998,15 +785,10 @@ type ManifestValidationResult struct {
 
 	ValidationRules []string `json:"validationRules,omitempty"`
 
-
-
 	// ValidatedAt timestamp.
 
 	ValidatedAt metav1.Time `json:"validatedAt"`
-
 }
-
-
 
 // ManifestOptimizationResult represents the result of manifest optimization.
 
@@ -1016,19 +798,13 @@ type ManifestOptimizationResult struct {
 
 	ManifestName string `json:"manifestName"`
 
-
-
 	// OptimizationType specifies the type of optimization.
 
 	OptimizationType string `json:"optimizationType"`
 
-
-
 	// Applied indicates if optimization was applied.
 
 	Applied bool `json:"applied"`
-
-
 
 	// Description describes the optimization.
 
@@ -1036,15 +812,11 @@ type ManifestOptimizationResult struct {
 
 	Description string `json:"description,omitempty"`
 
-
-
 	// ImprovementPercent quantifies the improvement.
 
 	// +optional
 
 	ImprovementPercent *float64 `json:"improvementPercent,omitempty"`
-
-
 
 	// Changes lists the changes made.
 
@@ -1052,15 +824,10 @@ type ManifestOptimizationResult struct {
 
 	Changes []string `json:"changes,omitempty"`
 
-
-
 	// OptimizedAt timestamp.
 
 	OptimizedAt metav1.Time `json:"optimizedAt"`
-
 }
-
-
 
 // SecurityAnalysisResult contains security analysis results.
 
@@ -1070,15 +837,11 @@ type SecurityAnalysisResult struct {
 
 	OverallScore float64 `json:"overallScore"`
 
-
-
 	// SecurityIssues lists identified security issues.
 
 	// +optional
 
 	SecurityIssues []SecurityIssue `json:"securityIssues,omitempty"`
-
-
 
 	// ComplianceResults contains compliance check results.
 
@@ -1086,23 +849,16 @@ type SecurityAnalysisResult struct {
 
 	ComplianceResults []SecurityComplianceResult `json:"complianceResults,omitempty"`
 
-
-
 	// Recommendations provides security recommendations.
 
 	// +optional
 
 	Recommendations []string `json:"recommendations,omitempty"`
 
-
-
 	// AnalyzedAt timestamp.
 
 	AnalyzedAt metav1.Time `json:"analyzedAt"`
-
 }
-
-
 
 // SecurityIssue represents a security issue in manifests.
 
@@ -1112,19 +868,13 @@ type SecurityIssue struct {
 
 	Type string `json:"type"`
 
-
-
 	// Severity level (Critical, High, Medium, Low).
 
 	Severity string `json:"severity"`
 
-
-
 	// Description of the issue.
 
 	Description string `json:"description"`
-
-
 
 	// AffectedManifests lists affected manifests.
 
@@ -1132,25 +882,18 @@ type SecurityIssue struct {
 
 	AffectedManifests []string `json:"affectedManifests,omitempty"`
 
-
-
 	// Remediation suggests how to fix the issue.
 
 	// +optional
 
 	Remediation string `json:"remediation,omitempty"`
 
-
-
 	// CVSS score if applicable.
 
 	// +optional
 
 	CVSSScore *float64 `json:"cvssScore,omitempty"`
-
 }
-
-
 
 // SecurityComplianceResult represents compliance check results.
 
@@ -1160,21 +903,15 @@ type SecurityComplianceResult struct {
 
 	Standard string `json:"standard"`
 
-
-
 	// Version of the standard.
 
 	// +optional
 
 	Version string `json:"version,omitempty"`
 
-
-
 	// Compliant indicates compliance status.
 
 	Compliant bool `json:"compliant"`
-
-
 
 	// Violations lists compliance violations.
 
@@ -1182,17 +919,12 @@ type SecurityComplianceResult struct {
 
 	Violations []string `json:"violations,omitempty"`
 
-
-
 	// Score represents compliance score (0.0-1.0).
 
 	// +optional
 
 	Score *float64 `json:"score,omitempty"`
-
 }
-
-
 
 // GeneratedResourceReference represents a reference to a generated resource.
 
@@ -1202,19 +934,13 @@ type GeneratedResourceReference struct {
 
 	Name string `json:"name"`
 
-
-
 	// Kind of the resource.
 
 	Kind string `json:"kind"`
 
-
-
 	// APIVersion of the resource.
 
 	APIVersion string `json:"apiVersion"`
-
-
 
 	// Namespace of the resource.
 
@@ -1222,15 +948,11 @@ type GeneratedResourceReference struct {
 
 	Namespace string `json:"namespace,omitempty"`
 
-
-
 	// Component this resource belongs to.
 
 	// +optional
 
 	Component string `json:"component,omitempty"`
-
-
 
 	// ManifestFile where this resource is defined.
 
@@ -1238,17 +960,12 @@ type GeneratedResourceReference struct {
 
 	ManifestFile string `json:"manifestFile,omitempty"`
 
-
-
 	// Dependencies lists resource dependencies.
 
 	// +optional
 
 	Dependencies []string `json:"dependencies,omitempty"`
-
 }
-
-
 
 // TemplateInfo contains information about used templates.
 
@@ -1258,13 +975,9 @@ type TemplateInfo struct {
 
 	Engine TemplateEngine `json:"engine"`
 
-
-
 	// Source information.
 
 	Source TemplateSource `json:"source"`
-
-
 
 	// TemplatesUsed lists the templates that were used.
 
@@ -1272,15 +985,11 @@ type TemplateInfo struct {
 
 	TemplatesUsed []string `json:"templatesUsed,omitempty"`
 
-
-
 	// TemplateVersion indicates the version of templates used.
 
 	// +optional
 
 	TemplateVersion string `json:"templateVersion,omitempty"`
-
-
 
 	// Variables contains the template variables used.
 
@@ -1289,10 +998,7 @@ type TemplateInfo struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 
 	Variables runtime.RawExtension `json:"variables,omitempty"`
-
 }
-
-
 
 //+kubebuilder:object:root=true
 
@@ -1316,43 +1022,29 @@ type TemplateInfo struct {
 
 //+kubebuilder:storageversion
 
-
-
 // ManifestGeneration is the Schema for the manifestgenerations API.
 
 type ManifestGeneration struct {
-
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-
-
-	Spec   ManifestGenerationSpec   `json:"spec,omitempty"`
+	Spec ManifestGenerationSpec `json:"spec,omitempty"`
 
 	Status ManifestGenerationStatus `json:"status,omitempty"`
-
 }
 
-
-
 //+kubebuilder:object:root=true
-
-
 
 // ManifestGenerationList contains a list of ManifestGeneration.
 
 type ManifestGenerationList struct {
-
 	metav1.TypeMeta `json:",inline"`
 
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-	Items           []ManifestGeneration `json:"items"`
-
+	Items []ManifestGeneration `json:"items"`
 }
-
-
 
 // GetParentIntentName returns the name of the parent NetworkIntent.
 
@@ -1362,8 +1054,6 @@ func (mg *ManifestGeneration) GetParentIntentName() string {
 
 }
 
-
-
 // GetNamespace returns the namespace of the resource.
 
 func (mg *ManifestGeneration) GetNamespace() string {
@@ -1371,8 +1061,6 @@ func (mg *ManifestGeneration) GetNamespace() string {
 	return mg.ObjectMeta.Namespace
 
 }
-
-
 
 // GetParentIntentNamespace returns the namespace of the parent NetworkIntent.
 
@@ -1388,8 +1076,6 @@ func (mg *ManifestGeneration) GetParentIntentNamespace() string {
 
 }
 
-
-
 // IsGenerationComplete returns true if generation is complete.
 
 func (mg *ManifestGeneration) IsGenerationComplete() bool {
@@ -1398,8 +1084,6 @@ func (mg *ManifestGeneration) IsGenerationComplete() bool {
 
 }
 
-
-
 // IsGenerationFailed returns true if generation has failed.
 
 func (mg *ManifestGeneration) IsGenerationFailed() bool {
@@ -1407,8 +1091,6 @@ func (mg *ManifestGeneration) IsGenerationFailed() bool {
 	return mg.Status.Phase == ManifestGenerationPhaseFailed
 
 }
-
-
 
 // GetGeneratedManifestCount returns the number of generated manifests.
 
@@ -1423,8 +1105,6 @@ func (mg *ManifestGeneration) GetGeneratedManifestCount() int32 {
 	return 0
 
 }
-
-
 
 // HasValidationErrors returns true if there are validation errors.
 
@@ -1444,8 +1124,6 @@ func (mg *ManifestGeneration) HasValidationErrors() bool {
 
 }
 
-
-
 // GetSecurityScore returns the overall security score.
 
 func (mg *ManifestGeneration) GetSecurityScore() float64 {
@@ -1459,8 +1137,6 @@ func (mg *ManifestGeneration) GetSecurityScore() float64 {
 	return 0.0
 
 }
-
-
 
 // ShouldValidateManifests returns true if manifest validation is enabled.
 
@@ -1476,8 +1152,6 @@ func (mg *ManifestGeneration) ShouldValidateManifests() bool {
 
 }
 
-
-
 // ShouldOptimizeManifests returns true if manifest optimization is enabled.
 
 func (mg *ManifestGeneration) ShouldOptimizeManifests() bool {
@@ -1492,11 +1166,8 @@ func (mg *ManifestGeneration) ShouldOptimizeManifests() bool {
 
 }
 
-
-
 func init() {
 
 	SchemeBuilder.Register(&ManifestGeneration{}, &ManifestGenerationList{})
 
 }
-
