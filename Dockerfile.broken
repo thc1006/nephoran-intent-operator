@@ -1,0 +1,232 @@
+# =============================================================================
+# Ultra-Optimized Multi-Stage Dockerfile for Maximum Build Speed
+# =============================================================================
+# Features: Layer caching, parallel builds, minimal layers, security hardening
+# 
+# Build examples:
+#   docker build -f Dockerfile.optimized --build-arg SERVICE=llm-processor -t nephoran/llm-processor:latest .
+#   docker buildx build -f Dockerfile.optimized --platform linux/amd64,linux/arm64 --build-arg SERVICE=manager -t nephoran/manager:latest . --push
+# =============================================================================
+
+# Build arguments for maximum flexibility
+ARG GO_VERSION=1.24.1
+ARG ALPINE_VERSION=3.21
+ARG DISTROLESS_VERSION=nonroot-amd64
+ARG BUILDPLATFORM=linux/amd64
+ARG TARGETPLATFORM=linux/amd64
+ARG SERVICE=manager
+
+# =============================================================================
+# STAGE 1: Ultra-Fast Dependency Cache Layer
+# =============================================================================
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS deps-cache
+
+# Install only essential build tools (cached layer)
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk update && apk add --no-cache \
+    ca-certificates \
+    git \
+    tzdata && \
+    rm -rf /var/cache/apk/* /tmp/*
+
+# Create non-root user early (cached layer)
+RUN addgroup -g 65532 -S nonroot && \
+    adduser -u 65532 -S nonroot -G nonroot
+
+WORKDIR /src
+
+# Copy dependency files only (highly cacheable)
+COPY go.mod go.sum ./
+
+# Download dependencies with maximum parallelization
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    GOPROXY=https://proxy.golang.org,direct \
+    GOSUMDB=sum.golang.org \
+    GOMAXPROCS=8 \
+    go mod download -x && \
+    go mod verify
+
+# =============================================================================
+# STAGE 2: Optimized Build Stage
+# =============================================================================
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS builder
+
+# Build-time metadata
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+ARG SERVICE
+ARG VERSION=dev
+ARG BUILD_DATE
+ARG VCS_REF
+
+# Install build dependencies (cached layer)
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add --no-cache \
+    ca-certificates \
+    git \
+    tzdata \
+    binutils && \
+    rm -rf /var/cache/apk/* /tmp/*
+
+WORKDIR /build
+
+# Copy cached dependencies from previous stage
+COPY --from=deps-cache /go/pkg/mod /go/pkg/mod
+
+# Copy source code (separate layer for better caching)
+COPY --chown=nonroot:nonroot . .
+
+# Change ownership for non-root build
+RUN chown -R nonroot:nonroot /build
+
+USER nonroot
+
+# Ultra-optimized build with all performance flags
+RUN --mount=type=cache,target=/home/nonroot/.cache/go-build,uid=65532,gid=65532 \
+    --mount=type=cache,target=/go/pkg/mod,uid=65532,gid=65532 \
+    set -ex; \
+    # Determine command path based on service
+    case "$SERVICE" in \
+        "llm-processor") CMD_PATH="./cmd/llm-processor/main.go" ;; \
+        "nephio-bridge") CMD_PATH="./cmd/nephio-bridge/main.go" ;; \
+        "oran-adaptor") CMD_PATH="./cmd/oran-adaptor/main.go" ;; \
+        "a1-sim") CMD_PATH="./cmd/a1-sim/main.go" ;; \
+        "conductor") CMD_PATH="./cmd/conductor/main.go" ;; \
+        "conductor-loop") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
+        "e2-kpm-sim") CMD_PATH="./cmd/e2-kpm-sim/main.go" ;; \
+        "fcaps-sim") CMD_PATH="./cmd/fcaps-sim/main.go" ;; \
+        "intent-ingest") CMD_PATH="./cmd/intent-ingest/main.go" ;; \
+        "o1-ves-sim") CMD_PATH="./cmd/o1-ves-sim/main.go" ;; \
+        "porch-publisher") CMD_PATH="./cmd/porch-publisher/main.go" ;; \
+        "manager"|"controller") CMD_PATH="./cmd/main.go" ;; \
+        *) echo "Unknown service: $SERVICE" && exit 1 ;; \
+    esac; \
+    # Maximum performance build
+    CGO_ENABLED=0 \
+    GOOS=${TARGETOS} \
+    GOARCH=${TARGETARCH} \
+    GOMAXPROCS=8 \
+    go build \
+        -v \
+        -trimpath \
+        -mod=mod \
+        -ldflags="-w -s \
+                 -X main.version=${VERSION} \
+                 -X main.buildDate=${BUILD_DATE} \
+                 -X main.gitCommit=${VCS_REF} \
+                 -X main.service=${SERVICE} \
+                 -buildid=''" \
+        -tags="netgo,osusergo,static_build,timetzdata" \
+        -gcflags="-N -l" \
+        -asmflags="-D GOOS_${TARGETOS}" \
+        -installsuffix=netgo \
+        -o /tmp/service \
+        $CMD_PATH && \
+    # Verify binary
+    ls -la /tmp/service && test -x /tmp/service && echo "Binary verification: $(stat -c '%n: size=%s, mode=%a' /tmp/service)" && \
+    # Strip binary for minimal size
+    # Skip strip for Go binaries - not needed with -ldflags="-s -w"
+
+# =============================================================================
+# STAGE 3: Minimal Runtime (Distroless + Security Hardening)
+# =============================================================================
+FROM gcr.io/distroless/static:${DISTROLESS_VERSION} AS runtime
+
+# Runtime metadata
+ARG SERVICE
+ARG VERSION=dev
+ARG BUILD_DATE
+ARG VCS_REF
+ARG TARGETARCH
+
+# Comprehensive OCI labels for observability
+LABEL org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.title="Nephoran ${SERVICE}" \
+      org.opencontainers.image.description="Ultra-optimized ${SERVICE} service for Nephoran Intent Operator" \
+      org.opencontainers.image.vendor="Nephoran" \
+      org.opencontainers.image.source="https://github.com/thc1006/nephoran-intent-operator" \
+      org.opencontainers.image.documentation="https://github.com/thc1006/nephoran-intent-operator/docs" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      \
+      service.name="${SERVICE}" \
+      service.version="${VERSION}" \
+      service.component="${SERVICE}" \
+      \
+      security.scan="required" \
+      security.hardened="true" \
+      security.nonroot="true" \
+      security.readonly="true" \
+      security.capabilities="none" \
+      security.no-setuid="true" \
+      \
+      build.architecture="${TARGETARCH}" \
+      build.go.version="${GO_VERSION}" \
+      build.distroless="true" \
+      build.optimized="true" \
+      build.multi-stage="true" \
+      \
+      compliance.cis="compliant" \
+      compliance.nist="800-53" \
+      vulnerability.scanner="trivy,grype" \
+      sbom.format="spdx-json,cyclonedx"
+
+# Copy certificates and timezone data (minimal layers)
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Copy optimized binary with strict permissions
+COPY --from=builder --chmod=555 /tmp/service /service
+
+# Security-hardened runtime environment
+ENV GOGC=100 \
+    GOMEMLIMIT=512MiB \
+    GOMAXPROCS=2 \
+    TZ=UTC \
+    PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Non-root user (65532:65532 from distroless nonroot)
+USER 65532:65532
+
+# Health check optimized for container orchestration
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD ["/service", "--health-check"] || exit 1
+
+# Standard service ports with clear documentation
+# 8080: llm-processor, 8081: nephio-bridge, 8082: oran-adaptor, 8083: manager
+EXPOSE 8080 8081 8082 8083
+
+# Secure entrypoint
+ENTRYPOINT ["/service"]
+CMD ["--config=/etc/config/config.yaml"]
+
+# =============================================================================
+# STAGE 4: Development Runtime (Optional)
+# =============================================================================
+FROM runtime AS dev-runtime
+
+USER root
+
+# Add debugging tools for development
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add --no-cache \
+    curl \
+    netcat-openbsd \
+    tcpdump \
+    strace \
+    htop && \
+    rm -rf /var/cache/apk/* /tmp/*
+
+USER 65532:65532
+
+# Development-specific labels
+LABEL build.type="development" \
+      debug.tools="enabled"
+
+# =============================================================================
+# Final Stage Selection
+# =============================================================================
+ARG BUILD_TYPE=production
+FROM ${BUILD_TYPE}-runtime AS final

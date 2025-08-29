@@ -1,0 +1,101 @@
+# Container Security Policy - O-RAN WG11 Compliant
+# This policy enforces container security requirements for CI/CD pipeline
+
+apiVersion: v1
+kind: Policy
+metadata:
+  name: container-security-policy
+  namespace: ci-security
+  labels:
+    compliance: o-ran-wg11
+    security-level: high
+    fips-compliant: "true"
+
+spec:
+  # Container Registry Security
+  registry:
+    authentication:
+      type: github-token
+      required: true
+      scopes:
+        - packages:write
+        - contents:read
+        - attestations:write
+    
+    security:
+      tls_required: true
+      min_tls_version: "1.3"
+      verify_certificates: true
+      
+    signing:
+      cosign_enabled: true
+      keyless_signing: true
+      rekor_transparency_log: true
+      
+  # Base Image Security Requirements
+  base_images:
+    allowed_registries:
+      - gcr.io/distroless
+      - docker.io/library/golang
+      - docker.io/library/alpine
+    
+    security_requirements:
+      - non_root_user: true
+      - minimal_packages: true
+      - no_shell_access: true
+      - static_linking_preferred: true
+      
+    vulnerability_policy:
+      max_critical_vulnerabilities: 0
+      max_high_vulnerabilities: 2
+      scan_required: true
+      
+  # Build Security Requirements
+  build:
+    fips_compliance:
+      required: true
+      golang_version: "1.24.6"
+      crypto_validation: true
+      
+    supply_chain:
+      sbom_generation: true
+      provenance_attestation: true
+      dependency_scanning: true
+      
+    hardening:
+      static_analysis: true
+      secret_scanning: true
+      license_compliance: true
+      
+  # Runtime Security
+  runtime:
+    user_requirements:
+      run_as_non_root: true
+      user_id: 65534
+      group_id: 65534
+      
+    filesystem:
+      read_only_root_filesystem: true
+      no_privileged_containers: true
+      security_context_required: true
+      
+    network:
+      host_network_disabled: true
+      privileged_ports_disabled: true
+      
+  # Compliance Validation
+  validation:
+    pre_build_checks:
+      - dockerfile_security_scan
+      - dependency_vulnerability_scan
+      - license_compliance_check
+      
+    post_build_checks:
+      - container_vulnerability_scan
+      - image_signing_validation
+      - sbom_generation_validation
+      
+    runtime_checks:
+      - security_context_validation
+      - capability_validation
+      - resource_limit_validation
