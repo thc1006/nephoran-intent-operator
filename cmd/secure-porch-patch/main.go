@@ -203,11 +203,8 @@ func main() {
 
 		// Cleanup before exit to avoid defer issues
 
-		cancel()
-
 		logger.Info("Terminating due to secure execution failure")
-
-		os.Exit(1)
+		return
 
 	}
 

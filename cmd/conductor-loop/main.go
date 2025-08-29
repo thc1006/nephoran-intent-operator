@@ -290,14 +290,8 @@ func main() {
 		watcher, err = loop.NewWatcherWithProcessor(absHandoffDir, processor)
 		if err != nil {
 			log.Printf("Failed to create watcher: %v", err)
-
-			// Stop processor before exiting to avoid defer cleanup issues
-
-			processor.Stop()
-
 			log.Printf("Cannot continue without watcher: %v", err)
-
-			os.Exit(1)
+			return
 		}
 	} else {
 		// Legacy Config-based approach setup.

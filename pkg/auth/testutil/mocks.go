@@ -1197,7 +1197,10 @@ func (ms *OAuth2MockServer) handleUserInfo(w http.ResponseWriter, r *http.Reques
 
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(user)
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 
 }
 

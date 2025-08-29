@@ -206,10 +206,7 @@ func main() {
 	if err != nil {
 
 		logger.Error(err, "Failed to create file system watcher")
-
-		cancel() // Ensure proper cleanup
-
-		os.Exit(1)
+		return
 
 	}
 

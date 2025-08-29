@@ -593,7 +593,6 @@ func IsAbsoluteWindowsPath(path string) bool {
 
 
 // NormalizePathSeparators normalizes path separators for the current OS.
-
 func NormalizePathSeparators(path string) string {
 
 	if runtime.GOOS == "windows" {
@@ -609,7 +608,6 @@ func NormalizePathSeparators(path string) string {
 
 
 // NormalizeCRLF converts Windows CRLF line endings to Unix LF.
-
 func NormalizeCRLF(data []byte) []byte {
 
 	return []byte(strings.ReplaceAll(string(data), "\r\n", "\n"))

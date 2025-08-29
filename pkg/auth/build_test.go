@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// TestBuildConstraintsWork verifies that build constraints prevent duplicate declarations
+// TestBuildConstraintsWork verifies that build constraints prevent duplicate declarations.
 func TestBuildConstraintsWork(t *testing.T) {
 	// Test that we can create AuthHandlers without duplicate declaration errors
 	var authHandlers *AuthHandlers

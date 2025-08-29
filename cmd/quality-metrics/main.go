@@ -793,15 +793,18 @@ func (qmr *QualityMetricsReport) generateHTMLReport() {
 
 
 
-	// FIXME: Adding error check for fmt.Fprintf per errcheck linter.
-	// Use separate variables to fix staticcheck SA5009 format string parsing issue
+	// Fixed: Break down format arguments to resolve SA5009 format string parsing issue
+	overallScore := qmr.Summary.OverallScore
+	grade := qmr.Summary.Grade
+	status := qmr.Summary.Status
+	timestamp := qmr.Timestamp.Format("2006-01-02 15:04:05")
+	linesOfCode := qmr.CodeMetrics.LinesOfCode
+	codeCoverage := qmr.CodeMetrics.CodeCoverage
+	maintainability := qmr.CodeMetrics.Maintainability
 	
 	formattedHTML := fmt.Sprintf(html,
-		qmr.Summary.OverallScore, qmr.Summary.Grade, qmr.Summary.Status,
-		qmr.Timestamp.Format("2006-01-02 15:04:05"),
-		qmr.CodeMetrics.LinesOfCode,
-		qmr.CodeMetrics.CodeCoverage,
-		qmr.CodeMetrics.Maintainability)
+		overallScore, grade, status, timestamp,
+		linesOfCode, codeCoverage, maintainability)
 
 	if _, err := fmt.Fprint(file, formattedHTML); err != nil {
 

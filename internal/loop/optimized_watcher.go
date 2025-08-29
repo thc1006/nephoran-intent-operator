@@ -178,6 +178,9 @@ func NewOptimizedWatcher(dir string, config Config) (*OptimizedWatcher, error) {
 	if config.MaxWorkers > math.MaxInt32 {
 		log.Printf("Warning: MaxWorkers %d exceeds int32 max, capping to %d", config.MaxWorkers, math.MaxInt32)
 		config.MaxWorkers = math.MaxInt32
+	} else if config.MaxWorkers < 0 {
+		log.Printf("Warning: MaxWorkers %d is negative, using 1", config.MaxWorkers)
+		config.MaxWorkers = 1
 	}
 	atomic.StoreInt32(&ow.predictiveScaler.currentWorkers, int32(config.MaxWorkers))
 
@@ -343,10 +346,10 @@ func (ow *OptimizedWatcher) scaleWorkers() {
 	optimalWorkers := prediction.OptimalWorkers
 	if optimalWorkers > math.MaxInt32 {
 		optimalWorkers = math.MaxInt32
-		log.Printf("Warning: OptimalWorkers exceeds int32 max, capping to %d", math.MaxInt32)
+		log.Printf("Warning: OptimalWorkers %d exceeds int32 max, capping to %d", prediction.OptimalWorkers, math.MaxInt32)
 	} else if optimalWorkers < 0 {
-		optimalWorkers = 0
-		log.Printf("Warning: OptimalWorkers is negative, using 0")
+		optimalWorkers = 1 // Use 1 as minimum for at least one worker
+		log.Printf("Warning: OptimalWorkers %d is negative, using 1", prediction.OptimalWorkers)
 	}
 	target := int32(optimalWorkers)
 
@@ -364,16 +367,20 @@ func (ow *OptimizedWatcher) scaleWorkers() {
 	minWorkersInt := ow.predictiveScaler.minWorkers
 	if minWorkersInt > math.MaxInt32 {
 		minWorkersInt = math.MaxInt32
+		log.Printf("Warning: minWorkers %d exceeds int32 max, capping to %d", ow.predictiveScaler.minWorkers, math.MaxInt32)
 	} else if minWorkersInt < 0 {
-		minWorkersInt = 0
+		minWorkersInt = 1 // Ensure at least 1 worker
+		log.Printf("Warning: minWorkers %d is negative, using 1", ow.predictiveScaler.minWorkers)
 	}
 	minWorkers := int32(minWorkersInt)
 
 	maxWorkersInt := ow.predictiveScaler.maxWorkers
 	if maxWorkersInt > math.MaxInt32 {
 		maxWorkersInt = math.MaxInt32
-	} else if maxWorkersInt < 0 {
-		maxWorkersInt = 0
+		log.Printf("Warning: maxWorkers %d exceeds int32 max, capping to %d", ow.predictiveScaler.maxWorkers, math.MaxInt32)
+	} else if maxWorkersInt < 1 {
+		maxWorkersInt = 1 // Ensure at least 1 worker
+		log.Printf("Warning: maxWorkers %d is invalid, using 1", ow.predictiveScaler.maxWorkers)
 	}
 	maxWorkers := int32(maxWorkersInt)
 
@@ -533,10 +540,18 @@ func (ow *OptimizedWatcher) recordLatencyFast(duration time.Duration) {
 
 	// Security: Safe conversion with validation (G115)
 	nanosInt := duration.Nanoseconds()
+	var nanos uint64
 	if nanosInt < 0 {
-		nanosInt = 0 // Negative duration should not happen but handle gracefully
+		// Log unexpected negative duration and use 0
+		log.Printf("Warning: Unexpected negative duration %v, using 0", duration)
+		nanos = 0
+	} else if nanosInt > math.MaxInt64 {
+		// Cap at max value if somehow exceeds int64 range
+		log.Printf("Warning: Duration %v exceeds max, using MaxInt64", duration)
+		nanos = math.MaxUint64
+	} else {
+		nanos = uint64(nanosInt)
 	}
-	nanos := uint64(nanosInt)
 
 	// Update exponential moving average.
 

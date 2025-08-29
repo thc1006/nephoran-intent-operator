@@ -217,7 +217,7 @@ func (sm *ServiceManager) initializeOAuth2Manager(ctx context.Context) error {
 
 	var err error
 
-	sm.oauth2Manager, err = auth.NewOAuth2Manager(oauth2Config, sm.logger)
+	sm.oauth2Manager, err = auth.NewOAuth2Manager(ctx, oauth2Config, sm.logger)
 
 	if err != nil {
 

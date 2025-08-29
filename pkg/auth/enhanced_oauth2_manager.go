@@ -4,6 +4,7 @@ package auth
 
 
 import (
+	"context"
 
 	"fmt"
 
@@ -155,7 +156,8 @@ func NewEnhancedOAuth2Manager(config *EnhancedOAuth2ManagerConfig, logger *slog.
 
 
 
-		oauth2Manager, err := NewOAuth2Manager(oauth2ManagerConfig, logger)
+		// TODO: Pass proper context from caller instead of Background()
+		oauth2Manager, err := NewOAuth2Manager(context.Background(), oauth2ManagerConfig, logger)
 
 		if err != nil {
 

@@ -1377,7 +1377,7 @@ func DefaultPathSanitizer(path string) string {
 
 			parts[i] = "{uuid}"
 
-		} else if _, err := strconv.Atoi(part); err == nil && len(part) > 0 {
+		} else if _, err := strconv.Atoi(part); err == nil && part != "" {
 
 			// Numeric ID.
 

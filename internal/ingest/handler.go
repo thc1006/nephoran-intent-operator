@@ -209,7 +209,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 			}
 
-			payload = []byte(fmt.Sprintf(`{"intent_type":"scaling","target":"%s","namespace":"%s","replicas":%s,"source":"user"}`, m[1], m[3], m[2]))
+			payload = []byte(fmt.Sprintf(`{"intent_type":"scaling","target":%q,"namespace":%q,"replicas":%s,"source":"user"}`, m[1], m[3], m[2]))
 
 		}
 

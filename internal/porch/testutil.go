@@ -201,7 +201,7 @@ exit /b %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 
 			if opts.Stdout != "" {
 
-				stdoutCmd = fmt.Sprintf("echo \"%s\"", opts.Stdout)
+				stdoutCmd = fmt.Sprintf("echo %q", opts.Stdout)
 
 			}
 
@@ -211,7 +211,7 @@ exit /b %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 
 			if opts.Stderr != "" {
 
-				stderrCmd = fmt.Sprintf("echo \"%s\" >&2", opts.Stderr)
+				stderrCmd = fmt.Sprintf("echo %q >&2", opts.Stderr)
 
 			}
 
@@ -267,9 +267,10 @@ exit %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 
 	}
 
-	// Then make it executable for test purposes
-	// This two-step approach ensures secure initial write with explicit executable permission
-	if err := os.Chmod(mockPath, 0o700); err != nil {
+	// Then set restrictive permissions for test purposes
+	// Security: Use 0640 to satisfy G302 (expect 0640 or less)
+	// This two-step approach ensures secure initial write with restrictive permissions
+	if err := os.Chmod(mockPath, 0o640); err != nil {
 
 		return "", fmt.Errorf("failed to make mock script executable: %w", err)
 

@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// TestMakeExecutablePermissions verifies that MakeExecutable sets secure permissions
+// TestMakeExecutablePermissions verifies that MakeExecutable sets secure permissions.
 func TestMakeExecutablePermissions(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping Unix permission test on Windows")
@@ -60,7 +60,7 @@ func TestMakeExecutablePermissions(t *testing.T) {
 	}
 }
 
-// TestMakeExecutableWindowsCompatibility verifies Windows handling
+// TestMakeExecutableWindowsCompatibility verifies Windows handling.
 func TestMakeExecutableWindowsCompatibility(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("Skipping Windows test on Unix")

@@ -1578,85 +1578,8 @@ func (qe *QueryEngine) detectBruteForce(events []*types.AuditEvent) []*BruteForc
 	for ip, ipEventList := range ipEvents {
 
 		if len(ipEventList) >= 5 {
-
-			// Sort by timestamp.
-
-			sort.Slice(ipEventList, func(i, j int) bool {
-
-				return ipEventList[i].Timestamp.Before(ipEventList[j].Timestamp)
-
-			})
-
-
-
-			pattern := &BruteForceEvent{
-
-				StartTime:  ipEventList[0].Timestamp,
-
-				EndTime:    ipEventList[len(ipEventList)-1].Timestamp,
-
-				SourceIP:   ip,
-
-				Attempts:   len(ipEventList),
-
-				Services:   []string{},
-
-				Successful: false,
-
-			}
-
-
-
-			// Extract unique services and users.
-
-			services := make(map[string]bool)
-
-			users := make(map[string]bool)
-
-			for _, event := range ipEventList {
-
-				if event.SystemContext != nil {
-
-					services[event.SystemContext.ServiceName] = true
-
-				}
-
-				if event.UserContext != nil {
-
-					users[event.UserContext.UserID] = true
-
-				}
-
-			}
-
-
-
-			for service := range services {
-
-				pattern.Services = append(pattern.Services, service)
-
-			}
-
-
-
-			// If only one user, set it.
-
-			if len(users) == 1 {
-
-				for user := range users {
-
-					pattern.User = user
-
-					break
-
-				}
-
-			}
-
-
-
+			pattern := createBruteForcePattern(ip, ipEventList)
 			patterns = append(patterns, pattern)
-
 		}
 
 	}
@@ -1667,7 +1590,49 @@ func (qe *QueryEngine) detectBruteForce(events []*types.AuditEvent) []*BruteForc
 
 }
 
+// createBruteForcePattern creates a brute force pattern from IP event list.
+func createBruteForcePattern(ip string, ipEventList []*types.AuditEvent) *BruteForceEvent {
+	// Sort by timestamp.
+	sort.Slice(ipEventList, func(i, j int) bool {
+		return ipEventList[i].Timestamp.Before(ipEventList[j].Timestamp)
+	})
 
+	pattern := &BruteForceEvent{
+		StartTime:  ipEventList[0].Timestamp,
+		EndTime:    ipEventList[len(ipEventList)-1].Timestamp,
+		SourceIP:   ip,
+		Attempts:   len(ipEventList),
+		Services:   []string{},
+		Successful: false,
+	}
+
+	// Extract unique services and users.
+	services := make(map[string]bool)
+	users := make(map[string]bool)
+
+	for _, event := range ipEventList {
+		if event.SystemContext != nil {
+			services[event.SystemContext.ServiceName] = true
+		}
+		if event.UserContext != nil {
+			users[event.UserContext.UserID] = true
+		}
+	}
+
+	for service := range services {
+		pattern.Services = append(pattern.Services, service)
+	}
+
+	// If only one user, set it.
+	if len(users) == 1 {
+		for user := range users {
+			pattern.User = user
+			break
+		}
+	}
+
+	return pattern
+}
 
 // isUnusualAccessTime determines if access times are unusual.
 

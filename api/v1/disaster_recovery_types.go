@@ -31,12 +31,17 @@ limitations under the License.
 
 
 
+// Package v1 provides API types for disaster recovery management in the Nephoran Intent Operator.
+// This package defines custom resources and strategies for implementing fault tolerance,
+// backup, and recovery mechanisms for telecommunications network functions in
+// Kubernetes environments, ensuring high availability and resilience for O-RAN
+// and 5G network deployments.
 package v1
 
 import (
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 

@@ -257,8 +257,6 @@ func quoteIfNeeded(arg string) string {
 
 			needsQuotes = true
 
-			break
-
 		}
 
 	}

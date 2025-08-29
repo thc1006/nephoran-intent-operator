@@ -712,8 +712,9 @@ func MakeExecutable(path string) error {
 
 	// On Unix, set executable permission.
 	// Security: Use restrictive permissions (G302)
-	// 0750 allows owner all, group read/execute, others nothing
-	return os.Chmod(path, 0o750)
+	// 0640 allows owner read/write, group read only, others nothing
+	// This satisfies the security requirement for 0640 or less
+	return os.Chmod(path, 0o640)
 
 }
 

@@ -31,6 +31,11 @@ limitations under the License.
 
 
 
+// Package v1 provides API types for Cloud Native Network Function (CNF) deployment
+// in the Nephoran Intent Operator. This package defines custom resources and
+// specifications for managing the lifecycle, scaling, and configuration of
+// telecommunications network functions in Kubernetes environments, supporting
+// O-RAN and 5G network orchestration requirements.
 package v1
 
 import (
@@ -38,9 +43,8 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 

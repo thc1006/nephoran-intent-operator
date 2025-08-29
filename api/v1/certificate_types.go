@@ -1,4 +1,8 @@
 
+// Package v1 provides API types for certificate management in the Nephoran Intent Operator.
+// This package defines custom resources for handling certificate generation, rotation,
+// and management across telecommunications network functions, ensuring secure
+// communication and identity verification in O-RAN and 5G network environments.
 package v1
 
 

@@ -979,7 +979,7 @@ func containsIgnoreCase(s, substr string) bool {
 
 	return len(s) >= len(substr) &&
 
-		len(substr) > 0 &&
+		substr != "" &&
 
 		strings.ToLower(s)[:len(strings.ToLower(substr))] == strings.ToLower(substr) ||
 

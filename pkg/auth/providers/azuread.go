@@ -930,7 +930,7 @@ func (p *AzureADProvider) GetGroups(ctx context.Context, accessToken string) ([]
 
 	if resp.StatusCode != http.StatusOK {
 
-		return nil, fmt.Errorf("Microsoft Graph API returned status %d for groups", resp.StatusCode)
+		return nil, fmt.Errorf("groups request failed with status %d", resp.StatusCode)
 
 	}
 

@@ -71,7 +71,7 @@ type OAuth2ManagerConfig struct {
 
 // NewOAuth2Manager creates a new OAuth2Manager instance.
 
-func NewOAuth2Manager(config *OAuth2ManagerConfig, logger *slog.Logger) (*OAuth2Manager, error) {
+func NewOAuth2Manager(ctx context.Context, config *OAuth2ManagerConfig, logger *slog.Logger) (*OAuth2Manager, error) {
 
 	if !config.Enabled {
 
