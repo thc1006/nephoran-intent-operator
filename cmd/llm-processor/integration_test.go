@@ -17,8 +17,8 @@ import (
 
 // Package level variables for integration tests
 var (
-	config    *Config
-	processor *IntentProcessor
+	testConfig    *Config
+	testProcessor *IntentProcessor
 )
 
 // Mock handler functions for testing
@@ -39,7 +39,7 @@ func processHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	ctx := r.Context()
-	result, err := processor.ProcessIntent(ctx, req.Spec.Intent)
+	result, err := testProcessor.ProcessIntent(ctx, req.Spec.Intent)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -67,7 +67,7 @@ func processHandler(w http.ResponseWriter, r *http.Request) {
 func healthzHandler(w http.ResponseWriter, r *http.Request) {
 	response := HealthResponse{
 		Status:  "ok",
-		Version: config.ServiceVersion,
+		Version: testConfig.ServiceVersion,
 		Time:    time.Now().Format(time.RFC3339),
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -195,7 +195,7 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 				"ports": [{"containerPort": 8805, "protocol": "UDP"}],
 				"env": [{"name": "UPF_MODE", "value": "core"}]
 			},
-			"o1_config": "<?xml version=\"1.0\"?><config><upf><mode>core</mode></upf></config>",
+			"o1_testConfig": "<?xml version=\"1.0\"?><testConfig><upf><mode>core</mode></upf></testConfig>",
 			"a1_policy": {
 				"policy_type_id": "upf-qos-policy",
 				"policy_data": {"max_bitrate": "1Gbps"}
@@ -219,12 +219,12 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 		}`, nil
 	}
 
-	return "", fmt.Errorf("no mock response configured for intent: %s", intent)
+	return "", fmt.Errorf("no mock response testConfigured for intent: %s", intent)
 }
 
 func TestLLMProcessorIntegration(t *testing.T) {
-	// Setup test configuration
-	config := &Config{
+	// Setup test testConfiguration
+	testConfig := &Config{
 		Port:             "8080",
 		LogLevel:         "debug",
 		ServiceVersion:   "test-v1.0.0",
@@ -252,10 +252,10 @@ func TestLLMProcessorIntegration(t *testing.T) {
 		MetricsEnabled: true,
 	}
 
-	// Create processor with mock LLM client
-	processor := NewIntentProcessor(config)
+	// Create testProcessor with mock LLM client
+	testProcessor := NewIntentProcessor(testConfig)
 	mockLLMClient := NewMockLLMClient()
-	processor.LLMClient = mockLLMClient
+	testProcessor.LLMClient = mockLLMClient
 
 	t.Run("Test NetworkFunction Deployment Processing", func(t *testing.T) {
 		intent := "Deploy UPF network function with 3 replicas"
@@ -279,7 +279,7 @@ func TestLLMProcessorIntegration(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		response, err := processor.ProcessIntent(ctx, req)
+		response, err := testProcessor.ProcessIntent(ctx, req)
 
 		require.NoError(t, err)
 		assert.NotNil(t, response)
@@ -295,7 +295,7 @@ func TestLLMProcessorIntegration(t *testing.T) {
 		assert.Equal(t, "registry.5g.local/upf:latest", spec["image"])
 
 		// Verify processing metadata
-		assert.Equal(t, config.LLMModelName, response.ProcessingMetadata.ModelUsed)
+		assert.Equal(t, testConfig.LLMModelName, response.ProcessingMetadata.ModelUsed)
 		assert.Greater(t, response.ProcessingMetadata.ConfidenceScore, 0.0)
 		assert.Greater(t, response.ProcessingMetadata.ProcessingTimeMS, int64(0))
 	})
@@ -312,7 +312,7 @@ func TestLLMProcessorIntegration(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		response, err := processor.ProcessIntent(ctx, req)
+		response, err := testProcessor.ProcessIntent(ctx, req)
 
 		require.NoError(t, err)
 		assert.Equal(t, "NetworkFunctionScale", response.Type)
@@ -330,14 +330,14 @@ func TestLLMProcessorIntegration(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		_, err := processor.ProcessIntent(ctx, req)
+		_, err := testProcessor.ProcessIntent(ctx, req)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "validation failed")
 
 		// Test intent too long
 		longIntent := string(make([]byte, 3000))
 		req.Spec.Intent = longIntent
-		_, err = processor.ProcessIntent(ctx, req)
+		_, err = testProcessor.ProcessIntent(ctx, req)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "too long")
 	})
@@ -355,14 +355,14 @@ func TestLLMProcessorIntegration(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		_, err := processor.ProcessIntent(ctx, req)
+		_, err := testProcessor.ProcessIntent(ctx, req)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "LLM processing failed")
 	})
 
 	t.Run("Test Parameter Extraction", func(t *testing.T) {
 		intent := "Deploy UPF with 5 replicas and 4GB memory"
-		extractedParams := processor.promptEngine.ExtractParameters(intent)
+		extractedParams := testProcessor.promptEngine.ExtractParameters(intent)
 
 		assert.Contains(t, extractedParams, "replicas")
 		assert.Equal(t, "5", extractedParams["replicas"])
@@ -373,7 +373,7 @@ func TestLLMProcessorIntegration(t *testing.T) {
 
 func TestHTTPEndpoints(t *testing.T) {
 	// Setup test server
-	config = &Config{
+	testConfig = &Config{
 		Port:                    "8080",
 		ServiceVersion:          "test-v1.0.0",
 		LLMBackendType:          "openai",
@@ -384,9 +384,9 @@ func TestHTTPEndpoints(t *testing.T) {
 		CircuitBreakerTimeout:   60 * time.Second,
 	}
 
-	processor = NewIntentProcessor(config)
+	testProcessor = NewIntentProcessor(testConfig)
 	mockLLMClient := NewMockLLMClient()
-	processor.LLMClient = mockLLMClient
+	testProcessor.LLMClient = mockLLMClient
 
 	t.Run("Test Process Endpoint", func(t *testing.T) {
 		req := &NetworkIntentRequest{
@@ -426,7 +426,7 @@ func TestHTTPEndpoints(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
 		assert.Equal(t, "ok", response.Status)
-		assert.Equal(t, config.ServiceVersion, response.Version)
+		assert.Equal(t, testConfig.ServiceVersion, response.Version)
 	})
 
 	t.Run("Test Readiness Endpoint", func(t *testing.T) {
@@ -450,14 +450,14 @@ func TestHTTPEndpoints(t *testing.T) {
 
 		http.Handle("/metrics", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("# HELP llm_processor_requests_total Total requests\n"))
+			w.Write([]byte("# HELP llm_testProcessor_requests_total Total requests\n"))
 		}))
 
 		handler, _ := http.DefaultServeMux.Handler(req)
 		handler.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		assert.Contains(t, w.Body.String(), "llm_processor_requests_total")
+		assert.Contains(t, w.Body.String(), "llm_testProcessor_requests_total")
 	})
 
 	t.Run("Test Invalid Request Format", func(t *testing.T) {
@@ -585,7 +585,7 @@ func TestTelecomPromptEngineIntegration(t *testing.T) {
 }
 
 func BenchmarkIntentProcessing(b *testing.B) {
-	config := &Config{
+	testConfig := &Config{
 		LLMBackendType:          "openai",
 		LLMModelName:            "gpt-4o-mini",
 		LLMTimeout:              30 * time.Second,
@@ -595,9 +595,9 @@ func BenchmarkIntentProcessing(b *testing.B) {
 		CircuitBreakerTimeout:   60 * time.Second,
 	}
 
-	processor := NewIntentProcessor(config)
+	testProcessor := NewIntentProcessor(testConfig)
 	mockLLMClient := NewMockLLMClient()
-	processor.LLMClient = mockLLMClient
+	testProcessor.LLMClient = mockLLMClient
 
 	req := &NetworkIntentRequest{
 		Spec: struct {
@@ -611,7 +611,7 @@ func BenchmarkIntentProcessing(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := processor.ProcessIntent(ctx, req)
+		_, err := testProcessor.ProcessIntent(ctx, req)
 		if err != nil {
 			b.Fatalf("Processing failed: %v", err)
 		}

@@ -37,6 +37,67 @@ type ResourcePoolStatus struct {
 
 // Note: ResourceCapacity, ResourceMetric, AlarmDictionary, AlarmDefinition, 
 // ResourceStatus, and ResourceCondition are defined in resource_types.go
+
+// ResourcePoolFilter represents filters for querying resource pools
+type ResourcePoolFilter struct {
+	Providers         []string          `json:"providers,omitempty"`
+	Regions           []string          `json:"regions,omitempty"`
+	Zones             []string          `json:"zones,omitempty"`
+	States            []string          `json:"states,omitempty"`
+	HealthStates      []string          `json:"healthStates,omitempty"`
+	UtilizationMin    *float64          `json:"utilizationMin,omitempty"`
+	UtilizationMax    *float64          `json:"utilizationMax,omitempty"`
+	Tags              map[string]string `json:"tags,omitempty"`
+	Labels            map[string]string `json:"labels,omitempty"`
+	Limit             int               `json:"limit,omitempty"`
+	Offset            int               `json:"offset,omitempty"`
+	SortBy            string            `json:"sortBy,omitempty"`
+	SortOrder         string            `json:"sortOrder,omitempty"`
+}
+
+// CreateResourcePoolRequest represents a request to create a new resource pool
+type CreateResourcePoolRequest struct {
+	Name             string                 `json:"name"`
+	Description      string                 `json:"description,omitempty"`
+	Location         string                 `json:"location,omitempty"`
+	OCloudID         string                 `json:"oCloudId"`
+	GlobalLocationID string                 `json:"globalLocationId,omitempty"`
+	Provider         string                 `json:"provider"`
+	Region           string                 `json:"region"`
+	Zone             string                 `json:"zone,omitempty"`
+	Capacity         *ResourceCapacity      `json:"capacity"`
+	Extensions       map[string]interface{} `json:"extensions,omitempty"`
+	Tags             map[string]string      `json:"tags,omitempty"`
+	Labels           map[string]string      `json:"labels,omitempty"`
+}
+
+// UpdateResourcePoolRequest represents a request to update an existing resource pool
+type UpdateResourcePoolRequest struct {
+	Name        *string                `json:"name,omitempty"`
+	Description *string                `json:"description,omitempty"`
+	Location    *string                `json:"location,omitempty"`
+	Capacity    *ResourceCapacity      `json:"capacity,omitempty"`
+	Extensions  map[string]interface{} `json:"extensions,omitempty"`
+	Tags        map[string]string      `json:"tags,omitempty"`
+	Labels      map[string]string      `json:"labels,omitempty"`
+}
+
+// NodeFilter represents filters for querying nodes
+type NodeFilter struct {
+	Names         []string          `json:"names,omitempty"`
+	NodeTypes     []string          `json:"nodeTypes,omitempty"`
+	Clusters      []string          `json:"clusters,omitempty"`
+	States        []string          `json:"states,omitempty"`
+	HealthStates  []string          `json:"healthStates,omitempty"`
+	Locations     []string          `json:"locations,omitempty"`
+	Tags          map[string]string `json:"tags,omitempty"`
+	Labels        map[string]string `json:"labels,omitempty"`
+	Limit         int               `json:"limit,omitempty"`
+	Offset        int               `json:"offset,omitempty"`
+	SortBy        string            `json:"sortBy,omitempty"`
+	SortOrder     string            `json:"sortOrder,omitempty"`
+}
+
 // Node represents a compute node in the infrastructure inventory
 type Node struct {
 	NodeID            string                 `json:"nodeId"`

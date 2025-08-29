@@ -37,10 +37,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
@@ -50,7 +48,7 @@ type Runtime struct {
 	config         *RuntimeConfig
 	resourcePool   *ResourcePool
 	executorPool   *ExecutorPool
-	securityPolicy *SecurityPolicy
+	securityPolicy *RuntimeSecurityPolicy
 	metrics        *RuntimeMetrics
 	tracer         trace.Tracer
 	mu             sync.RWMutex
@@ -167,8 +165,8 @@ type Executor struct {
 	mu          sync.Mutex
 }
 
-// SecurityPolicy enforces security constraints
-type SecurityPolicy struct {
+// RuntimeSecurityPolicy enforces security constraints for runtime execution
+type RuntimeSecurityPolicy struct {
 	allowedImages       map[string]bool
 	blockedCapabilities map[string]bool
 	maxResourceLimits   ResourceLimits
@@ -333,7 +331,7 @@ func NewRuntime(config *RuntimeConfig) (*Runtime, error) {
 	}
 
 	// Initialize security policy
-	securityPolicy := &SecurityPolicy{
+	securityPolicy := &RuntimeSecurityPolicy{
 		allowedImages:       make(map[string]bool),
 		blockedCapabilities: make(map[string]bool),
 		maxResourceLimits: ResourceLimits{
@@ -956,9 +954,6 @@ func validateRuntimeConfig(config *RuntimeConfig) error {
 	return nil
 }
 
-func generateExecutionID() string {
-	return fmt.Sprintf("exec-%d-%d", time.Now().UnixNano(), runtime.NumGoroutine())
-}
 
 func generateExecutorID() string {
 	return fmt.Sprintf("executor-%d-%d", time.Now().UnixNano(), runtime.NumGoroutine())

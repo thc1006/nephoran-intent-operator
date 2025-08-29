@@ -17,16 +17,13 @@ limitations under the License.
 package krm
 
 import (
-	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -40,8 +37,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
 // ContainerRuntime provides secure container-based KRM function execution

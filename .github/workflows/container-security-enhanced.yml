@@ -35,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [conductor-loop, intent-ingest, porch-publisher, llm-processor]
+        service: [conductor-loop, intent-ingest, porch-publisher, llm-processor, nephio-bridge, oran-adaptor, planner]
         
     steps:
       - name: Run Trivy vulnerability scanner
@@ -88,13 +88,32 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        
+      - name: Set up environment
+        run: |
+          echo "TZ=UTC" >> $GITHUB_ENV
+          echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
+          echo "BUILDX_NO_DEFAULT_ATTESTATIONS=1" >> $GITHUB_ENV
+          sudo timedatectl set-timezone UTC || true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
           version: latest
           driver: docker-container
+          driver-opts: |
+            image=moby/buildkit:v0.12.5
+            network=host
+          config-inline: |
+            [worker.oci]
+              max-parallelism = 4
+              gc-keep-storage = "2GB"
+            [worker.containerd]
+              enabled = false
+            [registry."docker.io"]
+              mirrors = ["mirror.gcr.io"]
           install: true
+          cleanup: true
 
       - name: Build test image for security scanning
         uses: docker/build-push-action@v6
@@ -104,13 +123,26 @@ jobs:
           push: false
           load: true
           tags: nephoran-test:security-scan
+          platforms: linux/amd64
           build-args: |
             SERVICE=conductor-loop
+            TZ=UTC
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ github.ref_name }}
           cache-from: |
-            type=gha,scope=security-build
+            type=gha,scope=security-build-${{ github.ref_name }}
+            type=gha,scope=security-build-main
           cache-to: |
-            type=gha,mode=max,scope=security-build
+            type=gha,mode=max,scope=security-build-${{ github.ref_name }}
+          outputs: type=docker,dest=/tmp/nephoran-test.tar
 
+      - name: Load built image
+        run: |
+          docker load -i /tmp/nephoran-test.tar
+          docker tag nephoran-test:security-scan nephoran-test:security-scan
+          docker images | grep nephoran-test
+          
       - name: Run Trivy vulnerability scanner on test image
         uses: aquasecurity/trivy-action@0.29.0
         with:
@@ -230,7 +262,7 @@ jobs:
   security-gate:
     name: Security Gate
     runs-on: ubuntu-latest
-    needs: [scan-existing, build-security, dockerfile-security, security-compliance]
+    needs: [build-security, dockerfile-security, security-compliance]
     if: always()
     timeout-minutes: 2
     
@@ -238,7 +270,6 @@ jobs:
       - name: Evaluate security results
         run: |
           echo "Security scan results:"
-          echo "Scan Existing: ${{ needs.scan-existing.result }}"
           echo "Build Security: ${{ needs.build-security.result }}"
           echo "Dockerfile Security: ${{ needs.dockerfile-security.result }}"
           echo "Security Compliance: ${{ needs.security-compliance.result }}"

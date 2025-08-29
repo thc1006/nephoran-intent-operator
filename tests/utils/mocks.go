@@ -349,9 +349,8 @@ func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 	// Send a mock streaming chunk
 	select {
 	case chunks <- &types.StreamingChunk{
-		Content:   "Mock streaming response",
-		IsLast:    true,
-		Timestamp: time.Now(),
+		Content: "Mock streaming response",
+		IsLast:  true,
 	}:
 	case <-ctx.Done():
 		return ctx.Err()
@@ -366,12 +365,8 @@ func (m *MockLLMClient) GetSupportedModels() []string {
 
 func (m *MockLLMClient) GetModelCapabilities(modelName string) (*types.ModelCapabilities, error) {
 	return &types.ModelCapabilities{
-		MaxTokens:         4096,
-		SupportsChat:      true,
-		SupportsFunction:  false,
-		SupportsStreaming: true,
-		CostPerToken:      0.001,
-		Features:          make(map[string]interface{}),
+		MaxTokens:    4096,
+		SupportsChat: true,
 	}, nil
 }
 
@@ -387,8 +382,12 @@ func (m *MockLLMClient) EstimateTokens(text string) int {
 	return len(text) / 4
 }
 
-func (m *MockLLMClient) GetMaxTokens(modelName string) int {
+func (m *MockLLMClient) GetMaxTokens() int {
 	return 4096
+}
+
+func (m *MockLLMClient) SupportsStreaming() bool {
+	return true
 }
 
 func (m *MockLLMClient) Close() error {

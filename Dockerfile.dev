@@ -12,9 +12,9 @@
 #   docker run -v $(pwd):/workspace -p 8080:8080 nephoran/llm-processor:dev
 # =============================================================================
 
-ARG GO_VERSION=1.24
+ARG GO_VERSION=1.24.1
 ARG PYTHON_VERSION=3.11
-ARG ALPINE_VERSION=3.22
+ARG ALPINE_VERSION=3.21
 ARG SERVICE_TYPE=go
 
 # =============================================================================

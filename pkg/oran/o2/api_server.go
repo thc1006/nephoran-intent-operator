@@ -17,8 +17,8 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/common"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
+	models "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	providers "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )
 
 // O2APIServer represents the O2 IMS RESTful API server

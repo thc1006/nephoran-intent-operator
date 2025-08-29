@@ -9,7 +9,7 @@
 # =============================================================================
 # Stage 1: Security Scanner
 # =============================================================================
-FROM golang:1.24-alpine AS security-scanner
+FROM golang:1.24.1-alpine AS security-scanner
 
 # Install security scanning tools
 RUN apk add --no-cache \
@@ -42,7 +42,7 @@ RUN echo "Running vulnerability scan..." && \
 # =============================================================================
 # Stage 2: Builder
 # =============================================================================
-FROM golang:1.24-alpine AS builder
+FROM golang:1.24.1-alpine AS builder
 
 # Security: Install CA certificates and create non-root user
 RUN apk add --no-cache \
@@ -160,7 +160,7 @@ CMD ["--handoff=/data/handoff", "--porch=porch", "--mode=direct", "--out=/data/o
 # =============================================================================
 # Development Stage (Optional)
 # =============================================================================
-FROM golang:1.24-alpine AS dev
+FROM golang:1.24.1-alpine AS dev
 
 # Install development and debugging tools
 RUN apk add --no-cache \

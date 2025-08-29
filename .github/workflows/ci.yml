@@ -26,15 +26,15 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: nephoran-intent-operator
   
-  # Go optimization flags (2025 standards)
+  # Go optimization flags (2025 ULTRA-SPEED)
   DOCKER_BUILDKIT: 1
-  BUILDX_NO_DEFAULT_ATTESTATIONS: 0
-  BUILDX_ATTESTATION_MODE: max
-  GOMAXPROCS: 4  # Conservative for stability
-  GOMEMLIMIT: 4GiB
+  BUILDX_NO_DEFAULT_ATTESTATIONS: 1  # Disable for speed
+  BUILDX_ATTESTATION_MODE: min       # Minimize for speed
+  GOMAXPROCS: 8                      # Increased for performance
+  GOMEMLIMIT: 6GiB                   # Increased memory limit
   GOTOOLCHAIN: local
   GOAMD64: v3
-  GOGC: 100
+  GOGC: 50                           # More aggressive GC
   GOFLAGS: -mod=readonly -buildvcs=false
   
   # Build optimization (2025 enhanced)
@@ -322,16 +322,25 @@ jobs:
       matrix:
         service: 
           - name: conductor-loop
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile.ultra-fast
             context: .
           - name: llm-processor
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile.ultra-fast
             context: .
           - name: intent-ingest
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile.ultra-fast
+            context: .
+          - name: nephio-bridge
+            dockerfile: Dockerfile.ultra-fast
+            context: .
+          - name: oran-adaptor
+            dockerfile: Dockerfile.ultra-fast
             context: .
           - name: porch-publisher
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile.ultra-fast
+            context: .
+          - name: planner
+            dockerfile: Dockerfile.ultra-fast
             context: .
     
     permissions:

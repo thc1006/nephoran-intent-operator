@@ -185,10 +185,10 @@ func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 	}
 
 	chunk := &types.StreamingChunk{
-		Content:   response,
-		IsLast:    true,
-		Metadata:  make(map[string]interface{}),
-		Timestamp: time.Now(),
+		Content:  response,
+		IsLast:   true,
+		Metadata: make(map[string]interface{}),
+		Time:     time.Now(),
 	}
 
 	select {
@@ -208,12 +208,13 @@ func (m *MockLLMClient) GetSupportedModels() []string {
 // GetModelCapabilities implements the shared.ClientInterface
 func (m *MockLLMClient) GetModelCapabilities(modelName string) (*types.ModelCapabilities, error) {
 	return &types.ModelCapabilities{
-		MaxTokens:         4096,
-		SupportsChat:      true,
-		SupportsFunction:  true,
-		SupportsStreaming: true,
-		CostPerToken:      0.001,
-		Features:          make(map[string]interface{}),
+		Name:         modelName,
+		MaxTokens:    4096,
+		SupportsChat: true,
+		SupportsTools: true,
+		InputTypes:   []string{"text"},
+		OutputTypes:  []string{"text"},
+		Description:  "Mock model for testing",
 	}, nil
 }
 
@@ -235,8 +236,13 @@ func (m *MockLLMClient) EstimateTokens(text string) int {
 }
 
 // GetMaxTokens implements the shared.ClientInterface
-func (m *MockLLMClient) GetMaxTokens(modelName string) int {
+func (m *MockLLMClient) GetMaxTokens() int {
 	return 4096 // Default max tokens for testing
+}
+
+// SupportsStreaming implements the shared.ClientInterface
+func (m *MockLLMClient) SupportsStreaming() bool {
+	return true // Mock client supports streaming for testing
 }
 
 // Close implements the shared.ClientInterface

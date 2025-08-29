@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	models "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 // Implementation of all O2AdaptorInterface methods

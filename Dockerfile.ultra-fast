@@ -13,7 +13,7 @@ ARG SERVICE
 # =============================================================================
 # STAGE 1: Binary Stage (if not pre-built)
 # =============================================================================
-FROM golang:1.24-alpine AS builder
+FROM golang:1.24.1-alpine AS builder
 ARG SERVICE
 ARG TARGETARCH=amd64
 
@@ -37,7 +37,7 @@ RUN if [ "${SERVICE}" = "planner" ]; then \
     fi && \
     echo "Building from: ${MAIN_PATH}"
 
-# Ultra-optimized build flags
+# Ultra-optimized build flags (2025 enhanced)
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     if [ "${SERVICE}" = "planner" ]; then \
@@ -48,19 +48,24 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 \
     GOOS=linux \
     GOARCH=${TARGETARCH} \
-    GOMAXPROCS=16 \
+    GOMAXPROCS=32 \
+    GOAMD64=v3 \
     go build \
-      -p 16 \
+      -compiler=gc \
+      -p 32 \
       -tags "netgo,osusergo,static_build" \
       -trimpath \
-      -ldflags="-s -w -extldflags '-static' -buildid=''" \
+      -buildmode=exe \
+      -ldflags="-s -w -extldflags '-static' -buildid='' -X 'main.buildTime=$(date -Iseconds)'" \
+      -gcflags="-l=4 -B" \
+      -asmflags="-trimpath=$(pwd)" \
       -o /app \
       ${MAIN_PATH}
 
 # =============================================================================
 # STAGE 2: Binary Selector (Alpine with shell for conditional logic)
 # =============================================================================
-FROM alpine:3.20 AS binary-selector
+FROM alpine:3.21 AS binary-selector
 
 # Install binary optimization tools
 RUN apk add --no-cache upx
@@ -91,7 +96,7 @@ RUN PREBUILT_BINARY=${PREBUILT_BINARY:+/build-context/${PREBUILT_BINARY}} /selec
 # =============================================================================
 # STAGE 3: Runtime Dependencies
 # =============================================================================
-FROM alpine:3.20 AS runtime-deps
+FROM alpine:3.21 AS runtime-deps
 
 # Install tzdata and ca-certificates for runtime
 # CRITICAL: Keep tzdata available for copying to final stage

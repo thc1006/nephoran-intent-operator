@@ -13,7 +13,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/common"
 	o2models "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
+	providers "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 	securityconfig "github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
@@ -45,7 +45,7 @@ const (
 // ResourceManager provides resource management capabilities for O-RAN O2 IMS
 type ResourceManager interface {
 	// Resource lifecycle operations
-	ProvisionResource(ctx context.Context, req *ProvisionResourceRequest) (*models.Resource, error)
+	ProvisionResource(ctx context.Context, req *ProvisionResourceRequest) (*o2models.Resource, error)
 	ConfigureResource(ctx context.Context, resourceID string, config interface{}) error
 	ScaleResource(ctx context.Context, resourceID string, req *ScaleResourceRequest) error
 	TerminateResource(ctx context.Context, resourceID string) error
@@ -56,13 +56,13 @@ type ResourceManager interface {
 	RestoreResource(ctx context.Context, resourceID string, backupID string) error
 
 	// Resource discovery and inventory
-	DiscoverResources(ctx context.Context, providerID string) ([]*models.Resource, error)
+	DiscoverResources(ctx context.Context, providerID string) ([]*o2models.Resource, error)
 	SyncInventory(ctx context.Context) error
 	
 	// Resource monitoring
-	GetResourceStatus(ctx context.Context, resourceID string) (*models.ResourceStatus, error)
+	GetResourceStatus(ctx context.Context, resourceID string) (*o2models.ResourceStatus, error)
 	GetResourceMetrics(ctx context.Context, resourceID string) (map[string]interface{}, error)
-	GetResourceHealth(ctx context.Context, resourceID string) (*models.HealthStatus, error)
+	GetResourceHealth(ctx context.Context, resourceID string) (*o2models.HealthStatus, error)
 
 	// Resource operations
 	StartResource(ctx context.Context, resourceID string) error
@@ -81,8 +81,8 @@ type MonitoringService interface {
 	GetMetrics(ctx context.Context, resourceID string, metricNames []string) (map[string]interface{}, error)
 	
 	// Health monitoring
-	CheckHealth(ctx context.Context, resourceID string) (*models.HealthStatus, error)
-	GetHealthHistory(ctx context.Context, resourceID string, duration time.Duration) ([]*models.HealthHistoryEntry, error)
+	CheckHealth(ctx context.Context, resourceID string) (*o2models.HealthStatus, error)
+	GetHealthHistory(ctx context.Context, resourceID string, duration time.Duration) ([]*o2models.HealthHistoryEntry, error)
 	
 	// Alerting and notifications
 	CreateAlert(ctx context.Context, alert *AlertO2) error
@@ -109,7 +109,7 @@ type CNFLifecycleManager interface {
 	// CNF monitoring
 	MonitorCNF(ctx context.Context, cnfID string) error
 	GetCNFMetrics(ctx context.Context, cnfID string) (map[string]interface{}, error)
-	GetCNFHealth(ctx context.Context, cnfID string) (*models.HealthStatus, error)
+	GetCNFHealth(ctx context.Context, cnfID string) (*o2models.HealthStatus, error)
 }
 
 // HelmManager manages Helm chart deployments
@@ -190,7 +190,7 @@ type ContainerRegistryManager interface {
 	GetScanResults(ctx context.Context, imageName, registryName string) ([]*ScanResult, error)
 	
 	// Registry health
-	CheckRegistryHealth(ctx context.Context, registryName string) (*models.HealthStatus, error)
+	CheckRegistryHealth(ctx context.Context, registryName string) (*o2models.HealthStatus, error)
 	GetRegistryMetrics(ctx context.Context, registryName string) (map[string]interface{}, error)
 }
 
@@ -217,8 +217,8 @@ type InfrastructureInventoryManager interface {
 // InfrastructureHealthChecker provides infrastructure health checking capabilities
 type InfrastructureHealthChecker interface {
 	// Health checking
-	CheckHealth(ctx context.Context, resourceID string) (*models.HealthStatus, error)
-	CheckAllResources(ctx context.Context) (map[string]*models.HealthStatus, error)
+	CheckHealth(ctx context.Context, resourceID string) (*o2models.HealthStatus, error)
+	CheckAllResources(ctx context.Context) (map[string]*o2models.HealthStatus, error)
 	
 	// Health monitoring
 	StartHealthMonitoring(ctx context.Context, resourceID string, interval time.Duration) error
@@ -229,7 +229,7 @@ type InfrastructureHealthChecker interface {
 	GetHealthPolicy(ctx context.Context, resourceID string) (*HealthPolicy, error)
 	
 	// Health history and trends
-	GetHealthHistory(ctx context.Context, resourceID string, duration time.Duration) ([]*models.HealthHistoryEntry, error)
+	GetHealthHistory(ctx context.Context, resourceID string, duration time.Duration) ([]*o2models.HealthHistoryEntry, error)
 	GetHealthTrends(ctx context.Context, resourceID string, duration time.Duration) (*HealthTrendsO2, error)
 	
 	// Health events and callbacks
@@ -241,11 +241,11 @@ type InfrastructureHealthChecker interface {
 // O2IMSStorage provides storage capabilities for O2 IMS data
 type O2IMSStorage interface {
 	// Resource storage
-	StoreResource(ctx context.Context, resource *models.Resource) error
-	RetrieveResource(ctx context.Context, resourceID string) (*models.Resource, error)
-	UpdateResource(ctx context.Context, resource *models.Resource) error
+	StoreResource(ctx context.Context, resource *o2models.Resource) error
+	RetrieveResource(ctx context.Context, resourceID string) (*o2models.Resource, error)
+	UpdateResource(ctx context.Context, resource *o2models.Resource) error
 	DeleteResource(ctx context.Context, resourceID string) error
-	ListResources(ctx context.Context, filters map[string]interface{}) ([]*models.Resource, error)
+	ListResources(ctx context.Context, filters map[string]interface{}) ([]*o2models.Resource, error)
 	
 	// Metadata and inventory
 	StoreInventory(ctx context.Context, inventory *InfrastructureAsset) error
@@ -260,7 +260,7 @@ type O2IMSStorage interface {
 	RestoreData(ctx context.Context, backupID string) error
 	
 	// Storage health
-	CheckStorageHealth(ctx context.Context) (*models.HealthStatus, error)
+	CheckStorageHealth(ctx context.Context) (*o2models.HealthStatus, error)
 	GetStorageMetrics(ctx context.Context) (map[string]interface{}, error)
 }
 

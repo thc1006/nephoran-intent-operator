@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	o2models "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 // ===== SHARED UTILITY TYPES =====
@@ -299,7 +299,7 @@ type Alerting interface {
 
 // ResourceOperations defines the interface for resource operations
 type ResourceOperations interface {
-	ProvisionResource(ctx context.Context, req *ProvisionResourceRequest) (*models.Resource, error)
+	ProvisionResource(ctx context.Context, req *ProvisionResourceRequest) (*o2models.Resource, error)
 	ScaleResource(ctx context.Context, resourceID string, req *ScaleResourceRequest) error
 	MigrateResource(ctx context.Context, resourceID string, req *MigrateResourceRequest) error
 	TerminateResource(ctx context.Context, resourceID string) error

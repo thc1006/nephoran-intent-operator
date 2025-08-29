@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	models "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 // Missing provider types defined locally for testing

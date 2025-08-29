@@ -176,8 +176,8 @@ type User struct {
 	CreatedAt  time.Time         `json:"created_at"`
 }
 
-// SecurityConfig holds security configuration - use common config type
-type SecurityConfig = securityconfig.CommonSecurityConfig
+// SecurityConfig holds security configuration - use extended config type
+type SecurityConfig = securityconfig.ExtendedSecurityConfig
 
 // Use common config types as type aliases for backwards compatibility
 type TLSConfig = securityconfig.TLSConfig

@@ -130,6 +130,7 @@ type RotationResult struct {
 type CertificatePaths struct {
 	CertFile string `json:"cert_file"`
 	KeyFile  string `json:"key_file"`
+	CAFile   string `json:"ca_file"`
 }
 
 // CommonSecurityConfig defines the unified security configuration interface

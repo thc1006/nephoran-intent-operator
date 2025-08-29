@@ -23,6 +23,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -543,8 +544,8 @@ func (f *systemFactory) applyDefaults(config *SystemConfig) *SystemConfig {
 		config.LifecycleConfig = &porch.LifecycleManagerConfig{
 			EventQueueSize:      1000,
 			EventWorkers:        5,
-			LockCleanupInterval: 5 * time.Minute,
-			DefaultLockTimeout:  30 * time.Minute,
+			LockCleanupInterval: &metav1.Duration{Duration: 5 * time.Minute},
+			DefaultLockTimeout:  &metav1.Duration{Duration: 30 * time.Minute},
 			EnableMetrics:       true,
 		}
 	}

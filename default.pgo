@@ -1,8 +1,0 @@
-# Profile-guided optimization (PGO) profile for Nephoran Intent Operator
-# This is a default/empty PGO profile to enable PGO builds
-# In production, this should be replaced with an actual CPU profile
-# generated from production workloads using:
-# go test -cpuprofile=default.pgo -bench=. ./...
-#
-# For now, this enables PGO compilation flags without requiring
-# an actual profile, providing baseline optimization benefits

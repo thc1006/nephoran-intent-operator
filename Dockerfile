@@ -275,8 +275,12 @@ RUN --mount=type=cache,target=/tmp/.cache/go-mod,sharing=locked \
     # Remove only build dependencies, keep ca-certificates and tzdata for runtime
     # CRITICAL: Ensure tzdata remains available for copying to runtime stages
     apk del .build-deps || true; \
-    # Verify tzdata is still available after cleanup
-    ls -la /usr/share/zoneinfo/UTC || (echo "tzdata missing after cleanup" && exit 1)
+    # Re-install tzdata explicitly after build deps cleanup to ensure it persists
+    apk add --no-cache tzdata || true; \
+    # Verify tzdata is still available after cleanup and fix any permission issues
+    ls -la /usr/share/zoneinfo/UTC || (echo "tzdata missing after cleanup" && exit 1); \
+    # Ensure tzdata directory has stable permissions for BuildKit cache computation
+    chmod -R 755 /usr/share/zoneinfo && chown -R root:root /usr/share/zoneinfo
 
 # =============================================================================
 # STAGE: Python Dependencies

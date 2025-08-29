@@ -11,8 +11,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
+	models "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	providers "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )
 
 // InfrastructureMonitoringService provides comprehensive infrastructure monitoring

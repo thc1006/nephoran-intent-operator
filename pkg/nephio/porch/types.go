@@ -110,6 +110,70 @@ type PackageRevisionManager interface {
 	ValidateContent(ctx context.Context, ref *PackageReference) (*ValidationResult, error)
 }
 
+// LifecycleManager provides lifecycle management for package revisions
+type LifecycleManager interface {
+	// Lifecycle management
+	TransitionLifecycle(ctx context.Context, ref *PackageReference, target PackageRevisionLifecycle) error
+	ValidateTransition(ctx context.Context, ref *PackageReference, target PackageRevisionLifecycle) error
+	GetCurrentLifecycle(ctx context.Context, ref *PackageReference) (PackageRevisionLifecycle, error)
+	
+	// Rollback management
+	CreateRollbackPoint(ctx context.Context, ref *PackageReference) (*RollbackPoint, error)
+	RollbackToPoint(ctx context.Context, ref *PackageReference, point *RollbackPoint) error
+	ListRollbackPoints(ctx context.Context, ref *PackageReference) ([]*RollbackPoint, error)
+	DeleteRollbackPoint(ctx context.Context, ref *PackageReference, pointID string) error
+	
+	// Workflow integration
+	LockPackage(ctx context.Context, ref *PackageReference, workflowID string) error
+	UnlockPackage(ctx context.Context, ref *PackageReference, workflowID string) error
+	IsPackageLocked(ctx context.Context, ref *PackageReference) (bool, error)
+	
+	// State validation
+	ValidateLifecycleState(ctx context.Context, ref *PackageReference) (*ValidationResult, error)
+	GetLifecycleHistory(ctx context.Context, ref *PackageReference) ([]*LifecycleEvent, error)
+	
+	// Lifecycle transition shortcuts
+	TransitionToProposed(ctx context.Context, ref *PackageReference, options *TransitionOptions) (*TransitionResult, error)
+	TransitionToPublished(ctx context.Context, ref *PackageReference, options *TransitionOptions) (*TransitionResult, error)
+	TransitionToDraft(ctx context.Context, ref *PackageReference, options *TransitionOptions) (*TransitionResult, error)
+	TransitionToDeletable(ctx context.Context, ref *PackageReference, options *TransitionOptions) (*TransitionResult, error)
+	
+	// Management methods
+	GetManagerHealth(ctx context.Context) (*HealthStatus, error)
+	Close() error
+}
+
+// LifecycleManagerConfig provides configuration for lifecycle manager
+type LifecycleManagerConfig struct {
+	// Automatic transitions
+	EnableAutoTransitions bool `json:"enableAutoTransitions,omitempty"`
+	AutoPromoteOnValidation bool `json:"autoPromoteOnValidation,omitempty"`
+	AutoPublishOnApproval bool `json:"autoPublishOnApproval,omitempty"`
+	
+	// Rollback configuration
+	MaxRollbackPoints int32 `json:"maxRollbackPoints,omitempty"`
+	RetentionDays int32 `json:"retentionDays,omitempty"`
+	
+	// Workflow integration
+	RequireWorkflowApproval bool `json:"requireWorkflowApproval,omitempty"`
+	WorkflowTimeout *metav1.Duration `json:"workflowTimeout,omitempty"`
+	
+	// Validation settings
+	StrictValidation bool `json:"strictValidation,omitempty"`
+	ValidatorTimeout *metav1.Duration `json:"validatorTimeout,omitempty"`
+	
+	// Event processing
+	EventQueueSize int32 `json:"eventQueueSize,omitempty"`
+	EventWorkers int32 `json:"eventWorkers,omitempty"`
+	
+	// Lock management
+	LockCleanupInterval *metav1.Duration `json:"lockCleanupInterval,omitempty"`
+	DefaultLockTimeout *metav1.Duration `json:"defaultLockTimeout,omitempty"`
+	
+	// Monitoring
+	EnableMetrics bool `json:"enableMetrics,omitempty"`
+}
+
 // FunctionRunner provides KRM function execution capabilities
 type FunctionRunner interface {
 	// Function execution
@@ -861,6 +925,59 @@ type WorkflowResult struct {
 	Data      map[string]interface{} `json:"data,omitempty"`
 }
 
+// RollbackPoint represents a point-in-time snapshot for package rollback
+type RollbackPoint struct {
+	ID          string       `json:"id"`
+	Revision    string       `json:"revision"`
+	Lifecycle   PackageRevisionLifecycle `json:"lifecycle"`
+	CreatedAt   *metav1.Time `json:"createdAt"`
+	CreatedBy   string       `json:"createdBy,omitempty"`
+	Description string       `json:"description,omitempty"`
+	Content     *PackageContent `json:"content,omitempty"`
+	Metadata    map[string]string `json:"metadata,omitempty"`
+}
+
+// LifecycleEvent represents a lifecycle state transition event
+type LifecycleEvent struct {
+	ID            string                   `json:"id"`
+	Timestamp     *metav1.Time             `json:"timestamp"`
+	FromLifecycle PackageRevisionLifecycle `json:"fromLifecycle"`
+	ToLifecycle   PackageRevisionLifecycle `json:"toLifecycle"`
+	User          string                   `json:"user,omitempty"`
+	Reason        string                   `json:"reason,omitempty"`
+	WorkflowID    string                   `json:"workflowId,omitempty"`
+	Metadata      map[string]string        `json:"metadata,omitempty"`
+}
+
+// TransitionOptions provides options for lifecycle transitions
+type TransitionOptions struct {
+	Reason              string            `json:"reason,omitempty"`
+	User                string            `json:"user,omitempty"`
+	WorkflowID          string            `json:"workflowId,omitempty"`
+	Force               bool              `json:"force,omitempty"`
+	Validate            bool              `json:"validate,omitempty"`
+	Metadata            map[string]string `json:"metadata,omitempty"`
+	SkipValidation      bool              `json:"skipValidation,omitempty"`
+	CreateRollbackPoint bool              `json:"createRollbackPoint,omitempty"`
+	RollbackDescription string            `json:"rollbackDescription,omitempty"`
+	ForceTransition     bool              `json:"forceTransition,omitempty"`
+	Timeout             *metav1.Duration  `json:"timeout,omitempty"`
+	DryRun              bool              `json:"dryRun,omitempty"`
+}
+
+// TransitionResult contains the result of a lifecycle transition
+type TransitionResult struct {
+	Success       bool              `json:"success"`
+	FromState     PackageRevisionLifecycle `json:"fromState"`
+	ToState       PackageRevisionLifecycle `json:"toState"`
+	TransitionID  string            `json:"transitionId"`
+	Message       string            `json:"message,omitempty"`
+	Warnings      []string          `json:"warnings,omitempty"`
+	Metadata      map[string]string `json:"metadata,omitempty"`
+	CompletedAt   *metav1.Time      `json:"completedAt,omitempty"`
+	RollbackPoint *RollbackPoint    `json:"rollbackPoint,omitempty"`
+}
+
 // Network slice supporting types
 
 // QoSParameters defines quality of service parameters
@@ -1187,3 +1304,10 @@ const (
 	LabelNetworkSlice    = "porch.nephoran.com/network-slice"
 	LabelORANInterface   = "porch.nephoran.com/oran-interface"
 )
+
+// NewLifecycleManager creates a new lifecycle manager instance
+func NewLifecycleManager(client PorchClient, config *LifecycleManagerConfig) (LifecycleManager, error) {
+	// This is a placeholder implementation
+	// In a real implementation, this would create a concrete lifecycle manager
+	return nil, fmt.Errorf("NewLifecycleManager not implemented")
+}

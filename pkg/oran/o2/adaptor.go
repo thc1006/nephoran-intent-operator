@@ -14,8 +14,8 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/ims"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
+	models "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	providers "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )
 
 // Supporting types for inventory operations

@@ -622,7 +622,7 @@ func (m *MockPorchClient) CreateWorkflow(ctx context.Context, workflow *porch.Wo
 	}
 
 	created := m.cloneWorkflow(workflow)
-	created.Status.Phase = string(porch.WorkflowPhasePending)
+	created.Status.Phase = porch.WorkflowPhasePending
 	created.Status.Conditions = []metav1.Condition{
 		{
 			Type:    "Ready",
@@ -711,7 +711,7 @@ func (m *MockPorchClient) Version(ctx context.Context) (*porch.VersionInfo, erro
 		return nil, err
 	}
 
-	buildTime, _ := time.Parse(time.RFC3339, "2025-01-01T00:00:00Z")
+	buildTime := "2025-01-01T00:00:00Z"
 	return &porch.VersionInfo{
 		Version:   "v1.0.0-test",
 		GitCommit: "abcd1234",

@@ -36,7 +36,7 @@ var (
 		regexp.MustCompile(`(?i)---\s*(end|stop|ignore|new)\s*(of\s+)?(instructions?|context)?`),
 
 		// Data extraction attempts
-		regexp.MustCompile(`(?i)(show|reveal|display|output|print|echo)\s+(me\s+)?(all\s+)?(your\s+)?(instructions?|prompts?|context|rules?|configuration|settings)`),
+		regexp.MustCompile(`(?i)(show|reveal|display|output|print|echo)\s+(me\s+)?(all\s+)?(your\s+)?(instructions?|prompts?|prompt|context|rules?|configuration|settings)`),
 		regexp.MustCompile(`(?i)what\s+(are|were)\s+(your|the)\s+(original\s+)?(instructions?|prompts?|rules?)`),
 		regexp.MustCompile(`(?i)(repeat|recite)\s+(your\s+)?(system\s+)?(instructions?|prompts?)`),
 
@@ -55,14 +55,14 @@ var (
 	// Patterns that might indicate malicious manifest generation
 	maliciousManifestPatterns = []*regexp.Regexp{
 		// Privileged container attempts
-		regexp.MustCompile(`(?i)privileged\s*:\s*true`),
-		regexp.MustCompile(`(?i)allowPrivilegeEscalation\s*:\s*true`),
-		regexp.MustCompile(`(?i)runAsUser\s*:\s*0`),
+		regexp.MustCompile(`(?i)"?privileged"?\s*:\s*true`),
+		regexp.MustCompile(`(?i)"?allowPrivilegeEscalation"?\s*:\s*true`),
+		regexp.MustCompile(`(?i)"?runAsUser"?\s*:\s*0`),
 
 		// Host namespace access
-		regexp.MustCompile(`(?i)hostNetwork\s*:\s*true`),
-		regexp.MustCompile(`(?i)hostPID\s*:\s*true`),
-		regexp.MustCompile(`(?i)hostIPC\s*:\s*true`),
+		regexp.MustCompile(`(?i)"?hostNetwork"?\s*:\s*true`),
+		regexp.MustCompile(`(?i)"?hostPID"?\s*:\s*true`),
+		regexp.MustCompile(`(?i)"?hostIPC"?\s*:\s*true`),
 
 		// Dangerous volume mounts
 		regexp.MustCompile(`(?i)mountPath\s*:\s*["\']?/(?:etc|root|var/run/docker\.sock)`),

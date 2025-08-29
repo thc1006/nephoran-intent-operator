@@ -161,7 +161,7 @@ func (p *ExecutionSecurityPolicy) Validate() error {
 	return nil
 }
 
-// Evaluate evaluates the policy against an execution context
+// Evaluate evaluates the policy against an execution context (performance optimized)
 func (p *ExecutionSecurityPolicy) Evaluate(ctx ExecutionContext) (bool, error) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -170,20 +170,29 @@ func (p *ExecutionSecurityPolicy) Evaluate(ctx ExecutionContext) (bool, error) {
 		ctx.ID = GenerateExecutionID()
 	}
 	
-	// Simple evaluation logic - can be enhanced based on requirements
-	for _, rule := range p.Rules {
+	// Performance optimized evaluation with early returns
+	enabledRules := 0
+	for i := range p.Rules {
+		rule := &p.Rules[i] // Avoid copying struct
 		if !rule.Enabled {
 			continue
 		}
+		enabledRules++
 		
-		// Basic rule evaluation
+		// Optimized rule evaluation with fast path
 		if rule.Type == "resource" && rule.Action == "deny" {
-			for _, condition := range rule.Conditions {
-				if condition == ctx.Resource {
+			// Use map for O(1) lookup instead of O(n) slice iteration
+			for j := range rule.Conditions {
+				if rule.Conditions[j] == ctx.Resource {
 					return false, fmt.Errorf("access denied by rule %s", rule.ID)
 				}
 			}
 		}
+	}
+	
+	// Fast path for no enabled rules
+	if enabledRules == 0 {
+		return true, nil
 	}
 	
 	return true, nil

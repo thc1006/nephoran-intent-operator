@@ -14,7 +14,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/a1"
-	securityconfig "github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
 // SecurityMiddleware provides comprehensive security middleware for A1 service
@@ -29,8 +28,7 @@ type SecurityMiddleware struct {
 	rateLimiter       *RateLimiter
 }
 
-// SecurityConfig holds comprehensive security configuration - use common config
-type SecurityConfig = securityconfig.CommonSecurityConfig
+// SecurityConfig is defined in config.go - using that definition instead of alias
 
 // HeadersConfig holds security headers configuration
 type HeadersConfig struct {
