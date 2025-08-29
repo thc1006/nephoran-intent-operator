@@ -881,17 +881,17 @@ func (g *IntentGenerator) generateParameter(spec ParameterSpec) interface{} {
 
 	case "int":
 		if len(spec.Range) == 2 {
-			min := spec.Range[0].(int)
-			max := spec.Range[1].(int)
-			return min + g.random.Intn(max-min+1)
+			minVal := spec.Range[0].(int)
+			maxVal := spec.Range[1].(int)
+			return minVal + g.random.Intn(maxVal-minVal+1)
 		}
 		return g.random.Intn(100)
 
 	case "float":
 		if len(spec.Range) == 2 {
-			min := spec.Range[0].(float64)
-			max := spec.Range[1].(float64)
-			return min + g.random.Float64()*(max-min)
+			minVal := spec.Range[0].(float64)
+			maxVal := spec.Range[1].(float64)
+			return minVal + g.random.Float64()*(maxVal-minVal)
 		}
 		return g.random.Float64() * 100
 

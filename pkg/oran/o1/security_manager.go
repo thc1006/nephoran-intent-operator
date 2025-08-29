@@ -13,10 +13,9 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o1/security"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // ComprehensiveSecurityManager provides complete O-RAN security management.

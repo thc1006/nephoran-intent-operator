@@ -30,15 +30,14 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/cors"
-	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/multicluster"
 	"github.com/thc1006/nephoran-intent-operator/pkg/packagerevision"
 	"github.com/thc1006/nephoran-intent-operator/pkg/services"
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // NephoranAPIServer provides comprehensive Web UI integration for the Nephoran Intent Operator.

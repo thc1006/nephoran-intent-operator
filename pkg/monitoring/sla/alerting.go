@@ -706,7 +706,9 @@ func (am *AlertManager) runEvaluationLoop(ctx context.Context) {
 			return
 		case <-am.evaluationTicker.C:
 			if am.alertConditions.sliProvider != nil {
-				am.EvaluateAlerts(am.alertConditions.sliProvider)
+				if err := am.EvaluateAlerts(am.alertConditions.sliProvider); err != nil {
+					am.logger.Error("Failed to evaluate alerts", "error", err)
+				}
 			}
 		}
 	}

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )

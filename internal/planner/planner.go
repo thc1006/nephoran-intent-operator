@@ -32,10 +32,10 @@ func PostIntent(url string, in Intent) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal intent: %w", err)
 	}
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)

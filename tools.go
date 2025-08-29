@@ -1,5 +1,5 @@
 //go:build tools
-// +build tools.
+// +build tools
 
 // Package tools provides a mechanism for tracking build tool dependencies.
 // This ensures that all developers use the same versions of build tools.
@@ -10,25 +10,21 @@
 package tools
 
 import (
+	// SBOM generation tools.
+	_ "github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod"
 	// Code generation and build tools.
 	_ "github.com/golang/mock/mockgen"
+	// Testing and quality tools.
+	_ "github.com/onsi/ginkgo/v2/ginkgo"
+	// Documentation and API tools.
+	_ "github.com/swaggo/swag/cmd/swag"
+	// Security and vulnerability tools.
+	_ "golang.org/x/vuln/cmd/govulncheck"
 	_ "k8s.io/code-generator/cmd/client-gen"
 	_ "k8s.io/code-generator/cmd/deepcopy-gen"
 	_ "k8s.io/code-generator/cmd/informer-gen"
 	_ "k8s.io/code-generator/cmd/lister-gen"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
-
-	// Security and vulnerability tools.
-	_ "golang.org/x/vuln/cmd/govulncheck"
-
-	// SBOM generation tools.
-	_ "github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod"
-
-	// Testing and quality tools.
-	_ "github.com/onsi/ginkgo/v2/ginkgo"
-
-	// Documentation and API tools.
-	_ "github.com/swaggo/swag/cmd/swag"
 )
 
 // Tool versions - update these when upgrading tools.

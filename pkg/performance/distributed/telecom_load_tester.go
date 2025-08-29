@@ -839,7 +839,12 @@ func (tlt *TelecomLoadTester) simulateIntentProcessing(ctx context.Context, inte
 func (tlt *TelecomLoadTester) simulateComponent(ctx context.Context, component string, duration time.Duration) error {
 	// Add realistic variability (±30%).
 	variability := 0.3
-	n, _ := crypto_rand.Int(crypto_rand.Reader, big.NewInt(1000))
+	n, err := crypto_rand.Int(crypto_rand.Reader, big.NewInt(1000))
+	if err != nil {
+		// Fallback to fixed duration if random generation fails
+		time.Sleep(duration)
+		return nil
+	}
 	randFloat := float64(n.Int64()) / 1000.0
 	actualDuration := time.Duration(float64(duration) * (1 + variability*(randFloat-0.5)*2))
 
@@ -851,13 +856,21 @@ func (tlt *TelecomLoadTester) simulateComponent(ctx context.Context, component s
 			return ctx.Err()
 		default:
 			// Simulate CPU work.
-			n, _ := crypto_rand.Int(crypto_rand.Reader, big.NewInt(1000))
+			n, err := crypto_rand.Int(crypto_rand.Reader, big.NewInt(1000))
+			if err != nil {
+				// Use fixed value if random generation fails
+				n = big.NewInt(500)
+			}
 			_ = math.Sqrt(float64(n.Int64()) / 1000.0)
 		}
 	}
 
 	// Simulate occasional errors (1% error rate).
-	errNum, _ := crypto_rand.Int(crypto_rand.Reader, big.NewInt(100))
+	errNum, err := crypto_rand.Int(crypto_rand.Reader, big.NewInt(100))
+	if err != nil {
+		// Skip error simulation if random generation fails
+		return nil
+	}
 	if errNum.Int64() < 1 { // 1% chance
 		return fmt.Errorf("simulated %s processing error", component)
 	}

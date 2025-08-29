@@ -10,13 +10,12 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // EdgeController manages edge computing nodes and distributed O-RAN functions.

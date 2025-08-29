@@ -9,9 +9,8 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"sigs.k8s.io/yaml"
-
 	"github.com/thc1006/nephoran-intent-operator/internal/patchgen"
+	"sigs.k8s.io/yaml"
 )
 
 // SecurePatchGenerator provides hardened patch package generation.

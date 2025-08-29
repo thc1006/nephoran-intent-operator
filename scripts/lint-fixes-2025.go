@@ -374,18 +374,18 @@ func FunctionName()`,
 
 	// Error wrapping.
 	"errorlint": `// Fix error wrapping:
-// Bad:  fmt.Errorf("failed: %s", err.Error()).
-// Good: fmt.Errorf("failed: %w", err)`,.
+// Bad:  fmt.Errorf("failed: %s", err.Error())
+// Good: fmt.Errorf("failed: %w", err)`,
 
 	// Unused variables.
 	"ineffassign": `// Fix unused assignment:
-// Bad:  result := someFunction().
-// Good: _ = someFunction() // or handle the result`,.
+// Bad:  result := someFunction()
+// Good: _ = someFunction() // or handle the result`,
 
 	// Context patterns.
 	"context-first": `// Context should be first parameter:
-// Bad:  func Process(data []byte, ctx context.Context).
-// Good: func Process(ctx context.Context, data []byte)`,.
+// Bad:  func Process(data []byte, ctx context.Context)
+// Good: func Process(ctx context.Context, data []byte)`,
 
 	// Interface compliance.
 	"interface-check": `// Add interface compliance check:

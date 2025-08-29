@@ -166,13 +166,13 @@ func (ma *MetricsAnalyzer) CalculateMax(values []time.Duration) time.Duration {
 		return 0
 	}
 
-	max := values[0]
+	maxVal := values[0]
 	for _, v := range values[1:] {
-		if v > max {
-			max = v
+		if v > maxVal {
+			maxVal = v
 		}
 	}
-	return max
+	return maxVal
 }
 
 // CalculateMaxFloat returns the maximum value from a slice of floats.
@@ -181,13 +181,13 @@ func (ma *MetricsAnalyzer) CalculateMaxFloat(values []float64) float64 {
 		return 0
 	}
 
-	max := values[0]
+	maxVal := values[0]
 	for _, v := range values[1:] {
-		if v > max {
-			max = v
+		if v > maxVal {
+			maxVal = v
 		}
 	}
-	return max
+	return maxVal
 }
 
 // CalculateThroughput calculates requests per second.

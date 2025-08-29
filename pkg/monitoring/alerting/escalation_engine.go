@@ -859,12 +859,18 @@ func (ee *EscalationEngine) executeEscalationLevel(ctx context.Context, escalati
 
 	// Execute level actions.
 	for _, action := range levelConfig.Actions {
-		ee.executeEscalationAction(ctx, escalation, action, level)
+		if err := ee.executeEscalationAction(ctx, escalation, action, level); err != nil {
+			ee.logger.ErrorWithContext(fmt.Sprintf("Failed to execute escalation action %s for alert %s at level %d: %v",
+				action.Type, escalation.AlertID, level, err))
+		}
 	}
 
 	// Notify stakeholders.
 	for _, stakeholder := range levelConfig.Stakeholders {
-		ee.notifyStakeholder(ctx, escalation, stakeholder, level)
+		if err := ee.notifyStakeholder(ctx, escalation, stakeholder, level); err != nil {
+			ee.logger.ErrorWithContext(fmt.Sprintf("Failed to notify stakeholder %s for alert %s at level %d: %v",
+				stakeholder.Identifier, escalation.AlertID, level, err))
+		}
 	}
 
 	// Schedule next escalation level if conditions are met.

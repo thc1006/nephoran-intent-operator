@@ -1003,18 +1003,18 @@ func (pa *PredictiveAlerting) normalizeFeatures(features [][]float64) (*Normaliz
 	// Simple min-max normalization.
 	if len(features) > 0 {
 		for j := 0; j < len(features[0]); j++ {
-			min, max := features[0][j], features[0][j]
+			minVal, maxVal := features[0][j], features[0][j]
 			for i := 0; i < len(features); i++ {
-				if features[i][j] < min {
-					min = features[i][j]
+				if features[i][j] < minVal {
+					minVal = features[i][j]
 				}
-				if features[i][j] > max {
-					max = features[i][j]
+				if features[i][j] > maxVal {
+					maxVal = features[i][j]
 				}
 			}
 
-			params.Params[fmt.Sprintf("min_%d", j)] = min
-			params.Params[fmt.Sprintf("max_%d", j)] = max
+			params.Params[fmt.Sprintf("min_%d", j)] = minVal
+			params.Params[fmt.Sprintf("max_%d", j)] = maxVal
 
 			// Normalize if range is non-zero.
 			if max > min {

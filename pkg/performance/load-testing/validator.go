@@ -558,12 +558,12 @@ func (c *ChiSquareValidator) Validate(data []float64, threshold float64) (bool, 
 	// Create bins.
 	numBins := 10
 	bins := make([]int, numBins)
-	min, max := minMax(data)
-	binWidth := (max - min) / float64(numBins)
+	minVal, maxVal := minMax(data)
+	binWidth := (maxVal - minVal) / float64(numBins)
 
 	// Count observations in each bin.
 	for _, value := range data {
-		binIndex := int((value - min) / binWidth)
+		binIndex := int((value - minVal) / binWidth)
 		if binIndex >= numBins {
 			binIndex = numBins - 1
 		}
@@ -728,15 +728,15 @@ func minMax(data []float64) (float64, float64) {
 		return 0, 0
 	}
 
-	min, max := data[0], data[0]
+	minVal, maxVal := data[0], data[0]
 	for _, v := range data[1:] {
-		if v < min {
-			min = v
+		if v < minVal {
+			minVal = v
 		}
-		if v > max {
-			max = v
+		if v > maxVal {
+			maxVal = v
 		}
 	}
 
-	return min, max
+	return minVal, maxVal
 }

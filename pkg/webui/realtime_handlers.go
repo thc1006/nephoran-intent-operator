@@ -25,7 +25,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 )
 

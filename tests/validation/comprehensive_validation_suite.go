@@ -10,9 +10,8 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	"k8s.io/client-go/kubernetes"
-
 	"github.com/thc1006/nephoran-intent-operator/tests/framework"
+	"k8s.io/client-go/kubernetes"
 )
 
 // ValidationSuite provides comprehensive system validation with scoring.

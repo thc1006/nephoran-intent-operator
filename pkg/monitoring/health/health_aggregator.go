@@ -1235,13 +1235,13 @@ func (ha *HealthAggregator) findMinimum(scores []float64) float64 {
 		return 0
 	}
 
-	min := scores[0]
+	minVal := scores[0]
 	for _, score := range scores[1:] {
-		if score < min {
-			min = score
+		if score < minVal {
+			minVal = score
 		}
 	}
-	return min
+	return minVal
 }
 
 func (ha *HealthAggregator) findMaximum(scores []float64) float64 {
@@ -1249,13 +1249,13 @@ func (ha *HealthAggregator) findMaximum(scores []float64) float64 {
 		return 0
 	}
 
-	max := scores[0]
+	maxVal := scores[0]
 	for _, score := range scores[1:] {
-		if score > max {
-			max = score
+		if score > maxVal {
+			maxVal = score
 		}
 	}
-	return max
+	return maxVal
 }
 
 func (ha *HealthAggregator) calculateMedian(scores []float64) float64 {

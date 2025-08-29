@@ -21,12 +21,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 // IMSService provides core Infrastructure Management Services functionality.

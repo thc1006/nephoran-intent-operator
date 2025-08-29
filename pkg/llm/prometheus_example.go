@@ -1,5 +1,5 @@
 //go:build !disable_rag
-// +build !disable_rag.
+// +build !disable_rag
 
 // Example usage of the Prometheus metrics implementation for the LLM client.
 //

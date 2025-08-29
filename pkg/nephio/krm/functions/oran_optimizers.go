@@ -22,9 +22,8 @@ import (
 	"math"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // FiveGCoreOptimizer optimizes 5G Core network function configurations.

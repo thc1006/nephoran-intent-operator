@@ -9,7 +9,6 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	// Porch types are now defined locally in types.go.
 )
 
 // PackagePropagator manages multi-cluster package deployment.

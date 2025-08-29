@@ -820,15 +820,19 @@ func (v *ResilienceValidator) queryCircuitBreakerState(ctx context.Context) (*Ci
 	// Query trigger time.
 	triggerTime, err := v.queryMetric(ctx, `circuit_breaker_opened_timestamp`)
 	if err == nil && len(triggerTime) > 0 {
-		ts := time.Unix(int64(triggerTime[0].Value), 0)
-		state.TriggeredAt = &ts
+		if float64(triggerTime[0].Value) >= 0 && float64(triggerTime[0].Value) <= float64(1<<62) {
+			ts := time.Unix(int64(float64(triggerTime[0].Value)), 0)
+			state.TriggeredAt = &ts
+		}
 	}
 
 	// Query recovery time.
 	recoveryTime, err := v.queryMetric(ctx, `circuit_breaker_closed_timestamp`)
 	if err == nil && len(recoveryTime) > 0 {
-		ts := time.Unix(int64(recoveryTime[0].Value), 0)
-		state.RecoveredAt = &ts
+		if float64(recoveryTime[0].Value) >= 0 && float64(recoveryTime[0].Value) <= float64(1<<62) {
+			ts := time.Unix(int64(float64(recoveryTime[0].Value)), 0)
+			state.RecoveredAt = &ts
+		}
 	}
 
 	return state, nil
@@ -855,14 +859,15 @@ func (v *ResilienceValidator) getHPAStatus(ctx context.Context, namespace string
 	for _, metric := range hpaMetrics {
 		hpaName := string(metric.Metric["horizontalpodautoscaler"])
 		status := HPAStatus{
-			Name:            hpaName,
-			CurrentReplicas: int(metric.Value),
+			Name: hpaName,
+			// Safe integer conversion with bounds checking
+			CurrentReplicas: safeFloatToInt(float64(metric.Value)),
 		}
 
 		// Get target replicas.
 		targetReplicas, err := v.queryMetric(ctx, fmt.Sprintf(`kube_horizontalpodautoscaler_spec_target_replicas{horizontalpodautoscaler="%s"}`, hpaName))
 		if err == nil && len(targetReplicas) > 0 {
-			status.TargetReplicas = int(targetReplicas[0].Value)
+			status.TargetReplicas = safeFloatToInt(float64(targetReplicas[0].Value))
 		}
 
 		// Get current CPU.
@@ -910,8 +915,10 @@ func (v *ResilienceValidator) getDegradationState(ctx context.Context) (*Degrada
 	// Query degradation start time.
 	startTime, err := v.queryMetric(ctx, `system_degradation_start_timestamp`)
 	if err == nil && len(startTime) > 0 && startTime[0].Value > 0 {
-		ts := time.Unix(int64(startTime[0].Value), 0)
-		state.StartTime = &ts
+		if startTime[0].Value >= 0 && startTime[0].Value <= float64(1<<62) {
+			ts := time.Unix(int64(startTime[0].Value), 0)
+			state.StartTime = &ts
+		}
 	}
 
 	// Check function availability.
@@ -1038,4 +1045,25 @@ func (v *ResilienceValidator) GetBaselineMetrics(ctx context.Context) (*SystemSt
 			return nil, ctx.Err()
 		}
 	}
+}
+
+// safeFloatToInt safely converts float64 to int with bounds checking to prevent G115 violations.
+func safeFloatToInt(f float64) int {
+	// Check for NaN, Inf, and range bounds
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return 0
+	}
+
+	// Check bounds to prevent integer overflow
+	const maxInt = int(^uint(0) >> 1)
+	const minInt = -maxInt - 1
+
+	if f > float64(maxInt) {
+		return maxInt
+	}
+	if f < float64(minInt) {
+		return minInt
+	}
+
+	return int(f)
 }

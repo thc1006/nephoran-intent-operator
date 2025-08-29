@@ -6,9 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // O2 IMS Interface Implementation.

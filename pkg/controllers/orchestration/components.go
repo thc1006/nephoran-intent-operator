@@ -23,12 +23,11 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 	coordinationv1 "k8s.io/api/coordination/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/workqueue"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
 // WorkerPool manages a pool of workers for processing jobs.

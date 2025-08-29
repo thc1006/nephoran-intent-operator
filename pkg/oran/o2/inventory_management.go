@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )

@@ -15,9 +15,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"golang.org/x/sync/errgroup"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
+	"golang.org/x/sync/errgroup"
 )
 
 // A1Server represents the main A1 Policy Management Service server.

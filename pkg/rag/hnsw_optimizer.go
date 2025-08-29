@@ -10,10 +10,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // HNSWOptimizer provides dynamic HNSW parameter optimization.

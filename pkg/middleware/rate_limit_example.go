@@ -31,7 +31,9 @@ func ExampleRateLimiterUsage() {
 	// Create HTTP handler.
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hello, World!"))
+		if _, err := w.Write([]byte("Hello, World!")); err != nil {
+			logger.Error("Failed to write response", "error", err)
+		}
 	})
 
 	// Apply rate limiting middleware.
@@ -42,7 +44,9 @@ func ExampleRateLimiterUsage() {
 	router.Handle("/api", limitedHandler).Methods("GET", "POST")
 
 	// Start server.
-	http.ListenAndServe(":8080", router)
+	if err := http.ListenAndServe(":8080", router); err != nil {
+		logger.Error("Server failed", "error", err)
+	}
 }
 
 // ExamplePostOnlyRateLimiterUsage performs examplepostonlyratelimiterusage operation.
@@ -65,12 +69,16 @@ func ExamplePostOnlyRateLimiterUsage() {
 	// Create HTTP handlers.
 	postHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("POST request processed"))
+		if _, err := w.Write([]byte("POST request processed")); err != nil {
+			logger.Error("Failed to write POST response", "error", err)
+		}
 	})
 
 	getHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("GET request processed"))
+		if _, err := w.Write([]byte("GET request processed")); err != nil {
+			logger.Error("Failed to write GET response", "error", err)
+		}
 	})
 
 	// Create router.
@@ -84,7 +92,9 @@ func ExamplePostOnlyRateLimiterUsage() {
 	router.Handle("/api/data", getHandler).Methods("GET")
 
 	// Start server.
-	http.ListenAndServe(":8080", router)
+	if err := http.ListenAndServe(":8080", router); err != nil {
+		logger.Error("Server failed", "error", err)
+	}
 }
 
 /*

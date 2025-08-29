@@ -9,10 +9,9 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
+	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // PerformanceBenchmarker provides comprehensive performance testing.

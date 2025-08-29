@@ -339,7 +339,13 @@ func (oe *OptimizationEngine) gatherHistoricalData(ctx context.Context, intent *
 	if matrix, ok := cpuResult.(model.Matrix); ok {
 		for _, sample := range matrix {
 			for _, value := range sample.Values {
-				timestamp := time.Unix(int64(value.Timestamp), 0)
+				// Safe timestamp conversion with overflow protection
+				var timestamp time.Time
+				if int64(value.Timestamp) >= 0 && int64(value.Timestamp) <= int64(1<<62) {
+					timestamp = time.Unix(int64(value.Timestamp), 0)
+				} else {
+					timestamp = time.Now() // fallback to current time
+				}
 
 				dataPoint := DataPoint{
 					Timestamp: timestamp,

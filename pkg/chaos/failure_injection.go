@@ -461,7 +461,9 @@ func (f *FailureInjector) killFixedPods(ctx context.Context, target *InjectionTa
 
 // killPercentagePods kills a percentage of pods.
 func (f *FailureInjector) killPercentagePods(ctx context.Context, target *InjectionTarget, percent float64, result *InjectionResult) error {
-	count := int(float64(len(target.Pods)) * percent / 100)
+	// Safe integer conversion with bounds checking
+	countFloat := float64(len(target.Pods)) * percent / 100
+	count := safeFloatToInt(countFloat)
 	if count == 0 && len(target.Pods) > 0 {
 		count = 1
 	}

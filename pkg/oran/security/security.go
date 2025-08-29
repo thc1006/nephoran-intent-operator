@@ -521,7 +521,14 @@ func (m *OAuthManager) ValidateToken(ctx context.Context, tokenString, providerN
 	}
 
 	if exp, ok := claims["exp"].(float64); ok {
-		tokenInfo.ExpiresAt = time.Unix(int64(exp), 0)
+		// Safe timestamp conversion with overflow and validity checks
+		if exp >= 0 && exp <= float64(1<<62) && exp > float64(time.Now().Unix()) {
+			tokenInfo.ExpiresAt = time.Unix(int64(exp), 0)
+		} else if exp <= float64(time.Now().Unix()) {
+			return nil, fmt.Errorf("token has expired")
+		} else {
+			return nil, fmt.Errorf("invalid expiration time")
+		}
 	}
 
 	// Cache token.

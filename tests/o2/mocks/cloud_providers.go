@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/mock"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )

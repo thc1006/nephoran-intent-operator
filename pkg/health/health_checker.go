@@ -292,7 +292,9 @@ func (hc *HealthChecker) HealthzHandler(w http.ResponseWriter, r *http.Request) 
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
 
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode livez response", http.StatusInternalServerError)
+	}
 }
 
 // ReadyzHandler provides Kubernetes readiness probe endpoint.
@@ -326,7 +328,9 @@ func (hc *HealthChecker) ReadyzHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
 
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode readyz response", http.StatusInternalServerError)
+	}
 }
 
 // determineOverallStatus determines the overall service status.

@@ -23,10 +23,9 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
 // RecoveryManager handles error recovery and state restoration.

@@ -11,9 +11,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ResourceLifecycleConfig configures the resource lifecycle manager.

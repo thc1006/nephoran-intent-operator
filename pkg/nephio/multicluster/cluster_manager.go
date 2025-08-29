@@ -11,7 +11,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	// Porch types are now defined locally in types.go.
 )
 
 // ClusterManagerInterface defines the interface for cluster management operations.

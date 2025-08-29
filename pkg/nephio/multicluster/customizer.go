@@ -10,7 +10,6 @@ import (
 	"sigs.k8s.io/kustomize/api/krusty"
 	ktypes "sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
-	// Porch types are now defined locally in types.go.
 )
 
 // Customizer manages package customization for different clusters.

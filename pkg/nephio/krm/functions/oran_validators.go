@@ -24,9 +24,8 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // ORANComplianceValidator validates O-RAN interface compliance.

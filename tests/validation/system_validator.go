@@ -8,10 +8,9 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // SystemValidator provides comprehensive system validation capabilities.

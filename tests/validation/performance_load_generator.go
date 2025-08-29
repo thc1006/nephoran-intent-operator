@@ -17,10 +17,9 @@ import (
 
 	"github.com/montanaflynn/stats"
 	"github.com/onsi/ginkgo/v2"
+	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	vegeta "github.com/tsenart/vegeta/v12/lib"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // AdvancedLoadGenerator provides sophisticated load generation capabilities.
@@ -827,7 +826,7 @@ func (rts *RealisticTelecomScenario) Generate(ctx context.Context) <-chan *LoadR
 				}
 
 				// Add some randomness.
-				rate = rate + rand.Intn(10) - 5
+				rate += rand.Intn(10) - 5
 				if rate < 5 {
 					rate = 5
 				}

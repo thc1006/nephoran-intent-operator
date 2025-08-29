@@ -405,7 +405,7 @@ func (s *EventSender) sendEvent(event VESEvent) error {
 
 			// Add jitter to prevent thundering herd.
 			jitter := time.Duration(cryptoRandInt64(int64(delay / 4)))
-			delay = delay + jitter
+			delay += jitter
 
 			log.Printf("Attempt %d failed: %v. Retrying in %s...", attempt+1, err, delay)
 			time.Sleep(delay)

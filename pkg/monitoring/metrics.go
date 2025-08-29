@@ -7,9 +7,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
-
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
 // registrationOnce ensures metrics are only registered once.

@@ -29,11 +29,10 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // PorchExecutor defines the interface for executing porch CLI commands.

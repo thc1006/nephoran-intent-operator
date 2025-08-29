@@ -1,5 +1,5 @@
 //go:build rag_stub
-// +build rag_stub.
+// +build rag_stub
 
 // This file contains stub implementations for types that may be missing.
 // in certain build configurations. It should ONLY be compiled when explicitly.

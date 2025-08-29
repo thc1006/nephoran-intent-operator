@@ -8,9 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
 	. "github.com/onsi/ginkgo/v2"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"

@@ -243,7 +243,12 @@ func processResultsStreaming(results map[string]model.Value, pool *DataPointPool
 		if matrix, ok := cpuResult.(model.Matrix); ok && len(matrix) > 0 {
 			for _, value := range matrix[0].Values {
 				dp := pool.Get()
-				dp.Timestamp = time.Unix(int64(value.Timestamp)/1000, 0)
+				// Safe timestamp conversion with overflow protection
+				if value.Timestamp >= 0 && value.Timestamp <= float64(1<<62)*1000 {
+					dp.Timestamp = time.Unix(int64(value.Timestamp)/1000, 0)
+				} else {
+					dp.Timestamp = time.Now() // fallback to current time
+				}
 				dp.Features["cpu_utilization"] = float64(value.Value)
 				dp.Metadata["intent_id"] = "optimized"
 				dp.Metadata["source"] = "prometheus"

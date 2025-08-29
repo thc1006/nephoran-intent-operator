@@ -22,9 +22,8 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // ExecutionTask represents a task to be executed.

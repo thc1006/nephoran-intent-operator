@@ -694,11 +694,11 @@ func (h *LFUHeap[K, V]) ExtractMin() *CacheEntry[V] {
 		return nil
 	}
 
-	min := h.entries[0]
+	minEntry := h.entries[0]
 	lastIdx := len(h.entries) - 1
 	h.entries[0] = h.entries[lastIdx]
 	h.entries = h.entries[:lastIdx]
-	delete(h.indexMap, min.key.(K))
+	delete(h.indexMap, minEntry.key.(K))
 
 	if len(h.entries) > 0 {
 		h.indexMap[h.entries[0].key.(K)] = 0

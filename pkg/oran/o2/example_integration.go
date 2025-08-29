@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 // ComprehensiveO2Example demonstrates complete O2 IMS functionality.

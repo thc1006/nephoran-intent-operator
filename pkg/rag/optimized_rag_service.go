@@ -11,9 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/weaviate/weaviate-go-client/v4/weaviate"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 )
 
 // OptimizedRAGService provides an enhanced RAG service with multi-level caching,.

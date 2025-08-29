@@ -21,11 +21,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/multicluster"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/multicluster"
 )
 
 // PorchClient defines the interface for interacting with Porch API.

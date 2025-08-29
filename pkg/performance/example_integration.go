@@ -240,7 +240,9 @@ func (os *OptimizedSystem) demonstrateJSONOptimizations() error {
 
 				// Cache result.
 				cacheKey := fmt.Sprintf("json_result_%d", i)
-				os.cache.Set(cacheKey, result)
+				if err := os.cache.Set(cacheKey, result); err != nil {
+					return fmt.Errorf("failed to cache result: %w", err)
+				}
 
 				return nil
 			},
@@ -358,7 +360,9 @@ func (os *OptimizedSystem) demonstrateCacheOptimizations() error {
 			"timestamp": time.Now(),
 			"metadata":  make([]byte, 100+i%500), // Variable size
 		}
-		os.cache.Set(key, value)
+		if err := os.cache.Set(key, value); err != nil {
+			fmt.Printf("Warning: Failed to cache key %s: %v\n", key, err)
+		}
 	}
 
 	// Concurrent cache access patterns.
@@ -377,7 +381,9 @@ func (os *OptimizedSystem) demonstrateCacheOptimizations() error {
 						"type": "new_entry",
 						"data": make([]byte, 50),
 					}
-					os.cache.Set(key, value)
+					if err := os.cache.Set(key, value); err != nil {
+						fmt.Printf("Warning: Failed to cache key %s: %v\n", key, err)
+					}
 				} else {
 					// Read operation (80%).
 					key := fmt.Sprintf("cache_key_%d", i%10000)
@@ -387,7 +393,9 @@ func (os *OptimizedSystem) demonstrateCacheOptimizations() error {
 							"id":   i,
 							"type": "generated",
 						}
-						os.cache.Set(key, value)
+						if err := os.cache.Set(key, value); err != nil {
+							fmt.Printf("Warning: Failed to cache key %s: %v\n", key, err)
+						}
 					}
 				}
 				return nil
@@ -491,7 +499,9 @@ func (os *OptimizedSystem) demonstrateIntegratedWorkload() error {
 
 				// Step 2: Cache the JSON data.
 				cacheKey := fmt.Sprintf("integrated_%d", i)
-				os.cache.Set(cacheKey, string(jsonData))
+				if err := os.cache.Set(cacheKey, string(jsonData)); err != nil {
+					return fmt.Errorf("failed to cache integrated data: %w", err)
+				}
 
 				// Step 3: Memory operations using pools.
 				bufferPool := NewObjectPool[[]byte](

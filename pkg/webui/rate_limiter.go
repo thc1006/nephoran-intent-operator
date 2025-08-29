@@ -282,7 +282,14 @@ type RateLimitInfo struct {
 
 func (rl *RateLimiter) refillTokens(bucket *rateLimitBucket, now time.Time) {
 	elapsed := now.Sub(bucket.lastRefill)
-	tokensToAdd := int(elapsed.Minutes() * float64(rl.requestsPerMin))
+	// Safe integer conversion with overflow protection
+	tokensFloat := elapsed.Minutes() * float64(rl.requestsPerMin)
+	var tokensToAdd int
+	if tokensFloat >= 0 && tokensFloat <= float64(1<<30) {
+		tokensToAdd = int(tokensFloat)
+	} else {
+		tokensToAdd = 0 // prevent overflow
+	}
 
 	if tokensToAdd > 0 {
 		bucket.tokens += tokensToAdd

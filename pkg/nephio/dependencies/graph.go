@@ -1274,16 +1274,16 @@ func calculateDistributionStats(values []int) *DistributionStats {
 
 	// Calculate basic statistics.
 	var sum, sumSq float64
-	min, max := floatValues[0], floatValues[0]
+	minVal, maxVal := floatValues[0], floatValues[0]
 
 	for _, v := range floatValues {
 		sum += v
 		sumSq += v * v
-		if v < min {
-			min = v
+		if v < minVal {
+			minVal = v
 		}
-		if v > max {
-			max = v
+		if v > maxVal {
+			maxVal = v
 		}
 	}
 
@@ -1292,8 +1292,8 @@ func calculateDistributionStats(values []int) *DistributionStats {
 	stdDev := math.Sqrt(variance)
 
 	return &DistributionStats{
-		Min:    min,
-		Max:    max,
+		Min:    minVal,
+		Max:    maxVal,
 		Mean:   mean,
 		StdDev: stdDev,
 	}

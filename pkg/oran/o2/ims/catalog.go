@@ -6,10 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/ims/modeladapter"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // CatalogService manages the O2 IMS resource catalog and deployment templates.

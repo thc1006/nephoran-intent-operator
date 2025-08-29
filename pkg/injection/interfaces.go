@@ -3,13 +3,12 @@ package injection
 import (
 	"net/http"
 
-	"k8s.io/client-go/tools/record"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
+	"k8s.io/client-go/tools/record"
 )
 
 // Dependencies defines the interface for dependency injection.

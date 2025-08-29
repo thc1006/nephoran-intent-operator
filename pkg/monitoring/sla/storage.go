@@ -565,7 +565,9 @@ func (sm *StorageManager) Stop(ctx context.Context) error {
 	}
 
 	// Flush pending data.
-	sm.flushBuffer()
+	if err := sm.flushBuffer(); err != nil {
+		sm.logger.Error("Failed to flush buffer during shutdown", "error", err)
+	}
 
 	// Signal stop.
 	close(sm.stopCh)
@@ -595,7 +597,9 @@ func (sm *StorageManager) WriteDataPoint(seriesName string, point *DataPoint) er
 
 	// Flush if buffer is full.
 	if len(sm.writeBuffer.buffer) >= sm.writeBuffer.flushSize {
-		sm.flushBuffer()
+		if err := sm.flushBuffer(); err != nil {
+			sm.logger.Error("Failed to flush buffer when full", "error", err)
+		}
 	}
 
 	sm.metrics.WritesTotal.WithLabelValues(seriesName, "success").Inc()
@@ -619,7 +623,9 @@ func (sm *StorageManager) WriteDataPoints(seriesName string, points []*DataPoint
 
 	// Flush if buffer is approaching capacity.
 	if len(sm.writeBuffer.buffer) >= sm.writeBuffer.maxSize-len(points) {
-		sm.flushBuffer()
+		if err := sm.flushBuffer(); err != nil {
+			sm.logger.Error("Failed to flush buffer when approaching capacity", "error", err)
+		}
 	}
 
 	sm.metrics.WritesTotal.WithLabelValues(seriesName, "success").Add(float64(len(points)))
@@ -769,7 +775,9 @@ func (sm *StorageManager) runFlushLoop(ctx context.Context) {
 		case <-sm.flushTicker.C:
 			sm.writeBuffer.mu.Lock()
 			if time.Since(sm.writeBuffer.lastFlush) >= sm.config.FlushInterval {
-				sm.flushBuffer()
+				if err := sm.flushBuffer(); err != nil {
+					sm.logger.Error("Failed to flush buffer on timer", "error", err)
+				}
 			}
 			sm.writeBuffer.mu.Unlock()
 		}

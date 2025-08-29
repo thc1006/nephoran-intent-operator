@@ -483,9 +483,15 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 	}
 
 	// Load default routing rules and channels.
-	ar.loadDefaultRoutingRules()
-	ar.loadDefaultNotificationChannels()
-	ar.loadDefaultImpactProfiles()
+	if err := ar.loadDefaultRoutingRules(); err != nil {
+		ar.logger.ErrorWithContext("Failed to load default routing rules", "error", err)
+	}
+	if err := ar.loadDefaultNotificationChannels(); err != nil {
+		ar.logger.ErrorWithContext("Failed to load default notification channels", "error", err)
+	}
+	if err := ar.loadDefaultImpactProfiles(); err != nil {
+		ar.logger.ErrorWithContext("Failed to load default impact profiles", "error", err)
+	}
 
 	return ar, nil
 }
@@ -616,14 +622,24 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 	}
 
 	// Step 2: Correlation with existing alerts.
-	ar.correlateAlert(enrichedAlert.SLAAlert)
+	if err := ar.correlateAlert(enrichedAlert.SLAAlert); err != nil {
+		ar.logger.ErrorWithContext("Failed to correlate alert", "error", err, "alert_id", enrichedAlert.ID)
+	}
 
 	// Step 3: Priority calculation.
-	priority, _ := ar.priorityCalculator.CalculatePriority(enrichedAlert.SLAAlert)
+	priority, err := ar.priorityCalculator.CalculatePriority(enrichedAlert.SLAAlert)
+	if err != nil {
+		ar.logger.ErrorWithContext("Failed to calculate priority", "error", err, "alert_id", enrichedAlert.ID)
+		priority = "medium" // default priority
+	}
 	enrichedAlert.Priority = ar.convertPriorityToInt(priority)
 
 	// Step 4: Business impact analysis.
-	impact, _ := ar.impactAnalyzer.AnalyzeImpact(enrichedAlert.SLAAlert)
+	impact, err := ar.impactAnalyzer.AnalyzeImpact(enrichedAlert.SLAAlert)
+	if err != nil {
+		ar.logger.ErrorWithContext("Failed to analyze impact", "error", err, "alert_id", enrichedAlert.ID)
+		impact = &ImpactAnalysis{Severity: "unknown", AffectedServices: []string{}}
+	}
 	businessImpact := BusinessImpactScore{
 		OverallScore:     50.0,
 		UserImpact:       40.0,

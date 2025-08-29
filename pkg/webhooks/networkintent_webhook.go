@@ -24,12 +24,11 @@ import (
 	"strings"
 	"unicode"
 
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	admissionv1 "k8s.io/api/admission/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // log is for logging in this package.

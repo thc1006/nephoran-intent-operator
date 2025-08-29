@@ -142,10 +142,10 @@ func (c *Client) ApprovePackage(revision *PorchPackageRevision) error {
 	}
 
 	url := fmt.Sprintf("%s/api/v1/packagerevisions/%s/approve", c.baseURL, revision.Name)
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
 	if err != nil {
 		return err
@@ -247,7 +247,7 @@ func (c *Client) updatePackage(req *PackageRequest, existing *PorchPackageRevisi
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	
+
 	request, err := http.NewRequestWithContext(ctx, http.MethodPatch, url, bytes.NewReader(data))
 	if err != nil {
 		return nil, err

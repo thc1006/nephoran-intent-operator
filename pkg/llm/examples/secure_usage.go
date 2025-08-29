@@ -1,5 +1,5 @@
 //go:build ignore
-// +build ignore.
+// +build ignore
 
 // Package main demonstrates secure usage patterns for the LLM client.
 // This file shows both secure production usage and controlled insecure development usage.

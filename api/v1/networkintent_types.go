@@ -52,6 +52,11 @@ type NetworkIntentSpec struct {
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9\s\-_.,;:()\[\]]*$`.
 	Intent string `json:"intent"`
 
+	// Description provides a human-readable description of the network intent.
+	// This field is typically populated during processing to provide additional context.
+	// +optional.
+	Description string `json:"description,omitempty"`
+
 	// IntentType specifies the type of intent.
 	// +optional.
 	IntentType IntentType `json:"intentType,omitempty"`

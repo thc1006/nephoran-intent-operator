@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // O2IMSServiceImpl implements the O2IMSService interface.

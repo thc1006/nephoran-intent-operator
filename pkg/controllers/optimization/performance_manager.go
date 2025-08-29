@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 

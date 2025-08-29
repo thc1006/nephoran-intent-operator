@@ -374,7 +374,7 @@ func (as *AlertSystem) sendWebhookAlert(alert *AlertMessage) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	
+
 	req, err := http.NewRequestWithContext(ctx, webhook.Method, webhook.URL, bytes.NewBuffer(payload))
 	if err != nil {
 		return fmt.Errorf("failed to create webhook request: %w", err)
