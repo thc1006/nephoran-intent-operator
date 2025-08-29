@@ -1,3 +1,4 @@
+// Package loop provides file system watching and processing capabilities for the conductor.
 package loop
 
 import (

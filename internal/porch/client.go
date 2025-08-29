@@ -1,3 +1,4 @@
+// Package porch provides client interfaces for interacting with Porch package management.
 package porch
 
 import (

@@ -1394,19 +1394,23 @@ func (s *NephoranAPIServer) broadcastIntentUpdate(update *IntentStatusUpdate) {
 }
 
 func mustMarshal(v interface{}) []byte {
-
-	data, _ := json.Marshal(v)
-
+	data, err := json.Marshal(v)
+	if err != nil {
+		// Log error but don't panic - return empty JSON object
+		log.Printf("WARNING: failed to marshal data: %v", err)
+		return []byte("{}")
+	}
 	return data
-
 }
 
 func mustMarshalString(v interface{}) string {
-
-	data, _ := json.Marshal(v)
-
+	data, err := json.Marshal(v)
+	if err != nil {
+		// Log error but don't panic - return empty JSON object
+		log.Printf("WARNING: failed to marshal data: %v", err)
+		return "{}"
+	}
 	return string(data)
-
 }
 
 // getIntentEvents handles GET /api/v1/intents/{id}/events.
