@@ -230,16 +230,16 @@ build_service() {
             "${build_args[@]}" \
             --platform "${PLATFORMS}" \
             --progress plain \
-            --file "${SCRIPT_DIR}/Dockerfile" \
-            "${SCRIPT_DIR}"
+            --file "${SCRIPT_DIR}/../Dockerfile" \
+            "${SCRIPT_DIR}/.."
             
     else
         log_info "Building single-architecture image"
         docker build \
             "${build_args[@]}" \
             --progress plain \
-            --file "${SCRIPT_DIR}/Dockerfile" \
-            "${SCRIPT_DIR}"
+            --file "${SCRIPT_DIR}/../Dockerfile" \
+            "${SCRIPT_DIR}/.."
     fi
     
     log_success "Successfully built ${service_name}"

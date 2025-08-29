@@ -8,6 +8,7 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // CircuitBreakerConfig holds configuration for circuit breaker behavior
@@ -32,6 +33,29 @@ type CircuitBreakerConfig struct {
 
 	// Failure rate threshold (0.0 to 1.0)
 	FailureRate float64 `json:"failure_rate" yaml:"failure_rate"`
+}
+
+// convertToSharedConfig converts resilience.CircuitBreakerConfig to shared.CircuitBreakerConfig
+// This uses Go 1.24+ type aliasing compatibility patterns
+func convertToSharedConfig(config *CircuitBreakerConfig) *shared.CircuitBreakerConfig {
+	if config == nil {
+		config = DefaultCircuitBreakerConfig()
+	}
+	
+	return &shared.CircuitBreakerConfig{
+		FailureThreshold:    int64(config.FailureThreshold),
+		FailureRate:         config.FailureRate,
+		MinimumRequestCount: int64(config.MinimumRequests),
+		Timeout:             config.RequestTimeout,
+		HalfOpenTimeout:     config.RecoveryTimeout,
+		SuccessThreshold:    int64(config.SuccessThreshold),
+		HalfOpenMaxRequests: int64(config.HalfOpenMaxRequests),
+		ResetTimeout:        config.RecoveryTimeout,
+		SlidingWindowSize:   100,
+		EnableHealthCheck:   false,
+		HealthCheckInterval: 30 * time.Second,
+		HealthCheckTimeout:  10 * time.Second,
+	}
 }
 
 // DefaultCircuitBreakerConfig returns the default configuration for circuit breaker
@@ -84,23 +108,10 @@ func NewLLMCircuitBreaker(name string, config *CircuitBreakerConfig, metricsColl
 		config = DefaultCircuitBreakerConfig()
 	}
 
-	// Convert to LLM circuit breaker config
-	llmConfig := &llm.CircuitBreakerConfig{
-		FailureThreshold:    int64(config.FailureThreshold),
-		FailureRate:         config.FailureRate,
-		MinimumRequestCount: int64(config.MinimumRequests),
-		Timeout:             config.RequestTimeout,
-		HalfOpenTimeout:     config.RecoveryTimeout,
-		SuccessThreshold:    int64(config.SuccessThreshold),
-		HalfOpenMaxRequests: int64(config.HalfOpenMaxRequests),
-		ResetTimeout:        config.RecoveryTimeout,
-		SlidingWindowSize:   100,
-		EnableHealthCheck:   false,
-		HealthCheckInterval: 30 * time.Second,
-		HealthCheckTimeout:  10 * time.Second,
-	}
+	// Convert to shared circuit breaker config (Go 1.24+ compatible)
+	sharedConfig := convertToSharedConfig(config)
 
-	llmCB := llm.NewCircuitBreaker(name, llmConfig)
+	llmCB := llm.NewCircuitBreaker(name, sharedConfig)
 
 	return &LLMCircuitBreaker{
 		name:             name,

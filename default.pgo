@@ -1,44 +1,8 @@
-# Go 1.24.8 Profile-Guided Optimization Profile
-# Generated for Nephoran Intent Operator - August 2025 Optimizations
-
-# High-frequency function calls for PGO optimization
-go:location github.com/thc1006/nephoran-intent-operator/controllers.(*NetworkIntentReconciler).Reconcile 95.2%
-go:location github.com/thc1006/nephoran-intent-operator/pkg/llm.(*Processor).ProcessNaturalLanguageIntent 87.4% 
-go:location github.com/thc1006/nephoran-intent-operator/pkg/conductor.(*Reconciler).watchAndReconcile 79.1%
-go:location github.com/thc1006/nephoran-intent-operator/internal/generator.(*PackageGenerator).GenerateKptPackage 72.8%
-go:location sigs.k8s.io/controller-runtime/pkg/manager.(*controllerManager).Start 68.5%
-
-# Map operations optimizations for Swiss Tables
-go:location runtime.mapaccess1_swiss 94.3%
-go:location runtime.mapaccess2_swiss 91.7%
-go:location runtime.mapassign_swiss 88.2%
-
-# Critical path optimizations
-go:location github.com/weaviate/weaviate-go-client/v4/weaviate.(*Client).GraphQL 65.1%
-go:location github.com/prometheus/client_golang/prometheus.(*Registry).Gather 58.9%
-go:location k8s.io/client-go/kubernetes.(*Clientset).CoreV1 55.3%
-
-# Generic type operations frequently used
-go:location golang.org/x/sync/syncmap.(*Map[K,V]).Load 52.7%
-go:location golang.org/x/sync/syncmap.(*Map[K,V]).Store 49.8%
-
-# Network I/O optimizations
-go:location net/http.(*Client).Do 47.2%
-go:location crypto/tls.(*Conn).Read 43.6%
-go:location crypto/tls.(*Conn).Write 41.8%
-
-# Memory allocation hot paths
-go:location runtime.mallocgc 38.5%
-go:location runtime.growslice 36.2%
-go:location runtime.makemap_swiss 34.7%
-
-# JSON processing optimizations
-go:location encoding/json.(*Decoder).Decode 32.1%
-go:location encoding/json.(*Encoder).Encode 29.4%
-
-# Kubernetes client optimizations  
-go:location k8s.io/apimachinery/pkg/runtime.(*Scheme).Convert 27.8%
-go:location k8s.io/client-go/rest.(*Request).Do 25.3%
-
-# This profile targets the most frequently executed code paths
-# in the Nephoran system for maximum performance gains
+# Profile-guided optimization (PGO) profile for Nephoran Intent Operator
+# This is a default/empty PGO profile to enable PGO builds
+# In production, this should be replaced with an actual CPU profile
+# generated from production workloads using:
+# go test -cpuprofile=default.pgo -bench=. ./...
+#
+# For now, this enables PGO compilation flags without requiring
+# an actual profile, providing baseline optimization benefits

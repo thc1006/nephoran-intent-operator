@@ -2942,8 +2942,23 @@ func (csm *ComprehensiveSecurityManager) IssueCertificate(ctx context.Context, r
 	return csm.certificateManager.IssueCertificate(ctx, request)
 }
 
-// SecurityStatus represents the overall security status
-// SecurityStatus defined in o1_adaptor.go
+// SecurityStatus represents the overall security status for K8s 1.31+
+type SecurityStatus struct {
+	OverallStatus      string                 `json:"overall_status" yaml:"overall_status"`
+	ComplianceLevel    string                 `json:"compliance_level" yaml:"compliance_level"`
+	ActiveThreats      []string               `json:"active_threats" yaml:"active_threats"`
+	LastAudit          time.Time              `json:"last_audit" yaml:"last_audit"`
+	SecurityScore      float64                `json:"security_score" yaml:"security_score"`
+	VulnerabilityCount int                    `json:"vulnerability_count" yaml:"vulnerability_count"`
+	PolicyViolations   int                    `json:"policy_violations" yaml:"policy_violations"`
+	EncryptionStatus   string                 `json:"encryption_status" yaml:"encryption_status"`
+	AuthStatus         string                 `json:"auth_status" yaml:"auth_status"`
+	CertificateStatus  string                 `json:"certificate_status" yaml:"certificate_status"`
+	Metrics            map[string]interface{} `json:"metrics" yaml:"metrics"`
+	Timestamp          time.Time              `json:"timestamp" yaml:"timestamp"`
+	Namespace          string                 `json:"namespace" yaml:"namespace"`
+	ResourceVersion    string                 `json:"resource_version" yaml:"resource_version"`
+}
 
 // GetSecurityStatus returns overall security status
 func (csm *ComprehensiveSecurityManager) GetSecurityStatus(ctx context.Context) (*SecurityStatus, error) {

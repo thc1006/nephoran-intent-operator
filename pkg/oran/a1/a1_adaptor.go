@@ -17,6 +17,7 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // A1PolicyType represents an A1 policy type
@@ -103,6 +104,42 @@ type A1AdaptorConfig struct {
 	TLSConfig            *oran.TLSConfig
 	CircuitBreakerConfig *llm.CircuitBreakerConfig
 	RetryConfig          *RetryConfig
+}
+
+// convertLLMToSharedCircuitBreakerConfig converts llm.CircuitBreakerConfig to shared.CircuitBreakerConfig
+// This uses Go 1.24+ compatible type conversion patterns for maximum compatibility
+func convertLLMToSharedCircuitBreakerConfig(config *llm.CircuitBreakerConfig) *shared.CircuitBreakerConfig {
+	if config == nil {
+		return &shared.CircuitBreakerConfig{
+			FailureThreshold:    5,
+			FailureRate:         0.5,
+			MinimumRequestCount: 10,
+			Timeout:             30 * time.Second,
+			HalfOpenTimeout:     60 * time.Second,
+			SuccessThreshold:    3,
+			HalfOpenMaxRequests: 1,
+			ResetTimeout:        60 * time.Second,
+			SlidingWindowSize:   100,
+			EnableHealthCheck:   false,
+			HealthCheckInterval: 30 * time.Second,
+			HealthCheckTimeout:  10 * time.Second,
+		}
+	}
+	
+	return &shared.CircuitBreakerConfig{
+		FailureThreshold:    config.FailureThreshold,
+		FailureRate:         config.FailureRate,
+		MinimumRequestCount: config.MinimumRequestCount,
+		Timeout:             config.Timeout,
+		HalfOpenTimeout:     config.HalfOpenTimeout,
+		SuccessThreshold:    config.SuccessThreshold,
+		HalfOpenMaxRequests: config.HalfOpenMaxRequests,
+		ResetTimeout:        config.ResetTimeout,
+		SlidingWindowSize:   config.SlidingWindowSize,
+		EnableHealthCheck:   config.EnableHealthCheck,
+		HealthCheckInterval: config.HealthCheckInterval,
+		HealthCheckTimeout:  config.HealthCheckTimeout,
+	}
 }
 
 // SMOServiceRegistry represents the SMO service registry integration
@@ -249,8 +286,9 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 		httpClient.Transport = transport
 	}
 
-	// Create circuit breaker
-	circuitBreaker := llm.NewCircuitBreaker("a1-adaptor", config.CircuitBreakerConfig)
+	// Create circuit breaker with Go 1.24+ type conversion
+	sharedConfig := convertLLMToSharedCircuitBreakerConfig(config.CircuitBreakerConfig)
+	circuitBreaker := llm.NewCircuitBreaker("a1-adaptor", sharedConfig)
 
 	return &A1Adaptor{
 		httpClient:      httpClient,

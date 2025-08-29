@@ -70,7 +70,7 @@ type EnhancedClientConfig struct {
 	BatchConfig BatchConfig
 
 	// Circuit breaker config
-	CircuitBreakerConfig CircuitBreakerConfig
+	CircuitBreakerConfig shared.CircuitBreakerConfig
 
 	// Observability config
 	TracingConfig TracingConfig
@@ -271,7 +271,7 @@ func getDefaultEnhancedConfig() *EnhancedClientConfig {
 			ConcurrentBatches:    5,
 			EnablePrioritization: true,
 		},
-		CircuitBreakerConfig: CircuitBreakerConfig{
+		CircuitBreakerConfig: shared.CircuitBreakerConfig{
 			FailureThreshold:      5,
 			SuccessThreshold:      3,
 			Timeout:               30 * time.Second,

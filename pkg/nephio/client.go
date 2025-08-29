@@ -1,6 +1,7 @@
 package nephio
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -181,7 +182,8 @@ func (c *clientImpl) makeHTTPRequest(ctx context.Context, method, endpoint strin
 		}
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, c.config.PorchEndpoint+endpoint, nil)
+	var bodyReader = bytes.NewReader(reqBody)
+	req, err := http.NewRequestWithContext(ctx, method, c.config.PorchEndpoint+endpoint, bodyReader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
 	}

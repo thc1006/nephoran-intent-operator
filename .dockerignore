@@ -215,9 +215,28 @@ snyk-results.json
 *.svg
 *.ico
 
-# Keep only essential Go source files and modules
+# Keep essential Go source files and modules
 !go.mod
 !go.sum
-!cmd/llm-processor/
+!cmd/
 !pkg/
 !api/
+!internal/
+!planner/
+
+# Include only necessary directories for all services
+!cmd/llm-processor/
+!cmd/nephio-bridge/
+!cmd/oran-adaptor/
+!cmd/a1-sim/
+!cmd/conductor/
+!cmd/conductor-loop/
+!cmd/e2-kpm-sim/
+!cmd/fcaps-sim/
+!cmd/o1-ves-sim/
+!cmd/porch-publisher/
+!cmd/intent-ingest/
+
+# Include RAG Python files
+!rag-python/
+!requirements-rag.txt

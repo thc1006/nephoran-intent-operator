@@ -51,9 +51,9 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     GOMAXPROCS=16 \
     go build \
       -p 16 \
-      -tags "netgo,osusergo,static_build,fast_build" \
+      -tags "netgo,osusergo,static_build" \
       -trimpath \
-      -ldflags="-s -w -buildid=''" \
+      -ldflags="-s -w -extldflags '-static' -buildid=''" \
       -o /app \
       ${MAIN_PATH}
 
@@ -61,6 +61,9 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # STAGE 2: Binary Selector (Alpine with shell for conditional logic)
 # =============================================================================
 FROM alpine:3.20 AS binary-selector
+
+# Install binary optimization tools
+RUN apk add --no-cache upx
 ARG PREBUILT_BINARY
 ARG SERVICE
 

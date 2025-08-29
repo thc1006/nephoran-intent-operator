@@ -35,16 +35,19 @@ define create_patch_file
 	echo "$(1) patch saved to handoff/patches/$(1)-patch.json"
 endef
 
-# Go configuration - Updated for August 2025 (targeting 1.24.8 features)
+# Go configuration - Updated for Go 1.24+ with 2025 optimizations
 GO_VERSION = 1.24.1
 CONTROLLER_GEN_VERSION ?= v0.18.0
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 CGO_ENABLED ?= 0
 
-# Go 1.24.8 August 2025 Optimizations
-GOEXPERIMENT ?= swisstable,pacer,nocoverageredesign
+# Go 1.24+ Performance Optimizations (2025 standards)
+GOEXPERIMENT ?= swisstable,pacer,nocoverageredesign,rangefunc
 GOMAXPROCS ?= $(shell nproc 2>/dev/null || echo 4)
+GOMEMLIMIT ?= 8GiB
+GOGC ?= 75
+GODEBUG ?= gctrace=0,scavenge=off
 PGO_PROFILE ?= default.pgo
 
 # Supply Chain Security Configuration
@@ -58,21 +61,22 @@ IMAGE_NAME ?= $(PROJECT_NAME)
 IMAGE_TAG ?= $(VERSION)
 BUILD_TYPE ?= production
 
-# Performance and build optimization
+# Performance and build optimization with Go 1.24+ features
 PARALLEL_JOBS ?= $(shell nproc --all 2>/dev/null || echo 4)
+GO_BUILD_ENV = GOMAXPROCS=$(GOMAXPROCS) GOMEMLIMIT=$(GOMEMLIMIT) GOGC=$(GOGC) GODEBUG=$(GODEBUG) GOEXPERIMENT=$(GOEXPERIMENT)
 ifeq ($(BUILD_TYPE),fast)
-	FAST_BUILD_FLAGS = -ldflags="-s -w" -gcflags="all=-l=4" -buildmode=default -pgo=$(PGO_PROFILE)
-	FAST_BUILD_TAGS = fast_build
+	FAST_BUILD_FLAGS = -ldflags="-s -w" -gcflags="all=-l=4" -buildmode=default -pgo=$(PGO_PROFILE) -buildvcs=false
+	FAST_BUILD_TAGS = fast_build,netgo,osusergo
 else ifeq ($(BUILD_TYPE),debug)
-	FAST_BUILD_FLAGS = -gcflags="all=-N -l" -race
+	FAST_BUILD_FLAGS = -gcflags="all=-N -l" -race -buildvcs=auto
 	FAST_BUILD_TAGS = debug
 else
-	FAST_BUILD_FLAGS = -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)" -trimpath -pgo=$(PGO_PROFILE)
-	FAST_BUILD_TAGS = production
+	FAST_BUILD_FLAGS = -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE) -buildid=" -trimpath -pgo=$(PGO_PROFILE) -buildvcs=false
+	FAST_BUILD_TAGS = production,netgo,osusergo
 endif
 
-# LDFLAGS for production builds
-LDFLAGS = -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE) -extldflags '-static'" -pgo=$(PGO_PROFILE)
+# LDFLAGS for production builds with Go 1.24+ optimizations
+LDFLAGS = -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE) -extldflags '-static' -buildid=" -pgo=$(PGO_PROFILE)
 
 # Quality and testing configuration
 QUALITY_REPORTS_DIR ?= .excellence-reports
@@ -437,10 +441,10 @@ excellence-dashboard: ## Generate excellence metrics dashboard
 ##@ Building
 
 .PHONY: build
-build: gen fmt vet ## Build the operator binary with optimizations
-	@echo "Building operator binary with ultra optimization..."
-	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		go build $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/manager cmd/main.go
+build: gen fmt vet ## Build the operator binary with Go 1.24+ optimizations
+	@echo "Building operator binary with Go 1.24+ ultra optimization..."
+	$(GO_BUILD_ENV) CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) \
+		go build $(FAST_BUILD_FLAGS) -tags=$(FAST_BUILD_TAGS) -o bin/manager cmd/main.go
 
 .PHONY: build-porch-publisher
 build-porch-publisher: ## Build the porch-publisher binary
@@ -467,13 +471,15 @@ build-debug: gen fmt vet ## Build the operator binary with debug info
 	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) go build -gcflags="all=-N -l" -o bin/manager-debug cmd/main.go
 
 .PHONY: cross-build
-cross-build: gen fmt vet ## Build binaries for multiple platforms
-	@echo "Cross-building for multiple platforms..."
+cross-build: gen fmt vet ## Build binaries for multiple platforms with Go 1.24+ optimizations
+	@echo "Cross-building for multiple platforms with Go 1.24+ optimizations..."
 	mkdir -p bin
 	@for os in linux windows darwin; do \
 		for arch in amd64 arm64; do \
 			echo "Building for $$os/$$arch..."; \
-			CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch go build $(LDFLAGS) -o bin/manager-$$os-$$arch cmd/main.go; \
+			$(GO_BUILD_ENV) CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch \
+				go build $(FAST_BUILD_FLAGS) -tags=$(FAST_BUILD_TAGS) \
+				-o bin/manager-$$os-$$arch cmd/main.go; \
 		done; \
 	done
 
@@ -682,7 +688,7 @@ docs-serve: ## Serve documentation locally
 	@echo "Serving documentation at http://localhost:6060"
 	godoc -http=:6060
 
-##@ Advanced Operations
+# Advanced Operations
 
 .PHONY: chaos-test
 chaos-test: ## Run chaos engineering tests

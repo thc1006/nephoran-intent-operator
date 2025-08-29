@@ -51,7 +51,7 @@ jobs:
       - name: Generate service matrix
         id: services
         run: |
-          SERVICES='["intent-ingest","llm-processor","nephio-bridge","oran-adaptor","conductor","conductor-loop","porch-publisher","a1-sim","e2-kpm-sim","fcaps-sim","o1-ves-sim"]'
+          SERVICES='["intent-ingest","llm-processor","nephio-bridge","oran-adaptor","conductor","conductor-loop","porch-publisher","planner","a1-sim","e2-kpm-sim","fcaps-sim","o1-ves-sim"]'
           echo "matrix=$SERVICES" >> $GITHUB_OUTPUT
 
   build:
@@ -121,24 +121,27 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./cmd/${{ matrix.service }}/Dockerfile
-          target: runtime
+          file: Dockerfile
+          target: go-runtime
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
+            SERVICE=${{ matrix.service }}
             VERSION=${{ needs.prepare.outputs.version }}
             BUILD_DATE=${{ needs.prepare.outputs.build-date }}
             VCS_REF=${{ needs.prepare.outputs.vcs-ref }}
+            SERVICE_TYPE=go
             CGO_ENABLED=0
             BUILDKIT_INLINE_CACHE=1
           cache-from: |
-            type=gha,scope=buildx-${{ matrix.service }}
+            type=gha,scope=buildx-${{ matrix.service }}-${{ github.ref_name }}
+            type=gha,scope=buildx-${{ matrix.service }}-main
             type=registry,ref=${{ env.REGISTRY }}/nephoran/${{ matrix.service }}:buildcache
           cache-to: |
-            type=gha,mode=max,scope=buildx-${{ matrix.service }}
-            type=registry,ref=${{ env.REGISTRY }}/nephoran/${{ matrix.service }}:buildcache,mode=max,compression=zstd
+            type=gha,mode=max,scope=buildx-${{ matrix.service }}-${{ github.ref_name }}
+            type=registry,ref=${{ env.REGISTRY }}/nephoran/${{ matrix.service }}:buildcache,mode=max,compression=zstd,force-compression=true
           provenance: mode=max
           sbom: true
           attestations: |
@@ -212,7 +215,7 @@ jobs:
 
       - name: Pull all images
         run: |
-          services=("intent-ingest" "llm-processor" "nephio-bridge" "oran-adaptor" "conductor" "conductor-loop" "porch-publisher" "a1-sim" "e2-kpm-sim" "fcaps-sim" "o1-ves-sim")
+          services=("intent-ingest" "llm-processor" "nephio-bridge" "oran-adaptor" "conductor" "conductor-loop" "porch-publisher" "planner" "a1-sim" "e2-kpm-sim" "fcaps-sim" "o1-ves-sim")
           for service in "${services[@]}"; do
             docker pull ${{ env.REGISTRY }}/nephoran/${service}:${{ needs.prepare.outputs.version }}
           done
@@ -226,7 +229,7 @@ jobs:
       - name: Start core services
         run: |
           # Start core services
-          docker compose -f docker-compose.services.yml up -d intent-ingest llm-processor nephio-bridge oran-adaptor conductor porch-publisher
+          docker compose -f docker-compose.services.yml up -d intent-ingest llm-processor nephio-bridge oran-adaptor conductor porch-publisher planner
           sleep 60
 
       - name: Health check core services

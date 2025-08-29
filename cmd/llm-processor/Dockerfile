@@ -19,8 +19,8 @@ WORKDIR /build
 # Copy dependency files first for better caching
 COPY go.mod go.sum ./
 
-# Download dependencies with verification
-RUN go mod download && go mod verify
+# Fix dependency issues and download dependencies with verification
+RUN go mod tidy && go mod download && go mod verify
 
 # Copy source code
 COPY . .
@@ -32,16 +32,16 @@ ARG VCS_REF
 ARG CGO_ENABLED=0
 ARG TARGETARCH=amd64
 
-# Security: Build with optimizations and security flags
+# Security: Build with optimizations and security flags (Fixed for compatibility)
 RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOARCH=${TARGETARCH} go build \
     -ldflags="-w -s \
     -X main.version=${VERSION} \
     -X main.buildDate=${BUILD_DATE} \
-    -X main.vcsRef=${VCS_REF} \
-    -extldflags '-static'" \
+    -X main.vcsRef=${VCS_REF}" \
     -a -installsuffix cgo \
     -tags netgo,osusergo,rag \
     -trimpath \
+    -mod=mod \
     -o /build/llm-processor \
     ./cmd/llm-processor
 

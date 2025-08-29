@@ -109,9 +109,8 @@ RUN --mount=type=cache,target=/home/nonroot/.cache/go-build,uid=65532,gid=65532 
     GOMAXPROCS=8 \
     go build \
         -v \
-        -buildmode=pie \
         -trimpath \
-        -mod=readonly \
+        -mod=mod \
         -ldflags="-w -s \
                  -X main.version=${VERSION} \
                  -X main.buildDate=${BUILD_DATE} \
@@ -127,7 +126,7 @@ RUN --mount=type=cache,target=/home/nonroot/.cache/go-build,uid=65532,gid=65532 
     # Verify binary
     ls -la /tmp/service && test -x /tmp/service && echo "Binary verification: $(stat -c '%n: size=%s, mode=%a' /tmp/service)" && \
     # Strip binary for minimal size
-    strip --strip-unneeded /tmp/service 2>/dev/null || true
+    # Skip strip for Go binaries - not needed with -ldflags="-s -w"
 
 # =============================================================================
 # STAGE 3: Minimal Runtime (Distroless + Security Hardening)

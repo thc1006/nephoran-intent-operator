@@ -658,7 +658,7 @@ func (cr *ContainerRuntime) allocateResources(ctx context.Context, req *Containe
 	defer cr.resourceMgr.mu.Unlock()
 
 	// Parse resource requirements
-	var cpuLimit, memoryLimit, diskLimit *resource.Quantity
+	var cpuLimit, memoryLimit, diskLimit resource.Quantity
 	var err error
 
 	if req.CPULimit != "" {
@@ -705,9 +705,9 @@ func (cr *ContainerRuntime) allocateResources(ctx context.Context, req *Containe
 	// Record allocation
 	allocation := &ResourceAllocation{
 		ContainerID:    req.RequestID,
-		CPULimit:       cpuLimit,
-		MemoryLimit:    memoryLimit,
-		DiskLimit:      diskLimit,
+		CPULimit:       &cpuLimit,
+		MemoryLimit:    &memoryLimit,
+		DiskLimit:      &diskLimit,
 		AllocationTime: time.Now(),
 	}
 	cr.resourceMgr.allocations[req.RequestID] = allocation

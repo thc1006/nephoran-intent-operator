@@ -121,7 +121,6 @@ RUN apk update && apk upgrade --no-cache && \
     ca-certificates=~20241010 \
     tzdata=~2024 \
     binutils=~2.42 \
-    file=~5.45 \
     && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/* \
     && find / -xdev -type f -perm +6000 -delete 2>/dev/null || true
 
@@ -169,7 +168,6 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     esac; \
     echo "Building $SERVICE for $TARGETOS/$TARGETARCH${TARGETVARIANT:+/$TARGETVARIANT}"; \
     go build \
-        -buildmode=pie \
         -trimpath \
         -mod=readonly \
         -ldflags="-w -s -extldflags '-static' \
@@ -177,11 +175,11 @@ RUN --mount=type=cache,target=/go/pkg/mod \
                  -X main.buildDate=${BUILD_DATE} \
                  -X main.gitCommit=${VCS_REF} \
                  -X main.platform=${TARGETPLATFORM} \
-                 -buildid=" \
+                 -buildid=''" \
         -tags="netgo osusergo static_build" \
         -o /build/service \
         $CMD_PATH && \
-    echo "Build complete: $(ls -la /build/service)" && test -x /build/service)" && echo "Binary verification: $(stat -c '%n: size=%s, mode=%a' /build/service)")" && \
+    echo "Build complete: $(ls -la /build/service)" && test -x /build/service && echo "Binary verification: $(stat -c '%n: size=%s, mode=%a' /build/service)" && \
     echo "Binary size: $(du -h /build/service | cut -f1)"
 
 # Verify binary is statically linked
@@ -199,7 +197,7 @@ ARG TARGETARCH
 ARG TARGETVARIANT
 
 # Install optimization tools
-RUN apk add --no-cache binutils file && \
+RUN apk add --no-cache binutils && \
     case "$TARGETARCH" in \
         "amd64") \
             apk add --no-cache upx && echo "UPX available for amd64" \
@@ -214,16 +212,18 @@ RUN apk add --no-cache binutils file && \
 
 COPY --from=go-cross-builder /build/service /tmp/service
 
-# Optimize binary based on architecture
-RUN strip --strip-unneeded /tmp/service 2>/dev/null || true && \
-    case "$TARGETARCH" in \
+# Optimize binary based on architecture (skip strip for static Go binaries)
+RUN case "$TARGETARCH" in \
         "amd64") \
             if command -v upx >/dev/null 2>&1; then \
-                upx --best --lzma /tmp/service || true; \
+                upx --best --lzma /tmp/service 2>/dev/null || echo "UPX compression failed or unavailable, continuing..."; \
             fi \
             ;; \
+        *) \
+            echo "Skipping UPX compression for $TARGETARCH - not recommended" \
+            ;; \
     esac && \
-    echo "Optimized binary size: $(du -h /tmp/service | cut -f1)"
+    echo "Final binary size: $(du -h /tmp/service | cut -f1)"
 
 # =============================================================================
 # STAGE: Python Cross-Platform Builder

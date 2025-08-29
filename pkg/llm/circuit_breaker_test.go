@@ -8,10 +8,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 func TestCircuitBreaker_NewCircuitBreaker(t *testing.T) {
-	config := &CircuitBreakerConfig{
+	config := &shared.CircuitBreakerConfig{
 		FailureThreshold:    5,
 		FailureRate:         0.5,
 		MinimumRequestCount: 10,
@@ -32,7 +33,7 @@ func TestCircuitBreaker_NewCircuitBreaker(t *testing.T) {
 }
 
 func TestCircuitBreaker_Execute_Success(t *testing.T) {
-	config := &CircuitBreakerConfig{
+	config := &shared.CircuitBreakerConfig{
 		FailureThreshold:    3,
 		FailureRate:         0.5,
 		MinimumRequestCount: 5,
@@ -57,7 +58,7 @@ func TestCircuitBreaker_Execute_Success(t *testing.T) {
 }
 
 func TestCircuitBreaker_Execute_Failure(t *testing.T) {
-	config := &CircuitBreakerConfig{
+	config := &shared.CircuitBreakerConfig{
 		FailureThreshold:    2,
 		FailureRate:         0.5,
 		MinimumRequestCount: 3,
@@ -85,7 +86,7 @@ func TestCircuitBreaker_Execute_Failure(t *testing.T) {
 }
 
 func TestCircuitBreaker_StateTransition_ClosedToOpen(t *testing.T) {
-	config := &CircuitBreakerConfig{
+	config := &shared.CircuitBreakerConfig{
 		FailureThreshold:    2,
 		FailureRate:         0.6,
 		MinimumRequestCount: 3,
@@ -122,7 +123,7 @@ func TestCircuitBreaker_StateTransition_ClosedToOpen(t *testing.T) {
 }
 
 func TestCircuitBreaker_StateTransition_OpenToHalfOpen(t *testing.T) {
-	config := &CircuitBreakerConfig{
+	config := &shared.CircuitBreakerConfig{
 		FailureThreshold:    1,
 		FailureRate:         0.5,
 		MinimumRequestCount: 2,
@@ -158,7 +159,7 @@ func TestCircuitBreaker_StateTransition_OpenToHalfOpen(t *testing.T) {
 }
 
 func TestCircuitBreaker_StateTransition_HalfOpenToClosed(t *testing.T) {
-	config := &CircuitBreakerConfig{
+	config := &shared.CircuitBreakerConfig{
 		FailureThreshold:    1,
 		FailureRate:         0.5,
 		MinimumRequestCount: 2,
@@ -197,7 +198,7 @@ func TestCircuitBreaker_StateTransition_HalfOpenToClosed(t *testing.T) {
 }
 
 func TestCircuitBreaker_StateTransition_HalfOpenToOpen(t *testing.T) {
-	config := &CircuitBreakerConfig{
+	config := &shared.CircuitBreakerConfig{
 		FailureThreshold:    1,
 		FailureRate:         0.5,
 		MinimumRequestCount: 2,
@@ -233,7 +234,7 @@ func TestCircuitBreaker_StateTransition_HalfOpenToOpen(t *testing.T) {
 }
 
 func TestCircuitBreaker_OpenState_RejectsRequests(t *testing.T) {
-	config := &CircuitBreakerConfig{
+	config := &shared.CircuitBreakerConfig{
 		FailureThreshold:    1,
 		FailureRate:         0.5,
 		MinimumRequestCount: 2,
@@ -267,7 +268,7 @@ func TestCircuitBreaker_OpenState_RejectsRequests(t *testing.T) {
 }
 
 func TestCircuitBreaker_Timeout(t *testing.T) {
-	config := &CircuitBreakerConfig{
+	config := &shared.CircuitBreakerConfig{
 		FailureThreshold:    5,
 		FailureRate:         0.5,
 		MinimumRequestCount: 10,
@@ -296,7 +297,7 @@ func TestCircuitBreaker_Timeout(t *testing.T) {
 }
 
 func TestCircuitBreaker_ConcurrentAccess(t *testing.T) {
-	config := &CircuitBreakerConfig{
+	config := &shared.CircuitBreakerConfig{
 		FailureThreshold:    10,
 		FailureRate:         0.8,
 		MinimumRequestCount: 20,
@@ -353,7 +354,7 @@ func TestCircuitBreaker_ConcurrentAccess(t *testing.T) {
 }
 
 func TestCircuitBreaker_GetMetrics(t *testing.T) {
-	config := &CircuitBreakerConfig{
+	config := &shared.CircuitBreakerConfig{
 		FailureThreshold:    3,
 		FailureRate:         0.5,
 		MinimumRequestCount: 5,
@@ -384,7 +385,7 @@ func TestCircuitBreaker_GetMetrics(t *testing.T) {
 }
 
 func TestCircuitBreaker_Reset(t *testing.T) {
-	config := &CircuitBreakerConfig{
+	config := &shared.CircuitBreakerConfig{
 		FailureThreshold:    1,
 		FailureRate:         0.5,
 		MinimumRequestCount: 2,
@@ -450,7 +451,7 @@ func TestCircuitBreakerManager(t *testing.T) {
 
 // Benchmark tests
 func BenchmarkCircuitBreaker_Execute_Success(b *testing.B) {
-	config := &CircuitBreakerConfig{
+	config := &shared.CircuitBreakerConfig{
 		FailureThreshold:    10,
 		FailureRate:         0.5,
 		MinimumRequestCount: 20,
@@ -473,7 +474,7 @@ func BenchmarkCircuitBreaker_Execute_Success(b *testing.B) {
 }
 
 func BenchmarkCircuitBreaker_Execute_Failure(b *testing.B) {
-	config := &CircuitBreakerConfig{
+	config := &shared.CircuitBreakerConfig{
 		FailureThreshold:    1000,
 		FailureRate:         0.9,
 		MinimumRequestCount: 2000,

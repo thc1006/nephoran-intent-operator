@@ -2,7 +2,7 @@ module github.com/thc1006/nephoran-intent-operator
 
 go 1.24.1
 
-// Go 1.24+ optimization directives for better performance
+// Go 1.24+ optimization directives for better performance with 2025 enhancements
 //go:build go1.24
 
 require (
@@ -183,6 +183,9 @@ require (
 	k8s.io/metrics v0.33.3
 	sigs.k8s.io/kustomize/api v0.19.0
 	sigs.k8s.io/kustomize/kyaml v0.19.0
+	
+	// Missing dependencies
+	github.com/imdario/mergo v0.3.16
 )
 
 require (

@@ -23,24 +23,6 @@ type CertManagerConfig struct {
 	RevisionLimit        int32         `yaml:"revision_limit"`
 }
 
-// Missing request and response types
-type RevokeCertificateRequest struct {
-	ID     string
-	Reason string
-}
-
-type CertificateFilter struct {
-	Status    []string
-	ExpiresIn time.Duration
-}
-
-type RenewCertificateRequest struct {
-	ID string
-}
-
-type ValidateCertificateRequest struct {
-	Certificate []byte
-}
 
 // CertManagerBackendStub is a stub implementation for cert-manager integration
 type CertManagerBackendStub struct {
@@ -66,23 +48,6 @@ func (b *CertManagerBackendStub) IssueCertificate(ctx context.Context, req *Cert
 	return nil, fmt.Errorf("cert-manager integration not implemented")
 }
 
-
-// GetCertificate retrieves a certificate (stubbed)
-func (b *CertManagerBackendStub) GetCertificate(ctx context.Context, id string) (*CertificateResponse, error) {
-	return nil, fmt.Errorf("cert-manager integration not implemented")
-}
-
-// ListCertificates lists certificates (stubbed)
-func (b *CertManagerBackendStub) ListCertificates(ctx context.Context, filter *CertificateFilter) ([]*CertificateResponse, error) {
-	return nil, fmt.Errorf("cert-manager integration not implemented")
-}
-
-
-// ValidateCertificate validates a certificate (stubbed)
-func (b *CertManagerBackendStub) ValidateCertificate(ctx context.Context, req *ValidateCertificateRequest) (*ValidationResult, error) {
-	return nil, fmt.Errorf("cert-manager integration not implemented")
-}
-
 // HealthCheck performs a health check (stubbed)
 func (b *CertManagerBackendStub) HealthCheck(ctx context.Context) error {
 	return nil
@@ -103,12 +68,12 @@ func (b *CertManagerBackendStub) GetSupportedFeatures() []string {
 	return []string{"stubbed"}
 }
 
-// RevokeCertificate with correct signature
+// RevokeCertificate revokes a certificate (stubbed)
 func (b *CertManagerBackendStub) RevokeCertificate(ctx context.Context, serialNumber string, reason int) error {
 	return fmt.Errorf("cert-manager integration not implemented")
 }
 
-// RenewCertificate with correct signature
+// RenewCertificate renews a certificate (stubbed)
 func (b *CertManagerBackendStub) RenewCertificate(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error) {
 	return nil, fmt.Errorf("cert-manager integration not implemented")
 }
@@ -120,9 +85,4 @@ func (b *CertManagerBackendStub) GetBackendInfo(ctx context.Context) (*BackendIn
 		Status:  "stubbed",
 		Version: "stub-1.0.0",
 	}, nil
-}
-
-// Shutdown shuts down the backend (stubbed)
-func (b *CertManagerBackendStub) Shutdown(ctx context.Context) error {
-	return nil
 }

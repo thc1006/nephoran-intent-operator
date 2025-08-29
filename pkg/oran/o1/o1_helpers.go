@@ -264,44 +264,44 @@ func (a *O1Adaptor) parseMetricValue(xmlData string, metricName string) (interfa
 func (a *O1Adaptor) startPeriodicMetricCollection(ctx context.Context, collector *MetricCollector) {
 	logger := log.FromContext(ctx)
 	logger.Info("starting periodic metric collection",
-		"collectorID", collector.ID,
-		"element", collector.ManagedElement,
-		"period", collector.CollectionPeriod)
+		"clientID", collector.ClientID,
+		"metricTypes", collector.MetricTypes,
+		"lastCollected", collector.LastCollected)
 
-	// Create a cancellable context for this collection
+	// Create a simple collection routine using existing fields
 	collectionCtx, cancel := context.WithCancel(ctx)
-	collector.cancel = cancel
+	// TODO: Add cancel field to MetricCollector struct if needed
 
 	go func() {
 		defer cancel()
 
-		ticker := time.NewTicker(collector.CollectionPeriod)
+		// Use a default collection period of 30 seconds for K8s 1.31+
+		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
 
 		for {
 			select {
 			case <-collectionCtx.Done():
-				logger.Info("stopping metric collection", "collectorID", collector.ID)
+				logger.Info("stopping metric collection", "clientID", collector.ClientID)
 				return
 			case <-ticker.C:
-				// Collect metrics
-				clientID := collector.ManagedElement // Assuming clientID format
-				metrics, err := a.collectMetricsFromDevice(collectionCtx, clientID, collector.MetricNames)
+				// Collect metrics using ClientID
+				metrics, err := a.collectMetricsFromDevice(collectionCtx, collector.ClientID, collector.MetricTypes)
 				if err != nil {
-					logger.Error(err, "failed to collect metrics", "collectorID", collector.ID)
+					logger.Error(err, "failed to collect metrics", "clientID", collector.ClientID)
 					continue
 				}
 
-				// Update last collection time
+				// Update last collection time using existing field
 				a.metricsMux.Lock()
-				if c, exists := a.metricCollectors[collector.ID]; exists {
-					c.LastCollection = time.Now()
+				if c, exists := a.metricCollectors[collector.ClientID]; exists {
+					c.LastCollected = time.Now()
 				}
 				a.metricsMux.Unlock()
 
-				// Log collected metrics (in production, you might want to export to monitoring system)
+				// Log collected metrics for K8s 1.31+ observability
 				logger.Info("collected metrics",
-					"collectorID", collector.ID,
+					"clientID", collector.ClientID,
 					"metrics", metrics,
 					"timestamp", time.Now())
 			}

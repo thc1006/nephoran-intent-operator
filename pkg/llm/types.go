@@ -113,10 +113,6 @@ type BatchProcessorConfig struct {
 	TimeoutDuration time.Duration `json:"timeout_duration"`
 }
 
-// LLMClient interface for LLM operations
-type LLMClient interface {
-	ProcessIntent(ctx context.Context, intent string) (string, error)
-}
 
 // TokenManager manages token allocation and tracking
 type TokenManager interface {
@@ -192,33 +188,6 @@ type NetworkSlice struct {
 	Reliability  float64 `json:"reliability,omitempty"`
 	ConnectedUEs int     `json:"connected_ues,omitempty"`
 }
-
-// ValidationError represents a validation error with field-level detail
-type ValidationError struct {
-	Field         string   `json:"field"`
-	Message       string   `json:"message"`
-	Code          string   `json:"code"`
-	Severity      string   `json:"severity"`
-	MissingFields []string `json:"missing_fields,omitempty"` // For compatibility with tests
-}
-
-func (v *ValidationError) Error() string {
-	return fmt.Sprintf("validation error in field '%s': %s", v.Field, v.Message)
-}
-
-// ProcessingResult represents the result of LLM processing
-type ProcessingResult struct {
-	Content           string                 `json:"content"`
-	TokensUsed        int                    `json:"tokens_used"`
-	ProcessingTime    time.Duration          `json:"processing_time"`
-	CacheHit          bool                   `json:"cache_hit"`
-	Batched           bool                   `json:"batched"`
-	Metadata          map[string]interface{} `json:"metadata"`
-	Error             error                  `json:"error,omitempty"`
-	ProcessingContext *ProcessingContext     `json:"processing_context,omitempty"` // Added for processing_pipeline.go
-	Success           bool                   `json:"success"`                      // Added for processing_pipeline.go
-}
-
 // ProcessingContext, ClassificationResult, EnrichmentContext, ValidationResult
 // are defined in processing_pipeline.go and security_validator.go
 
@@ -279,18 +248,39 @@ func (s *Service) ProcessIntent(ctx context.Context, request *ProcessingRequest)
 		return nil, fmt.Errorf("LLM client not initialized")
 	}
 
+	// Create a ProcessIntentRequest from the ProcessingRequest
+	intentRequest := &ProcessIntentRequest{
+		Intent: request.Intent,
+		Context: map[string]string{
+			"intent_type": request.IntentType,
+			"provider":    request.Provider,
+			"model":       request.Model,
+		},
+		Metadata: RequestMetadata{
+			RequestID: request.RequestID,
+			Source:    "llm-service",
+		},
+		Timestamp: time.Now(),
+	}
+
 	// Process the intent using the underlying client
-	result, err := s.client.ProcessIntent(ctx, request.Intent)
+	result, err := s.client.ProcessIntent(ctx, intentRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to process intent: %w", err)
 	}
 
+	// Convert ProcessIntentResponse to ProcessingResponse
 	return &ProcessingResponse{
-		ProcessedParameters: result,
-		ConfidenceScore:     0.95, // Default confidence
-		TokensUsed:         request.MaxTokens / 2, // Estimated
-		ProcessingTime:     time.Second,
-		Metadata:           make(map[string]interface{}),
+		ProcessedIntent:      result.Reasoning,
+		StructuredParameters: result.StructuredIntent,
+		ProcessedParameters:  result.Reasoning,
+		ConfidenceScore:      result.Confidence,
+		TokensUsed:          result.Metadata.TokensUsed,
+		ProcessingTime:      time.Duration(result.Metadata.ProcessingTime * float64(time.Millisecond)),
+		Metadata:            map[string]interface{}{
+			"model_used": result.Metadata.ModelUsed,
+			"cost":       result.Metadata.Cost,
+		},
 	}, nil
 }
 

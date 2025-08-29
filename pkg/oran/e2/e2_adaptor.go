@@ -17,6 +17,7 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // E2NodeFunction represents RAN function exposed by an E2 Node
@@ -229,6 +230,42 @@ type E2AdaptorConfig struct {
 	RetryConfig          *RetryConfig
 }
 
+// convertLLMToSharedCircuitBreakerConfig converts llm.CircuitBreakerConfig to shared.CircuitBreakerConfig
+// This uses Go 1.24+ compatible type conversion patterns for maximum compatibility  
+func convertLLMToSharedCircuitBreakerConfig(config *llm.CircuitBreakerConfig) *shared.CircuitBreakerConfig {
+	if config == nil {
+		return &shared.CircuitBreakerConfig{
+			FailureThreshold:    5,
+			FailureRate:         0.5,
+			MinimumRequestCount: 10,
+			Timeout:             30 * time.Second,
+			HalfOpenTimeout:     60 * time.Second,
+			SuccessThreshold:    3,
+			HalfOpenMaxRequests: 1,
+			ResetTimeout:        60 * time.Second,
+			SlidingWindowSize:   100,
+			EnableHealthCheck:   false,
+			HealthCheckInterval: 30 * time.Second,
+			HealthCheckTimeout:  10 * time.Second,
+		}
+	}
+	
+	return &shared.CircuitBreakerConfig{
+		FailureThreshold:    config.FailureThreshold,
+		FailureRate:         config.FailureRate,
+		MinimumRequestCount: config.MinimumRequestCount,
+		Timeout:             config.Timeout,
+		HalfOpenTimeout:     config.HalfOpenTimeout,
+		SuccessThreshold:    config.SuccessThreshold,
+		HalfOpenMaxRequests: config.HalfOpenMaxRequests,
+		ResetTimeout:        config.ResetTimeout,
+		SlidingWindowSize:   config.SlidingWindowSize,
+		EnableHealthCheck:   config.EnableHealthCheck,
+		HealthCheckInterval: config.HealthCheckInterval,
+		HealthCheckTimeout:  config.HealthCheckTimeout,
+	}
+}
+
 // NewE2Adaptor creates a new E2 adaptor following O-RAN specifications
 func NewE2Adaptor(config *E2AdaptorConfig) (*E2Adaptor, error) {
 	if config == nil {
@@ -300,8 +337,9 @@ func NewE2Adaptor(config *E2AdaptorConfig) (*E2Adaptor, error) {
 		httpClient.Transport = transport
 	}
 
-	// Create circuit breaker
-	circuitBreaker := llm.NewCircuitBreaker("e2-adaptor", config.CircuitBreakerConfig)
+	// Create circuit breaker with Go 1.24+ type conversion
+	sharedConfig := convertLLMToSharedCircuitBreakerConfig(config.CircuitBreakerConfig)
+	circuitBreaker := llm.NewCircuitBreaker("e2-adaptor", sharedConfig)
 
 	// Create E2AP encoder
 	encoder := NewE2APEncoder()
