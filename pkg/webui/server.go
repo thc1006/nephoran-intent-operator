@@ -28,6 +28,7 @@ limitations under the License.
 
 */
 
+// Package webui provides comprehensive Web UI integration for the Nephoran Intent Operator.
 package webui
 
 import (
