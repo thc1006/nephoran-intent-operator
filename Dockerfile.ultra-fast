@@ -94,7 +94,10 @@ RUN PREBUILT_BINARY=${PREBUILT_BINARY:+/build-context/${PREBUILT_BINARY}} /selec
 FROM alpine:3.20 AS runtime-deps
 
 # Install tzdata and ca-certificates for runtime
-RUN apk add --no-cache ca-certificates tzdata
+# CRITICAL: Keep tzdata available for copying to final stage
+RUN apk add --no-cache ca-certificates tzdata && \
+    # Verify tzdata is properly installed
+    ls -la /usr/share/zoneinfo/UTC || (echo "tzdata installation failed" && exit 1)
 
 # =============================================================================
 # STAGE 4: Final Distroless Image

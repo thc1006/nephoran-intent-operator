@@ -58,6 +58,7 @@ ARG TARGETARCH
 ARG TARGETVARIANT
 
 # Install cross-compilation tools with version pinning
+# CRITICAL: Keep tzdata for copying to runtime stages
 RUN apk update && apk upgrade --no-cache && \
     apk add --no-cache \
     git=~2.45 \
@@ -115,6 +116,7 @@ COPY --from=build-info /build-info.txt /build-info.txt
 RUN cat /build-info.txt
 
 # Install build tools with version pinning
+# CRITICAL: Keep tzdata for copying to runtime stages
 RUN apk update && apk upgrade --no-cache && \
     apk add --no-cache \
     git=~2.45 \

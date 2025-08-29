@@ -273,7 +273,10 @@ RUN --mount=type=cache,target=/tmp/.cache/go-mod,sharing=locked \
         upx --best --lzma /build/service 2>/dev/null || echo "UPX compression failed or not beneficial"; \
     fi; \
     # Remove only build dependencies, keep ca-certificates and tzdata for runtime
-    apk del .build-deps || true
+    # CRITICAL: Ensure tzdata remains available for copying to runtime stages
+    apk del .build-deps || true; \
+    # Verify tzdata is still available after cleanup
+    ls -la /usr/share/zoneinfo/UTC || (echo "tzdata missing after cleanup" && exit 1)
 
 # =============================================================================
 # STAGE: Python Dependencies
@@ -352,8 +355,8 @@ ARG TARGETPLATFORM
 ARG GO_VERSION
 
 # Copy certificates and timezone data from go-builder stage
-# Ensure tzdata is available by copying from a stage where it wasn't removed
-COPY --from=go-deps /usr/share/zoneinfo /usr/share/zoneinfo
+# CRITICAL: Copy tzdata from go-builder stage where it's preserved
+COPY --from=go-builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=go-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Copy binary with restricted permissions
