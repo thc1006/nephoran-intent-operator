@@ -396,7 +396,16 @@ func (s *EventSender) sendEvent(event VESEvent) error {
 
 		if attempt < maxRetries-1 {
 			// Calculate delay with exponential backoff.
-			delay := time.Duration(1<<uint(attempt)) * baseDelay
+			// Apply bounds checking to prevent integer overflow in bit shift
+			var shiftAmount uint
+			if attempt < 0 {
+				shiftAmount = 0
+			} else if attempt > 30 { // Prevent overflow: 2^30 is reasonable upper bound
+				shiftAmount = 30
+			} else {
+				shiftAmount = uint(attempt)
+			}
+			delay := time.Duration(1<<shiftAmount) * baseDelay
 
 			// Apply maximum delay cap.
 			if delay > maxDelay {
