@@ -225,7 +225,7 @@ func (niad *NetworkIntentAuthDecorator) Reconcile(ctx context.Context, req ctrl.
 
 	var networkIntent nephoranv1.NetworkIntent
 
-	if err := niad.Get(authCtx, req.NamespacedName, &networkIntent); err != nil {
+	if err := niad.AuthenticatedReconciler.Get(authCtx, req.NamespacedName, &networkIntent); err != nil {
 
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 

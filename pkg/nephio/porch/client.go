@@ -2915,7 +2915,7 @@ func (c *Client) createPackageRevisionInternal(ctx context.Context, pkg *Package
 
 
 
-	c.logger.Info("Successfully created package revision", "name", result.Name, "uid", result.UID)
+	c.logger.Info("Successfully created package revision", "name", result.ObjectMeta.Name, "uid", result.UID)
 
 	return result, nil
 
@@ -2991,7 +2991,7 @@ func (c *Client) updatePackageRevisionInternal(ctx context.Context, pkg *Package
 
 
 
-	c.logger.Info("Successfully updated package revision", "name", result.Name)
+	c.logger.Info("Successfully updated package revision", "name", result.ObjectMeta.Name)
 
 	return result, nil
 

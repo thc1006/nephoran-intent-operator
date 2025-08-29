@@ -35,6 +35,9 @@ type Handlers struct {
 
 }
 
+// AuthHandlers is an alias for Handlers to maintain compatibility
+type AuthHandlers = Handlers
+
 
 
 // HandlersConfig represents handlers configuration.
@@ -103,6 +106,11 @@ func NewHandlers(sessionManager *SessionManager, jwtManager *JWTManager, rbacMan
 
 	}
 
+}
+
+// NewAuthHandlers creates new authentication handlers (compatibility function)
+func NewAuthHandlers(sessionManager *SessionManager, jwtManager *JWTManager, rbacManager *RBACManager, config *HandlersConfig) *AuthHandlers {
+	return NewHandlers(sessionManager, jwtManager, rbacManager, config)
 }
 
 

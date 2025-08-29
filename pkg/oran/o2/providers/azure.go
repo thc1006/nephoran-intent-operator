@@ -21,7 +21,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v5"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork"
 

@@ -115,7 +115,7 @@ func main() {
 
 		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 
@@ -145,7 +145,7 @@ func main() {
 
 		flag.Usage()
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 
@@ -205,7 +205,7 @@ func main() {
 
 		logger.Info("Terminating due to secure execution failure")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 

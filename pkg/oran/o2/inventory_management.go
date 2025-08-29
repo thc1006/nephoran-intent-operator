@@ -7,6 +7,8 @@ package o2
 
 import (
 
+	"bytes"
+
 	"context"
 
 	"database/sql"

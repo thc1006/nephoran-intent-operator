@@ -59,7 +59,7 @@ func main() {
 
 		fmt.Println("usage: porch-publisher -intent <path-to-intent.json> [-out examples/packages/scaling] [-format full|smp]")
 
-		log.Fatal(2)
+		os.Exit(1)
 
 	}
 
@@ -71,7 +71,7 @@ func main() {
 
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 
@@ -83,7 +83,7 @@ func main() {
 
 		fmt.Fprintf(os.Stderr, "Error parsing JSON: %v\n", err)
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 
@@ -95,7 +95,7 @@ func main() {
 
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 

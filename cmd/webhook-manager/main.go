@@ -1,27 +1,16 @@
-
 package main
 
-
-
 import (
-
 	"flag"
-
 	"os"
 
-
-
 	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
-
-
 
 	"k8s.io/apimachinery/pkg/runtime"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-
-
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -32,20 +21,13 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-
 )
-
-
 
 var (
-
-	scheme   = runtime.NewScheme()
+	scheme = runtime.NewScheme()
 
 	setupLog = ctrl.Log.WithName("setup")
-
 )
-
-
 
 func init() {
 
@@ -55,23 +37,17 @@ func init() {
 
 }
 
-
-
 func main() {
 
 	var (
-
 		metricsAddr string
 
-		probeAddr   string
+		probeAddr string
 
 		webhookPort int
 
-		certDir     string
-
+		certDir string
 	)
-
-
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 
@@ -87,15 +63,9 @@ func main() {
 
 	flag.Parse()
 
-
-
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-
-
 	cfg := ctrl.GetConfigOrDie()
-
-
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 
@@ -103,31 +73,28 @@ func main() {
 
 		// New-style metrics server options (replaces MetricsBindAddress).
 
-		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
+		Metrics: metricsserver.Options{BindAddress: metricsAddr},
 
 		HealthProbeBindAddress: probeAddr,
 
 		// LeaderElection 可視需要開啟.
 
 		LeaderElection: false,
-
 	})
 
 	if err != nil {
 
 		setupLog.Error(err, "unable to start manager")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
-
-
 
 	// 建立並註冊 webhook server（新 API；Port/CertDir 透過這裡設定）.
 
 	hookServer := webhook.NewServer(webhook.Options{
 
-		Port:    webhookPort,
+		Port: webhookPort,
 
 		CertDir: certDir, // 若留空，controller-runtime 會用預設位置
 
@@ -137,11 +104,9 @@ func main() {
 
 		setupLog.Error(err, "unable to add webhook server to manager")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
-
-
 
 	// 將你的 CRD webhook 掛進 manager（會自動註冊到 mgr.GetWebhookServer()）.
 
@@ -149,11 +114,9 @@ func main() {
 
 		setupLog.Error(err, "unable to create webhook", "webhook", "NetworkIntent")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
-
-
 
 	// 健康檢查/就緒檢查.
 
@@ -161,7 +124,7 @@ func main() {
 
 		setupLog.Error(err, "unable to set up health check")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 
@@ -169,11 +132,9 @@ func main() {
 
 		setupLog.Error(err, "unable to set up ready check")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
-
-
 
 	setupLog.Info("starting manager (webhook-mode)")
 
@@ -181,9 +142,8 @@ func main() {
 
 		setupLog.Error(err, "problem running manager")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 
 }
-

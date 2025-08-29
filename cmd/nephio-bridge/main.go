@@ -313,7 +313,7 @@ func main() {
 
 		setupLog.Error(err, "failed to load configuration")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 
@@ -383,7 +383,7 @@ func main() {
 
 		setupLog.Error(err, "unable to start manager")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 
@@ -407,7 +407,7 @@ func main() {
 
 			setupLog.Error(err, "unable to create git client config")
 
-			log.Fatal(1)
+			os.Exit(1)
 
 		}
 
@@ -447,7 +447,7 @@ func main() {
 
 			setupLog.Error(err, "unable to create package generator")
 
-			log.Fatal(1)
+			os.Exit(1)
 
 		}
 
@@ -517,7 +517,7 @@ func main() {
 
 		setupLog.Error(err, "unable to create NetworkIntent controller")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 
@@ -527,7 +527,7 @@ func main() {
 
 		setupLog.Error(err, "unable to setup controller", "controller", "NetworkIntent")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 
@@ -547,7 +547,7 @@ func main() {
 
 		setupLog.Error(err, "unable to create controller", "controller", "E2NodeSet")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 
@@ -557,7 +557,7 @@ func main() {
 
 		setupLog.Error(err, "unable to set up health check")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 
@@ -565,7 +565,7 @@ func main() {
 
 		setupLog.Error(err, "unable to set up ready check")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 
@@ -577,7 +577,7 @@ func main() {
 
 		setupLog.Error(err, "problem running manager")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 

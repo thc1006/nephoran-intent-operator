@@ -35,7 +35,7 @@ func main() {
 
 		log.Printf("Command failed: %v", err)
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 

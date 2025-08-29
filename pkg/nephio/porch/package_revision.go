@@ -537,7 +537,8 @@ func (prm *packageRevisionManager) CreatePackage(ctx context.Context, spec *Pack
 
 		for k, v := range spec.Labels {
 
-			pkg.Labels[k] = v
+		if pkg.ObjectMeta.Labels == nil { pkg.ObjectMeta.Labels = make(map[string]string) }
+			pkg.ObjectMeta.Labels[k] = v
 
 		}
 
@@ -546,8 +547,9 @@ func (prm *packageRevisionManager) CreatePackage(ctx context.Context, spec *Pack
 	if spec.Annotations != nil {
 
 		for k, v := range spec.Annotations {
+		if pkg.ObjectMeta.Annotations == nil { pkg.ObjectMeta.Annotations = make(map[string]string) }
 
-			pkg.Annotations[k] = v
+			pkg.ObjectMeta.Annotations[k] = v
 
 		}
 

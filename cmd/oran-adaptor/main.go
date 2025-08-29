@@ -1,21 +1,12 @@
-
 package main
 
-
-
 import (
-
 	"flag"
-
 	"os"
-
-
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
-
-
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -25,25 +16,16 @@ import (
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-
-
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
 )
-
-
 
 var (
-
-	scheme   = runtime.NewScheme()
+	scheme = runtime.NewScheme()
 
 	setupLog = ctrl.Log.WithName("setup")
-
 )
-
-
 
 func init() {
 
@@ -52,8 +34,6 @@ func init() {
 	utilruntime.Must(nephoranv1.AddToScheme(scheme))
 
 }
-
-
 
 func main() {
 
@@ -72,56 +52,45 @@ func main() {
 	opts := zap.Options{
 
 		Development: true,
-
 	}
 
 	opts.BindFlags(flag.CommandLine)
 
 	flag.Parse()
 
-
-
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
-
-
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 
-		Scheme:                 scheme,
+		Scheme: scheme,
 
 		HealthProbeBindAddress: probeAddr,
 
-		LeaderElection:         enableLeaderElection,
+		LeaderElection: enableLeaderElection,
 
-		LeaderElectionID:       "oran-adaptor.nephoran.io",
-
+		LeaderElectionID: "oran-adaptor.nephoran.io",
 	})
 
 	if err != nil {
 
 		setupLog.Error(err, "unable to start manager")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
-
-
 
 	if err = (&controllers.OranAdaptorReconciler{
 
 		Client: mgr.GetClient(),
 
 		Scheme: mgr.GetScheme(),
-
 	}).SetupWithManager(mgr); err != nil {
 
 		setupLog.Error(err, "unable to create controller", "controller", "OranAdaptor")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
-
-
 
 	setupLog.Info("starting manager")
 
@@ -129,9 +98,8 @@ func main() {
 
 		setupLog.Error(err, "problem running manager")
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 
 }
-

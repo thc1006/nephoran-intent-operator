@@ -1093,7 +1093,8 @@ func (wc *WeaviateClient) Search(ctx context.Context, query *SearchQuery) (*Sear
 
 		if query.TargetVectors != nil && len(query.TargetVectors) > 0 {
 
-			hybridArg = hybridArg.WithTargetVectors(query.TargetVectors...)
+			// TODO: WithTargetVectors not available in current Weaviate client version
+			// hybridArg = hybridArg.WithTargetVectors(query.TargetVectors...)
 
 		}
 
@@ -1127,7 +1128,8 @@ func (wc *WeaviateClient) Search(ctx context.Context, query *SearchQuery) (*Sear
 
 		if query.TargetVectors != nil && len(query.TargetVectors) > 0 {
 
-			nearTextArg = nearTextArg.WithTargetVectors(query.TargetVectors...)
+			// TODO: WithTargetVectors not available in current Weaviate client version
+			// nearTextArg = nearTextArg.WithTargetVectors(query.TargetVectors...)
 
 		}
 

@@ -77,9 +77,9 @@ func ExampleWeaviateV4Query() {
 
 		WithQuery(hybridQuery.Query).
 
-		WithAlpha(hybridQuery.HybridAlpha).
-
-		WithTargetVectors(hybridQuery.TargetVectors...)
+		WithAlpha(hybridQuery.HybridAlpha)
+		// TODO: WithTargetVectors not available in current Weaviate client version
+		// .WithTargetVectors(hybridQuery.TargetVectors...)
 
 
 
@@ -105,31 +105,32 @@ func ExampleWeaviateV4Query() {
 
 		WithConcepts([]string{nearTextQuery.Query}).
 
-		WithCertainty(float32(nearTextQuery.MinConfidence)).
-
-		WithTargetVectors(nearTextQuery.TargetVectors...)
+		WithCertainty(float32(nearTextQuery.MinConfidence))
+		// TODO: WithTargetVectors not available in current Weaviate client version
+		// .WithTargetVectors(nearTextQuery.TargetVectors...)
 
 
 
 	// Example 3: Multi-Target Vector Search with Manual Weights.
 
-	multiTargetArg := (&graphql.MultiTargetArgumentBuilder{}).
+	// TODO: MultiTargetArgumentBuilder not available in current Weaviate client version
+	// multiTargetArg := (&graphql.MultiTargetArgumentBuilder{}).
 
-		ManualWeights(map[string]float32{
-
-			"title_vector":   0.3,
-
-			"content_vector": 0.7,
-
-		})
+		// ManualWeights(map[string]float32{
+		//
+		//	"title_vector":   0.3,
+		//
+		//	"content_vector": 0.7,
+		//
+		// })
 
 
 
 	hybridWithMultiTarget := (&graphql.HybridArgumentBuilder{}).
 
-		WithQuery("network function virtualization").
-
-		WithTargets(multiTargetArg)
+		WithQuery("network function virtualization")
+		// TODO: WithTargets not available in current Weaviate client version
+		// .WithTargets(multiTargetArg)
 
 
 

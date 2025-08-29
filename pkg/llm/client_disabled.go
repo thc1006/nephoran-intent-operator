@@ -337,7 +337,9 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 		})
 
-		return cached, nil
+		if cachedStr, ok := cached.(string); ok {
+			return cachedStr, nil
+		}
 
 	}
 

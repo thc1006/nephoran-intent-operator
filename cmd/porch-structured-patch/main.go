@@ -59,7 +59,7 @@ func main() {
 
 		flag.Usage()
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 
@@ -77,7 +77,7 @@ func main() {
 
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 
-		log.Fatal(1)
+		os.Exit(1)
 
 	}
 

@@ -11,6 +11,8 @@ import (
 
 	"context"
 
+	"time"
+
 )
 
 
@@ -89,6 +91,15 @@ func (c *noOpRAGClient) Shutdown(ctx context.Context) error {
 
 	return nil
 
+}
+
+// Health returns the health status (always unhealthy for no-op).
+func (c *noOpRAGClient) Health(ctx context.Context) (*HealthStatus, error) {
+	return &HealthStatus{
+		Status:    "unhealthy",
+		Timestamp: time.Now(),
+		Details:   map[string]string{"reason": "RAG support is disabled"},
+	}, nil
 }
 
 

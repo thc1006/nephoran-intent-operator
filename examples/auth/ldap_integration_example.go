@@ -181,7 +181,7 @@ func main() {
 
 // setupAuthRoutes configures authentication-related routes.
 
-func setupAuthRoutes(router *mux.Router, authManager *auth.AuthManager) {
+func setupAuthRoutes(router *mux.Router, authManager *auth.Manager) {
 
 	// Health check endpoint.
 
@@ -269,7 +269,7 @@ func setupOAuth2Routes(router *mux.Router, oauth2Manager *auth.OAuth2Manager) {
 
 // setupProtectedRoutes configures routes that require authentication.
 
-func setupProtectedRoutes(router *mux.Router, authManager *auth.AuthManager) {
+func setupProtectedRoutes(router *mux.Router, authManager *auth.Manager) {
 
 	// Apply authentication middleware to protected routes.
 
@@ -329,7 +329,7 @@ func setupProtectedRoutes(router *mux.Router, authManager *auth.AuthManager) {
 
 
 
-func handleAuthInfo(authManager *auth.AuthManager) http.HandlerFunc {
+func handleAuthInfo(authManager *auth.Manager) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -567,7 +567,7 @@ func handleOAuth2Callback(oauth2Manager *auth.OAuth2Manager) http.HandlerFunc {
 
 
 
-func handleTokenRefresh(authManager *auth.AuthManager) http.HandlerFunc {
+func handleTokenRefresh(authManager *auth.Manager) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -625,7 +625,7 @@ func handleTokenRefresh(authManager *auth.AuthManager) http.HandlerFunc {
 
 
 
-func handleSessionInfo(authManager *auth.AuthManager) http.HandlerFunc {
+func handleSessionInfo(authManager *auth.Manager) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -691,7 +691,7 @@ func handleSessionInfo(authManager *auth.AuthManager) http.HandlerFunc {
 
 
 
-func handleSessionInvalidate(authManager *auth.AuthManager) http.HandlerFunc {
+func handleSessionInvalidate(authManager *auth.Manager) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
