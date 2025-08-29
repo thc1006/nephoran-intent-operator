@@ -1,3 +1,4 @@
+// Package ves implements VES (Virtual Event Streaming) event generation and processing.
 package ves
 
 import (
