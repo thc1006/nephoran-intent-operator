@@ -983,7 +983,12 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 
 		tokenStats := c.tokenTracker.GetStats()
 
-		totalTokens := int(tokenStats["total_tokens"].(int64))
+		totalTokensInt64 := tokenStats["total_tokens"].(int64)
+		if totalTokensInt64 > 2147483647 || totalTokensInt64 < 0 {
+			c.logger.Warn("Total tokens out of int range", "tokens", totalTokensInt64)
+			totalTokensInt64 = 2147483647 // Cap at max int value
+		}
+		totalTokens := int(totalTokensInt64)
 
 		// Record LLM request metrics.
 

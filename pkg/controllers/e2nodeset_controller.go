@@ -352,7 +352,7 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		logger.Info("Added finalizer to E2NodeSet")
 
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 
 	}
 

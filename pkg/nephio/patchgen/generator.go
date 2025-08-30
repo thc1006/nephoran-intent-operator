@@ -185,8 +185,7 @@ func createPackage(
 
 }
 
-// Package represents a generated package with security features.
-
+// Package represents a generated Nephio package with metadata and configuration.
 type Package struct {
 	Name string
 

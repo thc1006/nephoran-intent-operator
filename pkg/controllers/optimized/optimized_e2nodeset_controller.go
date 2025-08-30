@@ -318,7 +318,7 @@ func (r *OptimizedE2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 		}
 
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 
 	}
 

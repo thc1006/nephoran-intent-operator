@@ -962,45 +962,30 @@ func (cnf *CNFDeployment) ValidateCNFDeployment() error {
 	errors := make([]string, 0, 4)
 
 	// Validate function compatibility with CNF type.
-
 	if err := cnf.validateFunctionCompatibility(); err != nil {
-
 		errors = append(errors, err.Error())
-
 	}
 
 	// Validate deployment strategy configuration.
-
 	if err := cnf.validateDeploymentStrategy(); err != nil {
-
 		errors = append(errors, err.Error())
-
 	}
 
 	// Validate resource requirements.
-
 	if err := cnf.validateResources(); err != nil {
-
 		errors = append(errors, err.Error())
-
 	}
 
 	// Validate auto-scaling configuration.
-
 	if err := cnf.validateAutoScaling(); err != nil {
-
 		errors = append(errors, err.Error())
-
 	}
 
 	if len(errors) > 0 {
-
 		return fmt.Errorf("validation errors: %s", strings.Join(errors, "; "))
-
 	}
 
 	return nil
-
 }
 
 // validateFunctionCompatibility ensures CNF function is compatible with CNF type.

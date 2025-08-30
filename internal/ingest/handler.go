@@ -1,6 +1,7 @@
-// Package ingest provides HTTP handlers and validation mechanisms.
-
+// Package ingest provides HTTP handlers and validation mechanisms
 // for processing network intent commands from various input sources.
+// It supports both JSON and plain text input formats with comprehensive
+// security validation and intent parsing capabilities.
 
 package ingest
 
@@ -17,13 +18,13 @@ import (
 	"time"
 )
 
-// ValidatorInterface defines the contract for validation.
+// ValidatorInterface defines the contract for validation of network intents.
 
 type ValidatorInterface interface {
 	ValidateBytes([]byte) (*Intent, error)
 }
 
-// Handler represents a handler.
+// Handler represents an HTTP handler for processing network intent requests.
 
 type Handler struct {
 	v ValidatorInterface
@@ -33,7 +34,7 @@ type Handler struct {
 	provider IntentProvider
 }
 
-// NewHandler performs newhandler operation.
+// NewHandler creates a new Handler instance with the specified validator, output directory, and intent provider.
 
 func NewHandler(v ValidatorInterface, outDir string, provider IntentProvider) *Handler {
 
@@ -49,7 +50,7 @@ func NewHandler(v ValidatorInterface, outDir string, provider IntentProvider) *H
 
 var simple = regexp.MustCompile(`(?i)scale\s+([a-z0-9\-]+)\s+to\s+(\d+)\s+in\s+ns\s+([a-z0-9\-]+)`)
 
-// HandleIntent supports two input types:.
+// HandleIntent supports two input types:
 
 // 1) JSON (Content-Type: application/json) - direct validation.
 

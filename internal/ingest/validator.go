@@ -11,7 +11,7 @@ import (
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 )
 
-// Intent represents a intent.
+// Intent represents a network scaling intent with target deployment and replica configuration.
 
 type Intent struct {
 	IntentType string `json:"intent_type"`

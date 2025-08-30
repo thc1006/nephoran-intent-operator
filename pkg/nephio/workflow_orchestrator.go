@@ -1089,7 +1089,7 @@ func (nwo *NephioWorkflowOrchestrator) ExecuteNephioWorkflow(ctx context.Context
 
 func (nwo *NephioWorkflowOrchestrator) selectWorkflow(ctx context.Context, intent *v1.NetworkIntent) (*WorkflowDefinition, error) {
 
-	ctx, span := nwo.tracer.Start(ctx, "select-workflow")
+	_, span := nwo.tracer.Start(ctx, "select-workflow")
 
 	defer span.End()
 

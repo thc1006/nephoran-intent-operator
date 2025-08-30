@@ -8899,18 +8899,8 @@ func NewPolicyEngine(config *PolicyConfig) (*PolicyEngine, error) {
 
 func NewConflictAnalyzer(config *ConflictAnalyzerConfig) *ConflictAnalyzer {
 
-	if config == nil {
-
-		config = &ConflictAnalyzerConfig{
-
-			AnalysisDepth: 5,
-
-			Timeout: time.Minute,
-
-			EnableMLPrediction: false,
-		}
-
-	}
+	// TODO: Use config for analyzer configuration when struct is updated
+	_ = config // Config parameter acknowledged but not used in current implementation
 
 	return &ConflictAnalyzer{
 

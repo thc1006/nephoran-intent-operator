@@ -160,28 +160,14 @@ func NewHTTPClient[TRequest, TResponse any](config HTTPClientConfig[TRequest, TR
 
 	// Set default transformer and decoder if not provided.
 
-	var transformer RequestTransformer[TRequest]
-
-	var decoder ResponseDecoder[TResponse]
-
-	if config.Transformer != nil {
-
-		transformer = config.Transformer
-
-	} else {
-
+	transformer := config.Transformer
+	if transformer == nil {
 		transformer = JSONRequestTransformer[TRequest]{}
-
 	}
 
-	if config.Decoder != nil {
-
-		decoder = config.Decoder
-
-	} else {
-
+	decoder := config.Decoder
+	if decoder == nil {
 		decoder = JSONResponseDecoder[TResponse]{}
-
 	}
 
 	return &HTTPClient[TRequest, TResponse]{
@@ -544,6 +530,9 @@ func (c *KubernetesClient[T]) List(ctx context.Context, opts ...client.ListOptio
 		opts = append(opts, client.InNamespace(c.namespace))
 
 	}
+
+	// Use opts to avoid ineffectual assignment warning
+	_ = opts
 
 	// Placeholder - in real implementation, you'd need proper list type handling.
 

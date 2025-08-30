@@ -28,7 +28,7 @@ type OptimizationEngine struct {
 
 	goroutinePool *GoroutinePool
 
-	rateLimiters map[string]workqueue.RateLimiter
+	rateLimiters map[string]workqueue.TypedRateLimiter[string]
 
 	metrics *MetricsCollector
 
@@ -139,7 +139,7 @@ func NewOptimizationEngine() *OptimizationEngine {
 
 		goroutinePool: NewGoroutinePool(200),
 
-		rateLimiters: make(map[string]workqueue.RateLimiter),
+		rateLimiters: make(map[string]workqueue.TypedRateLimiter[string]),
 
 		metrics: NewMetricsCollector(),
 	}
@@ -1047,7 +1047,7 @@ func (e *OptimizationEngine) initializeRateLimiters() {
 
 	// API rate limiter - 100 requests per second.
 
-	e.rateLimiters["api"] = workqueue.NewItemExponentialFailureRateLimiter(
+	e.rateLimiters["api"] = workqueue.NewTypedItemExponentialFailureRateLimiter[string](
 
 		time.Millisecond*10, // base delay
 
@@ -1057,7 +1057,7 @@ func (e *OptimizationEngine) initializeRateLimiters() {
 
 	// Database rate limiter - 50 queries per second.
 
-	e.rateLimiters["database"] = workqueue.NewItemExponentialFailureRateLimiter(
+	e.rateLimiters["database"] = workqueue.NewTypedItemExponentialFailureRateLimiter[string](
 
 		time.Millisecond*20,
 
@@ -1066,7 +1066,7 @@ func (e *OptimizationEngine) initializeRateLimiters() {
 
 	// LLM rate limiter - 10 requests per second.
 
-	e.rateLimiters["llm"] = workqueue.NewItemExponentialFailureRateLimiter(
+	e.rateLimiters["llm"] = workqueue.NewTypedItemExponentialFailureRateLimiter[string](
 
 		time.Millisecond*100,
 

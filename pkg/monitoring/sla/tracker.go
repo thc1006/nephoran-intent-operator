@@ -1884,7 +1884,7 @@ func (t *Tracker) calculateBusinessImpact(intentType, userID string) float64 {
 
 	// Adjust based on user type (simplified).
 
-	if userID != "" && len(userID) > 0 {
+	if userID != "" {
 
 		// Premium users have higher impact.
 
@@ -1941,7 +1941,7 @@ func (t *Tracker) getUserType(userID string) string {
 
 	// Simplified user type detection.
 
-	if len(userID) > 0 {
+	if userID != "" {
 
 		switch userID[0] {
 

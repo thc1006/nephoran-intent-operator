@@ -1071,7 +1071,7 @@ func (r *CoordinationController) handleConflicts(ctx context.Context, networkInt
 
 	log.Info("All conflicts resolved, continuing processing")
 
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{RequeueAfter: time.Second}, nil
 
 }
 
@@ -1127,7 +1127,7 @@ func (r *CoordinationController) handlePhaseCompletion(ctx context.Context, netw
 
 		// Continue to next phase.
 
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 
 	}
 
@@ -1323,7 +1323,7 @@ func (r *CoordinationController) attemptRecovery(ctx context.Context, networkInt
 
 		// Retry the phase immediately.
 
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 
 	}
 

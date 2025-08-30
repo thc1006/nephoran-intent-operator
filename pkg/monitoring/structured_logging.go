@@ -181,7 +181,7 @@ func NewStructuredLogger(config *LogConfig) (*StructuredLogger, error) {
 
 		var err error
 
-		output, err = os.OpenFile(config.Output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+		output, err = os.OpenFile(config.Output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o640)
 
 		if err != nil {
 

@@ -2394,27 +2394,27 @@ func (k *KubernetesProvider) UpdateSecret(ctx context.Context, namespace, name s
 
 func (k *KubernetesProvider) convertDeploymentToResourceResponse(deployment *appsv1.Deployment) *ResourceResponse {
 
-	status := "unknown"
+	var status string
 
-	health := HealthStatusUnknown
+	var health HealthStatus
 
 	if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
 
 		status = "ready"
 
-		health = HealthStatusHealthy
+		health = HealthStatus{Status: HealthStatusHealthy}
 
 	} else if deployment.Status.ReadyReplicas > 0 {
 
 		status = "partially_ready"
 
-		health = HealthStatusHealthy
+		health = HealthStatus{Status: HealthStatusHealthy}
 
 	} else {
 
 		status = "not_ready"
 
-		health = HealthStatusUnhealthy
+		health = HealthStatus{Status: HealthStatusUnhealthy}
 
 	}
 
@@ -2430,7 +2430,7 @@ func (k *KubernetesProvider) convertDeploymentToResourceResponse(deployment *app
 
 		Status: status,
 
-		Health: health,
+		Health: health.Status,
 
 		Labels: deployment.Labels,
 
@@ -2447,11 +2447,11 @@ func (k *KubernetesProvider) convertServiceToResourceResponse(service *corev1.Se
 
 	status := "active"
 
-	health := HealthStatusHealthy
+	health := HealthStatus{Status: HealthStatusHealthy}
 
 	if service.Spec.ClusterIP == "" || service.Spec.ClusterIP == "None" {
 
-		health = HealthStatusUnknown
+		health = HealthStatus{Status: HealthStatusUnknown}
 
 	}
 
@@ -2467,7 +2467,7 @@ func (k *KubernetesProvider) convertServiceToResourceResponse(service *corev1.Se
 
 		Status: status,
 
-		Health: health,
+		Health: health.Status,
 
 		Labels: service.Labels,
 
@@ -2538,21 +2538,21 @@ func (k *KubernetesProvider) convertPVCToResourceResponse(pvc *corev1.Persistent
 
 	status := strings.ToLower(string(pvc.Status.Phase))
 
-	health := HealthStatusUnknown
+	var health HealthStatus
 
 	switch pvc.Status.Phase {
 
 	case corev1.ClaimBound:
 
-		health = HealthStatusHealthy
+		health = HealthStatus{Status: HealthStatusHealthy}
 
 	case corev1.ClaimPending:
 
-		health = HealthStatusUnknown
+		health = HealthStatus{Status: HealthStatusUnknown}
 
 	default:
 
-		health = HealthStatusUnhealthy
+		health = HealthStatus{Status: HealthStatusUnhealthy}
 
 	}
 
@@ -2568,7 +2568,7 @@ func (k *KubernetesProvider) convertPVCToResourceResponse(pvc *corev1.Persistent
 
 		Status: status,
 
-		Health: health,
+		Health: health.Status,
 
 		Labels: pvc.Labels,
 
@@ -2585,13 +2585,13 @@ func (k *KubernetesProvider) convertIngressToResourceResponse(ingress *networkin
 
 	status := "active"
 
-	health := HealthStatusHealthy
+	health := HealthStatus{Status: HealthStatusHealthy}
 
 	// Check if ingress has load balancer status.
 
 	if len(ingress.Status.LoadBalancer.Ingress) == 0 {
 
-		health = HealthStatusUnknown
+		health = HealthStatus{Status: HealthStatusUnknown}
 
 	}
 
@@ -2607,7 +2607,7 @@ func (k *KubernetesProvider) convertIngressToResourceResponse(ingress *networkin
 
 		Status: status,
 
-		Health: health,
+		Health: health.Status,
 
 		Labels: ingress.Labels,
 
@@ -2622,9 +2622,9 @@ func (k *KubernetesProvider) convertIngressToResourceResponse(ingress *networkin
 
 func (k *KubernetesProvider) convertDeploymentToResponse(deployment *appsv1.Deployment) *DeploymentResponse {
 
-	status := "unknown"
+	var status string
 
-	phase := "unknown"
+	var phase string
 
 	if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
 

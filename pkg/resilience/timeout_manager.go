@@ -2,6 +2,7 @@ package resilience
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -614,7 +615,7 @@ func isTimeoutError(err error) bool {
 
 	// Check for context timeout.
 
-	if err == context.DeadlineExceeded {
+	if errors.Is(err, context.DeadlineExceeded) {
 
 		return true
 

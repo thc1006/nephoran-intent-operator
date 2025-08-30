@@ -570,7 +570,7 @@ func (ac *AvailabilityCalculator) calculateAvailabilityForEntity(
 
 ) (*AvailabilityCalculation, error) {
 
-	ctx, span := ac.tracer.Start(ctx, "calculate-availability-for-entity",
+	_, span := ac.tracer.Start(ctx, "calculate-availability-for-entity",
 
 		trace.WithAttributes(
 
@@ -1689,7 +1689,7 @@ func (ac *AvailabilityCalculator) runCleanup(ctx context.Context) {
 
 func (ac *AvailabilityCalculator) performCleanup(ctx context.Context) {
 
-	ctx, span := ac.tracer.Start(ctx, "perform-cleanup")
+	_, span := ac.tracer.Start(ctx, "perform-cleanup")
 
 	defer span.End()
 

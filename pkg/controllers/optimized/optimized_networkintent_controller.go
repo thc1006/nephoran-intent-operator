@@ -319,7 +319,7 @@ func (r *OptimizedNetworkIntentReconciler) Reconcile(ctx context.Context, req ct
 
 		}
 
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 
 	}
 
@@ -403,7 +403,7 @@ func (r *OptimizedNetworkIntentReconciler) executeOptimizedPipeline(
 
 		phaseTimer.Finish()
 
-		if err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if err != nil || result.RequeueAfter > 0 {
 
 			return result, err
 
@@ -423,7 +423,7 @@ func (r *OptimizedNetworkIntentReconciler) executeOptimizedPipeline(
 
 		phaseTimer.Finish()
 
-		if err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if err != nil || result.RequeueAfter > 0 {
 
 			return result, err
 
@@ -443,7 +443,7 @@ func (r *OptimizedNetworkIntentReconciler) executeOptimizedPipeline(
 
 		phaseTimer.Finish()
 
-		if err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if err != nil || result.RequeueAfter > 0 {
 
 			return result, err
 
@@ -463,7 +463,7 @@ func (r *OptimizedNetworkIntentReconciler) executeOptimizedPipeline(
 
 		phaseTimer.Finish()
 
-		if err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if err != nil || result.RequeueAfter > 0 {
 
 			return result, err
 

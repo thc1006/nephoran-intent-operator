@@ -1593,7 +1593,7 @@ func (sm *StorageManager) writeToPartition(partition *DiskPartition, seriesName 
 
 	// Open or create partition file.
 
-	file, err := os.OpenFile(partition.FilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	file, err := os.OpenFile(partition.FilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o640)
 
 	if err != nil {
 

@@ -351,7 +351,7 @@ func (tm *TimeoutManager) matchesPattern(operationName, pattern string) bool {
 
 	}
 
-	if len(pattern) > 0 && pattern[len(pattern)-1] == '*' {
+	if pattern != "" && pattern[len(pattern)-1] == '*' {
 
 		prefix := pattern[:len(pattern)-1]
 

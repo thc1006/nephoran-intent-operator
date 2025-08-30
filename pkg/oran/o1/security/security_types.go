@@ -1,6 +1,7 @@
-// FIXME: Adding package comment per revive linter.
-
 // Package security implements O1 interface security types and authentication for O-RAN networks.
+// This package provides comprehensive security primitives including access control, policy evaluation,
+// certificate management, audit logging, and compliance reporting for O-RAN security frameworks.
+// It supports SAML, OIDC, OAuth2 authentication providers and implements WG11 security specifications.
 
 
 package security

@@ -401,7 +401,7 @@ type KrmResource struct {
 
 func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *porch.PackageRevision, cluster *WorkloadCluster) (map[string][]byte, error) {
 
-	ctx, span := csc.tracer.Start(ctx, "prepare-package-content")
+	_, span := csc.tracer.Start(ctx, "prepare-package-content")
 
 	defer span.End()
 
@@ -807,7 +807,7 @@ func (csc *ConfigSyncClient) ValidateRepository(ctx context.Context) error {
 
 func (csc *ConfigSyncClient) GetSyncStatus(ctx context.Context, packageName, clusterName string) (*SyncResult, error) {
 
-	ctx, span := csc.tracer.Start(ctx, "get-sync-status")
+	_, span := csc.tracer.Start(ctx, "get-sync-status")
 
 	defer span.End()
 

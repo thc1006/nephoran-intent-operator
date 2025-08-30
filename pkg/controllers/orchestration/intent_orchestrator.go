@@ -591,7 +591,7 @@ func (o *IntentOrchestrator) scheduleNextPhase(ctx context.Context, intent *neph
 
 	log.Info("Scheduling next phase")
 
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{RequeueAfter: time.Second}, nil
 
 }
 

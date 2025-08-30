@@ -177,15 +177,16 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 
 				// Apply transforms.
 
+				var transformErr error
 				for _, transform := range cm.transforms {
 
 					transformResult := transform(config)
 
 					if transformResult.IsErr() {
 
-						lastErr = transformResult.Error()
+						transformErr = transformResult.Error()
 
-						continue
+						break
 
 					}
 
@@ -195,48 +196,63 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 
 				// Validate configuration.
 
-				for _, validator := range cm.validators {
+				var validationErr error
+				if transformErr == nil {
+					for _, validator := range cm.validators {
 
-					validationResult := validator(config)
+						validationResult := validator(config)
 
-					if validationResult.IsErr() {
+						if validationResult.IsErr() {
 
-						lastErr = validationResult.Error()
+							validationErr = validationResult.Error()
 
-						continue
+							break
+
+						}
+
+						if !validationResult.Value() {
+
+							validationErr = fmt.Errorf("configuration validation failed for key: %s", key)
+
+							break
+
+						}
 
 					}
+				}
 
-					if !validationResult.Value() {
+				// If no errors during transform/validation, return config
+				if transformErr == nil && validationErr == nil {
 
-						lastErr = fmt.Errorf("configuration validation failed for key: %s", key)
+					// Cache the result.
 
-						continue
+					entry := ConfigEntry[T]{
 
+						Value: config,
+
+						Source: source,
+
+						Timestamp: time.Now(),
+
+						Version: fmt.Sprintf("%d", time.Now().Unix()),
 					}
+
+					cm.cache.Set(key, entry)
+
+					return Ok[T, error](config)
 
 				}
 
-				// Cache the result.
-
-				entry := ConfigEntry[T]{
-
-					Value: config,
-
-					Source: source,
-
-					Timestamp: time.Now(),
-
-					Version: fmt.Sprintf("%d", time.Now().Unix()),
+				// Set lastErr based on which error occurred
+				if transformErr != nil {
+					lastErr = transformErr
+				} else if validationErr != nil {
+					lastErr = validationErr
 				}
 
-				cm.cache.Set(key, entry)
-
-				return Ok[T, error](config)
-
+			} else {
+				lastErr = result.Error()
 			}
-
-			lastErr = result.Error()
 
 		}
 

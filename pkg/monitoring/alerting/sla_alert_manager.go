@@ -8,7 +8,7 @@ package alerting
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -1385,7 +1385,7 @@ func (sam *SLAAlertManager) generateFingerprint(slaType SLAType, window AlertWin
 
 		window.ShortWindow.String())
 
-	return fmt.Sprintf("%x", md5.Sum([]byte(data)))
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
 
 }
 
@@ -1395,7 +1395,7 @@ func (sam *SLAAlertManager) generateHash(alertID string, timestamp time.Time) st
 
 	data := fmt.Sprintf("%s-%d", alertID, timestamp.UnixNano())
 
-	return fmt.Sprintf("%x", md5.Sum([]byte(data)))[:8]
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(data)))[:8]
 
 }
 

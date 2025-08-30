@@ -167,12 +167,14 @@ func (ws *WebSocketServer) processClientMessage(conn *websocket.Conn, message We
 
 		// Respond to client ping.
 
-		ws.sendMessage(conn, WebSocketMessage{
+		if err := ws.sendMessage(conn, WebSocketMessage{
 
 			Type: "pong",
 
 			Payload: "pong",
-		})
+		}); err != nil {
+			ws.logger.Error("Failed to send pong message", zap.Error(err))
+		}
 
 	default:
 

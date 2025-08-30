@@ -2351,7 +2351,7 @@ func (po *PlacementOptimizer) balancedStrategy(workload *WorkloadDeployment, clu
 
 		// Health and reliability (30%).
 
-		healthScore := 0.3
+		var healthScore float64
 
 		if cluster.Status == ClusterStatusHealthy {
 

@@ -656,11 +656,10 @@ func (fw *Go124TestFramework) ParallelTest(testFunc func(*testing.T)) {
 
 	fw.t.Parallel()
 
-	// Setup parallel test context.
-
-	ctx := context.WithValue(context.Background(), "test_parallel", true)
-
-	ctx = context.WithValue(ctx, "test_id", fw.generateTestID())
+	// Setup parallel test context (for potential future use).
+	// Currently not used, but reserved for test coordination
+	_ = context.WithValue(context.Background(), "test_parallel", true)
+	_ = fw.generateTestID() // Generate test ID for tracking
 
 	// Track parallel execution.
 
@@ -716,11 +715,10 @@ func (fw *Go124TestFramework) SubTest(name string, testFunc func(*testing.T)) bo
 
 		subFramework.configuration = fw.configuration
 
-		// Setup subtest context.
-
-		ctx := context.WithValue(context.Background(), "parent_test", fw.t.Name())
-
-		ctx = context.WithValue(ctx, "subtest_name", name)
+		// Setup subtest context (for potential future use).
+		// Currently not used, but reserved for test coordination
+		_ = context.WithValue(context.Background(), "parent_test", fw.t.Name())
+		_ = name // Acknowledge name parameter
 
 		start := time.Now()
 

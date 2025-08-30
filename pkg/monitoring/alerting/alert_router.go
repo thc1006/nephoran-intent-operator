@@ -6,7 +6,7 @@ package alerting
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -1158,7 +1158,7 @@ func (ar *AlertRouter) deduplicateAlert(alert *EnrichedAlert) bool {
 
 		ar.alertFingerprints[fingerprint] = &AlertGroup{
 
-			ID: fmt.Sprintf("group-%x", md5.Sum([]byte(fingerprint))),
+			ID: fmt.Sprintf("group-%x", sha256.Sum256([]byte(fingerprint))),
 
 			Fingerprint: fingerprint,
 
@@ -1201,7 +1201,7 @@ func (ar *AlertRouter) deduplicateAlert(alert *EnrichedAlert) bool {
 
 	ar.alertFingerprints[fingerprint] = &AlertGroup{
 
-		ID: fmt.Sprintf("group-%x", md5.Sum([]byte(fmt.Sprintf("%s-%d", fingerprint, time.Now().Unix())))),
+		ID: fmt.Sprintf("group-%x", sha256.Sum256([]byte(fmt.Sprintf("%s-%d", fingerprint, time.Now().Unix())))),
 
 		Fingerprint: fingerprint,
 
@@ -1253,7 +1253,7 @@ func (ar *AlertRouter) generateDeduplicationFingerprint(alert *SLAAlert) string 
 
 	data := strings.Join(components, "|")
 
-	return fmt.Sprintf("%x", md5.Sum([]byte(data)))
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
 
 }
 

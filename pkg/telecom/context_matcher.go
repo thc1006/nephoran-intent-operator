@@ -1,3 +1,6 @@
+// Package telecom provides intelligent context matching and knowledge base services
+// for telecommunications network intents. It includes pattern matching, semantic analysis,
+// and context extraction capabilities for O-RAN network functions and configurations.
 package telecom
 
 import (

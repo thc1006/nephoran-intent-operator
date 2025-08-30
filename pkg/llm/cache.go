@@ -4,7 +4,7 @@
 package llm
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"log/slog"
 	"strings"
@@ -1203,7 +1203,7 @@ func GenerateCacheKey(components ...string) string {
 
 	combined := strings.Join(components, "|")
 
-	hash := md5.Sum([]byte(combined))
+	hash := sha256.Sum256([]byte(combined))
 
 	return hex.EncodeToString(hash[:])
 

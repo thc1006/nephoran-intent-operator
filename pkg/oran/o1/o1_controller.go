@@ -543,7 +543,7 @@ func (r *O1InterfaceController) Reconcile(ctx context.Context, req ctrl.Request)
 
 		}
 
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 
 	}
 

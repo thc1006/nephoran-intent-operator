@@ -1447,6 +1447,7 @@ func (h *DefaultSlackAlertHandler) HandleAlert(ctx context.Context, alert *Trace
 			slog.String("alert_id", alert.ID),
 
 			slog.String("channel", h.Channel),
+			slog.String("message", message),
 		)
 
 	}

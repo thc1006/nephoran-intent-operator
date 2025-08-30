@@ -1057,7 +1057,7 @@ func (ps *PersistentEventStore) GetEventsForIntent(ctx context.Context, intentID
 
 	// Parse events.
 
-	var events []ProcessingEvent
+	events := make([]ProcessingEvent, 0, len(configMap.Data))
 
 	for _, eventData := range configMap.Data {
 

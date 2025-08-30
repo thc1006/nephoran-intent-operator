@@ -1334,7 +1334,7 @@ func (c *ASN1Codec) decodeRANFunction(r io.Reader) (RANFunctionItem, error) {
 
 	oidStr := string(oid)
 
-	if len(oidStr) > 0 {
+	if oidStr != "" {
 
 		fn.RANFunctionOID = &oidStr
 

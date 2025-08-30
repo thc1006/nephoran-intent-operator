@@ -1066,13 +1066,13 @@ func (m *IstioMesh) RegisterService(ctx context.Context, service *abstraction.Se
 
 	// We can ensure the service has proper annotations for injection.
 
-	svc, err := m.kubeClient.CoreV1().Services(service.Namespace).Get(ctx, service.Name, metav1.GetOptions{})
+	_, err := m.kubeClient.CoreV1().Services(service.Namespace).Get(ctx, service.Name, metav1.GetOptions{})
 
 	if err != nil {
 
 		// Create service if it doesn't exist.
 
-		svc = &corev1.Service{
+		svc := &corev1.Service{
 
 			ObjectMeta: metav1.ObjectMeta{
 

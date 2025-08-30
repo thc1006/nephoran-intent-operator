@@ -479,7 +479,7 @@ func (el *EventLog) openCurrentFile() error {
 
 	filename := filepath.Join(el.dir, fmt.Sprintf("events-%d.log", time.Now().Unix()))
 
-	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o640)
 
 	if err != nil {
 

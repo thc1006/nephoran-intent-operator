@@ -31,6 +31,8 @@ limitations under the License.
 
 
 // Package common provides shared types and utilities for the Nephoran Intent Operator API.
+// This package includes common deployment strategies, health check configurations,
+// secret references, and health status types used across the operator components.
 
 
 package common

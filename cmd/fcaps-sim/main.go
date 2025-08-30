@@ -275,11 +275,10 @@ func loadFCAPSEvents(inputFile string) ([]fcaps.FCAPSEvent, error) {
 
 	// Convert map to slice for processing order.
 
-	var events []fcaps.FCAPSEvent
+	orderedKeys := []string{"fault_example", "measurement_example", "heartbeat_example"}
+	events := make([]fcaps.FCAPSEvent, 0, len(orderedKeys))
 
 	// Process in a predictable order: fault, measurement, heartbeat.
-
-	orderedKeys := []string{"fault_example", "measurement_example", "heartbeat_example"}
 
 	for _, key := range orderedKeys {
 

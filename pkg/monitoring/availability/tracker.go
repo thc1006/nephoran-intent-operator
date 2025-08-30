@@ -713,7 +713,7 @@ func (t *MultiDimensionalTracker) runAggregation(ctx context.Context) {
 
 func (t *MultiDimensionalTracker) performAggregation(ctx context.Context) {
 
-	ctx, span := t.tracer.Start(ctx, "perform-aggregation")
+	_, span := t.tracer.Start(ctx, "perform-aggregation")
 
 	defer span.End()
 
@@ -769,7 +769,7 @@ func (t *MultiDimensionalTracker) runCleanup(ctx context.Context) {
 
 func (t *MultiDimensionalTracker) performCleanup(ctx context.Context) {
 
-	ctx, span := t.tracer.Start(ctx, "perform-cleanup")
+	_, span := t.tracer.Start(ctx, "perform-cleanup")
 
 	defer span.End()
 
@@ -1038,7 +1038,7 @@ func (slc *ServiceLayerCollector) collectEndpointMetric(ctx context.Context, end
 
 	responseTime := time.Since(start)
 
-	status := HealthUnknown
+	var status HealthStatus
 
 	var errorRate float64 = 0
 
@@ -1199,9 +1199,9 @@ func (chc *ComponentHealthCollector) Collect(ctx context.Context) ([]*Availabili
 
 func (chc *ComponentHealthCollector) collectComponentMetric(ctx context.Context, component ComponentConfig) (*AvailabilityMetric, error) {
 
-	status := HealthUnknown
+	var status HealthStatus
 
-	metadata := make(map[string]interface{})
+	var metadata map[string]interface{}
 
 	switch component.ResourceType {
 

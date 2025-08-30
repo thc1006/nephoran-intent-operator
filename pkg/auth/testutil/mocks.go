@@ -1023,7 +1023,10 @@ func (ms *OAuth2MockServer) handleOIDCDiscovery(w http.ResponseWriter, r *http.R
 
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(config)
+	if err := json.NewEncoder(w).Encode(config); err != nil {
+		http.Error(w, "Failed to encode config", http.StatusInternalServerError)
+		return
+	}
 
 }
 
@@ -1052,7 +1055,10 @@ func (ms *OAuth2MockServer) handleJWKS(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(jwks)
+	if err := json.NewEncoder(w).Encode(jwks); err != nil {
+		http.Error(w, "Failed to encode JWKS", http.StatusInternalServerError)
+		return
+	}
 
 }
 

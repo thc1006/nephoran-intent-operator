@@ -1340,7 +1340,7 @@ func (dt *DependencyTracker) runCircuitBreakerManagement(ctx context.Context) {
 
 func (dt *DependencyTracker) manageCircuitBreakers(ctx context.Context) {
 
-	ctx, span := dt.tracer.Start(ctx, "manage-circuit-breakers")
+	_, span := dt.tracer.Start(ctx, "manage-circuit-breakers")
 
 	defer span.End()
 
@@ -1416,7 +1416,7 @@ func (dt *DependencyTracker) runCascadeAnalysis(ctx context.Context) {
 
 func (dt *DependencyTracker) performCascadeAnalysis(ctx context.Context) {
 
-	ctx, span := dt.tracer.Start(ctx, "perform-cascade-analysis")
+	_, span := dt.tracer.Start(ctx, "perform-cascade-analysis")
 
 	defer span.End()
 
@@ -1695,7 +1695,7 @@ func (dt *DependencyTracker) runCleanup(ctx context.Context) {
 
 func (dt *DependencyTracker) performCleanup(ctx context.Context) {
 
-	ctx, span := dt.tracer.Start(ctx, "perform-cleanup")
+	_, span := dt.tracer.Start(ctx, "perform-cleanup")
 
 	defer span.End()
 

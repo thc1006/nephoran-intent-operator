@@ -760,7 +760,7 @@ func (cm *MultiLevelCacheManager) matchesKeyPattern(key, pattern string) bool {
 
 	// In a real implementation, this would use more sophisticated pattern matching.
 
-	return len(key) > 0 && len(pattern) > 0
+	return key != "" && pattern != ""
 
 }
 

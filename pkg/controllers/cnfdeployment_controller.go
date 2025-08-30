@@ -186,7 +186,7 @@ func (r *CNFDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 		}
 
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 
 	}
 

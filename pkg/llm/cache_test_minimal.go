@@ -287,7 +287,7 @@ func testMultipleStopCalls() {
 
 	var wg sync.WaitGroup
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 
 		wg.Add(1)
 
@@ -439,7 +439,7 @@ func testGoroutineTermination() {
 
 	// Wait for goroutine to terminate.
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 
 		runtime.GC()
 

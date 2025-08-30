@@ -1044,9 +1044,9 @@ func (r *ResourcePlanningController) estimatePerformance(ctx context.Context, re
 
 func (r *ResourcePlanningController) validateCompliance(ctx context.Context, resourcePlan *nephoranv1.ResourcePlan, resources []nephoranv1.PlannedResource) ([]nephoranv1.ComplianceStatus, []nephoranv1.ValidationResult, error) {
 
-	var complianceResults []nephoranv1.ComplianceStatus
+	complianceResults := make([]nephoranv1.ComplianceStatus, 0, len(resourcePlan.Spec.ComplianceRequirements))
 
-	var validationResults []nephoranv1.ValidationResult
+	validationResults := make([]nephoranv1.ValidationResult, 0, len(resources))
 
 	if !r.Config.ComplianceValidationEnabled {
 
@@ -1839,7 +1839,7 @@ func validateETSICompliance(plan *nephoranv1.ResourcePlan) (bool, string) {
 
 func (rps *ResourcePlanningService) PlanResources(ctx context.Context, requirements *ResourceRequirements) ([]nephoranv1.PlannedResource, error) {
 
-	var plannedResources []nephoranv1.PlannedResource
+	plannedResources := make([]nephoranv1.PlannedResource, 0, len(requirements.TargetComponents))
 
 	// Plan resources for each target component.
 

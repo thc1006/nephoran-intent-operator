@@ -96,7 +96,7 @@ func (vr ValidationResult) Error() string {
 
 	}
 
-	var messages []string
+	messages := make([]string, 0, len(vr.Errors))
 
 	for _, err := range vr.Errors {
 

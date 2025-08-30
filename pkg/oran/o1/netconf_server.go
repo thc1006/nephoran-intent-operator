@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -838,7 +839,7 @@ func (ns *NetconfServer) handleNetconfSession(ctx context.Context, session *Netc
 
 		if err := session.decoder.Decode(&rpc); err != nil {
 
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 
 				logger.Info("session closed by client", "sessionID", session.ID)
 

@@ -30,7 +30,7 @@ type BenchmarkSuite struct {
 
 	mu sync.RWMutex
 
-	rateLimiter workqueue.RateLimiter
+	rateLimiter workqueue.TypedRateLimiter[string]
 }
 
 // PerformanceBaseline represents expected performance characteristics.
@@ -160,7 +160,7 @@ func NewBenchmarkSuite() *BenchmarkSuite {
 
 		results: make([]BenchmarkResult, 0),
 
-		rateLimiter: workqueue.NewItemExponentialFailureRateLimiter(time.Millisecond*100, time.Second*10),
+		rateLimiter: workqueue.NewTypedItemExponentialFailureRateLimiter[string](time.Millisecond*100, time.Second*10),
 	}
 
 }

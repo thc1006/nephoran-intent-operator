@@ -541,7 +541,8 @@ func (t *SCTPTransport) acceptLoop(ctx context.Context) {
 
 			if err != nil {
 
-				if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				var netErr net.Error
+				if errors.As(err, &netErr) && netErr.Timeout() {
 
 					continue
 
@@ -686,7 +687,8 @@ func (t *SCTPTransport) handleConnection(conn *SCTPConnection) {
 
 		if _, err := io.ReadFull(conn.conn, lengthBytes); err != nil {
 
-			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+			var netErr net.Error
+			if errors.As(err, &netErr) && netErr.Timeout() {
 
 				// Send heartbeat.
 

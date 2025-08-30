@@ -769,7 +769,7 @@ func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
 
 func (x *TrafficSteeringXApp) findCellsByLoadLevel(levels ...LoadLevel) []*CellLoadInfo {
 
-	var cells []*CellLoadInfo
+	cells := make([]*CellLoadInfo, 0, len(x.cellLoadInfo))
 
 	for _, cellInfo := range x.cellLoadInfo {
 
@@ -861,7 +861,7 @@ func (x *TrafficSteeringXApp) findBestTargetCell(sourceCell *CellLoadInfo, candi
 
 func (x *TrafficSteeringXApp) selectUEsForSteering(sourceCell, targetCell *CellLoadInfo) []*UEInfo {
 
-	var candidates []*UEInfo
+	candidates := make([]*UEInfo, 0, 10) // Typical capacity for UE selection
 
 	// In a real implementation, this would query actual UE information.
 

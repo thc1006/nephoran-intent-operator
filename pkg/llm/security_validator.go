@@ -1269,7 +1269,7 @@ func (pid *PromptInjectionDetector) calculateComplexity(input string) int {
 
 	}
 
-	if len(input) > 0 {
+	if input != "" {
 
 		complexity += int(float64(specialChars) / float64(len(input)) * 100)
 

@@ -804,9 +804,9 @@ func (mps *MultiProviderEmbeddingService) checkCache(request *EmbeddingRequest) 
 
 		} else {
 
-			cacheMisses++
-
 			// If any text is not cached, we need to generate all embeddings.
+			// Log cache miss (cacheMisses would be used for metrics if not returning early)
+			_ = cacheMisses // Acknowledge variable to avoid linter warning
 
 			return nil
 

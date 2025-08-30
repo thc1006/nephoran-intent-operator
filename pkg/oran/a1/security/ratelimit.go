@@ -1423,7 +1423,7 @@ func (rs *RedisStore) Get(ctx context.Context, key string) (int64, error) {
 
 	val, err := rs.client.Get(ctx, key).Int64()
 
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 
 		return 0, nil
 

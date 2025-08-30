@@ -327,11 +327,7 @@ type CertificateAutomationList struct {
 
 }
 
-
-
 func init() {
-
 	SchemeBuilder.Register(&CertificateAutomation{}, &CertificateAutomationList{})
-
 }
 

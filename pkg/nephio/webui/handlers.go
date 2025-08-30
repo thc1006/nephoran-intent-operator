@@ -39,9 +39,15 @@ func NewPackageHandlers(logger *zap.Logger, kubeClient kubernetes.Interface) *Pa
 
 func (h *PackageHandlers) ListPackages(w http.ResponseWriter, r *http.Request) {
 
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil {
+		page = 0
+	}
 
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+	pageSize, err := strconv.Atoi(r.URL.Query().Get("page_size"))
+	if err != nil {
+		pageSize = 0
+	}
 
 	if page < 1 {
 
@@ -263,9 +269,15 @@ func NewClusterHandlers(logger *zap.Logger, kubeClient kubernetes.Interface) *Cl
 
 func (h *ClusterHandlers) ListClusters(w http.ResponseWriter, r *http.Request) {
 
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil {
+		page = 0
+	}
 
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+	pageSize, err := strconv.Atoi(r.URL.Query().Get("page_size"))
+	if err != nil {
+		pageSize = 0
+	}
 
 	if page < 1 {
 
@@ -390,7 +402,10 @@ func (h *NetworkIntentHandlers) SubmitIntent(w http.ResponseWriter, r *http.Requ
 
 	w.WriteHeader(http.StatusCreated)
 
-	json.NewEncoder(w).Encode(intent)
+	if err := json.NewEncoder(w).Encode(intent); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 
 }
 
@@ -398,9 +413,15 @@ func (h *NetworkIntentHandlers) SubmitIntent(w http.ResponseWriter, r *http.Requ
 
 func (h *NetworkIntentHandlers) ListIntents(w http.ResponseWriter, r *http.Request) {
 
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil {
+		page = 0
+	}
 
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+	pageSize, err := strconv.Atoi(r.URL.Query().Get("page_size"))
+	if err != nil {
+		pageSize = 0
+	}
 
 	if page < 1 {
 

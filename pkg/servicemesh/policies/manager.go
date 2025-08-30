@@ -168,7 +168,11 @@ func (m *PolicyManager) applyMTLSPolicy(ctx context.Context, policy Policy) erro
 
 			if portMap, ok := pm.(map[string]interface{}); ok {
 
-				port := int(portMap["port"].(float64))
+				portFloat := portMap["port"].(float64)
+			if portFloat < 0 || portFloat > 65535 {
+				return fmt.Errorf("port number out of range: %f", portFloat)
+			}
+			port := int(portFloat)
 
 				mode := portMap["mode"].(string)
 
@@ -258,13 +262,25 @@ func (m *PolicyManager) applyTrafficPolicy(ctx context.Context, policy Policy) e
 
 		trafficPolicy.Spec.CircuitBreaker = &abstraction.CircuitBreaker{
 
-			ConsecutiveErrors: int(cb["consecutiveErrors"].(float64)),
+			ConsecutiveErrors: func() int {
+				f := cb["consecutiveErrors"].(float64)
+				if f < 0 || f > 2147483647 {
+					panic("consecutiveErrors out of int range")
+				}
+				return int(f)
+			}(),
 
 			Interval: cb["interval"].(string),
 
 			BaseEjectionTime: cb["baseEjectionTime"].(string),
 
-			MaxEjectionPercent: int(cb["maxEjectionPercent"].(float64)),
+			MaxEjectionPercent: func() int {
+				f := cb["maxEjectionPercent"].(float64)
+				if f < 0 || f > 100 {
+					panic("maxEjectionPercent must be 0-100")
+				}
+				return int(f)
+			}(),
 		}
 
 	}
@@ -273,7 +289,13 @@ func (m *PolicyManager) applyTrafficPolicy(ctx context.Context, policy Policy) e
 
 		trafficPolicy.Spec.Retry = &abstraction.RetryPolicy{
 
-			Attempts: int(retry["attempts"].(float64)),
+			Attempts: func() int {
+				f := retry["attempts"].(float64)
+				if f < 0 || f > 2147483647 {
+					panic("attempts out of int range")
+				}
+				return int(f)
+			}(),
 
 			PerTryTimeout: retry["perTryTimeout"].(string),
 		}

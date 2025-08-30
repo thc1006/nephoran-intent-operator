@@ -1444,7 +1444,7 @@ func (dht *DependencyHealthTracker) registerDefaultDependencies() {
 
 	// LLM Processor API.
 
-	dht.RegisterDependency(&DependencyConfig{
+	if err := dht.RegisterDependency(&DependencyConfig{
 
 		Name: "llm-processor",
 
@@ -1481,7 +1481,9 @@ func (dht *DependencyHealthTracker) registerDefaultDependencies() {
 
 			FailureThreshold: 0.6,
 		},
-	})
+	}); err != nil {
+		dht.logger.Error("Failed to register llm-processor dependency", "error", err)
+	}
 
 	// RAG API - Smart endpoint detection.
 

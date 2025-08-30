@@ -1205,7 +1205,7 @@ func (me *MultiError) Error() string {
 
 	}
 
-	var messages []string
+	messages := make([]string, 0, len(me.Errors))
 
 	for i, err := range me.Errors {
 

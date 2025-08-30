@@ -113,7 +113,7 @@ func (cb *AdvancedCircuitBreaker) Execute(ctx context.Context, operation func() 
 
 	// Start tracing.
 
-	ctx, span := cb.tracer.Start(ctx, "circuit_breaker.execute")
+	_, span := cb.tracer.Start(ctx, "circuit_breaker.execute")
 
 	defer span.End()
 
