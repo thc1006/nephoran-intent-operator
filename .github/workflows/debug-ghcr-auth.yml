@@ -1,11 +1,16 @@
 # Debug workflow to test GHCR authentication
 name: Debug GHCR Authentication
 
+# TEMPORARILY DISABLED for fast-merge
+# on:
+#   workflow_dispatch:
+#   push:
+#     branches: [ feat/conductor-loop ]
+#     paths: [ '.github/workflows/debug-ghcr-auth.yml' ]
+
+# TEMPORARY: Manual-only trigger
 on:
   workflow_dispatch:
-  push:
-    branches: [ feat/conductor-loop ]
-    paths: [ '.github/workflows/debug-ghcr-auth.yml' ]
 
 permissions:
   contents: read

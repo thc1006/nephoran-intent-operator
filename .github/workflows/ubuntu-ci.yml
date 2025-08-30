@@ -1,11 +1,16 @@
 name: Ubuntu CI
 
+# TEMPORARILY DISABLED for fast-merge; see Revert Plan
+# on:
+#   workflow_dispatch: {}
+#   push:
+#     branches: [ main, integrate/mvp, "feat/**", "chore/**" ]
+#   pull_request:
+#     branches: [ main, integrate/mvp ]
+
+# TEMPORARY: Manual-only trigger
 on:
   workflow_dispatch: {}
-  push:
-    branches: [ main, integrate/mvp, "feat/**", "chore/**" ]
-  pull_request:
-    branches: [ main, integrate/mvp ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
