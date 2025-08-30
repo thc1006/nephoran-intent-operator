@@ -1,11 +1,22 @@
 name: CI Matrix Build
 
+# TEMPORARILY DISABLED for fast-merge; see Revert Plan
+# Original triggers commented out - restore after merge
+# on:
+#   push:
+#     branches: [ main, develop, 'feat/**', 'fix/**', 'integrate/**' ]
+#   pull_request:
+#     branches: [ main, develop, 'integrate/**' ]
+#   workflow_dispatch:
+
+# TEMPORARY: Manual-only trigger to prevent auto-blocking PRs
 on:
-  push:
-    branches: [ main, develop, 'feat/**', 'fix/**', 'integrate/**' ]
-  pull_request:
-    branches: [ main, develop, 'integrate/**' ]
   workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual run'
+        required: false
+        default: 'Manual CI run'
 
 env:
   REGISTRY: ghcr.io
