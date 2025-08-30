@@ -742,15 +742,14 @@ func (pb *RAGAwarePromptBuilder) processRAGContext(ragContext []*shared.SearchRe
 
 	}
 
-	var optimizations []string
-
-	var contextParts []string
-
-	var sources []string
-
 	// Filter by relevance threshold.
 
 	filteredContext := make([]*shared.SearchResult, 0)
+
+	// Preallocate slices with estimated capacity
+	optimizations := make([]string, 0, len(ragContext))
+	contextParts := make([]string, 0, len(ragContext))
+	sources := make([]string, 0, len(ragContext))
 
 	for _, result := range ragContext {
 
@@ -882,7 +881,8 @@ func (pb *RAGAwarePromptBuilder) selectFewShotExamples(query, intentType, domain
 		score float32
 	}
 
-	var scoredExamples []scoredExample
+	// Preallocate slice with known capacity
+	scoredExamples := make([]scoredExample, 0, len(examples))
 
 	queryLower := strings.ToLower(query)
 

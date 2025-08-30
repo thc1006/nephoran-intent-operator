@@ -1105,7 +1105,11 @@ func (s *SLAReporter) handleSLAStatus(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(statuses)
+	if err := json.NewEncoder(w).Encode(statuses); err != nil {
+		s.logger.Error("Failed to encode SLA statuses", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 
 }
 
@@ -1182,7 +1186,11 @@ func (s *SLAReporter) handleSLAReport(w http.ResponseWriter, r *http.Request) {
 
 			w.Header().Set("Content-Type", "application/pdf")
 
-			w.Write(data)
+			if _, err := w.Write(data); err != nil {
+				s.logger.Error("Failed to write PDF data", "error", err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
 
 		} else {
 
@@ -1206,7 +1214,11 @@ func (s *SLAReporter) handleSLAReport(w http.ResponseWriter, r *http.Request) {
 
 			w.Header().Set("Content-Type", "text/html")
 
-			w.Write([]byte(html))
+			if _, err := w.Write([]byte(html)); err != nil {
+				s.logger.Error("Failed to write HTML data", "error", err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
 
 		} else {
 
@@ -1230,7 +1242,11 @@ func (s *SLAReporter) handleSLAReport(w http.ResponseWriter, r *http.Request) {
 
 			w.Header().Set("Content-Type", "text/csv")
 
-			w.Write([]byte(csv))
+			if _, err := w.Write([]byte(csv)); err != nil {
+				s.logger.Error("Failed to write CSV data", "error", err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
 
 		} else {
 
@@ -1242,7 +1258,11 @@ func (s *SLAReporter) handleSLAReport(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		json.NewEncoder(w).Encode(report)
+		if err := json.NewEncoder(w).Encode(report); err != nil {
+			s.logger.Error("Failed to encode SLA report", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 
 	}
 
@@ -1286,6 +1306,10 @@ func (s *SLAReporter) handleViolations(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(violations)
+	if err := json.NewEncoder(w).Encode(violations); err != nil {
+		s.logger.Error("Failed to encode SLA violations", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 
 }

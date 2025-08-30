@@ -1241,7 +1241,9 @@ func (pa *PredictiveAlerting) validateModel(weights []float64, bias float64,
 
 func (fe *FeatureExtractor) ExtractFeatures(ctx context.Context, slaType SLAType, currentMetrics map[string]float64) ([]float64, error) {
 
-	var features []float64
+	// Preallocate slice with known capacity
+	// Include extra capacity for time-based and statistical features
+	features := make([]float64, 0, len(currentMetrics)+10)
 
 	// Basic metric features.
 
@@ -1546,9 +1548,9 @@ func (pa *PredictiveAlerting) prepareTrainingData(dataset *HistoricalDataset) ([
 
 	}
 
-	var features [][]float64
-
-	var labels []float64
+	// Preallocate slices with known capacity
+	features := make([][]float64, 0, len(dataset.DataPoints))
+	labels := make([]float64, 0, len(dataset.DataPoints))
 
 	// Simple feature extraction from data points.
 

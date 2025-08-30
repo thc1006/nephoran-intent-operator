@@ -2,6 +2,7 @@ package errors
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -705,7 +706,8 @@ func (re *RetryExecutor) executeWithRetry(ctx context.Context, operation Retryab
 
 	// Enhance the error with retry information.
 
-	if serviceErr, ok := lastError.(*ServiceError); ok {
+	var serviceErr *ServiceError
+	if errors.As(lastError, &serviceErr) {
 
 		serviceErr.RetryCount = re.policy.MaxRetries
 
@@ -788,7 +790,8 @@ func (re *RetryExecutor) shouldRetry(err error, attempt int) bool {
 
 	// Default to checking if it's a ServiceError with Retryable flag.
 
-	if serviceErr, ok := err.(*ServiceError); ok {
+	var serviceErr *ServiceError
+	if errors.As(err, &serviceErr) {
 
 		return serviceErr.IsRetryable()
 
@@ -828,7 +831,8 @@ func (re *RetryExecutor) calculateNextDelay(currentDelay time.Duration, attempt 
 
 func isErrorOfType(err error, errorType ErrorType) bool {
 
-	if serviceErr, ok := err.(*ServiceError); ok {
+	var serviceErr *ServiceError
+	if errors.As(err, &serviceErr) {
 
 		return serviceErr.Type == errorType
 

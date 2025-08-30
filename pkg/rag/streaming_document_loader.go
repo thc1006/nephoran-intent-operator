@@ -185,7 +185,7 @@ func NewStreamingDocumentLoader(
 
 	// Start worker pools.
 
-	for i := 0; i < config.MaxConcurrency; i++ {
+	for range config.MaxConcurrency {
 
 		go pool.worker(pool.documentWorkers)
 

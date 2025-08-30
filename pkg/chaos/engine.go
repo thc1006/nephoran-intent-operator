@@ -969,7 +969,7 @@ func (e *ChaosEngine) handleSLAViolation(ctx context.Context, experiment *Experi
 
 			zap.String("experiment", experiment.ID))
 
-		if err := e.rollbackExperiment(experiment); err != nil {
+		if err := e.rollbackExperiment(ctx, experiment); err != nil {
 
 			e.logger.Error("Failed to rollback experiment",
 
@@ -1314,7 +1314,7 @@ func (e *ChaosEngine) simulateMTTR(experiment *Experiment) time.Duration {
 
 // rollbackExperiment performs experiment rollback.
 
-func (e *ChaosEngine) rollbackExperiment(experiment *Experiment) error {
+func (e *ChaosEngine) rollbackExperiment(ctx context.Context, experiment *Experiment) error {
 
 	e.logger.Info("Rolling back experiment",
 
@@ -1432,6 +1432,10 @@ func (e *ChaosEngine) TriggerKillSwitch(reason string) error {
 
 	e.killSwitch.Trigger(reason)
 
+	// Create a context with timeout for emergency stop
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
 	// Stop all active experiments.
 
 	var errors []error
@@ -1440,7 +1444,7 @@ func (e *ChaosEngine) TriggerKillSwitch(reason string) error {
 
 		if exp, ok := value.(*Experiment); ok {
 
-			if err := e.rollbackExperiment(exp); err != nil {
+			if err := e.rollbackExperiment(ctx, exp); err != nil {
 
 				errors = append(errors, err)
 
@@ -1510,6 +1514,10 @@ func (e *ChaosEngine) Stop() error {
 
 	e.cancel()
 
+	// Create a context with timeout for cleanup operations
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	// Stop all active experiments.
 
 	var errors []error
@@ -1518,7 +1526,7 @@ func (e *ChaosEngine) Stop() error {
 
 		if exp, ok := value.(*Experiment); ok {
 
-			if err := e.rollbackExperiment(exp); err != nil {
+			if err := e.rollbackExperiment(ctx, exp); err != nil {
 
 				errors = append(errors, err)
 

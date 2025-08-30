@@ -372,7 +372,7 @@ func (c *Config) loadProviders(ctx context.Context) error {
 
 	if azureClientID := config.GetEnvOrDefault("AZURE_CLIENT_ID", ""); azureClientID != "" {
 
-		secret, err := getOAuth2ClientSecret("azure")
+		secret, err := getOAuth2ClientSecret(ctx, "azure")
 
 		if err != nil && config.GetBoolEnv("AZURE_ENABLED", true) {
 
@@ -401,7 +401,7 @@ func (c *Config) loadProviders(ctx context.Context) error {
 
 	if oktaClientID := config.GetEnvOrDefault("OKTA_CLIENT_ID", ""); oktaClientID != "" {
 
-		secret, err := getOAuth2ClientSecret("okta")
+		secret, err := getOAuth2ClientSecret(ctx, "okta")
 
 		if err != nil && config.GetBoolEnv("OKTA_ENABLED", true) {
 
@@ -430,7 +430,7 @@ func (c *Config) loadProviders(ctx context.Context) error {
 
 	if keycloakClientID := config.GetEnvOrDefault("KEYCLOAK_CLIENT_ID", ""); keycloakClientID != "" {
 
-		secret, err := getOAuth2ClientSecret("keycloak")
+		secret, err := getOAuth2ClientSecret(ctx, "keycloak")
 
 		if err != nil && config.GetBoolEnv("KEYCLOAK_ENABLED", true) {
 
@@ -461,7 +461,7 @@ func (c *Config) loadProviders(ctx context.Context) error {
 
 	if googleClientID := config.GetEnvOrDefault("GOOGLE_CLIENT_ID", ""); googleClientID != "" {
 
-		secret, err := getOAuth2ClientSecret("google")
+		secret, err := getOAuth2ClientSecret(ctx, "google")
 
 		if err != nil && config.GetBoolEnv("GOOGLE_ENABLED", true) {
 
@@ -488,7 +488,7 @@ func (c *Config) loadProviders(ctx context.Context) error {
 
 	if customClientID := config.GetEnvOrDefault("CUSTOM_CLIENT_ID", ""); customClientID != "" {
 
-		secret, err := getOAuth2ClientSecret("custom")
+		secret, err := getOAuth2ClientSecret(ctx, "custom")
 
 		if err != nil && config.GetBoolEnv("CUSTOM_ENABLED", true) {
 
@@ -1677,13 +1677,13 @@ func getDefaultPermissions() map[string][]string {
 
 // getOAuth2ClientSecret loads OAuth2 client secret from environment variables or files with secure error handling.
 
-func getOAuth2ClientSecret(provider string) (string, error) {
+func getOAuth2ClientSecret(ctx context.Context, provider string) (string, error) {
 
 	// Validate provider name to prevent injection attacks.
 
 	if provider == "" {
 
-		auditSecretAccess("", "validation", "", false, "empty provider name")
+		auditSecretAccess(ctx, "", "validation", "", false, "empty provider name")
 
 		return "", fmt.Errorf("provider name cannot be empty")
 
@@ -1695,7 +1695,7 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 
 	if !isValidProviderName(sanitizedProvider) {
 
-		auditSecretAccess(provider, "validation", "", false, "invalid provider name format")
+		auditSecretAccess(ctx, provider, "validation", "", false, "invalid provider name format")
 
 		return "", fmt.Errorf("invalid provider name format")
 
@@ -1715,13 +1715,13 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 
 		if err := validateSecretContent(secret); err != nil {
 
-			auditSecretAccess(provider, "environment", envVar, false, "secret validation failed")
+			auditSecretAccess(ctx, provider, "environment", envVar, false, "secret validation failed")
 
 			return "", fmt.Errorf("invalid OAuth2 client secret format for provider %s", provider)
 
 		}
 
-		auditSecretAccess(provider, "environment", envVar, true, "")
+		auditSecretAccess(ctx, provider, "environment", envVar, true, "")
 
 		slog.Info("OAuth2 client secret loaded from environment",
 
@@ -1747,13 +1747,13 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 
 		if err := validateSecretContent(secret); err != nil {
 
-			auditSecretAccess(provider, "environment", fallbackEnvVar, false, "secret validation failed")
+			auditSecretAccess(ctx, provider, "environment", fallbackEnvVar, false, "secret validation failed")
 
 			return "", fmt.Errorf("invalid OAuth2 client secret format for provider %s", provider)
 
 		}
 
-		auditSecretAccess(provider, "environment", fallbackEnvVar, true, "")
+		auditSecretAccess(ctx, provider, "environment", fallbackEnvVar, true, "")
 
 		slog.Info("OAuth2 client secret loaded from environment (backward compatibility)",
 
@@ -1781,7 +1781,7 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 
 		if err := validateFilePath(filePath); err != nil {
 
-			auditSecretAccess(provider, "file_path_validation", fileEnvVar, false, err.Error())
+			auditSecretAccess(ctx, provider, "file_path_validation", fileEnvVar, false, err.Error())
 
 			slog.Error("Invalid file path for OAuth2 secret",
 
@@ -1799,7 +1799,7 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 
 		if err != nil {
 
-			auditSecretAccess(provider, "file", filePath, false, "file read failed")
+			auditSecretAccess(ctx, provider, "file", filePath, false, "file read failed")
 
 			slog.Error("Failed to read OAuth2 client secret file",
 
@@ -1815,13 +1815,13 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 
 		if err := validateSecretContent(secret); err != nil {
 
-			auditSecretAccess(provider, "file", filePath, false, "secret validation failed")
+			auditSecretAccess(ctx, provider, "file", filePath, false, "secret validation failed")
 
 			return "", fmt.Errorf("invalid OAuth2 client secret format for provider %s", provider)
 
 		}
 
-		auditSecretAccess(provider, "file", filePath, true, "")
+		auditSecretAccess(ctx, provider, "file", filePath, true, "")
 
 		slog.Info("OAuth2 client secret loaded from file",
 
@@ -1835,7 +1835,7 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 
 	// Step 3: Neither environment variable nor file path provided.
 
-	auditSecretAccess(provider, "not_configured", "", false, "no secret source configured")
+	auditSecretAccess(ctx, provider, "not_configured", "", false, "no secret source configured")
 
 	slog.Error("OAuth2 client secret not configured",
 
@@ -2315,7 +2315,7 @@ func validateSecretContent(secret string) error {
 
 // auditSecretAccess provides comprehensive audit logging for security compliance.
 
-func auditSecretAccess(provider, source, location string, success bool, errorMsg string) {
+func auditSecretAccess(ctx context.Context, provider, source, location string, success bool, errorMsg string) {
 
 	logLevel := slog.LevelInfo
 

@@ -2,6 +2,7 @@ package errors
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -681,7 +682,8 @@ func (b *ContextAwareErrorBuilder) WrapErrorWithContext(ctx context.Context, cau
 
 	// Build cause chain if the cause is also a ServiceError.
 
-	if serviceErr, ok := cause.(*ServiceError); ok {
+	var serviceErr *ServiceError
+	if errors.As(cause, &serviceErr) {
 
 		err.CauseChain = []*ServiceError{serviceErr}
 

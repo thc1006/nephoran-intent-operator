@@ -2734,14 +2734,14 @@ func copyModelStats(original map[string]ModelUsageStats) map[string]ModelUsageSt
 
 	}
 
-	copy := make(map[string]ModelUsageStats, len(original))
+	copied := make(map[string]ModelUsageStats, len(original))
 
 	for k, v := range original {
 
-		copy[k] = v
+		copied[k] = v
 
 	}
 
-	return copy
+	return copied
 
 }

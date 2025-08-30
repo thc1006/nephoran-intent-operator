@@ -596,8 +596,7 @@ func (oci *OptimizedControllerIntegration) buildOptimizedRequest(
 	buf := oci.bufferPool.Get().([]byte)
 
 	defer func() {
-		resetBuf := buf[:0]
-		oci.bufferPool.Put(resetBuf)
+		oci.bufferPool.Put(buf[:0])
 	}()
 
 	// Build optimized payload.

@@ -788,15 +788,15 @@ func (hm *HealthMonitor) updateComponentMetrics(ctx context.Context, componentNa
 
 	// Update component metrics (simulated data for now).
 
-	checker.metrics.ResponseTime = hm.getCurrentLatency(context.Background(), componentName)
+	checker.metrics.ResponseTime = hm.getCurrentLatency(ctx, componentName)
 
-	checker.metrics.ErrorRate = hm.getCurrentErrorRate(context.Background(), componentName)
+	checker.metrics.ErrorRate = hm.getCurrentErrorRate(ctx, componentName)
 
-	checker.metrics.Throughput = hm.getCurrentThroughput(context.Background(), componentName)
+	checker.metrics.Throughput = hm.getCurrentThroughput(ctx, componentName)
 
-	checker.metrics.CPUUsage = hm.getCurrentCPUUsage(context.Background(), componentName)
+	checker.metrics.CPUUsage = hm.getCurrentCPUUsage(ctx, componentName)
 
-	checker.metrics.MemoryUsage = hm.getCurrentMemoryUsage(context.Background(), componentName)
+	checker.metrics.MemoryUsage = hm.getCurrentMemoryUsage(ctx, componentName)
 
 }
 

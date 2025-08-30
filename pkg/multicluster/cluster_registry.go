@@ -128,25 +128,31 @@ func (cr *ClusterRegistry) validateClusterConnection(ctx context.Context, cluste
 
 	for attempt := range options.ConnectionRetries {
 
-		ctx, cancel := context.WithTimeout(ctx, options.ConnectionTimeout)
+		func() {
+			ctx, cancel := context.WithTimeout(ctx, options.ConnectionTimeout)
+			defer cancel()
 
-		defer cancel()
+			// Perform health check.
 
-		// Perform health check.
+			_, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 
-		_, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+			if err == nil {
 
-		if err == nil {
+				cluster.Status = ClusterStatusHealthy
 
-			cluster.Status = ClusterStatusHealthy
+				cluster.LastCheckedAt = time.Now()
 
-			cluster.LastCheckedAt = time.Now()
+				lastErr = nil // Success
+				return
 
-			return nil
+			}
 
+			lastErr = err
+		}()
+
+		if lastErr == nil {
+			return nil // Success case
 		}
-
-		lastErr = err
 
 		time.Sleep(time.Second * time.Duration(attempt+1))
 

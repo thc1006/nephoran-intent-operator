@@ -1260,13 +1260,20 @@ func (pe *PrometheusExporter) Export(ctx context.Context, batch MetricBatch) (*E
 
 		gz := gzip.NewWriter(&buf)
 
-		gz.Write(data)
-
-		gz.Close()
-
-		body = &buf
-
-		contentEncoding = "gzip"
+		if _, err := gz.Write(data); err != nil {
+			pe.logger.Error("Failed to write data to gzip writer", "error", err)
+			// Fall back to uncompressed data
+			body = bytes.NewReader(data)
+		} else {
+			if err := gz.Close(); err != nil {
+				pe.logger.Error("Failed to close gzip writer", "error", err)
+				// Fall back to uncompressed data
+				body = bytes.NewReader(data)
+			} else {
+				body = &buf
+				contentEncoding = "gzip"
+			}
+		}
 
 	}
 

@@ -58,7 +58,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-// Security constants for decompression bomb prevention (G110)
+// Security constants for decompression bomb prevention (G110).
 const (
 	MaxFileSize       = 100 * 1024 * 1024  // 100MB per file
 	MaxExtractionSize = 1024 * 1024 * 1024 // 1GB total extraction size
@@ -278,7 +278,7 @@ func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.In
 
 	// Fill rate limiter
 
-	for i := 0; i < config.Workers; i++ {
+	for range config.Workers {
 
 		rm.rateLimiter <- struct{}{}
 
@@ -290,7 +290,7 @@ func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.In
 
 }
 
-// limitedReader prevents decompression bombs by limiting the number of bytes read
+// limitedReader prevents decompression bombs by limiting the number of bytes read.
 type limitedReader struct {
 	reader io.Reader
 	limit  int64
@@ -538,7 +538,7 @@ func (rm *RestoreManager) validateBackup(backupPath string) error {
 
 	_, err = tr.Next()
 
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 
 		return fmt.Errorf("invalid tar format: %w", err)
 
@@ -781,8 +781,6 @@ func (rm *RestoreManager) ListBackups() ([]BackupMetadata, error) {
 
 func (rm *RestoreManager) listLocalBackups() ([]BackupMetadata, error) {
 
-	var backups []BackupMetadata
-
 	files, err := filepath.Glob(filepath.Join(rm.config.LocalPath, "*.tar.gz"))
 
 	if err != nil {
@@ -790,6 +788,9 @@ func (rm *RestoreManager) listLocalBackups() ([]BackupMetadata, error) {
 		return nil, fmt.Errorf("failed to list backup files: %w", err)
 
 	}
+
+	// Preallocate slice with known capacity
+	backups := make([]BackupMetadata, 0, len(files))
 
 	for _, file := range files {
 
@@ -863,7 +864,8 @@ func (rm *RestoreManager) GetStatus() RestoreStatus {
 
 	defer rm.mu.RUnlock()
 
-	var operations []RestoreResult
+	// Preallocate slice with known capacity
+	operations := make([]RestoreResult, 0, len(rm.progress))
 
 	// Convert progress to results
 

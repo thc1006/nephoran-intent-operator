@@ -263,9 +263,9 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 	var ragEnhanced interface{} = nil // Stubbed
 
 	if sm.config.RAGEnabled {
-
+		// TODO: Implement RAG-enhanced processor
 		// ragEnhanced = llm.NewRAGEnhancedProcessor(llmClient, nil, nil, nil) // Stubbed.
-
+		_ = ragEnhanced // Prevent unused variable warning
 	}
 
 	// Initialize streaming processor if enabled.

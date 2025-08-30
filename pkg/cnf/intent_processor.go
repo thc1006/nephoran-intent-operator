@@ -1209,17 +1209,19 @@ func parseQuantity(s string) *resource.Quantity {
 
 // Additional parsing methods would be implemented here.
 
-func (p *CNFIntentProcessor) parseResourceRequirements(resources map[string]interface{}, function nephoranv1.CNFFunction) *nephoranv1.CNFResourceIntent {
+func (p *CNFIntentProcessor) parseResourceRequirements(_ map[string]interface{}, function nephoranv1.CNFFunction) *nephoranv1.CNFResourceIntent {
 
 	// Implementation for parsing resource requirements from LLM response.
+	// TODO: Use resources parameter for actual parsing
 
 	return p.getDefaultResources(function)
 
 }
 
-func (p *CNFIntentProcessor) parseAutoScalingRequirements(scaling map[string]interface{}) *nephoranv1.AutoScalingIntent {
+func (p *CNFIntentProcessor) parseAutoScalingRequirements(_ map[string]interface{}) *nephoranv1.AutoScalingIntent {
 
 	// Implementation for parsing auto-scaling requirements.
+	// TODO: Use scaling parameter for actual parsing
 
 	return &nephoranv1.AutoScalingIntent{
 
@@ -1238,9 +1240,10 @@ func (p *CNFIntentProcessor) parseAutoScalingRequirements(scaling map[string]int
 
 }
 
-func (p *CNFIntentProcessor) parseServiceMeshRequirements(serviceMesh map[string]interface{}) *nephoranv1.ServiceMeshIntent {
+func (p *CNFIntentProcessor) parseServiceMeshRequirements(_ map[string]interface{}) *nephoranv1.ServiceMeshIntent {
 
 	// Implementation for parsing service mesh requirements.
+	// TODO: Use serviceMesh parameter for actual parsing
 
 	return &nephoranv1.ServiceMeshIntent{
 
@@ -1253,9 +1256,10 @@ func (p *CNFIntentProcessor) parseServiceMeshRequirements(serviceMesh map[string
 
 }
 
-func (p *CNFIntentProcessor) parseMonitoringRequirements(monitoring map[string]interface{}) *nephoranv1.MonitoringIntent {
+func (p *CNFIntentProcessor) parseMonitoringRequirements(_ map[string]interface{}) *nephoranv1.MonitoringIntent {
 
 	// Implementation for parsing monitoring requirements.
+	// TODO: Use monitoring parameter for actual parsing
 
 	return &nephoranv1.MonitoringIntent{
 
@@ -1268,9 +1272,10 @@ func (p *CNFIntentProcessor) parseMonitoringRequirements(monitoring map[string]i
 
 }
 
-func (p *CNFIntentProcessor) parseSecurityRequirements(security map[string]interface{}) *nephoranv1.SecurityIntent {
+func (p *CNFIntentProcessor) parseSecurityRequirements(_ map[string]interface{}) *nephoranv1.SecurityIntent {
 
 	// Implementation for parsing security requirements.
+	// TODO: Use security parameter for actual parsing
 
 	return &nephoranv1.SecurityIntent{
 
@@ -1283,9 +1288,10 @@ func (p *CNFIntentProcessor) parseSecurityRequirements(security map[string]inter
 
 }
 
-func (p *CNFIntentProcessor) parseHighAvailabilityRequirements(ha map[string]interface{}) *nephoranv1.HighAvailabilityIntent {
+func (p *CNFIntentProcessor) parseHighAvailabilityRequirements(_ map[string]interface{}) *nephoranv1.HighAvailabilityIntent {
 
 	// Implementation for parsing HA requirements.
+	// TODO: Use ha parameter for actual parsing
 
 	return &nephoranv1.HighAvailabilityIntent{
 
@@ -1300,9 +1306,10 @@ func (p *CNFIntentProcessor) parseHighAvailabilityRequirements(ha map[string]int
 
 }
 
-func (p *CNFIntentProcessor) parsePerformanceRequirements(performance map[string]interface{}) *nephoranv1.PerformanceIntent {
+func (p *CNFIntentProcessor) parsePerformanceRequirements(_ map[string]interface{}) *nephoranv1.PerformanceIntent {
 
 	// Implementation for parsing performance requirements.
+	// TODO: Use performance parameter for actual parsing
 
 	return &nephoranv1.PerformanceIntent{
 

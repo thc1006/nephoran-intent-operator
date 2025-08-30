@@ -968,8 +968,6 @@ func (t *TelecomPromptEngine) selectRelevantExamples(intentType, userIntent stri
 
 	lowerIntent := strings.ToLower(userIntent)
 
-	var relevantExamples []PromptExample
-
 	// Score examples based on keyword matching.
 
 	type scoredExample struct {
@@ -978,7 +976,8 @@ func (t *TelecomPromptEngine) selectRelevantExamples(intentType, userIntent stri
 		score int
 	}
 
-	var scoredExamples []scoredExample
+	// Preallocate slice with known capacity
+	scoredExamples := make([]scoredExample, 0, len(examples))
 
 	for _, example := range examples {
 
@@ -1063,6 +1062,8 @@ func (t *TelecomPromptEngine) selectRelevantExamples(intentType, userIntent stri
 
 	}
 
+	// Preallocate result slice with known capacity
+	relevantExamples := make([]PromptExample, 0, len(scoredExamples))
 	for _, scored := range scoredExamples {
 
 		relevantExamples = append(relevantExamples, scored.example)

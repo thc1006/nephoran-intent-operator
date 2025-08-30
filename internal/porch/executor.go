@@ -148,7 +148,7 @@ func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionRe
 
 		Success: err == nil,
 
-		ExitCode: getExitCode(gracefulCmd.Cmd, err),
+		ExitCode: getExitCode(err),
 
 		Stdout: strings.TrimSpace(stdout.String()),
 
@@ -261,7 +261,7 @@ func (e *Executor) buildCommand(intentPath string) ([]string, error) {
 
 // getExitCode extracts the exit code from a command execution.
 
-func getExitCode(cmd *exec.Cmd, err error) int {
+func getExitCode(err error) int {
 
 	if err == nil {
 

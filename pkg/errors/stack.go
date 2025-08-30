@@ -109,7 +109,11 @@ func CaptureStackTrace(opts *StackTraceOptions) []StackFrame {
 
 	buf := stackTracePool.Get().([]byte)
 
-	defer stackTracePool.Put(buf)
+	defer func() {
+		// Reset buffer before returning to pool to prevent slice header issues
+		resetBuf := buf[:0]
+		stackTracePool.Put(resetBuf)
+	}()
 
 	// Capture the full stack trace.
 

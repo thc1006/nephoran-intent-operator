@@ -794,19 +794,23 @@ func (am *AlertManager) sendSlackNotification(ctx context.Context, alert *Alert,
 
 	}
 
-	resp, err := am.httpClient.Post(webhookURL, "application/json", bytes.NewBuffer(jsonPayload))
-
+	// Security fix (noctx): Use context with HTTP request
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, webhookURL, bytes.NewBuffer(jsonPayload))
 	if err != nil {
-
-		am.logger.Error(ctx, "Failed to send Slack notification", err,
-
+		am.logger.Error(ctx, "Failed to create Slack request", err,
 			slog.String("channel_name", channel.Name),
 		)
-
 		return
-
 	}
+	req.Header.Set("Content-Type", "application/json")
 
+	resp, err := am.httpClient.Do(req)
+	if err != nil {
+		am.logger.Error(ctx, "Failed to send Slack notification", err,
+			slog.String("channel_name", channel.Name),
+		)
+		return
+	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
@@ -865,17 +869,22 @@ func (am *AlertManager) sendWebhookNotification(ctx context.Context, alert *Aler
 
 	}
 
-	resp, err := am.httpClient.Post(webhookURL, "application/json", bytes.NewBuffer(jsonPayload))
-
+	// Security fix (noctx): Use context with HTTP request
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, webhookURL, bytes.NewBuffer(jsonPayload))
 	if err != nil {
-
-		am.logger.Error(ctx, "Failed to send webhook notification", err,
-
+		am.logger.Error(ctx, "Failed to create webhook request", err,
 			slog.String("channel_name", channel.Name),
 		)
-
 		return
+	}
+	req.Header.Set("Content-Type", "application/json")
 
+	resp, err := am.httpClient.Do(req)
+	if err != nil {
+		am.logger.Error(ctx, "Failed to send webhook notification", err,
+			slog.String("channel_name", channel.Name),
+		)
+		return
 	}
 
 	defer resp.Body.Close()
@@ -1169,15 +1178,15 @@ func (am *AlertManager) copyLabels(labels map[string]string) map[string]string {
 
 	}
 
-	copy := make(map[string]string, len(labels))
+	copied := make(map[string]string, len(labels))
 
 	for k, v := range labels {
 
-		copy[k] = v
+		copied[k] = v
 
 	}
 
-	return copy
+	return copied
 
 }
 

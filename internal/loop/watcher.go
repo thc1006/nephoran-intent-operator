@@ -960,7 +960,11 @@ func (w *Watcher) handleMetrics(writer http.ResponseWriter, request *http.Reques
 
 	writer.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(writer).Encode(response)
+	if err := json.NewEncoder(writer).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+		http.Error(writer, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
 
 // handlePrometheusMetrics handles Prometheus-format metrics endpoint.
@@ -1090,7 +1094,11 @@ func (w *Watcher) handleHealth(writer http.ResponseWriter, request *http.Request
 
 	writer.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(writer).Encode(health)
+	if err := json.NewEncoder(writer).Encode(health); err != nil {
+		log.Printf("Failed to encode health response: %v", err)
+		http.Error(writer, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
 
 // getLatencyPercentiles calculates latency percentiles from the ring buffer.

@@ -990,7 +990,6 @@ func (cnf *CNFDeployment) ValidateCNFDeployment() error {
 
 // validateFunctionCompatibility ensures CNF function is compatible with CNF type.
 func (cnf *CNFDeployment) validateFunctionCompatibility() error {
-
 	compatibilityMap := map[CNFType][]CNFFunction{
 
 		CNF5GCore: {
@@ -1026,7 +1025,6 @@ func (cnf *CNFDeployment) validateFunctionCompatibility() error {
 	}
 
 	if cnf.Spec.CNFType != CNFCustom {
-
 		compatible, exists := compatibilityMap[cnf.Spec.CNFType]
 
 		if !exists {
@@ -1045,37 +1043,25 @@ func (cnf *CNFDeployment) validateFunctionCompatibility() error {
 }
 
 // validateDeploymentStrategy ensures deployment strategy configuration is valid.
-
 func (cnf *CNFDeployment) validateDeploymentStrategy() error {
-
 	switch cnf.Spec.DeploymentStrategy {
 
 	case CNFDeploymentStrategyHelm:
-
 		if cnf.Spec.Helm == nil {
-
 			return fmt.Errorf("helm configuration is required for Helm deployment strategy")
-
 		}
 
 		if cnf.Spec.Helm.Repository == "" || cnf.Spec.Helm.ChartName == "" {
-
 			return fmt.Errorf("helm repository and chartName are required")
-
 		}
 
 	case CNFDeploymentStrategyOperator:
-
 		if cnf.Spec.Operator == nil {
-
 			return fmt.Errorf("operator configuration is required for Operator deployment strategy")
-
 		}
 
 		if cnf.Spec.Operator.Name == "" || cnf.Spec.Operator.Namespace == "" {
-
 			return fmt.Errorf("operator name and namespace are required")
-
 		}
 
 	}

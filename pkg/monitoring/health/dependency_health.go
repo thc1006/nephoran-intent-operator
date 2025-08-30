@@ -1509,7 +1509,7 @@ func (dht *DependencyHealthTracker) registerDefaultDependencies() {
 
 	}
 
-	dht.RegisterDependency(&DependencyConfig{
+	if err := dht.RegisterDependency(&DependencyConfig{
 
 		Name: "rag-api",
 
@@ -1546,11 +1546,13 @@ func (dht *DependencyHealthTracker) registerDefaultDependencies() {
 
 			FailureThreshold: 0.6,
 		},
-	})
+	}); err != nil {
+		dht.logger.Error("Failed to register RAG API dependency", "error", err)
+	}
 
 	// Weaviate Vector Database.
 
-	dht.RegisterDependency(&DependencyConfig{
+	if err := dht.RegisterDependency(&DependencyConfig{
 
 		Name: "weaviate",
 
@@ -1587,11 +1589,13 @@ func (dht *DependencyHealthTracker) registerDefaultDependencies() {
 
 			FailureThreshold: 0.6,
 		},
-	})
+	}); err != nil {
+		dht.logger.Error("Failed to register Weaviate dependency", "error", err)
+	}
 
 	// Kubernetes API.
 
-	dht.RegisterDependency(&DependencyConfig{
+	if err := dht.RegisterDependency(&DependencyConfig{
 
 		Name: "kubernetes-api",
 
@@ -1612,7 +1616,9 @@ func (dht *DependencyHealthTracker) registerDefaultDependencies() {
 			Enabled: false, // Don't circuit break Kubernetes API
 
 		},
-	})
+	}); err != nil {
+		dht.logger.Error("Failed to register Kubernetes API dependency", "error", err)
+	}
 
 }
 

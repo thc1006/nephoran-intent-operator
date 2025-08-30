@@ -2313,15 +2313,15 @@ func copyMap(original map[string]int64) map[string]int64 {
 
 	}
 
-	copy := make(map[string]int64, len(original))
+	copied := make(map[string]int64, len(original))
 
 	for k, v := range original {
 
-		copy[k] = v
+		copied[k] = v
 
 	}
 
-	return copy
+	return copied
 
 }
 
@@ -2335,14 +2335,14 @@ func copyIntMap(original map[int]int64) map[int]int64 {
 
 	}
 
-	copy := make(map[int]int64, len(original))
+	copied := make(map[int]int64, len(original))
 
 	for k, v := range original {
 
-		copy[k] = v
+		copied[k] = v
 
 	}
 
-	return copy
+	return copied
 
 }

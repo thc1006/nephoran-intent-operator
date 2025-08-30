@@ -261,23 +261,26 @@ func (lt *LoadTester) generateRampUpLoad(ctx context.Context) error {
 
 		phaseCtx, cancel := context.WithTimeout(ctx, rampDuration)
 
-		defer cancel()
+		// Execute phase with proper cleanup
+		func() {
+			defer cancel()
+			defer ticker.Stop()
 
-		for {
+			for {
 
-			select {
+				select {
 
-			case <-phaseCtx.Done():
+				case <-phaseCtx.Done():
+					return // Exit inner function to continue to next phase
 
-				return nil
+				case <-ticker.C:
 
-			case <-ticker.C:
+					go lt.simulateIntentProcessing(lt.config.LoadProfile)
 
-				go lt.simulateIntentProcessing(lt.config.LoadProfile)
+				}
 
 			}
-
-		}
+		}()
 
 	}
 

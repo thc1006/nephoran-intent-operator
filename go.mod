@@ -32,6 +32,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.9
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.5
 	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.65.1
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.49.1
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.63.3
@@ -152,7 +153,6 @@ require (
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.11 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.5 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.5 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.5 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3 // indirect
@@ -264,7 +264,6 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
-	github.com/kisielk/errcheck v1.9.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect

@@ -399,28 +399,45 @@ func (tc *TrafficController) checkRegionHealth(ctx context.Context, regionName s
 
 	client := &http.Client{Timeout: 10 * time.Second}
 
-	resp, err := client.Get(region.Endpoint + "/health")
-
-	if err != nil || resp.StatusCode != 200 {
-
+	// Security fix (bodyclose): Create request with context
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, region.Endpoint+"/health", nil)
+	if err != nil {
 		health.IsHealthy = false
-
 		if existing, ok := tc.healthChecks[regionName]; ok {
-
 			health.ConsecutiveFailures = existing.ConsecutiveFailures + 1
-
 		} else {
-
 			health.ConsecutiveFailures = 1
-
 		}
-
-		tc.logger.V(1).Info("Region health check failed",
-
+		tc.logger.V(1).Info("Failed to create health check request",
 			"region", regionName, "error", err)
-
 		return health
+	}
 
+	resp, err := client.Do(req)
+	if err != nil {
+		health.IsHealthy = false
+		if existing, ok := tc.healthChecks[regionName]; ok {
+			health.ConsecutiveFailures = existing.ConsecutiveFailures + 1
+		} else {
+			health.ConsecutiveFailures = 1
+		}
+		tc.logger.V(1).Info("Region health check failed",
+			"region", regionName, "error", err)
+		return health
+	}
+	// Security fix (bodyclose): Always close response body
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		health.IsHealthy = false
+		if existing, ok := tc.healthChecks[regionName]; ok {
+			health.ConsecutiveFailures = existing.ConsecutiveFailures + 1
+		} else {
+			health.ConsecutiveFailures = 1
+		}
+		tc.logger.V(1).Info("Region health check returned non-200 status",
+			"region", regionName, "status", resp.StatusCode)
+		return health
 	}
 
 	// Query metrics from Prometheus.

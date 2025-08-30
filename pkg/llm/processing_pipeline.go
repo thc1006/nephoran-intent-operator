@@ -923,9 +923,10 @@ func NewContextEnricher() *ContextEnricher {
 
 // Enrich adds context information to the processing.
 
-func (ce *ContextEnricher) Enrich(ctx context.Context, processingCtx *ProcessingContext) (*EnrichmentContext, error) {
+func (ce *ContextEnricher) Enrich(_ context.Context, processingCtx *ProcessingContext) (*EnrichmentContext, error) {
 
 	// Check cache first.
+	// TODO: Use ctx parameter for request context and cancellation when making external API calls
 
 	cacheKey := fmt.Sprintf("%s:%s", processingCtx.Classification.IntentType, processingCtx.Classification.NetworkFunction)
 

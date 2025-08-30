@@ -459,7 +459,13 @@ func (rl *RedactLogger) Middleware(next http.Handler) http.Handler {
 
 			bodyReader := io.LimitReader(r.Body, rl.config.MaxBodySize)
 
-			requestBody, _ = io.ReadAll(bodyReader)
+			var err error
+			requestBody, err = io.ReadAll(bodyReader)
+			if err != nil {
+				rl.logger.Error("Failed to read request body", "error", err)
+				// Continue with empty body to allow request processing
+				requestBody = []byte{}
+			}
 
 			r.Body = io.NopCloser(bytes.NewReader(requestBody))
 

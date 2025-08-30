@@ -585,9 +585,10 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 
 // Helper methods for generating specific compliance reports.
 
-func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, reportType string, startTime, endTime time.Time) (*ComplianceReport, error) {
+func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, _ string, _, _ time.Time) (*ComplianceReport, error) {
 
 	// SOC 2 Trust Services Categories: Security, Availability, Processing Integrity, Confidentiality, Privacy.
+	// TODO: Use reportType, startTime, endTime for time-specific and type-specific reporting
 
 	controls := []ControlAssessment{
 
@@ -678,9 +679,10 @@ func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, reportT
 
 }
 
-func (cl *ComplianceLogger) generateISO27001Report(report *ComplianceReport, reportType string, startTime, endTime time.Time) (*ComplianceReport, error) {
+func (cl *ComplianceLogger) generateISO27001Report(report *ComplianceReport, _ string, _, _ time.Time) (*ComplianceReport, error) {
 
 	// ISO 27001 Annex A controls.
+	// TODO: Use reportType, startTime, endTime for time-specific and type-specific reporting
 
 	controls := []ControlAssessment{
 
@@ -742,9 +744,10 @@ func (cl *ComplianceLogger) generateISO27001Report(report *ComplianceReport, rep
 
 }
 
-func (cl *ComplianceLogger) generatePCIDSSReport(report *ComplianceReport, reportType string, startTime, endTime time.Time) (*ComplianceReport, error) {
+func (cl *ComplianceLogger) generatePCIDSSReport(report *ComplianceReport, _ string, _, _ time.Time) (*ComplianceReport, error) {
 
 	// PCI DSS Requirements.
+	// TODO: Use reportType, startTime, endTime for time-specific and type-specific reporting
 
 	controls := []ControlAssessment{
 

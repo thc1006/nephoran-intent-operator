@@ -583,7 +583,7 @@ func ValidateConstants(constants *Constants) error {
 
 	if constants.Timeout <= 0 {
 
-		return fmt.Errorf("Timeout must be positive: %v", constants.Timeout)
+		return fmt.Errorf("timeout must be positive: %v", constants.Timeout)
 
 	}
 

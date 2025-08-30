@@ -273,9 +273,9 @@ func NewJWTManager(ctx context.Context, config *JWTConfig, tokenStore TokenStore
 
 	// Start background tasks.
 
-	go manager.keyRotationLoop()
+	go manager.keyRotationLoop(ctx)
 
-	go manager.cleanupLoop()
+	go manager.cleanupLoop(ctx)
 
 	return manager, nil
 
@@ -1096,7 +1096,7 @@ func (jm *JWTManager) initializeSigningKey(config *JWTConfig) error {
 
 }
 
-func (jm *JWTManager) keyRotationLoop() {
+func (jm *JWTManager) keyRotationLoop(ctx context.Context) {
 
 	if jm.keyRotationPeriod == 0 {
 
@@ -1108,14 +1108,17 @@ func (jm *JWTManager) keyRotationLoop() {
 
 	defer ticker.Stop()
 
-	for range ticker.C {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := jm.rotateSigningKey(); err != nil {
 
-		if err := jm.rotateSigningKey(); err != nil {
+				jm.logger.Error("Failed to rotate signing key", "error", err)
 
-			jm.logger.Error("Failed to rotate signing key", "error", err)
-
+			}
 		}
-
 	}
 
 }
@@ -1154,34 +1157,37 @@ func (jm *JWTManager) rotateSigningKey() error {
 
 }
 
-func (jm *JWTManager) cleanupLoop() {
+func (jm *JWTManager) cleanupLoop(ctx context.Context) {
 
 	ticker := time.NewTicker(1 * time.Hour)
 
 	defer ticker.Stop()
 
-	for range ticker.C {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			cleanupCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			// Cleanup expired tokens.
 
-		// Cleanup expired tokens.
+			if err := jm.tokenStore.CleanupExpired(cleanupCtx); err != nil {
 
-		if err := jm.tokenStore.CleanupExpired(ctx); err != nil {
+				jm.logger.Error("Failed to cleanup expired tokens", "error", err)
 
-			jm.logger.Error("Failed to cleanup expired tokens", "error", err)
+			}
 
+			// Cleanup expired blacklist entries.
+
+			if err := jm.blacklist.CleanupExpired(cleanupCtx); err != nil {
+
+				jm.logger.Error("Failed to cleanup expired blacklist entries", "error", err)
+
+			}
+
+			cancel()
 		}
-
-		// Cleanup expired blacklist entries.
-
-		if err := jm.blacklist.CleanupExpired(ctx); err != nil {
-
-			jm.logger.Error("Failed to cleanup expired blacklist entries", "error", err)
-
-		}
-
-		cancel()
-
 	}
 
 }

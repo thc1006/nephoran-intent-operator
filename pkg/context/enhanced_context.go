@@ -51,13 +51,7 @@ type EnhancedContext struct {
 
 	timeoutDur time.Duration
 
-	// Resource tracking.
-
-	resourceType string
-
-	resourceID string
-
-	resourceName string
+	// Resource tracking - removed unused fields per staticcheck
 
 	// Metadata and tags.
 

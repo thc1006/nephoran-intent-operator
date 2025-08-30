@@ -1597,7 +1597,8 @@ func (c *SpecializedManifestGenerationController) hashResourcePlan(resourcePlan 
 
 	// Simple hash based on key characteristics - in production, use proper hashing.
 
-	var hashComponents []string
+	// Preallocate slice with known capacity
+	hashComponents := make([]string, 0, len(resourcePlan.NetworkFunctions)+3)
 
 	for _, nf := range resourcePlan.NetworkFunctions {
 

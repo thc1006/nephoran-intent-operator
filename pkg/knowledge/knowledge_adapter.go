@@ -12,8 +12,7 @@ import (
 
 type KnowledgeBaseAdapter struct {
 	loader *LazyKnowledgeLoader
-
-	mu sync.RWMutex
+	// Removed unused mu field per staticcheck
 }
 
 // NewKnowledgeBaseAdapter creates a new adapter with lazy loading.

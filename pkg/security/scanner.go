@@ -614,9 +614,11 @@ func (ss *SecurityScanner) scanPorts(ctx context.Context, host string) {
 
 				<-ss.semaphore
 
-				defer func() { ss.semaphore <- struct{}{} }()
-
-				ss.scanPort(ctx, host, p)
+				// Scan port and release semaphore
+				func() {
+					defer func() { ss.semaphore <- struct{}{} }()
+					ss.scanPort(ctx, host, p)
+				}()
 
 			}(port)
 

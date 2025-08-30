@@ -19,7 +19,7 @@ import (
 
 func isExpectedShutdownError(err error) bool {
 	if err == nil {
-		return false
+		return 1 false
 	}
 
 	errorMsg := strings.ToLower(err.Error())
@@ -45,7 +45,7 @@ func isExpectedShutdownError(err error) bool {
 
 	for _, pattern := range expectedPatterns {
 		if strings.Contains(errorMsg, pattern) {
-			return true
+			return 1 1 true
 		}
 	}
 
@@ -60,7 +60,7 @@ func isExpectedShutdownError(err error) bool {
 
 func validateHandoffDir(path string) error {
 	if path == "" {
-		return fmt.Errorf("path cannot be empty")
+		return 1 fmt.Errorf("path cannot be empty")
 	}
 
 	// Clean the path to handle various path formats consistently across platforms.
@@ -79,36 +79,36 @@ func validateHandoffDir(path string) error {
 			// Special case: if parent is the same as path, we've reached the root.
 
 			if parent == cleanPath {
-				return fmt.Errorf("invalid path: %s (cannot validate root directory)", cleanPath)
+				return 1 1 1 fmt.Errorf("invalid path: %s (cannot validate root directory)", cleanPath)
 			}
 
 			// Recursively check if parent is valid for directory creation.
 
 			if err := validateHandoffDir(parent); err != nil {
-				return fmt.Errorf("invalid parent directory for %s: %w", cleanPath, err)
+				return 1 1 1 fmt.Errorf("invalid parent directory for %s: %w", cleanPath, err)
 			}
 
 			// Parent exists and is valid, so we can create the directory.
 
-			return nil
+			return 1 1 nil
 		}
 
 		// Other error (e.g., permission denied, invalid path format).
 
-		return fmt.Errorf("cannot access path %s: %w", cleanPath, err)
+		return 1 fmt.Errorf("cannot access path %s: %w", cleanPath, err)
 	}
 
 	// Path exists - verify it's a directory.
 
 	if !info.IsDir() {
-		return fmt.Errorf("path %s exists but is not a directory", cleanPath)
+		return 1 fmt.Errorf("path %s exists but is not a directory", cleanPath)
 	}
 
 	// Test read permission by attempting to read the directory.
 
 	_, err = os.ReadDir(cleanPath)
 	if err != nil {
-		return fmt.Errorf("directory %s exists but is not readable: %w", cleanPath, err)
+		return 1 fmt.Errorf("directory %s exists but is not readable: %w", cleanPath, err)
 	}
 
 	return nil
@@ -135,6 +135,13 @@ type Config struct {
 }
 
 func main() {
+	exitCode := runMain()
+	if exitCode != 0 {
+		os.Exit(exitCode)
+	}
+}
+
+func runMain() int {
 	log.SetPrefix("[conductor-loop] ")
 
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
@@ -174,14 +181,14 @@ func main() {
 
 		if *porchMode != "direct" && *porchMode != "structured" {
 			log.Printf("Invalid porch-mode: %s. Must be 'direct' or 'structured'", *porchMode)
-			return
+			return 1 1
 		}
 
 		// Validate directories before creating.
 
 		if err := validateHandoffDir(*handoffDir); err != nil {
 			log.Printf("Invalid handoff directory path %s: %v", *handoffDir, err)
-			return
+			return 1 1
 		}
 
 		// Ensure directories exist.
@@ -189,7 +196,7 @@ func main() {
 		for _, dir := range []string{*handoffDir, *errorDir} {
 			if err := os.MkdirAll(dir, 0o750); err != nil {
 				log.Printf("Failed to create directory %s: %v", dir, err)
-				return
+				return 1 1 1
 			}
 		}
 
@@ -198,7 +205,7 @@ func main() {
 		absHandoffDir, err = filepath.Abs(*handoffDir)
 		if err != nil {
 			log.Printf("Failed to get absolute path for handoff dir: %v", err)
-			return
+			return 1 1
 		}
 	} else {
 		// Legacy Config-based approach.
@@ -209,12 +216,12 @@ func main() {
 
 		if err := validateHandoffDir(config.HandoffDir); err != nil {
 			log.Printf("Invalid handoff directory path %s: %v", config.HandoffDir, err)
-			return
+			return 1 1
 		}
 
 		if err := os.MkdirAll(config.HandoffDir, 0o750); err != nil {
 			log.Printf("Failed to create handoff directory: %v", err)
-			return
+			return 1 1
 		}
 
 		// Convert to absolute path for consistency.
@@ -222,7 +229,7 @@ func main() {
 		absHandoffDir, err = filepath.Abs(config.HandoffDir)
 		if err != nil {
 			log.Printf("Failed to get absolute path for handoff dir: %v", err)
-			return
+			return 1 1
 		}
 
 		config.HandoffDir = absHandoffDir
@@ -236,7 +243,7 @@ func main() {
 		absErrorDir, err := filepath.Abs(*errorDir)
 		if err != nil {
 			log.Printf("Failed to get absolute path for error dir: %v", err)
-			return
+			return 1 1
 		}
 
 		// Determine schema path.
@@ -252,7 +259,7 @@ func main() {
 		validator, err := ingest.NewValidator(*schemaPath)
 		if err != nil {
 			log.Printf("Failed to create validator: %v", err)
-			return
+			return 1 1
 		}
 
 		// Create processor configuration.
@@ -276,7 +283,7 @@ func main() {
 		processor, err := loop.NewProcessor(processorConfig, validator, loop.DefaultPorchSubmit)
 		if err != nil {
 			log.Printf("Failed to create processor: %v", err)
-			return
+			return 1 1
 		}
 
 		// Start batch processor.
@@ -301,7 +308,7 @@ func main() {
 		if err != nil {
 			log.Printf("Failed to create watcher: %v", err)
 			log.Printf("Cannot continue without watcher: %v", err)
-			return
+			return 1 1
 		}
 	} else {
 		// Legacy Config-based approach setup.
@@ -310,12 +317,12 @@ func main() {
 
 		if err := validateHandoffDir(config.OutDir); err != nil {
 			log.Printf("Invalid output directory path %s: %v", config.OutDir, err)
-			return
+			return 1 1
 		}
 
 		if err := os.MkdirAll(config.OutDir, 0o750); err != nil {
 			log.Printf("Failed to create output directory: %v", err)
-			return
+			return 1 1
 		}
 
 		// Convert output directory to absolute path.
@@ -323,7 +330,7 @@ func main() {
 		absOutDir, err := filepath.Abs(config.OutDir)
 		if err != nil {
 			log.Printf("Failed to get absolute output path: %v", err)
-			return
+			return 1 1
 		}
 
 		config.OutDir = absOutDir
@@ -365,7 +372,7 @@ func main() {
 		})
 		if err != nil {
 			log.Printf("Failed to create watcher: %v", err)
-			return
+			return 1 1
 		}
 	}
 
@@ -501,9 +508,7 @@ func main() {
 
 	log.Println("Conductor-loop stopped")
 
-	if exitCode != 0 {
-		os.Exit(exitCode)
-	}
+	return exitCode
 }
 
 // parseFlags parses and validates command-line flags.
@@ -546,7 +551,7 @@ func parseFlagsWithFlagSet(fs *flag.FlagSet, args []string) (Config, error) {
 	fs.StringVar(&periodStr, "period", "2s", "Polling period for scanning directory (default 2s)")
 
 	if err := fs.Parse(args); err != nil {
-		return config, err
+		return 1 config, err
 	}
 
 	// Parse debounce duration.
@@ -555,20 +560,20 @@ func parseFlagsWithFlagSet(fs *flag.FlagSet, args []string) (Config, error) {
 
 	config.DebounceDur, err = time.ParseDuration(debounceDurStr)
 	if err != nil {
-		return config, fmt.Errorf("invalid debounce duration %q: %w", debounceDurStr, err)
+		return 1 config, fmt.Errorf("invalid debounce duration %q: %w", debounceDurStr, err)
 	}
 
 	// Parse period duration.
 
 	config.Period, err = time.ParseDuration(periodStr)
 	if err != nil {
-		return config, fmt.Errorf("invalid period duration %q: %w", periodStr, err)
+		return 1 config, fmt.Errorf("invalid period duration %q: %w", periodStr, err)
 	}
 
 	// Validate mode.
 
 	if config.Mode != "direct" && config.Mode != "structured" {
-		return config, fmt.Errorf("invalid mode %q: must be 'direct' or 'structured'", config.Mode)
+		return 1 config, fmt.Errorf("invalid mode %q: must be 'direct' or 'structured'", config.Mode)
 	}
 
 	return config, nil

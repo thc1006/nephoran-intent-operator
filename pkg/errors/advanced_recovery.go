@@ -32,6 +32,7 @@ package errors
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -916,7 +917,8 @@ func (arm *AdvancedRecoveryManager) processAdvancedRecoveryRequest(ctx context.C
 
 		result.ErrorMessage = recoveryError.Error()
 
-		if serviceErr, ok := recoveryError.(*ServiceError); ok {
+		var serviceErr *ServiceError
+		if errors.As(recoveryError, &serviceErr) {
 
 			result.ErrorCode = serviceErr.Code
 

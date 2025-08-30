@@ -298,7 +298,7 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 
 func (rl *RateLimiter) MiddlewareFunc(next http.HandlerFunc) http.HandlerFunc {
 
-	return rl.Middleware(http.HandlerFunc(next)).ServeHTTP
+	return rl.Middleware(next).ServeHTTP
 
 }
 

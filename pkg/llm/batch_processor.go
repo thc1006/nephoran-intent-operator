@@ -740,13 +740,14 @@ func (worker *BatchWorker) processBatch(batch *Batch) {
 
 // processRequest processes a single request within a batch.
 
-func (worker *BatchWorker) processRequest(ctx context.Context, request *BatchRequest, batch *Batch) *BatchResult {
+func (worker *BatchWorker) processRequest(_ context.Context, request *BatchRequest, batch *Batch) *BatchResult {
 
 	start := time.Now()
 
 	queueTime := start.Sub(request.SubmitTime)
 
 	// Use a simple client for now - in production, this would use the configured LLM client.
+	// TODO: Use ctx parameter for request context and cancellation
 
 	response := fmt.Sprintf(`{
 
