@@ -348,6 +348,8 @@ jobs:
             type=gha,scope=shared
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
           build-args: |
+            BUILDPLATFORM=linux/amd64
+            TARGETPLATFORM=linux/amd64,linux/arm64
             SERVICE=${{ matrix.service }}
             VERSION=${{ github.sha }}
             BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}

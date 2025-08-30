@@ -160,6 +160,8 @@ jobs:
             type=gha,mode=max,scope=${{ matrix.service }}
             type=gha,mode=max,scope=shared
           build-args: |
+            BUILDPLATFORM=linux/amd64
+            TARGETPLATFORM=${{ matrix.platforms }}
             SERVICE=${{ matrix.service }}
             VERSION=${{ github.sha }}
             BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
@@ -247,6 +249,8 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.base_service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
           build-args: |
+            BUILDPLATFORM=linux/amd64
+            TARGETPLATFORM=linux/amd64
             SERVICE=${{ matrix.service }}
             VERSION=${{ github.sha }}
             BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
