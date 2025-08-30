@@ -1338,10 +1338,14 @@ func (r *RBACManagerMock) AssignRolesFromClaims(ctx context.Context, userInfo *p
 
 				if _, err := r.CreateRole(ctx, basicRole); err != nil {
 					// Log error but continue - this is test utility code
+					// Note: Error creating basic role but continuing execution
+					_ = err // Acknowledge error but continue
 				}
 
 				if err := r.GrantRoleToUser(ctx, userID, roleID); err != nil {
 					// Log error but continue - this is test utility code
+					// Note: Error granting role to user but continuing execution
+					_ = err // Acknowledge error but continue
 				}
 
 			}

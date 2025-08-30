@@ -1451,7 +1451,7 @@ func (p *CNFIntentProcessor) calculateConfidenceScore(intentContext *CNFIntentCo
 
 	// Increase score based on LLM response quality.
 
-	if intentContext.LLMResponse != nil && len(intentContext.LLMResponse.ProcessedParameters) > 0 {
+	if intentContext.LLMResponse != nil && intentContext.LLMResponse.ProcessedParameters != "" {
 
 		score += 0.2
 

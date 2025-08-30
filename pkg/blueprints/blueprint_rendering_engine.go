@@ -1471,7 +1471,11 @@ func createTemplateFunctionMap() template.FuncMap {
 
 	funcMap["toYAML"] = func(v interface{}) string {
 
-		data, _ := yaml.Marshal(v)
+		data, err := yaml.Marshal(v)
+		if err != nil {
+			// Return error marker for template debugging
+			return fmt.Sprintf("ERROR: %v", err)
+		}
 
 		return strings.TrimSuffix(string(data), "\n")
 
@@ -1481,7 +1485,10 @@ func createTemplateFunctionMap() template.FuncMap {
 
 		var result interface{}
 
-		yaml.Unmarshal([]byte(str), &result)
+		if err := yaml.Unmarshal([]byte(str), &result); err != nil {
+			// Return nil on error to prevent template failures
+			return nil
+		}
 
 		return result
 

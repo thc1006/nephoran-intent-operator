@@ -934,29 +934,29 @@ func isZeroReflectValue(value reflect.Value) bool {
 
 // validateMinReflectValue validates minimum value for reflect.Value.
 
-func validateMinReflectValue(value reflect.Value, min int64) bool {
+func validateMinReflectValue(value reflect.Value, minVal int64) bool {
 
 	switch value.Kind() {
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 
-		return value.Int() >= min
+		return value.Int() >= minVal
 
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 
-		return int64(value.Uint()) >= min
+		return int64(value.Uint()) >= minVal
 
 	case reflect.Float32, reflect.Float64:
 
-		return int64(value.Float()) >= min
+		return int64(value.Float()) >= minVal
 
 	case reflect.String:
 
-		return int64(len(value.String())) >= min
+		return int64(len(value.String())) >= minVal
 
 	case reflect.Slice, reflect.Array:
 
-		return int64(value.Len()) >= min
+		return int64(value.Len()) >= minVal
 
 	}
 
@@ -966,29 +966,29 @@ func validateMinReflectValue(value reflect.Value, min int64) bool {
 
 // validateMaxReflectValue validates maximum value for reflect.Value.
 
-func validateMaxReflectValue(value reflect.Value, max int64) bool {
+func validateMaxReflectValue(value reflect.Value, maxVal int64) bool {
 
 	switch value.Kind() {
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 
-		return value.Int() <= max
+		return value.Int() <= maxVal
 
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 
-		return int64(value.Uint()) <= max
+		return int64(value.Uint()) <= maxVal
 
 	case reflect.Float32, reflect.Float64:
 
-		return int64(value.Float()) <= max
+		return int64(value.Float()) <= maxVal
 
 	case reflect.String:
 
-		return int64(len(value.String())) <= max
+		return int64(len(value.String())) <= maxVal
 
 	case reflect.Slice, reflect.Array:
 
-		return int64(value.Len()) <= max
+		return int64(value.Len()) <= maxVal
 
 	}
 

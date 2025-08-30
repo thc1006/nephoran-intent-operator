@@ -655,6 +655,7 @@ func getSafeFunctionName(fn *runtime.Func) string {
 			// Log the panic but don't propagate it - return empty string instead.
 
 			// This prevents the entire logging system from crashing.
+			// We intentionally do nothing here to prevent logging system crashes
 
 		}
 

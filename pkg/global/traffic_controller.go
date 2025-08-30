@@ -400,7 +400,7 @@ func (tc *TrafficController) checkRegionHealth(ctx context.Context, regionName s
 	client := &http.Client{Timeout: 10 * time.Second}
 
 	// Security fix (bodyclose): Create request with context
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, region.Endpoint+"/health", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, region.Endpoint+"/health", http.NoBody)
 	if err != nil {
 		health.IsHealthy = false
 		if existing, ok := tc.healthChecks[regionName]; ok {
@@ -827,11 +827,7 @@ func (tc *TrafficController) calculateRoutingWeights(
 
 		}
 
-	case "hybrid":
-
-		fallthrough
-
-	default:
+	default: // hybrid and any other strategy
 
 		// Hybrid approach considering latency, capacity, and success rate.
 

@@ -648,7 +648,14 @@ func (rm *RestoreManager) extractBackup(backupPath string) error {
 				return fmt.Errorf("total extraction size too large: %d bytes (max %d)", totalExtracted, MaxExtractionSize)
 			}
 
-			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			// Security fix (G115): Validate file mode before conversion
+			// Unix file modes are typically 12 bits (0777 for permissions + special bits)
+			// tar.Header.Mode is int64 but should contain valid Unix mode values
+			if header.Mode < 0 || header.Mode > 0777777 { // Max octal mode with all special bits
+				return fmt.Errorf("invalid file mode %o for %s", header.Mode, header.Name)
+			}
+
+			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode)) //nolint:gosec // G115: mode validated above
 
 			if err != nil {
 

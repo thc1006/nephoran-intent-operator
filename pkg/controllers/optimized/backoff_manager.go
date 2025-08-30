@@ -288,7 +288,7 @@ func (bm *BackoffManager) GetNextDelay(resourceKey string, errorType ErrorType, 
 
 		jitter := time.Duration(bm.rand.Float64() * float64(delay) * 0.1) // 10% jitter
 
-		delay = delay + jitter
+		delay += jitter
 
 	}
 
@@ -532,7 +532,7 @@ func containsAny(s string, substrings []string) bool {
 
 	for _, substr := range substrings {
 
-		if len(substr) > 0 && len(s) >= len(substr) {
+		if substr != "" && len(s) >= len(substr) {
 
 			for i := 0; i <= len(s)-len(substr); i++ {
 

@@ -1367,8 +1367,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
+            SERVICE=conductor-loop
             VERSION=${{ github.sha }}
-            BUILDDATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VCS_REF=${{ github.sha }}
 
       - name: Generate build summary
         id: build-summary

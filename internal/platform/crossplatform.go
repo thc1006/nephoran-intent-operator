@@ -333,7 +333,7 @@ func generateUnixMockPorchScript(opts ScriptOptions) string {
 
 	if opts.Stdout != "" {
 
-		stdoutCmd = fmt.Sprintf("echo \"%s\"", opts.Stdout)
+		stdoutCmd = fmt.Sprintf("echo %q", opts.Stdout)
 
 	}
 
@@ -341,7 +341,7 @@ func generateUnixMockPorchScript(opts ScriptOptions) string {
 
 	if opts.Stderr != "" {
 
-		stderrCmd = fmt.Sprintf("echo \"%s\" >&2", opts.Stderr)
+		stderrCmd = fmt.Sprintf("echo %q >&2", opts.Stderr)
 
 	}
 
@@ -523,7 +523,7 @@ func generateUnixGenericScript(opts ScriptOptions) string {
 
 	if opts.Stdout != "" {
 
-		stdoutCmd = fmt.Sprintf("echo \"%s\"", opts.Stdout)
+		stdoutCmd = fmt.Sprintf("echo %q", opts.Stdout)
 
 	}
 
@@ -531,7 +531,7 @@ func generateUnixGenericScript(opts ScriptOptions) string {
 
 	if opts.Stderr != "" {
 
-		stderrCmd = fmt.Sprintf("echo \"%s\" >&2", opts.Stderr)
+		stderrCmd = fmt.Sprintf("echo %q >&2", opts.Stderr)
 
 	}
 

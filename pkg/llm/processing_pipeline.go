@@ -1181,7 +1181,7 @@ func (iv *InputValidator) Validate(intent string) PipelineValidationResult {
 
 		if rule.Required && !rule.Pattern.MatchString(intent) {
 
-			error := PipelineValidationError{
+			validationError := PipelineValidationError{
 
 				Field: "intent",
 
@@ -1194,7 +1194,7 @@ func (iv *InputValidator) Validate(intent string) PipelineValidationResult {
 
 			if rule.Severity == "error" {
 
-				result.Errors = append(result.Errors, error)
+				result.Errors = append(result.Errors, validationError)
 
 				result.Valid = false
 
@@ -1202,7 +1202,7 @@ func (iv *InputValidator) Validate(intent string) PipelineValidationResult {
 
 			} else {
 
-				result.Warnings = append(result.Warnings, error)
+				result.Warnings = append(result.Warnings, validationError)
 
 				result.Score *= 0.9
 

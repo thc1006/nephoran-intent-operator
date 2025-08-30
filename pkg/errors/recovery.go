@@ -819,7 +819,7 @@ func (re *RetryExecutor) calculateNextDelay(currentDelay time.Duration, attempt 
 
 		jitter := time.Duration(rand.Int63n(int64(nextDelay) / 2))
 
-		nextDelay = nextDelay + jitter
+		nextDelay += jitter
 
 	}
 

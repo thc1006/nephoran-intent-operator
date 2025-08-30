@@ -227,7 +227,7 @@ func NewAlertManager(config *AlertManagerConfig, logger *StructuredLogger, metri
 
 // RegisterAlertRule registers a new alert rule.
 
-func (am *AlertManager) RegisterAlertRule(rule *AlertRule) {
+func (am *AlertManager) RegisterAlertRule(ctx context.Context, rule *AlertRule) {
 
 	am.mu.Lock()
 
@@ -237,7 +237,7 @@ func (am *AlertManager) RegisterAlertRule(rule *AlertRule) {
 
 	if am.logger != nil {
 
-		am.logger.Info(context.Background(), "Alert rule registered",
+		am.logger.Info(ctx, "Alert rule registered",
 
 			slog.String("rule_name", rule.Name),
 
@@ -992,7 +992,7 @@ func (am *AlertManager) registerDefaultAlertRules(ctx context.Context) {
 
 	// NetworkIntent processing failure rate.
 
-	am.RegisterAlertRule(&AlertRule{
+	am.RegisterAlertRule(ctx, &AlertRule{
 
 		Name: "NetworkIntentHighFailureRate",
 
@@ -1033,7 +1033,7 @@ func (am *AlertManager) registerDefaultAlertRules(ctx context.Context) {
 
 	// LLM service down.
 
-	am.RegisterAlertRule(&AlertRule{
+	am.RegisterAlertRule(ctx, &AlertRule{
 
 		Name: "LLMServiceDown",
 
@@ -1072,7 +1072,7 @@ func (am *AlertManager) registerDefaultAlertRules(ctx context.Context) {
 
 	// High memory usage.
 
-	am.RegisterAlertRule(&AlertRule{
+	am.RegisterAlertRule(ctx, &AlertRule{
 
 		Name: "HighMemoryUsage",
 
@@ -1111,7 +1111,7 @@ func (am *AlertManager) registerDefaultAlertRules(ctx context.Context) {
 
 	// O-RAN interface connection issues.
 
-	am.RegisterAlertRule(&AlertRule{
+	am.RegisterAlertRule(ctx, &AlertRule{
 
 		Name: "ORANInterfaceDown",
 

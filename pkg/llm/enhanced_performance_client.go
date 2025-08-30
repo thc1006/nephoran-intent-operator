@@ -881,7 +881,7 @@ func (c *EnhancedPerformanceClient) ProcessIntentWithOptions(ctx context.Context
 
 	}
 
-	c.performanceOpt.RecordLatency(latencyData)
+	c.performanceOpt.RecordLatency(ctx, latencyData)
 
 	// Update metrics.
 
@@ -1022,9 +1022,9 @@ func (c *EnhancedPerformanceClient) updateMetrics(ctx context.Context, options *
 		attribute.Bool("cache_hit", cacheHit),
 	}
 
-	c.otelMetrics.requestDuration.Record(context.Background(), duration.Seconds(), metric.WithAttributes(otelLabels...))
+	c.otelMetrics.requestDuration.Record(ctx, duration.Seconds(), metric.WithAttributes(otelLabels...))
 
-	c.otelMetrics.requestsTotal.Add(context.Background(), 1, metric.WithAttributes(otelLabels...))
+	c.otelMetrics.requestsTotal.Add(ctx, 1, metric.WithAttributes(otelLabels...))
 
 }
 
@@ -1061,7 +1061,7 @@ func (c *EnhancedPerformanceClient) trackTokenUsage(ctx context.Context, modelNa
 
 	c.prometheusMetrics.tokensUsed.With(labels).Add(float64(tokenCount))
 
-	c.otelMetrics.tokensUsed.Add(context.Background(), int64(tokenCount), metric.WithAttributes(
+	c.otelMetrics.tokensUsed.Add(ctx, int64(tokenCount), metric.WithAttributes(
 
 		attribute.String("model", modelName),
 

@@ -951,15 +951,15 @@ func DeepCopy[T any](original T) Result[T, error] {
 
 	}
 
-	var copy T
+	var result T
 
-	if err := json.Unmarshal(data, &copy); err != nil {
+	if err := json.Unmarshal(data, &result); err != nil {
 
 		return Err[T, error](fmt.Errorf("failed to unmarshal for deep copy: %w", err))
 
 	}
 
-	return Ok[T, error](copy)
+	return Ok[T, error](result)
 
 }
 
@@ -1043,7 +1043,7 @@ func RangeValidator[T any](min, max int64) ConfigValidator[T] {
 
 // validateRanges recursively validates numeric ranges.
 
-func validateRanges(value reflect.Value, min, max int64) Result[bool, error] {
+func validateRanges(value reflect.Value, minVal, maxVal int64) Result[bool, error] {
 
 	switch value.Kind() {
 
@@ -1051,7 +1051,7 @@ func validateRanges(value reflect.Value, min, max int64) Result[bool, error] {
 
 		intValue := value.Int()
 
-		if intValue < min || intValue > max {
+		if intValue < minVal || intValue > maxVal {
 
 			return Ok[bool, error](false)
 
@@ -1065,7 +1065,7 @@ func validateRanges(value reflect.Value, min, max int64) Result[bool, error] {
 
 			if field.CanInterface() {
 
-				result := validateRanges(field, min, max)
+				result := validateRanges(field, minVal, maxVal)
 
 				if result.IsErr() || !result.Value() {
 
@@ -1081,7 +1081,7 @@ func validateRanges(value reflect.Value, min, max int64) Result[bool, error] {
 
 		if !value.IsNil() {
 
-			return validateRanges(value.Elem(), min, max)
+			return validateRanges(value.Elem(), minVal, maxVal)
 
 		}
 

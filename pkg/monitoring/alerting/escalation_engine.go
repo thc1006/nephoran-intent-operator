@@ -6,6 +6,7 @@ package alerting
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
@@ -947,7 +948,8 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 
 		if err := prometheus.Register(metric); err != nil {
 
-			if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+			var alreadyRegisteredErr prometheus.AlreadyRegisteredError
+			if !errors.As(err, &alreadyRegisteredErr) {
 
 				// Only propagate non-duplicate errors.
 

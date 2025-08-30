@@ -415,7 +415,7 @@ func (po *PerformanceOptimizer) initializeMetrics() {
 
 // RecordLatency records a latency data point.
 
-func (po *PerformanceOptimizer) RecordLatency(dataPoint LLMLatencyDataPoint) {
+func (po *PerformanceOptimizer) RecordLatency(ctx context.Context, dataPoint LLMLatencyDataPoint) {
 
 	po.bufferMutex.Lock()
 
@@ -439,13 +439,13 @@ func (po *PerformanceOptimizer) RecordLatency(dataPoint LLMLatencyDataPoint) {
 
 	// Update metrics.
 
-	po.updateMetrics(dataPoint)
+	po.updateMetrics(ctx, dataPoint)
 
 }
 
 // updateMetrics updates Prometheus and OpenTelemetry metrics.
 
-func (po *PerformanceOptimizer) updateMetrics(dataPoint LLMLatencyDataPoint) {
+func (po *PerformanceOptimizer) updateMetrics(ctx context.Context, dataPoint LLMLatencyDataPoint) {
 
 	// Prometheus metrics.
 
@@ -507,11 +507,11 @@ func (po *PerformanceOptimizer) updateMetrics(dataPoint LLMLatencyDataPoint) {
 		attribute.Bool("cache_hit", dataPoint.CacheHit),
 	}
 
-	po.metrics.requestLatencyHistogramOTel.Record(context.Background(), dataPoint.Duration.Seconds(), metric.WithAttributes(otelLabels...))
+	po.metrics.requestLatencyHistogramOTel.Record(ctx, dataPoint.Duration.Seconds(), metric.WithAttributes(otelLabels...))
 
 	if dataPoint.TokenCount > 0 {
 
-		po.metrics.tokenUsageCounterOTel.Add(context.Background(), int64(dataPoint.TokenCount), metric.WithAttributes(otelLabels...))
+		po.metrics.tokenUsageCounterOTel.Add(ctx, int64(dataPoint.TokenCount), metric.WithAttributes(otelLabels...))
 
 	}
 

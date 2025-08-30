@@ -356,7 +356,8 @@ func (ow *OptimizedWatcher) scaleWorkers() {
 		optimalWorkers = math.MaxInt32
 		log.Printf("Warning: optimalWorkers %d exceeds int32 max, capping to %d", optimalWorkers, math.MaxInt32)
 	}
-	target := int32(optimalWorkers)
+	// Safe conversion: optimalWorkers already validated to be within int32 bounds above
+	target := int32(optimalWorkers) //nolint:gosec // G115: bounds checked lines 355-358
 
 	// Apply energy constraints.
 
@@ -377,8 +378,8 @@ func (ow *OptimizedWatcher) scaleWorkers() {
 		minWorkersInt = 1 // Ensure at least 1 worker
 		log.Printf("Warning: minWorkers %d is negative, using 1", ow.predictiveScaler.minWorkers)
 	}
-	// Already validated above, safe to convert
-	minWorkers := int32(minWorkersInt)
+	// Safe conversion: minWorkersInt already validated to be within int32 bounds above
+	minWorkers := int32(minWorkersInt) //nolint:gosec // G115: bounds checked lines 373-379
 
 	maxWorkersInt := ow.predictiveScaler.maxWorkers
 	if maxWorkersInt > math.MaxInt32 {
@@ -388,8 +389,8 @@ func (ow *OptimizedWatcher) scaleWorkers() {
 		maxWorkersInt = 1 // Ensure at least 1 worker
 		log.Printf("Warning: maxWorkers %d is invalid, using 1", ow.predictiveScaler.maxWorkers)
 	}
-	// Already validated above, safe to convert
-	maxWorkers := int32(maxWorkersInt)
+	// Safe conversion: maxWorkersInt already validated to be within int32 bounds above
+	maxWorkers := int32(maxWorkersInt) //nolint:gosec // G115: bounds checked lines 384-390
 
 	if target < minWorkers {
 		target = minWorkers

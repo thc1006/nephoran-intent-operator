@@ -246,7 +246,11 @@ func (c *HTTPClient[TRequest, TResponse]) Execute(ctx context.Context, request T
 
 	if resp.StatusCode >= 400 {
 
-		body, _ := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			// If we can't read the body, still return the status code error
+			return Err[TResponse, error](fmt.Errorf("HTTP error %d (failed to read response body: %v)", resp.StatusCode, err))
+		}
 
 		return Err[TResponse, error](fmt.Errorf("HTTP error %d: %s", resp.StatusCode, string(body)))
 
@@ -285,7 +289,8 @@ func (c *HTTPClient[TRequest, TResponse]) ExecuteWithRetry(ctx context.Context, 
 			if shiftAmount > 30 { // Cap at ~1073 seconds (17+ minutes)
 				shiftAmount = 30
 			}
-			backoff := time.Duration(1<<uint(shiftAmount)) * time.Second
+			// Safe conversion: shiftAmount is guaranteed to be <= 30 after bounds check
+			backoff := time.Duration(1<<uint(shiftAmount)) * time.Second //nolint:gosec // G115: bounded to max 30
 
 			timer := time.NewTimer(backoff)
 

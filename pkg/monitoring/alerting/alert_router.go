@@ -7,6 +7,7 @@ package alerting
 import (
 	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -649,7 +650,8 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 
 		if err := prometheus.Register(metric); err != nil {
 
-			if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+			var alreadyRegisteredErr prometheus.AlreadyRegisteredError
+			if !errors.As(err, &alreadyRegisteredErr) {
 
 				// Only propagate non-duplicate errors.
 

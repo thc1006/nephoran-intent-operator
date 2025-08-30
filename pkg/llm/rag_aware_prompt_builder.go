@@ -851,11 +851,10 @@ func (pb *RAGAwarePromptBuilder) formatDocumentForContext(result *shared.SearchR
 
 	}
 
-	parts = append(parts, fmt.Sprintf("Relevance: %.3f", result.Score))
-
-	parts = append(parts, "")
-
-	parts = append(parts, doc.Content)
+	parts = append(parts,
+		fmt.Sprintf("Relevance: %.3f", result.Score),
+		"",
+		doc.Content)
 
 	return strings.Join(parts, "\n")
 
@@ -989,11 +988,10 @@ func (pb *RAGAwarePromptBuilder) buildUserPrompt(query, context string, fewShotE
 
 		for i, example := range fewShotExamples {
 
-			parts = append(parts, fmt.Sprintf("\nExample %d:", i+1))
-
-			parts = append(parts, fmt.Sprintf("Q: %s", example.Query))
-
-			parts = append(parts, fmt.Sprintf("A: %s", example.Response))
+			parts = append(parts,
+				fmt.Sprintf("\nExample %d:", i+1),
+				fmt.Sprintf("Q: %s", example.Query),
+				fmt.Sprintf("A: %s", example.Response))
 
 		}
 
@@ -1005,9 +1003,7 @@ func (pb *RAGAwarePromptBuilder) buildUserPrompt(query, context string, fewShotE
 
 	if context != "" {
 
-		parts = append(parts, context)
-
-		parts = append(parts, "")
+		parts = append(parts, context, "")
 
 	}
 
@@ -1015,19 +1011,16 @@ func (pb *RAGAwarePromptBuilder) buildUserPrompt(query, context string, fewShotE
 
 	if customInstructions != "" {
 
-		parts = append(parts, "Additional Instructions:")
-
-		parts = append(parts, customInstructions)
-
-		parts = append(parts, "")
+		parts = append(parts,
+			"Additional Instructions:",
+			customInstructions,
+			"")
 
 	}
 
 	// Add the actual query.
 
-	parts = append(parts, "Question:")
-
-	parts = append(parts, query)
+	parts = append(parts, "Question:", query)
 
 	return strings.Join(parts, "\n")
 

@@ -481,21 +481,14 @@ func (hc *HealthChecker) HealthzHandler(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "application/json")
 
 	// During grace period, always return healthy.
-
-	if hc.isInGracePeriod() {
-
+	switch {
+	case hc.isInGracePeriod():
 		response.Status = StatusHealthy
-
 		w.WriteHeader(http.StatusOK)
-
-	} else if response.Status == StatusHealthy {
-
+	case response.Status == StatusHealthy:
 		w.WriteHeader(http.StatusOK)
-
-	} else {
-
+	default:
 		w.WriteHeader(http.StatusServiceUnavailable)
-
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
