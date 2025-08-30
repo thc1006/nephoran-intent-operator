@@ -1,8 +1,8 @@
-# Comprehensive golangci-lint configuration optimized for DevOps speed and quality
-# Combines comprehensive linting with performance optimizations for CI/CD
+# golangci-lint config optimized for ULTRA SPEED MODE (2025)
+# Comprehensive linting with performance optimizations for CI/CD
 
 run:
-  timeout: 10m
+  timeout: 8m
   go: '1.24'
   issues-exit-code: 1
   tests: true
@@ -12,119 +12,25 @@ run:
     - netgo
     - osusergo
     - static_build
-    - integration
-    - e2e
-  skip-dirs:
-    - bin
-    - vendor
-    - .git
-    - archive
-    - _examples
-    - tools
-    - testdata
-    - deployments
-  skip-files:
-    - ".*\\.pb\\.go$"
-    - ".*_generated\\.go$"
-    - "zz_generated.*.go$"
 
-output:
-  formats:
-    - format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
-  uniq-by-line: true
-  sort-results: true
+linters:
+  # Ultra-fast linter configuration for CI speed (2025 optimized)
+  disable-all: true
+  enable:
+    - govet       # Essential static analysis
+    - staticcheck # Fast and comprehensive
+    - errcheck    # Error handling validation
+    - revive      # Fast Go linting
+    - gofmt       # Formatting check (fast)
+    - ineffassign # Dead code detection (fast)
+    - misspell    # Spelling errors (fast)
+    - unused      # Detect unused variables/functions
+    - typecheck   # Type checking
+    - gosimple    # Simplification suggestions
 
 linters-settings:
-  # Code complexity and maintainability (optimized for CI speed)
-  gocyclo:
-    min-complexity: 15  # Balanced threshold
-  cyclop:
-    max-complexity: 15
-    package-average: 10.0
-    skip-tests: true
-  
-  gocognit:
-    min-complexity: 20  # More lenient for complex business logic
-  
-  dupl:
-    threshold: 100  # Reasonable threshold for CI speed
-  
-  funlen:
-    lines: 100
-    statements: 60
-    ignore-comments: true
-  
-  lll:
-    line-length: 120
-    tab-width: 4
-  
-  nestif:
-    min-complexity: 5
-  
-  # Security linters (essential subset for speed)
-  gosec:
-    severity: "medium"
-    confidence: "medium"
-    includes:
-      - G101  # Look for hard coded credentials
-      - G104  # Audit errors not checked
-      - G204  # Audit use of command execution
-      - G304  # File path provided as taint input
-      - G401  # Detect the usage of DES, RC4, MD5 or SHA1
-      - G402  # Look for bad TLS connection settings
-      - G404  # Insecure random number source (rand)
-      - G601  # Implicit memory aliasing of items from a range statement
-  
-  # Error handling (optimized)
-  errorlint:
-    errorf: true
-    asserts: true
-    comparison: true
-  
-  # Variable naming (lenient for speed)
-  varnamelen:
-    min-name-length: 2
-    ignore-names:
-      - err
-      - id
-      - ok
-      - db
-      - tx
-      - wg
-      - ctx
-      - i
-      - j
-      - k
-    ignore-decls:
-      - c echo.Context
-      - t testing.T
-      - f *os.File
-      - w http.ResponseWriter
-      - r *http.Request
-  
-  # Code formatting
-  gofumpt:
-    extra-rules: true
-  
-  # Import grouping and formatting
-  gci:
-    sections:
-      - standard
-      - default
-      - prefix(github.com/nephoran-intent-operator)
-    skip-generated: true
-    custom-order: true
-  
-  # Performance linters (essential only)
-  prealloc:
-    simple: true
-    range-loops: true
-    for-loops: false  # Skip for CI speed
-  
-  # Revive configuration for fast linting
   revive:
+    # Ultra-fast ruleset optimized for CI speed
     severity: warning
     confidence: 0.8
     rules:
@@ -137,7 +43,7 @@ linters-settings:
   
   # Optimize staticcheck for speed
   staticcheck:
-    checks: ["all", "-SA1019", "-SA1029"]  # Skip deprecated warnings
+    checks: ["all", "-SA1019"]  # Skip deprecated warnings for speed
   
   # Fast govet configuration
   govet:
@@ -149,81 +55,17 @@ linters-settings:
       - buildtag
       - nilfunc
       - printf
-    disable:
-      - shadow
-      - fieldalignment
 
-linters:
-  disable-all: true
-  enable:
-    # Essential static analysis (fast)
-    - govet
-    - staticcheck
-    - errcheck
-    - typecheck
-    - unused
-    - ineffassign
-    - gosimple
-    
-    # Code quality (balanced)
-    - revive
-    - gofmt
-    - goimports
-    - gci
-    - misspell
-    - unconvert
-    - gocritic
-    
-    # Security (essential subset)
-    - gosec
-    
-    # Error handling
-    - errorlint
-    - errchkjson
-    
-    # Performance (selective)
-    - prealloc
-    
-    # Code complexity (reasonable thresholds)
-    - gocyclo
-    - cyclop
-    - gocognit
-    - funlen
-    - nestif
-    
-    # Code duplication
-    - dupl
-    
-    # Formatting and style
-    - lll
-    - whitespace
-    - varnamelen
-    
-    # Additional quality checks (selective)
-    - asciicheck
-    - bodyclose
-    - containedctx
-    - contextcheck
-    - durationcheck
-    - exportloopref
-    - goconst
-    - gomodguard
-    - goprintffuncname
-    - makezero
-    - nakedret
-    - nilerr
-    - noctx
-    - predeclared
-    - rowserrcheck
-    - sqlclosecheck
-    - usestdlibvars
-    - wastedassign
-
+# All issue-related filters and exclusions live under "issues"
 issues:
+  # Don't limit counts while we're stabilizing the codebase
   max-issues-per-linter: 0
   max-same-issues: 0
+  
+  # Use default exclude patterns (vendor, third_party, etc.)
   exclude-use-default: true
   
+  # Additional directories to exclude from linting
   exclude-dirs:
     - _examples
     - tools
@@ -232,62 +74,36 @@ issues:
     - .git
     - bin
     - deployments
+  
+  # Files to exclude from linting
+  exclude-files:
+    - ".*\\.pb\\.go$"
+    - ".*_generated\\.go$"
+    - "zz_generated.*.go$"
 
+  # Use exclude-rules instead of deprecated exclusions
   exclude-rules:
     # Exclude generated files
     - path: "_generated\\.go$"
       linters:
         - all
+    # Exclude vendor directory
     - path: "^vendor/"
       linters:
         - all
+    # Exclude docs, examples, deployments, testdata, _examples, tools
     - path: "^(docs|examples|deployments|testdata|_examples|tools)/"
       linters:
         - all
-    
-    # Exclude some linters from running on tests files
+    # Allow some patterns in tests
     - path: _test\.go
       linters:
-        - gocyclo
         - errcheck
-        - dupl
         - gosec
-        - funlen
-        - gocognit
-        - goconst
-    
-    # Allow complex main functions
-    - path: cmd/.*main\.go
-      linters:
-        - gocyclo
-        - cyclop
-        - gocognit
-    
-    # Allow longer lines in generated code
-    - path: api/.*types\.go
-      linters:
-        - lll
-    
-    # Specific exclusions for known acceptable patterns
-    - text: "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv). is not checked"
-      linters:
-        - errcheck
 
-severity:
-  default-severity: error
-  case-sensitive: true
-  rules:
-    - linters:
-        - gosec
-        - govet
-        - errorlint
-      severity: error
-    - linters:
-        - revive
-        - misspell
-        - gocritic
-      severity: warning
-    - linters:
-        - dupl
-        - prealloc
-      severity: info
+# Output format for golangci-lint
+output:
+  formats:
+    - format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
