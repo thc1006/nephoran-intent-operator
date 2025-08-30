@@ -339,7 +339,7 @@ jobs:
         with:
           context: .
           platforms: ${{ env.PLATFORMS }}
-          push: ${{ github.event_name != 'pull_request' }}
+          push: false  # Temporarily disabled due to GHCR auth issues
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # Enhanced caching strategy for matrix builds
