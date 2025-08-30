@@ -23,6 +23,10 @@ concurrency:
 permissions:
   contents: read
   packages: write
+  security-events: write
+  id-token: write
+  # Explicit GHCR permissions for 2025 compliance
+  actions: read
 
 # Global environment variables
 env:
@@ -1387,6 +1391,19 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Verify GITHUB_TOKEN permissions
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "Verifying GitHub token permissions for GHCR push..."
+          echo "Event: ${{ github.event_name }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Ref: ${{ github.ref }}"
+          # Test token scope
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               "https://api.github.com/user" || echo "Token validation failed"
+
       - name: Login to GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
@@ -1394,21 +1411,31 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          DOCKER_BUILDKIT: 1
 
       - name: Extract metadata for container image
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY_BASE }}/nephoran-intent-operator
+          # Use consistent lowercase naming for GHCR compatibility
+          images: ghcr.io/${{ github.repository_owner }}/nephoran-intent-operator
           tags: |
             type=ref,event=branch
             type=ref,event=pr
             type=sha,prefix=commit-
             type=raw,value=latest,enable={{is_default_branch}}
+          flavor: |
+            latest=auto
+            prefix=
+            suffix=
 
       - name: Build and push container image
         id: build
         uses: docker/build-push-action@v5
+        env:
+          DOCKER_BUILDKIT: 1
+          BUILDX_NO_DEFAULT_ATTESTATIONS: 1
         with:
           context: .
           platforms: ${{ env.PLATFORMS }}
