@@ -661,7 +661,12 @@ func (h *TestSyncHelper) VerifyProcessingResults(expectedProcessed, expectedFail
 
 	if entries, err := os.ReadDir(processedDir); err == nil {
 
-		processedFiles = len(entries)
+		// Count only intent files, not any auxiliary files
+		for _, entry := range entries {
+			if !entry.IsDir() && IsIntentFile(entry.Name()) {
+				processedFiles++
+			}
+		}
 
 	}
 
@@ -673,7 +678,12 @@ func (h *TestSyncHelper) VerifyProcessingResults(expectedProcessed, expectedFail
 
 	if entries, err := os.ReadDir(failedDir); err == nil {
 
-		failedFiles = len(entries)
+		// Count only intent files, not error logs
+		for _, entry := range entries {
+			if !entry.IsDir() && IsIntentFile(entry.Name()) {
+				failedFiles++
+			}
+		}
 
 	}
 
