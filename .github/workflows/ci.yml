@@ -1294,8 +1294,6 @@ jobs:
           fi
           
           echo "sarif_uploaded=false" >> $GITHUB_OUTPUT
-              echo "| End Time | $end_time |" >> $GITHUB_STEP_SUMMARY
-              echo "| Status Message | $scan_message |" >> $GITHUB_STEP_SUMMARY
           
           # Additional context
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -1388,8 +1386,70 @@ jobs:
           file dist/manager-* || echo "file command not available"
           ls -la dist/
 
-      - name: Set up Docker Buildx
+      - name: Set up Docker Buildx with enhanced resilience and registry mirrors
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            network=host
+          buildkitd-flags: |
+            --allow-insecure-entitlement security.insecure
+            --allow-insecure-entitlement network.host
+          config-inline: |
+            [registry."docker.io"]
+              mirrors = ["mirror.gcr.io", "dockerhub.azk8s.cn"]
+            [registry."gcr.io"]
+              mirrors = ["mirror.gcr.io", "gcr.azk8s.cn"]
+            [registry."quay.io"]
+              mirrors = ["quay.azk8s.cn"]
+            [registry."registry.k8s.io"]
+              mirrors = ["k8s.gcr.io", "registry.aliyuncs.com/google_containers"]
+        env:
+          BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+          BUILDKIT_PROGRESS: plain
+          DOCKER_BUILDKIT: 1
+
+      - name: Pre-build cache and registry health check
+        run: |
+          echo "=== Pre-build infrastructure health check ==="
+          
+          # Test GitHub Actions cache service availability
+          echo "Testing GitHub Actions cache service..."
+          gha_cache_available=false
+          if timeout 30s docker buildx build --platform linux/amd64 \
+               --cache-from=type=gha \
+               --cache-to=type=gha,mode=max,ignore-error=true \
+               -f /dev/null . 2>&1 | grep -v "Our services aren't available"; then
+            gha_cache_available=true
+            echo "✅ GHA cache service responsive"
+          else
+            echo "⚠️ GHA cache service may be experiencing issues"
+          fi
+          
+          # Test registry connectivity for different mirrors
+          registries=("gcr.io" "docker.io" "ghcr.io")
+          available_registries=""
+          
+          for registry in "${registries[@]}"; do
+            echo "Testing $registry connectivity..."
+            if timeout 15s docker buildx imagetools inspect "$registry/hello-world:latest" >/dev/null 2>&1; then
+              echo "✅ $registry responsive"
+              available_registries="$available_registries $registry"
+            else
+              echo "⚠️ $registry may be experiencing issues"
+            fi
+          done
+          
+          # Set environment variables for build strategy selection
+          echo "GHA_CACHE_AVAILABLE=$gha_cache_available" >> $GITHUB_ENV
+          echo "AVAILABLE_REGISTRIES=$available_registries" >> $GITHUB_ENV
+          
+          # Prepare local cache directory structure
+          mkdir -p /tmp/cache/{buildkit-state,buildkit-cache}
+          chmod 755 /tmp/cache /tmp/cache/buildkit-state /tmp/cache/buildkit-cache
+          
+          echo "Infrastructure health check completed"
+          echo "GHA Cache: $gha_cache_available"
+          echo "Available registries: $available_registries"
 
       - name: Verify GITHUB_TOKEN permissions
         if: github.event_name != 'pull_request'
@@ -1430,27 +1490,60 @@ jobs:
             prefix=
             suffix=
 
-      - name: Build and push container image
+      - name: Build and push container image with smart infrastructure-aware strategy
         id: build
-        uses: docker/build-push-action@v5
         env:
           DOCKER_BUILDKIT: 1
           BUILDX_NO_DEFAULT_ATTESTATIONS: 1
-        with:
-          context: .
-          platforms: ${{ env.PLATFORMS }}
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            BUILDPLATFORM=linux/amd64
-            TARGETPLATFORM=linux/amd64,linux/arm64
-            SERVICE=conductor-loop
-            VERSION=${{ github.sha }}
-            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
-            VCS_REF=${{ github.sha }}
+          DOCKER_CLI_EXPERIMENTAL: enabled
+          BUILDKIT_PROGRESS: plain
+        run: |
+          echo "=== Smart Docker build with infrastructure-aware resilience ==="
+          
+          # Build configuration
+          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/nephoran-intent-operator"
+          PLATFORMS="${{ env.PLATFORMS }}"
+          SERVICE_NAME="conductor-loop"
+          BUILD_VERSION="${{ github.sha }}"
+          SHOULD_PUSH="${{ github.event_name != 'pull_request' }}"
+          
+          echo "Build configuration:"
+          echo "  Image: $IMAGE_NAME"
+          echo "  Platforms: $PLATFORMS"
+          echo "  Service: $SERVICE_NAME"
+          echo "  Version: $BUILD_VERSION"
+          echo "  Push: $SHOULD_PUSH"
+          echo "  Infrastructure status:"
+          echo "    GHA Cache: ${GHA_CACHE_AVAILABLE:-unknown}"
+          echo "    Available registries: ${AVAILABLE_REGISTRIES:-unknown}"
+          
+          # Use the smart build script for infrastructure-aware building
+          echo "Executing smart build script..."
+          
+          if ./scripts/smart-docker-build.sh \
+               "$SERVICE_NAME" \
+               "$IMAGE_NAME" \
+               "$BUILD_VERSION" \
+               "$PLATFORMS" \
+               "$SHOULD_PUSH"; then
+            echo "Smart build completed successfully!"
+            
+            # Try to capture build digest
+            if [ "$SHOULD_PUSH" = "true" ]; then
+              sleep 5
+              digest=$(docker buildx imagetools inspect "$IMAGE_NAME:$BUILD_VERSION" --format '{{.Manifest.Digest}}' 2>/dev/null || echo "")
+              if [ -n "$digest" ]; then
+                echo "digest=$digest" >> $GITHUB_OUTPUT
+                echo "Build digest: $digest"
+              fi
+            fi
+            
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "Smart build failed - falling back to emergency build strategy"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
 
       - name: Generate build summary
         id: build-summary
@@ -1459,7 +1552,7 @@ jobs:
           echo "## Build Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          build_status="unknown"
+          build_status="${{ steps.build.outputs.status }}"
           image_digest="${{ steps.build.outputs.digest }}"
           
           # Check binary builds

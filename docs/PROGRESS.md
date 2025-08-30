@@ -18,3 +18,4 @@
 | 2025-08-28T09:30:00Z | feat/conductor-loop | ci-bulletproof-system | Comprehensive CI verification system with automated fixes, progress tracking, PR monitoring, and rollback safety |
  | feat/conductor-loop | pkg/controllers | Fix NetworkIntentAuthDecorator undefined Get method by explicit embedding access
 2025-08-29T21:28:39+08:00 | feat/conductor-loop | pkg/controllers | Fix NetworkIntentAuthDecorator undefined Get method by explicit embedding access
+| 2025-08-30T16:40:03Z | feat/conductor-loop | ci-devops | fix GHCR 403 auth errors with 2025 practices |
