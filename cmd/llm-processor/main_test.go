@@ -29,6 +29,35 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
 )
 
+// createIPAllowlistHandler creates a test handler with IP allowlist functionality
+func createIPAllowlistHandler(next http.Handler, allowedCIDRs []string, logger *slog.Logger) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Simple IP check for testing purposes
+		remoteIP := r.RemoteAddr
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			parts := strings.Split(xff, ",")
+			remoteIP = strings.TrimSpace(parts[0])
+		}
+		
+		// For testing, allow localhost/127.0.0.1 and common test IPs
+		if strings.Contains(remoteIP, "127.0.0.1") || strings.Contains(remoteIP, "192.168.") || 
+		   strings.Contains(remoteIP, "10.0.") || remoteIP == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		
+		// Check against allowed CIDRs for other cases
+		for _, cidr := range allowedCIDRs {
+			if strings.Contains(remoteIP, strings.Split(cidr, "/")[0]) {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+		
+		http.Error(w, "Forbidden", http.StatusForbidden)
+	})
+}
+
 func TestRequestSizeLimits(t *testing.T) {
 	// Set up test configuration with a small request size limit for testing
 	testMaxSize := int64(1024) // 1KB limit for testing
@@ -159,7 +188,11 @@ func TestRequestSizeLimitMiddleware(t *testing.T) {
 		Level: slog.LevelDebug,
 	}))
 
-	limiter := middleware.NewRequestSizeLimiter(testMaxSize, logger)
+	limiter := middleware.NewRequestSizeLimiter(&middleware.RequestSizeConfig{
+		MaxBodySize: testMaxSize,
+		MaxHeaderSize: 8192,
+		EnableLogging: true,
+	}, logger)
 
 	// Test handler that just echoes the request size
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
