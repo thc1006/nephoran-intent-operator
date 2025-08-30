@@ -8,10 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // MonitoringIntegrations manages integrations with monitoring systems.

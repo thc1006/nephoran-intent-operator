@@ -12,7 +12,6 @@ import (
 	monitoring "cloud.google.com/go/monitoring/apiv3/v2"
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/option"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

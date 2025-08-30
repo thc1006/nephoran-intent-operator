@@ -9,7 +9,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -190,7 +189,7 @@ func (hm *HealthMonitor) checkComponentHealth(ctx context.Context, componentName
 
 	// Update metrics.
 
-	hm.updateComponentMetrics(componentName, checker)
+	hm.updateComponentMetrics(ctx, componentName, checker)
 
 	// Log status changes.
 
@@ -785,7 +784,7 @@ func (hm *HealthMonitor) GetSystemHealth() *SystemHealthMetrics {
 
 // updateComponentMetrics updates component-specific metrics.
 
-func (hm *HealthMonitor) updateComponentMetrics(componentName string, checker *ComponentHealthChecker) {
+func (hm *HealthMonitor) updateComponentMetrics(ctx context.Context, componentName string, checker *ComponentHealthChecker) {
 
 	// Update component metrics (simulated data for now).
 

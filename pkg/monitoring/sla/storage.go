@@ -13,8 +13,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // StorageManager provides efficient time series data storage with compression and retention.

@@ -3,6 +3,7 @@ package ingest
 import (
 	"context"
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -78,6 +79,10 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 			return nil, fmt.Errorf("invalid replica count: %s", m[2])
 
 		}
+		// Security fix (G115): Validate bounds for replica count
+		if replicas < 0 || replicas > math.MaxInt32 {
+			return nil, fmt.Errorf("replica count %d out of valid range (0-%d)", replicas, math.MaxInt32)
+		}
 
 		return map[string]interface{}{
 
@@ -105,6 +110,10 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 			return nil, fmt.Errorf("invalid replica count: %s", m[2])
 
 		}
+		// Security fix (G115): Validate bounds for replica count
+		if replicas < 0 || replicas > math.MaxInt32 {
+			return nil, fmt.Errorf("replica count %d out of valid range (0-%d)", replicas, math.MaxInt32)
+		}
 
 		return map[string]interface{}{
 
@@ -131,6 +140,10 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 
 			return nil, fmt.Errorf("invalid delta count: %s", m[2])
 
+		}
+		// Security fix (G115): Validate bounds for delta count
+		if delta < 0 || delta > math.MaxInt32 {
+			return nil, fmt.Errorf("delta count %d out of valid range (0-%d)", delta, math.MaxInt32)
 		}
 
 		ns := "default"
@@ -172,6 +185,10 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 
 			return nil, fmt.Errorf("invalid delta count: %s", m[2])
 
+		}
+		// Security fix (G115): Validate bounds for delta count
+		if delta < 0 || delta > math.MaxInt32 {
+			return nil, fmt.Errorf("delta count %d out of valid range (0-%d)", delta, math.MaxInt32)
 		}
 
 		ns := "default"

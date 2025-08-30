@@ -244,7 +244,7 @@ func (s *LLMProcessorService) validateLLMConfig(apiKey string) error {
 
 	if apiKey == "" && s.config.LLMBackendType != "mock" && s.config.LLMBackendType != "rag" {
 
-		return fmt.Errorf("API Key is required for non-mock/non-rag backends")
+		return fmt.Errorf("API key is required for non-mock/non-rag backends")
 
 	}
 
@@ -268,7 +268,7 @@ func (s *LLMProcessorService) validateLLMConfig(apiKey string) error {
 
 	if s.config.RAGAPIURL == "" {
 
-		return fmt.Errorf("RAG API URL is required but not configured")
+		return fmt.Errorf("rAG API URL is required but not configured")
 
 	}
 

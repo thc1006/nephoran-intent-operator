@@ -41,7 +41,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/robfig/cron/v3"
 	"golang.org/x/sync/errgroup"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

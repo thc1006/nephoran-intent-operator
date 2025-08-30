@@ -39,6 +39,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
 )
 

@@ -30,11 +30,11 @@ type UsageData struct {
 }
 
 // Additional basic types needed for compilation that are NOT already defined elsewhere
-type GraphNode struct{
+type GraphNode struct {
 	PackageRef *PackageReference `json:"packageRef"`
 }
 type GraphMetrics struct{}
-type DependencyGraph struct{
+type DependencyGraph struct {
 	Nodes []GraphNode `json:"nodes"`
 	Edges []GraphEdge `json:"edges"`
 }

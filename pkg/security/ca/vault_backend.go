@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/vault/api"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 

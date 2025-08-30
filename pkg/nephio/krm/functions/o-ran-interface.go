@@ -37,13 +37,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 )
 
 // ORANInterfaceConfigFunction implements O-RAN interface configuration.

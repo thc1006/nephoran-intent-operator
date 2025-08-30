@@ -1212,7 +1212,7 @@ func (p *LatencyProfiler) GetStatistics() *ProfilerStatistics {
 
 		TotalIntents: p.counters.intentCount.Load(),
 
-		AverageLatency: time.Duration(p.counters.totalLatency.Load() / max(p.counters.intentCount.Load(), 1)),
+		AverageLatency: time.Duration(p.counters.totalLatency.Load() / maxInt64(p.counters.intentCount.Load(), 1)),
 
 		NetworkCalls: p.counters.networkCalls.Load(),
 
@@ -1589,7 +1589,7 @@ func DefaultProfilerConfig() *ProfilerConfig {
 
 }
 
-func max(a, b int64) int64 {
+func maxInt64(a, b int64) int64 {
 
 	if a > b {
 

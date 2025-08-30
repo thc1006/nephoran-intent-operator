@@ -9,10 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health/grpc_health_v1"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // HealthChecker performs health checks for certificate rotation.
@@ -657,11 +658,9 @@ func (hc *HealthChecker) performGRPCCheck(session *HealthCheckSession, result *H
 
 	// Create connection.
 
-	conn, err := grpc.Dial(address,
+	conn, err := grpc.NewClient(address,
 
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-
-		grpc.WithTimeout(timeout))
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	if err != nil {
 

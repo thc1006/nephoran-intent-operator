@@ -36,9 +36,9 @@ import (
 	"math"
 	"strings"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 )
 
 // FiveGCoreOptimizer optimizes 5G Core network function configurations.
@@ -790,7 +790,7 @@ func (o *FiveGCoreOptimizer) optimizeUPF(ctx context.Context, upf *porch.KRMReso
 
 	// Configure data plane.
 
-	workerThreads := max(2, cpuCores/1000) // One thread per CPU core
+	workerThreads := maxInt(2, cpuCores/1000) // One thread per CPU core
 
 	if err := SetSpecField(upf, "dataPlane.workerThreads", workerThreads); err == nil {
 
@@ -911,7 +911,7 @@ func (o *FiveGCoreOptimizer) calculateAMFReplicas(peakUsers int) int {
 
 	replicas := int(math.Ceil(float64(peakUsers) / 50000))
 
-	return max(2, replicas) // Minimum 2 for HA
+	return maxInt(2, replicas) // Minimum 2 for HA
 
 }
 
@@ -1478,7 +1478,7 @@ func floatPtr(f float64) *float64 {
 
 }
 
-func max(a, b int) int {
+func maxInt(a, b int) int {
 
 	if a > b {
 

@@ -6,11 +6,11 @@ import (
 	"net/url"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/providers"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // O2IMSConfig holds the configuration for O2 IMS.

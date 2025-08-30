@@ -9,9 +9,10 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
+	"go.uber.org/zap"
+
 	"github.com/nephio-project/nephoran-intent-operator/internal/patchgen"
 	"github.com/nephio-project/nephoran-intent-operator/internal/security"
-	"go.uber.org/zap"
 )
 
 // Version information - will be set at build time.

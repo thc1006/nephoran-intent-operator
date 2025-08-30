@@ -9,15 +9,15 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/expfmt"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
 )
 
 // Integration manages observability for service mesh.

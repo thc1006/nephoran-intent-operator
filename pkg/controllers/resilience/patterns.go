@@ -38,6 +38,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/errors"
 )
 

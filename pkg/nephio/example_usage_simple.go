@@ -35,12 +35,11 @@ import (
 	"fmt"
 	"time"
 
-	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // SimpleExampleUsage demonstrates basic usage with correct API structure.

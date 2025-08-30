@@ -41,9 +41,10 @@ import (
 	"time"
 
 	"github.com/Masterminds/sprig/v3"
+	"go.uber.org/zap"
+
 	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
-	"go.uber.org/zap"
 )
 
 // Generator handles blueprint package generation from NetworkIntents.

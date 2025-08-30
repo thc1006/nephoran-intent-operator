@@ -4,13 +4,12 @@ import (
 	"context"
 	"time"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"k8s.io/client-go/kubernetes"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // InstrumentedReconciler wraps a reconciler with monitoring instrumentation.

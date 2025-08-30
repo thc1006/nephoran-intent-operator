@@ -35,8 +35,9 @@ import (
 	"fmt"
 	"time"
 
-	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 	"go.uber.org/zap"
+
+	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // NetworkFunctionConfigGenerator generates network function configurations.

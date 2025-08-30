@@ -19,6 +19,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/lestrrat-go/jwx/v2/jwk"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 

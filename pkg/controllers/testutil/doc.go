@@ -52,6 +52,4 @@
 
 //	e2nodeSet := testutil.CreateTestE2NodeSet("test", "default", 3)
 
-
 package testutil
-

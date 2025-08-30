@@ -35,14 +35,14 @@ import (
 	"fmt"
 	"time"
 
-	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // WorkflowEngineConfig defines configuration for the workflow engine.

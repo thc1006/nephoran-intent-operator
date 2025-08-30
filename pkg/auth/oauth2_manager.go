@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/middleware"
 )
 
@@ -104,7 +105,7 @@ func NewOAuth2Manager(ctx context.Context, config *OAuth2ManagerConfig, logger *
 
 	tokenBlacklist := NewMemoryTokenBlacklist()
 
-	jwtManager, err := NewJWTManager(jwtConfig, tokenStore, tokenBlacklist, logger)
+	jwtManager, err := NewJWTManager(ctx, jwtConfig, tokenStore, tokenBlacklist, logger)
 
 	if err != nil {
 

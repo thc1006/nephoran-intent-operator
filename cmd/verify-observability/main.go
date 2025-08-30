@@ -7,8 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
 )
 
 func main() {

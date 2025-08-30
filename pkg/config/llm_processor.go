@@ -628,16 +628,9 @@ func (c *LLMProcessorConfig) Validate() error {
 
 		}
 
-	} else {
-
+	} else if c.TLSCertPath != "" || c.TLSKeyPath != "" {
 		// If TLS is disabled but paths are provided, warn about potential misconfiguration.
-
-		if c.TLSCertPath != "" || c.TLSKeyPath != "" {
-
-			errors = append(errors, "TLS certificate/key paths provided but TLS_ENABLED=false. Set TLS_ENABLED=true to enable TLS")
-
-		}
-
+		errors = append(errors, "TLS certificate/key paths provided but TLS_ENABLED=false. Set TLS_ENABLED=true to enable TLS")
 	}
 
 	// Validate logical constraints.
@@ -793,6 +786,7 @@ func (c *LLMProcessorConfig) validateRAGConfiguration() error {
 			// This is not an error, but the custom path takes precedence.
 
 			// Note: Custom path overrides the RAGPreferProcessEndpoint setting.
+			// Intentionally empty - no action needed as custom path handling is done elsewhere
 
 		}
 
@@ -1029,23 +1023,15 @@ func validateRAGURL(ragURL string) error {
 	}
 
 	// Check for common patterns and provide helpful warnings.
-
-	if strings.HasSuffix(ragURL, "/process_intent") {
-
+	switch {
+	case strings.HasSuffix(ragURL, "/process_intent"):
 		// This is valid but legacy - no error needed.
-
-	} else if strings.HasSuffix(ragURL, "/process") {
-
+	case strings.HasSuffix(ragURL, "/process"):
 		// This is the preferred pattern - no error needed.
-
-	} else if strings.HasSuffix(ragURL, "/health") {
-
+	case strings.HasSuffix(ragURL, "/health"):
 		return fmt.Errorf("RAG_API_URL should not end with '/health' - this is auto-detected for health checks")
-
-	} else if strings.HasSuffix(ragURL, "/stream") {
-
+	case strings.HasSuffix(ragURL, "/stream"):
 		return fmt.Errorf("RAG_API_URL should not end with '/stream' - this is auto-detected for streaming")
-
 	}
 
 	return nil

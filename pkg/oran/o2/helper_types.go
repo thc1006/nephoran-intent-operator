@@ -7,10 +7,10 @@ package o2
 import (
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/providers"
-
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // Additional types referenced by ResourcePoolManager and other components.

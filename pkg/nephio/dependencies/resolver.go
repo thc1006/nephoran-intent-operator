@@ -40,10 +40,10 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 	"golang.org/x/sync/errgroup"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 )
 
 // DependencyResolver provides comprehensive package dependency resolution and management.

@@ -463,7 +463,7 @@ func validateKubernetesResource(value interface{}) error {
 
 	// This is a simplified check - in production, use k8s.io/apimachinery/pkg/api/resource.ParseQuantity.
 
-	resourcePattern := regexp.MustCompile(`^[0-9]+(?:\.[0-9]+)?[mMKMGTPEi]*$`)
+	resourcePattern := regexp.MustCompile(`^[0-9]+(?:\.[0-9]+)?[mKMGTPEi]*$`)
 
 	if !resourcePattern.MatchString(resource) {
 
@@ -533,13 +533,13 @@ func validateURLFormat(value interface{}) error {
 
 	default:
 
-		return fmt.Errorf("URL must be string, got %T", value)
+		return fmt.Errorf("url must be string, got %T", value)
 
 	}
 
 	if url == "" {
 
-		return fmt.Errorf("URL cannot be empty")
+		return fmt.Errorf("url cannot be empty")
 
 	}
 
@@ -963,7 +963,7 @@ func ValidateIPAddress(value interface{}) error {
 
 	default:
 
-		return fmt.Errorf("IP address must be string, got %T", value)
+		return fmt.Errorf("ip address must be string, got %T", value)
 
 	}
 

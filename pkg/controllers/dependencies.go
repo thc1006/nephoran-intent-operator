@@ -3,11 +3,11 @@ package controllers
 import (
 	"net/http"
 
+	"k8s.io/client-go/tools/record"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-
-	"k8s.io/client-go/tools/record"
 )
 
 // ConcreteDependencies is a concrete implementation of the Dependencies interface.

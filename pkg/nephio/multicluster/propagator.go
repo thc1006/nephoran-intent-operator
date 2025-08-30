@@ -7,9 +7,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-
 	"k8s.io/apimachinery/pkg/types"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

@@ -14,8 +14,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
 )
 
 // Note: HealthTier, HealthContext, HealthWeight, EnhancedCheck, and StateTransition.

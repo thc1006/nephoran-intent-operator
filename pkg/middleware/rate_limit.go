@@ -139,14 +139,15 @@ func (rl *RateLimiter) getLimiterForIP(ip string) *rate.Limiter {
 
 	if existing, ok := rl.limiters.Load(ip); ok {
 
-		limiterInfo := existing.(*ipRateLimiter)
-
-		// Update last access time.
-
-		limiterInfo.lastAccess = now
-
-		return limiterInfo.limiter
-
+		limiterInfo, ok := existing.(*ipRateLimiter)
+		if !ok {
+			rl.logger.Error("Failed to cast existing limiter to ipRateLimiter", "ip", ip)
+			// Fall through to create new limiter
+		} else {
+			// Update last access time.
+			limiterInfo.lastAccess = now
+			return limiterInfo.limiter
+		}
 	}
 
 	// Create new limiter.
@@ -166,7 +167,12 @@ func (rl *RateLimiter) getLimiterForIP(ip string) *rate.Limiter {
 
 		// Another goroutine created it first, use that one.
 
-		actualInfo := actual.(*ipRateLimiter)
+		actualInfo, ok := actual.(*ipRateLimiter)
+		if !ok {
+			rl.logger.Error("Failed to cast actual limiter to ipRateLimiter", "ip", ip)
+			// Return our own limiter as fallback
+			return limiterInfo.limiter
+		}
 
 		actualInfo.lastAccess = now
 
@@ -336,9 +342,17 @@ func (rl *RateLimiter) cleanup() {
 
 	rl.limiters.Range(func(key, value interface{}) bool {
 
-		ip := key.(string)
+		ip, ok := key.(string)
+		if !ok {
+			rl.logger.Error("Failed to cast key to string during cleanup")
+			return true // Continue iteration
+		}
 
-		limiterInfo := value.(*ipRateLimiter)
+		limiterInfo, ok := value.(*ipRateLimiter)
+		if !ok {
+			rl.logger.Error("Failed to cast value to ipRateLimiter during cleanup", "ip", ip)
+			return true // Continue iteration
+		}
 
 		if limiterInfo.lastAccess.Before(cutoff) {
 

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	validator "github.com/go-playground/validator/v10"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 

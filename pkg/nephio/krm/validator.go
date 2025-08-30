@@ -37,15 +37,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 )
 
 // Validator provides comprehensive validation and compliance checking for KRM functions.

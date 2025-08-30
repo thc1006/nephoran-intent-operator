@@ -1,23 +1,14 @@
 //go:build go1.24
 
-
-
 // Package generics provides type-safe generic implementations leveraging Go 1.24+ features.
 
 // for the Nephoran Intent Operator's telecommunications network orchestration platform.
 
-
 package generics
 
-
-
 import (
-
 	"fmt"
-
 )
-
-
 
 // Result represents a value that may be successful (T) or contain an error (E).
 
@@ -26,16 +17,12 @@ import (
 // with compile-time type safety and zero runtime overhead.
 
 type Result[T, E any] struct {
-
 	value T
 
-	err   E
+	err E
 
-	ok    bool
-
+	ok bool
 }
-
-
 
 // Ok creates a successful Result containing the given value.
 
@@ -45,13 +32,10 @@ func Ok[T, E any](value T) Result[T, E] {
 
 		value: value,
 
-		ok:    true,
-
+		ok: true,
 	}
 
 }
-
-
 
 // Err creates a failed Result containing the given error.
 
@@ -61,13 +45,10 @@ func Err[T, E any](err E) Result[T, E] {
 
 		err: err,
 
-		ok:  false,
-
+		ok: false,
 	}
 
 }
-
-
 
 // IsOk returns true if the Result contains a successful value.
 
@@ -77,8 +58,6 @@ func (r Result[T, E]) IsOk() bool {
 
 }
 
-
-
 // IsErr returns true if the Result contains an error.
 
 func (r Result[T, E]) IsErr() bool {
@@ -86,8 +65,6 @@ func (r Result[T, E]) IsErr() bool {
 	return !r.ok
 
 }
-
-
 
 // Unwrap returns the value and error. Use when you need both values.
 
@@ -98,8 +75,6 @@ func (r Result[T, E]) Unwrap() (T, E, bool) {
 	return r.value, r.err, r.ok
 
 }
-
-
 
 // Value returns the successful value or panics if the Result contains an error.
 
@@ -117,8 +92,6 @@ func (r Result[T, E]) Value() T {
 
 }
 
-
-
 // Error returns the error or panics if the Result is successful.
 
 // Use only when you're certain the Result contains an error.
@@ -135,8 +108,6 @@ func (r Result[T, E]) Error() E {
 
 }
 
-
-
 // ValueOr returns the value if successful, otherwise returns the default.
 
 func (r Result[T, E]) ValueOr(defaultValue T) T {
@@ -150,8 +121,6 @@ func (r Result[T, E]) ValueOr(defaultValue T) T {
 	return defaultValue
 
 }
-
-
 
 // MapResult transforms the value using the provided function if the Result is successful.
 
@@ -169,8 +138,6 @@ func MapResult[T, U, E any](r Result[T, E], fn func(T) U) Result[U, E] {
 
 }
 
-
-
 // MapErr transforms the error using the provided function if the Result contains an error.
 
 // Returns a new Result with the original value or the transformed error.
@@ -187,8 +154,6 @@ func MapErr[T, E, F any](r Result[T, E], fn func(E) F) Result[T, F] {
 
 }
 
-
-
 // FlatMap chains Results together. If the current Result is successful,.
 
 // applies the function and returns its Result. Otherwise returns the error.
@@ -204,8 +169,6 @@ func FlatMap[T, U, E any](r Result[T, E], fn func(T) Result[U, E]) Result[U, E] 
 	return fn(r.value)
 
 }
-
-
 
 // Filter returns the Result if the predicate returns true, otherwise returns an error.
 
@@ -227,21 +190,15 @@ func Filter[T, E any](r Result[T, E], predicate func(T) bool, errorOnFalse E) Re
 
 }
 
-
-
 // Option represents a value that may or may not exist.
 
 // This provides type-safe nullable value handling with zero runtime overhead.
 
 type Option[T any] struct {
-
 	value T
 
-	some  bool
-
+	some bool
 }
-
-
 
 // Some creates an Option containing the given value.
 
@@ -251,13 +208,10 @@ func Some[T any](value T) Option[T] {
 
 		value: value,
 
-		some:  true,
-
+		some: true,
 	}
 
 }
-
-
 
 // None creates an empty Option.
 
@@ -266,12 +220,9 @@ func None[T any]() Option[T] {
 	return Option[T]{
 
 		some: false,
-
 	}
 
 }
-
-
 
 // IsSome returns true if the Option contains a value.
 
@@ -281,8 +232,6 @@ func (o Option[T]) IsSome() bool {
 
 }
 
-
-
 // IsNone returns true if the Option is empty.
 
 func (o Option[T]) IsNone() bool {
@@ -291,8 +240,6 @@ func (o Option[T]) IsNone() bool {
 
 }
 
-
-
 // Unwrap returns the value and whether it exists.
 
 func (o Option[T]) Unwrap() (T, bool) {
@@ -300,8 +247,6 @@ func (o Option[T]) Unwrap() (T, bool) {
 	return o.value, o.some
 
 }
-
-
 
 // Value returns the value or panics if the Option is empty.
 
@@ -317,8 +262,6 @@ func (o Option[T]) Value() T {
 
 }
 
-
-
 // ValueOr returns the value if present, otherwise returns the default.
 
 func (o Option[T]) ValueOr(defaultValue T) T {
@@ -332,8 +275,6 @@ func (o Option[T]) ValueOr(defaultValue T) T {
 	return defaultValue
 
 }
-
-
 
 // MapOption transforms the value using the provided function if present.
 
@@ -349,8 +290,6 @@ func MapOption[T, U any](o Option[T], fn func(T) U) Option[U] {
 
 }
 
-
-
 // FlatMapOption chains Options together.
 
 func FlatMapOption[T, U any](o Option[T], fn func(T) Option[U]) Option[U] {
@@ -364,8 +303,6 @@ func FlatMapOption[T, U any](o Option[T], fn func(T) Option[U]) Option[U] {
 	return fn(o.value)
 
 }
-
-
 
 // FilterOption returns the Option if the predicate returns true, otherwise None.
 
@@ -381,8 +318,6 @@ func FilterOption[T any](o Option[T], predicate func(T) bool) Option[T] {
 
 }
 
-
-
 // ToResult converts an Option to a Result.
 
 func (o Option[T]) ToResult(err error) Result[T, error] {
@@ -396,8 +331,6 @@ func (o Option[T]) ToResult(err error) Result[T, error] {
 	return Err[T, error](err)
 
 }
-
-
 
 // FromResult converts a Result to an Option, discarding any error.
 
@@ -413,17 +346,11 @@ func FromResult[T, E any](r Result[T, E]) Option[T] {
 
 }
 
-
-
 // Chain provides a chainable API for Result operations.
 
 type Chain[T, E any] struct {
-
 	result Result[T, E]
-
 }
-
-
 
 // NewChain creates a new Chain from a Result.
 
@@ -432,8 +359,6 @@ func NewChain[T, E any](r Result[T, E]) *Chain[T, E] {
 	return &Chain[T, E]{result: r}
 
 }
-
-
 
 // Map applies a transformation function.
 
@@ -445,8 +370,6 @@ func (c *Chain[T, E]) Map(fn func(T) T) *Chain[T, E] {
 
 }
 
-
-
 // FlatMap chains another Result-returning operation.
 
 func (c *Chain[T, E]) FlatMap(fn func(T) Result[T, E]) *Chain[T, E] {
@@ -456,8 +379,6 @@ func (c *Chain[T, E]) FlatMap(fn func(T) Result[T, E]) *Chain[T, E] {
 	return c
 
 }
-
-
 
 // Filter applies a predicate.
 
@@ -469,8 +390,6 @@ func (c *Chain[T, E]) Filter(predicate func(T) bool, errorOnFalse E) *Chain[T, E
 
 }
 
-
-
 // Result returns the final Result.
 
 func (c *Chain[T, E]) Result() Result[T, E] {
@@ -478,8 +397,6 @@ func (c *Chain[T, E]) Result() Result[T, E] {
 	return c.result
 
 }
-
-
 
 // Recovery provides panic recovery for Result operations.
 
@@ -494,8 +411,6 @@ func Recovery[T, E any](fn func() T, recoverFn func(any) E) Result[T, E] {
 		}
 
 	}()
-
-
 
 	var result Result[T, E]
 
@@ -515,13 +430,9 @@ func Recovery[T, E any](fn func() T, recoverFn func(any) E) Result[T, E] {
 
 	}()
 
-
-
 	return result
 
 }
-
-
 
 // Try creates a Result from a function that may panic.
 
@@ -535,11 +446,7 @@ func Try[T any](fn func() T) Result[T, error] {
 
 }
 
-
-
 // Batch operations for multiple Results.
-
-
 
 // All returns Ok if all Results are successful, otherwise returns the first error.
 
@@ -563,8 +470,6 @@ func All[T, E any](results ...Result[T, E]) Result[[]T, E] {
 
 }
 
-
-
 // Any returns the first successful Result, or the last error if all fail.
 
 func Any[T, E any](results ...Result[T, E]) Result[T, E] {
@@ -587,8 +492,6 @@ func Any[T, E any](results ...Result[T, E]) Result[T, E] {
 
 }
 
-
-
 // Collect transforms a slice of values using a function that returns Results.
 
 func Collect[T, U, E any](items []T, fn func(T) Result[U, E]) Result[[]U, E] {
@@ -605,8 +508,6 @@ func Collect[T, U, E any](items []T, fn func(T) Result[U, E]) Result[[]U, E] {
 
 }
 
-
-
 // Partition separates Results into successful values and errors.
 
 func Partition[T, E any](results []Result[T, E]) ([]T, []E) {
@@ -614,8 +515,6 @@ func Partition[T, E any](results []Result[T, E]) ([]T, []E) {
 	var values []T
 
 	var errors []E
-
-
 
 	for _, r := range results {
 
@@ -631,9 +530,6 @@ func Partition[T, E any](results []Result[T, E]) ([]T, []E) {
 
 	}
 
-
-
 	return values, errors
 
 }
-

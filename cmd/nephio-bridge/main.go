@@ -7,6 +7,15 @@ import (
 	"os"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers"
@@ -16,16 +25,6 @@ import (
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/record"
-
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 var (

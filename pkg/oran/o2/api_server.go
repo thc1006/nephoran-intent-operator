@@ -12,12 +12,13 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/middleware"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/providers"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // O2APIServer represents the O2 IMS RESTful API server.

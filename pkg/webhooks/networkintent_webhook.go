@@ -38,13 +38,12 @@ import (
 	"strings"
 	"unicode"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	admissionv1 "k8s.io/api/admission/v1"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // log is for logging in this package.
@@ -721,7 +720,7 @@ func (v *NetworkIntentValidator) validateResourceNaming(ni *nephoranv1.NetworkIn
 
 	if len(name) > 63 {
 
-		return fmt.Errorf("NetworkIntent name is too long (%d characters, max 63)", len(name))
+		return fmt.Errorf("networkIntent name is too long (%d characters, max 63)", len(name))
 
 	}
 
@@ -729,7 +728,7 @@ func (v *NetworkIntentValidator) validateResourceNaming(ni *nephoranv1.NetworkIn
 
 	if len(name) < 3 {
 
-		return fmt.Errorf("NetworkIntent name is too short (%d characters, minimum 3)", len(name))
+		return fmt.Errorf("networkIntent name is too short (%d characters, minimum 3)", len(name))
 
 	}
 
@@ -739,7 +738,7 @@ func (v *NetworkIntentValidator) validateResourceNaming(ni *nephoranv1.NetworkIn
 
 	if !namePattern.MatchString(name) {
 
-		return fmt.Errorf("NetworkIntent name does not follow Kubernetes naming conventions")
+		return fmt.Errorf("networkIntent name does not follow Kubernetes naming conventions")
 
 	}
 

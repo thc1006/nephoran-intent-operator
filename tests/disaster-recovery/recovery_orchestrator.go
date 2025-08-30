@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/wait"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -802,7 +801,7 @@ func (ro *RecoveryOrchestrator) executeWaitStep(ctx context.Context, step Recove
 
 	_ = condition // Suppress unused variable error for now
 
-	return wait.PollImmediate(1*time.Second, timeout, func() (bool, error) {
+	return wait.PollUntilContextTimeout(context.Background(), 1*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
 
 		// Implement condition checking logic based on condition string.
 

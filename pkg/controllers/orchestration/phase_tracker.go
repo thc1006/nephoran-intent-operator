@@ -36,10 +36,10 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Note: Conflict and CoordinationContext types are defined in coordination_controller.go to avoid duplication.

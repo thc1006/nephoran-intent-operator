@@ -1,11 +1,6 @@
 //go:build !windows
 
-
-
-
 package loop
-
-
 
 // IsLongPathSupportEnabled always returns false on non-Windows platforms.
 
@@ -17,8 +12,6 @@ func IsLongPathSupportEnabled() bool {
 
 }
 
-
-
 // NormalizeLongPath is a no-op on non-Windows platforms.
 
 // as the \\?\ prefix is Windows-specific.
@@ -28,4 +21,3 @@ func NormalizeLongPath(path string) string {
 	return path
 
 }
-

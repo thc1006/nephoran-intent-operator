@@ -8,11 +8,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/providers"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // InfrastructureMonitoringService provides comprehensive infrastructure monitoring.

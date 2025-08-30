@@ -36,11 +36,10 @@ import (
 	"context"
 	"time"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // ProcessingPhase represents the current phase of intent processing.

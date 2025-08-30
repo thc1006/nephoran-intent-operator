@@ -38,11 +38,9 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

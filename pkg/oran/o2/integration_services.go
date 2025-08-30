@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/providers"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // IntegratedO2IMS provides integrated O2 IMS services with comprehensive monitoring and management.

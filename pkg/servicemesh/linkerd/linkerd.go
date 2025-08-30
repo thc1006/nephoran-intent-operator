@@ -8,14 +8,13 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"github.com/prometheus/client_golang/prometheus"
-
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
 )
 
 func init() {

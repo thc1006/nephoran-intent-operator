@@ -18,11 +18,11 @@ import (
 	"sync"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/log"
+
 	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
-
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // E2NodeFunction represents RAN function exposed by an E2 Node.
@@ -1465,20 +1465,20 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 				RequestorID: subMap["requestor_id"].(string),
 
 				RanFunctionID: func() int {
-				f := subMap["ran_function_id"].(float64)
-				if f < 0 || f > 2147483647 {
-					panic("ran_function_id out of int range")
-				}
-				return int(f)
-			}(),
+					f := subMap["ran_function_id"].(float64)
+					if f < 0 || f > 2147483647 {
+						panic("ran_function_id out of int range")
+					}
+					return int(f)
+				}(),
 
 				ReportingPeriod: func() time.Duration {
-				f := subMap["reporting_period_ms"].(float64)
-				if f < 0 || f > 2147483647 {
-					panic("reporting_period_ms out of int range")
-				}
-				return time.Duration(int(f)) * time.Millisecond
-			}(),
+					f := subMap["reporting_period_ms"].(float64)
+					if f < 0 || f > 2147483647 {
+						panic("reporting_period_ms out of int range")
+					}
+					return time.Duration(int(f)) * time.Millisecond
+				}(),
 			}
 
 			// Parse event triggers.
@@ -1499,10 +1499,10 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 					if period, exists := triggerMap["reporting_period_ms"]; exists {
 
 						f := period.(float64)
-					if f < 0 || f > 2147483647 {
-						panic("reporting period out of int range")
-					}
-					trigger.ReportingPeriod = time.Duration(int(f)) * time.Millisecond
+						if f < 0 || f > 2147483647 {
+							panic("reporting period out of int range")
+						}
+						trigger.ReportingPeriod = time.Duration(int(f)) * time.Millisecond
 
 					}
 
@@ -1525,12 +1525,12 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 					action := E2Action{
 
 						ActionID: func() int {
-						f := actionMap["action_id"].(float64)
-						if f < 0 || f > 2147483647 {
-							panic("action_id out of int range")
-						}
-						return int(f)
-					}(),
+							f := actionMap["action_id"].(float64)
+							if f < 0 || f > 2147483647 {
+								panic("action_id out of int range")
+							}
+							return int(f)
+						}(),
 
 						ActionType: actionMap["action_type"].(string),
 

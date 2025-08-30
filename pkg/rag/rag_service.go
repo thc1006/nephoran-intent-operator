@@ -321,13 +321,13 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 
 	if request == nil {
 
-		return nil, eb.RequiredFieldError("request")
+		return nil, eb.RequiredFieldError(ctx, "request")
 
 	}
 
 	if request.Query == "" {
 
-		return nil, eb.RequiredFieldError("query")
+		return nil, eb.RequiredFieldError(ctx, "query")
 
 	}
 
@@ -441,7 +441,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 
 		}
 
-		return nil, eb.ExternalServiceError("weaviate", err).
+		return nil, eb.ExternalServiceError(ctx, "weaviate", err).
 			WithMetadata("search_query", request.Query).
 			WithMetadata("max_results", request.MaxResults)
 
@@ -501,7 +501,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 
 		}
 
-		return nil, eb.ExternalServiceError("llm", err).
+		return nil, eb.ExternalServiceError(ctx, "llm", err).
 			WithMetadata("query", request.Query).
 			WithMetadata("intent_type", request.IntentType).
 			WithMetadata("context_length", len(context))

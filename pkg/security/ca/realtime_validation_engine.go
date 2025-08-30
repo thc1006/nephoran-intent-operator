@@ -9,8 +9,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // RealtimeValidationEngine provides real-time certificate validation during TLS handshakes.

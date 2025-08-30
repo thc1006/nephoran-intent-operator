@@ -38,9 +38,10 @@ import (
 	"sync"
 	"time"
 
-	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
+
+	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // Customizer handles blueprint customization and parameterization based on NetworkIntent context.

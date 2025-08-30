@@ -39,11 +39,11 @@ import (
 	"time"
 
 	"github.com/ghodss/yaml"
-	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 	"github.com/xeipuuv/gojsonschema"
 	"go.uber.org/zap"
-
 	"k8s.io/apimachinery/pkg/api/resource"
+
+	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // Validator handles blueprint validation and O-RAN compliance checking.

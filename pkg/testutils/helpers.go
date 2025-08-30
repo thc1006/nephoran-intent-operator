@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	. "github.com/onsi/gomega"
-
+	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // TestTimeout defines the default timeout for test operations.
@@ -40,7 +39,7 @@ func CreateNamespace(ctx context.Context, k8sClient client.Client, name string) 
 		},
 	}
 
-	Expect(k8sClient.Create(ctx, namespace)).To(Succeed())
+	gomega.gomega.Expect(k8sClient.Create(ctx, namespace)).To(gomega.Succeed())
 
 	return namespace
 
@@ -75,7 +74,7 @@ func DeleteNamespace(ctx context.Context, k8sClient client.Client, name string) 
 
 func WaitForNetworkIntentPhase(ctx context.Context, k8sClient client.Client, namespacedName types.NamespacedName, expectedPhase string) {
 
-	Eventually(func() string {
+	gomega.Eventually(func() string {
 
 		ni := &nephoranv1.NetworkIntent{}
 
@@ -89,7 +88,7 @@ func WaitForNetworkIntentPhase(ctx context.Context, k8sClient client.Client, nam
 
 		return string(ni.Status.Phase)
 
-	}, TestTimeout, TestInterval).Should(Equal(expectedPhase))
+	}, TestTimeout, TestInterval).Should(gomega.Equal(expectedPhase))
 
 }
 
@@ -97,7 +96,7 @@ func WaitForNetworkIntentPhase(ctx context.Context, k8sClient client.Client, nam
 
 func WaitForNetworkIntentMessage(ctx context.Context, k8sClient client.Client, namespacedName types.NamespacedName, expectedMessage string) {
 
-	Eventually(func() string {
+	gomega.Eventually(func() string {
 
 		ni := &nephoranv1.NetworkIntent{}
 
@@ -111,7 +110,7 @@ func WaitForNetworkIntentMessage(ctx context.Context, k8sClient client.Client, n
 
 		return ni.Status.LastMessage
 
-	}, TestTimeout, TestInterval).Should(Equal(expectedMessage))
+	}, TestTimeout, TestInterval).Should(gomega.Equal(expectedMessage))
 
 }
 
@@ -119,7 +118,7 @@ func WaitForNetworkIntentMessage(ctx context.Context, k8sClient client.Client, n
 
 func WaitForE2NodeSetReady(ctx context.Context, k8sClient client.Client, namespacedName types.NamespacedName, expectedReplicas int32) {
 
-	Eventually(func() int32 {
+	gomega.Eventually(func() int32 {
 
 		e2ns := &nephoranv1.E2NodeSet{}
 
@@ -133,7 +132,7 @@ func WaitForE2NodeSetReady(ctx context.Context, k8sClient client.Client, namespa
 
 		return e2ns.Status.ReadyReplicas
 
-	}, TestTimeout, TestInterval).Should(Equal(expectedReplicas))
+	}, TestTimeout, TestInterval).Should(gomega.Equal(expectedReplicas))
 
 }
 
@@ -141,7 +140,7 @@ func WaitForE2NodeSetReady(ctx context.Context, k8sClient client.Client, namespa
 
 func WaitForConfigMapCount(ctx context.Context, k8sClient client.Client, namespace string, labelSelector map[string]string, expectedCount int) {
 
-	Eventually(func() int {
+	gomega.Eventually(func() int {
 
 		configMapList := &corev1.ConfigMapList{}
 
@@ -162,7 +161,7 @@ func WaitForConfigMapCount(ctx context.Context, k8sClient client.Client, namespa
 
 		return len(configMapList.Items)
 
-	}, TestTimeout, TestInterval).Should(Equal(expectedCount))
+	}, TestTimeout, TestInterval).Should(gomega.Equal(expectedCount))
 
 }
 
@@ -172,7 +171,7 @@ func GetNetworkIntent(ctx context.Context, k8sClient client.Client, namespacedNa
 
 	ni := &nephoranv1.NetworkIntent{}
 
-	Expect(k8sClient.Get(ctx, namespacedName, ni)).To(Succeed())
+	gomega.Expect(k8sClient.Get(ctx, namespacedName, ni)).To(gomega.Succeed())
 
 	return ni
 
@@ -184,7 +183,7 @@ func GetE2NodeSet(ctx context.Context, k8sClient client.Client, namespacedName t
 
 	e2ns := &nephoranv1.E2NodeSet{}
 
-	Expect(k8sClient.Get(ctx, namespacedName, e2ns)).To(Succeed())
+	gomega.Expect(k8sClient.Get(ctx, namespacedName, e2ns)).To(gomega.Succeed())
 
 	return e2ns
 
@@ -194,7 +193,7 @@ func GetE2NodeSet(ctx context.Context, k8sClient client.Client, namespacedName t
 
 func UpdateNetworkIntentStatus(ctx context.Context, k8sClient client.Client, ni *nephoranv1.NetworkIntent) {
 
-	Expect(k8sClient.Status().Update(ctx, ni)).To(Succeed())
+	gomega.Expect(k8sClient.Status().Update(ctx, ni)).To(gomega.Succeed())
 
 }
 
@@ -202,7 +201,7 @@ func UpdateNetworkIntentStatus(ctx context.Context, k8sClient client.Client, ni 
 
 func UpdateE2NodeSetStatus(ctx context.Context, k8sClient client.Client, e2ns *nephoranv1.E2NodeSet) {
 
-	Expect(k8sClient.Status().Update(ctx, e2ns)).To(Succeed())
+	gomega.Expect(k8sClient.Status().Update(ctx, e2ns)).To(gomega.Succeed())
 
 }
 
@@ -224,7 +223,7 @@ func CreateConfigMap(ctx context.Context, k8sClient client.Client, name, namespa
 		Data: data,
 	}
 
-	Expect(k8sClient.Create(ctx, cm)).To(Succeed())
+	gomega.Expect(k8sClient.Create(ctx, cm)).To(gomega.Succeed())
 
 	return cm
 
@@ -276,11 +275,11 @@ func AssertNetworkIntentHasCondition(ni *nephoranv1.NetworkIntent, conditionType
 
 			found = true
 
-			Expect(condition.Status).To(Equal(status), "Condition %s should have status %s", conditionType, status)
+			gomega.Expect(condition.Status).To(gomega.Equal(status), "Condition %s should have status %s", conditionType, status)
 
 			if reason != "" {
 
-				Expect(condition.Reason).To(Equal(reason), "Condition %s should have reason %s", conditionType, reason)
+				gomega.Expect(condition.Reason).To(gomega.Equal(reason), "Condition %s should have reason %s", conditionType, reason)
 
 			}
 
@@ -290,7 +289,7 @@ func AssertNetworkIntentHasCondition(ni *nephoranv1.NetworkIntent, conditionType
 
 	}
 
-	Expect(found).To(BeTrue(), "NetworkIntent should have condition %s", conditionType)
+	gomega.Expect(found).To(gomega.BeTrue(), "NetworkIntent should have condition %s", conditionType)
 
 }
 
@@ -314,9 +313,9 @@ func AssertE2NodeSetHasOwnerReference(ctx context.Context, k8sClient client.Clie
 		}),
 	}
 
-	Expect(k8sClient.List(ctx, configMapList, listOptions...)).To(Succeed())
+	gomega.Expect(k8sClient.List(ctx, configMapList, listOptions...)).To(gomega.Succeed())
 
-	Expect(len(configMapList.Items)).To(Equal(expectedConfigMaps))
+	gomega.Expect(len(configMapList.Items)).To(gomega.Equal(expectedConfigMaps))
 
 	for _, cm := range configMapList.Items {
 
@@ -328,9 +327,9 @@ func AssertE2NodeSetHasOwnerReference(ctx context.Context, k8sClient client.Clie
 
 				found = true
 
-				Expect(ownerRef.Controller).ToNot(BeNil())
+				gomega.Expect(ownerRef.Controller).ToNot(gomega.BeNil())
 
-				Expect(*ownerRef.Controller).To(BeTrue())
+				gomega.Expect(*ownerRef.Controller).To(gomega.BeTrue())
 
 				break
 
@@ -338,7 +337,7 @@ func AssertE2NodeSetHasOwnerReference(ctx context.Context, k8sClient client.Clie
 
 		}
 
-		Expect(found).To(BeTrue(), "ConfigMap %s should have E2NodeSet as owner", cm.Name)
+		gomega.Expect(found).To(gomega.BeTrue(), "ConfigMap %s should have E2NodeSet as owner", cm.Name)
 
 	}
 
@@ -396,13 +395,13 @@ func CleanupTestResources(ctx context.Context, k8sClient client.Client, namespac
 
 func WaitForResourceDeletion(ctx context.Context, k8sClient client.Client, obj client.Object) {
 
-	Eventually(func() bool {
+	gomega.Eventually(func() bool {
 
 		err := k8sClient.Get(ctx, client.ObjectKeyFromObject(obj), obj)
 
 		return err != nil
 
-	}, TestTimeout, TestInterval).Should(BeTrue())
+	}, TestTimeout, TestInterval).Should(gomega.BeTrue())
 
 }
 
@@ -580,11 +579,11 @@ func VerifyResourceConsistency(ctx context.Context, k8sClient client.Client, nam
 
 func WaitForResourceConsistency(ctx context.Context, k8sClient client.Client, namespace string) {
 
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 
 		return VerifyResourceConsistency(ctx, k8sClient, namespace)
 
-	}, TestTimeout, TestInterval).Should(Succeed())
+	}, TestTimeout, TestInterval).Should(gomega.Succeed())
 
 }
 
@@ -609,7 +608,7 @@ func CreateTestSecret(ctx context.Context, k8sClient client.Client, name, namesp
 		Data: data,
 	}
 
-	Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+	gomega.Expect(k8sClient.Create(ctx, secret)).To(gomega.Succeed())
 
 	return secret
 
@@ -619,7 +618,7 @@ func CreateTestSecret(ctx context.Context, k8sClient client.Client, name, namesp
 
 func WaitForConditionWithReason(ctx context.Context, k8sClient client.Client, namespacedName types.NamespacedName, conditionType, reason string) {
 
-	Eventually(func() bool {
+	gomega.Eventually(func() bool {
 
 		ni := &nephoranv1.NetworkIntent{}
 
@@ -641,7 +640,7 @@ func WaitForConditionWithReason(ctx context.Context, k8sClient client.Client, na
 
 		return false
 
-	}, TestTimeout, TestInterval).Should(BeTrue())
+	}, TestTimeout, TestInterval).Should(gomega.BeTrue())
 
 }
 
@@ -717,11 +716,11 @@ func VerifyOwnerReferences(ctx context.Context, k8sClient client.Client, owner c
 
 func WaitForOwnerReferences(ctx context.Context, k8sClient client.Client, owner client.Object, childObjects []client.Object) {
 
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 
 		return VerifyOwnerReferences(ctx, k8sClient, owner, childObjects)
 
-	}, TestTimeout, TestInterval).Should(Succeed())
+	}, TestTimeout, TestInterval).Should(gomega.Succeed())
 
 }
 
@@ -731,7 +730,7 @@ func WaitForOwnerReferences(ctx context.Context, k8sClient client.Client, owner 
 
 func WaitForE2NodeSetStatusUpdate(ctx context.Context, k8sClient client.Client, namespacedName types.NamespacedName, checkFunc func(*nephoranv1.E2NodeSet) bool) {
 
-	Eventually(func() bool {
+	gomega.Eventually(func() bool {
 
 		e2ns := &nephoranv1.E2NodeSet{}
 
@@ -745,7 +744,7 @@ func WaitForE2NodeSetStatusUpdate(ctx context.Context, k8sClient client.Client, 
 
 		return checkFunc(e2ns)
 
-	}, TestTimeout, TestInterval).Should(BeTrue())
+	}, TestTimeout, TestInterval).Should(gomega.BeTrue())
 
 }
 
@@ -753,7 +752,7 @@ func WaitForE2NodeSetStatusUpdate(ctx context.Context, k8sClient client.Client, 
 
 func WaitForE2NodeSetDeletion(ctx context.Context, k8sClient client.Client, namespacedName types.NamespacedName) {
 
-	Eventually(func() bool {
+	gomega.Eventually(func() bool {
 
 		e2ns := &nephoranv1.E2NodeSet{}
 
@@ -761,7 +760,7 @@ func WaitForE2NodeSetDeletion(ctx context.Context, k8sClient client.Client, name
 
 		return err != nil
 
-	}, TestTimeout, TestInterval).Should(BeTrue())
+	}, TestTimeout, TestInterval).Should(gomega.BeTrue())
 
 }
 
@@ -791,7 +790,7 @@ func CreateE2NodeSetWithFinalizer(ctx context.Context, k8sClient client.Client, 
 		},
 	}
 
-	Expect(k8sClient.Create(ctx, e2ns)).To(Succeed())
+	gomega.Expect(k8sClient.Create(ctx, e2ns)).To(gomega.Succeed())
 
 	return e2ns
 
@@ -803,7 +802,7 @@ func VerifyE2NodeSetFinalizer(ctx context.Context, k8sClient client.Client, name
 
 	e2ns := &nephoranv1.E2NodeSet{}
 
-	Expect(k8sClient.Get(ctx, namespacedName, e2ns)).To(Succeed())
+	gomega.Expect(k8sClient.Get(ctx, namespacedName, e2ns)).To(gomega.Succeed())
 
 	found := false
 
@@ -821,11 +820,11 @@ func VerifyE2NodeSetFinalizer(ctx context.Context, k8sClient client.Client, name
 
 	if shouldExist {
 
-		Expect(found).To(BeTrue(), "E2NodeSet should have finalizer %s", expectedFinalizer)
+		gomega.Expect(found).To(gomega.BeTrue(), "E2NodeSet should have finalizer %s", expectedFinalizer)
 
 	} else {
 
-		Expect(found).To(BeFalse(), "E2NodeSet should not have finalizer %s", expectedFinalizer)
+		gomega.Expect(found).To(gomega.BeFalse(), "E2NodeSet should not have finalizer %s", expectedFinalizer)
 
 	}
 
@@ -835,7 +834,7 @@ func VerifyE2NodeSetFinalizer(ctx context.Context, k8sClient client.Client, name
 
 func WaitForE2NodeSetFinalizer(ctx context.Context, k8sClient client.Client, namespacedName types.NamespacedName, finalizer string, shouldExist bool) {
 
-	Eventually(func() bool {
+	gomega.Eventually(func() bool {
 
 		e2ns := &nephoranv1.E2NodeSet{}
 
@@ -863,7 +862,7 @@ func WaitForE2NodeSetFinalizer(ctx context.Context, k8sClient client.Client, nam
 
 		return found == shouldExist
 
-	}, TestTimeout, TestInterval).Should(BeTrue())
+	}, TestTimeout, TestInterval).Should(gomega.BeTrue())
 
 }
 
@@ -873,7 +872,7 @@ func GetE2NodeSetReadyReplicasCount(ctx context.Context, k8sClient client.Client
 
 	e2ns := &nephoranv1.E2NodeSet{}
 
-	Expect(k8sClient.Get(ctx, namespacedName, e2ns)).To(Succeed())
+	gomega.Expect(k8sClient.Get(ctx, namespacedName, e2ns)).To(gomega.Succeed())
 
 	return e2ns.Status.ReadyReplicas
 
@@ -893,11 +892,11 @@ func VerifyNoConfigMapOperations(ctx context.Context, k8sClient client.Client, n
 
 	err := k8sClient.List(ctx, configMapList, client.InNamespace(namespace))
 
-	Expect(err).NotTo(HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	currentCount := len(configMapList.Items)
 
-	Expect(currentCount).To(Equal(initialCount), "No ConfigMap operations should have been performed")
+	gomega.Expect(currentCount).To(gomega.Equal(initialCount), "No ConfigMap operations should have been performed")
 
 }
 
@@ -961,11 +960,11 @@ func UpdateE2NodeSetReplicas(ctx context.Context, k8sClient client.Client, names
 
 	e2ns := &nephoranv1.E2NodeSet{}
 
-	Expect(k8sClient.Get(ctx, namespacedName, e2ns)).To(Succeed())
+	gomega.Expect(k8sClient.Get(ctx, namespacedName, e2ns)).To(gomega.Succeed())
 
 	e2ns.Spec.Replicas = newReplicas
 
-	Expect(k8sClient.Update(ctx, e2ns)).To(Succeed())
+	gomega.Expect(k8sClient.Update(ctx, e2ns)).To(gomega.Succeed())
 
 }
 
@@ -973,7 +972,7 @@ func UpdateE2NodeSetReplicas(ctx context.Context, k8sClient client.Client, names
 
 func WaitForE2NodeSetScaling(ctx context.Context, k8sClient client.Client, namespacedName types.NamespacedName, targetReplicas int32) {
 
-	Eventually(func() bool {
+	gomega.Eventually(func() bool {
 
 		e2ns := &nephoranv1.E2NodeSet{}
 
@@ -989,7 +988,7 @@ func WaitForE2NodeSetScaling(ctx context.Context, k8sClient client.Client, names
 
 		return e2ns.Spec.Replicas == targetReplicas && e2ns.Status.ReadyReplicas == targetReplicas
 
-	}, TestTimeout*2, TestInterval).Should(BeTrue()) // Give more time for scaling operations
+	}, TestTimeout*2, TestInterval).Should(gomega.BeTrue()) // Give more time for scaling operations
 
 }
 
@@ -1046,12 +1045,12 @@ func VerifyE2NodeSetAnnotation(ctx context.Context, k8sClient client.Client, nam
 
 	e2ns := &nephoranv1.E2NodeSet{}
 
-	Expect(k8sClient.Get(ctx, namespacedName, e2ns)).To(Succeed())
+	gomega.Expect(k8sClient.Get(ctx, namespacedName, e2ns)).To(gomega.Succeed())
 
 	actualValue, exists := e2ns.Annotations[key]
 
-	Expect(exists).To(BeTrue(), "E2NodeSet should have annotation %s", key)
+	gomega.Expect(exists).To(gomega.BeTrue(), "E2NodeSet should have annotation %s", key)
 
-	Expect(actualValue).To(Equal(expectedValue), "Annotation %s should have value %s", key, expectedValue)
+	gomega.Expect(actualValue).To(gomega.Equal(expectedValue), "Annotation %s should have value %s", key, expectedValue)
 
 }

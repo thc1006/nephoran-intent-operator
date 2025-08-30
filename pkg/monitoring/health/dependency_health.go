@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sony/gobreaker"
-
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
 )
 
 // DependencyHealthTracker manages comprehensive health monitoring of external dependencies.

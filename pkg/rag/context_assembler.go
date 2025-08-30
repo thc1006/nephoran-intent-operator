@@ -1159,7 +1159,7 @@ func (ca *ContextAssembler) truncateAtSentenceBoundary(content string, maxLength
 
 	lastQuestion := strings.LastIndex(truncated, "?")
 
-	lastSentenceEnd := max(lastDot, lastExclamation, lastQuestion)
+	lastSentenceEnd := maxInt3(lastDot, lastExclamation, lastQuestion)
 
 	if lastSentenceEnd > maxLength/2 { // Only truncate if we keep at least half
 
@@ -1306,7 +1306,7 @@ func min(a, b int) int {
 
 // max returns the maximum of three integers.
 
-func max(a, b, c int) int {
+func maxInt3(a, b, c int) int {
 
 	if a > b {
 

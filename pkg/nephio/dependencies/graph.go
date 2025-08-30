@@ -42,7 +42,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"golang.org/x/sync/errgroup"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

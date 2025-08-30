@@ -35,12 +35,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
-
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 )
 
 // TestConfig creates a test configuration for porch clients.

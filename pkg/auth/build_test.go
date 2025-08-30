@@ -13,7 +13,7 @@ func TestBuildConstraintsWork(t *testing.T) {
 	if authHandlers != nil {
 		t.Error("Expected nil")
 	}
-	
+
 	// This test simply ensures that the types compile correctly
 	// The real test is that this compiles without redeclaration errors
 }

@@ -16,7 +16,6 @@ import (
 
 	"github.com/bytedance/sonic"
 	"github.com/valyala/fastjson"
-
 	"k8s.io/klog/v2"
 )
 

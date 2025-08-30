@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // ORANTestFactory provides factory methods for creating O-RAN test data.

@@ -15,11 +15,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/auth"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 	"github.com/weaviate/weaviate/entities/models"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 )
 
 // WeaviateClient provides a production-ready client for Weaviate vector database.

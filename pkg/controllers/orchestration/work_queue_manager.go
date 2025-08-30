@@ -38,9 +38,9 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
-
 	"k8s.io/client-go/util/workqueue"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
 // ProcessingJob represents a job to be processed by a worker.

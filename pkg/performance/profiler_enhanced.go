@@ -17,7 +17,6 @@ import (
 
 	"github.com/google/pprof/profile"
 	"github.com/prometheus/client_golang/prometheus"
-
 	"k8s.io/klog/v2"
 )
 

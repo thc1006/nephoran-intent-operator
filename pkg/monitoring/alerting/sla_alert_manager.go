@@ -14,11 +14,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sony/gobreaker"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // SLAType represents different SLA metrics we monitor.

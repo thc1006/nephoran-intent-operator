@@ -35,7 +35,7 @@ func NewWindowsTestOptimizer() *WindowsTestOptimizer {
 
 		// Reduce concurrency on Windows to avoid file system contention.
 
-		maxConcurrency = max(1, maxConcurrency/2)
+		maxConcurrency = maxInt(1, maxConcurrency/2)
 
 	}
 
@@ -348,7 +348,7 @@ func NewWindowsFileSystemOptimizer() *WindowsFileSystemOptimizer {
 
 	if runtime.GOOS == "windows" {
 
-		ioLimit = max(1, ioLimit/2)
+		ioLimit = maxInt(1, ioLimit/2)
 
 	}
 
@@ -465,7 +465,7 @@ func NewWindowsConcurrencyManager() *WindowsConcurrencyManager {
 
 	if runtime.GOOS == "windows" {
 
-		maxConcurrency = max(1, maxConcurrency/2)
+		maxConcurrency = maxInt(1, maxConcurrency/2)
 
 	}
 
@@ -590,7 +590,7 @@ func CleanupGlobalOptimizers() {
 
 // max returns the maximum of two integers.
 
-func max(a, b int) int {
+func maxInt(a, b int) int {
 
 	if a > b {
 

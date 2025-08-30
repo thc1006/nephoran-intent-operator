@@ -11,13 +11,12 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/interfaces"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/interfaces"
 )
 
 // SecretRotationManager handles automatic secret rotation.
@@ -544,7 +543,7 @@ func (srm *SecretRotationManager) validateAPIKey(provider, apiKey string) error 
 
 		if len(apiKey) < 16 {
 
-			return fmt.Errorf("Weaviate API key too short")
+			return fmt.Errorf("weaviate API key too short")
 
 		}
 
@@ -552,7 +551,7 @@ func (srm *SecretRotationManager) validateAPIKey(provider, apiKey string) error 
 
 		if len(apiKey) < 8 {
 
-			return fmt.Errorf("API key too short")
+			return fmt.Errorf("api key too short")
 
 		}
 

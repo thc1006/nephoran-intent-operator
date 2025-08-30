@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

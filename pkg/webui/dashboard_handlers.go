@@ -36,8 +36,9 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
 )
 
 // DashboardMetrics represents comprehensive dashboard metrics.

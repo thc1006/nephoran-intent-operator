@@ -13,9 +13,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // BurnRateCalculator implements multi-window error budget burn rate detection.

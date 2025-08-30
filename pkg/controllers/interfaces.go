@@ -3,9 +3,9 @@ package controllers
 import (
 	"context"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // PhaseProcessor defines the interface for processing different phases of NetworkIntent reconciliation.

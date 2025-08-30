@@ -33,9 +33,9 @@ package shared
 import (
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
-
 	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
 // IntentState represents the complete state of a network intent.

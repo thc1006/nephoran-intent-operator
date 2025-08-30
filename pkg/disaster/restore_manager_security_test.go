@@ -37,6 +37,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -246,7 +247,7 @@ func TestPathTraversalProtection(t *testing.T) {
 
 				tempDirAbs, _ := filepath.Abs(tempDir)
 
-				if !filepath.HasPrefix(targetAbs, tempDirAbs+string(filepath.Separator)) &&
+				if !strings.HasPrefix(targetAbs, tempDirAbs+string(filepath.Separator)) &&
 
 					targetAbs != tempDirAbs {
 

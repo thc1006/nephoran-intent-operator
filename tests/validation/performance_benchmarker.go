@@ -9,12 +9,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 	"github.com/onsi/ginkgo/v2"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // PerformanceBenchmarker provides comprehensive performance testing.

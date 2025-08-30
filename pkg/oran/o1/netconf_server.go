@@ -14,7 +14,6 @@ import (
 
 	logr "github.com/go-logr/logr"
 	"golang.org/x/crypto/ssh"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -216,7 +215,7 @@ type NetconfEditConfig struct {
 
 	ErrorOption string `xml:"error-option,omitempty"`
 
-	Config string `xml:"config,innerxml"`
+	Config string `xml:",innerxml"`
 }
 
 // NetconfGetConfig represents get-config operation parameters.

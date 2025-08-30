@@ -1,21 +1,11 @@
 //go:build !windows
-
 // +build !windows
-
-
-
 
 package porch
 
-
-
 import (
-
 	"strings"
-
 )
-
-
 
 // cmdSafeQuote is a no-op on Unix systems since this function.
 
@@ -42,4 +32,3 @@ func cmdSafeQuote(args []string) string {
 	return strings.Join(args, " ")
 
 }
-

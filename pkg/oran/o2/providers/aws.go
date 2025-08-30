@@ -19,7 +19,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

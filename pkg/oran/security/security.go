@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

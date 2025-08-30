@@ -42,9 +42,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -1248,7 +1246,7 @@ func (prm *packageRevisionManager) validateContent(ctx context.Context, ref *Pac
 
 		if _, exists := kptfile["apiVersion"]; !exists {
 
-			return fmt.Errorf("Kptfile missing required field: apiVersion")
+			return fmt.Errorf("kptfile missing required field: apiVersion")
 
 		}
 

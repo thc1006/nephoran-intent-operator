@@ -22,6 +22,4 @@
 
 // separation of concerns.
 
-
 package interfaces
-

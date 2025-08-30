@@ -11,12 +11,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o1/security"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o1/security"
 )
 
 // ComprehensiveSecurityManager provides complete O-RAN security management.

@@ -989,7 +989,6 @@ func (cnf *CNFDeployment) ValidateCNFDeployment() error {
 }
 
 // validateFunctionCompatibility ensures CNF function is compatible with CNF type.
-
 func (cnf *CNFDeployment) validateFunctionCompatibility() error {
 
 	compatibilityMap := map[CNFType][]CNFFunction{
@@ -1024,7 +1023,6 @@ func (cnf *CNFDeployment) validateFunctionCompatibility() error {
 		},
 
 		CNFCustom: {}, // Custom type allows any function
-
 	}
 
 	if cnf.Spec.CNFType != CNFCustom {
@@ -1032,27 +1030,18 @@ func (cnf *CNFDeployment) validateFunctionCompatibility() error {
 		compatible, exists := compatibilityMap[cnf.Spec.CNFType]
 
 		if !exists {
-
 			return fmt.Errorf("unknown CNF type: %s", cnf.Spec.CNFType)
-
 		}
 
 		for _, validFunction := range compatible {
-
 			if cnf.Spec.Function == validFunction {
-
 				return nil
-
 			}
-
 		}
-
 		return fmt.Errorf("function %s is not compatible with CNF type %s", cnf.Spec.Function, cnf.Spec.CNFType)
-
 	}
 
 	return nil
-
 }
 
 // validateDeploymentStrategy ensures deployment strategy configuration is valid.
@@ -1092,7 +1081,6 @@ func (cnf *CNFDeployment) validateDeploymentStrategy() error {
 	}
 
 	return nil
-
 }
 
 // validateResources ensures resource requirements are properly specified.
@@ -1155,7 +1143,6 @@ func (cnf *CNFDeployment) validateResources() error {
 	}
 
 	return nil
-
 }
 
 // validateAutoScaling ensures auto-scaling configuration is valid.
@@ -1193,7 +1180,6 @@ func (cnf *CNFDeployment) validateAutoScaling() error {
 	}
 
 	return nil
-
 }
 
 func init() {

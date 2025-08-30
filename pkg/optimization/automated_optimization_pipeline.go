@@ -37,9 +37,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-
 	"k8s.io/client-go/kubernetes"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

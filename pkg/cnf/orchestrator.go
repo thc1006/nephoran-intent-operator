@@ -37,19 +37,18 @@ import (
 	"strings"
 	"time"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
 )
 
 const (
@@ -564,7 +563,7 @@ func (c *CNFOrchestrator) validateDeploymentRequest(req *DeployRequest) error {
 
 		if req.CNFDeployment.Spec.Helm == nil {
 
-			return fmt.Errorf("Helm configuration is required for Helm deployment strategy")
+			return fmt.Errorf("helm configuration is required for Helm deployment strategy")
 
 		}
 
@@ -572,7 +571,7 @@ func (c *CNFOrchestrator) validateDeploymentRequest(req *DeployRequest) error {
 
 		if req.CNFDeployment.Spec.Operator == nil {
 
-			return fmt.Errorf("Operator configuration is required for Operator deployment strategy")
+			return fmt.Errorf("operator configuration is required for Operator deployment strategy")
 
 		}
 

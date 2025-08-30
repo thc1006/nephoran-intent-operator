@@ -6,11 +6,11 @@ import (
 	"sync"
 	"time"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
+
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // registrationOnce ensures metrics are only registered once.

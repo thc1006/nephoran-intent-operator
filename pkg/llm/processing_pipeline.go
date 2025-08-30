@@ -1140,11 +1140,11 @@ func (iv *InputValidator) initializeRules() {
 
 			Name: "MaxLength",
 
-			Pattern: regexp.MustCompile(`^.{1,2048}$`),
+			Pattern: regexp.MustCompile(`^.{1,1000}$`),
 
 			Required: true,
 
-			ErrorMessage: "Intent must not exceed 2048 characters",
+			ErrorMessage: "Intent must not exceed 1000 characters",
 
 			Severity: "error",
 		},

@@ -7,13 +7,12 @@ import (
 	"fmt"
 	"time"
 
-	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // SystemValidator provides comprehensive system validation capabilities.

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"golang.org/x/crypto/ssh"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -960,12 +959,12 @@ func (nc *NetconfClient) getHostKeyCallback() ssh.HostKeyCallback {
 		// 1. Load known_hosts file
 		// 2. Verify the host key against known_hosts
 		// 3. Return an error if the key is not recognized
-		
+
 		// For now, we implement a basic validation that accepts any key
 		// but logs it for auditing purposes (better than InsecureIgnoreHostKey)
 		logger := log.Log.WithName("netconf-client")
-		logger.Info("Host key verification bypassed for development", 
-			"hostname", hostname, 
+		logger.Info("Host key verification bypassed for development",
+			"hostname", hostname,
 			"remote", remote.String(),
 			"key_type", key.Type())
 		return nil

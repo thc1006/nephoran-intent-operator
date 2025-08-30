@@ -9,13 +9,13 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/client-go/tools/record"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
-
-	"k8s.io/client-go/tools/record"
 )
 
 // MockDependencies implements the Dependencies interface for testing.

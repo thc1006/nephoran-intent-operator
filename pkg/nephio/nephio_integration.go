@@ -35,11 +35,11 @@ import (
 	"fmt"
 	"time"
 
-	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 )
 
 // NephioIntegration provides the main integration point for Nephio-native operations.

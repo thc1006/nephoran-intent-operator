@@ -35,18 +35,18 @@ import (
 	"encoding/json"
 	"fmt"
 	stdlog "log"
+	"math"
 	"regexp"
 	"strings"
 	"time"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
-
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
 )
 
 // CNFIntentProcessor processes natural language intents for CNF deployment.
@@ -1395,8 +1395,12 @@ func (p *CNFIntentProcessor) estimateDeploymentTimeline(result *nephoranv1.CNFIn
 	baseTime := int32(5)
 
 	// Add time based on complexity.
-
-	totalTime := baseTime * int32(len(result.CNFDeployments))
+	// Security fix (G115): Safe conversion with bounds checking
+	deploymentCount := len(result.CNFDeployments)
+	if deploymentCount > math.MaxInt32/5 { // Prevent overflow in multiplication
+		deploymentCount = math.MaxInt32 / 5
+	}
+	totalTime := baseTime * int32(deploymentCount)
 
 	// Add additional time for complex deployments.
 

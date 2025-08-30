@@ -10,8 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/porch"
 	"github.com/stretchr/testify/require"
+
+	"github.com/nephio-project/nephoran-intent-operator/internal/porch"
 )
 
 // TestSyncHelper provides comprehensive test synchronization primitives.

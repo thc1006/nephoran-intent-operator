@@ -10,6 +10,7 @@ import (
 	"time"
 
 	lru "github.com/hashicorp/golang-lru/v2"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
 )
 

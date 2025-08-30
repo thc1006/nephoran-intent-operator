@@ -40,7 +40,6 @@ import (
 
 	semver "github.com/Masterminds/semver/v3"
 	"github.com/go-logr/logr"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

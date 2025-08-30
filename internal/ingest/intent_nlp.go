@@ -1,8 +1,10 @@
+// Package ingest provides natural language processing and validation for network intents.
 package ingest
 
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -70,6 +72,10 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 
 			return nil, fmt.Errorf("invalid replica count: %s", matches[2])
 
+		}
+		// Security fix (G115): Validate bounds for replica count
+		if replicas < 0 || replicas > math.MaxInt32 {
+			return nil, fmt.Errorf("replica count %d out of valid range (0-%d)", replicas, math.MaxInt32)
 		}
 
 		intent := map[string]interface{}{

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/intent"
-
 	"sigs.k8s.io/yaml"
+
+	"github.com/nephio-project/nephoran-intent-operator/internal/intent"
 )
 
 // KptfileGenerator generates Kptfile for KRM packages.

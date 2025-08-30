@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // ServiceDiscovery handles automatic discovery and certificate provisioning for new services.
@@ -428,7 +428,7 @@ func (sd *ServiceDiscovery) handleServiceAdded(service *v1.Service) {
 
 	if sd.config.AutoProvisionEnabled {
 
-		go sd.provisionCertificateForService(discovered)
+		go sd.provisionCertificateForService(context.Background(), discovered)
 
 	}
 
@@ -484,7 +484,7 @@ func (sd *ServiceDiscovery) handleServiceUpdated(service *v1.Service) {
 
 			"namespace", service.Namespace)
 
-		go sd.provisionCertificateForService(discovered)
+		go sd.provisionCertificateForService(context.Background(), discovered)
 
 	}
 
@@ -761,7 +761,7 @@ func (sd *ServiceDiscovery) matchesPattern(value, pattern string) bool {
 
 // provisionCertificateForService provisions certificate for a discovered service.
 
-func (sd *ServiceDiscovery) provisionCertificateForService(discovered *DiscoveredService) {
+func (sd *ServiceDiscovery) provisionCertificateForService(ctx context.Context, discovered *DiscoveredService) {
 
 	sd.logger.Info("provisioning certificate for service",
 
@@ -825,7 +825,7 @@ func (sd *ServiceDiscovery) provisionCertificateForService(discovered *Discovere
 
 	// Submit provisioning request.
 
-	response := sd.automationEngine.ProcessManualRequest(req)
+	response := sd.automationEngine.ProcessManualRequest(ctx, req)
 
 	if response.Status != StatusCompleted {
 

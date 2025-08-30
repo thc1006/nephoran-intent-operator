@@ -15,10 +15,11 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // A1Server represents the main A1 Policy Management Service server.

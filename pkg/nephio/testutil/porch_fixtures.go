@@ -37,15 +37,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 const (

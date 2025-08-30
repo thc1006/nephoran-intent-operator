@@ -189,13 +189,14 @@ func (tr *TestRunner) RunIntentLatencyTest(ctx context.Context) ([]float64, erro
 
 	startTime := time.Now()
 
+latencyTestLoop:
 	for time.Since(startTime) < tr.config.TestDuration {
 
 		select {
 
 		case <-testCtx.Done():
 
-			break
+			break latencyTestLoop
 
 		default:
 
@@ -619,13 +620,14 @@ func (tr *TestRunner) RunRAGRetrievalLatencyTest(ctx context.Context) ([]float64
 
 	queryIndex := 0
 
+loadTestLoop:
 	for time.Since(startTime) < tr.config.TestDuration {
 
 		select {
 
 		case <-testCtx.Done():
 
-			break
+			break loadTestLoop
 
 		default:
 

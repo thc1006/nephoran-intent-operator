@@ -10,8 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"golang.org/x/crypto/ocsp"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // RevocationChecker provides comprehensive certificate revocation checking.

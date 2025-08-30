@@ -1,9 +1,39 @@
+/*
+
+Copyright 2025.
+
+
+
+Licensed under the Apache License, Version 2.0 (the "License");
+
+you may not use this file except in compliance with the License.
+
+You may obtain a copy of the License at
+
+
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+
+
+Unless required by applicable law or agreed to in writing, software
+
+distributed under the License is distributed on an "AS IS" BASIS,
+
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and
+
+limitations under the License.
+
+*/
+
 package security
 
 import (
-	"bufio"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,518 +41,588 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	nephiov1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// SecurityScanner performs comprehensive security assessments.
+// SecurityScanner performs comprehensive security scans on network services and applications.
 
 type SecurityScanner struct {
-	config *ScannerConfig
+	client.Client
 
 	logger *slog.Logger
 
-	client *http.Client
+	config SecurityScannerConfig
 
-	results *ScanResults
+	httpClient *http.Client
+
+	results ScanResults
 
 	mutex sync.RWMutex
+
+	ctx context.Context
+
+	cancel context.CancelFunc
+
+	// Add concurrent scanning support
+
+	semaphore chan struct{}
 }
 
-// ScannerConfig holds security scanner configuration.
+// SecurityScannerConfig defines configuration options for the security scanner.
 
-type ScannerConfig struct {
-	BaseURL string `json:"base_url"`
+type SecurityScannerConfig struct {
+	// Maximum number of concurrent scans
 
-	Timeout time.Duration `json:"timeout"`
+	MaxConcurrency int `json:"maxConcurrency"`
 
-	MaxConcurrency int `json:"max_concurrency"`
+	// Timeout for individual scan operations
 
-	SkipTLSVerification bool `json:"skip_tls_verification"`
+	ScanTimeout time.Duration `json:"scanTimeout"`
 
-	EnableVulnScanning bool `json:"enable_vuln_scanning"`
+	// HTTP request timeout
 
-	EnablePortScanning bool `json:"enable_port_scanning"`
+	HTTPTimeout time.Duration `json:"httpTimeout"`
 
-	EnableOWASPTesting bool `json:"enable_owasp_testing"`
+	// Enable/disable specific scan types
 
-	EnableAuthTesting bool `json:"enable_auth_testing"`
+	EnablePortScan     bool `json:"enablePortScan"`
 
-	EnableInjectionTesting bool `json:"enable_injection_testing"`
+	EnableVulnScan     bool `json:"enableVulnScan"`
 
-	TestAPIKeys []string `json:"test_api_keys"`
+	EnableTLSScan      bool `json:"enableTlsScan"`
 
-	TestCredentials []Credential `json:"test_credentials"`
+	EnableHeaderScan   bool `json:"enableHeaderScan"`
 
-	UserAgents []string `json:"user_agents"`
+	EnableInjectionScan bool `json:"enableInjectionScan"`
 
-	Wordlists *Wordlists `json:"wordlists"`
+	// Port ranges for scanning
+
+	PortRanges []PortRange `json:"portRanges"`
+
+	// Custom headers for HTTP requests
+
+	CustomHeaders map[string]string `json:"customHeaders,omitempty"`
+
+	// User agent for HTTP requests
+
+	UserAgent string `json:"userAgent,omitempty"`
+
+	// Service name for metrics
+
+	ServiceName string `json:"serviceName"`
 }
 
-// Credential represents test credentials.
+// PortRange defines a range of ports to scan.
 
-type Credential struct {
-	Username string `json:"username"`
+type PortRange struct {
+	Start int `json:"start"`
 
-	Password string `json:"password"`
+	End int `json:"end"`
 }
 
-// Wordlists holds various wordlists for testing.
-
-type Wordlists struct {
-	CommonPasswords []string `json:"common_passwords"`
-
-	CommonPaths []string `json:"common_paths"`
-
-	SQLInjection []string `json:"sql_injection"`
-
-	XSSPayloads []string `json:"xss_payloads"`
-
-	CommandInjection []string `json:"command_injection"`
-}
-
-// ScanResults holds comprehensive scan results.
+// ScanResults contains the results of a comprehensive security scan.
 
 type ScanResults struct {
-	ScanID string `json:"scan_id"`
+	Timestamp time.Time `json:"timestamp"`
 
-	StartTime time.Time `json:"start_time"`
+	Target string `json:"target"`
 
-	EndTime time.Time `json:"end_time"`
+	// Port scan results
 
-	Duration time.Duration `json:"duration"`
+	OpenPorts []PortInfo `json:"openPorts"`
 
-	TotalTests int `json:"total_tests"`
-
-	PassedTests int `json:"passed_tests"`
-
-	FailedTests int `json:"failed_tests"`
+	// Vulnerability scan results
 
 	Vulnerabilities []Vulnerability `json:"vulnerabilities"`
 
-	OpenPorts []Port `json:"open_ports"`
+	// TLS/SSL findings
 
-	TLSFindings []TLSFinding `json:"tls_findings"`
+	TLSFindings []TLSFinding `json:"tlsFindings"`
 
-	AuthFindings []AuthFinding `json:"auth_findings"`
+	// HTTP header security findings
 
-	InjectionFindings []InjectionFinding `json:"injection_findings"`
+	HeaderFindings []HeaderFinding `json:"headerFindings"`
 
-	OWASPFindings []OWASPFinding `json:"owasp_findings"`
+	// Injection vulnerability findings
 
-	Configuration map[string]interface{} `json:"configuration"`
+	InjectionFindings []InjectionFinding `json:"injectionFindings"`
 
-	RiskScore float64 `json:"risk_score"`
+	// Summary statistics
 
-	Recommendations []string `json:"recommendations"`
+	Summary ScanSummary `json:"summary"`
+
+	// Scan duration
+
+	Duration time.Duration `json:"duration"`
 }
 
-// Vulnerability represents a security vulnerability.
+// PortInfo contains information about an open port.
 
-type Vulnerability struct {
-	ID string `json:"id"`
-
-	Title string `json:"title"`
-
-	Description string `json:"description"`
-
-	Severity string `json:"severity"`
-
-	CVSS float64 `json:"cvss"`
-
-	CWE string `json:"cwe"`
-
-	URL string `json:"url"`
-
-	Method string `json:"method"`
-
-	Payload string `json:"payload"`
-
-	Response string `json:"response"`
-
-	Evidence string `json:"evidence"`
-
-	Solution string `json:"solution"`
-
-	FoundAt time.Time `json:"found_at"`
-}
-
-// Port represents an open network port.
-
-type Port struct {
-	Number int `json:"number"`
+type PortInfo struct {
+	Port     int    `json:"port"`
 
 	Protocol string `json:"protocol"`
 
-	Service string `json:"service"`
+	Service  string `json:"service"`
 
-	Version string `json:"version"`
+	Banner   string `json:"banner,omitempty"`
 
-	State string `json:"state"`
+	State    string `json:"state"`
+}
+
+// Vulnerability represents a security vulnerability found during scanning.
+
+type Vulnerability struct {
+	ID          string `json:"id"`
+
+	Title       string `json:"title"`
+
+	Description string `json:"description"`
+
+	Severity    string `json:"severity"` // Critical, High, Medium, Low
+
+	CVE         string `json:"cve,omitempty"`
+
+	CVSS        string `json:"cvss,omitempty"`
+
+	Solution    string `json:"solution,omitempty"`
+
+	References  []string `json:"references,omitempty"`
+
+	Port        int    `json:"port,omitempty"`
+
+	Service     string `json:"service,omitempty"`
 }
 
 // TLSFinding represents TLS/SSL security findings.
 
 type TLSFinding struct {
-	Issue string `json:"issue"`
+	Issue       string `json:"issue"`
 
-	Severity string `json:"severity"`
+	Severity    string `json:"severity"`
 
 	Description string `json:"description"`
 
-	Protocol string `json:"protocol"`
+	Protocol    string `json:"protocol,omitempty"`
 
-	Cipher string `json:"cipher"`
+	Cipher      string `json:"cipher,omitempty"`
 
-	Certificate string `json:"certificate"`
+	Certificate string `json:"certificate,omitempty"`
 
-	Expires time.Time `json:"expires"`
+	Expiry      string `json:"expiry,omitempty"`
 }
 
-// AuthFinding represents authentication security findings.
+// HeaderFinding represents HTTP security header findings.
 
-type AuthFinding struct {
-	Issue string `json:"issue"`
+type HeaderFinding struct {
+	Header      string `json:"header"`
 
-	Severity string `json:"severity"`
+	Issue       string `json:"issue"`
+
+	Severity    string `json:"severity"`
 
 	Description string `json:"description"`
 
-	Endpoint string `json:"endpoint"`
+	Recommendation string `json:"recommendation"`
 
-	Method string `json:"method"`
+	Present     bool `json:"present"`
 
-	Evidence string `json:"evidence"`
+	Value       string `json:"value,omitempty"`
 }
 
 // InjectionFinding represents injection vulnerability findings.
 
 type InjectionFinding struct {
-	Type string `json:"type"`
+	Type        string `json:"type"` // SQL, XSS, Command, etc.
 
-	Severity string `json:"severity"`
+	URL         string `json:"url"`
 
-	URL string `json:"url"`
+	Parameter   string `json:"parameter,omitempty"`
 
-	Parameter string `json:"parameter"`
+	Payload     string `json:"payload"`
 
-	Payload string `json:"payload"`
+	Method      string `json:"method"`
 
-	Response string `json:"response"`
-
-	Evidence string `json:"evidence"`
-
-	Confirmed bool `json:"confirmed"`
-}
-
-// OWASPFinding represents OWASP Top 10 findings.
-
-type OWASPFinding struct {
-	Category string `json:"category"`
-
-	Rank int `json:"rank"`
-
-	Title string `json:"title"`
-
-	Severity string `json:"severity"`
+	Severity    string `json:"severity"`
 
 	Description string `json:"description"`
 
-	URL string `json:"url"`
-
-	Evidence string `json:"evidence"`
-
-	Impact string `json:"impact"`
+	Evidence    string `json:"evidence,omitempty"`
 }
 
-// NewSecurityScanner creates a new security scanner.
+// ScanSummary provides a high-level summary of scan results.
 
-func NewSecurityScanner(config *ScannerConfig) *SecurityScanner {
+type ScanSummary struct {
+	TotalPorts        int `json:"totalPorts"`
 
-	if config == nil {
+	OpenPorts         int `json:"openPorts"`
 
-		config = getDefaultScannerConfig()
+	TotalVulns        int `json:"totalVulns"`
+
+	CriticalVulns     int `json:"criticalVulns"`
+
+	HighVulns         int `json:"highVulns"`
+
+	MediumVulns       int `json:"mediumVulns"`
+
+	LowVulns          int `json:"lowVulns"`
+
+	TLSIssues         int `json:"tlsIssues"`
+
+	HeaderIssues      int `json:"headerIssues"`
+
+	InjectionIssues   int `json:"injectionIssues"`
+
+	SecurityScore     int `json:"securityScore"` // 0-100
+
+	RiskLevel         string `json:"riskLevel"`   // Low, Medium, High, Critical
+}
+
+// NewSecurityScanner creates a new SecurityScanner instance.
+
+func NewSecurityScanner(client client.Client, logger *slog.Logger, config SecurityScannerConfig) (*SecurityScanner, error) {
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Set default configuration values
+
+	if config.MaxConcurrency == 0 {
+
+		config.MaxConcurrency = 10
 
 	}
 
-	client := &http.Client{
+	if config.ScanTimeout == 0 {
 
-		Timeout: config.Timeout,
+		config.ScanTimeout = 5 * time.Minute
+
+	}
+
+	if config.HTTPTimeout == 0 {
+
+		config.HTTPTimeout = 30 * time.Second
+
+	}
+
+	if config.UserAgent == "" {
+
+		config.UserAgent = "Nephoran-Security-Scanner/1.0"
+
+	}
+
+	if len(config.PortRanges) == 0 {
+
+		config.PortRanges = []PortRange{
+
+			{Start: 80, End: 80},
+
+			{Start: 443, End: 443},
+
+			{Start: 8080, End: 8080},
+
+			{Start: 8443, End: 8443},
+
+		}
+
+	}
+
+	// Create HTTP client with timeout
+
+	httpClient := &http.Client{
+
+		Timeout: config.HTTPTimeout,
 
 		Transport: &http.Transport{
 
 			TLSClientConfig: &tls.Config{
 
-				InsecureSkipVerify: config.SkipTLSVerification,
+				MinVersion: tls.VersionTLS12, // Enforce minimum TLS 1.2
+
 			},
 
-			MaxIdleConns: 100,
-
-			IdleConnTimeout: 90 * time.Second,
-
-			DisableCompression: false,
 		},
 	}
 
-	return &SecurityScanner{
+	scanner := &SecurityScanner{
+
+		Client: client,
+
+		logger: logger,
 
 		config: config,
 
-		logger: slog.Default().With("component", "security-scanner"),
+		httpClient: httpClient,
 
-		client: client,
+		ctx:    ctx,
 
-		results: &ScanResults{
+		cancel: cancel,
 
-			ScanID: generateScanID(),
-
-			StartTime: time.Now(),
-
-			Vulnerabilities: make([]Vulnerability, 0),
-
-			OpenPorts: make([]Port, 0),
-
-			TLSFindings: make([]TLSFinding, 0),
-
-			AuthFindings: make([]AuthFinding, 0),
-
-			InjectionFindings: make([]InjectionFinding, 0),
-
-			OWASPFindings: make([]OWASPFinding, 0),
-
-			Configuration: make(map[string]interface{}),
-
-			Recommendations: make([]string, 0),
-		},
+		semaphore: make(chan struct{}, config.MaxConcurrency),
 	}
+
+	// Initialize semaphore
+
+	for i := 0; i < config.MaxConcurrency; i++ {
+
+		scanner.semaphore <- struct{}{}
+
+	}
+
+	return scanner, nil
 
 }
 
-// getDefaultScannerConfig returns default scanner configuration.
+// ScanTarget performs a comprehensive security scan on the specified target.
 
-func getDefaultScannerConfig() *ScannerConfig {
+func (ss *SecurityScanner) ScanTarget(ctx context.Context, target string) (*ScanResults, error) {
 
-	return &ScannerConfig{
+	start := time.Now()
 
-		Timeout: 30 * time.Second,
+	ss.logger.Info("Starting security scan", "target", target)
 
-		MaxConcurrency: 10,
+	// Initialize results
 
-		SkipTLSVerification: false,
+	ss.mutex.Lock()
 
-		EnableVulnScanning: true,
+	ss.results = ScanResults{
 
-		EnablePortScanning: true,
+		Timestamp: start,
 
-		EnableOWASPTesting: true,
+		Target:    target,
 
-		EnableAuthTesting: true,
+		OpenPorts:         []PortInfo{},
 
-		EnableInjectionTesting: true,
+		Vulnerabilities:   []Vulnerability{},
 
-		UserAgents: []string{
+		TLSFindings:       []TLSFinding{},
 
-			"Mozilla/5.0 (compatible; SecurityScanner/1.0)",
+		HeaderFindings:    []HeaderFinding{},
 
-			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-		},
-
-		Wordlists: &Wordlists{
-
-			CommonPasswords: []string{
-
-				"admin", "password", "123456", "admin123", "root", "test",
-
-				"password123", "administrator", "letmein", "welcome",
-			},
-
-			CommonPaths: []string{
-
-				"/admin", "/api", "/swagger", "/docs", "/health",
-
-				"/metrics", "/config", "/debug", "/test", "/backup",
-			},
-
-			SQLInjection: []string{
-
-				"'", "\"", "1' OR '1'='1", "1\" OR \"1\"=\"1",
-
-				"'; DROP TABLE users; --", "1 UNION SELECT NULL--",
-			},
-
-			XSSPayloads: []string{
-
-				"<script>alert('XSS')</script>",
-
-				"javascript:alert('XSS')",
-
-				"<img src=x onerror=alert('XSS')>",
-
-				"<svg onload=alert('XSS')>",
-			},
-
-			CommandInjection: []string{
-
-				"; ls", "| id", "& whoami", "; cat /etc/passwd",
-
-				"$(id)", "`whoami`", "|| id",
-			},
-		},
+		InjectionFindings: []InjectionFinding{},
 	}
 
-}
+	ss.mutex.Unlock()
 
-// RunFullScan performs a comprehensive security scan.
+	// Parse target
 
-func (ss *SecurityScanner) RunFullScan(ctx context.Context) (*ScanResults, error) {
-
-	ss.logger.Info("Starting comprehensive security scan", "base_url", ss.config.BaseURL)
-
-	ss.results.StartTime = time.Now()
-
-	// Run different types of scans concurrently.
-
-	var wg sync.WaitGroup
-
-	if ss.config.EnablePortScanning {
-
-		wg.Add(1)
-
-		go func() {
-
-			defer wg.Done()
-
-			ss.runPortScan(ctx)
-
-		}()
-
-	}
-
-	if ss.config.EnableOWASPTesting {
-
-		wg.Add(1)
-
-		go func() {
-
-			defer wg.Done()
-
-			ss.runOWASPTests(ctx)
-
-		}()
-
-	}
-
-	if ss.config.EnableAuthTesting {
-
-		wg.Add(1)
-
-		go func() {
-
-			defer wg.Done()
-
-			ss.runAuthTests(ctx)
-
-		}()
-
-	}
-
-	if ss.config.EnableInjectionTesting {
-
-		wg.Add(1)
-
-		go func() {
-
-			defer wg.Done()
-
-			ss.runInjectionTests(ctx)
-
-		}()
-
-	}
-
-	// Run TLS/SSL tests.
-
-	wg.Add(1)
-
-	go func() {
-
-		defer wg.Done()
-
-		ss.runTLSTests(ctx)
-
-	}()
-
-	// Wait for all scans to complete.
-
-	wg.Wait()
-
-	ss.results.EndTime = time.Now()
-
-	ss.results.Duration = ss.results.EndTime.Sub(ss.results.StartTime)
-
-	// Calculate risk score and generate recommendations.
-
-	ss.calculateRiskScore()
-
-	ss.generateRecommendations()
-
-	ss.logger.Info("Security scan completed",
-
-		"duration", ss.results.Duration,
-
-		"vulnerabilities", len(ss.results.Vulnerabilities),
-
-		"risk_score", ss.results.RiskScore)
-
-	return ss.results, nil
-
-}
-
-// runPortScan performs network port scanning.
-
-func (ss *SecurityScanner) runPortScan(ctx context.Context) {
-
-	ss.logger.Info("Starting port scan")
-
-	parsedURL, err := url.Parse(ss.config.BaseURL)
+	host, port, err := ss.parseTarget(target)
 
 	if err != nil {
 
-		ss.logger.Error("Invalid base URL", "error", err)
+		return nil, fmt.Errorf("failed to parse target: %w", err)
 
-		return
-
-	}
-
-	host := parsedURL.Hostname()
-
-	commonPorts := []int{
-
-		21, 22, 23, 25, 53, 80, 110, 143, 443, 993, 995,
-
-		8080, 8443, 8000, 9000, 5432, 3306, 27017, 6379,
 	}
 
 	var wg sync.WaitGroup
 
-	sem := make(chan struct{}, ss.config.MaxConcurrency)
+	// Perform port scan
 
-	for _, port := range commonPorts {
+	if ss.config.EnablePortScan {
 
 		wg.Add(1)
 
-		go func(p int) {
+		go func() {
 
 			defer wg.Done()
 
-			sem <- struct{}{}
+			ss.scanPorts(ctx, host)
 
-			defer func() { <-sem }()
+		}()
 
-			ss.scanPort(ctx, host, p)
+	}
 
-		}(port)
+	// Perform TLS scan
+
+	if ss.config.EnableTLSScan && port != "" {
+
+		wg.Add(1)
+
+		go func() {
+
+			defer wg.Done()
+
+			ss.testTLSConfiguration(ctx, host, port)
+
+			ss.testCertificate(ctx, host, port)
+
+		}()
+
+	}
+
+	// Perform HTTP header scan
+
+	if ss.config.EnableHeaderScan {
+
+		wg.Add(1)
+
+		go func() {
+
+			defer wg.Done()
+
+			ss.scanHTTPHeaders(ctx, target)
+
+		}()
+
+	}
+
+	// Perform injection scan
+
+	if ss.config.EnableInjectionScan {
+
+		wg.Add(1)
+
+		go func() {
+
+			defer wg.Done()
+
+			ss.scanInjectionVulns(ctx, target)
+
+		}()
+
+	}
+
+	// Perform vulnerability scan
+
+	if ss.config.EnableVulnScan {
+
+		wg.Add(1)
+
+		go func() {
+
+			defer wg.Done()
+
+			ss.scanVulnerabilities(ctx, host, port)
+
+		}()
+
+	}
+
+	// Wait for all scans to complete
+
+	wg.Wait()
+
+	duration := time.Since(start)
+
+	// Finalize results
+
+	ss.mutex.Lock()
+
+	ss.results.Duration = duration
+
+	ss.results.Summary = ss.calculateSummary()
+
+	results := ss.results
+
+	ss.mutex.Unlock()
+
+	ss.logger.Info("Security scan completed",
+
+		"target", target,
+
+		"duration", duration,
+
+		"openPorts", results.Summary.OpenPorts,
+
+		"vulnerabilities", results.Summary.TotalVulns,
+
+		"securityScore", results.Summary.SecurityScore,
+
+	)
+
+	return &results, nil
+
+}
+
+// parseTarget extracts host and port from target string.
+
+func (ss *SecurityScanner) parseTarget(target string) (string, string, error) {
+
+	// Handle URLs
+
+	if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
+
+		u, err := url.Parse(target)
+
+		if err != nil {
+
+			return "", "", err
+
+		}
+
+		host, port, err := net.SplitHostPort(u.Host)
+
+		if err != nil {
+
+			// No port specified, use default
+
+			if u.Scheme == "https" {
+
+				return u.Host, "443", nil
+
+			}
+
+			return u.Host, "80", nil
+
+		}
+
+		return host, port, nil
+
+	}
+
+	// Handle host:port format
+
+	host, port, err := net.SplitHostPort(target)
+
+	if err != nil {
+
+		// No port specified, assume it's just a host
+
+		return target, "", nil
+
+	}
+
+	return host, port, nil
+
+}
+
+// scanPorts scans for open ports on the target host.
+
+func (ss *SecurityScanner) scanPorts(ctx context.Context, host string) {
+
+	ss.logger.Debug("Starting port scan", "host", host)
+
+	var wg sync.WaitGroup
+
+	for _, portRange := range ss.config.PortRanges {
+
+		for port := portRange.Start; port <= portRange.End; port++ {
+
+			wg.Add(1)
+
+			go func(p int) {
+
+				defer wg.Done()
+
+				// Acquire semaphore
+
+				<-ss.semaphore
+
+				defer func() { ss.semaphore <- struct{}{} }()
+
+				ss.scanPort(ctx, host, p)
+
+			}(port)
+
+		}
 
 	}
 
@@ -530,7 +630,7 @@ func (ss *SecurityScanner) runPortScan(ctx context.Context) {
 
 }
 
-// scanPort scans a specific port.
+// scanPort scans a single port.
 
 func (ss *SecurityScanner) scanPort(ctx context.Context, host string, port int) {
 
@@ -540,28 +640,36 @@ func (ss *SecurityScanner) scanPort(ctx context.Context, host string, port int) 
 
 	if err != nil {
 
-		return // Port closed or filtered
+		return // Port is closed or filtered
 
 	}
 
 	defer conn.Close()
 
-	portInfo := Port{
+	// Port is open
 
-		Number: port,
+	portInfo := PortInfo{
+
+		Port:     port,
 
 		Protocol: "tcp",
 
-		State: "open",
+		Service:  ss.identifyService(port),
 
-		Service: getServiceName(port),
+		State:    "open",
 	}
 
-	// Try to get service banner.
+	// Try to grab banner
 
-	if banner := ss.getBanner(conn); banner != "" {
+	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 
-		portInfo.Version = banner
+	buffer := make([]byte, 1024)
+
+	n, err := conn.Read(buffer)
+
+	if err == nil && n > 0 {
+
+		portInfo.Banner = string(buffer[:n])
 
 	}
 
@@ -571,490 +679,66 @@ func (ss *SecurityScanner) scanPort(ctx context.Context, host string, port int) 
 
 	ss.mutex.Unlock()
 
-	// Check for insecure services.
+	ss.logger.Debug("Found open port",
 
-	if ss.isInsecureService(port) {
+		"host", host,
 
-		vuln := Vulnerability{
+		"port", port,
 
-			ID: fmt.Sprintf("INSECURE_SERVICE_%d", port),
+		"service", portInfo.Service,
 
-			Title: fmt.Sprintf("Insecure service on port %d", port),
-
-			Description: fmt.Sprintf("Service running on port %d may use insecure protocols", port),
-
-			Severity: "Medium",
-
-			CVSS: 5.0,
-
-			URL: address,
-
-			Solution: "Consider using secure alternatives or proper authentication",
-
-			FoundAt: time.Now(),
-		}
-
-		ss.mutex.Lock()
-
-		ss.results.Vulnerabilities = append(ss.results.Vulnerabilities, vuln)
-
-		ss.mutex.Unlock()
-
-	}
+	)
 
 }
 
-// runOWASPTests performs OWASP Top 10 vulnerability tests.
+// identifyService attempts to identify the service running on a port.
 
-func (ss *SecurityScanner) runOWASPTests(ctx context.Context) {
+func (ss *SecurityScanner) identifyService(port int) string {
 
-	ss.logger.Info("Starting OWASP Top 10 tests")
+	services := map[int]string{
 
-	tests := []func(context.Context){
+		21:   "ftp",
 
-		ss.testInjectionFlaws, // A01: Injection
+		22:   "ssh",
 
-		ss.testBrokenAuthentication, // A02: Broken Authentication
+		23:   "telnet",
 
-		ss.testSensitiveDataExposure, // A03: Sensitive Data Exposure
+		25:   "smtp",
 
-		ss.testXXE, // A04: XML External Entities
+		53:   "dns",
 
-		ss.testBrokenAccessControl, // A05: Broken Access Control
+		80:   "http",
 
-		ss.testSecurityMisconfiguration, // A06: Security Misconfiguration
+		110:  "pop3",
 
-		ss.testXSS, // A07: Cross-Site Scripting
+		143:  "imap",
 
-		ss.testInsecureDeserialization, // A08: Insecure Deserialization
+		443:  "https",
 
-		ss.testVulnerableComponents, // A09: Using Components with Known Vulnerabilities
+		993:  "imaps",
 
-		ss.testInsufficientLogging, // A10: Insufficient Logging & Monitoring
+		995:  "pop3s",
+
+		3306: "mysql",
+
+		5432: "postgresql",
+
+		6379: "redis",
+
+		8080: "http-alt",
+
+		8443: "https-alt",
+
+		9200: "elasticsearch",
+	}
+
+	if service, exists := services[port]; exists {
+
+		return service
 
 	}
 
-	var wg sync.WaitGroup
-
-	for i, test := range tests {
-
-		wg.Add(1)
-
-		go func(rank int, testFunc func(context.Context)) {
-
-			defer wg.Done()
-
-			testFunc(ctx)
-
-		}(i+1, test)
-
-	}
-
-	wg.Wait()
-
-}
-
-// testInjectionFlaws tests for injection vulnerabilities.
-
-func (ss *SecurityScanner) testInjectionFlaws(ctx context.Context) {
-
-	endpoints := []string{
-
-		"/api/v1/intents",
-
-		"/search",
-
-		"/login",
-
-		"/api/query",
-	}
-
-	for _, endpoint := range endpoints {
-
-		for _, payload := range ss.config.Wordlists.SQLInjection {
-
-			ss.testEndpointWithPayload(ctx, endpoint, "sql_injection", payload)
-
-		}
-
-		for _, payload := range ss.config.Wordlists.CommandInjection {
-
-			ss.testEndpointWithPayload(ctx, endpoint, "command_injection", payload)
-
-		}
-
-	}
-
-}
-
-// testBrokenAuthentication tests for authentication vulnerabilities.
-
-func (ss *SecurityScanner) testBrokenAuthentication(ctx context.Context) {
-
-	// Test for weak passwords.
-
-	ss.testWeakPasswords(ctx, "/auth/login")
-
-	// Test for session management issues.
-
-	ss.testSessionManagement(ctx)
-
-	// Test for authentication bypass.
-
-	ss.testAuthBypass(ctx)
-
-}
-
-// runAuthTests performs comprehensive authentication testing.
-
-func (ss *SecurityScanner) runAuthTests(ctx context.Context) {
-
-	ss.logger.Info("Starting authentication tests")
-
-	// Test authentication endpoints.
-
-	authEndpoints := []string{
-
-		"/auth/login",
-
-		"/api/auth/login",
-
-		"/login",
-
-		"/signin",
-
-		"/authenticate",
-	}
-
-	for _, endpoint := range authEndpoints {
-
-		// Test for default credentials.
-
-		ss.testDefaultCredentials(ctx, endpoint)
-
-		// Test for brute force protection.
-
-		ss.testBruteForceProtection(ctx, endpoint)
-
-		// Test for password policy.
-
-		ss.testPasswordPolicy(ctx, endpoint)
-
-	}
-
-	// Test JWT vulnerabilities.
-
-	ss.testJWTVulnerabilities(ctx)
-
-}
-
-// runInjectionTests performs injection vulnerability testing.
-
-func (ss *SecurityScanner) runInjectionTests(ctx context.Context) {
-
-	ss.logger.Info("Starting injection tests")
-
-	testParams := []string{
-
-		"id", "name", "query", "search", "filter", "sort",
-
-		"user", "username", "email", "password", "token",
-	}
-
-	for _, endpoint := range ss.config.Wordlists.CommonPaths {
-
-		fullURL := ss.config.BaseURL + endpoint
-
-		for _, param := range testParams {
-
-			// SQL Injection.
-
-			for _, payload := range ss.config.Wordlists.SQLInjection {
-
-				ss.testParameterInjection(ctx, fullURL, param, "sql", payload)
-
-			}
-
-			// XSS.
-
-			for _, payload := range ss.config.Wordlists.XSSPayloads {
-
-				ss.testParameterInjection(ctx, fullURL, param, "xss", payload)
-
-			}
-
-			// Command Injection.
-
-			for _, payload := range ss.config.Wordlists.CommandInjection {
-
-				ss.testParameterInjection(ctx, fullURL, param, "command", payload)
-
-			}
-
-		}
-
-	}
-
-}
-
-// runTLSTests performs TLS/SSL security testing.
-
-func (ss *SecurityScanner) runTLSTests(ctx context.Context) {
-
-	ss.logger.Info("Starting TLS/SSL tests")
-
-	parsedURL, err := url.Parse(ss.config.BaseURL)
-
-	if err != nil {
-
-		return
-
-	}
-
-	if parsedURL.Scheme != "https" {
-
-		finding := TLSFinding{
-
-			Issue: "HTTP_ONLY",
-
-			Severity: "High",
-
-			Description: "Service does not support HTTPS",
-
-			Protocol: "HTTP",
-		}
-
-		ss.mutex.Lock()
-
-		ss.results.TLSFindings = append(ss.results.TLSFindings, finding)
-
-		ss.mutex.Unlock()
-
-		return
-
-	}
-
-	host := parsedURL.Hostname()
-
-	port := parsedURL.Port()
-
-	if port == "" {
-
-		port = "443"
-
-	}
-
-	// Test TLS configuration.
-
-	ss.testTLSConfiguration(ctx, host, port)
-
-	// Test certificate.
-
-	ss.testCertificate(ctx, host, port)
-
-}
-
-// Helper methods for specific tests.
-
-func (ss *SecurityScanner) testEndpointWithPayload(ctx context.Context, endpoint, injectionType, payload string) {
-
-	fullURL := ss.config.BaseURL + endpoint
-
-	// Test GET parameters.
-
-	testURL := fmt.Sprintf("%s?test=%s", fullURL, url.QueryEscape(payload))
-
-	resp, err := ss.client.Get(testURL)
-
-	if err != nil {
-
-		return
-
-	}
-
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-
-	ss.analyzeInjectionResponse(testURL, "GET", payload, string(body), injectionType)
-
-	// Test POST data.
-
-	data := url.Values{"test": {payload}}
-
-	resp, err = ss.client.PostForm(fullURL, data)
-
-	if err != nil {
-
-		return
-
-	}
-
-	defer resp.Body.Close()
-
-	body, _ = io.ReadAll(resp.Body)
-
-	ss.analyzeInjectionResponse(fullURL, "POST", payload, string(body), injectionType)
-
-}
-
-func (ss *SecurityScanner) analyzeInjectionResponse(testURL, method, payload, response, injectionType string) {
-
-	var indicators []string
-
-	switch injectionType {
-
-	case "sql_injection":
-
-		indicators = []string{
-
-			"SQL syntax",
-
-			"mysql_fetch",
-
-			"PostgreSQL query failed",
-
-			"ORA-00936",
-
-			"Microsoft Access Driver",
-
-			"SQLServer JDBC Driver",
-		}
-
-	case "command_injection":
-
-		indicators = []string{
-
-			"uid=", "gid=", "/bin/sh", "/bin/bash",
-
-			"root:", "/etc/passwd", "command not found",
-		}
-
-	case "xss":
-
-		indicators = []string{
-
-			"<script>", "javascript:", "alert(",
-
-			"onerror=", "onload=",
-		}
-
-	}
-
-	for _, indicator := range indicators {
-
-		if strings.Contains(response, indicator) {
-
-			finding := InjectionFinding{
-
-				Type: injectionType,
-
-				Severity: "High",
-
-				URL: testURL,
-
-				Parameter: "test",
-
-				Payload: payload,
-
-				Response: response[:min(len(response), 500)],
-
-				Evidence: indicator,
-
-				Confirmed: true,
-			}
-
-			ss.mutex.Lock()
-
-			ss.results.InjectionFindings = append(ss.results.InjectionFindings, finding)
-
-			ss.mutex.Unlock()
-
-			break
-
-		}
-
-	}
-
-}
-
-func (ss *SecurityScanner) testDefaultCredentials(ctx context.Context, endpoint string) {
-
-	fullURL := ss.config.BaseURL + endpoint
-
-	for _, cred := range ss.config.TestCredentials {
-
-		data := url.Values{
-
-			"username": {cred.Username},
-
-			"password": {cred.Password},
-		}
-
-		resp, err := ss.client.PostForm(fullURL, data)
-
-		if err != nil {
-
-			continue
-
-		}
-
-		defer resp.Body.Close()
-
-		if resp.StatusCode == http.StatusOK {
-
-			finding := AuthFinding{
-
-				Issue: "DEFAULT_CREDENTIALS",
-
-				Severity: "Critical",
-
-				Description: fmt.Sprintf("Default credentials accepted: %s/%s", cred.Username, cred.Password),
-
-				Endpoint: endpoint,
-
-				Method: "POST",
-
-				Evidence: fmt.Sprintf("HTTP %d response", resp.StatusCode),
-			}
-
-			ss.mutex.Lock()
-
-			ss.results.AuthFindings = append(ss.results.AuthFindings, finding)
-
-			ss.mutex.Unlock()
-
-		}
-
-	}
-
-}
-
-func (ss *SecurityScanner) testParameterInjection(ctx context.Context, baseURL, param, injectionType, payload string) {
-
-	testURL := fmt.Sprintf("%s?%s=%s", baseURL, param, url.QueryEscape(payload))
-
-	req, err := http.NewRequestWithContext(ctx, "GET", testURL, http.NoBody)
-
-	if err != nil {
-
-		return
-
-	}
-
-	resp, err := ss.client.Do(req)
-
-	if err != nil {
-
-		return
-
-	}
-
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-
-	ss.analyzeInjectionResponse(testURL, "GET", payload, string(body), injectionType)
+	return "unknown"
 
 }
 
@@ -1064,26 +748,27 @@ func (ss *SecurityScanner) testTLSConfiguration(ctx context.Context, host, port 
 
 	weakVersions := []uint16{
 
-		tls.VersionSSL30,
-
 		tls.VersionTLS10,
 
 		tls.VersionTLS11,
 	}
 
 	for _, version := range weakVersions {
-
+		// #nosec G402 -- This is intentional for security scanning to detect weak TLS versions
+		// The security scanner needs to test for weak TLS configurations on target servers
+		// This is not used for production connections but only for vulnerability assessment
 		conn, err := tls.DialWithDialer(&net.Dialer{Timeout: 5 * time.Second},
 
 			"tcp", host+":"+port, &tls.Config{
 
 				MaxVersion: version,
 
-				// SECURITY: InsecureSkipVerify is intentionally set to true for security scanning.
+				// SECURITY SCANNER EXCEPTION: InsecureSkipVerify is intentionally set to true
+				// for security scanning purposes. This allows the scanner to test for weak
+				// TLS configurations on target servers. This is NOT used for production
+				// connections but only for vulnerability assessment.
+				InsecureSkipVerify: true, // #nosec G402
 
-				// This allows the scanner to test for weak TLS configurations on target servers.
-
-				InsecureSkipVerify: true,
 			})
 
 		if err == nil {
@@ -1114,10 +799,12 @@ func (ss *SecurityScanner) testTLSConfiguration(ctx context.Context, host, port 
 }
 
 func (ss *SecurityScanner) testCertificate(ctx context.Context, host, port string) {
-
+	// Security fix: Set minimum TLS version (G402)
 	conn, err := tls.DialWithDialer(&net.Dialer{Timeout: 5 * time.Second},
 
-		"tcp", host+":"+port, &tls.Config{})
+		"tcp", host+":"+port, &tls.Config{
+			MinVersion: tls.VersionTLS12, // Enforce minimum TLS 1.2
+		})
 
 	if err != nil {
 
@@ -1139,19 +826,44 @@ func (ss *SecurityScanner) testCertificate(ctx context.Context, host, port strin
 
 	// Check certificate expiration.
 
-	if time.Until(cert.NotAfter) < 30*24*time.Hour {
+	now := time.Now()
+
+	if cert.NotAfter.Before(now) {
 
 		finding := TLSFinding{
 
-			Issue: "CERT_EXPIRING_SOON",
+			Issue: "EXPIRED_CERTIFICATE",
+
+			Severity: "Critical",
+
+			Description: fmt.Sprintf("Certificate expired on %s", cert.NotAfter.Format("2006-01-02")),
+
+			Certificate: cert.Subject.CommonName,
+
+			Expiry: cert.NotAfter.Format("2006-01-02 15:04:05 UTC"),
+		}
+
+		ss.mutex.Lock()
+
+		ss.results.TLSFindings = append(ss.results.TLSFindings, finding)
+
+		ss.mutex.Unlock()
+
+	} else if cert.NotAfter.Before(now.Add(30 * 24 * time.Hour)) {
+
+		// Certificate expires within 30 days
+
+		finding := TLSFinding{
+
+			Issue: "CERTIFICATE_EXPIRING_SOON",
 
 			Severity: "Medium",
 
-			Description: "Certificate expires within 30 days",
+			Description: fmt.Sprintf("Certificate expires soon: %s", cert.NotAfter.Format("2006-01-02")),
 
-			Certificate: cert.Subject.String(),
+			Certificate: cert.Subject.CommonName,
 
-			Expires: cert.NotAfter,
+			Expiry: cert.NotAfter.Format("2006-01-02 15:04:05 UTC"),
 		}
 
 		ss.mutex.Lock()
@@ -1162,19 +874,19 @@ func (ss *SecurityScanner) testCertificate(ctx context.Context, host, port strin
 
 	}
 
-	// Check for self-signed certificate.
+	// Check for weak signature algorithms
 
-	if cert.Issuer.String() == cert.Subject.String() {
+	if cert.SignatureAlgorithm == x509.MD5WithRSA || cert.SignatureAlgorithm == x509.SHA1WithRSA {
 
 		finding := TLSFinding{
 
-			Issue: "SELF_SIGNED_CERT",
+			Issue: "WEAK_SIGNATURE_ALGORITHM",
 
-			Severity: "Medium",
+			Severity: "High",
 
-			Description: "Self-signed certificate detected",
+			Description: fmt.Sprintf("Certificate uses weak signature algorithm: %s", cert.SignatureAlgorithm),
 
-			Certificate: cert.Subject.String(),
+			Certificate: cert.Subject.CommonName,
 		}
 
 		ss.mutex.Lock()
@@ -1185,377 +897,1123 @@ func (ss *SecurityScanner) testCertificate(ctx context.Context, host, port strin
 
 	}
 
-}
+	// Check key length
 
-// Additional OWASP test methods (stubs for brevity).
+	if cert.PublicKeyAlgorithm == x509.RSA {
 
-func (ss *SecurityScanner) testSensitiveDataExposure(ctx context.Context) {
+		if rsaKey, ok := cert.PublicKey.(*interface{}); ok {
 
-	// Test for exposed sensitive information.
-
-	sensitivePatterns := []string{
-
-		`password.*=.*['"](.*?)['"]`,
-
-		`api[_-]?key.*=.*['"](.*?)['"]`,
-
-		`secret.*=.*['"](.*?)['"]`,
-
-		`token.*=.*['"](.*?)['"]`,
-	}
-
-	commonPaths := []string{
-
-		"/.env", "/config.json", "/config.xml", "/web.config",
-
-		"/.git/config", "/backup.sql", "/database.sql",
-	}
-
-	for _, path := range commonPaths {
-
-		ss.testPathForSensitiveData(ctx, path, sensitivePatterns)
-
-	}
-
-}
-
-func (ss *SecurityScanner) testXXE(ctx context.Context) {
-
-	// Test for XML External Entity vulnerabilities.
-
-	xxePayload := `<?xml version="1.0" encoding="UTF-8"?>
-
-<!DOCTYPE test [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
-
-<test>&xxe;</test>`
-
-	xmlEndpoints := []string{
-
-		"/api/xml", "/upload", "/parse", "/import",
-	}
-
-	for _, endpoint := range xmlEndpoints {
-
-		ss.testXMLEndpoint(ctx, endpoint, xxePayload)
-
-	}
-
-}
-
-func (ss *SecurityScanner) testBrokenAccessControl(ctx context.Context) {
-
-	// Test for access control issues.
-
-	// This would test for horizontal/vertical privilege escalation.
-
-}
-
-func (ss *SecurityScanner) testSecurityMisconfiguration(ctx context.Context) {
-
-	// Test for security misconfigurations.
-
-	configPaths := []string{
-
-		"/server-status", "/server-info", "/.htaccess",
-
-		"/phpinfo.php", "/info.php", "/test.php",
-	}
-
-	for _, path := range configPaths {
-
-		ss.testConfigurationExposure(ctx, path)
-
-	}
-
-}
-
-func (ss *SecurityScanner) testXSS(ctx context.Context) {
-
-	// XSS testing is handled in runInjectionTests.
-
-}
-
-func (ss *SecurityScanner) testInsecureDeserialization(ctx context.Context) {
-
-	// Test for insecure deserialization.
-
-}
-
-func (ss *SecurityScanner) testVulnerableComponents(ctx context.Context) {
-
-	// Test for known vulnerable components.
-
-}
-
-func (ss *SecurityScanner) testInsufficientLogging(ctx context.Context) {
-
-	// Test for logging and monitoring issues.
-
-}
-
-// Utility functions.
-
-func generateScanID() string {
-
-	return fmt.Sprintf("scan_%d", time.Now().Unix())
-
-}
-
-func getServiceName(port int) string {
-
-	services := map[int]string{
-
-		21: "ftp",
-
-		22: "ssh",
-
-		23: "telnet",
-
-		25: "smtp",
-
-		53: "dns",
-
-		80: "http",
-
-		110: "pop3",
-
-		143: "imap",
-
-		443: "https",
-
-		993: "imaps",
-
-		995: "pop3s",
-
-		3306: "mysql",
-
-		5432: "postgresql",
-
-		6379: "redis",
-
-		8080: "http-alt",
-
-		8443: "https-alt",
-
-		27017: "mongodb",
-	}
-
-	if service, exists := services[port]; exists {
-
-		return service
-
-	}
-
-	return "unknown"
-
-}
-
-func (ss *SecurityScanner) isInsecureService(port int) bool {
-
-	insecurePorts := []int{21, 23, 25, 110, 143} // FTP, Telnet, SMTP, POP3, IMAP
-
-	for _, p := range insecurePorts {
-
-		if port == p {
-
-			return true
+			_ = rsaKey // We would check key size here
 
 		}
 
 	}
 
-	return false
-
 }
 
-func (ss *SecurityScanner) getBanner(conn net.Conn) string {
-
-	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-
-	scanner := bufio.NewScanner(conn)
-
-	if scanner.Scan() {
-
-		return scanner.Text()
-
-	}
-
-	return ""
-
-}
+// getTLSVersionName returns the name of a TLS version.
 
 func getTLSVersionName(version uint16) string {
 
-	versions := map[uint16]string{
+	switch version {
 
-		tls.VersionSSL30: "SSLv3",
+	case tls.VersionTLS10:
 
-		tls.VersionTLS10: "TLS 1.0",
+		return "TLS 1.0"
 
-		tls.VersionTLS11: "TLS 1.1",
+	case tls.VersionTLS11:
 
-		tls.VersionTLS12: "TLS 1.2",
+		return "TLS 1.1"
 
-		tls.VersionTLS13: "TLS 1.3",
+	case tls.VersionTLS12:
+
+		return "TLS 1.2"
+
+	case tls.VersionTLS13:
+
+		return "TLS 1.3"
+
+	default:
+
+		return fmt.Sprintf("Unknown (%d)", version)
+
 	}
-
-	if name, exists := versions[version]; exists {
-
-		return name
-
-	}
-
-	return "Unknown"
 
 }
 
-func (ss *SecurityScanner) calculateRiskScore() {
+// scanHTTPHeaders scans for HTTP security header issues.
 
-	var score float64
+func (ss *SecurityScanner) scanHTTPHeaders(ctx context.Context, target string) {
 
-	// Calculate based on vulnerability severity.
+	ss.logger.Debug("Starting HTTP header scan", "target", target)
+
+	// Make sure target is a full URL
+
+	if !strings.HasPrefix(target, "http://") && !strings.HasPrefix(target, "https://") {
+
+		target = "https://" + target
+
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", target, nil)
+
+	if err != nil {
+
+		ss.logger.Error("Failed to create HTTP request", "error", err)
+
+		return
+
+	}
+
+	// Set custom headers
+
+	req.Header.Set("User-Agent", ss.config.UserAgent)
+
+	for key, value := range ss.config.CustomHeaders {
+
+		req.Header.Set(key, value)
+
+	}
+
+	resp, err := ss.httpClient.Do(req)
+
+	if err != nil {
+
+		ss.logger.Debug("HTTP request failed", "error", err, "target", target)
+
+		return
+
+	}
+
+	defer resp.Body.Close()
+
+	// Check for security headers
+
+	ss.checkSecurityHeader(resp.Header, "Strict-Transport-Security", "HSTS", "High",
+
+		"HSTS header is missing. This makes the site vulnerable to SSL stripping attacks.",
+
+		"Add 'Strict-Transport-Security: max-age=31536000; includeSubDomains' header")
+
+	ss.checkSecurityHeader(resp.Header, "Content-Security-Policy", "CSP", "High",
+
+		"Content Security Policy header is missing. This increases XSS attack risk.",
+
+		"Implement a restrictive Content-Security-Policy header")
+
+	ss.checkSecurityHeader(resp.Header, "X-Frame-Options", "X-Frame-Options", "Medium",
+
+		"X-Frame-Options header is missing. Site may be vulnerable to clickjacking.",
+
+		"Add 'X-Frame-Options: DENY' or 'X-Frame-Options: SAMEORIGIN' header")
+
+	ss.checkSecurityHeader(resp.Header, "X-Content-Type-Options", "X-Content-Type-Options", "Medium",
+
+		"X-Content-Type-Options header is missing. Site may be vulnerable to MIME sniffing.",
+
+		"Add 'X-Content-Type-Options: nosniff' header")
+
+	ss.checkSecurityHeader(resp.Header, "Referrer-Policy", "Referrer-Policy", "Low",
+
+		"Referrer-Policy header is missing. May leak sensitive information in referrer.",
+
+		"Add 'Referrer-Policy: strict-origin-when-cross-origin' header")
+
+	// Check for information disclosure headers
+
+	ss.checkInformationDisclosure(resp.Header, "Server", "Server header reveals server information")
+
+	ss.checkInformationDisclosure(resp.Header, "X-Powered-By", "X-Powered-By header reveals technology stack")
+
+}
+
+// checkSecurityHeader checks for the presence and validity of a security header.
+
+func (ss *SecurityScanner) checkSecurityHeader(headers http.Header, headerName, issue, severity, description, recommendation string) {
+
+	values := headers.Values(headerName)
+
+	if len(values) == 0 {
+
+		finding := HeaderFinding{
+
+			Header:         headerName,
+
+			Issue:          "MISSING_" + issue,
+
+			Severity:       severity,
+
+			Description:    description,
+
+			Recommendation: recommendation,
+
+			Present:        false,
+		}
+
+		ss.mutex.Lock()
+
+		ss.results.HeaderFindings = append(ss.results.HeaderFindings, finding)
+
+		ss.mutex.Unlock()
+
+	} else {
+
+		// Header is present, could validate its value here
+
+		ss.logger.Debug("Security header present",
+
+			"header", headerName,
+
+			"value", values[0],
+
+		)
+
+	}
+
+}
+
+// checkInformationDisclosure checks for headers that might disclose sensitive information.
+
+func (ss *SecurityScanner) checkInformationDisclosure(headers http.Header, headerName, description string) {
+
+	values := headers.Values(headerName)
+
+	if len(values) > 0 {
+
+		finding := HeaderFinding{
+
+			Header:         headerName,
+
+			Issue:          "INFORMATION_DISCLOSURE",
+
+			Severity:       "Low",
+
+			Description:    description,
+
+			Recommendation: fmt.Sprintf("Remove or obscure the %s header", headerName),
+
+			Present:        true,
+
+			Value:          values[0],
+		}
+
+		ss.mutex.Lock()
+
+		ss.results.HeaderFindings = append(ss.results.HeaderFindings, finding)
+
+		ss.mutex.Unlock()
+
+	}
+
+}
+
+// scanInjectionVulns scans for common injection vulnerabilities.
+
+func (ss *SecurityScanner) scanInjectionVulns(ctx context.Context, target string) {
+
+	ss.logger.Debug("Starting injection vulnerability scan", "target", target)
+
+	// Make sure target is a full URL
+
+	if !strings.HasPrefix(target, "http://") && !strings.HasPrefix(target, "https://") {
+
+		target = "https://" + target
+
+	}
+
+	// Common injection payloads
+
+	sqlPayloads := []string{
+
+		"' OR '1'='1",
+
+		"' OR '1'='1' --",
+
+		"'; DROP TABLE users; --",
+
+		"1' UNION SELECT NULL,NULL,NULL--",
+
+	}
+
+	xssPayloads := []string{
+
+		"<script>alert('XSS')</script>",
+
+		"<img src=x onerror=alert('XSS')>",
+
+		"javascript:alert('XSS')",
+
+		"\"><script>alert('XSS')</script>",
+
+	}
+
+	commandPayloads := []string{
+
+		"; ls -la",
+
+		"| whoami",
+
+		"; cat /etc/passwd",
+
+		"`id`",
+
+	}
+
+	// Test SQL injection
+
+	for _, payload := range sqlPayloads {
+
+		ss.testInjection(ctx, target, payload, "SQL_INJECTION")
+
+	}
+
+	// Test XSS
+
+	for _, payload := range xssPayloads {
+
+		ss.testInjection(ctx, target, payload, "XSS")
+
+	}
+
+	// Test command injection
+
+	for _, payload := range commandPayloads {
+
+		ss.testInjection(ctx, target, payload, "COMMAND_INJECTION")
+
+	}
+
+}
+
+// testInjection tests for a specific injection vulnerability.
+
+func (ss *SecurityScanner) testInjection(ctx context.Context, baseURL, payload, injectionType string) {
+
+	// Test various parameter positions
+
+	testURLs := []string{
+
+		baseURL + "?id=" + url.QueryEscape(payload),
+
+		baseURL + "?search=" + url.QueryEscape(payload),
+
+		baseURL + "?q=" + url.QueryEscape(payload),
+
+	}
+
+	for _, testURL := range testURLs {
+
+		ss.testSingleInjection(ctx, testURL, payload, injectionType)
+
+	}
+
+}
+
+// testSingleInjection tests a single injection attempt.
+
+func (ss *SecurityScanner) testSingleInjection(ctx context.Context, testURL, payload, injectionType string) {
+
+	req, err := http.NewRequestWithContext(ctx, "GET", testURL, nil)
+
+	if err != nil {
+
+		return
+
+	}
+
+	req.Header.Set("User-Agent", ss.config.UserAgent)
+
+	resp, err := ss.httpClient.Do(req)
+
+	if err != nil {
+
+		return
+
+	}
+
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	ss.analyzeInjectionResponse(testURL, "GET", payload, string(body), injectionType)
+
+}
+
+// analyzeInjectionResponse analyzes the response for signs of injection success.
+
+func (ss *SecurityScanner) analyzeInjectionResponse(testURL, method, payload, responseBody, injectionType string) {
+
+	var indicators []string
+
+	var severity string
+
+	switch injectionType {
+
+	case "SQL_INJECTION":
+
+		indicators = []string{
+
+			"SQL syntax",
+
+			"mysql_fetch",
+
+			"ORA-",
+
+			"PostgreSQL",
+
+			"Warning: pg_",
+
+			"valid MySQL result",
+
+			"MySqlClient",
+
+		}
+
+		severity = "Critical"
+
+	case "XSS":
+
+		indicators = []string{
+
+			"<script>alert('XSS')</script>",
+
+			"alert('XSS')",
+
+			"<img src=x onerror=alert('XSS')>",
+
+		}
+
+		severity = "High"
+
+	case "COMMAND_INJECTION":
+
+		indicators = []string{
+
+			"root:x:",
+
+			"uid=",
+
+			"gid=",
+
+			"groups=",
+
+			"/bin/sh",
+
+			"/bin/bash",
+
+		}
+
+		severity = "Critical"
+
+	}
+
+	for _, indicator := range indicators {
+
+		if strings.Contains(responseBody, indicator) {
+
+			// Extract parameter from URL
+
+			u, err := url.Parse(testURL)
+
+			if err != nil {
+
+				continue
+
+			}
+
+			var parameter string
+
+			for key := range u.Query() {
+
+				parameter = key
+
+				break // Take the first parameter
+
+			}
+
+			finding := InjectionFinding{
+
+				Type:        injectionType,
+
+				URL:         testURL,
+
+				Parameter:   parameter,
+
+				Payload:     payload,
+
+				Method:      method,
+
+				Severity:    severity,
+
+				Description: fmt.Sprintf("Possible %s vulnerability detected", injectionType),
+
+				Evidence:    indicator,
+			}
+
+			ss.mutex.Lock()
+
+			ss.results.InjectionFindings = append(ss.results.InjectionFindings, finding)
+
+			ss.mutex.Unlock()
+
+			break
+
+		}
+
+	}
+
+}
+
+// scanVulnerabilities performs vulnerability scanning.
+
+func (ss *SecurityScanner) scanVulnerabilities(ctx context.Context, host, port string) {
+
+	ss.logger.Debug("Starting vulnerability scan", "host", host, "port", port)
+
+	// This would typically integrate with vulnerability databases
+
+	// For now, we'll check for some common vulnerabilities based on service detection
+
+	ss.mutex.RLock()
+
+	openPorts := ss.results.OpenPorts
+
+	ss.mutex.RUnlock()
+
+	for _, portInfo := range openPorts {
+
+		ss.checkCommonVulnerabilities(host, portInfo)
+
+	}
+
+}
+
+// checkCommonVulnerabilities checks for common vulnerabilities based on service type.
+
+func (ss *SecurityScanner) checkCommonVulnerabilities(host string, portInfo PortInfo) {
+
+	switch portInfo.Service {
+
+	case "ssh":
+
+		ss.checkSSHVulnerabilities(host, portInfo)
+
+	case "http", "http-alt":
+
+		ss.checkHTTPVulnerabilities(host, portInfo)
+
+	case "https", "https-alt":
+
+		ss.checkHTTPSVulnerabilities(host, portInfo)
+
+	case "mysql":
+
+		ss.checkMySQLVulnerabilities(host, portInfo)
+
+	case "postgresql":
+
+		ss.checkPostgreSQLVulnerabilities(host, portInfo)
+
+	}
+
+}
+
+// checkSSHVulnerabilities checks for SSH-specific vulnerabilities.
+
+func (ss *SecurityScanner) checkSSHVulnerabilities(host string, portInfo PortInfo) {
+
+	// Check if SSH is running on default port (potential security issue)
+
+	if portInfo.Port == 22 {
+
+		vuln := Vulnerability{
+
+			ID:          "SSH-001",
+
+			Title:       "SSH on default port",
+
+			Description: "SSH is running on the default port 22, making it an easy target for automated attacks",
+
+			Severity:    "Low",
+
+			Solution:    "Consider changing SSH port to a non-standard port",
+
+			Port:        portInfo.Port,
+
+			Service:     "ssh",
+
+			References:  []string{"https://attack.mitre.org/techniques/T1021/"},
+		}
+
+		ss.mutex.Lock()
+
+		ss.results.Vulnerabilities = append(ss.results.Vulnerabilities, vuln)
+
+		ss.mutex.Unlock()
+
+	}
+
+}
+
+// checkHTTPVulnerabilities checks for HTTP-specific vulnerabilities.
+
+func (ss *SecurityScanner) checkHTTPVulnerabilities(host string, portInfo PortInfo) {
+
+	// HTTP instead of HTTPS
+
+	vuln := Vulnerability{
+
+		ID:          "HTTP-001",
+
+		Title:       "Insecure HTTP Protocol",
+
+		Description: "Service is using HTTP instead of HTTPS, transmitting data in plain text",
+
+		Severity:    "Medium",
+
+		Solution:    "Implement HTTPS/TLS encryption",
+
+		Port:        portInfo.Port,
+
+		Service:     "http",
+
+		References:  []string{"https://owasp.org/www-project-top-ten/2017/A3_2017-Sensitive_Data_Exposure"},
+	}
+
+	ss.mutex.Lock()
+
+	ss.results.Vulnerabilities = append(ss.results.Vulnerabilities, vuln)
+
+	ss.mutex.Unlock()
+
+}
+
+// checkHTTPSVulnerabilities checks for HTTPS-specific vulnerabilities.
+
+func (ss *SecurityScanner) checkHTTPSVulnerabilities(host string, portInfo PortInfo) {
+
+	// This would typically check for specific HTTPS vulnerabilities
+
+	// like weak cipher suites, certificate issues, etc.
+
+}
+
+// checkMySQLVulnerabilities checks for MySQL-specific vulnerabilities.
+
+func (ss *SecurityScanner) checkMySQLVulnerabilities(host string, portInfo PortInfo) {
+
+	// Check if MySQL is accessible from external networks
+
+	vuln := Vulnerability{
+
+		ID:          "MYSQL-001",
+
+		Title:       "MySQL Exposed to Network",
+
+		Description: "MySQL database is accessible from external networks, potentially exposing sensitive data",
+
+		Severity:    "High",
+
+		Solution:    "Restrict MySQL access to localhost or specific trusted networks",
+
+		Port:        portInfo.Port,
+
+		Service:     "mysql",
+
+		References:  []string{"https://dev.mysql.com/doc/refman/8.0/en/security-guidelines.html"},
+	}
+
+	ss.mutex.Lock()
+
+	ss.results.Vulnerabilities = append(ss.results.Vulnerabilities, vuln)
+
+	ss.mutex.Unlock()
+
+}
+
+// checkPostgreSQLVulnerabilities checks for PostgreSQL-specific vulnerabilities.
+
+func (ss *SecurityScanner) checkPostgreSQLVulnerabilities(host string, portInfo PortInfo) {
+
+	// Check if PostgreSQL is accessible from external networks
+
+	vuln := Vulnerability{
+
+		ID:          "PGSQL-001",
+
+		Title:       "PostgreSQL Exposed to Network",
+
+		Description: "PostgreSQL database is accessible from external networks, potentially exposing sensitive data",
+
+		Severity:    "High",
+
+		Solution:    "Restrict PostgreSQL access to localhost or specific trusted networks",
+
+		Port:        portInfo.Port,
+
+		Service:     "postgresql",
+
+		References:  []string{"https://www.postgresql.org/docs/current/security.html"},
+	}
+
+	ss.mutex.Lock()
+
+	ss.results.Vulnerabilities = append(ss.results.Vulnerabilities, vuln)
+
+	ss.mutex.Unlock()
+
+}
+
+// calculateSummary calculates a summary of the scan results.
+
+func (ss *SecurityScanner) calculateSummary() ScanSummary {
+
+	var summary ScanSummary
+
+	// Count vulnerabilities by severity
 
 	for _, vuln := range ss.results.Vulnerabilities {
+
+		summary.TotalVulns++
 
 		switch vuln.Severity {
 
 		case "Critical":
 
-			score += 10
+			summary.CriticalVulns++
 
 		case "High":
 
-			score += 7
+			summary.HighVulns++
 
 		case "Medium":
 
-			score += 4
+			summary.MediumVulns++
 
 		case "Low":
 
-			score += 1
+			summary.LowVulns++
 
 		}
 
 	}
 
-	// Add scores for other findings.
+	// Count ports
 
-	score += float64(len(ss.results.TLSFindings)) * 2
+	summary.TotalPorts = len(ss.results.OpenPorts)
 
-	score += float64(len(ss.results.AuthFindings)) * 5
+	for _, port := range ss.results.OpenPorts {
 
-	score += float64(len(ss.results.InjectionFindings)) * 8
+		if port.State == "open" {
 
-	score += float64(len(ss.results.OWASPFindings)) * 6
+			summary.OpenPorts++
 
-	// Normalize to 0-100 scale.
-
-	if score > 100 {
-
-		score = 100
+		}
 
 	}
 
-	ss.results.RiskScore = score
+	// Count TLS issues
+
+	summary.TLSIssues = len(ss.results.TLSFindings)
+
+	// Count header issues
+
+	summary.HeaderIssues = len(ss.results.HeaderFindings)
+
+	// Count injection issues
+
+	summary.InjectionIssues = len(ss.results.InjectionFindings)
+
+	// Calculate security score (0-100)
+
+	// Start with 100 and deduct points for issues
+
+	score := 100
+
+	score -= summary.CriticalVulns * 20 // Critical: -20 points each
+
+	score -= summary.HighVulns * 10     // High: -10 points each
+
+	score -= summary.MediumVulns * 5    // Medium: -5 points each
+
+	score -= summary.LowVulns * 2       // Low: -2 points each
+
+	score -= summary.TLSIssues * 5      // TLS issues: -5 points each
+
+	score -= summary.HeaderIssues * 3   // Header issues: -3 points each
+
+	score -= summary.InjectionIssues * 15 // Injection issues: -15 points each
+
+	if score < 0 {
+
+		score = 0
+
+	}
+
+	summary.SecurityScore = score
+
+	// Determine risk level
+
+	switch {
+
+	case summary.CriticalVulns > 0:
+
+		summary.RiskLevel = "Critical"
+
+	case summary.HighVulns > 0 || summary.InjectionIssues > 0:
+
+		summary.RiskLevel = "High"
+
+	case summary.MediumVulns > 0 || summary.TLSIssues > 2:
+
+		summary.RiskLevel = "Medium"
+
+	default:
+
+		summary.RiskLevel = "Low"
+
+	}
+
+	return summary
 
 }
 
-func (ss *SecurityScanner) generateRecommendations() {
+// ScanNetworkIntent scans a NetworkIntent resource for security issues.
 
-	recommendations := []string{}
+func (ss *SecurityScanner) ScanNetworkIntent(ctx context.Context, intent *nephiov1.NetworkIntent) (*ScanResults, error) {
 
-	if len(ss.results.TLSFindings) > 0 {
+	ss.logger.Info("Scanning NetworkIntent for security issues",
 
-		recommendations = append(recommendations, "Upgrade TLS configuration and certificates")
+		"intent", intent.Name,
 
-	}
+		"namespace", intent.Namespace,
 
-	if len(ss.results.AuthFindings) > 0 {
+	)
 
-		recommendations = append(recommendations, "Strengthen authentication mechanisms")
+	// Extract target endpoints from the NetworkIntent
 
-	}
+	targets := ss.extractTargetsFromIntent(intent)
 
-	if len(ss.results.InjectionFindings) > 0 {
+	if len(targets) == 0 {
 
-		recommendations = append(recommendations, "Implement input validation and sanitization")
-
-	}
-
-	if ss.results.RiskScore > 70 {
-
-		recommendations = append(recommendations, "Immediate security review required")
+		return nil, fmt.Errorf("no scan targets found in NetworkIntent")
 
 	}
 
-	ss.results.Recommendations = recommendations
+	// Perform scanning on the first target (could be extended to scan all)
 
-}
-
-// Helper methods (stubs for brevity).
-
-func (ss *SecurityScanner) testWeakPasswords(ctx context.Context, endpoint string) {}
-
-func (ss *SecurityScanner) testSessionManagement(ctx context.Context) {}
-
-func (ss *SecurityScanner) testAuthBypass(ctx context.Context) {}
-
-func (ss *SecurityScanner) testBruteForceProtection(ctx context.Context, endpoint string) {}
-
-func (ss *SecurityScanner) testPasswordPolicy(ctx context.Context, endpoint string) {}
-
-func (ss *SecurityScanner) testJWTVulnerabilities(ctx context.Context) {}
-
-func (ss *SecurityScanner) testPathForSensitiveData(ctx context.Context, path string, patterns []string) {
-
-}
-
-func (ss *SecurityScanner) testXMLEndpoint(ctx context.Context, endpoint, payload string) {}
-
-func (ss *SecurityScanner) testConfigurationExposure(ctx context.Context, path string) {}
-
-func min(a, b int) int {
-
-	if a < b {
-
-		return a
-
-	}
-
-	return b
-
-}
-
-// GenerateReport generates a comprehensive security report.
-
-func (ss *SecurityScanner) GenerateReport() ([]byte, error) {
-
-	return json.MarshalIndent(ss.results, "", "  ")
-
-}
-
-// SaveReport saves the scan results to a file.
-
-func (ss *SecurityScanner) SaveReport(filename string) error {
-
-	report, err := ss.GenerateReport()
+	results, err := ss.ScanTarget(ctx, targets[0])
 
 	if err != nil {
 
-		return err
+		return nil, fmt.Errorf("failed to scan NetworkIntent target: %w", err)
 
 	}
 
-	return writeFile(filename, report)
+	// Add NetworkIntent-specific findings
+
+	ss.addIntentSecurityFindings(intent, results)
+
+	return results, nil
 
 }
 
-func writeFile(filename string, data []byte) error {
+// extractTargetsFromIntent extracts scannable targets from a NetworkIntent.
 
-	// Implementation would write to file.
+func (ss *SecurityScanner) extractTargetsFromIntent(intent *nephiov1.NetworkIntent) []string {
 
-	// For now, just return nil.
+	var targets []string
+
+	// This would extract actual endpoints from the NetworkIntent specification
+
+	// For now, return a placeholder
+
+	if intent.Spec.CNFDeployments != nil {
+
+		for _, deployment := range intent.Spec.CNFDeployments {
+
+			if deployment.ServiceEndpoints != nil {
+
+				for _, endpoint := range deployment.ServiceEndpoints {
+
+					targets = append(targets, endpoint.URL)
+
+				}
+
+			}
+
+		}
+
+	}
+
+	return targets
+
+}
+
+// addIntentSecurityFindings adds NetworkIntent-specific security findings.
+
+func (ss *SecurityScanner) addIntentSecurityFindings(intent *nephiov1.NetworkIntent, results *ScanResults) {
+
+	// Check for insecure configurations in the NetworkIntent
+
+	if intent.Spec.Security == nil {
+
+		vuln := Vulnerability{
+
+			ID:          "INTENT-001",
+
+			Title:       "Missing Security Configuration",
+
+			Description: "NetworkIntent does not specify security configuration",
+
+			Severity:    "Medium",
+
+			Solution:    "Add security section to NetworkIntent specification",
+
+			Service:     "NetworkIntent",
+		}
+
+		results.Vulnerabilities = append(results.Vulnerabilities, vuln)
+
+	} else {
+
+		// Check specific security settings
+
+		if !intent.Spec.Security.TLSEnabled {
+
+			vuln := Vulnerability{
+
+				ID:          "INTENT-002",
+
+				Title:       "TLS Disabled",
+
+				Description: "NetworkIntent has TLS disabled, communications may be unencrypted",
+
+				Severity:    "High",
+
+				Solution:    "Enable TLS in NetworkIntent security configuration",
+
+				Service:     "NetworkIntent",
+			}
+
+			results.Vulnerabilities = append(results.Vulnerabilities, vuln)
+
+		}
+
+		if !intent.Spec.Security.AuthenticationEnabled {
+
+			vuln := Vulnerability{
+
+				ID:          "INTENT-003",
+
+				Title:       "Authentication Disabled",
+
+				Description: "NetworkIntent has authentication disabled",
+
+				Severity:    "High",
+
+				Solution:    "Enable authentication in NetworkIntent security configuration",
+
+				Service:     "NetworkIntent",
+			}
+
+			results.Vulnerabilities = append(results.Vulnerabilities, vuln)
+
+		}
+
+	}
+
+}
+
+// ExportResults exports scan results in various formats.
+
+func (ss *SecurityScanner) ExportResults(results *ScanResults, format string) ([]byte, error) {
+
+	switch strings.ToLower(format) {
+
+	case "json":
+
+		return json.MarshalIndent(results, "", "  ")
+
+	case "summary":
+
+		return ss.generateSummaryReport(results), nil
+
+	default:
+
+		return nil, fmt.Errorf("unsupported export format: %s", format)
+
+	}
+
+}
+
+// generateSummaryReport generates a human-readable summary report.
+
+func (ss *SecurityScanner) generateSummaryReport(results *ScanResults) []byte {
+
+	var report strings.Builder
+
+	report.WriteString(fmt.Sprintf("Security Scan Report - %s\n", results.Target))
+
+	report.WriteString(fmt.Sprintf("Scan Date: %s\n", results.Timestamp.Format("2006-01-02 15:04:05 UTC")))
+
+	report.WriteString(fmt.Sprintf("Duration: %v\n\n", results.Duration))
+
+	// Summary
+
+	report.WriteString("SUMMARY\n")
+
+	report.WriteString("=======\n")
+
+	report.WriteString(fmt.Sprintf("Security Score: %d/100\n", results.Summary.SecurityScore))
+
+	report.WriteString(fmt.Sprintf("Risk Level: %s\n", results.Summary.RiskLevel))
+
+	report.WriteString(fmt.Sprintf("Open Ports: %d/%d\n", results.Summary.OpenPorts, results.Summary.TotalPorts))
+
+	report.WriteString(fmt.Sprintf("Vulnerabilities: %d (Critical: %d, High: %d, Medium: %d, Low: %d)\n\n",
+
+		results.Summary.TotalVulns, results.Summary.CriticalVulns,
+
+		results.Summary.HighVulns, results.Summary.MediumVulns, results.Summary.LowVulns))
+
+	// Open Ports
+
+	if len(results.OpenPorts) > 0 {
+
+		report.WriteString("OPEN PORTS\n")
+
+		report.WriteString("==========\n")
+
+		for _, port := range results.OpenPorts {
+
+			report.WriteString(fmt.Sprintf("Port %d/%s - %s (%s)\n",
+
+				port.Port, port.Protocol, port.Service, port.State))
+
+		}
+
+		report.WriteString("\n")
+
+	}
+
+	// Critical and High Vulnerabilities
+
+	criticalHighVulns := []Vulnerability{}
+
+	for _, vuln := range results.Vulnerabilities {
+
+		if vuln.Severity == "Critical" || vuln.Severity == "High" {
+
+			criticalHighVulns = append(criticalHighVulns, vuln)
+
+		}
+
+	}
+
+	if len(criticalHighVulns) > 0 {
+
+		report.WriteString("CRITICAL & HIGH SEVERITY VULNERABILITIES\n")
+
+		report.WriteString("=======================================\n")
+
+		for _, vuln := range criticalHighVulns {
+
+			report.WriteString(fmt.Sprintf("[%s] %s\n", vuln.Severity, vuln.Title))
+
+			report.WriteString(fmt.Sprintf("Description: %s\n", vuln.Description))
+
+			report.WriteString(fmt.Sprintf("Solution: %s\n\n", vuln.Solution))
+
+		}
+
+	}
+
+	return []byte(report.String())
+
+}
+
+// Stop stops the security scanner and cleans up resources.
+
+func (ss *SecurityScanner) Stop() {
+
+	ss.cancel()
+
+}
+
+// GetScanHistory returns historical scan results (placeholder for database integration).
+
+func (ss *SecurityScanner) GetScanHistory(ctx context.Context, target string, limit int) ([]ScanResults, error) {
+
+	// This would typically query a database for historical results
+
+	// For now, return empty results
+
+	return []ScanResults{}, nil
+
+}
+
+// ScheduleScan schedules a recurring security scan (placeholder for scheduler integration).
+
+func (ss *SecurityScanner) ScheduleScan(target string, interval time.Duration) error {
+
+	// This would integrate with a job scheduler
+
+	ss.logger.Info("Scheduling recurring scan",
+
+		"target", target,
+
+		"interval", interval,
+
+	)
+
+	return nil
+
+}
+
+// ValidateConfiguration validates the security scanner configuration.
+
+func ValidateConfiguration(config SecurityScannerConfig) error {
+
+	if config.MaxConcurrency <= 0 || config.MaxConcurrency > 100 {
+
+		return fmt.Errorf("MaxConcurrency must be between 1 and 100")
+
+	}
+
+	if config.ScanTimeout <= 0 || config.ScanTimeout > 30*time.Minute {
+
+		return fmt.Errorf("ScanTimeout must be between 1s and 30m")
+
+	}
+
+	if config.HTTPTimeout <= 0 || config.HTTPTimeout > 5*time.Minute {
+
+		return fmt.Errorf("HTTPTimeout must be between 1s and 5m")
+
+	}
+
+	for _, portRange := range config.PortRanges {
+
+		if portRange.Start <= 0 || portRange.Start > 65535 {
+
+			return fmt.Errorf("invalid port range start: %d", portRange.Start)
+
+		}
+
+		if portRange.End <= 0 || portRange.End > 65535 {
+
+			return fmt.Errorf("invalid port range end: %d", portRange.End)
+
+		}
+
+		if portRange.Start > portRange.End {
+
+			return fmt.Errorf("port range start (%d) cannot be greater than end (%d)", portRange.Start, portRange.End)
+
+		}
+
+	}
 
 	return nil
 

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/sony/gobreaker"
-
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 )

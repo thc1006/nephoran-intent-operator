@@ -6,9 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // CAMonitor monitors Certificate Authority health and performance.

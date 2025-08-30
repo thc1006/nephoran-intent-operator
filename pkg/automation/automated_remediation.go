@@ -4,18 +4,17 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -593,7 +592,14 @@ func (ar *AutomatedRemediation) scaleComponent(ctx context.Context, componentNam
 	}
 
 	// Update replica count.
-
+	// Security fix (G115): Safe float64 to int32 conversion with bounds checking
+	if replicas < 0 || replicas > float64(math.MaxInt32) {
+		return fmt.Errorf("invalid replica count %.0f: must be between 0 and %d", replicas, int64(math.MaxInt32))
+	}
+	// Check if replicas is a whole number
+	if replicas != float64(int64(replicas)) {
+		return fmt.Errorf("replica count must be a whole number, got %.2f", replicas)
+	}
 	replicaCount := int32(replicas)
 
 	deployment.Spec.Replicas = &replicaCount
@@ -1118,7 +1124,7 @@ func (ar *AutomatedRemediation) optimizeStrategies() {
 
 			if strategy.SuccessRate > 0.8 {
 
-				strategy.Priority = min(strategy.Priority+1, 10)
+				strategy.Priority = minInt(strategy.Priority+1, 10)
 
 			} else if strategy.SuccessRate < 0.5 {
 
@@ -1132,7 +1138,7 @@ func (ar *AutomatedRemediation) optimizeStrategies() {
 
 }
 
-func min(a, b int) int {
+func minInt(a, b int) int {
 
 	if a < b {
 

@@ -28,402 +28,309 @@ limitations under the License.
 
 */
 
-
-
-
 package webui
 
-
-
 import (
-
 	"net/http"
-
 )
-
-
 
 // OpenAPISpec represents the OpenAPI 3.0 specification.
 
 type OpenAPISpec struct {
+	OpenAPI string `json:"openapi"`
 
-	OpenAPI    string                  `json:"openapi"`
+	Info *OpenAPIInfo `json:"info"`
 
-	Info       *OpenAPIInfo            `json:"info"`
+	Servers []*OpenAPIServer `json:"servers,omitempty"`
 
-	Servers    []*OpenAPIServer        `json:"servers,omitempty"`
+	Paths map[string]*OpenAPIPath `json:"paths"`
 
-	Paths      map[string]*OpenAPIPath `json:"paths"`
+	Components *OpenAPIComponents `json:"components,omitempty"`
 
-	Components *OpenAPIComponents      `json:"components,omitempty"`
+	Security []map[string][]string `json:"security,omitempty"`
 
-	Security   []map[string][]string   `json:"security,omitempty"`
-
-	Tags       []*OpenAPITag           `json:"tags,omitempty"`
-
+	Tags []*OpenAPITag `json:"tags,omitempty"`
 }
-
-
 
 // OpenAPIInfo represents the API information.
 
 type OpenAPIInfo struct {
+	Title string `json:"title"`
 
-	Title          string          `json:"title"`
+	Description string `json:"description"`
 
-	Description    string          `json:"description"`
+	Version string `json:"version"`
 
-	Version        string          `json:"version"`
+	Contact *OpenAPIContact `json:"contact,omitempty"`
 
-	Contact        *OpenAPIContact `json:"contact,omitempty"`
+	License *OpenAPILicense `json:"license,omitempty"`
 
-	License        *OpenAPILicense `json:"license,omitempty"`
-
-	TermsOfService string          `json:"termsOfService,omitempty"`
-
+	TermsOfService string `json:"termsOfService,omitempty"`
 }
-
-
 
 // OpenAPIContact represents contact information.
 
 type OpenAPIContact struct {
+	Name string `json:"name,omitempty"`
 
-	Name  string `json:"name,omitempty"`
-
-	URL   string `json:"url,omitempty"`
+	URL string `json:"url,omitempty"`
 
 	Email string `json:"email,omitempty"`
-
 }
-
-
 
 // OpenAPILicense represents license information.
 
 type OpenAPILicense struct {
-
 	Name string `json:"name"`
 
-	URL  string `json:"url,omitempty"`
-
+	URL string `json:"url,omitempty"`
 }
-
-
 
 // OpenAPIServer represents a server.
 
 type OpenAPIServer struct {
+	URL string `json:"url"`
 
-	URL         string                            `json:"url"`
+	Description string `json:"description,omitempty"`
 
-	Description string                            `json:"description,omitempty"`
-
-	Variables   map[string]*OpenAPIServerVariable `json:"variables,omitempty"`
-
+	Variables map[string]*OpenAPIServerVariable `json:"variables,omitempty"`
 }
-
-
 
 // OpenAPIServerVariable represents a server variable.
 
 type OpenAPIServerVariable struct {
+	Enum []string `json:"enum,omitempty"`
 
-	Enum        []string `json:"enum,omitempty"`
+	Default string `json:"default"`
 
-	Default     string   `json:"default"`
-
-	Description string   `json:"description,omitempty"`
-
+	Description string `json:"description,omitempty"`
 }
-
-
 
 // OpenAPIPath represents a path item.
 
 type OpenAPIPath struct {
+	Get *OpenAPIOperation `json:"get,omitempty"`
 
-	Get    *OpenAPIOperation `json:"get,omitempty"`
+	Post *OpenAPIOperation `json:"post,omitempty"`
 
-	Post   *OpenAPIOperation `json:"post,omitempty"`
-
-	Put    *OpenAPIOperation `json:"put,omitempty"`
+	Put *OpenAPIOperation `json:"put,omitempty"`
 
 	Delete *OpenAPIOperation `json:"delete,omitempty"`
 
-	Patch  *OpenAPIOperation `json:"patch,omitempty"`
-
+	Patch *OpenAPIOperation `json:"patch,omitempty"`
 }
-
-
 
 // OpenAPIOperation represents an operation.
 
 type OpenAPIOperation struct {
+	Tags []string `json:"tags,omitempty"`
 
-	Tags        []string                    `json:"tags,omitempty"`
+	Summary string `json:"summary,omitempty"`
 
-	Summary     string                      `json:"summary,omitempty"`
+	Description string `json:"description,omitempty"`
 
-	Description string                      `json:"description,omitempty"`
+	OperationID string `json:"operationId,omitempty"`
 
-	OperationID string                      `json:"operationId,omitempty"`
+	Parameters []*OpenAPIParameter `json:"parameters,omitempty"`
 
-	Parameters  []*OpenAPIParameter         `json:"parameters,omitempty"`
+	RequestBody *OpenAPIRequestBody `json:"requestBody,omitempty"`
 
-	RequestBody *OpenAPIRequestBody         `json:"requestBody,omitempty"`
+	Responses map[string]*OpenAPIResponse `json:"responses"`
 
-	Responses   map[string]*OpenAPIResponse `json:"responses"`
+	Security []map[string][]string `json:"security,omitempty"`
 
-	Security    []map[string][]string       `json:"security,omitempty"`
-
-	Deprecated  bool                        `json:"deprecated,omitempty"`
-
+	Deprecated bool `json:"deprecated,omitempty"`
 }
-
-
 
 // OpenAPIParameter represents a parameter.
 
 type OpenAPIParameter struct {
+	Name string `json:"name"`
 
-	Name        string         `json:"name"`
+	In string `json:"in"` // query, header, path, cookie
 
-	In          string         `json:"in"` // query, header, path, cookie
+	Description string `json:"description,omitempty"`
 
-	Description string         `json:"description,omitempty"`
+	Required bool `json:"required,omitempty"`
 
-	Required    bool           `json:"required,omitempty"`
+	Schema *OpenAPISchema `json:"schema,omitempty"`
 
-	Schema      *OpenAPISchema `json:"schema,omitempty"`
-
-	Example     interface{}    `json:"example,omitempty"`
-
+	Example interface{} `json:"example,omitempty"`
 }
-
-
 
 // OpenAPIRequestBody represents a request body.
 
 type OpenAPIRequestBody struct {
+	Description string `json:"description,omitempty"`
 
-	Description string                     `json:"description,omitempty"`
+	Content map[string]*OpenAPIContent `json:"content"`
 
-	Content     map[string]*OpenAPIContent `json:"content"`
-
-	Required    bool                       `json:"required,omitempty"`
-
+	Required bool `json:"required,omitempty"`
 }
-
-
 
 // OpenAPIResponse represents a response.
 
 type OpenAPIResponse struct {
+	Description string `json:"description"`
 
-	Description string                     `json:"description"`
+	Headers map[string]*OpenAPIHeader `json:"headers,omitempty"`
 
-	Headers     map[string]*OpenAPIHeader  `json:"headers,omitempty"`
-
-	Content     map[string]*OpenAPIContent `json:"content,omitempty"`
-
+	Content map[string]*OpenAPIContent `json:"content,omitempty"`
 }
-
-
 
 // OpenAPIContent represents content.
 
 type OpenAPIContent struct {
+	Schema *OpenAPISchema `json:"schema,omitempty"`
 
-	Schema   *OpenAPISchema             `json:"schema,omitempty"`
-
-	Example  interface{}                `json:"example,omitempty"`
+	Example interface{} `json:"example,omitempty"`
 
 	Examples map[string]*OpenAPIExample `json:"examples,omitempty"`
-
 }
-
-
 
 // OpenAPIExample represents an example.
 
 type OpenAPIExample struct {
+	Summary string `json:"summary,omitempty"`
 
-	Summary     string      `json:"summary,omitempty"`
+	Description string `json:"description,omitempty"`
 
-	Description string      `json:"description,omitempty"`
-
-	Value       interface{} `json:"value,omitempty"`
-
+	Value interface{} `json:"value,omitempty"`
 }
-
-
 
 // OpenAPIHeader represents a header.
 
 type OpenAPIHeader struct {
+	Description string `json:"description,omitempty"`
 
-	Description string         `json:"description,omitempty"`
+	Required bool `json:"required,omitempty"`
 
-	Required    bool           `json:"required,omitempty"`
-
-	Schema      *OpenAPISchema `json:"schema,omitempty"`
-
+	Schema *OpenAPISchema `json:"schema,omitempty"`
 }
-
-
 
 // OpenAPISchema represents a schema.
 
 type OpenAPISchema struct {
+	Type string `json:"type,omitempty"`
 
-	Type                 string                    `json:"type,omitempty"`
+	Format string `json:"format,omitempty"`
 
-	Format               string                    `json:"format,omitempty"`
+	Title string `json:"title,omitempty"`
 
-	Title                string                    `json:"title,omitempty"`
+	Description string `json:"description,omitempty"`
 
-	Description          string                    `json:"description,omitempty"`
+	Default interface{} `json:"default,omitempty"`
 
-	Default              interface{}               `json:"default,omitempty"`
+	Example interface{} `json:"example,omitempty"`
 
-	Example              interface{}               `json:"example,omitempty"`
+	Enum []interface{} `json:"enum,omitempty"`
 
-	Enum                 []interface{}             `json:"enum,omitempty"`
+	Items *OpenAPISchema `json:"items,omitempty"`
 
-	Items                *OpenAPISchema            `json:"items,omitempty"`
+	Properties map[string]*OpenAPISchema `json:"properties,omitempty"`
 
-	Properties           map[string]*OpenAPISchema `json:"properties,omitempty"`
+	Required []string `json:"required,omitempty"`
 
-	Required             []string                  `json:"required,omitempty"`
+	AdditionalProperties interface{} `json:"additionalProperties,omitempty"`
 
-	AdditionalProperties interface{}               `json:"additionalProperties,omitempty"`
+	AllOf []*OpenAPISchema `json:"allOf,omitempty"`
 
-	AllOf                []*OpenAPISchema          `json:"allOf,omitempty"`
+	OneOf []*OpenAPISchema `json:"oneOf,omitempty"`
 
-	OneOf                []*OpenAPISchema          `json:"oneOf,omitempty"`
+	AnyOf []*OpenAPISchema `json:"anyOf,omitempty"`
 
-	AnyOf                []*OpenAPISchema          `json:"anyOf,omitempty"`
+	Not *OpenAPISchema `json:"not,omitempty"`
 
-	Not                  *OpenAPISchema            `json:"not,omitempty"`
+	Ref string `json:"$ref,omitempty"`
 
-	Ref                  string                    `json:"$ref,omitempty"`
+	Minimum *float64 `json:"minimum,omitempty"`
 
-	Minimum              *float64                  `json:"minimum,omitempty"`
+	Maximum *float64 `json:"maximum,omitempty"`
 
-	Maximum              *float64                  `json:"maximum,omitempty"`
+	MinLength *int `json:"minLength,omitempty"`
 
-	MinLength            *int                      `json:"minLength,omitempty"`
+	MaxLength *int `json:"maxLength,omitempty"`
 
-	MaxLength            *int                      `json:"maxLength,omitempty"`
-
-	Pattern              string                    `json:"pattern,omitempty"`
-
+	Pattern string `json:"pattern,omitempty"`
 }
-
-
 
 // OpenAPIComponents represents components.
 
 type OpenAPIComponents struct {
+	Schemas map[string]*OpenAPISchema `json:"schemas,omitempty"`
 
-	Schemas         map[string]*OpenAPISchema         `json:"schemas,omitempty"`
+	Responses map[string]*OpenAPIResponse `json:"responses,omitempty"`
 
-	Responses       map[string]*OpenAPIResponse       `json:"responses,omitempty"`
+	Parameters map[string]*OpenAPIParameter `json:"parameters,omitempty"`
 
-	Parameters      map[string]*OpenAPIParameter      `json:"parameters,omitempty"`
+	RequestBodies map[string]*OpenAPIRequestBody `json:"requestBodies,omitempty"`
 
-	RequestBodies   map[string]*OpenAPIRequestBody    `json:"requestBodies,omitempty"`
-
-	Headers         map[string]*OpenAPIHeader         `json:"headers,omitempty"`
+	Headers map[string]*OpenAPIHeader `json:"headers,omitempty"`
 
 	SecuritySchemes map[string]*OpenAPISecurityScheme `json:"securitySchemes,omitempty"`
-
 }
-
-
 
 // OpenAPISecurityScheme represents a security scheme.
 
 type OpenAPISecurityScheme struct {
+	Type string `json:"type"`
 
-	Type             string             `json:"type"`
+	Description string `json:"description,omitempty"`
 
-	Description      string             `json:"description,omitempty"`
+	Name string `json:"name,omitempty"`
 
-	Name             string             `json:"name,omitempty"`
+	In string `json:"in,omitempty"`
 
-	In               string             `json:"in,omitempty"`
+	Scheme string `json:"scheme,omitempty"`
 
-	Scheme           string             `json:"scheme,omitempty"`
+	BearerFormat string `json:"bearerFormat,omitempty"`
 
-	BearerFormat     string             `json:"bearerFormat,omitempty"`
+	Flows *OpenAPIOAuthFlows `json:"flows,omitempty"`
 
-	Flows            *OpenAPIOAuthFlows `json:"flows,omitempty"`
-
-	OpenIDConnectURL string             `json:"openIdConnectUrl,omitempty"`
-
+	OpenIDConnectURL string `json:"openIdConnectUrl,omitempty"`
 }
-
-
 
 // OpenAPIOAuthFlows represents OAuth flows.
 
 type OpenAPIOAuthFlows struct {
+	Implicit *OpenAPIOAuthFlow `json:"implicit,omitempty"`
 
-	Implicit          *OpenAPIOAuthFlow `json:"implicit,omitempty"`
-
-	Password          *OpenAPIOAuthFlow `json:"password,omitempty"`
+	Password *OpenAPIOAuthFlow `json:"password,omitempty"`
 
 	ClientCredentials *OpenAPIOAuthFlow `json:"clientCredentials,omitempty"`
 
 	AuthorizationCode *OpenAPIOAuthFlow `json:"authorizationCode,omitempty"`
-
 }
-
-
 
 // OpenAPIOAuthFlow represents an OAuth flow.
 
 type OpenAPIOAuthFlow struct {
+	AuthorizationURL string `json:"authorizationUrl,omitempty"`
 
-	AuthorizationURL string            `json:"authorizationUrl,omitempty"`
+	TokenURL string `json:"tokenUrl,omitempty"`
 
-	TokenURL         string            `json:"tokenUrl,omitempty"`
+	RefreshURL string `json:"refreshUrl,omitempty"`
 
-	RefreshURL       string            `json:"refreshUrl,omitempty"`
-
-	Scopes           map[string]string `json:"scopes,omitempty"`
-
+	Scopes map[string]string `json:"scopes,omitempty"`
 }
-
-
 
 // OpenAPITag represents a tag.
 
 type OpenAPITag struct {
+	Name string `json:"name"`
 
-	Name         string               `json:"name"`
-
-	Description  string               `json:"description,omitempty"`
+	Description string `json:"description,omitempty"`
 
 	ExternalDocs *OpenAPIExternalDocs `json:"externalDocs,omitempty"`
-
 }
-
-
 
 // OpenAPIExternalDocs represents external documentation.
 
 type OpenAPIExternalDocs struct {
-
 	Description string `json:"description,omitempty"`
 
-	URL         string `json:"url"`
-
+	URL string `json:"url"`
 }
-
-
 
 // getOpenAPISpec handles GET /openapi.json.
 
@@ -434,8 +341,6 @@ func (s *NephoranAPIServer) getOpenAPISpec(w http.ResponseWriter, r *http.Reques
 	s.writeJSONResponse(w, http.StatusOK, spec)
 
 }
-
-
 
 // getAPIDocs handles GET /docs.
 
@@ -529,8 +434,6 @@ func (s *NephoranAPIServer) getAPIDocs(w http.ResponseWriter, r *http.Request) {
 
 </html>`
 
-
-
 	w.Header().Set("Content-Type", "text/html")
 
 	w.WriteHeader(http.StatusOK)
@@ -538,8 +441,6 @@ func (s *NephoranAPIServer) getAPIDocs(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(html))
 
 }
-
-
 
 // generateOpenAPISpec generates the complete OpenAPI 3.0 specification.
 
@@ -551,59 +452,52 @@ func (s *NephoranAPIServer) generateOpenAPISpec() *OpenAPISpec {
 
 		Info: &OpenAPIInfo{
 
-			Title:       "Nephoran Intent Operator API",
+			Title: "Nephoran Intent Operator API",
 
 			Description: "Comprehensive REST API for the Nephoran Intent Operator providing intent-driven network function management with real-time streaming capabilities.",
 
-			Version:     "1.0.0",
+			Version: "1.0.0",
 
 			Contact: &OpenAPIContact{
 
-				Name:  "Nephoran Team",
+				Name: "Nephoran Team",
 
 				Email: "support@nephoran.io",
-
 			},
 
 			License: &OpenAPILicense{
 
 				Name: "Apache 2.0",
 
-				URL:  "http://www.apache.org/licenses/LICENSE-2.0.html",
-
+				URL: "http://www.apache.org/licenses/LICENSE-2.0.html",
 			},
-
 		},
 
 		Servers: []*OpenAPIServer{
 
 			{
 
-				URL:         "https://api.nephoran.io/api/v1",
+				URL: "https://api.nephoran.io/api/v1",
 
 				Description: "Production server",
-
 			},
 
 			{
 
-				URL:         "https://staging-api.nephoran.io/api/v1",
+				URL: "https://staging-api.nephoran.io/api/v1",
 
 				Description: "Staging server",
-
 			},
 
 			{
 
-				URL:         "http://localhost:8080/api/v1",
+				URL: "http://localhost:8080/api/v1",
 
 				Description: "Development server",
-
 			},
-
 		},
 
-		Paths:      s.generatePaths(),
+		Paths: s.generatePaths(),
 
 		Components: s.generateComponents(),
 
@@ -612,66 +506,55 @@ func (s *NephoranAPIServer) generateOpenAPISpec() *OpenAPISpec {
 			{"BearerAuth": []string{}},
 
 			{"OAuth2": []string{"read", "write"}},
-
 		},
 
 		Tags: []*OpenAPITag{
 
 			{
 
-				Name:        "Intents",
+				Name: "Intents",
 
 				Description: "Intent management operations",
-
 			},
 
 			{
 
-				Name:        "Packages",
+				Name: "Packages",
 
 				Description: "Package lifecycle management",
-
 			},
 
 			{
 
-				Name:        "Clusters",
+				Name: "Clusters",
 
 				Description: "Multi-cluster operations",
-
 			},
 
 			{
 
-				Name:        "Realtime",
+				Name: "Realtime",
 
 				Description: "Real-time streaming and WebSocket endpoints",
-
 			},
 
 			{
 
-				Name:        "Dashboard",
+				Name: "Dashboard",
 
 				Description: "Dashboard and metrics endpoints",
-
 			},
 
 			{
 
-				Name:        "System",
+				Name: "System",
 
 				Description: "System management and health endpoints",
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // generatePaths generates all API paths.
 
@@ -679,17 +562,15 @@ func (s *NephoranAPIServer) generatePaths() map[string]*OpenAPIPath {
 
 	paths := make(map[string]*OpenAPIPath)
 
-
-
 	// Intent endpoints.
 
 	paths["/intents"] = &OpenAPIPath{
 
 		Get: &OpenAPIOperation{
 
-			Tags:        []string{"Intents"},
+			Tags: []string{"Intents"},
 
-			Summary:     "List network intents",
+			Summary: "List network intents",
 
 			Description: "Retrieve a paginated list of network intents with filtering and sorting options",
 
@@ -699,64 +580,58 @@ func (s *NephoranAPIServer) generatePaths() map[string]*OpenAPIPath {
 
 				{
 
-					Name:        "page",
+					Name: "page",
 
-					In:          "query",
+					In: "query",
 
 					Description: "Page number for pagination",
 
-					Schema:      &OpenAPISchema{Type: "integer", Default: 1, Minimum: &[]float64{1}[0]},
-
+					Schema: &OpenAPISchema{Type: "integer", Default: 1, Minimum: &[]float64{1}[0]},
 				},
 
 				{
 
-					Name:        "page_size",
+					Name: "page_size",
 
-					In:          "query",
+					In: "query",
 
 					Description: "Number of items per page",
 
-					Schema:      &OpenAPISchema{Type: "integer", Default: 20, Minimum: &[]float64{1}[0], Maximum: &[]float64{100}[0]},
-
+					Schema: &OpenAPISchema{Type: "integer", Default: 20, Minimum: &[]float64{1}[0], Maximum: &[]float64{100}[0]},
 				},
 
 				{
 
-					Name:        "status",
+					Name: "status",
 
-					In:          "query",
+					In: "query",
 
 					Description: "Filter by intent status",
 
-					Schema:      &OpenAPISchema{Type: "string", Enum: []interface{}{"pending", "processing", "completed", "failed"}},
-
+					Schema: &OpenAPISchema{Type: "string", Enum: []interface{}{"pending", "processing", "completed", "failed"}},
 				},
 
 				{
 
-					Name:        "type",
+					Name: "type",
 
-					In:          "query",
+					In: "query",
 
 					Description: "Filter by intent type",
 
-					Schema:      &OpenAPISchema{Type: "string", Enum: []interface{}{"deployment", "scaling", "optimization", "maintenance"}},
-
+					Schema: &OpenAPISchema{Type: "string", Enum: []interface{}{"deployment", "scaling", "optimization", "maintenance"}},
 				},
 
 				{
 
-					Name:        "priority",
+					Name: "priority",
 
-					In:          "query",
+					In: "query",
 
 					Description: "Filter by priority level",
 
-					Schema:      &OpenAPISchema{Type: "string", Enum: []interface{}{"low", "medium", "high", "critical"}},
-
+					Schema: &OpenAPISchema{Type: "string", Enum: []interface{}{"low", "medium", "high", "critical"}},
 				},
-
 			},
 
 			Responses: map[string]*OpenAPIResponse{
@@ -770,11 +645,8 @@ func (s *NephoranAPIServer) generatePaths() map[string]*OpenAPIPath {
 						"application/json": {
 
 							Schema: &OpenAPISchema{Ref: "#/components/schemas/IntentListResponse"},
-
 						},
-
 					},
-
 				},
 
 				"400": {Description: "Bad request", Content: map[string]*OpenAPIContent{"application/json": {Schema: &OpenAPISchema{Ref: "#/components/schemas/ErrorResponse"}}}},
@@ -782,16 +654,14 @@ func (s *NephoranAPIServer) generatePaths() map[string]*OpenAPIPath {
 				"401": {Description: "Unauthorized", Content: map[string]*OpenAPIContent{"application/json": {Schema: &OpenAPISchema{Ref: "#/components/schemas/ErrorResponse"}}}},
 
 				"500": {Description: "Internal server error", Content: map[string]*OpenAPIContent{"application/json": {Schema: &OpenAPISchema{Ref: "#/components/schemas/ErrorResponse"}}}},
-
 			},
-
 		},
 
 		Post: &OpenAPIOperation{
 
-			Tags:        []string{"Intents"},
+			Tags: []string{"Intents"},
 
-			Summary:     "Create a new network intent",
+			Summary: "Create a new network intent",
 
 			Description: "Create a new network intent with natural language processing",
 
@@ -801,18 +671,15 @@ func (s *NephoranAPIServer) generatePaths() map[string]*OpenAPIPath {
 
 				Description: "Intent creation request",
 
-				Required:    true,
+				Required: true,
 
 				Content: map[string]*OpenAPIContent{
 
 					"application/json": {
 
 						Schema: &OpenAPISchema{Ref: "#/components/schemas/IntentRequest"},
-
 					},
-
 				},
-
 			},
 
 			Responses: map[string]*OpenAPIResponse{
@@ -826,11 +693,8 @@ func (s *NephoranAPIServer) generatePaths() map[string]*OpenAPIPath {
 						"application/json": {
 
 							Schema: &OpenAPISchema{Ref: "#/components/schemas/IntentResponse"},
-
 						},
-
 					},
-
 				},
 
 				"400": {Description: "Bad request", Content: map[string]*OpenAPIContent{"application/json": {Schema: &OpenAPISchema{Ref: "#/components/schemas/ErrorResponse"}}}},
@@ -840,22 +704,17 @@ func (s *NephoranAPIServer) generatePaths() map[string]*OpenAPIPath {
 				"409": {Description: "Conflict", Content: map[string]*OpenAPIContent{"application/json": {Schema: &OpenAPISchema{Ref: "#/components/schemas/ErrorResponse"}}}},
 
 				"500": {Description: "Internal server error", Content: map[string]*OpenAPIContent{"application/json": {Schema: &OpenAPISchema{Ref: "#/components/schemas/ErrorResponse"}}}},
-
 			},
-
 		},
-
 	}
-
-
 
 	paths["/intents/{name}"] = &OpenAPIPath{
 
 		Get: &OpenAPIOperation{
 
-			Tags:        []string{"Intents"},
+			Tags: []string{"Intents"},
 
-			Summary:     "Get a specific network intent",
+			Summary: "Get a specific network intent",
 
 			Description: "Retrieve detailed information about a specific network intent",
 
@@ -865,30 +724,27 @@ func (s *NephoranAPIServer) generatePaths() map[string]*OpenAPIPath {
 
 				{
 
-					Name:        "name",
+					Name: "name",
 
-					In:          "path",
+					In: "path",
 
 					Description: "Intent name",
 
-					Required:    true,
+					Required: true,
 
-					Schema:      &OpenAPISchema{Type: "string"},
-
+					Schema: &OpenAPISchema{Type: "string"},
 				},
 
 				{
 
-					Name:        "namespace",
+					Name: "namespace",
 
-					In:          "query",
+					In: "query",
 
 					Description: "Kubernetes namespace",
 
-					Schema:      &OpenAPISchema{Type: "string", Default: "default"},
-
+					Schema: &OpenAPISchema{Type: "string", Default: "default"},
 				},
-
 			},
 
 			Responses: map[string]*OpenAPIResponse{
@@ -902,24 +758,19 @@ func (s *NephoranAPIServer) generatePaths() map[string]*OpenAPIPath {
 						"application/json": {
 
 							Schema: &OpenAPISchema{Ref: "#/components/schemas/IntentResponse"},
-
 						},
-
 					},
-
 				},
 
 				"404": {Description: "Intent not found", Content: map[string]*OpenAPIContent{"application/json": {Schema: &OpenAPISchema{Ref: "#/components/schemas/ErrorResponse"}}}},
-
 			},
-
 		},
 
 		Put: &OpenAPIOperation{
 
-			Tags:        []string{"Intents"},
+			Tags: []string{"Intents"},
 
-			Summary:     "Update a network intent",
+			Summary: "Update a network intent",
 
 			Description: "Update an existing network intent",
 
@@ -929,36 +780,31 @@ func (s *NephoranAPIServer) generatePaths() map[string]*OpenAPIPath {
 
 				{
 
-					Name:        "name",
+					Name: "name",
 
-					In:          "path",
+					In: "path",
 
 					Description: "Intent name",
 
-					Required:    true,
+					Required: true,
 
-					Schema:      &OpenAPISchema{Type: "string"},
-
+					Schema: &OpenAPISchema{Type: "string"},
 				},
-
 			},
 
 			RequestBody: &OpenAPIRequestBody{
 
 				Description: "Intent update request",
 
-				Required:    true,
+				Required: true,
 
 				Content: map[string]*OpenAPIContent{
 
 					"application/json": {
 
 						Schema: &OpenAPISchema{Ref: "#/components/schemas/IntentRequest"},
-
 					},
-
 				},
-
 			},
 
 			Responses: map[string]*OpenAPIResponse{
@@ -972,24 +818,19 @@ func (s *NephoranAPIServer) generatePaths() map[string]*OpenAPIPath {
 						"application/json": {
 
 							Schema: &OpenAPISchema{Ref: "#/components/schemas/IntentResponse"},
-
 						},
-
 					},
-
 				},
 
 				"404": {Description: "Intent not found", Content: map[string]*OpenAPIContent{"application/json": {Schema: &OpenAPISchema{Ref: "#/components/schemas/ErrorResponse"}}}},
-
 			},
-
 		},
 
 		Delete: &OpenAPIOperation{
 
-			Tags:        []string{"Intents"},
+			Tags: []string{"Intents"},
 
-			Summary:     "Delete a network intent",
+			Summary: "Delete a network intent",
 
 			Description: "Delete an existing network intent",
 
@@ -999,18 +840,16 @@ func (s *NephoranAPIServer) generatePaths() map[string]*OpenAPIPath {
 
 				{
 
-					Name:        "name",
+					Name: "name",
 
-					In:          "path",
+					In: "path",
 
 					Description: "Intent name",
 
-					Required:    true,
+					Required: true,
 
-					Schema:      &OpenAPISchema{Type: "string"},
-
+					Schema: &OpenAPISchema{Type: "string"},
 				},
-
 			},
 
 			Responses: map[string]*OpenAPIResponse{
@@ -1018,26 +857,17 @@ func (s *NephoranAPIServer) generatePaths() map[string]*OpenAPIPath {
 				"204": {Description: "Intent deleted successfully"},
 
 				"404": {Description: "Intent not found", Content: map[string]*OpenAPIContent{"application/json": {Schema: &OpenAPISchema{Ref: "#/components/schemas/ErrorResponse"}}}},
-
 			},
-
 		},
-
 	}
-
-
 
 	// Add more paths for packages, clusters, realtime, dashboard, etc.
 
 	// This is a condensed example showing the pattern.
 
-
-
 	return paths
 
 }
-
-
 
 // generateComponents generates the OpenAPI components.
 
@@ -1049,70 +879,65 @@ func (s *NephoranAPIServer) generateComponents() *OpenAPIComponents {
 
 			"IntentRequest": {
 
-				Type:        "object",
+				Type: "object",
 
 				Description: "Network intent creation request",
 
-				Required:    []string{"name", "intent", "intent_type"},
+				Required: []string{"name", "intent", "intent_type"},
 
 				Properties: map[string]*OpenAPISchema{
 
 					"name": {
 
-						Type:        "string",
+						Type: "string",
 
 						Description: "Intent name",
 
-						Example:     "deploy-amf-production",
-
+						Example: "deploy-amf-production",
 					},
 
 					"namespace": {
 
-						Type:        "string",
+						Type: "string",
 
 						Description: "Kubernetes namespace",
 
-						Default:     "default",
-
+						Default: "default",
 					},
 
 					"intent": {
 
-						Type:        "string",
+						Type: "string",
 
 						Description: "Natural language intent description",
 
-						MinLength:   &[]int{10}[0],
+						MinLength: &[]int{10}[0],
 
-						MaxLength:   &[]int{2000}[0],
+						MaxLength: &[]int{2000}[0],
 
-						Example:     "Deploy a high-availability AMF instance for production with auto-scaling",
-
+						Example: "Deploy a high-availability AMF instance for production with auto-scaling",
 					},
 
 					"intent_type": {
 
-						Type:        "string",
+						Type: "string",
 
 						Description: "Type of intent operation",
 
-						Enum:        []interface{}{"deployment", "scaling", "optimization", "maintenance"},
+						Enum: []interface{}{"deployment", "scaling", "optimization", "maintenance"},
 
-						Example:     "deployment",
-
+						Example: "deployment",
 					},
 
 					"priority": {
 
-						Type:        "string",
+						Type: "string",
 
 						Description: "Priority level",
 
-						Enum:        []interface{}{"low", "medium", "high", "critical"},
+						Enum: []interface{}{"low", "medium", "high", "critical"},
 
-						Default:     "medium",
-
+						Default: "medium",
 					},
 
 					"target_components": {
@@ -1124,20 +949,16 @@ func (s *NephoranAPIServer) generateComponents() *OpenAPIComponents {
 							Type: "string",
 
 							Enum: []interface{}{"AMF", "SMF", "UPF", "gNodeB", "O-DU", "O-CU-CP", "O-CU-UP"},
-
 						},
 
 						Description: "Target network function components",
-
 					},
-
 				},
-
 			},
 
 			"IntentResponse": {
 
-				Type:        "object",
+				Type: "object",
 
 				Description: "Network intent response with detailed information",
 
@@ -1145,41 +966,35 @@ func (s *NephoranAPIServer) generateComponents() *OpenAPIComponents {
 
 					"metadata": {
 
-						Type:        "object",
+						Type: "object",
 
 						Description: "Kubernetes metadata",
-
 					},
 
 					"spec": {
 
-						Type:        "object",
+						Type: "object",
 
 						Description: "Intent specification",
-
 					},
 
 					"status": {
 
-						Type:        "object",
+						Type: "object",
 
 						Description: "Intent status",
-
 					},
 
 					"processing_metrics": {
 
 						Ref: "#/components/schemas/ProcessingMetrics",
-
 					},
-
 				},
-
 			},
 
 			"IntentListResponse": {
 
-				Type:        "object",
+				Type: "object",
 
 				Description: "Paginated list of network intents",
 
@@ -1187,10 +1002,9 @@ func (s *NephoranAPIServer) generateComponents() *OpenAPIComponents {
 
 					"success": {
 
-						Type:    "boolean",
+						Type: "boolean",
 
 						Example: true,
-
 					},
 
 					"data": {
@@ -1206,42 +1020,33 @@ func (s *NephoranAPIServer) generateComponents() *OpenAPIComponents {
 								Items: &OpenAPISchema{
 
 									Ref: "#/components/schemas/IntentResponse",
-
 								},
-
 							},
 
 							"meta": {
 
 								Ref: "#/components/schemas/PaginationMeta",
-
 							},
 
 							"links": {
 
 								Ref: "#/components/schemas/HATEOASLinks",
-
 							},
-
 						},
-
 					},
 
 					"timestamp": {
 
-						Type:   "string",
+						Type: "string",
 
 						Format: "date-time",
-
 					},
-
 				},
-
 			},
 
 			"ProcessingMetrics": {
 
-				Type:        "object",
+				Type: "object",
 
 				Description: "Intent processing performance metrics",
 
@@ -1249,41 +1054,36 @@ func (s *NephoranAPIServer) generateComponents() *OpenAPIComponents {
 
 					"processing_duration": {
 
-						Type:        "string",
+						Type: "string",
 
 						Description: "Total processing time",
 
-						Example:     "4.5s",
-
+						Example: "4.5s",
 					},
 
 					"deployment_duration": {
 
-						Type:        "string",
+						Type: "string",
 
 						Description: "Deployment time",
 
-						Example:     "12.3s",
-
+						Example: "12.3s",
 					},
 
 					"total_duration": {
 
-						Type:        "string",
+						Type: "string",
 
 						Description: "Total time from creation to completion",
 
-						Example:     "16.8s",
-
+						Example: "16.8s",
 					},
-
 				},
-
 			},
 
 			"PaginationMeta": {
 
-				Type:        "object",
+				Type: "object",
 
 				Description: "Pagination metadata",
 
@@ -1291,43 +1091,37 @@ func (s *NephoranAPIServer) generateComponents() *OpenAPIComponents {
 
 					"page": {
 
-						Type:    "integer",
+						Type: "integer",
 
 						Example: 1,
-
 					},
 
 					"page_size": {
 
-						Type:    "integer",
+						Type: "integer",
 
 						Example: 20,
-
 					},
 
 					"total_pages": {
 
-						Type:    "integer",
+						Type: "integer",
 
 						Example: 5,
-
 					},
 
 					"total_items": {
 
-						Type:    "integer",
+						Type: "integer",
 
 						Example: 87,
-
 					},
-
 				},
-
 			},
 
 			"HATEOASLinks": {
 
-				Type:        "object",
+				Type: "object",
 
 				Description: "HATEOAS navigation links",
 
@@ -1335,51 +1129,44 @@ func (s *NephoranAPIServer) generateComponents() *OpenAPIComponents {
 
 					"self": {
 
-						Type:    "string",
+						Type: "string",
 
 						Example: "/api/v1/intents?page=1",
-
 					},
 
 					"first": {
 
-						Type:    "string",
+						Type: "string",
 
 						Example: "/api/v1/intents?page=1",
-
 					},
 
 					"last": {
 
-						Type:    "string",
+						Type: "string",
 
 						Example: "/api/v1/intents?page=5",
-
 					},
 
 					"next": {
 
-						Type:    "string",
+						Type: "string",
 
 						Example: "/api/v1/intents?page=2",
-
 					},
 
 					"previous": {
 
-						Type:    "string",
+						Type: "string",
 
 						Example: "/api/v1/intents?page=0",
-
 					},
-
 				},
-
 			},
 
 			"ErrorResponse": {
 
-				Type:        "object",
+				Type: "object",
 
 				Description: "Standard error response",
 
@@ -1387,10 +1174,9 @@ func (s *NephoranAPIServer) generateComponents() *OpenAPIComponents {
 
 					"success": {
 
-						Type:    "boolean",
+						Type: "boolean",
 
 						Example: false,
-
 					},
 
 					"error": {
@@ -1401,63 +1187,53 @@ func (s *NephoranAPIServer) generateComponents() *OpenAPIComponents {
 
 							"code": {
 
-								Type:    "string",
+								Type: "string",
 
 								Example: "validation_failed",
-
 							},
 
 							"message": {
 
-								Type:    "string",
+								Type: "string",
 
 								Example: "Intent validation failed",
-
 							},
 
 							"details": {
 
-								Type:        "object",
+								Type: "object",
 
 								Description: "Additional error details",
-
 							},
-
 						},
-
 					},
 
 					"timestamp": {
 
-						Type:   "string",
+						Type: "string",
 
 						Format: "date-time",
-
 					},
-
 				},
-
 			},
-
 		},
 
 		SecuritySchemes: map[string]*OpenAPISecurityScheme{
 
 			"BearerAuth": {
 
-				Type:         "http",
+				Type: "http",
 
-				Scheme:       "bearer",
+				Scheme: "bearer",
 
 				BearerFormat: "JWT",
 
-				Description:  "JWT Bearer token authentication",
-
+				Description: "JWT Bearer token authentication",
 			},
 
 			"OAuth2": {
 
-				Type:        "oauth2",
+				Type: "oauth2",
 
 				Description: "OAuth2 authentication",
 
@@ -1467,22 +1243,17 @@ func (s *NephoranAPIServer) generateComponents() *OpenAPIComponents {
 
 						AuthorizationURL: "https://auth.nephoran.io/oauth/authorize",
 
-						TokenURL:         "https://auth.nephoran.io/oauth/token",
+						TokenURL: "https://auth.nephoran.io/oauth/token",
 
 						Scopes: map[string]string{
 
-							"read":  "Read access to resources",
+							"read": "Read access to resources",
 
 							"write": "Write access to resources",
-
 						},
-
 					},
-
 				},
-
 			},
-
 		},
 
 		Responses: map[string]*OpenAPIResponse{
@@ -1496,11 +1267,8 @@ func (s *NephoranAPIServer) generateComponents() *OpenAPIComponents {
 					"application/json": {
 
 						Schema: &OpenAPISchema{Ref: "#/components/schemas/ErrorResponse"},
-
 					},
-
 				},
-
 			},
 
 			"ForbiddenError": {
@@ -1512,20 +1280,13 @@ func (s *NephoranAPIServer) generateComponents() *OpenAPIComponents {
 					"application/json": {
 
 						Schema: &OpenAPISchema{Ref: "#/components/schemas/ErrorResponse"},
-
 					},
-
 				},
-
 			},
-
 		},
-
 	}
 
 }
-
-
 
 // Helper function to generate parameter references.
 
@@ -1533,35 +1294,30 @@ func queryParam(name, description string, schema *OpenAPISchema) *OpenAPIParamet
 
 	return &OpenAPIParameter{
 
-		Name:        name,
+		Name: name,
 
-		In:          "query",
+		In: "query",
 
 		Description: description,
 
-		Schema:      schema,
-
+		Schema: schema,
 	}
 
 }
-
-
 
 func pathParam(name, description string) *OpenAPIParameter {
 
 	return &OpenAPIParameter{
 
-		Name:        name,
+		Name: name,
 
-		In:          "path",
+		In: "path",
 
 		Description: description,
 
-		Required:    true,
+		Required: true,
 
-		Schema:      &OpenAPISchema{Type: "string"},
-
+		Schema: &OpenAPISchema{Type: "string"},
 	}
 
 }
-

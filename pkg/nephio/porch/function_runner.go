@@ -40,7 +40,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

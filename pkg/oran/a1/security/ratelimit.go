@@ -11,9 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/time/rate"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // RateLimitConfig holds rate limiting configuration.

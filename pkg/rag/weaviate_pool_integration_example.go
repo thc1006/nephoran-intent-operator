@@ -1,19 +1,10 @@
 //go:build !disable_rag && !test
 
-
-
-
 package rag
 
-
-
 import (
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
-
 )
-
-
 
 // IntegrateWithMetricsCollector demonstrates how to integrate the Weaviate connection pool.
 
@@ -45,8 +36,6 @@ func IntegrateWeaviatePoolWithMetrics(config *PoolConfig, metricsCollector *moni
 
 }
 
-
-
 // SetupWeaviatePoolWithMonitoring creates a complete setup with monitoring integration.
 
 func SetupWeaviatePoolWithMonitoring(config *PoolConfig) (*WeaviateConnectionPool, *monitoring.MetricsCollector) {
@@ -58,4 +47,3 @@ func SetupWeaviatePoolWithMonitoring(config *PoolConfig) (*WeaviateConnectionPoo
 	return pool, metricsCollector
 
 }
-

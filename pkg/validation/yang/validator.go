@@ -34,8 +34,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
 )
 
 // ValidatorConfig holds configuration for YANG validation.

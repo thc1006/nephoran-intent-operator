@@ -544,7 +544,10 @@ func (c *OptimizedHTTPClient) prepareRequest(optReq *OptimizedRequest, req *LLMR
 
 	buf := c.bufferPool.Get().([]byte)
 
-	defer c.bufferPool.Put(buf[:0])
+	defer func() {
+		resetBuf := buf[:0]
+		c.bufferPool.Put(resetBuf)
+	}()
 
 	// Fast JSON encoding using unsafe operations where appropriate.
 
@@ -622,7 +625,10 @@ func (c *OptimizedHTTPClient) executeRequest(ctx context.Context, req *Optimized
 
 	buf := c.bufferPool.Get().([]byte)
 
-	defer c.bufferPool.Put(buf[:0])
+	defer func() {
+		resetBuf := buf[:0]
+		c.bufferPool.Put(resetBuf)
+	}()
 
 	// Use pre-allocated buffer with growth strategy.
 

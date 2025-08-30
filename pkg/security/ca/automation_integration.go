@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 	"k8s.io/client-go/kubernetes"
-
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // AutomationIntegration provides the main integration point for certificate automation.

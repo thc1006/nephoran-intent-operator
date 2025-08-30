@@ -35,6 +35,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -44,12 +45,11 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // PorchExecutor defines the interface for executing porch CLI commands.
@@ -321,7 +321,10 @@ func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*
 		if len(matches) > 1 {
 
 			if count, err := strconv.Atoi(matches[1]); err == nil && count > 0 {
-
+				// Security fix (G115): Validate bounds for replica count
+				if count > math.MaxInt32 {
+					count = math.MaxInt32
+				}
 				intentData.Replicas = count
 
 				break

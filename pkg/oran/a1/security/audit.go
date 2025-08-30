@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 

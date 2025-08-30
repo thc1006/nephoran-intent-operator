@@ -65,9 +65,18 @@ func ExampleRateLimiterUsage() {
 
 	router.Handle("/api", limitedHandler).Methods("GET", "POST")
 
+	// Security fix: Create HTTP server with proper timeouts (G114)
+	server := &http.Server{
+		Addr:         ":8080",
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
 	// Start server.
 
-	if err := http.ListenAndServe(":8080", router); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 
 		logger.Error("Server failed", "error", err)
 
@@ -143,9 +152,18 @@ func ExamplePostOnlyRateLimiterUsage() {
 
 	router.Handle("/api/data", getHandler).Methods("GET")
 
+	// Security fix: Create HTTP server with proper timeouts (G114)
+	server := &http.Server{
+		Addr:         ":8080",
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
 	// Start server.
 
-	if err := http.ListenAndServe(":8080", router); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 
 		logger.Error("Server failed", "error", err)
 

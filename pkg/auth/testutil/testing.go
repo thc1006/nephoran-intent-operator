@@ -19,11 +19,12 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
 )
 
 // Import types from main auth package to avoid circular dependencies.

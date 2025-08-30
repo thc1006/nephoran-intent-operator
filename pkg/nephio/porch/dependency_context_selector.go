@@ -39,9 +39,8 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-
 	corev1 "k8s.io/api/core/v1"
-
+	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -960,7 +959,11 @@ func (cads *ContextAwareDependencySelector) optimizeForThroughput(
 
 			// Increase CPU and memory for throughput.
 
-			dep.ResourceRequests.Requests[corev1.ResourceCPU] = dep.ResourceRequests.Requests[corev1.ResourceCPU]
+			if cpu, exists := dep.ResourceRequests.Requests[corev1.ResourceCPU]; exists {
+				// Double the CPU request for higher throughput
+				newCPU := resource.NewMilliQuantity(cpu.MilliValue()*2, cpu.Format)
+				dep.ResourceRequests.Requests[corev1.ResourceCPU] = *newCPU
+			}
 
 		}
 

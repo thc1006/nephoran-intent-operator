@@ -10,8 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 )
 
 // BatchSearchRequest represents a batch of search requests.

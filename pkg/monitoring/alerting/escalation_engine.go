@@ -12,8 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // EscalationEngine manages automated escalation policies and workflows.

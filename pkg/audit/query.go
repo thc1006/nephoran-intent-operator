@@ -7,9 +7,10 @@ import (
 	"sort"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/backends"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/types"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 // QueryEngine provides advanced audit log querying and analysis capabilities.

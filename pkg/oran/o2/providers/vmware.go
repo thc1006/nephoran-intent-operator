@@ -14,7 +14,6 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

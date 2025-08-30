@@ -1,21 +1,12 @@
 //go:build !disable_rag
 
-
-
 // Package llm provides LLM (Large Language Model) integration and processing for the Nephoran Intent Operator.
-
 
 package llm
 
-
-
 import (
-
 	"context"
-
 )
-
-
 
 // DEPRECATED: This package's ClientInterface is redundant.
 
@@ -23,11 +14,7 @@ import (
 
 // This package is kept for backward compatibility but should be phased out.
 
-
-
 // IntentRequest and IntentResponse are now defined in interface_consolidated.go.
-
-
 
 // ProcessIntent is now defined in client_consolidated.go.
 
@@ -53,8 +40,6 @@ import (
 
 }*/
 
-
-
 // HealthCheck performs a health check on the LLM client.
 
 func (c *Client) HealthCheck(ctx context.Context) bool {
@@ -64,4 +49,3 @@ func (c *Client) HealthCheck(ctx context.Context) bool {
 	return true
 
 }
-

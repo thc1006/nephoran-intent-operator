@@ -8,12 +8,11 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"gopkg.in/yaml.v3"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
 )
 
 // PolicyManager manages service mesh policies.
@@ -169,10 +168,10 @@ func (m *PolicyManager) applyMTLSPolicy(ctx context.Context, policy Policy) erro
 			if portMap, ok := pm.(map[string]interface{}); ok {
 
 				portFloat := portMap["port"].(float64)
-			if portFloat < 0 || portFloat > 65535 {
-				return fmt.Errorf("port number out of range: %f", portFloat)
-			}
-			port := int(portFloat)
+				if portFloat < 0 || portFloat > 65535 {
+					return fmt.Errorf("port number out of range: %f", portFloat)
+				}
+				port := int(portFloat)
 
 				mode := portMap["mode"].(string)
 

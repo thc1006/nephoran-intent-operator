@@ -1,15 +1,10 @@
 // Package security provides security constants and types shared across security modules.
 
-
 package security
-
-
 
 // ComplianceStandard represents compliance standards for audit and security.
 
 type ComplianceStandard string
-
-
 
 const (
 
@@ -48,16 +43,11 @@ const (
 	// ComplianceORANWG11 holds complianceoranwg11 value.
 
 	ComplianceORANWG11 ComplianceStandard = "oran-wg11"
-
 )
-
-
 
 // SecurityLevel represents security levels.
 
 type SecurityLevel string
-
-
 
 const (
 
@@ -76,16 +66,11 @@ const (
 	// SecurityLevelCritical holds securitylevelcritical value.
 
 	SecurityLevelCritical SecurityLevel = "critical"
-
 )
-
-
 
 // ThreatLevel represents threat assessment levels.
 
 type ThreatLevel string
-
-
 
 const (
 
@@ -108,16 +93,11 @@ const (
 	// ThreatLevelCritical holds threatlevelcritical value.
 
 	ThreatLevelCritical ThreatLevel = "critical"
-
 )
-
-
 
 // ViolationType represents security violation types.
 
 type ViolationType string
-
-
 
 const (
 
@@ -160,6 +140,4 @@ const (
 	// ViolationTypePolicyViolation holds violationtypepolicyviolation value.
 
 	ViolationTypePolicyViolation ViolationType = "policy_violation"
-
 )
-

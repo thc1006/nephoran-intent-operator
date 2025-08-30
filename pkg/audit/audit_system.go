@@ -15,14 +15,14 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/backends"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/compliance"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel/trace"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/backends"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/compliance"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/types"
 )
 
 const (

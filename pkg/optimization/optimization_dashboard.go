@@ -42,9 +42,10 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 )
 
 // OptimizationDashboard provides real-time monitoring and control of optimization processes.

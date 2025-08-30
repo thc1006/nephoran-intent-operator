@@ -6,9 +6,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
-
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 // Resource Lifecycle Operation Handlers.

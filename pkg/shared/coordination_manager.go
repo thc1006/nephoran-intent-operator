@@ -37,11 +37,10 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
-
 	"k8s.io/apimachinery/pkg/types"
-
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
 // CoordinationManager orchestrates the specialized controllers.

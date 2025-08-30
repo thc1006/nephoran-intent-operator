@@ -290,7 +290,10 @@ func (s *MetricsServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(statusCode)
 
-	json.NewEncoder(w).Encode(health)
+	if err := json.NewEncoder(w).Encode(health); err != nil {
+		// Log error since we can't change status code after WriteHeader
+		log.Printf("Failed to encode health response: %v", err)
+	}
 }
 
 // handleStats handles the /stats endpoint with detailed statistics.
@@ -306,5 +309,9 @@ func (s *MetricsServer) handleStats(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(metrics)
+	if err := json.NewEncoder(w).Encode(metrics); err != nil {
+		log.Printf("Failed to encode metrics response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 }

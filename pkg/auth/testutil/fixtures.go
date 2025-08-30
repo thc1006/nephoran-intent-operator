@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
 )
 

@@ -8,10 +8,8 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )

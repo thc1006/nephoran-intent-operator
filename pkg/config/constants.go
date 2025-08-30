@@ -659,7 +659,7 @@ func ValidateConstants(constants *Constants) error {
 
 	if constants.ContextBoundary == "" {
 
-		return fmt.Errorf("ContextBoundary cannot be empty")
+		return fmt.Errorf("contextBoundary cannot be empty")
 
 	}
 

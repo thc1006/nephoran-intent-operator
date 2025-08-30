@@ -15,7 +15,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/mock"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

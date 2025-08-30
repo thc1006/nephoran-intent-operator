@@ -14,8 +14,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // AlertRouter provides intelligent alert routing with deduplication,.
@@ -1655,6 +1656,7 @@ func (ar *AlertRouter) evaluateCondition(alert *SLAAlert, condition RoutingCondi
 
 	matches := false
 
+valueLoop:
 	for _, expectedValue := range condition.Values {
 
 		switch condition.Operator {
@@ -1665,7 +1667,7 @@ func (ar *AlertRouter) evaluateCondition(alert *SLAAlert, condition RoutingCondi
 
 				matches = true
 
-				break
+				break valueLoop
 
 			}
 
@@ -1675,7 +1677,7 @@ func (ar *AlertRouter) evaluateCondition(alert *SLAAlert, condition RoutingCondi
 
 				matches = true
 
-				break
+				break valueLoop
 
 			}
 
@@ -1687,7 +1689,7 @@ func (ar *AlertRouter) evaluateCondition(alert *SLAAlert, condition RoutingCondi
 
 				matches = true
 
-				break
+				break valueLoop
 
 			}
 

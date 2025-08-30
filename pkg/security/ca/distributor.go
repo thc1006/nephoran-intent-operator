@@ -13,15 +13,14 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // CertificateDistributor manages certificate distribution and hot-reload.

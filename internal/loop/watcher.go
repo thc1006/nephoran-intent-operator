@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+
 	"github.com/nephio-project/nephoran-intent-operator/internal/porch"
 )
 

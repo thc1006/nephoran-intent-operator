@@ -11,8 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
 )
 
 // MockOAuthProvider provides a mock implementation of the OAuthProvider interface.

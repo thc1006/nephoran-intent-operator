@@ -36,15 +36,14 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/templates"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/validation/yang"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/templates"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/validation/yang"
 )
 
 // SystemFactory orchestrates the creation and initialization of all PackageRevision lifecycle components.

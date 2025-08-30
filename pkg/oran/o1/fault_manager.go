@@ -13,7 +13,6 @@ import (
 	"github.com/prometheus/client_golang/api"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

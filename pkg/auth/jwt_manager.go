@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
 )
 
@@ -235,7 +236,7 @@ type JWTMetrics struct {
 
 // NewJWTManager creates a new JWT manager.
 
-func NewJWTManager(config *JWTConfig, tokenStore TokenStore, blacklist TokenBlacklist, logger *slog.Logger) (*JWTManager, error) {
+func NewJWTManager(ctx context.Context, config *JWTConfig, tokenStore TokenStore, blacklist TokenBlacklist, logger *slog.Logger) (*JWTManager, error) {
 
 	manager := &JWTManager{
 

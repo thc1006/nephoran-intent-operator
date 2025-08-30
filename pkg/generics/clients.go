@@ -14,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -280,8 +279,13 @@ func (c *HTTPClient[TRequest, TResponse]) ExecuteWithRetry(ctx context.Context, 
 		if attempt < retries {
 
 			// Exponential backoff.
-
-			backoff := time.Duration(1<<uint(attempt)) * time.Second
+			// Security fix (G115): Safe conversion with bounds checking
+			// Limit shift to prevent overflow (max 63 for int64)
+			shiftAmount := attempt
+			if shiftAmount > 30 { // Cap at ~1073 seconds (17+ minutes)
+				shiftAmount = 30
+			}
+			backoff := time.Duration(1<<uint(shiftAmount)) * time.Second
 
 			timer := time.NewTimer(backoff)
 

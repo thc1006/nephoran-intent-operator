@@ -13,13 +13,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // AutomationEngine manages automated certificate operations.
@@ -1920,7 +1920,7 @@ func (e *AutomationEngine) GetDiscoveredServices(ctx context.Context) ([]*Servic
 
 // ProcessManualRequest processes a manual automation request synchronously.
 
-func (e *AutomationEngine) ProcessManualRequest(req *AutomationRequest) *AutomationResponse {
+func (e *AutomationEngine) ProcessManualRequest(ctx context.Context, req *AutomationRequest) *AutomationResponse {
 
 	startTime := time.Now()
 

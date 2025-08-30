@@ -8,23 +8,22 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
-	_ "github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/consul"  // Register consul provider
-	_ "github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/istio"   // Register istio provider
-	_ "github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/linkerd" // Register linkerd provider
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
+	_ "github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/consul"  // Register consul provider
+	_ "github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/istio"   // Register istio provider
+	_ "github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/linkerd" // Register linkerd provider
 )
 
 // ServiceMeshController manages service mesh integration.

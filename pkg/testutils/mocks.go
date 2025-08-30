@@ -9,13 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/client-go/tools/record"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
-
-	"k8s.io/client-go/tools/record"
 )
 
 // MockLLMClient provides a mock implementation of the LLM client interface.

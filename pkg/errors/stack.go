@@ -3,6 +3,7 @@ package errors
 import (
 	"bufio"
 	"fmt"
+	"go/build"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -397,7 +398,7 @@ func simplifyPath(path string) string {
 
 	// Try to remove GOROOT.
 
-	if goroot := runtime.GOROOT(); goroot != "" {
+	if goroot := build.Default.GOROOT; goroot != "" {
 
 		if rel, err := filepath.Rel(goroot, path); err == nil && !strings.HasPrefix(rel, "..") {
 

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-
 	"k8s.io/client-go/util/workqueue"
 )
 
@@ -613,13 +612,14 @@ func (bs *BenchmarkSuite) RunMemoryStabilityBenchmark(ctx context.Context, durat
 
 	endTime := time.Now().Add(duration)
 
+benchmarkLoop:
 	for time.Now().Before(endTime) {
 
 		select {
 
 		case <-ctx.Done():
 
-			break
+			break benchmarkLoop
 
 		default:
 

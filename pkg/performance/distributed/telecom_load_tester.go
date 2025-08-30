@@ -16,7 +16,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/time/rate"
-
 	"k8s.io/klog/v2"
 )
 

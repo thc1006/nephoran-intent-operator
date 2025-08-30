@@ -1,9 +1,9 @@
 package testutils
 
 import (
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // NetworkIntentFixture represents a test fixture for NetworkIntent resources.

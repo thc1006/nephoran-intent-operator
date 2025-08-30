@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/stretchr/testify/mock"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/providers"
-	"github.com/stretchr/testify/mock"
 )
 
 // MockAWSProvider provides mock AWS cloud provider functionality.

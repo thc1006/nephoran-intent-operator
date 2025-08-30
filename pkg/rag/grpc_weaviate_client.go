@@ -9,11 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 )
 
 // GRPCWeaviateClient provides high-performance gRPC-based Weaviate client.

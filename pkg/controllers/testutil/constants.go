@@ -1,11 +1,6 @@
-
 package testutil
 
-
-
 import "time"
-
-
 
 const (
 
@@ -16,8 +11,6 @@ const (
 	// TestInterval holds testinterval value.
 
 	TestInterval = time.Millisecond * 250
-
-
 
 	// Default test values.
 
@@ -55,8 +48,6 @@ const (
 
 	DefaultRequeueAfter = 30 * time.Second
 
-
-
 	// Test resource names.
 
 	TestE2NodeSetName = "test-e2nodeset"
@@ -69,8 +60,6 @@ const (
 
 	TestNamespacePrefix = "test-ns"
 
-
-
 	// Test labels and selectors.
 
 	TestAppLabel = "test-app"
@@ -78,8 +67,6 @@ const (
 	// TestAppName holds testappname value.
 
 	TestAppName = "test-e2node"
-
-
 
 	// Test function parameters.
 
@@ -97,8 +84,6 @@ const (
 
 	TestFunctionDesc = "Test function"
 
-
-
 	// Test network intent parameters.
 
 	TestBandwidth = "100Mbps"
@@ -114,6 +99,4 @@ const (
 	// TestPriority holds testpriority value.
 
 	TestPriority = 1
-
 )
-

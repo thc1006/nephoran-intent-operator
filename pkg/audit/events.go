@@ -1,22 +1,14 @@
-
 package audit
-
-
 
 // Re-export types from the types package for backward compatibility.
 
 import (
-
 	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/types"
-
 )
-
-
 
 // Type aliases for backward compatibility.
 
 type (
-
 	Severity = types.Severity
 
 	// EventType represents a eventtype.
@@ -54,10 +46,7 @@ type (
 	// EventBuilder represents a eventbuilder.
 
 	EventBuilder = types.EventBuilder
-
 )
-
-
 
 // Constants re-exported for backward compatibility.
 
@@ -94,8 +83,6 @@ const (
 	// SeverityDebug holds severitydebug value.
 
 	SeverityDebug = types.SeverityDebug
-
-
 
 	// EventTypeAuthentication holds eventtypeauthentication value.
 
@@ -141,8 +128,6 @@ const (
 
 	EventTypeTokenRevocation = types.EventTypeTokenRevocation
 
-
-
 	// EventTypeDataAccess holds eventtypedataaccess value.
 
 	EventTypeDataAccess = types.EventTypeDataAccess
@@ -182,8 +167,6 @@ const (
 	// EventTypeDataProcessing holds eventtypedataprocessing value.
 
 	EventTypeDataProcessing = types.EventTypeDataProcessing
-
-
 
 	// EventTypeSystemChange holds eventtypesystemchange value.
 
@@ -225,8 +208,6 @@ const (
 
 	EventTypeMaintenanceMode = types.EventTypeMaintenanceMode
 
-
-
 	// EventTypeSecurityViolation holds eventtypesecurityviolation value.
 
 	EventTypeSecurityViolation = types.EventTypeSecurityViolation
@@ -255,8 +236,6 @@ const (
 
 	EventTypeIncidentResponse = types.EventTypeIncidentResponse
 
-
-
 	// EventTypeNetworkAccess holds eventtypenetworkaccess value.
 
 	EventTypeNetworkAccess = types.EventTypeNetworkAccess
@@ -281,8 +260,6 @@ const (
 
 	EventTypePerformanceAlert = types.EventTypePerformanceAlert
 
-
-
 	// EventTypeAPICall holds eventtypeapicall value.
 
 	EventTypeAPICall = types.EventTypeAPICall
@@ -306,8 +283,6 @@ const (
 	// EventTypeHealthCheck holds eventtypehealthcheck value.
 
 	EventTypeHealthCheck = types.EventTypeHealthCheck
-
-
 
 	// EventTypeIntentProcessing holds eventtypeintentprocessing value.
 
@@ -337,8 +312,6 @@ const (
 
 	EventTypeSliceManagement = types.EventTypeSliceManagement
 
-
-
 	// ResultSuccess holds resultsuccess value.
 
 	ResultSuccess = types.ResultSuccess
@@ -362,8 +335,6 @@ const (
 	// ResultPartial holds resultpartial value.
 
 	ResultPartial = types.ResultPartial
-
-
 
 	// ComplianceSOC2 holds compliancesoc2 value.
 
@@ -396,10 +367,7 @@ const (
 	// ComplianceNIST holds compliancenist value.
 
 	ComplianceNIST = types.ComplianceNIST
-
 )
-
-
 
 // Function aliases for backward compatibility.
 
@@ -428,6 +396,4 @@ var (
 	// FromJSON holds fromjson value.
 
 	FromJSON = types.FromJSON
-
 )
-

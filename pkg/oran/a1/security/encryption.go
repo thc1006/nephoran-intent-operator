@@ -15,11 +15,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/hkdf"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // EncryptionConfig holds encryption configuration.

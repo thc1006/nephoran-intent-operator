@@ -28,20 +28,11 @@ limitations under the License.
 
 */
 
-
-
-
 package porch
 
-
-
 import (
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
 )
-
-
 
 // Resource returns a resource for the given resource name.
 
@@ -49,11 +40,9 @@ func Resource(resource string) schema.GroupResource {
 
 	return schema.GroupResource{
 
-		Group:    "porch.nephoran.com",
+		Group: "porch.nephoran.com",
 
 		Resource: resource,
-
 	}
 
 }
-

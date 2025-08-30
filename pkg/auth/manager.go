@@ -43,7 +43,7 @@ type Manager struct {
 
 // NewAuthManager creates a new authentication manager.
 
-func NewAuthManager(config *Config, logger *slog.Logger) (*Manager, error) {
+func NewAuthManager(ctx context.Context, config *Config, logger *slog.Logger) (*Manager, error) {
 
 	if config == nil {
 
@@ -85,7 +85,7 @@ func NewAuthManager(config *Config, logger *slog.Logger) (*Manager, error) {
 			RefreshTTL: config.RefreshTTL,
 		}
 
-		jwtManager, err := NewJWTManager(jwtConfig, nil, nil, logger)
+		jwtManager, err := NewJWTManager(ctx, jwtConfig, nil, nil, logger)
 
 		if err != nil {
 

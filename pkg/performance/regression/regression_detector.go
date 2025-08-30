@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"gonum.org/v1/gonum/stat"
-
 	"k8s.io/klog/v2"
 )
 

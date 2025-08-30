@@ -21,12 +21,10 @@ import (
 	_ "github.com/onsi/ginkgo/v2/ginkgo"
 	_ "github.com/swaggo/swag/cmd/swag"
 	_ "golang.org/x/vuln/cmd/govulncheck"
-
 	_ "k8s.io/code-generator/cmd/client-gen"
 	_ "k8s.io/code-generator/cmd/deepcopy-gen"
 	_ "k8s.io/code-generator/cmd/informer-gen"
 	_ "k8s.io/code-generator/cmd/lister-gen"
-
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
 )
 

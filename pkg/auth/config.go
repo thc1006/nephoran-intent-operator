@@ -306,7 +306,7 @@ func LoadAuthConfig(ctx context.Context, configPath string) (*Config, error) {
 
 	// Load provider configurations.
 
-	if err := authConfig.loadProviders(); err != nil {
+	if err := authConfig.loadProviders(ctx); err != nil {
 
 		return nil, fmt.Errorf("failed to load providers: %w", err)
 
@@ -314,7 +314,7 @@ func LoadAuthConfig(ctx context.Context, configPath string) (*Config, error) {
 
 	// Load LDAP provider configurations.
 
-	if err := authConfig.loadLDAPProviders(); err != nil {
+	if err := authConfig.loadLDAPProviders(ctx); err != nil {
 
 		return nil, fmt.Errorf("failed to load LDAP providers: %w", err)
 
@@ -364,7 +364,7 @@ func LoadAuthConfig(ctx context.Context, configPath string) (*Config, error) {
 
 // loadProviders loads OAuth2 provider configurations from environment with secure error handling.
 
-func (c *Config) loadProviders() error {
+func (c *Config) loadProviders(ctx context.Context) error {
 
 	var errors []error
 
@@ -547,7 +547,7 @@ func (c *Config) loadProviders() error {
 
 // loadLDAPProviders loads LDAP provider configurations from environment with secure error handling.
 
-func (c *Config) loadLDAPProviders() error {
+func (c *Config) loadLDAPProviders(ctx context.Context) error {
 
 	var errors []error
 
@@ -1017,13 +1017,13 @@ func (c *Config) validate() error {
 
 	if c.JWTSecretKey == "" {
 
-		return fmt.Errorf("JWT_SECRET_KEY is required when authentication is enabled")
+		return fmt.Errorf("jWT_SECRET_KEY is required when authentication is enabled")
 
 	}
 
 	if len(c.JWTSecretKey) < MinJWTSecretLength {
 
-		return fmt.Errorf("JWT_SECRET_KEY must be at least %d characters long for security", MinJWTSecretLength)
+		return fmt.Errorf("jWT_SECRET_KEY must be at least %d characters long for security", MinJWTSecretLength)
 
 	}
 
@@ -1031,7 +1031,7 @@ func (c *Config) validate() error {
 
 	if err := validateJWTSecret(c.JWTSecretKey); err != nil {
 
-		return fmt.Errorf("JWT_SECRET_KEY validation failed: %w", err)
+		return fmt.Errorf("jWT_SECRET_KEY validation failed: %w", err)
 
 	}
 
@@ -1789,7 +1789,7 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 
 				"error", "path validation failed")
 
-			return "", fmt.Errorf("OAuth2 client secret configuration error for provider: %s", provider)
+			return "", fmt.Errorf("oAuth2 client secret configuration error for provider: %s", provider)
 
 		}
 
@@ -1807,7 +1807,7 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 
 				"error", "file access error")
 
-			return "", fmt.Errorf("OAuth2 client secret file not accessible for provider: %s", provider)
+			return "", fmt.Errorf("oAuth2 client secret file not accessible for provider: %s", provider)
 
 		}
 
@@ -1845,7 +1845,7 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 
 		"expected_file_env_var", fileEnvVar)
 
-	return "", fmt.Errorf("OAuth2 client secret not configured for provider: %s. Set either %s or %s environment variable",
+	return "", fmt.Errorf("oAuth2 client secret not configured for provider: %s. Set either %s or %s environment variable",
 
 		provider, envVar, fileEnvVar)
 
@@ -1939,7 +1939,7 @@ func validateConfigFilePath(filePath string) error {
 
 	if strings.HasPrefix(absPath, "\\\\") || strings.HasPrefix(absPath, "//") {
 
-		return fmt.Errorf("UNC paths not allowed")
+		return fmt.Errorf("uNC paths not allowed")
 
 	}
 

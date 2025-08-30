@@ -19,10 +19,8 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -1487,7 +1485,7 @@ func (csm *ConfigSyncManager) applyManifests(ctx context.Context, clusterClient 
 
 			// Apply manifest.
 
-			if err := clusterClient.Patch(ctx, manifest, client.Apply, client.ForceOwnership, client.FieldOwner("nephio-config-sync")); err != nil {
+			if err := clusterClient.Patch(ctx, manifest, client.Apply, &client.PatchOptions{FieldManager: "nephio-config-sync", Force: func() *bool { b := true; return &b }()}); err != nil {
 
 				csm.logger.Error(err, "Failed to apply manifest", "kind", manifest.GetKind(), "name", manifest.GetName())
 

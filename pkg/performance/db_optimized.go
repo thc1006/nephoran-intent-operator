@@ -12,8 +12,6 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	_ "github.com/lib/pq" // PostgreSQL driver
-
 	"k8s.io/klog/v2"
 )
 

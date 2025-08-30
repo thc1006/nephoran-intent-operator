@@ -43,18 +43,17 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/cors"
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/multicluster"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/packagerevision"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/services"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/rs/cors"
-
-	"k8s.io/client-go/kubernetes"
-
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // NephoranAPIServer provides comprehensive Web UI integration for the Nephoran Intent Operator.
@@ -548,7 +547,7 @@ func (s *NephoranAPIServer) initializeAuth() error {
 
 	// Note: NewJWTManager requires config, tokenStore, blacklist, logger.
 
-	jwtManager, err := auth.NewJWTManager(&auth.JWTConfig{
+	jwtManager, err := auth.NewJWTManager(context.Background(), &auth.JWTConfig{
 
 		Issuer: "nephoran",
 

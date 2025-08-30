@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/client-go/tools/record"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
@@ -13,8 +15,6 @@ import (
 	"github.com/nephio-project/nephoran-intent-operator/pkg/security"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
-
-	"k8s.io/client-go/tools/record"
 )
 
 // Container manages dependency injection for the Nephoran Intent Operator.

@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/google/pprof/profile"
-
 	"k8s.io/klog/v2"
 )
 

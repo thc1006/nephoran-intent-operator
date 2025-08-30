@@ -339,17 +339,17 @@ func NewErrorBuilder(service, operation string, logger *slog.Logger) *ErrorBuild
 
 // ValidationError creates a validation error.
 
-func (eb *ErrorBuilder) ValidationError(code, message string) *ServiceError {
+func (eb *ErrorBuilder) ValidationError(ctx context.Context, code, message string) *ServiceError {
 
-	return eb.newError(ErrorTypeValidation, code, message, 400, true)
+	return eb.newError(ctx, ErrorTypeValidation, code, message, 400, true)
 
 }
 
 // RequiredFieldError creates a required field error.
 
-func (eb *ErrorBuilder) RequiredFieldError(field string) *ServiceError {
+func (eb *ErrorBuilder) RequiredFieldError(ctx context.Context, field string) *ServiceError {
 
-	return eb.newError(ErrorTypeRequired, "required_field",
+	return eb.newError(ctx, ErrorTypeRequired, "required_field",
 
 		fmt.Sprintf("Required field '%s' is missing", field), 400, false)
 
@@ -357,9 +357,9 @@ func (eb *ErrorBuilder) RequiredFieldError(field string) *ServiceError {
 
 // InvalidFieldError creates an invalid field error.
 
-func (eb *ErrorBuilder) InvalidFieldError(field, reason string) *ServiceError {
+func (eb *ErrorBuilder) InvalidFieldError(ctx context.Context, field, reason string) *ServiceError {
 
-	return eb.newError(ErrorTypeInvalid, "invalid_field",
+	return eb.newError(ctx, ErrorTypeInvalid, "invalid_field",
 
 		fmt.Sprintf("Field '%s' is invalid: %s", field, reason), 400, false)
 
@@ -367,9 +367,9 @@ func (eb *ErrorBuilder) InvalidFieldError(field, reason string) *ServiceError {
 
 // NetworkError creates a network-related error.
 
-func (eb *ErrorBuilder) NetworkError(code, message string, cause error) *ServiceError {
+func (eb *ErrorBuilder) NetworkError(ctx context.Context, code, message string, cause error) *ServiceError {
 
-	err := eb.newError(ErrorTypeNetwork, code, message, 502, true)
+	err := eb.newError(ctx, ErrorTypeNetwork, code, message, 502, true)
 
 	err.Cause = cause
 
@@ -379,9 +379,9 @@ func (eb *ErrorBuilder) NetworkError(code, message string, cause error) *Service
 
 // TimeoutError creates a timeout error.
 
-func (eb *ErrorBuilder) TimeoutError(operation string, timeout time.Duration) *ServiceError {
+func (eb *ErrorBuilder) TimeoutError(ctx context.Context, operation string, timeout time.Duration) *ServiceError {
 
-	return eb.newError(ErrorTypeTimeout, "operation_timeout",
+	return eb.newError(ctx, ErrorTypeTimeout, "operation_timeout",
 
 		fmt.Sprintf("Operation '%s' timed out after %v", operation, timeout), 504, true)
 
@@ -389,9 +389,9 @@ func (eb *ErrorBuilder) TimeoutError(operation string, timeout time.Duration) *S
 
 // NotFoundError creates a not found error.
 
-func (eb *ErrorBuilder) NotFoundError(resource, id string) *ServiceError {
+func (eb *ErrorBuilder) NotFoundError(ctx context.Context, resource, id string) *ServiceError {
 
-	return eb.newError(ErrorTypeNotFound, "resource_not_found",
+	return eb.newError(ctx, ErrorTypeNotFound, "resource_not_found",
 
 		fmt.Sprintf("%s with ID '%s' not found", resource, id), 404, false)
 
@@ -399,9 +399,9 @@ func (eb *ErrorBuilder) NotFoundError(resource, id string) *ServiceError {
 
 // InternalError creates an internal error.
 
-func (eb *ErrorBuilder) InternalError(message string, cause error) *ServiceError {
+func (eb *ErrorBuilder) InternalError(ctx context.Context, message string, cause error) *ServiceError {
 
-	err := eb.newError(ErrorTypeInternal, "internal_error", message, 500, false)
+	err := eb.newError(ctx, ErrorTypeInternal, "internal_error", message, 500, false)
 
 	err.Cause = cause
 
@@ -413,9 +413,9 @@ func (eb *ErrorBuilder) InternalError(message string, cause error) *ServiceError
 
 // ConfigError creates a configuration error.
 
-func (eb *ErrorBuilder) ConfigError(setting, reason string) *ServiceError {
+func (eb *ErrorBuilder) ConfigError(ctx context.Context, setting, reason string) *ServiceError {
 
-	return eb.newError(ErrorTypeConfig, "configuration_error",
+	return eb.newError(ctx, ErrorTypeConfig, "configuration_error",
 
 		fmt.Sprintf("Configuration error for '%s': %s", setting, reason), 500, false)
 
@@ -423,9 +423,9 @@ func (eb *ErrorBuilder) ConfigError(setting, reason string) *ServiceError {
 
 // ExternalServiceError creates an external service error.
 
-func (eb *ErrorBuilder) ExternalServiceError(service string, cause error) *ServiceError {
+func (eb *ErrorBuilder) ExternalServiceError(ctx context.Context, service string, cause error) *ServiceError {
 
-	err := eb.newError(ErrorTypeExternal, "external_service_error",
+	err := eb.newError(ctx, ErrorTypeExternal, "external_service_error",
 
 		fmt.Sprintf("External service '%s' failed", service), 502, true)
 
@@ -451,7 +451,7 @@ func (eb *ErrorBuilder) ContextCancelledError(ctx context.Context) *ServiceError
 
 	}
 
-	err := eb.newError(ErrorTypeTimeout, "context_cancelled", message, 499, false)
+	err := eb.newError(ctx, ErrorTypeTimeout, "context_cancelled", message, 499, false)
 
 	err.Cause = ctx.Err()
 
@@ -461,7 +461,7 @@ func (eb *ErrorBuilder) ContextCancelledError(ctx context.Context) *ServiceError
 
 // WrapError wraps an external error with service context.
 
-func (eb *ErrorBuilder) WrapError(cause error, message string) *ServiceError {
+func (eb *ErrorBuilder) WrapError(ctx context.Context, cause error, message string) *ServiceError {
 
 	errorType := categorizeError(cause)
 
@@ -469,7 +469,7 @@ func (eb *ErrorBuilder) WrapError(cause error, message string) *ServiceError {
 
 	retryable := isRetryableError(errorType, cause)
 
-	err := eb.newError(errorType, "wrapped_error", message, httpStatus, retryable)
+	err := eb.newError(ctx, errorType, "wrapped_error", message, httpStatus, retryable)
 
 	err.Cause = cause
 
@@ -485,7 +485,7 @@ func (eb *ErrorBuilder) WrapError(cause error, message string) *ServiceError {
 
 // newError creates a new ServiceError with common fields populated.
 
-func (eb *ErrorBuilder) newError(errType ErrorType, code, message string, httpStatus int, retryable bool) *ServiceError {
+func (eb *ErrorBuilder) newError(ctx context.Context, errType ErrorType, code, message string, httpStatus int, retryable bool) *ServiceError {
 
 	err := &ServiceError{
 

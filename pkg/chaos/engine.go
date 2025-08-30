@@ -12,9 +12,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
-
 	"k8s.io/client-go/kubernetes"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -922,7 +920,7 @@ func (e *ChaosEngine) startMonitoring(ctx context.Context, experiment *Experimen
 
 					case violationChan <- violation:
 
-						e.handleSLAViolation(experiment, violation)
+						e.handleSLAViolation(ctx, experiment, violation)
 
 					case <-ctx.Done():
 
@@ -944,7 +942,7 @@ func (e *ChaosEngine) startMonitoring(ctx context.Context, experiment *Experimen
 
 // handleSLAViolation handles SLA violations during experiments.
 
-func (e *ChaosEngine) handleSLAViolation(experiment *Experiment, violation SLAViolation) {
+func (e *ChaosEngine) handleSLAViolation(ctx context.Context, experiment *Experiment, violation SLAViolation) {
 
 	e.logger.Warn("SLA violation detected",
 

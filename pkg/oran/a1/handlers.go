@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+
 	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 

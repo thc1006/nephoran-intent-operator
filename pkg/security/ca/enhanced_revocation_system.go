@@ -15,8 +15,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 	"golang.org/x/crypto/ocsp"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // RevocationStatus represents the revocation status of a certificate.
@@ -1345,14 +1346,28 @@ func (s *EnhancedRevocationSystem) updateCRL(ctx context.Context, dp *CRLDistrib
 
 	}
 
-	// Parse CRL.
+	// Parse CRL using new API.
 
-	crl, err := x509.ParseCRL(crlData)
-
+	revList, err := x509.ParseRevocationList(crlData)
 	if err != nil {
-
 		return fmt.Errorf("failed to parse CRL: %w", err)
+	}
 
+	// Convert to legacy format for compatibility
+	crl := &pkix.CertificateList{
+		TBSCertList: pkix.TBSCertificateList{
+			Version:    int(revList.Number.Int64()),
+			ThisUpdate: revList.ThisUpdate,
+			NextUpdate: revList.NextUpdate,
+		},
+	}
+
+	// Convert revoked certificates
+	for _, revoked := range revList.RevokedCertificates {
+		crl.TBSCertList.RevokedCertificates = append(crl.TBSCertList.RevokedCertificates, pkix.RevokedCertificate{
+			SerialNumber:   revoked.SerialNumber,
+			RevocationTime: revoked.RevocationTime,
+		})
 	}
 
 	// Update distribution point.

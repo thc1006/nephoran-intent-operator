@@ -7,15 +7,14 @@ import (
 	"fmt"
 	"time"
 
-	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 	"github.com/onsi/ginkgo/v2"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // ReliabilityValidator provides comprehensive reliability and availability testing.

@@ -8,8 +8,9 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/optimization"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/optimization"
 )
 
 // Test that the PerformanceAnalysisEngine compiles and runs.

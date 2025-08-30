@@ -1,11 +1,6 @@
-
 package alerting
 
-
-
 // Quick fixes for critical errors.
-
-
 
 // Fix for isChannelAvailable signature.
 
@@ -14,8 +9,6 @@ func (ar *AlertRouter) isChannelAvailableForEnriched(channelName string, alert *
 	return ar.isChannelAvailable(channelName, alert.SLAAlert)
 
 }
-
-
 
 // Fix for checkRateLimit signature.
 
@@ -31,8 +24,6 @@ func (ar *AlertRouter) checkRateLimitPtr(channelName string, rateLimit *RateLimi
 
 }
 
-
-
 // Fix for getFallbackRouting to return int priority.
 
 func (ar *AlertRouter) getFallbackRoutingFixed() *RoutingRule {
@@ -40,8 +31,6 @@ func (ar *AlertRouter) getFallbackRoutingFixed() *RoutingRule {
 	return &RoutingRule{Name: "fallback", Priority: 50}
 
 }
-
-
 
 // Fix for ImpactAnalysis to use string severity.
 
@@ -51,15 +40,10 @@ func (ia *ImpactAnalyzer) AnalyzeImpactFixed(alert *SLAAlert) (*ImpactAnalysisFi
 
 }
 
-
-
 // ImpactAnalysisFixed represents a impactanalysisfixed.
 
 type ImpactAnalysisFixed struct {
-
-	Severity         string   `json:"severity"`
+	Severity string `json:"severity"`
 
 	AffectedServices []string `json:"affected_services"`
-
 }
-
