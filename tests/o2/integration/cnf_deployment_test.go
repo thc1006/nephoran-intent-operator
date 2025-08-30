@@ -18,8 +18,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2"
 )
 
 type CNFDeploymentTestSuite struct {

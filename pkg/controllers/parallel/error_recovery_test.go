@@ -30,8 +30,8 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/resilience"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
 )
 
 // ErrorRecoveryTestSuite provides comprehensive testing for error handling and recovery

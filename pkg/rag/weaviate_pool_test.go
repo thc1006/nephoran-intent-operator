@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/types"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/types"
 )
 
 // Type alias for convenience in tests

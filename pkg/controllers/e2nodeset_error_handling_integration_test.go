@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // FakeEventRecorder is a simple implementation that captures events for testing

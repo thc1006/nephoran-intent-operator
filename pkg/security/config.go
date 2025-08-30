@@ -3,7 +3,7 @@ package security
 import (
 	"time"
 	
-	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/interfaces"
 )
 
 // Type aliases to maintain compatibility while breaking import cycle

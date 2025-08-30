@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	ingest "github.com/thc1006/nephoran-intent-operator/internal/ingest"
+	ingest "github.com/nephio-project/nephoran-intent-operator/internal/ingest"
 )
 
 // setupTestServer creates a test server with the same configuration as main()

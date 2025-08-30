@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
 // MockA1Service provides a mock implementation of A1Service for testing

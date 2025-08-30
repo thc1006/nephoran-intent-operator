@@ -19,11 +19,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/git"
-	gitfake "github.com/thc1006/nephoran-intent-operator/pkg/git/fake"
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
+	gitfake "github.com/nephio-project/nephoran-intent-operator/pkg/git/fake"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 )
 
 // fakeLLMClient implements shared.ClientInterface for testing

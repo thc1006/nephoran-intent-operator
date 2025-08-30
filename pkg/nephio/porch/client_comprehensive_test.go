@@ -28,8 +28,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
-	testutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/porch"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
+	testutil "github.com/nephio-project/nephoran-intent-operator/pkg/testutil/porch"
 )
 
 // TestClientCreation tests client creation scenarios

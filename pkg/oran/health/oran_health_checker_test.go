@@ -7,9 +7,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/health"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/a1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/a1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/e2"
 )
 
 func TestNewORANHealthChecker(t *testing.T) {

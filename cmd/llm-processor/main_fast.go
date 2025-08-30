@@ -15,8 +15,8 @@ import (
 
 	"github.com/gorilla/mux"
 	// Minimal imports for fast build - exclude heavy dependencies
-	"github.com/thc1006/nephoran-intent-operator/pkg/config"
-	// "github.com/thc1006/nephoran-intent-operator/pkg/handlers" // Excluded for fast build
+	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
+	// "github.com/nephio-project/nephoran-intent-operator/pkg/handlers" // Excluded for fast build
 )
 
 // Fast build version - minimal functionality for CI testing

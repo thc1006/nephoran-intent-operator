@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/types"
-	sharedtypes "github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/types"
+	sharedtypes "github.com/nephio-project/nephoran-intent-operator/pkg/shared/types"
 )
 
 // BenchmarkRAGSystemSuite provides comprehensive RAG system benchmarks using Go 1.24+ features

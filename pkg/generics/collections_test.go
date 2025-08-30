@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/thc1006/nephoran-intent-operator/pkg/testutil"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/testutil"
 )
 
 func TestSet_BasicOperations(t *testing.T) {

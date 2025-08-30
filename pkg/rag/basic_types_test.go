@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/types"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/types"
 )
 
 // Basic test to verify our fixed types compile correctly

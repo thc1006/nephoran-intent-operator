@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/internal/planner"
-	"github.com/thc1006/nephoran-intent-operator/planner/internal/rules"
+	"github.com/nephio-project/nephoran-intent-operator/internal/planner"
+	"github.com/nephio-project/nephoran-intent-operator/planner/internal/rules"
 )
 
 // TestFilePermissions_IntentFiles tests that intent files are created with secure 0600 permissions

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	types "github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
+	types "github.com/nephio-project/nephoran-intent-operator/pkg/shared/types"
 	"log/slog"
 )
 

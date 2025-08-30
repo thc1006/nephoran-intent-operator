@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
 )
 
 func TestA1AdaptorPolicyTypeOperations(t *testing.T) {

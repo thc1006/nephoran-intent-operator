@@ -7,7 +7,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/thc1006/nephoran-intent-operator/planner/internal/rules"
+	"github.com/nephio-project/nephoran-intent-operator/planner/internal/rules"
 )
 
 // TestKMPDataValidation_EdgeCases tests edge cases and boundary conditions for KMP data validation

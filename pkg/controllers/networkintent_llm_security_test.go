@@ -14,8 +14,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/security"
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/security"
 )
 
 // MockLLMClient for testing that returns different responses based on input

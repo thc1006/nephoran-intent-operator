@@ -9,7 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/thc1006/nephoran-intent-operator/pkg/types"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/types"
 )
 
 // MockWeaviateClientRST implements a mock for WeaviateClient (renamed to avoid conflict)

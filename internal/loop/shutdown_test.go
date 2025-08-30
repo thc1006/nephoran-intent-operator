@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/thc1006/nephoran-intent-operator/internal/ingest"
+	"github.com/nephio-project/nephoran-intent-operator/internal/ingest"
 )
 
 // TestShutdownSequencing verifies that shutdown happens in the correct order:

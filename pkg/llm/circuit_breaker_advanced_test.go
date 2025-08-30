@@ -12,7 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 )
 
 var _ = Describe("Advanced Circuit Breaker Tests", func() {

@@ -1,6 +1,6 @@
 package llm
 
-import "github.com/thc1006/nephoran-intent-operator/pkg/rag"
+import "github.com/nephio-project/nephoran-intent-operator/pkg/rag"
 
 // Type aliases to bridge the gap between handler expectations and available stubs
 

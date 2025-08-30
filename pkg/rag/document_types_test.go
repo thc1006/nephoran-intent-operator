@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/types"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/types"
 )
 
 // TestDocumentTypeCompatibility tests that our Document type aliases work correctly

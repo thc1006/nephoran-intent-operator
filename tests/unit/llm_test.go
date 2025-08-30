@@ -11,8 +11,8 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
-	"github.com/thc1006/nephoran-intent-operator/tests/framework"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
+	"github.com/nephio-project/nephoran-intent-operator/tests/framework"
 )
 
 // LLMTestSuite provides comprehensive testing for LLM components

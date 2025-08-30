@@ -23,10 +23,10 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/contracts"
-	resiliencecontroller "github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/nephio-project/nephoran-intent-operator/api/v1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/contracts"
+	resiliencecontroller "github.com/nephio-project/nephoran-intent-operator/pkg/controllers/resilience"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
 )
 
 // ParallelProcessingConfig defines configuration for parallel processing

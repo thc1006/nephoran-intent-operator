@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoran "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {

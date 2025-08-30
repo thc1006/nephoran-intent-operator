@@ -22,9 +22,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	nephv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit"
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
+	nephv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/audit"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers"
 )
 
 // E2EAuditTestSuite tests end-to-end audit workflows with real controllers

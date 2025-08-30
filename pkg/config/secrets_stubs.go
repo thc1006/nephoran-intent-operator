@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/interfaces"
 )
 
 // KubernetesSecretManager provides a concrete type for disable_rag builds

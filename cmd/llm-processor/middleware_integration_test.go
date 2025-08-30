@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/thc1006/nephoran-intent-operator/pkg/config"
-	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/middleware"
 )
 
 // createIPAllowlistHandler creates a test handler with IP allowlist functionality

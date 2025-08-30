@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/rag"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 )
 
