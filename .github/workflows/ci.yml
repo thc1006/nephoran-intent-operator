@@ -347,16 +347,41 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        service: [conductor-loop, intent-ingest]
+        service: [conductor-loop, intent-ingest, llm-processor, nephio-bridge, oran-adaptor, porch-publisher, planner]
         include:
           - service: conductor-loop
             dockerfile: Dockerfile.fast-2025
-            target: runtime
+            target: go-runtime
             context: .
             service_type: go
           - service: intent-ingest
             dockerfile: Dockerfile.fast-2025
-            target: runtime
+            target: go-runtime
+            context: .
+            service_type: go
+          - service: llm-processor
+            dockerfile: Dockerfile.fast-2025
+            target: go-runtime
+            context: .
+            service_type: go
+          - service: nephio-bridge
+            dockerfile: Dockerfile.fast-2025
+            target: go-runtime
+            context: .
+            service_type: go
+          - service: oran-adaptor
+            dockerfile: Dockerfile.fast-2025
+            target: go-runtime
+            context: .
+            service_type: go
+          - service: porch-publisher
+            dockerfile: Dockerfile.fast-2025
+            target: go-runtime
+            context: .
+            service_type: go
+          - service: planner
+            dockerfile: Dockerfile.fast-2025
+            target: go-runtime
             context: .
             service_type: go
     steps:
@@ -503,7 +528,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile.production
+          file: Dockerfile.fast-2025
+          target: go-runtime
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
