@@ -8,11 +8,26 @@
 
 name: Emergency Merge
 
+# TEMPORARILY DISABLED due to shell escaping issues with commit messages
+# on:
+#   push:
+#     branches: ['main', 'integrate/**', 'feat/**', 'fix/**', 'chore/**']
+#   pull_request:
+#     branches: ['main', 'integrate/**']
+
+# TEMPORARY: Manual-only to prevent shell errors
 on:
-  push:
-    branches: ['main', 'integrate/**', 'feat/**', 'fix/**', 'chore/**']
-  pull_request:
-    branches: ['main', 'integrate/**']
+  workflow_dispatch:
+    inputs:
+      emergency_type:
+        description: 'Emergency type'
+        required: true
+        default: 'hotfix'
+        type: choice
+        options:
+          - hotfix
+          - critical
+          - emergency
 
 # Ultra-fast concurrency - cancel everything else
 concurrency:
