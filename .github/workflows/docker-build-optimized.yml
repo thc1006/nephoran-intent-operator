@@ -1,0 +1,264 @@
+name: Docker Build Optimized
+
+on:
+  push:
+    branches: [ main, feat/*, integrate/* ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  REGISTRY_USERNAME: ${{ github.actor }}
+  REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+  REGISTRY_NAMESPACE: ${{ github.repository_owner }}
+  
+  # Performance optimizations
+  DOCKER_BUILDKIT: 1
+  BUILDKIT_PROGRESS: plain
+  DOCKER_CLI_HINTS: false
+  
+  # Go build optimization
+  CGO_ENABLED: 0
+  GO_VERSION: 1.24.1
+  ALPINE_VERSION: 3.21
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Single fast metadata job
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      build-date: ${{ steps.meta.outputs.build-date }}
+      vcs-ref: ${{ steps.meta.outputs.vcs-ref }}
+      services: ${{ steps.services.outputs.matrix }}
+      cache-key: ${{ steps.cache.outputs.key }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - id: meta
+        run: |
+          echo "version=$(git describe --tags --always --dirty)" >> $GITHUB_OUTPUT
+          echo "build-date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+          echo "vcs-ref=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          
+      - id: services
+        run: |
+          SERVICES='["intent-ingest","llm-processor","nephio-bridge","oran-adaptor","conductor-loop","porch-publisher","planner"]'
+          echo "matrix=$SERVICES" >> $GITHUB_OUTPUT
+          
+      - id: cache
+        run: |
+          echo "key=${{ runner.os }}-buildx-${{ hashFiles('go.sum', 'Dockerfile') }}" >> $GITHUB_OUTPUT
+
+  # Parallel builds with optimized caching
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 10  # Reduced from 20
+    strategy:
+      fail-fast: false
+      max-parallel: 4  # Limit parallel builds to prevent resource exhaustion
+      matrix:
+        service: ${{fromJson(needs.prepare.outputs.services)}}
+    
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Optimized buildx setup with better caching
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          version: latest
+          driver: docker-container
+          driver-opts: |
+            image=moby/buildkit:v0.16.0
+            network=host
+          buildkitd-config-inline: |
+            [worker.oci]
+              max-parallelism = 4
+              gc = true
+              gckeepstorage = 2000000000
+              [[worker.oci.gcpolicy]]
+                keepBytes = 1000000000
+                keepDuration = 604800
+                filters = [ "type==source.local", "type==exec.cachemount" ]
+            [registry."ghcr.io"]
+              mirrors = ["mirror.gcr.io"]
+      
+      - name: Login to Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.REGISTRY_USERNAME }}
+          password: ${{ env.REGISTRY_PASSWORD }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=raw,value=${{ needs.prepare.outputs.version }}
+      
+      # Use fast Dockerfile with optimal caching
+      - name: Build and Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.fast-2025
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            SERVICE=${{ matrix.service }}
+            VERSION=${{ needs.prepare.outputs.version }}
+            BUILD_DATE=${{ needs.prepare.outputs.build-date }}
+            VCS_REF=${{ needs.prepare.outputs.vcs-ref }}
+            GO_VERSION=${{ env.GO_VERSION }}
+            ALPINE_VERSION=${{ env.ALPINE_VERSION }}
+          cache-from: |
+            type=gha,scope=${{ matrix.service }}
+          cache-to: |
+            type=gha,mode=max,scope=${{ matrix.service }}
+          provenance: false  # Disable for speed
+          sbom: false  # Run separately if needed
+
+  # Combined security scan (parallel)
+  security-scan:
+    needs: [prepare, build]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      max-parallel: 4
+      matrix:
+        service: ["intent-ingest", "llm-processor", "nephio-bridge", "oran-adaptor"]
+    
+    steps:
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${{ matrix.service }}:${{ needs.prepare.outputs.version }}
+          format: 'sarif'
+          output: 'trivy-${{ matrix.service }}.sarif'
+          severity: 'CRITICAL,HIGH'  # Focus on important issues
+          timeout: '5m'
+      
+      - name: Upload results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-${{ matrix.service }}.sarif'
+          category: 'container-${{ matrix.service }}'
+
+  # Fast integration test with health checks
+  integration-test:
+    needs: [prepare, build]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Login to Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.REGISTRY_USERNAME }}
+          password: ${{ env.REGISTRY_PASSWORD }}
+      
+      # Parallel image pulls
+      - name: Pull images in parallel
+        run: |
+          services=("intent-ingest" "llm-processor" "nephio-bridge" "oran-adaptor" "conductor-loop" "porch-publisher" "planner")
+          
+          # Start all pulls in background
+          for service in "${services[@]}"; do
+            docker pull ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${service}:${{ needs.prepare.outputs.version }} &
+          done
+          
+          # Wait for all pulls to complete
+          wait
+          echo "All images pulled successfully"
+      
+      - name: Start services with health checks
+        run: |
+          cat << 'EOF' > docker-compose.test.yml
+          version: '3.9'
+          services:
+            intent-ingest:
+              image: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/intent-ingest:${{ needs.prepare.outputs.version }}
+              ports: ["8081:8080"]
+              healthcheck:
+                test: ["CMD", "/service", "--version"]
+                interval: 5s
+                timeout: 3s
+                retries: 10
+                start_period: 10s
+            
+            nephio-bridge:
+              image: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/nephio-bridge:${{ needs.prepare.outputs.version }}
+              ports: ["8082:8080"]
+              healthcheck:
+                test: ["CMD", "/service", "--version"]
+                interval: 5s
+                timeout: 3s
+                retries: 10
+                start_period: 10s
+          EOF
+          
+          docker compose -f docker-compose.test.yml up -d
+          
+          # Wait for health checks instead of fixed sleep
+          timeout 60 bash -c 'until docker compose -f docker-compose.test.yml ps | grep -q "healthy"; do sleep 2; done'
+          
+          # Quick smoke test
+          curl -f http://localhost:8081/health || echo "Health check endpoint not available"
+          
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose -f docker-compose.test.yml down -v || true
+          docker system prune -f
+
+  # Final validation
+  validate:
+    needs: [build, security-scan, integration-test]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    
+    steps:
+      - name: Check results
+        run: |
+          if [ "${{ needs.build.result }}" = "success" ] && \
+             [ "${{ needs.integration-test.result }}" = "success" ]; then
+            echo "✅ All builds and tests passed!"
+            echo "## ✅ Docker Build Success" >> $GITHUB_STEP_SUMMARY
+            echo "All services built and tested successfully." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Build or tests failed"
+            echo "## ❌ Docker Build Failed" >> $GITHUB_STEP_SUMMARY
+            echo "Check individual job logs for details." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi

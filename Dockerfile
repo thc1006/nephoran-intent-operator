@@ -165,6 +165,9 @@ RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
 # =============================================================================
 FROM gcr.io/distroless/static:${DISTROLESS_VERSION} AS final
 
+# Alias for backward compatibility with CI expecting go-runtime target
+FROM final AS go-runtime
+
 # Re-declare arguments for labels
 ARG SERVICE
 ARG VERSION

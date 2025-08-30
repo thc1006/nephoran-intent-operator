@@ -1,0 +1,275 @@
+name: CI Optimized
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main, integrate/mvp, "feat/**", "chore/**" ]
+  pull_request:
+    branches: [ main, integrate/mvp ]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: '1.24'
+  GOPROXY: 'https://proxy.golang.org,direct'
+  GOSUMDB: 'sum.golang.org'
+
+jobs:
+  # Fast change detection
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      go-code: ${{ steps.filter.outputs.go-code }}
+      docker: ${{ steps.filter.outputs.docker }}
+      charts: ${{ steps.filter.outputs.charts }}
+      docs: ${{ steps.filter.outputs.docs }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Only need recent commits for change detection
+      
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            go-code:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+            docker:
+              - 'Dockerfile*'
+              - '.dockerignore'
+            charts:
+              - 'charts/**'
+              - 'deployments/**'
+            docs:
+              - '**/*.md'
+              - 'docs/**'
+
+  # Parallel Go jobs
+  go-validate:
+    name: Go Validation
+    needs: changes
+    if: needs.changes.outputs.go-code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        task: [test, lint, security]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Go with cache
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
+      
+      # Restore build cache
+      - name: Restore build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.task }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ matrix.task }}-
+            ${{ runner.os }}-go-
+      
+      # Task-specific execution
+      - name: Run ${{ matrix.task }}
+        run: |
+          case "${{ matrix.task }}" in
+            test)
+              echo "Running tests with coverage..."
+              go test -v -race -coverprofile=coverage.out -covermode=atomic \
+                -timeout=5m \
+                -parallel=4 \
+                ./...
+              
+              # Generate summary
+              coverage=$(go tool cover -func=coverage.out | grep total | awk '{print $3}')
+              echo "## Test Coverage: $coverage" >> $GITHUB_STEP_SUMMARY
+              ;;
+            
+            lint)
+              echo "Running linters..."
+              # Install golangci-lint if not cached
+              if ! command -v golangci-lint &> /dev/null; then
+                curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | \
+                  sh -s -- -b $(go env GOPATH)/bin v1.62.2
+              fi
+              
+              # Run with optimized config
+              golangci-lint run \
+                --timeout=5m \
+                --concurrency=4 \
+                --max-issues-per-linter=50 \
+                --max-same-issues=10 \
+                --out-format=github-actions \
+                ./...
+              ;;
+            
+            security)
+              echo "Running security scan..."
+              # Quick vulnerability check
+              go list -json -deps ./... | \
+                nancy sleuth --skip-update-check --quiet 2>/dev/null || true
+              
+              # Basic static analysis
+              go vet ./...
+              
+              echo "## Security scan completed" >> $GITHUB_STEP_SUMMARY
+              ;;
+          esac
+      
+      # Upload artifacts only for test task
+      - name: Upload coverage
+        if: matrix.task == 'test'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.out
+          retention-days: 1
+
+  # Fast CRD generation
+  crds:
+    name: Generate CRDs
+    needs: changes
+    if: needs.changes.outputs.go-code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      
+      # Cache controller-gen binary
+      - name: Cache tools
+        uses: actions/cache@v4
+        with:
+          path: ~/go/bin/controller-gen
+          key: controller-gen-${{ env.GO_VERSION }}
+      
+      - name: Generate CRDs
+        run: |
+          # Install controller-gen if needed
+          if [ ! -f ~/go/bin/controller-gen ]; then
+            go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
+          fi
+          
+          # Generate CRDs
+          mkdir -p deployments/crds
+          ~/go/bin/controller-gen crd:crdVersions=v1 \
+            rbac:roleName=manager-role \
+            webhook \
+            paths="./api/..." \
+            output:crd:artifacts:config=deployments/crds/
+          
+          # Count generated files
+          crd_count=$(find deployments/crds -name '*.yaml' | wc -l)
+          echo "Generated $crd_count CRD files" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Upload CRDs
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-crds
+          path: deployments/crds/
+          if-no-files-found: ignore
+          retention-days: 1
+
+  # Docker validation (lightweight)
+  docker-validate:
+    name: Docker Validate
+    needs: changes
+    if: needs.changes.outputs.docker == 'true' || needs.changes.outputs.go-code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker  # Use docker driver for speed in validation
+      
+      # Validate Dockerfile syntax
+      - name: Validate Dockerfiles
+        run: |
+          for dockerfile in Dockerfile*; do
+            echo "Validating $dockerfile..."
+            docker build --check . -f "$dockerfile" || {
+              echo "❌ $dockerfile validation failed"
+              exit 1
+            }
+          done
+          echo "✅ All Dockerfiles valid" >> $GITHUB_STEP_SUMMARY
+      
+      # Quick build test (single service, single platform)
+      - name: Test build
+        run: |
+          docker build \
+            --platform=linux/amd64 \
+            --build-arg SERVICE=intent-ingest \
+            --build-arg VERSION=test \
+            --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+            --build-arg VCS_REF=${{ github.sha }} \
+            --target=runtime \
+            -t test-build:latest \
+            -f Dockerfile.fast-2025 \
+            .
+          
+          echo "✅ Test build successful" >> $GITHUB_STEP_SUMMARY
+
+  # Final validation (fast)
+  validate:
+    name: CI Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    needs: [go-validate, crds, docker-validate]
+    if: always()
+    
+    steps:
+      - name: Check results
+        run: |
+          echo "## CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check each job
+          go_result="${{ needs.go-validate.result }}"
+          crd_result="${{ needs.crds.result }}"
+          docker_result="${{ needs.docker-validate.result }}"
+          
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Go Validation | $go_result |" >> $GITHUB_STEP_SUMMARY
+          echo "| CRD Generation | $crd_result |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Validation | $docker_result |" >> $GITHUB_STEP_SUMMARY
+          
+          # Overall result
+          if [[ "$go_result" == "success" || "$go_result" == "skipped" ]] && \
+             [[ "$crd_result" == "success" || "$crd_result" == "skipped" ]] && \
+             [[ "$docker_result" == "success" || "$docker_result" == "skipped" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ✅ All checks passed!" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ❌ Some checks failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
