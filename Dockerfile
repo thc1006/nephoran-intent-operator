@@ -66,7 +66,7 @@ ARG VCS_REF
 # Validate required build arguments
 RUN if [ -z "$SERVICE" ]; then \
     echo "ERROR: SERVICE build argument is required. Use --build-arg SERVICE=<service-name>" >&2; \
-    echo "Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller" >&2; \
+    echo "Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller, e2-kpm-sim, o1-ves-sim" >&2; \
     exit 1; \
     fi
 
@@ -100,7 +100,9 @@ RUN set -ex; \
         "oran-adaptor") CMD_PATH="./cmd/oran-adaptor/main.go" ;; \
         "manager") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
         "controller") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
-        *) echo "Unknown service: $SERVICE. Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller" && exit 1 ;; \
+        "e2-kpm-sim") CMD_PATH="./cmd/e2-kpm-sim/main.go" ;; \
+        "o1-ves-sim") CMD_PATH="./cmd/o1-ves-sim/main.go" ;; \
+        *) echo "Unknown service: $SERVICE. Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller, e2-kpm-sim, o1-ves-sim" && exit 1 ;; \
     esac; \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
         -buildmode=pie \
