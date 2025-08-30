@@ -1,259 +1,23 @@
-<<<<<<< HEAD
-# Ultra-fast golangci-lint configuration for rapid CI/CD
-# This config prioritizes speed over comprehensiveness
-# Use for quick feedback during development
+# Comprehensive golangci-lint configuration for 2025
+# Optimized for Kubernetes operators with Go 1.24+ and O-RAN telecom domain
+# Compatible with golangci-lint v2.0+ (migration from v1 format completed)
+# Balances development speed with comprehensive code quality
 
 run:
-  # Timeout for analysis
-  timeout: 1m
-  
-  # Number of parallel jobs (0 = number of cores)
-  concurrency: 0
-  
-  # Exit code when issues found
+  timeout: 10m
   issues-exit-code: 1
-  
-  # Include test files
-  tests: false
-  
-  # Build tags to use
-  build-tags:
-    - fast_build
-    - unit_only
-    - netgo
-    - osusergo
-  
-  # Skip directories
-  skip-dirs:
-    - vendor
-    - testdata
-    - node_modules
-    - .git
-    - .github
-    - docs
-    - examples
-    - hack
-    - scripts
-    - deployments
-  
-  # Skip files
-  skip-files:
-    - ".*\\.pb\\.go$"
-    - ".*\\.gen\\.go$"
-    - "zz_generated\\..+"
-    - ".*_test\\.go$"
-  
-  # Modules download mode
-  modules-download-mode: readonly
-  
-  # Allow parallel runners
-  allow-parallel-runners: true
-  
-  # Allow serial runners
-  allow-serial-runners: true
-
-output:
-  # Format: colored-line-number|line-number|json|colored-tab|tab|checkstyle|code-climate|junit-xml|github-actions
-  format: colored-line-number
-  
-  # Print linter name
-  print-linter-name: true
-  
-  # Unique issues
-  uniq-by-line: true
-  
-  # Sort results
-  sort-results: true
-
-linters:
-  # Disable all linters by default
-  disable-all: true
-  
-  # Enable only the fastest, most critical linters
-  enable:
-    # Fast and critical
-    - govet        # Reports suspicious constructs (very fast)
-    - ineffassign  # Detects ineffectual assignments (fast)
-    - misspell     # Finds misspelled words (fast)
-    - unconvert    # Removes unnecessary type conversions (fast)
-    - typecheck    # Type checking (fast)
-    
-    # Security (fast subset)
-    - gosec        # Security issues (configured for speed below)
-    
-  # Run these linters in fast mode
-  fast: true
-
-linters-settings:
-  govet:
-    # Only check critical issues
-    enable:
-      - atomic
-      - bools
-      - buildtag
-      - nilfunc
-      - printf
-      - unreachable
-    
-    # Disable slower checks
-    disable:
-      - asmdecl
-      - assign
-      - cgocall
-      - composites
-      - copylocks
-      - deepequalerrors
-      - errorsas
-      - fieldalignment
-      - httpresponse
-      - ifaceassert
-      - loopclosure
-      - lostcancel
-      - shadow
-      - shift
-      - sortslice
-      - stdmethods
-      - stringintconv
-      - structtag
-      - testinggoroutine
-      - tests
-      - unmarshal
-      - unsafeptr
-      - unusedresult
-  
-  gosec:
-    # Only check critical security issues
-    includes:
-      - G101 # Hard coded credentials
-      - G401 # Weak crypto
-      - G501 # Weak crypto imports
-      - G601 # Implicit aliasing in range
-    
-    # Exclude less critical checks for speed
-    excludes:
-      - G104 # Unhandled errors
-      - G204 # Subprocess audit
-      - G304 # File path traversal
-      - G306 # Poor file permissions
-      - G307 # Poor file close
-    
-    # Set to low for speed
-    confidence: high
-    severity: high
-    
-    # Concurrency for faster scanning
-    concurrency: 16
-  
-  misspell:
-    # Use default locale only for speed
-    locale: US
-    
-    # Ignore certain words
-    ignore-words:
-      - nephoran
-      - porch
-      - kpt
-      - oran
-      
-  ineffassign:
-    # No special settings, it's already fast
-    
-  unconvert:
-    # Fast mode - check only obvious cases
-    fast-math: true
-    safe: false
-
-issues:
-  # Maximum issues to report
-  max-issues-per-linter: 10
-  max-same-issues: 3
-  
-  # Don't report new issues on old code
-  new: false
-  
-  # Fix found issues (if possible)
-  fix: false
-  
-  # Exclude certain patterns
-  exclude:
-    - "Error return value of .* is not checked"
-    - "should have comment or be unexported"
-    - "don't use an underscore in package name"
-    - "at least one file in a package should have a package comment"
-    - "should have a package comment"
-    - "comment on exported .* should be of the form"
-  
-  # Exclude rules
-  exclude-rules:
-    # Exclude test files from most linters
-    - path: _test\.go
-      linters:
-        - gosec
-        - ineffassign
-    
-    # Exclude generated files
-    - path: \.pb\.go
-      linters:
-        - govet
-        - gosec
-    
-    # Exclude vendor
-    - path: vendor/
-      linters:
-        - govet
-        - gosec
-        - ineffassign
-        - misspell
-        - unconvert
-        - typecheck
-  
-  # Use default excludes
-  exclude-use-default: true
-  
-  # Don't exclude issues about comments from golint
-  exclude-case-sensitive: false
-  
-  # Show all issues from a linter
-  include: []
-  
-  # Maximum count of issues with same text
-  max-per-linter: 0
-  
-  # Fix found issues
-  fix: false
-
-severity:
-  # Set default severity
-  default-severity: warning
-  
-  # Don't fail on warnings
-  case-sensitive: false
-=======
-# Fast golangci-lint configuration for development (2025 optimized)
-# Optimized for speed: 2-7x faster than default configuration
-# Compatible with golangci-lint v1.64.8+ and Go 1.24.x
-# Target: <30s for large codebases
-
-run:
-  timeout: 5m  # Reduced from 15m
-  issues-exit-code: 1
-  tests: false  # Skip test files for speed
+  tests: true  # Include test files for comprehensive analysis
   go: "1.24"
   
-  # Critical optimization: limit concurrency for better cache utilization
-  concurrency: 4  # Optimal for most developer machines (not 0/unlimited)
+  # Optimized concurrency for CI/CD environments
+  concurrency: 6  # Balanced for modern CI systems
   
-  # Skip rarely changing directories
+  # Skip directories that don't contain source code
   skip-dirs:
     - vendor
     - testdata
-    - examples
     - third_party
     - .git
-    - docs
-    - deployments
-    - scripts
-    - hack
     - bin
     - out
     - tmp
@@ -262,168 +26,399 @@ run:
     - test-results
     - coverage
     - artifacts
-    - configs
-    - monitoring
+    - node_modules
+    - deployments/base  # Skip Kustomize base files
+    - config/samples    # Skip sample YAML files
     
-  # Skip generated files early for maximum performance
+  # Skip generated and external files
   skip-files:
-    - '.*\.pb\.go$'
-    - '.*_generated\.go$'
-    - '.*_gen\.go$'
-    - 'zz_generated\..*\.go$'
-    - '.*deepcopy.*\.go$'
-    - 'mock_.*\.go$'
-    - '.*_mock\.go$'
-    - '.*\.mock\.go$'
-    - '.*fake.*\.go$'
-    - 'vendor/.*'
+    - '.*\.pb\.go$'                    # Protocol buffer generated files
+    - '.*_generated\.go$'              # Generated files
+    - '.*_gen\.go$'                    # Generated files
+    - 'zz_generated\..*\.go$'          # Kubebuilder generated files
+    - '.*deepcopy.*\.go$'              # Kubernetes deepcopy files
+    - 'mock_.*\.go$'                   # Mock files
+    - '.*_mock\.go$'                   # Mock files
+    - '.*\.mock\.go$'                  # Mock files
+    - '.*fake.*\.go$'                  # Fake client files
+    - 'vendor/.*'                      # Vendored dependencies
+    - 'hack/testtools/envtest_.*\.go$' # Test environment setup
     
   modules-download-mode: readonly
-  allow-parallel-runners: true  # Enable parallel execution
+  allow-parallel-runners: true
 
-# Minimal output for speed
+# Professional output format
 output:
   formats:
-    - format: line-number  # Simpler than colored-line-number
-  print-issued-lines: false  # Don't print code snippets
+    colored-line-number: stdout
+    sarif: golangci-lint-report.sarif  # For security scanning
+  print-issued-lines: true
   print-linter-name: true
-  sort-results: false  # Skip sorting for speed
-  uniq-by-line: false  # Skip deduplication for speed
+  sort-results: true
+  uniq-by-line: true
+  show-stats: true
 
-# Fast cache configuration
+# Optimized caching
 cache:
   enabled: true
+  build-cache: true
 
+# Comprehensive linter configuration
 linters:
-  # Fast preset with only essential linters
-  disable-all: true
+  default: standard  # v2 format: use standard linters as base
   enable:
-    # Core quality (must-have)
-    - govet        # Fast, catches real bugs
-    - staticcheck  # Fast with cache
-    - typecheck    # Very fast compilation check
+    # Code quality
+    - revive           # Fast replacement for golint
+    - stylecheck       # Style checks
+    - unconvert        # Unnecessary type conversions  
+    - unparam          # Unused function parameters
+    - unused           # Unused code detection
+    - whitespace       # Whitespace errors
+    - wsl              # Whitespace linter
+    - cyclop           # Cyclomatic complexity
+    - funlen           # Function length
+    - nestif           # Deeply nested if statements
+    - gocognit         # Cognitive complexity
+    - maintidx         # Maintainability index
     
-    # Critical errors only
-    - errcheck     # Essential error handling
-    - ineffassign  # Dead code detection
+    # Security (critical for Kubernetes operators)
+    - gosec            # Security vulnerabilities
+    - bidichk          # Dangerous unicode characters
+    - bodyclose        # HTTP response body closing
+    - rowserrcheck     # SQL rows.Err() checking
+    - sqlclosecheck    # SQL Close() method checking
     
-    # Fast formatters
-    - gofumpt      # Fast formatter
-    - gci          # Fast import organizer
+    # Performance
+    - prealloc         # Slice preallocation
+    - gocritic         # Various checks including performance
+    - makezero         # Slice initialization
+    - sloglint         # Structured logging best practices
     
-    # Security essentials
-    - gosec        # Security issues only
+    # Kubernetes & Context specific
+    - contextcheck     # Non-inherited context usage
+    - containedctx     # Context in struct fields (anti-pattern)
+    - nolintlint       # Nolint directive usage
+    - exportloopref    # Loop variable capture issues
+    - copyloopvar      # Loop variable copying (Go 1.22+)
     
-  fast: true  # Enable fast mode for supported linters
+    # Error handling (crucial for operators)
+    - errchkjson       # JSON error handling
+    - wrapcheck        # Error wrapping
+    - errorlint        # Error handling patterns
+    
+    # Code organization
+    - depguard         # Package import restrictions
+    - grouper          # Grouping of declarations
+    - importas         # Import naming consistency
+    - decorder         # Declaration ordering
+    
+    # Documentation
+    - godot            # Comments end with period
+    - misspell         # Spelling errors
+    
+    # Go 1.24+ specific
+    - intrange         # Integer range loops
+    - testifylint      # Testify best practices
+    - tenv             # Testing environment variables
+    - testpackage      # Separate _test packages
+    
+  disable:
+    - gci              # Use gofumpt for import organization
+    - gofmt            # Use gofumpt instead
+    - goimports        # Use gofumpt instead
+    - forbidigo        # Too restrictive for operators
+    - exhaustruct      # Too verbose for Kubernetes types
+    - varnamelen       # Too restrictive for short variable names
+    - ireturn          # Conflicts with Kubernetes client patterns
+    - tagliatelle      # JSON tags handled by Kubernetes conventions
 
+# Detailed linter settings
 linters-settings:
-  # Minimal configurations for maximum speed
-  
+  # Core Go tools
   govet:
-    enable:
-      - assign
-      - atomic
-      - bools
-      - buildtag
-      - composites
-      - copylocks
-      - httpresponse
-      - loopclosure
-      - lostcancel
-      - nilfunc
-      - printf
-      - stdmethods
-      - structtag
-      - tests
-      - unmarshal
-      - unreachable
-      - unsafeptr
-      - unusedresult
+    enable-all: true
     disable:
-      - fieldalignment  # Expensive check
-      - shadow  # Can be slow
-  
+      - fieldalignment  # Too noisy for Kubernetes types
+      - shadow         # Can be overly strict
+    settings:
+      shadow:
+        strict: false
+        
   staticcheck:
-    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-SA5011", "-SA1019"]
+    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021"]
     
-  errcheck:
-    check-type-assertions: false  # Faster
-    check-blank: false  # Faster
-    
+  # Security configuration
   gosec:
-    severity: "high"  # Only high severity for speed
-    confidence: "high"  # Only high confidence
+    severity: medium
+    confidence: medium
     excludes:
-      - G104  # Unhandled errors
-      - G204  # Subprocess launch
-      - G304  # File path traversal
-      - G404  # Weak RNG
+      - G104  # Unhandled errors (errcheck handles this)
+      - G204  # Subprocess launching (needed for kubectl/porch operations)
+      - G304  # File path provided as taint input (needed for config files)
+    includes:
+      - G101  # Look for hardcoded credentials
+      - G102  # Bind to all interfaces
+      - G103  # Audit the use of unsafe block
+      - G201  # SQL query construction using format string
+      - G202  # SQL query construction using string concatenation
+      - G301  # Poor file permissions used when creating a directory
+      - G302  # Poor file permissions used with chmod
+      - G401  # Detect the usage of DES, RC4, MD5 or SHA1
+      - G501  # Import blocklist: crypto/md5
+      - G502  # Import blocklist: crypto/des
+      - G503  # Import blocklist: crypto/rc4
+      - G504  # Import blocklist: net/http/cgi
+      - G505  # Import blocklist: crypto/sha1
       
-  ineffassign:
-    # No special config needed
+  # Error handling
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+    exclude-functions:
+      - '(*database/sql.Rows).Close'
+      - '(*database/sql.DB).Close'
+      - 'fmt.Print*'
+      - 'fmt.Fprint*'
+      - (*os.File).Close
+      
+  wrapcheck:
+    ignoreSigs:
+      - .Errorf(
+      - errors.New(
+      - errors.Unwrap(
+      - .Wrap(
+      - .Wrapf(
+    ignorePackageGlobs:
+      - encoding/*
+      - github.com/pkg/errors
+      
+  # Performance and code quality
+  cyclop:
+    max-complexity: 15
+    skip-tests: true
     
+  funlen:
+    lines: 80
+    statements: 40
+    ignore-comments: true
+    
+  gocognit:
+    min-complexity: 20
+    
+  nestif:
+    min-complexity: 5
+    
+  # Kubernetes and context specific
+  contextcheck:
+    check-shadowing: true
+    
+  containedctx:
+    check-pointers: true
+    
+  depguard:
+    rules:
+      main:
+        deny:
+          - pkg: "github.com/pkg/errors"
+            desc: "Use standard library errors package with fmt.Errorf for Go 1.13+ error wrapping"
+          - pkg: "github.com/sirupsen/logrus"
+            desc: "Use slog from standard library or controller-runtime logging"
+        allow:
+          - $gostd
+          - k8s.io
+          - sigs.k8s.io
+          - github.com/nephio-project
+          - github.com/google
+          - cloud.google.com
+          - github.com/aws
+          - github.com/Azure
+          - github.com/stretchr/testify
+          - github.com/onsi/ginkgo
+          - github.com/onsi/gomega
+          
+  # Code style
+  revive:
+    severity: warning
+    confidence: 0.8
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unused-parameter
+      - name: unreachable-code
+      - name: redefines-builtin-id
+        
+  stylecheck:
+    checks: ["all", "-ST1000", "-ST1003"]
+    
+  # Import organization
   gofumpt:
-    extra-rules: false  # Faster without extra rules
+    extra-rules: true
+    lang-version: "1.24"
+    module-path: github.com/nephio-project/nephoran-intent-operator
     
-  gci:
-    sections:
-      - standard
-      - default
-      - prefix(github.com/thc1006/nephoran-intent-operator)
-    skip-generated: true
-    custom-order: false  # Faster
+  # Documentation
+  godot:
+    scope: declarations
+    exclude:
+      - "^fixme:"
+      - "^todo:"
+    capital: false
+    
+  misspell:
+    locale: US
+    ignore-words:
+      - cancelled  # British spelling but common in tech
+      - marshalling
+      - signalling
+      - telecom
+      - telco
+      - oran
+      - nephio
+      - kubernetes
+      - k8s
+      
+  # Testing
+  testifylint:
+    enable-all: true
+    disable:
+      - go-require  # Allow testify/require in test files
+      
+  tenv:
+    all: true
 
+# Issue handling and exclusions
 issues:
-  # Aggressive exclusions for speed
-  max-issues-per-linter: 50  # Limit output
-  max-same-issues: 3  # Limit duplicates
+  max-issues-per-linter: 100
+  max-same-issues: 10
   
-  # Fix suggestions slow things down
-  fix: false
+  # Enable auto-fixing for supported linters
+  fix: true
   
-  # New issues detection for incremental checks
-  new: false  # Can enable for PR checks
-  new-from-rev: ""  # Set to base branch for PR checks
+  # Include new issues only for PR checks
+  new: false
+  new-from-rev: ""
   
-  # Minimal exclusion processing
-  exclude-case-sensitive: true  # Faster matching
+  # Performance optimization
+  exclude-case-sensitive: false
+  exclude-use-default: true
   
-  # Fast path exclusions
+  # File-specific exclusions
   exclude-files:
-    - '.*_test\.go$'  # Skip all test files
-    - '.*\.pb\.go$'
-    - '.*_generated\.go$'
-    - 'vendor/.*'
+    - 'cmd/.*test.*\.go$'  # Exclude test binaries
     
   exclude-rules:
-    # Only essential exclusions
+    # Test files exclusions
     - path: '_test\.go'
       linters:
         - gosec
-        - errcheck
+        - funlen
+        - maintidx
+        - cyclop
+        - wrapcheck
+        - containedctx
+        - dupl
         
-    - path: 'main\.go'
+    # Main files exclusions
+    - path: 'cmd/.*/main\.go'
       linters:
-        - errcheck  # Main often has deferred errors
+        - wrapcheck  # Main files often have unwrapped errors for CLI output
+        - forbidigo  # Main files may need fmt.Print for CLI output
         
-    # Skip generated files completely
-    - path: '(.*\.pb\.go|.*_generated\.go|.*_gen\.go)'
+    # Generated files (belt and suspenders approach)
+    - path: '(.*\.pb\.go|.*_generated\.go|.*_gen\.go|zz_generated.*\.go)'
       linters:
-        - govet
-        - staticcheck
+        - all
+        
+    # Webhook files (allow complex validation logic)
+    - path: '.*webhook.*\.go'
+      linters:
+        - cyclop
+        - funlen
+        - gocognit
+        
+    # Controller files (allow complex reconciliation logic)
+    - path: '.*controller.*\.go'
+      linters:
+        - cyclop
+        - funlen
+        - gocognit
+        
+    # API types (Kubernetes conventions)
+    - path: 'api/.*/.*_types\.go'
+      linters:
+        - revive
+        - stylecheck
+        - godot  # API documentation has different conventions
+        
+    # Example and demo files
+    - path: '(examples|demo)/.*\.go'
+      linters:
         - gosec
         - errcheck
-        - ineffassign
-        - gofumpt
-        - gci
+        - wrapcheck
+        
+    # Legacy or external integration code
+    - path: 'internal/.*/(a1sim|e2sim|fcaps|o1|ves)/.*\.go'
+      linters:
+        - stylecheck
+        - revive
+        - godot
+        
+    # Build constraint files
+    - path: 'build_constraints\.go'
+      linters:
+        - all
+        
+    # Allow longer lines in specific cases
+    - linters:
+        - lll
+      source: "^//\\s*(\\+kubebuilder:|\\+k8s:|go:generate)"
+      
+  # Exclude specific error patterns
+  exclude:
+    # Kubernetes client-go patterns
+    - "should not use dot imports"
+    - "should have comment or be unexported"
+    - "comment on exported .* should be of the form"
+    - "exported .* should have comment or be unexported"
+    
+    # O-RAN specific terminology
+    - "misspell: `oran` is a misspelling of `orange`"
+    - "misspell: `telco` is a misspelling"
+    - "misspell: `nephio` is a misspelling"
 
-  # Include only critical issues
-  exclude-use-default: true  # Use default exclusions
-  
-  # Performance optimization
-  whole-files: false  # Check only changed lines when possible
-
+# Severity configuration  
 severity:
   default-severity: error
   case-sensitive: true
->>>>>>> origin/integrate/mvp
+  rules:
+    - linters:
+        - godot
+        - misspell
+        - revive
+      severity: warning
+    - linters:
+        - gosec
+        - errcheck
+        - staticcheck
+        - govet
+      severity: error

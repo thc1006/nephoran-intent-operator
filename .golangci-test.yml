@@ -1,0 +1,55 @@
+version: 2
+
+run:
+  timeout: 10m
+  go: "1.24"
+  concurrency: 6
+  tests: true
+  skip-dirs:
+    - vendor
+    - testdata
+    - third_party
+    - .git
+    - bin
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters:
+  enable:
+    - revive
+    - stylecheck
+    - unconvert
+    - unused
+    - whitespace
+    - cyclop
+    - funlen
+    - gosec
+    - errcheck
+    - govet
+
+linters-settings:
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment
+      - shadow
+  
+  gosec:
+    severity: medium
+    confidence: medium
+    excludes:
+      - G104
+      - G204
+      - G304
+  
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+issues:
+  max-issues-per-linter: 50
+  max-same-issues: 10
+  new: false

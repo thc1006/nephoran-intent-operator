@@ -1,108 +1,14 @@
-<<<<<<< HEAD
-# golangci-lint config optimized for ULTRA SPEED MODE (2025)
+# golangci-lint configuration for Nephoran Intent Operator
 # Comprehensive linting with performance optimizations for CI/CD
 
 run:
-  timeout: 8m
-  go: '1.24'
-  issues-exit-code: 1
-  tests: true
-  modules-download-mode: readonly
-  allow-parallel-runners: true
-  build-tags:
-    - netgo
-    - osusergo
-    - static_build
-
-linters:
-  # Ultra-fast linter configuration for CI speed (2025 optimized)
-  disable-all: true
-  enable:
-    - govet       # Essential static analysis
-    - staticcheck # Fast and comprehensive
-    - errcheck    # Error handling validation
-    - revive      # Fast Go linting
-    - gofmt       # Formatting check (fast)
-    - ineffassign # Dead code detection (fast)
-    - misspell    # Spelling errors (fast)
-    - unused      # Detect unused variables/functions
-    - typecheck   # Type checking
-    - gosimple    # Simplification suggestions
-
-linters-settings:
-  revive:
-    # Ultra-fast ruleset optimized for CI speed
-    severity: warning
-    confidence: 0.8
-    rules:
-      - name: blank-imports
-      - name: context-as-argument
-      - name: exported
-        arguments: ["disableStutteringCheck"]
-      - name: receiver-naming
-      - name: increment-decrement
-  
-  # Optimize staticcheck for speed
-  staticcheck:
-    checks: ["all", "-SA1019"]  # Skip deprecated warnings for speed
-  
-  # Fast govet configuration
-  govet:
-    enable-all: false
-    enable:
-      - assign
-      - atomic
-      - bools
-      - buildtag
-      - nilfunc
-      - printf
-
-# All issue-related filters and exclusions live under "issues"
-issues:
-  # Don't limit counts while we're stabilizing the codebase
-  max-issues-per-linter: 0
-  max-same-issues: 0
-  
-  # Use default exclude patterns (vendor, third_party, etc.)
-  exclude-use-default: true
-  
-  # Additional directories to exclude from linting
-  exclude-dirs:
-    - _examples
-    - tools
-    - testdata
-    - vendor
-    - .git
-    - bin
-    - deployments
-  
-  # Files to exclude from linting
-  exclude-files:
-    - ".*\\.pb\\.go$"
-    - ".*_generated\\.go$"
-    - "zz_generated.*.go$"
-
-  # Use exclude-rules instead of deprecated exclusions
-  exclude-rules:
-    # Exclude generated files
-    - path: "_generated\\.go$"
-      linters:
-        - all
-    # Exclude vendor directory
-    - path: "^vendor/"
-      linters:
-        - all
-    # Exclude docs, examples, deployments, testdata, _examples, tools
-    - path: "^(docs|examples|deployments|testdata|_examples|tools)/"
-      linters:
-        - all
-    # Allow some patterns in tests
-=======
-run:
   timeout: 30m
+  go: '1.24'
   tests: true
   build-tags:
     - integration
+    - netgo
+    - osusergo
 
 linters:
   enable:
@@ -123,6 +29,7 @@ linters:
     - unconvert
     - intrange
     - nolintlint
+    - misspell
 
   disable:
     # Temporarily disabled formatting linters to unblock merge
@@ -226,40 +133,46 @@ linters-settings:
       - default
       - prefix(github.com/nephio-project/nephoran-intent-operator)
 
+# Fixed deprecation warnings by using issues section instead of run
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0
+  
+  # Use default exclude patterns (vendor, third_party, etc.)
+  exclude-use-default: true
 
+  # Additional directories to exclude from linting
   exclude-dirs:
     - vendor
     - third_party
     - testdata
     - examples
     - docs
+    - _examples
+    - tools
+    - .git
+    - bin
+    - deployments
+
+  # Files to exclude from linting
+  exclude-files:
+    - ".*\\.pb\\.go$"
+    - ".*_generated\\.go$"
+    - "zz_generated.*.go$"
 
   exclude-rules:
     # Exclude test files from certain linters
->>>>>>> origin/integrate/mvp
-    - path: _test\.go
+    - path: "_test\\.go"
       linters:
         - errcheck
         - gosec
-<<<<<<< HEAD
-
-# Output format for golangci-lint
-output:
-  formats:
-    - format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
-=======
         - dupl
         - funlen
         - goconst
         - unparam
 
     # Exclude generated files
-    - path: _generated\.go
+    - path: "_generated\\.go"
       linters:
         - all
 
@@ -299,7 +212,6 @@ output:
       linters:
         - contextcheck
 
-  exclude-use-default: false
   exclude:
     # Common false positives
     - "Error return value of .((Close|Write|Flush|Remove|Rollback)|(.*\\.Wait)) is not checked"
@@ -307,4 +219,10 @@ output:
     - "should have a package comment"
     - "(comment on exported (method|function|type|const)|should have( a package)? comment|comment should be of the form)"
     - "at least one file in a package should have a package comment"
->>>>>>> origin/integrate/mvp
+
+# Output format for golangci-lint
+output:
+  formats:
+    - format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
