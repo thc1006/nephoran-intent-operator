@@ -100,7 +100,7 @@ jobs:
           driver-opts: |
             image=moby/buildkit:v0.16.0
             network=host
-          config-inline: |
+          buildkitd-config-inline: |
             [worker.oci]
               max-parallelism = 4
               gc-keep-storage = "2GB"
@@ -198,9 +198,6 @@ jobs:
             type=registry,ref=${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${{ matrix.service }}:buildcache,mode=max,compression=zstd,force-compression=true
           provenance: mode=max
           sbom: true
-          attestations: |
-            type=provenance,mode=max
-            type=sbom,generator=docker/buildx-action
 
       - name: Run Trivy vulnerability scanner
         if: github.event_name != 'pull_request'
